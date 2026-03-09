@@ -36,7 +36,10 @@ describe('Cycle 109: Procedural Generation', () => {
 
     // Different types should produce different values
     const values = new Set([
-      value.toFixed(4), perlin.toFixed(4), ridged.toFixed(4), warped.toFixed(4)
+      value.toFixed(4),
+      perlin.toFixed(4),
+      ridged.toFixed(4),
+      warped.toFixed(4),
     ]);
     expect(values.size).toBeGreaterThanOrEqual(2);
   });
@@ -61,7 +64,10 @@ describe('Cycle 109: Procedural Generation', () => {
     const gen = new LSystemGenerator();
     const expanded = gen.expand({
       axiom: 'A',
-      rules: [{ symbol: 'A', replacement: 'AB' }, { symbol: 'B', replacement: 'A' }],
+      rules: [
+        { symbol: 'A', replacement: 'AB' },
+        { symbol: 'B', replacement: 'A' },
+      ],
       angle: 25,
       length: 1,
       lengthScale: 0.8,
@@ -143,11 +149,11 @@ describe('Cycle 109: Procedural Generation', () => {
 
     // Ground floor should have a lobby
     const groundFloor = result.floorPlans[0];
-    const lobby = groundFloor.rooms.find(r => r.type === 'lobby');
+    const lobby = groundFloor.rooms.find((r) => r.type === 'lobby');
     expect(lobby).toBeDefined();
 
     // Ground floor should have a door
-    const door = groundFloor.openings.find(o => o.type === 'door');
+    const door = groundFloor.openings.find((o) => o.type === 'door');
     expect(door).toBeDefined();
   });
 
@@ -155,13 +161,21 @@ describe('Cycle 109: Procedural Generation', () => {
     const gen = new BuildingGenerator();
 
     const b1 = gen.generate({
-      id: 'b1', floors: 3, floorHeight: 3, footprint: { width: 12, depth: 10 },
-      style: 'residential', seed: 1,
+      id: 'b1',
+      floors: 3,
+      floorHeight: 3,
+      footprint: { width: 12, depth: 10 },
+      style: 'residential',
+      seed: 1,
     });
 
     const b2 = gen.generate({
-      id: 'b2', floors: 3, floorHeight: 3, footprint: { width: 12, depth: 10 },
-      style: 'residential', seed: 9999,
+      id: 'b2',
+      floors: 3,
+      floorHeight: 3,
+      footprint: { width: 12, depth: 10 },
+      style: 'residential',
+      seed: 9999,
     });
 
     // Same structure but different room arrangements

@@ -76,12 +76,7 @@ export function SuspenseTask<T = unknown>({
 }: SuspenseTaskProps<T>): JSX.Element {
   return (
     <Suspense fallback={fallback}>
-      <TaskContent
-        agent={agent}
-        taskName={taskName}
-        params={params}
-        onError={onError}
-      >
+      <TaskContent agent={agent} taskName={taskName} params={params} onError={onError}>
         {children}
       </TaskContent>
     </Suspense>

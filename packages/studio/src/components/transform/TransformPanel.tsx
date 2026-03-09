@@ -22,51 +22,111 @@ export interface TransformSettings {
   space: 'local' | 'world';
 }
 
-const DEFAULT_TRANSFORM: TransformData = { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] };
-const DEFAULT_SETTINGS: TransformSettings = { snapEnabled: false, positionSnap: 0.5, rotationSnap: 15, scaleSnap: 0.1, linked: false, space: 'world' };
+const DEFAULT_TRANSFORM: TransformData = {
+  position: [0, 0, 0],
+  rotation: [0, 0, 0],
+  scale: [1, 1, 1],
+};
+const DEFAULT_SETTINGS: TransformSettings = {
+  snapEnabled: false,
+  positionSnap: 0.5,
+  rotationSnap: 15,
+  scaleSnap: 0.1,
+  linked: false,
+  space: 'world',
+};
 
-export function TransformPanel({ transform, onChange }: { transform?: TransformData; onChange?: (t: TransformData) => void }) {
+export function TransformPanel({
+  transform,
+  onChange,
+}: {
+  transform?: TransformData;
+  onChange?: (t: TransformData) => void;
+}) {
   const [t, setT] = useState<TransformData>(transform ?? DEFAULT_TRANSFORM);
   const [settings, setSettings] = useState<TransformSettings>(DEFAULT_SETTINGS);
 
-  const update = useCallback((partial: Partial<TransformData>) => {
-    setT(prev => { const n = { ...prev, ...partial }; onChange?.(n); return n; });
-  }, [onChange]);
+  const update = useCallback(
+    (partial: Partial<TransformData>) => {
+      setT((prev) => {
+        const n = { ...prev, ...partial };
+        onChange?.(n);
+        return n;
+      });
+    },
+    [onChange]
+  );
 
-  const snap = useCallback((value: number, grid: number) => {
-    return settings.snapEnabled ? Math.round(value / grid) * grid : value;
-  }, [settings.snapEnabled]);
+  const snap = useCallback(
+    (value: number, grid: number) => {
+      return settings.snapEnabled ? Math.round(value / grid) * grid : value;
+    },
+    [settings.snapEnabled]
+  );
 
-  const setAxis = useCallback((prop: keyof TransformData, axis: 0 | 1 | 2, value: number) => {
-    const snapped = snap(value, prop === 'position' ? settings.positionSnap : prop === 'rotation' ? settings.rotationSnap : settings.scaleSnap);
-    const arr = [...t[prop]] as [number, number, number];
-    if (prop === 'scale' && settings.linked) {
-      const ratio = snapped / (arr[axis] || 1);
-      arr[0] *= ratio; arr[1] *= ratio; arr[2] *= ratio;
-    } else {
-      arr[axis] = snapped;
-    }
-    update({ [prop]: arr });
-  }, [t, settings, update, snap]);
+  const setAxis = useCallback(
+    (prop: keyof TransformData, axis: 0 | 1 | 2, value: number) => {
+      const snapped = snap(
+        value,
+        prop === 'position'
+          ? settings.positionSnap
+          : prop === 'rotation'
+            ? settings.rotationSnap
+            : settings.scaleSnap
+      );
+      const arr = [...t[prop]] as [number, number, number];
+      if (prop === 'scale' && settings.linked) {
+        const ratio = snapped / (arr[axis] || 1);
+        arr[0] *= ratio;
+        arr[1] *= ratio;
+        arr[2] *= ratio;
+      } else {
+        arr[axis] = snapped;
+      }
+      update({ [prop]: arr });
+    },
+    [t, settings, update, snap]
+  );
 
-  const reset = useCallback((prop: keyof TransformData) => {
-    update({ [prop]: prop === 'scale' ? [1, 1, 1] : [0, 0, 0] });
-  }, [update]);
+  const reset = useCallback(
+    (prop: keyof TransformData) => {
+      update({ [prop]: prop === 'scale' ? [1, 1, 1] : [0, 0, 0] });
+    },
+    [update]
+  );
 
   const copyTransform = useCallback(() => {
-    navigator.clipboard?.writeText(`@transform { position: [${t.position}] rotation: [${t.rotation}] scale: [${t.scale}] }`);
+    navigator.clipboard?.writeText(
+      `@transform { position: [${t.position}] rotation: [${t.rotation}] scale: [${t.scale}] }`
+    );
   }, [t]);
 
   const AXES = ['X', 'Y', 'Z'] as const;
   const AXIS_COLORS = { X: 'text-red-400', Y: 'text-green-400', Z: 'text-blue-400' };
 
-  const Section = ({ prop, icon: Icon, label }: { prop: keyof TransformData; icon: typeof Move; label: string }) => (
+  const Section = ({
+    prop,
+    icon: Icon,
+    label,
+  }: {
+    prop: keyof TransformData;
+    icon: typeof Move;
+    label: string;
+  }) => (
     <div className="border-b border-studio-border px-3 py-2">
       <div className="flex items-center gap-2 mb-1.5">
         <Icon className="h-3.5 w-3.5 text-studio-muted" />
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-studio-muted">{label}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-studio-muted">
+          {label}
+        </span>
         <div className="flex-1" />
-        <button onClick={() => reset(prop)} className="text-studio-muted/40 hover:text-studio-text" title="Reset"><RotateCcw className="h-3 w-3" /></button>
+        <button
+          onClick={() => reset(prop)}
+          className="text-studio-muted/40 hover:text-studio-text"
+          title="Reset"
+        >
+          <RotateCcw className="h-3 w-3" />
+        </button>
       </div>
       <div className="flex gap-1.5">
         {AXES.map((axis, i) => (
@@ -76,7 +136,7 @@ export function TransformPanel({ transform, onChange }: { transform?: TransformD
               type="number"
               value={parseFloat(t[prop][i].toFixed(3))}
               step={prop === 'position' ? 0.1 : prop === 'rotation' ? 1 : 0.01}
-              onChange={e => setAxis(prop, i as 0 | 1 | 2, parseFloat(e.target.value) || 0)}
+              onChange={(e) => setAxis(prop, i as 0 | 1 | 2, parseFloat(e.target.value) || 0)}
               className="w-full rounded border border-studio-border bg-transparent px-1.5 py-1 text-xs text-studio-text outline-none font-mono focus:border-studio-accent/40"
             />
           </label>
@@ -94,16 +154,31 @@ export function TransformPanel({ transform, onChange }: { transform?: TransformD
           <span className="text-sm font-semibold text-studio-text">Transform</span>
         </div>
         <div className="flex gap-1">
-          <button onClick={() => setSettings(s => ({ ...s, space: s.space === 'local' ? 'world' : 'local' }))} className={`rounded px-1.5 py-0.5 text-[9px] ${settings.space === 'local' ? 'bg-indigo-500/20 text-indigo-400' : 'text-studio-muted'}`} title="Coordinate space">
+          <button
+            onClick={() =>
+              setSettings((s) => ({ ...s, space: s.space === 'local' ? 'world' : 'local' }))
+            }
+            className={`rounded px-1.5 py-0.5 text-[9px] ${settings.space === 'local' ? 'bg-indigo-500/20 text-indigo-400' : 'text-studio-muted'}`}
+            title="Coordinate space"
+          >
             {settings.space}
           </button>
-          <button onClick={copyTransform} className="rounded p-1 text-studio-muted hover:text-studio-text" title="Copy"><Copy className="h-3 w-3" /></button>
+          <button
+            onClick={copyTransform}
+            className="rounded p-1 text-studio-muted hover:text-studio-text"
+            title="Copy"
+          >
+            <Copy className="h-3 w-3" />
+          </button>
         </div>
       </div>
 
       {/* Snap Settings */}
       <div className="flex items-center gap-2 border-b border-studio-border px-3 py-1.5">
-        <button onClick={() => setSettings(s => ({ ...s, snapEnabled: !s.snapEnabled }))} className={`flex items-center gap-1 text-[10px] ${settings.snapEnabled ? 'text-studio-accent' : 'text-studio-muted'}`}>
+        <button
+          onClick={() => setSettings((s) => ({ ...s, snapEnabled: !s.snapEnabled }))}
+          className={`flex items-center gap-1 text-[10px] ${settings.snapEnabled ? 'text-studio-accent' : 'text-studio-muted'}`}
+        >
           <Magnet className="h-3 w-3" /> Snap
         </button>
         {settings.snapEnabled && (
@@ -114,7 +189,11 @@ export function TransformPanel({ transform, onChange }: { transform?: TransformD
           </div>
         )}
         <div className="flex-1" />
-        <button onClick={() => setSettings(s => ({ ...s, linked: !s.linked }))} className={`${settings.linked ? 'text-studio-accent' : 'text-studio-muted/40'}`} title="Uniform scale">
+        <button
+          onClick={() => setSettings((s) => ({ ...s, linked: !s.linked }))}
+          className={`${settings.linked ? 'text-studio-accent' : 'text-studio-muted/40'}`}
+          title="Uniform scale"
+        >
           {settings.linked ? <Link className="h-3 w-3" /> : <Unlink className="h-3 w-3" />}
         </button>
       </div>

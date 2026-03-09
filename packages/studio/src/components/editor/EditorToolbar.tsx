@@ -26,18 +26,18 @@ interface EditorToolbarProps {
   onOpenSafetyPanel?: () => void;
 }
 
-export function EditorToolbar({ code, worldId = 'default', onOpenSafetyPanel }: EditorToolbarProps) {
+export function EditorToolbar({
+  code,
+  worldId = 'default',
+  onOpenSafetyPanel,
+}: EditorToolbarProps) {
   const [platform, setPlatform] = useState('quest3');
 
   return (
     <div className="flex items-center justify-between border-t border-studio-border bg-studio-bg/80 backdrop-blur-sm px-3 py-1.5 min-h-[36px]">
       {/* Left: Safety status */}
       <div className="flex items-center gap-3">
-        <SafetyStatusBar
-          code={code}
-          debounceMs={500}
-          onOpenPanel={onOpenSafetyPanel}
-        />
+        <SafetyStatusBar code={code} debounceMs={500} onOpenPanel={onOpenSafetyPanel} />
         {/* Compact platform badge */}
         <select
           value={platform}
@@ -57,11 +57,7 @@ export function EditorToolbar({ code, worldId = 'default', onOpenSafetyPanel }: 
       </div>
 
       {/* Right: Deploy button */}
-      <DeployButton
-        code={code}
-        worldId={worldId}
-        packageName="my-scene"
-      />
+      <DeployButton code={code} worldId={worldId} packageName="my-scene" />
     </div>
   );
 }

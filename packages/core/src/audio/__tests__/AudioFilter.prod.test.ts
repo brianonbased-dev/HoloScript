@@ -9,11 +9,36 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { AudioFilter, FilterConfig } from '../AudioFilter';
 
-const lp = (freq = 1000, q = 1, gain = 0): FilterConfig => ({ type: 'lowpass', frequency: freq, q, gain });
-const hp = (freq = 1000, q = 1, gain = 0): FilterConfig => ({ type: 'highpass', frequency: freq, q, gain });
-const bp = (freq = 1000, q = 1, gain = 0): FilterConfig => ({ type: 'bandpass', frequency: freq, q, gain });
-const notch = (freq = 1000, q = 1, gain = 12): FilterConfig => ({ type: 'notch', frequency: freq, q, gain });
-const peak = (freq = 1000, q = 1, gain = 6): FilterConfig => ({ type: 'peaking', frequency: freq, q, gain });
+const lp = (freq = 1000, q = 1, gain = 0): FilterConfig => ({
+  type: 'lowpass',
+  frequency: freq,
+  q,
+  gain,
+});
+const hp = (freq = 1000, q = 1, gain = 0): FilterConfig => ({
+  type: 'highpass',
+  frequency: freq,
+  q,
+  gain,
+});
+const bp = (freq = 1000, q = 1, gain = 0): FilterConfig => ({
+  type: 'bandpass',
+  frequency: freq,
+  q,
+  gain,
+});
+const notch = (freq = 1000, q = 1, gain = 12): FilterConfig => ({
+  type: 'notch',
+  frequency: freq,
+  q,
+  gain,
+});
+const peak = (freq = 1000, q = 1, gain = 6): FilterConfig => ({
+  type: 'peaking',
+  frequency: freq,
+  q,
+  gain,
+});
 
 describe('AudioFilter — Production', () => {
   let f: AudioFilter;
@@ -44,7 +69,8 @@ describe('AudioFilter — Production', () => {
   });
 
   it('getBandCount returns correct count', () => {
-    f.addBand('a', lp()); f.addBand('b', hp());
+    f.addBand('a', lp());
+    f.addBand('b', hp());
     expect(f.getBandCount()).toBe(2);
   });
 
@@ -56,7 +82,8 @@ describe('AudioFilter — Production', () => {
   });
 
   it('getEnabledBandCount reflects enabled bands', () => {
-    f.addBand('a', lp()); f.addBand('b', hp());
+    f.addBand('a', lp());
+    f.addBand('b', hp());
     f.setBandEnabled('a', false);
     expect(f.getEnabledBandCount()).toBe(1);
   });

@@ -4,9 +4,17 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  resolvePlatforms, matchesPlatform, selectBlock, eliminateDeadCode,
-  embodimentFor, agentBudgetFor, hasCapability, platformCategory,
-  PLATFORM_CATEGORIES, ALL_PLATFORMS, PLATFORM_CAPABILITIES,
+  resolvePlatforms,
+  matchesPlatform,
+  selectBlock,
+  eliminateDeadCode,
+  embodimentFor,
+  agentBudgetFor,
+  hasCapability,
+  platformCategory,
+  PLATFORM_CATEGORIES,
+  ALL_PLATFORMS,
+  PLATFORM_CAPABILITIES,
   PlatformBlock,
 } from '../PlatformConditional';
 
@@ -124,7 +132,9 @@ describe('PlatformConditional', () => {
     });
 
     it('excluded platform does not match', () => {
-      expect(matchesPlatform('visionos', { includeCategories: ['vr'], exclude: ['visionos'] })).toBe(false);
+      expect(
+        matchesPlatform('visionos', { includeCategories: ['vr'], exclude: ['visionos'] })
+      ).toBe(false);
     });
   });
 

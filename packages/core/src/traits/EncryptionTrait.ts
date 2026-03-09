@@ -101,21 +101,29 @@ public class EncryptionManager : MonoBehaviour {
         ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls13;
         ServicePointManager.ServerCertificateValidationCallback = ValidateServerCertificate;
 
-        ${config.certificate_pinning ? `
+        ${
+          config.certificate_pinning
+            ? `
         // Certificate pinning enabled
         ServicePointManager.CheckCertificateRevocationList = true;
-        ` : ''}
+        `
+            : ''
+        }
     }
 
     bool ValidateServerCertificate(object sender, X509Certificate certificate,
                                     X509Chain chain, SslPolicyErrors sslPolicyErrors) {
-        ${config.certificate_pinning ? `
+        ${
+          config.certificate_pinning
+            ? `
         // Implement certificate pinning validation
         string expectedThumbprint = "YOUR_CERTIFICATE_THUMBPRINT";
         return certificate.GetCertHashString() == expectedThumbprint;
-        ` : `
+        `
+            : `
         return sslPolicyErrors == SslPolicyErrors.None;
-        `}
+        `
+        }
     }
 }`;
   },
@@ -137,15 +145,23 @@ private:
         // Cipher: ${config.cipher_suite}
         FSslModule& SslModule = FModuleManager::LoadModuleChecked<FSslModule>("SSL");
 
-        ${config.perfect_forward_secrecy ? `
+        ${
+          config.perfect_forward_secrecy
+            ? `
         // Enable perfect forward secrecy
         SslModule.SetCipherList("ECDHE+AESGCM");
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.certificate_pinning ? `
+        ${
+          config.certificate_pinning
+            ? `
         // Enable certificate pinning
         SslModule.SetCertificateVerificationMode(ESslCertificateVerificationMode::VerifyPeer);
-        ` : ''}
+        `
+            : ''
+        }
     }
 };`;
   },
@@ -165,14 +181,18 @@ func configure_tls():
     # Cipher: ${config.cipher_suite}
     stream_peer_tls = StreamPeerTLS.new()
 
-    ${config.certificate_pinning ? `
+    ${
+      config.certificate_pinning
+        ? `
     # Certificate pinning enabled
     var cert = X509Certificate.new()
     cert.load("res://certificates/server.crt")
     stream_peer_tls.accept_stream(stream_peer, TLSOptions.server(cert))
-    ` : `
+    `
+        : `
     stream_peer_tls.accept_stream(stream_peer, TLSOptions.server())
-    `}`;
+    `
+    }`;
   },
 
   compileWeb(config: EncryptionConfig): string {
@@ -189,10 +209,14 @@ const encryptionConfig = {
 const tlsOptions = {
   credentials: 'include',
   mode: 'cors',
-  ${config.certificate_pinning ? `
+  ${
+    config.certificate_pinning
+      ? `
   // Note: Certificate pinning in browsers requires custom implementation
   // or use of Content Security Policy (CSP) headers
-  ` : ''}
+  `
+      : ''
+  }
 };
 
 // For WebSocket TLS (wss://)
@@ -227,7 +251,7 @@ async function generateEncryptionKey() {
   "session_resumption": ${config.session_resumption || false},
   "ocsp_stapling": ${config.ocsp_stapling || false}
 }`;
-  }
+  },
 };
 
 export default EncryptionTrait;

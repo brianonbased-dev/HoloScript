@@ -45,9 +45,12 @@ describe('SceneQuery — Production', () => {
 
   it('findByTag returns multiple matches', () => {
     const root = new SceneNode('root');
-    const a = new SceneNode('a'); a.tags.add('x');
-    const b = new SceneNode('b'); b.tags.add('x');
-    root.addChild(a); root.addChild(b);
+    const a = new SceneNode('a');
+    a.tags.add('x');
+    const b = new SceneNode('b');
+    b.tags.add('x');
+    root.addChild(a);
+    root.addChild(b);
     expect(SceneQuery.findByTag(root, 'x').length).toBe(2);
   });
 
@@ -67,7 +70,7 @@ describe('SceneQuery — Production', () => {
   it('findByLayer includes root (layer 0)', () => {
     const { root } = makeTree();
     const results = SceneQuery.findByLayer(root, 0);
-    expect(results.some(n => n.id === 'root')).toBe(true);
+    expect(results.some((n) => n.id === 'root')).toBe(true);
   });
 
   // ─── findByName ───────────────────────────────────────────────────
@@ -88,14 +91,14 @@ describe('SceneQuery — Production', () => {
     const { root } = makeTree();
     // Player is at (0,0,0), radius 1 should include it
     const results = SceneQuery.findInRadius(root, { x: 0, y: 0, z: 0 }, 1);
-    expect(results.some(n => n.id === 'c1')).toBe(true);
+    expect(results.some((n) => n.id === 'c1')).toBe(true);
   });
 
   it('findInRadius excludes out-of-range nodes', () => {
     const { root } = makeTree();
     // Enemy is at (5,0,0), small radius at origin should not include it
     const results = SceneQuery.findInRadius(root, { x: 0, y: 0, z: 0 }, 0.5);
-    expect(results.some(n => n.id === 'c2')).toBe(false);
+    expect(results.some((n) => n.id === 'c2')).toBe(false);
   });
 
   it('findInRadius large radius finds all visible nodes', () => {
@@ -132,7 +135,7 @@ describe('SceneQuery — Production', () => {
       near: 0.1,
       far: 100,
     });
-    expect(results.some(n => n.id === 'h')).toBe(false);
+    expect(results.some((n) => n.id === 'h')).toBe(false);
   });
 
   // ─── visit ────────────────────────────────────────────────────────

@@ -13,23 +13,32 @@
 
 export interface CollisionPlane {
   id: string;
-  nx: number; ny: number; nz: number; d: number; // Plane equation
-  bounce: number;     // 0-1 restitution
-  friction: number;   // 0-1 velocity damping on contact
+  nx: number;
+  ny: number;
+  nz: number;
+  d: number; // Plane equation
+  bounce: number; // 0-1 restitution
+  friction: number; // 0-1 velocity damping on contact
   lifetimeLoss: number; // Fraction of lifetime lost per hit
 }
 
 export interface CollisionSphere {
   id: string;
-  cx: number; cy: number; cz: number;
+  cx: number;
+  cy: number;
+  cz: number;
   radius: number;
   bounce: number;
   friction: number;
 }
 
 export interface CollidableParticle {
-  x: number; y: number; z: number;
-  vx: number; vy: number; vz: number;
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
   lifetime: number;
   alive: boolean;
 }
@@ -51,9 +60,16 @@ export class ParticleCollisionSystem {
   // Collider Management
   // ---------------------------------------------------------------------------
 
-  addPlane(plane: CollisionPlane): void { this.planes.push(plane); }
-  addSphere(sphere: CollisionSphere): void { this.spheres.push(sphere); }
-  onSubEmit(callback: SubEmitCallback, count = 3): void { this.subEmitCallback = callback; this.subEmitCount = count; }
+  addPlane(plane: CollisionPlane): void {
+    this.planes.push(plane);
+  }
+  addSphere(sphere: CollisionSphere): void {
+    this.spheres.push(sphere);
+  }
+  onSubEmit(callback: SubEmitCallback, count = 3): void {
+    this.subEmitCallback = callback;
+    this.subEmitCount = count;
+  }
 
   // ---------------------------------------------------------------------------
   // Collision Detection & Response
@@ -81,9 +97,9 @@ export class ParticleCollisionSystem {
           p.vz = (p.vz - 2 * vDotN * plane.nz) * plane.bounce;
 
           // Friction (tangential damping)
-          p.vx *= (1 - plane.friction);
-          p.vy *= (1 - plane.friction);
-          p.vz *= (1 - plane.friction);
+          p.vx *= 1 - plane.friction;
+          p.vy *= 1 - plane.friction;
+          p.vz *= 1 - plane.friction;
 
           // Lifetime reduction
           p.lifetime -= plane.lifetimeLoss;
@@ -96,15 +112,21 @@ export class ParticleCollisionSystem {
 
       // Sphere collisions
       for (const sphere of this.spheres) {
-        const dx = p.x - sphere.cx, dy = p.y - sphere.cy, dz = p.z - sphere.cz;
+        const dx = p.x - sphere.cx,
+          dy = p.y - sphere.cy,
+          dz = p.z - sphere.cz;
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
         if (dist < sphere.radius && dist > 0) {
-          const nx = dx / dist, ny = dy / dist, nz = dz / dist;
+          const nx = dx / dist,
+            ny = dy / dist,
+            nz = dz / dist;
 
           // Push out
           const pen = sphere.radius - dist;
-          p.x += nx * pen; p.y += ny * pen; p.z += nz * pen;
+          p.x += nx * pen;
+          p.y += ny * pen;
+          p.z += nz * pen;
 
           // Reflect
           const vDotN = p.vx * nx + p.vy * ny + p.vz * nz;
@@ -113,9 +135,9 @@ export class ParticleCollisionSystem {
           p.vz = (p.vz - 2 * vDotN * nz) * sphere.bounce;
 
           // Friction
-          p.vx *= (1 - sphere.friction);
-          p.vy *= (1 - sphere.friction);
-          p.vz *= (1 - sphere.friction);
+          p.vx *= 1 - sphere.friction;
+          p.vy *= 1 - sphere.friction;
+          p.vz *= 1 - sphere.friction;
 
           this.collisionCount++;
         }
@@ -123,5 +145,7 @@ export class ParticleCollisionSystem {
     }
   }
 
-  getCollisionCount(): number { return this.collisionCount; }
+  getCollisionCount(): number {
+    return this.collisionCount;
+  }
 }

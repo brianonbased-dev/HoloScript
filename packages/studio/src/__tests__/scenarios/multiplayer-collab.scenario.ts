@@ -78,7 +78,9 @@ describe('Scenario: Multiplayer Collab — Presence State', () => {
 
   it('multiple concurrent users tracked independently', () => {
     for (let i = 0; i < 5; i++) {
-      useCollabStore.getState().upsertCursor(makeCursor(`user-${i}`, `User ${i}`, Math.random(), Math.random()));
+      useCollabStore
+        .getState()
+        .upsertCursor(makeCursor(`user-${i}`, `User ${i}`, Math.random(), Math.random()));
     }
     expect(Object.keys(useCollabStore.getState().cursors)).toHaveLength(5);
   });
@@ -101,7 +103,7 @@ describe('Scenario: Multiplayer Collab — Presence State', () => {
   it('chat messages are stored with sender and timestamp', () => {
     const messages: Array<{ sender: string; text: string; time: number }> = [];
     messages.push({ sender: 'alice', text: 'Ready to start?', time: Date.now() });
-    messages.push({ sender: 'bob', text: 'Let\'s go!', time: Date.now() + 1 });
+    messages.push({ sender: 'bob', text: "Let's go!", time: Date.now() + 1 });
     expect(messages).toHaveLength(2);
     expect(messages[0].sender).toBe('alice');
   });
@@ -137,19 +139,29 @@ describe('Scenario: Multiplayer Collab — Orchestration Workflows', () => {
 
   it('addMCPServer() registers a new MCP server', () => {
     useOrchestrationStore.getState().addMCPServer({
-      name: 'knowledge-hub', url: 'http://localhost:3000', apiKey: 'test',
-      enabled: true, healthCheckInterval: 30000, timeout: 10000,
+      name: 'knowledge-hub',
+      url: 'http://localhost:3000',
+      apiKey: 'test',
+      enabled: true,
+      healthCheckInterval: 30000,
+      timeout: 10000,
       retryPolicy: { maxRetries: 3, backoffMultiplier: 2 },
       features: { semanticSearch: true, toolDiscovery: true, resourceManagement: false },
     });
     expect(useOrchestrationStore.getState().mcpServers.size).toBe(1);
-    expect(useOrchestrationStore.getState().mcpServers.get('knowledge-hub')!.url).toBe('http://localhost:3000');
+    expect(useOrchestrationStore.getState().mcpServers.get('knowledge-hub')!.url).toBe(
+      'http://localhost:3000'
+    );
   });
 
   it('removeMCPServer() unregisters and clears status', () => {
     useOrchestrationStore.getState().addMCPServer({
-      name: 'toRemove', url: 'http://x', apiKey: '', enabled: true,
-      healthCheckInterval: 30000, timeout: 10000,
+      name: 'toRemove',
+      url: 'http://x',
+      apiKey: '',
+      enabled: true,
+      healthCheckInterval: 30000,
+      timeout: 10000,
       retryPolicy: { maxRetries: 1, backoffMultiplier: 1 },
       features: { semanticSearch: false, toolDiscovery: false, resourceManagement: false },
     });
@@ -174,24 +186,42 @@ describe('Scenario: Multiplayer Collab — Orchestration Workflows', () => {
   it('addWorkflowNode() adds a node to a workflow', () => {
     const id = useOrchestrationStore.getState().createWorkflow('Flow', 'test');
     useOrchestrationStore.getState().addWorkflowNode(id, {
-      id: 'n1', type: 'agent', label: 'Brittney',
+      id: 'n1',
+      type: 'agent',
+      label: 'Brittney',
       position: { x: 100, y: 50 },
-      data: { type: 'agent', agentId: 'brittney', systemPrompt: '', temperature: 0.7, tools: [], maxTokens: 1000 },
+      data: {
+        type: 'agent',
+        agentId: 'brittney',
+        systemPrompt: '',
+        temperature: 0.7,
+        tools: [],
+        maxTokens: 1000,
+      },
     });
     expect(useOrchestrationStore.getState().workflows.get(id)!.nodes).toHaveLength(1);
   });
 
   it('addEvent() appends to event log', () => {
     useOrchestrationStore.getState().addEvent({
-      id: 'e1', topic: 'task.complete', payload: { result: 'ok' },
-      senderId: 'agent-1', timestamp: Date.now(), receivedBy: ['agent-2'],
+      id: 'e1',
+      topic: 'task.complete',
+      payload: { result: 'ok' },
+      senderId: 'agent-1',
+      timestamp: Date.now(),
+      receivedBy: ['agent-2'],
     });
     expect(useOrchestrationStore.getState().events).toHaveLength(1);
   });
 
   it('clearEvents() empties the event log', () => {
     useOrchestrationStore.getState().addEvent({
-      id: 'e1', topic: 'a', payload: {}, senderId: 'x', timestamp: 0, receivedBy: [],
+      id: 'e1',
+      topic: 'a',
+      payload: {},
+      senderId: 'x',
+      timestamp: 0,
+      receivedBy: [],
     });
     useOrchestrationStore.getState().clearEvents();
     expect(useOrchestrationStore.getState().events).toHaveLength(0);
@@ -208,17 +238,30 @@ describe('Scenario: Multiplayer Collab — Orchestration Workflows', () => {
   it('workflow execution runs nodes in topological order', () => {
     const id = useOrchestrationStore.getState().createWorkflow('Pipeline', 'test');
     useOrchestrationStore.getState().addWorkflowNode(id, {
-      id: 'n1', type: 'tool', label: 'Fetch Data',
+      id: 'n1',
+      type: 'tool',
+      label: 'Fetch Data',
       position: { x: 0, y: 0 },
       data: { type: 'tool', server: 'knowledge', toolName: 'search', args: {}, timeout: 5000 },
     });
     useOrchestrationStore.getState().addWorkflowNode(id, {
-      id: 'n2', type: 'agent', label: 'Process',
+      id: 'n2',
+      type: 'agent',
+      label: 'Process',
       position: { x: 200, y: 0 },
-      data: { type: 'agent', agentId: 'brittney', systemPrompt: '', temperature: 0.7, tools: [], maxTokens: 1000 },
+      data: {
+        type: 'agent',
+        agentId: 'brittney',
+        systemPrompt: '',
+        temperature: 0.7,
+        tools: [],
+        maxTokens: 1000,
+      },
     });
     useOrchestrationStore.getState().addWorkflowEdge(id, {
-      id: 'e1', source: 'n1', target: 'n2',
+      id: 'e1',
+      source: 'n1',
+      target: 'n2',
     });
     const wf = useOrchestrationStore.getState().workflows.get(id)!;
     expect(wf.nodes).toHaveLength(2);
@@ -229,12 +272,19 @@ describe('Scenario: Multiplayer Collab — Orchestration Workflows', () => {
 
   it('tool call records track request/response lifecycle', () => {
     useOrchestrationStore.getState().addToolCall({
-      id: 'tc1', timestamp: Date.now(), toolName: 'search_knowledge',
-      server: 'ai-workspace', args: { query: 'physics' }, duration: 0,
-      status: 'pending', triggeredBy: 'agent-1',
+      id: 'tc1',
+      timestamp: Date.now(),
+      toolName: 'search_knowledge',
+      server: 'ai-workspace',
+      args: { query: 'physics' },
+      duration: 0,
+      status: 'pending',
+      triggeredBy: 'agent-1',
     });
     useOrchestrationStore.getState().updateToolCall('tc1', {
-      status: 'success', result: { matches: 5 }, duration: 120,
+      status: 'success',
+      result: { matches: 5 },
+      duration: 120,
     });
     const tc = useOrchestrationStore.getState().toolCallHistory[0];
     expect(tc.status).toBe('success');

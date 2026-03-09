@@ -77,17 +77,26 @@ describe('ainpcBrainHandler.onAttach', () => {
 
   it('emits ainpc_init with personality', () => {
     const { ctx } = attach({ personality: 'wise' });
-    expect(ctx.emit).toHaveBeenCalledWith('ainpc_init', expect.objectContaining({ personality: 'wise' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'ainpc_init',
+      expect.objectContaining({ personality: 'wise' })
+    );
   });
 
   it('emits ainpc_init with dialogueRange', () => {
     const { ctx } = attach({ dialogue_range: 10.0 });
-    expect(ctx.emit).toHaveBeenCalledWith('ainpc_init', expect.objectContaining({ dialogueRange: 10.0 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'ainpc_init',
+      expect.objectContaining({ dialogueRange: 10.0 })
+    );
   });
 
   it('emits ainpc_init with voiceEnabled', () => {
     const { ctx } = attach({ voice_enabled: false });
-    expect(ctx.emit).toHaveBeenCalledWith('ainpc_init', expect.objectContaining({ voiceEnabled: false }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'ainpc_init',
+      expect.objectContaining({ voiceEnabled: false })
+    );
   });
 
   it('emits ainpc_init with non-empty systemPrompt for helpful persona', () => {
@@ -162,9 +171,14 @@ describe('ainpcBrainHandler.onEvent — player_enter_dialogue_range', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'player_enter_dialogue_range', playerId: 'p1', distance: 3.0,
+      type: 'player_enter_dialogue_range',
+      playerId: 'p1',
+      distance: 3.0,
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_player_nearby', expect.objectContaining({ playerId: 'p1', distance: 3.0 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_player_nearby',
+      expect.objectContaining({ playerId: 'p1', distance: 3.0 })
+    );
   });
 
   it('does NOT emit on_player_nearby when already in_dialogue', () => {
@@ -172,7 +186,9 @@ describe('ainpcBrainHandler.onEvent — player_enter_dialogue_range', () => {
     (node as any).__npcState.in_dialogue = true;
     ctx.emit.mockClear();
     ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'player_enter_dialogue_range', playerId: 'p1', distance: 3.0,
+      type: 'player_enter_dialogue_range',
+      playerId: 'p1',
+      distance: 3.0,
     });
     expect(ctx.emit).not.toHaveBeenCalledWith('on_player_nearby', expect.anything());
   });
@@ -185,7 +201,9 @@ describe('ainpcBrainHandler.onEvent — player_exit_dialogue_range', () => {
     const { node, ctx, config } = attach();
     (node as any).__npcState.in_dialogue = true;
     ctx.emit.mockClear();
-    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, { type: 'player_exit_dialogue_range' });
+    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'player_exit_dialogue_range',
+    });
     expect((node as any).__npcState.in_dialogue).toBe(false);
     expect(ctx.emit).toHaveBeenCalledWith('on_dialogue_end', expect.any(Object));
   });
@@ -193,7 +211,9 @@ describe('ainpcBrainHandler.onEvent — player_exit_dialogue_range', () => {
   it('does NOT emit on_dialogue_end when not in_dialogue', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, { type: 'player_exit_dialogue_range' });
+    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'player_exit_dialogue_range',
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('on_dialogue_end', expect.anything());
   });
 });
@@ -203,30 +223,49 @@ describe('ainpcBrainHandler.onEvent — player_exit_dialogue_range', () => {
 describe('ainpcBrainHandler.onEvent — player_interact', () => {
   it('sets in_dialogue=true', () => {
     const { node, ctx, config } = attach();
-    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, { type: 'player_interact', playerId: 'p1' });
+    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'player_interact',
+      playerId: 'p1',
+    });
     expect((node as any).__npcState.in_dialogue).toBe(true);
   });
 
   it('increments conversation_count', () => {
     const { node, ctx, config } = attach();
-    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, { type: 'player_interact', playerId: 'p1' });
+    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'player_interact',
+      playerId: 'p1',
+    });
     expect((node as any).__npcState.conversation_count).toBe(1);
   });
 
   it('emits on_dialogue_start with playerId + conversationCount', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, { type: 'player_interact', playerId: 'p2' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_dialogue_start', expect.objectContaining({
-      playerId: 'p2', conversationCount: 1,
-    }));
+    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'player_interact',
+      playerId: 'p2',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_dialogue_start',
+      expect.objectContaining({
+        playerId: 'p2',
+        conversationCount: 1,
+      })
+    );
   });
 
   it('accumulates multiple interactions', () => {
     const { node, ctx, config } = attach();
-    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, { type: 'player_interact', playerId: 'p1' });
+    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'player_interact',
+      playerId: 'p1',
+    });
     (node as any).__npcState.in_dialogue = false;
-    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, { type: 'player_interact', playerId: 'p1' });
+    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'player_interact',
+      playerId: 'p1',
+    });
     expect((node as any).__npcState.conversation_count).toBe(2);
   });
 });
@@ -236,34 +275,53 @@ describe('ainpcBrainHandler.onEvent — player_interact', () => {
 describe('ainpcBrainHandler.onEvent — relationship_change', () => {
   it('applies delta to player_relationship', () => {
     const { node, ctx, config } = attach({ player_relationship: 0.5 });
-    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, { type: 'relationship_change', delta: 0.2 });
+    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'relationship_change',
+      delta: 0.2,
+    });
     expect(config.player_relationship).toBeCloseTo(0.7, 5);
   });
 
   it('clamps positive overshoot to 1.0', () => {
     const { node, ctx, config } = attach({ player_relationship: 0.9 });
-    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, { type: 'relationship_change', delta: 0.5 });
+    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'relationship_change',
+      delta: 0.5,
+    });
     expect(config.player_relationship).toBe(1.0);
   });
 
   it('clamps negative underflow to -1.0', () => {
     const { node, ctx, config } = attach({ player_relationship: -0.8 });
-    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, { type: 'relationship_change', delta: -0.5 });
+    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'relationship_change',
+      delta: -0.5,
+    });
     expect(config.player_relationship).toBe(-1.0);
   });
 
   it('emits on_relationship_updated with relationship+delta', () => {
     const { node, ctx, config } = attach({ player_relationship: 0.0 });
     ctx.emit.mockClear();
-    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, { type: 'relationship_change', delta: 0.3 });
-    expect(ctx.emit).toHaveBeenCalledWith('on_relationship_updated', expect.objectContaining({
-      relationship: expect.closeTo(0.3, 5), delta: 0.3,
-    }));
+    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'relationship_change',
+      delta: 0.3,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_relationship_updated',
+      expect.objectContaining({
+        relationship: expect.closeTo(0.3, 5),
+        delta: 0.3,
+      })
+    );
   });
 
   it('stores delta in relationship_delta for decay', () => {
     const { node, ctx, config } = attach();
-    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, { type: 'relationship_change', delta: 0.4 });
+    ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'relationship_change',
+      delta: 0.4,
+    });
     expect((node as any).__npcState.relationship_delta).toBe(0.4);
   });
 });

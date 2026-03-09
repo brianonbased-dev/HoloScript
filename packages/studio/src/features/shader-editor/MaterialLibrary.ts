@@ -164,7 +164,9 @@ export class MaterialLibrary {
   /**
    * Save custom material
    */
-  async saveMaterial(material: Omit<MaterialPreset, 'id' | 'createdAt' | 'isBuiltIn'>): Promise<MaterialPreset> {
+  async saveMaterial(
+    material: Omit<MaterialPreset, 'id' | 'createdAt' | 'isBuiltIn'>
+  ): Promise<MaterialPreset> {
     if (!this.db) await this.initialize();
 
     const preset: MaterialPreset = {
@@ -389,8 +391,10 @@ export class MaterialLibrary {
     // Connect water surface
     if (posNode && waterNode) graph.connect(posNode.id, 'position', waterNode.id, 'position');
     if (timeNode && waterNode) graph.connect(timeNode.id, 'time', waterNode.id, 'time');
-    if (waveScaleNode && waterNode) graph.connect(waveScaleNode.id, 'value', waterNode.id, 'waveScale');
-    if (waveSpeedNode && waterNode) graph.connect(waveSpeedNode.id, 'value', waterNode.id, 'waveSpeed');
+    if (waveScaleNode && waterNode)
+      graph.connect(waveScaleNode.id, 'value', waterNode.id, 'waveScale');
+    if (waveSpeedNode && waterNode)
+      graph.connect(waveSpeedNode.id, 'value', waterNode.id, 'waveSpeed');
     if (depthNode && waterNode) graph.connect(depthNode.id, 'value', waterNode.id, 'depth');
     if (foamNode && waterNode) graph.connect(foamNode.id, 'value', waterNode.id, 'foamThreshold');
 
@@ -492,11 +496,13 @@ export class MaterialLibrary {
 
     // Fresnel for transparency
     if (normalNode && fresnelNode) graph.connect(normalNode.id, 'normal', fresnelNode.id, 'normal');
-    if (viewDirNode && fresnelNode) graph.connect(viewDirNode.id, 'direction', fresnelNode.id, 'viewDir');
+    if (viewDirNode && fresnelNode)
+      graph.connect(viewDirNode.id, 'direction', fresnelNode.id, 'viewDir');
 
     // Output
     if (colorNode && outputNode) graph.connect(colorNode.id, 'value', outputNode.id, 'baseColor');
-    if (roughnessNode && outputNode) graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
+    if (roughnessNode && outputNode)
+      graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
     if (fresnelNode && outputNode) graph.connect(fresnelNode.id, 'result', outputNode.id, 'alpha');
 
     return {
@@ -551,7 +557,8 @@ export class MaterialLibrary {
 
     // Fresnel
     if (normalNode && fresnelNode) graph.connect(normalNode.id, 'normal', fresnelNode.id, 'normal');
-    if (viewDirNode && fresnelNode) graph.connect(viewDirNode.id, 'direction', fresnelNode.id, 'viewDir');
+    if (viewDirNode && fresnelNode)
+      graph.connect(viewDirNode.id, 'direction', fresnelNode.id, 'viewDir');
 
     // Emission
     if (holoColor && outputNode) graph.connect(holoColor.id, 'value', outputNode.id, 'emission');
@@ -615,8 +622,10 @@ export class MaterialLibrary {
     graph.setNodeProperty(roughnessNode!.id, 'value', 0.3);
 
     if (colorNode && outputNode) graph.connect(colorNode.id, 'color', outputNode.id, 'baseColor');
-    if (metallicNode && outputNode) graph.connect(metallicNode.id, 'value', outputNode.id, 'metallic');
-    if (roughnessNode && outputNode) graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
+    if (metallicNode && outputNode)
+      graph.connect(metallicNode.id, 'value', outputNode.id, 'metallic');
+    if (roughnessNode && outputNode)
+      graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
     if (normalNode && outputNode) graph.connect(normalNode.id, 'normal', outputNode.id, 'normal');
 
     return {
@@ -644,7 +653,8 @@ export class MaterialLibrary {
     graph.setNodeProperty(roughnessNode!.id, 'value', 0.4);
 
     if (colorNode && outputNode) graph.connect(colorNode.id, 'color', outputNode.id, 'baseColor');
-    if (roughnessNode && outputNode) graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
+    if (roughnessNode && outputNode)
+      graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
     if (normalNode && outputNode) graph.connect(normalNode.id, 'normal', outputNode.id, 'normal');
 
     return {
@@ -678,9 +688,11 @@ export class MaterialLibrary {
     graph.setNodeProperty(sheenRoughNode!.id, 'value', 0.5);
 
     if (colorNode && outputNode) graph.connect(colorNode.id, 'color', outputNode.id, 'baseColor');
-    if (roughnessNode && outputNode) graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
+    if (roughnessNode && outputNode)
+      graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
     if (sheenNode && outputNode) graph.connect(sheenNode.id, 'value', outputNode.id, 'sheenColor');
-    if (sheenRoughNode && outputNode) graph.connect(sheenRoughNode.id, 'value', outputNode.id, 'sheenRoughness');
+    if (sheenRoughNode && outputNode)
+      graph.connect(sheenRoughNode.id, 'value', outputNode.id, 'sheenRoughness');
     if (normalNode && outputNode) graph.connect(normalNode.id, 'normal', outputNode.id, 'normal');
 
     return {
@@ -714,9 +726,12 @@ export class MaterialLibrary {
     graph.setNodeProperty(sssColorNode!.id, 'z', 0.5);
 
     if (colorNode && outputNode) graph.connect(colorNode.id, 'color', outputNode.id, 'baseColor');
-    if (roughnessNode && outputNode) graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
-    if (sssThickNode && outputNode) graph.connect(sssThickNode.id, 'value', outputNode.id, 'subsurfaceThickness');
-    if (sssColorNode && outputNode) graph.connect(sssColorNode.id, 'value', outputNode.id, 'subsurfaceColor');
+    if (roughnessNode && outputNode)
+      graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
+    if (sssThickNode && outputNode)
+      graph.connect(sssThickNode.id, 'value', outputNode.id, 'subsurfaceThickness');
+    if (sssColorNode && outputNode)
+      graph.connect(sssColorNode.id, 'value', outputNode.id, 'subsurfaceColor');
     if (normalNode && outputNode) graph.connect(normalNode.id, 'normal', outputNode.id, 'normal');
 
     return {
@@ -745,7 +760,8 @@ export class MaterialLibrary {
     graph.setNodeProperty(emissionNode!.id, 'z', 0.1);
 
     if (uvNode && noiseNode) graph.connect(uvNode.id, 'uv', noiseNode.id, 'uv');
-    if (emissionNode && outputNode) graph.connect(emissionNode.id, 'value', outputNode.id, 'emission');
+    if (emissionNode && outputNode)
+      graph.connect(emissionNode.id, 'value', outputNode.id, 'emission');
     if (normalNode && outputNode) graph.connect(normalNode.id, 'normal', outputNode.id, 'normal');
 
     return {
@@ -775,8 +791,10 @@ export class MaterialLibrary {
     graph.setNodeProperty(iridesNode!.id, 'value', 0.8);
 
     if (colorNode && outputNode) graph.connect(colorNode.id, 'color', outputNode.id, 'baseColor');
-    if (roughnessNode && outputNode) graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
-    if (iridesNode && outputNode) graph.connect(iridesNode.id, 'value', outputNode.id, 'iridescence');
+    if (roughnessNode && outputNode)
+      graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
+    if (iridesNode && outputNode)
+      graph.connect(iridesNode.id, 'value', outputNode.id, 'iridescence');
     if (normalNode && outputNode) graph.connect(normalNode.id, 'normal', outputNode.id, 'normal');
 
     return {
@@ -832,7 +850,8 @@ export class MaterialLibrary {
     graph.setNodeProperty(alphaNode!.id, 'value', 0.7);
 
     if (colorNode && outputNode) graph.connect(colorNode.id, 'color', outputNode.id, 'baseColor');
-    if (roughnessNode && outputNode) graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
+    if (roughnessNode && outputNode)
+      graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
     if (alphaNode && outputNode) graph.connect(alphaNode.id, 'value', outputNode.id, 'alpha');
     if (normalNode && outputNode) graph.connect(normalNode.id, 'normal', outputNode.id, 'normal');
 
@@ -868,7 +887,8 @@ export class MaterialLibrary {
     graph.setNodeProperty(roughnessNode!.id, 'value', 0.2);
 
     if (uvNode && noiseNode) graph.connect(uvNode.id, 'uv', noiseNode.id, 'uv');
-    if (roughnessNode && outputNode) graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
+    if (roughnessNode && outputNode)
+      graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
     if (normalNode && outputNode) graph.connect(normalNode.id, 'normal', outputNode.id, 'normal');
 
     return {
@@ -896,7 +916,8 @@ export class MaterialLibrary {
     graph.setNodeProperty(roughnessNode!.id, 'value', 0.6);
 
     if (colorNode && outputNode) graph.connect(colorNode.id, 'color', outputNode.id, 'baseColor');
-    if (roughnessNode && outputNode) graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
+    if (roughnessNode && outputNode)
+      graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
     if (normalNode && outputNode) graph.connect(normalNode.id, 'normal', outputNode.id, 'normal');
 
     return {
@@ -925,7 +946,8 @@ export class MaterialLibrary {
     graph.setNodeProperty(colorNode!.id, 'z', 1.0);
 
     if (normalNode && fresnelNode) graph.connect(normalNode.id, 'normal', fresnelNode.id, 'normal');
-    if (viewDirNode && fresnelNode) graph.connect(viewDirNode.id, 'direction', fresnelNode.id, 'viewDir');
+    if (viewDirNode && fresnelNode)
+      graph.connect(viewDirNode.id, 'direction', fresnelNode.id, 'viewDir');
     if (colorNode && outputNode) graph.connect(colorNode.id, 'value', outputNode.id, 'emission');
     if (fresnelNode && outputNode) graph.connect(fresnelNode.id, 'result', outputNode.id, 'alpha');
 
@@ -1021,7 +1043,8 @@ export class MaterialLibrary {
     graph.setNodeProperty(alphaNode!.id, 'value', 0.8);
 
     if (colorNode && outputNode) graph.connect(colorNode.id, 'color', outputNode.id, 'baseColor');
-    if (roughnessNode && outputNode) graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
+    if (roughnessNode && outputNode)
+      graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
     if (alphaNode && outputNode) graph.connect(alphaNode.id, 'value', outputNode.id, 'alpha');
     if (normalNode && outputNode) graph.connect(normalNode.id, 'normal', outputNode.id, 'normal');
 
@@ -1052,8 +1075,10 @@ export class MaterialLibrary {
     graph.setNodeProperty(roughnessNode!.id, 'value', 0.2);
 
     if (colorNode && outputNode) graph.connect(colorNode.id, 'color', outputNode.id, 'baseColor');
-    if (metallicNode && outputNode) graph.connect(metallicNode.id, 'value', outputNode.id, 'metallic');
-    if (roughnessNode && outputNode) graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
+    if (metallicNode && outputNode)
+      graph.connect(metallicNode.id, 'value', outputNode.id, 'metallic');
+    if (roughnessNode && outputNode)
+      graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
     if (normalNode && outputNode) graph.connect(normalNode.id, 'normal', outputNode.id, 'normal');
 
     return {
@@ -1083,8 +1108,10 @@ export class MaterialLibrary {
     graph.setNodeProperty(roughnessNode!.id, 'value', 0.05);
 
     if (colorNode && outputNode) graph.connect(colorNode.id, 'color', outputNode.id, 'baseColor');
-    if (metallicNode && outputNode) graph.connect(metallicNode.id, 'value', outputNode.id, 'metallic');
-    if (roughnessNode && outputNode) graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
+    if (metallicNode && outputNode)
+      graph.connect(metallicNode.id, 'value', outputNode.id, 'metallic');
+    if (roughnessNode && outputNode)
+      graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
     if (normalNode && outputNode) graph.connect(normalNode.id, 'normal', outputNode.id, 'normal');
 
     return {
@@ -1116,9 +1143,12 @@ export class MaterialLibrary {
     graph.setNodeProperty(sssNode!.id, 'value', 0.5);
 
     if (colorNode && outputNode) graph.connect(colorNode.id, 'color', outputNode.id, 'baseColor');
-    if (roughnessNode && outputNode) graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
-    if (iridesNode && outputNode) graph.connect(iridesNode.id, 'value', outputNode.id, 'iridescence');
-    if (sssNode && outputNode) graph.connect(sssNode.id, 'value', outputNode.id, 'subsurfaceThickness');
+    if (roughnessNode && outputNode)
+      graph.connect(roughnessNode.id, 'value', outputNode.id, 'roughness');
+    if (iridesNode && outputNode)
+      graph.connect(iridesNode.id, 'value', outputNode.id, 'iridescence');
+    if (sssNode && outputNode)
+      graph.connect(sssNode.id, 'value', outputNode.id, 'subsurfaceThickness');
     if (normalNode && outputNode) graph.connect(normalNode.id, 'normal', outputNode.id, 'normal');
 
     return {
@@ -1152,12 +1182,17 @@ export class MaterialLibrary {
 
     if (uvNode && sparkleNode) graph.connect(uvNode.id, 'uv', sparkleNode.id, 'uv');
     if (normalNode && sparkleNode) graph.connect(normalNode.id, 'normal', sparkleNode.id, 'normal');
-    if (viewDirNode && sparkleNode) graph.connect(viewDirNode.id, 'direction', sparkleNode.id, 'viewDir');
-    if (densityNode && sparkleNode) graph.connect(densityNode.id, 'value', sparkleNode.id, 'density');
-    if (intensityNode && sparkleNode) graph.connect(intensityNode.id, 'value', sparkleNode.id, 'intensity');
+    if (viewDirNode && sparkleNode)
+      graph.connect(viewDirNode.id, 'direction', sparkleNode.id, 'viewDir');
+    if (densityNode && sparkleNode)
+      graph.connect(densityNode.id, 'value', sparkleNode.id, 'density');
+    if (intensityNode && sparkleNode)
+      graph.connect(intensityNode.id, 'value', sparkleNode.id, 'intensity');
     if (colorNode && outputNode) graph.connect(colorNode.id, 'color', outputNode.id, 'baseColor');
-    if (sparkleNode && outputNode) graph.connect(sparkleNode.id, 'flash', outputNode.id, 'sparkleIntensity');
-    if (densityNode && outputNode) graph.connect(densityNode.id, 'value', outputNode.id, 'sparkleDensity');
+    if (sparkleNode && outputNode)
+      graph.connect(sparkleNode.id, 'flash', outputNode.id, 'sparkleIntensity');
+    if (densityNode && outputNode)
+      graph.connect(densityNode.id, 'value', outputNode.id, 'sparkleDensity');
 
     return {
       id: 'glitter',

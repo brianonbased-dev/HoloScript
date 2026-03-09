@@ -7,22 +7,35 @@ import type { CraftingRecipe } from '../gameplay/CraftingSystem';
 // =============================================================================
 
 const SWORD_RECIPE: CraftingRecipe = {
-  id: 'sword', name: 'Iron Sword',
-  ingredients: [{ itemId: 'iron', quantity: 3 }, { itemId: 'wood', quantity: 1 }],
+  id: 'sword',
+  name: 'Iron Sword',
+  ingredients: [
+    { itemId: 'iron', quantity: 3 },
+    { itemId: 'wood', quantity: 1 },
+  ],
   output: { itemId: 'iron_sword', quantity: 1 },
-  workbenchType: 'forge', craftTime: 2, discovered: true, level: 1,
+  workbenchType: 'forge',
+  craftTime: 2,
+  discovered: true,
+  level: 1,
 };
 
 const POTION_RECIPE: CraftingRecipe = {
-  id: 'potion', name: 'Health Potion',
+  id: 'potion',
+  name: 'Health Potion',
   ingredients: [{ itemId: 'herb', quantity: 2 }],
   output: { itemId: 'health_potion', quantity: 1 },
-  workbenchType: null, craftTime: 1, discovered: false, level: 1,
+  workbenchType: null,
+  craftTime: 1,
+  discovered: false,
+  level: 1,
 };
 
 describe('CraftingSystem', () => {
   let cs: CraftingSystem;
-  beforeEach(() => { cs = new CraftingSystem(); });
+  beforeEach(() => {
+    cs = new CraftingSystem();
+  });
 
   it('addRecipe and getRecipe', () => {
     cs.addRecipe(SWORD_RECIPE);
@@ -43,13 +56,19 @@ describe('CraftingSystem', () => {
 
   it('canCraft checks ingredients and discovery', () => {
     cs.addRecipe({ ...SWORD_RECIPE });
-    const inv = new Map([['iron', 5], ['wood', 2]]);
+    const inv = new Map([
+      ['iron', 5],
+      ['wood', 2],
+    ]);
     expect(cs.canCraft('sword', inv)).toBe(true);
   });
 
   it('canCraft fails with insufficient materials', () => {
     cs.addRecipe({ ...SWORD_RECIPE });
-    const inv = new Map([['iron', 1], ['wood', 0]]);
+    const inv = new Map([
+      ['iron', 1],
+      ['wood', 0],
+    ]);
     expect(cs.canCraft('sword', inv)).toBe(false);
   });
 
@@ -62,13 +81,19 @@ describe('CraftingSystem', () => {
   it('canCraft fails when level too low', () => {
     cs.addRecipe({ ...SWORD_RECIPE, level: 5 });
     cs.setPlayerLevel(1);
-    const inv = new Map([['iron', 10], ['wood', 10]]);
+    const inv = new Map([
+      ['iron', 10],
+      ['wood', 10],
+    ]);
     expect(cs.canCraft('sword', inv)).toBe(false);
   });
 
   it('startCraft consumes ingredients and queues', () => {
     cs.addRecipe({ ...SWORD_RECIPE });
-    const inv = new Map([['iron', 5], ['wood', 2]]);
+    const inv = new Map([
+      ['iron', 5],
+      ['wood', 2],
+    ]);
     expect(cs.startCraft('sword', inv)).toBe(true);
     expect(inv.get('iron')).toBe(2);
     expect(inv.get('wood')).toBe(1);
@@ -77,7 +102,10 @@ describe('CraftingSystem', () => {
 
   it('update completes craft after enough time', () => {
     cs.addRecipe({ ...SWORD_RECIPE });
-    const inv = new Map([['iron', 5], ['wood', 2]]);
+    const inv = new Map([
+      ['iron', 5],
+      ['wood', 2],
+    ]);
     cs.startCraft('sword', inv);
     const done = cs.update(3); // craftTime is 2
     expect(done).toHaveLength(1);
@@ -87,7 +115,10 @@ describe('CraftingSystem', () => {
 
   it('update does not complete before craft time', () => {
     cs.addRecipe({ ...SWORD_RECIPE });
-    const inv = new Map([['iron', 5], ['wood', 2]]);
+    const inv = new Map([
+      ['iron', 5],
+      ['wood', 2],
+    ]);
     cs.startCraft('sword', inv);
     expect(cs.update(1)).toHaveLength(0);
     expect(cs.getQueueLength()).toBe(1);
@@ -103,7 +134,10 @@ describe('CraftingSystem', () => {
   it('getAvailableRecipes filters by craftability', () => {
     cs.addRecipe({ ...SWORD_RECIPE });
     cs.addRecipe({ ...POTION_RECIPE });
-    const inv = new Map([['iron', 10], ['wood', 10]]);
+    const inv = new Map([
+      ['iron', 10],
+      ['wood', 10],
+    ]);
     const available = cs.getAvailableRecipes(inv);
     expect(available.length).toBe(1); // only sword is discovered
   });

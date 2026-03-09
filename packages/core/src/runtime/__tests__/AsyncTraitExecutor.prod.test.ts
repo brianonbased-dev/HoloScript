@@ -26,7 +26,6 @@ function delay(ms: number): Promise<void> {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('AsyncTraitExecutor — Production', () => {
-
   // ─── Sync fast-path ────────────────────────────────────────────────
 
   it('sync handler returns done immediately with no state change', async () => {
@@ -64,7 +63,10 @@ describe('AsyncTraitExecutor — Production', () => {
 
   it('async handler emits on_async_start then on_async_done', async () => {
     const { executor, events } = makeExecutor();
-    await executor.execute('n', 'h', async () => { await delay(1); return 'val'; });
+    await executor.execute('n', 'h', async () => {
+      await delay(1);
+      return 'val';
+    });
     expect(events[0].name).toBe('on_async_start');
     expect(events[1].name).toBe('on_async_done');
     expect((events[1].payload as any).value).toBe('val');
@@ -86,7 +88,7 @@ describe('AsyncTraitExecutor — Production', () => {
     });
     expect(result.status).toBe('error');
     expect(result.error?.message).toBe('boom');
-    expect(events.some(e => e.name === 'on_async_error')).toBe(true);
+    expect(events.some((e) => e.name === 'on_async_error')).toBe(true);
     expect(executor.getState('n', 'h').status).toBe('error');
   });
 
@@ -97,12 +99,14 @@ describe('AsyncTraitExecutor — Production', () => {
     });
     expect(result.status).toBe('error');
     expect(result.error?.message).toBe('sync-boom');
-    expect(events.some(e => e.name === 'on_async_error')).toBe(true);
+    expect(events.some((e) => e.name === 'on_async_error')).toBe(true);
   });
 
   it('non-Error thrown value is wrapped in Error', async () => {
     const { executor } = makeExecutor();
-    const result = await executor.execute('n', 'h', async () => { throw 'just a string'; });
+    const result = await executor.execute('n', 'h', async () => {
+      throw 'just a string';
+    });
     expect(result.error).toBeInstanceOf(Error);
     expect(result.error!.message).toContain('just a string');
   });
@@ -162,7 +166,9 @@ describe('AsyncTraitExecutor — Production', () => {
   it('isLoading returns true while handler is running, false after', async () => {
     const { executor } = makeExecutor();
     // Start async handler and immediately check — before awaiting
-    const p = executor.execute('n', 'h', async () => { await delay(5); });
+    const p = executor.execute('n', 'h', async () => {
+      await delay(5);
+    });
     // Synchronously after the call: state should be loading
     const loadingNow = executor.isLoading('n');
     await p;
@@ -204,7 +210,9 @@ describe('AsyncTraitExecutor — Production', () => {
   it('done state includes startedAt and finishedAt timestamps', async () => {
     const { executor } = makeExecutor();
     const before = Date.now();
-    await executor.execute('n', 'h', async () => { await delay(1); });
+    await executor.execute('n', 'h', async () => {
+      await delay(1);
+    });
     const after = Date.now();
     const state = executor.getState('n', 'h');
     expect(state.startedAt).toBeGreaterThanOrEqual(before);

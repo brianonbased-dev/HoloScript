@@ -69,14 +69,14 @@ export class MpegGscCodec extends AbstractGaussianCodec {
       name: 'MPEG Gaussian Splat Coding (Stub)',
       version: '0.1.0-stub',
       fileExtensions: [], // TBD when standard is finalized
-      mimeTypes: [],      // TBD when standard is finalized
+      mimeTypes: [], // TBD when standard is finalized
       canEncode: false,
       canDecode: false,
       canStream: false,
       canDecodeTemporal: false,
       maxSHDegree: 3,
       maxGaussianCount: -1, // Unlimited (TBD)
-      requiresWasm: true,   // Likely will require WASM for HEVC decode
+      requiresWasm: true, // Likely will require WASM for HEVC decode
       requiresWebGPU: false,
       standard: 'mpeg',
       maturity: 'stub',
@@ -98,7 +98,7 @@ export class MpegGscCodec extends AbstractGaussianCodec {
     // For now, return a placeholder indicating the stub status.
     throw new CodecNotSupportedError(
       this.codecId,
-      'extractMetadata (MPEG GSC standard is not yet finalized)',
+      'extractMetadata (MPEG GSC standard is not yet finalized)'
     );
   }
 
@@ -106,12 +106,12 @@ export class MpegGscCodec extends AbstractGaussianCodec {
 
   async decode(
     _buffer: ArrayBuffer,
-    _options?: GaussianDecodeOptions,
+    _options?: GaussianDecodeOptions
   ): Promise<CodecResult<GaussianSplatData>> {
     throw new CodecNotSupportedError(
       this.codecId,
       'decode (MPEG GSC standard is not yet finalized - ' +
-      'currently in MPEG Exploration phase as of 2026-03-01)',
+        'currently in MPEG Exploration phase as of 2026-03-01)'
     );
   }
 
@@ -122,7 +122,7 @@ export class MpegGscCodec extends AbstractGaussianCodec {
     // The specific decompression pipeline will be defined by the standard.
     throw new CodecNotSupportedError(
       this.codecId,
-      'decompress (MPEG GSC standard is not yet finalized)',
+      'decompress (MPEG GSC standard is not yet finalized)'
     );
   }
 
@@ -171,7 +171,13 @@ export class MpegGscCodec extends AbstractGaussianCodec {
  */
 export interface MpegGscStatus {
   /** Current phase in the MPEG standardization process */
-  phase: 'exploration' | 'call_for_proposals' | 'working_draft' | 'committee_draft' | 'final_draft' | 'published';
+  phase:
+    | 'exploration'
+    | 'call_for_proposals'
+    | 'working_draft'
+    | 'committee_draft'
+    | 'final_draft'
+    | 'published';
 
   /** MPEG working groups involved */
   workingGroups: string[];

@@ -37,10 +37,10 @@ export interface CreditAccount {
   balance: number;
   totalEarned: number;
   totalSpent: number;
-  spendLimit: number;        // Max credits per period
-  spendThisPeriod: number;   // Credits spent in current period
-  periodStartMs: number;     // When current spend period started
-  periodDurationMs: number;  // Spend limit reset interval
+  spendLimit: number; // Max credits per period
+  spendThisPeriod: number; // Credits spent in current period
+  periodStartMs: number; // When current spend period started
+  periodDurationMs: number; // Spend limit reset interval
   transactions: Transaction[];
 }
 
@@ -65,7 +65,7 @@ export interface Bounty {
   status: BountyStatus;
   claimantId: string | null;
   escrowLocked: number;
-  deadline: number;         // Unix timestamp
+  deadline: number; // Unix timestamp
   createdAt: number;
   completedAt: number | null;
   result: unknown | null;
@@ -134,7 +134,7 @@ function getOrCreateAccount(
   state: EconomyState,
   agentId: string,
   config: EconomyConfig,
-  context: any,
+  context: any
 ): CreditAccount {
   let account = state.accounts.get(agentId);
   if (!account) {
@@ -158,11 +158,7 @@ function getOrCreateAccount(
   return account;
 }
 
-function addTransaction(
-  account: CreditAccount,
-  tx: Transaction,
-  maxHistory: number,
-): void {
+function addTransaction(account: CreditAccount, tx: Transaction, maxHistory: number): void {
   account.transactions.push(tx);
   if (account.transactions.length > maxHistory) {
     account.transactions = account.transactions.slice(-maxHistory);
@@ -244,7 +240,11 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
 
     // Expire bounties past deadline
     for (const [id, bounty] of state.bounties) {
-      if (bounty.deadline > 0 && now > bounty.deadline && (bounty.status === 'open' || bounty.status === 'claimed')) {
+      if (
+        bounty.deadline > 0 &&
+        now > bounty.deadline &&
+        (bounty.status === 'open' || bounty.status === 'claimed')
+      ) {
         bounty.status = 'expired';
 
         // Release escrow back to poster
@@ -252,15 +252,19 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
           const poster = state.accounts.get(bounty.posterId);
           if (poster) {
             poster.balance += bounty.escrowLocked;
-            addTransaction(poster, {
-              id: generateTxId(state),
-              type: 'escrow_release',
-              amount: bounty.escrowLocked,
-              fromAgent: '__escrow__',
-              toAgent: bounty.posterId,
-              reason: `Bounty ${id} expired`,
-              timestamp: now,
-            }, config.max_transaction_history);
+            addTransaction(
+              poster,
+              {
+                id: generateTxId(state),
+                type: 'escrow_release',
+                amount: bounty.escrowLocked,
+                fromAgent: '__escrow__',
+                toAgent: bounty.posterId,
+                reason: `Bounty ${id} expired`,
+                timestamp: now,
+              },
+              config.max_transaction_history
+            );
           }
           bounty.escrowLocked = 0;
         }
@@ -310,15 +314,19 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
         account.balance += amount;
         account.totalEarned += amount;
 
-        addTransaction(account, {
-          id: generateTxId(state),
-          type: 'earn',
-          amount,
-          fromAgent: '__system__',
-          toAgent: payload.agentId,
-          reason: payload.reason ?? 'task_completion',
-          timestamp: Date.now(),
-        }, config.max_transaction_history);
+        addTransaction(
+          account,
+          {
+            id: generateTxId(state),
+            type: 'earn',
+            amount,
+            fromAgent: '__system__',
+            toAgent: payload.agentId,
+            reason: payload.reason ?? 'task_completion',
+            timestamp: Date.now(),
+          },
+          config.max_transaction_history
+        );
 
         context.emit?.('economy:credit_earned', {
           agentId: payload.agentId,
@@ -359,15 +367,19 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
         account.totalSpent += amount;
         account.spendThisPeriod += amount;
 
-        addTransaction(account, {
-          id: generateTxId(state),
-          type: 'spend',
-          amount,
-          fromAgent: payload.agentId,
-          toAgent: payload.target ?? '__system__',
-          reason: payload.reason ?? 'inference',
-          timestamp: Date.now(),
-        }, config.max_transaction_history);
+        addTransaction(
+          account,
+          {
+            id: generateTxId(state),
+            type: 'spend',
+            amount,
+            fromAgent: payload.agentId,
+            toAgent: payload.target ?? '__system__',
+            reason: payload.reason ?? 'inference',
+            timestamp: Date.now(),
+          },
+          config.max_transaction_history
+        );
 
         context.emit?.('economy:credit_spent', {
           agentId: payload.agentId,
@@ -428,7 +440,8 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
         // Check max bounties
         let openCount = 0;
         for (const b of state.bounties.values()) {
-          if (b.posterId === payload.posterId && (b.status === 'open' || b.status === 'claimed')) openCount++;
+          if (b.posterId === payload.posterId && (b.status === 'open' || b.status === 'claimed'))
+            openCount++;
         }
         if (openCount >= config.max_bounties_per_agent) break;
 
@@ -443,15 +456,19 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
             break;
           }
           poster.balance -= reward;
-          addTransaction(poster, {
-            id: generateTxId(state),
-            type: 'escrow_lock',
-            amount: reward,
-            fromAgent: payload.posterId,
-            toAgent: '__escrow__',
-            reason: 'bounty_escrow',
-            timestamp: Date.now(),
-          }, config.max_transaction_history);
+          addTransaction(
+            poster,
+            {
+              id: generateTxId(state),
+              type: 'escrow_lock',
+              amount: reward,
+              fromAgent: payload.posterId,
+              toAgent: '__escrow__',
+              reason: 'bounty_escrow',
+              timestamp: Date.now(),
+            },
+            config.max_transaction_history
+          );
         }
 
         const bountyId = generateBountyId(state);
@@ -464,7 +481,9 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
           status: 'open',
           claimantId: null,
           escrowLocked: config.escrow_enabled ? reward : 0,
-          deadline: payload.deadline ?? (config.default_bounty_deadline > 0 ? Date.now() + config.default_bounty_deadline : 0),
+          deadline:
+            payload.deadline ??
+            (config.default_bounty_deadline > 0 ? Date.now() + config.default_bounty_deadline : 0),
           createdAt: Date.now(),
           completedAt: null,
           result: null,
@@ -509,15 +528,19 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
           winner.balance += bounty.escrowLocked;
           winner.totalEarned += bounty.escrowLocked;
 
-          addTransaction(winner, {
-            id: generateTxId(state),
-            type: 'escrow_release',
-            amount: bounty.escrowLocked,
-            fromAgent: '__escrow__',
-            toAgent: bounty.claimantId!,
-            reason: `Bounty ${payload.bountyId} completed`,
-            timestamp: Date.now(),
-          }, config.max_transaction_history);
+          addTransaction(
+            winner,
+            {
+              id: generateTxId(state),
+              type: 'escrow_release',
+              amount: bounty.escrowLocked,
+              fromAgent: '__escrow__',
+              toAgent: bounty.claimantId!,
+              reason: `Bounty ${payload.bountyId} completed`,
+              timestamp: Date.now(),
+            },
+            config.max_transaction_history
+          );
 
           bounty.escrowLocked = 0;
         }

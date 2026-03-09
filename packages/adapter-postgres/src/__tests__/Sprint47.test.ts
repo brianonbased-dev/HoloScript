@@ -129,7 +129,15 @@ describe('PostgresHoloAdapter.saveExecution()', () => {
   it('resolves with optional output and error', async () => {
     const adapter = new PostgresHoloAdapter();
     await expect(
-      adapter.saveExecution('script-3', 'cube {}', 'error', 10, 'output text', 'SyntaxError', 'agent-42')
+      adapter.saveExecution(
+        'script-3',
+        'cube {}',
+        'error',
+        10,
+        'output text',
+        'SyntaxError',
+        'agent-42'
+      )
     ).resolves.not.toThrow();
   });
 
@@ -137,8 +145,6 @@ describe('PostgresHoloAdapter.saveExecution()', () => {
     mockQuery.mockRejectedValueOnce(new Error('DB connection failed'));
     const adapter = new PostgresHoloAdapter();
     // saveExecution catches errors internally and does not rethrow
-    await expect(
-      adapter.saveExecution('script-err', 'cube {}', 'error', 5)
-    ).resolves.not.toThrow();
+    await expect(adapter.saveExecution('script-err', 'cube {}', 'error', 5)).resolves.not.toThrow();
   });
 });

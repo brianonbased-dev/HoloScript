@@ -112,9 +112,10 @@ class ResponseCache {
     return {
       size: this.cache.size,
       totalHits: entries.reduce((sum, entry) => sum + entry.hits, 0),
-      averageAge: entries.length > 0
-        ? entries.reduce((sum, entry) => sum + (Date.now() - entry.timestamp), 0) / entries.length
-        : 0,
+      averageAge:
+        entries.length > 0
+          ? entries.reduce((sum, entry) => sum + (Date.now() - entry.timestamp), 0) / entries.length
+          : 0,
     };
   }
 }
@@ -138,15 +139,19 @@ export function createCachePlugin(
   const ttl = options.ttl ?? DEFAULT_TTL;
   const maxSize = options.maxSize ?? DEFAULT_MAX_SIZE;
   const cacheableOps = new Set(options.cacheableOperations ?? DEFAULT_CACHEABLE_OPERATIONS);
-  const includeStatus = options.includeCacheStatusInExtensions ?? process.env.NODE_ENV !== 'production';
+  const includeStatus =
+    options.includeCacheStatusInExtensions ?? process.env.NODE_ENV !== 'production';
 
   const cache = new ResponseCache(maxSize, ttl);
 
   // Log cache stats every 5 minutes
-  setInterval(() => {
-    const stats = cache.getStats();
-    console.log('[Cache Stats]', stats);
-  }, 5 * 60 * 1000);
+  setInterval(
+    () => {
+      const stats = cache.getStats();
+      console.log('[Cache Stats]', stats);
+    },
+    5 * 60 * 1000
+  );
 
   return {
     async requestDidStart(): Promise<GraphQLRequestListener<BaseContext>> {
@@ -180,10 +185,12 @@ export function createCachePlugin(
             if (response.body.kind === 'single') {
               response.body.singleResult = {
                 ...(request as any).__cachedResult,
-                extensions: includeStatus ? {
-                  ...(request as any).__cachedResult.extensions,
-                  cache: { hit: true },
-                } : (request as any).__cachedResult.extensions,
+                extensions: includeStatus
+                  ? {
+                      ...(request as any).__cachedResult.extensions,
+                      cache: { hit: true },
+                    }
+                  : (request as any).__cachedResult.extensions,
               };
             }
             return;

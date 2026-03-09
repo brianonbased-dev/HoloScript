@@ -63,54 +63,54 @@ describe('validateAIOutput', () => {
     it('flags eval()', () => {
       const r = validateAIOutput('eval("bad code")');
       expect(r.valid).toBe(false);
-      expect(r.issues.some(i => i.rule === 'no-eval')).toBe(true);
+      expect(r.issues.some((i) => i.rule === 'no-eval')).toBe(true);
     });
 
     it('flags Function constructor', () => {
       const r = validateAIOutput('const f = Function("return 1")');
       expect(r.valid).toBe(false);
-      expect(r.issues.some(i => i.rule === 'no-function-constructor')).toBe(true);
+      expect(r.issues.some((i) => i.rule === 'no-function-constructor')).toBe(true);
     });
 
     it('flags require()', () => {
       const r = validateAIOutput('const fs = require("fs")');
       expect(r.valid).toBe(false);
-      expect(r.issues.some(i => i.rule === 'no-require')).toBe(true);
+      expect(r.issues.some((i) => i.rule === 'no-require')).toBe(true);
     });
 
     it('flags __proto__ access', () => {
       const r = validateAIOutput('obj.__proto__');
       expect(r.valid).toBe(false);
-      expect(r.issues.some(i => i.rule === 'no-proto')).toBe(true);
+      expect(r.issues.some((i) => i.rule === 'no-proto')).toBe(true);
     });
 
     it('flags process.* access', () => {
       const r = validateAIOutput('process.exit(0)');
       expect(r.valid).toBe(false);
-      expect(r.issues.some(i => i.rule === 'no-process')).toBe(true);
+      expect(r.issues.some((i) => i.rule === 'no-process')).toBe(true);
     });
 
     it('flags fs.* access', () => {
       const r = validateAIOutput('fs.readFileSync("x")');
       expect(r.valid).toBe(false);
-      expect(r.issues.some(i => i.rule === 'no-fs')).toBe(true);
+      expect(r.issues.some((i) => i.rule === 'no-fs')).toBe(true);
     });
 
     it('flags dynamic import()', () => {
       const r = validateAIOutput('import("./foo")');
       expect(r.valid).toBe(false);
-      expect(r.issues.some(i => i.rule === 'no-dynamic-import')).toBe(true);
+      expect(r.issues.some((i) => i.rule === 'no-dynamic-import')).toBe(true);
     });
 
     it('flags globalThis', () => {
       const r = validateAIOutput('globalThis.x = 1');
       expect(r.valid).toBe(false);
-      expect(r.issues.some(i => i.rule === 'no-globalThis')).toBe(true);
+      expect(r.issues.some((i) => i.rule === 'no-globalThis')).toBe(true);
     });
 
     it('includes line number in issue', () => {
       const r = validateAIOutput('const x = 1;\neval("x")');
-      const issue = r.issues.find(i => i.rule === 'no-eval');
+      const issue = r.issues.find((i) => i.rule === 'no-eval');
       expect(issue?.line).toBe(2);
     });
 
@@ -131,17 +131,17 @@ describe('validateAIOutput', () => {
     it('flags code exceeding maxLines', () => {
       const r = validateAIOutput(lines(2001));
       expect(r.valid).toBe(false);
-      expect(r.issues.some(i => i.rule === 'max-lines')).toBe(true);
+      expect(r.issues.some((i) => i.rule === 'max-lines')).toBe(true);
     });
 
     it('does NOT flag code at maxLines', () => {
       const r = validateAIOutput(lines(2000));
-      expect(r.issues.some(i => i.rule === 'max-lines')).toBe(false);
+      expect(r.issues.some((i) => i.rule === 'max-lines')).toBe(false);
     });
 
     it('custom maxLines config applies', () => {
       const r = validateAIOutput(lines(6), { maxLines: 5 });
-      expect(r.issues.some(i => i.rule === 'max-lines')).toBe(true);
+      expect(r.issues.some((i) => i.rule === 'max-lines')).toBe(true);
     });
   });
 
@@ -150,20 +150,20 @@ describe('validateAIOutput', () => {
     it('warns for excessive nesting', () => {
       const nested = '{'.repeat(16) + '}'.repeat(16);
       const r = validateAIOutput(nested);
-      expect(r.issues.some(i => i.rule === 'max-nesting')).toBe(true);
-      expect(r.issues.find(i => i.rule === 'max-nesting')?.severity).toBe('warning');
+      expect(r.issues.some((i) => i.rule === 'max-nesting')).toBe(true);
+      expect(r.issues.find((i) => i.rule === 'max-nesting')?.severity).toBe('warning');
     });
 
     it('errors for unbalanced braces', () => {
       const r = validateAIOutput('{ {');
-      expect(r.issues.some(i => i.rule === 'balanced-braces')).toBe(true);
-      expect(r.issues.find(i => i.rule === 'balanced-braces')?.severity).toBe('error');
+      expect(r.issues.some((i) => i.rule === 'balanced-braces')).toBe(true);
+      expect(r.issues.find((i) => i.rule === 'balanced-braces')?.severity).toBe('error');
     });
 
     it('does not warn at exactly maxNesting', () => {
       const nested = '{'.repeat(15) + '}'.repeat(15);
       const r = validateAIOutput(nested);
-      expect(r.issues.some(i => i.rule === 'max-nesting')).toBe(false);
+      expect(r.issues.some((i) => i.rule === 'max-nesting')).toBe(false);
     });
   });
 
@@ -171,19 +171,19 @@ describe('validateAIOutput', () => {
   describe('allowed traits', () => {
     it('warns for unknown trait when allowedTraits is set', () => {
       const r = validateAIOutput('@Physics @Renderable', { allowedTraits: ['@Renderable'] });
-      const issue = r.issues.find(i => i.rule === 'allowed-traits');
+      const issue = r.issues.find((i) => i.rule === 'allowed-traits');
       expect(issue).toBeTruthy();
       expect(issue?.message).toContain('@Physics');
     });
 
     it('does not warn when trait is in allowed list', () => {
       const r = validateAIOutput('@Renderable', { allowedTraits: ['Renderable'] });
-      expect(r.issues.some(i => i.rule === 'allowed-traits')).toBe(false);
+      expect(r.issues.some((i) => i.rule === 'allowed-traits')).toBe(false);
     });
 
     it('does not check traits if allowedTraits is empty', () => {
       const r = validateAIOutput('@Anything @Custom', { allowedTraits: [] });
-      expect(r.issues.some(i => i.rule === 'allowed-traits')).toBe(false);
+      expect(r.issues.some((i) => i.rule === 'allowed-traits')).toBe(false);
     });
   });
 

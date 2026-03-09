@@ -4,8 +4,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { coLocatedHandler } from '../CoLocatedTrait';
 
-function makeNode() { return { id: 'coloc_node' }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'coloc_node' };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}) {
   const node = makeNode();
   const ctx = makeCtx();
@@ -40,7 +44,8 @@ describe('coLocatedHandler.onAttach', () => {
     expect(node.__coLocatedState.state).toBe('aligning');
   });
   it('isAligned=false', () => expect(attach().node.__coLocatedState.isAligned).toBe(false));
-  it('participants is empty Map', () => expect(attach().node.__coLocatedState.participants.size).toBe(0));
+  it('participants is empty Map', () =>
+    expect(attach().node.__coLocatedState.participants.size).toBe(0));
   it('sharedAnchorId=null when shared_anchor_id=empty', () => {
     expect(attach({ shared_anchor_id: '' }).node.__coLocatedState.sharedAnchorId).toBeNull();
   });
@@ -51,7 +56,10 @@ describe('coLocatedHandler.onAttach', () => {
   it('alignmentQuality=0', () => expect(attach().node.__coLocatedState.alignmentQuality).toBe(0));
   it('emits co_located_show_indicator when visual_indicator=true', () => {
     const { ctx } = attach({ visual_indicator: true });
-    expect(ctx.emit).toHaveBeenCalledWith('co_located_show_indicator', expect.objectContaining({ state: 'searching' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'co_located_show_indicator',
+      expect.objectContaining({ state: 'searching' })
+    );
   });
   it('no indicator emit when visual_indicator=false', () => {
     const { ctx } = attach({ visual_indicator: false, auto_align: false });
@@ -59,7 +67,10 @@ describe('coLocatedHandler.onAttach', () => {
   });
   it('emits co_located_start_alignment when auto_align=true', () => {
     const { ctx } = attach({ auto_align: true, alignment_method: 'qr_code' });
-    expect(ctx.emit).toHaveBeenCalledWith('co_located_start_alignment', expect.objectContaining({ method: 'qr_code' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'co_located_start_alignment',
+      expect.objectContaining({ method: 'qr_code' })
+    );
   });
   it('no alignment emit when auto_align=false', () => {
     const { ctx } = attach({ auto_align: false });
@@ -81,7 +92,10 @@ describe('coLocatedHandler.onDetach', () => {
     node.__coLocatedState.sharedAnchorId = 'anc1';
     ctx.emit.mockClear();
     coLocatedHandler.onDetach!(node, config, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('co_located_leave', expect.objectContaining({ anchorId: 'anc1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'co_located_leave',
+      expect.objectContaining({ anchorId: 'anc1' })
+    );
   });
   it('no co_located_leave when isAligned=false', () => {
     const { node, config, ctx } = attach({ visual_indicator: false, auto_align: false });
@@ -138,7 +152,10 @@ describe('coLocatedHandler.onEvent — co_located_aligned', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     align(node, ctx, config);
-    expect(ctx.emit).toHaveBeenCalledWith('on_co_presence_aligned', expect.objectContaining({ anchorId: 'anc-1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_co_presence_aligned',
+      expect.objectContaining({ anchorId: 'anc-1' })
+    );
   });
   it('emits co_located_indicator_aligned when visual_indicator=true', () => {
     const { node, ctx, config } = attach({ visual_indicator: true });
@@ -153,14 +170,23 @@ describe('coLocatedHandler.onEvent — co_located_aligned', () => {
 describe('coLocatedHandler.onEvent — co_located_alignment_failed', () => {
   it('sets state=lost', () => {
     const { node, ctx, config } = attach();
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_alignment_failed', reason: 'timeout' });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_alignment_failed',
+      reason: 'timeout',
+    });
     expect(node.__coLocatedState.state).toBe('lost');
   });
   it('emits on_co_located_failed with reason', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_alignment_failed', reason: 'no_marker' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_co_located_failed', expect.objectContaining({ reason: 'no_marker' }));
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_alignment_failed',
+      reason: 'no_marker',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_co_located_failed',
+      expect.objectContaining({ reason: 'no_marker' })
+    );
   });
 });
 
@@ -169,25 +195,43 @@ describe('coLocatedHandler.onEvent — co_located_alignment_failed', () => {
 describe('coLocatedHandler.onEvent — participant events', () => {
   it('adds participant on co_located_participant_joined', () => {
     const { node, ctx, config } = attach({ max_participants: 5 });
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_participant_joined', userId: 'user1' });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_participant_joined',
+      userId: 'user1',
+    });
     expect(node.__coLocatedState.participants.size).toBe(1);
     expect(node.__coLocatedState.participants.get('user1')).toBeDefined();
   });
   it('emits on_co_presence_joined', () => {
     const { node, ctx, config } = attach({ max_participants: 5 });
     ctx.emit.mockClear();
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_participant_joined', userId: 'u1' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_co_presence_joined', expect.objectContaining({ userId: 'u1', participantCount: 1 }));
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_participant_joined',
+      userId: 'u1',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_co_presence_joined',
+      expect.objectContaining({ userId: 'u1', participantCount: 1 })
+    );
   });
   it('rejects join when at max_participants', () => {
     const { node, ctx, config } = attach({ max_participants: 1 });
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_participant_joined', userId: 'a' });
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_participant_joined', userId: 'b' });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_participant_joined',
+      userId: 'a',
+    });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_participant_joined',
+      userId: 'b',
+    });
     expect(node.__coLocatedState.participants.size).toBe(1);
   });
   it('marks participant aligned on co_located_participant_aligned', () => {
     const { node, ctx, config } = attach({ max_participants: 5 });
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_participant_joined', userId: 'u1' });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_participant_joined',
+      userId: 'u1',
+    });
     coLocatedHandler.onEvent!(node, config, ctx, {
       type: 'co_located_participant_aligned',
       userId: 'u1',
@@ -198,34 +242,70 @@ describe('coLocatedHandler.onEvent — participant events', () => {
   });
   it('participant_aligned ignored for unknown user', () => {
     const { node, ctx, config } = attach();
-    expect(() => coLocatedHandler.onEvent!(node, config, ctx, {
-      type: 'co_located_participant_aligned', userId: 'ghost', position: { x: 0, y: 0, z: 0 },
-    })).not.toThrow();
+    expect(() =>
+      coLocatedHandler.onEvent!(node, config, ctx, {
+        type: 'co_located_participant_aligned',
+        userId: 'ghost',
+        position: { x: 0, y: 0, z: 0 },
+      })
+    ).not.toThrow();
   });
   it('emits on_participant_aligned', () => {
     const { node, ctx, config } = attach({ max_participants: 5 });
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_participant_joined', userId: 'u2' });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_participant_joined',
+      userId: 'u2',
+    });
     ctx.emit.mockClear();
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_participant_aligned', userId: 'u2', position: { x: 0, y: 1, z: 0 } });
-    expect(ctx.emit).toHaveBeenCalledWith('on_participant_aligned', expect.objectContaining({ userId: 'u2' }));
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_participant_aligned',
+      userId: 'u2',
+      position: { x: 0, y: 1, z: 0 },
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_participant_aligned',
+      expect.objectContaining({ userId: 'u2' })
+    );
   });
   it('removes participant on co_located_participant_left', () => {
     const { node, ctx, config } = attach({ max_participants: 5 });
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_participant_joined', userId: 'u1' });
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_participant_left', userId: 'u1' });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_participant_joined',
+      userId: 'u1',
+    });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_participant_left',
+      userId: 'u1',
+    });
     expect(node.__coLocatedState.participants.size).toBe(0);
   });
   it('emits on_co_presence_left on leave', () => {
     const { node, ctx, config } = attach({ max_participants: 5 });
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_participant_joined', userId: 'u1' });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_participant_joined',
+      userId: 'u1',
+    });
     ctx.emit.mockClear();
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_participant_left', userId: 'u1' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_co_presence_left', expect.objectContaining({ userId: 'u1', participantCount: 0 }));
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_participant_left',
+      userId: 'u1',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_co_presence_left',
+      expect.objectContaining({ userId: 'u1', participantCount: 0 })
+    );
   });
   it('updates participant position on co_located_participant_moved', () => {
     const { node, ctx, config } = attach({ max_participants: 5 });
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_participant_joined', userId: 'u1' });
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_participant_moved', userId: 'u1', position: { x: 5, y: 0, z: 0 } });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_participant_joined',
+      userId: 'u1',
+    });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_participant_moved',
+      userId: 'u1',
+      position: { x: 5, y: 0, z: 0 },
+    });
     expect(node.__coLocatedState.participants.get('u1')!.position.x).toBe(5);
   });
 });
@@ -235,14 +315,20 @@ describe('coLocatedHandler.onEvent — participant events', () => {
 describe('coLocatedHandler.onEvent — quality & anchor', () => {
   it('updates alignmentQuality on co_located_quality_update', () => {
     const { node, ctx, config } = attach();
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_quality_update', quality: 0.7 });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_quality_update',
+      quality: 0.7,
+    });
     expect(node.__coLocatedState.alignmentQuality).toBeCloseTo(0.7);
   });
   it('state→lost + emit on_co_located_lost when quality<0.3 in aligned state', () => {
     const { node, ctx, config } = attach();
     node.__coLocatedState.state = 'aligned';
     ctx.emit.mockClear();
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_quality_update', quality: 0.1 });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_quality_update',
+      quality: 0.1,
+    });
     expect(node.__coLocatedState.state).toBe('lost');
     expect(ctx.emit).toHaveBeenCalledWith('on_co_located_lost', expect.anything());
   });
@@ -250,11 +336,17 @@ describe('coLocatedHandler.onEvent — quality & anchor', () => {
     const { node, ctx, config } = attach({ alignment_method: 'image_marker' });
     ctx.emit.mockClear();
     coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_create_anchor' });
-    expect(ctx.emit).toHaveBeenCalledWith('co_located_create_anchor_request', expect.objectContaining({ method: 'image_marker' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'co_located_create_anchor_request',
+      expect.objectContaining({ method: 'image_marker' })
+    );
   });
   it('sets isAligned and state=aligned on co_located_anchor_created', () => {
     const { node, ctx, config } = attach();
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_anchor_created', anchorId: 'newAnc' });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_anchor_created',
+      anchorId: 'newAnc',
+    });
     expect(node.__coLocatedState.isAligned).toBe(true);
     expect(node.__coLocatedState.state).toBe('aligned');
     expect(node.__coLocatedState.sharedAnchorId).toBe('newAnc');
@@ -262,19 +354,31 @@ describe('coLocatedHandler.onEvent — quality & anchor', () => {
   it('emits on_anchor_created', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_anchor_created', anchorId: 'a2' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_anchor_created', expect.objectContaining({ anchorId: 'a2' }));
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_anchor_created',
+      anchorId: 'a2',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_anchor_created',
+      expect.objectContaining({ anchorId: 'a2' })
+    );
   });
   it('co_located_query emits co_located_info with state summary', () => {
     const { node, ctx, config } = attach({ max_participants: 5 });
-    coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_participant_joined', userId: 'u1' });
+    coLocatedHandler.onEvent!(node, config, ctx, {
+      type: 'co_located_participant_joined',
+      userId: 'u1',
+    });
     ctx.emit.mockClear();
     coLocatedHandler.onEvent!(node, config, ctx, { type: 'co_located_query', queryId: 'q1' });
-    expect(ctx.emit).toHaveBeenCalledWith('co_located_info', expect.objectContaining({
-      queryId: 'q1',
-      participantCount: 1,
-      isAligned: false,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'co_located_info',
+      expect.objectContaining({
+        queryId: 'q1',
+        participantCount: 1,
+        isAligned: false,
+      })
+    );
   });
 });
 
@@ -304,6 +408,9 @@ describe('coLocatedHandler.onUpdate', () => {
     node.__coLocatedState.alignmentQuality = 0.9;
     ctx.emit.mockClear();
     coLocatedHandler.onUpdate!(node, config, ctx, 1);
-    expect(ctx.emit).toHaveBeenCalledWith('co_located_update_indicator', expect.objectContaining({ quality: 0.9 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'co_located_update_indicator',
+      expect.objectContaining({ quality: 0.9 })
+    );
   });
 });

@@ -20,13 +20,13 @@ HoloScript Studio is a browser-based creative environment where **AI generates 3
 
 It's **five tools in one**, each progressively unlocking more power:
 
-| Mode | Who it's for | Superpower |
-|------|-------------|------------|
-| 🎨 **Creator** | Anyone | Describe a scene in plain English |
-| 🖌️ **Artist** | Designers | Visual node-based shader graph editor |
-| 🎬 **Filmmaker** | Storytellers | Cinematic camera paths + timeline |
-| ⚙️ **Expert** | Developers | Full HoloScript DSL + perf tools |
-| 🦴 **Character** | Animators | GLB import, skeleton FK, clip recording |
+| Mode             | Who it's for | Superpower                              |
+| ---------------- | ------------ | --------------------------------------- |
+| 🎨 **Creator**   | Anyone       | Describe a scene in plain English       |
+| 🖌️ **Artist**    | Designers    | Visual node-based shader graph editor   |
+| 🎬 **Filmmaker** | Storytellers | Cinematic camera paths + timeline       |
+| ⚙️ **Expert**    | Developers   | Full HoloScript DSL + perf tools        |
+| 🦴 **Character** | Animators    | GLB import, skeleton FK, clip recording |
 
 ---
 
@@ -131,5 +131,5 @@ pnpm lint          # ESLint + TypeScript check
 
 ---
 
-*HoloScript Studio — AI-native spatial IDE for the web*  
-*v0.1.0 — Beta Launch 2026*
+_HoloScript Studio — AI-native spatial IDE for the web_  
+_v0.1.0 — Beta Launch 2026_

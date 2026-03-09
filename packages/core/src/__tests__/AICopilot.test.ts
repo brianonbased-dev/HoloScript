@@ -115,10 +115,9 @@ describe('Cycle 104: AI Copilot Integration', () => {
     const adapter = createMockAdapter();
     const copilot = new AICopilot(adapter);
 
-    const response = await copilot.autoFix(
-      'object "cube" { position: [0, 1, 0] }',
-      ['Missing semicolon']
-    );
+    const response = await copilot.autoFix('object "cube" { position: [0, 1, 0] }', [
+      'Missing semicolon',
+    ]);
 
     expect(response.suggestions).toHaveLength(1);
     expect(response.suggestions[0].type).toBe('fix');
@@ -137,13 +136,13 @@ describe('Cycle 104: AI Copilot Integration', () => {
     // Background + title + input + 3 buttons = at least 6
     expect(entities.length).toBeGreaterThanOrEqual(6);
 
-    const bg = entities.find(e => e.data?.role === 'background');
+    const bg = entities.find((e) => e.data?.role === 'background');
     expect(bg).toBeDefined();
 
-    const title = entities.find(e => e.data?.role === 'title');
+    const title = entities.find((e) => e.data?.role === 'title');
     expect(title?.text).toContain('Copilot');
 
-    const buttons = entities.filter(e => e.data?.role === 'action_button');
+    const buttons = entities.filter((e) => e.data?.role === 'action_button');
     expect(buttons).toHaveLength(3);
   });
 

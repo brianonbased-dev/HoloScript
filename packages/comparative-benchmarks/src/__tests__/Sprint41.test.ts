@@ -22,7 +22,7 @@ import {
 // ───────────────────────────────────────────────
 const makeMetrics = (opsPerSecond: number): PerformanceMetrics => ({
   opsPerSecond,
-  meanMs: 1 / opsPerSecond * 1000,
+  meanMs: (1 / opsPerSecond) * 1000,
   p50Ms: 0.5,
   p95Ms: 1.0,
   p99Ms: 2.0,

@@ -2,7 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { ConstraintSolver } from '../physics/ConstraintSolver';
 import { RagdollSystem, HUMANOID_PRESET, QUADRUPED_PRESET } from '../physics/RagdollSystem';
 import { VehicleSystem, createDefaultCar, createTruck } from '../physics/VehicleSystem';
-import { IRigidBodyState, IDistanceConstraint, ISpringConstraint, IHingeConstraint } from '../physics/PhysicsTypes';
+import {
+  IRigidBodyState,
+  IDistanceConstraint,
+  ISpringConstraint,
+  IHingeConstraint,
+} from '../physics/PhysicsTypes';
 
 // =============================================================================
 // HELPERS
@@ -132,7 +137,7 @@ describe('Cycle 105: Physics Refinement', () => {
 
     expect(ragdoll.bodies).toHaveLength(HUMANOID_PRESET.length);
     // Constraints = bones with parents (all except root pelvis)
-    const expectedConstraints = HUMANOID_PRESET.filter(b => b.parentBone).length;
+    const expectedConstraints = HUMANOID_PRESET.filter((b) => b.parentBone).length;
     expect(ragdoll.constraints).toHaveLength(expectedConstraints);
 
     const totalMass = system.getTotalMass('hero');
@@ -160,10 +165,10 @@ describe('Cycle 105: Physics Refinement', () => {
     expect(car.speed).toBe(0);
 
     // Verify wheel roles
-    const steeringWheels = car.wheels.filter(w => w.config.isSteering);
-    const drivingWheels = car.wheels.filter(w => w.config.isDriving);
+    const steeringWheels = car.wheels.filter((w) => w.config.isSteering);
+    const drivingWheels = car.wheels.filter((w) => w.config.isDriving);
     expect(steeringWheels).toHaveLength(2); // Front wheels steer
-    expect(drivingWheels).toHaveLength(2);  // Rear wheels drive
+    expect(drivingWheels).toHaveLength(2); // Rear wheels drive
   });
 
   it('should create truck with 6 wheels', () => {

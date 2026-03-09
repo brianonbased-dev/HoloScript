@@ -4,7 +4,7 @@
  * Covers: glTF/GLB compilation, geometry generation (cube/sphere/cylinder/plane),
  * material processing, node transforms, export stats, options.
  */
-import { describe, it, expect, vi} from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { GLTFPipeline } from '../GLTFPipeline';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
@@ -16,9 +16,12 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   };
 });
 
-
 // ─── Helpers ────────────────────────────────────────────────────────
-function makeObj(name: string, props: Array<{ key: string; value: unknown }> = [], traits: unknown[] = []): HoloObjectDecl {
+function makeObj(
+  name: string,
+  props: Array<{ key: string; value: unknown }> = [],
+  traits: unknown[] = []
+): HoloObjectDecl {
   return { name, properties: props, traits, children: [] } as HoloObjectDecl;
 }
 
@@ -36,7 +39,10 @@ describe('GLTFPipeline — Production', () => {
 
   it('compiles single cube object', () => {
     const comp = makeComp('Scene', [
-      makeObj('Box', [{ key: 'geometry', value: 'cube' }, { key: 'scale', value: [1, 1, 1] }]),
+      makeObj('Box', [
+        { key: 'geometry', value: 'cube' },
+        { key: 'scale', value: [1, 1, 1] },
+      ]),
     ]);
     const pipeline = new GLTFPipeline();
     const result = pipeline.compile(comp, 'test-token');
@@ -45,9 +51,7 @@ describe('GLTFPipeline — Production', () => {
   });
 
   it('compiles sphere object', () => {
-    const comp = makeComp('Scene', [
-      makeObj('Ball', [{ key: 'geometry', value: 'sphere' }]),
-    ]);
+    const comp = makeComp('Scene', [makeObj('Ball', [{ key: 'geometry', value: 'sphere' }])]);
     const pipeline = new GLTFPipeline();
     const result = pipeline.compile(comp, 'test-token');
     expect(result.stats.meshCount).toBeGreaterThanOrEqual(1);
@@ -55,9 +59,7 @@ describe('GLTFPipeline — Production', () => {
   });
 
   it('compiles plane object', () => {
-    const comp = makeComp('Scene', [
-      makeObj('Floor', [{ key: 'geometry', value: 'plane' }]),
-    ]);
+    const comp = makeComp('Scene', [makeObj('Floor', [{ key: 'geometry', value: 'plane' }])]);
     const pipeline = new GLTFPipeline();
     const result = pipeline.compile(comp, 'test-token');
     expect(result.stats.meshCount).toBeGreaterThanOrEqual(1);
@@ -65,9 +67,7 @@ describe('GLTFPipeline — Production', () => {
   });
 
   it('compiles cylinder object', () => {
-    const comp = makeComp('Scene', [
-      makeObj('Pillar', [{ key: 'geometry', value: 'cylinder' }]),
-    ]);
+    const comp = makeComp('Scene', [makeObj('Pillar', [{ key: 'geometry', value: 'cylinder' }])]);
     const pipeline = new GLTFPipeline();
     const result = pipeline.compile(comp, 'test-token');
     expect(result.stats.meshCount).toBeGreaterThanOrEqual(1);
@@ -103,9 +103,7 @@ describe('GLTFPipeline — Production', () => {
 
   // ─── Export Stats ─────────────────────────────────────────────────
   it('tracks vertex and triangle counts', () => {
-    const comp = makeComp('Scene', [
-      makeObj('Box', [{ key: 'geometry', value: 'cube' }]),
-    ]);
+    const comp = makeComp('Scene', [makeObj('Box', [{ key: 'geometry', value: 'cube' }])]);
     const result = new GLTFPipeline().compile(comp, 'test-token');
     expect(result.stats.totalVertices).toBe(24); // cube = 6 faces * 4 vertices
     expect(result.stats.totalTriangles).toBe(12); // cube = 6 faces * 2 triangles
@@ -129,7 +127,10 @@ describe('GLTFPipeline — Production', () => {
   // ─── Scale Handling ───────────────────────────────────────────────
   it('handles custom scale', () => {
     const comp = makeComp('Scene', [
-      makeObj('BigBox', [{ key: 'geometry', value: 'cube' }, { key: 'scale', value: [2, 3, 4] }]),
+      makeObj('BigBox', [
+        { key: 'geometry', value: 'cube' },
+        { key: 'scale', value: [2, 3, 4] },
+      ]),
     ]);
     const result = new GLTFPipeline().compile(comp, 'test-token');
     expect(result.stats.totalVertices).toBe(24);
@@ -138,7 +139,10 @@ describe('GLTFPipeline — Production', () => {
   // ─── Material Processing ──────────────────────────────────────────
   it('assigns material to object with color', () => {
     const comp = makeComp('Scene', [
-      makeObj('RedBox', [{ key: 'geometry', value: 'cube' }, { key: 'color', value: '#ff0000' }]),
+      makeObj('RedBox', [
+        { key: 'geometry', value: 'cube' },
+        { key: 'color', value: '#ff0000' },
+      ]),
     ]);
     const result = new GLTFPipeline().compile(comp, 'test-token');
     expect(result.stats.materialCount).toBeGreaterThanOrEqual(1);

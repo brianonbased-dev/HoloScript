@@ -5,18 +5,29 @@ import { World } from '../../ecs/World';
 // ── localStorage mock ──────────────────────────────────────────────────────
 class MockLocalStorage {
   private store: Record<string, string> = {};
-  get length() { return Object.keys(this.store).length; }
-  getItem(key: string) { return this.store[key] ?? null; }
-  setItem(key: string, value: string) { this.store[key] = value; }
-  removeItem(key: string) { delete this.store[key]; }
-  clear() { this.store = {}; }
-  key(index: number) { return Object.keys(this.store)[index] ?? null; }
+  get length() {
+    return Object.keys(this.store).length;
+  }
+  getItem(key: string) {
+    return this.store[key] ?? null;
+  }
+  setItem(key: string, value: string) {
+    this.store[key] = value;
+  }
+  removeItem(key: string) {
+    delete this.store[key];
+  }
+  clear() {
+    this.store = {};
+  }
+  key(index: number) {
+    return Object.keys(this.store)[index] ?? null;
+  }
 }
 
 let mockLS: MockLocalStorage;
 
 describe('EditorPersistence — Production Tests', () => {
-
   beforeEach(() => {
     mockLS = new MockLocalStorage();
     vi.stubGlobal('localStorage', mockLS);
@@ -49,7 +60,7 @@ describe('EditorPersistence — Production Tests', () => {
       const { persistence } = makeSystem();
       persistence.save('scene');
       persistence.save('scene');
-      expect(persistence.listScenes().filter(s => s === 'scene').length).toBe(1);
+      expect(persistence.listScenes().filter((s) => s === 'scene').length).toBe(1);
     });
   });
 
@@ -104,7 +115,7 @@ describe('EditorPersistence — Production Tests', () => {
       persistence.save('level-boss');
       const scenes = persistence.listScenes();
       expect(scenes).toContain('level-boss');
-      expect(scenes.every(s => !s.startsWith('holoscript_scene_'))).toBe(true);
+      expect(scenes.every((s) => !s.startsWith('holoscript_scene_'))).toBe(true);
     });
   });
 

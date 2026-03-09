@@ -1,9 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { BehaviorTree } from '../ai/BehaviorTree';
 import {
-  SequenceNode, SelectorNode, ParallelNode,
-  InverterNode, GuardNode, RepeaterNode,
-  ActionNode, ConditionNode, WaitNode,
+  SequenceNode,
+  SelectorNode,
+  ParallelNode,
+  InverterNode,
+  GuardNode,
+  RepeaterNode,
+  ActionNode,
+  ConditionNode,
+  WaitNode,
 } from '../ai/BTNodes';
 import { Blackboard } from '../ai/Blackboard';
 
@@ -33,11 +39,15 @@ describe('Cycle 126: AI Behavior Trees', () => {
   });
 
   it('parallel should require N successes', () => {
-    const par = new ParallelNode('par', [
-      new ActionNode('a', () => 'success'),
-      new ActionNode('b', () => 'running'),
-      new ActionNode('c', () => 'success'),
-    ], 2);
+    const par = new ParallelNode(
+      'par',
+      [
+        new ActionNode('a', () => 'success'),
+        new ActionNode('b', () => 'running'),
+        new ActionNode('c', () => 'success'),
+      ],
+      2
+    );
     const ctx = { blackboard: new Blackboard(), deltaTime: 0.016, entity: 'npc' };
     expect(par.tick(ctx)).toBe('success');
   });
@@ -55,7 +65,8 @@ describe('Cycle 126: AI Behavior Trees', () => {
   it('guard should block if condition false', () => {
     const bb = new Blackboard();
     bb.set('hasAmmo', false);
-    const guard = new GuardNode('checkAmmo',
+    const guard = new GuardNode(
+      'checkAmmo',
       (ctx) => ctx.blackboard.get('hasAmmo') === true,
       new ActionNode('shoot', () => 'success')
     );

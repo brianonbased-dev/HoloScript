@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { NetworkInterpolation, NetworkSnapshot } from '../NetworkInterpolation';
 
-function snap(entityId: string, ts: number, pos: { x: number; y: number; z: number }, vel?: { x: number; y: number; z: number }): NetworkSnapshot {
+function snap(
+  entityId: string,
+  ts: number,
+  pos: { x: number; y: number; z: number },
+  vel?: { x: number; y: number; z: number }
+): NetworkSnapshot {
   return {
     entityId,
     timestamp: ts,
@@ -14,7 +19,9 @@ function snap(entityId: string, ts: number, pos: { x: number; y: number; z: numb
 describe('NetworkInterpolation', () => {
   let ni: NetworkInterpolation;
 
-  beforeEach(() => { ni = new NetworkInterpolation({ bufferTimeMs: 100, maxExtrapolationMs: 250 }); });
+  beforeEach(() => {
+    ni = new NetworkInterpolation({ bufferTimeMs: 100, maxExtrapolationMs: 250 });
+  });
 
   // --- Snapshot Buffer ---
   it('pushSnapshot stores snapshot', () => {
@@ -128,12 +135,14 @@ describe('NetworkInterpolation', () => {
   // --- Rotation interpolation ---
   it('interpolates rotation via nlerp', () => {
     ni.pushSnapshot({
-      entityId: 'e1', timestamp: 0,
+      entityId: 'e1',
+      timestamp: 0,
       position: { x: 0, y: 0, z: 0 },
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     });
     ni.pushSnapshot({
-      entityId: 'e1', timestamp: 200,
+      entityId: 'e1',
+      timestamp: 200,
       position: { x: 0, y: 0, z: 0 },
       rotation: { x: 0, y: 1, z: 0, w: 0 },
     });

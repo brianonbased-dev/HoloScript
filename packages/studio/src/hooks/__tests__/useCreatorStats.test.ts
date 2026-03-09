@@ -56,8 +56,26 @@ function makeApiResponse(overrides: Record<string, unknown> = {}) {
     ],
     skills: [],
     contentByType: [
-      { type: 'trait', label: 'Traits', count: 1, published: 1, downloads: 150, revenue: 0, rating: 4.5, ratingCount: 10 },
-      { type: 'plugin', label: 'Plugins', count: 1, published: 1, downloads: 80, revenue: 0, rating: 4.8, ratingCount: 5 },
+      {
+        type: 'trait',
+        label: 'Traits',
+        count: 1,
+        published: 1,
+        downloads: 150,
+        revenue: 0,
+        rating: 4.5,
+        ratingCount: 10,
+      },
+      {
+        type: 'plugin',
+        label: 'Plugins',
+        count: 1,
+        published: 1,
+        downloads: 80,
+        revenue: 0,
+        rating: 4.8,
+        ratingCount: 5,
+      },
     ],
     totalContent: 2,
     totalPublished: 2,
@@ -107,10 +125,9 @@ describe('useCreatorStats', () => {
     it('should accept custom address option', () => {
       mockFetchCreatorContent.mockResolvedValue(makeApiResponse());
 
-      const { result } = renderHook(
-        () => useCreatorStats({ address: '0xCustomAddress' }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ address: '0xCustomAddress' }), {
+        wrapper,
+      });
 
       expect(result.current.loading).toBe(true);
     });
@@ -124,13 +141,14 @@ describe('useCreatorStats', () => {
     it('should fetch and transform real API data', async () => {
       mockFetchCreatorContent.mockResolvedValue(makeApiResponse());
 
-      const { result } = renderHook(
-        () => useCreatorStats({ address: '0xRealCreator' }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ address: '0xRealCreator' }), {
+        wrapper,
+      });
 
       await waitFor(
-        () => { expect(result.current.loading).toBe(false); },
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
         { timeout: 3000 }
       );
 
@@ -146,7 +164,9 @@ describe('useCreatorStats', () => {
       const { result } = renderHook(() => useCreatorStats(), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -165,7 +185,9 @@ describe('useCreatorStats', () => {
       const { result } = renderHook(() => useCreatorStats(), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -186,14 +208,14 @@ describe('useCreatorStats', () => {
 
   describe('Mock Fallback', () => {
     it('should fall back to mock data when API is unreachable', async () => {
-      mockFetchCreatorContent.mockRejectedValue(
-        new Error('Network error: API unreachable')
-      );
+      mockFetchCreatorContent.mockRejectedValue(new Error('Network error: API unreachable'));
 
       const { result } = renderHook(() => useCreatorStats(), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.loading).toBe(false); },
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
         { timeout: 3000 }
       );
 
@@ -208,13 +230,12 @@ describe('useCreatorStats', () => {
       // API should NOT be called when forceMock is set
       mockFetchCreatorContent.mockResolvedValue(makeApiResponse());
 
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -229,7 +250,9 @@ describe('useCreatorStats', () => {
       const { result } = renderHook(() => useCreatorStats(), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -253,13 +276,12 @@ describe('useCreatorStats', () => {
     });
 
     it('should load creator stats successfully', async () => {
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.loading).toBe(false); },
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
         { timeout: 3000 }
       );
 
@@ -271,13 +293,12 @@ describe('useCreatorStats', () => {
     });
 
     it('should return valid NFT data structure', async () => {
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -296,13 +317,12 @@ describe('useCreatorStats', () => {
     });
 
     it('should return revenue over time data', async () => {
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -319,13 +339,12 @@ describe('useCreatorStats', () => {
     });
 
     it('should calculate top performing NFTs', async () => {
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -342,13 +361,12 @@ describe('useCreatorStats', () => {
     });
 
     it('should include revenue breakdown', async () => {
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -364,13 +382,12 @@ describe('useCreatorStats', () => {
     });
 
     it('should include floor price trend', async () => {
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -382,13 +399,12 @@ describe('useCreatorStats', () => {
     });
 
     it('should calculate correct floor price', async () => {
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -411,7 +427,9 @@ describe('useCreatorStats', () => {
       );
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -422,13 +440,14 @@ describe('useCreatorStats', () => {
     it('should pass address to API client', async () => {
       mockFetchCreatorContent.mockResolvedValue(makeApiResponse());
 
-      const { result } = renderHook(
-        () => useCreatorStats({ address: '0xApiAddress' }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ address: '0xApiAddress' }), {
+        wrapper,
+      });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -444,13 +463,13 @@ describe('useCreatorStats', () => {
       );
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
-      mockFetchCreatorContent.mockResolvedValue(
-        makeApiResponse({ totalContent: 5 })
-      );
+      mockFetchCreatorContent.mockResolvedValue(makeApiResponse({ totalContent: 5 }));
 
       rerender({ address: '0xAddress2' });
 
@@ -474,7 +493,9 @@ describe('useCreatorStats', () => {
       const { result } = renderHook(() => useCreatorStats(), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -488,13 +509,12 @@ describe('useCreatorStats', () => {
 
   describe('Data Consistency', () => {
     it('should have consistent total sales calculation', async () => {
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -507,13 +527,12 @@ describe('useCreatorStats', () => {
     });
 
     it('should have consistent royalties calculation', async () => {
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -526,13 +545,12 @@ describe('useCreatorStats', () => {
     });
 
     it('should have valid NFT count', async () => {
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -547,13 +565,12 @@ describe('useCreatorStats', () => {
 
   describe('NFT Status Distribution', () => {
     it('should have valid NFT statuses', async () => {
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -572,13 +589,12 @@ describe('useCreatorStats', () => {
 
   describe('Date Formatting', () => {
     it('should have correctly formatted revenue dates', async () => {
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -590,13 +606,12 @@ describe('useCreatorStats', () => {
     });
 
     it('should have valid mint dates for NFTs', async () => {
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -617,13 +632,12 @@ describe('useCreatorStats', () => {
 
   describe('Edge Cases', () => {
     it('should handle zero sales gracefully', async () => {
-      const { result } = renderHook(
-        () => useCreatorStats({ forceMock: true }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCreatorStats({ forceMock: true }), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -655,7 +669,9 @@ describe('useCreatorStats', () => {
       const { result } = renderHook(() => useCreatorStats(), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -678,7 +694,9 @@ describe('useCreatorStats', () => {
       const { result } = renderHook(() => useCreatorStats(), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 
@@ -691,7 +709,9 @@ describe('useCreatorStats', () => {
       const { result } = renderHook(() => useCreatorStats(), { wrapper });
 
       await waitFor(
-        () => { expect(result.current.stats).toBeDefined(); },
+        () => {
+          expect(result.current.stats).toBeDefined();
+        },
         { timeout: 3000 }
       );
 

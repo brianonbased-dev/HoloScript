@@ -7,7 +7,9 @@ import { IslandDetector } from '../physics/IslandDetector';
 
 describe('IslandDetector', () => {
   let det: IslandDetector;
-  beforeEach(() => { det = new IslandDetector(); });
+  beforeEach(() => {
+    det = new IslandDetector();
+  });
 
   it('single body forms one island', () => {
     det.addBody('a');

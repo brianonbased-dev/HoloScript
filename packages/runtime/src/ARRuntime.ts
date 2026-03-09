@@ -75,7 +75,7 @@ export class ARRuntime {
     this.session!.addEventListener('end', this.onSessionEnd.bind(this));
 
     this.referenceSpace = await this.session!.requestReferenceSpace('local');
-    
+
     // Begin render loop (usually tied to ThreeJS/BabylonJS renderer.xr)
   }
 

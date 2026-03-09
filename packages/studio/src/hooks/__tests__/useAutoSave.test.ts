@@ -100,7 +100,9 @@ describe('useAutoSave', () => {
       });
 
       expect(mockSerializeGraph).toHaveBeenCalled();
-      expect(localStorage.getItem('holoscript_shader_editor_autosave')).toBe('{"nodes":[],"edges":[]}');
+      expect(localStorage.getItem('holoscript_shader_editor_autosave')).toBe(
+        '{"nodes":[],"edges":[]}'
+      );
       expect(mockMarkClean).toHaveBeenCalled();
     });
 

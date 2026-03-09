@@ -63,14 +63,19 @@ export function MultiplayerPanel({ onClose }: MultiplayerPanelProps) {
         <div className="ml-auto flex items-center gap-2">
           {joined ? (
             <span className="flex items-center gap-1 text-[10px] text-green-400">
-              <Wifi className="h-3 w-3" />{connected ? 'Live' : 'Reconnecting…'}
+              <Wifi className="h-3 w-3" />
+              {connected ? 'Live' : 'Reconnecting…'}
             </span>
           ) : (
             <span className="flex items-center gap-1 text-[10px] text-studio-muted">
-              <WifiOff className="h-3 w-3" />Offline
+              <WifiOff className="h-3 w-3" />
+              Offline
             </span>
           )}
-          <button onClick={onClose} className="rounded p-1 text-studio-muted hover:text-studio-text">
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-studio-muted hover:text-studio-text"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -82,16 +87,24 @@ export function MultiplayerPanel({ onClose }: MultiplayerPanelProps) {
           <div className="space-y-2">
             <div>
               <label className="mb-1 block text-[10px] text-studio-muted">Room ID</label>
-              <input value={roomId} onChange={(e) => setRoomId(e.target.value)}
-                className="w-full rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1.5 text-[11px] outline-none focus:border-studio-accent" />
+              <input
+                value={roomId}
+                onChange={(e) => setRoomId(e.target.value)}
+                className="w-full rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1.5 text-[11px] outline-none focus:border-studio-accent"
+              />
             </div>
             <div>
               <label className="mb-1 block text-[10px] text-studio-muted">Display name</label>
-              <input value={userName} onChange={(e) => setUserName(e.target.value)}
-                className="w-full rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1.5 text-[11px] outline-none focus:border-studio-accent" />
+              <input
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                className="w-full rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1.5 text-[11px] outline-none focus:border-studio-accent"
+              />
             </div>
-            <button onClick={handleJoin}
-              className="w-full rounded-xl bg-studio-accent py-2 text-[11px] font-semibold text-white hover:brightness-110">
+            <button
+              onClick={handleJoin}
+              className="w-full rounded-xl bg-studio-accent py-2 text-[11px] font-semibold text-white hover:brightness-110"
+            >
               Join Room
             </button>
           </div>
@@ -103,16 +116,23 @@ export function MultiplayerPanel({ onClose }: MultiplayerPanelProps) {
             <div className="flex items-center justify-between rounded-xl border border-studio-border bg-studio-surface px-3 py-2">
               <div>
                 <p className="text-[11px] font-medium text-studio-text">{roomId}</p>
-                <p className="text-[9px] text-studio-muted">as {userName} · {peers.length + 1} online</p>
+                <p className="text-[9px] text-studio-muted">
+                  as {userName} · {peers.length + 1} online
+                </p>
               </div>
-              <button onClick={handleLeave} className="text-[10px] text-red-400 hover:text-red-300">Leave</button>
+              <button onClick={handleLeave} className="text-[10px] text-red-400 hover:text-red-300">
+                Leave
+              </button>
             </div>
 
             {/* Tabs */}
             <div className="flex rounded-lg border border-studio-border overflow-hidden text-[10px]">
               {(['peers', 'chat'] as const).map((t) => (
-                <button key={t} onClick={() => setActiveTab(t)}
-                  className={`flex-1 py-1.5 capitalize transition ${activeTab === t ? 'bg-studio-accent text-white' : 'bg-studio-surface text-studio-muted hover:text-studio-text'}`}>
+                <button
+                  key={t}
+                  onClick={() => setActiveTab(t)}
+                  className={`flex-1 py-1.5 capitalize transition ${activeTab === t ? 'bg-studio-accent text-white' : 'bg-studio-surface text-studio-muted hover:text-studio-text'}`}
+                >
                   {t} {t === 'chat' && chat.length > 0 && `(${chat.length})`}
                 </button>
               ))}
@@ -121,22 +141,35 @@ export function MultiplayerPanel({ onClose }: MultiplayerPanelProps) {
             {activeTab === 'peers' && (
               <div className="space-y-1.5">
                 {peers.length === 0 ? (
-                  <p className="py-4 text-center text-[10px] text-studio-muted">No other users in this room yet.</p>
-                ) : peers.map((p) => <PeerAvatar key={p.user} peer={p} />)}
+                  <p className="py-4 text-center text-[10px] text-studio-muted">
+                    No other users in this room yet.
+                  </p>
+                ) : (
+                  peers.map((p) => <PeerAvatar key={p.user} peer={p} />)
+                )}
               </div>
             )}
 
             {activeTab === 'chat' && (
               <div className="space-y-1.5">
                 <div className="max-h-56 space-y-1 overflow-y-auto">
-                  {chat.length === 0 && <p className="py-4 text-center text-[10px] text-studio-muted">No messages yet.</p>}
+                  {chat.length === 0 && (
+                    <p className="py-4 text-center text-[10px] text-studio-muted">
+                      No messages yet.
+                    </p>
+                  )}
                   {chat.map((m) => (
                     <div key={m.ts} className="flex gap-2">
-                      <div className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full text-[6px] flex items-center justify-center text-white font-bold" style={{ backgroundColor: m.color }}>
+                      <div
+                        className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full text-[6px] flex items-center justify-center text-white font-bold"
+                        style={{ backgroundColor: m.color }}
+                      >
                         {m.user.slice(0, 1)}
                       </div>
                       <div>
-                        <span className="text-[9px] font-semibold" style={{ color: m.color }}>{m.user}: </span>
+                        <span className="text-[9px] font-semibold" style={{ color: m.color }}>
+                          {m.user}:{' '}
+                        </span>
                         <span className="text-[9px] text-studio-text">{m.text}</span>
                       </div>
                     </div>
@@ -144,11 +177,16 @@ export function MultiplayerPanel({ onClose }: MultiplayerPanelProps) {
                 </div>
                 <div className="flex gap-1.5">
                   <input
-                    value={msg} onChange={(e) => setMsg(e.target.value)}
+                    value={msg}
+                    onChange={(e) => setMsg(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                     placeholder="Say something…"
-                    className="flex-1 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1.5 text-[11px] outline-none focus:border-studio-accent" />
-                  <button onClick={handleSend} className="rounded-lg bg-studio-accent px-3 py-1.5 text-white">
+                    className="flex-1 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1.5 text-[11px] outline-none focus:border-studio-accent"
+                  />
+                  <button
+                    onClick={handleSend}
+                    className="rounded-lg bg-studio-accent px-3 py-1.5 text-white"
+                  >
                     <Send className="h-3 w-3" />
                   </button>
                 </div>

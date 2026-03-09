@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { gaussianSplatHandler } from '../GaussianSplatTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('GaussianSplatTrait', () => {
   let node: Record<string, unknown>;
@@ -111,7 +119,10 @@ describe('GaussianSplatTrait', () => {
   });
 
   it('splat_visibility_update updates visible count', () => {
-    sendEvent(gaussianSplatHandler, node, cfg, ctx, { type: 'splat_visibility_update', visibleCount: 42 });
+    sendEvent(gaussianSplatHandler, node, cfg, ctx, {
+      type: 'splat_visibility_update',
+      visibleCount: 42,
+    });
     expect((node as any).__gaussianSplatState.visibleSplats).toBe(42);
   });
 
@@ -123,7 +134,10 @@ describe('GaussianSplatTrait', () => {
       boundingBox: { min: [0, 0, 0], max: [1, 1, 1] },
       renderHandle: 'h',
     });
-    sendEvent(gaussianSplatHandler, node, cfg, ctx, { type: 'splat_set_source', source: 'new.ply' });
+    sendEvent(gaussianSplatHandler, node, cfg, ctx, {
+      type: 'splat_set_source',
+      source: 'new.ply',
+    });
     expect(getEventCount(ctx, 'splat_destroy')).toBe(1);
     expect(getEventCount(ctx, 'splat_load')).toBe(2); // original + reload
   });

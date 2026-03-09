@@ -143,9 +143,7 @@ describe('CBOR Encoding', () => {
   it('should enforce size limits', () => {
     const largeData = { data: 'a'.repeat(10000) };
 
-    expect(() => encodeCBOR(largeData, { maxBufferSize: 1000 })).toThrow(
-      /exceeds maximum size/
-    );
+    expect(() => encodeCBOR(largeData, { maxBufferSize: 1000 })).toThrow(/exceeds maximum size/);
   });
 });
 

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useCharacterStore } from '@/lib/store';
+import { useCharacterStore } from '@/lib/stores';
 
 // Reset store between tests
 function resetStore() {
@@ -253,7 +253,7 @@ describe('CharacterStore — built-in animations', () => {
   const ANIMS = [
     { name: 'Idle', duration: 2000 },
     { name: 'Walk', duration: 1000 },
-    { name: 'Run',  duration: 800 },
+    { name: 'Run', duration: 800 },
   ];
 
   it('setBuiltinAnimations stores the list', () => {

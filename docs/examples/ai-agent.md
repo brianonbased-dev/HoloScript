@@ -53,18 +53,18 @@ Add to your MCP settings:
 
 ## Key MCP Tools (34 Total)
 
-| Tool | What it does |
-| --- | --- |
-| `suggest_traits` | Returns best traits for a description |
-| `generate_object` | Creates a single HoloScript object |
-| `generate_scene` | Creates a complete composition |
-| `validate_holoscript` | Checks code for errors + suggestions |
-| `list_traits` | Browse 1,800+ traits by category |
-| `explain_trait` | Detailed docs for a single trait |
-| `compile_to_target` | Compile to Unity, Godot, VRChat, etc. |
-| `create_share_link` | Generate a playground URL |
-| `get_examples` | Retrieve example compositions |
-| `search_traits` | Semantic search across trait catalog |
+| Tool                  | What it does                          |
+| --------------------- | ------------------------------------- |
+| `suggest_traits`      | Returns best traits for a description |
+| `generate_object`     | Creates a single HoloScript object    |
+| `generate_scene`      | Creates a complete composition        |
+| `validate_holoscript` | Checks code for errors + suggestions  |
+| `list_traits`         | Browse 1,800+ traits by category      |
+| `explain_trait`       | Detailed docs for a single trait      |
+| `compile_to_target`   | Compile to Unity, Godot, VRChat, etc. |
+| `create_share_link`   | Generate a playground URL             |
+| `get_examples`        | Retrieve example compositions         |
+| `search_traits`       | Semantic search across trait catalog  |
 
 ## Example AI Workflows
 
@@ -73,6 +73,7 @@ Add to your MCP settings:
 **Human to AI:** "Create a meditation room with floating crystals and soft ambient sound"
 
 **AI calls:**
+
 ```
 1. suggest_traits({ description: "floating meditation crystal" })
    → ["@glowing", "@levitating", "@spatial_audio", "@reactive"]
@@ -89,6 +90,7 @@ Add to your MCP settings:
 ```
 
 **Output:**
+
 ```holo
 composition "Meditation Room" {
   environment {
@@ -154,6 +156,7 @@ composition "Meditation Room" {
 **Human to AI:** "Add a glowing orb that follows the player"
 
 **AI calls:**
+
 ```
 1. generate_object({
      name: "FollowerOrb",
@@ -169,6 +172,7 @@ composition "Meditation Room" {
 **Human to AI:** "My physics isn't working — why is the ball floating?"
 
 **AI calls:**
+
 ```
 1. validate_holoscript({ code: user_code, includeSuggestions: true })
    → {

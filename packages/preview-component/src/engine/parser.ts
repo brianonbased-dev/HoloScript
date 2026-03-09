@@ -71,9 +71,11 @@ function parseRotation(props: string): [number, number, number] {
     /rotation\s*:\s*\{\s*x\s*:\s*([\d.-]+)\s*,\s*y\s*:\s*([\d.-]+)\s*,\s*z\s*:\s*([\d.-]+)\s*\}/
   );
   if (arr) {
-    return arr[1]
-      .split(',')
-      .map((n) => ((parseFloat(n.trim()) || 0) * Math.PI) / 180) as [number, number, number];
+    return arr[1].split(',').map((n) => ((parseFloat(n.trim()) || 0) * Math.PI) / 180) as [
+      number,
+      number,
+      number,
+    ];
   }
   if (obj) {
     return [parseFloat(obj[1]), parseFloat(obj[2]), parseFloat(obj[3])].map(

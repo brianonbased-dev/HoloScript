@@ -5,7 +5,15 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { gravity, wind, drag, attractor, vortex, floorBounce, sizeOscillate } from '../ParticleAffectors';
+import {
+  gravity,
+  wind,
+  drag,
+  attractor,
+  vortex,
+  floorBounce,
+  sizeOscillate,
+} from '../ParticleAffectors';
 
 function makeParticle() {
   return { x: 0, y: 5, z: 0, vx: 1, vy: 0, vz: 0, ax: 0, ay: 0, az: 0, size: 1, age: 0 };
@@ -40,7 +48,9 @@ describe('ParticleAffectors — Production', () => {
   describe('attractor', () => {
     it('pulls toward point', () => {
       const p = makeParticle();
-      p.x = 0; p.y = 0; p.z = 0;
+      p.x = 0;
+      p.y = 0;
+      p.z = 0;
       p.vx = 0;
       attractor(10, 0, 0, 5)(p as any, 1.0);
       expect(p.vx).toBeGreaterThan(0);
@@ -50,7 +60,9 @@ describe('ParticleAffectors — Production', () => {
   describe('vortex', () => {
     it('rotates velocity', () => {
       const p = makeParticle();
-      p.vx = 1; p.vy = 0; p.vz = 0;
+      p.vx = 1;
+      p.vy = 0;
+      p.vz = 0;
       vortex(0, 1, 0, 2)(p as any, 1.0);
       expect(p.vz).not.toBe(0);
     });
@@ -59,7 +71,8 @@ describe('ParticleAffectors — Production', () => {
   describe('floorBounce', () => {
     it('bounces at floor', () => {
       const p = makeParticle();
-      p.y = -1; p.vy = -5;
+      p.y = -1;
+      p.vy = -5;
       floorBounce(0, 0.6)(p as any, 0.016);
       expect(p.y).toBe(0);
       expect(p.vy).toBeGreaterThan(0);
@@ -67,7 +80,8 @@ describe('ParticleAffectors — Production', () => {
 
     it('no bounce above floor', () => {
       const p = makeParticle();
-      p.y = 5; p.vy = -1;
+      p.y = 5;
+      p.vy = -1;
       floorBounce(0, 0.6)(p as any, 0.016);
       expect(p.vy).toBe(-1);
     });

@@ -17,8 +17,10 @@ import {
 function makeBuf(w: number, h: number, r = 0.5, g = 0.5, b = 0.5, a = 1): Float32Array {
   const buf = new Float32Array(w * h * 4);
   for (let i = 0; i < w * h; i++) {
-    buf[i * 4 + 0] = r; buf[i * 4 + 1] = g;
-    buf[i * 4 + 2] = b; buf[i * 4 + 3] = a;
+    buf[i * 4 + 0] = r;
+    buf[i * 4 + 1] = g;
+    buf[i * 4 + 2] = b;
+    buf[i * 4 + 3] = a;
   }
   return buf;
 }
@@ -31,13 +33,13 @@ function makeDepth(w: number, h: number, depth = 0.5): Float32Array {
 }
 
 describe('ScreenSpaceEffects — Production Tests', () => {
-
   // ---------------------------------------------------------------------------
   // SSAO
   // ---------------------------------------------------------------------------
   describe('computeSSAO', () => {
     it('returns a Float32Array of width*height elements', () => {
-      const W = 16, H = 16;
+      const W = 16,
+        H = 16;
       const depth = makeDepth(W, H, 0.5);
       const normals = makeBuf(W, H, 0, 0, 1, 0);
       const result = computeSSAO(depth, normals, W, H, { samples: 8 });
@@ -45,7 +47,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
     });
 
     it('sky pixels (depth=1) get full occlusion factor = 1', () => {
-      const W = 4, H = 4;
+      const W = 4,
+        H = 4;
       const depth = makeDepth(W, H, 1);
       const normals = makeBuf(W, H, 0, 0, 1, 0);
       const result = computeSSAO(depth, normals, W, H);
@@ -53,7 +56,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
     });
 
     it('all values in [0, 1]', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       const depth = makeDepth(W, H, 0.4);
       const normals = makeBuf(W, H, 0, 1, 0, 0);
       const result = computeSSAO(depth, normals, W, H, { samples: 4, radius: 0.1 });
@@ -64,7 +68,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
     });
 
     it('produces non-zero result (kernel samples change across depth values)', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       // Make a checkerboard depth so neighbouring samples differ from the pixel
       const d1 = new Float32Array(W * H * 4);
       for (let y = 0; y < H; y++)
@@ -85,7 +90,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
   // ---------------------------------------------------------------------------
   describe('computeSSR', () => {
     it('returns mask and uvs arrays of correct size', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       const color = makeBuf(W, H, 0.8, 0.8, 0.9);
       const depth = makeDepth(W, H, 0.4);
       const roughness = new Float32Array(W * H).fill(0.1);
@@ -95,7 +101,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
     });
 
     it('rough pixels beyond maxRoughness have zero mask', () => {
-      const W = 4, H = 4;
+      const W = 4,
+        H = 4;
       const color = makeBuf(W, H);
       const depth = makeDepth(W, H, 0.5);
       const roughness = new Float32Array(W * H).fill(0.9); // all rough
@@ -105,7 +112,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
     });
 
     it('sky pixels have zero mask', () => {
-      const W = 4, H = 4;
+      const W = 4,
+        H = 4;
       const color = makeBuf(W, H);
       const depth = makeDepth(W, H, 1.0); // sky
       const roughness = new Float32Array(W * H).fill(0.1);
@@ -120,7 +128,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
   // ---------------------------------------------------------------------------
   describe('computeSSGI', () => {
     it('returns RGBA buffer of correct size', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       const color = makeBuf(W, H, 1, 0, 0);
       const depth = makeDepth(W, H, 0.5);
       const result = computeSSGI(color, depth, W, H, { sampleCount: 4 });
@@ -128,7 +137,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
     });
 
     it('with intensity=0 RGB channels are zero (alpha=1 is set unconditionally)', () => {
-      const W = 4, H = 4;
+      const W = 4,
+        H = 4;
       const color = makeBuf(W, H, 0.5, 0.5, 0.5);
       const depth = makeDepth(W, H, 0.5);
       const result = computeSSGI(color, depth, W, H, { intensity: 0, sampleCount: 4 });
@@ -142,12 +152,11 @@ describe('ScreenSpaceEffects — Production Tests', () => {
     });
 
     it('bright source bleeds onto neighbours', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       const color = makeBuf(W, H, 0, 0, 0); // all black
       // Set center pixels to bright red
-      for (let y = 3; y <= 4; y++)
-        for (let x = 3; x <= 4; x++)
-          color[(y * W + x) * 4] = 1;
+      for (let y = 3; y <= 4; y++) for (let x = 3; x <= 4; x++) color[(y * W + x) * 4] = 1;
       const depth = makeDepth(W, H, 0.3);
       const result = computeSSGI(color, depth, W, H, { intensity: 1, radius: 3, sampleCount: 8 });
       const cornerR = result[0];
@@ -182,7 +191,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
 
   describe('blendTAA', () => {
     it('with feedback=0 output equals current frame', () => {
-      const W = 4, H = 4;
+      const W = 4,
+        H = 4;
       const current = makeBuf(W, H, 1, 0, 0);
       const history = makeBuf(W, H, 0, 1, 0);
       const out = blendTAA(current, history, W, H, { feedback: 0 });
@@ -191,7 +201,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
     });
 
     it('with feedback=1 output equals history', () => {
-      const W = 4, H = 4;
+      const W = 4,
+        H = 4;
       const current = makeBuf(W, H, 1, 0, 0);
       const history = makeBuf(W, H, 0, 0, 1);
       const out = blendTAA(current, history, W, H, { feedback: 1 });
@@ -200,7 +211,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
     });
 
     it('updates history in-place', () => {
-      const W = 4, H = 4;
+      const W = 4,
+        H = 4;
       const current = makeBuf(W, H, 1, 0, 0);
       const history = makeBuf(W, H, 0, 0, 0);
       blendTAA(current, history, W, H, { feedback: 0.9 });
@@ -214,7 +226,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
   // ---------------------------------------------------------------------------
   describe('applyMotionBlur', () => {
     it('returns buffer of correct size', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       const color = makeBuf(W, H);
       const velocity = new Float32Array(W * H * 4).fill(0);
       const out = applyMotionBlur(color, velocity, W, H);
@@ -222,7 +235,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
     });
 
     it('zero velocity → output equals input', () => {
-      const W = 4, H = 4;
+      const W = 4,
+        H = 4;
       const color = makeBuf(W, H, 0.7, 0.3, 0.5);
       const velocity = new Float32Array(W * H * 4).fill(0);
       const out = applyMotionBlur(color, velocity, W, H, { sampleCount: 4 });
@@ -231,10 +245,13 @@ describe('ScreenSpaceEffects — Production Tests', () => {
     });
 
     it('non-zero velocity causes blur (centre pixel differs from src)', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       const color = makeBuf(W, H, 0, 0, 0);
       // Bright pixel at top-left
-      color[0] = 1; color[1] = 0; color[2] = 0;
+      color[0] = 1;
+      color[1] = 0;
+      color[2] = 0;
       const velocity = new Float32Array(W * H * 4);
       // Give center pixel rightward velocity
       velocity[(4 * W + 4) * 4] = 8;
@@ -267,16 +284,22 @@ describe('ScreenSpaceEffects — Production Tests', () => {
 
   describe('applyDOF', () => {
     it('returns correct buffer size', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       const out = applyDOF(makeBuf(W, H), makeDepth(W, H), W, H);
       expect(out.length).toBe(W * H * 4);
     });
 
     it('in-focus pixels are similar to input', () => {
-      const W = 4, H = 4;
+      const W = 4,
+        H = 4;
       const color = makeBuf(W, H, 0.6, 0.3, 0.9);
       const depth = makeDepth(W, H, 0.5); // at focal depth
-      const out = applyDOF(color, depth, W, H, { focalDepth: 0.5, focalRange: 0.4, maxRadiusPx: 0 });
+      const out = applyDOF(color, depth, W, H, {
+        focalDepth: 0.5,
+        focalRange: 0.4,
+        maxRadiusPx: 0,
+      });
       expect(out[0]).toBeCloseTo(0.6, 2);
     });
   });
@@ -286,13 +309,15 @@ describe('ScreenSpaceEffects — Production Tests', () => {
   // ---------------------------------------------------------------------------
   describe('applyChromaticAberration', () => {
     it('returns buffer of correct size', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       const out = applyChromaticAberration(makeBuf(W, H, 1, 1, 1), W, H, { strength: 2 });
       expect(out.length).toBe(W * H * 4);
     });
 
     it('centre pixel is unchanged (zero aberration at centre)', () => {
-      const W = 9, H = 9;
+      const W = 9,
+        H = 9;
       const color = makeBuf(W, H, 0.8, 0.5, 0.3);
       const out = applyChromaticAberration(color, W, H, { strength: 4 });
       // Exact centre pixel (4,4) — aberration = 0
@@ -301,7 +326,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
     });
 
     it('all output values in [0, ∞) (no NaN)', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       const out = applyChromaticAberration(makeBuf(W, H), W, H, { strength: 3 });
       for (let i = 0; i < out.length; i++) expect(isFinite(out[i])).toBe(true);
     });
@@ -312,13 +338,15 @@ describe('ScreenSpaceEffects — Production Tests', () => {
   // ---------------------------------------------------------------------------
   describe('applyFilmGrain', () => {
     it('returns buffer of same size', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       const out = applyFilmGrain(makeBuf(W, H), W, H, 0.05);
       expect(out.length).toBe(W * H * 4);
     });
 
     it('intensity=0 → output equals input', () => {
-      const W = 4, H = 4;
+      const W = 4,
+        H = 4;
       const color = makeBuf(W, H, 0.5, 0.3, 0.7);
       const out = applyFilmGrain(color, W, H, 0);
       for (let i = 0; i < out.length; i += 4) {
@@ -327,15 +355,19 @@ describe('ScreenSpaceEffects — Production Tests', () => {
     });
 
     it('high intensity produces noise (non-uniform output)', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       const color = makeBuf(W, H, 0.5);
       const out = applyFilmGrain(color, W, H, 0.3);
-      const unique = new Set(Array.from(out.filter((_, i) => i % 4 === 0)).map(v => v.toFixed(4)));
+      const unique = new Set(
+        Array.from(out.filter((_, i) => i % 4 === 0)).map((v) => v.toFixed(4))
+      );
       expect(unique.size).toBeGreaterThan(1);
     });
 
     it('different seeds produce different grain', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       const color = makeBuf(W, H, 0.5);
       const a = applyFilmGrain(color, W, H, 0.2, 0);
       const b = applyFilmGrain(color, W, H, 0.2, 999);
@@ -350,13 +382,15 @@ describe('ScreenSpaceEffects — Production Tests', () => {
   // ---------------------------------------------------------------------------
   describe('applyVignette', () => {
     it('returns buffer of correct size', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       const out = applyVignette(makeBuf(W, H), W, H, 0.5);
       expect(out.length).toBe(W * H * 4);
     });
 
     it('center pixel is brighter than corner pixel', () => {
-      const W = 9, H = 9;
+      const W = 9,
+        H = 9;
       const color = makeBuf(W, H, 1, 1, 1);
       const out = applyVignette(color, W, H, 1, 0.5);
       const centerR = out[(4 * W + 4) * 4];
@@ -365,7 +399,8 @@ describe('ScreenSpaceEffects — Production Tests', () => {
     });
 
     it('strength=0 → output equals input', () => {
-      const W = 4, H = 4;
+      const W = 4,
+        H = 4;
       const color = makeBuf(W, H, 0.8, 0.6, 0.4);
       const out = applyVignette(color, W, H, 0);
       for (let i = 0; i < out.length; i += 4) {

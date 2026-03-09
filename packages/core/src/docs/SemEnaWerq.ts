@@ -40,10 +40,10 @@ export interface SemEvent {
 
 /** Semantic constraint for trait composition rules. */
 export interface SemConstraint {
-  requires?: string[];        // trait names that must co-exist
-  conflicts?: string[];       // trait names that must NOT co-exist
-  maxPerEntity?: number;      // max instances on a single entity
-  platforms?: string[];       // supported platforms (e.g., 'quest3', 'desktop', 'webgpu')
+  requires?: string[]; // trait names that must co-exist
+  conflicts?: string[]; // trait names that must NOT co-exist
+  maxPerEntity?: number; // max instances on a single entity
+  platforms?: string[]; // supported platforms (e.g., 'quest3', 'desktop', 'webgpu')
 }
 
 /** Complete machine-readable semantic annotation for a trait or type. */
@@ -174,7 +174,9 @@ export class SemEnaWerqRegistry {
   getByCategory(category: string): SemEnaWerqEntry[] {
     const keys = this.categories.get(category);
     if (!keys) return [];
-    return Array.from(keys).map(k => this.entries.get(k)!).filter(Boolean);
+    return Array.from(keys)
+      .map((k) => this.entries.get(k)!)
+      .filter(Boolean);
   }
 
   /**
@@ -183,7 +185,9 @@ export class SemEnaWerqRegistry {
   getByTag(tag: string): SemEnaWerqEntry[] {
     const keys = this.tagIndex.get(tag);
     if (!keys) return [];
-    return Array.from(keys).map(k => this.entries.get(k)!).filter(Boolean);
+    return Array.from(keys)
+      .map((k) => this.entries.get(k)!)
+      .filter(Boolean);
   }
 
   /**
@@ -279,7 +283,9 @@ export class SemEnaWerqRegistry {
     lines.push('');
     lines.push(`> ${doc.summary}`);
     lines.push('');
-    lines.push(`**Category:** ${sem.category} | **Version:** ${sem.version} | **Since:** ${sem.since}`);
+    lines.push(
+      `**Category:** ${sem.category} | **Version:** ${sem.version} | **Since:** ${sem.since}`
+    );
     lines.push('');
 
     // Narrative
@@ -490,19 +496,56 @@ export function registerBuiltInDocs(registry: SemEnaWerqRegistry): void {
       version: '1.0.0',
       description: 'Makes an entity interactable via hand tracking or controller grab.',
       params: [
-        { name: 'grip', type: 'string', description: 'Grip type: snap, free, or physics', default: 'snap', required: false },
-        { name: 'twoHanded', type: 'boolean', description: 'Enable two-handed grab', default: false, required: false },
-        { name: 'throwable', type: 'boolean', description: 'Enable throw on release', default: true, required: false },
-        { name: 'hapticFeedback', type: 'number', description: 'Haptic intensity on grab', default: 0.5, range: { min: 0, max: 1 }, required: false },
+        {
+          name: 'grip',
+          type: 'string',
+          description: 'Grip type: snap, free, or physics',
+          default: 'snap',
+          required: false,
+        },
+        {
+          name: 'twoHanded',
+          type: 'boolean',
+          description: 'Enable two-handed grab',
+          default: false,
+          required: false,
+        },
+        {
+          name: 'throwable',
+          type: 'boolean',
+          description: 'Enable throw on release',
+          default: true,
+          required: false,
+        },
+        {
+          name: 'hapticFeedback',
+          type: 'number',
+          description: 'Haptic intensity on grab',
+          default: 0.5,
+          range: { min: 0, max: 1 },
+          required: false,
+        },
       ],
       events: [
-        { name: 'onGrab', description: 'Fired when the entity is grabbed', payload: [
-          { name: 'hand', type: 'string', description: 'Which hand: left or right' },
-          { name: 'position', type: 'vec3', description: 'Grab position in world space' },
-        ]},
-        { name: 'onRelease', description: 'Fired when the entity is released', payload: [
-          { name: 'velocity', type: 'vec3', description: 'Release velocity for throw calculation' },
-        ]},
+        {
+          name: 'onGrab',
+          description: 'Fired when the entity is grabbed',
+          payload: [
+            { name: 'hand', type: 'string', description: 'Which hand: left or right' },
+            { name: 'position', type: 'vec3', description: 'Grab position in world space' },
+          ],
+        },
+        {
+          name: 'onRelease',
+          description: 'Fired when the entity is released',
+          payload: [
+            {
+              name: 'velocity',
+              type: 'vec3',
+              description: 'Release velocity for throw calculation',
+            },
+          ],
+        },
       ],
       constraints: {
         requires: ['Physics'],
@@ -567,8 +610,16 @@ Grabbable works with three grip modes:
         { name: 'Haptic Feedback', type: 'api', path: 'api/haptics' },
       ],
       changelog: [
-        { version: '1.0.0', date: '2026-01-15', changes: ['Initial release with snap/free/physics grip modes'] },
-        { version: '0.9.0', date: '2025-12-01', changes: ['Added hapticFeedback parameter', 'Added twoHanded support'] },
+        {
+          version: '1.0.0',
+          date: '2026-01-15',
+          changes: ['Initial release with snap/free/physics grip modes'],
+        },
+        {
+          version: '0.9.0',
+          date: '2025-12-01',
+          changes: ['Added hapticFeedback parameter', 'Added twoHanded support'],
+        },
       ],
     },
   });
@@ -580,22 +631,66 @@ Grabbable works with three grip modes:
       version: '4.1.0',
       description: '3D Gaussian Splatting renderer with LOD, octree, and SPZ compression.',
       params: [
-        { name: 'url', type: 'string', description: 'URL or path to .splat/.ply/.spz file', required: true },
-        { name: 'maxGaussians', type: 'integer', description: 'Maximum Gaussian count (platform budget)', default: 500000, range: { min: 1000, max: 2000000 } },
-        { name: 'lodLevels', type: 'integer', description: 'Number of LOD levels for octree', default: 4, range: { min: 1, max: 8 } },
-        { name: 'compressionFormat', type: 'string', description: 'Compression format: spz, quantized, or none', default: 'spz' },
-        { name: 'renderOrder', type: 'integer', description: 'Render order for transparency sorting', default: 0 },
-        { name: 'temporalMode', type: 'string', description: 'Temporal blending mode: none, taa, motion-blur', default: 'none' },
+        {
+          name: 'url',
+          type: 'string',
+          description: 'URL or path to .splat/.ply/.spz file',
+          required: true,
+        },
+        {
+          name: 'maxGaussians',
+          type: 'integer',
+          description: 'Maximum Gaussian count (platform budget)',
+          default: 500000,
+          range: { min: 1000, max: 2000000 },
+        },
+        {
+          name: 'lodLevels',
+          type: 'integer',
+          description: 'Number of LOD levels for octree',
+          default: 4,
+          range: { min: 1, max: 8 },
+        },
+        {
+          name: 'compressionFormat',
+          type: 'string',
+          description: 'Compression format: spz, quantized, or none',
+          default: 'spz',
+        },
+        {
+          name: 'renderOrder',
+          type: 'integer',
+          description: 'Render order for transparency sorting',
+          default: 0,
+        },
+        {
+          name: 'temporalMode',
+          type: 'string',
+          description: 'Temporal blending mode: none, taa, motion-blur',
+          default: 'none',
+        },
       ],
       events: [
-        { name: 'onLoad', description: 'Fired when splat data finishes loading', payload: [
-          { name: 'gaussianCount', type: 'integer', description: 'Total Gaussians loaded' },
-          { name: 'loadTimeMs', type: 'number', description: 'Load time in milliseconds' },
-        ]},
-        { name: 'onLODChange', description: 'Fired when LOD level changes', payload: [
-          { name: 'level', type: 'integer', description: 'New LOD level (0 = highest detail)' },
-          { name: 'activeGaussians', type: 'integer', description: 'Active Gaussian count at this LOD' },
-        ]},
+        {
+          name: 'onLoad',
+          description: 'Fired when splat data finishes loading',
+          payload: [
+            { name: 'gaussianCount', type: 'integer', description: 'Total Gaussians loaded' },
+            { name: 'loadTimeMs', type: 'number', description: 'Load time in milliseconds' },
+          ],
+        },
+        {
+          name: 'onLODChange',
+          description: 'Fired when LOD level changes',
+          payload: [
+            { name: 'level', type: 'integer', description: 'New LOD level (0 = highest detail)' },
+            {
+              name: 'activeGaussians',
+              type: 'integer',
+              description: 'Active Gaussian count at this LOD',
+            },
+          ],
+        },
       ],
       constraints: {
         platforms: ['quest3', 'visionos', 'desktop-vr', 'webgpu', 'mobile-ar'],
@@ -605,7 +700,8 @@ Grabbable works with three grip modes:
     },
     enaWerq: {
       title: 'GaussianSplat Trait',
-      summary: 'Render photorealistic 3D Gaussian Splatting scenes with LOD and platform-aware budgets.',
+      summary:
+        'Render photorealistic 3D Gaussian Splatting scenes with LOD and platform-aware budgets.',
       narrative: `The GaussianSplat trait enables rendering of 3D Gaussian Splatting (3DGS) data,
 a neural rendering technique that represents scenes as millions of oriented 3D Gaussians.
 Each Gaussian has position, covariance (shape/orientation), color (spherical harmonics),
@@ -643,8 +739,16 @@ and SPZ compression for efficient streaming.`,
         { name: 'GaussianBudgetValidator', type: 'api', path: 'compiler/GaussianBudgetValidator' },
       ],
       changelog: [
-        { version: '4.1.0', date: '2026-03-01', changes: ['Added SPZ compression support', 'Added temporal blending modes'] },
-        { version: '4.0.0', date: '2026-02-15', changes: ['Octree LOD system', 'Platform budget enforcement'] },
+        {
+          version: '4.1.0',
+          date: '2026-03-01',
+          changes: ['Added SPZ compression support', 'Added temporal blending modes'],
+        },
+        {
+          version: '4.0.0',
+          date: '2026-02-15',
+          changes: ['Octree LOD system', 'Platform budget enforcement'],
+        },
       ],
     },
   });

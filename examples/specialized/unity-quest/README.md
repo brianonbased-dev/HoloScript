@@ -7,6 +7,7 @@ A comprehensive Unity + Quest example demonstrating platform-specific optimizati
 This example shows how to build performant VR experiences for Meta Quest with HoloScript, automatically handling platform-specific optimizations like ASTC texture compression, mobile shaders, and foveated rendering.
 
 **Platforms:** `unity-quest`, `unity-pcvr`
+
 - Meta Quest 2 (72-90 FPS)
 - Meta Quest 3 (90-120 FPS with eye tracking)
 - PCVR / SteamVR (90-120 FPS)
@@ -14,6 +15,7 @@ This example shows how to build performant VR experiences for Meta Quest with Ho
 ## Features
 
 ### Quest-Specific Optimizations
+
 - **ASTC Texture Compression**: Automatic mobile-optimized textures
 - **Mobile Shaders**: Lightweight `mobile/diffuse` and `mobile/unlit` shaders
 - **Foveated Rendering**: Quest 3 eye tracking for performance
@@ -22,6 +24,7 @@ This example shows how to build performant VR experiences for Meta Quest with Ho
 - **Thermal Management**: Sustained performance mode
 
 ### Unity XR Interaction Toolkit
+
 - **XR Origin**: Complete VR rig with camera and controllers
 - **Continuous Movement**: Smooth locomotion with thumbsticks
 - **Teleportation**: Arc-based teleport system
@@ -30,12 +33,14 @@ This example shows how to build performant VR experiences for Meta Quest with Ho
 - **Haptic Feedback**: Controller vibration on grab/release
 
 ### Quest Features
+
 - **Hand Tracking**: Controller-free interaction (Quest 2/3)
 - **Passthrough**: Mixed reality mode toggle
 - **Guardian Boundary**: Visualize play area boundaries
 - **Oculus Integration**: Native Quest SDK features
 
 ### Gameplay
+
 - Moving platforms with physics
 - Rotating obstacles
 - Grabbable objects
@@ -51,6 +56,7 @@ holoscript compile quest-obstacle-course.holo --target unity --platform quest --
 ```
 
 **Output:**
+
 ```
 build/unity_quest/
 ├── Scripts/
@@ -73,11 +79,13 @@ build/unity_quest/
 ### 2. Unity Project Setup
 
 **Minimum Requirements:**
+
 - Unity 2021.3 LTS or newer (2022.3 LTS recommended)
 - Android Build Support module
 - Oculus XR Plugin
 
 **Installation:**
+
 ```
 1. Create new Unity 2022.3 LTS project
 2. Window > Package Manager > Unity Registry
@@ -127,6 +135,7 @@ Build and Run (Quest connected via USB or WiFi)
 ```
 
 **Deploy to Quest:**
+
 ```bash
 # Via Oculus Developer Hub (recommended)
 1. Enable Developer Mode in Meta Quest app
@@ -141,6 +150,7 @@ adb install -r YourGame.apk
 ## Platform Differences
 
 ### Quest 2
+
 - **Target FPS**: 72 Hz (90 Hz experimental)
 - **Rendering**: Multiview stereo
 - **Textures**: ASTC 6x6 compression
@@ -151,6 +161,7 @@ adb install -r YourGame.apk
 - **Lightmaps**: 512x512
 
 ### Quest 3
+
 - **Target FPS**: 90 Hz (120 Hz capable)
 - **Rendering**: Multiview + foveated rendering (eye tracking)
 - **Textures**: ASTC 6x6 or 8x8
@@ -161,6 +172,7 @@ adb install -r YourGame.apk
 - **Lightmaps**: 1024x1024
 
 ### PCVR (SteamVR/Oculus Link)
+
 - **Target FPS**: 90-120 Hz (Valve Index 144 Hz)
 - **Rendering**: Single-pass instanced
 - **Textures**: No compression (DDS/PNG)
@@ -177,6 +189,7 @@ adb install -r YourGame.apk
 HoloScript generates a complete XR Origin rig:
 
 **Components:**
+
 - `XROrigin` - Root tracking object
 - `Camera Offset` - Playspace center
 - `Main Camera` - VR stereo camera
@@ -188,6 +201,7 @@ HoloScript generates a complete XR Origin rig:
 ### Interaction System
 
 **XR Grab Interactable:**
+
 ```csharp
 public class GrabbableBox : MonoBehaviour
 {
@@ -216,6 +230,7 @@ public class GrabbableBox : MonoBehaviour
 ```
 
 **XR Simple Interactable (Targets):**
+
 ```csharp
 public class Target : MonoBehaviour
 {
@@ -245,12 +260,14 @@ public class Target : MonoBehaviour
 HoloScript auto-selects mobile shaders for Quest:
 
 **Standard → Mobile/Diffuse:**
+
 - 3x faster rendering
 - Baked lighting only
 - No realtime reflections
 - Limited texture slots
 
 **Unlit → Mobile/Unlit:**
+
 - 5x faster rendering
 - No lighting calculations
 - Emission supported
@@ -259,6 +276,7 @@ HoloScript auto-selects mobile shaders for Quest:
 ### Texture Compression
 
 **ASTC Settings:**
+
 ```holoscript
 material {
   texture_compression: "astc_6x6"  // Good balance
@@ -268,6 +286,7 @@ material {
 ```
 
 **Quest Recommendations:**
+
 - Base color textures: ASTC 6x6
 - Normal maps: ASTC 6x6 or 8x8
 - UI textures: ASTC 4x4 (crisp text)
@@ -284,6 +303,7 @@ lod_group {
 ```
 
 **LOD Best Practices:**
+
 - LOD 0: Full detail (100% triangles)
 - LOD 1: 50% triangles
 - LOD 2: 25% triangles
@@ -303,6 +323,7 @@ Window > Rendering > Occlusion Culling
 ### Physics Optimization
 
 **Simplified Collision:**
+
 ```holoscript
 collision {
   type: "box"  // Not "mesh" (too expensive)
@@ -311,6 +332,7 @@ collision {
 ```
 
 **Fixed Timestep:**
+
 ```holoscript
 performance {
   fixed_timestep: 0.0111  // 90 Hz physics
@@ -343,6 +365,7 @@ hand_tracking#both_hands @quest_feature {
 ```
 
 **Unity Setup:**
+
 ```
 1. Oculus > Tools > Hand Tracking
 2. Project Settings > Oculus > Hand Tracking Support: Controllers And Hands
@@ -369,6 +392,7 @@ passthrough#mr_mode @quest3_feature {
 ```
 
 **Unity Implementation:**
+
 ```csharp
 using UnityEngine.XR;
 
@@ -403,6 +427,7 @@ guardian#boundary @quest_feature {
 ```
 
 **Unity:**
+
 ```csharp
 OVRManager.boundary.SetVisible(true);
 float distance = OVRManager.boundary.GetClosestPointToNode(OVRPlugin.BoundaryType.PlayArea);
@@ -415,6 +440,7 @@ float distance = OVRManager.boundary.GetClosestPointToNode(OVRPlugin.BoundaryTyp
 **Symptoms**: <72 FPS, stuttering, thermal throttling
 
 **Fixes:**
+
 1. Reduce shadow distance to 20m or disable
 2. Use Mobile/Diffuse shaders, not Standard
 3. Compress textures with ASTC 6x6 or 8x8

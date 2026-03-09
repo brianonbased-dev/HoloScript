@@ -198,7 +198,8 @@ export class GeospatialAnchorStorage {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, 1);
 
-      request.onerror = () => reject(new Error(`Failed to open IndexedDB: ${request.error?.message}`));
+      request.onerror = () =>
+        reject(new Error(`Failed to open IndexedDB: ${request.error?.message}`));
 
       request.onsuccess = () => {
         this.db = request.result;
@@ -241,7 +242,8 @@ export class GeospatialAnchorStorage {
       const store = tx.objectStore(this.storeName);
       const request = store.getAll();
 
-      request.onerror = () => reject(new Error(`Failed to get all anchors: ${request.error?.message}`));
+      request.onerror = () =>
+        reject(new Error(`Failed to get all anchors: ${request.error?.message}`));
       request.onsuccess = () => resolve(request.result ?? []);
     });
   }
@@ -303,7 +305,8 @@ export class GeospatialAnchorStorage {
       // Check if exists first
       const getRequest = store.get(id);
 
-      getRequest.onerror = () => reject(new Error(`Failed to check anchor: ${getRequest.error?.message}`));
+      getRequest.onerror = () =>
+        reject(new Error(`Failed to check anchor: ${getRequest.error?.message}`));
 
       getRequest.onsuccess = () => {
         if (!getRequest.result) {
@@ -313,7 +316,8 @@ export class GeospatialAnchorStorage {
 
         const deleteRequest = store.delete(id);
 
-        deleteRequest.onerror = () => reject(new Error(`Failed to delete anchor: ${deleteRequest.error?.message}`));
+        deleteRequest.onerror = () =>
+          reject(new Error(`Failed to delete anchor: ${deleteRequest.error?.message}`));
         deleteRequest.onsuccess = () => resolve(true);
       };
     });

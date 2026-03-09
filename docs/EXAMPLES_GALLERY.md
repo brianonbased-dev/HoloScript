@@ -4,10 +4,10 @@ Visual showcase of all HoloScript examples demonstrating universal platform comp
 
 ## 🎯 Quick Navigation
 
-| Category | Examples | Platforms | Best For |
-|----------|----------|-----------|----------|
-| **General** | 4 examples | Unity, Unreal, Godot, WebXR | Learning HoloScript basics |
-| **Specialized** | 5 examples | URDF, DTDL, Photon, VRChat, Quest | Production deployments |
+| Category        | Examples   | Platforms                         | Best For                   |
+| --------------- | ---------- | --------------------------------- | -------------------------- |
+| **General**     | 4 examples | Unity, Unreal, Godot, WebXR       | Learning HoloScript basics |
+| **Specialized** | 5 examples | URDF, DTDL, Photon, VRChat, Quest | Production deployments     |
 
 **[View Full Catalog →](../examples/INDEX.md)** | **[Browse Examples →](../examples/)**
 
@@ -16,6 +16,7 @@ Visual showcase of all HoloScript examples demonstrating universal platform comp
 ## 🏢 General Examples
 
 ### VR Training Simulation
+
 **Corporate safety training with interactive hazard identification**
 
 ```holoscript
@@ -39,6 +40,7 @@ composition "WorkplaceSafety" {
 ---
 
 ### AR Furniture Preview
+
 **"Try before you buy" e-commerce AR experience**
 
 ```holoscript
@@ -62,6 +64,7 @@ ar_session#furniture_preview @mobile {
 ---
 
 ### Virtual Art Gallery
+
 **Museum exhibition with multi-language audio guides**
 
 ```holoscript
@@ -83,6 +86,7 @@ artwork#monet_lilies @interactive @audio_guided {
 ---
 
 ### VR Game Demo
+
 **Fast-paced VR shooter with physics and AI**
 
 ```holoscript
@@ -113,6 +117,7 @@ enemy#target @ai @physics {
 ## 🔬 Specialized Examples
 
 ### Robotics Simulation
+
 **Industrial robot arm (UR5) with ROS2/Gazebo export**
 
 ```holoscript
@@ -148,6 +153,7 @@ robot#ur5_arm @industrial @6dof {
 ---
 
 ### IoT Digital Twin
+
 **Smart factory with Azure Digital Twins integration**
 
 ```holoscript
@@ -189,6 +195,7 @@ device#conveyor_1 @iot_device @actuator {
 ---
 
 ### Multiplayer VR
+
 **Collaborative meeting space with voice chat**
 
 ```holoscript
@@ -229,6 +236,7 @@ network_manager#multiplayer @photon {
 ---
 
 ### Unity Quest Optimization
+
 **Platform-optimized VR for Quest 2/3**
 
 ```holoscript
@@ -275,6 +283,7 @@ foveated_rendering @quest3_feature {
 ---
 
 ### VRChat World
+
 **Social hub with mirrors, video players, and Udon#**
 
 ```holoscript
@@ -319,36 +328,37 @@ vrchat_world#config @vrchat_sdk3 {
 
 ## 📊 Platform Comparison Matrix
 
-| Example | Unity | Unreal | Godot | WebXR | URDF/SDF | DTDL | VRChat |
-|---------|-------|--------|-------|-------|----------|------|--------|
-| VR Training | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| AR Furniture | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Virtual Gallery | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| VR Game | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Robotics | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| IoT Digital Twin | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| Multiplayer VR | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Unity Quest | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| VRChat World | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Example          | Unity | Unreal | Godot | WebXR | URDF/SDF | DTDL | VRChat |
+| ---------------- | ----- | ------ | ----- | ----- | -------- | ---- | ------ |
+| VR Training      | ✅    | ✅     | ✅    | ✅    | ❌       | ❌   | ❌     |
+| AR Furniture     | ✅    | ❌     | ❌    | ✅    | ❌       | ❌   | ❌     |
+| Virtual Gallery  | ✅    | ✅     | ✅    | ✅    | ❌       | ❌   | ❌     |
+| VR Game          | ✅    | ✅     | ✅    | ❌    | ❌       | ❌   | ❌     |
+| Robotics         | ❌    | ❌     | ❌    | ❌    | ✅       | ❌   | ❌     |
+| IoT Digital Twin | ❌    | ❌     | ❌    | ❌    | ❌       | ✅   | ❌     |
+| Multiplayer VR   | ✅    | ✅     | ❌    | ✅    | ❌       | ❌   | ❌     |
+| Unity Quest      | ✅    | ❌     | ❌    | ❌    | ❌       | ❌   | ❌     |
+| VRChat World     | ✅    | ❌     | ❌    | ❌    | ❌       | ❌   | ✅     |
 
 ## 🎨 Feature Comparison
 
-| Feature | Examples Using It | Platforms |
-|---------|-------------------|-----------|
-| **Physics** | VR Game, Unity Quest, Multiplayer, VRChat | Unity, Unreal, Godot |
-| **Networking** | Multiplayer VR, VRChat World | Photon, Mirror, WebRTC, Udon |
-| **Voice Chat** | Multiplayer VR, VRChat World | Photon Voice, WebRTC |
-| **AI/Pathfinding** | VR Game (enemy AI), Robotics (IK) | Unity, Unreal, Godot, ROS2 |
-| **AR Plane Detection** | AR Furniture | ARKit, ARCore, WebXR |
-| **Teleportation** | VR Training, Virtual Gallery, Unity Quest | Unity, Unreal, Godot, WebXR |
-| **Audio** | Virtual Gallery (guides), Multiplayer (voice) | All platforms |
-| **IoT Integration** | IoT Digital Twin | Azure, AWS |
-| **Robotics** | Robotics Simulation | URDF, SDF, Gazebo, ROS2 |
-| **Social VR** | VRChat World | VRChat, Udon# |
+| Feature                | Examples Using It                             | Platforms                    |
+| ---------------------- | --------------------------------------------- | ---------------------------- |
+| **Physics**            | VR Game, Unity Quest, Multiplayer, VRChat     | Unity, Unreal, Godot         |
+| **Networking**         | Multiplayer VR, VRChat World                  | Photon, Mirror, WebRTC, Udon |
+| **Voice Chat**         | Multiplayer VR, VRChat World                  | Photon Voice, WebRTC         |
+| **AI/Pathfinding**     | VR Game (enemy AI), Robotics (IK)             | Unity, Unreal, Godot, ROS2   |
+| **AR Plane Detection** | AR Furniture                                  | ARKit, ARCore, WebXR         |
+| **Teleportation**      | VR Training, Virtual Gallery, Unity Quest     | Unity, Unreal, Godot, WebXR  |
+| **Audio**              | Virtual Gallery (guides), Multiplayer (voice) | All platforms                |
+| **IoT Integration**    | IoT Digital Twin                              | Azure, AWS                   |
+| **Robotics**           | Robotics Simulation                           | URDF, SDF, Gazebo, ROS2      |
+| **Social VR**          | VRChat World                                  | VRChat, Udon#                |
 
 ## 📈 Complexity & Learning Path
 
 ### Beginner Path (Start Here)
+
 1. **VR Training Simulation** (⭐) - 2 hours
    - Learn: Objects, interactions, events, UI
    - Compile to: Unity, Unreal, Godot
@@ -358,6 +368,7 @@ vrchat_world#config @vrchat_sdk3 {
    - Compile to: ARKit, ARCore, WebXR
 
 ### Intermediate Path
+
 3. **Virtual Art Gallery** (⭐⭐) - 4 hours
    - Learn: Locomotion, audio, UI systems
    - Compile to: Unity, Unreal, Babylon.js
@@ -367,6 +378,7 @@ vrchat_world#config @vrchat_sdk3 {
    - Compile to: Unity, Unreal, Godot
 
 ### Advanced Path (Production Ready)
+
 5. **Unity Quest** (⭐⭐⭐) - 6 hours
    - Learn: Platform optimization, mobile VR
    - Compile to: Unity (Quest 2/3, PCVR)
@@ -432,6 +444,7 @@ Every example includes:
 ## 🌍 Deployment Targets
 
 ### General Examples (18+ platforms total)
+
 - **Unity**: Quest, PCVR, Mobile, Desktop
 - **Unreal**: PCVR, Console, High-end desktop
 - **Godot**: Open-source, lightweight
@@ -440,6 +453,7 @@ Every example includes:
 - **ARCore**: Android AR apps
 
 ### Specialized Examples (Niche platforms)
+
 - **URDF/SDF**: Robot simulators (Gazebo, ROS2)
 - **DTDL**: IoT platforms (Azure, AWS)
 - **Photon/Mirror**: Unity networking

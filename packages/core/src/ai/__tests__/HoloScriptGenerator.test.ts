@@ -18,7 +18,9 @@ function mockAdapter(): AIAdapter {
 
 describe('HoloScriptGenerator', () => {
   let gen: HoloScriptGenerator;
-  beforeEach(() => { gen = new HoloScriptGenerator(); });
+  beforeEach(() => {
+    gen = new HoloScriptGenerator();
+  });
 
   // --- Session management ---
   it('createSession returns session object', () => {
@@ -97,7 +99,9 @@ describe('HoloScriptGenerator', () => {
 
   it('generate handles adapter error gracefully', async () => {
     const adapter = mockAdapter();
-    adapter.generateHoloScript = vi.fn(async () => { throw new Error('fail'); });
+    adapter.generateHoloScript = vi.fn(async () => {
+      throw new Error('fail');
+    });
     const session = gen.createSession(adapter);
     try {
       await gen.generate('test', session);

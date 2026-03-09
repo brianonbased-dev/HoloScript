@@ -17,15 +17,27 @@ describe('HapticFeedback', () => {
       expect(haptics.getPatternCount()).toBe(4);
     });
 
-    it('tap preset exists', () => { expect(haptics.getPattern('tap')).toBeTruthy(); });
-    it('grab preset exists', () => { expect(haptics.getPattern('grab')).toBeTruthy(); });
-    it('impact preset exists', () => { expect(haptics.getPattern('impact')).toBeTruthy(); });
-    it('heartbeat preset exists', () => { expect(haptics.getPattern('heartbeat')).toBeTruthy(); });
+    it('tap preset exists', () => {
+      expect(haptics.getPattern('tap')).toBeTruthy();
+    });
+    it('grab preset exists', () => {
+      expect(haptics.getPattern('grab')).toBeTruthy();
+    });
+    it('impact preset exists', () => {
+      expect(haptics.getPattern('impact')).toBeTruthy();
+    });
+    it('heartbeat preset exists', () => {
+      expect(haptics.getPattern('heartbeat')).toBeTruthy();
+    });
   });
 
   describe('registerPattern', () => {
     it('adds a new pattern', () => {
-      haptics.registerPattern({ name: 'buzz', loop: false, pulses: [{ hand: 'both', intensity: 0.8, durationMs: 100, frequency: 400 }] });
+      haptics.registerPattern({
+        name: 'buzz',
+        loop: false,
+        pulses: [{ hand: 'both', intensity: 0.8, durationMs: 100, frequency: 400 }],
+      });
       expect(haptics.getPattern('buzz')).toBeTruthy();
       expect(haptics.getPatternCount()).toBe(5);
     });
@@ -37,10 +49,20 @@ describe('HapticFeedback', () => {
   });
 
   describe('play', () => {
-    it('returns true for known pattern', () => { expect(haptics.play('tap')).toBe(true); });
-    it('returns false for unknown pattern', () => { expect(haptics.play('unknown')).toBe(false); });
-    it('tap adds 1 pulse', () => { haptics.play('tap'); expect(haptics.getActivePulseCount()).toBe(1); });
-    it('grab adds 2 pulses', () => { haptics.play('grab'); expect(haptics.getActivePulseCount()).toBe(2); });
+    it('returns true for known pattern', () => {
+      expect(haptics.play('tap')).toBe(true);
+    });
+    it('returns false for unknown pattern', () => {
+      expect(haptics.play('unknown')).toBe(false);
+    });
+    it('tap adds 1 pulse', () => {
+      haptics.play('tap');
+      expect(haptics.getActivePulseCount()).toBe(1);
+    });
+    it('grab adds 2 pulses', () => {
+      haptics.play('grab');
+      expect(haptics.getActivePulseCount()).toBe(2);
+    });
 
     it('returns false when disabled', () => {
       haptics.setEnabled(false);
@@ -82,13 +104,24 @@ describe('HapticFeedback', () => {
   });
 
   describe('enable / disable', () => {
-    it('starts enabled', () => { expect(haptics.isEnabled()).toBe(true); });
-    it('setEnabled(false) disables', () => { haptics.setEnabled(false); expect(haptics.isEnabled()).toBe(false); });
-    it('setEnabled(true) re-enables', () => { haptics.setEnabled(false); haptics.setEnabled(true); expect(haptics.isEnabled()).toBe(true); });
+    it('starts enabled', () => {
+      expect(haptics.isEnabled()).toBe(true);
+    });
+    it('setEnabled(false) disables', () => {
+      haptics.setEnabled(false);
+      expect(haptics.isEnabled()).toBe(false);
+    });
+    it('setEnabled(true) re-enables', () => {
+      haptics.setEnabled(false);
+      haptics.setEnabled(true);
+      expect(haptics.isEnabled()).toBe(true);
+    });
   });
 
   describe('globalIntensity', () => {
-    it('starts at 1.0', () => { expect(haptics.getGlobalIntensity()).toBe(1.0); });
+    it('starts at 1.0', () => {
+      expect(haptics.getGlobalIntensity()).toBe(1.0);
+    });
 
     it('clamps above 1.0 to 1.0', () => {
       haptics.setGlobalIntensity(2.0);

@@ -21,7 +21,7 @@ export interface SubtitleStyle {
   outlineWidth: number;
   outlineColor: string;
   position: SubtitlePosition;
-  maxWidth: number;          // % of screen width
+  maxWidth: number; // % of screen width
   padding: number;
 }
 
@@ -66,20 +66,35 @@ export class SubtitleRenderer {
   // Configuration
   // ---------------------------------------------------------------------------
 
-  setStyle(style: Partial<SubtitleStyle>): void { Object.assign(this.style, style); }
-  getStyle(): SubtitleStyle { return { ...this.style }; }
-  setMaxVisible(max: number): void { this.maxVisible = max; }
+  setStyle(style: Partial<SubtitleStyle>): void {
+    Object.assign(this.style, style);
+  }
+  getStyle(): SubtitleStyle {
+    return { ...this.style };
+  }
+  setMaxVisible(max: number): void {
+    this.maxVisible = max;
+  }
 
   // ---------------------------------------------------------------------------
   // Subtitle Management
   // ---------------------------------------------------------------------------
 
-  add(text: string, duration: number, speaker?: string, speakerColor?: string, priority = 0): SubtitleEntry {
+  add(
+    text: string,
+    duration: number,
+    speaker?: string,
+    speakerColor?: string,
+    priority = 0
+  ): SubtitleEntry {
     const entry: SubtitleEntry = {
       id: `sub_${_subId++}`,
-      text, speaker, speakerColor,
+      text,
+      speaker,
+      speakerColor,
       startTime: this.elapsed,
-      duration, priority,
+      duration,
+      priority,
     };
     this.queue.push(entry);
     this.queue.sort((a, b) => b.priority - a.priority);
@@ -89,8 +104,10 @@ export class SubtitleRenderer {
   addTimed(text: string, startTime: number, duration: number, speaker?: string): SubtitleEntry {
     const entry: SubtitleEntry = {
       id: `sub_${_subId++}`,
-      text, speaker,
-      startTime, duration,
+      text,
+      speaker,
+      startTime,
+      duration,
       priority: 0,
     };
     this.queue.push(entry);
@@ -112,7 +129,7 @@ export class SubtitleRenderer {
 
     // Activate queued entries
     const ready: SubtitleEntry[] = [];
-    this.queue = this.queue.filter(entry => {
+    this.queue = this.queue.filter((entry) => {
       if (entry.startTime <= this.elapsed) {
         ready.push(entry);
         return false;
@@ -128,7 +145,7 @@ export class SubtitleRenderer {
 
     // Remove expired
     const expired: SubtitleEntry[] = [];
-    this.active = this.active.filter(entry => {
+    this.active = this.active.filter((entry) => {
       if (this.elapsed - entry.startTime >= entry.duration) {
         expired.push(entry);
         return false;
@@ -154,7 +171,13 @@ export class SubtitleRenderer {
     return entry.text;
   }
 
-  getActiveSubtitles(): SubtitleEntry[] { return [...this.active]; }
-  getHistory(): SubtitleEntry[] { return [...this.history]; }
-  getQueueLength(): number { return this.queue.length; }
+  getActiveSubtitles(): SubtitleEntry[] {
+    return [...this.active];
+  }
+  getHistory(): SubtitleEntry[] {
+    return [...this.history];
+  }
+  getQueueLength(): number {
+    return this.queue.length;
+  }
 }

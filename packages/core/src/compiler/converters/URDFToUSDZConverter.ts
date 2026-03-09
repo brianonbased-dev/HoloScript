@@ -83,8 +83,12 @@ export interface URDFInertialIR {
   mass: number;
   origin?: URDFOriginIR;
   inertia: {
-    ixx: number; ixy: number; ixz: number;
-    iyy: number; iyz: number; izz: number;
+    ixx: number;
+    ixy: number;
+    ixz: number;
+    iyy: number;
+    iyz: number;
+    izz: number;
   };
 }
 
@@ -429,7 +433,7 @@ export class URDFToUSDZConverter extends CompilerBase {
     while ((match = emptyLinkRegex.exec(xml)) !== null) {
       // Avoid duplicates from the previous regex
       const name = match[1];
-      if (!links.some(l => l.name === name)) {
+      if (!links.some((l) => l.name === name)) {
         links.push({ name });
       }
     }
@@ -451,7 +455,9 @@ export class URDFToUSDZConverter extends CompilerBase {
 
     // Parse material - can be inline or a reference to a global material
     const materialRefMatch = body.match(/<material\s+name\s*=\s*"([^"]*)"\s*\/>/);
-    const materialInlineMatch = body.match(/<material\s+name\s*=\s*"([^"]*)">([\s\S]*?)<\/material>/);
+    const materialInlineMatch = body.match(
+      /<material\s+name\s*=\s*"([^"]*)">([\s\S]*?)<\/material>/
+    );
 
     if (materialInlineMatch) {
       const matName = materialInlineMatch[1];
@@ -461,7 +467,12 @@ export class URDFToUSDZConverter extends CompilerBase {
       const colorMatch = matBody.match(/<color\s+rgba\s*=\s*"([^"]*)"\s*\/>/);
       if (colorMatch) {
         const parts = colorMatch[1].trim().split(/\s+/).map(Number);
-        mat.color = { r: parts[0] ?? 0.8, g: parts[1] ?? 0.8, b: parts[2] ?? 0.8, a: parts[3] ?? 1.0 };
+        mat.color = {
+          r: parts[0] ?? 0.8,
+          g: parts[1] ?? 0.8,
+          b: parts[2] ?? 0.8,
+          a: parts[3] ?? 1.0,
+        };
       }
 
       const textureMatch = matBody.match(/<texture\s+filename\s*=\s*"([^"]*)"\s*\/>/);
@@ -520,8 +531,12 @@ export class URDFToUSDZConverter extends CompilerBase {
     }
 
     // Cylinder
-    const cylinderMatch = body.match(/<cylinder\s+[^>]*radius\s*=\s*"([^"]*)"[^>]*length\s*=\s*"([^"]*)"/);
-    const cylinderMatchAlt = body.match(/<cylinder\s+[^>]*length\s*=\s*"([^"]*)"[^>]*radius\s*=\s*"([^"]*)"/);
+    const cylinderMatch = body.match(
+      /<cylinder\s+[^>]*radius\s*=\s*"([^"]*)"[^>]*length\s*=\s*"([^"]*)"/
+    );
+    const cylinderMatchAlt = body.match(
+      /<cylinder\s+[^>]*length\s*=\s*"([^"]*)"[^>]*radius\s*=\s*"([^"]*)"/
+    );
     if (cylinderMatch) {
       return {
         type: 'cylinder',
@@ -655,7 +670,7 @@ export class URDFToUSDZConverter extends CompilerBase {
         const attrs = limitMatch[1];
         const parseAttr = (name: string, defaultVal: number): number => {
           const m = attrs.match(new RegExp(`${name}\\s*=\\s*"([^"]*)"`));
-          return m ? Number(m[1]) ?? defaultVal : defaultVal;
+          return m ? (Number(m[1]) ?? defaultVal) : defaultVal;
         };
         joint.limits = {
           lower: parseAttr('lower', 0),
@@ -718,7 +733,7 @@ export class URDFToUSDZConverter extends CompilerBase {
     }
 
     // Find root links (links that are never a child in any joint)
-    const rootLinks = model.links.filter(l => !childLinks.has(l.name));
+    const rootLinks = model.links.filter((l) => !childLinks.has(l.name));
 
     // If no root links found, use the first link
     if (rootLinks.length === 0 && model.links.length > 0) {
@@ -738,7 +753,7 @@ export class URDFToUSDZConverter extends CompilerBase {
   private buildLinkNode(
     link: URDFLinkIR,
     linkMap: Map<string, URDFLinkIR>,
-    childrenOf: Map<string, { joint: URDFJointIR; child: string }[]>,
+    childrenOf: Map<string, { joint: URDFJointIR; child: string }[]>
   ): USDXformNode {
     const node: USDXformNode = {
       name: this.sanitizeName(link.name),
@@ -903,7 +918,9 @@ export class URDFToUSDZConverter extends CompilerBase {
     this.emit(`{`);
     this.indentLevel++;
     this.emit(`uniform token info:id = "UsdPreviewSurface"`);
-    this.emit(`color3f inputs:diffuseColor = (${color.r.toFixed(4)}, ${color.g.toFixed(4)}, ${color.b.toFixed(4)})`);
+    this.emit(
+      `color3f inputs:diffuseColor = (${color.r.toFixed(4)}, ${color.g.toFixed(4)}, ${color.b.toFixed(4)})`
+    );
     this.emit(`float inputs:metallic = ${this.options.defaultMetallic}`);
     this.emit(`float inputs:roughness = ${this.options.defaultRoughness}`);
     if (color.a < 1.0) {
@@ -957,9 +974,14 @@ export class URDFToUSDZConverter extends CompilerBase {
     this.indentLevel++;
 
     // Transforms
-    const hasTranslation = node.translation && (node.translation[0] !== 0 || node.translation[1] !== 0 || node.translation[2] !== 0);
-    const hasRotation = node.rotationEuler && (node.rotationEuler[0] !== 0 || node.rotationEuler[1] !== 0 || node.rotationEuler[2] !== 0);
-    const hasScale = node.scale && (node.scale[0] !== 1 || node.scale[1] !== 1 || node.scale[2] !== 1);
+    const hasTranslation =
+      node.translation &&
+      (node.translation[0] !== 0 || node.translation[1] !== 0 || node.translation[2] !== 0);
+    const hasRotation =
+      node.rotationEuler &&
+      (node.rotationEuler[0] !== 0 || node.rotationEuler[1] !== 0 || node.rotationEuler[2] !== 0);
+    const hasScale =
+      node.scale && (node.scale[0] !== 1 || node.scale[1] !== 1 || node.scale[2] !== 1);
 
     if (hasTranslation) {
       const t = node.translation!;
@@ -968,7 +990,9 @@ export class URDFToUSDZConverter extends CompilerBase {
 
     if (hasRotation) {
       const r = node.rotationEuler!;
-      this.emit(`float3 xformOp:rotateXYZ = (${r[0].toFixed(4)}, ${r[1].toFixed(4)}, ${r[2].toFixed(4)})`);
+      this.emit(
+        `float3 xformOp:rotateXYZ = (${r[0].toFixed(4)}, ${r[1].toFixed(4)}, ${r[2].toFixed(4)})`
+      );
     }
 
     if (hasScale) {
@@ -1010,7 +1034,11 @@ export class URDFToUSDZConverter extends CompilerBase {
     }
 
     // Mesh reference for external models
-    if (node.geometry?.type === 'mesh' && node.geometry.filename && this.options.convertMeshReferences) {
+    if (
+      node.geometry?.type === 'mesh' &&
+      node.geometry.filename &&
+      this.options.convertMeshReferences
+    ) {
       this.emitBlank();
       const remappedPath = this.options.meshPathRemap(node.geometry.filename);
       this.emit(`# External mesh: ${remappedPath}`);
@@ -1059,11 +1087,16 @@ export class URDFToUSDZConverter extends CompilerBase {
   /** Map URDF geometry to USD prim type name */
   private getUSDGeometryType(geom: URDFGeometryIR): string {
     switch (geom.type) {
-      case 'box': return 'Cube';
-      case 'sphere': return 'Sphere';
-      case 'cylinder': return 'Cylinder';
-      case 'mesh': return 'Xform'; // Mesh references use Xform with asset reference
-      default: return 'Cube';
+      case 'box':
+        return 'Cube';
+      case 'sphere':
+        return 'Sphere';
+      case 'cylinder':
+        return 'Cylinder';
+      case 'mesh':
+        return 'Xform'; // Mesh references use Xform with asset reference
+      default:
+        return 'Cube';
     }
   }
 
@@ -1084,11 +1117,7 @@ export class URDFToUSDZConverter extends CompilerBase {
 
   /** Convert RPY (radians) to degrees */
   private rpyToDegrees(rpy: [number, number, number]): [number, number, number] {
-    return [
-      (rpy[0] * 180) / Math.PI,
-      (rpy[1] * 180) / Math.PI,
-      (rpy[2] * 180) / Math.PI,
-    ];
+    return [(rpy[0] * 180) / Math.PI, (rpy[1] * 180) / Math.PI, (rpy[2] * 180) / Math.PI];
   }
 
   /** Transform Z-up coordinates to Y-up */
@@ -1140,10 +1169,7 @@ export class URDFToUSDZConverter extends CompilerBase {
  * @param options - Converter options
  * @returns USDA text
  */
-export function convertURDFToUSDA(
-  urdfXml: string,
-  options?: URDFToUSDZConverterOptions,
-): string {
+export function convertURDFToUSDA(urdfXml: string, options?: URDFToUSDZConverterOptions): string {
   const converter = new URDFToUSDZConverter(options);
   return converter.compile(urdfXml);
 }
@@ -1153,7 +1179,7 @@ export function convertURDFToUSDA(
  */
 export function convertURDFToUSDZForVisionOS(
   urdfXml: string,
-  options?: Partial<URDFToUSDZConverterOptions>,
+  options?: Partial<URDFToUSDZConverterOptions>
 ): string {
   return convertURDFToUSDA(urdfXml, {
     upAxis: 'Y',

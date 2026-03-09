@@ -100,22 +100,24 @@ Please include the following information:
 ### For Users
 
 1. **Keep Dependencies Updated**
+
    ```bash
    pnpm update --latest
    pnpm audit
    ```
 
 2. **Use Security Sandbox for AI Code**
+
    ```typescript
    import { HoloScriptSandbox } from '@holoscript/security-sandbox';
 
    const sandbox = new HoloScriptSandbox({
      timeout: 3000,
-     enableLogging: true
+     enableLogging: true,
    });
 
    const result = await sandbox.executeHoloScript(aiGeneratedCode, {
-     source: 'ai-generated'
+     source: 'ai-generated',
    });
    ```
 
@@ -142,6 +144,7 @@ Please include the following information:
    - [ ] Tests include security cases
 
 2. **Pre-Commit Security Checks**
+
    ```bash
    pnpm audit
    pnpm test:coverage

@@ -17,7 +17,7 @@ describe('ClothSim', () => {
   });
 
   it('creates structural and shear constraints', () => {
-    // 4x4: structural horiz=12, vert=12 => 24 structural  
+    // 4x4: structural horiz=12, vert=12 => 24 structural
     // shear: 3x3=9 diagonal pairs * 2 = 18
     expect(cloth.getConstraintCount()).toBe(42);
   });

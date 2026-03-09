@@ -1,6 +1,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { usdHandler, applyUSDAxisConversion, usdTimeCodeToSeconds, secondsToUSDTimeCode } from '../USDTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  usdHandler,
+  applyUSDAxisConversion,
+  usdTimeCodeToSeconds,
+  secondsToUSDTimeCode,
+} from '../USDTrait';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('USDTrait', () => {
   let node: Record<string, unknown>;
@@ -63,13 +76,21 @@ describe('USDTrait', () => {
   });
 
   it('set_variant is safe when no variants loaded', () => {
-    sendEvent(usdHandler, node, cfg, ctx, { type: 'usd:set_variant', variantSet: 'LOD', variant: 'high' });
+    sendEvent(usdHandler, node, cfg, ctx, {
+      type: 'usd:set_variant',
+      variantSet: 'LOD',
+      variant: 'high',
+    });
     // Should not crash
     expect((node as any).__usdState.activeVariants.size).toBe(0);
   });
 
   it('set_blend_shape is safe when no shapes loaded', () => {
-    sendEvent(usdHandler, node, cfg, ctx, { type: 'usd:set_blend_shape', target: 'smile', weight: 0.5 });
+    sendEvent(usdHandler, node, cfg, ctx, {
+      type: 'usd:set_blend_shape',
+      target: 'smile',
+      weight: 0.5,
+    });
     expect((node as any).__usdState.blendWeights.size).toBe(0);
   });
 

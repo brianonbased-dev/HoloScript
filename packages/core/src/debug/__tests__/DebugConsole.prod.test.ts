@@ -39,7 +39,11 @@ describe('DebugConsole — Production', () => {
     });
 
     it('passes args', () => {
-      console_.registerCommand({ name: 'echo', description: 'Echo', handler: (args) => args.join(' ') });
+      console_.registerCommand({
+        name: 'echo',
+        description: 'Echo',
+        handler: (args) => args.join(' '),
+      });
       expect(console_.execute('echo hello world')).toBe('hello world');
     });
 
@@ -49,7 +53,13 @@ describe('DebugConsole — Production', () => {
     });
 
     it('handler error caught', () => {
-      console_.registerCommand({ name: 'boom', description: 'Error', handler: () => { throw new Error('fail'); } });
+      console_.registerCommand({
+        name: 'boom',
+        description: 'Error',
+        handler: () => {
+          throw new Error('fail');
+        },
+      });
       const result = console_.execute('boom');
       expect(result).toContain('Error');
     });

@@ -1,18 +1,39 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { CombatManager, HitBox, HurtBox, ComboStep } from '../CombatManager';
 
-function hitbox(id: string, ownerId: string, pos = { x: 0, y: 0, z: 0 }, size = { x: 1, y: 1, z: 1 }): HitBox {
-  return { id, ownerId, position: pos, size, active: true, damage: 10, damageType: 'physical', knockback: 1 };
+function hitbox(
+  id: string,
+  ownerId: string,
+  pos = { x: 0, y: 0, z: 0 },
+  size = { x: 1, y: 1, z: 1 }
+): HitBox {
+  return {
+    id,
+    ownerId,
+    position: pos,
+    size,
+    active: true,
+    damage: 10,
+    damageType: 'physical',
+    knockback: 1,
+  };
 }
 
-function hurtbox(id: string, ownerId: string, pos = { x: 0, y: 0, z: 0 }, size = { x: 1, y: 1, z: 1 }): HurtBox {
+function hurtbox(
+  id: string,
+  ownerId: string,
+  pos = { x: 0, y: 0, z: 0 },
+  size = { x: 1, y: 1, z: 1 }
+): HurtBox {
   return { id, ownerId, position: pos, size, active: true };
 }
 
 describe('CombatManager', () => {
   let cm: CombatManager;
 
-  beforeEach(() => { cm = new CombatManager(); });
+  beforeEach(() => {
+    cm = new CombatManager();
+  });
 
   // --- Hitbox/Hurtbox CRUD ---
   it('addHitBox / getHitBoxCount', () => {
@@ -102,9 +123,7 @@ describe('CombatManager', () => {
   });
 
   it('advanceCombo resets on wrong input', () => {
-    cm.registerCombo('c2', [
-      { name: 'jab', input: 'punch', damage: 5, window: 0.5 },
-    ]);
+    cm.registerCombo('c2', [{ name: 'jab', input: 'punch', damage: 5, window: 0.5 }]);
     cm.advanceCombo('c2', 'punch'); // advance
     cm.resetCombo('c2');
     const r = cm.advanceCombo('c2', 'kick'); // wrong

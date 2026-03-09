@@ -359,17 +359,17 @@ describe('Model constants', () => {
   });
 
   it('ANTHROPIC_MODELS includes a claude model', () => {
-    const hasClaude = ANTHROPIC_MODELS.some(m => m.includes('claude'));
+    const hasClaude = ANTHROPIC_MODELS.some((m) => m.includes('claude'));
     expect(hasClaude).toBe(true);
   });
 
   it('OPENAI_MODELS includes gpt', () => {
-    const hasGpt = OPENAI_MODELS.some(m => m.includes('gpt'));
+    const hasGpt = OPENAI_MODELS.some((m) => m.includes('gpt'));
     expect(hasGpt).toBe(true);
   });
 
   it('GEMINI_MODELS includes gemini', () => {
-    const hasGemini = GEMINI_MODELS.some(m => m.includes('gemini'));
+    const hasGemini = GEMINI_MODELS.some((m) => m.includes('gemini'));
     expect(hasGemini).toBe(true);
   });
 });

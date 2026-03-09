@@ -207,7 +207,14 @@ describe('ComplexityReporter — Production', () => {
   it('formatTable with no recommendations', () => {
     const cleanReport: ComplexityReport = {
       files: [
-        { filePath: 'clean.ts', cyclomaticComplexity: 1, nestingDepth: 0, lineCount: 10, grade: 'A', recommendations: [] },
+        {
+          filePath: 'clean.ts',
+          cyclomaticComplexity: 1,
+          nestingDepth: 0,
+          lineCount: 10,
+          grade: 'A',
+          recommendations: [],
+        },
       ],
       averageCC: 1,
       averageDepth: 0,

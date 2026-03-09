@@ -68,7 +68,7 @@ describe('ComplexityAnalyzer', () => {
 
   it('higher cyclomatic for complex function', () => {
     const r = analyzeComplexity(COMPLEX_SOURCE);
-    const fn = r.functions.find(f => f.name === 'process');
+    const fn = r.functions.find((f) => f.name === 'process');
     expect(fn).toBeDefined();
     expect(fn!.cyclomatic).toBeGreaterThan(5);
   });
@@ -97,14 +97,14 @@ describe('ComplexityAnalyzer', () => {
 
   it('findIssues for deep nesting', () => {
     const r = analyzeComplexity(COMPLEX_SOURCE);
-    const nestingIssues = r.issues.filter(i => i.type === 'nesting');
+    const nestingIssues = r.issues.filter((i) => i.type === 'nesting');
     expect(nestingIssues.length).toBeGreaterThan(0);
   });
 
   it('findIssues for high cyclomatic', () => {
     const a = new ComplexityAnalyzer({ maxCyclomatic: 2 });
     const r = a.analyze(COMPLEX_SOURCE);
-    const cyclIssues = r.issues.filter(i => i.type === 'cyclomatic');
+    const cyclIssues = r.issues.filter((i) => i.type === 'cyclomatic');
     expect(cyclIssues.length).toBeGreaterThan(0);
   });
 

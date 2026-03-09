@@ -37,7 +37,7 @@ export const DegradedModeBanner: React.FC<DegradedModeBannerProps> = ({
   refreshInterval = 5000,
   className = '',
   position = 'top',
-  autoDismiss = true
+  autoDismiss = true,
 }) => {
   const [openCircuits, setOpenCircuits] = useState<CircuitStatus[]>([]);
   const [isDismissed, setIsDismissed] = useState(false);
@@ -55,14 +55,16 @@ export const DegradedModeBanner: React.FC<DegradedModeBannerProps> = ({
 
   const checkCircuitStates = () => {
     const stats = client.getCircuitStats();
-    const open = stats.filter(stat => stat.state === CircuitState.OPEN);
+    const open = stats.filter((stat) => stat.state === CircuitState.OPEN);
 
-    setOpenCircuits(open.map(stat => ({
-      operationName: stat.operationName,
-      state: stat.state,
-      failureRate: stat.failureRate,
-      estimatedRecoveryTime: new Date(Date.now() + 30000) // 30s from now
-    })));
+    setOpenCircuits(
+      open.map((stat) => ({
+        operationName: stat.operationName,
+        state: stat.state,
+        failureRate: stat.failureRate,
+        estimatedRecoveryTime: new Date(Date.now() + 30000), // 30s from now
+      }))
+    );
 
     // Auto-dismiss if all circuits recovered
     if (autoDismiss && open.length === 0 && openCircuits.length > 0) {
@@ -83,9 +85,8 @@ export const DegradedModeBanner: React.FC<DegradedModeBannerProps> = ({
     return null;
   }
 
-  const positionStyles = position === 'top'
-    ? { top: 0, left: 0, right: 0 }
-    : { bottom: 0, left: 0, right: 0 };
+  const positionStyles =
+    position === 'top' ? { top: 0, left: 0, right: 0 } : { bottom: 0, left: 0, right: 0 };
 
   return (
     <div
@@ -99,7 +100,7 @@ export const DegradedModeBanner: React.FC<DegradedModeBannerProps> = ({
         padding: '12px 16px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        ...positionStyles
+        ...positionStyles,
       }}
       role="alert"
       aria-live="polite"
@@ -132,8 +133,7 @@ export const DegradedModeBanner: React.FC<DegradedModeBannerProps> = ({
             <div style={{ fontSize: '14px', color: '#856404' }}>
               {openCircuits.length === 1
                 ? `${openCircuits[0].operationName} is currently unavailable.`
-                : `${openCircuits.length} services are currently unavailable.`}
-              {' '}
+                : `${openCircuits.length} services are currently unavailable.`}{' '}
               Showing cached or fallback data. Attempting automatic recovery...
             </div>
 
@@ -145,7 +145,7 @@ export const DegradedModeBanner: React.FC<DegradedModeBannerProps> = ({
                   padding: '12px',
                   backgroundColor: '#fff',
                   borderRadius: '4px',
-                  border: '1px solid #ffc107'
+                  border: '1px solid #ffc107',
                 }}
               >
                 <div style={{ fontWeight: 600, marginBottom: '8px', color: '#856404' }}>
@@ -158,7 +158,14 @@ export const DegradedModeBanner: React.FC<DegradedModeBannerProps> = ({
                       <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '2px' }}>
                         Failure rate: {(circuit.failureRate * 100).toFixed(1)}%
                         {circuit.estimatedRecoveryTime && (
-                          <> • Retry in ~{Math.round((circuit.estimatedRecoveryTime.getTime() - Date.now()) / 1000)}s</>
+                          <>
+                            {' '}
+                            • Retry in ~
+                            {Math.round(
+                              (circuit.estimatedRecoveryTime.getTime() - Date.now()) / 1000
+                            )}
+                            s
+                          </>
                         )}
                       </div>
                     </li>
@@ -182,7 +189,7 @@ export const DegradedModeBanner: React.FC<DegradedModeBannerProps> = ({
                 color: '#856404',
                 cursor: 'pointer',
                 fontSize: '14px',
-                fontWeight: 500
+                fontWeight: 500,
               }}
               aria-expanded={isExpanded}
               aria-label={isExpanded ? 'Hide details' : 'Show details'}
@@ -200,7 +207,7 @@ export const DegradedModeBanner: React.FC<DegradedModeBannerProps> = ({
               cursor: 'pointer',
               fontSize: '20px',
               color: '#856404',
-              lineHeight: 1
+              lineHeight: 1,
             }}
             aria-label="Dismiss notification"
           >
@@ -216,7 +223,7 @@ export const DegradedModeBanner: React.FC<DegradedModeBannerProps> = ({
           height: '2px',
           backgroundColor: '#fff',
           borderRadius: '1px',
-          overflow: 'hidden'
+          overflow: 'hidden',
         }}
         role="progressbar"
         aria-label="Recovery progress"
@@ -229,7 +236,7 @@ export const DegradedModeBanner: React.FC<DegradedModeBannerProps> = ({
             height: '100%',
             width: '50%',
             backgroundColor: '#ffc107',
-            animation: 'pulse 2s ease-in-out infinite'
+            animation: 'pulse 2s ease-in-out infinite',
           }}
         />
       </div>
@@ -260,8 +267,8 @@ export const useDegradedMode = (client: GraphQLCircuitBreakerClient, refreshInte
 
       const stats = client.getCircuitStats();
       const open = stats
-        .filter(stat => stat.state === CircuitState.OPEN)
-        .map(stat => stat.operationName);
+        .filter((stat) => stat.state === CircuitState.OPEN)
+        .map((stat) => stat.operationName);
 
       setOpenCircuits(open);
     };
@@ -310,9 +317,10 @@ export class DegradedModeIndicator {
   private update(openCircuits: string[]): void {
     if (!this.element) return;
 
-    const message = openCircuits.length === 1
-      ? `Service degraded: ${openCircuits[0]}`
-      : `Service degraded: ${openCircuits.length} services affected`;
+    const message =
+      openCircuits.length === 1
+        ? `Service degraded: ${openCircuits[0]}`
+        : `Service degraded: ${openCircuits.length} services affected`;
 
     this.element.innerHTML = `
       <div style="
@@ -349,8 +357,8 @@ export class DegradedModeIndicator {
     setInterval(() => {
       const stats = this.client.getCircuitStats();
       const open = stats
-        .filter(stat => stat.state === CircuitState.OPEN)
-        .map(stat => stat.operationName);
+        .filter((stat) => stat.state === CircuitState.OPEN)
+        .map((stat) => stat.operationName);
 
       if (open.length > 0) {
         this.show(open);

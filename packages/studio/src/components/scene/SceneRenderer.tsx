@@ -2,11 +2,18 @@
 
 import { Suspense, useState, useCallback, useEffect, useRef } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls, Grid, Stars, Environment, TransformControls, Stats } from '@react-three/drei';
+import {
+  OrbitControls,
+  Grid,
+  Stars,
+  Environment,
+  TransformControls,
+  Stats,
+} from '@react-three/drei';
 import type { R3FNode } from '@holoscript/core';
 import { R3FNodeRenderer } from './R3FNodeRenderer';
-import { useEditorStore, useSceneGraphStore } from '@/lib/store';
-import type { SceneNode, GizmoMode } from '@/lib/store';
+import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
+import type { SceneNode, GizmoMode } from '@/lib/stores';
 import { ASSET_DRAG_TYPE } from '@/components/assets/AssetLibrary';
 import type { Asset } from '@/components/assets/useAssetStore';
 import { VREditSession, xrStore } from '@/components/vr/VREditSession';
@@ -88,11 +95,11 @@ function EmptyScene() {
 
 function GizmoController() {
   const { scene } = useThree();
-  const selectedId         = useEditorStore((s) => s.selectedObjectId);
-  const gizmoMode          = useEditorStore((s) => s.gizmoMode);
+  const selectedId = useEditorStore((s) => s.selectedObjectId);
+  const gizmoMode = useEditorStore((s) => s.gizmoMode);
   const updateNodeTransform = useSceneGraphStore((s) => s.updateNodeTransform);
-  const gridSnap           = useBuilderStore((s) => s.gridSnap);
-  const gridSize           = useBuilderStore((s) => s.gridSize);
+  const gridSnap = useBuilderStore((s) => s.gridSnap);
+  const gridSize = useBuilderStore((s) => s.gridSize);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
 
@@ -113,7 +120,7 @@ function GizmoController() {
     updateNodeTransform(selectedId, {
       position: [t.position.x, t.position.y, t.position.z],
       rotation: [t.rotation.x, t.rotation.y, t.rotation.z],
-      scale:    [t.scale.x,    t.scale.y,    t.scale.z],
+      scale: [t.scale.x, t.scale.y, t.scale.z],
     });
   }, [target, selectedId, updateNodeTransform]);
 
@@ -127,7 +134,7 @@ function GizmoController() {
       translationSnap={gridSnap ? gridSize : undefined}
       rotationSnap={gridSnap ? Math.PI / 12 : undefined}
       scaleSnap={gridSnap ? 0.25 : undefined}
-      onObjectChange={handleChange}
+      onMouseUp={handleChange}
     />
   );
 }
@@ -145,26 +152,29 @@ function GhostPreview({ position }: { position: [number, number, number] }) {
 
   const getGhostGeometry = () => {
     switch (activeShape.geometry) {
-      case 'sphere':   return <sphereGeometry args={[0.5, 32, 32]} />;
-      case 'cylinder': return <cylinderGeometry args={[0.5, 0.5, 1, 32]} />;
-      case 'cone':     return <coneGeometry args={[0.5, 1, 4]} />;
-      case 'torus':    return <torusGeometry args={[0.5, 0.15, 16, 32]} />;
-      case 'capsule':  return <capsuleGeometry args={[0.3, 0.5, 4, 16]} />;
-      case 'plane':    return <planeGeometry args={[1, 1]} />;
-      case 'ring':     return <ringGeometry args={[0.3, 0.5, 32]} />;
-      default:         return <boxGeometry args={[1, 1, 1]} />;
+      case 'sphere':
+        return <sphereGeometry args={[0.5, 32, 32]} />;
+      case 'cylinder':
+        return <cylinderGeometry args={[0.5, 0.5, 1, 32]} />;
+      case 'cone':
+        return <coneGeometry args={[0.5, 1, 4]} />;
+      case 'torus':
+        return <torusGeometry args={[0.5, 0.15, 16, 32]} />;
+      case 'capsule':
+        return <capsuleGeometry args={[0.3, 0.5, 4, 16]} />;
+      case 'plane':
+        return <planeGeometry args={[1, 1]} />;
+      case 'ring':
+        return <ringGeometry args={[0.3, 0.5, 32]} />;
+      default:
+        return <boxGeometry args={[1, 1, 1]} />;
     }
   };
 
   return (
     <mesh position={position}>
       {getGhostGeometry()}
-      <meshBasicMaterial
-        color={activeShape.color}
-        transparent
-        opacity={0.35}
-        wireframe={false}
-      />
+      <meshBasicMaterial color={activeShape.color} transparent opacity={0.35} wireframe={false} />
     </mesh>
   );
 }
@@ -175,10 +185,10 @@ function GhostPreview({ position }: { position: [number, number, number] }) {
  * In 'break' mode: handled by MeshNode.
  */
 function PlacementPlane() {
-  const builderMode  = useBuilderStore((s) => s.builderMode);
-  const gridSnap     = useBuilderStore((s) => s.gridSnap);
-  const gridSize     = useBuilderStore((s) => s.gridSize);
-  const addNode      = useSceneGraphStore((s) => s.addNode);
+  const builderMode = useBuilderStore((s) => s.builderMode);
+  const gridSnap = useBuilderStore((s) => s.gridSnap);
+  const gridSize = useBuilderStore((s) => s.gridSize);
+  const addNode = useSceneGraphStore((s) => s.addNode);
   const getActiveShape = useBuilderStore((s) => s.getActiveShape);
   const [ghostPos, setGhostPos] = useState<[number, number, number]>([0, 0.5, 0]);
 
@@ -247,9 +257,15 @@ function assetToNodeType(category: Asset['category']): SceneNode['type'] {
 function assetToTrait(asset: Asset): { name: string; properties: Record<string, unknown> } | null {
   switch (asset.category) {
     case 'splat':
-      return { name: 'gaussian_splat', properties: { source: asset.src, quality: 'medium', sh_degree: 3 } };
+      return {
+        name: 'gaussian_splat',
+        properties: { source: asset.src, quality: 'medium', sh_degree: 3 },
+      };
     case 'audio':
-      return { name: 'audio_source', properties: { src: asset.src, volume: 1.0, loop: false, spatial: true } };
+      return {
+        name: 'audio_source',
+        properties: { src: asset.src, volume: 1.0, loop: false, spatial: true },
+      };
     case 'hdri':
       return { name: 'environment', properties: { src: asset.src } };
     default:
@@ -276,17 +292,20 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
   const [isDragOver, setIsDragOver] = useState(false);
   const addNode = useSceneGraphStore((s) => s.addNode);
   const addTrait = useSceneGraphStore((s) => s.addTrait);
-  const selectedId       = useEditorStore((s) => s.selectedObjectId);
-  const gizmoMode        = useEditorStore((s) => s.gizmoMode);
-  const setGizmoMode     = useEditorStore((s) => s.setGizmoMode);
-  const artMode          = useEditorStore((s) => s.artMode);
-  const showPerfOverlay  = useEditorStore((s) => s.showPerfOverlay);
+  const selectedId = useEditorStore((s) => s.selectedObjectId);
+  const gizmoMode = useEditorStore((s) => s.gizmoMode);
+  const setGizmoMode = useEditorStore((s) => s.setGizmoMode);
+  const artMode = useEditorStore((s) => s.artMode);
+  const showPerfOverlay = useEditorStore((s) => s.showPerfOverlay);
 
   // Sync R3F tree → scene graph store (flattens nested native asset children)
   useSceneGraphSync(r3fTree);
 
   // ─── XR support detection ──────────────────────────────────────────────────
-  const [xrSupport, setXrSupport] = useState<{ vr: boolean; ar: boolean }>({ vr: false, ar: false });
+  const [xrSupport, setXrSupport] = useState<{ vr: boolean; ar: boolean }>({
+    vr: false,
+    ar: false,
+  });
 
   useEffect(() => {
     if (!navigator.xr) return;
@@ -407,7 +426,9 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         {artMode === 'sketch' && <SketchCanvas />}
 
         {/* FPS/frame-time stats — shown in dev OR when Perf overlay toggled on */}
-        {(process.env.NODE_ENV !== 'production' || showPerfOverlay) && <Stats className="!bottom-2 !left-auto !right-2 !top-auto" />}
+        {(process.env.NODE_ENV !== 'production' || showPerfOverlay) && (
+          <Stats className="!bottom-2 !left-auto !right-2 !top-auto" />
+        )}
       </Canvas>
       {/* Gizmo mode toolbar — top-left overlay */}
       <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-xl border border-gray-700/60 bg-gray-900/80 p-1 backdrop-blur">
@@ -456,7 +477,13 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
               onClick={() => xrStore.enterAR()}
               className="flex items-center gap-1.5 rounded-lg border border-studio-border/60 bg-studio-panel/90 px-3 py-1.5 text-xs font-medium text-studio-muted backdrop-blur transition hover:border-studio-accent hover:text-studio-accent"
             >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <svg
+                className="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
               </svg>
               Enter AR
@@ -485,4 +512,3 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
     </div>
   );
 }
-

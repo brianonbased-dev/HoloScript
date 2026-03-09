@@ -5,8 +5,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { CombatManager } from '../combat/CombatManager';
-import { DamageSystem }   from '../combat/DamageSystem';
-import { ComboTracker }   from '../combat/ComboTracker';
+import { DamageSystem } from '../combat/DamageSystem';
+import { ComboTracker } from '../combat/ComboTracker';
 
 // =============================================================================
 // CombatManager
@@ -14,31 +14,93 @@ import { ComboTracker }   from '../combat/ComboTracker';
 describe('CombatManager', () => {
   let cm: CombatManager;
 
-  beforeEach(() => { cm = new CombatManager(); });
+  beforeEach(() => {
+    cm = new CombatManager();
+  });
 
   it('adds and counts hitboxes/hurtboxes', () => {
-    cm.addHitBox({ id: 'hb1', ownerId: 'p1', position: { x: 0, y: 0, z: 0 }, size: { x: 1, y: 1, z: 1 }, active: true, damage: 10, damageType: 'physical', knockback: 2 });
-    cm.addHurtBox({ id: 'hr1', ownerId: 'p2', position: { x: 0, y: 0, z: 0 }, size: { x: 1, y: 1, z: 1 }, active: true });
+    cm.addHitBox({
+      id: 'hb1',
+      ownerId: 'p1',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 1, y: 1, z: 1 },
+      active: true,
+      damage: 10,
+      damageType: 'physical',
+      knockback: 2,
+    });
+    cm.addHurtBox({
+      id: 'hr1',
+      ownerId: 'p2',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 1, y: 1, z: 1 },
+      active: true,
+    });
     expect(cm.getHitBoxCount()).toBe(1);
     expect(cm.getHurtBoxCount()).toBe(1);
   });
 
   it('detects AABB collisions', () => {
-    cm.addHitBox({ id: 'hb', ownerId: 'a', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true, damage: 5, damageType: 'fire', knockback: 1 });
-    cm.addHurtBox({ id: 'hr', ownerId: 'b', position: { x: 0.5, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true });
+    cm.addHitBox({
+      id: 'hb',
+      ownerId: 'a',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+      damage: 5,
+      damageType: 'fire',
+      knockback: 1,
+    });
+    cm.addHurtBox({
+      id: 'hr',
+      ownerId: 'b',
+      position: { x: 0.5, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+    });
     const hits = cm.checkCollisions();
     expect(hits).toHaveLength(1);
   });
 
   it('prevents self-hit', () => {
-    cm.addHitBox({ id: 'hb', ownerId: 'same', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true, damage: 10, damageType: 'physical', knockback: 0 });
-    cm.addHurtBox({ id: 'hr', ownerId: 'same', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true });
+    cm.addHitBox({
+      id: 'hb',
+      ownerId: 'same',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+      damage: 10,
+      damageType: 'physical',
+      knockback: 0,
+    });
+    cm.addHurtBox({
+      id: 'hr',
+      ownerId: 'same',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+    });
     expect(cm.checkCollisions()).toHaveLength(0);
   });
 
   it('inactive hitboxes do not collide', () => {
-    cm.addHitBox({ id: 'hb', ownerId: 'a', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: false, damage: 5, damageType: 'physical', knockback: 0 });
-    cm.addHurtBox({ id: 'hr', ownerId: 'b', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true });
+    cm.addHitBox({
+      id: 'hb',
+      ownerId: 'a',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: false,
+      damage: 5,
+      damageType: 'physical',
+      knockback: 0,
+    });
+    cm.addHurtBox({
+      id: 'hr',
+      ownerId: 'b',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+    });
     expect(cm.checkCollisions()).toHaveLength(0);
   });
 
@@ -88,7 +150,7 @@ describe('CombatManager', () => {
       200
     );
     expect(targets[0].entityId).toBe('close'); // highest priority & closest
-    expect(targets.find(t => t.entityId === 'out')).toBeUndefined(); // out of range
+    expect(targets.find((t) => t.entityId === 'out')).toBeUndefined(); // out of range
   });
 });
 
@@ -98,7 +160,9 @@ describe('CombatManager', () => {
 describe('DamageSystem', () => {
   let ds: DamageSystem;
 
-  beforeEach(() => { ds = new DamageSystem(); });
+  beforeEach(() => {
+    ds = new DamageSystem();
+  });
 
   it('calculates base damage', () => {
     ds.setConfig({ critChance: 0 }); // no crit for determinism
@@ -166,11 +230,14 @@ describe('DamageSystem', () => {
 describe('ComboTracker', () => {
   let tracker: ComboTracker;
 
-  beforeEach(() => { tracker = new ComboTracker(); });
+  beforeEach(() => {
+    tracker = new ComboTracker();
+  });
 
   it('registers combos', () => {
     tracker.registerCombo({
-      id: 'hadouken', name: 'Hadouken',
+      id: 'hadouken',
+      name: 'Hadouken',
       steps: [
         { input: 'down', maxDelay: 500 },
         { input: 'forward', maxDelay: 500 },
@@ -183,7 +250,8 @@ describe('ComboTracker', () => {
 
   it('completes combo on correct sequence', () => {
     tracker.registerCombo({
-      id: 'abc', name: 'ABC',
+      id: 'abc',
+      name: 'ABC',
       steps: [
         { input: 'a', maxDelay: 500 },
         { input: 'b', maxDelay: 500 },
@@ -199,7 +267,8 @@ describe('ComboTracker', () => {
 
   it('times out stale combos', () => {
     tracker.registerCombo({
-      id: 'fast', name: 'Fast',
+      id: 'fast',
+      name: 'Fast',
       steps: [
         { input: 'a', maxDelay: 100 },
         { input: 'b', maxDelay: 100 },
@@ -213,7 +282,8 @@ describe('ComboTracker', () => {
 
   it('single-step combo completes immediately', () => {
     tracker.registerCombo({
-      id: 'tap', name: 'Tap',
+      id: 'tap',
+      name: 'Tap',
       steps: [{ input: 'a', maxDelay: 500 }],
       reward: 'quick_tap',
     });
@@ -223,7 +293,8 @@ describe('ComboTracker', () => {
 
   it('reset clears all state', () => {
     tracker.registerCombo({
-      id: 'xy', name: 'XY',
+      id: 'xy',
+      name: 'XY',
       steps: [
         { input: 'x', maxDelay: 500 },
         { input: 'y', maxDelay: 500 },

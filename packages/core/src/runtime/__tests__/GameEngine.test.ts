@@ -21,7 +21,11 @@ describe('GameEngine', () => {
   });
 
   afterEach(() => {
-    try { engine.stop(); } catch { /* already stopped */ }
+    try {
+      engine.stop();
+    } catch {
+      /* already stopped */
+    }
     vi.clearAllTimers();
   });
 
@@ -123,7 +127,10 @@ describe('GameEngine', () => {
 
   it('preload returns cached asset on second call', async () => {
     let callCount = 0;
-    engine.registerLoader('counted', async () => { callCount++; return 'data'; });
+    engine.registerLoader('counted', async () => {
+      callCount++;
+      return 'data';
+    });
     await engine.preload('counted', 'x');
     await engine.preload('counted', 'x');
     expect(callCount).toBe(1); // loader only called once

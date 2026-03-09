@@ -4,7 +4,9 @@ import { RPCManager } from '../RPCManager';
 describe('RPCManager', () => {
   let rpc: RPCManager;
 
-  beforeEach(() => { rpc = new RPCManager('client1'); });
+  beforeEach(() => {
+    rpc = new RPCManager('client1');
+  });
 
   // Handler registration
   it('register and hasHandler', () => {
@@ -58,7 +60,9 @@ describe('RPCManager', () => {
   });
 
   it('execute catches handler errors', () => {
-    rpc.register('boom', () => { throw new Error('fail'); });
+    rpc.register('boom', () => {
+      throw new Error('fail');
+    });
     const result = rpc.execute(1, 'boom', [], 'peer');
     expect(result.error).toBe('fail');
   });

@@ -1,6 +1,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { gltfHandler, getGLTFState, isGLTFLoaded, getGLTFAnimations, getGLTFMorphTargets } from '../GLTFTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  gltfHandler,
+  getGLTFState,
+  isGLTFLoaded,
+  getGLTFAnimations,
+  getGLTFMorphTargets,
+} from '../GLTFTrait';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('GLTFTrait', () => {
   let node: Record<string, unknown>;
@@ -62,7 +75,11 @@ describe('GLTFTrait', () => {
   });
 
   it('set_morph is safe when not loaded', () => {
-    sendEvent(gltfHandler, node, cfg, ctx, { type: 'gltf:set_morph', target: 'smile', weight: 0.5 });
+    sendEvent(gltfHandler, node, cfg, ctx, {
+      type: 'gltf:set_morph',
+      target: 'smile',
+      weight: 0.5,
+    });
     expect((node as any).__gltfState.morphWeights.size).toBe(0);
   });
 

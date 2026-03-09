@@ -20,7 +20,7 @@ function makeLayer(
   poses: AnimPose[],
   weight = 1,
   mode: 'override' | 'additive' = 'override',
-  mask?: Set<string>,
+  mask?: Set<string>
 ): AnimLayer {
   return { id, poses, weight, mode, mask };
 }
@@ -112,7 +112,7 @@ describe('SkeletalBlender', () => {
     });
 
     it('second override layer overwrites first at same weight', () => {
-      blender.addLayer(makeLayer('base',    [makePose('Spine', 1, 0, 0)], 1, 'override'));
+      blender.addLayer(makeLayer('base', [makePose('Spine', 1, 0, 0)], 1, 'override'));
       blender.addLayer(makeLayer('overlay', [makePose('Spine', 0, 5, 0)], 1, 'override'));
       const result = blender.blend();
       // Second override layer blends from the result of the first
@@ -120,10 +120,9 @@ describe('SkeletalBlender', () => {
     });
 
     it('multiple bones are blended independently', () => {
-      blender.addLayer(makeLayer('base', [
-        makePose('Spine', 1, 0, 0),
-        makePose('Head',  0, 2, 0),
-      ], 1, 'override'));
+      blender.addLayer(
+        makeLayer('base', [makePose('Spine', 1, 0, 0), makePose('Head', 0, 2, 0)], 1, 'override')
+      );
       const result = blender.blend();
       expect(result.get('Spine')!.tx).toBeCloseTo(1, 5);
       expect(result.get('Head')!.ty).toBeCloseTo(2, 5);
@@ -136,7 +135,7 @@ describe('SkeletalBlender', () => {
   describe('blend() — additive mode', () => {
     it('adds weighted pose delta on top of existing', () => {
       // First layer sets Spine to tx=2
-      blender.addLayer(makeLayer('base',  [makePose('Spine', 2, 0, 0)], 1, 'override'));
+      blender.addLayer(makeLayer('base', [makePose('Spine', 2, 0, 0)], 1, 'override'));
       // Second layer adds tx=3 at weight=0.5 → adds 1.5
       blender.addLayer(makeLayer('extra', [makePose('Spine', 3, 0, 0)], 0.5, 'additive'));
       const result = blender.blend();
@@ -144,7 +143,7 @@ describe('SkeletalBlender', () => {
     });
 
     it('scale is multiplicatively blended in additive mode', () => {
-      blender.addLayer(makeLayer('base',  [makePose('Spine', 0, 0, 0, 1, 1, 1)], 1, 'override'));
+      blender.addLayer(makeLayer('base', [makePose('Spine', 0, 0, 0, 1, 1, 1)], 1, 'override'));
       blender.addLayer(makeLayer('scale', [makePose('Spine', 0, 0, 0, 2, 2, 2)], 0.5, 'additive'));
       const result = blender.blend();
       // sx = 1 * (1 + (2-1)*0.5) = 1.5
@@ -157,8 +156,12 @@ describe('SkeletalBlender', () => {
   // -------------------------------------------------------------------------
   describe('bone mask', () => {
     it('masked layer only affects bones in the mask', () => {
-      blender.addLayer(makeLayer('base',    [makePose('Spine', 1, 0, 0), makePose('Head', 2, 0, 0)], 1, 'override'));
-      blender.addLayer(makeLayer('masked',  [makePose('Head', 10, 0, 0)], 1, 'override', new Set(['Head'])));
+      blender.addLayer(
+        makeLayer('base', [makePose('Spine', 1, 0, 0), makePose('Head', 2, 0, 0)], 1, 'override')
+      );
+      blender.addLayer(
+        makeLayer('masked', [makePose('Head', 10, 0, 0)], 1, 'override', new Set(['Head']))
+      );
       const result = blender.blend();
       // Spine should come from base only (tx=1)
       expect(result.get('Spine')!.tx).toBeCloseTo(1, 5);
@@ -167,7 +170,9 @@ describe('SkeletalBlender', () => {
     });
 
     it('masked layer skips bones not in the mask', () => {
-      blender.addLayer(makeLayer('overlay', [makePose('Spine', 9, 0, 0)], 1, 'override', new Set(['Head'])));
+      blender.addLayer(
+        makeLayer('overlay', [makePose('Spine', 9, 0, 0)], 1, 'override', new Set(['Head']))
+      );
       const result = blender.blend();
       // Spine is not in mask → not affected
       expect(result.get('Spine')).toBeUndefined();
@@ -188,7 +193,7 @@ describe('SkeletalBlender', () => {
 
     it('t=1 fully transitions to the to-layer', () => {
       blender.addLayer(makeLayer('idle', []));
-      blender.addLayer(makeLayer('run',  []));
+      blender.addLayer(makeLayer('run', []));
       blender.crossfade('idle', 'run', 1);
       expect(blender.getLayerWeight('idle')).toBe(0);
       expect(blender.getLayerWeight('run')).toBe(1);
@@ -196,7 +201,7 @@ describe('SkeletalBlender', () => {
 
     it('t=0 keeps from-layer at full weight', () => {
       blender.addLayer(makeLayer('idle', []));
-      blender.addLayer(makeLayer('run',  []));
+      blender.addLayer(makeLayer('run', []));
       blender.crossfade('idle', 'run', 0);
       expect(blender.getLayerWeight('idle')).toBe(1);
       expect(blender.getLayerWeight('run')).toBe(0);

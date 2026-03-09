@@ -5,7 +5,7 @@
  * conflict detection, override precedence, and graph registration.
  */
 
-import { describe, it, expect, vi} from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   TraitCompositionCompiler,
   CompositionConflictError,
@@ -23,18 +23,17 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   };
 });
 
-
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function makeHandler(
   defaults: Record<string, unknown> = {},
-  conflicts: string[] = [],
+  conflicts: string[] = []
 ): ComponentTraitHandler {
   return { defaultConfig: defaults, conflicts };
 }
 
 function makeRegistry(
-  entries: Record<string, ComponentTraitHandler>,
+  entries: Record<string, ComponentTraitHandler>
 ): (name: string) => ComponentTraitHandler | undefined {
   return (name) => entries[name];
 }

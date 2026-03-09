@@ -268,11 +268,33 @@ describe('Sprint 7 – GraphToCode converter', () => {
 
   it('event → play_sound chain generates audio.play()', () => {
     const nodes = [
-      makeNode('e1', 'on_click', 'event', 'On Click', {}, [], [{ id: 'flow', label: 'Execute', type: 'flow' }]),
-      makeNode('a1', 'play_sound', 'action', 'Play Sound', { url: 'beep.mp3' }, [{ id: 'flow' }], []),
+      makeNode(
+        'e1',
+        'on_click',
+        'event',
+        'On Click',
+        {},
+        [],
+        [{ id: 'flow', label: 'Execute', type: 'flow' }]
+      ),
+      makeNode(
+        'a1',
+        'play_sound',
+        'action',
+        'Play Sound',
+        { url: 'beep.mp3' },
+        [{ id: 'flow' }],
+        []
+      ),
     ];
     const edges: HoloEdge[] = [
-      { id: 'e1a1', source: 'e1', target: 'a1', sourceHandle: 'flow', targetHandle: 'flow' } as HoloEdge,
+      {
+        id: 'e1a1',
+        source: 'e1',
+        target: 'a1',
+        sourceHandle: 'flow',
+        targetHandle: 'flow',
+      } as HoloEdge,
     ];
     const result = graphToCode(makeGraph(nodes, edges));
     expect(result.code).toContain('audio.play("beep.mp3")');
@@ -284,7 +306,13 @@ describe('Sprint 7 – GraphToCode converter', () => {
       makeNode('a1', 'toggle', 'action', 'Toggle', { property: 'visible' }, [{ id: 'flow' }], []),
     ];
     const edges: HoloEdge[] = [
-      { id: 'e1a1', source: 'e1', target: 'a1', sourceHandle: 'flow', targetHandle: 'flow' } as HoloEdge,
+      {
+        id: 'e1a1',
+        source: 'e1',
+        target: 'a1',
+        sourceHandle: 'flow',
+        targetHandle: 'flow',
+      } as HoloEdge,
     ];
     const result = graphToCode(makeGraph(nodes, edges));
     expect(result.code).toContain('this.visible = !this.visible');
@@ -296,7 +324,13 @@ describe('Sprint 7 – GraphToCode converter', () => {
       makeNode('a1', 'spawn', 'action', 'Spawn', { template: 'Orb' }, [{ id: 'flow' }], []),
     ];
     const edges: HoloEdge[] = [
-      { id: 'e1a1', source: 'e1', target: 'a1', sourceHandle: 'flow', targetHandle: 'flow' } as HoloEdge,
+      {
+        id: 'e1a1',
+        source: 'e1',
+        target: 'a1',
+        sourceHandle: 'flow',
+        targetHandle: 'flow',
+      } as HoloEdge,
     ];
     const result = graphToCode(makeGraph(nodes, edges));
     expect(result.code).toContain('scene.spawn("Orb")');
@@ -308,7 +342,13 @@ describe('Sprint 7 – GraphToCode converter', () => {
       makeNode('a1', 'destroy', 'action', 'Destroy', {}, [{ id: 'flow' }], []),
     ];
     const edges: HoloEdge[] = [
-      { id: 'e1a1', source: 'e1', target: 'a1', sourceHandle: 'flow', targetHandle: 'flow' } as HoloEdge,
+      {
+        id: 'e1a1',
+        source: 'e1',
+        target: 'a1',
+        sourceHandle: 'flow',
+        targetHandle: 'flow',
+      } as HoloEdge,
     ];
     const result = graphToCode(makeGraph(nodes, edges));
     expect(result.code).toContain('this.destroy()');
@@ -392,7 +432,9 @@ describe('Sprint 7 – AI PromptBuilder', () => {
   });
 
   it('buildCodeGenPrompt includes the comment text', () => {
-    const p = builder.buildCodeGenPrompt(makeCtx({ type: 'comment', comment: 'Create a spinning orb' }));
+    const p = builder.buildCodeGenPrompt(
+      makeCtx({ type: 'comment', comment: 'Create a spinning orb' })
+    );
     expect(p).toContain('Create a spinning orb');
   });
 
@@ -424,7 +466,11 @@ describe('Sprint 7 – AI PromptBuilder', () => {
 
   it('buildErrorFixPrompt includes error message text', () => {
     const errCtx = { ...makeCtx(), errorMessage: 'Unknown: colr', errorLine: 2, errorColumn: 4 };
-    const p = builder.buildErrorFixPrompt(errCtx, { message: 'Unknown property: colr', line: 2, column: 4 });
+    const p = builder.buildErrorFixPrompt(errCtx, {
+      message: 'Unknown property: colr',
+      line: 2,
+      column: 4,
+    });
     expect(p).toMatch(/colr/);
   });
 
@@ -457,23 +503,49 @@ describe('Sprint 7 – IntelliJ plugin', () => {
   });
 
   it('HoloScriptLanguage.kt exists', () => {
-    expect(existsSync(join(INTELLIJ_ROOT, 'src/main/kotlin/com/holoscript/intellij/HoloScriptLanguage.kt'))).toBe(true);
+    expect(
+      existsSync(
+        join(INTELLIJ_ROOT, 'src/main/kotlin/com/holoscript/intellij/HoloScriptLanguage.kt')
+      )
+    ).toBe(true);
   });
 
   it('HoloScriptFileType.kt exists', () => {
-    expect(existsSync(join(INTELLIJ_ROOT, 'src/main/kotlin/com/holoscript/intellij/HoloScriptFileType.kt'))).toBe(true);
+    expect(
+      existsSync(
+        join(INTELLIJ_ROOT, 'src/main/kotlin/com/holoscript/intellij/HoloScriptFileType.kt')
+      )
+    ).toBe(true);
   });
 
   it('HoloScriptLspClient.kt exists', () => {
-    expect(existsSync(join(INTELLIJ_ROOT, 'src/main/kotlin/com/holoscript/intellij/lsp/HoloScriptLspClient.kt'))).toBe(true);
+    expect(
+      existsSync(
+        join(INTELLIJ_ROOT, 'src/main/kotlin/com/holoscript/intellij/lsp/HoloScriptLspClient.kt')
+      )
+    ).toBe(true);
   });
 
   it('HoloScriptSyntaxHighlighter.kt exists', () => {
-    expect(existsSync(join(INTELLIJ_ROOT, 'src/main/kotlin/com/holoscript/intellij/highlighting/HoloScriptSyntaxHighlighter.kt'))).toBe(true);
+    expect(
+      existsSync(
+        join(
+          INTELLIJ_ROOT,
+          'src/main/kotlin/com/holoscript/intellij/highlighting/HoloScriptSyntaxHighlighter.kt'
+        )
+      )
+    ).toBe(true);
   });
 
   it('HoloScriptCompletionContributor.kt exists', () => {
-    expect(existsSync(join(INTELLIJ_ROOT, 'src/main/kotlin/com/holoscript/intellij/completion/HoloScriptCompletionContributor.kt'))).toBe(true);
+    expect(
+      existsSync(
+        join(
+          INTELLIJ_ROOT,
+          'src/main/kotlin/com/holoscript/intellij/completion/HoloScriptCompletionContributor.kt'
+        )
+      )
+    ).toBe(true);
   });
 
   it('build.gradle.kts exists', () => {

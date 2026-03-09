@@ -255,7 +255,9 @@ export interface DracoExtensionData {
 /**
  * Get compression options for quality preset
  */
-export function getQualityPresetOptions(preset: CompressionQualityPreset): Partial<CompressionOptions> {
+export function getQualityPresetOptions(
+  preset: CompressionQualityPreset
+): Partial<CompressionOptions> {
   switch (preset) {
     case 'fast':
       return {

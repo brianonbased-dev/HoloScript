@@ -21,10 +21,10 @@ export interface EmbeddingSearchConfig {
   embedding_model: EmbeddingModel;
   similarity_metric: SimilarityMetric;
   top_k: number;
-  min_score: number;       // minimum similarity score 0–1
+  min_score: number; // minimum similarity score 0–1
   cache_embeddings: boolean;
   max_cache_size: number;
-  cross_modal: boolean;    // allow text→image or image→text search (requires CLIP)
+  cross_modal: boolean; // allow text→image or image→text search (requires CLIP)
 }
 
 interface SearchResult {
@@ -101,14 +101,15 @@ export const embeddingSearchHandler: TraitHandler<EmbeddingSearchConfig> = {
     } else if (event.type === 'search:results') {
       const payload = event.payload as any;
       state.isSearching = false;
-      state.lastResults = (payload?.results ?? []).filter(
-        (r: SearchResult) => r.score >= config.min_score
-      ).slice(0, config.top_k);
+      state.lastResults = (payload?.results ?? [])
+        .filter((r: SearchResult) => r.score >= config.min_score)
+        .slice(0, config.top_k);
 
       const queryTimeMs: number = payload?.queryTimeMs ?? 0;
-      state.avgQueryTimeMs = state.totalQueries > 1
-        ? (state.avgQueryTimeMs * (state.totalQueries - 1) + queryTimeMs) / state.totalQueries
-        : queryTimeMs;
+      state.avgQueryTimeMs =
+        state.totalQueries > 1
+          ? (state.avgQueryTimeMs * (state.totalQueries - 1) + queryTimeMs) / state.totalQueries
+          : queryTimeMs;
 
       context.emit('search:complete', {
         resultCount: state.lastResults.length,

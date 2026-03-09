@@ -1,14 +1,14 @@
 # RFC: @platform() Conditional Compilation
 
-| Field       | Value                                                   |
-|-------------|---------------------------------------------------------|
-| **RFC**     | RFC-0012                                                |
-| **Title**   | Platform Conditional Compilation                        |
-| **Status**  | Draft                                                   |
-| **Author**  | HoloScript Core Team                                    |
-| **Created** | 2026-03-06                                              |
-| **Updated** | 2026-03-06                                              |
-| **Targets** | Parser, Compiler, LSP, Tree-sitter Grammar              |
+| Field       | Value                                      |
+| ----------- | ------------------------------------------ |
+| **RFC**     | RFC-0012                                   |
+| **Title**   | Platform Conditional Compilation           |
+| **Status**  | Draft                                      |
+| **Author**  | HoloScript Core Team                       |
+| **Created** | 2026-03-06                                 |
+| **Updated** | 2026-03-06                                 |
+| **Targets** | Parser, Compiler, LSP, Tree-sitter Grammar |
 
 ---
 
@@ -34,14 +34,14 @@ radically different capabilities. A single HoloScript composition describing a
 museum tour, a collaborative workspace, or an interactive product demo must
 target:
 
-| Platform     | Runtime         | Capabilities                                      | Frame Budget |
-|--------------|-----------------|---------------------------------------------------|--------------|
-| **VisionOS** | RealityKit      | Hand tracking, eye tracking, spatial audio, portals| 11.1 ms      |
-| **AndroidXR**| Jetpack XR      | Hand tracking, eye tracking, passthrough, GPS      | 11.1 ms      |
-| **WebXR**    | Three.js/R3F    | Limited hand tracking, no eye tracking, browser-bound | 16.6 ms   |
-| **Quest**    | OpenXR/Vulkan   | Hand + controller, haptics, passthrough            | 11.1 ms      |
-| **PCVR**     | OpenXR/Vulkan   | Full PC GPU, hand + controller, haptics            | 11.1 ms      |
-| **Desktop**  | Browser/Native  | Mouse/keyboard, no spatial tracking                | 16.6 ms      |
+| Platform      | Runtime        | Capabilities                                          | Frame Budget |
+| ------------- | -------------- | ----------------------------------------------------- | ------------ |
+| **VisionOS**  | RealityKit     | Hand tracking, eye tracking, spatial audio, portals   | 11.1 ms      |
+| **AndroidXR** | Jetpack XR     | Hand tracking, eye tracking, passthrough, GPS         | 11.1 ms      |
+| **WebXR**     | Three.js/R3F   | Limited hand tracking, no eye tracking, browser-bound | 16.6 ms      |
+| **Quest**     | OpenXR/Vulkan  | Hand + controller, haptics, passthrough               | 11.1 ms      |
+| **PCVR**      | OpenXR/Vulkan  | Full PC GPU, hand + controller, haptics               | 11.1 ms      |
+| **Desktop**   | Browser/Native | Mouse/keyboard, no spatial tracking                   | 16.6 ms      |
 
 Today, developers must either:
 
@@ -87,12 +87,12 @@ target-specific output with zero runtime overhead.
 
 ### 1.4 Prior Art
 
-| System                         | Approach                           | HoloScript Advantage                |
-|--------------------------------|------------------------------------|--------------------------------------|
-| Rust `#[cfg(target_os)]`       | Attribute-based conditional compile | HoloScript adds categories + unions  |
-| C# `#if UNITY_IOS`             | Preprocessor directives            | HoloScript is declarative, not preprocessor |
-| Kotlin Multiplatform `expect`/`actual` | Interface-based platform split | HoloScript keeps one file, not split modules |
-| Flutter `Platform.isAndroid`   | Runtime check                      | HoloScript is compile-time, zero cost |
+| System                                 | Approach                            | HoloScript Advantage                         |
+| -------------------------------------- | ----------------------------------- | -------------------------------------------- |
+| Rust `#[cfg(target_os)]`               | Attribute-based conditional compile | HoloScript adds categories + unions          |
+| C# `#if UNITY_IOS`                     | Preprocessor directives             | HoloScript is declarative, not preprocessor  |
+| Kotlin Multiplatform `expect`/`actual` | Interface-based platform split      | HoloScript keeps one file, not split modules |
+| Flutter `Platform.isAndroid`           | Runtime check                       | HoloScript is compile-time, zero cost        |
 
 ---
 
@@ -135,10 +135,10 @@ wearable        watchos, wearos
 
 #### Aliases
 
-| Alias    | Resolves To  |
-|----------|-------------|
-| `phone`  | `mobile`    |
-| `car`    | `automotive`|
+| Alias   | Resolves To  |
+| ------- | ------------ |
+| `phone` | `mobile`     |
+| `car`   | `automotive` |
 
 ### 2.3 Union Form: Multiple Platforms
 
@@ -225,14 +225,14 @@ object "MultiPlatformObject" {
 
 #### Block Types That Accept @platform()
 
-| Block Type       | Root Level | Nested | AST Field                   |
-|------------------|:----------:|:------:|-----------------------------|
-| `object`         |     Y      |   Y    | `HoloObjectDecl.platformConstraint`  |
-| `template`       |     Y      |   --   | `HoloTemplate.platformConstraint`    |
-| `spatial_group`  |     Y      |   Y    | `HoloSpatialGroup.platformConstraint`|
-| `light`          |     Y      |   --   | `HoloLight.platformConstraint`       |
-| `norm`           |     Y      |   --   | `HoloNormBlock.platformConstraint`   |
-| `interaction`    |     --     |   Y    | Proposed: `HoloInteraction.platformConstraint` |
+| Block Type      | Root Level | Nested | AST Field                                      |
+| --------------- | :--------: | :----: | ---------------------------------------------- |
+| `object`        |     Y      |   Y    | `HoloObjectDecl.platformConstraint`            |
+| `template`      |     Y      |   --   | `HoloTemplate.platformConstraint`              |
+| `spatial_group` |     Y      |   Y    | `HoloSpatialGroup.platformConstraint`          |
+| `light`         |     Y      |   --   | `HoloLight.platformConstraint`                 |
+| `norm`          |     Y      |   --   | `HoloNormBlock.platformConstraint`             |
+| `interaction`   |     --     |   Y    | Proposed: `HoloInteraction.platformConstraint` |
 
 ### 2.7 Grammar Specification
 
@@ -312,83 +312,83 @@ stubs with TODOs. Traits marked `--` are not available.
 
 #### Spatial Tracking Traits
 
-| Trait               | VisionOS | AndroidXR | Quest3 | PCVR | WebXR | iOS  | Android | Desktop |
-|---------------------|:--------:|:---------:|:------:|:----:|:-----:|:----:|:-------:|:-------:|
-| `hand_tracking`     | full     | full      | full   | full | --    | --   | --      | --      |
-| `eye_tracking`      | full     | full      | full   | full | --    | --   | --      | --      |
-| `plane_detection`   | full     | full      | full   | --   | partial| full | full   | --      |
-| `mesh_detection`    | full     | full      | full   | --   | --    | full | --      | --      |
-| `object_tracking`   | partial  | partial   | partial| --   | --    | --   | --      | --      |
-| `scene_reconstruction`| partial| partial   | --     | --   | --    | partial| --    | --      |
-| `anchor`            | full     | full      | full   | full | partial| full| full   | --      |
-| `world_anchor`      | full     | full      | full   | --   | --    | full | full    | --      |
-| `geospatial`        | --       | full      | --     | --   | --    | full | full    | --      |
+| Trait                  | VisionOS | AndroidXR | Quest3  | PCVR |  WebXR  |   iOS   | Android | Desktop |
+| ---------------------- | :------: | :-------: | :-----: | :--: | :-----: | :-----: | :-----: | :-----: |
+| `hand_tracking`        |   full   |   full    |  full   | full |   --    |   --    |   --    |   --    |
+| `eye_tracking`         |   full   |   full    |  full   | full |   --    |   --    |   --    |   --    |
+| `plane_detection`      |   full   |   full    |  full   |  --  | partial |  full   |  full   |   --    |
+| `mesh_detection`       |   full   |   full    |  full   |  --  |   --    |  full   |   --    |   --    |
+| `object_tracking`      | partial  |  partial  | partial |  --  |   --    |   --    |   --    |   --    |
+| `scene_reconstruction` | partial  |  partial  |   --    |  --  |   --    | partial |   --    |   --    |
+| `anchor`               |   full   |   full    |  full   | full | partial |  full   |  full   |   --    |
+| `world_anchor`         |   full   |   full    |  full   |  --  |   --    |  full   |  full   |   --    |
+| `geospatial`           |    --    |   full    |   --    |  --  |   --    |  full   |  full   |   --    |
 
 #### Interaction Traits
 
-| Trait               | VisionOS | AndroidXR | Quest3 | PCVR | WebXR | iOS  | Android | Desktop |
-|---------------------|:--------:|:---------:|:------:|:----:|:-----:|:----:|:-------:|:-------:|
-| `grabbable`         | full     | full      | full   | full | partial| --  | --      | --      |
-| `hoverable`         | full     | full      | full   | full | partial| --  | --      | full    |
-| `clickable`         | full     | full      | full   | full | full  | full | full    | full    |
-| `draggable`         | full     | full      | full   | full | partial| full| full   | full    |
-| `throwable`         | full     | full      | full   | full | --    | --   | --      | --      |
-| `scalable`          | full     | full      | full   | full | --    | full | full    | --      |
-| `rotatable`         | full     | full      | full   | full | --    | full | full    | --      |
+| Trait       | VisionOS | AndroidXR | Quest3 | PCVR |  WebXR  | iOS  | Android | Desktop |
+| ----------- | :------: | :-------: | :----: | :--: | :-----: | :--: | :-----: | :-----: |
+| `grabbable` |   full   |   full    |  full  | full | partial |  --  |   --    |   --    |
+| `hoverable` |   full   |   full    |  full  | full | partial |  --  |   --    |  full   |
+| `clickable` |   full   |   full    |  full  | full |  full   | full |  full   |  full   |
+| `draggable` |   full   |   full    |  full  | full | partial | full |  full   |  full   |
+| `throwable` |   full   |   full    |  full  | full |   --    |  --  |   --    |   --    |
+| `scalable`  |   full   |   full    |  full  | full |   --    | full |  full   |   --    |
+| `rotatable` |   full   |   full    |  full  | full |   --    | full |  full   |   --    |
 
 #### Physics Traits
 
-| Trait               | VisionOS | AndroidXR | Quest3 | PCVR | WebXR | iOS  | Android | Desktop |
-|---------------------|:--------:|:---------:|:------:|:----:|:-----:|:----:|:-------:|:-------:|
-| `physics`           | full     | full      | full   | full | full  | --   | --      | full    |
-| `collidable`        | full     | full      | full   | full | full  | --   | --      | full    |
-| `cloth`             | partial  | partial   | partial| full | --    | --   | --      | partial |
-| `soft_body`         | partial  | partial   | partial| full | --    | --   | --      | partial |
-| `fluid`             | partial  | partial   | --     | full | --    | --   | --      | partial |
+| Trait        | VisionOS | AndroidXR | Quest3  | PCVR | WebXR | iOS | Android | Desktop |
+| ------------ | :------: | :-------: | :-----: | :--: | :---: | :-: | :-----: | :-----: |
+| `physics`    |   full   |   full    |  full   | full | full  | --  |   --    |  full   |
+| `collidable` |   full   |   full    |  full   | full | full  | --  |   --    |  full   |
+| `cloth`      | partial  |  partial  | partial | full |  --   | --  |   --    | partial |
+| `soft_body`  | partial  |  partial  | partial | full |  --   | --  |   --    | partial |
+| `fluid`      | partial  |  partial  |   --    | full |  --   | --  |   --    | partial |
 
 #### Audio Traits
 
-| Trait               | VisionOS | AndroidXR | Quest3 | PCVR | WebXR | iOS  | Android | Desktop |
-|---------------------|:--------:|:---------:|:------:|:----:|:-----:|:----:|:-------:|:-------:|
-| `spatial_audio`     | full     | full      | full   | full | --    | --   | --      | --      |
-| `ambisonics`        | full     | full      | full   | full | --    | --   | --      | --      |
-| `audio_occlusion`   | full     | full      | full   | full | --    | --   | --      | --      |
-| `reverb_zone`       | full     | full      | full   | full | --    | --   | --      | --      |
-| `audio`             | full     | full      | full   | full | full  | full | full    | full    |
+| Trait             | VisionOS | AndroidXR | Quest3 | PCVR | WebXR | iOS  | Android | Desktop |
+| ----------------- | :------: | :-------: | :----: | :--: | :---: | :--: | :-----: | :-----: |
+| `spatial_audio`   |   full   |   full    |  full  | full |  --   |  --  |   --    |   --    |
+| `ambisonics`      |   full   |   full    |  full  | full |  --   |  --  |   --    |   --    |
+| `audio_occlusion` |   full   |   full    |  full  | full |  --   |  --  |   --    |   --    |
+| `reverb_zone`     |   full   |   full    |  full  | full |  --   |  --  |   --    |   --    |
+| `audio`           |   full   |   full    |  full  | full | full  | full |  full   |  full   |
 
 #### Visual / Rendering Traits
 
-| Trait               | VisionOS | AndroidXR | Quest3 | PCVR | WebXR | iOS  | Android | Desktop |
-|---------------------|:--------:|:---------:|:------:|:----:|:-----:|:----:|:-------:|:-------:|
-| `billboard`         | full     | full      | full   | full | full  | full | full    | full    |
-| `particle_emitter`  | full     | full      | full   | full | full  | full | full    | full    |
-| `animated`          | full     | full      | full   | full | full  | full | full    | full    |
-| `lod`               | partial  | partial   | partial| full | partial| --  | --      | partial |
-| `portal`            | full     | partial   | partial| partial| --  | --   | --      | --      |
-| `volume`            | full     | partial   | --     | --   | --    | --   | --      | --      |
-| `immersive`         | full     | full      | full   | full | partial| --  | --      | --      |
+| Trait              | VisionOS | AndroidXR | Quest3  |  PCVR   |  WebXR  | iOS  | Android | Desktop |
+| ------------------ | :------: | :-------: | :-----: | :-----: | :-----: | :--: | :-----: | :-----: |
+| `billboard`        |   full   |   full    |  full   |  full   |  full   | full |  full   |  full   |
+| `particle_emitter` |   full   |   full    |  full   |  full   |  full   | full |  full   |  full   |
+| `animated`         |   full   |   full    |  full   |  full   |  full   | full |  full   |  full   |
+| `lod`              | partial  |  partial  | partial |  full   | partial |  --  |   --    | partial |
+| `portal`           |   full   |  partial  | partial | partial |   --    |  --  |   --    |   --    |
+| `volume`           |   full   |  partial  |   --    |   --    |   --    |  --  |   --    |   --    |
+| `immersive`        |   full   |   full    |  full   |  full   | partial |  --  |   --    |   --    |
 
 #### Accessibility Traits
 
-| Trait               | VisionOS | AndroidXR | Quest3 | PCVR | WebXR | iOS  | Android | Desktop |
-|---------------------|:--------:|:---------:|:------:|:----:|:-----:|:----:|:-------:|:-------:|
-| `accessible`        | full     | full      | partial| partial| full| full | full    | full    |
-| `alt_text`          | full     | full      | partial| partial| full| full | full    | full    |
-| `high_contrast`     | full     | full      | --     | --   | full  | full | full    | full    |
-| `motion_reduced`    | full     | full      | partial| partial| full| full | full    | full    |
+| Trait            | VisionOS | AndroidXR | Quest3  |  PCVR   | WebXR | iOS  | Android | Desktop |
+| ---------------- | :------: | :-------: | :-----: | :-----: | :---: | :--: | :-----: | :-----: |
+| `accessible`     |   full   |   full    | partial | partial | full  | full |  full   |  full   |
+| `alt_text`       |   full   |   full    | partial | partial | full  | full |  full   |  full   |
+| `high_contrast`  |   full   |   full    |   --    |   --    | full  | full |  full   |  full   |
+| `motion_reduced` |   full   |   full    | partial | partial | full  | full |  full   |  full   |
 
 #### Platform-Exclusive Traits
 
-| Trait                    | Platform   | Category    | Notes                              |
-|--------------------------|------------|-------------|-------------------------------------|
-| `shareplay`              | visionos   | Collaboration| GroupActivities framework           |
-| `spatial_persona`        | visionos   | Social      | visionOS 2.0 Spatial Persona        |
-| `volumetric_window`      | visionos   | Windowing   | WindowGroup .volumetric style       |
-| `face_tracking`          | android-xr | Tracking    | 68 blendshapes (DP3)                |
-| `drm_video`              | android-xr | Media       | SurfaceEntity + Widevine            |
-| `follows_head`           | android-xr | UI          | UserSubspace follow behavior        |
-| `controller_input`       | quest3, pcvr| Input      | Quest Touch / Index controllers     |
-| `haptic`                 | quest3, pcvr, android-xr | Feedback | Controller/hand haptics  |
+| Trait               | Platform                 | Category      | Notes                           |
+| ------------------- | ------------------------ | ------------- | ------------------------------- |
+| `shareplay`         | visionos                 | Collaboration | GroupActivities framework       |
+| `spatial_persona`   | visionos                 | Social        | visionOS 2.0 Spatial Persona    |
+| `volumetric_window` | visionos                 | Windowing     | WindowGroup .volumetric style   |
+| `face_tracking`     | android-xr               | Tracking      | 68 blendshapes (DP3)            |
+| `drm_video`         | android-xr               | Media         | SurfaceEntity + Widevine        |
+| `follows_head`      | android-xr               | UI            | UserSubspace follow behavior    |
+| `controller_input`  | quest3, pcvr             | Input         | Quest Touch / Index controllers |
+| `haptic`            | quest3, pcvr, android-xr | Feedback      | Controller/hand haptics         |
 
 ### 3.2 Capability-Based Trait Guards
 
@@ -464,6 +464,7 @@ attached to the subsequent block declaration.
 line ~3947.
 
 **Parsing rules**:
+
 - The `@` and `platform` tokens are consumed first.
 - `parsePlatformConstraint()` reads the `(...)` arguments.
 - Hyphenated platform names (e.g., `android-xr`) are assembled from
@@ -481,19 +482,14 @@ removed.
 
 ```typescript
 class PlatformConditionalCompilerMixin {
-  filterForPlatform(
-    composition: HoloComposition,
-    target: CompilePlatformTarget,
-  ): HoloComposition {
+  filterForPlatform(composition: HoloComposition, target: CompilePlatformTarget): HoloComposition {
     return {
       ...composition,
       objects: this.filterBlocks(composition.objects, target),
       templates: this.filterBlocks(composition.templates, target),
       spatialGroups: this.filterBlocks(composition.spatialGroups, target),
       lights: this.filterBlocks(composition.lights, target),
-      norms: composition.norms
-        ? this.filterBlocks(composition.norms, target)
-        : undefined,
+      norms: composition.norms ? this.filterBlocks(composition.norms, target) : undefined,
     };
   }
 }
@@ -517,16 +513,16 @@ to `"mobile"` which expands to `['ios', 'android']`.
 
 After filtering, the cleaned AST is passed to the appropriate target compiler:
 
-| Target Platform | Compiler Class                | Output Language      |
-|-----------------|-------------------------------|----------------------|
-| `visionos`      | `VisionOSCompiler`            | Swift (RealityKit)   |
-| `android-xr`    | `AndroidXRCompiler`           | Kotlin (Jetpack XR)  |
-| `quest3`        | `OpenXRCompiler`              | C++ (OpenXR/Vulkan)  |
-| `pcvr`          | `OpenXRCompiler`              | C++ (OpenXR/Vulkan)  |
+| Target Platform | Compiler Class                    | Output Language       |
+| --------------- | --------------------------------- | --------------------- |
+| `visionos`      | `VisionOSCompiler`                | Swift (RealityKit)    |
+| `android-xr`    | `AndroidXRCompiler`               | Kotlin (Jetpack XR)   |
+| `quest3`        | `OpenXRCompiler`                  | C++ (OpenXR/Vulkan)   |
+| `pcvr`          | `OpenXRCompiler`                  | C++ (OpenXR/Vulkan)   |
 | `webxr`         | `R3FCompiler` / `BabylonCompiler` | JavaScript/TypeScript |
-| `web`           | `WebGPUCompiler`              | TypeScript (WebGPU)  |
-| `ios`           | `IOSCompiler`                 | Swift (SceneKit)     |
-| `android`       | `AndroidCompiler`             | Kotlin               |
+| `web`           | `WebGPUCompiler`                  | TypeScript (WebGPU)   |
+| `ios`           | `IOSCompiler`                     | Swift (SceneKit)      |
+| `android`       | `AndroidCompiler`                 | Kotlin                |
 
 Each compiler extends `CompilerBase` and is unaware of platform conditional
 logic -- it receives a pre-filtered AST containing only blocks relevant to its
@@ -536,13 +532,13 @@ target.
 
 The compiler should emit the following diagnostics:
 
-| Severity | Condition                                                       | Example                                                                |
-|----------|-----------------------------------------------------------------|------------------------------------------------------------------------|
-| Error    | `@platform()` references unknown platform name                  | `@platform(xbox)` -- `"xbox" is not a recognized platform target`      |
-| Warning  | Trait used on platform that does not support it                  | `@hand_tracking` on `web` target -- `"hand_tracking" unavailable`      |
-| Warning  | `@platform()` block is unreachable for the compile target       | `@platform(visionos)` when compiling for `quest3` -- stripped silently |
-| Info     | All platform variants of a multi-platform composition stripped  | Every `@platform(X)` block rejected -- "no platform-specific code included" |
-| Warning  | Object has no unconstrained fallback and no matching constraint  | Object "Menu" has `@platform(vr)` and `@platform(ar)` variants but none for `desktop` |
+| Severity | Condition                                                       | Example                                                                               |
+| -------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Error    | `@platform()` references unknown platform name                  | `@platform(xbox)` -- `"xbox" is not a recognized platform target`                     |
+| Warning  | Trait used on platform that does not support it                 | `@hand_tracking` on `web` target -- `"hand_tracking" unavailable`                     |
+| Warning  | `@platform()` block is unreachable for the compile target       | `@platform(visionos)` when compiling for `quest3` -- stripped silently                |
+| Info     | All platform variants of a multi-platform composition stripped  | Every `@platform(X)` block rejected -- "no platform-specific code included"           |
+| Warning  | Object has no unconstrained fallback and no matching constraint | Object "Menu" has `@platform(vr)` and `@platform(ar)` variants but none for `desktop` |
 
 ### 4.6 Multi-Target Build
 
@@ -581,6 +577,7 @@ inside `@platform()`:
 ```
 
 After `not:`:
+
 ```
 @platform(not: |)
                ^--- Suggest same platform/category list
@@ -1000,6 +997,7 @@ The core infrastructure is **already implemented**:
 - [x] Unit tests for `PlatformConditional`
 
 **Remaining work**:
+
 - [ ] Ensure all compilers call `filterForPlatform()` before compilation
 - [ ] Add `@platform()` support for nested blocks (interactions, sub-objects)
 - [ ] Add compile-time diagnostic for unknown platform names
@@ -1044,7 +1042,7 @@ This would require extending `PlatformConstraint` with:
 export interface PlatformConstraint {
   include: string[];
   exclude: string[];
-  requireCapabilities?: (keyof PlatformCapabilities)[];  // NEW
+  requireCapabilities?: (keyof PlatformCapabilities)[]; // NEW
 }
 ```
 
@@ -1054,20 +1052,20 @@ export interface PlatformConstraint {
 
 ### 8.1 Key Files
 
-| File | Purpose |
-|------|---------|
-| `packages/core/src/parser/HoloCompositionTypes.ts` | `PlatformConstraint` type definition |
-| `packages/core/src/parser/HoloCompositionParser.ts` | `parsePlatformConstraint()` parser method |
-| `packages/core/src/compiler/platform/PlatformConditional.ts` | Platform hierarchy, categories, capabilities, matching |
-| `packages/core/src/compiler/PlatformConditionalCompilerMixin.ts` | `filterForPlatform()`, `matchesPlatformConstraint()` |
-| `packages/core/src/compiler/CompilerBase.ts` | Base class all compilers extend |
-| `packages/core/src/compiler/VisionOSCompiler.ts` | VisionOS/RealityKit target compiler |
-| `packages/core/src/compiler/VisionOSTraitMap.ts` | VisionOS trait-to-RealityKit mapping |
-| `packages/core/src/compiler/AndroidXRCompiler.ts` | Android XR/Jetpack XR target compiler |
-| `packages/core/src/compiler/AndroidXRTraitMap.ts` | Android XR trait-to-Kotlin mapping |
-| `packages/core/src/compiler/OpenXRCompiler.ts` | OpenXR/C++ target compiler (Quest, PCVR) |
-| `packages/core/src/compiler/platform/__tests__/PlatformConditional.test.ts` | Unit tests |
-| `examples/perception-tests/07-cross-reality-agent-continuity.holo` | Full cross-reality example |
+| File                                                                        | Purpose                                                |
+| --------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `packages/core/src/parser/HoloCompositionTypes.ts`                          | `PlatformConstraint` type definition                   |
+| `packages/core/src/parser/HoloCompositionParser.ts`                         | `parsePlatformConstraint()` parser method              |
+| `packages/core/src/compiler/platform/PlatformConditional.ts`                | Platform hierarchy, categories, capabilities, matching |
+| `packages/core/src/compiler/PlatformConditionalCompilerMixin.ts`            | `filterForPlatform()`, `matchesPlatformConstraint()`   |
+| `packages/core/src/compiler/CompilerBase.ts`                                | Base class all compilers extend                        |
+| `packages/core/src/compiler/VisionOSCompiler.ts`                            | VisionOS/RealityKit target compiler                    |
+| `packages/core/src/compiler/VisionOSTraitMap.ts`                            | VisionOS trait-to-RealityKit mapping                   |
+| `packages/core/src/compiler/AndroidXRCompiler.ts`                           | Android XR/Jetpack XR target compiler                  |
+| `packages/core/src/compiler/AndroidXRTraitMap.ts`                           | Android XR trait-to-Kotlin mapping                     |
+| `packages/core/src/compiler/OpenXRCompiler.ts`                              | OpenXR/C++ target compiler (Quest, PCVR)               |
+| `packages/core/src/compiler/platform/__tests__/PlatformConditional.test.ts` | Unit tests                                             |
+| `examples/perception-tests/07-cross-reality-agent-continuity.holo`          | Full cross-reality example                             |
 
 ### 8.2 Compiler Registry
 
@@ -1076,51 +1074,51 @@ All compilers that support platform conditional compilation:
 ```typescript
 // From CompilerBase.ts COMPILER_CLASS_TO_ANS_NAME
 const COMPILERS = {
-  'VisionOSCompiler':    'visionos',     // Swift / RealityKit
-  'AndroidXRCompiler':   'android-xr',   // Kotlin / Jetpack XR
-  'OpenXRCompiler':      'openxr',       // C++ / Vulkan
-  'R3FCompiler':         'r3f',          // React Three Fiber
-  'BabylonCompiler':     'babylon',      // Babylon.js
-  'WebGPUCompiler':      'webgpu',       // WebGPU
-  'UnityCompiler':       'unity',        // C# / Unity
-  'UnrealCompiler':      'unreal',       // C++ / Unreal
-  'GodotCompiler':       'godot',        // GDScript / Godot
-  'IOSCompiler':         'ios',          // Swift / SceneKit
-  'AndroidCompiler':     'android',      // Kotlin / Android
-  'WASMCompiler':        'wasm',         // WASM
-  'URDFCompiler':        'urdf',         // URDF (robotics)
-  'SDFCompiler':         'sdf',          // SDF (simulation)
-  'DTDLCompiler':        'dtdl',         // Digital Twins
-  'VRChatCompiler':      'vrchat',       // VRChat
-  'PlayCanvasCompiler':  'playcanvas',   // PlayCanvas
+  VisionOSCompiler: 'visionos', // Swift / RealityKit
+  AndroidXRCompiler: 'android-xr', // Kotlin / Jetpack XR
+  OpenXRCompiler: 'openxr', // C++ / Vulkan
+  R3FCompiler: 'r3f', // React Three Fiber
+  BabylonCompiler: 'babylon', // Babylon.js
+  WebGPUCompiler: 'webgpu', // WebGPU
+  UnityCompiler: 'unity', // C# / Unity
+  UnrealCompiler: 'unreal', // C++ / Unreal
+  GodotCompiler: 'godot', // GDScript / Godot
+  IOSCompiler: 'ios', // Swift / SceneKit
+  AndroidCompiler: 'android', // Kotlin / Android
+  WASMCompiler: 'wasm', // WASM
+  URDFCompiler: 'urdf', // URDF (robotics)
+  SDFCompiler: 'sdf', // SDF (simulation)
+  DTDLCompiler: 'dtdl', // Digital Twins
+  VRChatCompiler: 'vrchat', // VRChat
+  PlayCanvasCompiler: 'playcanvas', // PlayCanvas
 };
 ```
 
 ### 8.3 Platform Target to Compiler Mapping
 
-| `PlatformTarget`  | Default Compiler      | Notes                              |
-|--------------------|-----------------------|------------------------------------|
-| `visionos`         | `VisionOSCompiler`    | Swift + RealityKit                 |
-| `visionos-ar`      | `VisionOSCompiler`    | ARKit passthrough mode             |
-| `android-xr`       | `AndroidXRCompiler`   | Kotlin + Jetpack XR SceneCore      |
-| `android-xr-ar`    | `AndroidXRCompiler`   | ARCore passthrough mode            |
-| `quest3`           | `OpenXRCompiler`      | C++ + OpenXR + Vulkan              |
-| `pcvr`             | `OpenXRCompiler`      | C++ + OpenXR + Vulkan              |
-| `webxr`            | `R3FCompiler`         | TypeScript + React Three Fiber     |
-| `ios`              | `IOSCompiler`         | Swift + SceneKit                   |
-| `android`          | `AndroidCompiler`     | Kotlin + Android                   |
-| `windows`          | `WebGPUCompiler`      | TypeScript + WebGPU (or Unity)     |
-| `macos`            | `WebGPUCompiler`      | TypeScript + WebGPU (or native)    |
-| `linux`            | `WebGPUCompiler`      | TypeScript + WebGPU                |
-| `web`              | `BabylonCompiler`     | JavaScript + Babylon.js            |
-| `android-auto`     | `AndroidCompiler`     | Kotlin + Android Auto              |
-| `carplay`          | `IOSCompiler`         | Swift + CarPlay                    |
-| `watchos`          | `IOSCompiler`         | Swift + WatchKit                   |
-| `wearos`           | `AndroidCompiler`     | Kotlin + Wear OS                   |
+| `PlatformTarget` | Default Compiler    | Notes                           |
+| ---------------- | ------------------- | ------------------------------- |
+| `visionos`       | `VisionOSCompiler`  | Swift + RealityKit              |
+| `visionos-ar`    | `VisionOSCompiler`  | ARKit passthrough mode          |
+| `android-xr`     | `AndroidXRCompiler` | Kotlin + Jetpack XR SceneCore   |
+| `android-xr-ar`  | `AndroidXRCompiler` | ARCore passthrough mode         |
+| `quest3`         | `OpenXRCompiler`    | C++ + OpenXR + Vulkan           |
+| `pcvr`           | `OpenXRCompiler`    | C++ + OpenXR + Vulkan           |
+| `webxr`          | `R3FCompiler`       | TypeScript + React Three Fiber  |
+| `ios`            | `IOSCompiler`       | Swift + SceneKit                |
+| `android`        | `AndroidCompiler`   | Kotlin + Android                |
+| `windows`        | `WebGPUCompiler`    | TypeScript + WebGPU (or Unity)  |
+| `macos`          | `WebGPUCompiler`    | TypeScript + WebGPU (or native) |
+| `linux`          | `WebGPUCompiler`    | TypeScript + WebGPU             |
+| `web`            | `BabylonCompiler`   | JavaScript + Babylon.js         |
+| `android-auto`   | `AndroidCompiler`   | Kotlin + Android Auto           |
+| `carplay`        | `IOSCompiler`       | Swift + CarPlay                 |
+| `watchos`        | `IOSCompiler`       | Swift + WatchKit                |
+| `wearos`         | `AndroidCompiler`   | Kotlin + Wear OS                |
 
 ---
 
-*This RFC documents the design and specification of HoloScript's `@platform()`
+_This RFC documents the design and specification of HoloScript's `@platform()`
 conditional compilation system. The core infrastructure is implemented; this
 document serves as the authoritative reference for extending and stabilizing the
-feature across the compiler, LSP, and editor tooling.*
+feature across the compiler, LSP, and editor tooling._

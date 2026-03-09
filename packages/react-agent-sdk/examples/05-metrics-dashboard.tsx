@@ -13,17 +13,9 @@ export function MetricsDashboardExample() {
       <h1>Agent Health Dashboard</h1>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-        <AgentMetricsDashboard
-          agentName="brittney"
-          refreshInterval={5000}
-          showDetailed
-        />
+        <AgentMetricsDashboard agentName="brittney" refreshInterval={5000} showDetailed />
 
-        <AgentMetricsDashboard
-          agentName="codeAnalyzer"
-          refreshInterval={5000}
-          showDetailed
-        />
+        <AgentMetricsDashboard agentName="codeAnalyzer" refreshInterval={5000} showDetailed />
       </div>
     </div>
   );

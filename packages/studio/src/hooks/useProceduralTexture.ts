@@ -21,7 +21,12 @@ function createDataTexture(
   size: number,
   isNormalMap: boolean = false
 ): THREE.DataTexture {
-  const texture = new THREE.DataTexture(data as unknown as BufferSource, size, size, THREE.RGBAFormat);
+  const texture = new THREE.DataTexture(
+    data as unknown as BufferSource,
+    size,
+    size,
+    THREE.RGBAFormat
+  );
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   texture.magFilter = THREE.LinearFilter;

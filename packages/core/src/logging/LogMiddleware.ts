@@ -78,7 +78,11 @@ export function createContextEnricher(staticContext: Record<string, unknown>): L
  */
 export function createLevelFilter(minLevel: LogLevel): LogMiddlewareFn {
   const priorities: Record<LogLevel, number> = {
-    debug: 0, info: 1, warn: 2, error: 3, fatal: 4,
+    debug: 0,
+    info: 1,
+    warn: 2,
+    error: 3,
+    fatal: 4,
   };
 
   return (entry: LogEntry) => {

@@ -10,12 +10,12 @@
 
 ### Overall Metrics
 
-| Metric | Baseline (Before) | Current (After) | Change | Target |
-|--------|-------------------|-----------------|--------|--------|
-| **Lines** | 18.66% | 18.13% | -0.53% | 40% |
-| **Statements** | 18.66% | 17.99% | -0.67% | 40% |
-| **Functions** | 53.32% | 70.66% | **+17.34%** ✅ | 40% |
-| **Branches** | 69.43% | 70.60% | **+1.17%** ✅ | 35% |
+| Metric         | Baseline (Before) | Current (After) | Change         | Target |
+| -------------- | ----------------- | --------------- | -------------- | ------ |
+| **Lines**      | 18.66%            | 18.13%          | -0.53%         | 40%    |
+| **Statements** | 18.66%            | 17.99%          | -0.67%         | 40%    |
+| **Functions**  | 53.32%            | 70.66%          | **+17.34%** ✅ | 40%    |
+| **Branches**   | 69.43%            | 70.60%          | **+1.17%** ✅  | 35%    |
 
 **Test Count**: 766 tests (up from 709) - **+57 tests** ✅
 **Test Files**: 22 files (up from 20) - **+2 files** ✅
@@ -43,15 +43,15 @@
 
 ### Test Coverage by Module
 
-| Module | Coverage | Tests | Status |
-|--------|----------|-------|--------|
-| **lib/serializer.ts** | 100% | 25 | ✅ Complete |
-| **lib/animationBuilder.ts** | 100% | - | ✅ Complete |
-| **lib/sceneTemplates.ts** | 100% | - | ✅ Complete |
-| **lib/behaviorTree.ts** | 98.11% | - | ✅ Excellent |
-| **lib/robotHelpers.ts** | 97.82% | - | ✅ Excellent |
-| **lib/historyStore.ts** | 92.59% | - | ✅ Excellent |
-| **hooks** (overall) | 12.98% | 32 | ⚠️ Needs improvement |
+| Module                      | Coverage | Tests | Status               |
+| --------------------------- | -------- | ----- | -------------------- |
+| **lib/serializer.ts**       | 100%     | 25    | ✅ Complete          |
+| **lib/animationBuilder.ts** | 100%     | -     | ✅ Complete          |
+| **lib/sceneTemplates.ts**   | 100%     | -     | ✅ Complete          |
+| **lib/behaviorTree.ts**     | 98.11%   | -     | ✅ Excellent         |
+| **lib/robotHelpers.ts**     | 97.82%   | -     | ✅ Excellent         |
+| **lib/historyStore.ts**     | 92.59%   | -     | ✅ Excellent         |
+| **hooks** (overall)         | 12.98%   | 32    | ⚠️ Needs improvement |
 
 ---
 
@@ -234,6 +234,7 @@ open coverage/index.html   # macOS/Linux
 ### useMultiSelect.test.ts (15 tests)
 
 **Selection Management** (7 tests)
+
 - ✅ Initialize with empty selection
 - ✅ Select a single node
 - ✅ Replace selection without additive mode
@@ -243,6 +244,7 @@ open coverage/index.html   # macOS/Linux
 - ✅ Clear selection
 
 **Transform Operations** (5 tests)
+
 - ✅ Apply position delta
 - ✅ Apply rotation delta
 - ✅ Apply scale delta
@@ -250,6 +252,7 @@ open coverage/index.html   # macOS/Linux
 - ✅ Apply transforms to multiple nodes
 
 **Centroid Calculation** (3 tests)
+
 - ✅ Return [0,0,0] for empty selection
 - ✅ Calculate centroid for single node
 - ✅ Calculate average position for multiple nodes
@@ -257,30 +260,36 @@ open coverage/index.html   # macOS/Linux
 ### useSceneExport.test.ts (17 tests)
 
 **Initial State** (1 test)
+
 - ✅ Initialize with idle status
 
 **GLTF Export** (3 tests)
+
 - ✅ Call API with correct parameters
 - ✅ Include scene name in request
 - ✅ Include code from scene store
 
 **Format Support** (4 tests)
+
 - ✅ Support GLTF format
 - ✅ Support USD format
 - ✅ Support USDZ format
 - ✅ Support JSON format
 
 **JSON Export** (2 tests)
+
 - ✅ Include nodes for JSON format
 - ✅ Exclude nodes for non-JSON formats
 
 **Error Handling** (4 tests)
+
 - ✅ Handle HTTP errors with message
 - ✅ Handle HTTP errors without message
 - ✅ Handle network errors
 - ✅ Clear error on successful retry
 
 **Status Management** (3 tests)
+
 - ✅ Start in idle state
 - ✅ Transition to done on success
 - ✅ Transition to error on failure

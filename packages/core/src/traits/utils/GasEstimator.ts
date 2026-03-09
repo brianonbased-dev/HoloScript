@@ -37,7 +37,6 @@ export interface FormattedGasEstimate extends GasEstimate {
  * Gas Estimator for Zora Protocol transactions
  */
 export class GasEstimator {
-
   /**
    * Zora Protocol mint fee (0.000777 ETH per mint)
    */
@@ -57,7 +56,6 @@ export class GasEstimator {
     quantity: bigint,
     calldata?: Hex
   ): Promise<GasEstimate> {
-
     // 1. Estimate gas limit
     let gasLimit: bigint;
 
@@ -65,7 +63,7 @@ export class GasEstimator {
       // Use provided calldata for accurate estimation
       gasLimit = await publicClient.estimateGas({
         to: contractAddress,
-        data: calldata
+        data: calldata,
       });
     } else {
       // Conservative estimate for Zora mints (typically 150k-200k gas)
@@ -82,7 +80,7 @@ export class GasEstimator {
     // 3. Calculate max fee per gas (Base L2 typically has very low fees)
     // Use 2x base fee + priority fee for fast confirmation
     const maxPriorityFeePerGas = parseGwei('0.001'); // 0.001 gwei priority on Base
-    const maxFeePerGas = (baseFee * BigInt(2)) + maxPriorityFeePerGas;
+    const maxFeePerGas = baseFee * BigInt(2) + maxPriorityFeePerGas;
 
     // 4. Calculate total gas cost
     const totalGasCost = gasLimit * maxFeePerGas;
@@ -99,7 +97,7 @@ export class GasEstimator {
       maxPriorityFeePerGas,
       totalGasCost,
       mintFee,
-      totalCost
+      totalCost,
     };
   }
 
@@ -118,7 +116,7 @@ export class GasEstimator {
       ...estimate,
       totalGasCostETH,
       mintFeeETH,
-      totalCostETH
+      totalCostETH,
     };
 
     if (ethPriceUSD) {
@@ -149,7 +147,7 @@ export class GasEstimator {
       sufficient,
       balance,
       required,
-      shortfall: sufficient ? undefined : required - balance
+      shortfall: sufficient ? undefined : required - balance,
     };
   }
 
@@ -178,7 +176,7 @@ export class GasEstimator {
     const block = await publicClient.getBlock({ blockTag: 'latest' });
     const baseFee = block.baseFeePerGas || parseGwei('0.001');
     const maxPriorityFeePerGas = parseGwei('0.001');
-    const maxFeePerGas = (baseFee * BigInt(2)) + maxPriorityFeePerGas;
+    const maxFeePerGas = baseFee * BigInt(2) + maxPriorityFeePerGas;
 
     return {
       baseFee,
@@ -186,7 +184,7 @@ export class GasEstimator {
       maxFeePerGas,
       maxFeePerGasGwei: formatEther(maxFeePerGas, 'gwei'),
       maxPriorityFeePerGas,
-      maxPriorityFeePerGasGwei: formatEther(maxPriorityFeePerGas, 'gwei')
+      maxPriorityFeePerGasGwei: formatEther(maxPriorityFeePerGas, 'gwei'),
     };
   }
 }

@@ -26,7 +26,7 @@ describe('MCP Orchestrator - Comprehensive Test Suite', () => {
   // Mock agent and tool implementations
   const createMockAgent = (id: string, type: AgentType): MCPAgent => {
     const tools = new Map<string, MCPTool>();
-    
+
     tools.set('test-tool', {
       name: 'test-tool',
       description: 'A test tool',
@@ -126,14 +126,14 @@ describe('MCP Orchestrator - Comprehensive Test Suite', () => {
 
     it('should handle duplicate agent registration', async () => {
       const agent = createMockAgent('dup_001', AgentType.BUILDER);
-      
+
       await orchestrator.registerAgent(agent);
-      
+
       // Re-register same agent (should update)
       await orchestrator.registerAgent(agent);
 
       const agents = orchestrator.listAgents();
-      const dupCount = agents.filter(a => a.id === 'dup_001').length;
+      const dupCount = agents.filter((a) => a.id === 'dup_001').length;
       expect(dupCount).toBe(1);
     });
   });
@@ -185,7 +185,7 @@ describe('MCP Orchestrator - Comprehensive Test Suite', () => {
         inputSchema: {},
         outputSchema: {},
         execute: async () => {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
           return { result: 'done' };
         },
       };
@@ -237,11 +237,7 @@ describe('MCP Orchestrator - Comprehensive Test Suite', () => {
       agent.tools.set('unreliable-tool', unreliableTool);
       await retryOrchestrator.registerAgent(agent);
 
-      const result = await retryOrchestrator.executeTool(
-        'retry_agent_001',
-        'unreliable-tool',
-        {}
-      );
+      const result = await retryOrchestrator.executeTool('retry_agent_001', 'unreliable-tool', {});
 
       expect(callCount).toBeGreaterThan(1);
       expect(result.result).toBe('success');

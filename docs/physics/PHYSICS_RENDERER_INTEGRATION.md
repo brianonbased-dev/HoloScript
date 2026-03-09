@@ -66,8 +66,8 @@ const renderer = new ThreeJSRenderer({
 const executor = new DemolitionRuntimeExecutor({
   debug: true,
   targetFPS: 60,
-  renderer: renderer,        // Pass renderer to executor
-  autoSyncRenderer: true,    // Auto-sync physics → renderer
+  renderer: renderer, // Pass renderer to executor
+  autoSyncRenderer: true, // Auto-sync physics → renderer
 });
 
 // Load composition
@@ -130,6 +130,7 @@ customLoop();     // Manual sync loop
 When `autoSyncRenderer: true`, the executor automatically syncs physics → renderer:
 
 **Synced Data**:
+
 - ✅ Object positions (x, y, z)
 - ✅ Object rotations (x, y, z)
 - 🚧 Particle positions (future - requires scene particle exposure)
@@ -157,11 +158,7 @@ function syncPhysicsToRenderer(scene, renderer) {
   // Sync particles (future)
   const particleData = scene.getParticleData?.();
   if (particleData) {
-    renderer.updateParticleSystem(
-      'debris_particles',
-      particleData.positions,
-      particleData.colors
-    );
+    renderer.updateParticleSystem('debris_particles', particleData.positions, particleData.colors);
   }
 
   // Sync fragments (future)
@@ -297,6 +294,7 @@ const material = new THREE.MeshStandardMaterial({
 **Target**: 60 FPS (16.67ms per frame)
 
 **Budget Breakdown**:
+
 - Physics simulation: ~8ms (50%)
 - Renderer sync: ~2ms (12%)
 - Rendering: ~6ms (36%)
@@ -351,6 +349,7 @@ const material = new THREE.MeshStandardMaterial({
 ### Future Enhancements
 
 #### Phase 1: Complete Sync
+
 - ✅ Object transforms (done)
 - 🚧 Particle positions
 - 🚧 Fragment creation/destruction
@@ -358,18 +357,21 @@ const material = new THREE.MeshStandardMaterial({
 - 🚧 Camera effects
 
 #### Phase 2: Visual Effects
+
 - 🚧 Particle color/size based on lifetime/heat
 - 🚧 Debris trails (motion blur)
 - 🚧 Dust clouds (volumetric particles)
 - 🚧 Crack visualization (structural damage)
 
 #### Phase 3: Post-Processing
+
 - 🚧 Bloom (explosions, fire)
 - 🚧 Motion blur (fast debris)
 - 🚧 Depth of field (camera focus)
 - 🚧 Screen-space reflections
 
 #### Phase 4: Advanced Features
+
 - 🚧 Real-time fracture visualization
 - 🚧 Progressive damage (cracks, deformation)
 - 🚧 Heat distortion (shock waves)
@@ -382,6 +384,7 @@ const material = new THREE.MeshStandardMaterial({
 See `packages/core/src/runtime/examples/demolition-rendering-demo.html` for a complete standalone demo.
 
 **Features**:
+
 - HoloComposition → Three.js scene
 - Physics simulation with gravity
 - Explosion system
@@ -428,7 +431,7 @@ describe('DemolitionRuntimeExecutor + ThreeJSRenderer', () => {
 
     executor.loadComposition(testComposition);
     executor.start();
-    executor.update(1/60);
+    executor.update(1 / 60);
 
     expect(renderer.updateObjectTransform).toHaveBeenCalled();
   });
@@ -458,7 +461,7 @@ describe('Physics → Renderer Integration', () => {
 
     // Simulate 1 second
     for (let i = 0; i < 60; i++) {
-      executor.update(1/60);
+      executor.update(1 / 60);
     }
 
     const stats = renderer.getStatistics();
@@ -472,18 +475,22 @@ describe('Physics → Renderer Integration', () => {
 ### Common Issues
 
 **Issue**: Objects not visible in renderer
+
 - **Cause**: Camera not positioned correctly
 - **Solution**: Check camera position/target in composition
 
 **Issue**: Poor performance (<60 FPS)
+
 - **Cause**: Too many draw calls
 - **Solution**: Enable object batching, reduce particle count
 
 **Issue**: Objects falling through ground
+
 - **Cause**: Physics collision not synced
 - **Solution**: Ensure ground object has receiveShadow and proper position
 
 **Issue**: Renderer not updating
+
 - **Cause**: `autoSyncRenderer: false` without manual sync
 - **Solution**: Set `autoSyncRenderer: true` or implement manual sync loop
 
@@ -492,11 +499,13 @@ describe('Physics → Renderer Integration', () => {
 ### DemolitionRuntimeExecutor
 
 **Constructor**:
+
 ```typescript
 new DemolitionRuntimeExecutor(config: RuntimeExecutorConfig)
 ```
 
 **Methods**:
+
 ```typescript
 loadComposition(composition: HoloComposition): void
 start(): void
@@ -510,11 +519,13 @@ getState(): any
 ### ThreeJSRenderer
 
 **Constructor**:
+
 ```typescript
 new ThreeJSRenderer(config: RendererConfig)
 ```
 
 **Methods**:
+
 ```typescript
 initialize(composition: HoloComposition): void
 start(): void

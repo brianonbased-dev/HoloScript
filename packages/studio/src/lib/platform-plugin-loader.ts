@@ -138,11 +138,13 @@ export class PlatformPluginLoader {
       baseUrl: config.baseUrl || '/wasm/',
       useOPFSCache: config.useOPFSCache ?? true,
       maxTotalMemoryMB: config.maxTotalMemoryMB ?? 32,
-      platform: config.platform || ({
-        runtime: 'browser',
-        isTauri: false,
-        hasWasm: true,
-      } as PlatformCapabilities),
+      platform:
+        config.platform ||
+        ({
+          runtime: 'browser',
+          isTauri: false,
+          hasWasm: true,
+        } as PlatformCapabilities),
     };
     this.manifests = [...DEFAULT_MANIFEST];
   }
@@ -151,7 +153,7 @@ export class PlatformPluginLoader {
   registerPlugins(manifests: PluginManifest[]): void {
     for (const m of manifests) {
       // Replace existing or add new
-      const idx = this.manifests.findIndex(e => e.name === m.name);
+      const idx = this.manifests.findIndex((e) => e.name === m.name);
       if (idx >= 0) {
         this.manifests[idx] = m;
       } else {
@@ -162,12 +164,12 @@ export class PlatformPluginLoader {
 
   /** Find which plugin handles a given target */
   findPluginForTarget(target: PlatformTarget): PluginManifest | null {
-    return this.manifests.find(m => m.targets.includes(target)) || null;
+    return this.manifests.find((m) => m.targets.includes(target)) || null;
   }
 
   /** Get all supported platform targets */
   getSupportedTargets(): PlatformTarget[] {
-    return this.manifests.flatMap(m => m.targets);
+    return this.manifests.flatMap((m) => m.targets);
   }
 
   /**
@@ -179,10 +181,12 @@ export class PlatformPluginLoader {
     if (!manifest) {
       return {
         type: 'error',
-        diagnostics: [{
-          severity: 'error',
-          message: `No plugin available for target: ${target}. Available targets: ${this.getSupportedTargets().join(', ')}`,
-        }],
+        diagnostics: [
+          {
+            severity: 'error',
+            message: `No plugin available for target: ${target}. Available targets: ${this.getSupportedTargets().join(', ')}`,
+          },
+        ],
       };
     }
 
@@ -194,10 +198,12 @@ export class PlatformPluginLoader {
     } catch (error) {
       return {
         type: 'error',
-        diagnostics: [{
-          severity: 'error',
-          message: `Plugin load failed (${manifest.name}): ${error instanceof Error ? error.message : String(error)}`,
-        }],
+        diagnostics: [
+          {
+            severity: 'error',
+            message: `Plugin load failed (${manifest.name}): ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
       };
     }
   }
@@ -296,7 +302,9 @@ export class PlatformPluginLoader {
     // Fetch from network
     const response = await fetch(wasmUrl);
     if (!response.ok) {
-      throw new Error(`Failed to fetch plugin: ${response.status} ${response.statusText} (${wasmUrl})`);
+      throw new Error(
+        `Failed to fetch plugin: ${response.status} ${response.statusText} (${wasmUrl})`
+      );
     }
 
     const wasmBytes = await response.arrayBuffer();
@@ -311,7 +319,7 @@ export class PlatformPluginLoader {
 
     // Cache to OPFS for next time
     if (this.config.useOPFSCache) {
-      await this.saveToOPFS(manifest, wasmBytes).catch(e =>
+      await this.saveToOPFS(manifest, wasmBytes).catch((e) =>
         console.warn(`[PluginLoader] OPFS cache write failed:`, e)
       );
     }
@@ -319,15 +327,18 @@ export class PlatformPluginLoader {
     return this.instantiatePlugin(manifest, wasmBytes);
   }
 
-  private async instantiatePlugin(manifest: PluginManifest, wasmBytes: ArrayBuffer): Promise<PlatformPlugin> {
+  private async instantiatePlugin(
+    manifest: PluginManifest,
+    wasmBytes: ArrayBuffer
+  ): Promise<PlatformPlugin> {
     // Try jco-transpiled JS module first
     try {
       const jsUrl = new URL(
         manifest.wasmUrl.replace('.component.wasm', '.js').replace('.wasm', '.js'),
-        this.config.baseUrl,
+        this.config.baseUrl
       ).toString();
 
-      const module = await import(/* @vite-ignore */ jsUrl) as {
+      const module = (await import(/* @vite-ignore */ jsUrl)) as {
         compileForPlatform(ast: string, target: string): unknown;
         supportedTargets(): string[];
         pluginInfo(): string;
@@ -358,9 +369,16 @@ export class PlatformPluginLoader {
       version: manifest.version,
       targets: manifest.targets,
       compileToPlatform(astJson: string, target: PlatformTarget): CompileResult {
-        const fn = exports['compile_for_platform'] as ((ast: string, target: string) => unknown) | undefined;
+        const fn = exports['compile_for_platform'] as
+          | ((ast: string, target: string) => unknown)
+          | undefined;
         if (!fn) {
-          return { type: 'error', diagnostics: [{ severity: 'error', message: 'Plugin missing compile_for_platform export' }] };
+          return {
+            type: 'error',
+            diagnostics: [
+              { severity: 'error', message: 'Plugin missing compile_for_platform export' },
+            ],
+          };
         }
         return normalizeCompileResult(fn(astJson, target));
       },
@@ -429,9 +447,12 @@ function normalizeCompileResult(result: unknown): CompileResult {
   if (typeof result === 'object' && result !== null && 'tag' in result) {
     const v = result as { tag: string; val: unknown };
     switch (v.tag) {
-      case 'text': return { type: 'text', data: v.val as string };
-      case 'binary': return { type: 'binary', data: v.val as Uint8Array };
-      case 'error': return { type: 'error', diagnostics: v.val as Diagnostic[] };
+      case 'text':
+        return { type: 'text', data: v.val as string };
+      case 'binary':
+        return { type: 'binary', data: v.val as Uint8Array };
+      case 'error':
+        return { type: 'error', diagnostics: v.val as Diagnostic[] };
     }
   }
 
@@ -445,7 +466,7 @@ function normalizeCompileResult(result: unknown): CompileResult {
 async function computeSHA256(data: ArrayBuffer): Promise<string> {
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════════

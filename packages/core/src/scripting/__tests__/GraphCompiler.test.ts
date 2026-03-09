@@ -9,11 +9,15 @@ function makeNode(id: string, ports: GraphNode['ports'] = []): GraphNode {
 function buildLinearGraph(): NodeGraph {
   const g = new NodeGraph();
   g.addNode(makeNode('a', [{ id: 'out', name: 'out', type: 'number', direction: 'output' }]));
-  g.addNode(makeNode('b', [
-    { id: 'in', name: 'in', type: 'number', direction: 'input', defaultValue: 0 },
-    { id: 'out', name: 'out', type: 'number', direction: 'output' },
-  ]));
-  g.addNode(makeNode('c', [{ id: 'in', name: 'in', type: 'number', direction: 'input', defaultValue: 0 }]));
+  g.addNode(
+    makeNode('b', [
+      { id: 'in', name: 'in', type: 'number', direction: 'input', defaultValue: 0 },
+      { id: 'out', name: 'out', type: 'number', direction: 'output' },
+    ])
+  );
+  g.addNode(
+    makeNode('c', [{ id: 'in', name: 'in', type: 'number', direction: 'input', defaultValue: 0 }])
+  );
   g.connect('a', 'out', 'b', 'in');
   g.connect('b', 'out', 'c', 'in');
   return g;
@@ -22,27 +26,33 @@ function buildLinearGraph(): NodeGraph {
 describe('GraphCompiler', () => {
   let compiler: GraphCompiler;
 
-  beforeEach(() => { compiler = new GraphCompiler(); });
+  beforeEach(() => {
+    compiler = new GraphCompiler();
+  });
 
   it('compile linear graph produces ordered steps', () => {
     const result = compiler.compile(buildLinearGraph());
     expect(result.errors).toHaveLength(0);
     expect(result.steps).toHaveLength(3);
-    const ids = result.steps.map(s => s.nodeId);
+    const ids = result.steps.map((s) => s.nodeId);
     expect(ids.indexOf('a')).toBeLessThan(ids.indexOf('b'));
     expect(ids.indexOf('b')).toBeLessThan(ids.indexOf('c'));
   });
 
   it('compile resolves wire inputs', () => {
     const result = compiler.compile(buildLinearGraph());
-    const stepB = result.steps.find(s => s.nodeId === 'b')!;
+    const stepB = result.steps.find((s) => s.nodeId === 'b')!;
     expect(stepB.inputs['in'].source).toBe('wire');
     expect(stepB.inputs['in'].wireFrom).toBe('a');
   });
 
   it('compile resolves default inputs', () => {
     const g = new NodeGraph();
-    g.addNode(makeNode('x', [{ id: 'in', name: 'in', type: 'number', direction: 'input', defaultValue: 42 }]));
+    g.addNode(
+      makeNode('x', [
+        { id: 'in', name: 'in', type: 'number', direction: 'input', defaultValue: 42 },
+      ])
+    );
     const result = compiler.compile(g);
     expect(result.steps[0].inputs['in'].source).toBe('default');
     expect(result.steps[0].inputs['in'].value).toBe(42);
@@ -57,14 +67,18 @@ describe('GraphCompiler', () => {
 
   it('compile errors on cyclic graph', () => {
     const g = new NodeGraph();
-    g.addNode(makeNode('a', [
-      { id: 'in', name: 'in', type: 'any', direction: 'input' },
-      { id: 'out', name: 'out', type: 'any', direction: 'output' },
-    ]));
-    g.addNode(makeNode('b', [
-      { id: 'in', name: 'in', type: 'any', direction: 'input' },
-      { id: 'out', name: 'out', type: 'any', direction: 'output' },
-    ]));
+    g.addNode(
+      makeNode('a', [
+        { id: 'in', name: 'in', type: 'any', direction: 'input' },
+        { id: 'out', name: 'out', type: 'any', direction: 'output' },
+      ])
+    );
+    g.addNode(
+      makeNode('b', [
+        { id: 'in', name: 'in', type: 'any', direction: 'input' },
+        { id: 'out', name: 'out', type: 'any', direction: 'output' },
+      ])
+    );
     g.connect('a', 'out', 'b', 'in');
     g.connect('b', 'out', 'a', 'in');
     const result = compiler.compile(g);

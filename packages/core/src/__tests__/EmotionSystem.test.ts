@@ -7,7 +7,9 @@ import { EmotionSystem } from '../dialogue/EmotionSystem';
 
 describe('EmotionSystem', () => {
   let es: EmotionSystem;
-  beforeEach(() => { es = new EmotionSystem(); });
+  beforeEach(() => {
+    es = new EmotionSystem();
+  });
 
   it('setEmotion and getEmotion', () => {
     es.setEmotion('npc1', 'joy', 0.8);

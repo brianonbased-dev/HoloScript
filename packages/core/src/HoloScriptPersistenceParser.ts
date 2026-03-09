@@ -85,11 +85,23 @@ export class HoloScriptPersistenceParser {
             const properties = this.ctx.parseObject() as Record<string, HoloScriptValue>;
 
             if (key === 'semantic' && typeToken.value === 'SemanticMemory') {
-              node.semantic = { type: 'semantic-memory', properties, position: { x: 0, y: 0, z: 0 } };
+              node.semantic = {
+                type: 'semantic-memory',
+                properties,
+                position: { x: 0, y: 0, z: 0 },
+              };
             } else if (key === 'episodic' && typeToken.value === 'EpisodicMemory') {
-              node.episodic = { type: 'episodic-memory', properties, position: { x: 0, y: 0, z: 0 } };
+              node.episodic = {
+                type: 'episodic-memory',
+                properties,
+                position: { x: 0, y: 0, z: 0 },
+              };
             } else if (key === 'procedural' && typeToken.value === 'ProceduralMemory') {
-              node.procedural = { type: 'procedural-memory', properties, position: { x: 0, y: 0, z: 0 } };
+              node.procedural = {
+                type: 'procedural-memory',
+                properties,
+                position: { x: 0, y: 0, z: 0 },
+              };
             }
           }
         }

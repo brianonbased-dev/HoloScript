@@ -36,12 +36,7 @@ import type {
 /**
  * Supported target platforms for Gaussian budget analysis.
  */
-export type GaussianPlatform =
-  | 'quest3'
-  | 'desktop_vr'
-  | 'webgpu'
-  | 'mobile_ar'
-  | 'visionos';
+export type GaussianPlatform = 'quest3' | 'desktop_vr' | 'webgpu' | 'mobile_ar' | 'visionos';
 
 /**
  * Severity of a budget warning.
@@ -120,18 +115,21 @@ export interface GaussianBudgetAnalysis {
  * These values represent the maximum number of Gaussians that can be
  * rendered at the platform's target framerate without frame drops.
  */
-export const GAUSSIAN_PLATFORM_BUDGETS: Record<GaussianPlatform, {
-  /** Maximum Gaussian count for real-time rendering */
-  maxGaussians: number;
-  /** Target framerate (fps) */
-  targetFps: number;
-  /** Platform display name for warnings */
-  displayName: string;
-  /** Recommended per-avatar budget (W.034) */
-  perAvatarBudget: number;
-  /** Warning threshold as fraction of budget (e.g., 0.8 = warn at 80%) */
-  warningThreshold: number;
-}> = {
+export const GAUSSIAN_PLATFORM_BUDGETS: Record<
+  GaussianPlatform,
+  {
+    /** Maximum Gaussian count for real-time rendering */
+    maxGaussians: number;
+    /** Target framerate (fps) */
+    targetFps: number;
+    /** Platform display name for warnings */
+    displayName: string;
+    /** Recommended per-avatar budget (W.034) */
+    perAvatarBudget: number;
+    /** Warning threshold as fraction of budget (e.g., 0.8 = warn at 80%) */
+    warningThreshold: number;
+  }
+> = {
   quest3: {
     maxGaussians: 180_000,
     targetFps: 72,
@@ -214,10 +212,14 @@ export interface IGaussianData {
 export function detectGaussianFormat(filename: string): GaussianFormat {
   const ext = filename.split('.').pop()?.toLowerCase();
   switch (ext) {
-    case 'ply': return 'ply';
-    case 'splat': return 'splat';
-    case 'spz': return 'spz';
-    default: return 'holoscript_native';
+    case 'ply':
+      return 'ply';
+    case 'splat':
+      return 'splat';
+    case 'spz':
+      return 'spz';
+    default:
+      return 'holoscript_native';
   }
 }
 
@@ -240,7 +242,7 @@ export function detectGaussianFormat(filename: string): GaussianFormat {
 export function estimateOverdraw(
   splatCount: number,
   viewportPixels: number = 1832 * 1920, // Quest 3 per-eye
-  avgSplatRadiusPx: number = 4,
+  avgSplatRadiusPx: number = 4
 ): number {
   if (splatCount === 0 || viewportPixels === 0) return 0;
 
@@ -284,7 +286,7 @@ export interface MultiUserCostEstimate {
  */
 export function estimateMultiUserCost(
   userCount: number,
-  sortFraction: number = 0.6,
+  sortFraction: number = 0.6
 ): MultiUserCostEstimate {
   const PRACTICAL_CEILING = 12;
   const rasterFraction = 1 - sortFraction;
@@ -294,7 +296,7 @@ export function estimateMultiUserCost(
   }
 
   // Per-user cost with shared sort: (S + N×R) / N = S/N + R
-  const perUserCost = (sortFraction / userCount) + rasterFraction;
+  const perUserCost = sortFraction / userCount + rasterFraction;
   const savingsPercent = (1 - perUserCost) * 100;
   const costMultiplier = perUserCost;
 
@@ -324,22 +326,22 @@ export function getAvailableGaussianBudget(
   platform: GaussianPlatform,
   kvCacheSizeMB: number = 0,
   totalDeviceMemoryMB?: number,
-  renderReservedMB?: number,
+  renderReservedMB?: number
 ): { maxGaussians: number; memoryAvailableMB: number; kvCacheImpact: string } {
   const DEVICE_MEMORY: Record<GaussianPlatform, number> = {
-    quest3: 8192,        // 8 GB LPDDR5
-    desktop_vr: 16384,   // 16 GB typical
-    webgpu: 4096,        // Browser memory budget
-    mobile_ar: 4096,     // Mobile RAM budget
-    visionos: 16384,     // M2 unified memory
+    quest3: 8192, // 8 GB LPDDR5
+    desktop_vr: 16384, // 16 GB typical
+    webgpu: 4096, // Browser memory budget
+    mobile_ar: 4096, // Mobile RAM budget
+    visionos: 16384, // M2 unified memory
   };
 
   const RENDER_RESERVED: Record<GaussianPlatform, number> = {
-    quest3: 3072,        // 3 GB for VR rendering
-    desktop_vr: 4096,    // 4 GB for VR rendering
-    webgpu: 1024,        // 1 GB browser overhead
-    mobile_ar: 1536,     // 1.5 GB for AR
-    visionos: 4096,      // 4 GB for visionOS
+    quest3: 3072, // 3 GB for VR rendering
+    desktop_vr: 4096, // 4 GB for VR rendering
+    webgpu: 1024, // 1 GB browser overhead
+    mobile_ar: 1536, // 1.5 GB for AR
+    visionos: 4096, // 4 GB for visionOS
   };
 
   // Bytes per Gaussian primitive (SH degree 2, compressed)
@@ -404,9 +406,8 @@ export class GaussianBudgetAnalyzer {
   private includeInfoMessages: boolean;
 
   constructor(options: GaussianBudgetAnalyzerOptions = {}) {
-    this.platforms = options.platforms ?? (
-      Object.keys(GAUSSIAN_PLATFORM_BUDGETS) as GaussianPlatform[]
-    );
+    this.platforms =
+      options.platforms ?? (Object.keys(GAUSSIAN_PLATFORM_BUDGETS) as GaussianPlatform[]);
     this.budgetOverrides = options.budgetOverrides ?? {};
     this.includeInfoMessages = options.includeInfoMessages ?? false;
   }
@@ -440,7 +441,7 @@ export class GaussianBudgetAnalyzer {
     }
 
     // 4. Determine overall compliance
-    const withinBudget = warnings.every(w => w.severity !== 'critical');
+    const withinBudget = warnings.every((w) => w.severity !== 'critical');
 
     return {
       totalGaussians,
@@ -480,8 +481,12 @@ export class GaussianBudgetAnalyzer {
     lines.push(`${commentPrefix} ========================================`);
 
     for (const warning of analysis.warnings) {
-      const icon = warning.severity === 'critical' ? 'ERROR' :
-                   warning.severity === 'warning' ? 'WARNING' : 'INFO';
+      const icon =
+        warning.severity === 'critical'
+          ? 'ERROR'
+          : warning.severity === 'warning'
+            ? 'WARNING'
+            : 'INFO';
       lines.push(`${commentPrefix} [${icon}] ${warning.platform}: ${warning.message}`);
       if (warning.suggestion) {
         lines.push(`${commentPrefix}   -> ${warning.suggestion}`);
@@ -492,7 +497,9 @@ export class GaussianBudgetAnalyzer {
       lines.push(`${commentPrefix} ----------------------------------------`);
       lines.push(`${commentPrefix} Sources:`);
       for (const source of analysis.sources) {
-        lines.push(`${commentPrefix}   ${source.objectName}: ${formatNumber(source.maxSplats)} splats (${source.sourceFile || 'no source'})`);
+        lines.push(
+          `${commentPrefix}   ${source.objectName}: ${formatNumber(source.maxSplats)} splats (${source.sourceFile || 'no source'})`
+        );
       }
     }
 
@@ -600,9 +607,7 @@ export class GaussianBudgetAnalyzer {
     return {
       objectName,
       sourceFile: (config.src as string) || (config.source as string) || '',
-      maxSplats: typeof config.max_splats === 'number'
-        ? config.max_splats
-        : DEFAULT_MAX_SPLATS,
+      maxSplats: typeof config.max_splats === 'number' ? config.max_splats : DEFAULT_MAX_SPLATS,
       perAvatarReservation:
         typeof config.gaussian_budget?.per_avatar_reservation === 'number'
           ? config.gaussian_budget.per_avatar_reservation
@@ -636,7 +641,7 @@ export class GaussianBudgetAnalyzer {
     platform: GaussianPlatform,
     totalGaussians: number,
     budget: number,
-    utilization: number,
+    utilization: number
   ): GaussianBudgetWarning | null {
     const platformInfo = GAUSSIAN_PLATFORM_BUDGETS[platform];
     const overage = Math.max(0, totalGaussians - budget);
@@ -707,7 +712,7 @@ export class GaussianBudgetAnalyzer {
     platform: GaussianPlatform,
     totalGaussians: number,
     budget: number,
-    overage: number,
+    overage: number
   ): string {
     const reductionPercent = Math.ceil((overage / totalGaussians) * 100);
 
@@ -715,15 +720,14 @@ export class GaussianBudgetAnalyzer {
 
     // Primary: reduce max_splats
     suggestions.push(
-      `Reduce total Gaussians by ${reductionPercent}% ` +
-      `(remove ${formatNumber(overage)} splats)`
+      `Reduce total Gaussians by ${reductionPercent}% ` + `(remove ${formatNumber(overage)} splats)`
     );
 
     // Platform-specific advice
     if (platform === 'quest3') {
       suggestions.push(
         `Apply SqueezeMe UV-space reduction for avatars ` +
-        `(target ${formatNumber(GAUSSIAN_PLATFORM_BUDGETS.quest3.perAvatarBudget)}/avatar)`
+          `(target ${formatNumber(GAUSSIAN_PLATFORM_BUDGETS.quest3.perAvatarBudget)}/avatar)`
       );
       suggestions.push(
         `Enable aggressive SPZ v2 compression with pruning (pruneAlphaThreshold: 0.02)`
@@ -731,19 +735,17 @@ export class GaussianBudgetAnalyzer {
     } else if (platform === 'webgpu') {
       suggestions.push(
         `Enable octree LOD (lod.mode: "octree", lod.octree_depth: 4-6) ` +
-        `for distance-based Gaussian culling`
+          `for distance-based Gaussian culling`
       );
     } else if (platform === 'mobile_ar') {
       suggestions.push(
-        `Use aggressive pruning (pruneAlphaThreshold: 0.03) and ` +
-        `reduce SH degree to 0 or 1`
+        `Use aggressive pruning (pruneAlphaThreshold: 0.03) and ` + `reduce SH degree to 0 or 1`
       );
     }
 
     // Universal advice
     suggestions.push(
-      `Set gaussian_budget.total_cap: ${budget} in trait config ` +
-      `for runtime enforcement`
+      `Set gaussian_budget.total_cap: ${budget} in trait config ` + `for runtime enforcement`
     );
 
     return suggestions.join('. ') + '.';
@@ -764,7 +766,7 @@ export class GaussianBudgetAnalyzer {
  */
 export function analyzeGaussianBudget(
   composition: HoloComposition,
-  platforms?: GaussianPlatform[],
+  platforms?: GaussianPlatform[]
 ): GaussianBudgetAnalysis {
   const analyzer = new GaussianBudgetAnalyzer({ platforms });
   return analyzer.analyze(composition);

@@ -7,10 +7,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as THREE from 'three';
-import {
-  buildClipFromFrames,
-  extractBuiltinAnimations,
-} from '@/lib/animationBuilder';
+import { buildClipFromFrames, extractBuiltinAnimations } from '@/lib/animationBuilder';
 import type { BoneFrame, RecordedClip } from '@/lib/animationBuilder';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -44,9 +41,7 @@ describe('buildClipFromFrames', () => {
   });
 
   it('returns a THREE.AnimationClip', () => {
-    const frames: BoneFrame[] = [
-      movedFrame(0, 0), movedFrame(500, 0), movedFrame(1000, 0),
-    ];
+    const frames: BoneFrame[] = [movedFrame(0, 0), movedFrame(500, 0), movedFrame(1000, 0)];
     const clip = buildClipFromFrames(frames, skeleton, 1000);
     expect(clip).toBeInstanceOf(THREE.AnimationClip);
   });
@@ -54,7 +49,7 @@ describe('buildClipFromFrames', () => {
   it('sets the clip name from the clipName argument', () => {
     // Use two distinct quaternions so bone is detected as moved
     const frames: BoneFrame[] = [
-      { time: 0,    boneIndex: 0, qx: 0, qy: 0.5, qz: 0, qw: 0.866 },
+      { time: 0, boneIndex: 0, qx: 0, qy: 0.5, qz: 0, qw: 0.866 },
       { time: 1000, boneIndex: 0, qx: 0, qy: 0.1, qz: 0, qw: 0.995 },
     ];
     const clip = buildClipFromFrames(frames, skeleton, 1000, 'Test Walk');
@@ -63,7 +58,7 @@ describe('buildClipFromFrames', () => {
 
   it('uses "Recorded Animation" as default clip name', () => {
     const frames: BoneFrame[] = [
-      { time: 0,    boneIndex: 0, qx: 0, qy: 0.5, qz: 0, qw: 0.866 },
+      { time: 0, boneIndex: 0, qx: 0, qy: 0.5, qz: 0, qw: 0.866 },
       { time: 1000, boneIndex: 0, qx: 0, qy: 0.1, qz: 0, qw: 0.995 },
     ];
     const clip = buildClipFromFrames(frames, skeleton, 1000);
@@ -78,8 +73,8 @@ describe('buildClipFromFrames', () => {
 
   it('creates a QuaternionKeyframeTrack for bones that moved', () => {
     const frames: BoneFrame[] = [
-      { time: 0,    boneIndex: 2, qx: 0, qy: 0.5, qz: 0, qw: 0.866 }, // moved
-      { time: 500,  boneIndex: 2, qx: 0, qy: 0.3, qz: 0, qw: 0.954 },
+      { time: 0, boneIndex: 2, qx: 0, qy: 0.5, qz: 0, qw: 0.866 }, // moved
+      { time: 500, boneIndex: 2, qx: 0, qy: 0.3, qz: 0, qw: 0.954 },
       { time: 1000, boneIndex: 2, qx: 0, qy: 0.1, qz: 0, qw: 0.995 },
     ];
     const clip = buildClipFromFrames(frames, skeleton, 1000);
@@ -90,7 +85,7 @@ describe('buildClipFromFrames', () => {
 
   it('track name follows Three.js bone animation convention: {BoneName}.quaternion', () => {
     const frames: BoneFrame[] = [
-      { time: 0,    boneIndex: 0, qx: 0, qy: 0.5, qz: 0, qw: 0.866 },
+      { time: 0, boneIndex: 0, qx: 0, qy: 0.5, qz: 0, qw: 0.866 },
       { time: 1000, boneIndex: 0, qx: 0, qy: 0.1, qz: 0, qw: 0.995 },
     ];
     const clip = buildClipFromFrames(frames, skeleton, 1000);
@@ -118,7 +113,7 @@ describe('buildClipFromFrames', () => {
 
   it('only includes bones that moved beyond the 0.001 threshold', () => {
     const frames: BoneFrame[] = [
-      { time: 0,    boneIndex: 0, qx: 0, qy: 0.0005, qz: 0, qw: 1 },
+      { time: 0, boneIndex: 0, qx: 0, qy: 0.0005, qz: 0, qw: 1 },
       { time: 1000, boneIndex: 0, qx: 0, qy: 0.0005, qz: 0, qw: 1 },
     ];
     const clip = buildClipFromFrames(frames, skeleton, 1000);
@@ -128,12 +123,14 @@ describe('buildClipFromFrames', () => {
   it('includes multiple bones that moved', () => {
     const frames: BoneFrame[] = [
       // bone 0: qy changes from 0.5 to 0.1 → detected as moved
-      { time: 0,    boneIndex: 0, qx: 0, qy: 0.5, qz: 0, qw: 0.866 },
+      { time: 0, boneIndex: 0, qx: 0, qy: 0.5, qz: 0, qw: 0.866 },
       { time: 1000, boneIndex: 0, qx: 0, qy: 0.1, qz: 0, qw: 0.995 },
       // bone 1: changes from 0.5 to 0.3 → detected as moved
-      movedFrame(0, 1),    movedFrame(1000, 1, 0.3),
+      movedFrame(0, 1),
+      movedFrame(1000, 1, 0.3),
       // bone 2: identity both frames → static, skipped
-      identityFrame(0, 2), identityFrame(1000, 2),
+      identityFrame(0, 2),
+      identityFrame(1000, 2),
     ];
     const clip = buildClipFromFrames(frames, skeleton, 1000);
     expect(clip.tracks).toHaveLength(2);
@@ -142,8 +139,8 @@ describe('buildClipFromFrames', () => {
   it('converts frame times from ms to seconds in the track', () => {
     const frames: BoneFrame[] = [
       // Each frame must differ to trigger the 'moved' check
-      { time: 0,    boneIndex: 0, qx: 0, qy: 0.6, qz: 0, qw: 0.8 },
-      { time: 500,  boneIndex: 0, qx: 0, qy: 0.4, qz: 0, qw: 0.916 },
+      { time: 0, boneIndex: 0, qx: 0, qy: 0.6, qz: 0, qw: 0.8 },
+      { time: 500, boneIndex: 0, qx: 0, qy: 0.4, qz: 0, qw: 0.916 },
       { time: 1000, boneIndex: 0, qx: 0, qy: 0.1, qz: 0, qw: 0.995 },
     ];
     const clip = buildClipFromFrames(frames, skeleton, 1000);
@@ -157,7 +154,7 @@ describe('buildClipFromFrames', () => {
   it('stores 4 values per keyframe (x, y, z, w quaternion)', () => {
     const frames: BoneFrame[] = [
       // First frame qy=0.5, second qy=0.7 — delta > 0.001
-      { time: 0,   boneIndex: 0, qx: 0, qy: 0.5, qz: 0, qw: 0.866 },
+      { time: 0, boneIndex: 0, qx: 0, qy: 0.5, qz: 0, qw: 0.866 },
       { time: 500, boneIndex: 0, qx: 0, qy: 0.7, qz: 0, qw: 0.714 },
     ];
     const clip = buildClipFromFrames(frames, skeleton, 1000);
@@ -173,7 +170,7 @@ describe('buildClipFromFrames', () => {
 
   it('handles out-of-bounds bone index gracefully (no crash)', () => {
     const frames: BoneFrame[] = [
-      movedFrame(0, 99),   // index 99 doesn't exist in 5-bone skeleton
+      movedFrame(0, 99), // index 99 doesn't exist in 5-bone skeleton
       movedFrame(1000, 99),
     ];
     expect(() => buildClipFromFrames(frames, skeleton, 1000)).not.toThrow();
@@ -217,13 +214,13 @@ describe('extractBuiltinAnimations', () => {
     const clips = [
       new THREE.AnimationClip('Idle', 2.5, []),
       new THREE.AnimationClip('Walk', 1.0, []),
-      new THREE.AnimationClip('Run',  0.8, []),
+      new THREE.AnimationClip('Run', 0.8, []),
     ];
     const result = extractBuiltinAnimations(clips);
     expect(result).toHaveLength(3);
     expect(result[0]).toEqual({ name: 'Idle', duration: 2500 });
     expect(result[1]).toEqual({ name: 'Walk', duration: 1000 });
-    expect(result[2]).toEqual({ name: 'Run',  duration: 800 });
+    expect(result[2]).toEqual({ name: 'Run', duration: 800 });
   });
 
   it('converts clip duration from seconds to milliseconds', () => {
@@ -240,8 +237,9 @@ describe('extractBuiltinAnimations', () => {
   });
 
   it('handles many clips (stress test)', () => {
-    const clips = Array.from({ length: 50 }, (_, i) =>
-      new THREE.AnimationClip(`Anim_${i}`, i * 0.1, [])
+    const clips = Array.from(
+      { length: 50 },
+      (_, i) => new THREE.AnimationClip(`Anim_${i}`, i * 0.1, [])
     );
     const result = extractBuiltinAnimations(clips);
     expect(result).toHaveLength(50);

@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { visionHandler } from '../VisionTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('VisionTrait', () => {
   let node: Record<string, unknown>;

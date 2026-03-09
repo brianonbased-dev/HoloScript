@@ -17,8 +17,8 @@ export interface CritiqueFinding {
 }
 
 export interface CritiqueResult {
-  score: number;        // 0-100
-  grade: string;        // A+ .. F
+  score: number; // 0-100
+  grade: string; // A+ .. F
   summary: string;
   findings: CritiqueFinding[];
   objectCount: number;
@@ -48,7 +48,8 @@ function analyseCode(code: string): CritiqueResult {
     const objMatch = raw.trim().match(/^object\s+"([^"]+)"/);
     const traitMatch = raw.trim().match(/^@(\w+)/);
     if (objMatch) objectLines.push({ name: objMatch[1], line: lineNum });
-    if (traitMatch && objectLines.length > 0) traitedObjects.add(objectLines[objectLines.length - 1].name);
+    if (traitMatch && objectLines.length > 0)
+      traitedObjects.add(objectLines[objectLines.length - 1].name);
   });
 
   const objectCount = objectLines.length;
@@ -57,10 +58,13 @@ function analyseCode(code: string): CritiqueResult {
   if (objectCount > 40) {
     score -= 15;
     findings.push({
-      id: 'perf-01', category: 'performance', severity: 'warning',
+      id: 'perf-01',
+      category: 'performance',
+      severity: 'warning',
       title: 'High object count',
       detail: `${objectCount} objects detected. Scenes with >40 objects may impact GPU performance.`,
-      suggestion: 'Consider grouping objects into @lod groups or using instancing for repeated geometry.',
+      suggestion:
+        'Consider grouping objects into @lod groups or using instancing for repeated geometry.',
     });
   }
 
@@ -69,11 +73,14 @@ function analyseCode(code: string): CritiqueResult {
     if (genericNames.some((g) => name === g || (name.startsWith(g + '_') && /\d+$/.test(name)))) {
       score -= 3;
       findings.push({
-        id: `name-${line}`, category: 'naming', severity: 'tip',
+        id: `name-${line}`,
+        category: 'naming',
+        severity: 'tip',
         title: `Generic object name: "${name}"`,
         detail: 'Generic names make scenes harder to maintain and collaborate on.',
         line,
-        suggestion: 'Rename to something descriptive, e.g. "WallNorth", "PlayerSpawn", "AmbientLight_01".',
+        suggestion:
+          'Rename to something descriptive, e.g. "WallNorth", "PlayerSpawn", "AmbientLight_01".',
       });
     }
   });
@@ -82,9 +89,11 @@ function analyseCode(code: string): CritiqueResult {
     if (!traitedObjects.has(name)) {
       score -= 5;
       findings.push({
-        id: `trait-${line}`, category: 'missing-trait', severity: 'tip',
+        id: `trait-${line}`,
+        category: 'missing-trait',
+        severity: 'tip',
         title: `"${name}" has no traits`,
-        detail: 'Objects without traits miss out on HoloScript\'s powerful behaviour system.',
+        detail: "Objects without traits miss out on HoloScript's powerful behaviour system.",
         line,
         suggestion: 'Add at least @material, @physics, or @lod to enhance the object.',
         snippet: `  @material {\n    albedo: "#cccccc"\n    roughness: 0.5\n  }`,
@@ -95,10 +104,13 @@ function analyseCode(code: string): CritiqueResult {
   if (!code.includes('environment') && !code.includes('@environment')) {
     score -= 8;
     findings.push({
-      id: 'struct-01', category: 'structure', severity: 'warning',
+      id: 'struct-01',
+      category: 'structure',
+      severity: 'warning',
       title: 'No environment block',
       detail: 'Scenes without an environment block use engine defaults for lighting and skybox.',
-      suggestion: 'Add an environment block to control skybox, ambient light, fog, and shadow quality.',
+      suggestion:
+        'Add an environment block to control skybox, ambient light, fog, and shadow quality.',
       snippet: `environment {\n  skybox: "studio"\n  ambient_light: 0.5\n  shadows: true\n}`,
     });
   }
@@ -106,7 +118,9 @@ function analyseCode(code: string): CritiqueResult {
   if (objectCount > 15 && !code.includes('@lod')) {
     score -= 8;
     findings.push({
-      id: 'bp-01', category: 'best-practice', severity: 'warning',
+      id: 'bp-01',
+      category: 'best-practice',
+      severity: 'warning',
       title: 'No @lod traits in large scene',
       detail: `Scene has ${objectCount} objects but no @lod trait. All objects render at full detail at any distance.`,
       suggestion: 'Add @lod to large/complex objects to reduce draw calls at distance.',
@@ -121,7 +135,9 @@ function analyseCode(code: string): CritiqueResult {
       if (!block.includes('intensity')) {
         score -= 3;
         findings.push({
-          id: `light-${lineNum}`, category: 'best-practice', severity: 'tip',
+          id: `light-${lineNum}`,
+          category: 'best-practice',
+          severity: 'tip',
           title: 'Light without explicit intensity',
           detail: 'Light objects without an intensity property use the engine default (1.0).',
           line: lineNum,
@@ -133,15 +149,16 @@ function analyseCode(code: string): CritiqueResult {
   });
 
   score = Math.max(0, Math.min(100, score));
-  const summary = findings.length === 0
-    ? 'Excellent scene! No issues found.'
-    : `Found ${findings.length} finding${findings.length !== 1 ? 's' : ''} across ${[...new Set(findings.map((f) => f.category))].length} categories.`;
+  const summary =
+    findings.length === 0
+      ? 'Excellent scene! No issues found.'
+      : `Found ${findings.length} finding${findings.length !== 1 ? 's' : ''} across ${[...new Set(findings.map((f) => f.category))].length} categories.`;
 
   return { score, grade: gradeFromScore(score), summary, findings, objectCount, traitCoverage };
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => ({})) as { code?: string };
+  const body = (await request.json().catch(() => ({}))) as { code?: string };
   const code = (body.code ?? '').trim();
   if (!code) return Response.json({ error: 'No code provided' }, { status: 400 });
   const result = analyseCode(code);

@@ -2,11 +2,7 @@
  * LightingTrait — Production Test Suite
  */
 import { describe, it, expect } from 'vitest';
-import {
-  LightingTrait,
-  createLightingTrait,
-  LIGHTING_PRESETS,
-} from '../LightingTrait';
+import { LightingTrait, createLightingTrait, LIGHTING_PRESETS } from '../LightingTrait';
 
 const WHITE = { r: 1, g: 1, b: 1 };
 const POS = { x: 0, y: 10, z: 0 };
@@ -33,7 +29,8 @@ describe('LightingTrait constructor GI defaults', () => {
     expect(lt2.getGlobalIllumination().enabled).toBe(false);
     expect(lt2.getGlobalIllumination().intensity).toBe(0.3);
   });
-  it('createLightingTrait factory returns instance', () => expect(createLightingTrait()).toBeInstanceOf(LightingTrait));
+  it('createLightingTrait factory returns instance', () =>
+    expect(createLightingTrait()).toBeInstanceOf(LightingTrait));
 });
 
 // ─── addLight / getLight / getLights ─────────────────────────────────────────
@@ -203,13 +200,25 @@ describe('LightingTrait.getShadowCastingLights', () => {
   it('filters to lights with shadow', () => {
     const lt = new LightingTrait();
     lt.addLight({ type: 'point', name: 'no', color: WHITE, intensity: 1 });
-    lt.addLight({ type: 'directional', name: 'yes', color: WHITE, intensity: 1, shadow: { type: 'soft' } });
+    lt.addLight({
+      type: 'directional',
+      name: 'yes',
+      color: WHITE,
+      intensity: 1,
+      shadow: { type: 'soft' },
+    });
     expect(lt.getShadowCastingLights()).toHaveLength(1);
     expect(lt.getShadowCastingLights()[0].name).toBe('yes');
   });
   it('excludes shadow.type=none', () => {
     const lt = new LightingTrait();
-    lt.addLight({ type: 'point', name: 'none', color: WHITE, intensity: 1, shadow: { type: 'none' } });
+    lt.addLight({
+      type: 'point',
+      name: 'none',
+      color: WHITE,
+      intensity: 1,
+      shadow: { type: 'none' },
+    });
     expect(lt.getShadowCastingLights()).toHaveLength(0);
   });
 });
@@ -240,23 +249,33 @@ describe('LightingTrait.getLightCount', () => {
 describe('LightingTrait.getPerformanceImpact', () => {
   it('low with few lights no shadows', () => {
     const lt = new LightingTrait();
-    for (let i = 0; i < 4; i++) lt.addLight({ type: 'point', name: `p${i}`, color: WHITE, intensity: 1 });
+    for (let i = 0; i < 4; i++)
+      lt.addLight({ type: 'point', name: `p${i}`, color: WHITE, intensity: 1 });
     expect(lt.getPerformanceImpact().estimatedGPUCost).toBe('low');
   });
   it('medium when 9-16 lights', () => {
     const lt = new LightingTrait();
-    for (let i = 0; i < 10; i++) lt.addLight({ type: 'point', name: `p${i}`, color: WHITE, intensity: 1 });
+    for (let i = 0; i < 10; i++)
+      lt.addLight({ type: 'point', name: `p${i}`, color: WHITE, intensity: 1 });
     expect(lt.getPerformanceImpact().estimatedGPUCost).toBe('medium');
   });
   it('high when >16 lights', () => {
     const lt = new LightingTrait();
-    for (let i = 0; i < 17; i++) lt.addLight({ type: 'point', name: `p${i}`, color: WHITE, intensity: 1 });
+    for (let i = 0; i < 17; i++)
+      lt.addLight({ type: 'point', name: `p${i}`, color: WHITE, intensity: 1 });
     expect(lt.getPerformanceImpact().estimatedGPUCost).toBe('high');
   });
   it('high when >4 shadow casters even with few lights', () => {
     const lt = new LightingTrait();
     for (let i = 0; i < 5; i++) {
-      lt.addLight({ type: 'spot', name: `s${i}`, color: WHITE, intensity: 1, range: 5, shadow: { type: 'soft' } });
+      lt.addLight({
+        type: 'spot',
+        name: `s${i}`,
+        color: WHITE,
+        intensity: 1,
+        range: 5,
+        shadow: { type: 'soft' },
+      });
     }
     expect(lt.getPerformanceImpact().estimatedGPUCost).toBe('high');
     expect(lt.getPerformanceImpact().shadowCasters).toBe(5);
@@ -264,7 +283,14 @@ describe('LightingTrait.getPerformanceImpact', () => {
   it('medium with 3 shadow casters', () => {
     const lt = new LightingTrait();
     for (let i = 0; i < 3; i++) {
-      lt.addLight({ type: 'spot', name: `s${i}`, color: WHITE, intensity: 1, range: 5, shadow: { type: 'soft' } });
+      lt.addLight({
+        type: 'spot',
+        name: `s${i}`,
+        color: WHITE,
+        intensity: 1,
+        range: 5,
+        shadow: { type: 'soft' },
+      });
     }
     expect(lt.getPerformanceImpact().estimatedGPUCost).toBe('medium');
   });
@@ -308,9 +334,12 @@ describe('LightingTrait.dispose', () => {
 
 describe('LIGHTING_PRESETS', () => {
   it('studio preset has enabled=true', () => expect(LIGHTING_PRESETS.studio().enabled).toBe(true));
-  it('outdoor preset intensity > 1', () => expect(LIGHTING_PRESETS.outdoor().intensity!).toBeGreaterThan(1));
-  it('interior preset intensity < 1', () => expect(LIGHTING_PRESETS.interior().intensity!).toBeLessThan(1));
-  it('night preset skyIntensity very low', () => expect(LIGHTING_PRESETS.night().skyIntensity!).toBeLessThan(0.2));
+  it('outdoor preset intensity > 1', () =>
+    expect(LIGHTING_PRESETS.outdoor().intensity!).toBeGreaterThan(1));
+  it('interior preset intensity < 1', () =>
+    expect(LIGHTING_PRESETS.interior().intensity!).toBeLessThan(1));
+  it('night preset skyIntensity very low', () =>
+    expect(LIGHTING_PRESETS.night().skyIntensity!).toBeLessThan(0.2));
   it('sunset preset skyColor is warm (r > b)', () => {
     const sky = LIGHTING_PRESETS.sunset().skyColor!;
     expect(sky.r).toBeGreaterThan(sky.b);

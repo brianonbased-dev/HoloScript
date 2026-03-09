@@ -32,17 +32,52 @@ export function useNetworkManager(): UseNetworkManagerReturn {
 
   const sync = useCallback(() => {
     setConnected(mgr.current.isConnected());
-    setPeers(mgr.current.getPeers().map(p => ({ id: p.id, displayName: p.displayName, latency: p.latency })));
+    setPeers(
+      mgr.current
+        .getPeers()
+        .map((p) => ({ id: p.id, displayName: p.displayName, latency: p.latency }))
+    );
     setLatencyVal(mgr.current.getSimulatedLatency());
     setMessageCount(msgCount.current);
   }, []);
 
-  const connect = useCallback(() => { mgr.current.connect(); sync(); }, [sync]);
-  const disconnect = useCallback(() => { mgr.current.disconnect(); sync(); }, [sync]);
-  const addPeer = useCallback((name: string) => { mgr.current.addPeer(`peer-${peerCounter.current++}`, name); sync(); }, [sync]);
-  const removePeer = useCallback((id: string) => { mgr.current.removePeer(id); sync(); }, [sync]);
-  const broadcast = useCallback((payload: string) => { mgr.current.broadcast('state_update', { data: payload }); msgCount.current++; sync(); }, [sync]);
-  const setLatency = useCallback((ms: number) => { mgr.current.setSimulatedLatency(ms); sync(); }, [sync]);
+  const connect = useCallback(() => {
+    mgr.current.connect();
+    sync();
+  }, [sync]);
+  const disconnect = useCallback(() => {
+    mgr.current.disconnect();
+    sync();
+  }, [sync]);
+  const addPeer = useCallback(
+    (name: string) => {
+      mgr.current.addPeer(`peer-${peerCounter.current++}`, name);
+      sync();
+    },
+    [sync]
+  );
+  const removePeer = useCallback(
+    (id: string) => {
+      mgr.current.removePeer(id);
+      sync();
+    },
+    [sync]
+  );
+  const broadcast = useCallback(
+    (payload: string) => {
+      mgr.current.broadcast('state_update', { data: payload });
+      msgCount.current++;
+      sync();
+    },
+    [sync]
+  );
+  const setLatency = useCallback(
+    (ms: number) => {
+      mgr.current.setSimulatedLatency(ms);
+      sync();
+    },
+    [sync]
+  );
 
   const buildDemo = useCallback(() => {
     mgr.current = new NetworkManager('local-player');
@@ -57,7 +92,26 @@ export function useNetworkManager(): UseNetworkManagerReturn {
     sync();
   }, [sync]);
 
-  const reset = useCallback(() => { mgr.current = new NetworkManager('local-player'); peerCounter.current = 0; msgCount.current = 0; sync(); }, [sync]);
+  const reset = useCallback(() => {
+    mgr.current = new NetworkManager('local-player');
+    peerCounter.current = 0;
+    msgCount.current = 0;
+    sync();
+  }, [sync]);
 
-  return { connected, peerId: 'local-player', peers, messageCount, latency, connect, disconnect, addPeer, removePeer, broadcast, setLatency, buildDemo, reset };
+  return {
+    connected,
+    peerId: 'local-player',
+    peers,
+    messageCount,
+    latency,
+    connect,
+    disconnect,
+    addPeer,
+    removePeer,
+    broadcast,
+    setLatency,
+    buildDemo,
+    reset,
+  };
 }

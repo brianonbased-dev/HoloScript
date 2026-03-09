@@ -4,7 +4,9 @@ import { StateMachine, type StateConfig, type TransitionConfig } from '../StateM
 describe('StateMachine', () => {
   let sm: StateMachine;
 
-  beforeEach(() => { sm = new StateMachine(); });
+  beforeEach(() => {
+    sm = new StateMachine();
+  });
 
   // ---------------------------------------------------------------------------
   // State Management
@@ -64,7 +66,12 @@ describe('StateMachine', () => {
   it('send respects guard condition', () => {
     sm.addState({ id: 'locked' });
     sm.addState({ id: 'open' });
-    sm.addTransition({ from: 'locked', to: 'open', event: 'unlock', guard: (ctx) => ctx['hasKey'] === true });
+    sm.addTransition({
+      from: 'locked',
+      to: 'open',
+      event: 'unlock',
+      guard: (ctx) => ctx['hasKey'] === true,
+    });
     sm.setInitialState('locked');
 
     expect(sm.send('unlock')).toBe(false); // no key

@@ -16,7 +16,7 @@ import { SceneNode } from './SceneNode';
 export interface Frustum {
   position: { x: number; y: number; z: number };
   direction: { x: number; y: number; z: number };
-  fov: number;       // Degrees
+  fov: number; // Degrees
   near: number;
   far: number;
 }
@@ -34,19 +34,25 @@ export class SceneQuery {
 
   static findByTag(root: SceneNode, tag: string): SceneNode[] {
     const results: SceneNode[] = [];
-    root.traverse((node) => { if (node.tags.has(tag)) results.push(node); });
+    root.traverse((node) => {
+      if (node.tags.has(tag)) results.push(node);
+    });
     return results;
   }
 
   static findByLayer(root: SceneNode, layer: number): SceneNode[] {
     const results: SceneNode[] = [];
-    root.traverse((node) => { if (node.layer === layer) results.push(node); });
+    root.traverse((node) => {
+      if (node.layer === layer) results.push(node);
+    });
     return results;
   }
 
   static findByName(root: SceneNode, name: string): SceneNode | null {
     let found: SceneNode | null = null;
-    root.traverse((node) => { if (node.name === name) found = node; });
+    root.traverse((node) => {
+      if (node.name === name) found = node;
+    });
     return found;
   }
 
@@ -54,11 +60,17 @@ export class SceneQuery {
   // Spatial Queries
   // ---------------------------------------------------------------------------
 
-  static findInRadius(root: SceneNode, center: { x: number; y: number; z: number }, radius: number): SceneNode[] {
+  static findInRadius(
+    root: SceneNode,
+    center: { x: number; y: number; z: number },
+    radius: number
+  ): SceneNode[] {
     const results: SceneNode[] = [];
     root.traverse((node) => {
       const wp = node.getWorldPosition();
-      const dx = wp.x - center.x, dy = wp.y - center.y, dz = wp.z - center.z;
+      const dx = wp.x - center.x,
+        dy = wp.y - center.y,
+        dz = wp.z - center.z;
       if (Math.sqrt(dx * dx + dy * dy + dz * dz) <= radius) results.push(node);
     });
     return results;
@@ -71,7 +83,7 @@ export class SceneQuery {
   static frustumCull(root: SceneNode, frustum: Frustum): SceneNode[] {
     const results: SceneNode[] = [];
     const dir = SceneQuery.normalize(frustum.direction);
-    const halfFovRad = (frustum.fov / 2) * Math.PI / 180;
+    const halfFovRad = ((frustum.fov / 2) * Math.PI) / 180;
     const cosHalfFov = Math.cos(halfFovRad);
 
     root.traverse((node) => {
@@ -113,7 +125,11 @@ export class SceneQuery {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private static normalize(v: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
+  private static normalize(v: { x: number; y: number; z: number }): {
+    x: number;
+    y: number;
+    z: number;
+  } {
     const len = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z) || 1;
     return { x: v.x / len, y: v.y / len, z: v.z / len };
   }

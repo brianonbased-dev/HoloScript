@@ -95,14 +95,22 @@ describe('PromptBuilder', () => {
 
   it('buildErrorFixPrompt returns a string', () => {
     const errCtx = makeErrorContext();
-    const prompt = builder.buildErrorFixPrompt(errCtx, { message: 'Unknown property', line: 1, column: 5 });
+    const prompt = builder.buildErrorFixPrompt(errCtx, {
+      message: 'Unknown property',
+      line: 1,
+      column: 5,
+    });
     expect(typeof prompt).toBe('string');
     expect(prompt.length).toBeGreaterThan(0);
   });
 
   it('buildErrorFixPrompt includes error message', () => {
     const errCtx = makeErrorContext();
-    const prompt = builder.buildErrorFixPrompt(errCtx, { message: 'Property colr not found', line: 1, column: 5 });
+    const prompt = builder.buildErrorFixPrompt(errCtx, {
+      message: 'Property colr not found',
+      line: 1,
+      column: 5,
+    });
     expect(prompt).toMatch(/colr|color/);
   });
 

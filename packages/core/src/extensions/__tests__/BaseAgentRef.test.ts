@@ -16,7 +16,7 @@ describe('LocalAgentRef', () => {
     const ref = new LocalAgentRef('a', { onMessage: handler });
     await ref.tell('hello');
     // Fire-and-forget — handler called but not awaited
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
     expect(handler).toHaveBeenCalledWith('hello');
   });
 

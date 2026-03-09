@@ -67,7 +67,10 @@ export class TodoReporter implements Reporter {
         if (todoMatch) {
           this.todoItems.push({
             id: todoMatch[1],
-            title: task.name.split(',')[0].replace(/TODO\(.+?\)/, '').trim(),
+            title: task.name
+              .split(',')[0]
+              .replace(/TODO\(.+?\)/, '')
+              .trim(),
             file: task.file?.name || 'unknown',
             status: 'todo',
           });

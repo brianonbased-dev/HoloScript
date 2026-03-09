@@ -82,7 +82,8 @@ export function createSkillMarketplaceRoutes(service: SkillMarketplaceService): 
         author: req.query.author as string,
         pricingModel: req.query.pricing as any,
         maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
-        verified: req.query.verified === 'true' ? true : req.query.verified === 'false' ? false : undefined,
+        verified:
+          req.query.verified === 'true' ? true : req.query.verified === 'false' ? false : undefined,
         minRating: req.query.minRating ? Number(req.query.minRating) : undefined,
         sortBy: (req.query.sortBy as any) || 'relevance',
         sortOrder: (req.query.sortOrder as any) || 'desc',

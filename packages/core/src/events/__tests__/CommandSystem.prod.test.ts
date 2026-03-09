@@ -23,7 +23,13 @@ describe('CommandSystem — Production', () => {
   it('undo reverses last command', () => {
     const cs = new CommandSystem();
     let val = 0;
-    cs.execute(cmd('inc', () => val++, () => val--));
+    cs.execute(
+      cmd(
+        'inc',
+        () => val++,
+        () => val--
+      )
+    );
     expect(val).toBe(1);
     cs.undo();
     expect(val).toBe(0);
@@ -32,7 +38,13 @@ describe('CommandSystem — Production', () => {
   it('redo re-applies undone command', () => {
     const cs = new CommandSystem();
     let val = 0;
-    cs.execute(cmd('inc', () => val++, () => val--));
+    cs.execute(
+      cmd(
+        'inc',
+        () => val++,
+        () => val--
+      )
+    );
     cs.undo();
     cs.redo();
     expect(val).toBe(1);
@@ -52,9 +64,27 @@ describe('CommandSystem — Production', () => {
     const cs = new CommandSystem();
     let val = 0;
     cs.beginBatch();
-    cs.execute(cmd('a', () => val++, () => val--));
-    cs.execute(cmd('b', () => val++, () => val--));
-    cs.execute(cmd('c', () => val++, () => val--));
+    cs.execute(
+      cmd(
+        'a',
+        () => val++,
+        () => val--
+      )
+    );
+    cs.execute(
+      cmd(
+        'b',
+        () => val++,
+        () => val--
+      )
+    );
+    cs.execute(
+      cmd(
+        'c',
+        () => val++,
+        () => val--
+      )
+    );
     cs.endBatch('batch1');
     expect(val).toBe(3);
     cs.undo(); // undoes entire batch
@@ -66,8 +96,20 @@ describe('CommandSystem — Production', () => {
     const cs = new CommandSystem();
     let val = 0;
     cs.startRecording();
-    cs.execute(cmd('inc', () => val++, () => val--));
-    cs.execute(cmd('inc', () => val++, () => val--));
+    cs.execute(
+      cmd(
+        'inc',
+        () => val++,
+        () => val--
+      )
+    );
+    cs.execute(
+      cmd(
+        'inc',
+        () => val++,
+        () => val--
+      )
+    );
     cs.stopRecording('double-inc');
     val = 0;
     cs.playMacro('double-inc');

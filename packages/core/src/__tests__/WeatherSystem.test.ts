@@ -4,7 +4,9 @@ import { WeatherSystem } from '../environment/WeatherSystem';
 describe('WeatherSystem', () => {
   let ws: WeatherSystem;
 
-  beforeEach(() => { ws = new WeatherSystem('clear'); });
+  beforeEach(() => {
+    ws = new WeatherSystem('clear');
+  });
 
   it('starts with clear weather', () => {
     expect(ws.getType()).toBe('clear');
@@ -51,7 +53,7 @@ describe('WeatherSystem', () => {
 
   it('onChange listener fires on transition complete', () => {
     const states: string[] = [];
-    ws.onChange(s => states.push(s.type));
+    ws.onChange((s) => states.push(s.type));
     ws.setWeather('fog', 1);
     ws.update(1);
     expect(states).toContain('fog');
@@ -59,7 +61,7 @@ describe('WeatherSystem', () => {
 
   it('onChange listener fires on setImmediate', () => {
     const states: string[] = [];
-    ws.onChange(s => states.push(s.type));
+    ws.onChange((s) => states.push(s.type));
     ws.setImmediate('sandstorm');
     expect(states).toContain('sandstorm');
   });

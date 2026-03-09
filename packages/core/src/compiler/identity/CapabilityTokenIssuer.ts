@@ -130,9 +130,7 @@ export class HoloScriptCapabilitySemantics implements CapabilitySemantics {
    */
   fromPermission(permission: AgentPermission, scope?: string): Capability {
     const action = PERMISSION_TO_ACTION[permission] || permission;
-    const resource = scope
-      ? `${HOLOSCRIPT_RESOURCE_SCHEME}${scope}`
-      : HOLOSCRIPT_RESOURCE_ALL;
+    const resource = scope ? `${HOLOSCRIPT_RESOURCE_SCHEME}${scope}` : HOLOSCRIPT_RESOURCE_ALL;
 
     return {
       with: resource,
@@ -376,10 +374,7 @@ export class CapabilityTokenIssuer {
    * @param publicKey PEM-encoded Ed25519 public key of the issuer
    * @returns         Verification result
    */
-  verify(
-    raw: string | CapabilityToken,
-    publicKey: string
-  ): CapabilityVerificationResult {
+  verify(raw: string | CapabilityToken, publicKey: string): CapabilityVerificationResult {
     const rawStr = typeof raw === 'string' ? raw : raw.raw;
     const parts = rawStr.split('.');
     if (parts.length !== 3) {
@@ -600,9 +595,7 @@ export class CapabilityTokenIssuer {
     scope?: string
   ): Promise<CapabilityToken> {
     const permissions = getDefaultPermissions(role);
-    const capabilities = permissions.map((perm) =>
-      this.semantics.fromPermission(perm, scope)
-    );
+    const capabilities = permissions.map((perm) => this.semantics.fromPermission(perm, scope));
 
     const issuer = `agent:${role}`;
 

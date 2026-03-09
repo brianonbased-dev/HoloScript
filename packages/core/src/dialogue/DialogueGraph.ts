@@ -20,7 +20,7 @@ export interface DialogueNode {
   text: string;
   choices: Array<{ text: string; nextId: string; condition?: string }>;
   nextId: string | null;
-  condition: string | null;     // Variable expression for branch nodes
+  condition: string | null; // Variable expression for branch nodes
   trueNextId: string | null;
   falseNextId: string | null;
   event: string | null;
@@ -55,23 +55,103 @@ export class DialogueGraph {
   // ---------------------------------------------------------------------------
 
   addTextNode(id: string, speaker: string, text: string, nextId: string | null): DialogueNode {
-    return this.addNode({ id, type: 'text', speaker, text, choices: [], nextId, condition: null, trueNextId: null, falseNextId: null, event: null, eventData: {}, visited: false });
+    return this.addNode({
+      id,
+      type: 'text',
+      speaker,
+      text,
+      choices: [],
+      nextId,
+      condition: null,
+      trueNextId: null,
+      falseNextId: null,
+      event: null,
+      eventData: {},
+      visited: false,
+    });
   }
 
-  addChoiceNode(id: string, speaker: string, text: string, choices: Array<{ text: string; nextId: string; condition?: string }>): DialogueNode {
-    return this.addNode({ id, type: 'choice', speaker, text, choices, nextId: null, condition: null, trueNextId: null, falseNextId: null, event: null, eventData: {}, visited: false });
+  addChoiceNode(
+    id: string,
+    speaker: string,
+    text: string,
+    choices: Array<{ text: string; nextId: string; condition?: string }>
+  ): DialogueNode {
+    return this.addNode({
+      id,
+      type: 'choice',
+      speaker,
+      text,
+      choices,
+      nextId: null,
+      condition: null,
+      trueNextId: null,
+      falseNextId: null,
+      event: null,
+      eventData: {},
+      visited: false,
+    });
   }
 
-  addBranchNode(id: string, condition: string, trueNextId: string, falseNextId: string): DialogueNode {
-    return this.addNode({ id, type: 'branch', speaker: '', text: '', choices: [], nextId: null, condition, trueNextId, falseNextId, event: null, eventData: {}, visited: false });
+  addBranchNode(
+    id: string,
+    condition: string,
+    trueNextId: string,
+    falseNextId: string
+  ): DialogueNode {
+    return this.addNode({
+      id,
+      type: 'branch',
+      speaker: '',
+      text: '',
+      choices: [],
+      nextId: null,
+      condition,
+      trueNextId,
+      falseNextId,
+      event: null,
+      eventData: {},
+      visited: false,
+    });
   }
 
-  addEventNode(id: string, event: string, data: Record<string, unknown>, nextId: string | null): DialogueNode {
-    return this.addNode({ id, type: 'event', speaker: '', text: '', choices: [], nextId, condition: null, trueNextId: null, falseNextId: null, event, eventData: data, visited: false });
+  addEventNode(
+    id: string,
+    event: string,
+    data: Record<string, unknown>,
+    nextId: string | null
+  ): DialogueNode {
+    return this.addNode({
+      id,
+      type: 'event',
+      speaker: '',
+      text: '',
+      choices: [],
+      nextId,
+      condition: null,
+      trueNextId: null,
+      falseNextId: null,
+      event,
+      eventData: data,
+      visited: false,
+    });
   }
 
   addEndNode(id: string): DialogueNode {
-    return this.addNode({ id, type: 'end', speaker: '', text: '', choices: [], nextId: null, condition: null, trueNextId: null, falseNextId: null, event: null, eventData: {}, visited: false });
+    return this.addNode({
+      id,
+      type: 'end',
+      speaker: '',
+      text: '',
+      choices: [],
+      nextId: null,
+      condition: null,
+      trueNextId: null,
+      falseNextId: null,
+      event: null,
+      eventData: {},
+      visited: false,
+    });
   }
 
   private addNode(node: DialogueNode): DialogueNode {
@@ -83,7 +163,9 @@ export class DialogueGraph {
   // Flow Control
   // ---------------------------------------------------------------------------
 
-  setStart(nodeId: string): void { this.startNodeId = nodeId; }
+  setStart(nodeId: string): void {
+    this.startNodeId = nodeId;
+  }
 
   start(): DialogueNode | null {
     if (!this.startNodeId) return null;
@@ -110,7 +192,8 @@ export class DialogueGraph {
         break;
       case 'branch':
         nextId = this.evaluateCondition(current.condition!)
-          ? current.trueNextId : current.falseNextId;
+          ? current.trueNextId
+          : current.falseNextId;
         break;
       case 'event':
         if (current.event) {
@@ -149,15 +232,19 @@ export class DialogueGraph {
   }
 
   getCurrentNode(): DialogueNode | null {
-    return this.state.currentNodeId ? this.nodes.get(this.state.currentNodeId) ?? null : null;
+    return this.state.currentNodeId ? (this.nodes.get(this.state.currentNodeId) ?? null) : null;
   }
 
   // ---------------------------------------------------------------------------
   // Variables & Conditions
   // ---------------------------------------------------------------------------
 
-  setVariable(key: string, value: unknown): void { this.state.variables.set(key, value); }
-  getVariable<T = unknown>(key: string): T | undefined { return this.state.variables.get(key) as T | undefined; }
+  setVariable(key: string, value: unknown): void {
+    this.state.variables.set(key, value);
+  }
+  getVariable<T = unknown>(key: string): T | undefined {
+    return this.state.variables.get(key) as T | undefined;
+  }
 
   private evaluateCondition(condition: string): boolean {
     // Simple variable truthiness check (e.g., "hasKey" checks if variable is truthy)
@@ -187,13 +274,21 @@ export class DialogueGraph {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getNodeCount(): number { return this.nodes.size; }
-  getVisitedCount(): number { return this.state.visitedNodes.size; }
-  getHistory(): string[] { return [...this.state.history]; }
-  isComplete(): boolean { return this.state.currentNodeId === null && this.state.history.length > 0; }
+  getNodeCount(): number {
+    return this.nodes.size;
+  }
+  getVisitedCount(): number {
+    return this.state.visitedNodes.size;
+  }
+  getHistory(): string[] {
+    return [...this.state.history];
+  }
+  isComplete(): boolean {
+    return this.state.currentNodeId === null && this.state.history.length > 0;
+  }
   getAvailableChoices(): Array<{ text: string; nextId: string }> {
     const node = this.getCurrentNode();
     if (!node || node.type !== 'choice') return [];
-    return node.choices.filter(c => !c.condition || this.evaluateCondition(c.condition));
+    return node.choices.filter((c) => !c.condition || this.evaluateCondition(c.condition));
   }
 }

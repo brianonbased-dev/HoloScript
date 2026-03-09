@@ -9,7 +9,7 @@
  */
 
 import { useState } from 'react';
-import { useCharacterStore } from '@/lib/store';
+import { useCharacterStore } from '@/lib/stores';
 import {
   EMOTION_PRESETS,
   VISEME_PRESETS,
@@ -82,7 +82,9 @@ export function ExpressionPanel() {
         <button
           onClick={() => setTab('emotions')}
           className={`flex flex-1 items-center justify-center gap-1 py-1.5 text-[10px] font-medium transition ${
-            tab === 'emotions' ? 'border-b-2 border-purple-500 text-purple-400' : 'text-studio-muted hover:text-studio-text'
+            tab === 'emotions'
+              ? 'border-b-2 border-purple-500 text-purple-400'
+              : 'text-studio-muted hover:text-studio-text'
           }`}
         >
           <Smile className="h-3 w-3" /> Emotions
@@ -90,7 +92,9 @@ export function ExpressionPanel() {
         <button
           onClick={() => setTab('visemes')}
           className={`flex flex-1 items-center justify-center gap-1 py-1.5 text-[10px] font-medium transition ${
-            tab === 'visemes' ? 'border-b-2 border-purple-500 text-purple-400' : 'text-studio-muted hover:text-studio-text'
+            tab === 'visemes'
+              ? 'border-b-2 border-purple-500 text-purple-400'
+              : 'text-studio-muted hover:text-studio-text'
           }`}
         >
           <Mic className="h-3 w-3" /> Visemes

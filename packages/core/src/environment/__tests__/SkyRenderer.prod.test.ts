@@ -11,7 +11,9 @@ import { SkyRenderer } from '../SkyRenderer';
 describe('SkyRenderer', () => {
   let sky: SkyRenderer;
 
-  beforeEach(() => { sky = new SkyRenderer(); });
+  beforeEach(() => {
+    sky = new SkyRenderer();
+  });
 
   // -------------------------------------------------------------------------
   // Gradient
@@ -24,9 +26,9 @@ describe('SkyRenderer', () => {
 
     it('setGradient replaces gradient', () => {
       sky.setGradient({
-        top:     { r: 1, g: 0, b: 0 },
+        top: { r: 1, g: 0, b: 0 },
         horizon: { r: 0, g: 1, b: 0 },
-        bottom:  { r: 0, g: 0, b: 1 },
+        bottom: { r: 0, g: 0, b: 1 },
       });
       expect(sky.getGradient().top.r).toBe(1);
     });
@@ -35,9 +37,9 @@ describe('SkyRenderer', () => {
   describe('sampleGradient()', () => {
     beforeEach(() => {
       sky.setGradient({
-        top:     { r: 0, g: 0, b: 1 },
+        top: { r: 0, g: 0, b: 1 },
         horizon: { r: 0, g: 1, b: 0 },
-        bottom:  { r: 1, g: 0, b: 0 },
+        bottom: { r: 1, g: 0, b: 0 },
       });
     });
 

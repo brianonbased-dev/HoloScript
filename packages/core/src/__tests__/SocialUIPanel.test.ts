@@ -40,21 +40,21 @@ describe('SocialUIPanel', () => {
   it('includes Friends tab button', () => {
     const root = panel.create();
     const allNodes = flattenChildren(root);
-    const friendsBtn = allNodes.find(n => n.properties?.text === 'Friends');
+    const friendsBtn = allNodes.find((n) => n.properties?.text === 'Friends');
     expect(friendsBtn).toBeDefined();
   });
 
   it('includes Requests tab button', () => {
     const root = panel.create();
     const allNodes = flattenChildren(root);
-    const requestsBtn = allNodes.find(n => n.properties?.text === 'Requests');
+    const requestsBtn = allNodes.find((n) => n.properties?.text === 'Requests');
     expect(requestsBtn).toBeDefined();
   });
 
   it('includes a content area', () => {
     const root = panel.create();
     const allNodes = flattenChildren(root);
-    const content = allNodes.find(n => n.id === 'social_content_area');
+    const content = allNodes.find((n) => n.id === 'social_content_area');
     expect(content).toBeDefined();
   });
 
@@ -65,7 +65,7 @@ describe('SocialUIPanel', () => {
     const root = panel.create();
     const allNodes = flattenChildren(root);
     // Content area should have at least one child (the friend list)
-    const content = allNodes.find(n => n.id === 'social_content_area');
+    const content = allNodes.find((n) => n.id === 'social_content_area');
     expect(content).toBeDefined();
     expect(content!.children?.length).toBeGreaterThan(0);
   });

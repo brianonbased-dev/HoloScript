@@ -10,14 +10,23 @@ describe('Cycle 155: Resource Management', () => {
 
   it('should load resources in dependency order', async () => {
     const order: string[] = [];
-    const loader = new ResourceLoader(async (req) => { order.push(req.id); return req.id; });
+    const loader = new ResourceLoader(async (req) => {
+      order.push(req.id);
+      return req.id;
+    });
 
     loader.addRequest({ id: 'shader', url: '/s', type: 'shader', dependencies: [], priority: 1 });
-    loader.addRequest({ id: 'material', url: '/m', type: 'material', dependencies: ['shader'], priority: 1 });
+    loader.addRequest({
+      id: 'material',
+      url: '/m',
+      type: 'material',
+      dependencies: ['shader'],
+      priority: 1,
+    });
 
     const results = await loader.loadAll();
     expect(order).toEqual(['shader', 'material']);
-    expect(results.every(r => r.status === 'loaded')).toBe(true);
+    expect(results.every((r) => r.status === 'loaded')).toBe(true);
   });
 
   it('should cancel and track progress', async () => {

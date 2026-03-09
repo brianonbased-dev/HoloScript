@@ -167,7 +167,7 @@ describe('MorphTargetSystem', () => {
       const base = makeBasePositions(10, 0);
       const result = mts.computeDeformedPositions(base);
       const vi = 2 * 3;
-      expect(result[vi]).toBeCloseTo(0, 5);     // dx
+      expect(result[vi]).toBeCloseTo(0, 5); // dx
       expect(result[vi + 1]).toBeCloseTo(4, 5); // dy
       expect(result[vi + 2]).toBeCloseTo(6, 5); // dz
     });
@@ -199,7 +199,13 @@ describe('MorphTargetSystem', () => {
     it('applyPreset sets weights for listed targets', () => {
       mts.addTarget('smile', []);
       mts.addTarget('blink', []);
-      mts.addPreset('happy', new Map([['smile', 0.8], ['blink', 0.3]]));
+      mts.addPreset(
+        'happy',
+        new Map([
+          ['smile', 0.8],
+          ['blink', 0.3],
+        ])
+      );
       mts.applyPreset('happy');
       expect(mts.getWeight('smile')).toBeCloseTo(0.8, 5);
       expect(mts.getWeight('blink')).toBeCloseTo(0.3, 5);

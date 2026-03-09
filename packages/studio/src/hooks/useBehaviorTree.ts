@@ -4,12 +4,23 @@
  */
 import { useState, useCallback, useRef } from 'react';
 import {
-  BehaviorTree, Blackboard,
-  SequenceNode, SelectorNode, ActionNode, ConditionNode, WaitNode,
-  type BTStatus, type BTTreeDef,
+  BehaviorTree,
+  Blackboard,
+  SequenceNode,
+  SelectorNode,
+  ActionNode,
+  ConditionNode,
+  WaitNode,
+  type BTStatus,
+  type BTTreeDef,
 } from '@holoscript/core';
 
-export interface BTTraceEntry { tree: string; node: string; status: BTStatus; tick: number; }
+export interface BTTraceEntry {
+  tree: string;
+  node: string;
+  status: BTStatus;
+  tick: number;
+}
 
 export interface UseBehaviorTreeReturn {
   bt: BehaviorTree;
@@ -78,12 +89,15 @@ export function useBehaviorTree(): UseBehaviorTreeReturn {
     setTrace(bt.getTrace());
   }, []);
 
-  const createTree = useCallback((id: string, rootType: 'patrol' | 'guard' | 'idle', entity = 'npc-1') => {
-    const builder = TREE_BUILDERS[rootType] || buildPatrolTree;
-    const tree = btRef.current.createTree(id, builder(), entity, new Blackboard());
-    syncState();
-    return tree;
-  }, [syncState]);
+  const createTree = useCallback(
+    (id: string, rootType: 'patrol' | 'guard' | 'idle', entity = 'npc-1') => {
+      const builder = TREE_BUILDERS[rootType] || buildPatrolTree;
+      const tree = btRef.current.createTree(id, builder(), entity, new Blackboard());
+      syncState();
+      return tree;
+    },
+    [syncState]
+  );
 
   const tick = useCallback((id: string, dt = 1 / 60) => {
     const status = btRef.current.tick(id, dt);
@@ -97,15 +111,21 @@ export function useBehaviorTree(): UseBehaviorTreeReturn {
     setTrace(btRef.current.getTrace());
   }, []);
 
-  const abort = useCallback((id: string) => {
-    btRef.current.abort(id);
-    syncState();
-  }, [syncState]);
+  const abort = useCallback(
+    (id: string) => {
+      btRef.current.abort(id);
+      syncState();
+    },
+    [syncState]
+  );
 
-  const remove = useCallback((id: string) => {
-    btRef.current.removeTree(id);
-    syncState();
-  }, [syncState]);
+  const remove = useCallback(
+    (id: string) => {
+      btRef.current.removeTree(id);
+      syncState();
+    },
+    [syncState]
+  );
 
   const reset = useCallback(() => {
     btRef.current = new BehaviorTree();
@@ -115,5 +135,16 @@ export function useBehaviorTree(): UseBehaviorTreeReturn {
     setLastStatus('ready');
   }, []);
 
-  return { bt: btRef.current, trees, trace, lastStatus, createTree, tick, tickAll, abort, remove, reset };
+  return {
+    bt: btRef.current,
+    trees,
+    trace,
+    lastStatus,
+    createTree,
+    tick,
+    tickAll,
+    abort,
+    remove,
+    reset,
+  };
 }

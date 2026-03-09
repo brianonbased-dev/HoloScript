@@ -7,7 +7,9 @@ import { NetworkTransport } from '../network/NetworkTransport';
 
 describe('NetworkTransport', () => {
   let transport: NetworkTransport;
-  beforeEach(() => { transport = new NetworkTransport('host1'); });
+  beforeEach(() => {
+    transport = new NetworkTransport('host1');
+  });
 
   it('getLocalId returns constructor id', () => {
     expect(transport.getLocalId()).toBe('host1');

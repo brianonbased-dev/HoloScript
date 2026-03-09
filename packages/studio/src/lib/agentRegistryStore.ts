@@ -18,8 +18,9 @@ export interface AgentRegistryState {
 export const useAgentRegistryStore = create<AgentRegistryState>((set) => ({
   agents: [],
   registerAgent: (agent) => set((state) => ({ agents: [...state.agents, agent] })),
-  unregisterAgent: (id) => set((state) => ({ agents: state.agents.filter(a => a.id !== id) })),
-  setAgentStatus: (id, status) => set((state) => ({
-    agents: state.agents.map(a => a.id === id ? { ...a, status } : a)
-  })),
+  unregisterAgent: (id) => set((state) => ({ agents: state.agents.filter((a) => a.id !== id) })),
+  setAgentStatus: (id, status) =>
+    set((state) => ({
+      agents: state.agents.map((a) => (a.id === id ? { ...a, status } : a)),
+    })),
 }));

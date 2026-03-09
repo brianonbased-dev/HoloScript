@@ -4,7 +4,16 @@
  * @version 1.0.0
  */
 
-export type UIEventType = 'click' | 'hover' | 'hoverEnd' | 'focus' | 'blur' | 'pointerDown' | 'pointerUp' | 'pointerMove' | 'valueChange';
+export type UIEventType =
+  | 'click'
+  | 'hover'
+  | 'hoverEnd'
+  | 'focus'
+  | 'blur'
+  | 'pointerDown'
+  | 'pointerUp'
+  | 'pointerMove'
+  | 'valueChange';
 
 export interface UIEvent {
   type: UIEventType;
@@ -39,7 +48,15 @@ export class UIEventRouter {
    * Emit an event
    */
   emit(targetId: string, type: UIEventType, x?: number, y?: number, value?: unknown): UIEvent {
-    const event: UIEvent = { type, targetId, x, y, value, propagationStopped: false, timestamp: Date.now() };
+    const event: UIEvent = {
+      type,
+      targetId,
+      x,
+      y,
+      value,
+      propagationStopped: false,
+      timestamp: Date.now(),
+    };
 
     const typeMap = this.handlers.get(targetId);
     if (typeMap) {
@@ -88,8 +105,16 @@ export class UIEventRouter {
     return this.emit(widgetId, 'click', x, y);
   }
 
-  getFocused(): string | null { return this.focusedId; }
-  getHovered(): string | null { return this.hoveredId; }
-  getEventLog(): UIEvent[] { return [...this.eventLog]; }
-  clearLog(): void { this.eventLog = []; }
+  getFocused(): string | null {
+    return this.focusedId;
+  }
+  getHovered(): string | null {
+    return this.hoveredId;
+  }
+  getEventLog(): UIEvent[] {
+    return [...this.eventLog];
+  }
+  clearLog(): void {
+    this.eventLog = [];
+  }
 }

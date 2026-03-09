@@ -296,6 +296,7 @@ pnpm test -- SemanticCache.test.ts
 ```
 
 **Coverage**:
+
 - Hashing (SHA-256)
 - Cache operations (get, set, delete)
 - Statistics tracking
@@ -311,6 +312,7 @@ pnpm test -- SemanticCache.integration.test.ts
 ```
 
 **Scenarios**:
+
 - Incremental compilation workflows
 - Performance benchmarks (2.5x+ speedup)
 - Cache invalidation strategies
@@ -324,6 +326,7 @@ pnpm test -- SemanticCache.integration.test.ts
 **Problem**: Cache always uses memory backend
 
 **Solutions**:
+
 1. Check Redis is running: `redis-cli ping`
 2. Verify connection URL: `redis://localhost:6379`
 3. Check firewall/network settings
@@ -334,6 +337,7 @@ pnpm test -- SemanticCache.integration.test.ts
 **Problem**: Hit rate < 50%
 
 **Solutions**:
+
 1. Check TTL isn't too short
 2. Verify version matches across builds
 3. Review cache invalidation logic
@@ -344,6 +348,7 @@ pnpm test -- SemanticCache.integration.test.ts
 **Problem**: Memory cache grows unbounded
 
 **Solutions**:
+
 1. Enable Redis backend for persistence
 2. Reduce cache TTL
 3. Implement periodic cleanup
@@ -450,6 +455,7 @@ new IncrementalCompiler(
 ### From BuildCache to SemanticCache
 
 **Before** (BuildCache):
+
 ```typescript
 import { BuildCache } from './BuildCache';
 
@@ -460,6 +466,7 @@ const result = await cache.get('file.hs', 'compiled');
 ```
 
 **After** (SemanticCache):
+
 ```typescript
 import { createSemanticCache, hashSourceCode } from './SemanticCache';
 
@@ -471,6 +478,7 @@ const result = await cache.get(hash, 'compiled-module');
 ```
 
 **Key Changes**:
+
 - Content-based hashing instead of file paths
 - Redis backend instead of disk files
 - Async initialization and operations

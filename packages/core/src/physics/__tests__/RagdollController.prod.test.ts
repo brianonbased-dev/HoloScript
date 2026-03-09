@@ -61,7 +61,7 @@ describe('RagdollController', () => {
 
     it('getChildren returns child bones', () => {
       const children = rc.getChildren('spine');
-      expect(children.map(c => c.name)).toContain('chest');
+      expect(children.map((c) => c.name)).toContain('chest');
     });
   });
 

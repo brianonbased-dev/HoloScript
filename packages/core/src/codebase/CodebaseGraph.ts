@@ -161,9 +161,7 @@ export class CodebaseGraph {
       this.calleeIndex.get(call.callerId)!.push(call);
 
       // Caller index: "who calls X?"
-      const key = call.calleeOwner
-        ? `${call.calleeOwner}.${call.calleeName}`
-        : call.calleeName;
+      const key = call.calleeOwner ? `${call.calleeOwner}.${call.calleeName}` : call.calleeName;
       if (!this.callerIndex.has(key)) {
         this.callerIndex.set(key, []);
       }
@@ -331,11 +329,7 @@ export class CodebaseGraph {
    * Trace a call chain from a symbol to a target (BFS shortest path).
    * Returns the path of symbol names, or null if no path exists.
    */
-  traceCallChain(
-    fromSymbol: string,
-    toSymbol: string,
-    maxDepth = 10,
-  ): CallChain | null {
+  traceCallChain(fromSymbol: string, toSymbol: string, maxDepth = 10): CallChain | null {
     const queue: Array<{ node: string; path: string[] }> = [
       { node: fromSymbol, path: [fromSymbol] },
     ];
@@ -375,11 +369,7 @@ export class CodebaseGraph {
     if (this._communities) return this._communities;
 
     const detector = new CommunityDetector();
-    this._communities = detector.detect(
-      Array.from(this.files.keys()),
-      this.imports,
-      this.calls,
-    );
+    this._communities = detector.detect(Array.from(this.files.keys()), this.imports, this.calls);
 
     return this._communities;
   }
@@ -394,9 +384,7 @@ export class CodebaseGraph {
       version: 1,
       rootDir: this.rootDir,
       files: Array.from(this.files.values()),
-      communities: this._communities
-        ? Object.fromEntries(this._communities)
-        : {},
+      communities: this._communities ? Object.fromEntries(this._communities) : {},
     };
     return JSON.stringify(data);
   }

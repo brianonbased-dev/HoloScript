@@ -234,10 +234,7 @@ export const spatialAdjacentHandler: TraitHandler<SpatialAdjacentConfig> = {
 
   onEvent(node, config, context, event) {
     // Listen for target position updates
-    if (
-      event.type === 'spatial_target_update' &&
-      (event as any).targetId === config.target
-    ) {
+    if (event.type === 'spatial_target_update' && (event as any).targetId === config.target) {
       const state = context.getState().spatialAdjacent as AdjacentState | undefined;
       if (state) {
         state.targetPosition = (event as any).position;
@@ -485,9 +482,7 @@ export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
           z: targetPos.z - nodePos.z,
         };
         const len = Math.sqrt(
-          direction.x * direction.x +
-          direction.y * direction.y +
-          direction.z * direction.z
+          direction.x * direction.x + direction.y * direction.y + direction.z * direction.z
         );
         if (len > 0) {
           const normalized = {
@@ -527,10 +522,7 @@ export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
 
   onEvent(node, config, context, event) {
     // Track target position for reachability
-    if (
-      event.type === 'spatial_target_update' &&
-      (event as any).targetId === config.target
-    ) {
+    if (event.type === 'spatial_target_update' && (event as any).targetId === config.target) {
       context.setState({
         [`reachable_target_${config.target}`]: (event as any).position,
       });

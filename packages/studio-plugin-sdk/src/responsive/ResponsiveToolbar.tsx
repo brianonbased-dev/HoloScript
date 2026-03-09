@@ -93,7 +93,7 @@ const DEFAULT_TOOLBAR_CONFIG: Record<ResponsiveBreakpoint, ResponsiveToolbarConf
 
 function resolveToolbarConfig(
   responsive: ResponsiveToolbarProps['responsive'],
-  breakpoint: ResponsiveBreakpoint,
+  breakpoint: ResponsiveBreakpoint
 ): ResponsiveToolbarConfig {
   const defaults = DEFAULT_TOOLBAR_CONFIG[breakpoint];
   const overrides = responsive?.[breakpoint];
@@ -105,17 +105,13 @@ function resolveToolbarConfig(
 function prepareButtons(
   buttons: CustomToolbarButton[],
   breakpoint: ResponsiveBreakpoint,
-  config: ResponsiveToolbarConfig,
+  config: ResponsiveToolbarConfig
 ): { visible: CustomToolbarButton[]; overflow: CustomToolbarButton[] } {
   // Filter out buttons hidden on this breakpoint
-  const filtered = buttons.filter(
-    (btn) => !btn.hideOnBreakpoints?.includes(breakpoint),
-  );
+  const filtered = buttons.filter((btn) => !btn.hideOnBreakpoints?.includes(breakpoint));
 
   // Sort by priority (higher priority = more visible)
-  const sorted = [...filtered].sort(
-    (a, b) => (b.priority ?? 0) - (a.priority ?? 0),
-  );
+  const sorted = [...filtered].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
 
   if (!config.overflow || !config.maxVisibleButtons) {
     return { visible: sorted, overflow: [] };
@@ -205,9 +201,7 @@ const ToolbarButtonItem: React.FC<ToolbarButtonItemProps> = ({
     padding: isTouchDevice ? '8px 12px' : '4px 8px',
     border: 'none',
     borderRadius: 8,
-    background: isPressed
-      ? 'rgba(255, 255, 255, 0.15)'
-      : 'transparent',
+    background: isPressed ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
     color: buttonColor,
     cursor: 'pointer',
     transition: 'background 0.15s ease, transform 0.1s ease',
@@ -272,11 +266,7 @@ interface OverflowMenuProps {
   isTouchDevice: boolean;
 }
 
-const OverflowMenu: React.FC<OverflowMenuProps> = ({
-  buttons,
-  touchTargetSize,
-  isTouchDevice,
-}) => {
+const OverflowMenu: React.FC<OverflowMenuProps> = ({ buttons, touchTargetSize, isTouchDevice }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -302,11 +292,7 @@ const OverflowMenu: React.FC<OverflowMenuProps> = ({
   if (buttons.length === 0) return null;
 
   return (
-    <div
-      ref={menuRef}
-      className="studio-toolbar-overflow"
-      style={{ position: 'relative' }}
-    >
+    <div ref={menuRef} className="studio-toolbar-overflow" style={{ position: 'relative' }}>
       <button
         className="studio-toolbar-overflow-trigger"
         onClick={() => setIsOpen((prev) => !prev)}
@@ -404,12 +390,12 @@ export const ResponsiveToolbar: React.FC<ResponsiveToolbarProps> = ({
 
   const config = useMemo(
     () => resolveToolbarConfig(responsive, layout.breakpoint),
-    [responsive, layout.breakpoint],
+    [responsive, layout.breakpoint]
   );
 
   const { visible, overflow } = useMemo(
     () => prepareButtons(buttons, layout.breakpoint, config),
-    [buttons, layout.breakpoint, config],
+    [buttons, layout.breakpoint, config]
   );
 
   const touchTargetSize = config.touchTargetSize ?? (layout.isTouchDevice ? 44 : 32);
@@ -497,7 +483,9 @@ export const ResponsiveToolbar: React.FC<ResponsiveToolbarProps> = ({
     `studio-toolbar-${layout.breakpoint}`,
     layout.isTouchDevice ? 'studio-toolbar-touch' : 'studio-toolbar-pointer',
     className,
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <div
@@ -534,28 +522,26 @@ export const ResponsiveToolbar: React.FC<ResponsiveToolbarProps> = ({
           flexDirection: layoutMode === 'vertical' ? 'column' : 'row',
         }}
       >
-        {layoutMode === 'horizontal' ? (
-          centerButtons.map((btn) => (
-            <ToolbarButtonItem
-              key={btn.id}
-              button={btn}
-              touchTargetSize={touchTargetSize}
-              isTouchDevice={layout.isTouchDevice}
-              layoutMode={layoutMode}
-            />
-          ))
-        ) : (
-          // In non-horizontal modes, show all visible buttons in one group
-          visible.map((btn) => (
-            <ToolbarButtonItem
-              key={btn.id}
-              button={btn}
-              touchTargetSize={touchTargetSize}
-              isTouchDevice={layout.isTouchDevice}
-              layoutMode={layoutMode}
-            />
-          ))
-        )}
+        {layoutMode === 'horizontal'
+          ? centerButtons.map((btn) => (
+              <ToolbarButtonItem
+                key={btn.id}
+                button={btn}
+                touchTargetSize={touchTargetSize}
+                isTouchDevice={layout.isTouchDevice}
+                layoutMode={layoutMode}
+              />
+            ))
+          : // In non-horizontal modes, show all visible buttons in one group
+            visible.map((btn) => (
+              <ToolbarButtonItem
+                key={btn.id}
+                button={btn}
+                touchTargetSize={touchTargetSize}
+                isTouchDevice={layout.isTouchDevice}
+                layoutMode={layoutMode}
+              />
+            ))}
       </div>
 
       {/* Right group */}

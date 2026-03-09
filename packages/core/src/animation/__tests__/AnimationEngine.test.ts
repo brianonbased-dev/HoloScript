@@ -6,11 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  AnimationEngine,
-  Easing,
-  type AnimationClip,
-} from '../AnimationEngine';
+import { AnimationEngine, Easing, type AnimationClip } from '../AnimationEngine';
 
 describe('Easing Functions', () => {
   it('linear should return t unchanged', () => {

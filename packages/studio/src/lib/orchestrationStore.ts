@@ -39,12 +39,15 @@ export interface MCPTool {
   name: string;
   server: string;
   description: string;
-  parameters: Record<string, {
-    type: string;
-    description: string;
-    required: boolean;
-    default?: unknown;
-  }>;
+  parameters: Record<
+    string,
+    {
+      type: string;
+      description: string;
+      required: boolean;
+      default?: unknown;
+    }
+  >;
   examples?: Array<{
     description: string;
     args: Record<string, unknown>;
@@ -62,14 +65,28 @@ export interface AgentWorkflow {
   updatedAt: Date;
 }
 
-export type WorkflowNodeType = 'agent' | 'tool' | 'decision' | 'parallel' | 'sequential' | 'loop' | 'merge';
+export type WorkflowNodeType =
+  | 'agent'
+  | 'tool'
+  | 'decision'
+  | 'parallel'
+  | 'sequential'
+  | 'loop'
+  | 'merge';
 
 export interface WorkflowNode {
   id: string;
   type: WorkflowNodeType;
   label: string;
   position: { x: number; y: number };
-  data: AgentNodeData | ToolNodeData | DecisionNodeData | ParallelNodeData | SequentialNodeData | LoopNodeData | MergeNodeData;
+  data:
+    | AgentNodeData
+    | ToolNodeData
+    | DecisionNodeData
+    | ParallelNodeData
+    | SequentialNodeData
+    | LoopNodeData
+    | MergeNodeData;
 }
 
 export interface AgentNodeData {
@@ -140,7 +157,17 @@ export interface AgentEvent<T = unknown> {
 }
 
 /** Behavior Tree Node */
-export type BTNodeType = 'sequence' | 'selector' | 'parallel' | 'action' | 'condition' | 'inverter' | 'repeat' | 'retry' | 'guard' | 'timeout';
+export type BTNodeType =
+  | 'sequence'
+  | 'selector'
+  | 'parallel'
+  | 'action'
+  | 'condition'
+  | 'inverter'
+  | 'repeat'
+  | 'retry'
+  | 'guard'
+  | 'timeout';
 
 export interface BTNode {
   id: string;
@@ -363,7 +390,10 @@ function restorePersistedState() {
     const savedActiveBehaviorTree = localStorage.getItem('holoscript-active-behavior-tree');
     if (savedActiveBehaviorTree) {
       restored.activeBehaviorTree = savedActiveBehaviorTree;
-      console.log('[OrchestrationPersistence] Restored active behavior tree:', savedActiveBehaviorTree);
+      console.log(
+        '[OrchestrationPersistence] Restored active behavior tree:',
+        savedActiveBehaviorTree
+      );
     }
   } catch (error) {
     console.error('[OrchestrationPersistence] Failed to restore state:', error);

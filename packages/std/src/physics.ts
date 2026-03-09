@@ -14,7 +14,14 @@ import { Vec3 } from './spatial';
 // Collider Shapes
 // =============================================================================
 
-export type ColliderShapeType = 'box' | 'sphere' | 'capsule' | 'mesh' | 'convex' | 'cylinder' | 'heightfield';
+export type ColliderShapeType =
+  | 'box'
+  | 'sphere'
+  | 'capsule'
+  | 'mesh'
+  | 'convex'
+  | 'cylinder'
+  | 'heightfield';
 
 export interface ColliderConfig {
   shape: ColliderShapeType;
@@ -28,16 +35,41 @@ export interface ColliderConfig {
   meshAsset?: string;
 }
 
-export function createBoxCollider(halfExtents: Vec3, options?: Partial<ColliderConfig>): ColliderConfig {
-  return { shape: 'box', isTrigger: false, friction: 0.5, restitution: 0.0, halfExtents, ...options };
+export function createBoxCollider(
+  halfExtents: Vec3,
+  options?: Partial<ColliderConfig>
+): ColliderConfig {
+  return {
+    shape: 'box',
+    isTrigger: false,
+    friction: 0.5,
+    restitution: 0.0,
+    halfExtents,
+    ...options,
+  };
 }
 
-export function createSphereCollider(radius: number, options?: Partial<ColliderConfig>): ColliderConfig {
+export function createSphereCollider(
+  radius: number,
+  options?: Partial<ColliderConfig>
+): ColliderConfig {
   return { shape: 'sphere', isTrigger: false, friction: 0.5, restitution: 0.0, radius, ...options };
 }
 
-export function createCapsuleCollider(radius: number, height: number, options?: Partial<ColliderConfig>): ColliderConfig {
-  return { shape: 'capsule', isTrigger: false, friction: 0.5, restitution: 0.0, radius, height, ...options };
+export function createCapsuleCollider(
+  radius: number,
+  height: number,
+  options?: Partial<ColliderConfig>
+): ColliderConfig {
+  return {
+    shape: 'capsule',
+    isTrigger: false,
+    friction: 0.5,
+    restitution: 0.0,
+    radius,
+    height,
+    ...options,
+  };
 }
 
 // =============================================================================

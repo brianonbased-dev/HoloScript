@@ -4,11 +4,13 @@
 import { describe, it, expect } from 'vitest';
 import {
   // Animation
-  AnimationEngine, Easing,
+  AnimationEngine,
+  Easing,
   // Audio
   AudioEngine,
   // TileMap
-  TileMap, TileFlags,
+  TileMap,
+  TileFlags,
 } from '../index';
 
 describe('Animation Engine exports', () => {
@@ -17,10 +19,20 @@ describe('Animation Engine exports', () => {
     let output = 0;
     engine.play(
       {
-        id: 'test-clip', property: 'x', duration: 1, loop: false, pingPong: false, delay: 0,
-        keyframes: [{ time: 0, value: 0 }, { time: 1, value: 100 }],
+        id: 'test-clip',
+        property: 'x',
+        duration: 1,
+        loop: false,
+        pingPong: false,
+        delay: 0,
+        keyframes: [
+          { time: 0, value: 0 },
+          { time: 1, value: 100 },
+        ],
       },
-      (v: number) => { output = v; },
+      (v: number) => {
+        output = v;
+      }
     );
     expect(engine.isActive('test-clip')).toBe(true);
     engine.update(0.5);
@@ -39,8 +51,21 @@ describe('Animation Engine exports', () => {
     const engine = new AnimationEngine();
     let val = 0;
     engine.play(
-      { id: 'interp', property: 'x', duration: 1, loop: false, pingPong: false, delay: 0, keyframes: [{ time: 0, value: 0 }, { time: 1, value: 10 }] },
-      (v: number) => { val = v; },
+      {
+        id: 'interp',
+        property: 'x',
+        duration: 1,
+        loop: false,
+        pingPong: false,
+        delay: 0,
+        keyframes: [
+          { time: 0, value: 0 },
+          { time: 1, value: 10 },
+        ],
+      },
+      (v: number) => {
+        val = v;
+      }
     );
     engine.update(0);
     expect(val).toBe(0);
@@ -53,8 +78,19 @@ describe('Animation Engine exports', () => {
   it('AnimationEngine pause/resume/stop', () => {
     const engine = new AnimationEngine();
     engine.play(
-      { id: 'p', property: 'y', duration: 2, loop: false, pingPong: false, delay: 0, keyframes: [{ time: 0, value: 0 }, { time: 2, value: 1 }] },
-      () => {},
+      {
+        id: 'p',
+        property: 'y',
+        duration: 2,
+        loop: false,
+        pingPong: false,
+        delay: 0,
+        keyframes: [
+          { time: 0, value: 0 },
+          { time: 2, value: 1 },
+        ],
+      },
+      () => {}
     );
     engine.pause('p');
     expect(engine.isActive('p')).toBe(true);
@@ -65,8 +101,30 @@ describe('Animation Engine exports', () => {
 
   it('AnimationEngine clear removes all', () => {
     const engine = new AnimationEngine();
-    engine.play({ id: 'a', property: 'x', duration: 1, loop: false, pingPong: false, delay: 0, keyframes: [{ time: 0, value: 0 }] }, () => {});
-    engine.play({ id: 'b', property: 'x', duration: 1, loop: false, pingPong: false, delay: 0, keyframes: [{ time: 0, value: 0 }] }, () => {});
+    engine.play(
+      {
+        id: 'a',
+        property: 'x',
+        duration: 1,
+        loop: false,
+        pingPong: false,
+        delay: 0,
+        keyframes: [{ time: 0, value: 0 }],
+      },
+      () => {}
+    );
+    engine.play(
+      {
+        id: 'b',
+        property: 'x',
+        duration: 1,
+        loop: false,
+        pingPong: false,
+        delay: 0,
+        keyframes: [{ time: 0, value: 0 }],
+      },
+      () => {}
+    );
     expect(engine.getActiveIds().length).toBe(2);
     engine.clear();
     expect(engine.getActiveIds().length).toBe(0);
@@ -107,8 +165,8 @@ describe('Audio Engine exports', () => {
     engine.play('far', { position: { x: 50, y: 0, z: 0 }, volume: 1 });
     engine.update(0.016);
     const sources = engine.getActiveSources();
-    const near = sources.find(s => s.soundId === 'near')!;
-    const far = sources.find(s => s.soundId === 'far')!;
+    const near = sources.find((s) => s.soundId === 'near')!;
+    const far = sources.find((s) => s.soundId === 'far')!;
     expect(near.computedVolume).toBeGreaterThan(far.computedVolume);
   });
 

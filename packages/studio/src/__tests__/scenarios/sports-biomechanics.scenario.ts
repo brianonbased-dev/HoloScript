@@ -7,12 +7,24 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  jointTorque, power, kineticEnergy, potentialEnergy,
-  momentOfInertia, strideFrequency, groundContactTime,
-  peakForce, averageForce, loadRate,
-  fatigueIndex, injuryRiskScore, vo2AtIntensity, caloriesBurned,
-  gaitSymmetryIndex, motionCaptureReplay,
-  type ForceData, type MotionFrame,
+  jointTorque,
+  power,
+  kineticEnergy,
+  potentialEnergy,
+  momentOfInertia,
+  strideFrequency,
+  groundContactTime,
+  peakForce,
+  averageForce,
+  loadRate,
+  fatigueIndex,
+  injuryRiskScore,
+  vo2AtIntensity,
+  caloriesBurned,
+  gaitSymmetryIndex,
+  motionCaptureReplay,
+  type ForceData,
+  type MotionFrame,
 } from '@/lib/sportsBiomechanics';
 
 describe('Scenario: Biomechanics — Physics', () => {
@@ -43,11 +55,36 @@ describe('Scenario: Biomechanics — Performance', () => {
   });
 
   const forces: ForceData[] = [
-    { magnitude: 100, direction: { x: 0, y: 1, z: 0 }, applicationPoint: { x: 0, y: 0, z: 0 }, timestamp: 0 },
-    { magnitude: 800, direction: { x: 0, y: 1, z: 0 }, applicationPoint: { x: 0, y: 0, z: 0 }, timestamp: 50 },
-    { magnitude: 1200, direction: { x: 0, y: 1, z: 0 }, applicationPoint: { x: 0, y: 0, z: 0 }, timestamp: 100 },
-    { magnitude: 600, direction: { x: 0, y: 1, z: 0 }, applicationPoint: { x: 0, y: 0, z: 0 }, timestamp: 150 },
-    { magnitude: 30, direction: { x: 0, y: 1, z: 0 }, applicationPoint: { x: 0, y: 0, z: 0 }, timestamp: 200 },
+    {
+      magnitude: 100,
+      direction: { x: 0, y: 1, z: 0 },
+      applicationPoint: { x: 0, y: 0, z: 0 },
+      timestamp: 0,
+    },
+    {
+      magnitude: 800,
+      direction: { x: 0, y: 1, z: 0 },
+      applicationPoint: { x: 0, y: 0, z: 0 },
+      timestamp: 50,
+    },
+    {
+      magnitude: 1200,
+      direction: { x: 0, y: 1, z: 0 },
+      applicationPoint: { x: 0, y: 0, z: 0 },
+      timestamp: 100,
+    },
+    {
+      magnitude: 600,
+      direction: { x: 0, y: 1, z: 0 },
+      applicationPoint: { x: 0, y: 0, z: 0 },
+      timestamp: 150,
+    },
+    {
+      magnitude: 30,
+      direction: { x: 0, y: 1, z: 0 },
+      applicationPoint: { x: 0, y: 0, z: 0 },
+      timestamp: 200,
+    },
   ];
 
   it('peakForce = 1200 N', () => {
@@ -95,8 +132,24 @@ describe('Scenario: Biomechanics — Fatigue & Injury', () => {
 
   it('motion capture replay — 3D skeleton playback with joint annotation', () => {
     const frames: MotionFrame[] = [
-      { timestamp: 0, joints: [ { joint: 'knee', angleDeg: 90, angularVelocityDegS: 10, timestamp: 0 }, { joint: 'hip', angleDeg: 130, angularVelocityDegS: 5, timestamp: 0 } ], groundReactionForce: null, centerOfMass: { x: 0, y: 1, z: 0 } },
-      { timestamp: 100, joints: [ { joint: 'knee', angleDeg: 45, angularVelocityDegS: -20, timestamp: 100 }, { joint: 'hip', angleDeg: 160, angularVelocityDegS: 8, timestamp: 100 } ], groundReactionForce: null, centerOfMass: { x: 0.5, y: 0.9, z: 0 } },
+      {
+        timestamp: 0,
+        joints: [
+          { joint: 'knee', angleDeg: 90, angularVelocityDegS: 10, timestamp: 0 },
+          { joint: 'hip', angleDeg: 130, angularVelocityDegS: 5, timestamp: 0 },
+        ],
+        groundReactionForce: null,
+        centerOfMass: { x: 0, y: 1, z: 0 },
+      },
+      {
+        timestamp: 100,
+        joints: [
+          { joint: 'knee', angleDeg: 45, angularVelocityDegS: -20, timestamp: 100 },
+          { joint: 'hip', angleDeg: 160, angularVelocityDegS: 8, timestamp: 100 },
+        ],
+        groundReactionForce: null,
+        centerOfMass: { x: 0.5, y: 0.9, z: 0 },
+      },
     ];
     const replay = motionCaptureReplay(frames, 120);
     expect(replay).toHaveLength(2);

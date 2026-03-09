@@ -44,7 +44,12 @@ import { PluginSignatureService } from './PluginSignatureService.js';
 export type InstallPipelineEvent =
   | { type: 'state_change'; pluginId: string; state: PluginInstallState; message?: string }
   | { type: 'progress'; pluginId: string; stage: string; percent: number }
-  | { type: 'permission_prompt'; pluginId: string; permissions: SandboxPermission[]; resolve: (granted: SandboxPermission[]) => void }
+  | {
+      type: 'permission_prompt';
+      pluginId: string;
+      permissions: SandboxPermission[];
+      resolve: (granted: SandboxPermission[]) => void;
+    }
   | { type: 'error'; pluginId: string; error: string }
   | { type: 'complete'; pluginId: string; result: PluginInstallResult };
 
@@ -175,10 +180,17 @@ export class PluginInstallPipeline {
       const metadata = await this.fetchPluginMetadata(pluginId, version);
 
       // Stage 2: Download package
-      this.emitState(pluginId, 'downloading', `Downloading ${metadata.name} v${metadata.version}...`);
+      this.emitState(
+        pluginId,
+        'downloading',
+        `Downloading ${metadata.name} v${metadata.version}...`
+      );
       this.emitProgress(pluginId, 'download', 30);
 
-      const { bundle, shasum, expectedShasum } = await this.downloadPackage(pluginId, metadata.version);
+      const { bundle, shasum, expectedShasum } = await this.downloadPackage(
+        pluginId,
+        metadata.version
+      );
 
       // Stage 3: Verify integrity
       this.emitState(pluginId, 'verifying', 'Verifying package integrity...');
@@ -193,13 +205,19 @@ export class PluginInstallPipeline {
       let signatureVerification: SignatureVerificationResult | undefined;
       if (this.options.verifySignatures) {
         signatureVerification = await this.verifySignature(bundle, metadata);
-        if (signatureVerification && !signatureVerification.valid && signatureVerification.errors.length > 0) {
+        if (
+          signatureVerification &&
+          !signatureVerification.valid &&
+          signatureVerification.errors.length > 0
+        ) {
           // Signature is present but invalid -- this is a hard failure
           const hasActualErrors = signatureVerification.errors.some(
-            (e) => !e.includes('not registered'),
+            (e) => !e.includes('not registered')
           );
           if (hasActualErrors) {
-            throw new Error(`Signature verification failed: ${signatureVerification.errors.join('; ')}`);
+            throw new Error(
+              `Signature verification failed: ${signatureVerification.errors.join('; ')}`
+            );
           }
           // If only "not registered" warnings, continue with warning
         }
@@ -272,7 +290,11 @@ export class PluginInstallPipeline {
 
       this.installed.set(pluginId, installedPlugin);
 
-      this.emitState(pluginId, installedPlugin.state, `${metadata.name} v${metadata.version} installed successfully`);
+      this.emitState(
+        pluginId,
+        installedPlugin.state,
+        `${metadata.name} v${metadata.version} installed successfully`
+      );
       this.emitProgress(pluginId, 'complete', 100);
 
       const result: PluginInstallResult = {
@@ -376,11 +398,13 @@ export class PluginInstallPipeline {
   /**
    * Checks for updates for all installed plugins.
    */
-  async checkAllUpdates(): Promise<Array<{
-    pluginId: string;
-    currentVersion: string;
-    latestVersion: string;
-  }>> {
+  async checkAllUpdates(): Promise<
+    Array<{
+      pluginId: string;
+      currentVersion: string;
+      latestVersion: string;
+    }>
+  > {
     const updates: Array<{
       pluginId: string;
       currentVersion: string;
@@ -527,7 +551,7 @@ export class PluginInstallPipeline {
    */
   private async fetchPluginMetadata(
     pluginId: string,
-    version?: string,
+    version?: string
   ): Promise<PluginPackageManifest> {
     const url = version
       ? `${this.options.marketplaceUrl}/plugins/${encodeURIComponent(pluginId)}?version=${version}`
@@ -543,11 +567,11 @@ export class PluginInstallPipeline {
     const response = await this.options.fetchFn(url, { headers });
     if (!response.ok) {
       throw new Error(
-        `Failed to fetch plugin metadata for ${pluginId}: ${response.status} ${response.statusText}`,
+        `Failed to fetch plugin metadata for ${pluginId}: ${response.status} ${response.statusText}`
       );
     }
 
-    const data = await response.json() as any;
+    const data = (await response.json()) as any;
     return data.data?.manifest ?? data.data ?? data;
   }
 
@@ -556,7 +580,7 @@ export class PluginInstallPipeline {
    */
   private async downloadPackage(
     pluginId: string,
-    version: string,
+    version: string
   ): Promise<{ bundle: string; shasum: string; expectedShasum: string }> {
     const url = `${this.options.marketplaceUrl}/plugins/${encodeURIComponent(pluginId)}/download?version=${version}`;
 
@@ -583,14 +607,14 @@ export class PluginInstallPipeline {
   private verifyIntegrity(
     bundle: string,
     computedShasum: string,
-    expectedShasum: string,
+    expectedShasum: string
   ): { valid: boolean; errors: string[] } {
     if (computedShasum !== expectedShasum) {
       return {
         valid: false,
         errors: [
           `SHA-256 mismatch: computed ${computedShasum}, expected ${expectedShasum}. ` +
-          'The package may have been tampered with during download.',
+            'The package may have been tampered with during download.',
         ],
       };
     }
@@ -602,7 +626,7 @@ export class PluginInstallPipeline {
    */
   private async verifySignature(
     bundle: string,
-    manifest: PluginPackageManifest,
+    manifest: PluginPackageManifest
   ): Promise<SignatureVerificationResult | undefined> {
     // In a real implementation, the signature would be embedded in the package
     // or fetched from the marketplace API alongside the package metadata.
@@ -619,7 +643,7 @@ export class PluginInstallPipeline {
   private async extractPackage(
     pluginId: string,
     version: string,
-    _bundle: string,
+    _bundle: string
   ): Promise<string> {
     // Construct the install path
     const safeName = pluginId.replace(/[^a-z0-9@_-]/gi, '_');
@@ -636,7 +660,7 @@ export class PluginInstallPipeline {
    */
   private async promptPermissions(
     pluginId: string,
-    requestedPermissions: SandboxPermission[],
+    requestedPermissions: SandboxPermission[]
   ): Promise<SandboxPermission[]> {
     if (requestedPermissions.length === 0) {
       return [];

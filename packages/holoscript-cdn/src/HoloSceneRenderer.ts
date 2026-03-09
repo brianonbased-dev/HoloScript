@@ -87,7 +87,8 @@ export class HoloSceneRenderer {
       height: 100%;
       margin: 0;
     `;
-    pre.textContent = compiledOutput.substring(0, 500) + (compiledOutput.length > 500 ? '\n...' : '');
+    pre.textContent =
+      compiledOutput.substring(0, 500) + (compiledOutput.length > 500 ? '\n...' : '');
     this.container.appendChild(pre);
   }
 
@@ -112,7 +113,9 @@ export class HoloSceneRenderer {
         try {
           const nav = navigator as any;
           const session = await nav.xr.requestSession('immersive-vr');
-          session.addEventListener('end', () => { btn.textContent = 'Enter VR'; });
+          session.addEventListener('end', () => {
+            btn.textContent = 'Enter VR';
+          });
           btn.textContent = 'In VR...';
         } catch (e) {
           console.warn('WebXR session failed:', e);

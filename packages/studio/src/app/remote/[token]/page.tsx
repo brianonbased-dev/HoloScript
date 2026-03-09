@@ -42,9 +42,7 @@ function Joystick({ token }: { token: string }) {
 
   const updateKnob = useCallback((x: number, y: number) => {
     const dist = Math.sqrt(x * x + y * y);
-    const clamped = dist > RADIUS
-      ? { x: (x / dist) * RADIUS, y: (y / dist) * RADIUS }
-      : { x, y };
+    const clamped = dist > RADIUS ? { x: (x / dist) * RADIUS, y: (y / dist) * RADIUS } : { x, y };
     knobRef.current = clamped;
     setKnob(clamped);
   }, []);
@@ -60,31 +58,49 @@ function Joystick({ token }: { token: string }) {
   }, [token]);
 
   const stopLoop = useCallback(() => {
-    if (sendRef.current) { clearInterval(sendRef.current); sendRef.current = null; }
-    setKnob({ x: 0, y: 0 }); knobRef.current = { x: 0, y: 0 };
+    if (sendRef.current) {
+      clearInterval(sendRef.current);
+      sendRef.current = null;
+    }
+    setKnob({ x: 0, y: 0 });
+    knobRef.current = { x: 0, y: 0 };
     activeRef.current = null;
   }, []);
 
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    const rect = outerRef.current!.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    activeRef.current = { id: e.pointerId, origin: { x: cx, y: cy } };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    startLoop();
-  }, [startLoop]);
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      const rect = outerRef.current!.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      activeRef.current = { id: e.pointerId, origin: { x: cx, y: cy } };
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      startLoop();
+    },
+    [startLoop]
+  );
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!activeRef.current || e.pointerId !== activeRef.current.id) return;
-    const { origin } = activeRef.current;
-    updateKnob(e.clientX - origin.x, e.clientY - origin.y);
-  }, [updateKnob]);
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!activeRef.current || e.pointerId !== activeRef.current.id) return;
+      const { origin } = activeRef.current;
+      updateKnob(e.clientX - origin.x, e.clientY - origin.y);
+    },
+    [updateKnob]
+  );
 
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
-    if (activeRef.current?.id === e.pointerId) stopLoop();
-  }, [stopLoop]);
+  const onPointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      if (activeRef.current?.id === e.pointerId) stopLoop();
+    },
+    [stopLoop]
+  );
 
-  useEffect(() => () => { if (sendRef.current) clearInterval(sendRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (sendRef.current) clearInterval(sendRef.current);
+    },
+    []
+  );
 
   return (
     <div
@@ -122,10 +138,13 @@ export default function RemotePage({ params }: RemotePageProps) {
     });
   }, [token]);
 
-  const doCmd = useCallback((type: string, extra?: object) => {
-    sendCommand(token, { type, ...extra });
-    setCmdCount((c) => c + 1);
-  }, [token]);
+  const doCmd = useCallback(
+    (type: string, extra?: object) => {
+      sendCommand(token, { type, ...extra });
+      setCmdCount((c) => c + 1);
+    },
+    [token]
+  );
 
   if (!connected) {
     return (
@@ -189,7 +208,9 @@ export default function RemotePage({ params }: RemotePageProps) {
         </div>
       </div>
 
-      <div className="pb-4 text-[10px] text-white/20">HoloScript Remote · drag joystick to orbit</div>
+      <div className="pb-4 text-[10px] text-white/20">
+        HoloScript Remote · drag joystick to orbit
+      </div>
     </div>
   );
 }

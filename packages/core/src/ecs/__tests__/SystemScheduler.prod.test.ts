@@ -31,8 +31,8 @@ describe('SystemScheduler — Production', () => {
     s.register('pre', () => order.push('pre'), 'preUpdate');
     s.register('post', () => order.push('post'), 'postUpdate');
     s.register('upd', () => order.push('upd'), 'update');
-    s.setFixedTimeStep(1/60);
-    s.update(1/60);
+    s.setFixedTimeStep(1 / 60);
+    s.update(1 / 60);
     expect(order).toEqual(['pre', 'upd', 'post', 'render']);
   });
 
@@ -42,7 +42,7 @@ describe('SystemScheduler — Production', () => {
     const order: string[] = [];
     s.register('b', () => order.push('b'), 'update', 10);
     s.register('a', () => order.push('a'), 'update', 1);
-    s.update(1/60);
+    s.update(1 / 60);
     expect(order).toEqual(['a', 'b']);
   });
 
@@ -52,7 +52,7 @@ describe('SystemScheduler — Production', () => {
     const order: string[] = [];
     s.register('render_sys', () => order.push('render'), 'update', 0, ['physics_sys']);
     s.register('physics_sys', () => order.push('physics'), 'update');
-    s.update(1/60);
+    s.update(1 / 60);
     expect(order.indexOf('physics')).toBeLessThan(order.indexOf('render'));
   });
 
@@ -62,7 +62,7 @@ describe('SystemScheduler — Production', () => {
     const fn = vi.fn();
     s.register('sys', fn);
     s.disable('sys');
-    s.update(1/60);
+    s.update(1 / 60);
     expect(fn).not.toHaveBeenCalled();
     expect(s.isEnabled('sys')).toBe(false);
   });
@@ -73,7 +73,7 @@ describe('SystemScheduler — Production', () => {
     s.register('sys', fn);
     s.disable('sys');
     s.enable('sys');
-    s.update(1/60);
+    s.update(1 / 60);
     expect(fn).toHaveBeenCalled();
   });
 
@@ -81,9 +81,9 @@ describe('SystemScheduler — Production', () => {
   it('fixedUpdate runs at fixed timestep', () => {
     const s = new SystemScheduler();
     const fn = vi.fn();
-    s.setFixedTimeStep(1/60);
+    s.setFixedTimeStep(1 / 60);
     s.register('phys', fn, 'fixedUpdate');
-    s.update(2/60); // Should run fixedUpdate twice
+    s.update(2 / 60); // Should run fixedUpdate twice
     expect(fn).toHaveBeenCalledTimes(2);
   });
 
@@ -91,16 +91,22 @@ describe('SystemScheduler — Production', () => {
   it('tracks execution count per system', () => {
     const s = new SystemScheduler();
     s.register('sys', vi.fn());
-    s.update(1/60);
-    s.update(1/60);
+    s.update(1 / 60);
+    s.update(1 / 60);
     expect(s.getSystem('sys')!.executionCount).toBe(2);
   });
 
   // ─── Phase Stats ──────────────────────────────────────────────────
   it('getPhaseStats records timing', () => {
     const s = new SystemScheduler();
-    s.register('sys', () => { for (let i = 0; i < 1000; i++) {} }, 'update');
-    s.update(1/60);
+    s.register(
+      'sys',
+      () => {
+        for (let i = 0; i < 1000; i++) {}
+      },
+      'update'
+    );
+    s.update(1 / 60);
     const stats = s.getPhaseStats();
     const uStats = stats.get('update');
     expect(uStats).toBeDefined();

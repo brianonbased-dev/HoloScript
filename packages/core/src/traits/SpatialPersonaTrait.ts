@@ -23,7 +23,7 @@ export interface SpatialPersonaConfig {
   spatial_audio: boolean;
   gesture_mirroring: boolean;
   expression_sync: boolean;
-  proximity_radius: number;     // meters — for 'proximity' visibility mode
+  proximity_radius: number; // meters — for 'proximity' visibility mode
   render_quality: 'low' | 'medium' | 'high';
 }
 
@@ -33,10 +33,10 @@ interface SpatialPersonaState {
   isActive: boolean;
   personaId: string | null;
   position: [number, number, number] | null;
-  orientation: [number, number, number, number] | null;  // quaternion
+  orientation: [number, number, number, number] | null; // quaternion
   expressionState: ExpressionState;
   isSpeaking: boolean;
-  visibleTo: Set<string>;   // participant IDs
+  visibleTo: Set<string>; // participant IDs
 }
 
 // =============================================================================

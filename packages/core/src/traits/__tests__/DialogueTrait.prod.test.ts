@@ -4,8 +4,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { dialogueHandler } from '../DialogueTrait';
 
-function makeNode() { return { id: 'dlg_node' }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'dlg_node' };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 
 const SIMPLE_TREE = {
   start: {
@@ -22,9 +26,7 @@ const SIMPLE_TREE = {
     id: 'greeting',
     text: 'What brings you here?',
     speaker: 'Guard',
-    options: [
-      { text: 'Just passing through.', nextNode: undefined },
-    ],
+    options: [{ text: 'Just passing through.', nextNode: undefined }],
   },
 };
 
@@ -131,13 +133,19 @@ describe('dialogueHandler.onEvent — start_dialogue', () => {
     const { node, ctx, config } = attach({ dialogue_tree: SIMPLE_TREE });
     ctx.emit.mockClear();
     startDialogue(node, ctx, config);
-    expect(ctx.emit).toHaveBeenCalledWith('dialogue_line', expect.objectContaining({ text: 'Hello traveller!' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'dialogue_line',
+      expect.objectContaining({ text: 'Hello traveller!' })
+    );
   });
   it('emits dialogue_options when node has options', () => {
     const { node, ctx, config } = attach({ dialogue_tree: SIMPLE_TREE });
     ctx.emit.mockClear();
     startDialogue(node, ctx, config);
-    expect(ctx.emit).toHaveBeenCalledWith('dialogue_options', expect.objectContaining({ options: expect.any(Array) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'dialogue_options',
+      expect.objectContaining({ options: expect.any(Array) })
+    );
   });
   it('sets awaitingInput=true when node has options', () => {
     const { node, ctx, config } = attach({ dialogue_tree: SIMPLE_TREE });
@@ -157,7 +165,11 @@ describe('dialogueHandler.onEvent — start_dialogue', () => {
     expect(node.__dialogueState.history[0].speaker).toBe('Wizard');
   });
   it('emits speak when voice_enabled=true', () => {
-    const { node, ctx, config } = attach({ dialogue_tree: SIMPLE_TREE, voice_enabled: true, voice_id: 'voice1' });
+    const { node, ctx, config } = attach({
+      dialogue_tree: SIMPLE_TREE,
+      voice_enabled: true,
+      voice_id: 'voice1',
+    });
     ctx.emit.mockClear();
     startDialogue(node, ctx, config);
     expect(ctx.emit).toHaveBeenCalledWith('speak', expect.objectContaining({ voice_id: 'voice1' }));
@@ -173,7 +185,10 @@ describe('dialogueHandler.onEvent — start_dialogue', () => {
     const { node, ctx, config } = attach({ dialogue_tree: tree });
     ctx.emit.mockClear();
     startDialogue(node, ctx, config);
-    expect(ctx.emit).toHaveBeenCalledWith('dialogue_action', expect.objectContaining({ action: 'unlock_door' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'dialogue_action',
+      expect.objectContaining({ action: 'unlock_door' })
+    );
   });
   it('ends dialogue when start_node not in tree', () => {
     const { node, ctx, config } = attach({ dialogue_tree: {}, start_node: 'missing' });
@@ -224,29 +239,47 @@ describe('dialogueHandler.onEvent — select_option', () => {
   });
   it('emits dialogue_action when option has action', () => {
     const tree = {
-      start: { id: 'start', text: 'Hi', options: [{ text: 'Take key', action: 'give_key', nextNode: undefined as unknown as string }] },
+      start: {
+        id: 'start',
+        text: 'Hi',
+        options: [
+          { text: 'Take key', action: 'give_key', nextNode: undefined as unknown as string },
+        ],
+      },
     };
     const { node, ctx, config } = attach({ dialogue_tree: tree });
     startDialogue(node, ctx, config);
     ctx.emit.mockClear();
     dialogueHandler.onEvent!(node, config, ctx, { type: 'select_option', index: 0 });
-    expect(ctx.emit).toHaveBeenCalledWith('dialogue_action', expect.objectContaining({ action: 'give_key' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'dialogue_action',
+      expect.objectContaining({ action: 'give_key' })
+    );
   });
   it('emits dialogue_action for onExit when advancing', () => {
     const tree = {
-      start: { id: 'start', text: 'Hi', onExit: 'close_gate', options: [{ text: 'Go', nextNode: 'next' }] },
+      start: {
+        id: 'start',
+        text: 'Hi',
+        onExit: 'close_gate',
+        options: [{ text: 'Go', nextNode: 'next' }],
+      },
       next: { id: 'next', text: 'Bye' },
     };
     const { node, ctx, config } = attach({ dialogue_tree: tree });
     startDialogue(node, ctx, config);
     ctx.emit.mockClear();
     dialogueHandler.onEvent!(node, config, ctx, { type: 'select_option', index: 0 });
-    expect(ctx.emit).toHaveBeenCalledWith('dialogue_action', expect.objectContaining({ action: 'close_gate' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'dialogue_action',
+      expect.objectContaining({ action: 'close_gate' })
+    );
   });
   it('filters options by condition (blackboard key=false explicitly → hidden)', () => {
     const tree = {
       start: {
-        id: 'start', text: 'Hi',
+        id: 'start',
+        text: 'Hi',
         options: [
           // Condition: show only if !locked (i.e. locked=false/undefined → !false = true shown; locked=true → hidden)
           { text: 'Secret option', condition: '!locked', nextNode: 'next' },
@@ -264,10 +297,9 @@ describe('dialogueHandler.onEvent — select_option', () => {
   it('shows option with truthy blackboard condition', () => {
     const tree = {
       start: {
-        id: 'start', text: 'Hi',
-        options: [
-          { text: 'Special', condition: 'hasKey', nextNode: 'next' },
-        ],
+        id: 'start',
+        text: 'Hi',
+        options: [{ text: 'Special', condition: 'hasKey', nextNode: 'next' }],
       },
       next: { id: 'next', text: 'Bye' },
     };
@@ -285,20 +317,35 @@ describe('dialogueHandler.onEvent — inject_text', () => {
     const { node, ctx, config } = attach({ dialogue_tree: SIMPLE_TREE });
     startDialogue(node, ctx, config);
     const histBefore = node.__dialogueState.history.length;
-    dialogueHandler.onEvent!(node, config, ctx, { type: 'inject_text', text: 'Dynamic!', speaker: 'AI' });
+    dialogueHandler.onEvent!(node, config, ctx, {
+      type: 'inject_text',
+      text: 'Dynamic!',
+      speaker: 'AI',
+    });
     expect(node.__dialogueState.history.length).toBe(histBefore + 1);
   });
   it('emits dialogue_line', () => {
     const { node, ctx, config } = attach({ dialogue_tree: SIMPLE_TREE });
     startDialogue(node, ctx, config);
     ctx.emit.mockClear();
-    dialogueHandler.onEvent!(node, config, ctx, { type: 'inject_text', text: 'LLM reply', emotion: 'happy' });
-    expect(ctx.emit).toHaveBeenCalledWith('dialogue_line', expect.objectContaining({ text: 'LLM reply', emotion: 'happy' }));
+    dialogueHandler.onEvent!(node, config, ctx, {
+      type: 'inject_text',
+      text: 'LLM reply',
+      emotion: 'happy',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'dialogue_line',
+      expect.objectContaining({ text: 'LLM reply', emotion: 'happy' })
+    );
   });
   it('defaults speaker to speaker_name', () => {
     const { node, ctx, config } = attach({ dialogue_tree: SIMPLE_TREE, speaker_name: 'Mage' });
     startDialogue(node, ctx, config);
-    dialogueHandler.onEvent!(node, config, ctx, { type: 'inject_text', text: 'Spell!', speaker: undefined });
+    dialogueHandler.onEvent!(node, config, ctx, {
+      type: 'inject_text',
+      text: 'Spell!',
+      speaker: undefined,
+    });
     const last = node.__dialogueState.history[node.__dialogueState.history.length - 1];
     expect(last.speaker).toBe('Mage');
   });
@@ -310,13 +357,21 @@ describe('dialogueHandler.onEvent — set_dialogue_var', () => {
   it('sets key in blackboard', () => {
     const { node, ctx, config } = attach({ dialogue_tree: SIMPLE_TREE });
     startDialogue(node, ctx, config);
-    dialogueHandler.onEvent!(node, config, ctx, { type: 'set_dialogue_var', key: 'completed', value: true });
+    dialogueHandler.onEvent!(node, config, ctx, {
+      type: 'set_dialogue_var',
+      key: 'completed',
+      value: true,
+    });
     expect(node.__dialogueState.blackboard.completed).toBe(true);
   });
   it('overwrites existing variable', () => {
     const { node, ctx, config } = attach({ dialogue_tree: SIMPLE_TREE });
     startDialogue(node, ctx, config, { context: { score: 5 } });
-    dialogueHandler.onEvent!(node, config, ctx, { type: 'set_dialogue_var', key: 'score', value: 99 });
+    dialogueHandler.onEvent!(node, config, ctx, {
+      type: 'set_dialogue_var',
+      key: 'score',
+      value: 99,
+    });
     expect(node.__dialogueState.blackboard.score).toBe(99);
   });
 });
@@ -339,7 +394,10 @@ describe('dialogueHandler.onEvent — end_dialogue', () => {
     startDialogue(node, ctx, config);
     ctx.emit.mockClear();
     dialogueHandler.onEvent!(node, config, ctx, { type: 'end_dialogue' });
-    expect(ctx.emit).toHaveBeenCalledWith('dialogue_ended', expect.objectContaining({ history: expect.any(Array) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'dialogue_ended',
+      expect.objectContaining({ history: expect.any(Array) })
+    );
   });
 });
 

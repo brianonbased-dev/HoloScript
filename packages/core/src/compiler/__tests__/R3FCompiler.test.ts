@@ -1,4 +1,4 @@
-import { describe, it, expect, vi} from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { R3FCompiler, MATERIAL_PRESETS, ENVIRONMENT_PRESETS } from '../R3FCompiler';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
@@ -8,7 +8,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 describe('R3FCompiler', () => {
   // =========== Constructor & compile ===========
@@ -42,9 +41,7 @@ describe('R3FCompiler', () => {
     const compiler = new R3FCompiler();
     const result = compiler.compileComposition({
       name: 'TestScene',
-      objects: [
-        { name: 'cube', properties: [{ key: 'geometry', value: 'box' }], traits: [] },
-      ],
+      objects: [{ name: 'cube', properties: [{ key: 'geometry', value: 'box' }], traits: [] }],
     });
     expect(result.children!.length).toBeGreaterThan(0);
   });
@@ -54,9 +51,11 @@ describe('R3FCompiler', () => {
     const result = compiler.compileComposition({
       name: 'TestScene',
       objects: [],
-      lights: [{ name: 'sun', lightType: 'directional', properties: [{ key: 'intensity', value: 1.5 }] }],
+      lights: [
+        { name: 'sun', lightType: 'directional', properties: [{ key: 'intensity', value: 1.5 }] },
+      ],
     });
-    const lightNode = result.children!.find(c => c.type === 'directionalLight');
+    const lightNode = result.children!.find((c) => c.type === 'directionalLight');
     expect(lightNode).toBeDefined();
     expect(lightNode!.props.intensity).toBe(1.5);
   });
@@ -66,9 +65,11 @@ describe('R3FCompiler', () => {
     const result = compiler.compileComposition({
       name: 'TestScene',
       objects: [],
-      lights: [{ name: 'lamp', lightType: 'point', properties: [{ key: 'color', value: '#ff0000' }] }],
+      lights: [
+        { name: 'lamp', lightType: 'point', properties: [{ key: 'color', value: '#ff0000' }] },
+      ],
     });
-    const lightNode = result.children!.find(c => c.type === 'pointLight');
+    const lightNode = result.children!.find((c) => c.type === 'pointLight');
     expect(lightNode).toBeDefined();
   });
 
@@ -79,7 +80,7 @@ describe('R3FCompiler', () => {
       objects: [],
       camera: { cameraType: 'perspective', properties: [{ key: 'fov', value: 75 }] },
     });
-    const cameraNode = result.children!.find(c => c.type === 'Camera');
+    const cameraNode = result.children!.find((c) => c.type === 'Camera');
     expect(cameraNode).toBeDefined();
     expect(cameraNode!.props.fov).toBe(75);
   });
@@ -89,9 +90,7 @@ describe('R3FCompiler', () => {
   it('injects default lighting when no lights exist', () => {
     const compiler = new R3FCompiler();
     const result = compiler.compileComposition({ name: 'TestScene', objects: [] });
-    const hasLight = result.children!.some(c =>
-      c.type.toLowerCase().includes('light')
-    );
+    const hasLight = result.children!.some((c) => c.type.toLowerCase().includes('light'));
     expect(hasLight).toBe(true);
   });
 
@@ -106,7 +105,7 @@ describe('R3FCompiler', () => {
         { name: 'b', properties: [{ key: 'geometry', value: 'sphere' }], traits: [] },
       ],
     });
-    const objectChildren = result.children!.filter(c => c.id === 'a' || c.id === 'b');
+    const objectChildren = result.children!.filter((c) => c.id === 'a' || c.id === 'b');
     expect(objectChildren.length).toBe(2);
   });
 
@@ -169,7 +168,7 @@ describe('R3FCompiler', () => {
         },
       ],
     });
-    const grp = result.children!.find(c => c.id === 'grp1');
+    const grp = result.children!.find((c) => c.id === 'grp1');
     expect(grp).toBeDefined();
   });
 });

@@ -223,8 +223,8 @@ export class CulturalCompatibilityChecker {
     diagnostics.push(...this.checkNormContradictions(agents));
 
     // Partition results
-    const errors = diagnostics.filter(d => d.severity === 'error');
-    const warnings = diagnostics.filter(d => d.severity === 'warning');
+    const errors = diagnostics.filter((d) => d.severity === 'error');
+    const warnings = diagnostics.filter((d) => d.severity === 'warning');
 
     return {
       compatible: errors.length === 0,
@@ -265,7 +265,7 @@ export class CulturalCompatibilityChecker {
 
     // Validate norm references (if enabled)
     if (this.config.validateNormReferences) {
-      const builtinIds = new Set(BUILTIN_NORMS.map(n => n.id));
+      const builtinIds = new Set(BUILTIN_NORMS.map((n) => n.id));
       for (const normId of profile.norm_set) {
         if (!builtinIds.has(normId)) {
           diagnostics.push({
@@ -289,25 +289,27 @@ export class CulturalCompatibilityChecker {
 
   private checkCooperationIndex(
     a: AgentCulturalEntry,
-    b: AgentCulturalEntry,
+    b: AgentCulturalEntry
   ): CulturalDiagnostic[] {
     const delta = Math.abs(a.profile.cooperation_index - b.profile.cooperation_index);
 
     if (delta > this.config.cooperationThreshold) {
-      return [{
-        code: CODES.COOPERATION_MISMATCH,
-        severity: 'error',
-        category: 'cooperation_mismatch',
-        message:
-          `Agents "${a.name}" (cooperation_index: ${a.profile.cooperation_index}) and ` +
-          `"${b.name}" (cooperation_index: ${b.profile.cooperation_index}) have a cooperation delta ` +
-          `of ${delta.toFixed(2)} which exceeds the threshold of ${this.config.cooperationThreshold}. ` +
-          `These agents are unlikely to cooperate effectively.`,
-        agents: [a.name, b.name],
-        suggestion:
-          'Adjust cooperation_index values to be within ' +
-          `${this.config.cooperationThreshold} of each other, or add a mediator agent with a middle cooperation_index.`,
-      }];
+      return [
+        {
+          code: CODES.COOPERATION_MISMATCH,
+          severity: 'error',
+          category: 'cooperation_mismatch',
+          message:
+            `Agents "${a.name}" (cooperation_index: ${a.profile.cooperation_index}) and ` +
+            `"${b.name}" (cooperation_index: ${b.profile.cooperation_index}) have a cooperation delta ` +
+            `of ${delta.toFixed(2)} which exceeds the threshold of ${this.config.cooperationThreshold}. ` +
+            `These agents are unlikely to cooperate effectively.`,
+          agents: [a.name, b.name],
+          suggestion:
+            'Adjust cooperation_index values to be within ' +
+            `${this.config.cooperationThreshold} of each other, or add a mediator agent with a middle cooperation_index.`,
+        },
+      ];
     }
 
     return [];
@@ -317,44 +319,45 @@ export class CulturalCompatibilityChecker {
   // CULTURAL FAMILY CHECK
   // ===========================================================================
 
-  private checkCulturalFamily(
-    a: AgentCulturalEntry,
-    b: AgentCulturalEntry,
-  ): CulturalDiagnostic[] {
+  private checkCulturalFamily(a: AgentCulturalEntry, b: AgentCulturalEntry): CulturalDiagnostic[] {
     const { rating, reason } = getFamilyCompatibility(
       a.profile.cultural_family,
-      b.profile.cultural_family,
+      b.profile.cultural_family
     );
 
     if (rating === 'incompatible') {
-      return [{
-        code: CODES.FAMILY_INCOMPATIBLE,
-        severity: 'error',
-        category: 'family_incompatible',
-        message:
-          `Agents "${a.name}" (family: ${a.profile.cultural_family}) and ` +
-          `"${b.name}" (family: ${b.profile.cultural_family}) belong to incompatible cultural families. ` +
-          reason,
-        agents: [a.name, b.name],
-        suggestion:
-          `Change one agent's cultural_family to a compatible type, or separate them ` +
-          `into different compositions/zones.`,
-      }];
+      return [
+        {
+          code: CODES.FAMILY_INCOMPATIBLE,
+          severity: 'error',
+          category: 'family_incompatible',
+          message:
+            `Agents "${a.name}" (family: ${a.profile.cultural_family}) and ` +
+            `"${b.name}" (family: ${b.profile.cultural_family}) belong to incompatible cultural families. ` +
+            reason,
+          agents: [a.name, b.name],
+          suggestion:
+            `Change one agent's cultural_family to a compatible type, or separate them ` +
+            `into different compositions/zones.`,
+        },
+      ];
     }
 
     if (rating === 'cautious' && this.config.warnOnCautious) {
-      return [{
-        code: CODES.FAMILY_CAUTIOUS,
-        severity: 'warning',
-        category: 'family_cautious',
-        message:
-          `Agents "${a.name}" (family: ${a.profile.cultural_family}) and ` +
-          `"${b.name}" (family: ${b.profile.cultural_family}) have cautious cultural compatibility. ` +
-          reason,
-        agents: [a.name, b.name],
-        suggestion:
-          'Consider adding a mediator agent or defining explicit interaction protocols.',
-      }];
+      return [
+        {
+          code: CODES.FAMILY_CAUTIOUS,
+          severity: 'warning',
+          category: 'family_cautious',
+          message:
+            `Agents "${a.name}" (family: ${a.profile.cultural_family}) and ` +
+            `"${b.name}" (family: ${b.profile.cultural_family}) have cautious cultural compatibility. ` +
+            reason,
+          agents: [a.name, b.name],
+          suggestion:
+            'Consider adding a mediator agent or defining explicit interaction protocols.',
+        },
+      ];
     }
 
     return [];
@@ -364,24 +367,23 @@ export class CulturalCompatibilityChecker {
   // PROMPT DIALECT CHECK
   // ===========================================================================
 
-  private checkPromptDialect(
-    a: AgentCulturalEntry,
-    b: AgentCulturalEntry,
-  ): CulturalDiagnostic[] {
+  private checkPromptDialect(a: AgentCulturalEntry, b: AgentCulturalEntry): CulturalDiagnostic[] {
     if (a.profile.prompt_dialect !== b.profile.prompt_dialect) {
-      return [{
-        code: CODES.DIALECT_MISMATCH,
-        severity: 'warning',
-        category: 'dialect_mismatch',
-        message:
-          `Agents "${a.name}" (dialect: ${a.profile.prompt_dialect}) and ` +
-          `"${b.name}" (dialect: ${b.profile.prompt_dialect}) use different prompt dialects. ` +
-          `Inter-agent communication may be less efficient.`,
-        agents: [a.name, b.name],
-        suggestion:
-          'Align prompt_dialect values for agents that need frequent communication, ' +
-          'or add a translator agent that bridges both dialects.',
-      }];
+      return [
+        {
+          code: CODES.DIALECT_MISMATCH,
+          severity: 'warning',
+          category: 'dialect_mismatch',
+          message:
+            `Agents "${a.name}" (dialect: ${a.profile.prompt_dialect}) and ` +
+            `"${b.name}" (dialect: ${b.profile.prompt_dialect}) use different prompt dialects. ` +
+            `Inter-agent communication may be less efficient.`,
+          agents: [a.name, b.name],
+          suggestion:
+            'Align prompt_dialect values for agents that need frequent communication, ' +
+            'or add a translator agent that bridges both dialects.',
+        },
+      ];
     }
 
     return [];
@@ -440,11 +442,9 @@ export class CulturalCompatibilityChecker {
                 code: CODES.NORM_CONTRADICTION,
                 severity: 'error',
                 category: 'norm_contradiction',
-                message:
-                  `Agent "${agentA}" subscribes to contradictory norms "${normA}" and "${normB}". ${reason}`,
+                message: `Agent "${agentA}" subscribes to contradictory norms "${normA}" and "${normB}". ${reason}`,
                 agents: [agentA, agentA],
-                suggestion:
-                  `Remove one of the contradictory norms from agent "${agentA}".`,
+                suggestion: `Remove one of the contradictory norms from agent "${agentA}".`,
               });
             }
           }

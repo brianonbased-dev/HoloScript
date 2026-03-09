@@ -132,7 +132,11 @@ describe('EmbeddingSearchTrait', () => {
       const state = ctx.getState().embeddingSearch as any;
       state.embeddingCache.set('test', new Float32Array(3));
 
-      embeddingSearchHandler.onDetach!(node as any, embeddingSearchHandler.defaultConfig, ctx as any);
+      embeddingSearchHandler.onDetach!(
+        node as any,
+        embeddingSearchHandler.defaultConfig,
+        ctx as any
+      );
 
       expect(state.embeddingCache.size).toBe(0);
     });
@@ -144,10 +148,15 @@ describe('EmbeddingSearchTrait', () => {
 
   describe('search:query event', () => {
     it('increments totalQueries and sets isSearching', () => {
-      embeddingSearchHandler.onEvent!(node as any, embeddingSearchHandler.defaultConfig, ctx as any, {
-        type: 'search:query',
-        payload: { query: 'find red objects' },
-      });
+      embeddingSearchHandler.onEvent!(
+        node as any,
+        embeddingSearchHandler.defaultConfig,
+        ctx as any,
+        {
+          type: 'search:query',
+          payload: { query: 'find red objects' },
+        }
+      );
 
       const state = ctx.getState().embeddingSearch as any;
       expect(state.totalQueries).toBe(1);
@@ -155,10 +164,15 @@ describe('EmbeddingSearchTrait', () => {
     });
 
     it('emits search:started', () => {
-      embeddingSearchHandler.onEvent!(node as any, embeddingSearchHandler.defaultConfig, ctx as any, {
-        type: 'search:query',
-        payload: { query: 'nearby doors' },
-      });
+      embeddingSearchHandler.onEvent!(
+        node as any,
+        embeddingSearchHandler.defaultConfig,
+        ctx as any,
+        {
+          type: 'search:query',
+          payload: { query: 'nearby doors' },
+        }
+      );
 
       expect(getEventCount(ctx, 'search:started')).toBe(1);
       const data = getLastEvent(ctx, 'search:started') as any;
@@ -169,10 +183,15 @@ describe('EmbeddingSearchTrait', () => {
       const state = ctx.getState().embeddingSearch as any;
       state.embeddingCache.set('cached query', new Float32Array(3));
 
-      embeddingSearchHandler.onEvent!(node as any, embeddingSearchHandler.defaultConfig, ctx as any, {
-        type: 'search:query',
-        payload: { query: 'cached query' },
-      });
+      embeddingSearchHandler.onEvent!(
+        node as any,
+        embeddingSearchHandler.defaultConfig,
+        ctx as any,
+        {
+          type: 'search:query',
+          payload: { query: 'cached query' },
+        }
+      );
 
       expect(state.cacheHits).toBe(1);
       expect(getEventCount(ctx, 'search:cache_hit')).toBe(1);
@@ -202,24 +221,34 @@ describe('EmbeddingSearchTrait', () => {
   describe('search:results event', () => {
     it('filters results by min_score and top_k', () => {
       // First trigger a query to set totalQueries
-      embeddingSearchHandler.onEvent!(node as any, embeddingSearchHandler.defaultConfig, ctx as any, {
-        type: 'search:query',
-        payload: { query: 'test' },
-      });
+      embeddingSearchHandler.onEvent!(
+        node as any,
+        embeddingSearchHandler.defaultConfig,
+        ctx as any,
+        {
+          type: 'search:query',
+          payload: { query: 'test' },
+        }
+      );
 
       ctx.clearEvents();
-      embeddingSearchHandler.onEvent!(node as any, embeddingSearchHandler.defaultConfig, ctx as any, {
-        type: 'search:results',
-        payload: {
-          results: [
-            { id: 'a', score: 0.9, payload: {} },
-            { id: 'b', score: 0.7, payload: {} },
-            { id: 'c', score: 0.3, payload: {} }, // below min_score 0.6
-            { id: 'd', score: 0.8, payload: {} },
-          ],
-          queryTimeMs: 50,
-        },
-      });
+      embeddingSearchHandler.onEvent!(
+        node as any,
+        embeddingSearchHandler.defaultConfig,
+        ctx as any,
+        {
+          type: 'search:results',
+          payload: {
+            results: [
+              { id: 'a', score: 0.9, payload: {} },
+              { id: 'b', score: 0.7, payload: {} },
+              { id: 'c', score: 0.3, payload: {} }, // below min_score 0.6
+              { id: 'd', score: 0.8, payload: {} },
+            ],
+            queryTimeMs: 50,
+          },
+        }
+      );
 
       const state = ctx.getState().embeddingSearch as any;
       expect(state.lastResults).toHaveLength(3); // 'c' filtered out
@@ -227,7 +256,11 @@ describe('EmbeddingSearchTrait', () => {
     });
 
     it('limits results to top_k', () => {
-      const smallK: EmbeddingSearchConfig = { ...embeddingSearchHandler.defaultConfig, top_k: 2, min_score: 0 };
+      const smallK: EmbeddingSearchConfig = {
+        ...embeddingSearchHandler.defaultConfig,
+        top_k: 2,
+        min_score: 0,
+      };
 
       embeddingSearchHandler.onEvent!(node as any, smallK, ctx as any, {
         type: 'search:query',
@@ -250,19 +283,29 @@ describe('EmbeddingSearchTrait', () => {
     });
 
     it('emits search:complete with metrics', () => {
-      embeddingSearchHandler.onEvent!(node as any, embeddingSearchHandler.defaultConfig, ctx as any, {
-        type: 'search:query',
-        payload: { query: 'x' },
-      });
+      embeddingSearchHandler.onEvent!(
+        node as any,
+        embeddingSearchHandler.defaultConfig,
+        ctx as any,
+        {
+          type: 'search:query',
+          payload: { query: 'x' },
+        }
+      );
       ctx.clearEvents();
 
-      embeddingSearchHandler.onEvent!(node as any, embeddingSearchHandler.defaultConfig, ctx as any, {
-        type: 'search:results',
-        payload: {
-          results: [{ id: 'a', score: 0.9, payload: {} }],
-          queryTimeMs: 42,
-        },
-      });
+      embeddingSearchHandler.onEvent!(
+        node as any,
+        embeddingSearchHandler.defaultConfig,
+        ctx as any,
+        {
+          type: 'search:results',
+          payload: {
+            results: [{ id: 'a', score: 0.9, payload: {} }],
+            queryTimeMs: 42,
+          },
+        }
+      );
 
       expect(getEventCount(ctx, 'search:complete')).toBe(1);
       const data = getLastEvent(ctx, 'search:complete') as any;
@@ -272,24 +315,44 @@ describe('EmbeddingSearchTrait', () => {
 
     it('calculates rolling average query time', () => {
       // Query 1
-      embeddingSearchHandler.onEvent!(node as any, embeddingSearchHandler.defaultConfig, ctx as any, {
-        type: 'search:query',
-        payload: { query: 'q1' },
-      });
-      embeddingSearchHandler.onEvent!(node as any, embeddingSearchHandler.defaultConfig, ctx as any, {
-        type: 'search:results',
-        payload: { results: [], queryTimeMs: 100 },
-      });
+      embeddingSearchHandler.onEvent!(
+        node as any,
+        embeddingSearchHandler.defaultConfig,
+        ctx as any,
+        {
+          type: 'search:query',
+          payload: { query: 'q1' },
+        }
+      );
+      embeddingSearchHandler.onEvent!(
+        node as any,
+        embeddingSearchHandler.defaultConfig,
+        ctx as any,
+        {
+          type: 'search:results',
+          payload: { results: [], queryTimeMs: 100 },
+        }
+      );
 
       // Query 2
-      embeddingSearchHandler.onEvent!(node as any, embeddingSearchHandler.defaultConfig, ctx as any, {
-        type: 'search:query',
-        payload: { query: 'q2' },
-      });
-      embeddingSearchHandler.onEvent!(node as any, embeddingSearchHandler.defaultConfig, ctx as any, {
-        type: 'search:results',
-        payload: { results: [], queryTimeMs: 50 },
-      });
+      embeddingSearchHandler.onEvent!(
+        node as any,
+        embeddingSearchHandler.defaultConfig,
+        ctx as any,
+        {
+          type: 'search:query',
+          payload: { query: 'q2' },
+        }
+      );
+      embeddingSearchHandler.onEvent!(
+        node as any,
+        embeddingSearchHandler.defaultConfig,
+        ctx as any,
+        {
+          type: 'search:results',
+          payload: { results: [], queryTimeMs: 50 },
+        }
+      );
 
       const state = ctx.getState().embeddingSearch as any;
       expect(state.avgQueryTimeMs).toBe(75); // (100 + 50) / 2
@@ -303,10 +366,15 @@ describe('EmbeddingSearchTrait', () => {
   describe('no state guard', () => {
     it('onEvent does nothing when state is not set', () => {
       const freshCtx = createStatefulMockContext();
-      embeddingSearchHandler.onEvent!(node as any, embeddingSearchHandler.defaultConfig, freshCtx as any, {
-        type: 'search:query',
-        payload: { query: 'test' },
-      });
+      embeddingSearchHandler.onEvent!(
+        node as any,
+        embeddingSearchHandler.defaultConfig,
+        freshCtx as any,
+        {
+          type: 'search:query',
+          payload: { query: 'test' },
+        }
+      );
       expect(freshCtx.emittedEvents).toHaveLength(0);
     });
   });

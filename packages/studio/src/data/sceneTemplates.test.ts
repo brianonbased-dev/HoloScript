@@ -12,7 +12,17 @@
 import { describe, it, expect } from 'vitest';
 import { SCENE_TEMPLATES, type SceneTemplate } from './sceneTemplates';
 
-const VALID_CATEGORIES = ['game', 'social', 'art', 'tabletop', 'education', 'healthcare', 'ecommerce', 'industrial', 'sports'];
+const VALID_CATEGORIES = [
+  'game',
+  'social',
+  'art',
+  'tabletop',
+  'education',
+  'healthcare',
+  'ecommerce',
+  'industrial',
+  'sports',
+];
 
 describe('SCENE_TEMPLATES', () => {
   it('is a non-empty array', () => {
@@ -32,13 +42,14 @@ describe('SCENE_TEMPLATES', () => {
 
   it('all templates have valid categories', () => {
     for (const tmpl of SCENE_TEMPLATES) {
-      expect(VALID_CATEGORIES, `${tmpl.id} has invalid category '${tmpl.category}'`)
-        .toContain(tmpl.category);
+      expect(VALID_CATEGORIES, `${tmpl.id} has invalid category '${tmpl.category}'`).toContain(
+        tmpl.category
+      );
     }
   });
 
   it('all template IDs are unique', () => {
-    const ids = SCENE_TEMPLATES.map(t => t.id);
+    const ids = SCENE_TEMPLATES.map((t) => t.id);
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(ids.length);
   });
@@ -51,13 +62,12 @@ describe('SCENE_TEMPLATES', () => {
 
   it('all template code contains world declaration', () => {
     for (const tmpl of SCENE_TEMPLATES) {
-      expect(tmpl.code, `${tmpl.id} code missing 'world' declaration`)
-        .toMatch(/world\s+"/);
+      expect(tmpl.code, `${tmpl.id} code missing 'world' declaration`).toMatch(/world\s+"/);
     }
   });
 
   it('has at least one template per major category', () => {
-    const categories = new Set(SCENE_TEMPLATES.map(t => t.category));
+    const categories = new Set(SCENE_TEMPLATES.map((t) => t.category));
     expect(categories.has('game')).toBe(true);
     expect(categories.has('social')).toBe(true);
     expect(categories.has('art')).toBe(true);

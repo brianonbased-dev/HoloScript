@@ -30,7 +30,10 @@ describe('DeformableMesh', () => {
   });
 
   it('addSpring creates a spring between vertices', () => {
-    mesh.setVertices([{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }]);
+    mesh.setVertices([
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+    ]);
     mesh.addSpring(0, 1);
     expect(mesh.getSpringCount()).toBe(1);
   });
@@ -70,8 +73,8 @@ describe('DeformableMesh', () => {
     mesh.applyImpact({ x: 0, y: 0, z: 0 }, 2.0, 10.0);
     const v0 = mesh.getVertex(0)!;
     const v2 = mesh.getVertex(2)!;
-    const velLen0 = Math.sqrt(v0.velocity.x**2 + v0.velocity.y**2 + v0.velocity.z**2);
-    const velLen2 = Math.sqrt(v2.velocity.x**2 + v2.velocity.y**2 + v2.velocity.z**2);
+    const velLen0 = Math.sqrt(v0.velocity.x ** 2 + v0.velocity.y ** 2 + v0.velocity.z ** 2);
+    const velLen2 = Math.sqrt(v2.velocity.x ** 2 + v2.velocity.y ** 2 + v2.velocity.z ** 2);
     expect(velLen0).toBeGreaterThan(0);
     expect(velLen2).toBe(0);
   });

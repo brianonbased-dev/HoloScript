@@ -202,7 +202,10 @@ export const gaussianSplatHandler: TraitHandler<GaussianSplatConfig> = {
     }
 
     // Gaussian budget enforcement (W.034)
-    if (config.gaussian_budget.total_cap > 0 && state.splatCount > config.gaussian_budget.total_cap) {
+    if (
+      config.gaussian_budget.total_cap > 0 &&
+      state.splatCount > config.gaussian_budget.total_cap
+    ) {
       context.emit?.('splat_budget_exceeded', {
         node,
         current: state.splatCount,
@@ -277,8 +280,7 @@ export const gaussianSplatHandler: TraitHandler<GaussianSplatConfig> = {
         temporalFrameIndex: state.temporalFrameIndex,
       });
 
-    // --- v4.1 Event Handlers ---
-
+      // --- v4.1 Event Handlers ---
     } else if (event.type === 'splat_set_lod') {
       // Dynamically update LOD configuration
       const newMode = event.mode as LODMode | undefined;

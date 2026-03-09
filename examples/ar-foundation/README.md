@@ -19,6 +19,7 @@ This directory contains 7 comprehensive AR Foundation examples showcasing core m
 ### 1. Plane Detection (`plane-detection.holo`)
 
 **Features:**
+
 - Horizontal and vertical plane detection
 - Visual plane indicators (color-coded by orientation)
 - Object placement with reticle
@@ -26,18 +27,21 @@ This directory contains 7 comprehensive AR Foundation examples showcasing core m
 - Surface-constrained movement
 
 **AR Traits:**
+
 - `@plane_detection` - Plane detection system
 - `@anchor` - Surface anchoring
 - `@draggable` - Constrained to detected planes
 - `@light_estimation` - Environmental lighting
 
 **Compile:**
+
 ```bash
 holoscript compile plane-detection.holo --target ios
 holoscript compile plane-detection.holo --target android
 ```
 
 **Use Case:**
+
 - Furniture placement apps
 - AR interior design
 - Product visualization
@@ -48,6 +52,7 @@ holoscript compile plane-detection.holo --target android
 ### 2. Mesh Scanning (`mesh-scanning.holo`)
 
 **Features:**
+
 - Real-time environment mesh reconstruction
 - Semantic classification (walls, floors, tables, etc.)
 - Color-coded mesh visualization
@@ -56,17 +61,20 @@ holoscript compile plane-detection.holo --target android
 - Occlusion rendering
 
 **AR Traits:**
+
 - `@mesh_detection` - Environment mesh scanning
 - `@occlusion` - Realistic AR occlusion
 - `@dynamic_mesh` - Real-time mesh updates
 
 **Compile:**
+
 ```bash
 holoscript compile mesh-scanning.holo --target ios
 holoscript compile mesh-scanning.holo --target android
 ```
 
 **Use Case:**
+
 - 3D scanning apps
 - Spatial mapping
 - Architecture visualization
@@ -77,6 +85,7 @@ holoscript compile mesh-scanning.holo --target android
 ### 3. Persistent Anchors (`persistent-anchors.holo`)
 
 **Features:**
+
 - Cloud anchor hosting and resolving
 - Cross-session persistence
 - Multi-device shared anchors
@@ -85,11 +94,13 @@ holoscript compile mesh-scanning.holo --target android
 - Anchor deletion and management
 
 **AR Traits:**
+
 - `@persistent_anchor` - Cross-session anchors
 - `@shared_anchor` - Multi-user anchors
 - `@anchor` - Spatial anchoring
 
 **Compile:**
+
 ```bash
 holoscript compile persistent-anchors.holo --target ios
 holoscript compile persistent-anchors.holo --target android
@@ -97,11 +108,13 @@ holoscript compile persistent-anchors.holo --target android
 
 **Configuration:**
 Set environment variable:
+
 ```bash
 export AR_CLOUD_API_KEY="your-google-cloud-api-key"
 ```
 
 **Use Case:**
+
 - Persistent AR art installations
 - Multi-user AR experiences
 - AR wayfinding
@@ -112,6 +125,7 @@ export AR_CLOUD_API_KEY="your-google-cloud-api-key"
 ### 4. Geospatial AR (`geospatial-ar.holo`)
 
 **Features:**
+
 - GPS-based AR content placement
 - ARCore Geospatial API integration
 - Visual Positioning System (VPS) support
@@ -121,6 +135,7 @@ export AR_CLOUD_API_KEY="your-google-cloud-api-key"
 - Real-time sun position
 
 **AR Traits:**
+
 - `@geospatial` - GPS/VPS positioning
 - `@geospatial_anchor` - Location-based anchors
 - `@terrain_anchor` - Terrain-snapped anchors
@@ -128,6 +143,7 @@ export AR_CLOUD_API_KEY="your-google-cloud-api-key"
 - `@vps` - Visual positioning
 
 **Compile:**
+
 ```bash
 holoscript compile geospatial-ar.holo --target android
 # Limited iOS support - primarily Android ARCore
@@ -135,11 +151,13 @@ holoscript compile geospatial-ar.holo --target android
 
 **Configuration:**
 Set environment variable:
+
 ```bash
 export GOOGLE_GEOSPATIAL_API_KEY="your-geospatial-api-key"
 ```
 
 **Use Case:**
+
 - Tourism and travel apps
 - AR navigation
 - Location-based storytelling
@@ -151,6 +169,7 @@ export GOOGLE_GEOSPATIAL_API_KEY="your-geospatial-api-key"
 ### 5. Light Estimation (`light-estimation.holo`)
 
 **Features:**
+
 - Real-time ambient light estimation
 - HDR environment probes
 - Adaptive material properties
@@ -160,17 +179,20 @@ export GOOGLE_GEOSPATIAL_API_KEY="your-geospatial-api-key"
 - PBR material adaptation
 
 **AR Traits:**
+
 - `@light_estimation` - Environmental lighting
 - `@shadow_caster` - Dynamic shadows
 - `@shadow_receiver` - Shadow planes
 
 **Compile:**
+
 ```bash
 holoscript compile light-estimation.holo --target ios
 holoscript compile light-estimation.holo --target android
 ```
 
 **Use Case:**
+
 - Realistic product visualization
 - AR try-on experiences
 - Virtual photography
@@ -180,22 +202,24 @@ holoscript compile light-estimation.holo --target android
 
 ## Platform Support
 
-| Feature | iOS ARKit | Android ARCore |
-|---------|-----------|----------------|
-| Plane Detection | ✅ | ✅ |
-| Mesh Scanning | ✅ (LiDAR) | ✅ (Depth API) |
-| Persistent Anchors | ✅ | ✅ (Cloud Anchors) |
-| Geospatial AR | ⚠️ Limited | ✅ (Geospatial API) |
-| Light Estimation | ✅ (HDR) | ✅ (HDR) |
+| Feature            | iOS ARKit  | Android ARCore      |
+| ------------------ | ---------- | ------------------- |
+| Plane Detection    | ✅         | ✅                  |
+| Mesh Scanning      | ✅ (LiDAR) | ✅ (Depth API)      |
+| Persistent Anchors | ✅         | ✅ (Cloud Anchors)  |
+| Geospatial AR      | ⚠️ Limited | ✅ (Geospatial API) |
+| Light Estimation   | ✅ (HDR)   | ✅ (HDR)            |
 
 ## Device Requirements
 
 ### iOS
+
 - iPhone XR or newer (ARKit 3.0+)
 - iPhone 12 Pro or newer (LiDAR for mesh scanning)
 - iOS 13.0+
 
 ### Android
+
 - ARCore-supported devices
 - Android 7.0+ (API level 24)
 - Google Play Services for AR
@@ -223,18 +247,21 @@ All examples use these common AR traits:
 ## Best Practices
 
 ### 1. Plane Detection
+
 - Start with horizontal planes for easier user onboarding
 - Show visual feedback during plane scanning
 - Require minimum plane area (0.25m²+) for placement
 - Use placement reticle for clear user intent
 
 ### 2. Mesh Scanning
+
 - Update mesh at reasonable intervals (100-200ms)
 - Use LOD (Level of Detail) for performance
 - Enable semantic classification for advanced features
 - Export mesh in standard formats (OBJ, PLY)
 
 ### 3. Persistent Anchors
+
 - Host anchors in well-textured areas
 - Show upload/download progress indicators
 - Handle failure cases gracefully
@@ -242,6 +269,7 @@ All examples use these common AR traits:
 - Store anchor IDs in local storage
 
 ### 4. Geospatial AR
+
 - Check VPS availability before relying on it
 - Fall back to GPS-only mode when VPS unavailable
 - Use terrain anchors for outdoor experiences
@@ -249,6 +277,7 @@ All examples use these common AR traits:
 - Update POI markers based on user location
 
 ### 5. Light Estimation
+
 - Use HDR mode for best results
 - Apply spherical harmonics for ambient lighting
 - Adapt material properties to environment
@@ -258,11 +287,13 @@ All examples use these common AR traits:
 ## API Keys & Configuration
 
 ### Google Cloud Anchors
+
 1. Enable ARCore API in Google Cloud Console
 2. Create API key with ARCore restrictions
 3. Set environment variable: `AR_CLOUD_API_KEY`
 
 ### Geospatial API
+
 1. Enable ARCore API and Maps SDK in Google Cloud Console
 2. Create API key with ARCore + Maps restrictions
 3. Set environment variable: `GOOGLE_GEOSPATIAL_API_KEY`
@@ -294,6 +325,7 @@ holoscript compile <example>.holo --target r3f
 ## Testing
 
 ### iOS Testing
+
 ```bash
 # Compile for iOS
 holoscript compile plane-detection.holo --target ios
@@ -305,6 +337,7 @@ open plane-detection/plane-detection.xcodeproj
 ```
 
 ### Android Testing
+
 ```bash
 # Compile for Android
 holoscript compile plane-detection.holo --target android
@@ -337,5 +370,5 @@ MIT License - See [../../LICENSE](../../LICENSE)
 ---
 
 **HoloScript AR Foundation Examples v1.0.0**
-*Complete working examples for mobile AR development*
-*iOS ARKit + Android ARCore + Cross-Platform Compilation*
+_Complete working examples for mobile AR development_
+_iOS ARKit + Android ARCore + Cross-Platform Compilation_

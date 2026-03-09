@@ -4,7 +4,9 @@ import { AudioDynamics } from '../audio/AudioDynamics';
 describe('AudioDynamics', () => {
   let dyn: AudioDynamics;
 
-  beforeEach(() => { dyn = new AudioDynamics(); });
+  beforeEach(() => {
+    dyn = new AudioDynamics();
+  });
 
   it('passes signal below compressor threshold uncompressed', () => {
     // default threshold is -20, knee 6 → below threshold-knee/2 = -23

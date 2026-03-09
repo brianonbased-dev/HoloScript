@@ -332,15 +332,7 @@ export const RECOMMENDED_GRPO_CONFIG: GRPOTrainingConfig = {
     rank: 16,
     alpha: 32,
     dropout: 0.05,
-    targetModules: [
-      'q_proj',
-      'k_proj',
-      'v_proj',
-      'o_proj',
-      'gate_proj',
-      'up_proj',
-      'down_proj',
-    ],
+    targetModules: ['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'],
     useOrthogonalProjection: true,
   },
   rewardWeights: { ...GRPO_REWARD_WEIGHTS },
@@ -377,7 +369,7 @@ export const RECOMMENDED_GRPO_CONFIG: GRPOTrainingConfig = {
  * ```
  */
 export function buildGRPOConfig(
-  overrides: DeepPartial<GRPOTrainingConfig> = {},
+  overrides: DeepPartial<GRPOTrainingConfig> = {}
 ): GRPOTrainingConfig {
   return {
     grpo: { ...RECOMMENDED_GRPO_CONFIG.grpo, ...overrides.grpo },
@@ -454,7 +446,7 @@ export function exportGRPOConfigAsPython(config: GRPOTrainingConfig): string {
       '    bias="none",',
       '    task_type="CAUSAL_LM",',
       ')',
-      '',
+      ''
     );
   }
 
@@ -466,7 +458,7 @@ export function exportGRPOConfigAsPython(config: GRPOTrainingConfig): string {
     `    "lint": ${config.rewardWeights.lintReward},`,
     `    "coverage": ${config.rewardWeights.coverageReward},`,
     `    "circuit_breaker": ${config.rewardWeights.circuitBreakerReward},`,
-    '}',
+    '}'
   );
 
   return lines.join('\n');

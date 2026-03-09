@@ -190,7 +190,11 @@ describe('HITLNotificationService', () => {
     });
 
     it('configureNotifications replaces the singleton', () => {
-      configureNotifications({ channels: ['email'], email: { provider: 'smtp', from: 'a@b.com' }, recipients: {} });
+      configureNotifications({
+        channels: ['email'],
+        email: { provider: 'smtp', from: 'a@b.com' },
+        recipients: {},
+      });
       const svc = getNotificationService();
       expect(svc).toBeInstanceOf(HITLNotificationService);
     });

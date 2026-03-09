@@ -7,7 +7,9 @@ import { World } from '../ecs/World';
 
 describe('World', () => {
   let world: World;
-  beforeEach(() => { world = new World(); });
+  beforeEach(() => {
+    world = new World();
+  });
 
   it('creates entities with incrementing IDs', () => {
     const a = world.createEntity();

@@ -20,6 +20,7 @@ These examples demonstrate **complete asset pipeline integration** for professio
 **Target Platform**: Unity 2021.3+ with HDRP 12.0+
 
 **Features Demonstrated**:
+
 - HDRP Lit material conversion (PBR → Lit shader)
 - C# MonoBehaviour component generation with full source code
 - Mecanim animation controller setup
@@ -30,6 +31,7 @@ These examples demonstrate **complete asset pipeline integration** for professio
 - Prefab generation with nested hierarchies
 
 **Output Files**:
+
 ```
 UnityExport/
 ├── Assets/
@@ -49,11 +51,13 @@ UnityExport/
 ```
 
 **Compilation**:
+
 ```bash
 holoscript compile --target unity --hdrp export-to-unity.holo
 ```
 
 **Use Cases**:
+
 - VR/AR projects for Quest, Vive, HoloLens
 - Mobile games (iOS, Android)
 - Desktop games with photorealistic rendering
@@ -67,6 +71,7 @@ holoscript compile --target unity --hdrp export-to-unity.holo
 **Target Platform**: Unreal Engine 5.0+ (5.1+ recommended for full Nanite/Lumen)
 
 **Features Demonstrated**:
+
 - Nanite-enabled high-poly meshes with automatic LOD
 - Lumen global illumination and reflections
 - C++ Actor classes with BlueprintCallable functions
@@ -78,6 +83,7 @@ holoscript compile --target unity --hdrp export-to-unity.holo
 - Virtual Shadow Maps for realistic shadows
 
 **Output Files**:
+
 ```
 UnrealExport/
 ├── Content/
@@ -97,11 +103,13 @@ UnrealExport/
 ```
 
 **Compilation**:
+
 ```bash
 holoscript compile --target unreal --ue5 export-to-unreal.holo
 ```
 
 **Use Cases**:
+
 - AAA game development
 - Film pre-visualization
 - Virtual production (LED walls)
@@ -115,6 +123,7 @@ holoscript compile --target unreal --ue5 export-to-unreal.holo
 **Target Platform**: Maya 2022+, Houdini 19+, Blender 3.0+, NVIDIA Omniverse, Apple Vision Pro
 
 **Features Demonstrated**:
+
 - USD layer composition (layout, animation, lighting, FX)
 - References and payloads for asset reuse
 - Variant sets for asset variations (materials, LODs)
@@ -126,6 +135,7 @@ holoscript compile --target unreal --ue5 export-to-unreal.holo
 - USDZ packaging for Apple AR/VR
 
 **Output Files**:
+
 ```
 USDExport/
 ├── scene.usda (ASCII USD - human-readable)
@@ -143,12 +153,14 @@ USDExport/
 ```
 
 **Compilation**:
+
 ```bash
 holoscript compile --target usd usd-workflow.holo
 holoscript compile --target usdz usd-workflow.holo  # For Apple AR
 ```
 
 **Use Cases**:
+
 - Film production (feature films, VFX)
 - VFX asset interchange (ILM, Weta, Pixar)
 - Multi-department collaboration
@@ -162,6 +174,7 @@ holoscript compile --target usdz usd-workflow.holo  # For Apple AR
 **Target Platform**: Three.js, Babylon.js, WebXR, Sketchfab, Google Model Viewer, Unity, Unreal, Godot
 
 **Features Demonstrated**:
+
 - glTF 2.0 PBR Metallic-Roughness workflow
 - KHR extensions (lights, transmission, clearcoat, sheen, IOR)
 - Draco mesh compression (7x-10x smaller files)
@@ -172,6 +185,7 @@ holoscript compile --target usdz usd-workflow.holo  # For Apple AR
 - Binary glTF (.glb) all-in-one packaging
 
 **Output Files**:
+
 ```
 glTFExport/
 ├── model.gltf (JSON descriptor)
@@ -183,12 +197,14 @@ glTFExport/
 ```
 
 **Compilation**:
+
 ```bash
 holoscript compile --target gltf gltf-pbr-export.holo
 holoscript compile --target glb gltf-pbr-export.holo  # Binary
 ```
 
 **Use Cases**:
+
 - Web3D applications (Three.js, Babylon.js, React Three Fiber)
 - AR experiences (WebXR, 8th Wall, Meta Quest Browser)
 - E-commerce AR (Shopify AR, Amazon AR View)
@@ -202,6 +218,7 @@ holoscript compile --target glb gltf-pbr-export.holo  # Binary
 **Target Platform**: Maya, 3ds Max, Blender, Cinema 4D, Houdini, MotionBuilder, Unity, Unreal, Godot
 
 **Features Demonstrated**:
+
 - Skeletal animation with full joint hierarchy
 - Blend shapes (morph targets) for facial animation
 - Animation layers and takes (multiple animation clips)
@@ -214,6 +231,7 @@ holoscript compile --target glb gltf-pbr-export.holo  # Binary
 - Multiple UV sets and vertex colors
 
 **Output Files**:
+
 ```
 FBXExport/
 ├── character.fbx (Binary FBX 2020)
@@ -223,12 +241,14 @@ FBXExport/
 ```
 
 **Compilation**:
+
 ```bash
 holoscript compile --target fbx fbx-animation-export.holo
 holoscript compile --target fbx --ascii fbx-animation-export.holo  # ASCII
 ```
 
 **Use Cases**:
+
 - Maya/Max/Blender animation workflows
 - Character rigging and animation
 - Motion capture cleanup (MotionBuilder)
@@ -256,22 +276,26 @@ holoscript compile --target fbx examples/export-pipelines/fbx-animation-export.h
 ### Importing into Target Platforms
 
 **Unity**:
+
 1. Create new Unity 2021.3+ project with HDRP template
 2. Copy `UnityExport/Assets/*` to Unity project's `Assets/` folder
 3. Open scene: `Assets/Prefabs/UnrealHDRPScene.prefab`
 
 **Unreal Engine**:
+
 1. Create new UE5.1+ project
 2. File → Import → FBX/glTF
 3. Select `UnrealExport/Content/Blueprints/BP_UnrealScene.uasset`
 4. C++ code auto-compiles on project load
 
 **Maya/Houdini (USD)**:
+
 - **Maya**: File → Import → USD (.usda/.usdc)
 - **Houdini**: Load into Solaris (LOP context)
 - **Omniverse**: Open `.usd` file directly
 
 **Three.js (glTF)**:
+
 ```javascript
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 const loader = new GLTFLoader();
@@ -281,6 +305,7 @@ loader.load('model.glb', (gltf) => {
 ```
 
 **Maya/Blender (FBX)**:
+
 - **Maya**: File → Import → FBX
 - **Blender**: File → Import → FBX (.fbx)
 - **3ds Max**: File → Import → FBX
@@ -289,21 +314,21 @@ loader.load('model.glb', (gltf) => {
 
 ## Asset Pipeline Comparison
 
-| Feature | Unity HDRP | Unreal UE5 | USD Film | glTF Web3D | FBX DCC |
-|---------|------------|------------|----------|------------|---------|
-| **PBR Materials** | ✅ Lit Shader | ✅ Nanite | ✅ PreviewSurface | ✅ Metallic-Roughness | ⚠️ Phong/Lambert |
-| **Skeletal Animation** | ✅ Mecanim | ✅ Control Rig | ✅ UsdSkel | ✅ glTF Animation | ✅ FBX Animation |
-| **Blend Shapes** | ✅ SkinnedMeshRenderer | ✅ Morph Targets | ✅ BlendShape | ✅ Morph Targets | ✅ Blend Shapes |
-| **Physics** | ✅ Rigidbody | ✅ Chaos | ❌ | ❌ | ❌ |
-| **Scripting** | ✅ C# | ✅ C++/Blueprint | ❌ | ❌ | ❌ |
-| **Lighting** | ✅ HDRP Volumes | ✅ Lumen | ✅ USD Lights | ✅ KHR_lights_punctual | ⚠️ Basic |
-| **Particles** | ✅ VFX Graph | ✅ Niagara | ✅ USD Points/Volumes | ❌ | ❌ |
-| **Compression** | ⚠️ Mesh Compression | ✅ Nanite | ⚠️ Payload | ✅ Draco | ❌ |
-| **File Size** | Medium | Large | Medium-Large | Small (Draco) | Medium |
-| **Web Delivery** | ❌ | ❌ | ⚠️ USDZ (Apple) | ✅ Optimized | ❌ |
-| **Film Production** | ❌ | ⚠️ Virtual Production | ✅ Industry Standard | ❌ | ⚠️ Pre-viz |
-| **Asset Reuse** | ⚠️ Prefabs | ⚠️ Blueprints | ✅ References/Payloads | ⚠️ | ⚠️ |
-| **Multi-App Workflow** | ⚠️ Unity Only | ⚠️ UE Only | ✅ Maya/Houdini/Blender | ✅ All Web Platforms | ✅ All DCCs |
+| Feature                | Unity HDRP             | Unreal UE5            | USD Film                | glTF Web3D             | FBX DCC          |
+| ---------------------- | ---------------------- | --------------------- | ----------------------- | ---------------------- | ---------------- |
+| **PBR Materials**      | ✅ Lit Shader          | ✅ Nanite             | ✅ PreviewSurface       | ✅ Metallic-Roughness  | ⚠️ Phong/Lambert |
+| **Skeletal Animation** | ✅ Mecanim             | ✅ Control Rig        | ✅ UsdSkel              | ✅ glTF Animation      | ✅ FBX Animation |
+| **Blend Shapes**       | ✅ SkinnedMeshRenderer | ✅ Morph Targets      | ✅ BlendShape           | ✅ Morph Targets       | ✅ Blend Shapes  |
+| **Physics**            | ✅ Rigidbody           | ✅ Chaos              | ❌                      | ❌                     | ❌               |
+| **Scripting**          | ✅ C#                  | ✅ C++/Blueprint      | ❌                      | ❌                     | ❌               |
+| **Lighting**           | ✅ HDRP Volumes        | ✅ Lumen              | ✅ USD Lights           | ✅ KHR_lights_punctual | ⚠️ Basic         |
+| **Particles**          | ✅ VFX Graph           | ✅ Niagara            | ✅ USD Points/Volumes   | ❌                     | ❌               |
+| **Compression**        | ⚠️ Mesh Compression    | ✅ Nanite             | ⚠️ Payload              | ✅ Draco               | ❌               |
+| **File Size**          | Medium                 | Large                 | Medium-Large            | Small (Draco)          | Medium           |
+| **Web Delivery**       | ❌                     | ❌                    | ⚠️ USDZ (Apple)         | ✅ Optimized           | ❌               |
+| **Film Production**    | ❌                     | ⚠️ Virtual Production | ✅ Industry Standard    | ❌                     | ⚠️ Pre-viz       |
+| **Asset Reuse**        | ⚠️ Prefabs             | ⚠️ Blueprints         | ✅ References/Payloads  | ⚠️                     | ⚠️               |
+| **Multi-App Workflow** | ⚠️ Unity Only          | ⚠️ UE Only            | ✅ Maya/Houdini/Blender | ✅ All Web Platforms   | ✅ All DCCs      |
 
 ---
 
@@ -394,6 +419,7 @@ All examples demonstrate **full PBR material preservation** with:
 All examples support **full animation export**:
 
 ### Skeletal Animation
+
 - Joint hierarchies with bind poses
 - Skin weights (vertex → bone influences)
 - Keyframe animation with interpolation (linear, bezier, cubic)
@@ -401,12 +427,14 @@ All examples support **full animation export**:
 - Root motion extraction (optional)
 
 ### Blend Shapes (Morph Targets)
+
 - Facial animation (smile, blink, frown, etc.)
 - Vertex position deltas
 - Normal deltas (optional)
 - Multiple blend shape channels
 
 ### Constraints
+
 - Parent constraints (FK hierarchies)
 - Aim constraints (look-at targets)
 - IK constraints (Unity/Unreal/FBX)
@@ -417,6 +445,7 @@ All examples support **full animation export**:
 ## Performance Optimization
 
 ### Mesh Optimization
+
 - **Unity**: Mesh compression (medium quality)
 - **Unreal**: Nanite (automatic LOD)
 - **USD**: Payload lazy loading
@@ -424,6 +453,7 @@ All examples support **full animation export**:
 - **FBX**: Quad/n-gon preservation for modeling
 
 ### Texture Optimization
+
 - **Unity**: Automatic mipmap generation, format selection
 - **Unreal**: Virtual texturing, streaming
 - **USD**: EXR 16-bit for HDR, PNG for LDR
@@ -431,6 +461,7 @@ All examples support **full animation export**:
 - **FBX**: External references (not embedded by default)
 
 ### LOD Generation
+
 - **Unity**: Automatic LOD groups (optional)
 - **Unreal**: Nanite automatic LOD
 - **USD**: Variant sets for LOD switching
@@ -446,6 +477,7 @@ All examples support **full animation export**:
 **Problem**: Materials appear black/incorrect
 
 **Solution**:
+
 1. Ensure HDRP is installed via Package Manager
 2. Check materials are using `HDRP/Lit` shader
 3. Verify texture color spaces (sRGB vs Linear)
@@ -457,6 +489,7 @@ All examples support **full animation export**:
 **Problem**: Nanite not working
 
 **Solution**:
+
 1. Ensure UE5.1+ (earlier versions have limited Nanite support)
 2. Check mesh triangle count > 300,000 (Nanite threshold)
 3. Enable Nanite in Project Settings → Engine → Rendering
@@ -468,6 +501,7 @@ All examples support **full animation export**:
 **Problem**: Materials missing in Maya
 
 **Solution**:
+
 1. Ensure USD plugin is loaded (Windows → Settings → Plugin Manager)
 2. Check materialBindings in USD file
 3. Verify texture file paths are correct (absolute or relative)
@@ -479,6 +513,7 @@ All examples support **full animation export**:
 **Problem**: Draco compression not loading in Three.js
 
 **Solution**:
+
 ```javascript
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 const dracoLoader = new DRACOLoader();
@@ -493,6 +528,7 @@ loader.setDRACOLoader(dracoLoader);
 **Problem**: Animation not importing in Maya
 
 **Solution**:
+
 1. File → Import → FBX → Options
 2. Enable "Animation" checkbox
 3. Check "Bake Animation" if using constraints
@@ -528,4 +564,4 @@ All examples are provided under the HoloScript MIT License. See `LICENSE` file i
 ---
 
 **HoloScript Export Pipelines v1.0**
-*Enterprise-Grade Asset Integration for Game Engines, Film Pipelines, and Web3D*
+_Enterprise-Grade Asset Integration for Game Engines, Film Pipelines, and Web3D_

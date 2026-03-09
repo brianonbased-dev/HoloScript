@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { SCENARIOS, type ScenarioEntry, type ScenarioCategory } from '../../components/scenarios/ScenarioGallery';
+import {
+  SCENARIOS,
+  type ScenarioEntry,
+  type ScenarioCategory,
+} from '../../components/scenarios/ScenarioGallery';
 
 describe('ScenarioGallery data', () => {
   it('has 26 scenarios registered', () => {
@@ -25,7 +29,14 @@ describe('ScenarioGallery data', () => {
   });
 
   it('every category is one of the known values', () => {
-    const validCategories: ScenarioCategory[] = ['science', 'engineering', 'health', 'arts', 'nature', 'society'];
+    const validCategories: ScenarioCategory[] = [
+      'science',
+      'engineering',
+      'health',
+      'arts',
+      'nature',
+      'society',
+    ];
     for (const s of SCENARIOS) {
       expect(validCategories).toContain(s.category);
     }

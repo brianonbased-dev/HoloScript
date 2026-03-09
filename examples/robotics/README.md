@@ -25,13 +25,13 @@ HoloScript (.holo / .hsplus)
 
 HoloScript's `@joint` trait maps to URDF/SDF joint definitions:
 
-| HoloScript Joint Type | URDF Type | Use Case |
-|----------------------|-----------|----------|
-| `hinge` | `revolute` | Rotational joints with limits |
-| `slider` | `prismatic` | Linear actuators |
-| `ball` | `floating` | 3-DOF spherical joints |
-| `fixed` | `fixed` | Rigid connections |
-| `continuous` | `continuous` | Unlimited rotation |
+| HoloScript Joint Type | URDF Type    | Use Case                      |
+| --------------------- | ------------ | ----------------------------- |
+| `hinge`               | `revolute`   | Rotational joints with limits |
+| `slider`              | `prismatic`  | Linear actuators              |
+| `ball`                | `floating`   | 3-DOF spherical joints        |
+| `fixed`               | `fixed`      | Rigid connections             |
+| `continuous`          | `continuous` | Unlimited rotation            |
 
 ### Joint Configuration
 
@@ -64,17 +64,20 @@ object "ShoulderJoint" {
 ### two-dof-robot-arm.holo
 
 A simple 2-DOF robot arm demonstrating:
+
 - Kinematic chain structure
 - Revolute joint configuration
 - Physics properties
 - End effector
 
 Run the demo:
+
 ```bash
 npx tsx examples/robotics/demo-urdf-compilation.ts
 ```
 
 Output:
+
 - `output/two_dof_arm.urdf` - ROS 2 / Gazebo compatible
 - `output/two_dof_arm.sdf` - Gazebo / Isaac Sim compatible
 
@@ -88,21 +91,23 @@ add_reference_to_stage(usd_path="/path/to/robot.urdf", prim_path="/World/Robot")
 
 ## Supported Formats
 
-| Format | Status | Use Case |
-|--------|--------|----------|
-| URDF | ✅ Production | ROS 2, Gazebo, Isaac Sim URDF import |
-| SDF | ✅ Production | Gazebo Classic, Isaac Sim SDF import |
-| USD Physics | 🚧 In Progress | Native Isaac Sim, Omniverse |
-| DTDL | ✅ Production | Azure Digital Twins |
+| Format      | Status         | Use Case                             |
+| ----------- | -------------- | ------------------------------------ |
+| URDF        | ✅ Production  | ROS 2, Gazebo, Isaac Sim URDF import |
+| SDF         | ✅ Production  | Gazebo Classic, Isaac Sim SDF import |
+| USD Physics | 🚧 In Progress | Native Isaac Sim, Omniverse          |
+| DTDL        | ✅ Production  | Azure Digital Twins                  |
 
 ## NVIDIA Isaac Sim Integration
 
 ### Current Support (via URDF/SDF import)
+
 1. Export HoloScript to URDF or SDF
 2. Import in Isaac Sim using Articulation importer
 3. Full physics simulation with PhysX
 
 ### Roadmap: Native USD Physics
+
 - USDPhysicsArticulationRootAPI emission
 - USDPhysicsDriveAPI for joint motors
 - USDPhysicsLimitAPI for joint limits

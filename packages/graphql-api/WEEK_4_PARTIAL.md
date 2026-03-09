@@ -17,7 +17,7 @@ Week 4 Phase 1 successfully implemented critical production hardening features i
 - ✅ **Rate Limiting** - Per-client, per-operation limits (1000 req/15min global)
 - ✅ **JWT Authentication** - Bearer token auth with role-based access
 - ✅ **Authorization Layer** - Permission-based operation access control
-- ✅ **Security Headers** - X-RateLimit-* headers for client feedback
+- ✅ **Security Headers** - X-RateLimit-\* headers for client feedback
 - ✅ **Public Operations** - Anonymous access for read-only queries
 
 ## Features Implemented (Phase 1)
@@ -27,6 +27,7 @@ Week 4 Phase 1 successfully implemented critical production hardening features i
 **Implementation**: In-memory rate limiter with per-operation limits
 
 **Rate Limits**:
+
 ```typescript
 // Global limit
 max: 1000 requests per 15 minutes
@@ -41,6 +42,7 @@ getTargetInfo: 1000 requests/min (cheap)
 ```
 
 **Response Headers**:
+
 ```
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 87
@@ -49,22 +51,26 @@ Retry-After: 45  (when exceeded)
 ```
 
 **Error Response** (when rate limit exceeded):
+
 ```json
 {
-  "errors": [{
-    "message": "Rate limit exceeded for operation \"compile\". Try again in 45 seconds.",
-    "extensions": {
-      "code": "RATE_LIMIT_EXCEEDED",
-      "limit": 100,
-      "remaining": 0,
-      "resetAt": "2026-02-26T12:45:00.000Z",
-      "retryAfter": 45
+  "errors": [
+    {
+      "message": "Rate limit exceeded for operation \"compile\". Try again in 45 seconds.",
+      "extensions": {
+        "code": "RATE_LIMIT_EXCEEDED",
+        "limit": 100,
+        "remaining": 0,
+        "resetAt": "2026-02-26T12:45:00.000Z",
+        "retryAfter": 45
+      }
     }
-  }]
+  ]
 }
 ```
 
 **Benefits**:
+
 - **DoS Protection**: Prevents API abuse and resource exhaustion
 - **Fair Usage**: Ensures equal access for all clients
 - **Client Feedback**: Headers show remaining requests
@@ -75,22 +81,25 @@ Retry-After: 45  (when exceeded)
 **Implementation**: Bearer token authentication with jsonwebtoken
 
 **Token Format**:
+
 ```typescript
 interface UserPayload {
   id: string;
   email?: string;
-  roles: string[];         // ['user', 'admin']
-  permissions: string[];   // ['compile:write', 'parse:read']
+  roles: string[]; // ['user', 'admin']
+  permissions: string[]; // ['compile:write', 'parse:read']
 }
 ```
 
 **Authentication Flow**:
+
 1. Client sends request with `Authorization: Bearer <token>`
 2. Server extracts and verifies JWT signature
 3. User payload added to GraphQL context
 4. Resolvers can access user info via `getAuthContext(ctx)`
 
 **Example Token Generation**:
+
 ```typescript
 import { authService } from '@holoscript/graphql-api';
 
@@ -98,7 +107,7 @@ const user = {
   id: 'user-123',
   email: 'user@example.com',
   roles: ['user'],
-  permissions: ['compile:write', 'parse:read']
+  permissions: ['compile:write', 'parse:read'],
 };
 
 const token = authService.generateToken(user);
@@ -109,17 +118,20 @@ const token = authService.generateToken(user);
 ```
 
 **Public Operations** (no auth required):
+
 - `listTargets`
 - `getTargetInfo`
 - GraphQL introspection (`__schema`, `__type`)
 
 **Protected Operations** (auth required if `REQUIRE_AUTH=true`):
+
 - `compile`
 - `batchCompile`
 - `validateCode`
 - `parseHoloScript`
 
 **Configuration**:
+
 ```bash
 # Environment variables
 JWT_SECRET=your-secret-key-here        # REQUIRED in production
@@ -132,17 +144,13 @@ PUBLIC_OPERATIONS=listTargets,getTargetInfo  # Comma-separated list
 **Implementation**: Permission-based access control with predefined roles
 
 **Roles & Permissions**:
+
 ```typescript
 // Anonymous (no auth)
-permissions: ['parse:read', 'targets:read']
+permissions: ['parse:read', 'targets:read'];
 
 // User (authenticated)
-permissions: [
-  'parse:read',
-  'validate:read',
-  'targets:read',
-  'compile:write'
-]
+permissions: ['parse:read', 'validate:read', 'targets:read', 'compile:write'];
 
 // Power User
 permissions: [
@@ -150,14 +158,15 @@ permissions: [
   'validate:read',
   'targets:read',
   'compile:write',
-  'compile:batch'  // Can use batchCompile
-]
+  'compile:batch', // Can use batchCompile
+];
 
 // Admin
-permissions: ['admin:*']  // Full access
+permissions: ['admin:*']; // Full access
 ```
 
 **Operation Permission Requirements**:
+
 ```typescript
 compile:       'compile:write'
 batchCompile:  'compile:write' or 'compile:batch'
@@ -168,33 +177,39 @@ getTargetInfo: Public (no permission required)
 ```
 
 **Error Response** (insufficient permissions):
+
 ```json
 {
-  "errors": [{
-    "message": "Insufficient permissions for operation \"batchCompile\".",
-    "extensions": {
-      "code": "FORBIDDEN",
-      "operation": "batchCompile",
-      "userRoles": ["user"]
+  "errors": [
+    {
+      "message": "Insufficient permissions for operation \"batchCompile\".",
+      "extensions": {
+        "code": "FORBIDDEN",
+        "operation": "batchCompile",
+        "userRoles": ["user"]
+      }
     }
-  }]
+  ]
 }
 ```
 
 ### 4. Security Features ✅
 
 **Token Expiration**:
+
 - Default: 24 hours
 - Configurable via `jwtExpiresIn` option
 - Returns `TOKEN_EXPIRED` error with clear message
 
 **Token Validation**:
+
 - Signature verification with `JWT_SECRET`
 - Expiration checking
 - Malformed token detection
 - Returns appropriate error codes
 
 **Error Codes**:
+
 - `UNAUTHENTICATED`: No valid token provided
 - `FORBIDDEN`: Valid token but lacks permissions
 - `TOKEN_EXPIRED`: Token has expired
@@ -204,11 +219,13 @@ getTargetInfo: Public (no permission required)
 ## Code Statistics (Phase 1)
 
 **New Files**:
+
 - `src/plugins/rateLimitPlugin.ts` (207 lines) - Rate limiting
 - `src/services/auth.ts` (212 lines) - Authentication service
 - `src/plugins/authPlugin.ts` (145 lines) - Auth plugin
 
 **Modified Files**:
+
 - `src/server.ts` (+25 lines) - Plugin integration
 - `src/index.ts` (+15 lines) - Export updates
 
@@ -216,6 +233,7 @@ getTargetInfo: Public (no permission required)
 **Dependencies Added**: 4 packages
 
 **New Dependencies**:
+
 ```json
 {
   "express-rate-limit": "^8.2.1",
@@ -276,20 +294,20 @@ X-RateLimit-Reset: 2026-02-26T13:00:00.000Z
 
 ### Rate Limiting Overhead
 
-| Metric | Without Rate Limit | With Rate Limit | Overhead |
-|--------|-------------------|-----------------|----------|
-| Request Time | ~50ms | ~51ms | +1ms (+2%) |
-| Memory Usage | 100MB | 105MB | +5MB (+5%) |
-| CPU Usage | 20% | 21% | +1% (+5%) |
+| Metric       | Without Rate Limit | With Rate Limit | Overhead   |
+| ------------ | ------------------ | --------------- | ---------- |
+| Request Time | ~50ms              | ~51ms           | +1ms (+2%) |
+| Memory Usage | 100MB              | 105MB           | +5MB (+5%) |
+| CPU Usage    | 20%                | 21%             | +1% (+5%)  |
 
 **Impact**: Negligible overhead (<2%) for critical security protection
 
 ### Authentication Overhead
 
-| Metric | Anonymous | Authenticated | Overhead |
-|--------|-----------|--------------|----------|
-| Request Time | ~50ms | ~52ms | +2ms (+4%) |
-| Token Verification | N/A | ~0.5ms | +0.5ms |
+| Metric             | Anonymous | Authenticated | Overhead   |
+| ------------------ | --------- | ------------- | ---------- |
+| Request Time       | ~50ms     | ~52ms         | +2ms (+4%) |
+| Token Verification | N/A       | ~0.5ms        | +0.5ms     |
 
 **Impact**: Minimal overhead (<5%) for secure access control
 
@@ -298,6 +316,7 @@ X-RateLimit-Reset: 2026-02-26T13:00:00.000Z
 ### Production Checklist
 
 **Critical (Phase 1)** ✅:
+
 - ✅ Rate limiting enabled
 - ✅ JWT authentication implemented
 - ✅ Role-based authorization
@@ -305,6 +324,7 @@ X-RateLimit-Reset: 2026-02-26T13:00:00.000Z
 - ✅ Public operations defined
 
 **Recommended (Phase 2)** ⏳:
+
 - ⏳ `JWT_SECRET` environment variable set (not default)
 - ⏳ Redis for distributed rate limiting
 - ⏳ Redis for distributed session management
@@ -332,6 +352,7 @@ X-RateLimit-Reset: 2026-02-26T13:00:00.000Z
 ## Next Steps (Phase 2)
 
 **Week 4 Phase 2 Priorities**:
+
 - [ ] Redis integration for rate limiting
 - [ ] Redis PubSub for subscriptions (horizontal scaling)
 - [ ] Prometheus metrics endpoint
@@ -340,6 +361,7 @@ X-RateLimit-Reset: 2026-02-26T13:00:00.000Z
 - [ ] Token revocation (Redis blacklist)
 
 **Week 5-6 Priorities**:
+
 - [ ] Apollo Studio integration
 - [ ] Grafana dashboards
 - [ ] DataDog APM integration
@@ -352,6 +374,7 @@ X-RateLimit-Reset: 2026-02-26T13:00:00.000Z
 **Current Status**: ✅ Ready for development/staging with authentication
 
 **Production Checklist**:
+
 - ✅ Schema validation
 - ✅ Error handling
 - ✅ Batch optimization (Week 2)
@@ -369,13 +392,13 @@ X-RateLimit-Reset: 2026-02-26T13:00:00.000Z
 
 **Week 4 Phase 1 Goals vs Achieved**:
 
-| Goal | Target | Achieved | Status |
-|------|--------|----------|--------|
-| Rate Limiting | Yes | ✅ | Complete |
-| JWT Authentication | Yes | ✅ | Complete |
-| Authorization | Yes | ✅ | Complete |
-| Security Headers | Yes | ✅ | Complete |
-| Performance Overhead | <5% | <5% | **Met** |
+| Goal                 | Target | Achieved | Status   |
+| -------------------- | ------ | -------- | -------- |
+| Rate Limiting        | Yes    | ✅       | Complete |
+| JWT Authentication   | Yes    | ✅       | Complete |
+| Authorization        | Yes    | ✅       | Complete |
+| Security Headers     | Yes    | ✅       | Complete |
+| Performance Overhead | <5%    | <5%      | **Met**  |
 
 **Phase 1**: 🎉 **ALL TARGETS ACHIEVED**
 **Phase 2**: ⏳ **PENDING**
@@ -383,12 +406,14 @@ X-RateLimit-Reset: 2026-02-26T13:00:00.000Z
 ## Cost Impact
 
 **Development Environment** (Phase 1):
+
 - No Redis required yet
 - In-memory rate limiting: $0
 - In-memory auth: $0
 - **Cost**: $0 additional
 
 **Production Environment** (Phase 2 with Redis):
+
 - Redis instance: ~$15-30/month
 - Enhanced monitoring: ~$20-50/month
 - **Total**: ~$35-80/month for production-grade API
@@ -398,6 +423,7 @@ X-RateLimit-Reset: 2026-02-26T13:00:00.000Z
 Week 4 Phase 1 successfully implemented critical production hardening features: rate limiting, JWT authentication, and role-based authorization. The GraphQL API is now protected against abuse and supports secure, authenticated access.
 
 **Phase 1 Achievements**:
+
 - ✅ Rate limiting: 1000 req/15min global, per-operation limits
 - ✅ JWT authentication: Bearer token with 24h expiration
 - ✅ Authorization: Role-based with fine-grained permissions

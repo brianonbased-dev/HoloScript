@@ -62,7 +62,7 @@ export function gateCheck(
   manifest: InstallManifest,
   report: SafetyReport,
   currentPackageCount: number,
-  policy: Partial<WorldSafetyPolicy> = {},
+  policy: Partial<WorldSafetyPolicy> = {}
 ): GateDecision {
   const p = { ...DEFAULT_POLICY, ...policy };
   const warnings: string[] = [];
@@ -70,27 +70,36 @@ export function gateCheck(
   // Check verdict
   if (!p.allowedVerdicts.includes(report.verdict)) {
     return {
-      allowed: false, packageId: manifest.packageId,
+      allowed: false,
+      packageId: manifest.packageId,
       reason: `Safety verdict '${report.verdict}' not allowed (allowed: ${p.allowedVerdicts.join(', ')})`,
-      safetyVerdict: report.verdict, dangerScore: report.dangerScore, warnings,
+      safetyVerdict: report.verdict,
+      dangerScore: report.dangerScore,
+      warnings,
     };
   }
 
   // Check danger score
   if (report.dangerScore > p.maxDangerScore) {
     return {
-      allowed: false, packageId: manifest.packageId,
+      allowed: false,
+      packageId: manifest.packageId,
       reason: `Danger score ${report.dangerScore} exceeds max ${p.maxDangerScore}`,
-      safetyVerdict: report.verdict, dangerScore: report.dangerScore, warnings,
+      safetyVerdict: report.verdict,
+      dangerScore: report.dangerScore,
+      warnings,
     };
   }
 
   // Check package limit
   if (currentPackageCount >= p.maxPackages) {
     return {
-      allowed: false, packageId: manifest.packageId,
+      allowed: false,
+      packageId: manifest.packageId,
       reason: `World at package limit (${p.maxPackages})`,
-      safetyVerdict: report.verdict, dangerScore: report.dangerScore, warnings,
+      safetyVerdict: report.verdict,
+      dangerScore: report.dangerScore,
+      warnings,
     };
   }
 
@@ -107,9 +116,12 @@ export function gateCheck(
   }
 
   return {
-    allowed: true, packageId: manifest.packageId,
+    allowed: true,
+    packageId: manifest.packageId,
     reason: 'Passed all safety gates',
-    safetyVerdict: report.verdict, dangerScore: report.dangerScore, warnings,
+    safetyVerdict: report.verdict,
+    dangerScore: report.dangerScore,
+    warnings,
   };
 }
 
@@ -157,7 +169,7 @@ export class RuntimeMonitor {
         budgetPercent[cat as ResourceCategory] = percent;
         if (percent > 100) {
           overBudget = true;
-          violations.push(`${cat}: ${(value as number)}/${limit} (${percent.toFixed(0)}%)`);
+          violations.push(`${cat}: ${value as number}/${limit} (${percent.toFixed(0)}%)`);
         }
       }
     }
@@ -206,7 +218,9 @@ export class RuntimeMonitor {
   /**
    * Get resource usage history.
    */
-  getHistory(): ResourceSnapshot[] { return [...this.history]; }
+  getHistory(): ResourceSnapshot[] {
+    return [...this.history];
+  }
 
   /**
    * Get frame timing info for the platform.

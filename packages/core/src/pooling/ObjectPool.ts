@@ -39,8 +39,13 @@ export class ObjectPool<T> {
   private active: Set<T> = new Set();
   private config: PoolConfig<T>;
   private stats: PoolStats = {
-    totalCreated: 0, currentActive: 0, currentFree: 0,
-    peakActive: 0, acquireCount: 0, releaseCount: 0, expandCount: 0,
+    totalCreated: 0,
+    currentActive: 0,
+    currentFree: 0,
+    peakActive: 0,
+    acquireCount: 0,
+    releaseCount: 0,
+    expandCount: 0,
   };
 
   constructor(config: PoolConfig<T>) {
@@ -72,7 +77,10 @@ export class ObjectPool<T> {
       if (!this.config.autoExpand || this.stats.totalCreated >= this.config.maxSize) {
         return null;
       }
-      const expandBy = Math.min(this.config.expandAmount, this.config.maxSize - this.stats.totalCreated);
+      const expandBy = Math.min(
+        this.config.expandAmount,
+        this.config.maxSize - this.stats.totalCreated
+      );
       for (let i = 0; i < expandBy; i++) {
         this.free.push(this.config.factory());
         this.stats.totalCreated++;
@@ -116,10 +124,18 @@ export class ObjectPool<T> {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getStats(): PoolStats { return { ...this.stats }; }
-  getActiveCount(): number { return this.active.size; }
-  getFreeCount(): number { return this.free.length; }
-  getTotalCount(): number { return this.stats.totalCreated; }
+  getStats(): PoolStats {
+    return { ...this.stats };
+  }
+  getActiveCount(): number {
+    return this.active.size;
+  }
+  getFreeCount(): number {
+    return this.free.length;
+  }
+  getTotalCount(): number {
+    return this.stats.totalCreated;
+  }
 
   forEach(callback: (obj: T) => void): void {
     for (const obj of this.active) callback(obj);

@@ -58,30 +58,47 @@ export class ModelImporter {
 
     if (format === 'gltf') {
       meshes.push({
-        id: 'mesh_0', name: 'Mesh0', vertexCount: 1024, indexCount: 2048,
+        id: 'mesh_0',
+        name: 'Mesh0',
+        vertexCount: 1024,
+        indexCount: 2048,
         materialId: 'mat_0',
         bounds: { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } },
       });
       materials.push({
-        id: 'mat_0', name: 'PBR_Material',
-        baseColor: { r: 0.8, g: 0.8, b: 0.8, a: 1 }, metallic: 0, roughness: 0.5, textures: [],
+        id: 'mat_0',
+        name: 'PBR_Material',
+        baseColor: { r: 0.8, g: 0.8, b: 0.8, a: 1 },
+        metallic: 0,
+        roughness: 0.5,
+        textures: [],
       });
     } else if (format === 'obj') {
       meshes.push({
-        id: 'mesh_0', name: 'ObjMesh', vertexCount: 512, indexCount: 1024,
+        id: 'mesh_0',
+        name: 'ObjMesh',
+        vertexCount: 512,
+        indexCount: 1024,
         materialId: null,
         bounds: { min: { x: -1, y: 0, z: -1 }, max: { x: 1, y: 2, z: 1 } },
       });
       warnings.push('OBJ format does not support PBR materials');
     } else {
       meshes.push({
-        id: 'mesh_0', name: 'FBXMesh', vertexCount: 2048, indexCount: 4096,
+        id: 'mesh_0',
+        name: 'FBXMesh',
+        vertexCount: 2048,
+        indexCount: 4096,
         materialId: 'mat_0',
         bounds: { min: { x: -2, y: -2, z: -2 }, max: { x: 2, y: 2, z: 2 } },
       });
       materials.push({
-        id: 'mat_0', name: 'FBX_Material',
-        baseColor: { r: 1, g: 1, b: 1, a: 1 }, metallic: 0.5, roughness: 0.5, textures: [],
+        id: 'mat_0',
+        name: 'FBX_Material',
+        baseColor: { r: 1, g: 1, b: 1, a: 1 },
+        metallic: 0.5,
+        roughness: 0.5,
+        textures: [],
       });
     }
 
@@ -96,5 +113,7 @@ export class ModelImporter {
     return null;
   }
 
-  getSupportedFormats(): ImportFormat[] { return [...this.supportedFormats]; }
+  getSupportedFormats(): ImportFormat[] {
+    return [...this.supportedFormats];
+  }
 }

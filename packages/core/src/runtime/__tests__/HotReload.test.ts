@@ -114,11 +114,7 @@ describe('HotReloadManager — triggerReload', () => {
     const watcher = vi.fn();
     hrm.watch('scene/A', watcher);
     hrm.triggerReload('scene/A', { ast: [] });
-    expect(watcher).toHaveBeenCalledWith(
-      { ast: [] },
-      undefined,
-      expect.any(Object),
-    );
+    expect(watcher).toHaveBeenCalledWith({ ast: [] }, undefined, expect.any(Object));
   });
 
   it('passes old state to watcher for migration', () => {
@@ -189,10 +185,7 @@ describe('HotReloadManager — triggerReload', () => {
 describe('HotReloadManager — state migration', () => {
   it('migrateState() preserves fields that exist in both old and new state', () => {
     const hrm = new HotReloadManager();
-    const migrated = hrm.migrateState(
-      { hp: 80, alive: true, gold: 5 },
-      { hp: 100, alive: false },
-    );
+    const migrated = hrm.migrateState({ hp: 80, alive: true, gold: 5 }, { hp: 100, alive: false });
     // hp and alive from old; gold is NOT in new defaults so it's dropped
     expect(migrated).toEqual({ hp: 80, alive: true });
   });
@@ -224,7 +217,7 @@ describe('HotReloadManager — state migration', () => {
     const hrm = new HotReloadManager();
     const migrated = hrm.migrateState(
       { hp: 80, obsoleteField: 'removed' },
-      { hp: 100, newField: 'added' },
+      { hp: 100, newField: 'added' }
     );
     expect(migrated).toEqual({ hp: 80, newField: 'added' });
     expect('obsoleteField' in migrated).toBe(false);
@@ -250,10 +243,7 @@ describe('HotReloadManager — state migration', () => {
 
   it('migrateState() handles empty old state', () => {
     const hrm = new HotReloadManager();
-    const migrated = hrm.migrateState(
-      {} as Record<string, unknown>,
-      { hp: 100 },
-    );
+    const migrated = hrm.migrateState({} as Record<string, unknown>, { hp: 100 });
     expect(migrated).toEqual({ hp: 100 });
   });
 

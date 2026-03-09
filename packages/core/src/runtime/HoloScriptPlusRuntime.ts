@@ -87,7 +87,11 @@ export interface Renderer {
   appendChild(parent: unknown, child: unknown): void;
   removeChild(parent: unknown, child: unknown): void;
   destroy(element: unknown): void;
-  setXRSession?(session: XRSession | null, glBinding: any | null, projectionLayer: any | null): void;
+  setXRSession?(
+    session: XRSession | null,
+    glBinding: any | null,
+    projectionLayer: any | null
+  ): void;
 }
 
 // =============================================================================
@@ -166,17 +170,17 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       gravity: { x: 0, y: -9.81, z: 0 },
       substeps: 2,
     });
-    
+
     this.vrPhysicsBridge = new VRPhysicsBridge(this.physicsWorld, (hand, intensity, duration) => {
-        // Trigger Haptic Pulse via WebXR Manager
-        if (this.webXrManager) {
-            this.webXrManager.triggerHaptic(hand, intensity, duration);
-        }
+      // Trigger Haptic Pulse via WebXR Manager
+      if (this.webXrManager) {
+        this.webXrManager.triggerHaptic(hand, intensity, duration);
+      }
     });
-    
+
     // Initialize Debug Drawer
     if (options.renderer instanceof WebGPURenderer) {
-       this.debugDrawer = new PhysicsDebugDrawer(this.physicsWorld, options.renderer);
+      this.debugDrawer = new PhysicsDebugDrawer(this.physicsWorld, options.renderer);
     }
 
     // Initialize Keyboard System
@@ -185,65 +189,64 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // Register Physics Event Handlers
     this.on('physics_grab', (payload: any) => {
-        const { nodeId, hand } = payload;
-        const handBodyId = this.vrPhysicsBridge.getHandBodyId(hand);
-        const objectBody = this.physicsWorld.getBody(nodeId);
-        
-        if (handBodyId && objectBody) {
-            // Create Fixed Joint
-            this.physicsWorld.addConstraint({
-                type: 'fixed',
-                bodyA: handBodyId,
-                bodyB: nodeId,
-                pivotA: { x: 0, y: 0, z: 0 }, // Center of hand
-                pivotB: { x: 0, y: 0, z: 0 }, // Should be relative offset
-                // For simplicity, we snap center-to-center or need to calculate offset based on current positions
-            });
-        }
+      const { nodeId, hand } = payload;
+      const handBodyId = this.vrPhysicsBridge.getHandBodyId(hand);
+      const objectBody = this.physicsWorld.getBody(nodeId);
+
+      if (handBodyId && objectBody) {
+        // Create Fixed Joint
+        this.physicsWorld.addConstraint({
+          type: 'fixed',
+          bodyA: handBodyId,
+          bodyB: nodeId,
+          pivotA: { x: 0, y: 0, z: 0 }, // Center of hand
+          pivotB: { x: 0, y: 0, z: 0 }, // Should be relative offset
+          // For simplicity, we snap center-to-center or need to calculate offset based on current positions
+        });
+      }
     });
 
     this.on('physics_release', (payload: any) => {
-        const { nodeId, velocity } = payload;
-        this.physicsWorld.removeConstraints(nodeId);
-        
-        if (velocity) {
-             const body = this.physicsWorld.getBody(nodeId);
-             if (body) {
-                 body.velocity = { x: velocity[0], y: velocity[1], z: velocity[2] };
-             }
+      const { nodeId, velocity } = payload;
+      this.physicsWorld.removeConstraints(nodeId);
+
+      if (velocity) {
+        const body = this.physicsWorld.getBody(nodeId);
+        if (body) {
+          body.velocity = { x: velocity[0], y: velocity[1], z: velocity[2] };
         }
+      }
     });
-    
+
     // Keyboard / UI Events
     this.on('ui_press_end', (payload: any) => {
-        this.keyboardSystem.handleEvent('ui_press_end', payload);
+      this.keyboardSystem.handleEvent('ui_press_end', payload);
     });
 
     this.on('physics_add_constraint', (payload: any) => {
-        const { type, nodeId, axis, min, max, spring } = payload;
-        // Ideally we need an anchor body (parent). For now, we might anchor to world (fixed point) 
-        // OR we create a static "anchor" body at the node's initial position.
-        
-        // This requires the Physics engine to support internal constraints/motors.
-        // Assuming addConstraint supports 'prismatic' extended config.
-        this.physicsWorld.addConstraint({
-            type: 'prismatic',
-            bodyA: 'WORLD_ANCHOR', // Placeholder for "Static Anchor at start pos"
-            bodyB: nodeId,
-            axisA: axis,
-            limits: { min, max },
-            spring
-        });
+      const { type, nodeId, axis, min, max, spring } = payload;
+      // Ideally we need an anchor body (parent). For now, we might anchor to world (fixed point)
+      // OR we create a static "anchor" body at the node's initial position.
+
+      // This requires the Physics engine to support internal constraints/motors.
+      // Assuming addConstraint supports 'prismatic' extended config.
+      this.physicsWorld.addConstraint({
+        type: 'prismatic',
+        bodyA: 'WORLD_ANCHOR', // Placeholder for "Static Anchor at start pos"
+        bodyB: nodeId,
+        axisA: axis,
+        limits: { min, max },
+        spring,
+      });
     });
 
     // Initialize WebXR Manager if enabled
     // We defer full initialization until enterVR() or if renderer provides context now
     if (options.renderer && (options.renderer as any).context && options.vrEnabled) {
-       // We could pre-warm here, but for now we wait for explicit enterVR
+      // We could pre-warm here, but for now we wait for explicit enterVR
     }
 
     // Check for sync intent (P3 Pattern)
-
 
     const isNetworked =
       ast.root.traits?.has('networked' as any) ||
@@ -338,7 +341,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   // WEBXR INTEGRATION
   // ==========================================================================
 
-    async enterVR(): Promise<void> {
+  async enterVR(): Promise<void> {
     if (!this.options.vrEnabled) {
       console.warn('VR is not enabled in runtime options');
       return;
@@ -349,9 +352,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // Since Renderer interface in this file is generic, we cast it for now
     const renderer = this.options.renderer as any;
     // Note: We might need to pass the context explicitly or ensure renderer has it
-    if (!renderer) { 
-       console.error('Cannot enter VR: No renderer found');
-       return; 
+    if (!renderer) {
+      console.error('Cannot enter VR: No renderer found');
+      return;
     }
 
     if (!this.webXrManager) {
@@ -363,17 +366,21 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       }
       const ManagerClass = this.options.webXrManagerClass || WebXRManager;
       this.webXrManager = new ManagerClass(context);
-      
+
       this.webXrManager.onSessionStart = (session) => {
         console.log('XR Session Started');
         this.isXRSessionActive = true;
-        
+
         // Stop the regular update loop to avoid double-processing
         this.stopUpdateLoop();
 
         // Notify renderer to switch to XR mode (if method exists)
         if (renderer.setXRSession) {
-          renderer.setXRSession(session, this.webXrManager!.getBinding(), this.webXrManager!.getProjectionLayer());
+          renderer.setXRSession(
+            session,
+            this.webXrManager!.getBinding(),
+            this.webXrManager!.getProjectionLayer()
+          );
         }
 
         // Start the XR render loop
@@ -383,19 +390,24 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       this.webXrManager.onSessionEnd = () => {
         console.log('XR Session Ended');
         this.isXRSessionActive = false;
-        
+
         // Notify renderer
         if (renderer.setXRSession) {
           renderer.setXRSession(null, null, null);
         }
-        
+
         // Restart the regular update loop
         this.startUpdateLoop();
       };
     }
 
     if (this.webXrManager) {
-        console.log('Runtime webXrManager:', this.webXrManager, 'isSessionSupported:', (this.webXrManager as any).isSessionSupported);
+      console.log(
+        'Runtime webXrManager:',
+        this.webXrManager,
+        'isSessionSupported:',
+        (this.webXrManager as any).isSessionSupported
+      );
     }
     if (await this.webXrManager.isSessionSupported('immersive-vr')) {
       await this.webXrManager.requestSession();
@@ -408,24 +420,23 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
    * Main XR Loop - called by WebXRManager
    */
   private xrLoop(time: number, frame: XRFrame): void {
-      const now = performance.now();
-      const delta = (now - this.lastUpdateTime) / 1000;
-      this.lastUpdateTime = now;
+    const now = performance.now();
+    const delta = (now - this.lastUpdateTime) / 1000;
+    this.lastUpdateTime = now;
 
-      // Update VR Input State from Frame
-      this.updateVRInput(frame);
+    // Update VR Input State from Frame
+    this.updateVRInput(frame);
 
-      // Run Game Logic
-      this.update(delta);
-      if (this.handMenuSystem) this.handMenuSystem.update(delta);
+    // Run Game Logic
+    this.update(delta);
+    if (this.handMenuSystem) this.handMenuSystem.update(delta);
 
-      // Render XR Frame
-      const renderer = this.options.renderer as any;
-      if (renderer && renderer.renderXR) {
-          renderer.renderXR(frame);
-      }
+    // Render XR Frame
+    const renderer = this.options.renderer as any;
+    if (renderer && renderer.renderXR) {
+      renderer.renderXR(frame);
+    }
   }
-  
 
   async exitVR(): Promise<void> {
     if (this.webXrManager) {
@@ -433,12 +444,17 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     }
   }
 
-   /**
+  /**
    * Convert Quaternion to Euler Angles (YXZ sequence)
    */
-  private quaternionToEuler(q: Float32Array | [number, number, number, number]): [number, number, number] {
-    const x = q[0], y = q[1], z = q[2], w = q[3];
-    
+  private quaternionToEuler(
+    q: Float32Array | [number, number, number, number]
+  ): [number, number, number] {
+    const x = q[0],
+      y = q[1],
+      z = q[2],
+      w = q[3];
+
     // Y-rotation (Yaw)
     const t0 = 2.0 * (w * y - z * x);
     const ry = Math.asin(Math.max(-1, Math.min(1, t0)));
@@ -462,78 +478,87 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // Use frame session if available, otherwise manager session
     const session = frame ? frame.session : this.webXrManager.getSession();
     const refSpace = this.webXrManager.getReferenceSpace();
-  
+
     if (!session || !refSpace) return;
 
     // 1. Update Headset Pose
     if (frame) {
-        const viewerPose = frame.getViewerPose(refSpace);
-        if (viewerPose) {
-            const { position, orientation } = viewerPose.transform;
-            this.vrContext.headset.position = [position.x, position.y, position.z];
-            
-            // Convert Quaternion to Euler for HoloScript compatibility
-            // HoloScript uses [x, y, z] Euler angles (radians)
-            this.vrContext.headset.rotation = this.quaternionToEuler([
-                orientation.x, orientation.y, orientation.z, orientation.w
-            ]);
-        }
+      const viewerPose = frame.getViewerPose(refSpace);
+      if (viewerPose) {
+        const { position, orientation } = viewerPose.transform;
+        this.vrContext.headset.position = [position.x, position.y, position.z];
+
+        // Convert Quaternion to Euler for HoloScript compatibility
+        // HoloScript uses [x, y, z] Euler angles (radians)
+        this.vrContext.headset.rotation = this.quaternionToEuler([
+          orientation.x,
+          orientation.y,
+          orientation.z,
+          orientation.w,
+        ]);
+      }
     }
 
     // 2. Update Controllers / Hands
     for (const source of session.inputSources) {
-       if (!source.gripSpace) continue; // We need a grip space for position
+      if (!source.gripSpace) continue; // We need a grip space for position
 
-       // If we have a valid frame, get the pose
-       let pose: XRPose | undefined;
-       if (frame) {
-           pose = frame.getPose(source.gripSpace, refSpace);
-       }
+      // If we have a valid frame, get the pose
+      let pose: XRPose | undefined;
+      if (frame) {
+        pose = frame.getPose(source.gripSpace, refSpace);
+      }
 
-       if (pose) {
-           const { position, orientation } = pose.transform;
-           const handSide = source.handedness;
-           
-           // Construct VRHand object
-           const handData: VRHand = {
-             id: `${handSide}_hand`,
-             position: [position.x, position.y, position.z],
-             rotation: this.quaternionToEuler([orientation.x, orientation.y, orientation.z, orientation.w]),
-             velocity: [0, 0, 0], // Not provided by WebXR directly without previous frame diff
-             pinchStrength: 0,
-             gripStrength: 0
-           };
+      if (pose) {
+        const { position, orientation } = pose.transform;
+        const handSide = source.handedness;
 
-           // 3. Map Gamepad Buttons (Trigger/Grip) to Strengths
-           if (source.gamepad) {
-               // Standard Mapping: 
-               // Button 0 = Trigger (Select) -> Pinch
-               // Button 1 = Squeeze (Grip) -> Grip
-               if (source.gamepad.buttons.length > 0) {
-                   handData.pinchStrength = source.gamepad.buttons[0].value;
-               }
-               if (source.gamepad.buttons.length > 1) {
-                   handData.gripStrength = source.gamepad.buttons[1].value;
-               }
-           }
-           
-           // Calculate velocity (simple delta) if we have previous data
-           const prevHand = handSide === 'left' ? this.vrContext.hands.left : this.vrContext.hands.right;
-           if (prevHand) {
-               // Simple velocity estimation: (curr - prev) / delta
-               // We need delta time here. But updateVRInput is called inside loop with delta available?
-               // The signature doesn't pass delta. 
-               // We can use this.lastUpdateTime logic or just set to 0 for now.
-               // For physics, we definitely want velocity.
-           }
+        // Construct VRHand object
+        const handData: VRHand = {
+          id: `${handSide}_hand`,
+          position: [position.x, position.y, position.z],
+          rotation: this.quaternionToEuler([
+            orientation.x,
+            orientation.y,
+            orientation.z,
+            orientation.w,
+          ]),
+          velocity: [0, 0, 0], // Not provided by WebXR directly without previous frame diff
+          pinchStrength: 0,
+          gripStrength: 0,
+        };
 
-           // Assign to context
-           if (handSide === 'left') {
-               this.vrContext.hands.left = handData;
-           } else if (handSide === 'right') {
-               this.vrContext.hands.right = handData;
-           }
-       }
+        // 3. Map Gamepad Buttons (Trigger/Grip) to Strengths
+        if (source.gamepad) {
+          // Standard Mapping:
+          // Button 0 = Trigger (Select) -> Pinch
+          // Button 1 = Squeeze (Grip) -> Grip
+          if (source.gamepad.buttons.length > 0) {
+            handData.pinchStrength = source.gamepad.buttons[0].value;
+          }
+          if (source.gamepad.buttons.length > 1) {
+            handData.gripStrength = source.gamepad.buttons[1].value;
+          }
+        }
+
+        // Calculate velocity (simple delta) if we have previous data
+        const prevHand =
+          handSide === 'left' ? this.vrContext.hands.left : this.vrContext.hands.right;
+        if (prevHand) {
+          // Simple velocity estimation: (curr - prev) / delta
+          // We need delta time here. But updateVRInput is called inside loop with delta available?
+          // The signature doesn't pass delta.
+          // We can use this.lastUpdateTime logic or just set to 0 for now.
+          // For physics, we definitely want velocity.
+        }
+
+        // Assign to context
+        if (handSide === 'left') {
+          this.vrContext.hands.left = handData;
+        } else if (handSide === 'right') {
+          this.vrContext.hands.right = handData;
+        }
+      }
     }
   }
 
@@ -657,31 +682,33 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   }
 
   public unmountObject(idOrInstance: string | NodeInstance): void {
-      let instance: NodeInstance | undefined;
-      if (typeof idOrInstance === 'string') {
-          instance = this._flatEntities.find(n => n.node.id === idOrInstance || n.__holo_id === idOrInstance);
-      } else {
-          instance = idOrInstance;
-      }
+    let instance: NodeInstance | undefined;
+    if (typeof idOrInstance === 'string') {
+      instance = this._flatEntities.find(
+        (n) => n.node.id === idOrInstance || n.__holo_id === idOrInstance
+      );
+    } else {
+      instance = idOrInstance;
+    }
 
-      if (!instance) return;
+    if (!instance) return;
 
-      // Remove from parent
-      if (instance.parent) {
-          const idx = instance.parent.children.indexOf(instance);
-          if (idx > -1) instance.parent.children.splice(idx, 1);
-      }
+    // Remove from parent
+    if (instance.parent) {
+      const idx = instance.parent.children.indexOf(instance);
+      if (idx > -1) instance.parent.children.splice(idx, 1);
+    }
 
-      // Remove from flat list
-      const flatIdx = this._flatEntities.indexOf(instance);
-      if (flatIdx > -1) this._flatEntities.splice(flatIdx, 1);
+    // Remove from flat list
+    const flatIdx = this._flatEntities.indexOf(instance);
+    if (flatIdx > -1) this._flatEntities.splice(flatIdx, 1);
 
-      // Render cleanup
-      if (this.options.renderer && instance.renderedNode) {
-           this.options.renderer.destroy(instance.renderedNode);
-      }
-      
-      this.callLifecycle(instance, 'on_unmount');
+    // Render cleanup
+    if (this.options.renderer && instance.renderedNode) {
+      this.options.renderer.destroy(instance.renderedNode);
+    }
+
+    this.callLifecycle(instance, 'on_unmount');
   }
 
   // ==========================================================================
@@ -778,7 +805,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
   public getNode(id: string): HSPlusNode | undefined {
     // 1. Check direct ID match in flat list
-    const instance = this._flatEntities.find(n => n.node.id === id || n.__holo_id === id);
+    const instance = this._flatEntities.find((n) => n.node.id === id || n.__holo_id === id);
     return instance ? instance.node : undefined;
   }
 
@@ -1237,26 +1264,25 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // Update Physics Simulation
     try {
-        this.vrPhysicsBridge.update(this.vrContext, delta);
+      this.vrPhysicsBridge.update(this.vrContext, delta);
     } catch (e) {
-        console.error('[Runtime] Error in vrPhysicsBridge.update:', e);
+      console.error('[Runtime] Error in vrPhysicsBridge.update:', e);
     }
     this.physicsWorld.step(delta);
-    
+
     if (this.debugDrawer) {
-        this.debugDrawer.update();
+      this.debugDrawer.update();
     }
 
     // Update Movement Predictor (Tier 2/3)
     // console.log('[Runtime] Calling movementPredictor.update');
     // this.movementPredictor.update(this.vrContext.headset.position, delta);
 
-
     // Update all instances (FLAT LOOP)
     // console.log('[Runtime] Updating entities:', this._flatEntities.length);
     const count = this._flatEntities.length;
     for (let i = 0; i < count; i++) {
-        this.updateInstance(this._flatEntities[i], delta);
+      this.updateInstance(this._flatEntities[i], delta);
     }
 
     // Call update lifecycle
@@ -1267,10 +1293,10 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // Update ChunkLoader
     if (this.chunkLoader) {
       // this.chunkLoader.update(); // Mocked out or assuming it takes args? Original code said update(headpos) but my view at 5169 says update() ?
-      // Wait, 5169 says update(). 
+      // Wait, 5169 says update().
       // Original 5021 says nothing about chunkloader?
       // Step 5168 replacement content: update(this.vrContext.headset.position)
-      // Step 5169 view content: update() ??? 
+      // Step 5169 view content: update() ???
       // Ah, Step 5169 view shows `this.chunkLoader.update();`.
       // I will assume update() is correct or at least what is there.
       // Actually, I'll just look at what's there in 5169.
@@ -1289,7 +1315,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           Object.assign(state, input.payload);
         }
       });
-      
+
       // Update local reactive state with reconciled values
       this.state.update(reconciled);
       this.networkPredictor.updateMetrics(performance.now() - 100); // MOCK RTT
@@ -1301,8 +1327,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // Update VR traits (Only if hasTraits)
     if (instance.hasTraits) {
-        const traitContext = this.createTraitContext(instance);
-        this.traitRegistry.updateAllTraits(instance.node, traitContext, delta);
+      const traitContext = this.createTraitContext(instance);
+      this.traitRegistry.updateAllTraits(instance.node, traitContext, delta);
     }
 
     // Sync Avatar Body Parts
@@ -1316,10 +1342,10 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       if (interpolated && instance.node.properties) {
         // ... (existing logic) ...
         // Mark dirty if changed?
-        // Let's assume network sync updates properties directly. 
+        // Let's assume network sync updates properties directly.
         // We should mark dirty.
         instance.dirty = true; // Force update
-        
+
         if (interpolated.position) {
           (instance.node.properties as any).position = [
             interpolated.position.x,
@@ -1404,15 +1430,20 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
       // Use AI Copilot if available, otherwise fall back to event emission
       if (this._copilot && this._copilot.isReady()) {
-        this._copilot.generateFromPrompt(directive.prompt, {
-          context: directive.context,
-        }).then((response: any) => {
-          (this as any).emit('generate_complete', {
-            id: genId,
-            nodeId: instance.node.id,
-            result: response,
+        this._copilot
+          .generateFromPrompt(directive.prompt, {
+            context: directive.context,
+          })
+          .then((response: any) => {
+            (this as any).emit('generate_complete', {
+              id: genId,
+              nodeId: instance.node.id,
+              result: response,
+            });
+          })
+          .catch(() => {
+            /* silent fallback */
           });
-        }).catch(() => { /* silent fallback */ });
       } else {
         // Emit request for external agent/bridge to handle
         (this as any).emit('generate_request', {
@@ -1508,49 +1539,56 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           // this.emit('apply_velocity', { node, velocity });
           const body = this.physicsWorld.getBody(node.id || '');
           if (body) {
-             body.velocity = { x: velocity[0], y: velocity[1], z: velocity[2] };
+            body.velocity = { x: velocity[0], y: velocity[1], z: velocity[2] };
           }
         },
         applyAngularVelocity: (node, angularVelocity) => {
           // this.emit('apply_angular_velocity', { node, angularVelocity });
-           const body = this.physicsWorld.getBody(node.id || '');
+          const body = this.physicsWorld.getBody(node.id || '');
           if (body) {
-             body.angularVelocity = { x: angularVelocity[0], y: angularVelocity[1], z: angularVelocity[2] };
+            body.angularVelocity = {
+              x: angularVelocity[0],
+              y: angularVelocity[1],
+              z: angularVelocity[2],
+            };
           }
         },
         setKinematic: (node, kinematic) => {
           // this.emit('set_kinematic', { node, kinematic });
           const body = this.physicsWorld.getBody(node.id || '');
           if (body) {
-             body.type = kinematic ? 'kinematic' : 'dynamic';
+            body.type = kinematic ? 'kinematic' : 'dynamic';
           }
         },
         raycast: (origin, direction, maxDistance) => {
-          const hit = this.physicsWorld.raycast({
-             origin: { x: origin[0], y: origin[1], z: origin[2] },
-             direction: { x: direction[0], y: direction[1], z: direction[2] }
-          }, { maxDistance });
-          
+          const hit = this.physicsWorld.raycast(
+            {
+              origin: { x: origin[0], y: origin[1], z: origin[2] },
+              direction: { x: direction[0], y: direction[1], z: direction[2] },
+            },
+            { maxDistance }
+          );
+
           if (hit) {
-             return {
-                point: [hit.point.x, hit.point.y, hit.point.z],
-                normal: [hit.normal.x, hit.normal.y, hit.normal.z],
-                distance: hit.distance,
-                nodeId: hit.bodyId
-             };
+            return {
+              point: [hit.point.x, hit.point.y, hit.point.z],
+              normal: [hit.normal.x, hit.normal.y, hit.normal.z],
+              distance: hit.distance,
+              nodeId: hit.bodyId,
+            };
           }
           return null;
         },
         getBodyPosition: (nodeId) => {
-           const body = this.physicsWorld.getBody(nodeId);
-           if (body) return { ...body.position };
-           return null;
+          const body = this.physicsWorld.getBody(nodeId);
+          if (body) return { ...body.position };
+          return null;
         },
         getBodyVelocity: (nodeId) => {
-           const body = this.physicsWorld.getBody(nodeId);
-           if (body) return { ...body.velocity };
-           return null;
-        }
+          const body = this.physicsWorld.getBody(nodeId);
+          if (body) return { ...body.velocity };
+          return null;
+        },
       },
       audio: {
         playSound: (source, options) => {
@@ -1616,15 +1654,15 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // Clear handlers
     instance.lifecycleHandlers.clear();
     instance.children = [];
-    
+
     // Remove from flat list
     const index = this._flatEntities.indexOf(instance);
     if (index !== -1) {
-        // Fast swap removal (order doesn't matter for update loop usually, but for rendering order it might?
-        // Assuming rendering order comes from hierarchy, not update loop order.
-        // Update loop order matters for parent-child dependencies if not sorted.
-        // For now, splice.
-        this._flatEntities.splice(index, 1);
+      // Fast swap removal (order doesn't matter for update loop usually, but for rendering order it might?
+      // Assuming rendering order comes from hierarchy, not update loop order.
+      // Update loop order matters for parent-child dependencies if not sorted.
+      // For now, splice.
+      this._flatEntities.splice(index, 1);
     }
   }
 
@@ -1633,9 +1671,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   // ==========================================================================
 
   togglePhysicsDebug(enabled: boolean): void {
-     if (this.debugDrawer) {
-        this.debugDrawer.setEnabled(enabled);
-     }
+    if (this.debugDrawer) {
+      this.debugDrawer.setEnabled(enabled);
+    }
   }
 
   updateData(data: unknown): void {
@@ -1644,23 +1682,22 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   }
 
   updateNodeProperty(nodeId: string, property: string, value: any): void {
-      const instance = this.findInstanceById(nodeId);
-      if (instance && instance.node.properties) {
-          instance.node.properties[property] = value;
-          
-          // Update Renderer
-          if (this.options.renderer && instance.renderedNode) {
-              // Mark dirty instead of immediate update?
-              // Or immediate if critical. 
-              // For optimization, mark dirty.
-              instance.dirty = true;
-          }
-          
-          // Emit update event for checking
-          this.emit('property_update', { nodeId, property, value });
-      }
-  }
+    const instance = this.findInstanceById(nodeId);
+    if (instance && instance.node.properties) {
+      instance.node.properties[property] = value;
 
+      // Update Renderer
+      if (this.options.renderer && instance.renderedNode) {
+        // Mark dirty instead of immediate update?
+        // Or immediate if critical.
+        // For optimization, mark dirty.
+        instance.dirty = true;
+      }
+
+      // Emit update event for checking
+      this.emit('property_update', { nodeId, property, value });
+    }
+  }
 
   getState(): StateDeclaration {
     return this.state.getSnapshot();

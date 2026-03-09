@@ -83,7 +83,12 @@ describe('AssetManifest — Production', () => {
     beforeEach(() => {
       manifest.addAssets([
         makeAsset('hero_model', { tags: ['character', 'main'], assetType: 'model', format: 'glb' }),
-        makeAsset('floor_tex', { tags: ['environment'], assetType: 'texture', format: 'ktx2', name: 'Floor' }),
+        makeAsset('floor_tex', {
+          tags: ['environment'],
+          assetType: 'texture',
+          format: 'ktx2',
+          name: 'Floor',
+        }),
         makeAsset('bad_asset', { tags: ['broken'], validationErrors: ['missing file'] } as any),
       ]);
     });

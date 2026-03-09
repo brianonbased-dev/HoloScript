@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  AgentManifestBuilder,
-  createManifest,
-  validateManifest,
-} from '../AgentManifest';
+import { AgentManifestBuilder, createManifest, validateManifest } from '../AgentManifest';
 import type { AgentManifest } from '../AgentManifest';
 
 describe('AgentManifestBuilder', () => {
@@ -24,24 +20,30 @@ describe('AgentManifestBuilder', () => {
   });
 
   it('throws without id', () => {
-    expect(() => createManifest()
-      .addCapability({ type: 'render', domain: 'spatial' })
-      .addEndpoint({ protocol: 'local', address: 'localhost' })
-      .build()).toThrow();
+    expect(() =>
+      createManifest()
+        .addCapability({ type: 'render', domain: 'spatial' })
+        .addEndpoint({ protocol: 'local', address: 'localhost' })
+        .build()
+    ).toThrow();
   });
 
   it('throws without capabilities', () => {
-    expect(() => createManifest()
-      .identity('a1', 'T', '1.0.0')
-      .addEndpoint({ protocol: 'local', address: 'localhost' })
-      .build()).toThrow();
+    expect(() =>
+      createManifest()
+        .identity('a1', 'T', '1.0.0')
+        .addEndpoint({ protocol: 'local', address: 'localhost' })
+        .build()
+    ).toThrow();
   });
 
   it('throws without endpoints', () => {
-    expect(() => createManifest()
-      .identity('a1', 'T', '1.0.0')
-      .addCapability({ type: 'render', domain: 'spatial' })
-      .build()).toThrow();
+    expect(() =>
+      createManifest()
+        .identity('a1', 'T', '1.0.0')
+        .addCapability({ type: 'render', domain: 'spatial' })
+        .build()
+    ).toThrow();
   });
 
   it('description sets description', () => {
@@ -57,7 +59,10 @@ describe('AgentManifestBuilder', () => {
 
   it('addCapabilities adds multiple', () => {
     const m = minimalBuilder()
-      .addCapabilities([{ type: 'analyze', domain: 'vision' }, { type: 'generate', domain: 'nlp' }])
+      .addCapabilities([
+        { type: 'analyze', domain: 'vision' },
+        { type: 'generate', domain: 'nlp' },
+      ])
       .build();
     expect(m.capabilities.length).toBe(3); // 1 from minimal + 2
   });
@@ -93,7 +98,9 @@ describe('AgentManifestBuilder', () => {
 describe('validateManifest', () => {
   it('valid manifest has no errors', () => {
     const m: Partial<AgentManifest> = {
-      id: 'a1', name: 'T', version: '1.0.0',
+      id: 'a1',
+      name: 'T',
+      version: '1.0.0',
       capabilities: [{ type: 'render', domain: 'spatial' }],
       endpoints: [{ protocol: 'local', address: 'localhost' }],
       trustLevel: 'local',
@@ -108,7 +115,7 @@ describe('validateManifest', () => {
   it('reports missing id', () => {
     const r = validateManifest({ name: 'T', version: '1' });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.includes('id'))).toBe(true);
+    expect(r.errors.some((e) => e.includes('id'))).toBe(true);
   });
 
   it('reports missing capabilities', () => {
@@ -117,45 +124,59 @@ describe('validateManifest', () => {
   });
 
   it('reports missing endpoints', () => {
-    const r = validateManifest({ id: 'a', name: 'T', version: '1', capabilities: [{ type: 'r', domain: 'd' }], endpoints: [] });
+    const r = validateManifest({
+      id: 'a',
+      name: 'T',
+      version: '1',
+      capabilities: [{ type: 'r', domain: 'd' }],
+      endpoints: [],
+    });
     expect(r.valid).toBe(false);
   });
 
   it('reports bad capability', () => {
     const r = validateManifest({
-      id: 'a', name: 'T', version: '1',
+      id: 'a',
+      name: 'T',
+      version: '1',
       capabilities: [{ type: '', domain: '' } as any],
       endpoints: [{ protocol: 'local', address: 'x' }],
     });
-    expect(r.errors.some(e => e.includes('Capability'))).toBe(true);
+    expect(r.errors.some((e) => e.includes('Capability'))).toBe(true);
   });
 
   it('reports bad endpoint', () => {
     const r = validateManifest({
-      id: 'a', name: 'T', version: '1',
+      id: 'a',
+      name: 'T',
+      version: '1',
       capabilities: [{ type: 'r', domain: 'd' }],
       endpoints: [{ protocol: '', address: '' } as any],
     });
-    expect(r.errors.some(e => e.includes('Endpoint'))).toBe(true);
+    expect(r.errors.some((e) => e.includes('Endpoint'))).toBe(true);
   });
 
   it('warns on missing description', () => {
     const r = validateManifest({
-      id: 'a', name: 'T', version: '1',
+      id: 'a',
+      name: 'T',
+      version: '1',
       capabilities: [{ type: 'r', domain: 'd' }],
       endpoints: [{ protocol: 'local', address: 'x' }],
       trustLevel: 'local',
     });
-    expect(r.warnings.some(w => w.includes('description'))).toBe(true);
+    expect(r.warnings.some((w) => w.includes('description'))).toBe(true);
   });
 
   it('warns on untrusted level', () => {
     const r = validateManifest({
-      id: 'a', name: 'T', version: '1',
+      id: 'a',
+      name: 'T',
+      version: '1',
       capabilities: [{ type: 'r', domain: 'd' }],
       endpoints: [{ protocol: 'local', address: 'x' }],
       trustLevel: 'untrusted',
     });
-    expect(r.warnings.some(w => w.includes('Untrusted'))).toBe(true);
+    expect(r.warnings.some((w) => w.includes('Untrusted'))).toBe(true);
   });
 });

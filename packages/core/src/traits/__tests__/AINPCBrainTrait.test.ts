@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ainpcBrainHandler } from '../AINPCBrainTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('AINPCBrainTrait', () => {
   let node: Record<string, unknown>;
@@ -43,14 +50,17 @@ describe('AINPCBrainTrait', () => {
 
   it('player_enter_dialogue_range emits on_player_nearby', () => {
     sendEvent(ainpcBrainHandler, node, cfg, ctx, {
-      type: 'player_enter_dialogue_range', playerId: 'p1', distance: 3.0,
+      type: 'player_enter_dialogue_range',
+      playerId: 'p1',
+      distance: 3.0,
     });
     expect(getEventCount(ctx, 'on_player_nearby')).toBe(1);
   });
 
   it('player_interact starts dialogue', () => {
     sendEvent(ainpcBrainHandler, node, cfg, ctx, {
-      type: 'player_interact', playerId: 'p1',
+      type: 'player_interact',
+      playerId: 'p1',
     });
     expect((node as any).__npcState.in_dialogue).toBe(true);
     expect((node as any).__npcState.conversation_count).toBe(1);
@@ -59,7 +69,8 @@ describe('AINPCBrainTrait', () => {
 
   it('player_exit_dialogue_range ends dialogue', () => {
     sendEvent(ainpcBrainHandler, node, cfg, ctx, {
-      type: 'player_interact', playerId: 'p1',
+      type: 'player_interact',
+      playerId: 'p1',
     });
     sendEvent(ainpcBrainHandler, node, cfg, ctx, {
       type: 'player_exit_dialogue_range',
@@ -71,7 +82,8 @@ describe('AINPCBrainTrait', () => {
   it('relationship_change emits on_relationship_updated', () => {
     // sendEvent creates a merged config copy, so we verify via emitted event data
     sendEvent(ainpcBrainHandler, node, cfg, ctx, {
-      type: 'relationship_change', delta: 0.2,
+      type: 'relationship_change',
+      delta: 0.2,
     });
     expect(getEventCount(ctx, 'on_relationship_updated')).toBe(1);
     const ev = getLastEvent(ctx, 'on_relationship_updated') as any;

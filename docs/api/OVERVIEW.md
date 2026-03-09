@@ -8,15 +8,15 @@ HoloScript is an AI-native, declarative spatial computing language that compiles
 
 ## Quick Navigation
 
-| Package | Description | Key APIs |
-|---------|-------------|----------|
-| [`@holoscript/core`](#core) | Runtime, parser, traits | `HoloScriptPlusParser`, `TraitHandler`, `ReactiveState` |
-| [`@holoscript/cli`](#cli) | Command-line tools | `compile`, `validate`, `build` |
-| [`@holoscript/mcp-server`](#mcp-server) | AI agent integration | `handleTool`, MCP protocol |
-| [`@holoscript/security-sandbox`](#security-sandbox) | VM isolation | `HoloScriptSandbox`, `executeSafely` |
-| [`@holoscript/ai-validator`](#ai-validator) | Hallucination detection | `AIValidator`, `validateAICode` |
-| [`@holoscript/comparative-benchmarks`](#benchmarks) | Performance comparison | `ComparativeBenchmarks`, `runComparativeBenchmarks` |
-| [`@holoscript/partner-sdk`](#partner-sdk) | Partner integrations | `PartnerSDK`, `WebhookHandler` |
+| Package                                             | Description             | Key APIs                                                |
+| --------------------------------------------------- | ----------------------- | ------------------------------------------------------- |
+| [`@holoscript/core`](#core)                         | Runtime, parser, traits | `HoloScriptPlusParser`, `TraitHandler`, `ReactiveState` |
+| [`@holoscript/cli`](#cli)                           | Command-line tools      | `compile`, `validate`, `build`                          |
+| [`@holoscript/mcp-server`](#mcp-server)             | AI agent integration    | `handleTool`, MCP protocol                              |
+| [`@holoscript/security-sandbox`](#security-sandbox) | VM isolation            | `HoloScriptSandbox`, `executeSafely`                    |
+| [`@holoscript/ai-validator`](#ai-validator)         | Hallucination detection | `AIValidator`, `validateAICode`                         |
+| [`@holoscript/comparative-benchmarks`](#benchmarks) | Performance comparison  | `ComparativeBenchmarks`, `runComparativeBenchmarks`     |
+| [`@holoscript/partner-sdk`](#partner-sdk)           | Partner integrations    | `PartnerSDK`, `WebhookHandler`                          |
 
 ---
 
@@ -44,22 +44,23 @@ sphere {
 ### 2. Trait System
 
 Traits are the building blocks of HoloScript objects. Each trait:
+
 - Has a **name** (e.g., `@grabbable`)
 - Accepts optional **parameters** (e.g., `@color(red)`)
 - Implements **lifecycle hooks** (`onAttach`, `onUpdate`, `onEvent`, `onDetach`)
 
 **Trait Categories:**
 
-| Category | Examples |
-|----------|----------|
-| Interaction | `@grabbable`, `@clickable`, `@hoverable`, `@throwable` |
-| Physics | `@physics`, `@rigidbody`, `@collidable`, `@gravity` |
-| Visual | `@color`, `@material`, `@glowing`, `@emissive`, `@shader` |
-| Networking | `@networked`, `@synced`, `@persistent`, `@owned` |
-| Spatial | `@position`, `@rotation`, `@scale`, `@anchor` |
-| Audio | `@spatial_audio`, `@ambient`, `@hrtf` |
-| AI/ML | `@llm_agent`, `@behavior_tree`, `@npc_brain` |
-| XR | `@hand_tracking`, `@eye_tracked`, `@body_tracking` |
+| Category    | Examples                                                  |
+| ----------- | --------------------------------------------------------- |
+| Interaction | `@grabbable`, `@clickable`, `@hoverable`, `@throwable`    |
+| Physics     | `@physics`, `@rigidbody`, `@collidable`, `@gravity`       |
+| Visual      | `@color`, `@material`, `@glowing`, `@emissive`, `@shader` |
+| Networking  | `@networked`, `@synced`, `@persistent`, `@owned`          |
+| Spatial     | `@position`, `@rotation`, `@scale`, `@anchor`             |
+| Audio       | `@spatial_audio`, `@ambient`, `@hrtf`                     |
+| AI/ML       | `@llm_agent`, `@behavior_tree`, `@npc_brain`              |
+| XR          | `@hand_tracking`, `@eye_tracked`, `@body_tracking`        |
 
 ### 3. Lifecycle Hooks
 
@@ -68,10 +69,10 @@ interface TraitHandler<TConfig> {
   name: VRTraitName;
   defaultConfig: TConfig;
 
-  onAttach?: (node, config, context) => void;  // Called when trait is added
-  onDetach?: (node, config, context) => void;  // Called when trait is removed
-  onUpdate?: (node, config, context, delta) => void;  // Called each frame
-  onEvent?: (node, config, context, event) => void;  // Called on events
+  onAttach?: (node, config, context) => void; // Called when trait is added
+  onDetach?: (node, config, context) => void; // Called when trait is removed
+  onUpdate?: (node, config, context, delta) => void; // Called each frame
+  onEvent?: (node, config, context, event) => void; // Called on events
 }
 ```
 
@@ -105,7 +106,7 @@ const MyCustomTrait: TraitHandler<{ intensity: number }> = {
   onDetach(node, config, context) {
     // Cleanup
     console.log('Trait detached');
-  }
+  },
 };
 ```
 
@@ -137,7 +138,7 @@ import { HoloScriptPlusRuntimeImpl } from '@holoscript/core';
 const runtime = new HoloScriptPlusRuntimeImpl(ast, {
   renderer: myRenderer,
   vrEnabled: true,
-  companions: { robot: robotAPI }
+  companions: { robot: robotAPI },
 });
 
 // Mount the scene
@@ -174,14 +175,14 @@ Provides isolated VM execution for untrusted code.
 import { HoloScriptSandbox, executeSafely } from '@holoscript/security-sandbox';
 
 const sandbox = new HoloScriptSandbox({
-  timeout: 3000,         // 3 second limit
-  memoryLimit: 64,       // 64 MB limit
-  enableLogging: true    // Audit trail
+  timeout: 3000, // 3 second limit
+  memoryLimit: 64, // 64 MB limit
+  enableLogging: true, // Audit trail
 });
 
 // Execute AI-generated code safely
 const result = await sandbox.executeHoloScript(aiCode, {
-  source: 'ai-generated'
+  source: 'ai-generated',
 });
 
 if (!result.success) {
@@ -205,14 +206,14 @@ import { AIValidator, validateAICode } from '@holoscript/ai-validator';
 const validator = new AIValidator({
   provider: 'anthropic',
   hallucinationThreshold: 50,
-  strict: false
+  strict: false,
 });
 
 const result = await validator.validate(aiGeneratedCode);
 
 if (!result.valid) {
   // Use errors to regenerate with LLM
-  const feedback = result.errors.map(e => `${e.message}\n  Fix: ${e.suggestion}`);
+  const feedback = result.errors.map((e) => `${e.message}\n  Fix: ${e.suggestion}`);
   console.log('Feedback for LLM:', feedback.join('\n'));
 }
 
@@ -231,7 +232,7 @@ import { runComparativeBenchmarks } from '@holoscript/comparative-benchmarks';
 
 const { results, report } = await runComparativeBenchmarks({
   iterations: 1000,
-  targets: ['holoscript', 'unity', 'gltf']
+  targets: ['holoscript', 'unity', 'gltf'],
 });
 
 // Summary: HoloScript wins 5/5 benchmarks
@@ -258,6 +259,7 @@ Model Context Protocol server for AI agent integration (34 tools).
 ```
 
 **Configuration:** Add to Claude/Cursor MCP config:
+
 ```json
 {
   "mcpServers": {
@@ -275,19 +277,19 @@ Model Context Protocol server for AI agent integration (34 tools).
 
 HoloScript compiles to **18+ platforms**:
 
-| Platform | Package | Use Case |
-|----------|---------|----------|
-| WebXR | `@holoscript/adapter-webxr` | Browser VR/AR |
-| Unity | `@holoscript/adapter-unity` | Unity Engine |
-| Unreal | `@holoscript/adapter-unreal` | Unreal Engine |
-| Godot | `@holoscript/adapter-godot` | Godot Engine |
-| Three.js | `@holoscript/adapter-threejs` | Web 3D |
-| Babylon.js | `@holoscript/adapter-babylonjs` | WebGL |
-| URDF | `@holoscript/adapter-urdf` | ROS Robotics |
-| SDF | `@holoscript/adapter-sdf` | Gazebo Sim |
-| glTF | `@holoscript/adapter-gltf` | 3D Interchange |
-| FBX | `@holoscript/adapter-fbx` | Autodesk |
-| OBJ | `@holoscript/adapter-obj` | Universal 3D |
+| Platform   | Package                         | Use Case       |
+| ---------- | ------------------------------- | -------------- |
+| WebXR      | `@holoscript/adapter-webxr`     | Browser VR/AR  |
+| Unity      | `@holoscript/adapter-unity`     | Unity Engine   |
+| Unreal     | `@holoscript/adapter-unreal`    | Unreal Engine  |
+| Godot      | `@holoscript/adapter-godot`     | Godot Engine   |
+| Three.js   | `@holoscript/adapter-threejs`   | Web 3D         |
+| Babylon.js | `@holoscript/adapter-babylonjs` | WebGL          |
+| URDF       | `@holoscript/adapter-urdf`      | ROS Robotics   |
+| SDF        | `@holoscript/adapter-sdf`       | Gazebo Sim     |
+| glTF       | `@holoscript/adapter-gltf`      | 3D Interchange |
+| FBX        | `@holoscript/adapter-fbx`       | Autodesk       |
+| OBJ        | `@holoscript/adapter-obj`       | Universal 3D   |
 
 ---
 
@@ -300,4 +302,4 @@ HoloScript compiles to **18+ platforms**:
 
 ---
 
-*API Reference generated with TypeDoc v0.26 · HoloScript v3.4.0*
+_API Reference generated with TypeDoc v0.26 · HoloScript v3.4.0_

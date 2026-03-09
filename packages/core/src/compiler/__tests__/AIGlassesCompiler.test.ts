@@ -145,8 +145,12 @@ describe('AIGlassesCompiler', () => {
     it('imports Jetpack Projected API', () => {
       const result = compiler.compile(makeComp(), 'test-token');
       expect(result.activityFile).toContain('import androidx.xr.projected.ProjectedContext');
-      expect(result.activityFile).toContain('import androidx.xr.projected.ProjectedDeviceController');
-      expect(result.activityFile).toContain('import androidx.xr.projected.ProjectedDisplayController');
+      expect(result.activityFile).toContain(
+        'import androidx.xr.projected.ProjectedDeviceController'
+      );
+      expect(result.activityFile).toContain(
+        'import androidx.xr.projected.ProjectedDisplayController'
+      );
     });
 
     it('initializes ProjectedDeviceController in lifecycleScope', () => {
@@ -269,7 +273,9 @@ describe('AIGlassesCompiler', () => {
       });
       const result = compiler.compile(comp, 'test-token');
       expect(result.glimmerLayoutFile).toContain('var score by remember { mutableStateOf(0) }');
-      expect(result.glimmerLayoutFile).toContain('var name by remember { mutableStateOf("Player") }');
+      expect(result.glimmerLayoutFile).toContain(
+        'var name by remember { mutableStateOf("Player") }'
+      );
     });
 
     it('generates individual object composables', () => {
@@ -296,7 +302,9 @@ describe('AIGlassesCompiler', () => {
         } as any,
       });
       const result = compiler.compile(comp, 'test-token');
-      expect(result.glimmerLayoutFile).toContain('Button(onClick = { /* StartBtn */ }) { Text("Start") }');
+      expect(result.glimmerLayoutFile).toContain(
+        'Button(onClick = { /* StartBtn */ }) { Text("Start") }'
+      );
     });
 
     it('handles color values on text objects', () => {
@@ -376,9 +384,11 @@ describe('AIGlassesCompiler', () => {
     it('extracts commands from glasses_voice trait', () => {
       const comp = makeComp({
         objects: [
-          makeObj('VoiceControl', [], [
-            { name: 'glasses_voice', config: { commands: ['start', 'stop', 'next'] } },
-          ]),
+          makeObj(
+            'VoiceControl',
+            [],
+            [{ name: 'glasses_voice', config: { commands: ['start', 'stop', 'next'] } }]
+          ),
         ],
       });
       const result = compiler.compile(comp, 'test-token');
@@ -391,9 +401,7 @@ describe('AIGlassesCompiler', () => {
     it('generates SpeechRecognizer setup in activity when voice traits present', () => {
       const comp = makeComp({
         objects: [
-          makeObj('VoiceCtrl', [], [
-            { name: 'glasses_voice', config: { commands: ['play'] } },
-          ]),
+          makeObj('VoiceCtrl', [], [{ name: 'glasses_voice', config: { commands: ['play'] } }]),
         ],
       });
       const result = compiler.compile(comp, 'test-token');
@@ -495,9 +503,7 @@ describe('AIGlassesCompiler', () => {
     it('supports accessible trait', () => {
       const comp = makeComp({
         objects: [
-          makeObj('NavItem', [], [
-            { name: 'accessible', config: { label: 'Navigation Button' } },
-          ]),
+          makeObj('NavItem', [], [{ name: 'accessible', config: { label: 'Navigation Button' } }]),
         ],
       });
       const result = compiler.compile(comp, 'test-token');
@@ -657,9 +663,11 @@ describe('AIGlassesCompiler', () => {
     it('generates glimmer_card trait code', () => {
       const comp = makeComp({
         objects: [
-          makeObj('Info', [], [
-            { name: 'glimmer_card', config: { title: 'Weather', action_label: 'Details' } },
-          ]),
+          makeObj(
+            'Info',
+            [],
+            [{ name: 'glimmer_card', config: { title: 'Weather', action_label: 'Details' } }]
+          ),
         ],
       });
       const result = compiler.compile(comp, 'test-token');
@@ -671,9 +679,7 @@ describe('AIGlassesCompiler', () => {
     it('generates glasses_display trait code', () => {
       const comp = makeComp({
         objects: [
-          makeObj('Display', [], [
-            { name: 'glasses_display', config: { brightness: 0.8 } },
-          ]),
+          makeObj('Display', [], [{ name: 'glasses_display', config: { brightness: 0.8 } }]),
         ],
       });
       const result = compiler.compile(comp, 'test-token');
@@ -684,9 +690,7 @@ describe('AIGlassesCompiler', () => {
     it('generates projected_camera trait code', () => {
       const comp = makeComp({
         objects: [
-          makeObj('Camera', [], [
-            { name: 'projected_camera', config: { resolution: '1080p' } },
-          ]),
+          makeObj('Camera', [], [{ name: 'projected_camera', config: { resolution: '1080p' } }]),
         ],
       });
       const result = compiler.compile(comp, 'test-token');
@@ -697,9 +701,11 @@ describe('AIGlassesCompiler', () => {
     it('generates audio trait code', () => {
       const comp = makeComp({
         objects: [
-          makeObj('Alert', [], [
-            { name: 'audio', config: { src: 'notification.mp3', volume: 0.5 } },
-          ]),
+          makeObj(
+            'Alert',
+            [],
+            [{ name: 'audio', config: { src: 'notification.mp3', volume: 0.5 } }]
+          ),
         ],
       });
       const result = compiler.compile(comp, 'test-token');
@@ -710,9 +716,7 @@ describe('AIGlassesCompiler', () => {
 
     it('handles unknown traits gracefully', () => {
       const comp = makeComp({
-        objects: [
-          makeObj('Obj', [], [{ name: 'nonexistent_trait', config: {} }]),
-        ],
+        objects: [makeObj('Obj', [], [{ name: 'nonexistent_trait', config: {} }])],
       });
       const result = compiler.compile(comp, 'test-token');
       expect(result.glimmerLayoutFile).toContain('no AI Glasses mapping defined');
@@ -814,8 +818,14 @@ describe('AIGlassesTraitMap', () => {
 
     it('compares with Android XR headset traits', () => {
       const headsetTraits = [
-        'grabbable', 'hand_tracking', 'eye_tracking', 'spatial_audio',
-        'anchor', 'immersive', 'volume', 'physics',
+        'grabbable',
+        'hand_tracking',
+        'eye_tracking',
+        'spatial_audio',
+        'anchor',
+        'immersive',
+        'volume',
+        'physics',
       ];
       const report = traitMap.generateCoverageReport(headsetTraits);
       expect(report.headsetComparison.headsetOnly.length).toBeGreaterThanOrEqual(0);

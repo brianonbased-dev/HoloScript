@@ -6,17 +6,21 @@ import { emotionHandler } from '../EmotionTrait';
 
 // PAD values from the trait (for test assertions)
 const PAD = {
-  joy:         { pleasure: 0.8,  arousal: 0.5,  dominance: 0.6  },
-  sadness:     { pleasure: -0.7, arousal: -0.4,  dominance: -0.5 },
-  anger:       { pleasure: -0.6, arousal: 0.8,  dominance: 0.6  },
-  fear:        { pleasure: -0.8, arousal: 0.6,  dominance: -0.7 },
-  neutral:     { pleasure: 0,    arousal: 0,    dominance: 0    },
-  trust:       { pleasure: 0.6,  arousal: 0.0,  dominance: 0.3  },
-  anticipation:{ pleasure: 0.3,  arousal: 0.5,  dominance: 0.2  },
+  joy: { pleasure: 0.8, arousal: 0.5, dominance: 0.6 },
+  sadness: { pleasure: -0.7, arousal: -0.4, dominance: -0.5 },
+  anger: { pleasure: -0.6, arousal: 0.8, dominance: 0.6 },
+  fear: { pleasure: -0.8, arousal: 0.6, dominance: -0.7 },
+  neutral: { pleasure: 0, arousal: 0, dominance: 0 },
+  trust: { pleasure: 0.6, arousal: 0.0, dominance: 0.3 },
+  anticipation: { pleasure: 0.3, arousal: 0.5, dominance: 0.2 },
 };
 
-function makeNode() { return { id: 'emotion_node' }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'emotion_node' };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}) {
   const node = makeNode();
   const ctx = makeCtx();
@@ -44,9 +48,12 @@ describe('emotionHandler.defaultConfig', () => {
 
 describe('emotionHandler.onAttach', () => {
   it('creates __emotionState', () => expect(attach().node.__emotionState).toBeDefined());
-  it('currentEmotion=neutral by default', () => expect(attach().node.__emotionState.currentEmotion).toBe('neutral'));
-  it('default neutral pad.pleasure≈0', () => expect(attach().node.__emotionState.pad.pleasure).toBeCloseTo(0));
-  it('default neutral pad.arousal≈0', () => expect(attach().node.__emotionState.pad.arousal).toBeCloseTo(0));
+  it('currentEmotion=neutral by default', () =>
+    expect(attach().node.__emotionState.currentEmotion).toBe('neutral'));
+  it('default neutral pad.pleasure≈0', () =>
+    expect(attach().node.__emotionState.pad.pleasure).toBeCloseTo(0));
+  it('default neutral pad.arousal≈0', () =>
+    expect(attach().node.__emotionState.pad.arousal).toBeCloseTo(0));
   it('intensity=0', () => expect(attach().node.__emotionState.intensity).toBe(0));
   it('history starts empty', () => expect(attach().node.__emotionState.history).toHaveLength(0));
   it('default_mood=joy sets initial joy PAD', () => {
@@ -100,7 +107,9 @@ describe('emotionHandler.onEvent — feel', () => {
   });
   it('ignores unknown emotion names gracefully', () => {
     const { node, ctx, config } = attach();
-    expect(() => emotionHandler.onEvent!(node, config, ctx, { type: 'feel', emotion: 'boredom' as any })).not.toThrow();
+    expect(() =>
+      emotionHandler.onEvent!(node, config, ctx, { type: 'feel', emotion: 'boredom' as any })
+    ).not.toThrow();
   });
   it('clamps targetPad to [-1, 1]', () => {
     const { node, ctx, config } = attach({ reactivity: 1 });
@@ -117,25 +126,40 @@ describe('emotionHandler.onEvent — feel', () => {
 describe('emotionHandler.onEvent — emotion_stimulus', () => {
   it('blends PAD stimulus into targetPad', () => {
     const { node, ctx, config } = attach();
-    emotionHandler.onEvent!(node, config, ctx, { type: 'emotion_stimulus', pad: { pleasure: 0.8, arousal: 0.5, dominance: 0.6 }, intensity: 1 });
+    emotionHandler.onEvent!(node, config, ctx, {
+      type: 'emotion_stimulus',
+      pad: { pleasure: 0.8, arousal: 0.5, dominance: 0.6 },
+      intensity: 1,
+    });
     expect(node.__emotionState.targetPad.pleasure).toBeGreaterThan(0);
     expect(node.__emotionState.targetPad.arousal).toBeGreaterThan(0);
   });
   it('uses default intensity 0.5 when not specified', () => {
     const { node, ctx, config } = attach();
     const before = node.__emotionState.targetPad.pleasure;
-    emotionHandler.onEvent!(node, config, ctx, { type: 'emotion_stimulus', pad: { pleasure: 1, arousal: 0, dominance: 0 } });
+    emotionHandler.onEvent!(node, config, ctx, {
+      type: 'emotion_stimulus',
+      pad: { pleasure: 1, arousal: 0, dominance: 0 },
+    });
     expect(node.__emotionState.targetPad.pleasure).toBeGreaterThan(before);
   });
   it('negative stimulus lowers pleasure', () => {
     const { node, ctx, config } = attach({ default_mood: 'joy' }); // start positive
-    emotionHandler.onEvent!(node, config, ctx, { type: 'emotion_stimulus', pad: { pleasure: -1, arousal: 0, dominance: 0 }, intensity: 1 });
+    emotionHandler.onEvent!(node, config, ctx, {
+      type: 'emotion_stimulus',
+      pad: { pleasure: -1, arousal: 0, dominance: 0 },
+      intensity: 1,
+    });
     expect(node.__emotionState.targetPad.pleasure).toBeLessThan(PAD.joy.pleasure);
   });
   it('clamps targetPad components to [-1,1]', () => {
     const { node, ctx, config } = attach();
     for (let i = 0; i < 5; i++) {
-      emotionHandler.onEvent!(node, config, ctx, { type: 'emotion_stimulus', pad: { pleasure: 1, arousal: 1, dominance: 1 }, intensity: 1 });
+      emotionHandler.onEvent!(node, config, ctx, {
+        type: 'emotion_stimulus',
+        pad: { pleasure: 1, arousal: 1, dominance: 1 },
+        intensity: 1,
+      });
     }
     expect(node.__emotionState.targetPad.pleasure).toBeLessThanOrEqual(1);
     expect(node.__emotionState.targetPad.arousal).toBeLessThanOrEqual(1);
@@ -150,20 +174,35 @@ describe('emotionHandler.onEvent — emotion_broadcast (contagion)', () => {
     const sourceNode = { id: 'source' };
     const { node, ctx, config } = attach({ social_contagion: false });
     const pleasureBefore = node.__emotionState.targetPad.pleasure;
-    emotionHandler.onEvent!(node, config, ctx, { type: 'emotion_broadcast', source: sourceNode, emotion: 'joy', intensity: 0.8 });
+    emotionHandler.onEvent!(node, config, ctx, {
+      type: 'emotion_broadcast',
+      source: sourceNode,
+      emotion: 'joy',
+      intensity: 0.8,
+    });
     expect(node.__emotionState.targetPad.pleasure).toBe(pleasureBefore);
   });
   it('ignores self-broadcast', () => {
     const { node, ctx, config } = attach({ social_contagion: true });
     const pleasureBefore = node.__emotionState.targetPad.pleasure;
-    emotionHandler.onEvent!(node, config, ctx, { type: 'emotion_broadcast', source: node, emotion: 'joy', intensity: 0.8 });
+    emotionHandler.onEvent!(node, config, ctx, {
+      type: 'emotion_broadcast',
+      source: node,
+      emotion: 'joy',
+      intensity: 0.8,
+    });
     expect(node.__emotionState.targetPad.pleasure).toBe(pleasureBefore);
   });
   it('applies contagion at 30% of broadcast intensity when enabled', () => {
     const sourceNode = { id: 'other' };
     const { node, ctx, config } = attach({ social_contagion: true });
     const pleasureBefore = node.__emotionState.targetPad.pleasure;
-    emotionHandler.onEvent!(node, config, ctx, { type: 'emotion_broadcast', source: sourceNode, emotion: 'joy', intensity: 1.0 });
+    emotionHandler.onEvent!(node, config, ctx, {
+      type: 'emotion_broadcast',
+      source: sourceNode,
+      emotion: 'joy',
+      intensity: 1.0,
+    });
     // joy.pleasure * 0.3 * 1.0 = 0.24 (approximate)
     expect(node.__emotionState.targetPad.pleasure).toBeGreaterThan(pleasureBefore);
   });
@@ -198,7 +237,10 @@ describe('emotionHandler.onUpdate — blend & decay', () => {
     emotionHandler.onUpdate!(node, config, ctx, 1);
     // After big blend step, should classify as joy and emit emotion_changed
     if (node.__emotionState.currentEmotion !== 'neutral') {
-      expect(ctx.emit).toHaveBeenCalledWith('emotion_changed', expect.objectContaining({ to: expect.any(String) }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'emotion_changed',
+        expect.objectContaining({ to: expect.any(String) })
+      );
     }
   });
   it('intensity is non-negative', () => {
@@ -212,13 +254,16 @@ describe('emotionHandler.onUpdate — blend & decay', () => {
     const { node, ctx, config } = attach({
       reactivity: 1,
       expression_mapping: { joy: 'smile_anim' },
-      default_mood: 'neutral'
+      default_mood: 'neutral',
     });
     emotionHandler.onEvent!(node, config, ctx, { type: 'feel', emotion: 'joy', intensity: 1 });
     ctx.emit.mockClear();
     emotionHandler.onUpdate!(node, config, ctx, 1);
     if (node.__emotionState.currentEmotion === 'joy') {
-      expect(ctx.emit).toHaveBeenCalledWith('play_animation', expect.objectContaining({ animation: 'smile_anim' }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'play_animation',
+        expect.objectContaining({ animation: 'smile_anim' })
+      );
     }
   });
   it('emits emotion_broadcast when social_contagion=true and intensity>0.3', () => {
@@ -227,7 +272,10 @@ describe('emotionHandler.onUpdate — blend & decay', () => {
     emotionHandler.onUpdate!(node, config, ctx, 1);
     // intensity may exceed 0.3 — if so, should emit broadcast
     if (node.__emotionState.intensity > 0.3) {
-      expect(ctx.emit).toHaveBeenCalledWith('emotion_broadcast', expect.objectContaining({ radius: 5 }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'emotion_broadcast',
+        expect.objectContaining({ radius: 5 })
+      );
     }
   });
   it('history records emotion snapshots on change', () => {
@@ -241,7 +289,11 @@ describe('emotionHandler.onUpdate — blend & decay', () => {
   it('history capped at history_limit', () => {
     const { node, ctx, config } = attach({ reactivity: 1, decay_rate: 2, history_limit: 2 });
     for (let i = 0; i < 20; i++) {
-      emotionHandler.onEvent!(node, config, ctx, { type: 'feel', emotion: i % 2 === 0 ? 'joy' as any : 'sadness' as any, intensity: 1 });
+      emotionHandler.onEvent!(node, config, ctx, {
+        type: 'feel',
+        emotion: i % 2 === 0 ? ('joy' as any) : ('sadness' as any),
+        intensity: 1,
+      });
       emotionHandler.onUpdate!(node, config, ctx, 0.5);
     }
     expect(node.__emotionState.history.length).toBeLessThanOrEqual(2);

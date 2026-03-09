@@ -14,21 +14,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { SelfImproveHarvester } from '../../SelfImproveHarvester';
-import type {
-  FileWriter,
-  HarvesterConfig,
-} from '../../SelfImproveHarvester';
+import type { FileWriter, HarvesterConfig } from '../../SelfImproveHarvester';
 import { SparsityMonitor } from '../../../training/SparsityMonitor';
 import type { SparsityQualityHistoryEntry } from '../../../training/SparsityMonitorTypes';
 import { FocusedDPOSplitter } from '../../FocusedDPOSplitter';
 import { ConvergenceDetector } from '../../ConvergenceDetector';
 import { calculateQualityScore } from '../../QualityScore';
 import type { QualityReport } from '../../QualityScore';
-import type {
-  SelfImproveIO,
-  UntestedTarget,
-  VitestResult,
-} from '../../SelfImproveCommand';
+import type { SelfImproveIO, UntestedTarget, VitestResult } from '../../SelfImproveCommand';
 
 // =============================================================================
 // SHARED TEST FIXTURES
@@ -265,7 +258,7 @@ describe('Self-Improvement Pipeline Integration', () => {
         validateSyntax: false, // Skip syntax validation for integration tests
         flushInterval: 100, // High threshold to avoid auto-flush
       },
-      { fileWriter: mockFileWriter },
+      { fileWriter: mockFileWriter }
     );
     convergenceDetector = new ConvergenceDetector({
       minIterations: 3,
@@ -624,16 +617,12 @@ describe('Self-Improvement Pipeline Integration', () => {
       const result = splitter.process(SAMPLE_HOLO_SOURCE, 'snn_viz.holo');
 
       // Should extract state block containing sparsity-related state vars
-      const stateSegmentPairs = result.pairs.filter(
-        (p) => p.metadata.segmentKind === 'state',
-      );
+      const stateSegmentPairs = result.pairs.filter((p) => p.metadata.segmentKind === 'state');
 
       // The state block references spike_count and sparsity
       if (stateSegmentPairs.length > 0) {
         const hasSparsityRef = stateSegmentPairs.some(
-          (p) =>
-            p.chosen.includes('spike_count') ||
-            p.chosen.includes('sparsity'),
+          (p) => p.chosen.includes('spike_count') || p.chosen.includes('sparsity')
         );
         expect(hasSparsityRef).toBe(true);
       }
@@ -665,15 +654,11 @@ describe('Self-Improvement Pipeline Integration', () => {
     it('DPO pairs from logic blocks contain sparsity-related logic', () => {
       const result = splitter.process(SAMPLE_HOLO_SOURCE, 'snn_viz.holo');
 
-      const logicPairs = result.pairs.filter(
-        (p) => p.metadata.segmentKind === 'logic',
-      );
+      const logicPairs = result.pairs.filter((p) => p.metadata.segmentKind === 'logic');
 
       if (logicPairs.length > 0) {
         // Logic block should reference spike-related operations
-        const hasSpikePair = logicPairs.some(
-          (p) => p.chosen.includes('spike_count'),
-        );
+        const hasSpikePair = logicPairs.some((p) => p.chosen.includes('spike_count'));
         expect(hasSpikePair).toBe(true);
       }
     });
@@ -772,7 +757,7 @@ describe('Self-Improvement Pipeline Integration', () => {
       detector.record(0.951);
       detector.record(0.952);
       detector.record(0.951);
-      detector.record(0.950);
+      detector.record(0.95);
 
       const status = detector.getStatus();
       expect(status.converged).toBe(true);
@@ -781,7 +766,7 @@ describe('Self-Improvement Pipeline Integration', () => {
     });
 
     it('convergence snapshot preserves full history', () => {
-      const scores = [0.85, 0.90, 0.94, 0.945, 0.946];
+      const scores = [0.85, 0.9, 0.94, 0.945, 0.946];
       for (const score of scores) {
         convergenceDetector.record(score);
       }
@@ -831,9 +816,9 @@ describe('Self-Improvement Pipeline Integration', () => {
     });
 
     it('convergence totalImprovement reflects first-to-last score difference', () => {
-      convergenceDetector.record(0.80);
+      convergenceDetector.record(0.8);
       convergenceDetector.record(0.85);
-      convergenceDetector.record(0.90);
+      convergenceDetector.record(0.9);
       convergenceDetector.record(0.91);
       convergenceDetector.record(0.91);
 

@@ -87,8 +87,18 @@ describe('Skeletal & IK Performance', () => {
       solver.addChain({
         id: `chain-${c}`,
         bones: [
-          { id: `b1-${c}`, position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 0.3 },
-          { id: `b2-${c}`, position: { x: 0.3, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 0.3 },
+          {
+            id: `b1-${c}`,
+            position: { x: 0, y: 0, z: 0 },
+            rotation: { x: 0, y: 0, z: 0, w: 1 },
+            length: 0.3,
+          },
+          {
+            id: `b2-${c}`,
+            position: { x: 0.3, y: 0, z: 0 },
+            rotation: { x: 0, y: 0, z: 0, w: 1 },
+            length: 0.3,
+          },
         ],
         target: { x: 0.5, y: 0.2, z: 0 },
         weight: 1,

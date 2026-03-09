@@ -2,12 +2,7 @@
  * @fileoverview Tests for StateMachine, InputManager, NetworkManager, CultureRuntime barrel exports
  */
 import { describe, it, expect } from 'vitest';
-import {
-  StateMachine,
-  InputManager,
-  NetworkManager,
-  CultureRuntime,
-} from '../index';
+import { StateMachine, InputManager, NetworkManager, CultureRuntime } from '../index';
 
 describe('StateMachine exports', () => {
   it('creates states and transitions', () => {

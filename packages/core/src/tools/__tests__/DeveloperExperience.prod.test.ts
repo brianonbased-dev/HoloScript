@@ -26,7 +26,7 @@ describe('ErrorFormatter — Production', () => {
     const src = 'line1\nline2\nline3\nline4';
     const output = ErrorFormatter.formatError(
       { message: 'Err', location: { line: 3, column: 1 } },
-      src,
+      src
     );
     expect(output).toContain('line3');
   });

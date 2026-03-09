@@ -14,13 +14,13 @@
 
 ### Overall Performance
 
-| Metric | Value |
-|--------|-------|
-| **Total Compilations** | 112 |
-| **Success Rate** | 96.4% (108/112) |
-| **Average Compilation Time** | 47ms |
-| **Average Output Size** | 14.4 KB |
-| **Average Feature Parity** | 88.1% |
+| Metric                       | Value           |
+| ---------------------------- | --------------- |
+| **Total Compilations**       | 112             |
+| **Success Rate**             | 96.4% (108/112) |
+| **Average Compilation Time** | 47ms            |
+| **Average Output Size**      | 14.4 KB         |
+| **Average Feature Parity**   | 88.1%           |
 
 ### Coverage
 
@@ -33,39 +33,42 @@
 ### 🏆 Top Performing Targets
 
 **Fastest Compilation:**
+
 1. DTDL - 28ms average (digital twin JSON)
 2. URDF - 32ms average (robot description XML)
 3. SDF - 34ms average (simulation format)
 
 **Smallest Output:**
+
 1. DTDL - 4.5KB average
 2. URDF - 5.5KB average
 3. SDF - 6.0KB average
 
 **Highest Feature Parity:**
+
 1. Unreal Engine - 95% average
 2. VisionOS - 94% average
 3. Unity - 92% average
 
 ### 📊 By Vertical Success Rate
 
-| Vertical | Success Rate | Targets Tested |
-|----------|--------------|----------------|
-| Aerospace | 100% (7/7) | Unity, Unreal, WebXR, Babylon, R3F, OpenXR, DTDL |
-| Architecture | 100% (7/7) | Unity, Unreal, WebXR, Babylon, R3F, VisionOS, OpenXR |
-| Art | 100% (7/7) | WebXR, Babylon, R3F, VisionOS, OpenXR, Unity, Unreal |
-| Entertainment | 100% (7/7) | Unity, Unreal, WebXR, VRChat, Babylon, R3F, VisionOS |
-| Fitness | 100% (7/7) | OpenXR, VisionOS, AR, WebXR, Babylon, R3F, Unity |
-| Gaming | 100% (8/8) | Unity, Unreal, Godot, VRChat, WebXR, R3F, Babylon, PlayCanvas |
-| Healthcare | 100% (8/8) | iOS, Android, OpenXR, VisionOS, AR, WebXR, Babylon, R3F |
-| Manufacturing | 100% (7/7) | OpenXR, Unity, Unreal, DTDL, URDF, SDF, WebGPU |
-| Robotics | 100% (7/7) | URDF, SDF, OpenXR, WebGPU, Unity, Unreal, DTDL |
-| Social | 100% (7/7) | VRChat, OpenXR, WebXR, Babylon, R3F, Unity, VisionOS |
-| Tourism | 100% (8/8) | AR, iOS, Android, VisionOS, WebXR, Babylon, R3F, OpenXR |
-| Automotive | 89% (8/9) | AR, iOS, VisionOS, WebXR, Babylon, R3F, Unity, Unreal (Android failed) |
-| Education | 88% (7/8) | WebXR, Babylon, R3F, A-Frame, OpenXR, Unity, Unreal (PlayCanvas failed) |
-| Real Estate | 88% (7/8) | AR, iOS, Android, VisionOS, WebXR, R3F, Unity (Babylon failed) |
-| Retail | 86% (6/7) | AR, iOS, Android, WebXR, R3F, VisionOS (Babylon failed) |
+| Vertical      | Success Rate | Targets Tested                                                          |
+| ------------- | ------------ | ----------------------------------------------------------------------- |
+| Aerospace     | 100% (7/7)   | Unity, Unreal, WebXR, Babylon, R3F, OpenXR, DTDL                        |
+| Architecture  | 100% (7/7)   | Unity, Unreal, WebXR, Babylon, R3F, VisionOS, OpenXR                    |
+| Art           | 100% (7/7)   | WebXR, Babylon, R3F, VisionOS, OpenXR, Unity, Unreal                    |
+| Entertainment | 100% (7/7)   | Unity, Unreal, WebXR, VRChat, Babylon, R3F, VisionOS                    |
+| Fitness       | 100% (7/7)   | OpenXR, VisionOS, AR, WebXR, Babylon, R3F, Unity                        |
+| Gaming        | 100% (8/8)   | Unity, Unreal, Godot, VRChat, WebXR, R3F, Babylon, PlayCanvas           |
+| Healthcare    | 100% (8/8)   | iOS, Android, OpenXR, VisionOS, AR, WebXR, Babylon, R3F                 |
+| Manufacturing | 100% (7/7)   | OpenXR, Unity, Unreal, DTDL, URDF, SDF, WebGPU                          |
+| Robotics      | 100% (7/7)   | URDF, SDF, OpenXR, WebGPU, Unity, Unreal, DTDL                          |
+| Social        | 100% (7/7)   | VRChat, OpenXR, WebXR, Babylon, R3F, Unity, VisionOS                    |
+| Tourism       | 100% (8/8)   | AR, iOS, Android, VisionOS, WebXR, Babylon, R3F, OpenXR                 |
+| Automotive    | 89% (8/9)    | AR, iOS, VisionOS, WebXR, Babylon, R3F, Unity, Unreal (Android failed)  |
+| Education     | 88% (7/8)    | WebXR, Babylon, R3F, A-Frame, OpenXR, Unity, Unreal (PlayCanvas failed) |
+| Real Estate   | 88% (7/8)    | AR, iOS, Android, VisionOS, WebXR, R3F, Unity (Babylon failed)          |
+| Retail        | 86% (6/7)    | AR, iOS, Android, WebXR, R3F, VisionOS (Babylon failed)                 |
 
 ## Benchmark Composition Details
 
@@ -99,11 +102,13 @@ All 15 compositions are representative, production-quality examples demonstratin
 ## Target Platform Matrix
 
 ### Game Engines (Desktop/Console)
+
 - **Unity** - 15 verticals, 100% success, 45ms avg, 15KB avg, 92% parity
 - **Unreal Engine 5** - 11 verticals, 100% success, 78ms avg, 28KB avg, 95% parity
 - **Godot 4** - 1 vertical, 100% success, 56ms avg, 13.1KB avg, 84% parity
 
 ### Web Platforms
+
 - **WebXR (R3F)** - 12 verticals, 100% success, 36ms avg, 10.8KB avg, 87% parity
 - **Babylon.js** - 12 verticals, 92% success, 38ms avg, 11KB avg, 86% parity
 - **React Three Fiber** - 12 verticals, 100% success, 35ms avg, 10.5KB avg, 87% parity
@@ -111,21 +116,25 @@ All 15 compositions are representative, production-quality examples demonstratin
 - **A-Frame** - 1 vertical, 100% success, 41ms avg, 12.1KB avg, 83% parity
 
 ### Mobile AR
+
 - **iOS/ARKit** - 5 verticals, 100% success, 50ms avg, 16.5KB avg, 91% parity
 - **Android/ARCore** - 5 verticals, 80% success, 49ms avg (when successful), 88% parity
 - **Generic AR** - 6 verticals, 100% success, 48ms avg, 14KB avg, 87% parity
 
 ### XR Platforms
+
 - **OpenXR** - 12 verticals, 100% success, 55ms avg, 16KB avg, 90% parity
 - **VisionOS** - 9 verticals, 100% success, 62ms avg, 22KB avg, 94% parity
 - **Android XR** - 0 verticals tested (available but not used in current matrix)
 - **VRChat** - 3 verticals, 100% success, 68ms avg, 18KB avg, 85% parity
 
 ### Compute/Runtime
+
 - **WebGPU** - 2 verticals, 100% success, 42ms avg, 9.5KB avg, 84% parity
 - **WASM** - 0 verticals tested (available but not used)
 
 ### Robotics/IoT
+
 - **URDF** - 2 verticals, 100% success, 32ms avg, 5.5KB avg, 78% parity
 - **SDF** - 2 verticals, 100% success, 34ms avg, 6KB avg, 79% parity
 - **DTDL** - 3 verticals, 100% success, 28ms avg, 4.5KB avg, 75% parity
@@ -142,6 +151,7 @@ All failures are simulated for demonstration purposes:
 4. **Automotive → Android** - Simulated compilation error
 
 In production, these would represent:
+
 - Missing compiler features
 - Unsupported trait combinations
 - Platform-specific limitations
@@ -157,6 +167,7 @@ npx ts-node --esm run-benchmark-mock.ts
 ```
 
 **Output:**
+
 - `results/benchmark-results.json` - Raw JSON data (46KB)
 - `BENCHMARK_REPORT.md` - Human-readable report (728 lines, 25KB)
 
@@ -196,6 +207,7 @@ jq '[.[] | select(.success)] | group_by(.target) | map({target: .[0].target, cou
 ### Target Applicability
 
 Not all targets are suitable for all verticals. Mapping based on:
+
 - Industry standard platforms (e.g., Unity/Unreal for gaming)
 - Platform capabilities (e.g., iOS/Android for AR retail)
 - Real-world deployment scenarios (e.g., URDF/SDF for robotics)

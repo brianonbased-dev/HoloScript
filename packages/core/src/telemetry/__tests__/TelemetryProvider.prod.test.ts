@@ -32,7 +32,6 @@ function makeConfig(overrides: Partial<TelemetryConfig> = {}): TelemetryConfig {
 }
 
 describe('HoloScriptTelemetry — Production', () => {
-
   // ─── Construction ─────────────────────────────────────────────────────────
 
   it('enabled defaults to true when not specified', () => {
@@ -159,7 +158,7 @@ describe('HoloScriptTelemetry — Production', () => {
     const t = new HoloScriptTelemetry(makeConfig());
     t.recordParseTime(120, 'holoscript');
     const metrics = t.getMetrics();
-    expect(metrics.some(e => e.name.includes('parse'))).toBe(true);
+    expect(metrics.some((e) => e.name.includes('parse'))).toBe(true);
   });
 
   it('recordParseTime emits metric:record event', () => {
@@ -173,13 +172,13 @@ describe('HoloScriptTelemetry — Production', () => {
   it('recordCompileTime records histogram with target label', () => {
     const t = new HoloScriptTelemetry(makeConfig());
     t.recordCompileTime(300, 'unity');
-    expect(t.getMetrics().some(e => JSON.stringify(e).includes('unity'))).toBe(true);
+    expect(t.getMetrics().some((e) => JSON.stringify(e).includes('unity'))).toBe(true);
   });
 
   it('recordError increments error counter', () => {
     const t = new HoloScriptTelemetry(makeConfig());
     t.recordError(new Error('oops'), 'compiler');
-    expect(t.getMetrics().some(e => e.name.includes('error'))).toBe(true);
+    expect(t.getMetrics().some((e) => e.name.includes('error'))).toBe(true);
   });
 
   it('recordError with string does not throw', () => {
@@ -190,7 +189,7 @@ describe('HoloScriptTelemetry — Production', () => {
   it('recordObjectCount sets gauge', () => {
     const t = new HoloScriptTelemetry(makeConfig());
     t.recordObjectCount(42, 'unity');
-    expect(t.getMetrics().some(e => e.name.includes('object'))).toBe(true);
+    expect(t.getMetrics().some((e) => e.name.includes('object'))).toBe(true);
   });
 
   it('recordTraitUsage increments counter per trait', () => {
@@ -198,7 +197,7 @@ describe('HoloScriptTelemetry — Production', () => {
     t.recordTraitUsage('physics');
     t.recordTraitUsage('physics');
     t.recordTraitUsage('cloth');
-    expect(t.getMetrics().some(e => JSON.stringify(e).includes('physics'))).toBe(true);
+    expect(t.getMetrics().some((e) => JSON.stringify(e).includes('physics'))).toBe(true);
   });
 
   it('recordCacheHit and recordCacheMiss track independent counters', () => {
@@ -243,19 +242,27 @@ describe('HoloScriptTelemetry — Production', () => {
     const t = new HoloScriptTelemetry(makeConfig({ enabledInstrumentations: ['parse'] }));
     const parser = { parse: () => ({}) };
     t.instrumentParser(parser).parse('');
-    expect(t.getMetrics().some(e => e.name.includes('parse'))).toBe(true);
+    expect(t.getMetrics().some((e) => e.name.includes('parse'))).toBe(true);
   });
 
   it('instrumentParser sets span status error when parse() throws', () => {
     const t = new HoloScriptTelemetry(makeConfig({ enabledInstrumentations: ['parse'] }));
-    const parser = { parse: () => { throw new Error('syntax error'); } };
+    const parser = {
+      parse: () => {
+        throw new Error('syntax error');
+      },
+    };
     expect(() => t.instrumentParser(parser).parse('')).toThrow('syntax error');
-    expect(t.getTraces().some(s => s.status === 'error')).toBe(true);
+    expect(t.getTraces().some((s) => s.status === 'error')).toBe(true);
   });
 
   it('instrumentParser re-throws parse() error', () => {
     const t = new HoloScriptTelemetry(makeConfig({ enabledInstrumentations: ['parse'] }));
-    const parser = { parse: () => { throw new Error('parse boom'); } };
+    const parser = {
+      parse: () => {
+        throw new Error('parse boom');
+      },
+    };
     expect(() => t.instrumentParser(parser).parse('')).toThrow('parse boom');
   });
 
@@ -281,14 +288,20 @@ describe('HoloScriptTelemetry — Production', () => {
     const t = new HoloScriptTelemetry(makeConfig({ enabledInstrumentations: ['compile'] }));
     const compiler = { compile: () => '' };
     t.instrumentCompiler(compiler).compile({} as any);
-    expect(t.getMetrics().some(e => e.name.includes('compile'))).toBe(true);
+    expect(t.getMetrics().some((e) => e.name.includes('compile'))).toBe(true);
   });
 
   it('instrumentCompiler sets span status error when compile() throws', () => {
     const t = new HoloScriptTelemetry(makeConfig({ enabledInstrumentations: ['compile'] }));
-    const compiler = { compile: () => { throw new Error('compile fail'); } };
-    try { t.instrumentCompiler(compiler).compile({} as any); } catch {}
-    expect(t.getTraces().some(s => s.status === 'error')).toBe(true);
+    const compiler = {
+      compile: () => {
+        throw new Error('compile fail');
+      },
+    };
+    try {
+      t.instrumentCompiler(compiler).compile({} as any);
+    } catch {}
+    expect(t.getTraces().some((s) => s.status === 'error')).toBe(true);
   });
 
   it('instrumentCompiler is passthrough when compile not in enabledInstrumentations', () => {
@@ -310,7 +323,9 @@ describe('HoloScriptTelemetry — Production', () => {
   });
 
   it('enabled=false: instrumentParser still calls parse() even when gated by sampleRate', () => {
-    const t = new HoloScriptTelemetry(makeConfig({ enabled: false, enabledInstrumentations: ['parse'] }));
+    const t = new HoloScriptTelemetry(
+      makeConfig({ enabled: false, enabledInstrumentations: ['parse'] })
+    );
     const parse = vi.fn(() => ({ ast: 'ok' }));
     const result = t.instrumentParser({ parse }).parse('code');
     expect(parse).toHaveBeenCalledOnce();

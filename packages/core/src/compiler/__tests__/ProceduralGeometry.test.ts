@@ -16,9 +16,7 @@ import {
 describe('ProceduralGeometry', () => {
   describe('generateHullGeometry', () => {
     it('should generate a basic metaball hull', () => {
-      const blobs: BlobDef[] = [
-        { center: [0, 0, 0], radius: [1, 1, 1] },
-      ];
+      const blobs: BlobDef[] = [{ center: [0, 0, 0], radius: [1, 1, 1] }];
       const geometry = generateHullGeometry(blobs, 16, 1.0);
 
       expect(geometry.positions.length).toBeGreaterThan(0);
@@ -29,9 +27,7 @@ describe('ProceduralGeometry', () => {
     });
 
     it('should use Uint16Array for small meshes (<65535 vertices)', () => {
-      const blobs: BlobDef[] = [
-        { center: [0, 0, 0], radius: [1, 1, 1] },
-      ];
+      const blobs: BlobDef[] = [{ center: [0, 0, 0], radius: [1, 1, 1] }];
       const geometry = generateHullGeometry(blobs, 16, 1.0);
 
       const vertexCount = geometry.positions.length / 3;
@@ -192,7 +188,13 @@ describe('ProceduralGeometry', () => {
     });
 
     it('should return fallback box for too few anchors', () => {
-      const geometry = generateMembraneGeometry([[0, 0, 0], [1, 0, 0]], 8);
+      const geometry = generateMembraneGeometry(
+        [
+          [0, 0, 0],
+          [1, 0, 0],
+        ],
+        8
+      );
 
       expect(geometry.positions.length).toBe(24 * 3); // Fallback box
     });
@@ -200,9 +202,7 @@ describe('ProceduralGeometry', () => {
 
   describe('Index overflow protection', () => {
     it('should never have index values >= vertex count', () => {
-      const blobs: BlobDef[] = [
-        { center: [0, 0, 0], radius: [2, 2, 2] },
-      ];
+      const blobs: BlobDef[] = [{ center: [0, 0, 0], radius: [2, 2, 2] }];
       const geometry = generateHullGeometry(blobs, 50, 1.0);
 
       const vertexCount = geometry.positions.length / 3;
@@ -240,9 +240,19 @@ describe('ProceduralGeometry', () => {
 
   describe('LOD presets', () => {
     const singleBlob: BlobDef[] = [{ center: [0, 0, 0], radius: [1, 1, 1] }];
-    const splinePoints = [[0, 0, 0], [1, 1, 0], [2, 0, 0], [3, 1, 0]];
+    const splinePoints = [
+      [0, 0, 0],
+      [1, 1, 0],
+      [2, 0, 0],
+      [3, 1, 0],
+    ];
     const splineRadii = [0.2, 0.3, 0.3, 0.2];
-    const membraneAnchors = [[1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0]];
+    const membraneAnchors = [
+      [1, 0, 0],
+      [0, 1, 0],
+      [-1, 0, 0],
+      [0, -1, 0],
+    ];
 
     it('should produce valid geometry at all LOD levels for hull', () => {
       const lods: LODPreset[] = ['low', 'medium', 'high'];
@@ -315,9 +325,7 @@ describe('ProceduralGeometry', () => {
 
   describe('Vertex deduplication correctness', () => {
     it('should not have duplicate vertices on shared edges', () => {
-      const blobs: BlobDef[] = [
-        { center: [0, 0, 0], radius: [1, 1, 1] },
-      ];
+      const blobs: BlobDef[] = [{ center: [0, 0, 0], radius: [1, 1, 1] }];
       const geometry = generateHullGeometry(blobs, 16, 1.0);
 
       // Build set of all referenced vertex indices
@@ -348,9 +356,7 @@ describe('ProceduralGeometry', () => {
       // where the old formula ix + iy*1000 + iz*1000000 would collide
       // at resolutions beyond 1000. We test a smaller case but verify
       // the deduplication math is correct.
-      const blobs: BlobDef[] = [
-        { center: [0, 0, 0], radius: [0.5, 0.5, 0.5] },
-      ];
+      const blobs: BlobDef[] = [{ center: [0, 0, 0], radius: [0.5, 0.5, 0.5] }];
 
       // Generate at two similar resolutions -- both should produce valid geometry
       const geo1 = generateHullGeometry(blobs, 20, 1.0);
@@ -369,9 +375,7 @@ describe('ProceduralGeometry', () => {
 
   describe('Edge interpolation quality', () => {
     it('should produce normals with unit length', () => {
-      const blobs: BlobDef[] = [
-        { center: [0, 0, 0], radius: [1, 1, 1] },
-      ];
+      const blobs: BlobDef[] = [{ center: [0, 0, 0], radius: [1, 1, 1] }];
       const geometry = generateHullGeometry(blobs, 20, 1.0);
 
       const vertexCount = geometry.positions.length / 3;
@@ -409,9 +413,7 @@ describe('ProceduralGeometry', () => {
     });
 
     it('should produce valid UVs in [0, 1] range', () => {
-      const blobs: BlobDef[] = [
-        { center: [0, 0, 0], radius: [1, 1, 1] },
-      ];
+      const blobs: BlobDef[] = [{ center: [0, 0, 0], radius: [1, 1, 1] }];
       const geometry = generateHullGeometry(blobs, 16, 1.0);
 
       const vertexCount = geometry.positions.length / 3;
@@ -428,9 +430,7 @@ describe('ProceduralGeometry', () => {
 
   describe('MC_TRI_TABLE validation', () => {
     it('should produce a closed manifold for a single sphere', () => {
-      const blobs: BlobDef[] = [
-        { center: [0, 0, 0], radius: [1, 1, 1] },
-      ];
+      const blobs: BlobDef[] = [{ center: [0, 0, 0], radius: [1, 1, 1] }];
       const geometry = generateHullGeometry(blobs, 24, 1.0);
 
       // For a single sphere, the marching cubes output should be a closed mesh.
@@ -440,7 +440,11 @@ describe('ProceduralGeometry', () => {
         const a = geometry.indices[i];
         const b = geometry.indices[i + 1];
         const c = geometry.indices[i + 2];
-        for (const [v0, v1] of [[a, b], [b, c], [c, a]]) {
+        for (const [v0, v1] of [
+          [a, b],
+          [b, c],
+          [c, a],
+        ]) {
           const key = Math.min(v0, v1) + '_' + Math.max(v0, v1);
           edgeCount.set(key, (edgeCount.get(key) || 0) + 1);
         }
@@ -461,9 +465,7 @@ describe('ProceduralGeometry', () => {
     });
 
     it('should produce consistent triangle winding', () => {
-      const blobs: BlobDef[] = [
-        { center: [0, 0, 0], radius: [1, 1, 1] },
-      ];
+      const blobs: BlobDef[] = [{ center: [0, 0, 0], radius: [1, 1, 1] }];
       const geometry = generateHullGeometry(blobs, 16, 1.0);
 
       // Verify all triangles have non-zero area (no degenerate triangles)
@@ -473,13 +475,23 @@ describe('ProceduralGeometry', () => {
         const b = geometry.indices[i + 1];
         const c = geometry.indices[i + 2];
 
-        const ax = geometry.positions[a * 3], ay = geometry.positions[a * 3 + 1], az = geometry.positions[a * 3 + 2];
-        const bx = geometry.positions[b * 3], by = geometry.positions[b * 3 + 1], bz = geometry.positions[b * 3 + 2];
-        const cx = geometry.positions[c * 3], cy = geometry.positions[c * 3 + 1], cz = geometry.positions[c * 3 + 2];
+        const ax = geometry.positions[a * 3],
+          ay = geometry.positions[a * 3 + 1],
+          az = geometry.positions[a * 3 + 2];
+        const bx = geometry.positions[b * 3],
+          by = geometry.positions[b * 3 + 1],
+          bz = geometry.positions[b * 3 + 2];
+        const cx = geometry.positions[c * 3],
+          cy = geometry.positions[c * 3 + 1],
+          cz = geometry.positions[c * 3 + 2];
 
         // Cross product of two edges
-        const ex = bx - ax, ey = by - ay, ez = bz - az;
-        const fx = cx - ax, fy = cy - ay, fz = cz - az;
+        const ex = bx - ax,
+          ey = by - ay,
+          ez = bz - az;
+        const fx = cx - ax,
+          fy = cy - ay,
+          fz = cz - az;
         const nx = ey * fz - ez * fy;
         const ny = ez * fx - ex * fz;
         const nz = ex * fy - ey * fx;

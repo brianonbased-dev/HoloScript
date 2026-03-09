@@ -98,8 +98,8 @@ describe('ReplayRecorder', () => {
 
     const data = rec.compress();
     expect(data.frames[0].state).toEqual({ x: 5, y: 0 }); // full first frame
-    expect(data.frames[1].state).toEqual({ y: 3 });        // only delta
-    expect(data.frames[2].state).toEqual({});               // no changes
+    expect(data.frames[1].state).toEqual({ y: 3 }); // only delta
+    expect(data.frames[2].state).toEqual({}); // no changes
   });
 
   it('setMetadata stores values in header', () => {
@@ -122,7 +122,7 @@ describe('ReplayRecorder', () => {
     rec.start('idx-test');
     for (let i = 0; i < 3; i++) rec.captureFrame(0.1, {}, {});
     const data = rec.export();
-    expect(data.frames.map(f => f.frameIndex)).toEqual([0, 1, 2]);
+    expect(data.frames.map((f) => f.frameIndex)).toEqual([0, 1, 2]);
   });
 });
 

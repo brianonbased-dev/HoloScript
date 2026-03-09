@@ -22,7 +22,6 @@ import {
 // ─── Tests: UI_TRAIT_NAMES ───────────────────────────────────────────────────
 
 describe('UI_TRAIT_NAMES', () => {
-
   it('contains 12 trait names', () => {
     expect(UI_TRAIT_NAMES).toHaveLength(12);
   });
@@ -67,7 +66,6 @@ describe('UI_TRAIT_NAMES', () => {
 // ─── Tests: UI_TRAIT_DEFAULTS ────────────────────────────────────────────────
 
 describe('UI_TRAIT_DEFAULTS', () => {
-
   it('covers all 12 trait names', () => {
     const keys = Object.keys(UI_TRAIT_DEFAULTS);
     expect(keys).toHaveLength(12);
@@ -158,7 +156,6 @@ describe('UI_TRAIT_DEFAULTS', () => {
 // ─── Tests: validateUITrait — ui_floating ────────────────────────────────────
 
 describe('validateUITrait — ui_floating', () => {
-
   it('valid config returns {valid:true, errors:[]}', () => {
     const r = validateUITrait('ui_floating', { follow_delay: 0.5, distance: 2 });
     expect(r.valid).toBe(true);
@@ -186,7 +183,6 @@ describe('validateUITrait — ui_floating', () => {
 // ─── Tests: validateUITrait — ui_anchored ────────────────────────────────────
 
 describe('validateUITrait — ui_anchored', () => {
-
   it('missing "to" fails', () => {
     const r = validateUITrait('ui_anchored', {});
     expect(r.valid).toBe(false);
@@ -202,7 +198,6 @@ describe('validateUITrait — ui_anchored', () => {
 // ─── Tests: validateUITrait — ui_hand_menu ───────────────────────────────────
 
 describe('validateUITrait — ui_hand_menu', () => {
-
   it('invalid hand value fails', () => {
     const r = validateUITrait('ui_hand_menu', { hand: 'foot' });
     expect(r.valid).toBe(false);
@@ -219,7 +214,6 @@ describe('validateUITrait — ui_hand_menu', () => {
 // ─── Tests: validateUITrait — ui_curved ──────────────────────────────────────
 
 describe('validateUITrait — ui_curved', () => {
-
   it('zero radius fails', () => {
     const r = validateUITrait('ui_curved', { radius: 0 });
     expect(r.valid).toBe(false);
@@ -235,7 +229,6 @@ describe('validateUITrait — ui_curved', () => {
 // ─── Tests: validateUITrait — ui_docked ──────────────────────────────────────
 
 describe('validateUITrait — ui_docked', () => {
-
   it('invalid position fails', () => {
     const r = validateUITrait('ui_docked', { position: 'center' });
     expect(r.valid).toBe(false);
@@ -243,7 +236,16 @@ describe('validateUITrait — ui_docked', () => {
   });
 
   it('all valid position values pass', () => {
-    for (const pos of ['top', 'bottom', 'left', 'right', 'top-left', 'top-right', 'bottom-left', 'bottom-right']) {
+    for (const pos of [
+      'top',
+      'bottom',
+      'left',
+      'right',
+      'top-left',
+      'top-right',
+      'bottom-left',
+      'bottom-right',
+    ]) {
       expect(validateUITrait('ui_docked', { position: pos }).valid).toBe(true);
     }
   });
@@ -252,7 +254,6 @@ describe('validateUITrait — ui_docked', () => {
 // ─── Tests: validateUITrait — unrecognized traits pass ───────────────────────
 
 describe('validateUITrait — traits without extra rules', () => {
-
   it('ui_billboard with any config passes (no extra validation)', () => {
     const r = validateUITrait('ui_billboard', { lock_axis: 'x', smoothing: 0.5 });
     expect(r.valid).toBe(true);
@@ -267,7 +268,6 @@ describe('validateUITrait — traits without extra rules', () => {
 // ─── Tests: Registry ─────────────────────────────────────────────────────────
 
 describe('registerUITrait / getUITrait / getAllUITraits', () => {
-
   it('getUITrait returns undefined for unregistered trait', () => {
     // Fresh registration state (using a unique name not registered in previous imports)
     expect(getUITrait('ui_floating')).toBeUndefined();

@@ -13,18 +13,22 @@
 
 export interface ProjectileConfig {
   speed: number;
-  lifetime: number;         // seconds
+  lifetime: number; // seconds
   damage: number;
   homing: boolean;
-  homingStrength: number;   // Turn rate (radians/s)
-  piercing: number;         // Max targets to pierce (0 = stop on first)
-  gravity: number;          // Downward acceleration
+  homingStrength: number; // Turn rate (radians/s)
+  piercing: number; // Max targets to pierce (0 = stop on first)
+  gravity: number; // Downward acceleration
 }
 
 export interface Projectile {
   id: string;
-  x: number; y: number; z: number;
-  vx: number; vy: number; vz: number;
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
   config: ProjectileConfig;
   age: number;
   hitCount: number;
@@ -47,31 +51,55 @@ export class ProjectileSystem {
   // Spawning
   // ---------------------------------------------------------------------------
 
-  spawn(ownerId: string, x: number, y: number, z: number, dx: number, dy: number, dz: number, config: ProjectileConfig): string {
+  spawn(
+    ownerId: string,
+    x: number,
+    y: number,
+    z: number,
+    dx: number,
+    dy: number,
+    dz: number,
+    config: ProjectileConfig
+  ): string {
     const id = `proj_${this.nextId++}`;
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
     this.projectiles.set(id, {
-      id, x, y, z,
+      id,
+      x,
+      y,
+      z,
       vx: (dx / len) * config.speed,
       vy: (dy / len) * config.speed,
       vz: (dz / len) * config.speed,
-      config, age: 0, hitCount: 0, alive: true, ownerId,
+      config,
+      age: 0,
+      hitCount: 0,
+      alive: true,
+      ownerId,
     });
     return id;
   }
 
-  setImpactCallback(cb: ImpactCallback): void { this.onImpact = cb; }
+  setImpactCallback(cb: ImpactCallback): void {
+    this.onImpact = cb;
+  }
 
   // ---------------------------------------------------------------------------
   // Update
   // ---------------------------------------------------------------------------
 
-  update(dt: number, targets?: Array<{ id: string; x: number; y: number; z: number; radius: number }>): void {
+  update(
+    dt: number,
+    targets?: Array<{ id: string; x: number; y: number; z: number; radius: number }>
+  ): void {
     for (const proj of this.projectiles.values()) {
       if (!proj.alive) continue;
 
       proj.age += dt;
-      if (proj.age >= proj.config.lifetime) { proj.alive = false; continue; }
+      if (proj.age >= proj.config.lifetime) {
+        proj.alive = false;
+        continue;
+      }
 
       // Gravity
       proj.vy -= proj.config.gravity * dt;
@@ -80,7 +108,9 @@ export class ProjectileSystem {
       if (proj.config.homing && targets && targets.length > 0) {
         const nearest = this.findNearest(proj, targets);
         if (nearest) {
-          const dx = nearest.x - proj.x, dy = nearest.y - proj.y, dz = nearest.z - proj.z;
+          const dx = nearest.x - proj.x,
+            dy = nearest.y - proj.y,
+            dz = nearest.z - proj.z;
           const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
           const str = proj.config.homingStrength * dt;
           proj.vx += (dx / dist) * str;
@@ -102,11 +132,16 @@ export class ProjectileSystem {
       // Hit detection
       if (targets) {
         for (const t of targets) {
-          const dx = t.x - proj.x, dy = t.y - proj.y, dz = t.z - proj.z;
+          const dx = t.x - proj.x,
+            dy = t.y - proj.y,
+            dz = t.z - proj.z;
           if (Math.sqrt(dx * dx + dy * dy + dz * dz) <= t.radius) {
             proj.hitCount++;
             if (this.onImpact) this.onImpact(proj, t.id);
-            if (proj.hitCount > proj.config.piercing) { proj.alive = false; break; }
+            if (proj.hitCount > proj.config.piercing) {
+              proj.alive = false;
+              break;
+            }
           }
         }
       }
@@ -117,12 +152,18 @@ export class ProjectileSystem {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private findNearest(proj: Projectile, targets: Array<{ id: string; x: number; y: number; z: number }>): { x: number; y: number; z: number } | null {
+  private findNearest(
+    proj: Projectile,
+    targets: Array<{ id: string; x: number; y: number; z: number }>
+  ): { x: number; y: number; z: number } | null {
     let best: { x: number; y: number; z: number } | null = null;
     let bestDist = Infinity;
     for (const t of targets) {
       const d = Math.sqrt((t.x - proj.x) ** 2 + (t.y - proj.y) ** 2 + (t.z - proj.z) ** 2);
-      if (d < bestDist) { bestDist = d; best = t; }
+      if (d < bestDist) {
+        bestDist = d;
+        best = t;
+      }
     }
     return best;
   }
@@ -131,7 +172,13 @@ export class ProjectileSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getProjectile(id: string): Projectile | undefined { return this.projectiles.get(id); }
-  getAliveCount(): number { return [...this.projectiles.values()].filter(p => p.alive).length; }
-  cleanup(): void { for (const [id, p] of this.projectiles) if (!p.alive) this.projectiles.delete(id); }
+  getProjectile(id: string): Projectile | undefined {
+    return this.projectiles.get(id);
+  }
+  getAliveCount(): number {
+    return [...this.projectiles.values()].filter((p) => p.alive).length;
+  }
+  cleanup(): void {
+    for (const [id, p] of this.projectiles) if (!p.alive) this.projectiles.delete(id);
+  }
 }

@@ -42,16 +42,25 @@ describe('VRPhysicsBridge', () => {
   });
 
   it('creates kinematic bodies for hands on first update', () => {
-    bridge.update({
-      hands: {
-        left: mockHand({ x: 0, y: 1, z: 0 }),
-        right: mockHand({ x: 0.5, y: 1, z: 0 }),
+    bridge.update(
+      {
+        hands: {
+          left: mockHand({ x: 0, y: 1, z: 0 }),
+          right: mockHand({ x: 0.5, y: 1, z: 0 }),
+        },
       },
-    }, 0.016);
+      0.016
+    );
 
     expect(world.addBody).toHaveBeenCalledTimes(2);
-    expect(world.addBody).toHaveBeenCalledWith('hand_left', expect.objectContaining({ type: 'kinematic' }));
-    expect(world.addBody).toHaveBeenCalledWith('hand_right', expect.objectContaining({ type: 'kinematic' }));
+    expect(world.addBody).toHaveBeenCalledWith(
+      'hand_left',
+      expect.objectContaining({ type: 'kinematic' })
+    );
+    expect(world.addBody).toHaveBeenCalledWith(
+      'hand_right',
+      expect.objectContaining({ type: 'kinematic' })
+    );
   });
 
   it('does not recreate bodies on subsequent updates', () => {
@@ -68,24 +77,30 @@ describe('VRPhysicsBridge', () => {
   });
 
   it('updates body position from hand tracking', () => {
-    bridge.update({
-      hands: {
-        left: mockHand({ x: 0, y: 1, z: 0 }),
-        right: null,
+    bridge.update(
+      {
+        hands: {
+          left: mockHand({ x: 0, y: 1, z: 0 }),
+          right: null,
+        },
       },
-    }, 0.016);
+      0.016
+    );
 
     const body = world._bodies.get('hand_left');
     expect(body.position.x).toBe(0);
     expect(body.position.y).toBe(1);
 
     // Move hand
-    bridge.update({
-      hands: {
-        left: mockHand({ x: 1, y: 2, z: 3 }),
-        right: null,
+    bridge.update(
+      {
+        hands: {
+          left: mockHand({ x: 1, y: 2, z: 3 }),
+          right: null,
+        },
       },
-    }, 0.016);
+      0.016
+    );
 
     expect(body.position.x).toBe(1);
     expect(body.position.y).toBe(2);
@@ -93,19 +108,25 @@ describe('VRPhysicsBridge', () => {
   });
 
   it('calculates smoothed velocity from position changes', () => {
-    bridge.update({
-      hands: {
-        left: mockHand({ x: 0, y: 0, z: 0 }),
-        right: null,
+    bridge.update(
+      {
+        hands: {
+          left: mockHand({ x: 0, y: 0, z: 0 }),
+          right: null,
+        },
       },
-    }, 0.016);
+      0.016
+    );
 
-    bridge.update({
-      hands: {
-        left: mockHand({ x: 1, y: 0, z: 0 }),
-        right: null,
+    bridge.update(
+      {
+        hands: {
+          left: mockHand({ x: 1, y: 0, z: 0 }),
+          right: null,
+        },
       },
-    }, 0.016);
+      0.016
+    );
 
     const body = world._bodies.get('hand_left');
     // Velocity should be non-zero in X direction
@@ -114,54 +135,60 @@ describe('VRPhysicsBridge', () => {
   });
 
   it('does not update when hand is null (tracking lost)', () => {
-    bridge.update({
-      hands: { left: null, right: null },
-    }, 0.016);
+    bridge.update(
+      {
+        hands: { left: null, right: null },
+      },
+      0.016
+    );
 
     expect(world.addBody).not.toHaveBeenCalled();
   });
 
   it('fires haptic feedback on hand collision', () => {
-    world._contacts.push(
-      { type: 'begin', bodyA: 'hand_left', bodyB: 'some_object' }
-    );
+    world._contacts.push({ type: 'begin', bodyA: 'hand_left', bodyB: 'some_object' });
 
-    bridge.update({
-      hands: {
-        left: mockHand({ x: 0, y: 0, z: 0 }),
-        right: null,
+    bridge.update(
+      {
+        hands: {
+          left: mockHand({ x: 0, y: 0, z: 0 }),
+          right: null,
+        },
       },
-    }, 0.016);
+      0.016
+    );
 
     expect(hapticCallback).toHaveBeenCalledWith('left', 0.5, 50);
   });
 
   it('fires haptic on right hand collision', () => {
-    world._contacts.push(
-      { type: 'begin', bodyA: 'some_object', bodyB: 'hand_right' }
-    );
+    world._contacts.push({ type: 'begin', bodyA: 'some_object', bodyB: 'hand_right' });
 
-    bridge.update({
-      hands: {
-        left: null,
-        right: mockHand({ x: 0, y: 0, z: 0 }),
+    bridge.update(
+      {
+        hands: {
+          left: null,
+          right: mockHand({ x: 0, y: 0, z: 0 }),
+        },
       },
-    }, 0.016);
+      0.016
+    );
 
     expect(hapticCallback).toHaveBeenCalledWith('right', 0.5, 50);
   });
 
   it('does not fire haptic on non-begin contacts', () => {
-    world._contacts.push(
-      { type: 'end', bodyA: 'hand_left', bodyB: 'some_object' }
-    );
+    world._contacts.push({ type: 'end', bodyA: 'hand_left', bodyB: 'some_object' });
 
-    bridge.update({
-      hands: {
-        left: mockHand({ x: 0, y: 0, z: 0 }),
-        right: null,
+    bridge.update(
+      {
+        hands: {
+          left: mockHand({ x: 0, y: 0, z: 0 }),
+          right: null,
+        },
       },
-    }, 0.016);
+      0.016
+    );
 
     expect(hapticCallback).not.toHaveBeenCalled();
   });
@@ -172,12 +199,15 @@ describe('VRPhysicsBridge', () => {
   });
 
   it('getHandBodyId returns id when body exists', () => {
-    bridge.update({
-      hands: {
-        left: mockHand({ x: 0, y: 0, z: 0 }),
-        right: null,
+    bridge.update(
+      {
+        hands: {
+          left: mockHand({ x: 0, y: 0, z: 0 }),
+          right: null,
+        },
       },
-    }, 0.016);
+      0.016
+    );
 
     expect(bridge.getHandBodyId('left')).toBe('hand_left');
     expect(bridge.getHandBodyId('right')).toBeNull();

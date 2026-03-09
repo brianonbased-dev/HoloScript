@@ -30,7 +30,10 @@ export type PhysicsBudgetMode = 'conservative' | 'avbd' | 'unlimited';
  * Augmented Vertex Block Descent (SIGGRAPH 2025) solves millions of objects.
  * Conservative mode uses O(n²) AABB limits. AVBD mode allows higher caps.
  */
-export const AVBD_POPULATION_BUDGET: Record<PhysicsBudgetMode, { maxPerZone: number; maxPerWorld: number }> = {
+export const AVBD_POPULATION_BUDGET: Record<
+  PhysicsBudgetMode,
+  { maxPerZone: number; maxPerWorld: number }
+> = {
   conservative: { maxPerZone: 500, maxPerWorld: 5000 },
   avbd: { maxPerZone: 10000, maxPerWorld: 1000000 },
   unlimited: { maxPerZone: Infinity, maxPerWorld: Infinity },
@@ -110,9 +113,20 @@ export type ZoneWorldConstraint = ScopedConstraint | PopulationConstraint | Adja
  * Standard biome categories for zone classification.
  */
 export type BiomeType =
-  | 'forest' | 'desert' | 'ocean' | 'mountain' | 'plains'
-  | 'tundra' | 'swamp' | 'volcanic' | 'cave' | 'urban'
-  | 'underwater' | 'sky' | 'void' | 'cosmic'
+  | 'forest'
+  | 'desert'
+  | 'ocean'
+  | 'mountain'
+  | 'plains'
+  | 'tundra'
+  | 'swamp'
+  | 'volcanic'
+  | 'cave'
+  | 'urban'
+  | 'underwater'
+  | 'sky'
+  | 'void'
+  | 'cosmic'
   | 'custom';
 
 /**
@@ -186,9 +200,10 @@ export function validateZoneConstraints(
         // Zone has source trait → must also have all target traits/entities
         if (zone.traits.includes(c.source) || zone.biome === c.source) {
           for (const target of c.targets) {
-            const hasTarget = zone.traits.includes(target)
-              || zone.entityTraits.includes(target)
-              || zone.biome === target;
+            const hasTarget =
+              zone.traits.includes(target) ||
+              zone.entityTraits.includes(target) ||
+              zone.biome === target;
             if (!hasTarget) {
               violations.push({
                 constraint: c,
@@ -206,9 +221,10 @@ export function validateZoneConstraints(
       case 'conflicts': {
         if (zone.traits.includes(c.source) || zone.biome === c.source) {
           for (const target of c.targets) {
-            const hasConflict = zone.traits.includes(target)
-              || zone.entityTraits.includes(target)
-              || zone.biome === target;
+            const hasConflict =
+              zone.traits.includes(target) ||
+              zone.entityTraits.includes(target) ||
+              zone.biome === target;
             if (hasConflict) {
               violations.push({
                 constraint: c,
@@ -224,9 +240,7 @@ export function validateZoneConstraints(
       }
 
       case 'oneof': {
-        const present = c.targets.filter(t =>
-          zone.traits.includes(t) || zone.biome === t
-        );
+        const present = c.targets.filter((t) => zone.traits.includes(t) || zone.biome === t);
         if (present.length > 1) {
           violations.push({
             constraint: c,
@@ -250,7 +264,9 @@ export function validateZoneConstraints(
                 constraint: c,
                 context: `Zone "${zone.name}" (${zone.biome})`,
                 severity: c.severity,
-                message: pop.message || `Zone "${zone.name}" requires at least ${pop.min} "${target}" entities (found ${count})`,
+                message:
+                  pop.message ||
+                  `Zone "${zone.name}" requires at least ${pop.min} "${target}" entities (found ${count})`,
                 suggestion: pop.suggestion,
               });
             }
@@ -259,7 +275,9 @@ export function validateZoneConstraints(
                 constraint: c,
                 context: `Zone "${zone.name}" (${zone.biome})`,
                 severity: c.severity,
-                message: pop.message || `Zone "${zone.name}" exceeds maximum ${pop.max} "${target}" entities (found ${count})`,
+                message:
+                  pop.message ||
+                  `Zone "${zone.name}" exceeds maximum ${pop.max} "${target}" entities (found ${count})`,
                 suggestion: pop.suggestion,
               });
             }
@@ -304,8 +322,9 @@ export function validateWorldConstraints(
       case 'requires': {
         if (world.traits.includes(c.source)) {
           for (const target of c.targets) {
-            const hasZoneWith = world.zones.some(z =>
-              z.traits.includes(target) || z.biome === target || z.entityTraits.includes(target)
+            const hasZoneWith = world.zones.some(
+              (z) =>
+                z.traits.includes(target) || z.biome === target || z.entityTraits.includes(target)
             );
             if (!hasZoneWith) {
               violations.push({
@@ -331,7 +350,9 @@ export function validateWorldConstraints(
               constraint: c,
               context: 'World',
               severity: c.severity,
-              message: pop.message || `World requires at least ${pop.min} "${target}" entities (found ${total})`,
+              message:
+                pop.message ||
+                `World requires at least ${pop.min} "${target}" entities (found ${total})`,
               suggestion: pop.suggestion,
             });
           }
@@ -340,7 +361,9 @@ export function validateWorldConstraints(
               constraint: c,
               context: 'World',
               severity: c.severity,
-              message: pop.message || `World exceeds maximum ${pop.max} "${target}" entities (found ${total})`,
+              message:
+                pop.message ||
+                `World exceeds maximum ${pop.max} "${target}" entities (found ${total})`,
               suggestion: pop.suggestion,
             });
           }
@@ -355,7 +378,7 @@ export function validateWorldConstraints(
           if (zone.biome !== adj.source && !zone.traits.includes(adj.source)) continue;
 
           for (const adjZoneId of zone.adjacentZones) {
-            const adjZone = world.zones.find(z => z.id === adjZoneId);
+            const adjZone = world.zones.find((z) => z.id === adjZoneId);
             if (!adjZone) continue;
 
             for (const target of adj.targets) {
@@ -366,14 +389,15 @@ export function validateWorldConstraints(
                   constraint: c,
                   context: `Zone "${zone.name}" ↔ "${adjZone.name}"`,
                   severity: c.severity,
-                  message: adj.message || `"${adj.source}" zone must not be adjacent to "${target}" zone`,
+                  message:
+                    adj.message || `"${adj.source}" zone must not be adjacent to "${target}" zone`,
                   suggestion: adj.suggestion,
                 });
               }
 
               if (adj.relationship === 'must_adjoin') {
-                const hasRequiredNeighbor = zone.adjacentZones.some(nId => {
-                  const n = world.zones.find(z => z.id === nId);
+                const hasRequiredNeighbor = zone.adjacentZones.some((nId) => {
+                  const n = world.zones.find((z) => z.id === nId);
                   return n && (n.biome === target || n.traits.includes(target));
                 });
                 if (!hasRequiredNeighbor) {
@@ -381,7 +405,9 @@ export function validateWorldConstraints(
                     constraint: c,
                     context: `Zone "${zone.name}"`,
                     severity: c.severity,
-                    message: adj.message || `"${adj.source}" zone must be adjacent to at least one "${target}" zone`,
+                    message:
+                      adj.message ||
+                      `"${adj.source}" zone must be adjacent to at least one "${target}" zone`,
                     suggestion: adj.suggestion,
                   });
                   break; // Only report once per zone
@@ -458,7 +484,8 @@ export const ZONE_CONSTRAINTS: ZoneWorldConstraint[] = [
     scope: 'zone',
     severity: 'warning',
     message: 'Ocean zones typically do not contain land vegetation.',
-    suggestion: 'Use @aquatic_vegetation for underwater plants, or move vegetation to a coastal zone.',
+    suggestion:
+      'Use @aquatic_vegetation for underwater plants, or move vegetation to a coastal zone.',
   },
   {
     type: 'conflicts',
@@ -654,7 +681,7 @@ export function getConstraintsByScope(
   constraints: ZoneWorldConstraint[],
   scope: ConstraintScope
 ): ZoneWorldConstraint[] {
-  return constraints.filter(c => c.scope === scope);
+  return constraints.filter((c) => c.scope === scope);
 }
 
 /**
@@ -664,17 +691,13 @@ export function getConstraintsForBiome(
   constraints: ZoneWorldConstraint[],
   biome: BiomeType
 ): ZoneWorldConstraint[] {
-  return constraints.filter(c =>
-    c.source === biome || c.targets.includes(biome)
-  );
+  return constraints.filter((c) => c.source === biome || c.targets.includes(biome));
 }
 
 /**
  * Merge multiple constraint sets, deduplicating by source+targets+scope.
  */
-export function mergeConstraints(
-  ...sets: ZoneWorldConstraint[][]
-): ZoneWorldConstraint[] {
+export function mergeConstraints(...sets: ZoneWorldConstraint[][]): ZoneWorldConstraint[] {
   const seen = new Set<string>();
   const result: ZoneWorldConstraint[] = [];
 
@@ -695,13 +718,13 @@ export function mergeConstraints(
  * Filter violations by severity.
  */
 export function getErrors(violations: ConstraintViolation[]): ConstraintViolation[] {
-  return violations.filter(v => v.severity === 'error');
+  return violations.filter((v) => v.severity === 'error');
 }
 
 export function getWarnings(violations: ConstraintViolation[]): ConstraintViolation[] {
-  return violations.filter(v => v.severity === 'warning');
+  return violations.filter((v) => v.severity === 'warning');
 }
 
 export function getHints(violations: ConstraintViolation[]): ConstraintViolation[] {
-  return violations.filter(v => v.severity === 'hint');
+  return violations.filter((v) => v.severity === 'hint');
 }

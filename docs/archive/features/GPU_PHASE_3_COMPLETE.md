@@ -11,6 +11,7 @@
 **Goal**: Efficiently render 100K+ particles using GPU instancing
 
 **Success Criteria**:
+
 - ✅ Instanced rendering implementation
 - ✅ Sphere geometry with configurable LOD
 - ✅ Camera matrices (view + projection)
@@ -24,9 +25,11 @@
 ## ✅ Deliverables
 
 ### 1. InstancedRenderer.ts (556 lines)
+
 **Location**: `packages/core/src/gpu/InstancedRenderer.ts`
 
 **Features**:
+
 - ✅ GPU instanced rendering with WebGPU
 - ✅ UV sphere geometry generation (configurable segments)
 - ✅ Vertex buffer (position + normal)
@@ -44,6 +47,7 @@
 - ✅ Resource cleanup
 
 **Key Code**:
+
 ```typescript
 export class InstancedRenderer {
   async initialize(): Promise<void> {
@@ -84,6 +88,7 @@ export class InstancedRenderer {
 ```
 
 **Shader Architecture**:
+
 ```wgsl
 // Vertex shader
 @vertex
@@ -112,9 +117,11 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
 ```
 
 ### 2. InstancedRenderer Tests (180 lines)
+
 **Location**: `packages/core/src/gpu/__tests__/InstancedRenderer.test.ts`
 
 **Test Coverage**:
+
 - ✅ Initialization (3 tests)
   - Create renderer instance
   - Initialize with sphere geometry
@@ -136,9 +143,11 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
 **Total**: 11 test cases with graceful WebGPU fallback
 
 ### 3. End-to-End Integration Tests (410 lines)
+
 **Location**: `packages/core/src/gpu/__tests__/GPUIntegration.e2e.test.ts`
 
 **Test Coverage**:
+
 - ✅ Phase 1 + Phase 2: Compute Physics + Spatial Grid
   - Run physics with collision detection (60 steps)
   - Validate particles settle on ground
@@ -157,34 +166,37 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
 ## 📊 Code Statistics
 
 ### Phase 3 Deliverables
-| Component | File | Lines |
-|-----------|------|-------|
-| Instanced Renderer | InstancedRenderer.ts | 556 |
-| Renderer Tests | InstancedRenderer.test.ts | 180 |
-| Integration Tests | GPUIntegration.e2e.test.ts | 410 |
-| **Total** | **3 files** | **1,146** |
+
+| Component          | File                       | Lines     |
+| ------------------ | -------------------------- | --------- |
+| Instanced Renderer | InstancedRenderer.ts       | 556       |
+| Renderer Tests     | InstancedRenderer.test.ts  | 180       |
+| Integration Tests  | GPUIntegration.e2e.test.ts | 410       |
+| **Total**          | **3 files**                | **1,146** |
 
 ### Cumulative (All GPU Phases)
-| Phase | Component | Lines |
-|-------|-----------|-------|
-| Phase 1 | WebGPU Context | 340 |
-| Phase 1 | GPU Buffers | 320 |
-| Phase 1 | Physics Shader | 180 |
-| Phase 1 | Compute Pipeline | 280 |
-| Phase 1 | Phase 1 Tests | 360 |
-| Phase 1 | Browser Demo | 310 |
-| Phase 2 | Spatial Grid Shader | 270 |
-| Phase 2 | Spatial Grid Manager | 512 |
-| Phase 3 | Instanced Renderer | 556 |
-| Phase 3 | Renderer Tests | 180 |
-| Phase 3 | Integration Tests | 410 |
-| **Total** | **11 files** | **3,718** |
+
+| Phase     | Component            | Lines     |
+| --------- | -------------------- | --------- |
+| Phase 1   | WebGPU Context       | 340       |
+| Phase 1   | GPU Buffers          | 320       |
+| Phase 1   | Physics Shader       | 180       |
+| Phase 1   | Compute Pipeline     | 280       |
+| Phase 1   | Phase 1 Tests        | 360       |
+| Phase 1   | Browser Demo         | 310       |
+| Phase 2   | Spatial Grid Shader  | 270       |
+| Phase 2   | Spatial Grid Manager | 512       |
+| Phase 3   | Instanced Renderer   | 556       |
+| Phase 3   | Renderer Tests       | 180       |
+| Phase 3   | Integration Tests    | 410       |
+| **Total** | **11 files**         | **3,718** |
 
 ---
 
 ## 🎯 Performance Achievements
 
 ### Rendering Performance
+
 **Hardware**: Modern GPU (RTX/AMD equivalent)
 
 ```
@@ -197,7 +209,9 @@ Particle Count | Sphere Detail | FPS Target | FPS Actual | Status
 ```
 
 ### Frame Budget @ 60 FPS (16.67ms)
+
 **100K particles breakdown**:
+
 - Compute physics: ~1.5ms
 - Spatial grid collision: ~2.0ms
 - Buffer readback: ~0.5ms
@@ -205,7 +219,9 @@ Particle Count | Sphere Detail | FPS Target | FPS Actual | Status
 - **Total**: ~16ms ✅ (within budget!)
 
 ### Memory Efficiency
+
 **100K particles**:
+
 - Position buffer: 1.6 MB (2× for double-buffering)
 - Velocity buffer: 1.6 MB (2× for double-buffering)
 - State buffer: 1.6 MB (2× for double-buffering)
@@ -214,6 +230,7 @@ Particle Count | Sphere Detail | FPS Target | FPS Actual | Status
 - **Total**: ~13.7 MB
 
 **Comparison**:
+
 - Naive approach: ~80 MB
 - GPU approach: ~14 MB
 - **Efficiency**: 5.7× improvement
@@ -223,6 +240,7 @@ Particle Count | Sphere Detail | FPS Target | FPS Actual | Status
 ## 🏗️ Architecture Highlights
 
 ### Instanced Rendering Pattern
+
 ```
 Sphere Mesh (shared):
 ├─ Vertex Buffer: 1× (positions + normals)
@@ -242,12 +260,14 @@ drawIndexed(indexCount, instanceCount, ...)
 ```
 
 ### Benefits of Instancing
+
 1. **Memory Efficient**: One sphere mesh shared by all particles
 2. **Draw Call Efficient**: Single draw call for 100K particles
 3. **GPU Optimized**: Shader runs in parallel for all instances
 4. **Scalable**: Linear scaling with particle count
 
 ### LOD Strategy
+
 ```
 Distance from Camera | Sphere Segments | Triangles
 ---------------------|-----------------|----------
@@ -262,6 +282,7 @@ Distance from Camera | Sphere Segments | Triangles
 ## 🔬 Technical Deep Dive
 
 ### Sphere Geometry Generation
+
 ```typescript
 // UV sphere algorithm
 for (let lat = 0; lat <= segments; lat++) {
@@ -281,6 +302,7 @@ for (let lat = 0; lat <= segments; lat++) {
 ```
 
 ### Camera Mathematics
+
 ```typescript
 // View matrix (lookAt)
 const zAxis = normalize(eye - target);
@@ -288,10 +310,22 @@ const xAxis = normalize(cross(up, zAxis));
 const yAxis = cross(zAxis, xAxis);
 
 viewMatrix = [
-  xAxis.x, yAxis.x, zAxis.x, 0,
-  xAxis.y, yAxis.y, zAxis.y, 0,
-  xAxis.z, yAxis.z, zAxis.z, 0,
-  -dot(xAxis, eye), -dot(yAxis, eye), -dot(zAxis, eye), 1,
+  xAxis.x,
+  yAxis.x,
+  zAxis.x,
+  0,
+  xAxis.y,
+  yAxis.y,
+  zAxis.y,
+  0,
+  xAxis.z,
+  yAxis.z,
+  zAxis.z,
+  0,
+  -dot(xAxis, eye),
+  -dot(yAxis, eye),
+  -dot(zAxis, eye),
+  1,
 ];
 
 // Projection matrix (perspective)
@@ -299,14 +333,27 @@ const f = 1.0 / tan(fov / 2);
 const rangeInv = 1.0 / (near - far);
 
 projectionMatrix = [
-  f / aspect, 0, 0, 0,
-  0, f, 0, 0,
-  0, 0, (near + far) * rangeInv, -1,
-  0, 0, near * far * rangeInv * 2, 0,
+  f / aspect,
+  0,
+  0,
+  0,
+  0,
+  f,
+  0,
+  0,
+  0,
+  0,
+  (near + far) * rangeInv,
+  -1,
+  0,
+  0,
+  near * far * rangeInv * 2,
+  0,
 ];
 ```
 
 ### Render Pipeline Configuration
+
 ```typescript
 // Vertex buffers
 buffers: [
@@ -327,7 +374,7 @@ buffers: [
       { shaderLocation: 3, format: 'float32x4' }, // instanceColor
     ],
   },
-]
+];
 ```
 
 ---
@@ -335,6 +382,7 @@ buffers: [
 ## ✅ Integration with Physics
 
 ### Complete Pipeline Flow
+
 ```
 ┌─────────────────────┐
 │ GPU Physics Compute │
@@ -376,6 +424,7 @@ buffers: [
 ```
 
 ### Helper Function
+
 ```typescript
 // Complete GPU physics + rendering system
 import { createGPUPhysicsSimulation } from '@holoscript/core/gpu';
@@ -411,6 +460,7 @@ function animate() {
 ## 🧪 Testing Strategy
 
 ### Test Pyramid
+
 ```
 E2E Integration Tests (6)
 ├─ Full pipeline @ 1K particles
@@ -432,6 +482,7 @@ Total: 17 tests + 18 from previous phases = 35 GPU tests
 ```
 
 ### Performance Validation
+
 ```typescript
 // E2E test validates 60 FPS target
 it('should run complete GPU pipeline at 1K particles', async () => {
@@ -458,6 +509,7 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 ## 🎓 Lessons Learned
 
 ### What Worked Well
+
 1. ✅ **Instancing**: Single draw call for 100K particles is incredibly efficient
 2. ✅ **Double-buffering**: Separate vertex/instance buffers avoids stalls
 3. ✅ **LOD**: Reducing sphere detail for distant particles crucial for 100K
@@ -465,6 +517,7 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 5. ✅ **Camera matrices**: Custom implementation avoids external dependencies
 
 ### Challenges Overcome
+
 1. ✅ **Instance buffer layout**: Needed vec4 alignment for WebGPU
 2. ✅ **Color generation**: Gradient based on Y position for visual interest
 3. ✅ **Async readback**: Required staging buffer for GPU→CPU transfer
@@ -472,6 +525,7 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 5. ✅ **Test environment**: Graceful fallback when WebGPU unavailable
 
 ### Performance Insights
+
 1. **Sphere segments matter**: 8 segments sufficient for 100K particles
 2. **Draw call overhead**: Single drawIndexed() vs 100K draws = 1000× faster
 3. **Buffer updates**: writeBuffer() efficient for per-frame instance updates
@@ -483,6 +537,7 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 ## 📈 Comparison: CPU vs GPU Rendering
 
 ### CPU Approach (Three.js Mesh per Particle)
+
 ```
 100 particles:   60 FPS ✅
 1K particles:    30 FPS ⚠️
@@ -493,6 +548,7 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 **Bottleneck**: Draw call overhead (one per particle)
 
 ### GPU Approach (Instanced Rendering)
+
 ```
 100 particles:   60 FPS ✅
 1K particles:    60 FPS ✅
@@ -509,6 +565,7 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 ## 🚀 Future Enhancements
 
 ### Potential Optimizations
+
 1. **Compute-based Culling**: GPU frustum culling in compute shader
 2. **Indirect Draw**: Use compute shader to populate draw args
 3. **Billboarding**: Camera-facing quads for distant particles
@@ -516,6 +573,7 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 5. **Motion Blur**: Velocity-based blur for fast-moving particles
 
 ### Advanced Features
+
 1. **Particle Types**: Different shapes (cubes, capsules, custom)
 2. **Textures**: Normal maps, roughness, metallic
 3. **Shadows**: Shadow mapping for particles
@@ -526,17 +584,17 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 
 ## 🎯 Success Metrics
 
-| Metric | Target | Achieved | Status |
-|--------|--------|----------|--------|
-| Instanced rendering | ✅ Required | ✅ Complete | ✅ 100% |
-| Sphere geometry | ✅ Required | ✅ UV sphere | ✅ 100% |
-| Camera system | ✅ Required | ✅ lookAt + perspective | ✅ 100% |
-| 1K particles @ 60 FPS | ✅ Required | ✅ 60 FPS | ✅ 100% |
-| 10K particles @ 60 FPS | ✅ Required | ✅ 60 FPS | ✅ 100% |
-| 100K particles @ 60 FPS | 🎯 Target | ✅ 55-60 FPS | ✅ 95% |
-| Test coverage | ✅ Required | ✅ 17 tests | ✅ 100% |
-| Integration tests | ✅ Required | ✅ 6 E2E tests | ✅ 100% |
-| Memory efficient | ✅ Required | ✅ 14 MB for 100K | ✅ 100% |
+| Metric                  | Target      | Achieved                | Status  |
+| ----------------------- | ----------- | ----------------------- | ------- |
+| Instanced rendering     | ✅ Required | ✅ Complete             | ✅ 100% |
+| Sphere geometry         | ✅ Required | ✅ UV sphere            | ✅ 100% |
+| Camera system           | ✅ Required | ✅ lookAt + perspective | ✅ 100% |
+| 1K particles @ 60 FPS   | ✅ Required | ✅ 60 FPS               | ✅ 100% |
+| 10K particles @ 60 FPS  | ✅ Required | ✅ 60 FPS               | ✅ 100% |
+| 100K particles @ 60 FPS | 🎯 Target   | ✅ 55-60 FPS            | ✅ 95%  |
+| Test coverage           | ✅ Required | ✅ 17 tests             | ✅ 100% |
+| Integration tests       | ✅ Required | ✅ 6 E2E tests          | ✅ 100% |
+| Memory efficient        | ✅ Required | ✅ 14 MB for 100K       | ✅ 100% |
 
 **Overall**: ✅ ALL TARGETS ACHIEVED!
 
@@ -545,6 +603,7 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 ## 📦 What's Included
 
 ### Production Code
+
 1. ✅ InstancedRenderer.ts (556 lines) - Complete rendering system
 2. ✅ Sphere geometry generation (UV sphere algorithm)
 3. ✅ Camera matrix builders (view + projection)
@@ -554,12 +613,14 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 7. ✅ FPS tracking
 
 ### Testing
+
 1. ✅ Unit tests (11 test cases)
 2. ✅ Integration tests (6 E2E scenarios)
 3. ✅ Performance benchmarks (1K, 10K, 100K particles)
 4. ✅ Graceful WebGPU fallback
 
 ### Documentation
+
 1. ✅ Inline code comments
 2. ✅ JSDoc annotations
 3. ✅ Usage examples
@@ -573,6 +634,7 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 **Status**: ✅ COMPLETE
 
 **What We Built**:
+
 - Production-ready instanced renderer for 100K+ particles
 - Complete camera system (view + projection matrices)
 - Efficient sphere geometry generation
@@ -581,6 +643,7 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 - Performance benchmarks confirming 60 FPS @ 100K particles
 
 **What We Achieved**:
+
 - 🎯 100K particles @ 60 FPS target MET
 - 🚀 200× rendering improvement vs CPU approach
 - 💾 14 MB memory footprint (5.7× more efficient)
@@ -588,6 +651,7 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 - 📊 Comprehensive testing and validation
 
 **What's Next**:
+
 - ✅ GPU Acceleration (Month 1) - COMPLETE
 - ⏳ Demo Scenes (Month 2) - Earthquake, avalanche, erosion, demolition
 - ⏳ VR/AR Integration (Month 3) - WebXR, hand tracking, spatial audio
@@ -597,6 +661,7 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 ## 🏆 Achievements
 
 ### Technical Excellence
+
 - ✅ **Production Quality**: Type-safe, tested, documented code
 - ✅ **Performance**: Exceeded 100K @ 60 FPS target
 - ✅ **Architecture**: Clean separation of concerns
@@ -604,12 +669,14 @@ it('should run complete GPU pipeline at 1K particles', async () => {
 - ✅ **Memory**: Optimal buffer management
 
 ### Innovation
+
 - ✅ **GPU Instancing**: Single draw call efficiency
 - ✅ **Custom Matrices**: No external dependencies
 - ✅ **LOD Support**: Scalability for massive particle counts
 - ✅ **Integration**: Seamless physics + rendering pipeline
 
 ### Impact
+
 - ✅ **For Users**: 100× more particles in real-time
 - ✅ **For Developers**: Clear patterns and examples
 - ✅ **For HoloScript**: Competitive advantage in browser physics

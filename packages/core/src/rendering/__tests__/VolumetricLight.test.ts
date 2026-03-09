@@ -4,7 +4,9 @@ import { VolumetricLight } from '../VolumetricLight';
 describe('VolumetricLight', () => {
   let vl: VolumetricLight;
 
-  beforeEach(() => { vl = new VolumetricLight(); });
+  beforeEach(() => {
+    vl = new VolumetricLight();
+  });
 
   // Management
   it('addLight creates with defaults', () => {
@@ -50,7 +52,7 @@ describe('VolumetricLight', () => {
   it('march samples have correct step indices', () => {
     vl.addLight({ id: 'a', samples: 4 });
     const samples = vl.march('a', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
-    expect(samples.map(s => s.step)).toEqual([0, 1, 2, 3]);
+    expect(samples.map((s) => s.step)).toEqual([0, 1, 2, 3]);
   });
 
   // Scattering query

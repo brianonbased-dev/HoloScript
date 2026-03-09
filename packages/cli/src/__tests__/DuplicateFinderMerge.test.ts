@@ -67,7 +67,7 @@ describe('DuplicateFinder — Production', () => {
     ]);
     const groups = finder.findSimilarFiles(files, 60);
     expect(groups.length).toBeGreaterThanOrEqual(1);
-    const abGroup = groups.find(g => g.paths.includes('a.ts') && g.paths.includes('b.ts'));
+    const abGroup = groups.find((g) => g.paths.includes('a.ts') && g.paths.includes('b.ts'));
     expect(abGroup).toBeDefined();
     expect(abGroup!.similarity).toBeGreaterThanOrEqual(60);
   });

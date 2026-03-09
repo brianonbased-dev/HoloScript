@@ -7,10 +7,17 @@ import { PooledSpawner } from '../pooling/PooledSpawner';
 // =============================================================================
 
 describe('ObjectPool', () => {
-  function makePool(opts: Partial<{
-    initialSize: number; maxSize: number; autoExpand: boolean; expandAmount: number;
-  }> = {}) {
-    const reset = vi.fn((obj: { value: number }) => { obj.value = 0; });
+  function makePool(
+    opts: Partial<{
+      initialSize: number;
+      maxSize: number;
+      autoExpand: boolean;
+      expandAmount: number;
+    }> = {}
+  ) {
+    const reset = vi.fn((obj: { value: number }) => {
+      obj.value = 0;
+    });
     const pool = new ObjectPool<{ value: number }>({
       factory: () => ({ value: 0 }),
       reset,
@@ -54,7 +61,9 @@ describe('ObjectPool', () => {
 
   it('tracks peakActive in stats', () => {
     const { pool } = makePool({ initialSize: 5 });
-    pool.acquire(); pool.acquire(); pool.acquire();
+    pool.acquire();
+    pool.acquire();
+    pool.acquire();
     const third = pool.acquire()!;
     expect(pool.getStats().peakActive).toBe(4);
     pool.release(third);
@@ -72,7 +81,8 @@ describe('ObjectPool', () => {
 
   it('returns null when maxSize reached and autoExpand true', () => {
     const { pool } = makePool({ initialSize: 2, maxSize: 2, autoExpand: true });
-    pool.acquire(); pool.acquire();
+    pool.acquire();
+    pool.acquire();
     expect(pool.acquire()).toBeNull();
   });
 
@@ -84,7 +94,9 @@ describe('ObjectPool', () => {
 
   it('releaseAll returns all active objects', () => {
     const { pool, reset } = makePool({ initialSize: 4 });
-    pool.acquire(); pool.acquire(); pool.acquire();
+    pool.acquire();
+    pool.acquire();
+    pool.acquire();
     pool.releaseAll();
     expect(pool.getActiveCount()).toBe(0);
     expect(pool.getFreeCount()).toBe(4);
@@ -93,10 +105,12 @@ describe('ObjectPool', () => {
 
   it('forEach iterates only active objects', () => {
     const { pool } = makePool();
-    const a = pool.acquire()!; a.value = 1;
-    const b = pool.acquire()!; b.value = 2;
+    const a = pool.acquire()!;
+    a.value = 1;
+    const b = pool.acquire()!;
+    b.value = 2;
     const values: number[] = [];
-    pool.forEach(obj => values.push(obj.value));
+    pool.forEach((obj) => values.push(obj.value));
     expect(values.sort()).toEqual([1, 2]);
   });
 
@@ -189,9 +203,13 @@ describe('PooledSpawner', () => {
     const onDespawn = vi.fn();
     const spawner = new PooledSpawner();
     spawner.registerPrefab({
-      id: 'fx', poolSize: 2, maxInstances: 5,
-      autoExpand: false, defaultLifetime: 0,
-      onSpawn, onDespawn,
+      id: 'fx',
+      poolSize: 2,
+      maxInstances: 5,
+      autoExpand: false,
+      defaultLifetime: 0,
+      onSpawn,
+      onDespawn,
     });
     const e = spawner.spawn('fx')!;
     expect(onSpawn).toHaveBeenCalledWith(e);
@@ -201,9 +219,23 @@ describe('PooledSpawner', () => {
 
   it('getActiveCount filters by prefabId', () => {
     const spawner = new PooledSpawner();
-    spawner.registerPrefab({ id: 'a', poolSize: 3, maxInstances: 5, autoExpand: false, defaultLifetime: 0 });
-    spawner.registerPrefab({ id: 'b', poolSize: 3, maxInstances: 5, autoExpand: false, defaultLifetime: 0 });
-    spawner.spawn('a'); spawner.spawn('a'); spawner.spawn('b');
+    spawner.registerPrefab({
+      id: 'a',
+      poolSize: 3,
+      maxInstances: 5,
+      autoExpand: false,
+      defaultLifetime: 0,
+    });
+    spawner.registerPrefab({
+      id: 'b',
+      poolSize: 3,
+      maxInstances: 5,
+      autoExpand: false,
+      defaultLifetime: 0,
+    });
+    spawner.spawn('a');
+    spawner.spawn('a');
+    spawner.spawn('b');
     expect(spawner.getActiveCount('a')).toBe(2);
     expect(spawner.getActiveCount('b')).toBe(1);
     expect(spawner.getActiveCount()).toBe(3);

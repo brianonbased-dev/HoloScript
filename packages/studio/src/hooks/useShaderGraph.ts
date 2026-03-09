@@ -4,8 +4,11 @@
  */
 import { useState, useCallback, useRef } from 'react';
 import {
-  ShaderGraph, SHADER_NODES,
-  type ShaderNode, type ShaderConnection, type CompiledShader,
+  ShaderGraph,
+  SHADER_NODES,
+  type ShaderNode,
+  type ShaderConnection,
+  type CompiledShader,
 } from '@holoscript/core';
 
 export interface UseShaderGraphReturn {
@@ -33,20 +36,32 @@ export function useShaderGraph(): UseShaderGraphReturn {
     setConnections(graphRef.current.getConnections());
   }, []);
 
-  const addNode = useCallback((type: string) => {
-    const x = Math.random() * 200;
-    const y = Math.random() * 200;
-    const n = graphRef.current.addNode(type, x, y);
-    sync();
-    return n;
-  }, [sync]);
+  const addNode = useCallback(
+    (type: string) => {
+      const x = Math.random() * 200;
+      const y = Math.random() * 200;
+      const n = graphRef.current.addNode(type, x, y);
+      sync();
+      return n;
+    },
+    [sync]
+  );
 
-  const removeNode = useCallback((id: string) => { graphRef.current.removeNode(id); sync(); }, [sync]);
+  const removeNode = useCallback(
+    (id: string) => {
+      graphRef.current.removeNode(id);
+      sync();
+    },
+    [sync]
+  );
 
-  const connect = useCallback((fromNode: string, fromPort: string, toNode: string, toPort: string) => {
-    graphRef.current.connect(fromNode, fromPort, toNode, toPort);
-    sync();
-  }, [sync]);
+  const connect = useCallback(
+    (fromNode: string, fromPort: string, toNode: string, toPort: string) => {
+      graphRef.current.connect(fromNode, fromPort, toNode, toPort);
+      sync();
+    },
+    [sync]
+  );
 
   const compile = useCallback(() => {
     const result = graphRef.current.compile();
@@ -70,7 +85,24 @@ export function useShaderGraph(): UseShaderGraphReturn {
     compile();
   }, [sync, compile]);
 
-  const clear = useCallback(() => { graphRef.current = new ShaderGraph(); setNodes([]); setConnections([]); setCompiled(null); }, []);
+  const clear = useCallback(() => {
+    graphRef.current = new ShaderGraph();
+    setNodes([]);
+    setConnections([]);
+    setCompiled(null);
+  }, []);
 
-  return { graph: graphRef.current, nodes, connections, compiled, nodeTypes: Object.keys(SHADER_NODES), addNode, removeNode, connect, compile, buildDemo, clear };
+  return {
+    graph: graphRef.current,
+    nodes,
+    connections,
+    compiled,
+    nodeTypes: Object.keys(SHADER_NODES),
+    addNode,
+    removeNode,
+    connect,
+    compile,
+    buildDemo,
+    clear,
+  };
 }

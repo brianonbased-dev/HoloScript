@@ -16,7 +16,11 @@ describe('SkyRenderer', () => {
   });
 
   it('sets and gets gradient', () => {
-    const g = { top: { r: 1, g: 0, b: 0 }, horizon: { r: 0, g: 1, b: 0 }, bottom: { r: 0, g: 0, b: 1 } };
+    const g = {
+      top: { r: 1, g: 0, b: 0 },
+      horizon: { r: 0, g: 1, b: 0 },
+      bottom: { r: 0, g: 0, b: 1 },
+    };
     sky.setGradient(g);
     expect(sky.getGradient().top).toEqual({ r: 1, g: 0, b: 0 });
   });
@@ -71,7 +75,7 @@ describe('SkyRenderer', () => {
     const layer = sky.addCloudLayer(0.5, 1000, { x: 10, z: 0 });
     sky.updateClouds(1);
     const layers = sky.getCloudLayers();
-    const updated = layers.find(l => l.id === layer.id)!;
+    const updated = layers.find((l) => l.id === layer.id)!;
     expect(updated.offset.x).toBeCloseTo(10);
   });
 

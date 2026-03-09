@@ -12,8 +12,21 @@
  * @version 1.0.0
  */
 
-import { EffectRow, VREffect, EffectViolation, EffectViolationSeverity, EffectCategory } from '../../types/effects';
-import { inferFromTraits, inferFromBuiltins, composeEffects, InferredEffects, TRAIT_EFFECTS, BUILTIN_EFFECTS } from './EffectInference';
+import {
+  EffectRow,
+  VREffect,
+  EffectViolation,
+  EffectViolationSeverity,
+  EffectCategory,
+} from '../../types/effects';
+import {
+  inferFromTraits,
+  inferFromBuiltins,
+  composeEffects,
+  InferredEffects,
+  TRAIT_EFFECTS,
+  BUILTIN_EFFECTS,
+} from './EffectInference';
 
 // =============================================================================
 // CHECKER CONFIGURATION
@@ -49,10 +62,10 @@ const DEFAULT_CONFIG: Required<EffectCheckerConfig> = {
 export interface EffectASTNode {
   type: string;
   name?: string;
-  traits?: string[];       // Trait names used by this node (e.g., ['@mesh', '@physics'])
-  calls?: string[];        // Built-in function calls made by this node
+  traits?: string[]; // Trait names used by this node (e.g., ['@mesh', '@physics'])
+  calls?: string[]; // Built-in function calls made by this node
   children?: EffectASTNode[];
-  declaredEffects?: VREffect[];  // Explicit effect annotation (if present)
+  declaredEffects?: VREffect[]; // Explicit effect annotation (if present)
   line?: number;
   column?: number;
   file?: string;
@@ -121,7 +134,11 @@ export class EffectChecker {
     if (node.children) {
       for (const child of node.children) {
         const childResult = this.checkNode(child);
-        childEffects.push({ row: childResult.inferred, sources: childResult.sources, warnings: [] });
+        childEffects.push({
+          row: childResult.inferred,
+          sources: childResult.sources,
+          warnings: [],
+        });
       }
     }
 
@@ -131,7 +148,7 @@ export class EffectChecker {
     // 4. Filter out ignored categories
     let inferred = combined.row;
     if (this.config.ignoredCategories.length > 0) {
-      const filtered = inferred.toArray().filter(e => {
+      const filtered = inferred.toArray().filter((e) => {
         const cat = e.split(':')[0] as EffectCategory;
         return !this.config.ignoredCategories.includes(cat);
       });
@@ -139,9 +156,7 @@ export class EffectChecker {
     }
 
     // 5. Get declared effects (from annotation or default to empty = "pure")
-    const declared = node.declaredEffects
-      ? new EffectRow(node.declaredEffects)
-      : EffectRow.PURE;  // No annotation = pure assertion
+    const declared = node.declaredEffects ? new EffectRow(node.declaredEffects) : EffectRow.PURE; // No annotation = pure assertion
 
     // 6. Compute violations
     const undeclared = inferred.difference(declared);
@@ -167,7 +182,7 @@ export class EffectChecker {
       moduleEffects = moduleEffects.union(result.inferred);
     }
 
-    const hasErrors = allViolations.some(v => v.severity === 'error');
+    const hasErrors = allViolations.some((v) => v.severity === 'error');
 
     return {
       functions,
@@ -182,7 +197,11 @@ export class EffectChecker {
   /**
    * Quick check: does a function with given traits and calls stay within a declared effect set?
    */
-  quickCheck(traits: string[], calls: string[], allowed: VREffect[]): { passed: boolean; undeclared: VREffect[] } {
+  quickCheck(
+    traits: string[],
+    calls: string[],
+    allowed: VREffect[]
+  ): { passed: boolean; undeclared: VREffect[] } {
     const inferred = composeEffects(inferFromTraits(traits), inferFromBuiltins(calls));
     const allowedRow = new EffectRow(allowed);
     const undeclaredRow = inferred.row.difference(allowedRow);
@@ -198,7 +217,7 @@ export class EffectChecker {
     node: EffectASTNode,
     undeclared: EffectRow,
     unused: EffectRow,
-    sources: Map<VREffect, string[]>,
+    sources: Map<VREffect, string[]>
   ): EffectViolation[] {
     const violations: EffectViolation[] = [];
 
@@ -253,14 +272,23 @@ export function createEffectChecker(config?: EffectCheckerConfig): EffectChecker
  */
 export function isSafeTraitSet(traits: string[]): { safe: boolean; dangerous: VREffect[] } {
   const DANGEROUS: VREffect[] = [
-    'authority:own', 'authority:delegate', 'authority:revoke', 'authority:zone', 'authority:world',
-    'inventory:take', 'inventory:destroy', 'inventory:duplicate',
-    'agent:spawn', 'agent:kill', 'agent:control',
-    'io:network', 'io:write',
+    'authority:own',
+    'authority:delegate',
+    'authority:revoke',
+    'authority:zone',
+    'authority:world',
+    'inventory:take',
+    'inventory:destroy',
+    'inventory:duplicate',
+    'agent:spawn',
+    'agent:kill',
+    'agent:control',
+    'io:network',
+    'io:write',
     'physics:teleport',
   ];
   const inferred = inferFromTraits(traits);
-  const dangerous = inferred.row.toArray().filter(e => DANGEROUS.includes(e));
+  const dangerous = inferred.row.toArray().filter((e) => DANGEROUS.includes(e));
   return { safe: dangerous.length === 0, dangerous };
 }
 
@@ -270,9 +298,16 @@ export function isSafeTraitSet(traits: string[]): { safe: boolean; dangerous: VR
 export function dangerLevel(row: EffectRow): number {
   let score = 0;
   const weights: Partial<Record<EffectCategory, number>> = {
-    authority: 3, inventory: 2, agent: 2, io: 1.5,
-    physics: 1, render: 0.5, audio: 0.3, state: 0.5,
-    resource: 1, exception: 0.2,
+    authority: 3,
+    inventory: 2,
+    agent: 2,
+    io: 1.5,
+    physics: 1,
+    render: 0.5,
+    audio: 0.3,
+    state: 0.5,
+    resource: 1,
+    exception: 0.2,
   };
   for (const cat of row.categories()) {
     score += (weights[cat] || 0) * row.ofCategory(cat).length;

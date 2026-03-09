@@ -87,9 +87,7 @@ export class PluginAPI {
    */
   private requirePermission(permission: PluginPermission): void {
     if (!this.hasPermission(permission)) {
-      throw new Error(
-        `Plugin "${this.config.pluginId}" lacks permission "${permission}"`
-      );
+      throw new Error(`Plugin "${this.config.pluginId}" lacks permission "${permission}"`);
     }
   }
 
@@ -486,11 +484,7 @@ export class PluginAPI {
   /**
    * Update quest progress (requires quest:manage)
    */
-  async updateQuestProgress(
-    questId: string,
-    playerId: string,
-    progress: number
-  ): Promise<void> {
+  async updateQuestProgress(questId: string, playerId: string, progress: number): Promise<void> {
     this.requirePermission('quest:manage');
     const questProgress: QuestProgress = {
       questId,
@@ -507,9 +501,7 @@ export class PluginAPI {
    */
   async completeQuest(questId: string, playerId: string): Promise<QuestReward[]> {
     this.requirePermission('quest:manage');
-    const rewards: QuestReward[] = [
-      { type: 'xp', value: 100, description: '100 XP' },
-    ];
+    const rewards: QuestReward[] = [{ type: 'xp', value: 100, description: '100 XP' }];
     const completion: QuestCompletion = {
       questId,
       playerId,

@@ -21,7 +21,11 @@ function mockNode(id = 'avatar-1') {
 
 describe('NetworkedAvatarTrait', () => {
   const localConfig: NetworkedAvatarConfig = { isLocal: true, updateRate: 30 };
-  const remoteConfig: NetworkedAvatarConfig = { isLocal: false, ownerId: 'peer-42', updateRate: 30 };
+  const remoteConfig: NetworkedAvatarConfig = {
+    isLocal: false,
+    ownerId: 'peer-42',
+    updateRate: 30,
+  };
 
   it('attaches and initializes skeleton + IK + controller', () => {
     const node = mockNode();

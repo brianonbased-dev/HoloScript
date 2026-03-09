@@ -40,7 +40,7 @@ export interface ForceLayoutOptions {
 export function forceDirectedLayout(
   nodes: LayoutNode[],
   edges: LayoutEdge[],
-  options: ForceLayoutOptions = {},
+  options: ForceLayoutOptions = {}
 ): LayoutNode[] {
   const iterations = options.iterations ?? 200;
   const repulsion = options.repulsion ?? 500;

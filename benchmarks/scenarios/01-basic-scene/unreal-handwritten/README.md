@@ -12,6 +12,7 @@
 ```
 
 **Project Settings**:
+
 - Template: Blank (VR)
 - C++ (not Blueprint)
 - Desktop & Console (with Mobile/Quest support)
@@ -31,18 +32,21 @@
 ### 3. Configure for Quest 2/3
 
 **Project Settings → Platforms → Android**:
+
 - Minimum SDK: 29 (Android 10)
 - Target SDK: 32 (Android 12)
 - Package for Oculus Mobile: ✓
 - Support arm64: ✓
 
 **Project Settings → Engine → Rendering**:
+
 - Forward Rendering: ✓
 - Mobile HDR: ✗
 - Mobile MSAA: 4x
 - Dynamic Shadows: ✓ (use CSM for mobile)
 
 **Plugins**:
+
 - Oculus VR (enabled)
 - OpenXR (enabled as fallback)
 
@@ -55,6 +59,7 @@
 ```
 
 **Build Settings**:
+
 - Configuration: Development (for profiling)
 - Distribution Build: ✗
 - Full Rebuild: ✓
@@ -68,6 +73,7 @@
    - Use VR Preview (Alt+P)
 
 2. **Session Frontend** (profiling tool):
+
    ```
    Window → Developer Tools → Session Frontend
    → Profiler Tab → Capture → Start
@@ -85,6 +91,7 @@
 ### Quest 2/3 (Device)
 
 1. **Deploy APK**:
+
    ```bash
    adb install -r Builds/Android/HoloScriptBenchmark.apk
    ```
@@ -94,6 +101,7 @@
    - Enable Plugin Content: ✓
 
 3. **Unreal Insights** (advanced profiling):
+
    ```bash
    # On PC, start Unreal Insights:
    Engine/Binaries/Win64/UnrealInsights.exe
@@ -103,6 +111,7 @@
    ```
 
 4. **OVR Metrics Tool**:
+
    ```bash
    # Performance HUD overlay
    adb shell setprop debug.oculus.perfhud 3
@@ -132,6 +141,7 @@ stat gpu
 ## Expected Results
 
 ### Desktop (RTX 3060)
+
 - **FPS**: 88 FPS (VR 90Hz with overhead)
 - **Game Thread**: 9ms
 - **Render Thread**: 8ms
@@ -141,6 +151,7 @@ stat gpu
 - **Triangles**: 6,200
 
 ### Quest 2
+
 - **FPS**: 72 FPS (fixed refresh rate)
 - **Game Thread**: 11ms
 - **Render Thread**: 10ms
@@ -150,6 +161,7 @@ stat gpu
 - **Triangles**: 5,800
 
 ### Quest 3
+
 - **FPS**: 90 FPS (Quest 3 native refresh)
 - **Game Thread**: 9ms
 - **Render Thread**: 8ms
@@ -161,6 +173,7 @@ stat gpu
 ## Performance Optimization
 
 Already optimized:
+
 - ✅ Forward renderer (mobile-optimized)
 - ✅ Static mesh instancing
 - ✅ Culling (distance + frustum)
@@ -179,9 +192,10 @@ Overhead % = (HoloScript_Time - Unreal_Baseline) / Unreal_Baseline * 100
 **Target**: <10% overhead
 
 **Example**:
+
 - Unreal Baseline: 88 FPS (11.36ms frame time)
 - HoloScript → Unreal: 85 FPS (11.76ms frame time)
-- Overhead: (11.76 - 11.36) / 11.36 * 100 = 3.5% ✅ PASS
+- Overhead: (11.76 - 11.36) / 11.36 \* 100 = 3.5% ✅ PASS
 
 ## Files
 

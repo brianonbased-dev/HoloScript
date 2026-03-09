@@ -46,14 +46,15 @@ function getSwipeDirection(deg: number): TouchGestureType | null {
   if (absDeg <= SWIPE_ANGLE_TOLERANCE) return 'swipe-right';
   if (absDeg >= 180 - SWIPE_ANGLE_TOLERANCE) return 'swipe-left';
   if (deg >= 90 - SWIPE_ANGLE_TOLERANCE && deg <= 90 + SWIPE_ANGLE_TOLERANCE) return 'swipe-down';
-  if (deg >= -(90 + SWIPE_ANGLE_TOLERANCE) && deg <= -(90 - SWIPE_ANGLE_TOLERANCE)) return 'swipe-up';
+  if (deg >= -(90 + SWIPE_ANGLE_TOLERANCE) && deg <= -(90 - SWIPE_ANGLE_TOLERANCE))
+    return 'swipe-up';
 
   return null;
 }
 
 function getPinchScale(
   startTouches: [TouchPoint, TouchPoint],
-  currentTouches: [TouchPoint, TouchPoint],
+  currentTouches: [TouchPoint, TouchPoint]
 ): number {
   const startDistance = distance(startTouches[0], startTouches[1]);
   const currentDistance = distance(currentTouches[0], currentTouches[1]);

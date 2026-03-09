@@ -24,14 +24,22 @@ class MockSpeechRecognition {
   onerror: ((event: any) => void) | null = null;
   onend: (() => void) | null = null;
 
-  start = vi.fn(() => { this.onstart?.(); });
-  stop = vi.fn(() => { this.onend?.(); });
+  start = vi.fn(() => {
+    this.onstart?.();
+  });
+  stop = vi.fn(() => {
+    this.onend?.();
+  });
   abort = vi.fn();
 
-  constructor() { lastMockInstance = this; }
+  constructor() {
+    lastMockInstance = this;
+  }
 }
 
-function getMock(): MockSpeechRecognition { return lastMockInstance!; }
+function getMock(): MockSpeechRecognition {
+  return lastMockInstance!;
+}
 
 // =============================================================================
 // HELPERS
@@ -158,22 +166,26 @@ describe('VoiceInputTrait — Production', () => {
       // Simulate recognition result
       getMock().onresult?.({
         resultIndex: 0,
-        results: [{
-          0: { transcript: 'open menu', confidence: 0.95 },
-          isFinal: true,
-          length: 1,
-        }],
+        results: [
+          {
+            0: { transcript: 'open menu', confidence: 0.95 },
+            isFinal: true,
+            length: 1,
+          },
+        ],
       });
 
-      expect(listener).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'final',
-        result: expect.objectContaining({
-          transcript: 'open menu',
-          confidence: 0.95,
-          isFinal: true,
-          matchedCommand: expect.objectContaining({ action: 'openMenu' }),
-        }),
-      }));
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'final',
+          result: expect.objectContaining({
+            transcript: 'open menu',
+            confidence: 0.95,
+            isFinal: true,
+            matchedCommand: expect.objectContaining({ action: 'openMenu' }),
+          }),
+        })
+      );
     });
 
     it('filters below confidence threshold', () => {
@@ -184,11 +196,13 @@ describe('VoiceInputTrait — Production', () => {
 
       getMock().onresult?.({
         resultIndex: 0,
-        results: [{
-          0: { transcript: 'open menu', confidence: 0.3 }, // below 0.7
-          isFinal: true,
-          length: 1,
-        }],
+        results: [
+          {
+            0: { transcript: 'open menu', confidence: 0.3 }, // below 0.7
+            isFinal: true,
+            length: 1,
+          },
+        ],
       });
 
       // Should NOT emit because confidence too low
@@ -203,19 +217,23 @@ describe('VoiceInputTrait — Production', () => {
 
       getMock().onresult?.({
         resultIndex: 0,
-        results: [{
-          0: { transcript: 'shut', confidence: 0.85 },
-          isFinal: true,
-          length: 1,
-        }],
+        results: [
+          {
+            0: { transcript: 'shut', confidence: 0.85 },
+            isFinal: true,
+            length: 1,
+          },
+        ],
       });
 
-      expect(listener).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'final',
-        result: expect.objectContaining({
-          matchedCommand: expect.objectContaining({ action: 'close' }),
-        }),
-      }));
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'final',
+          result: expect.objectContaining({
+            matchedCommand: expect.objectContaining({ action: 'close' }),
+          }),
+        })
+      );
     });
 
     it('does not match unrecognized commands', () => {
@@ -226,20 +244,27 @@ describe('VoiceInputTrait — Production', () => {
 
       getMock().onresult?.({
         resultIndex: 0,
-        results: [{
-          0: { transcript: 'this is a completely unrelated and very long sentence', confidence: 0.9 },
-          isFinal: true,
-          length: 1,
-        }],
+        results: [
+          {
+            0: {
+              transcript: 'this is a completely unrelated and very long sentence',
+              confidence: 0.9,
+            },
+            isFinal: true,
+            length: 1,
+          },
+        ],
       });
 
       // Still emits event but without matchedCommand
-      expect(listener).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'final',
-        result: expect.objectContaining({
-          matchedCommand: undefined,
-        }),
-      }));
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'final',
+          result: expect.objectContaining({
+            matchedCommand: undefined,
+          }),
+        })
+      );
     });
   });
 
@@ -253,9 +278,11 @@ describe('VoiceInputTrait — Production', () => {
 
       getMock().onerror?.({ error: 'no-speech' });
 
-      expect(listener).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'error',
-      }));
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'error',
+        })
+      );
     });
   });
 

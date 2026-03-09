@@ -412,7 +412,10 @@ export class ErosionDemoScene {
   /**
    * Get information at grid coordinates
    */
-  public getInfoAt(gridX: number, gridZ: number): {
+  public getInfoAt(
+    gridX: number,
+    gridZ: number
+  ): {
     terrain: { height: number; slope: number; normal: [number, number, number] };
     water: { height: number; velocity: [number, number] } | null;
     sediment: { suspended: number; deposited: number } | null;

@@ -13,16 +13,20 @@
 
 export interface AnimPose {
   boneId: string;
-  tx: number; ty: number; tz: number;
-  sx: number; sy: number; sz: number;
+  tx: number;
+  ty: number;
+  tz: number;
+  sx: number;
+  sy: number;
+  sz: number;
 }
 
 export interface AnimLayer {
   id: string;
   poses: AnimPose[];
-  weight: number;           // 0-1
+  weight: number; // 0-1
   mode: 'override' | 'additive';
-  mask?: Set<string>;       // Bone IDs this layer affects (null = all)
+  mask?: Set<string>; // Bone IDs this layer affects (null = all)
 }
 
 // =============================================================================
@@ -37,16 +41,22 @@ export class SkeletalBlender {
   // Layer Management
   // ---------------------------------------------------------------------------
 
-  addLayer(layer: AnimLayer): void { this.layers.push(layer); }
+  addLayer(layer: AnimLayer): void {
+    this.layers.push(layer);
+  }
 
-  removeLayer(id: string): void { this.layers = this.layers.filter(l => l.id !== id); }
+  removeLayer(id: string): void {
+    this.layers = this.layers.filter((l) => l.id !== id);
+  }
 
   setLayerWeight(id: string, weight: number): void {
-    const layer = this.layers.find(l => l.id === id);
+    const layer = this.layers.find((l) => l.id === id);
     if (layer) layer.weight = Math.max(0, Math.min(1, weight));
   }
 
-  getLayerWeight(id: string): number { return this.layers.find(l => l.id === id)?.weight ?? 0; }
+  getLayerWeight(id: string): number {
+    return this.layers.find((l) => l.id === id)?.weight ?? 0;
+  }
 
   // ---------------------------------------------------------------------------
   // Blending
@@ -66,7 +76,15 @@ export class SkeletalBlender {
 
         if (!existing || layer.mode === 'override') {
           // Override: lerp between existing (or identity) and this pose
-          const base = existing ?? { boneId: pose.boneId, tx: 0, ty: 0, tz: 0, sx: 1, sy: 1, sz: 1 };
+          const base = existing ?? {
+            boneId: pose.boneId,
+            tx: 0,
+            ty: 0,
+            tz: 0,
+            sx: 1,
+            sy: 1,
+            sz: 1,
+          };
           this.blendedPoses.set(pose.boneId, this.lerpPose(base, pose, layer.weight));
         } else {
           // Additive: add weighted delta on top
@@ -111,6 +129,10 @@ export class SkeletalBlender {
     };
   }
 
-  getLayerCount(): number { return this.layers.length; }
-  getBlendedPose(boneId: string): AnimPose | undefined { return this.blendedPoses.get(boneId); }
+  getLayerCount(): number {
+    return this.layers.length;
+  }
+  getBlendedPose(boneId: string): AnimPose | undefined {
+    return this.blendedPoses.get(boneId);
+  }
 }

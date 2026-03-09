@@ -56,7 +56,7 @@ export interface LightCookie {
 export interface CausticConfig {
   intensity: number;
   sampleCount: number;
-  animationSpeed: number;  // UV scroll speed
+  animationSpeed: number; // UV scroll speed
 }
 
 export interface AdvancedLight {
@@ -89,7 +89,12 @@ export interface AdvancedLight {
  * For production use this would parse the full IES spec; here we handle
  * the minimal tabular data format used in tests.
  */
-export function parseIESProfile(id: string, vertAngles: number[], horizAngles: number[], candela: number[][]): IESProfile {
+export function parseIESProfile(
+  id: string,
+  vertAngles: number[],
+  horizAngles: number[],
+  candela: number[][]
+): IESProfile {
   let maxCandela = 0;
   for (const row of candela) {
     for (const v of row) if (v > maxCandela) maxCandela = v;
@@ -110,12 +115,14 @@ export function sampleIES(profile: IESProfile, vertDeg: number, horizDeg: number
   // Find bracketing vertical index
   let vi = 0;
   while (vi < vAngles.length - 1 && vAngles[vi + 1] < vertDeg) vi++;
-  const vt = vAngles.length > 1 ? (vertDeg - vAngles[vi]) / (vAngles[vi + 1] - vAngles[vi] + 1e-6) : 0;
+  const vt =
+    vAngles.length > 1 ? (vertDeg - vAngles[vi]) / (vAngles[vi + 1] - vAngles[vi] + 1e-6) : 0;
 
   // Find bracketing horizontal index
   let hi = 0;
   while (hi < hAngles.length - 1 && hAngles[hi + 1] < horizDeg) hi++;
-  const ht = hAngles.length > 1 ? (horizDeg - hAngles[hi]) / (hAngles[hi + 1] - hAngles[hi] + 1e-6) : 0;
+  const ht =
+    hAngles.length > 1 ? (horizDeg - hAngles[hi]) / (hAngles[hi + 1] - hAngles[hi] + 1e-6) : 0;
 
   const h1 = Math.min(hi + 1, hAngles.length - 1);
   const v1 = Math.min(vi + 1, vAngles.length - 1);
@@ -142,19 +149,38 @@ export function sampleIES(profile: IESProfile, vertDeg: number, horizDeg: number
  * All positions in world space.
  */
 export function rectSolidAngle(
-  surfacePos: Vec3, lightPos: Vec3,
-  right: Vec3, up: Vec3,
-  halfWidth: number, halfHeight: number
+  surfacePos: Vec3,
+  lightPos: Vec3,
+  right: Vec3,
+  up: Vec3,
+  halfWidth: number,
+  halfHeight: number
 ): number {
   // Compute corners
   const corners: Vec3[] = [
-    { x: lightPos.x - right.x * halfWidth - up.x * halfHeight, y: lightPos.y - right.y * halfWidth - up.y * halfHeight, z: lightPos.z - right.z * halfWidth - up.z * halfHeight },
-    { x: lightPos.x + right.x * halfWidth - up.x * halfHeight, y: lightPos.y + right.y * halfWidth - up.y * halfHeight, z: lightPos.z + right.z * halfWidth - up.z * halfHeight },
-    { x: lightPos.x + right.x * halfWidth + up.x * halfHeight, y: lightPos.y + right.y * halfWidth + up.y * halfHeight, z: lightPos.z + right.z * halfWidth + up.z * halfHeight },
-    { x: lightPos.x - right.x * halfWidth + up.x * halfHeight, y: lightPos.y - right.y * halfWidth + up.y * halfHeight, z: lightPos.z - right.z * halfWidth + up.z * halfHeight },
+    {
+      x: lightPos.x - right.x * halfWidth - up.x * halfHeight,
+      y: lightPos.y - right.y * halfWidth - up.y * halfHeight,
+      z: lightPos.z - right.z * halfWidth - up.z * halfHeight,
+    },
+    {
+      x: lightPos.x + right.x * halfWidth - up.x * halfHeight,
+      y: lightPos.y + right.y * halfWidth - up.y * halfHeight,
+      z: lightPos.z + right.z * halfWidth - up.z * halfHeight,
+    },
+    {
+      x: lightPos.x + right.x * halfWidth + up.x * halfHeight,
+      y: lightPos.y + right.y * halfWidth + up.y * halfHeight,
+      z: lightPos.z + right.z * halfWidth + up.z * halfHeight,
+    },
+    {
+      x: lightPos.x - right.x * halfWidth + up.x * halfHeight,
+      y: lightPos.y - right.y * halfWidth + up.y * halfHeight,
+      z: lightPos.z - right.z * halfWidth + up.z * halfHeight,
+    },
   ];
 
-  const dirs = corners.map(c => {
+  const dirs = corners.map((c) => {
     const d = { x: c.x - surfacePos.x, y: c.y - surfacePos.y, z: c.z - surfacePos.z };
     const len = Math.sqrt(d.x ** 2 + d.y ** 2 + d.z ** 2) || 1;
     return { x: d.x / len, y: d.y / len, z: d.z / len };
@@ -171,7 +197,8 @@ export function rectSolidAngle(
 
   let solidAngle = 0;
   for (let i = 0; i < 4; i++) {
-    const a = dirs[i], b = dirs[(i + 1) % 4];
+    const a = dirs[i],
+      b = dirs[(i + 1) % 4];
     const crossV = cross_(a, b);
     const sinTheta = len_(crossV);
     const cosTheta = dot_(a, b);
@@ -201,7 +228,9 @@ export function diskSolidAngle(surfacePos: Vec3, lightPos: Vec3, radius: number)
  */
 export function buildCircleCookie(width: number, height: number, edgeSoftness = 0.05): LightCookie {
   const pixels = new Float32Array(width * height * 4);
-  const cx = width / 2, cy = height / 2, r = Math.min(cx, cy);
+  const cx = width / 2,
+    cy = height / 2,
+    r = Math.min(cx, cy);
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -219,7 +248,11 @@ export function buildCircleCookie(width: number, height: number, edgeSoftness = 
  * Sample a light cookie at UV coordinates [0–1].
  * Returns [r, g, b, a].
  */
-export function sampleCookie(cookie: LightCookie, u: number, v: number): [number, number, number, number] {
+export function sampleCookie(
+  cookie: LightCookie,
+  u: number,
+  v: number
+): [number, number, number, number] {
   const x = Math.round(Math.max(0, Math.min(1, u)) * (cookie.width - 1));
   const y = Math.round(Math.max(0, Math.min(1, v)) * (cookie.height - 1));
   const pi = (y * cookie.width + x) * 4;
@@ -250,13 +283,21 @@ export class AdvancedLightingManager {
     return light;
   }
 
-  removeLight(id: string): boolean { return this.lights.delete(id); }
-  getLight(id: string): AdvancedLight | undefined { return this.lights.get(id); }
-  getLightCount(): number { return this.lights.size; }
-  getEnabledCount(): number { return [...this.lights.values()].filter(l => l.enabled).length; }
+  removeLight(id: string): boolean {
+    return this.lights.delete(id);
+  }
+  getLight(id: string): AdvancedLight | undefined {
+    return this.lights.get(id);
+  }
+  getLightCount(): number {
+    return this.lights.size;
+  }
+  getEnabledCount(): number {
+    return [...this.lights.values()].filter((l) => l.enabled).length;
+  }
 
   getLightsByType(type: LightType): AdvancedLight[] {
-    return [...this.lights.values()].filter(l => l.type === type);
+    return [...this.lights.values()].filter((l) => l.type === type);
   }
 
   /**
@@ -280,9 +321,11 @@ export class AdvancedLightingManager {
    */
   getTotalEmissivePower(): number {
     return [...this.lights.values()]
-      .filter(l => l.type === 'emissive_mesh' && l.enabled)
-      .reduce((sum, l) => sum + l.intensity * (l.color[0] + l.color[1] + l.color[2]) / 3, 0);
+      .filter((l) => l.type === 'emissive_mesh' && l.enabled)
+      .reduce((sum, l) => sum + (l.intensity * (l.color[0] + l.color[1] + l.color[2])) / 3, 0);
   }
 
-  clear(): void { this.lights.clear(); }
+  clear(): void {
+    this.lights.clear();
+  }
 }

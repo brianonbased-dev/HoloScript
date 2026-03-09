@@ -7,11 +7,7 @@
  * CompressionStream may be absent; encoder falls back to v0 (plain base64).
  */
 import { describe, it, expect } from 'vitest';
-import {
-  encodeState,
-  decodeState,
-  type PlaygroundState,
-} from '../src/sharing/url-encoder';
+import { encodeState, decodeState, type PlaygroundState } from '../src/sharing/url-encoder';
 
 // ═══════════════════════════════════════════════
 // encodeState

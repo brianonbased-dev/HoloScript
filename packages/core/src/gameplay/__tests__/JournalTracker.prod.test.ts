@@ -139,7 +139,7 @@ describe('JournalTracker', () => {
       tracker.addEntry('q1', 'Q', 'c', 'd');
       tracker.updateEntry('q1', { status: 'completed' });
       const notifs = tracker.getNotifications();
-      const completed = notifs.find(n => n.type === 'quest_completed');
+      const completed = notifs.find((n) => n.type === 'quest_completed');
       expect(completed).toBeDefined();
     });
 
@@ -147,7 +147,7 @@ describe('JournalTracker', () => {
       tracker.addEntry('q1', 'Q', 'c', 'd');
       tracker.updateEntry('q1', { status: 'failed' });
       const notifs = tracker.getNotifications();
-      const failed = notifs.find(n => n.type === 'quest_failed');
+      const failed = notifs.find((n) => n.type === 'quest_failed');
       expect(failed).toBeDefined();
     });
 

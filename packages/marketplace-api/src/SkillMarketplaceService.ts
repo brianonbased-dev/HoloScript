@@ -83,14 +83,19 @@ export class InMemorySkillDatabase implements ISkillDatabase {
 
     // Filters
     if (query.category) results = results.filter((s) => s.category === query.category);
-    if (query.targetPlatform) results = results.filter((s) => s.targetPlatform === query.targetPlatform);
+    if (query.targetPlatform)
+      results = results.filter((s) => s.targetPlatform === query.targetPlatform);
     if (query.author) results = results.filter((s) => s.author.name === query.author);
     if (query.pricingModel) results = results.filter((s) => s.pricingModel === query.pricingModel);
     if (query.maxPrice !== undefined) results = results.filter((s) => s.price <= query.maxPrice!);
-    if (query.verified !== undefined) results = results.filter((s) => s.verified === query.verified);
-    if (query.deprecated !== undefined) results = results.filter((s) => s.deprecated === query.deprecated);
-    if (query.minRating !== undefined) results = results.filter((s) => s.rating >= query.minRating!);
-    if (query.minDownloads !== undefined) results = results.filter((s) => s.downloads >= query.minDownloads!);
+    if (query.verified !== undefined)
+      results = results.filter((s) => s.verified === query.verified);
+    if (query.deprecated !== undefined)
+      results = results.filter((s) => s.deprecated === query.deprecated);
+    if (query.minRating !== undefined)
+      results = results.filter((s) => s.rating >= query.minRating!);
+    if (query.minDownloads !== undefined)
+      results = results.filter((s) => s.downloads >= query.minDownloads!);
 
     // Sort
     const sortBy = query.sortBy || 'relevance';
@@ -99,12 +104,18 @@ export class InMemorySkillDatabase implements ISkillDatabase {
 
     results.sort((a, b) => {
       switch (sortBy) {
-        case 'downloads': return mult * (a.downloads - b.downloads);
-        case 'rating': return mult * (a.rating - b.rating);
-        case 'price': return mult * (a.price - b.price);
-        case 'updated': return mult * (a.updatedAt.getTime() - b.updatedAt.getTime());
-        case 'created': return mult * (a.createdAt.getTime() - b.createdAt.getTime());
-        default: return mult * (a.downloads - b.downloads); // relevance fallback
+        case 'downloads':
+          return mult * (a.downloads - b.downloads);
+        case 'rating':
+          return mult * (a.rating - b.rating);
+        case 'price':
+          return mult * (a.price - b.price);
+        case 'updated':
+          return mult * (a.updatedAt.getTime() - b.updatedAt.getTime());
+        case 'created':
+          return mult * (a.createdAt.getTime() - b.createdAt.getTime());
+        default:
+          return mult * (a.downloads - b.downloads); // relevance fallback
       }
     });
 
@@ -140,7 +151,10 @@ export class SkillDownloadStatsTracker {
   async getStats(skillId: string): Promise<DownloadStats> {
     const entry = this.stats.get(skillId) || { total: 0, daily: new Map() };
     const now = Date.now();
-    const history: DailyDownloads[] = Array.from(entry.daily.entries()).map(([date, count]) => ({ date, count }));
+    const history: DailyDownloads[] = Array.from(entry.daily.entries()).map(([date, count]) => ({
+      date,
+      count,
+    }));
 
     return {
       traitId: skillId,
@@ -351,7 +365,10 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
     return skills.map((s) => this.toSummary(s));
   }
 
-  async getTopSkills(sortBy: 'downloads' | 'rating' | 'installs', limit = 10): Promise<SkillSummary[]> {
+  async getTopSkills(
+    sortBy: 'downloads' | 'rating' | 'installs',
+    limit = 10
+  ): Promise<SkillSummary[]> {
     const { skills } = await this.db.searchSkills({
       sortBy: sortBy === 'installs' ? 'downloads' : sortBy,
       sortOrder: 'desc',
@@ -360,11 +377,19 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
     return skills.map((s) => this.toSummary(s));
   }
 
-  async getCategories(): Promise<{ category: SkillCategory; count: number; description: string }[]> {
+  async getCategories(): Promise<
+    { category: SkillCategory; count: number; description: string }[]
+  > {
     const allCategories: SkillCategory[] = [
-      'agent_framework', 'workflow', 'rbac_policy', 'orchestration',
-      'mcp_bundle', 'ecosystem_script', 'decision_template',
-      'prompt_template', 'code_generator',
+      'agent_framework',
+      'workflow',
+      'rbac_policy',
+      'orchestration',
+      'mcp_bundle',
+      'ecosystem_script',
+      'decision_template',
+      'prompt_template',
+      'code_generator',
     ];
 
     const results = await Promise.all(
@@ -383,7 +408,10 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
 
   // ─── Purchase & Download ─────────────────────────────────────────────────────
 
-  async purchaseSkill(skillId: string, _token: string): Promise<{ downloadUrl: string; expiresAt: Date }> {
+  async purchaseSkill(
+    skillId: string,
+    _token: string
+  ): Promise<{ downloadUrl: string; expiresAt: Date }> {
     const skill = await this.db.getSkill(skillId);
     if (!skill) throw new Error(`Skill not found: ${skillId}`);
 

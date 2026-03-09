@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useUndoHistory } from '../useUndoHistory';
 import { useTemporalStore } from '@/lib/historyStore';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 // Mock the temporal store
 vi.mock('@/lib/historyStore', () => ({
@@ -79,10 +79,7 @@ describe('useUndoHistory', () => {
       (useTemporalStore as any).mockImplementation((selector: any) => {
         const state = {
           pastStates: [{ code: 'scene Past {}' }],
-          futureStates: [
-            { code: 'scene Future1 {}' },
-            { code: 'scene Future2 {}' },
-          ],
+          futureStates: [{ code: 'scene Future1 {}' }, { code: 'scene Future2 {}' }],
           undo: mockUndo,
           redo: mockRedo,
         };
@@ -101,9 +98,7 @@ describe('useUndoHistory', () => {
     it('should label entries based on object count', () => {
       (useTemporalStore as any).mockImplementation((selector: any) => {
         const state = {
-          pastStates: [
-            { code: 'scene Test { object "A" {} object "B" {} }' },
-          ],
+          pastStates: [{ code: 'scene Test { object "A" {} object "B" {} }' }],
           futureStates: [],
           undo: mockUndo,
           redo: mockRedo,
@@ -119,9 +114,7 @@ describe('useUndoHistory', () => {
     it('should use singular form for single object', () => {
       (useTemporalStore as any).mockImplementation((selector: any) => {
         const state = {
-          pastStates: [
-            { code: 'scene Test { object "Single" {} }' },
-          ],
+          pastStates: [{ code: 'scene Test { object "Single" {} }' }],
           futureStates: [],
           undo: mockUndo,
           redo: mockRedo,
@@ -138,9 +131,7 @@ describe('useUndoHistory', () => {
     it('should label multiline code without objects', () => {
       (useTemporalStore as any).mockImplementation((selector: any) => {
         const state = {
-          pastStates: [
-            { code: 'scene Test {\n  // comment\n}' },
-          ],
+          pastStates: [{ code: 'scene Test {\n  // comment\n}' }],
           futureStates: [],
           undo: mockUndo,
           redo: mockRedo,
@@ -156,9 +147,7 @@ describe('useUndoHistory', () => {
     it('should label single line code without objects', () => {
       (useTemporalStore as any).mockImplementation((selector: any) => {
         const state = {
-          pastStates: [
-            { code: 'scene Empty {}' },
-          ],
+          pastStates: [{ code: 'scene Empty {}' }],
           futureStates: [],
           undo: mockUndo,
           redo: mockRedo,
@@ -268,10 +257,7 @@ describe('useUndoHistory', () => {
             { code: 'scene Past2 {}' },
             { code: 'scene Past3 {}' },
           ],
-          futureStates: [
-            { code: 'scene Future1 {}' },
-            { code: 'scene Future2 {}' },
-          ],
+          futureStates: [{ code: 'scene Future1 {}' }, { code: 'scene Future2 {}' }],
           undo: mockUndo,
           redo: mockRedo,
         };
@@ -407,13 +393,8 @@ describe('useUndoHistory', () => {
     it('should assign sequential indices', () => {
       (useTemporalStore as any).mockImplementation((selector: any) => {
         const state = {
-          pastStates: [
-            { code: 'scene 1 {}' },
-            { code: 'scene 2 {}' },
-          ],
-          futureStates: [
-            { code: 'scene 3 {}' },
-          ],
+          pastStates: [{ code: 'scene 1 {}' }, { code: 'scene 2 {}' }],
+          futureStates: [{ code: 'scene 3 {}' }],
           undo: mockUndo,
           redo: mockRedo,
         };
@@ -442,7 +423,7 @@ describe('useUndoHistory', () => {
       const { result } = renderHook(() => useUndoHistory());
 
       expect(result.current.entries[0].isCurrent).toBe(false); // Past
-      expect(result.current.entries[1].isCurrent).toBe(true);  // Current
+      expect(result.current.entries[1].isCurrent).toBe(true); // Current
       expect(result.current.entries[2].isCurrent).toBe(false); // Future
     });
   });

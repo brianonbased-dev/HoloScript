@@ -23,12 +23,9 @@ import {
 // ─── Path Resolution ─────────────────────────────────────────────────────────
 
 const __scriptDir =
-  typeof __dirname !== 'undefined'
-    ? __dirname
-    : path.dirname(fileURLToPath(import.meta.url));
+  typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
-const REPO_ROOT =
-  process.env.HOLOSCRIPT_ROOT ?? path.resolve(__scriptDir, '..');
+const REPO_ROOT = process.env.HOLOSCRIPT_ROOT ?? path.resolve(__scriptDir, '..');
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
@@ -81,7 +78,7 @@ async function main() {
       rootDir: config.rootDir,
       outputDir: config.outputDir,
     },
-    fs,
+    fs
   );
 
   console.log('Scanning monorepo...');
@@ -123,9 +120,7 @@ async function main() {
 
   // By domain
   console.log('  BY DOMAIN:');
-  const sortedDomains = Object.entries(stats.byDomain).sort(
-    (a, b) => b[1] - a[1],
-  );
+  const sortedDomains = Object.entries(stats.byDomain).sort((a, b) => b[1] - a[1]);
   for (const [domain, count] of sortedDomains) {
     const bar = '█'.repeat(Math.ceil(count / 2));
     console.log(`    ${domain.padEnd(22)} ${String(count).padStart(4)}  ${bar}`);
@@ -148,7 +143,7 @@ async function main() {
     for (const prompt of result.prompts.slice(0, 5)) {
       console.log(`    [${prompt.source}] ${prompt.instruction}`);
       console.log(
-        `      Package: ${prompt.packageName}, Difficulty: ${prompt.difficulty}, Domains: ${prompt.domainTags.join(', ')}`,
+        `      Package: ${prompt.packageName}, Difficulty: ${prompt.difficulty}, Domains: ${prompt.domainTags.join(', ')}`
       );
       console.log('');
     }

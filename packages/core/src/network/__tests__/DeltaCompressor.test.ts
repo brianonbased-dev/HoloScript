@@ -34,7 +34,7 @@ describe('DeltaCompressor', () => {
       const newState = { a: 10, b: 2, c: 30 };
       const deltas = DeltaCompressor.computeDeltas('e1', oldState, newState);
       expect(deltas.length).toBe(2);
-      const fields = deltas.map(d => d.field).sort();
+      const fields = deltas.map((d) => d.field).sort();
       expect(fields).toEqual(['a', 'c']);
     });
 
@@ -202,7 +202,13 @@ describe('DeltaCompressor', () => {
 
       const target: Record<string, any> = { data: currentRegister };
       const deltas: StateDelta[] = [
-        { entityId: 'e1', field: 'data', oldValue: null, newValue: incomingRegister, timestamp: Date.now() },
+        {
+          entityId: 'e1',
+          field: 'data',
+          oldValue: null,
+          newValue: incomingRegister,
+          timestamp: Date.now(),
+        },
       ];
 
       const result = DeltaCompressor.applyDeltas(target, deltas);
@@ -214,7 +220,13 @@ describe('DeltaCompressor', () => {
     it('overwrites when target field is not CRDT', () => {
       const target: Record<string, any> = { data: 'plain' };
       const deltas: StateDelta[] = [
-        { entityId: 'e1', field: 'data', oldValue: 'plain', newValue: 'updated', timestamp: Date.now() },
+        {
+          entityId: 'e1',
+          field: 'data',
+          oldValue: 'plain',
+          newValue: 'updated',
+          timestamp: Date.now(),
+        },
       ];
       const result = DeltaCompressor.applyDeltas(target, deltas);
       expect(result.data).toBe('updated');
@@ -224,7 +236,13 @@ describe('DeltaCompressor', () => {
       const currentRegister = new LWWRegister('old', 100);
       const target: Record<string, any> = { data: currentRegister };
       const deltas: StateDelta[] = [
-        { entityId: 'e1', field: 'data', oldValue: null, newValue: 'not-a-crdt', timestamp: Date.now() },
+        {
+          entityId: 'e1',
+          field: 'data',
+          oldValue: null,
+          newValue: 'not-a-crdt',
+          timestamp: Date.now(),
+        },
       ];
       const result = DeltaCompressor.applyDeltas(target, deltas);
       // Since newValue is not CRDT, it should overwrite

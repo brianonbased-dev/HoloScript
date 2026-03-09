@@ -109,8 +109,8 @@ describe('NetworkManager broadcastToAOI with Transport', () => {
 
     // peer1 is nearby → should receive
     // peer2 is far → should NOT receive
-    const sentToPeer1 = spy.mock.calls.filter(c => c[0] === 'peer1');
-    const sentToPeer2 = spy.mock.calls.filter(c => c[0] === 'peer2');
+    const sentToPeer1 = spy.mock.calls.filter((c) => c[0] === 'peer1');
+    const sentToPeer2 = spy.mock.calls.filter((c) => c[0] === 'peer2');
 
     expect(sentToPeer1.length).toBeGreaterThanOrEqual(1);
     expect(sentToPeer2).toHaveLength(0);
@@ -128,7 +128,12 @@ describe('NetworkManager update()', () => {
 
     const received: string[] = [];
     manager.onMessage('event', (msg) => received.push(msg.payload.data));
-    manager.receive({ type: 'event', senderId: 'remote', timestamp: 0, payload: { data: 'hello' } });
+    manager.receive({
+      type: 'event',
+      senderId: 'remote',
+      timestamp: 0,
+      payload: { data: 'hello' },
+    });
 
     manager.update(0.016); // One frame
     expect(received).toEqual(['hello']);
@@ -152,7 +157,10 @@ describe('NetworkManager update()', () => {
 // =============================================================================
 
 describe('BrainServerClient', () => {
-  function createMockFetch(responseData: any = { results: [] }, status = 200): typeof globalThis.fetch {
+  function createMockFetch(
+    responseData: any = { results: [] },
+    status = 200
+  ): typeof globalThis.fetch {
     return vi.fn().mockResolvedValue({
       ok: status >= 200 && status < 300,
       status,

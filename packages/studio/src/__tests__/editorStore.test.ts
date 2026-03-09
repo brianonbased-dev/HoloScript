@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useEditorStore } from '@/lib/store';
+import { useEditorStore } from '@/lib/stores';
 
 function resetEditorStore() {
   // Reset to creator mode / defaults

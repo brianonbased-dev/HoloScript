@@ -295,7 +295,8 @@ describe('JointTrait — on/off listeners', () => {
   });
   it('multiple listeners on same event all called', () => {
     const j = new JointTrait({ jointType: 'fixed' });
-    const cb1 = vi.fn(), cb2 = vi.fn();
+    const cb1 = vi.fn(),
+      cb2 = vi.fn();
     j.on('break', cb1);
     j.on('break', cb2);
     j.break();

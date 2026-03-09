@@ -4,7 +4,9 @@ import { AccessibilitySystem } from '../accessibility/AccessibilitySystem';
 describe('AccessibilitySystem', () => {
   let a11y: AccessibilitySystem;
 
-  beforeEach(() => { a11y = new AccessibilitySystem(); });
+  beforeEach(() => {
+    a11y = new AccessibilitySystem();
+  });
 
   it('default config has fontScale 1', () => {
     expect(a11y.getConfig().fontScale).toBe(1);
@@ -73,7 +75,9 @@ describe('AccessibilitySystem', () => {
 
   it('onConfigChange listener fires', () => {
     let fired = false;
-    a11y.onConfigChange(() => { fired = true; });
+    a11y.onConfigChange(() => {
+      fired = true;
+    });
     a11y.setConfig({ reduceMotion: true });
     expect(fired).toBe(true);
   });

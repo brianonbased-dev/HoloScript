@@ -4,7 +4,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { SwarmEventBus } from '../SwarmEventBus';
 
-function make(cfg = {}) { return new SwarmEventBus(cfg); }
+function make(cfg = {}) {
+  return new SwarmEventBus(cfg);
+}
 
 describe('SwarmEventBus — construction', () => {
   it('constructs without args', () => expect(() => make()).not.toThrow());
@@ -12,17 +14,21 @@ describe('SwarmEventBus — construction', () => {
   it('default asyncProcessing=true', () => expect(make().getConfig().asyncProcessing).toBe(true));
   it('initial stats all zero', () => {
     const s = make().getStats();
-    expect(s.eventsPublished).toBe(0); expect(s.eventsDelivered).toBe(0);
+    expect(s.eventsPublished).toBe(0);
+    expect(s.eventsDelivered).toBe(0);
   });
 });
 
 describe('SwarmEventBus — publish', () => {
   it('returns event id string', () => {
-    const bus = make(); const id = bus.publish('test', 'src', {});
-    expect(typeof id).toBe('string'); expect(id.startsWith('evt-')).toBe(true);
+    const bus = make();
+    const id = bus.publish('test', 'src', {});
+    expect(typeof id).toBe('string');
+    expect(id.startsWith('evt-')).toBe(true);
   });
   it('increments eventsPublished', () => {
-    const bus = make(); bus.publish('test', 'src', {});
+    const bus = make();
+    bus.publish('test', 'src', {});
     expect(bus.getStats().eventsPublished).toBe(1);
   });
   it('drops to dead letter when queue full', () => {
@@ -43,11 +49,13 @@ describe('SwarmEventBus — publish', () => {
 
 describe('SwarmEventBus — subscribe / unsubscribe', () => {
   it('subscribe returns subscription id', () => {
-    const bus = make(); const id = bus.subscribe('test', () => {});
+    const bus = make();
+    const id = bus.subscribe('test', () => {});
     expect(id.startsWith('sub-')).toBe(true);
   });
   it('unsubscribe removes subscription', () => {
-    const bus = make(); const id = bus.subscribe('test', () => {});
+    const bus = make();
+    const id = bus.subscribe('test', () => {});
     expect(bus.unsubscribe(id)).toBe(true);
     expect(bus.getStats().subscriptions).toBe(0);
   });
@@ -56,14 +64,16 @@ describe('SwarmEventBus — subscribe / unsubscribe', () => {
   });
   it('clearSubscriptions removes all', () => {
     const bus = make();
-    bus.subscribe('a', () => {}); bus.subscribe('b', () => {});
+    bus.subscribe('a', () => {});
+    bus.subscribe('b', () => {});
     bus.clearSubscriptions();
     expect(bus.getStats().subscriptions).toBe(0);
   });
   it('once subscription auto-removed after delivery', async () => {
     const bus = make({ asyncProcessing: false });
     bus.once('test', () => {});
-    bus.publish('test', 'src', {}); await bus.processQueue();
+    bus.publish('test', 'src', {});
+    await bus.processQueue();
     expect(bus.getStats().subscriptions).toBe(0);
   });
 });
@@ -147,7 +157,8 @@ describe('SwarmEventBus — processQueue', () => {
 describe('SwarmEventBus — dead letter / replay', () => {
   it('clearDeadLetterQueue returns and empties', async () => {
     const bus = make({ asyncProcessing: false });
-    bus.publish('x', 'src', {}); await bus.processQueue(); // unmatched → DLQ
+    bus.publish('x', 'src', {});
+    await bus.processQueue(); // unmatched → DLQ
     const dead = bus.clearDeadLetterQueue();
     expect(dead).toHaveLength(1);
     expect(bus.getDeadLetterQueue()).toHaveLength(0);
@@ -155,9 +166,11 @@ describe('SwarmEventBus — dead letter / replay', () => {
   it('replayDeadLetters re-enqueues and delivers', async () => {
     const received: unknown[] = [];
     const bus = make({ asyncProcessing: false });
-    bus.publish('retry', 'src', 'payload'); await bus.processQueue(); // to DLQ
+    bus.publish('retry', 'src', 'payload');
+    await bus.processQueue(); // to DLQ
     bus.subscribe('retry', (e) => received.push(e.payload));
-    bus.replayDeadLetters(); await bus.processQueue();
+    bus.replayDeadLetters();
+    await bus.processQueue();
     expect(received).toContain('payload');
   });
 });
@@ -165,7 +178,8 @@ describe('SwarmEventBus — dead letter / replay', () => {
 describe('SwarmEventBus — stats / resetStats / setConfig', () => {
   it('resetStats zeroes published/delivered/dropped', () => {
     const bus = make({ asyncProcessing: false });
-    bus.publish('x', 'src', {}); bus.resetStats();
+    bus.publish('x', 'src', {});
+    bus.resetStats();
     expect(bus.getStats().eventsPublished).toBe(0);
     expect(bus.getStats().eventsDelivered).toBe(0);
   });

@@ -17,7 +17,13 @@ function makeMorph(opts: ConstructorParameters<typeof MorphTrait>[0] = {}) {
   return new MorphTrait(opts);
 }
 
-function target(name: string, weight = 0, category?: string, min?: number, max?: number): MorphTarget {
+function target(
+  name: string,
+  weight = 0,
+  category?: string,
+  min?: number,
+  max?: number
+): MorphTarget {
   return { name, weight, category, min, max };
 }
 
@@ -25,7 +31,12 @@ function preset(name: string, weights: Record<string, number>, blendTime?: numbe
   return { name, weights, blendTime };
 }
 
-function clip(name: string, duration: number, keyframes: MorphClip['keyframes'], loop = false): MorphClip {
+function clip(
+  name: string,
+  duration: number,
+  keyframes: MorphClip['keyframes'],
+  loop = false
+): MorphClip {
   return { name, duration, keyframes, loop };
 }
 
@@ -138,7 +149,9 @@ describe('MorphTrait — weight-changed event', () => {
     const cb = vi.fn();
     m.on('weight-changed', cb);
     m.setWeight('smile', 0.6);
-    expect(cb).toHaveBeenCalledWith(expect.objectContaining({ type: 'weight-changed', target: 'smile', weight: 0.6 }));
+    expect(cb).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'weight-changed', target: 'smile', weight: 0.6 })
+    );
   });
 
   it('off removes weight-changed listener', () => {
@@ -270,7 +283,9 @@ describe('MorphTrait — clips', () => {
 
   it('addClip / getClip roundtrip', () => {
     const m = makeMorph();
-    m.addClip(clip('blink', 0.3, [kf(0, { blink_L: 0 }), kf(0.15, { blink_L: 1 }), kf(0.3, { blink_L: 0 })]));
+    m.addClip(
+      clip('blink', 0.3, [kf(0, { blink_L: 0 }), kf(0.15, { blink_L: 1 }), kf(0.3, { blink_L: 0 })])
+    );
     expect(m.getClip('blink')).toBeDefined();
   });
 
@@ -310,10 +325,7 @@ describe('MorphTrait — clips', () => {
 
   it('stopAll stops every active animation', () => {
     const m = makeMorph({
-      clips: [
-        clip('a', 1, [kf(0, { x: 0 })]),
-        clip('b', 1, [kf(0, { y: 0 })]),
-      ],
+      clips: [clip('a', 1, [kf(0, { x: 0 })]), clip('b', 1, [kf(0, { y: 0 })])],
     });
     m.play('a');
     m.play('b');

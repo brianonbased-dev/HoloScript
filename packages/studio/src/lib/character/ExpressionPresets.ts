@@ -27,9 +27,14 @@ export const EMOTION_PRESETS: ExpressionPreset[] = [
     emoji: '😐',
     category: 'emotion',
     weights: {
-      face_eye_size: 50, face_eye_spacing: 50, face_nose_width: 50,
-      face_nose_length: 50, face_mouth_width: 50, face_jaw_width: 50,
-      face_cheek: 50, face_brow: 50,
+      face_eye_size: 50,
+      face_eye_spacing: 50,
+      face_nose_width: 50,
+      face_nose_length: 50,
+      face_mouth_width: 50,
+      face_jaw_width: 50,
+      face_cheek: 50,
+      face_brow: 50,
     },
   },
   {
@@ -38,8 +43,11 @@ export const EMOTION_PRESETS: ExpressionPreset[] = [
     emoji: '😊',
     category: 'emotion',
     weights: {
-      face_eye_size: 65, face_mouth_width: 75, face_cheek: 70,
-      face_brow: 60, face_jaw_width: 45,
+      face_eye_size: 65,
+      face_mouth_width: 75,
+      face_cheek: 70,
+      face_brow: 60,
+      face_jaw_width: 45,
     },
   },
   {
@@ -48,8 +56,11 @@ export const EMOTION_PRESETS: ExpressionPreset[] = [
     emoji: '😢',
     category: 'emotion',
     weights: {
-      face_eye_size: 40, face_mouth_width: 35, face_cheek: 35,
-      face_brow: 30, face_jaw_width: 50,
+      face_eye_size: 40,
+      face_mouth_width: 35,
+      face_cheek: 35,
+      face_brow: 30,
+      face_jaw_width: 50,
     },
   },
   {
@@ -58,8 +69,12 @@ export const EMOTION_PRESETS: ExpressionPreset[] = [
     emoji: '😠',
     category: 'emotion',
     weights: {
-      face_eye_size: 35, face_mouth_width: 40, face_cheek: 40,
-      face_brow: 25, face_jaw_width: 65, face_nose_width: 55,
+      face_eye_size: 35,
+      face_mouth_width: 40,
+      face_cheek: 40,
+      face_brow: 25,
+      face_jaw_width: 65,
+      face_nose_width: 55,
     },
   },
   {
@@ -68,8 +83,11 @@ export const EMOTION_PRESETS: ExpressionPreset[] = [
     emoji: '😲',
     category: 'emotion',
     weights: {
-      face_eye_size: 90, face_mouth_width: 70, face_jaw_width: 70,
-      face_brow: 85, face_cheek: 45,
+      face_eye_size: 90,
+      face_mouth_width: 70,
+      face_jaw_width: 70,
+      face_brow: 85,
+      face_cheek: 45,
     },
   },
   {
@@ -78,7 +96,9 @@ export const EMOTION_PRESETS: ExpressionPreset[] = [
     emoji: '😉',
     category: 'emotion',
     weights: {
-      face_eye_size: 30, face_mouth_width: 65, face_cheek: 60,
+      face_eye_size: 30,
+      face_mouth_width: 65,
+      face_cheek: 60,
       face_brow: 55,
     },
   },
@@ -88,8 +108,11 @@ export const EMOTION_PRESETS: ExpressionPreset[] = [
     emoji: '😏',
     category: 'emotion',
     weights: {
-      face_eye_size: 45, face_mouth_width: 60, face_cheek: 55,
-      face_brow: 40, face_jaw_width: 48,
+      face_eye_size: 45,
+      face_mouth_width: 60,
+      face_cheek: 55,
+      face_brow: 40,
+      face_jaw_width: 48,
     },
   },
   {
@@ -98,8 +121,12 @@ export const EMOTION_PRESETS: ExpressionPreset[] = [
     emoji: '😨',
     category: 'emotion',
     weights: {
-      face_eye_size: 85, face_mouth_width: 55, face_jaw_width: 60,
-      face_brow: 80, face_cheek: 35, face_nose_width: 55,
+      face_eye_size: 85,
+      face_mouth_width: 55,
+      face_jaw_width: 60,
+      face_brow: 80,
+      face_cheek: 35,
+      face_nose_width: 55,
     },
   },
 ];
@@ -108,14 +135,62 @@ export const EMOTION_PRESETS: ExpressionPreset[] = [
 // Based on standard 15-viseme set for speech animation
 
 export const VISEME_PRESETS: ExpressionPreset[] = [
-  { id: 'vis_sil',  name: 'Silence',  emoji: '🤐', category: 'viseme', weights: { face_mouth_width: 50, face_jaw_width: 50 } },
-  { id: 'vis_aa',   name: 'AA',       emoji: '🅰️',  category: 'viseme', weights: { face_mouth_width: 70, face_jaw_width: 75 } },
-  { id: 'vis_ee',   name: 'EE',       emoji: '🇪',  category: 'viseme', weights: { face_mouth_width: 75, face_jaw_width: 45 } },
-  { id: 'vis_ih',   name: 'IH',       emoji: '🇮',  category: 'viseme', weights: { face_mouth_width: 60, face_jaw_width: 50 } },
-  { id: 'vis_oh',   name: 'OH',       emoji: '🇴',  category: 'viseme', weights: { face_mouth_width: 55, face_jaw_width: 70 } },
-  { id: 'vis_ou',   name: 'OU',       emoji: '🇺',  category: 'viseme', weights: { face_mouth_width: 40, face_jaw_width: 65 } },
-  { id: 'vis_ff',   name: 'FF',       emoji: '🇫',  category: 'viseme', weights: { face_mouth_width: 45, face_jaw_width: 40 } },
-  { id: 'vis_th',   name: 'TH',       emoji: '🇹',  category: 'viseme', weights: { face_mouth_width: 55, face_jaw_width: 45 } },
+  {
+    id: 'vis_sil',
+    name: 'Silence',
+    emoji: '🤐',
+    category: 'viseme',
+    weights: { face_mouth_width: 50, face_jaw_width: 50 },
+  },
+  {
+    id: 'vis_aa',
+    name: 'AA',
+    emoji: '🅰️',
+    category: 'viseme',
+    weights: { face_mouth_width: 70, face_jaw_width: 75 },
+  },
+  {
+    id: 'vis_ee',
+    name: 'EE',
+    emoji: '🇪',
+    category: 'viseme',
+    weights: { face_mouth_width: 75, face_jaw_width: 45 },
+  },
+  {
+    id: 'vis_ih',
+    name: 'IH',
+    emoji: '🇮',
+    category: 'viseme',
+    weights: { face_mouth_width: 60, face_jaw_width: 50 },
+  },
+  {
+    id: 'vis_oh',
+    name: 'OH',
+    emoji: '🇴',
+    category: 'viseme',
+    weights: { face_mouth_width: 55, face_jaw_width: 70 },
+  },
+  {
+    id: 'vis_ou',
+    name: 'OU',
+    emoji: '🇺',
+    category: 'viseme',
+    weights: { face_mouth_width: 40, face_jaw_width: 65 },
+  },
+  {
+    id: 'vis_ff',
+    name: 'FF',
+    emoji: '🇫',
+    category: 'viseme',
+    weights: { face_mouth_width: 45, face_jaw_width: 40 },
+  },
+  {
+    id: 'vis_th',
+    name: 'TH',
+    emoji: '🇹',
+    category: 'viseme',
+    weights: { face_mouth_width: 55, face_jaw_width: 45 },
+  },
 ];
 
 // ── All presets ─────────────────────────────────────────────────────────────

@@ -141,7 +141,7 @@ export class SparsityMonitor {
     }
     if (input.spikeCount > input.neuronCount) {
       throw new Error(
-        `spikeCount (${input.spikeCount}) cannot exceed neuronCount (${input.neuronCount})`,
+        `spikeCount (${input.spikeCount}) cannot exceed neuronCount (${input.neuronCount})`
       );
     }
 
@@ -184,15 +184,12 @@ export class SparsityMonitor {
    * @returns Array of computed metrics for each layer
    */
   recordBatchActivity(
-    layerInputs: Map<string, LayerActivityInput> | Record<string, LayerActivityInput>,
+    layerInputs: Map<string, LayerActivityInput> | Record<string, LayerActivityInput>
   ): SNNLayerMetrics[] {
-    const entries = layerInputs instanceof Map
-      ? Array.from(layerInputs.entries())
-      : Object.entries(layerInputs);
+    const entries =
+      layerInputs instanceof Map ? Array.from(layerInputs.entries()) : Object.entries(layerInputs);
 
-    return entries.map(([layerId, input]) =>
-      this.recordLayerActivity(layerId, input),
-    );
+    return entries.map(([layerId, input]) => this.recordLayerActivity(layerId, input));
   }
 
   // ---------------------------------------------------------------------------
@@ -217,13 +214,9 @@ export class SparsityMonitor {
     const totalSpikes = layers.reduce((sum, l) => sum + l.spikeCount, 0);
 
     // Weighted aggregate sparsity (weighted by neuron count per layer)
-    const aggregateSparsity = totalNeurons > 0
-      ? roundTo4(1 - totalSpikes / totalNeurons)
-      : 1;
+    const aggregateSparsity = totalNeurons > 0 ? roundTo4(1 - totalSpikes / totalNeurons) : 1;
 
-    const aggregateSpikeRate = totalNeurons > 0
-      ? roundTo4(totalSpikes / totalNeurons)
-      : 0;
+    const aggregateSpikeRate = totalNeurons > 0 ? roundTo4(totalSpikes / totalNeurons) : 0;
 
     // Energy efficiency
     const energyEfficiency = this.config.energyMetricsEnabled
@@ -283,9 +276,7 @@ export class SparsityMonitor {
 
     const opsSaved = denseOps - sparseOps;
     const efficiencyRatio = denseOps > 0 ? roundTo4(opsSaved / denseOps) : 0;
-    const energySavingsFactor = denseOps > 0
-      ? roundTo4(denseOps / Math.max(1, sparseOps))
-      : 1;
+    const energySavingsFactor = denseOps > 0 ? roundTo4(denseOps / Math.max(1, sparseOps)) : 1;
 
     return {
       denseOps,
@@ -420,21 +411,17 @@ export class SparsityMonitor {
       }
     }
 
-    const meanSparsity = allSparsities.length > 0
-      ? roundTo4(allSparsities.reduce((a, b) => a + b, 0) / allSparsities.length)
-      : 0;
+    const meanSparsity =
+      allSparsities.length > 0
+        ? roundTo4(allSparsities.reduce((a, b) => a + b, 0) / allSparsities.length)
+        : 0;
 
-    const minSparsity = allSparsities.length > 0
-      ? Math.min(...allSparsities)
-      : 0;
+    const minSparsity = allSparsities.length > 0 ? Math.min(...allSparsities) : 0;
 
-    const maxSparsity = allSparsities.length > 0
-      ? Math.max(...allSparsities)
-      : 0;
+    const maxSparsity = allSparsities.length > 0 ? Math.max(...allSparsities) : 0;
 
-    const stdDevSparsity = allSparsities.length > 1
-      ? roundTo4(standardDeviation(allSparsities))
-      : 0;
+    const stdDevSparsity =
+      allSparsities.length > 1 ? roundTo4(standardDeviation(allSparsities)) : 0;
 
     const perLayerMeanSparsity: Record<string, number> = {};
     for (const [layerId, data] of Object.entries(perLayerSums)) {
@@ -448,9 +435,10 @@ export class SparsityMonitor {
     const efficiencies = this.snapshots
       .map((s) => s.energyEfficiency.efficiencyRatio)
       .filter((e) => e > 0);
-    const meanEnergyEfficiency = efficiencies.length > 0
-      ? roundTo4(efficiencies.reduce((a, b) => a + b, 0) / efficiencies.length)
-      : 0;
+    const meanEnergyEfficiency =
+      efficiencies.length > 0
+        ? roundTo4(efficiencies.reduce((a, b) => a + b, 0) / efficiencies.length)
+        : 0;
 
     const activeViolations = this.getActiveViolations();
 
@@ -488,18 +476,15 @@ export class SparsityMonitor {
    */
   toQualityHistoryEntry(cycle: number): SparsityQualityHistoryEntry {
     const stats = this.getStats();
-    const latestSnapshot = this.snapshots.length > 0
-      ? this.snapshots[this.snapshots.length - 1]
-      : null;
+    const latestSnapshot =
+      this.snapshots.length > 0 ? this.snapshots[this.snapshots.length - 1] : null;
 
     const aggregateSparsity = latestSnapshot?.aggregateSparsity ?? stats.meanSparsity;
-    const aggregateSpikeRate = latestSnapshot?.aggregateSpikeRate ?? (1 - stats.meanSparsity);
+    const aggregateSpikeRate = latestSnapshot?.aggregateSpikeRate ?? 1 - stats.meanSparsity;
 
     // Composite score: how well the system meets the sparsity threshold
     // 1.0 = at or above threshold, scales linearly below
-    const composite = roundTo4(
-      Math.min(1, aggregateSparsity / this.config.sparsityThreshold),
-    );
+    const composite = roundTo4(Math.min(1, aggregateSparsity / this.config.sparsityThreshold));
 
     const grade = gradeFromComposite(composite);
 
@@ -531,22 +516,30 @@ export class SparsityMonitor {
     stats: SparsityMonitorStats,
     latestSnapshot: SparsitySnapshot | null,
     composite: number,
-    grade: SparsityQualityHistoryEntry['grade'],
+    grade: SparsityQualityHistoryEntry['grade']
   ): string {
     const lines: string[] = [];
 
     lines.push(`SNN Sparsity Monitor - Grade: ${grade} (${(composite * 100).toFixed(1)}%)`);
     lines.push(`Layers: ${stats.trackedLayers}, Timesteps: ${stats.totalTimesteps}`);
-    lines.push(`Mean Sparsity: ${(stats.meanSparsity * 100).toFixed(1)}% (threshold: ${(this.config.sparsityThreshold * 100).toFixed(0)}%)`);
-    lines.push(`Range: [${(stats.minSparsity * 100).toFixed(1)}%, ${(stats.maxSparsity * 100).toFixed(1)}%]`);
+    lines.push(
+      `Mean Sparsity: ${(stats.meanSparsity * 100).toFixed(1)}% (threshold: ${(this.config.sparsityThreshold * 100).toFixed(0)}%)`
+    );
+    lines.push(
+      `Range: [${(stats.minSparsity * 100).toFixed(1)}%, ${(stats.maxSparsity * 100).toFixed(1)}%]`
+    );
 
     if (latestSnapshot) {
       const eff = latestSnapshot.energyEfficiency;
-      lines.push(`Energy Efficiency: ${(eff.efficiencyRatio * 100).toFixed(1)}% ops saved (${eff.energySavingsFactor.toFixed(1)}x factor)`);
+      lines.push(
+        `Energy Efficiency: ${(eff.efficiencyRatio * 100).toFixed(1)}% ops saved (${eff.energySavingsFactor.toFixed(1)}x factor)`
+      );
     }
 
     if (stats.totalViolations > 0) {
-      lines.push(`Violations: ${stats.totalViolations} (${stats.violationsBySeverity.critical} critical, ${stats.violationsBySeverity.warning} warning)`);
+      lines.push(
+        `Violations: ${stats.totalViolations} (${stats.violationsBySeverity.critical} critical, ${stats.violationsBySeverity.warning} warning)`
+      );
     } else {
       lines.push('Compliance: All layers within threshold');
     }
@@ -593,9 +586,7 @@ export class SparsityMonitor {
    * Get the most recent snapshot, or null if none have been taken.
    */
   getLatestSnapshot(): SparsitySnapshot | null {
-    return this.snapshots.length > 0
-      ? { ...this.snapshots[this.snapshots.length - 1] }
-      : null;
+    return this.snapshots.length > 0 ? { ...this.snapshots[this.snapshots.length - 1] } : null;
   }
 
   /**
@@ -664,8 +655,8 @@ function standardDeviation(values: number[]): number {
 function gradeFromComposite(composite: number): SparsityQualityHistoryEntry['grade'] {
   if (composite >= 0.95) return 'A';
   if (composite >= 0.85) return 'B';
-  if (composite >= 0.70) return 'C';
-  if (composite >= 0.50) return 'D';
+  if (composite >= 0.7) return 'C';
+  if (composite >= 0.5) return 'D';
   return 'F';
 }
 
@@ -689,8 +680,6 @@ function createZeroEnergyMetrics(): EnergyEfficiencyMetrics {
 /**
  * Create a new SparsityMonitor with optional configuration overrides.
  */
-export function createSparsityMonitor(
-  config?: Partial<SparsityMonitorConfig>,
-): SparsityMonitor {
+export function createSparsityMonitor(config?: Partial<SparsityMonitorConfig>): SparsityMonitor {
   return new SparsityMonitor(config);
 }

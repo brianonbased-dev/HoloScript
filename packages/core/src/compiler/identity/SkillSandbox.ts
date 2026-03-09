@@ -97,7 +97,12 @@ export interface FailureModeControl {
   description: string;
 
   /** Category (A-E) */
-  category: 'goal_instruction' | 'knowledge_context' | 'action_execution' | 'memory_state' | 'trust_security';
+  category:
+    | 'goal_instruction'
+    | 'knowledge_context'
+    | 'action_execution'
+    | 'memory_state'
+    | 'trust_security';
 
   /** HoloScript permission controls */
   controls: PermissionControl[];
@@ -223,7 +228,12 @@ export const FAILURE_MODE_CONTROLS: FailureModeControl[] = [
         type: ControlType.PREVENTIVE,
         description: 'PackageScopeEnforcer prevents writes outside authorized packages',
         enforcedPermissions: [AgentPermission.WRITE_CODE, AgentPermission.WRITE_OUTPUT],
-        applicableTiers: [PackageTier.CRITICAL, PackageTier.HIGH, PackageTier.STANDARD, PackageTier.LOW],
+        applicableTiers: [
+          PackageTier.CRITICAL,
+          PackageTier.HIGH,
+          PackageTier.STANDARD,
+          PackageTier.LOW,
+        ],
         implemented: true,
         implementationRef: 'PackageScopeEnforcer.ts',
       },
@@ -267,7 +277,12 @@ export const FAILURE_MODE_CONTROLS: FailureModeControl[] = [
         type: ControlType.DETECTIVE,
         description: 'Audit log tracks all access attempts for scope analysis',
         enforcedPermissions: [],
-        applicableTiers: [PackageTier.CRITICAL, PackageTier.HIGH, PackageTier.STANDARD, PackageTier.LOW],
+        applicableTiers: [
+          PackageTier.CRITICAL,
+          PackageTier.HIGH,
+          PackageTier.STANDARD,
+          PackageTier.LOW,
+        ],
         implemented: true,
         implementationRef: 'PackageScopeEnforcer.ts#ScopeAuditEntry',
       },
@@ -287,7 +302,12 @@ export const FAILURE_MODE_CONTROLS: FailureModeControl[] = [
         type: ControlType.PREVENTIVE,
         description: 'VR_TRAITS constant provides canonical trait registry for validation',
         enforcedPermissions: [],
-        applicableTiers: [PackageTier.CRITICAL, PackageTier.HIGH, PackageTier.STANDARD, PackageTier.LOW],
+        applicableTiers: [
+          PackageTier.CRITICAL,
+          PackageTier.HIGH,
+          PackageTier.STANDARD,
+          PackageTier.LOW,
+        ],
         implemented: true,
         implementationRef: 'traits/constants/index.ts#VR_TRAITS',
       },
@@ -405,7 +425,12 @@ export const FAILURE_MODE_CONTROLS: FailureModeControl[] = [
         type: ControlType.PREVENTIVE,
         description: 'AgentRBAC.checkAccess() validates token + permissions before every operation',
         enforcedPermissions: Object.values(AgentPermission) as AgentPermission[],
-        applicableTiers: [PackageTier.CRITICAL, PackageTier.HIGH, PackageTier.STANDARD, PackageTier.LOW],
+        applicableTiers: [
+          PackageTier.CRITICAL,
+          PackageTier.HIGH,
+          PackageTier.STANDARD,
+          PackageTier.LOW,
+        ],
         implemented: true,
         implementationRef: 'AgentRBAC.ts#checkAccess',
       },
@@ -423,7 +448,12 @@ export const FAILURE_MODE_CONTROLS: FailureModeControl[] = [
         type: ControlType.PREVENTIVE,
         description: 'ROLE_PERMISSIONS restricts each role to minimum required permissions',
         enforcedPermissions: [],
-        applicableTiers: [PackageTier.CRITICAL, PackageTier.HIGH, PackageTier.STANDARD, PackageTier.LOW],
+        applicableTiers: [
+          PackageTier.CRITICAL,
+          PackageTier.HIGH,
+          PackageTier.STANDARD,
+          PackageTier.LOW,
+        ],
         implemented: true,
         implementationRef: 'AgentIdentity.ts#ROLE_PERMISSIONS',
       },
@@ -631,7 +661,12 @@ export const FAILURE_MODE_CONTROLS: FailureModeControl[] = [
         type: ControlType.PREVENTIVE,
         description: 'Package tier system adds second layer of scope restriction',
         enforcedPermissions: [],
-        applicableTiers: [PackageTier.CRITICAL, PackageTier.HIGH, PackageTier.STANDARD, PackageTier.LOW],
+        applicableTiers: [
+          PackageTier.CRITICAL,
+          PackageTier.HIGH,
+          PackageTier.STANDARD,
+          PackageTier.LOW,
+        ],
         implemented: true,
         implementationRef: 'PackagePermissionManifest.ts#TIER_WRITE_ROLES',
       },
@@ -927,9 +962,7 @@ export class SkillSandbox {
   /**
    * Execute a skill within the sandbox
    */
-  async execute(
-    fn: (memory: SandboxMemory) => Promise<void>,
-  ): Promise<SandboxMetrics> {
+  async execute(fn: (memory: SandboxMemory) => Promise<void>): Promise<SandboxMetrics> {
     if (this.state.phase !== 'initialized') {
       throw new Error(`Cannot execute sandbox in phase: ${this.state.phase}`);
     }
@@ -940,10 +973,7 @@ export class SkillSandbox {
 
     try {
       // Execute with wall-time limit
-      await Promise.race([
-        fn(this.memory),
-        this.wallTimeGuard(),
-      ]);
+      await Promise.race([fn(this.memory), this.wallTimeGuard()]);
 
       this.state.phase = 'completed';
     } catch (err) {
@@ -965,13 +995,15 @@ export class SkillSandbox {
 
     // Calculate unused permissions
     this.metrics.permissionsUnused = new Set(
-      this.manifest.requiredPermissions.filter(p => !this.metrics.permissionsUsed.has(p))
+      this.manifest.requiredPermissions.filter((p) => !this.metrics.permissionsUsed.has(p))
     );
 
     // Detect excessive permission (FM14)
     if (this.metrics.permissionsUnused.size > this.manifest.requiredPermissions.length * 0.5) {
       this.metrics.failureModesDetected.push(AgenticFailureMode.FM14_EXCESSIVE_PERMISSION);
-      this.audit(`WARNING: ${this.metrics.permissionsUnused.size}/${this.manifest.requiredPermissions.length} permissions unused - possible over-provisioning`);
+      this.audit(
+        `WARNING: ${this.metrics.permissionsUnused.size}/${this.manifest.requiredPermissions.length} permissions unused - possible over-provisioning`
+      );
     }
 
     this.audit(`Execution completed in ${this.metrics.durationMs}ms`);
@@ -1000,14 +1032,14 @@ export class SkillSandbox {
     // Check resource limits
     if (this.state.resourceUsage.fileOps >= this.manifest.resourceLimits.maxFileOps) {
       this.metrics.failureModesDetected.push(AgenticFailureMode.FM17_RESOURCE_EXHAUSTION);
-      this.audit(`BLOCKED: File operation limit exceeded (${this.manifest.resourceLimits.maxFileOps})`);
+      this.audit(
+        `BLOCKED: File operation limit exceeded (${this.manifest.resourceLimits.maxFileOps})`
+      );
       return false;
     }
 
     // Check allowed packages
-    const isAllowed = this.manifest.allowedPackages.some(pkg =>
-      filePath.includes(pkg)
-    );
+    const isAllowed = this.manifest.allowedPackages.some((pkg) => filePath.includes(pkg));
 
     if (!isAllowed) {
       this.metrics.failureModesDetected.push(AgenticFailureMode.FM06_SCOPE_CREEP);
@@ -1040,7 +1072,9 @@ export class SkillSandbox {
 
     if (outputBytes > this.manifest.resourceLimits.maxOutputBytes) {
       this.metrics.failureModesDetected.push(AgenticFailureMode.FM17_RESOURCE_EXHAUSTION);
-      throw new Error(`Output size ${outputBytes} exceeds limit ${this.manifest.resourceLimits.maxOutputBytes}`);
+      throw new Error(
+        `Output size ${outputBytes} exceeds limit ${this.manifest.resourceLimits.maxOutputBytes}`
+      );
     }
 
     // Sanitize output (prevent data exfiltration FM25)
@@ -1081,7 +1115,7 @@ export class SkillSandbox {
     // Check for secret patterns in output
     const secretPatterns = [
       /(?:api[_-]?key|secret|password|token)["']?\s*[:=]\s*["'][^"']{8,}/i,
-      /(?:AKIA|ASIA)[A-Z0-9]{16}/,  // AWS keys
+      /(?:AKIA|ASIA)[A-Z0-9]{16}/, // AWS keys
       /-----BEGIN (?:RSA |EC |)PRIVATE KEY-----/,
     ];
 
@@ -1101,7 +1135,7 @@ export class SkillSandbox {
     return new Promise((_, reject) => {
       setTimeout(
         () => reject(new Error('Sandbox wall time exceeded')),
-        this.manifest.resourceLimits.maxWallTimeMs,
+        this.manifest.resourceLimits.maxWallTimeMs
       );
     });
   }
@@ -1120,27 +1154,28 @@ export class SkillSandbox {
  * Get all failure mode controls for a specific category
  */
 export function getControlsByCategory(
-  category: 'goal_instruction' | 'knowledge_context' | 'action_execution' | 'memory_state' | 'trust_security',
+  category:
+    | 'goal_instruction'
+    | 'knowledge_context'
+    | 'action_execution'
+    | 'memory_state'
+    | 'trust_security'
 ): FailureModeControl[] {
-  return FAILURE_MODE_CONTROLS.filter(fm => fm.category === category);
+  return FAILURE_MODE_CONTROLS.filter((fm) => fm.category === category);
 }
 
 /**
  * Get all implemented controls
  */
 export function getImplementedControls(): FailureModeControl[] {
-  return FAILURE_MODE_CONTROLS.filter(fm =>
-    fm.controls.every(c => c.implemented)
-  );
+  return FAILURE_MODE_CONTROLS.filter((fm) => fm.controls.every((c) => c.implemented));
 }
 
 /**
  * Get unimplemented controls (security gaps)
  */
 export function getSecurityGaps(): FailureModeControl[] {
-  return FAILURE_MODE_CONTROLS.filter(fm =>
-    fm.controls.some(c => !c.implemented)
-  );
+  return FAILURE_MODE_CONTROLS.filter((fm) => fm.controls.some((c) => !c.implemented));
 }
 
 /**
@@ -1154,11 +1189,11 @@ export function getSecurityCoverageSummary(): {
   coveragePercent: number;
 } {
   const total = FAILURE_MODE_CONTROLS.length;
-  const fullyMitigated = FAILURE_MODE_CONTROLS.filter(fm =>
-    fm.controls.every(c => c.implemented)
+  const fullyMitigated = FAILURE_MODE_CONTROLS.filter((fm) =>
+    fm.controls.every((c) => c.implemented)
   ).length;
-  const partiallyMitigated = FAILURE_MODE_CONTROLS.filter(fm =>
-    fm.controls.some(c => c.implemented) && fm.controls.some(c => !c.implemented)
+  const partiallyMitigated = FAILURE_MODE_CONTROLS.filter(
+    (fm) => fm.controls.some((c) => c.implemented) && fm.controls.some((c) => !c.implemented)
   ).length;
   const unmitigated = total - fullyMitigated - partiallyMitigated;
 
@@ -1176,11 +1211,11 @@ export function getSecurityCoverageSummary(): {
  */
 export function createDefaultResourceLimits(): SandboxResourceLimits {
   return {
-    maxCpuTimeMs: 30_000,           // 30 seconds
+    maxCpuTimeMs: 30_000, // 30 seconds
     maxMemoryBytes: 256 * 1024 * 1024, // 256 MB
-    maxOutputBytes: 10 * 1024 * 1024,  // 10 MB
+    maxOutputBytes: 10 * 1024 * 1024, // 10 MB
     networkBlocked: true,
     maxFileOps: 100,
-    maxWallTimeMs: 60_000,           // 60 seconds
+    maxWallTimeMs: 60_000, // 60 seconds
   };
 }

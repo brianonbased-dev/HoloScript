@@ -13,7 +13,6 @@ import { CRDTStateManager } from '../../state/CRDTStateManager';
 // ── createOperation ───────────────────────────────────────────────────────────
 
 describe('CRDTStateManager — createOperation', () => {
-
   it('returns an operation with the correct clientId', () => {
     const crdt = new CRDTStateManager('clientA');
     const op = crdt.createOperation('x', 42);
@@ -52,7 +51,6 @@ describe('CRDTStateManager — createOperation', () => {
 // ── reconcile ─────────────────────────────────────────────────────────────────
 
 describe('CRDTStateManager — reconcile', () => {
-
   it('reconcile applies operation when register is empty', () => {
     const crdt = new CRDTStateManager('c1');
     const op = crdt.createOperation('x', 10);
@@ -98,7 +96,6 @@ describe('CRDTStateManager — reconcile', () => {
 // ── getSnapshot ───────────────────────────────────────────────────────────────
 
 describe('CRDTStateManager — getSnapshot', () => {
-
   it('returns empty object when nothing reconciled', () => {
     const crdt = new CRDTStateManager('c1');
     expect(crdt.getSnapshot()).toEqual({});
@@ -115,7 +112,6 @@ describe('CRDTStateManager — getSnapshot', () => {
 // ── getStateVector ────────────────────────────────────────────────────────────
 
 describe('CRDTStateManager — getStateVector', () => {
-
   it('includes own clientId after construction', () => {
     const crdt = new CRDTStateManager('me');
     expect(crdt.getStateVector()['me']).toBe(0);

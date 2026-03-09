@@ -15,7 +15,11 @@ import { PlatformExporter } from '../build/PlatformExporter';
 import { BuildOptimizer } from '../build/BuildOptimizer';
 import { HoloLogger } from '../logging/HoloLogger';
 import { LoggerFactory } from '../logging/LoggerFactory';
-import { LogMiddlewarePipeline, createContextEnricher, createLevelFilter } from '../logging/LogMiddleware';
+import {
+  LogMiddlewarePipeline,
+  createContextEnricher,
+  createLevelFilter,
+} from '../logging/LogMiddleware';
 
 describe('Cross-Module Integration (Cycle 173)', () => {
   // ===========================================================================
@@ -136,8 +140,20 @@ describe('Cross-Module Integration (Cycle 173)', () => {
       const logger = new HoloLogger('build', 'debug');
       const bundler = new SceneBundler({ maxChunkSize: 10000 });
 
-      bundler.addAsset({ id: 'main', type: 'script', path: '/main.js', sizeBytes: 5000, references: ['tex'] });
-      bundler.addAsset({ id: 'tex', type: 'texture', path: '/tex.png', sizeBytes: 3000, references: [] });
+      bundler.addAsset({
+        id: 'main',
+        type: 'script',
+        path: '/main.js',
+        sizeBytes: 5000,
+        references: ['tex'],
+      });
+      bundler.addAsset({
+        id: 'tex',
+        type: 'texture',
+        path: '/tex.png',
+        sizeBytes: 3000,
+        references: [],
+      });
       bundler.addEntryPoint('main');
 
       logger.build('Starting bundle', 'b1', 'collect');
@@ -189,7 +205,7 @@ describe('Cross-Module Integration (Cycle 173)', () => {
   });
 
   // ===========================================================================
-  // Full Plugin Lifecycle  
+  // Full Plugin Lifecycle
   // ===========================================================================
   describe('Full Plugin Lifecycle', () => {
     it('should run complete plugin lifecycle with mod registry', async () => {

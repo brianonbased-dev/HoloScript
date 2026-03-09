@@ -99,29 +99,44 @@ export const useCharacterStore = create<CharacterState>()(
       equippedItems: {},
       wardrobeItems: [],
 
-      setGlbUrl: (glbUrl) => set({ glbUrl, boneNames: [], selectedBoneIndex: null, builtinAnimations: [], activeBuiltinAnimation: null }),
+      setGlbUrl: (glbUrl) =>
+        set({
+          glbUrl,
+          boneNames: [],
+          selectedBoneIndex: null,
+          builtinAnimations: [],
+          activeBuiltinAnimation: null,
+        }),
       setBoneNames: (boneNames) => set({ boneNames }),
       setSelectedBoneIndex: (selectedBoneIndex) => set({ selectedBoneIndex }),
       setShowSkeleton: (showSkeleton) => set({ showSkeleton }),
       setIsRecording: (isRecording) => set({ isRecording }),
       addRecordedClip: (clip) => set((s) => ({ recordedClips: [...s.recordedClips, clip] })),
-      removeRecordedClip: (id) => set((s) => ({ recordedClips: s.recordedClips.filter((c) => c.id !== id) })),
-      renameRecordedClip: (id, name) => set((s) => ({ recordedClips: s.recordedClips.map((c) => c.id === id ? { ...c, name } : c) })),
+      removeRecordedClip: (id) =>
+        set((s) => ({ recordedClips: s.recordedClips.filter((c) => c.id !== id) })),
+      renameRecordedClip: (id, name) =>
+        set((s) => ({
+          recordedClips: s.recordedClips.map((c) => (c.id === id ? { ...c, name } : c)),
+        })),
       setActiveClipId: (activeClipId) => set({ activeClipId }),
       setBuiltinAnimations: (builtinAnimations) => set({ builtinAnimations }),
       setActiveBuiltinAnimation: (activeBuiltinAnimation) => set({ activeBuiltinAnimation }),
       setExportingClipId: (exportingClipId) => set({ exportingClipId }),
-      setMorphTarget: (name, value) => set((s) => ({ morphTargets: { ...s.morphTargets, [name]: value } })),
+      setMorphTarget: (name, value) =>
+        set((s) => ({ morphTargets: { ...s.morphTargets, [name]: value } })),
       resetMorphTargets: () => set({ morphTargets: {} }),
       setSkinColor: (skinColor) => set({ skinColor }),
-      setCustomizeMode: (customizeMode) => set({ customizeMode, panelMode: customizeMode ? 'customize' : 'skeleton' }),
+      setCustomizeMode: (customizeMode) =>
+        set({ customizeMode, panelMode: customizeMode ? 'customize' : 'skeleton' }),
       setPanelMode: (panelMode) => set({ panelMode, customizeMode: panelMode === 'customize' }),
-      equipItem: (item) => set((s) => ({ equippedItems: { ...s.equippedItems, [item.slot]: item } })),
-      unequipSlot: (slot) => set((s) => {
-        const next = { ...s.equippedItems };
-        delete next[slot];
-        return { equippedItems: next };
-      }),
+      equipItem: (item) =>
+        set((s) => ({ equippedItems: { ...s.equippedItems, [item.slot]: item } })),
+      unequipSlot: (slot) =>
+        set((s) => {
+          const next = { ...s.equippedItems };
+          delete next[slot];
+          return { equippedItems: next };
+        }),
       clearWardrobe: () => set({ equippedItems: {} }),
     }),
     { name: 'character-store' }

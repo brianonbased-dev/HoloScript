@@ -112,7 +112,11 @@ export class AICopilot {
       };
     }
     if (!adapter.generateHoloScript) {
-      return { text: 'Adapter does not support generateHoloScript.', suggestions: [], error: 'UNSUPPORTED' };
+      return {
+        text: 'Adapter does not support generateHoloScript.',
+        suggestions: [],
+        error: 'UNSUPPORTED',
+      };
     }
 
     this.addMessage('user', prompt);
@@ -126,12 +130,14 @@ export class AICopilot {
 
       const response: CopilotResponse = {
         text: `Generated HoloScript with ${result.objectCount || 'unknown'} objects (confidence: ${((result.confidence || 0) * 100).toFixed(0)}%).`,
-        suggestions: [{
-          type: 'create',
-          description: `Create scene from: "${prompt}"`,
-          holoScript: result.holoScript,
-          confidence: result.confidence || 0,
-        }],
+        suggestions: [
+          {
+            type: 'create',
+            description: `Create scene from: "${prompt}"`,
+            holoScript: result.holoScript,
+            confidence: result.confidence || 0,
+          },
+        ],
       };
 
       if (result.warnings?.length) {
@@ -160,7 +166,11 @@ export class AICopilot {
       return { text: 'No adapter configured.', suggestions: [], error: 'NO_ADAPTER' };
     }
     if (!adapter.generateHoloScript) {
-      return { text: 'Adapter does not support generateHoloScript.', suggestions: [], error: 'UNSUPPORTED' };
+      return {
+        text: 'Adapter does not support generateHoloScript.',
+        suggestions: [],
+        error: 'UNSUPPORTED',
+      };
     }
 
     const entity = this.context.selectedEntity;
@@ -181,12 +191,14 @@ export class AICopilot {
 
       return {
         text: `Suggestions for ${entity.type} (${entity.id}):`,
-        suggestions: [{
-          type: 'modify',
-          description: `Enhance ${entity.type} with AI suggestions`,
-          holoScript: result.holoScript,
-          confidence: result.confidence || 0,
-        }],
+        suggestions: [
+          {
+            type: 'modify',
+            description: `Enhance ${entity.type} with AI suggestions`,
+            holoScript: result.holoScript,
+            confidence: result.confidence || 0,
+          },
+        ],
       };
     } catch (error) {
       return {
@@ -206,7 +218,11 @@ export class AICopilot {
       return { text: 'No adapter configured.', suggestions: [], error: 'NO_ADAPTER' };
     }
     if (!adapter.explainHoloScript) {
-      return { text: 'Adapter does not support explainHoloScript.', suggestions: [], error: 'UNSUPPORTED' };
+      return {
+        text: 'Adapter does not support explainHoloScript.',
+        suggestions: [],
+        error: 'UNSUPPORTED',
+      };
     }
 
     try {
@@ -233,14 +249,18 @@ export class AICopilot {
       return { text: 'No adapter configured.', suggestions: [], error: 'NO_ADAPTER' };
     }
     if (!adapter.fixHoloScript) {
-      return { text: 'Adapter does not support fixHoloScript.', suggestions: [], error: 'UNSUPPORTED' };
+      return {
+        text: 'Adapter does not support fixHoloScript.',
+        suggestions: [],
+        error: 'UNSUPPORTED',
+      };
     }
 
     try {
       const result = await adapter.fixHoloScript(code, errors);
       return {
         text: `Fixed ${result.fixes.length} issue(s).`,
-        suggestions: result.fixes.map(fix => ({
+        suggestions: result.fixes.map((fix) => ({
           type: 'fix' as const,
           description: `Line ${fix.line}: ${fix.issue} → ${fix.fix}`,
           holoScript: result.holoScript,
@@ -271,7 +291,7 @@ export class AICopilot {
     this.addMessage('user', message);
 
     try {
-      const chatHistory = this.history.map(m => ({
+      const chatHistory = this.history.map((m) => ({
         role: m.role,
         content: m.content,
       }));

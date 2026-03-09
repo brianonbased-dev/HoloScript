@@ -16,9 +16,9 @@ export interface TreeTemplate {
   meshId: string;
   minScale: number;
   maxScale: number;
-  trunkRadius: number;      // Collision radius
-  biomes: string[];          // Which biomes this tree can appear in
-  probability: number;       // 0-1, relative spawn weight
+  trunkRadius: number; // Collision radius
+  biomes: string[]; // Which biomes this tree can appear in
+  probability: number; // 0-1, relative spawn weight
 }
 
 export interface PlacedTree {
@@ -26,16 +26,16 @@ export interface PlacedTree {
   templateId: string;
   position: { x: number; y: number; z: number };
   scale: number;
-  rotation: number;          // Y-axis radians
+  rotation: number; // Y-axis radians
 }
 
 export interface BiomeRule {
   id: string;
   name: string;
-  density: number;           // trees per unit area
-  minSpacing: number;        // Minimum distance between trees
+  density: number; // trees per unit area
+  minSpacing: number; // Minimum distance between trees
   heightRange: { min: number; max: number };
-  slopeMax: number;          // Max slope angle in degrees
+  slopeMax: number; // Max slope angle in degrees
 }
 
 // =============================================================================
@@ -53,12 +53,22 @@ export class TreePlacer {
   // Templates & Biomes
   // ---------------------------------------------------------------------------
 
-  addTemplate(template: TreeTemplate): void { this.templates.set(template.id, template); }
-  getTemplate(id: string): TreeTemplate | undefined { return this.templates.get(id); }
-  getTemplateCount(): number { return this.templates.size; }
+  addTemplate(template: TreeTemplate): void {
+    this.templates.set(template.id, template);
+  }
+  getTemplate(id: string): TreeTemplate | undefined {
+    return this.templates.get(id);
+  }
+  getTemplateCount(): number {
+    return this.templates.size;
+  }
 
-  addBiome(biome: BiomeRule): void { this.biomes.set(biome.id, biome); }
-  getBiome(id: string): BiomeRule | undefined { return this.biomes.get(id); }
+  addBiome(biome: BiomeRule): void {
+    this.biomes.set(biome.id, biome);
+  }
+  getBiome(id: string): BiomeRule | undefined {
+    return this.biomes.get(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Placement
@@ -75,7 +85,7 @@ export class TreePlacer {
     if (!biome) return [];
 
     // Get valid templates for this biome
-    const validTemplates = [...this.templates.values()].filter(t => t.biomes.includes(biomeId));
+    const validTemplates = [...this.templates.values()].filter((t) => t.biomes.includes(biomeId));
     if (validTemplates.length === 0) return [];
 
     const totalWeight = validTemplates.reduce((sum, t) => sum + t.probability, 0);
@@ -83,7 +93,10 @@ export class TreePlacer {
     const count = Math.floor(area * biome.density);
 
     let rng = seed;
-    const rand = () => { rng = (rng * 1103515245 + 12345) & 0x7FFFFFFF; return rng / 0x7FFFFFFF; };
+    const rand = () => {
+      rng = (rng * 1103515245 + 12345) & 0x7fffffff;
+      return rng / 0x7fffffff;
+    };
 
     const placed: PlacedTree[] = [];
 
@@ -140,7 +153,11 @@ export class TreePlacer {
     return true;
   }
 
-  private pickTemplate(templates: TreeTemplate[], totalWeight: number, rand: () => number): TreeTemplate | null {
+  private pickTemplate(
+    templates: TreeTemplate[],
+    totalWeight: number,
+    rand: () => number
+  ): TreeTemplate | null {
     let r = rand() * totalWeight;
     for (const t of templates) {
       r -= t.probability;
@@ -153,12 +170,16 @@ export class TreePlacer {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getPlacedCount(): number { return this.trees.length; }
-  getAllTrees(): PlacedTree[] { return [...this.trees]; }
+  getPlacedCount(): number {
+    return this.trees.length;
+  }
+  getAllTrees(): PlacedTree[] {
+    return [...this.trees];
+  }
 
   getTreesInRadius(x: number, z: number, radius: number): PlacedTree[] {
     const rSq = radius * radius;
-    return this.trees.filter(t => {
+    return this.trees.filter((t) => {
       const dx = t.position.x - x;
       const dz = t.position.z - z;
       return dx * dx + dz * dz <= rSq;
@@ -166,11 +187,13 @@ export class TreePlacer {
   }
 
   removeTree(id: string): boolean {
-    const idx = this.trees.findIndex(t => t.id === id);
+    const idx = this.trees.findIndex((t) => t.id === id);
     if (idx === -1) return false;
     this.trees.splice(idx, 1);
     return true;
   }
 
-  clear(): void { this.trees = []; }
+  clear(): void {
+    this.trees = [];
+  }
 }

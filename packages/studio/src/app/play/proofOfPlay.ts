@@ -15,13 +15,36 @@
 // ─── Trait Definition Templates ───────────────────────────────────────────────
 
 const TRAIT_NAMES = [
-  'PhysicsBody', 'MeshRenderer', 'AudioSource', 'ParticleEmitter', 'Collider',
-  'NavAgent', 'Animator', 'RigidBody', 'SyncTransform', 'HealthBar',
-  'InteractionTarget', 'LODController', 'ShadowCaster', 'LightProbe',
-  'VegetationInstance', 'WaterSurface', 'TerrainChunk', 'WeatherZone',
-  'PortalGateway', 'InventorySlot', 'CraftingStation', 'DialogueTrigger',
-  'QuestMarker', 'SpawnPoint', 'TeleportAnchor', 'GravityField',
-  'ForceField', 'ProximityTrigger', 'DamageZone', 'HealingAura',
+  'PhysicsBody',
+  'MeshRenderer',
+  'AudioSource',
+  'ParticleEmitter',
+  'Collider',
+  'NavAgent',
+  'Animator',
+  'RigidBody',
+  'SyncTransform',
+  'HealthBar',
+  'InteractionTarget',
+  'LODController',
+  'ShadowCaster',
+  'LightProbe',
+  'VegetationInstance',
+  'WaterSurface',
+  'TerrainChunk',
+  'WeatherZone',
+  'PortalGateway',
+  'InventorySlot',
+  'CraftingStation',
+  'DialogueTrigger',
+  'QuestMarker',
+  'SpawnPoint',
+  'TeleportAnchor',
+  'GravityField',
+  'ForceField',
+  'ProximityTrigger',
+  'DamageZone',
+  'HealingAura',
 ];
 
 const PROPERTY_TEMPLATES = [
@@ -36,7 +59,7 @@ const PROPERTY_TEMPLATES = [
   { name: 'lifetime', type: 'number', range: [0.1, 60] },
   { name: 'count', type: 'number', range: [1, 10000] },
   { name: 'enabled', type: 'boolean', range: [0, 1] },
-  { name: 'color', type: 'color', range: [0, 0xFFFFFF] },
+  { name: 'color', type: 'color', range: [0, 0xffffff] },
   { name: 'layer', type: 'string', options: ['default', 'world', 'ui', 'fx', 'physics'] },
   { name: 'priority', type: 'number', range: [0, 100] },
   { name: 'damping', type: 'number', range: [0, 1] },
@@ -52,17 +75,17 @@ export type JobType = 'trait_fuzz' | 'spatial_math' | 'physics_bench' | 'compose
 export interface ComputeJob {
   id: string;
   type: JobType;
-  input: string;  // the generated code or equation
-  stage: string;  // which growth stage triggered this
+  input: string; // the generated code or equation
+  stage: string; // which growth stage triggered this
 }
 
 export interface ComputeResult {
   jobId: string;
   type: JobType;
   success: boolean;
-  output: string;       // result description
-  durationMs: number;   // how long the computation took
-  value: number;        // numeric result (hash, benchmark score, etc.)
+  output: string; // result description
+  durationMs: number; // how long the computation took
+  value: number; // numeric result (hash, benchmark score, etc.)
   timestamp: number;
 }
 
@@ -75,15 +98,28 @@ export interface ProofOfPlayStats {
   equationsSolved: number;
   benchmarkRuns: number;
   compositionsTested: number;
-  ecosystemValue: number;  // aggregate "digital gold" score
+  ecosystemValue: number; // aggregate "digital gold" score
 }
 
 // ─── Random Generators ────────────────────────────────────────────────────────
 
-function randomPick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
-function randomFloat(min: number, max: number): number { return min + Math.random() * (max - min); }
-function randomInt(min: number, max: number): number { return Math.floor(randomFloat(min, max + 1)); }
-function randomHex(): string { return '#' + Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, '0'); }
+function randomPick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+function randomFloat(min: number, max: number): number {
+  return min + Math.random() * (max - min);
+}
+function randomInt(min: number, max: number): number {
+  return Math.floor(randomFloat(min, max + 1));
+}
+function randomHex(): string {
+  return (
+    '#' +
+    Math.floor(Math.random() * 0xffffff)
+      .toString(16)
+      .padStart(6, '0')
+  );
+}
 
 /** Generate a random HoloScript trait definition */
 function generateTraitDefinition(): string {
@@ -99,11 +135,20 @@ function generateTraitDefinition(): string {
 
     let valueStr: string;
     switch (template.type) {
-      case 'number': valueStr = randomFloat(template.range[0], template.range[1]).toFixed(3); break;
-      case 'boolean': valueStr = Math.random() > 0.5 ? 'true' : 'false'; break;
-      case 'color': valueStr = `"${randomHex()}"`; break;
-      case 'string': valueStr = `"${randomPick(template.options!)}"`;break;
-      default: valueStr = '0';
+      case 'number':
+        valueStr = randomFloat(template.range[0], template.range[1]).toFixed(3);
+        break;
+      case 'boolean':
+        valueStr = Math.random() > 0.5 ? 'true' : 'false';
+        break;
+      case 'color':
+        valueStr = `"${randomHex()}"`;
+        break;
+      case 'string':
+        valueStr = `"${randomPick(template.options!)}"`;
+        break;
+      default:
+        valueStr = '0';
     }
     props.push(`  ${template.name}: ${valueStr}`);
   }
@@ -127,39 +172,71 @@ function generateCompositionLine(): string {
 function generateSpatialEquation(): { equation: string; inputs: number[]; expected: number } {
   const type = randomInt(0, 4);
   switch (type) {
-    case 0: { // Euclidean distance
+    case 0: {
+      // Euclidean distance
       const [x1, y1, z1, x2, y2, z2] = Array.from({ length: 6 }, () => randomFloat(-20, 20));
       const dist = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2);
-      return { equation: `distance3D(${x1.toFixed(2)},${y1.toFixed(2)},${z1.toFixed(2)}, ${x2.toFixed(2)},${y2.toFixed(2)},${z2.toFixed(2)})`,
-        inputs: [x1, y1, z1, x2, y2, z2], expected: dist };
+      return {
+        equation: `distance3D(${x1.toFixed(2)},${y1.toFixed(2)},${z1.toFixed(2)}, ${x2.toFixed(2)},${y2.toFixed(2)},${z2.toFixed(2)})`,
+        inputs: [x1, y1, z1, x2, y2, z2],
+        expected: dist,
+      };
     }
-    case 1: { // Dot product
+    case 1: {
+      // Dot product
       const [ax, ay, az, bx, by, bz] = Array.from({ length: 6 }, () => randomFloat(-1, 1));
       const dot = ax * bx + ay * by + az * bz;
-      return { equation: `dot(${ax.toFixed(3)},${ay.toFixed(3)},${az.toFixed(3)}, ${bx.toFixed(3)},${by.toFixed(3)},${bz.toFixed(3)})`,
-        inputs: [ax, ay, az, bx, by, bz], expected: dot };
+      return {
+        equation: `dot(${ax.toFixed(3)},${ay.toFixed(3)},${az.toFixed(3)}, ${bx.toFixed(3)},${by.toFixed(3)},${bz.toFixed(3)})`,
+        inputs: [ax, ay, az, bx, by, bz],
+        expected: dot,
+      };
     }
-    case 2: { // Cross product magnitude
+    case 2: {
+      // Cross product magnitude
       const [ax, ay, az, bx, by, bz] = Array.from({ length: 6 }, () => randomFloat(-5, 5));
-      const cx = ay * bz - az * by, cy = az * bx - ax * bz, cz = ax * by - ay * bx;
+      const cx = ay * bz - az * by,
+        cy = az * bx - ax * bz,
+        cz = ax * by - ay * bx;
       const mag = Math.sqrt(cx * cx + cy * cy + cz * cz);
-      return { equation: `crossMag(${ax.toFixed(2)},${ay.toFixed(2)},${az.toFixed(2)}, ${bx.toFixed(2)},${by.toFixed(2)},${bz.toFixed(2)})`,
-        inputs: [ax, ay, az, bx, by, bz], expected: mag };
+      return {
+        equation: `crossMag(${ax.toFixed(2)},${ay.toFixed(2)},${az.toFixed(2)}, ${bx.toFixed(2)},${by.toFixed(2)},${bz.toFixed(2)})`,
+        inputs: [ax, ay, az, bx, by, bz],
+        expected: mag,
+      };
     }
-    case 3: { // SDF sphere
+    case 3: {
+      // SDF sphere
       const [px, py, pz] = Array.from({ length: 3 }, () => randomFloat(-10, 10));
       const r = randomFloat(0.5, 5);
       const sdf = Math.sqrt(px * px + py * py + pz * pz) - r;
-      return { equation: `sdfSphere(${px.toFixed(2)},${py.toFixed(2)},${pz.toFixed(2)}, r=${r.toFixed(2)})`,
-        inputs: [px, py, pz, r], expected: sdf };
+      return {
+        equation: `sdfSphere(${px.toFixed(2)},${py.toFixed(2)},${pz.toFixed(2)}, r=${r.toFixed(2)})`,
+        inputs: [px, py, pz, r],
+        expected: sdf,
+      };
     }
-    default: { // AABB overlap test area
-      const [ax1, ay1, ax2, ay2] = [randomFloat(-5, 0), randomFloat(-5, 0), randomFloat(0, 5), randomFloat(0, 5)];
-      const [bx1, by1, bx2, by2] = [randomFloat(-3, 2), randomFloat(-3, 2), randomFloat(2, 7), randomFloat(2, 7)];
+    default: {
+      // AABB overlap test area
+      const [ax1, ay1, ax2, ay2] = [
+        randomFloat(-5, 0),
+        randomFloat(-5, 0),
+        randomFloat(0, 5),
+        randomFloat(0, 5),
+      ];
+      const [bx1, by1, bx2, by2] = [
+        randomFloat(-3, 2),
+        randomFloat(-3, 2),
+        randomFloat(2, 7),
+        randomFloat(2, 7),
+      ];
       const ox = Math.max(0, Math.min(ax2, bx2) - Math.max(ax1, bx1));
       const oy = Math.max(0, Math.min(ay2, by2) - Math.max(ay1, by1));
-      return { equation: `aabbOverlap(A[${ax1.toFixed(1)},${ay1.toFixed(1)},${ax2.toFixed(1)},${ay2.toFixed(1)}], B[${bx1.toFixed(1)},${by1.toFixed(1)},${bx2.toFixed(1)},${by2.toFixed(1)}])`,
-        inputs: [ax1, ay1, ax2, ay2, bx1, by1, bx2, by2], expected: ox * oy };
+      return {
+        equation: `aabbOverlap(A[${ax1.toFixed(1)},${ay1.toFixed(1)},${ax2.toFixed(1)},${ay2.toFixed(1)}], B[${bx1.toFixed(1)},${by1.toFixed(1)},${bx2.toFixed(1)},${by2.toFixed(1)}])`,
+        inputs: [ax1, ay1, ax2, ay2, bx1, by1, bx2, by2],
+        expected: ox * oy,
+      };
     }
   }
 }
@@ -184,7 +261,10 @@ function validateTraitSyntax(code: string): { valid: boolean; errors: string[] }
 
   // Check property format: name: value;
   const body = code.slice(code.indexOf('{') + 1, code.lastIndexOf('}'));
-  const propLines = body.split(/[;\n]/).map(l => l.trim()).filter(l => l.length > 0);
+  const propLines = body
+    .split(/[;\n]/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
   for (const line of propLines) {
     if (!/^[a-z_]\w*\s*:\s*.+$/i.test(line)) {
       errors.push(`Invalid property: "${line}"`);
@@ -206,7 +286,10 @@ function validateCompositionSyntax(line: string): { valid: boolean; errors: stri
 
   // @name = @source1 + @source2 ...
   const match = line.match(/^@(\w+)\s*=\s*(.+)$/);
-  if (!match) { errors.push('Invalid composition format'); return { valid: false, errors }; }
+  if (!match) {
+    errors.push('Invalid composition format');
+    return { valid: false, errors };
+  }
 
   const sources = match[2].split(/\s*[+&|^]\s*/);
   for (const src of sources) {
@@ -262,7 +345,11 @@ function executeJob(job: ComputeJob): ComputeResult {
         const { inputs, expected } = eq;
         let computed = 0;
         if (inputs.length === 6 && eq.equation.startsWith('distance3D')) {
-          computed = Math.sqrt((inputs[3] - inputs[0]) ** 2 + (inputs[4] - inputs[1]) ** 2 + (inputs[5] - inputs[2]) ** 2);
+          computed = Math.sqrt(
+            (inputs[3] - inputs[0]) ** 2 +
+              (inputs[4] - inputs[1]) ** 2 +
+              (inputs[5] - inputs[2]) ** 2
+          );
         } else if (inputs.length === 6 && eq.equation.startsWith('dot')) {
           computed = inputs[0] * inputs[3] + inputs[1] * inputs[4] + inputs[2] * inputs[5];
         } else if (inputs.length === 4 && eq.equation.startsWith('sdfSphere')) {
@@ -312,9 +399,15 @@ function executeJob(job: ComputeJob): ComputeResult {
 
 class ProofOfPlayEngine {
   private stats: ProofOfPlayStats = {
-    totalJobs: 0, successfulJobs: 0, failedJobs: 0,
-    totalComputeMs: 0, traitsFuzzed: 0, equationsSolved: 0,
-    benchmarkRuns: 0, compositionsTested: 0, ecosystemValue: 0,
+    totalJobs: 0,
+    successfulJobs: 0,
+    failedJobs: 0,
+    totalComputeMs: 0,
+    traitsFuzzed: 0,
+    equationsSolved: 0,
+    benchmarkRuns: 0,
+    compositionsTested: 0,
+    ecosystemValue: 0,
   };
 
   private results: ComputeResult[] = [];
@@ -326,10 +419,18 @@ class ProofOfPlayEngine {
     let input = '';
 
     switch (jobType) {
-      case 'trait_fuzz': input = generateTraitDefinition(); break;
-      case 'compose_fuzz': input = generateCompositionLine(); break;
-      case 'spatial_math': input = generateSpatialEquation().equation; break;
-      case 'physics_bench': input = `bench_${Date.now()}`; break;
+      case 'trait_fuzz':
+        input = generateTraitDefinition();
+        break;
+      case 'compose_fuzz':
+        input = generateCompositionLine();
+        break;
+      case 'spatial_math':
+        input = generateSpatialEquation().equation;
+        break;
+      case 'physics_bench':
+        input = `bench_${Date.now()}`;
+        break;
     }
 
     const job: ComputeJob = {
@@ -358,16 +459,27 @@ class ProofOfPlayEngine {
     }
 
     switch (result.type) {
-      case 'trait_fuzz': this.stats.traitsFuzzed++; break;
-      case 'spatial_math': this.stats.equationsSolved++; break;
-      case 'physics_bench': this.stats.benchmarkRuns++; break;
-      case 'compose_fuzz': this.stats.compositionsTested++; break;
+      case 'trait_fuzz':
+        this.stats.traitsFuzzed++;
+        break;
+      case 'spatial_math':
+        this.stats.equationsSolved++;
+        break;
+      case 'physics_bench':
+        this.stats.benchmarkRuns++;
+        break;
+      case 'compose_fuzz':
+        this.stats.compositionsTested++;
+        break;
     }
 
     // Ecosystem value: each successful job = 1 unit of "digital gold"
     // Weight by job type (spatial math and trait fuzzing are more valuable)
     const weights: Record<JobType, number> = {
-      trait_fuzz: 2, compose_fuzz: 1.5, spatial_math: 3, physics_bench: 1,
+      trait_fuzz: 2,
+      compose_fuzz: 1.5,
+      spatial_math: 3,
+      physics_bench: 1,
     };
     if (result.success) {
       this.stats.ecosystemValue += weights[result.type] || 1;
@@ -391,9 +503,11 @@ class ProofOfPlayEngine {
     const batch = this.flushPendingReport();
     if (batch.length === 0) return true;
 
-    const url = orchestratorUrl || (typeof window !== 'undefined'
-      ? (window as Record<string, string>).__MCP_ORCHESTRATOR_URL__
-      : undefined);
+    const url =
+      orchestratorUrl ||
+      (typeof window !== 'undefined'
+        ? (window as Record<string, string>).__MCP_ORCHESTRATOR_URL__
+        : undefined);
 
     if (!url) {
       // No orchestrator available — results are still tracked locally
@@ -408,7 +522,7 @@ class ProofOfPlayEngine {
           source: 'holoscript-studio-garden',
           type: 'proof_of_play',
           stats: this.stats,
-          results: batch.map(r => ({
+          results: batch.map((r) => ({
             type: r.type,
             success: r.success,
             durationMs: r.durationMs,
@@ -432,5 +546,12 @@ export function getProofOfPlayEngine(): ProofOfPlayEngine {
   return engine;
 }
 
-export { ProofOfPlayEngine, generateTraitDefinition, generateCompositionLine,
-  generateSpatialEquation, validateTraitSyntax, validateCompositionSyntax, executeJob };
+export {
+  ProofOfPlayEngine,
+  generateTraitDefinition,
+  generateCompositionLine,
+  generateSpatialEquation,
+  validateTraitSyntax,
+  validateCompositionSyntax,
+  executeJob,
+};

@@ -17,7 +17,7 @@ import { useLoader, useFrame, useThree } from '@react-three/fiber';
 import { TransformControls, OrbitControls } from '@react-three/drei';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
-import { useCharacterStore } from '@/lib/store';
+import { useCharacterStore } from '@/lib/stores';
 import { buildClipFromFrames, extractBuiltinAnimations } from '@/lib/animationBuilder';
 import type { BoneFrame } from '@/lib/animationBuilder';
 
@@ -119,7 +119,12 @@ export function GlbViewer({ url }: GlbViewerProps) {
     if (activeClipId) {
       const recordedClip = recordedClips.find((c) => c.id === activeClipId);
       if (recordedClip) {
-        const clip = buildClipFromFrames(recordedClip.frames, skeleton, recordedClip.duration, recordedClip.name);
+        const clip = buildClipFromFrames(
+          recordedClip.frames,
+          skeleton,
+          recordedClip.duration,
+          recordedClip.name
+        );
         mixer.clipAction(clip).play();
       }
     }
@@ -175,7 +180,7 @@ export function GlbViewer({ url }: GlbViewerProps) {
   // ── Selected bone gizmo ───────────────────────────────────────────────────
   const selectedBone =
     selectedBoneIndex !== null && skeletonRef.current
-      ? skeletonRef.current.bones[selectedBoneIndex] ?? null
+      ? (skeletonRef.current.bones[selectedBoneIndex] ?? null)
       : null;
 
   return (
@@ -196,13 +201,7 @@ export function GlbViewer({ url }: GlbViewerProps) {
       </group>
 
       {/* FK bone gizmo — rotate mode only */}
-      {selectedBone && (
-        <TransformControls
-          object={selectedBone}
-          mode="rotate"
-          size={0.6}
-        />
-      )}
+      {selectedBone && <TransformControls object={selectedBone} mode="rotate" size={0.6} />}
     </>
   );
 }

@@ -6,7 +6,9 @@ import { Blackboard } from '../Blackboard';
 describe('BehaviorTree', () => {
   let bt: BehaviorTree;
 
-  beforeEach(() => { bt = new BehaviorTree(); });
+  beforeEach(() => {
+    bt = new BehaviorTree();
+  });
 
   // ---------------------------------------------------------------------------
   // Tree Management
@@ -61,10 +63,14 @@ describe('BehaviorTree', () => {
 
   it('tick passes deltaTime through context', () => {
     let receivedDt = 0;
-    bt.createTree('main', new ActionNode('act', (ctx) => {
-      receivedDt = ctx.deltaTime;
-      return 'success';
-    }), 'e');
+    bt.createTree(
+      'main',
+      new ActionNode('act', (ctx) => {
+        receivedDt = ctx.deltaTime;
+        return 'success';
+      }),
+      'e'
+    );
     bt.tick('main', 0.033);
     expect(receivedDt).toBeCloseTo(0.033);
   });
@@ -92,9 +98,18 @@ describe('BehaviorTree', () => {
   it('sequence fails on first failing child', () => {
     const calls: string[] = [];
     const root = new SequenceNode('seq', [
-      new ActionNode('a', () => { calls.push('a'); return 'success'; }),
-      new ActionNode('b', () => { calls.push('b'); return 'failure'; }),
-      new ActionNode('c', () => { calls.push('c'); return 'success'; }),
+      new ActionNode('a', () => {
+        calls.push('a');
+        return 'success';
+      }),
+      new ActionNode('b', () => {
+        calls.push('b');
+        return 'failure';
+      }),
+      new ActionNode('c', () => {
+        calls.push('c');
+        return 'success';
+      }),
     ]);
     bt.createTree('main', root, 'e');
     expect(bt.tick('main', 0.016)).toBe('failure');
@@ -120,8 +135,22 @@ describe('BehaviorTree', () => {
 
   it('tickAll executes all registered trees', () => {
     let calls = 0;
-    bt.createTree('a', new ActionNode('x', () => { calls++; return 'success'; }), 'e');
-    bt.createTree('b', new ActionNode('y', () => { calls++; return 'success'; }), 'e');
+    bt.createTree(
+      'a',
+      new ActionNode('x', () => {
+        calls++;
+        return 'success';
+      }),
+      'e'
+    );
+    bt.createTree(
+      'b',
+      new ActionNode('y', () => {
+        calls++;
+        return 'success';
+      }),
+      'e'
+    );
     bt.tickAll(0.016);
     expect(calls).toBe(2);
   });

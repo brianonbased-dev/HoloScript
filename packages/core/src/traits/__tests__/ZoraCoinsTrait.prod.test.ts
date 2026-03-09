@@ -15,7 +15,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // ── Mock external blockchain deps ─────────────────────────────────────────────
 
 vi.mock('../utils/WalletConnection', () => ({
-  WalletConnection: vi.fn().mockImplementation(function(this: any) {
+  WalletConnection: vi.fn().mockImplementation(function (this: any) {
     this.connect = vi.fn().mockResolvedValue(undefined);
     this.disconnect = vi.fn();
     this.getAddress = vi.fn().mockResolvedValue('0xabc');
@@ -23,7 +23,9 @@ vi.mock('../utils/WalletConnection', () => ({
       getBalance: vi.fn().mockResolvedValue(BigInt(1e18)),
       getGasPrice: vi.fn().mockResolvedValue(BigInt(1e9)),
       simulateContract: vi.fn().mockResolvedValue({ request: {} }),
-      waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: 'success', blockNumber: 100n, gasUsed: 21000n }),
+      waitForTransactionReceipt: vi
+        .fn()
+        .mockResolvedValue({ status: 'success', blockNumber: 100n, gasUsed: 21000n }),
       estimateContractGas: vi.fn().mockResolvedValue(21000n),
     });
     this.getWalletClient = vi.fn().mockReturnValue({
@@ -65,7 +67,8 @@ vi.mock('@zoralabs/protocol-deployments', () => ({
 // ── Also mock the Zora API call (global fetch) ────────────────────────────────
 global.fetch = vi.fn().mockResolvedValue({
   ok: true,
-  json: () => Promise.resolve({ coins: [], collections: [], totalRoyalties: '0', rewardsBalance: '0' }),
+  json: () =>
+    Promise.resolve({ coins: [], collections: [], totalRoyalties: '0', rewardsBalance: '0' }),
 }) as any;
 
 import { zoraCoinsHandler } from '../ZoraCoinsTrait';
@@ -93,14 +96,14 @@ beforeEach(() => {
   // Reset fetch mock after clearAllMocks
   global.fetch = vi.fn().mockResolvedValue({
     ok: true,
-    json: () => Promise.resolve({ coins: [], collections: [], totalRoyalties: '0', rewardsBalance: '0' }),
+    json: () =>
+      Promise.resolve({ coins: [], collections: [], totalRoyalties: '0', rewardsBalance: '0' }),
   }) as any;
 });
 
 // ── defaultConfig ─────────────────────────────────────────────────────────────
 
 describe('ZoraCoinsTrait — defaultConfig', () => {
-
   it('name is zora_coins', () => {
     expect(zoraCoinsHandler.name).toBe('zora_coins');
   });
@@ -157,7 +160,6 @@ describe('ZoraCoinsTrait — defaultConfig', () => {
 // ── onAttach ──────────────────────────────────────────────────────────────────
 
 describe('ZoraCoinsTrait — onAttach', () => {
-
   it('initializes __zoraCoinsState on the node', () => {
     const node = makeNode();
     zoraCoinsHandler.onAttach!(node, makeConfig(), makeCtx() as any);
@@ -207,7 +209,6 @@ describe('ZoraCoinsTrait — onAttach', () => {
 // ── onDetach ──────────────────────────────────────────────────────────────────
 
 describe('ZoraCoinsTrait — onDetach', () => {
-
   it('removes __zoraCoinsState from node', () => {
     const node = makeNode();
     const ctx = makeCtx();
@@ -247,7 +248,6 @@ describe('ZoraCoinsTrait — onDetach', () => {
 // ── onUpdate ──────────────────────────────────────────────────────────────────
 
 describe('ZoraCoinsTrait — onUpdate', () => {
-
   it('does nothing when no state on node', () => {
     const node = makeNode();
     const ctx = makeCtx();
@@ -277,7 +277,6 @@ describe('ZoraCoinsTrait — onUpdate', () => {
 // ── onEvent — scene_published / auto_mint ────────────────────────────────────
 
 describe('ZoraCoinsTrait — onEvent: scene_published', () => {
-
   it('auto_mint=false: scene_published does not start a mint', () => {
     const node = makeNode();
     const ctx = makeCtx();
@@ -285,7 +284,12 @@ describe('ZoraCoinsTrait — onEvent: scene_published', () => {
     ctx.emit.mockClear();
     zoraCoinsHandler.onEvent!(node, makeConfig({ auto_mint: false }), ctx as any, {
       type: 'scene_published',
-      payload: { holoFileHash: 'abc123', sceneName: 'My Scene', scenePreviewUrl: 'http://x', traits: [] },
+      payload: {
+        holoFileHash: 'abc123',
+        sceneName: 'My Scene',
+        scenePreviewUrl: 'http://x',
+        traits: [],
+      },
     });
     expect(ctx.emit).not.toHaveBeenCalledWith('zora_mint_started', expect.anything());
   });
@@ -297,7 +301,12 @@ describe('ZoraCoinsTrait — onEvent: scene_published', () => {
     ctx.emit.mockClear();
     zoraCoinsHandler.onEvent!(node, makeConfig({ auto_mint: true }), ctx as any, {
       type: 'scene_published',
-      payload: { holoFileHash: 'h1', sceneName: 'Cool Scene', scenePreviewUrl: 'http://s', traits: ['neon'] },
+      payload: {
+        holoFileHash: 'h1',
+        sceneName: 'Cool Scene',
+        scenePreviewUrl: 'http://s',
+        traits: ['neon'],
+      },
     });
     expect(ctx.emit).toHaveBeenCalledWith('zora_mint_started', expect.objectContaining({ node }));
   });
@@ -308,7 +317,12 @@ describe('ZoraCoinsTrait — onEvent: scene_published', () => {
     zoraCoinsHandler.onAttach!(node, makeConfig({ auto_mint: true }), ctx as any);
     zoraCoinsHandler.onEvent!(node, makeConfig({ auto_mint: true }), ctx as any, {
       type: 'scene_published',
-      payload: { holoFileHash: 'h1', sceneName: 'Cool Scene', scenePreviewUrl: 'http://s', traits: [] },
+      payload: {
+        holoFileHash: 'h1',
+        sceneName: 'Cool Scene',
+        scenePreviewUrl: 'http://s',
+        traits: [],
+      },
     });
     expect(getState(node).pendingMints).toHaveLength(1);
     expect(getState(node).pendingMints[0].config.name).toBe('Cool Scene');
@@ -318,7 +332,6 @@ describe('ZoraCoinsTrait — onEvent: scene_published', () => {
 // ── onEvent — zora_mint ───────────────────────────────────────────────────────
 
 describe('ZoraCoinsTrait — onEvent: zora_mint', () => {
-
   it('emits zora_mint_started when zora_mint event fired', () => {
     const node = makeNode();
     const ctx = makeCtx();
@@ -337,7 +350,13 @@ describe('ZoraCoinsTrait — onEvent: zora_mint', () => {
     zoraCoinsHandler.onAttach!(node, makeConfig(), ctx as any);
     zoraCoinsHandler.onEvent!(node, makeConfig(), ctx as any, {
       type: 'zora_mint',
-      payload: { name: 'Sunset Vista', symbol: 'SV', holoFileHash: 'h3', scenePreviewUrl: 'u', traits: [] },
+      payload: {
+        name: 'Sunset Vista',
+        symbol: 'SV',
+        holoFileHash: 'h3',
+        scenePreviewUrl: 'u',
+        traits: [],
+      },
     });
     const p = getState(node).pendingMints[0];
     expect(p.config.symbol).toBe('SV');
@@ -393,7 +412,6 @@ describe('ZoraCoinsTrait — onEvent: zora_mint', () => {
 // ── onEvent — zora_create_collection ─────────────────────────────────────────
 
 describe('ZoraCoinsTrait — onEvent: zora_create_collection', () => {
-
   it('does not throw when collection event is fired', () => {
     const node = makeNode();
     const ctx = makeCtx();
@@ -410,7 +428,6 @@ describe('ZoraCoinsTrait — onEvent: zora_create_collection', () => {
 // ── onEvent — zora_claim_rewards ──────────────────────────────────────────────
 
 describe('ZoraCoinsTrait — onEvent: zora_claim_rewards', () => {
-
   it('does not throw when claim_rewards event is fired', () => {
     const node = makeNode();
     const ctx = makeCtx();
@@ -424,7 +441,6 @@ describe('ZoraCoinsTrait — onEvent: zora_claim_rewards', () => {
 // ── onEvent — zora_price_quote ────────────────────────────────────────────────
 
 describe('ZoraCoinsTrait — onEvent: zora_price_quote', () => {
-
   it('emits zora_price_quoted when coin exists and bonding_curve enabled', () => {
     const node = makeNode();
     const ctx = makeCtx();
@@ -434,10 +450,30 @@ describe('ZoraCoinsTrait — onEvent: zora_price_quote', () => {
       id: 'coin_1',
       circulatingSupply: 500,
       contractAddress: '0x123',
-      name: 'Test', symbol: 'T', description: '', totalSupply: 1000,
-      price: '0.001', priceUSD: 2, creatorAddress: '0xabc', createdAt: 0,
-      chain: 'base' as const, metadata: { holoFileHash: '', scenePreviewUrl: '', traits: [], category: 'scene' as const, license: 'cc0' as const },
-      stats: { holders: 0, totalVolume: '0', floorPrice: '0', marketCap: '0', royaltiesEarned: '0', secondarySales: 0 },
+      name: 'Test',
+      symbol: 'T',
+      description: '',
+      totalSupply: 1000,
+      price: '0.001',
+      priceUSD: 2,
+      creatorAddress: '0xabc',
+      createdAt: 0,
+      chain: 'base' as const,
+      metadata: {
+        holoFileHash: '',
+        scenePreviewUrl: '',
+        traits: [],
+        category: 'scene' as const,
+        license: 'cc0' as const,
+      },
+      stats: {
+        holders: 0,
+        totalVolume: '0',
+        floorPrice: '0',
+        marketCap: '0',
+        royaltiesEarned: '0',
+        secondarySales: 0,
+      },
     };
     getState(node).coins.push(coin);
     ctx.emit.mockClear();
@@ -445,10 +481,13 @@ describe('ZoraCoinsTrait — onEvent: zora_price_quote', () => {
       type: 'zora_price_quote',
       payload: { coinId: 'coin_1', amount: 10 },
     });
-    expect(ctx.emit).toHaveBeenCalledWith('zora_price_quoted', expect.objectContaining({
-      coinId: 'coin_1',
-      amount: 10,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'zora_price_quoted',
+      expect.objectContaining({
+        coinId: 'coin_1',
+        amount: 10,
+      })
+    );
   });
 
   it('does NOT emit zora_price_quoted when coin not found', () => {
@@ -479,7 +518,6 @@ describe('ZoraCoinsTrait — onEvent: zora_price_quote', () => {
 // ── onEvent — zora_secondary_sale ─────────────────────────────────────────────
 
 describe('ZoraCoinsTrait — onEvent: zora_secondary_sale', () => {
-
   it('does not throw on secondary_sale event', () => {
     const node = makeNode();
     const ctx = makeCtx();
@@ -496,7 +534,6 @@ describe('ZoraCoinsTrait — onEvent: zora_secondary_sale', () => {
 // ── onEvent — wallet_connected ────────────────────────────────────────────────
 
 describe('ZoraCoinsTrait — onEvent: wallet_connected', () => {
-
   it('updates state.walletAddress on wallet_connected', () => {
     const node = makeNode();
     const ctx = makeCtx();
@@ -512,7 +549,6 @@ describe('ZoraCoinsTrait — onEvent: wallet_connected', () => {
 // ── onEvent — unknown type ────────────────────────────────────────────────────
 
 describe('ZoraCoinsTrait — onEvent: unknown', () => {
-
   it('unknown event type does not throw', () => {
     const node = makeNode();
     const ctx = makeCtx();

@@ -65,6 +65,7 @@ telemetry {
 **DTDL Types**: `double`, `integer`, `string`, `boolean`, `date`, `time`, `dateTime`
 
 **Standard Units**: Use DTDL v2 unit names exactly:
+
 - Temperature: `degreeCelsius`, `degreeFahrenheit`, `kelvin`
 - Speed: `metrePerSecond`, `kilometrePerHour`
 - Acceleration: `metersPerSecondSquared`
@@ -95,6 +96,7 @@ properties {
 ```
 
 **Writable vs Read-Only**:
+
 - `writable: false` → Telemetry or computed state
 - `writable: true` → Configuration that can be changed remotely
 
@@ -166,6 +168,7 @@ device#conveyor_1 {
 ```
 
 **Relationship Types**:
+
 - `feeds_to` → Material flow
 - `monitored_by` → Sensor coverage
 - `located_in` → Physical hierarchy
@@ -201,6 +204,7 @@ telemetry_simulator {
 ```
 
 **Simulation Modes**:
+
 - `realistic` → Physics-based values
 - `replay` → Historical data playback
 - `anomaly` → Inject faults for testing
@@ -272,6 +276,7 @@ maintenance_rule#usage_counter {
 ```
 
 **Rule Patterns**:
+
 - **Threshold Alerts**: Simple value checks
 - **Trend Analysis**: Rate of change detection
 - **Predictive**: ML model predictions
@@ -307,6 +312,7 @@ cloud_integration#azure_iot {
 ```
 
 **Supported Platforms**:
+
 - Azure Digital Twins + IoT Hub
 - AWS IoT TwinMaker + IoT Core
 - Google Cloud IoT Core
@@ -330,6 +336,7 @@ export#dtdl_export @azure_compatible {
 ```
 
 **Generates**:
+
 ```
 build/dtdl/
 ├── dtmi_factory_conveyor-1.json
@@ -339,6 +346,7 @@ build/dtdl/
 ```
 
 **DTDL JSON Output Example**:
+
 ```json
 {
   "@context": "dtmi:dtdl:context;2",
@@ -383,24 +391,28 @@ build/dtdl/
 ## Best Practices
 
 ### Telemetry Design
+
 - **Sample Rate**: Match physics (vibration: 10 Hz, temperature: 0.1 Hz)
 - **Units**: Always use DTDL standard units
 - **Precision**: `double` for measurements, `integer` for counts
 - **Batching**: Group related telemetry for efficiency
 
 ### Command Design
+
 - **Idempotent**: Safe to call multiple times
 - **Timeout**: Include execution timeout
 - **Validation**: Check parameters before execution
 - **Feedback**: Send telemetry update after command
 
 ### Rule Design
+
 - **Hysteresis**: Avoid alert spam (use rising/falling thresholds)
 - **Debounce**: Wait for sustained condition (5+ seconds)
 - **Escalation**: Low → Medium → High → Critical
 - **Auto-Recovery**: Clear alerts when condition resolves
 
 ### Security
+
 - **Authentication**: Use X.509 certificates (not SAS tokens) in production
 - **Encryption**: TLS 1.2+ for all connections
 - **Authorization**: Role-based access control (RBAC)

@@ -13,7 +13,9 @@ import { ErosionSim } from '../terrain/ErosionSim';
 
 describe('TerrainBrush', () => {
   let brush: TerrainBrush;
-  beforeEach(() => { brush = new TerrainBrush(32, { radius: 3, strength: 1, falloff: 'smooth' }); });
+  beforeEach(() => {
+    brush = new TerrainBrush(32, { radius: 3, strength: 1, falloff: 'smooth' });
+  });
 
   it('initializes with flat grid', () => {
     expect(brush.getGridSize()).toBe(32);
@@ -121,7 +123,9 @@ describe('TerrainBrush', () => {
 
 describe('ErosionSim', () => {
   let erosion: ErosionSim;
-  beforeEach(() => { erosion = new ErosionSim({ iterations: 100, seed: 42 }); });
+  beforeEach(() => {
+    erosion = new ErosionSim({ iterations: 100, seed: 42 });
+  });
 
   it('initializes with config', () => {
     const cfg = erosion.getConfig();
@@ -135,7 +139,8 @@ describe('ErosionSim', () => {
     // Create a hill
     for (let z = 0; z < size; z++)
       for (let x = 0; x < size; x++) {
-        const dx = x - size / 2, dz = z - size / 2;
+        const dx = x - size / 2,
+          dz = z - size / 2;
         hm[z * size + x] = Math.max(0, 5 - Math.sqrt(dx * dx + dz * dz));
       }
     const before = new Float32Array(hm);
@@ -144,7 +149,11 @@ describe('ErosionSim', () => {
     expect(result.iterations).toBe(100);
     // Heightmap should differ
     let differs = false;
-    for (let i = 0; i < hm.length; i++) if (hm[i] !== before[i]) { differs = true; break; }
+    for (let i = 0; i < hm.length; i++)
+      if (hm[i] !== before[i]) {
+        differs = true;
+        break;
+      }
     expect(differs).toBe(true);
   });
 
@@ -169,7 +178,10 @@ describe('ErosionSim', () => {
     const size = 8;
     const hm1 = new Float32Array(size * size);
     const hm2 = new Float32Array(size * size);
-    for (let i = 0; i < hm1.length; i++) { hm1[i] = Math.sin(i) * 2; hm2[i] = hm1[i]; }
+    for (let i = 0; i < hm1.length; i++) {
+      hm1[i] = Math.sin(i) * 2;
+      hm2[i] = hm1[i];
+    }
     const e1 = new ErosionSim({ iterations: 50, seed: 123 });
     const e2 = new ErosionSim({ iterations: 50, seed: 123 });
     const r1 = e1.hydraulicErode(hm1, size, size);

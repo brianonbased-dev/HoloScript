@@ -67,7 +67,11 @@ export class SedimentTransport {
   private lastErosionAmount = 0;
   private lastDepositionAmount = 0;
 
-  constructor(terrain: HeightmapTerrain, water: WaterFlowSolver, config: Partial<SedimentConfig> = {}) {
+  constructor(
+    terrain: HeightmapTerrain,
+    water: WaterFlowSolver,
+    config: Partial<SedimentConfig> = {}
+  ) {
     this.terrain = terrain;
     this.water = water;
 
@@ -260,7 +264,8 @@ export class SedimentTransport {
 
         // Calculate sediment capacity based on water velocity
         const velocityMagnitude = Math.sqrt(
-          waterCell.velocity[0] * waterCell.velocity[0] + waterCell.velocity[1] * waterCell.velocity[1]
+          waterCell.velocity[0] * waterCell.velocity[0] +
+            waterCell.velocity[1] * waterCell.velocity[1]
         );
 
         const capacity = sedimentCapacity * velocityMagnitude * waterCell.height;
@@ -358,7 +363,8 @@ export class SedimentTransport {
         } else {
           // Calculate capacity
           const velocityMagnitude = Math.sqrt(
-            waterCell.velocity[0] * waterCell.velocity[0] + waterCell.velocity[1] * waterCell.velocity[1]
+            waterCell.velocity[0] * waterCell.velocity[0] +
+              waterCell.velocity[1] * waterCell.velocity[1]
           );
 
           const capacity = sedimentCapacity * velocityMagnitude * waterCell.height;

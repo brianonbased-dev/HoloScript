@@ -16,10 +16,7 @@ async function example1_LWWRegister() {
   const alice = createTestSigner('alice');
 
   // Create a register to store avatar position
-  const position = new LWWRegister<{ x: number; y: number; z: number }>(
-    'avatar-position',
-    alice
-  );
+  const position = new LWWRegister<{ x: number; y: number; z: number }>('avatar-position', alice);
 
   // Set initial position
   const op1 = await position.set({ x: 0, y: 0, z: 0 });

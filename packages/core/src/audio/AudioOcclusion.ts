@@ -18,31 +18,31 @@
  * Frequency-dependent absorption coefficients (0-1 per frequency band)
  */
 export interface FrequencyAbsorption {
-  125: number;   // 125 Hz
-  250: number;   // 250 Hz
-  500: number;   // 500 Hz
-  1000: number;  // 1 kHz
-  2000: number;  // 2 kHz
-  4000: number;  // 4 kHz
-  8000: number;  // 8 kHz
+  125: number; // 125 Hz
+  250: number; // 250 Hz
+  500: number; // 500 Hz
+  1000: number; // 1 kHz
+  2000: number; // 2 kHz
+  4000: number; // 4 kHz
+  8000: number; // 8 kHz
 }
 
 export interface OcclusionMaterial {
   id: string;
   name: string;
-  absorptionCoefficient: number;       // 0-1, average sound absorption
-  transmissionLoss: number;            // dB lost per material hit
+  absorptionCoefficient: number; // 0-1, average sound absorption
+  transmissionLoss: number; // dB lost per material hit
   frequencyAbsorption?: FrequencyAbsorption; // Per-frequency absorption (optional)
 }
 
 export interface OcclusionResult {
   sourceId: string;
   occluded: boolean;
-  occlusionFactor: number;        // 0-1 (0 = fully audible, 1 = fully blocked)
+  occlusionFactor: number; // 0-1 (0 = fully audible, 1 = fully blocked)
   hitCount: number;
-  totalTransmissionLoss: number;  // dB
-  materials: string[];            // Material IDs hit
-  lowPassCutoff: number;          // Hz (calculated filter cutoff for muffled sound)
+  totalTransmissionLoss: number; // dB
+  materials: string[]; // Material IDs hit
+  lowPassCutoff: number; // Hz (calculated filter cutoff for muffled sound)
   frequencyAttenuation: Partial<FrequencyAbsorption>; // Per-frequency attenuation
 }
 
@@ -55,7 +55,7 @@ export interface OcclusionRay {
 export interface OcclusionHit {
   distance: number;
   materialId: string;
-  thickness: number;   // Meters
+  thickness: number; // Meters
 }
 
 // =============================================================================
@@ -68,56 +68,120 @@ export const OCCLUSION_MATERIALS: Record<string, OcclusionMaterial> = {
     name: 'Glass',
     absorptionCoefficient: 0.1,
     transmissionLoss: 6,
-    frequencyAbsorption: { 125: 0.35, 250: 0.25, 500: 0.18, 1000: 0.12, 2000: 0.07, 4000: 0.04, 8000: 0.03 },
+    frequencyAbsorption: {
+      125: 0.35,
+      250: 0.25,
+      500: 0.18,
+      1000: 0.12,
+      2000: 0.07,
+      4000: 0.04,
+      8000: 0.03,
+    },
   },
   wood: {
     id: 'wood',
     name: 'Wood',
     absorptionCoefficient: 0.3,
     transmissionLoss: 12,
-    frequencyAbsorption: { 125: 0.15, 250: 0.11, 500: 0.10, 1000: 0.07, 2000: 0.06, 4000: 0.07, 8000: 0.09 },
+    frequencyAbsorption: {
+      125: 0.15,
+      250: 0.11,
+      500: 0.1,
+      1000: 0.07,
+      2000: 0.06,
+      4000: 0.07,
+      8000: 0.09,
+    },
   },
   drywall: {
     id: 'drywall',
     name: 'Drywall',
     absorptionCoefficient: 0.2,
     transmissionLoss: 10,
-    frequencyAbsorption: { 125: 0.29, 250: 0.10, 500: 0.05, 1000: 0.04, 2000: 0.07, 4000: 0.09, 8000: 0.08 },
+    frequencyAbsorption: {
+      125: 0.29,
+      250: 0.1,
+      500: 0.05,
+      1000: 0.04,
+      2000: 0.07,
+      4000: 0.09,
+      8000: 0.08,
+    },
   },
   brick: {
     id: 'brick',
     name: 'Brick',
     absorptionCoefficient: 0.4,
     transmissionLoss: 20,
-    frequencyAbsorption: { 125: 0.03, 250: 0.03, 500: 0.03, 1000: 0.04, 2000: 0.05, 4000: 0.07, 8000: 0.07 },
+    frequencyAbsorption: {
+      125: 0.03,
+      250: 0.03,
+      500: 0.03,
+      1000: 0.04,
+      2000: 0.05,
+      4000: 0.07,
+      8000: 0.07,
+    },
   },
   concrete: {
     id: 'concrete',
     name: 'Concrete',
     absorptionCoefficient: 0.5,
     transmissionLoss: 30,
-    frequencyAbsorption: { 125: 0.01, 250: 0.01, 500: 0.02, 1000: 0.02, 2000: 0.02, 4000: 0.03, 8000: 0.04 },
+    frequencyAbsorption: {
+      125: 0.01,
+      250: 0.01,
+      500: 0.02,
+      1000: 0.02,
+      2000: 0.02,
+      4000: 0.03,
+      8000: 0.04,
+    },
   },
   metal: {
     id: 'metal',
     name: 'Metal',
     absorptionCoefficient: 0.05,
     transmissionLoss: 35,
-    frequencyAbsorption: { 125: 0.01, 250: 0.01, 500: 0.01, 1000: 0.01, 2000: 0.02, 4000: 0.02, 8000: 0.03 },
+    frequencyAbsorption: {
+      125: 0.01,
+      250: 0.01,
+      500: 0.01,
+      1000: 0.01,
+      2000: 0.02,
+      4000: 0.02,
+      8000: 0.03,
+    },
   },
   fabric: {
     id: 'fabric',
     name: 'Fabric',
     absorptionCoefficient: 0.7,
     transmissionLoss: 3,
-    frequencyAbsorption: { 125: 0.03, 250: 0.09, 500: 0.20, 1000: 0.54, 2000: 0.70, 4000: 0.72, 8000: 0.75 },
+    frequencyAbsorption: {
+      125: 0.03,
+      250: 0.09,
+      500: 0.2,
+      1000: 0.54,
+      2000: 0.7,
+      4000: 0.72,
+      8000: 0.75,
+    },
   },
   water: {
     id: 'water',
     name: 'Water',
     absorptionCoefficient: 0.02,
     transmissionLoss: 8,
-    frequencyAbsorption: { 125: 0.01, 250: 0.01, 500: 0.01, 1000: 0.01, 2000: 0.02, 4000: 0.03, 8000: 0.04 },
+    frequencyAbsorption: {
+      125: 0.01,
+      250: 0.01,
+      500: 0.01,
+      1000: 0.01,
+      2000: 0.02,
+      4000: 0.03,
+      8000: 0.04,
+    },
   },
 };
 
@@ -130,7 +194,7 @@ export type RaycastProvider = (ray: OcclusionRay) => OcclusionHit[];
 export class AudioOcclusionSystem {
   private materials: Map<string, OcclusionMaterial> = new Map();
   private raycastProvider: RaycastProvider | null = null;
-  private maxTransmissionLoss = 60;  // dB cap
+  private maxTransmissionLoss = 60; // dB cap
   private cache: Map<string, OcclusionResult> = new Map();
   private enableFrequencyFiltering = true; // Enable frequency-dependent occlusion
 
@@ -181,7 +245,7 @@ export class AudioOcclusionSystem {
   computeOcclusion(
     listenPos: { x: number; y: number; z: number },
     sourcePos: { x: number; y: number; z: number },
-    sourceId: string,
+    sourceId: string
   ): OcclusionResult {
     if (!this.raycastProvider) {
       return {
@@ -256,7 +320,7 @@ export class AudioOcclusionSystem {
             const absorp = mat.frequencyAbsorption[freq] || 0;
             frequencyAttenuation[freq] = Math.min(
               1,
-              (frequencyAttenuation[freq] || 0) + absorp * hit.thickness,
+              (frequencyAttenuation[freq] || 0) + absorp * hit.thickness
             );
           }
         }
@@ -342,7 +406,7 @@ export class AudioOcclusionSystem {
    */
   private calculateLowPassCutoff(
     occlusionFactor: number,
-    frequencyAttenuation: Partial<FrequencyAbsorption>,
+    frequencyAttenuation: Partial<FrequencyAbsorption>
   ): number {
     if (!this.enableFrequencyFiltering || Object.keys(frequencyAttenuation).length === 0) {
       // Simplified cutoff based on total occlusion

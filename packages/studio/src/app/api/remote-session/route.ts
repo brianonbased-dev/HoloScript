@@ -13,8 +13,8 @@ export interface RemoteSession {
   token: string;
   previewUrl: string;
   wsUrl: string;
-  qrData: string;          // URL string suitable for QR encoding
-  expiresAt: string;       // ISO timestamp
+  qrData: string; // URL string suitable for QR encoding
+  expiresAt: string; // ISO timestamp
   devices: ConnectedDevice[];
 }
 
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   // Register a device heartbeat (called by the preview page)
-  const body = await request.json() as Partial<ConnectedDevice>;
+  const body = (await request.json()) as Partial<ConnectedDevice>;
   const device: ConnectedDevice = {
     id: body.id ?? randomUUID(),
     label: body.label ?? 'Unknown Device',

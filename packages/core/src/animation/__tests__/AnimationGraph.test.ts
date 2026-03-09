@@ -3,8 +3,21 @@ import { AnimationGraph, type AnimationClip, type AnimationTransition } from '..
 
 function clip(id: string, duration = 1, loop = false): AnimationClip {
   return {
-    id, name: id, duration, loop, speed: 1,
-    tracks: [{ targetProperty: 'x', keyframes: [{ time: 0, value: 0 }, { time: duration, value: 1 }], interpolation: 'linear' }],
+    id,
+    name: id,
+    duration,
+    loop,
+    speed: 1,
+    tracks: [
+      {
+        targetProperty: 'x',
+        keyframes: [
+          { time: 0, value: 0 },
+          { time: duration, value: 1 },
+        ],
+        interpolation: 'linear',
+      },
+    ],
   };
 }
 
@@ -66,7 +79,10 @@ describe('AnimationGraph', () => {
     graph.addState('idle_s', 'idle');
     graph.addState('run_s', 'run');
     graph.addTransition({
-      id: 't1', fromState: 'idle_s', toState: 'run_s', duration: 0.2,
+      id: 't1',
+      fromState: 'idle_s',
+      toState: 'run_s',
+      duration: 0.2,
       condition: { type: 'parameter', name: 'speed', comparator: '>', value: 0.5 },
       interruptible: true,
     });
@@ -103,7 +119,10 @@ describe('AnimationGraph', () => {
     graph.addState('idle_s', 'idle');
     graph.addState('run_s', 'run');
     graph.addTransition({
-      id: 't1', fromState: 'idle_s', toState: 'run_s', duration: 0.2,
+      id: 't1',
+      fromState: 'idle_s',
+      toState: 'run_s',
+      duration: 0.2,
       condition: { type: 'parameter', name: 'speed', comparator: '>', value: 0 },
       interruptible: true,
     });
@@ -120,8 +139,17 @@ describe('AnimationGraph', () => {
 
   it('addLayer / getLayers', () => {
     graph.addLayer({
-      id: 'upper_body', weight: 1, blendMode: 'override', mask: ['spine', 'arm'],
-      graph: { states: new Map(), transitions: [], currentState: '', parameters: new Map(), activeTransition: null },
+      id: 'upper_body',
+      weight: 1,
+      blendMode: 'override',
+      mask: ['spine', 'arm'],
+      graph: {
+        states: new Map(),
+        transitions: [],
+        currentState: '',
+        parameters: new Map(),
+        activeTransition: null,
+      },
     });
     expect(graph.getLayers()).toHaveLength(1);
     expect(graph.getLayers()[0].id).toBe('upper_body');
@@ -132,12 +160,26 @@ describe('AnimationGraph', () => {
   // ---------------------------------------------------------------------------
 
   it('sampleTrack interpolates keyframes', () => {
-    const track = { targetProperty: 'x', keyframes: [{ time: 0, value: 0 }, { time: 1, value: 100 }], interpolation: 'linear' as const };
+    const track = {
+      targetProperty: 'x',
+      keyframes: [
+        { time: 0, value: 0 },
+        { time: 1, value: 100 },
+      ],
+      interpolation: 'linear' as const,
+    };
     expect(graph.sampleTrack(track, 0.5)).toBeCloseTo(50, 0);
   });
 
   it('sampleTrack clamps beyond range', () => {
-    const track = { targetProperty: 'x', keyframes: [{ time: 0, value: 0 }, { time: 1, value: 100 }], interpolation: 'linear' as const };
+    const track = {
+      targetProperty: 'x',
+      keyframes: [
+        { time: 0, value: 0 },
+        { time: 1, value: 100 },
+      ],
+      interpolation: 'linear' as const,
+    };
     expect(graph.sampleTrack(track, 2)).toBe(100);
   });
 });

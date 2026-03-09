@@ -8,7 +8,14 @@
  * P.SIG25.01: GS-editable materials for VR-Doh sculpting pattern.
  */
 
-export type MaterialType = 'pbr' | 'standard' | 'unlit' | 'transparent' | 'volumetric' | 'custom' | 'neural';
+export type MaterialType =
+  | 'pbr'
+  | 'standard'
+  | 'unlit'
+  | 'transparent'
+  | 'volumetric'
+  | 'custom'
+  | 'neural';
 export type TextureChannel =
   | 'baseColor'
   | 'normalMap'

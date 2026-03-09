@@ -10,18 +10,29 @@
 
 import { useState, useEffect } from 'react';
 import { Code2, X, Copy, Plus, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 interface ShaderPreset {
-  id: string; name: string; category: string; description: string;
-  emoji: string; vertexGLSL?: string; fragmentGLSL?: string; traitSnippet: string;
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  emoji: string;
+  vertexGLSL?: string;
+  fragmentGLSL?: string;
+  traitSnippet: string;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  distortion: '#ff6644', color: '#44aaff', procedural: '#aa44ff', post: '#44ffaa',
+  distortion: '#ff6644',
+  color: '#44aaff',
+  procedural: '#aa44ff',
+  post: '#44ffaa',
 };
 
-interface GlslShaderPanelProps { onClose: () => void; }
+interface GlslShaderPanelProps {
+  onClose: () => void;
+}
 
 export function GlslShaderPanel({ onClose }: GlslShaderPanelProps) {
   const [presets, setPresets] = useState<ShaderPreset[]>([]);
@@ -57,13 +68,16 @@ export function GlslShaderPanel({ onClose }: GlslShaderPanelProps) {
   // Basic client-side GLSL lint (heuristic only)
   const validate = () => {
     const errors: string[] = [];
-    if (!customGLSL.trim()) { errors.push('Shader is empty.'); }
+    if (!customGLSL.trim()) {
+      errors.push('Shader is empty.');
+    }
     if (customGLSL.includes('while(true)') || customGLSL.includes('while (true)')) {
       errors.push('Infinite loops are not allowed in GLSL shaders.');
     }
     const openBraces = (customGLSL.match(/\{/g) ?? []).length;
     const closeBraces = (customGLSL.match(/\}/g) ?? []).length;
-    if (openBraces !== closeBraces) errors.push(`Mismatched braces: ${openBraces} opened, ${closeBraces} closed.`);
+    if (openBraces !== closeBraces)
+      errors.push(`Mismatched braces: ${openBraces} opened, ${closeBraces} closed.`);
     setGlslErrors(errors);
     return errors.length === 0;
   };
@@ -71,18 +85,22 @@ export function GlslShaderPanel({ onClose }: GlslShaderPanelProps) {
   const buildSnippet = () => {
     if (!selected) return '';
     const glslKey = activeTab === 'fragment' ? 'fragmentShader' : 'vertexShader';
-    return `  @material {\n    ${glslKey}: "${selected.id}"\n    /* custom GLSL:\n${customGLSL.split('\n').map((l) => '      ' + l).join('\n')}\n    */\n  }`;
+    return `  @material {\n    ${glslKey}: "${selected.id}"\n    /* custom GLSL:\n${customGLSL
+      .split('\n')
+      .map((l) => '      ' + l)
+      .join('\n')}\n    */\n  }`;
   };
 
   const insert = () => {
     if (!validate()) return;
     const name = selected?.name ?? 'Custom';
-    setCode(code + `\nobject "${name.replace(/\s+/g,'_')}_Shader" {\n${buildSnippet()}\n}\n`);
+    setCode(code + `\nobject "${name.replace(/\s+/g, '_')}_Shader" {\n${buildSnippet()}\n}\n`);
   };
 
   const copy = async () => {
     await navigator.clipboard.writeText(buildSnippet());
-    setCopied(true); setTimeout(() => setCopied(false), 1500);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   };
 
   return (
@@ -91,7 +109,10 @@ export function GlslShaderPanel({ onClose }: GlslShaderPanelProps) {
       <div className="flex shrink-0 items-center gap-2 border-b border-studio-border px-3 py-2.5">
         <Code2 className="h-4 w-4 text-studio-accent" />
         <span className="text-[12px] font-semibold">Shader Editor</span>
-        <button onClick={onClose} className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text">
+        <button
+          onClick={onClose}
+          className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -101,13 +122,26 @@ export function GlslShaderPanel({ onClose }: GlslShaderPanelProps) {
         {presets.map((p) => (
           <div key={p.id} className={`${selected?.id === p.id ? 'bg-studio-accent/8' : ''}`}>
             <button
-              onClick={() => { loadPreset(p); setExpandedPreset((prev) => prev === p.id ? null : p.id); }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-studio-surface/50 transition">
-              {expandedPreset === p.id ? <ChevronDown className="h-3 w-3 shrink-0 text-studio-muted" /> : <ChevronRight className="h-3 w-3 shrink-0 text-studio-muted" />}
+              onClick={() => {
+                loadPreset(p);
+                setExpandedPreset((prev) => (prev === p.id ? null : p.id));
+              }}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-studio-surface/50 transition"
+            >
+              {expandedPreset === p.id ? (
+                <ChevronDown className="h-3 w-3 shrink-0 text-studio-muted" />
+              ) : (
+                <ChevronRight className="h-3 w-3 shrink-0 text-studio-muted" />
+              )}
               <span className="text-sm">{p.emoji}</span>
               <span className="flex-1 text-[10px] font-medium">{p.name}</span>
-              <span className="rounded-full px-1.5 py-0.5 text-[7px]"
-                style={{ backgroundColor: `${CATEGORY_COLORS[p.category] ?? '#888'}22`, color: CATEGORY_COLORS[p.category] ?? '#888' }}>
+              <span
+                className="rounded-full px-1.5 py-0.5 text-[7px]"
+                style={{
+                  backgroundColor: `${CATEGORY_COLORS[p.category] ?? '#888'}22`,
+                  color: CATEGORY_COLORS[p.category] ?? '#888',
+                }}
+              >
                 {p.category}
               </span>
             </button>
@@ -121,8 +155,11 @@ export function GlslShaderPanel({ onClose }: GlslShaderPanelProps) {
       {/* GLSL editor */}
       <div className="flex shrink-0 border-b border-studio-border">
         {(['fragment', 'vertex'] as const).map((tab) => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-1.5 text-[9px] font-medium transition ${activeTab === tab ? 'border-b-2 border-studio-accent text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}>
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 py-1.5 text-[9px] font-medium transition ${activeTab === tab ? 'border-b-2 border-studio-accent text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
             {tab.charAt(0).toUpperCase() + tab.slice(1)} GLSL
           </button>
         ))}
@@ -131,7 +168,10 @@ export function GlslShaderPanel({ onClose }: GlslShaderPanelProps) {
       <div className="flex-1 flex flex-col min-h-0">
         <textarea
           value={customGLSL}
-          onChange={(e) => { setCustomGLSL(e.target.value); setGlslErrors([]); }}
+          onChange={(e) => {
+            setCustomGLSL(e.target.value);
+            setGlslErrors([]);
+          }}
           spellCheck={false}
           placeholder="// Enter GLSL code here…"
           className="flex-1 resize-none bg-[#080810] p-3 font-mono text-[9px] text-green-300/90 outline-none placeholder-studio-muted/30 leading-relaxed"
@@ -152,16 +192,22 @@ export function GlslShaderPanel({ onClose }: GlslShaderPanelProps) {
 
       {/* Actions */}
       <div className="shrink-0 border-t border-studio-border flex gap-1.5 p-2.5">
-        <button onClick={validate}
-          className="flex items-center gap-1 rounded-xl border border-studio-border px-3 py-2 text-[9px] text-studio-muted hover:text-studio-text transition">
+        <button
+          onClick={validate}
+          className="flex items-center gap-1 rounded-xl border border-studio-border px-3 py-2 text-[9px] text-studio-muted hover:text-studio-text transition"
+        >
           Validate
         </button>
-        <button onClick={insert}
-          className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-studio-accent py-2 text-[10px] font-semibold text-white hover:brightness-110 transition">
+        <button
+          onClick={insert}
+          className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-studio-accent py-2 text-[10px] font-semibold text-white hover:brightness-110 transition"
+        >
           <Plus className="h-3 w-3" /> Insert Object
         </button>
-        <button onClick={copy}
-          className={`flex items-center gap-1 rounded-xl border px-3 py-2 text-[9px] transition ${copied ? 'border-green-500/40 text-green-400' : 'border-studio-border text-studio-muted hover:text-studio-text'}`}>
+        <button
+          onClick={copy}
+          className={`flex items-center gap-1 rounded-xl border px-3 py-2 text-[9px] transition ${copied ? 'border-green-500/40 text-green-400' : 'border-studio-border text-studio-muted hover:text-studio-text'}`}
+        >
           <Copy className="h-3 w-3" /> {copied ? 'Copied!' : 'Copy'}
         </button>
       </div>

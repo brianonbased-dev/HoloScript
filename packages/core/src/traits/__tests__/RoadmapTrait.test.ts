@@ -1,13 +1,21 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createMockNode, createMockContext, attachTrait, updateTrait, sendEvent } from './traitTestHelpers';
+import {
+  createMockNode,
+  createMockContext,
+  attachTrait,
+  updateTrait,
+  sendEvent,
+} from './traitTestHelpers';
 
 // Mock roadmapService
 vi.mock('../../services/HololandRoadmapService', () => ({
   roadmapService: {
     getMilestone: vi.fn((id: string) => {
-      if (id === 'ms-1') return { id: 'ms-1', title: 'Launch MVP', status: 'in-progress', progress: 0.6 };
+      if (id === 'ms-1')
+        return { id: 'ms-1', title: 'Launch MVP', status: 'in-progress', progress: 0.6 };
       if (id === 'ms-2') return { id: 'ms-2', title: 'Scale', status: 'completed', progress: 1.0 };
-      if (id === 'ms-blocked') return { id: 'ms-blocked', title: 'Blocked', status: 'blocked', progress: 0.1 };
+      if (id === 'ms-blocked')
+        return { id: 'ms-blocked', title: 'Blocked', status: 'blocked', progress: 0.1 };
       return null;
     }),
   },
@@ -46,7 +54,7 @@ describe('RoadmapTrait', () => {
   });
 
   it('emits roadmap_node_attached on attach', () => {
-    expect(ctx.emittedEvents.some(e => e.event === 'roadmap_node_attached')).toBe(true);
+    expect(ctx.emittedEvents.some((e) => e.event === 'roadmap_node_attached')).toBe(true);
   });
 
   it('updates color on periodic update', () => {
@@ -56,7 +64,7 @@ describe('RoadmapTrait', () => {
 
   it('handles click event to show milestone details', () => {
     sendEvent(roadmapNodeHandler, node, cfg, ctx, { type: 'click' });
-    expect(ctx.emittedEvents.some(e => e.event === 'show_milestone_details')).toBe(true);
+    expect(ctx.emittedEvents.some((e) => e.event === 'show_milestone_details')).toBe(true);
   });
 
   it('maps completed status to green', () => {

@@ -19,8 +19,14 @@ import type { RuntimeModule, RuntimeExecutor } from '../../runtime/RuntimeRegist
 
 function makeExecutor(): RuntimeExecutor {
   return {
-    start: vi.fn(), stop: vi.fn(), pause: vi.fn(), resume: vi.fn(),
-    update: vi.fn(), getStatistics: vi.fn(() => ({})), getState: vi.fn(() => ({})), reset: vi.fn(),
+    start: vi.fn(),
+    stop: vi.fn(),
+    pause: vi.fn(),
+    resume: vi.fn(),
+    update: vi.fn(),
+    getStatistics: vi.fn(() => ({})),
+    getState: vi.fn(() => ({})),
+    reset: vi.fn(),
   };
 }
 
@@ -32,7 +38,13 @@ function makeRuntime(id: string, types: string[] = ['scene'], tags: string[] = [
     version: '1.0.0',
     supportedTypes: types,
     capabilities: {
-      physics: { gravity: true, collision: true, constraints: true, softBody: false, fluids: false },
+      physics: {
+        gravity: true,
+        collision: true,
+        constraints: true,
+        softBody: false,
+        fluids: false,
+      },
       rendering: { particles: true, lighting: true, shadows: true, postProcessing: false },
       interaction: { userInput: true, gestures: false, voice: false, haptics: false },
     },
@@ -48,7 +60,6 @@ beforeEach(() => {
 // ── register / unregister ─────────────────────────────────────────────────────
 
 describe('RuntimeRegistry — register / unregister', () => {
-
   it('register stores runtime and has() returns true', () => {
     const rt = makeRuntime('r1');
     RuntimeRegistry.register(rt);
@@ -90,7 +101,6 @@ describe('RuntimeRegistry — register / unregister', () => {
 // ── getAll / getIds ───────────────────────────────────────────────────────────
 
 describe('RuntimeRegistry — getAll / getIds', () => {
-
   it('getAll returns all registered runtimes', () => {
     RuntimeRegistry.register(makeRuntime('a'));
     RuntimeRegistry.register(makeRuntime('b'));
@@ -113,13 +123,12 @@ describe('RuntimeRegistry — getAll / getIds', () => {
 // ── findByType ────────────────────────────────────────────────────────────────
 
 describe('RuntimeRegistry — findByType', () => {
-
   it('returns runtimes supporting the given type', () => {
     RuntimeRegistry.register(makeRuntime('game', ['game', 'simulation']));
     RuntimeRegistry.register(makeRuntime('scene', ['scene']));
     const results = RuntimeRegistry.findByType('game');
-    expect(results.some(r => r.id === 'game')).toBe(true);
-    expect(results.some(r => r.id === 'scene')).toBe(false);
+    expect(results.some((r) => r.id === 'game')).toBe(true);
+    expect(results.some((r) => r.id === 'scene')).toBe(false);
   });
 
   it('returns empty array for unknown type', () => {
@@ -130,23 +139,22 @@ describe('RuntimeRegistry — findByType', () => {
 // ── findByCapability ──────────────────────────────────────────────────────────
 
 describe('RuntimeRegistry — findByCapability', () => {
-
   it('findByCapability("physics") returns runtimes with physics', () => {
     RuntimeRegistry.register(makeRuntime('phys'));
     const results = RuntimeRegistry.findByCapability('physics');
-    expect(results.some(r => r.id === 'phys')).toBe(true);
+    expect(results.some((r) => r.id === 'phys')).toBe(true);
   });
 
   it('findByCapability("particles") returns runtimes with rendering.particles', () => {
     RuntimeRegistry.register(makeRuntime('render'));
     const results = RuntimeRegistry.findByCapability('particles');
-    expect(results.some(r => r.id === 'render')).toBe(true);
+    expect(results.some((r) => r.id === 'render')).toBe(true);
   });
 
   it('findByCapability("userInput") returns runtimes with interaction.userInput', () => {
     RuntimeRegistry.register(makeRuntime('input'));
     const results = RuntimeRegistry.findByCapability('userInput');
-    expect(results.some(r => r.id === 'input')).toBe(true);
+    expect(results.some((r) => r.id === 'input')).toBe(true);
   });
 
   it('findByCapability("fluids") returns empty if no runtime has fluids', () => {
@@ -164,13 +172,12 @@ describe('RuntimeRegistry — findByCapability', () => {
 // ── findByTag ─────────────────────────────────────────────────────────────────
 
 describe('RuntimeRegistry — findByTag', () => {
-
   it('returns runtimes with matching tag', () => {
     RuntimeRegistry.register(makeRuntime('vr1', ['scene'], ['vr', '3d']));
     RuntimeRegistry.register(makeRuntime('web1', ['scene'], ['web']));
     const results = RuntimeRegistry.findByTag('vr');
-    expect(results.some(r => r.id === 'vr1')).toBe(true);
-    expect(results.some(r => r.id === 'web1')).toBe(false);
+    expect(results.some((r) => r.id === 'vr1')).toBe(true);
+    expect(results.some((r) => r.id === 'web1')).toBe(false);
   });
 
   it('returns empty for tag not present', () => {
@@ -182,7 +189,6 @@ describe('RuntimeRegistry — findByTag', () => {
 // ── execute ───────────────────────────────────────────────────────────────────
 
 describe('RuntimeRegistry — execute', () => {
-
   it('execute returns null when no runtime supports composition type', () => {
     const comp = { type: 'unknown', name: 'Test', objects: [] } as any;
     expect(RuntimeRegistry.execute(comp)).toBeNull();
@@ -201,7 +207,6 @@ describe('RuntimeRegistry — execute', () => {
 // ── getStatistics / clear ──────────────────────────────────────────────────────
 
 describe('RuntimeRegistry — getStatistics / clear', () => {
-
   it('getStatistics returns totalRuntimes count', () => {
     RuntimeRegistry.register(makeRuntime('a'));
     RuntimeRegistry.register(makeRuntime('b'));

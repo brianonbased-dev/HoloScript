@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useSceneGraphStore } from '@/lib/store';
+import { useSceneGraphStore } from '@/lib/stores';
 import type { SceneNode } from '@/lib/stores/sceneGraphStore';
 
 interface R3FTreeNode {
@@ -24,11 +24,7 @@ interface R3FTreeNode {
 /**
  * Recursively flatten an R3F tree node into SceneNode entries.
  */
-function flattenTree(
-  node: R3FTreeNode,
-  parentId: string | null,
-  out: SceneNode[]
-): void {
+function flattenTree(node: R3FTreeNode, parentId: string | null, out: SceneNode[]): void {
   if (!node) return;
 
   const id = node.id || `node-${out.length}`;
@@ -44,9 +40,10 @@ function flattenTree(
       traits: [],
       position: props.position || [0, 0, 0],
       rotation: props.rotation || [0, 0, 0],
-      scale: typeof props.scale === 'number'
-        ? [props.scale, props.scale, props.scale]
-        : props.scale || [1, 1, 1],
+      scale:
+        typeof props.scale === 'number'
+          ? [props.scale, props.scale, props.scale]
+          : props.scale || [1, 1, 1],
     };
     out.push(sceneNode);
   } else if (
@@ -99,8 +96,7 @@ export function useSceneGraphSync(r3fTree: R3FTreeNode | null) {
     const newIds = new Set(nodes.map((n) => n.id));
 
     const needsFullSync =
-      existingIds.size !== newIds.size ||
-      nodes.some((n) => !existingIds.has(n.id));
+      existingIds.size !== newIds.size || nodes.some((n) => !existingIds.has(n.id));
 
     if (needsFullSync) {
       // Clear and re-add all nodes

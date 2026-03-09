@@ -11,7 +11,9 @@ import { AudioEngine } from '../AudioEngine';
 describe('AudioEngine', () => {
   let eng: AudioEngine;
 
-  beforeEach(() => { eng = new AudioEngine(); });
+  beforeEach(() => {
+    eng = new AudioEngine();
+  });
 
   // -------------------------------------------------------------------------
   // play() / stop()
@@ -42,7 +44,9 @@ describe('AudioEngine', () => {
     });
 
     it('stopAll() clears all sources', () => {
-      eng.play('a'); eng.play('b'); eng.play('c');
+      eng.play('a');
+      eng.play('b');
+      eng.play('c');
       eng.stopAll();
       expect(eng.getActiveCount()).toBe(0);
     });
@@ -52,7 +56,7 @@ describe('AudioEngine', () => {
       eng.play('b');
       eng.getSource(id)!.isPlaying = false; // mark as inactive
       const active = eng.getActiveSources();
-      expect(active.every(s => s.isPlaying)).toBe(true);
+      expect(active.every((s) => s.isPlaying)).toBe(true);
     });
   });
 
@@ -112,21 +116,59 @@ describe('AudioEngine', () => {
     });
 
     it('inverse: volume decreases as distance increases', () => {
-      const near = eng.play('x', { id: 'near', position: { x: 2, y: 0, z: 0 }, distanceModel: 'inverse', refDistance: 1, maxDistance: 100, rolloffFactor: 1, spatialize: true, volume: 1 });
-      const far  = eng.play('x', { id: 'far',  position: { x: 20, y: 0, z: 0 }, distanceModel: 'inverse', refDistance: 1, maxDistance: 100, rolloffFactor: 1, spatialize: true, volume: 1 });
+      const near = eng.play('x', {
+        id: 'near',
+        position: { x: 2, y: 0, z: 0 },
+        distanceModel: 'inverse',
+        refDistance: 1,
+        maxDistance: 100,
+        rolloffFactor: 1,
+        spatialize: true,
+        volume: 1,
+      });
+      const far = eng.play('x', {
+        id: 'far',
+        position: { x: 20, y: 0, z: 0 },
+        distanceModel: 'inverse',
+        refDistance: 1,
+        maxDistance: 100,
+        rolloffFactor: 1,
+        spatialize: true,
+        volume: 1,
+      });
       eng.setListenerPosition({ x: 0, y: 0, z: 0 });
       eng.update(0);
-      expect(eng.getSource(near)!.computedVolume).toBeGreaterThan(eng.getSource(far)!.computedVolume);
+      expect(eng.getSource(near)!.computedVolume).toBeGreaterThan(
+        eng.getSource(far)!.computedVolume
+      );
     });
 
     it('linear: source at maxDistance has near-zero volume', () => {
-      const id = eng.play('x', { id: 's', position: { x: 50, y: 0, z: 0 }, distanceModel: 'linear', refDistance: 1, maxDistance: 50, rolloffFactor: 1, spatialize: true, volume: 1 });
+      const id = eng.play('x', {
+        id: 's',
+        position: { x: 50, y: 0, z: 0 },
+        distanceModel: 'linear',
+        refDistance: 1,
+        maxDistance: 50,
+        rolloffFactor: 1,
+        spatialize: true,
+        volume: 1,
+      });
       eng.update(0);
       expect(eng.getSource(id)!.computedVolume).toBeCloseTo(0, 3);
     });
 
     it('exponential: volume is finite and positive at 5× refDistance', () => {
-      const id = eng.play('x', { id: 'ex', position: { x: 5, y: 0, z: 0 }, distanceModel: 'exponential', refDistance: 1, maxDistance: 200, rolloffFactor: 1, spatialize: true, volume: 1 });
+      const id = eng.play('x', {
+        id: 'ex',
+        position: { x: 5, y: 0, z: 0 },
+        distanceModel: 'exponential',
+        refDistance: 1,
+        maxDistance: 200,
+        rolloffFactor: 1,
+        spatialize: true,
+        volume: 1,
+      });
       eng.update(0);
       const vol = eng.getSource(id)!.computedVolume;
       expect(vol).toBeGreaterThan(0);
@@ -134,7 +176,12 @@ describe('AudioEngine', () => {
     });
 
     it('non-spatialized source has computedPan=0 regardless of position', () => {
-      const id = eng.play('x', { id: 'ns', position: { x: 100, y: 0, z: 0 }, spatialize: false, volume: 0.7 });
+      const id = eng.play('x', {
+        id: 'ns',
+        position: { x: 100, y: 0, z: 0 },
+        spatialize: false,
+        volume: 0.7,
+      });
       eng.update(0);
       expect(eng.getSource(id)!.computedPan).toBe(0);
     });
@@ -157,10 +204,14 @@ describe('AudioEngine', () => {
   // Master Volume
   // -------------------------------------------------------------------------
   describe('masterVolume', () => {
-    it('default is 1.0', () => { expect(eng.getMasterVolume()).toBe(1); });
+    it('default is 1.0', () => {
+      expect(eng.getMasterVolume()).toBe(1);
+    });
     it('setMasterVolume clamps to [0,1]', () => {
-      eng.setMasterVolume(5); expect(eng.getMasterVolume()).toBe(1);
-      eng.setMasterVolume(-1); expect(eng.getMasterVolume()).toBe(0);
+      eng.setMasterVolume(5);
+      expect(eng.getMasterVolume()).toBe(1);
+      eng.setMasterVolume(-1);
+      expect(eng.getMasterVolume()).toBe(0);
     });
     it('scales computed volume', () => {
       eng.setMasterVolume(0.5);
@@ -174,7 +225,9 @@ describe('AudioEngine', () => {
   // Mute
   // -------------------------------------------------------------------------
   describe('mute', () => {
-    it('default is not muted', () => { expect(eng.isMuted()).toBe(false); });
+    it('default is not muted', () => {
+      expect(eng.isMuted()).toBe(false);
+    });
     it('muted source has computedVolume=0', () => {
       eng.setMuted(true);
       const id = eng.play('x', { spatialize: false, volume: 1 });
@@ -199,14 +252,30 @@ describe('AudioEngine', () => {
       // Listener facing -z, source at +x → should be to the right
       eng.setListenerPosition({ x: 0, y: 0, z: 0 });
       eng.setListenerOrientation({ x: 0, y: 0, z: -1 }, { x: 0, y: 1, z: 0 });
-      const id = eng.play('x', { position: { x: 5, y: 0, z: 0 }, refDistance: 1, maxDistance: 100, rolloffFactor: 1, distanceModel: 'inverse', spatialize: true, volume: 1 });
+      const id = eng.play('x', {
+        position: { x: 5, y: 0, z: 0 },
+        refDistance: 1,
+        maxDistance: 100,
+        rolloffFactor: 1,
+        distanceModel: 'inverse',
+        spatialize: true,
+        volume: 1,
+      });
       eng.update(0);
       expect(eng.getSource(id)!.computedPan).toBeGreaterThan(0);
     });
 
     it('source directly behind listener (same X): pan ≈ 0', () => {
       eng.setListenerPosition({ x: 0, y: 0, z: 0 });
-      const id = eng.play('x', { position: { x: 0, y: 0, z: -5 }, refDistance: 1, maxDistance: 100, rolloffFactor: 1, distanceModel: 'inverse', spatialize: true, volume: 1 });
+      const id = eng.play('x', {
+        position: { x: 0, y: 0, z: -5 },
+        refDistance: 1,
+        maxDistance: 100,
+        rolloffFactor: 1,
+        distanceModel: 'inverse',
+        spatialize: true,
+        volume: 1,
+      });
       eng.update(0);
       expect(Math.abs(eng.getSource(id)!.computedPan)).toBeLessThan(0.01);
     });
@@ -217,7 +286,8 @@ describe('AudioEngine', () => {
   // -------------------------------------------------------------------------
   describe('getActiveCount()', () => {
     it('counts all stored sources', () => {
-      eng.play('a'); eng.play('b');
+      eng.play('a');
+      eng.play('b');
       expect(eng.getActiveCount()).toBe(2);
     });
     it('decreases after stop', () => {

@@ -24,32 +24,32 @@
 
 ### Core AI Traits
 
-| Trait | Purpose | File Location |
-|-------|---------|---------------|
-| `@llm_agent` | LLM-powered agent with conversation management | `packages/core/src/traits/LLMAgentTrait.ts` |
-| `@multi_agent` | Multi-agent coordination and consensus | `packages/core/src/traits/MultiAgentTrait.ts` |
-| `@ai_behavior` | AI-driven behavior trees and decision-making | `packages/core/src/traits/AIBehaviorTrait.ts` |
-| `@spatial_awareness` | Spatial perception and context for agents | `packages/core/src/agents/SpatialContext.ts` |
+| Trait                | Purpose                                        | File Location                                 |
+| -------------------- | ---------------------------------------------- | --------------------------------------------- |
+| `@llm_agent`         | LLM-powered agent with conversation management | `packages/core/src/traits/LLMAgentTrait.ts`   |
+| `@multi_agent`       | Multi-agent coordination and consensus         | `packages/core/src/traits/MultiAgentTrait.ts` |
+| `@ai_behavior`       | AI-driven behavior trees and decision-making   | `packages/core/src/traits/AIBehaviorTrait.ts` |
+| `@spatial_awareness` | Spatial perception and context for agents      | `packages/core/src/agents/SpatialContext.ts`  |
 
 ### Key APIs for Observability
 
-| API | Purpose | Import Path |
-|-----|---------|-------------|
-| `AgentRegistry` | Agent discovery & lifecycle | `@holoscript/core/agents` |
-| `ChoreographyEngine` | Multi-step workflow execution | `@holoscript/core/choreography` |
-| `SpatialContextProvider` | Spatial awareness tracking | `@holoscript/core/spatial` |
-| `EventEmitter` | Event-driven observability | Built-in to trait system |
+| API                      | Purpose                       | Import Path                     |
+| ------------------------ | ----------------------------- | ------------------------------- |
+| `AgentRegistry`          | Agent discovery & lifecycle   | `@holoscript/core/agents`       |
+| `ChoreographyEngine`     | Multi-step workflow execution | `@holoscript/core/choreography` |
+| `SpatialContextProvider` | Spatial awareness tracking    | `@holoscript/core/spatial`      |
+| `EventEmitter`           | Event-driven observability    | Built-in to trait system        |
 
 ### Event Types for Tracking
 
-| Event | Emitted When | Use For |
-|-------|--------------|---------|
-| `llm_agent_ready` | Agent initialized | Lifecycle tracking |
-| `llm_request` | LLM call initiated | API usage metrics |
-| `llm_response` | LLM response received | Response quality tracking |
-| `llm_tool_call` | Tool invoked by agent | Tool usage analytics |
-| `llm_escalation` | Escalation condition met | Error/uncertainty tracking |
-| `phase_complete` | uAA2++ phase finished | Protocol execution tracking |
+| Event             | Emitted When             | Use For                     |
+| ----------------- | ------------------------ | --------------------------- |
+| `llm_agent_ready` | Agent initialized        | Lifecycle tracking          |
+| `llm_request`     | LLM call initiated       | API usage metrics           |
+| `llm_response`    | LLM response received    | Response quality tracking   |
+| `llm_tool_call`   | Tool invoked by agent    | Tool usage analytics        |
+| `llm_escalation`  | Escalation condition met | Error/uncertainty tracking  |
+| `phase_complete`  | uAA2++ phase finished    | Protocol execution tracking |
 
 ---
 
@@ -80,15 +80,15 @@ object "Brittney" {
 ```typescript
 interface LLMAgentConfig {
   // Model Configuration
-  model: string;                    // LLM model name (e.g., "gpt-4-turbo", "claude-3-opus")
-  system_prompt?: string;           // System message for agent personality
+  model: string; // LLM model name (e.g., "gpt-4-turbo", "claude-3-opus")
+  system_prompt?: string; // System message for agent personality
 
   // Autonomy & Safety
-  bounded_autonomy?: boolean;       // Limit actions per turn (default: false)
-  max_actions_per_turn?: number;    // Max tool calls per turn (default: 5)
+  bounded_autonomy?: boolean; // Limit actions per turn (default: false)
+  max_actions_per_turn?: number; // Max tool calls per turn (default: 5)
 
   // Rate Limiting
-  rate_limit_ms?: number;           // Minimum ms between requests (default: 1000)
+  rate_limit_ms?: number; // Minimum ms between requests (default: 1000)
 
   // Escalation Conditions
   escalation_conditions?: Array<{
@@ -98,8 +98,8 @@ interface LLMAgentConfig {
   }>;
 
   // Context Management
-  max_history_tokens?: number;      // Max conversation tokens (default: 4000)
-  context_window?: number;          // Model context window (default: 8192)
+  max_history_tokens?: number; // Max conversation tokens (default: 4000)
+  context_window?: number; // Model context window (default: 8192)
 }
 ```
 
@@ -162,14 +162,14 @@ The `@llm_agent` trait maintains internal state on the node:
 
 ```typescript
 interface LLMAgentState {
-  conversationHistory: Message[];   // Full conversation thread
-  lastResponse: string;              // Most recent assistant message
-  isProcessing: boolean;             // Currently waiting for LLM
-  actionsTaken: number;              // Actions in current session
-  turnActionCount: number;           // Actions in current turn
-  isEscalated: boolean;              // Escalation flag
-  pendingToolCalls: ToolCall[];      // Queued tool invocations
-  lastRequestTime: number;           // For rate limiting
+  conversationHistory: Message[]; // Full conversation thread
+  lastResponse: string; // Most recent assistant message
+  isProcessing: boolean; // Currently waiting for LLM
+  actionsTaken: number; // Actions in current session
+  turnActionCount: number; // Actions in current turn
+  isEscalated: boolean; // Escalation flag
+  pendingToolCalls: ToolCall[]; // Queued tool invocations
+  lastRequestTime: number; // For rate limiting
 }
 ```
 
@@ -205,26 +205,26 @@ HoloScript implements the **uAA2++ autonomous agent protocol** with 7 phases.
 
 ```typescript
 type AgentPhase =
-  | 'INTAKE'     // Phase 0: Gather data and context
-  | 'REFLECT'    // Phase 1: Analyze and understand
-  | 'EXECUTE'    // Phase 2: Take action
-  | 'COMPRESS'   // Phase 3: Store knowledge efficiently
-  | 'REINTAKE'   // Phase 4: Re-evaluate with compressed knowledge
-  | 'GROW'       // Phase 5: Learn and improve
-  | 'EVOLVE';    // Phase 6: Adapt and optimize
+  | 'INTAKE' // Phase 0: Gather data and context
+  | 'REFLECT' // Phase 1: Analyze and understand
+  | 'EXECUTE' // Phase 2: Take action
+  | 'COMPRESS' // Phase 3: Store knowledge efficiently
+  | 'REINTAKE' // Phase 4: Re-evaluate with compressed knowledge
+  | 'GROW' // Phase 5: Learn and improve
+  | 'EVOLVE'; // Phase 6: Adapt and optimize
 ```
 
 ### Phase Execution Order
 
 ```typescript
 const PHASE_ORDER = [
-  'INTAKE',    // 1 second default
-  'REFLECT',   // 2 seconds
-  'EXECUTE',   // 5 seconds
-  'COMPRESS',  // 1 second
-  'REINTAKE',  // 1 second
-  'GROW',      // 2 seconds
-  'EVOLVE'     // 1 second
+  'INTAKE', // 1 second default
+  'REFLECT', // 2 seconds
+  'EXECUTE', // 5 seconds
+  'COMPRESS', // 1 second
+  'REINTAKE', // 1 second
+  'GROW', // 2 seconds
+  'EVOLVE', // 1 second
 ];
 ```
 
@@ -253,7 +253,7 @@ interface CompressResult {
   success: boolean;
   phase: 'COMPRESS';
   duration_ms: number;
-  compression_ratio: number;      // e.g., 0.93 = 93% compression
+  compression_ratio: number; // e.g., 0.93 = 93% compression
   tokens_saved: number;
   data?: {
     compressed_knowledge?: string;
@@ -289,11 +289,11 @@ const orchestrator = new AgentOrchestrator();
 const results = await orchestrator.executeProtocol({
   agentId: 'brittney_001',
   task: 'analyze_scene',
-  context: { scene: currentScene }
+  context: { scene: currentScene },
 });
 
 // Results contain all phase data
-results.phases.forEach(phase => {
+results.phases.forEach((phase) => {
   console.log(`${phase.phase}: ${phase.duration_ms}ms`);
   if (phase.phase === 'COMPRESS') {
     console.log(`Compression: ${phase.compression_ratio * 100}%`);
@@ -328,7 +328,7 @@ trait.onEvent = (node, config, context, event) => {
     metrics.trackLLMRequest({
       model: event.model,
       timestamp: Date.now(),
-      messageCount: event.messages.length
+      messageCount: event.messages.length,
     });
   }
 
@@ -337,7 +337,7 @@ trait.onEvent = (node, config, context, event) => {
     metrics.trackLLMResponse({
       tokensUsed: event.tokens_used,
       latency: Date.now() - event.request_timestamp,
-      hasToolCalls: !!event.tool_calls
+      hasToolCalls: !!event.tool_calls,
     });
   }
 };
@@ -347,25 +347,25 @@ trait.onEvent = (node, config, context, event) => {
 
 ```typescript
 // Lifecycle Events
-'agent_ready'              // Agent initialized
-'agent_shutdown'           // Agent shutting down
-'agent_error'              // Agent encountered error
+'agent_ready'; // Agent initialized
+'agent_shutdown'; // Agent shutting down
+'agent_error'; // Agent encountered error
 
 // Execution Events
-'phase_start'              // uAA2++ phase starting
-'phase_complete'           // uAA2++ phase finished
-'phase_error'              // Phase encountered error
+'phase_start'; // uAA2++ phase starting
+'phase_complete'; // uAA2++ phase finished
+'phase_error'; // Phase encountered error
 
 // LLM Events (from @llm_agent)
-'llm_request'              // API call initiated
-'llm_response'             // Response received
-'llm_tool_call'            // Tool invoked
-'llm_escalation'           // Escalation triggered
+'llm_request'; // API call initiated
+'llm_response'; // Response received
+'llm_tool_call'; // Tool invoked
+'llm_escalation'; // Escalation triggered
 
 // Spatial Events
-'spatial_context_updated'  // Spatial state changed
-'proximity_detected'       // Object/agent nearby
-'location_changed'         // Agent moved
+'spatial_context_updated'; // Spatial state changed
+'proximity_detected'; // Object/agent nearby
+'location_changed'; // Agent moved
 ```
 
 ---
@@ -382,9 +382,9 @@ Central registry for agent discovery and lifecycle management.
 import { AgentRegistry } from '@holoscript/core/agents';
 
 const registry = new AgentRegistry({
-  heartbeatInterval: 30000,  // 30s heartbeat
-  ttl: 60000,                // 60s before offline
-  discoveryMode: 'broadcast'
+  heartbeatInterval: 30000, // 30s heartbeat
+  ttl: 60000, // 60s before offline
+  discoveryMode: 'broadcast',
 });
 
 // Register agent
@@ -394,15 +394,15 @@ await registry.register({
   version: '2.3.0',
   capabilities: [
     { type: 'analyze', domain: 'spatial', latency: 'fast' },
-    { type: 'generate', domain: 'code', latency: 'medium' }
+    { type: 'generate', domain: 'code', latency: 'medium' },
   ],
-  trustLevel: 'verified'
+  trustLevel: 'verified',
 });
 
 // Discover agents by capability
 const spatialAgents = await registry.discover({
   type: 'analyze',
-  domain: 'spatial'
+  domain: 'spatial',
 });
 ```
 
@@ -427,13 +427,13 @@ const choreography = {
       type: 'action',
       agentId: 'brittney_001',
       action: 'analyzeScene',
-      params: { scene: currentScene }
+      params: { scene: currentScene },
     },
     {
       id: 'approval',
       type: 'hitl',
       agentId: 'human',
-      onApproval: async () => ({ approved: true })
+      onApproval: async () => ({ approved: true }),
     },
     {
       id: 'optimize',
@@ -441,9 +441,9 @@ const choreography = {
       agentId: 'brittney_001',
       action: 'optimizeScene',
       params: { scene: currentScene },
-      dependsOn: ['approval']
-    }
-  ]
+      dependsOn: ['approval'],
+    },
+  ],
 };
 
 // Execute with tracking
@@ -462,17 +462,14 @@ import { NegotiationProtocol } from '@holoscript/core/negotiation';
 
 const protocol = new NegotiationProtocol({
   votingMechanism: 'majority',
-  defaultTimeout: 30000
+  defaultTimeout: 30000,
 });
 
 // Create negotiation session
-const session = protocol.createSession(
-  'scene_layout',
-  [
-    { id: 'brittney', weight: 1.0 },
-    { id: 'architect', weight: 1.5 }
-  ]
-);
+const session = protocol.createSession('scene_layout', [
+  { id: 'brittney', weight: 1.0 },
+  { id: 'architect', weight: 1.5 },
+]);
 
 // Submit proposals
 protocol.propose(session.id, 'brittney', { layout: 'grid' });
@@ -502,7 +499,7 @@ import { Experiment } from 'comet-ml';
 const experiment = new Experiment({
   apiKey: process.env.COMET_API_KEY,
   projectName: 'holoscript-agents',
-  workspaceName: 'my-workspace'
+  workspaceName: 'my-workspace',
 });
 
 // Track agent initialization
@@ -510,7 +507,7 @@ experiment.logParameters({
   agent_id: 'brittney_001',
   model: 'gpt-4-turbo',
   max_actions_per_turn: 3,
-  bounded_autonomy: true
+  bounded_autonomy: true,
 });
 
 // Track LLM requests
@@ -563,7 +560,7 @@ trait.onEvent = (node, config, context, event) => {
     const perplexity = calculatePerplexity({
       text: event.content,
       model: config.model,
-      tokenizer: getTokenizer(config.model)
+      tokenizer: getTokenizer(config.model),
     });
 
     // Log to CometML or your metrics system
@@ -595,7 +592,7 @@ class AgentObservability {
       agent_id: agentId,
       event,
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -647,8 +644,8 @@ interface AgentMetrics {
 
   // Quality
   avg_perplexity: number;
-  escalation_rate: number;        // escalations / requests
-  success_rate: number;            // successful completions / total
+  escalation_rate: number; // escalations / requests
+  success_rate: number; // successful completions / total
 
   // uAA2++ Protocol
   cycles_completed: number;
@@ -693,7 +690,7 @@ class AgentEvaluator {
 
         // Safety
         escalated: response.escalated,
-        bounded_autonomy_respected: response.actions <= testCase.maxActions
+        bounded_autonomy_respected: response.actions <= testCase.maxActions,
       };
 
       results.push(evaluation);
@@ -748,7 +745,7 @@ const agents = ['brittney', 'architect', 'optimizer'];
 for (const agent of agents) {
   await registry.register({
     id: agent,
-    capabilities: getCapabilities(agent)
+    capabilities: getCapabilities(agent),
   });
 }
 
@@ -757,8 +754,8 @@ const workflow = {
   steps: [
     { id: '1', agentId: 'brittney', action: 'analyzeScene' },
     { id: '2', agentId: 'architect', action: 'designLayout', dependsOn: ['1'] },
-    { id: '3', agentId: 'optimizer', action: 'optimize', dependsOn: ['2'] }
-  ]
+    { id: '3', agentId: 'optimizer', action: 'optimize', dependsOn: ['2'] },
+  ],
 };
 
 const result = await engine.execute(workflow);
@@ -786,7 +783,7 @@ const results = await orchestrator.executeProtocol({
     if (phase.phase === 'COMPRESS') {
       experiment.logMetric('compression_ratio', phase.compression_ratio);
     }
-  }
+  },
 });
 
 // Summary metrics
@@ -799,16 +796,19 @@ experiment.logMetric('phases_succeeded', results.successCount);
 ## Additional Resources
 
 ### Documentation
+
 - [Agent API Reference](./AGENT_API_REFERENCE.md) - Full API docs
 - [Traits Reference](./TRAITS_REFERENCE.md) - All 1,800+ traits
 - [MCP Server Guide](./MCP_SERVER_GUIDE.md) - AI agent integration
 
 ### Examples
+
 - `examples/agents/llm-agent-demo/` - Basic LLM agent
 - `examples/agents/multi-agent-collab/` - Multi-agent coordination
 - `examples/agents/tracked-agents/` - CometML integration
 
 ### Source Code
+
 - `packages/core/src/traits/LLMAgentTrait.ts` - LLM agent implementation
 - `packages/core/src/agents/AgentTypes.ts` - uAA2++ protocol types
 - `packages/core/src/agents/AgentRegistry.ts` - Agent discovery

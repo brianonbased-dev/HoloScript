@@ -90,13 +90,7 @@ function MeshBackground() {
 
 // ── Mode Card ────────────────────────────────────────────────────────────────
 
-function ModeCard({
-  mode,
-  index,
-}: {
-  mode: (typeof MODES)[number];
-  index: number;
-}) {
+function ModeCard({ mode, index }: { mode: (typeof MODES)[number]; index: number }) {
   return (
     <Link
       href={mode.href}
@@ -190,9 +184,7 @@ export default function HomePage() {
           <span className="hero-word hero-word-2">Studio</span>
         </h1>
 
-        <p className="hero-tagline">
-          Create anything in 3D — no code required
-        </p>
+        <p className="hero-tagline">Create anything in 3D — no code required</p>
 
         {/* Stats strip */}
         <div className="hero-stats">
@@ -235,7 +227,9 @@ export default function HomePage() {
           Workspace
         </Link>
         <span className="footer-sep">·</span>
-        <span className="footer-hint">Press <kbd>?</kbd> for help</span>
+        <span className="footer-hint">
+          Press <kbd>?</kbd> for help
+        </span>
       </footer>
     </main>
   );

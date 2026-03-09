@@ -5,7 +5,7 @@
  * manipulate the scene graph store in real-time.
  */
 
-import type { TraitConfig, SceneNode } from '@/lib/store';
+import type { TraitConfig, SceneNode } from '@/lib/stores';
 
 // ─── Tool Schemas (OpenAI function-calling format) ────────────────────────────
 
@@ -14,13 +14,20 @@ export const BRITTNEY_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'add_trait',
-      description: 'Add a trait to a specific scene object. Use the trait name from the HoloScript catalog (no @ prefix). Provide sensible default property values.',
+      description:
+        'Add a trait to a specific scene object. Use the trait name from the HoloScript catalog (no @ prefix). Provide sensible default property values.',
       parameters: {
         type: 'object',
         properties: {
           object_name: { type: 'string', description: 'Name of the scene object to modify' },
-          trait_name: { type: 'string', description: 'Trait name without @ prefix, e.g. "physics", "ai_npc", "glow"' },
-          properties: { type: 'object', description: 'Trait configuration properties as key/value pairs' },
+          trait_name: {
+            type: 'string',
+            description: 'Trait name without @ prefix, e.g. "physics", "ai_npc", "glow"',
+          },
+          properties: {
+            type: 'object',
+            description: 'Trait configuration properties as key/value pairs',
+          },
         },
         required: ['object_name', 'trait_name'],
       },
@@ -85,7 +92,8 @@ export const BRITTNEY_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'compose_traits',
-      description: 'Compose multiple traits together on an object using HoloScript trait composition.',
+      description:
+        'Compose multiple traits together on an object using HoloScript trait composition.',
       parameters: {
         type: 'object',
         properties: {
@@ -138,9 +146,7 @@ function codeAddTrait(
   const propLines = Object.entries(properties)
     .map(([k, v]) => `    ${k}: ${JSON.stringify(v)}`)
     .join('\n');
-  const traitBlock = propLines
-    ? `  @${traitName} {\n${propLines}\n  }`
-    : `  @${traitName}`;
+  const traitBlock = propLines ? `  @${traitName} {\n${propLines}\n  }` : `  @${traitName}`;
 
   // Match: object "Name" { ... }  or object "Name" {  (open brace on same or next line)
   const objRegex = new RegExp(
@@ -182,19 +188,19 @@ function codeSetTraitProperty(
     'g'
   );
   return code.replace(objRegex, (match, open, body, close) => {
-    const traitBlockRegex = new RegExp(
-      `(@${escapeRegex(traitName)}\\s*\\{)([^}]*)(\\})`,
-      's'
-    );
+    const traitBlockRegex = new RegExp(`(@${escapeRegex(traitName)}\\s*\\{)([^}]*)(\\})`, 's');
     if (traitBlockRegex.test(body)) {
-      const patchedBody = body.replace(traitBlockRegex, (_m: string, tOpen: string, tBody: string, tClose: string) => {
-        const keyRegex = new RegExp(`^(\\s*${escapeRegex(key)}\\s*:).*$`, 'm');
-        const newVal = `    ${key}: ${JSON.stringify(value)}`;
-        const patched = keyRegex.test(tBody)
-          ? tBody.replace(keyRegex, newVal)
-          : `${tBody}\n${newVal}`;
-        return `${tOpen}${patched}${tClose}`;
-      });
+      const patchedBody = body.replace(
+        traitBlockRegex,
+        (_m: string, tOpen: string, tBody: string, tClose: string) => {
+          const keyRegex = new RegExp(`^(\\s*${escapeRegex(key)}\\s*:).*$`, 'm');
+          const newVal = `    ${key}: ${JSON.stringify(value)}`;
+          const patched = keyRegex.test(tBody)
+            ? tBody.replace(keyRegex, newVal)
+            : `${tBody}\n${newVal}`;
+          return `${tOpen}${patched}${tClose}`;
+        }
+      );
       return `${open}${patchedBody}${close}`;
     }
     return match;
@@ -208,9 +214,7 @@ function codeCreateObject(
   position: [number, number, number]
 ): string {
   const [x, y, z] = position;
-  const posLine = (x !== 0 || y !== 0 || z !== 0)
-    ? `\n  position: [${x}, ${y}, ${z}]`
-    : '';
+  const posLine = x !== 0 || y !== 0 || z !== 0 ? `\n  position: [${x}, ${y}, ${z}]` : '';
   return code + `\n${type} "${name}" {${posLine}\n}\n`;
 }
 
@@ -230,7 +234,12 @@ export function executeTool(
         const traitName = args.trait_name as string;
         const properties = (args.properties as Record<string, unknown>) ?? {};
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
-        if (!node) return { tool: toolName, success: false, message: `Object "${objName}" not found in scene` };
+        if (!node)
+          return {
+            tool: toolName,
+            success: false,
+            message: `Object "${objName}" not found in scene`,
+          };
         store.addTrait(node.id, { name: traitName, properties });
         // Patch source code
         store.setCode(codeAddTrait(store.getCode(), node.name, traitName, properties));
@@ -241,10 +250,15 @@ export function executeTool(
         const objName = args.object_name as string;
         const traitName = args.trait_name as string;
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
-        if (!node) return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+        if (!node)
+          return { tool: toolName, success: false, message: `Object "${objName}" not found` };
         store.removeTrait(node.id, traitName);
         store.setCode(codeRemoveTrait(store.getCode(), node.name, traitName));
-        return { tool: toolName, success: true, message: `Removed @${traitName} from "${node.name}"` };
+        return {
+          tool: toolName,
+          success: true,
+          message: `Removed @${traitName} from "${node.name}"`,
+        };
       }
 
       case 'set_trait_property': {
@@ -253,10 +267,15 @@ export function executeTool(
         const key = args.property_key as string;
         const value = args.property_value;
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
-        if (!node) return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+        if (!node)
+          return { tool: toolName, success: false, message: `Object "${objName}" not found` };
         store.setTraitProperty(node.id, traitName, key, value);
         store.setCode(codeSetTraitProperty(store.getCode(), node.name, traitName, key, value));
-        return { tool: toolName, success: true, message: `Set ${traitName}.${key} = ${JSON.stringify(value)} on "${node.name}"` };
+        return {
+          tool: toolName,
+          success: true,
+          message: `Set ${traitName}.${key} = ${JSON.stringify(value)} on "${node.name}"`,
+        };
       }
 
       case 'create_object': {
@@ -264,7 +283,16 @@ export function executeTool(
         const name = args.name as string;
         const type = (args.type as SceneNode['type']) ?? 'mesh';
         const pos = (args.position as [number, number, number]) ?? [0, 0, 0];
-        store.addNode({ id, name, type, parentId: null, traits: [], position: pos, rotation: [0, 0, 0], scale: [1, 1, 1] });
+        store.addNode({
+          id,
+          name,
+          type,
+          parentId: null,
+          traits: [],
+          position: pos,
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1],
+        });
         store.setCode(codeCreateObject(store.getCode(), name, type, pos));
         return { tool: toolName, success: true, message: `Created "${name}" in the scene` };
       }
@@ -273,7 +301,8 @@ export function executeTool(
         const objName = args.object_name as string;
         const traitNames = args.trait_names as string[];
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
-        if (!node) return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+        if (!node)
+          return { tool: toolName, success: false, message: `Object "${objName}" not found` };
         let patchedCode = store.getCode();
         for (const name of traitNames) {
           store.addTrait(node.id, { name, properties: {} });

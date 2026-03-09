@@ -1,4 +1,5 @@
 # Railway Maintenance Guide
+
 ## Managing Existing HoloScript Deployments
 
 **Status**: Production deployments active via Railway CLI
@@ -9,6 +10,7 @@
 ## 🎯 Quick Reference
 
 Your HoloScript services are **already deployed on Railway**. This guide covers:
+
 - ✅ Updating existing deployments
 - ✅ Managing environment variables
 - ✅ Viewing logs and metrics
@@ -40,6 +42,7 @@ find . -name "railway.toml" -type f
 ```
 
 **Your Services**:
+
 - `packages/studio/railway.toml` → HoloScript Studio
 - `packages/marketplace-web/railway.toml` → Marketplace Web
 - `packages/marketplace-api/railway.toml` → Marketplace API
@@ -170,6 +173,7 @@ railway variables --service studio delete DEPRECATED_VAR
 ### Important Variables by Service
 
 **Studio**:
+
 ```bash
 railway variables --service studio set ANTHROPIC_API_KEY=sk-ant-...
 railway variables --service studio set OPENAI_API_KEY=sk-...
@@ -177,6 +181,7 @@ railway variables --service studio set ENABLE_WEBGPU=true
 ```
 
 **Marketplace API**:
+
 ```bash
 # Database URL is auto-managed by Railway
 railway variables --service marketplace-api | grep DATABASE_URL
@@ -186,6 +191,7 @@ railway variables --service marketplace-api set ALLOWED_ORIGINS=https://marketpl
 ```
 
 **LLM Service**:
+
 ```bash
 railway variables --service llm-service set ANTHROPIC_API_KEY=sk-ant-...
 railway variables --service llm-service set MAX_TOKENS=4096
@@ -520,17 +526,20 @@ railway variables --service marketplace-api set DATABASE_POOL_SIZE=20
 ## 🔄 Regular Maintenance Tasks
 
 ### Daily
+
 - [ ] Monitor service health (`railway status`)
 - [ ] Check error logs (`railway logs --service <name>`)
 - [ ] Review resource usage (Dashboard → Metrics)
 
 ### Weekly
+
 - [ ] Review deployment history
 - [ ] Check for failed builds
 - [ ] Update dependencies (`pnpm update`)
 - [ ] Run security audit (`pnpm audit`)
 
 ### Monthly
+
 - [ ] Database backup
 - [ ] Review and optimize queries
 - [ ] Update Railway plan if needed

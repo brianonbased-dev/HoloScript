@@ -9,8 +9,19 @@
 import { useState, useCallback, useRef } from 'react';
 import { ECSWorld, ComponentType, type TransformComponent } from '@holoscript/core';
 
-export interface NetworkedEntity { id: number; owner: string; transform: TransformComponent; synced: boolean; }
-export interface ClientInfo { id: string; name: string; ping: number; entities: number; color: string; }
+export interface NetworkedEntity {
+  id: number;
+  owner: string;
+  transform: TransformComponent;
+  synced: boolean;
+}
+export interface ClientInfo {
+  id: string;
+  name: string;
+  ping: number;
+  entities: number;
+  color: string;
+}
 
 const CLIENT_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4'];
 
@@ -36,48 +47,84 @@ export function useMultiplayer(): UseMultiplayerReturn {
   const sync = useCallback(() => {
     const w = worldRef.current;
     const ids = w.query(ComponentType.Transform);
-    const ents: NetworkedEntity[] = ids.map(id => ({
-      id, owner: ownerMap.current.get(id) || 'server',
-      transform: w.getTransform(id)!, synced: true,
+    const ents: NetworkedEntity[] = ids.map((id) => ({
+      id,
+      owner: ownerMap.current.get(id) || 'server',
+      transform: w.getTransform(id)!,
+      synced: true,
     }));
     setEntities(ents);
 
     // Update client entity counts
-    setClients(prev => prev.map(c => ({
-      ...c, entities: ents.filter(e => e.owner === c.id).length,
-      ping: Math.round(20 + Math.random() * 60),
-    })));
+    setClients((prev) =>
+      prev.map((c) => ({
+        ...c,
+        entities: ents.filter((e) => e.owner === c.id).length,
+        ping: Math.round(20 + Math.random() * 60),
+      }))
+    );
   }, []);
 
-  const addClient = useCallback((name?: string) => {
-    const id = `client-${Date.now()}`;
-    const c: ClientInfo = {
-      id, name: name || `Player ${clients.length + 1}`,
-      ping: Math.round(20 + Math.random() * 60),
-      entities: 0, color: CLIENT_COLORS[clients.length % CLIENT_COLORS.length],
-    };
-    setClients(prev => [...prev, c]);
-  }, [clients.length]);
+  const addClient = useCallback(
+    (name?: string) => {
+      const id = `client-${Date.now()}`;
+      const c: ClientInfo = {
+        id,
+        name: name || `Player ${clients.length + 1}`,
+        ping: Math.round(20 + Math.random() * 60),
+        entities: 0,
+        color: CLIENT_COLORS[clients.length % CLIENT_COLORS.length],
+      };
+      setClients((prev) => [...prev, c]);
+    },
+    [clients.length]
+  );
 
-  const removeClient = useCallback((id: string) => {
-    // Remove all entities owned by this client
-    const w = worldRef.current;
-    for (const [eid, owner] of ownerMap.current) {
-      if (owner === id) { w.destroyEntity(eid); ownerMap.current.delete(eid); }
-    }
-    setClients(prev => prev.filter(c => c.id !== id));
-    sync();
-  }, [sync]);
+  const removeClient = useCallback(
+    (id: string) => {
+      // Remove all entities owned by this client
+      const w = worldRef.current;
+      for (const [eid, owner] of ownerMap.current) {
+        if (owner === id) {
+          w.destroyEntity(eid);
+          ownerMap.current.delete(eid);
+        }
+      }
+      setClients((prev) => prev.filter((c) => c.id !== id));
+      sync();
+    },
+    [sync]
+  );
 
-  const spawnNetworked = useCallback((owner: string) => {
-    const w = worldRef.current;
-    const id = w.createEntity();
-    w.addTransform(id, { x: Math.random() * 10 - 5, y: 0, z: Math.random() * 10 - 5, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1, sz: 1 });
-    w.addVelocity(id, { vx: Math.random() - 0.5, vy: 0, vz: Math.random() - 0.5, angularX: 0, angularY: 0, angularZ: 0 });
-    ownerMap.current.set(id, owner);
-    sync();
-    return id;
-  }, [sync]);
+  const spawnNetworked = useCallback(
+    (owner: string) => {
+      const w = worldRef.current;
+      const id = w.createEntity();
+      w.addTransform(id, {
+        x: Math.random() * 10 - 5,
+        y: 0,
+        z: Math.random() * 10 - 5,
+        rx: 0,
+        ry: 0,
+        rz: 0,
+        sx: 1,
+        sy: 1,
+        sz: 1,
+      });
+      w.addVelocity(id, {
+        vx: Math.random() - 0.5,
+        vy: 0,
+        vz: Math.random() - 0.5,
+        angularX: 0,
+        angularY: 0,
+        angularZ: 0,
+      });
+      ownerMap.current.set(id, owner);
+      sync();
+      return id;
+    },
+    [sync]
+  );
 
   const simulateTick = useCallback(() => {
     tickCountRef.current++;
@@ -87,7 +134,10 @@ export function useMultiplayer(): UseMultiplayerReturn {
     for (const id of w.query(ComponentType.Transform | ComponentType.Velocity)) {
       const t = w.getTransform(id);
       const v = w.getVelocity(id);
-      if (t && v) { t.x += v.vx * 0.05; t.z += v.vz * 0.05; }
+      if (t && v) {
+        t.x += v.vx * 0.05;
+        t.z += v.vz * 0.05;
+      }
     }
     sync();
   }, [sync]);
@@ -100,7 +150,17 @@ export function useMultiplayer(): UseMultiplayerReturn {
     setEntities([]);
   }, []);
 
-  const bandwidth = `${(entities.length * 24 * 20 / 1024).toFixed(1)} KB/s`; // ~24 bytes per entity at 20Hz
+  const bandwidth = `${((entities.length * 24 * 20) / 1024).toFixed(1)} KB/s`; // ~24 bytes per entity at 20Hz
 
-  return { clients, entities, tickRate: 20, bandwidth, addClient, removeClient, spawnNetworked, simulateTick, reset };
+  return {
+    clients,
+    entities,
+    tickRate: 20,
+    bandwidth,
+    addClient,
+    removeClient,
+    spawnNetworked,
+    simulateTick,
+    reset,
+  };
 }

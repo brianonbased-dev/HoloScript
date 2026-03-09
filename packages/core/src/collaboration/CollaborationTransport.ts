@@ -95,10 +95,10 @@ export function encodeSyncMessage(msg: SyncMessage): Uint8Array {
     'doc-update': 0x01,
     'doc-state-vector': 0x02,
     'doc-state-request': 0x03,
-    'awareness': 0x04,
+    awareness: 0x04,
     'peer-joined': 0x05,
     'peer-left': 0x06,
-    'heartbeat': 0x07,
+    heartbeat: 0x07,
     'heartbeat-ack': 0x08,
   };
 
@@ -113,10 +113,14 @@ export function encodeSyncMessage(msg: SyncMessage): Uint8Array {
   // Calculate total size
   const totalSize =
     1 + // type
-    2 + sessionIdBytes.length +
-    2 + peerIdBytes.length +
-    2 + filePathBytes.length +
-    4 + metadataBytes.length +
+    2 +
+    sessionIdBytes.length +
+    2 +
+    peerIdBytes.length +
+    2 +
+    filePathBytes.length +
+    4 +
+    metadataBytes.length +
     8 + // timestamp
     dataBytes.length;
 
@@ -199,17 +203,17 @@ export function decodeSyncMessage(buffer: Uint8Array): SyncMessage {
   // File Path
   const filePathLen = view.getUint16(offset, true);
   offset += 2;
-  const filePath = filePathLen > 0
-    ? decoder.decode(buffer.slice(offset, offset + filePathLen))
-    : undefined;
+  const filePath =
+    filePathLen > 0 ? decoder.decode(buffer.slice(offset, offset + filePathLen)) : undefined;
   offset += filePathLen;
 
   // Metadata
   const metadataLen = view.getUint32(offset, true);
   offset += 4;
-  const metadata = metadataLen > 0
-    ? JSON.parse(decoder.decode(buffer.slice(offset, offset + metadataLen)))
-    : undefined;
+  const metadata =
+    metadataLen > 0
+      ? JSON.parse(decoder.decode(buffer.slice(offset, offset + metadataLen)))
+      : undefined;
   offset += metadataLen;
 
   // Timestamp
@@ -217,9 +221,7 @@ export function decodeSyncMessage(buffer: Uint8Array): SyncMessage {
   offset += 8;
 
   // Data
-  const data = offset < buffer.length
-    ? buffer.slice(offset)
-    : undefined;
+  const data = offset < buffer.length ? buffer.slice(offset) : undefined;
 
   return { type, sessionId, peerId, filePath, data, metadata, timestamp };
 }
@@ -339,7 +341,7 @@ export class CollaborationTransport {
 
     if (message.data && message.data.byteLength > this.config.maxMessageSize) {
       throw new Error(
-        `Message exceeds max size: ${message.data.byteLength} > ${this.config.maxMessageSize}`,
+        `Message exceeds max size: ${message.data.byteLength} > ${this.config.maxMessageSize}`
       );
     }
 

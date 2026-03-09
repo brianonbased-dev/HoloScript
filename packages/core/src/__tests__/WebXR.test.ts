@@ -27,7 +27,7 @@ const mockSession = {
       gripSpace: {},
       targetRayMode: 'tracked-pointer',
       gamepad: { buttons: [{ value: 0 }, { value: 0 }], axes: [0, 0] },
-    }
+    },
   ],
 };
 
@@ -52,21 +52,24 @@ describe('WebXR Integration', () => {
 
   beforeEach(() => {
     // Setup Global Mocks using stubGlobal
-    vi.stubGlobal('navigator', { 
-      xr: mockNavigatorXR, 
-      gpu: { requestAdapter: vi.fn() } 
+    vi.stubGlobal('navigator', {
+      xr: mockNavigatorXR,
+      gpu: { requestAdapter: vi.fn() },
     });
-    
-    vi.stubGlobal('XRWebGPUBinding', vi.fn().mockImplementation(function() {
-      return {
-        createProjectionLayer: vi.fn().mockReturnValue({}),
-      };
-    }));
+
+    vi.stubGlobal(
+      'XRWebGPUBinding',
+      vi.fn().mockImplementation(function () {
+        return {
+          createProjectionLayer: vi.fn().mockReturnValue({}),
+        };
+      })
+    );
 
     renderer = new WebGPURenderer();
     // Inject mock context
     (renderer as any).context = mockWebGPUContext;
-    
+
     const mockAST = {
       root: {
         type: 'composition',
@@ -74,15 +77,15 @@ describe('WebXR Integration', () => {
         children: [],
         traits: new Map(),
         properties: {},
-        directives: []
+        directives: [],
       },
       imports: [],
       version: 1,
     };
 
-    runtime = new HoloScriptPlusRuntimeImpl(mockAST as any, { 
+    runtime = new HoloScriptPlusRuntimeImpl(mockAST as any, {
       vrEnabled: true,
-      renderer: renderer 
+      renderer: renderer,
     });
   });
 
@@ -101,21 +104,24 @@ describe('WebXR Integration', () => {
     await runtime.enterVR();
 
     // Verify Session Request
-    expect(mockNavigatorXR.requestSession).toHaveBeenCalledWith('immersive-vr', expect.objectContaining({
-      requiredFeatures: ['local-floor'],
-    }));
+    expect(mockNavigatorXR.requestSession).toHaveBeenCalledWith(
+      'immersive-vr',
+      expect.objectContaining({
+        requiredFeatures: ['local-floor'],
+      })
+    );
 
     // Verify Session Setup
     expect(mockSession.addEventListener).toHaveBeenCalledWith('end', expect.any(Function));
     expect(mockSession.requestReferenceSpace).toHaveBeenCalledWith('local-floor');
-    
+
     // Verify WebGPU Binding
     expect((global as any).XRWebGPUBinding).toHaveBeenCalled();
   });
 
   it('updates VR context from input sources', async () => {
     await runtime.enterVR();
-    
+
     // Create mock frame with getPose to provide hand positions
     const mockFrame = {
       session: mockSession,

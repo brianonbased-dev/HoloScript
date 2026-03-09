@@ -14,8 +14,12 @@
  */
 
 import { useCallback, useState } from 'react';
-import { useCharacterStore } from '@/lib/store';
-import { parseCharacterIntent, executeCharacterIntent, type CharacterIntent } from '@/lib/brittney/CharacterIntentParser';
+import { useCharacterStore } from '@/lib/stores';
+import {
+  parseCharacterIntent,
+  executeCharacterIntent,
+  type CharacterIntent,
+} from '@/lib/brittney/CharacterIntentParser';
 import { BUILTIN_ITEMS } from '@/components/character/wardrobe/WardrobePanel';
 
 export interface BrittneyCustomizerReturn {
@@ -52,7 +56,11 @@ export function useBrittneyCustomizer(): BrittneyCustomizerReturn {
         setLastResponse(response);
         return response;
       }
-      const response = `🤔 Couldn't find "${intent.itemQuery}" in wardrobe. Available: ${BUILTIN_ITEMS.map((i) => i.name).slice(0, 5).join(', ')}…`;
+      const response = `🤔 Couldn't find "${intent.itemQuery}" in wardrobe. Available: ${BUILTIN_ITEMS.map(
+        (i) => i.name
+      )
+        .slice(0, 5)
+        .join(', ')}…`;
       setLastResponse(response);
       return response;
     }

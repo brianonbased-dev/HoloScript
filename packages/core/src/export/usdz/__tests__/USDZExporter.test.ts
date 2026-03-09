@@ -6,12 +6,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { USDZExporter, type IUSDZExportOptions } from '../USDZExporter';
-import type {
-  IUSDStage,
-  IUSDMesh,
-  IUSDMaterial,
-  IUSDPrim,
-} from '../USDTypes';
+import type { IUSDStage, IUSDMesh, IUSDMaterial, IUSDPrim } from '../USDTypes';
 import {
   createEmptySceneGraph,
   createEmptyNode,
@@ -81,7 +76,7 @@ describe('USDZExporter', () => {
 
       // Find materials scope
       const rootPrim = result.stage.prims[0];
-      const materialsScope = rootPrim.children?.find(p => p.name === 'Materials');
+      const materialsScope = rootPrim.children?.find((p) => p.name === 'Materials');
 
       expect(materialsScope).toBeDefined();
       expect(materialsScope?.children?.length).toBe(1);
@@ -116,7 +111,7 @@ describe('USDZExporter', () => {
       const result = await exporter.export(sceneGraph);
 
       const rootPrim = result.stage.prims[0];
-      const materialsScope = rootPrim.children?.find(p => p.name === 'Materials');
+      const materialsScope = rootPrim.children?.find((p) => p.name === 'Materials');
       const usdMaterial = materialsScope?.children?.[0] as IUSDMaterial;
 
       expect(usdMaterial).toBeDefined();
@@ -198,7 +193,7 @@ describe('USDZExporter', () => {
       const result = await exporter.export(sceneGraph);
 
       const rootPrim = result.stage.prims[0];
-      const geometryScope = rootPrim.children?.find(p => p.name === 'Geometry');
+      const geometryScope = rootPrim.children?.find((p) => p.name === 'Geometry');
 
       expect(geometryScope).toBeDefined();
       expect(geometryScope?.children?.length).toBeGreaterThan(0);
@@ -212,7 +207,7 @@ describe('USDZExporter', () => {
       const result = await exporter.export(sceneGraph);
 
       const rootPrim = result.stage.prims[0];
-      const geometryScope = rootPrim.children?.find(p => p.name === 'Geometry');
+      const geometryScope = rootPrim.children?.find((p) => p.name === 'Geometry');
       const usdMesh = geometryScope?.children?.[0] as IUSDMesh;
 
       expect(usdMesh).toBeDefined();
@@ -227,7 +222,7 @@ describe('USDZExporter', () => {
       const result = await exporter.export(sceneGraph);
 
       const rootPrim = result.stage.prims[0];
-      const geometryScope = rootPrim.children?.find(p => p.name === 'Geometry');
+      const geometryScope = rootPrim.children?.find((p) => p.name === 'Geometry');
       const usdMesh = geometryScope?.children?.[0] as IUSDMesh;
 
       expect(usdMesh).toBeDefined();
@@ -591,38 +586,19 @@ function createMeshWithUVs(): IMesh {
 
 function setupMeshBuffers(sceneGraph: ISceneGraph): void {
   // Create position data
-  const positions = new Float32Array([
-    0, 0, 0,
-    1, 0, 0,
-    0, 1, 0,
-    1, 1, 0,
-  ]);
+  const positions = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0]);
 
   // Create normal data
-  const normals = new Float32Array([
-    0, 0, 1,
-    0, 0, 1,
-    0, 0, 1,
-    0, 0, 1,
-  ]);
+  const normals = new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]);
 
   // Create UV data
-  const uvs = new Float32Array([
-    0, 0,
-    1, 0,
-    0, 1,
-    1, 1,
-  ]);
+  const uvs = new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]);
 
   // Create index data
   const indices = new Uint16Array([0, 1, 2, 1, 3, 2]);
 
   // Combine all data
-  const totalSize =
-    positions.byteLength +
-    normals.byteLength +
-    uvs.byteLength +
-    indices.byteLength;
+  const totalSize = positions.byteLength + normals.byteLength + uvs.byteLength + indices.byteLength;
 
   const combinedBuffer = new ArrayBuffer(totalSize);
   const combinedView = new Uint8Array(combinedBuffer);

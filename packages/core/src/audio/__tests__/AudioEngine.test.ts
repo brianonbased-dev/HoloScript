@@ -51,19 +51,22 @@ describe('AudioEngine', () => {
   });
 
   it('stopAll clears all sources', () => {
-    engine.play('a'); engine.play('b');
+    engine.play('a');
+    engine.play('b');
     engine.stopAll();
     expect(engine.getActiveCount()).toBe(0);
   });
 
   // ---------- Counts ----------
   it('getActiveCount tracks active sources', () => {
-    engine.play('a'); engine.play('b');
+    engine.play('a');
+    engine.play('b');
     expect(engine.getActiveCount()).toBe(2);
   });
 
   it('getActiveSources returns playing sources', () => {
-    engine.play('a'); engine.play('b');
+    engine.play('a');
+    engine.play('b');
     expect(engine.getActiveSources().length).toBe(2);
   });
 
@@ -102,7 +105,9 @@ describe('AudioEngine', () => {
 
   it('spatial source attenuates with distance', () => {
     const id = engine.play('sfx', {
-      id: 's3', position: { x: 30, y: 0, z: 0 }, spatialize: true,
+      id: 's3',
+      position: { x: 30, y: 0, z: 0 },
+      spatialize: true,
     });
     engine.update(0.1);
     expect(engine.getSource(id)!.computedVolume).toBeLessThan(1);
@@ -110,7 +115,9 @@ describe('AudioEngine', () => {
 
   it('non-spatial source has zero pan', () => {
     const id = engine.play('ui', {
-      id: 's4', position: { x: 50, y: 0, z: 0 }, spatialize: false,
+      id: 's4',
+      position: { x: 50, y: 0, z: 0 },
+      spatialize: false,
     });
     engine.update(0.1);
     expect(engine.getSource(id)!.computedPan).toBe(0);

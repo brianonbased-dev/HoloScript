@@ -22,7 +22,9 @@ import { Localization } from '../Localization';
 
 describe('DialogueGraph', () => {
   let g: DialogueGraph;
-  beforeEach(() => { g = new DialogueGraph(); });
+  beforeEach(() => {
+    g = new DialogueGraph();
+  });
 
   it('adds text nodes and reports count', () => {
     g.addTextNode('n1', 'NPC', 'Hello!', null);
@@ -125,11 +127,11 @@ describe('DialogueGraph', () => {
     g.addTextNode('n1', 'NPC', 'Last.', 'end1');
     g.addEndNode('end1');
     g.setStart('n1');
-    g.start();               // returns n1
-    const endNode = g.advance();  // returns end1 node (visited, not auto-advanced)
+    g.start(); // returns n1
+    const endNode = g.advance(); // returns end1 node (visited, not auto-advanced)
     expect(endNode?.type).toBe('end');
     const r = g.advance();
-    expect(r).toBeNull();   // now truly complete
+    expect(r).toBeNull(); // now truly complete
   });
 });
 
@@ -139,7 +141,9 @@ describe('DialogueGraph', () => {
 
 describe('DialogueRunner', () => {
   let runner: DialogueRunner;
-  beforeEach(() => { runner = new DialogueRunner(); });
+  beforeEach(() => {
+    runner = new DialogueRunner();
+  });
 
   it('starts at given node', () => {
     runner.loadNodes([{ id: 'n1', type: 'text', text: 'Hello', speaker: 'AI' }]);
@@ -177,7 +181,9 @@ describe('DialogueRunner', () => {
       { id: 'ev', type: 'event', event: 'door_open', nextId: 'end' },
       { id: 'end', type: 'text', text: 'Done' },
     ]);
-    runner.onEvent((e) => { fired = e; });
+    runner.onEvent((e) => {
+      fired = e;
+    });
     runner.start('ev');
     expect(fired).toBe('door_open');
   });
@@ -189,7 +195,8 @@ describe('DialogueRunner', () => {
 
   it('returns available choices filtered by condition', () => {
     const node = {
-      id: 'c1', type: 'choice' as const,
+      id: 'c1',
+      type: 'choice' as const,
       choices: [
         { label: 'Fight', nextId: 'fight' },
         { label: 'Bribe', nextId: 'bribe', condition: 'hasGold' },
@@ -204,7 +211,14 @@ describe('DialogueRunner', () => {
 
   it('advances via choice index', () => {
     runner.loadNodes([
-      { id: 'c1', type: 'choice', choices: [{ label: 'A', nextId: 'a' }, { label: 'B', nextId: 'b' }] },
+      {
+        id: 'c1',
+        type: 'choice',
+        choices: [
+          { label: 'A', nextId: 'a' },
+          { label: 'B', nextId: 'b' },
+        ],
+      },
       { id: 'a', type: 'text', text: 'chose A' },
       { id: 'b', type: 'text', text: 'chose B' },
     ]);
@@ -231,7 +245,9 @@ describe('DialogueRunner', () => {
 
 describe('ChoiceManager', () => {
   let cm: ChoiceManager;
-  beforeEach(() => { cm = new ChoiceManager(); });
+  beforeEach(() => {
+    cm = new ChoiceManager();
+  });
 
   it('records a choice', () => {
     cm.recordChoice('dlg1', 'node1', 'Help the farmer');
@@ -239,7 +255,9 @@ describe('ChoiceManager', () => {
   });
 
   it('updates reputation on reputation consequence', () => {
-    cm.recordChoice('dlg1', 'n1', 'Aid guild', [{ type: 'reputation', target: 'guild', value: 10 }]);
+    cm.recordChoice('dlg1', 'n1', 'Aid guild', [
+      { type: 'reputation', target: 'guild', value: 10 },
+    ]);
     expect(cm.getReputation('guild')).toBe(10);
   });
 
@@ -250,12 +268,16 @@ describe('ChoiceManager', () => {
   });
 
   it('updates relationship affinity', () => {
-    cm.recordChoice('d', 'n', 'Compliment', [{ type: 'relationship', target: 'npc_aria', value: 15 }]);
+    cm.recordChoice('d', 'n', 'Compliment', [
+      { type: 'relationship', target: 'npc_aria', value: 15 },
+    ]);
     expect(cm.getRelationship('npc_aria')).toBe(15);
   });
 
   it('sets flag on flag consequence', () => {
-    cm.recordChoice('d', 'n', 'Accepted quest', [{ type: 'flag', target: 'quest_accepted', value: true }]);
+    cm.recordChoice('d', 'n', 'Accepted quest', [
+      { type: 'flag', target: 'quest_accepted', value: true },
+    ]);
     expect(cm.getFlag('quest_accepted')).toBe(true);
   });
 
@@ -290,7 +312,9 @@ describe('ChoiceManager', () => {
 
 describe('EmotionSystem', () => {
   let es: EmotionSystem;
-  beforeEach(() => { es = new EmotionSystem(); });
+  beforeEach(() => {
+    es = new EmotionSystem();
+  });
 
   it('sets and gets emotion intensity', () => {
     es.setEmotion('npcA', 'joy', 0.8);
@@ -397,13 +421,27 @@ describe('BarkManager', () => {
   });
 
   it('range check: rejects bark when too far', () => {
-    bm.registerBark({ id: 'cb', context: 'close', lines: ['Hey!'], priority: 2, cooldown: 0, maxRange: 5 });
+    bm.registerBark({
+      id: 'cb',
+      context: 'close',
+      lines: ['Hey!'],
+      priority: 2,
+      cooldown: 0,
+      maxRange: 5,
+    });
     bm.tick(0);
     expect(bm.trigger('close', 'npc', 0, 0, 10, 0)).toBeNull();
   });
 
   it('range check: allows bark when in range', () => {
-    bm.registerBark({ id: 'c2', context: 'approach', lines: ['Hello.'], priority: 2, cooldown: 0, maxRange: 20 });
+    bm.registerBark({
+      id: 'c2',
+      context: 'approach',
+      lines: ['Hello.'],
+      priority: 2,
+      cooldown: 0,
+      maxRange: 20,
+    });
     bm.tick(0);
     expect(bm.trigger('approach', 'npc', 0, 0, 5, 0)).not.toBeNull();
   });
@@ -430,7 +468,11 @@ describe('Localization', () => {
   let loc: Localization;
   beforeEach(() => {
     loc = new Localization();
-    loc.addLocale('en', { greeting: 'Hello', farewell: 'Goodbye', item_found: 'You found {item}!' });
+    loc.addLocale('en', {
+      greeting: 'Hello',
+      farewell: 'Goodbye',
+      item_found: 'You found {item}!',
+    });
     loc.addLocale('fr', { greeting: 'Bonjour', farewell: 'Au revoir' });
   });
 
@@ -490,14 +532,24 @@ describe('Localization', () => {
   describe('plural rules', () => {
     beforeEach(() => {
       loc.addPluralRule('en', 'items', {
-        zero: 'No items', one: '{count} item',
-        few: '{count} items (few)', other: '{count} items',
+        zero: 'No items',
+        one: '{count} item',
+        few: '{count} items (few)',
+        other: '{count} items',
       });
     });
 
-    it('uses zero form', () => { expect(loc.plural('items', 0)).toBe('No items'); });
-    it('uses one form', () => { expect(loc.plural('items', 1)).toBe('1 item'); });
-    it('uses few form for 2-4', () => { expect(loc.plural('items', 3)).toBe('3 items (few)'); });
-    it('uses other form for 5+', () => { expect(loc.plural('items', 10)).toBe('10 items'); });
+    it('uses zero form', () => {
+      expect(loc.plural('items', 0)).toBe('No items');
+    });
+    it('uses one form', () => {
+      expect(loc.plural('items', 1)).toBe('1 item');
+    });
+    it('uses few form for 2-4', () => {
+      expect(loc.plural('items', 3)).toBe('3 items (few)');
+    });
+    it('uses other form for 5+', () => {
+      expect(loc.plural('items', 10)).toBe('10 items');
+    });
   });
 });

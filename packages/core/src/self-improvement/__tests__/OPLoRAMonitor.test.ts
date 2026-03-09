@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  OPLoRAMonitor,
-  type OPLoRAMonitorConfig,
-} from '../OPLoRAMonitor';
+import { OPLoRAMonitor, type OPLoRAMonitorConfig } from '../OPLoRAMonitor';
 
 // =============================================================================
 // TESTS
@@ -125,9 +122,7 @@ describe('OPLoRAMonitor', () => {
       });
 
       // May have info-level trend alerts but no warning/critical
-      const serious = alerts.filter(
-        (a) => a.severity === 'warning' || a.severity === 'critical',
-      );
+      const serious = alerts.filter((a) => a.severity === 'warning' || a.severity === 'critical');
       expect(serious).toHaveLength(0);
     });
 
@@ -155,9 +150,7 @@ describe('OPLoRAMonitor', () => {
 
       // At some point we should see an info-level trend alert
       const allAlerts = monitor.getAlerts('info');
-      const trendAlerts = allAlerts.filter((a) =>
-        a.message.includes('negative trend'),
-      );
+      const trendAlerts = allAlerts.filter((a) => a.message.includes('negative trend'));
       expect(trendAlerts.length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -463,9 +456,7 @@ describe('OPLoRAMonitor', () => {
       const alerts = monitor.getAlerts();
       const heAlerts = alerts.filter((a) => a.source === 'humaneval');
       const mbppAlerts = alerts.filter(
-        (a) =>
-          a.source === 'mbpp' &&
-          (a.severity === 'warning' || a.severity === 'critical'),
+        (a) => a.source === 'mbpp' && (a.severity === 'warning' || a.severity === 'critical')
       );
 
       expect(heAlerts.length).toBeGreaterThan(0);

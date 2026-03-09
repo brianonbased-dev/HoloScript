@@ -77,7 +77,7 @@ describe('Profiler exports', () => {
     prof.endFrame();
     const summaries = prof.getAllSummaries();
     expect(summaries.length).toBe(2);
-    expect(summaries.find(s => s.name === 'Physics')).toBeDefined();
+    expect(summaries.find((s) => s.name === 'Physics')).toBeDefined();
   });
 
   it('profile() wraps sync functions', () => {
@@ -109,14 +109,28 @@ describe('Profiler exports', () => {
 describe('LODManager exports', () => {
   it('registers and queries objects', () => {
     const mgr = new LODManager({ autoUpdate: false });
-    mgr.register('tree', { levels: [{ distance: 0, triangleCount: 1000 }, { distance: 50, triangleCount: 100 }] });
+    mgr.register('tree', {
+      levels: [
+        { distance: 0, triangleCount: 1000 },
+        { distance: 50, triangleCount: 100 },
+      ],
+    });
     expect(mgr.getRegisteredObjects()).toContain('tree');
     expect(mgr.getCurrentLevel('tree')).toBe(0);
   });
 
   it('updates LOD state after camera move', () => {
     const mgr = new LODManager({ autoUpdate: false });
-    mgr.register('obj', { levels: [{ distance: 0, triangleCount: 5000 }, { distance: 20, triangleCount: 500 }] }, [100, 0, 0]);
+    mgr.register(
+      'obj',
+      {
+        levels: [
+          { distance: 0, triangleCount: 5000 },
+          { distance: 20, triangleCount: 500 },
+        ],
+      },
+      [100, 0, 0]
+    );
     mgr.setCameraPosition([0, 0, 0]);
     mgr.update(0.016);
     // After update, state should exist for the object
@@ -133,7 +147,13 @@ describe('LODManager exports', () => {
 
   it('forced LOD level overrides distance', () => {
     const mgr = new LODManager({ autoUpdate: false });
-    mgr.register('obj', { levels: [{ distance: 0, triangleCount: 5000 }, { distance: 20, triangleCount: 500 }, { distance: 50, triangleCount: 50 }] });
+    mgr.register('obj', {
+      levels: [
+        { distance: 0, triangleCount: 5000 },
+        { distance: 20, triangleCount: 500 },
+        { distance: 50, triangleCount: 50 },
+      ],
+    });
     mgr.setForcedLevel('obj', 2);
     mgr.update(0.016);
     expect(mgr.getCurrentLevel('obj')).toBe(2);

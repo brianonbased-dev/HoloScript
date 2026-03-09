@@ -1,14 +1,21 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { AnimClip, type ClipTrack } from '../AnimationClip';
 
-function linearTrack(id: string, path: string, prop: string, kfs: Array<{ time: number; value: number }>): ClipTrack {
+function linearTrack(
+  id: string,
+  path: string,
+  prop: string,
+  kfs: Array<{ time: number; value: number }>
+): ClipTrack {
   return { id, targetPath: path, property: prop, interpolation: 'linear', keyframes: kfs };
 }
 
 describe('AnimClip', () => {
   let clip: AnimClip;
 
-  beforeEach(() => { clip = new AnimClip('c1', 'Walk', 2); });
+  beforeEach(() => {
+    clip = new AnimClip('c1', 'Walk', 2);
+  });
 
   // Construction
   it('stores id, name, duration', () => {
@@ -41,7 +48,12 @@ describe('AnimClip', () => {
   });
 
   it('addTrack extends duration when keyframe exceeds it', () => {
-    clip.addTrack(linearTrack('t1', 'root', 'pos', [{ time: 0, value: 0 }, { time: 5, value: 10 }]));
+    clip.addTrack(
+      linearTrack('t1', 'root', 'pos', [
+        { time: 0, value: 0 },
+        { time: 5, value: 10 },
+      ])
+    );
     expect(clip.getDuration()).toBe(5);
   });
 
@@ -74,7 +86,12 @@ describe('AnimClip', () => {
 
   // Sampling — linear interpolation
   it('sample interpolates linear track', () => {
-    clip.addTrack(linearTrack('t1', 'root', 'x', [{ time: 0, value: 0 }, { time: 2, value: 10 }]));
+    clip.addTrack(
+      linearTrack('t1', 'root', 'x', [
+        { time: 0, value: 0 },
+        { time: 2, value: 10 },
+      ])
+    );
     const result = clip.sample(1);
     expect(result.get('root.x')).toBeCloseTo(5);
   });
@@ -82,8 +99,14 @@ describe('AnimClip', () => {
   // Step interpolation
   it('sample step holds previous value', () => {
     clip.addTrack({
-      id: 's1', targetPath: 'root', property: 'visible',
-      interpolation: 'step', keyframes: [{ time: 0, value: 0 }, { time: 1, value: 1 }],
+      id: 's1',
+      targetPath: 'root',
+      property: 'visible',
+      interpolation: 'step',
+      keyframes: [
+        { time: 0, value: 0 },
+        { time: 1, value: 1 },
+      ],
     });
     const r = clip.sample(0.5);
     expect(r.get('root.visible')).toBe(0);
@@ -92,21 +115,37 @@ describe('AnimClip', () => {
   // Wrap modes
   it('sample with loop wraps time', () => {
     clip.setLoop(true);
-    clip.addTrack(linearTrack('t1', 'root', 'x', [{ time: 0, value: 0 }, { time: 2, value: 10 }]));
+    clip.addTrack(
+      linearTrack('t1', 'root', 'x', [
+        { time: 0, value: 0 },
+        { time: 2, value: 10 },
+      ])
+    );
     const r = clip.sample(3); // wraps to 1
     expect(r.get('root.x')).toBeCloseTo(5);
   });
 
   it('sample with once clamps to duration', () => {
-    clip.addTrack(linearTrack('t1', 'root', 'x', [{ time: 0, value: 0 }, { time: 2, value: 10 }]));
+    clip.addTrack(
+      linearTrack('t1', 'root', 'x', [
+        { time: 0, value: 0 },
+        { time: 2, value: 10 },
+      ])
+    );
     const r = clip.sample(5);
     expect(r.get('root.x')).toBeCloseTo(10);
   });
 
   // Blend
   it('static blend interpolates two poses', () => {
-    const a = new Map([['x', 0], ['y', 10]]);
-    const b = new Map([['x', 10], ['y', 0]]);
+    const a = new Map([
+      ['x', 0],
+      ['y', 10],
+    ]);
+    const b = new Map([
+      ['x', 10],
+      ['y', 0],
+    ]);
     const r = AnimClip.blend(a, b, 0.5);
     expect(r.get('x')).toBeCloseTo(5);
     expect(r.get('y')).toBeCloseTo(5);

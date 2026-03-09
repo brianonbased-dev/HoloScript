@@ -25,9 +25,15 @@ import type {
 // =============================================================================
 
 function createTestTransform(
-  px = 0, py = 0, pz = 0,
-  rx = 0, ry = 0, rz = 0,
-  sx = 1, sy = 1, sz = 1,
+  px = 0,
+  py = 0,
+  pz = 0,
+  rx = 0,
+  ry = 0,
+  rz = 0,
+  sx = 1,
+  sy = 1,
+  sz = 1
 ): ASTTransform {
   return {
     position: { x: px, y: py, z: pz },
@@ -39,7 +45,7 @@ function createTestTransform(
 function createTestNode(
   id: string,
   name: string,
-  overrides?: Partial<SceneNodeDescriptor>,
+  overrides?: Partial<SceneNodeDescriptor>
 ): SceneNodeDescriptor {
   return {
     id,
@@ -62,7 +68,7 @@ function createTestEdge(
   id: string,
   from: string,
   to: string,
-  overrides?: Partial<SceneEdge>,
+  overrides?: Partial<SceneEdge>
 ): SceneEdge {
   return {
     id,
@@ -81,7 +87,7 @@ function createTestSpatialRelation(
   sourceNodeId: string,
   targetNodeId: string,
   type: SpatialRelationType = 'adjacent',
-  overrides?: Partial<SpatialRelation>,
+  overrides?: Partial<SpatialRelation>
 ): SpatialRelation {
   return {
     id,
@@ -95,7 +101,7 @@ function createTestSpatialRelation(
 
 function createTestSceneGraph(
   name: string,
-  overrides?: Partial<SceneGraphDescriptor>,
+  overrides?: Partial<SceneGraphDescriptor>
 ): SceneGraphDescriptor {
   const rootNode = createTestNode('root', 'Root', { nodeType: 'group' });
   const now = new Date().toISOString();
@@ -132,8 +138,12 @@ describe('SpatialRelationType', () => {
 
   it('includes all directional relation types', () => {
     const directional: SpatialRelationType[] = [
-      'above', 'below', 'left_of', 'right_of',
-      'in_front_of', 'behind',
+      'above',
+      'below',
+      'left_of',
+      'right_of',
+      'in_front_of',
+      'behind',
     ];
     for (const rel of directional) {
       expect(typeof rel).toBe('string');
@@ -141,9 +151,7 @@ describe('SpatialRelationType', () => {
   });
 
   it('includes containment and proximity types', () => {
-    const containment: SpatialRelationType[] = [
-      'inside', 'contains', 'adjacent', 'overlapping',
-    ];
+    const containment: SpatialRelationType[] = ['inside', 'contains', 'adjacent', 'overlapping'];
     for (const rel of containment) {
       expect(typeof rel).toBe('string');
     }
@@ -151,7 +159,10 @@ describe('SpatialRelationType', () => {
 
   it('includes interaction-oriented types', () => {
     const interaction: SpatialRelationType[] = [
-      'attached_to', 'aligned_with', 'facing', 'orbiting',
+      'attached_to',
+      'aligned_with',
+      'facing',
+      'orbiting',
     ];
     for (const rel of interaction) {
       expect(typeof rel).toBe('string');
@@ -211,9 +222,15 @@ describe('SpatialRelation', () => {
 describe('SceneEdgeType', () => {
   it('includes all expected edge types', () => {
     const edgeTypes: SceneEdgeType[] = [
-      'hierarchy', 'spatial', 'dependency', 'dataflow',
-      'physics_joint', 'audio_link', 'animation_link',
-      'network_sync', 'reference',
+      'hierarchy',
+      'spatial',
+      'dependency',
+      'dataflow',
+      'physics_joint',
+      'audio_link',
+      'animation_link',
+      'network_sync',
+      'reference',
     ];
     expect(edgeTypes).toHaveLength(9);
     for (const t of edgeTypes) {
@@ -476,7 +493,7 @@ describe('SceneGraphDescriptor', () => {
 
     // Verify spatial relations
     const lampAboveTable = graph.spatialRelations.find(
-      r => r.sourceNodeId === 'lamp' && r.targetNodeId === 'table'
+      (r) => r.sourceNodeId === 'lamp' && r.targetNodeId === 'table'
     );
     expect(lampAboveTable?.type).toBe('above');
     expect(lampAboveTable?.offset?.y).toBe(1.2);
@@ -509,7 +526,13 @@ describe('SceneGraphDescriptor', () => {
 
   it('handles complex edge types in a single graph', () => {
     const nodes = new Map<string, SceneNodeDescriptor>();
-    nodes.set('root', createTestNode('root', 'Root', { nodeType: 'group', childIds: ['sensor', 'display', 'body1', 'body2'] }));
+    nodes.set(
+      'root',
+      createTestNode('root', 'Root', {
+        nodeType: 'group',
+        childIds: ['sensor', 'display', 'body1', 'body2'],
+      })
+    );
     nodes.set('sensor', createTestNode('sensor', 'TempSensor', { parentId: 'root' }));
     nodes.set('display', createTestNode('display', 'Dashboard', { parentId: 'root' }));
     nodes.set('body1', createTestNode('body1', 'DoorFrame', { parentId: 'root' }));
@@ -531,9 +554,9 @@ describe('SceneGraphDescriptor', () => {
 
     const graph = createTestSceneGraph('MixedEdgeScene', { nodes, edges });
 
-    const hierarchyEdges = graph.edges.filter(e => e.type === 'hierarchy');
-    const dataflowEdges = graph.edges.filter(e => e.type === 'dataflow');
-    const jointEdges = graph.edges.filter(e => e.type === 'physics_joint');
+    const hierarchyEdges = graph.edges.filter((e) => e.type === 'hierarchy');
+    const dataflowEdges = graph.edges.filter((e) => e.type === 'dataflow');
+    const jointEdges = graph.edges.filter((e) => e.type === 'physics_joint');
 
     expect(hierarchyEdges).toHaveLength(2);
     expect(dataflowEdges).toHaveLength(1);
@@ -543,7 +566,13 @@ describe('SceneGraphDescriptor', () => {
 
   it('supports node querying by type', () => {
     const nodes = new Map<string, SceneNodeDescriptor>();
-    nodes.set('root', createTestNode('root', 'Root', { nodeType: 'group', childIds: ['cam', 'sun', 'obj1', 'npc1'] }));
+    nodes.set(
+      'root',
+      createTestNode('root', 'Root', {
+        nodeType: 'group',
+        childIds: ['cam', 'sun', 'obj1', 'npc1'],
+      })
+    );
     nodes.set('cam', createTestNode('cam', 'Camera', { parentId: 'root', nodeType: 'camera' }));
     nodes.set('sun', createTestNode('sun', 'Sun', { parentId: 'root', nodeType: 'light' }));
     nodes.set('obj1', createTestNode('obj1', 'Cube', { parentId: 'root', nodeType: 'object' }));
@@ -552,9 +581,9 @@ describe('SceneGraphDescriptor', () => {
     const graph = createTestSceneGraph('QueryScene', { nodes });
 
     // Query by type
-    const cameras = Array.from(graph.nodes.values()).filter(n => n.nodeType === 'camera');
-    const lights = Array.from(graph.nodes.values()).filter(n => n.nodeType === 'light');
-    const agents = Array.from(graph.nodes.values()).filter(n => n.nodeType === 'agent');
+    const cameras = Array.from(graph.nodes.values()).filter((n) => n.nodeType === 'camera');
+    const lights = Array.from(graph.nodes.values()).filter((n) => n.nodeType === 'light');
+    const agents = Array.from(graph.nodes.values()).filter((n) => n.nodeType === 'agent');
 
     expect(cameras).toHaveLength(1);
     expect(cameras[0].name).toBe('Camera');
@@ -572,13 +601,13 @@ describe('SceneGraphDescriptor', () => {
 
     const graph = createTestSceneGraph('TagScene', { nodes });
 
-    const interactive = Array.from(graph.nodes.values()).filter(
-      n => n.tags.includes('interactive'),
+    const interactive = Array.from(graph.nodes.values()).filter((n) =>
+      n.tags.includes('interactive')
     );
     expect(interactive).toHaveLength(2);
 
-    const destructible = Array.from(graph.nodes.values()).filter(
-      n => n.tags.includes('destructible'),
+    const destructible = Array.from(graph.nodes.values()).filter((n) =>
+      n.tags.includes('destructible')
     );
     expect(destructible).toHaveLength(1);
     expect(destructible[0].id).toBe('a');

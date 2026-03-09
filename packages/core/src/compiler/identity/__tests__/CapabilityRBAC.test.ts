@@ -11,29 +11,12 @@ import {
   AgentKeyPair,
   generateAgentKeyPair,
 } from '../AgentIdentity';
-import {
-  AgentTokenIssuer,
-  TokenRequest,
-  resetTokenIssuer,
-} from '../AgentTokenIssuer';
-import {
-  AgentRBAC,
-  ResourceType,
-  resetRBAC,
-} from '../AgentRBAC';
-import {
-  CapabilityTokenIssuer,
-  resetCapabilityTokenIssuer,
-} from '../CapabilityTokenIssuer';
-import {
-  CapabilityRBAC,
-  resetCapabilityRBAC,
-} from '../CapabilityRBAC';
+import { AgentTokenIssuer, TokenRequest, resetTokenIssuer } from '../AgentTokenIssuer';
+import { AgentRBAC, ResourceType, resetRBAC } from '../AgentRBAC';
+import { CapabilityTokenIssuer, resetCapabilityTokenIssuer } from '../CapabilityTokenIssuer';
+import { CapabilityRBAC, resetCapabilityRBAC } from '../CapabilityRBAC';
 import type { CapabilityAccessRequest } from '../CapabilityRBAC';
-import {
-  HOLOSCRIPT_RESOURCE_ALL,
-  CapabilityActions,
-} from '../CapabilityToken';
+import { HOLOSCRIPT_RESOURCE_ALL, CapabilityActions } from '../CapabilityToken';
 import type { CapabilityToken } from '../CapabilityToken';
 
 describe('CapabilityRBAC', () => {
@@ -82,10 +65,7 @@ describe('CapabilityRBAC', () => {
   // -------------------------------------------------------------------------
   // Helper to create a JWT token
   // -------------------------------------------------------------------------
-  async function createJwtToken(
-    role: AgentRole,
-    step: WorkflowStep
-  ): Promise<string> {
+  async function createJwtToken(role: AgentRole, step: WorkflowStep): Promise<string> {
     const config: AgentConfig = {
       role,
       name: `${role}-v1`,
@@ -124,10 +104,7 @@ describe('CapabilityRBAC', () => {
 
   describe('JWT RBAC mode', () => {
     it('should accept valid JWT token for AST read', async () => {
-      const jwtToken = await createJwtToken(
-        AgentRole.AST_OPTIMIZER,
-        WorkflowStep.ANALYZE_AST
-      );
+      const jwtToken = await createJwtToken(AgentRole.AST_OPTIMIZER, WorkflowStep.ANALYZE_AST);
 
       const result = adapter.checkAccess({
         token: jwtToken,
@@ -140,10 +117,7 @@ describe('CapabilityRBAC', () => {
     });
 
     it('should reject JWT token lacking permission', async () => {
-      const jwtToken = await createJwtToken(
-        AgentRole.SYNTAX_ANALYZER,
-        WorkflowStep.PARSE_TOKENS
-      );
+      const jwtToken = await createJwtToken(AgentRole.SYNTAX_ANALYZER, WorkflowStep.PARSE_TOKENS);
 
       const result = adapter.checkAccess({
         token: jwtToken,
@@ -181,9 +155,7 @@ describe('CapabilityRBAC', () => {
     });
 
     it('should accept wildcard capability', async () => {
-      const capToken = await createCapabilityToken([
-        { with: HOLOSCRIPT_RESOURCE_ALL, can: '*' },
-      ]);
+      const capToken = await createCapabilityToken([{ with: HOLOSCRIPT_RESOURCE_ALL, can: '*' }]);
 
       const result = adapter.checkAccess({
         token: '',
@@ -217,9 +189,7 @@ describe('CapabilityRBAC', () => {
     });
 
     it('should reject capability that does not cover the resource', async () => {
-      const capToken = await createCapabilityToken([
-        { with: 'holoscript://ast', can: 'ast/read' },
-      ]);
+      const capToken = await createCapabilityToken([{ with: 'holoscript://ast', can: 'ast/read' }]);
 
       const result = adapter.checkAccess({
         token: '',
@@ -234,9 +204,7 @@ describe('CapabilityRBAC', () => {
     });
 
     it('should reject capability with wrong action', async () => {
-      const capToken = await createCapabilityToken([
-        { with: 'holoscript://ast', can: 'ast/read' },
-      ]);
+      const capToken = await createCapabilityToken([{ with: 'holoscript://ast', can: 'ast/read' }]);
 
       const result = adapter.checkAccess({
         token: '',
@@ -257,10 +225,7 @@ describe('CapabilityRBAC', () => {
 
   describe('Fallback behavior (capability-first)', () => {
     it('should fall back to JWT when no capability token is provided', async () => {
-      const jwtToken = await createJwtToken(
-        AgentRole.AST_OPTIMIZER,
-        WorkflowStep.ANALYZE_AST
-      );
+      const jwtToken = await createJwtToken(AgentRole.AST_OPTIMIZER, WorkflowStep.ANALYZE_AST);
 
       const result = adapter.checkAccess({
         token: jwtToken,
@@ -273,10 +238,7 @@ describe('CapabilityRBAC', () => {
     });
 
     it('should fall back to JWT when capability check fails', async () => {
-      const jwtToken = await createJwtToken(
-        AgentRole.AST_OPTIMIZER,
-        WorkflowStep.ANALYZE_AST
-      );
+      const jwtToken = await createJwtToken(AgentRole.AST_OPTIMIZER, WorkflowStep.ANALYZE_AST);
 
       // Provide a capability token for wrong resource
       const capToken = await createCapabilityToken([
@@ -297,15 +259,10 @@ describe('CapabilityRBAC', () => {
     });
 
     it('should return failure when both modes fail', async () => {
-      const jwtToken = await createJwtToken(
-        AgentRole.SYNTAX_ANALYZER,
-        WorkflowStep.PARSE_TOKENS
-      );
+      const jwtToken = await createJwtToken(AgentRole.SYNTAX_ANALYZER, WorkflowStep.PARSE_TOKENS);
 
       // Capability for wrong resource
-      const capToken = await createCapabilityToken([
-        { with: 'holoscript://ast', can: 'ast/read' },
-      ]);
+      const capToken = await createCapabilityToken([{ with: 'holoscript://ast', can: 'ast/read' }]);
 
       const result = adapter.checkAccess({
         token: jwtToken,
@@ -331,10 +288,7 @@ describe('CapabilityRBAC', () => {
         strategy: 'rbac-first',
       });
 
-      const jwtToken = await createJwtToken(
-        AgentRole.AST_OPTIMIZER,
-        WorkflowStep.ANALYZE_AST
-      );
+      const jwtToken = await createJwtToken(AgentRole.AST_OPTIMIZER, WorkflowStep.ANALYZE_AST);
 
       const result = rbacFirstAdapter.checkAccess({
         token: jwtToken,
@@ -354,10 +308,7 @@ describe('CapabilityRBAC', () => {
       });
 
       // JWT token for wrong resource
-      const jwtToken = await createJwtToken(
-        AgentRole.SYNTAX_ANALYZER,
-        WorkflowStep.PARSE_TOKENS
-      );
+      const jwtToken = await createJwtToken(AgentRole.SYNTAX_ANALYZER, WorkflowStep.PARSE_TOKENS);
 
       // Capability token for the actual resource
       const capToken = await createCapabilityToken([
@@ -383,10 +334,7 @@ describe('CapabilityRBAC', () => {
         strategy: 'capability-only',
       });
 
-      const jwtToken = await createJwtToken(
-        AgentRole.AST_OPTIMIZER,
-        WorkflowStep.ANALYZE_AST
-      );
+      const jwtToken = await createJwtToken(AgentRole.AST_OPTIMIZER, WorkflowStep.ANALYZE_AST);
 
       const result = capOnlyAdapter.checkAccess({
         token: jwtToken,
@@ -405,9 +353,7 @@ describe('CapabilityRBAC', () => {
         strategy: 'rbac-only',
       });
 
-      const capToken = await createCapabilityToken([
-        { with: 'holoscript://ast', can: 'ast/read' },
-      ]);
+      const capToken = await createCapabilityToken([{ with: 'holoscript://ast', can: 'ast/read' }]);
 
       const result = rbacOnlyAdapter.checkAccess({
         token: '',
@@ -428,10 +374,7 @@ describe('CapabilityRBAC', () => {
 
   describe('Convenience methods', () => {
     it('canReadSource with JWT token', async () => {
-      const jwtToken = await createJwtToken(
-        AgentRole.SYNTAX_ANALYZER,
-        WorkflowStep.PARSE_TOKENS
-      );
+      const jwtToken = await createJwtToken(AgentRole.SYNTAX_ANALYZER, WorkflowStep.PARSE_TOKENS);
 
       const result = adapter.canReadSource(jwtToken, 'packages/core/test.hs');
       expect(result.allowed).toBe(true);
@@ -529,9 +472,7 @@ describe('CapabilityRBAC', () => {
     });
 
     it('should handle missing issuer public key gracefully', async () => {
-      const capToken = await createCapabilityToken([
-        { with: 'holoscript://ast', can: 'ast/read' },
-      ]);
+      const capToken = await createCapabilityToken([{ with: 'holoscript://ast', can: 'ast/read' }]);
 
       const result = adapter.checkAccess({
         token: '',

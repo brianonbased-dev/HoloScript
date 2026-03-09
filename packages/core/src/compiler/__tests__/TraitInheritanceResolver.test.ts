@@ -39,7 +39,7 @@
  * @version 1.0.0
  */
 
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   TraitInheritanceResolver,
   TraitInheritanceError,
@@ -58,7 +58,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   };
 });
 
-
 // =============================================================================
 // HELPERS
 // =============================================================================
@@ -66,7 +65,7 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
 function makeTrait(
   name: string,
   properties: Record<string, unknown>,
-  base?: string,
+  base?: string
 ): HoloTraitDefinition {
   return {
     type: 'TraitDefinition',
@@ -87,7 +86,7 @@ function makeTraitWithHandlers(
   properties: Record<string, unknown>,
   base?: string,
   eventNames: string[] = [],
-  actionNames: string[] = [],
+  actionNames: string[] = []
 ): HoloTraitDefinition {
   return {
     type: 'TraitDefinition',
@@ -137,7 +136,9 @@ describe('TraitInheritanceResolver — basic resolution', () => {
 
   it('resolves single-level inheritance', () => {
     resolver.registerTrait(makeTrait('Interactable', { cursor: 'default', highlight: false }));
-    resolver.registerTrait(makeTrait('Clickable', { cursor: 'pointer', highlight: true }, 'Interactable'));
+    resolver.registerTrait(
+      makeTrait('Clickable', { cursor: 'pointer', highlight: true }, 'Interactable')
+    );
 
     const result = resolver.resolveTrait('Clickable');
 
@@ -155,9 +156,9 @@ describe('TraitInheritanceResolver — basic resolution', () => {
 
     const result = resolver.resolveTrait('Child');
 
-    expect(result.properties.color).toBe('blue');   // overridden
-    expect(result.properties.size).toBe(10);         // inherited
-    expect(result.properties.speed).toBe(5);         // inherited
+    expect(result.properties.color).toBe('blue'); // overridden
+    expect(result.properties.size).toBe(10); // inherited
+    expect(result.properties.speed).toBe(5); // inherited
   });
 
   it('resolves multi-level inheritance (grandparent -> parent -> child)', () => {
@@ -168,9 +169,9 @@ describe('TraitInheritanceResolver — basic resolution', () => {
     const result = resolver.resolveTrait('Leaf');
 
     expect(result.ancestors).toEqual(['Middle', 'Root']);
-    expect(result.properties.a).toBe(1);    // from Root
-    expect(result.properties.b).toBe(20);   // from Middle (overrides Root)
-    expect(result.properties.c).toBe(300);  // from Leaf (overrides Root)
+    expect(result.properties.a).toBe(1); // from Root
+    expect(result.properties.b).toBe(20); // from Middle (overrides Root)
+    expect(result.properties.c).toBe(300); // from Leaf (overrides Root)
   });
 
   it('deep inheritance chain (4 levels)', () => {
@@ -207,12 +208,8 @@ describe('TraitInheritanceResolver — event handler and action inheritance', ()
   });
 
   it('inherits event handlers from parent', () => {
-    resolver.registerTrait(
-      makeTraitWithHandlers('Base', {}, undefined, ['on_click', 'on_hover']),
-    );
-    resolver.registerTrait(
-      makeTraitWithHandlers('Child', {}, 'Base', ['on_drag']),
-    );
+    resolver.registerTrait(makeTraitWithHandlers('Base', {}, undefined, ['on_click', 'on_hover']));
+    resolver.registerTrait(makeTraitWithHandlers('Child', {}, 'Base', ['on_drag']));
 
     const result = resolver.resolveTrait('Child');
 
@@ -224,12 +221,8 @@ describe('TraitInheritanceResolver — event handler and action inheritance', ()
   });
 
   it('child event handler overrides parent with same event name', () => {
-    resolver.registerTrait(
-      makeTraitWithHandlers('Base', {}, undefined, ['on_click']),
-    );
-    resolver.registerTrait(
-      makeTraitWithHandlers('Child', {}, 'Base', ['on_click']),
-    );
+    resolver.registerTrait(makeTraitWithHandlers('Base', {}, undefined, ['on_click']));
+    resolver.registerTrait(makeTraitWithHandlers('Child', {}, 'Base', ['on_click']));
 
     const result = resolver.resolveTrait('Child');
 
@@ -239,12 +232,8 @@ describe('TraitInheritanceResolver — event handler and action inheritance', ()
   });
 
   it('inherits actions from parent', () => {
-    resolver.registerTrait(
-      makeTraitWithHandlers('Base', {}, undefined, [], ['attack', 'defend']),
-    );
-    resolver.registerTrait(
-      makeTraitWithHandlers('Child', {}, 'Base', [], ['special']),
-    );
+    resolver.registerTrait(makeTraitWithHandlers('Base', {}, undefined, [], ['attack', 'defend']));
+    resolver.registerTrait(makeTraitWithHandlers('Child', {}, 'Base', [], ['special']));
 
     const result = resolver.resolveTrait('Child');
 
@@ -256,12 +245,8 @@ describe('TraitInheritanceResolver — event handler and action inheritance', ()
   });
 
   it('child action overrides parent action with same name', () => {
-    resolver.registerTrait(
-      makeTraitWithHandlers('Base', {}, undefined, [], ['attack']),
-    );
-    resolver.registerTrait(
-      makeTraitWithHandlers('Child', {}, 'Base', [], ['attack']),
-    );
+    resolver.registerTrait(makeTraitWithHandlers('Base', {}, undefined, [], ['attack']));
+    resolver.registerTrait(makeTraitWithHandlers('Child', {}, 'Base', [], ['attack']));
 
     const result = resolver.resolveTrait('Child');
 
@@ -630,14 +615,17 @@ describe('TraitCompositionCompiler — with TraitInheritanceResolver', () => {
 
     const compiler = new TraitCompositionCompiler(resolver);
 
-    const registry: Record<string, { defaultConfig: Record<string, unknown>; conflicts?: string[] }> = {
+    const registry: Record<
+      string,
+      { defaultConfig: Record<string, unknown>; conflicts?: string[] }
+    > = {
       HeavyPhysics: { defaultConfig: { mass: 100 } },
       combat: { defaultConfig: { damage: 10 } },
     };
 
     const [result] = compiler.compile(
       [{ name: 'Tank', components: ['HeavyPhysics', 'combat'] }],
-      (n) => registry[n],
+      (n) => registry[n]
     );
 
     // Should include inherited gravity from BasePhysics
@@ -655,7 +643,7 @@ describe('TraitCompositionCompiler — with TraitInheritanceResolver', () => {
 
     const [result] = compiler.compile(
       [{ name: 'Simple', components: ['physics'] }],
-      (n) => (registry as any)[n],
+      (n) => (registry as any)[n]
     );
 
     expect(result.defaultConfig.mass).toBe(1);
@@ -675,14 +663,17 @@ describe('TraitComposer — with TraitInheritanceResolver', () => {
     const composer = new TraitComposer(undefined, resolver);
 
     const handlerMap = new Map<string, any>([
-      ['FastMovement', {
-        name: 'FastMovement',
-        defaultConfig: { speed: 50 },
-        onAttach: () => {},
-        onDetach: () => {},
-        onUpdate: () => {},
-        onEvent: () => {},
-      }],
+      [
+        'FastMovement',
+        {
+          name: 'FastMovement',
+          defaultConfig: { speed: 50 },
+          onAttach: () => {},
+          onDetach: () => {},
+          onUpdate: () => {},
+          onEvent: () => {},
+        },
+      ],
     ]);
 
     const result = composer.compose('Runner', handlerMap, ['FastMovement']);
@@ -702,22 +693,28 @@ describe('TraitComposer — with TraitInheritanceResolver', () => {
     const composer = new TraitComposer(undefined, resolver);
 
     const handlerMap = new Map<string, any>([
-      ['Left', {
-        name: 'Left',
-        defaultConfig: { left: true },
-        onAttach: () => {},
-        onDetach: () => {},
-        onUpdate: () => {},
-        onEvent: () => {},
-      }],
-      ['Right', {
-        name: 'Right',
-        defaultConfig: { right: true },
-        onAttach: () => {},
-        onDetach: () => {},
-        onUpdate: () => {},
-        onEvent: () => {},
-      }],
+      [
+        'Left',
+        {
+          name: 'Left',
+          defaultConfig: { left: true },
+          onAttach: () => {},
+          onDetach: () => {},
+          onUpdate: () => {},
+          onEvent: () => {},
+        },
+      ],
+      [
+        'Right',
+        {
+          name: 'Right',
+          defaultConfig: { right: true },
+          onAttach: () => {},
+          onDetach: () => {},
+          onUpdate: () => {},
+          onEvent: () => {},
+        },
+      ],
     ]);
 
     const result = composer.compose('Diamond', handlerMap, ['Left', 'Right']);
@@ -731,14 +728,17 @@ describe('TraitComposer — with TraitInheritanceResolver', () => {
     const composer = new TraitComposer();
 
     const handlerMap = new Map<string, any>([
-      ['test', {
-        name: 'test',
-        defaultConfig: { x: 1 },
-        onAttach: () => {},
-        onDetach: () => {},
-        onUpdate: () => {},
-        onEvent: () => {},
-      }],
+      [
+        'test',
+        {
+          name: 'test',
+          defaultConfig: { x: 1 },
+          onAttach: () => {},
+          onDetach: () => {},
+          onUpdate: () => {},
+          onEvent: () => {},
+        },
+      ],
     ]);
 
     const result = composer.compose('Simple', handlerMap, ['test']);
@@ -791,14 +791,16 @@ describe('TraitInheritanceResolver — edge cases', () => {
   });
 
   it('property values of different types are preserved', () => {
-    resolver.registerTrait(makeTrait('TypeTest', {
-      stringVal: 'hello',
-      numberVal: 42,
-      boolVal: true,
-      nullVal: null,
-      arrayVal: [1, 2, 3],
-      objectVal: { nested: 'yes' },
-    }));
+    resolver.registerTrait(
+      makeTrait('TypeTest', {
+        stringVal: 'hello',
+        numberVal: 42,
+        boolVal: true,
+        nullVal: null,
+        arrayVal: [1, 2, 3],
+        objectVal: { nested: 'yes' },
+      })
+    );
 
     const result = resolver.resolveTrait('TypeTest');
 

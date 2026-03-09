@@ -26,7 +26,7 @@ import { AIValidator } from '@holoscript/ai-validator';
 const validator = new AIValidator({
   hallucinationThreshold: 50,
   provider: 'anthropic',
-  strict: false
+  strict: false,
 });
 
 // Validate AI-generated code
@@ -34,7 +34,7 @@ const result = await validator.validate(aiGeneratedCode);
 
 if (!result.valid) {
   console.error('Validation failed:');
-  result.errors.forEach(err => {
+  result.errors.forEach((err) => {
     console.log(`[${err.severity}] ${err.message}`);
     if (err.suggestion) {
       console.log(`  Suggestion: ${err.suggestion}`);
@@ -55,10 +55,10 @@ Main validation class with configurable rules.
 
 ```typescript
 interface ValidatorConfig {
-  strict?: boolean;                // Reject warnings as errors (default: false)
-  knownTraits?: string[];          // Custom trait registry
+  strict?: boolean; // Reject warnings as errors (default: false)
+  knownTraits?: string[]; // Custom trait registry
   hallucinationThreshold?: number; // Max hallucination score 0-100 (default: 50)
-  detectHallucinations?: boolean;  // Enable pattern detection (default: true)
+  detectHallucinations?: boolean; // Enable pattern detection (default: true)
   provider?: 'openai' | 'anthropic' | 'gemini' | 'local' | 'unknown';
 }
 ```
@@ -97,7 +97,7 @@ import { validateAICode } from '@holoscript/ai-validator';
 
 const result = await validateAICode(aiCode, {
   provider: 'openai',
-  hallucinationThreshold: 60
+  hallucinationThreshold: 60,
 });
 ```
 
@@ -156,17 +156,17 @@ cube {
 
 Detects common LLM hallucination patterns:
 
-| Pattern | Score | Example |
-|---------|-------|---------|
-| AI-like traits | 30 | `@ai_powered`, `@smart_detection` |
-| Triple braces | 50 | `{{{` or `}}}` |
-| OOP syntax | 40 | `class`, `extends`, `implements` |
-| Placeholders | 60 | `[PLACEHOLDER]`, `[YOUR_VALUE]` |
-| TODO comments | 20 | `// TODO: Add properties` |
-| HTML/XML | 35 | `<cube>...</cube>` |
-| JavaScript | 35 | `function createCube()` |
-| Template literals | 45 | `@color("${variable}")` |
-| Excessive repetition | 25 | 5+ identical traits |
+| Pattern              | Score | Example                           |
+| -------------------- | ----- | --------------------------------- |
+| AI-like traits       | 30    | `@ai_powered`, `@smart_detection` |
+| Triple braces        | 50    | `{{{` or `}}}`                    |
+| OOP syntax           | 40    | `class`, `extends`, `implements`  |
+| Placeholders         | 60    | `[PLACEHOLDER]`, `[YOUR_VALUE]`   |
+| TODO comments        | 20    | `// TODO: Add properties`         |
+| HTML/XML             | 35    | `<cube>...</cube>`                |
+| JavaScript           | 35    | `function createCube()`           |
+| Template literals    | 45    | `@color("${variable}")`           |
+| Excessive repetition | 25    | 5+ identical traits               |
 
 ### 5. Semantic Validation
 
@@ -187,17 +187,18 @@ cube { @position(0, 0, 0, 0, 0, 0, ...[100 values]...) }
 
 Detects markdown code fences:
 
-```typescript
+````typescript
 const validator = new AIValidator({ provider: 'openai' });
 
 // ❌ Invalid: Markdown fences
 ```holoscript
 cube { @color(red) }
-```
+````
 
 // ✅ Valid: No fences
 cube { @color(red) }
-```
+
+````
 
 ### Anthropic (Claude)
 
@@ -211,7 +212,7 @@ cube {
   // This is a red cube
   @color(red)
 }
-```
+````
 
 ## Hallucination Score
 
@@ -241,7 +242,7 @@ import { AIValidator } from '@holoscript/ai-validator';
 
 const validator = new AIValidator({
   provider: 'anthropic',
-  hallucinationThreshold: 50
+  hallucinationThreshold: 50,
 });
 
 // In MCP tool handler
@@ -252,7 +253,7 @@ async function handleGenerateObject(args: any) {
 
   if (!validation.valid) {
     // Provide feedback to LLM for regeneration
-    const feedback = validation.errors.map(e => e.message).join('\n');
+    const feedback = validation.errors.map((e) => e.message).join('\n');
     return await generateWithLLM(args.prompt, { feedback });
   }
 
@@ -279,7 +280,7 @@ async function executeSafely(aiCode: string) {
 
   // Step 2: Sandbox
   const result = await sandbox.executeHoloScript(aiCode, {
-    source: 'ai-generated'
+    source: 'ai-generated',
   });
 
   return result;
@@ -301,8 +302,8 @@ async function generateWithValidation(prompt: string, maxAttempts = 3) {
     // Provide validation feedback to LLM
     const feedback = [
       'Your previous attempt had errors:',
-      ...validation.errors.map(e => `- ${e.message}`),
-      ...validation.errors.map(e => e.suggestion ? `  Try: ${e.suggestion}` : '')
+      ...validation.errors.map((e) => `- ${e.message}`),
+      ...validation.errors.map((e) => (e.suggestion ? `  Try: ${e.suggestion}` : '')),
     ].join('\n');
 
     prompt = `${prompt}\n\nFeedback from previous attempt:\n${feedback}`;
@@ -320,13 +321,13 @@ async function generateWithValidation(prompt: string, maxAttempts = 3) {
 // Strict for production
 const prodValidator = new AIValidator({
   hallucinationThreshold: 30,
-  strict: true
+  strict: true,
 });
 
 // Lenient for development
 const devValidator = new AIValidator({
   hallucinationThreshold: 70,
-  strict: false
+  strict: false,
 });
 ```
 
@@ -335,7 +336,7 @@ const devValidator = new AIValidator({
 ```typescript
 // Set provider for better validation
 const validator = new AIValidator({
-  provider: detectProvider(apiKey) // 'openai', 'anthropic', etc.
+  provider: detectProvider(apiKey), // 'openai', 'anthropic', etc.
 });
 ```
 
@@ -344,11 +345,7 @@ const validator = new AIValidator({
 ```typescript
 // Add custom traits for domain-specific validation
 const validator = new AIValidator({
-  knownTraits: [
-    ...DEFAULT_TRAITS,
-    '@custom_physics',
-    '@special_rendering'
-  ]
+  knownTraits: [...DEFAULT_TRAITS, '@custom_physics', '@special_rendering'],
 });
 ```
 
@@ -365,7 +362,7 @@ if (!result.valid) {
   monitoring.trackValidationFailure({
     provider: result.metadata.provider,
     hallucinationScore: result.metadata.hallucinationScore,
-    errors: result.errors.length
+    errors: result.errors.length,
   });
 
   // Provide user feedback

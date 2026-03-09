@@ -11,14 +11,20 @@ import { ShaderGraph, SHADER_NODES } from '../ShaderGraph';
 describe('ShaderGraph', () => {
   let graph: ShaderGraph;
 
-  beforeEach(() => { graph = new ShaderGraph('test-graph'); });
+  beforeEach(() => {
+    graph = new ShaderGraph('test-graph');
+  });
 
   // -------------------------------------------------------------------------
   // Construction
   // -------------------------------------------------------------------------
   describe('construction', () => {
-    it('has the given id', () => { expect(graph.id).toBe('test-graph'); });
-    it('starts empty', () => { expect(graph.getNodeCount()).toBe(0); });
+    it('has the given id', () => {
+      expect(graph.id).toBe('test-graph');
+    });
+    it('starts empty', () => {
+      expect(graph.getNodeCount()).toBe(0);
+    });
     it('auto-generates id when not provided', () => {
       const g2 = new ShaderGraph();
       expect(typeof g2.id).toBe('string');
@@ -197,8 +203,8 @@ describe('ShaderGraph', () => {
 
     it('topological sort: source compiled before target', () => {
       const color = graph.addNode('Color')!;
-      const mul   = graph.addNode('Multiply')!;
-      const out   = graph.addNode('Output')!;
+      const mul = graph.addNode('Multiply')!;
+      const out = graph.addNode('Output')!;
       graph.connect(color.id, 'rgba', mul.id, 'a');
       graph.connect(mul.id, 'result', out.id, 'albedo');
       // Should compile without error in correct order

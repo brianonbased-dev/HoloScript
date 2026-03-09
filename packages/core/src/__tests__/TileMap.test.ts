@@ -75,7 +75,7 @@ describe('Cycle 159: Tile Map System', () => {
 
     // View only first 4×4 tile area
     const visible = renderer.getVisibleTiles(0, 0, 64, 64);
-    const ids = visible.map(t => t.tileX);
+    const ids = visible.map((t) => t.tileX);
     expect(ids).toContain(0);
     expect(ids).toContain(1);
     expect(ids).not.toContain(15); // Out of viewport

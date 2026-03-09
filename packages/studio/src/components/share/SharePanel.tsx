@@ -7,7 +7,7 @@
 import { useState, useCallback } from 'react';
 import { Share2, Globe, Loader2, Copy, Check, RefreshCw, Clock, X } from 'lucide-react';
 import { useSceneShare } from '@/hooks/useSceneShare';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 interface SharePanelProps {
   onClose: () => void;
@@ -72,7 +72,14 @@ export function SharePanel({ onClose }: SharePanelProps) {
                 : 'text-studio-muted hover:text-studio-text'
             }`}
           >
-            {tab === 'gallery' ? <><Globe className="mr-1 inline h-3 w-3" />Gallery</> : tab}
+            {tab === 'gallery' ? (
+              <>
+                <Globe className="mr-1 inline h-3 w-3" />
+                Gallery
+              </>
+            ) : (
+              tab
+            )}
           </button>
         ))}
       </div>
@@ -82,7 +89,8 @@ export function SharePanel({ onClose }: SharePanelProps) {
         {activeTab === 'publish' && (
           <>
             <div className="rounded-lg border border-studio-border bg-studio-surface p-2.5 text-[10px] text-studio-muted">
-              Publishing "{sceneMetadata.name || 'Untitled'}" — {code.split('\n').length} lines of HoloScript
+              Publishing "{sceneMetadata.name || 'Untitled'}" — {code.split('\n').length} lines of
+              HoloScript
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -105,15 +113,21 @@ export function SharePanel({ onClose }: SharePanelProps) {
                 className="flex items-center justify-center gap-2 rounded-lg bg-studio-accent px-4 py-2 text-[12px] font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
               >
                 {publishing ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" /> Publishing…</>
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Publishing…
+                  </>
                 ) : (
-                  <><Share2 className="h-4 w-4" /> Publish Scene</>
+                  <>
+                    <Share2 className="h-4 w-4" /> Publish Scene
+                  </>
                 )}
               </button>
             ) : (
               <div className="flex flex-col gap-2">
                 <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-2.5">
-                  <p className="mb-1.5 text-[11px] font-medium text-green-400">✓ Scene published!</p>
+                  <p className="mb-1.5 text-[11px] font-medium text-green-400">
+                    ✓ Scene published!
+                  </p>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 truncate rounded bg-studio-surface px-2 py-1 text-[10px] text-studio-text font-mono">
                       {shareUrl}
@@ -122,7 +136,11 @@ export function SharePanel({ onClose }: SharePanelProps) {
                       onClick={copyUrl}
                       className="shrink-0 rounded p-1.5 text-studio-muted hover:text-studio-text"
                     >
-                      {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                      {copied ? (
+                        <Check className="h-3.5 w-3.5 text-green-400" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -167,7 +185,9 @@ export function SharePanel({ onClose }: SharePanelProps) {
             {!loadingGallery && gallery.length === 0 && (
               <div className="flex flex-col items-center gap-2 py-8 text-center">
                 <Globe className="h-8 w-8 text-studio-muted/40" />
-                <p className="text-[11px] text-studio-muted">No scenes shared yet — be the first!</p>
+                <p className="text-[11px] text-studio-muted">
+                  No scenes shared yet — be the first!
+                </p>
               </div>
             )}
 
@@ -181,7 +201,9 @@ export function SharePanel({ onClose }: SharePanelProps) {
                   className="flex rounded-lg border border-studio-border bg-studio-surface p-2.5 text-left transition hover:border-studio-accent hover:bg-studio-surface/80"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="truncate text-[11px] font-medium text-studio-text">{scene.name}</p>
+                    <p className="truncate text-[11px] font-medium text-studio-text">
+                      {scene.name}
+                    </p>
                     <p className="text-[10px] text-studio-muted">by {scene.author}</p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-0.5">

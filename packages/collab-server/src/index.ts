@@ -18,9 +18,7 @@ function createCollabServer(opts: CollabServerOptions = {}) {
 
   const httpServer = createServer((_req: IncomingMessage, res: ServerResponse) => {
     if (_req.url === '/health') {
-      const stats = Object.fromEntries(
-        Array.from(rooms.entries()).map(([id, r]) => [id, r.size])
-      );
+      const stats = Object.fromEntries(Array.from(rooms.entries()).map(([id, r]) => [id, r.size]));
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok', rooms: stats }));
       return;
@@ -37,13 +35,20 @@ function createCollabServer(opts: CollabServerOptions = {}) {
     const roomId = url.searchParams.get('room') ?? 'default';
 
     let room = rooms.get(roomId);
-    if (!room) { room = new Set(); rooms.set(roomId, room); }
+    if (!room) {
+      room = new Set();
+      rooms.set(roomId, room);
+    }
     room.add(ws);
     onRoomChange?.(roomId, room.size);
 
     ws.on('message', (data) => {
       let msg: Record<string, unknown>;
-      try { msg = JSON.parse(data.toString()); } catch { return; }
+      try {
+        msg = JSON.parse(data.toString());
+      } catch {
+        return;
+      }
       if (msg.type === 'ping') return;
 
       const payload = JSON.stringify(msg);
@@ -58,7 +63,9 @@ function createCollabServer(opts: CollabServerOptions = {}) {
       onRoomChange?.(roomId, room!.size);
     });
 
-    ws.on('error', () => { room!.delete(ws); });
+    ws.on('error', () => {
+      room!.delete(ws);
+    });
   });
 
   httpServer.listen(port);

@@ -68,7 +68,10 @@ describe('ShaderEditorService', () => {
               return Promise.resolve(key);
             }),
             get: vi.fn((key: string) => Promise.resolve(mockStore[name]?.[key] ?? null)),
-            delete: vi.fn((key: string) => { delete mockStore[name]?.[key]; return Promise.resolve(); }),
+            delete: vi.fn((key: string) => {
+              delete mockStore[name]?.[key];
+              return Promise.resolve();
+            }),
             getAll: vi.fn(() => Promise.resolve(Object.values(mockStore[name] ?? {}))),
             index: vi.fn(() => ({
               getAll: vi.fn().mockResolvedValue([]),
@@ -92,7 +95,10 @@ describe('ShaderEditorService', () => {
         mockStore[store][key] = data;
         return Promise.resolve(key);
       }),
-      delete: vi.fn((store: string, key: string) => { delete mockStore[store]?.[key]; return Promise.resolve(); }),
+      delete: vi.fn((store: string, key: string) => {
+        delete mockStore[store]?.[key];
+        return Promise.resolve();
+      }),
       close: vi.fn(),
     };
   });
@@ -136,8 +142,13 @@ describe('ShaderEditorService', () => {
     // Pre-seed metadata so update() doesn't throw 'metadata not found'
     if (!mockStore['metadata']) mockStore['metadata'] = {};
     mockStore['metadata'][graph.id] = {
-      id: graph.id, name: graph.name, createdAt: Date.now(),
-      updatedAt: Date.now(), version: '1', tags: [], size: 0,
+      id: graph.id,
+      name: graph.name,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      version: '1',
+      tags: [],
+      size: 0,
     };
 
     vi.useFakeTimers();

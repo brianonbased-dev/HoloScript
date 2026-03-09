@@ -58,12 +58,12 @@ coverage: {
 
 ### Overall Metrics
 
-| Metric | Coverage | Target | Status |
-|--------|----------|--------|--------|
-| **Lines** | 18.66% | 40% | ⚠️ Below |
-| **Statements** | 18.66% | 40% | ⚠️ Below |
-| **Functions** | 53.32% | 40% | ✅ Above |
-| **Branches** | 69.43% | 35% | ✅ Above |
+| Metric         | Coverage | Target | Status   |
+| -------------- | -------- | ------ | -------- |
+| **Lines**      | 18.66%   | 40%    | ⚠️ Below |
+| **Statements** | 18.66%   | 40%    | ⚠️ Below |
+| **Functions**  | 53.32%   | 40%    | ✅ Above |
+| **Branches**   | 69.43%   | 35%    | ✅ Above |
 
 ### Test Summary
 
@@ -74,24 +74,26 @@ coverage: {
 
 ### Well-Covered Modules (>90%)
 
-| Module | Coverage | Type |
-|--------|----------|------|
-| `lib/animationBuilder.ts` | 100% | ✅ Complete |
-| `lib/sceneTemplates.ts` | 100% | ✅ Complete |
-| `lib/behaviorTree.ts` | 98.11% | ✅ Excellent |
-| `lib/robotHelpers.ts` | 97.82% | ✅ Excellent |
-| `hooks/useShaderGraph.ts` | 97.88% | ✅ Excellent |
-| `lib/store.ts` | 94.77% | ✅ Excellent |
+| Module                    | Coverage | Type         |
+| ------------------------- | -------- | ------------ |
+| `lib/animationBuilder.ts` | 100%     | ✅ Complete  |
+| `lib/sceneTemplates.ts`   | 100%     | ✅ Complete  |
+| `lib/behaviorTree.ts`     | 98.11%   | ✅ Excellent |
+| `lib/robotHelpers.ts`     | 97.82%   | ✅ Excellent |
+| `hooks/useShaderGraph.ts` | 97.88%   | ✅ Excellent |
+| `lib/store.ts`            | 94.77%   | ✅ Excellent |
 
 ### Areas Needing Coverage (0%)
 
 #### Components (0% coverage)
+
 - All React components in `components/`
 - Scene rendering components
 - UI panels and modals
 - Inspector panels
 
 #### Hooks (0% coverage - majority)
+
 - `useMultiSelect.ts`
 - `useSceneExport.ts`
 - `useSnapshots.ts`
@@ -100,6 +102,7 @@ coverage: {
 - And 30+ more hooks
 
 #### API Routes (Excluded)
+
 - All Next.js API routes in `app/api/`
 - Intentionally excluded (require integration tests)
 
@@ -127,6 +130,7 @@ start coverage/index.html # Windows
 ### Coverage Output
 
 Coverage reports are generated in:
+
 - **Text**: Console output
 - **HTML**: `coverage/index.html` (interactive)
 - **JSON**: `coverage/coverage-final.json`
@@ -197,6 +201,7 @@ Coverage reports are generated in:
 **Reason**: API mismatch - `setRecordedClips()` doesn't exist in `useCharacterStore`
 
 **Fix Required**:
+
 1. Add `setRecordedClips` method to character store, OR
 2. Refactor test to use correct API
 
@@ -207,6 +212,7 @@ Coverage reports are generated in:
 **Issue**: Tests importing from non-existent module paths
 
 **Files Fixed**:
+
 - `useEditorStore` from `../../lib/editorStore` → `../../lib/store`
 - `useSceneGraphStore` from `../../lib/sceneGraphStore` → `../../lib/store`
 
@@ -229,12 +235,12 @@ thresholds: {
 
 ### Threshold Adjustment Plan
 
-| Phase | Lines | Functions | Branches | Statements |
-|-------|-------|-----------|----------|------------|
-| **Baseline** | 40% | 40% | 35% | 40% |
-| **Phase 1** | 45% | 45% | 40% | 45% |
-| **Phase 2** | 55% | 55% | 50% | 55% |
-| **Phase 3** | 70% | 70% | 60% | 70% |
+| Phase        | Lines | Functions | Branches | Statements |
+| ------------ | ----- | --------- | -------- | ---------- |
+| **Baseline** | 40%   | 40%       | 35%      | 40%        |
+| **Phase 1**  | 45%   | 45%       | 40%      | 45%        |
+| **Phase 2**  | 55%   | 55%       | 50%      | 55%        |
+| **Phase 3**  | 70%   | 70%       | 60%      | 70%        |
 
 Increase thresholds gradually as coverage improves to prevent regression.
 

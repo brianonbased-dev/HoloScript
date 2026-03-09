@@ -53,7 +53,7 @@ export class ComplexityAnalyzer {
         filePath,
         cyclomaticComplexity,
         nestingDepth,
-        lineCount,
+        lineCount
       );
       fileResults.push({
         filePath,
@@ -73,19 +73,23 @@ export class ComplexityAnalyzer {
         summary: 'No files analyzed.',
       };
     }
-    const averageCC = fileResults.reduce((s, f) => s + f.cyclomaticComplexity, 0) / fileResults.length;
+    const averageCC =
+      fileResults.reduce((s, f) => s + f.cyclomaticComplexity, 0) / fileResults.length;
     const averageDepth = fileResults.reduce((s, f) => s + f.nestingDepth, 0) / fileResults.length;
     const overallGrade = ComplexityAnalyzer.gradeFor(
       Math.round(averageCC),
-      Math.round(averageDepth),
+      Math.round(averageDepth)
     );
     const problematic = fileResults.filter(
-      (f) => f.grade === 'C' || f.grade === 'D' || f.grade === 'F',
+      (f) => f.grade === 'C' || f.grade === 'D' || f.grade === 'F'
     );
     const summary =
       problematic.length === 0
         ? 'All ' + fileResults.length + ' file(s) meet complexity thresholds.'
-        : problematic.length + ' of ' + fileResults.length + ' file(s) exceed complexity thresholds.';
+        : problematic.length +
+          ' of ' +
+          fileResults.length +
+          ' file(s) exceed complexity thresholds.';
     return {
       files: fileResults,
       averageCC: Math.round(averageCC * 100) / 100,
@@ -107,19 +111,29 @@ export class ComplexityAnalyzer {
     _filePath: string,
     cc: number,
     depth: number,
-    lineCount: number,
+    lineCount: number
   ): string[] {
     const recs: string[] = [];
     if (cc > this.ccError) {
-      recs.push('High cyclomatic complexity (' + cc + '): consider breaking this file into smaller functions.');
+      recs.push(
+        'High cyclomatic complexity (' +
+          cc +
+          '): consider breaking this file into smaller functions.'
+      );
     } else if (cc > this.ccWarn) {
-      recs.push('Elevated cyclomatic complexity (' + cc + '): review branching logic for simplification.');
+      recs.push(
+        'Elevated cyclomatic complexity (' + cc + '): review branching logic for simplification.'
+      );
     }
     if (depth > this.depthThreshold) {
-      recs.push('Deep nesting detected (depth ' + depth + '): extract nested blocks into named functions.');
+      recs.push(
+        'Deep nesting detected (depth ' + depth + '): extract nested blocks into named functions.'
+      );
     }
     if (lineCount > 300) {
-      recs.push('File is large (' + lineCount + ' lines): consider splitting into smaller modules.');
+      recs.push(
+        'File is large (' + lineCount + ' lines): consider splitting into smaller modules.'
+      );
     }
     return recs;
   }

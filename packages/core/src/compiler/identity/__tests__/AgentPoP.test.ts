@@ -245,12 +245,7 @@ describe('AgentPoP', () => {
       const signatureBase = constructSignatureBase(components, metadata);
       const signature = signDirectly(signatureBase, keyPair.privateKey);
 
-      const result = verifySignature(
-        signatureBase,
-        signature,
-        keyPair.publicKey,
-        metadata
-      );
+      const result = verifySignature(signatureBase, signature, keyPair.publicKey, metadata);
 
       expect(result.valid).toBe(true);
       expect(result.error).toBeUndefined();
@@ -324,12 +319,7 @@ describe('AgentPoP', () => {
 
       const tamperedBase = constructSignatureBase(tamperedComponents, metadata);
 
-      const result = verifySignature(
-        tamperedBase,
-        signature,
-        keyPair.publicKey,
-        metadata
-      );
+      const result = verifySignature(tamperedBase, signature, keyPair.publicKey, metadata);
 
       expect(result.valid).toBe(false);
       expect(result.errorCode).toBe('INVALID_SIGNATURE');
@@ -522,7 +512,9 @@ describe('AgentPoP', () => {
       const httpSignature = {
         signature,
         metadata,
-        components: Object.keys(components).filter(k => components[k as keyof SignatureComponents] !== undefined),
+        components: Object.keys(components).filter(
+          (k) => components[k as keyof SignatureComponents] !== undefined
+        ),
       };
       const headers = formatSignatureHeaders(httpSignature);
 
@@ -583,23 +575,13 @@ describe('AgentPoP', () => {
       const signature = signDirectly(signatureBase, keyPair.privateKey);
 
       // First verification should succeed (nonce not in cache)
-      const result1 = verifySignature(
-        signatureBase,
-        signature,
-        keyPair.publicKey,
-        metadata
-      );
+      const result1 = verifySignature(signatureBase, signature, keyPair.publicKey, metadata);
 
       expect(result1.valid).toBe(true);
 
       // Second verification with same nonce should fail (replay attack)
       // verifySignature stores the nonce on successful verification
-      const result2 = verifySignature(
-        signatureBase,
-        signature,
-        keyPair.publicKey,
-        metadata
-      );
+      const result2 = verifySignature(signatureBase, signature, keyPair.publicKey, metadata);
 
       expect(result2.valid).toBe(false);
       expect(result2.errorCode).toBe('REPLAY_ATTACK');

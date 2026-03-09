@@ -68,19 +68,23 @@ describe('FallbackCacheStrategy — Production Tests', () => {
       const old = new FallbackCacheStrategy({ maxAge: 1 }); // 1ms TTL
       old.set('stale', 99);
       // wait for expiry
-      return new Promise(resolve => setTimeout(() => {
-        expect(old.hasValidCache('stale')).toBe(true); // staleWhileRevalidate default true
-        resolve(undefined);
-      }, 5));
+      return new Promise((resolve) =>
+        setTimeout(() => {
+          expect(old.hasValidCache('stale')).toBe(true); // staleWhileRevalidate default true
+          resolve(undefined);
+        }, 5)
+      );
     });
 
     it('returns false for stale entry when staleWhileRevalidate=false', () => {
       const strict = new FallbackCacheStrategy({ maxAge: 1, staleWhileRevalidate: false });
       strict.set('stale', 99);
-      return new Promise(resolve => setTimeout(() => {
-        expect(strict.hasValidCache('stale')).toBe(false);
-        resolve(undefined);
-      }, 5));
+      return new Promise((resolve) =>
+        setTimeout(() => {
+          expect(strict.hasValidCache('stale')).toBe(false);
+          resolve(undefined);
+        }, 5)
+      );
     });
   });
 
@@ -127,7 +131,7 @@ describe('FallbackCacheStrategy — Production Tests', () => {
     it('returns stale message for old entry with staleWhileRevalidate=true', async () => {
       const slow = new FallbackCacheStrategy({ maxAge: 1, staleWhileRevalidate: true });
       slow.set('k', 'val');
-      await new Promise(r => setTimeout(r, 5));
+      await new Promise((r) => setTimeout(r, 5));
       const f = makeFailure({ errorType: 'network-timeout', context: { cacheKey: 'k' } });
       const result = await slow.execute(f);
       expect(result.success).toBe(true);
@@ -138,7 +142,7 @@ describe('FallbackCacheStrategy — Production Tests', () => {
     it('returns failure for expired entry with staleWhileRevalidate=false', async () => {
       const strict = new FallbackCacheStrategy({ maxAge: 1, staleWhileRevalidate: false });
       strict.set('k', 'val');
-      await new Promise(r => setTimeout(r, 5));
+      await new Promise((r) => setTimeout(r, 5));
       const f = makeFailure({ errorType: 'network-timeout', context: { cacheKey: 'k' } });
       const result = await strict.execute(f);
       expect(result.success).toBe(false);
@@ -163,7 +167,7 @@ describe('FallbackCacheStrategy — Production Tests', () => {
       const strict = new FallbackCacheStrategy({ maxAge: 1, staleWhileRevalidate: false });
       strict.set('a', 1);
       strict.set('b', 2);
-      await new Promise(r => setTimeout(r, 5));
+      await new Promise((r) => setTimeout(r, 5));
       const pruned = strict.prune();
       expect(pruned).toBe(2);
       expect(strict.size()).toBe(0);
@@ -172,7 +176,7 @@ describe('FallbackCacheStrategy — Production Tests', () => {
     it('prune() does not remove when staleWhileRevalidate=true', async () => {
       const lenient = new FallbackCacheStrategy({ maxAge: 1, staleWhileRevalidate: true });
       lenient.set('a', 1);
-      await new Promise(r => setTimeout(r, 5));
+      await new Promise((r) => setTimeout(r, 5));
       const pruned = lenient.prune();
       expect(pruned).toBe(0);
       expect(lenient.size()).toBe(1);

@@ -82,18 +82,26 @@ describe('spatialAudioCueHandler.onAttach', () => {
   });
 
   it('emits audio_cue_register with type, priority, spatial, maxDistance', () => {
-    const { ctx } = attach({ cue_type: 'alert', priority: 'high', spatial: false, max_distance: 15 });
+    const { ctx } = attach({
+      cue_type: 'alert',
+      priority: 'high',
+      spatial: false,
+      max_distance: 15,
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'audio_cue_register');
     expect(call).toBeDefined();
     expect(call![1].type).toBe('alert');
-    expect(call![1].priority).toBe(2);  // high → 2
+    expect(call![1].priority).toBe(2); // high → 2
     expect(call![1].spatial).toBe(false);
     expect(call![1].maxDistance).toBe(15);
   });
 
   it('emits audio_preload when earcon is specified', () => {
     const { ctx } = attach({ earcon: 'sfx/ding.ogg' });
-    expect(ctx.emit).toHaveBeenCalledWith('audio_preload', expect.objectContaining({ url: 'sfx/ding.ogg' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'audio_preload',
+      expect.objectContaining({ url: 'sfx/ding.ogg' })
+    );
   });
 
   it('does NOT emit audio_preload when earcon is empty', () => {
@@ -148,16 +156,25 @@ describe('spatialAudioCueHandler.onUpdate — repeat interval', () => {
   });
 
   it('fires audio_cue_play when timer >= repeat_interval', () => {
-    const { node, ctx, config } = attach({ repeat_interval: 2, earcon: 'sfx/ding.ogg', volume: 0.7, spatial: true, priority: 'low' });
+    const { node, ctx, config } = attach({
+      repeat_interval: 2,
+      earcon: 'sfx/ding.ogg',
+      volume: 0.7,
+      spatial: true,
+      priority: 'low',
+    });
     const state = (node as any).__spatialAudioCueState;
     ctx.emit.mockClear();
     spatialAudioCueHandler.onUpdate!(node as any, config, ctx as any, 2.5); // 2.5 >= 2
-    expect(ctx.emit).toHaveBeenCalledWith('audio_cue_play', expect.objectContaining({
-      url: 'sfx/ding.ogg',
-      volume: 0.7,
-      spatial: true,
-      priority: 0, // low
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'audio_cue_play',
+      expect.objectContaining({
+        url: 'sfx/ding.ogg',
+        volume: 0.7,
+        spatial: true,
+        priority: 0, // low
+      })
+    );
   });
 
   it('resets repeatTimer to 0 after firing', () => {
@@ -193,15 +210,23 @@ describe('spatialAudioCueHandler.onEvent — audio_cue_trigger', () => {
   });
 
   it('emits audio_cue_play with URL and priority', () => {
-    const { node, ctx, config } = attach({ earcon: 'sfx/alert.ogg', priority: 'critical', volume: 0.9, spatial: false });
-    ctx.emit.mockClear();
-    spatialAudioCueHandler.onEvent!(node as any, config, ctx as any, { type: 'audio_cue_trigger' });
-    expect(ctx.emit).toHaveBeenCalledWith('audio_cue_play', expect.objectContaining({
-      url: 'sfx/alert.ogg',
+    const { node, ctx, config } = attach({
+      earcon: 'sfx/alert.ogg',
+      priority: 'critical',
       volume: 0.9,
       spatial: false,
-      priority: 3, // critical
-    }));
+    });
+    ctx.emit.mockClear();
+    spatialAudioCueHandler.onEvent!(node as any, config, ctx as any, { type: 'audio_cue_trigger' });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'audio_cue_play',
+      expect.objectContaining({
+        url: 'sfx/alert.ogg',
+        volume: 0.9,
+        spatial: false,
+        priority: 3, // critical
+      })
+    );
   });
 
   it('increments playCount on trigger', () => {
@@ -214,7 +239,10 @@ describe('spatialAudioCueHandler.onEvent — audio_cue_trigger', () => {
     const { node, ctx, config } = attach({ tts_message: 'Checkpoint reached' });
     ctx.emit.mockClear();
     spatialAudioCueHandler.onEvent!(node as any, config, ctx as any, { type: 'audio_cue_trigger' });
-    expect(ctx.emit).toHaveBeenCalledWith('tts_speak', expect.objectContaining({ message: 'Checkpoint reached' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'tts_speak',
+      expect.objectContaining({ message: 'Checkpoint reached' })
+    );
   });
 
   it('emits tts_speak with event.message overriding config.tts_message', () => {
@@ -258,7 +286,9 @@ describe('spatialAudioCueHandler.onEvent — other events', () => {
   it('audio_cue_complete → isPlaying=false', () => {
     const { node, ctx, config } = attach();
     (node as any).__spatialAudioCueState.isPlaying = true;
-    spatialAudioCueHandler.onEvent!(node as any, config, ctx as any, { type: 'audio_cue_complete' });
+    spatialAudioCueHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'audio_cue_complete',
+    });
     expect((node as any).__spatialAudioCueState.isPlaying).toBe(false);
   });
 
@@ -277,13 +307,17 @@ describe('spatialAudioCueHandler.onEvent — other events', () => {
   it('audio_cue_activate → isActive=true', () => {
     const { node, ctx, config } = attach();
     (node as any).__spatialAudioCueState.isActive = false;
-    spatialAudioCueHandler.onEvent!(node as any, config, ctx as any, { type: 'audio_cue_activate' });
+    spatialAudioCueHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'audio_cue_activate',
+    });
     expect((node as any).__spatialAudioCueState.isActive).toBe(true);
   });
 
   it('audio_cue_deactivate → isActive=false', () => {
     const { node, ctx, config } = attach();
-    spatialAudioCueHandler.onEvent!(node as any, config, ctx as any, { type: 'audio_cue_deactivate' });
+    spatialAudioCueHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'audio_cue_deactivate',
+    });
     expect((node as any).__spatialAudioCueState.isActive).toBe(false);
   });
 
@@ -291,7 +325,9 @@ describe('spatialAudioCueHandler.onEvent — other events', () => {
     const { node, ctx, config } = attach();
     (node as any).__spatialAudioCueState.isPlaying = true;
     ctx.emit.mockClear();
-    spatialAudioCueHandler.onEvent!(node as any, config, ctx as any, { type: 'audio_cue_deactivate' });
+    spatialAudioCueHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'audio_cue_deactivate',
+    });
     expect(ctx.emit).toHaveBeenCalledWith('audio_stop', expect.any(Object));
   });
 

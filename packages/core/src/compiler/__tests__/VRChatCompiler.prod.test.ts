@@ -7,7 +7,7 @@
  * scripts, timelines, transitions, environment, world descriptor UUID,
  * and compileToVRChat() convenience function.
  */
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VRChatCompiler, compileToVRChat } from '../VRChatCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -18,7 +18,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -146,7 +145,10 @@ describe('VRChatCompiler — Production', () => {
     });
 
     it('contains all object names for multi-object scene', () => {
-      const result = compiler.compile(makeComp({ objects: [makeObj('obj_a'), makeObj('obj_b')] }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ objects: [makeObj('obj_a'), makeObj('obj_b')] }),
+        'test-token'
+      );
       expect(result.prefabHierarchy).toContain('obj_a');
       expect(result.prefabHierarchy).toContain('obj_b');
     });
@@ -155,12 +157,18 @@ describe('VRChatCompiler — Production', () => {
   // ─── State → fields ────────────────────────────────────────────────────────
   describe('compile() — state', () => {
     it('includes state keys in mainScript', () => {
-      const result = compiler.compile(makeComp({ state: { properties: [{ key: 'score', value: 0 }] } as any }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ state: { properties: [{ key: 'score', value: 0 }] } as any }),
+        'test-token'
+      );
       expect(result.mainScript).toContain('score');
     });
 
     it('includes string state in mainScript', () => {
-      const result = compiler.compile(makeComp({ state: { properties: [{ key: 'playerName', value: 'Alice' }] } as any }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ state: { properties: [{ key: 'playerName', value: 'Alice' }] } as any }),
+        'test-token'
+      );
       expect(result.mainScript).toContain('playerName');
     });
   });
@@ -168,7 +176,10 @@ describe('VRChatCompiler — Production', () => {
   // ─── Udon scripts for interactable traits ──────────────────────────────────
   describe('compile() — Udon scripts', () => {
     it('generates Udon script for grabbable object', () => {
-      const result = compiler.compile(makeComp({ objects: [makeObj('coin', 'sphere', [{ name: 'grabbable' }])] }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ objects: [makeObj('coin', 'sphere', [{ name: 'grabbable' }])] }),
+        'test-token'
+      );
       expect(result.udonScripts.size).toBeGreaterThan(0);
     });
 
@@ -178,7 +189,10 @@ describe('VRChatCompiler — Production', () => {
     });
 
     it('pointable trait generates Udon script', () => {
-      const result = compiler.compile(makeComp({ objects: [makeObj('button', 'box', [{ name: 'pointable' }])] }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ objects: [makeObj('button', 'box', [{ name: 'pointable' }])] }),
+        'test-token'
+      );
       expect(result.udonScripts.size).toBeGreaterThan(0);
     });
   });
@@ -186,7 +200,10 @@ describe('VRChatCompiler — Production', () => {
   // ─── Environment ──────────────────────────────────────────────────────────
   describe('compile() — environment', () => {
     it('compiles with environment node', () => {
-      const result = compiler.compile(makeComp({ environment: { properties: [{ key: 'skybox', value: 'sunset' }] } as any }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ environment: { properties: [{ key: 'skybox', value: 'sunset' }] } as any }),
+        'test-token'
+      );
       expect(result.mainScript).toBeDefined();
     });
   });
@@ -194,16 +211,21 @@ describe('VRChatCompiler — Production', () => {
   // ─── Timelines ────────────────────────────────────────────────────────────
   describe('compile() — timelines', () => {
     it('compiles with timeline', () => {
-      const result = compiler.compile(makeComp({
-          timelines: [{
-            name: 'anim1',
-            duration: 2.0,
-            entries: [
-              { time: 0, action: { kind: 'emit', event: 'start' } },
-              { time: 1, action: { kind: 'emit', event: 'end' } },
-            ],
-          } as any],
-        }), 'test-token');
+      const result = compiler.compile(
+        makeComp({
+          timelines: [
+            {
+              name: 'anim1',
+              duration: 2.0,
+              entries: [
+                { time: 0, action: { kind: 'emit', event: 'start' } },
+                { time: 1, action: { kind: 'emit', event: 'end' } },
+              ],
+            } as any,
+          ],
+        }),
+        'test-token'
+      );
       expect(result.mainScript).toBeDefined();
       expect(result.mainScript).toContain('anim1');
     });
@@ -212,15 +234,20 @@ describe('VRChatCompiler — Production', () => {
   // ─── Transitions ──────────────────────────────────────────────────────────
   describe('compile() — transitions', () => {
     it('compiles with transition', () => {
-      const result = compiler.compile(makeComp({
-          transitions: [{
-            name: 'fade',
-            from: 'stateA',
-            to: 'stateB',
-            duration: 0.5,
-            properties: [{ key: 'destination', value: 'stateB' }],
-          } as any],
-        }), 'test-token');
+      const result = compiler.compile(
+        makeComp({
+          transitions: [
+            {
+              name: 'fade',
+              from: 'stateA',
+              to: 'stateB',
+              duration: 0.5,
+              properties: [{ key: 'destination', value: 'stateB' }],
+            } as any,
+          ],
+        }),
+        'test-token'
+      );
       expect(result.mainScript).toBeDefined();
     });
   });

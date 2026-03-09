@@ -21,15 +21,15 @@ Railway is a Platform-as-a-Service that handles all infrastructure automatically
 
 ### Small Deployment (10-100 users)
 
-| Service | Railway Cost | AWS Equivalent |
-|---------|-------------|----------------|
-| Studio Frontend (Next.js) | $8-15/month | $30-50/month |
-| PostgreSQL (1GB) | $5-8/month | $15-25/month |
-| Redis (256MB) | $2-5/month | $10-15/month |
-| WebSocket Server | $5-10/month | $20-40/month |
-| Marketplace API | $5-10/month | $20-40/month |
-| Cloud Deploy API | $5-10/month | $20-40/month |
-| **TOTAL** | **$30-58/month** | **$115-210/month** |
+| Service                   | Railway Cost     | AWS Equivalent     |
+| ------------------------- | ---------------- | ------------------ |
+| Studio Frontend (Next.js) | $8-15/month      | $30-50/month       |
+| PostgreSQL (1GB)          | $5-8/month       | $15-25/month       |
+| Redis (256MB)             | $2-5/month       | $10-15/month       |
+| WebSocket Server          | $5-10/month      | $20-40/month       |
+| Marketplace API           | $5-10/month      | $20-40/month       |
+| Cloud Deploy API          | $5-10/month      | $20-40/month       |
+| **TOTAL**                 | **$30-58/month** | **$115-210/month** |
 
 ### Development (Free Tier)
 
@@ -39,6 +39,7 @@ Railway is a Platform-as-a-Service that handles all infrastructure automatically
 - **Total: $0/month** ✅ (with careful resource management)
 
 ### Medium Deployment (100-1000 users)
+
 - Railway Pro: ~$50-80/month
 - Still way cheaper than AWS: ~$200-400/month
 
@@ -148,6 +149,7 @@ railway domain
 ```
 
 **Environment Variables (Railway Dashboard):**
+
 ```
 PORT=8080
 REDIS_URL=${{Redis.REDIS_URL}}  # Auto-linked
@@ -247,6 +249,7 @@ railway domain
 ```
 
 **Environment Variables:**
+
 ```
 DATABASE_URL=${{Postgres.DATABASE_URL}}  # Auto-linked
 REDIS_URL=${{Redis.REDIS_URL}}           # Auto-linked
@@ -282,6 +285,7 @@ railway domain
 ```
 
 **Environment Variables (Railway Dashboard):**
+
 ```
 NEXT_PUBLIC_MARKETPLACE_URL=https://marketplace.holoscript.net/api
 NEXT_PUBLIC_CLOUD_API_URL=https://cloud.holoscript.net/api
@@ -290,6 +294,7 @@ NODE_ENV=production
 ```
 
 **railway.json (optional - for optimization):**
+
 ```json
 {
   "$schema": "https://railway.app/railway.schema.json",
@@ -332,6 +337,7 @@ holoscript-studio/
 For each service, set these variables:
 
 **collab-ws:**
+
 ```bash
 PORT=8080
 REDIS_URL=${{Redis.REDIS_URL}}
@@ -340,6 +346,7 @@ NODE_ENV=production
 ```
 
 **marketplace-api:**
+
 ```bash
 PORT=3000
 DATABASE_URL=${{Postgres.DATABASE_URL}}
@@ -353,6 +360,7 @@ NODE_ENV=production
 ```
 
 **cloud-api:**
+
 ```bash
 PORT=3001
 DATABASE_URL=${{Postgres.DATABASE_URL}}
@@ -379,6 +387,7 @@ railway domain
 ```
 
 Then add DNS records (Railway shows exact CNAME):
+
 ```
 CNAME collab      -> <railway-provided-url>
 CNAME marketplace -> <railway-provided-url>
@@ -392,15 +401,18 @@ CNAME cloud       -> <railway-provided-url>
 Railway auto-scales based on usage:
 
 **Free Tier (Development):**
+
 - 512MB RAM per service
 - $5 credit/month
 - Perfect for testing
 
 **Hobby Plan ($5/month):**
+
 - Up to 8GB RAM total
 - Great for small apps (10-100 users)
 
 **Pro Plan ($20/month + usage):**
+
 - Up to 32GB RAM total
 - Better for 100-1000 users
 - Priority support
@@ -423,6 +435,7 @@ railway list
 ```
 
 **Dashboard shows:**
+
 - CPU/RAM usage
 - Request count
 - Error rates
@@ -433,20 +446,25 @@ railway list
 ## Cost Optimization Tips
 
 ### 1. Use Vercel for Frontend ($0)
+
 Instead of Railway for Next.js, use Vercel free tier.
 
 ### 2. Start Small
+
 Use Railway Free tier ($5 credit) for development. Upgrade to Hobby ($5/month) only when needed.
 
 ### 3. Combine Services
+
 Run Marketplace + Cloud API in same container to save costs.
 
 ### 4. Use Cloudflare R2 instead of S3
+
 - Cloudflare R2: $0.015/GB/month
 - AWS S3: $0.023/GB/month
 - Saves ~35% on storage
 
 ### 5. Enable Caching
+
 Use Redis for API responses to reduce database queries.
 
 ---
@@ -454,18 +472,21 @@ Use Redis for API responses to reduce database queries.
 ## Real-World Costs
 
 ### Scenario 1: Solo Developer (Free!)
+
 - Railway Free: $5 credit (enough for 1-2 services)
 - Vercel Free: Frontend
 - Cloudflare Free: DNS + CDN
 - **Total: $0/month** ✅
 
 ### Scenario 2: Small Startup (10-50 users)
+
 - Railway Hobby: $5/month
 - Services: ~$15-25/month usage
 - Vercel Free: Frontend
 - **Total: $20-30/month** ✅
 
 ### Scenario 3: Growing Project (100-500 users)
+
 - Railway Pro: $20/month
 - Services: ~$30-60/month usage
 - Vercel Pro: $20/month (optional)
@@ -478,6 +499,7 @@ Still way cheaper than AWS ($200-400/month)!
 ## Migration from Development to Production
 
 ### Step 1: Test Locally
+
 ```bash
 # Set up local .env with Railway URLs
 railway variables --json > .env
@@ -487,6 +509,7 @@ npm run dev
 ```
 
 ### Step 2: Deploy Staging
+
 ```bash
 # Create staging environment
 railway environment create staging
@@ -496,6 +519,7 @@ railway up --environment staging
 ```
 
 ### Step 3: Deploy Production
+
 ```bash
 # Switch to production
 railway environment create production
@@ -512,6 +536,7 @@ railway domain
 ## Troubleshooting
 
 ### Service Won't Start
+
 ```bash
 # Check logs
 railway logs --tail
@@ -524,6 +549,7 @@ railway restart
 ```
 
 ### Database Connection Issues
+
 ```bash
 # Verify DATABASE_URL is set
 railway variables | grep DATABASE_URL
@@ -533,6 +559,7 @@ railway run npx prisma db pull
 ```
 
 ### WebSocket Connection Fails
+
 - Check CORS settings (ALLOWED_ORIGINS)
 - Verify custom domain DNS (CNAME record)
 - Check Railway firewall (should be open by default)
@@ -541,16 +568,16 @@ railway run npx prisma db pull
 
 ## Comparison: Railway vs AWS
 
-| Feature | Railway | AWS |
-|---------|---------|-----|
-| **Setup Time** | 5 minutes | 2-4 hours |
-| **DevOps Required** | None | Lots |
-| **Monthly Cost (small)** | $20-30 | $150-200 |
-| **Scaling** | Automatic | Manual |
-| **SSL/TLS** | Free, automatic | $5-10/month |
-| **Domains** | Included | Extra setup |
-| **Monitoring** | Built-in | Extra cost |
-| **Learning Curve** | Easy | Steep |
+| Feature                  | Railway         | AWS         |
+| ------------------------ | --------------- | ----------- |
+| **Setup Time**           | 5 minutes       | 2-4 hours   |
+| **DevOps Required**      | None            | Lots        |
+| **Monthly Cost (small)** | $20-30          | $150-200    |
+| **Scaling**              | Automatic       | Manual      |
+| **SSL/TLS**              | Free, automatic | $5-10/month |
+| **Domains**              | Included        | Extra setup |
+| **Monitoring**           | Built-in        | Extra cost  |
+| **Learning Curve**       | Easy            | Steep       |
 
 **Winner:** Railway (for most cases) ✅
 
@@ -559,6 +586,7 @@ railway run npx prisma db pull
 ## When to Use AWS Instead
 
 Only consider AWS if:
+
 - You need 1000+ concurrent WebSocket connections
 - You're processing 100+ deployments per day
 - You need multi-region deployment

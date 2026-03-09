@@ -2,13 +2,20 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { TerrainPaintLayer } from '../TerrainPaintLayer';
 
 const layer = (id: string) => ({
-  id, name: id, textureId: `tex_${id}`, tiling: 1, metallic: 0, roughness: 0.5,
+  id,
+  name: id,
+  textureId: `tex_${id}`,
+  tiling: 1,
+  metallic: 0,
+  roughness: 0.5,
 });
 
 describe('TerrainPaintLayer', () => {
   let pl: TerrainPaintLayer;
 
-  beforeEach(() => { pl = new TerrainPaintLayer(8); });
+  beforeEach(() => {
+    pl = new TerrainPaintLayer(8);
+  });
 
   it('addLayer increases count', () => {
     pl.addLayer(layer('grass'));

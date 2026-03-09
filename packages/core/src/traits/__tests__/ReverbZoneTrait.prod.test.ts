@@ -4,8 +4,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { reverbZoneHandler } from '../ReverbZoneTrait';
 
-function makeNode() { return { id: 'rz_node' }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'rz_node' };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}) {
   const node = makeNode();
   const ctx = makeCtx();
@@ -36,24 +40,32 @@ describe('reverbZoneHandler.defaultConfig', () => {
 
 describe('reverbZoneHandler.onAttach', () => {
   it('creates __reverbZoneState', () => expect(attach().node.__reverbZoneState).toBeDefined());
-  it('listenersInZone is empty Set', () => expect(attach().node.__reverbZoneState.listenersInZone.size).toBe(0));
+  it('listenersInZone is empty Set', () =>
+    expect(attach().node.__reverbZoneState.listenersInZone.size).toBe(0));
   it('currentWetLevel=0', () => expect(attach().node.__reverbZoneState.currentWetLevel).toBe(0));
   it('targetWetLevel=0', () => expect(attach().node.__reverbZoneState.targetWetLevel).toBe(0));
   it('isActive=true', () => expect(attach().node.__reverbZoneState.isActive).toBe(true));
-  it('convolverLoaded=false', () => expect(attach().node.__reverbZoneState.convolverLoaded).toBe(false));
+  it('convolverLoaded=false', () =>
+    expect(attach().node.__reverbZoneState.convolverLoaded).toBe(false));
   it('emits reverb_zone_register', () => {
     const { ctx } = attach({ preset: 'hall', size: 20 });
-    expect(ctx.emit).toHaveBeenCalledWith('reverb_zone_register', expect.objectContaining({
-      preset: 'hall',
-      size: 20,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'reverb_zone_register',
+      expect.objectContaining({
+        preset: 'hall',
+        size: 20,
+      })
+    );
   });
   it('reverb_zone_register includes decayTime/damping/diffusion', () => {
     const { ctx } = attach({ decay_time: 2.5, damping: 0.8 });
-    expect(ctx.emit).toHaveBeenCalledWith('reverb_zone_register', expect.objectContaining({
-      decayTime: 2.5,
-      damping: 0.8,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'reverb_zone_register',
+      expect.objectContaining({
+        decayTime: 2.5,
+        damping: 0.8,
+      })
+    );
   });
 });
 
@@ -64,7 +76,10 @@ describe('reverbZoneHandler.onDetach', () => {
     const { node, config, ctx } = attach();
     ctx.emit.mockClear();
     reverbZoneHandler.onDetach!(node, config, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('reverb_zone_unregister', expect.objectContaining({ node }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'reverb_zone_unregister',
+      expect.objectContaining({ node })
+    );
   });
   it('removes __reverbZoneState', () => {
     const { node, config, ctx } = attach();
@@ -115,10 +130,13 @@ describe('reverbZoneHandler.onUpdate — reverb_update_mix', () => {
     node.__reverbZoneState.currentWetLevel = 0.8;
     ctx.emit.mockClear();
     reverbZoneHandler.onUpdate!(node, config, ctx, 0);
-    expect(ctx.emit).toHaveBeenCalledWith('reverb_update_mix', expect.objectContaining({
-      wetLevel: expect.any(Number),
-      dryLevel: 1.0,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'reverb_update_mix',
+      expect.objectContaining({
+        wetLevel: expect.any(Number),
+        dryLevel: 1.0,
+      })
+    );
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'reverb_update_mix')!;
     expect(call[1].wetLevel).toBeCloseTo(0.8 * 0.5);
   });
@@ -144,28 +162,46 @@ describe('reverbZoneHandler.onUpdate — reverb_update_mix', () => {
 describe('reverbZoneHandler.onEvent — listener_enter_zone', () => {
   it('adds listener to zone', () => {
     const { node, config, ctx } = attach();
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_enter_zone', listenerId: 'ear1' });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_enter_zone',
+      listenerId: 'ear1',
+    });
     expect(node.__reverbZoneState.listenersInZone.has('ear1')).toBe(true);
   });
   it('sets targetWetLevel=1', () => {
     const { node, config, ctx } = attach();
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_enter_zone', listenerId: 'ear1' });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_enter_zone',
+      listenerId: 'ear1',
+    });
     expect(node.__reverbZoneState.targetWetLevel).toBe(1);
   });
   it('emits reverb_zone_enter on first listener', () => {
     const { node, config, ctx } = attach({ preset: 'hall' });
     ctx.emit.mockClear();
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_enter_zone', listenerId: 'ear1' });
-    expect(ctx.emit).toHaveBeenCalledWith('reverb_zone_enter', expect.objectContaining({
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_enter_zone',
       listenerId: 'ear1',
-      preset: 'hall',
-    }));
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'reverb_zone_enter',
+      expect.objectContaining({
+        listenerId: 'ear1',
+        preset: 'hall',
+      })
+    );
   });
   it('no reverb_zone_enter for subsequent listeners', () => {
     const { node, config, ctx } = attach();
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_enter_zone', listenerId: 'ear1' });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_enter_zone',
+      listenerId: 'ear1',
+    });
     ctx.emit.mockClear();
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_enter_zone', listenerId: 'ear2' });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_enter_zone',
+      listenerId: 'ear2',
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('reverb_zone_enter', expect.anything());
   });
 });
@@ -175,29 +211,59 @@ describe('reverbZoneHandler.onEvent — listener_enter_zone', () => {
 describe('reverbZoneHandler.onEvent — listener_exit_zone', () => {
   it('removes listener from zone', () => {
     const { node, config, ctx } = attach();
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_enter_zone', listenerId: 'ear1' });
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_exit_zone', listenerId: 'ear1' });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_enter_zone',
+      listenerId: 'ear1',
+    });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_exit_zone',
+      listenerId: 'ear1',
+    });
     expect(node.__reverbZoneState.listenersInZone.has('ear1')).toBe(false);
   });
   it('targetWetLevel set to 0 when zone empty', () => {
     const { node, config, ctx } = attach();
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_enter_zone', listenerId: 'ear1' });
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_exit_zone', listenerId: 'ear1' });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_enter_zone',
+      listenerId: 'ear1',
+    });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_exit_zone',
+      listenerId: 'ear1',
+    });
     expect(node.__reverbZoneState.targetWetLevel).toBe(0);
   });
   it('emits reverb_zone_exit when zone empty', () => {
     const { node, config, ctx } = attach();
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_enter_zone', listenerId: 'ear1' });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_enter_zone',
+      listenerId: 'ear1',
+    });
     ctx.emit.mockClear();
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_exit_zone', listenerId: 'ear1' });
-    expect(ctx.emit).toHaveBeenCalledWith('reverb_zone_exit', expect.objectContaining({ listenerId: 'ear1' }));
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_exit_zone',
+      listenerId: 'ear1',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'reverb_zone_exit',
+      expect.objectContaining({ listenerId: 'ear1' })
+    );
   });
   it('no exit event when other listeners remain', () => {
     const { node, config, ctx } = attach();
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_enter_zone', listenerId: 'ear1' });
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_enter_zone', listenerId: 'ear2' });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_enter_zone',
+      listenerId: 'ear1',
+    });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_enter_zone',
+      listenerId: 'ear2',
+    });
     ctx.emit.mockClear();
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_exit_zone', listenerId: 'ear1' });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_exit_zone',
+      listenerId: 'ear1',
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('reverb_zone_exit', expect.anything());
   });
 });
@@ -207,18 +273,27 @@ describe('reverbZoneHandler.onEvent — listener_exit_zone', () => {
 describe('reverbZoneHandler.onEvent — listener_distance_update', () => {
   it('partial blend when distance < blend_distance', () => {
     const { node, config, ctx } = attach({ blend_distance: 2 });
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_distance_update', distance: 1 });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_distance_update',
+      distance: 1,
+    });
     // targetWetLevel = 1 - 1/2 = 0.5
     expect(node.__reverbZoneState.targetWetLevel).toBeCloseTo(0.5);
   });
   it('targetWetLevel=0 when distance >= blend_distance', () => {
     const { node, config, ctx } = attach({ blend_distance: 2 });
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_distance_update', distance: 3 });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_distance_update',
+      distance: 3,
+    });
     expect(node.__reverbZoneState.targetWetLevel).toBe(0);
   });
   it('targetWetLevel=1 when distance=0', () => {
     const { node, config, ctx } = attach({ blend_distance: 2 });
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'listener_distance_update', distance: 0 });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'listener_distance_update',
+      distance: 0,
+    });
     expect(node.__reverbZoneState.targetWetLevel).toBe(1);
   });
 });
@@ -245,16 +320,26 @@ describe('reverbZoneHandler.onEvent — reverb_zone_set_preset', () => {
   it('emits reverb_zone_update with new preset', () => {
     const { node, config, ctx } = attach({ decay_time: 1.5 });
     ctx.emit.mockClear();
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'reverb_zone_set_preset', preset: 'cathedral', decayTime: 5.0 });
-    expect(ctx.emit).toHaveBeenCalledWith('reverb_zone_update', expect.objectContaining({
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'reverb_zone_set_preset',
       preset: 'cathedral',
       decayTime: 5.0,
-    }));
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'reverb_zone_update',
+      expect.objectContaining({
+        preset: 'cathedral',
+        decayTime: 5.0,
+      })
+    );
   });
   it('uses config decay_time as fallback when decayTime not provided', () => {
     const { node, config, ctx } = attach({ decay_time: 2.0 });
     ctx.emit.mockClear();
-    reverbZoneHandler.onEvent!(node, config, ctx, { type: 'reverb_zone_set_preset', preset: 'cave' });
+    reverbZoneHandler.onEvent!(node, config, ctx, {
+      type: 'reverb_zone_set_preset',
+      preset: 'cave',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'reverb_zone_update')!;
     expect(call[1].decayTime).toBe(2.0);
   });

@@ -74,7 +74,10 @@ class RateLimiter {
     }
   }
 
-  check(identifier: string, operationName?: string): {
+  check(
+    identifier: string,
+    operationName?: string
+  ): {
     allowed: boolean;
     remaining: number;
     resetAt: number;
@@ -139,20 +142,25 @@ export function createRateLimitPlugin(
 ): ApolloServerPlugin<BaseContext> {
   const limiter = new RateLimiter(options);
   const includeHeaders = options.includeHeaders ?? true;
-  const identifierFn = options.identifierFn ?? ((req: any) => {
-    // Try to get IP from various headers (X-Forwarded-For, X-Real-IP, etc.)
-    const forwarded = req.headers?.['x-forwarded-for'];
-    if (forwarded) {
-      return forwarded.split(',')[0].trim();
-    }
-    return req.ip || req.connection?.remoteAddress || 'unknown';
-  });
+  const identifierFn =
+    options.identifierFn ??
+    ((req: any) => {
+      // Try to get IP from various headers (X-Forwarded-For, X-Real-IP, etc.)
+      const forwarded = req.headers?.['x-forwarded-for'];
+      if (forwarded) {
+        return forwarded.split(',')[0].trim();
+      }
+      return req.ip || req.connection?.remoteAddress || 'unknown';
+    });
 
   // Log stats every 5 minutes
-  setInterval(() => {
-    const stats = limiter.getStats();
-    console.log('[Rate Limit Stats]', stats);
-  }, 5 * 60 * 1000);
+  setInterval(
+    () => {
+      const stats = limiter.getStats();
+      console.log('[Rate Limit Stats]', stats);
+    },
+    5 * 60 * 1000
+  );
 
   return {
     async requestDidStart(requestContext): Promise<GraphQLRequestListener<BaseContext>> {
@@ -197,7 +205,10 @@ export function createRateLimitPlugin(
           // Add rate limit headers
           if (includeHeaders && rateLimitResult && response.http) {
             response.http.headers.set('X-RateLimit-Limit', rateLimitResult.limit.toString());
-            response.http.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+            response.http.headers.set(
+              'X-RateLimit-Remaining',
+              rateLimitResult.remaining.toString()
+            );
             response.http.headers.set(
               'X-RateLimit-Reset',
               new Date(rateLimitResult.resetAt).toISOString()

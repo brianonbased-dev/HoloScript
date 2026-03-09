@@ -60,11 +60,7 @@ export function ProceduralGeometryComponent({ type, ...props }: ProceduralMeshPr
         );
         break;
       case 'spline':
-        data = generateSplineGeometry(
-          props.points || [],
-          props.radii || [0.1],
-          32, 12
-        );
+        data = generateSplineGeometry(props.points || [], props.radii || [0.1], 32, 12);
         break;
       case 'membrane':
         data = generateMembraneGeometry(
@@ -77,7 +73,17 @@ export function ProceduralGeometryComponent({ type, ...props }: ProceduralMeshPr
         return new THREE.BoxGeometry(1, 1, 1);
     }
     return toBufferGeometry(data);
-  }, [type, props.blobs, props.points, props.radii, props.anchors, props.subdivisions, props.bulge, props.resolution, props.threshold]);
+  }, [
+    type,
+    props.blobs,
+    props.points,
+    props.radii,
+    props.anchors,
+    props.subdivisions,
+    props.bulge,
+    props.resolution,
+    props.threshold,
+  ]);
 
   return <primitive object={geometry} attach="geometry" />;
 }
@@ -175,7 +181,16 @@ export function FireEmbers({ position }: FireEmbersProps) {
 
   // Initialize ember positions
   const embers = useMemo(() => {
-    const data: { x: number; y: number; z: number; vx: number; vy: number; vz: number; life: number; speed: number }[] = [];
+    const data: {
+      x: number;
+      y: number;
+      z: number;
+      vx: number;
+      vy: number;
+      vz: number;
+      life: number;
+      speed: number;
+    }[] = [];
     for (let i = 0; i < EMBER_COUNT; i++) {
       data.push({
         x: (Math.random() - 0.5) * 0.6,
@@ -209,11 +224,7 @@ export function FireEmbers({ position }: FireEmbersProps) {
       const py = e.y + e.life * 0.8;
       const pz = e.z + e.life * 2.0;
 
-      dummy.position.set(
-        position[0] + px,
-        position[1] + py,
-        position[2] + pz
-      );
+      dummy.position.set(position[0] + px, position[1] + py, position[2] + pz);
 
       const s = (1 - e.life) * 0.03;
       dummy.scale.set(s, s, s);

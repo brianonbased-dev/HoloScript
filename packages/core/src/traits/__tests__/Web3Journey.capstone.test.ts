@@ -139,10 +139,13 @@ describe('Web3 Journey — Capstone Integration', () => {
       const gs = node.__tokenGatedState;
       expect(gs.hasAccess).toBe(true);
       expect(gs.tokenBalance).toBe(3);
-      expect(ctx.emit).toHaveBeenCalledWith('on_token_verified', expect.objectContaining({
-        address: '0xAlice',
-        balance: 3,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'on_token_verified',
+        expect.objectContaining({
+          address: '0xAlice',
+          balance: 3,
+        })
+      );
 
       // Step 4: NFT ownership verified
       nftHandler.onEvent!(node, NFT_CFG, ctx, {
@@ -198,12 +201,15 @@ describe('Web3 Journey — Capstone Integration', () => {
       verifyGatePass(node, ctx, '0xPoor', 0);
 
       expect(node.__tokenGatedState.hasAccess).toBe(false);
-      expect(ctx.emit).toHaveBeenCalledWith('on_token_denied', expect.objectContaining({
-        address: '0xPoor',
-        reason: 'insufficient_balance',
-        balance: 0,
-        required: 1,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'on_token_denied',
+        expect.objectContaining({
+          address: '0xPoor',
+          reason: 'insufficient_balance',
+          balance: 0,
+          required: 1,
+        })
+      );
     });
 
     it('locks node when gate fails with lock fallback', () => {
@@ -243,13 +249,16 @@ describe('Web3 Journey — Capstone Integration', () => {
 
       tokenGatedHandler.onEvent!(node, blockedCfg, ctx, {
         type: 'token_gate_verify',
-        address: '0xevil',  // lowercase to match block_list
+        address: '0xevil', // lowercase to match block_list
       });
 
       expect(node.__tokenGatedState.hasAccess).toBe(false);
-      expect(ctx.emit).toHaveBeenCalledWith('on_token_denied', expect.objectContaining({
-        reason: 'blocked',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'on_token_denied',
+        expect.objectContaining({
+          reason: 'blocked',
+        })
+      );
     });
   });
 
@@ -266,13 +275,16 @@ describe('Web3 Journey — Capstone Integration', () => {
 
       tokenGatedHandler.onEvent!(node, allowCfg, ctx, {
         type: 'token_gate_verify',
-        address: '0xvip',  // lowercase to match allow_list
+        address: '0xvip', // lowercase to match allow_list
       });
 
       expect(node.__tokenGatedState.hasAccess).toBe(true);
-      expect(ctx.emit).toHaveBeenCalledWith('on_token_verified', expect.objectContaining({
-        balance: 999,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'on_token_verified',
+        expect.objectContaining({
+          balance: 999,
+        })
+      );
     });
   });
 
@@ -387,8 +399,14 @@ describe('Web3 Journey — Capstone Integration', () => {
         type: 'nft_query',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('wallet_info', expect.objectContaining({ queryId: 'wq1' }));
-      expect(ctx.emit).toHaveBeenCalledWith('token_gate_info', expect.objectContaining({ queryId: 'tgq1' }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'wallet_info',
+        expect.objectContaining({ queryId: 'wq1' })
+      );
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'token_gate_info',
+        expect.objectContaining({ queryId: 'tgq1' })
+      );
       expect(ctx.emit).toHaveBeenCalledWith('nft_info', expect.anything());
     });
   });
@@ -426,10 +444,13 @@ describe('Web3 Journey — Capstone Integration', () => {
         message: 'Verify ownership for gate access',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('wallet_request_signature', expect.objectContaining({
-        address: '0xSigner',
-        message: 'Verify ownership for gate access',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'wallet_request_signature',
+        expect.objectContaining({
+          address: '0xSigner',
+          message: 'Verify ownership for gate access',
+        })
+      );
     });
 
     it('sign message fails when wallet not connected', () => {
@@ -441,9 +462,12 @@ describe('Web3 Journey — Capstone Integration', () => {
         message: 'Test',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('wallet_error', expect.objectContaining({
-        error: 'Wallet not connected',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'wallet_error',
+        expect.objectContaining({
+          error: 'Wallet not connected',
+        })
+      );
     });
   });
 

@@ -13,10 +13,10 @@
 
 export interface ReverbPreset {
   name: string;
-  decay: number;          // Reverb decay time in seconds
-  density: number;        // 0-1, reflection density
-  diffusion: number;      // 0-1, late reverb spread
-  wetLevel: number;       // 0-1, mix of reverb signal
+  decay: number; // Reverb decay time in seconds
+  density: number; // 0-1, reflection density
+  diffusion: number; // 0-1, late reverb spread
+  wetLevel: number; // 0-1, mix of reverb signal
   earlyReflections: number; // ms delay for early reflections
 }
 
@@ -28,8 +28,8 @@ export interface AudioZoneConfig {
   reverb: ReverbPreset;
   ambientClipId?: string;
   ambientVolume?: number;
-  priority: number;       // Higher priority overrides lower
-  fadeDistance: number;    // Blend distance at zone boundary
+  priority: number; // Higher priority overrides lower
+  fadeDistance: number; // Blend distance at zone boundary
 }
 
 export interface AudioPortal {
@@ -40,12 +40,12 @@ export interface AudioPortal {
   height: number;
   fromZoneId: string;
   toZoneId: string;
-  attenuation: number;    // 0-1, how much sound passes through
+  attenuation: number; // 0-1, how much sound passes through
 }
 
 export interface ZoneState {
   zoneId: string;
-  blendWeight: number;    // 0-1, how much this zone affects the listener
+  blendWeight: number; // 0-1, how much this zone affects the listener
   isInside: boolean;
 }
 
@@ -55,28 +55,52 @@ export interface ZoneState {
 
 export const REVERB_PRESETS: Record<string, ReverbPreset> = {
   outdoor: {
-    name: 'outdoor', decay: 0.3, density: 0.2, diffusion: 0.1,
-    wetLevel: 0.1, earlyReflections: 5,
+    name: 'outdoor',
+    decay: 0.3,
+    density: 0.2,
+    diffusion: 0.1,
+    wetLevel: 0.1,
+    earlyReflections: 5,
   },
   room: {
-    name: 'room', decay: 0.8, density: 0.5, diffusion: 0.5,
-    wetLevel: 0.3, earlyReflections: 10,
+    name: 'room',
+    decay: 0.8,
+    density: 0.5,
+    diffusion: 0.5,
+    wetLevel: 0.3,
+    earlyReflections: 10,
   },
   hall: {
-    name: 'hall', decay: 2.0, density: 0.7, diffusion: 0.8,
-    wetLevel: 0.5, earlyReflections: 20,
+    name: 'hall',
+    decay: 2.0,
+    density: 0.7,
+    diffusion: 0.8,
+    wetLevel: 0.5,
+    earlyReflections: 20,
   },
   cathedral: {
-    name: 'cathedral', decay: 4.5, density: 0.9, diffusion: 0.9,
-    wetLevel: 0.7, earlyReflections: 40,
+    name: 'cathedral',
+    decay: 4.5,
+    density: 0.9,
+    diffusion: 0.9,
+    wetLevel: 0.7,
+    earlyReflections: 40,
   },
   cave: {
-    name: 'cave', decay: 3.0, density: 0.8, diffusion: 0.6,
-    wetLevel: 0.6, earlyReflections: 30,
+    name: 'cave',
+    decay: 3.0,
+    density: 0.8,
+    diffusion: 0.6,
+    wetLevel: 0.6,
+    earlyReflections: 30,
   },
   underwater: {
-    name: 'underwater', decay: 1.5, density: 1.0, diffusion: 1.0,
-    wetLevel: 0.9, earlyReflections: 5,
+    name: 'underwater',
+    decay: 1.5,
+    density: 1.0,
+    diffusion: 1.0,
+    wetLevel: 0.9,
+    earlyReflections: 5,
   },
 };
 
@@ -144,7 +168,7 @@ export class SpatialAudioZoneSystem {
       if (isInside) {
         blendWeight = 1;
       } else if (distance < zone.fadeDistance) {
-        blendWeight = 1 - (distance / zone.fadeDistance);
+        blendWeight = 1 - distance / zone.fadeDistance;
       }
 
       if (blendWeight > 0) {
@@ -221,8 +245,10 @@ export class SpatialAudioZoneSystem {
    */
   getPortalAttenuation(fromZone: string, toZone: string): number {
     for (const portal of this.portals.values()) {
-      if ((portal.fromZoneId === fromZone && portal.toZoneId === toZone) ||
-          (portal.fromZoneId === toZone && portal.toZoneId === fromZone)) {
+      if (
+        (portal.fromZoneId === fromZone && portal.toZoneId === toZone) ||
+        (portal.fromZoneId === toZone && portal.toZoneId === fromZone)
+      ) {
         return portal.attenuation;
       }
     }

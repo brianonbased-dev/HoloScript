@@ -48,7 +48,11 @@ function createMockContext() {
  * Load and validate a trait handler file
  */
 function loadTraitHandler(traitName: string) {
-  const fileName = traitName.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('') + 'Trait.ts';
+  const fileName =
+    traitName
+      .split('_')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join('') + 'Trait.ts';
   const filePath = join(__dirname, '..', fileName);
 
   expect(existsSync(filePath), `${fileName} should exist`).toBe(true);
@@ -81,7 +85,7 @@ describe('V43 Tier 1: Core AI Traits', () => {
     'vision',
   ];
 
-  tier1Traits.forEach(traitName => {
+  tier1Traits.forEach((traitName) => {
     describe(`${traitName} handler`, () => {
       it('should have handler file', () => {
         loadTraitHandler(traitName);
@@ -135,7 +139,7 @@ describe('V43 Tier 2: visionOS Extensions', () => {
     'spatial_navigation',
   ];
 
-  visionOSTraits.forEach(traitName => {
+  visionOSTraits.forEach((traitName) => {
     describe(`${traitName} handler`, () => {
       it('should have handler file', () => {
         loadTraitHandler(traitName);
@@ -181,7 +185,7 @@ describe('V43 Tier 2: AI Generative', () => {
     'ai_upscaling',
   ];
 
-  aiGenTraits.forEach(traitName => {
+  aiGenTraits.forEach((traitName) => {
     describe(`${traitName} handler`, () => {
       it('should have handler file', () => {
         loadTraitHandler(traitName);
@@ -213,19 +217,37 @@ describe('V43 Integration Tests', () => {
   it('should have all 24 V43 handlers implemented', () => {
     const allTraits = [
       // Tier 1
-      'llm_agent', 'behavior_tree', 'goal_oriented', 'neural_link', 'neural_forge',
-      'spatial_awareness', 'shared_world', 'eye_tracked', 'hand_tracking', 'vision',
+      'llm_agent',
+      'behavior_tree',
+      'goal_oriented',
+      'neural_link',
+      'neural_forge',
+      'spatial_awareness',
+      'shared_world',
+      'eye_tracked',
+      'hand_tracking',
+      'vision',
       // Tier 2 visionOS
-      'spatial_persona', 'shareplay', 'object_tracking', 'scene_reconstruction',
-      'realitykit_mesh', 'room_mesh', 'volumetric_window', 'spatial_navigation',
+      'spatial_persona',
+      'shareplay',
+      'object_tracking',
+      'scene_reconstruction',
+      'realitykit_mesh',
+      'room_mesh',
+      'volumetric_window',
+      'spatial_navigation',
       // Tier 2 AI Generative
-      'stable_diffusion', 'controlnet', 'ai_texture_gen', 'diffusion_realtime',
-      'ai_inpainting', 'ai_upscaling',
+      'stable_diffusion',
+      'controlnet',
+      'ai_texture_gen',
+      'diffusion_realtime',
+      'ai_inpainting',
+      'ai_upscaling',
     ];
 
     expect(allTraits.length).toBe(24);
 
-    allTraits.forEach(trait => {
+    allTraits.forEach((trait) => {
       const { content } = loadTraitHandler(trait);
       expect(content.length).toBeGreaterThan(50); // Not just a stub
     });
@@ -233,11 +255,19 @@ describe('V43 Integration Tests', () => {
 
   it('should use consistent handler patterns', () => {
     const allTraits = [
-      'llm_agent', 'behavior_tree', 'goal_oriented', 'neural_link', 'neural_forge',
-      'spatial_awareness', 'shared_world', 'eye_tracked', 'hand_tracking', 'vision',
+      'llm_agent',
+      'behavior_tree',
+      'goal_oriented',
+      'neural_link',
+      'neural_forge',
+      'spatial_awareness',
+      'shared_world',
+      'eye_tracked',
+      'hand_tracking',
+      'vision',
     ];
 
-    allTraits.forEach(trait => {
+    allTraits.forEach((trait) => {
       const { content } = loadTraitHandler(trait);
       const isHandler = content.includes('TraitHandler');
       const isClass = content.includes('export class');
@@ -249,7 +279,7 @@ describe('V43 Integration Tests', () => {
   it('should have TypeScript types defined', () => {
     const allTraits = ['llm_agent', 'behavior_tree', 'goal_oriented'];
 
-    allTraits.forEach(trait => {
+    allTraits.forEach((trait) => {
       const { content } = loadTraitHandler(trait);
       const hasTypes = content.includes('interface') || content.includes('type ');
       expect(hasTypes, `${trait} should define TypeScript types`).toBe(true);
@@ -265,12 +295,30 @@ describe('V43 Coverage Validation', () => {
   it('should achieve 100% V43 trait coverage', () => {
     const requiredTraits = 24;
     const implementedTraits = [
-      'llm_agent', 'behavior_tree', 'goal_oriented', 'neural_link', 'neural_forge',
-      'spatial_awareness', 'shared_world', 'eye_tracked', 'hand_tracking', 'vision',
-      'spatial_persona', 'shareplay', 'object_tracking', 'scene_reconstruction',
-      'realitykit_mesh', 'room_mesh', 'volumetric_window', 'spatial_navigation',
-      'stable_diffusion', 'controlnet', 'ai_texture_gen', 'diffusion_realtime',
-      'ai_inpainting', 'ai_upscaling',
+      'llm_agent',
+      'behavior_tree',
+      'goal_oriented',
+      'neural_link',
+      'neural_forge',
+      'spatial_awareness',
+      'shared_world',
+      'eye_tracked',
+      'hand_tracking',
+      'vision',
+      'spatial_persona',
+      'shareplay',
+      'object_tracking',
+      'scene_reconstruction',
+      'realitykit_mesh',
+      'room_mesh',
+      'volumetric_window',
+      'spatial_navigation',
+      'stable_diffusion',
+      'controlnet',
+      'ai_texture_gen',
+      'diffusion_realtime',
+      'ai_inpainting',
+      'ai_upscaling',
     ];
 
     expect(implementedTraits.length).toBe(requiredTraits);
@@ -282,7 +330,7 @@ describe('V43 Coverage Validation', () => {
   it('should have minimum line count per handler (not stubs)', () => {
     const sampleTraits = ['llm_agent', 'behavior_tree', 'stable_diffusion'];
 
-    sampleTraits.forEach(trait => {
+    sampleTraits.forEach((trait) => {
       const { content } = loadTraitHandler(trait);
       const lineCount = content.split('\n').length;
 

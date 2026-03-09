@@ -11,8 +11,17 @@
 
 import { describe, it, expect } from 'vitest';
 import { runSafetyPass, quickSafetyCheck, EffectASTNode } from '../CompilerSafetyPass';
-import { ResourceBudgetAnalyzer, PLATFORM_BUDGETS, ResourceUsageNode } from '../ResourceBudgetAnalyzer';
-import { deriveRequirements, checkCapabilities, expandCapabilities, TRUST_LEVEL_CAPABILITIES } from '../CapabilityTypes';
+import {
+  ResourceBudgetAnalyzer,
+  PLATFORM_BUDGETS,
+  ResourceUsageNode,
+} from '../ResourceBudgetAnalyzer';
+import {
+  deriveRequirements,
+  checkCapabilities,
+  expandCapabilities,
+  TRUST_LEVEL_CAPABILITIES,
+} from '../CapabilityTypes';
 import { buildSafetyReport, formatReport, generateCertificate } from '../SafetyReport';
 import { EffectRow } from '../../../types/effects';
 
@@ -39,7 +48,9 @@ describe('ResourceBudgetAnalyzer', () => {
     ];
     const result = analyzer.analyze(nodes);
     expect(result.passed).toBe(false);
-    expect(result.diagnostics.some(d => d.category === 'particles' && d.severity === 'error')).toBe(true);
+    expect(
+      result.diagnostics.some((d) => d.category === 'particles' && d.severity === 'error')
+    ).toBe(true);
   });
 
   it('warns at 80% threshold', () => {
@@ -48,7 +59,7 @@ describe('ResourceBudgetAnalyzer', () => {
       { name: 'Crate', traits: ['@rigidbody'], calls: [], count: 170 },
     ];
     const result = analyzer.analyze(nodes);
-    const physDiag = result.diagnostics.find(d => d.category === 'physicsBodies');
+    const physDiag = result.diagnostics.find((d) => d.category === 'physicsBodies');
     // Should be warning (85% > 80%)
     if (physDiag) expect(physDiag.severity).toBe('warning');
   });
@@ -60,7 +71,7 @@ describe('ResourceBudgetAnalyzer', () => {
     ];
     const result = analyzer.analyze(nodes);
     // Check that we get contributor data for particle budget
-    const particleDiag = result.diagnostics.find(d => d.category === 'particles');
+    const particleDiag = result.diagnostics.find((d) => d.category === 'particles');
     if (particleDiag) {
       expect(particleDiag.contributors.length).toBeGreaterThan(0);
       expect(particleDiag.contributors[0].name).toContain('BigExplosion');
@@ -90,8 +101,8 @@ describe('ResourceBudgetAnalyzer', () => {
 describe('CapabilityTypes', () => {
   it('derives requirements from effects', () => {
     const reqs = deriveRequirements(['render:spawn', 'io:network'], 'test');
-    expect(reqs.some(r => r.scope === 'scene:write')).toBe(true);
-    expect(reqs.some(r => r.scope === 'network:write')).toBe(true);
+    expect(reqs.some((r) => r.scope === 'scene:write')).toBe(true);
+    expect(reqs.some((r) => r.scope === 'network:write')).toBe(true);
   });
 
   it('basic trust level grants scene read/write', () => {
@@ -141,7 +152,8 @@ describe('runSafetyPass', () => {
   it('safe module passes all checks', () => {
     const nodes: EffectASTNode[] = [
       {
-        type: 'object', name: 'SafePlayer',
+        type: 'object',
+        name: 'SafePlayer',
         traits: ['@mesh', '@audio'],
         calls: [],
         declaredEffects: ['render:spawn', 'audio:play'],
@@ -159,7 +171,8 @@ describe('runSafetyPass', () => {
   it('undeclared network effect fails', () => {
     const nodes: EffectASTNode[] = [
       {
-        type: 'object', name: 'SneakyBot',
+        type: 'object',
+        name: 'SneakyBot',
         traits: ['@mesh', '@networked'],
         calls: ['fetch'],
         declaredEffects: ['render:spawn'], // Missing network!
@@ -173,7 +186,8 @@ describe('runSafetyPass', () => {
   it('untrusted agent rejected for scene:write', () => {
     const nodes: EffectASTNode[] = [
       {
-        type: 'object', name: 'UntrustedSpawner',
+        type: 'object',
+        name: 'UntrustedSpawner',
         traits: ['@mesh'],
         calls: ['spawn'],
         declaredEffects: ['render:spawn', 'resource:memory'],
@@ -184,7 +198,7 @@ describe('runSafetyPass', () => {
       trustLevel: 'untrusted', // Only scene:read
     });
     expect(result.report.capabilities.passed).toBe(false);
-    expect(result.report.capabilities.missing.some(m => m.scope === 'scene:write')).toBe(true);
+    expect(result.report.capabilities.missing.some((m) => m.scope === 'scene:write')).toBe(true);
   });
 
   it('budget exceeded on Quest 3', () => {
@@ -206,7 +220,13 @@ describe('runSafetyPass', () => {
 
   it('formats report correctly', () => {
     const nodes: EffectASTNode[] = [
-      { type: 'object', name: 'A', traits: ['@mesh'], calls: [], declaredEffects: ['render:spawn'] },
+      {
+        type: 'object',
+        name: 'A',
+        traits: ['@mesh'],
+        calls: [],
+        declaredEffects: ['render:spawn'],
+      },
     ];
     const result = runSafetyPass(nodes, { moduleId: 'format-test', trustLevel: 'basic' });
     expect(result.formattedReport).toContain('format-test');
@@ -215,9 +235,19 @@ describe('runSafetyPass', () => {
 
   it('generates certificate for safe modules', () => {
     const nodes: EffectASTNode[] = [
-      { type: 'object', name: 'Ok', traits: ['@mesh'], calls: [], declaredEffects: ['render:spawn'] },
+      {
+        type: 'object',
+        name: 'Ok',
+        traits: ['@mesh'],
+        calls: [],
+        declaredEffects: ['render:spawn'],
+      },
     ];
-    const result = runSafetyPass(nodes, { moduleId: 'cert-test', trustLevel: 'basic', generateCertificate: true });
+    const result = runSafetyPass(nodes, {
+      moduleId: 'cert-test',
+      trustLevel: 'basic',
+      generateCertificate: true,
+    });
     expect(result.certificate).not.toBeNull();
     expect(result.certificate?.moduleId).toBe('cert-test');
   });
@@ -242,7 +272,7 @@ describe('quickSafetyCheck', () => {
     const result = quickSafetyCheck(['@mesh', '@material'], [], { trustLevel: 'basic' });
     // quickSafetyCheck sends no declaredEffects, so the effect checker flags undeclared effects.
     // But capability-wise, basic trust covers scene:write for rendering.
-    expect(result.reasons.filter(r => r.includes('Missing capability'))).toHaveLength(0);
+    expect(result.reasons.filter((r) => r.includes('Missing capability'))).toHaveLength(0);
   });
 
   it('fails for untrusted agent with spawn', () => {
@@ -252,15 +282,13 @@ describe('quickSafetyCheck', () => {
   });
 
   it('allows trusted agent to use physics', () => {
-    const result = quickSafetyCheck(
-      ['@mesh', '@physics'],
-      ['applyForce'],
-      { trustLevel: 'trusted' },
-    );
+    const result = quickSafetyCheck(['@mesh', '@physics'], ['applyForce'], {
+      trustLevel: 'trusted',
+    });
     // The effects need to be declared for the effect check pass
     // quickSafetyCheck with no declared effects = pure assertion
     // So this will fail on effect check (undeclared effects)
     // The point is capability-wise it's fine for trusted
-    expect(result.reasons.some(r => r.includes('Missing capability'))).toBe(false);
+    expect(result.reasons.some((r) => r.includes('Missing capability'))).toBe(false);
   });
 });

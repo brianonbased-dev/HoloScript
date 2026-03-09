@@ -16,13 +16,18 @@ export type Vec3 = [number, number, number];
  * alpha controls centripetal (0.5) vs uniform (0) vs chordal (1).
  */
 export function catmullRomPoint(
-  p0: Vec3, p1: Vec3, p2: Vec3, p3: Vec3,
+  p0: Vec3,
+  p1: Vec3,
+  p2: Vec3,
+  p3: Vec3,
   t: number,
-  alpha = 0.5,
+  alpha = 0.5
 ): Vec3 {
   function td(pa: Vec3, pb: Vec3): number {
-    const dx = pb[0] - pa[0], dy = pb[1] - pa[1], dz = pb[2] - pa[2];
-    return Math.pow(Math.sqrt(dx*dx + dy*dy + dz*dz) + 1e-10, alpha);
+    const dx = pb[0] - pa[0],
+      dy = pb[1] - pa[1],
+      dz = pb[2] - pa[2];
+    return Math.pow(Math.sqrt(dx * dx + dy * dy + dz * dz) + 1e-10, alpha);
   }
 
   const t0 = 0;
@@ -56,11 +61,7 @@ export function catmullRomPoint(
  * @param segments  Number of interpolated segments between each pair of points
  * @param alpha     0=uniform, 0.5=centripetal (default), 1=chordal
  */
-export function catmullRomInterpolate(
-  points: Vec3[],
-  segments = 8,
-  alpha = 0.5,
-): Vec3[] {
+export function catmullRomInterpolate(points: Vec3[], segments = 8, alpha = 0.5): Vec3[] {
   if (points.length < 2) return [...points];
   if (points.length === 2) {
     // Linear interpolation between 2 points
@@ -68,7 +69,7 @@ export function catmullRomInterpolate(
     const result: Vec3[] = [];
     for (let i = 0; i <= segments; i++) {
       const t = i / segments;
-      result.push([a[0] + (b[0]-a[0])*t, a[1] + (b[1]-a[1])*t, a[2] + (b[2]-a[2])*t]);
+      result.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]);
     }
     return result;
   }
@@ -78,7 +79,10 @@ export function catmullRomInterpolate(
   const result: Vec3[] = [];
 
   for (let i = 0; i < pts.length - 3; i++) {
-    const p0 = pts[i]!, p1 = pts[i+1]!, p2 = pts[i+2]!, p3 = pts[i+3]!;
+    const p0 = pts[i]!,
+      p1 = pts[i + 1]!,
+      p2 = pts[i + 2]!,
+      p3 = pts[i + 3]!;
     for (let s = 0; s < segments; s++) {
       const t = s / segments;
       result.push(catmullRomPoint(p0, p1, p2, p3, t, alpha));
@@ -96,9 +100,12 @@ export function catmullRomInterpolate(
 export function strokeLength(points: Vec3[]): number {
   let len = 0;
   for (let i = 1; i < points.length; i++) {
-    const a = points[i-1]!, b = points[i]!;
-    const dx = b[0]-a[0], dy = b[1]-a[1], dz = b[2]-a[2];
-    len += Math.sqrt(dx*dx + dy*dy + dz*dz);
+    const a = points[i - 1]!,
+      b = points[i]!;
+    const dx = b[0] - a[0],
+      dy = b[1] - a[1],
+      dz = b[2] - a[2];
+    len += Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
   return len;
 }
@@ -124,7 +131,9 @@ export function resampleStroke(points: Vec3[], count: number): Vec3[] {
     while (segIdx < points.length - 1) {
       const a = points[segIdx]!;
       const b = points[segIdx + 1]!;
-      const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+      const dx = b[0] - a[0],
+        dy = b[1] - a[1],
+        dz = b[2] - a[2];
       const segLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       if (accumulated + segLen >= target) {
@@ -138,7 +147,7 @@ export function resampleStroke(points: Vec3[], count: number): Vec3[] {
       }
     }
   }
-  
+
   // Guarantee exact final point
   result.push(points[points.length - 1]!);
   return result;
@@ -157,11 +166,13 @@ export function gaussianSmoothStroke(points: Vec3[], passes = 2): Vec3[] {
   for (let p = 0; p < passes; p++) {
     const smoothed: Vec3[] = [pts[0]!];
     for (let i = 1; i < pts.length - 1; i++) {
-      const a = pts[i-1]!, b = pts[i]!, c = pts[i+1]!;
+      const a = pts[i - 1]!,
+        b = pts[i]!,
+        c = pts[i + 1]!;
       smoothed.push([
-        (a[0] + 2*b[0] + c[0]) / 4,
-        (a[1] + 2*b[1] + c[1]) / 4,
-        (a[2] + 2*b[2] + c[2]) / 4,
+        (a[0] + 2 * b[0] + c[0]) / 4,
+        (a[1] + 2 * b[1] + c[1]) / 4,
+        (a[2] + 2 * b[2] + c[2]) / 4,
       ]);
     }
     smoothed.push(pts[pts.length - 1]!);

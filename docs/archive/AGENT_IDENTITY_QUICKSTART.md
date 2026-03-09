@@ -225,11 +225,7 @@ async function compileWithAgents(sourceCode: string): Promise<string> {
     workflowStep: WorkflowStep.GENERATE_ASSEMBLY,
     workflowId,
     initiatedBy: AgentRole.ORCHESTRATOR,
-    delegationChain: [
-      AgentRole.ORCHESTRATOR,
-      AgentRole.SYNTAX_ANALYZER,
-      AgentRole.AST_OPTIMIZER,
-    ],
+    delegationChain: [AgentRole.ORCHESTRATOR, AgentRole.SYNTAX_ANALYZER, AgentRole.AST_OPTIMIZER],
     keyPair: codegenKeyPair,
   });
 

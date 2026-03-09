@@ -128,7 +128,9 @@ describe('AnimationGraph — Production', () => {
     graph.addState('idle', 'idle');
     graph.addState('walk', 'walk');
     graph.addTransition({
-      id: 't1', fromState: 'idle', toState: 'walk',
+      id: 't1',
+      fromState: 'idle',
+      toState: 'walk',
       duration: 0.001,
       condition: { type: 'parameter', name: 'speed', comparator: '>', value: 0 },
       interruptible: false,
@@ -145,7 +147,9 @@ describe('AnimationGraph — Production', () => {
     graph.addState('idle', 'idle');
     graph.addState('run', 'run');
     graph.addTransition({
-      id: 't1', fromState: 'idle', toState: 'run',
+      id: 't1',
+      fromState: 'idle',
+      toState: 'run',
       duration: 0.001,
       condition: { type: 'parameter', name: 'mode', comparator: '==', value: 2 },
       interruptible: false,
@@ -162,7 +166,9 @@ describe('AnimationGraph — Production', () => {
     graph.addState('idle', 'idle');
     graph.addState('jump', 'jump');
     graph.addTransition({
-      id: 't1', fromState: 'idle', toState: 'jump',
+      id: 't1',
+      fromState: 'idle',
+      toState: 'jump',
       duration: 0.001,
       condition: { type: 'trigger', name: 'jump' },
       interruptible: false,
@@ -177,8 +183,11 @@ describe('AnimationGraph — Production', () => {
   // ─── Layers ───────────────────────────────────────────────────────
   it('addLayer / getLayers', () => {
     const subGraph = {
-      states: new Map(), transitions: [], currentState: '',
-      parameters: new Map(), activeTransition: null,
+      states: new Map(),
+      transitions: [],
+      currentState: '',
+      parameters: new Map(),
+      activeTransition: null,
     };
     graph.addLayer({ id: 'upperBody', weight: 0.5, blendMode: 'additive', graph: subGraph });
     expect(graph.getLayers().length).toBe(1);

@@ -5,7 +5,10 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { ShaderOptimizationManager, type ShaderOptimizationConfig } from '../ShaderOptimizationManager';
+import {
+  ShaderOptimizationManager,
+  type ShaderOptimizationConfig,
+} from '../ShaderOptimizationManager';
 import * as THREE from 'three';
 
 describe('ShaderOptimizationManager', () => {

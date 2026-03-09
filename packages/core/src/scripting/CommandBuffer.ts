@@ -16,7 +16,7 @@ export interface Command {
   name: string;
   execute: () => void;
   undo: () => void;
-  mergeable?: boolean;     // Can merge with previous same-named command
+  mergeable?: boolean; // Can merge with previous same-named command
 }
 
 export interface CommandEntry {
@@ -53,7 +53,10 @@ export class CommandBuffer {
         // Replace last with merged (keep new execute, chain undos)
         const originalUndo = last.command.undo;
         const newUndo = command.undo;
-        last.command.undo = () => { newUndo(); originalUndo(); };
+        last.command.undo = () => {
+          newUndo();
+          originalUndo();
+        };
         last.command.execute = command.execute;
         this.redoStack = [];
         if (this.recording) this.macroBuffer.push(entry);
@@ -91,8 +94,12 @@ export class CommandBuffer {
     return true;
   }
 
-  canUndo(): boolean { return this.undoStack.length > 0; }
-  canRedo(): boolean { return this.redoStack.length > 0; }
+  canUndo(): boolean {
+    return this.undoStack.length > 0;
+  }
+  canRedo(): boolean {
+    return this.redoStack.length > 0;
+  }
 
   // ---------------------------------------------------------------------------
   // Batch Execution
@@ -109,8 +116,12 @@ export class CommandBuffer {
     const batch: Command = {
       id: `batch_${_cmdId++}`,
       name: `Batch(${commands.length})`,
-      execute: () => { for (const cmd of commands) cmd.execute(); },
-      undo: () => { for (let i = undos.length - 1; i >= 0; i--) undos[i](); },
+      execute: () => {
+        for (const cmd of commands) cmd.execute();
+      },
+      undo: () => {
+        for (let i = undos.length - 1; i >= 0; i--) undos[i]();
+      },
     };
 
     this.undoStack.push({ command: batch, timestamp: Date.now() });
@@ -128,7 +139,7 @@ export class CommandBuffer {
 
   stopRecording(macroName: string): number {
     this.recording = false;
-    const commands = this.macroBuffer.map(e => e.command);
+    const commands = this.macroBuffer.map((e) => e.command);
     this.macros.set(macroName, commands);
     const count = this.macroBuffer.length;
     this.macroBuffer = [];
@@ -142,16 +153,24 @@ export class CommandBuffer {
     return true;
   }
 
-  getMacroNames(): string[] { return [...this.macros.keys()]; }
+  getMacroNames(): string[] {
+    return [...this.macros.keys()];
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getUndoStackSize(): number { return this.undoStack.length; }
-  getRedoStackSize(): number { return this.redoStack.length; }
+  getUndoStackSize(): number {
+    return this.undoStack.length;
+  }
+  getRedoStackSize(): number {
+    return this.redoStack.length;
+  }
 
-  getHistory(): CommandEntry[] { return [...this.undoStack]; }
+  getHistory(): CommandEntry[] {
+    return [...this.undoStack];
+  }
   getLastCommand(): Command | null {
     return this.undoStack.length > 0 ? this.undoStack[this.undoStack.length - 1].command : null;
   }
@@ -161,5 +180,7 @@ export class CommandBuffer {
     this.redoStack = [];
   }
 
-  setMaxHistory(max: number): void { this.maxHistory = max; }
+  setMaxHistory(max: number): void {
+    this.maxHistory = max;
+  }
 }

@@ -29,7 +29,14 @@ describe('LLMBackend (XR extensions)', () => {
   });
 
   it('all 6 backends are assignable', () => {
-    const backends: LLMBackend[] = ['ollama', 'lmstudio', 'llamacpp', 'openai', 'executorch', 'bitnet'];
+    const backends: LLMBackend[] = [
+      'ollama',
+      'lmstudio',
+      'llamacpp',
+      'openai',
+      'executorch',
+      'bitnet',
+    ];
     expect(backends).toHaveLength(6);
   });
 });

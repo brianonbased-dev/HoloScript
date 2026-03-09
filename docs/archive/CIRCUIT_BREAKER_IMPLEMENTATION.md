@@ -26,6 +26,7 @@
 - ✅ Event callbacks (onStateChange, onError)
 
 **Key Metrics Tracked**:
+
 - Circuit state per target
 - Failure rate (failures/hour)
 - Time in degraded mode (ms)
@@ -44,6 +45,7 @@
 - ✅ ReferenceExporterRegistry for centralized management
 
 **Supported Fallbacks**:
+
 - Robotics: URDF, SDF
 - Game Engines: Unity (C#), Unreal (C++), Godot (GDScript)
 - Web: WebGPU, React Three Fiber, Babylon.js
@@ -64,9 +66,10 @@
 - ✅ Global singleton pattern with getExportManager()
 
 **Convenience Functions**:
+
 ```typescript
-exportComposition(target, composition, options)
-batchExportComposition(targets, composition, options)
+exportComposition(target, composition, options);
+batchExportComposition(targets, composition, options);
 ```
 
 ### 4. Monitoring & Observability
@@ -185,6 +188,7 @@ batchExportComposition(targets, composition, options)
 **Critical Feature**: Failures in URDF do NOT affect WebGPU, Unity, Unreal, etc.
 
 Each target maintains independent:
+
 - Circuit state (CLOSED/OPEN/HALF_OPEN)
 - Failure counters
 - Success counters
@@ -320,6 +324,7 @@ Integration Tests:
 ### Key Metrics
 
 **Per-Target**:
+
 - Circuit state (CLOSED/OPEN/HALF_OPEN)
 - Failure count
 - Success count
@@ -330,6 +335,7 @@ Integration Tests:
 - Execution time (avg, p95, p99)
 
 **Aggregated**:
+
 - Total targets
 - Open/half-open/closed circuits
 - Overall health score (0-100)
@@ -387,6 +393,7 @@ const result = await manager.export('urdf', composition);
 ### Performance Benefits
 
 When circuit is OPEN:
+
 - **Fail-fast**: ~1ms (vs ~500ms for failed compilation)
 - **Fallback**: ~12ms (vs ~500ms+ for retries)
 - **Overall**: 97% faster failure handling
@@ -466,22 +473,26 @@ When circuit is OPEN:
 ### Goal Achievement
 
 ✅ **85% reduction in cascading failures**
+
 - Per-target isolation prevents cascading
 - When URDF fails, other 24 targets unaffected
 - Measured in integration tests
 
 ✅ **Graceful degradation**
+
 - Reference exporters provide fallback
 - Users get simplified export instead of total failure
 - Warnings indicate degraded mode
 
 ✅ **Real-time monitoring**
+
 - Circuit state tracking per target
 - Failure rate monitoring (failures/hour)
 - Time in degraded mode tracking
 - Alert system with thresholds
 
 ✅ **Production-ready**
+
 - Comprehensive test suite (100% coverage)
 - Full documentation
 - Backward compatible
@@ -523,6 +534,7 @@ These are planned enhancements for future versions.
 ✅ **Successfully implemented circuit breaker pattern** for all 25+ HoloScript export targets
 
 **Key Achievements**:
+
 - Per-target isolation (85% cascading failure reduction)
 - Automatic fallback to reference exporters
 - Comprehensive monitoring and alerting

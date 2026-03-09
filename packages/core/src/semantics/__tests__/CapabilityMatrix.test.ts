@@ -18,7 +18,14 @@ function makeProfile(overrides: Partial<CapabilityProfile> = {}): CapabilityProf
       maxRenderTargets: 8,
       maxVertexAttributes: 16,
       maxUniformBufferSize: 65536,
-      compressedTextures: { s3tc: true, etc1: false, etc2: false, astc: false, pvrtc: false, bc7: false },
+      compressedTextures: {
+        s3tc: true,
+        etc1: false,
+        etc2: false,
+        astc: false,
+        pvrtc: false,
+        bc7: false,
+      },
       hdr: true,
       instancing: true,
       computeShaders: false,
@@ -132,98 +139,128 @@ describe('CapabilityMatrix', () => {
   it('registerFeature + isFeatureSupported (equals check)', () => {
     const m = CapabilityMatrix.getInstance();
     m.setProfile(makeProfile({ renderingBackend: 'webgpu' }));
-    m.registerFeature(createFeatureRequirement('webgpu', [
-      { capability: 'renderingBackend', value: 'webgpu', comparison: 'equals' },
-    ]));
+    m.registerFeature(
+      createFeatureRequirement('webgpu', [
+        { capability: 'renderingBackend', value: 'webgpu', comparison: 'equals' },
+      ])
+    );
     expect(m.isFeatureSupported('webgpu')).toBe(true);
   });
 
   it('isFeatureSupported returns false when check fails', () => {
     const m = CapabilityMatrix.getInstance();
     m.setProfile(makeProfile({ renderingBackend: 'webgl2' }));
-    m.registerFeature(createFeatureRequirement('webgpu', [
-      { capability: 'renderingBackend', value: 'webgpu', comparison: 'equals' },
-    ]));
+    m.registerFeature(
+      createFeatureRequirement('webgpu', [
+        { capability: 'renderingBackend', value: 'webgpu', comparison: 'equals' },
+      ])
+    );
     expect(m.isFeatureSupported('webgpu')).toBe(false);
   });
 
   it('gte comparison works', () => {
     const m = CapabilityMatrix.getInstance();
     m.setProfile(makeProfile());
-    m.registerFeature(createFeatureRequirement('highEnd', [
-      { capability: 'performance.deviceTier', value: 3, comparison: 'gte' },
-    ]));
+    m.registerFeature(
+      createFeatureRequirement('highEnd', [
+        { capability: 'performance.deviceTier', value: 3, comparison: 'gte' },
+      ])
+    );
     expect(m.isFeatureSupported('highEnd')).toBe(true);
   });
 
   it('lt comparison works', () => {
     const m = CapabilityMatrix.getInstance();
     m.setProfile(makeProfile());
-    m.registerFeature(createFeatureRequirement('lowEnd', [
-      { capability: 'performance.deviceTier', value: 2, comparison: 'lt' },
-    ]));
+    m.registerFeature(
+      createFeatureRequirement('lowEnd', [
+        { capability: 'performance.deviceTier', value: 2, comparison: 'lt' },
+      ])
+    );
     expect(m.isFeatureSupported('lowEnd')).toBe(false);
   });
 
   it('contains comparison works for arrays', () => {
     const m = CapabilityMatrix.getInstance();
-    m.setProfile(makeProfile({
-      xr: { ...makeProfile().xr, supported: true, modes: ['vr', 'ar'] },
-    }));
-    m.registerFeature(createFeatureRequirement('vrSupport', [
-      { capability: 'xr.modes', value: 'vr', comparison: 'contains' },
-    ]));
+    m.setProfile(
+      makeProfile({
+        xr: { ...makeProfile().xr, supported: true, modes: ['vr', 'ar'] },
+      })
+    );
+    m.registerFeature(
+      createFeatureRequirement('vrSupport', [
+        { capability: 'xr.modes', value: 'vr', comparison: 'contains' },
+      ])
+    );
     expect(m.isFeatureSupported('vrSupport')).toBe(true);
   });
 
   it('exists comparison works', () => {
     const m = CapabilityMatrix.getInstance();
     m.setProfile(makeProfile());
-    m.registerFeature(createFeatureRequirement('hasAudio', [
-      { capability: 'audio', value: null, comparison: 'exists' },
-    ]));
+    m.registerFeature(
+      createFeatureRequirement('hasAudio', [
+        { capability: 'audio', value: null, comparison: 'exists' },
+      ])
+    );
     expect(m.isFeatureSupported('hasAudio')).toBe(true);
   });
 
   it('getFeatureOrFallback returns feature if supported', () => {
     const m = CapabilityMatrix.getInstance();
     m.setProfile(makeProfile());
-    m.registerFeature(createFeatureRequirement('hdrRendering', [
-      { capability: 'graphics.hdr', value: true, comparison: 'equals' },
-    ]));
+    m.registerFeature(
+      createFeatureRequirement('hdrRendering', [
+        { capability: 'graphics.hdr', value: true, comparison: 'equals' },
+      ])
+    );
     expect(m.getFeatureOrFallback('hdrRendering')).toBe('hdrRendering');
   });
 
   it('getFeatureOrFallback returns fallback', () => {
     const m = CapabilityMatrix.getInstance();
     m.setProfile(makeProfile());
-    m.registerFeature(createFeatureRequirement('rayTracing', [
-      { capability: 'graphics.rayTracing', value: true, comparison: 'equals' },
-    ], { fallback: 'rasterization' }));
-    m.registerFeature(createFeatureRequirement('rasterization', [
-      { capability: 'graphics.instancing', value: true, comparison: 'equals' },
-    ]));
+    m.registerFeature(
+      createFeatureRequirement(
+        'rayTracing',
+        [{ capability: 'graphics.rayTracing', value: true, comparison: 'equals' }],
+        { fallback: 'rasterization' }
+      )
+    );
+    m.registerFeature(
+      createFeatureRequirement('rasterization', [
+        { capability: 'graphics.instancing', value: true, comparison: 'equals' },
+      ])
+    );
     expect(m.getFeatureOrFallback('rayTracing')).toBe('rasterization');
   });
 
   it('getUnsupportedCriticalFeatures lists critical misses', () => {
     const m = CapabilityMatrix.getInstance();
     m.setProfile(makeProfile());
-    m.registerFeature(createFeatureRequirement('compute', [
-      { capability: 'graphics.computeShaders', value: true, comparison: 'equals' },
-    ], { critical: true }));
+    m.registerFeature(
+      createFeatureRequirement(
+        'compute',
+        [{ capability: 'graphics.computeShaders', value: true, comparison: 'equals' }],
+        { critical: true }
+      )
+    );
     expect(m.getUnsupportedCriticalFeatures()).toContain('compute');
   });
 
   it('getSummary reports supported/unsupported', () => {
     const m = CapabilityMatrix.getInstance();
     m.setProfile(makeProfile());
-    m.registerFeature(createFeatureRequirement('hdr', [
-      { capability: 'graphics.hdr', value: true, comparison: 'equals' },
-    ]));
-    m.registerFeature(createFeatureRequirement('rt', [
-      { capability: 'graphics.rayTracing', value: true, comparison: 'equals' },
-    ]));
+    m.registerFeature(
+      createFeatureRequirement('hdr', [
+        { capability: 'graphics.hdr', value: true, comparison: 'equals' },
+      ])
+    );
+    m.registerFeature(
+      createFeatureRequirement('rt', [
+        { capability: 'graphics.rayTracing', value: true, comparison: 'equals' },
+      ])
+    );
     const summary = m.getSummary();
     expect(summary.supportedFeatures).toContain('hdr');
     expect(summary.unsupportedFeatures).toContain('rt');
@@ -238,9 +275,11 @@ describe('CapabilityMatrix', () => {
 
   it('features re-evaluate when profile changes', () => {
     const m = CapabilityMatrix.getInstance();
-    m.registerFeature(createFeatureRequirement('compute', [
-      { capability: 'graphics.computeShaders', value: true, comparison: 'equals' },
-    ]));
+    m.registerFeature(
+      createFeatureRequirement('compute', [
+        { capability: 'graphics.computeShaders', value: true, comparison: 'equals' },
+      ])
+    );
     m.setProfile(makeProfile());
     expect(m.isFeatureSupported('compute')).toBe(false);
     // Set new profile with compute shaders

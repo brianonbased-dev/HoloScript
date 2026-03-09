@@ -231,7 +231,10 @@ describe('Scenario: Character Intent Parser — Execution', () => {
   it('executing set_morph decrease adjusts store value', () => {
     useCharacterStore.getState().setMorphTarget('face_jaw_width', 80);
     const intent = parseCharacterIntent('make jaw smaller');
-    const actions = { ...getStoreActions(), morphTargets: useCharacterStore.getState().morphTargets };
+    const actions = {
+      ...getStoreActions(),
+      morphTargets: useCharacterStore.getState().morphTargets,
+    };
     executeCharacterIntent(intent, actions);
     expect(useCharacterStore.getState().morphTargets.face_jaw_width).toBe(65); // 80 - 15
   });

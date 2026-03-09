@@ -16,19 +16,15 @@ describe('NoDeadCodeRule — Production', () => {
   });
 
   it('detects unused template', () => {
-    const files = new Map([
-      ['game.holo', 'template "BaseChar"\n  health: 100\n'],
-    ]);
+    const files = new Map([['game.holo', 'template "BaseChar"\n  health: 100\n']]);
     const diags = rule.check(files);
-    expect(diags.some(d => d.name === 'BaseChar' && d.kind === 'template')).toBe(true);
+    expect(diags.some((d) => d.name === 'BaseChar' && d.kind === 'template')).toBe(true);
   });
 
   it('used template is not flagged', () => {
-    const files = new Map([
-      ['game.holo', 'template "Player"\n  health: 100\nusing "Player"\n'],
-    ]);
+    const files = new Map([['game.holo', 'template "Player"\n  health: 100\nusing "Player"\n']]);
     const diags = rule.check(files);
-    expect(diags.some(d => d.name === 'Player')).toBe(false);
+    expect(diags.some((d) => d.name === 'Player')).toBe(false);
   });
 
   it('detects unused function', () => {
@@ -50,11 +46,9 @@ describe('NoDeadCodeRule — Production', () => {
   });
 
   it('used function is not flagged', () => {
-    const files = new Map([
-      ['utils.holo', 'function calc(x)\n  return x\ncalc(5)\n'],
-    ]);
+    const files = new Map([['utils.holo', 'function calc(x)\n  return x\ncalc(5)\n']]);
     const diags = rule.check(files);
-    expect(diags.some(d => d.name === 'calc')).toBe(false);
+    expect(diags.some((d) => d.name === 'calc')).toBe(false);
   });
 
   it('cross-file usage clears dead code', () => {
@@ -63,13 +57,11 @@ describe('NoDeadCodeRule — Production', () => {
       ['main.holo', 'using "Shared"\n'],
     ]);
     const diags = rule.check(files);
-    expect(diags.some(d => d.name === 'Shared')).toBe(false);
+    expect(diags.some((d) => d.name === 'Shared')).toBe(false);
   });
 
   it('diagnostics have correct shape', () => {
-    const files = new Map([
-      ['a.holo', 'template "Unused"\n  x: 1\n'],
-    ]);
+    const files = new Map([['a.holo', 'template "Unused"\n  x: 1\n']]);
     const diags = rule.check(files);
     expect(diags.length).toBeGreaterThan(0);
     const d = diags[0];
@@ -86,9 +78,7 @@ describe('NoDeadCodeRule — Production', () => {
   });
 
   it('formatReport with issues', () => {
-    const diags = rule.check(new Map([
-      ['x.holo', 'template "Dead"\n  v: 1\n'],
-    ]));
+    const diags = rule.check(new Map([['x.holo', 'template "Dead"\n  v: 1\n']]));
     const report = rule.formatReport(diags);
     expect(report).toContain('Dead');
     expect(report).toContain('x.holo');

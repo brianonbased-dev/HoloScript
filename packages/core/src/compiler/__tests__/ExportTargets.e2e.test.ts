@@ -15,7 +15,7 @@
  * @version 1.0.0
  */
 
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Compiler imports
 import { UnityCompiler } from '../UnityCompiler';
@@ -44,7 +44,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 // =============================================================================
 // Shared Test Fixtures
@@ -861,7 +860,9 @@ describe('E2E Export: VisionOS (Apple Vision Pro)', () => {
 
   it('includes Swift or RealityKit references', () => {
     const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
-    expect(output).toMatch(/import RealityKit|import SwiftUI|visionOS|Vision\s*OS|ModelEntity|Entity/i);
+    expect(output).toMatch(
+      /import RealityKit|import SwiftUI|visionOS|Vision\s*OS|ModelEntity|Entity/i
+    );
   });
 
   it('compiles empty composition without errors', () => {
@@ -900,7 +901,9 @@ describe('E2E Cross-Target: Consistency Guarantees', () => {
     for (const { name, compile } of stringCompilers) {
       const output = compile(composition);
       expect(output, `${name} compiler should produce non-empty string output`).toBeTruthy();
-      expect(output.length, `${name} compiler output should be at least 50 chars`).toBeGreaterThan(50);
+      expect(output.length, `${name} compiler output should be at least 50 chars`).toBeGreaterThan(
+        50
+      );
     }
 
     // Object-output compilers (return multi-file result structs)
@@ -917,7 +920,10 @@ describe('E2E Cross-Target: Consistency Guarantees', () => {
     const androidXRResult = new AndroidXRCompiler().compile(composition, 'test-token');
     expect(androidXRResult.activityFile, 'AndroidXR activityFile should be non-empty').toBeTruthy();
     expect(androidXRResult.stateFile, 'AndroidXR stateFile should be non-empty').toBeTruthy();
-    expect(androidXRResult.nodeFactoryFile, 'AndroidXR nodeFactoryFile should be non-empty').toBeTruthy();
+    expect(
+      androidXRResult.nodeFactoryFile,
+      'AndroidXR nodeFactoryFile should be non-empty'
+    ).toBeTruthy();
     expect(androidXRResult.manifestFile, 'AndroidXR manifestFile should be non-empty').toBeTruthy();
     expect(androidXRResult.buildGradle, 'AndroidXR buildGradle should be non-empty').toBeTruthy();
 
@@ -941,10 +947,9 @@ describe('E2E Cross-Target: Consistency Guarantees', () => {
 
     for (const { name, compile } of namePreservingCompilers) {
       const output = compile();
-      expect(
-        output,
-        `${name} compiler should include composition name`
-      ).toContain('UniqueSceneName123');
+      expect(output, `${name} compiler should include composition name`).toContain(
+        'UniqueSceneName123'
+      );
     }
 
     // Object-output compilers also preserve composition name
@@ -989,9 +994,10 @@ describe('E2E Cross-Target: Consistency Guarantees', () => {
 
     for (const { name, output } of xmlCompilers) {
       // Every opening tag should have a corresponding closing tag
-      const openTags = (output.match(/<[a-zA-Z][^/>\s]*/g) || [])
-        .filter((t) => !t.startsWith('<?') && !t.startsWith('<!--'));
-      const closeTags = (output.match(/<\/[a-zA-Z][^>]*/g) || []);
+      const openTags = (output.match(/<[a-zA-Z][^/>\s]*/g) || []).filter(
+        (t) => !t.startsWith('<?') && !t.startsWith('<!--')
+      );
+      const closeTags = output.match(/<\/[a-zA-Z][^>]*/g) || [];
 
       // Both should be non-empty
       expect(openTags.length, `${name} should have opening XML tags`).toBeGreaterThan(0);
@@ -1019,11 +1025,15 @@ describe('E2E Edge Cases', () => {
   });
 
   it('handles composition with many objects (scalability)', () => {
-    const manyObjects: HoloObjectDecl[] = Array.from({ length: 50 }, (_, i) => ({
-      name: `object_${i}`,
-      properties: [],
-      traits: [],
-    } as unknown as HoloObjectDecl));
+    const manyObjects: HoloObjectDecl[] = Array.from(
+      { length: 50 },
+      (_, i) =>
+        ({
+          name: `object_${i}`,
+          properties: [],
+          traits: [],
+        }) as unknown as HoloObjectDecl
+    );
 
     const largComposition = createSimpleCubeComposition({ objects: manyObjects });
 

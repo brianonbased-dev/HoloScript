@@ -5,7 +5,11 @@ import {
   type PlatformBlock,
 } from '../PlatformConditionalCompiler';
 
-function block(platforms: string[], content: Record<string, unknown>, negated = false): PlatformBlock {
+function block(
+  platforms: string[],
+  content: Record<string, unknown>,
+  negated = false
+): PlatformBlock {
   return { platforms: platforms as any, content, negated };
 }
 
@@ -107,10 +111,7 @@ describe('PlatformConditionalCompiler', () => {
 
   it('preserves base traits when blocks merge', () => {
     const compiler = createPlatformConditionalCompiler('quest3');
-    const result = compiler.resolve(
-      [block(['vr'], { newProp: true })],
-      { existing: 'value' },
-    );
+    const result = compiler.resolve([block(['vr'], { newProp: true })], { existing: 'value' });
     expect(result.resolvedTraits).toEqual({ existing: 'value', newProp: true });
   });
 

@@ -8,7 +8,9 @@ function pose(boneId: string, x: number, y: number, z: number): BonePose {
 describe('AnimationTransitionSystem', () => {
   let sys: AnimationTransitionSystem;
 
-  beforeEach(() => { sys = new AnimationTransitionSystem({ duration: 1, curve: 'linear' }); });
+  beforeEach(() => {
+    sys = new AnimationTransitionSystem({ duration: 1, curve: 'linear' });
+  });
 
   // Start transitions
   it('startAnimToRagdoll creates transition', () => {

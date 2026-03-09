@@ -223,6 +223,7 @@ npm run start
 ```
 
 **Key Features:**
+
 - Workflow compilation to serverless functions
 - Multi-cloud support (AWS Lambda, Cloudflare Workers, Vercel Edge)
 - Execution monitoring and logs
@@ -421,7 +422,12 @@ export const pageview = (url: string) => {
   });
 };
 
-export const event = ({ action, category, label, value }: {
+export const event = ({
+  action,
+  category,
+  label,
+  value,
+}: {
   action: string;
   category: string;
   label: string;
@@ -436,6 +442,7 @@ export const event = ({ action, category, label, value }: {
 ```
 
 **Key Events to Track:**
+
 - `workflow_created` - User creates new workflow
 - `template_used` - User loads template from marketplace
 - `plugin_installed` - Plugin installation
@@ -469,16 +476,19 @@ rate(holoscript_marketplace_downloads_total[1h])
 ### Horizontal Scaling
 
 **Studio Frontend:**
+
 - Deploy behind load balancer (ALB, Nginx)
 - Use Next.js multi-instance mode
 - Share session state via Redis
 
 **Collaboration WebSocket:**
+
 - Use Redis adapter for multi-server synchronization
 - Sticky sessions for WebSocket connections
 - Auto-scaling based on connection count
 
 **Database:**
+
 - Read replicas for heavy read operations
 - Connection pooling (PgBouncer)
 - Partitioning for large tables (templates, ratings)

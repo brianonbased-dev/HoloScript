@@ -7,6 +7,7 @@ A comprehensive VRChat world example demonstrating VRChat SDK3, Udon# scripting,
 Build complete VRChat worlds with HoloScript, automatically generating Unity projects with VRChat SDK3 and Udon# scripts for custom behaviors.
 
 **Features:**
+
 - VRChat mirrors (desktop/VR toggleable)
 - AVPro video players (YouTube/Twitch support)
 - Avatar pedestals
@@ -20,11 +21,13 @@ Build complete VRChat worlds with HoloScript, automatically generating Unity pro
 ### 1. Prerequisites
 
 **VRChat Account:**
+
 - Create account at [VRChat.com](https://vrchat.com)
 - Complete Trust & Safety tutorial in-game
 - Reach "New User" rank (required for world uploads)
 
 **Unity Setup:**
+
 - Unity 2022.3.6f1 (VRChat-approved version, **EXACT VERSION REQUIRED**)
 - VRChat SDK3 - Worlds
 - UdonSharp (optional but recommended)
@@ -36,6 +39,7 @@ holoscript compile social-hub-world.holo --target vrchat --output ./build/vrchat
 ```
 
 **Output:**
+
 ```
 build/vrchat/
 ├── Assets/
@@ -63,6 +67,7 @@ build/vrchat/
 1. **Install Unity Hub** and Unity 2022.3.6f1 (EXACT version)
 
 2. **Create VRChat Project:**
+
    ```
    Unity Hub > New Project
    Template: 3D
@@ -75,11 +80,13 @@ build/vrchat/
    - Or use VCC (recommended): Install Creator Companion → Create Project → Import SDK
 
 4. **Import HoloScript Output:**
+
    ```bash
    cp -r build/vrchat/Assets/* YourProject/Assets/VRChatWorld/
    ```
 
 5. **Open Scene:**
+
    ```
    Assets/Scenes/SocialHub.unity
    ```
@@ -119,6 +126,7 @@ VRChat SDK > Build & Test > Last Build
 ```
 
 **Access your world:**
+
 - VRChat > Menu > Worlds > Mine
 - Select "Social Hub"
 - Create Instance (Public, Friends+, Invite Only)
@@ -147,6 +155,7 @@ object#mirror @vrchat_mirror {
 ```
 
 **Performance:**
+
 - Mirrors are expensive (render scene twice)
 - Add toggle button for low-end PCs/Quest
 - Desktop: High quality
@@ -179,11 +188,13 @@ object#video_screen @vrchat_video_player {
 ```
 
 **Supported URLs:**
+
 - YouTube: `https://www.youtube.com/watch?v=VIDEO_ID`
 - Twitch: `https://www.twitch.tv/CHANNEL`
 - Direct: `https://example.com/video.mp4`
 
 **Permissions:**
+
 - Only instance owner can change URL (default)
 - Or set `allow_url_change: "anyone"` (risky)
 
@@ -207,6 +218,7 @@ object#avatar_pedestal @vrchat_avatar_pedestal {
 ```
 
 **Setup:**
+
 1. Upload avatar to VRChat first
 2. Get Avatar ID from VRChat SDK
 3. Paste ID into `avatar_id` field
@@ -247,6 +259,7 @@ object#ball @vrchat_pickup {
 ```
 
 **Pickup modes:**
+
 - `orientation: "grip"` - Natural hand hold
 - `orientation: "gun"` - Points forward like a gun
 
@@ -266,6 +279,7 @@ object#portal @vrchat_portal {
 ```
 
 **Get World ID:**
+
 1. Open target world in VRChat
 2. Menu > World Info > Copy World ID
 3. Paste into `target_world_id`
@@ -307,6 +321,7 @@ udon_behavior#color_changer {
 ```
 
 **Key concepts:**
+
 - `variables`: Local only
 - `synced_variables`: Networked (owner → all clients)
 - `request_serialization()`: Send update to network
@@ -359,6 +374,7 @@ udon_behavior {
 ```
 
 **Network modes:**
+
 - `send_custom_network_event` - Send to all clients
 - `send_custom_network_event_target` - Send to specific player
 - `send_custom_network_event_owner` - Send to object owner
@@ -368,12 +384,14 @@ udon_behavior {
 ### Performance Targets
 
 **Desktop VR:**
+
 - Target: 90 FPS
 - Draw Calls: <1000
 - Lightmap Resolution: 2048x2048
 - Shadow Distance: 80m
 
 **Quest:**
+
 - Target: 72 FPS
 - Draw Calls: <300
 - Lightmap Resolution: 512x512
@@ -405,6 +423,7 @@ VRChat SDK > Validation
 ```
 
 **Common issues:**
+
 - Missing audio sources on video players
 - Unassigned spawn points
 - Shader not VRChat-compatible
@@ -417,6 +436,7 @@ VRChat SDK > Validation
 **Error**: "Missing VRC Scene Descriptor"
 
 **Fix**:
+
 1. Ensure `VRCWorld` GameObject exists in scene
 2. Has `VRC_SceneDescriptor` component
 3. Spawn points assigned

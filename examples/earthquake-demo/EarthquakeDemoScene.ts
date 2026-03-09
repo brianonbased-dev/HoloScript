@@ -84,11 +84,7 @@ export class EarthquakeDemoScene {
   private lastUpdateTime: number = 0;
   private animationFrameId: number | null = null;
 
-  constructor(
-    context: WebGPUContext,
-    simulation: EarthquakeSimulation,
-    canvas: HTMLCanvasElement
-  ) {
+  constructor(context: WebGPUContext, simulation: EarthquakeSimulation, canvas: HTMLCanvasElement) {
     this.context = context;
     this.simulation = simulation;
     this.cameraController = new CameraController(canvas);

@@ -7,7 +7,9 @@ import { UIDataBinding } from '../ui/UIDataBinding';
 
 describe('UIDataBinding', () => {
   let db: UIDataBinding;
-  beforeEach(() => { db = new UIDataBinding(); });
+  beforeEach(() => {
+    db = new UIDataBinding();
+  });
 
   it('set and get model value', () => {
     db.set('player.name', 'Hero');
@@ -38,7 +40,7 @@ describe('UIDataBinding', () => {
 
   it('resolve with formatter', () => {
     db.set('score', 42);
-    const b = db.bind('score', 'scoreLabel', 'text', 'one-way', v => `Score: ${v}`);
+    const b = db.bind('score', 'scoreLabel', 'text', 'one-way', (v) => `Score: ${v}`);
     expect(db.resolve(b.id)).toBe('Score: 42');
   });
 

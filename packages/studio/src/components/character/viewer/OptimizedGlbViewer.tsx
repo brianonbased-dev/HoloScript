@@ -14,7 +14,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { TransformControls, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { useCharacterStore } from '@/lib/store';
+import { useCharacterStore } from '@/lib/stores';
 import { buildClipFromFrames, extractBuiltinAnimations } from '@/lib/animationBuilder';
 import type { BoneFrame } from '@/lib/animationBuilder';
 import { OptimizedGLBLoader, type LoadProgress } from '@/lib/glbOptimizer';
@@ -78,7 +78,9 @@ export function OptimizedGlbViewer({ url }: OptimizedGlbViewerProps) {
           if (result.loadTime < 500) {
             console.log(`✅ [MEME-012] Load time: ${result.loadTime.toFixed(0)}ms (FAST!)`);
           } else {
-            console.warn(`⚠️ [MEME-012] Load time: ${result.loadTime.toFixed(0)}ms (target: <500ms)`);
+            console.warn(
+              `⚠️ [MEME-012] Load time: ${result.loadTime.toFixed(0)}ms (target: <500ms)`
+            );
           }
 
           // Show optimizations used
@@ -166,7 +168,12 @@ export function OptimizedGlbViewer({ url }: OptimizedGlbViewerProps) {
     if (activeClipId) {
       const recordedClip = recordedClips.find((c) => c.id === activeClipId);
       if (recordedClip) {
-        const clip = buildClipFromFrames(recordedClip.frames, skeleton, recordedClip.duration, recordedClip.name);
+        const clip = buildClipFromFrames(
+          recordedClip.frames,
+          skeleton,
+          recordedClip.duration,
+          recordedClip.name
+        );
         mixer.clipAction(clip).play();
       }
     }
@@ -221,7 +228,7 @@ export function OptimizedGlbViewer({ url }: OptimizedGlbViewerProps) {
   // ── Selected bone gizmo ───────────────────────────────────────────────────
   const selectedBone =
     selectedBoneIndex !== null && skeletonRef.current
-      ? skeletonRef.current.bones[selectedBoneIndex] ?? null
+      ? (skeletonRef.current.bones[selectedBoneIndex] ?? null)
       : null;
 
   // Don't render until loaded
@@ -250,13 +257,7 @@ export function OptimizedGlbViewer({ url }: OptimizedGlbViewerProps) {
       </group>
 
       {/* FK bone gizmo — rotate mode only */}
-      {selectedBone && (
-        <TransformControls
-          object={selectedBone}
-          mode="rotate"
-          size={0.6}
-        />
-      )}
+      {selectedBone && <TransformControls object={selectedBone} mode="rotate" size={0.6} />}
     </>
   );
 }

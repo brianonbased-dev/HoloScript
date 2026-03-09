@@ -66,9 +66,11 @@ describe('AI Adapters', () => {
     });
 
     it('generateHoloScript calls fetch and extracts code', async () => {
-      mockFetch.mockResolvedValueOnce(mockOKResponse({
-        choices: [{ message: { content: '```holoscript\ncomposition test {}\n```' } }],
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockOKResponse({
+          choices: [{ message: { content: '```holoscript\ncomposition test {}\n```' } }],
+        })
+      );
 
       const result = await adapter.generateHoloScript('make a cube');
       expect(result.holoScript).toBe('composition test {}');
@@ -87,9 +89,11 @@ describe('AI Adapters', () => {
     });
 
     it('getEmbeddings returns vectors', async () => {
-      mockFetch.mockResolvedValueOnce(mockOKResponse({
-        data: [{ embedding: [0.1, 0.2, 0.3] }],
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockOKResponse({
+          data: [{ embedding: [0.1, 0.2, 0.3] }],
+        })
+      );
 
       const result = await adapter.getEmbeddings('test text');
       expect(result).toEqual([[0.1, 0.2, 0.3]]);
@@ -116,9 +120,11 @@ describe('AI Adapters', () => {
     });
 
     it('generateHoloScript calls Anthropic API', async () => {
-      mockFetch.mockResolvedValueOnce(mockOKResponse({
-        content: [{ text: '```holo\ncomposition room {}\n```' }],
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockOKResponse({
+          content: [{ text: '```holo\ncomposition room {}\n```' }],
+        })
+      );
 
       const result = await adapter.generateHoloScript('make a room');
       expect(result.holoScript).toBe('composition room {}');
@@ -159,9 +165,11 @@ describe('AI Adapters', () => {
     });
 
     it('generateHoloScript calls local API', async () => {
-      mockFetch.mockResolvedValueOnce(mockOKResponse({
-        response: 'composition cube { geometry: "cube" }',
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockOKResponse({
+          response: 'composition cube { geometry: "cube" }',
+        })
+      );
 
       const result = await adapter.generateHoloScript('a cube');
       expect(result.holoScript).toBe('composition cube { geometry: "cube" }');
@@ -189,9 +197,11 @@ describe('AI Adapters', () => {
     });
 
     it('delegates generateHoloScript to OpenAI adapter', async () => {
-      mockFetch.mockResolvedValueOnce(mockOKResponse({
-        choices: [{ message: { content: 'test output' } }],
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockOKResponse({
+          choices: [{ message: { content: 'test output' } }],
+        })
+      );
 
       const result = await adapter.generateHoloScript('test');
       expect(result.holoScript).toBe('test output');
@@ -223,18 +233,22 @@ describe('AI Adapters', () => {
     });
 
     it('generateHoloScript calls Gemini API', async () => {
-      mockFetch.mockResolvedValueOnce(mockOKResponse({
-        candidates: [{ content: { parts: [{ text: 'composition sphere {}' }] } }],
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockOKResponse({
+          candidates: [{ content: { parts: [{ text: 'composition sphere {}' }] } }],
+        })
+      );
 
       const result = await adapter.generateHoloScript('a sphere');
       expect(result.holoScript).toBe('composition sphere {}');
     });
 
     it('getEmbeddings calls embedding API', async () => {
-      mockFetch.mockResolvedValueOnce(mockOKResponse({
-        embedding: { values: [0.5, 0.6, 0.7] },
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockOKResponse({
+          embedding: { values: [0.5, 0.6, 0.7] },
+        })
+      );
 
       const result = await adapter.getEmbeddings('test');
       expect(result).toEqual([[0.5, 0.6, 0.7]]);
@@ -261,9 +275,11 @@ describe('AI Adapters', () => {
     });
 
     it('generateHoloScript calls xAI API', async () => {
-      mockFetch.mockResolvedValueOnce(mockOKResponse({
-        choices: [{ message: { content: '```holo\nscene {}\n```' } }],
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockOKResponse({
+          choices: [{ message: { content: '```holo\nscene {}\n```' } }],
+        })
+      );
 
       const result = await adapter.generateHoloScript('test');
       expect(result.holoScript).toBe('scene {}');
@@ -290,9 +306,11 @@ describe('AI Adapters', () => {
     });
 
     it('generateHoloScript calls Together API', async () => {
-      mockFetch.mockResolvedValueOnce(mockOKResponse({
-        choices: [{ message: { content: 'output' } }],
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockOKResponse({
+          choices: [{ message: { content: 'output' } }],
+        })
+      );
 
       const result = await adapter.generateHoloScript('test');
       expect(result.holoScript).toBe('output');

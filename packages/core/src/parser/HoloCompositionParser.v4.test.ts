@@ -519,4 +519,3 @@ describe('Fix: implicit mode @decorator handling', () => {
     expect(result.ast?.domainBlocks!.length).toBe(1);
   });
 });
-

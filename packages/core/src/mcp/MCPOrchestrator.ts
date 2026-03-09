@@ -78,19 +78,19 @@ export interface TaskResult {
 export interface MCPOrchestrationConfig {
   /** Number of agent slots */
   maxConcurrentAgents: number;
-  
+
   /** Global timeout in ms */
   timeoutMs: number;
-  
+
   /** Retry failed steps */
   maxRetries: number;
-  
+
   /** Aggregation strategy for results */
   aggregationStrategy: 'first-success' | 'all-responses' | 'consensus' | 'best-response';
-  
+
   /** Enable caching */
   enableCache: boolean;
-  
+
   /** Enable metrics collection */
   enableMetrics: boolean;
 }
@@ -153,15 +153,10 @@ export class MCPOrchestrator {
   /**
    * Discover agents by type or capability
    */
-  discoverAgents(filter: {
-    type?: AgentType;
-    capability?: string;
-    ready?: boolean;
-  }): MCPAgent[] {
+  discoverAgents(filter: { type?: AgentType; capability?: string; ready?: boolean }): MCPAgent[] {
     return Array.from(this.agents.values()).filter((agent) => {
       if (filter.type && agent.type !== filter.type) return false;
-      if (filter.capability && !agent.capabilities.includes(filter.capability))
-        return false;
+      if (filter.capability && !agent.capabilities.includes(filter.capability)) return false;
       return true;
     });
   }
@@ -169,7 +164,11 @@ export class MCPOrchestrator {
   /**
    * Execute a single tool directly
    */
-  async executeTool(agentId: string, toolName: string, params: Record<string, unknown>): Promise<any> {
+  async executeTool(
+    agentId: string,
+    toolName: string,
+    params: Record<string, unknown>
+  ): Promise<any> {
     const agent = this.agents.get(agentId);
     if (!agent) throw new Error(`Agent ${agentId} not found`);
 
@@ -185,24 +184,24 @@ export class MCPOrchestrator {
 
     const start = Date.now();
     let result;
-    
+
     // Retries handled by caller or basic retry here for direct tool exec
     let lastError;
     for (let attempt = 0; attempt <= this.config.maxRetries; attempt++) {
       try {
         // Use the new executeStep logic for the actual execution
         // We construct a temporary step object
-        result = await this.executeStep({ 
-          id: `direct-exec-${Date.now()}`, 
-          agentId, 
-          toolName, 
-          params 
+        result = await this.executeStep({
+          id: `direct-exec-${Date.now()}`,
+          agentId,
+          toolName,
+          params,
         });
         break; // Success
       } catch (err) {
         lastError = err;
         if (attempt < this.config.maxRetries) {
-          await new Promise(r => setTimeout(r, 100 * (attempt + 1)));
+          await new Promise((r) => setTimeout(r, 100 * (attempt + 1)));
         }
       }
     }
@@ -218,7 +217,7 @@ export class MCPOrchestrator {
         agentId,
         toolName,
         duration: Date.now() - start,
-        success: true
+        success: true,
       });
     }
 
@@ -232,7 +231,12 @@ export class MCPOrchestrator {
     const startTime = Date.now();
     const results = new Map<string, unknown>();
     const completed = new Set<string>();
-    const stepStatuses: { id: string; status: 'success' | 'failure'; result?: unknown; error?: string }[] = [];
+    const stepStatuses: {
+      id: string;
+      status: 'success' | 'failure';
+      result?: unknown;
+      error?: string;
+    }[] = [];
 
     try {
       // Topological sort or simple dependency resolution
@@ -247,8 +251,8 @@ export class MCPOrchestrator {
         for (const step of remainingSteps) {
           // Check dependencies
           const deps = step.dependsOn || [];
-          const ready = deps.every(d => completed.has(d));
-          const blockedByFailure = deps.some(d => failedSteps.has(d));
+          const ready = deps.every((d) => completed.has(d));
+          const blockedByFailure = deps.some((d) => failedSteps.has(d));
 
           if (blockedByFailure) {
             failedSteps.add(step.id);
@@ -265,12 +269,12 @@ export class MCPOrchestrator {
             // Execute step (possibly in parallel with others in this batch if configured)
             const executionPromise = (async () => {
               try {
-                // We call executeStep directly to ensure tracking, 
+                // We call executeStep directly to ensure tracking,
                 // but executeTool handles caching/metrics better?
                 // executeTool now calls executeStep! So logic is shared.
                 // But executeTask shouldn't double-count metric if executeTool records it.
                 // step.id logic is better in executeTask.
-                
+
                 const result = await this.executeTool(step.agentId, step.toolName, step.params);
                 results.set(step.id, result);
                 completed.add(step.id);
@@ -278,7 +282,7 @@ export class MCPOrchestrator {
               } catch (error: any) {
                 failedSteps.add(step.id);
                 stepStatuses.push({ id: step.id, status: 'failure', error: error.message });
-                if (!task.config.parallel) throw error; 
+                if (!task.config.parallel) throw error;
               }
             })();
 
@@ -295,12 +299,12 @@ export class MCPOrchestrator {
         }
 
         if (itemsProcessed === 0 && remainingSteps.size > 0) {
-           throw new Error('Circular dependency or missing dependency detected');
+          throw new Error('Circular dependency or missing dependency detected');
         }
       }
 
       if (failedSteps.size > 0) {
-         throw new Error(`Task failed with ${failedSteps.size} error(s)`);
+        throw new Error(`Task failed with ${failedSteps.size} error(s)`);
       }
 
       return {
@@ -308,9 +312,8 @@ export class MCPOrchestrator {
         status: 'success',
         results,
         steps: stepStatuses,
-        durationMs: Date.now() - startTime
+        durationMs: Date.now() - startTime,
       };
-
     } catch (error: any) {
       return {
         taskId: task.id,
@@ -318,7 +321,7 @@ export class MCPOrchestrator {
         results,
         steps: stepStatuses,
         durationMs: Date.now() - startTime,
-        error
+        error,
       };
     }
   }
@@ -327,8 +330,10 @@ export class MCPOrchestrator {
    * Run tools purely (helper for test compatibility?)
    */
   async runTools(tools: { agentId: string; toolName: string; params: any }[]): Promise<any[]> {
-     const results = await Promise.all(tools.map(t => this.executeTool(t.agentId, t.toolName, t.params)));
-     return results;
+    const results = await Promise.all(
+      tools.map((t) => this.executeTool(t.agentId, t.toolName, t.params))
+    );
+    return results;
   }
 
   /**
@@ -336,10 +341,12 @@ export class MCPOrchestrator {
    */
   async executeParallel(tasks: OrchestrationTask[]): Promise<Map<string, TaskResult>> {
     const results = new Map<string, TaskResult>();
-    await Promise.all(tasks.map(async task => {
-      const res = await this.executeTask(task);
-      results.set(task.id, res);
-    }));
+    await Promise.all(
+      tasks.map(async (task) => {
+        const res = await this.executeTask(task);
+        results.set(task.id, res);
+      })
+    );
     return results;
   }
 
@@ -359,35 +366,32 @@ export class MCPOrchestrator {
       totalExecutions: 0,
       activeAgents: this.activeAgents.size,
       cacheHits: 0,
-      averageExecutionTime: 0
+      averageExecutionTime: 0,
     };
-    
+
     let totalExec = 0;
     let totalTime = 0;
     let cacheHits = 0;
-    
+
     for (const [key, val] of this.metrics.entries()) {
-       if (key.startsWith('execution')) {
-         totalExec++;
-         totalTime += val.duration || 0;
-       } else if (key.startsWith('cache_hit')) {
-         cacheHits++;
-       }
+      if (key.startsWith('execution')) {
+        totalExec++;
+        totalTime += val.duration || 0;
+      } else if (key.startsWith('cache_hit')) {
+        cacheHits++;
+      }
     }
-    
+
     metricsObj.totalExecutions = totalExec;
     metricsObj.cacheHits = cacheHits;
     metricsObj.averageExecutionTime = totalExec > 0 ? totalTime / totalExec : 0;
-    
+
     return metricsObj;
   }
 
   // Private methods
 
-  private async executeStep(
-    step: OrchestrationStep,
-    timeoutMs?: number
-  ): Promise<unknown> {
+  private async executeStep(step: OrchestrationStep, timeoutMs?: number): Promise<unknown> {
     const agent = this.agents.get(step.agentId);
     if (!agent) {
       throw new Error(`Agent ${step.agentId} not found`);
@@ -404,19 +408,16 @@ export class MCPOrchestrator {
 
     // Execute with timeout
     const timeout = timeoutMs || this.config.timeoutMs;
-    
+
     const promise = Promise.race([
       tool.execute(step.params),
       new Promise((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`Step ${step.id} timeout after ${timeout}ms`)),
-          timeout
-        )
+        setTimeout(() => reject(new Error(`Step ${step.id} timeout after ${timeout}ms`)), timeout)
       ),
     ]);
 
     this.activeAgents.set(step.agentId, promise);
-    
+
     try {
       const result = await promise;
       return result;
@@ -445,8 +446,6 @@ export class MCPOrchestrator {
 /**
  * Create orchestrator instance
  */
-export function createMCPOrchestrator(
-  config?: Partial<MCPOrchestrationConfig>
-): MCPOrchestrator {
+export function createMCPOrchestrator(config?: Partial<MCPOrchestrationConfig>): MCPOrchestrator {
   return new MCPOrchestrator(config);
 }

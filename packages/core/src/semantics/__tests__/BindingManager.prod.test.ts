@@ -100,20 +100,28 @@ describe('BindingManager — Production', () => {
     });
 
     it('lerp interpolates', () => {
-      const result = bm.applyTransforms(0, [{ type: 'lerp', params: { target: 100, factor: 0.5 } }]);
+      const result = bm.applyTransforms(0, [
+        { type: 'lerp', params: { target: 100, factor: 0.5 } },
+      ]);
       expect(result).toBe(50);
     });
 
     it('format replaces template', () => {
-      expect(bm.applyTransforms(42, [{ type: 'format', params: { template: 'Score: {value}' } }])).toBe('Score: 42');
+      expect(
+        bm.applyTransforms(42, [{ type: 'format', params: { template: 'Score: {value}' } }])
+      ).toBe('Score: 42');
     });
 
     it('map looks up value', () => {
-      expect(bm.applyTransforms('red', [{ type: 'map', params: { mapping: { red: '#ff0000' } } }])).toBe('#ff0000');
+      expect(
+        bm.applyTransforms('red', [{ type: 'map', params: { mapping: { red: '#ff0000' } } }])
+      ).toBe('#ff0000');
     });
 
     it('validate returns fallback for null', () => {
-      expect(bm.applyTransforms(null, [{ type: 'validate', params: { fallback: 'default' } }])).toBe('default');
+      expect(
+        bm.applyTransforms(null, [{ type: 'validate', params: { fallback: 'default' } }])
+      ).toBe('default');
     });
 
     it('chains transforms', () => {
@@ -158,7 +166,14 @@ describe('BindingManager — Production', () => {
   describe('clear', () => {
     it('clears all data', () => {
       bm.registerBinding(createBinding('x', 'y'));
-      bm.registerExpression({ id: 'e1', expression: 'x', dependencies: [], resultType: 'number', cached: false, perFrame: false });
+      bm.registerExpression({
+        id: 'e1',
+        expression: 'x',
+        dependencies: [],
+        resultType: 'number',
+        cached: false,
+        perFrame: false,
+      });
       bm.registerStore(createDataStore('s', []));
 
       bm.clear();

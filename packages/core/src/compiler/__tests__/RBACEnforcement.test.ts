@@ -31,10 +31,7 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
 });
 
 // ── Lazy imports (after mock is set up) ────────────────────────────────────
-import {
-  StateCompiler,
-  UnauthorizedStateCompilerAccessError,
-} from '../StateCompiler';
+import { StateCompiler, UnauthorizedStateCompilerAccessError } from '../StateCompiler';
 
 import {
   TraitCompositionCompiler,
@@ -85,7 +82,7 @@ function makeHandler(defaults: Record<string, unknown> = {}): ComponentTraitHand
 }
 
 function makeRegistry(
-  entries: Record<string, ComponentTraitHandler>,
+  entries: Record<string, ComponentTraitHandler>
 ): (name: string) => ComponentTraitHandler | undefined {
   return (name) => entries[name];
 }
@@ -135,9 +132,7 @@ describe('RBAC Enforcement — StateCompiler', () => {
     mockCheckAccess.mockReturnValue(makeDenied('State compilation not permitted'));
     const ast = makeHSPlusAST(makeHSPlusNode('Player', { hp: 100 }));
 
-    expect(() => compiler.compile(ast, FAKE_TOKEN)).toThrow(
-      UnauthorizedStateCompilerAccessError,
-    );
+    expect(() => compiler.compile(ast, FAKE_TOKEN)).toThrow(UnauthorizedStateCompilerAccessError);
 
     try {
       compiler.compile(ast, FAKE_TOKEN);
@@ -213,7 +208,7 @@ describe('RBAC Enforcement — TraitCompositionCompiler', () => {
     const registry = makeRegistry({ combat: makeHandler({ damage: 10 }) });
 
     expect(() => compiler.compile([decl], registry, undefined, FAKE_TOKEN)).toThrow(
-      UnauthorizedTraitCompositionAccessError,
+      UnauthorizedTraitCompositionAccessError
     );
 
     try {
@@ -288,9 +283,9 @@ describe('RBAC Enforcement — IncrementalCompiler', () => {
 
     const ast = makeComposition([makeObj('Cube')]);
 
-    await expect(
-      compiler.compile(ast, compileObj, { agentToken: FAKE_TOKEN }),
-    ).rejects.toThrow(UnauthorizedIncrementalCompilerAccessError);
+    await expect(compiler.compile(ast, compileObj, { agentToken: FAKE_TOKEN })).rejects.toThrow(
+      UnauthorizedIncrementalCompilerAccessError
+    );
 
     try {
       await compiler.compile(ast, compileObj, { agentToken: FAKE_TOKEN });

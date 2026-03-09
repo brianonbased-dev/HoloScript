@@ -14,7 +14,9 @@
 import React, { useState, useCallback } from 'react';
 import {
   runSafetyPass,
-  createSubmission, verifySubmission, publishSubmission,
+  createSubmission,
+  verifySubmission,
+  publishSubmission,
   MarketplaceRegistry,
   gateCheck,
   type MarketplacePackage,
@@ -36,11 +38,15 @@ interface DeployButtonProps {
 type DeployStatus = 'idle' | 'deploying' | 'success' | 'blocked' | 'error';
 
 const STATUS_STYLES: Record<DeployStatus, { bg: string; text: string; label: string }> = {
-  idle:      { bg: 'bg-studio-accent/20 hover:bg-studio-accent/30', text: 'text-studio-accent', label: '🚀 Deploy to HoloLand' },
+  idle: {
+    bg: 'bg-studio-accent/20 hover:bg-studio-accent/30',
+    text: 'text-studio-accent',
+    label: '🚀 Deploy to HoloLand',
+  },
   deploying: { bg: 'bg-amber-500/20', text: 'text-amber-400', label: '⟳ Deploying...' },
-  success:   { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: '✓ Deployed!' },
-  blocked:   { bg: 'bg-red-500/20', text: 'text-red-400', label: '✗ Blocked by Safety Gate' },
-  error:     { bg: 'bg-red-500/20', text: 'text-red-400', label: '✗ Deploy Failed' },
+  success: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: '✓ Deployed!' },
+  blocked: { bg: 'bg-red-500/20', text: 'text-red-400', label: '✗ Blocked by Safety Gate' },
+  error: { bg: 'bg-red-500/20', text: 'text-red-400', label: '✗ Deploy Failed' },
 };
 
 function extractTraits(code: string): string[] {
@@ -68,13 +74,15 @@ export function DeployButton({
     try {
       // 1. Extract traits and build nodes
       const traits = extractTraits(code);
-      const nodes = [{
-        type: 'object' as const,
-        name: packageName,
-        traits,
-        calls: [],
-        declaredEffects: traits.map(() => 'render:spawn'),
-      }];
+      const nodes = [
+        {
+          type: 'object' as const,
+          name: packageName,
+          traits,
+          calls: [],
+          declaredEffects: traits.map(() => 'render:spawn'),
+        },
+      ];
 
       // 2. Run safety pass
       const safetyResult = runSafetyPass(nodes, {
@@ -111,7 +119,13 @@ export function DeployButton({
           description: `User-deployed scene: ${packageName}`,
           category: 'world',
           version: { major: 1, minor: 0, patch: 0 },
-          publisher: { id: 'user', name: 'Local User', did: 'did:key:local', verified: false, trustLevel: 'untrusted' },
+          publisher: {
+            id: 'user',
+            name: 'Local User',
+            did: 'did:key:local',
+            verified: false,
+            trustLevel: 'untrusted',
+          },
           tags: ['user', 'deploy'],
           platforms: ['quest3', 'webxr'],
           license: 'private',

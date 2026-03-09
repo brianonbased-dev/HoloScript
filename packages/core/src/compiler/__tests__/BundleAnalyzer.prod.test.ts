@@ -42,24 +42,29 @@ describe('BundleAnalyzer — Production', () => {
     });
     const report = analyzer.analyze(makeBundle());
     // with a 10-byte module threshold, our test modules should trigger size warnings
-    const sizeWarnings = report.warnings.filter(w => w.type === 'size');
+    const sizeWarnings = report.warnings.filter((w) => w.type === 'size');
     expect(sizeWarnings.length).toBeGreaterThan(0);
   });
 
   // ─── Module Processing ────────────────────────────────────────────
   it('detects .holo extension as ModuleType holo', () => {
     const report = new BundleAnalyzer().analyze(makeBundle());
-    const holoMod = report.modules.find(m => m.path.endsWith('.holo'));
+    const holoMod = report.modules.find((m) => m.path.endsWith('.holo'));
     expect(holoMod?.type).toBe('holo');
   });
 
   it('detects .json extension as ModuleType json', () => {
     const analyzer = new BundleAnalyzer();
     const report = analyzer.analyze({
-      chunks: [{
-        id: 'c', name: 'c', isEntry: true, isAsync: false,
-        files: [{ path: 'data/config.json', content: '{"a":1}' }],
-      }],
+      chunks: [
+        {
+          id: 'c',
+          name: 'c',
+          isEntry: true,
+          isAsync: false,
+          files: [{ path: 'data/config.json', content: '{"a":1}' }],
+        },
+      ],
     });
     expect(report.modules[0].type).toBe('json');
   });
@@ -67,10 +72,15 @@ describe('BundleAnalyzer — Production', () => {
   it('detects asset types by extension', () => {
     const analyzer = new BundleAnalyzer();
     const report = analyzer.analyze({
-      chunks: [{
-        id: 'c', name: 'c', isEntry: true, isAsync: false,
-        files: [{ path: 'assets/logo.png', content: 'binary-data' }],
-      }],
+      chunks: [
+        {
+          id: 'c',
+          name: 'c',
+          isEntry: true,
+          isAsync: false,
+          files: [{ path: 'assets/logo.png', content: 'binary-data' }],
+        },
+      ],
     });
     expect(report.modules[0].type).toBe('asset');
   });
@@ -79,10 +89,15 @@ describe('BundleAnalyzer — Production', () => {
     const analyzer = new BundleAnalyzer({ estimateGzip: true, estimateMinified: true });
     const content = '/* a comment */\n  export  const  x  =  1;\n';
     const report = analyzer.analyze({
-      chunks: [{
-        id: 'c', name: 'c', isEntry: true, isAsync: false,
-        files: [{ path: 'src/mod.ts', content }],
-      }],
+      chunks: [
+        {
+          id: 'c',
+          name: 'c',
+          isEntry: true,
+          isAsync: false,
+          files: [{ path: 'src/mod.ts', content }],
+        },
+      ],
     });
     const mod = report.modules[0];
     expect(mod.gzipSize).toBeLessThan(mod.size);
@@ -93,10 +108,15 @@ describe('BundleAnalyzer — Production', () => {
   it('detects side effects from console.log', () => {
     const analyzer = new BundleAnalyzer();
     const report = analyzer.analyze({
-      chunks: [{
-        id: 'c', name: 'c', isEntry: true, isAsync: false,
-        files: [{ path: 'src/init.ts', content: 'console.log("booting")' }],
-      }],
+      chunks: [
+        {
+          id: 'c',
+          name: 'c',
+          isEntry: true,
+          isAsync: false,
+          files: [{ path: 'src/init.ts', content: 'console.log("booting")' }],
+        },
+      ],
     });
     expect(report.modules[0].sideEffects).toBe(true);
   });
@@ -104,10 +124,15 @@ describe('BundleAnalyzer — Production', () => {
   it('no side effects for pure module', () => {
     const analyzer = new BundleAnalyzer();
     const report = analyzer.analyze({
-      chunks: [{
-        id: 'c', name: 'c', isEntry: true, isAsync: false,
-        files: [{ path: 'src/pure.ts', content: 'export const x = 1;' }],
-      }],
+      chunks: [
+        {
+          id: 'c',
+          name: 'c',
+          isEntry: true,
+          isAsync: false,
+          files: [{ path: 'src/pure.ts', content: 'export const x = 1;' }],
+        },
+      ],
     });
     expect(report.modules[0].sideEffects).toBe(false);
   });
@@ -116,17 +141,22 @@ describe('BundleAnalyzer — Production', () => {
   it('builds forward and reverse dependency links', () => {
     const analyzer = new BundleAnalyzer();
     const report = analyzer.analyze({
-      chunks: [{
-        id: 'c', name: 'c', isEntry: true, isAsync: false,
-        files: [
-          { path: 'a.ts', content: 'import b' },
-          { path: 'b.ts', content: 'export {}' },
-        ],
-      }],
+      chunks: [
+        {
+          id: 'c',
+          name: 'c',
+          isEntry: true,
+          isAsync: false,
+          files: [
+            { path: 'a.ts', content: 'import b' },
+            { path: 'b.ts', content: 'export {}' },
+          ],
+        },
+      ],
       dependencies: { 'a.ts': ['b.ts'] },
     });
-    const a = report.modules.find(m => m.path === 'a.ts')!;
-    const b = report.modules.find(m => m.path === 'b.ts')!;
+    const a = report.modules.find((m) => m.path === 'a.ts')!;
+    const b = report.modules.find((m) => m.path === 'b.ts')!;
     expect(a.dependencies).toContain('b.ts');
     expect(b.dependents).toContain('a.ts');
   });
@@ -136,13 +166,18 @@ describe('BundleAnalyzer — Production', () => {
     const dup = 'export const shared = true;';
     const analyzer = new BundleAnalyzer();
     const report = analyzer.analyze({
-      chunks: [{
-        id: 'c', name: 'c', isEntry: true, isAsync: false,
-        files: [
-          { path: 'vendor/a/utils.ts', content: dup },
-          { path: 'vendor/b/utils.ts', content: dup },
-        ],
-      }],
+      chunks: [
+        {
+          id: 'c',
+          name: 'c',
+          isEntry: true,
+          isAsync: false,
+          files: [
+            { path: 'vendor/a/utils.ts', content: dup },
+            { path: 'vendor/b/utils.ts', content: dup },
+          ],
+        },
+      ],
     });
     expect(report.duplicates.length).toBeGreaterThan(0);
     expect(report.duplicates[0].totalWaste).toBeGreaterThan(0);
@@ -152,10 +187,15 @@ describe('BundleAnalyzer — Production', () => {
   it('identifies unused exports', () => {
     const analyzer = new BundleAnalyzer({ trackUnusedExports: true });
     const report = analyzer.analyze({
-      chunks: [{
-        id: 'c', name: 'c', isEntry: true, isAsync: false,
-        files: [{ path: 'lib.ts', content: 'export function a(){}; export function b(){}' }],
-      }],
+      chunks: [
+        {
+          id: 'c',
+          name: 'c',
+          isEntry: true,
+          isAsync: false,
+          files: [{ path: 'lib.ts', content: 'export function a(){}; export function b(){}' }],
+        },
+      ],
       exports: { 'lib.ts': ['a', 'b'] },
       usedExports: { 'lib.ts': ['a'] },
     });
@@ -168,16 +208,21 @@ describe('BundleAnalyzer — Production', () => {
   it('detects circular dependencies', () => {
     const analyzer = new BundleAnalyzer({ detectCircular: true });
     const report = analyzer.analyze({
-      chunks: [{
-        id: 'c', name: 'c', isEntry: true, isAsync: false,
-        files: [
-          { path: 'a.ts', content: 'import b' },
-          { path: 'b.ts', content: 'import a' },
-        ],
-      }],
+      chunks: [
+        {
+          id: 'c',
+          name: 'c',
+          isEntry: true,
+          isAsync: false,
+          files: [
+            { path: 'a.ts', content: 'import b' },
+            { path: 'b.ts', content: 'import a' },
+          ],
+        },
+      ],
       dependencies: { 'a.ts': ['b.ts'], 'b.ts': ['a.ts'] },
     });
-    const circularWarnings = report.warnings.filter(w => w.type === 'circular');
+    const circularWarnings = report.warnings.filter((w) => w.type === 'circular');
     expect(circularWarnings.length).toBeGreaterThan(0);
   });
 
@@ -186,12 +231,17 @@ describe('BundleAnalyzer — Production', () => {
     const largeContent = 'x'.repeat(200 * 1024); // 200KB > 100KB threshold
     const analyzer = new BundleAnalyzer();
     const report = analyzer.analyze({
-      chunks: [{
-        id: 'c', name: 'c', isEntry: true, isAsync: false,
-        files: [{ path: 'big.ts', content: largeContent }],
-      }],
+      chunks: [
+        {
+          id: 'c',
+          name: 'c',
+          isEntry: true,
+          isAsync: false,
+          files: [{ path: 'big.ts', content: largeContent }],
+        },
+      ],
     });
-    const asyncRecs = report.splittingRecommendations.filter(r => r.type === 'async');
+    const asyncRecs = report.splittingRecommendations.filter((r) => r.type === 'async');
     expect(asyncRecs.length).toBeGreaterThan(0);
   });
 
@@ -204,7 +254,7 @@ describe('BundleAnalyzer — Production', () => {
     const report = analyzer.analyze({
       chunks: [{ id: 'c', name: 'c', isEntry: true, isAsync: false, files }],
     });
-    const vendorRecs = report.splittingRecommendations.filter(r => r.type === 'vendor');
+    const vendorRecs = report.splittingRecommendations.filter((r) => r.type === 'vendor');
     expect(vendorRecs.length).toBeGreaterThan(0);
   });
 
@@ -215,7 +265,9 @@ describe('BundleAnalyzer — Production', () => {
     expect(report.metrics.moduleCount).toBe(2);
     expect(report.metrics.chunkCount).toBe(1);
     expect(report.metrics.totalSize).toBeGreaterThan(0);
-    expect(report.metrics.largestModule.size).toBeGreaterThanOrEqual(report.metrics.smallestModule.size);
+    expect(report.metrics.largestModule.size).toBeGreaterThanOrEqual(
+      report.metrics.smallestModule.size
+    );
   });
 
   it('separates initial vs async load sizes', () => {
@@ -223,11 +275,17 @@ describe('BundleAnalyzer — Production', () => {
     const report = analyzer.analyze({
       chunks: [
         {
-          id: 'entry', name: 'entry', isEntry: true, isAsync: false,
+          id: 'entry',
+          name: 'entry',
+          isEntry: true,
+          isAsync: false,
           files: [{ path: 'main.ts', content: 'entry code' }],
         },
         {
-          id: 'lazy', name: 'lazy', isEntry: false, isAsync: true,
+          id: 'lazy',
+          name: 'lazy',
+          isEntry: false,
+          isAsync: true,
           files: [{ path: 'lazy.ts', content: 'lazy loaded' }],
         },
       ],
@@ -241,12 +299,17 @@ describe('BundleAnalyzer — Production', () => {
     const bigContent = 'x'.repeat(2 * 1024 * 1024); // 2MB
     const analyzer = new BundleAnalyzer();
     const report = analyzer.analyze({
-      chunks: [{
-        id: 'c', name: 'c', isEntry: true, isAsync: false,
-        files: [{ path: 'huge.ts', content: bigContent }],
-      }],
+      chunks: [
+        {
+          id: 'c',
+          name: 'c',
+          isEntry: true,
+          isAsync: false,
+          files: [{ path: 'huge.ts', content: bigContent }],
+        },
+      ],
     });
-    expect(report.suggestions.some(s => s.includes('code splitting'))).toBe(true);
+    expect(report.suggestions.some((s) => s.includes('code splitting'))).toBe(true);
   });
 
   // ─── HTML Report ──────────────────────────────────────────────────

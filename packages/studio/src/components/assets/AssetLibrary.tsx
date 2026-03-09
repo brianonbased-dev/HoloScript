@@ -17,11 +17,15 @@ import {
 } from 'lucide-react';
 import { useAssetStore } from './useAssetStore';
 import type { Asset, AssetCategory } from './useAssetStore';
-import { useSceneGraphStore } from '@/lib/store';
+import { useSceneGraphStore } from '@/lib/stores';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CATEGORIES: Array<{ id: AssetCategory | 'all'; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+const CATEGORIES: Array<{
+  id: AssetCategory | 'all';
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}> = [
   { id: 'all', label: 'All', icon: Layers },
   { id: 'splat', label: 'Splats', icon: Crosshair },
   { id: 'model', label: 'Models', icon: Box },
@@ -170,7 +174,9 @@ function URLImportDialog({
         className="w-full rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1.5 text-xs text-studio-text outline-none focus:border-studio-accent"
       >
         {CATEGORIES.filter((c) => c.id !== 'all').map((c) => (
-          <option key={c.id} value={c.id}>{c.label}</option>
+          <option key={c.id} value={c.id}>
+            {c.label}
+          </option>
         ))}
       </select>
       <div className="flex gap-2">
@@ -234,17 +240,17 @@ export function AssetLibrary({ onOpenSplatWizard }: AssetLibraryProps) {
       Array.from(files).forEach((file) => {
         const reader = new FileReader();
         const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-        const cat: AssetCategory = (['splat', 'ksplat'].includes(ext))
+        const cat: AssetCategory = ['splat', 'ksplat'].includes(ext)
           ? 'splat'
-          : (['glb', 'gltf', 'obj'].includes(ext))
-          ? 'model'
-          : (['mp3', 'ogg', 'wav'].includes(ext))
-          ? 'audio'
-          : (['png', 'jpg', 'webp'].includes(ext))
-          ? 'texture'
-          : (['hdr', 'exr'].includes(ext))
-          ? 'hdri'
-          : 'script';
+          : ['glb', 'gltf', 'obj'].includes(ext)
+            ? 'model'
+            : ['mp3', 'ogg', 'wav'].includes(ext)
+              ? 'audio'
+              : ['png', 'jpg', 'webp'].includes(ext)
+                ? 'texture'
+                : ['hdr', 'exr'].includes(ext)
+                  ? 'hdri'
+                  : 'script';
 
         reader.onload = () => {
           const src = reader.result as string;
@@ -328,10 +334,7 @@ export function AssetLibrary({ onOpenSplatWizard }: AssetLibraryProps) {
 
       {/* URL Import dialog */}
       {showURLImport && (
-        <URLImportDialog
-          onClose={() => setShowURLImport(false)}
-          onImport={handleURLImport}
-        />
+        <URLImportDialog onClose={() => setShowURLImport(false)} onImport={handleURLImport} />
       )}
 
       {/* Search */}

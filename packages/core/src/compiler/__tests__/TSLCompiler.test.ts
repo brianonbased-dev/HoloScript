@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TSLCompiler, type TSLCompilerOptions } from '../TSLCompiler';
 import type {
   HoloComposition,
@@ -16,7 +16,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 // =============================================================================
 // HELPERS
@@ -52,7 +51,7 @@ function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposit
 function makeObject(
   name: string,
   traits: Array<{ name: string; config?: Record<string, any> }> = [],
-  properties: Array<{ key: string; value: any }> = [],
+  properties: Array<{ key: string; value: any }> = []
 ): HoloObjectDecl {
   return {
     type: 'Object',
@@ -81,7 +80,7 @@ function makeTrait(name: string, config: Record<string, any> = {}): HoloObjectTr
 function makeLight(
   name: string,
   lightType: string,
-  properties: Array<{ key: string; value: any }> = [],
+  properties: Array<{ key: string; value: any }> = []
 ): HoloLight {
   return {
     type: 'Light',
@@ -91,9 +90,7 @@ function makeLight(
   } as HoloLight;
 }
 
-function makeEnvironment(
-  properties: Array<{ key: string; value: any }> = [],
-): HoloEnvironment {
+function makeEnvironment(properties: Array<{ key: string; value: any }> = []): HoloEnvironment {
   return {
     type: 'Environment',
     properties: properties.map((p) => ({
@@ -273,10 +270,14 @@ describe('TSLCompiler', () => {
 
     it('applies PBR config overrides from trait', () => {
       const comp = makeComposition({
-        objects: [makeObject('Cube', [{
-          name: 'pbr',
-          config: { roughness: 0.8, metalness: 1.0 },
-        }])],
+        objects: [
+          makeObject('Cube', [
+            {
+              name: 'pbr',
+              config: { roughness: 0.8, metalness: 1.0 },
+            },
+          ]),
+        ],
       });
       const result = compiler.compile(comp, 'test-token');
       const bindings = result['Cube.bindings.wgsl'];
@@ -486,11 +487,13 @@ describe('TSLCompiler', () => {
   describe('multi-trait composition', () => {
     it('composes multiple traits on a single object', () => {
       const comp = makeComposition({
-        objects: [makeObject('ComplexObj', [
-          { name: 'pbr', config: { roughness: 0.3 } },
-          { name: 'emissive', config: { intensity: 2.0 } },
-          { name: 'animated', config: { speed: 3.0 } },
-        ])],
+        objects: [
+          makeObject('ComplexObj', [
+            { name: 'pbr', config: { roughness: 0.3 } },
+            { name: 'emissive', config: { intensity: 2.0 } },
+            { name: 'animated', config: { speed: 3.0 } },
+          ]),
+        ],
       });
       const result = compiler.compile(comp, 'test-token');
       const fs = result['ComplexObj.fragment.wgsl'];
@@ -513,10 +516,7 @@ describe('TSLCompiler', () => {
 
     it('composes material + VFX traits', () => {
       const comp = makeComposition({
-        objects: [makeObject('HoloShield', [
-          { name: 'hologram' },
-          { name: 'force_field' },
-        ])],
+        objects: [makeObject('HoloShield', [{ name: 'hologram' }, { name: 'force_field' }])],
       });
       const result = compiler.compile(comp, 'test-token');
       const fs = result['HoloShield.fragment.wgsl'];
@@ -529,10 +529,7 @@ describe('TSLCompiler', () => {
 
     it('composes render + compute traits on same object', () => {
       const comp = makeComposition({
-        objects: [makeObject('ParticleEmitter', [
-          { name: 'pbr' },
-          { name: 'gpu_particle' },
-        ])],
+        objects: [makeObject('ParticleEmitter', [{ name: 'pbr' }, { name: 'gpu_particle' }])],
       });
       const result = compiler.compile(comp, 'test-token');
 
@@ -584,10 +581,14 @@ describe('TSLCompiler', () => {
   describe('value conversion', () => {
     it('converts numeric config values to WGSL floats', () => {
       const comp = makeComposition({
-        objects: [makeObject('Obj', [{
-          name: 'pbr',
-          config: { roughness: 0.75 },
-        }])],
+        objects: [
+          makeObject('Obj', [
+            {
+              name: 'pbr',
+              config: { roughness: 0.75 },
+            },
+          ]),
+        ],
       });
       const result = compiler.compile(comp, 'test-token');
       const bindings = result['Obj.bindings.wgsl'];
@@ -597,10 +598,14 @@ describe('TSLCompiler', () => {
 
     it('converts hex color strings to vec3', () => {
       const comp = makeComposition({
-        objects: [makeObject('Obj', [{
-          name: 'hologram',
-          config: { color: '#ff0000' },
-        }])],
+        objects: [
+          makeObject('Obj', [
+            {
+              name: 'hologram',
+              config: { color: '#ff0000' },
+            },
+          ]),
+        ],
       });
       const result = compiler.compile(comp, 'test-token');
       const bindings = result['Obj.bindings.wgsl'];
@@ -610,10 +615,14 @@ describe('TSLCompiler', () => {
 
     it('converts array values to vectors', () => {
       const comp = makeComposition({
-        objects: [makeObject('Obj', [{
-          name: 'pbr',
-          config: { color: [1.0, 0.5, 0.0] },
-        }])],
+        objects: [
+          makeObject('Obj', [
+            {
+              name: 'pbr',
+              config: { color: [1.0, 0.5, 0.0] },
+            },
+          ]),
+        ],
       });
       const result = compiler.compile(comp, 'test-token');
       const bindings = result['Obj.bindings.wgsl'];
@@ -644,10 +653,7 @@ describe('TSLCompiler', () => {
 
     it('includes light data in global uniforms', () => {
       const comp = makeComposition({
-        lights: [
-          makeLight('SunLight', 'directional'),
-          makeLight('Lamp', 'point'),
-        ],
+        lights: [makeLight('SunLight', 'directional'), makeLight('Lamp', 'point')],
       });
       const result = compiler.compile(comp, 'test-token');
       const globals = result['_globals.wgsl'];
@@ -679,10 +685,7 @@ describe('TSLCompiler', () => {
 
     it('generates both render and compute pipelines', () => {
       const comp = makeComposition({
-        objects: [makeObject('PhysObj', [
-          { name: 'pbr' },
-          { name: 'gpu_physics' },
-        ])],
+        objects: [makeObject('PhysObj', [{ name: 'pbr' }, { name: 'gpu_physics' }])],
       });
       const result = compiler.compile(comp, 'test-token');
       const pipeline = result['_pipeline.ts'];
@@ -836,9 +839,7 @@ describe('TSLCompiler', () => {
   describe('output file keys', () => {
     it('uses correct file naming convention', () => {
       const comp = makeComposition({
-        objects: [
-          makeObject('Player', [{ name: 'pbr' }, { name: 'gpu_particle' }]),
-        ],
+        objects: [makeObject('Player', [{ name: 'pbr' }, { name: 'gpu_particle' }])],
       });
       const result = compiler.compile(comp, 'test-token');
       const keys = Object.keys(result);

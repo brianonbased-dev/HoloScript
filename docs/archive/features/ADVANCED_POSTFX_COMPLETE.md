@@ -7,6 +7,7 @@
 ## Executive Summary
 
 Implemented **advanced post-processing effects** as part of Option D (Extreme Performance), elevating HoloScript's visual quality to AAA game engine standards with:
+
 - 🌑 **SSAO (Screen-Space Ambient Occlusion)** - Realistic shadows in crevices
 - 🪞 **SSR (Screen-Space Reflections)** - Real-time reflections on surfaces
 - ✨ **Enhanced Bloom Pipeline** - Cinematic glow and HDR effects
@@ -24,12 +25,14 @@ SSAO simulates how ambient light is occluded in small crevices, corners, and are
 **Implementation**: `ThreeJSRenderer.ts` (+80 lines)
 
 **Technical Details**:
+
 - Uses depth buffer to calculate occlusion
 - Kernel-based sampling for smooth gradients
 - Configurable radius, min/max distance
 - Minimal performance impact (~2-3ms per frame)
 
 **Parameters**:
+
 ```typescript
 {
   type: 'ssao',
@@ -43,6 +46,7 @@ SSAO simulates how ambient light is occluded in small crevices, corners, and are
 ```
 
 **Visual Impact**:
+
 - **Before SSAO**: Flat lighting, objects appear disconnected from environment
 - **After SSAO**: Depth in corners, realistic contact shadows, grounded objects
 
@@ -54,12 +58,14 @@ SSAO simulates how ambient light is occluded in small crevices, corners, and are
 | **4K** | 45 FPS | 38 FPS | -15% |
 
 **Best Use Cases**:
+
 - ✅ Architectural visualization (corners, crevices)
 - ✅ Interior scenes (room depth)
 - ✅ Character models (clothing folds)
 - ❌ Outdoor scenes with minimal geometry proximity
 
 **API Example**:
+
 ```typescript
 import { ThreeJSRenderer } from '@holoscript/core/runtime';
 
@@ -70,15 +76,15 @@ renderer.enablePostProcessing({
   type: 'ssao',
   enabled: true,
   params: {
-    kernelRadius: 20,       // Larger radius = wider AO spread
-    minDistance: 0.003,     // Tighter occlusion
-    maxDistance: 0.15       // Extended range
-  }
+    kernelRadius: 20, // Larger radius = wider AO spread
+    minDistance: 0.003, // Tighter occlusion
+    maxDistance: 0.15, // Extended range
+  },
 });
 
 // Dynamic parameter adjustment
 if (renderer['ssaoPass']) {
-  renderer['ssaoPass'].kernelRadius = 24;  // Update at runtime
+  renderer['ssaoPass'].kernelRadius = 24; // Update at runtime
   renderer['ssaoPass'].minDistance = 0.004;
   renderer['ssaoPass'].maxDistance = 0.12;
 }
@@ -94,12 +100,14 @@ SSR creates realistic reflections on surfaces by ray-marching through screen-spa
 **Implementation**: `ThreeJSRenderer.ts` (+50 lines)
 
 **Technical Details**:
+
 - Ray-marches through depth buffer
 - Screen-space only (doesn't reflect off-screen objects)
 - Configurable thickness, distance, opacity
 - Works best with metallic/rough materials (PBR)
 
 **Parameters**:
+
 ```typescript
 {
   type: 'ssr',
@@ -113,6 +121,7 @@ SSR creates realistic reflections on surfaces by ray-marching through screen-spa
 ```
 
 **Visual Impact**:
+
 - **Before SSR**: Static environment maps, no dynamic reflections
 - **After SSR**: Moving objects reflected in real-time, shiny floors show scene
 
@@ -126,30 +135,32 @@ SSR creates realistic reflections on surfaces by ray-marching through screen-spa
 ⚠️ **Note**: SSR is GPU-intensive. Use selectively for hero surfaces (floors, water).
 
 **Best Use Cases**:
+
 - ✅ Shiny floors (marble, polished concrete)
 - ✅ Water surfaces (puddles, pools)
 - ✅ Metallic objects (mirrors, chrome)
 - ❌ Rough/matte surfaces (wood, fabric)
 
 **API Example**:
+
 ```typescript
 // Enable SSR
 renderer.enablePostProcessing({
   type: 'ssr',
   enabled: true,
   params: {
-    thickness: 0.025,       // Thicker reflections
-    maxDistance: 250,       // Extended distance
-    opacity: 0.7            // Stronger reflections
-  }
+    thickness: 0.025, // Thicker reflections
+    maxDistance: 250, // Extended distance
+    opacity: 0.7, // Stronger reflections
+  },
 });
 
 // SSR works best with PBR materials
 const floorMaterial = {
   type: 'standard',
   color: '#1e293b',
-  metalness: 0.9,          // High metalness for strong reflections
-  roughness: 0.1           // Low roughness for sharp reflections
+  metalness: 0.9, // High metalness for strong reflections
+  roughness: 0.1, // Low roughness for sharp reflections
 };
 ```
 
@@ -163,12 +174,14 @@ Bloom simulates the glow that occurs when bright light overwhelms the camera sen
 **Implementation**: Already in `ThreeJSRenderer.ts`, enhanced with presets
 
 **Technical Details**:
+
 - UnrealBloomPass (industry-standard algorithm)
 - Configurable strength, radius, threshold
 - HDR-friendly (works with emissive materials)
 - Minimal performance impact (~1-2ms per frame)
 
 **Parameters**:
+
 ```typescript
 {
   type: 'bloom',
@@ -182,29 +195,31 @@ Bloom simulates the glow that occurs when bright light overwhelms the camera sen
 ```
 
 **Presets**:
+
 - **Cinematic**: High bloom (2.0 strength), SSAO enabled
 - **Realistic**: Moderate bloom (1.2 strength), SSAO + SSR
 - **Stylized**: Extreme bloom (2.5 strength), low threshold (0.7)
 
 **API Example**:
+
 ```typescript
 // Cinematic preset
 renderer.enablePostProcessing({
   type: 'bloom',
   enabled: true,
   params: {
-    strength: 2.0,         // Strong glow
-    radius: 0.5,           // Wide spread
-    threshold: 0.75        // Glow on more surfaces
-  }
+    strength: 2.0, // Strong glow
+    radius: 0.5, // Wide spread
+    threshold: 0.75, // Glow on more surfaces
+  },
 });
 
 renderer.enablePostProcessing({
   type: 'ssao',
   enabled: true,
   params: {
-    kernelRadius: 20       // Enhanced depth
-  }
+    kernelRadius: 20, // Enhanced depth
+  },
 });
 ```
 
@@ -215,6 +230,7 @@ renderer.enablePostProcessing({
 **File**: `demos/advanced-postfx-demo.html` (850 lines)
 
 **Features**:
+
 - ✅ **Live Effect Toggling** - Enable/disable SSAO, SSR, Bloom in real-time
 - ✅ **Parameter Sliders** - Adjust all effect parameters dynamically
 - ✅ **Preset Buttons** - One-click presets (Cinematic, Realistic, Stylized)
@@ -225,6 +241,7 @@ renderer.enablePostProcessing({
 - ✅ **Dynamic Lighting** - Point lights circling the scene
 
 **How to Run**:
+
 ```bash
 # Open in browser (uses CDN, no build required)
 open demos/advanced-postfx-demo.html
@@ -235,6 +252,7 @@ npx serve demos
 ```
 
 **Controls**:
+
 - **SSAO Toggle**: Enable/disable ambient occlusion
   - Kernel Radius: 1-32 (default: 16)
   - Min Distance: 0.001-0.02 (default: 0.005)
@@ -275,8 +293,8 @@ renderer.enablePostProcessing({
   params: {
     kernelRadius: 18,
     minDistance: 0.004,
-    maxDistance: 0.12
-  }
+    maxDistance: 0.12,
+  },
 });
 
 // Create executor
@@ -306,8 +324,8 @@ renderer.enablePostProcessing({
   params: {
     thickness: 0.02,
     maxDistance: 200,
-    opacity: 0.6  // Semi-transparent ice reflections
-  }
+    opacity: 0.6, // Semi-transparent ice reflections
+  },
 });
 
 // Enable SSAO for depth in snow drifts
@@ -317,8 +335,8 @@ renderer.enablePostProcessing({
   params: {
     kernelRadius: 16,
     minDistance: 0.005,
-    maxDistance: 0.1
-  }
+    maxDistance: 0.1,
+  },
 });
 
 // Create executor
@@ -344,8 +362,8 @@ function applyCinematicPreset(renderer: ThreeJSRenderer) {
     params: {
       strength: 2.0,
       radius: 0.5,
-      threshold: 0.75
-    }
+      threshold: 0.75,
+    },
   });
 
   // SSAO for depth
@@ -355,8 +373,8 @@ function applyCinematicPreset(renderer: ThreeJSRenderer) {
     params: {
       kernelRadius: 20,
       minDistance: 0.003,
-      maxDistance: 0.15
-    }
+      maxDistance: 0.15,
+    },
   });
 
   // Result: Cinematic look suitable for trailers/marketing
@@ -373,17 +391,18 @@ applyCinematicPreset(renderer);
 
 **Test Setup**: 1080p, 10,000 fragments, demolition scene
 
-| Configuration | FPS | Frame Time | Visual Quality |
-|---------------|-----|------------|----------------|
-| **No Effects** | 60 | 16.7 ms | ⭐⭐⭐ |
-| **Bloom Only** | 58 | 17.2 ms | ⭐⭐⭐⭐ |
-| **SSAO Only** | 57 | 17.5 ms | ⭐⭐⭐⭐ |
-| **SSR Only** | 48 | 20.8 ms | ⭐⭐⭐⭐ |
-| **Bloom + SSAO** | 55 | 18.2 ms | ⭐⭐⭐⭐⭐ |
-| **SSAO + SSR** | 45 | 22.2 ms | ⭐⭐⭐⭐⭐ |
-| **All Three** | 42 | 23.8 ms | ⭐⭐⭐⭐⭐ |
+| Configuration    | FPS | Frame Time | Visual Quality |
+| ---------------- | --- | ---------- | -------------- |
+| **No Effects**   | 60  | 16.7 ms    | ⭐⭐⭐         |
+| **Bloom Only**   | 58  | 17.2 ms    | ⭐⭐⭐⭐       |
+| **SSAO Only**    | 57  | 17.5 ms    | ⭐⭐⭐⭐       |
+| **SSR Only**     | 48  | 20.8 ms    | ⭐⭐⭐⭐       |
+| **Bloom + SSAO** | 55  | 18.2 ms    | ⭐⭐⭐⭐⭐     |
+| **SSAO + SSR**   | 45  | 22.2 ms    | ⭐⭐⭐⭐⭐     |
+| **All Three**    | 42  | 23.8 ms    | ⭐⭐⭐⭐⭐     |
 
 **Recommendations**:
+
 - **60 FPS Target**: Bloom + SSAO (best balance)
 - **30 FPS Target**: All effects (maximum quality)
 - **Mobile**: Bloom only (lightweight)
@@ -412,16 +431,16 @@ applyCinematicPreset(renderer);
 
 ### HoloScript vs Unity vs Unreal (Post-Processing)
 
-| Feature | Unity | Unreal | HoloScript |
-|---------|-------|--------|------------|
-| **SSAO** | ✅ HDRP only | ✅ | ✅ ✨ |
-| **SSR** | ✅ HDRP only | ✅ | ✅ ✨ |
-| **Bloom** | ✅ | ✅ | ✅ ✨ |
-| **DOF** | ✅ | ✅ | ✅ (existing) |
-| **Motion Blur** | ✅ | ✅ | ✅ (existing) |
-| **Real-Time Tweaking** | ✅ | ✅ | ✅ ✨ |
-| **Web-Native** | ❌ | ❌ | ✅ ✨ |
-| **No Build Step** | ❌ | ❌ | ✅ ✨ |
+| Feature                | Unity        | Unreal | HoloScript    |
+| ---------------------- | ------------ | ------ | ------------- |
+| **SSAO**               | ✅ HDRP only | ✅     | ✅ ✨         |
+| **SSR**                | ✅ HDRP only | ✅     | ✅ ✨         |
+| **Bloom**              | ✅           | ✅     | ✅ ✨         |
+| **DOF**                | ✅           | ✅     | ✅ (existing) |
+| **Motion Blur**        | ✅           | ✅     | ✅ (existing) |
+| **Real-Time Tweaking** | ✅           | ✅     | ✅ ✨         |
+| **Web-Native**         | ❌           | ❌     | ✅ ✨         |
+| **No Build Step**      | ❌           | ❌     | ✅ ✨         |
 
 **Result**: HoloScript matches AAA engines with web-native delivery! ✨
 
@@ -430,15 +449,18 @@ applyCinematicPreset(renderer);
 ## Code Statistics
 
 **Implementation Summary**:
+
 - **ThreeJSRenderer.ts**: +130 lines (SSAO + SSR support)
 - **advanced-postfx-demo.html**: 850 lines (interactive demo)
 - **ADVANCED_POSTFX_COMPLETE.md**: This documentation
 - **Total**: ~1,000 lines
 
 **Files Modified**:
+
 - ✅ `packages/core/src/runtime/ThreeJSRenderer.ts`
 
 **Files Created**:
+
 - ✅ `demos/advanced-postfx-demo.html`
 - ✅ `ADVANCED_POSTFX_COMPLETE.md`
 
@@ -449,6 +471,7 @@ applyCinematicPreset(renderer);
 ### SSAO Algorithm
 
 **How it Works**:
+
 1. **Depth Buffer Sampling**: Samples depth at current pixel
 2. **Kernel Generation**: Creates random sample points around pixel
 3. **Occlusion Calculation**: Checks how many samples are occluded
@@ -456,6 +479,7 @@ applyCinematicPreset(renderer);
 5. **Combine**: Multiplies AO with scene color
 
 **Optimization Techniques**:
+
 - Random kernel rotation (reduces banding)
 - Blur pass (removes noise)
 - Depth-aware sampling (prevents false occlusion)
@@ -463,6 +487,7 @@ applyCinematicPreset(renderer);
 ### SSR Algorithm
 
 **How it Works**:
+
 1. **Ray Start**: Begins at surface pixel
 2. **Ray March**: Steps through screen-space depth
 3. **Intersection Test**: Checks if ray hits geometry
@@ -470,11 +495,13 @@ applyCinematicPreset(renderer);
 5. **Falloff**: Fades reflection at edges/distance
 
 **Limitations**:
+
 - Only reflects on-screen objects
 - Struggles with thin geometry
 - Edge artifacts (screen-space limitation)
 
 **Mitigations**:
+
 - Thickness parameter (handles thin objects)
 - Opacity falloff (hides artifacts)
 - Max distance limit (prevents infinite rays)
@@ -486,12 +513,14 @@ applyCinematicPreset(renderer);
 ### When to Use SSAO
 
 ✅ **Always Use**:
+
 - Interior scenes (rooms, buildings)
 - Character models (clothing folds, facial features)
 - Mechanical objects (gears, joints)
 - Architectural visualization
 
 ❌ **Skip**:
+
 - Outdoor scenes with minimal proximity
 - Stylized/cartoon rendering
 - Mobile low-end devices
@@ -499,12 +528,14 @@ applyCinematicPreset(renderer);
 ### When to Use SSR
 
 ✅ **Always Use**:
+
 - Shiny floors (marble, polished)
 - Water surfaces (pools, puddles)
 - Metallic objects (mirrors, chrome)
 - Showrooms (car visualization)
 
 ❌ **Skip**:
+
 - Rough surfaces (concrete, wood)
 - High-performance requirements (60+ FPS)
 - Mobile devices
@@ -512,32 +543,34 @@ applyCinematicPreset(renderer);
 ### Performance Optimization
 
 **For 60 FPS**:
+
 ```typescript
 // Lightweight SSAO
 renderer.enablePostProcessing({
   type: 'ssao',
   enabled: true,
   params: {
-    kernelRadius: 8,    // Smaller kernel = faster
+    kernelRadius: 8, // Smaller kernel = faster
     minDistance: 0.01,
-    maxDistance: 0.05   // Shorter range = faster
-  }
+    maxDistance: 0.05, // Shorter range = faster
+  },
 });
 
 // No SSR (too expensive for 60 FPS)
 ```
 
 **For 30 FPS (Cinematic)**:
+
 ```typescript
 // Full quality SSAO
 renderer.enablePostProcessing({
   type: 'ssao',
   enabled: true,
   params: {
-    kernelRadius: 32,   // Maximum quality
+    kernelRadius: 32, // Maximum quality
     minDistance: 0.001,
-    maxDistance: 0.2    // Extended range
-  }
+    maxDistance: 0.2, // Extended range
+  },
 });
 
 // Full quality SSR
@@ -547,8 +580,8 @@ renderer.enablePostProcessing({
   params: {
     thickness: 0.03,
     maxDistance: 300,
-    opacity: 0.8
-  }
+    opacity: 0.8,
+  },
 });
 ```
 
@@ -587,6 +620,7 @@ renderer.enablePostProcessing({
 ### What We Built
 
 **Advanced Post-Processing Effects**:
+
 1. ✅ Screen-Space Ambient Occlusion (SSAO)
    - Realistic depth shadows
    - Configurable kernel radius, distances
@@ -611,17 +645,20 @@ renderer.enablePostProcessing({
 ### Impact
 
 **Visual Quality**:
+
 - ✅ AAA-grade post-processing
 - ✅ Unity HDRP / Unreal Engine parity
 - ✅ Cinematic rendering capabilities
 - ✅ Web-native (no plugins required)
 
 **Performance**:
+
 - ✅ 55-60 FPS with Bloom + SSAO at 1080p
 - ✅ 42-45 FPS with all effects at 1080p
 - ✅ Optimized algorithms (industry-standard)
 
 **Platform Status**:
+
 - ✅ **Professional game engine**
 - ✅ **Hollywood-grade visuals**
 - ✅ **AAA post-processing**

@@ -14,7 +14,9 @@
 // =============================================================================
 
 export interface Vec3 {
-  x: number; y: number; z: number;
+  x: number;
+  y: number;
+  z: number;
 }
 
 export interface WasmExports {
@@ -24,26 +26,52 @@ export interface WasmExports {
   // Noise generation
   perlin_noise_2d(x: number, y: number, seed: number): number;
   perlin_noise_3d(x: number, y: number, z: number, seed: number): number;
-  fbm_noise(x: number, y: number, octaves: number, lacunarity: number, persistence: number, seed: number): number;
+  fbm_noise(
+    x: number,
+    y: number,
+    octaves: number,
+    lacunarity: number,
+    persistence: number,
+    seed: number
+  ): number;
 
   // Pathfinding
   astar_find_path(
-    gridPtr: number, width: number, height: number,
-    startX: number, startY: number, endX: number, endY: number,
+    gridPtr: number,
+    width: number,
+    height: number,
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
     resultPtr: number
   ): number; // Returns path length
 
   // Collision detection
   sphere_sphere_test(
-    ax: number, ay: number, az: number, ar: number,
-    bx: number, by: number, bz: number, br: number
+    ax: number,
+    ay: number,
+    az: number,
+    ar: number,
+    bx: number,
+    by: number,
+    bz: number,
+    br: number
   ): number; // 1 = colliding, 0 = not
 
   aabb_overlap(
-    aminX: number, aminY: number, aminZ: number,
-    amaxX: number, amaxY: number, amaxZ: number,
-    bminX: number, bminY: number, bminZ: number,
-    bmaxX: number, bmaxY: number, bmaxZ: number
+    aminX: number,
+    aminY: number,
+    aminZ: number,
+    amaxX: number,
+    amaxY: number,
+    amaxZ: number,
+    bminX: number,
+    bminY: number,
+    bminZ: number,
+    bmaxX: number,
+    bmaxY: number,
+    bmaxZ: number
   ): number;
 
   // Memory management
@@ -67,24 +95,37 @@ function perlinNoise2D_fallback(x: number, y: number, seed: number): number {
   const hash = (ix: number, iy: number) => {
     let h = (ix * 374761393 + iy * 668265263 + seed * 1013904223) | 0;
     h = ((h >> 13) ^ h) * 1274126177;
-    h = ((h >> 16) ^ h);
-    return (h & 0x7fffffff) / 0x7fffffff * 2 - 1;
+    h = (h >> 16) ^ h;
+    return ((h & 0x7fffffff) / 0x7fffffff) * 2 - 1;
   };
 
-  const ix = Math.floor(x), iy = Math.floor(y);
-  const fx = x - ix, fy = y - iy;
+  const ix = Math.floor(x),
+    iy = Math.floor(y);
+  const fx = x - ix,
+    fy = y - iy;
   const sx = fx * fx * (3 - 2 * fx);
   const sy = fy * fy * (3 - 2 * fy);
 
-  const n00 = hash(ix, iy), n10 = hash(ix + 1, iy);
-  const n01 = hash(ix, iy + 1), n11 = hash(ix + 1, iy + 1);
+  const n00 = hash(ix, iy),
+    n10 = hash(ix + 1, iy);
+  const n01 = hash(ix, iy + 1),
+    n11 = hash(ix + 1, iy + 1);
 
-  return n00 * (1 - sx) * (1 - sy) + n10 * sx * (1 - sy) +
-         n01 * (1 - sx) * sy + n11 * sx * sy;
+  return n00 * (1 - sx) * (1 - sy) + n10 * sx * (1 - sy) + n01 * (1 - sx) * sy + n11 * sx * sy;
 }
 
-function fbmNoise_fallback(x: number, y: number, octaves: number, lacunarity: number, persistence: number, seed: number): number {
-  let total = 0, amplitude = 1, frequency = 1, maxAmplitude = 0;
+function fbmNoise_fallback(
+  x: number,
+  y: number,
+  octaves: number,
+  lacunarity: number,
+  persistence: number,
+  seed: number
+): number {
+  let total = 0,
+    amplitude = 1,
+    frequency = 1,
+    maxAmplitude = 0;
   for (let i = 0; i < octaves; i++) {
     total += perlinNoise2D_fallback(x * frequency, y * frequency, seed + i) * amplitude;
     maxAmplitude += amplitude;
@@ -94,20 +135,46 @@ function fbmNoise_fallback(x: number, y: number, octaves: number, lacunarity: nu
   return total / maxAmplitude;
 }
 
-function sphereSphereTest_fallback(ax: number, ay: number, az: number, ar: number, bx: number, by: number, bz: number, br: number): boolean {
-  const dx = bx - ax, dy = by - ay, dz = bz - az;
+function sphereSphereTest_fallback(
+  ax: number,
+  ay: number,
+  az: number,
+  ar: number,
+  bx: number,
+  by: number,
+  bz: number,
+  br: number
+): boolean {
+  const dx = bx - ax,
+    dy = by - ay,
+    dz = bz - az;
   const distSq = dx * dx + dy * dy + dz * dz;
   const radSum = ar + br;
   return distSq <= radSum * radSum;
 }
 
 function aabbOverlap_fallback(
-  aminX: number, aminY: number, aminZ: number, amaxX: number, amaxY: number, amaxZ: number,
-  bminX: number, bminY: number, bminZ: number, bmaxX: number, bmaxY: number, bmaxZ: number
+  aminX: number,
+  aminY: number,
+  aminZ: number,
+  amaxX: number,
+  amaxY: number,
+  amaxZ: number,
+  bminX: number,
+  bminY: number,
+  bminZ: number,
+  bmaxX: number,
+  bmaxY: number,
+  bmaxZ: number
 ): boolean {
-  return aminX <= bmaxX && amaxX >= bminX &&
-         aminY <= bmaxY && amaxY >= bminY &&
-         aminZ <= bmaxZ && amaxZ >= bminZ;
+  return (
+    aminX <= bmaxX &&
+    amaxX >= bminX &&
+    aminY <= bmaxY &&
+    amaxY >= bminY &&
+    aminZ <= bmaxZ &&
+    amaxZ >= bminZ
+  );
 }
 
 // =============================================================================
@@ -117,7 +184,10 @@ function aabbOverlap_fallback(
 export class SpatialEngineBridge {
   private wasm: WasmExports | null = null;
   private status: BridgeStatus = {
-    wasmLoaded: false, fallbackMode: true, loadTimeMs: 0, moduleSize: 0,
+    wasmLoaded: false,
+    fallbackMode: true,
+    loadTimeMs: 0,
+    moduleSize: 0,
   };
 
   /**
@@ -180,10 +250,22 @@ export class SpatialEngineBridge {
   perlinNoise3D(x: number, y: number, z: number, seed = 42): number {
     if (this.wasm) return this.wasm.perlin_noise_3d(x, y, z, seed);
     // Fallback: combine 2D noise planes
-    return (perlinNoise2D_fallback(x, y, seed) + perlinNoise2D_fallback(y, z, seed + 1) + perlinNoise2D_fallback(x, z, seed + 2)) / 3;
+    return (
+      (perlinNoise2D_fallback(x, y, seed) +
+        perlinNoise2D_fallback(y, z, seed + 1) +
+        perlinNoise2D_fallback(x, z, seed + 2)) /
+      3
+    );
   }
 
-  fbmNoise(x: number, y: number, octaves = 6, lacunarity = 2, persistence = 0.5, seed = 42): number {
+  fbmNoise(
+    x: number,
+    y: number,
+    octaves = 6,
+    lacunarity = 2,
+    persistence = 0.5,
+    seed = 42
+  ): number {
     if (this.wasm) return this.wasm.fbm_noise(x, y, octaves, lacunarity, persistence, seed);
     return fbmNoise_fallback(x, y, octaves, lacunarity, persistence, seed);
   }
@@ -193,13 +275,63 @@ export class SpatialEngineBridge {
   // ---------------------------------------------------------------------------
 
   sphereSphereTest(aPos: Vec3, aRadius: number, bPos: Vec3, bRadius: number): boolean {
-    if (this.wasm) return this.wasm.sphere_sphere_test(aPos.x, aPos.y, aPos.z, aRadius, bPos.x, bPos.y, bPos.z, bRadius) === 1;
-    return sphereSphereTest_fallback(aPos.x, aPos.y, aPos.z, aRadius, bPos.x, bPos.y, bPos.z, bRadius);
+    if (this.wasm)
+      return (
+        this.wasm.sphere_sphere_test(
+          aPos.x,
+          aPos.y,
+          aPos.z,
+          aRadius,
+          bPos.x,
+          bPos.y,
+          bPos.z,
+          bRadius
+        ) === 1
+      );
+    return sphereSphereTest_fallback(
+      aPos.x,
+      aPos.y,
+      aPos.z,
+      aRadius,
+      bPos.x,
+      bPos.y,
+      bPos.z,
+      bRadius
+    );
   }
 
   aabbOverlap(aMin: Vec3, aMax: Vec3, bMin: Vec3, bMax: Vec3): boolean {
-    if (this.wasm) return this.wasm.aabb_overlap(aMin.x, aMin.y, aMin.z, aMax.x, aMax.y, aMax.z, bMin.x, bMin.y, bMin.z, bMax.x, bMax.y, bMax.z) === 1;
-    return aabbOverlap_fallback(aMin.x, aMin.y, aMin.z, aMax.x, aMax.y, aMax.z, bMin.x, bMin.y, bMin.z, bMax.x, bMax.y, bMax.z);
+    if (this.wasm)
+      return (
+        this.wasm.aabb_overlap(
+          aMin.x,
+          aMin.y,
+          aMin.z,
+          aMax.x,
+          aMax.y,
+          aMax.z,
+          bMin.x,
+          bMin.y,
+          bMin.z,
+          bMax.x,
+          bMax.y,
+          bMax.z
+        ) === 1
+      );
+    return aabbOverlap_fallback(
+      aMin.x,
+      aMin.y,
+      aMin.z,
+      aMax.x,
+      aMax.y,
+      aMax.z,
+      bMin.x,
+      bMin.y,
+      bMin.z,
+      bMax.x,
+      bMax.y,
+      bMax.z
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -210,7 +342,15 @@ export class SpatialEngineBridge {
    * A* pathfinding on a 2D grid. Returns array of [x, y] waypoints.
    * Grid values: 0 = walkable, 1 = blocked.
    */
-  findPath(grid: Uint8Array, width: number, height: number, startX: number, startY: number, endX: number, endY: number): [number, number][] {
+  findPath(
+    grid: Uint8Array,
+    width: number,
+    height: number,
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number
+  ): [number, number][] {
     if (this.wasm) {
       // Allocate grid + result buffer in WASM memory
       const gridPtr = this.wasm.alloc(grid.length);
@@ -218,7 +358,16 @@ export class SpatialEngineBridge {
       const resultPtr = this.wasm.alloc(maxPath * 2 * 4); // x,y as i32 pairs
 
       new Uint8Array(this.wasm.memory.buffer, gridPtr, grid.length).set(grid);
-      const pathLen = this.wasm.astar_find_path(gridPtr, width, height, startX, startY, endX, endY, resultPtr);
+      const pathLen = this.wasm.astar_find_path(
+        gridPtr,
+        width,
+        height,
+        startX,
+        startY,
+        endX,
+        endY,
+        resultPtr
+      );
 
       const result: [number, number][] = [];
       const view = new Int32Array(this.wasm.memory.buffer, resultPtr, pathLen * 2);
@@ -235,7 +384,15 @@ export class SpatialEngineBridge {
     return this.astarFallback(grid, width, height, startX, startY, endX, endY);
   }
 
-  private astarFallback(grid: Uint8Array, w: number, h: number, sx: number, sy: number, ex: number, ey: number): [number, number][] {
+  private astarFallback(
+    grid: Uint8Array,
+    w: number,
+    h: number,
+    sx: number,
+    sy: number,
+    ex: number,
+    ey: number
+  ): [number, number][] {
     const key = (x: number, y: number) => y * w + x;
     const gScore = new Map<number, number>();
     const fScore = new Map<number, number>();
@@ -247,18 +404,32 @@ export class SpatialEngineBridge {
     fScore.set(startKey, Math.abs(ex - sx) + Math.abs(ey - sy));
     openSet.add(startKey);
 
-    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+    const dirs = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+      [1, 1],
+      [-1, 1],
+      [1, -1],
+      [-1, -1],
+    ];
 
     while (openSet.size > 0) {
       // Find lowest fScore in open set
-      let current = -1, bestF = Infinity;
+      let current = -1,
+        bestF = Infinity;
       for (const k of openSet) {
         const f = fScore.get(k) ?? Infinity;
-        if (f < bestF) { bestF = f; current = k; }
+        if (f < bestF) {
+          bestF = f;
+          current = k;
+        }
       }
       if (current === -1) break;
 
-      const cx = current % w, cy = Math.floor(current / w);
+      const cx = current % w,
+        cy = Math.floor(current / w);
       if (cx === ex && cy === ey) {
         // Reconstruct path
         const path: [number, number][] = [];
@@ -266,7 +437,10 @@ export class SpatialEngineBridge {
         while (c !== undefined) {
           path.unshift([c % w, Math.floor(c / w)]);
           c = cameFrom.get(c)!;
-          if (c === startKey) { path.unshift([sx, sy]); break; }
+          if (c === startKey) {
+            path.unshift([sx, sy]);
+            break;
+          }
         }
         return path;
       }
@@ -274,7 +448,8 @@ export class SpatialEngineBridge {
       openSet.delete(current);
 
       for (const [dx, dy] of dirs) {
-        const nx = cx + dx, ny = cy + dy;
+        const nx = cx + dx,
+          ny = cy + dy;
         if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
         if (grid[ny * w + nx] !== 0) continue; // Blocked
 

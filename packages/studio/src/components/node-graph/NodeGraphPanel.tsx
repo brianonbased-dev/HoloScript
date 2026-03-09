@@ -9,15 +9,30 @@ import { Network, X, Search, Plus, Trash2, RotateCcw } from 'lucide-react';
 import { useNodeGraph, type GraphNode, type NodeDef } from '@/hooks/useNodeGraph';
 
 const CATEGORY_COLOR: Record<string, string> = {
-  input: '#4488ff', utility: '#888899', transform: '#44bb88',
-  material: '#cc6644', geometry: '#8855cc', light: '#eeaa22', output: '#ff4466',
+  input: '#4488ff',
+  utility: '#888899',
+  transform: '#44bb88',
+  material: '#cc6644',
+  geometry: '#8855cc',
+  light: '#eeaa22',
+  output: '#ff4466',
 };
 
-interface NodeGraphPanelProps { onClose: () => void; }
+interface NodeGraphPanelProps {
+  onClose: () => void;
+}
 
-function NodeCard({ node, selected, onSelect, onRemove, onDragEnd }: {
-  node: GraphNode; selected: boolean;
-  onSelect: () => void; onRemove: () => void;
+function NodeCard({
+  node,
+  selected,
+  onSelect,
+  onRemove,
+  onDragEnd,
+}: {
+  node: GraphNode;
+  selected: boolean;
+  onSelect: () => void;
+  onRemove: () => void;
   onDragEnd: (dx: number, dy: number) => void;
 }) {
   const dragStart = useRef<{ mx: number; my: number } | null>(null);
@@ -31,7 +46,11 @@ function NodeCard({ node, selected, onSelect, onRemove, onDragEnd }: {
       onDragEnd(me.clientX - dragStart.current.mx, me.clientY - dragStart.current.my);
       dragStart.current = { mx: me.clientX, my: me.clientY };
     };
-    const onUp = () => { dragStart.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    const onUp = () => {
+      dragStart.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
   };
@@ -43,10 +62,19 @@ function NodeCard({ node, selected, onSelect, onRemove, onDragEnd }: {
       className="absolute cursor-grab select-none rounded-xl border-2 bg-[#1a1a2e]/95 backdrop-blur-sm shadow-xl min-w-[140px]"
     >
       {/* Header */}
-      <div className="flex items-center gap-1.5 rounded-t-xl px-2.5 py-1.5" style={{ backgroundColor: node.color + '33' }}>
+      <div
+        className="flex items-center gap-1.5 rounded-t-xl px-2.5 py-1.5"
+        style={{ backgroundColor: node.color + '33' }}
+      >
         <div className="h-2 w-2 rounded-full" style={{ backgroundColor: node.color }} />
         <span className="flex-1 text-[10px] font-semibold text-white truncate">{node.label}</span>
-        <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="text-white/40 hover:text-white">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          className="text-white/40 hover:text-white"
+        >
           <X className="h-2.5 w-2.5" />
         </button>
       </div>
@@ -75,7 +103,10 @@ function NodeCard({ node, selected, onSelect, onRemove, onDragEnd }: {
       </div>
       {/* Category badge */}
       <div className="px-2 pb-1.5">
-        <span className="rounded-full border px-1 py-0.5 text-[7px]" style={{ borderColor: node.color + '66', color: node.color }}>
+        <span
+          className="rounded-full border px-1 py-0.5 text-[7px]"
+          style={{ borderColor: node.color + '66', color: node.color }}
+        >
           {node.category}
         </span>
       </div>
@@ -84,18 +115,25 @@ function NodeCard({ node, selected, onSelect, onRemove, onDragEnd }: {
 }
 
 export function NodeGraphPanel({ onClose }: NodeGraphPanelProps) {
-  const { nodes, edges, selected, setSelected, addNode, removeNode, moveNode, clearGraph } = useNodeGraph();
+  const { nodes, edges, selected, setSelected, addNode, removeNode, moveNode, clearGraph } =
+    useNodeGraph();
   const [catalog, setCatalog] = useState<NodeDef[]>([]);
   const [q, setQ] = useState('');
   const [showPicker, setShowPicker] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch('/api/nodes').then((r) => r.json()).then((d: { nodes: NodeDef[] }) => setCatalog(d.nodes)).catch(() => {});
+    fetch('/api/nodes')
+      .then((r) => r.json())
+      .then((d: { nodes: NodeDef[] }) => setCatalog(d.nodes))
+      .catch(() => {});
   }, []);
 
-  const filteredCatalog = catalog.filter((n) =>
-    !q || n.label.toLowerCase().includes(q.toLowerCase()) || n.category.toLowerCase().includes(q.toLowerCase())
+  const filteredCatalog = catalog.filter(
+    (n) =>
+      !q ||
+      n.label.toLowerCase().includes(q.toLowerCase()) ||
+      n.category.toLowerCase().includes(q.toLowerCase())
   );
 
   const handleCanvasClick = () => setSelected(null);
@@ -105,12 +143,19 @@ export function NodeGraphPanel({ onClose }: NodeGraphPanelProps) {
     const from = nodes.find((n) => n.id === e.fromNodeId);
     const to = nodes.find((n) => n.id === e.toNodeId);
     if (!from || !to) return null;
-    const x1 = from.x + 140; const y1 = from.y + 30;
-    const x2 = to.x; const y2 = to.y + 30;
+    const x1 = from.x + 140;
+    const y1 = from.y + 30;
+    const x2 = to.x;
+    const y2 = to.y + 30;
     const cx = (x1 + x2) / 2;
     return (
-      <path key={e.id} d={`M${x1},${y1} C${cx},${y1} ${cx},${y2} ${x2},${y2}`}
-        fill="none" stroke="#4488ff66" strokeWidth={1.5} />
+      <path
+        key={e.id}
+        d={`M${x1},${y1} C${cx},${y1} ${cx},${y2} ${x2},${y2}`}
+        fill="none"
+        stroke="#4488ff66"
+        strokeWidth={1.5}
+      />
     );
   });
 
@@ -121,14 +166,22 @@ export function NodeGraphPanel({ onClose }: NodeGraphPanelProps) {
         <Network className="h-4 w-4 text-studio-accent" />
         <span className="text-[12px] font-semibold">Node Graph</span>
         <div className="ml-auto flex gap-1">
-          <button onClick={() => setShowPicker((v) => !v)}
-            className="flex items-center gap-1 rounded-lg border border-studio-border px-2 py-1 text-[9px] text-studio-muted hover:text-studio-text">
+          <button
+            onClick={() => setShowPicker((v) => !v)}
+            className="flex items-center gap-1 rounded-lg border border-studio-border px-2 py-1 text-[9px] text-studio-muted hover:text-studio-text"
+          >
             <Plus className="h-2.5 w-2.5" /> Add
           </button>
-          <button onClick={clearGraph} className="rounded-lg border border-studio-border p-1 text-studio-muted hover:text-studio-text">
+          <button
+            onClick={clearGraph}
+            className="rounded-lg border border-studio-border p-1 text-studio-muted hover:text-studio-text"
+          >
             <RotateCcw className="h-3 w-3" />
           </button>
-          <button onClick={onClose} className="rounded-lg border border-studio-border p-1 text-studio-muted hover:text-studio-text">
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-studio-border p-1 text-studio-muted hover:text-studio-text"
+          >
             <X className="h-3 w-3" />
           </button>
         </div>
@@ -139,12 +192,24 @@ export function NodeGraphPanel({ onClose }: NodeGraphPanelProps) {
         <div className="shrink-0 border-b border-studio-border p-2 space-y-1.5 max-h-48 overflow-y-auto">
           <div className="flex items-center gap-2 rounded-lg border border-studio-border bg-studio-surface px-2 py-1">
             <Search className="h-3 w-3 text-studio-muted" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search nodes…"
-              className="flex-1 bg-transparent text-[10px] outline-none placeholder-studio-muted/40" autoFocus />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search nodes…"
+              className="flex-1 bg-transparent text-[10px] outline-none placeholder-studio-muted/40"
+              autoFocus
+            />
           </div>
           {filteredCatalog.map((n) => (
-            <button key={n.type} onClick={() => { addNode(n); setShowPicker(false); setQ(''); }}
-              className="flex w-full items-center gap-2 rounded-lg border border-studio-border bg-studio-surface px-2 py-1 text-left hover:border-studio-accent/50">
+            <button
+              key={n.type}
+              onClick={() => {
+                addNode(n);
+                setShowPicker(false);
+                setQ('');
+              }}
+              className="flex w-full items-center gap-2 rounded-lg border border-studio-border bg-studio-surface px-2 py-1 text-left hover:border-studio-accent/50"
+            >
               <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: n.color }} />
               <span className="text-[10px] text-studio-text">{n.label}</span>
               <span className="ml-auto text-[8px] text-studio-muted">{n.category}</span>
@@ -154,17 +219,23 @@ export function NodeGraphPanel({ onClose }: NodeGraphPanelProps) {
       )}
 
       {/* Canvas */}
-      <div ref={canvasRef} className="relative flex-1 overflow-hidden bg-[#0a0a18]"
-        style={{ backgroundImage: 'radial-gradient(circle, #1a1a3a 1px, transparent 1px)', backgroundSize: '24px 24px' }}
-        onClick={handleCanvasClick}>
+      <div
+        ref={canvasRef}
+        className="relative flex-1 overflow-hidden bg-[#0a0a18]"
+        style={{
+          backgroundImage: 'radial-gradient(circle, #1a1a3a 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
+        }}
+        onClick={handleCanvasClick}
+      >
         {/* SVG edges */}
-        <svg className="pointer-events-none absolute inset-0 h-full w-full">
-          {edgeLines}
-        </svg>
+        <svg className="pointer-events-none absolute inset-0 h-full w-full">{edgeLines}</svg>
         {/* Node cards */}
         {nodes.map((node) => (
           <NodeCard
-            key={node.id} node={node} selected={selected === node.id}
+            key={node.id}
+            node={node}
+            selected={selected === node.id}
             onSelect={() => setSelected(node.id)}
             onRemove={() => removeNode(node.id)}
             onDragEnd={(dx, dy) => moveNode(node.id, dx, dy)}
@@ -182,7 +253,11 @@ export function NodeGraphPanel({ onClose }: NodeGraphPanelProps) {
       <div className="shrink-0 border-t border-studio-border px-3 py-1 flex items-center gap-3 text-[8px] text-studio-muted">
         <span>{nodes.length} nodes</span>
         <span>{edges.length} edges</span>
-        {selected && <span className="text-studio-accent">Selected: {nodes.find((n) => n.id === selected)?.label}</span>}
+        {selected && (
+          <span className="text-studio-accent">
+            Selected: {nodes.find((n) => n.id === selected)?.label}
+          </span>
+        )}
       </div>
     </div>
   );

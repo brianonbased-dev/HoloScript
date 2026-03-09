@@ -18,7 +18,9 @@ export interface Snapshot {
 
 export interface InterpolatedEntity {
   id: string;
-  x: number; y: number; z: number;
+  x: number;
+  y: number;
+  z: number;
   interpolated: boolean;
 }
 
@@ -87,7 +89,8 @@ export class SnapshotInterpolation {
       const toPos = to.entities.get(id);
       if (toPos) {
         results.push({
-          id, interpolated: true,
+          id,
+          interpolated: true,
           x: fromPos.x + (toPos.x - fromPos.x) * t,
           y: fromPos.y + (toPos.y - fromPos.y) * t,
           z: fromPos.z + (toPos.z - fromPos.z) * t,
@@ -104,7 +107,13 @@ export class SnapshotInterpolation {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getBufferCount(): number { return this.buffer.length; }
-  getRenderDelay(): number { return this.renderDelay; }
-  setRenderDelay(ms: number): void { this.renderDelay = ms; }
+  getBufferCount(): number {
+    return this.buffer.length;
+  }
+  getRenderDelay(): number {
+    return this.renderDelay;
+  }
+  setRenderDelay(ms: number): void {
+    this.renderDelay = ms;
+  }
 }

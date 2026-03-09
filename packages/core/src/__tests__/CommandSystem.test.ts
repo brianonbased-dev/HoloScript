@@ -9,15 +9,23 @@ import type { Command } from '../events/CommandSystem';
 let counter: number;
 function makeCmd(name = 'inc', delta = 1): Command {
   return {
-    id: `cmd_${Math.random()}`, name,
-    execute: () => { counter += delta; },
-    undo: () => { counter -= delta; },
+    id: `cmd_${Math.random()}`,
+    name,
+    execute: () => {
+      counter += delta;
+    },
+    undo: () => {
+      counter -= delta;
+    },
   };
 }
 
 describe('CommandSystem', () => {
   let sys: CommandSystem;
-  beforeEach(() => { sys = new CommandSystem(); counter = 0; });
+  beforeEach(() => {
+    sys = new CommandSystem();
+    counter = 0;
+  });
 
   it('execute runs command', () => {
     sys.execute(makeCmd());
@@ -107,8 +115,28 @@ describe('CommandSystem', () => {
   });
 
   it('mergeable commands merge with same name', () => {
-    const cmd1: Command = { id: '1', name: 'move', execute: () => { counter++; }, undo: () => { counter--; }, mergeable: true };
-    const cmd2: Command = { id: '2', name: 'move', execute: () => { counter++; }, undo: () => { counter--; }, mergeable: true };
+    const cmd1: Command = {
+      id: '1',
+      name: 'move',
+      execute: () => {
+        counter++;
+      },
+      undo: () => {
+        counter--;
+      },
+      mergeable: true,
+    };
+    const cmd2: Command = {
+      id: '2',
+      name: 'move',
+      execute: () => {
+        counter++;
+      },
+      undo: () => {
+        counter--;
+      },
+      mergeable: true,
+    };
     sys.execute(cmd1);
     sys.execute(cmd2);
     // Should merge — only 1 entry on undo stack

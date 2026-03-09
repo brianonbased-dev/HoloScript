@@ -49,7 +49,7 @@ export interface RewardFunctionOptions {
  */
 export type GRPORewardFunction = (
   completions: string[],
-  kwargs?: RewardFunctionOptions,
+  kwargs?: RewardFunctionOptions
 ) => Promise<number[]>;
 
 /** Result from a single reward function evaluation */
@@ -85,7 +85,7 @@ export interface RewardToolRunner {
    */
   runVitest(
     filePath: string,
-    options?: { withCoverage?: boolean; timeout?: number },
+    options?: { withCoverage?: boolean; timeout?: number }
   ): Promise<{
     passed: number;
     total: number;
@@ -94,13 +94,19 @@ export interface RewardToolRunner {
   }>;
 
   /** Run tsc --noEmit on a file. Returns true if no type errors. */
-  runTypeCheck(filePath: string, options?: { timeout?: number }): Promise<{
+  runTypeCheck(
+    filePath: string,
+    options?: { timeout?: number }
+  ): Promise<{
     passed: boolean;
     output: string;
   }>;
 
   /** Run eslint on a file. Returns the number of issues found. */
-  runLint(filePath: string, options?: { timeout?: number }): Promise<{
+  runLint(
+    filePath: string,
+    options?: { timeout?: number }
+  ): Promise<{
     issueCount: number;
     output: string;
   }>;
@@ -142,11 +148,11 @@ function resolveOptions(kwargs?: RewardFunctionOptions): Required<RewardFunction
  * - coverage is 0.15 (vs 0.25) because coverage alone doesn't guarantee correctness
  */
 export const GRPO_REWARD_WEIGHTS = {
-  testPassReward: 0.40,
-  typeCheckReward: 0.20,
+  testPassReward: 0.4,
+  typeCheckReward: 0.2,
   lintReward: 0.15,
   coverageReward: 0.15,
-  circuitBreakerReward: 0.10,
+  circuitBreakerReward: 0.1,
 } as const;
 
 // Compile-time weight sum validation
@@ -158,9 +164,7 @@ const _grpoWeightSum =
   GRPO_REWARD_WEIGHTS.circuitBreakerReward;
 
 if (Math.abs(_grpoWeightSum - 1.0) > 1e-9) {
-  throw new Error(
-    `GRPO reward weights must sum to 1.0 but got ${_grpoWeightSum}`,
-  );
+  throw new Error(`GRPO reward weights must sum to 1.0 but got ${_grpoWeightSum}`);
 }
 
 // =============================================================================
@@ -197,7 +201,7 @@ export function createGRPORewardFunctions(runner: RewardToolRunner) {
    */
   const testPassReward: GRPORewardFunction = async (
     completions: string[],
-    kwargs?: RewardFunctionOptions,
+    kwargs?: RewardFunctionOptions
   ): Promise<number[]> => {
     const opts = resolveOptions(kwargs);
     const rewards: number[] = [];
@@ -233,7 +237,7 @@ export function createGRPORewardFunctions(runner: RewardToolRunner) {
    */
   const typeCheckReward: GRPORewardFunction = async (
     completions: string[],
-    kwargs?: RewardFunctionOptions,
+    kwargs?: RewardFunctionOptions
   ): Promise<number[]> => {
     const opts = resolveOptions(kwargs);
     const rewards: number[] = [];
@@ -268,7 +272,7 @@ export function createGRPORewardFunctions(runner: RewardToolRunner) {
    */
   const lintReward: GRPORewardFunction = async (
     completions: string[],
-    kwargs?: RewardFunctionOptions,
+    kwargs?: RewardFunctionOptions
   ): Promise<number[]> => {
     const opts = resolveOptions(kwargs);
     const rewards: number[] = [];
@@ -305,7 +309,7 @@ export function createGRPORewardFunctions(runner: RewardToolRunner) {
    */
   const coverageReward: GRPORewardFunction = async (
     completions: string[],
-    kwargs?: RewardFunctionOptions,
+    kwargs?: RewardFunctionOptions
   ): Promise<number[]> => {
     const opts = resolveOptions(kwargs);
     const rewards: number[] = [];
@@ -346,7 +350,7 @@ export function createGRPORewardFunctions(runner: RewardToolRunner) {
    */
   const circuitBreakerReward: GRPORewardFunction = async (
     completions: string[],
-    _kwargs?: RewardFunctionOptions,
+    _kwargs?: RewardFunctionOptions
   ): Promise<number[]> => {
     try {
       const health = await runner.getCircuitBreakerHealth();
@@ -375,15 +379,12 @@ export function createGRPORewardFunctions(runner: RewardToolRunner) {
  * Execute an async evaluation with a timeout.
  * Returns 0 if the evaluation times out or throws.
  */
-async function evaluateWithTimeout(
-  fn: () => Promise<number>,
-  timeoutMs: number,
-): Promise<number> {
+async function evaluateWithTimeout(fn: () => Promise<number>, timeoutMs: number): Promise<number> {
   try {
     const result = await Promise.race([
       fn(),
       new Promise<number>((_, reject) =>
-        setTimeout(() => reject(new Error('Reward evaluation timed out')), timeoutMs),
+        setTimeout(() => reject(new Error('Reward evaluation timed out')), timeoutMs)
       ),
     ]);
     return result;

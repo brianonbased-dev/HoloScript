@@ -173,7 +173,7 @@ export class HoloScriptRuntime {
     // Allows scripts to cull massive global state arrays into top-k attended components efficiently.
     this.registerFunction('get_attended_entities', (args: HoloScriptValue[]) => {
       const topK = typeof args[0] === 'number' ? args[0] : 10;
-      
+
       const selfNode = this.context.variables.get('self') as any;
       const observerPos = selfNode?.position || { x: 0, y: 0, z: 0 };
 
@@ -184,7 +184,7 @@ export class HoloScriptRuntime {
             id,
             position: pos,
             velocity: (this.context.variables.get(id) as any)?.velocity,
-            saliencyBase: (this.context.variables.get(id) as any)?.saliency
+            saliencyBase: (this.context.variables.get(id) as any)?.saliency,
           });
         }
       });
@@ -396,15 +396,15 @@ export class HoloScriptRuntime {
       return { moved: target, to: position };
     });
 
-  // Data commands
-  builtins.set('set', (args): HoloScriptValue => {
-    const target = String(args[0]);
-    const value = args[1];
-    this.setVariable(target, value);
-    return { set: target, value };
-  });
+    // Data commands
+    builtins.set('set', (args): HoloScriptValue => {
+      const target = String(args[0]);
+      const value = args[1];
+      this.setVariable(target, value);
+      return { set: target, value };
+    });
 
-  builtins.set('get', (args): HoloScriptValue => {
+    builtins.set('get', (args): HoloScriptValue => {
       const target = String(args[0]);
       return this.getVariable(target);
     });
@@ -1021,7 +1021,7 @@ export class HoloScriptRuntime {
     // Also include currently set variables in context
     const varContext: Record<string, any> = {};
     this.context.variables.forEach((v, k) => (varContext[k] = v));
-    
+
     evaluator.updateContext(varContext);
 
     return evaluator.evaluate(expr);
@@ -1091,7 +1091,9 @@ export class HoloScriptRuntime {
     // 3. TEMPLATE MERGING (Inherit properties from template)
     const orbNodeAny = node as any;
     if (orbNodeAny.template) {
-      const tpl = this.context.templates.get(orbNodeAny.template) as unknown as TemplateNode | undefined;
+      const tpl = this.context.templates.get(orbNodeAny.template) as unknown as
+        | TemplateNode
+        | undefined;
       console.log(
         `[RUNTIME_DEBUG] executeOrb: ${orbNodeAny.name} using template: ${orbNodeAny.template}. Found template: ${!!tpl}`
       );
@@ -2858,11 +2860,11 @@ export class HoloScriptRuntime {
     telemetry.setGauge('execution_depth', this.context.executionStack.length);
     for (const stmt of statements) {
       telemetry.incrementCounter('statements_executed', 1, { type: stmt.type });
-      
-      const res = await telemetry.measureLatency(`execute_stmt_${stmt.type}`, () => 
-          this.executeHoloStatement(stmt, scopeOverride)
+
+      const res = await telemetry.measureLatency(`execute_stmt_${stmt.type}`, () =>
+        this.executeHoloStatement(stmt, scopeOverride)
       );
-      
+
       results.push(res);
       // If a result has an output that indicates a return, stop execution
       const last = results[results.length - 1];
@@ -3589,7 +3591,7 @@ export class HoloScriptRuntime {
 
     const memoryState: Record<string, any> = {
       id: node.name,
-      type: 'agent-memory'
+      type: 'agent-memory',
     };
 
     if (node.semantic) {
@@ -3616,20 +3618,20 @@ export class HoloScriptRuntime {
     return {
       success: true,
       output: memoryState,
-      executionTime: Date.now() - startTime
+      executionTime: Date.now() - startTime,
     };
   }
 
   public loadSkill(skill: ProceduralSkill): void {
     logger.info(`[Procedural] Loading skill: ${skill.name} (${skill.id})`);
-    
-    // Skill Merging implementation (TODO-015): 
+
+    // Skill Merging implementation (TODO-015):
     // If we receive a network version of a skill we already know, merge the success rate
     const existing = this.proceduralSkills.get(skill.id);
     if (existing) {
-        skill.successRate = (existing.successRate + (skill.successRate || 0)) / 2;
+      skill.successRate = (existing.successRate + (skill.successRate || 0)) / 2;
     } else {
-        skill.successRate = skill.successRate || 0;
+      skill.successRate = skill.successRate || 0;
     }
 
     this.proceduralSkills.set(skill.id, skill);
@@ -3638,7 +3640,10 @@ export class HoloScriptRuntime {
     StateSynchronizer.getInstance().broadcastSkill(skill);
   }
 
-  public async executeSkill(skillId: string, contextVariables: Record<string, HoloScriptValue> = {}): Promise<ExecutionResult> {
+  public async executeSkill(
+    skillId: string,
+    contextVariables: Record<string, HoloScriptValue> = {}
+  ): Promise<ExecutionResult> {
     const skill = this.proceduralSkills.get(skillId);
     if (!skill) {
       throw new Error(`[Procedural] Skill '${skillId}' not found.`);
@@ -3656,12 +3661,12 @@ export class HoloScriptRuntime {
 
     try {
       const result = await this.executeNode(skill.action);
-      
+
       // Update success tracking statistics
       if (result.success) {
-          skill.successRate = Math.min(100, skill.successRate + 1);
+        skill.successRate = Math.min(100, skill.successRate + 1);
       } else {
-          skill.successRate = Math.max(0, skill.successRate - 1);
+        skill.successRate = Math.max(0, skill.successRate - 1);
       }
 
       // Sync the updated success rate telemetry
@@ -3669,23 +3674,28 @@ export class HoloScriptRuntime {
 
       return {
         ...result,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     } finally {
       this.currentScope = previousScope;
     }
   }
 
-  private async executeMemoryDefinition(node: import('./types').SemanticMemoryNode | import('./types').EpisodicMemoryNode | import('./types').ProceduralMemoryNode): Promise<ExecutionResult> {
+  private async executeMemoryDefinition(
+    node:
+      | import('./types').SemanticMemoryNode
+      | import('./types').EpisodicMemoryNode
+      | import('./types').ProceduralMemoryNode
+  ): Promise<ExecutionResult> {
     const startTime = Date.now();
-    
+
     // Evaluate properties to concrete config values
     const config: Record<string, HoloScriptValue> = {};
     for (const [key, val] of Object.entries(node.properties || {})) {
       if (typeof val === 'string') {
         config[key] = this.evaluateExpression(val);
       } else {
-         config[key] = val;
+        config[key] = val;
       }
     }
 
@@ -3693,9 +3703,9 @@ export class HoloScriptRuntime {
       success: true,
       output: {
         type: node.type,
-        config
+        config,
       },
-      executionTime: Date.now() - startTime
+      executionTime: Date.now() - startTime,
     };
   }
 

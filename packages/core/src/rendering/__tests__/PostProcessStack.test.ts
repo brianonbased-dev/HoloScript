@@ -11,7 +11,9 @@ const doubler = (input: Float32Array) => {
 describe('PostProcessStack', () => {
   let stack: PostProcessStack;
 
-  beforeEach(() => { stack = new PostProcessStack(); });
+  beforeEach(() => {
+    stack = new PostProcessStack();
+  });
 
   // Effect management
   it('addEffect returns effect with id', () => {

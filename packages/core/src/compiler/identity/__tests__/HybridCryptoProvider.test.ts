@@ -59,9 +59,7 @@ class MockMlDsa65Provider implements ICryptoProvider {
 
   async sign(message: Uint8Array, privateKey: string): Promise<string> {
     const { createHmac } = await import('crypto');
-    const sig = createHmac('sha256', privateKey)
-      .update(Buffer.from(message))
-      .digest('base64');
+    const sig = createHmac('sha256', privateKey).update(Buffer.from(message)).digest('base64');
     return sig;
   }
 
@@ -488,7 +486,10 @@ describe('createCryptoProvider', () => {
 
   it('should produce working hybrid sign/verify cycle via factory', async () => {
     const mockPq = new MockMlDsa65Provider();
-    const provider = createCryptoProvider('hybrid-ed25519-ml-dsa-65', mockPq) as HybridCryptoProvider;
+    const provider = createCryptoProvider(
+      'hybrid-ed25519-ml-dsa-65',
+      mockPq
+    ) as HybridCryptoProvider;
     const keyPair = await provider.generateHybridKeyPair();
     const message = new TextEncoder().encode('hybrid factory test');
 
@@ -507,11 +508,7 @@ describe('createCryptoProvider', () => {
 
 describe('Type safety', () => {
   it('SignatureAlgorithm covers all three variants', () => {
-    const algorithms: SignatureAlgorithm[] = [
-      'ed25519',
-      'ml-dsa-65',
-      'hybrid-ed25519-ml-dsa-65',
-    ];
+    const algorithms: SignatureAlgorithm[] = ['ed25519', 'ml-dsa-65', 'hybrid-ed25519-ml-dsa-65'];
 
     expect(algorithms).toHaveLength(3);
     algorithms.forEach((alg) => expect(typeof alg).toBe('string'));
@@ -571,12 +568,12 @@ describe('MLDSACryptoProvider', () => {
       (provider as any).getModule = async () => {
         throw new Error(
           'ML-DSA-65 requires @noble/post-quantum. ' +
-          'Install it with: npm install @noble/post-quantum',
+            'Install it with: npm install @noble/post-quantum'
         );
       };
 
       await expect(provider.generateKeyPair()).rejects.toThrow(
-        'ML-DSA-65 requires @noble/post-quantum',
+        'ML-DSA-65 requires @noble/post-quantum'
       );
     });
 
@@ -588,13 +585,13 @@ describe('MLDSACryptoProvider', () => {
       (provider as any).getModule = async () => {
         throw new Error(
           'ML-DSA-65 requires @noble/post-quantum. ' +
-          'Install it with: npm install @noble/post-quantum',
+            'Install it with: npm install @noble/post-quantum'
         );
       };
 
       const message = new TextEncoder().encode('test');
       await expect(provider.sign(message, 'key')).rejects.toThrow(
-        'ML-DSA-65 requires @noble/post-quantum',
+        'ML-DSA-65 requires @noble/post-quantum'
       );
     });
 
@@ -606,7 +603,7 @@ describe('MLDSACryptoProvider', () => {
       (provider as any).getModule = async () => {
         throw new Error(
           'ML-DSA-65 requires @noble/post-quantum. ' +
-          'Install it with: npm install @noble/post-quantum',
+            'Install it with: npm install @noble/post-quantum'
         );
       };
 

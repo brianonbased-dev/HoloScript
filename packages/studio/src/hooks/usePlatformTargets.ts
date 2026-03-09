@@ -6,10 +6,19 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import {
-  XR_PLATFORM_CATEGORIES, XR_PLATFORM_CAPABILITIES, XR_ALL_PLATFORMS,
-  platformCategory, embodimentFor, agentBudgetFor, hasCapability, resolvePlatforms,
-  type XRPlatformTarget, type XRPlatformCategory, type XRPlatformCapabilities,
-  type EmbodimentType, type PlatformCondition,
+  XR_PLATFORM_CATEGORIES,
+  XR_PLATFORM_CAPABILITIES,
+  XR_ALL_PLATFORMS,
+  platformCategory,
+  embodimentFor,
+  agentBudgetFor,
+  hasCapability,
+  resolvePlatforms,
+  type XRPlatformTarget,
+  type XRPlatformCategory,
+  type XRPlatformCapabilities,
+  type EmbodimentType,
+  type PlatformCondition,
 } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -52,7 +61,9 @@ export function usePlatformTargets(initial: XRPlatformTarget = 'quest3'): UsePla
   const grouped = useMemo(() => {
     const groups: Record<string, PlatformInfo[]> = {};
     for (const cat of Object.keys(XR_PLATFORM_CATEGORIES)) {
-      groups[cat] = (XR_PLATFORM_CATEGORIES[cat as XRPlatformCategory] as XRPlatformTarget[]).map(buildInfo);
+      groups[cat] = (XR_PLATFORM_CATEGORIES[cat as XRPlatformCategory] as XRPlatformTarget[]).map(
+        buildInfo
+      );
     }
     return groups as Record<XRPlatformCategory, PlatformInfo[]>;
   }, []);
@@ -60,7 +71,10 @@ export function usePlatformTargets(initial: XRPlatformTarget = 'quest3'): UsePla
   const categories = useMemo(() => Object.keys(XR_PLATFORM_CATEGORIES) as XRPlatformCategory[], []);
   const select = useCallback((target: XRPlatformTarget) => setSelected(target), []);
   const resolve = useCallback((condition: PlatformCondition) => resolvePlatforms(condition), []);
-  const hasCap = useCallback((cap: keyof XRPlatformCapabilities) => hasCapability(selected, cap), [selected]);
+  const hasCap = useCallback(
+    (cap: keyof XRPlatformCapabilities) => hasCapability(selected, cap),
+    [selected]
+  );
 
   return { platforms, selected, selectedInfo, select, resolve, hasCap, grouped, categories };
 }

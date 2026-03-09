@@ -65,19 +65,21 @@ function mockBlock(overrides: any = {}) {
 
 describe('compileHandTrackingBlock', () => {
   it('extracts hand tracking configuration from block', () => {
-    const ht = compileHandTrackingBlock(mockBlock({
-      name: 'MyHands',
-      properties: {
-        update_rate_hz: 120,
-        smoothing: 0.5,
-        pinch_threshold: 0.7,
-        grip_threshold: 0.6,
-        confidence_threshold: 0.4,
-        prediction: false,
-        haptic_on_gesture: false,
-        gesture_set: ['pinch', 'grab'],
-      },
-    }));
+    const ht = compileHandTrackingBlock(
+      mockBlock({
+        name: 'MyHands',
+        properties: {
+          update_rate_hz: 120,
+          smoothing: 0.5,
+          pinch_threshold: 0.7,
+          grip_threshold: 0.6,
+          confidence_threshold: 0.4,
+          prediction: false,
+          haptic_on_gesture: false,
+          gesture_set: ['pinch', 'grab'],
+        },
+      })
+    );
 
     expect(ht.name).toBe('MyHands');
     expect(ht.updateRateHz).toBe(120);
@@ -108,17 +110,19 @@ describe('compileHandTrackingBlock', () => {
 
 describe('compileGazeTransientPointerBlock', () => {
   it('extracts gaze config from block', () => {
-    const gaze = compileGazeTransientPointerBlock(mockBlock({
-      keyword: 'gaze_transient_pointer',
-      name: 'VisionGaze',
-      properties: {
-        dwell_enabled: false,
-        dwell_time_ms: 1200,
-        max_distance: 20,
-        pinch_to_commit: false,
-        haptic_intensity: 0.8,
-      },
-    }));
+    const gaze = compileGazeTransientPointerBlock(
+      mockBlock({
+        keyword: 'gaze_transient_pointer',
+        name: 'VisionGaze',
+        properties: {
+          dwell_enabled: false,
+          dwell_time_ms: 1200,
+          max_distance: 20,
+          pinch_to_commit: false,
+          haptic_intensity: 0.8,
+        },
+      })
+    );
 
     expect(gaze.name).toBe('VisionGaze');
     expect(gaze.dwellEnabled).toBe(false);
@@ -129,9 +133,11 @@ describe('compileGazeTransientPointerBlock', () => {
   });
 
   it('uses defaults for missing properties', () => {
-    const gaze = compileGazeTransientPointerBlock(mockBlock({
-      keyword: 'gaze_transient_pointer',
-    }));
+    const gaze = compileGazeTransientPointerBlock(
+      mockBlock({
+        keyword: 'gaze_transient_pointer',
+      })
+    );
     expect(gaze.dwellEnabled).toBe(true);
     expect(gaze.dwellTimeMs).toBe(800);
     expect(gaze.maxDistance).toBe(10);
@@ -141,19 +147,21 @@ describe('compileGazeTransientPointerBlock', () => {
 
 describe('compileSharedSpatialAnchorBlock', () => {
   it('extracts shared anchor config', () => {
-    const anchor = compileSharedSpatialAnchorBlock(mockBlock({
-      keyword: 'shared_anchor',
-      name: 'GameAnchor',
-      properties: {
-        auto_share: false,
-        ttl_seconds: 3600,
-        max_retries: 10,
-        quality_threshold: 0.8,
-        persistent: true,
-        room_id: 'game-room-42',
-        sync_transforms: false,
-      },
-    }));
+    const anchor = compileSharedSpatialAnchorBlock(
+      mockBlock({
+        keyword: 'shared_anchor',
+        name: 'GameAnchor',
+        properties: {
+          auto_share: false,
+          ttl_seconds: 3600,
+          max_retries: 10,
+          quality_threshold: 0.8,
+          persistent: true,
+          room_id: 'game-room-42',
+          sync_transforms: false,
+        },
+      })
+    );
 
     expect(anchor.name).toBe('GameAnchor');
     expect(anchor.autoShare).toBe(false);
@@ -166,9 +174,11 @@ describe('compileSharedSpatialAnchorBlock', () => {
   });
 
   it('uses defaults for missing properties', () => {
-    const anchor = compileSharedSpatialAnchorBlock(mockBlock({
-      keyword: 'shared_anchor',
-    }));
+    const anchor = compileSharedSpatialAnchorBlock(
+      mockBlock({
+        keyword: 'shared_anchor',
+      })
+    );
     expect(anchor.autoShare).toBe(true);
     expect(anchor.ttlSeconds).toBe(0);
     expect(anchor.maxRetries).toBe(5);
@@ -178,19 +188,21 @@ describe('compileSharedSpatialAnchorBlock', () => {
 
 describe('compileControllerInputBlock', () => {
   it('extracts controller config', () => {
-    const ctrl = compileControllerInputBlock(mockBlock({
-      keyword: 'controller_input',
-      name: 'QuestController',
-      properties: {
-        deadzone: 0.2,
-        trigger_threshold: 0.4,
-        grip_threshold: 0.6,
-        haptic_on_press: false,
-        thumbstick_as_dpad: true,
-        dpad_threshold: 0.8,
-        tracked_buttons: ['trigger', 'grip'],
-      },
-    }));
+    const ctrl = compileControllerInputBlock(
+      mockBlock({
+        keyword: 'controller_input',
+        name: 'QuestController',
+        properties: {
+          deadzone: 0.2,
+          trigger_threshold: 0.4,
+          grip_threshold: 0.6,
+          haptic_on_press: false,
+          thumbstick_as_dpad: true,
+          dpad_threshold: 0.8,
+          tracked_buttons: ['trigger', 'grip'],
+        },
+      })
+    );
 
     expect(ctrl.name).toBe('QuestController');
     expect(ctrl.deadzone).toBe(0.2);
@@ -203,9 +215,11 @@ describe('compileControllerInputBlock', () => {
   });
 
   it('uses defaults for missing properties', () => {
-    const ctrl = compileControllerInputBlock(mockBlock({
-      keyword: 'controller_input',
-    }));
+    const ctrl = compileControllerInputBlock(
+      mockBlock({
+        keyword: 'controller_input',
+      })
+    );
     expect(ctrl.deadzone).toBe(0.15);
     expect(ctrl.triggerThreshold).toBe(0.5);
     expect(ctrl.thumbstickAsDpad).toBe(false);
@@ -236,7 +250,9 @@ describe('compileSpatialInputBlock', () => {
   });
 
   it('routes spatial_input_gaze_transient_pointer keyword', () => {
-    const result = compileSpatialInputBlock(mockBlock({ keyword: 'spatial_input_gaze_transient_pointer' }));
+    const result = compileSpatialInputBlock(
+      mockBlock({ keyword: 'spatial_input_gaze_transient_pointer' })
+    );
     expect(result).not.toBeNull();
     expect(result!.kind).toBe('gaze_transient_pointer');
   });
@@ -266,27 +282,54 @@ describe('compileSpatialInputBlock', () => {
 
 describe('ARCore (Kotlin) code generation', () => {
   const defaultHT: CompiledHandTracking = {
-    name: 'hands', updateRateHz: 90, smoothing: 0.3, pinchThreshold: 0.8,
-    gripThreshold: 0.7, confidenceThreshold: 0.5, prediction: true,
-    hapticOnGesture: true, gestureSet: ['pinch', 'grab'], traits: [],
+    name: 'hands',
+    updateRateHz: 90,
+    smoothing: 0.3,
+    pinchThreshold: 0.8,
+    gripThreshold: 0.7,
+    confidenceThreshold: 0.5,
+    prediction: true,
+    hapticOnGesture: true,
+    gestureSet: ['pinch', 'grab'],
+    traits: [],
   };
 
   const defaultGaze: CompiledGazeTransientPointer = {
-    name: 'gaze', dwellEnabled: true, dwellTimeMs: 800, dwellFeedback: true,
-    hapticOnCommit: true, hapticIntensity: 0.4, maxDistance: 10,
-    pinchToCommit: true, traits: [],
+    name: 'gaze',
+    dwellEnabled: true,
+    dwellTimeMs: 800,
+    dwellFeedback: true,
+    hapticOnCommit: true,
+    hapticIntensity: 0.4,
+    maxDistance: 10,
+    pinchToCommit: true,
+    traits: [],
   };
 
   const defaultAnchor: CompiledSharedSpatialAnchor = {
-    name: 'anchor', autoShare: true, ttlSeconds: 0, maxRetries: 5,
-    retryDelayMs: 2000, qualityThreshold: 0.6, persistent: false,
-    roomId: 'room-1', syncTransforms: true, traits: [],
+    name: 'anchor',
+    autoShare: true,
+    ttlSeconds: 0,
+    maxRetries: 5,
+    retryDelayMs: 2000,
+    qualityThreshold: 0.6,
+    persistent: false,
+    roomId: 'room-1',
+    syncTransforms: true,
+    traits: [],
   };
 
   const defaultCtrl: CompiledControllerInput = {
-    name: 'ctrl', deadzone: 0.15, triggerThreshold: 0.5, gripThreshold: 0.5,
-    hapticOnPress: true, hapticIntensity: 0.3, trackedButtons: [],
-    thumbstickAsDpad: false, dpadThreshold: 0.7, traits: [],
+    name: 'ctrl',
+    deadzone: 0.15,
+    triggerThreshold: 0.5,
+    gripThreshold: 0.5,
+    hapticOnPress: true,
+    hapticIntensity: 0.3,
+    trackedButtons: [],
+    thumbstickAsDpad: false,
+    dpadThreshold: 0.7,
+    traits: [],
   };
 
   it('generates hand tracking Kotlin code', () => {
@@ -343,27 +386,54 @@ describe('ARCore (Kotlin) code generation', () => {
 
 describe('ARKit (Swift) code generation', () => {
   const defaultHT: CompiledHandTracking = {
-    name: 'hands', updateRateHz: 90, smoothing: 0.3, pinchThreshold: 0.8,
-    gripThreshold: 0.7, confidenceThreshold: 0.5, prediction: true,
-    hapticOnGesture: true, gestureSet: ['pinch', 'grab'], traits: [],
+    name: 'hands',
+    updateRateHz: 90,
+    smoothing: 0.3,
+    pinchThreshold: 0.8,
+    gripThreshold: 0.7,
+    confidenceThreshold: 0.5,
+    prediction: true,
+    hapticOnGesture: true,
+    gestureSet: ['pinch', 'grab'],
+    traits: [],
   };
 
   const defaultGaze: CompiledGazeTransientPointer = {
-    name: 'gaze', dwellEnabled: true, dwellTimeMs: 800, dwellFeedback: true,
-    hapticOnCommit: true, hapticIntensity: 0.4, maxDistance: 10,
-    pinchToCommit: true, traits: [],
+    name: 'gaze',
+    dwellEnabled: true,
+    dwellTimeMs: 800,
+    dwellFeedback: true,
+    hapticOnCommit: true,
+    hapticIntensity: 0.4,
+    maxDistance: 10,
+    pinchToCommit: true,
+    traits: [],
   };
 
   const defaultAnchor: CompiledSharedSpatialAnchor = {
-    name: 'anchor', autoShare: true, ttlSeconds: 0, maxRetries: 5,
-    retryDelayMs: 2000, qualityThreshold: 0.6, persistent: true,
-    roomId: 'room-1', syncTransforms: true, traits: [],
+    name: 'anchor',
+    autoShare: true,
+    ttlSeconds: 0,
+    maxRetries: 5,
+    retryDelayMs: 2000,
+    qualityThreshold: 0.6,
+    persistent: true,
+    roomId: 'room-1',
+    syncTransforms: true,
+    traits: [],
   };
 
   const defaultCtrl: CompiledControllerInput = {
-    name: 'ctrl', deadzone: 0.15, triggerThreshold: 0.5, gripThreshold: 0.5,
-    hapticOnPress: true, hapticIntensity: 0.3, trackedButtons: [],
-    thumbstickAsDpad: false, dpadThreshold: 0.7, traits: [],
+    name: 'ctrl',
+    deadzone: 0.15,
+    triggerThreshold: 0.5,
+    gripThreshold: 0.5,
+    hapticOnPress: true,
+    hapticIntensity: 0.3,
+    trackedButtons: [],
+    thumbstickAsDpad: false,
+    dpadThreshold: 0.7,
+    traits: [],
   };
 
   it('generates hand tracking Swift code', () => {
@@ -414,27 +484,54 @@ describe('ARKit (Swift) code generation', () => {
 
 describe('OpenXR (C++) code generation', () => {
   const defaultHT: CompiledHandTracking = {
-    name: 'hands', updateRateHz: 90, smoothing: 0.3, pinchThreshold: 0.8,
-    gripThreshold: 0.7, confidenceThreshold: 0.5, prediction: true,
-    hapticOnGesture: true, gestureSet: ['pinch', 'grab'], traits: [],
+    name: 'hands',
+    updateRateHz: 90,
+    smoothing: 0.3,
+    pinchThreshold: 0.8,
+    gripThreshold: 0.7,
+    confidenceThreshold: 0.5,
+    prediction: true,
+    hapticOnGesture: true,
+    gestureSet: ['pinch', 'grab'],
+    traits: [],
   };
 
   const defaultGaze: CompiledGazeTransientPointer = {
-    name: 'gaze', dwellEnabled: true, dwellTimeMs: 800, dwellFeedback: true,
-    hapticOnCommit: true, hapticIntensity: 0.4, maxDistance: 10,
-    pinchToCommit: true, traits: [],
+    name: 'gaze',
+    dwellEnabled: true,
+    dwellTimeMs: 800,
+    dwellFeedback: true,
+    hapticOnCommit: true,
+    hapticIntensity: 0.4,
+    maxDistance: 10,
+    pinchToCommit: true,
+    traits: [],
   };
 
   const defaultAnchor: CompiledSharedSpatialAnchor = {
-    name: 'anchor', autoShare: true, ttlSeconds: 0, maxRetries: 5,
-    retryDelayMs: 2000, qualityThreshold: 0.6, persistent: false,
-    roomId: 'room-1', syncTransforms: true, traits: [],
+    name: 'anchor',
+    autoShare: true,
+    ttlSeconds: 0,
+    maxRetries: 5,
+    retryDelayMs: 2000,
+    qualityThreshold: 0.6,
+    persistent: false,
+    roomId: 'room-1',
+    syncTransforms: true,
+    traits: [],
   };
 
   const defaultCtrl: CompiledControllerInput = {
-    name: 'ctrl', deadzone: 0.15, triggerThreshold: 0.5, gripThreshold: 0.5,
-    hapticOnPress: true, hapticIntensity: 0.3, trackedButtons: [],
-    thumbstickAsDpad: true, dpadThreshold: 0.7, traits: [],
+    name: 'ctrl',
+    deadzone: 0.15,
+    triggerThreshold: 0.5,
+    gripThreshold: 0.5,
+    hapticOnPress: true,
+    hapticIntensity: 0.3,
+    trackedButtons: [],
+    thumbstickAsDpad: true,
+    dpadThreshold: 0.7,
+    traits: [],
   };
 
   it('generates hand tracking C++ code', () => {
@@ -493,27 +590,54 @@ describe('OpenXR (C++) code generation', () => {
 
 describe('WebXR (TypeScript) code generation', () => {
   const defaultHT: CompiledHandTracking = {
-    name: 'hands', updateRateHz: 90, smoothing: 0.3, pinchThreshold: 0.8,
-    gripThreshold: 0.7, confidenceThreshold: 0.5, prediction: true,
-    hapticOnGesture: true, gestureSet: ['pinch', 'grab'], traits: [],
+    name: 'hands',
+    updateRateHz: 90,
+    smoothing: 0.3,
+    pinchThreshold: 0.8,
+    gripThreshold: 0.7,
+    confidenceThreshold: 0.5,
+    prediction: true,
+    hapticOnGesture: true,
+    gestureSet: ['pinch', 'grab'],
+    traits: [],
   };
 
   const defaultGaze: CompiledGazeTransientPointer = {
-    name: 'gaze', dwellEnabled: true, dwellTimeMs: 800, dwellFeedback: true,
-    hapticOnCommit: true, hapticIntensity: 0.4, maxDistance: 10,
-    pinchToCommit: true, traits: [],
+    name: 'gaze',
+    dwellEnabled: true,
+    dwellTimeMs: 800,
+    dwellFeedback: true,
+    hapticOnCommit: true,
+    hapticIntensity: 0.4,
+    maxDistance: 10,
+    pinchToCommit: true,
+    traits: [],
   };
 
   const defaultAnchor: CompiledSharedSpatialAnchor = {
-    name: 'anchor', autoShare: true, ttlSeconds: 0, maxRetries: 5,
-    retryDelayMs: 2000, qualityThreshold: 0.6, persistent: false,
-    roomId: 'room-1', syncTransforms: true, traits: [],
+    name: 'anchor',
+    autoShare: true,
+    ttlSeconds: 0,
+    maxRetries: 5,
+    retryDelayMs: 2000,
+    qualityThreshold: 0.6,
+    persistent: false,
+    roomId: 'room-1',
+    syncTransforms: true,
+    traits: [],
   };
 
   const defaultCtrl: CompiledControllerInput = {
-    name: 'ctrl', deadzone: 0.15, triggerThreshold: 0.5, gripThreshold: 0.5,
-    hapticOnPress: true, hapticIntensity: 0.3, trackedButtons: [],
-    thumbstickAsDpad: true, dpadThreshold: 0.7, traits: [],
+    name: 'ctrl',
+    deadzone: 0.15,
+    triggerThreshold: 0.5,
+    gripThreshold: 0.5,
+    hapticOnPress: true,
+    hapticIntensity: 0.3,
+    trackedButtons: [],
+    thumbstickAsDpad: true,
+    dpadThreshold: 0.7,
+    traits: [],
   };
 
   it('generates hand tracking TypeScript code', () => {
@@ -571,9 +695,16 @@ describe('WebXR (TypeScript) code generation', () => {
 describe('spatialInputToTarget', () => {
   it('routes hand tracking to all targets', () => {
     const ht: CompiledHandTracking = {
-      name: 'ht', updateRateHz: 90, smoothing: 0.3, pinchThreshold: 0.8,
-      gripThreshold: 0.7, confidenceThreshold: 0.5, prediction: true,
-      hapticOnGesture: true, gestureSet: ['pinch'], traits: [],
+      name: 'ht',
+      updateRateHz: 90,
+      smoothing: 0.3,
+      pinchThreshold: 0.8,
+      gripThreshold: 0.7,
+      confidenceThreshold: 0.5,
+      prediction: true,
+      hapticOnGesture: true,
+      gestureSet: ['pinch'],
+      traits: [],
     };
     const input = { kind: 'hand_tracking' as const, data: ht };
 
@@ -585,9 +716,15 @@ describe('spatialInputToTarget', () => {
 
   it('routes gaze to all targets', () => {
     const gaze: CompiledGazeTransientPointer = {
-      name: 'g', dwellEnabled: true, dwellTimeMs: 800, dwellFeedback: true,
-      hapticOnCommit: true, hapticIntensity: 0.4, maxDistance: 10,
-      pinchToCommit: true, traits: [],
+      name: 'g',
+      dwellEnabled: true,
+      dwellTimeMs: 800,
+      dwellFeedback: true,
+      hapticOnCommit: true,
+      hapticIntensity: 0.4,
+      maxDistance: 10,
+      pinchToCommit: true,
+      traits: [],
     };
     const input = { kind: 'gaze_transient_pointer' as const, data: gaze };
 
@@ -600,9 +737,16 @@ describe('spatialInputToTarget', () => {
 
   it('handles variable prefix', () => {
     const ht: CompiledHandTracking = {
-      name: 'ht', updateRateHz: 90, smoothing: 0.3, pinchThreshold: 0.8,
-      gripThreshold: 0.7, confidenceThreshold: 0.5, prediction: true,
-      hapticOnGesture: true, gestureSet: ['pinch'], traits: [],
+      name: 'ht',
+      updateRateHz: 90,
+      smoothing: 0.3,
+      pinchThreshold: 0.8,
+      gripThreshold: 0.7,
+      confidenceThreshold: 0.5,
+      prediction: true,
+      hapticOnGesture: true,
+      gestureSet: ['pinch'],
+      traits: [],
     };
     const input = { kind: 'hand_tracking' as const, data: ht };
 
@@ -630,10 +774,7 @@ describe('compileSpatialInputBlocks', () => {
   });
 
   it('returns empty array when no spatial input blocks found', () => {
-    const blocks = [
-      mockBlock({ keyword: 'material' }),
-      mockBlock({ keyword: 'rigidbody' }),
-    ];
+    const blocks = [mockBlock({ keyword: 'material' }), mockBlock({ keyword: 'rigidbody' })];
 
     const results = compileSpatialInputBlocks(blocks as any, 'openxr');
     expect(results).toHaveLength(0);
@@ -650,7 +791,7 @@ describe('compileSpatialInputBlocks', () => {
     for (const target of ['arcore', 'arkit', 'openxr', 'webxr'] as const) {
       const results = compileSpatialInputBlocks(blocks as any, target);
       expect(results).toHaveLength(4);
-      results.forEach(code => {
+      results.forEach((code) => {
         expect(code.length).toBeGreaterThan(20);
       });
     }
@@ -663,9 +804,15 @@ describe('compileSpatialInputBlocks', () => {
 
 describe('Privacy invariant: gaze direction never exposed', () => {
   const gazeConfig: CompiledGazeTransientPointer = {
-    name: 'privacy_gaze', dwellEnabled: true, dwellTimeMs: 800, dwellFeedback: true,
-    hapticOnCommit: true, hapticIntensity: 0.4, maxDistance: 10,
-    pinchToCommit: true, traits: [],
+    name: 'privacy_gaze',
+    dwellEnabled: true,
+    dwellTimeMs: 800,
+    dwellFeedback: true,
+    hapticOnCommit: true,
+    hapticIntensity: 0.4,
+    maxDistance: 10,
+    pinchToCommit: true,
+    traits: [],
   };
 
   const targets: Array<[string, (g: CompiledGazeTransientPointer, p?: string) => string]> = [
@@ -678,7 +825,8 @@ describe('Privacy invariant: gaze direction never exposed', () => {
   for (const [name, fn] of targets) {
     it(`${name}: code mentions privacy-first or transient model`, () => {
       const code = fn(gazeConfig);
-      const hasPrivacyNote = code.includes('NEVER') || code.includes('privacy') || code.includes('transient');
+      const hasPrivacyNote =
+        code.includes('NEVER') || code.includes('privacy') || code.includes('transient');
       expect(hasPrivacyNote).toBe(true);
     });
 
@@ -699,9 +847,16 @@ describe('Privacy invariant: gaze direction never exposed', () => {
 describe('Haptic feedback conditional generation', () => {
   it('omits haptic code when disabled for hand tracking (ARCore)', () => {
     const ht: CompiledHandTracking = {
-      name: 'no_haptic', updateRateHz: 90, smoothing: 0.3, pinchThreshold: 0.8,
-      gripThreshold: 0.7, confidenceThreshold: 0.5, prediction: true,
-      hapticOnGesture: false, gestureSet: ['pinch'], traits: [],
+      name: 'no_haptic',
+      updateRateHz: 90,
+      smoothing: 0.3,
+      pinchThreshold: 0.8,
+      gripThreshold: 0.7,
+      confidenceThreshold: 0.5,
+      prediction: true,
+      hapticOnGesture: false,
+      gestureSet: ['pinch'],
+      traits: [],
     };
     const code = handTrackingToARCore(ht);
     expect(code).not.toContain('vibrateController');
@@ -709,9 +864,15 @@ describe('Haptic feedback conditional generation', () => {
 
   it('omits haptic code when disabled for gaze (ARKit)', () => {
     const gaze: CompiledGazeTransientPointer = {
-      name: 'no_haptic', dwellEnabled: true, dwellTimeMs: 800, dwellFeedback: true,
-      hapticOnCommit: false, hapticIntensity: 0, maxDistance: 10,
-      pinchToCommit: true, traits: [],
+      name: 'no_haptic',
+      dwellEnabled: true,
+      dwellTimeMs: 800,
+      dwellFeedback: true,
+      hapticOnCommit: false,
+      hapticIntensity: 0,
+      maxDistance: 10,
+      pinchToCommit: true,
+      traits: [],
     };
     const code = gazeTransientPointerToARKit(gaze);
     expect(code).not.toContain('CHHapticEngine');
@@ -719,9 +880,16 @@ describe('Haptic feedback conditional generation', () => {
 
   it('omits haptic code when disabled for controller (WebXR)', () => {
     const ctrl: CompiledControllerInput = {
-      name: 'no_haptic', deadzone: 0.15, triggerThreshold: 0.5, gripThreshold: 0.5,
-      hapticOnPress: false, hapticIntensity: 0, trackedButtons: [],
-      thumbstickAsDpad: false, dpadThreshold: 0.7, traits: [],
+      name: 'no_haptic',
+      deadzone: 0.15,
+      triggerThreshold: 0.5,
+      gripThreshold: 0.5,
+      hapticOnPress: false,
+      hapticIntensity: 0,
+      trackedButtons: [],
+      thumbstickAsDpad: false,
+      dpadThreshold: 0.7,
+      traits: [],
     };
     const code = controllerInputToWebXR(ctrl);
     expect(code).not.toContain('hapticActuators');

@@ -12,7 +12,15 @@
  * @version 1.0.0
  */
 
-import type { BBox, Point, GeospatialAnchor, RTreeNode, RTreeOptions, RTreeStats, QueryResult } from './types';
+import type {
+  BBox,
+  Point,
+  GeospatialAnchor,
+  RTreeNode,
+  RTreeOptions,
+  RTreeStats,
+  QueryResult,
+} from './types';
 import {
   bboxArea,
   bboxIntersectionArea,
@@ -77,7 +85,7 @@ export class RTree {
     }
 
     // OMT (Overlap Minimizing Top-down) bulk loading
-    const items = anchors.map(anchor => ({
+    const items = anchors.map((anchor) => ({
       bbox: createBBoxFromAnchor(anchor),
       anchor,
     }));
@@ -289,7 +297,9 @@ export class RTree {
     // Split if necessary and propagate changes up
     while (level >= 0) {
       const parent = insertPath[level];
-      if ((parent.leaf ? parent.items!.length : parent.children!.length) > this.options.maxEntries) {
+      if (
+        (parent.leaf ? parent.items!.length : parent.children!.length) > this.options.maxEntries
+      ) {
         this.split(insertPath, level);
       } else {
         this.updateBBox(parent);
@@ -353,7 +363,10 @@ export class RTree {
     }
   }
 
-  private chooseSplitAxis(items: (RTreeNode | GeospatialAnchor)[], isLeaf: boolean): [number, number] {
+  private chooseSplitAxis(
+    items: (RTreeNode | GeospatialAnchor)[],
+    isLeaf: boolean
+  ): [number, number] {
     const m = this.options.minEntries;
     const M = items.length;
 
@@ -379,7 +392,12 @@ export class RTree {
     return latSplit.overlap < lonSplit.overlap ? [latSplit.index, M] : [lonSplit.index, M];
   }
 
-  private findBestSplit(items: (RTreeNode | GeospatialAnchor)[], m: number, M: number, isLeaf: boolean) {
+  private findBestSplit(
+    items: (RTreeNode | GeospatialAnchor)[],
+    m: number,
+    M: number,
+    isLeaf: boolean
+  ) {
     let minOverlap = Infinity;
     let minArea = Infinity;
     let bestIndex = m;
@@ -444,7 +462,7 @@ export class RTree {
     }
 
     if (node.leaf && node.items) {
-      const index = node.items.findIndex(item => item.id === anchor.id);
+      const index = node.items.findIndex((item) => item.id === anchor.id);
       if (index !== -1) {
         node.items.splice(index, 1);
         this.updateBBox(node);
@@ -462,19 +480,28 @@ export class RTree {
     return false;
   }
 
-  private _bulkLoad(items: Array<{ bbox: BBox; anchor: GeospatialAnchor }>, level: number): RTreeNode {
+  private _bulkLoad(
+    items: Array<{ bbox: BBox; anchor: GeospatialAnchor }>,
+    level: number
+  ): RTreeNode {
     const N = items.length;
     const M = this.options.maxEntries;
 
     if (N <= M) {
       // Create leaf node
-      return this.createNode(items.map(item => item.anchor) as any, true);
+      return this.createNode(items.map((item) => item.anchor) as any, true);
     }
 
     // Sort items by Hilbert value for better spatial locality
     items.sort((a, b) => {
-      const aCenter = { lat: (a.bbox.minLat + a.bbox.maxLat) / 2, lon: (a.bbox.minLon + a.bbox.maxLon) / 2 };
-      const bCenter = { lat: (b.bbox.minLat + b.bbox.maxLat) / 2, lon: (b.bbox.minLon + b.bbox.maxLon) / 2 };
+      const aCenter = {
+        lat: (a.bbox.minLat + a.bbox.maxLat) / 2,
+        lon: (a.bbox.minLon + a.bbox.maxLon) / 2,
+      };
+      const bCenter = {
+        lat: (b.bbox.minLat + b.bbox.maxLat) / 2,
+        lon: (b.bbox.minLon + b.bbox.maxLon) / 2,
+      };
       return this.hilbertValue(aCenter) - this.hilbertValue(bCenter);
     });
 
@@ -485,7 +512,7 @@ export class RTree {
     }
 
     // Recursively build nodes
-    const children = groups.map(group => this._bulkLoad(group, level + 1));
+    const children = groups.map((group) => this._bulkLoad(group, level + 1));
 
     if (children.length === 1) {
       return children[0];
@@ -504,8 +531,8 @@ export class RTree {
     let result = 0;
     for (let i = 0; i < 16; i++) {
       const bit = 1 << i;
-      if (Math.floor(x * (1 << 16)) & bit) result |= (1 << (i * 2));
-      if (Math.floor(y * (1 << 16)) & bit) result |= (1 << (i * 2 + 1));
+      if (Math.floor(x * (1 << 16)) & bit) result |= 1 << (i * 2);
+      if (Math.floor(y * (1 << 16)) & bit) result |= 1 << (i * 2 + 1);
     }
     return result;
   }

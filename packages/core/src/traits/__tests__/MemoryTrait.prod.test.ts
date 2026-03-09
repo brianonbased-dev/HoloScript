@@ -30,19 +30,39 @@ import { memoryHandler } from '../MemoryTrait';
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 let _nodeId = 0;
-function makeNode() { return { id: `mem_node_${++_nodeId}` }; }
-function makeCtx() { return { emit: vi.fn() }; }
-function makeConfig(o: any = {}) { return { ...memoryHandler.defaultConfig!, ...o }; }
+function makeNode() {
+  return { id: `mem_node_${++_nodeId}` };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
+function makeConfig(o: any = {}) {
+  return { ...memoryHandler.defaultConfig!, ...o };
+}
 function attach(o: any = {}) {
-  const node = makeNode(), ctx = makeCtx(), config = makeConfig(o);
+  const node = makeNode(),
+    ctx = makeCtx(),
+    config = makeConfig(o);
   memoryHandler.onAttach!(node as any, config, ctx as any);
   return { node, ctx, config };
 }
-function getState(node: any) { return (node as any).__memoryState; }
+function getState(node: any) {
+  return (node as any).__memoryState;
+}
 
-function remember(node: any, config: any, ctx: any, content: string, tags: string[] = [], importance = 0.5) {
+function remember(
+  node: any,
+  config: any,
+  ctx: any,
+  content: string,
+  tags: string[] = [],
+  importance = 0.5
+) {
   memoryHandler.onEvent!(node as any, config, ctx as any, {
-    type: 'remember', content, tags, importance,
+    type: 'remember',
+    content,
+    tags,
+    importance,
   });
 }
 
@@ -109,7 +129,8 @@ describe('memoryHandler.onDetach', () => {
     remember(node, config, ctx, 'hello');
     ctx.emit.mockClear();
     memoryHandler.onDetach!(node as any, config, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('memory_save',
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'memory_save',
       expect.objectContaining({ node, memories: expect.any(Array) })
     );
   });
@@ -133,7 +154,11 @@ describe('memoryHandler.onUpdate — decay', () => {
   });
 
   it('resets decayTimer to 0 after firing', () => {
-    const { node, ctx, config } = attach({ decay_interval: 5, decay_rate: 0, importance_threshold: 0 });
+    const { node, ctx, config } = attach({
+      decay_interval: 5,
+      decay_rate: 0,
+      importance_threshold: 0,
+    });
     remember(node, config, ctx, 'test', [], 0.9);
     memoryHandler.onUpdate!(node as any, config, ctx as any, 5);
     expect(getState(node).decayTimer).toBe(0);
@@ -149,24 +174,71 @@ describe('memoryHandler.onUpdate — decay', () => {
     // Manually add a memory with very old lastAccessed so exp(-hours*100) ≈ 0
     const state = getState(node);
     state.memories.set('mem_old', {
-      id: 'mem_old', type: 'episodic', content: 'old', tags: [],
-      importance: 0.35, timestamp: Date.now(),
-      accessCount: 0, lastAccessed: Date.now() - 999999999, // very old
-      associations: [], context: {},
+      id: 'mem_old',
+      type: 'episodic',
+      content: 'old',
+      tags: [],
+      importance: 0.35,
+      timestamp: Date.now(),
+      accessCount: 0,
+      lastAccessed: Date.now() - 999999999, // very old
+      associations: [],
+      context: {},
     });
     ctx.emit.mockClear();
     memoryHandler.onUpdate!(node as any, config, ctx as any, 1);
-    expect(ctx.emit).toHaveBeenCalledWith('memory_forgotten', expect.objectContaining({ memoryId: 'mem_old' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'memory_forgotten',
+      expect.objectContaining({ memoryId: 'mem_old' })
+    );
     expect(state.memories.has('mem_old')).toBe(false);
   });
 
   it('enforces capacity — evicts lowest importance', () => {
-    const { node, ctx, config } = attach({ decay_interval: 1, decay_rate: 0, importance_threshold: 0, capacity: 2 });
+    const { node, ctx, config } = attach({
+      decay_interval: 1,
+      decay_rate: 0,
+      importance_threshold: 0,
+      capacity: 2,
+    });
     const state = getState(node);
     // 3 memories with distinct importance
-    state.memories.set('m1', { id: 'm1', type: 'episodic', content: 'a', tags: [], importance: 0.8, timestamp: 0, accessCount: 0, lastAccessed: Date.now(), associations: [], context: {} });
-    state.memories.set('m2', { id: 'm2', type: 'episodic', content: 'b', tags: [], importance: 0.5, timestamp: 0, accessCount: 0, lastAccessed: Date.now(), associations: [], context: {} });
-    state.memories.set('m3', { id: 'm3', type: 'episodic', content: 'c', tags: [], importance: 0.1, timestamp: 0, accessCount: 0, lastAccessed: Date.now(), associations: [], context: {} });
+    state.memories.set('m1', {
+      id: 'm1',
+      type: 'episodic',
+      content: 'a',
+      tags: [],
+      importance: 0.8,
+      timestamp: 0,
+      accessCount: 0,
+      lastAccessed: Date.now(),
+      associations: [],
+      context: {},
+    });
+    state.memories.set('m2', {
+      id: 'm2',
+      type: 'episodic',
+      content: 'b',
+      tags: [],
+      importance: 0.5,
+      timestamp: 0,
+      accessCount: 0,
+      lastAccessed: Date.now(),
+      associations: [],
+      context: {},
+    });
+    state.memories.set('m3', {
+      id: 'm3',
+      type: 'episodic',
+      content: 'c',
+      tags: [],
+      importance: 0.1,
+      timestamp: 0,
+      accessCount: 0,
+      lastAccessed: Date.now(),
+      associations: [],
+      context: {},
+    });
     memoryHandler.onUpdate!(node as any, config, ctx as any, 1);
     expect(state.memories.size).toBe(2);
   });
@@ -187,8 +259,11 @@ describe("memoryHandler.onEvent 'remember'", () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     remember(node, config, ctx, 'Test content', ['tag1'], 0.7);
-    expect(ctx.emit).toHaveBeenCalledWith('memory_stored',
-      expect.objectContaining({ memory: expect.objectContaining({ content: 'Test content', importance: 0.7 }) })
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'memory_stored',
+      expect.objectContaining({
+        memory: expect.objectContaining({ content: 'Test content', importance: 0.7 }),
+      })
     );
   });
 
@@ -234,9 +309,14 @@ describe("memoryHandler.onEvent 'recall'", () => {
     remember(node, config, ctx, 'the weather is sunny', ['weather', 'sunny'], 0.8);
     ctx.emit.mockClear();
     memoryHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'recall', query: 'sunny weather', tags: ['weather'], limit: 5, queryId: 'q1',
+      type: 'recall',
+      query: 'sunny weather',
+      tags: ['weather'],
+      limit: 5,
+      queryId: 'q1',
     });
-    expect(ctx.emit).toHaveBeenCalledWith('memory_recalled',
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'memory_recalled',
       expect.objectContaining({ queryId: 'q1', results: expect.any(Array) })
     );
   });
@@ -246,7 +326,11 @@ describe("memoryHandler.onEvent 'recall'", () => {
     remember(node, config, ctx, 'the weather is sunny today', ['weather'], 0.9);
     remember(node, config, ctx, 'apples and oranges', ['fruit'], 0.5);
     memoryHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'recall', query: 'sunny weather', tags: ['weather'], limit: 5, queryId: 'q2',
+      type: 'recall',
+      query: 'sunny weather',
+      tags: ['weather'],
+      limit: 5,
+      queryId: 'q2',
     });
     const call = ctx.emit.mock.calls.find(([ev]) => ev === 'memory_recalled');
     expect(call![1].results.length).toBeGreaterThanOrEqual(1);
@@ -260,7 +344,11 @@ describe("memoryHandler.onEvent 'recall'", () => {
     const mem = Array.from(state.memories.values())[0];
     const importanceBefore = mem.importance;
     memoryHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'recall', query: 'recall me', tags: ['recall'], limit: 5, queryId: 'q3',
+      type: 'recall',
+      query: 'recall me',
+      tags: ['recall'],
+      limit: 5,
+      queryId: 'q3',
     });
     expect(mem.importance).toBeGreaterThan(importanceBefore);
   });
@@ -271,7 +359,11 @@ describe("memoryHandler.onEvent 'recall'", () => {
     const state = getState(node);
     const mem = Array.from(state.memories.values())[0];
     memoryHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'recall', query: 'access me', tags: ['test'], limit: 5, queryId: 'q4',
+      type: 'recall',
+      query: 'access me',
+      tags: ['test'],
+      limit: 5,
+      queryId: 'q4',
     });
     expect(mem.accessCount).toBe(1);
   });
@@ -282,7 +374,11 @@ describe("memoryHandler.onEvent 'recall'", () => {
       remember(node, config, ctx, `shared word content item ${i}`, ['common'], 0.5);
     }
     memoryHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'recall', query: 'shared word', tags: ['common'], limit: 3, queryId: 'q5',
+      type: 'recall',
+      query: 'shared word',
+      tags: ['common'],
+      limit: 3,
+      queryId: 'q5',
     });
     const call = ctx.emit.mock.calls.find(([ev]) => ev === 'memory_recalled');
     expect(call![1].results.length).toBeLessThanOrEqual(3);
@@ -299,7 +395,10 @@ describe("memoryHandler.onEvent 'forget'", () => {
     ctx.emit.mockClear();
     memoryHandler.onEvent!(node as any, config, ctx as any, { type: 'forget', memoryId: id });
     expect(state.memories.has(id)).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('memory_forgotten', expect.objectContaining({ memoryId: id }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'memory_forgotten',
+      expect.objectContaining({ memoryId: id })
+    );
   });
 
   it('removes from workingMemory on forget', () => {
@@ -313,7 +412,12 @@ describe("memoryHandler.onEvent 'forget'", () => {
 
   it('no-op for unknown memoryId', () => {
     const { node, ctx, config } = attach();
-    expect(() => memoryHandler.onEvent!(node as any, config, ctx as any, { type: 'forget', memoryId: 'unknown' })).not.toThrow();
+    expect(() =>
+      memoryHandler.onEvent!(node as any, config, ctx as any, {
+        type: 'forget',
+        memoryId: 'unknown',
+      })
+    ).not.toThrow();
   });
 });
 
@@ -326,10 +430,17 @@ describe("memoryHandler.onEvent 'associate'", () => {
     const state = getState(node);
     const [idA, idB] = Array.from(state.memories.keys());
     ctx.emit.mockClear();
-    memoryHandler.onEvent!(node as any, config, ctx as any, { type: 'associate', sourceId: idA, targetId: idB });
+    memoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'associate',
+      sourceId: idA,
+      targetId: idB,
+    });
     expect(state.memories.get(idA)!.associations).toContain(idB);
     expect(state.memories.get(idB)!.associations).toContain(idA);
-    expect(ctx.emit).toHaveBeenCalledWith('memories_associated', expect.objectContaining({ sourceId: idA, targetId: idB }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'memories_associated',
+      expect.objectContaining({ sourceId: idA, targetId: idB })
+    );
   });
 
   it('does not duplicate associations on repeated associate', () => {
@@ -338,14 +449,28 @@ describe("memoryHandler.onEvent 'associate'", () => {
     remember(node, config, ctx, 'B');
     const state = getState(node);
     const [idA, idB] = Array.from(state.memories.keys());
-    memoryHandler.onEvent!(node as any, config, ctx as any, { type: 'associate', sourceId: idA, targetId: idB });
-    memoryHandler.onEvent!(node as any, config, ctx as any, { type: 'associate', sourceId: idA, targetId: idB });
+    memoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'associate',
+      sourceId: idA,
+      targetId: idB,
+    });
+    memoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'associate',
+      sourceId: idA,
+      targetId: idB,
+    });
     expect(state.memories.get(idA)!.associations.filter((x: string) => x === idB).length).toBe(1);
   });
 
   it('no-op when either memory does not exist', () => {
     const { node, ctx, config } = attach();
-    expect(() => memoryHandler.onEvent!(node as any, config, ctx as any, { type: 'associate', sourceId: 'x', targetId: 'y' })).not.toThrow();
+    expect(() =>
+      memoryHandler.onEvent!(node as any, config, ctx as any, {
+        type: 'associate',
+        sourceId: 'x',
+        targetId: 'y',
+      })
+    ).not.toThrow();
   });
 });
 
@@ -356,8 +481,12 @@ describe("memoryHandler.onEvent 'get_working_memory'", () => {
     remember(node, config, ctx, 'mem1');
     remember(node, config, ctx, 'mem2');
     ctx.emit.mockClear();
-    memoryHandler.onEvent!(node as any, config, ctx as any, { type: 'get_working_memory', queryId: 'wm1' });
-    expect(ctx.emit).toHaveBeenCalledWith('working_memory_result',
+    memoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'get_working_memory',
+      queryId: 'wm1',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'working_memory_result',
       expect.objectContaining({ queryId: 'wm1', memories: expect.any(Array) })
     );
     const call = ctx.emit.mock.calls.find(([ev]) => ev === 'working_memory_result');
@@ -370,9 +499,23 @@ describe("memoryHandler.onEvent 'memory_load_response'", () => {
   it('restores memories from persisted array', () => {
     const { node, ctx, config } = attach();
     const loaded = [
-      { id: 'mem_10', type: 'episodic', content: 'restored', tags: [], importance: 0.6, timestamp: Date.now(), accessCount: 0, lastAccessed: Date.now(), associations: [], context: {} },
+      {
+        id: 'mem_10',
+        type: 'episodic',
+        content: 'restored',
+        tags: [],
+        importance: 0.6,
+        timestamp: Date.now(),
+        accessCount: 0,
+        lastAccessed: Date.now(),
+        associations: [],
+        context: {},
+      },
     ];
-    memoryHandler.onEvent!(node as any, config, ctx as any, { type: 'memory_load_response', memories: loaded });
+    memoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'memory_load_response',
+      memories: loaded,
+    });
     const state = getState(node);
     expect(state.memories.has('mem_10')).toBe(true);
   });
@@ -380,9 +523,23 @@ describe("memoryHandler.onEvent 'memory_load_response'", () => {
   it('updates nextId to avoid collision', () => {
     const { node, ctx, config } = attach();
     const loaded = [
-      { id: 'mem_50', type: 'episodic', content: 'hi', tags: [], importance: 0.5, timestamp: 0, accessCount: 0, lastAccessed: 0, associations: [], context: {} },
+      {
+        id: 'mem_50',
+        type: 'episodic',
+        content: 'hi',
+        tags: [],
+        importance: 0.5,
+        timestamp: 0,
+        accessCount: 0,
+        lastAccessed: 0,
+        associations: [],
+        context: {},
+      },
     ];
-    memoryHandler.onEvent!(node as any, config, ctx as any, { type: 'memory_load_response', memories: loaded });
+    memoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'memory_load_response',
+      memories: loaded,
+    });
     const state = getState(node);
     expect(state.nextId).toBeGreaterThanOrEqual(51);
   });

@@ -9,6 +9,7 @@
 ## Overview
 
 AI agents can now **fully control HoloScript browser preview programmatically**. This enables:
+
 - Automated scene validation
 - Visual regression testing
 - Performance monitoring
@@ -26,6 +27,7 @@ AI agents can now **fully control HoloScript browser preview programmatically**.
 Launch HoloScript file in browser preview with AI control.
 
 **Input**:
+
 ```json
 {
   "holoscriptFile": "scenes/test.hs",
@@ -36,6 +38,7 @@ Launch HoloScript file in browser preview with AI control.
 ```
 
 **Output**:
+
 ```json
 {
   "success": true,
@@ -46,6 +49,7 @@ Launch HoloScript file in browser preview with AI control.
 ```
 
 **Example Usage** (in chat with AI):
+
 ```
 You: "Launch scenes/vr-room.hs in browser"
 
@@ -61,6 +65,7 @@ AI: "Browser launched with session ID: holoscript-xxx.
 Execute JavaScript in browser to inspect or validate scenes.
 
 **Input**:
+
 ```json
 {
   "sessionId": "holoscript-1739843234567-1",
@@ -70,6 +75,7 @@ Execute JavaScript in browser to inspect or validate scenes.
 ```
 
 **Output**:
+
 ```json
 {
   "success": true,
@@ -79,6 +85,7 @@ Execute JavaScript in browser to inspect or validate scenes.
 ```
 
 **Example Usage**:
+
 ```
 You: "Check if the crystal object has @glowing trait"
 
@@ -94,6 +101,7 @@ AI: "Verified: The 'Crystal' object has @glowing trait applied.
 Take screenshot of HoloScript preview for visual validation.
 
 **Input**:
+
 ```json
 {
   "sessionId": "holoscript-1739843234567-1",
@@ -105,6 +113,7 @@ Take screenshot of HoloScript preview for visual validation.
 ```
 
 **Output**:
+
 ```json
 {
   "success": true,
@@ -116,6 +125,7 @@ Take screenshot of HoloScript preview for visual validation.
 ```
 
 **Example Usage**:
+
 ```
 You: "Take a screenshot of the current scene"
 
@@ -242,7 +252,7 @@ scene.traverse((obj) => {
       name: obj.name,
       traits: traits,
       hasPhysics: traits.includes('physics'),
-      hasCollision: traits.includes('collidable')
+      hasCollision: traits.includes('collidable'),
     });
   }
 });
@@ -259,7 +269,7 @@ return {
   frameTime: window.holoscriptRenderer.stats.frameTime,
   drawCalls: window.holoscriptRenderer.renderer.info.render.calls,
   triangles: window.holoscriptRenderer.renderer.info.render.triangles,
-  meetsVRStandard: window.holoscriptRenderer.stats.fps >= 60
+  meetsVRStandard: window.holoscriptRenderer.stats.fps >= 60,
 };
 ```
 
@@ -276,7 +286,7 @@ return {
   emissive: mat.emissive.getHexString(),
   emissiveIntensity: mat.emissiveIntensity,
   transparent: mat.transparent,
-  opacity: mat.opacity
+  opacity: mat.opacity,
 };
 ```
 
@@ -294,12 +304,14 @@ pnpm test
 ### Manual Testing
 
 1. Start MCP server:
+
    ```bash
    cd packages/mcp-server
    pnpm dev
    ```
 
 2. Use MCP client (Claude Code, Cursor) to call tools:
+
    ```
    "Launch examples/basic-scene.hs in browser"
    ```
@@ -315,6 +327,7 @@ pnpm test
 **Symptom**: `browser_launch` fails with timeout
 
 **Fix**:
+
 ```bash
 # Install Playwright browsers
 cd packages/mcp-server
@@ -334,9 +347,10 @@ npx playwright install chromium
 **Symptom**: Browser opens but scene doesn't render
 
 **Fix**: Check browser console:
+
 ```javascript
 // In browser_execute
-script: "return window.holoscriptRenderer?.errors || []"
+script: 'return window.holoscriptRenderer?.errors || []';
 ```
 
 ---
@@ -380,6 +394,7 @@ Full research available at:
 `C:/Users/josep/Documents/GitHub/AI_Workspace/uAA2++_Protocol/RESEARCH_COMPLETE_2026-02-13_IDE_BROWSER_CONTROL.md`
 
 **Key Findings**:
+
 - MCP + Playwright is industry standard (2026)
 - 93% token reduction using accessibility tree approach
 - WebXR testing viable without physical headsets
@@ -394,4 +409,4 @@ Full research available at:
 
 ---
 
-*Questions? Issues? Open a GitHub issue or ask in Discord.*
+_Questions? Issues? Open a GitHub issue or ask in Discord._

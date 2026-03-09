@@ -23,15 +23,22 @@ export class LocalRegistry {
 
   publish(options: PublishOptions): PackageManifest {
     const { name, version, description, author, tags, content } = options;
-    const checksum = createHash("sha256").update(content).digest("hex");
+    const checksum = createHash('sha256').update(content).digest('hex');
     const publishedAt = new Date().toISOString();
-    const newVersion: PackageVersion = { version, description, author, tags, publishedAt, checksum };
+    const newVersion: PackageVersion = {
+      version,
+      description,
+      author,
+      tags,
+      publishedAt,
+      checksum,
+    };
 
     const existing = this.packages.get(name);
     if (existing) {
       const versionExists = existing.versions.some((v) => v.version === version);
       if (versionExists) {
-        throw new Error("Version " + version + " of package " + name + " already exists");
+        throw new Error('Version ' + version + ' of package ' + name + ' already exists');
       }
       existing.versions.push(newVersion);
       existing.latest = version;
@@ -42,7 +49,9 @@ export class LocalRegistry {
     }
 
     const manifest: PackageManifest = {
-      name, description, author,
+      name,
+      description,
+      author,
       versions: [newVersion],
       latest: version,
       downloads: 0,
@@ -65,7 +74,13 @@ export class LocalRegistry {
     const results: SearchResult[] = [];
     for (const pkg of this.packages.values()) {
       if (tag && !pkg.tags?.includes(tag)) continue;
-      results.push({ name: pkg.name, description: pkg.description, latest: pkg.latest, downloads: pkg.downloads, tags: pkg.tags });
+      results.push({
+        name: pkg.name,
+        description: pkg.description,
+        latest: pkg.latest,
+        downloads: pkg.downloads,
+        tags: pkg.tags,
+      });
     }
     return results;
   }
@@ -79,7 +94,13 @@ export class LocalRegistry {
         pkg.description?.toLowerCase().includes(lower) ||
         pkg.tags?.some((t) => t.toLowerCase().includes(lower));
       if (matches) {
-        results.push({ name: pkg.name, description: pkg.description, latest: pkg.latest, downloads: pkg.downloads, tags: pkg.tags });
+        results.push({
+          name: pkg.name,
+          description: pkg.description,
+          latest: pkg.latest,
+          downloads: pkg.downloads,
+          tags: pkg.tags,
+        });
       }
     }
     return results;

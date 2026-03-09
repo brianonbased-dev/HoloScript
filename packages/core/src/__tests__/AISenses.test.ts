@@ -17,24 +17,52 @@ describe('Cycle 148: AI Senses', () => {
     ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 });
 
     // Stimulus in front (Z+) — should be seen
-    ps.addStimulus({ id: 's1', type: 'sight', sourceId: 'player', position: { x: 0, y: 0, z: 10 }, intensity: 1, timestamp: 0 });
+    ps.addStimulus({
+      id: 's1',
+      type: 'sight',
+      sourceId: 'player',
+      position: { x: 0, y: 0, z: 10 },
+      intensity: 1,
+      timestamp: 0,
+    });
     // Stimulus behind — should NOT be seen (90° FOV)
-    ps.addStimulus({ id: 's2', type: 'sight', sourceId: 'player2', position: { x: 0, y: 0, z: -10 }, intensity: 1, timestamp: 0 });
+    ps.addStimulus({
+      id: 's2',
+      type: 'sight',
+      sourceId: 'player2',
+      position: { x: 0, y: 0, z: -10 },
+      intensity: 1,
+      timestamp: 0,
+    });
     // Stimulus far away — heard omnidirectionally
-    ps.addStimulus({ id: 's3', type: 'hearing', sourceId: 'noise', position: { x: 25, y: 0, z: 0 }, intensity: 1, timestamp: 0 });
+    ps.addStimulus({
+      id: 's3',
+      type: 'hearing',
+      sourceId: 'noise',
+      position: { x: 25, y: 0, z: 0 },
+      intensity: 1,
+      timestamp: 0,
+    });
 
     ps.update(0);
 
     const perceived = ps.getPerceivedStimuli('guard');
-    expect(perceived.some(s => s.id === 's1')).toBe(true);  // Seen
-    expect(perceived.some(s => s.id === 's2')).toBe(false); // Behind
-    expect(perceived.some(s => s.id === 's3')).toBe(true);  // Heard
+    expect(perceived.some((s) => s.id === 's1')).toBe(true); // Seen
+    expect(perceived.some((s) => s.id === 's2')).toBe(false); // Behind
+    expect(perceived.some((s) => s.id === 's3')).toBe(true); // Heard
   });
 
   it('should expire memories after duration', () => {
     const ps = new PerceptionSystem();
     ps.registerEntity('e1', [{ type: 'hearing', range: 50, fov: 360, sensitivity: 1 }], 5);
-    ps.addStimulus({ id: 'sound', type: 'hearing', sourceId: 'x', position: { x: 1, y: 0, z: 0 }, intensity: 1, timestamp: 0 });
+    ps.addStimulus({
+      id: 'sound',
+      type: 'hearing',
+      sourceId: 'x',
+      position: { x: 1, y: 0, z: 0 },
+      intensity: 1,
+      timestamp: 0,
+    });
 
     ps.update(0);
     expect(ps.isAwareOf('e1', 'sound')).toBe(true);
@@ -50,8 +78,11 @@ describe('Cycle 148: AI Senses', () => {
 
   it('should seek toward and flee from targets', () => {
     const agent: SteeringAgent = {
-      position: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 },
-      maxSpeed: 5, maxForce: 3, mass: 1,
+      position: { x: 0, y: 0, z: 0 },
+      velocity: { x: 0, y: 0, z: 0 },
+      maxSpeed: 5,
+      maxForce: 3,
+      mass: 1,
     };
 
     const seekForce = SteeringBehaviors.seek(agent, { x: 10, y: 0, z: 0 });
@@ -63,8 +94,11 @@ describe('Cycle 148: AI Senses', () => {
 
   it('should arrive and slow down near target', () => {
     const agent: SteeringAgent = {
-      position: { x: 0, y: 0, z: 0 }, velocity: { x: 2, y: 0, z: 0 },
-      maxSpeed: 5, maxForce: 3, mass: 1,
+      position: { x: 0, y: 0, z: 0 },
+      velocity: { x: 2, y: 0, z: 0 },
+      maxSpeed: 5,
+      maxForce: 3,
+      mass: 1,
     };
 
     const farForce = SteeringBehaviors.arrive(agent, { x: 100, y: 0, z: 0 }, 10);
@@ -76,12 +110,18 @@ describe('Cycle 148: AI Senses', () => {
 
   it('should produce flock forces for a group', () => {
     const agents: SteeringAgent[] = Array.from({ length: 5 }, (_, i) => ({
-      position: { x: i * 2, y: 0, z: 0 }, velocity: { x: 1, y: 0, z: 0 },
-      maxSpeed: 5, maxForce: 3, mass: 1,
+      position: { x: i * 2, y: 0, z: 0 },
+      velocity: { x: 1, y: 0, z: 0 },
+      maxSpeed: 5,
+      maxForce: 3,
+      mass: 1,
     }));
 
     const force = SteeringBehaviors.flock(agents[2], agents, {
-      separationWeight: 1.5, alignmentWeight: 1, cohesionWeight: 1, neighborRadius: 10,
+      separationWeight: 1.5,
+      alignmentWeight: 1,
+      cohesionWeight: 1,
+      neighborRadius: 10,
     });
 
     // Flock force should be non-zero since there are neighbors
@@ -95,8 +135,12 @@ describe('Cycle 148: AI Senses', () => {
 
   it('should stamp and propagate influence', () => {
     const im = new InfluenceMap({
-      width: 20, height: 20, cellSize: 1,
-      decayRate: 0.1, propagationRate: 0.3, maxValue: 100,
+      width: 20,
+      height: 20,
+      cellSize: 1,
+      decayRate: 0.1,
+      propagationRate: 0.3,
+      maxValue: 100,
     });
     im.addLayer('danger');
     im.stampRadius('danger', 10, 10, 3, 50);
@@ -115,8 +159,12 @@ describe('Cycle 148: AI Senses', () => {
 
   it('should find the max-value cell', () => {
     const im = new InfluenceMap({
-      width: 10, height: 10, cellSize: 1,
-      decayRate: 0, propagationRate: 0, maxValue: 100,
+      width: 10,
+      height: 10,
+      cellSize: 1,
+      decayRate: 0,
+      propagationRate: 0,
+      maxValue: 100,
     });
     im.addLayer('heat');
     im.setInfluence('heat', 7, 3, 42);

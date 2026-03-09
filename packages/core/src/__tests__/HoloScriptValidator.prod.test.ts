@@ -28,7 +28,7 @@ describe('HoloScriptValidator — Production', () => {
   it('valid directive produces no error', () => {
     const code = `@trait\nworld main {\n}\n`;
     const errors = validator.validate(code);
-    expect(errors.filter(e => e.severity === 'error').length).toBe(0);
+    expect(errors.filter((e) => e.severity === 'error').length).toBe(0);
   });
 
   // ─── Syntax Errors ─────────────────────────────────────────────────
@@ -45,19 +45,27 @@ describe('HoloScriptValidator — Production', () => {
   it('unknown directive produces warning', () => {
     const code = `@foobar\nworld main {\n}\n`;
     const errors = validator.validate(code);
-    const warnings = errors.filter(e => e.severity === 'warning');
+    const warnings = errors.filter((e) => e.severity === 'warning');
     expect(warnings.length).toBeGreaterThanOrEqual(1);
     expect(warnings[0].message).toContain('foobar');
   });
 
   it('known directives do not produce warnings', () => {
-    const knownDirectives = ['trait', 'state', 'on_enter', 'on_exit', 'on_mount', 'on_tick', 'on_create', 'bot_config', 'lifecycle'];
+    const knownDirectives = [
+      'trait',
+      'state',
+      'on_enter',
+      'on_exit',
+      'on_mount',
+      'on_tick',
+      'on_create',
+      'bot_config',
+      'lifecycle',
+    ];
     for (const dir of knownDirectives) {
       const code = `@${dir}\nworld main {\n}\n`;
       const errors = validator.validate(code);
-      const dirWarnings = errors.filter(
-        e => e.severity === 'warning' && e.message.includes(dir)
-      );
+      const dirWarnings = errors.filter((e) => e.severity === 'warning' && e.message.includes(dir));
       expect(dirWarnings.length).toBe(0);
     }
   });
@@ -86,14 +94,14 @@ world testWorld {
 }
 `.trim();
     const errors = validator.validate(code);
-    const criticalErrors = errors.filter(e => e.severity === 'error');
+    const criticalErrors = errors.filter((e) => e.severity === 'error');
     expect(criticalErrors.length).toBe(0);
   });
 
   it('multiple unknown directives produce multiple warnings', () => {
     const code = `@foo\n@bar\nworld main {\n}\n`;
     const errors = validator.validate(code);
-    const warnings = errors.filter(e => e.severity === 'warning');
+    const warnings = errors.filter((e) => e.severity === 'warning');
     expect(warnings.length).toBe(2);
   });
 });

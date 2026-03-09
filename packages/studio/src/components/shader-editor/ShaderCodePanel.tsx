@@ -81,9 +81,7 @@ export function ShaderCodePanel() {
                 {compiled.errors.length} error(s)
               </span>
             ) : (
-              <span className="text-green-500">
-                Compiled in {lastCompileTime.toFixed(1)}ms
-              </span>
+              <span className="text-green-500">Compiled in {lastCompileTime.toFixed(1)}ms</span>
             )}
           </div>
 

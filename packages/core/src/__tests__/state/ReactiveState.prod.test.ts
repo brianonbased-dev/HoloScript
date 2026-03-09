@@ -32,14 +32,17 @@ interface PlayerState extends StateDeclaration {
 
 function makeState(init: Partial<PlayerState> = {}): ReactiveState<PlayerState> {
   return new ReactiveState<PlayerState>({
-    x: 0, y: 0, name: 'player', health: 100, ...init,
+    x: 0,
+    y: 0,
+    name: 'player',
+    health: 100,
+    ...init,
   } as PlayerState);
 }
 
 // ── get / set / has ───────────────────────────────────────────────────────────
 
 describe('ReactiveState — get / set / has', () => {
-
   it('get returns initial value', () => {
     const s = makeState({ x: 5 });
     expect(s.get('x')).toBe(5);
@@ -73,7 +76,6 @@ describe('ReactiveState — get / set / has', () => {
 // ── subscribe ─────────────────────────────────────────────────────────────────
 
 describe('ReactiveState — subscribe', () => {
-
   it('subscribe callback is called on set', () => {
     const s = makeState({ x: 0 });
     const cb = vi.fn();
@@ -93,8 +95,10 @@ describe('ReactiveState — subscribe', () => {
 
   it('multiple subscribers all receive notifications', () => {
     const s = makeState({ x: 0 });
-    const cb1 = vi.fn(); const cb2 = vi.fn();
-    s.subscribe(cb1); s.subscribe(cb2);
+    const cb1 = vi.fn();
+    const cb2 = vi.fn();
+    s.subscribe(cb1);
+    s.subscribe(cb2);
     s.set('x', 1);
     expect(cb1).toHaveBeenCalled();
     expect(cb2).toHaveBeenCalled();
@@ -103,7 +107,9 @@ describe('ReactiveState — subscribe', () => {
   it('changedKey matches the key that was set', () => {
     const s = makeState({});
     const keys: (keyof PlayerState)[] = [];
-    s.subscribe((_state, k) => { if (k) keys.push(k); });
+    s.subscribe((_state, k) => {
+      if (k) keys.push(k);
+    });
     s.set('name', 'Bob' as any);
     expect(keys).toContain('name');
   });
@@ -112,7 +118,6 @@ describe('ReactiveState — subscribe', () => {
 // ── update ────────────────────────────────────────────────────────────────────
 
 describe('ReactiveState — update', () => {
-
   it('update applies multiple keys', () => {
     const s = makeState({ x: 0, y: 0 });
     s.update({ x: 3, y: 7 } as Partial<PlayerState>);
@@ -123,7 +128,9 @@ describe('ReactiveState — update', () => {
   it('update notifies for each changed key', () => {
     const s = makeState({ x: 0, y: 0 });
     const keys: (keyof PlayerState)[] = [];
-    s.subscribe((_state, k) => { if (k) keys.push(k); });
+    s.subscribe((_state, k) => {
+      if (k) keys.push(k);
+    });
     s.update({ x: 1, y: 2 } as Partial<PlayerState>);
     expect(keys).toContain('x');
     expect(keys).toContain('y');
@@ -133,7 +140,6 @@ describe('ReactiveState — update', () => {
 // ── computed ──────────────────────────────────────────────────────────────────
 
 describe('ReactiveState — computed', () => {
-
   it('computed returns getter result', () => {
     const s = makeState({ x: 3, y: 4 });
     const dist = s.computed('dist', () => Math.sqrt(9 + 16));
@@ -153,7 +159,6 @@ describe('ReactiveState — computed', () => {
 // ── watch ─────────────────────────────────────────────────────────────────────
 
 describe('ReactiveState — watch', () => {
-
   it('watch calls handler when key changes', () => {
     const s = makeState({ health: 100 });
     const handler = vi.fn();
@@ -182,7 +187,6 @@ describe('ReactiveState — watch', () => {
 // ── undo / redo ───────────────────────────────────────────────────────────────
 
 describe('ReactiveState — undo / redo', () => {
-
   it('undo reverts the last set', () => {
     const s = makeState({ x: 0 });
     s.set('x', 10);
@@ -211,7 +215,6 @@ describe('ReactiveState — undo / redo', () => {
 // ── getSnapshot / reset ───────────────────────────────────────────────────────
 
 describe('ReactiveState — getSnapshot / reset', () => {
-
   it('getSnapshot returns a shallow copy of current state', () => {
     const s = makeState({ x: 5, y: 10 });
     const snap = s.getSnapshot();
@@ -245,7 +248,6 @@ describe('ReactiveState — getSnapshot / reset', () => {
 // ── destroy ───────────────────────────────────────────────────────────────────
 
 describe('ReactiveState — destroy', () => {
-
   it('destroy clears subscribers — no further notifications', () => {
     const s = makeState({ x: 0 });
     const cb = vi.fn();
@@ -259,7 +261,6 @@ describe('ReactiveState — destroy', () => {
 // ── reactive() factory ────────────────────────────────────────────────────────
 
 describe('reactive()', () => {
-
   it('mutations on proxy are reflected', () => {
     const obj = reactive({ a: 1 });
     obj.a = 99;
@@ -275,7 +276,9 @@ describe('reactive()', () => {
 
   it('onMutation receives old and new values', () => {
     const mutations: any[] = [];
-    const obj = reactive({ n: 5 }, (_t, _k, val, old) => { mutations.push({ val, old }); });
+    const obj = reactive({ n: 5 }, (_t, _k, val, old) => {
+      mutations.push({ val, old });
+    });
     obj.n = 10;
     expect(mutations[0].old).toBe(5);
     expect(mutations[0].val).toBe(10);
@@ -285,7 +288,6 @@ describe('reactive()', () => {
 // ── ref() ──────────────────────────────────────────────────────────────────────
 
 describe('ref()', () => {
-
   it('ref wraps primitive in .value', () => {
     const r = ref(42);
     expect(r.value).toBe(42);
@@ -301,7 +303,6 @@ describe('ref()', () => {
 // ── computed() factory ────────────────────────────────────────────────────────
 
 describe('computed()', () => {
-
   it('computed value is derived from getter', () => {
     const c = computed(() => 2 + 2);
     expect(c.value).toBe(4);
@@ -310,7 +311,9 @@ describe('computed()', () => {
   it('computed caches result on subsequent access', () => {
     const getter = vi.fn(() => 42);
     const c = computed(getter);
-    c.value; c.value; c.value;
+    c.value;
+    c.value;
+    c.value;
     // Should only compute once (dirty is false after first evaluation)
     expect(getter).toHaveBeenCalledTimes(1);
   });
@@ -319,7 +322,6 @@ describe('computed()', () => {
 // ── createState() / bind() ────────────────────────────────────────────────────
 
 describe('createState / bind', () => {
-
   it('createState creates a ReactiveState instance', () => {
     const s = createState<PlayerState>({ x: 1, y: 2, name: 'p', health: 100 });
     expect(s).toBeInstanceOf(ReactiveState);
@@ -351,7 +353,6 @@ describe('createState / bind', () => {
 // ── ExpressionEvaluator ───────────────────────────────────────────────────────
 
 describe('ExpressionEvaluator', () => {
-
   it('evaluates simple arithmetic', () => {
     const ev = new ExpressionEvaluator();
     expect(ev.evaluate('2 + 2')).toBe(4);

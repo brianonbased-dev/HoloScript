@@ -34,5 +34,4 @@ export const ANALYTICS_OBSERVABILITY_TRAITS = [
   'metrics_aggregator',
 ] as const;
 
-export type AnalyticsObservabilityTraitName =
-  (typeof ANALYTICS_OBSERVABILITY_TRAITS)[number];
+export type AnalyticsObservabilityTraitName = (typeof ANALYTICS_OBSERVABILITY_TRAITS)[number];

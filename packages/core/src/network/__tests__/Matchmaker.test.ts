@@ -8,7 +8,12 @@ describe('Matchmaker', () => {
   let mm: Matchmaker;
 
   beforeEach(() => {
-    mm = new Matchmaker({ minPlayers: 2, maxPlayers: 4, ratingWindow: 200, regions: ['us-east', 'eu-west'] });
+    mm = new Matchmaker({
+      minPlayers: 2,
+      maxPlayers: 4,
+      ratingWindow: 200,
+      regions: ['us-east', 'eu-west'],
+    });
   });
 
   describe('queue', () => {

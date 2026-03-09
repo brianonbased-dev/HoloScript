@@ -17,9 +17,9 @@ export type RayTracingMode = 'hardware' | 'software_bvh' | 'hybrid';
 
 export interface RTReflectionsConfig {
   enabled: boolean;
-  maxBounces: number;           // 1–8
+  maxBounces: number; // 1–8
   samplesPerPixel: number;
-  maxRoughness: number;         // Skip RT above this roughness
+  maxRoughness: number; // Skip RT above this roughness
   fallbackToSSR?: boolean;
 }
 
@@ -103,13 +103,18 @@ export const RayTracingTrait: TraitHandler<RayTracingConfig> = {
 
   compile(config: RayTracingConfig, target: string): string {
     switch (target) {
-      case 'unity': return this.compileUnity(config);
-      case 'unreal': return this.compileUnreal(config);
+      case 'unity':
+        return this.compileUnity(config);
+      case 'unreal':
+        return this.compileUnreal(config);
       case 'web':
       case 'react-three-fiber':
-      case 'babylon': return this.compileWeb(config);
-      case 'webgpu': return this.compileWebGPU(config);
-      default: return this.compileGeneric(config);
+      case 'babylon':
+        return this.compileWeb(config);
+      case 'webgpu':
+        return this.compileWebGPU(config);
+      default:
+        return this.compileGeneric(config);
     }
   },
 
@@ -127,7 +132,9 @@ public class RayTracingSetup : MonoBehaviour {
         var profile = volume.sharedProfile;
 
         // Require HDRP Ray Tracing enabled in Project Settings > HDRP Global Settings
-        ${config.reflections?.enabled ? `
+        ${
+          config.reflections?.enabled
+            ? `
         if (profile.TryGet<ScreenSpaceReflection>(out var ssr)) {
             ssr.active = true;
             ssr.enabled.Override(true);
@@ -135,40 +142,58 @@ public class RayTracingSetup : MonoBehaviour {
             ssr.bounceCount.Override(${config.reflections.maxBounces});
             ssr.sampleCount.Override(${config.reflections.samplesPerPixel});
             ssr.minSmoothness.Override(${1 - config.reflections.maxRoughness});
-        }` : ''}
+        }`
+            : ''
+        }
 
-        ${config.shadows?.enabled ? `
+        ${
+          config.shadows?.enabled
+            ? `
         if (profile.TryGet<HDShadowSettings>(out var shadowSettings)) {
             shadowSettings.maxShadowDistance.Override(150.0f);
         }
         // Enable ray-traced shadows per light via HDAdditionalLightData.useRayTracedShadows
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.ao?.enabled ? `
+        ${
+          config.ao?.enabled
+            ? `
         if (profile.TryGet<ScreenSpaceAmbientOcclusion>(out var ssao)) {
             ssao.active = true;
             ssao.rayTracing.Override(true);
             ssao.radius.Override(${config.ao.radius}f);
             ssao.sampleCount.Override(${config.ao.samplesPerPixel});
-        }` : ''}
+        }`
+            : ''
+        }
 
-        ${config.gi?.enabled ? `
+        ${
+          config.gi?.enabled
+            ? `
         if (profile.TryGet<GlobalIllumination>(out var gi)) {
             gi.active = true;
             gi.tracing.Override(RayCastingMode.RayTracing);
             gi.sampleCount.Override(${config.gi.samplesPerPixel});
             gi.bounceCount.Override(${config.gi.maxBounces});
             ${config.gi.denoise ? 'gi.denoise.Override(true);' : ''}
-        }` : ''}
+        }`
+            : ''
+        }
 
-        ${config.pathTracer?.enabled ? `
+        ${
+          config.pathTracer?.enabled
+            ? `
         if (profile.TryGet<PathTracing>(out var pt)) {
             pt.active = true;
             pt.enable.Override(true);
             pt.maximumSamples.Override(${config.pathTracer.samplesPerPixel});
             pt.maximumDepth.Override(${config.pathTracer.maxBounces});
             pt.russianRouletteStartDepth.Override(${config.pathTracer.russianRouletteDepth ?? 4});
-        }` : ''}
+        }`
+            : ''
+        }
     }
 }
 `;
@@ -180,7 +205,9 @@ public class RayTracingSetup : MonoBehaviour {
 // Enable: Project Settings > Rendering > Ray Tracing: true
 
 FPostProcessSettings PPSettings;
-${config.reflections?.enabled ? `
+${
+  config.reflections?.enabled
+    ? `
 // RT Reflections
 PPSettings.bOverride_ReflectionMethod = true;
 PPSettings.ReflectionMethod = EReflectionMethod::RayTraced;
@@ -190,17 +217,25 @@ PPSettings.bOverride_RayTracingReflectionsSamplesPerPixel = true;
 PPSettings.RayTracingReflectionsSamplesPerPixel = ${config.reflections.samplesPerPixel};
 PPSettings.bOverride_RayTracingReflectionsMaxRoughness = true;
 PPSettings.RayTracingReflectionsMaxRoughness = ${config.reflections.maxRoughness}f;
-` : ''}
+`
+    : ''
+}
 
-${config.shadows?.enabled ? `
+${
+  config.shadows?.enabled
+    ? `
 // RT Shadows
 PPSettings.bOverride_RayTracingShadowsMaxBounces = true;
 PPSettings.RayTracingShadowsMaxBounces = 1;
 PPSettings.bOverride_RayTracingShadowsSamplesPerPixel = true;
 PPSettings.RayTracingShadowsSamplesPerPixel = ${config.shadows.samplesPerLight};
-` : ''}
+`
+    : ''
+}
 
-${config.ao?.enabled ? `
+${
+  config.ao?.enabled
+    ? `
 // RT Ambient Occlusion
 PPSettings.bOverride_RayTracingAO = true;
 PPSettings.RayTracingAO = true;
@@ -208,14 +243,20 @@ PPSettings.bOverride_RayTracingAORadius = true;
 PPSettings.RayTracingAORadius = ${config.ao.radius}f;
 PPSettings.bOverride_RayTracingAOSamplesPerPixel = true;
 PPSettings.RayTracingAOSamplesPerPixel = ${config.ao.samplesPerPixel};
-` : ''}
+`
+    : ''
+}
 
-${config.pathTracer?.enabled ? `
+${
+  config.pathTracer?.enabled
+    ? `
 // Path Tracer
 r.PathTracing.Enable=1
 r.PathTracing.MaxSamples=${config.pathTracer.samplesPerPixel}
 r.PathTracing.MaxBounces=${config.pathTracer.maxBounces}
-` : ''}
+`
+    : ''
+}
 `;
   },
 
@@ -224,11 +265,14 @@ r.PathTracing.MaxBounces=${config.pathTracer.maxBounces}
 // Three.js — WebGPU Path Tracer (DPR / @three/webgpu)
 // Hardware RT is not available in browsers; software BVH path tracing via CPU or WebGPU compute
 
-${config.mode === 'hardware' ? `
+${
+  config.mode === 'hardware'
+    ? `
 // Note: Hardware RT is not available in WebGL/WebGPU browsers.
 // Falling back to screen-space approximations.
 console.warn('Hardware ray tracing not supported in web target. Using SSR/SSAO fallbacks.');
-` : `
+`
+    : `
 // Software BVH Path Tracer
 import { WebGLPathTracer } from 'three-gpu-pathtracer';
 
@@ -243,7 +287,8 @@ function animate() {
     renderer.render(scene, camera);
 }
 animate();
-`}
+`
+}
 `;
   },
 

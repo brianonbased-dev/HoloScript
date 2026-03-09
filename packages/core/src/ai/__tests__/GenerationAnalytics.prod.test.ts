@@ -6,7 +6,11 @@
  * time series, export, report generation, clear.
  */
 import { describe, it, expect } from 'vitest';
-import { GenerationAnalytics, createAnalytics, type GenerationMetrics } from '../GenerationAnalytics';
+import {
+  GenerationAnalytics,
+  createAnalytics,
+  type GenerationMetrics,
+} from '../GenerationAnalytics';
 
 function metric(overrides: Partial<GenerationMetrics> = {}): GenerationMetrics {
   return {

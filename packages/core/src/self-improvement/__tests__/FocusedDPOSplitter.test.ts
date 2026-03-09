@@ -325,9 +325,7 @@ describe('FocusedDPOSplitter', () => {
       const result = splitter.process(MULTI_BLOCK_COMPOSITION);
 
       // We should have more pairs than segments
-      expect(result.stats.validPairs).toBeGreaterThan(
-        result.stats.segmentsExtracted,
-      );
+      expect(result.stats.validPairs).toBeGreaterThan(result.stats.segmentsExtracted);
       // The amplification ratio should be at least 1
       expect(result.stats.amplificationRatio).toBeGreaterThanOrEqual(1);
     });
@@ -346,10 +344,7 @@ describe('FocusedDPOSplitter', () => {
     it('stats reflect breakdown by kind', () => {
       const result = splitter.process(MULTI_BLOCK_COMPOSITION);
 
-      const totalByKind = Object.values(result.stats.byKind).reduce(
-        (a, b) => a + (b ?? 0),
-        0,
-      );
+      const totalByKind = Object.values(result.stats.byKind).reduce((a, b) => a + (b ?? 0), 0);
       expect(totalByKind).toBe(result.stats.totalPairs);
     });
 
@@ -358,7 +353,7 @@ describe('FocusedDPOSplitter', () => {
 
       const totalByStrategy = Object.values(result.stats.byStrategy).reduce(
         (a, b) => a + (b ?? 0),
-        0,
+        0
       );
       expect(totalByStrategy).toBe(result.stats.totalPairs);
     });
@@ -412,7 +407,7 @@ describe('FocusedDPOSplitter', () => {
     it('remove_closing_brace removes the last }', () => {
       const result = splitter.process(SIMPLE_COMPOSITION);
       const bracePairs = result.pairs.filter(
-        (p) => p.metadata.degradationStrategy === 'remove_closing_brace',
+        (p) => p.metadata.degradationStrategy === 'remove_closing_brace'
       );
 
       if (bracePairs.length > 0) {
@@ -428,7 +423,7 @@ describe('FocusedDPOSplitter', () => {
     it('invalid_trait_name replaces @trait with invalid names', () => {
       const result = splitter.process(SIMPLE_COMPOSITION);
       const traitPairs = result.pairs.filter(
-        (p) => p.metadata.degradationStrategy === 'invalid_trait_name',
+        (p) => p.metadata.degradationStrategy === 'invalid_trait_name'
       );
 
       for (const pair of traitPairs) {
@@ -440,7 +435,7 @@ describe('FocusedDPOSplitter', () => {
     it('corrupt_property_value corrupts a value', () => {
       const result = splitter.process(SIMPLE_COMPOSITION);
       const corruptPairs = result.pairs.filter(
-        (p) => p.metadata.degradationStrategy === 'corrupt_property_value',
+        (p) => p.metadata.degradationStrategy === 'corrupt_property_value'
       );
 
       if (corruptPairs.length > 0) {
@@ -451,7 +446,7 @@ describe('FocusedDPOSplitter', () => {
             p.rejected.includes('unterminated string') ||
             p.rejected.includes('[, , ,]') ||
             p.rejected.includes('maybe_true_ish') ||
-            p.rejected.includes('#GGHHZZ'),
+            p.rejected.includes('#GGHHZZ')
         );
         expect(hasCorruption).toBe(true);
       }
@@ -460,7 +455,7 @@ describe('FocusedDPOSplitter', () => {
     it('remove_colon_separator removes a colon', () => {
       const result = splitter.process(SIMPLE_COMPOSITION);
       const colonPairs = result.pairs.filter(
-        (p) => p.metadata.degradationStrategy === 'remove_colon_separator',
+        (p) => p.metadata.degradationStrategy === 'remove_colon_separator'
       );
 
       for (const pair of colonPairs) {
@@ -475,7 +470,7 @@ describe('FocusedDPOSplitter', () => {
     it('swap_object_type introduces invalid geometry', () => {
       const result = splitter.process(SIMPLE_COMPOSITION);
       const swapPairs = result.pairs.filter(
-        (p) => p.metadata.degradationStrategy === 'swap_object_type',
+        (p) => p.metadata.degradationStrategy === 'swap_object_type'
       );
 
       for (const pair of swapPairs) {
@@ -487,7 +482,7 @@ describe('FocusedDPOSplitter', () => {
     it('remove_trait_arguments strips @decorators', () => {
       const result = splitter.process(SIMPLE_COMPOSITION);
       const traitArgPairs = result.pairs.filter(
-        (p) => p.metadata.degradationStrategy === 'remove_trait_arguments',
+        (p) => p.metadata.degradationStrategy === 'remove_trait_arguments'
       );
 
       for (const pair of traitArgPairs) {
@@ -501,7 +496,7 @@ describe('FocusedDPOSplitter', () => {
       const matSplitter = createSplitter();
       const result = matSplitter.process(MATERIAL_COMPOSITION);
       const matPairs = result.pairs.filter(
-        (p) => p.metadata.degradationStrategy === 'break_material_syntax',
+        (p) => p.metadata.degradationStrategy === 'break_material_syntax'
       );
 
       for (const pair of matPairs) {
@@ -515,7 +510,7 @@ describe('FocusedDPOSplitter', () => {
     it('break_string_literal removes closing quote', () => {
       const result = splitter.process(SIMPLE_COMPOSITION);
       const strPairs = result.pairs.filter(
-        (p) => p.metadata.degradationStrategy === 'break_string_literal',
+        (p) => p.metadata.degradationStrategy === 'break_string_literal'
       );
 
       for (const pair of strPairs) {
@@ -609,8 +604,7 @@ describe('FocusedDPOSplitter', () => {
       ]);
 
       expect(combinedResult.stats.segmentsExtracted).toBe(
-        singleResult.stats.segmentsExtracted +
-          multiResult.stats.segmentsExtracted,
+        singleResult.stats.segmentsExtracted + multiResult.stats.segmentsExtracted
       );
     });
   });
@@ -626,16 +620,14 @@ describe('FocusedDPOSplitter', () => {
       for (const pair of result.pairs) {
         // The prompt should reference the kind of block
         expect(pair.prompt.toLowerCase()).toMatch(
-          /object|composition|environment|template|material|state|logic/,
+          /object|composition|environment|template|material|state|logic/
         );
       }
     });
 
     it('prompt mentions the segment name', () => {
       const result = splitter.process(SIMPLE_COMPOSITION);
-      const objectPairs = result.pairs.filter(
-        (p) => p.metadata.segmentKind === 'object',
-      );
+      const objectPairs = result.pairs.filter((p) => p.metadata.segmentKind === 'object');
 
       for (const pair of objectPairs) {
         expect(pair.prompt).toContain('CyanOrb');
@@ -827,9 +819,7 @@ composition "Deep" {
       const result = splitter.process(MULTI_BLOCK_COMPOSITION);
 
       // With multiple segments, we should get many more pairs
-      expect(result.stats.validPairs).toBeGreaterThanOrEqual(
-        result.stats.segmentsExtracted * 1,
-      );
+      expect(result.stats.validPairs).toBeGreaterThanOrEqual(result.stats.segmentsExtracted * 1);
     });
 
     it('chosen is always syntactically valid original code', () => {
@@ -850,9 +840,7 @@ composition "Deep" {
         // They should share some content (it's the same code, degraded)
         const chosenWords = new Set(pair.chosen.split(/\s+/));
         const rejectedWords = new Set(pair.rejected.split(/\s+/));
-        const overlap = [...chosenWords].filter((w) =>
-          rejectedWords.has(w),
-        ).length;
+        const overlap = [...chosenWords].filter((w) => rejectedWords.has(w)).length;
         // Should have significant overlap (>30% of chosen words)
         expect(overlap / chosenWords.size).toBeGreaterThan(0.3);
       }

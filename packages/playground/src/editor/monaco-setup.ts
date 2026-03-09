@@ -30,7 +30,8 @@ export const HOLOSCRIPT_LANGUAGE_ID = 'holoscript';
  */
 export function registerHoloScriptLanguage(monaco: typeof import('monaco-editor')): void {
   // Skip if already registered
-  if (monaco.languages.getLanguages().some((l: { id: string }) => l.id === HOLOSCRIPT_LANGUAGE_ID)) return;
+  if (monaco.languages.getLanguages().some((l: { id: string }) => l.id === HOLOSCRIPT_LANGUAGE_ID))
+    return;
 
   // Register language ID
   monaco.languages.register({ id: HOLOSCRIPT_LANGUAGE_ID, extensions: ['.hsplus', '.holo'] });
@@ -38,9 +39,21 @@ export function registerHoloScriptLanguage(monaco: typeof import('monaco-editor'
   // Tokenizer rules (TextMate-compatible subset)
   monaco.languages.setMonarchTokensProvider(HOLOSCRIPT_LANGUAGE_ID, {
     keywords: ['orb', 'template', 'environment', 'logic', 'import', 'from'],
-    directives: ['@manifest', '@zones', '@physics', '@grabbable', '@synced',
-                 '@networked', '@accessible', '@alt_text', '@highlight', '@haptic',
-                 '@shadow', '@constraint', '@chunk'],
+    directives: [
+      '@manifest',
+      '@zones',
+      '@physics',
+      '@grabbable',
+      '@synced',
+      '@networked',
+      '@accessible',
+      '@alt_text',
+      '@highlight',
+      '@haptic',
+      '@shadow',
+      '@constraint',
+      '@chunk',
+    ],
     typeKeywords: ['true', 'false', 'null', 'undefined'],
 
     tokenizer: {
@@ -50,12 +63,15 @@ export function registerHoloScriptLanguage(monaco: typeof import('monaco-editor'
         // Line comments
         [/\/\/.*$/, 'comment'],
         // @ directives
-        [/@[a-zA-Z_]\w*/, {
-          cases: {
-            '@directives': 'keyword.control',
-            '@default': 'type',
+        [
+          /@[a-zA-Z_]\w*/,
+          {
+            cases: {
+              '@directives': 'keyword.control',
+              '@default': 'type',
+            },
           },
-        }],
+        ],
         // Strings
         [/"([^"\\]|\\.)*"/, 'string'],
         // Numbers
@@ -65,13 +81,16 @@ export function registerHoloScriptLanguage(monaco: typeof import('monaco-editor'
         // Colon
         [/:/, 'delimiter'],
         // Identifiers / keywords
-        [/[a-zA-Z_]\w*/, {
-          cases: {
-            '@keywords': 'keyword',
-            '@typeKeywords': 'constant',
-            '@default': 'identifier',
+        [
+          /[a-zA-Z_]\w*/,
+          {
+            cases: {
+              '@keywords': 'keyword',
+              '@typeKeywords': 'constant',
+              '@default': 'identifier',
+            },
           },
-        }],
+        ],
         // Spread operator
         [/\.\.\./, 'operator'],
         // Operators
@@ -87,7 +106,11 @@ export function registerHoloScriptLanguage(monaco: typeof import('monaco-editor'
 
   // Auto-closing pairs
   monaco.languages.setLanguageConfiguration(HOLOSCRIPT_LANGUAGE_ID, {
-    brackets: [['{', '}'], ['[', ']'], ['(', ')']],
+    brackets: [
+      ['{', '}'],
+      ['[', ']'],
+      ['(', ')'],
+    ],
     autoClosingPairs: [
       { open: '{', close: '}' },
       { open: '[', close: ']' },
@@ -115,14 +138,14 @@ export function registerThemes(monaco: typeof import('monaco-editor')): void {
     base: 'vs-dark',
     inherit: true,
     rules: [
-      { token: 'keyword',         foreground: '569cd6' },
+      { token: 'keyword', foreground: '569cd6' },
       { token: 'keyword.control', foreground: 'c586c0' },
-      { token: 'type',            foreground: '4ec9b0' },
-      { token: 'string',          foreground: 'ce9178' },
-      { token: 'number',          foreground: 'b5cea8' },
-      { token: 'comment',         foreground: '6a9955', fontStyle: 'italic' },
-      { token: 'operator',        foreground: 'd4d4d4' },
-      { token: 'constant',        foreground: '569cd6' },
+      { token: 'type', foreground: '4ec9b0' },
+      { token: 'string', foreground: 'ce9178' },
+      { token: 'number', foreground: 'b5cea8' },
+      { token: 'comment', foreground: '6a9955', fontStyle: 'italic' },
+      { token: 'operator', foreground: 'd4d4d4' },
+      { token: 'constant', foreground: '569cd6' },
     ],
     colors: {
       'editor.background': '#1e1e2e',
@@ -134,12 +157,12 @@ export function registerThemes(monaco: typeof import('monaco-editor')): void {
     base: 'vs',
     inherit: true,
     rules: [
-      { token: 'keyword',         foreground: '0000ff' },
+      { token: 'keyword', foreground: '0000ff' },
       { token: 'keyword.control', foreground: 'af00db' },
-      { token: 'type',            foreground: '267f99' },
-      { token: 'string',          foreground: 'a31515' },
-      { token: 'number',          foreground: '098658' },
-      { token: 'comment',         foreground: '008000', fontStyle: 'italic' },
+      { token: 'type', foreground: '267f99' },
+      { token: 'string', foreground: 'a31515' },
+      { token: 'number', foreground: '098658' },
+      { token: 'comment', foreground: '008000', fontStyle: 'italic' },
     ],
     colors: {},
   });

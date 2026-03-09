@@ -213,13 +213,13 @@ composition "Physics Playground" {
 
 ## Features Demonstrated
 
-| Feature | How |
-| --- | --- |
-| Rolling on ramps | Low `friction` + slope |
-| Bouncing ball pit | High `bounciness` on pit walls |
-| Newton's Cradle | Near-perfect `bounciness: 0.98`, pendulum `constraint` |
-| Falling dominos | `apply_impulse()` chain reaction |
-| Spawn & destroy | `spawn "Template"` / `destroy all instances_of()` |
+| Feature           | How                                                    |
+| ----------------- | ------------------------------------------------------ |
+| Rolling on ramps  | Low `friction` + slope                                 |
+| Bouncing ball pit | High `bounciness` on pit walls                         |
+| Newton's Cradle   | Near-perfect `bounciness: 0.98`, pendulum `constraint` |
+| Falling dominos   | `apply_impulse()` chain reaction                       |
+| Spawn & destroy   | `spawn "Template"` / `destroy all instances_of()`      |
 
 ## Physics Properties Reference
 

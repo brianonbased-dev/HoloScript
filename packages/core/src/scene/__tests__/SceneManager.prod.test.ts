@@ -89,7 +89,7 @@ describe('SceneManager: production', () => {
     });
 
     it('loaded result includes state when captured', () => {
-      mgr.save('s', makeNode('r'), {});  // empty stateOptions → captures state
+      mgr.save('s', makeNode('r'), {}); // empty stateOptions → captures state
       const result = mgr.load('s');
       expect(result!.state).toBeDefined();
       expect(result!.state!.timestamp).toBeTruthy();
@@ -129,7 +129,7 @@ describe('SceneManager: production', () => {
     it('lists all saved scenes', () => {
       mgr.save('s1', makeNode('r1'));
       mgr.save('s2', makeNode('r2'));
-      const names = mgr.list().map(e => e.name);
+      const names = mgr.list().map((e) => e.name);
       expect(names).toContain('s1');
       expect(names).toContain('s2');
     });

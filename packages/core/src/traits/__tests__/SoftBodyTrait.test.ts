@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createMockNode, createMockContext, attachTrait, updateTrait, sendEvent } from './traitTestHelpers';
+import {
+  createMockNode,
+  createMockContext,
+  attachTrait,
+  updateTrait,
+  sendEvent,
+} from './traitTestHelpers';
 
 // Mock SoftBodySolver
 vi.mock('../../physics/SoftBodySolver', () => ({

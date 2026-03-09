@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { AssetDependencyGraph, createDependencyGraph } from '../AssetDependencyGraph';
 
 // Minimal mock for AssetMetadata — only fields used by AssetDependencyGraph
-function makeAsset(id: string, deps: Array<{ assetId: string; required: boolean }> = [], textures: string[] = [], shaders: string[] = []) {
+function makeAsset(
+  id: string,
+  deps: Array<{ assetId: string; required: boolean }> = [],
+  textures: string[] = [],
+  shaders: string[] = []
+) {
   return {
     id,
     dependencies: deps,

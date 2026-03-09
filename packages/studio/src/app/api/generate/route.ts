@@ -4,12 +4,42 @@ import { generateMockScene, refineMockScene } from '@/lib/mock-generator';
 // ─── Starter Templates metadata (matching mock-generator template IDs) ─────────
 
 const STARTER_TEMPLATES = [
-  { id: 'city',          label: 'Urban City',     emoji: '🏙️', description: 'Downtown scene with towers, street lights, and ambient city fog' },
-  { id: 'forest',        label: 'Forest',          emoji: '🌲', description: 'Dense woodland with morning mist, pine trees, and dappled sunlight' },
-  { id: 'space-station', label: 'Space Station',   emoji: '🛸', description: 'Orbital station with rotating solar panels, starfield, and sci-fi lighting' },
-  { id: 'abstract',      label: 'Abstract',        emoji: '✨', description: 'Geometric minimalist art piece with particle effects and gradient lighting' },
-  { id: 'vr-room',       label: 'VR Room',         emoji: '🥽', description: 'Comfortable XR space with floating UI panels, ambient glow, and spatial audio' },
-  { id: 'game-level',    label: 'Game Level',      emoji: '🎮', description: 'Top-down platformer arena with physics-enabled platforms, torches, and enemies' },
+  {
+    id: 'city',
+    label: 'Urban City',
+    emoji: '🏙️',
+    description: 'Downtown scene with towers, street lights, and ambient city fog',
+  },
+  {
+    id: 'forest',
+    label: 'Forest',
+    emoji: '🌲',
+    description: 'Dense woodland with morning mist, pine trees, and dappled sunlight',
+  },
+  {
+    id: 'space-station',
+    label: 'Space Station',
+    emoji: '🛸',
+    description: 'Orbital station with rotating solar panels, starfield, and sci-fi lighting',
+  },
+  {
+    id: 'abstract',
+    label: 'Abstract',
+    emoji: '✨',
+    description: 'Geometric minimalist art piece with particle effects and gradient lighting',
+  },
+  {
+    id: 'vr-room',
+    label: 'VR Room',
+    emoji: '🥽',
+    description: 'Comfortable XR space with floating UI panels, ambient glow, and spatial audio',
+  },
+  {
+    id: 'game-level',
+    label: 'Game Level',
+    emoji: '🎮',
+    description: 'Top-down platformer arena with physics-enabled platforms, torches, and enemies',
+  },
 ];
 
 export function GET() {
@@ -19,7 +49,6 @@ export function GET() {
 const BRITTNEY_SERVICE_URL = process.env.BRITTNEY_SERVICE_URL || '';
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const LLM_SERVICE_URL = process.env.LLM_SERVICE_URL || 'http://localhost:8000';
-
 
 const SYSTEM_PROMPT = `You are a HoloScript expert. Generate valid HoloScript code from user descriptions.
 

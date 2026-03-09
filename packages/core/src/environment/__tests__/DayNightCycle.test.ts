@@ -23,9 +23,14 @@ describe('DayNightCycle', () => {
   it('getPeriod returns correct periods', () => {
     const cycle = new DayNightCycle();
     const cases: Array<[number, TimeOfDay]> = [
-      [6, 'dawn'], [9, 'morning'], [12, 'noon'],
-      [15, 'afternoon'], [18, 'dusk'], [20, 'evening'],
-      [23, 'night'], [2, 'midnight'],
+      [6, 'dawn'],
+      [9, 'morning'],
+      [12, 'noon'],
+      [15, 'afternoon'],
+      [18, 'dusk'],
+      [20, 'evening'],
+      [23, 'night'],
+      [2, 'midnight'],
     ];
     for (const [time, expected] of cases) {
       cycle.setTime(time);

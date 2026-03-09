@@ -134,7 +134,12 @@ describe('voiceMeshHandler.onUpdate', () => {
     const { node, ctx, config } = attach({ auto_connect: false, mute: true });
     const mockAnalyzer = {
       frequencyBinCount: 4,
-      getByteFrequencyData: vi.fn((arr: Uint8Array) => { arr[0] = 200; arr[1] = 200; arr[2] = 200; arr[3] = 200; }),
+      getByteFrequencyData: vi.fn((arr: Uint8Array) => {
+        arr[0] = 200;
+        arr[1] = 200;
+        arr[2] = 200;
+        arr[3] = 200;
+      }),
     };
     (node as any).__voiceMeshState.analyzer = mockAnalyzer;
     (node as any).__voiceMeshState.isMuted = true;
@@ -149,14 +154,20 @@ describe('voiceMeshHandler.onUpdate', () => {
     // We'll make average=100 → isTalking=true
     const mockAnalyzer = {
       frequencyBinCount: 2,
-      getByteFrequencyData: vi.fn((arr: Uint8Array) => { arr[0] = 100; arr[1] = 100; }),
+      getByteFrequencyData: vi.fn((arr: Uint8Array) => {
+        arr[0] = 100;
+        arr[1] = 100;
+      }),
     };
     (node as any).__voiceMeshState.analyzer = mockAnalyzer;
     (node as any).__voiceMeshState.isMuted = false;
     // isTalking starts false, should flip to true → emits
     ctx.emit.mockClear();
     voiceMeshHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('voice_activity_change', expect.objectContaining({ isTalking: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'voice_activity_change',
+      expect.objectContaining({ isTalking: true })
+    );
     expect((node as any).__voiceMeshState.isTalking).toBe(true);
   });
 
@@ -164,7 +175,10 @@ describe('voiceMeshHandler.onUpdate', () => {
     const { node, ctx, config } = attach({ auto_connect: false, vad_threshold: -100 });
     const mockAnalyzer = {
       frequencyBinCount: 2,
-      getByteFrequencyData: vi.fn((arr: Uint8Array) => { arr[0] = 100; arr[1] = 100; }),
+      getByteFrequencyData: vi.fn((arr: Uint8Array) => {
+        arr[0] = 100;
+        arr[1] = 100;
+      }),
     };
     (node as any).__voiceMeshState.analyzer = mockAnalyzer;
     (node as any).__voiceMeshState.isTalking = true; // already true
@@ -197,11 +211,14 @@ describe('voiceMeshHandler.onEvent', () => {
       peerId: 'peer_B',
       stream,
     });
-    expect(ctx.emit).toHaveBeenCalledWith('audio_source_loaded', expect.objectContaining({
-      sourceId: 'voice_peer_B',
-      stream,
-      spatial: true,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'audio_source_loaded',
+      expect.objectContaining({
+        sourceId: 'voice_peer_B',
+        stream,
+        spatial: true,
+      })
+    );
   });
 
   it('voice_stream_received — spatial=false when config.spatial=false', () => {
@@ -220,8 +237,12 @@ describe('voiceMeshHandler.onEvent', () => {
     const node = makeNode();
     const ctx = makeCtx();
     const config = voiceMeshHandler.defaultConfig!;
-    expect(() => voiceMeshHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'voice_stream_received', peerId: 'x', stream: {},
-    })).not.toThrow();
+    expect(() =>
+      voiceMeshHandler.onEvent!(node as any, config, ctx as any, {
+        type: 'voice_stream_received',
+        peerId: 'x',
+        stream: {},
+      })
+    ).not.toThrow();
   });
 });

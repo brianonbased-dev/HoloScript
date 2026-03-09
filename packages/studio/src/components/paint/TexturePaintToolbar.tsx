@@ -11,15 +11,24 @@ import type { PaintSettings } from '@/hooks/useTexturePaint';
 import { Trash2 } from 'lucide-react';
 
 const PAINT_PALETTE = [
-  '#ec4899', '#f97316', '#eab308', '#22c55e',
-  '#06b6d4', '#6366f1', '#ffffff', '#000000',
-  '#a855f7', '#3b82f6', '#ef4444', '#84cc16',
+  '#ec4899',
+  '#f97316',
+  '#eab308',
+  '#22c55e',
+  '#06b6d4',
+  '#6366f1',
+  '#ffffff',
+  '#000000',
+  '#a855f7',
+  '#3b82f6',
+  '#ef4444',
+  '#84cc16',
 ];
 
 const BLEND_MODES: { id: PaintSettings['blendMode']; label: string }[] = [
   { id: 'source-over', label: 'Normal' },
-  { id: 'multiply',    label: 'Multiply' },
-  { id: 'screen',      label: 'Screen' },
+  { id: 'multiply', label: 'Multiply' },
+  { id: 'screen', label: 'Screen' },
 ];
 
 interface Props {
@@ -64,7 +73,10 @@ export function TexturePaintToolbar({ settings, onChange, onClear }: Props) {
           <span className="font-mono text-[10px] text-studio-text">{settings.size}px</span>
         </div>
         <input
-          type="range" min={4} max={128} step={2}
+          type="range"
+          min={4}
+          max={128}
+          step={2}
           value={settings.size}
           onChange={(e) => onChange({ size: parseInt(e.target.value) })}
           className="w-full accent-studio-accent"
@@ -75,10 +87,15 @@ export function TexturePaintToolbar({ settings, onChange, onClear }: Props) {
       <div>
         <div className="mb-1 flex justify-between">
           <span className="text-[9px] uppercase tracking-widest text-studio-muted">Opacity</span>
-          <span className="font-mono text-[10px] text-studio-text">{Math.round(settings.opacity * 100)}%</span>
+          <span className="font-mono text-[10px] text-studio-text">
+            {Math.round(settings.opacity * 100)}%
+          </span>
         </div>
         <input
-          type="range" min={0.05} max={1} step={0.05}
+          type="range"
+          min={0.05}
+          max={1}
+          step={0.05}
           value={settings.opacity}
           onChange={(e) => onChange({ opacity: parseFloat(e.target.value) })}
           className="w-full accent-studio-accent"

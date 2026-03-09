@@ -19,7 +19,12 @@ describe('Save/Load System (Cycle 182)', () => {
     });
 
     it('should encode data with header', () => {
-      const save = serializer.encode({ playerName: 'Hero', level: 10, alive: true, inventory: ['sword'] });
+      const save = serializer.encode({
+        playerName: 'Hero',
+        level: 10,
+        alive: true,
+        inventory: ['sword'],
+      });
       expect(save.header.version).toBe(2);
       expect(save.header.checksum).toBeDefined();
       expect(save.payload.playerName).toBe('Hero');
@@ -39,7 +44,12 @@ describe('Save/Load System (Cycle 182)', () => {
     });
 
     it('should validate field types', () => {
-      const save = serializer.encode({ playerName: 42, level: 'ten', alive: 1, inventory: 'not-array' });
+      const save = serializer.encode({
+        playerName: 42,
+        level: 'ten',
+        alive: 1,
+        inventory: 'not-array',
+      });
       expect(typeof save.payload.playerName).toBe('string');
       expect(typeof save.payload.level).toBe('number');
     });
@@ -101,7 +111,9 @@ describe('Save/Load System (Cycle 182)', () => {
 
     it('should fire save listeners', () => {
       let saved = false;
-      manager.onSave(() => { saved = true; });
+      manager.onSave(() => {
+        saved = true;
+      });
       manager.save('s1', 'Test', { x: 1 });
       expect(saved).toBe(true);
     });

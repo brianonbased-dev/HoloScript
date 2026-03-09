@@ -56,7 +56,7 @@ interface HoloScriptModule {
       previousAstJson: string,
       editOffset: number,
       editLength: number,
-      newText: string,
+      newText: string
     ): string;
   };
   validator: {
@@ -65,7 +65,7 @@ interface HoloScriptModule {
       source: string,
       maxSeverity: string,
       checkTraits: boolean,
-      checkTypes: boolean,
+      checkTypes: boolean
     ): { valid: boolean; diagnostics: unknown[] };
     traitExists(name: string): boolean;
     getTrait(name: string): unknown | undefined;
@@ -94,8 +94,24 @@ interface HoloScriptModule {
   spatialEngine: {
     perlinNoiseTwoD(x: number, y: number, seed: number): number;
     perlinNoiseThreeD(x: number, y: number, z: number, seed: number): number;
-    fbmNoise(x: number, y: number, octaves: number, lacunarity: number, persistence: number, seed: number): number;
-    sphereSphereTest(ax: number, ay: number, az: number, ar: number, bx: number, by: number, bz: number, br: number): boolean;
+    fbmNoise(
+      x: number,
+      y: number,
+      octaves: number,
+      lacunarity: number,
+      persistence: number,
+      seed: number
+    ): number;
+    sphereSphereTest(
+      ax: number,
+      ay: number,
+      az: number,
+      ar: number,
+      bx: number,
+      by: number,
+      bz: number,
+      br: number
+    ): boolean;
     aabbOverlap(...args: number[]): boolean;
     rayAabbTest(...args: number[]): number;
     frustumCullAabb(frustumJson: string, ...args: number[]): boolean;
@@ -190,7 +206,7 @@ async function handleInit(payload: Record<string, unknown>): Promise<unknown> {
   // pre-fetch the raw WASM binary for this path.
   try {
     const jsUrl = wasmUrl.replace('.component.wasm', '.js').replace('.wasm', '.js');
-    const module = await import(/* @vite-ignore */ jsUrl) as HoloScriptModule;
+    const module = (await import(/* @vite-ignore */ jsUrl)) as HoloScriptModule;
     wasmModule = module;
     loadedWorld = world;
 
@@ -221,7 +237,9 @@ async function handleInit(payload: Record<string, unknown>): Promise<unknown> {
   try {
     const response = await fetch(wasmUrl);
     if (!response.ok) {
-      throw new Error(`Failed to fetch WASM: ${response.status} ${response.statusText} (${wasmUrl})`);
+      throw new Error(
+        `Failed to fetch WASM: ${response.status} ${response.statusText} (${wasmUrl})`
+      );
     }
     const wasmBytes = await response.arrayBuffer();
     binarySize = wasmBytes.byteLength;
@@ -242,8 +260,8 @@ async function handleInit(payload: Record<string, unknown>): Promise<unknown> {
   } catch (rawError) {
     throw new Error(
       `Failed to load WASM component:\n` +
-      `  jco error: ${formatError(jcoError)}\n` +
-      `  raw error: ${formatError(rawError)}`
+        `  jco error: ${formatError(jcoError)}\n` +
+        `  raw error: ${formatError(rawError)}`
     );
   }
 }

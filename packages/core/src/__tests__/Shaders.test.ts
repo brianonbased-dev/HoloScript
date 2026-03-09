@@ -71,8 +71,8 @@ describe('Cycle 114: Shader & Materials', () => {
 
     const resolved = lib.resolveInstance(instance!.id);
     expect(resolved).not.toBeNull();
-    expect(resolved!.roughness).toBe(0.9);       // Overridden
-    expect(resolved!.metallic).toBe(0);           // From base
+    expect(resolved!.roughness).toBe(0.9); // Overridden
+    expect(resolved!.metallic).toBe(0); // From base
   });
 
   it('should set texture slots', () => {

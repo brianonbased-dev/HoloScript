@@ -89,16 +89,28 @@ describe('RBACTrait', () => {
   it('enforces max assignees for owner role', () => {
     // Owner role has maxAssignees = 3
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_assign_role', userId: 'u1', role: 'owner', assignedBy: 'system',
+      type: 'rbac_assign_role',
+      userId: 'u1',
+      role: 'owner',
+      assignedBy: 'system',
     });
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_assign_role', userId: 'u2', role: 'owner', assignedBy: 'system',
+      type: 'rbac_assign_role',
+      userId: 'u2',
+      role: 'owner',
+      assignedBy: 'system',
     });
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_assign_role', userId: 'u3', role: 'owner', assignedBy: 'system',
+      type: 'rbac_assign_role',
+      userId: 'u3',
+      role: 'owner',
+      assignedBy: 'system',
     });
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_assign_role', userId: 'u4', role: 'owner', assignedBy: 'system',
+      type: 'rbac_assign_role',
+      userId: 'u4',
+      role: 'owner',
+      assignedBy: 'system',
     });
     expect(getEventCount(ctx, 'rbac_error')).toBe(1);
     const error = getLastEvent(ctx, 'rbac_error') as any;
@@ -107,10 +119,16 @@ describe('RBACTrait', () => {
 
   it('revokes role from user', () => {
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_assign_role', userId: 'user-1', role: 'editor', assignedBy: 'admin',
+      type: 'rbac_assign_role',
+      userId: 'user-1',
+      role: 'editor',
+      assignedBy: 'admin',
     });
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_revoke_role', userId: 'user-1', role: 'editor', revokedBy: 'admin',
+      type: 'rbac_revoke_role',
+      userId: 'user-1',
+      role: 'editor',
+      revokedBy: 'admin',
     });
     expect(getEventCount(ctx, 'rbac_role_revoked')).toBe(1);
   });
@@ -121,7 +139,10 @@ describe('RBACTrait', () => {
 
   it('grants viewer scene.read permission', () => {
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_assign_role', userId: 'viewer-1', role: 'viewer', assignedBy: 'system',
+      type: 'rbac_assign_role',
+      userId: 'viewer-1',
+      role: 'viewer',
+      assignedBy: 'system',
     });
     ctx.clearEvents();
     sendEvent(rbacHandler, node, baseCfg, ctx, {
@@ -138,7 +159,10 @@ describe('RBACTrait', () => {
 
   it('denies viewer scene.create permission', () => {
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_assign_role', userId: 'viewer-1', role: 'viewer', assignedBy: 'system',
+      type: 'rbac_assign_role',
+      userId: 'viewer-1',
+      role: 'viewer',
+      assignedBy: 'system',
     });
     ctx.clearEvents();
     sendEvent(rbacHandler, node, baseCfg, ctx, {
@@ -153,7 +177,10 @@ describe('RBACTrait', () => {
 
   it('grants editor scene.create via inheritance from viewer', () => {
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_assign_role', userId: 'editor-1', role: 'editor', assignedBy: 'system',
+      type: 'rbac_assign_role',
+      userId: 'editor-1',
+      role: 'editor',
+      assignedBy: 'system',
     });
     ctx.clearEvents();
     sendEvent(rbacHandler, node, baseCfg, ctx, {
@@ -168,7 +195,10 @@ describe('RBACTrait', () => {
 
   it('grants editor inherited scene.read from viewer', () => {
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_assign_role', userId: 'editor-1', role: 'editor', assignedBy: 'system',
+      type: 'rbac_assign_role',
+      userId: 'editor-1',
+      role: 'editor',
+      assignedBy: 'system',
     });
     ctx.clearEvents();
     sendEvent(rbacHandler, node, baseCfg, ctx, {
@@ -183,7 +213,10 @@ describe('RBACTrait', () => {
 
   it('grants admin user.manage permission', () => {
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_assign_role', userId: 'admin-1', role: 'admin', assignedBy: 'system',
+      type: 'rbac_assign_role',
+      userId: 'admin-1',
+      role: 'admin',
+      assignedBy: 'system',
     });
     ctx.clearEvents();
     sendEvent(rbacHandler, node, baseCfg, ctx, {
@@ -198,7 +231,10 @@ describe('RBACTrait', () => {
 
   it('grants owner wildcard tenant.* permissions', () => {
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_assign_role', userId: 'owner-1', role: 'owner', assignedBy: 'system',
+      type: 'rbac_assign_role',
+      userId: 'owner-1',
+      role: 'owner',
+      assignedBy: 'system',
     });
     ctx.clearEvents();
     sendEvent(rbacHandler, node, baseCfg, ctx, {
@@ -259,10 +295,16 @@ describe('RBACTrait', () => {
     const c = createMockContext();
     attachTrait(rbacHandler, n, cfg, c);
     sendEvent(rbacHandler, n, cfg, c, {
-      type: 'rbac_create_custom_role', role: 'r1', label: 'R1', permissions: [],
+      type: 'rbac_create_custom_role',
+      role: 'r1',
+      label: 'R1',
+      permissions: [],
     });
     sendEvent(rbacHandler, n, cfg, c, {
-      type: 'rbac_create_custom_role', role: 'r2', label: 'R2', permissions: [],
+      type: 'rbac_create_custom_role',
+      role: 'r2',
+      label: 'R2',
+      permissions: [],
     });
     expect(getEventCount(c, 'rbac_error')).toBe(1);
     const error = getLastEvent(c, 'rbac_error') as any;
@@ -271,14 +313,21 @@ describe('RBACTrait', () => {
 
   it('deletes custom role and reassigns users', () => {
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_create_custom_role', role: 'temp_role', label: 'Temp', permissions: [],
+      type: 'rbac_create_custom_role',
+      role: 'temp_role',
+      label: 'Temp',
+      permissions: [],
     });
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_assign_role', userId: 'u1', role: 'temp_role', assignedBy: 'admin',
+      type: 'rbac_assign_role',
+      userId: 'u1',
+      role: 'temp_role',
+      assignedBy: 'admin',
     });
     ctx.clearEvents();
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_delete_custom_role', role: 'temp_role',
+      type: 'rbac_delete_custom_role',
+      role: 'temp_role',
     });
     expect(getEventCount(ctx, 'rbac_custom_role_deleted')).toBe(1);
     const state = (node as any).__rbacState;
@@ -287,7 +336,8 @@ describe('RBACTrait', () => {
 
   it('prevents deletion of built-in roles', () => {
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_delete_custom_role', role: 'admin',
+      type: 'rbac_delete_custom_role',
+      role: 'admin',
     });
     expect(getEventCount(ctx, 'rbac_error')).toBe(1);
     const error = getLastEvent(ctx, 'rbac_error') as any;
@@ -300,11 +350,16 @@ describe('RBACTrait', () => {
 
   it('queries user roles', () => {
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_assign_role', userId: 'user-1', role: 'editor', assignedBy: 'admin',
+      type: 'rbac_assign_role',
+      userId: 'user-1',
+      role: 'editor',
+      assignedBy: 'admin',
     });
     ctx.clearEvents();
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_query_user_roles', userId: 'user-1', queryId: 'qr1',
+      type: 'rbac_query_user_roles',
+      userId: 'user-1',
+      queryId: 'qr1',
     });
     expect(getEventCount(ctx, 'rbac_user_roles')).toBe(1);
     const result = getLastEvent(ctx, 'rbac_user_roles') as any;
@@ -318,17 +373,28 @@ describe('RBACTrait', () => {
 
   it('logs access checks when enabled', () => {
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_assign_role', userId: 'u1', role: 'viewer', assignedBy: 'system',
+      type: 'rbac_assign_role',
+      userId: 'u1',
+      role: 'viewer',
+      assignedBy: 'system',
     });
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_check_permission', userId: 'u1', permission: 'scene.read', checkId: 'c1',
+      type: 'rbac_check_permission',
+      userId: 'u1',
+      permission: 'scene.read',
+      checkId: 'c1',
     });
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_check_permission', userId: 'u1', permission: 'scene.create', checkId: 'c2',
+      type: 'rbac_check_permission',
+      userId: 'u1',
+      permission: 'scene.create',
+      checkId: 'c2',
     });
     ctx.clearEvents();
     sendEvent(rbacHandler, node, baseCfg, ctx, {
-      type: 'rbac_query_access_log', queryId: 'al1', limit: 10,
+      type: 'rbac_query_access_log',
+      queryId: 'al1',
+      limit: 10,
     });
     const result = getLastEvent(ctx, 'rbac_access_log') as any;
     expect(result.entries.length).toBe(2);

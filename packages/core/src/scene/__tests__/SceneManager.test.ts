@@ -17,7 +17,9 @@ function makeScene(name = 'TestScene'): HSPlusNode {
 describe('SceneManager', () => {
   let mgr: SceneManager;
 
-  beforeEach(() => { mgr = new SceneManager(); });
+  beforeEach(() => {
+    mgr = new SceneManager();
+  });
 
   it('save and load round-trips scene', () => {
     const root = makeScene();

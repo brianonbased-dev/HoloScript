@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { handTrackingHandler } from '../HandTrackingTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('HandTrackingTrait', () => {
   let node: Record<string, unknown>;
@@ -41,8 +48,16 @@ describe('HandTrackingTrait', () => {
   });
 
   it('hand lost emits hand_lost', () => {
-    sendEvent(handTrackingHandler, node, cfg, ctx, { type: 'hand_data', hand: 'right', data: { visible: true } });
-    sendEvent(handTrackingHandler, node, cfg, ctx, { type: 'hand_data', hand: 'right', data: { visible: false } });
+    sendEvent(handTrackingHandler, node, cfg, ctx, {
+      type: 'hand_data',
+      hand: 'right',
+      data: { visible: true },
+    });
+    sendEvent(handTrackingHandler, node, cfg, ctx, {
+      type: 'hand_data',
+      hand: 'right',
+      data: { visible: false },
+    });
     expect(getEventCount(ctx, 'hand_lost')).toBe(1);
   });
 

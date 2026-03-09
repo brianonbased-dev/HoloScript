@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
-  createBoxCollider, createSphereCollider, createCapsuleCollider,
+  createBoxCollider,
+  createSphereCollider,
+  createCapsuleCollider,
   createRigidbody,
 } from '../physics.js';
 import { Vec3 } from '../spatial.js';

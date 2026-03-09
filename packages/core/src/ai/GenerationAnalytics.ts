@@ -108,26 +108,34 @@ export class GenerationAnalytics {
     const successful = this.metrics.filter((m) => m.parseSuccess);
     const successRate = successful.length / this.metrics.length;
 
-    const avgConfidence = this.metrics.reduce((sum, m) => sum + m.confidence, 0) / this.metrics.length;
-    const avgResponseTime = this.metrics.reduce((sum, m) => sum + m.responseTimeMs, 0) / this.metrics.length;
-    const avgErrorCount = this.metrics.reduce((sum, m) => sum + m.errorCount, 0) / this.metrics.length;
-    const avgAttemptsNeeded = this.metrics.reduce((sum, m) => sum + m.attemptsNeeded, 0) / this.metrics.length;
+    const avgConfidence =
+      this.metrics.reduce((sum, m) => sum + m.confidence, 0) / this.metrics.length;
+    const avgResponseTime =
+      this.metrics.reduce((sum, m) => sum + m.responseTimeMs, 0) / this.metrics.length;
+    const avgErrorCount =
+      this.metrics.reduce((sum, m) => sum + m.errorCount, 0) / this.metrics.length;
+    const avgAttemptsNeeded =
+      this.metrics.reduce((sum, m) => sum + m.attemptsNeeded, 0) / this.metrics.length;
 
     // Most common adapter
     const adapterCounts = new Map<string, number>();
     this.metrics.forEach((m) => {
       adapterCounts.set(m.adapterName, (adapterCounts.get(m.adapterName) || 0) + 1);
     });
-    const mostCommonAdapter = Array.from(adapterCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+    const mostCommonAdapter =
+      Array.from(adapterCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 
     // Most common platform
     const platformCounts = new Map<string, number>();
-    this.metrics.filter((m) => m.platform).forEach((m) => {
-      if (m.platform) {
-        platformCounts.set(m.platform, (platformCounts.get(m.platform) || 0) + 1);
-      }
-    });
-    const mostCommonPlatform = Array.from(platformCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+    this.metrics
+      .filter((m) => m.platform)
+      .forEach((m) => {
+        if (m.platform) {
+          platformCounts.set(m.platform, (platformCounts.get(m.platform) || 0) + 1);
+        }
+      });
+    const mostCommonPlatform =
+      Array.from(platformCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 
     return {
       totalGenerations: this.metrics.length,
@@ -162,8 +170,10 @@ export class GenerationAnalytics {
     const successful = adapterMetrics.filter((m) => m.parseSuccess);
     const successRate = successful.length / adapterMetrics.length;
 
-    const avgConfidence = adapterMetrics.reduce((sum, m) => sum + m.confidence, 0) / adapterMetrics.length;
-    const avgResponseTime = adapterMetrics.reduce((sum, m) => sum + m.responseTimeMs, 0) / adapterMetrics.length;
+    const avgConfidence =
+      adapterMetrics.reduce((sum, m) => sum + m.confidence, 0) / adapterMetrics.length;
+    const avgResponseTime =
+      adapterMetrics.reduce((sum, m) => sum + m.responseTimeMs, 0) / adapterMetrics.length;
 
     // Determine what this adapter is best for
     const bestFor: string[] = [];
@@ -324,15 +334,21 @@ export class GenerationAnalytics {
     const aggregate = this.getAggregateMetrics();
 
     if (aggregate.successRate < 0.8) {
-      recommendations.push('Success rate is below 80%. Consider adjusting confidence thresholds or improving prompts.');
+      recommendations.push(
+        'Success rate is below 80%. Consider adjusting confidence thresholds or improving prompts.'
+      );
     }
 
     if (aggregate.avgConfidence < 0.7) {
-      recommendations.push('Average confidence is low. Try using high-performing adapters like Anthropic or OpenAI.');
+      recommendations.push(
+        'Average confidence is low. Try using high-performing adapters like Anthropic or OpenAI.'
+      );
     }
 
     if (aggregate.avgResponseTime > 5000) {
-      recommendations.push('Response times are slow. Consider using a cache to reduce redundant API calls.');
+      recommendations.push(
+        'Response times are slow. Consider using a cache to reduce redundant API calls.'
+      );
     }
 
     if (aggregate.avgErrorCount > 1 && aggregate.avgAttemptsNeeded > 2) {
@@ -344,7 +360,9 @@ export class GenerationAnalytics {
       const best = allAdapters[0];
       const worst = allAdapters[allAdapters.length - 1];
       if (best.reliabilityScore > worst.reliabilityScore + 0.2) {
-        recommendations.push(`${best.name} performs significantly better than ${worst.name}. Consider using it preferentially.`);
+        recommendations.push(
+          `${best.name} performs significantly better than ${worst.name}. Consider using it preferentially.`
+        );
       }
     }
 
@@ -355,15 +373,19 @@ export class GenerationAnalytics {
    * Export metrics as JSON
    */
   exportMetrics(): string {
-    return JSON.stringify({
-      aggregate: this.getAggregateMetrics(),
-      adapters: this.getAllAdapterMetrics(),
-      confidenceDistribution: this.getConfidenceDistribution(),
-      responseTimeDistribution: this.getResponseTimeDistribution(),
-      errorPatterns: this.getErrorPatterns(),
-      recommendations: this.getRecommendations(),
-      exportedAt: new Date(),
-    }, null, 2);
+    return JSON.stringify(
+      {
+        aggregate: this.getAggregateMetrics(),
+        adapters: this.getAllAdapterMetrics(),
+        confidenceDistribution: this.getConfidenceDistribution(),
+        responseTimeDistribution: this.getResponseTimeDistribution(),
+        errorPatterns: this.getErrorPatterns(),
+        recommendations: this.getRecommendations(),
+        exportedAt: new Date(),
+      },
+      null,
+      2
+    );
   }
 
   /**

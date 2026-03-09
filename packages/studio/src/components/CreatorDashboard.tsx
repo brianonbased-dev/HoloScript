@@ -5,7 +5,18 @@ import { StatCard } from './StatCard';
 import { RevenueChart } from './RevenueChart';
 import { AnalyticsPanel } from './AnalyticsPanel';
 import { NFTGallery } from './NFTGallery';
-import { AlertCircle, RefreshCw, Brain, Bot, Puzzle, Package, Layers, Star, Download, DollarSign } from 'lucide-react';
+import {
+  AlertCircle,
+  RefreshCw,
+  Brain,
+  Bot,
+  Puzzle,
+  Package,
+  Layers,
+  Star,
+  Download,
+  DollarSign,
+} from 'lucide-react';
 import type { ContentTypeStats } from '../hooks/useCreatorStats';
 
 const CONTENT_TYPE_ICONS: Record<string, typeof Brain> = {
@@ -156,9 +167,14 @@ export function CreatorDashboard({ address, refetchInterval }: CreatorDashboardP
                 const colorClass = CONTENT_TYPE_COLORS[ct.type] || 'bg-gray-500/20 text-gray-400';
 
                 return (
-                  <div key={ct.type} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-700/20 transition">
+                  <div
+                    key={ct.type}
+                    className="flex items-center gap-4 px-5 py-3 hover:bg-gray-700/20 transition"
+                  >
                     {/* Icon + Label */}
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${colorClass}`}>
+                    <div
+                      className={`flex h-8 w-8 items-center justify-center rounded-lg ${colorClass}`}
+                    >
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">

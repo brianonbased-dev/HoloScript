@@ -17,10 +17,7 @@ function parseProp(source: string, prop: string) {
 
 describe('HoloScriptPlusParser - Comparison Operators', () => {
   it('parses less-than (<)', () => {
-    const expr = parseProp(
-      `object "T" { val: a < b }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: a < b }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('<');
     expect(expr.left.__ref).toBe('a');
@@ -28,20 +25,14 @@ describe('HoloScriptPlusParser - Comparison Operators', () => {
   });
 
   it('parses greater-than (>)', () => {
-    const expr = parseProp(
-      `object "T" { val: x > 0 }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: x > 0 }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('>');
     expect(expr.right).toBe(0);
   });
 
   it('parses less-than-or-equal (<=)', () => {
-    const expr = parseProp(
-      `object "T" { val: speed <= maxSpeed }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: speed <= maxSpeed }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('<=');
     expect(expr.left.__ref).toBe('speed');
@@ -49,20 +40,14 @@ describe('HoloScriptPlusParser - Comparison Operators', () => {
   });
 
   it('parses greater-than-or-equal (>=)', () => {
-    const expr = parseProp(
-      `object "T" { val: level >= 5 }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: level >= 5 }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('>=');
     expect(expr.right).toBe(5);
   });
 
   it('comparison with numeric literals', () => {
-    const expr = parseProp(
-      `object "T" { inRange: count >= 0 }`,
-      'inRange'
-    );
+    const expr = parseProp(`object "T" { inRange: count >= 0 }`, 'inRange');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('>=');
     expect(expr.left.__ref).toBe('count');
@@ -76,10 +61,7 @@ describe('HoloScriptPlusParser - Comparison Operators', () => {
 
 describe('HoloScriptPlusParser - Equality Operators', () => {
   it('parses double-equals (==)', () => {
-    const expr = parseProp(
-      `object "T" { isAdmin: role == "admin" }`,
-      'isAdmin'
-    );
+    const expr = parseProp(`object "T" { isAdmin: role == "admin" }`, 'isAdmin');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('==');
     expect(expr.left.__ref).toBe('role');
@@ -87,10 +69,7 @@ describe('HoloScriptPlusParser - Equality Operators', () => {
   });
 
   it('parses not-equals (!=)', () => {
-    const expr = parseProp(
-      `object "T" { isDirty: saved != true }`,
-      'isDirty'
-    );
+    const expr = parseProp(`object "T" { isDirty: saved != true }`, 'isDirty');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('!=');
     expect(expr.left.__ref).toBe('saved');
@@ -98,20 +77,14 @@ describe('HoloScriptPlusParser - Equality Operators', () => {
   });
 
   it('equality with null', () => {
-    const expr = parseProp(
-      `object "T" { isEmpty: value == null }`,
-      'isEmpty'
-    );
+    const expr = parseProp(`object "T" { isEmpty: value == null }`, 'isEmpty');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('==');
     expect(expr.right).toBeNull();
   });
 
   it('inequality with number', () => {
-    const expr = parseProp(
-      `object "T" { notZero: count != 0 }`,
-      'notZero'
-    );
+    const expr = parseProp(`object "T" { notZero: count != 0 }`, 'notZero');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('!=');
     expect(expr.right).toBe(0);
@@ -124,10 +97,7 @@ describe('HoloScriptPlusParser - Equality Operators', () => {
 
 describe('HoloScriptPlusParser - Logical AND (&&)', () => {
   it('parses logical AND', () => {
-    const expr = parseProp(
-      `object "T" { val: isReady && isActive }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: isReady && isActive }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('&&');
     expect(expr.left.__ref).toBe('isReady');
@@ -136,10 +106,7 @@ describe('HoloScriptPlusParser - Logical AND (&&)', () => {
 
   it('parses chained AND (left-associative)', () => {
     // a && b && c  =>  (a && b) && c
-    const expr = parseProp(
-      `object "T" { val: a && b && c }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: a && b && c }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('&&');
     // Right side is 'c'
@@ -152,10 +119,7 @@ describe('HoloScriptPlusParser - Logical AND (&&)', () => {
   });
 
   it('AND with boolean literals', () => {
-    const expr = parseProp(
-      `object "T" { val: enabled && true }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: enabled && true }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('&&');
     expect(expr.right).toBe(true);
@@ -164,10 +128,7 @@ describe('HoloScriptPlusParser - Logical AND (&&)', () => {
 
 describe('HoloScriptPlusParser - Logical OR (||)', () => {
   it('parses logical OR', () => {
-    const expr = parseProp(
-      `object "T" { val: hasOverride || useDefault }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: hasOverride || useDefault }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('||');
     expect(expr.left.__ref).toBe('hasOverride');
@@ -175,10 +136,7 @@ describe('HoloScriptPlusParser - Logical OR (||)', () => {
   });
 
   it('parses chained OR (left-associative)', () => {
-    const expr = parseProp(
-      `object "T" { val: a || b || c }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: a || b || c }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('||');
     expect(expr.right.__ref).toBe('c');
@@ -187,10 +145,7 @@ describe('HoloScriptPlusParser - Logical OR (||)', () => {
   });
 
   it('OR with string fallback', () => {
-    const expr = parseProp(
-      `object "T" { val: userName || "Guest" }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: userName || "Guest" }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('||');
     expect(expr.right).toBe('Guest');
@@ -203,10 +158,7 @@ describe('HoloScriptPlusParser - Logical OR (||)', () => {
 
 describe('HoloScriptPlusParser - Logical Operator Precedence', () => {
   it('&& binds tighter than || (a || b && c  =>  a || (b && c))', () => {
-    const expr = parseProp(
-      `object "T" { val: a || b && c }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: a || b && c }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('||');
     expect(expr.left.__ref).toBe('a');
@@ -218,10 +170,7 @@ describe('HoloScriptPlusParser - Logical Operator Precedence', () => {
   });
 
   it('== binds tighter than && (a && b == c  =>  a && (b == c))', () => {
-    const expr = parseProp(
-      `object "T" { val: a && b == c }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: a && b == c }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('&&');
     expect(expr.left.__ref).toBe('a');
@@ -230,10 +179,7 @@ describe('HoloScriptPlusParser - Logical Operator Precedence', () => {
   });
 
   it('comparison binds tighter than == (a < b == c < d  =>  (a < b) == (c < d))', () => {
-    const expr = parseProp(
-      `object "T" { val: a < b == c < d }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: a < b == c < d }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('==');
     expect(expr.left.operator).toBe('<');
@@ -242,10 +188,7 @@ describe('HoloScriptPlusParser - Logical Operator Precedence', () => {
 
   it('full precedence chain: a || b && c == d < e', () => {
     // Should parse as: a || (b && (c == (d < e)))
-    const expr = parseProp(
-      `object "T" { val: a || b && c == d < e }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: a || b && c == d < e }`, 'val');
     expect(expr.operator).toBe('||');
     expect(expr.left.__ref).toBe('a');
     const andExpr = expr.right;
@@ -265,20 +208,14 @@ describe('HoloScriptPlusParser - Logical Operator Precedence', () => {
 
 describe('HoloScriptPlusParser - Logical NOT (!)', () => {
   it('parses logical NOT', () => {
-    const expr = parseProp(
-      `object "T" { val: !isActive }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: !isActive }`, 'val');
     expect(expr.type).toBe('unary');
     expect(expr.operator).toBe('!');
     expect(expr.argument.__ref).toBe('isActive');
   });
 
   it('parses double NOT (!!)', () => {
-    const expr = parseProp(
-      `object "T" { val: !!value }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: !!value }`, 'val');
     expect(expr.type).toBe('unary');
     expect(expr.operator).toBe('!');
     expect(expr.argument.type).toBe('unary');
@@ -287,20 +224,14 @@ describe('HoloScriptPlusParser - Logical NOT (!)', () => {
   });
 
   it('NOT with boolean literal', () => {
-    const expr = parseProp(
-      `object "T" { val: !true }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: !true }`, 'val');
     expect(expr.type).toBe('unary');
     expect(expr.operator).toBe('!');
     expect(expr.argument).toBe(true);
   });
 
   it('NOT in logical expression: !a && b', () => {
-    const expr = parseProp(
-      `object "T" { val: !a && b }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: !a && b }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('&&');
     expect(expr.left.type).toBe('unary');
@@ -370,26 +301,17 @@ describe('HoloScriptPlusParser - Template Literals', () => {
 
 describe('HoloScriptPlusParser - Optional Chaining (?.)', () => {
   it('parses optional chaining on object', () => {
-    const expr = parseProp(
-      `object "T" { val: user?.name }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: user?.name }`, 'val');
     expect(expr.__ref).toBe('user?.name');
   });
 
   it('parses multiple optional chains', () => {
-    const expr = parseProp(
-      `object "T" { val: a?.b?.c }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: a?.b?.c }`, 'val');
     expect(expr.__ref).toBe('a?.b?.c');
   });
 
   it('optional chain mixed with regular dot access', () => {
-    const expr = parseProp(
-      `object "T" { val: config?.settings.theme }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: config?.settings.theme }`, 'val');
     expect(expr.__ref).toBe('config?.settings.theme');
   });
 });
@@ -400,40 +322,28 @@ describe('HoloScriptPlusParser - Optional Chaining (?.)', () => {
 
 describe('HoloScriptPlusParser - Computed Member Access (obj[key])', () => {
   it('parses computed member with string key', () => {
-    const expr = parseProp(
-      `object "T" { val: scores["player1"] }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: scores["player1"] }`, 'val');
     expect(expr.type).toBe('computedMember');
     expect(expr.object.__ref).toBe('scores');
     expect(expr.property).toBe('player1');
   });
 
   it('parses computed member with identifier key', () => {
-    const expr = parseProp(
-      `object "T" { val: data[key] }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: data[key] }`, 'val');
     expect(expr.type).toBe('computedMember');
     expect(expr.object.__ref).toBe('data');
     expect(expr.property.__ref).toBe('key');
   });
 
   it('parses computed member with numeric index', () => {
-    const expr = parseProp(
-      `object "T" { val: items[0] }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: items[0] }`, 'val');
     expect(expr.type).toBe('computedMember');
     expect(expr.object.__ref).toBe('items');
     expect(expr.property).toBe(0);
   });
 
   it('parses computed member with dotted object', () => {
-    const expr = parseProp(
-      `object "T" { val: state.scores[playerId] }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: state.scores[playerId] }`, 'val');
     expect(expr.type).toBe('computedMember');
     expect(expr.object.__ref).toBe('state.scores');
     expect(expr.property.__ref).toBe('playerId');
@@ -446,10 +356,7 @@ describe('HoloScriptPlusParser - Computed Member Access (obj[key])', () => {
 
 describe('HoloScriptPlusParser - Combined Expression Scenarios', () => {
   it('logical operators with comparison in ternary condition', () => {
-    const expr = parseProp(
-      `object "T" { msg: a > 0 && b < 10 ? "in range" : "out" }`,
-      'msg'
-    );
+    const expr = parseProp(`object "T" { msg: a > 0 && b < 10 ? "in range" : "out" }`, 'msg');
     expect(expr.type).toBe('ternary');
     expect(expr.condition.operator).toBe('&&');
     expect(expr.trueValue).toBe('in range');
@@ -457,10 +364,7 @@ describe('HoloScriptPlusParser - Combined Expression Scenarios', () => {
   });
 
   it('NOT combined with equality', () => {
-    const expr = parseProp(
-      `object "T" { val: !done && status == "active" }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: !done && status == "active" }`, 'val');
     expect(expr.type).toBe('binary');
     expect(expr.operator).toBe('&&');
     expect(expr.left.type).toBe('unary');
@@ -469,10 +373,7 @@ describe('HoloScriptPlusParser - Combined Expression Scenarios', () => {
   });
 
   it('OR chain with null coalescing (?? is lower precedence than || in HoloScript)', () => {
-    const expr = parseProp(
-      `object "T" { val: a || b ?? "default" }`,
-      'val'
-    );
+    const expr = parseProp(`object "T" { val: a || b ?? "default" }`, 'val');
     // In HoloScript: ?? has lower precedence than ||
     // parseNullCoalesce calls parseLogicalOr, so:
     // a || b ?? "default"  =>  (a || b) ?? "default"

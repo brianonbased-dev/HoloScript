@@ -64,6 +64,7 @@
 ## Phase 3: Browser Testing 🚀 NEXT STEPS
 
 - [ ] **3.1** Start dev server
+
   ```bash
   cd packages/studio
   npm run dev
@@ -150,18 +151,18 @@
 
 ✅ = Complete | ⏳ = In Progress | ❌ = Blocked | ⚠️ = At Risk
 
-| Criterion | Status | Notes |
-|-----------|--------|-------|
-| WASM builds without errors | ✅ | 9.72s, 458KB |
-| Binary deployed | ✅ | `/wasm/holoscript.wasm` |
-| TypeScript fallback works | ✅ | All tests passing |
-| Graceful degradation | ✅ | Handled in code |
-| Budget compliance (TS) | ✅ | 100% pass rate |
-| Performance parity (TS) | ✅ | Excellent baseline |
-| Browser loads WASM | ⏳ | Needs dev server test |
-| WASM shows speedup | ⏳ | Pending browser test |
-| Metrics documented | ⏳ | Needs real benchmark |
-| No regressions | ✅ | All tests passing |
+| Criterion                  | Status | Notes                   |
+| -------------------------- | ------ | ----------------------- |
+| WASM builds without errors | ✅     | 9.72s, 458KB            |
+| Binary deployed            | ✅     | `/wasm/holoscript.wasm` |
+| TypeScript fallback works  | ✅     | All tests passing       |
+| Graceful degradation       | ✅     | Handled in code         |
+| Budget compliance (TS)     | ✅     | 100% pass rate          |
+| Performance parity (TS)    | ✅     | Excellent baseline      |
+| Browser loads WASM         | ⏳     | Needs dev server test   |
+| WASM shows speedup         | ⏳     | Pending browser test    |
+| Metrics documented         | ⏳     | Needs real benchmark    |
+| No regressions             | ✅     | All tests passing       |
 
 ---
 
@@ -217,21 +218,26 @@ Iterations: 50
 ## Troubleshooting
 
 ### Issue: "Worker is not defined"
+
 **Cause**: Running in Node.js environment, not browser  
 **Solution**: Run in actual browser via `npm run dev`
 
 ### Issue: "WASM fetch failed"
+
 **Cause**: File not at `/wasm/holoscript.wasm`  
 **Check**: DevTools Network tab for 404  
 **Fix**: Verify file deployed to `packages/studio/public/wasm/`
 
 ### Issue: "WASM binary invalid"
+
 **Cause**: Incorrect binary format  
 **Check**: File size (should be 458KB)  
 **Fix**: Rebuild with `cargo build --target wasm32-wasip1 --release`
 
 ### Issue: No speedup observed
+
 **Possible Causes**:
+
 - WASM still initializing (first call slower)
 - Test conditions not favorable
 - Browser JIT not warmed up
@@ -243,12 +249,12 @@ Iterations: 50
 
 ## Documentation Generated
 
-| File | Purpose |
-|------|---------|
-| `WASM_INTEGRATION_SESSION_SUMMARY.md` | Technical overview of build |
-| `PERFORMANCE_BENCHMARKING_REPORT.md` | Detailed performance analysis |
-| `INTEGRATION_TESTING_CHECKLIST.md` (this file) | Testing roadmap |
-| `scripts/browser-benchmark.js` | Runnable browser benchmark |
+| File                                           | Purpose                       |
+| ---------------------------------------------- | ----------------------------- |
+| `WASM_INTEGRATION_SESSION_SUMMARY.md`          | Technical overview of build   |
+| `PERFORMANCE_BENCHMARKING_REPORT.md`           | Detailed performance analysis |
+| `INTEGRATION_TESTING_CHECKLIST.md` (this file) | Testing roadmap               |
+| `scripts/browser-benchmark.js`                 | Runnable browser benchmark    |
 
 ---
 

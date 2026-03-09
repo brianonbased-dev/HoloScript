@@ -147,7 +147,10 @@ describe('voiceProximityHandler.onUpdate — smooth attenuation', () => {
     state.voiceActive = true;
     ctx.emit.mockClear();
     voiceProximityHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('voice_set_gain', expect.objectContaining({ gain: expect.any(Number) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'voice_set_gain',
+      expect.objectContaining({ gain: expect.any(Number) })
+    );
   });
 
   it('does NOT emit voice_set_gain when voiceActive=false', () => {
@@ -177,7 +180,12 @@ describe('voiceProximityHandler.onUpdate — smooth attenuation', () => {
 // ─── calculateAttenuation helper (via onEvent) ───────────────────────────────
 
 describe('voiceProximityHandler — calculateAttenuation helper', () => {
-  function getAttenuation(distance: number, falloff: 'linear' | 'logarithmic' | 'exponential', minD = 1, maxD = 20) {
+  function getAttenuation(
+    distance: number,
+    falloff: 'linear' | 'logarithmic' | 'exponential',
+    minD = 1,
+    maxD = 20
+  ) {
     const { node, ctx, config } = attach({ falloff, min_distance: minD, max_distance: maxD });
     ctx.emit.mockClear();
     voiceProximityHandler.onEvent!(node as any, config, ctx as any, {
@@ -238,10 +246,13 @@ describe('voiceProximityHandler.onEvent — voice_distance_update', () => {
       listenerPosition: { x: 0, y: 0, z: 0 },
       speakerPosition: { x: 5.5, y: 0, z: 0 },
     });
-    expect(ctx.emit).toHaveBeenCalledWith('voice_proximity_changed', expect.objectContaining({
-      distance: 5.5,
-      attenuation: expect.any(Number),
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'voice_proximity_changed',
+      expect.objectContaining({
+        distance: 5.5,
+        attenuation: expect.any(Number),
+      })
+    );
   });
 
   it('calculates panning vector from speaker−listener / distance', () => {
@@ -263,19 +274,21 @@ describe('voiceProximityHandler.onEvent — voice_distance_update', () => {
       falloff: 'linear',
       min_distance: 1,
       max_distance: 100,
-      zones: [{
-        id: 'pub',
-        type: 'public',
-        bounds: { center: { x: 0, y: 0, z: 0 }, radius: 50 },
-        volumeMultiplier: 2.0,
-      }],
+      zones: [
+        {
+          id: 'pub',
+          type: 'public',
+          bounds: { center: { x: 0, y: 0, z: 0 }, radius: 50 },
+          volumeMultiplier: 2.0,
+        },
+      ],
     });
     ctx.emit.mockClear();
     voiceProximityHandler.onEvent!(node as any, config, ctx as any, {
       type: 'voice_distance_update',
       distance: 5,
       listenerPosition: { x: 0, y: 0, z: 0 }, // inside zone
-      speakerPosition: { x: 5, y: 0, z: 0 },   // inside zone
+      speakerPosition: { x: 5, y: 0, z: 0 }, // inside zone
     });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'voice_proximity_changed');
     // Base linear attenuation for d=5, min=1, max=100: normalized=(5-1)/99≈0.040, attenuation≈0.960
@@ -288,12 +301,14 @@ describe('voiceProximityHandler.onEvent — voice_distance_update', () => {
       falloff: 'linear',
       min_distance: 0,
       max_distance: 100,
-      zones: [{
-        id: 'priv',
-        type: 'private',
-        bounds: { center: { x: 0, y: 0, z: 0 }, radius: 5 },
-        volumeMultiplier: 1.0,
-      }],
+      zones: [
+        {
+          id: 'priv',
+          type: 'private',
+          bounds: { center: { x: 0, y: 0, z: 0 }, radius: 5 },
+          volumeMultiplier: 1.0,
+        },
+      ],
     });
     ctx.emit.mockClear();
     voiceProximityHandler.onEvent!(node as any, config, ctx as any, {
@@ -312,14 +327,20 @@ describe('voiceProximityHandler.onEvent — voice_distance_update', () => {
 describe('voiceProximityHandler.onEvent — other events', () => {
   it('voice_activity sets voiceActive', () => {
     const { node, ctx, config } = attach();
-    voiceProximityHandler.onEvent!(node as any, config, ctx as any, { type: 'voice_activity', active: true });
+    voiceProximityHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'voice_activity',
+      active: true,
+    });
     expect((node as any).__voiceProximityState.voiceActive).toBe(true);
   });
 
   it('voice_mute sets isMuted=true and emits set_gain={gain:0}', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    voiceProximityHandler.onEvent!(node as any, config, ctx as any, { type: 'voice_mute', muted: true });
+    voiceProximityHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'voice_mute',
+      muted: true,
+    });
     expect((node as any).__voiceProximityState.isMuted).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith('voice_set_gain', { node: expect.anything(), gain: 0 });
   });
@@ -327,7 +348,10 @@ describe('voiceProximityHandler.onEvent — other events', () => {
   it('voice_mute=false sets isMuted=false without gain emit', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    voiceProximityHandler.onEvent!(node as any, config, ctx as any, { type: 'voice_mute', muted: false });
+    voiceProximityHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'voice_mute',
+      muted: false,
+    });
     expect((node as any).__voiceProximityState.isMuted).toBe(false);
     expect(ctx.emit).not.toHaveBeenCalledWith('voice_set_gain', expect.anything());
   });
@@ -335,9 +359,15 @@ describe('voiceProximityHandler.onEvent — other events', () => {
   it('voice_zone_enter stores zoneId and emits voice_zone_changed', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    voiceProximityHandler.onEvent!(node as any, config, ctx as any, { type: 'voice_zone_enter', zoneId: 'zone_42' });
+    voiceProximityHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'voice_zone_enter',
+      zoneId: 'zone_42',
+    });
     expect((node as any).__voiceProximityState.activeZone).toBe('zone_42');
-    expect(ctx.emit).toHaveBeenCalledWith('voice_zone_changed', expect.objectContaining({ zoneId: 'zone_42' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'voice_zone_changed',
+      expect.objectContaining({ zoneId: 'zone_42' })
+    );
   });
 
   it('voice_zone_exit clears activeZone', () => {

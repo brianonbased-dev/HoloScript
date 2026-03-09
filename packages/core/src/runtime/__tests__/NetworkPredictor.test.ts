@@ -99,7 +99,7 @@ describe('NetworkPredictor', () => {
     // Set a known time
     let now = 1000;
     vi.mocked(performance.now).mockReturnValue(now);
-    
+
     predictor.updateMetrics(now - 50);
     const horizon1 = predictor.getPredictionHorizon();
     expect(horizon1).toBeGreaterThan(0);

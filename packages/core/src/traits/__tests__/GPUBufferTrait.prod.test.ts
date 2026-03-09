@@ -73,7 +73,10 @@ describe('gpuBufferHandler.onAttach', () => {
 
   it('emits gpu_buffer_create with usage and config label', () => {
     const { ctx } = attach({ size: 512, usage: 'vertex', label: 'verts' });
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_buffer_create', expect.objectContaining({ size: 512, usage: 'vertex', label: 'verts' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_buffer_create',
+      expect.objectContaining({ size: 512, usage: 'vertex', label: 'verts' })
+    );
   });
 
   it('uses fallback label buffer_<timestamp> when label is empty', () => {
@@ -141,8 +144,14 @@ describe('gpuBufferHandler.onUpdate', () => {
     ctx.emit.mockClear();
     gpuBufferHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledTimes(2);
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_buffer_write', expect.objectContaining({ offset: 0, data: buf1 }));
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_buffer_write', expect.objectContaining({ offset: 8, data: buf2 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_buffer_write',
+      expect.objectContaining({ offset: 0, data: buf1 })
+    );
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_buffer_write',
+      expect.objectContaining({ offset: 8, data: buf2 })
+    );
     expect(state.pendingWrites).toHaveLength(0);
   });
 });
@@ -152,28 +161,51 @@ describe('gpuBufferHandler.onUpdate', () => {
 describe('gpuBufferHandler.onEvent — gpu_buffer_created', () => {
   it('sets isAllocated=true', () => {
     const { node, ctx, config } = attach();
-    gpuBufferHandler.onEvent!(node as any, config, ctx as any, { type: 'gpu_buffer_created', buffer: {}, size: 1024, accuracy: 1 });
+    gpuBufferHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'gpu_buffer_created',
+      buffer: {},
+      size: 1024,
+      accuracy: 1,
+    });
     expect((node as any).__gpuBufferState.isAllocated).toBe(true);
   });
 
   it('emits on_buffer_ready', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    gpuBufferHandler.onEvent!(node as any, config, ctx as any, { type: 'gpu_buffer_created', buffer: {}, size: 2048 });
-    expect(ctx.emit).toHaveBeenCalledWith('on_buffer_ready', expect.objectContaining({ size: 2048 }));
+    gpuBufferHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'gpu_buffer_created',
+      buffer: {},
+      size: 2048,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_buffer_ready',
+      expect.objectContaining({ size: 2048 })
+    );
   });
 
   it('writes initial_data string as encoded bytes', () => {
     const { node, ctx, config } = attach({ initial_data: 'hello' });
     ctx.emit.mockClear();
-    gpuBufferHandler.onEvent!(node as any, config, ctx as any, { type: 'gpu_buffer_created', buffer: {}, size: 1024 });
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_buffer_write', expect.objectContaining({ offset: 0 }));
+    gpuBufferHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'gpu_buffer_created',
+      buffer: {},
+      size: 1024,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_buffer_write',
+      expect.objectContaining({ offset: 0 })
+    );
   });
 
   it('does NOT emit gpu_buffer_write when initial_data is empty', () => {
     const { node, ctx, config } = attach({ initial_data: '' });
     ctx.emit.mockClear();
-    gpuBufferHandler.onEvent!(node as any, config, ctx as any, { type: 'gpu_buffer_created', buffer: {}, size: 1024 });
+    gpuBufferHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'gpu_buffer_created',
+      buffer: {},
+      size: 1024,
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('gpu_buffer_write', expect.anything());
   });
 });
@@ -184,8 +216,14 @@ describe('gpuBufferHandler.onEvent — gpu_buffer_error', () => {
   it('emits on_gpu_error with the error', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    gpuBufferHandler.onEvent!(node as any, config, ctx as any, { type: 'gpu_buffer_error', error: 'OOM' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_gpu_error', expect.objectContaining({ error: 'OOM' }));
+    gpuBufferHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'gpu_buffer_error',
+      error: 'OOM',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_gpu_error',
+      expect.objectContaining({ error: 'OOM' })
+    );
   });
 });
 
@@ -198,15 +236,26 @@ describe('gpuBufferHandler.onEvent — buffer_write', () => {
     state.isMapped = false;
     const buf = new ArrayBuffer(8);
     ctx.emit.mockClear();
-    gpuBufferHandler.onEvent!(node as any, config, ctx as any, { type: 'buffer_write', offset: 16, data: buf });
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_buffer_write', expect.objectContaining({ offset: 16, data: buf }));
+    gpuBufferHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'buffer_write',
+      offset: 16,
+      data: buf,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_buffer_write',
+      expect.objectContaining({ offset: 16, data: buf })
+    );
   });
 
   it('updates lastWriteTime on immediate write', () => {
     const { node, ctx, config } = attach();
     (node as any).__gpuBufferState.isMapped = false;
     const before = Date.now();
-    gpuBufferHandler.onEvent!(node as any, config, ctx as any, { type: 'buffer_write', offset: 0, data: new ArrayBuffer(4) });
+    gpuBufferHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'buffer_write',
+      offset: 0,
+      data: new ArrayBuffer(4),
+    });
     expect((node as any).__gpuBufferState.lastWriteTime).toBeGreaterThanOrEqual(before);
   });
 
@@ -214,7 +263,11 @@ describe('gpuBufferHandler.onEvent — buffer_write', () => {
     const { node, ctx, config } = attach();
     (node as any).__gpuBufferState.isMapped = true;
     const buf = new ArrayBuffer(8);
-    gpuBufferHandler.onEvent!(node as any, config, ctx as any, { type: 'buffer_write', offset: 0, data: buf });
+    gpuBufferHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'buffer_write',
+      offset: 0,
+      data: buf,
+    });
     expect((node as any).__gpuBufferState.pendingWrites).toHaveLength(1);
     expect((node as any).__gpuBufferState.pendingWrites[0]).toEqual({ offset: 0, data: buf });
   });
@@ -226,9 +279,15 @@ describe('gpuBufferHandler.onEvent — buffer_map/unmap', () => {
   it('buffer_map sets isMapped=true and emits gpu_buffer_map', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    gpuBufferHandler.onEvent!(node as any, config, ctx as any, { type: 'buffer_map', mode: 'write' });
+    gpuBufferHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'buffer_map',
+      mode: 'write',
+    });
     expect((node as any).__gpuBufferState.isMapped).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_buffer_map', expect.objectContaining({ mode: 'write' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_buffer_map',
+      expect.objectContaining({ mode: 'write' })
+    );
   });
 
   it('buffer_unmap sets isMapped=false and emits gpu_buffer_unmap', () => {
@@ -247,15 +306,28 @@ describe('gpuBufferHandler.onEvent — resize/clear', () => {
   it('buffer_resize emits gpu_buffer_resize with size and preserveData=true', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    gpuBufferHandler.onEvent!(node as any, config, ctx as any, { type: 'buffer_resize', size: 8192 });
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_buffer_resize', expect.objectContaining({ size: 8192, preserveData: true }));
+    gpuBufferHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'buffer_resize',
+      size: 8192,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_buffer_resize',
+      expect.objectContaining({ size: 8192, preserveData: true })
+    );
   });
 
   it('buffer_clear emits gpu_buffer_clear with offset and size', () => {
     const { node, ctx, config } = attach({ size: 2048 });
     ctx.emit.mockClear();
-    gpuBufferHandler.onEvent!(node as any, config, ctx as any, { type: 'buffer_clear', offset: 0, size: 512 });
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_buffer_clear', expect.objectContaining({ offset: 0, size: 512 }));
+    gpuBufferHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'buffer_clear',
+      offset: 0,
+      size: 512,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_buffer_clear',
+      expect.objectContaining({ offset: 0, size: 512 })
+    );
   });
 });
 
@@ -269,14 +341,20 @@ describe('gpuBufferHandler.onEvent — buffer_query', () => {
     state.isMapped = false;
     state.lastWriteTime = 999;
     ctx.emit.mockClear();
-    gpuBufferHandler.onEvent!(node as any, config, ctx as any, { type: 'buffer_query', queryId: 'q1' });
-    expect(ctx.emit).toHaveBeenCalledWith('buffer_info', expect.objectContaining({
+    gpuBufferHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'buffer_query',
       queryId: 'q1',
-      isAllocated: true,
-      size: 512,
-      isMapped: false,
-      lastWriteTime: 999,
-      pendingWriteCount: 0,
-    }));
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'buffer_info',
+      expect.objectContaining({
+        queryId: 'q1',
+        isAllocated: true,
+        size: 512,
+        isMapped: false,
+        lastWriteTime: 999,
+        pendingWriteCount: 0,
+      })
+    );
   });
 });

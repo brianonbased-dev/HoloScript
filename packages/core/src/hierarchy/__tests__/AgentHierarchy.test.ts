@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HierarchyManager, resetHierarchyManager } from '../AgentHierarchy';
 import type { AgentManifest, AgentCapability } from '../../agents/AgentManifest';
 
-function makeManifest(id: string, caps: Partial<AgentCapability>[] = [{ type: 'render', domain: 'spatial' }]): AgentManifest {
+function makeManifest(
+  id: string,
+  caps: Partial<AgentCapability>[] = [{ type: 'render', domain: 'spatial' }]
+): AgentManifest {
   return {
     id,
     name: `Agent ${id}`,
@@ -41,7 +44,9 @@ describe('HierarchyManager', () => {
 
   it('throws on duplicate hierarchy id', () => {
     mgr.createHierarchy({ id: 'h1', name: 'A', supervisor: sup });
-    expect(() => mgr.createHierarchy({ id: 'h1', name: 'B', supervisor: makeManifest('other') })).toThrow();
+    expect(() =>
+      mgr.createHierarchy({ id: 'h1', name: 'B', supervisor: makeManifest('other') })
+    ).toThrow();
   });
 
   it('throws if supervisor already in a hierarchy', () => {
@@ -137,7 +142,11 @@ describe('HierarchyManager', () => {
   // Delegation rules
   it('addDelegationRule and findDelegationRule', () => {
     mgr.createHierarchy({ id: 'h1', name: 'A', supervisor: sup, subordinates: [sub1] });
-    const rule = mgr.addDelegationRule('h1', { taskType: 'render', targetAgentId: 'sub1', priority: 10 });
+    const rule = mgr.addDelegationRule('h1', {
+      taskType: 'render',
+      targetAgentId: 'sub1',
+      priority: 10,
+    });
     expect(rule.id).toBeTruthy();
     expect(mgr.findDelegationRule('h1', 'render')?.targetAgentId).toBe('sub1');
   });

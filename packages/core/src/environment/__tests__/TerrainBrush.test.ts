@@ -5,7 +5,14 @@ import { TerrainBrush } from '../TerrainBrush';
 describe('TerrainBrush', () => {
   let ts: TerrainSystem;
   let brush: TerrainBrush;
-  const cfg = { id: 't1', width: 100, depth: 100, resolution: 32, maxHeight: 50, position: { x: 0, y: 0, z: 0 } };
+  const cfg = {
+    id: 't1',
+    width: 100,
+    depth: 100,
+    resolution: 32,
+    maxHeight: 50,
+    position: { x: 0, y: 0, z: 0 },
+  };
 
   beforeEach(() => {
     ts = new TerrainSystem();
@@ -42,7 +49,7 @@ describe('TerrainBrush', () => {
     brush.setStrength(1);
     const stroke = brush.apply('t1', 16, 16);
     expect(stroke.affectedCells.length).toBeGreaterThan(0);
-    const raised = stroke.affectedCells.some(c => c.newHeight > c.oldHeight);
+    const raised = stroke.affectedCells.some((c) => c.newHeight > c.oldHeight);
     expect(raised).toBe(true);
   });
 
@@ -50,7 +57,7 @@ describe('TerrainBrush', () => {
     brush.setMode('lower');
     brush.setStrength(1);
     const stroke = brush.apply('t1', 16, 16);
-    const lowered = stroke.affectedCells.some(c => c.newHeight < c.oldHeight);
+    const lowered = stroke.affectedCells.some((c) => c.newHeight < c.oldHeight);
     expect(lowered).toBe(true);
   });
 

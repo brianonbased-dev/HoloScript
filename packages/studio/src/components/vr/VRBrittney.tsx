@@ -16,7 +16,7 @@ import * as THREE from 'three';
 import { streamBrittney, buildRichContext } from '@/lib/brittney';
 import type { BrittneyMessage, ToolCallPayload } from '@/lib/brittney';
 import { executeTool } from '@/lib/brittney';
-import { useSceneGraphStore, useEditorStore, useSceneStore } from '@/lib/store';
+import { useSceneGraphStore, useEditorStore, useSceneStore } from '@/lib/stores';
 import { BrittneyAvatarMesh } from './BrittneyAvatarMesh';
 
 // ─── Speech bubble ────────────────────────────────────────────────────────────
@@ -41,20 +41,22 @@ function BrittneySpeechBubble({ text, isThinking }: { text: string; isThinking: 
       {isThinking ? (
         <span style={{ opacity: 0.7, fontStyle: 'italic' }}>Thinking…</span>
       ) : (
-        text || 'Hi! I\'m Brittney. What would you like to build?'
+        text || "Hi! I'm Brittney. What would you like to build?"
       )}
       {/* Bubble tail */}
-      <div style={{
-        position: 'absolute',
-        bottom: -8,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 0,
-        height: 0,
-        borderLeft: '8px solid transparent',
-        borderRight: '8px solid transparent',
-        borderTop: '8px solid rgba(99,102,241,0.9)',
-      }} />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: -8,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 0,
+          height: 0,
+          borderLeft: '8px solid transparent',
+          borderRight: '8px solid transparent',
+          borderTop: '8px solid rgba(99,102,241,0.9)',
+        }}
+      />
     </div>
   );
 }
@@ -233,7 +235,15 @@ export function VRBrittney() {
     const sceneContext = buildRichContext(code, nodes, selectedId, selectedName);
     const getCodeFn = () => useSceneStore.getState().code ?? '';
     const setCodeFn = useSceneStore.getState().setCode;
-    const storeActions = { nodes, addTrait, removeTrait, setTraitProperty, addNode, getCode: getCodeFn, setCode: setCodeFn };
+    const storeActions = {
+      nodes,
+      addTrait,
+      removeTrait,
+      setTraitProperty,
+      addNode,
+      getCode: getCodeFn,
+      setCode: setCodeFn,
+    };
 
     let accumulated = '';
     try {

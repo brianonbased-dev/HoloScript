@@ -71,29 +71,46 @@ export async function runBenchmark(scenarioName: string): Promise<BenchmarkRepor
   results.push(await benchmarkTarget('Unity C#', () => compileToUnity(composition), scenarioName));
 
   // Compile to Unreal
-  results.push(await benchmarkTarget('Unreal C++', () => {
-    const output = compileToUnreal(composition);
-    // Combine header + source files for measurement
-    return output.headerFile + '\n' + output.sourceFile;
-  }, scenarioName));
+  results.push(
+    await benchmarkTarget(
+      'Unreal C++',
+      () => {
+        const output = compileToUnreal(composition);
+        // Combine header + source files for measurement
+        return output.headerFile + '\n' + output.sourceFile;
+      },
+      scenarioName
+    )
+  );
 
   // Compile to Godot
-  results.push(await benchmarkTarget('Godot GDScript', () => compileToGodot(composition), scenarioName));
+  results.push(
+    await benchmarkTarget('Godot GDScript', () => compileToGodot(composition), scenarioName)
+  );
 
   // Compile to Three.js
-  results.push(await benchmarkTarget('Three.js/WebXR', () => compileToThreeJS(composition), scenarioName));
+  results.push(
+    await benchmarkTarget('Three.js/WebXR', () => compileToThreeJS(composition), scenarioName)
+  );
 
   // Compile to VRChat
-  results.push(await benchmarkTarget('VRChat Udon#', () => {
-    const output = compileToVRChat(composition);
-    return output.mainScript;
-  }, scenarioName));
+  results.push(
+    await benchmarkTarget(
+      'VRChat Udon#',
+      () => {
+        const output = compileToVRChat(composition);
+        return output.mainScript;
+      },
+      scenarioName
+    )
+  );
 
   // Calculate summary stats
-  const successful = results.filter(r => r.success);
-  const avgCompileTime = successful.reduce((sum, r) => sum + r.compileTimeMs, 0) / successful.length;
-  const fastest = successful.reduce((min, r) => r.compileTimeMs < min.compileTimeMs ? r : min);
-  const slowest = successful.reduce((max, r) => r.compileTimeMs > max.compileTimeMs ? r : max);
+  const successful = results.filter((r) => r.success);
+  const avgCompileTime =
+    successful.reduce((sum, r) => sum + r.compileTimeMs, 0) / successful.length;
+  const fastest = successful.reduce((min, r) => (r.compileTimeMs < min.compileTimeMs ? r : min));
+  const slowest = successful.reduce((max, r) => (r.compileTimeMs > max.compileTimeMs ? r : max));
 
   const report: BenchmarkReport = {
     timestamp: new Date().toISOString(),
@@ -187,7 +204,7 @@ function printResults(report: BenchmarkReport): void {
   console.log(`│ Platform              │ Time   │ LOC   │ Size            │`);
   console.log(`├───────────────────────┼────────┼───────┼─────────────────┤`);
 
-  for (const result of report.results.filter(r => r.success)) {
+  for (const result of report.results.filter((r) => r.success)) {
     const platform = result.platform.padEnd(21);
     const time = `${result.compileTimeMs}ms`.padEnd(6);
     const loc = result.linesOfCode.toString().padEnd(5);
@@ -198,7 +215,9 @@ function printResults(report: BenchmarkReport): void {
   console.log(`└───────────────────────┴────────┴───────┴─────────────────┘`);
 
   console.log(`\n📈 Summary:`);
-  console.log(`   • Successful: ${report.summary.successfulCompilations}/${report.summary.totalTargets} targets`);
+  console.log(
+    `   • Successful: ${report.summary.successfulCompilations}/${report.summary.totalTargets} targets`
+  );
   console.log(`   • Average compile time: ${report.summary.avgCompileTimeMs}ms`);
   console.log(`   • Fastest: ${report.summary.fastestTarget}`);
   console.log(`   • Slowest: ${report.summary.slowestTarget}`);
@@ -221,7 +240,7 @@ function formatBytes(bytes: number): string {
  */
 if (require.main === module) {
   const scenario = process.argv[2] || '01-basic-scene';
-  runBenchmark(scenario).catch(error => {
+  runBenchmark(scenario).catch((error) => {
     console.error(`❌ Benchmark failed:`, error);
     process.exit(1);
   });

@@ -11,7 +11,10 @@ describe('useNodeGraphHistory', () => {
   };
 
   const mockSnapshot2: GraphSnapshot = {
-    nodes: [{ id: '1', type: 'add', position: { x: 0, y: 0 } }, { id: '2', type: 'mul', position: { x: 100, y: 0 } }],
+    nodes: [
+      { id: '1', type: 'add', position: { x: 0, y: 0 } },
+      { id: '2', type: 'mul', position: { x: 100, y: 0 } },
+    ],
     edges: [{ id: 'e1', source: '1', target: '2' }],
   };
 

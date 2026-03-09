@@ -17,9 +17,9 @@ function makeConfig(entityId: string): LODConfig {
   return {
     entityId,
     levels: [
-      { minDistance: 0,   label: 'high' },
-      { minDistance: 20,  label: 'medium' },
-      { minDistance: 50,  label: 'low' },
+      { minDistance: 0, label: 'high' },
+      { minDistance: 20, label: 'medium' },
+      { minDistance: 50, label: 'low' },
       { minDistance: 100, label: 'billboard' },
     ],
   };
@@ -159,7 +159,7 @@ describe('LODSystem: production', () => {
       entityId: 'unsorted',
       levels: [
         { minDistance: 50, label: 'low' },
-        { minDistance: 0,  label: 'high' },
+        { minDistance: 0, label: 'high' },
         { minDistance: 20, label: 'medium' },
       ],
     });

@@ -94,7 +94,7 @@ describe('HSMIntegrationTrait', () => {
       HSMIntegrationTrait.validate(config);
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('FIPS 140-2 Level 3+ recommended for production'),
+        expect.stringContaining('FIPS 140-2 Level 3+ recommended for production')
       );
       consoleSpy.mockRestore();
     });
@@ -111,7 +111,7 @@ describe('HSMIntegrationTrait', () => {
       HSMIntegrationTrait.validate(config);
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Key rotation disabled - highly recommended for security'),
+        expect.stringContaining('Key rotation disabled - highly recommended for security')
       );
       consoleSpy.mockRestore();
     });

@@ -5,11 +5,7 @@
  */
 
 export { USDZExporter } from './USDZExporter';
-export type {
-  IUSDZExportOptions,
-  IUSDZExportResult,
-  IUSDZExportStats,
-} from './USDZExporter';
+export type { IUSDZExportOptions, IUSDZExportResult, IUSDZExportStats } from './USDZExporter';
 
 export type {
   IUSDStage,

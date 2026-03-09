@@ -5,12 +5,14 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DayNightCycle } from '../environment/DayNightCycle';
-import { WeatherSystem }  from '../environment/WeatherSystem';
-import { SkyRenderer }    from '../environment/SkyRenderer';
+import { WeatherSystem } from '../environment/WeatherSystem';
+import { SkyRenderer } from '../environment/SkyRenderer';
 
 describe('DayNightCycle', () => {
   let dnc: DayNightCycle;
-  beforeEach(() => { dnc = new DayNightCycle(); });
+  beforeEach(() => {
+    dnc = new DayNightCycle();
+  });
 
   it('starts at 8 AM morning', () => {
     expect(dnc.getTime()).toBe(8);
@@ -74,7 +76,9 @@ describe('DayNightCycle', () => {
 
 describe('WeatherSystem', () => {
   let ws: WeatherSystem;
-  beforeEach(() => { ws = new WeatherSystem('clear'); });
+  beforeEach(() => {
+    ws = new WeatherSystem('clear');
+  });
 
   it('starts clear', () => {
     expect(ws.getType()).toBe('clear');
@@ -114,7 +118,9 @@ describe('WeatherSystem', () => {
 
 describe('SkyRenderer', () => {
   let sky: SkyRenderer;
-  beforeEach(() => { sky = new SkyRenderer(); });
+  beforeEach(() => {
+    sky = new SkyRenderer();
+  });
 
   it('samples gradient', () => {
     const c = sky.sampleGradient(0.5);

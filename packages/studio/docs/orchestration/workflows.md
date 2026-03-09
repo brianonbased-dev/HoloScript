@@ -29,6 +29,7 @@ Agent workflows are **directed graphs** that define how AI agents process inform
 - **Data** - Information passed through the workflow during execution
 
 Workflows enable you to:
+
 - Chain multiple AI agent calls together
 - Integrate external tools via MCP servers
 - Create conditional branching logic
@@ -44,6 +45,7 @@ Workflows enable you to:
 **Keyboard Shortcut:** `Ctrl+Shift+W`
 
 **Or via UI:**
+
 1. Click the "Workflow" icon in the toolbar
 2. Select or create a workflow from the list
 
@@ -72,6 +74,7 @@ Workflows enable you to:
 ```
 
 **Components:**
+
 - **Header** - Workflow name and action buttons
 - **Canvas** - Main editing area with infinite scroll
 - **MiniMap** - Bird's-eye view of entire workflow (bottom-right)
@@ -91,11 +94,13 @@ Workflows enable you to:
 ### Step 2: Configure the Agent
 
 Agent nodes display:
+
 - **Type indicator:** 🤖 AGENT
 - **Agent ID:** Name of the agent (e.g., "brittney")
 - **Tool count:** Number of tools available to this agent
 
 **Configuration properties:**
+
 ```typescript
 {
   agentId: 'brittney',
@@ -136,6 +141,7 @@ Click **"Save"** in the header. Your workflow auto-saves to localStorage every 2
 **Purpose:** Execute AI agent inference
 
 **Properties:**
+
 - `agentId` - Agent identifier (e.g., "brittney", "claude-opus")
 - `systemPrompt` - Instructions for the agent
 - `temperature` - Randomness (0.0-1.0)
@@ -143,6 +149,7 @@ Click **"Save"** in the header. Your workflow auto-saves to localStorage every 2
 - `maxTokens` - Maximum output length
 
 **Visual Appearance:**
+
 ```
 ┌─────────────────┐
 │ 🤖 AGENT        │
@@ -152,6 +159,7 @@ Click **"Save"** in the header. Your workflow auto-saves to localStorage every 2
 ```
 
 **Use Cases:**
+
 - Natural language processing
 - Code generation
 - Content creation
@@ -164,11 +172,13 @@ Click **"Save"** in the header. Your workflow auto-saves to localStorage every 2
 **Purpose:** Execute external tool calls via MCP
 
 **Properties:**
+
 - `toolName` - Name of the MCP tool
 - `server` - MCP server hosting the tool
 - `args` - Arguments to pass to the tool
 
 **Visual Appearance:**
+
 ```
 ┌─────────────────┐
 │ 🔧 TOOL         │
@@ -178,6 +188,7 @@ Click **"Save"** in the header. Your workflow auto-saves to localStorage every 2
 ```
 
 **Use Cases:**
+
 - File system operations
 - API calls
 - Database queries
@@ -190,11 +201,13 @@ Click **"Save"** in the header. Your workflow auto-saves to localStorage every 2
 **Purpose:** Conditional branching based on data
 
 **Properties:**
+
 - `condition` - JavaScript expression to evaluate
 - `trueOutput` - Node to execute if true
 - `falseOutput` - Node to execute if false
 
 **Visual Appearance:**
+
 ```
 ┌─────────────────┐
 │ 🔀 DECISION     │
@@ -203,6 +216,7 @@ Click **"Save"** in the header. Your workflow auto-saves to localStorage every 2
 ```
 
 **Use Cases:**
+
 - Quality thresholds
 - Error handling
 - Multi-path workflows
@@ -215,11 +229,13 @@ Click **"Save"** in the header. Your workflow auto-saves to localStorage every 2
 **Purpose:** Iterate over data arrays
 
 **Properties:**
+
 - `iterations` - Number of loops (or until condition)
 - `loopBody` - Nodes to execute in each iteration
 - `breakCondition` - Optional early exit condition
 
 **Visual Appearance:**
+
 ```
 ┌─────────────────┐
 │ 🔁 LOOP         │
@@ -228,6 +244,7 @@ Click **"Save"** in the header. Your workflow auto-saves to localStorage every 2
 ```
 
 **Use Cases:**
+
 - Batch processing
 - Recursive refinement
 - Multi-step validation
@@ -239,10 +256,12 @@ Click **"Save"** in the header. Your workflow auto-saves to localStorage every 2
 **Purpose:** Execute multiple branches simultaneously
 
 **Properties:**
+
 - `branches` - Array of node paths to execute
 - `mergeStrategy` - How to combine results (all, any, first)
 
 **Visual Appearance:**
+
 ```
 ┌─────────────────┐
 │ ⚡ PARALLEL     │
@@ -251,6 +270,7 @@ Click **"Save"** in the header. Your workflow auto-saves to localStorage every 2
 ```
 
 **Use Cases:**
+
 - Multi-agent review
 - Parallel tool calls
 - Race conditions
@@ -263,10 +283,12 @@ Click **"Save"** in the header. Your workflow auto-saves to localStorage every 2
 **Purpose:** Combine outputs from multiple nodes
 
 **Properties:**
+
 - `mergeType` - Strategy (concat, object, reduce)
 - `inputs` - Nodes to merge
 
 **Visual Appearance:**
+
 ```
 ┌─────────────────┐
 │ 🔗 MERGE        │
@@ -275,6 +297,7 @@ Click **"Save"** in the header. Your workflow auto-saves to localStorage every 2
 ```
 
 **Use Cases:**
+
 - Consensus from multiple agents
 - Combining tool outputs
 - Aggregating parallel results
@@ -288,6 +311,7 @@ Click **"Save"** in the header. Your workflow auto-saves to localStorage every 2
 **Animated Edges** - Show active data flow during execution
 
 **Edge Properties:**
+
 ```typescript
 {
   id: 'edge_1234',
@@ -313,6 +337,7 @@ Input → Agent → Tool → Agent → Output
 ```
 
 Data at each step:
+
 1. User prompt: `"Create a futuristic city"`
 2. Agent output: `{ scene: "...", objects: [...] }`
 3. Tool output: `{ valid: true, suggestions: [...] }`
@@ -346,6 +371,7 @@ const executeWorkflow = async (workflowId: string, input: any) => {
 ### Monitoring Execution
 
 **Event Monitor** shows agent messages:
+
 ```
 12:30:45.123  agent.started     brittney → none
 12:30:46.456  tool.called       search_knowledge → semantic-search
@@ -353,6 +379,7 @@ const executeWorkflow = async (workflowId: string, input: any) => {
 ```
 
 **Tool Call Graph** shows performance:
+
 ```
 Tool: search_knowledge
 Server: semantic-search
@@ -580,14 +607,14 @@ const createDynamicWorkflow = (agentCount: number) => {
       id: `agent_${i}`,
       type: 'agent',
       position: { x: i * 200, y: 100 },
-      data: { agentId: `agent_${i}` }
+      data: { agentId: `agent_${i}` },
     });
 
     if (i > 0) {
       edges.push({
         id: `edge_${i}`,
         source: `agent_${i - 1}`,
-        target: `agent_${i}`
+        target: `agent_${i}`,
       });
     }
   }
@@ -602,9 +629,15 @@ Save common patterns as reusable templates:
 
 ```typescript
 const templates = {
-  'linear-pipeline': { /* 3-step linear workflow */ },
-  'parallel-review': { /* Multi-agent parallel review */ },
-  'iterative-refinement': { /* Loop-based refinement */ }
+  'linear-pipeline': {
+    /* 3-step linear workflow */
+  },
+  'parallel-review': {
+    /* Multi-agent parallel review */
+  },
+  'iterative-refinement': {
+    /* Loop-based refinement */
+  },
 };
 ```
 

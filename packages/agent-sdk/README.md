@@ -7,7 +7,12 @@ Mesh discovery, inter-agent signaling, gossip-based knowledge sync, MCP tool sch
 ## Quick Start
 
 ```ts
-import { MeshDiscovery, SignalService, GossipProtocol, createAgentCard } from '@holoscript/agent-sdk';
+import {
+  MeshDiscovery,
+  SignalService,
+  GossipProtocol,
+  createAgentCard,
+} from '@holoscript/agent-sdk';
 
 // 1. Mesh Discovery — find other agents in the network
 const mesh = new MeshDiscovery('agent_spatial_001');
@@ -29,11 +34,14 @@ mesh.registerPeer({
 // 2. Signal Service — broadcast capabilities
 const signals = new SignalService('node_001');
 
-signals.broadcastSignal({
-  type: 'mcp-server',
-  url: 'http://localhost:3000/mcp',
-  capabilities: ['semantic-search', 'knowledge-index'],
-}, 3600000); // 1 hour TTL
+signals.broadcastSignal(
+  {
+    type: 'mcp-server',
+    url: 'http://localhost:3000/mcp',
+    capabilities: ['semantic-search', 'knowledge-index'],
+  },
+  3600000
+); // 1 hour TTL
 
 const mcpServers = signals.discoverSignals('mcp-server');
 // mcpServers: [{ type: 'mcp-server', nodeId: 'node_001', url: '...', ... }]
@@ -106,7 +114,7 @@ import { MCP_TOOL_SCHEMAS } from '@holoscript/agent-sdk';
 // - get_session_context: Retrieve session state
 // - knowledge_stats: Get vector index stats
 
-const searchSchema = MCP_TOOL_SCHEMAS.find(t => t.name === 'search_knowledge');
+const searchSchema = MCP_TOOL_SCHEMAS.find((t) => t.name === 'search_knowledge');
 // searchSchema.inputSchema.properties.query.type === 'string'
 ```
 

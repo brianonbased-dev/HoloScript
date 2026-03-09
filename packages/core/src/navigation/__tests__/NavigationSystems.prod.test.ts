@@ -18,20 +18,26 @@ import { SteeringBehaviors, SteeringAgent } from '../SteeringBehaviors';
 
 describe('NavMesh', () => {
   let mesh: NavMesh;
-  beforeEach(() => { mesh = new NavMesh(); });
+  beforeEach(() => {
+    mesh = new NavMesh();
+  });
 
   it('adds a polygon and reports count', () => {
     mesh.addPolygon([
-      { x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 0 },
-      { x: 4, y: 0, z: 4 }, { x: 0, y: 0, z: 4 },
+      { x: 0, y: 0, z: 0 },
+      { x: 4, y: 0, z: 0 },
+      { x: 4, y: 0, z: 4 },
+      { x: 0, y: 0, z: 4 },
     ]);
     expect(mesh.getPolygonCount()).toBe(1);
   });
 
   it('computes polygon center correctly', () => {
     const poly = mesh.addPolygon([
-      { x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 0 },
-      { x: 4, y: 0, z: 4 }, { x: 0, y: 0, z: 4 },
+      { x: 0, y: 0, z: 0 },
+      { x: 4, y: 0, z: 0 },
+      { x: 4, y: 0, z: 4 },
+      { x: 0, y: 0, z: 4 },
     ]);
     expect(poly.center.x).toBeCloseTo(2);
     expect(poly.center.z).toBeCloseTo(2);
@@ -39,54 +45,98 @@ describe('NavMesh', () => {
 
   it('findPolygonAtPoint returns containing polygon', () => {
     mesh.addPolygon([
-      { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 },
-      { x: 10, y: 0, z: 10 }, { x: 0, y: 0, z: 10 },
+      { x: 0, y: 0, z: 0 },
+      { x: 10, y: 0, z: 0 },
+      { x: 10, y: 0, z: 10 },
+      { x: 0, y: 0, z: 10 },
     ]);
     const found = mesh.findPolygonAtPoint({ x: 5, y: 0, z: 5 });
     expect(found).not.toBeNull();
   });
 
   it('findPolygonAtPoint returns null for non-walkable polygon', () => {
-    mesh.addPolygon([
-      { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 },
-      { x: 10, y: 0, z: 10 }, { x: 0, y: 0, z: 10 },
-    ], false /* not walkable */);
+    mesh.addPolygon(
+      [
+        { x: 0, y: 0, z: 0 },
+        { x: 10, y: 0, z: 0 },
+        { x: 10, y: 0, z: 10 },
+        { x: 0, y: 0, z: 10 },
+      ],
+      false /* not walkable */
+    );
     const found = mesh.findPolygonAtPoint({ x: 5, y: 0, z: 5 });
     expect(found).toBeNull();
   });
 
   it('findNearestPolygon returns closest center', () => {
     mesh.addPolygon([
-      { x: 0, y: 0, z: 0 }, { x: 2, y: 0, z: 0 },
-      { x: 2, y: 0, z: 2 }, { x: 0, y: 0, z: 2 },
+      { x: 0, y: 0, z: 0 },
+      { x: 2, y: 0, z: 0 },
+      { x: 2, y: 0, z: 2 },
+      { x: 0, y: 0, z: 2 },
     ]);
     mesh.addPolygon([
-      { x: 10, y: 0, z: 10 }, { x: 12, y: 0, z: 10 },
-      { x: 12, y: 0, z: 12 }, { x: 10, y: 0, z: 12 },
+      { x: 10, y: 0, z: 10 },
+      { x: 12, y: 0, z: 10 },
+      { x: 12, y: 0, z: 12 },
+      { x: 10, y: 0, z: 12 },
     ]);
     const nearest = mesh.findNearestPolygon({ x: 0.5, y: 0, z: 0.5 });
     expect(nearest?.center.x).toBeCloseTo(1);
   });
 
   it('connectPolygons sets bilateral neighbors', () => {
-    const p1 = mesh.addPolygon([{ x: 0, y: 0, z: 0 }, { x: 2, y: 0, z: 0 }, { x: 2, y: 0, z: 2 }, { x: 0, y: 0, z: 2 }]);
-    const p2 = mesh.addPolygon([{ x: 3, y: 0, z: 0 }, { x: 5, y: 0, z: 0 }, { x: 5, y: 0, z: 2 }, { x: 3, y: 0, z: 2 }]);
+    const p1 = mesh.addPolygon([
+      { x: 0, y: 0, z: 0 },
+      { x: 2, y: 0, z: 0 },
+      { x: 2, y: 0, z: 2 },
+      { x: 0, y: 0, z: 2 },
+    ]);
+    const p2 = mesh.addPolygon([
+      { x: 3, y: 0, z: 0 },
+      { x: 5, y: 0, z: 0 },
+      { x: 5, y: 0, z: 2 },
+      { x: 3, y: 0, z: 2 },
+    ]);
     mesh.connectPolygons(p1.id, p2.id);
     expect(p1.neighbors).toContain(p2.id);
     expect(p2.neighbors).toContain(p1.id);
   });
 
   it('getWalkableNeighbors filters non-walkable', () => {
-    const p1 = mesh.addPolygon([{ x: 0, y: 0, z: 0 }, { x: 2, y: 0, z: 0 }, { x: 2, y: 0, z: 2 }, { x: 0, y: 0, z: 2 }]);
-    const p2 = mesh.addPolygon([{ x: 3, y: 0, z: 0 }, { x: 5, y: 0, z: 0 }, { x: 5, y: 0, z: 2 }, { x: 3, y: 0, z: 2 }], false);
+    const p1 = mesh.addPolygon([
+      { x: 0, y: 0, z: 0 },
+      { x: 2, y: 0, z: 0 },
+      { x: 2, y: 0, z: 2 },
+      { x: 0, y: 0, z: 2 },
+    ]);
+    const p2 = mesh.addPolygon(
+      [
+        { x: 3, y: 0, z: 0 },
+        { x: 5, y: 0, z: 0 },
+        { x: 5, y: 0, z: 2 },
+        { x: 3, y: 0, z: 2 },
+      ],
+      false
+    );
     mesh.connectPolygons(p1.id, p2.id);
     const neighbors = mesh.getWalkableNeighbors(p1.id);
-    expect(neighbors.find(n => n.id === p2.id)).toBeUndefined();
+    expect(neighbors.find((n) => n.id === p2.id)).toBeUndefined();
   });
 
   it('removePolygon decrements count and cleans neighbors', () => {
-    const p1 = mesh.addPolygon([{ x: 0, y: 0, z: 0 }, { x: 2, y: 0, z: 0 }, { x: 2, y: 0, z: 2 }, { x: 0, y: 0, z: 2 }]);
-    const p2 = mesh.addPolygon([{ x: 3, y: 0, z: 0 }, { x: 5, y: 0, z: 0 }, { x: 5, y: 0, z: 2 }, { x: 3, y: 0, z: 2 }]);
+    const p1 = mesh.addPolygon([
+      { x: 0, y: 0, z: 0 },
+      { x: 2, y: 0, z: 0 },
+      { x: 2, y: 0, z: 2 },
+      { x: 0, y: 0, z: 2 },
+    ]);
+    const p2 = mesh.addPolygon([
+      { x: 3, y: 0, z: 0 },
+      { x: 5, y: 0, z: 0 },
+      { x: 5, y: 0, z: 2 },
+      { x: 3, y: 0, z: 2 },
+    ]);
     mesh.connectPolygons(p1.id, p2.id);
     mesh.removePolygon(p1.id);
     expect(mesh.getPolygonCount()).toBe(1);
@@ -94,7 +144,12 @@ describe('NavMesh', () => {
   });
 
   it('export returns bounds and polygons', () => {
-    mesh.addPolygon([{ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }, { x: 0, y: 0, z: 4 }]);
+    mesh.addPolygon([
+      { x: 0, y: 0, z: 0 },
+      { x: 4, y: 0, z: 0 },
+      { x: 4, y: 0, z: 4 },
+      { x: 0, y: 0, z: 4 },
+    ]);
     const data = mesh.export();
     expect(data.polygons.length).toBe(1);
     expect(data.bounds.min.x).toBeCloseTo(0);
@@ -113,9 +168,24 @@ describe('AStarPathfinder', () => {
    */
   function buildLinearMesh(): NavMesh {
     const m = new NavMesh();
-    const a = m.addPolygon([{ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }, { x: 0, y: 0, z: 4 }]);
-    const b = m.addPolygon([{ x: 5, y: 0, z: 0 }, { x: 9, y: 0, z: 0 }, { x: 9, y: 0, z: 4 }, { x: 5, y: 0, z: 4 }]);
-    const c = m.addPolygon([{ x: 10, y: 0, z: 0 }, { x: 14, y: 0, z: 0 }, { x: 14, y: 0, z: 4 }, { x: 10, y: 0, z: 4 }]);
+    const a = m.addPolygon([
+      { x: 0, y: 0, z: 0 },
+      { x: 4, y: 0, z: 0 },
+      { x: 4, y: 0, z: 4 },
+      { x: 0, y: 0, z: 4 },
+    ]);
+    const b = m.addPolygon([
+      { x: 5, y: 0, z: 0 },
+      { x: 9, y: 0, z: 0 },
+      { x: 9, y: 0, z: 4 },
+      { x: 5, y: 0, z: 4 },
+    ]);
+    const c = m.addPolygon([
+      { x: 10, y: 0, z: 0 },
+      { x: 14, y: 0, z: 0 },
+      { x: 14, y: 0, z: 4 },
+      { x: 10, y: 0, z: 4 },
+    ]);
     m.connectPolygons(a.id, b.id);
     m.connectPolygons(b.id, c.id);
     return m;
@@ -139,8 +209,18 @@ describe('AStarPathfinder', () => {
   it('returns not-found when no path exists', () => {
     const mesh = new NavMesh();
     // Two isolated polygons, not connected
-    mesh.addPolygon([{ x: 0, y: 0, z: 0 }, { x: 2, y: 0, z: 0 }, { x: 2, y: 0, z: 2 }, { x: 0, y: 0, z: 2 }]);
-    mesh.addPolygon([{ x: 20, y: 0, z: 20 }, { x: 22, y: 0, z: 20 }, { x: 22, y: 0, z: 22 }, { x: 20, y: 0, z: 22 }]);
+    mesh.addPolygon([
+      { x: 0, y: 0, z: 0 },
+      { x: 2, y: 0, z: 0 },
+      { x: 2, y: 0, z: 2 },
+      { x: 0, y: 0, z: 2 },
+    ]);
+    mesh.addPolygon([
+      { x: 20, y: 0, z: 20 },
+      { x: 22, y: 0, z: 20 },
+      { x: 22, y: 0, z: 22 },
+      { x: 20, y: 0, z: 22 },
+    ]);
     const pf = new AStarPathfinder(mesh);
     const result = pf.findPath({ x: 1, y: 0, z: 1 }, { x: 21, y: 0, z: 21 });
     expect(result.found).toBe(false);
@@ -188,8 +268,10 @@ describe('AStarPathfinder', () => {
     const pf = new AStarPathfinder(mesh);
     // Collinear path along x-axis — smoothPath should collapse intermediate points
     const raw = [
-      { x: 0, y: 0, z: 0 }, { x: 2, y: 0, z: 0 },
-      { x: 4, y: 0, z: 0 }, { x: 6, y: 0, z: 0 },
+      { x: 0, y: 0, z: 0 },
+      { x: 2, y: 0, z: 0 },
+      { x: 4, y: 0, z: 0 },
+      { x: 6, y: 0, z: 0 },
     ];
     const smoothed = pf.smoothPath(raw);
     expect(smoothed.length).toBeLessThanOrEqual(raw.length);
@@ -216,7 +298,9 @@ describe('SteeringBehaviors', () => {
     mass: 1,
   });
 
-  beforeEach(() => { sb = new SteeringBehaviors(); });
+  beforeEach(() => {
+    sb = new SteeringBehaviors();
+  });
 
   it('seek returns non-zero force toward target', () => {
     const agent = makeAgent({ x: 0, y: 0, z: 0 });

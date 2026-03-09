@@ -112,7 +112,7 @@ export function CommandPalette() {
           break;
       }
     },
-    [selectNext, selectPrevious, executeSelected, close],
+    [selectNext, selectPrevious, executeSelected, close]
   );
 
   // Click on overlay backdrop closes palette
@@ -122,7 +122,7 @@ export function CommandPalette() {
         close();
       }
     },
-    [close],
+    [close]
   );
 
   if (!isOpen) return null;
@@ -135,7 +135,7 @@ export function CommandPalette() {
     grouped.set(cmd.category, list);
   }
   const sortedGroups = Array.from(grouped.entries()).sort(
-    (a, b) => CATEGORY_META[a[0]].order - CATEGORY_META[b[0]].order,
+    (a, b) => CATEGORY_META[a[0]].order - CATEGORY_META[b[0]].order
   );
 
   // Flat index tracking for selection
@@ -211,7 +211,9 @@ export function CommandPalette() {
           }}
         >
           {sortedGroups.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '24px 16px', color: '#556677', fontSize: 13 }}>
+            <div
+              style={{ textAlign: 'center', padding: '24px 16px', color: '#556677', fontSize: 13 }}
+            >
               No commands match &quot;{query}&quot;
             </div>
           )}
@@ -331,13 +333,25 @@ export function CommandPalette() {
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
             <span>
-              <kbd style={{ padding: '1px 4px', background: 'rgba(255,255,255,0.05)', borderRadius: 3 }}>
+              <kbd
+                style={{
+                  padding: '1px 4px',
+                  background: 'rgba(255,255,255,0.05)',
+                  borderRadius: 3,
+                }}
+              >
                 &uarr;&darr;
               </kbd>{' '}
               navigate
             </span>
             <span>
-              <kbd style={{ padding: '1px 4px', background: 'rgba(255,255,255,0.05)', borderRadius: 3 }}>
+              <kbd
+                style={{
+                  padding: '1px 4px',
+                  background: 'rgba(255,255,255,0.05)',
+                  borderRadius: 3,
+                }}
+              >
                 &crarr;
               </kbd>{' '}
               execute

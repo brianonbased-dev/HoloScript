@@ -5,6 +5,7 @@ Complete reference for HoloScript's basic `.hs` format - the simplest way to cre
 ## Overview
 
 The `.hs` format is designed for:
+
 - **Learning** - Easiest format to understand
 - **Prototyping** - Quick scene creation
 - **Static scenes** - Non-interactive visualizations

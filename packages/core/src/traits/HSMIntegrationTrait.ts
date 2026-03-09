@@ -12,9 +12,19 @@ import type { TraitHandler } from './TraitTypes';
 // TYPES
 // =============================================================================
 
-export type HSMProvider = 'aws_cloudhsm' | 'azure_keyvault' | 'google_cloud_hsm' | 'pkcs11' | 'tpm' | 'secure_enclave';
+export type HSMProvider =
+  | 'aws_cloudhsm'
+  | 'azure_keyvault'
+  | 'google_cloud_hsm'
+  | 'pkcs11'
+  | 'tpm'
+  | 'secure_enclave';
 export type KeyType = 'aes' | 'rsa' | 'ecdsa' | 'ed25519';
-export type ComplianceLevel = 'fips_140_2_level_2' | 'fips_140_2_level_3' | 'fips_140_3_level_4' | 'common_criteria_eal4plus';
+export type ComplianceLevel =
+  | 'fips_140_2_level_2'
+  | 'fips_140_2_level_3'
+  | 'fips_140_3_level_4'
+  | 'common_criteria_eal4plus';
 
 export interface HSMIntegrationConfig {
   hsm_provider: HSMProvider;
@@ -54,7 +64,9 @@ export const HSMIntegrationTrait: TraitHandler<HSMIntegrationConfig> = {
   validate(config: HSMIntegrationConfig): boolean {
     // Enforce FIPS compliance for production
     if (!config.compliance_level) {
-      console.warn('No compliance level specified - FIPS 140-2 Level 3+ recommended for production');
+      console.warn(
+        'No compliance level specified - FIPS 140-2 Level 3+ recommended for production'
+      );
     }
 
     // Key rotation is strongly recommended
@@ -68,7 +80,10 @@ export const HSMIntegrationTrait: TraitHandler<HSMIntegrationConfig> = {
     }
 
     // TPM and Secure Enclave are device-specific
-    if ((config.hsm_provider === 'tpm' || config.hsm_provider === 'secure_enclave') && config.multi_region) {
+    if (
+      (config.hsm_provider === 'tpm' || config.hsm_provider === 'secure_enclave') &&
+      config.multi_region
+    ) {
       throw new Error(`${config.hsm_provider} does not support multi-region deployment`);
     }
 
@@ -110,30 +125,48 @@ class AWSCloudHSMIntegration {
 
     this.keyType = '${config.key_type}'.toUpperCase();
     this.complianceLevel = '${config.compliance_level || 'fips_140_2_level_3'}';
-    ${config.enable_key_rotation ? `
+    ${
+      config.enable_key_rotation
+        ? `
     this.rotationPeriodDays = ${config.rotation_period_days || 90};
-    ` : ''}
+    `
+        : ''
+    }
   }
 
   async createKey(keyAlias) {
     const command = new CreateKeyCommand({
       Description: \`HoloScript HSM Key - \${keyAlias}\`,
       KeyUsage: 'ENCRYPT_DECRYPT',
-      ${config.key_type === 'aes' ? `
+      ${
+        config.key_type === 'aes'
+          ? `
       KeySpec: 'AES_${config.key_size || 256}',
-      ` : config.key_type === 'rsa' ? `
+      `
+          : config.key_type === 'rsa'
+            ? `
       KeySpec: 'RSA_${config.key_size || 2048}',
-      ` : `
+      `
+            : `
       KeySpec: 'ECC_NIST_P256',
-      `}
+      `
+      }
       Origin: 'AWS_CLOUDHSM',
-      ${config.enable_key_rotation ? `
+      ${
+        config.enable_key_rotation
+          ? `
       EnableAutomaticRotation: true,
       RotationPeriodInDays: this.rotationPeriodDays,
-      ` : ''}
-      ${config.multi_region ? `
+      `
+          : ''
+      }
+      ${
+        config.multi_region
+          ? `
       MultiRegion: true,
-      ` : ''}
+      `
+          : ''
+      }
       Tags: [
         { TagKey: 'compliance', TagValue: this.complianceLevel },
         { TagKey: 'project', TagValue: 'holoscript' }
@@ -174,12 +207,16 @@ class AWSCloudHSMIntegration {
     return Buffer.from(response.Plaintext);
   }
 
-  ${config.audit_logging ? `
+  ${
+    config.audit_logging
+      ? `
   async auditLog(operation, keyId, success, error) {
     // AWS CloudTrail automatically logs KMS operations
     console.log(\`[AUDIT] \${operation} on key \${keyId}: \${success ? 'SUCCESS' : 'FAILURE'}\`, error);
   }
-  ` : ''}
+  `
+      : ''
+  }
 }
 
 module.exports = new AWSCloudHSMIntegration();`;
@@ -203,10 +240,16 @@ class AzureKeyVaultIntegration {
   async createKey(keyName) {
     const keyOptions = {
       keyType: '${config.key_type}'.toUpperCase(),
-      ${config.key_type === 'rsa' ? `
+      ${
+        config.key_type === 'rsa'
+          ? `
       keySize: ${config.key_size || 2048},
-      ` : ''}
-      ${config.enable_key_rotation ? `
+      `
+          : ''
+      }
+      ${
+        config.enable_key_rotation
+          ? `
       rotationPolicy: {
         lifetimeActions: [{
           action: { type: 'rotate' },
@@ -214,7 +257,9 @@ class AzureKeyVaultIntegration {
         }],
         attributes: { expiryTime: null }
       },
-      ` : ''}
+      `
+          : ''
+      }
       hsm: true, // Use HSM-backed key
       tags: {
         compliance: this.complianceLevel,
@@ -288,10 +333,14 @@ class GoogleCloudHSMIntegration {
           protectionLevel: 'HSM',
           algorithm: '${config.key_type === 'aes' ? 'GOOGLE_SYMMETRIC_ENCRYPTION' : 'RSA_DECRYPT_OAEP_2048_SHA256'}'
         },
-        ${config.enable_key_rotation ? `
+        ${
+          config.enable_key_rotation
+            ? `
         rotationPeriod: { seconds: ${(config.rotation_period_days || 90) * 86400} },
         nextRotationTime: { seconds: Date.now() / 1000 + ${(config.rotation_period_days || 90) * 86400} },
-        ` : ''}
+        `
+            : ''
+        }
         labels: {
           compliance: '${config.compliance_level || 'fips_140_2'}',
           project: 'holoscript'
@@ -404,12 +453,16 @@ class SecureEnclaveIntegration {
         return signature as Data
     }
 
-    ${config.audit_logging ? `
+    ${
+      config.audit_logging
+        ? `
     func auditLog(operation: String, keyAlias: String, success: Bool) {
         // Log to system audit trail
         os_log("[AUDIT] %@ on key %@: %@", operation, keyAlias, success ? "SUCCESS" : "FAILURE")
     }
-    ` : ''}
+    `
+        : ''
+    }
 }
 
 struct SecureEnclaveKeyInfo {
@@ -454,21 +507,25 @@ public:
                                     TPMA_OBJECT_FIXEDTPM |
                                     TPMA_OBJECT_FIXEDPARENT |
                                     TPMA_OBJECT_SENSITIVEDATAORIGIN),
-                ${config.key_type === 'rsa' ? `
+                ${
+                  config.key_type === 'rsa'
+                    ? `
                 .parameters.rsaDetail = {
                     .symmetric = {.algorithm = TPM2_ALG_NULL},
                     .scheme = {.scheme = TPM2_ALG_RSASSA},
                     .keyBits = ${config.key_size || 2048},
                     .exponent = 0
                 },
-                ` : `
+                `
+                    : `
                 .parameters.eccDetail = {
                     .symmetric = {.algorithm = TPM2_ALG_NULL},
                     .scheme = {.scheme = TPM2_ALG_ECDSA},
                     .curveID = TPM2_ECC_NIST_P256,
                     .kdf = {.scheme = TPM2_ALG_NULL}
                 },
-                `}
+                `
+                }
             }
         };
 
@@ -509,7 +566,7 @@ public:
 
   compileGeneric(config: HSMIntegrationConfig): string {
     return JSON.stringify(config, null, 2);
-  }
+  },
 };
 
 export default HSMIntegrationTrait;

@@ -6,7 +6,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { AssetBundler } from '../AssetBundler';
 import type { AssetEntry, BundleConfig } from '../AssetBundler';
 
-function makeAsset(id: string, sizeBytes = 1000, deps: string[] = [], hash = `h_${id}`): AssetEntry {
+function makeAsset(
+  id: string,
+  sizeBytes = 1000,
+  deps: string[] = [],
+  hash = `h_${id}`
+): AssetEntry {
   return { id, type: 'texture', path: `assets/${id}`, sizeBytes, hash, dependencies: deps };
 }
 
@@ -16,7 +21,9 @@ function makeConfig(id: string, entries: string[], opts: Partial<BundleConfig> =
 
 describe('AssetBundler — registerAsset / getAsset / unregisterAsset', () => {
   let ab: AssetBundler;
-  beforeEach(() => { ab = new AssetBundler(); });
+  beforeEach(() => {
+    ab = new AssetBundler();
+  });
 
   it('starts with 0 assets', () => {
     expect(ab.getAssetCount()).toBe(0);
@@ -48,7 +55,9 @@ describe('AssetBundler — registerAsset / getAsset / unregisterAsset', () => {
 
 describe('AssetBundler — buildBundle', () => {
   let ab: AssetBundler;
-  beforeEach(() => { ab = new AssetBundler(); });
+  beforeEach(() => {
+    ab = new AssetBundler();
+  });
 
   it('returns a Bundle with correct id and name', () => {
     ab.registerAsset(makeAsset('a'));
@@ -61,8 +70,8 @@ describe('AssetBundler — buildBundle', () => {
     ab.registerAsset(makeAsset('a', 100));
     ab.registerAsset(makeAsset('b', 200));
     const b = ab.buildBundle(makeConfig('b1', ['a', 'b']));
-    expect(b.assets.map(a => a.id)).toContain('a');
-    expect(b.assets.map(a => a.id)).toContain('b');
+    expect(b.assets.map((a) => a.id)).toContain('a');
+    expect(b.assets.map((a) => a.id)).toContain('b');
   });
 
   it('totalSizeBytes sums asset sizes', () => {
@@ -88,7 +97,7 @@ describe('AssetBundler — buildBundle', () => {
     ab.registerAsset(makeAsset('dep', 100));
     ab.registerAsset(makeAsset('main', 200, ['dep']));
     const b = ab.buildBundle(makeConfig('b1', ['main']));
-    const ids = b.assets.map(a => a.id);
+    const ids = b.assets.map((a) => a.id);
     expect(ids).toContain('dep');
     expect(ids).toContain('main');
     // dep comes before main (resolved first)
@@ -101,7 +110,7 @@ describe('AssetBundler — buildBundle', () => {
     ab.registerAsset(makeAsset('y', 100, ['shared']));
     const b = ab.buildBundle(makeConfig('b1', ['x', 'y']));
     // 'shared' should appear only once
-    const ids = b.assets.filter(a => a.id === 'shared');
+    const ids = b.assets.filter((a) => a.id === 'shared');
     expect(ids).toHaveLength(1);
   });
 
@@ -127,7 +136,9 @@ describe('AssetBundler — buildBundle', () => {
 
 describe('AssetBundler — splitBundle', () => {
   let ab: AssetBundler;
-  beforeEach(() => { ab = new AssetBundler(); });
+  beforeEach(() => {
+    ab = new AssetBundler();
+  });
 
   it('returns single bundle when under maxSizeBytes', () => {
     ab.registerAsset(makeAsset('a', 100));
@@ -148,7 +159,7 @@ describe('AssetBundler — splitBundle', () => {
     ab.registerAsset(makeAsset('a', 600));
     ab.registerAsset(makeAsset('b', 600));
     const parts = ab.splitBundle(makeConfig('b1', ['a', 'b'], { maxSizeBytes: 700 }));
-    expect(parts.every(p => p.id.startsWith('b1_part'))).toBe(true);
+    expect(parts.every((p) => p.id.startsWith('b1_part'))).toBe(true);
   });
 
   it('all assets appear across all parts', () => {
@@ -156,7 +167,7 @@ describe('AssetBundler — splitBundle', () => {
     ab.registerAsset(makeAsset('b', 600));
     ab.registerAsset(makeAsset('c', 600));
     const parts = ab.splitBundle(makeConfig('b1', ['a', 'b', 'c'], { maxSizeBytes: 700 }));
-    const allIds = parts.flatMap(p => p.assets.map(a => a.id));
+    const allIds = parts.flatMap((p) => p.assets.map((a) => a.id));
     expect(allIds).toContain('a');
     expect(allIds).toContain('b');
     expect(allIds).toContain('c');
@@ -165,7 +176,9 @@ describe('AssetBundler — splitBundle', () => {
 
 describe('AssetBundler — generateManifest', () => {
   let ab: AssetBundler;
-  beforeEach(() => { ab = new AssetBundler(); });
+  beforeEach(() => {
+    ab = new AssetBundler();
+  });
 
   it('returns manifest with buildTimestamp close to now', () => {
     const before = Date.now();
@@ -193,7 +206,9 @@ describe('AssetBundler — generateManifest', () => {
 
 describe('AssetBundler — computeDiff', () => {
   let ab: AssetBundler;
-  beforeEach(() => { ab = new AssetBundler(); });
+  beforeEach(() => {
+    ab = new AssetBundler();
+  });
 
   it('added contains new bundle ids', () => {
     const prev = ab.generateManifest(); // empty
@@ -227,7 +242,9 @@ describe('AssetBundler — computeDiff', () => {
 
 describe('AssetBundler — getDependencyChain', () => {
   let ab: AssetBundler;
-  beforeEach(() => { ab = new AssetBundler(); });
+  beforeEach(() => {
+    ab = new AssetBundler();
+  });
 
   it('returns [] for unknown asset', () => {
     expect(ab.getDependencyChain('ghost')).toEqual([]);
@@ -252,7 +269,7 @@ describe('AssetBundler — getDependencyChain', () => {
     ab.registerAsset(makeAsset('x', 100, ['shared']));
     ab.registerAsset(makeAsset('top', 100, ['x', 'shared']));
     const chain = ab.getDependencyChain('top');
-    const sharedCount = chain.filter(id => id === 'shared').length;
+    const sharedCount = chain.filter((id) => id === 'shared').length;
     expect(sharedCount).toBe(1);
   });
 });

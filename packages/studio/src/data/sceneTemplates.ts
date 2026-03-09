@@ -5,7 +5,16 @@ export interface SceneTemplate {
   id: string;
   name: string;
   emoji: string;
-  category: 'game' | 'social' | 'art' | 'tabletop' | 'education' | 'healthcare' | 'ecommerce' | 'industrial' | 'sports';
+  category:
+    | 'game'
+    | 'social'
+    | 'art'
+    | 'tabletop'
+    | 'education'
+    | 'healthcare'
+    | 'ecommerce'
+    | 'industrial'
+    | 'sports';
   desc: string;
   tags: string[];
   code: string;
@@ -904,4 +913,3 @@ export const TEMPLATE_CATEGORIES = [
   { id: 'industrial', label: 'Industrial', emoji: '🏭' },
   { id: 'sports', label: 'Sports', emoji: '🏟️' },
 ] as const;
-

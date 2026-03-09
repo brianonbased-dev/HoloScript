@@ -129,9 +129,7 @@ export const COMPONENT_REGISTRY: ComponentEntry[] = [
  * Returns the canonical entry, or the first match if none is canonical.
  */
 export function findCanonical(name: string): ComponentEntry | undefined {
-  const matches = COMPONENT_REGISTRY.filter(
-    (c) => c.name.toLowerCase() === name.toLowerCase()
-  );
+  const matches = COMPONENT_REGISTRY.filter((c) => c.name.toLowerCase() === name.toLowerCase());
   return matches.find((c) => c.isCanonical) ?? matches[0];
 }
 
@@ -150,8 +148,7 @@ export function findDuplicates(): Array<{
     canonical,
     duplicates: COMPONENT_REGISTRY.filter(
       (c) =>
-        !c.isCanonical &&
-        canonical.duplicates?.some((d) => c.path.endsWith(d.split('/').pop()!))
+        !c.isCanonical && canonical.duplicates?.some((d) => c.path.endsWith(d.split('/').pop()!))
     ),
   }));
 }

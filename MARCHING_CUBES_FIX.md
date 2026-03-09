@@ -3,6 +3,7 @@
 **Date**: 2026-03-08
 **Status**: ✅ COMPLETED
 **Affected Files**:
+
 - `packages/core/src/compiler/ProceduralGeometry.ts`
 - `packages/core/src/compiler/GLTFPipeline.ts`
 - `packages/core/src/compiler/__tests__/ProceduralGeometry.test.ts` (NEW)
@@ -31,6 +32,7 @@ The marching cubes implementation in `generateHullGeometry()` had a critical iss
 ### What Was NOT Broken
 
 ✅ **Marching Cubes Lookup Table** - Already complete and correct
+
 - Full 256-entry Paul Bourke lookup table (MC_TRI_TABLE) was already implemented
 - Full 256-entry edge table (MC_EDGE_TABLE) was already implemented
 - Triangulation logic was correct and using the full table (not simplified fan triangulation)
@@ -69,6 +71,7 @@ return {
 ```
 
 **Applied to:**
+
 - `generateHullGeometry()` - Marching cubes metaball generator
 - `generateSplineGeometry()` - Catmull-Rom spline tube generator
 - `generateMembraneGeometry()` - Lofted membrane generator
@@ -108,6 +111,7 @@ Also updated `createAccessorRaw()` to support Uint32Array.
 **File**: `packages/core/src/compiler/__tests__/ProceduralGeometry.test.ts`
 
 **Coverage:**
+
 - ✅ Basic metaball hull generation
 - ✅ Uint16Array selection for small meshes (<65,535 vertices)
 - ✅ Uint32Array selection for large meshes (>65,535 vertices)
@@ -146,6 +150,7 @@ Test Files  1 passed (1)
 - **Uint32Array**: 4 bytes per index
 
 **Example**: Mesh with 100K vertices and 200K triangles
+
 - Uint16Array: 400KB (would overflow at 65K vertices)
 - Uint32Array: 800KB (supports up to 4.2B vertices)
 
@@ -154,12 +159,14 @@ Test Files  1 passed (1)
 ### When Each Array Type is Used
 
 **Uint16Array** (≤65,535 vertices):
+
 - Most primitive shapes (cube, sphere, cylinder, cone, plane)
 - Low to medium resolution metaballs (resolution ≤50)
 - Normal splines (≤32 segments, ≤50 length steps)
 - Normal membranes (≤50 anchors, ≤50 subdivisions)
 
 **Uint32Array** (>65,535 vertices):
+
 - High-resolution metaballs (resolution >80 with multiple blobs)
 - Very detailed splines (>100 segments, >100 length steps)
 - Highly subdivided membranes (>100 anchors, >100 subdivisions)
@@ -171,6 +178,7 @@ Test Files  1 passed (1)
 ### Component Types
 
 Per glTF 2.0 spec, accessor componentType can be:
+
 - `5120` (BYTE)
 - `5121` (UNSIGNED_BYTE)
 - `5122` (SHORT)
@@ -203,6 +211,7 @@ for (let i = 0; i < geometry.indices.length; i++) {
 ```
 
 This ensures:
+
 - No index overflow
 - No negative indices
 - All indices point to valid vertices
@@ -210,6 +219,7 @@ This ensures:
 ### glTF Validation
 
 Exported glTF files can be validated with:
+
 - [glTF Validator](https://github.khronos.org/glTF-Validator/)
 - [Babylon.js Sandbox](https://sandbox.babylonjs.com/)
 - [Three.js glTF Viewer](https://gltf-viewer.donmccurdy.com/)
@@ -223,6 +233,7 @@ Exported glTF files can be validated with:
 All export targets that use `GLTFPipeline` benefit from this fix:
 
 **Direct GLTF/GLB Exports:**
+
 - ✅ `unity` - Unity glTF importer
 - ✅ `unreal` - Unreal glTF importer
 - ✅ `godot` - Godot glTF importer
@@ -231,6 +242,7 @@ All export targets that use `GLTFPipeline` benefit from this fix:
 - ✅ `playcanvas` - PlayCanvas glTF loader
 
 **WebGPU/WebGL Targets:**
+
 - ✅ `webgpu` - Uses GLTFPipeline for geometry
 - ✅ `ar` - AR Foundation uses glTF
 - ✅ `android` - Android ARCore uses glTF
@@ -238,10 +250,12 @@ All export targets that use `GLTFPipeline` benefit from this fix:
 - ✅ `visionos` - visionOS uses glTF
 
 **VR Platforms:**
+
 - ✅ `vrchat` - VRChat supports glTF
 - ✅ `openxr` - OpenXR uses glTF
 
 **3D Formats:**
+
 - ✅ `usdz` - USDZ converter accepts glTF input
 - ✅ `urdf` - URDF mesh references can be glTF
 - ✅ `sdf` - SDF mesh references can be glTF
@@ -280,6 +294,7 @@ All export targets that use `GLTFPipeline` benefit from this fix:
 ### Performance Monitoring
 
 Consider adding telemetry to track:
+
 - Frequency of Uint32Array usage
 - Average vertex counts per geometry type
 - glTF file size impact

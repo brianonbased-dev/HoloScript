@@ -20,8 +20,11 @@ import {
   // Sprint 6
   CinematicDirector,
   CollaborationSession,
-  createSandbox, executeSandbox, destroySandbox,
-  createDefaultPolicy, createStrictPolicy,
+  createSandbox,
+  executeSandbox,
+  destroySandbox,
+  createDefaultPolicy,
+  createStrictPolicy,
   // Sprint 7
   SaveManager,
   Profiler,
@@ -70,22 +73,67 @@ describe('E2E: Camera System', () => {
 describe('E2E: Inventory System', () => {
   it('adds and retrieves items', () => {
     const inv = new InventorySystem(20, 100);
-    const result = inv.addItem({ id: 'sword', name: 'Iron Sword', category: 'weapon', rarity: 'common', weight: 5, maxStack: 1, value: 50, properties: {} });
+    const result = inv.addItem({
+      id: 'sword',
+      name: 'Iron Sword',
+      category: 'weapon',
+      rarity: 'common',
+      weight: 5,
+      maxStack: 1,
+      value: 50,
+      properties: {},
+    });
     expect(result.added).toBe(1);
     expect(inv.getSlotCount()).toBeGreaterThan(0);
   });
 
   it('respects weight limits', () => {
     const inv = new InventorySystem(10, 10);
-    inv.addItem({ id: 'heavy', name: 'Boulder', category: 'material', rarity: 'common', weight: 8, maxStack: 1, value: 1, properties: {} });
-    const result = inv.addItem({ id: 'heavy2', name: 'Boulder 2', category: 'material', rarity: 'common', weight: 8, maxStack: 1, value: 1, properties: {} });
+    inv.addItem({
+      id: 'heavy',
+      name: 'Boulder',
+      category: 'material',
+      rarity: 'common',
+      weight: 8,
+      maxStack: 1,
+      value: 1,
+      properties: {},
+    });
+    const result = inv.addItem({
+      id: 'heavy2',
+      name: 'Boulder 2',
+      category: 'material',
+      rarity: 'common',
+      weight: 8,
+      maxStack: 1,
+      value: 1,
+      properties: {},
+    });
     expect(result.added).toBe(0);
   });
 
   it('sorts by name', () => {
     const inv = new InventorySystem(10, 100);
-    inv.addItem({ id: 'b', name: 'Zephyr', category: 'weapon', rarity: 'rare', weight: 3, maxStack: 1, value: 100, properties: {} });
-    inv.addItem({ id: 'a', name: 'Arrow', category: 'misc', rarity: 'common', weight: 0.1, maxStack: 99, value: 1, properties: {} });
+    inv.addItem({
+      id: 'b',
+      name: 'Zephyr',
+      category: 'weapon',
+      rarity: 'rare',
+      weight: 3,
+      maxStack: 1,
+      value: 100,
+      properties: {},
+    });
+    inv.addItem({
+      id: 'a',
+      name: 'Arrow',
+      category: 'misc',
+      rarity: 'common',
+      weight: 0.1,
+      maxStack: 99,
+      value: 1,
+      properties: {},
+    });
     inv.sort('name');
     const items = inv.getAllItems();
     expect(items[0].item.name).toBe('Arrow');
@@ -95,14 +143,31 @@ describe('E2E: Inventory System', () => {
 describe('E2E: Terrain System', () => {
   it('creates terrain with heightmap', () => {
     const terrain = new TerrainSystem();
-    const id = terrain.createTerrain({ id: 'main', width: 16, depth: 16, resolution: 4, maxHeight: 10, position: { x: 0, y: 0, z: 0 } }, { seed: 42, octaves: 4, scale: 1 });
+    const id = terrain.createTerrain(
+      {
+        id: 'main',
+        width: 16,
+        depth: 16,
+        resolution: 4,
+        maxHeight: 10,
+        position: { x: 0, y: 0, z: 0 },
+      },
+      { seed: 42, octaves: 4, scale: 1 }
+    );
     expect(id).toBe('main');
     expect(terrain.getTerrainIds()).toContain('main');
   });
 
   it('sets height at position', () => {
     const terrain = new TerrainSystem();
-    terrain.createTerrain({ id: 't1', width: 8, depth: 8, resolution: 4, maxHeight: 10, position: { x: 0, y: 0, z: 0 } });
+    terrain.createTerrain({
+      id: 't1',
+      width: 8,
+      depth: 8,
+      resolution: 4,
+      maxHeight: 10,
+      position: { x: 0, y: 0, z: 0 },
+    });
     terrain.setHeightAt('t1', 0, 0, 0.99);
     // Just verify no crash
     expect(terrain.getTerrainIds()).toContain('t1');
@@ -110,10 +175,33 @@ describe('E2E: Terrain System', () => {
 
   it('manages layers', () => {
     const terrain = new TerrainSystem();
-    terrain.createTerrain({ id: 't2', width: 8, depth: 8, resolution: 4, maxHeight: 10, position: { x: 0, y: 0, z: 0 } });
+    terrain.createTerrain({
+      id: 't2',
+      width: 8,
+      depth: 8,
+      resolution: 4,
+      maxHeight: 10,
+      position: { x: 0, y: 0, z: 0 },
+    });
     terrain.setLayers('t2', [
-      { id: 'grass', texture: 'grass.png', tiling: 1, minHeight: 0, maxHeight: 0.5, minSlope: 0, maxSlope: 1 },
-      { id: 'rock', texture: 'rock.png', tiling: 1, minHeight: 0.5, maxHeight: 1.0, minSlope: 0, maxSlope: 1 },
+      {
+        id: 'grass',
+        texture: 'grass.png',
+        tiling: 1,
+        minHeight: 0,
+        maxHeight: 0.5,
+        minSlope: 0,
+        maxSlope: 1,
+      },
+      {
+        id: 'rock',
+        texture: 'rock.png',
+        tiling: 1,
+        minHeight: 0.5,
+        maxHeight: 1.0,
+        minSlope: 0,
+        maxSlope: 1,
+      },
     ]);
     expect(terrain.getLayers('t2').length).toBe(2);
   });
@@ -144,7 +232,12 @@ describe('E2E: Cinematic Director', () => {
     const scene = director.createScene('intro', 'Intro', 10000);
     expect(scene).toBeDefined();
     director.addCue(scene.id, { id: 'cue1', time: 0, type: 'effect', data: { action: 'fade_in' } });
-    director.addCue(scene.id, { id: 'cue2', time: 5000, type: 'effect', data: { action: 'fade_out' } });
+    director.addCue(scene.id, {
+      id: 'cue2',
+      time: 5000,
+      type: 'effect',
+      data: { action: 'fade_out' },
+    });
     const storedScene = director.getScene(scene.id);
     expect(storedScene!.cues.length).toBe(2);
   });
@@ -162,8 +255,24 @@ describe('E2E: Cinematic Director', () => {
 describe('E2E: Collaboration Session', () => {
   it('manages peers and documents', () => {
     const session = new CollaborationSession();
-    session.addPeer({ peerId: 'alice', displayName: 'Alice', color: '#ff0000', openDocuments: [], connectionQuality: 1, platform: 'ide', joinedAt: Date.now() });
-    session.addPeer({ peerId: 'bob', displayName: 'Bob', color: '#0000ff', openDocuments: [], connectionQuality: 1, platform: 'web', joinedAt: Date.now() });
+    session.addPeer({
+      peerId: 'alice',
+      displayName: 'Alice',
+      color: '#ff0000',
+      openDocuments: [],
+      connectionQuality: 1,
+      platform: 'ide',
+      joinedAt: Date.now(),
+    });
+    session.addPeer({
+      peerId: 'bob',
+      displayName: 'Bob',
+      color: '#0000ff',
+      openDocuments: [],
+      connectionQuality: 1,
+      platform: 'web',
+      joinedAt: Date.now(),
+    });
     expect(session.getPeers().length).toBeGreaterThanOrEqual(2);
     session.openDocument('main.holo');
     const docs = session.getOpenDocuments();
@@ -190,7 +299,9 @@ describe('E2E: Security Sandbox', () => {
     const defP = createDefaultPolicy();
     const strictP = createStrictPolicy();
     // Strict should have fewer or no allowed hosts
-    expect(strictP.network.allowedHosts.length).toBeLessThanOrEqual(defP.network.allowedHosts.length);
+    expect(strictP.network.allowedHosts.length).toBeLessThanOrEqual(
+      defP.network.allowedHosts.length
+    );
   });
 });
 
@@ -252,11 +363,13 @@ describe('E2E: Profiler', () => {
 describe('E2E: LOD Manager', () => {
   it('registers objects and queries levels', () => {
     const mgr = new LODManager({ autoUpdate: false });
-    mgr.register('tree', { levels: [
-      { distance: 0, triangleCount: 10000 },
-      { distance: 20, triangleCount: 5000 },
-      { distance: 50, triangleCount: 500 },
-    ] });
+    mgr.register('tree', {
+      levels: [
+        { distance: 0, triangleCount: 10000 },
+        { distance: 20, triangleCount: 5000 },
+        { distance: 50, triangleCount: 500 },
+      ],
+    });
     expect(mgr.getRegisteredObjects()).toContain('tree');
     const level = mgr.getCurrentLevel('tree');
     expect(level).toBe(0);
@@ -264,11 +377,13 @@ describe('E2E: LOD Manager', () => {
 
   it('forced level override', () => {
     const mgr = new LODManager({ autoUpdate: false });
-    mgr.register('obj', { levels: [
-      { distance: 0, triangleCount: 5000 },
-      { distance: 20, triangleCount: 500 },
-      { distance: 50, triangleCount: 50 },
-    ] });
+    mgr.register('obj', {
+      levels: [
+        { distance: 0, triangleCount: 5000 },
+        { distance: 20, triangleCount: 500 },
+        { distance: 50, triangleCount: 50 },
+      ],
+    });
     mgr.setForcedLevel('obj', 2);
     mgr.update(0.016);
     expect(mgr.getCurrentLevel('obj')).toBe(2);
@@ -282,7 +397,7 @@ describe('E2E: LOD Manager', () => {
 describe('E2E: State Machine', () => {
   it('full AI behavior FSM lifecycle', () => {
     const sm = new StateMachine();
-    ['idle', 'patrol', 'chase', 'attack', 'flee', 'dead'].forEach(id => sm.addState({ id }));
+    ['idle', 'patrol', 'chase', 'attack', 'flee', 'dead'].forEach((id) => sm.addState({ id }));
     sm.addTransition({ from: 'idle', to: 'patrol', event: 'START' });
     sm.addTransition({ from: 'patrol', to: 'chase', event: 'ENEMY_SPOTTED' });
     sm.addTransition({ from: 'chase', to: 'attack', event: 'IN_RANGE' });
@@ -309,7 +424,12 @@ describe('E2E: State Machine', () => {
     const sm = new StateMachine();
     sm.addState({ id: 'locked' });
     sm.addState({ id: 'open' });
-    sm.addTransition({ from: 'locked', to: 'open', event: 'UNLOCK', guard: (ctx) => ctx.hasKey === true });
+    sm.addTransition({
+      from: 'locked',
+      to: 'open',
+      event: 'UNLOCK',
+      guard: (ctx) => ctx.hasKey === true,
+    });
     sm.setInitialState('locked');
 
     expect(sm.send('UNLOCK')).toBe(false);
@@ -373,7 +493,10 @@ describe('E2E: Network Manager', () => {
 
 describe('E2E: Culture Runtime', () => {
   it('full culture simulation lifecycle', () => {
-    const cr = new CultureRuntime({ defaultNorms: ['no_griefing', 'fair_trade'], maxEventHistory: 100 });
+    const cr = new CultureRuntime({
+      defaultNorms: ['no_griefing', 'fair_trade'],
+      maxEventHistory: 100,
+    });
     cr.agentJoin('merchant', ['fair_trade']);
     cr.agentJoin('warrior', ['no_griefing']);
     cr.agentJoin('rogue');
@@ -405,8 +528,15 @@ describe('E2E: Timeline', () => {
 
   it('parallel animation group', () => {
     const tl = new Timeline({ mode: 'parallel' });
-    tl.add({ id: 'a', property: 'x', from: 0, to: 1, duration: 1000, easing: Easing.linear }, () => {});
-    tl.add({ id: 'b', property: 'y', from: 0, to: 1, duration: 500, easing: Easing.easeOut }, () => {}, 200);
+    tl.add(
+      { id: 'a', property: 'x', from: 0, to: 1, duration: 1000, easing: Easing.linear },
+      () => {}
+    );
+    tl.add(
+      { id: 'b', property: 'y', from: 0, to: 1, duration: 500, easing: Easing.easeOut },
+      () => {},
+      200
+    );
     expect(tl.getDuration()).toBe(1000);
   });
 });
@@ -414,12 +544,22 @@ describe('E2E: Timeline', () => {
 describe('E2E: Scene Manager', () => {
   it('full scene lifecycle', () => {
     const sm = new SceneManager();
-    const node = { type: 'root', name: 'level1', traits: {}, children: [
-      { type: 'entity', name: 'Player', traits: { transform: { pos: [0, 1, 0] } }, children: [] },
-      { type: 'entity', name: 'Enemy', traits: { ai: { behavior: 'patrol' } }, children: [
-        { type: 'entity', name: 'Weapon', traits: { weapon: { dmg: 10 } }, children: [] },
-      ] },
-    ] };
+    const node = {
+      type: 'root',
+      name: 'level1',
+      traits: {},
+      children: [
+        { type: 'entity', name: 'Player', traits: { transform: { pos: [0, 1, 0] } }, children: [] },
+        {
+          type: 'entity',
+          name: 'Enemy',
+          traits: { ai: { behavior: 'patrol' } },
+          children: [
+            { type: 'entity', name: 'Weapon', traits: { weapon: { dmg: 10 } }, children: [] },
+          ],
+        },
+      ],
+    };
 
     sm.save('level1', node as any);
     expect(sm.has('level1')).toBe(true);
@@ -511,15 +651,42 @@ describe('E2E: Reactive State', () => {
 describe('E2E: Sidebar Architecture', () => {
   it('verifies all 36 panel tab IDs exist', () => {
     const expectedTabs = [
-      'safety', 'marketplace', 'platform', 'traits',
-      'physics', 'ai', 'dialogue', 'ecs',
-      'animation', 'audio', 'procgen', 'multiplayer',
-      'shader', 'combat', 'pathfinding', 'particles',
-      'camera', 'inventory', 'terrain', 'lighting',
-      'cinematic', 'collaboration', 'security', 'scripting',
-      'saveload', 'profiler', 'compiler', 'lod',
-      'statemachine', 'input', 'network', 'culture',
-      'timeline', 'scene', 'assets', 'state',
+      'safety',
+      'marketplace',
+      'platform',
+      'traits',
+      'physics',
+      'ai',
+      'dialogue',
+      'ecs',
+      'animation',
+      'audio',
+      'procgen',
+      'multiplayer',
+      'shader',
+      'combat',
+      'pathfinding',
+      'particles',
+      'camera',
+      'inventory',
+      'terrain',
+      'lighting',
+      'cinematic',
+      'collaboration',
+      'security',
+      'scripting',
+      'saveload',
+      'profiler',
+      'compiler',
+      'lod',
+      'statemachine',
+      'input',
+      'network',
+      'culture',
+      'timeline',
+      'scene',
+      'assets',
+      'state',
     ];
     expect(expectedTabs.length).toBe(36);
     // Verify no duplicates

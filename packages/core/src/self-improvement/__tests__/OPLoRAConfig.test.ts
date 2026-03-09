@@ -26,9 +26,7 @@ describe('OPLoRAConfig', () => {
     });
 
     it('has projectionRank = rank * 2', () => {
-      expect(DEFAULT_OPLORA_CONFIG.projectionRank).toBe(
-        DEFAULT_OPLORA_CONFIG.rank * 2,
-      );
+      expect(DEFAULT_OPLORA_CONFIG.projectionRank).toBe(DEFAULT_OPLORA_CONFIG.rank * 2);
     });
 
     it('targets all 7 LLaMA projection modules', () => {
@@ -145,7 +143,7 @@ describe('OPLoRAConfig', () => {
       const errors = validateOPLoRAConfig({ rank: 16, projectionRank: 8 });
       expect(errors.length).toBeGreaterThan(0);
       const crossFieldError = errors.find(
-        (e) => e.field === 'projectionRank' && e.message.includes('>='),
+        (e) => e.field === 'projectionRank' && e.message.includes('>=')
       );
       expect(crossFieldError).toBeDefined();
     });
@@ -290,9 +288,7 @@ describe('OPLoRAConfig', () => {
     });
 
     it('throws on invalid configuration', () => {
-      expect(() => buildOPLoRAConfig({ rank: -1 })).toThrow(
-        'Invalid OPLoRA configuration',
-      );
+      expect(() => buildOPLoRAConfig({ rank: -1 })).toThrow('Invalid OPLoRA configuration');
     });
 
     it('throws with descriptive error messages', () => {
@@ -394,9 +390,7 @@ describe('OPLoRAConfig', () => {
     });
 
     it('projectionRank is 2x the LoRA rank', () => {
-      expect(DEFAULT_OPLORA_CONFIG.projectionRank).toBe(
-        DEFAULT_OPLORA_CONFIG.rank * 2,
-      );
+      expect(DEFAULT_OPLORA_CONFIG.projectionRank).toBe(DEFAULT_OPLORA_CONFIG.rank * 2);
     });
 
     it('loraDropout is within standard range', () => {

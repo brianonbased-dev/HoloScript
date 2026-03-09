@@ -280,7 +280,11 @@ describe('TenantTrait', () => {
     });
     ctx.clearEvents();
 
-    tenantHandler.onDetach?.(node as any, { ...tenantHandler.defaultConfig, ...baseCfg }, ctx as any);
+    tenantHandler.onDetach?.(
+      node as any,
+      { ...tenantHandler.defaultConfig, ...baseCfg },
+      ctx as any
+    );
     expect(getEventCount(ctx, 'tenant_decommissioned')).toBe(1);
     expect(getEventCount(ctx, 'cross_tenant_grant_revoked')).toBe(1);
     expect((node as any).__tenantState).toBeUndefined();

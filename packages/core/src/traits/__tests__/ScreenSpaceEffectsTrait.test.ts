@@ -47,7 +47,9 @@ describe('ScreenSpaceEffectsTrait', () => {
 
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       ScreenSpaceEffectsTrait.validate(config);
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('SSAO samples should be 8-64'));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('SSAO samples should be 8-64')
+      );
       consoleSpy.mockRestore();
     });
 
@@ -89,7 +91,9 @@ describe('ScreenSpaceEffectsTrait', () => {
 
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       ScreenSpaceEffectsTrait.validate(config);
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('SSR step_count should be 8-128'));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('SSR step_count should be 8-128')
+      );
       consoleSpy.mockRestore();
     });
   });
@@ -119,7 +123,9 @@ describe('ScreenSpaceEffectsTrait', () => {
 
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       ScreenSpaceEffectsTrait.validate(config);
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('SSGI is extremely expensive'));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('SSGI is extremely expensive')
+      );
       consoleSpy.mockRestore();
     });
   });
@@ -440,7 +446,9 @@ describe('ScreenSpaceEffectsTrait', () => {
 
       const code = ScreenSpaceEffectsTrait.compile(config, 'web');
 
-      expect(code).toContain("import { EffectComposer, EffectPass, RenderPass } from 'postprocessing'");
+      expect(code).toContain(
+        "import { EffectComposer, EffectPass, RenderPass } from 'postprocessing'"
+      );
       expect(code).toContain('class ScreenSpaceEffectsComposer');
       expect(code).toContain('this.composer = new EffectComposer(renderer)');
     });

@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { photogrammetryHandler } from '../PhotogrammetryTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('PhotogrammetryTrait', () => {
   let node: Record<string, unknown>;
@@ -38,7 +44,10 @@ describe('PhotogrammetryTrait', () => {
   });
 
   it('start processing begins pipeline', () => {
-    sendEvent(photogrammetryHandler, node, cfg, ctx, { type: 'photogrammetry_add_images', images: ['a.jpg'] });
+    sendEvent(photogrammetryHandler, node, cfg, ctx, {
+      type: 'photogrammetry_add_images',
+      images: ['a.jpg'],
+    });
     sendEvent(photogrammetryHandler, node, cfg, ctx, { type: 'photogrammetry_start' });
     expect((node as any).__photogrammetryState.isProcessing).toBe(true);
     expect(getEventCount(ctx, 'photogrammetry_process')).toBe(1);
@@ -50,7 +59,11 @@ describe('PhotogrammetryTrait', () => {
   });
 
   it('progress updates state', () => {
-    sendEvent(photogrammetryHandler, node, cfg, ctx, { type: 'photogrammetry_progress', stage: 'meshing', progress: 50 });
+    sendEvent(photogrammetryHandler, node, cfg, ctx, {
+      type: 'photogrammetry_progress',
+      stage: 'meshing',
+      progress: 50,
+    });
     expect((node as any).__photogrammetryState.stage).toBe('meshing');
     expect(getEventCount(ctx, 'on_photogrammetry_progress')).toBe(1);
   });
@@ -70,7 +83,10 @@ describe('PhotogrammetryTrait', () => {
   });
 
   it('error stops processing', () => {
-    sendEvent(photogrammetryHandler, node, cfg, ctx, { type: 'photogrammetry_error', error: 'fail' });
+    sendEvent(photogrammetryHandler, node, cfg, ctx, {
+      type: 'photogrammetry_error',
+      error: 'fail',
+    });
     expect(getEventCount(ctx, 'on_photogrammetry_error')).toBe(1);
   });
 
@@ -80,7 +96,10 @@ describe('PhotogrammetryTrait', () => {
   });
 
   it('clear removes images and mesh', () => {
-    sendEvent(photogrammetryHandler, node, cfg, ctx, { type: 'photogrammetry_add_images', images: ['a.jpg'] });
+    sendEvent(photogrammetryHandler, node, cfg, ctx, {
+      type: 'photogrammetry_add_images',
+      images: ['a.jpg'],
+    });
     sendEvent(photogrammetryHandler, node, cfg, ctx, { type: 'photogrammetry_complete', mesh: {} });
     sendEvent(photogrammetryHandler, node, cfg, ctx, { type: 'photogrammetry_clear' });
     const s = (node as any).__photogrammetryState;
@@ -89,7 +108,10 @@ describe('PhotogrammetryTrait', () => {
   });
 
   it('query emits info', () => {
-    sendEvent(photogrammetryHandler, node, cfg, ctx, { type: 'photogrammetry_query', queryId: 'q1' });
+    sendEvent(photogrammetryHandler, node, cfg, ctx, {
+      type: 'photogrammetry_query',
+      queryId: 'q1',
+    });
     expect(getEventCount(ctx, 'photogrammetry_info')).toBe(1);
   });
 

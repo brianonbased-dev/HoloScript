@@ -31,11 +31,16 @@ describe('RetryRecoveryStrategy — construction', () => {
   });
   it('defaults: maxAttempts=3, backoffMs=1000', () => {
     const s = new RetryRecoveryStrategy('r', ['network-timeout'], async () => true);
-    expect(s.maxAttempts).toBe(3); expect(s.backoffMs).toBe(1000);
+    expect(s.maxAttempts).toBe(3);
+    expect(s.backoffMs).toBe(1000);
   });
   it('respects custom maxAttempts and backoffMs', () => {
-    const s = new RetryRecoveryStrategy('r', ['network-timeout'], async () => true, { maxAttempts: 1, backoffMs: 0 });
-    expect(s.maxAttempts).toBe(1); expect(s.backoffMs).toBe(0);
+    const s = new RetryRecoveryStrategy('r', ['network-timeout'], async () => true, {
+      maxAttempts: 1,
+      backoffMs: 0,
+    });
+    expect(s.maxAttempts).toBe(1);
+    expect(s.backoffMs).toBe(0);
   });
 });
 
@@ -52,37 +57,52 @@ describe('RetryRecoveryStrategy — matches()', () => {
 
 describe('RetryRecoveryStrategy — execute()', () => {
   it('succeeds on first try', async () => {
-    const s = new RetryRecoveryStrategy('r', ['network-timeout'],
-      async () => true, { maxAttempts: 3, backoffMs: 0 });
+    const s = new RetryRecoveryStrategy('r', ['network-timeout'], async () => true, {
+      maxAttempts: 3,
+      backoffMs: 0,
+    });
     const result = await s.execute(makeFailure());
     expect(result.success).toBe(true);
     expect(result.strategyUsed).toBe('r');
   });
   it('returns success=false after all attempts fail', async () => {
-    const s = new RetryRecoveryStrategy('r', ['network-timeout'],
-      async () => false, { maxAttempts: 2, backoffMs: 0 });
+    const s = new RetryRecoveryStrategy('r', ['network-timeout'], async () => false, {
+      maxAttempts: 2,
+      backoffMs: 0,
+    });
     const result = await s.execute(makeFailure());
     expect(result.success).toBe(false);
     expect(result.nextAction).toBe('escalate');
   });
   it('succeeds on second attempt', async () => {
     let calls = 0;
-    const s = new RetryRecoveryStrategy('r', ['network-timeout'],
-      async () => { calls++; return calls >= 2; }, { maxAttempts: 3, backoffMs: 0 });
+    const s = new RetryRecoveryStrategy(
+      'r',
+      ['network-timeout'],
+      async () => {
+        calls++;
+        return calls >= 2;
+      },
+      { maxAttempts: 3, backoffMs: 0 }
+    );
     const result = await s.execute(makeFailure());
-    expect(result.success).toBe(true); expect(calls).toBe(2);
+    expect(result.success).toBe(true);
+    expect(calls).toBe(2);
   });
 });
 
 describe('SkipRecoveryStrategy', () => {
   it('constructs with id=skip', () => {
     const s = new SkipRecoveryStrategy(['network-timeout']);
-    expect(s.id).toBe('skip'); expect(s.maxAttempts).toBe(1);
+    expect(s.id).toBe('skip');
+    expect(s.maxAttempts).toBe(1);
   });
   it('execute always returns success=true', async () => {
     const s = new SkipRecoveryStrategy(['network-timeout']);
     const r = await s.execute(makeFailure());
-    expect(r.success).toBe(true); expect(r.strategyUsed).toBe('skip'); expect(r.nextAction).toBe('skip');
+    expect(r.success).toBe(true);
+    expect(r.strategyUsed).toBe('skip');
+    expect(r.nextAction).toBe('skip');
   });
   it('matches failure types in handles array', () => {
     const s = new SkipRecoveryStrategy(['api-rate-limit', 'network-timeout']);
@@ -120,7 +140,8 @@ describe('NetworkTimeoutRecovery', () => {
   });
   it('custom maxAttempts / backoffMs', () => {
     const s = new NetworkTimeoutRecovery(2, 500);
-    expect(s.maxAttempts).toBe(2); expect(s.backoffMs).toBe(500);
+    expect(s.maxAttempts).toBe(2);
+    expect(s.backoffMs).toBe(500);
   });
   it('execute returns success=false (template — needs override)', async () => {
     const s = new NetworkTimeoutRecovery(1, 0);

@@ -158,8 +158,14 @@ describe('ConversationManager — Production', () => {
 
   // ─── History ordering ─────────────────────────────────────────────────
   it('messages are ordered by timestamp', () => {
-    transport._deliver({ type: 'SOCIAL_MESSAGE', payload: { senderId: 'hank', text: 'Second', id: 'x2', timestamp: 200 } });
-    transport._deliver({ type: 'SOCIAL_MESSAGE', payload: { senderId: 'hank', text: 'First', id: 'x1', timestamp: 100 } });
+    transport._deliver({
+      type: 'SOCIAL_MESSAGE',
+      payload: { senderId: 'hank', text: 'Second', id: 'x2', timestamp: 200 },
+    });
+    transport._deliver({
+      type: 'SOCIAL_MESSAGE',
+      payload: { senderId: 'hank', text: 'First', id: 'x1', timestamp: 100 },
+    });
     const history = manager.getHistory('hank');
     expect(history[0].text).toBe('First');
     expect(history[1].text).toBe('Second');

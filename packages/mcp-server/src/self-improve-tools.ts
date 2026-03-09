@@ -85,7 +85,7 @@ export const selfImproveTools: Tool[] = [
 
 export async function handleSelfImproveTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown | null> {
   switch (name) {
     case 'holo_self_diagnose':
@@ -256,10 +256,11 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
   // ── Tests ──────────────────────────────────────────────────────────────
   if (!skipTests) {
     try {
-      const { stdout } = await execAsync(
-        'npx vitest run --reporter=json 2>&1',
-        { cwd: rootDir, timeout: 300_000, maxBuffer: 50 * 1024 * 1024 },
-      );
+      const { stdout } = await execAsync('npx vitest run --reporter=json 2>&1', {
+        cwd: rootDir,
+        timeout: 300_000,
+        maxBuffer: 50 * 1024 * 1024,
+      });
       try {
         const jsonMatch = stdout.match(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
         if (jsonMatch) {
@@ -313,15 +314,24 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
   // We combine test + coverage into tests score (0.55), and skip circuit breaker for now (0.15 bonus if types pass)
   const composite =
     scores.tests.score * 0.55 +
-    scores.typeCheck.score * 0.20 +
-    scores.lint.score * 0.10 +
+    scores.typeCheck.score * 0.2 +
+    scores.lint.score * 0.1 +
     (scores.typeCheck.pass ? 0.15 : 0); // circuit breaker proxy: if types pass, system is stable
 
   return {
     rootDir,
     scores,
     composite: Math.round(composite * 100) / 100,
-    grade: composite >= 0.9 ? 'A' : composite >= 0.8 ? 'B' : composite >= 0.7 ? 'C' : composite >= 0.5 ? 'D' : 'F',
+    grade:
+      composite >= 0.9
+        ? 'A'
+        : composite >= 0.8
+          ? 'B'
+          : composite >= 0.7
+            ? 'C'
+            : composite >= 0.5
+              ? 'D'
+              : 'F',
     allPassing: scores.typeCheck.pass && scores.tests.pass && scores.lint.pass,
     timestamp: new Date().toISOString(),
   };

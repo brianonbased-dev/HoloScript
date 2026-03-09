@@ -91,7 +91,8 @@ const TEMPLATES: SceneTemplate[] = [
     name: 'Platformer Level',
     category: 'game',
     tags: ['game', 'platformer', 'level', 'blocks'],
-    description: 'Classic side-scrolling platformer stage with floating platforms and collectibles.',
+    description:
+      'Classic side-scrolling platformer stage with floating platforms and collectibles.',
     thumbnail: '',
     complexity: 'medium',
     objectCount: 7,
@@ -110,7 +111,9 @@ const TEMPLATES: SceneTemplate[] = [
   },
 ];
 
-declare global { var __templateCatalog__: SceneTemplate[] | undefined; }
+declare global {
+  var __templateCatalog__: SceneTemplate[] | undefined;
+}
 const catalog = globalThis.__templateCatalog__ ?? (globalThis.__templateCatalog__ = [...TEMPLATES]);
 
 export async function GET(request: NextRequest) {
@@ -119,7 +122,10 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get('category') as TemplateCategory | null;
 
   let results = catalog;
-  if (q) results = results.filter((t) => t.name.toLowerCase().includes(q) || t.tags.some((tag) => tag.includes(q)));
+  if (q)
+    results = results.filter(
+      (t) => t.name.toLowerCase().includes(q) || t.tags.some((tag) => tag.includes(q))
+    );
   if (category) results = results.filter((t) => t.category === category);
 
   const categories = [...new Set(catalog.map((t) => t.category))];

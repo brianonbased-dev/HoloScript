@@ -25,7 +25,8 @@ export interface BBEntry {
 
 export class Blackboard {
   private data: Map<string, BBEntry> = new Map();
-  private observers: Map<string, Array<(key: string, value: unknown, old: unknown) => void>> = new Map();
+  private observers: Map<string, Array<(key: string, value: unknown, old: unknown) => void>> =
+    new Map();
   private scopes: Map<string, Set<string>> = new Map(); // scope → keys
   private history: Array<{ key: string; old: unknown; value: unknown; timestamp: number }> = [];
   private maxHistory = 100;
@@ -39,7 +40,9 @@ export class Blackboard {
     const old = existing?.value;
 
     this.data.set(key, {
-      key, value, scope,
+      key,
+      value,
+      scope,
       version: existing ? existing.version + 1 : 0,
       timestamp: Date.now(),
     });
@@ -60,7 +63,9 @@ export class Blackboard {
     return this.data.get(key)?.value as T | undefined;
   }
 
-  has(key: string): boolean { return this.data.has(key); }
+  has(key: string): boolean {
+    return this.data.has(key);
+  }
 
   delete(key: string): boolean {
     const entry = this.data.get(key);
@@ -95,7 +100,9 @@ export class Blackboard {
     return count;
   }
 
-  getScopes(): string[] { return [...this.scopes.keys()]; }
+  getScopes(): string[] {
+    return [...this.scopes.keys()];
+  }
 
   // ---------------------------------------------------------------------------
   // Observers
@@ -121,10 +128,18 @@ export class Blackboard {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getEntryCount(): number { return this.data.size; }
-  getKeys(): string[] { return [...this.data.keys()]; }
-  getVersion(key: string): number { return this.data.get(key)?.version ?? -1; }
-  getHistory(): typeof this.history { return [...this.history]; }
+  getEntryCount(): number {
+    return this.data.size;
+  }
+  getKeys(): string[] {
+    return [...this.data.keys()];
+  }
+  getVersion(key: string): number {
+    return this.data.get(key)?.version ?? -1;
+  }
+  getHistory(): typeof this.history {
+    return [...this.history];
+  }
 
   clear(): void {
     this.data.clear();

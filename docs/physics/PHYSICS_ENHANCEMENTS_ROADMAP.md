@@ -9,7 +9,9 @@
 ## 🎯 Three Major Enhancements
 
 ### 1. GPU Acceleration (100K+ Particles @ 60 FPS)
+
 ### 2. Additional Demo Scenes (Earthquake, Avalanche, Erosion, Demolition)
+
 ### 3. VR/AR Integration (WebXR, Hand Tracking, Spatial Audio)
 
 ---
@@ -19,11 +21,13 @@
 **Goal**: Scale from ~90 particles to 100K+ particles @ 60 FPS using WebGPU compute shaders
 
 ### Current State
+
 - ✅ CPU-based physics: ~90 particles @ 60 FPS
 - ✅ Simplified physics in Three.js renderer
 - ⚠️ Performance degrades rapidly >1000 particles
 
 ### Target State
+
 - 🎯 GPU-accelerated physics: 100K+ particles @ 60 FPS
 - 🎯 WebGPU compute shaders (WGSL)
 - 🎯 Fallback to CPU for non-WebGPU browsers
@@ -32,6 +36,7 @@
 ### Implementation Steps
 
 #### Phase 1: WebGPU Foundation (Week 1)
+
 1. **Setup WebGPU Context**
    - [ ] Create WebGPU device initialization
    - [ ] Add feature detection + fallback to WebGL/CPU
@@ -52,7 +57,9 @@
    - File: `packages/core/src/gpu/shaders/particle-physics.wgsl`
 
 #### Phase 2: Granular Physics Compute Shader (Week 2)
+
 1. **Gravity & Integration**
+
    ```wgsl
    @compute @workgroup_size(256)
    fn main(@builtin(global_invocation_id) id: vec3<u32>) {
@@ -72,6 +79,7 @@
    ```
 
 2. **Ground Collision Detection**
+
    ```wgsl
    // Ground plane collision
    if (pos.y < uniforms.groundY + radius) {
@@ -93,7 +101,9 @@
    - [ ] Wake-up logic for collisions
 
 #### Phase 3: Rendering Optimization (Week 3)
+
 1. **Particle Instancing**
+
    ```typescript
    // Three.js instanced mesh for 100K particles
    const geometry = new THREE.SphereGeometry(0.05, 8, 8);
@@ -120,6 +130,7 @@
    - [ ] Bottleneck identification
 
 #### Phase 4: Integration & Testing (Week 4)
+
 1. **GPU Physics Integration**
    - [ ] Connect to existing `PhysicsIntegrationManager`
    - [ ] Destruction → GPU granular conversion
@@ -138,6 +149,7 @@
    - [ ] Stability tests (no explosions)
 
 ### Deliverables
+
 - [ ] `packages/core/src/gpu/WebGPUPhysics.ts` (~600 lines)
 - [ ] `packages/core/src/gpu/shaders/*.wgsl` (~400 lines)
 - [ ] `packages/core/src/gpu/__tests__/WebGPUPhysics.test.ts` (~200 lines)
@@ -145,6 +157,7 @@
 - [ ] `docs/GPU_ACCELERATION_GUIDE.md` (~500 lines)
 
 ### Success Criteria
+
 - ✅ 100K particles @ 60 FPS on modern GPU (RTX 3060+)
 - ✅ 10K particles @ 60 FPS on integrated GPU (Intel Iris Xe)
 - ✅ Graceful fallback to CPU for non-WebGPU browsers
@@ -158,6 +171,7 @@
 **Goal**: Create 4 spectacular physics demos showcasing different scenarios
 
 ### Current State
+
 - ✅ Wrecking Ball Demolition (complete)
 - ⏳ Earthquake, Avalanche, Erosion, Demolition (pending)
 
@@ -166,6 +180,7 @@
 **Scenario**: Seismic waves cause multi-story building to collapse floor-by-floor
 
 #### Implementation Steps
+
 1. **Building Structure**
    - [ ] 5-story building (30 fragments per floor = 150 total)
    - [ ] Structural columns and beams
@@ -173,6 +188,7 @@
    - File: `samples/demos/earthquake-collapse.holo`
 
 2. **Seismic Wave Simulation**
+
    ```typescript
    // Sinusoidal ground acceleration
    const quakeForce = {
@@ -182,7 +198,7 @@
    };
 
    // Apply to all fragments in bottom floor
-   bottomFloorFragments.forEach(frag => {
+   bottomFloorFragments.forEach((frag) => {
      frag.applyForce(quakeForce);
    });
    ```
@@ -200,6 +216,7 @@
    - [ ] Aerial view of final debris pile
 
 #### Features
+
 - 🏢 5-story building with 150 fragments
 - 🌊 Realistic seismic wave simulation
 - 📉 Progressive structural failure
@@ -211,6 +228,7 @@
 **Scenario**: Snowpack destabilizes and cascades down mountainside
 
 #### Implementation Steps
+
 1. **Terrain Generation**
    - [ ] Procedural mountain slope (30-45° incline)
    - [ ] Height map generation
@@ -218,20 +236,21 @@
    - File: `samples/demos/avalanche.holo`
 
 2. **Snowpack Layer**
+
    ```typescript
    // Initial snowpack as granular material
    const snowpack = new GranularMaterialSystem({
      particleCount: 50000,
-     particleRadius: 0.1,  // 10cm snowballs
-     density: 200,         // Light snow
+     particleRadius: 0.1, // 10cm snowballs
+     density: 200, // Light snow
      friction: 0.4,
-     cohesion: 0.6,        // Sticky snow
+     cohesion: 0.6, // Sticky snow
    });
 
    // Arrange in layer on slope
    for (let i = 0; i < particleCount; i++) {
      const x = random(-50, 50);
-     const z = random(0, 100);  // Upslope
+     const z = random(0, 100); // Upslope
      const y = terrainHeight(x, z) + 0.5;
      snowpack.particles[i].position = { x, y, z };
    }
@@ -250,6 +269,7 @@
    - [ ] Final debris cone at bottom
 
 #### Features
+
 - 🏔️ Procedural mountain terrain
 - ❄️ 50K granular snow particles
 - 💥 Triggered by explosion or overload
@@ -261,6 +281,7 @@
 **Scenario**: Fluid simulation carves channels through granular terrain
 
 #### Implementation Steps
+
 1. **Terrain Setup**
    - [ ] Granular material pile (sand/dirt)
    - [ ] 20K particles in mound
@@ -268,11 +289,12 @@
    - File: `samples/demos/water-erosion.holo`
 
 2. **Fluid Source**
+
    ```typescript
    // Water stream from top
    const waterSource = new FluidSimulation({
      resolution: { x: 64, y: 32, z: 64 },
-     viscosity: 0.001,  // Water
+     viscosity: 0.001, // Water
      density: 1000,
    });
 
@@ -292,6 +314,7 @@
    - [ ] Realistic sediment transport
 
 #### Features
+
 - 🏜️ 20K granular terrain particles
 - 💧 Fluid simulation (SPH or grid-based)
 - 🌊 Erosion channels carved by flow
@@ -303,6 +326,7 @@
 **Scenario**: Precisely timed charges bring down building in controlled manner
 
 #### Implementation Steps
+
 1. **Building Structure**
    - [ ] 10-story skyscraper
    - [ ] Support columns (critical points)
@@ -310,6 +334,7 @@
    - File: `samples/demos/explosive-demolition.holo`
 
 2. **Explosive Charges**
+
    ```typescript
    // Charges placed at strategic points
    const charges = [
@@ -320,7 +345,7 @@
    ];
 
    // Detonate in sequence
-   charges.forEach(charge => {
+   charges.forEach((charge) => {
      setTimeout(() => {
        fractureSystem.applyDamage({
          position: charge.position,
@@ -345,6 +370,7 @@
    - [ ] Flying debris
 
 #### Features
+
 - 🏙️ 10-story building (200+ fragments)
 - 💣 Timed explosive charges (realistic sequence)
 - 🎯 Controlled collapse direction
@@ -352,12 +378,14 @@
 - 🎬 Multiple camera angles
 
 ### Implementation Timeline
+
 - **Week 1**: Earthquake demo
 - **Week 2**: Avalanche demo
 - **Week 3**: Water erosion demo
 - **Week 4**: Explosive demolition demo
 
 ### Deliverables (Per Demo)
+
 - [ ] `.holo` scene file (~300 lines each)
 - [ ] TypeScript demo runner (~200 lines each)
 - [ ] Three.js renderer variant (~150 lines each)
@@ -371,11 +399,13 @@
 **Goal**: Enable physics demos in immersive VR/AR with hand tracking and spatial audio
 
 ### Current State
+
 - ✅ Desktop rendering (Three.js)
 - ✅ Mouse/keyboard controls
 - ⏳ No VR/AR support
 
 ### Target State
+
 - 🎯 WebXR support (VR + AR modes)
 - 🎯 Hand tracking interaction
 - 🎯 Spatial audio for impacts
@@ -385,7 +415,9 @@
 ### Implementation Steps
 
 #### Phase 1: WebXR Foundation (Week 1)
+
 1. **WebXR Session Setup**
+
    ```typescript
    // packages/core/src/xr/WebXRManager.ts
    export class WebXRManager {
@@ -414,6 +446,7 @@
    ```
 
 2. **Renderer Integration**
+
    ```typescript
    // Three.js WebXR integration
    renderer.xr.enabled = true;
@@ -445,10 +478,12 @@
    - File: `packages/core/src/xr/XRInputManager.ts`
 
 #### Phase 2: Hand Tracking Integration (Week 2)
+
 1. **Hand Pose Detection**
+
    ```typescript
    // Get hand joints
-   const hands = frame.getInputSources().filter(src => src.hand);
+   const hands = frame.getInputSources().filter((src) => src.hand);
    for (const inputSource of hands) {
      const hand = inputSource.hand!;
 
@@ -462,7 +497,8 @@
 
        // Pinch gesture detection
        const distance = indexPose.transform.position.distanceTo(thumbPose.transform.position);
-       if (distance < 0.02) {  // 2cm threshold
+       if (distance < 0.02) {
+         // 2cm threshold
          this.onPinch(inputSource.handedness);
        }
      }
@@ -476,6 +512,7 @@
    - [ ] Fist (apply force)
 
 3. **Physics Interaction**
+
    ```typescript
    // Grab particle with hand
    onPinch(hand: 'left' | 'right') {
@@ -498,7 +535,9 @@
    ```
 
 #### Phase 3: Spatial Audio (Week 3)
+
 1. **Web Audio API Setup**
+
    ```typescript
    // packages/core/src/audio/SpatialAudioManager.ts
    export class SpatialAudioManager {
@@ -516,7 +555,7 @@
 
        // Create panner for spatial audio
        const panner = this.audioContext.createPanner();
-       panner.panningModel = 'HRTF';  // Head-related transfer function
+       panner.panningModel = 'HRTF'; // Head-related transfer function
        panner.distanceModel = 'inverse';
        panner.refDistance = 1;
        panner.maxDistance = 100;
@@ -551,6 +590,7 @@
    - [ ] Wrecking ball impact boom
 
 3. **Listener Update**
+
    ```typescript
    // Update listener position from VR camera
    updateListener(camera: Camera) {
@@ -571,7 +611,9 @@
    ```
 
 #### Phase 4: Haptic Feedback (Week 4)
+
 1. **Haptic Pulse on Collision**
+
    ```typescript
    // Trigger haptic feedback when particle hits hand
    onParticleCollision(particle: Particle, hand: XRInputSource) {
@@ -593,7 +635,9 @@
    - [ ] Strong vibration (major destruction event)
 
 #### Phase 5: AR Placement & Interaction (Week 5)
+
 1. **AR Hit Testing**
+
    ```typescript
    // Place physics scene in real world
    async placeScene(frame: XRFrame, inputSource: XRInputSource) {
@@ -626,12 +670,14 @@
 ### Platform-Specific Features
 
 #### Meta Quest (2/3/Pro)
+
 - ✅ Hand tracking (v2.0+)
 - ✅ Passthrough AR
 - ✅ 120Hz mode (Quest 3)
 - ✅ Haptic feedback (controllers)
 
 #### Apple Vision Pro
+
 - ✅ Hand tracking (excellent)
 - ✅ Eye tracking
 - ✅ Passthrough AR (high quality)
@@ -639,6 +685,7 @@
 - ⚠️ No haptics
 
 #### Microsoft HoloLens 2
+
 - ✅ Hand tracking
 - ✅ Spatial mapping
 - ✅ Eye tracking
@@ -646,6 +693,7 @@
 - ⚠️ Lower performance (mobile CPU)
 
 ### Deliverables
+
 - [ ] `packages/core/src/xr/WebXRManager.ts` (~400 lines)
 - [ ] `packages/core/src/xr/XRInputManager.ts` (~300 lines)
 - [ ] `packages/core/src/audio/SpatialAudioManager.ts` (~250 lines)
@@ -655,6 +703,7 @@
 - [ ] Platform-specific guides (Quest, Vision Pro, HoloLens)
 
 ### Success Criteria
+
 - ✅ VR demo runs @ 72 FPS on Quest 2 (60Hz reprojection)
 - ✅ VR demo runs @ 90 FPS on Quest 3 (120Hz capable)
 - ✅ Hand tracking with <50ms latency
@@ -667,18 +716,21 @@
 ## 📅 Overall Timeline
 
 ### Month 1: GPU Acceleration
+
 - **Week 1**: WebGPU foundation & buffer management
 - **Week 2**: Granular physics compute shader
 - **Week 3**: Rendering optimization & instancing
 - **Week 4**: Integration, testing, benchmarks
 
 ### Month 2: Demo Scenes
+
 - **Week 1**: Earthquake building collapse
 - **Week 2**: Avalanche simulation
 - **Week 3**: Water erosion
 - **Week 4**: Explosive demolition
 
 ### Month 3: VR/AR Integration
+
 - **Week 1**: WebXR foundation & session setup
 - **Week 2**: Hand tracking & gestures
 - **Week 3**: Spatial audio implementation
@@ -692,18 +744,21 @@
 ## 🎯 Success Metrics
 
 ### Performance
+
 - [ ] 100K particles @ 60 FPS (GPU accelerated)
 - [ ] 72+ FPS in VR mode (Quest 2/3)
 - [ ] <50ms hand tracking latency
 - [ ] <16ms frame time (60 FPS budget)
 
 ### Quality
+
 - [ ] 4 stunning demo scenes
 - [ ] All tests passing (100% coverage)
 - [ ] Platform compatibility (Quest, Vision Pro, HoloLens)
 - [ ] Comprehensive documentation
 
 ### User Experience
+
 - [ ] Intuitive hand interactions
 - [ ] Immersive spatial audio
 - [ ] Realistic haptic feedback
@@ -714,17 +769,20 @@
 ## 📦 Final Deliverables
 
 ### Code (~4,500 lines total)
+
 - GPU acceleration: ~1,200 lines
 - Demo scenes: ~1,800 lines (4 × 450)
 - VR/AR integration: ~1,500 lines
 
 ### Documentation (~2,200 lines total)
+
 - GPU acceleration guide: ~500 lines
 - Demo scene tutorials: ~800 lines (4 × 200)
 - XR integration guide: ~600 lines
 - Platform guides: ~300 lines
 
 ### Assets
+
 - 4 demo videos (30-60s each)
 - Sound effects library (impact, destruction, ambient)
 - Sample scenes (.holo files)

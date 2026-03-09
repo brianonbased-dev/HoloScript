@@ -27,7 +27,7 @@ describe('SourceMapGenerator', () => {
     gen.addSource('a.holo');
     gen.addSource('a.holo');
     const map = gen.generate();
-    expect(map.sources.filter(s => s === 'a.holo').length).toBe(1);
+    expect(map.sources.filter((s) => s === 'a.holo').length).toBe(1);
   });
 
   it('adds names', () => {
@@ -135,10 +135,7 @@ describe('combineSourceMaps', () => {
     const gen2 = new SourceMapGenerator({ file: 'b.js' });
     gen2.addSource('b.holo');
 
-    const combined = combineSourceMaps(
-      [gen1.generate(), gen2.generate()],
-      'combined.js'
-    );
+    const combined = combineSourceMaps([gen1.generate(), gen2.generate()], 'combined.js');
 
     expect(combined.file).toBe('combined.js');
     expect(combined.sources).toContain('a.holo');

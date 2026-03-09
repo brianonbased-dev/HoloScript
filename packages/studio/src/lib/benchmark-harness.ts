@@ -199,7 +199,7 @@ async function benchmarkBackend(
   bridge: CompilerBridge,
   source: string,
   iterations: number,
-  platform: string,
+  platform: string
 ): Promise<BenchmarkResult> {
   const backend = bridge.getStatus().backend;
 
@@ -357,10 +357,16 @@ export async function runBenchmark(options: BenchmarkOptions = {}): Promise<Benc
     },
     {
       Metric: 'Budget OK?',
-      TypeScript: tsResult.budgetCheck.withinBudget ? '✓' : `✗ (${tsResult.budgetCheck.violations.length} violations)`,
-      ...(wasmResult ? {
-        WASM: wasmResult.budgetCheck.withinBudget ? '✓' : `✗ (${wasmResult.budgetCheck.violations.length} violations)`,
-      } : {}),
+      TypeScript: tsResult.budgetCheck.withinBudget
+        ? '✓'
+        : `✗ (${tsResult.budgetCheck.violations.length} violations)`,
+      ...(wasmResult
+        ? {
+            WASM: wasmResult.budgetCheck.withinBudget
+              ? '✓'
+              : `✗ (${wasmResult.budgetCheck.violations.length} violations)`,
+          }
+        : {}),
     },
   ];
 

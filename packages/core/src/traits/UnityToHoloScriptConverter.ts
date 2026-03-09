@@ -68,45 +68,54 @@ export interface ConversionResult {
 // ─── Component Mapping ────────────────────────────────────────────────────────
 
 const COMPONENT_TRAIT_MAP: Record<string, string> = {
-  'Rigidbody':          'PhysicsTrait',
-  'BoxCollider':        'ColliderTrait',
-  'SphereCollider':     'ColliderTrait',
-  'CapsuleCollider':    'ColliderTrait',
-  'MeshCollider':       'ColliderTrait',
-  'CharacterController':'CharacterTrait',
-  'NavMeshAgent':       'PatrolTrait',
-  'Animator':           'AnimationTrait',
-  'AudioSource':        'AudioTrait',
-  'Light':              'LightTrait',
-  'Camera':             'CameraTrait',
-  'ParticleSystem':     'ParticleTrait',
-  'Canvas':             'UITrait',
-  'NetworkIdentity':    'MultiplayerTrait',
+  Rigidbody: 'PhysicsTrait',
+  BoxCollider: 'ColliderTrait',
+  SphereCollider: 'ColliderTrait',
+  CapsuleCollider: 'ColliderTrait',
+  MeshCollider: 'ColliderTrait',
+  CharacterController: 'CharacterTrait',
+  NavMeshAgent: 'PatrolTrait',
+  Animator: 'AnimationTrait',
+  AudioSource: 'AudioTrait',
+  Light: 'LightTrait',
+  Camera: 'CameraTrait',
+  ParticleSystem: 'ParticleTrait',
+  Canvas: 'UITrait',
+  NetworkIdentity: 'MultiplayerTrait',
 };
 
 const SHADER_TYPE_MAP: Record<string, 'pbr' | 'unlit' | 'toon' | 'holographic'> = {
-  'Standard':                              'pbr',
-  'Universal Render Pipeline/Lit':          'pbr',
-  'Universal Render Pipeline/Unlit':        'unlit',
-  'Unlit/Color':                            'unlit',
-  'Unlit/Texture':                          'unlit',
-  'Sprites/Diffuse':                        'unlit',
-  'Toon/Lit':                               'toon',
-  'Holographic/Additive':                   'holographic',
+  Standard: 'pbr',
+  'Universal Render Pipeline/Lit': 'pbr',
+  'Universal Render Pipeline/Unlit': 'unlit',
+  'Unlit/Color': 'unlit',
+  'Unlit/Texture': 'unlit',
+  'Sprites/Diffuse': 'unlit',
+  'Toon/Lit': 'toon',
+  'Holographic/Additive': 'holographic',
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function vec3ToString(v: { x: number; y: number; z: number } | undefined, def = { x: 0, y: 0, z: 0 }): string {
+function vec3ToString(
+  v: { x: number; y: number; z: number } | undefined,
+  def = { x: 0, y: 0, z: 0 }
+): string {
   const { x, y, z } = v ?? def;
   return `[${x}, ${y}, ${z}]`;
 }
 
 function colorToHex(c: { r: number; g: number; b: number } | undefined): string {
   if (!c) return '#ffffff';
-  const r = Math.round(c.r * 255).toString(16).padStart(2, '0');
-  const g = Math.round(c.g * 255).toString(16).padStart(2, '0');
-  const b = Math.round(c.b * 255).toString(16).padStart(2, '0');
+  const r = Math.round(c.r * 255)
+    .toString(16)
+    .padStart(2, '0');
+  const g = Math.round(c.g * 255)
+    .toString(16)
+    .padStart(2, '0');
+  const b = Math.round(c.b * 255)
+    .toString(16)
+    .padStart(2, '0');
   return `#${r}${g}${b}`;
 }
 
@@ -125,9 +134,7 @@ export function convertUnityMaterial(mat: UnityMaterial): { id: string; dsl: str
   const metalness = typeof p._Metallic === 'number' ? p._Metallic : 0;
   const roughness = typeof p._Glossiness === 'number' ? 1 - (p._Glossiness as number) : 0.5;
 
-  const emissive = p._EmissionColor
-    ? colorToHex(p._EmissionColor as any)
-    : undefined;
+  const emissive = p._EmissionColor ? colorToHex(p._EmissionColor as any) : undefined;
 
   const lines: string[] = [
     `  material ${id} : ${shaderType} {`,
@@ -150,7 +157,7 @@ export function convertUnityMaterial(mat: UnityMaterial): { id: string; dsl: str
 export function convertGameObject(
   go: UnityGameObject,
   indent = 1,
-  result: ConversionResult,
+  result: ConversionResult
 ): string {
   const pad = '  '.repeat(indent);
   const id = sanitizeId(go.name);
@@ -160,13 +167,14 @@ export function convertGameObject(
   const unsupported: string[] = [];
 
   // Determine geometry from mesh component
-  const meshFilter = components.find(c => c.type === 'MeshFilter');
+  const meshFilter = components.find((c) => c.type === 'MeshFilter');
   const geometry = (meshFilter?.properties?.mesh as string) ?? 'box';
   const geometryId = sanitizeId(geometry.replace(/(Mesh|Prefab)/g, '').toLowerCase() || 'box');
 
   // Map Unity components → traits
   for (const comp of components) {
-    if (comp.type === 'MeshFilter' || comp.type === 'MeshRenderer' || comp.type === 'Transform') continue;
+    if (comp.type === 'MeshFilter' || comp.type === 'MeshRenderer' || comp.type === 'Transform')
+      continue;
     const trait = COMPONENT_TRAIT_MAP[comp.type];
     if (trait) {
       if (!traits.includes(trait)) traits.push(trait);
@@ -180,7 +188,7 @@ export function convertGameObject(
   }
 
   // Resolve material
-  const meshRenderer = components.find(c => c.type === 'MeshRenderer');
+  const meshRenderer = components.find((c) => c.type === 'MeshRenderer');
   const materialName = (meshRenderer?.properties?.material as string) ?? 'default';
   const materialId = result.materialMap[materialName] ?? sanitizeId(materialName);
 
@@ -199,7 +207,7 @@ export function convertGameObject(
   ];
 
   if (traits.length > 0) {
-    lines.push(`${pad}  traits: [${traits.map(t => `"${t}"`).join(', ')}]`);
+    lines.push(`${pad}  traits: [${traits.map((t) => `"${t}"`).join(', ')}]`);
     for (const t of traits) {
       if (!result.traits.includes(t)) result.traits.push(t);
     }
@@ -322,7 +330,7 @@ export const unityConverterHandler = {
           ...scene,
           gameObjects: config.include_inactive
             ? scene.gameObjects
-            : scene.gameObjects.filter(go => go.isActive !== false),
+            : scene.gameObjects.filter((go) => go.isActive !== false),
         };
 
         const result = convertUnityScene(filtered);
@@ -354,5 +362,7 @@ export const unityConverterHandler = {
     }
   },
 
-  onUpdate(_n: any, _c: any, _ctx: any, _dt: number): void { /* sync only */ },
+  onUpdate(_n: any, _c: any, _ctx: any, _dt: number): void {
+    /* sync only */
+  },
 } as const;

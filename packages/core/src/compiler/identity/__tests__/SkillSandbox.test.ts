@@ -228,7 +228,7 @@ describe('Failure Mode Controls', () => {
   });
 
   it('should cover all categories', () => {
-    const categories = new Set(FAILURE_MODE_CONTROLS.map(fm => fm.category));
+    const categories = new Set(FAILURE_MODE_CONTROLS.map((fm) => fm.category));
     expect(categories.has('goal_instruction')).toBe(true);
     expect(categories.has('knowledge_context')).toBe(true);
     expect(categories.has('action_execution')).toBe(true);
@@ -259,7 +259,7 @@ describe('Failure Mode Controls', () => {
     const gaps = getSecurityGaps();
     // Some failure modes have unimplemented controls (FM10)
     expect(gaps.length).toBeGreaterThan(0);
-    expect(gaps.some(g => g.failureMode === AgenticFailureMode.FM10_STALE_KNOWLEDGE)).toBe(true);
+    expect(gaps.some((g) => g.failureMode === AgenticFailureMode.FM10_STALE_KNOWLEDGE)).toBe(true);
   });
 
   it('should identify implemented controls', () => {

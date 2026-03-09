@@ -31,17 +31,31 @@ export class DebugConsole {
   }
 
   private registerBuiltins(): void {
-    this.registerCommand({ name: 'help', description: 'List all commands', handler: () => {
-      return [...this.commands.values()].map(c => `${c.name} - ${c.description}`).join('\n');
-    }});
-    this.registerCommand({ name: 'clear', description: 'Clear console', handler: () => {
-      this.history = [];
-      return 'Console cleared';
-    }});
-    this.registerCommand({ name: 'watch', description: 'List watched variables', handler: () => {
-      if (this.watchedVariables.size === 0) return 'No watched variables';
-      return [...this.watchedVariables.entries()].map(([k, fn]) => `${k} = ${JSON.stringify(fn())}`).join('\n');
-    }});
+    this.registerCommand({
+      name: 'help',
+      description: 'List all commands',
+      handler: () => {
+        return [...this.commands.values()].map((c) => `${c.name} - ${c.description}`).join('\n');
+      },
+    });
+    this.registerCommand({
+      name: 'clear',
+      description: 'Clear console',
+      handler: () => {
+        this.history = [];
+        return 'Console cleared';
+      },
+    });
+    this.registerCommand({
+      name: 'watch',
+      description: 'List watched variables',
+      handler: () => {
+        if (this.watchedVariables.size === 0) return 'No watched variables';
+        return [...this.watchedVariables.entries()]
+          .map(([k, fn]) => `${k} = ${JSON.stringify(fn())}`)
+          .join('\n');
+      },
+    });
   }
 
   /**
@@ -85,7 +99,7 @@ export class DebugConsole {
    * Autocomplete a partial command
    */
   autocomplete(partial: string): string[] {
-    return [...this.commands.keys()].filter(name => name.startsWith(partial)).sort();
+    return [...this.commands.keys()].filter((name) => name.startsWith(partial)).sort();
   }
 
   /**
@@ -130,8 +144,16 @@ export class DebugConsole {
     if (this.history.length > this.maxHistory) this.history.shift();
   }
 
-  toggle(): void { this.open = !this.open; }
-  isOpen(): boolean { return this.open; }
-  getHistory(): ConsoleEntry[] { return [...this.history]; }
-  getCommandCount(): number { return this.commands.size; }
+  toggle(): void {
+    this.open = !this.open;
+  }
+  isOpen(): boolean {
+    return this.open;
+  }
+  getHistory(): ConsoleEntry[] {
+    return [...this.history];
+  }
+  getCommandCount(): number {
+    return this.commands.size;
+  }
 }

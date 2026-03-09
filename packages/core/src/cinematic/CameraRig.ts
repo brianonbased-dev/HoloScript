@@ -20,7 +20,7 @@ export interface CameraRigConfig {
   fov: number;
   nearClip: number;
   farClip: number;
-  smoothing: number;     // 0-1
+  smoothing: number; // 0-1
   speed: number;
 }
 
@@ -29,7 +29,7 @@ export interface ShakePreset {
   intensity: number;
   frequency: number;
   duration: number;
-  decay: number;         // Exponential decay rate
+  decay: number; // Exponential decay rate
 }
 
 export interface RigState {
@@ -58,8 +58,11 @@ export class CameraRig {
       mode: 'static',
       position: { x: 0, y: 5, z: -10 },
       target: { x: 0, y: 0, z: 0 },
-      fov: 60, nearClip: 0.1, farClip: 1000,
-      smoothing: 0.1, speed: 1,
+      fov: 60,
+      nearClip: 0.1,
+      farClip: 1000,
+      smoothing: 0.1,
+      speed: 1,
       ...config,
     };
     this.state = {
@@ -70,18 +73,46 @@ export class CameraRig {
     };
 
     // Built-in shake presets
-    this.shakePresets.set('light', { name: 'light', intensity: 0.05, frequency: 15, duration: 0.3, decay: 5 });
-    this.shakePresets.set('medium', { name: 'medium', intensity: 0.15, frequency: 20, duration: 0.5, decay: 3 });
-    this.shakePresets.set('heavy', { name: 'heavy', intensity: 0.4, frequency: 25, duration: 0.8, decay: 2 });
-    this.shakePresets.set('explosion', { name: 'explosion', intensity: 1.0, frequency: 30, duration: 1.2, decay: 1.5 });
+    this.shakePresets.set('light', {
+      name: 'light',
+      intensity: 0.05,
+      frequency: 15,
+      duration: 0.3,
+      decay: 5,
+    });
+    this.shakePresets.set('medium', {
+      name: 'medium',
+      intensity: 0.15,
+      frequency: 20,
+      duration: 0.5,
+      decay: 3,
+    });
+    this.shakePresets.set('heavy', {
+      name: 'heavy',
+      intensity: 0.4,
+      frequency: 25,
+      duration: 0.8,
+      decay: 2,
+    });
+    this.shakePresets.set('explosion', {
+      name: 'explosion',
+      intensity: 1.0,
+      frequency: 30,
+      duration: 1.2,
+      decay: 1.5,
+    });
   }
 
   // ---------------------------------------------------------------------------
   // Mode Configuration
   // ---------------------------------------------------------------------------
 
-  setMode(mode: RigMode): void { this.config.mode = mode; }
-  getMode(): RigMode { return this.config.mode; }
+  setMode(mode: RigMode): void {
+    this.config.mode = mode;
+  }
+  getMode(): RigMode {
+    return this.config.mode;
+  }
 
   setDollyPath(path: Array<{ x: number; y: number; z: number }>): void {
     this.dollyPath = [...path];
@@ -102,7 +133,9 @@ export class CameraRig {
     if (preset) this.activeShake = { preset, elapsed: 0 };
   }
 
-  addShakePreset(preset: ShakePreset): void { this.shakePresets.set(preset.name, preset); }
+  addShakePreset(preset: ShakePreset): void {
+    this.shakePresets.set(preset.name, preset);
+  }
 
   // ---------------------------------------------------------------------------
   // Update
@@ -110,10 +143,18 @@ export class CameraRig {
 
   update(dt: number): RigState {
     switch (this.config.mode) {
-      case 'dolly': this.updateDolly(dt); break;
-      case 'crane': this.updateCrane(dt); break;
-      case 'steadicam': this.updateSteadicam(dt); break;
-      case 'handheld': this.updateHandheld(dt); break;
+      case 'dolly':
+        this.updateDolly(dt);
+        break;
+      case 'crane':
+        this.updateCrane(dt);
+        break;
+      case 'steadicam':
+        this.updateSteadicam(dt);
+        break;
+      case 'handheld':
+        this.updateHandheld(dt);
+        break;
       // static — no movement
     }
 
@@ -141,7 +182,7 @@ export class CameraRig {
 
   private updateDolly(dt: number): void {
     if (this.dollyPath.length < 2) return;
-    this.dollyT += dt * this.config.speed / 10;
+    this.dollyT += (dt * this.config.speed) / 10;
     if (this.dollyT > 1) this.dollyT = 1;
 
     const idx = this.dollyT * (this.dollyPath.length - 1);
@@ -205,6 +246,10 @@ export class CameraRig {
     };
   }
 
-  getConfig(): CameraRigConfig { return { ...this.config }; }
-  getShakePresets(): string[] { return [...this.shakePresets.keys()]; }
+  getConfig(): CameraRigConfig {
+    return { ...this.config };
+  }
+  getShakePresets(): string[] {
+    return [...this.shakePresets.keys()];
+  }
 }

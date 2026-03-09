@@ -141,9 +141,12 @@ describe('SSOTrait', () => {
 
       ssoSamlHandler.onAttach!(node, config, ctx);
 
-      expect(ctx.emit).toHaveBeenCalledWith('sso_error', expect.objectContaining({
-        error: 'TENANT_ID_REQUIRED',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'sso_error',
+        expect.objectContaining({
+          error: 'TENANT_ID_REQUIRED',
+        })
+      );
       expect((node as any).__ssoState).toBeUndefined();
     });
   });
@@ -196,10 +199,13 @@ describe('SSOTrait', () => {
 
       initiateAuth(node, config, ctx);
 
-      expect(ctx.emit).toHaveBeenCalledWith('sso_saml_authn_request', expect.objectContaining({
-        tenantId: 'test-tenant-001',
-        idpId: 'test-idp-saml',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'sso_saml_authn_request',
+        expect.objectContaining({
+          tenantId: 'test-tenant-001',
+          idpId: 'test-idp-saml',
+        })
+      );
     });
   });
 
@@ -237,9 +243,12 @@ describe('SSOTrait', () => {
         attributes: {},
       } as any);
 
-      expect(ctx.emit).toHaveBeenCalledWith('sso_authenticated', expect.objectContaining({
-        tenantId: 'test-tenant-001',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'sso_authenticated',
+        expect.objectContaining({
+          tenantId: 'test-tenant-001',
+        })
+      );
     });
 
     it('should reject invalid nonce', () => {
@@ -251,9 +260,12 @@ describe('SSOTrait', () => {
         externalUserId: 'ext-user-123',
       } as any);
 
-      expect(ctx.emit).toHaveBeenCalledWith('sso_auth_error', expect.objectContaining({
-        error: 'INVALID_NONCE',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'sso_auth_error',
+        expect.objectContaining({
+          error: 'INVALID_NONCE',
+        })
+      );
     });
   });
 

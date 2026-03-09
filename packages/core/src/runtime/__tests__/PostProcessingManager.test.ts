@@ -6,7 +6,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { PostProcessingManager, type PostProcessingConfig, type PostProcessingQuality } from '../PostProcessingManager';
+import {
+  PostProcessingManager,
+  type PostProcessingConfig,
+  type PostProcessingQuality,
+} from '../PostProcessingManager';
 
 describe('PostProcessingManager', () => {
   describe('Construction', () => {
@@ -156,7 +160,7 @@ describe('PostProcessingManager', () => {
     it('should report quality setting correctly', () => {
       const qualities: PostProcessingQuality[] = ['low', 'medium', 'high', 'ultra'];
 
-      qualities.forEach(quality => {
+      qualities.forEach((quality) => {
         const manager = new PostProcessingManager({ quality });
         expect(manager.getStats().quality).toBe(quality);
       });

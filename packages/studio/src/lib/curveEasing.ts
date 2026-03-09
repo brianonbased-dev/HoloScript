@@ -24,14 +24,30 @@ export {
  */
 
 export type EasingName =
-  | 'linear' | 'easeInQuad' | 'easeOutQuad' | 'easeInOutQuad'
-  | 'easeInCubic' | 'easeOutCubic' | 'easeInOutCubic'
-  | 'easeInQuart' | 'easeOutQuart' | 'easeInOutQuart'
-  | 'easeInSine' | 'easeOutSine' | 'easeInOutSine'
-  | 'easeInExpo' | 'easeOutExpo' | 'easeInOutExpo'
-  | 'easeInBack' | 'easeOutBack' | 'easeInOutBack'
-  | 'easeInBounce' | 'easeOutBounce' | 'easeInOutBounce'
-  | 'easeInElastic' | 'easeOutElastic';
+  | 'linear'
+  | 'easeInQuad'
+  | 'easeOutQuad'
+  | 'easeInOutQuad'
+  | 'easeInCubic'
+  | 'easeOutCubic'
+  | 'easeInOutCubic'
+  | 'easeInQuart'
+  | 'easeOutQuart'
+  | 'easeInOutQuart'
+  | 'easeInSine'
+  | 'easeOutSine'
+  | 'easeInOutSine'
+  | 'easeInExpo'
+  | 'easeOutExpo'
+  | 'easeInOutExpo'
+  | 'easeInBack'
+  | 'easeOutBack'
+  | 'easeInOutBack'
+  | 'easeInBounce'
+  | 'easeOutBounce'
+  | 'easeInOutBounce'
+  | 'easeInElastic'
+  | 'easeOutElastic';
 
 export type EasingFn = (t: number) => number;
 
@@ -43,22 +59,24 @@ export const linear: EasingFn = (t) => t;
 
 export const easeInQuad: EasingFn = (t) => t * t;
 export const easeOutQuad: EasingFn = (t) => t * (2 - t);
-export const easeInOutQuad: EasingFn = (t) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+export const easeInOutQuad: EasingFn = (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
 
 export const easeInCubic: EasingFn = (t) => t * t * t;
-export const easeOutCubic: EasingFn = (t) => (--t) * t * t + 1;
-export const easeInOutCubic: EasingFn = (t) => t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+export const easeOutCubic: EasingFn = (t) => --t * t * t + 1;
+export const easeInOutCubic: EasingFn = (t) =>
+  t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
 
 export const easeInQuart: EasingFn = (t) => t * t * t * t;
-export const easeOutQuart: EasingFn = (t) => 1 - (--t) * t * t * t;
-export const easeInOutQuart: EasingFn = (t) => t < 0.5 ? 8 * t * t * t * t : 1 - 8 * (--t) * t * t * t;
+export const easeOutQuart: EasingFn = (t) => 1 - --t * t * t * t;
+export const easeInOutQuart: EasingFn = (t) =>
+  t < 0.5 ? 8 * t * t * t * t : 1 - 8 * --t * t * t * t;
 
 export const easeInSine: EasingFn = (t) => 1 - Math.cos((t * Math.PI) / 2);
 export const easeOutSine: EasingFn = (t) => Math.sin((t * Math.PI) / 2);
 export const easeInOutSine: EasingFn = (t) => -(Math.cos(Math.PI * t) - 1) / 2;
 
-export const easeInExpo: EasingFn = (t) => t === 0 ? 0 : Math.pow(2, 10 * t - 10);
-export const easeOutExpo: EasingFn = (t) => t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+export const easeInExpo: EasingFn = (t) => (t === 0 ? 0 : Math.pow(2, 10 * t - 10));
+export const easeOutExpo: EasingFn = (t) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t));
 export const easeInOutExpo: EasingFn = (t) => {
   if (t === 0 || t === 1) return t;
   return t < 0.5 ? Math.pow(2, 20 * t - 10) / 2 : (2 - Math.pow(2, -20 * t + 10)) / 2;
@@ -103,14 +121,30 @@ export const easeOutElastic: EasingFn = (t) => {
 // ═══════════════════════════════════════════════════════════════════
 
 const EASING_MAP: Record<EasingName, EasingFn> = {
-  linear, easeInQuad, easeOutQuad, easeInOutQuad,
-  easeInCubic, easeOutCubic, easeInOutCubic,
-  easeInQuart, easeOutQuart, easeInOutQuart,
-  easeInSine, easeOutSine, easeInOutSine,
-  easeInExpo, easeOutExpo, easeInOutExpo,
-  easeInBack, easeOutBack, easeInOutBack,
-  easeInBounce, easeOutBounce, easeInOutBounce,
-  easeInElastic, easeOutElastic,
+  linear,
+  easeInQuad,
+  easeOutQuad,
+  easeInOutQuad,
+  easeInCubic,
+  easeOutCubic,
+  easeInOutCubic,
+  easeInQuart,
+  easeOutQuart,
+  easeInOutQuart,
+  easeInSine,
+  easeOutSine,
+  easeInOutSine,
+  easeInExpo,
+  easeOutExpo,
+  easeInOutExpo,
+  easeInBack,
+  easeOutBack,
+  easeInOutBack,
+  easeInBounce,
+  easeOutBounce,
+  easeInOutBounce,
+  easeInElastic,
+  easeOutElastic,
 };
 
 /**

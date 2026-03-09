@@ -11,7 +11,6 @@ import {
 } from '../GlobalIllumination';
 
 describe('GlobalIllumination — Production Tests', () => {
-
   // ---------------------------------------------------------------------------
   // SH9 utilities
   // ---------------------------------------------------------------------------
@@ -22,7 +21,9 @@ describe('GlobalIllumination — Production Tests', () => {
       expect(sh.g.length).toBe(9);
       expect(sh.b.length).toBe(9);
       for (let i = 0; i < 9; i++) {
-        expect(sh.r[i]).toBe(0); expect(sh.g[i]).toBe(0); expect(sh.b[i]).toBe(0);
+        expect(sh.r[i]).toBe(0);
+        expect(sh.g[i]).toBe(0);
+        expect(sh.b[i]).toBe(0);
       }
     });
   });
@@ -90,22 +91,28 @@ describe('GlobalIllumination — Production Tests', () => {
 
   describe('lerpSH9', () => {
     it('t=0 returns a copy of a', () => {
-      const a = createSH9(); addSHSample(a, { x: 1, y: 0, z: 0 }, [1, 0, 0]);
-      const b = createSH9(); addSHSample(b, { x: 0, y: 1, z: 0 }, [0, 1, 0]);
+      const a = createSH9();
+      addSHSample(a, { x: 1, y: 0, z: 0 }, [1, 0, 0]);
+      const b = createSH9();
+      addSHSample(b, { x: 0, y: 1, z: 0 }, [0, 1, 0]);
       const result = lerpSH9(a, b, 0);
       for (let i = 0; i < 9; i++) expect(result.r[i]).toBeCloseTo(a.r[i], 5);
     });
 
     it('t=1 returns a copy of b', () => {
-      const a = createSH9(); addSHSample(a, { x: 1, y: 0, z: 0 }, [1, 0, 0]);
-      const b = createSH9(); addSHSample(b, { x: 0, y: 1, z: 0 }, [0, 1, 0]);
+      const a = createSH9();
+      addSHSample(a, { x: 1, y: 0, z: 0 }, [1, 0, 0]);
+      const b = createSH9();
+      addSHSample(b, { x: 0, y: 1, z: 0 }, [0, 1, 0]);
       const result = lerpSH9(a, b, 1);
       for (let i = 0; i < 9; i++) expect(result.g[i]).toBeCloseTo(b.g[i], 5);
     });
 
     it('t=0.5 is midpoint', () => {
-      const a = createSH9(); a.r[0] = 2;
-      const b = createSH9(); b.r[0] = 4;
+      const a = createSH9();
+      a.r[0] = 2;
+      const b = createSH9();
+      b.r[0] = 4;
       const result = lerpSH9(a, b, 0.5);
       expect(result.r[0]).toBeCloseTo(3, 5);
     });
@@ -137,7 +144,8 @@ describe('GlobalIllumination — Production Tests', () => {
   describe('GIProbeGrid — Probe Updates', () => {
     it('updateProbe stores SH and increments updateCount', () => {
       const grid = new GIProbeGrid({ gridSize: [2, 2, 2] });
-      const sh = createSH9(); addSHSample(sh, { x: 0, y: 1, z: 0 }, [1, 0, 0]);
+      const sh = createSH9();
+      addSHSample(sh, { x: 0, y: 1, z: 0 }, [1, 0, 0]);
       grid.updateProbe(0, 0, 0, sh);
       const p = grid.getProbe(0, 0, 0);
       expect(p?.sh.r[0]).toBeCloseTo(sh.r[0], 5);
@@ -184,7 +192,9 @@ describe('GlobalIllumination — Production Tests', () => {
 
     it('outside grid clamps gracefully (no throw)', () => {
       const grid = new GIProbeGrid({ gridSize: [2, 2, 2], probeSpacing: 1 });
-      expect(() => grid.sampleIrradiance({ x: 100, y: 100, z: 100 }, { x: 0, y: 1, z: 0 })).not.toThrow();
+      expect(() =>
+        grid.sampleIrradiance({ x: 100, y: 100, z: 100 }, { x: 0, y: 1, z: 0 })
+      ).not.toThrow();
     });
   });
 

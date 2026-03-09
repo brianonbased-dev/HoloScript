@@ -14,9 +14,15 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  SequenceNode, SelectorNode, ParallelNode,
-  InverterNode, RepeaterNode, GuardNode,
-  ActionNode, ConditionNode, WaitNode,
+  SequenceNode,
+  SelectorNode,
+  ParallelNode,
+  InverterNode,
+  RepeaterNode,
+  GuardNode,
+  ActionNode,
+  ConditionNode,
+  WaitNode,
 } from '../BTNodes';
 import type { BTContext, BTStatus } from '../BTNodes';
 
@@ -31,7 +37,9 @@ function makeCtx(deltaTime = 0.016, entity = 'agent'): BTContext {
   return {
     blackboard: {
       get: (k: string) => bb.get(k),
-      set: (k: string, v: unknown) => { bb.set(k, v); },
+      set: (k: string, v: unknown) => {
+        bb.set(k, v);
+      },
     },
     deltaTime,
     entity,
@@ -68,7 +76,10 @@ describe('ActionNode', () => {
 
   it('context is passed to the action', () => {
     let received: BTContext | null = null;
-    const n = new ActionNode('spy', (ctx) => { received = ctx; return 'success'; });
+    const n = new ActionNode('spy', (ctx) => {
+      received = ctx;
+      return 'success';
+    });
     const ctx = makeCtx();
     n.tick(ctx);
     expect(received).toBe(ctx);
@@ -92,7 +103,10 @@ describe('ConditionNode', () => {
 
   it('condition receives context', () => {
     let got: BTContext | null = null;
-    const n = new ConditionNode('spy', (ctx) => { got = ctx; return true; });
+    const n = new ConditionNode('spy', (ctx) => {
+      got = ctx;
+      return true;
+    });
     const ctx = makeCtx();
     n.tick(ctx);
     expect(got).toBe(ctx);
@@ -117,13 +131,13 @@ describe('WaitNode', () => {
 
   it('resets elapsed on success so next tick restarts', () => {
     const n = new WaitNode('wait', 0.5);
-    n.tick(makeCtx(0.5));        // success, elapsed reset
+    n.tick(makeCtx(0.5)); // success, elapsed reset
     expect(n.tick(makeCtx(0.1))).toBe('running'); // not done yet
   });
 
   it('reset() resets elapsed', () => {
     const n = new WaitNode('wait', 0.5);
-    n.tick(makeCtx(0.4));        // almost done
+    n.tick(makeCtx(0.4)); // almost done
     n.reset();
     expect(n.tick(makeCtx(0.2))).toBe('running'); // restarted
   });
@@ -153,7 +167,10 @@ describe('SequenceNode', () => {
     let thirdCalled = false;
     const n = new SequenceNode('seq', [
       always('failure'),
-      new ActionNode('spy', () => { thirdCalled = true; return 'success'; }),
+      new ActionNode('spy', () => {
+        thirdCalled = true;
+        return 'success';
+      }),
     ]);
     n.tick(makeCtx());
     expect(thirdCalled).toBe(false);
@@ -197,7 +214,10 @@ describe('SelectorNode', () => {
     let laterCalled = false;
     const n = new SelectorNode('sel', [
       always('success'),
-      new ActionNode('spy', () => { laterCalled = true; return 'success'; }),
+      new ActionNode('spy', () => {
+        laterCalled = true;
+        return 'success';
+      }),
     ]);
     n.tick(makeCtx());
     expect(laterCalled).toBe(false);
@@ -238,8 +258,14 @@ describe('ParallelNode', () => {
   it('ticks ALL children regardless of results', () => {
     let count = 0;
     const n = new ParallelNode('par', [
-      new ActionNode('a', () => { count++; return 'success'; }),
-      new ActionNode('b', () => { count++; return 'failure'; }),
+      new ActionNode('a', () => {
+        count++;
+        return 'success';
+      }),
+      new ActionNode('b', () => {
+        count++;
+        return 'failure';
+      }),
     ]);
     n.tick(makeCtx());
     expect(count).toBe(2);
@@ -307,7 +333,10 @@ describe('RepeaterNode', () => {
 describe('GuardNode', () => {
   it('returns failure when condition is false (child not ticked)', () => {
     let childCalled = false;
-    const child = new ActionNode('child', () => { childCalled = true; return 'success'; });
+    const child = new ActionNode('child', () => {
+      childCalled = true;
+      return 'success';
+    });
     const n = new GuardNode('guard', () => false, child);
     expect(n.tick(makeCtx())).toBe('failure');
     expect(childCalled).toBe(false);
@@ -320,7 +349,14 @@ describe('GuardNode', () => {
 
   it('condition receives context', () => {
     let received: BTContext | null = null;
-    const n = new GuardNode('guard', (ctx) => { received = ctx; return true; }, always('success'));
+    const n = new GuardNode(
+      'guard',
+      (ctx) => {
+        received = ctx;
+        return true;
+      },
+      always('success')
+    );
     const ctx = makeCtx();
     n.tick(ctx);
     expect(received).toBe(ctx);

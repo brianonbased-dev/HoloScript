@@ -11,7 +11,12 @@ import { DemolitionDemoScene } from './DemolitionDemoScene';
 import { Fracturable, MATERIALS } from './Fracturable';
 import type { Vector3 } from './Fragment';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
-import type { RuntimeRenderer, RenderableObject, RenderableLight, ParticleSystem } from '../../runtime/RuntimeRenderer';
+import type {
+  RuntimeRenderer,
+  RenderableObject,
+  RenderableLight,
+  ParticleSystem,
+} from '../../runtime/RuntimeRenderer';
 
 export interface RuntimeExecutorConfig {
   /** Enable debug logging */
@@ -55,7 +60,10 @@ export class DemolitionRuntimeExecutor {
   private rendererFragmentMap = new Map<string, string>(); // fragment ID → renderer object ID
   private rendererParticleSystemId: string | null = null;
   private objectMaterials = new Map<string, { type: string; color: string }>(); // object ID → material
-  private lastFracturedObjectMaterial: { type: string; color: string } = { type: 'concrete', color: '#808080' };
+  private lastFracturedObjectMaterial: { type: string; color: string } = {
+    type: 'concrete',
+    color: '#808080',
+  };
   private rendererStructuralMap = new Map<string, string>(); // structural element ID → renderer object ID
   private enableStructuralVisualization = false;
 
@@ -147,7 +155,9 @@ export class DemolitionRuntimeExecutor {
         id: object.id,
         type: 'box', // Default to box geometry
         position: [object.position.x, object.position.y, object.position.z],
-        rotation: object.rotation ? [object.rotation.x, object.rotation.y, object.rotation.z] : [0, 0, 0],
+        rotation: object.rotation
+          ? [object.rotation.x, object.rotation.y, object.rotation.z]
+          : [0, 0, 0],
         scale: [1, 1, 1],
         geometry: {
           type: 'box',
@@ -233,7 +243,7 @@ export class DemolitionRuntimeExecutor {
 
     // Check for removed objects (fractured) and save their materials
     const currentObjects = this.scene.getObjects();
-    const currentObjectIds = new Set(currentObjects.map(obj => obj.id));
+    const currentObjectIds = new Set(currentObjects.map((obj) => obj.id));
 
     for (const [objectId, rendererId] of this.rendererObjectMap) {
       if (!currentObjectIds.has(objectId)) {
@@ -255,7 +265,9 @@ export class DemolitionRuntimeExecutor {
       if (rendererId) {
         this.renderer.updateObjectTransform(rendererId, {
           position: [object.position.x, object.position.y, object.position.z],
-          rotation: object.rotation ? [object.rotation.x, object.rotation.y, object.rotation.z] : [0, 0, 0],
+          rotation: object.rotation
+            ? [object.rotation.x, object.rotation.y, object.rotation.z]
+            : [0, 0, 0],
         });
       }
     }
@@ -307,9 +319,17 @@ export class DemolitionRuntimeExecutor {
         const renderableFragment: RenderableObject = {
           id: fragment.id,
           type: 'box',
-          position: [fragment.physics.position.x, fragment.physics.position.y, fragment.physics.position.z],
+          position: [
+            fragment.physics.position.x,
+            fragment.physics.position.y,
+            fragment.physics.position.z,
+          ],
           rotation: fragment.physics.rotation
-            ? [fragment.physics.rotation.x, fragment.physics.rotation.y, fragment.physics.rotation.z]
+            ? [
+                fragment.physics.rotation.x,
+                fragment.physics.rotation.y,
+                fragment.physics.rotation.z,
+              ]
             : [0, 0, 0],
           scale: [1, 1, 1],
           geometry: {
@@ -329,14 +349,24 @@ export class DemolitionRuntimeExecutor {
         this.rendererFragmentMap.set(fragment.id, fragment.id);
 
         if (this.config.debug) {
-          console.log(`[HoloScript Runtime] Added fragment ${fragment.id} with material ${this.lastFracturedObjectMaterial.type}`);
+          console.log(
+            `[HoloScript Runtime] Added fragment ${fragment.id} with material ${this.lastFracturedObjectMaterial.type}`
+          );
         }
       } else {
         // Update existing fragment transforms
         this.renderer.updateObjectTransform(fragment.id, {
-          position: [fragment.physics.position.x, fragment.physics.position.y, fragment.physics.position.z],
+          position: [
+            fragment.physics.position.x,
+            fragment.physics.position.y,
+            fragment.physics.position.z,
+          ],
           rotation: fragment.physics.rotation
-            ? [fragment.physics.rotation.x, fragment.physics.rotation.y, fragment.physics.rotation.z]
+            ? [
+                fragment.physics.rotation.x,
+                fragment.physics.rotation.y,
+                fragment.physics.rotation.z,
+              ]
             : [0, 0, 0],
         });
       }
@@ -370,7 +400,7 @@ export class DemolitionRuntimeExecutor {
     if (loadPercentage < 0.5) {
       // Green → Yellow (0% - 50%)
       const t = loadPercentage * 2; // 0-1
-      const r = Math.floor(0 + (255 * t));
+      const r = Math.floor(0 + 255 * t);
       const g = 255;
       const b = 0;
       return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
@@ -378,14 +408,14 @@ export class DemolitionRuntimeExecutor {
       // Yellow → Orange (50% - 80%)
       const t = (loadPercentage - 0.5) / 0.3; // 0-1
       const r = 255;
-      const g = Math.floor(255 - (90 * t)); // 255 → 165
+      const g = Math.floor(255 - 90 * t); // 255 → 165
       const b = 0;
       return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
     } else {
       // Orange → Red (80% - 100%)
       const t = (loadPercentage - 0.8) / 0.2; // 0-1
       const r = 255;
-      const g = Math.floor(165 - (165 * t)); // 165 → 0
+      const g = Math.floor(165 - 165 * t); // 165 → 0
       const b = 0;
       return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
     }
@@ -428,7 +458,9 @@ export class DemolitionRuntimeExecutor {
         this.rendererStructuralMap.set(element.id, element.id);
 
         if (this.config.debug) {
-          console.log(`[HoloScript Runtime] Added structural element ${element.id} with load ${(loadPercentage * 100).toFixed(0)}%`);
+          console.log(
+            `[HoloScript Runtime] Added structural element ${element.id} with load ${(loadPercentage * 100).toFixed(0)}%`
+          );
         }
       } else {
         // Update element color based on load
@@ -436,7 +468,9 @@ export class DemolitionRuntimeExecutor {
         // For now, we can just update the whole object
         // TODO: Add updateObjectMaterial() method to renderer
         if (this.config.debug && this.currentFrame % 60 === 0) {
-          console.log(`[HoloScript Runtime] Element ${element.id} load: ${(loadPercentage * 100).toFixed(0)}%`);
+          console.log(
+            `[HoloScript Runtime] Element ${element.id} load: ${(loadPercentage * 100).toFixed(0)}%`
+          );
         }
       }
     }
@@ -460,7 +494,9 @@ export class DemolitionRuntimeExecutor {
     }
 
     if (this.config.debug) {
-      console.log(`[HoloScript Runtime] Structural visualization: ${enable ? 'enabled' : 'disabled'}`);
+      console.log(
+        `[HoloScript Runtime] Structural visualization: ${enable ? 'enabled' : 'disabled'}`
+      );
     }
   }
 
@@ -649,7 +685,8 @@ export class DemolitionRuntimeExecutor {
 
       const material = props.material || {};
       const materialType = material.type || 'concrete';
-      const materialProps = MATERIALS[materialType.toUpperCase() as keyof typeof MATERIALS] || MATERIALS.CONCRETE;
+      const materialProps =
+        MATERIALS[materialType.toUpperCase() as keyof typeof MATERIALS] || MATERIALS.CONCRETE;
 
       const object = new Fracturable({
         id: `${entity.name}_${i}`,

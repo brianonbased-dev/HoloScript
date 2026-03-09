@@ -13,7 +13,7 @@ describe('PerformanceTracker', () => {
     tracker.recordMetric('parse', 10, 100);
     const report = tracker.generateReport();
     expect(report.current.length).toBeGreaterThanOrEqual(1);
-    expect(report.current.some(m => m.name === 'parse')).toBe(true);
+    expect(report.current.some((m) => m.name === 'parse')).toBe(true);
   });
 
   it('generates a report with PASS status when no baseline', () => {
@@ -39,7 +39,7 @@ describe('PerformanceTracker', () => {
     tracker.clearMetrics();
     tracker.recordMetric('parse', 20, 50);
     const comparisons = tracker.compare();
-    const parseComp = comparisons.find(c => c.name === 'parse');
+    const parseComp = comparisons.find((c) => c.name === 'parse');
     expect(parseComp).toBeDefined();
     expect(parseComp!.changePercent).toBeGreaterThan(5);
     expect(parseComp!.status).toBe('FAIL');

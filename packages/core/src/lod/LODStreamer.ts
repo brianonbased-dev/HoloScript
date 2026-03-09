@@ -13,10 +13,10 @@
 
 export interface StreamableAsset {
   id: string;
-  lodLevels: number[];      // Distance thresholds (ascending)
-  currentLOD: number;        // Current LOD index (-1 = unloaded)
+  lodLevels: number[]; // Distance thresholds (ascending)
+  currentLOD: number; // Current LOD index (-1 = unloaded)
   priority: number;
-  memoryCost: number[];      // Memory per LOD level
+  memoryCost: number[]; // Memory per LOD level
 }
 
 export interface StreamRequest {
@@ -35,15 +35,19 @@ export class LODStreamer {
   private unloadQueue: StreamRequest[] = [];
   private memoryBudget: number;
   private memoryUsed = 0;
-  private hysteresis = 0.1;  // Fraction of threshold to prevent oscillation
+  private hysteresis = 0.1; // Fraction of threshold to prevent oscillation
 
-  constructor(memoryBudget: number) { this.memoryBudget = memoryBudget; }
+  constructor(memoryBudget: number) {
+    this.memoryBudget = memoryBudget;
+  }
 
   // ---------------------------------------------------------------------------
   // Asset Registration
   // ---------------------------------------------------------------------------
 
-  registerAsset(asset: StreamableAsset): void { this.assets.set(asset.id, asset); }
+  registerAsset(asset: StreamableAsset): void {
+    this.assets.set(asset.id, asset);
+  }
 
   // ---------------------------------------------------------------------------
   // Update
@@ -131,8 +135,16 @@ export class LODStreamer {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getMemoryUsed(): number { return this.memoryUsed; }
-  getMemoryBudget(): number { return this.memoryBudget; }
-  getLoadQueueSize(): number { return this.loadQueue.length; }
-  getCurrentLOD(id: string): number { return this.assets.get(id)?.currentLOD ?? -1; }
+  getMemoryUsed(): number {
+    return this.memoryUsed;
+  }
+  getMemoryBudget(): number {
+    return this.memoryBudget;
+  }
+  getLoadQueueSize(): number {
+    return this.loadQueue.length;
+  }
+  getCurrentLOD(id: string): number {
+    return this.assets.get(id)?.currentLOD ?? -1;
+  }
 }

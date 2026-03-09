@@ -248,10 +248,15 @@ export class AgentKitIntegration {
   }
 
   // Initialize agent wallet with TEE security & Live CDP Wallet
-  async initializeAgentWallet(config: { agent_id: string; initial_balance: number }): Promise<AgentWallet> {
+  async initializeAgentWallet(config: {
+    agent_id: string;
+    initial_balance: number;
+  }): Promise<AgentWallet> {
     console.log(`[AgentKit] Initializing wallet for ${config.agent_id} on ${this.options.network}`);
-    
-    const walletService = new AgentWalletService(this.options.network === 'ethereum' ? 'base-sepolia' : 'base-sepolia');
+
+    const walletService = new AgentWalletService(
+      this.options.network === 'ethereum' ? 'base-sepolia' : 'base-sepolia'
+    );
     const liveAddress = await walletService.initialize();
 
     return {
@@ -259,15 +264,20 @@ export class AgentKitIntegration {
       address: liveAddress,
       network: this.options.network,
       balance: {
-        USDC: config.initial_balance
+        USDC: config.initial_balance,
       },
       tee_attestation: this.options.tee_enabled ? 'attestation_proof_placeholder' : undefined,
-      created_at: Date.now()
+      created_at: Date.now(),
     };
   }
 
   // Trade tokens on DEX
-  async trade(agent_id: string, from: string, to: string, amount: number): Promise<AgentTransaction> {
+  async trade(
+    agent_id: string,
+    from: string,
+    to: string,
+    amount: number
+  ): Promise<AgentTransaction> {
     console.log(`[AgentKit] Trading ${amount} ${from} to ${to} for ${agent_id}`);
     return {
       tx_hash: `0xTxTrade_${Date.now()}`,
@@ -280,31 +290,44 @@ export class AgentKitIntegration {
       network: this.options.network,
       timestamp: Date.now(),
       block_number: 1234567,
-      status: 'confirmed'
+      status: 'confirmed',
     };
   }
 
   // Mint NFT to agent wallet
-  async mint_nft(agent_id: string, metadata: { name: string; description: string; uri: string; royalty_percentage: number }): Promise<{ token_id: string; contract_address: string }> {
+  async mint_nft(
+    agent_id: string,
+    metadata: { name: string; description: string; uri: string; royalty_percentage: number }
+  ): Promise<{ token_id: string; contract_address: string }> {
     console.log(`[AgentKit] Minting NFT '${metadata.name}' for ${agent_id}`);
     return {
       token_id: '1',
-      contract_address: `0xNFTContract_${Date.now()}`
+      contract_address: `0xNFTContract_${Date.now()}`,
     };
   }
 
   // Pay for paywalled content via x402
-  async pay_x402(agent_id: string, params: { endpoint: string; price: number; asset: string }): Promise<{ transaction_hash: string; content: any }> {
-    console.log(`[AgentKit] Paying ${params.price} ${params.asset} for ${params.endpoint} via x402`);
+  async pay_x402(
+    agent_id: string,
+    params: { endpoint: string; price: number; asset: string }
+  ): Promise<{ transaction_hash: string; content: any }> {
+    console.log(
+      `[AgentKit] Paying ${params.price} ${params.asset} for ${params.endpoint} via x402`
+    );
     return {
       transaction_hash: `0xTxPay_${Date.now()}`,
-      content: { success: true, message: "Content unlocked" }
+      content: { success: true, message: 'Content unlocked' },
     };
   }
 
   // Earn yield on idle assets
-  async earn_yield(agent_id: string, params: { protocol: 'aave' | 'compound'; asset: string; amount: number }): Promise<AgentTransaction> {
-    console.log(`[AgentKit] Staking ${params.amount} ${params.asset} in ${params.protocol} for yield`);
+  async earn_yield(
+    agent_id: string,
+    params: { protocol: 'aave' | 'compound'; asset: string; amount: number }
+  ): Promise<AgentTransaction> {
+    console.log(
+      `[AgentKit] Staking ${params.amount} ${params.asset} in ${params.protocol} for yield`
+    );
     return {
       tx_hash: `0xTxYield_${Date.now()}`,
       agent_id,
@@ -316,7 +339,7 @@ export class AgentKitIntegration {
       network: this.options.network,
       timestamp: Date.now(),
       block_number: 1234567,
-      status: 'confirmed'
+      status: 'confirmed',
     };
   }
 }

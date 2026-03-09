@@ -8,11 +8,7 @@
  */
 
 // DecisionHistory (G-Set CRDT)
-export type {
-  DecisionEntry,
-  DecisionHistory,
-  DecisionHistoryMetadata,
-} from './DecisionHistory';
+export type { DecisionEntry, DecisionHistory, DecisionHistoryMetadata } from './DecisionHistory';
 
 // ActiveTaskState (OR-Set + LWW-Register hybrid)
 export type {
@@ -76,7 +72,12 @@ export type MVCObject =
 /**
  * MVC object type discriminator
  */
-export type MVCType = 'decision-history' | 'task-state' | 'preferences' | 'spatial-context' | 'evidence-trail';
+export type MVCType =
+  | 'decision-history'
+  | 'task-state'
+  | 'preferences'
+  | 'spatial-context'
+  | 'evidence-trail';
 
 /**
  * MVC metadata union type

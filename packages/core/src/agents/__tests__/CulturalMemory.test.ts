@@ -11,7 +11,12 @@ describe('CulturalMemory', () => {
   describe('Episodic Memory', () => {
     it('records and recalls memories', () => {
       const mem = new CulturalMemory();
-      mem.record('agent1', 'Met agent2 at market', { participants: ['agent2'], valence: 0.8, normId: 'fair_trade', tags: ['trade'] });
+      mem.record('agent1', 'Met agent2 at market', {
+        participants: ['agent2'],
+        valence: 0.8,
+        normId: 'fair_trade',
+        tags: ['trade'],
+      });
       const recalled = mem.recall('agent1');
       expect(recalled).toHaveLength(1);
       expect(recalled[0].event).toBe('Met agent2 at market');
@@ -83,17 +88,23 @@ describe('CulturalMemory', () => {
       const trace = mem.leaveTrace('agent1', 'zone_a', 'food here', { x: 5, y: 0, z: 5 });
       const initialIntensity = trace.intensity;
       mem.reinforceTrace(trace.id, 'zone_a');
-      const reinforced = mem.zoneTraces('zone_a').find(t => t.id === trace.id);
+      const reinforced = mem.zoneTraces('zone_a').find((t) => t.id === trace.id);
       expect(reinforced!.intensity).toBeGreaterThan(initialIntensity);
       expect(reinforced!.reinforcements).toBe(1);
     });
 
     it('traces decay over ticks', () => {
       const mem = new CulturalMemory({ traceDecayRate: 0.1 });
-      const trace = mem.leaveTrace('agent1', 'zone_a', 'temp', { x: 0, y: 0, z: 0 }, { decayRate: 0.1 });
+      const trace = mem.leaveTrace(
+        'agent1',
+        'zone_a',
+        'temp',
+        { x: 0, y: 0, z: 0 },
+        { decayRate: 0.1 }
+      );
       const before = trace.intensity;
       mem.tick();
-      const after = mem.zoneTraces('zone_a').find(t => t.id === trace.id);
+      const after = mem.zoneTraces('zone_a').find((t) => t.id === trace.id);
       expect(after!.intensity).toBeLessThan(before);
     });
 

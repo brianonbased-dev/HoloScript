@@ -28,11 +28,11 @@ orb "SharedBall" {
 
 ### Sync strategies
 
-| Strategy   | Use case                           |
-|------------|------------------------------------|
-| `"owner"`  | One player controls, others watch  |
-| `"last"`   | Last writer wins                   |
-| `"server"` | Server-authoritative (anti-cheat)  |
+| Strategy   | Use case                          |
+| ---------- | --------------------------------- |
+| `"owner"`  | One player controls, others watch |
+| `"last"`   | Last writer wins                  |
+| `"server"` | Server-authoritative (anti-cheat) |
 
 ## Try it:
 

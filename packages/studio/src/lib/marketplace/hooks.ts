@@ -26,9 +26,7 @@ export interface UseMarketplaceResult {
   refresh: () => Promise<void>;
 }
 
-export function useMarketplace(
-  filter: MarketplaceFilter = {}
-): UseMarketplaceResult {
+export function useMarketplace(filter: MarketplaceFilter = {}): UseMarketplaceResult {
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(filter.page || 1);
@@ -384,12 +382,14 @@ export function useFavorites(type?: ContentType) {
 // ── Collections Hook ──────────────────────────────────────────────────────
 
 export function useCollections() {
-  const [collections, setCollections] = useState<Array<{
-    id: string;
-    name: string;
-    description: string;
-    items: MarketplaceItem[];
-  }>>([]);
+  const [collections, setCollections] = useState<
+    Array<{
+      id: string;
+      name: string;
+      description: string;
+      items: MarketplaceItem[];
+    }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

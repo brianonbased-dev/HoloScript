@@ -95,16 +95,16 @@ composition "Interactive Cube" {
 
 ## What This Demonstrates
 
-| Feature | Trait / Property |
-| --- | --- |
-| Pick up in VR | `@grabbable` |
-| Throw with velocity | `@throwable` |
+| Feature                 | Trait / Property                |
+| ----------------------- | ------------------------------- |
+| Pick up in VR           | `@grabbable`                    |
+| Throw with velocity     | `@throwable`                    |
 | Realistic fall & bounce | `@physics` + `physics {}` block |
-| Land on surfaces | `@collidable` |
-| Glow on interact | `@glowing` + `glow_intensity` |
-| Haptic feedback | `haptic_feedback()` |
-| Collision sounds | `on_collision(other)` |
-| UI button | `@clickable` + `@hoverable` |
+| Land on surfaces        | `@collidable`                   |
+| Glow on interact        | `@glowing` + `glow_intensity`   |
+| Haptic feedback         | `haptic_feedback()`             |
+| Collision sounds        | `on_collision(other)`           |
+| UI button               | `@clickable` + `@hoverable`     |
 
 ## Key Concepts
 

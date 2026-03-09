@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { marketplaceHandler } from '../MarketplaceTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('MarketplaceTrait', () => {
   let node: Record<string, unknown>;
@@ -43,39 +50,71 @@ describe('MarketplaceTrait', () => {
 
   it('listing_created marks listed', () => {
     sendEvent(marketplaceHandler, node, cfg, ctx, { type: 'marketplace_list', price: 1 });
-    sendEvent(marketplaceHandler, node, cfg, ctx, { type: 'marketplace_listing_created', listingId: 'L1' });
+    sendEvent(marketplaceHandler, node, cfg, ctx, {
+      type: 'marketplace_listing_created',
+      listingId: 'L1',
+    });
     expect((node as any).__marketplaceState.isListed).toBe(true);
     expect(getEventCount(ctx, 'on_listed')).toBe(1);
   });
 
   it('unlist cancels listing', () => {
     sendEvent(marketplaceHandler, node, cfg, ctx, { type: 'marketplace_list', price: 1 });
-    sendEvent(marketplaceHandler, node, cfg, ctx, { type: 'marketplace_listing_created', listingId: 'L1' });
+    sendEvent(marketplaceHandler, node, cfg, ctx, {
+      type: 'marketplace_listing_created',
+      listingId: 'L1',
+    });
     sendEvent(marketplaceHandler, node, cfg, ctx, { type: 'marketplace_unlist' });
     expect((node as any).__marketplaceState.isListed).toBe(false);
   });
 
   it('purchase completes', () => {
     sendEvent(marketplaceHandler, node, cfg, ctx, { type: 'marketplace_list', price: 1 });
-    sendEvent(marketplaceHandler, node, cfg, ctx, { type: 'marketplace_listing_created', listingId: 'L1' });
-    sendEvent(marketplaceHandler, node, cfg, ctx, { type: 'marketplace_purchase_complete', buyerAddress: '0xBuyer' });
+    sendEvent(marketplaceHandler, node, cfg, ctx, {
+      type: 'marketplace_listing_created',
+      listingId: 'L1',
+    });
+    sendEvent(marketplaceHandler, node, cfg, ctx, {
+      type: 'marketplace_purchase_complete',
+      buyerAddress: '0xBuyer',
+    });
     expect((node as any).__marketplaceState.status).toBe('sold');
     expect(getEventCount(ctx, 'on_purchase_complete')).toBe(1);
   });
 
   it('auction starts and accepts bids', () => {
-    sendEvent(marketplaceHandler, node, cfg, ctx, { type: 'marketplace_start_auction', startingPrice: 1, duration: 60000 });
+    sendEvent(marketplaceHandler, node, cfg, ctx, {
+      type: 'marketplace_start_auction',
+      startingPrice: 1,
+      duration: 60000,
+    });
     expect((node as any).__marketplaceState.status).toBe('auction_active');
-    sendEvent(marketplaceHandler, node, cfg, ctx, { type: 'marketplace_place_bid', amount: 2, bidderAddress: '0xB1' });
+    sendEvent(marketplaceHandler, node, cfg, ctx, {
+      type: 'marketplace_place_bid',
+      amount: 2,
+      bidderAddress: '0xB1',
+    });
     expect((node as any).__marketplaceState.highestBid).toBe(2);
     expect((node as any).__marketplaceState.bidCount).toBe(1);
     expect(getEventCount(ctx, 'on_bid_received')).toBe(1);
   });
 
   it('ignores lower bids', () => {
-    sendEvent(marketplaceHandler, node, cfg, ctx, { type: 'marketplace_start_auction', startingPrice: 1, duration: 60000 });
-    sendEvent(marketplaceHandler, node, cfg, ctx, { type: 'marketplace_place_bid', amount: 5, bidderAddress: '0xB1' });
-    sendEvent(marketplaceHandler, node, cfg, ctx, { type: 'marketplace_place_bid', amount: 3, bidderAddress: '0xB2' });
+    sendEvent(marketplaceHandler, node, cfg, ctx, {
+      type: 'marketplace_start_auction',
+      startingPrice: 1,
+      duration: 60000,
+    });
+    sendEvent(marketplaceHandler, node, cfg, ctx, {
+      type: 'marketplace_place_bid',
+      amount: 5,
+      bidderAddress: '0xB1',
+    });
+    sendEvent(marketplaceHandler, node, cfg, ctx, {
+      type: 'marketplace_place_bid',
+      amount: 3,
+      bidderAddress: '0xB2',
+    });
     expect((node as any).__marketplaceState.bidCount).toBe(1); // Only first counted
   });
 

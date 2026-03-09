@@ -35,7 +35,11 @@ export const usePhysicsStore = create<PhysicsState>((set, get) => ({
   reset: () => {
     const { world } = get();
     if (world) {
-      try { world.free(); } catch { /* wasm already freed */ }
+      try {
+        world.free();
+      } catch {
+        /* wasm already freed */
+      }
     }
     set({ world: null, bodyMap: new Map(), physicsEnabled: false });
   },

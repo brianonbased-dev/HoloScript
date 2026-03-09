@@ -16,7 +16,6 @@ function makeFailure(
 }
 
 describe('CircuitBreakerStrategy — Production Tests', () => {
-
   describe('identity', () => {
     it('has correct id', () => {
       expect(new CircuitBreakerStrategy().id).toBe('circuit-breaker');
@@ -54,7 +53,11 @@ describe('CircuitBreakerStrategy — Production Tests', () => {
     });
 
     it('remains closed below threshold', async () => {
-      const s = new CircuitBreakerStrategy({ failureThreshold: 3, resetTimeoutMs: 30000, halfOpenMaxAttempts: 2 });
+      const s = new CircuitBreakerStrategy({
+        failureThreshold: 3,
+        resetTimeoutMs: 30000,
+        halfOpenMaxAttempts: 2,
+      });
       const f = makeFailure();
       await s.execute(f);
       await s.execute(f);
@@ -62,7 +65,11 @@ describe('CircuitBreakerStrategy — Production Tests', () => {
     });
 
     it('trips to open at threshold', async () => {
-      const s = new CircuitBreakerStrategy({ failureThreshold: 3, resetTimeoutMs: 30000, halfOpenMaxAttempts: 2 });
+      const s = new CircuitBreakerStrategy({
+        failureThreshold: 3,
+        resetTimeoutMs: 30000,
+        halfOpenMaxAttempts: 2,
+      });
       const f = makeFailure();
       await s.execute(f);
       await s.execute(f);
@@ -73,7 +80,11 @@ describe('CircuitBreakerStrategy — Production Tests', () => {
     });
 
     it('emits correct message when circuit trips', async () => {
-      const s = new CircuitBreakerStrategy({ failureThreshold: 1, resetTimeoutMs: 30000, halfOpenMaxAttempts: 2 });
+      const s = new CircuitBreakerStrategy({
+        failureThreshold: 1,
+        resetTimeoutMs: 30000,
+        halfOpenMaxAttempts: 2,
+      });
       const result = await s.execute(makeFailure());
       expect(result.message).toContain('tripped');
     });
@@ -81,7 +92,11 @@ describe('CircuitBreakerStrategy — Production Tests', () => {
 
   describe('open → half-open transition', () => {
     it('transitions to half-open after resetTimeout elapses', async () => {
-      const s = new CircuitBreakerStrategy({ failureThreshold: 1, resetTimeoutMs: 0, halfOpenMaxAttempts: 2 });
+      const s = new CircuitBreakerStrategy({
+        failureThreshold: 1,
+        resetTimeoutMs: 0,
+        halfOpenMaxAttempts: 2,
+      });
       await s.execute(makeFailure()); // trip open
       const f = makeFailure();
       const result = await s.execute(f); // should half-open and then fail
@@ -91,7 +106,11 @@ describe('CircuitBreakerStrategy — Production Tests', () => {
     });
 
     it('blocks (skip) when circuit is open and timeout not elapsed', async () => {
-      const s = new CircuitBreakerStrategy({ failureThreshold: 1, resetTimeoutMs: 60000, halfOpenMaxAttempts: 2 });
+      const s = new CircuitBreakerStrategy({
+        failureThreshold: 1,
+        resetTimeoutMs: 60000,
+        halfOpenMaxAttempts: 2,
+      });
       await s.execute(makeFailure()); // trip
       const result = await s.execute(makeFailure()); // blocked
       expect(result.nextAction).toBe('skip');
@@ -101,7 +120,11 @@ describe('CircuitBreakerStrategy — Production Tests', () => {
 
   describe('recordSuccess() / recordFailure()', () => {
     it('recordFailure opens circuit at threshold', () => {
-      const s = new CircuitBreakerStrategy({ failureThreshold: 2, resetTimeoutMs: 30000, halfOpenMaxAttempts: 2 });
+      const s = new CircuitBreakerStrategy({
+        failureThreshold: 2,
+        resetTimeoutMs: 30000,
+        halfOpenMaxAttempts: 2,
+      });
       const key = 'service-a:network-timeout';
       s.recordFailure(key);
       expect(s.getCircuitState(key)).toBe('closed');
@@ -110,7 +133,11 @@ describe('CircuitBreakerStrategy — Production Tests', () => {
     });
 
     it('recordSuccess resets failure count in closed state', () => {
-      const s = new CircuitBreakerStrategy({ failureThreshold: 3, resetTimeoutMs: 30000, halfOpenMaxAttempts: 2 });
+      const s = new CircuitBreakerStrategy({
+        failureThreshold: 3,
+        resetTimeoutMs: 30000,
+        halfOpenMaxAttempts: 2,
+      });
       const key = 'service-b:network-timeout';
       s.recordFailure(key);
       s.recordSuccess(key);
@@ -122,7 +149,11 @@ describe('CircuitBreakerStrategy — Production Tests', () => {
 
   describe('resetCircuit()', () => {
     it('resets circuit to closed', async () => {
-      const s = new CircuitBreakerStrategy({ failureThreshold: 1, resetTimeoutMs: 60000, halfOpenMaxAttempts: 2 });
+      const s = new CircuitBreakerStrategy({
+        failureThreshold: 1,
+        resetTimeoutMs: 60000,
+        halfOpenMaxAttempts: 2,
+      });
       await s.execute(makeFailure()); // open
       s.resetCircuit('agent-1:network-timeout');
       expect(s.getCircuitState('agent-1:network-timeout')).toBe('closed');
@@ -135,7 +166,11 @@ describe('CircuitBreakerStrategy — Production Tests', () => {
     });
 
     it('contains circuits for each unique agent+errorType key', async () => {
-      const s = new CircuitBreakerStrategy({ failureThreshold: 5, resetTimeoutMs: 30000, halfOpenMaxAttempts: 2 });
+      const s = new CircuitBreakerStrategy({
+        failureThreshold: 5,
+        resetTimeoutMs: 30000,
+        halfOpenMaxAttempts: 2,
+      });
       await s.execute(makeFailure('agent-1'));
       await s.execute(makeFailure('agent-2'));
       expect(s.getAllCircuits().size).toBe(2);
@@ -144,7 +179,11 @@ describe('CircuitBreakerStrategy — Production Tests', () => {
 
   describe('isolated circuits per agent', () => {
     it('does not affect other agents circuits', async () => {
-      const s = new CircuitBreakerStrategy({ failureThreshold: 1, resetTimeoutMs: 60000, halfOpenMaxAttempts: 2 });
+      const s = new CircuitBreakerStrategy({
+        failureThreshold: 1,
+        resetTimeoutMs: 60000,
+        halfOpenMaxAttempts: 2,
+      });
       await s.execute(makeFailure('agent-1')); // trip agent-1
       expect(s.getCircuitState('agent-1:network-timeout')).toBe('open');
       expect(s.getCircuitState('agent-2:network-timeout')).toBe('closed');

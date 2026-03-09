@@ -13,7 +13,6 @@ import {
 } from '../SubsurfaceScattering';
 
 describe('SubsurfaceScattering — Production Tests', () => {
-
   // ---------------------------------------------------------------------------
   // Burley Profile
   // ---------------------------------------------------------------------------
@@ -63,7 +62,7 @@ describe('SubsurfaceScattering — Production Tests', () => {
   // ---------------------------------------------------------------------------
   describe('christensenProfile', () => {
     it('decays monotonically with r', () => {
-      const values = [0.1, 0.5, 1, 2, 5].map(r => christensenProfile(r, 1));
+      const values = [0.1, 0.5, 1, 2, 5].map((r) => christensenProfile(r, 1));
       for (let i = 0; i < values.length - 1; i++) {
         expect(values[i]).toBeGreaterThanOrEqual(values[i + 1]);
       }
@@ -120,7 +119,13 @@ describe('SubsurfaceScattering — Production Tests', () => {
     it('thin slab (thickness=0) transmits more than thick', () => {
       const config = {
         transmission: 0.5,
-        layers: [{ weight: 1, scatterRadius: [1, 0.5, 0.2] as [number,number,number], color: [1, 1, 1] as [number,number,number] }],
+        layers: [
+          {
+            weight: 1,
+            scatterRadius: [1, 0.5, 0.2] as [number, number, number],
+            color: [1, 1, 1] as [number, number, number],
+          },
+        ],
       };
       const thin = thinSlabTransmission(0, config);
       const thick = thinSlabTransmission(1, config);
@@ -132,7 +137,13 @@ describe('SubsurfaceScattering — Production Tests', () => {
     it('returns RGB of correct length', () => {
       const config = {
         transmission: 0.3,
-        layers: [{ weight: 1, scatterRadius: [1, 1, 1] as [number,number,number], color: [0.9, 0.5, 0.3] as [number,number,number] }],
+        layers: [
+          {
+            weight: 1,
+            scatterRadius: [1, 1, 1] as [number, number, number],
+            color: [0.9, 0.5, 0.3] as [number, number, number],
+          },
+        ],
       };
       const result = thinSlabTransmission(0.5, config);
       expect(result.length).toBe(3);
@@ -158,8 +169,10 @@ describe('SubsurfaceScattering — Production Tests', () => {
 
     it('setThickness clamps to [0, 1]', () => {
       const mat = new SSSMaterial();
-      mat.setThickness(10); expect(mat.getConfig().thickness).toBe(1);
-      mat.setThickness(-2); expect(mat.getConfig().thickness).toBe(0);
+      mat.setThickness(10);
+      expect(mat.getConfig().thickness).toBe(1);
+      mat.setThickness(-2);
+      expect(mat.getConfig().thickness).toBe(0);
     });
 
     it('addLayer increases layer count', () => {

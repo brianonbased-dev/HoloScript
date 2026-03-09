@@ -93,9 +93,9 @@ describe('HoloScriptDebugger — Production', () => {
     const bp = dbg.setBreakpoint(5);
     expect(bp.enabled).toBe(true);
     dbg.toggleBreakpoint(bp.id);
-    expect(dbg.getBreakpoints().find(b => b.id === bp.id)!.enabled).toBe(false);
+    expect(dbg.getBreakpoints().find((b) => b.id === bp.id)!.enabled).toBe(false);
     dbg.toggleBreakpoint(bp.id);
-    expect(dbg.getBreakpoints().find(b => b.id === bp.id)!.enabled).toBe(true);
+    expect(dbg.getBreakpoints().find((b) => b.id === bp.id)!.enabled).toBe(true);
   });
 
   it('toggleBreakpoint returns false for unknown', () => {

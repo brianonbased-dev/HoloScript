@@ -336,7 +336,12 @@ export class PostgresTraitDatabase implements ITraitDatabase {
       );
       if (res.rows.length === 0) return null;
       const data = res.rows[0].data as TraitPackage;
-      return { ...data, createdAt: new Date(data.createdAt), updatedAt: new Date(data.updatedAt), publishedAt: new Date(data.publishedAt) };
+      return {
+        ...data,
+        createdAt: new Date(data.createdAt),
+        updatedAt: new Date(data.updatedAt),
+        publishedAt: new Date(data.publishedAt),
+      };
     } finally {
       client.release();
     }
@@ -403,10 +408,7 @@ export class PostgresTraitDatabase implements ITraitDatabase {
       }
 
       const where = conditions.join(' AND ');
-      const countRes = await client.query(
-        `SELECT COUNT(*) FROM hs_traits WHERE ${where}`,
-        params
-      );
+      const countRes = await client.query(`SELECT COUNT(*) FROM hs_traits WHERE ${where}`, params);
       const total = parseInt(countRes.rows[0].count, 10);
 
       const sortMap: Record<string, string> = {
@@ -503,10 +505,9 @@ export class PostgresTraitDatabase implements ITraitDatabase {
           [category, capped]
         );
       } else {
-        res = await client.query(
-          'SELECT * FROM hs_traits ORDER BY downloads DESC LIMIT $1',
-          [capped]
-        );
+        res = await client.query('SELECT * FROM hs_traits ORDER BY downloads DESC LIMIT $1', [
+          capped,
+        ]);
       }
       return res.rows.map(rowToSummary);
     } finally {

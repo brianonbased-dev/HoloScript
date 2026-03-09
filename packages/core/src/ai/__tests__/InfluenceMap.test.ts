@@ -6,8 +6,12 @@ describe('InfluenceMap', () => {
 
   beforeEach(() => {
     map = new InfluenceMap({
-      width: 10, height: 10, cellSize: 1,
-      decayRate: 0.1, propagationRate: 0.2, maxValue: 100,
+      width: 10,
+      height: 10,
+      cellSize: 1,
+      decayRate: 0.1,
+      propagationRate: 0.2,
+      maxValue: 100,
     });
   });
 

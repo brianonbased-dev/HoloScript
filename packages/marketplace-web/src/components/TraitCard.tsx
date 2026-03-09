@@ -5,7 +5,15 @@ import Image from 'next/image';
 import type { TraitSummary } from '@/types';
 import { CATEGORY_LABELS, PLATFORM_LABELS } from '@/types';
 import { useInstallStore } from '@/lib/store';
-import { Download, Star, CheckCircle, Loader2, ArrowDownToLine, AlertTriangle, ShoppingCart } from 'lucide-react';
+import {
+  Download,
+  Star,
+  CheckCircle,
+  Loader2,
+  ArrowDownToLine,
+  AlertTriangle,
+  ShoppingCart,
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { CheckoutModal } from './CheckoutModal';
 import { useState } from 'react';
@@ -24,12 +32,12 @@ export function TraitCard({ trait }: TraitCardProps) {
   const handleInstall = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // In our marketplace-web UX, clicking Install on a Web3 marketplace might prompt purchase.
     // For demonstration, let's open checkout modal first.
     setIsCheckoutOpen(true);
   };
-  
+
   const finishInstall = async () => {
     await install(trait.id, trait.version);
   };
@@ -175,10 +183,10 @@ export function TraitCard({ trait }: TraitCardProps) {
         </button>
       </div>
 
-      <CheckoutModal 
-        trait={trait} 
-        isOpen={isCheckoutOpen} 
-        onClose={() => setIsCheckoutOpen(false)} 
+      <CheckoutModal
+        trait={trait}
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
         onSuccess={finishInstall}
       />
 

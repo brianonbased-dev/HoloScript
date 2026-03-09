@@ -49,7 +49,9 @@ interface TargetMapping {
 }
 
 // Simulated performance characteristics per target
-const TARGET_CHARACTERISTICS: { [key: string]: { avgTime: number; avgSize: number; avgParity: number } } = {
+const TARGET_CHARACTERISTICS: {
+  [key: string]: { avgTime: number; avgSize: number; avgParity: number };
+} = {
   unity: { avgTime: 45, avgSize: 15000, avgParity: 92 },
   unreal: { avgTime: 78, avgSize: 28000, avgParity: 95 },
   godot: { avgTime: 52, avgSize: 12000, avgParity: 88 },
@@ -80,9 +82,7 @@ async function main() {
     fs.mkdirSync(RESULTS_DIR, { recursive: true });
   }
 
-  const targetMapping: TargetMapping = JSON.parse(
-    fs.readFileSync(TARGET_MAPPING_PATH, 'utf-8')
-  );
+  const targetMapping: TargetMapping = JSON.parse(fs.readFileSync(TARGET_MAPPING_PATH, 'utf-8'));
 
   const compositionFiles = fs
     .readdirSync(COMPOSITIONS_DIR)
@@ -110,8 +110,8 @@ async function main() {
       if (result.success) {
         console.log(
           `  ✓ ${target.padEnd(15)} ${result.compilationTimeMs.toFixed(0)}ms  ` +
-          `${formatBytes(result.outputSizeBytes).padEnd(10)}  ` +
-          `Parity: ${result.featureParity.percentage.toFixed(0)}%`
+            `${formatBytes(result.outputSizeBytes).padEnd(10)}  ` +
+            `Parity: ${result.featureParity.percentage.toFixed(0)}%`
         );
       } else {
         console.log(`  ✗ ${target.padEnd(15)} FAILED: ${result.error}`);
@@ -180,9 +180,18 @@ function simulateCompilation(
 
 function generateMissingFeatures(count: number): string[] {
   const allFeatures = [
-    'body_tracking', 'gaussian_splat', 'haptic_feedback', 'eye_tracking',
-    'voice_recognition', 'hand_gestures', 'spatial_audio', 'networking',
-    'physics_soft_body', 'weather_system', 'crowd_simulation', 'ai_pathfinding',
+    'body_tracking',
+    'gaussian_splat',
+    'haptic_feedback',
+    'eye_tracking',
+    'voice_recognition',
+    'hand_gestures',
+    'spatial_audio',
+    'networking',
+    'physics_soft_body',
+    'weather_system',
+    'crowd_simulation',
+    'ai_pathfinding',
   ];
 
   const missing: string[] = [];
@@ -204,30 +213,44 @@ async function generateReport(results: BenchmarkResult[], targetMapping: TargetM
   lines.push('\n---\n');
 
   lines.push('## Executive Summary\n');
-  lines.push('This benchmark suite tests HoloScript\'s cross-compilation capabilities by compiling 15 representative compositions (one per vertical) to all applicable platform targets.\n');
+  lines.push(
+    "This benchmark suite tests HoloScript's cross-compilation capabilities by compiling 15 representative compositions (one per vertical) to all applicable platform targets.\n"
+  );
 
-  const successfulCompilations = results.filter(r => r.success).length;
-  const failedCompilations = results.filter(r => !r.success).length;
+  const successfulCompilations = results.filter((r) => r.success).length;
+  const failedCompilations = results.filter((r) => !r.success).length;
 
   lines.push(`- **Total Compilations:** ${results.length}`);
-  lines.push(`- **Successful:** ${successfulCompilations} (${((successfulCompilations/results.length)*100).toFixed(1)}%)`);
-  lines.push(`- **Failed:** ${failedCompilations} (${((failedCompilations/results.length)*100).toFixed(1)}%)`);
-  lines.push(`- **Average Compilation Time:** ${calculateAverage(results.filter(r => r.success).map(r => r.compilationTimeMs)).toFixed(0)}ms`);
-  lines.push(`- **Average Output Size:** ${formatBytes(calculateAverage(results.filter(r => r.success).map(r => r.outputSizeBytes)))}`);
-  lines.push(`- **Average Feature Parity:** ${calculateAverage(results.filter(r => r.success).map(r => r.featureParity.percentage)).toFixed(1)}%\n`);
+  lines.push(
+    `- **Successful:** ${successfulCompilations} (${((successfulCompilations / results.length) * 100).toFixed(1)}%)`
+  );
+  lines.push(
+    `- **Failed:** ${failedCompilations} (${((failedCompilations / results.length) * 100).toFixed(1)}%)`
+  );
+  lines.push(
+    `- **Average Compilation Time:** ${calculateAverage(results.filter((r) => r.success).map((r) => r.compilationTimeMs)).toFixed(0)}ms`
+  );
+  lines.push(
+    `- **Average Output Size:** ${formatBytes(calculateAverage(results.filter((r) => r.success).map((r) => r.outputSizeBytes)))}`
+  );
+  lines.push(
+    `- **Average Feature Parity:** ${calculateAverage(results.filter((r) => r.success).map((r) => r.featureParity.percentage)).toFixed(1)}%\n`
+  );
 
   lines.push('\n---\n');
   lines.push('## Results by Vertical\n');
 
-  const verticals = Array.from(new Set(results.map(r => r.vertical))).sort();
+  const verticals = Array.from(new Set(results.map((r) => r.vertical))).sort();
 
   for (const vertical of verticals) {
-    const verticalResults = results.filter(r => r.vertical === vertical);
-    const successCount = verticalResults.filter(r => r.success).length;
+    const verticalResults = results.filter((r) => r.vertical === vertical);
+    const successCount = verticalResults.filter((r) => r.success).length;
     const totalTargets = verticalResults.length;
 
     lines.push(`### ${vertical.charAt(0).toUpperCase() + vertical.slice(1)}\n`);
-    lines.push(`**Compilation Success:** ${successCount}/${totalTargets} targets (${((successCount/totalTargets)*100).toFixed(0)}%)\n`);
+    lines.push(
+      `**Compilation Success:** ${successCount}/${totalTargets} targets (${((successCount / totalTargets) * 100).toFixed(0)}%)\n`
+    );
     lines.push(`**Target Platforms:** ${targetMapping[vertical]?.targets.join(', ')}\n`);
 
     lines.push('\n| Target | Status | Time (ms) | Size | Parity % | Missing Features |');
@@ -239,10 +262,11 @@ async function generateReport(results: BenchmarkResult[], targetMapping: TargetM
       const size = result.success ? formatBytes(result.outputSizeBytes) : '-';
       const parity = result.success ? result.featureParity.percentage.toFixed(0) + '%' : '-';
       const missing = result.success
-        ? (result.featureParity.missingFeatures.length > 0
-            ? result.featureParity.missingFeatures.slice(0, 2).join(', ') + (result.featureParity.missingFeatures.length > 2 ? '...' : '')
-            : 'None')
-        : (result.error || 'Unknown error');
+        ? result.featureParity.missingFeatures.length > 0
+          ? result.featureParity.missingFeatures.slice(0, 2).join(', ') +
+            (result.featureParity.missingFeatures.length > 2 ? '...' : '')
+          : 'None'
+        : result.error || 'Unknown error';
 
       lines.push(`| ${result.target} | ${status} | ${time} | ${size} | ${parity} | ${missing} |`);
     }
@@ -253,21 +277,29 @@ async function generateReport(results: BenchmarkResult[], targetMapping: TargetM
   lines.push('\n---\n');
   lines.push('## Results by Target Platform\n');
 
-  const targets = Array.from(new Set(results.map(r => r.target))).sort();
+  const targets = Array.from(new Set(results.map((r) => r.target))).sort();
 
   for (const target of targets) {
-    const targetResults = results.filter(r => r.target === target);
-    const successCount = targetResults.filter(r => r.success).length;
+    const targetResults = results.filter((r) => r.target === target);
+    const successCount = targetResults.filter((r) => r.success).length;
     const totalVerticals = targetResults.length;
 
     if (successCount === 0) continue;
 
     lines.push(`### ${target.toUpperCase()}\n`);
-    lines.push(`**Compilation Success:** ${successCount}/${totalVerticals} verticals (${((successCount/totalVerticals)*100).toFixed(0)}%)\n`);
+    lines.push(
+      `**Compilation Success:** ${successCount}/${totalVerticals} verticals (${((successCount / totalVerticals) * 100).toFixed(0)}%)\n`
+    );
 
-    const avgTime = calculateAverage(targetResults.filter(r => r.success).map(r => r.compilationTimeMs));
-    const avgSize = calculateAverage(targetResults.filter(r => r.success).map(r => r.outputSizeBytes));
-    const avgParity = calculateAverage(targetResults.filter(r => r.success).map(r => r.featureParity.percentage));
+    const avgTime = calculateAverage(
+      targetResults.filter((r) => r.success).map((r) => r.compilationTimeMs)
+    );
+    const avgSize = calculateAverage(
+      targetResults.filter((r) => r.success).map((r) => r.outputSizeBytes)
+    );
+    const avgParity = calculateAverage(
+      targetResults.filter((r) => r.success).map((r) => r.featureParity.percentage)
+    );
 
     lines.push(`- **Average Compilation Time:** ${avgTime.toFixed(0)}ms`);
     lines.push(`- **Average Output Size:** ${formatBytes(avgSize)}`);
@@ -293,41 +325,43 @@ async function generateReport(results: BenchmarkResult[], targetMapping: TargetM
 
   lines.push('### Fastest Compilation Times\n');
   const fastestCompilations = results
-    .filter(r => r.success)
+    .filter((r) => r.success)
     .sort((a, b) => a.compilationTimeMs - b.compilationTimeMs)
     .slice(0, 10);
 
   lines.push('| Rank | Vertical | Target | Time (ms) |');
   lines.push('|------|----------|--------|-----------|');
   fastestCompilations.forEach((r, i) => {
-    lines.push(`| ${i+1} | ${r.vertical} | ${r.target} | ${r.compilationTimeMs.toFixed(0)} |`);
+    lines.push(`| ${i + 1} | ${r.vertical} | ${r.target} | ${r.compilationTimeMs.toFixed(0)} |`);
   });
 
   lines.push('\n### Smallest Output Sizes\n');
   const smallestOutputs = results
-    .filter(r => r.success)
+    .filter((r) => r.success)
     .sort((a, b) => a.outputSizeBytes - b.outputSizeBytes)
     .slice(0, 10);
 
   lines.push('| Rank | Vertical | Target | Size |');
   lines.push('|------|----------|--------|------|');
   smallestOutputs.forEach((r, i) => {
-    lines.push(`| ${i+1} | ${r.vertical} | ${r.target} | ${formatBytes(r.outputSizeBytes)} |`);
+    lines.push(`| ${i + 1} | ${r.vertical} | ${r.target} | ${formatBytes(r.outputSizeBytes)} |`);
   });
 
   lines.push('\n### Highest Feature Parity\n');
   const highestParity = results
-    .filter(r => r.success)
+    .filter((r) => r.success)
     .sort((a, b) => b.featureParity.percentage - a.featureParity.percentage)
     .slice(0, 10);
 
   lines.push('| Rank | Vertical | Target | Parity % | Supported/Total |');
   lines.push('|------|----------|--------|----------|-----------------|');
   highestParity.forEach((r, i) => {
-    lines.push(`| ${i+1} | ${r.vertical} | ${r.target} | ${r.featureParity.percentage.toFixed(1)}% | ${r.featureParity.supportedFeatures}/${r.featureParity.totalFeatures} |`);
+    lines.push(
+      `| ${i + 1} | ${r.vertical} | ${r.target} | ${r.featureParity.percentage.toFixed(1)}% | ${r.featureParity.supportedFeatures}/${r.featureParity.totalFeatures} |`
+    );
   });
 
-  const failures = results.filter(r => !r.success);
+  const failures = results.filter((r) => !r.success);
   if (failures.length > 0) {
     lines.push('\n---\n');
     lines.push('## Failure Analysis\n');
@@ -335,7 +369,7 @@ async function generateReport(results: BenchmarkResult[], targetMapping: TargetM
 
     lines.push('| Vertical | Target | Error |');
     lines.push('|----------|--------|-------|');
-    failures.forEach(r => {
+    failures.forEach((r) => {
       lines.push(`| ${r.vertical} | ${r.target} | ${r.error || 'Unknown'} |`);
     });
     lines.push('\n');
@@ -344,18 +378,34 @@ async function generateReport(results: BenchmarkResult[], targetMapping: TargetM
   lines.push('\n---\n');
   lines.push('## Key Findings\n');
   lines.push('### Compilation Performance\n');
-  lines.push('- **Fastest Targets**: DTDL (28ms avg), URDF (32ms avg), SDF (34ms avg) - specialized formats with minimal code generation');
-  lines.push('- **Slowest Targets**: Unreal (78ms avg), VRChat (68ms avg), VisionOS (62ms avg) - complex C++/platform-specific code generation\n');
+  lines.push(
+    '- **Fastest Targets**: DTDL (28ms avg), URDF (32ms avg), SDF (34ms avg) - specialized formats with minimal code generation'
+  );
+  lines.push(
+    '- **Slowest Targets**: Unreal (78ms avg), VRChat (68ms avg), VisionOS (62ms avg) - complex C++/platform-specific code generation\n'
+  );
   lines.push('### Output Size\n');
-  lines.push('- **Most Compact**: DTDL (4.5KB avg), URDF (5.5KB avg) - declarative JSON/XML formats');
-  lines.push('- **Largest**: Unreal (28KB avg), VisionOS (22KB avg), Unity (15KB avg) - full scene reconstruction code\n');
+  lines.push(
+    '- **Most Compact**: DTDL (4.5KB avg), URDF (5.5KB avg) - declarative JSON/XML formats'
+  );
+  lines.push(
+    '- **Largest**: Unreal (28KB avg), VisionOS (22KB avg), Unity (15KB avg) - full scene reconstruction code\n'
+  );
   lines.push('### Feature Parity\n');
-  lines.push('- **Highest Parity**: Unreal (95%), VisionOS (94%), Unity (92%) - mature, full-featured compilers');
-  lines.push('- **Lowest Parity**: DTDL (75%), URDF (78%), SDF (79%) - specialized domains with limited HoloScript feature coverage\n');
+  lines.push(
+    '- **Highest Parity**: Unreal (95%), VisionOS (94%), Unity (92%) - mature, full-featured compilers'
+  );
+  lines.push(
+    '- **Lowest Parity**: DTDL (75%), URDF (78%), SDF (79%) - specialized domains with limited HoloScript feature coverage\n'
+  );
 
   lines.push('---\n');
-  lines.push('_This benchmark was generated using simulated compilation data for demonstration purposes._\n');
-  lines.push('_For production benchmarks, run the full compilation suite with `ts-node run-benchmark.ts`._\n');
+  lines.push(
+    '_This benchmark was generated using simulated compilation data for demonstration purposes._\n'
+  );
+  lines.push(
+    '_For production benchmarks, run the full compilation suite with `ts-node run-benchmark.ts`._\n'
+  );
 
   fs.writeFileSync(reportPath, lines.join('\n'));
   console.log(`\n📊 Benchmark report generated: ${reportPath}\n`);
@@ -373,7 +423,7 @@ function formatBytes(bytes: number): string {
 }
 
 function calculateSuccessRate(results: BenchmarkResult[]): number {
-  const successful = results.filter(r => r.success).length;
+  const successful = results.filter((r) => r.success).length;
   return results.length > 0 ? (successful / results.length) * 100 : 0;
 }
 

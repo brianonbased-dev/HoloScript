@@ -81,8 +81,22 @@ describe('neuralForgeHandler.onAttach', () => {
   });
 
   it('weights are a copy of base_weights', () => {
-    const { node, config } = attach({ base_weights: { openness: 0.8, conscientiousness: 0.3, extroversion: 0.5, agreeableness: 0.5, neuroticism: 0.5 } });
-    expect((node as any).__neuralState.weights).toEqual({ openness: 0.8, conscientiousness: 0.3, extroversion: 0.5, agreeableness: 0.5, neuroticism: 0.5 });
+    const { node, config } = attach({
+      base_weights: {
+        openness: 0.8,
+        conscientiousness: 0.3,
+        extroversion: 0.5,
+        agreeableness: 0.5,
+        neuroticism: 0.5,
+      },
+    });
+    expect((node as any).__neuralState.weights).toEqual({
+      openness: 0.8,
+      conscientiousness: 0.3,
+      extroversion: 0.5,
+      agreeableness: 0.5,
+      neuroticism: 0.5,
+    });
     // Ensure it's a copy (mutation safe)
     (node as any).__neuralState.weights.openness = 0.0;
     expect(config.base_weights.openness).toBe(0.8);
@@ -90,7 +104,10 @@ describe('neuralForgeHandler.onAttach', () => {
 
   it('emits neural_forge_connected', () => {
     const { ctx } = attach();
-    expect(ctx.emit).toHaveBeenCalledWith('neural_forge_connected', expect.objectContaining({ node: expect.any(Object) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'neural_forge_connected',
+      expect.objectContaining({ node: expect.any(Object) })
+    );
   });
 });
 
@@ -109,21 +126,30 @@ describe('neuralForgeHandler.onDetach', () => {
 describe('neuralForgeHandler.onEvent — npc_ai_response below threshold', () => {
   it('pushes text to experienceLog', () => {
     const { node, ctx, config } = attach({ synthesis_threshold: 5 });
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_response', text: 'Hello' });
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'npc_ai_response',
+      text: 'Hello',
+    });
     expect((node as any).__neuralState.experienceLog).toEqual(['Hello']);
   });
 
   it('does not emit neural_synthesis_request when below threshold', () => {
     const { node, ctx, config } = attach({ synthesis_threshold: 5 });
     ctx.emit.mockClear();
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_response', text: 'Hi' });
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'npc_ai_response',
+      text: 'Hi',
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('neural_synthesis_request', expect.anything());
   });
 
   it('no shard created when auto_synthesize=false even at threshold', () => {
     const { node, ctx, config } = attach({ auto_synthesize: false, synthesis_threshold: 1 });
     ctx.emit.mockClear();
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_response', text: 'Hi' });
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'npc_ai_response',
+      text: 'Hi',
+    });
     expect((node as any).__neuralState.shards).toHaveLength(0);
     expect(ctx.emit).not.toHaveBeenCalledWith('neural_shard_created', expect.anything());
   });
@@ -143,13 +169,19 @@ describe('neuralForgeHandler.onEvent — npc_ai_response auto-synthesis', () => 
 
   it('emits neural_synthesis_request at threshold', () => {
     const { node, ctx, config } = setupAtThreshold(3);
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_response', text: 'trigger' });
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'npc_ai_response',
+      text: 'trigger',
+    });
     expect(ctx.emit).toHaveBeenCalledWith('neural_synthesis_request', expect.any(Object));
   });
 
   it('creates a memory shard and pushes it', () => {
     const { node, ctx, config } = setupAtThreshold(3);
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_response', text: 'trigger' });
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'npc_ai_response',
+      text: 'trigger',
+    });
     const state = (node as any).__neuralState;
     expect(state.shards).toHaveLength(1);
     expect(state.shards[0].type).toBe('memory');
@@ -157,27 +189,45 @@ describe('neuralForgeHandler.onEvent — npc_ai_response auto-synthesis', () => 
 
   it('shard id starts with shard_', () => {
     const { node, ctx, config } = setupAtThreshold(2);
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_response', text: 'trigger' });
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'npc_ai_response',
+      text: 'trigger',
+    });
     const shard = (node as any).__neuralState.shards[0];
     expect(shard.id).toMatch(/^shard_\d+$/);
   });
 
   it('clears experienceLog after synthesis', () => {
     const { node, ctx, config } = setupAtThreshold(3);
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_response', text: 'trigger' });
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'npc_ai_response',
+      text: 'trigger',
+    });
     expect((node as any).__neuralState.experienceLog).toEqual([]);
   });
 
   it('emits neural_shard_created', () => {
     const { node, ctx, config } = setupAtThreshold(3);
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_response', text: 'trigger' });
-    expect(ctx.emit).toHaveBeenCalledWith('neural_shard_created', expect.objectContaining({ shard: expect.any(Object) }));
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'npc_ai_response',
+      text: 'trigger',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'neural_shard_created',
+      expect.objectContaining({ shard: expect.any(Object) })
+    );
   });
 
   it('emits neural_cognition_evolved with weights', () => {
     const { node, ctx, config } = setupAtThreshold(3);
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_response', text: 'trigger' });
-    expect(ctx.emit).toHaveBeenCalledWith('neural_cognition_evolved', expect.objectContaining({ currentWeights: expect.any(Object) }));
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'npc_ai_response',
+      text: 'trigger',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'neural_cognition_evolved',
+      expect.objectContaining({ currentWeights: expect.any(Object) })
+    );
   });
 });
 
@@ -187,14 +237,20 @@ describe('neuralForgeHandler.onEvent — neural_absorb_shard', () => {
   it('pushes shard to state.shards', () => {
     const { node, ctx, config } = attach();
     const shard = makeShard('memory');
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'neural_absorb_shard', shard });
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'neural_absorb_shard',
+      shard,
+    });
     expect((node as any).__neuralState.shards).toContain(shard);
   });
 
   it('memory shard does NOT change weights', () => {
     const { node, ctx, config } = attach();
     const before = { ...(node as any).__neuralState.weights };
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'neural_absorb_shard', shard: makeShard('memory') });
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'neural_absorb_shard',
+      shard: makeShard('memory'),
+    });
     expect((node as any).__neuralState.weights).toEqual(before);
   });
 
@@ -203,32 +259,60 @@ describe('neuralForgeHandler.onEvent — neural_absorb_shard', () => {
     const shard = makeShard('personality', { modifiers: { openness: 0.2, neuroticism: -0.3 } });
     // weight = 0.5 + 0.2*0.5 = 0.6 for openness; 0.5 + (-0.3)*0.5 = 0.35 for neuroticism
     shard.weight = 0.5;
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'neural_absorb_shard', shard });
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'neural_absorb_shard',
+      shard,
+    });
     const weights = (node as any).__neuralState.weights;
     expect(weights.openness).toBeCloseTo(0.6, 5);
     expect(weights.neuroticism).toBeCloseTo(0.35, 5);
   });
 
   it('personality shard clamps result to 0', () => {
-    const { node, ctx, config } = attach({ base_weights: { openness: 0.1, conscientiousness: 0.5, extroversion: 0.5, agreeableness: 0.5, neuroticism: 0.5 } });
+    const { node, ctx, config } = attach({
+      base_weights: {
+        openness: 0.1,
+        conscientiousness: 0.5,
+        extroversion: 0.5,
+        agreeableness: 0.5,
+        neuroticism: 0.5,
+      },
+    });
     const shard = makeShard('personality', { modifiers: { openness: -5 } });
     shard.weight = 1.0;
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'neural_absorb_shard', shard });
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'neural_absorb_shard',
+      shard,
+    });
     expect((node as any).__neuralState.weights.openness).toBe(0);
   });
 
   it('personality shard clamps result to 1', () => {
-    const { node, ctx, config } = attach({ base_weights: { openness: 0.9, conscientiousness: 0.5, extroversion: 0.5, agreeableness: 0.5, neuroticism: 0.5 } });
+    const { node, ctx, config } = attach({
+      base_weights: {
+        openness: 0.9,
+        conscientiousness: 0.5,
+        extroversion: 0.5,
+        agreeableness: 0.5,
+        neuroticism: 0.5,
+      },
+    });
     const shard = makeShard('personality', { modifiers: { openness: 5 } });
     shard.weight = 1.0;
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'neural_absorb_shard', shard });
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'neural_absorb_shard',
+      shard,
+    });
     expect((node as any).__neuralState.weights.openness).toBe(1);
   });
 
   it('personality shard ignores unknown weight keys', () => {
     const { node, ctx, config } = attach();
     const shard = makeShard('personality', { modifiers: { unknown_trait: 99.9 } });
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'neural_absorb_shard', shard });
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'neural_absorb_shard',
+      shard,
+    });
     // No crash, existing weights unchanged
     const weights = (node as any).__neuralState.weights;
     expect(weights.openness).toBe(0.5);
@@ -237,7 +321,13 @@ describe('neuralForgeHandler.onEvent — neural_absorb_shard', () => {
   it('emits neural_cognition_evolved', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    neuralForgeHandler.onEvent!(node as any, config, ctx as any, { type: 'neural_absorb_shard', shard: makeShard() });
-    expect(ctx.emit).toHaveBeenCalledWith('neural_cognition_evolved', expect.objectContaining({ currentWeights: expect.any(Object) }));
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'neural_absorb_shard',
+      shard: makeShard(),
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'neural_cognition_evolved',
+      expect.objectContaining({ currentWeights: expect.any(Object) })
+    );
   });
 });

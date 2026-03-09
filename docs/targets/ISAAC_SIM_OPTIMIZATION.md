@@ -15,13 +15,15 @@ This document summarizes the NVIDIA Isaac Sim compatibility optimizations implem
 ### 1. Isaac Sim Extension Tags (Priority 1)
 
 **New IR Types Added:**
+
 ```typescript
-URDFIsaacSimSensor  // RTX sensor configuration via isaac_sim_config attribute
-URDFLoopJoint       // Spherical joints for closed kinematic chains
-URDFFixedFrame      // Named reference frames without dummy links
+URDFIsaacSimSensor; // RTX sensor configuration via isaac_sim_config attribute
+URDFLoopJoint; // Spherical joints for closed kinematic chains
+URDFFixedFrame; // Named reference frames without dummy links
 ```
 
 **XML Output:**
+
 ```xml
 <!-- Isaac Sim-native LiDAR sensor -->
 <sensor name="front_lidar" type="ray" isaac_sim_config="Velodyne_VLS128">
@@ -43,6 +45,7 @@ URDFFixedFrame      // Named reference frames without dummy links
 ```
 
 **Benefits:**
+
 - Attach preconfigured RTX sensors (LiDAR, cameras) without manual configuration
 - Define closed kinematic chains for quadrupeds and parallel robots
 - Eliminate dummy links for sensor mounting points and end effector frames
@@ -55,14 +58,15 @@ URDFFixedFrame      // Named reference frames without dummy links
 
 ```typescript
 // Before:
-const matName = `material_${linkName}`;  // Collision risk
+const matName = `material_${linkName}`; // Collision risk
 
 // After:
 const colorHash = color.replace(/[^a-zA-Z0-9]/g, '');
-const matName = `material_${linkName}_${colorHash}`;  // Unique
+const matName = `material_${linkName}_${colorHash}`; // Unique
 ```
 
 **Example Output:**
+
 ```xml
 <material name="material_base_2d3748">
   <color rgba="0.176 0.216 0.282 1"/>
@@ -91,14 +95,16 @@ private sanitizeName(name: string): string {
 ### 4. Convenience Function for Isaac Sim (Priority 1)
 
 **New Export Function:**
+
 ```typescript
 export function compileForIsaacSim(
   composition: HoloComposition,
   options?: Partial<URDFCompilerOptions>
-): string
+): string;
 ```
 
 **Default Configuration:**
+
 ```typescript
 {
   includeVisual: true,
@@ -115,31 +121,34 @@ export function compileForIsaacSim(
 ```
 
 **Usage:**
+
 ```typescript
 import { compileForIsaacSim } from '@holoscript/core/compiler';
 
 const urdf = compileForIsaacSim(composition, {
   robotName: 'MyRobot',
-  packageName: 'my_robot_pkg'
+  packageName: 'my_robot_pkg',
 });
 ```
 
 ### 5. PhysX Solver Configuration (Priority 1)
 
 **New Compiler Options:**
+
 ```typescript
 interface URDFCompilerOptions {
   // Isaac Sim-specific options
   includeIsaacSimExtensions?: boolean;
   isaacSimDriveType?: 'acceleration' | 'force';
   isaacSimTargetType?: 'none' | 'position' | 'velocity';
-  isaacSimSolverPositionIterations?: number;  // Default: 8
-  isaacSimSolverVelocityIterations?: number;  // Default: 4
+  isaacSimSolverPositionIterations?: number; // Default: 8
+  isaacSimSolverVelocityIterations?: number; // Default: 4
   gazeboVersion?: 'classic' | 'harmonic';
 }
 ```
 
 **Output as XML Comments** (for post-import configuration):
+
 ```xml
 <!-- isaac_sim_config: drive_type=acceleration target_type=position -->
 <!-- isaac_sim_config: solver_position_iterations=8 solver_velocity_iterations=4 -->
@@ -150,6 +159,7 @@ interface URDFCompilerOptions {
 **Created:** `examples/robotics/isaac-sim-robot-arm.holo`
 
 **Features Demonstrated:**
+
 - Proper inertia tensors calculated from geometry (not `mass * 0.1` approximation)
 - Unique material names for each link
 - ROS 2 control integration
@@ -160,29 +170,33 @@ interface URDFCompilerOptions {
 ## Compilation Commands
 
 ### Isaac Sim Export
+
 ```bash
 holoscript compile --target urdf --isaac-sim isaac-sim-robot-arm.holo
 ```
 
 ### With Custom Options
+
 ```typescript
 import { compileForIsaacSim } from '@holoscript/core/compiler';
 
 const urdf = compileForIsaacSim(composition, {
   robotName: 'IsaacRobot',
-  isaacSimSolverPositionIterations: 16,  // Higher precision
-  isaacSimDriveType: 'force'             // Direct force application
+  isaacSimSolverPositionIterations: 16, // Higher precision
+  isaacSimDriveType: 'force', // Direct force application
 });
 ```
 
 ## Integration with Isaac Sim Workflow
 
 ### 1. Compile URDF
+
 ```bash
 holoscript compile --target urdf --isaac-sim robot.holo -o robot.urdf
 ```
 
 ### 2. Import to Isaac Sim
+
 1. Open NVIDIA Isaac Sim
 2. **File > Import Robot > URDF**
 3. Select `robot.urdf`
@@ -194,12 +208,14 @@ holoscript compile --target urdf --isaac-sim robot.holo -o robot.urdf
    - **PhysX Solver**: Match compiler settings (8 position, 4 velocity iterations)
 
 ### 3. Post-Import Configuration
+
 - Verify PhysX solver iterations match compiler output
 - Attach RTX sensors if `isaac_sim_config` was specified
 - Configure IsaacLab task environment
 - Tune joint drive gains if needed
 
 ### 4. Parallel Gazebo Simulation (Optional)
+
 ```bash
 # Compile SDF for Gazebo Harmonic
 holoscript compile --target sdf --gazebo-harmonic robot.holo -o robot.sdf
@@ -214,6 +230,7 @@ ros2 launch ros_gz_bridge bridge.launch.py config:=bridge.yaml
 ## Performance Optimizations
 
 ### Inertia Calculation
+
 **Before:** Simplified `mass * 0.1` for all components
 **After:** Geometry-derived tensors
 
@@ -232,12 +249,15 @@ ixx = iyy = izz = (2 / 5) * mass * r * r;
 ```
 
 ### PhysX Solver Tuning
+
 **Recommended Settings:**
+
 - **Position Iterations**: 8-16 (higher for precision, lower for performance)
 - **Velocity Iterations**: 4 (sufficient for most articulated robots)
 - **Drive Type**: Acceleration (normalizes inertia before applying effort)
 
 **Impact:**
+
 - 30-50% improvement in simulation stability for articulated robots
 - Eliminates jitter in high-DOF manipulators
 - Better convergence for closed kinematic chains
@@ -245,11 +265,13 @@ ixx = iyy = izz = (2 / 5) * mass * r * r;
 ## What's Not Yet Implemented
 
 ### Priority 2 (Pending)
+
 - **Gazebo Harmonic Plugin Migration**: Still outputs Gazebo Classic plugins by default
   - Partial support via `gazeboVersion: 'harmonic'` option
   - Full migration requires updating all `emitGazeboSensor()` plugin paths
 
 ### Priority 3 (Future Work)
+
 - **SDF Joint Articulation**: SDFCompiler emits per-object models without `<joint>` elements
 - **SDF Proper Inertia**: Still uses simplified `mass * 0.1` calculation
 - **SDF gz-sim System Plugins**: Not yet included in world output
@@ -313,14 +335,17 @@ generateControllersYaml(
 ## Known Issues and Workarounds
 
 ### Issue 1: Material Color Accuracy
+
 **Problem**: RGBA color conversion may not match visual appearance exactly.
 **Workaround**: Use hex color codes (`#3080C0`) for consistent conversion.
 
 ### Issue 2: Mesh Scale Units
+
 **Problem**: Isaac Sim assumes meters; no annotation for units.
 **Workaround**: Ensure all mesh files use meter units before import.
 
 ### Issue 3: Self-Collision Default
+
 **Problem**: Self-collision disabled by default for performance.
 **Workaround**: Enable explicitly with `enableSelfCollision: true` option.
 
@@ -334,6 +359,7 @@ generateControllersYaml(
 ## Changelog
 
 ### 2026-03-07 - v3.0+ Implementation
+
 - ✅ Added Isaac Sim extension tag infrastructure
 - ✅ Implemented unique material name generation
 - ✅ Fixed name sanitization for Isaac Sim compatibility
@@ -343,6 +369,7 @@ generateControllersYaml(
 - 🔄 Partial Gazebo Harmonic plugin support
 
 ### 2026-03-06 - Planning
+
 - 📝 Documented gaps and requirements in URDF_SDF_ISAAC_SIM_OPTIMIZATION.md
 - 📋 Prioritized implementation matrix
 

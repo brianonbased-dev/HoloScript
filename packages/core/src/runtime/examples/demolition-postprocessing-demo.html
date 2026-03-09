@@ -1,479 +1,495 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HoloScript Demolition + Post-Processing Demo</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #1a1a2e;
-      color: #eee;
-      overflow: hidden;
-    }
-
-    #canvas {
-      display: block;
-      width: 100vw;
-      height: 100vh;
-    }
-
-    .controls {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 20px;
-      border-radius: 12px;
-      min-width: 320px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    }
-
-    .controls h2 {
-      margin: 0 0 15px 0;
-      font-size: 20px;
-      color: #ff6b6b;
-      border-bottom: 2px solid #ff6b6b;
-      padding-bottom: 8px;
-    }
-
-    .control-group {
-      margin-bottom: 20px;
-    }
-
-    .control-group h3 {
-      font-size: 14px;
-      color: #4ecdc4;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    button {
-      width: 100%;
-      padding: 12px;
-      margin: 6px 0;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-
-    button:active {
-      transform: translateY(0);
-    }
-
-    .btn-explosion {
-      background: linear-gradient(135deg, #ff6b6b 0%, #ff4757 100%);
-      color: white;
-    }
-
-    .btn-explosion:hover {
-      background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
-    }
-
-    .btn-reset {
-      background: linear-gradient(135deg, #4ecdc4 0%, #44a59d 100%);
-      color: white;
-    }
-
-    .btn-reset:hover {
-      background: linear-gradient(135deg, #44a59d 0%, #3a9188 100%);
-    }
-
-    .btn-toggle {
-      background: linear-gradient(135deg, #95e1d3 0%, #78c9bb 100%);
-      color: #1a1a2e;
-    }
-
-    .btn-toggle:hover {
-      background: linear-gradient(135deg, #78c9bb 0%, #6ab5a7 100%);
-    }
-
-    .btn-toggle.active {
-      background: linear-gradient(135deg, #ffd93d 0%, #ffbe00 100%);
-      color: #1a1a2e;
-    }
-
-    label {
-      display: flex;
-      align-items: center;
-      margin: 8px 0;
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    input[type="checkbox"] {
-      margin-right: 10px;
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-    }
-
-    input[type="range"] {
-      width: 100%;
-      margin: 8px 0;
-    }
-
-    .slider-group {
-      margin: 12px 0;
-    }
-
-    .slider-label {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 4px;
-      font-size: 12px;
-      color: #aaa;
-    }
-
-    .stats {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 15px;
-      border-radius: 12px;
-      font-family: 'Courier New', monospace;
-      font-size: 12px;
-      min-width: 200px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    }
-
-    .stats h3 {
-      color: #4ecdc4;
-      margin: 0 0 10px 0;
-      font-size: 14px;
-      border-bottom: 1px solid #4ecdc4;
-      padding-bottom: 5px;
-    }
-
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      margin: 6px 0;
-      padding: 4px 0;
-    }
-
-    .stat-label {
-      color: #95e1d3;
-    }
-
-    .stat-value {
-      color: #ffd93d;
-      font-weight: bold;
-    }
-
-    .info {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 15px;
-      border-radius: 12px;
-      font-size: 12px;
-      max-width: 400px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    }
-
-    .info h3 {
-      color: #ff6b6b;
-      margin: 0 0 8px 0;
-      font-size: 14px;
-    }
-
-    .info p {
-      margin: 4px 0;
-      line-height: 1.5;
-      color: #ccc;
-    }
-
-    .effect-tag {
-      display: inline-block;
-      padding: 3px 8px;
-      margin: 2px;
-      background: rgba(78, 205, 196, 0.2);
-      border: 1px solid #4ecdc4;
-      border-radius: 4px;
-      font-size: 11px;
-      color: #4ecdc4;
-    }
-
-    .effect-tag.active {
-      background: rgba(255, 215, 61, 0.3);
-      border-color: #ffd93d;
-      color: #ffd93d;
-    }
-  </style>
-</head>
-<body>
-  <canvas id="canvas"></canvas>
-
-  <div class="controls">
-    <h2>🎬 Demolition + Post-FX</h2>
-
-    <div class="control-group">
-      <h3>Scene Controls</h3>
-      <button class="btn-explosion" id="btnExplosion">💥 Trigger Explosion</button>
-      <button class="btn-reset" id="btnReset">🔄 Reset Scene</button>
-      <button class="btn-toggle" id="btnPhysics">⏯️ Toggle Physics</button>
-    </div>
-
-    <div class="control-group">
-      <h3>Post-Processing</h3>
-      <label>
-        <input type="checkbox" id="cbBloom" checked>
-        ✨ Bloom (Explosion Glow)
-      </label>
-      <div class="slider-group" id="bloomControls">
-        <div class="slider-label">
-          <span>Strength</span>
-          <span id="bloomStrength">1.5</span>
-        </div>
-        <input type="range" id="bloomStrengthSlider" min="0" max="3" step="0.1" value="1.5">
-
-        <div class="slider-label">
-          <span>Threshold</span>
-          <span id="bloomThreshold">0.85</span>
-        </div>
-        <input type="range" id="bloomThresholdSlider" min="0" max="1" step="0.05" value="0.85">
-      </div>
-
-      <label>
-        <input type="checkbox" id="cbDOF">
-        📷 Depth of Field
-      </label>
-      <div class="slider-group" id="dofControls" style="display: none;">
-        <div class="slider-label">
-          <span>Focus Distance</span>
-          <span id="dofFocus">50</span>
-        </div>
-        <input type="range" id="dofFocusSlider" min="10" max="100" step="1" value="50">
-
-        <div class="slider-label">
-          <span>Aperture</span>
-          <span id="dofAperture">0.025</span>
-        </div>
-        <input type="range" id="dofApertureSlider" min="0.001" max="0.05" step="0.001" value="0.025">
-      </div>
-
-      <label>
-        <input type="checkbox" id="cbMotionBlur">
-        🌀 Motion Blur
-      </label>
-      <div class="slider-group" id="motionBlurControls" style="display: none;">
-        <div class="slider-label">
-          <span>Damping</span>
-          <span id="motionBlurDamping">0.96</span>
-        </div>
-        <input type="range" id="motionBlurDampingSlider" min="0.80" max="0.99" step="0.01" value="0.96">
-      </div>
-    </div>
-
-    <div class="control-group">
-      <h3>Active Effects</h3>
-      <div id="activeEffects">
-        <span class="effect-tag active">Bloom</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="stats">
-    <h3>📊 Statistics</h3>
-    <div class="stat-row">
-      <span class="stat-label">FPS:</span>
-      <span class="stat-value" id="statFPS">60</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Frame Time:</span>
-      <span class="stat-value" id="statFrameTime">16.67ms</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Objects:</span>
-      <span class="stat-value" id="statObjects">0</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Fragments:</span>
-      <span class="stat-value" id="statFragments">0</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Particles:</span>
-      <span class="stat-value" id="statParticles">0</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Triangles:</span>
-      <span class="stat-value" id="statTriangles">0</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Draw Calls:</span>
-      <span class="stat-value" id="statDrawCalls">0</span>
-    </div>
-  </div>
-
-  <div class="info">
-    <h3>💡 Post-Processing Effects</h3>
-    <p><strong>Bloom:</strong> Creates a glow around bright areas (explosions, particles)</p>
-    <p><strong>Depth of Field:</strong> Blurs objects based on distance from camera</p>
-    <p><strong>Motion Blur:</strong> Trails for fast-moving fragments</p>
-    <p style="margin-top: 10px; color: #4ecdc4;">Toggle effects to see the visual difference!</p>
-  </div>
-
-  <!-- Load Three.js and post-processing modules -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/EffectComposer.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/RenderPass.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/BokehPass.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/AfterimagePass.js"></script>
-
-  <script type="module">
-    // NOTE: This demo simulates the HoloScript runtime platform with post-processing
-    // In production, you would import DemolitionRuntimeExecutor and ThreeJSRenderer
-
-    console.log('[Post-Processing Demo] Initializing...');
-
-    // Placeholder: In reality, we'd use HoloScript runtime classes
-    // This demo shows the expected visual output and controls
-
-    const canvas = document.getElementById('canvas');
-
-    // Update stats UI (simulated)
-    function updateStats() {
-      document.getElementById('statFPS').textContent = '60';
-      document.getElementById('statFrameTime').textContent = '16.67ms';
-      document.getElementById('statObjects').textContent = '8';
-      document.getElementById('statFragments').textContent = '0';
-      document.getElementById('statParticles').textContent = '0';
-      document.getElementById('statTriangles').textContent = '2.4K';
-      document.getElementById('statDrawCalls').textContent = '12';
-    }
-
-    // Update active effects display
-    function updateActiveEffects() {
-      const container = document.getElementById('activeEffects');
-      container.innerHTML = '';
-
-      if (document.getElementById('cbBloom').checked) {
-        container.innerHTML += '<span class="effect-tag active">Bloom</span>';
-      }
-      if (document.getElementById('cbDOF').checked) {
-        container.innerHTML += '<span class="effect-tag active">DOF</span>';
-      }
-      if (document.getElementById('cbMotionBlur').checked) {
-        container.innerHTML += '<span class="effect-tag active">Motion Blur</span>';
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HoloScript Demolition + Post-Processing Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
 
-      if (container.innerHTML === '') {
-        container.innerHTML = '<span class="effect-tag">None</span>';
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #1a1a2e;
+        color: #eee;
+        overflow: hidden;
       }
-    }
 
-    // Effect toggle handlers
-    document.getElementById('cbBloom').addEventListener('change', (e) => {
-      const controls = document.getElementById('bloomControls');
-      controls.style.display = e.target.checked ? 'block' : 'none';
+      #canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .controls {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 20px;
+        border-radius: 12px;
+        min-width: 320px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      }
+
+      .controls h2 {
+        margin: 0 0 15px 0;
+        font-size: 20px;
+        color: #ff6b6b;
+        border-bottom: 2px solid #ff6b6b;
+        padding-bottom: 8px;
+      }
+
+      .control-group {
+        margin-bottom: 20px;
+      }
+
+      .control-group h3 {
+        font-size: 14px;
+        color: #4ecdc4;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        margin: 6px 0;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      .btn-explosion {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ff4757 100%);
+        color: white;
+      }
+
+      .btn-explosion:hover {
+        background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
+      }
+
+      .btn-reset {
+        background: linear-gradient(135deg, #4ecdc4 0%, #44a59d 100%);
+        color: white;
+      }
+
+      .btn-reset:hover {
+        background: linear-gradient(135deg, #44a59d 0%, #3a9188 100%);
+      }
+
+      .btn-toggle {
+        background: linear-gradient(135deg, #95e1d3 0%, #78c9bb 100%);
+        color: #1a1a2e;
+      }
+
+      .btn-toggle:hover {
+        background: linear-gradient(135deg, #78c9bb 0%, #6ab5a7 100%);
+      }
+
+      .btn-toggle.active {
+        background: linear-gradient(135deg, #ffd93d 0%, #ffbe00 100%);
+        color: #1a1a2e;
+      }
+
+      label {
+        display: flex;
+        align-items: center;
+        margin: 8px 0;
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      input[type='checkbox'] {
+        margin-right: 10px;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+
+      input[type='range'] {
+        width: 100%;
+        margin: 8px 0;
+      }
+
+      .slider-group {
+        margin: 12px 0;
+      }
+
+      .slider-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+        font-size: 12px;
+        color: #aaa;
+      }
+
+      .stats {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 15px;
+        border-radius: 12px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        min-width: 200px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      }
+
+      .stats h3 {
+        color: #4ecdc4;
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        border-bottom: 1px solid #4ecdc4;
+        padding-bottom: 5px;
+      }
+
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 6px 0;
+        padding: 4px 0;
+      }
+
+      .stat-label {
+        color: #95e1d3;
+      }
+
+      .stat-value {
+        color: #ffd93d;
+        font-weight: bold;
+      }
+
+      .info {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 15px;
+        border-radius: 12px;
+        font-size: 12px;
+        max-width: 400px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      }
+
+      .info h3 {
+        color: #ff6b6b;
+        margin: 0 0 8px 0;
+        font-size: 14px;
+      }
+
+      .info p {
+        margin: 4px 0;
+        line-height: 1.5;
+        color: #ccc;
+      }
+
+      .effect-tag {
+        display: inline-block;
+        padding: 3px 8px;
+        margin: 2px;
+        background: rgba(78, 205, 196, 0.2);
+        border: 1px solid #4ecdc4;
+        border-radius: 4px;
+        font-size: 11px;
+        color: #4ecdc4;
+      }
+
+      .effect-tag.active {
+        background: rgba(255, 215, 61, 0.3);
+        border-color: #ffd93d;
+        color: #ffd93d;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+
+    <div class="controls">
+      <h2>🎬 Demolition + Post-FX</h2>
+
+      <div class="control-group">
+        <h3>Scene Controls</h3>
+        <button class="btn-explosion" id="btnExplosion">💥 Trigger Explosion</button>
+        <button class="btn-reset" id="btnReset">🔄 Reset Scene</button>
+        <button class="btn-toggle" id="btnPhysics">⏯️ Toggle Physics</button>
+      </div>
+
+      <div class="control-group">
+        <h3>Post-Processing</h3>
+        <label>
+          <input type="checkbox" id="cbBloom" checked />
+          ✨ Bloom (Explosion Glow)
+        </label>
+        <div class="slider-group" id="bloomControls">
+          <div class="slider-label">
+            <span>Strength</span>
+            <span id="bloomStrength">1.5</span>
+          </div>
+          <input type="range" id="bloomStrengthSlider" min="0" max="3" step="0.1" value="1.5" />
+
+          <div class="slider-label">
+            <span>Threshold</span>
+            <span id="bloomThreshold">0.85</span>
+          </div>
+          <input type="range" id="bloomThresholdSlider" min="0" max="1" step="0.05" value="0.85" />
+        </div>
+
+        <label>
+          <input type="checkbox" id="cbDOF" />
+          📷 Depth of Field
+        </label>
+        <div class="slider-group" id="dofControls" style="display: none">
+          <div class="slider-label">
+            <span>Focus Distance</span>
+            <span id="dofFocus">50</span>
+          </div>
+          <input type="range" id="dofFocusSlider" min="10" max="100" step="1" value="50" />
+
+          <div class="slider-label">
+            <span>Aperture</span>
+            <span id="dofAperture">0.025</span>
+          </div>
+          <input
+            type="range"
+            id="dofApertureSlider"
+            min="0.001"
+            max="0.05"
+            step="0.001"
+            value="0.025"
+          />
+        </div>
+
+        <label>
+          <input type="checkbox" id="cbMotionBlur" />
+          🌀 Motion Blur
+        </label>
+        <div class="slider-group" id="motionBlurControls" style="display: none">
+          <div class="slider-label">
+            <span>Damping</span>
+            <span id="motionBlurDamping">0.96</span>
+          </div>
+          <input
+            type="range"
+            id="motionBlurDampingSlider"
+            min="0.80"
+            max="0.99"
+            step="0.01"
+            value="0.96"
+          />
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>Active Effects</h3>
+        <div id="activeEffects">
+          <span class="effect-tag active">Bloom</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <h3>📊 Statistics</h3>
+      <div class="stat-row">
+        <span class="stat-label">FPS:</span>
+        <span class="stat-value" id="statFPS">60</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Frame Time:</span>
+        <span class="stat-value" id="statFrameTime">16.67ms</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Objects:</span>
+        <span class="stat-value" id="statObjects">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Fragments:</span>
+        <span class="stat-value" id="statFragments">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Particles:</span>
+        <span class="stat-value" id="statParticles">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Triangles:</span>
+        <span class="stat-value" id="statTriangles">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Draw Calls:</span>
+        <span class="stat-value" id="statDrawCalls">0</span>
+      </div>
+    </div>
+
+    <div class="info">
+      <h3>💡 Post-Processing Effects</h3>
+      <p><strong>Bloom:</strong> Creates a glow around bright areas (explosions, particles)</p>
+      <p><strong>Depth of Field:</strong> Blurs objects based on distance from camera</p>
+      <p><strong>Motion Blur:</strong> Trails for fast-moving fragments</p>
+      <p style="margin-top: 10px; color: #4ecdc4">Toggle effects to see the visual difference!</p>
+    </div>
+
+    <!-- Load Three.js and post-processing modules -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/BokehPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/AfterimagePass.js"></script>
+
+    <script type="module">
+      // NOTE: This demo simulates the HoloScript runtime platform with post-processing
+      // In production, you would import DemolitionRuntimeExecutor and ThreeJSRenderer
+
+      console.log('[Post-Processing Demo] Initializing...');
+
+      // Placeholder: In reality, we'd use HoloScript runtime classes
+      // This demo shows the expected visual output and controls
+
+      const canvas = document.getElementById('canvas');
+
+      // Update stats UI (simulated)
+      function updateStats() {
+        document.getElementById('statFPS').textContent = '60';
+        document.getElementById('statFrameTime').textContent = '16.67ms';
+        document.getElementById('statObjects').textContent = '8';
+        document.getElementById('statFragments').textContent = '0';
+        document.getElementById('statParticles').textContent = '0';
+        document.getElementById('statTriangles').textContent = '2.4K';
+        document.getElementById('statDrawCalls').textContent = '12';
+      }
+
+      // Update active effects display
+      function updateActiveEffects() {
+        const container = document.getElementById('activeEffects');
+        container.innerHTML = '';
+
+        if (document.getElementById('cbBloom').checked) {
+          container.innerHTML += '<span class="effect-tag active">Bloom</span>';
+        }
+        if (document.getElementById('cbDOF').checked) {
+          container.innerHTML += '<span class="effect-tag active">DOF</span>';
+        }
+        if (document.getElementById('cbMotionBlur').checked) {
+          container.innerHTML += '<span class="effect-tag active">Motion Blur</span>';
+        }
+
+        if (container.innerHTML === '') {
+          container.innerHTML = '<span class="effect-tag">None</span>';
+        }
+      }
+
+      // Effect toggle handlers
+      document.getElementById('cbBloom').addEventListener('change', (e) => {
+        const controls = document.getElementById('bloomControls');
+        controls.style.display = e.target.checked ? 'block' : 'none';
+        updateActiveEffects();
+        console.log('[Post-FX] Bloom:', e.target.checked);
+
+        // In reality: renderer.enablePostProcessing({ type: 'bloom', enabled: e.target.checked, params: {...} });
+      });
+
+      document.getElementById('cbDOF').addEventListener('change', (e) => {
+        const controls = document.getElementById('dofControls');
+        controls.style.display = e.target.checked ? 'block' : 'none';
+        updateActiveEffects();
+        console.log('[Post-FX] DOF:', e.target.checked);
+      });
+
+      document.getElementById('cbMotionBlur').addEventListener('change', (e) => {
+        const controls = document.getElementById('motionBlurControls');
+        controls.style.display = e.target.checked ? 'block' : 'none';
+        updateActiveEffects();
+        console.log('[Post-FX] Motion Blur:', e.target.checked);
+      });
+
+      // Slider handlers
+      document.getElementById('bloomStrengthSlider').addEventListener('input', (e) => {
+        document.getElementById('bloomStrength').textContent = e.target.value;
+        console.log('[Bloom] Strength:', e.target.value);
+      });
+
+      document.getElementById('bloomThresholdSlider').addEventListener('input', (e) => {
+        document.getElementById('bloomThreshold').textContent = e.target.value;
+        console.log('[Bloom] Threshold:', e.target.value);
+      });
+
+      document.getElementById('dofFocusSlider').addEventListener('input', (e) => {
+        document.getElementById('dofFocus').textContent = e.target.value;
+        console.log('[DOF] Focus:', e.target.value);
+      });
+
+      document.getElementById('dofApertureSlider').addEventListener('input', (e) => {
+        document.getElementById('dofAperture').textContent = e.target.value;
+        console.log('[DOF] Aperture:', e.target.value);
+      });
+
+      document.getElementById('motionBlurDampingSlider').addEventListener('input', (e) => {
+        document.getElementById('motionBlurDamping').textContent = e.target.value;
+        console.log('[Motion Blur] Damping:', e.target.value);
+      });
+
+      // Scene control handlers
+      document.getElementById('btnExplosion').addEventListener('click', () => {
+        console.log('[Demo] 💥 Explosion triggered!');
+        document.getElementById('statFragments').textContent = '47';
+        document.getElementById('statParticles').textContent = '1250';
+        // In reality: executor.triggerExplosion({...});
+      });
+
+      document.getElementById('btnReset').addEventListener('click', () => {
+        console.log('[Demo] 🔄 Scene reset');
+        document.getElementById('statFragments').textContent = '0';
+        document.getElementById('statParticles').textContent = '0';
+        // In reality: executor.reset();
+      });
+
+      let physicsRunning = true;
+      document.getElementById('btnPhysics').addEventListener('click', () => {
+        physicsRunning = !physicsRunning;
+        const btn = document.getElementById('btnPhysics');
+        btn.classList.toggle('active');
+        btn.textContent = physicsRunning ? '⏯️ Toggle Physics' : '▶️ Resume Physics';
+        console.log('[Demo] Physics:', physicsRunning ? 'Running' : 'Paused');
+        // In reality: executor.togglePhysics();
+      });
+
+      // Initialize
+      updateStats();
       updateActiveEffects();
-      console.log('[Post-FX] Bloom:', e.target.checked);
+      setInterval(updateStats, 1000);
 
-      // In reality: renderer.enablePostProcessing({ type: 'bloom', enabled: e.target.checked, params: {...} });
-    });
-
-    document.getElementById('cbDOF').addEventListener('change', (e) => {
-      const controls = document.getElementById('dofControls');
-      controls.style.display = e.target.checked ? 'block' : 'none';
-      updateActiveEffects();
-      console.log('[Post-FX] DOF:', e.target.checked);
-    });
-
-    document.getElementById('cbMotionBlur').addEventListener('change', (e) => {
-      const controls = document.getElementById('motionBlurControls');
-      controls.style.display = e.target.checked ? 'block' : 'none';
-      updateActiveEffects();
-      console.log('[Post-FX] Motion Blur:', e.target.checked);
-    });
-
-    // Slider handlers
-    document.getElementById('bloomStrengthSlider').addEventListener('input', (e) => {
-      document.getElementById('bloomStrength').textContent = e.target.value;
-      console.log('[Bloom] Strength:', e.target.value);
-    });
-
-    document.getElementById('bloomThresholdSlider').addEventListener('input', (e) => {
-      document.getElementById('bloomThreshold').textContent = e.target.value;
-      console.log('[Bloom] Threshold:', e.target.value);
-    });
-
-    document.getElementById('dofFocusSlider').addEventListener('input', (e) => {
-      document.getElementById('dofFocus').textContent = e.target.value;
-      console.log('[DOF] Focus:', e.target.value);
-    });
-
-    document.getElementById('dofApertureSlider').addEventListener('input', (e) => {
-      document.getElementById('dofAperture').textContent = e.target.value;
-      console.log('[DOF] Aperture:', e.target.value);
-    });
-
-    document.getElementById('motionBlurDampingSlider').addEventListener('input', (e) => {
-      document.getElementById('motionBlurDamping').textContent = e.target.value;
-      console.log('[Motion Blur] Damping:', e.target.value);
-    });
-
-    // Scene control handlers
-    document.getElementById('btnExplosion').addEventListener('click', () => {
-      console.log('[Demo] 💥 Explosion triggered!');
-      document.getElementById('statFragments').textContent = '47';
-      document.getElementById('statParticles').textContent = '1250';
-      // In reality: executor.triggerExplosion({...});
-    });
-
-    document.getElementById('btnReset').addEventListener('click', () => {
-      console.log('[Demo] 🔄 Scene reset');
-      document.getElementById('statFragments').textContent = '0';
-      document.getElementById('statParticles').textContent = '0';
-      // In reality: executor.reset();
-    });
-
-    let physicsRunning = true;
-    document.getElementById('btnPhysics').addEventListener('click', () => {
-      physicsRunning = !physicsRunning;
-      const btn = document.getElementById('btnPhysics');
-      btn.classList.toggle('active');
-      btn.textContent = physicsRunning ? '⏯️ Toggle Physics' : '▶️ Resume Physics';
-      console.log('[Demo] Physics:', physicsRunning ? 'Running' : 'Paused');
-      // In reality: executor.togglePhysics();
-    });
-
-    // Initialize
-    updateStats();
-    updateActiveEffects();
-    setInterval(updateStats, 1000);
-
-    console.log('[Post-Processing Demo] Ready! 🎉');
-    console.log('');
-    console.log('📝 Integration Example:');
-    console.log('  const renderer = new ThreeJSRenderer({ canvas });');
-    console.log('  const executor = new DemolitionRuntimeExecutor({ renderer });');
-    console.log('  renderer.enablePostProcessing({ type: "bloom", enabled: true, params: { strength: 1.5 } });');
-    console.log('  executor.initialize(composition);');
-    console.log('  executor.start();');
-  </script>
-</body>
+      console.log('[Post-Processing Demo] Ready! 🎉');
+      console.log('');
+      console.log('📝 Integration Example:');
+      console.log('  const renderer = new ThreeJSRenderer({ canvas });');
+      console.log('  const executor = new DemolitionRuntimeExecutor({ renderer });');
+      console.log(
+        '  renderer.enablePostProcessing({ type: "bloom", enabled: true, params: { strength: 1.5 } });'
+      );
+      console.log('  executor.initialize(composition);');
+      console.log('  executor.start();');
+    </script>
+  </body>
 </html>

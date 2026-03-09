@@ -41,9 +41,7 @@ export interface GenerationStatus {
 function getAPIKey(service: 'meshy' | 'rodin'): string {
   if (typeof window === 'undefined') return '';
 
-  const storageKey = service === 'meshy'
-    ? 'holoscript_meshy_api_key'
-    : 'holoscript_rodin_api_key';
+  const storageKey = service === 'meshy' ? 'holoscript_meshy_api_key' : 'holoscript_rodin_api_key';
 
   return localStorage.getItem(storageKey) || '';
 }
@@ -90,8 +88,10 @@ async function mockGeneration(request: GenerationRequest): Promise<GenerationSta
     status: 'completed',
     progress: 100,
     // Use a sample GLB model for development
-    glbUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF/CesiumMan.gltf',
-    thumbnailUrl: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="400" height="400" fill="%231a1a2e"/><text x="50%" y="50%" font-size="100" text-anchor="middle" dy=".3em">🤖</text></svg>',
+    glbUrl:
+      'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF/CesiumMan.gltf',
+    thumbnailUrl:
+      'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="400" height="400" fill="%231a1a2e"/><text x="50%" y="50%" font-size="100" text-anchor="middle" dy=".3em">🤖</text></svg>',
   };
 }
 
@@ -144,12 +144,18 @@ async function pollMeshyStatus(taskId: string): Promise<GenerationStatus> {
 
   return {
     id: taskId,
-    status: data.status === 'SUCCEEDED' ? 'completed' : data.status === 'FAILED' ? 'failed' : 'processing',
+    status:
+      data.status === 'SUCCEEDED'
+        ? 'completed'
+        : data.status === 'FAILED'
+          ? 'failed'
+          : 'processing',
     progress: data.progress || 0,
     glbUrl: data.model_urls?.glb,
     thumbnailUrl: data.thumbnail_url,
     error: data.status === 'FAILED' ? 'Generation failed' : undefined,
-    estimatedTimeRemaining: data.status === 'PENDING' ? 120 : data.status === 'IN_PROGRESS' ? 60 : 0,
+    estimatedTimeRemaining:
+      data.status === 'PENDING' ? 120 : data.status === 'IN_PROGRESS' ? 60 : 0,
   };
 }
 
@@ -200,7 +206,12 @@ async function pollRodinStatus(taskId: string): Promise<GenerationStatus> {
 
   return {
     id: taskId,
-    status: data.status === 'completed' ? 'completed' : data.status === 'failed' ? 'failed' : 'processing',
+    status:
+      data.status === 'completed'
+        ? 'completed'
+        : data.status === 'failed'
+          ? 'failed'
+          : 'processing',
     progress: data.progress || 0,
     glbUrl: data.output?.glb_url,
     thumbnailUrl: data.output?.thumbnail_url,
@@ -257,8 +268,10 @@ export async function pollGenerationStatus(
         id: taskId,
         status: 'completed',
         progress: 100,
-        glbUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF/CesiumMan.gltf',
-        thumbnailUrl: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="400" height="400" fill="%231a1a2e"/><text x="50%" y="50%" font-size="100" text-anchor="middle" dy=".3em">🤖</text></svg>',
+        glbUrl:
+          'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF/CesiumMan.gltf',
+        thumbnailUrl:
+          'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="400" height="400" fill="%231a1a2e"/><text x="50%" y="50%" font-size="100" text-anchor="middle" dy=".3em">🤖</text></svg>',
       };
     }
 

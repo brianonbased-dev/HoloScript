@@ -518,11 +518,11 @@ export class AvalancheDemoScene {
       // Color based on particle state and material
       const state = particle.state || 'resting';
       if (state === 'sliding' || state === 'airborne') {
-        colors[idx] = 1.0;     // R
+        colors[idx] = 1.0; // R
         colors[idx + 1] = 1.0; // G
         colors[idx + 2] = 1.0; // B (white - moving)
       } else {
-        colors[idx] = 0.9;     // R
+        colors[idx] = 0.9; // R
         colors[idx + 1] = 0.9; // G
         colors[idx + 2] = 0.95; // B (light grey - resting)
       }

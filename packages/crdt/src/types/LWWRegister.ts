@@ -101,7 +101,7 @@ export class LWWRegister<T> {
     operationId: string,
     value: T,
     timestamp: number,
-    actorDid: string,
+    actorDid: string
   ): boolean {
     return this.applySet(operationId, value, timestamp, actorDid);
   }
@@ -109,12 +109,7 @@ export class LWWRegister<T> {
   /**
    * Internal: Apply set operation with LWW conflict resolution
    */
-  private applySet(
-    operationId: string,
-    value: T,
-    timestamp: number,
-    actorDid: string,
-  ): boolean {
+  private applySet(operationId: string, value: T, timestamp: number, actorDid: string): boolean {
     // First write wins if no current value
     if (!this.current) {
       this.current = { value, timestamp, actorDid, operationId };
@@ -155,11 +150,7 @@ export class LWWRegister<T> {
   /**
    * Deserialize register state
    */
-  static deserialize<T>(
-    crdtId: string,
-    signer: DIDSigner,
-    serialized: string,
-  ): LWWRegister<T> {
+  static deserialize<T>(crdtId: string, signer: DIDSigner, serialized: string): LWWRegister<T> {
     const register = new LWWRegister<T>(crdtId, signer);
     const current = JSON.parse(serialized) as LWWValue<T> | null;
     if (current) {

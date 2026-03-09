@@ -100,21 +100,25 @@ Input File → detectFileType()
 Implementation based on 2026 best practices and academic research:
 
 ### 1. cAST: AST-Based Chunking ([ArXiv](https://arxiv.org/html/2506.15655v1))
+
 - **Key Finding**: AST-based chunking outperforms fixed-size for code files
 - **Why**: Maintains syntactic integrity, higher information density
 - **Applied**: StructureBasedChunker uses lightweight AST parsing
 
 ### 2. Best Chunking Strategies 2026 ([Firecrawl](https://www.firecrawl.dev/blog/best-chunking-strategies-rag))
+
 - **Key Finding**: Hybrid strategies yield 9-12% improvement over single-strategy
 - **Why**: Different content types need different chunking approaches
 - **Applied**: HybridChunker routes to optimal strategy per file type
 
 ### 3. RAG Chunking Performance ([DasRoot](https://dasroot.net/posts/2026/02/chunking-strategies-rag-performance/))
+
 - **Key Finding**: Chunking is hidden lever in RAG, up to 9% recall improvement
 - **Why**: Optimal chunks = better retrieval accuracy
 - **Applied**: Semantic chunking for documentation files
 
 ### 4. Semantic Chunking Guide ([OneUpTime](https://oneuptime.com/blog/post/2026-01-30-semantic-chunking/view))
+
 - **Key Finding**: Embedding-based similarity with 95th percentile threshold
 - **Why**: Groups semantically related content together
 - **Applied**: SemanticChunker uses similarity scoring (Jaccard baseline, ready for embeddings)
@@ -126,6 +130,7 @@ Implementation based on 2026 best practices and academic research:
 ### 1. Structure-Based Chunking (Code)
 
 **Detects**:
+
 - Functions: `function name() {}`
 - Classes: `class Name {}`
 - Interfaces: `interface Name {}`
@@ -133,11 +138,13 @@ Implementation based on 2026 best practices and academic research:
 - Exports: `export function/class/interface`
 
 **Benefits**:
+
 - No broken functions across chunk boundaries
 - Maintains code context and semantics
 - Optimal for code generation and analysis
 
 **Example**:
+
 ```typescript
 // Input: 5 methods in UserService class
 // Output: 2 chunks
@@ -148,16 +155,19 @@ Implementation based on 2026 best practices and academic research:
 ### 2. Fixed-Size Chunking (Logs)
 
 **Strategy**:
+
 - Split at maxTokens boundary (default: 1024)
 - Add overlap between chunks (default: 100 tokens)
 - No semantic analysis (fast)
 
 **Benefits**:
+
 - Predictable chunk sizes
 - Overlap prevents context loss at boundaries
 - Handles massive unstructured files efficiently
 
 **Example**:
+
 ```
 // Input: 10,000 log lines
 // Output: ~15 chunks (1024 tokens each, 100-token overlap)
@@ -166,23 +176,28 @@ Implementation based on 2026 best practices and academic research:
 ### 3. Semantic Chunking (Markdown)
 
 **Strategy**:
+
 - Detect paragraph boundaries (blank lines, headings, lists)
 - Compute similarity between adjacent paragraphs
 - Merge if similarity > threshold (default: 0.85)
 - Split if exceeds maxTokens
 
 **Benefits**:
+
 - Groups related content (better for RAG)
 - Respects document structure (headings, sections)
 - Improves retrieval accuracy
 
 **Example**:
+
 ```markdown
 # Authentication (Chunk 1)
+
 User auth uses JWT...
 The flow involves...
 
 # Database (Chunk 2)
+
 PostgreSQL is used...
 Queries are parameterized...
 ```
@@ -193,26 +208,29 @@ Queries are parameterized...
 
 ```typescript
 interface ChunkingOptions {
-  maxTokens?: number;          // Default: 1024
-  overlapTokens?: number;      // Default: 100
-  semanticThreshold?: number;  // Default: 0.85 (0-1)
-  debug?: boolean;            // Default: false
+  maxTokens?: number; // Default: 1024
+  overlapTokens?: number; // Default: 100
+  semanticThreshold?: number; // Default: 0.85 (0-1)
+  debug?: boolean; // Default: false
 }
 ```
 
 ### Tuning Recommendations
 
 **Speed-focused (code parsing)**:
+
 ```typescript
 { maxTokens: 512, overlapTokens: 50, semanticThreshold: 0.9 }
 ```
 
 **Retrieval-focused (documentation)**:
+
 ```typescript
 { maxTokens: 2048, overlapTokens: 200, semanticThreshold: 0.7 }
 ```
 
 **Balanced (mixed workload)**:
+
 ```typescript
 { maxTokens: 1024, overlapTokens: 100, semanticThreshold: 0.85 }
 ```
@@ -240,7 +258,7 @@ import { ChunkDetector } from './parser/ChunkDetector';
 // Hybrid approach (20-30% faster)
 const chunks = ChunkDetector.detectHybrid(hsCode, 'app.hsplus', {
   maxTokens: 1024,
-  debug: true
+  debug: true,
 });
 ```
 
@@ -250,14 +268,14 @@ const chunks = ChunkDetector.detectHybrid(hsCode, 'app.hsplus', {
 import { ParallelParser } from './parser/ParallelParser';
 
 const parser = new ParallelParser({
-  enableHybridChunking: true,  // Auto-enabled by default
-  chunkingOptions: { maxTokens: 1024 }
+  enableHybridChunking: true, // Auto-enabled by default
+  chunkingOptions: { maxTokens: 1024 },
 });
 
 const results = await parser.parseFiles([
   { path: 'UserService.ts', content: tsCode },
   { path: 'app.log', content: logContent },
-  { path: 'README.md', content: mdContent }
+  { path: 'README.md', content: mdContent },
 ]);
 ```
 
@@ -270,6 +288,7 @@ const results = await parser.parseFiles([
 **Target**: 20-30% faster parsing vs single-strategy
 
 **Breakdown by Strategy**:
+
 - Structure-based: 25% faster (no mid-function splits)
 - Fixed-size: 33% faster (simple token counting)
 - Semantic: 20% faster (paragraph-level processing)
@@ -328,11 +347,13 @@ Markdown File (50 sections):
 ### From Legacy ChunkDetector
 
 **Before**:
+
 ```typescript
 const chunks = ChunkDetector.detect(sourceCode);
 ```
 
 **After**:
+
 ```typescript
 const chunks = ChunkDetector.detectHybrid(sourceCode, 'file.hsplus');
 // Or use HybridChunker directly:
@@ -381,16 +402,19 @@ const chunks = chunker.chunk(sourceCode, 'file.hsplus');
 ## Autonomous Insights (W/P/G Format)
 
 ### W.011 | Hybrid Chunking Yields 20-30% Speedup | ⚡0.96
+
 **Research-backed hybrid chunking (structure/fixed/semantic) provides 20-30% parsing speed improvement over single-strategy approaches.** AST-based chunking for code maintains syntactic integrity, fixed-size handles logs efficiently, semantic groups documentation. Route by file type. Target 1024 tokens/chunk with 100-token overlap.
 
 **Evidence**: cAST paper (ArXiv), Firecrawl 2026 best practices, DasRoot RAG performance analysis.
 
 ### P.002 | File Type Routing Pattern | ⚡0.94
+
 **Automatically route files to optimal chunking strategy based on extension: .ts/.js/.hs → structure-based, .log/.txt → fixed-size, .md → semantic, unknown → fixed-size fallback.** This pattern ensures optimal performance without manual configuration.
 
 **Implementation**: `detectFileType()` in HybridChunker.ts, integrated into ChunkDetector and ParallelParser.
 
 ### G.003 | Token Counting Approximation | ⚠️0.88
+
 **Simple token counting (chars/4) is fast but inaccurate for production.** For production use, integrate tiktoken or sentence-transformers tokenizer. Current approximation works for benchmarking but may under/overestimate by 10-20%.
 
 **Solution**: Replace `countTokens()` with tiktoken for GPT models or HuggingFace tokenizer.
@@ -400,22 +424,26 @@ const chunks = chunker.chunk(sourceCode, 'file.hsplus');
 ## Deliverables
 
 ### Core Implementation
+
 - ✅ HybridChunker.ts (654 lines)
 - ✅ Three chunking strategies (structure, fixed, semantic)
 - ✅ File type detection and routing
 - ✅ Statistics API
 
 ### Integration
+
 - ✅ ChunkDetector.detectHybrid()
 - ✅ ParallelParser pre-chunking
 - ✅ Backward compatible (no breaking changes)
 
 ### Testing & Benchmarks
+
 - ✅ Comprehensive test suite (622 lines)
 - ✅ Performance benchmarks (557 lines)
 - ✅ Edge case coverage
 
 ### Documentation
+
 - ✅ Complete usage guide (HYBRID_CHUNKING.md, 420 lines)
 - ✅ Practical examples (hybrid-chunking-example.ts, 359 lines)
 - ✅ Migration guide
@@ -446,6 +474,7 @@ Successfully implemented hybrid chunking pattern for HoloScript parser infrastru
 **Ready for production deployment** pending test suite execution and performance validation.
 
 **Next Steps**:
+
 1. Run full test suite: `npm test -- HybridChunker`
 2. Execute benchmarks: `npm test -- HybridChunker.benchmark`
 3. Validate 20-30% speedup target in real-world workloads
@@ -460,4 +489,4 @@ Successfully implemented hybrid chunking pattern for HoloScript parser infrastru
 **Benchmarks**: `__tests__/HybridChunker.benchmark.ts`
 
 **HoloScript Autonomous Administrator v2.0**
-*CEO-Level Strategic Implementation • Research-Backed Design • Production-Ready*
+_CEO-Level Strategic Implementation • Research-Backed Design • Production-Ready_

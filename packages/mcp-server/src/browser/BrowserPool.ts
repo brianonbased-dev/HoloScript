@@ -4,11 +4,7 @@
  */
 
 import { chromium, type Browser, type Page, type BrowserContext } from 'playwright';
-import type {
-  BrowserSession,
-  BrowserSessionConfig,
-  BrowserPoolStats
-} from './types.js';
+import type { BrowserSession, BrowserSessionConfig, BrowserPoolStats } from './types.js';
 
 /**
  * Default browser configuration
@@ -18,7 +14,7 @@ const DEFAULT_CONFIG: Required<BrowserSessionConfig> = {
   height: 720,
   headless: false, // Show browser for debugging
   deviceScaleFactor: 1,
-  timeout: 30000 // 30 seconds
+  timeout: 30000, // 30 seconds
 };
 
 /**
@@ -35,7 +31,7 @@ export class BrowserPool {
   private stats = {
     totalCreated: 0,
     totalDestroyed: 0,
-    lifetimes: [] as number[]
+    lifetimes: [] as number[],
   };
 
   /**
@@ -53,18 +49,18 @@ export class BrowserPool {
         '--enable-accelerated-2d-canvas',
         '--enable-features=WebXR',
         '--no-sandbox', // Required for some CI environments
-        '--allow-file-access-from-files' // Allow loading local files via XHR
-      ]
+        '--allow-file-access-from-files', // Allow loading local files via XHR
+      ],
     });
 
     // Create context with viewport
     const context = await browser.newContext({
       viewport: {
         width: mergedConfig.width,
-        height: mergedConfig.height
+        height: mergedConfig.height,
       },
       deviceScaleFactor: mergedConfig.deviceScaleFactor,
-      permissions: ['clipboard-read', 'clipboard-write'] // For copying scene data
+      permissions: ['clipboard-read', 'clipboard-write'], // For copying scene data
     });
 
     // Set default timeout
@@ -90,7 +86,7 @@ export class BrowserPool {
       page,
       config: mergedConfig,
       createdAt: Date.now(),
-      lastActivity: Date.now()
+      lastActivity: Date.now(),
     };
 
     this.sessions.set(sessionId, session);
@@ -184,7 +180,7 @@ export class BrowserPool {
       idleSessions,
       totalCreated: this.stats.totalCreated,
       totalDestroyed: this.stats.totalDestroyed,
-      avgLifetime
+      avgLifetime,
     };
   }
 

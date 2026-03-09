@@ -247,10 +247,14 @@ describe('AR Cross-Compilation: ARKit (IOSCompiler)', () => {
   });
 
   it('compiles objects with geometry to SceneKit nodes', () => {
-    const obj = createARObject('arCube', [], [
-      { key: 'geometry', value: 'box' },
-      { key: 'color', value: '#FF0000' },
-    ]);
+    const obj = createARObject(
+      'arCube',
+      [],
+      [
+        { key: 'geometry', value: 'box' },
+        { key: 'color', value: '#FF0000' },
+      ]
+    );
     const composition = createComposition('ObjectScene', [obj]);
     const compiler = new IOSCompiler();
     const result = compiler.compile(composition);
@@ -348,10 +352,14 @@ describe('AR Cross-Compilation: ARCore (AndroidCompiler)', () => {
   });
 
   it('compiles objects with geometry to Sceneform nodes', () => {
-    const obj = createARObject('ArSphere', [], [
-      { key: 'geometry', value: 'sphere' },
-      { key: 'color', value: '#00FF00' },
-    ]);
+    const obj = createARObject(
+      'ArSphere',
+      [],
+      [
+        { key: 'geometry', value: 'sphere' },
+        { key: 'color', value: '#00FF00' },
+      ]
+    );
     const composition = createComposition('ObjectScene', [obj]);
     const compiler = new AndroidCompiler();
     const result = compiler.compile(composition);
@@ -365,10 +373,14 @@ describe('AR Cross-Compilation: ARCore (AndroidCompiler)', () => {
 describe('AR Cross-Compilation: Cross-Platform Parity', () => {
   it('all three compilers produce output for the same composition', () => {
     const composition = createComposition('CrossPlatformAR', [
-      createARObject('anchor_point', [], [
-        { key: 'geometry', value: 'sphere' },
-        { key: 'color', value: '#0088FF' },
-      ]),
+      createARObject(
+        'anchor_point',
+        [],
+        [
+          { key: 'geometry', value: 'sphere' },
+          { key: 'color', value: '#0088FF' },
+        ]
+      ),
     ]);
 
     const iosResult = new IOSCompiler().compile(composition);

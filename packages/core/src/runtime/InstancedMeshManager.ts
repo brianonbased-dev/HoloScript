@@ -193,9 +193,10 @@ class InstanceBatch {
 
     // Set color
     if (data.color) {
-      const color = typeof data.color === 'string'
-        ? new THREE.Color(data.color)
-        : new THREE.Color().setRGB(data.color[0], data.color[1], data.color[2]);
+      const color =
+        typeof data.color === 'string'
+          ? new THREE.Color(data.color)
+          : new THREE.Color().setRGB(data.color[0], data.color[1], data.color[2]);
 
       this.colorAttribute.setXYZ(index, color.r, color.g, color.b);
     }
@@ -238,9 +239,10 @@ class InstanceBatch {
 
     // Update color
     if (data.color) {
-      const color = typeof data.color === 'string'
-        ? new THREE.Color(data.color)
-        : new THREE.Color().setRGB(data.color[0], data.color[1], data.color[2]);
+      const color =
+        typeof data.color === 'string'
+          ? new THREE.Color(data.color)
+          : new THREE.Color().setRGB(data.color[0], data.color[1], data.color[2]);
 
       this.colorAttribute.setXYZ(index, color.r, color.g, color.b);
       this.colorAttribute.needsUpdate = true;
@@ -388,7 +390,7 @@ export class InstancedMeshManager {
    * Get all meshes for adding to scene
    */
   getMeshes(): THREE.InstancedMesh[] {
-    return Array.from(this.batches.values()).map(batch => batch.getMesh());
+    return Array.from(this.batches.values()).map((batch) => batch.getMesh());
   }
 
   /**

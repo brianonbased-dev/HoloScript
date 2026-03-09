@@ -12,9 +12,36 @@ describe('World Editor Polish (Cycle 169)', () => {
 
     beforeEach(() => {
       panel = new HierarchyPanel();
-      panel.addNode({ id: 'root', name: 'Scene', parentId: null, childIds: [], visible: true, locked: false, expanded: true, type: 'group' });
-      panel.addNode({ id: 'cube', name: 'MyCube', parentId: 'root', childIds: [], visible: true, locked: false, expanded: false, type: 'entity' });
-      panel.addNode({ id: 'light', name: 'SunLight', parentId: 'root', childIds: [], visible: true, locked: false, expanded: false, type: 'light' });
+      panel.addNode({
+        id: 'root',
+        name: 'Scene',
+        parentId: null,
+        childIds: [],
+        visible: true,
+        locked: false,
+        expanded: true,
+        type: 'group',
+      });
+      panel.addNode({
+        id: 'cube',
+        name: 'MyCube',
+        parentId: 'root',
+        childIds: [],
+        visible: true,
+        locked: false,
+        expanded: false,
+        type: 'entity',
+      });
+      panel.addNode({
+        id: 'light',
+        name: 'SunLight',
+        parentId: 'root',
+        childIds: [],
+        visible: true,
+        locked: false,
+        expanded: false,
+        type: 'light',
+      });
     });
 
     it('should add and retrieve nodes', () => {
@@ -29,7 +56,16 @@ describe('World Editor Polish (Cycle 169)', () => {
     });
 
     it('should reparent nodes with undo', () => {
-      panel.addNode({ id: 'group2', name: 'Group2', parentId: null, childIds: [], visible: true, locked: false, expanded: true, type: 'group' });
+      panel.addNode({
+        id: 'group2',
+        name: 'Group2',
+        parentId: null,
+        childIds: [],
+        visible: true,
+        locked: false,
+        expanded: true,
+        type: 'group',
+      });
       panel.reparent('cube', 'group2');
       expect(panel.getNode('cube')?.parentId).toBe('group2');
       expect(panel.getChildren('group2').map((n) => n.id)).toContain('cube');
@@ -139,16 +175,25 @@ describe('World Editor Polish (Cycle 169)', () => {
       activateLog.length = 0;
       manager = new ToolManager();
       manager.registerTool({
-        id: 'select', name: 'Select', category: 'select', shortcut: 'q',
+        id: 'select',
+        name: 'Select',
+        category: 'select',
+        shortcut: 'q',
         onActivate: () => activateLog.push('select:on'),
         onDeactivate: () => activateLog.push('select:off'),
       });
       manager.registerTool({
-        id: 'move', name: 'Move', category: 'transform', shortcut: 'w',
+        id: 'move',
+        name: 'Move',
+        category: 'transform',
+        shortcut: 'w',
         onActivate: () => activateLog.push('move:on'),
       });
       manager.registerTool({
-        id: 'rotate', name: 'Rotate', category: 'transform', shortcut: 'e',
+        id: 'rotate',
+        name: 'Rotate',
+        category: 'transform',
+        shortcut: 'e',
       });
     });
 

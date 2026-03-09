@@ -22,9 +22,13 @@ export class ReactiveProperty<T> {
   private watchers: Map<number, WatcherCallback<T>> = new Map();
   private nextId = 1;
 
-  constructor(initialValue: T) { this._value = initialValue; }
+  constructor(initialValue: T) {
+    this._value = initialValue;
+  }
 
-  get value(): T { return this._value; }
+  get value(): T {
+    return this._value;
+  }
   set value(v: T) {
     const old = this._value;
     this._value = v;
@@ -39,8 +43,12 @@ export class ReactiveProperty<T> {
     return id;
   }
 
-  unwatch(id: number): void { this.watchers.delete(id); }
-  getWatcherCount(): number { return this.watchers.size; }
+  unwatch(id: number): void {
+    this.watchers.delete(id);
+  }
+  getWatcherCount(): number {
+    return this.watchers.size;
+  }
 }
 
 // =============================================================================
@@ -58,7 +66,9 @@ export class ComputedProperty<T> {
     this._cached = compute();
 
     for (const dep of deps) {
-      const watchId = dep.watch(() => { this.dirty = true; });
+      const watchId = dep.watch(() => {
+        this.dirty = true;
+      });
       this.deps.push({ prop: dep, watchId });
     }
   }
@@ -82,19 +92,39 @@ export class ComputedProperty<T> {
 // =============================================================================
 
 export class DataBindingManager {
-  private bindings: Map<string, { source: ReactiveProperty<unknown>; target: ReactiveProperty<unknown>; watchId: number; twoWay: boolean; reverseWatchId?: number }> = new Map();
+  private bindings: Map<
+    string,
+    {
+      source: ReactiveProperty<unknown>;
+      target: ReactiveProperty<unknown>;
+      watchId: number;
+      twoWay: boolean;
+      reverseWatchId?: number;
+    }
+  > = new Map();
   private nextId = 1;
 
-  bind<T>(id: string, source: ReactiveProperty<T>, target: ReactiveProperty<T>, twoWay = false): void {
-    const watchId = source.watch((v) => { target.value = v as T; });
+  bind<T>(
+    id: string,
+    source: ReactiveProperty<T>,
+    target: ReactiveProperty<T>,
+    twoWay = false
+  ): void {
+    const watchId = source.watch((v) => {
+      target.value = v as T;
+    });
     let reverseWatchId: number | undefined;
     if (twoWay) {
-      reverseWatchId = target.watch((v) => { source.value = v as T; });
+      reverseWatchId = target.watch((v) => {
+        source.value = v as T;
+      });
     }
     this.bindings.set(id, {
       source: source as ReactiveProperty<unknown>,
       target: target as ReactiveProperty<unknown>,
-      watchId, twoWay, reverseWatchId,
+      watchId,
+      twoWay,
+      reverseWatchId,
     });
   }
 
@@ -106,6 +136,10 @@ export class DataBindingManager {
     this.bindings.delete(id);
   }
 
-  getBindingCount(): number { return this.bindings.size; }
-  isbound(id: string): boolean { return this.bindings.has(id); }
+  getBindingCount(): number {
+    return this.bindings.size;
+  }
+  isbound(id: string): boolean {
+    return this.bindings.has(id);
+  }
 }

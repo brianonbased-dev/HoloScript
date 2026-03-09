@@ -41,25 +41,14 @@ import {
 import type { PhaseResult, AgentIdentity, CycleResult } from '@holoscript/agent-protocol';
 
 // uaal
-import {
-  UAALVirtualMachine,
-  UAALCompiler,
-  UAALOpCode,
-} from '@holoscript/uaal';
+import { UAALVirtualMachine, UAALCompiler, UAALOpCode } from '@holoscript/uaal';
 import type { UAALBytecode } from '@holoscript/uaal';
 
 // holo-vm
-import {
-  ECSWorld,
-  ComponentType,
-} from '@holoscript/holo-vm';
+import { ECSWorld, ComponentType } from '@holoscript/holo-vm';
 
 // vm-bridge
-import {
-  SpatialCognitiveAgent,
-  captureSceneSnapshot,
-  applyActions,
-} from '@holoscript/vm-bridge';
+import { SpatialCognitiveAgent, captureSceneSnapshot, applyActions } from '@holoscript/vm-bridge';
 import type { SceneSnapshot, AgentAction } from '@holoscript/vm-bridge';
 
 // =============================================================================
@@ -81,7 +70,7 @@ class SpatialTestAgent extends BaseAgent {
 
   constructor(
     private world: ECSWorld,
-    private cognitiveAgent: SpatialCognitiveAgent,
+    private cognitiveAgent: SpatialCognitiveAgent
   ) {
     super();
   }
@@ -94,7 +83,7 @@ class SpatialTestAgent extends BaseAgent {
       status: 'success',
       data: {
         entityCount: snapshot.entityCount,
-        entities: snapshot.entities.map(e => e.name),
+        entities: snapshot.entities.map((e) => e.name),
         timestamp: snapshot.timestamp,
       },
       durationMs: 0,
@@ -156,7 +145,7 @@ class SpatialTestAgent extends BaseAgent {
       status: 'success',
       data: {
         updatedEntityCount: snapshot.entityCount,
-        updatedEntities: snapshot.entities.map(e => e.name),
+        updatedEntities: snapshot.entities.map((e) => e.name),
       },
       durationMs: 0,
       timestamp: Date.now(),
@@ -203,8 +192,18 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
         version: '1.0.0',
         url: 'http://localhost:3000',
         skills: [
-          { id: 'spatial-reasoning', name: 'Spatial Reasoning', description: 'Analyze spatial relationships', tags: ['spatial', 'vr'] },
-          { id: 'scene-management', name: 'Scene Management', description: 'Manage ECS entities', tags: ['ecs', 'entities'] },
+          {
+            id: 'spatial-reasoning',
+            name: 'Spatial Reasoning',
+            description: 'Analyze spatial relationships',
+            tags: ['spatial', 'vr'],
+          },
+          {
+            id: 'scene-management',
+            name: 'Scene Management',
+            description: 'Manage ECS entities',
+            tags: ['ecs', 'entities'],
+          },
         ],
       });
 
@@ -288,7 +287,7 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
       expect(bytecode.instructions.length).toBeGreaterThan(0);
 
       // Step 3: Verify bytecode contains all protocol phases
-      const opcodes = bytecode.instructions.map(i => i.opCode);
+      const opcodes = bytecode.instructions.map((i) => i.opCode);
       expect(opcodes).toContain(UAALOpCode.INTAKE);
       expect(opcodes).toContain(UAALOpCode.REFLECT);
       expect(opcodes).toContain(UAALOpCode.EXECUTE);
@@ -331,16 +330,16 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
 
       const results = await decomposer.executePlan(plan);
       expect(results).toHaveLength(3);
-      expect(results.every(r => r.status === 'success')).toBe(true);
+      expect(results.every((r) => r.status === 'success')).toBe(true);
 
       // Step 3: Verify the results map to UAAL protocol phases
-      const perceiveResult = results.find(r => r.taskId === 'perceive');
+      const perceiveResult = results.find((r) => r.taskId === 'perceive');
       expect((perceiveResult?.result as any).phase).toBe('INTAKE');
 
-      const analyzeResult = results.find(r => r.taskId === 'analyze');
+      const analyzeResult = results.find((r) => r.taskId === 'analyze');
       expect((analyzeResult?.result as any).phase).toBe('REFLECT');
 
-      const actResult = results.find(r => r.taskId === 'act');
+      const actResult = results.find((r) => r.taskId === 'act');
       expect((actResult?.result as any).phase).toBe('EXECUTE');
     });
   });
@@ -430,10 +429,7 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
 
       const bytecode: UAALBytecode = {
         version: 1,
-        instructions: [
-          { opCode: UAALOpCode.OP_EXECUTE_HOLOSCRIPT },
-          { opCode: UAALOpCode.HALT },
-        ],
+        instructions: [{ opCode: UAALOpCode.OP_EXECUTE_HOLOSCRIPT }, { opCode: UAALOpCode.HALT }],
       };
 
       const result = await cognitiveVM.execute(bytecode);
@@ -599,10 +595,10 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
       expect(snapshot.entityCount).toBe(2);
       expect(snapshot.timestamp).toBeGreaterThan(0);
 
-      const player = snapshot.entities.find(e => e.name === 'Player');
+      const player = snapshot.entities.find((e) => e.name === 'Player');
       expect(player?.transform?.position).toEqual({ x: 1, y: 2, z: 3 });
 
-      const enemy = snapshot.entities.find(e => e.name === 'Enemy');
+      const enemy = snapshot.entities.find((e) => e.name === 'Enemy');
       expect(enemy?.transform?.position).toEqual({ x: 10, y: 0, z: 5 });
     });
 
@@ -667,14 +663,22 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
 
       // Cross-register peers
       meshA.registerPeer({
-        id: 'node-b', hostname: 'localhost', port: 3002,
-        version: '1.0.0', agentCount: 1,
-        capabilities: ['entity-management'], lastSeen: Date.now(),
+        id: 'node-b',
+        hostname: 'localhost',
+        port: 3002,
+        version: '1.0.0',
+        agentCount: 1,
+        capabilities: ['entity-management'],
+        lastSeen: Date.now(),
       });
       meshB.registerPeer({
-        id: 'node-a', hostname: 'localhost', port: 3001,
-        version: '1.0.0', agentCount: 1,
-        capabilities: ['spatial-analysis'], lastSeen: Date.now(),
+        id: 'node-a',
+        hostname: 'localhost',
+        port: 3001,
+        version: '1.0.0',
+        agentCount: 1,
+        capabilities: ['spatial-analysis'],
+        lastSeen: Date.now(),
       });
 
       expect(meshA.getPeerCount()).toBe(1);
@@ -757,7 +761,7 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
       const compiler = new UAALCompiler();
       const bytecode = compiler.buildFullCycle('Test task');
 
-      const opcodes = bytecode.instructions.map(i => i.opCode);
+      const opcodes = bytecode.instructions.map((i) => i.opCode);
 
       // Must contain the core protocol phase opcodes
       expect(opcodes).toContain(UAALOpCode.INTAKE);

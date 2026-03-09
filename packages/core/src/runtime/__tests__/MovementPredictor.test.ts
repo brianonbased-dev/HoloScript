@@ -53,9 +53,9 @@ describe('MovementPredictor', () => {
     predictor.update([10, 0, 0], 1); // speed = 10
     const windows = predictor.getPredictiveWindows(1);
     expect(windows).toHaveLength(3);
-    expect(windows[0].likelihood).toBe(1.0);  // ambient
-    expect(windows[1].likelihood).toBe(0.9);  // linear
-    expect(windows[2].likelihood).toBe(0.7);  // ensemble
+    expect(windows[0].likelihood).toBe(1.0); // ambient
+    expect(windows[1].likelihood).toBe(0.9); // linear
+    expect(windows[2].likelihood).toBe(0.7); // ensemble
   });
 
   it('linear prediction extrapolates position', () => {

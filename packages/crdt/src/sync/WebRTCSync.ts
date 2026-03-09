@@ -102,10 +102,7 @@ export interface SyncEventHandlers {
   onOperation?: (operation: SignedOperation, peerId: string) => Promise<void>;
 
   /** Called when sync request received */
-  onSyncRequest?: (
-    payload: SyncRequestPayload,
-    peerId: string,
-  ) => Promise<SyncResponsePayload>;
+  onSyncRequest?: (payload: SyncRequestPayload, peerId: string) => Promise<SyncResponsePayload>;
 
   /** Called when full state received */
   onSyncResponse?: (payload: SyncResponsePayload, peerId: string) => Promise<void>;
@@ -131,7 +128,7 @@ class PeerConnection {
     peerId: string,
     initiator: boolean,
     handlers: SyncEventHandlers,
-    signalHandler: (signal: SimplePeer.SignalData) => void,
+    signalHandler: (signal: SimplePeer.SignalData) => void
   ) {
     this.id = peerId;
     this.handlers = handlers;
@@ -213,7 +210,7 @@ class PeerConnection {
     } catch (error) {
       this.handlers.onError?.(
         error instanceof Error ? error : new Error('Message parsing failed'),
-        this.id,
+        this.id
       );
     }
   }
@@ -289,7 +286,7 @@ export class WebRTCSync {
   connectPeer(
     peerId: string,
     initiator: boolean,
-    signalHandler: (signal: SimplePeer.SignalData) => void,
+    signalHandler: (signal: SimplePeer.SignalData) => void
   ): void {
     if (this.peers.has(peerId)) {
       throw new Error(`Already connected to peer ${peerId}`);

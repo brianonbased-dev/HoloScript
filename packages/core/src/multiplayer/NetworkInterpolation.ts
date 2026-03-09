@@ -35,10 +35,10 @@ export interface NetworkSnapshot {
 export type InterpolationQuality = 'linear' | 'hermite';
 
 export interface InterpolationConfig {
-  bufferTimeMs: number;       // Jitter buffer delay (e.g. 100ms)
+  bufferTimeMs: number; // Jitter buffer delay (e.g. 100ms)
   maxExtrapolationMs: number; // Max dead reckoning time (e.g. 250ms)
-  snapThreshold: number;      // Distance threshold for instant snap (teleport)
-  lerpSpeed: number;          // Interpolation speed multiplier
+  snapThreshold: number; // Distance threshold for instant snap (teleport)
+  lerpSpeed: number; // Interpolation speed multiplier
   /** P.NET.03: Default interpolation quality */
   defaultQuality: InterpolationQuality;
 }
@@ -193,11 +193,7 @@ export class NetworkInterpolation {
   /**
    * Smooth correction: instead of snapping, blend toward the server position.
    */
-  smoothCorrection(
-    currentPos: IVector3,
-    serverPos: IVector3,
-    dt: number
-  ): IVector3 {
+  smoothCorrection(currentPos: IVector3, serverPos: IVector3, dt: number): IVector3 {
     const dx = serverPos.x - currentPos.x;
     const dy = serverPos.y - currentPos.y;
     const dz = serverPos.z - currentPos.z;
@@ -256,8 +252,16 @@ export class NetworkInterpolation {
     t: number
   ): { x: number; y: number; z: number; w: number } {
     let dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-    let bx = b.x, by = b.y, bz = b.z, bw = b.w;
-    if (dot < 0) { bx = -bx; by = -by; bz = -bz; bw = -bw; }
+    let bx = b.x,
+      by = b.y,
+      bz = b.z,
+      bw = b.w;
+    if (dot < 0) {
+      bx = -bx;
+      by = -by;
+      bz = -bz;
+      bw = -bw;
+    }
 
     const rx = a.x + (bx - a.x) * t;
     const ry = a.y + (by - a.y) * t;

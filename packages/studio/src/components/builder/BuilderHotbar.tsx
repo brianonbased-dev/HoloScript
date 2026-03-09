@@ -11,29 +11,49 @@
  */
 
 import { useEffect } from 'react';
-import {
-  useBuilderStore,
-  type BuilderMode,
-  type HotbarSlot,
-} from '@/lib/stores/builderStore';
+import { useBuilderStore, type BuilderMode, type HotbarSlot } from '@/lib/stores/builderStore';
 
 // ── Shape Icons ──────────────────────────────────────────────────────────────
 
 const SHAPE_ICON: Record<string, string> = {
-  cube:     '▣',
-  sphere:   '●',
+  cube: '▣',
+  sphere: '●',
   cylinder: '⬮',
-  cone:     '▲',
-  torus:    '◎',
-  capsule:  '⬬',
-  plane:    '▬',
-  ring:     '◌',
+  cone: '▲',
+  torus: '◎',
+  capsule: '⬬',
+  plane: '▬',
+  ring: '◌',
 };
 
-const MODE_CONFIG: { mode: BuilderMode; label: string; icon: string; key: string; color: string }[] = [
-  { mode: 'place',  label: 'Place',  icon: '✚', key: 'P', color: 'text-green-400 border-green-500/40 bg-green-500/10' },
-  { mode: 'break',  label: 'Break',  icon: '✕', key: 'X', color: 'text-red-400 border-red-500/40 bg-red-500/10' },
-  { mode: 'select', label: 'Select', icon: '◇', key: 'V', color: 'text-blue-400 border-blue-500/40 bg-blue-500/10' },
+const MODE_CONFIG: {
+  mode: BuilderMode;
+  label: string;
+  icon: string;
+  key: string;
+  color: string;
+}[] = [
+  {
+    mode: 'place',
+    label: 'Place',
+    icon: '✚',
+    key: 'P',
+    color: 'text-green-400 border-green-500/40 bg-green-500/10',
+  },
+  {
+    mode: 'break',
+    label: 'Break',
+    icon: '✕',
+    key: 'X',
+    color: 'text-red-400 border-red-500/40 bg-red-500/10',
+  },
+  {
+    mode: 'select',
+    label: 'Select',
+    icon: '◇',
+    key: 'V',
+    color: 'text-blue-400 border-blue-500/40 bg-blue-500/10',
+  },
 ];
 
 // ── Slot Component ───────────────────────────────────────────────────────────
@@ -55,18 +75,16 @@ function HotbarSlotButton({
       className={`
         relative flex flex-col items-center justify-center
         w-12 h-12 rounded-lg border transition-all duration-150
-        ${isActive
-          ? 'border-white/60 bg-white/10 shadow-[0_0_12px_rgba(255,255,255,0.2)] scale-110 z-10'
-          : 'border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.06]'
+        ${
+          isActive
+            ? 'border-white/60 bg-white/10 shadow-[0_0_12px_rgba(255,255,255,0.2)] scale-110 z-10'
+            : 'border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.06]'
         }
       `}
       title={`${slot.label} [${index + 1}]`}
     >
       {/* Shape icon with color */}
-      <span
-        className="text-lg leading-none"
-        style={{ color: slot.color }}
-      >
+      <span className="text-lg leading-none" style={{ color: slot.color }}>
         {SHAPE_ICON[slot.geometry] || '■'}
       </span>
 
@@ -76,11 +94,13 @@ function HotbarSlotButton({
       </span>
 
       {/* Key binding badge */}
-      <span className={`
+      <span
+        className={`
         absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center
         rounded text-[8px] font-bold
         ${isActive ? 'bg-white text-black' : 'bg-white/10 text-white/30'}
-      `}>
+      `}
+      >
         {index + 1}
       </span>
 
@@ -110,10 +130,7 @@ export function BuilderHotbar() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       // Don't capture when typing in inputs
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       // 1-8: select hotbar slot
       const num = parseInt(e.key);
@@ -157,9 +174,10 @@ export function BuilderHotbar() {
           onClick={toggleGridSnap}
           className={`
             rounded-lg border px-2 py-1 text-[9px] font-semibold uppercase tracking-wider transition
-            ${gridSnap
-              ? 'border-indigo-500/50 bg-indigo-500/15 text-indigo-300'
-              : 'border-white/10 bg-white/[0.03] text-white/30 hover:text-white/50'
+            ${
+              gridSnap
+                ? 'border-indigo-500/50 bg-indigo-500/15 text-indigo-300'
+                : 'border-white/10 bg-white/[0.03] text-white/30 hover:text-white/50'
             }
           `}
           title="Toggle Grid Snap [G]"
@@ -199,9 +217,10 @@ export function BuilderHotbar() {
             onClick={() => setBuilderMode(mode)}
             className={`
               rounded-lg border px-2 py-1 text-[9px] font-semibold uppercase tracking-wider transition
-              ${builderMode === mode
-                ? color
-                : 'border-white/10 bg-white/[0.03] text-white/30 hover:text-white/50'
+              ${
+                builderMode === mode
+                  ? color
+                  : 'border-white/10 bg-white/[0.03] text-white/30 hover:text-white/50'
               }
             `}
             title={`${label} Mode [${key}]`}

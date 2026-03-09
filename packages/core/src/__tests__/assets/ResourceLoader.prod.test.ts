@@ -31,7 +31,6 @@ function mockLoader(overrides: Record<string, unknown> = {}) {
 // ── addRequest / getRequestCount ────────────────────────────────────────────────
 
 describe('ResourceLoader — addRequest / getRequestCount', () => {
-
   it('getRequestCount is 0 on fresh loader', () => {
     expect(new ResourceLoader().getRequestCount()).toBe(0);
   });
@@ -47,7 +46,6 @@ describe('ResourceLoader — addRequest / getRequestCount', () => {
 // ── cancelRequest ──────────────────────────────────────────────────────────────
 
 describe('ResourceLoader — cancelRequest', () => {
-
   it('cancelled request has status=cancelled after loadAll', async () => {
     const rl = new ResourceLoader(async () => ({}));
     rl.addRequest(mkReq('a'));
@@ -68,7 +66,6 @@ describe('ResourceLoader — cancelRequest', () => {
 // ── loadAll — basic operation ──────────────────────────────────────────────────
 
 describe('ResourceLoader — loadAll', () => {
-
   it('returns results for all requests', async () => {
     const rl = new ResourceLoader(async () => ({}));
     rl.addRequest(mkReq('a'));
@@ -85,7 +82,9 @@ describe('ResourceLoader — loadAll', () => {
   });
 
   it('loader error produces status=error', async () => {
-    const rl = new ResourceLoader(async () => { throw new Error('oops'); });
+    const rl = new ResourceLoader(async () => {
+      throw new Error('oops');
+    });
     rl.addRequest(mkReq('fail'));
     await rl.loadAll();
     const result = rl.getResult('fail');
@@ -107,7 +106,10 @@ describe('ResourceLoader — loadAll', () => {
 
   it('dependencies are loaded before dependents (topo order)', async () => {
     const order: string[] = [];
-    const rl = new ResourceLoader(async (req) => { order.push(req.id); return {}; });
+    const rl = new ResourceLoader(async (req) => {
+      order.push(req.id);
+      return {};
+    });
     rl.addRequest(mkReq('parent', ['dep']));
     rl.addRequest(mkReq('dep', []));
     await rl.loadAll();
@@ -116,7 +118,10 @@ describe('ResourceLoader — loadAll', () => {
 
   it('higher priority request loads first (when no deps)', async () => {
     const order: string[] = [];
-    const rl = new ResourceLoader(async (req) => { order.push(req.id); return {}; });
+    const rl = new ResourceLoader(async (req) => {
+      order.push(req.id);
+      return {};
+    });
     rl.addRequest(mkReq('low', [], 1));
     rl.addRequest(mkReq('high', [], 10));
     await rl.loadAll();
@@ -128,7 +133,6 @@ describe('ResourceLoader — loadAll', () => {
 // ── onProgress ────────────────────────────────────────────────────────────────
 
 describe('ResourceLoader — onProgress', () => {
-
   it('progress callback is called for each loaded request', async () => {
     const rl = new ResourceLoader(async () => ({}));
     rl.addRequest(mkReq('a'));
@@ -154,7 +158,6 @@ describe('ResourceLoader — onProgress', () => {
 // ── getResult / getLoadedCount ────────────────────────────────────────────────
 
 describe('ResourceLoader — getResult / getLoadedCount', () => {
-
   it('getResult returns undefined before loadAll', () => {
     const rl = new ResourceLoader();
     rl.addRequest(mkReq('a'));

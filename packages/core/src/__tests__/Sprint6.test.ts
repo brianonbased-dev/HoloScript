@@ -73,8 +73,12 @@ function makeValidPackage(dir: string) {
 describe('Feature 1: Publish Validation', () => {
   let tmpDir: string;
 
-  beforeEach(() => { tmpDir = makeTmpDir(); });
-  afterEach(() => { rmSync(tmpDir, { recursive: true, force: true }); });
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+  });
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
 
   it('passes for a valid package', async () => {
     makeValidPackage(tmpDir);
@@ -114,7 +118,12 @@ describe('Feature 1: Publish Validation', () => {
   });
 
   it('errors when package is marked private', async () => {
-    writeJson(tmpDir, 'package.json', { name: 'mypkg', version: '1.0.0', private: true, license: 'MIT' });
+    writeJson(tmpDir, 'package.json', {
+      name: 'mypkg',
+      version: '1.0.0',
+      private: true,
+      license: 'MIT',
+    });
     writeFile(tmpDir, 'README.md', 'A'.repeat(150));
     writeFile(tmpDir, 'LICENSE', 'MIT\n');
     const validator = createPublishValidator(tmpDir, { allowConsole: true });
@@ -172,8 +181,12 @@ describe('Feature 1: Publish Validation', () => {
 describe('Feature 2: Package Bundler (dry-run)', () => {
   let tmpDir: string;
 
-  beforeEach(() => { tmpDir = makeTmpDir(); });
-  afterEach(() => { rmSync(tmpDir, { recursive: true, force: true }); });
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+  });
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
 
   it('dry-run succeeds and returns file list', async () => {
     makeValidPackage(tmpDir);
@@ -235,8 +248,12 @@ describe('Feature 2: Package Bundler (dry-run)', () => {
 describe('Feature 3: PublishCommand', () => {
   let tmpDir: string;
 
-  beforeEach(() => { tmpDir = makeTmpDir(); });
-  afterEach(() => { rmSync(tmpDir, { recursive: true, force: true }); });
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+  });
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
 
   it('dry-run returns success + file count for valid package', async () => {
     makeValidPackage(tmpDir);
@@ -289,7 +306,9 @@ describe('Feature 3: PublishCommand', () => {
 describe('Feature 4: Token Management', () => {
   let tm: TokenManager;
 
-  beforeEach(() => { tm = createTokenManager(); });
+  beforeEach(() => {
+    tm = createTokenManager();
+  });
 
   it('create returns rawToken and record', () => {
     const { rawToken, record } = tm.create({ name: 'ci-token', orgScope: '@myorg' });
@@ -337,7 +356,12 @@ describe('Feature 4: Token Management', () => {
   });
 
   it('hasPermission: read-only token cannot publish', () => {
-    const { rawToken } = tm.create({ name: 'ro', orgScope: '@org', readonly: true, permissions: ['read'] });
+    const { rawToken } = tm.create({
+      name: 'ro',
+      orgScope: '@org',
+      readonly: true,
+      permissions: ['read'],
+    });
     const { record } = tm.validate(rawToken);
     expect(tm.hasPermission(record!, 'read')).toBe(true);
     expect(tm.hasPermission(record!, 'publish')).toBe(false);
@@ -386,7 +410,9 @@ describe('Feature 4: Token Management', () => {
 describe('Feature 5: Access Control', () => {
   let ac: AccessControl;
 
-  beforeEach(() => { ac = createAccessControl(); });
+  beforeEach(() => {
+    ac = createAccessControl();
+  });
 
   // ── Organizations ──────────────────────────────────────────────────────────
 
@@ -524,7 +550,13 @@ describe('Feature 6: AccessCommand (CLI)', () => {
   });
 
   it('grant subcommand adds access', () => {
-    const result = cmd.run({ subcommand: 'grant', packageName: '@o/pkg', userId: 'alice', access: 'write', grantedBy: 'admin' });
+    const result = cmd.run({
+      subcommand: 'grant',
+      packageName: '@o/pkg',
+      userId: 'alice',
+      access: 'write',
+      grantedBy: 'admin',
+    });
     expect(result.success).toBe(true);
     expect(result.message).toContain('write');
     expect(result.message).toContain('alice');

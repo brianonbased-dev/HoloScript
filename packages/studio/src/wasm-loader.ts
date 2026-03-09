@@ -1,9 +1,9 @@
 /**
  * WASM Module Loader for HoloScript Compiler
- * 
+ *
  * Loads and initializes the compiled Rust WASM component that provides
  * parser, validator, compiler, and other language services.
- * 
+ *
  * The WASM module exports multiple interfaces defined in wit/holoscript.wit:
  * - parser: Parse HoloScript/HSPlus into AST
  * - validator: Type checking and validation
@@ -16,10 +16,10 @@
 
 /**
  * Initialize and load the HoloScript WASM component
- * 
+ *
  * @param wasmPath Path to the .wasm binary (default: '/wasm/holoscript.wasm')
  * @returns Promise resolving to the WASM instance when ready
- * 
+ *
  * @example
  * ```ts
  * const wasm = await initializeWasm();
@@ -187,10 +187,7 @@ function createWasmWrapper(exports: any): WasmInstance {
     compile(ast: any, target: string): CompileResult {
       try {
         if (exports.compile && typeof exports.compile === 'function') {
-          const result = exports.compile(
-            JSON.stringify(ast),
-            target
-          );
+          const result = exports.compile(JSON.stringify(ast), target);
           return {
             success: !result.error,
             code: result.code,

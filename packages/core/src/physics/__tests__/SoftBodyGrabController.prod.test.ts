@@ -6,9 +6,18 @@ import type { IVector3 } from '../PhysicsTypes';
 // MOCK PBDSolverCPU
 // =============================================================================
 
-interface PinCall { index: number; target: IVector3; compliance: number }
-interface UnpinCall { index: number }
-interface AttachCall { index: number; target: IVector3 }
+interface PinCall {
+  index: number;
+  target: IVector3;
+  compliance: number;
+}
+interface UnpinCall {
+  index: number;
+}
+interface AttachCall {
+  index: number;
+  target: IVector3;
+}
 
 function makeSolver(positions: number[]) {
   const pins: PinCall[] = [];
@@ -51,7 +60,6 @@ function gridPositions(n: number, spacing = 0.1): number[] {
 // =============================================================================
 
 describe('SoftBodyGrabController — Production Tests', () => {
-
   // -------------------------------------------------------------------------
   // Constructor / defaults
   // -------------------------------------------------------------------------
@@ -130,7 +138,7 @@ describe('SoftBodyGrabController — Production Tests', () => {
 
     it('does nothing when no vertices are in range', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 0.01 });
-      const positions = [1, 0, 0, 2, 0, 0];      // far from origin
+      const positions = [1, 0, 0, 2, 0, 0]; // far from origin
       const solver = makeSolver(positions);
       ctrl.grabStart('h1', { x: 0, y: 0, z: 0 }, solver as any);
       expect(solver._pins.length).toBe(0);

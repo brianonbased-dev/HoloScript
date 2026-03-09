@@ -47,7 +47,9 @@ export function VersionControlPanel({ workflow, onClose, onRevert }: VersionCont
   };
 
   const handleRevert = async (commitId: string) => {
-    if (!confirm('Are you sure you want to revert to this version? Current changes will be lost.')) {
+    if (
+      !confirm('Are you sure you want to revert to this version? Current changes will be lost.')
+    ) {
       return;
     }
 
@@ -192,9 +194,7 @@ export function VersionControlPanel({ workflow, onClose, onRevert }: VersionCont
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <GitCompare className="h-12 w-12 text-studio-border mb-2" />
                   <p className="text-sm text-studio-muted">Select two commits to compare</p>
-                  <p className="text-xs text-studio-muted mt-1">
-                    Click commits in the history tab
-                  </p>
+                  <p className="text-xs text-studio-muted mt-1">Click commits in the history tab</p>
                 </div>
               )}
             </div>

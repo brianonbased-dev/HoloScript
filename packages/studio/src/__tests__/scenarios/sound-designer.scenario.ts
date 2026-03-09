@@ -22,8 +22,12 @@ import type { AudioAnalysis, Beat, TimelineMarker, AudioSyncConfig } from '@/lib
 describe('Scenario: Sound Designer — Audio Analysis Types', () => {
   it('AudioAnalysis structure has required fields', () => {
     const analysis: AudioAnalysis = {
-      duration: 180, sampleRate: 44100, bpm: 128,
-      beats: [], waveform: new Float32Array(1024), peaks: [],
+      duration: 180,
+      sampleRate: 44100,
+      bpm: 128,
+      beats: [],
+      waveform: new Float32Array(1024),
+      peaks: [],
     };
     expect(analysis.duration).toBe(180);
     expect(analysis.sampleRate).toBe(44100);
@@ -39,7 +43,9 @@ describe('Scenario: Sound Designer — Audio Analysis Types', () => {
 
   it('BPM calculation — 60 beats in 60 seconds = 60 BPM', () => {
     const beats: Beat[] = Array.from({ length: 60 }, (_, i) => ({
-      time: i, strength: 1.0, index: i,
+      time: i,
+      strength: 1.0,
+      index: i,
     }));
     const duration = 60;
     // BPM = beats / duration * 60
@@ -50,7 +56,9 @@ describe('Scenario: Sound Designer — Audio Analysis Types', () => {
   it('BPM calculation — 128 beats in 60 seconds = 128 BPM', () => {
     const beatInterval = 60 / 128; // ~0.469s
     const beats: Beat[] = Array.from({ length: 128 }, (_, i) => ({
-      time: i * beatInterval, strength: 0.9, index: i,
+      time: i * beatInterval,
+      strength: 0.9,
+      index: i,
     }));
     const bpm = (beats.length / 60) * 60;
     expect(bpm).toBe(128);
@@ -70,7 +78,7 @@ describe('Scenario: Sound Designer — Audio Analysis Types', () => {
   it('peaks array contains sample indices of loudest moments', () => {
     const peaks = [1024, 5120, 10240, 22050];
     expect(peaks).toHaveLength(4);
-    expect(peaks.every(p => p >= 0)).toBe(true);
+    expect(peaks.every((p) => p >= 0)).toBe(true);
   });
 });
 
@@ -81,7 +89,11 @@ describe('Scenario: Sound Designer — Audio Analysis Types', () => {
 describe('Scenario: Sound Designer — Timeline Markers', () => {
   it('TimelineMarker structure has id, time, label, type', () => {
     const marker: TimelineMarker = {
-      id: 'm1', time: 2.5, label: 'Chorus', type: 'section', color: '#ff6600',
+      id: 'm1',
+      time: 2.5,
+      label: 'Chorus',
+      type: 'section',
+      color: '#ff6600',
     };
     expect(marker.id).toBe('m1');
     expect(marker.time).toBe(2.5);
@@ -95,15 +107,20 @@ describe('Scenario: Sound Designer — Timeline Markers', () => {
       { id: 'm2', time: 5, label: 'B', type: 'custom' },
     ];
     markers.sort((a, b) => a.time - b.time);
-    expect(markers.map(m => m.id)).toEqual(['m1', 'm2', 'm3']);
+    expect(markers.map((m) => m.id)).toEqual(['m1', 'm2', 'm3']);
   });
 
   it('beat markers can be auto-generated from beat list', () => {
     const beats: Beat[] = Array.from({ length: 8 }, (_, i) => ({
-      time: i * 0.5, strength: 0.8, index: i,
+      time: i * 0.5,
+      strength: 0.8,
+      index: i,
     }));
-    const markers: TimelineMarker[] = beats.map(b => ({
-      id: `beat-${b.index}`, time: b.time, label: `Beat ${b.index}`, type: 'beat' as const,
+    const markers: TimelineMarker[] = beats.map((b) => ({
+      id: `beat-${b.index}`,
+      time: b.time,
+      label: `Beat ${b.index}`,
+      type: 'beat' as const,
     }));
     expect(markers).toHaveLength(8);
     expect(markers[0].type).toBe('beat');
@@ -151,7 +168,7 @@ describe('Scenario: Sound Designer — Sync Configuration', () => {
     const beats: Beat[] = [{ time: 1.0, strength: 0.9, index: 0 }];
     const threshold = 0.1;
     const time = 1.05;
-    const match = beats.find(b => Math.abs(b.time - time) < threshold);
+    const match = beats.find((b) => Math.abs(b.time - time) < threshold);
     expect(match).toBeDefined();
     expect(match!.time).toBe(1.0);
   });
@@ -160,7 +177,7 @@ describe('Scenario: Sound Designer — Sync Configuration', () => {
     const beats: Beat[] = [{ time: 1.0, strength: 0.9, index: 0 }];
     const threshold = 0.1;
     const time = 5.0;
-    const match = beats.find(b => Math.abs(b.time - time) < threshold);
+    const match = beats.find((b) => Math.abs(b.time - time) < threshold);
     expect(match).toBeUndefined();
   });
 
@@ -168,7 +185,9 @@ describe('Scenario: Sound Designer — Sync Configuration', () => {
     const pannerConfig = {
       panningModel: 'HRTF' as const,
       distanceModel: 'inverse' as const,
-      refDistance: 1, maxDistance: 100, rolloffFactor: 1,
+      refDistance: 1,
+      maxDistance: 100,
+      rolloffFactor: 1,
       position: { x: 2, y: 0, z: -3 },
     };
     expect(pannerConfig.panningModel).toBe('HRTF');
@@ -200,7 +219,7 @@ describe('Scenario: Sound Designer — Sync Configuration', () => {
       bars.push(sum / samplesPerBar);
     }
     expect(bars).toHaveLength(64);
-    expect(bars.every(b => b >= 0 && b <= 1)).toBe(true);
+    expect(bars.every((b) => b >= 0 && b <= 1)).toBe(true);
   });
 
   it('beat-driven triggers snap keyframes to nearest beat', () => {
@@ -211,7 +230,7 @@ describe('Scenario: Sound Designer — Sync Configuration', () => {
       { time: 1.5, strength: 1, index: 3 },
     ];
     const keyframeTimes = [0.12, 0.53, 1.05, 1.6];
-    const snapped = keyframeTimes.map(t => {
+    const snapped = keyframeTimes.map((t) => {
       let nearest = beats[0];
       for (const b of beats) {
         if (Math.abs(b.time - t) < Math.abs(nearest.time - t)) nearest = b;

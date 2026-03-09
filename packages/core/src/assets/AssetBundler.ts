@@ -11,7 +11,15 @@
 // TYPES
 // =============================================================================
 
-export type AssetType = 'texture' | 'model' | 'audio' | 'shader' | 'script' | 'animation' | 'font' | 'data';
+export type AssetType =
+  | 'texture'
+  | 'model'
+  | 'audio'
+  | 'shader'
+  | 'script'
+  | 'animation'
+  | 'font'
+  | 'data';
 
 export interface AssetEntry {
   id: string;
@@ -26,10 +34,10 @@ export interface AssetEntry {
 export interface BundleConfig {
   id: string;
   name: string;
-  entries: string[];        // Asset IDs
+  entries: string[]; // Asset IDs
   compress: boolean;
-  maxSizeBytes?: number;    // Split if exceeded
-  priority: number;         // Load order (lower = first)
+  maxSizeBytes?: number; // Split if exceeded
+  priority: number; // Load order (lower = first)
 }
 
 export interface Bundle {
@@ -148,12 +156,14 @@ export class AssetBundler {
 
     for (const asset of allAssets) {
       if (chunkSize + asset.sizeBytes > maxSize && chunk.length > 0) {
-        result.push(this.buildBundle({
-          ...config,
-          id: `${config.id}_part${partIndex}`,
-          name: `${config.name} (Part ${partIndex + 1})`,
-          entries: chunk.map(a => a.id),
-        }));
+        result.push(
+          this.buildBundle({
+            ...config,
+            id: `${config.id}_part${partIndex}`,
+            name: `${config.name} (Part ${partIndex + 1})`,
+            entries: chunk.map((a) => a.id),
+          })
+        );
         partIndex++;
         chunk = [];
         chunkSize = 0;
@@ -163,12 +173,14 @@ export class AssetBundler {
     }
 
     if (chunk.length > 0) {
-      result.push(this.buildBundle({
-        ...config,
-        id: `${config.id}_part${partIndex}`,
-        name: `${config.name} (Part ${partIndex + 1})`,
-        entries: chunk.map(a => a.id),
-      }));
+      result.push(
+        this.buildBundle({
+          ...config,
+          id: `${config.id}_part${partIndex}`,
+          name: `${config.name} (Part ${partIndex + 1})`,
+          entries: chunk.map((a) => a.id),
+        })
+      );
     }
 
     return result;
@@ -181,7 +193,7 @@ export class AssetBundler {
   generateManifest(): BundleManifest {
     const bundles = [...this.bundles.values()].sort((a, b) => a.priority - b.priority);
     const totalSize = bundles.reduce((s, b) => s + b.totalSizeBytes, 0);
-    const totalAssets = new Set(bundles.flatMap(b => b.assets.map(a => a.id))).size;
+    const totalAssets = new Set(bundles.flatMap((b) => b.assets.map((a) => a.id))).size;
 
     return {
       bundles,

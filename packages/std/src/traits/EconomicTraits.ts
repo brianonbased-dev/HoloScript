@@ -57,7 +57,6 @@ export interface EconomicTraitDefinition extends TraitDefinition {
  * The five economic primitive traits.
  */
 export const EconomicTraits: Record<string, EconomicTraitDefinition> = {
-
   // ---------------------------------------------------------------------------
   // 1. TRADEABLE
   // ---------------------------------------------------------------------------
@@ -95,8 +94,7 @@ export const EconomicTraits: Record<string, EconomicTraitDefinition> = {
         type: 'boolean',
         required: false,
         default: false,
-        description:
-          'VR-specific: require spatial co-location for trade (anti-exploit, Layer 7).',
+        description: 'VR-specific: require spatial co-location for trade (anti-exploit, Layer 7).',
       },
       presence_radius: {
         type: 'number',
@@ -133,8 +131,7 @@ export const EconomicTraits: Record<string, EconomicTraitDefinition> = {
       decay_rate: {
         type: 'number',
         required: true,
-        description:
-          'Per-second decay rate (0.0 - 1.0). E.g., 0.001 = 0.1% per second.',
+        description: 'Per-second decay rate (0.0 - 1.0). E.g., 0.001 = 0.1% per second.',
       },
       initial_condition: {
         type: 'number',
@@ -168,9 +165,18 @@ export const EconomicTraits: Record<string, EconomicTraitDefinition> = {
       },
     },
     validator: (params) => {
-      if (params.decay_rate === undefined || params.decay_rate < 0 || params.decay_rate > 1) return false;
-      if (params.initial_condition !== undefined && (params.initial_condition < 0 || params.initial_condition > 1)) return false;
-      if (params.destroy_threshold !== undefined && (params.destroy_threshold < 0 || params.destroy_threshold > 1)) return false;
+      if (params.decay_rate === undefined || params.decay_rate < 0 || params.decay_rate > 1)
+        return false;
+      if (
+        params.initial_condition !== undefined &&
+        (params.initial_condition < 0 || params.initial_condition > 1)
+      )
+        return false;
+      if (
+        params.destroy_threshold !== undefined &&
+        (params.destroy_threshold < 0 || params.destroy_threshold > 1)
+      )
+        return false;
       return true;
     },
     requiredPermissions: ['economy.burn'],
@@ -248,9 +254,14 @@ export const EconomicTraits: Record<string, EconomicTraitDefinition> = {
     validator: (params) => {
       if (params.reserve_ratio === undefined || params.reserve_ratio <= 0) return false;
       if (params.curve_steepness !== undefined && params.curve_steepness <= 0) return false;
-      if (params.transaction_fee !== undefined && (params.transaction_fee < 0 || params.transaction_fee > 0.5)) return false;
+      if (
+        params.transaction_fee !== undefined &&
+        (params.transaction_fee < 0 || params.transaction_fee > 0.5)
+      )
+        return false;
       if (params.curve_type !== undefined) {
-        if (!['linear', 'exponential', 'logarithmic', 'sigmoid'].includes(params.curve_type)) return false;
+        if (!['linear', 'exponential', 'logarithmic', 'sigmoid'].includes(params.curve_type))
+          return false;
       }
       return true;
     },
@@ -333,9 +344,18 @@ export const EconomicTraits: Record<string, EconomicTraitDefinition> = {
     },
     validator: (params) => {
       if (params.threshold === undefined || params.threshold < 0) return false;
-      if (params.base_rate !== undefined && (params.base_rate < 0 || params.base_rate > 0.1)) return false;
-      if (params.max_effective_rate !== undefined && (params.max_effective_rate < 0 || params.max_effective_rate > 1.0)) return false;
-      if (params.redistribution_fraction !== undefined && (params.redistribution_fraction < 0 || params.redistribution_fraction > 1.0)) return false;
+      if (params.base_rate !== undefined && (params.base_rate < 0 || params.base_rate > 0.1))
+        return false;
+      if (
+        params.max_effective_rate !== undefined &&
+        (params.max_effective_rate < 0 || params.max_effective_rate > 1.0)
+      )
+        return false;
+      if (
+        params.redistribution_fraction !== undefined &&
+        (params.redistribution_fraction < 0 || params.redistribution_fraction > 1.0)
+      )
+        return false;
       return true;
     },
     requiredPermissions: ['economy.tax', 'economy.redistribute'],
@@ -439,8 +459,12 @@ export const EconomicTraits: Record<string, EconomicTraitDefinition> = {
       if (params.target_per_capita === undefined || params.target_per_capita <= 0) return false;
       // PID gains can be any real number, but should be reasonable
       const gains = [
-        params.inner_kp, params.inner_ki, params.inner_kd,
-        params.outer_kp, params.outer_ki, params.outer_kd,
+        params.inner_kp,
+        params.inner_ki,
+        params.inner_kd,
+        params.outer_kp,
+        params.outer_ki,
+        params.outer_kd,
       ];
       for (const g of gains) {
         if (g !== undefined && (typeof g !== 'number' || isNaN(g))) return false;

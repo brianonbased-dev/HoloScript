@@ -20,7 +20,7 @@ import {
   AgentRole,
   AgentConfig,
   generateAgentKeyPair,
-  getTokenIssuer
+  getTokenIssuer,
 } from '@holoscript/core/compiler/identity';
 
 // Generate key pair for agent
@@ -80,10 +80,10 @@ const signatureHeaders = formatSignatureHeaders(httpSignature);
 const response = await fetch('https://api.holoscript.dev/api/compile', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`,
+    Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
     'Content-Digest': calculateContentDigest(requestBody),
-    'Signature': signatureHeaders.Signature,
+    Signature: signatureHeaders.Signature,
     'Signature-Input': signatureHeaders['Signature-Input'],
   },
   body: requestBody,
@@ -104,10 +104,12 @@ const app = express();
 app.use(express.json());
 
 // Apply PoP middleware globally
-app.use(createPopMiddleware({
-  allowLegacy: false, // Require signatures (no backward compatibility)
-  excludePaths: ['/health', '/metrics'], // Public endpoints
-}));
+app.use(
+  createPopMiddleware({
+    allowLegacy: false, // Require signatures (no backward compatibility)
+    excludePaths: ['/health', '/metrics'], // Public endpoints
+  })
+);
 
 // Protected endpoint
 app.post('/api/compile', async (req, res) => {
@@ -127,7 +129,8 @@ app.post('/api/compile', async (req, res) => {
 import { requirePermission, AgentPermission } from '@holoscript/core/compiler/identity';
 
 // Require specific permission for endpoint
-app.post('/api/optimize',
+app.post(
+  '/api/optimize',
   createPopMiddleware(),
   requirePermission(AgentPermission.TRANSFORM_AST),
   async (req, res) => {
@@ -144,7 +147,8 @@ app.post('/api/optimize',
 import { requireWorkflowStep, WorkflowStep } from '@holoscript/core/compiler/identity';
 
 // Require specific workflow step
-app.post('/api/export',
+app.post(
+  '/api/export',
   createPopMiddleware(),
   requireWorkflowStep(WorkflowStep.SERIALIZE),
   async (req, res) => {
@@ -215,10 +219,10 @@ async function compileWithPoP() {
   const response = await fetch('http://localhost:3000/api/compile', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
       'Content-Digest': components['content-digest']!,
-      'Signature': signatureHeaders.Signature,
+      Signature: signatureHeaders.Signature,
       'Signature-Input': signatureHeaders['Signature-Input'],
     },
     body: requestBody,
@@ -241,14 +245,16 @@ const app = express();
 app.use(express.json());
 
 // Enable PoP verification
-app.use(createPopMiddleware({
-  allowLegacy: false,
-  excludePaths: ['/health'],
-  onError: (error, req, res) => {
-    console.error('PoP verification error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  },
-}));
+app.use(
+  createPopMiddleware({
+    allowLegacy: false,
+    excludePaths: ['/health'],
+    onError: (error, req, res) => {
+      console.error('PoP verification error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    },
+  })
+);
 
 app.post('/api/compile', async (req, res) => {
   try {
@@ -277,7 +283,11 @@ app.listen(3000, () => {
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { signRequest, verifySignature, constructSignatureBase } from '@holoscript/core/compiler/identity';
+import {
+  signRequest,
+  verifySignature,
+  constructSignatureBase,
+} from '@holoscript/core/compiler/identity';
 
 describe('PoP Signature Flow', () => {
   it('should sign and verify request', async () => {
@@ -342,11 +352,21 @@ it('should prevent replay attacks', async () => {
   const signatureBase = constructSignatureBase(enrichedComponents, httpSignature.metadata);
 
   // First verification succeeds
-  const result1 = verifySignature(signatureBase, httpSignature.signature, keyPair.publicKey, httpSignature.metadata);
+  const result1 = verifySignature(
+    signatureBase,
+    httpSignature.signature,
+    keyPair.publicKey,
+    httpSignature.metadata
+  );
   expect(result1.valid).toBe(true);
 
   // Second verification with same nonce fails (replay attack)
-  const result2 = verifySignature(signatureBase, httpSignature.signature, keyPair.publicKey, httpSignature.metadata);
+  const result2 = verifySignature(
+    signatureBase,
+    httpSignature.signature,
+    keyPair.publicKey,
+    httpSignature.metadata
+  );
   expect(result2.valid).toBe(false);
   expect(result2.errorCode).toBe('REPLAY_ATTACK');
 });
@@ -370,15 +390,19 @@ it('should prevent replay attacks', async () => {
 ### Common Errors
 
 **MISSING_SIGNATURE**: Request missing Signature or Signature-Input headers
+
 - Solution: Ensure client calls `formatSignatureHeaders()` and includes headers
 
 **INVALID_SIGNATURE**: Signature verification failed
+
 - Solution: Check that public key in token matches signing private key
 
 **REPLAY_ATTACK**: Nonce already used
+
 - Solution: Generate fresh nonce for each request (automatic in `signRequest()`)
 
 **EXPIRED**: Request too old or timestamp in future
+
 - Solution: Ensure client and server clocks are synchronized (NTP)
 
 ### Debug Logging
@@ -401,5 +425,6 @@ const middleware = createPopMiddleware({
 ---
 
 For more details, see:
+
 - [RFC 9440: HTTP Message Signatures](https://datatracker.ietf.org/doc/html/rfc9440)
 - [Agentic JWT Specification](https://datatracker.ietf.org/doc/html/draft-goswami-agentic-jwt-00)

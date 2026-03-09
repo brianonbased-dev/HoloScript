@@ -10,10 +10,10 @@ import { LODStreamer, type StreamableAsset } from '../LODStreamer';
 function makeAsset(id: string, priority = 1): StreamableAsset {
   return {
     id,
-    lodLevels: [10, 50, 100],    // LOD0 ≤10, LOD1 ≤50, LOD2 ≤100
-    currentLOD: -1,               // unloaded
+    lodLevels: [10, 50, 100], // LOD0 ≤10, LOD1 ≤50, LOD2 ≤100
+    currentLOD: -1, // unloaded
     priority,
-    memoryCost: [100, 50, 25],   // LOD0=100MB, LOD1=50, LOD2=25
+    memoryCost: [100, 50, 25], // LOD0=100MB, LOD1=50, LOD2=25
   };
 }
 

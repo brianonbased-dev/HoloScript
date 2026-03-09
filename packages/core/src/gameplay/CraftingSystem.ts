@@ -21,10 +21,10 @@ export interface CraftingRecipe {
   name: string;
   ingredients: CraftingIngredient[];
   output: { itemId: string; quantity: number };
-  workbenchType: string | null;   // null = hand-craft
-  craftTime: number;              // seconds
+  workbenchType: string | null; // null = hand-craft
+  craftTime: number; // seconds
   discovered: boolean;
-  level: number;                  // required skill level
+  level: number; // required skill level
 }
 
 // =============================================================================
@@ -46,7 +46,9 @@ export class CraftingSystem {
     if (recipe.discovered) this.discoveredRecipes.add(recipe.id);
   }
 
-  getRecipe(id: string): CraftingRecipe | undefined { return this.recipes.get(id); }
+  getRecipe(id: string): CraftingRecipe | undefined {
+    return this.recipes.get(id);
+  }
 
   discoverRecipe(id: string): boolean {
     if (!this.recipes.has(id)) return false;
@@ -111,8 +113,8 @@ export class CraftingSystem {
     const discovered: CraftingRecipe[] = [];
     for (const recipe of this.recipes.values()) {
       if (recipe.discovered) continue;
-      const needed = recipe.ingredients.map(i => i.itemId);
-      if (needed.every(id => heldItems.includes(id))) {
+      const needed = recipe.ingredients.map((i) => i.itemId);
+      if (needed.every((id) => heldItems.includes(id))) {
         recipe.discovered = true;
         this.discoveredRecipes.add(recipe.id);
         discovered.push(recipe);
@@ -125,21 +127,31 @@ export class CraftingSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  setPlayerLevel(level: number): void { this.playerLevel = level; }
-  getPlayerLevel(): number { return this.playerLevel; }
-  getRecipeCount(): number { return this.recipes.size; }
-  getDiscoveredCount(): number { return this.discoveredRecipes.size; }
-  getQueueLength(): number { return this.craftingQueue.length; }
+  setPlayerLevel(level: number): void {
+    this.playerLevel = level;
+  }
+  getPlayerLevel(): number {
+    return this.playerLevel;
+  }
+  getRecipeCount(): number {
+    return this.recipes.size;
+  }
+  getDiscoveredCount(): number {
+    return this.discoveredRecipes.size;
+  }
+  getQueueLength(): number {
+    return this.craftingQueue.length;
+  }
 
   getAvailableRecipes(availableItems: Map<string, number>): CraftingRecipe[] {
-    return [...this.recipes.values()].filter(r =>
-      r.discovered && this.canCraft(r.id, availableItems)
+    return [...this.recipes.values()].filter(
+      (r) => r.discovered && this.canCraft(r.id, availableItems)
     );
   }
 
   getRecipesByWorkbench(workbenchType: string): CraftingRecipe[] {
-    return [...this.recipes.values()].filter(r =>
-      r.discovered && r.workbenchType === workbenchType
+    return [...this.recipes.values()].filter(
+      (r) => r.discovered && r.workbenchType === workbenchType
     );
   }
 }

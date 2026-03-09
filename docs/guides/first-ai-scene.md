@@ -42,6 +42,7 @@ head:
 ## What You'll Build
 
 A complete VR scene with AI-generated content in under 15 minutes:
+
 - Procedurally generated environment
 - Interactive objects
 - Basic physics
@@ -92,6 +93,7 @@ When Studio loads, you'll see **5 modes** at the top:
 Look for the **chat icon** (💬) on the right side. Click it to open Brittney AI.
 
 **Brittney is your AI scene designer.** She:
+
 - Generates scenes from natural language
 - Suggests improvements
 - Fixes errors
@@ -117,6 +119,7 @@ Press **Enter** or click **Send**.
 ### Watch the Magic
 
 Brittney will:
+
 1. Analyze your prompt
 2. Generate HoloScript code
 3. Parse and validate it
@@ -143,6 +146,7 @@ Brittney will:
 ### Transform Gizmos
 
 With an object selected:
+
 - **G**: Move (translate)
 - **R**: Rotate
 - **S**: Scale
@@ -180,6 +184,7 @@ Analyze this scene and suggest improvements
 ```
 
 She'll provide:
+
 - ✅ What works well
 - ⚠️ Potential issues
 - 💡 Optimization suggestions
@@ -217,6 +222,7 @@ Use the @llm_agent trait for natural conversation.
 ```
 
 Brittney will:
+
 - Create the NPC object
 - Configure the `@llm_agent` trait
 - Set up conversation triggers
@@ -235,6 +241,7 @@ Brittney will:
 3. Copy the link
 
 **That's it!** Anyone with the link can:
+
 - View your scene in their browser
 - Enter VR mode (if they have a headset)
 - Interact with objects

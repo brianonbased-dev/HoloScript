@@ -64,7 +64,9 @@ export default function ViewPage({ params }: { params: Promise<{ id: string }> }
       <div className="flex h-screen w-screen flex-col items-center justify-center gap-3 bg-[#0a0a12] text-white">
         <AlertTriangle className="h-10 w-10 text-red-400" />
         <p className="text-lg font-semibold">{error ?? 'Scene not found'}</p>
-        <a href="/" className="text-sm text-indigo-400 hover:underline">← Back to Studio</a>
+        <a href="/" className="text-sm text-indigo-400 hover:underline">
+          ← Back to Studio
+        </a>
       </div>
     );
   }
@@ -76,7 +78,9 @@ export default function ViewPage({ params }: { params: Promise<{ id: string }> }
     <div className="flex h-screen w-screen flex-col bg-[#0a0a12]">
       {/* Minimal header */}
       <header className="flex h-10 shrink-0 items-center justify-between border-b border-white/10 px-4">
-        <span className="text-sm font-medium text-white/80">{scene.metadata?.name ?? 'Untitled Scene'}</span>
+        <span className="text-sm font-medium text-white/80">
+          {scene.metadata?.name ?? 'Untitled Scene'}
+        </span>
         <div className="flex items-center gap-3">
           <span className="text-[11px] text-white/30">
             Published {new Date(payload.publishedAt).toLocaleDateString()}

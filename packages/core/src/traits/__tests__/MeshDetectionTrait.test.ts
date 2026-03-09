@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { meshDetectionHandler } from '../MeshDetectionTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('MeshDetectionTrait', () => {
   let node: Record<string, unknown>;
@@ -40,7 +46,10 @@ describe('MeshDetectionTrait', () => {
   });
 
   it('mesh_block_update adds block and emits render+occlusion+collider', () => {
-    sendEvent(meshDetectionHandler, node, cfg, ctx, { type: 'mesh_block_update', block: makeMockBlock('b1') });
+    sendEvent(meshDetectionHandler, node, cfg, ctx, {
+      type: 'mesh_block_update',
+      block: makeMockBlock('b1'),
+    });
     const s = (node as any).__meshDetectionState;
     expect(s.meshBlocks.size).toBe(1);
     expect(s.totalVertices).toBe(100);
@@ -51,14 +60,23 @@ describe('MeshDetectionTrait', () => {
   });
 
   it('mesh_block_update replaces existing block', () => {
-    sendEvent(meshDetectionHandler, node, cfg, ctx, { type: 'mesh_block_update', block: makeMockBlock('b1', 100, 50) });
-    sendEvent(meshDetectionHandler, node, cfg, ctx, { type: 'mesh_block_update', block: makeMockBlock('b1', 200, 100) });
+    sendEvent(meshDetectionHandler, node, cfg, ctx, {
+      type: 'mesh_block_update',
+      block: makeMockBlock('b1', 100, 50),
+    });
+    sendEvent(meshDetectionHandler, node, cfg, ctx, {
+      type: 'mesh_block_update',
+      block: makeMockBlock('b1', 200, 100),
+    });
     expect((node as any).__meshDetectionState.totalVertices).toBe(200);
     expect(getEventCount(ctx, 'mesh_block_updated')).toBe(1);
   });
 
   it('mesh_block_removed removes block', () => {
-    sendEvent(meshDetectionHandler, node, cfg, ctx, { type: 'mesh_block_update', block: makeMockBlock('b1') });
+    sendEvent(meshDetectionHandler, node, cfg, ctx, {
+      type: 'mesh_block_update',
+      block: makeMockBlock('b1'),
+    });
     sendEvent(meshDetectionHandler, node, cfg, ctx, { type: 'mesh_block_removed', blockId: 'b1' });
     expect((node as any).__meshDetectionState.meshBlocks.size).toBe(0);
     expect((node as any).__meshDetectionState.totalVertices).toBe(0);
@@ -77,7 +95,10 @@ describe('MeshDetectionTrait', () => {
   });
 
   it('cleans up colliders and blocks on detach', () => {
-    sendEvent(meshDetectionHandler, node, cfg, ctx, { type: 'mesh_block_update', block: makeMockBlock('b1') });
+    sendEvent(meshDetectionHandler, node, cfg, ctx, {
+      type: 'mesh_block_update',
+      block: makeMockBlock('b1'),
+    });
     ctx.clearEvents();
     meshDetectionHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect((node as any).__meshDetectionState).toBeUndefined();

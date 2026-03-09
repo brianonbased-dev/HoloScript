@@ -2356,7 +2356,9 @@ async function main(): Promise<void> {
     case 'absorb': {
       if (!options.input) {
         console.error('\x1b[31mError: No input directory specified.\x1b[0m');
-        console.log('Usage: holoscript absorb <directory> [-o output.holo] [--layout force|layered] [--json]');
+        console.log(
+          'Usage: holoscript absorb <directory> [-o output.holo] [--layout force|layered] [--json]'
+        );
         process.exit(1);
       }
 
@@ -2379,9 +2381,17 @@ async function main(): Promise<void> {
         const scanStart = Date.now();
         const scanResult = await scanner.scan({ rootDir });
 
-        console.log(`  \x1b[32m✓\x1b[0m Scanned ${scanResult.stats.totalFiles} files in ${Date.now() - scanStart}ms`);
-        console.log(`    Languages: ${Object.entries(scanResult.stats.filesByLanguage).map(([l, n]) => `${l}(${n})`).join(', ')}`);
-        console.log(`    Symbols: ${scanResult.stats.totalSymbols} | Imports: ${scanResult.stats.totalImports} | Calls: ${scanResult.stats.totalCalls}`);
+        console.log(
+          `  \x1b[32m✓\x1b[0m Scanned ${scanResult.stats.totalFiles} files in ${Date.now() - scanStart}ms`
+        );
+        console.log(
+          `    Languages: ${Object.entries(scanResult.stats.filesByLanguage)
+            .map(([l, n]) => `${l}(${n})`)
+            .join(', ')}`
+        );
+        console.log(
+          `    Symbols: ${scanResult.stats.totalSymbols} | Imports: ${scanResult.stats.totalImports} | Calls: ${scanResult.stats.totalCalls}`
+        );
         console.log(`    LOC: ${scanResult.stats.totalLoc.toLocaleString()}`);
 
         if (scanResult.stats.errors.length > 0) {
@@ -2417,7 +2427,9 @@ async function main(): Promise<void> {
           if (options.output) {
             const outputPath = path.resolve(options.output);
             fs.writeFileSync(outputPath, holoSource);
-            console.log(`\n  \x1b[32m✓\x1b[0m Generated ${outputPath} (${holoSource.length.toLocaleString()} chars)`);
+            console.log(
+              `\n  \x1b[32m✓\x1b[0m Generated ${outputPath} (${holoSource.length.toLocaleString()} chars)`
+            );
           } else {
             console.log('\n' + holoSource);
           }

@@ -6,20 +6,30 @@
 
 import { useEffect, useState } from 'react';
 import { Store, X, Plus, PackagePlus, ChevronDown, ChevronRight } from 'lucide-react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 import type { AssetPack, AssetPackItem } from '@/app/api/asset-packs/route';
 
 const CATEGORY_COLORS: Record<string, string> = {
-  'sci-fi': '#44aaff', fantasy: '#aa44ff', nature: '#44cc66',
-  urban: '#ffaa44', abstract: '#ff44aa', 'vr-ui': '#44ffee',
+  'sci-fi': '#44aaff',
+  fantasy: '#aa44ff',
+  nature: '#44cc66',
+  urban: '#ffaa44',
+  abstract: '#ff44aa',
+  'vr-ui': '#44ffee',
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  'sci-fi': '🛸 Sci-Fi', fantasy: '🏰 Fantasy', nature: '🌿 Nature',
-  urban: '🏙️ Urban', abstract: '🎨 Abstract', 'vr-ui': '🥽 VR UI',
+  'sci-fi': '🛸 Sci-Fi',
+  fantasy: '🏰 Fantasy',
+  nature: '🌿 Nature',
+  urban: '🏙️ Urban',
+  abstract: '🎨 Abstract',
+  'vr-ui': '🥽 VR UI',
 };
 
-interface AssetPackPanelProps { onClose: () => void; }
+interface AssetPackPanelProps {
+  onClose: () => void;
+}
 
 export function AssetPackPanel({ onClose }: AssetPackPanelProps) {
   const [packs, setPacks] = useState<AssetPack[]>([]);
@@ -64,21 +74,37 @@ export function AssetPackPanel({ onClose }: AssetPackPanelProps) {
         <span className="rounded-full border border-studio-border px-1.5 py-0.5 text-[7px] text-studio-muted">
           {packs.length} packs
         </span>
-        <button onClick={onClose} className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text">
+        <button
+          onClick={onClose}
+          className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
 
       {/* Category pills */}
       <div className="shrink-0 flex gap-1 overflow-x-auto border-b border-studio-border px-2 py-1.5">
-        <button onClick={() => setActiveCategory('')}
-          className={`shrink-0 rounded-full border px-2 py-0.5 text-[8px] transition ${!activeCategory ? 'border-studio-accent bg-studio-accent/20 text-studio-accent' : 'border-studio-border text-studio-muted hover:text-studio-text'}`}>
+        <button
+          onClick={() => setActiveCategory('')}
+          className={`shrink-0 rounded-full border px-2 py-0.5 text-[8px] transition ${!activeCategory ? 'border-studio-accent bg-studio-accent/20 text-studio-accent' : 'border-studio-border text-studio-muted hover:text-studio-text'}`}
+        >
           All
         </button>
         {categories.map((cat) => (
-          <button key={cat} onClick={() => setActiveCategory(cat)}
-            style={activeCategory === cat ? { borderColor: CATEGORY_COLORS[cat], color: CATEGORY_COLORS[cat], backgroundColor: `${CATEGORY_COLORS[cat]}18` } : undefined}
-            className={`shrink-0 rounded-full border px-2 py-0.5 text-[8px] transition ${activeCategory !== cat ? 'border-studio-border text-studio-muted hover:text-studio-text' : ''}`}>
+          <button
+            key={cat}
+            onClick={() => setActiveCategory(cat)}
+            style={
+              activeCategory === cat
+                ? {
+                    borderColor: CATEGORY_COLORS[cat],
+                    color: CATEGORY_COLORS[cat],
+                    backgroundColor: `${CATEGORY_COLORS[cat]}18`,
+                  }
+                : undefined
+            }
+            className={`shrink-0 rounded-full border px-2 py-0.5 text-[8px] transition ${activeCategory !== cat ? 'border-studio-border text-studio-muted hover:text-studio-text' : ''}`}
+          >
             {(CATEGORY_LABELS[cat] ?? cat).split(' ').slice(0, 2).join(' ')}
           </button>
         ))}
@@ -93,21 +119,34 @@ export function AssetPackPanel({ onClose }: AssetPackPanelProps) {
             <div key={pack.id} className="overflow-hidden">
               {/* Pack header */}
               <div className="flex items-center gap-2 px-3 py-2.5 hover:bg-studio-surface/40 transition">
-                <button onClick={() => setExpandedPack(isExpanded ? null : pack.id)}
-                  className="flex flex-1 items-center gap-2 text-left">
-                  {isExpanded ? <ChevronDown className="h-3 w-3 shrink-0 text-studio-muted" /> : <ChevronRight className="h-3 w-3 shrink-0 text-studio-muted" />}
+                <button
+                  onClick={() => setExpandedPack(isExpanded ? null : pack.id)}
+                  className="flex flex-1 items-center gap-2 text-left"
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="h-3 w-3 shrink-0 text-studio-muted" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3 shrink-0 text-studio-muted" />
+                  )}
                   <span className="text-base">{pack.emoji}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-semibold truncate">{pack.name}</p>
-                    <p className="text-[7px] text-studio-muted">{pack.itemCount} objects · {pack.author}</p>
+                    <p className="text-[7px] text-studio-muted">
+                      {pack.itemCount} objects · {pack.author}
+                    </p>
                   </div>
-                  <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[7px]"
-                    style={{ backgroundColor: `${catColor}22`, color: catColor }}>
+                  <span
+                    className="shrink-0 rounded-full px-1.5 py-0.5 text-[7px]"
+                    style={{ backgroundColor: `${catColor}22`, color: catColor }}
+                  >
                     {pack.category}
                   </span>
                 </button>
-                <button onClick={() => insertAll(pack)} title="Insert All"
-                  className="shrink-0 flex items-center gap-1 rounded-lg border border-studio-border px-2 py-1 text-[8px] text-studio-muted hover:border-studio-accent hover:text-studio-accent transition">
+                <button
+                  onClick={() => insertAll(pack)}
+                  title="Insert All"
+                  className="shrink-0 flex items-center gap-1 rounded-lg border border-studio-border px-2 py-1 text-[8px] text-studio-muted hover:border-studio-accent hover:text-studio-accent transition"
+                >
                   <PackagePlus className="h-3 w-3" /> All
                 </button>
               </div>
@@ -118,7 +157,10 @@ export function AssetPackPanel({ onClose }: AssetPackPanelProps) {
                   <p className="text-[8px] text-studio-muted leading-snug">{pack.description}</p>
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {pack.tags.map((tag) => (
-                      <span key={tag} className="rounded-full border border-studio-border px-1.5 py-0.5 text-[7px] text-studio-muted">
+                      <span
+                        key={tag}
+                        className="rounded-full border border-studio-border px-1.5 py-0.5 text-[7px] text-studio-muted"
+                      >
                         {tag}
                       </span>
                     ))}
@@ -138,8 +180,10 @@ export function AssetPackPanel({ onClose }: AssetPackPanelProps) {
                           <p className="text-[9px] font-medium truncate">{item.name}</p>
                           <p className="text-[7px] text-studio-muted capitalize">{item.type}</p>
                         </div>
-                        <button onClick={() => insertItem(item)}
-                          className={`shrink-0 flex items-center gap-1 rounded-lg border px-2 py-1 text-[8px] transition ${wasInserted ? 'border-green-600/40 text-green-400 bg-green-900/20' : 'border-studio-border text-studio-muted hover:border-studio-accent hover:text-studio-accent'}`}>
+                        <button
+                          onClick={() => insertItem(item)}
+                          className={`shrink-0 flex items-center gap-1 rounded-lg border px-2 py-1 text-[8px] transition ${wasInserted ? 'border-green-600/40 text-green-400 bg-green-900/20' : 'border-studio-border text-studio-muted hover:border-studio-accent hover:text-studio-accent'}`}
+                        >
                           <Plus className="h-2.5 w-2.5" />
                           {wasInserted ? 'Added' : 'Insert'}
                         </button>

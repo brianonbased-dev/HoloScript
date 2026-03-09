@@ -23,7 +23,7 @@ describe('TerrainLOD', () => {
     const lod = new TerrainLOD({ totalSize: 256, maxLOD: 2 });
     lod.generateQuadtree(flatSampler);
     const allActive = lod.getActiveChunks();
-    const rootChunks = allActive.filter(c => c.level === 0);
+    const rootChunks = allActive.filter((c) => c.level === 0);
     expect(rootChunks.length).toBe(1);
     expect(rootChunks[0]?.children.length).toBe(4);
   });
@@ -69,7 +69,7 @@ describe('TerrainLOD', () => {
     const lod = new TerrainLOD({ totalSize: 256, maxLOD: 1, baseResolution: 4 });
     lod.generateQuadtree((x, z) => x + z);
     const chunk = lod.getActiveChunks()[0];
-    expect(chunk.heightData.every(h => h >= 0)).toBe(true);
+    expect(chunk.heightData.every((h) => h >= 0)).toBe(true);
   });
 
   it('morphFactor is 0-1', () => {

@@ -5,6 +5,7 @@
 HoloScript provides **three specialized file formats**, each designed for a distinct domain of spatial computing. These are **complementary tools, not layers** — each format is a complete language for its domain.
 
 > **Key Insight**: Think of HoloScript as three languages in one platform:
+>
 > - **`.hs`** = Core Language — templates, agents, logic, IoT streams, and spatial awareness
 > - **`.hsplus`** = TypeScript for XR — build complete spatial applications with modules and types
 > - **`.holo`** = Scene Graph — compose immersive worlds with environments and networking
@@ -14,12 +15,12 @@ HoloScript provides **three specialized file formats**, each designed for a dist
 
 ## Quick Reference
 
-| Extension | Domain | Parser | Primary Use Case | Compilation Entry Point |
-|-----------|--------|--------|------------------|------------------------|
-| **`.holo`** | Scene Graph | `HoloCompositionParser` | Immersive worlds, environments, NPC dialogs, quests, networking | Yes - All 18+ platforms |
-| **`.hsplus`** | TypeScript for XR | `HoloScriptPlusParser` | Full applications: modules, types, physics, state machines, async | Yes - All platforms |
-| **`.hs`** | Core Language | `HoloScriptPlusParser` | Templates, agents, logic, IoT streams, spatial awareness, utilities | Yes - Importable or standalone |
-| **`.ts`** | Infrastructure | TypeScript/Node | Parser implementations, CLI tools, build scripts | N/A - Tooling |
+| Extension     | Domain            | Parser                  | Primary Use Case                                                    | Compilation Entry Point        |
+| ------------- | ----------------- | ----------------------- | ------------------------------------------------------------------- | ------------------------------ |
+| **`.holo`**   | Scene Graph       | `HoloCompositionParser` | Immersive worlds, environments, NPC dialogs, quests, networking     | Yes - All 18+ platforms        |
+| **`.hsplus`** | TypeScript for XR | `HoloScriptPlusParser`  | Full applications: modules, types, physics, state machines, async   | Yes - All platforms            |
+| **`.hs`**     | Core Language     | `HoloScriptPlusParser`  | Templates, agents, logic, IoT streams, spatial awareness, utilities | Yes - Importable or standalone |
+| **`.ts`**     | Infrastructure    | TypeScript/Node         | Parser implementations, CLI tools, build scripts                    | N/A - Tooling                  |
 
 **Important**: Both `.hs` and `.hsplus` use the same `HoloScriptPlusParser` - the difference is semantic, not syntactic.
 
@@ -58,12 +59,14 @@ HoloScript's format system provides **three specialized languages** that can wor
 HoloScript provides **two parser implementations** that produce identical output:
 
 ### TypeScript Parser (Development & Tooling)
+
 - **Location**: `packages/core/src/parser/`
 - **Parsers**: `HoloCompositionParser.ts`, `HoloScriptPlusParser.ts`
 - **Best for**: Development, debugging, IDE integration, tooling
 - **Output**: JSON AST (universal bridge format)
 
 ### Rust/WASM Parser (Production Performance)
+
 - **Location**: `packages/compiler-wasm/`
 - **Speed**: **10x faster** than TypeScript
 - **Output**: Identical JSON AST via serde
@@ -81,7 +84,7 @@ HoloScript provides **two parser implementations** that produce identical output
 
 ### Key Characteristics
 
-- **Declarative scene graph**: Describe *what* you want, not *how* to build it
+- **Declarative scene graph**: Describe _what_ you want, not _how_ to build it
 - **World-centric**: Complete environments with spatial groups, NPC dialogs, quest systems
 - **Multiplayer primitives**: Networking, player sync, voice chat built-in
 - **Portals and zones**: Audio zones, spatial triggers, portal systems for world linking
@@ -154,11 +157,12 @@ composition "VR Escape Room" {
 }
 ```
 
-*Based on the [escape-room.holo](../examples/real-world/escape-room.holo) example.*
+_Based on the [escape-room.holo](../examples/real-world/escape-room.holo) example._
 
 ### When to Use `.holo`
 
 Use `.holo` when:
+
 - Creating complete VR/AR scenes and environments
 - Composing worlds with NPC dialogs, quests, and spatial groups
 - Compiling to game engines (Unity, Unreal, Godot)
@@ -169,6 +173,7 @@ Use `.holo` when:
 - Working with AI agents to generate scenes
 
 Don't use `.holo` for:
+
 - Reusable agent behaviors (use `.hs`)
 - Complex application logic with modules and types (use `.hsplus`)
 - Utility functions and libraries (use `.hs` or `.hsplus`)
@@ -176,6 +181,7 @@ Don't use `.holo` for:
 ### Compilation Support
 
 **All major platforms support `.holo` files:**
+
 - Game Engines: Unity, Unreal, Godot, PlayCanvas
 - WebXR: Three.js, Babylon.js, React Three Fiber
 - Mobile AR: ARKit (iOS), ARCore (Android), VisionOS
@@ -193,6 +199,7 @@ Don't use `.holo` for:
 `.hs` files are the **core HoloScript language** — versatile files used for templates, components, agent behaviors, IoT streams, logic gates, utility functions, and reusable libraries. They serve as the building blocks that `.holo` compositions import and assemble.
 
 `.hs` covers a wide range of use cases:
+
 - **Templates & components**: Reusable object blueprints (buttons, doors, NPCs)
 - **Agent SDK**: Multi-agent orchestration with spatial awareness, zones, patrol AI, and consensus (see the 381-line [v3.1-spatial-awareness.hs](../examples/v3.1-spatial-awareness.hs))
 - **IoT & data**: Streams, gates, connections for sensor data and industrial automation
@@ -356,11 +363,12 @@ template "GuardAgent" {
 }
 ```
 
-*Based on the [v3.1-spatial-awareness.hs](../examples/v3.1-spatial-awareness.hs) example.*
+_Based on the [v3.1-spatial-awareness.hs](../examples/v3.1-spatial-awareness.hs) example._
 
 ### When to Use `.hs`
 
 Use `.hs` when:
+
 - Creating reusable templates and component blueprints (Button, Player, Door)
 - Building utility functions and importable libraries
 - IoT data pipelines with streams, gates, and connections
@@ -371,6 +379,7 @@ Use `.hs` when:
 - Organizing large projects into shared modules
 
 Don't use `.hs` for:
+
 - Complete scenes with environments and spatial groups (use `.holo`)
 - Applications needing modules, typed functions, or async/await (use `.hsplus`)
 
@@ -428,6 +437,7 @@ composition "Main Scene" {
 ### What Are `.ts` Files?
 
 `.ts` files are the **TypeScript infrastructure layer** that powers the entire HoloScript ecosystem:
+
 - Parser implementations (HoloCompositionParser, HoloScriptPlusParser)
 - CLI tools and build scripts
 - Type definitions and AST structures
@@ -539,11 +549,12 @@ export module RobotArm {
 }
 ```
 
-*Based on the [pinball.hsplus](../examples/pinball.hsplus) example (732 lines).*
+_Based on the [pinball.hsplus](../examples/pinball.hsplus) example (732 lines)._
 
 ### When to Use `.hsplus`
 
 Use `.hsplus` when:
+
 - Building complete games with physics (pinball, shooters, puzzle games)
 - Needing module systems and code organization (`export`/`import`)
 - Writing complex state machines with reactive updates
@@ -554,12 +565,14 @@ Use `.hsplus` when:
 - Scientific computing (molecular dynamics, drug discovery)
 
 Don't use `.hsplus` for:
+
 - Simple VR/AR scenes without complex logic (`.holo` is simpler)
 - Pure agent behaviors without application logic (`.hs` is more focused)
 
 ### Specialized Compilation Targets
 
 **Robotics & Simulation:**
+
 ```bash
 # .hsplus -> URDF (ROS2, Gazebo)
 holoscript compile robot_arm.hsplus --target urdf
@@ -575,6 +588,7 @@ holoscript compile humanoid.hsplus --target mjcf
 ```
 
 **Scientific Computing:**
+
 ```bash
 # Molecular dynamics with Narupa integration
 holoscript compile drug_discovery.hsplus --target narupa
@@ -636,6 +650,7 @@ holoscript parse components/combat.hsplus   # Validates module
 ### Object Definition
 
 **.holo** (Declarative scene graph)
+
 ```holo
 composition "My Scene" {
   object "Cube" {
@@ -649,6 +664,7 @@ composition "My Scene" {
 ```
 
 **.hs** (Agent/template-focused)
+
 ```hs
 template Cube {
   geometry: "cube"
@@ -664,6 +680,7 @@ orb#myCube {
 ```
 
 **.hsplus** (Module-focused with types)
+
 ```hsplus
 export module Primitives {
   template Cube {
@@ -691,18 +708,21 @@ composition "Scene" {
 ### 1. File Extension Selection
 
 **For immersive worlds and environments -> Use `.holo`**
+
 - Declarative scene graph syntax
 - NPC dialogs, quests, spatial groups
 - AI-friendly for generation
 - Broadest compilation support (18+ targets)
 
 **For templates, agents, and logic -> Use `.hs`**
+
 - Reusable templates and components
 - Agent orchestration with spatial awareness
 - IoT streams, gates, and data pipelines
 - Utility functions and shared libraries
 
 **For complex applications with logic -> Use `.hsplus`**
+
 - Full programming language with types
 - Physics, joints, state machines
 - Module system with import/export
@@ -770,6 +790,7 @@ composition "Main" {
 ## CLI Commands by File Type
 
 ### `.holo` Files
+
 ```bash
 holoscript parse scene.holo                    # Validate syntax
 holoscript compile scene.holo --target unity   # Compile to Unity
@@ -779,6 +800,7 @@ holoscript screenshot scene.holo               # Generate preview image
 ```
 
 ### `.hs` Files
+
 ```bash
 holoscript parse guard.hs                      # Validate agent/template
 holoscript parse Button.hs                     # Validate component
@@ -786,6 +808,7 @@ holoscript parse Button.hs                     # Validate component
 ```
 
 ### `.hsplus` Files
+
 ```bash
 holoscript parse game.hsplus                   # Validate module
 holoscript compile game.hsplus --target unity   # Compile application
@@ -799,11 +822,11 @@ holoscript compile robot.hsplus --target usd    # USD export
 
 ### Parser Performance
 
-| File Type | Parser | Relative Speed | Memory Usage |
-|-----------|--------|----------------|--------------|
-| `.holo` | `HoloCompositionParser` | Fastest | Lowest |
-| `.hs` | `HoloScriptPlusParser` | Fast | Medium |
-| `.hsplus` | `HoloScriptPlusParser` | Medium | Higher (module resolution) |
+| File Type | Parser                  | Relative Speed | Memory Usage               |
+| --------- | ----------------------- | -------------- | -------------------------- |
+| `.holo`   | `HoloCompositionParser` | Fastest        | Lowest                     |
+| `.hs`     | `HoloScriptPlusParser`  | Fast           | Medium                     |
+| `.hsplus` | `HoloScriptPlusParser`  | Medium         | Higher (module resolution) |
 
 **Recommendation**: Use `.holo` for maximum parsing speed and lowest memory footprint in production.
 
@@ -812,6 +835,7 @@ holoscript compile robot.hsplus --target usd    # USD export
 ## Common Mistakes
 
 ### Mistake 1: Using wrong comment syntax
+
 ```holo
 # WRONG - This is Python/Ruby syntax
 # composition "Scene" {}  # Syntax error
@@ -821,6 +845,7 @@ composition "Scene" {}
 ```
 
 ### Mistake 2: Mixing syntax styles in `.holo`
+
 ```holo
 // WRONG - Don't mix .hs syntax in .holo files
 composition "Scene" {
@@ -839,6 +864,7 @@ composition "Scene" {
 ```
 
 ### Mistake 3: Using `.hsplus` when `.holo` would suffice
+
 ```hsplus
 // OVERCOMPLICATED - Unnecessary module system
 export module SimpleScene {
@@ -856,6 +882,7 @@ composition "My Scene" {
 ```
 
 ### Mistake 4: Putting agent logic in `.holo` instead of `.hs`
+
 ```holo
 // WRONG - Complex agent logic belongs in .hs files
 composition "Scene" {

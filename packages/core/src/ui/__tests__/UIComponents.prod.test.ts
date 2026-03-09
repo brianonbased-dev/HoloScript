@@ -5,7 +5,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createButton, createSlider, createPanel, createTextInput, createScrollView } from '../UIComponents';
+import {
+  createButton,
+  createSlider,
+  createPanel,
+  createTextInput,
+  createScrollView,
+} from '../UIComponents';
 
 describe('UIComponents — Production', () => {
   describe('createButton', () => {

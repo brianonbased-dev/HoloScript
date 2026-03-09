@@ -4,7 +4,9 @@ import { PostProcessingStack } from '../rendering/PostProcessing';
 describe('PostProcessingStack', () => {
   let pp: PostProcessingStack;
 
-  beforeEach(() => { pp = new PostProcessingStack(); });
+  beforeEach(() => {
+    pp = new PostProcessingStack();
+  });
 
   it('starts with 1 default profile', () => {
     expect(pp.getProfileCount()).toBe(1);
@@ -63,7 +65,7 @@ describe('PostProcessingStack', () => {
     pp.loadPreset('retro', 'b');
     const at0 = pp.blendProfiles('a', 'b', 0)!;
     const at1 = pp.blendProfiles('a', 'b', 1)!;
-    expect(at0.toneMapping).toBe('filmic');   // from A
+    expect(at0.toneMapping).toBe('filmic'); // from A
     expect(at1.toneMapping).toBe('reinhard'); // from B
   });
 

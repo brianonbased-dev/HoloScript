@@ -5,7 +5,9 @@ import { describe, it, expect } from 'vitest';
 import {
   CinematicDirector,
   CollaborationSession,
-  createSandbox, executeSandbox, destroySandbox,
+  createSandbox,
+  executeSandbox,
+  destroySandbox,
 } from '../index';
 import { createDefaultPolicy, createStrictPolicy } from '../security/SecurityPolicy';
 
@@ -15,7 +17,11 @@ describe('CinematicDirector exports', () => {
     const scene = dir.createScene('s1', 'Test Scene', 5);
     expect(scene.id).toBe('s1');
     expect(scene.duration).toBe(5);
-    dir.addActorMark('s1', { actorId: 'hero', position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } });
+    dir.addActorMark('s1', {
+      actorId: 'hero',
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+    });
     expect(dir.getScene('s1')?.actors.length).toBe(1);
   });
 
@@ -57,7 +63,10 @@ describe('CinematicDirector exports', () => {
     dir.createScene('s1', 'Test', 5);
     dir.addCue('s1', { id: 'c1', time: 0.1, type: 'dialogue', data: { text: 'Hello' } });
     let fired = false;
-    dir.onCue('dialogue', (cue) => { fired = true; expect(cue.data.text).toBe('Hello'); });
+    dir.onCue('dialogue', (cue) => {
+      fired = true;
+      expect(cue.data.text).toBe('Hello');
+    });
     dir.playScene('s1');
     dir.update(0.2);
     expect(fired).toBe(true);
@@ -67,21 +76,38 @@ describe('CinematicDirector exports', () => {
 describe('CollaborationSession exports', () => {
   it('creates session with local peer', () => {
     const session = new CollaborationSession({
-      sessionId: 'test', workspaceId: 'ws',
+      sessionId: 'test',
+      workspaceId: 'ws',
       localPeer: { peerId: 'me', displayName: 'Me', color: '#fff', platform: 'ide' },
     });
     expect(session.getState()).toBeDefined();
   });
 
   it('adds and removes peers', () => {
-    const session = new CollaborationSession({ sessionId: 'test', workspaceId: 'ws', localPeer: { peerId: 'me', displayName: 'Me', color: '#fff', platform: 'ide' } });
-    session.addPeer({ peerId: 'p1', displayName: 'Alice', color: '#f00', openDocuments: [], connectionQuality: 0.9, platform: 'vr', joinedAt: Date.now() });
+    const session = new CollaborationSession({
+      sessionId: 'test',
+      workspaceId: 'ws',
+      localPeer: { peerId: 'me', displayName: 'Me', color: '#fff', platform: 'ide' },
+    });
+    session.addPeer({
+      peerId: 'p1',
+      displayName: 'Alice',
+      color: '#f00',
+      openDocuments: [],
+      connectionQuality: 0.9,
+      platform: 'vr',
+      joinedAt: Date.now(),
+    });
     expect(session.getPeerCount()).toBeGreaterThanOrEqual(1);
     session.removePeer('p1');
   });
 
   it('getStats returns session statistics', () => {
-    const session = new CollaborationSession({ sessionId: 'test', workspaceId: 'ws', localPeer: { peerId: 'me', displayName: 'Me', color: '#fff', platform: 'ide' } });
+    const session = new CollaborationSession({
+      sessionId: 'test',
+      workspaceId: 'ws',
+      localPeer: { peerId: 'me', displayName: 'Me', color: '#fff', platform: 'ide' },
+    });
     const stats = session.getStats();
     expect(stats).toBeDefined();
     expect(stats.state).toBeDefined();
@@ -90,7 +116,11 @@ describe('CollaborationSession exports', () => {
   });
 
   it('getPeers returns array', () => {
-    const session = new CollaborationSession({ sessionId: 'test', workspaceId: 'ws', localPeer: { peerId: 'me', displayName: 'Me', color: '#fff', platform: 'ide' } });
+    const session = new CollaborationSession({
+      sessionId: 'test',
+      workspaceId: 'ws',
+      localPeer: { peerId: 'me', displayName: 'Me', color: '#fff', platform: 'ide' },
+    });
     expect(Array.isArray(session.getPeers())).toBe(true);
   });
 });

@@ -808,7 +808,12 @@ export class VisualEditor {
   /**
    * Add history entry
    */
-  private addToHistory(action: HistoryEntry['action'], entityId: string, previousState?: any, newState?: any): void {
+  private addToHistory(
+    action: HistoryEntry['action'],
+    entityId: string,
+    previousState?: any,
+    newState?: any
+  ): void {
     // Remove entries after current index (if we've undone)
     this.history = this.history.slice(0, this.historyIndex + 1);
 
@@ -1181,7 +1186,9 @@ export class VisualEditor {
    * Get selected entities
    */
   public getSelectedEntities(): EditorEntity[] {
-    return Array.from(this.selectedEntityIds).map((id) => this.entities.get(id)!).filter(Boolean);
+    return Array.from(this.selectedEntityIds)
+      .map((id) => this.entities.get(id)!)
+      .filter(Boolean);
   }
 
   /**

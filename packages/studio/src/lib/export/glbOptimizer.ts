@@ -220,10 +220,7 @@ export class OptimizedGLBLoader {
   /**
    * Load GLB with caching and progressive loading
    */
-  async load(
-    url: string,
-    onProgress?: (progress: LoadProgress) => void
-  ): Promise<LoadResult> {
+  async load(url: string, onProgress?: (progress: LoadProgress) => void): Promise<LoadResult> {
     const startTime = performance.now();
     let cacheHit = false;
     let arrayBuffer: ArrayBuffer;
@@ -285,9 +282,7 @@ export class OptimizedGLBLoader {
     });
 
     // Log performance
-    console.log(
-      `[GLB Load] ${url} loaded in ${loadTime.toFixed(2)}ms (cache: ${cacheHit})`
-    );
+    console.log(`[GLB Load] ${url} loaded in ${loadTime.toFixed(2)}ms (cache: ${cacheHit})`);
 
     return {
       gltf,

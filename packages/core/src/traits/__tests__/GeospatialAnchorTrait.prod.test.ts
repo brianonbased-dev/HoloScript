@@ -90,7 +90,10 @@ describe('geospatialAnchorHandler.onAttach', () => {
   it('auto_resolve=true → state=resolving and emits geospatial_anchor_request', () => {
     const { node, ctx } = attach({ auto_resolve: true, latitude: 37.7, longitude: -122.4 });
     expect((node as any).__geospatialAnchorState.state).toBe('resolving');
-    expect(ctx.emit).toHaveBeenCalledWith('geospatial_anchor_request', expect.objectContaining({ latitude: 37.7, longitude: -122.4 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'geospatial_anchor_request',
+      expect.objectContaining({ latitude: 37.7, longitude: -122.4 })
+    );
   });
 
   it('auto_resolve=false → does NOT emit geospatial_anchor_request', () => {
@@ -117,7 +120,10 @@ describe('geospatialAnchorHandler.onDetach', () => {
     (node as any).__geospatialAnchorState.anchorHandle = { handle: 42 };
     ctx.emit.mockClear();
     geospatialAnchorHandler.onDetach!(node as any, config, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('geospatial_anchor_release', expect.objectContaining({ handle: { handle: 42 } }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'geospatial_anchor_release',
+      expect.objectContaining({ handle: { handle: 42 } })
+    );
   });
 
   it('does NOT emit geospatial_anchor_release when anchorHandle is null', () => {
@@ -201,7 +207,12 @@ describe('geospatialAnchorHandler.onEvent — geospatial_anchor_resolved', () =>
   it('sets state=resolved', () => {
     const { node, ctx, config } = attach({ auto_resolve: false });
     geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'geospatial_anchor_resolved', handle: 'h1', latitude: 37.7, longitude: -122.4, altitude: 10, accuracy: 3,
+      type: 'geospatial_anchor_resolved',
+      handle: 'h1',
+      latitude: 37.7,
+      longitude: -122.4,
+      altitude: 10,
+      accuracy: 3,
     });
     expect((node as any).__geospatialAnchorState.state).toBe('resolved');
   });
@@ -209,18 +220,35 @@ describe('geospatialAnchorHandler.onEvent — geospatial_anchor_resolved', () =>
   it('populates resolvedPosition', () => {
     const { node, ctx, config } = attach({ auto_resolve: false });
     geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'geospatial_anchor_resolved', handle: 'h1', latitude: 37.7, longitude: -122.4, altitude: 10, accuracy: 5,
+      type: 'geospatial_anchor_resolved',
+      handle: 'h1',
+      latitude: 37.7,
+      longitude: -122.4,
+      altitude: 10,
+      accuracy: 5,
     });
-    expect((node as any).__geospatialAnchorState.resolvedPosition).toEqual({ lat: 37.7, lon: -122.4, alt: 10 });
+    expect((node as any).__geospatialAnchorState.resolvedPosition).toEqual({
+      lat: 37.7,
+      lon: -122.4,
+      alt: 10,
+    });
   });
 
   it('emits on_geospatial_anchor_resolved', () => {
     const { node, ctx, config } = attach({ auto_resolve: false });
     ctx.emit.mockClear();
     geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'geospatial_anchor_resolved', handle: 'h1', latitude: 1, longitude: 2, altitude: 0, accuracy: 2,
+      type: 'geospatial_anchor_resolved',
+      handle: 'h1',
+      latitude: 1,
+      longitude: 2,
+      altitude: 0,
+      accuracy: 2,
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_geospatial_anchor_resolved', expect.objectContaining({ accuracy: 2 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_geospatial_anchor_resolved',
+      expect.objectContaining({ accuracy: 2 })
+    );
   });
 });
 
@@ -230,7 +258,10 @@ describe('geospatialAnchorHandler.onEvent — geospatial_pose_update', () => {
   it('state=tracking when accuracy <= accuracy_threshold', () => {
     const { node, ctx, config } = attach({ auto_resolve: false, accuracy_threshold: 10 });
     geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'geospatial_pose_update', localPosition: { x: 0, y: 0, z: 0 }, accuracy: 5, headingAccuracy: 1,
+      type: 'geospatial_pose_update',
+      localPosition: { x: 0, y: 0, z: 0 },
+      accuracy: 5,
+      headingAccuracy: 1,
     });
     expect((node as any).__geospatialAnchorState.state).toBe('tracking');
   });
@@ -238,7 +269,10 @@ describe('geospatialAnchorHandler.onEvent — geospatial_pose_update', () => {
   it('state=limited when accuracy > accuracy_threshold', () => {
     const { node, ctx, config } = attach({ auto_resolve: false, accuracy_threshold: 10 });
     geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'geospatial_pose_update', localPosition: { x: 0, y: 0, z: 0 }, accuracy: 15, headingAccuracy: 3,
+      type: 'geospatial_pose_update',
+      localPosition: { x: 0, y: 0, z: 0 },
+      accuracy: 15,
+      headingAccuracy: 3,
     });
     expect((node as any).__geospatialAnchorState.state).toBe('limited');
   });
@@ -246,7 +280,10 @@ describe('geospatialAnchorHandler.onEvent — geospatial_pose_update', () => {
   it('updates localPosition', () => {
     const { node, ctx, config } = attach({ auto_resolve: false });
     geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'geospatial_pose_update', localPosition: { x: 10, y: 2, z: -5 }, accuracy: 3, headingAccuracy: 0.5,
+      type: 'geospatial_pose_update',
+      localPosition: { x: 10, y: 2, z: -5 },
+      accuracy: 3,
+      headingAccuracy: 0.5,
     });
     expect((node as any).__geospatialAnchorState.localPosition).toEqual({ x: 10, y: 2, z: -5 });
   });
@@ -256,26 +293,40 @@ describe('geospatialAnchorHandler.onEvent — geospatial_pose_update', () => {
 
 describe('geospatialAnchorHandler.onEvent — geospatial_tracking_lost', () => {
   it('increments retryCount and re-emits geospatial_anchor_request when retries remain', () => {
-    const { node, ctx, config } = attach({ auto_resolve: false, retry_on_lost: true, max_retries: 3 });
+    const { node, ctx, config } = attach({
+      auto_resolve: false,
+      retry_on_lost: true,
+      max_retries: 3,
+    });
     ctx.emit.mockClear();
-    geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, { type: 'geospatial_tracking_lost' });
+    geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'geospatial_tracking_lost',
+    });
     expect((node as any).__geospatialAnchorState.retryCount).toBe(1);
     expect((node as any).__geospatialAnchorState.state).toBe('resolving');
     expect(ctx.emit).toHaveBeenCalledWith('geospatial_anchor_request', expect.any(Object));
   });
 
   it('emits on_geospatial_anchor_lost when retryCount >= max_retries', () => {
-    const { node, ctx, config } = attach({ auto_resolve: false, retry_on_lost: true, max_retries: 2 });
+    const { node, ctx, config } = attach({
+      auto_resolve: false,
+      retry_on_lost: true,
+      max_retries: 2,
+    });
     (node as any).__geospatialAnchorState.retryCount = 2;
     ctx.emit.mockClear();
-    geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, { type: 'geospatial_tracking_lost' });
+    geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'geospatial_tracking_lost',
+    });
     expect(ctx.emit).toHaveBeenCalledWith('on_geospatial_anchor_lost', expect.any(Object));
   });
 
   it('emits on_geospatial_anchor_lost immediately when retry_on_lost=false', () => {
     const { node, ctx, config } = attach({ auto_resolve: false, retry_on_lost: false });
     ctx.emit.mockClear();
-    geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, { type: 'geospatial_tracking_lost' });
+    geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'geospatial_tracking_lost',
+    });
     expect(ctx.emit).toHaveBeenCalledWith('on_geospatial_anchor_lost', expect.any(Object));
   });
 });
@@ -287,14 +338,18 @@ describe('geospatialAnchorHandler.onEvent — geospatial_anchor_resolve (manual)
     const { node, ctx, config } = attach({ auto_resolve: false });
     (node as any).__geospatialAnchorState.retryCount = 2;
     ctx.emit.mockClear();
-    geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, { type: 'geospatial_anchor_resolve' });
+    geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'geospatial_anchor_resolve',
+    });
     expect((node as any).__geospatialAnchorState.retryCount).toBe(0);
     expect(ctx.emit).toHaveBeenCalledWith('geospatial_anchor_request', expect.any(Object));
   });
 
   it('sets state=resolving', () => {
     const { node, ctx, config } = attach({ auto_resolve: false });
-    geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, { type: 'geospatial_anchor_resolve' });
+    geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'geospatial_anchor_resolve',
+    });
     expect((node as any).__geospatialAnchorState.state).toBe('resolving');
   });
 });
@@ -307,7 +362,10 @@ describe('geospatialAnchorHandler.onEvent — geospatial_query_distance', () => 
     (node as any).__geospatialAnchorState.resolvedPosition = { lat: 0, lon: 0, alt: 0 };
     ctx.emit.mockClear();
     geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'geospatial_query_distance', queryId: 'q1', latitude: 0, longitude: 1,
+      type: 'geospatial_query_distance',
+      queryId: 'q1',
+      latitude: 0,
+      longitude: 1,
     });
     const call = ctx.emit.mock.calls.find(([ev]: string[]) => ev === 'geospatial_distance_result');
     expect(call).toBeDefined();
@@ -321,7 +379,10 @@ describe('geospatialAnchorHandler.onEvent — geospatial_query_distance', () => 
     const { node, ctx, config } = attach({ auto_resolve: false });
     ctx.emit.mockClear();
     geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'geospatial_query_distance', queryId: 'q2', latitude: 0, longitude: 1,
+      type: 'geospatial_query_distance',
+      queryId: 'q2',
+      latitude: 0,
+      longitude: 1,
     });
     expect(ctx.emit).not.toHaveBeenCalledWith('geospatial_distance_result', expect.anything());
   });

@@ -338,7 +338,8 @@ export function generateTenantConfig(params: {
       enabled: true,
       defaultRole: 'viewer',
       allowCustomRoles: tier !== 'free',
-      maxCustomRoles: tier === 'free' ? 0 : tier === 'starter' ? 5 : tier === 'professional' ? 15 : 50,
+      maxCustomRoles:
+        tier === 'free' ? 0 : tier === 'starter' ? 5 : tier === 'professional' ? 15 : 50,
       requireMfaForAdmin: tier === 'enterprise' || tier === 'unlimited',
       logAccessChecks: tier !== 'free',
       ownerIpAllowlist: [],
@@ -385,7 +386,8 @@ export function generateTenantConfig(params: {
       tenantId,
       enabled: tier !== 'free',
       maxEntries: tier === 'free' ? 1000 : tier === 'starter' ? 10_000 : 100_000,
-      retentionDays: tier === 'free' ? 7 : tier === 'starter' ? 30 : tier === 'professional' ? 90 : 365,
+      retentionDays:
+        tier === 'free' ? 7 : tier === 'starter' ? 30 : tier === 'professional' ? 90 : 365,
       minSeverity: tier === 'free' ? 'warning' : 'info',
       enableHashChain: compliance.length > 0,
       logReads: tier === 'enterprise' || tier === 'unlimited',
@@ -465,9 +467,4 @@ function getQuotaDefault(tier: TenantTier, key: string): number {
 // EXPORTS
 // =============================================================================
 
-export {
-  TIER_FEATURE_FLAGS,
-  TIER_COMPLIANCE,
-  TIER_ENFORCEMENT,
-  QUOTA_DEFAULTS,
-};
+export { TIER_FEATURE_FLAGS, TIER_COMPLIANCE, TIER_ENFORCEMENT, QUOTA_DEFAULTS };

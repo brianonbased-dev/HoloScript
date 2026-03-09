@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { sharedAnchorHandler } from '../SharedAnchorTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('SharedAnchorTrait', () => {
   let node: Record<string, unknown>;
@@ -48,7 +55,10 @@ describe('SharedAnchorTrait', () => {
   });
 
   it('upload failed sets error state', () => {
-    sendEvent(sharedAnchorHandler, node, cfg, ctx, { type: 'shared_anchor_upload_failed', error: 'timeout' });
+    sendEvent(sharedAnchorHandler, node, cfg, ctx, {
+      type: 'shared_anchor_upload_failed',
+      error: 'timeout',
+    });
     expect((node as any).__sharedAnchorState.state).toBe('error');
   });
 
@@ -64,31 +74,61 @@ describe('SharedAnchorTrait', () => {
   });
 
   it('user_joined adds user up to max', () => {
-    sendEvent(sharedAnchorHandler, node, cfg, ctx, { type: 'shared_anchor_upload_complete', cloudAnchorId: 'c1', quality: 1 });
-    sendEvent(sharedAnchorHandler, node, cfg, ctx, { type: 'shared_anchor_user_joined', userId: 'u1' });
-    sendEvent(sharedAnchorHandler, node, cfg, ctx, { type: 'shared_anchor_user_joined', userId: 'u2' });
-    sendEvent(sharedAnchorHandler, node, cfg, ctx, { type: 'shared_anchor_user_joined', userId: 'u3' });
+    sendEvent(sharedAnchorHandler, node, cfg, ctx, {
+      type: 'shared_anchor_upload_complete',
+      cloudAnchorId: 'c1',
+      quality: 1,
+    });
+    sendEvent(sharedAnchorHandler, node, cfg, ctx, {
+      type: 'shared_anchor_user_joined',
+      userId: 'u1',
+    });
+    sendEvent(sharedAnchorHandler, node, cfg, ctx, {
+      type: 'shared_anchor_user_joined',
+      userId: 'u2',
+    });
+    sendEvent(sharedAnchorHandler, node, cfg, ctx, {
+      type: 'shared_anchor_user_joined',
+      userId: 'u3',
+    });
     expect((node as any).__sharedAnchorState.sharedUsers.length).toBe(3);
     expect(getEventCount(ctx, 'on_user_joined')).toBe(3);
   });
 
   it('rejects user when max reached', () => {
-    sendEvent(sharedAnchorHandler, node, cfg, ctx, { type: 'shared_anchor_upload_complete', cloudAnchorId: 'c1', quality: 1 });
+    sendEvent(sharedAnchorHandler, node, cfg, ctx, {
+      type: 'shared_anchor_upload_complete',
+      cloudAnchorId: 'c1',
+      quality: 1,
+    });
     for (let i = 0; i < 4; i++) {
-      sendEvent(sharedAnchorHandler, node, cfg, ctx, { type: 'shared_anchor_user_joined', userId: `u${i}` });
+      sendEvent(sharedAnchorHandler, node, cfg, ctx, {
+        type: 'shared_anchor_user_joined',
+        userId: `u${i}`,
+      });
     }
     expect(getEventCount(ctx, 'shared_anchor_user_rejected')).toBe(1);
   });
 
   it('user_left removes user', () => {
-    sendEvent(sharedAnchorHandler, node, cfg, ctx, { type: 'shared_anchor_user_joined', userId: 'u1' });
-    sendEvent(sharedAnchorHandler, node, cfg, ctx, { type: 'shared_anchor_user_left', userId: 'u1' });
+    sendEvent(sharedAnchorHandler, node, cfg, ctx, {
+      type: 'shared_anchor_user_joined',
+      userId: 'u1',
+    });
+    sendEvent(sharedAnchorHandler, node, cfg, ctx, {
+      type: 'shared_anchor_user_left',
+      userId: 'u1',
+    });
     expect((node as any).__sharedAnchorState.sharedUsers.length).toBe(0);
     expect(getEventCount(ctx, 'on_user_left')).toBe(1);
   });
 
   it('sync emits periodically when shared', () => {
-    sendEvent(sharedAnchorHandler, node, cfg, ctx, { type: 'shared_anchor_upload_complete', cloudAnchorId: 'c1', quality: 1 });
+    sendEvent(sharedAnchorHandler, node, cfg, ctx, {
+      type: 'shared_anchor_upload_complete',
+      cloudAnchorId: 'c1',
+      quality: 1,
+    });
     updateTrait(sharedAnchorHandler, node, cfg, ctx, 1.1); // > 1000ms
     expect(getEventCount(ctx, 'shared_anchor_sync')).toBe(1);
   });
@@ -99,7 +139,11 @@ describe('SharedAnchorTrait', () => {
   });
 
   it('detach leaves when shared', () => {
-    sendEvent(sharedAnchorHandler, node, cfg, ctx, { type: 'shared_anchor_upload_complete', cloudAnchorId: 'c1', quality: 1 });
+    sendEvent(sharedAnchorHandler, node, cfg, ctx, {
+      type: 'shared_anchor_upload_complete',
+      cloudAnchorId: 'c1',
+      quality: 1,
+    });
     sharedAnchorHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect(getEventCount(ctx, 'shared_anchor_leave')).toBe(1);
     expect((node as any).__sharedAnchorState).toBeUndefined();

@@ -6,8 +6,8 @@ import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 
 const RightPanelSidebar = dynamic(
-  () => import('./panels/RightPanelSidebar').then(m => ({ default: m.RightPanelSidebar })),
-  { ssr: false },
+  () => import('./panels/RightPanelSidebar').then((m) => ({ default: m.RightPanelSidebar })),
+  { ssr: false }
 );
 
 // ═══════════════════════════════════════════════════════════════════
@@ -65,7 +65,9 @@ function Breadcrumbs({ pathname }: { pathname: string }) {
 
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-studio-muted">
-      <Link href="/" className="transition hover:text-studio-text">Home</Link>
+      <Link href="/" className="transition hover:text-studio-text">
+        Home
+      </Link>
       {segments.map((seg, i) => {
         const href = '/' + segments.slice(0, i + 1).join('/');
         const isLast = i === segments.length - 1;
@@ -76,7 +78,9 @@ function Breadcrumbs({ pathname }: { pathname: string }) {
             {isLast ? (
               <span className="text-studio-text font-medium">{label}</span>
             ) : (
-              <Link href={href} className="transition hover:text-studio-text">{label}</Link>
+              <Link href={href} className="transition hover:text-studio-text">
+                {label}
+              </Link>
             )}
           </span>
         );
@@ -89,7 +93,17 @@ function Breadcrumbs({ pathname }: { pathname: string }) {
 // Sidebar
 // ═══════════════════════════════════════════════════════════════════
 
-function SidebarLink({ item, isActive, collapsed, onClick }: { item: NavItem; isActive: boolean; collapsed: boolean; onClick?: () => void }) {
+function SidebarLink({
+  item,
+  isActive,
+  collapsed,
+  onClick,
+}: {
+  item: NavItem;
+  isActive: boolean;
+  collapsed: boolean;
+  onClick?: () => void;
+}) {
   return (
     <Link
       href={item.href}
@@ -97,9 +111,10 @@ function SidebarLink({ item, isActive, collapsed, onClick }: { item: NavItem; is
       onClick={onClick}
       className={`
         flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition min-h-[44px]
-        ${isActive
-          ? 'bg-studio-accent/10 text-studio-accent font-medium'
-          : 'text-studio-muted hover:bg-studio-panel hover:text-studio-text'
+        ${
+          isActive
+            ? 'bg-studio-accent/10 text-studio-accent font-medium'
+            : 'text-studio-muted hover:bg-studio-panel hover:text-studio-text'
         }
         ${collapsed ? 'justify-center px-2' : ''}
       `}
@@ -167,11 +182,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className={`
           flex flex-col border-r border-studio-border bg-studio-bg
           transition-all duration-200
-          ${isMobile
-            ? `fixed inset-y-0 left-0 z-40 w-64 shadow-2xl transform ${
-                mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-              }`
-            : collapsed ? 'w-14' : 'w-56'
+          ${
+            isMobile
+              ? `fixed inset-y-0 left-0 z-40 w-64 shadow-2xl transform ${
+                  mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+                }`
+              : collapsed
+                ? 'w-14'
+                : 'w-56'
           }
         `}
       >
@@ -205,7 +223,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Primary Nav */}
         <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
-          {NAV_ITEMS.map(item => (
+          {NAV_ITEMS.map((item) => (
             <SidebarLink
               key={item.href}
               item={item}
@@ -218,7 +236,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Separator */}
           <div className="my-3 border-t border-studio-border" />
 
-          {SECONDARY_ITEMS.map(item => (
+          {SECONDARY_ITEMS.map((item) => (
             <SidebarLink
               key={item.href}
               item={item}
@@ -251,9 +269,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </header>
 
           {/* Page content */}
-          <div className="flex-1 overflow-auto">
-            {children}
-          </div>
+          <div className="flex-1 overflow-auto">{children}</div>
         </div>
 
         {/* Right panel sidebar — Safety / Marketplace / Platform / Traits */}

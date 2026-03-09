@@ -13,9 +13,17 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 import { TraitCompositor } from '../TraitCompositor';
 import { registerAllPresets } from '../index';
-import { ProceduralGeometryResolver, GEOMETRY_TRAITS } from '../resolvers/ProceduralGeometryResolver';
+import {
+  ProceduralGeometryResolver,
+  GEOMETRY_TRAITS,
+} from '../resolvers/ProceduralGeometryResolver';
 import { Text3DAdapter, TEXT_TO_3D_TRAITS } from '../resolvers/Text3DAdapter';
-import { AssetManifestBuilder, ManifestResolver, parseManifest, ManifestValidationError } from '../resolvers/AssetManifest';
+import {
+  AssetManifestBuilder,
+  ManifestResolver,
+  parseManifest,
+  ManifestValidationError,
+} from '../resolvers/AssetManifest';
 import { AssetResolverPipeline, type PrimitiveFallback } from '../resolvers/AssetResolverPipeline';
 import { RateLimiter, RateLimitExceededError } from '../resolvers/RateLimiter';
 import { ProceduralResolver } from '../resolvers/ProceduralResolver';
@@ -287,17 +295,22 @@ describe('AssetManifest', () => {
     });
 
     it('throws on missing name', () => {
-      expect(() => parseManifest({ version: '1.0.0', entries: [] })).toThrow(ManifestValidationError);
+      expect(() => parseManifest({ version: '1.0.0', entries: [] })).toThrow(
+        ManifestValidationError
+      );
     });
 
     it('throws when entries is not an array', () => {
-      expect(() => parseManifest({ version: '1.0.0', name: 'x', entries: 'bad' })).toThrow(ManifestValidationError);
+      expect(() => parseManifest({ version: '1.0.0', name: 'x', entries: 'bad' })).toThrow(
+        ManifestValidationError
+      );
     });
 
     it('throws on invalid entry type', () => {
       expect(() =>
         parseManifest({
-          version: '1.0.0', name: 'x',
+          version: '1.0.0',
+          name: 'x',
           entries: [{ trait: 'chair', url: './a.glb', type: 'invalid' }],
         })
       ).toThrow(ManifestValidationError);
@@ -306,7 +319,8 @@ describe('AssetManifest', () => {
     it('throws on missing entry url', () => {
       expect(() =>
         parseManifest({
-          version: '1.0.0', name: 'x',
+          version: '1.0.0',
+          name: 'x',
           entries: [{ trait: 'chair', type: 'model' }],
         })
       ).toThrow(ManifestValidationError);
@@ -324,7 +338,12 @@ describe('AssetManifest', () => {
       expect(doc.name).toBe('@team/assets');
       expect(doc.baseUrl).toBe('https://cdn.example/');
       expect(doc.entries).toHaveLength(2);
-      expect(doc.entries[0]).toEqual({ trait: 'chair', url: 'chair.glb', type: 'model', metadata: undefined });
+      expect(doc.entries[0]).toEqual({
+        trait: 'chair',
+        url: 'chair.glb',
+        type: 'model',
+        metadata: undefined,
+      });
     });
 
     it('toJSON() produces valid JSON', () => {
@@ -355,7 +374,11 @@ describe('AssetManifest', () => {
     });
 
     it('fromJSON() parses and constructs', () => {
-      const raw = { version: '1.0.0', name: 'x', entries: [{ trait: 'sword', url: 'sword.glb', type: 'model' }] };
+      const raw = {
+        version: '1.0.0',
+        name: 'x',
+        entries: [{ trait: 'sword', url: 'sword.glb', type: 'model' }],
+      };
       const resolver = ManifestResolver.fromJSON(raw);
       expect(resolver.canResolve('sword', {})).toBe(true);
     });
@@ -417,7 +440,10 @@ describe('AssetResolverPipeline — offline mode and fallback', () => {
       name: 'ai-texture',
       priority: 10,
       canResolve: () => true,
-      resolve: async () => { apiCalled = true; return { type: 'texture' as const }; },
+      resolve: async () => {
+        apiCalled = true;
+        return { type: 'texture' as const };
+      },
     };
 
     const pipeline = new AssetResolverPipeline({ offline: true });
@@ -457,19 +483,19 @@ describe('AssetResolverPipeline — offline mode and fallback', () => {
 
   it('primitive fallback selects cylinder for tree-like traits', async () => {
     const pipeline = new AssetResolverPipeline();
-    const result = await pipeline.resolve('pine_tower', {}) as PrimitiveFallback;
+    const result = (await pipeline.resolve('pine_tower', {})) as PrimitiveFallback;
     expect(result.shape).toBe('cylinder');
   });
 
   it('primitive fallback selects sphere for rock-like traits', async () => {
     const pipeline = new AssetResolverPipeline();
-    const result = await pipeline.resolve('big_rock_here', {}) as PrimitiveFallback;
+    const result = (await pipeline.resolve('big_rock_here', {})) as PrimitiveFallback;
     expect(result.shape).toBe('sphere');
   });
 
   it('primitive fallback selects plane for terrain traits', async () => {
     const pipeline = new AssetResolverPipeline();
-    const result = await pipeline.resolve('flat_ground', {}) as PrimitiveFallback;
+    const result = (await pipeline.resolve('flat_ground', {})) as PrimitiveFallback;
     expect(result.shape).toBe('plane');
   });
 
@@ -499,9 +525,13 @@ describe('AssetResolverPipeline — offline mode and fallback', () => {
     pipeline.setOffline(true);
     let called = false;
     pipeline.register({
-      name: 'ai-texture', priority: 5,
+      name: 'ai-texture',
+      priority: 5,
       canResolve: () => true,
-      resolve: async () => { called = true; return { type: 'texture' as const }; },
+      resolve: async () => {
+        called = true;
+        return { type: 'texture' as const };
+      },
     });
     await pipeline.resolve('test', {});
     expect(called).toBe(false);
@@ -509,9 +539,24 @@ describe('AssetResolverPipeline — offline mode and fallback', () => {
 
   it('apiPluginCount counts only API plugins', () => {
     const pipeline = new AssetResolverPipeline();
-    pipeline.register({ name: 'ai-texture', priority: 10, canResolve: () => false, resolve: async () => ({ type: 'texture' as const }) });
-    pipeline.register({ name: 'text-to-3d', priority: 20, canResolve: () => false, resolve: async () => ({ type: 'model' as const }) });
-    pipeline.register({ name: 'procedural', priority: 5, canResolve: () => false, resolve: async () => ({ type: 'texture' as const }) });
+    pipeline.register({
+      name: 'ai-texture',
+      priority: 10,
+      canResolve: () => false,
+      resolve: async () => ({ type: 'texture' as const }),
+    });
+    pipeline.register({
+      name: 'text-to-3d',
+      priority: 20,
+      canResolve: () => false,
+      resolve: async () => ({ type: 'model' as const }),
+    });
+    pipeline.register({
+      name: 'procedural',
+      priority: 5,
+      canResolve: () => false,
+      resolve: async () => ({ type: 'texture' as const }),
+    });
     expect(pipeline.apiPluginCount).toBe(2);
     expect(pipeline.pluginCount).toBe(3);
   });

@@ -24,17 +24,17 @@ Perfect for VR/AR platforms, corporate training, robotics, games, digital twins,
 
 Jump straight to real-world examples:
 
-| Use Case | Description | View Example |
-|----------|-------------|--------------|
+| Use Case                  | Description                                               | View Example                                                           |
+| ------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------- |
 | 🏢 **Corporate Training** | VR safety training with interactive hazard identification | [VR Training Simulation →](./examples/general/vr-training-simulation/) |
-| 🛋️ **E-Commerce AR** | "Try before you buy" furniture preview on mobile | [AR Furniture Preview →](./examples/general/ar-furniture-preview/) |
-| 🎨 **Museums & Culture** | Virtual art gallery with audio guides | [Virtual Art Gallery →](./examples/general/virtual-art-gallery/) |
-| 🎮 **Gaming** | Fast-paced VR shooter with physics and AI | [VR Game Demo →](./examples/general/vr-game-demo/) |
-| 🤖 **Robotics** | Industrial robot arm with ROS2/Gazebo export | [Robotics Simulation →](./examples/specialized/robotics/) |
-| 🏭 **IoT/Industry** | Smart factory digital twin with Azure integration | [IoT Digital Twin →](./examples/specialized/iot/) |
-| 👥 **Multiplayer** | Collaborative VR meeting space with voice chat | [Multiplayer VR →](./examples/specialized/multiplayer/) |
-| 📱 **Quest/Mobile** | Platform-optimized VR with Quest 2/3 features | [Unity Quest →](./examples/specialized/unity-quest/) |
-| 🌐 **Social VR** | VRChat world with mirrors, video, and Udon# | [VRChat World →](./examples/specialized/vrchat/) |
+| 🛋️ **E-Commerce AR**      | "Try before you buy" furniture preview on mobile          | [AR Furniture Preview →](./examples/general/ar-furniture-preview/)     |
+| 🎨 **Museums & Culture**  | Virtual art gallery with audio guides                     | [Virtual Art Gallery →](./examples/general/virtual-art-gallery/)       |
+| 🎮 **Gaming**             | Fast-paced VR shooter with physics and AI                 | [VR Game Demo →](./examples/general/vr-game-demo/)                     |
+| 🤖 **Robotics**           | Industrial robot arm with ROS2/Gazebo export              | [Robotics Simulation →](./examples/specialized/robotics/)              |
+| 🏭 **IoT/Industry**       | Smart factory digital twin with Azure integration         | [IoT Digital Twin →](./examples/specialized/iot/)                      |
+| 👥 **Multiplayer**        | Collaborative VR meeting space with voice chat            | [Multiplayer VR →](./examples/specialized/multiplayer/)                |
+| 📱 **Quest/Mobile**       | Platform-optimized VR with Quest 2/3 features             | [Unity Quest →](./examples/specialized/unity-quest/)                   |
+| 🌐 **Social VR**          | VRChat world with mirrors, video, and Udon#               | [VRChat World →](./examples/specialized/vrchat/)                       |
 
 **[View all 9 examples →](./examples/)** | **[Browse examples catalog →](./examples/INDEX.md)**
 
@@ -222,12 +222,12 @@ my-vr-game/
 
 ## 🏆 vs Competitors
 
-| vs | HoloScript Advantage |
-|----|---------------------|
-| **C# (Unity)** | Built-in spatial primitives, 25+ targets vs 1, agent SDK with spatial awareness |
+| vs                      | HoloScript Advantage                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------ |
+| **C# (Unity)**          | Built-in spatial primitives, 25+ targets vs 1, agent SDK with spatial awareness            |
 | **Blueprints (Unreal)** | Text-based (version control friendly), three formats for different domains, cross-platform |
-| **GDScript (Godot)** | Strong typing in `.hsplus`, module system, spatial query API, LSP tooling |
-| **Swift (visionOS)** | Not locked to Apple, 25+ targets, agent choreography, IoT/robotics export |
+| **GDScript (Godot)**    | Strong typing in `.hsplus`, module system, spatial query API, LSP tooling                  |
+| **Swift (visionOS)**    | Not locked to Apple, 25+ targets, agent choreography, IoT/robotics export                  |
 
 ---
 
@@ -246,9 +246,11 @@ HoloScript provides **three specialized languages** that work together:
 **Workflow**: Prototype in HoloScript runtime → compile to production platform
 
 ### 2. Even Playing Field (Commons-Based)
+
 We built [Hololand](https://github.com/brianonbased-dev/Hololand)—a full VR social platform—using **only public HoloScript APIs**.
 
 This proves:
+
 - ✅ **You can build competing platforms** with equal access
 - ✅ **No vendor lock-in** (compile to Unity/Unreal or run directly)
 - ✅ **Commons governance** (HoloScript Foundation, community-driven roadmap)
@@ -256,7 +258,9 @@ This proves:
 Like Chromium (Chrome vs. Brave) or React (Instagram vs. Netflix)—**build your own Hololand**.
 
 ### 3. Universal Compilation
+
 Write **one** HoloScript file. Compile to:
+
 - **Game Engines**: Unity, Unreal Engine, Godot
 - **WebXR**: Three.js, Babylon.js (browser-based VR/AR)
 - **Mobile AR**: ARKit (iOS), ARCore (Android), VisionOS
@@ -265,6 +269,7 @@ Write **one** HoloScript file. Compile to:
 - **Specialized**: Robotics (URDF/SDF), IoT (DTDL), Healthcare, Education, Music, Architecture, Web3
 
 ### 4. Feature-Rich
+
 - ✅ **1,800+ Semantic Traits** — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization`
 - ✅ **600+ Visual Traits** — PBR materials, procedural textures, mood lighting, Gaussian splatting
 - ✅ **AI-Native** — 43+ MCP tools, Brittney agent, scene generation from natural language
@@ -277,13 +282,13 @@ Write **one** HoloScript file. Compile to:
 
 ## 🏗️ 25+ Compile Targets
 
-| Platform         | Target                                        | Support   |
-| ---------------- | --------------------------------------------- | --------- |
-| **VR Platforms** | VRChat (Udon), Quest (OpenXR), SteamVR        | ✅ Stable |
-| **Game Engines** | Unreal Engine 5, Unity, Godot                 | ✅ Stable |
-| **Mobile AR**    | iOS (ARKit), Android (ARCore), Vision Pro     | ✅ Stable |
+| Platform         | Target                                                         | Support   |
+| ---------------- | -------------------------------------------------------------- | --------- |
+| **VR Platforms** | VRChat (Udon), Quest (OpenXR), SteamVR                         | ✅ Stable |
+| **Game Engines** | Unreal Engine 5, Unity, Godot                                  | ✅ Stable |
+| **Mobile AR**    | iOS (ARKit), Android (ARCore), Vision Pro                      | ✅ Stable |
 | **Web**          | React Three Fiber, WebGPU, WebAssembly, PlayCanvas, Babylon.js | ✅ Stable |
-| **Advanced**     | Robotics (URDF/SDF), Digital Twins (DTDL), USD, glTF | ✅ Stable |
+| **Advanced**     | Robotics (URDF/SDF), Digital Twins (DTDL), USD, glTF           | ✅ Stable |
 
 ---
 
@@ -314,13 +319,17 @@ Write **one** HoloScript file. Compile to:
 ## ⚡ Protocols
 
 ### x402 Protocol — Machine Payments
+
 HoloScript implements the **x402 Protocol**: HTTP-native micropayments for agent-to-agent and agent-to-service interactions.
+
 - An AI agent can **pay per API call** to access premium HoloScript tools, spatial layers, or gated assets
 - Payments are settled on-chain with no human in the loop
 - Works with any MCP-capable agent out of the box
 
 ### StoryWeaver Protocol — Narrative Spatial Computing
+
 **StoryWeaver Protocol** is HoloScript's declarative narrative layer — structured scene progression, branching dialogue, and quest/objective tracking as first-class spatial primitives:
+
 ```holo
 narrative "Tutorial" {
   @storyweaver
@@ -331,6 +340,7 @@ narrative "Tutorial" {
   }
 }
 ```
+
 - Powers Brittney's in-world guidance system
 - Replaces ad-hoc scripting with declarative, testable narrative graphs
 - Exports to VRChat triggers, Unity Timeline, and Godot Cutscene nodes
@@ -348,10 +358,10 @@ narrative "Tutorial" {
 
 ### Companion Repositories
 
-| Repository | Description | Version |
-| --- | --- | --- |
-| [`holoscript-compiler`](https://github.com/brianonbased-dev/holoscript-compiler) | Standalone `.hsplus` → USD/URDF/SDF/MJCF compiler for robotics (NVIDIA Isaac Sim) | v0.1.0 |
-| [`holoscript-scientific-plugin`](https://github.com/brianonbased-dev/holoscript-scientific-plugin) | Narupa molecular dynamics + VR drug discovery plugin | v1.2.0 |
+| Repository                                                                                         | Description                                                                       | Version |
+| -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------- |
+| [`holoscript-compiler`](https://github.com/brianonbased-dev/holoscript-compiler)                   | Standalone `.hsplus` → USD/URDF/SDF/MJCF compiler for robotics (NVIDIA Isaac Sim) | v0.1.0  |
+| [`holoscript-scientific-plugin`](https://github.com/brianonbased-dev/holoscript-scientific-plugin) | Narupa molecular dynamics + VR drug discovery plugin                              | v1.2.0  |
 
 ---
 
@@ -360,6 +370,7 @@ narrative "Tutorial" {
 HoloScript v5.0.0 ships **Autonomous Agent Networks**, **Economic Primitives**, and the complete **Simulation Layer**:
 
 ### v4.2 — Simulation Layer
+
 - **PBR Materials**: `pbr_material`, `glass_material`, `toon_material`, `subsurface_material` with texture maps and shader connections
 - **Particle Systems**: `particle_block` with sub-emitters, color/size over life, emission shapes
 - **Post-Processing**: `post_processing_block` — bloom, DOF, color grading, SSAO, motion blur, tone mapping
@@ -370,6 +381,7 @@ HoloScript v5.0.0 ships **Autonomous Agent Networks**, **Economic Primitives**, 
 - **Built-In Test Framework**: `test` blocks with `assert`, `given/when/then` BDD syntax
 
 ### v4.0 — Multi-Domain Expansion
+
 - **8 Industry Domains**: IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3 — each with domain-specific keywords
 - **HSPlus Constructs**: `module`, `struct`, `enum`, `interface`, `import/export`, `function`, `try/catch`, `switch/case`, `await`
 - **Spatial Primitives**: `spawn_group`, `waypoints`, `constraint`, `terrain`, `dialog` with branching options
@@ -424,12 +436,15 @@ composition "Robot Arm" {
 HoloScript is not just a language — it's an **open platform**: the foundation for building spatial computing products.
 
 ### Reference Implementation: Hololand
+
 [Hololand](https://github.com/brianonbased-dev/Hololand) is a VR social platform ("Roblox for VR") built entirely on HoloScript:
+
 - **43+ packages**: Multiplayer, physics, rendering, voice chat
 - **Public APIs only**: No privileged access (proves others can compete)
 - **Open architecture**: Source available as reference
 
 ### What You Can Build
+
 - **VR Social Platforms**: Compete with Hololand, VRChat, Rec Room
 - **Corporate Training**: Multi-platform VR safety training, onboarding
 - **Robotics Platforms**: ROS2/Gazebo simulations with URDF/SDF export
@@ -453,12 +468,14 @@ pnpm test
 ```
 
 ### Governance
+
 HoloScript is governed by the **HoloScript Foundation** (community-driven, neutral):
+
 - **No owner advantage**: Hololand uses public APIs only
 - **Community roadmap**: Major decisions via RFC process
 - **Corporate sponsors**: Foundation funded by Meta, Unity, Epic (coming soon)
 
-**[💰 Sponsor HoloScript →](./FUNDING.md)** | **[🗺️ Roadmap](./ROADMAP.md)** | **[🏛️ Foundation](./docs/FOUNDATION.md)** (coming soon)
+**[💰 Sponsor HoloScript →](./FUNDING.md)** | **[🗺️ Roadmap](./docs/strategy/ROADMAP.md)** | **[🏛️ Foundation](./docs/FOUNDATION.md)** (coming soon)
 
 ---
 

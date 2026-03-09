@@ -8,7 +8,10 @@ import { describe, it, expect } from 'vitest';
 import { LagCompensation, HistoryState } from '../LagCompensation';
 
 // ─── Helpers ────────────────────────────────────────────────────────
-function makeState(ts: number, entities: Record<string, { x: number; y: number; z: number; radius: number }>): HistoryState {
+function makeState(
+  ts: number,
+  entities: Record<string, { x: number; y: number; z: number; radius: number }>
+): HistoryState {
   return { timestamp: ts, entities: new Map(Object.entries(entities)) };
 }
 
@@ -55,7 +58,9 @@ describe('LagCompensation — Production', () => {
     const lc = new LagCompensation();
     lc.pushState(makeState(100, { target: { x: 5, y: 0, z: 0, radius: 2 } }));
     const result = lc.verifyHit({
-      originX: 4, originY: 0, originZ: 0,
+      originX: 4,
+      originY: 0,
+      originZ: 0,
       targetId: 'target',
       clientTimestamp: 150,
       clientLatency: 50, // rewound to 100
@@ -69,7 +74,9 @@ describe('LagCompensation — Production', () => {
     const lc = new LagCompensation();
     lc.pushState(makeState(100, { target: { x: 10, y: 0, z: 0, radius: 1 } }));
     const result = lc.verifyHit({
-      originX: 0, originY: 0, originZ: 0,
+      originX: 0,
+      originY: 0,
+      originZ: 0,
       targetId: 'target',
       clientTimestamp: 150,
       clientLatency: 50,
@@ -82,7 +89,9 @@ describe('LagCompensation — Production', () => {
     const lc = new LagCompensation();
     lc.pushState(makeState(100, { other: { x: 0, y: 0, z: 0, radius: 1 } }));
     const result = lc.verifyHit({
-      originX: 0, originY: 0, originZ: 0,
+      originX: 0,
+      originY: 0,
+      originZ: 0,
       targetId: 'nonexistent',
       clientTimestamp: 150,
       clientLatency: 50,
@@ -95,7 +104,9 @@ describe('LagCompensation — Production', () => {
   it('verifyHit returns miss when history is empty', () => {
     const lc = new LagCompensation();
     const result = lc.verifyHit({
-      originX: 0, originY: 0, originZ: 0,
+      originX: 0,
+      originY: 0,
+      originZ: 0,
       targetId: 'a',
       clientTimestamp: 100,
       clientLatency: 50,
@@ -108,7 +119,9 @@ describe('LagCompensation — Production', () => {
     const lc = new LagCompensation();
     lc.pushState(makeState(100, { t: { x: 3, y: 4, z: 0, radius: 10 } })); // dist from origin = 5
     const result = lc.verifyHit({
-      originX: 0, originY: 0, originZ: 0,
+      originX: 0,
+      originY: 0,
+      originZ: 0,
       targetId: 't',
       clientTimestamp: 150,
       clientLatency: 50,

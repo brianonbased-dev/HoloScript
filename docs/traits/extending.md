@@ -23,11 +23,12 @@ registerTrait({
     node.userData.pulseTime += delta * config.speed;
     const intensity = (Math.sin(node.userData.pulseTime) + 1) / 2;
     context.emit('glow_intensity', { nodeId: node.id, intensity });
-  }
+  },
 });
 ```
 
 Use in HoloScript:
+
 ```holoscript
 sphere {
   @pulse_glow(color=blue, speed=2.0)
@@ -55,6 +56,7 @@ interface TraitHandler<TConfig = unknown> {
 ## Lifecycle Hooks
 
 ### `onAttach(node, config, context)` 🟢
+
 Called **once** when the trait is added to a node.
 
 Use for: initialization, setup, resource allocation.
@@ -71,6 +73,7 @@ onAttach(node, config, context) {
 ```
 
 ### `onDetach(node, config, context)` 🔴
+
 Called **once** when the trait is removed.
 
 Use for: cleanup, resource disposal, event unsubscription.
@@ -86,6 +89,7 @@ onDetach(node, config, context) {
 ```
 
 ### `onUpdate(node, config, context, delta)` 🔵
+
 Called **every frame** during active simulation.
 
 Use for: animations, physics, AI ticks, state updates.
@@ -102,6 +106,7 @@ onUpdate(node, config, context, delta) {
 > **⚡ Performance Tip:** Keep `onUpdate` extremely lightweight. It runs every frame for every trait on every object. Avoid allocations and complex computations.
 
 ### `onEvent(node, config, context, event)` 🟡
+
 Called when the node receives an event.
 
 Use for: user input, collision, network messages.
@@ -135,9 +140,9 @@ The `context` parameter provides access to all runtime systems:
 ### VR/XR Context
 
 ```typescript
-context.vr.hands.left      // Left hand tracking data
-context.vr.hands.right     // Right hand tracking data
-context.vr.headset.position  // Head position [x, y, z]
+context.vr.hands.left; // Left hand tracking data
+context.vr.hands.right; // Right hand tracking data
+context.vr.headset.position; // Head position [x, y, z]
 
 // Get pointer ray from controller
 const ray = context.vr.getPointerRay('right');
@@ -171,7 +176,7 @@ const pos = context.physics.getBodyPosition(node.id);
 context.audio.playSound('/sounds/whoosh.ogg', {
   position: { x: 0, y: 1, z: 0 },
   volume: 0.8,
-  spatial: true  // 3D positional audio
+  spatial: true, // 3D positional audio
 });
 ```
 
@@ -217,13 +222,14 @@ const ParticleTrait: TraitHandler<ParticleConfig> = {
     speed: 2.0,
     lifetime: 2.0,
     spread: 45,
-    loop: true
+    loop: true,
   },
   // ...
 };
 ```
 
 HoloScript syntax:
+
 ```holoscript
 sphere {
   @particles(count=200, color=red, speed=3.0)
@@ -239,9 +245,9 @@ Shows a floating health bar above objects:
 ```typescript
 interface HealthBarConfig {
   maxHealth: number;
-  height: number;         // Offset above object
-  width: number;          // Bar width in meters
-  showText: boolean;      // Show numeric value
+  height: number; // Offset above object
+  width: number; // Bar width in meters
+  showText: boolean; // Show numeric value
 }
 
 registerTrait<HealthBarConfig>({
@@ -252,7 +258,7 @@ registerTrait<HealthBarConfig>({
     // Create UI panel above object
     node.userData.healthBar = {
       currentHealth: config.maxHealth,
-      barObject: createBarMesh(config.width)
+      barObject: createBarMesh(config.width),
     };
     context.emit('health_bar_created', { nodeId: node.id });
   },
@@ -264,8 +270,7 @@ registerTrait<HealthBarConfig>({
     // Update bar fill based on health
     const percent = bar.currentHealth / config.maxHealth;
     bar.barObject.scale.x = percent;
-    bar.barObject.material.color = percent > 0.5 ? 'green'
-      : percent > 0.25 ? 'yellow' : 'red';
+    bar.barObject.material.color = percent > 0.5 ? 'green' : percent > 0.25 ? 'yellow' : 'red';
   },
 
   onEvent(node, config, context, event) {
@@ -292,11 +297,12 @@ registerTrait<HealthBarConfig>({
 
   onDetach(node, config, context) {
     node.userData.healthBar = null;
-  }
+  },
 });
 ```
 
 Usage:
+
 ```holoscript
 enemy_robot {
   @health_bar(maxHealth=200, showText=true)
@@ -313,8 +319,8 @@ Streams real-time IoT data into the scene:
 interface MQTTSensorConfig {
   brokerUrl: string;
   topic: string;
-  updateRate: number;      // Hz
-  visualize: boolean;      // Show sensor readings as color
+  updateRate: number; // Hz
+  visualize: boolean; // Show sensor readings as color
 }
 
 registerTrait<MQTTSensorConfig>({
@@ -323,7 +329,7 @@ registerTrait<MQTTSensorConfig>({
     brokerUrl: 'mqtt://localhost:1883',
     topic: 'sensors/#',
     updateRate: 10,
-    visualize: true
+    visualize: true,
   },
 
   onAttach(node, config, context) {
@@ -353,7 +359,7 @@ registerTrait<MQTTSensorConfig>({
 
   onDetach(node, config, context) {
     node.userData.mqttClient?.end();
-  }
+  },
 });
 ```
 
@@ -365,7 +371,7 @@ Drives object behavior with an LLM:
 interface LLMBehaviorConfig {
   model: string;
   systemPrompt: string;
-  updateInterval: number;  // Seconds between LLM calls
+  updateInterval: number; // Seconds between LLM calls
   responseTimeout: number; // Max wait time
 }
 
@@ -375,7 +381,7 @@ registerTrait<LLMBehaviorConfig>({
     model: 'claude-3-opus',
     systemPrompt: 'You control a game character. Respond with JSON actions.',
     updateInterval: 2.0,
-    responseTimeout: 5.0
+    responseTimeout: 5.0,
   },
 
   onAttach(node, config, context) {
@@ -393,19 +399,19 @@ registerTrait<LLMBehaviorConfig>({
     const sceneContext = {
       position: context.physics.getBodyPosition(node.id),
       nearbyObjects: getNearbyObjects(node.id),
-      playerDistance: getPlayerDistance(node.id)
+      playerDistance: getPlayerDistance(node.id),
     };
 
     // Async LLM call (non-blocking)
     queryLLM(config.model, config.systemPrompt, sceneContext)
-      .then(response => {
+      .then((response) => {
         const action = JSON.parse(response);
         context.emit('llm_action', { nodeId: node.id, action });
       })
-      .catch(err => {
+      .catch((err) => {
         console.warn('LLM query failed:', err);
       });
-  }
+  },
 });
 ```
 
@@ -418,11 +424,7 @@ import { registerTrait, TraitRegistry } from '@holoscript/core';
 registerTrait(MyCustomTrait);
 
 // Register multiple traits
-TraitRegistry.registerBatch([
-  HealthBarTrait,
-  MQTTSensorTrait,
-  LLMBehaviorTrait
-]);
+TraitRegistry.registerBatch([HealthBarTrait, MQTTSensorTrait, LLMBehaviorTrait]);
 
 // Plugin pattern - register with namespace
 function installGamePlugin(registry: TraitRegistry) {
@@ -468,7 +470,7 @@ describe('MyTrait', () => {
 
     MyTrait.onEvent?.(node, config, context, {
       type: 'grab',
-      payload: {}
+      payload: {},
     });
 
     expect(config.isGrabbed).toBe(true);
@@ -479,6 +481,7 @@ describe('MyTrait', () => {
 ## Trait Best Practices
 
 ### 1. Minimal `onUpdate`
+
 ```typescript
 // ✅ Good - O(1) operation
 onUpdate(node, config, context, delta) {
@@ -492,6 +495,7 @@ onUpdate(node, config, context, delta) {
 ```
 
 ### 2. Use `userData` for State
+
 ```typescript
 // ✅ Good - persists across frames
 node.userData.pulsePhase = 0;
@@ -501,6 +505,7 @@ let pulsePhase = 0;
 ```
 
 ### 3. Cleanup in `onDetach`
+
 ```typescript
 onAttach(node, config, context) {
   node.userData.interval = setInterval(..., 1000);
@@ -512,6 +517,7 @@ onDetach(node, config, context) {
 ```
 
 ### 4. Emit Events for Cross-Trait Communication
+
 ```typescript
 // Trait A emits
 context.emit('item_collected', { itemId: node.id, type: config.type });
@@ -525,6 +531,7 @@ onEvent(node, config, context, event) {
 ```
 
 ### 5. TypeScript Types
+
 ```typescript
 // ✅ Good - fully typed config
 interface GlowConfig {
@@ -540,6 +547,7 @@ defaultConfig: { color: 'blue' as any, intensity: 0.5 }
 ## Publishing Custom Traits
 
 ### 1. Package Structure
+
 ```
 my-holoscript-traits/
 ├── src/
@@ -553,6 +561,7 @@ my-holoscript-traits/
 ```
 
 ### 2. Export Pattern
+
 ```typescript
 // src/index.ts
 export { HealthBarTrait } from './HealthBarTrait';
@@ -565,7 +574,9 @@ registerTrait(MQTTTrait);
 ```
 
 ### 3. HoloScript Trait Registry
+
 Submit your traits to the [HoloScript Trait Registry](https://holoscript.net/registry) to:
+
 - Make traits discoverable by the community
 - Get featured in MCP server suggestions
 - Receive compatibility testing

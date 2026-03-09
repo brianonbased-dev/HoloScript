@@ -18,11 +18,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  partnerSDKHandler,
-  signRequest,
-  verifyWebhookSignature,
-} from '../PartnerSDKTrait';
+import { partnerSDKHandler, signRequest, verifyWebhookSignature } from '../PartnerSDKTrait';
 import type { PartnerSDKConfig, PartnerSDKState } from '../PartnerSDKTrait';
 
 // ---------------------------------------------------------------------------
@@ -99,9 +95,12 @@ describe('PartnerSDKTrait — Production Tests', () => {
 
     it('emits partner_sdk_initialized', () => {
       attach(node, defaultConfig(), ctx);
-      expect(ctx.emit).toHaveBeenCalledWith('partner_sdk_initialized', expect.objectContaining({
-        partnerCount: 1,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_sdk_initialized',
+        expect.objectContaining({
+          partnerCount: 1,
+        })
+      );
     });
   });
 
@@ -113,36 +112,54 @@ describe('PartnerSDKTrait — Production Tests', () => {
       const config = defaultConfig();
       attach(node, config, ctx);
 
-      partnerSDKHandler.onEvent!(node, config, ctx, { type: 'partner_connect', partnerId: 'partner-a' });
+      partnerSDKHandler.onEvent!(node, config, ctx, {
+        type: 'partner_connect',
+        partnerId: 'partner-a',
+      });
 
       const state = getState(node);
       const session = state.sessions.get('partner-a');
       expect(session).toBeDefined();
       expect(session!.status).toBe('connected');
       expect(session!.capabilities).toEqual(['render', 'analytics']);
-      expect(ctx.emit).toHaveBeenCalledWith('partner_connected', expect.objectContaining({
-        partnerId: 'partner-a',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_connected',
+        expect.objectContaining({
+          partnerId: 'partner-a',
+        })
+      );
     });
 
     it('rejects unknown partner', () => {
       const config = defaultConfig();
       attach(node, config, ctx);
 
-      partnerSDKHandler.onEvent!(node, config, ctx, { type: 'partner_connect', partnerId: 'unknown' });
-
-      expect(ctx.emit).toHaveBeenCalledWith('partner_error', expect.objectContaining({
+      partnerSDKHandler.onEvent!(node, config, ctx, {
+        type: 'partner_connect',
         partnerId: 'unknown',
-        error: expect.stringContaining('Unknown partner'),
-      }));
+      });
+
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_error',
+        expect.objectContaining({
+          partnerId: 'unknown',
+          error: expect.stringContaining('Unknown partner'),
+        })
+      );
     });
 
     it('disconnects partner', () => {
       const config = defaultConfig();
       attach(node, config, ctx);
 
-      partnerSDKHandler.onEvent!(node, config, ctx, { type: 'partner_connect', partnerId: 'partner-a' });
-      partnerSDKHandler.onEvent!(node, config, ctx, { type: 'partner_disconnect', partnerId: 'partner-a' });
+      partnerSDKHandler.onEvent!(node, config, ctx, {
+        type: 'partner_connect',
+        partnerId: 'partner-a',
+      });
+      partnerSDKHandler.onEvent!(node, config, ctx, {
+        type: 'partner_disconnect',
+        partnerId: 'partner-a',
+      });
 
       expect(getState(node).sessions.get('partner-a')!.status).toBe('disconnected');
     });
@@ -155,7 +172,10 @@ describe('PartnerSDKTrait — Production Tests', () => {
     it('sends signed request', () => {
       const config = defaultConfig();
       attach(node, config, ctx);
-      partnerSDKHandler.onEvent!(node, config, ctx, { type: 'partner_connect', partnerId: 'partner-a' });
+      partnerSDKHandler.onEvent!(node, config, ctx, {
+        type: 'partner_connect',
+        partnerId: 'partner-a',
+      });
 
       partnerSDKHandler.onEvent!(node, config, ctx, {
         type: 'partner_api_request',
@@ -165,11 +185,14 @@ describe('PartnerSDKTrait — Production Tests', () => {
         payload: { scene: 'test' },
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_request_sent', expect.objectContaining({
-        partnerId: 'partner-a',
-        endpoint: '/render',
-        signed: true,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_request_sent',
+        expect.objectContaining({
+          partnerId: 'partner-a',
+          endpoint: '/render',
+          signed: true,
+        })
+      );
 
       const state = getState(node);
       expect(state.pendingRequests.length).toBe(1);
@@ -186,9 +209,12 @@ describe('PartnerSDKTrait — Production Tests', () => {
         endpoint: '/test',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_error', expect.objectContaining({
-        error: 'Not connected to partner',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_error',
+        expect.objectContaining({
+          error: 'Not connected to partner',
+        })
+      );
     });
 
     it('enforces rate limiting', () => {
@@ -197,7 +223,10 @@ describe('PartnerSDKTrait — Production Tests', () => {
         rate_limit_window_ms: 60000,
       });
       attach(node, config, ctx);
-      partnerSDKHandler.onEvent!(node, config, ctx, { type: 'partner_connect', partnerId: 'partner-a' });
+      partnerSDKHandler.onEvent!(node, config, ctx, {
+        type: 'partner_connect',
+        partnerId: 'partner-a',
+      });
 
       // Send 2 requests (within limit)
       for (let i = 0; i < 2; i++) {
@@ -215,15 +244,21 @@ describe('PartnerSDKTrait — Production Tests', () => {
         endpoint: '/test/3',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_rate_limited', expect.objectContaining({
-        partnerId: 'partner-a',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_rate_limited',
+        expect.objectContaining({
+          partnerId: 'partner-a',
+        })
+      );
     });
 
     it('enforces concurrent request cap', () => {
       const config = defaultConfig({ max_concurrent_requests: 1 });
       attach(node, config, ctx);
-      partnerSDKHandler.onEvent!(node, config, ctx, { type: 'partner_connect', partnerId: 'partner-a' });
+      partnerSDKHandler.onEvent!(node, config, ctx, {
+        type: 'partner_connect',
+        partnerId: 'partner-a',
+      });
 
       // First request
       partnerSDKHandler.onEvent!(node, config, ctx, {
@@ -239,9 +274,12 @@ describe('PartnerSDKTrait — Production Tests', () => {
         endpoint: '/second',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_error', expect.objectContaining({
-        error: 'Max concurrent requests exceeded',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_error',
+        expect.objectContaining({
+          error: 'Max concurrent requests exceeded',
+        })
+      );
     });
   });
 
@@ -252,7 +290,10 @@ describe('PartnerSDKTrait — Production Tests', () => {
     it('processes successful response', () => {
       const config = defaultConfig();
       attach(node, config, ctx);
-      partnerSDKHandler.onEvent!(node, config, ctx, { type: 'partner_connect', partnerId: 'partner-a' });
+      partnerSDKHandler.onEvent!(node, config, ctx, {
+        type: 'partner_connect',
+        partnerId: 'partner-a',
+      });
       partnerSDKHandler.onEvent!(node, config, ctx, {
         type: 'partner_api_request',
         partnerId: 'partner-a',
@@ -276,7 +317,10 @@ describe('PartnerSDKTrait — Production Tests', () => {
     it('processes error response', () => {
       const config = defaultConfig();
       attach(node, config, ctx);
-      partnerSDKHandler.onEvent!(node, config, ctx, { type: 'partner_connect', partnerId: 'partner-a' });
+      partnerSDKHandler.onEvent!(node, config, ctx, {
+        type: 'partner_connect',
+        partnerId: 'partner-a',
+      });
       partnerSDKHandler.onEvent!(node, config, ctx, {
         type: 'partner_api_request',
         partnerId: 'partner-a',
@@ -318,10 +362,13 @@ describe('PartnerSDKTrait — Production Tests', () => {
         timestamp: ts,
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_webhook_received', expect.objectContaining({
-        partnerId: 'partner-a',
-        event: 'render_complete',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_webhook_received',
+        expect.objectContaining({
+          partnerId: 'partner-a',
+          event: 'render_complete',
+        })
+      );
     });
 
     it('rejects invalid webhook signature', () => {
@@ -337,9 +384,12 @@ describe('PartnerSDKTrait — Production Tests', () => {
         timestamp: Date.now(),
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_webhook_rejected', expect.objectContaining({
-        reason: 'Invalid signature',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_webhook_rejected',
+        expect.objectContaining({
+          reason: 'Invalid signature',
+        })
+      );
     });
   });
 
@@ -350,7 +400,10 @@ describe('PartnerSDKTrait — Production Tests', () => {
     it('expires sessions past TTL on update', () => {
       const config = defaultConfig({ session_ttl_ms: 100 });
       attach(node, config, ctx);
-      partnerSDKHandler.onEvent!(node, config, ctx, { type: 'partner_connect', partnerId: 'partner-a' });
+      partnerSDKHandler.onEvent!(node, config, ctx, {
+        type: 'partner_connect',
+        partnerId: 'partner-a',
+      });
 
       // Force session expiry
       const session = getState(node).sessions.get('partner-a')!;
@@ -359,9 +412,12 @@ describe('PartnerSDKTrait — Production Tests', () => {
       partnerSDKHandler.onUpdate!(node, config, ctx, 16);
 
       expect(session.status).toBe('disconnected');
-      expect(ctx.emit).toHaveBeenCalledWith('partner_session_expired', expect.objectContaining({
-        partnerId: 'partner-a',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_session_expired',
+        expect.objectContaining({
+          partnerId: 'partner-a',
+        })
+      );
     });
   });
 
@@ -372,7 +428,10 @@ describe('PartnerSDKTrait — Production Tests', () => {
     it('times out old requests on update', () => {
       const config = defaultConfig({ request_timeout_ms: 100 });
       attach(node, config, ctx);
-      partnerSDKHandler.onEvent!(node, config, ctx, { type: 'partner_connect', partnerId: 'partner-a' });
+      partnerSDKHandler.onEvent!(node, config, ctx, {
+        type: 'partner_connect',
+        partnerId: 'partner-a',
+      });
       partnerSDKHandler.onEvent!(node, config, ctx, {
         type: 'partner_api_request',
         partnerId: 'partner-a',
@@ -397,17 +456,23 @@ describe('PartnerSDKTrait — Production Tests', () => {
     it('returns partner status', () => {
       const config = defaultConfig();
       attach(node, config, ctx);
-      partnerSDKHandler.onEvent!(node, config, ctx, { type: 'partner_connect', partnerId: 'partner-a' });
+      partnerSDKHandler.onEvent!(node, config, ctx, {
+        type: 'partner_connect',
+        partnerId: 'partner-a',
+      });
 
       partnerSDKHandler.onEvent!(node, config, ctx, {
         type: 'partner_query',
         partnerId: 'partner-a',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_status', expect.objectContaining({
-        partnerId: 'partner-a',
-        session: expect.objectContaining({ status: 'connected' }),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_status',
+        expect.objectContaining({
+          partnerId: 'partner-a',
+          session: expect.objectContaining({ status: 'connected' }),
+        })
+      );
     });
 
     it('returns null session for unknown partner', () => {
@@ -419,9 +484,12 @@ describe('PartnerSDKTrait — Production Tests', () => {
         partnerId: 'unknown',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_status', expect.objectContaining({
-        session: null,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_status',
+        expect.objectContaining({
+          session: null,
+        })
+      );
     });
   });
 
@@ -432,14 +500,20 @@ describe('PartnerSDKTrait — Production Tests', () => {
     it('disconnects all sessions and cleans state', () => {
       const config = defaultConfig();
       attach(node, config, ctx);
-      partnerSDKHandler.onEvent!(node, config, ctx, { type: 'partner_connect', partnerId: 'partner-a' });
+      partnerSDKHandler.onEvent!(node, config, ctx, {
+        type: 'partner_connect',
+        partnerId: 'partner-a',
+      });
 
       partnerSDKHandler.onDetach!(node, config, ctx);
 
       expect(node.__partnerSDKState).toBeUndefined();
-      expect(ctx.emit).toHaveBeenCalledWith('partner_disconnected', expect.objectContaining({
-        partnerId: 'partner-a',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_disconnected',
+        expect.objectContaining({
+          partnerId: 'partner-a',
+        })
+      );
     });
   });
 

@@ -158,7 +158,7 @@ export interface MarketplaceCreatorData {
 
 async function fetchWithTimeout(
   url: string,
-  timeoutMs: number = REQUEST_TIMEOUT_MS,
+  timeoutMs: number = REQUEST_TIMEOUT_MS
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -182,9 +182,7 @@ async function fetchWithTimeout(
  * Search traits by author.
  * Endpoint: GET /traits?author=<author>&limit=100
  */
-export async function fetchTraitsByAuthor(
-  author: string,
-): Promise<TraitSummary[]> {
+export async function fetchTraitsByAuthor(author: string): Promise<TraitSummary[]> {
   const url = `${MARKETPLACE_API_BASE}/traits?author=${encodeURIComponent(author)}&limit=100`;
   const response = await fetchWithTimeout(url);
 
@@ -204,9 +202,7 @@ export async function fetchTraitsByAuthor(
  * Search plugins by author.
  * Endpoint: GET /plugins?author=<author>&limit=100
  */
-export async function fetchPluginsByAuthor(
-  author: string,
-): Promise<PluginSummary[]> {
+export async function fetchPluginsByAuthor(author: string): Promise<PluginSummary[]> {
   const url = `${MARKETPLACE_API_BASE}/plugins?author=${encodeURIComponent(author)}&limit=100`;
   const response = await fetchWithTimeout(url);
 
@@ -226,9 +222,7 @@ export async function fetchPluginsByAuthor(
  * Search skills by author.
  * Endpoint: GET /skills/search?author=<author>&limit=100
  */
-export async function fetchSkillsByAuthor(
-  author: string,
-): Promise<SkillSummary[]> {
+export async function fetchSkillsByAuthor(author: string): Promise<SkillSummary[]> {
   const url = `${MARKETPLACE_API_BASE}/skills/search?author=${encodeURIComponent(author)}&limit=100`;
   const response = await fetchWithTimeout(url);
 
@@ -271,9 +265,7 @@ function contentTypeLabel(type: string): string {
  * @returns Aggregated creator content data
  * @throws If ALL three endpoints fail simultaneously
  */
-export async function fetchCreatorContent(
-  author: string,
-): Promise<MarketplaceCreatorData> {
+export async function fetchCreatorContent(author: string): Promise<MarketplaceCreatorData> {
   const [traitsResult, pluginsResult, skillsResult] = await Promise.allSettled([
     fetchTraitsByAuthor(author),
     fetchPluginsByAuthor(author),
@@ -301,9 +293,7 @@ export async function fetchCreatorContent(
     published: traits.filter((t) => !t.deprecated).length,
     downloads: traits.reduce((s, t) => s + t.downloads, 0),
     revenue: 0, // Traits are free by default
-    rating: traits.length
-      ? traits.reduce((s, t) => s + t.rating, 0) / traits.length
-      : 0,
+    rating: traits.length ? traits.reduce((s, t) => s + t.rating, 0) / traits.length : 0,
     ratingCount: traits.reduce((s, t) => s + (t.ratingCount ?? 0), 0),
   };
 
@@ -314,9 +304,7 @@ export async function fetchCreatorContent(
     published: plugins.length, // All returned plugins are published
     downloads: plugins.reduce((s, p) => s + p.downloads, 0),
     revenue: 0, // Revenue info requires separate pricing endpoint
-    rating: plugins.length
-      ? plugins.reduce((s, p) => s + p.rating, 0) / plugins.length
-      : 0,
+    rating: plugins.length ? plugins.reduce((s, p) => s + p.rating, 0) / plugins.length : 0,
     ratingCount: plugins.reduce((s, p) => s + (p.ratingCount ?? 0), 0),
   };
 
@@ -327,23 +315,16 @@ export async function fetchCreatorContent(
     published: skills.filter((s) => !s.deprecated).length,
     downloads: skills.reduce((s, sk) => s + sk.downloads, 0),
     revenue: skills.reduce((s, sk) => s + sk.price, 0),
-    rating: skills.length
-      ? skills.reduce((s, sk) => s + sk.rating, 0) / skills.length
-      : 0,
+    rating: skills.length ? skills.reduce((s, sk) => s + sk.rating, 0) / skills.length : 0,
     ratingCount: skills.reduce((s, sk) => s + (sk.ratingCount ?? 0), 0),
   };
 
-  const contentByType = [traitStats, pluginStats, skillStats].filter(
-    (ct) => ct.count > 0,
-  );
+  const contentByType = [traitStats, pluginStats, skillStats].filter((ct) => ct.count > 0);
 
   const totalContent = traits.length + plugins.length + skills.length;
-  const totalPublished =
-    traitStats.published + pluginStats.published + skillStats.published;
-  const totalDownloads =
-    traitStats.downloads + pluginStats.downloads + skillStats.downloads;
-  const totalContentRevenue =
-    traitStats.revenue + pluginStats.revenue + skillStats.revenue;
+  const totalPublished = traitStats.published + pluginStats.published + skillStats.published;
+  const totalDownloads = traitStats.downloads + pluginStats.downloads + skillStats.downloads;
+  const totalContentRevenue = traitStats.revenue + pluginStats.revenue + skillStats.revenue;
 
   return {
     traits,

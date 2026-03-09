@@ -22,7 +22,10 @@ describe('Cycle 134: Spline & Curve System', () => {
   it('should evaluate Catmull-Rom spline', () => {
     const sp = new SplinePath();
     sp.setType('catmull-rom');
-    sp.addPoint(0, 0); sp.addPoint(5, 10); sp.addPoint(10, 0); sp.addPoint(15, 10);
+    sp.addPoint(0, 0);
+    sp.addPoint(5, 10);
+    sp.addPoint(10, 0);
+    sp.addPoint(15, 10);
 
     const p = sp.evaluate(0.5);
     expect(p.x).toBeGreaterThan(0);
@@ -32,7 +35,8 @@ describe('Cycle 134: Spline & Curve System', () => {
   it('should compute tangent direction', () => {
     const sp = new SplinePath();
     sp.setType('linear');
-    sp.addPoint(0, 0); sp.addPoint(10, 0);
+    sp.addPoint(0, 0);
+    sp.addPoint(10, 0);
 
     const tangent = sp.getTangent(0.5);
     expect(tangent.x).toBeCloseTo(1, 0); // Points right
@@ -46,7 +50,8 @@ describe('Cycle 134: Spline & Curve System', () => {
   it('should follow spline at constant speed', () => {
     const sp = new SplinePath();
     sp.setType('linear');
-    sp.addPoint(0, 0); sp.addPoint(100, 0);
+    sp.addPoint(0, 0);
+    sp.addPoint(100, 0);
 
     const follower = new SplineFollower(sp);
     follower.setSpeed(50); // 50 units/sec
@@ -63,14 +68,15 @@ describe('Cycle 134: Spline & Curve System', () => {
   it('should trigger markers along path', () => {
     const sp = new SplinePath();
     sp.setType('linear');
-    sp.addPoint(0, 0); sp.addPoint(100, 0);
+    sp.addPoint(0, 0);
+    sp.addPoint(100, 0);
 
     const follower = new SplineFollower(sp);
     follower.setSpeed(200);
     follower.addMarker(0.5, 'halfway');
 
     const triggered: string[] = [];
-    follower.onMarker(m => triggered.push(m.label));
+    follower.onMarker((m) => triggered.push(m.label));
 
     follower.play();
     follower.update(1);
@@ -80,7 +86,8 @@ describe('Cycle 134: Spline & Curve System', () => {
   it('should loop and ping-pong', () => {
     const sp = new SplinePath();
     sp.setType('linear');
-    sp.addPoint(0, 0); sp.addPoint(10, 0);
+    sp.addPoint(0, 0);
+    sp.addPoint(10, 0);
 
     const follower = new SplineFollower(sp);
     follower.setSpeed(20);

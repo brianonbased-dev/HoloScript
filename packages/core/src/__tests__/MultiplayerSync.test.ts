@@ -45,7 +45,12 @@ describe('Multiplayer Sync (Cycle 175)', () => {
 
     it('should apply received snapshots', () => {
       sync.addComponent('e1', 'transform', { x: 0 });
-      sync.applySnapshot({ entityId: 'e1', components: { transform: { x: 99 } }, version: 5, timestamp: Date.now() });
+      sync.applySnapshot({
+        entityId: 'e1',
+        components: { transform: { x: 99 } },
+        version: 5,
+        timestamp: Date.now(),
+      });
       // Component updated
       const dirty = sync.collectDirty();
       // Should not be dirty after apply (apply clears dirty)
@@ -78,7 +83,14 @@ describe('Multiplayer Sync (Cycle 175)', () => {
       bus.createChannel('game');
       const received: unknown[] = [];
       bus.subscribe('game', 'hit', (p) => received.push(p));
-      bus.receive({ channel: 'game', event: 'hit', payload: { damage: 10 }, senderId: 'p1', timestamp: Date.now(), sequenceId: 1 });
+      bus.receive({
+        channel: 'game',
+        event: 'hit',
+        payload: { damage: 10 },
+        senderId: 'p1',
+        timestamp: Date.now(),
+        sequenceId: 1,
+      });
       expect(received).toHaveLength(1);
     });
 

@@ -8,10 +8,7 @@
  * @example Example plugin implementation
  */
 
-import {
-  BaseWeatherProvider,
-  type VRRSyncProviderConfig,
-} from '../HololandExtensionPoint';
+import { BaseWeatherProvider, type VRRSyncProviderConfig } from '../HololandExtensionPoint';
 import type { WeatherData } from '../HololandTypes';
 
 /**
@@ -142,21 +139,21 @@ export class WeatherGovProvider extends BaseWeatherProvider {
    * Subscribe to weather updates for a location
    * Updates every 5 minutes by default
    */
-  subscribeToWeather(
-    location: string,
-    callback: (weather: WeatherData) => void
-  ): () => void {
+  subscribeToWeather(location: string, callback: (weather: WeatherData) => void): () => void {
     // Initial fetch
     this.fetchWeather(location)
       .then(callback)
       .catch((err) => console.error('[WeatherGovProvider] Subscription error:', err));
 
     // Set up polling interval (Weather.gov updates ~hourly, poll every 5 minutes)
-    const intervalId = setInterval(() => {
-      this.fetchWeather(location)
-        .then(callback)
-        .catch((err) => console.error('[WeatherGovProvider] Subscription error:', err));
-    }, 5 * 60 * 1000); // 5 minutes
+    const intervalId = setInterval(
+      () => {
+        this.fetchWeather(location)
+          .then(callback)
+          .catch((err) => console.error('[WeatherGovProvider] Subscription error:', err));
+      },
+      5 * 60 * 1000
+    ); // 5 minutes
 
     this.updateIntervals.set(location, intervalId);
 

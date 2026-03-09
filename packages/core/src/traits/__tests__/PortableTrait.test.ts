@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { portableHandler } from '../PortableTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('PortableTrait', () => {
   let node: Record<string, unknown>;

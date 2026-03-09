@@ -15,12 +15,19 @@ import { compileNodeGraph } from '@/lib/nodeGraphCompiler';
 import type { GNode, GEdge } from '@/lib/nodeGraphStore';
 import { useSketchStore } from '@/lib/sketchStore';
 import {
-  catmullRomInterpolate, strokeLength, gaussianSmoothStroke, type Vec3,
+  catmullRomInterpolate,
+  strokeLength,
+  gaussianSmoothStroke,
+  type Vec3,
 } from '@/lib/strokeSmoothing';
 import {
-  glslToWgsl, glslToHlsl,
-  hasGlslMain, hasFragColor,
-  extractUniforms, hasWgslFragment, isValidWgslTypes,
+  glslToWgsl,
+  glslToHlsl,
+  hasGlslMain,
+  hasFragColor,
+  extractUniforms,
+  hasWgslFragment,
+  isValidWgslTypes,
 } from '@/lib/shaderCompilerUtils';
 import { translateGraphToWGSL } from '@/core/rendering/WGSLTranslator';
 
@@ -64,11 +71,13 @@ describe('Scenario: Sculptor — Default Paint Settings', () => {
   });
 
   it('DEFAULT_PAINT.blendMode is "source-over" by default', () =>
-    expect((DEFAULT_PAINT as unknown as PaintSettings).blendMode ?? 'source-over').toBe('source-over'));
+    expect((DEFAULT_PAINT as unknown as PaintSettings).blendMode ?? 'source-over').toBe(
+      'source-over'
+    ));
 
   it('DEFAULT_PAINT can be spread-merged safely', () => {
     const custom: PaintSettings = {
-      ...DEFAULT_PAINT as unknown as PaintSettings,
+      ...(DEFAULT_PAINT as unknown as PaintSettings),
       size: 80,
       color: '#ff6600',
     };
@@ -78,7 +87,7 @@ describe('Scenario: Sculptor — Default Paint Settings', () => {
 
   it('Lena picks a custom color from the color picker → DEFAULT_PAINT.color updates', () => {
     const custom: PaintSettings = {
-      ...DEFAULT_PAINT as unknown as PaintSettings,
+      ...(DEFAULT_PAINT as unknown as PaintSettings),
       color: '#ff00cc',
     };
     expect(custom.color).toBe('#ff00cc');
@@ -103,13 +112,15 @@ describe('Scenario: Sculptor — Default Paint Settings', () => {
   it('clearCanvas() resets the canvas to the base texture color', () => {
     const canvas = new Uint8Array(16).fill(0); // Dirty canvas
     canvas.fill(255); // clearCanvas equivalent
-    expect(canvas.every(v => v === 255)).toBe(true);
+    expect(canvas.every((v) => v === 255)).toBe(true);
   });
 
   it('useTexturePaint.needsUpdate flag triggers THREE.CanvasTexture.needsUpdate=true', () => {
     // Simulate the needsUpdate flag behavior
     let needsUpdate = false;
-    function paintStroke() { needsUpdate = true; }
+    function paintStroke() {
+      needsUpdate = true;
+    }
     paintStroke();
     expect(needsUpdate).toBe(true);
     // After GPU upload, reset
@@ -193,7 +204,7 @@ describe('Scenario: Sculptor — Procedural Material Node Catalogue', () => {
 
   it('NoiseNode inputs: uv (vec2) + scale (float)', () => {
     const noise = NODE_TEMPLATES.procedural.find((t: INodeTemplate) => t.type === 'NoiseNode')!;
-    const inputMap = Object.fromEntries(noise.inputs.map(i => [i.name, i.type]));
+    const inputMap = Object.fromEntries(noise.inputs.map((i) => [i.name, i.type]));
     expect(inputMap['uv']).toBe('vec2');
     expect(inputMap['scale']).toBe('float');
   });
@@ -210,16 +221,21 @@ describe('Scenario: Sculptor — Procedural Material Node Catalogue', () => {
 
   it('material category: PBROutput has albedo, roughness, metallic inputs', () => {
     const pbr = NODE_TEMPLATES.material.find((t: INodeTemplate) => t.type === 'PBROutput')!;
-    const inputNames = pbr.inputs.map(i => i.name);
+    const inputNames = pbr.inputs.map((i) => i.name);
     expect(inputNames).toContain('albedo');
     expect(inputNames).toContain('roughness');
     expect(inputNames).toContain('metallic');
   });
 
   it('Lena drags NoiseNode from palette to graph canvas', () => {
-    const noiseTemplate = NODE_TEMPLATES.procedural.find((t: INodeTemplate) => t.type === 'NoiseNode')!;
+    const noiseTemplate = NODE_TEMPLATES.procedural.find(
+      (t: INodeTemplate) => t.type === 'NoiseNode'
+    )!;
     // Dragging creates a node instance on the canvas
-    const node: GNode = n('noise1', 'NoiseNode' as any, { type: 'NoiseNode', label: noiseTemplate.label });
+    const node: GNode = n('noise1', 'NoiseNode' as any, {
+      type: 'NoiseNode',
+      label: noiseTemplate.label,
+    });
     expect(node.id).toBe('noise1');
     expect(node.data.type).toBe('NoiseNode');
   });
@@ -257,8 +273,7 @@ describe('Scenario: Sculptor — Reference Sketch Layer', () => {
     useSketchStore.setState({ strokes: [], activeStroke: null });
   });
 
-  it('sketch store starts empty', () =>
-    expect(useSketchStore.getState().strokes).toHaveLength(0));
+  it('sketch store starts empty', () => expect(useSketchStore.getState().strokes).toHaveLength(0));
 
   it('beginStroke() creates an active stroke', () => {
     const id = useSketchStore.getState().beginStroke();
@@ -267,24 +282,30 @@ describe('Scenario: Sculptor — Reference Sketch Layer', () => {
 
   it('commitStroke() after 2 points saves the reference sketch', () => {
     useSketchStore.getState().beginStroke();
-    useSketchStore.getState().appendPoint([0,0,0]);
-    useSketchStore.getState().appendPoint([1,0,0]);
+    useSketchStore.getState().appendPoint([0, 0, 0]);
+    useSketchStore.getState().appendPoint([1, 0, 0]);
     useSketchStore.getState().commitStroke();
     expect(useSketchStore.getState().strokes).toHaveLength(1);
   });
 
   it('Catmull-Rom smoothing on reference sketch reduces point jitter', () => {
-    const jittery: Vec3[] = [[0,0,0],[0.5,0.8,0],[1,0,0],[1.5,0.7,0],[2,0,0]];
+    const jittery: Vec3[] = [
+      [0, 0, 0],
+      [0.5, 0.8, 0],
+      [1, 0, 0],
+      [1.5, 0.7, 0],
+      [2, 0, 0],
+    ];
     const smoothed = gaussianSmoothStroke(jittery, 3);
-    const yMax = Math.max(...smoothed.slice(1,-1).map(p => Math.abs(p[1])));
-    const yMaxOrig = Math.max(...jittery.slice(1,-1).map(p => Math.abs(p[1])));
+    const yMax = Math.max(...smoothed.slice(1, -1).map((p) => Math.abs(p[1])));
+    const yMaxOrig = Math.max(...jittery.slice(1, -1).map((p) => Math.abs(p[1])));
     expect(yMax).toBeLessThan(yMaxOrig);
   });
 
   it('clearStrokes() removes reference sketch layer', () => {
     useSketchStore.getState().beginStroke();
-    useSketchStore.getState().appendPoint([0,0,0]);
-    useSketchStore.getState().appendPoint([1,0,0]);
+    useSketchStore.getState().appendPoint([0, 0, 0]);
+    useSketchStore.getState().appendPoint([1, 0, 0]);
     useSketchStore.getState().commitStroke();
     useSketchStore.getState().clearStrokes();
     expect(useSketchStore.getState().strokes).toHaveLength(0);
@@ -317,8 +338,11 @@ describe('Scenario: Sculptor — Reference Sketch Layer', () => {
     // VR controller position stream → appendPoint with 3D coords
     useSketchStore.getState().beginStroke();
     const vrPositions: [number, number, number][] = [
-      [0, 1.6, -0.5], [0.1, 1.7, -0.5], [0.2, 1.8, -0.4],
-      [0.3, 1.7, -0.3], [0.4, 1.6, -0.3],
+      [0, 1.6, -0.5],
+      [0.1, 1.7, -0.5],
+      [0.2, 1.8, -0.4],
+      [0.3, 1.7, -0.3],
+      [0.4, 1.6, -0.3],
     ];
     for (const pos of vrPositions) {
       useSketchStore.getState().appendPoint(pos);
@@ -339,24 +363,33 @@ describe('Scenario: Sculptor — Reference Sketch Layer', () => {
 describe('Scenario: Sculptor — Material Authoring (shader graph → GLSL)', () => {
   it('UV → Output compiles successfully', () => {
     const result = compileNodeGraph(
-      [n('uv','uvNode',{type:'uv',label:'UV',channel:0}), n('o','outputNode',{type:'output',label:'Output',outputType:'fragColor'})],
-      [e('e1','uv','o','out','rgb')]
+      [
+        n('uv', 'uvNode', { type: 'uv', label: 'UV', channel: 0 }),
+        n('o', 'outputNode', { type: 'output', label: 'Output', outputType: 'fragColor' }),
+      ],
+      [e('e1', 'uv', 'o', 'out', 'rgb')]
     );
     expect(result.ok).toBe(true);
   });
 
   it('compiledGLSL from UV graph has void main()', () => {
     const result = compileNodeGraph(
-      [n('uv','uvNode',{type:'uv',label:'UV',channel:0}), n('o','outputNode',{type:'output',label:'Output',outputType:'fragColor'})],
-      [e('e1','uv','o','out','rgb')]
+      [
+        n('uv', 'uvNode', { type: 'uv', label: 'UV', channel: 0 }),
+        n('o', 'outputNode', { type: 'output', label: 'Output', outputType: 'fragColor' }),
+      ],
+      [e('e1', 'uv', 'o', 'out', 'rgb')]
     );
     if (result.ok) expect(hasGlslMain(result.glsl!)).toBe(true);
   });
 
   it('compiledGLSL has gl_FragColor assignment', () => {
     const result = compileNodeGraph(
-      [n('uv','uvNode',{type:'uv',label:'UV',channel:0}), n('o','outputNode',{type:'output',label:'Output',outputType:'fragColor'})],
-      [e('e1','uv','o','out','rgb')]
+      [
+        n('uv', 'uvNode', { type: 'uv', label: 'UV', channel: 0 }),
+        n('o', 'outputNode', { type: 'output', label: 'Output', outputType: 'fragColor' }),
+      ],
+      [e('e1', 'uv', 'o', 'out', 'rgb')]
     );
     if (result.ok) expect(hasFragColor(result.glsl!)).toBe(true);
   });
@@ -378,7 +411,7 @@ describe('Scenario: Sculptor — Material Authoring (shader graph → GLSL)', ()
       n('albedo', 'vec3', { value: [1, 0, 0] }),
       n('roughness', 'float', { value: 0.2 }),
       n('metallic', 'float', { value: 0.8 }),
-      n('out', 'PBROutput', { type: 'PBROutput' })
+      n('out', 'PBROutput', { type: 'PBROutput' }),
     ];
     const edges = [
       e('e1', 'albedo', 'out', 'out', 'albedo'),
@@ -389,9 +422,9 @@ describe('Scenario: Sculptor — Material Authoring (shader graph → GLSL)', ()
     const result = translateGraphToWGSL(nodes, edges);
     expect(result.ok).toBe(true);
     // Resolved upstream constants are declared as variables
-    expect(result.wgsl).toContain('vec3f(1.0, 0.0, 0.0)');  // Albedo resolved from connected node
-    expect(result.wgsl).toContain('0.2');                     // Roughness resolved from connected node
-    expect(result.wgsl).toContain('0.8');                     // Metallic resolved from connected node
+    expect(result.wgsl).toContain('vec3f(1.0, 0.0, 0.0)'); // Albedo resolved from connected node
+    expect(result.wgsl).toContain('0.2'); // Roughness resolved from connected node
+    expect(result.wgsl).toContain('0.8'); // Metallic resolved from connected node
     // PBR output references resolved variables
     expect(result.wgsl).toContain('let albedo = var_albedo');
     expect(result.wgsl).toContain('let roughness = var_roughness');
@@ -418,9 +451,9 @@ describe('Scenario: Sculptor — Material Authoring (shader graph → GLSL)', ()
   });
 
   it('export material as Three.js MeshStandardMaterial JSON logic bounds', () => {
-     // Validate that compiler output format maps cleanly to the needed ThreeJS payload limits
-     const result = translateGraphToWGSL([n('out', 'PBROutput', {})], []);
-     expect(result.wgsl?.length).toBeGreaterThan(100);
+    // Validate that compiler output format maps cleanly to the needed ThreeJS payload limits
+    const result = translateGraphToWGSL([n('out', 'PBROutput', {})], []);
+    expect(result.wgsl?.length).toBeGreaterThan(100);
   });
 });
 
@@ -428,7 +461,15 @@ describe('Scenario: Sculptor — Material Authoring (shader graph → GLSL)', ()
 // 6. Sculpting Brushes (future — GPU required)
 // ═══════════════════════════════════════════════════════════════════
 
-import { applyGrabBrush, applySmoothBrush, applyInflateBrush, applyCreaseBrush, applySymmetryMirror, subdivideMesh, reduceMesh } from '@/lib/sculptingBrushes';
+import {
+  applyGrabBrush,
+  applySmoothBrush,
+  applyInflateBrush,
+  applyCreaseBrush,
+  applySymmetryMirror,
+  subdivideMesh,
+  reduceMesh,
+} from '@/lib/sculptingBrushes';
 
 describe('Scenario: Sculptor — Sculpt Brushes (Typed Array Acceleration)', () => {
   let mesh: Float32Array;
@@ -436,15 +477,17 @@ describe('Scenario: Sculptor — Sculpt Brushes (Typed Array Acceleration)', () 
 
   beforeEach(() => {
     mesh = new Float32Array([
-      0, 0, 0, // Vertex 0
-      1, 0, 0, // Vertex 1
-      0, 1, 0, // Vertex 2
+      0,
+      0,
+      0, // Vertex 0
+      1,
+      0,
+      0, // Vertex 1
+      0,
+      1,
+      0, // Vertex 2
     ]);
-    normals = new Float32Array([
-      0, 0, 1,
-      0, 0, 1,
-      0, 0, 1,
-    ]);
+    normals = new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]);
   });
 
   it('Grab brush displaces vertices along computed hit normal', () => {
@@ -457,11 +500,7 @@ describe('Scenario: Sculptor — Sculpt Brushes (Typed Array Acceleration)', () 
 
   it('Smooth brush (Gaussian) averages neighbouring vertex positions', () => {
     // A spike at [0,0,1], rest at z=0
-    const spikeMesh = new Float32Array([
-      0, 0, 1,
-      0.1, 0, 0,
-      -0.1, 0, 0
-    ]);
+    const spikeMesh = new Float32Array([0, 0, 1, 0.1, 0, 0, -0.1, 0, 0]);
     const res = applySmoothBrush(spikeMesh, [], { x: 0, y: 0, z: 1 }, 1.5, 1.0, 1);
     expect(res[2]).toBeLessThan(1.0); // spike is smoothed down
   });

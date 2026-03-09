@@ -58,11 +58,11 @@ describe('LODTransition', () => {
     const lod = new LODTransition({ hysteresisBand: 5 });
     // Upgrading (lod going up) needs distance > threshold + band
     expect(lod.shouldTransition(55, 50, 0, 1)).toBe(false); // 55 <= 55
-    expect(lod.shouldTransition(56, 50, 0, 1)).toBe(true);  // 56 > 55
+    expect(lod.shouldTransition(56, 50, 0, 1)).toBe(true); // 56 > 55
 
     // Downgrading (lod going down) needs distance < threshold - band
     expect(lod.shouldTransition(46, 50, 1, 0)).toBe(false); // 46 > 45, not a downgrade trigger
-    expect(lod.shouldTransition(44, 50, 1, 0)).toBe(true);  // 44 < 45
+    expect(lod.shouldTransition(44, 50, 1, 0)).toBe(true); // 44 < 45
   });
 
   it('getTransitionState returns undefined for unknown entity', () => {

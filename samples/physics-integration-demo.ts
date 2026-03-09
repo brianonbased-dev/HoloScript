@@ -317,9 +317,7 @@ class PhysicsIntegrationDemo {
     this.log(`  Fragments Converted: ${conversionStats.fragmentsConverted}`);
     this.log(`  Particles Created: ${conversionStats.particlesCreated}`);
     this.log(`  Total Volume: ${conversionStats.totalVolume.toFixed(3)} m³`);
-    this.log(
-      `  Avg Particle Size: ${(conversionStats.averageParticleSize * 100).toFixed(1)} cm`
-    );
+    this.log(`  Avg Particle Size: ${(conversionStats.averageParticleSize * 100).toFixed(1)} cm`);
 
     this.log('\n' + '─'.repeat(50));
   }

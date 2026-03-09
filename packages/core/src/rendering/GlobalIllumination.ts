@@ -23,7 +23,7 @@ export type Vec3 = { x: number; y: number; z: number };
 
 /** L2 spherical harmonics — 9 coefficients per RGB channel */
 export interface SH9 {
-  r: Float32Array;   // length 9
+  r: Float32Array; // length 9
   g: Float32Array;
   b: Float32Array;
 }
@@ -63,19 +63,24 @@ export function createSH9(): SH9 {
  * Add a directional radiance sample to an SH9 accumulator.
  * dir must be a unit vector (azimuth encoded across hemisphere).
  */
-export function addSHSample(sh: SH9, dir: Vec3, radiance: [number, number, number], weight = 1): void {
+export function addSHSample(
+  sh: SH9,
+  dir: Vec3,
+  radiance: [number, number, number],
+  weight = 1
+): void {
   const { x, y, z } = dir;
   // L0–L2 SH basis evaluations
   const basis: number[] = [
-    0.282095,                                   // L0
-    0.488603 * y,                               // L1m1
-    0.488603 * z,                               // L10
-    0.488603 * x,                               // L1p1
-    1.092548 * x * y,                           // L2m2
-    1.092548 * y * z,                           // L2m1
-    0.315392 * (3 * z * z - 1),                // L20
-    1.092548 * x * z,                           // L2p1
-    0.546274 * (x * x - y * y),               // L2p2
+    0.282095, // L0
+    0.488603 * y, // L1m1
+    0.488603 * z, // L10
+    0.488603 * x, // L1p1
+    1.092548 * x * y, // L2m2
+    1.092548 * y * z, // L2m1
+    0.315392 * (3 * z * z - 1), // L20
+    1.092548 * x * z, // L2p1
+    0.546274 * (x * x - y * y), // L2p2
   ];
 
   for (let i = 0; i < 9; i++) {
@@ -91,31 +96,33 @@ export function addSHSample(sh: SH9, dir: Vec3, radiance: [number, number, numbe
  */
 export function evalSH9Irradiance(sh: SH9, normal: Vec3): [number, number, number] {
   const { x, y, z } = normal;
-  const c1 = 0.429043, c2 = 0.511664, c3 = 0.743125, c4 = 0.886227, c5 = 0.247708;
+  const c1 = 0.429043,
+    c2 = 0.511664,
+    c3 = 0.743125,
+    c4 = 0.886227,
+    c5 = 0.247708;
 
   const eval_ = (coeff: Float32Array): number =>
-    c4 * coeff[0]
-    - c5 * coeff[6]
-    + 2 * c2 * coeff[1] * y
-    + 2 * c2 * coeff[2] * z
-    + 2 * c2 * coeff[3] * x
-    + 2 * c1 * coeff[4] * x * y
-    + 2 * c1 * coeff[5] * y * z
-    + c3 * coeff[6] * z * z
-    + 2 * c1 * coeff[7] * x * z
-    + c1 * coeff[8] * (x * x - y * y);
+    c4 * coeff[0] -
+    c5 * coeff[6] +
+    2 * c2 * coeff[1] * y +
+    2 * c2 * coeff[2] * z +
+    2 * c2 * coeff[3] * x +
+    2 * c1 * coeff[4] * x * y +
+    2 * c1 * coeff[5] * y * z +
+    c3 * coeff[6] * z * z +
+    2 * c1 * coeff[7] * x * z +
+    c1 * coeff[8] * (x * x - y * y);
 
-  return [
-    Math.max(0, eval_(sh.r)),
-    Math.max(0, eval_(sh.g)),
-    Math.max(0, eval_(sh.b)),
-  ];
+  return [Math.max(0, eval_(sh.r)), Math.max(0, eval_(sh.g)), Math.max(0, eval_(sh.b))];
 }
 
 /** Scale all SH coefficients by a scalar (e.g. to normalise after sample accumulation) */
 export function scaleSH9(sh: SH9, s: number): void {
   for (let i = 0; i < 9; i++) {
-    sh.r[i] *= s; sh.g[i] *= s; sh.b[i] *= s;
+    sh.r[i] *= s;
+    sh.g[i] *= s;
+    sh.b[i] *= s;
   }
 }
 
@@ -182,16 +189,30 @@ export class GIProbeGrid {
   // Accessors
   // ---------------------------------------------------------------------------
 
-  getProbeCount(): number { return this.probes.length; }
-  getConfig(): Readonly<GIConfig> { return { ...this.config }; }
+  getProbeCount(): number {
+    return this.probes.length;
+  }
+  getConfig(): Readonly<GIConfig> {
+    return { ...this.config };
+  }
 
   getProbe(x: number, y: number, z: number): ProbeInfo | undefined {
     const [gx, gy] = this.config.gridSize;
-    if (x < 0 || y < 0 || z < 0 || x >= this.config.gridSize[0] || y >= gy || z >= this.config.gridSize[2]) return undefined;
+    if (
+      x < 0 ||
+      y < 0 ||
+      z < 0 ||
+      x >= this.config.gridSize[0] ||
+      y >= gy ||
+      z >= this.config.gridSize[2]
+    )
+      return undefined;
     return this.probes[z * gy * gx + y * gx + x];
   }
 
-  getProbeAt(index: number): ProbeInfo | undefined { return this.probes[index]; }
+  getProbeAt(index: number): ProbeInfo | undefined {
+    return this.probes[index];
+  }
 
   // ---------------------------------------------------------------------------
   // Probe Updates
@@ -215,7 +236,7 @@ export class GIProbeGrid {
 
   /** Number of valid probes (validity > 0) */
   getValidProbeCount(): number {
-    return this.probes.filter(p => p.validity > 0).length;
+    return this.probes.filter((p) => p.validity > 0).length;
   }
 
   // ---------------------------------------------------------------------------
@@ -238,7 +259,9 @@ export class GIProbeGrid {
     const iy = Math.max(0, Math.min(gridSize[1] - 2, Math.floor(gy)));
     const iz = Math.max(0, Math.min(gridSize[2] - 2, Math.floor(gz)));
 
-    const tx = gx - ix, ty = gy - iy, tz = gz - iz;
+    const tx = gx - ix,
+      ty = gy - iy,
+      tz = gz - iz;
 
     // Trilinear: 8 corner probes
     const probe = (dx: number, dy: number, dz: number): SH9 =>

@@ -378,7 +378,7 @@ export class AdvancedTypeChecker {
  */
 // HSPlusNode is imported from HoloScriptPlus.js
 
-export interface ASTProgram  {
+export interface ASTProgram {
   type: 'Program';
   body: any[];
   version: string | number;
@@ -405,20 +405,20 @@ export type HSPlusDirective =
   | HSPlusVersionDirective
   | HSPlusMigrateDirective;
 
-export interface HSPlusBaseDirective  {
+export interface HSPlusBaseDirective {
   type: 'directive' | 'fragment' | 'external_api' | 'generate';
   name: string;
   args: string[];
 }
 
-export interface HSPlusTraitDirective  {
+export interface HSPlusTraitDirective {
   type: 'trait';
   name: string;
   args?: any[];
   config?: any;
 }
 
-export interface HSPlusLifecycleDirective  {
+export interface HSPlusLifecycleDirective {
   type: 'lifecycle';
   name?: string;
   hook: string;
@@ -426,14 +426,14 @@ export interface HSPlusLifecycleDirective  {
   body: string;
 }
 
-export interface HSPlusStateDirective  {
+export interface HSPlusStateDirective {
   type: 'state';
   name: string;
   body?: Record<string, any>;
   initial?: any;
 }
 
-export interface HSPlusForDirective  {
+export interface HSPlusForDirective {
   type: 'for';
   variable: string;
   range?: [number, number];
@@ -441,37 +441,37 @@ export interface HSPlusForDirective  {
   body: any[];
 }
 
-export interface HSPlusForEachDirective  {
+export interface HSPlusForEachDirective {
   type: 'forEach';
   variable: string;
   collection: string;
   body: any[];
 }
 
-export interface HSPlusWhileDirective  {
+export interface HSPlusWhileDirective {
   type: 'while';
   condition: string;
   body: any[];
 }
 
-export interface HSPlusIfDirective  {
+export interface HSPlusIfDirective {
   type: 'if';
   condition: string;
   body: any[];
 }
 
-export interface HSPlusImportDirective  {
+export interface HSPlusImportDirective {
   type: 'import';
   source: string;
   specifiers: string[];
 }
 
-export interface HSPlusVersionDirective  {
+export interface HSPlusVersionDirective {
   type: 'version';
   version: number;
 }
 
-export interface HSPlusMigrateDirective  {
+export interface HSPlusMigrateDirective {
   type: 'migrate';
   fromVersion: number;
   body: string;

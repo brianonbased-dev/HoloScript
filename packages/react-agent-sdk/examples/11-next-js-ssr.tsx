@@ -12,13 +12,9 @@ function DataFetchingComponent() {
   const { agent, status } = useAgent('brittney');
 
   // Only execute task on client-side
-  const { data, loading } = useTask(
-    typeof window !== 'undefined' ? agent : null,
-    'fetchData',
-    {
-      input: { source: 'api' },
-    }
-  );
+  const { data, loading } = useTask(typeof window !== 'undefined' ? agent : null, 'fetchData', {
+    input: { source: 'api' },
+  });
 
   if (status === 'connecting') {
     return <div>Connecting to agent...</div>;

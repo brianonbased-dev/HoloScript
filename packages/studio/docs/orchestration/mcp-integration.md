@@ -78,6 +78,7 @@ The MCP Server Config Panel enables HoloScript Studio to discover, test, and exe
 **Keyboard Shortcut:** `Ctrl+M`
 
 **Or via UI:**
+
 1. Click the "MCP" icon in the toolbar
 2. Panel opens showing server list
 
@@ -128,6 +129,7 @@ HoloScript Studio auto-configures the MCP Mesh Orchestrator:
 ```
 
 **Server Card Components:**
+
 - **Status Indicator** - Green (online), Red (offline), Gray (disabled)
 - **Server Name** - Unique identifier
 - **URL** - Server endpoint
@@ -165,16 +167,16 @@ To add a custom server:
 
 Default servers in MCP Mesh Orchestrator:
 
-| Server | Purpose | Tools |
-|--------|---------|-------|
-| `mcp-filesystem` | File operations | read_file, write_file, list_directory |
-| `mcp-git` | Git version control | git_status, git_commit, git_push |
-| `mcp-github` | GitHub integration | create_pr, list_issues, get_repo |
-| `semantic-search-hub` | Vector search | search_knowledge, add_pattern, reindex |
-| `holoscript-language` | Language services | parse_code, validate_syntax, generate |
-| `brittney-hololand` | AI agent | chat, generate_scene, optimize |
-| `ai-workspace-knowledge` | Knowledge base | query_docs, add_insight, get_context |
-| `uaa2-service` | Authentication | verify_token, get_user, check_permission |
+| Server                   | Purpose             | Tools                                    |
+| ------------------------ | ------------------- | ---------------------------------------- |
+| `mcp-filesystem`         | File operations     | read_file, write_file, list_directory    |
+| `mcp-git`                | Git version control | git_status, git_commit, git_push         |
+| `mcp-github`             | GitHub integration  | create_pr, list_issues, get_repo         |
+| `semantic-search-hub`    | Vector search       | search_knowledge, add_pattern, reindex   |
+| `holoscript-language`    | Language services   | parse_code, validate_syntax, generate    |
+| `brittney-hololand`      | AI agent            | chat, generate_scene, optimize           |
+| `ai-workspace-knowledge` | Knowledge base      | query_docs, add_insight, get_context     |
+| `uaa2-service`           | Authentication      | verify_token, get_user, check_permission |
 
 ---
 
@@ -205,6 +207,7 @@ When you select a server, the Tool Browser displays available tools:
 ```
 
 **Tool Card Components:**
+
 - **Tool Name** - Function identifier (mono font)
 - **Description** - What the tool does
 - **Parameters** - Required and optional arguments
@@ -251,7 +254,7 @@ Click the **[▶]** button to test a tool:
 
 **Testing Workflow:**
 
-1. **Fill Parameters** - Enter values for required (*) and optional fields
+1. **Fill Parameters** - Enter values for required (\*) and optional fields
 2. **Click "Test Tool"** - Executes tool call
 3. **View Result** - Success (green ✓) or Error (red ✗)
 4. **Inspect Output** - JSON-formatted result or error message
@@ -259,6 +262,7 @@ Click the **[▶]** button to test a tool:
 ### Example: Testing search_knowledge
 
 **Input:**
+
 ```
 query: "parser error handling"
 limit: 5
@@ -266,6 +270,7 @@ threshold: 0.7
 ```
 
 **Output (Success):**
+
 ```json
 {
   "results": [
@@ -289,6 +294,7 @@ threshold: 0.7
 ```
 
 **Output (Error):**
+
 ```json
 {
   "error": "Connection refused: ECONNREFUSED",
@@ -311,7 +317,7 @@ import { MCPServer, MCPTool } from '@modelcontextprotocol/sdk';
 const app = express();
 const server = new MCPServer({
   name: 'my-custom-server',
-  version: '1.0.0'
+  version: '1.0.0',
 });
 
 // Define a tool
@@ -322,23 +328,21 @@ const greetTool: MCPTool = {
     name: {
       type: 'string',
       description: 'Name of the person to greet',
-      required: true
+      required: true,
     },
     formal: {
       type: 'boolean',
       description: 'Use formal greeting',
       required: false,
-      default: false
-    }
+      default: false,
+    },
   },
   handler: async (args) => {
     const { name, formal } = args;
-    const greeting = formal
-      ? `Good day, ${name}.`
-      : `Hey ${name}! How's it going?`;
+    const greeting = formal ? `Good day, ${name}.` : `Hey ${name}! How's it going?`;
 
     return { success: true, result: { greeting } };
-  }
+  },
 };
 
 server.registerTool(greetTool);
@@ -380,14 +384,16 @@ curl -X POST http://localhost:5567/servers \
 ### Tool Schema Best Practices
 
 **1. Clear Descriptions**
+
 ```typescript
 {
-  description: 'Search files by content using regex patterns'
+  description: 'Search files by content using regex patterns';
   // ✓ Specific and actionable
 }
 ```
 
 **2. Parameter Validation**
+
 ```typescript
 {
   name: 'query',
@@ -400,6 +406,7 @@ curl -X POST http://localhost:5567/servers \
 ```
 
 **3. Default Values**
+
 ```typescript
 {
   name: 'limit',
@@ -422,8 +429,8 @@ Configure API keys for secure server access:
 const server: MCPServerConfig = {
   name: 'secure-server',
   url: 'https://api.example.com',
-  apiKey: process.env.MCP_API_KEY,  // ← From environment
-  enabled: true
+  apiKey: process.env.MCP_API_KEY, // ← From environment
+  enabled: true,
 };
 ```
 
@@ -508,9 +515,9 @@ Implement rate limiting in custom servers:
 import rateLimit from 'express-rate-limit';
 
 const limiter = rateLimit({
-  windowMs: 60 * 1000,  // 1 minute
-  max: 100,             // 100 requests per minute
-  message: 'Too many requests, please try again later'
+  windowMs: 60 * 1000, // 1 minute
+  max: 100, // 100 requests per minute
+  message: 'Too many requests, please try again later',
 });
 
 app.use('/tools/call', limiter);
@@ -524,7 +531,7 @@ Automatically disable failing servers:
 const checkHealth = async (server: MCPServerConfig) => {
   try {
     const response = await fetch(`${server.url}/health`, {
-      timeout: server.timeout
+      timeout: server.timeout,
     });
 
     if (!response.ok) {
@@ -578,6 +585,7 @@ Press `Ctrl+Shift+T` to open the Tool Call Graph:
 ### Statistics Dashboard
 
 **Metrics Tracked:**
+
 - Total tool calls
 - Success/error counts
 - Average response time
@@ -603,9 +611,7 @@ Expand a tool call to see full details:
     "limit": 5
   },
   "result": {
-    "results": [
-      { "title": "Error Handling Pattern", "score": 0.92 }
-    ]
+    "results": [{ "title": "Error Handling Pattern", "score": 0.92 }]
   }
 }
 ```
@@ -621,6 +627,7 @@ Expand a tool call to see full details:
 **Symptom:** Red indicator, "Connection refused: ECONNREFUSED"
 
 **Solutions:**
+
 1. Verify orchestrator is running: `curl http://localhost:5567/health`
 2. Check server URL is correct
 3. Ensure no firewall blocking port 5567
@@ -633,6 +640,7 @@ Expand a tool call to see full details:
 **Symptom:** Tool call hangs, then fails with timeout error
 
 **Solutions:**
+
 1. Increase timeout: `{ timeout: 30000 }` (30 seconds)
 2. Check server performance (slow database queries?)
 3. Implement retry logic with exponential backoff
@@ -645,6 +653,7 @@ Expand a tool call to see full details:
 **Symptom:** "401 Unauthorized" or "Invalid API key"
 
 **Solutions:**
+
 1. Verify API key is correct: Check localStorage or environment variable
 2. Ensure header format: `x-mcp-api-key: your-key-here`
 3. Check orchestrator API key matches client key
@@ -657,6 +666,7 @@ Expand a tool call to see full details:
 **Symptom:** "Tool 'xyz' not found on server"
 
 **Solutions:**
+
 1. Refresh server tool list: Click server in MCP panel
 2. Verify tool is registered: Check server `/tools` endpoint
 3. Check server version (tool might be in newer version)
@@ -669,8 +679,9 @@ Expand a tool call to see full details:
 **Symptom:** "Parameter 'query' is required" or type mismatch errors
 
 **Solutions:**
+
 1. Check tool parameter schema in Tool Browser
-2. Verify required (*) parameters are provided
+2. Verify required (\*) parameters are provided
 3. Match parameter types (string, number, boolean)
 4. Use Tool Tester to validate parameters before workflow use
 
@@ -679,12 +690,14 @@ Expand a tool call to see full details:
 ### Debugging Workflow
 
 **Step 1:** Check Orchestrator Health
+
 ```bash
 curl http://localhost:5567/health
 # Expected: { "status": "healthy", "uptime": 12345 }
 ```
 
 **Step 2:** List Available Servers
+
 ```bash
 curl -H "x-mcp-api-key: dev-key-12345" \
   http://localhost:5567/servers
@@ -692,6 +705,7 @@ curl -H "x-mcp-api-key: dev-key-12345" \
 ```
 
 **Step 3:** Test Tool Directly
+
 ```bash
 curl -X POST http://localhost:5567/tools/call \
   -H "x-mcp-api-key: dev-key-12345" \
@@ -704,6 +718,7 @@ curl -X POST http://localhost:5567/tools/call \
 ```
 
 **Step 4:** Check Client-Side Logs
+
 ```javascript
 // In browser console
 localStorage.getItem('mcp-api-key');
@@ -739,13 +754,14 @@ Organize tools by category:
 const tool: MCPTool = {
   name: 'optimize_scene',
   description: 'Optimize 3D scene for performance',
-  category: 'graphics',  // Custom category
+  category: 'graphics', // Custom category
   tags: ['3d', 'performance', 'optimization'],
   // ...
 };
 ```
 
 Filter by category in Tool Browser:
+
 ```
 [Graphics] [AI] [Database] [File System]
 ```

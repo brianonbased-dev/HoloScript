@@ -12,7 +12,10 @@ import path from 'path';
 import chalk from 'chalk';
 import ora from 'ora';
 import { NFTMarketplaceCompiler } from '@holoscript/core/compiler/NFTMarketplaceCompiler';
-import { GasOptimizationAnalyzer, ANALYZER_PRESETS } from '@holoscript/core/compiler/GasOptimizationAnalyzer';
+import {
+  GasOptimizationAnalyzer,
+  ANALYZER_PRESETS,
+} from '@holoscript/core/compiler/GasOptimizationAnalyzer';
 import type { NFTMarketplaceAST } from '@holoscript/core/parser/NFTMarketplaceTypes';
 
 export interface NFTCompileOptions {
@@ -85,12 +88,20 @@ export async function nftCompileCommand(
       console.log(chalk.gray('─'.repeat(60)));
 
       console.log(chalk.yellow(`\nTotal Optimizations: ${output.gasAnalysis.totalOptimizations}`));
-      console.log(chalk.yellow(`Potential Savings: ~${output.gasAnalysis.estimatedSavings.toLocaleString()} gas`));
+      console.log(
+        chalk.yellow(
+          `Potential Savings: ~${output.gasAnalysis.estimatedSavings.toLocaleString()} gas`
+        )
+      );
 
       console.log(chalk.gray('\nSeverity Breakdown:'));
       console.log(`  ${chalk.red('Critical')}: ${output.gasAnalysis.criticalIssues.length}`);
-      console.log(`  ${chalk.yellow('High')}: ${output.gasAnalysis.criticalIssues.filter(i => i.severity === 'high').length}`);
-      console.log(`  ${chalk.blue('Medium')}: ${output.gasAnalysis.criticalIssues.filter(i => i.severity === 'medium').length}`);
+      console.log(
+        `  ${chalk.yellow('High')}: ${output.gasAnalysis.criticalIssues.filter((i) => i.severity === 'high').length}`
+      );
+      console.log(
+        `  ${chalk.blue('Medium')}: ${output.gasAnalysis.criticalIssues.filter((i) => i.severity === 'medium').length}`
+      );
 
       if (output.gasAnalysis.criticalIssues.length > 0) {
         console.log(chalk.gray('\nTop Issues:'));
@@ -139,12 +150,20 @@ export async function nftCompileCommand(
 
     // Next steps
     console.log(chalk.blue('📖 Next steps:'));
-    console.log(chalk.gray('  1. Review generated contracts in ' + chalk.cyan(`${outputDir}/contracts/`)));
-    console.log(chalk.gray('  2. Install dependencies: ' + chalk.cyan('npm install @openzeppelin/contracts')));
-    console.log(chalk.gray('  3. Deploy to testnet: ' + chalk.cyan('npx hardhat run deploy/deploy-base.ts --network base-goerli')));
+    console.log(
+      chalk.gray('  1. Review generated contracts in ' + chalk.cyan(`${outputDir}/contracts/`))
+    );
+    console.log(
+      chalk.gray('  2. Install dependencies: ' + chalk.cyan('npm install @openzeppelin/contracts'))
+    );
+    console.log(
+      chalk.gray(
+        '  3. Deploy to testnet: ' +
+          chalk.cyan('npx hardhat run deploy/deploy-base.ts --network base-goerli')
+      )
+    );
     console.log(chalk.gray('  4. Verify contracts on block explorer'));
     console.log(chalk.gray('  5. Deploy to mainnet when ready\n'));
-
   } catch (error) {
     spinner.fail('Compilation failed');
     console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);

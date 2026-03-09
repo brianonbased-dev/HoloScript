@@ -9,8 +9,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { audioPortalHandler } from '../AudioPortalTrait';
 
-function makeNode() { return { id: 'portal_1', type: 'object' }; }
-function makeContext() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'portal_1', type: 'object' };
+}
+function makeContext() {
+  return { emit: vi.fn() };
+}
 function attachNode(config: any = {}) {
   const node = makeNode();
   const ctx = makeContext();
@@ -23,12 +27,17 @@ function attachNode(config: any = {}) {
 
 describe('audioPortalHandler.defaultConfig', () => {
   it('opening_size = 1', () => expect(audioPortalHandler.defaultConfig!.opening_size).toBe(1));
-  it('connected_zones = ["",""]', () => expect(audioPortalHandler.defaultConfig!.connected_zones).toEqual(['', '']));
-  it('transmission_loss = 6 dB', () => expect(audioPortalHandler.defaultConfig!.transmission_loss).toBe(6));
+  it('connected_zones = ["",""]', () =>
+    expect(audioPortalHandler.defaultConfig!.connected_zones).toEqual(['', '']));
+  it('transmission_loss = 6 dB', () =>
+    expect(audioPortalHandler.defaultConfig!.transmission_loss).toBe(6));
   it('diffraction = true', () => expect(audioPortalHandler.defaultConfig!.diffraction).toBe(true));
-  it('frequency_filtering = true', () => expect(audioPortalHandler.defaultConfig!.frequency_filtering).toBe(true));
-  it('low_pass_frequency = 8000', () => expect(audioPortalHandler.defaultConfig!.low_pass_frequency).toBe(8000));
-  it('open_by_default = true', () => expect(audioPortalHandler.defaultConfig!.open_by_default).toBe(true));
+  it('frequency_filtering = true', () =>
+    expect(audioPortalHandler.defaultConfig!.frequency_filtering).toBe(true));
+  it('low_pass_frequency = 8000', () =>
+    expect(audioPortalHandler.defaultConfig!.low_pass_frequency).toBe(8000));
+  it('open_by_default = true', () =>
+    expect(audioPortalHandler.defaultConfig!.open_by_default).toBe(true));
   it('max_sources = 8', () => expect(audioPortalHandler.defaultConfig!.max_sources).toBe(8));
 });
 
@@ -60,11 +69,15 @@ describe('audioPortalHandler.onAttach', () => {
     expect((node as any).__audioPortalState.currentTransmission).toBe(1);
   });
   it('sourceZone = connected_zones[0]', () => {
-    const { node } = attachNode({ connected_zones: ['living_room', 'kitchen'] as [string, string] });
+    const { node } = attachNode({
+      connected_zones: ['living_room', 'kitchen'] as [string, string],
+    });
     expect((node as any).__audioPortalState.sourceZone).toBe('living_room');
   });
   it('targetZone = connected_zones[1]', () => {
-    const { node } = attachNode({ connected_zones: ['living_room', 'kitchen'] as [string, string] });
+    const { node } = attachNode({
+      connected_zones: ['living_room', 'kitchen'] as [string, string],
+    });
     expect((node as any).__audioPortalState.targetZone).toBe('kitchen');
   });
   it('activeConnections is empty Set', () => {
@@ -72,8 +85,14 @@ describe('audioPortalHandler.onAttach', () => {
     expect((node as any).__audioPortalState.activeConnections.size).toBe(0);
   });
   it('emits audio_portal_register with zones and openingSize', () => {
-    const { ctx } = attachNode({ connected_zones: ['A', 'B'] as [string, string], opening_size: 2 });
-    expect(ctx.emit).toHaveBeenCalledWith('audio_portal_register', expect.objectContaining({ zones: ['A', 'B'], openingSize: 2 }));
+    const { ctx } = attachNode({
+      connected_zones: ['A', 'B'] as [string, string],
+      opening_size: 2,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'audio_portal_register',
+      expect.objectContaining({ zones: ['A', 'B'], openingSize: 2 })
+    );
   });
 });
 
@@ -130,7 +149,10 @@ describe('audioPortalHandler.onUpdate', () => {
     const postLerpOpen = Math.min(0.5 + delta * 3, 1);
     const dbLoss = 6 * (1 - postLerpOpen);
     const expectedTransmission = Math.pow(10, -dbLoss / 20);
-    expect((node as any).__audioPortalState.currentTransmission).toBeCloseTo(expectedTransmission, 4);
+    expect((node as any).__audioPortalState.currentTransmission).toBeCloseTo(
+      expectedTransmission,
+      4
+    );
     expect((node as any).__audioPortalState.currentTransmission).toBeLessThan(1);
   });
   it('emits audio_portal_update when there are active connections', () => {
@@ -147,7 +169,11 @@ describe('audioPortalHandler.onUpdate', () => {
     expect(ctx.emit).not.toHaveBeenCalledWith('audio_portal_update', expect.any(Object));
   });
   it('lowPassFreq proportional to openAmount when frequency_filtering=true', () => {
-    const { node, cfg, ctx } = attachNode({ open_by_default: true, frequency_filtering: true, low_pass_frequency: 8000 });
+    const { node, cfg, ctx } = attachNode({
+      open_by_default: true,
+      frequency_filtering: true,
+      low_pass_frequency: 8000,
+    });
     // openAmount starts at 1, isOpen=true → no lerp needed. lowPassFreq = 8000 * 1 = 8000
     (node as any).__audioPortalState.activeConnections.add('x');
     ctx.emit.mockClear();
@@ -173,14 +199,20 @@ describe('audioPortalHandler.onEvent — open/close', () => {
     ctx.emit.mockClear();
     audioPortalHandler.onEvent!(node, cfg, ctx, { type: 'audio_portal_open' });
     expect((node as any).__audioPortalState.isOpen).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('audio_portal_state_change', expect.objectContaining({ isOpen: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'audio_portal_state_change',
+      expect.objectContaining({ isOpen: true })
+    );
   });
   it('audio_portal_close sets isOpen=false and emits state_change', () => {
     const { node, cfg, ctx } = attachNode({ open_by_default: true });
     ctx.emit.mockClear();
     audioPortalHandler.onEvent!(node, cfg, ctx, { type: 'audio_portal_close' });
     expect((node as any).__audioPortalState.isOpen).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('audio_portal_state_change', expect.objectContaining({ isOpen: false }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'audio_portal_state_change',
+      expect.objectContaining({ isOpen: false })
+    );
   });
 });
 
@@ -189,7 +221,10 @@ describe('audioPortalHandler.onEvent — open/close', () => {
 describe('audioPortalHandler.onEvent — set_openness', () => {
   it('sets openAmount directly', () => {
     const { node, cfg, ctx } = attachNode({ open_by_default: false });
-    audioPortalHandler.onEvent!(node, cfg, ctx, { type: 'audio_portal_set_openness', amount: 0.75 });
+    audioPortalHandler.onEvent!(node, cfg, ctx, {
+      type: 'audio_portal_set_openness',
+      amount: 0.75,
+    });
     expect((node as any).__audioPortalState.openAmount).toBe(0.75);
   });
   it('sets isOpen=true when amount > 0', () => {
@@ -208,31 +243,79 @@ describe('audioPortalHandler.onEvent — set_openness', () => {
 
 describe('audioPortalHandler.onEvent — audio_source_route', () => {
   it('adds source when zones match (forward direction)', () => {
-    const { node, cfg, ctx } = attachNode({ connected_zones: ['hall', 'room'] as [string, string], max_sources: 5 });
-    audioPortalHandler.onEvent!(node, cfg, ctx, { type: 'audio_source_route', sourceId: 'src_A', fromZone: 'hall', toZone: 'room' });
+    const { node, cfg, ctx } = attachNode({
+      connected_zones: ['hall', 'room'] as [string, string],
+      max_sources: 5,
+    });
+    audioPortalHandler.onEvent!(node, cfg, ctx, {
+      type: 'audio_source_route',
+      sourceId: 'src_A',
+      fromZone: 'hall',
+      toZone: 'room',
+    });
     expect((node as any).__audioPortalState.activeConnections.has('src_A')).toBe(true);
   });
   it('adds source when zones match (reverse direction)', () => {
-    const { node, cfg, ctx } = attachNode({ connected_zones: ['hall', 'room'] as [string, string], max_sources: 5 });
-    audioPortalHandler.onEvent!(node, cfg, ctx, { type: 'audio_source_route', sourceId: 'src_B', fromZone: 'room', toZone: 'hall' });
+    const { node, cfg, ctx } = attachNode({
+      connected_zones: ['hall', 'room'] as [string, string],
+      max_sources: 5,
+    });
+    audioPortalHandler.onEvent!(node, cfg, ctx, {
+      type: 'audio_source_route',
+      sourceId: 'src_B',
+      fromZone: 'room',
+      toZone: 'hall',
+    });
     expect((node as any).__audioPortalState.activeConnections.has('src_B')).toBe(true);
   });
   it('emits audio_portal_route_source with transmission and diffraction', () => {
-    const { node, cfg, ctx } = attachNode({ connected_zones: ['A', 'B'] as [string, string], max_sources: 5, diffraction: true });
+    const { node, cfg, ctx } = attachNode({
+      connected_zones: ['A', 'B'] as [string, string],
+      max_sources: 5,
+      diffraction: true,
+    });
     ctx.emit.mockClear();
-    audioPortalHandler.onEvent!(node, cfg, ctx, { type: 'audio_source_route', sourceId: 'src_C', fromZone: 'A', toZone: 'B' });
-    expect(ctx.emit).toHaveBeenCalledWith('audio_portal_route_source', expect.objectContaining({ sourceId: 'src_C', diffraction: true }));
+    audioPortalHandler.onEvent!(node, cfg, ctx, {
+      type: 'audio_source_route',
+      sourceId: 'src_C',
+      fromZone: 'A',
+      toZone: 'B',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'audio_portal_route_source',
+      expect.objectContaining({ sourceId: 'src_C', diffraction: true })
+    );
   });
   it('does NOT add source when zones do not match', () => {
-    const { node, cfg, ctx } = attachNode({ connected_zones: ['hall', 'room'] as [string, string] });
-    audioPortalHandler.onEvent!(node, cfg, ctx, { type: 'audio_source_route', sourceId: 'src_X', fromZone: 'outside', toZone: 'attic' });
+    const { node, cfg, ctx } = attachNode({
+      connected_zones: ['hall', 'room'] as [string, string],
+    });
+    audioPortalHandler.onEvent!(node, cfg, ctx, {
+      type: 'audio_source_route',
+      sourceId: 'src_X',
+      fromZone: 'outside',
+      toZone: 'attic',
+    });
     expect((node as any).__audioPortalState.activeConnections.has('src_X')).toBe(false);
   });
   it('rejects source when max_sources reached', () => {
-    const { node, cfg, ctx } = attachNode({ connected_zones: ['zone1', 'zone2'] as [string, string], max_sources: 1 });
-    audioPortalHandler.onEvent!(node, cfg, ctx, { type: 'audio_source_route', sourceId: 'src_1', fromZone: 'zone1', toZone: 'zone2' });
+    const { node, cfg, ctx } = attachNode({
+      connected_zones: ['zone1', 'zone2'] as [string, string],
+      max_sources: 1,
+    });
+    audioPortalHandler.onEvent!(node, cfg, ctx, {
+      type: 'audio_source_route',
+      sourceId: 'src_1',
+      fromZone: 'zone1',
+      toZone: 'zone2',
+    });
     ctx.emit.mockClear();
-    audioPortalHandler.onEvent!(node, cfg, ctx, { type: 'audio_source_route', sourceId: 'src_2', fromZone: 'zone1', toZone: 'zone2' });
+    audioPortalHandler.onEvent!(node, cfg, ctx, {
+      type: 'audio_source_route',
+      sourceId: 'src_2',
+      fromZone: 'zone1',
+      toZone: 'zone2',
+    });
     expect((node as any).__audioPortalState.activeConnections.has('src_2')).toBe(false);
   });
 });
@@ -241,17 +324,37 @@ describe('audioPortalHandler.onEvent — audio_source_route', () => {
 
 describe('audioPortalHandler.onEvent — unroute + query', () => {
   it('audio_source_unroute removes source from activeConnections', () => {
-    const { node, cfg, ctx } = attachNode({ connected_zones: ['A', 'B'] as [string, string], max_sources: 5 });
-    audioPortalHandler.onEvent!(node, cfg, ctx, { type: 'audio_source_route', sourceId: 'src_D', fromZone: 'A', toZone: 'B' });
-    audioPortalHandler.onEvent!(node, cfg, ctx, { type: 'audio_source_unroute', sourceId: 'src_D' });
+    const { node, cfg, ctx } = attachNode({
+      connected_zones: ['A', 'B'] as [string, string],
+      max_sources: 5,
+    });
+    audioPortalHandler.onEvent!(node, cfg, ctx, {
+      type: 'audio_source_route',
+      sourceId: 'src_D',
+      fromZone: 'A',
+      toZone: 'B',
+    });
+    audioPortalHandler.onEvent!(node, cfg, ctx, {
+      type: 'audio_source_unroute',
+      sourceId: 'src_D',
+    });
     expect((node as any).__audioPortalState.activeConnections.has('src_D')).toBe(false);
   });
   it('audio_portal_query emits audio_portal_info with state snapshot', () => {
-    const { node, cfg, ctx } = attachNode({ open_by_default: true, connected_zones: ['hall', 'kitchen'] as [string, string] });
+    const { node, cfg, ctx } = attachNode({
+      open_by_default: true,
+      connected_zones: ['hall', 'kitchen'] as [string, string],
+    });
     ctx.emit.mockClear();
     audioPortalHandler.onEvent!(node, cfg, ctx, { type: 'audio_portal_query', queryId: 'q42' });
-    expect(ctx.emit).toHaveBeenCalledWith('audio_portal_info', expect.objectContaining({
-      queryId: 'q42', isOpen: true, zones: ['hall', 'kitchen'], activeConnections: 0,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'audio_portal_info',
+      expect.objectContaining({
+        queryId: 'q42',
+        isOpen: true,
+        zones: ['hall', 'kitchen'],
+        activeConnections: 0,
+      })
+    );
   });
 });

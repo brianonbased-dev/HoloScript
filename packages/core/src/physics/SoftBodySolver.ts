@@ -1,6 +1,6 @@
 /**
  * @holoscript/core Soft Body Solver
- * 
+ *
  * Implements Position-Based Dynamics (PBD) for real-time mesh deformation.
  * Handles distance, volume, and collision constraints.
  */
@@ -37,7 +37,7 @@ export class SoftBodySolver {
    */
   public step(dt: number): void {
     const sdt = dt / this.substeps;
-    
+
     for (let s = 0; s < this.substeps; s++) {
       this.predictPositions(sdt);
       this.solveConstraints();
@@ -71,7 +71,7 @@ export class SoftBodySolver {
       const dx = p1.position[0] - p2.position[0];
       const dy = p1.position[1] - p2.position[1];
       const dz = p1.position[2] - p2.position[2];
-      
+
       const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
       if (distance === 0) continue;
 

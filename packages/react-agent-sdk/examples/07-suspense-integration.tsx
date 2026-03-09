@@ -25,9 +25,7 @@ export function SuspenseIntegrationExample() {
           input: { componentName: 'Card', variant: 'outlined' },
         }}
         fallback={<Spinner />}
-        onError={(error) => (
-          <div>Failed to generate: {error.message}</div>
-        )}
+        onError={(error) => <div>Failed to generate: {error.message}</div>}
       >
         {(data) => (
           <div>

@@ -12,7 +12,9 @@ import { diffusionRealtimeHandler } from '../DiffusionRealtimeTrait';
 // HELPERS
 // =============================================================================
 
-function makeNode(id = 'dr-node') { return { id } as any; }
+function makeNode(id = 'dr-node') {
+  return { id } as any;
+}
 
 function makeConfig(overrides: any = {}) {
   return { ...diffusionRealtimeHandler.defaultConfig, ...overrides };
@@ -103,13 +105,19 @@ describe('DiffusionRealtimeTrait — Production', () => {
     });
 
     it('stops stream with stats', () => {
-      diffusionRealtimeHandler.onEvent!(node, config, ctx, { type: 'diffusion_rt:start', payload: {} });
+      diffusionRealtimeHandler.onEvent!(node, config, ctx, {
+        type: 'diffusion_rt:start',
+        payload: {},
+      });
       getState(ctx).frameCount = 150;
       getState(ctx).droppedFrames = 3;
       getState(ctx).currentFps = 14.5;
       ctx.emit.mockClear();
 
-      diffusionRealtimeHandler.onEvent!(node, config, ctx, { type: 'diffusion_rt:stop', payload: {} });
+      diffusionRealtimeHandler.onEvent!(node, config, ctx, {
+        type: 'diffusion_rt:stop',
+        payload: {},
+      });
 
       expect(getState(ctx).isStreaming).toBe(false);
       expect(ctx.emit).toHaveBeenCalledWith('diffusion_rt:stopped', {
@@ -124,7 +132,10 @@ describe('DiffusionRealtimeTrait — Production', () => {
 
   describe('frame delivery', () => {
     it('receives frame and updates state', () => {
-      diffusionRealtimeHandler.onEvent!(node, config, ctx, { type: 'diffusion_rt:start', payload: {} });
+      diffusionRealtimeHandler.onEvent!(node, config, ctx, {
+        type: 'diffusion_rt:start',
+        payload: {},
+      });
       ctx.emit.mockClear();
 
       diffusionRealtimeHandler.onEvent!(node, config, ctx, {
@@ -136,10 +147,13 @@ describe('DiffusionRealtimeTrait — Production', () => {
       expect(s.lastFrameUrl).toBe('blob:frame1');
       expect(s.frameCount).toBe(1);
       expect(s.latencyMs).toBe(33);
-      expect(ctx.emit).toHaveBeenCalledWith('diffusion_rt:frame_ready', expect.objectContaining({
-        frameUrl: 'blob:frame1',
-        frameCount: 1,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'diffusion_rt:frame_ready',
+        expect.objectContaining({
+          frameUrl: 'blob:frame1',
+          frameCount: 1,
+        })
+      );
     });
 
     it('ignores frame when not streaming', () => {
@@ -155,10 +169,19 @@ describe('DiffusionRealtimeTrait — Production', () => {
     });
 
     it('tracks dropped frames', () => {
-      diffusionRealtimeHandler.onEvent!(node, config, ctx, { type: 'diffusion_rt:start', payload: {} });
+      diffusionRealtimeHandler.onEvent!(node, config, ctx, {
+        type: 'diffusion_rt:start',
+        payload: {},
+      });
 
-      diffusionRealtimeHandler.onEvent!(node, config, ctx, { type: 'diffusion_rt:frame_dropped', payload: {} });
-      diffusionRealtimeHandler.onEvent!(node, config, ctx, { type: 'diffusion_rt:frame_dropped', payload: {} });
+      diffusionRealtimeHandler.onEvent!(node, config, ctx, {
+        type: 'diffusion_rt:frame_dropped',
+        payload: {},
+      });
+      diffusionRealtimeHandler.onEvent!(node, config, ctx, {
+        type: 'diffusion_rt:frame_dropped',
+        payload: {},
+      });
 
       expect(getState(ctx).droppedFrames).toBe(2);
     });
@@ -168,7 +191,10 @@ describe('DiffusionRealtimeTrait — Production', () => {
 
   describe('dynamic prompt', () => {
     it('updates prompt during stream', () => {
-      diffusionRealtimeHandler.onEvent!(node, config, ctx, { type: 'diffusion_rt:start', payload: {} });
+      diffusionRealtimeHandler.onEvent!(node, config, ctx, {
+        type: 'diffusion_rt:start',
+        payload: {},
+      });
       ctx.emit.mockClear();
 
       diffusionRealtimeHandler.onEvent!(node, config, ctx, {
@@ -200,7 +226,10 @@ describe('DiffusionRealtimeTrait — Production', () => {
 
   describe('detach', () => {
     it('stops stream on detach if active', () => {
-      diffusionRealtimeHandler.onEvent!(node, config, ctx, { type: 'diffusion_rt:start', payload: {} });
+      diffusionRealtimeHandler.onEvent!(node, config, ctx, {
+        type: 'diffusion_rt:start',
+        payload: {},
+      });
       getState(ctx).frameCount = 42;
       ctx.emit.mockClear();
 
@@ -223,7 +252,10 @@ describe('DiffusionRealtimeTrait — Production', () => {
   describe('edge cases', () => {
     it('event with no state is a no-op', () => {
       const noCtx = { emit: vi.fn(), setState: vi.fn(), getState: () => ({}) };
-      diffusionRealtimeHandler.onEvent!(node, config, noCtx, { type: 'diffusion_rt:start', payload: {} });
+      diffusionRealtimeHandler.onEvent!(node, config, noCtx, {
+        type: 'diffusion_rt:start',
+        payload: {},
+      });
       expect(noCtx.emit).not.toHaveBeenCalled();
     });
   });

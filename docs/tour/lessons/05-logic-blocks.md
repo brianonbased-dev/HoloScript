@@ -28,13 +28,13 @@ orb "Counter" {
 
 ### Event handlers
 
-| Handler      | Trigger                              |
-|--------------|--------------------------------------|
-| `on_click`   | User clicks / selects the object     |
-| `on_tick`    | Every frame (receives delta time dt) |
-| `on_grab`    | User picks up (requires @grabbable)  |
-| `on_release` | User drops the object                |
-| `on_collide` | Physics collision (requires @physics)|
+| Handler      | Trigger                               |
+| ------------ | ------------------------------------- |
+| `on_click`   | User clicks / selects the object      |
+| `on_tick`    | Every frame (receives delta time dt)  |
+| `on_grab`    | User picks up (requires @grabbable)   |
+| `on_release` | User drops the object                 |
+| `on_collide` | Physics collision (requires @physics) |
 
 ## Try it:
 

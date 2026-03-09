@@ -42,9 +42,5 @@ export function AgentProvider({ children, config = {} }: AgentProviderProps): JS
     token: config.token,
   };
 
-  return (
-    <AgentContext.Provider value={contextValue}>
-      {children}
-    </AgentContext.Provider>
-  );
+  return <AgentContext.Provider value={contextValue}>{children}</AgentContext.Provider>;
 }

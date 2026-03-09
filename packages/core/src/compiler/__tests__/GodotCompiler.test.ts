@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GodotCompiler } from '../GodotCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -9,7 +9,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
@@ -103,7 +102,9 @@ describe('GodotCompiler', () => {
 
   it('compiles lights', () => {
     const comp = makeComposition({
-      lights: [{ name: 'sun', lightType: 'directional', properties: [{ key: 'color', value: '#ffffff' }] }] as any,
+      lights: [
+        { name: 'sun', lightType: 'directional', properties: [{ key: 'color', value: '#ffffff' }] },
+      ] as any,
     });
     const gd = compiler.compile(comp, 'test-token');
     expect(gd).toContain('DirectionalLight3D');
@@ -136,9 +137,7 @@ describe('GodotCompiler', () => {
       spatialGroups: [
         {
           name: 'group1',
-          objects: [
-            { name: 'item', properties: [{ key: 'geometry', value: 'box' }], traits: [] },
-          ],
+          objects: [{ name: 'item', properties: [{ key: 'geometry', value: 'box' }], traits: [] }],
           properties: [],
         },
       ] as any,
@@ -151,7 +150,15 @@ describe('GodotCompiler', () => {
 
   it('compiles audio nodes', () => {
     const comp = makeComposition({
-      audio: [{ name: 'bgm', properties: [{ key: 'src', value: 'music.ogg' }, { key: 'loop', value: true }] }] as any,
+      audio: [
+        {
+          name: 'bgm',
+          properties: [
+            { key: 'src', value: 'music.ogg' },
+            { key: 'loop', value: true },
+          ],
+        },
+      ] as any,
     });
     const gd = compiler.compile(comp, 'test-token');
     expect(gd).toContain('AudioStreamPlayer');

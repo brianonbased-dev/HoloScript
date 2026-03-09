@@ -4,7 +4,9 @@ import { NetworkTransport } from '../NetworkTransport';
 describe('NetworkTransport', () => {
   let transport: NetworkTransport;
 
-  beforeEach(() => { transport = new NetworkTransport('local'); });
+  beforeEach(() => {
+    transport = new NetworkTransport('local');
+  });
 
   // Connection
   it('connect adds peer', () => {
@@ -80,7 +82,9 @@ describe('NetworkTransport', () => {
   // Message handlers
   it('onMessage fires for matching type', () => {
     let received = false;
-    transport.onMessage('chat', () => { received = true; });
+    transport.onMessage('chat', () => {
+      received = true;
+    });
     transport.connect('peer1');
     transport.send('peer1', 'chat', { msg: 'hi' });
     expect(received).toBe(true);
@@ -88,7 +92,9 @@ describe('NetworkTransport', () => {
 
   it('offMessage removes handler', () => {
     let count = 0;
-    transport.onMessage('chat', () => { count++; });
+    transport.onMessage('chat', () => {
+      count++;
+    });
     transport.connect('peer1');
     transport.send('peer1', 'chat', {});
     transport.offMessage('chat');

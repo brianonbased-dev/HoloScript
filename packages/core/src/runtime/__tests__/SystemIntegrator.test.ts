@@ -15,7 +15,7 @@ describe('SystemIntegrator', () => {
   it('systems have expected names', () => {
     const eventBus = new EventBus();
     const systems = createIntegrationSystems(eventBus);
-    const names = systems.map(s => s.name);
+    const names = systems.map((s) => s.name);
     expect(names).toContain('transform_propagation');
     expect(names).toContain('animation_integration');
     expect(names).toContain('state_machine_integration');
@@ -35,8 +35,8 @@ describe('SystemIntegrator', () => {
   it('systems have priority ordering', () => {
     const eventBus = new EventBus();
     const systems = createIntegrationSystems(eventBus);
-    const transform = systems.find(s => s.name === 'transform_propagation')!;
-    const renderable = systems.find(s => s.name === 'renderable_cull')!;
+    const transform = systems.find((s) => s.name === 'transform_propagation')!;
+    const renderable = systems.find((s) => s.name === 'renderable_cull')!;
     expect(transform.priority).toBeLessThan(renderable.priority);
   });
 
@@ -51,7 +51,7 @@ describe('SystemIntegrator', () => {
   it('systems have requiredComponents', () => {
     const eventBus = new EventBus();
     const systems = createIntegrationSystems(eventBus);
-    const transform = systems.find(s => s.name === 'transform_propagation')!;
+    const transform = systems.find((s) => s.name === 'transform_propagation')!;
     expect(transform.requiredComponents).toContain('transform');
     expect(transform.requiredComponents).toContain('parent');
   });
@@ -59,7 +59,7 @@ describe('SystemIntegrator', () => {
   it('network sync integration emits events', () => {
     const eventBus = new EventBus();
     const systems = createIntegrationSystems(eventBus);
-    const netSync = systems.find(s => s.name === 'network_sync_integration')!;
+    const netSync = systems.find((s) => s.name === 'network_sync_integration')!;
     expect(netSync).toBeDefined();
     expect(netSync.requiredComponents).toContain('trait:sync');
   });
@@ -67,7 +67,7 @@ describe('SystemIntegrator', () => {
   it('renderable cull emits render:stats', () => {
     const eventBus = new EventBus();
     const systems = createIntegrationSystems(eventBus);
-    const cull = systems.find(s => s.name === 'renderable_cull')!;
+    const cull = systems.find((s) => s.name === 'renderable_cull')!;
     expect(cull.requiredComponents).toContain('renderable');
     expect(cull.requiredComponents).toContain('transform');
   });

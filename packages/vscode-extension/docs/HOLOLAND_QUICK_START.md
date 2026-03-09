@@ -315,7 +315,9 @@ Set VSCode settings for default configurations:
 
 ```typescript
 // Create paid quest
-const questId = await questService.createQuest({ /* ... */ });
+const questId = await questService.createQuest({
+  /* ... */
+});
 
 // Require payment before quest start
 await paymentService.requestPayment(
@@ -374,7 +376,7 @@ A: Ensure portal is created before calling `simulateScan()`
 ## Resources
 
 - **Full Documentation**: [HOLOLAND_PLATFORM_GUIDE.md](./HOLOLAND_PLATFORM_GUIDE.md)
-- **Test Examples**: [src/__tests__/](../src/__tests__/)
+- **Test Examples**: [src/**tests**/](../src/__tests__/)
 - **Type Definitions**: `@holoscript/core/plugins/HololandTypes`
 
 ---

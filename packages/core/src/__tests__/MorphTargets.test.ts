@@ -13,7 +13,9 @@ const SMILE_DELTAS: MorphDelta[] = [
 
 describe('MorphTargetSystem', () => {
   let sys: MorphTargetSystem;
-  beforeEach(() => { sys = new MorphTargetSystem(100); });
+  beforeEach(() => {
+    sys = new MorphTargetSystem(100);
+  });
 
   it('constructor records vertex count', () => {
     expect(sys.getVertexCount()).toBe(100);
@@ -50,7 +52,9 @@ describe('MorphTargetSystem', () => {
   it('computeDeformedPositions with weight 0 returns copy of base', () => {
     sys.addTarget('smile', SMILE_DELTAS);
     const base = new Float32Array(300); // 100 vertices * 3
-    base[0] = 1; base[1] = 2; base[2] = 3;
+    base[0] = 1;
+    base[1] = 2;
+    base[2] = 3;
     const result = sys.computeDeformedPositions(base);
     expect(result[0]).toBe(1);
     expect(result[1]).toBe(2);
@@ -70,7 +74,13 @@ describe('MorphTargetSystem', () => {
   it('addPreset and applyPreset sets weights', () => {
     sys.addTarget('smile', SMILE_DELTAS);
     sys.addTarget('frown', [{ vertexIndex: 0, dx: 0, dy: -0.2, dz: 0 }]);
-    sys.addPreset('happy', new Map([['smile', 0.8], ['frown', 0.0]]));
+    sys.addPreset(
+      'happy',
+      new Map([
+        ['smile', 0.8],
+        ['frown', 0.0],
+      ])
+    );
     sys.applyPreset('happy');
     expect(sys.getWeight('smile')).toBeCloseTo(0.8);
     expect(sys.getWeight('frown')).toBe(0);

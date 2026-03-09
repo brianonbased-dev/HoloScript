@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { LODManager, createLODManager, createVRLODManager, createMobileLODManager } from '../LODManager';
+import {
+  LODManager,
+  createLODManager,
+  createVRLODManager,
+  createMobileLODManager,
+} from '../LODManager';
 
 const lodConfig = {
   levels: [
@@ -60,8 +65,12 @@ describe('LODManager', () => {
     mgr.register('a', lodConfig, [0, 0, 0]);
     mgr.register('b', lodConfig, [0, 0, 0]);
     mgr.createGroup({
-      id: 'trees', objectIds: ['a', 'b'], config: lodConfig,
-      boundingCenter: [0, 0, 0], boundingRadius: 10, currentLevel: 0,
+      id: 'trees',
+      objectIds: ['a', 'b'],
+      config: lodConfig,
+      boundingCenter: [0, 0, 0],
+      boundingRadius: 10,
+      currentLevel: 0,
     });
     expect(mgr.getGroups()).toContain('trees');
     expect(mgr.getGroup('trees')!.objectIds).toEqual(['a', 'b']);
@@ -72,8 +81,12 @@ describe('LODManager', () => {
   it('addToGroup and removeFromGroup', () => {
     const mgr = createLODManager();
     mgr.createGroup({
-      id: 'g1', objectIds: [], config: lodConfig,
-      boundingCenter: [0, 0, 0], boundingRadius: 5, currentLevel: 0,
+      id: 'g1',
+      objectIds: [],
+      config: lodConfig,
+      boundingCenter: [0, 0, 0],
+      boundingRadius: 5,
+      currentLevel: 0,
     });
     mgr.addToGroup('g1', 'obj1');
     expect(mgr.getGroup('g1')!.objectIds).toContain('obj1');

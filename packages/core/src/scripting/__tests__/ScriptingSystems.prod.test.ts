@@ -14,19 +14,43 @@ import type { GraphNode } from '../NodeGraph';
 import { NodeLibrary } from '../NodeLibrary';
 
 // Helpers
-function p(v: number): Instruction { return { op: OpCode.PUSH, operand: v }; }
-function halt(): Instruction { return { op: OpCode.HALT }; }
-function op(o: OpCode): Instruction { return { op: o }; }
-function load(n: string): Instruction { return { op: OpCode.LOAD, operand: n }; }
-function store(n: string): Instruction { return { op: OpCode.STORE, operand: n }; }
-function jmp(a: number): Instruction { return { op: OpCode.JMP, operand: a }; }
-function jmpIf(a: number): Instruction { return { op: OpCode.JMP_IF, operand: a }; }
-function jmpNot(a: number): Instruction { return { op: OpCode.JMP_NOT, operand: a }; }
-function call(n: string): Instruction { return { op: OpCode.CALL, operand: n }; }
+function p(v: number): Instruction {
+  return { op: OpCode.PUSH, operand: v };
+}
+function halt(): Instruction {
+  return { op: OpCode.HALT };
+}
+function op(o: OpCode): Instruction {
+  return { op: o };
+}
+function load(n: string): Instruction {
+  return { op: OpCode.LOAD, operand: n };
+}
+function store(n: string): Instruction {
+  return { op: OpCode.STORE, operand: n };
+}
+function jmp(a: number): Instruction {
+  return { op: OpCode.JMP, operand: a };
+}
+function jmpIf(a: number): Instruction {
+  return { op: OpCode.JMP_IF, operand: a };
+}
+function jmpNot(a: number): Instruction {
+  return { op: OpCode.JMP_NOT, operand: a };
+}
+function call(n: string): Instruction {
+  return { op: OpCode.CALL, operand: n };
+}
 
-function makeNode(id: string, portSpecs?: Array<{id: string, dir: 'input'|'output', type?: string}>): GraphNode {
-  const ports = (portSpecs ?? [{ id: 'out', dir: 'output', type: 'number' }]).map(ps => ({
-    id: ps.id, name: ps.id, type: (ps.type ?? 'number') as any, direction: ps.dir,
+function makeNode(
+  id: string,
+  portSpecs?: Array<{ id: string; dir: 'input' | 'output'; type?: string }>
+): GraphNode {
+  const ports = (portSpecs ?? [{ id: 'out', dir: 'output', type: 'number' }]).map((ps) => ({
+    id: ps.id,
+    name: ps.id,
+    type: (ps.type ?? 'number') as any,
+    direction: ps.dir,
   }));
   return { id, type: 'test', label: id, ports, position: { x: 0, y: 0 }, data: {} };
 }
@@ -37,7 +61,9 @@ function makeNode(id: string, portSpecs?: Array<{id: string, dir: 'input'|'outpu
 
 describe('ScriptVM — Core OpCodes', () => {
   let vm: ScriptVM;
-  beforeEach(() => { vm = new ScriptVM(); });
+  beforeEach(() => {
+    vm = new ScriptVM();
+  });
 
   it('HALT stops execution immediately', () => {
     vm.load([halt(), p(99), halt()]);
@@ -61,12 +87,30 @@ describe('ScriptVM — Core OpCodes', () => {
     expect(vm.run().stack).toEqual([1]);
   });
 
-  it('ADD', () => { vm.load([p(10), p(3), op(OpCode.ADD), halt()]); expect(vm.run().stack[0]).toBe(13); });
-  it('SUB', () => { vm.load([p(10), p(3), op(OpCode.SUB), halt()]); expect(vm.run().stack[0]).toBe(7); });
-  it('MUL', () => { vm.load([p(6), p(7), op(OpCode.MUL), halt()]); expect(vm.run().stack[0]).toBe(42); });
-  it('DIV', () => { vm.load([p(10), p(4), op(OpCode.DIV), halt()]); expect(vm.run().stack[0]).toBeCloseTo(2.5); });
-  it('MOD', () => { vm.load([p(10), p(3), op(OpCode.MOD), halt()]); expect(vm.run().stack[0]).toBe(1); });
-  it('NEG', () => { vm.load([p(5), op(OpCode.NEG), halt()]); expect(vm.run().stack[0]).toBe(-5); });
+  it('ADD', () => {
+    vm.load([p(10), p(3), op(OpCode.ADD), halt()]);
+    expect(vm.run().stack[0]).toBe(13);
+  });
+  it('SUB', () => {
+    vm.load([p(10), p(3), op(OpCode.SUB), halt()]);
+    expect(vm.run().stack[0]).toBe(7);
+  });
+  it('MUL', () => {
+    vm.load([p(6), p(7), op(OpCode.MUL), halt()]);
+    expect(vm.run().stack[0]).toBe(42);
+  });
+  it('DIV', () => {
+    vm.load([p(10), p(4), op(OpCode.DIV), halt()]);
+    expect(vm.run().stack[0]).toBeCloseTo(2.5);
+  });
+  it('MOD', () => {
+    vm.load([p(10), p(3), op(OpCode.MOD), halt()]);
+    expect(vm.run().stack[0]).toBe(1);
+  });
+  it('NEG', () => {
+    vm.load([p(5), op(OpCode.NEG), halt()]);
+    expect(vm.run().stack[0]).toBe(-5);
+  });
 
   it('DIV by zero sets error', () => {
     vm.load([p(1), p(0), op(OpCode.DIV), halt()]);
@@ -76,28 +120,74 @@ describe('ScriptVM — Core OpCodes', () => {
 
 describe('ScriptVM — Comparison & Logic', () => {
   let vm: ScriptVM;
-  beforeEach(() => { vm = new ScriptVM(); });
+  beforeEach(() => {
+    vm = new ScriptVM();
+  });
 
-  it('EQ equal → 1', () => { vm.load([p(3), p(3), op(OpCode.EQ), halt()]); expect(vm.run().stack[0]).toBe(1); });
-  it('EQ not equal → 0', () => { vm.load([p(3), p(4), op(OpCode.EQ), halt()]); expect(vm.run().stack[0]).toBe(0); });
-  it('NEQ works', () => { vm.load([p(3), p(4), op(OpCode.NEQ), halt()]); expect(vm.run().stack[0]).toBe(1); });
-  it('LT a<b → 1', () => { vm.load([p(2), p(5), op(OpCode.LT), halt()]); expect(vm.run().stack[0]).toBe(1); });
-  it('LT a==b → 0', () => { vm.load([p(5), p(5), op(OpCode.LT), halt()]); expect(vm.run().stack[0]).toBe(0); });
-  it('GT a>b → 1', () => { vm.load([p(7), p(3), op(OpCode.GT), halt()]); expect(vm.run().stack[0]).toBe(1); });
-  it('LTE at boundary → 1', () => { vm.load([p(5), p(5), op(OpCode.LTE), halt()]); expect(vm.run().stack[0]).toBe(1); });
-  it('GTE at boundary → 1', () => { vm.load([p(5), p(5), op(OpCode.GTE), halt()]); expect(vm.run().stack[0]).toBe(1); });
+  it('EQ equal → 1', () => {
+    vm.load([p(3), p(3), op(OpCode.EQ), halt()]);
+    expect(vm.run().stack[0]).toBe(1);
+  });
+  it('EQ not equal → 0', () => {
+    vm.load([p(3), p(4), op(OpCode.EQ), halt()]);
+    expect(vm.run().stack[0]).toBe(0);
+  });
+  it('NEQ works', () => {
+    vm.load([p(3), p(4), op(OpCode.NEQ), halt()]);
+    expect(vm.run().stack[0]).toBe(1);
+  });
+  it('LT a<b → 1', () => {
+    vm.load([p(2), p(5), op(OpCode.LT), halt()]);
+    expect(vm.run().stack[0]).toBe(1);
+  });
+  it('LT a==b → 0', () => {
+    vm.load([p(5), p(5), op(OpCode.LT), halt()]);
+    expect(vm.run().stack[0]).toBe(0);
+  });
+  it('GT a>b → 1', () => {
+    vm.load([p(7), p(3), op(OpCode.GT), halt()]);
+    expect(vm.run().stack[0]).toBe(1);
+  });
+  it('LTE at boundary → 1', () => {
+    vm.load([p(5), p(5), op(OpCode.LTE), halt()]);
+    expect(vm.run().stack[0]).toBe(1);
+  });
+  it('GTE at boundary → 1', () => {
+    vm.load([p(5), p(5), op(OpCode.GTE), halt()]);
+    expect(vm.run().stack[0]).toBe(1);
+  });
 
-  it('AND both truthy → 1', () => { vm.load([p(1), p(1), op(OpCode.AND), halt()]); expect(vm.run().stack[0]).toBe(1); });
-  it('AND one zero → 0', () => { vm.load([p(0), p(1), op(OpCode.AND), halt()]); expect(vm.run().stack[0]).toBe(0); });
-  it('OR one truthy → 1', () => { vm.load([p(0), p(1), op(OpCode.OR), halt()]); expect(vm.run().stack[0]).toBe(1); });
-  it('OR both zero → 0', () => { vm.load([p(0), p(0), op(OpCode.OR), halt()]); expect(vm.run().stack[0]).toBe(0); });
-  it('NOT 0 → 1', () => { vm.load([p(0), op(OpCode.NOT), halt()]); expect(vm.run().stack[0]).toBe(1); });
-  it('NOT non-zero → 0', () => { vm.load([p(5), op(OpCode.NOT), halt()]); expect(vm.run().stack[0]).toBe(0); });
+  it('AND both truthy → 1', () => {
+    vm.load([p(1), p(1), op(OpCode.AND), halt()]);
+    expect(vm.run().stack[0]).toBe(1);
+  });
+  it('AND one zero → 0', () => {
+    vm.load([p(0), p(1), op(OpCode.AND), halt()]);
+    expect(vm.run().stack[0]).toBe(0);
+  });
+  it('OR one truthy → 1', () => {
+    vm.load([p(0), p(1), op(OpCode.OR), halt()]);
+    expect(vm.run().stack[0]).toBe(1);
+  });
+  it('OR both zero → 0', () => {
+    vm.load([p(0), p(0), op(OpCode.OR), halt()]);
+    expect(vm.run().stack[0]).toBe(0);
+  });
+  it('NOT 0 → 1', () => {
+    vm.load([p(0), op(OpCode.NOT), halt()]);
+    expect(vm.run().stack[0]).toBe(1);
+  });
+  it('NOT non-zero → 0', () => {
+    vm.load([p(5), op(OpCode.NOT), halt()]);
+    expect(vm.run().stack[0]).toBe(0);
+  });
 });
 
 describe('ScriptVM — Registers, Jumps, Functions', () => {
   let vm: ScriptVM;
-  beforeEach(() => { vm = new ScriptVM(); });
+  beforeEach(() => {
+    vm = new ScriptVM();
+  });
 
   it('STORE and LOAD roundtrip', () => {
     vm.load([p(42), store('x'), load('x'), halt()]);
@@ -208,7 +298,9 @@ describe('ScriptVM — Registers, Jumps, Functions', () => {
 
 describe('NodeGraph', () => {
   let graph: NodeGraph;
-  beforeEach(() => { graph = new NodeGraph(); });
+  beforeEach(() => {
+    graph = new NodeGraph();
+  });
 
   it('starts empty', () => {
     expect(graph.getNodeCount()).toBe(0);
@@ -274,7 +366,12 @@ describe('NodeGraph', () => {
 
   it('getTopologicalOrder is correct for linear DAG', () => {
     graph.addNode(makeNode('A', [{ id: 'out', dir: 'output' }]));
-    graph.addNode(makeNode('B', [{ id: 'out', dir: 'output' }, { id: 'in', dir: 'input' }]));
+    graph.addNode(
+      makeNode('B', [
+        { id: 'out', dir: 'output' },
+        { id: 'in', dir: 'input' },
+      ])
+    );
     graph.addNode(makeNode('C', [{ id: 'in', dir: 'input' }]));
     graph.connect('A', 'out', 'B', 'in');
     graph.connect('B', 'out', 'C', 'in');
@@ -299,7 +396,8 @@ describe('NodeGraph', () => {
   });
 
   it('getAllNodes returns all nodes', () => {
-    graph.addNode(makeNode('A')); graph.addNode(makeNode('B'));
+    graph.addNode(makeNode('A'));
+    graph.addNode(makeNode('B'));
     expect(graph.getAllNodes()).toHaveLength(2);
   });
 });
@@ -310,14 +408,18 @@ describe('NodeGraph', () => {
 
 describe('NodeLibrary', () => {
   let lib: NodeLibrary;
-  beforeEach(() => { lib = new NodeLibrary(); });
+  beforeEach(() => {
+    lib = new NodeLibrary();
+  });
 
-  it('registers built-ins on construction', () => { expect(lib.getCount()).toBeGreaterThan(0); });
+  it('registers built-ins on construction', () => {
+    expect(lib.getCount()).toBeGreaterThan(0);
+  });
 
   it('math.add has 2 inputs and 1 output', () => {
     const def = lib.get('math.add')!;
-    expect(def.ports.filter(p => p.direction === 'input')).toHaveLength(2);
-    expect(def.ports.filter(p => p.direction === 'output')).toHaveLength(1);
+    expect(def.ports.filter((p) => p.direction === 'input')).toHaveLength(2);
+    expect(def.ports.filter((p) => p.direction === 'output')).toHaveLength(1);
   });
 
   it('math.add evaluate sums correctly', () => {
@@ -350,7 +452,9 @@ describe('NodeLibrary', () => {
   it('logic.compare equal/greater/less', () => {
     const cmp = lib.get('logic.compare')!.evaluate!;
     const eq = cmp({ a: 5, b: 5 });
-    expect(eq['equal']).toBe(true); expect(eq['greater']).toBe(false); expect(eq['less']).toBe(false);
+    expect(eq['equal']).toBe(true);
+    expect(eq['greater']).toBe(false);
+    expect(eq['less']).toBe(false);
     expect(cmp({ a: 7, b: 3 })['greater']).toBe(true);
     expect(cmp({ a: 1, b: 9 })['less']).toBe(true);
   });
@@ -358,7 +462,7 @@ describe('NodeLibrary', () => {
   it('getByCategory returns correct subset', () => {
     const math = lib.getByCategory('math');
     expect(math.length).toBeGreaterThan(0);
-    expect(math.every(d => d.category === 'math')).toBe(true);
+    expect(math.every((d) => d.category === 'math')).toBe(true);
   });
 
   it('getCategories has no duplicates', () => {
@@ -369,8 +473,8 @@ describe('NodeLibrary', () => {
   });
 
   it('search by label is case-insensitive', () => {
-    expect(lib.search('ADD').some(d => d.type === 'math.add')).toBe(true);
-    expect(lib.search('multiply').some(d => d.type === 'math.multiply')).toBe(true);
+    expect(lib.search('ADD').some((d) => d.type === 'math.add')).toBe(true);
+    expect(lib.search('multiply').some((d) => d.type === 'math.multiply')).toBe(true);
   });
 
   it('search returns empty for unknown term', () => {
@@ -391,8 +495,14 @@ describe('NodeLibrary', () => {
 
   it('register adds custom node and evaluate works', () => {
     lib.register({
-      type: 'custom.lerp', label: 'Lerp', category: 'custom', description: 'lerp',
-      ports: [], evaluate: (i) => ({ result: (i.a as number) + ((i.b as number) - (i.a as number)) * (i.t as number) }),
+      type: 'custom.lerp',
+      label: 'Lerp',
+      category: 'custom',
+      description: 'lerp',
+      ports: [],
+      evaluate: (i) => ({
+        result: (i.a as number) + ((i.b as number) - (i.a as number)) * (i.t as number),
+      }),
     });
     expect(lib.get('custom.lerp')!.evaluate!({ a: 0, b: 10, t: 0.5 })['result']).toBe(5);
   });

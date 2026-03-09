@@ -11,7 +11,9 @@ import { AudioGraph } from '../AudioGraph';
 describe('AudioGraph', () => {
   let graph: AudioGraph;
 
-  beforeEach(() => { graph = new AudioGraph(); });
+  beforeEach(() => {
+    graph = new AudioGraph();
+  });
 
   // -------------------------------------------------------------------------
   // Node Management
@@ -248,7 +250,7 @@ describe('AudioGraph', () => {
     it('exponential: mid-point between 1 and 100 via exp', () => {
       const n = graph.addNode('filter');
       graph.automate(n.id, 'cutoff', [
-        { time: 0, value: 1,   curve: 'exponential' },
+        { time: 0, value: 1, curve: 'exponential' },
         { time: 1, value: 100, curve: 'exponential' },
       ]);
       graph.applyAutomation(0.5);
@@ -314,7 +316,9 @@ describe('AudioGraph', () => {
     });
 
     it('all node types can be added without error', () => {
-      const types: Array<'source'|'gain'|'filter'|'delay'|'reverb'|'compressor'|'output'|'mixer'> = ['source','gain','filter','delay','reverb','compressor','output','mixer'];
+      const types: Array<
+        'source' | 'gain' | 'filter' | 'delay' | 'reverb' | 'compressor' | 'output' | 'mixer'
+      > = ['source', 'gain', 'filter', 'delay', 'reverb', 'compressor', 'output', 'mixer'];
       for (const t of types) graph.addNode(t);
       expect(() => graph.getProcessingOrder()).not.toThrow();
     });

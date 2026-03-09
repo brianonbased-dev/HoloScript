@@ -269,11 +269,18 @@ describe('TraitCompositor', () => {
       const c = makeCompositor(
         {
           rusted: { material: { roughness: 0.9 }, tags: ['corrosion'], layer: 'condition' },
-          iron_material: { material: { metalness: 0.8 }, tags: ['metallic'], layer: 'base_material' },
+          iron_material: {
+            material: { metalness: 0.8 },
+            tags: ['metallic'],
+            layer: 'base_material',
+          },
         },
         [
           { trait: 'rusted', requires: { tags: ['metallic'] } },
-          { traits: ['rusted', 'iron_material'], merge: { color: '#6B3A1F', roughness: 0.9, metalness: 0.5 } },
+          {
+            traits: ['rusted', 'iron_material'],
+            merge: { color: '#6B3A1F', roughness: 0.9, metalness: 0.5 },
+          },
         ]
       );
       const result = c.compose(['rusted', 'iron_material']);
@@ -287,9 +294,7 @@ describe('TraitCompositor', () => {
         {
           rusted: { material: { color: '#brown' }, layer: 'condition' },
         },
-        [
-          { traits: ['rusted', 'iron_material'], merge: { color: '#6B3A1F' } },
-        ]
+        [{ traits: ['rusted', 'iron_material'], merge: { color: '#6B3A1F' } }]
       );
       const result = c.compose(['rusted']); // iron_material absent
       expect(result.color).toBe('#brown'); // original color kept
@@ -302,17 +307,26 @@ describe('TraitCompositor', () => {
           frozen_liquid: { material: { color: '#D6EAF8' }, layer: 'condition' },
         },
         [
-          { traits: ['elemental_water', 'frozen_liquid'], merge: { color: '#B0D4E8', transmission: 0.85, roughness: 0.05 } },
+          {
+            traits: ['elemental_water', 'frozen_liquid'],
+            merge: { color: '#B0D4E8', transmission: 0.85, roughness: 0.05 },
+          },
         ]
       );
       // Use trait names that match the rule exactly
       const c2 = makeCompositor(
         {
-          elemental_water: { material: { color: '#0000FF', roughness: 0.0 }, layer: 'base_material' },
+          elemental_water: {
+            material: { color: '#0000FF', roughness: 0.0 },
+            layer: 'base_material',
+          },
           frozen_liquid: { material: { color: '#D6EAF8' }, layer: 'condition' },
         },
         [
-          { traits: ['elemental_water', 'frozen_liquid'], merge: { color: '#B0D4E8', transmission: 0.85, roughness: 0.05 } },
+          {
+            traits: ['elemental_water', 'frozen_liquid'],
+            merge: { color: '#B0D4E8', transmission: 0.85, roughness: 0.05 },
+          },
         ]
       );
       const result = c2.compose(['elemental_water', 'frozen_liquid']);

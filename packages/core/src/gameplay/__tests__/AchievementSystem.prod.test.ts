@@ -98,7 +98,7 @@ describe('AchievementSystem', () => {
 
     it('returns false when already unlocked', () => {
       makeAch(sys, 'done');
-      sys.addProgress('done', 1);       // unlocks it
+      sys.addProgress('done', 1); // unlocks it
       expect(sys.addProgress('done', 1)).toBe(false);
     });
 

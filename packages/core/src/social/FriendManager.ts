@@ -14,32 +14,32 @@ type SocialEventListener = (event: string, data: any) => void;
 
 export class FriendManager {
   private listeners: Set<SocialEventListener> = new Set();
-  
+
   constructor(
-      private graph: SocialGraph,
-      private transport?: WebRTCTransport // Optional for testing/offline support
+    private graph: SocialGraph,
+    private transport?: WebRTCTransport // Optional for testing/offline support
   ) {
-      if (this.transport) {
-          this.transport.onSocialMessage(this.handleNetworkMessage.bind(this));
-      }
+    if (this.transport) {
+      this.transport.onSocialMessage(this.handleNetworkMessage.bind(this));
+    }
   }
 
   private handleNetworkMessage(packet: any) {
-      // payload structure depends on packet type
-      const { type, payload } = packet;
-      
-      switch (type) {
-          case 'SOCIAL_REQUEST':
-              this.receiveRequest(payload.user);
-              break;
-          case 'SOCIAL_ACCEPT':
-              this.graph.setRelationship(payload.userId, 'friend');
-              this.emit('friend_added', { userId: payload.userId });
-              break;
-          case 'SOCIAL_REJECT':
-              this.emit('request_rejected', { userId: payload.userId });
-              break;
-      }
+    // payload structure depends on packet type
+    const { type, payload } = packet;
+
+    switch (type) {
+      case 'SOCIAL_REQUEST':
+        this.receiveRequest(payload.user);
+        break;
+      case 'SOCIAL_ACCEPT':
+        this.graph.setRelationship(payload.userId, 'friend');
+        this.emit('friend_added', { userId: payload.userId });
+        break;
+      case 'SOCIAL_REJECT':
+        this.emit('request_rejected', { userId: payload.userId });
+        break;
+    }
   }
 
   onEvent(listener: SocialEventListener): void {
@@ -47,7 +47,7 @@ export class FriendManager {
   }
 
   private emit(event: string, data: any): void {
-    this.listeners.forEach(l => l(event, data));
+    this.listeners.forEach((l) => l(event, data));
   }
 
   /**
@@ -55,7 +55,7 @@ export class FriendManager {
    */
   sendRequest(user: SocialUser): void {
     const currentRel = this.graph.getRelationship(user.id);
-    
+
     if (currentRel === 'friend') {
       throw new Error('User is already a friend');
     }
@@ -70,12 +70,12 @@ export class FriendManager {
     // For now, we update local graph optimistically
     this.graph.updateUser(user);
     this.graph.setRelationship(user.id, 'pending_outgoing');
-    
+
     if (this.transport) {
-        this.transport.sendSocialMessage({
-            type: 'SOCIAL_REQUEST',
-            payload: { user: this.graph.getUser(this.graph['localUserId']) } // Send OUR profile to them
-        });
+      this.transport.sendSocialMessage({
+        type: 'SOCIAL_REQUEST',
+        payload: { user: this.graph.getUser(this.graph['localUserId']) }, // Send OUR profile to them
+      });
     }
 
     this.emit('request_sent', { userId: user.id });
@@ -104,12 +104,12 @@ export class FriendManager {
     }
 
     this.graph.setRelationship(userId, 'friend');
-    
+
     if (this.transport) {
-        this.transport.sendSocialMessage({
-            type: 'SOCIAL_ACCEPT',
-            payload: { userId: this.graph['localUserId'] }
-        });
+      this.transport.sendSocialMessage({
+        type: 'SOCIAL_ACCEPT',
+        payload: { userId: this.graph['localUserId'] },
+      });
     }
 
     this.emit('friend_added', { userId });
@@ -125,10 +125,10 @@ export class FriendManager {
     this.graph.removeRelationship(userId);
 
     if (this.transport) {
-        this.transport.sendSocialMessage({
-            type: 'SOCIAL_REJECT',
-            payload: { userId: this.graph['localUserId'] }
-        });
+      this.transport.sendSocialMessage({
+        type: 'SOCIAL_REJECT',
+        payload: { userId: this.graph['localUserId'] },
+      });
     }
 
     this.emit('request_rejected', { userId });

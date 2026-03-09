@@ -62,7 +62,7 @@ describe('ConvergenceDetector', () => {
 
     it('does not converge with improving scores', () => {
       // Steadily improving -- slope too high
-      const scores = [0.50, 0.55, 0.60, 0.65, 0.70, 0.75];
+      const scores = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75];
       for (const s of scores) {
         const status = detector.record(s);
         expect(status.converged).toBe(false);
@@ -77,7 +77,7 @@ describe('ConvergenceDetector', () => {
   describe('epsilon window convergence', () => {
     it('converges when scores flatline within epsilon', () => {
       // 5+ scores all within 0.005 of each other, near-zero slope
-      const scores = [0.80, 0.801, 0.802, 0.801, 0.802];
+      const scores = [0.8, 0.801, 0.802, 0.801, 0.802];
       let status;
       for (const s of scores) {
         status = detector.record(s);
@@ -87,7 +87,7 @@ describe('ConvergenceDetector', () => {
     });
 
     it('does not converge when one delta exceeds epsilon', () => {
-      const scores = [0.80, 0.801, 0.81, 0.811, 0.812]; // 0.801 -> 0.81 = 0.009 > 0.005
+      const scores = [0.8, 0.801, 0.81, 0.811, 0.812]; // 0.801 -> 0.81 = 0.009 > 0.005
       let status;
       for (const s of scores) {
         status = detector.record(s);
@@ -124,16 +124,16 @@ describe('ConvergenceDetector', () => {
     });
 
     it('resets plateau count when score drops below band', () => {
-      detector.record(0.90); // best
+      detector.record(0.9); // best
       detector.record(0.895); // within band
-      detector.record(0.70); // drops well below → resets plateau
+      detector.record(0.7); // drops well below → resets plateau
       expect(detector.getStatus().plateauCount).toBe(0);
     });
 
     it('resets plateau count on new best score', () => {
-      detector.record(0.80);
+      detector.record(0.8);
       detector.record(0.795); // within band, plateau = 1
-      detector.record(0.81);  // new best → plateau resets to 0
+      detector.record(0.81); // new best → plateau resets to 0
       expect(detector.getStatus().plateauCount).toBe(0);
     });
   });
@@ -240,7 +240,7 @@ describe('ConvergenceDetector', () => {
     });
 
     it('handles negative slope (declining scores)', () => {
-      for (const s of [0.9, 0.85, 0.80, 0.75, 0.70]) {
+      for (const s of [0.9, 0.85, 0.8, 0.75, 0.7]) {
         detector.record(s);
       }
       expect(detector.getStatus().windowSlope).toBeLessThan(0);

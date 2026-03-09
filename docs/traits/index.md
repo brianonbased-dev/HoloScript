@@ -30,23 +30,23 @@ interface TraitHandler<TConfig> {
 
 ## Trait Categories
 
-| Category | Traits | Description |
-|----------|--------|-------------|
-| [Interaction](/traits/interaction) | @grabbable, @throwable, @clickable, @hoverable, @draggable, @scalable | Hand-based interaction in VR |
-| [Physics](/traits/physics) | @physics, @collidable, @cloth, @fluid, @soft_body, @rope | Physics simulation |
-| [AI & Behavior](/traits/ai-behavior) | @behavior_tree, @goal_oriented, @llm_agent, @perception, @emotion | Intelligent agent behavior |
-| [AI Autonomous](/traits/ai-autonomous) | @autonomous, @swarm, @scheduler, @decision_tree | Autonomous system behaviors |
-| [Audio](/traits/audio) | @spatial_audio, @music, @sfx, @voice | Spatial and ambient audio |
-| [Accessibility](/traits/accessibility) | @screen_reader, @high_contrast, @motor_assist | Universal design traits |
-| [AR/Spatial](/traits/spatial) | @spatial_awareness, @anchor, @plane_detection, @billboard | Augmented reality |
-| [Web3/Blockchain](/traits/web3) | @token_gated, @wallet, @nft, @smart_contract, @zora_coins | Blockchain integration |
-| [Render Network](/traits/render-network) | @render_network | Decentralized GPU rendering via RNDR |
-| [OpenXR HAL](/traits/openxr-hal) | @openxr_hal | XR device abstraction (haptics, hand/eye tracking) |
-| [Media](/traits/media) | @video, @screen, @360_video, @live_stream | Media playback |
-| [Social/Multiplayer](/traits/social) | @networked, @voice_chat, @presence, @avatar | Social and multiplayer |
-| [IoT/Integration](/traits/iot) | @sensor, @actuator, @mqtt, @rest_api | IoT and external integrations |
-| [Visual](/traits/visual) | @material, @lighting, @shader, @particle, @lod | Graphics and rendering |
-| [Advanced](/traits/advanced) | @animation, @ik, @ragdoll, @procedural, @hitl | Advanced animation, generation, and HITL gates |
+| Category                                 | Traits                                                                | Description                                        |
+| ---------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------- |
+| [Interaction](/traits/interaction)       | @grabbable, @throwable, @clickable, @hoverable, @draggable, @scalable | Hand-based interaction in VR                       |
+| [Physics](/traits/physics)               | @physics, @collidable, @cloth, @fluid, @soft_body, @rope              | Physics simulation                                 |
+| [AI & Behavior](/traits/ai-behavior)     | @behavior_tree, @goal_oriented, @llm_agent, @perception, @emotion     | Intelligent agent behavior                         |
+| [AI Autonomous](/traits/ai-autonomous)   | @autonomous, @swarm, @scheduler, @decision_tree                       | Autonomous system behaviors                        |
+| [Audio](/traits/audio)                   | @spatial_audio, @music, @sfx, @voice                                  | Spatial and ambient audio                          |
+| [Accessibility](/traits/accessibility)   | @screen_reader, @high_contrast, @motor_assist                         | Universal design traits                            |
+| [AR/Spatial](/traits/spatial)            | @spatial_awareness, @anchor, @plane_detection, @billboard             | Augmented reality                                  |
+| [Web3/Blockchain](/traits/web3)          | @token_gated, @wallet, @nft, @smart_contract, @zora_coins             | Blockchain integration                             |
+| [Render Network](/traits/render-network) | @render_network                                                       | Decentralized GPU rendering via RNDR               |
+| [OpenXR HAL](/traits/openxr-hal)         | @openxr_hal                                                           | XR device abstraction (haptics, hand/eye tracking) |
+| [Media](/traits/media)                   | @video, @screen, @360_video, @live_stream                             | Media playback                                     |
+| [Social/Multiplayer](/traits/social)     | @networked, @voice_chat, @presence, @avatar                           | Social and multiplayer                             |
+| [IoT/Integration](/traits/iot)           | @sensor, @actuator, @mqtt, @rest_api                                  | IoT and external integrations                      |
+| [Visual](/traits/visual)                 | @material, @lighting, @shader, @particle, @lod                        | Graphics and rendering                             |
+| [Advanced](/traits/advanced)             | @animation, @ik, @ragdoll, @procedural, @hitl                         | Advanced animation, generation, and HITL gates     |
 
 ## Extending Traits
 

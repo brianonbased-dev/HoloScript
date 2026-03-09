@@ -6,7 +6,9 @@ describe('MorphTargetSystem', () => {
   let sys: MorphTargetSystem;
   const vertexCount = 4;
 
-  beforeEach(() => { sys = new MorphTargetSystem(vertexCount); });
+  beforeEach(() => {
+    sys = new MorphTargetSystem(vertexCount);
+  });
 
   // ---------------------------------------------------------------------------
   // Target Management
@@ -48,7 +50,10 @@ describe('MorphTargetSystem', () => {
   it('addPreset and applyPreset set weights', () => {
     sys.addTarget('smile', []);
     sys.addTarget('frown', []);
-    const weights = new Map([['smile', 0.9], ['frown', 0.1]]);
+    const weights = new Map([
+      ['smile', 0.9],
+      ['frown', 0.1],
+    ]);
     sys.addPreset('happy', weights);
     sys.applyPreset('happy');
     expect(sys.getWeight('smile')).toBeCloseTo(0.9);

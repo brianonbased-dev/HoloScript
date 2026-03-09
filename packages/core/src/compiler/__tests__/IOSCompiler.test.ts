@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IOSCompiler } from '../IOSCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -9,7 +9,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
@@ -71,7 +70,12 @@ describe('IOSCompiler', () => {
 
   it('generates state file with properties', () => {
     const comp = makeComposition({
-      state: { properties: [{ key: 'health', value: 100 }, { key: 'name', value: 'Player' }] },
+      state: {
+        properties: [
+          { key: 'health', value: 100 },
+          { key: 'name', value: 'Player' },
+        ],
+      },
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.stateFile).toContain('health');
@@ -93,7 +97,9 @@ describe('IOSCompiler', () => {
 
   it('compiles lights', () => {
     const comp = makeComposition({
-      lights: [{ name: 'sun', lightType: 'directional', properties: [{ key: 'color', value: '#ffffff' }] }] as any,
+      lights: [
+        { name: 'sun', lightType: 'directional', properties: [{ key: 'color', value: '#ffffff' }] },
+      ] as any,
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.sceneFile).toContain('sun');

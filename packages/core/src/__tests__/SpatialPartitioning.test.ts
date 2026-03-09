@@ -13,7 +13,9 @@ import { FrustumCuller } from '../spatial/FrustumCuller';
 
 describe('OctreeSystem', () => {
   let oct: OctreeSystem;
-  beforeEach(() => { oct = new OctreeSystem(0, 0, 0, 100); });
+  beforeEach(() => {
+    oct = new OctreeSystem(0, 0, 0, 100);
+  });
 
   it('starts empty', () => {
     expect(oct.getEntryCount()).toBe(0);
@@ -79,7 +81,13 @@ describe('OctreeSystem', () => {
   it('handles many insertions', () => {
     for (let i = 0; i < 100; i++) {
       const angle = (i / 100) * Math.PI * 2;
-      oct.insert({ id: `p${i}`, x: Math.cos(angle) * 50, y: 0, z: Math.sin(angle) * 50, radius: 1 });
+      oct.insert({
+        id: `p${i}`,
+        x: Math.cos(angle) * 50,
+        y: 0,
+        z: Math.sin(angle) * 50,
+        radius: 1,
+      });
     }
     expect(oct.getEntryCount()).toBe(100);
     const sector = oct.queryRadius(50, 0, 0, 15);
@@ -139,8 +147,22 @@ describe('FrustumCuller', () => {
   });
 
   it('cullAll returns visible volume ids', () => {
-    culler.addVolume({ id: 'near', type: 'sphere', centerX: 0, centerY: 0, centerZ: -10, radius: 2 });
-    culler.addVolume({ id: 'far', type: 'sphere', centerX: 0, centerY: 0, centerZ: -200, radius: 1 });
+    culler.addVolume({
+      id: 'near',
+      type: 'sphere',
+      centerX: 0,
+      centerY: 0,
+      centerZ: -10,
+      radius: 2,
+    });
+    culler.addVolume({
+      id: 'far',
+      type: 'sphere',
+      centerX: 0,
+      centerY: 0,
+      centerZ: -200,
+      radius: 1,
+    });
     const visible = culler.cullAll();
     expect(visible).toContain('near');
     expect(visible).not.toContain('far');
@@ -161,8 +183,26 @@ describe('FrustumCuller', () => {
   });
 
   it('AABB batch culling', () => {
-    culler.addVolume({ id: 'box1', type: 'aabb', centerX: 0, centerY: 0, centerZ: -5, halfX: 1, halfY: 1, halfZ: 1 });
-    culler.addVolume({ id: 'box2', type: 'aabb', centerX: 0, centerY: 0, centerZ: -500, halfX: 1, halfY: 1, halfZ: 1 });
+    culler.addVolume({
+      id: 'box1',
+      type: 'aabb',
+      centerX: 0,
+      centerY: 0,
+      centerZ: -5,
+      halfX: 1,
+      halfY: 1,
+      halfZ: 1,
+    });
+    culler.addVolume({
+      id: 'box2',
+      type: 'aabb',
+      centerX: 0,
+      centerY: 0,
+      centerZ: -500,
+      halfX: 1,
+      halfY: 1,
+      halfZ: 1,
+    });
     const visible = culler.cullAll();
     expect(visible).toContain('box1');
     expect(visible).not.toContain('box2');

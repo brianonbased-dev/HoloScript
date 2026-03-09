@@ -65,11 +65,7 @@ export type {
 } from './bytecode';
 
 // VM Executor
-export {
-  HoloVM,
-  ECSWorld,
-  VMStatus,
-} from './executor';
+export { HoloVM, ECSWorld, VMStatus } from './executor';
 export type {
   Entity,
   Vec3,

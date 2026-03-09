@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { audioMaterialHandler } from '../AudioMaterialTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('AudioMaterialTrait', () => {
   let node: Record<string, unknown>;
@@ -38,7 +45,10 @@ describe('AudioMaterialTrait', () => {
   });
 
   it('query returns material properties', () => {
-    sendEvent(audioMaterialHandler, node, cfg, ctx, { type: 'audio_material_query', queryId: 'q1' });
+    sendEvent(audioMaterialHandler, node, cfg, ctx, {
+      type: 'audio_material_query',
+      queryId: 'q1',
+    });
     const r = getLastEvent(ctx, 'audio_material_response') as any;
     expect(r.reflection).toBe(0.5);
     expect(r.transmission).toBe(0.1);
@@ -46,7 +56,10 @@ describe('AudioMaterialTrait', () => {
   });
 
   it('set_preset emits update', () => {
-    sendEvent(audioMaterialHandler, node, cfg, ctx, { type: 'audio_material_set_preset', preset: 'fabric' });
+    sendEvent(audioMaterialHandler, node, cfg, ctx, {
+      type: 'audio_material_set_preset',
+      preset: 'fabric',
+    });
     expect(getEventCount(ctx, 'audio_material_update')).toBe(1);
   });
 

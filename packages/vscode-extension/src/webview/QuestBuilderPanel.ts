@@ -99,11 +99,13 @@ export class QuestBuilderPanel {
         questId,
       });
 
-      vscode.window.showInformationMessage(`Quest "${config.title}" created!`, 'View Quest').then((action) => {
-        if (action === 'View Quest') {
-          this._services.questBuilder.showQuestDetails(questId);
-        }
-      });
+      vscode.window
+        .showInformationMessage(`Quest "${config.title}" created!`, 'View Quest')
+        .then((action) => {
+          if (action === 'View Quest') {
+            this._services.questBuilder.showQuestDetails(questId);
+          }
+        });
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to create quest: ${error}`);
     }

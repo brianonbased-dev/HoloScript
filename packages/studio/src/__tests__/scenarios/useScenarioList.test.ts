@@ -93,7 +93,7 @@ describe('useScenarioList', () => {
         initialCategory: 'nature',
         initialSort: 'testCount',
         initialSortDirection: 'desc',
-      }),
+      })
     );
     expect(result.current.search).toBe('ocean');
     expect(result.current.category).toBe('nature');

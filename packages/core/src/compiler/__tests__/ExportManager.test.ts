@@ -134,30 +134,126 @@ const {
 });
 
 // Mock all compiler imports — use `function` (not arrow) so `new` works in CompilerFactory
-vi.mock('../URDFCompiler', () => ({ URDFCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../SDFCompiler', () => ({ SDFCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../UnityCompiler', () => ({ UnityCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../UnrealCompiler', () => ({ UnrealCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../GodotCompiler', () => ({ GodotCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../WebGPUCompiler', () => ({ WebGPUCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../R3FCompiler', () => ({ R3FCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../BabylonCompiler', () => ({ BabylonCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../OpenXRCompiler', () => ({ OpenXRCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../VRChatCompiler', () => ({ VRChatCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../IOSCompiler', () => ({ IOSCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../AndroidCompiler', () => ({ AndroidCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../AndroidXRCompiler', () => ({ AndroidXRCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../VisionOSCompiler', () => ({ VisionOSCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../WASMCompiler', () => ({ WASMCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../DTDLCompiler', () => ({ DTDLCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../PlayCanvasCompiler', () => ({ PlayCanvasCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../VRRCompiler', () => ({ VRRCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../ARCompiler', () => ({ ARCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../MultiLayerCompiler', () => ({ MultiLayerCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../IncrementalCompiler', () => ({ IncrementalCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../StateCompiler', () => ({ StateCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../TraitCompositionCompiler', () => ({ TraitCompositionCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
-vi.mock('../TSLCompiler', () => ({ TSLCompiler: vi.fn().mockImplementation(function () { return { compile: vi.fn().mockResolvedValue('<compiled output>') }; }) }));
+vi.mock('../URDFCompiler', () => ({
+  URDFCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../SDFCompiler', () => ({
+  SDFCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../UnityCompiler', () => ({
+  UnityCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../UnrealCompiler', () => ({
+  UnrealCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../GodotCompiler', () => ({
+  GodotCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../WebGPUCompiler', () => ({
+  WebGPUCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../R3FCompiler', () => ({
+  R3FCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../BabylonCompiler', () => ({
+  BabylonCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../OpenXRCompiler', () => ({
+  OpenXRCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../VRChatCompiler', () => ({
+  VRChatCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../IOSCompiler', () => ({
+  IOSCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../AndroidCompiler', () => ({
+  AndroidCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../AndroidXRCompiler', () => ({
+  AndroidXRCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../VisionOSCompiler', () => ({
+  VisionOSCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../WASMCompiler', () => ({
+  WASMCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../DTDLCompiler', () => ({
+  DTDLCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../PlayCanvasCompiler', () => ({
+  PlayCanvasCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../VRRCompiler', () => ({
+  VRRCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../ARCompiler', () => ({
+  ARCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../MultiLayerCompiler', () => ({
+  MultiLayerCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../IncrementalCompiler', () => ({
+  IncrementalCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../StateCompiler', () => ({
+  StateCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../TraitCompositionCompiler', () => ({
+  TraitCompositionCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
+vi.mock('../TSLCompiler', () => ({
+  TSLCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
+  }),
+}));
 
 // Mock CompilerStateMonitor — use `function` (not arrow) so `new` works
 vi.mock('../CompilerStateMonitor', () => ({
@@ -465,7 +561,7 @@ describe('ExportManager', () => {
           useCircuitBreaker: false,
           useFallback: false,
           throwOnError: true,
-        }),
+        })
       ).rejects.toThrow('Compiler crash');
     });
   });

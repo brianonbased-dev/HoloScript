@@ -99,10 +99,17 @@ describe('SequenceTrack', () => {
 
   it('blendIn/blendOut attenuates output', () => {
     seq.addTrack('t1', 'X', 'float');
-    seq.addClip('t1', 0, 4, [
-      { time: 0, value: 100, easing: 'linear' },
-      { time: 1, value: 100, easing: 'linear' },
-    ], 1, 1); // 1s blend in, 1s blend out
+    seq.addClip(
+      't1',
+      0,
+      4,
+      [
+        { time: 0, value: 100, easing: 'linear' },
+        { time: 1, value: 100, easing: 'linear' },
+      ],
+      1,
+      1
+    ); // 1s blend in, 1s blend out
     seq.play();
     const earlyOut = seq.update(0.5); // 0.5s into 1s blendIn → blend=0.5
     expect(earlyOut.get('t1')!).toBeLessThan(100);

@@ -298,7 +298,7 @@ describe('Earthquake Demo Performance', () => {
 
       const avgTime = frameTimes.reduce((a, b) => a + b) / frameTimes.length;
       const maxTime = Math.max(...frameTimes);
-      const slowFrames = frameTimes.filter(t => t > 16.67).length;
+      const slowFrames = frameTimes.filter((t) => t > 16.67).length;
 
       const stats = physics.getStatistics();
 
@@ -307,7 +307,9 @@ describe('Earthquake Demo Performance', () => {
 
       console.log(`Full simulation performance:`);
       console.log(`  Avg: ${avgTime.toFixed(2)}ms, Max: ${maxTime.toFixed(2)}ms`);
-      console.log(`  Slow frames: ${slowFrames}/${frameCount} (${(slowFrames/frameCount*100).toFixed(1)}%)`);
+      console.log(
+        `  Slow frames: ${slowFrames}/${frameCount} (${((slowFrames / frameCount) * 100).toFixed(1)}%)`
+      );
       console.log(`  Failed elements: ${stats.failedElements}/${stats.totalElements}`);
       console.log(`  Debris: ${stats.activeDebris} active, ${stats.totalDebris} total`);
       console.log(`  Collapse events: ${stats.collapseEvents}`);
@@ -333,7 +335,8 @@ describe('Earthquake Demo Performance', () => {
         physics.triggerEarthquake(earthquakeConfig);
 
         // Simulate each earthquake
-        for (let i = 0; i < 120; i++) { // 2 seconds at 60 FPS
+        for (let i = 0; i < 120; i++) {
+          // 2 seconds at 60 FPS
           const start = performance.now();
           physics.update(0.016);
           const duration = performance.now() - start;
@@ -434,7 +437,9 @@ describe('Earthquake Demo Performance', () => {
       const floorRatio = 10 / 3;
 
       expect(ratio10_3).toBeLessThan(floorRatio * 1.5);
-      console.log(`Scalability: 10-floor is ${ratio10_3.toFixed(1)}× slower than 3-floor (${floorRatio.toFixed(1)}× more floors)`);
+      console.log(
+        `Scalability: 10-floor is ${ratio10_3.toFixed(1)}× slower than 3-floor (${floorRatio.toFixed(1)}× more floors)`
+      );
     });
 
     it('should handle varying debris counts efficiently', () => {
@@ -497,7 +502,8 @@ describe('Earthquake Demo Performance', () => {
 
       const frameTimes: number[] = [];
 
-      for (let i = 0; i < 300; i++) { // 5 seconds at 60 FPS
+      for (let i = 0; i < 300; i++) {
+        // 5 seconds at 60 FPS
         const start = performance.now();
         physics.update(0.016);
         const duration = performance.now() - start;
@@ -510,7 +516,7 @@ describe('Earthquake Demo Performance', () => {
 
       expect(avgTime).toBeLessThan(16.67); // 60 FPS
       expect(p95Time).toBeLessThan(33.33); // 30 FPS for p95
-      expect(p99Time).toBeLessThan(50.00); // 20 FPS for p99
+      expect(p99Time).toBeLessThan(50.0); // 20 FPS for p99
 
       console.log(`Performance targets met:`);
       console.log(`  Average: ${avgTime.toFixed(2)}ms (target: < 16.67ms) ✅`);

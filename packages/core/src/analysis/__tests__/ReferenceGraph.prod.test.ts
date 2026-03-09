@@ -18,20 +18,30 @@ describe('ReferenceGraph — Production', () => {
 
   it('addReference stores reference', () => {
     const g = new ReferenceGraph();
-    g.addReference({ name: 'Player', type: 'orb', filePath: 'test.holo', line: 5, column: 1, context: 'child-reference' });
+    g.addReference({
+      name: 'Player',
+      type: 'orb',
+      filePath: 'test.holo',
+      line: 5,
+      column: 1,
+      context: 'child-reference',
+    });
     expect(g.getReferences().length).toBe(1);
   });
 
   // ─── AST Building ────────────────────────────────────────────────
   it('buildFromAST collects orb definitions', () => {
     const g = new ReferenceGraph();
-    g.buildFromAST({
-      type: 'program',
-      children: [
-        { type: 'object', name: 'Player', loc: { start: { line: 1, column: 1 } } },
-        { type: 'object', name: 'Enemy', loc: { start: { line: 5, column: 1 } } },
-      ],
-    }, 'game.holo');
+    g.buildFromAST(
+      {
+        type: 'program',
+        children: [
+          { type: 'object', name: 'Player', loc: { start: { line: 1, column: 1 } } },
+          { type: 'object', name: 'Enemy', loc: { start: { line: 5, column: 1 } } },
+        ],
+      },
+      'game.holo'
+    );
     expect(g.getDefinitions().size).toBeGreaterThanOrEqual(2);
   });
 
@@ -44,7 +54,7 @@ describe('ReferenceGraph — Production', () => {
       ],
     });
     const defs = [...g.getDefinitions().values()];
-    expect(defs.some(d => d.name === 'BaseCharacter' && d.type === 'template')).toBe(true);
+    expect(defs.some((d) => d.name === 'BaseCharacter' && d.type === 'template')).toBe(true);
   });
 
   it('buildFromAST collects function definitions', () => {
@@ -56,16 +66,14 @@ describe('ReferenceGraph — Production', () => {
       ],
     });
     const defs = [...g.getDefinitions().values()];
-    expect(defs.some(d => d.name === 'calculateDamage' && d.type === 'function')).toBe(true);
+    expect(defs.some((d) => d.name === 'calculateDamage' && d.type === 'function')).toBe(true);
   });
 
   it('buildFromAST creates nodes', () => {
     const g = new ReferenceGraph();
     g.buildFromAST({
       type: 'program',
-      children: [
-        { type: 'object', name: 'World', loc: { start: { line: 1, column: 1 } } },
-      ],
+      children: [{ type: 'object', name: 'World', loc: { start: { line: 1, column: 1 } } }],
     });
     expect(g.getNodes().size).toBeGreaterThanOrEqual(1);
   });
@@ -73,8 +81,20 @@ describe('ReferenceGraph — Production', () => {
   // ─── Multi-file ───────────────────────────────────────────────────
   it('addFile + finalize works for cross-file', () => {
     const g = new ReferenceGraph();
-    g.addFile({ type: 'program', children: [{ type: 'object', name: 'A', loc: { start: { line: 1, column: 1 } } }] }, 'a.holo');
-    g.addFile({ type: 'program', children: [{ type: 'object', name: 'B', loc: { start: { line: 1, column: 1 } } }] }, 'b.holo');
+    g.addFile(
+      {
+        type: 'program',
+        children: [{ type: 'object', name: 'A', loc: { start: { line: 1, column: 1 } } }],
+      },
+      'a.holo'
+    );
+    g.addFile(
+      {
+        type: 'program',
+        children: [{ type: 'object', name: 'B', loc: { start: { line: 1, column: 1 } } }],
+      },
+      'b.holo'
+    );
     g.finalize();
     expect(g.getNodes().size).toBeGreaterThanOrEqual(2);
   });
@@ -122,13 +142,14 @@ describe('ReferenceGraph — Production', () => {
       type: 'program',
       children: [
         {
-          type: 'object', name: 'Ball',
+          type: 'object',
+          name: 'Ball',
           properties: [{ key: 'radius', value: 5 }],
           loc: { start: { line: 1, column: 1 } },
         },
       ],
     });
     const defs = [...g.getDefinitions().values()];
-    expect(defs.some(d => d.name === 'radius' && d.type === 'property')).toBe(true);
+    expect(defs.some((d) => d.name === 'radius' && d.type === 'property')).toBe(true);
   });
 });

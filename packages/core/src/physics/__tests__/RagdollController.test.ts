@@ -4,7 +4,9 @@ import { RagdollController } from '../RagdollController';
 describe('RagdollController', () => {
   let rc: RagdollController;
 
-  beforeEach(() => { rc = new RagdollController(); });
+  beforeEach(() => {
+    rc = new RagdollController();
+  });
 
   // Bone management
   it('addBone creates bone', () => {

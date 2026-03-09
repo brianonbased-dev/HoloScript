@@ -16,7 +16,11 @@ import { ShaderTrait, SHADER_CHUNKS, SHADER_PRESETS } from '../ShaderTrait';
 const VALID_VERT = 'void main() { gl_Position = vec4(0.0); }';
 const VALID_FRAG = 'void main() { gl_FragColor = vec4(1.0); }';
 
-function mkShader(overrides: ConstructorParameters<typeof ShaderTrait>[0] = { source: { language: 'glsl', vertex: VALID_VERT, fragment: VALID_FRAG } }) {
+function mkShader(
+  overrides: ConstructorParameters<typeof ShaderTrait>[0] = {
+    source: { language: 'glsl', vertex: VALID_VERT, fragment: VALID_FRAG },
+  }
+) {
   return new ShaderTrait(overrides);
 }
 
@@ -169,7 +173,11 @@ describe('ShaderTrait — validate', () => {
 
   it('unbalanced parentheses in vertex produces E004 error', () => {
     const s = new ShaderTrait({
-      source: { language: 'glsl', vertex: 'void main() { float x = sin(1.0; }', fragment: VALID_FRAG },
+      source: {
+        language: 'glsl',
+        vertex: 'void main() { float x = sin(1.0; }',
+        fragment: VALID_FRAG,
+      },
     });
     const result = s.validate();
     const err = result.errors.find((e) => e.code === 'E004');

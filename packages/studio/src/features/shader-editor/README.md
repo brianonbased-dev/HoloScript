@@ -5,6 +5,7 @@ Complete backend implementation for HoloScript's visual shader editor with live 
 ## Features
 
 ### 1. ShaderEditorService
+
 - **CRUD Operations**: Create, read, update, delete shader graphs
 - **IndexedDB Persistence**: Efficient client-side storage using `idb` library
 - **Version Control**: Git-like diff/patch system for shader graphs
@@ -13,6 +14,7 @@ Complete backend implementation for HoloScript's visual shader editor with live 
 - **Cloud Sync**: Optional hooks for cloud synchronization
 
 ### 2. LivePreviewService
+
 - **Hot Reload**: Detect changes → recompile → update material
 - **Compilation Caching**: Avoid redundant recompilation
 - **Error Recovery**: Fallback to last valid shader on errors
@@ -20,6 +22,7 @@ Complete backend implementation for HoloScript's visual shader editor with live 
 - **WebGPU Integration**: Shader module creation
 
 ### 3. MaterialLibrary
+
 - **25+ Built-in Presets**: PBR, Stylized, VFX materials
 - **User Materials**: Save and manage custom materials
 - **Tagging System**: Organize by tags (realistic, stylized, vfx, etc.)
@@ -28,12 +31,14 @@ Complete backend implementation for HoloScript's visual shader editor with live 
 - **Material Variants**: LOD-specific simplified shaders
 
 ### 4. ShaderTemplateLibrary
+
 - **12+ Pre-built Templates**: Common shader patterns
 - **Categories**: Lighting, Texturing, Animation, VFX
 - **Instant Instantiation**: Deep copy with new IDs
 - **Custom Templates**: Save current graph as template
 
 ### 5. UndoRedoSystem
+
 - **Command Pattern**: All editor actions reversible
 - **Action Merging**: Slider drags → single undo step
 - **History Stack**: Max 100 actions (configurable)
@@ -43,6 +48,7 @@ Complete backend implementation for HoloScript's visual shader editor with live 
 ## Material Library Contents
 
 ### PBR Materials (7)
+
 1. **PBR Standard** - Base color + metallic + roughness
 2. **Metal** - Brushed metal finish
 3. **Plastic** - Smooth plastic material
@@ -52,10 +58,12 @@ Complete backend implementation for HoloScript's visual shader editor with live 
 7. **Marble** - Polished stone with veining
 
 ### Stylized Materials (2)
+
 8. **Toon** - Cel-shaded cartoon material
 9. **Unlit** - Flat shading
 
 ### VFX Materials (16)
+
 10. **Water** - Gerstner waves + foam + caustics
 11. **Fire** - Volumetric fire with blackbody emission
 12. **Lava** - Hot lava with animated noise
@@ -77,20 +85,24 @@ Complete backend implementation for HoloScript's visual shader editor with live 
 ## Shader Templates
 
 ### Lighting (2)
+
 1. **Fresnel Rim Light** - Edge glow effect
 2. **Screen Space Reflection** - Ray-marched SSR
 
 ### Texturing (3)
+
 3. **Normal Mapping** - Tangent-space detail
 4. **Parallax Occlusion** - Depth illusion
 5. **Triplanar Projection** - World-space UVs
 6. **Procedural Marble** - FBM noise veining
 
 ### Animation (2)
+
 7. **Vertex Wind** - Foliage sway
 8. **Water Waves** - Gerstner displacement
 
 ### VFX (4)
+
 9. **Dissolve Effect** - Animated fade with edge glow
 10. **Holographic Scan Lines** - Sci-fi hologram
 11. **Caustics** - Underwater light
@@ -99,6 +111,7 @@ Complete backend implementation for HoloScript's visual shader editor with live 
 ## Usage Examples
 
 ### Basic Setup
+
 ```typescript
 import {
   getShaderEditorService,
@@ -126,13 +139,13 @@ setupUndoRedoShortcuts(undoRedo);
 ```
 
 ### Create and Save Graph
+
 ```typescript
 // Create new graph
-const graph = await editorService.create(
-  'My Shader',
-  'Custom shader description',
-  ['custom', 'pbr']
-);
+const graph = await editorService.create('My Shader', 'Custom shader description', [
+  'custom',
+  'pbr',
+]);
 
 // Add nodes
 const colorNode = graph.createNode('constant_color', { x: 0, y: 0 });
@@ -149,6 +162,7 @@ editorService.queueAutoSave(graph);
 ```
 
 ### Live Preview
+
 ```typescript
 // Set graph for preview
 previewService.setGraph(graph);
@@ -176,6 +190,7 @@ console.log(`FPS: ${metrics.fps}, Cache Hits: ${metrics.cacheHits}`);
 ```
 
 ### Material Library
+
 ```typescript
 // Get all materials
 const allMaterials = await materialLibrary.getAllMaterials();
@@ -204,6 +219,7 @@ const thumbnail = await materialLibrary.generateThumbnail(graph);
 ```
 
 ### Shader Templates
+
 ```typescript
 // Get all templates
 const templates = templateLibrary.getAllTemplates();
@@ -219,6 +235,7 @@ const dissolveTemplates = templateLibrary.search('dissolve');
 ```
 
 ### Undo/Redo
+
 ```typescript
 import {
   AddNodeCommand,
@@ -253,6 +270,7 @@ const history = undoRedo.getHistory();
 ```
 
 ### Version Control
+
 ```typescript
 // Create version snapshot
 await editorService.createVersion(graph.id, 'Added rim lighting');
@@ -265,6 +283,7 @@ const restoredGraph = await editorService.restoreVersion(versionId);
 ```
 
 ### Import/Export
+
 ```typescript
 // Export to JSON
 const json = await editorService.exportJSON(graph.id);
@@ -282,6 +301,7 @@ const binaryGraph = await editorService.importBinary(binary);
 ## Architecture
 
 ### Service Layer
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                   Shader Editor UI                      │
@@ -307,6 +327,7 @@ const binaryGraph = await editorService.importBinary(binary);
 ```
 
 ### Data Flow
+
 ```
 User Edit → Command → Execute → Graph Mutation → Auto-Save → IndexedDB
                  │
@@ -326,6 +347,7 @@ npm test -- shader-editor
 ```
 
 15 tests covering:
+
 - Graph persistence (save/load/delete)
 - Live reload behavior
 - Undo/redo correctness
@@ -349,15 +371,19 @@ npm test -- shader-editor
 ## Integration Notes
 
 ### UI Components
+
 The visual shader editor UI (node graph canvas, property panels, etc.) is implemented by a parallel agent. These backend services provide the foundation.
 
 ### Shader Graph
+
 Imports from `@holoscript/core/shader/graph`:
+
 - `ShaderGraph` - Graph data structure
 - `ShaderGraphCompiler` - WGSL code generation
 - `ShaderGraphTypes` - Type definitions
 
 ### WebGPU
+
 Live preview requires WebGPU support. Gracefully degrades to compilation-only mode if WebGPU is unavailable.
 
 ## File Structure

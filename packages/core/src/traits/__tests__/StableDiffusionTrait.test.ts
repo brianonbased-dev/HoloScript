@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { stableDiffusionHandler } from '../StableDiffusionTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('StableDiffusionTrait', () => {
   let node: Record<string, unknown>;
@@ -54,7 +61,10 @@ describe('StableDiffusionTrait', () => {
   });
 
   it('error stops generating', () => {
-    sendEvent(stableDiffusionHandler, node, cfg, ctx, { type: 'stable_diffusion_error', error: 'OOM' });
+    sendEvent(stableDiffusionHandler, node, cfg, ctx, {
+      type: 'stable_diffusion_error',
+      error: 'OOM',
+    });
     expect((node as any).__stableDiffusionState.is_generating).toBe(false);
     expect(getEventCount(ctx, 'on_generation_error')).toBe(1);
   });

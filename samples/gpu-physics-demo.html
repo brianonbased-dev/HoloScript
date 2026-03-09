@@ -1,459 +1,468 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HoloScript GPU Physics Demo - 100K Particles</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HoloScript GPU Physics Demo - 100K Particles</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      overflow: hidden;
-      color: white;
-    }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        overflow: hidden;
+        color: white;
+      }
 
-    #container {
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
+      #container {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
 
-    #header {
-      padding: 20px;
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
+      #header {
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
 
-    h1 {
-      font-size: 24px;
-      margin-bottom: 8px;
-    }
+      h1 {
+        font-size: 24px;
+        margin-bottom: 8px;
+      }
 
-    .subtitle {
-      font-size: 14px;
-      opacity: 0.8;
-    }
+      .subtitle {
+        font-size: 14px;
+        opacity: 0.8;
+      }
 
-    #canvas-container {
-      flex: 1;
-      position: relative;
-    }
+      #canvas-container {
+        flex: 1;
+        position: relative;
+      }
 
-    canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
 
-    #controls {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(10px);
-      padding: 20px;
-      border-radius: 12px;
-      min-width: 250px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    }
+      #controls {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        padding: 20px;
+        border-radius: 12px;
+        min-width: 250px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      }
 
-    .control-group {
-      margin-bottom: 16px;
-    }
+      .control-group {
+        margin-bottom: 16px;
+      }
 
-    .control-group:last-child {
-      margin-bottom: 0;
-    }
+      .control-group:last-child {
+        margin-bottom: 0;
+      }
 
-    label {
-      display: block;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-      opacity: 0.7;
-    }
+      label {
+        display: block;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+        opacity: 0.7;
+      }
 
-    button {
-      width: 100%;
-      padding: 12px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border: none;
-      border-radius: 8px;
-      color: white;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
+      button {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
 
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
 
-    button:active {
-      transform: translateY(0);
-    }
+      button:active {
+        transform: translateY(0);
+      }
 
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
 
-    .stat {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
+      .stat {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
 
-    .stat:last-child {
-      border-bottom: none;
-    }
+      .stat:last-child {
+        border-bottom: none;
+      }
 
-    .stat-value {
-      font-weight: 600;
-      color: #667eea;
-    }
+      .stat-value {
+        font-weight: 600;
+        color: #667eea;
+      }
 
-    #status {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(10px);
-      padding: 16px 20px;
-      border-radius: 12px;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+      #status {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        padding: 16px 20px;
+        border-radius: 12px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
 
-    .status-indicator {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: #4ade80;
-      animation: pulse 2s infinite;
-    }
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #4ade80;
+        animation: pulse 2s infinite;
+      }
 
-    .status-indicator.error {
-      background: #ef4444;
-    }
+      .status-indicator.error {
+        background: #ef4444;
+      }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
 
-    .warning-banner {
-      background: #f59e0b;
-      color: #000;
-      padding: 12px 20px;
-      text-align: center;
-      font-size: 14px;
-      font-weight: 600;
-      display: none;
-    }
+      .warning-banner {
+        background: #f59e0b;
+        color: #000;
+        padding: 12px 20px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 600;
+        display: none;
+      }
 
-    .warning-banner.show {
-      display: block;
-    }
-  </style>
-</head>
-<body>
-  <div id="container">
-    <div id="header">
-      <h1>🚀 HoloScript GPU Physics Demo</h1>
-      <div class="subtitle">WebGPU-accelerated particle simulation - Up to 100K particles @ 60 FPS</div>
-    </div>
-
-    <div class="warning-banner" id="warning">
-      ⚠️ WebGPU not supported. Falling back to CPU simulation (limited to 1K particles)
-    </div>
-
-    <div id="canvas-container">
-      <canvas id="canvas"></canvas>
-
-      <div id="controls">
-        <div class="control-group">
-          <label>Simulation</label>
-          <button id="startBtn">▶️ Start Simulation</button>
-        </div>
-
-        <div class="control-group">
-          <label>Particle Count</label>
-          <button id="count1k">1K Particles</button>
-          <button id="count10k" style="margin-top: 8px;">10K Particles</button>
-          <button id="count100k" style="margin-top: 8px;">100K Particles 🚀</button>
-        </div>
-
-        <div class="control-group">
-          <label>Statistics</label>
-          <div class="stat">
-            <span>Particles</span>
-            <span class="stat-value" id="particleCount">0</span>
-          </div>
-          <div class="stat">
-            <span>FPS</span>
-            <span class="stat-value" id="fps">0</span>
-          </div>
-          <div class="stat">
-            <span>Frame Time</span>
-            <span class="stat-value" id="frameTime">0ms</span>
-          </div>
-          <div class="stat">
-            <span>Active</span>
-            <span class="stat-value" id="activeParticles">0</span>
-          </div>
+      .warning-banner.show {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div id="header">
+        <h1>🚀 HoloScript GPU Physics Demo</h1>
+        <div class="subtitle">
+          WebGPU-accelerated particle simulation - Up to 100K particles @ 60 FPS
         </div>
       </div>
 
-      <div id="status">
-        <div class="status-indicator" id="statusIndicator"></div>
-        <span id="statusText">Ready</span>
+      <div class="warning-banner" id="warning">
+        ⚠️ WebGPU not supported. Falling back to CPU simulation (limited to 1K particles)
+      </div>
+
+      <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+
+        <div id="controls">
+          <div class="control-group">
+            <label>Simulation</label>
+            <button id="startBtn">▶️ Start Simulation</button>
+          </div>
+
+          <div class="control-group">
+            <label>Particle Count</label>
+            <button id="count1k">1K Particles</button>
+            <button id="count10k" style="margin-top: 8px">10K Particles</button>
+            <button id="count100k" style="margin-top: 8px">100K Particles 🚀</button>
+          </div>
+
+          <div class="control-group">
+            <label>Statistics</label>
+            <div class="stat">
+              <span>Particles</span>
+              <span class="stat-value" id="particleCount">0</span>
+            </div>
+            <div class="stat">
+              <span>FPS</span>
+              <span class="stat-value" id="fps">0</span>
+            </div>
+            <div class="stat">
+              <span>Frame Time</span>
+              <span class="stat-value" id="frameTime">0ms</span>
+            </div>
+            <div class="stat">
+              <span>Active</span>
+              <span class="stat-value" id="activeParticles">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="status">
+          <div class="status-indicator" id="statusIndicator"></div>
+          <span id="statusText">Ready</span>
+        </div>
       </div>
     </div>
-  </div>
 
-  <script type="module">
-    // =========================================================================
-    // WebGPU Physics Simulation (Placeholder Implementation)
-    // =========================================================================
-    //
-    // NOTE: This is a simplified demonstration.
-    // Full implementation requires loading the actual WGSL shader and
-    // GPU buffer management from HoloScript core modules.
-    //
-    // To use the real GPU physics:
-    // 1. Build HoloScript: `pnpm build`
-    // 2. Import from packages/core/src/gpu/
-    // 3. Load particle-physics.wgsl shader
-    // =========================================================================
+    <script type="module">
+      // =========================================================================
+      // WebGPU Physics Simulation (Placeholder Implementation)
+      // =========================================================================
+      //
+      // NOTE: This is a simplified demonstration.
+      // Full implementation requires loading the actual WGSL shader and
+      // GPU buffer management from HoloScript core modules.
+      //
+      // To use the real GPU physics:
+      // 1. Build HoloScript: `pnpm build`
+      // 2. Import from packages/core/src/gpu/
+      // 3. Load particle-physics.wgsl shader
+      // =========================================================================
 
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
 
-    // Resize canvas
-    function resizeCanvas() {
-      canvas.width = canvas.offsetWidth * devicePixelRatio;
-      canvas.height = canvas.offsetHeight * devicePixelRatio;
-      ctx.scale(devicePixelRatio, devicePixelRatio);
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    // State
-    let particles = [];
-    let particleCount = 0;
-    let isRunning = false;
-    let lastTime = performance.now();
-    let fps = 0;
-    let frameTime = 0;
-
-    // Check WebGPU support
-    const hasWebGPU = 'gpu' in navigator;
-    if (!hasWebGPU) {
-      document.getElementById('warning').classList.add('show');
-      document.getElementById('count10k').disabled = true;
-      document.getElementById('count100k').disabled = true;
-    }
-
-    // Update status
-    function updateStatus(text, isError = false) {
-      document.getElementById('statusText').textContent = text;
-      const indicator = document.getElementById('statusIndicator');
-      if (isError) {
-        indicator.classList.add('error');
-      } else {
-        indicator.classList.remove('error');
+      // Resize canvas
+      function resizeCanvas() {
+        canvas.width = canvas.offsetWidth * devicePixelRatio;
+        canvas.height = canvas.offsetHeight * devicePixelRatio;
+        ctx.scale(devicePixelRatio, devicePixelRatio);
       }
-    }
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
 
-    // Create particles
-    function createParticles(count) {
-      particles = [];
-      particleCount = count;
+      // State
+      let particles = [];
+      let particleCount = 0;
+      let isRunning = false;
+      let lastTime = performance.now();
+      let fps = 0;
+      let frameTime = 0;
 
-      for (let i = 0; i < count; i++) {
-        particles.push({
-          x: Math.random() * canvas.offsetWidth,
-          y: Math.random() * canvas.offsetHeight * 0.3, // Top 30%
-          vx: (Math.random() - 0.5) * 2,
-          vy: 0,
-          radius: 2,
-          active: true,
-        });
+      // Check WebGPU support
+      const hasWebGPU = 'gpu' in navigator;
+      if (!hasWebGPU) {
+        document.getElementById('warning').classList.add('show');
+        document.getElementById('count10k').disabled = true;
+        document.getElementById('count100k').disabled = true;
       }
 
-      document.getElementById('particleCount').textContent = count.toLocaleString();
-      updateStatus(`Created ${count.toLocaleString()} particles`);
-    }
+      // Update status
+      function updateStatus(text, isError = false) {
+        document.getElementById('statusText').textContent = text;
+        const indicator = document.getElementById('statusIndicator');
+        if (isError) {
+          indicator.classList.add('error');
+        } else {
+          indicator.classList.remove('error');
+        }
+      }
 
-    // Physics simulation (simplified CPU version)
-    function updateParticles(dt) {
-      const gravity = 400; // pixels/s²
-      const groundY = canvas.offsetHeight - 20;
-      const friction = 0.95;
-      const restitution = 0.6;
+      // Create particles
+      function createParticles(count) {
+        particles = [];
+        particleCount = count;
 
-      let activeCount = 0;
+        for (let i = 0; i < count; i++) {
+          particles.push({
+            x: Math.random() * canvas.offsetWidth,
+            y: Math.random() * canvas.offsetHeight * 0.3, // Top 30%
+            vx: (Math.random() - 0.5) * 2,
+            vy: 0,
+            radius: 2,
+            active: true,
+          });
+        }
 
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        if (!p.active) continue;
+        document.getElementById('particleCount').textContent = count.toLocaleString();
+        updateStatus(`Created ${count.toLocaleString()} particles`);
+      }
 
-        activeCount++;
+      // Physics simulation (simplified CPU version)
+      function updateParticles(dt) {
+        const gravity = 400; // pixels/s²
+        const groundY = canvas.offsetHeight - 20;
+        const friction = 0.95;
+        const restitution = 0.6;
 
-        // Apply gravity
-        p.vy += gravity * dt;
+        let activeCount = 0;
 
-        // Update position
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          if (!p.active) continue;
 
-        // Ground collision
-        if (p.y + p.radius > groundY) {
-          p.y = groundY - p.radius;
-          p.vy = -p.vy * restitution;
-          p.vx *= friction;
+          activeCount++;
 
-          // Stop if moving slowly
-          if (Math.abs(p.vy) < 10 && Math.abs(p.vx) < 10) {
-            p.vy = 0;
-            p.vx = 0;
+          // Apply gravity
+          p.vy += gravity * dt;
+
+          // Update position
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+
+          // Ground collision
+          if (p.y + p.radius > groundY) {
+            p.y = groundY - p.radius;
+            p.vy = -p.vy * restitution;
+            p.vx *= friction;
+
+            // Stop if moving slowly
+            if (Math.abs(p.vy) < 10 && Math.abs(p.vx) < 10) {
+              p.vy = 0;
+              p.vx = 0;
+            }
+          }
+
+          // Wall collisions
+          if (p.x - p.radius < 0) {
+            p.x = p.radius;
+            p.vx = -p.vx * 0.8;
+          }
+          if (p.x + p.radius > canvas.offsetWidth) {
+            p.x = canvas.offsetWidth - p.radius;
+            p.vx = -p.vx * 0.8;
           }
         }
 
-        // Wall collisions
-        if (p.x - p.radius < 0) {
-          p.x = p.radius;
-          p.vx = -p.vx * 0.8;
-        }
-        if (p.x + p.radius > canvas.offsetWidth) {
-          p.x = canvas.offsetWidth - p.radius;
-          p.vx = -p.vx * 0.8;
-        }
+        document.getElementById('activeParticles').textContent = activeCount.toLocaleString();
       }
-
-      document.getElementById('activeParticles').textContent = activeCount.toLocaleString();
-    }
-
-    // Render
-    function render() {
-      const width = canvas.offsetWidth;
-      const height = canvas.offsetHeight;
-
-      // Clear
-      ctx.fillStyle = '#1a1a2e';
-      ctx.fillRect(0, 0, width, height);
-
-      // Draw ground
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.fillRect(0, height - 20, width, 20);
-
-      // Draw particles
-      const particleColor = hasWebGPU ? '#667eea' : '#f59e0b';
-      ctx.fillStyle = particleColor;
-
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        if (!p.active) continue;
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    // Animation loop
-    function animate() {
-      if (!isRunning) return;
-
-      const now = performance.now();
-      const dt = Math.min((now - lastTime) / 1000, 0.033); // Max 33ms (30 FPS minimum)
-      lastTime = now;
-
-      // Update physics
-      updateParticles(dt);
 
       // Render
-      render();
+      function render() {
+        const width = canvas.offsetWidth;
+        const height = canvas.offsetHeight;
 
-      // Update stats
-      fps = Math.round(1 / dt);
-      frameTime = (dt * 1000).toFixed(1);
-      document.getElementById('fps').textContent = fps;
-      document.getElementById('frameTime').textContent = `${frameTime}ms`;
+        // Clear
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, width, height);
 
-      requestAnimationFrame(animate);
-    }
+        // Draw ground
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.fillRect(0, height - 20, width, 20);
 
-    // Start simulation
-    function startSimulation() {
-      if (particles.length === 0) {
-        createParticles(1000);
+        // Draw particles
+        const particleColor = hasWebGPU ? '#667eea' : '#f59e0b';
+        ctx.fillStyle = particleColor;
+
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          if (!p.active) continue;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
-      isRunning = true;
-      lastTime = performance.now();
-      document.getElementById('startBtn').textContent = '⏸️ Pause';
-      document.getElementById('startBtn').onclick = pauseSimulation;
-      updateStatus('Simulation running...');
-      animate();
-    }
+      // Animation loop
+      function animate() {
+        if (!isRunning) return;
 
-    // Pause simulation
-    function pauseSimulation() {
-      isRunning = false;
-      document.getElementById('startBtn').textContent = '▶️ Resume';
+        const now = performance.now();
+        const dt = Math.min((now - lastTime) / 1000, 0.033); // Max 33ms (30 FPS minimum)
+        lastTime = now;
+
+        // Update physics
+        updateParticles(dt);
+
+        // Render
+        render();
+
+        // Update stats
+        fps = Math.round(1 / dt);
+        frameTime = (dt * 1000).toFixed(1);
+        document.getElementById('fps').textContent = fps;
+        document.getElementById('frameTime').textContent = `${frameTime}ms`;
+
+        requestAnimationFrame(animate);
+      }
+
+      // Start simulation
+      function startSimulation() {
+        if (particles.length === 0) {
+          createParticles(1000);
+        }
+
+        isRunning = true;
+        lastTime = performance.now();
+        document.getElementById('startBtn').textContent = '⏸️ Pause';
+        document.getElementById('startBtn').onclick = pauseSimulation;
+        updateStatus('Simulation running...');
+        animate();
+      }
+
+      // Pause simulation
+      function pauseSimulation() {
+        isRunning = false;
+        document.getElementById('startBtn').textContent = '▶️ Resume';
+        document.getElementById('startBtn').onclick = startSimulation;
+        updateStatus('Paused');
+      }
+
+      // Event listeners
       document.getElementById('startBtn').onclick = startSimulation;
-      updateStatus('Paused');
-    }
 
-    // Event listeners
-    document.getElementById('startBtn').onclick = startSimulation;
+      document.getElementById('count1k').onclick = () => {
+        createParticles(1000);
+        if (isRunning) startSimulation();
+      };
 
-    document.getElementById('count1k').onclick = () => {
+      document.getElementById('count10k').onclick = () => {
+        if (!hasWebGPU) {
+          updateStatus('WebGPU required for 10K+ particles', true);
+          return;
+        }
+        createParticles(10000);
+        if (isRunning) startSimulation();
+      };
+
+      document.getElementById('count100k').onclick = () => {
+        if (!hasWebGPU) {
+          updateStatus('WebGPU required for 100K particles', true);
+          return;
+        }
+        updateStatus('Loading 100K particles (this demo is CPU-based)...', true);
+        setTimeout(() => {
+          updateStatus('Real WebGPU implementation coming soon! 🚀');
+        }, 2000);
+      };
+
+      // Initialize with 1K particles
       createParticles(1000);
-      if (isRunning) startSimulation();
-    };
+      updateStatus('Ready - Click Start to begin');
 
-    document.getElementById('count10k').onclick = () => {
-      if (!hasWebGPU) {
-        updateStatus('WebGPU required for 10K+ particles', true);
-        return;
-      }
-      createParticles(10000);
-      if (isRunning) startSimulation();
-    };
-
-    document.getElementById('count100k').onclick = () => {
-      if (!hasWebGPU) {
-        updateStatus('WebGPU required for 100K particles', true);
-        return;
-      }
-      updateStatus('Loading 100K particles (this demo is CPU-based)...', true);
-      setTimeout(() => {
-        updateStatus('Real WebGPU implementation coming soon! 🚀');
-      }, 2000);
-    };
-
-    // Initialize with 1K particles
-    createParticles(1000);
-    updateStatus('Ready - Click Start to begin');
-
-    console.log(`
+      console.log(`
 ╔════════════════════════════════════════════════════════════════╗
 ║                                                                ║
 ║  🚀 HoloScript GPU Physics Demo                                ║
@@ -474,6 +483,6 @@
 ║                                                                ║
 ╚════════════════════════════════════════════════════════════════╝
     `);
-  </script>
-</body>
+    </script>
+  </body>
 </html>

@@ -46,19 +46,19 @@ describe('AssetValidator — Production', () => {
     it('errors on missing id', () => {
       const asset = makeAsset({ id: '' });
       const result = validator.validate(asset);
-      expect(result.issues.some(i => i.code === 'MISSING_ID')).toBe(true);
+      expect(result.issues.some((i) => i.code === 'MISSING_ID')).toBe(true);
     });
 
     it('errors on missing name', () => {
       const asset = makeAsset({ name: '' });
       const result = validator.validate(asset);
-      expect(result.issues.some(i => i.code === 'MISSING_NAME')).toBe(true);
+      expect(result.issues.some((i) => i.code === 'MISSING_NAME')).toBe(true);
     });
 
     it('errors on missing sourcePath', () => {
       const asset = makeAsset({ sourcePath: '' });
       const result = validator.validate(asset);
-      expect(result.issues.some(i => i.code === 'MISSING_SOURCE_PATH')).toBe(true);
+      expect(result.issues.some((i) => i.code === 'MISSING_SOURCE_PATH')).toBe(true);
     });
   });
 
@@ -66,13 +66,13 @@ describe('AssetValidator — Production', () => {
     it('warns on large file (>10MB)', () => {
       const asset = makeAsset({ fileSize: 15 * 1024 * 1024 });
       const result = validator.validate(asset);
-      expect(result.issues.some(i => i.code === 'LARGE_FILE')).toBe(true);
+      expect(result.issues.some((i) => i.code === 'LARGE_FILE')).toBe(true);
     });
 
     it('errors on huge file (>100MB)', () => {
       const asset = makeAsset({ fileSize: 150 * 1024 * 1024 });
       const result = validator.validate(asset);
-      expect(result.issues.some(i => i.code === 'FILE_TOO_LARGE')).toBe(true);
+      expect(result.issues.some((i) => i.code === 'FILE_TOO_LARGE')).toBe(true);
     });
   });
 
@@ -83,7 +83,7 @@ describe('AssetValidator — Production', () => {
         meshStats: { meshCount: 1, vertexCount: 500000, triangleCount: 600000, boneCount: 0 },
       });
       const result = validator.validate(asset);
-      expect(result.issues.some(i => i.code === 'HIGH_POLY_COUNT')).toBe(true);
+      expect(result.issues.some((i) => i.code === 'HIGH_POLY_COUNT')).toBe(true);
     });
 
     it('suggests LOD for large models without it', () => {
@@ -92,7 +92,7 @@ describe('AssetValidator — Production', () => {
         meshStats: { meshCount: 1, vertexCount: 60000, triangleCount: 60000 },
       });
       const result = validator.validate(asset);
-      expect(result.issues.some(i => i.code === 'MISSING_LOD')).toBe(true);
+      expect(result.issues.some((i) => i.code === 'MISSING_LOD')).toBe(true);
     });
   });
 
@@ -104,7 +104,7 @@ describe('AssetValidator — Production', () => {
         dimensions: { width: 300, height: 300 },
       });
       const result = validator.validate(asset);
-      expect(result.issues.some(i => i.code === 'NON_POT_TEXTURE')).toBe(true);
+      expect(result.issues.some((i) => i.code === 'NON_POT_TEXTURE')).toBe(true);
     });
 
     it('warns on large texture', () => {
@@ -114,7 +114,7 @@ describe('AssetValidator — Production', () => {
         dimensions: { width: 8192, height: 8192 },
       });
       const result = validator.validate(asset);
-      expect(result.issues.some(i => i.code === 'LARGE_TEXTURE')).toBe(true);
+      expect(result.issues.some((i) => i.code === 'LARGE_TEXTURE')).toBe(true);
     });
 
     it('suggests compression for uncompressed textures', () => {
@@ -123,7 +123,7 @@ describe('AssetValidator — Production', () => {
         format: 'png',
       });
       const result = validator.validate(asset);
-      expect(result.issues.some(i => i.code === 'UNCOMPRESSED_TEXTURE')).toBe(true);
+      expect(result.issues.some((i) => i.code === 'UNCOMPRESSED_TEXTURE')).toBe(true);
     });
   });
 
@@ -144,13 +144,19 @@ describe('AssetValidator — Production', () => {
         description: 'Custom check',
         severity: 'error',
         appliesTo: 'all',
-        validate: (asset) => asset.fileSize === 0 ? {
-          code: 'custom-check', severity: 'error', message: 'Zero size', autoFixable: false,
-        } : null,
+        validate: (asset) =>
+          asset.fileSize === 0
+            ? {
+                code: 'custom-check',
+                severity: 'error',
+                message: 'Zero size',
+                autoFixable: false,
+              }
+            : null,
       });
 
       const result = validator.validate(makeAsset({ fileSize: 0 }));
-      expect(result.issues.some(i => i.code === 'custom-check')).toBe(true);
+      expect(result.issues.some((i) => i.code === 'custom-check')).toBe(true);
     });
   });
 });

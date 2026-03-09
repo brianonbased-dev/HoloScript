@@ -22,7 +22,7 @@ export interface AnimationState {
   clipId: string;
   time: number;
   speed: number;
-  weight: number;        // 0..1 blend weight
+  weight: number; // 0..1 blend weight
   loopMode: LoopMode;
   playing: boolean;
   loopCount: number;
@@ -51,7 +51,11 @@ export interface QueueEntry {
 /**
  * Advance animation time with loop mode applied.
  */
-export function advanceTime(state: AnimationState, dt: number, clipDuration: number): AnimationState {
+export function advanceTime(
+  state: AnimationState,
+  dt: number,
+  clipDuration: number
+): AnimationState {
   if (!state.playing || clipDuration <= 0) return state;
 
   let newTime = state.time + dt * state.speed;
@@ -96,13 +100,22 @@ export function advanceTime(state: AnimationState, dt: number, clipDuration: num
 /**
  * Calculate crossfade blend weights at a given progress.
  */
-export function crossfadeWeights(progress: number, curve: CrossfadeConfig['curve']): { from: number; to: number } {
+export function crossfadeWeights(
+  progress: number,
+  curve: CrossfadeConfig['curve']
+): { from: number; to: number } {
   let t = Math.max(0, Math.min(1, progress));
 
   switch (curve) {
-    case 'ease-in': t = t * t; break;
-    case 'ease-out': t = t * (2 - t); break;
-    case 'ease-in-out': t = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; break;
+    case 'ease-in':
+      t = t * t;
+      break;
+    case 'ease-out':
+      t = t * (2 - t);
+      break;
+    case 'ease-in-out':
+      t = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      break;
     // 'linear' — no transform
   }
 
@@ -112,7 +125,11 @@ export function crossfadeWeights(progress: number, curve: CrossfadeConfig['curve
 /**
  * Create a new animation state.
  */
-export function createAnimationState(clipId: string, loopMode: LoopMode = 'loop', speed: number = 1): AnimationState {
+export function createAnimationState(
+  clipId: string,
+  loopMode: LoopMode = 'loop',
+  speed: number = 1
+): AnimationState {
   return { clipId, time: 0, speed, weight: 1, loopMode, playing: true, loopCount: 0 };
 }
 
@@ -144,7 +161,10 @@ export function currentQueueEntry(queue: AnimationQueue): QueueEntry | null {
 /**
  * Total queue duration estimate (assuming each clip plays once at speed).
  */
-export function queueDuration(queue: AnimationQueue, clipDurations: Record<string, number>): number {
+export function queueDuration(
+  queue: AnimationQueue,
+  clipDurations: Record<string, number>
+): number {
   return queue.clips.reduce((sum, entry) => {
     const dur = clipDurations[entry.clipId] ?? 0;
     return sum + dur / entry.speed + entry.crossfadeSec;

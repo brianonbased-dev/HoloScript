@@ -54,17 +54,23 @@ export class NodeGraph {
     return true;
   }
 
-  connect(fromNodeId: string, fromPortId: string, toNodeId: string, toPortId: string): string | null {
+  connect(
+    fromNodeId: string,
+    fromPortId: string,
+    toNodeId: string,
+    toPortId: string
+  ): string | null {
     const fromNode = this.nodes.get(fromNodeId);
     const toNode = this.nodes.get(toNodeId);
     if (!fromNode || !toNode) return null;
 
-    const fromPort = fromNode.ports.find(p => p.id === fromPortId && p.direction === 'output');
-    const toPort = toNode.ports.find(p => p.id === toPortId && p.direction === 'input');
+    const fromPort = fromNode.ports.find((p) => p.id === fromPortId && p.direction === 'output');
+    const toPort = toNode.ports.find((p) => p.id === toPortId && p.direction === 'input');
     if (!fromPort || !toPort) return null;
 
     // Type compatibility check
-    if (fromPort.type !== toPort.type && fromPort.type !== 'any' && toPort.type !== 'any') return null;
+    if (fromPort.type !== toPort.type && fromPort.type !== 'any' && toPort.type !== 'any')
+      return null;
 
     const id = `wire_${this.wireId++}`;
     this.wires.set(id, { id, fromNodeId, fromPortId, toNodeId, toPortId });
@@ -114,11 +120,19 @@ export class NodeGraph {
     return this.getTopologicalOrder().length !== this.nodes.size;
   }
 
-  getNode(id: string): GraphNode | undefined { return this.nodes.get(id); }
-  getNodeCount(): number { return this.nodes.size; }
-  getWireCount(): number { return this.wires.size; }
-  getWiresForNode(nodeId: string): Wire[] {
-    return [...this.wires.values()].filter(w => w.fromNodeId === nodeId || w.toNodeId === nodeId);
+  getNode(id: string): GraphNode | undefined {
+    return this.nodes.get(id);
   }
-  getAllNodes(): GraphNode[] { return [...this.nodes.values()]; }
+  getNodeCount(): number {
+    return this.nodes.size;
+  }
+  getWireCount(): number {
+    return this.wires.size;
+  }
+  getWiresForNode(nodeId: string): Wire[] {
+    return [...this.wires.values()].filter((w) => w.fromNodeId === nodeId || w.toNodeId === nodeId);
+  }
+  getAllNodes(): GraphNode[] {
+    return [...this.nodes.values()];
+  }
 }

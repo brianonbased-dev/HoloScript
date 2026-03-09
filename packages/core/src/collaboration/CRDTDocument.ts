@@ -189,7 +189,7 @@ export class CRDTDocument {
     documentId: DocumentIdentifier,
     localPeerId: string,
     localPeerInfo: { displayName: string; color: string; avatarId?: string },
-    config: Partial<CRDTDocumentConfig> = {},
+    config: Partial<CRDTDocumentConfig> = {}
   ) {
     this.documentId = documentId;
     this.localPeerId = localPeerId;
@@ -280,7 +280,7 @@ export class CRDTDocument {
   delete(position: number, length: number): void {
     if (position < 0 || position + length > this.content.length) {
       throw new RangeError(
-        `Delete range [${position}, ${position + length}] out of range [0, ${this.content.length}]`,
+        `Delete range [${position}, ${position + length}] out of range [0, ${this.content.length}]`
       );
     }
 
@@ -314,7 +314,7 @@ export class CRDTDocument {
   replace(position: number, deleteLength: number, insertText: string): void {
     if (position < 0 || position + deleteLength > this.content.length) {
       throw new RangeError(
-        `Replace range [${position}, ${position + deleteLength}] out of range [0, ${this.content.length}]`,
+        `Replace range [${position}, ${position + deleteLength}] out of range [0, ${this.content.length}]`
       );
     }
 

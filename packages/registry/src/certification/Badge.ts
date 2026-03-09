@@ -95,19 +95,23 @@ export function verifyBadge(
     badge.level,
     badge.issuedAt
   );
-  if (!crypto.timingSafeEqual(
-    Buffer.from(badge.fingerprint, 'hex'),
-    Buffer.from(expectedFingerprint, 'hex')
-  )) {
+  if (
+    !crypto.timingSafeEqual(
+      Buffer.from(badge.fingerprint, 'hex'),
+      Buffer.from(expectedFingerprint, 'hex')
+    )
+  ) {
     return { valid: false, reason: 'Fingerprint mismatch — badge may be tampered' };
   }
 
   // Verify signature
   const expectedSignature = computeSignature(badge.fingerprint, signingSecret);
-  if (!crypto.timingSafeEqual(
-    Buffer.from(badge.signature, 'hex'),
-    Buffer.from(expectedSignature, 'hex')
-  )) {
+  if (
+    !crypto.timingSafeEqual(
+      Buffer.from(badge.signature, 'hex'),
+      Buffer.from(expectedSignature, 'hex')
+    )
+  ) {
     return { valid: false, reason: 'Signature invalid — badge may be forged' };
   }
 
@@ -119,16 +123,16 @@ export function verifyBadge(
 // ============================================================================
 
 const LEVEL_COLORS: Record<CertificationLevel, { bg: string; text: string; border: string }> = {
-  bronze:   { bg: '#CD7F32', text: '#fff', border: '#a0622a' },
-  silver:   { bg: '#C0C0C0', text: '#333', border: '#a0a0a0' },
-  gold:     { bg: '#FFD700', text: '#333', border: '#c8a800' },
+  bronze: { bg: '#CD7F32', text: '#fff', border: '#a0622a' },
+  silver: { bg: '#C0C0C0', text: '#333', border: '#a0a0a0' },
+  gold: { bg: '#FFD700', text: '#333', border: '#c8a800' },
   platinum: { bg: '#E5E4E2', text: '#333', border: '#b0b0b0' },
 };
 
 const LEVEL_ICONS: Record<CertificationLevel, string> = {
-  bronze:   '🥉',
-  silver:   '🥈',
-  gold:     '🥇',
+  bronze: '🥉',
+  silver: '🥈',
+  gold: '🥇',
   platinum: '💎',
 };
 
@@ -139,9 +143,8 @@ export function generateBadgeSVG(badge: CertificationBadge): string {
   const colors = LEVEL_COLORS[badge.level];
   const icon = LEVEL_ICONS[badge.level];
   const levelLabel = badge.level.charAt(0).toUpperCase() + badge.level.slice(1);
-  const shortPkg = badge.packageName.length > 24
-    ? '…' + badge.packageName.slice(-21)
-    : badge.packageName;
+  const shortPkg =
+    badge.packageName.length > 24 ? '…' + badge.packageName.slice(-21) : badge.packageName;
   const expiryYear = new Date(badge.expiresAt).getFullYear();
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="80" viewBox="0 0 200 80">
@@ -240,10 +243,7 @@ function computeFingerprint(
 }
 
 function computeSignature(fingerprint: string, secret: string): string {
-  return crypto
-    .createHmac('sha256', secret)
-    .update(fingerprint)
-    .digest('hex');
+  return crypto.createHmac('sha256', secret).update(fingerprint).digest('hex');
 }
 
 function escapeXml(str: string): string {

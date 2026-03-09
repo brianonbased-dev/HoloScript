@@ -59,8 +59,14 @@ describe('AsyncTraitExecutor — async tracking', () => {
       return 'done-value';
     });
 
-    expect(emit).toHaveBeenCalledWith('on_async_start', expect.objectContaining({ nodeId, handlerName }));
-    expect(emit).toHaveBeenCalledWith('on_async_done', expect.objectContaining({ nodeId, handlerName, value: 'done-value' }));
+    expect(emit).toHaveBeenCalledWith(
+      'on_async_start',
+      expect.objectContaining({ nodeId, handlerName })
+    );
+    expect(emit).toHaveBeenCalledWith(
+      'on_async_done',
+      expect.objectContaining({ nodeId, handlerName, value: 'done-value' })
+    );
   });
 
   it('tracks loading state during execution', async () => {
@@ -128,9 +134,16 @@ describe('AsyncTraitExecutor — concurrency cap', () => {
 
     // All three calls must complete (not be lost/dropped)
     await Promise.all([
-      exec.execute(key.nodeId, key.handlerName, async () => { await delay(5); completions.push(1); }),
-      exec.execute(key.nodeId, key.handlerName, async () => { completions.push(2); }),
-      exec.execute(key.nodeId, key.handlerName, async () => { completions.push(3); }),
+      exec.execute(key.nodeId, key.handlerName, async () => {
+        await delay(5);
+        completions.push(1);
+      }),
+      exec.execute(key.nodeId, key.handlerName, async () => {
+        completions.push(2);
+      }),
+      exec.execute(key.nodeId, key.handlerName, async () => {
+        completions.push(3);
+      }),
     ]);
 
     expect(completions).toContain(1);

@@ -47,35 +47,46 @@ describe('HoloScriptCodeParser — security: code length', () => {
     const code = '// ' + 'a'.repeat(49997);
     const result = parse(code);
     // Should not fail on length (may fail on parse, but not HS009 length)
-    expect(result.errors.every(e => e.message !== `Code exceeds max length (50000)`)).toBe(true);
+    expect(result.errors.every((e) => e.message !== `Code exceeds max length (50000)`)).toBe(true);
   });
 });
 
 // ─── Security: suspicious keywords ──────────────────────────────────────────
 
 describe('HoloScriptCodeParser — security: suspicious keywords', () => {
-  const BLOCKED = ['process', 'require', 'eval', 'constructor', 'prototype', '__proto__', 'fs', 'child_process', 'exec', 'spawn'];
+  const BLOCKED = [
+    'process',
+    'require',
+    'eval',
+    'constructor',
+    'prototype',
+    '__proto__',
+    'fs',
+    'child_process',
+    'exec',
+    'spawn',
+  ];
 
   for (const kw of BLOCKED) {
     it(`blocks: ${kw}`, () => {
       const result = parse(`orb Foo { ${kw} }`);
       expect(result.success).toBe(false);
-      expect(result.errors.some(e => e.code === 'HS010')).toBe(true);
+      expect(result.errors.some((e) => e.code === 'HS010')).toBe(true);
     });
   }
 
   it('word boundary: "respawn" does NOT trigger "spawn" block', () => {
     const result = parse('orb Mesh { respawn: true }');
     // Should succeed or fail on parsing reasons, but NOT security HS010
-    expect(result.errors.every(e => e.code !== 'HS010')).toBe(true);
+    expect(result.errors.every((e) => e.code !== 'HS010')).toBe(true);
   });
   it('word boundary: "filesystem" does NOT trigger "fs" block', () => {
     const result = parse('orb Mesh { filesystem: "foo" }');
-    expect(result.errors.every(e => e.code !== 'HS010')).toBe(true);
+    expect(result.errors.every((e) => e.code !== 'HS010')).toBe(true);
   });
   it('word boundary: "evaluation" does NOT trigger "eval" block', () => {
     const result = parse('orb Score { evaluation: 5 }');
-    expect(result.errors.every(e => e.code !== 'HS010')).toBe(true);
+    expect(result.errors.every((e) => e.code !== 'HS010')).toBe(true);
   });
 });
 
@@ -84,19 +95,19 @@ describe('HoloScriptCodeParser — security: suspicious keywords', () => {
 describe('HoloScriptCodeParser — security: stripCommentsAndStrings', () => {
   it('eval inside single-line comment is NOT flagged', () => {
     const result = parse('// eval is dangerous\norb Foo {}');
-    expect(result.errors.every(e => e.code !== 'HS010')).toBe(true);
+    expect(result.errors.every((e) => e.code !== 'HS010')).toBe(true);
   });
   it('require inside double-quoted string is NOT flagged', () => {
     const result = parse('orb Foo { label: "require node" }');
-    expect(result.errors.every(e => e.code !== 'HS010')).toBe(true);
+    expect(result.errors.every((e) => e.code !== 'HS010')).toBe(true);
   });
   it('process inside single-quoted string is NOT flagged', () => {
     const result = parse("orb Foo { desc: 'process description' }");
-    expect(result.errors.every(e => e.code !== 'HS010')).toBe(true);
+    expect(result.errors.every((e) => e.code !== 'HS010')).toBe(true);
   });
   it('spawn inside block comment is NOT flagged', () => {
     const result = parse('/* spawn docs */ orb Foo {}');
-    expect(result.errors.every(e => e.code !== 'HS010')).toBe(true);
+    expect(result.errors.every((e) => e.code !== 'HS010')).toBe(true);
   });
 });
 
@@ -160,7 +171,7 @@ describe('HoloScriptCodeParser — parse() happy paths', () => {
   });
   it('orb node has correct name', () => {
     const result = parse('orb MyOrb {}');
-    const orbNode = result.ast.find(n => n.type === 'orb') as any;
+    const orbNode = result.ast.find((n) => n.type === 'orb') as any;
     expect(orbNode?.name).toBe('MyOrb');
   });
 });

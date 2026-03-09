@@ -112,6 +112,7 @@ The server runs on **port 8100** by default.
 **Generic compilation tool supporting all 18+ export targets.**
 
 **Arguments**:
+
 - `code` (string, required): HoloScript composition source code (.holo format)
 - `target` (string, required): Export target platform
   - Supported targets: `urdf`, `sdf`, `unity`, `unreal`, `godot`, `vrchat`, `openxr`, `android`, `android-xr`, `ios`, `visionos`, `ar`, `babylon`, `webgpu`, `r3f`, `wasm`, `playcanvas`, `usd`, `usdz`, `dtdl`, `vrr`, `multi-layer`
@@ -130,6 +131,7 @@ The server runs on **port 8100** by default.
 Compile HoloScript to Unity Engine C# scripts with prefab generation.
 
 **Arguments**:
+
 - `code` (string, required): HoloScript composition code
 - `options` (object, optional):
   - `namespace` (string): C# namespace (default: "HoloScript")
@@ -144,6 +146,7 @@ Compile HoloScript to Unity Engine C# scripts with prefab generation.
 Compile HoloScript to Unreal Engine C++ code with Blueprint support.
 
 **Arguments**:
+
 - `code` (string, required): HoloScript composition code
 - `options` (object, optional):
   - `generateBlueprints` (boolean): Generate Blueprint classes (default: true)
@@ -158,6 +161,7 @@ Compile HoloScript to Unreal Engine C++ code with Blueprint support.
 Compile HoloScript to URDF (Unified Robot Description Format) for ROS 2 / Gazebo.
 
 **Arguments**:
+
 - `code` (string, required): HoloScript composition code
 - `options` (object, optional):
   - `robotName` (string): Robot name (default: "holoscript_robot")
@@ -172,6 +176,7 @@ Compile HoloScript to URDF (Unified Robot Description Format) for ROS 2 / Gazebo
 Compile HoloScript to SDF (Simulation Description Format) for Gazebo.
 
 **Arguments**:
+
 - `code` (string, required): HoloScript composition code
 - `options` (object, optional):
   - `worldName` (string): World name (default: "holoscript_world")
@@ -186,6 +191,7 @@ Compile HoloScript to SDF (Simulation Description Format) for Gazebo.
 Compile HoloScript to WebGPU rendering code with WGSL shaders.
 
 **Arguments**:
+
 - `code` (string, required): HoloScript composition code
 - `options` (object, optional):
   - `enableCompute` (boolean): Enable compute shaders (default: true)
@@ -200,6 +206,7 @@ Compile HoloScript to WebGPU rendering code with WGSL shaders.
 Compile HoloScript to React Three Fiber (R3F) JSX components.
 
 **Arguments**:
+
 - `code` (string, required): HoloScript composition code
 - `options` (object, optional):
   - `typescript` (boolean): Generate TypeScript (default: true)
@@ -216,6 +223,7 @@ Compile HoloScript to React Three Fiber (R3F) JSX components.
 Get status of a compilation job by job ID.
 
 **Arguments**:
+
 - `jobId` (string, required): Job ID returned from `compile_holoscript`
 
 **Returns**: `CompilationStatusResult`
@@ -263,6 +271,7 @@ List all available HoloScript export targets with categories.
 Get circuit breaker status for a specific export target.
 
 **Arguments**:
+
 - `target` (string, required): Export target to check
 
 **Returns**: `CircuitBreakerStatusResult`
@@ -354,6 +363,7 @@ The MCP server uses a circuit breaker pattern to protect against cascading failu
 ### Configuration
 
 Default circuit breaker configuration:
+
 - **Failure Threshold**: 5 consecutive failures within window
 - **Failure Window**: 10 minutes
 - **Half-Open Timeout**: 2 minutes
@@ -362,6 +372,7 @@ Default circuit breaker configuration:
 ### Monitoring
 
 Use `get_circuit_breaker_status` to monitor:
+
 - Failure rates per target
 - Time spent in degraded mode
 - Last error messages
@@ -462,7 +473,7 @@ const result = await client.callTool('compile_to_unity', {
       }
     }
   `,
-  options: { namespace: 'MyGame' }
+  options: { namespace: 'MyGame' },
 });
 
 console.log(result.output); // Unity C# code
@@ -541,7 +552,7 @@ Increase timeout in MCP client:
 
 ```typescript
 const result = await client.callTool('compile_holoscript', args, {
-  timeout: 60000 // 60 seconds
+  timeout: 60000, // 60 seconds
 });
 ```
 
@@ -577,4 +588,4 @@ MIT License - see LICENSE file for details.
 ---
 
 **HoloScript MCP Compiler Tools v1.0.0**
-*Empowering AI agents to compile spatial computing experiences to any platform.*
+_Empowering AI agents to compile spatial computing experiences to any platform._

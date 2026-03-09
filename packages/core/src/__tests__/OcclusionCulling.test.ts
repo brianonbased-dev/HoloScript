@@ -6,7 +6,14 @@ import type { AABB, FrustumPlane } from '../world/OcclusionCulling';
 // C213 — Occlusion Culling
 // =============================================================================
 
-function box(minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number): AABB {
+function box(
+  minX: number,
+  minY: number,
+  minZ: number,
+  maxX: number,
+  maxY: number,
+  maxZ: number
+): AABB {
   return { min: { x: minX, y: minY, z: minZ }, max: { x: maxX, y: maxY, z: maxZ } };
 }
 

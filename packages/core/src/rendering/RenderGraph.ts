@@ -14,7 +14,13 @@ import type { EngineSystem } from '../engine/SpatialEngine';
 // TYPES
 // =============================================================================
 
-export type TextureFormat = 'rgba8unorm' | 'rgba16float' | 'depth24plus' | 'depth32float' | 'r32float' | 'rg16float';
+export type TextureFormat =
+  | 'rgba8unorm'
+  | 'rgba16float'
+  | 'depth24plus'
+  | 'depth32float'
+  | 'r32float'
+  | 'rg16float';
 
 export interface RenderTarget {
   id: string;
@@ -78,7 +84,10 @@ export class RenderGraph implements EngineSystem {
   private width = 1920;
   private height = 1080;
   private stats: GraphStats = {
-    passCount: 0, targetCount: 0, executionOrderMs: 0, passTimings: new Map(),
+    passCount: 0,
+    targetCount: 0,
+    executionOrderMs: 0,
+    passTimings: new Map(),
   };
 
   // ---------------------------------------------------------------------------
@@ -134,7 +143,7 @@ export class RenderGraph implements EngineSystem {
   }
 
   getPassesByTag(tag: string): RenderPassDescriptor[] {
-    return Array.from(this.passes.values()).filter(p => p.tags?.includes(tag));
+    return Array.from(this.passes.values()).filter((p) => p.tags?.includes(tag));
   }
 
   // ---------------------------------------------------------------------------
@@ -146,7 +155,7 @@ export class RenderGraph implements EngineSystem {
     const start = performance.now();
 
     // Build dependency graph: pass → set of passes that must run before it
-    const enabledPasses = Array.from(this.passes.values()).filter(p => p.enabled !== false);
+    const enabledPasses = Array.from(this.passes.values()).filter((p) => p.enabled !== false);
     const adj = new Map<string, Set<string>>();
     const inDegree = new Map<string, number>();
 
@@ -179,7 +188,9 @@ export class RenderGraph implements EngineSystem {
       if (deg === 0) queue.push(id);
     }
     // Sort zero-degree nodes by priority
-    queue.sort((a, b) => (this.passes.get(a)!.priority ?? 500) - (this.passes.get(b)!.priority ?? 500));
+    queue.sort(
+      (a, b) => (this.passes.get(a)!.priority ?? 500) - (this.passes.get(b)!.priority ?? 500)
+    );
 
     this.executionOrder = [];
     while (queue.length > 0) {
@@ -206,7 +217,9 @@ export class RenderGraph implements EngineSystem {
 
     // Detect cycles
     if (this.executionOrder.length !== enabledPasses.length) {
-      console.warn(`[RenderGraph] Cycle detected! ${enabledPasses.length - this.executionOrder.length} passes skipped.`);
+      console.warn(
+        `[RenderGraph] Cycle detected! ${enabledPasses.length - this.executionOrder.length} passes skipped.`
+      );
     }
 
     this.stats.executionOrderMs = performance.now() - start;
@@ -278,39 +291,80 @@ export class RenderGraph implements EngineSystem {
    */
   setupForwardPipeline(): this {
     this.addTarget({ id: 'shadow-map', width: 2048, height: 2048, format: 'depth32float' });
-    this.addTarget({ id: 'depth-buffer', width: this.width, height: this.height, format: 'depth24plus' });
-    this.addTarget({ id: 'color-buffer', width: this.width, height: this.height, format: 'rgba16float' });
-    this.addTarget({ id: 'post-buffer', width: this.width, height: this.height, format: 'rgba8unorm' });
-
-    this.addPass({
-      id: 'shadow-pass', inputs: [], outputs: ['shadow-map'],
-      priority: 100, tags: ['shadow'],
-      execute: (_ctx) => { /* Shadow rendering — bind shadow FBO, draw shadow casters */ },
+    this.addTarget({
+      id: 'depth-buffer',
+      width: this.width,
+      height: this.height,
+      format: 'depth24plus',
+    });
+    this.addTarget({
+      id: 'color-buffer',
+      width: this.width,
+      height: this.height,
+      format: 'rgba16float',
+    });
+    this.addTarget({
+      id: 'post-buffer',
+      width: this.width,
+      height: this.height,
+      format: 'rgba8unorm',
     });
 
     this.addPass({
-      id: 'depth-prepass', inputs: [], outputs: ['depth-buffer'],
-      priority: 200, tags: ['depth'],
-      execute: (_ctx) => { /* Depth-only rendering for early-Z and occlusion */ },
+      id: 'shadow-pass',
+      inputs: [],
+      outputs: ['shadow-map'],
+      priority: 100,
+      tags: ['shadow'],
+      execute: (_ctx) => {
+        /* Shadow rendering — bind shadow FBO, draw shadow casters */
+      },
     });
 
     this.addPass({
-      id: 'main-color', inputs: ['shadow-map', 'depth-buffer'], outputs: ['color-buffer'],
-      priority: 300, tags: ['color'],
+      id: 'depth-prepass',
+      inputs: [],
+      outputs: ['depth-buffer'],
+      priority: 200,
+      tags: ['depth'],
+      execute: (_ctx) => {
+        /* Depth-only rendering for early-Z and occlusion */
+      },
+    });
+
+    this.addPass({
+      id: 'main-color',
+      inputs: ['shadow-map', 'depth-buffer'],
+      outputs: ['color-buffer'],
+      priority: 300,
+      tags: ['color'],
       clearColor: { r: 0.05, g: 0.05, b: 0.1, a: 1 },
-      execute: (_ctx) => { /* Main forward pass — PBR lighting, sample shadow map */ },
+      execute: (_ctx) => {
+        /* Main forward pass — PBR lighting, sample shadow map */
+      },
     });
 
     this.addPass({
-      id: 'post-process', inputs: ['color-buffer'], outputs: ['post-buffer'],
-      priority: 800, tags: ['post'],
-      execute: (_ctx) => { /* Bloom, tone mapping, FXAA */ },
+      id: 'post-process',
+      inputs: ['color-buffer'],
+      outputs: ['post-buffer'],
+      priority: 800,
+      tags: ['post'],
+      execute: (_ctx) => {
+        /* Bloom, tone mapping, FXAA */
+      },
     });
 
     this.addPass({
-      id: 'present', inputs: ['post-buffer'], outputs: [],
-      priority: 999, tags: ['present'], presentToScreen: true,
-      execute: (_ctx) => { /* Blit to backbuffer / swap chain */ },
+      id: 'present',
+      inputs: ['post-buffer'],
+      outputs: [],
+      priority: 999,
+      tags: ['present'],
+      presentToScreen: true,
+      execute: (_ctx) => {
+        /* Blit to backbuffer / swap chain */
+      },
     });
 
     return this;

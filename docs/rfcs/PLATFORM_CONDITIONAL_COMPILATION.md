@@ -1,14 +1,14 @@
 # RFC: @platform() Conditional Compilation for HoloScript
 
-| Field       | Value                                                   |
-|-------------|---------------------------------------------------------|
-| **RFC**     | RFC-0012                                                |
-| **Title**   | Platform Conditional Compilation                        |
-| **Status**  | Implementation Ready                                    |
-| **Author**  | HoloScript Core Team                                    |
-| **Created** | 2026-03-06                                              |
-| **Updated** | 2026-03-07                                              |
-| **Targets** | Parser, Compiler, LSP, Tree-sitter Grammar              |
+| Field       | Value                                      |
+| ----------- | ------------------------------------------ |
+| **RFC**     | RFC-0012                                   |
+| **Title**   | Platform Conditional Compilation           |
+| **Status**  | Implementation Ready                       |
+| **Author**  | HoloScript Core Team                       |
+| **Created** | 2026-03-06                                 |
+| **Updated** | 2026-03-07                                 |
+| **Targets** | Parser, Compiler, LSP, Tree-sitter Grammar |
 
 ---
 
@@ -32,18 +32,19 @@
 
 Spatial computing experiences must target 18+ platforms with radically different capabilities:
 
-| Platform     | Runtime         | Capabilities                                      | Frame Budget |
-|--------------|-----------------|---------------------------------------------------|--------------|
-| **VisionOS** | RealityKit      | Hand tracking, eye tracking, spatial audio, portals| 11.1 ms      |
-| **AndroidXR**| Jetpack XR      | Hand tracking, eye tracking, passthrough, GPS      | 11.1 ms      |
-| **Quest3**   | OpenXR/Vulkan   | Hand + controller, haptics, passthrough            | 11.1 ms      |
-| **WebXR**    | Three.js/R3F    | Limited hand tracking, no eye tracking, browser-bound | 16.6 ms   |
-| **iOS/Android**| Native        | Touch, GPS, ARKit/ARCore                          | 16.6 ms      |
-| **Desktop**  | Browser/Native  | Mouse/keyboard, no spatial tracking                | 16.6 ms      |
-| **Automotive**| CarPlay/Auto   | Voice-only, safety-critical, minimal visual        | 30 ms        |
-| **Wearable** | Watch/Glass     | Haptic, glanceable, ultra-minimal                 | 33.3 ms      |
+| Platform        | Runtime        | Capabilities                                          | Frame Budget |
+| --------------- | -------------- | ----------------------------------------------------- | ------------ |
+| **VisionOS**    | RealityKit     | Hand tracking, eye tracking, spatial audio, portals   | 11.1 ms      |
+| **AndroidXR**   | Jetpack XR     | Hand tracking, eye tracking, passthrough, GPS         | 11.1 ms      |
+| **Quest3**      | OpenXR/Vulkan  | Hand + controller, haptics, passthrough               | 11.1 ms      |
+| **WebXR**       | Three.js/R3F   | Limited hand tracking, no eye tracking, browser-bound | 16.6 ms      |
+| **iOS/Android** | Native         | Touch, GPS, ARKit/ARCore                              | 16.6 ms      |
+| **Desktop**     | Browser/Native | Mouse/keyboard, no spatial tracking                   | 16.6 ms      |
+| **Automotive**  | CarPlay/Auto   | Voice-only, safety-critical, minimal visual           | 30 ms        |
+| **Wearable**    | Watch/Glass    | Haptic, glanceable, ultra-minimal                     | 33.3 ms      |
 
 Today's approaches:
+
 1. **Separate compositions per platform** → maintenance overhead scales linearly with platform count
 2. **Runtime conditionals** → all code ships to all platforms, bundle bloat + runtime latency
 3. **External build tooling** → breaks LSP, syntax highlighting, and compositional semantics
@@ -91,6 +92,7 @@ composition "AdaptiveMuseumTour" {
 ```
 
 **When compiling to Quest3:**
+
 - Only the `@platform(vr)` block is included (Quest3 is in the `vr` category)
 - All other platform blocks are stripped (dead code elimination)
 - Zero runtime cost, smaller bundles, no feature detection
@@ -144,10 +146,10 @@ wearable        watchos, wearos
 
 #### Aliases
 
-| Alias    | Resolves To  |
-|----------|-------------|
-| `phone`  | `mobile`    |
-| `car`    | `automotive`|
+| Alias   | Resolves To  |
+| ------- | ------------ |
+| `phone` | `mobile`     |
+| `car`   | `automotive` |
 
 ### 2.3 Union Form: Multiple Platforms
 
@@ -215,14 +217,14 @@ object "MultiPlatformObject" {
 
 #### Block Types That Accept @platform()
 
-| Block Type       | Root Level | Nested | AST Field                   |
-|------------------|:----------:|:------:|-----------------------------|
-| `object`         |     Y      |   Y    | `HoloObjectDecl.platformConstraint`  |
-| `template`       |     Y      |   --   | `HoloTemplate.platformConstraint`    |
-| `spatial_group`  |     Y      |   Y    | `HoloSpatialGroup.platformConstraint`|
-| `light`          |     Y      |   --   | `HoloLight.platformConstraint`       |
-| `norm`           |     Y      |   --   | `HoloNormBlock.platformConstraint`   |
-| `interaction`    |     --     |   Y    | Proposed: `HoloInteraction.platformConstraint` |
+| Block Type      | Root Level | Nested | AST Field                                      |
+| --------------- | :--------: | :----: | ---------------------------------------------- |
+| `object`        |     Y      |   Y    | `HoloObjectDecl.platformConstraint`            |
+| `template`      |     Y      |   --   | `HoloTemplate.platformConstraint`              |
+| `spatial_group` |     Y      |   Y    | `HoloSpatialGroup.platformConstraint`          |
+| `light`         |     Y      |   --   | `HoloLight.platformConstraint`                 |
+| `norm`          |     Y      |   --   | `HoloNormBlock.platformConstraint`             |
+| `interaction`   |     --     |   Y    | Proposed: `HoloInteraction.platformConstraint` |
 
 ### 2.6 Grammar Specification
 
@@ -313,6 +315,7 @@ The parser converts `@platform(...)` syntax into a `PlatformConstraint` AST node
 **Parser location**: `packages/core/src/parser/HoloCompositionParser.ts` line ~3947
 
 **Parsing rules**:
+
 1. Consume `@` and `platform` tokens
 2. Call `parsePlatformConstraint()` to read `(...)` arguments
 3. Assemble hyphenated platform names (e.g., `android-xr` from `IDENTIFIER - IDENTIFIER`)
@@ -374,6 +377,7 @@ filterForPlatform(
 4. If `include` is empty (and not excluded) → **ACCEPT**
 
 **Category expansion examples**:
+
 - `"vr"` → `['quest3', 'pcvr', 'visionos', 'android-xr']`
 - `"phone"` (alias) → `"mobile"` → `['ios', 'android']`
 
@@ -381,28 +385,28 @@ filterForPlatform(
 
 After filtering, the cleaned AST is passed to the appropriate target compiler:
 
-| Target Platform | Compiler Class                | Output Language      |
-|-----------------|-------------------------------|----------------------|
-| `visionos`      | `VisionOSCompiler`            | Swift (RealityKit)   |
-| `android-xr`    | `AndroidXRCompiler`           | Kotlin (Jetpack XR)  |
-| `quest3`        | `OpenXRCompiler`              | C++ (OpenXR/Vulkan)  |
-| `pcvr`          | `OpenXRCompiler`              | C++ (OpenXR/Vulkan)  |
+| Target Platform | Compiler Class                    | Output Language       |
+| --------------- | --------------------------------- | --------------------- |
+| `visionos`      | `VisionOSCompiler`                | Swift (RealityKit)    |
+| `android-xr`    | `AndroidXRCompiler`               | Kotlin (Jetpack XR)   |
+| `quest3`        | `OpenXRCompiler`                  | C++ (OpenXR/Vulkan)   |
+| `pcvr`          | `OpenXRCompiler`                  | C++ (OpenXR/Vulkan)   |
 | `webxr`         | `R3FCompiler` / `BabylonCompiler` | JavaScript/TypeScript |
-| `web`           | `WebGPUCompiler`              | TypeScript (WebGPU)  |
-| `ios`           | `IOSCompiler`                 | Swift (SceneKit)     |
-| `android`       | `AndroidCompiler`             | Kotlin               |
+| `web`           | `WebGPUCompiler`                  | TypeScript (WebGPU)   |
+| `ios`           | `IOSCompiler`                     | Swift (SceneKit)      |
+| `android`       | `AndroidCompiler`                 | Kotlin                |
 
 Each compiler extends `CompilerBase` and receives a pre-filtered AST containing only blocks relevant to its target.
 
 ### 3.5 Compilation Diagnostics
 
-| Severity | Condition                                                       | Example                                                                |
-|----------|-----------------------------------------------------------------|------------------------------------------------------------------------|
-| Error    | `@platform()` references unknown platform name                  | `@platform(xbox)` → `"xbox" is not a recognized platform target`      |
-| Warning  | Trait used on platform that does not support it                  | `@hand_tracking` on `web` target → `"hand_tracking" unavailable`      |
-| Warning  | `@platform()` block is unreachable for the compile target       | `@platform(visionos)` when compiling for `quest3` → stripped silently |
-| Info     | All platform variants of a multi-platform composition stripped  | Every `@platform(X)` block rejected → "no platform-specific code included" |
-| Warning  | Object has no unconstrained fallback and no matching constraint  | Object "Menu" has `@platform(vr)` and `@platform(ar)` variants but none for `desktop` |
+| Severity | Condition                                                       | Example                                                                               |
+| -------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Error    | `@platform()` references unknown platform name                  | `@platform(xbox)` → `"xbox" is not a recognized platform target`                      |
+| Warning  | Trait used on platform that does not support it                 | `@hand_tracking` on `web` target → `"hand_tracking" unavailable`                      |
+| Warning  | `@platform()` block is unreachable for the compile target       | `@platform(visionos)` when compiling for `quest3` → stripped silently                 |
+| Info     | All platform variants of a multi-platform composition stripped  | Every `@platform(X)` block rejected → "no platform-specific code included"            |
+| Warning  | Object has no unconstrained fallback and no matching constraint | Object "Menu" has `@platform(vr)` and `@platform(ar)` variants but none for `desktop` |
 
 ---
 
@@ -549,6 +553,7 @@ See `examples/perception-tests/07-cross-reality-agent-continuity.holo` for a com
 - **Wearable** (`wearable`): Haptic nudge + glanceable text
 
 Key features demonstrated:
+
 - Platform-specific embodiment transitions
 - Shared state (tour progress, visited exhibits)
 - Platform-conditional interactions (walkthrough vs. gallery vs. voice)
@@ -572,6 +577,7 @@ compositions/
 ```
 
 **museum-tour-vr.holo** (duplicates shared state/logic):
+
 ```holoscript
 composition "MuseumTourVR" {
   @state {
@@ -600,6 +606,7 @@ composition "MuseumTourVR" {
 ```
 
 **museum-tour-mobile.holo** (duplicates shared state/logic):
+
 ```holoscript
 composition "MuseumTourMobile" {
   @state {
@@ -628,6 +635,7 @@ composition "MuseumTourMobile" {
 ```
 
 **Problems**:
+
 - Shared state (`@state`) duplicated across 3 files
 - Shared logic (`logic {}`) duplicated across 3 files
 - Object "Temple" defined 3 times with only `interaction` varying
@@ -644,6 +652,7 @@ compositions/
 ```
 
 **museum-tour.holo** (platform-conditional sections):
+
 ```holoscript
 composition "MuseumTour" {
 
@@ -712,6 +721,7 @@ composition "MuseumTour" {
 ```
 
 **Benefits**:
+
 - **1 file** instead of 3 → 67% reduction in files
 - Shared state written **once** → no duplication
 - Shared logic written **once** → single source of truth
@@ -723,6 +733,7 @@ composition "MuseumTour" {
 **Step 1: Identify Shared Sections**
 
 Analyze your multi-file compositions and identify:
+
 - Shared `@state` blocks
 - Shared `@environment` blocks
 - Shared objects that appear on all platforms
@@ -739,6 +750,7 @@ Analyze your multi-file compositions and identify:
 **Step 3: Identify Platform-Specific Sections**
 
 Tag platform-specific blocks with `@platform()`:
+
 - VR-only objects: `@platform(vr)`
 - Mobile-only objects: `@platform(mobile)`
 - Desktop-only objects: `@platform(desktop)`
@@ -776,6 +788,7 @@ holoscript compile --target web compositions/museum-tour.holo
 #### Pattern 1: Shared Object with Platform-Specific Materials
 
 **Before** (separate files):
+
 ```holoscript
 // vr-scene.holo
 object "Logo" {
@@ -791,6 +804,7 @@ object "Logo" {
 ```
 
 **After** (conditional):
+
 ```holoscript
 object "Logo" {
   mesh: cube
@@ -808,12 +822,14 @@ object "Logo" {
 Use platform categories instead of listing individual platforms:
 
 **Before**:
+
 ```holoscript
 @platform(quest3, pcvr, visionos, android-xr)
 object "VRHandMenu" { ... }
 ```
 
 **After**:
+
 ```holoscript
 @platform(vr)
 object "VRHandMenu" { ... }
@@ -888,7 +904,7 @@ export interface HoloObjectDecl {
   traits: string[];
   children?: HoloObjectDecl[];
   interactions?: HoloInteraction[];
-  platformConstraint?: PlatformConstraint;  // NEW
+  platformConstraint?: PlatformConstraint; // NEW
   loc?: SourceLocation;
 }
 
@@ -897,7 +913,7 @@ export interface HoloTemplate {
   name: string;
   parameters: string[];
   body: HoloObjectDecl[];
-  platformConstraint?: PlatformConstraint;  // NEW
+  platformConstraint?: PlatformConstraint; // NEW
   loc?: SourceLocation;
 }
 
@@ -906,7 +922,7 @@ export interface HoloSpatialGroup {
   name: string;
   layout: string;
   objects: HoloObjectDecl[];
-  platformConstraint?: PlatformConstraint;  // NEW
+  platformConstraint?: PlatformConstraint; // NEW
   loc?: SourceLocation;
 }
 
@@ -914,7 +930,7 @@ export interface HoloLight {
   type: 'Light';
   lightType: string;
   properties: HoloProperty[];
-  platformConstraint?: PlatformConstraint;  // NEW
+  platformConstraint?: PlatformConstraint; // NEW
   loc?: SourceLocation;
 }
 
@@ -922,7 +938,7 @@ export interface HoloNormBlock {
   type: 'Norm';
   name: string;
   properties: HoloProperty[];
-  platformConstraint?: PlatformConstraint;  // NEW
+  platformConstraint?: PlatformConstraint; // NEW
   loc?: SourceLocation;
 }
 
@@ -932,7 +948,7 @@ export interface HoloInteraction {
   name: string;
   interactionType: string;
   properties: HoloProperty[];
-  platformConstraint?: PlatformConstraint;  // PROPOSED
+  platformConstraint?: PlatformConstraint; // PROPOSED
   loc?: SourceLocation;
 }
 ```
@@ -940,6 +956,7 @@ export interface HoloInteraction {
 ### 6.3 AST Transformation Example
 
 **Input HoloScript**:
+
 ```holoscript
 @platform(vr)
 object "VRMenu" {
@@ -948,6 +965,7 @@ object "VRMenu" {
 ```
 
 **Output AST**:
+
 ```typescript
 {
   type: 'Object',
@@ -973,6 +991,7 @@ object "VRMenu" {
 **File**: `packages/core/src/parser/Lexer.ts`
 
 **No changes required** — `@` and `platform` are already tokenized:
+
 - `@` → `AT` token
 - `platform` → `IDENTIFIER` token
 
@@ -1088,11 +1107,13 @@ private parseObject(): HoloObjectDecl {
 #### Change 3: Apply Same Pattern to Template, SpatialGroup, Light, Norm
 
 Modify `parseTemplate()`, `parseSpatialGroup()`, `parseLight()`, `parseNorm()` to:
+
 1. Check for `@platform()` decorator before the block keyword
 2. Call `parsePlatformConstraint()` if found
 3. Attach `platformConstraint` to the returned AST node
 
 **Example for `parseTemplate()`**:
+
 ```typescript
 private parseTemplate(): HoloTemplate {
   let platformConstraint: PlatformConstraint | undefined;
@@ -1313,85 +1334,85 @@ npm test
 
 ### 9.1 Platform Capabilities
 
-| Platform       | Spatial | Hand | Eye | Haptics | Spatial Audio | GPU | AR | GPS | NPU | Frame Budget |
-|----------------|:-------:|:----:|:---:|:-------:|:-------------:|:---:|:--:|:---:|:---:|:------------:|
-| quest3         | ✓       | ✓    | ✓   | ✓       | ✓             | ✓   | ✓  | ✗   | ✓   | 11.1 ms      |
-| pcvr           | ✓       | ✓    | ✓   | ✓       | ✓             | ✓   | ✗  | ✗   | ✗   | 11.1 ms      |
-| visionos       | ✓       | ✓    | ✓   | ✗       | ✓             | ✓   | ✓  | ✗   | ✓   | 11.1 ms      |
-| android-xr     | ✓       | ✓    | ✓   | ✓       | ✓             | ✓   | ✓  | ✓   | ✓   | 11.1 ms      |
-| visionos-ar    | ✓       | ✓    | ✓   | ✗       | ✓             | ✓   | ✓  | ✓   | ✓   | 16.6 ms      |
-| android-xr-ar  | ✓       | ✓    | ✗   | ✓       | ✓             | ✓   | ✓  | ✓   | ✓   | 16.6 ms      |
-| webxr          | ✓       | ✗    | ✗   | ✗       | ✗             | ✓   | ✓  | ✗   | ✗   | 16.6 ms      |
-| ios            | ✗       | ✗    | ✗   | ✓       | ✗             | ✓   | ✓  | ✓   | ✓   | 16.6 ms      |
-| android        | ✗       | ✗    | ✗   | ✓       | ✗             | ✓   | ✓  | ✓   | ✓   | 16.6 ms      |
-| windows        | ✗       | ✗    | ✗   | ✗       | ✗             | ✓   | ✗  | ✗   | ✗   | 16.6 ms      |
-| macos          | ✗       | ✗    | ✗   | ✗       | ✗             | ✓   | ✗  | ✗   | ✓   | 16.6 ms      |
-| linux          | ✗       | ✗    | ✗   | ✗       | ✗             | ✓   | ✗  | ✗   | ✗   | 16.6 ms      |
-| web            | ✗       | ✗    | ✗   | ✗       | ✗             | ✓   | ✗  | ✗   | ✗   | 16.6 ms      |
-| android-auto   | ✗       | ✗    | ✗   | ✗       | ✓             | ✗   | ✗  | ✓   | ✗   | 30 ms        |
-| carplay        | ✗       | ✗    | ✗   | ✗       | ✓             | ✗   | ✗  | ✓   | ✗   | 30 ms        |
-| watchos        | ✗       | ✗    | ✗   | ✓       | ✗             | ✗   | ✗  | ✓   | ✓   | 33.3 ms      |
-| wearos         | ✗       | ✗    | ✗   | ✓       | ✗             | ✗   | ✗  | ✓   | ✗   | 33.3 ms      |
+| Platform      | Spatial | Hand | Eye | Haptics | Spatial Audio | GPU | AR  | GPS | NPU | Frame Budget |
+| ------------- | :-----: | :--: | :-: | :-----: | :-----------: | :-: | :-: | :-: | :-: | :----------: |
+| quest3        |    ✓    |  ✓   |  ✓  |    ✓    |       ✓       |  ✓  |  ✓  |  ✗  |  ✓  |   11.1 ms    |
+| pcvr          |    ✓    |  ✓   |  ✓  |    ✓    |       ✓       |  ✓  |  ✗  |  ✗  |  ✗  |   11.1 ms    |
+| visionos      |    ✓    |  ✓   |  ✓  |    ✗    |       ✓       |  ✓  |  ✓  |  ✗  |  ✓  |   11.1 ms    |
+| android-xr    |    ✓    |  ✓   |  ✓  |    ✓    |       ✓       |  ✓  |  ✓  |  ✓  |  ✓  |   11.1 ms    |
+| visionos-ar   |    ✓    |  ✓   |  ✓  |    ✗    |       ✓       |  ✓  |  ✓  |  ✓  |  ✓  |   16.6 ms    |
+| android-xr-ar |    ✓    |  ✓   |  ✗  |    ✓    |       ✓       |  ✓  |  ✓  |  ✓  |  ✓  |   16.6 ms    |
+| webxr         |    ✓    |  ✗   |  ✗  |    ✗    |       ✗       |  ✓  |  ✓  |  ✗  |  ✗  |   16.6 ms    |
+| ios           |    ✗    |  ✗   |  ✗  |    ✓    |       ✗       |  ✓  |  ✓  |  ✓  |  ✓  |   16.6 ms    |
+| android       |    ✗    |  ✗   |  ✗  |    ✓    |       ✗       |  ✓  |  ✓  |  ✓  |  ✓  |   16.6 ms    |
+| windows       |    ✗    |  ✗   |  ✗  |    ✗    |       ✗       |  ✓  |  ✗  |  ✗  |  ✗  |   16.6 ms    |
+| macos         |    ✗    |  ✗   |  ✗  |    ✗    |       ✗       |  ✓  |  ✗  |  ✗  |  ✓  |   16.6 ms    |
+| linux         |    ✗    |  ✗   |  ✗  |    ✗    |       ✗       |  ✓  |  ✗  |  ✗  |  ✗  |   16.6 ms    |
+| web           |    ✗    |  ✗   |  ✗  |    ✗    |       ✗       |  ✓  |  ✗  |  ✗  |  ✗  |   16.6 ms    |
+| android-auto  |    ✗    |  ✗   |  ✗  |    ✗    |       ✓       |  ✗  |  ✗  |  ✓  |  ✗  |    30 ms     |
+| carplay       |    ✗    |  ✗   |  ✗  |    ✗    |       ✓       |  ✗  |  ✗  |  ✓  |  ✗  |    30 ms     |
+| watchos       |    ✗    |  ✗   |  ✗  |    ✓    |       ✗       |  ✗  |  ✗  |  ✓  |  ✓  |   33.3 ms    |
+| wearos        |    ✗    |  ✗   |  ✗  |    ✓    |       ✗       |  ✗  |  ✗  |  ✓  |  ✗  |   33.3 ms    |
 
 ### 9.2 Trait Compatibility Matrix
 
 #### Spatial Tracking Traits
 
-| Trait               | VisionOS | AndroidXR | Quest3 | PCVR | WebXR | iOS  | Android | Desktop |
-|---------------------|:--------:|:---------:|:------:|:----:|:-----:|:----:|:-------:|:-------:|
-| `hand_tracking`     | full     | full      | full   | full | --    | --   | --      | --      |
-| `eye_tracking`      | full     | full      | full   | full | --    | --   | --      | --      |
-| `plane_detection`   | full     | full      | full   | --   | partial| full | full   | --      |
-| `mesh_detection`    | full     | full      | full   | --   | --    | full | --      | --      |
-| `anchor`            | full     | full      | full   | full | partial| full| full   | --      |
-| `world_anchor`      | full     | full      | full   | --   | --    | full | full    | --      |
-| `geospatial`        | --       | full      | --     | --   | --    | full | full    | --      |
+| Trait             | VisionOS | AndroidXR | Quest3 | PCVR |  WebXR  | iOS  | Android | Desktop |
+| ----------------- | :------: | :-------: | :----: | :--: | :-----: | :--: | :-----: | :-----: |
+| `hand_tracking`   |   full   |   full    |  full  | full |   --    |  --  |   --    |   --    |
+| `eye_tracking`    |   full   |   full    |  full  | full |   --    |  --  |   --    |   --    |
+| `plane_detection` |   full   |   full    |  full  |  --  | partial | full |  full   |   --    |
+| `mesh_detection`  |   full   |   full    |  full  |  --  |   --    | full |   --    |   --    |
+| `anchor`          |   full   |   full    |  full  | full | partial | full |  full   |   --    |
+| `world_anchor`    |   full   |   full    |  full  |  --  |   --    | full |  full   |   --    |
+| `geospatial`      |    --    |   full    |   --   |  --  |   --    | full |  full   |   --    |
 
 #### Interaction Traits
 
-| Trait               | VisionOS | AndroidXR | Quest3 | PCVR | WebXR | iOS  | Android | Desktop |
-|---------------------|:--------:|:---------:|:------:|:----:|:-----:|:----:|:-------:|:-------:|
-| `grabbable`         | full     | full      | full   | full | partial| --  | --      | --      |
-| `hoverable`         | full     | full      | full   | full | partial| --  | --      | full    |
-| `clickable`         | full     | full      | full   | full | full  | full | full    | full    |
-| `draggable`         | full     | full      | full   | full | partial| full| full   | full    |
-| `throwable`         | full     | full      | full   | full | --    | --   | --      | --      |
+| Trait       | VisionOS | AndroidXR | Quest3 | PCVR |  WebXR  | iOS  | Android | Desktop |
+| ----------- | :------: | :-------: | :----: | :--: | :-----: | :--: | :-----: | :-----: |
+| `grabbable` |   full   |   full    |  full  | full | partial |  --  |   --    |   --    |
+| `hoverable` |   full   |   full    |  full  | full | partial |  --  |   --    |  full   |
+| `clickable` |   full   |   full    |  full  | full |  full   | full |  full   |  full   |
+| `draggable` |   full   |   full    |  full  | full | partial | full |  full   |  full   |
+| `throwable` |   full   |   full    |  full  | full |   --    |  --  |   --    |   --    |
 
 #### Platform-Exclusive Traits
 
-| Trait                    | Platform   | Category    | Notes                              |
-|--------------------------|------------|-------------|-------------------------------------|
-| `shareplay`              | visionos   | Collaboration| GroupActivities framework           |
-| `spatial_persona`        | visionos   | Social      | visionOS 2.0 Spatial Persona        |
-| `volumetric_window`      | visionos   | Windowing   | WindowGroup .volumetric style       |
-| `face_tracking`          | android-xr | Tracking    | 68 blendshapes (DP3)                |
-| `controller_input`       | quest3, pcvr| Input      | Quest Touch / Index controllers     |
-| `haptic`                 | quest3, pcvr, android-xr | Feedback | Controller/hand haptics  |
+| Trait               | Platform                 | Category      | Notes                           |
+| ------------------- | ------------------------ | ------------- | ------------------------------- |
+| `shareplay`         | visionos                 | Collaboration | GroupActivities framework       |
+| `spatial_persona`   | visionos                 | Social        | visionOS 2.0 Spatial Persona    |
+| `volumetric_window` | visionos                 | Windowing     | WindowGroup .volumetric style   |
+| `face_tracking`     | android-xr               | Tracking      | 68 blendshapes (DP3)            |
+| `controller_input`  | quest3, pcvr             | Input         | Quest Touch / Index controllers |
+| `haptic`            | quest3, pcvr, android-xr | Feedback      | Controller/hand haptics         |
 
 ### 9.3 Platform to Compiler Mapping
 
-| Platform Target    | Default Compiler      | Output Language      | Notes                              |
-|--------------------|-----------------------|----------------------|------------------------------------|
-| `visionos`         | `VisionOSCompiler`    | Swift (RealityKit)   | VR mode                            |
-| `visionos-ar`      | `VisionOSCompiler`    | Swift (ARKit)        | AR passthrough mode                |
-| `android-xr`       | `AndroidXRCompiler`   | Kotlin (Jetpack XR)  | VR mode                            |
-| `android-xr-ar`    | `AndroidXRCompiler`   | Kotlin (ARCore)      | AR passthrough mode                |
-| `quest3`           | `OpenXRCompiler`      | C++ (OpenXR+Vulkan)  | Standalone headset                 |
-| `pcvr`             | `OpenXRCompiler`      | C++ (OpenXR+Vulkan)  | Tethered to PC                     |
-| `webxr`            | `R3FCompiler`         | TypeScript (R3F)     | Browser-based VR/AR                |
-| `ios`              | `IOSCompiler`         | Swift (SceneKit)     | iPhone/iPad                        |
-| `android`          | `AndroidCompiler`     | Kotlin               | Phone/tablet                       |
-| `windows`          | `WebGPUCompiler`      | TypeScript (WebGPU)  | Desktop                            |
-| `macos`            | `WebGPUCompiler`      | TypeScript (WebGPU)  | Desktop                            |
-| `linux`            | `WebGPUCompiler`      | TypeScript (WebGPU)  | Desktop                            |
-| `web`              | `BabylonCompiler`     | JavaScript (Babylon) | Browser                            |
-| `android-auto`     | `AndroidCompiler`     | Kotlin (Auto)        | In-vehicle                         |
-| `carplay`          | `IOSCompiler`         | Swift (CarPlay)      | In-vehicle                         |
-| `watchos`          | `IOSCompiler`         | Swift (WatchKit)     | Apple Watch                        |
-| `wearos`           | `AndroidCompiler`     | Kotlin (Wear OS)     | Android watches                    |
+| Platform Target | Default Compiler    | Output Language      | Notes               |
+| --------------- | ------------------- | -------------------- | ------------------- |
+| `visionos`      | `VisionOSCompiler`  | Swift (RealityKit)   | VR mode             |
+| `visionos-ar`   | `VisionOSCompiler`  | Swift (ARKit)        | AR passthrough mode |
+| `android-xr`    | `AndroidXRCompiler` | Kotlin (Jetpack XR)  | VR mode             |
+| `android-xr-ar` | `AndroidXRCompiler` | Kotlin (ARCore)      | AR passthrough mode |
+| `quest3`        | `OpenXRCompiler`    | C++ (OpenXR+Vulkan)  | Standalone headset  |
+| `pcvr`          | `OpenXRCompiler`    | C++ (OpenXR+Vulkan)  | Tethered to PC      |
+| `webxr`         | `R3FCompiler`       | TypeScript (R3F)     | Browser-based VR/AR |
+| `ios`           | `IOSCompiler`       | Swift (SceneKit)     | iPhone/iPad         |
+| `android`       | `AndroidCompiler`   | Kotlin               | Phone/tablet        |
+| `windows`       | `WebGPUCompiler`    | TypeScript (WebGPU)  | Desktop             |
+| `macos`         | `WebGPUCompiler`    | TypeScript (WebGPU)  | Desktop             |
+| `linux`         | `WebGPUCompiler`    | TypeScript (WebGPU)  | Desktop             |
+| `web`           | `BabylonCompiler`   | JavaScript (Babylon) | Browser             |
+| `android-auto`  | `AndroidCompiler`   | Kotlin (Auto)        | In-vehicle          |
+| `carplay`       | `IOSCompiler`       | Swift (CarPlay)      | In-vehicle          |
+| `watchos`       | `IOSCompiler`       | Swift (WatchKit)     | Apple Watch         |
+| `wearos`        | `AndroidCompiler`   | Kotlin (Wear OS)     | Android watches     |
 
 ---
 
 **End of RFC**
 
-*This document specifies the complete design and implementation of HoloScript's `@platform()` conditional compilation system. The core infrastructure is implemented; remaining work includes LSP integration, tree-sitter grammar updates, and VSCode extension enhancements.*
+_This document specifies the complete design and implementation of HoloScript's `@platform()` conditional compilation system. The core infrastructure is implemented; remaining work includes LSP integration, tree-sitter grammar updates, and VSCode extension enhancements._

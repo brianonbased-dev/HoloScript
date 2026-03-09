@@ -260,8 +260,12 @@ export class OctreeLODSystem {
    * Initialize from a bounding box (min/max corners).
    */
   initializeFromBounds(
-    minX: number, minY: number, minZ: number,
-    maxX: number, maxY: number, maxZ: number,
+    minX: number,
+    minY: number,
+    minZ: number,
+    maxX: number,
+    maxY: number,
+    maxZ: number
   ): void {
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
@@ -379,9 +383,9 @@ export class OctreeLODSystem {
 
   private removeFromNode(
     node: LODOctreeNode,
-    id: string,
+    id: string
   ): { removed: boolean; gaussianCount: number } {
-    const idx = node.anchors.findIndex(a => a.id === id);
+    const idx = node.anchors.findIndex((a) => a.id === id);
     if (idx >= 0) {
       const count = node.anchors[idx].gaussianCount;
       node.anchors.splice(idx, 1);
@@ -438,7 +442,7 @@ export class OctreeLODSystem {
     cameraX: number,
     cameraY: number,
     cameraZ: number,
-    avatarCount?: number,
+    avatarCount?: number
   ): LODSelectionResult {
     if (!this.root) {
       return {
@@ -547,7 +551,7 @@ export class OctreeLODSystem {
     node: LODOctreeNode,
     levels: number[],
     anchorsByLevel: Map<number, GaussianAnchor[]>,
-    gaussiansByLevel: Map<number, number>,
+    gaussiansByLevel: Map<number, number>
   ): void {
     // Collect anchors at this node if its depth is in the selected levels
     if (anchorsByLevel.has(node.depth)) {
@@ -556,7 +560,7 @@ export class OctreeLODSystem {
           anchorsByLevel.get(anchor.lodLevel)!.push(anchor);
           gaussiansByLevel.set(
             anchor.lodLevel,
-            (gaussiansByLevel.get(anchor.lodLevel) ?? 0) + anchor.gaussianCount,
+            (gaussiansByLevel.get(anchor.lodLevel) ?? 0) + anchor.gaussianCount
           );
         }
       }
@@ -624,11 +628,18 @@ export class OctreeLODSystem {
   // ---------------------------------------------------------------------------
 
   private createNode(
-    cx: number, cy: number, cz: number,
-    halfSize: number, depth: number,
+    cx: number,
+    cy: number,
+    cz: number,
+    halfSize: number,
+    depth: number
   ): LODOctreeNode {
     return {
-      cx, cy, cz, halfSize, depth,
+      cx,
+      cy,
+      cz,
+      halfSize,
+      depth,
       anchors: [],
       gaussianCount: 0,
       children: null,
@@ -647,7 +658,7 @@ export class OctreeLODSystem {
             node.cy + y * hs,
             node.cz + z * hs,
             hs,
-            node.depth + 1,
+            node.depth + 1
           );
           node.children.push(child);
           this.nodeCount++;
@@ -686,9 +697,11 @@ export class OctreeLODSystem {
   }
 
   private containsPoint(node: LODOctreeNode, x: number, y: number, z: number): boolean {
-    return Math.abs(x - node.cx) <= node.halfSize &&
-           Math.abs(y - node.cy) <= node.halfSize &&
-           Math.abs(z - node.cz) <= node.halfSize;
+    return (
+      Math.abs(x - node.cx) <= node.halfSize &&
+      Math.abs(y - node.cy) <= node.halfSize &&
+      Math.abs(z - node.cz) <= node.halfSize
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -725,10 +738,7 @@ export class OctreeLODSystem {
     };
   }
 
-  private collectMetrics(
-    node: LODOctreeNode,
-    stats: Map<number, LODLevelStats>,
-  ): void {
+  private collectMetrics(node: LODOctreeNode, stats: Map<number, LODLevelStats>): void {
     const ls = stats.get(node.depth);
     if (ls) {
       ls.nodeCount++;

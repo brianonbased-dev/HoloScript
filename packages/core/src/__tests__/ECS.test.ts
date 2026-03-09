@@ -71,7 +71,7 @@ describe('Cycle 124: Entity Component System', () => {
     });
 
     expect(store.get<{ current: number }>('hp', 1)?.current).toBe(100); // Capped
-    expect(store.get<{ current: number }>('hp', 2)?.current).toBe(60);  // Healed
+    expect(store.get<{ current: number }>('hp', 2)?.current).toBe(60); // Healed
   });
 
   // -------------------------------------------------------------------------
@@ -109,7 +109,13 @@ describe('Cycle 124: Entity Component System', () => {
     const scheduler = new SystemScheduler();
     let called = false;
 
-    scheduler.register('Debug', () => { called = true; }, 'update');
+    scheduler.register(
+      'Debug',
+      () => {
+        called = true;
+      },
+      'update'
+    );
     scheduler.disable('Debug');
     scheduler.update(1 / 60);
 

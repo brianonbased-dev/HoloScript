@@ -70,7 +70,7 @@ class MockAIAdapter implements AIAdapter {
           color: invalid_color_value
           @unknown_trait
         }`,
-        confidence: 0.50,
+        confidence: 0.5,
       };
     }
     return {
@@ -222,7 +222,7 @@ describe('AI Integration with Parser', () => {
       // Generate broken code
       let generated = await mockAdapter.generateHoloScript('broken');
       let result = parser.parse(generated.holoScript);
-      
+
       // Parser may be lenient - main test is that it handles the code
       expect(result.ast).toBeDefined();
       const initialErrors = result.errors.length;
@@ -266,22 +266,14 @@ describe('AI Integration with Parser', () => {
       const history: Array<{ role: 'user' | 'assistant'; content: string }> = [];
 
       // First turn
-      const turn1 = await mockAdapter.chat(
-        'Generate a simple scene with a player',
-        '',
-        history
-      );
+      const turn1 = await mockAdapter.chat('Generate a simple scene with a player', '', history);
       history.push({ role: 'user', content: 'Generate a simple scene with a player' });
       history.push({ role: 'assistant', content: turn1 });
 
       expect(turn1).toBeDefined();
 
       // Second turn with context
-      const turn2 = await mockAdapter.chat(
-        'Add a button to interact with',
-        '',
-        history
-      );
+      const turn2 = await mockAdapter.chat('Add a button to interact with', '', history);
       history.push({ role: 'user', content: 'Add a button to interact with' });
       history.push({ role: 'assistant', content: turn2 });
 

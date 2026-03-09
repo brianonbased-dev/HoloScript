@@ -22,7 +22,7 @@ export interface DecalDef {
   color: { r: number; g: number; b: number; a: number };
   layer: number;
   sortOrder: number;
-  lifetime: number;           // seconds, 0 = infinite
+  lifetime: number; // seconds, 0 = infinite
   fadeInDuration: number;
   fadeOutDuration: number;
   active: boolean;
@@ -41,35 +41,53 @@ export class DecalSystem {
   private decals: Map<string, DecalDef> = new Map();
   private pool: DecalDef[] = [];
   private maxDecals = 500;
-  private layerMask = 0xFFFFFFFF;
+  private layerMask = 0xffffffff;
 
   // ---------------------------------------------------------------------------
   // Configuration
   // ---------------------------------------------------------------------------
 
-  setMaxDecals(max: number): void { this.maxDecals = Math.max(1, max); }
-  getMaxDecals(): number { return this.maxDecals; }
-  setLayerMask(mask: number): void { this.layerMask = mask; }
+  setMaxDecals(max: number): void {
+    this.maxDecals = Math.max(1, max);
+  }
+  getMaxDecals(): number {
+    return this.maxDecals;
+  }
+  setLayerMask(mask: number): void {
+    this.layerMask = mask;
+  }
 
   // ---------------------------------------------------------------------------
   // Spawning
   // ---------------------------------------------------------------------------
 
-  spawn(config: Partial<DecalDef> & { textureId: string; position: DecalDef['position']; normal: DecalDef['normal'] }): DecalDef {
+  spawn(
+    config: Partial<DecalDef> & {
+      textureId: string;
+      position: DecalDef['position'];
+      normal: DecalDef['normal'];
+    }
+  ): DecalDef {
     // Recycle from pool or create new
     let decal = this.pool.pop();
     if (!decal) {
       decal = {
         id: `decal_${_decalId++}`,
-        textureId: '', atlasRegion: undefined,
+        textureId: '',
+        atlasRegion: undefined,
         size: { x: 1, y: 1, z: 1 },
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         normal: { x: 0, y: 1, z: 0 },
         color: { r: 1, g: 1, b: 1, a: 1 },
-        layer: 1, sortOrder: 0,
-        lifetime: 0, fadeInDuration: 0.1, fadeOutDuration: 0.5,
-        active: true, age: 0, opacity: 0,
+        layer: 1,
+        sortOrder: 0,
+        lifetime: 0,
+        fadeInDuration: 0.1,
+        fadeOutDuration: 0.5,
+        active: true,
+        age: 0,
+        opacity: 0,
       };
     }
 
@@ -138,9 +156,15 @@ export class DecalSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getDecal(id: string): DecalDef | undefined { return this.decals.get(id); }
-  getActiveCount(): number { return this.decals.size; }
-  getPoolSize(): number { return this.pool.length; }
+  getDecal(id: string): DecalDef | undefined {
+    return this.decals.get(id);
+  }
+  getActiveCount(): number {
+    return this.decals.size;
+  }
+  getPoolSize(): number {
+    return this.pool.length;
+  }
 
   getVisible(frustumTest?: (pos: DecalDef['position']) => boolean): DecalDef[] {
     const result: DecalDef[] = [];

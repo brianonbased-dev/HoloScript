@@ -77,7 +77,9 @@ export class TriggerZoneSystem {
   // Update (test entities against zones)
   // ---------------------------------------------------------------------------
 
-  update(entities: Array<{ id: string; position: { x: number; y: number; z: number }; radius?: number }>): void {
+  update(
+    entities: Array<{ id: string; position: { x: number; y: number; z: number }; radius?: number }>
+  ): void {
     for (const [zoneId, zone] of this.zones) {
       if (!zone.enabled) continue;
       const current = this.occupants.get(zoneId)!;
@@ -109,16 +111,24 @@ export class TriggerZoneSystem {
   // Overlap Tests
   // ---------------------------------------------------------------------------
 
-  private overlaps(shape: TriggerShape, pos: { x: number; y: number; z: number }, entityRadius: number): boolean {
+  private overlaps(
+    shape: TriggerShape,
+    pos: { x: number; y: number; z: number },
+    entityRadius: number
+  ): boolean {
     if (shape.type === 'sphere' && shape.radius !== undefined) {
-      const dx = pos.x - shape.position.x, dy = pos.y - shape.position.y, dz = pos.z - shape.position.z;
+      const dx = pos.x - shape.position.x,
+        dy = pos.y - shape.position.y,
+        dz = pos.z - shape.position.z;
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       return dist <= shape.radius + entityRadius;
     }
 
     if (shape.type === 'box' && shape.halfExtents) {
       const he = shape.halfExtents;
-      const dx = Math.abs(pos.x - shape.position.x), dy = Math.abs(pos.y - shape.position.y), dz = Math.abs(pos.z - shape.position.z);
+      const dx = Math.abs(pos.x - shape.position.x),
+        dy = Math.abs(pos.y - shape.position.y),
+        dz = Math.abs(pos.z - shape.position.z);
       return dx <= he.x + entityRadius && dy <= he.y + entityRadius && dz <= he.z + entityRadius;
     }
 
@@ -146,5 +156,7 @@ export class TriggerZoneSystem {
     return zones;
   }
 
-  getZoneCount(): number { return this.zones.size; }
+  getZoneCount(): number {
+    return this.zones.size;
+  }
 }

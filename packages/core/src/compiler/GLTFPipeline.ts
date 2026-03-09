@@ -194,8 +194,8 @@ const PRIMITIVE_GENERATORS: Record<string, (scale: [number, number, number]) => 
  */
 export function generateScaleTexture(
   size: number = 512,
-  baseColor: [number, number, number] = [30, 15, 61],   // #1e0f3d
-  borderColor: [number, number, number] = [20, 12, 40],  // softer — less contrast
+  baseColor: [number, number, number] = [30, 15, 61], // #1e0f3d
+  borderColor: [number, number, number] = [20, 12, 40], // softer — less contrast
   highlightColor: [number, number, number] = [70, 50, 120]
 ): Uint8Array {
   const data = new Uint8Array(size * size * 4);
@@ -239,31 +239,48 @@ export function generateScaleTexture(
 
       if (hexDist > 0.94) {
         // Narrow groove — thin line between scales, not a thick border
-        data[idx]     = Math.max(0, borderColor[0] + jR);
+        data[idx] = Math.max(0, borderColor[0] + jR);
         data[idx + 1] = Math.max(0, borderColor[1] + jG);
         data[idx + 2] = Math.max(0, borderColor[2] + jB);
         data[idx + 3] = 255;
       } else if (hexDist < 0.12) {
         // Specular highlight — bright dot at center of each scale
         const t = hexDist / 0.12;
-        const specR = 100, specG = 80, specB = 160;
-        data[idx]     = Math.min(255, Math.round(specR * (1 - t) + highlightColor[0] * t) + jR);
+        const specR = 100,
+          specG = 80,
+          specB = 160;
+        data[idx] = Math.min(255, Math.round(specR * (1 - t) + highlightColor[0] * t) + jR);
         data[idx + 1] = Math.min(255, Math.round(specG * (1 - t) + highlightColor[1] * t) + jG);
         data[idx + 2] = Math.min(255, Math.round(specB * (1 - t) + highlightColor[2] * t) + jB);
         data[idx + 3] = 255;
       } else if (hexDist < 0.35) {
         // Highlight zone — raised center of scale
         const t = (hexDist - 0.12) / 0.23;
-        data[idx]     = Math.min(255, Math.round(highlightColor[0] * (1 - t) + baseColor[0] * t) + jR);
-        data[idx + 1] = Math.min(255, Math.round(highlightColor[1] * (1 - t) + baseColor[1] * t) + jG);
-        data[idx + 2] = Math.min(255, Math.round(highlightColor[2] * (1 - t) + baseColor[2] * t) + jB);
+        data[idx] = Math.min(255, Math.round(highlightColor[0] * (1 - t) + baseColor[0] * t) + jR);
+        data[idx + 1] = Math.min(
+          255,
+          Math.round(highlightColor[1] * (1 - t) + baseColor[1] * t) + jG
+        );
+        data[idx + 2] = Math.min(
+          255,
+          Math.round(highlightColor[2] * (1 - t) + baseColor[2] * t) + jB
+        );
         data[idx + 3] = 255;
       } else {
         // Mid-scale — smooth gradient, mostly base color
         const t = (hexDist - 0.35) / 0.59;
-        data[idx]     = Math.max(0, Math.min(255, Math.round(baseColor[0] * (1 - t * 0.3) + borderColor[0] * (t * 0.3)) + jR));
-        data[idx + 1] = Math.max(0, Math.min(255, Math.round(baseColor[1] * (1 - t * 0.3) + borderColor[1] * (t * 0.3)) + jG));
-        data[idx + 2] = Math.max(0, Math.min(255, Math.round(baseColor[2] * (1 - t * 0.3) + borderColor[2] * (t * 0.3)) + jB));
+        data[idx] = Math.max(
+          0,
+          Math.min(255, Math.round(baseColor[0] * (1 - t * 0.3) + borderColor[0] * (t * 0.3)) + jR)
+        );
+        data[idx + 1] = Math.max(
+          0,
+          Math.min(255, Math.round(baseColor[1] * (1 - t * 0.3) + borderColor[1] * (t * 0.3)) + jG)
+        );
+        data[idx + 2] = Math.max(
+          0,
+          Math.min(255, Math.round(baseColor[2] * (1 - t * 0.3) + borderColor[2] * (t * 0.3)) + jB)
+        );
         data[idx + 3] = 255;
       }
     }
@@ -303,7 +320,9 @@ export function generateScaleNormalMap(size: number = 512): Uint8Array {
 
       const idx = (y * size + x) * 4;
 
-      let nx = 0, ny = 0, nz = 1;
+      let nx = 0,
+        ny = 0,
+        nz = 1;
 
       if (hexDist > 0.92 && hexDist < 1.0) {
         // Narrow groove — moderate deflection (not overpowering)
@@ -320,7 +339,7 @@ export function generateScaleNormalMap(size: number = 512): Uint8Array {
         nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
       }
 
-      data[idx]     = Math.round((nx * 0.5 + 0.5) * 255);
+      data[idx] = Math.round((nx * 0.5 + 0.5) * 255);
       data[idx + 1] = Math.round((ny * 0.5 + 0.5) * 255);
       data[idx + 2] = Math.round((nz * 0.5 + 0.5) * 255);
       data[idx + 3] = 255;
@@ -383,8 +402,8 @@ function encodePNG(pixels: Uint8Array, width: number, height: number): Uint8Arra
   const ihdrDV = new DataView(ihdr.buffer);
   ihdrDV.setUint32(0, width);
   ihdrDV.setUint32(4, height);
-  ihdr[8] = 8;  // bit depth
-  ihdr[9] = 6;  // color type RGBA
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 6; // color type RGBA
   ihdr[10] = 0; // compression
   ihdr[11] = 0; // filter
   ihdr[12] = 0; // interlace
@@ -397,11 +416,16 @@ function encodePNG(pixels: Uint8Array, width: number, height: number): Uint8Arra
   const iendChunk = writeChunk('IEND', new Uint8Array(0));
 
   // Assemble PNG
-  const png = new Uint8Array(signature.length + ihdrChunk.length + idatChunk.length + iendChunk.length);
+  const png = new Uint8Array(
+    signature.length + ihdrChunk.length + idatChunk.length + iendChunk.length
+  );
   let offset = 0;
-  png.set(signature, offset); offset += signature.length;
-  png.set(ihdrChunk, offset); offset += ihdrChunk.length;
-  png.set(idatChunk, offset); offset += idatChunk.length;
+  png.set(signature, offset);
+  offset += signature.length;
+  png.set(ihdrChunk, offset);
+  offset += ihdrChunk.length;
+  png.set(idatChunk, offset);
+  offset += idatChunk.length;
   png.set(iendChunk, offset);
 
   return png;
@@ -435,8 +459,12 @@ function decimateGeometry(geometry: GeometryData, ratio: number): GeometryData {
   let newIdx = 0;
 
   for (let i = 0; i < vertCount; i++) {
-    const px = positions[i * 3], py = positions[i * 3 + 1], pz = positions[i * 3 + 2];
-    const cx = Math.round(px / cellSize), cy = Math.round(py / cellSize), cz = Math.round(pz / cellSize);
+    const px = positions[i * 3],
+      py = positions[i * 3 + 1],
+      pz = positions[i * 3 + 2];
+    const cx = Math.round(px / cellSize),
+      cy = Math.round(py / cellSize),
+      cz = Math.round(pz / cellSize);
     const key = `${cx},${cy},${cz}`;
 
     if (cellMap.has(key)) {
@@ -454,7 +482,9 @@ function decimateGeometry(geometry: GeometryData, ratio: number): GeometryData {
   // Rebuild indices, skip degenerate triangles
   const newIndices: number[] = [];
   for (let i = 0; i < indices.length; i += 3) {
-    const a = remap[indices[i]], b = remap[indices[i + 1]], c = remap[indices[i + 2]];
+    const a = remap[indices[i]],
+      b = remap[indices[i + 1]],
+      c = remap[indices[i + 2]];
     if (a !== b && b !== c && a !== c) {
       newIndices.push(a, b, c);
     }
@@ -485,24 +515,24 @@ interface BoneDef {
 
 /** Dragon skeleton with predefined bone hierarchy */
 const DRAGON_SKELETON: BoneDef[] = [
-  { name: 'Root',        position: [0, 2.5, 0] },
-  { name: 'Spine',       position: [0, 2.5, 0],    parent: 'Root' },
-  { name: 'Neck',        position: [0, 3.5, 2.0],   parent: 'Spine' },
-  { name: 'Head',        position: [0, 4.5, 4.2],   parent: 'Neck' },
-  { name: 'Jaw',         position: [0, 4.2, 4.6],   parent: 'Head' },
-  { name: 'Tail1',       position: [0, 2.2, -2.0],  parent: 'Spine' },
-  { name: 'Tail2',       position: [0, 1.0, -3.5],  parent: 'Tail1' },
-  { name: 'TailTip',     position: [0, -0.05, -4.6], parent: 'Tail2' },
-  { name: 'LeftWing',    position: [-1.2, 3.0, 0.2], parent: 'Spine' },
+  { name: 'Root', position: [0, 2.5, 0] },
+  { name: 'Spine', position: [0, 2.5, 0], parent: 'Root' },
+  { name: 'Neck', position: [0, 3.5, 2.0], parent: 'Spine' },
+  { name: 'Head', position: [0, 4.5, 4.2], parent: 'Neck' },
+  { name: 'Jaw', position: [0, 4.2, 4.6], parent: 'Head' },
+  { name: 'Tail1', position: [0, 2.2, -2.0], parent: 'Spine' },
+  { name: 'Tail2', position: [0, 1.0, -3.5], parent: 'Tail1' },
+  { name: 'TailTip', position: [0, -0.05, -4.6], parent: 'Tail2' },
+  { name: 'LeftWing', position: [-1.2, 3.0, 0.2], parent: 'Spine' },
   { name: 'LeftWingTip', position: [-2.6, 3.8, 0.2], parent: 'LeftWing' },
-  { name: 'RightWing',   position: [1.2, 3.0, 0.2],  parent: 'Spine' },
-  { name: 'RightWingTip',position: [2.6, 3.8, 0.2],  parent: 'RightWing' },
+  { name: 'RightWing', position: [1.2, 3.0, 0.2], parent: 'Spine' },
+  { name: 'RightWingTip', position: [2.6, 3.8, 0.2], parent: 'RightWing' },
   { name: 'LeftFrontLeg', position: [-0.9, 1.6, 1.2], parent: 'Spine' },
   { name: 'LeftFrontFoot', position: [-0.95, 0.15, 1.4], parent: 'LeftFrontLeg' },
   { name: 'RightFrontLeg', position: [0.9, 1.6, 1.2], parent: 'Spine' },
   { name: 'RightFrontFoot', position: [0.95, 0.15, 1.4], parent: 'RightFrontLeg' },
-  { name: 'LeftBackLeg',  position: [-0.9, 1.5, -1.0], parent: 'Spine' },
-  { name: 'LeftBackFoot',  position: [-0.95, 0.1, -1.15], parent: 'LeftBackLeg' },
+  { name: 'LeftBackLeg', position: [-0.9, 1.5, -1.0], parent: 'Spine' },
+  { name: 'LeftBackFoot', position: [-0.95, 0.1, -1.15], parent: 'LeftBackLeg' },
   { name: 'RightBackLeg', position: [0.9, 1.5, -1.0], parent: 'Spine' },
   { name: 'RightBackFoot', position: [0.95, 0.1, -1.15], parent: 'RightBackLeg' },
 ];
@@ -547,7 +577,8 @@ function deflateStored(data: Uint8Array): Uint8Array {
   }
 
   // Adler32 checksum
-  let a = 1, b = 0;
+  let a = 1,
+    b = 0;
   for (let i = 0; i < data.length; i++) {
     a = (a + data[i]) % 65521;
     b = (b + a) % 65521;
@@ -827,7 +858,8 @@ export class GLTFPipeline extends CompilerBase {
   private materialMap: Map<string, number> = new Map();
   private images: Array<{ bufferView: number; mimeType: string }> = [];
   private textures: Array<{ source: number; sampler: number }> = [];
-  private samplers: Array<{ magFilter: number; minFilter: number; wrapS: number; wrapT: number }> = [];
+  private samplers: Array<{ magFilter: number; minFilter: number; wrapS: number; wrapT: number }> =
+    [];
   private scaleTextureIndex: number = -1;
   private scaleNormalTextureIndex: number = -1;
   private textureIndexMap: Map<string, number> = new Map();
@@ -920,7 +952,9 @@ export class GLTFPipeline extends CompilerBase {
       if (entries.length < 2) continue; // nothing to smooth
 
       // Compute average normal
-      let ax = 0, ay = 0, az = 0;
+      let ax = 0,
+        ay = 0,
+        az = 0;
       for (const e of entries) {
         ax += e.nx;
         ay += e.ny;
@@ -1099,7 +1133,10 @@ export class GLTFPipeline extends CompilerBase {
       const p = bones[i].position;
       const off = i * 16;
       // Identity matrix with inverse translation
-      ibmData[off + 0] = 1; ibmData[off + 5] = 1; ibmData[off + 10] = 1; ibmData[off + 15] = 1;
+      ibmData[off + 0] = 1;
+      ibmData[off + 5] = 1;
+      ibmData[off + 10] = 1;
+      ibmData[off + 15] = 1;
       ibmData[off + 12] = -p[0];
       ibmData[off + 13] = -p[1];
       ibmData[off + 14] = -p[2];
@@ -1114,17 +1151,23 @@ export class GLTFPipeline extends CompilerBase {
     }
 
     // Create skin
-    this._skins = [{
-      skeleton: jointStartIndex,
-      joints,
-      inverseBindMatrices: ibmAccessor,
-    }];
+    this._skins = [
+      {
+        skeleton: jointStartIndex,
+        joints,
+        inverseBindMatrices: ibmAccessor,
+      },
+    ];
 
     // Store joint index offset so skinMeshes can reference bone indices correctly
     this._jointStartIndex = jointStartIndex;
   }
 
-  private _skins: Array<{ skeleton: number; joints: number[]; inverseBindMatrices: number }> | null = null;
+  private _skins: Array<{
+    skeleton: number;
+    joints: number[];
+    inverseBindMatrices: number;
+  }> | null = null;
   private _jointStartIndex = 0;
 
   /**
@@ -1137,7 +1180,7 @@ export class GLTFPipeline extends CompilerBase {
     if (!this._skins || this._skins.length === 0) return;
 
     const bones = DRAGON_SKELETON;
-    const bonePositions = bones.map(b => b.position);
+    const bonePositions = bones.map((b) => b.position);
 
     // Determine how many nodes existed before LOD generation added extra meshes.
     // We only skin original mesh nodes, not LOD copies.
@@ -1183,7 +1226,9 @@ export class GLTFPipeline extends CompilerBase {
           const distances: Array<{ boneIdx: number; distSq: number }> = [];
           for (let bi = 0; bi < bonePositions.length; bi++) {
             const bp = bonePositions[bi];
-            const dx = vx - bp[0], dy = vy - bp[1], dz = vz - bp[2];
+            const dx = vx - bp[0],
+              dy = vy - bp[1],
+              dz = vz - bp[2];
             distances.push({ boneIdx: bi, distSq: dx * dx + dy * dy + dz * dz });
           }
 
@@ -1354,15 +1399,19 @@ export class GLTFPipeline extends CompilerBase {
     // v4.2: Process domain block materials into glTF materials array
     const domainBlocks = (composition as any).domainBlocks ?? [];
     if (domainBlocks.length > 0) {
-      compileDomainBlocks(domainBlocks, {
-        material: (block) => {
-          const mat = compileMaterialBlock(block);
-          const gltfMat = materialToGLTF(mat);
-          this.materials.push(gltfMat as any);
-          this.stats.materialCount++;
-          return '';
+      compileDomainBlocks(
+        domainBlocks,
+        {
+          material: (block) => {
+            const mat = compileMaterialBlock(block);
+            const gltfMat = materialToGLTF(mat);
+            this.materials.push(gltfMat as any);
+            this.stats.materialCount++;
+            return '';
+          },
         },
-      }, () => '');
+        () => ''
+      );
     }
 
     // Create scene
@@ -1624,9 +1673,7 @@ export class GLTFPipeline extends CompilerBase {
         const stepsProp = this.findProp(object, 'steps');
 
         const points = this.extractNestedArray(pointsProp, 3);
-        const radii = Array.isArray(radiiProp)
-          ? (radiiProp as number[]).map(Number)
-          : [0.1];
+        const radii = Array.isArray(radiiProp) ? (radiiProp as number[]).map(Number) : [0.1];
 
         // Fill radii to match points length
         while (radii.length < points.length) {
@@ -1803,8 +1850,10 @@ export class GLTFPipeline extends CompilerBase {
       if (preset.iridescenceIOR !== undefined) iridescenceIOR = preset.iridescenceIOR;
       if (preset.anisotropy !== undefined) anisotropy = preset.anisotropy;
       if (preset.anisotropyRotation !== undefined) anisotropyRotation = preset.anisotropyRotation;
-      if (preset.attenuationColor) attenuationColor = this.parseColorString(preset.attenuationColor);
-      if (preset.attenuationDistance !== undefined) attenuationDistance = preset.attenuationDistance;
+      if (preset.attenuationColor)
+        attenuationColor = this.parseColorString(preset.attenuationColor);
+      if (preset.attenuationDistance !== undefined)
+        attenuationDistance = preset.attenuationDistance;
     }
 
     // 2. TraitCompositor: compose PBR from visual trait presets
@@ -1822,16 +1871,20 @@ export class GLTFPipeline extends CompilerBase {
       if (composed.ior !== undefined) ior = composed.ior;
       if (composed.thickness !== undefined) thickness = composed.thickness;
       if (composed.clearcoat !== undefined) clearcoat = composed.clearcoat;
-      if (composed.clearcoatRoughness !== undefined) clearcoatRoughness = composed.clearcoatRoughness;
+      if (composed.clearcoatRoughness !== undefined)
+        clearcoatRoughness = composed.clearcoatRoughness;
       if (composed.sheen !== undefined) sheen = composed.sheen;
       if (composed.sheenRoughness !== undefined) sheenRoughness = composed.sheenRoughness;
       if (composed.sheenColor) sheenColor = this.parseColorString(composed.sheenColor);
       if (composed.iridescence !== undefined) iridescence = composed.iridescence;
       if (composed.iridescenceIOR !== undefined) iridescenceIOR = composed.iridescenceIOR;
       if (composed.anisotropy !== undefined) anisotropy = composed.anisotropy;
-      if (composed.anisotropyRotation !== undefined) anisotropyRotation = composed.anisotropyRotation;
-      if (composed.attenuationColor) attenuationColor = this.parseColorString(composed.attenuationColor);
-      if (composed.attenuationDistance !== undefined) attenuationDistance = composed.attenuationDistance;
+      if (composed.anisotropyRotation !== undefined)
+        anisotropyRotation = composed.anisotropyRotation;
+      if (composed.attenuationColor)
+        attenuationColor = this.parseColorString(composed.attenuationColor);
+      if (composed.attenuationDistance !== undefined)
+        attenuationDistance = composed.attenuationDistance;
     }
 
     // 3. Direct property overrides
@@ -1852,7 +1905,8 @@ export class GLTFPipeline extends CompilerBase {
     if (typeof roughnessProp === 'number') roughness = roughnessProp;
 
     const emissiveIntensityProp = this.findProp(object, 'emissiveIntensity');
-    const emissiveIntensity = typeof emissiveIntensityProp === 'number' ? emissiveIntensityProp : 1.0;
+    const emissiveIntensity =
+      typeof emissiveIntensityProp === 'number' ? emissiveIntensityProp : 1.0;
 
     const emissiveProp = this.findProp(object, 'emissive');
     if (typeof emissiveProp === 'string') emissive = this.parseColorString(emissiveProp);
@@ -1871,12 +1925,22 @@ export class GLTFPipeline extends CompilerBase {
     const texturePaths: Record<string, string> = {};
     const TEX_PROP_MAP: Record<string, string> = {
       // HoloScript property name → glTF slot key
-      baseColorMap: 'baseColor', albedo_map: 'baseColor', colorMap: 'baseColor',
-      normalMap: 'normal', normal_map: 'normal',
-      roughnessMap: 'metallicRoughness', roughness_map: 'metallicRoughness',
-      metallicMap: 'metallicRoughness', metallic_map: 'metallicRoughness', metalnessMap: 'metallicRoughness',
-      occlusionMap: 'occlusion', ao_map: 'occlusion', ambientOcclusionMap: 'occlusion',
-      emissiveMap: 'emissive', emissive_map: 'emissive', emissionMap: 'emissive',
+      baseColorMap: 'baseColor',
+      albedo_map: 'baseColor',
+      colorMap: 'baseColor',
+      normalMap: 'normal',
+      normal_map: 'normal',
+      roughnessMap: 'metallicRoughness',
+      roughness_map: 'metallicRoughness',
+      metallicMap: 'metallicRoughness',
+      metallic_map: 'metallicRoughness',
+      metalnessMap: 'metallicRoughness',
+      occlusionMap: 'occlusion',
+      ao_map: 'occlusion',
+      ambientOcclusionMap: 'occlusion',
+      emissiveMap: 'emissive',
+      emissive_map: 'emissive',
+      emissionMap: 'emissive',
     };
     for (const [propName, slotKey] of Object.entries(TEX_PROP_MAP)) {
       const val = this.findProp(object, propName);
@@ -1887,10 +1951,25 @@ export class GLTFPipeline extends CompilerBase {
 
     // Create material key for caching (includes advanced PBR props + texture paths)
     const key = JSON.stringify({
-      color, metallic, roughness, opacity, emissive,
-      transmission, ior, thickness, clearcoat, clearcoatRoughness,
-      sheen, sheenRoughness, sheenColor, iridescence, iridescenceIOR,
-      anisotropy, anisotropyRotation, attenuationColor, attenuationDistance,
+      color,
+      metallic,
+      roughness,
+      opacity,
+      emissive,
+      transmission,
+      ior,
+      thickness,
+      clearcoat,
+      clearcoatRoughness,
+      sheen,
+      sheenRoughness,
+      sheenColor,
+      iridescence,
+      iridescenceIOR,
+      anisotropy,
+      anisotropyRotation,
+      attenuationColor,
+      attenuationDistance,
       texturePaths,
     });
     if (this.materialMap.has(key)) {
@@ -1914,7 +1993,11 @@ export class GLTFPipeline extends CompilerBase {
     const emissiveSum = emissive[0] + emissive[1] + emissive[2];
     if (emissiveSum > 0) {
       // Apply emissiveIntensity scaling — allow >1.0 for HDR bloom in Three.js
-      material.emissiveFactor = emissive.map(c => c * emissiveIntensity) as [number, number, number];
+      material.emissiveFactor = emissive.map((c) => c * emissiveIntensity) as [
+        number,
+        number,
+        number,
+      ];
     }
 
     // Build KHR material extensions from advanced PBR properties
@@ -1927,23 +2010,38 @@ export class GLTFPipeline extends CompilerBase {
       Object.assign(extensions, createIORExtension(ior));
     }
     if (clearcoat > 0) {
-      Object.assign(extensions, createClearcoatExtension({ factor: clearcoat, roughness: clearcoatRoughness }));
+      Object.assign(
+        extensions,
+        createClearcoatExtension({ factor: clearcoat, roughness: clearcoatRoughness })
+      );
     }
     if (sheen > 0) {
-      Object.assign(extensions, createSheenExtension({ color: sheenColor, roughness: sheenRoughness }));
+      Object.assign(
+        extensions,
+        createSheenExtension({ color: sheenColor, roughness: sheenRoughness })
+      );
     }
     if (iridescence > 0) {
-      Object.assign(extensions, createIridescenceExtension({ factor: iridescence, ior: iridescenceIOR }));
+      Object.assign(
+        extensions,
+        createIridescenceExtension({ factor: iridescence, ior: iridescenceIOR })
+      );
     }
     if (anisotropy > 0) {
-      Object.assign(extensions, createAnisotropyExtension({ strength: anisotropy, rotation: anisotropyRotation }));
+      Object.assign(
+        extensions,
+        createAnisotropyExtension({ strength: anisotropy, rotation: anisotropyRotation })
+      );
     }
     if (thickness > 0 || attenuationDistance !== undefined) {
-      Object.assign(extensions, createVolumeExtension({
-        thickness: thickness || 1,
-        attenuationDistance,
-        attenuationColor,
-      }));
+      Object.assign(
+        extensions,
+        createVolumeExtension({
+          thickness: thickness || 1,
+          attenuationDistance,
+          attenuationColor,
+        })
+      );
     }
     if (emissiveIntensity > 1) {
       Object.assign(extensions, createEmissiveStrengthExtension(emissiveIntensity));
@@ -1955,7 +2053,8 @@ export class GLTFPipeline extends CompilerBase {
 
     // Apply procedural scale texture to hull/metaball meshes and skin materials
     const isScaledGeometry = shapeType === 'hull' || shapeType === 'metaball';
-    const isScaledMaterial = typeof namedMat === 'string' && (namedMat === 'skin_dark' || namedMat === 'leather');
+    const isScaledMaterial =
+      typeof namedMat === 'string' && (namedMat === 'skin_dark' || namedMat === 'leather');
     if (isScaledGeometry || isScaledMaterial) {
       const texIdx = this.ensureScaleTexture();
       if (texIdx >= 0) {
@@ -2031,7 +2130,7 @@ export class GLTFPipeline extends CompilerBase {
 
     // Detect MIME type from magic bytes
     const isPNG = imageData[0] === 0x89 && imageData[1] === 0x50;
-    const isJPEG = imageData[0] === 0xFF && imageData[1] === 0xD8;
+    const isJPEG = imageData[0] === 0xff && imageData[1] === 0xd8;
     const mimeType = isPNG ? 'image/png' : isJPEG ? 'image/jpeg' : 'image/png';
 
     // Embed image bytes in the glTF buffer
@@ -2068,8 +2167,8 @@ export class GLTFPipeline extends CompilerBase {
       this.samplers.push({
         magFilter: 9729, // LINEAR
         minFilter: 9987, // LINEAR_MIPMAP_LINEAR
-        wrapS: 10497,    // REPEAT
-        wrapT: 10497,    // REPEAT
+        wrapS: 10497, // REPEAT
+        wrapT: 10497, // REPEAT
       });
     }
 
@@ -2130,8 +2229,8 @@ export class GLTFPipeline extends CompilerBase {
     this.samplers.push({
       magFilter: 9729, // LINEAR
       minFilter: 9987, // LINEAR_MIPMAP_LINEAR
-      wrapS: 10497,    // REPEAT
-      wrapT: 10497,    // REPEAT
+      wrapS: 10497, // REPEAT
+      wrapT: 10497, // REPEAT
     });
 
     // Create texture (color)
@@ -2203,7 +2302,8 @@ export class GLTFPipeline extends CompilerBase {
     });
 
     // Calculate count based on type and actual element count
-    const comps = type === 'MAT4' ? 16 : type === 'VEC4' ? 4 : type === 'VEC3' ? 3 : type === 'VEC2' ? 2 : 1;
+    const comps =
+      type === 'MAT4' ? 16 : type === 'VEC4' ? 4 : type === 'VEC3' ? 3 : type === 'VEC2' ? 2 : 1;
     const count = data.length / comps;
 
     const accessorIndex = this.accessors.length;
@@ -2226,8 +2326,10 @@ export class GLTFPipeline extends CompilerBase {
     computeBounds: boolean = false
   ): number {
     const byteOffset = this.bufferData.length;
-    const componentType = data instanceof Uint32Array ? 5125 : data instanceof Uint16Array ? 5123 : 5126; // UNSIGNED_INT, UNSIGNED_SHORT, or FLOAT
-    const _bytesPerComponent = data instanceof Uint32Array ? 4 : data instanceof Uint16Array ? 2 : 4;
+    const componentType =
+      data instanceof Uint32Array ? 5125 : data instanceof Uint16Array ? 5123 : 5126; // UNSIGNED_INT, UNSIGNED_SHORT, or FLOAT
+    const _bytesPerComponent =
+      data instanceof Uint32Array ? 4 : data instanceof Uint16Array ? 2 : 4;
 
     // Append data to buffer
     const view = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);

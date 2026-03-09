@@ -20,7 +20,9 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode() { return { id: 'gltf_test' } as any; }
+function makeNode() {
+  return { id: 'gltf_test' } as any;
+}
 function makeCtx() {
   return {
     emit: vi.fn(),
@@ -53,7 +55,9 @@ function bootstrapLoaded(node: any, overrides: Record<string, unknown> = {}) {
   return { cfg, ctx };
 }
 
-function st(node: any) { return node.__gltfState as any; }
+function st(node: any) {
+  return node.__gltfState as any;
+}
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
   gltfHandler.onEvent!(node, cfg, ctx as any, evt as any);
 }
@@ -111,7 +115,10 @@ describe('GLTFTrait — onDetach', () => {
     st(node).sceneRoot = { id: 'root' };
     ctx.emit.mockClear();
     gltfHandler.onDetach!(node, cfg, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('gltf:unloaded', expect.objectContaining({ source: 'model.glb' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gltf:unloaded',
+      expect.objectContaining({ source: 'model.glb' })
+    );
   });
 
   it('does NOT emit gltf:unloaded when sceneRoot is null', () => {
@@ -137,7 +144,11 @@ describe('GLTFTrait — onUpdate: animation tick', () => {
   it('advances playback.time by delta * speed', () => {
     const node = makeNode();
     const { cfg, ctx } = bootstrapLoaded(node);
-    fire(node, cfg, ctx, { type: 'gltf:play_animation', animation: 'idle', options: { speed: 2, loop: false } });
+    fire(node, cfg, ctx, {
+      type: 'gltf:play_animation',
+      animation: 'idle',
+      options: { speed: 2, loop: false },
+    });
     const pb = st(node).playingAnimations.get('idle')!;
     pb.duration = 1.0;
     gltfHandler.onUpdate!(node, cfg, ctx as any, 0.1);
@@ -147,7 +158,11 @@ describe('GLTFTrait — onUpdate: animation tick', () => {
   it('loops animation when time >= duration and loop=true', () => {
     const node = makeNode();
     const { cfg, ctx } = bootstrapLoaded(node);
-    fire(node, cfg, ctx, { type: 'gltf:play_animation', animation: 'walk', options: { loop: true, speed: 1 } });
+    fire(node, cfg, ctx, {
+      type: 'gltf:play_animation',
+      animation: 'walk',
+      options: { loop: true, speed: 1 },
+    });
     const pb = st(node).playingAnimations.get('walk')!;
     pb.duration = 1.0;
     pb.time = 0.95;
@@ -159,7 +174,11 @@ describe('GLTFTrait — onUpdate: animation tick', () => {
   it('stops animation and emits gltf:animation_complete when loop=false and time >= duration', () => {
     const node = makeNode();
     const { cfg, ctx } = bootstrapLoaded(node);
-    fire(node, cfg, ctx, { type: 'gltf:play_animation', animation: 'run', options: { loop: false, speed: 1 } });
+    fire(node, cfg, ctx, {
+      type: 'gltf:play_animation',
+      animation: 'run',
+      options: { loop: false, speed: 1 },
+    });
     const pb = st(node).playingAnimations.get('run')!;
     pb.duration = 1.0;
     pb.time = 0.98;
@@ -167,7 +186,10 @@ describe('GLTFTrait — onUpdate: animation tick', () => {
     gltfHandler.onUpdate!(node, cfg, ctx as any, 0.05);
     expect(pb.playing).toBe(false);
     expect(pb.time).toBeCloseTo(1.0); // clamped to duration
-    expect(ctx.emit).toHaveBeenCalledWith('gltf:animation_complete', expect.objectContaining({ animation: 'run' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gltf:animation_complete',
+      expect.objectContaining({ animation: 'run' })
+    );
   });
 
   it('skips tick for animations with playing=false', () => {
@@ -233,7 +255,11 @@ describe('GLTFTrait — onEvent: gltf:play_animation', () => {
   it('respects speed, weight, loop, startTime options', () => {
     const node = makeNode();
     const { cfg, ctx } = bootstrapLoaded(node);
-    fire(node, cfg, ctx, { type: 'gltf:play_animation', animation: 'walk', options: { speed: 0.5, weight: 0.8, loop: false, startTime: 0.3 } });
+    fire(node, cfg, ctx, {
+      type: 'gltf:play_animation',
+      animation: 'walk',
+      options: { speed: 0.5, weight: 0.8, loop: false, startTime: 0.3 },
+    });
     const pb = st(node).playingAnimations.get('walk')!;
     expect(pb.speed).toBeCloseTo(0.5);
     expect(pb.weight).toBeCloseTo(0.8);
@@ -312,7 +338,10 @@ describe('GLTFTrait — onEvent: gltf:set_material', () => {
     const { cfg, ctx } = bootstrapLoaded(node);
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'gltf:set_material', material: 'mat_chrome' });
-    expect(ctx.emit).toHaveBeenCalledWith('gltf:material_changed', expect.objectContaining({ material: 'mat_chrome' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gltf:material_changed',
+      expect.objectContaining({ material: 'mat_chrome' })
+    );
   });
 });
 

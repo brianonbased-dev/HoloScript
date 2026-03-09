@@ -135,9 +135,9 @@ describe('TransformGraph', () => {
     graph.addNode('child', { x: 1, y: 1, z: 1 });
     graph.setParent('child', 'parent');
     const wp = graph.getWorldPosition('child')!;
-    expect(wp.x).toBe(2);  // 0 + 1*2
-    expect(wp.y).toBe(3);  // 0 + 1*3
-    expect(wp.z).toBe(4);  // 0 + 1*4
+    expect(wp.x).toBe(2); // 0 + 1*2
+    expect(wp.y).toBe(3); // 0 + 1*3
+    expect(wp.z).toBe(4); // 0 + 1*4
   });
 
   it('three-level hierarchy accumulates positions', () => {

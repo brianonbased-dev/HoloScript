@@ -4,7 +4,9 @@ import { SynthEngine } from '../audio/SynthEngine';
 describe('SynthEngine', () => {
   let synth: SynthEngine;
 
-  beforeEach(() => { synth = new SynthEngine(); });
+  beforeEach(() => {
+    synth = new SynthEngine();
+  });
 
   it('noteOn creates a voice and returns id', () => {
     const id = synth.noteOn(440, 'sine');
@@ -77,7 +79,8 @@ describe('SynthEngine', () => {
 
   it('output is clamped to [-1, 1]', () => {
     // Create many loud voices
-    for (let i = 0; i < 10; i++) synth.noteOn(440, 'sine', { attack: 0, decay: 0, sustain: 1, release: 0.1 });
+    for (let i = 0; i < 10; i++)
+      synth.noteOn(440, 'sine', { attack: 0, decay: 0, sustain: 1, release: 0.1 });
     const s = synth.generateSample(1 / (4 * 440));
     expect(s).toBeLessThanOrEqual(1);
     expect(s).toBeGreaterThanOrEqual(-1);

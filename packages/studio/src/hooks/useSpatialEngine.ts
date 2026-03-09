@@ -140,46 +140,38 @@ export function useSpatialEngine(wasmUrl?: string) {
    * Generate a heightmap terrain using FBM noise.
    * Can be used by terrain panels, environment builder, or scene generator.
    */
-  const generateTerrain = useCallback(
-    (config: Partial<TerrainConfig> = {}): TerrainResult => {
-      const cfg = { ...DEFAULT_TERRAIN_CONFIG, ...config };
-      const start = performance.now();
+  const generateTerrain = useCallback((config: Partial<TerrainConfig> = {}): TerrainResult => {
+    const cfg = { ...DEFAULT_TERRAIN_CONFIG, ...config };
+    const start = performance.now();
 
-      const heightmap: number[][] = [];
-      let min = Infinity;
-      let max = -Infinity;
+    const heightmap: number[][] = [];
+    let min = Infinity;
+    let max = -Infinity;
 
-      for (let y = 0; y < cfg.height; y++) {
-        const row: number[] = [];
-        for (let x = 0; x < cfg.width; x++) {
-          const nx = (x + cfg.offset.x) * cfg.scale;
-          const ny = (y + cfg.offset.y) * cfg.scale;
-          const value = fbmNoise(
-            nx, ny,
-            cfg.octaves,
-            cfg.lacunarity,
-            cfg.persistence,
-            cfg.seed,
-          ) * cfg.amplitude;
+    for (let y = 0; y < cfg.height; y++) {
+      const row: number[] = [];
+      for (let x = 0; x < cfg.width; x++) {
+        const nx = (x + cfg.offset.x) * cfg.scale;
+        const ny = (y + cfg.offset.y) * cfg.scale;
+        const value =
+          fbmNoise(nx, ny, cfg.octaves, cfg.lacunarity, cfg.persistence, cfg.seed) * cfg.amplitude;
 
-          row.push(value);
-          if (value < min) min = value;
-          if (value > max) max = value;
-        }
-        heightmap.push(row);
+        row.push(value);
+        if (value < min) min = value;
+        if (value > max) max = value;
       }
+      heightmap.push(row);
+    }
 
-      return {
-        heightmap,
-        width: cfg.width,
-        height: cfg.height,
-        min,
-        max,
-        generateTimeMs: performance.now() - start,
-      };
-    },
-    [],
-  );
+    return {
+      heightmap,
+      width: cfg.width,
+      height: cfg.height,
+      min,
+      max,
+      generateTimeMs: performance.now() - start,
+    };
+  }, []);
 
   // ── Noise Sampling ────────────────────────────────────────────
 
@@ -187,12 +179,9 @@ export function useSpatialEngine(wasmUrl?: string) {
    * Sample 2D Perlin noise at a point. Useful for procedural textures,
    * material variation, or displacement maps.
    */
-  const sampleNoise2D = useCallback(
-    (x: number, y: number, seed: number = 42): number => {
-      return perlinNoise2D(x, y, seed);
-    },
-    [],
-  );
+  const sampleNoise2D = useCallback((x: number, y: number, seed: number = 42): number => {
+    return perlinNoise2D(x, y, seed);
+  }, []);
 
   /**
    * Sample 3D Perlin noise at a point. Useful for volumetric effects,
@@ -202,7 +191,7 @@ export function useSpatialEngine(wasmUrl?: string) {
     (x: number, y: number, z: number, seed: number = 42): number => {
       return perlinNoise3D(x, y, z, seed);
     },
-    [],
+    []
   );
 
   /**
@@ -216,11 +205,11 @@ export function useSpatialEngine(wasmUrl?: string) {
       octaves: number = 6,
       lacunarity: number = 2.0,
       persistence: number = 0.5,
-      seed: number = 42,
+      seed: number = 42
     ): number => {
       return fbmNoise(x, y, octaves, lacunarity, persistence, seed);
     },
-    [],
+    []
   );
 
   // ── Collision Detection ───────────────────────────────────────
@@ -229,27 +218,21 @@ export function useSpatialEngine(wasmUrl?: string) {
    * Test collision between two spheres.
    * Used by PhysicsPanel preview and scene collision queries.
    */
-  const testSphereCollision = useCallback(
-    (a: Sphere, b: Sphere): CollisionResult => {
-      const start = performance.now();
-      const collides = sphereSphereTest(a, b);
-      return { collides, queryTimeMs: performance.now() - start };
-    },
-    [],
-  );
+  const testSphereCollision = useCallback((a: Sphere, b: Sphere): CollisionResult => {
+    const start = performance.now();
+    const collides = sphereSphereTest(a, b);
+    return { collides, queryTimeMs: performance.now() - start };
+  }, []);
 
   /**
    * Test collision between two AABBs.
    * Used by broad-phase collision detection in the scene.
    */
-  const testAABBCollision = useCallback(
-    (a: AABB, b: AABB): CollisionResult => {
-      const start = performance.now();
-      const collides = aabbOverlap(a, b);
-      return { collides, queryTimeMs: performance.now() - start };
-    },
-    [],
-  );
+  const testAABBCollision = useCallback((a: AABB, b: AABB): CollisionResult => {
+    const start = performance.now();
+    const collides = aabbOverlap(a, b);
+    return { collides, queryTimeMs: performance.now() - start };
+  }, []);
 
   /**
    * Batch collision test for scene-level broad-phase queries.
@@ -262,7 +245,7 @@ export function useSpatialEngine(wasmUrl?: string) {
         collides: aabbOverlap(subject, target),
       }));
     },
-    [],
+    []
   );
 
   // ── Pathfinding ───────────────────────────────────────────────
@@ -277,7 +260,7 @@ export function useSpatialEngine(wasmUrl?: string) {
       startX: number,
       startY: number,
       endX: number,
-      endY: number,
+      endY: number
     ): PathfindingResult => {
       const start = performance.now();
       const path = astarFindPath(grid, startX, startY, endX, endY);
@@ -287,7 +270,7 @@ export function useSpatialEngine(wasmUrl?: string) {
         queryTimeMs: performance.now() - start,
       };
     },
-    [],
+    []
   );
 
   /**
@@ -295,10 +278,7 @@ export function useSpatialEngine(wasmUrl?: string) {
    * Cells above the threshold are blocked (cliffs, water).
    */
   const heightmapToNavGrid = useCallback(
-    (
-      heightmap: number[][],
-      maxWalkableSlope: number = 0.5,
-    ): number[][] => {
+    (heightmap: number[][], maxWalkableSlope: number = 0.5): number[][] => {
       const height = heightmap.length;
       if (height === 0) return [];
       const width = heightmap[0].length;
@@ -321,7 +301,7 @@ export function useSpatialEngine(wasmUrl?: string) {
       }
       return grid;
     },
-    [],
+    []
   );
 
   // ── HoloScript Terrain Snippet Generation ─────────────────────
@@ -330,10 +310,9 @@ export function useSpatialEngine(wasmUrl?: string) {
    * Generate a HoloScript terrain object snippet from a terrain config.
    * Inserts a composition snippet with @physics static and terrain data.
    */
-  const generateTerrainSnippet = useCallback(
-    (config: Partial<TerrainConfig> = {}): string => {
-      const cfg = { ...DEFAULT_TERRAIN_CONFIG, ...config };
-      return `orb "Terrain" {
+  const generateTerrainSnippet = useCallback((config: Partial<TerrainConfig> = {}): string => {
+    const cfg = { ...DEFAULT_TERRAIN_CONFIG, ...config };
+    return `orb "Terrain" {
   @physics {
     type: "static"
     friction: 0.8
@@ -350,9 +329,7 @@ export function useSpatialEngine(wasmUrl?: string) {
     resolution: ${cfg.scale}
   }
 }`;
-    },
-    [],
-  );
+  }, []);
 
   return {
     // State

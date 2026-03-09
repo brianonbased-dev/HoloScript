@@ -57,11 +57,7 @@ export class AvalancheSimulation {
   private frameHistory: number[] = [];
   private lastFrameTime = 0;
 
-  constructor(
-    terrain: TerrainData,
-    physics: AvalanchePhysics,
-    config: SimulationConfig
-  ) {
+  constructor(terrain: TerrainData, physics: AvalanchePhysics, config: SimulationConfig) {
     this.terrain = terrain;
     this.physics = physics;
     this.config = config;

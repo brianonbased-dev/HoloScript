@@ -23,14 +23,14 @@ pnpm add @holoscript/security-sandbox
 import { HoloScriptSandbox } from '@holoscript/security-sandbox';
 
 const sandbox = new HoloScriptSandbox({
-  timeout: 3000,      // 3 second max execution time
-  memoryLimit: 64,    // 64 MB memory limit
-  enableLogging: true // Enable audit logging
+  timeout: 3000, // 3 second max execution time
+  memoryLimit: 64, // 64 MB memory limit
+  enableLogging: true, // Enable audit logging
 });
 
 // Execute AI-generated code safely
 const result = await sandbox.executeHoloScript(aiGeneratedCode, {
-  source: 'ai-generated'
+  source: 'ai-generated',
 });
 
 if (result.success) {
@@ -51,11 +51,11 @@ Main sandbox class for executing HoloScript code.
 
 ```typescript
 interface SandboxOptions {
-  timeout?: number;              // Max execution time (ms), default: 5000
-  allowedModules?: string[];     // Allowed Node.js modules, default: []
+  timeout?: number; // Max execution time (ms), default: 5000
+  allowedModules?: string[]; // Allowed Node.js modules, default: []
   sandbox?: Record<string, unknown>; // Custom global variables
-  enableLogging?: boolean;       // Enable audit logging, default: true
-  memoryLimit?: number;          // Memory limit (MB), default: 128
+  enableLogging?: boolean; // Enable audit logging, default: true
+  memoryLimit?: number; // Memory limit (MB), default: 128
 }
 ```
 
@@ -66,12 +66,15 @@ interface SandboxOptions {
 Executes HoloScript code in the sandbox.
 
 ```typescript
-const result = await sandbox.executeHoloScript(`
+const result = await sandbox.executeHoloScript(
+  `
   cube {
     @color(red)
     @position(0, 1, 0)
   }
-`, { source: 'user' });
+`,
+  { source: 'user' }
+);
 ```
 
 ##### `getAuditLogs(filter?: AuditFilter): SecurityAuditLog[]`
@@ -85,7 +88,7 @@ const aiLogs = sandbox.getAuditLogs({ source: 'ai-generated' });
 // Get failed executions in last hour
 const recentFailures = sandbox.getAuditLogs({
   startTime: Date.now() - 3600000,
-  success: false
+  success: false,
 });
 ```
 
@@ -113,7 +116,7 @@ import { executeSafely } from '@holoscript/security-sandbox';
 
 const result = await executeSafely(untrustedCode, {
   timeout: 1000,
-  source: 'ai-generated'
+  source: 'ai-generated',
 });
 ```
 
@@ -200,7 +203,7 @@ const logs = sandbox.getAuditLogs();
 
 ```typescript
 const result = await sandbox.executeHoloScript(aiOutput, {
-  source: 'ai-generated'
+  source: 'ai-generated',
 });
 
 if (!result.success) {
@@ -241,7 +244,7 @@ const yesterday = Date.now() - 86400000;
 const suspiciousLogs = sandbox.getAuditLogs({
   startTime: yesterday,
   source: 'ai-generated',
-  success: false
+  success: false,
 });
 
 if (suspiciousLogs.length > threshold) {
@@ -256,17 +259,17 @@ if (suspiciousLogs.length > threshold) {
 ```typescript
 const sandbox = new HoloScriptSandbox({
   timeout: 5000,
-  enableLogging: true
+  enableLogging: true,
 });
 
 // Validate AI-generated scene
 const aiCode = await anthropic.completions.create({
   model: 'claude-3-opus',
-  prompt: 'Generate a HoloScript VR forest scene'
+  prompt: 'Generate a HoloScript VR forest scene',
 });
 
 const result = await sandbox.executeHoloScript(aiCode, {
-  source: 'ai-generated'
+  source: 'ai-generated',
 });
 
 if (result.success) {
@@ -283,7 +286,7 @@ if (result.success) {
 // Safely execute user-submitted HoloScript
 app.post('/execute-scene', async (req, res) => {
   const result = await sandbox.executeHoloScript(req.body.code, {
-    source: 'user'
+    source: 'user',
   });
 
   if (result.success) {
@@ -303,11 +306,11 @@ import { HoloScriptSandbox } from '@holoscript/security-sandbox';
 async function handleGenerateScene(args: any) {
   const sandbox = new HoloScriptSandbox({
     timeout: 3000,
-    enableLogging: true
+    enableLogging: true,
   });
 
   const result = await sandbox.executeHoloScript(args.generatedCode, {
-    source: 'ai-generated'
+    source: 'ai-generated',
   });
 
   if (!result.success) {

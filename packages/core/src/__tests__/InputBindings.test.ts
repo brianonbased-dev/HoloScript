@@ -7,7 +7,9 @@ import { InputBindings } from '../input/InputBindings';
 
 describe('InputBindings', () => {
   let ib: InputBindings;
-  beforeEach(() => { ib = new InputBindings(); });
+  beforeEach(() => {
+    ib = new InputBindings();
+  });
 
   it('constructor creates default profile', () => {
     expect(ib.getProfileCount()).toBe(1);
@@ -65,7 +67,10 @@ describe('InputBindings', () => {
 
   it('addCompositeAxis and resolveComposite', () => {
     ib.addCompositeAxis('horizontal', 'D', 'A');
-    const keys = new Map<string, boolean>([['D', true], ['A', false]]);
+    const keys = new Map<string, boolean>([
+      ['D', true],
+      ['A', false],
+    ]);
     expect(ib.resolveComposite('horizontal', keys)).toBe(1);
     keys.set('D', false);
     keys.set('A', true);
@@ -97,7 +102,7 @@ describe('InputBindings', () => {
     expect(json).toContain('fire');
     const imported = ib.importProfile(json);
     expect(imported).not.toBeNull();
-    expect(imported!.bindings.some(b => b.action === 'fire')).toBe(true);
+    expect(imported!.bindings.some((b) => b.action === 'fire')).toBe(true);
   });
 
   it('importProfile returns null for invalid json', () => {

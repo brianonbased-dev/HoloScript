@@ -26,7 +26,6 @@ function makeBridge(opts?: ConstructorParameters<typeof HotReloadBridge>[2]) {
 // ── tests ────────────────────────────────────────────────────────────────────
 
 describe('HotReloadBridge', () => {
-
   // ── Construction ────────────────────────────────────────────────────────────
 
   it('starts with 0 watched modules', () => {

@@ -7,7 +7,9 @@ describe('In-Game UI Framework (Cycle 184)', () => {
   describe('UIWidget', () => {
     let ui: UIWidget;
 
-    beforeEach(() => { ui = new UIWidget(); });
+    beforeEach(() => {
+      ui = new UIWidget();
+    });
 
     it('should create widgets', () => {
       ui.createWidget('root', 'panel', { width: 800, height: 600 });
@@ -60,11 +62,15 @@ describe('In-Game UI Framework (Cycle 184)', () => {
   describe('UIEventRouter', () => {
     let router: UIEventRouter;
 
-    beforeEach(() => { router = new UIEventRouter(); });
+    beforeEach(() => {
+      router = new UIEventRouter();
+    });
 
     it('should register and fire events', () => {
       let clicked = false;
-      router.on('btn1', 'click', () => { clicked = true; });
+      router.on('btn1', 'click', () => {
+        clicked = true;
+      });
       router.emit('btn1', 'click');
       expect(clicked).toBe(true);
     });
@@ -77,7 +83,9 @@ describe('In-Game UI Framework (Cycle 184)', () => {
 
     it('should blur previous focus', () => {
       let blurred = false;
-      router.on('a', 'blur', () => { blurred = true; });
+      router.on('a', 'blur', () => {
+        blurred = true;
+      });
       router.on('b', 'focus', () => {});
       router.setFocus('a');
       router.setFocus('b');
@@ -102,7 +110,9 @@ describe('In-Game UI Framework (Cycle 184)', () => {
   describe('UIDataBinding', () => {
     let binding: UIDataBinding;
 
-    beforeEach(() => { binding = new UIDataBinding(); });
+    beforeEach(() => {
+      binding = new UIDataBinding();
+    });
 
     it('should set and get model values', () => {
       binding.set('hp', 100);
@@ -132,7 +142,9 @@ describe('In-Game UI Framework (Cycle 184)', () => {
 
     it('should fire change listeners', () => {
       let newVal: unknown;
-      binding.onChange('hp', (v) => { newVal = v; });
+      binding.onChange('hp', (v) => {
+        newVal = v;
+      });
       binding.set('hp', 50);
       expect(newVal).toBe(50);
     });

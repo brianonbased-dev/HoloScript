@@ -11,7 +11,7 @@
 import { useRef, useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { R3FNode } from '@holoscript/core';
-import { useEditorStore, useSceneGraphStore } from '@/lib/store';
+import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
 import * as THREE from 'three';
 import { getGeometry, getMaterialProps, isScaledBody } from './materialUtils';
@@ -20,25 +20,44 @@ import { useProceduralTexture } from '@/hooks/useProceduralTexture';
 
 // ── Easing Functions ─────────────────────────────────────────────────────────
 
-function easeLinear(t: number): number { return t; }
-function easeInOut(t: number): number { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
-function easeIn(t: number): number { return t * t; }
-function easeOut(t: number): number { return t * (2 - t); }
-function easeInCubic(t: number): number { return t * t * t; }
-function easeOutCubic(t: number): number { return (--t) * t * t + 1; }
+function easeLinear(t: number): number {
+  return t;
+}
+function easeInOut(t: number): number {
+  return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+}
+function easeIn(t: number): number {
+  return t * t;
+}
+function easeOut(t: number): number {
+  return t * (2 - t);
+}
+function easeInCubic(t: number): number {
+  return t * t * t;
+}
+function easeOutCubic(t: number): number {
+  return --t * t * t + 1;
+}
 function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
 }
 
 function getEasingFn(name: string): (t: number) => number {
   switch (name) {
-    case 'ease-in':       return easeIn;
-    case 'ease-out':      return easeOut;
-    case 'ease-in-out':   return easeInOut;
-    case 'ease-in-cubic': return easeInCubic;
-    case 'ease-out-cubic': return easeOutCubic;
-    case 'ease-in-out-cubic': return easeInOutCubic;
-    default:              return easeLinear;
+    case 'ease-in':
+      return easeIn;
+    case 'ease-out':
+      return easeOut;
+    case 'ease-in-out':
+      return easeInOut;
+    case 'ease-in-cubic':
+      return easeInCubic;
+    case 'ease-out-cubic':
+      return easeOutCubic;
+    case 'ease-in-out-cubic':
+      return easeInOutCubic;
+    default:
+      return easeLinear;
   }
 }
 
@@ -68,11 +87,7 @@ function lerpVec3(
   b: [number, number, number],
   t: number
 ): [number, number, number] {
-  return [
-    a[0] + (b[0] - a[0]) * t,
-    a[1] + (b[1] - a[1]) * t,
-    a[2] + (b[2] - a[2]) * t,
-  ];
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
 function interpolateAtPercent(stops: KeyframeStop[], percent: number): KeyframeStop {
@@ -112,8 +127,14 @@ function interpolateAtPercent(stops: KeyframeStop[], percent: number): KeyframeS
   }
 
   if (lower.scale && upper.scale) {
-    const ls = typeof lower.scale === 'number' ? [lower.scale, lower.scale, lower.scale] as [number,number,number] : lower.scale;
-    const us = typeof upper.scale === 'number' ? [upper.scale, upper.scale, upper.scale] as [number,number,number] : upper.scale;
+    const ls =
+      typeof lower.scale === 'number'
+        ? ([lower.scale, lower.scale, lower.scale] as [number, number, number])
+        : lower.scale;
+    const us =
+      typeof upper.scale === 'number'
+        ? ([upper.scale, upper.scale, upper.scale] as [number, number, number])
+        : upper.scale;
     result.scale = lerpVec3(ls, us, localT);
   } else if (lower.scale) {
     result.scale = lower.scale;
@@ -177,10 +198,10 @@ export function AnimatedMeshNode({ node }: AnimatedMeshNodeProps) {
   const matProps = getMaterialProps(node);
 
   // Generate procedural textures for hull/metaball meshes
-  const proceduralMaps = useProceduralTexture(
-    isScaledBody(hsType) ? 'scaleFull' : null,
-    { size: 512, tiling: [3, 3] }
-  );
+  const proceduralMaps = useProceduralTexture(isScaledBody(hsType) ? 'scaleFull' : null, {
+    size: 512,
+    tiling: [3, 3],
+  });
 
   // Check if we need external texture loading
   const needsTextures = hasTextures(matProps);
@@ -249,9 +270,10 @@ export function AnimatedMeshNode({ node }: AnimatedMeshNodeProps) {
       }
 
       if (interpolated.scale) {
-        const s = typeof interpolated.scale === 'number'
-          ? [interpolated.scale, interpolated.scale, interpolated.scale]
-          : interpolated.scale;
+        const s =
+          typeof interpolated.scale === 'number'
+            ? [interpolated.scale, interpolated.scale, interpolated.scale]
+            : interpolated.scale;
         mesh.scale.set(s[0], s[1], s[2]);
       }
 
@@ -266,10 +288,13 @@ export function AnimatedMeshNode({ node }: AnimatedMeshNodeProps) {
   const childMeshes = node.children
     ?.filter((c: R3FNode) => c.type === 'mesh')
     .map((child: R3FNode, i: number) => {
-      const childHasKeyframes = child.props?.keyframes && (child.props.keyframes as any[]).length > 0;
-      return childHasKeyframes
-        ? <AnimatedMeshNode key={child.id || `child-${i}`} node={child} />
-        : <StaticChildMesh key={child.id || `child-${i}`} node={child} />;
+      const childHasKeyframes =
+        child.props?.keyframes && (child.props.keyframes as any[]).length > 0;
+      return childHasKeyframes ? (
+        <AnimatedMeshNode key={child.id || `child-${i}`} node={child} />
+      ) : (
+        <StaticChildMesh key={child.id || `child-${i}`} node={child} />
+      );
     });
 
   return (
@@ -291,10 +316,22 @@ export function AnimatedMeshNode({ node }: AnimatedMeshNodeProps) {
       >
         {getGeometry(hsType, size, props)}
         {needsTextures ? (
-          <Suspense fallback={
-            <meshPhysicalMaterial ref={matRef} {...matProps} {...proceduralMaps} emissive={matProps.emissive} color={matProps.color} />
-          }>
-            <TexturedAnimatedMaterial matProps={matProps} proceduralMaps={proceduralMaps} matRef={matRef} />
+          <Suspense
+            fallback={
+              <meshPhysicalMaterial
+                ref={matRef}
+                {...matProps}
+                {...proceduralMaps}
+                emissive={matProps.emissive}
+                color={matProps.color}
+              />
+            }
+          >
+            <TexturedAnimatedMaterial
+              matProps={matProps}
+              proceduralMaps={proceduralMaps}
+              matRef={matRef}
+            />
           </Suspense>
         ) : (
           <meshPhysicalMaterial
@@ -330,14 +367,19 @@ function StaticChildMesh({ node }: { node: R3FNode }) {
   const scale = props.scale || [1, 1, 1];
   const isSelected = node.id === selectedId;
   const matProps = getMaterialProps(node);
-  const proceduralMaps = useProceduralTexture(
-    isScaledBody(hsType) ? 'scaleFull' : null,
-    { size: 512, tiling: [3, 3] }
-  );
+  const proceduralMaps = useProceduralTexture(isScaledBody(hsType) ? 'scaleFull' : null, {
+    size: 512,
+    tiling: [3, 3],
+  });
   const needsTextures = hasTextures(matProps);
 
   const defaultMaterial = (
-    <meshPhysicalMaterial {...matProps} {...proceduralMaps} emissive={matProps.emissive} color={matProps.color} />
+    <meshPhysicalMaterial
+      {...matProps}
+      {...proceduralMaps}
+      emissive={matProps.emissive}
+      color={matProps.color}
+    />
   );
 
   return (
@@ -354,7 +396,11 @@ function StaticChildMesh({ node }: { node: R3FNode }) {
       {getGeometry(hsType, size, props)}
       {needsTextures ? (
         <Suspense fallback={defaultMaterial}>
-          <TexturedAnimatedMaterial matProps={matProps} proceduralMaps={proceduralMaps} matRef={{ current: null }} />
+          <TexturedAnimatedMaterial
+            matProps={matProps}
+            proceduralMaps={proceduralMaps}
+            matRef={{ current: null }}
+          />
         </Suspense>
       ) : (
         defaultMaterial

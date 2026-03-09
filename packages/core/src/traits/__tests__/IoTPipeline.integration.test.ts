@@ -10,7 +10,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /** Flush all pending microtasks (resolved Promises). */
-const flushPromises = () => new Promise<void>(r => setTimeout(r, 0));
+const flushPromises = () => new Promise<void>((r) => setTimeout(r, 0));
 
 // ─── MQTT Client Mock ─────────────────────────────────────────────────────────
 function makeMockClient() {
@@ -19,10 +19,14 @@ function makeMockClient() {
   return {
     connect: vi.fn().mockResolvedValue(undefined),
     disconnect: vi.fn(),
-    subscribe: vi.fn((_o: any, cb: any) => { _subscribeCb = cb; }),
+    subscribe: vi.fn((_o: any, cb: any) => {
+      _subscribeCb = cb;
+    }),
     unsubscribe: vi.fn(),
     publish: vi.fn().mockResolvedValue(undefined),
-    on: vi.fn((ev: string, cb: any) => { _listeners[ev] = cb; }),
+    on: vi.fn((ev: string, cb: any) => {
+      _listeners[ev] = cb;
+    }),
     _trigger: (ev: string, ...a: any[]) => _listeners[ev]?.(...a),
     _push: (msg: any) => _subscribeCb?.(msg),
   };
@@ -33,7 +37,11 @@ const _clientFactory = vi.fn(() => makeMockClient());
 
 vi.mock('../../runtime/protocols/MQTTClient', () => {
   const parsePayload = vi.fn((msg: any) => {
-    try { return typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload; } catch { return msg.payload; }
+    try {
+      return typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload;
+    } catch {
+      return msg.payload;
+    }
   });
   return {
     createMQTTClient: (...args: any[]) => _clientFactory(...args),
@@ -67,16 +75,18 @@ interface Pipeline {
   bindState: () => any;
 }
 
-function buildPipeline(opts: {
-  parseJson?: boolean;
-  stateField?: string;
-  bindings?: any[];
-  sinkTopic?: string;
-  sinkQoS?: 0 | 1 | 2;
-  onChangeOnly?: boolean;
-  throttleMs?: number;
-  interpolation?: boolean;
-} = {}): Pipeline {
+function buildPipeline(
+  opts: {
+    parseJson?: boolean;
+    stateField?: string;
+    bindings?: any[];
+    sinkTopic?: string;
+    sinkQoS?: 0 | 1 | 2;
+    onChangeOnly?: boolean;
+    throttleMs?: number;
+    interpolation?: boolean;
+  } = {}
+): Pipeline {
   const id = ++_nodeId;
   const node: any = { id: `sensor_${id}`, name: `Sensor${id}` };
   const stateField = opts.stateField ?? 'value';
@@ -110,16 +120,19 @@ function buildPipeline(opts: {
     source_type: 'custom',
     refresh_rate: 0,
     interpolation: opts.interpolation ?? false,
-    bindings: opts.bindings ?? [{
-      source_path: stateField,
-      target_property: 'displayValue',
-      transform: 'none',
-    }],
+    bindings: opts.bindings ?? [
+      {
+        source_path: stateField,
+        target_property: 'displayValue',
+        transform: 'none',
+      },
+    ],
   };
   dataBindingHandler.onAttach!(node, bindCfg, bindCtx as any);
   // Mark connected
   dataBindingHandler.onEvent!(node, bindCfg, bindCtx as any, {
-    type: 'data_binding_connected', handle: 'handle_1',
+    type: 'data_binding_connected',
+    handle: 'handle_1',
   });
 
   // ----- Sink -----
@@ -145,7 +158,8 @@ function buildPipeline(opts: {
 
   const pushData = async (data: Record<string, unknown>) => {
     dataBindingHandler.onEvent!(node, bindCfg, bindCtx as any, {
-      type: 'data_binding_data', data,
+      type: 'data_binding_data',
+      data,
     });
     mqttSinkHandler.onUpdate!(node, sinkCfg, sinkCtx as any, 0.016);
     await flushPromises();
@@ -159,8 +173,13 @@ function buildPipeline(opts: {
   };
 
   return {
-    node, sourceCtx, bindCtx, sinkCtx,
-    srcCfg, bindCfg, sinkCfg,
+    node,
+    sourceCtx,
+    bindCtx,
+    sinkCtx,
+    srcCfg,
+    bindCfg,
+    sinkCfg,
     pushMessage,
     pushData,
     sinkState: () => node.__mqttSinkState,
@@ -187,7 +206,10 @@ describe('IoT Pipeline — basic flow', () => {
   it('Source emits mqtt_message containing the value', async () => {
     const p = buildPipeline({ parseJson: false });
     await p.pushMessage(99);
-    expect(p.sourceCtx.emit).toHaveBeenCalledWith('mqtt_message', expect.objectContaining({ value: 99 }));
+    expect(p.sourceCtx.emit).toHaveBeenCalledWith(
+      'mqtt_message',
+      expect.objectContaining({ value: 99 })
+    );
   });
 
   it('DataBinding emits on_data_change when data arrives', async () => {
@@ -219,9 +241,12 @@ describe('IoT Pipeline — JSON parsing', () => {
     const payload = JSON.stringify({ temperature: 23.5, humidity: 60 });
     p.srcState().client._push({ payload });
     // parsePayload was called
-    expect(p.sourceCtx.emit).toHaveBeenCalledWith('mqtt_message', expect.objectContaining({
-      value: expect.objectContaining({ temperature: 23.5 }),
-    }));
+    expect(p.sourceCtx.emit).toHaveBeenCalledWith(
+      'mqtt_message',
+      expect.objectContaining({
+        value: expect.objectContaining({ temperature: 23.5 }),
+      })
+    );
   });
 
   it('raw JSON string passes unchanged when parseJson=false', async () => {
@@ -237,7 +262,14 @@ describe('IoT Pipeline — transforms', () => {
   it('scale transform: 25 * factor=2 → displayValue=50', async () => {
     const p = buildPipeline({
       stateField: 'rawTemp',
-      bindings: [{ source_path: 'rawTemp', target_property: 'displayValue', transform: 'scale', transform_params: { factor: 2 } }],
+      bindings: [
+        {
+          source_path: 'rawTemp',
+          target_property: 'displayValue',
+          transform: 'scale',
+          transform_params: { factor: 2 },
+        },
+      ],
     });
     await p.pushData({ rawTemp: 25 });
     expect(p.node.displayValue).toBe(50);
@@ -246,7 +278,14 @@ describe('IoT Pipeline — transforms', () => {
   it('normalize transform: 50 in [0,100] → displayValue≈0.5', async () => {
     const p = buildPipeline({
       stateField: 'level',
-      bindings: [{ source_path: 'level', target_property: 'displayValue', transform: 'normalize', transform_params: { min: 0, max: 100 } }],
+      bindings: [
+        {
+          source_path: 'level',
+          target_property: 'displayValue',
+          transform: 'normalize',
+          transform_params: { min: 0, max: 100 },
+        },
+      ],
     });
     await p.pushData({ level: 50 });
     expect(p.node.displayValue).toBeCloseTo(0.5);
@@ -255,10 +294,14 @@ describe('IoT Pipeline — transforms', () => {
   it('map transform: "low" → "🟢"', async () => {
     const p = buildPipeline({
       stateField: 'status',
-      bindings: [{
-        source_path: 'status', target_property: 'displayValue', transform: 'map',
-        transform_params: { mapping: { low: '🟢', high: '🔴' } },
-      }],
+      bindings: [
+        {
+          source_path: 'status',
+          target_property: 'displayValue',
+          transform: 'map',
+          transform_params: { mapping: { low: '🟢', high: '🔴' } },
+        },
+      ],
     });
     await p.pushData({ status: 'low' });
     expect(p.node.displayValue).toBe('🟢');
@@ -287,16 +330,21 @@ describe('IoT Pipeline — DataBinding error recovery', () => {
   it('errorCount increments on data_binding_error', () => {
     const p = buildPipeline();
     dataBindingHandler.onEvent!(p.node, p.bindCfg, p.bindCtx as any, {
-      type: 'data_binding_error', error: 'source_timeout',
+      type: 'data_binding_error',
+      error: 'source_timeout',
     });
     expect(p.bindState().errorCount).toBe(1);
-    expect(p.bindCtx.emit).toHaveBeenCalledWith('on_data_error', expect.objectContaining({ errorCount: 1 }));
+    expect(p.bindCtx.emit).toHaveBeenCalledWith(
+      'on_data_error',
+      expect.objectContaining({ errorCount: 1 })
+    );
   });
 
   it('Source and Sink continue functioning despite DataBinding error', () => {
     const p = buildPipeline();
     dataBindingHandler.onEvent!(p.node, p.bindCfg, p.bindCtx as any, {
-      type: 'data_binding_error', error: 'oops',
+      type: 'data_binding_error',
+      error: 'oops',
     });
     p.srcState().client._push({ payload: 5 });
     expect(p.srcState().messageCount).toBe(1);
@@ -337,13 +385,17 @@ describe('IoT Pipeline — DataBinding query', () => {
     await p.pushData({ value: 100 });
     p.bindCtx.emit.mockClear();
     dataBindingHandler.onEvent!(p.node, p.bindCfg, p.bindCtx as any, {
-      type: 'data_binding_query', queryId: 'q1',
-    });
-    expect(p.bindCtx.emit).toHaveBeenCalledWith('data_binding_info', expect.objectContaining({
+      type: 'data_binding_query',
       queryId: 'q1',
-      isConnected: true,
-      bindingCount: 1,
-    }));
+    });
+    expect(p.bindCtx.emit).toHaveBeenCalledWith(
+      'data_binding_info',
+      expect.objectContaining({
+        queryId: 'q1',
+        isConnected: true,
+        bindingCount: 1,
+      })
+    );
   });
 });
 
@@ -362,10 +414,21 @@ describe('IoT Pipeline — direct Source→Sink', () => {
       getState: vi.fn().mockReturnValue(node),
     };
 
-    const srcCfg = { ...mqttSourceHandler.defaultConfig!, topic: 'in/raw', autoConnect: false, parseJson: false, stateField: 'rawVal' };
+    const srcCfg = {
+      ...mqttSourceHandler.defaultConfig!,
+      topic: 'in/raw',
+      autoConnect: false,
+      parseJson: false,
+      stateField: 'rawVal',
+    };
     mqttSourceHandler.onAttach!(node, srcCfg, sourceCtx as any);
 
-    const sinkCfg = { ...mqttSinkHandler.defaultConfig!, topic: 'out/raw', autoConnect: false, onChangeOnly: false };
+    const sinkCfg = {
+      ...mqttSinkHandler.defaultConfig!,
+      topic: 'out/raw',
+      autoConnect: false,
+      onChangeOnly: false,
+    };
     mqttSinkHandler.onAttach!(node, sinkCfg, sinkCtx as any);
     node.__mqttSinkState.connected = true;
 

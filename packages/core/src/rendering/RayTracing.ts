@@ -54,14 +54,16 @@ export interface AABB {
 }
 
 export interface Triangle {
-  v0: Vec3; v1: Vec3; v2: Vec3;
+  v0: Vec3;
+  v1: Vec3;
+  v2: Vec3;
   /** Pre-computed normal (optional, computed on demand) */
   normal?: Vec3;
 }
 
 export interface Ray {
   origin: Vec3;
-  direction: Vec3;  // must be unit length
+  direction: Vec3; // must be unit length
   tMin: number;
   tMax: number;
 }
@@ -77,20 +79,34 @@ export interface HitRecord {
 // UTILITIES
 // =============================================================================
 
-function vec3Add(a: Vec3, b: Vec3): Vec3 { return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }; }
-function vec3Sub(a: Vec3, b: Vec3): Vec3 { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
-function vec3Scale(v: Vec3, s: number): Vec3 { return { x: v.x * s, y: v.y * s, z: v.z * s }; }
-function vec3Dot(a: Vec3, b: Vec3): number { return a.x * b.x + a.y * b.y + a.z * b.z; }
+function vec3Add(a: Vec3, b: Vec3): Vec3 {
+  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+}
+function vec3Sub(a: Vec3, b: Vec3): Vec3 {
+  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+}
+function vec3Scale(v: Vec3, s: number): Vec3 {
+  return { x: v.x * s, y: v.y * s, z: v.z * s };
+}
+function vec3Dot(a: Vec3, b: Vec3): number {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}
 function vec3Cross(a: Vec3, b: Vec3): Vec3 {
   return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
 }
-function vec3Length(v: Vec3): number { return Math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2); }
+function vec3Length(v: Vec3): number {
+  return Math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2);
+}
 function vec3Normalize(v: Vec3): Vec3 {
   const len = vec3Length(v) || 1;
   return { x: v.x / len, y: v.y / len, z: v.z / len };
 }
 function vec3AtT(ray: Ray, t: number): Vec3 {
-  return { x: ray.origin.x + ray.direction.x * t, y: ray.origin.y + ray.direction.y * t, z: ray.origin.z + ray.direction.z * t };
+  return {
+    x: ray.origin.x + ray.direction.x * t,
+    y: ray.origin.y + ray.direction.y * t,
+    z: ray.origin.z + ray.direction.z * t,
+  };
 }
 
 export function computeTriangleNormal(tri: Triangle): Vec3 {
@@ -104,9 +120,12 @@ export function computeAABB(triangles: Triangle[], start: number, end: number): 
   const max = { x: -Infinity, y: -Infinity, z: -Infinity };
   for (let i = start; i < end; i++) {
     for (const v of [triangles[i].v0, triangles[i].v1, triangles[i].v2]) {
-      if (v.x < min.x) min.x = v.x; if (v.x > max.x) max.x = v.x;
-      if (v.y < min.y) min.y = v.y; if (v.y > max.y) max.y = v.y;
-      if (v.z < min.z) min.z = v.z; if (v.z > max.z) max.z = v.z;
+      if (v.x < min.x) min.x = v.x;
+      if (v.x > max.x) max.x = v.x;
+      if (v.y < min.y) min.y = v.y;
+      if (v.y > max.y) max.y = v.y;
+      if (v.z < min.z) min.z = v.z;
+      if (v.z > max.z) max.z = v.z;
     }
   }
   return { min, max };
@@ -136,7 +155,8 @@ export function aabbCentroid(box: AABB): Vec3 {
  * Returns t of intersection or -1 if miss.
  */
 export function intersectRayAABB(ray: Ray, box: AABB): number {
-  let tmin = ray.tMin, tmax = ray.tMax;
+  let tmin = ray.tMin,
+    tmax = ray.tMax;
 
   for (const axis of ['x', 'y', 'z'] as const) {
     const invD = 1 / (ray.direction[axis] || 1e-10);
@@ -161,7 +181,7 @@ export function intersectRayTriangle(ray: Ray, tri: Triangle): number {
   const h = vec3Cross(ray.direction, e2);
   const a = vec3Dot(e1, h);
 
-  if (Math.abs(a) < EPSILON) return -1;  // parallel
+  if (Math.abs(a) < EPSILON) return -1; // parallel
 
   const f = 1 / a;
   const s = vec3Sub(ray.origin, tri.v0);
@@ -173,7 +193,7 @@ export function intersectRayTriangle(ray: Ray, tri: Triangle): number {
   if (v < 0 || u + v > 1) return -1;
 
   const t = f * vec3Dot(e2, q);
-  return (t > ray.tMin && t < ray.tMax) ? t : -1;
+  return t > ray.tMin && t < ray.tMax ? t : -1;
 }
 
 // =============================================================================
@@ -182,10 +202,10 @@ export function intersectRayTriangle(ray: Ray, tri: Triangle): number {
 
 export interface BVHNode {
   bound: AABB;
-  leftChild: number;   // index or -1 for leaf
+  leftChild: number; // index or -1 for leaf
   rightChild: number;
   triStart: number;
-  triCount: number;    // > 0 = leaf
+  triCount: number; // > 0 = leaf
 }
 
 export class BVH {
@@ -200,8 +220,12 @@ export class BVH {
     this.buildRecursive(0, this.tris.length);
   }
 
-  getNodeCount(): number { return this.nodes.length; }
-  getLeafCount(): number { return this.nodes.filter(n => n.triCount > 0).length; }
+  getNodeCount(): number {
+    return this.nodes.length;
+  }
+  getLeafCount(): number {
+    return this.nodes.filter((n) => n.triCount > 0).length;
+  }
 
   private buildRecursive(start: number, end: number): number {
     const nodeIdx = this.nodes.length;
@@ -221,12 +245,14 @@ export class BVH {
 
     // SAH: try 8 bins, pick best
     const NUM_BINS = 8;
-    let bestCost = Infinity, bestMid = Math.floor((start + end) / 2);
+    let bestCost = Infinity,
+      bestMid = Math.floor((start + end) / 2);
     const parentSA = aabbSurfaceArea(bound);
 
     for (let b = 1; b < NUM_BINS; b++) {
       const splitPos = bound.min[axis] + (bound.max[axis] - bound.min[axis]) * (b / NUM_BINS);
-      let leftCount = 0, rightCount = 0;
+      let leftCount = 0,
+        rightCount = 0;
       for (let i = start; i < end; i++) {
         const c = (this.tris[i].v0[axis] + this.tris[i].v1[axis] + this.tris[i].v2[axis]) / 3;
         c < splitPos ? leftCount++ : rightCount++;
@@ -235,15 +261,23 @@ export class BVH {
 
       // SAH cost: traversal cost 1 + leaf cost proportional to SA fraction
       const cost = 1 + (leftCount / parentSA + rightCount / parentSA) * 2;
-      if (cost < bestCost) { bestCost = cost; bestMid = leftCount + start; }
+      if (cost < bestCost) {
+        bestCost = cost;
+        bestMid = leftCount + start;
+      }
     }
 
     // Partition around bestMid
-    this.tris.slice(start, end).sort((a, b) => {
-      const ca = (a.v0[axis] + a.v1[axis] + a.v2[axis]) / 3;
-      const cb = (b.v0[axis] + b.v1[axis] + b.v2[axis]) / 3;
-      return ca - cb;
-    }).forEach((t, i) => { this.tris[start + i] = t; });
+    this.tris
+      .slice(start, end)
+      .sort((a, b) => {
+        const ca = (a.v0[axis] + a.v1[axis] + a.v2[axis]) / 3;
+        const cb = (b.v0[axis] + b.v1[axis] + b.v2[axis]) / 3;
+        return ca - cb;
+      })
+      .forEach((t, i) => {
+        this.tris[start + i] = t;
+      });
 
     // Reserve placeholder
     this.nodes.push({ bound, leftChild: -1, rightChild: -1, triStart: 0, triCount: 0 });
@@ -340,7 +374,12 @@ export function pathTrace(
       const NdotL = Math.max(0, vec3Dot(hit.normal, lightDir));
       if (NdotL <= 0) continue;
 
-      const shadowRay: Ray = { origin: hit.point, direction: lightDir, tMin: 1e-3, tMax: dist - 1e-3 };
+      const shadowRay: Ray = {
+        origin: hit.point,
+        direction: lightDir,
+        tMin: 1e-3,
+        tMax: dist - 1e-3,
+      };
       const inShadow = scene.bvh.intersect(shadowRay) !== null;
       if (!inShadow) {
         const attenuation = light.intensity / (dist * dist + 1);
@@ -353,8 +392,10 @@ export function pathTrace(
     // Russian roulette termination
     if (bounce > 1) {
       const p = Math.max(throughput[0], throughput[1], throughput[2]);
-      if (((seed * 129.37 + bounce * 17.13) % 1) > p) break;
-      throughput[0] /= p; throughput[1] /= p; throughput[2] /= p;
+      if ((seed * 129.37 + bounce * 17.13) % 1 > p) break;
+      throughput[0] /= p;
+      throughput[1] /= p;
+      throughput[2] /= p;
     }
 
     // Diffuse bounce (Lambertian)
@@ -390,7 +431,9 @@ const DEFAULT_NLM: NLMConfig = { searchRadius: 5, patchRadius: 2, h: 0.1 };
  * Reduces noise while preserving edges.
  */
 export function nlmDenoise(
-  noisy: Float32Array, width: number, height: number,
+  noisy: Float32Array,
+  width: number,
+  height: number,
   config: Partial<NLMConfig> = {}
 ): Float32Array {
   const cfg = { ...DEFAULT_NLM, ...config };
@@ -457,29 +500,52 @@ export class RayTracer {
     };
   }
 
-  getConfig(): Readonly<RayTracingConfig> { return { ...this.config }; }
-  setFeatures(features: RTFeature[]): void { this.config.features = features; }
-  hasFeature(f: RTFeature): boolean { return this.config.features.includes(f); }
+  getConfig(): Readonly<RayTracingConfig> {
+    return { ...this.config };
+  }
+  setFeatures(features: RTFeature[]): void {
+    this.config.features = features;
+  }
+  hasFeature(f: RTFeature): boolean {
+    return this.config.features.includes(f);
+  }
 
-  loadScene(triangles: Triangle[], lights = this.scene.lights, sky: [number, number, number] = this.scene.skyColor): void {
+  loadScene(
+    triangles: Triangle[],
+    lights = this.scene.lights,
+    sky: [number, number, number] = this.scene.skyColor
+  ): void {
     this.scene = { bvh: new BVH(), skyColor: sky, lights };
     this.scene.bvh.build(triangles);
   }
 
-  getBVH(): BVH { return this.scene.bvh; }
+  getBVH(): BVH {
+    return this.scene.bvh;
+  }
 
   /** Render a single pixel with multi-sample path tracing */
   renderPixel(
-    rayOrigin: Vec3, rayDir: Vec3,
-    pixelX: number, pixelY: number
+    rayOrigin: Vec3,
+    rayDir: Vec3,
+    pixelX: number,
+    pixelY: number
   ): [number, number, number] {
-    let r = 0, g = 0, b = 0;
+    let r = 0,
+      g = 0,
+      b = 0;
     const { spp, max_bounces } = this.config;
     for (let s = 0; s < spp; s++) {
       const seed = ((pixelX * 1000 + pixelY * 37 + s * 7919) * 0.000001) % 1;
-      const ray: Ray = { origin: rayOrigin, direction: vec3Normalize(rayDir), tMin: 1e-3, tMax: Infinity };
+      const ray: Ray = {
+        origin: rayOrigin,
+        direction: vec3Normalize(rayDir),
+        tMin: 1e-3,
+        tMax: Infinity,
+      };
       const [pr, pg, pb] = pathTrace(ray, this.scene, max_bounces, seed);
-      r += pr; g += pg; b += pb;
+      r += pr;
+      g += pg;
+      b += pb;
     }
     return [r / spp, g / spp, b / spp];
   }

@@ -18,7 +18,7 @@ function makeSphere(id: string, x: number, y: number, z: number, radius = 1): Bo
 // Camera looking down +Z axis, positioned at origin
 const CAM_POS = { x: 0, y: 0, z: 0 };
 const CAM_FWD = { x: 0, y: 0, z: 1 }; // normalized
-const CAM_UP  = { x: 0, y: 1, z: 0 };
+const CAM_UP = { x: 0, y: 1, z: 0 };
 
 // ─── Suite ───────────────────────────────────────────────────────────────────
 
@@ -97,11 +97,11 @@ describe('FrustumCuller: production', () => {
       const objs = [
         makeSphere('v1', 0, 0, 5),
         makeSphere('v2', 0, 0, 80),
-        makeSphere('c1', 0, 0, -10),   // culled
-        makeSphere('c2', 0, 0, 150),   // culled
+        makeSphere('c1', 0, 0, -10), // culled
+        makeSphere('c2', 0, 0, 150), // culled
       ];
       const visible = culler.cull(objs);
-      const ids = visible.map(o => o.id);
+      const ids = visible.map((o) => o.id);
       expect(ids).toContain('v1');
       expect(ids).toContain('v2');
       expect(ids).not.toContain('c1');
@@ -118,9 +118,9 @@ describe('FrustumCuller: production', () => {
 
     it('reports correct count of culled objects', () => {
       culler.cull([
-        makeSphere('v', 0, 0, 10),    // visible
-        makeSphere('c1', 0, 0, -20),  // culled
-        makeSphere('c2', 0, 0, 300),  // culled
+        makeSphere('v', 0, 0, 10), // visible
+        makeSphere('c1', 0, 0, -20), // culled
+        makeSphere('c2', 0, 0, 300), // culled
       ]);
       expect(culler.getLastCullCount()).toBe(2);
     });

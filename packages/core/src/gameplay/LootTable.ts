@@ -15,12 +15,12 @@ export type LootRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 export interface LootEntry {
   itemId: string;
-  weight: number;         // Relative probability
+  weight: number; // Relative probability
   rarity: LootRarity;
   minQuantity: number;
   maxQuantity: number;
-  guaranteed: boolean;    // Always drops
-  condition?: string;     // Optional condition key
+  guaranteed: boolean; // Always drops
+  condition?: string; // Optional condition key
 }
 
 export interface LootDrop {
@@ -62,7 +62,9 @@ export class LootTable {
     this.pityCounters.set(id, new Map());
   }
 
-  getTable(id: string): LootTableDef | undefined { return this.tables.get(id); }
+  getTable(id: string): LootTableDef | undefined {
+    return this.tables.get(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Roll
@@ -84,10 +86,11 @@ export class LootTable {
     }
 
     // Random drops
-    const pool = table.entries.filter(e => !e.guaranteed && this.meetsCondition(e));
+    const pool = table.entries.filter((e) => !e.guaranteed && this.meetsCondition(e));
     if (pool.length === 0) return drops;
 
-    const numDrops = table.minDrops + Math.floor(this.rng() * (table.maxDrops - table.minDrops + 1));
+    const numDrops =
+      table.minDrops + Math.floor(this.rng() * (table.maxDrops - table.minDrops + 1));
     const totalWeight = pool.reduce((sum, e) => sum + e.weight * luck, 0);
 
     for (let i = 0; i < numDrops && pool.length > 0; i++) {
@@ -106,7 +109,8 @@ export class LootTable {
   }
 
   private createDrop(entry: LootEntry): LootDrop {
-    const quantity = entry.minQuantity + Math.floor(this.rng() * (entry.maxQuantity - entry.minQuantity + 1));
+    const quantity =
+      entry.minQuantity + Math.floor(this.rng() * (entry.maxQuantity - entry.minQuantity + 1));
     return { itemId: entry.itemId, quantity, rarity: entry.rarity };
   }
 
@@ -138,7 +142,9 @@ export class LootTable {
   // Conditions
   // ---------------------------------------------------------------------------
 
-  setCondition(key: string, value: boolean): void { this.conditions.set(key, value); }
+  setCondition(key: string, value: boolean): void {
+    this.conditions.set(key, value);
+  }
 
   private meetsCondition(entry: LootEntry): boolean {
     if (!entry.condition) return true;
@@ -149,13 +155,15 @@ export class LootTable {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getTableCount(): number { return this.tables.size; }
+  getTableCount(): number {
+    return this.tables.size;
+  }
 
   getDropRates(tableId: string): Map<string, number> {
     const table = this.tables.get(tableId);
     if (!table) return new Map();
 
-    const pool = table.entries.filter(e => !e.guaranteed);
+    const pool = table.entries.filter((e) => !e.guaranteed);
     const totalWeight = pool.reduce((sum, e) => sum + e.weight, 0);
     const rates = new Map<string, number>();
 
@@ -165,7 +173,10 @@ export class LootTable {
     return rates;
   }
 
-  reseed(seed: number): void { this.seed = seed; this.rng = this.createRng(seed); }
+  reseed(seed: number): void {
+    this.seed = seed;
+    this.rng = this.createRng(seed);
+  }
 
   private createRng(seed: number): () => number {
     let s = seed;

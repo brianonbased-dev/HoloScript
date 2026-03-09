@@ -24,7 +24,12 @@ describe('Cycle 146: Rope, Deformable & Fluid', () => {
 
   it('should measure rope length and tension', () => {
     const rs = new RopeSystem();
-    rs.createRope('r2', { x: 0, y: 0, z: 0 }, { x: 5, y: 0, z: 0 }, { segmentCount: 5, segmentLength: 1 });
+    rs.createRope(
+      'r2',
+      { x: 0, y: 0, z: 0 },
+      { x: 5, y: 0, z: 0 },
+      { segmentCount: 5, segmentLength: 1 }
+    );
     rs.pinNode('r2', 0);
 
     // Before simulation
@@ -44,8 +49,10 @@ describe('Cycle 146: Rope, Deformable & Fluid', () => {
   it('should deform on impact and recover with shape matching', () => {
     const mesh = new DeformableMesh({ stiffness: 100, damping: 0.9, shapeMatchingStrength: 0.8 });
     mesh.setVertices([
-      { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 },
-      { x: 0, y: 1, z: 0 }, { x: 1, y: 1, z: 0 },
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+      { x: 0, y: 1, z: 0 },
+      { x: 1, y: 1, z: 0 },
     ]);
     mesh.autoConnectRadius(2);
 

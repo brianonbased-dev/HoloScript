@@ -11,7 +11,13 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { AIAdapter, GenerateResult, ExplainResult, FixResult, OptimizeResult } from './adapters';
+import type {
+  AIAdapter,
+  GenerateResult,
+  ExplainResult,
+  FixResult,
+  OptimizeResult,
+} from './adapters';
 import {
   HoloScriptGenerator,
   generateHoloScript,
@@ -192,7 +198,9 @@ describe('HoloScriptGenerator', () => {
     });
 
     it('should throw error without session', async () => {
-      await expect(generator.generate('test', undefined)).rejects.toThrow('No generation session created');
+      await expect(generator.generate('test', undefined)).rejects.toThrow(
+        'No generation session created'
+      );
     });
 
     it('should use current session by default', async () => {
@@ -537,11 +545,7 @@ describe('Helper Functions', () => {
 
   describe('validateBatch', () => {
     it('should validate multiple codes', () => {
-      const codes = [
-        `orb #test1 { }`,
-        `orb #test2 { geometry: "sphere" }`,
-        `invalid code here`,
-      ];
+      const codes = [`orb #test1 { }`, `orb #test2 { geometry: "sphere" }`, `invalid code here`];
 
       const results = validateBatch(codes);
 
@@ -554,9 +558,7 @@ describe('Helper Functions', () => {
     });
 
     it('should identify valid code', () => {
-      const codes = [
-        `orb #player { geometry: "humanoid"; position: [0, 1.6, 0] }`,
-      ];
+      const codes = [`orb #player { geometry: "humanoid"; position: [0, 1.6, 0] }`];
 
       const results = validateBatch(codes);
 

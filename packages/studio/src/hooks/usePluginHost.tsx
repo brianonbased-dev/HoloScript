@@ -142,7 +142,9 @@ export function PluginHostProvider({
           body: opts?.body,
         });
         const headers: Record<string, string> = {};
-        res.headers.forEach((v, k) => { headers[k] = v; });
+        res.headers.forEach((v, k) => {
+          headers[k] = v;
+        });
         return { status: res.status, headers, body: await res.text() };
       },
 
@@ -155,11 +157,20 @@ export function PluginHostProvider({
       onLog: (pluginId, level, message, data) => {
         const prefix = `[Plugin:${pluginId}]`;
         switch (level) {
-          case 'debug': console.debug(prefix, message, data ?? ''); break;
-          case 'info':  console.info(prefix, message, data ?? '');  break;
-          case 'warn':  console.warn(prefix, message, data ?? '');  break;
-          case 'error': console.error(prefix, message, data ?? ''); break;
-          default:      console.log(prefix, `[${level}]`, message, data ?? '');
+          case 'debug':
+            console.debug(prefix, message, data ?? '');
+            break;
+          case 'info':
+            console.info(prefix, message, data ?? '');
+            break;
+          case 'warn':
+            console.warn(prefix, message, data ?? '');
+            break;
+          case 'error':
+            console.error(prefix, message, data ?? '');
+            break;
+          default:
+            console.log(prefix, `[${level}]`, message, data ?? '');
         }
       },
 
@@ -252,11 +263,7 @@ export function PluginHostProvider({
     healthSummary,
   };
 
-  return (
-    <PluginHostContext.Provider value={value}>
-      {children}
-    </PluginHostContext.Provider>
-  );
+  return <PluginHostContext.Provider value={value}>{children}</PluginHostContext.Provider>;
 }
 
 // ── Hook ───────────────────────────────────────────────────────────────────

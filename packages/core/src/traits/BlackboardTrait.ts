@@ -64,7 +64,7 @@ export const blackboardHandler: TraitHandler<BlackboardConfig> = {
       groupId: config.group_id,
     };
     (node as any).__blackboardState = state;
-    
+
     context.emit?.('blackboard_initialized', { node, groupId: config.group_id });
   },
 
@@ -112,21 +112,19 @@ export const blackboardHandler: TraitHandler<BlackboardConfig> = {
       };
       state.beliefs.set(key, entry);
       context.emit?.('blackboard_belief_updated', { node, key, value });
-
     } else if (event.type === 'blackboard_read_belief') {
       const { key, queryId } = event as any;
       const entry = state.beliefs.get(key);
-      context.emit?.('blackboard_belief_result', { 
-        node, 
-        queryId, 
-        found: !!entry, 
-        value: entry?.value 
+      context.emit?.('blackboard_belief_result', {
+        node,
+        queryId,
+        found: !!entry,
+        value: entry?.value,
       });
-
     } else if (event.type === 'blackboard_propose_action') {
       const { actionType, payload, proposerId, timeout } = event as any;
       const id = `prop_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-      
+
       const proposal: Proposal = {
         id,
         actionType,
@@ -136,21 +134,20 @@ export const blackboardHandler: TraitHandler<BlackboardConfig> = {
         status: 'pending',
         expiresAt: Date.now() + (timeout || 2000),
       };
-      
+
       // Auto-vote yes by proposer
       proposal.votes.set(proposal.proposerId, 'accept');
 
       state.proposals.set(id, proposal);
       context.emit?.('blackboard_proposal_created', { node, proposal });
-
     } else if (event.type === 'blackboard_vote') {
       const { proposalId, voterId, vote } = event as any;
       const proposal = state.proposals.get(proposalId);
-      
+
       if (proposal && proposal.status === 'pending') {
         proposal.votes.set(voterId, vote);
         context.emit?.('blackboard_vote_cast', { node, proposalId, voterId, vote });
-        
+
         // Simple consensus: 50% + 1 (mock logic, real logic would need member count)
         // For now, if we have > 2 accepts, we execute
         let accepts = 0;
@@ -161,8 +158,8 @@ export const blackboardHandler: TraitHandler<BlackboardConfig> = {
         }
 
         if (accepts >= 2) {
-            proposal.status = 'accepted';
-            context.emit?.('blackboard_consensus_reached', { node, proposal });
+          proposal.status = 'accepted';
+          context.emit?.('blackboard_consensus_reached', { node, proposal });
         }
       }
     }

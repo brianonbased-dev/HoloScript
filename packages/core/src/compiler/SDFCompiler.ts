@@ -148,25 +148,31 @@ export class SDFCompiler extends CompilerBase {
     this.emit('');
     this.emit('<!-- v4.2 Domain Blocks -->');
 
-    const compiled = compileDomainBlocks(domainBlocks, {
-      material: (block) => {
-        const mat = compileMaterialBlock(block);
-        return materialToSDF(mat);
+    const compiled = compileDomainBlocks(
+      domainBlocks,
+      {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          return materialToSDF(mat);
+        },
+        physics: (block) => {
+          const phys = compilePhysicsBlock(block);
+          return physicsToSDF(phys);
+        },
+        audio: (block) => {
+          const audio = compileAudioSourceBlock(block);
+          return `<!-- Audio: ${audio.name} (${audio.keyword}) clip="${audio.properties.clip || ''}" -->`;
+        },
+        weather: (block) => {
+          const weather = compileWeatherBlock(block);
+          const layers = weather.layers
+            .map((l) => `<!-- ${l.type}: ${JSON.stringify(l.properties)} -->`)
+            .join('\n');
+          return `<!-- Weather: ${weather.keyword} "${weather.name || ''}" -->\n${layers}`;
+        },
       },
-      physics: (block) => {
-        const phys = compilePhysicsBlock(block);
-        return physicsToSDF(phys);
-      },
-      audio: (block) => {
-        const audio = compileAudioSourceBlock(block);
-        return `<!-- Audio: ${audio.name} (${audio.keyword}) clip="${audio.properties.clip || ''}" -->`;
-      },
-      weather: (block) => {
-        const weather = compileWeatherBlock(block);
-        const layers = weather.layers.map(l => `<!-- ${l.type}: ${JSON.stringify(l.properties)} -->`).join('\n');
-        return `<!-- Weather: ${weather.keyword} "${weather.name || ''}" -->\n${layers}`;
-      },
-    }, (block) => `<!-- Domain block: ${block.domain}/${block.keyword} "${block.name}" -->`);
+      (block) => `<!-- Domain block: ${block.domain}/${block.keyword} "${block.name}" -->`
+    );
 
     for (const output of compiled) {
       for (const line of output.split('\n')) {

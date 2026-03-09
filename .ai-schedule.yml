@@ -1,9 +1,9 @@
 # AI Agent Persona Schedule
 # Defines when AI should be synchronous (Elf) vs asynchronous (Night Owl)
 
-project: "HoloScript"
-owner: "Josep"
-timezone: "America/Los_Angeles"  # Adjust to your timezone
+project: 'HoloScript'
+owner: 'Josep'
+timezone: 'America/Los_Angeles' # Adjust to your timezone
 
 # AI reads this file to determine current behavior mode
 # Update this file to change AI behavior patterns
@@ -11,12 +11,11 @@ timezone: "America/Los_Angeles"  # Adjust to your timezone
 schedule:
   # Weekdays: 9-6 collaborative (Elf), off-hours autonomous (Night Owl)
   monday-friday:
-
     # Working hours: Interactive, collaborative
     working-hours:
-      time: "9:00-18:00"
+      time: '9:00-18:00'
       persona: elf
-      description: "Synchronous companion - real-time collaboration"
+      description: 'Synchronous companion - real-time collaboration'
 
       tools:
         - vscode-claude-extension
@@ -27,10 +26,10 @@ schedule:
       behavior:
         interactive: true
         wait-for-approval: true
-        batch-questions: false        # Ask immediately
-        interrupt-allowed: true       # Can interrupt Josep's work
-        create-pr: true               # Create PRs for review
-        auto-merge: false             # Never auto-merge during work hours
+        batch-questions: false # Ask immediately
+        interrupt-allowed: true # Can interrupt Josep's work
+        create-pr: true # Create PRs for review
+        auto-merge: false # Never auto-merge during work hours
 
       focus:
         - pair-programming
@@ -40,9 +39,9 @@ schedule:
 
     # After hours: Autonomous execution
     after-hours:
-      time: "18:00-9:00"
+      time: '18:00-9:00'
       persona: night-owl
-      description: "Asynchronous helper - works independently overnight"
+      description: 'Asynchronous helper - works independently overnight'
 
       tools:
         - github-actions
@@ -52,11 +51,11 @@ schedule:
 
       behavior:
         interactive: false
-        wait-for-approval: false      # Execute pre-approved work
-        batch-questions: true         # Save questions for morning
-        interrupt-allowed: false      # No notifications
+        wait-for-approval: false # Execute pre-approved work
+        batch-questions: true # Save questions for morning
+        interrupt-allowed: false # No notifications
         create-pr: true
-        auto-merge: false             # Create PR, don't merge
+        auto-merge: false # Create PR, don't merge
 
       constraints:
         - no-breaking-changes
@@ -64,7 +63,7 @@ schedule:
         - all-quality-gates-pass
         - no-database-migrations
         - no-production-deploys
-        - work-only-on-approved-tasks  # Check .ai-decisions.md
+        - work-only-on-approved-tasks # Check .ai-decisions.md
 
       focus:
         - implement-approved-features
@@ -76,9 +75,9 @@ schedule:
   # Weekends: Low-priority autonomous work only
   saturday-sunday:
     all-day:
-      time: "0:00-23:59"
+      time: '0:00-23:59'
       persona: night-owl
-      description: "Weekend mode - experimental/low-priority work"
+      description: 'Weekend mode - experimental/low-priority work'
 
       tools:
         - github-actions
@@ -89,12 +88,12 @@ schedule:
         wait-for-approval: false
         batch-questions: true
         interrupt-allowed: false
-        priority-filter: low          # Only low-priority tasks
+        priority-filter: low # Only low-priority tasks
         create-pr: true
         auto-merge: false
 
       constraints:
-        - experimental-ok             # Can try new approaches
+        - experimental-ok # Can try new approaches
         - non-urgent-only
         - no-production-deploys
         - no-critical-path-work
@@ -109,9 +108,9 @@ schedule:
 # Emergency override (checked first before schedule)
 emergency-mode:
   enabled: false
-  reason: ""                          # e.g., "Production outage - urgent fix needed"
-  until: ""                           # ISO timestamp when to revert
-  persona: elf                        # Override to Elf (24/7 interactive)
+  reason: '' # e.g., "Production outage - urgent fix needed"
+  until: '' # ISO timestamp when to revert
+  persona: elf # Override to Elf (24/7 interactive)
   notify:
     - josep@email.com
     - slack-channel-emergency
@@ -119,36 +118,36 @@ emergency-mode:
 # Decision sprint times (when Josep reviews AI work)
 decision-sprints:
   sprint-1:
-    time: "9:00-10:00"
-    focus: "Strategic decisions, overnight work review, set morning priorities"
+    time: '9:00-10:00'
+    focus: 'Strategic decisions, overnight work review, set morning priorities'
   sprint-2:
-    time: "12:00-13:00"
-    focus: "Tactical decisions, morning work review, set afternoon priorities"
+    time: '12:00-13:00'
+    focus: 'Tactical decisions, morning work review, set afternoon priorities'
   sprint-3:
-    time: "17:00-17:30"
-    focus: "Daily retrospective, set overnight autonomous tasks"
+    time: '17:00-17:30'
+    focus: 'Daily retrospective, set overnight autonomous tasks'
 
 # Notification preferences
 notifications:
   during-working-hours:
-    urgent: true                      # Critical errors, blockers
-    questions: true                   # AI needs decisions
-    progress: false                   # Batch progress updates
+    urgent: true # Critical errors, blockers
+    questions: true # AI needs decisions
+    progress: false # Batch progress updates
 
   after-hours:
-    urgent: true                      # Only critical issues
-    questions: false                  # Batch for morning
-    progress: false                   # No notifications
+    urgent: true # Only critical issues
+    questions: false # Batch for morning
+    progress: false # No notifications
 
   weekends:
-    urgent: true                      # Only critical issues
+    urgent: true # Only critical issues
     questions: false
     progress: false
 
 # Context refresh strategy
 context-refresh:
-  trigger: "event-driven"             # Refresh on git events, not schedule
-  max-staleness: "30-minutes"         # Force refresh if context older than this
+  trigger: 'event-driven' # Refresh on git events, not schedule
+  max-staleness: '30-minutes' # Force refresh if context older than this
   sources:
     - .ai-decisions.md
     - .ai-context-stream.jsonl
@@ -167,9 +166,9 @@ quality-gates:
     - test-coverage
 
   on-failure:
-    action: "block-commit"            # Don't allow commit if quality gates fail
+    action: 'block-commit' # Don't allow commit if quality gates fail
     notify: true
 
 # Last updated
-last-updated: "2026-02-13T00:00:00Z"
-version: "1.0"
+last-updated: '2026-02-13T00:00:00Z'
+version: '1.0'

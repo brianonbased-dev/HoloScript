@@ -132,13 +132,15 @@ describe('Zod schemas', () => {
   });
 
   it('UserSchema rejects invalid email', () => {
-    expect(() => UserSchema.parse({
-      id: '550e8400-e29b-41d4-a716-446655440000',
-      email: 'not-email',
-      username: 'alice',
-      passwordHash: 'h',
-      passwordSalt: 's',
-    })).toThrow();
+    expect(() =>
+      UserSchema.parse({
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        email: 'not-email',
+        username: 'alice',
+        passwordHash: 'h',
+        passwordSalt: 's',
+      })
+    ).toThrow();
   });
 
   it('APIRequestSchema validates', () => {
@@ -151,11 +153,13 @@ describe('Zod schemas', () => {
   });
 
   it('APIRequestSchema rejects bad method', () => {
-    expect(() => APIRequestSchema.parse({
-      method: 'INVALID',
-      path: '/',
-      timestamp: 0,
-    })).toThrow();
+    expect(() =>
+      APIRequestSchema.parse({
+        method: 'INVALID',
+        path: '/',
+        timestamp: 0,
+      })
+    ).toThrow();
   });
 });
 
@@ -253,11 +257,15 @@ describe('RBAC', () => {
 
   it('hasAllPermissions checks AND', () => {
     expect(hasAllPermissions('user', [Permission.CREATE_SCENE, Permission.EDIT_SCENE])).toBe(true);
-    expect(hasAllPermissions('user', [Permission.CREATE_SCENE, Permission.MANAGE_SYSTEM])).toBe(false);
+    expect(hasAllPermissions('user', [Permission.CREATE_SCENE, Permission.MANAGE_SYSTEM])).toBe(
+      false
+    );
   });
 
   it('hasAnyPermission checks OR', () => {
-    expect(hasAnyPermission('user', [Permission.CREATE_SCENE, Permission.MANAGE_SYSTEM])).toBe(true);
+    expect(hasAnyPermission('user', [Permission.CREATE_SCENE, Permission.MANAGE_SYSTEM])).toBe(
+      true
+    );
     expect(hasAnyPermission('user', [Permission.MANAGE_SYSTEM, Permission.ADMIN_ALL])).toBe(false);
   });
 });
@@ -274,38 +282,86 @@ describe('AuditLogger', () => {
   });
 
   it('logs entry with id and timestamp', () => {
-    const entry = logger.log({ userId: 'u1', action: 'create', resource: 'scene', resourceId: 's1', result: 'success' });
+    const entry = logger.log({
+      userId: 'u1',
+      action: 'create',
+      resource: 'scene',
+      resourceId: 's1',
+      result: 'success',
+    });
     expect(entry.id).toMatch(/^audit_/);
     expect(entry.timestamp).toBeGreaterThan(0);
   });
 
   it('query filters by userId', () => {
-    logger.log({ userId: 'u1', action: 'create', resource: 'scene', resourceId: 's1', result: 'success' });
-    logger.log({ userId: 'u2', action: 'delete', resource: 'scene', resourceId: 's2', result: 'success' });
+    logger.log({
+      userId: 'u1',
+      action: 'create',
+      resource: 'scene',
+      resourceId: 's1',
+      result: 'success',
+    });
+    logger.log({
+      userId: 'u2',
+      action: 'delete',
+      resource: 'scene',
+      resourceId: 's2',
+      result: 'success',
+    });
     expect(logger.query({ userId: 'u1' })).toHaveLength(1);
   });
 
   it('query filters by action', () => {
-    logger.log({ userId: 'u1', action: 'create', resource: 'scene', resourceId: 's1', result: 'success' });
-    logger.log({ userId: 'u1', action: 'delete', resource: 'scene', resourceId: 's2', result: 'success' });
+    logger.log({
+      userId: 'u1',
+      action: 'create',
+      resource: 'scene',
+      resourceId: 's1',
+      result: 'success',
+    });
+    logger.log({
+      userId: 'u1',
+      action: 'delete',
+      resource: 'scene',
+      resourceId: 's2',
+      result: 'success',
+    });
     expect(logger.query({ action: 'delete' })).toHaveLength(1);
   });
 
   it('getRecent returns last N entries', () => {
     for (let i = 0; i < 10; i++) {
-      logger.log({ userId: 'u1', action: `a${i}`, resource: 'r', resourceId: 'r1', result: 'success' });
+      logger.log({
+        userId: 'u1',
+        action: `a${i}`,
+        resource: 'r',
+        resourceId: 'r1',
+        result: 'success',
+      });
     }
     expect(logger.getRecent(3)).toHaveLength(3);
   });
 
   it('export produces JSON', () => {
-    logger.log({ userId: 'u1', action: 'test', resource: 'r', resourceId: 'r1', result: 'success' });
+    logger.log({
+      userId: 'u1',
+      action: 'test',
+      resource: 'r',
+      resourceId: 'r1',
+      result: 'success',
+    });
     const json = logger.export();
     expect(JSON.parse(json)).toHaveLength(1);
   });
 
   it('clear removes all entries', () => {
-    logger.log({ userId: 'u1', action: 'test', resource: 'r', resourceId: 'r1', result: 'success' });
+    logger.log({
+      userId: 'u1',
+      action: 'test',
+      resource: 'r',
+      resourceId: 'r1',
+      result: 'success',
+    });
     logger.clear();
     expect(logger.getRecent()).toHaveLength(0);
   });

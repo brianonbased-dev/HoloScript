@@ -4,11 +4,7 @@
  */
 
 import { create } from 'zustand';
-import type {
-  HoloScriptPlugin,
-  PluginRegistryEntry,
-  PluginManagerState,
-} from './types';
+import type { HoloScriptPlugin, PluginRegistryEntry, PluginManagerState } from './types';
 
 // ── Plugin Storage ────────────────────────────────────────────────────────
 
@@ -297,8 +293,7 @@ export function isPluginEnabled(id: string): boolean {
  */
 export function getCustomNodeTypes(editor: 'workflow' | 'behaviorTree') {
   const enabledPlugins = getEnabledPlugins();
-  const nodeTypes = enabledPlugins
-    .flatMap((plugin) => plugin.nodeTypes?.[editor] || []);
+  const nodeTypes = enabledPlugins.flatMap((plugin) => plugin.nodeTypes?.[editor] || []);
   return nodeTypes;
 }
 

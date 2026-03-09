@@ -3,9 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  AgentPermission,
-} from '../AgentIdentity';
+import { AgentPermission } from '../AgentIdentity';
 import {
   HOLOSCRIPT_RESOURCE_SCHEME,
   HOLOSCRIPT_RESOURCE_ALL,

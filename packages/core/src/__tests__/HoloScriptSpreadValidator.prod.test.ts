@@ -100,7 +100,7 @@ describe('SpreadOperatorValidator — Production', () => {
     });
 
     it('validateObjectSpread with template ref succeeds', () => {
-      const ctx = makeContext({ 'BaseTemplate': { health: 100 } });
+      const ctx = makeContext({ BaseTemplate: { health: 100 } });
       const validator = new SpreadOperatorValidator(ctx);
       // String identifier resolved as template since it's in templateRefs
       const spread = makeSpread('BaseTemplate');
@@ -110,7 +110,7 @@ describe('SpreadOperatorValidator — Production', () => {
     });
 
     it('validateTraitSpread with template ref via __ref rejects template type', () => {
-      const ctx = makeContext({ 'BaseTemplate': {} });
+      const ctx = makeContext({ BaseTemplate: {} });
       const validator = new SpreadOperatorValidator(ctx);
       // __ref resolves via resolveMemberExpression -> resolveIdentifier -> 'template'
       // But trait spread only accepts 'object' or 'unknown', so template is rejected

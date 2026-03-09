@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WebSocketReconnectionHandler } from '../../network/WebSocketReconnectionHandler';
 
 describe('WebSocketReconnectionHandler — Production Tests', () => {
-
   describe('constructor defaults', () => {
     it('initializes with default config values', () => {
       const h = new WebSocketReconnectionHandler();
@@ -22,13 +21,22 @@ describe('WebSocketReconnectionHandler — Production Tests', () => {
 
   describe('calculateDelay()', () => {
     it('returns at least initialDelayMs', () => {
-      const h = new WebSocketReconnectionHandler({ initialDelayMs: 1000, maxDelayMs: 30000, jitter: false });
+      const h = new WebSocketReconnectionHandler({
+        initialDelayMs: 1000,
+        maxDelayMs: 30000,
+        jitter: false,
+      });
       const delay = h.calculateDelay();
       expect(delay).toBeGreaterThanOrEqual(1000);
     });
 
     it('is capped at maxDelayMs', () => {
-      const h = new WebSocketReconnectionHandler({ initialDelayMs: 1000, maxDelayMs: 2000, backoffMultiplier: 10, jitter: false });
+      const h = new WebSocketReconnectionHandler({
+        initialDelayMs: 1000,
+        maxDelayMs: 2000,
+        backoffMultiplier: 10,
+        jitter: false,
+      });
       for (let i = 0; i < 5; i++) {
         const delay = h.calculateDelay();
         expect(delay).toBeLessThanOrEqual(2000);
@@ -45,7 +53,7 @@ describe('WebSocketReconnectionHandler — Production Tests', () => {
     it('adds jitter within ±10% of delay', () => {
       const h = new WebSocketReconnectionHandler({ initialDelayMs: 1000, jitter: true });
       const delays = Array.from({ length: 20 }, () => h.calculateDelay());
-      const hasVariation = delays.some(d => d !== delays[0]);
+      const hasVariation = delays.some((d) => d !== delays[0]);
       // Jitter probability over 20 samples — nearly guaranteed to vary
       expect(hasVariation).toBe(true);
     });
@@ -70,7 +78,11 @@ describe('WebSocketReconnectionHandler — Production Tests', () => {
 
   describe('reset()', () => {
     it('resets attempt count to zero', async () => {
-      const h = new WebSocketReconnectionHandler({ initialDelayMs: 1, maxAttempts: 3, jitter: false });
+      const h = new WebSocketReconnectionHandler({
+        initialDelayMs: 1,
+        maxAttempts: 3,
+        jitter: false,
+      });
       await h.scheduleReconnect(async () => {});
       expect(h.getAttemptCount()).toBe(0); // reset() called on success
     });
@@ -96,12 +108,18 @@ describe('WebSocketReconnectionHandler — Production Tests', () => {
     it('rejects with error when callback throws', async () => {
       const h = new WebSocketReconnectionHandler({ initialDelayMs: 1, jitter: false });
       const err = new Error('conn failed');
-      await expect(h.scheduleReconnect(async () => { throw err; })).rejects.toThrow('conn failed');
+      await expect(
+        h.scheduleReconnect(async () => {
+          throw err;
+        })
+      ).rejects.toThrow('conn failed');
     });
 
     it('rejects immediately when max attempts exceeded', async () => {
       const h = new WebSocketReconnectionHandler({ maxAttempts: 0 });
-      await expect(h.scheduleReconnect(async () => {})).rejects.toThrow('Max reconnection attempts');
+      await expect(h.scheduleReconnect(async () => {})).rejects.toThrow(
+        'Max reconnection attempts'
+      );
     });
 
     it('resets attempt count after successful reconnect', async () => {

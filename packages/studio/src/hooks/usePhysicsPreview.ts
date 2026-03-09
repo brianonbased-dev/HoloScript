@@ -4,9 +4,12 @@
  */
 import { useState, useCallback, useRef } from 'react';
 import {
-  ECSWorld, ComponentType,
-  type TransformComponent, type VelocityComponent,
-  type ColliderComponent, type SystemStats,
+  ECSWorld,
+  ComponentType,
+  type TransformComponent,
+  type VelocityComponent,
+  type ColliderComponent,
+  type SystemStats,
 } from '@holoscript/core';
 
 export interface PhysicsEntity {
@@ -31,7 +34,14 @@ export interface UsePhysicsPreviewReturn {
 export function usePhysicsPreview(): UsePhysicsPreviewReturn {
   const worldRef = useRef(new ECSWorld());
   const [entities, setEntities] = useState<PhysicsEntity[]>([]);
-  const [stats, setStats] = useState<SystemStats>({ entityCount: 0, systemCount: 0, lastFrameMs: 0, avgFrameMs: 0, peakFrameMs: 0, totalFrames: 0 });
+  const [stats, setStats] = useState<SystemStats>({
+    entityCount: 0,
+    systemCount: 0,
+    lastFrameMs: 0,
+    avgFrameMs: 0,
+    peakFrameMs: 0,
+    totalFrames: 0,
+  });
   const [isRunning, setIsRunning] = useState(false);
   const rafRef = useRef<number>(0);
   const lastTimeRef = useRef(0);
@@ -40,7 +50,7 @@ export function usePhysicsPreview(): UsePhysicsPreviewReturn {
     const w = worldRef.current;
     const mask = ComponentType.Transform;
     const ids = w.query(mask);
-    const ents: PhysicsEntity[] = ids.map(id => ({
+    const ents: PhysicsEntity[] = ids.map((id) => ({
       id,
       transform: w.getTransform(id)!,
       velocity: w.getVelocity(id),
@@ -50,27 +60,36 @@ export function usePhysicsPreview(): UsePhysicsPreviewReturn {
     setStats(w.getStats());
   }, []);
 
-  const spawn = useCallback((t: TransformComponent, v?: VelocityComponent, c?: ColliderComponent) => {
-    const w = worldRef.current;
-    const id = w.createEntity();
-    w.addTransform(id, t);
-    if (v) w.addVelocity(id, v);
-    if (c) w.addCollider(id, c);
-    syncEntities();
-    return id;
-  }, [syncEntities]);
+  const spawn = useCallback(
+    (t: TransformComponent, v?: VelocityComponent, c?: ColliderComponent) => {
+      const w = worldRef.current;
+      const id = w.createEntity();
+      w.addTransform(id, t);
+      if (v) w.addVelocity(id, v);
+      if (c) w.addCollider(id, c);
+      syncEntities();
+      return id;
+    },
+    [syncEntities]
+  );
 
-  const step = useCallback((dt = 1 / 60) => {
-    worldRef.current.tick(dt);
-    syncEntities();
-  }, [syncEntities]);
+  const step = useCallback(
+    (dt = 1 / 60) => {
+      worldRef.current.tick(dt);
+      syncEntities();
+    },
+    [syncEntities]
+  );
 
-  const loop = useCallback((time: number) => {
-    const dt = lastTimeRef.current ? (time - lastTimeRef.current) / 1000 : 1 / 60;
-    lastTimeRef.current = time;
-    step(Math.min(dt, 0.05));
-    rafRef.current = requestAnimationFrame(loop);
-  }, [step]);
+  const loop = useCallback(
+    (time: number) => {
+      const dt = lastTimeRef.current ? (time - lastTimeRef.current) / 1000 : 1 / 60;
+      lastTimeRef.current = time;
+      step(Math.min(dt, 0.05));
+      rafRef.current = requestAnimationFrame(loop);
+    },
+    [step]
+  );
 
   const start = useCallback(() => {
     if (isRunning) return;

@@ -12,15 +12,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { usePluginHost } from '@/hooks/usePluginHost';
-import {
-  Puzzle,
-  X,
-  RefreshCw,
-  AlertTriangle,
-  Shield,
-  Activity,
-  Loader2,
-} from 'lucide-react';
+import { Puzzle, X, RefreshCw, AlertTriangle, Shield, Activity, Loader2 } from 'lucide-react';
 import type { SandboxCreateOptions, SandboxState } from '@holoscript/studio-plugin-sdk/sandbox';
 
 export interface PluginPanelContainerProps {
@@ -41,14 +33,14 @@ export interface PluginPanelContainerProps {
 }
 
 const STATE_LABELS: Record<SandboxState, { label: string; color: string }> = {
-  creating:     { label: 'Creating',      color: 'text-studio-muted' },
-  loading:      { label: 'Loading',       color: 'text-amber-400' },
-  initializing: { label: 'Initializing',  color: 'text-amber-400' },
-  ready:        { label: 'Ready',         color: 'text-blue-400' },
-  running:      { label: 'Running',       color: 'text-emerald-400' },
-  suspended:    { label: 'Suspended',     color: 'text-yellow-400' },
-  error:        { label: 'Error',         color: 'text-red-400' },
-  terminated:   { label: 'Terminated',    color: 'text-studio-muted' },
+  creating: { label: 'Creating', color: 'text-studio-muted' },
+  loading: { label: 'Loading', color: 'text-amber-400' },
+  initializing: { label: 'Initializing', color: 'text-amber-400' },
+  ready: { label: 'Ready', color: 'text-blue-400' },
+  running: { label: 'Running', color: 'text-emerald-400' },
+  suspended: { label: 'Suspended', color: 'text-yellow-400' },
+  error: { label: 'Error', color: 'text-red-400' },
+  terminated: { label: 'Terminated', color: 'text-studio-muted' },
 };
 
 export function PluginPanelContainer({
@@ -61,7 +53,8 @@ export function PluginPanelContainer({
   manifestOverrides,
 }: PluginPanelContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { host, ready, loadPlugin, unloadPlugin, terminatePlugin, getPluginState } = usePluginHost();
+  const { host, ready, loadPlugin, unloadPlugin, terminatePlugin, getPluginState } =
+    usePluginHost();
   const [state, setState] = useState<SandboxState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -101,7 +94,17 @@ export function PluginPanelContainer({
     } finally {
       setLoading(false);
     }
-  }, [ready, host, pluginId, pluginUrl, permissions, hasUI, manifestOverrides, loadPlugin, getPluginState]);
+  }, [
+    ready,
+    host,
+    pluginId,
+    pluginUrl,
+    permissions,
+    hasUI,
+    manifestOverrides,
+    loadPlugin,
+    getPluginState,
+  ]);
 
   useEffect(() => {
     doLoad();
@@ -169,9 +172,7 @@ export function PluginPanelContainer({
       {/* Header */}
       <div className="flex shrink-0 items-center gap-2 border-b border-studio-border px-3 py-2">
         <Puzzle className="h-3.5 w-3.5 text-studio-accent" />
-        <span className="flex-1 truncate text-[11px] font-semibold">
-          {displayName ?? pluginId}
-        </span>
+        <span className="flex-1 truncate text-[11px] font-semibold">{displayName ?? pluginId}</span>
 
         {/* State indicator */}
         {stateInfo && (
@@ -179,12 +180,8 @@ export function PluginPanelContainer({
             {(state === 'loading' || state === 'initializing') && (
               <Loader2 className="h-2.5 w-2.5 animate-spin" />
             )}
-            {state === 'running' && (
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            )}
-            {state === 'error' && (
-              <AlertTriangle className="h-2.5 w-2.5" />
-            )}
+            {state === 'running' && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
+            {state === 'error' && <AlertTriangle className="h-2.5 w-2.5" />}
             {stateInfo.label}
           </span>
         )}
@@ -238,11 +235,7 @@ export function PluginPanelContainer({
       )}
 
       {/* Plugin iframe container */}
-      <div
-        ref={containerRef}
-        className="relative flex-1 overflow-hidden"
-        data-plugin-id={pluginId}
-      >
+      <div ref={containerRef} className="relative flex-1 overflow-hidden" data-plugin-id={pluginId}>
         {/* Loading overlay */}
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-studio-panel/80 backdrop-blur-sm">

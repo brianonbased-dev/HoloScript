@@ -114,8 +114,8 @@ export class Matchmaker {
       while (i < players.length) {
         const anchor = players[i];
         const waitTime = now - anchor.queuedAt;
-        const expandedWindow = this.config.ratingWindow +
-          Math.floor(waitTime / 1000) * this.config.ratingExpansionRate;
+        const expandedWindow =
+          this.config.ratingWindow + Math.floor(waitTime / 1000) * this.config.ratingExpansionRate;
 
         const compatible: MatchmakingPlayer[] = [anchor];
 
@@ -163,7 +163,9 @@ export class Matchmaker {
    */
   estimateWaitTime(rating: number, region: string): number {
     const regionPlayers = [...this.queue.values()].filter((p) => p.region === region);
-    const nearby = regionPlayers.filter((p) => Math.abs(p.rating - rating) <= this.config.ratingWindow);
+    const nearby = regionPlayers.filter(
+      (p) => Math.abs(p.rating - rating) <= this.config.ratingWindow
+    );
 
     if (nearby.length >= this.config.minPlayers - 1) return 0;
 

@@ -132,7 +132,10 @@ describe('Norm Lifecycle DSL — Parser', () => {
       expect(norm.representation!.type).toBe('NormRepresentation');
       expect(norm.representation!.properties.condition).toBe('message_count_per_minute < 10');
       expect(norm.representation!.properties.scope).toBe('all_agents');
-      expect(norm.representation!.properties.exceptions).toEqual(['system_announcements', 'emergency_alerts']);
+      expect(norm.representation!.properties.exceptions).toEqual([
+        'system_announcements',
+        'emergency_alerts',
+      ]);
     });
 
     it('parses spreading sub-block', () => {
@@ -632,7 +635,7 @@ describe('Norm Lifecycle DSL — Compiler Mixin', () => {
         properties: {},
       });
       const issues = validateCompiledNorm(compiled);
-      expect(issues.some(i => i.includes('must have a name'))).toBe(true);
+      expect(issues.some((i) => i.includes('must have a name'))).toBe(true);
     });
 
     it('flags invalid quorum', () => {
@@ -647,7 +650,7 @@ describe('Norm Lifecycle DSL — Compiler Mixin', () => {
         },
       });
       const issues = validateCompiledNorm(compiled);
-      expect(issues.some(i => i.includes('quorum must be between 0 and 1'))).toBe(true);
+      expect(issues.some((i) => i.includes('quorum must be between 0 and 1'))).toBe(true);
     });
 
     it('flags out-of-order sanctions', () => {
@@ -665,7 +668,7 @@ describe('Norm Lifecycle DSL — Compiler Mixin', () => {
         },
       });
       const issues = validateCompiledNorm(compiled);
-      expect(issues.some(i => i.includes('ordered by severity'))).toBe(true);
+      expect(issues.some((i) => i.includes('ordered by severity'))).toBe(true);
     });
 
     it('flags violation threshold less than 1', () => {
@@ -680,7 +683,7 @@ describe('Norm Lifecycle DSL — Compiler Mixin', () => {
         },
       });
       const issues = validateCompiledNorm(compiled);
-      expect(issues.some(i => i.includes('violation_threshold must be at least 1'))).toBe(true);
+      expect(issues.some((i) => i.includes('violation_threshold must be at least 1'))).toBe(true);
     });
   });
 
@@ -716,7 +719,7 @@ describe('Norm Lifecycle DSL — Compiler Mixin', () => {
         },
       });
       const issues = validateCompiledMetanorm(compiled);
-      expect(issues.some(i => i.includes('amendment_quorum must be between 0 and 1'))).toBe(true);
+      expect(issues.some((i) => i.includes('amendment_quorum must be between 0 and 1'))).toBe(true);
     });
   });
 

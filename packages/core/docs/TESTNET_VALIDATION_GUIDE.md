@@ -28,6 +28,7 @@ This guide walks you through the complete testnet validation process for ZoraCoi
 ### 1.1 Add Base Goerli to MetaMask
 
 **Network Details:**
+
 - **Network Name:** Base Goerli
 - **RPC URL:** `https://goerli.base.org`
 - **Chain ID:** 84531
@@ -35,6 +36,7 @@ This guide walks you through the complete testnet validation process for ZoraCoi
 - **Block Explorer:** `https://goerli.basescan.org`
 
 **Quick Add:**
+
 1. Visit [https://chainlist.org/chain/84531](https://chainlist.org/chain/84531)
 2. Click "Add to MetaMask"
 3. Approve network addition
@@ -42,6 +44,7 @@ This guide walks you through the complete testnet validation process for ZoraCoi
 ### 1.2 Request Testnet ETH
 
 **Option 1: Coinbase Faucet (Recommended)**
+
 1. Visit: [https://www.coinbase.com/faucets/base-ethereum-goerli-faucet](https://www.coinbase.com/faucets/base-ethereum-goerli-faucet)
 2. Connect your wallet
 3. Click "Send me ETH"
@@ -49,12 +52,14 @@ This guide walks you through the complete testnet validation process for ZoraCoi
 5. **Amount received:** ~0.05 ETH (plenty for testing)
 
 **Option 2: Alchemy Faucet**
+
 1. Visit: [https://www.alchemy.com/faucets/base-goerli](https://www.alchemy.com/faucets/base-goerli)
 2. Create free Alchemy account
 3. Enter wallet address
 4. Request testnet ETH
 
 **Option 3: Paradigm Faucet**
+
 1. Visit: [https://faucet.paradigm.xyz/](https://faucet.paradigm.xyz/)
 2. Connect Twitter account (verification)
 3. Request Base Goerli ETH
@@ -67,6 +72,7 @@ TEST_WALLET_ADDRESS=0xYourAddress pnpm tsx scripts/test-zora-testnet.ts --step=1
 ```
 
 **Expected output:**
+
 ```
 ✅ Wallet has sufficient balance: 0.050000 ETH
 ```
@@ -85,6 +91,7 @@ TEST_WALLET_ADDRESS=0xYourAddress pnpm tsx scripts/test-zora-testnet.ts --step=1
 ### 2.2 Create 1155 Collection
 
 **Collection Settings:**
+
 - **Name:** "HoloScript Test Collection"
 - **Description:** "Testing ZoraCoinsTrait blockchain integration"
 - **Type:** ERC-1155 (multi-edition)
@@ -95,6 +102,7 @@ Click "Create Collection" and approve transaction.
 ### 2.3 Copy Contract Address
 
 After creation:
+
 1. Navigate to your collection page
 2. Copy the contract address (starts with `0x...`)
 3. Save this for environment configuration
@@ -143,6 +151,7 @@ pnpm tsx scripts/test-zora-testnet.ts --step=1
 ```
 
 **Expected Output:**
+
 ```
 [STEP 1] Checking Wallet Balance
 ============================================================
@@ -152,6 +161,7 @@ pnpm tsx scripts/test-zora-testnet.ts --step=1
 ```
 
 **If balance is zero:**
+
 - Return to Step 1 and request testnet ETH
 - Wait a few minutes for faucet transaction to confirm
 - Check BaseScan: `https://goerli.basescan.org/address/YOUR_ADDRESS`
@@ -165,6 +175,7 @@ pnpm tsx scripts/test-zora-testnet.ts --step=2
 ```
 
 **Expected Output:**
+
 ```
 [STEP 2] Estimating Gas Costs
 ============================================================
@@ -180,6 +191,7 @@ pnpm tsx scripts/test-zora-testnet.ts --step=2
 ```
 
 **If insufficient balance:**
+
 - Check that `TEST_WALLET_ADDRESS` is correct
 - Ensure testnet ETH arrived (check BaseScan)
 - Request more testnet ETH if needed
@@ -197,6 +209,7 @@ pnpm tsx scripts/test-zora-testnet.ts --step=3
 ```
 
 **Output:**
+
 ```
 [STEP 3] Executing Test Mint
 ============================================================
@@ -275,11 +288,7 @@ async function testMint() {
   const quantity = BigInt(1);
 
   // Estimate gas
-  const estimate = await GasEstimator.estimateMintGas(
-    publicClient,
-    contractAddress,
-    quantity
-  );
+  const estimate = await GasEstimator.estimateMintGas(publicClient, contractAddress, quantity);
 
   console.log('Gas estimate:', GasEstimator.formatEstimate(estimate));
 
@@ -288,13 +297,7 @@ async function testMint() {
     address: contractAddress,
     abi: zoraCreator1155ImplABI,
     functionName: 'mintWithRewards',
-    args: [
-      wallet.getAddress()!,
-      BigInt(0),
-      quantity,
-      '0x' as Hex,
-      wallet.getAddress()!,
-    ],
+    args: [wallet.getAddress()!, BigInt(0), quantity, '0x' as Hex, wallet.getAddress()!],
     value: estimate.mintFee,
     account: walletClient.account,
   });
@@ -320,11 +323,13 @@ testMint().catch(console.error);
 ```
 
 Run:
+
 ```bash
 pnpm tsx test-mint.ts
 ```
 
 **Expected Output:**
+
 ```
 Gas estimate: { totalCostETH: '0.001017', ... }
 Transaction sent: 0x1234567890abcdef...
@@ -344,6 +349,7 @@ TEST_TX_HASH=0xYourTransactionHash pnpm tsx scripts/test-zora-testnet.ts --step=
 ```
 
 **Expected Output:**
+
 ```
 [STEP 4] Verifying Transaction
 ============================================================
@@ -379,6 +385,7 @@ Transaction Receipt:
 Visit: `https://goerli.basescan.org/address/YOUR_WALLET_ADDRESS#tokentxnsErc1155`
 
 **Verify:**
+
 - Transfer event from `0x0000...` to your address
 - Token ID matches output from Step 7
 - Collection address matches `TEST_COLLECTION_ID`
@@ -401,6 +408,7 @@ Visit: `https://goerli.basescan.org/address/YOUR_WALLET_ADDRESS#tokentxnsErc1155
 Visit: `https://testnet.zora.co/collections/base-goerli:YOUR_COLLECTION_ADDRESS/token/TOKEN_ID`
 
 **Verify:**
+
 - Metadata displays correctly
 - Owner is your wallet address
 - Minting timestamp is recent
@@ -429,6 +437,7 @@ If all steps passed:
 **Cause:** Not enough testnet ETH for gas + mint fee
 
 **Fix:**
+
 1. Check balance: `pnpm tsx scripts/test-zora-testnet.ts --step=1`
 2. Request more ETH from faucet (Step 1)
 3. Wait for faucet transaction to confirm
@@ -438,6 +447,7 @@ If all steps passed:
 **Cause:** Contract may not allow minting, or parameters incorrect
 
 **Fix:**
+
 1. Verify collection allows public minting
 2. Check `TEST_COLLECTION_ID` is correct ERC-1155 contract
 3. Try minting directly via Zora UI first
@@ -448,6 +458,7 @@ If all steps passed:
 **Cause:** Wallet client not initialized properly
 
 **Fix:**
+
 1. Ensure `TEST_WALLET_ADDRESS` is set in `.env`
 2. Verify wallet address format (starts with `0x`, 42 characters)
 3. Check that wallet has testnet ETH
@@ -457,6 +468,7 @@ If all steps passed:
 **Cause:** Network connectivity or RPC endpoint issue
 
 **Fix:**
+
 1. Check internet connection
 2. Try alternative RPC: `https://goerli.base.org`
 3. Use Alchemy/Infura custom RPC
@@ -467,6 +479,7 @@ If all steps passed:
 **Cause:** Network congestion or low gas price
 
 **Fix:**
+
 1. Wait up to 5 minutes (script has timeout)
 2. Check transaction on BaseScan for status
 3. If "pending", wait or increase gas price

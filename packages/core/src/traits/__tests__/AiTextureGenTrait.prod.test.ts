@@ -12,7 +12,9 @@ import { aiTextureGenHandler } from '../AiTextureGenTrait';
 // HELPERS
 // =============================================================================
 
-function makeNode(id = 'tg-node') { return { id } as any; }
+function makeNode(id = 'tg-node') {
+  return { id } as any;
+}
 
 function makeConfig(overrides: any = {}) {
   return { ...aiTextureGenHandler.defaultConfig, ...overrides };
@@ -94,12 +96,15 @@ describe('AiTextureGenTrait — Production', () => {
 
       const s = getState(ctx);
       expect(s.isGenerating).toBe(true);
-      expect(ctx.emit).toHaveBeenCalledWith('texture_gen:started', expect.objectContaining({
-        requestId: 'req_1',
-        prompt: 'rusty metal',
-        resolution: 1024,
-        style: 'photorealistic',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'texture_gen:started',
+        expect.objectContaining({
+          requestId: 'req_1',
+          prompt: 'rusty metal',
+          resolution: 1024,
+          style: 'photorealistic',
+        })
+      );
     });
 
     it('queues when already generating', () => {
@@ -145,24 +150,39 @@ describe('AiTextureGenTrait — Production', () => {
       expect(s.textures.has('r1')).toBe(true);
       expect(s.activeTextureId).toBe('r1');
       expect(s.totalGenerated).toBe(1);
-      expect(ctx.emit).toHaveBeenCalledWith('texture_gen:applied', expect.objectContaining({
-        textureId: 'r1',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'texture_gen:applied',
+        expect.objectContaining({
+          textureId: 'r1',
+        })
+      );
     });
 
     it('drains queue after completion', () => {
       // Generate r1
-      aiTextureGenHandler.onEvent!(node, config, ctx, { type: 'texture_gen:generate', payload: { requestId: 'r1' } });
+      aiTextureGenHandler.onEvent!(node, config, ctx, {
+        type: 'texture_gen:generate',
+        payload: { requestId: 'r1' },
+      });
       // Queue r2
-      aiTextureGenHandler.onEvent!(node, config, ctx, { type: 'texture_gen:generate', payload: { requestId: 'r2' } });
+      aiTextureGenHandler.onEvent!(node, config, ctx, {
+        type: 'texture_gen:generate',
+        payload: { requestId: 'r2' },
+      });
       ctx.emit.mockClear();
 
       // Complete r1 → should auto-start r2
-      aiTextureGenHandler.onEvent!(node, config, ctx, { type: 'texture_gen:complete', payload: { requestId: 'r1', diffuseUrl: 'u' } });
+      aiTextureGenHandler.onEvent!(node, config, ctx, {
+        type: 'texture_gen:complete',
+        payload: { requestId: 'r1', diffuseUrl: 'u' },
+      });
 
       expect(getState(ctx).isGenerating).toBe(true);
       expect(getState(ctx).queue).toHaveLength(0);
-      expect(ctx.emit).toHaveBeenCalledWith('texture_gen:started', expect.objectContaining({ requestId: 'r2' }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'texture_gen:started',
+        expect.objectContaining({ requestId: 'r2' })
+      );
     });
   });
 
@@ -174,7 +194,10 @@ describe('AiTextureGenTrait — Production', () => {
       const c = makeContext();
       aiTextureGenHandler.onAttach(node, cfg, c);
 
-      aiTextureGenHandler.onEvent!(node, cfg, c, { type: 'texture_gen:generate', payload: { requestId: 'x' } });
+      aiTextureGenHandler.onEvent!(node, cfg, c, {
+        type: 'texture_gen:generate',
+        payload: { requestId: 'x' },
+      });
       aiTextureGenHandler.onEvent!(node, cfg, c, {
         type: 'texture_gen:complete',
         payload: { requestId: 'x', diffuseUrl: 'd', normalUrl: 'n', roughnessUrl: 'r' },
@@ -190,7 +213,10 @@ describe('AiTextureGenTrait — Production', () => {
       const c = makeContext();
       aiTextureGenHandler.onAttach(node, cfg, c);
 
-      aiTextureGenHandler.onEvent!(node, cfg, c, { type: 'texture_gen:generate', payload: { requestId: 'x' } });
+      aiTextureGenHandler.onEvent!(node, cfg, c, {
+        type: 'texture_gen:generate',
+        payload: { requestId: 'x' },
+      });
       aiTextureGenHandler.onEvent!(node, cfg, c, {
         type: 'texture_gen:complete',
         payload: { requestId: 'x', diffuseUrl: 'd', normalUrl: 'n', roughnessUrl: 'r' },
@@ -206,10 +232,22 @@ describe('AiTextureGenTrait — Production', () => {
 
   describe('apply texture', () => {
     it('applies existing texture by id', () => {
-      aiTextureGenHandler.onEvent!(node, config, ctx, { type: 'texture_gen:generate', payload: { requestId: 't1' } });
-      aiTextureGenHandler.onEvent!(node, config, ctx, { type: 'texture_gen:complete', payload: { requestId: 't1', diffuseUrl: 'x' } });
-      aiTextureGenHandler.onEvent!(node, config, ctx, { type: 'texture_gen:generate', payload: { requestId: 't2' } });
-      aiTextureGenHandler.onEvent!(node, config, ctx, { type: 'texture_gen:complete', payload: { requestId: 't2', diffuseUrl: 'y' } });
+      aiTextureGenHandler.onEvent!(node, config, ctx, {
+        type: 'texture_gen:generate',
+        payload: { requestId: 't1' },
+      });
+      aiTextureGenHandler.onEvent!(node, config, ctx, {
+        type: 'texture_gen:complete',
+        payload: { requestId: 't1', diffuseUrl: 'x' },
+      });
+      aiTextureGenHandler.onEvent!(node, config, ctx, {
+        type: 'texture_gen:generate',
+        payload: { requestId: 't2' },
+      });
+      aiTextureGenHandler.onEvent!(node, config, ctx, {
+        type: 'texture_gen:complete',
+        payload: { requestId: 't2', diffuseUrl: 'y' },
+      });
 
       expect(getState(ctx).activeTextureId).toBe('t2');
       ctx.emit.mockClear();
@@ -241,12 +279,24 @@ describe('AiTextureGenTrait — Production', () => {
   describe('rolling average time', () => {
     it('calculates rolling average over completions', () => {
       // Gen 1: 200ms
-      aiTextureGenHandler.onEvent!(node, config, ctx, { type: 'texture_gen:generate', payload: { requestId: 'a' } });
-      aiTextureGenHandler.onEvent!(node, config, ctx, { type: 'texture_gen:complete', payload: { requestId: 'a', diffuseUrl: 'x', elapsedMs: 200 } });
+      aiTextureGenHandler.onEvent!(node, config, ctx, {
+        type: 'texture_gen:generate',
+        payload: { requestId: 'a' },
+      });
+      aiTextureGenHandler.onEvent!(node, config, ctx, {
+        type: 'texture_gen:complete',
+        payload: { requestId: 'a', diffuseUrl: 'x', elapsedMs: 200 },
+      });
 
       // Gen 2: 400ms → avg = 300
-      aiTextureGenHandler.onEvent!(node, config, ctx, { type: 'texture_gen:generate', payload: { requestId: 'b' } });
-      aiTextureGenHandler.onEvent!(node, config, ctx, { type: 'texture_gen:complete', payload: { requestId: 'b', diffuseUrl: 'y', elapsedMs: 400 } });
+      aiTextureGenHandler.onEvent!(node, config, ctx, {
+        type: 'texture_gen:generate',
+        payload: { requestId: 'b' },
+      });
+      aiTextureGenHandler.onEvent!(node, config, ctx, {
+        type: 'texture_gen:complete',
+        payload: { requestId: 'b', diffuseUrl: 'y', elapsedMs: 400 },
+      });
 
       expect(getState(ctx).avgGenTimeMs).toBe(300);
     });
@@ -256,7 +306,10 @@ describe('AiTextureGenTrait — Production', () => {
 
   describe('detach', () => {
     it('emits cancelled when generating on detach', () => {
-      aiTextureGenHandler.onEvent!(node, config, ctx, { type: 'texture_gen:generate', payload: {} });
+      aiTextureGenHandler.onEvent!(node, config, ctx, {
+        type: 'texture_gen:generate',
+        payload: {},
+      });
       ctx.emit.mockClear();
 
       aiTextureGenHandler.onDetach!(node, config, ctx);
@@ -277,7 +330,10 @@ describe('AiTextureGenTrait — Production', () => {
   describe('edge cases', () => {
     it('event with no state is a no-op', () => {
       const noCtx = { emit: vi.fn(), setState: vi.fn(), getState: () => ({}) };
-      aiTextureGenHandler.onEvent!(node, config, noCtx, { type: 'texture_gen:generate', payload: {} });
+      aiTextureGenHandler.onEvent!(node, config, noCtx, {
+        type: 'texture_gen:generate',
+        payload: {},
+      });
       expect(noCtx.emit).not.toHaveBeenCalled();
     });
   });

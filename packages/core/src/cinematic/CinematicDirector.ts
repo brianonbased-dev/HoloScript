@@ -67,7 +67,9 @@ export class CinematicDirector {
     return scene;
   }
 
-  getScene(id: string): CinematicScene | undefined { return this.scenes.get(id); }
+  getScene(id: string): CinematicScene | undefined {
+    return this.scenes.get(id);
+  }
 
   addActorMark(sceneId: string, mark: ActorMark): void {
     const scene = this.scenes.get(sceneId);
@@ -86,14 +88,18 @@ export class CinematicDirector {
   // Camera Rigs
   // ---------------------------------------------------------------------------
 
-  addRig(id: string, rig: CameraRig): void { this.rigs.set(id, rig); }
+  addRig(id: string, rig: CameraRig): void {
+    this.rigs.set(id, rig);
+  }
 
   setActiveRig(rigId: string): void {
     const rig = this.rigs.get(rigId);
     if (rig) this.activeRig = rig;
   }
 
-  getActiveRig(): CameraRig | null { return this.activeRig; }
+  getActiveRig(): CameraRig | null {
+    return this.activeRig;
+  }
 
   // ---------------------------------------------------------------------------
   // Playback
@@ -123,8 +129,12 @@ export class CinematicDirector {
     this.elapsed = 0;
   }
 
-  pause(): void { this.playing = false; }
-  resume(): void { if (this.activeScene) this.playing = true; }
+  pause(): void {
+    this.playing = false;
+  }
+  resume(): void {
+    if (this.activeScene) this.playing = true;
+  }
 
   update(dt: number): void {
     if (!this.playing || !this.activeScene) return;
@@ -158,22 +168,35 @@ export class CinematicDirector {
 
   onCue(type: CuePoint['type'], callback: (cue: CuePoint) => void): void {
     let cbs = this.callbacks.get(type);
-    if (!cbs) { cbs = []; this.callbacks.set(type, cbs); }
+    if (!cbs) {
+      cbs = [];
+      this.callbacks.set(type, cbs);
+    }
     cbs.push(callback);
   }
 
   private fireCueCallbacks(cue: CuePoint): void {
     const cbs = this.callbacks.get(cue.type);
-    if (cbs) cbs.forEach(cb => cb(cue));
+    if (cbs) cbs.forEach((cb) => cb(cue));
   }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  isPlaying(): boolean { return this.playing; }
-  getElapsed(): number { return this.elapsed; }
-  getActiveScene(): CinematicScene | null { return this.activeScene; }
-  getFiredCues(): CuePoint[] { return [...this.firedCues]; }
-  getSequencer(): SequenceTrack { return this.sequencer; }
+  isPlaying(): boolean {
+    return this.playing;
+  }
+  getElapsed(): number {
+    return this.elapsed;
+  }
+  getActiveScene(): CinematicScene | null {
+    return this.activeScene;
+  }
+  getFiredCues(): CuePoint[] {
+    return [...this.firedCues];
+  }
+  getSequencer(): SequenceTrack {
+    return this.sequencer;
+  }
 }

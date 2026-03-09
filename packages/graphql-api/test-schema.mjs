@@ -21,7 +21,7 @@ try {
   console.log('Available Queries:');
   const queryType = schema.getQueryType();
   const queryFields = queryType.getFields();
-  Object.keys(queryFields).forEach(field => {
+  Object.keys(queryFields).forEach((field) => {
     console.log(`  - ${field}`);
   });
 
@@ -29,7 +29,7 @@ try {
   const mutationType = schema.getMutationType();
   if (mutationType) {
     const mutationFields = mutationType.getFields();
-    Object.keys(mutationFields).forEach(field => {
+    Object.keys(mutationFields).forEach((field) => {
       console.log(`  - ${field}`);
     });
   }

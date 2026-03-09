@@ -47,7 +47,14 @@ export class ImportPipeline {
    */
   addTextureJob(filename: string, input: TextureInput): string {
     const id = `job_${this.jobId++}`;
-    this.jobs.set(id, { id, filename, type: 'texture', data: JSON.stringify(input), status: 'queued', stage: 'validate' });
+    this.jobs.set(id, {
+      id,
+      filename,
+      type: 'texture',
+      data: JSON.stringify(input),
+      status: 'queued',
+      stage: 'validate',
+    });
     return id;
   }
 
@@ -108,7 +115,9 @@ export class ImportPipeline {
    * Get pipeline stats
    */
   getStats(): PipelineStats {
-    let completed = 0, failed = 0, queued = 0;
+    let completed = 0,
+      failed = 0,
+      queued = 0;
     for (const job of this.jobs.values()) {
       if (job.status === 'completed') completed++;
       else if (job.status === 'failed') failed++;
@@ -120,6 +129,10 @@ export class ImportPipeline {
   /**
    * Clear all jobs
    */
-  clear(): void { this.jobs.clear(); }
-  getJobCount(): number { return this.jobs.size; }
+  clear(): void {
+    this.jobs.clear();
+  }
+  getJobCount(): number {
+    return this.jobs.size;
+  }
 }

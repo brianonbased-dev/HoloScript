@@ -23,7 +23,15 @@ describe('MaterialType (neural)', () => {
   });
 
   it('accepts all standard types alongside neural', () => {
-    const types: MaterialType[] = ['pbr', 'standard', 'unlit', 'transparent', 'volumetric', 'custom', 'neural'];
+    const types: MaterialType[] = [
+      'pbr',
+      'standard',
+      'unlit',
+      'transparent',
+      'volumetric',
+      'custom',
+      'neural',
+    ];
     expect(types).toHaveLength(7);
   });
 });
@@ -55,8 +63,12 @@ describe('NeuralMaterialConfig', () => {
 
   it('supports all input features', () => {
     const features: NeuralInputFeature[] = [
-      'view_direction', 'light_direction', 'surface_normal',
-      'uv_coordinates', 'world_position', 'time',
+      'view_direction',
+      'light_direction',
+      'surface_normal',
+      'uv_coordinates',
+      'world_position',
+      'time',
     ];
     expect(features).toHaveLength(6);
   });

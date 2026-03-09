@@ -102,7 +102,7 @@ describe('JobQueuePersistence', () => {
           totalCost: 100,
           monthlyCost: 50,
           selectedRegion: 'us-east',
-        }),
+        })
       ).resolves.toBeUndefined();
     });
   });

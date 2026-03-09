@@ -9,7 +9,11 @@
 
 import { HeightmapTerrain, type HeightmapConfig, type TerrainStatistics } from './HeightmapTerrain';
 import { WaterFlowSolver, type WaterConfig, type WaterStatistics } from './WaterFlowSolver';
-import { SedimentTransport, type SedimentConfig, type SedimentStatistics } from './SedimentTransport';
+import {
+  SedimentTransport,
+  type SedimentConfig,
+  type SedimentStatistics,
+} from './SedimentTransport';
 import { TerrainModifier, type BrushConfig, type NoiseConfig } from './TerrainModifier';
 
 export interface ErosionConfig {
@@ -297,7 +301,12 @@ export class ErosionSimulation {
   /**
    * Flatten terrain with brush
    */
-  public flattenTerrain(centerX: number, centerZ: number, targetHeight: number, config: BrushConfig): void {
+  public flattenTerrain(
+    centerX: number,
+    centerZ: number,
+    targetHeight: number,
+    config: BrushConfig
+  ): void {
     this.modifier.flatten(centerX, centerZ, targetHeight, config);
   }
 

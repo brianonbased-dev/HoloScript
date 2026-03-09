@@ -393,21 +393,15 @@ export const multiAgentHandler: TraitHandler<MultiAgentConfig> = {
 
     // -------- TASK DELEGATION --------
     if (event.type === 'delegate_task') {
-      const {
-        assigneeId,
-        description,
-        requiredCapabilities,
-        payload,
-        priority,
-        deadline,
-      } = event.payload as {
-        assigneeId?: string;
-        description: string;
-        requiredCapabilities?: string[];
-        payload?: Record<string, unknown>;
-        priority?: MessagePriority;
-        deadline?: number;
-      };
+      const { assigneeId, description, requiredCapabilities, payload, priority, deadline } =
+        event.payload as {
+          assigneeId?: string;
+          description: string;
+          requiredCapabilities?: string[];
+          payload?: Record<string, unknown>;
+          priority?: MessagePriority;
+          deadline?: number;
+        };
 
       if (state.delegatedTasks.length >= config.max_active_tasks) {
         context.emit?.('multi_agent_task_limit_reached', {

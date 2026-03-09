@@ -3,18 +3,34 @@ import { HitboxSystem, type Hitbox, type Hurtbox } from '../HitboxSystem';
 
 function makeHitbox(overrides: Partial<Hitbox> = {}): Hitbox {
   return {
-    id: 'hb1', ownerId: 'attacker',
-    x: 0, y: 0, z: 0, width: 2, height: 2, depth: 2,
-    damage: 10, knockbackX: 5, knockbackY: 3,
-    activeStart: 0, activeEnd: 10, group: 'atk1',
+    id: 'hb1',
+    ownerId: 'attacker',
+    x: 0,
+    y: 0,
+    z: 0,
+    width: 2,
+    height: 2,
+    depth: 2,
+    damage: 10,
+    knockbackX: 5,
+    knockbackY: 3,
+    activeStart: 0,
+    activeEnd: 10,
+    group: 'atk1',
     ...overrides,
   };
 }
 
 function makeHurtbox(overrides: Partial<Hurtbox> = {}): Hurtbox {
   return {
-    id: 'hr1', entityId: 'defender',
-    x: 1, y: 1, z: 1, width: 2, height: 2, depth: 2,
+    id: 'hr1',
+    entityId: 'defender',
+    x: 1,
+    y: 1,
+    z: 1,
+    width: 2,
+    height: 2,
+    depth: 2,
     ...overrides,
   };
 }

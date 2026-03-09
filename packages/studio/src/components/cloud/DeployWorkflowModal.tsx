@@ -171,9 +171,7 @@ export function DeployWorkflowModal({ onClose, onSuccess }: DeployWorkflowModalP
               {/* Region (AWS only) */}
               {config.target?.provider === 'aws-lambda' && (
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-studio-text">
-                    Region
-                  </label>
+                  <label className="mb-2 block text-sm font-medium text-studio-text">Region</label>
                   <select
                     value={config.target.region}
                     onChange={(e) =>

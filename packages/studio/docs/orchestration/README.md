@@ -200,14 +200,14 @@ All orchestration data automatically saves to localStorage every 2 seconds:
 
 Global keyboard shortcuts for quick panel access:
 
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+M` | Toggle MCP Server Config |
-| `Ctrl+Shift+W` | Toggle Workflow Editor |
-| `Ctrl+B` | Toggle Behavior Tree Editor |
-| `Ctrl+E` | Toggle Event Monitor |
-| `Ctrl+Shift+T` | Toggle Tool Call Graph |
-| `Ctrl+Shift+A` | Toggle Agent Ensemble |
+| Shortcut       | Action                      |
+| -------------- | --------------------------- |
+| `Ctrl+M`       | Toggle MCP Server Config    |
+| `Ctrl+Shift+W` | Toggle Workflow Editor      |
+| `Ctrl+B`       | Toggle Behavior Tree Editor |
+| `Ctrl+E`       | Toggle Event Monitor        |
+| `Ctrl+Shift+T` | Toggle Tool Call Graph      |
+| `Ctrl+Shift+A` | Toggle Agent Ensemble       |
 
 [→ Complete shortcuts reference](./keyboard-shortcuts.md)
 
@@ -218,13 +218,16 @@ Global keyboard shortcuts for quick panel access:
 Export your orchestration data in multiple formats:
 
 **Workflows:**
+
 - JSON format (data interchange)
 - TypeScript modules (code integration)
 
 **Behavior Trees:**
+
 - JSON format with full tree structure
 
 **Event Logs:**
+
 - CSV format (Excel-compatible)
 - JSON format (data analysis)
 
@@ -302,6 +305,7 @@ Watch real-time agent communication and tool execution as your workflow runs.
 ### Scene Generation Pipeline
 
 Build a multi-stage workflow that:
+
 1. Takes user prompt
 2. Brittney agent generates scene description
 3. Art Director agent creates visual specifications
@@ -315,6 +319,7 @@ Build a multi-stage workflow that:
 ### Multi-Agent Code Review
 
 Create a parallel review workflow where:
+
 - Security agent checks for vulnerabilities
 - Performance agent analyzes optimization opportunities
 - Style agent enforces coding standards
@@ -327,6 +332,7 @@ Create a parallel review workflow where:
 ### Intelligent NPC Behavior
 
 Design behavior trees for game characters:
+
 - Patrol state with waypoint navigation
 - Combat state with target selection
 - Resource gathering with priority logic

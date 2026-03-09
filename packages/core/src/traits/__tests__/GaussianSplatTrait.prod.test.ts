@@ -58,9 +58,11 @@ describe('gaussianSplatHandler.defaultConfig', () => {
   it('lod.anchor_thresholds=[]', () => expect(d.lod.anchor_thresholds).toEqual([]));
   it('temporal_mode=static', () => expect(d.temporal_mode).toBe('static'));
   it('gaussian_budget.total_cap=0', () => expect(d.gaussian_budget.total_cap).toBe(0));
-  it('gaussian_budget.per_avatar_reservation=0', () => expect(d.gaussian_budget.per_avatar_reservation).toBe(0));
+  it('gaussian_budget.per_avatar_reservation=0', () =>
+    expect(d.gaussian_budget.per_avatar_reservation).toBe(0));
   it('spz.version=2.0', () => expect(d.spz.version).toBe('2.0'));
-  it('spz.quaternion_encoding=smallest_three', () => expect(d.spz.quaternion_encoding).toBe('smallest_three'));
+  it('spz.quaternion_encoding=smallest_three', () =>
+    expect(d.spz.quaternion_encoding).toBe('smallest_three'));
 });
 
 // ─── onAttach ─────────────────────────────────────────────────────────────────
@@ -89,23 +91,32 @@ describe('gaussianSplatHandler.onAttach', () => {
 
   it('emits splat_load when source is set', () => {
     const { ctx } = attach({ source: 'scene.ply' });
-    expect(ctx.emit).toHaveBeenCalledWith('splat_load', expect.objectContaining({ source: 'scene.ply' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_load',
+      expect.objectContaining({ source: 'scene.ply' })
+    );
   });
 
   it('splat_load emission has format + shDegree', () => {
     const { ctx } = attach({ source: 'x.splat', format: 'splat', sh_degree: 0 });
-    expect(ctx.emit).toHaveBeenCalledWith('splat_load', expect.objectContaining({ format: 'splat', shDegree: 0 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_load',
+      expect.objectContaining({ format: 'splat', shDegree: 0 })
+    );
   });
 
   it('splat_load emission includes v4.1 fields', () => {
     const { ctx } = attach({ source: 'scene.spz', format: 'spz' });
-    expect(ctx.emit).toHaveBeenCalledWith('splat_load', expect.objectContaining({
-      format: 'spz',
-      lod: expect.objectContaining({ mode: 'none' }),
-      temporalMode: 'static',
-      gaussianBudget: expect.objectContaining({ total_cap: 0 }),
-      spz: expect.objectContaining({ version: '2.0' }),
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_load',
+      expect.objectContaining({
+        format: 'spz',
+        lod: expect.objectContaining({ mode: 'none' }),
+        temporalMode: 'static',
+        gaussianBudget: expect.objectContaining({ total_cap: 0 }),
+        spz: expect.objectContaining({ version: '2.0' }),
+      })
+    );
   });
 
   it('sets isLoading=true when source non-empty', () => {
@@ -192,7 +203,10 @@ describe('gaussianSplatHandler.onUpdate', () => {
     state.lastCameraPosition = { x: 0, y: 0, z: 0 };
     ctx.emit.mockClear();
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('splat_sort', expect.objectContaining({ mode: 'distance' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_sort',
+      expect.objectContaining({ mode: 'distance' })
+    );
     expect(state.needsSort).toBe(false);
   });
 
@@ -223,11 +237,14 @@ describe('gaussianSplatHandler.onUpdate — LOD', () => {
     ctx.camera.position = { x: 5, y: 5, z: 50 }; // dist ~45 from center(5,5,5) -> beyond threshold 30 -> level 3
     ctx.emit.mockClear();
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('splat_lod_change', expect.objectContaining({
-      previousLevel: 0,
-      currentLevel: 3,
-      mode: 'octree',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_lod_change',
+      expect.objectContaining({
+        previousLevel: 0,
+        currentLevel: 3,
+        mode: 'octree',
+      })
+    );
   });
 
   it('does NOT emit splat_lod_change when lod.mode=none', () => {
@@ -271,9 +288,12 @@ describe('gaussianSplatHandler.onUpdate — LOD', () => {
     ctx.camera.position = { x: 10, y: 0, z: 0 }; // dist=10, above 5 but below 15 -> level 1
     ctx.emit.mockClear();
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('splat_lod_change', expect.objectContaining({
-      currentLevel: 1,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_lod_change',
+      expect.objectContaining({
+        currentLevel: 1,
+      })
+    );
     expect(state.currentLODLevel).toBe(1);
   });
 });
@@ -291,11 +311,14 @@ describe('gaussianSplatHandler.onUpdate — Gaussian Budget', () => {
     state.lastCameraPosition = { x: 0, y: 0, z: 0 };
     ctx.emit.mockClear();
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('splat_budget_exceeded', expect.objectContaining({
-      current: 200000,
-      cap: 180000,
-      overage: 20000,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_budget_exceeded',
+      expect.objectContaining({
+        current: 200000,
+        cap: 180000,
+        overage: 20000,
+      })
+    );
   });
 
   it('does NOT emit splat_budget_exceeded when under budget', () => {
@@ -333,7 +356,11 @@ describe('gaussianSplatHandler.onEvent — splat_load_complete', () => {
     const state = (node as any).__gaussianSplatState;
     state.isLoading = true;
     gaussianSplatHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'splat_load_complete', splatCount: 500000, memoryUsage: 128, boundingBox: { min: [-1,-1,-1], max: [1,1,1] }, renderHandle: 'h1',
+      type: 'splat_load_complete',
+      splatCount: 500000,
+      memoryUsage: 128,
+      boundingBox: { min: [-1, -1, -1], max: [1, 1, 1] },
+      renderHandle: 'h1',
     });
     expect(state.isLoaded).toBe(true);
     expect(state.isLoading).toBe(false);
@@ -345,7 +372,11 @@ describe('gaussianSplatHandler.onEvent — splat_load_complete', () => {
   it('sets gaussianBudgetUsed on load complete', () => {
     const { node, ctx, config } = attach();
     gaussianSplatHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'splat_load_complete', splatCount: 120000, memoryUsage: 64, boundingBox: { min: [0,0,0], max: [1,1,1] }, renderHandle: 'h',
+      type: 'splat_load_complete',
+      splatCount: 120000,
+      memoryUsage: 64,
+      boundingBox: { min: [0, 0, 0], max: [1, 1, 1] },
+      renderHandle: 'h',
     });
     expect((node as any).__gaussianSplatState.gaussianBudgetUsed).toBe(120000);
   });
@@ -354,9 +385,16 @@ describe('gaussianSplatHandler.onEvent — splat_load_complete', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     gaussianSplatHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'splat_load_complete', splatCount: 100, memoryUsage: 4, boundingBox: { min: [0,0,0], max: [1,1,1] }, renderHandle: 'h',
+      type: 'splat_load_complete',
+      splatCount: 100,
+      memoryUsage: 4,
+      boundingBox: { min: [0, 0, 0], max: [1, 1, 1] },
+      renderHandle: 'h',
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_splat_loaded', expect.objectContaining({ splatCount: 100 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_splat_loaded',
+      expect.objectContaining({ splatCount: 100 })
+    );
   });
 });
 
@@ -366,9 +404,15 @@ describe('gaussianSplatHandler.onEvent — splat_load_error', () => {
     const state = (node as any).__gaussianSplatState;
     state.isLoading = true;
     ctx.emit.mockClear();
-    gaussianSplatHandler.onEvent!(node as any, config, ctx as any, { type: 'splat_load_error', error: 'network timeout' });
+    gaussianSplatHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'splat_load_error',
+      error: 'network timeout',
+    });
     expect(state.isLoading).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('on_splat_error', expect.objectContaining({ error: 'network timeout' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_splat_error',
+      expect.objectContaining({ error: 'network timeout' })
+    );
   });
 });
 
@@ -376,15 +420,25 @@ describe('gaussianSplatHandler.onEvent — splat_load_progress', () => {
   it('emits on_splat_progress', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    gaussianSplatHandler.onEvent!(node as any, config, ctx as any, { type: 'splat_load_progress', progress: 0.5, loadedSplats: 50000 });
-    expect(ctx.emit).toHaveBeenCalledWith('on_splat_progress', expect.objectContaining({ progress: 0.5, loadedSplats: 50000 }));
+    gaussianSplatHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'splat_load_progress',
+      progress: 0.5,
+      loadedSplats: 50000,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_splat_progress',
+      expect.objectContaining({ progress: 0.5, loadedSplats: 50000 })
+    );
   });
 });
 
 describe('gaussianSplatHandler.onEvent — splat_visibility_update', () => {
   it('updates visibleSplats', () => {
     const { node, ctx, config } = attach();
-    gaussianSplatHandler.onEvent!(node as any, config, ctx as any, { type: 'splat_visibility_update', visibleCount: 42000 });
+    gaussianSplatHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'splat_visibility_update',
+      visibleCount: 42000,
+    });
     expect((node as any).__gaussianSplatState.visibleSplats).toBe(42000);
   });
 });
@@ -396,9 +450,15 @@ describe('gaussianSplatHandler.onEvent — splat_set_source', () => {
     state.renderHandle = 'existing_handle';
     state.isLoaded = true;
     ctx.emit.mockClear();
-    gaussianSplatHandler.onEvent!(node as any, config, ctx as any, { type: 'splat_set_source', source: 'new.ply' });
+    gaussianSplatHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'splat_set_source',
+      source: 'new.ply',
+    });
     expect(ctx.emit).toHaveBeenCalledWith('splat_destroy', expect.any(Object));
-    expect(ctx.emit).toHaveBeenCalledWith('splat_load', expect.objectContaining({ source: 'new.ply' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_load',
+      expect.objectContaining({ source: 'new.ply' })
+    );
     expect(state.isLoaded).toBe(false);
     expect(state.splatCount).toBe(0);
   });
@@ -406,7 +466,10 @@ describe('gaussianSplatHandler.onEvent — splat_set_source', () => {
   it('no-op when source is same as config.source', () => {
     const { node, ctx, config } = attach({ source: 'same.ply' });
     ctx.emit.mockClear();
-    gaussianSplatHandler.onEvent!(node as any, config, ctx as any, { type: 'splat_set_source', source: 'same.ply' });
+    gaussianSplatHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'splat_set_source',
+      source: 'same.ply',
+    });
     expect(ctx.emit).not.toHaveBeenCalled();
   });
 });
@@ -415,8 +478,14 @@ describe('gaussianSplatHandler.onEvent — splat_set_quality', () => {
   it('emits splat_update_quality', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    gaussianSplatHandler.onEvent!(node as any, config, ctx as any, { type: 'splat_set_quality', quality: 'ultra' });
-    expect(ctx.emit).toHaveBeenCalledWith('splat_update_quality', expect.objectContaining({ quality: 'ultra' }));
+    gaussianSplatHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'splat_set_quality',
+      quality: 'ultra',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_update_quality',
+      expect.objectContaining({ quality: 'ultra' })
+    );
   });
 });
 
@@ -431,13 +500,22 @@ describe('gaussianSplatHandler.onEvent — splat_query', () => {
     state.gaussianBudgetUsed = 999;
     state.temporalFrameIndex = 7;
     ctx.emit.mockClear();
-    gaussianSplatHandler.onEvent!(node as any, config, ctx as any, { type: 'splat_query', queryId: 'q1' });
-    expect(ctx.emit).toHaveBeenCalledWith('splat_info', expect.objectContaining({
-      queryId: 'q1', isLoaded: true, splatCount: 999, visibleSplats: 500,
-      currentLODLevel: 2,
-      gaussianBudgetUsed: 999,
-      temporalFrameIndex: 7,
-    }));
+    gaussianSplatHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'splat_query',
+      queryId: 'q1',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_info',
+      expect.objectContaining({
+        queryId: 'q1',
+        isLoaded: true,
+        splatCount: 999,
+        visibleSplats: 500,
+        currentLODLevel: 2,
+        gaussianBudgetUsed: 999,
+        temporalFrameIndex: 7,
+      })
+    );
   });
 });
 
@@ -453,11 +531,14 @@ describe('gaussianSplatHandler.onEvent — splat_set_lod (v4.1)', () => {
       octree_depth: 6,
       anchor_thresholds: [5, 10, 20, 40],
     });
-    expect(ctx.emit).toHaveBeenCalledWith('splat_update_lod', expect.objectContaining({
-      mode: 'octree',
-      octree_depth: 6,
-      anchor_thresholds: [5, 10, 20, 40],
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_update_lod',
+      expect.objectContaining({
+        mode: 'octree',
+        octree_depth: 6,
+        anchor_thresholds: [5, 10, 20, 40],
+      })
+    );
   });
 
   it('uses config defaults when partial event', () => {
@@ -470,11 +551,14 @@ describe('gaussianSplatHandler.onEvent — splat_set_lod (v4.1)', () => {
       mode: 'octree',
       // octree_depth and anchor_thresholds omitted -> falls back to config
     });
-    expect(ctx.emit).toHaveBeenCalledWith('splat_update_lod', expect.objectContaining({
-      mode: 'octree',
-      octree_depth: 4,
-      anchor_thresholds: [10, 20],
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_update_lod',
+      expect.objectContaining({
+        mode: 'octree',
+        octree_depth: 4,
+        anchor_thresholds: [10, 20],
+      })
+    );
   });
 });
 
@@ -487,10 +571,13 @@ describe('gaussianSplatHandler.onEvent — splat_set_budget (v4.1)', () => {
       total_cap: 180000,
       per_avatar_reservation: 60000,
     });
-    expect(ctx.emit).toHaveBeenCalledWith('splat_update_budget', expect.objectContaining({
-      total_cap: 180000,
-      per_avatar_reservation: 60000,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_update_budget',
+      expect.objectContaining({
+        total_cap: 180000,
+        per_avatar_reservation: 60000,
+      })
+    );
   });
 
   it('uses config defaults when partial event', () => {
@@ -503,10 +590,13 @@ describe('gaussianSplatHandler.onEvent — splat_set_budget (v4.1)', () => {
       total_cap: 180000,
       // per_avatar_reservation omitted -> falls back to config
     });
-    expect(ctx.emit).toHaveBeenCalledWith('splat_update_budget', expect.objectContaining({
-      total_cap: 180000,
-      per_avatar_reservation: 50000,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_update_budget',
+      expect.objectContaining({
+        total_cap: 180000,
+        per_avatar_reservation: 50000,
+      })
+    );
   });
 });
 
@@ -521,10 +611,13 @@ describe('gaussianSplatHandler.onEvent — splat_set_temporal_mode (v4.1)', () =
       temporal_mode: '4d',
     });
     expect(state.temporalFrameIndex).toBe(0);
-    expect(ctx.emit).toHaveBeenCalledWith('splat_update_temporal', expect.objectContaining({
-      temporal_mode: '4d',
-      previousMode: 'static',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_update_temporal',
+      expect.objectContaining({
+        temporal_mode: '4d',
+        previousMode: 'static',
+      })
+    );
   });
 });
 
@@ -538,10 +631,13 @@ describe('gaussianSplatHandler.onEvent — splat_temporal_advance (v4.1)', () =>
       frameIndex: 15,
     });
     expect(state.temporalFrameIndex).toBe(15);
-    expect(ctx.emit).toHaveBeenCalledWith('splat_temporal_frame', expect.objectContaining({
-      frameIndex: 15,
-      temporal_mode: '4d',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_temporal_frame',
+      expect.objectContaining({
+        frameIndex: 15,
+        temporal_mode: '4d',
+      })
+    );
   });
 
   it('advances frame index in streaming mode', () => {
@@ -552,10 +648,13 @@ describe('gaussianSplatHandler.onEvent — splat_temporal_advance (v4.1)', () =>
       frameIndex: 100,
     });
     expect((node as any).__gaussianSplatState.temporalFrameIndex).toBe(100);
-    expect(ctx.emit).toHaveBeenCalledWith('splat_temporal_frame', expect.objectContaining({
-      frameIndex: 100,
-      temporal_mode: 'streaming',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_temporal_frame',
+      expect.objectContaining({
+        frameIndex: 100,
+        temporal_mode: 'streaming',
+      })
+    );
   });
 
   it('no-op in static mode', () => {

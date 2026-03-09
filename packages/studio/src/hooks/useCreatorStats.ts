@@ -37,7 +37,7 @@ export interface ContentTypeStats {
   count: number;
   published: number;
   downloads: number;
-  revenue: number;       // USD cents
+  revenue: number; // USD cents
   rating: number;
   ratingCount: number;
 }
@@ -70,7 +70,7 @@ export interface CreatorStats {
   totalContent: number;
   totalPublished: number;
   totalDownloads: number;
-  totalContentRevenue: number;  // across all content types (USD cents)
+  totalContentRevenue: number; // across all content types (USD cents)
 
   /** True when the data was generated from the local mock fallback. */
   isMockData?: boolean;
@@ -118,11 +118,56 @@ export const generateMockStats = (address: string): CreatorStats => {
 
   // Multi-content mock data
   const contentByType: ContentTypeStats[] = [
-    { type: 'scene', label: 'Scenes', count: 8, published: 5, downloads: 342, revenue: 4999, rating: 4.3, ratingCount: 28 },
-    { type: 'skill', label: 'AI Skills', count: 3, published: 2, downloads: 127, revenue: 2999, rating: 4.7, ratingCount: 12 },
-    { type: 'agent_config', label: 'Agent Configs', count: 2, published: 1, downloads: 45, revenue: 999, rating: 4.5, ratingCount: 5 },
-    { type: 'trait', label: 'Traits', count: 5, published: 3, downloads: 89, revenue: 1499, rating: 4.1, ratingCount: 9 },
-    { type: 'plugin', label: 'Plugins', count: 1, published: 1, downloads: 67, revenue: 0, rating: 4.8, ratingCount: 3 },
+    {
+      type: 'scene',
+      label: 'Scenes',
+      count: 8,
+      published: 5,
+      downloads: 342,
+      revenue: 4999,
+      rating: 4.3,
+      ratingCount: 28,
+    },
+    {
+      type: 'skill',
+      label: 'AI Skills',
+      count: 3,
+      published: 2,
+      downloads: 127,
+      revenue: 2999,
+      rating: 4.7,
+      ratingCount: 12,
+    },
+    {
+      type: 'agent_config',
+      label: 'Agent Configs',
+      count: 2,
+      published: 1,
+      downloads: 45,
+      revenue: 999,
+      rating: 4.5,
+      ratingCount: 5,
+    },
+    {
+      type: 'trait',
+      label: 'Traits',
+      count: 5,
+      published: 3,
+      downloads: 89,
+      revenue: 1499,
+      rating: 4.1,
+      ratingCount: 9,
+    },
+    {
+      type: 'plugin',
+      label: 'Plugins',
+      count: 1,
+      published: 1,
+      downloads: 67,
+      revenue: 0,
+      rating: 4.8,
+      ratingCount: 3,
+    },
   ];
   const totalContent = contentByType.reduce((s, c) => s + c.count, 0);
   const totalPublished = contentByType.reduce((s, c) => s + c.published, 0);
@@ -133,7 +178,7 @@ export const generateMockStats = (address: string): CreatorStats => {
     totalSales,
     royaltiesEarned,
     nftsMinted: mockNFTs.length,
-    floorPrice: Math.min(...mockNFTs.map(n => n.price)),
+    floorPrice: Math.min(...mockNFTs.map((n) => n.price)),
     averageSalePrice: totalSales / mockNFTs.reduce((sum, n) => sum + n.salesCount, 0) || 0,
     collectors: Math.floor(Math.random() * 500) + 50,
     totalViews: Math.floor(Math.random() * 10000) + 1000,
@@ -171,10 +216,7 @@ export const generateMockStats = (address: string): CreatorStats => {
  * service endpoints are deployed. The multi-content stats (traits, plugins,
  * skills) come from the real API.
  */
-function transformToCreatorStats(
-  apiData: MarketplaceCreatorData,
-  address: string,
-): CreatorStats {
+function transformToCreatorStats(apiData: MarketplaceCreatorData, address: string): CreatorStats {
   // NFT stats are still mocked until CreatorMonetization API is live.
   // We generate mock NFT data but use real multi-content stats from the API.
   const mockBase = generateMockStats(address);
@@ -254,11 +296,7 @@ export interface UseCreatorStatsOptions {
  * ```
  */
 export function useCreatorStats(options: UseCreatorStatsOptions = {}) {
-  const {
-    address = '0x1234567890abcdef',
-    refetchInterval = 30000,
-    forceMock = false,
-  } = options;
+  const { address = '0x1234567890abcdef', refetchInterval = 30000, forceMock = false } = options;
 
   const { data, isLoading, error, refetch } = useQuery<CreatorStats>({
     queryKey: ['creatorStats', address],
@@ -279,7 +317,7 @@ export function useCreatorStats(options: UseCreatorStatsOptions = {}) {
         if (typeof console !== 'undefined') {
           console.warn(
             '[useCreatorStats] Marketplace API unreachable, using mock data. ' +
-            'Start the marketplace-api dev server or set NEXT_PUBLIC_MARKETPLACE_URL.',
+              'Start the marketplace-api dev server or set NEXT_PUBLIC_MARKETPLACE_URL.'
           );
         }
         return generateMockStats(address);

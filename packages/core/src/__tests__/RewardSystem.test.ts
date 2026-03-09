@@ -7,7 +7,9 @@ import { RewardSystem } from '../gameplay/RewardSystem';
 
 describe('RewardSystem', () => {
   let sys: RewardSystem;
-  beforeEach(() => { sys = new RewardSystem(); });
+  beforeEach(() => {
+    sys = new RewardSystem();
+  });
 
   it('default stats: level 1, xp 0, gold 0', () => {
     const s = sys.getStats();
@@ -17,9 +19,7 @@ describe('RewardSystem', () => {
   });
 
   it('createBundle stores bundle', () => {
-    const b = sys.createBundle('Starter', [
-      { type: 'xp', target: '', amount: 50 },
-    ]);
+    const b = sys.createBundle('Starter', [{ type: 'xp', target: '', amount: 50 }]);
     expect(sys.getBundle(b.id)).toBeDefined();
     expect(sys.getBundleCount()).toBe(1);
   });
@@ -37,7 +37,9 @@ describe('RewardSystem', () => {
   });
 
   it('claim grants unlock', () => {
-    const b = sys.createBundle('Unlock Pack', [{ type: 'unlock', target: 'double_jump', amount: 1 }]);
+    const b = sys.createBundle('Unlock Pack', [
+      { type: 'unlock', target: 'double_jump', amount: 1 },
+    ]);
     sys.claim(b.id);
     expect(sys.hasUnlock('double_jump')).toBe(true);
   });

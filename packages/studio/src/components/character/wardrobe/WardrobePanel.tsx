@@ -9,18 +9,18 @@
  */
 
 import { useState } from 'react';
-import { useCharacterStore, type WardrobeSlot, type WardrobeItem } from '@/lib/store';
+import { useCharacterStore, type WardrobeSlot, type WardrobeItem } from '@/lib/stores';
 import { Shirt, Scissors, Footprints, Sparkles, X } from 'lucide-react';
 import { BUILTIN_ITEMS } from '@/data/wardrobeItems';
 
 // ── Slot tab config ─────────────────────────────────────────────────────────
 
 const SLOT_TABS: { slot: WardrobeSlot | 'all'; label: string; icon: React.ReactNode }[] = [
-  { slot: 'hair',        label: 'Hair',     icon: <Scissors className="h-3 w-3" /> },
-  { slot: 'top',         label: 'Tops',     icon: <Shirt className="h-3 w-3" /> },
-  { slot: 'bottom',      label: 'Bottoms',  icon: <Shirt className="h-3 w-3 rotate-180" /> },
-  { slot: 'shoes',       label: 'Shoes',    icon: <Footprints className="h-3 w-3" /> },
-  { slot: 'accessory_1', label: 'Acc',      icon: <Sparkles className="h-3 w-3" /> },
+  { slot: 'hair', label: 'Hair', icon: <Scissors className="h-3 w-3" /> },
+  { slot: 'top', label: 'Tops', icon: <Shirt className="h-3 w-3" /> },
+  { slot: 'bottom', label: 'Bottoms', icon: <Shirt className="h-3 w-3 rotate-180" /> },
+  { slot: 'shoes', label: 'Shoes', icon: <Footprints className="h-3 w-3" /> },
+  { slot: 'accessory_1', label: 'Acc', icon: <Sparkles className="h-3 w-3" /> },
 ];
 
 // ── Item card ───────────────────────────────────────────────────────────────
@@ -31,7 +31,7 @@ function ItemCard({ item, isEquipped }: { item: WardrobeItem; isEquipped: boolea
 
   return (
     <button
-      onClick={() => isEquipped ? unequipSlot(item.slot) : equipItem(item)}
+      onClick={() => (isEquipped ? unequipSlot(item.slot) : equipItem(item))}
       className={`relative flex flex-col items-center gap-1 rounded-lg border p-2 transition ${
         isEquipped
           ? 'border-purple-500 bg-purple-500/10 text-purple-300'
@@ -58,9 +58,8 @@ export function WardrobePanel() {
   const clearWardrobe = useCharacterStore((s) => s.clearWardrobe);
   const glbUrl = useCharacterStore((s) => s.glbUrl);
 
-  const filteredItems = activeSlot === 'all'
-    ? BUILTIN_ITEMS
-    : BUILTIN_ITEMS.filter((i) => i.slot === activeSlot);
+  const filteredItems =
+    activeSlot === 'all' ? BUILTIN_ITEMS : BUILTIN_ITEMS.filter((i) => i.slot === activeSlot);
 
   const equippedCount = Object.keys(equippedItems).length;
 
@@ -115,14 +114,17 @@ export function WardrobePanel() {
       {equippedCount > 0 && (
         <div className="border-t border-studio-border p-2">
           <div className="mb-1.5 flex flex-wrap gap-1">
-            {Object.values(equippedItems).map((item) => item && (
-              <span
-                key={item.id}
-                className="rounded bg-purple-500/10 px-1.5 py-0.5 text-[9px] text-purple-300"
-              >
-                {item.thumbnail} {item.name}
-              </span>
-            ))}
+            {Object.values(equippedItems).map(
+              (item) =>
+                item && (
+                  <span
+                    key={item.id}
+                    className="rounded bg-purple-500/10 px-1.5 py-0.5 text-[9px] text-purple-300"
+                  >
+                    {item.thumbnail} {item.name}
+                  </span>
+                )
+            )}
           </div>
           <button
             onClick={clearWardrobe}

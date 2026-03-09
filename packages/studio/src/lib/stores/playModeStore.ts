@@ -166,55 +166,64 @@ export const usePlayMode = create<PlayModeState>()(
 
       // ── Game State Mutations ──
 
-      addScore: (points) => set((s) => ({
-        gameState: { ...s.gameState, score: s.gameState.score + points },
-      })),
+      addScore: (points) =>
+        set((s) => ({
+          gameState: { ...s.gameState, score: s.gameState.score + points },
+        })),
 
-      setScore: (score) => set((s) => ({
-        gameState: { ...s.gameState, score },
-      })),
+      setScore: (score) =>
+        set((s) => ({
+          gameState: { ...s.gameState, score },
+        })),
 
-      loseLife: () => set((s) => ({
-        gameState: { ...s.gameState, lives: Math.max(0, s.gameState.lives - 1) },
-      })),
+      loseLife: () =>
+        set((s) => ({
+          gameState: { ...s.gameState, lives: Math.max(0, s.gameState.lives - 1) },
+        })),
 
-      setLives: (lives) => set((s) => ({
-        gameState: { ...s.gameState, lives },
-      })),
+      setLives: (lives) =>
+        set((s) => ({
+          gameState: { ...s.gameState, lives },
+        })),
 
-      nextLevel: () => set((s) => ({
-        gameState: { ...s.gameState, level: s.gameState.level + 1 },
-      })),
+      nextLevel: () =>
+        set((s) => ({
+          gameState: { ...s.gameState, level: s.gameState.level + 1 },
+        })),
 
-      setLevel: (level) => set((s) => ({
-        gameState: { ...s.gameState, level },
-      })),
+      setLevel: (level) =>
+        set((s) => ({
+          gameState: { ...s.gameState, level },
+        })),
 
-      addItem: (item, count = 1) => set((s) => ({
-        gameState: {
-          ...s.gameState,
-          inventory: {
-            ...s.gameState.inventory,
-            [item]: (s.gameState.inventory[item] ?? 0) + count,
+      addItem: (item, count = 1) =>
+        set((s) => ({
+          gameState: {
+            ...s.gameState,
+            inventory: {
+              ...s.gameState.inventory,
+              [item]: (s.gameState.inventory[item] ?? 0) + count,
+            },
           },
-        },
-      })),
+        })),
 
-      removeItem: (item, count = 1) => set((s) => {
-        const current = s.gameState.inventory[item] ?? 0;
-        const newCount = Math.max(0, current - count);
-        const inventory = { ...s.gameState.inventory };
-        if (newCount === 0) delete inventory[item];
-        else inventory[item] = newCount;
-        return { gameState: { ...s.gameState, inventory } };
-      }),
+      removeItem: (item, count = 1) =>
+        set((s) => {
+          const current = s.gameState.inventory[item] ?? 0;
+          const newCount = Math.max(0, current - count);
+          const inventory = { ...s.gameState.inventory };
+          if (newCount === 0) delete inventory[item];
+          else inventory[item] = newCount;
+          return { gameState: { ...s.gameState, inventory } };
+        }),
 
-      setVariable: (key, value) => set((s) => ({
-        gameState: {
-          ...s.gameState,
-          variables: { ...s.gameState.variables, [key]: value },
-        },
-      })),
+      setVariable: (key, value) =>
+        set((s) => ({
+          gameState: {
+            ...s.gameState,
+            variables: { ...s.gameState.variables, [key]: value },
+          },
+        })),
 
       getVariable: (key) => get().gameState.variables[key],
 

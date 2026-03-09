@@ -174,7 +174,7 @@ type DeepPartial<T> = {
  * ```
  */
 export function buildTrainingPipelineConfig(
-  overrides: DeepPartial<TrainingPipelineConfig> = {},
+  overrides: DeepPartial<TrainingPipelineConfig> = {}
 ): TrainingPipelineConfig {
   return {
     qualityScoring: {
@@ -207,12 +207,8 @@ export function buildTrainingPipelineConfig(
  * @param config - Training pipeline configuration
  * @returns Total number of training steps
  */
-export function computeTotalSteps(
-  datasetSize: number,
-  config: TrainingPipelineConfig,
-): number {
-  const { microBatchSize, gradientAccumulationSteps, epochs } =
-    config.hyperparameters;
+export function computeTotalSteps(datasetSize: number, config: TrainingPipelineConfig): number {
+  const { microBatchSize, gradientAccumulationSteps, epochs } = config.hyperparameters;
   const effectiveBatchSize = microBatchSize * gradientAccumulationSteps;
   const stepsPerEpoch = Math.ceil(datasetSize / effectiveBatchSize);
   return stepsPerEpoch * epochs;

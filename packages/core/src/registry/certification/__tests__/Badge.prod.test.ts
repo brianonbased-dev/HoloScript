@@ -5,7 +5,12 @@
  * HMAC signing, certificate verification (valid/expired/tampered), createCertificate.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BadgeGenerator, createBadgeGenerator, defaultBadgeGenerator, type Certificate } from '../Badge';
+import {
+  BadgeGenerator,
+  createBadgeGenerator,
+  defaultBadgeGenerator,
+  type Certificate,
+} from '../Badge';
 import type { CertificationResult } from '../CertificationChecker';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -72,7 +77,9 @@ describe('BadgeGenerator — construction', () => {
 
 describe('BadgeGenerator — generateBadge: not certified', () => {
   let gen: BadgeGenerator;
-  beforeEach(() => { gen = new BadgeGenerator(); });
+  beforeEach(() => {
+    gen = new BadgeGenerator();
+  });
 
   it('text format: not certified contains "Not Certified"', () => {
     const b = gen.generateBadge(uncertifiedResult(), { format: 'text' });
@@ -102,7 +109,9 @@ describe('BadgeGenerator — generateBadge: not certified', () => {
 
 describe('BadgeGenerator — generateBadge: text', () => {
   let gen: BadgeGenerator;
-  beforeEach(() => { gen = new BadgeGenerator(); });
+  beforeEach(() => {
+    gen = new BadgeGenerator();
+  });
 
   it('contains package name', () => {
     const b = gen.generateBadge(certifiedResult(), { format: 'text' });
@@ -131,7 +140,9 @@ describe('BadgeGenerator — generateBadge: text', () => {
 
 describe('BadgeGenerator — generateBadge: markdown', () => {
   let gen: BadgeGenerator;
-  beforeEach(() => { gen = new BadgeGenerator(); });
+  beforeEach(() => {
+    gen = new BadgeGenerator();
+  });
 
   it('contains img markdown for badge URL', () => {
     const b = gen.generateBadge(certifiedResult(), { format: 'markdown' });
@@ -155,7 +166,9 @@ describe('BadgeGenerator — generateBadge: markdown', () => {
 
 describe('BadgeGenerator — generateBadge: html', () => {
   let gen: BadgeGenerator;
-  beforeEach(() => { gen = new BadgeGenerator(); });
+  beforeEach(() => {
+    gen = new BadgeGenerator();
+  });
 
   it('contains holoscript-badge class', () => {
     const b = gen.generateBadge(certifiedResult(), { format: 'html' });
@@ -176,7 +189,9 @@ describe('BadgeGenerator — generateBadge: html', () => {
 
 describe('BadgeGenerator — generateBadge: svg', () => {
   let gen: BadgeGenerator;
-  beforeEach(() => { gen = new BadgeGenerator(); });
+  beforeEach(() => {
+    gen = new BadgeGenerator();
+  });
 
   it('is valid SVG (contains <svg)', () => {
     const b = gen.generateBadge(certifiedResult(), { format: 'svg' });
@@ -201,7 +216,9 @@ describe('BadgeGenerator — generateBadge: svg', () => {
 
 describe('BadgeGenerator — generateBadge: json', () => {
   let gen: BadgeGenerator;
-  beforeEach(() => { gen = new BadgeGenerator(); });
+  beforeEach(() => {
+    gen = new BadgeGenerator();
+  });
 
   it('is valid JSON', () => {
     const b = gen.generateBadge(certifiedResult(), { format: 'json' });
@@ -229,7 +246,9 @@ describe('BadgeGenerator — generateBadge: json', () => {
 
 describe('BadgeGenerator — generateBadgeUrl', () => {
   let gen: BadgeGenerator;
-  beforeEach(() => { gen = new BadgeGenerator(); });
+  beforeEach(() => {
+    gen = new BadgeGenerator();
+  });
 
   it('returns https URL ending in .svg', () => {
     const url = gen.generateBadgeUrl('@test/pkg');
@@ -252,7 +271,9 @@ describe('BadgeGenerator — generateBadgeUrl', () => {
 
 describe('BadgeGenerator — signing', () => {
   let gen: BadgeGenerator;
-  beforeEach(() => { gen = new BadgeGenerator(); });
+  beforeEach(() => {
+    gen = new BadgeGenerator();
+  });
 
   it('signCertificate returns a non-empty hex string', () => {
     const sig = gen.signCertificate(baseCertificate());
@@ -296,7 +317,9 @@ describe('BadgeGenerator — signing', () => {
 
 describe('BadgeGenerator — createCertificate', () => {
   let gen: BadgeGenerator;
-  beforeEach(() => { gen = new BadgeGenerator(); });
+  beforeEach(() => {
+    gen = new BadgeGenerator();
+  });
 
   it('returns Certificate for certified result', () => {
     const cert = gen.createCertificate(certifiedResult());

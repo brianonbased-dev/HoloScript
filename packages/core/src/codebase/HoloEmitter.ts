@@ -109,10 +109,7 @@ export class HoloEmitter {
     }
 
     // Build layout nodes and edges
-    const { layoutNodes, layoutEdges } = this.buildLayoutGraph(
-      graph,
-      communitySymbols,
-    );
+    const { layoutNodes, layoutEdges } = this.buildLayoutGraph(graph, communitySymbols);
 
     // Run layout
     const layout = options.layout ?? 'force';
@@ -147,8 +144,14 @@ export class HoloEmitter {
 
     // Stats comment
     const stats = graph.getStats();
-    lines.push(`  // Codebase: ${stats.totalFiles} files, ${stats.totalSymbols} symbols, ${stats.totalLoc} LOC`);
-    lines.push(`  // Languages: ${Object.entries(stats.filesByLanguage).map(([l, n]) => `${l}(${n})`).join(', ')}`);
+    lines.push(
+      `  // Codebase: ${stats.totalFiles} files, ${stats.totalSymbols} symbols, ${stats.totalLoc} LOC`
+    );
+    lines.push(
+      `  // Languages: ${Object.entries(stats.filesByLanguage)
+        .map(([l, n]) => `${l}(${n})`)
+        .join(', ')}`
+    );
     lines.push('');
 
     // Emit spatial groups per community
@@ -156,9 +159,7 @@ export class HoloEmitter {
       const groupId = this.sanitizeId(community);
 
       // Collapse large groups
-      const visibleSymbols = symbols.length > maxPerGroup
-        ? symbols.slice(0, maxPerGroup)
-        : symbols;
+      const visibleSymbols = symbols.length > maxPerGroup ? symbols.slice(0, maxPerGroup) : symbols;
 
       lines.push(`  spatial_group "${groupId}" {`);
 
@@ -218,7 +219,7 @@ export class HoloEmitter {
 
   private buildLayoutGraph(
     graph: CodebaseGraph,
-    communitySymbols: Map<string, ExternalSymbolDefinition[]>,
+    communitySymbols: Map<string, ExternalSymbolDefinition[]>
   ): { layoutNodes: LayoutNode[]; layoutEdges: LayoutEdge[] } {
     const layoutNodes: LayoutNode[] = [];
     const nodeIds = new Set<string>();
@@ -265,7 +266,7 @@ export class HoloEmitter {
   private emitLogicBlock(
     graph: CodebaseGraph,
     includeCalls: boolean,
-    includeImports: boolean,
+    includeImports: boolean
   ): string[] {
     const lines: string[] = [];
     const seen = new Set<string>();
@@ -289,7 +290,7 @@ export class HoloEmitter {
                 ? `${caller.calleeOwner}.${caller.calleeName}`
                 : caller.calleeName;
               lines.push(
-                `on_interact("${this.escapeString(callerName)}"): { ${this.escapeString(sym.owner ? `${sym.owner}.${sym.name}` : sym.name)}() }`,
+                `on_interact("${this.escapeString(callerName)}"): { ${this.escapeString(sym.owner ? `${sym.owner}.${sym.name}` : sym.name)}() }`
               );
               edgeCount++;
             }
@@ -312,7 +313,9 @@ export class HoloEmitter {
           seen.add(key);
 
           const named = imp.namedImports?.join(', ') ?? '*';
-          lines.push(`// ${this.sanitizeId(imp.fromFile)} imports { ${named} } from "${imp.toModule}"`);
+          lines.push(
+            `// ${this.sanitizeId(imp.fromFile)} imports { ${named} } from "${imp.toModule}"`
+          );
           edgeCount++;
         }
         if (edgeCount >= maxEdges) break;

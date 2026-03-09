@@ -126,8 +126,8 @@ object LidarScan @point_cloud {
 
 ---
 
-
 ## See Also
+
 - [Audio Traits](/traits/audio)
 - [Visual Traits](/traits/visual)
 - [API Reference](/api/)

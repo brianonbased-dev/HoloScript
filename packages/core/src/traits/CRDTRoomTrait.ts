@@ -220,7 +220,7 @@ export const CRDT_ROOM_TRAIT_DEFAULTS: Required<
 export class CRDTRoomTraitValidationError extends Error {
   constructor(
     public readonly field: string,
-    public readonly reason: string,
+    public readonly reason: string
   ) {
     super(`@crdt-room validation error in "${field}": ${reason}`);
     this.name = 'CRDTRoomTraitValidationError';
@@ -233,8 +233,15 @@ export class CRDTRoomTraitValidationError extends Error {
  */
 export function validateCRDTRoomTraitConfig(config: CRDTRoomTraitConfig): void {
   if (config.maxPlayers !== undefined) {
-    if (!Number.isInteger(config.maxPlayers) || config.maxPlayers < 1 || config.maxPlayers > 10_000) {
-      throw new CRDTRoomTraitValidationError('maxPlayers', 'Must be an integer between 1 and 10000');
+    if (
+      !Number.isInteger(config.maxPlayers) ||
+      config.maxPlayers < 1 ||
+      config.maxPlayers > 10_000
+    ) {
+      throw new CRDTRoomTraitValidationError(
+        'maxPlayers',
+        'Must be an integer between 1 and 10000'
+      );
     }
   }
 
@@ -252,7 +259,10 @@ export function validateCRDTRoomTraitConfig(config: CRDTRoomTraitConfig): void {
 
   if (config.heartbeatIntervalMs !== undefined) {
     if (config.heartbeatIntervalMs < 500 || config.heartbeatIntervalMs > 60_000) {
-      throw new CRDTRoomTraitValidationError('heartbeatIntervalMs', 'Must be between 500 and 60000 ms');
+      throw new CRDTRoomTraitValidationError(
+        'heartbeatIntervalMs',
+        'Must be between 500 and 60000 ms'
+      );
     }
   }
 
@@ -260,10 +270,13 @@ export function validateCRDTRoomTraitConfig(config: CRDTRoomTraitConfig): void {
     if (config.presenceTimeoutMs < 1_000) {
       throw new CRDTRoomTraitValidationError('presenceTimeoutMs', 'Must be at least 1000 ms');
     }
-    if (config.heartbeatIntervalMs !== undefined && config.presenceTimeoutMs < config.heartbeatIntervalMs * 2) {
+    if (
+      config.heartbeatIntervalMs !== undefined &&
+      config.presenceTimeoutMs < config.heartbeatIntervalMs * 2
+    ) {
       throw new CRDTRoomTraitValidationError(
         'presenceTimeoutMs',
-        'Must be at least 2x the heartbeatIntervalMs',
+        'Must be at least 2x the heartbeatIntervalMs'
       );
     }
   }
@@ -275,7 +288,10 @@ export function validateCRDTRoomTraitConfig(config: CRDTRoomTraitConfig): void {
   }
 
   if (config.privacy === 'private' && !config.password) {
-    throw new CRDTRoomTraitValidationError('password', 'Password is required when privacy is "private"');
+    throw new CRDTRoomTraitValidationError(
+      'password',
+      'Password is required when privacy is "private"'
+    );
   }
 
   // Validate sync tiers
@@ -285,7 +301,7 @@ export function validateCRDTRoomTraitConfig(config: CRDTRoomTraitConfig): void {
       if (!validTiers.includes(tier)) {
         throw new CRDTRoomTraitValidationError(
           `syncTiers.${entityType}`,
-          `Invalid sync tier "${tier}". Must be one of: ${validTiers.join(', ')}`,
+          `Invalid sync tier "${tier}". Must be one of: ${validTiers.join(', ')}`
         );
       }
     }
@@ -299,26 +315,29 @@ export function validateCRDTRoomTraitConfig(config: CRDTRoomTraitConfig): void {
         throw new CRDTRoomTraitValidationError('interestRegions', 'Each region must have an "id"');
       }
       if (regionIds.has(region.id)) {
-        throw new CRDTRoomTraitValidationError('interestRegions', `Duplicate region id: "${region.id}"`);
+        throw new CRDTRoomTraitValidationError(
+          'interestRegions',
+          `Duplicate region id: "${region.id}"`
+        );
       }
       regionIds.add(region.id);
 
       if (region.radius <= 0) {
         throw new CRDTRoomTraitValidationError(
           `interestRegions.${region.id}.radius`,
-          'Must be a positive number',
+          'Must be a positive number'
         );
       }
       if (region.priority < 0 || region.priority > 3) {
         throw new CRDTRoomTraitValidationError(
           `interestRegions.${region.id}.priority`,
-          'Must be 0 (critical), 1 (high), 2 (normal), or 3 (low)',
+          'Must be 0 (critical), 1 (high), 2 (normal), or 3 (low)'
         );
       }
       if (region.syncRateHz < 1 || region.syncRateHz > 120) {
         throw new CRDTRoomTraitValidationError(
           `interestRegions.${region.id}.syncRateHz`,
-          'Must be between 1 and 120 Hz',
+          'Must be between 1 and 120 Hz'
         );
       }
     }
@@ -327,10 +346,13 @@ export function validateCRDTRoomTraitConfig(config: CRDTRoomTraitConfig): void {
   // Validate sharding
   if (config.sharding) {
     if (config.sharding.entityThreshold !== undefined) {
-      if (!Number.isInteger(config.sharding.entityThreshold) || config.sharding.entityThreshold < 10) {
+      if (
+        !Number.isInteger(config.sharding.entityThreshold) ||
+        config.sharding.entityThreshold < 10
+      ) {
         throw new CRDTRoomTraitValidationError(
           'sharding.entityThreshold',
-          'Must be an integer >= 10',
+          'Must be an integer >= 10'
         );
       }
     }
@@ -341,7 +363,7 @@ export function validateCRDTRoomTraitConfig(config: CRDTRoomTraitConfig): void {
       ) {
         throw new CRDTRoomTraitValidationError(
           'sharding.minEntitiesPerShard',
-          'Must be a positive integer',
+          'Must be a positive integer'
         );
       }
     }
@@ -357,7 +379,7 @@ export function validateCRDTRoomTraitConfig(config: CRDTRoomTraitConfig): void {
  * to the standard {x, y, z} format expected by CRDTRoom.
  */
 export function normalizeCenter(
-  center: [number, number, number] | { x: number; y: number; z: number },
+  center: [number, number, number] | { x: number; y: number; z: number }
 ): { x: number; y: number; z: number } {
   if (Array.isArray(center)) {
     return { x: center[0], y: center[1], z: center[2] };
@@ -371,9 +393,7 @@ export function normalizeCenter(
  * Merges defaults, validates, and returns a fully resolved config ready
  * for CRDTRoomTraitHandler.
  */
-export function parseCRDTRoomTraitConfig(
-  raw: Record<string, unknown>,
-): CRDTRoomTraitConfig {
+export function parseCRDTRoomTraitConfig(raw: Record<string, unknown>): CRDTRoomTraitConfig {
   const config: CRDTRoomTraitConfig = {};
 
   // --- Simple string/number/boolean fields ---
@@ -382,12 +402,15 @@ export function parseCRDTRoomTraitConfig(
   if (raw.baseSyncRateHz !== undefined) config.baseSyncRateHz = Number(raw.baseSyncRateHz);
   if (raw.maxBatchSize !== undefined) config.maxBatchSize = Number(raw.maxBatchSize);
   if (raw.flushIntervalMs !== undefined) config.flushIntervalMs = Number(raw.flushIntervalMs);
-  if (raw.interestManagement !== undefined) config.interestManagement = Boolean(raw.interestManagement);
+  if (raw.interestManagement !== undefined)
+    config.interestManagement = Boolean(raw.interestManagement);
   if (raw.viewDistance !== undefined) config.viewDistance = Number(raw.viewDistance);
-  if (raw.heartbeatIntervalMs !== undefined) config.heartbeatIntervalMs = Number(raw.heartbeatIntervalMs);
+  if (raw.heartbeatIntervalMs !== undefined)
+    config.heartbeatIntervalMs = Number(raw.heartbeatIntervalMs);
   if (raw.presenceTimeoutMs !== undefined) config.presenceTimeoutMs = Number(raw.presenceTimeoutMs);
   if (raw.maxChatHistory !== undefined) config.maxChatHistory = Number(raw.maxChatHistory);
-  if (raw.merkleVerification !== undefined) config.merkleVerification = Boolean(raw.merkleVerification);
+  if (raw.merkleVerification !== undefined)
+    config.merkleVerification = Boolean(raw.merkleVerification);
 
   // --- Privacy ---
   if (raw.privacy !== undefined) {
@@ -426,7 +449,8 @@ export function parseCRDTRoomTraitConfig(
     config.sharding = {
       enabled: s.enabled !== undefined ? Boolean(s.enabled) : true,
       entityThreshold: s.entityThreshold !== undefined ? Number(s.entityThreshold) : undefined,
-      minEntitiesPerShard: s.minEntitiesPerShard !== undefined ? Number(s.minEntitiesPerShard) : undefined,
+      minEntitiesPerShard:
+        s.minEntitiesPerShard !== undefined ? Number(s.minEntitiesPerShard) : undefined,
     };
   }
 
@@ -435,7 +459,8 @@ export function parseCRDTRoomTraitConfig(
     const p = raw.persistence as Record<string, unknown>;
     config.persistence = {
       enabled: p.enabled !== undefined ? Boolean(p.enabled) : false,
-      autoSaveIntervalMs: p.autoSaveIntervalMs !== undefined ? Number(p.autoSaveIntervalMs) : undefined,
+      autoSaveIntervalMs:
+        p.autoSaveIntervalMs !== undefined ? Number(p.autoSaveIntervalMs) : undefined,
     };
   }
 
@@ -450,11 +475,9 @@ export function parseCRDTRoomTraitConfig(
 /**
  * Parse a @crdt-room.entity trait config for per-object sync tier assignment.
  */
-export function parseCRDTRoomEntityConfig(
-  raw: Record<string, unknown>,
-): CRDTRoomEntityDecl {
+export function parseCRDTRoomEntityConfig(raw: Record<string, unknown>): CRDTRoomEntityDecl {
   return {
-    syncTier: (String(raw.syncTier || 'normal') as CRDTSyncTier),
+    syncTier: String(raw.syncTier || 'normal') as CRDTSyncTier,
     region: raw.region !== undefined ? String(raw.region) : undefined,
   };
 }
@@ -468,7 +491,7 @@ export function parseCRDTRoomEntityConfig(
  * Returns a fully populated config suitable for CRDTRoomTraitHandler.
  */
 export function resolveCRDTRoomTraitConfig(
-  parsed: CRDTRoomTraitConfig,
+  parsed: CRDTRoomTraitConfig
 ): Required<CRDTRoomTraitConfig> {
   return {
     roomName: parsed.roomName ?? CRDT_ROOM_TRAIT_DEFAULTS.roomName,
@@ -503,7 +526,7 @@ export function resolveCRDTRoomTraitConfig(
  * a fully resolved configuration ready for CRDTRoomTraitHandler.
  */
 export function createCRDTRoomTraitConfig(
-  rawConfig: Record<string, unknown>,
+  rawConfig: Record<string, unknown>
 ): Required<CRDTRoomTraitConfig> {
   const parsed = parseCRDTRoomTraitConfig(rawConfig);
   validateCRDTRoomTraitConfig(parsed);

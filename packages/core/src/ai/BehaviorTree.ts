@@ -56,8 +56,12 @@ export class BehaviorTree {
     return tree;
   }
 
-  removeTree(id: string): boolean { return this.trees.delete(id); }
-  getTree(id: string): BTTreeDef | undefined { return this.trees.get(id); }
+  removeTree(id: string): boolean {
+    return this.trees.delete(id);
+  }
+  getTree(id: string): BTTreeDef | undefined {
+    return this.trees.get(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Subtree Registry
@@ -67,7 +71,9 @@ export class BehaviorTree {
     this.subtrees.set(name, root);
   }
 
-  getSubtree(name: string): BTNode | undefined { return this.subtrees.get(name); }
+  getSubtree(name: string): BTNode | undefined {
+    return this.subtrees.get(name);
+  }
 
   // ---------------------------------------------------------------------------
   // Tick
@@ -121,15 +127,27 @@ export class BehaviorTree {
   // Debug
   // ---------------------------------------------------------------------------
 
-  enableTracing(): void { this.tracing = true; }
-  disableTracing(): void { this.tracing = false; }
-  getTrace(): typeof this.debugTrace { return [...this.debugTrace]; }
-  clearTrace(): void { this.debugTrace = []; }
+  enableTracing(): void {
+    this.tracing = true;
+  }
+  disableTracing(): void {
+    this.tracing = false;
+  }
+  getTrace(): typeof this.debugTrace {
+    return [...this.debugTrace];
+  }
+  clearTrace(): void {
+    this.debugTrace = [];
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getTreeCount(): number { return this.trees.size; }
-  getStatus(id: string): BTStatus { return this.trees.get(id)?.status ?? 'failure'; }
+  getTreeCount(): number {
+    return this.trees.size;
+  }
+  getStatus(id: string): BTStatus {
+    return this.trees.get(id)?.status ?? 'failure';
+  }
 }

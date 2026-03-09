@@ -21,7 +21,9 @@ function makeConfig(overrides?: Partial<EmitterConfig>): EmitterConfig {
 describe('ParticleSystem', () => {
   let ps: ParticleSystem;
 
-  beforeEach(() => { ps = new ParticleSystem(makeConfig()); });
+  beforeEach(() => {
+    ps = new ParticleSystem(makeConfig());
+  });
 
   // ---------------------------------------------------------------------------
   // Construction
@@ -62,10 +64,12 @@ describe('ParticleSystem', () => {
   });
 
   it('particles die after lifetime', () => {
-    const short = new ParticleSystem(makeConfig({
-      lifetime: [0.1, 0.1],
-      rate: 1000,
-    }));
+    const short = new ParticleSystem(
+      makeConfig({
+        lifetime: [0.1, 0.1],
+        rate: 1000,
+      })
+    );
     short.update(0.01); // Emit ~10 particles, age=0.01 < 0.1 lifetime → alive
     const countAfterEmit = short.getActiveCount();
     expect(countAfterEmit).toBeGreaterThan(0);
@@ -101,7 +105,7 @@ describe('ParticleSystem', () => {
     ps.update(0.1);
     const alive = ps.getAliveParticles();
     expect(alive.length).toBe(ps.getActiveCount());
-    expect(alive.every(p => p.alive)).toBe(true);
+    expect(alive.every((p) => p.alive)).toBe(true);
   });
 
   // ---------------------------------------------------------------------------
@@ -112,7 +116,9 @@ describe('ParticleSystem', () => {
     ps.setEmitting(false);
     ps.burst(5);
     let affectorCalled = false;
-    ps.addAffector(() => { affectorCalled = true; });
+    ps.addAffector(() => {
+      affectorCalled = true;
+    });
     ps.update(0.016);
     expect(affectorCalled).toBe(true);
   });

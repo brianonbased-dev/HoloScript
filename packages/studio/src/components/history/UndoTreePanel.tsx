@@ -113,7 +113,10 @@ export function UndoTreePanel({ onClose }: UndoTreePanelProps) {
           >
             <RotateCw className="h-3.5 w-3.5" />
           </button>
-          <button onClick={onClose} className="ml-1 rounded p-1 text-studio-muted hover:text-studio-text">
+          <button
+            onClick={onClose}
+            className="ml-1 rounded p-1 text-studio-muted hover:text-studio-text"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -123,7 +126,9 @@ export function UndoTreePanel({ onClose }: UndoTreePanelProps) {
       <div className="h-1 bg-studio-border">
         <div
           className="h-full bg-studio-accent transition-all"
-          style={{ width: totalStates > 1 ? `${(currentIndex / (totalStates - 1)) * 100}%` : '100%' }}
+          style={{
+            width: totalStates > 1 ? `${(currentIndex / (totalStates - 1)) * 100}%` : '100%',
+          }}
         />
       </div>
 
@@ -141,8 +146,8 @@ export function UndoTreePanel({ onClose }: UndoTreePanelProps) {
                 entry.isCurrent
                   ? 'bg-studio-accent/15 cursor-default'
                   : isGhost
-                  ? 'text-studio-muted/50 hover:bg-studio-surface hover:text-studio-muted'
-                  : 'text-studio-muted hover:bg-studio-surface hover:text-studio-text'
+                    ? 'text-studio-muted/50 hover:bg-studio-surface hover:text-studio-muted'
+                    : 'text-studio-muted hover:bg-studio-surface hover:text-studio-text'
               }`}
             >
               {/* Timeline dot */}
@@ -152,7 +157,9 @@ export function UndoTreePanel({ onClose }: UndoTreePanelProps) {
                 ) : (
                   <Dot
                     className={`h-4 w-4 ${
-                      isGhost ? 'text-studio-muted/30' : 'text-studio-muted group-hover:text-studio-accent'
+                      isGhost
+                        ? 'text-studio-muted/30'
+                        : 'text-studio-muted group-hover:text-studio-accent'
                     }`}
                   />
                 )}
@@ -180,8 +187,12 @@ export function UndoTreePanel({ onClose }: UndoTreePanelProps) {
 
       {/* Footer stats */}
       <div className="flex shrink-0 items-center justify-between border-t border-studio-border px-3 py-2 text-[10px] text-studio-muted">
-        <span>{past.length} undo{past.length !== 1 ? 's' : ''} available</span>
-        <span>{future.length} redo{future.length !== 1 ? 's' : ''} available</span>
+        <span>
+          {past.length} undo{past.length !== 1 ? 's' : ''} available
+        </span>
+        <span>
+          {future.length} redo{future.length !== 1 ? 's' : ''} available
+        </span>
       </div>
     </div>
   );

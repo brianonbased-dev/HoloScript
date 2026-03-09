@@ -27,10 +27,7 @@ function p(...parts: string[]): string {
   return path.join(path.parse(process.cwd()).root, ...parts);
 }
 
-function makeResolver(
-  files: Record<string, string>,
-  graph?: TraitDependencyGraph,
-): ModuleResolver {
+function makeResolver(files: Record<string, string>, graph?: TraitDependencyGraph): ModuleResolver {
   return new ModuleResolver({
     graph,
     loader: (canonicalPath: string) => {
@@ -68,9 +65,7 @@ describe('HoloScriptPlusParser — @import / @export', () => {
     });
 
     it('parses multiple named imports', () => {
-      const result = parser.parseImportDirective(
-        '@import @physics, @ai_npc from "./shared.hs"',
-      );
+      const result = parser.parseImportDirective('@import @physics, @ai_npc from "./shared.hs"');
       expect(result).toEqual({ specifiers: ['physics', 'ai_npc'], source: './shared.hs' });
     });
 
@@ -80,9 +75,7 @@ describe('HoloScriptPlusParser — @import / @export', () => {
     });
 
     it('parses aliased import', () => {
-      const result = parser.parseImportDirective(
-        '@import @physics as @p from "./physics.hs"',
-      );
+      const result = parser.parseImportDirective('@import @physics as @p from "./physics.hs"');
       expect(result).toEqual({
         specifiers: ['physics'],
         source: './physics.hs',
@@ -180,10 +173,9 @@ describe('HoloScriptPlusParser — @import / @export', () => {
 
   describe('parseWithModules()', () => {
     it('returns ast, imports, and exports together', () => {
-      const code = [
-        '@import @physics from "./physics.hs"',
-        'scene World { cube Foo {} }',
-      ].join('\n');
+      const code = ['@import @physics from "./physics.hs"', 'scene World { cube Foo {} }'].join(
+        '\n'
+      );
 
       const result = parser.parseWithModules(code, p('project', 'main.hs'));
       expect(result.ast).toBeDefined();
@@ -376,7 +368,7 @@ describe('ModuleResolver', () => {
           [mainPath]: '@import @physics from "./physics.hs"\nscene World {}',
           [physicsPath]: 'scene Physics {}',
         },
-        graph,
+        graph
       );
 
       resolver.load(mainPath);

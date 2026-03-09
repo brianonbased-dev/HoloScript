@@ -9,8 +9,8 @@ pnpm install
 ```
 
 ```tsx
-import { HoloPreview } from "@holoscript/preview-component";
-import "@holoscript/preview-component/styles.css";
+import { HoloPreview } from '@holoscript/preview-component';
+import '@holoscript/preview-component/styles.css';
 ```
 
 Requires `react` and `react-dom` (v18+). `three` is an optional peer dependency.

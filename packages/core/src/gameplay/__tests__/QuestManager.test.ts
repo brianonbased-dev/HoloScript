@@ -1,21 +1,42 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { QuestManager, QuestDef } from '../QuestManager';
 
-function quest(id: string, overrides: Partial<Omit<QuestDef, 'status' | 'elapsed' | 'completionCount'>> = {}) {
+function quest(
+  id: string,
+  overrides: Partial<Omit<QuestDef, 'status' | 'elapsed' | 'completionCount'>> = {}
+) {
   return {
-    id, name: id, description: 'Test quest', category: 'main',
-    objectives: [], prerequisites: [], level: 1, timeLimit: 0, repeatable: false,
+    id,
+    name: id,
+    description: 'Test quest',
+    category: 'main',
+    objectives: [],
+    prerequisites: [],
+    level: 1,
+    timeLimit: 0,
+    repeatable: false,
     ...overrides,
   };
 }
 
 function objective(id: string, required = 1) {
-  return { id, type: 'collect' as const, description: 'desc', target: 't', required, current: 0, completed: false, optional: false };
+  return {
+    id,
+    type: 'collect' as const,
+    description: 'desc',
+    target: 't',
+    required,
+    current: 0,
+    completed: false,
+    optional: false,
+  };
 }
 
 describe('QuestManager', () => {
   let qm: QuestManager;
-  beforeEach(() => { qm = new QuestManager(); });
+  beforeEach(() => {
+    qm = new QuestManager();
+  });
 
   // --- CRUD ---
   it('addQuest stores quest', () => {
@@ -77,12 +98,11 @@ describe('QuestManager', () => {
   });
 
   it('optional objectives do not block completion', () => {
-    qm.addQuest(quest('q1', {
-      objectives: [
-        objective('o1', 1),
-        { ...objective('o2', 5), optional: true },
-      ],
-    }));
+    qm.addQuest(
+      quest('q1', {
+        objectives: [objective('o1', 1), { ...objective('o2', 5), optional: true }],
+      })
+    );
     qm.activate('q1');
     qm.updateObjective('q1', 'o1', 1);
     expect(qm.getQuest('q1')!.status).toBe('completed');

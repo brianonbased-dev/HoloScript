@@ -10,46 +10,146 @@ import { describe, it, expect } from 'vitest';
 
 // Replicate the tokenizer constants and function from semanticTokensProvider.ts
 const TOKEN_TYPES = [
-  'namespace', 'class', 'type', 'parameter', 'variable', 'property',
-  'function', 'decorator', 'keyword', 'string', 'number', 'operator',
-  'comment', 'enumMember',
+  'namespace',
+  'class',
+  'type',
+  'parameter',
+  'variable',
+  'property',
+  'function',
+  'decorator',
+  'keyword',
+  'string',
+  'number',
+  'operator',
+  'comment',
+  'enumMember',
 ] as const;
 
 const TOKEN_MODIFIERS = [
-  'declaration', 'definition', 'readonly', 'static', 'async',
-  'modification', 'documentation', 'defaultLibrary',
+  'declaration',
+  'definition',
+  'readonly',
+  'static',
+  'async',
+  'modification',
+  'documentation',
+  'defaultLibrary',
 ] as const;
 
 const KEYWORDS = new Set([
-  'composition', 'object', 'template', 'spatial_group', 'environment',
-  'state', 'logic', 'using', 'import', 'from', 'if', 'else', 'for',
-  'while', 'return', 'spawn', 'emit', 'true', 'false', 'null',
-  'let', 'const', 'function',
+  'composition',
+  'object',
+  'template',
+  'spatial_group',
+  'environment',
+  'state',
+  'logic',
+  'using',
+  'import',
+  'from',
+  'if',
+  'else',
+  'for',
+  'while',
+  'return',
+  'spawn',
+  'emit',
+  'true',
+  'false',
+  'null',
+  'let',
+  'const',
+  'function',
 ]);
 
 const BUILTIN_TRAITS = new Set([
-  'grabbable', 'throwable', 'collidable', 'physics', 'gravity', 'trigger',
-  'pointable', 'hoverable', 'clickable', 'draggable', 'scalable',
-  'glowing', 'transparent', 'spinning', 'floating', 'billboard', 'pulse',
-  'animated', 'look_at', 'outline', 'proximity',
-  'behavior_tree', 'emotion', 'goal_oriented', 'perception', 'memory',
-  'cloth', 'soft_body', 'fluid', 'buoyancy', 'rope', 'wind', 'joint',
-  'rigidbody', 'destruction', 'rotatable', 'stackable', 'snappable',
-  'breakable', 'character', 'patrol', 'networked', 'anchor',
-  'spatial_audio', 'reverb_zone', 'voice_proximity',
-  'teleport', 'ui_panel', 'particle_system', 'weather', 'day_night',
-  'lod', 'hand_tracking', 'haptic', 'portal', 'mirror',
+  'grabbable',
+  'throwable',
+  'collidable',
+  'physics',
+  'gravity',
+  'trigger',
+  'pointable',
+  'hoverable',
+  'clickable',
+  'draggable',
+  'scalable',
+  'glowing',
+  'transparent',
+  'spinning',
+  'floating',
+  'billboard',
+  'pulse',
+  'animated',
+  'look_at',
+  'outline',
+  'proximity',
+  'behavior_tree',
+  'emotion',
+  'goal_oriented',
+  'perception',
+  'memory',
+  'cloth',
+  'soft_body',
+  'fluid',
+  'buoyancy',
+  'rope',
+  'wind',
+  'joint',
+  'rigidbody',
+  'destruction',
+  'rotatable',
+  'stackable',
+  'snappable',
+  'breakable',
+  'character',
+  'patrol',
+  'networked',
+  'anchor',
+  'spatial_audio',
+  'reverb_zone',
+  'voice_proximity',
+  'teleport',
+  'ui_panel',
+  'particle_system',
+  'weather',
+  'day_night',
+  'lod',
+  'hand_tracking',
+  'haptic',
+  'portal',
+  'mirror',
 ]);
 
 const EVENT_HANDLERS = new Set([
-  'on_click', 'on_hover', 'on_enter', 'on_exit', 'on_grab',
-  'on_release', 'on_collision', 'on_trigger', 'on_update',
+  'on_click',
+  'on_hover',
+  'on_enter',
+  'on_exit',
+  'on_grab',
+  'on_release',
+  'on_collision',
+  'on_trigger',
+  'on_update',
 ]);
 
 const COMMON_PROPERTIES = new Set([
-  'position', 'rotation', 'scale', 'color', 'opacity', 'geometry',
-  'model', 'material', 'texture', 'skybox', 'ambient_light',
-  'mass', 'velocity', 'friction', 'restitution',
+  'position',
+  'rotation',
+  'scale',
+  'color',
+  'opacity',
+  'geometry',
+  'model',
+  'material',
+  'texture',
+  'skybox',
+  'ambient_light',
+  'mass',
+  'velocity',
+  'friction',
+  'restitution',
 ]);
 
 interface TokenInfo {
@@ -70,36 +170,73 @@ function tokenize(text: string): TokenInfo[] {
 
     while (pos < line.length) {
       const wsMatch = line.slice(pos).match(/^[ \t]+/);
-      if (wsMatch) { pos += wsMatch[0].length; continue; }
+      if (wsMatch) {
+        pos += wsMatch[0].length;
+        continue;
+      }
 
       if (line.slice(pos).startsWith('//')) {
-        tokens.push({ line: lineIndex, startChar: pos, length: line.length - pos, tokenType: TOKEN_TYPES.indexOf('comment'), tokenModifiers: 0 });
+        tokens.push({
+          line: lineIndex,
+          startChar: pos,
+          length: line.length - pos,
+          tokenType: TOKEN_TYPES.indexOf('comment'),
+          tokenModifiers: 0,
+        });
         break;
       }
       if (line.slice(pos).startsWith('/*')) {
         const endPos = line.indexOf('*/', pos + 2);
         const len = endPos >= 0 ? endPos + 2 - pos : line.length - pos;
-        tokens.push({ line: lineIndex, startChar: pos, length: len, tokenType: TOKEN_TYPES.indexOf('comment'), tokenModifiers: 0 });
-        pos += len; continue;
+        tokens.push({
+          line: lineIndex,
+          startChar: pos,
+          length: len,
+          tokenType: TOKEN_TYPES.indexOf('comment'),
+          tokenModifiers: 0,
+        });
+        pos += len;
+        continue;
       }
 
       const traitMatch = line.slice(pos).match(/^@([a-zA-Z_][a-zA-Z0-9_]*)/);
       if (traitMatch) {
         const isBuiltin = BUILTIN_TRAITS.has(traitMatch[1]);
-        tokens.push({ line: lineIndex, startChar: pos, length: traitMatch[0].length, tokenType: TOKEN_TYPES.indexOf('decorator'), tokenModifiers: isBuiltin ? 1 << TOKEN_MODIFIERS.indexOf('defaultLibrary') : 0 });
-        pos += traitMatch[0].length; continue;
+        tokens.push({
+          line: lineIndex,
+          startChar: pos,
+          length: traitMatch[0].length,
+          tokenType: TOKEN_TYPES.indexOf('decorator'),
+          tokenModifiers: isBuiltin ? 1 << TOKEN_MODIFIERS.indexOf('defaultLibrary') : 0,
+        });
+        pos += traitMatch[0].length;
+        continue;
       }
 
       const stringMatch = line.slice(pos).match(/^"(?:[^"\\]|\\.)*"|^'(?:[^'\\]|\\.)*'/);
       if (stringMatch) {
-        tokens.push({ line: lineIndex, startChar: pos, length: stringMatch[0].length, tokenType: TOKEN_TYPES.indexOf('string'), tokenModifiers: 0 });
-        pos += stringMatch[0].length; continue;
+        tokens.push({
+          line: lineIndex,
+          startChar: pos,
+          length: stringMatch[0].length,
+          tokenType: TOKEN_TYPES.indexOf('string'),
+          tokenModifiers: 0,
+        });
+        pos += stringMatch[0].length;
+        continue;
       }
 
       const numberMatch = line.slice(pos).match(/^-?(?:0x[0-9a-fA-F]+|\d+\.?\d*(?:[eE][+-]?\d+)?)/);
       if (numberMatch) {
-        tokens.push({ line: lineIndex, startChar: pos, length: numberMatch[0].length, tokenType: TOKEN_TYPES.indexOf('number'), tokenModifiers: 0 });
-        pos += numberMatch[0].length; continue;
+        tokens.push({
+          line: lineIndex,
+          startChar: pos,
+          length: numberMatch[0].length,
+          tokenType: TOKEN_TYPES.indexOf('number'),
+          tokenModifiers: 0,
+        });
+        pos += numberMatch[0].length;
+        continue;
       }
 
       const identMatch = line.slice(pos).match(/^[a-zA-Z_][a-zA-Z0-9_]*/);
@@ -122,18 +259,34 @@ function tokenize(text: string): TokenInfo[] {
             tokenType = TOKEN_TYPES.indexOf('variable');
           } else {
             const afterIdent = line.slice(pos + word.length).trimStart();
-            tokenType = afterIdent.startsWith(':') ? TOKEN_TYPES.indexOf('property') : TOKEN_TYPES.indexOf('variable');
+            tokenType = afterIdent.startsWith(':')
+              ? TOKEN_TYPES.indexOf('property')
+              : TOKEN_TYPES.indexOf('variable');
           }
         }
 
-        tokens.push({ line: lineIndex, startChar: pos, length: word.length, tokenType, tokenModifiers: modifiers });
-        pos += word.length; continue;
+        tokens.push({
+          line: lineIndex,
+          startChar: pos,
+          length: word.length,
+          tokenType,
+          tokenModifiers: modifiers,
+        });
+        pos += word.length;
+        continue;
       }
 
       const opMatch = line.slice(pos).match(/^(?:=>|->|&&|\|\||[+\-*\/%<>=!&|^~?:])/);
       if (opMatch) {
-        tokens.push({ line: lineIndex, startChar: pos, length: opMatch[0].length, tokenType: TOKEN_TYPES.indexOf('operator'), tokenModifiers: 0 });
-        pos += opMatch[0].length; continue;
+        tokens.push({
+          line: lineIndex,
+          startChar: pos,
+          length: opMatch[0].length,
+          tokenType: TOKEN_TYPES.indexOf('operator'),
+          tokenModifiers: 0,
+        });
+        pos += opMatch[0].length;
+        continue;
       }
       pos++;
     }
@@ -142,7 +295,9 @@ function tokenize(text: string): TokenInfo[] {
 }
 
 // Helper to find token type name
-function typeName(idx: number): string { return TOKEN_TYPES[idx]; }
+function typeName(idx: number): string {
+  return TOKEN_TYPES[idx];
+}
 
 describe('tokenize', () => {
   describe('keywords', () => {
@@ -266,8 +421,8 @@ describe('tokenize', () => {
   describe('multi-line', () => {
     it('tracks line numbers correctly', () => {
       const tokens = tokenize('object "A" {}\nobject "B" {}');
-      const lineZeros = tokens.filter(t => t.line === 0);
-      const lineOnes = tokens.filter(t => t.line === 1);
+      const lineZeros = tokens.filter((t) => t.line === 0);
+      const lineOnes = tokens.filter((t) => t.line === 1);
       expect(lineZeros.length).toBeGreaterThan(0);
       expect(lineOnes.length).toBeGreaterThan(0);
     });

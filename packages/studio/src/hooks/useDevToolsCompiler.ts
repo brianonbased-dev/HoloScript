@@ -11,14 +11,14 @@ export function useDevToolsCompiler() {
     try {
       // Initialize devtools first (creates holoscriptTools namespace)
       initializeDevTools();
-      
+
       // Also expose bridge directly
       const bridge = getCompilerBridge();
       (window as any).CompilerBridge = bridge;
       (window as any).getCompilerBridge = getCompilerBridge;
-      
+
       console.log('%c✅ CompilerBridge available in window', 'color: #0a0; font-weight: bold;');
-      
+
       return () => {
         // Cleanup (optional)
       };
@@ -29,6 +29,6 @@ export function useDevToolsCompiler() {
 
   return {
     checkAvailable: () => !!(window as any).CompilerBridge,
-    getCompilerBridge: () => (window as any).CompilerBridge
+    getCompilerBridge: () => (window as any).CompilerBridge,
   };
 }

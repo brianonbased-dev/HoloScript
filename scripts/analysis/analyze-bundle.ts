@@ -22,12 +22,12 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 }
 
 function analyzeBundle() {
   console.log('📊 HoloScript Bundle Analysis\n');
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
 
   // Check if dist exists
   if (!existsSync(DIST_DIR)) {
@@ -39,7 +39,7 @@ function analyzeBundle() {
 
   // Analyze main bundles
   const mainFiles = ['index.js', 'index.cjs'];
-  mainFiles.forEach(file => {
+  mainFiles.forEach((file) => {
     const filePath = join(DIST_DIR, file);
     if (existsSync(filePath)) {
       const stats = statSync(filePath);
@@ -56,10 +56,10 @@ function analyzeBundle() {
   let compilerTotalSize = 0;
 
   if (existsSync(COMPILER_DIR)) {
-    const compilerFiles = readdirSync(COMPILER_DIR).filter(f => f.endsWith('.js'));
+    const compilerFiles = readdirSync(COMPILER_DIR).filter((f) => f.endsWith('.js'));
     compilerCount = compilerFiles.length;
 
-    compilerFiles.forEach(file => {
+    compilerFiles.forEach((file) => {
       const filePath = join(COMPILER_DIR, file);
       const stats = statSync(filePath);
       compilerTotalSize += stats.size;
@@ -73,13 +73,13 @@ function analyzeBundle() {
   }
 
   // Analyze shared chunks
-  const chunkFiles = readdirSync(DIST_DIR).filter(f =>
-    f.startsWith('chunk-') && f.endsWith('.js')
+  const chunkFiles = readdirSync(DIST_DIR).filter(
+    (f) => f.startsWith('chunk-') && f.endsWith('.js')
   );
   const sharedChunkCount = chunkFiles.length;
   let sharedChunkTotalSize = 0;
 
-  chunkFiles.forEach(file => {
+  chunkFiles.forEach((file) => {
     const filePath = join(DIST_DIR, file);
     const stats = statSync(filePath);
     sharedChunkTotalSize += stats.size;
@@ -88,34 +88,50 @@ function analyzeBundle() {
   // Print results
   console.log('\n📦 Main Bundles:');
   console.log('-'.repeat(80));
-  bundles.filter(b => b.name.includes('Main')).forEach(bundle => {
-    console.log(`  ${bundle.name.padEnd(40)} ${bundle.sizeFormatted.padStart(15)}`);
-  });
+  bundles
+    .filter((b) => b.name.includes('Main'))
+    .forEach((bundle) => {
+      console.log(`  ${bundle.name.padEnd(40)} ${bundle.sizeFormatted.padStart(15)}`);
+    });
 
   console.log(`\n🎯 Compiler Chunks (${compilerCount} files):`);
   console.log('-'.repeat(80));
-  const compilerBundles = bundles.filter(b => b.name.includes('Compiler'));
-  compilerBundles.slice(0, 10).forEach(bundle => {
+  const compilerBundles = bundles.filter((b) => b.name.includes('Compiler'));
+  compilerBundles.slice(0, 10).forEach((bundle) => {
     console.log(`  ${bundle.name.padEnd(40)} ${bundle.sizeFormatted.padStart(15)}`);
   });
   if (compilerBundles.length > 10) {
     console.log(`  ... and ${compilerBundles.length - 10} more compiler chunks`);
   }
-  console.log(`  ${'TOTAL Compiler Size:'.padEnd(40)} ${formatBytes(compilerTotalSize).padStart(15)}`);
-  console.log(`  ${'AVERAGE Compiler Size:'.padEnd(40)} ${formatBytes(compilerTotalSize / compilerCount).padStart(15)}`);
+  console.log(
+    `  ${'TOTAL Compiler Size:'.padEnd(40)} ${formatBytes(compilerTotalSize).padStart(15)}`
+  );
+  console.log(
+    `  ${'AVERAGE Compiler Size:'.padEnd(40)} ${formatBytes(compilerTotalSize / compilerCount).padStart(15)}`
+  );
 
   console.log(`\n🔗 Shared Chunks (${sharedChunkCount} files):`);
   console.log('-'.repeat(80));
-  console.log(`  ${'Total shared chunk count:'.padEnd(40)} ${sharedChunkCount.toString().padStart(15)}`);
-  console.log(`  ${'Total shared chunk size:'.padEnd(40)} ${formatBytes(sharedChunkTotalSize).padStart(15)}`);
+  console.log(
+    `  ${'Total shared chunk count:'.padEnd(40)} ${sharedChunkCount.toString().padStart(15)}`
+  );
+  console.log(
+    `  ${'Total shared chunk size:'.padEnd(40)} ${formatBytes(sharedChunkTotalSize).padStart(15)}`
+  );
 
   // Summary
   const totalSize = bundles.reduce((sum, b) => sum + b.size, 0) + sharedChunkTotalSize;
   console.log('\n📊 Summary:');
   console.log('='.repeat(80));
-  console.log(`  ${'Total Bundle Size (all files):'.padEnd(40)} ${formatBytes(totalSize).padStart(15)}`);
-  console.log(`  ${'Main Bundle (ESM):'.padEnd(40)} ${bundles.find(b => b.name.includes('index.js'))?.sizeFormatted.padStart(15) || 'N/A'}`);
-  console.log(`  ${'Main Bundle (CJS):'.padEnd(40)} ${bundles.find(b => b.name.includes('index.cjs'))?.sizeFormatted.padStart(15) || 'N/A'}`);
+  console.log(
+    `  ${'Total Bundle Size (all files):'.padEnd(40)} ${formatBytes(totalSize).padStart(15)}`
+  );
+  console.log(
+    `  ${'Main Bundle (ESM):'.padEnd(40)} ${bundles.find((b) => b.name.includes('index.js'))?.sizeFormatted.padStart(15) || 'N/A'}`
+  );
+  console.log(
+    `  ${'Main Bundle (CJS):'.padEnd(40)} ${bundles.find((b) => b.name.includes('index.cjs'))?.sizeFormatted.padStart(15) || 'N/A'}`
+  );
   console.log(`  ${'Compiler Chunks:'.padEnd(40)} ${compilerCount.toString().padStart(15)}`);
   console.log(`  ${'Shared Chunks:'.padEnd(40)} ${sharedChunkCount.toString().padStart(15)}`);
 
@@ -123,18 +139,24 @@ function analyzeBundle() {
   console.log('\n💡 Performance Insights:');
   console.log('='.repeat(80));
 
-  const mainBundleSize = bundles.find(b => b.name.includes('index.js'))?.size || 0;
+  const mainBundleSize = bundles.find((b) => b.name.includes('index.js'))?.size || 0;
   const avgCompilerSize = compilerTotalSize / compilerCount;
 
   console.log(`  • Loading ALL compilers: ${formatBytes(mainBundleSize)}`);
-  console.log(`  • Loading 1 compiler: ~${formatBytes(mainBundleSize * 0.4 + avgCompilerSize)} (60% reduction)`);
-  console.log(`  • Loading 2 compilers: ~${formatBytes(mainBundleSize * 0.5 + avgCompilerSize * 2)} (50% reduction)`);
-  console.log(`  • Loading 5 compilers: ~${formatBytes(mainBundleSize * 0.7 + avgCompilerSize * 5)} (30% reduction)`);
+  console.log(
+    `  • Loading 1 compiler: ~${formatBytes(mainBundleSize * 0.4 + avgCompilerSize)} (60% reduction)`
+  );
+  console.log(
+    `  • Loading 2 compilers: ~${formatBytes(mainBundleSize * 0.5 + avgCompilerSize * 2)} (50% reduction)`
+  );
+  console.log(
+    `  • Loading 5 compilers: ~${formatBytes(mainBundleSize * 0.7 + avgCompilerSize * 5)} (30% reduction)`
+  );
 
   console.log('\n✨ Code Splitting Success!');
   console.log('   Users only load the compilers they need, saving bandwidth and load time.\n');
 
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
   console.log('📈 Analysis complete!\n');
 }
 

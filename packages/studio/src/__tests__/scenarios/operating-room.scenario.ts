@@ -17,12 +17,11 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// We mock VRRRuntime to simulate real-world IoT sensor data streams 
+// We mock VRRRuntime to simulate real-world IoT sensor data streams
 // bound to the @sensor_stream trait logic inside HoloScript arrays.
 import { VRRRuntime } from '../../../../runtime/src/VRRRuntime';
 
 describe('Scenario: Healthcare Operating Room Simulation', () => {
-
   let vrr: VRRRuntime;
   let mockFetch: any;
 
@@ -38,11 +37,11 @@ describe('Scenario: Healthcare Operating Room Simulation', () => {
         iot: {
           provider: 'http',
           endpoint: 'biometrics.hospital.local',
-          api_key: 'test_token'
-        }
+          api_key: 'test_token',
+        },
       },
       multiplayer: { enabled: false, max_players: 5, tick_rate: 10 },
-      state_persistence: { client: 'localstorage', server: '' }
+      state_persistence: { client: 'localstorage', server: '' },
     });
   });
 
@@ -61,8 +60,8 @@ describe('Scenario: Healthcare Operating Room Simulation', () => {
       json: async () => ({
         heart_rate: 85,
         spo2: 98,
-        blood_pressure: '120/80'
-      })
+        blood_pressure: '120/80',
+      }),
     });
 
     const telemetryReceived = new Promise<any>((resolve) => {
@@ -86,7 +85,7 @@ describe('Scenario: Healthcare Operating Room Simulation', () => {
     vrr.syncIoTSensor('broken_sensor_2', () => {});
 
     // Wait for the setInterval to fire at least once and catch the throw
-    await new Promise(resolve => setTimeout(resolve, 150));
+    await new Promise((resolve) => setTimeout(resolve, 150));
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'IoT Polling failed for broken_sensor_2',
@@ -100,11 +99,11 @@ describe('Scenario: Healthcare Operating Room Simulation', () => {
     // Sending a command to adjust the surgical lighting (actuator)
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ success: true })
+      json: async () => ({ success: true }),
     });
 
     const success = await vrr.actuateHardware('surgical_light_rig', { brightness: 80, angle: 45 });
-    
+
     expect(success).toBe(true);
     expect(mockFetch).toHaveBeenCalledWith(
       'https://biometrics.hospital.local/actuate/surgical_light_rig',
@@ -112,9 +111,9 @@ describe('Scenario: Healthcare Operating Room Simulation', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer test_token'
+          Authorization: 'Bearer test_token',
         },
-        body: JSON.stringify({ brightness: 80, angle: 45 })
+        body: JSON.stringify({ brightness: 80, angle: 45 }),
       })
     );
   });

@@ -22,10 +22,7 @@ describe('DialogueRunner — Production', () => {
 
   it('advance moves through linear dialogue', () => {
     const dr = new DialogueRunner();
-    dr.loadNodes([
-      textNode('n1', 'Hi', 'n2'),
-      textNode('n2', 'Bye'),
-    ]);
+    dr.loadNodes([textNode('n1', 'Hi', 'n2'), textNode('n2', 'Bye')]);
     dr.start('n1');
     const n2 = dr.advance();
     expect(n2!.text).toBe('Bye');
@@ -62,7 +59,10 @@ describe('DialogueRunner — Production', () => {
     const dr = new DialogueRunner();
     dr.loadNodes([
       {
-        id: 'c1', type: 'choice', speaker: 'NPC', text: 'Pick:',
+        id: 'c1',
+        type: 'choice',
+        speaker: 'NPC',
+        text: 'Pick:',
         choices: [
           { label: 'A', nextId: 'a' },
           { label: 'B', nextId: 'b' },
@@ -79,7 +79,10 @@ describe('DialogueRunner — Production', () => {
   it('conditional choice filtered by variable', () => {
     const dr = new DialogueRunner();
     const choiceNode: DialogueNode = {
-      id: 'c1', type: 'choice', speaker: 'NPC', text: 'Pick:',
+      id: 'c1',
+      type: 'choice',
+      speaker: 'NPC',
+      text: 'Pick:',
       choices: [
         { label: 'Secret', nextId: 's', condition: 'hasPerk' },
         { label: 'Normal', nextId: 'n' },

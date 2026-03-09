@@ -5,17 +5,31 @@
  * measurement tools, and jury-facing presentation modes.
  */
 
-export interface Vec3 { x: number; y: number; z: number }
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 export type AnnotationType = 'label' | 'measurement' | 'highlight' | 'arrow' | 'circle' | 'callout';
-export type EvidenceClass = 'physical' | 'digital' | 'testimonial' | 'demonstrative' | 'documentary';
-export type PresentationMode = 'overview' | 'walkthrough' | 'witness-pov' | 'comparison' | 'timeline';
+export type EvidenceClass =
+  | 'physical'
+  | 'digital'
+  | 'testimonial'
+  | 'demonstrative'
+  | 'documentary';
+export type PresentationMode =
+  | 'overview'
+  | 'walkthrough'
+  | 'witness-pov'
+  | 'comparison'
+  | 'timeline';
 
 export interface Annotation3D {
   id: string;
   type: AnnotationType;
   position: Vec3;
-  targetPosition?: Vec3;     // For arrows/measurements
+  targetPosition?: Vec3; // For arrows/measurements
   text: string;
   color: string;
   visible: boolean;
@@ -24,13 +38,13 @@ export interface Annotation3D {
 
 export interface EvidenceExhibit {
   id: string;
-  exhibitNumber: string;     // e.g., 'Exhibit A-1'
+  exhibitNumber: string; // e.g., 'Exhibit A-1'
   title: string;
   class: EvidenceClass;
   description: string;
   admittedDate: string;
   objectionsRuled: 'admitted' | 'sustained' | 'overruled' | 'pending';
-  position?: Vec3;           // 3D placement in scene
+  position?: Vec3; // 3D placement in scene
 }
 
 export interface TimelineEvent {
@@ -49,7 +63,7 @@ export interface WitnessPOV {
   lookDirection: Vec3;
   fovDegrees: number;
   timeOfEvent: number;
-  canSee: string[];          // IDs of visible exhibits
+  canSee: string[]; // IDs of visible exhibits
 }
 
 export interface MeasurementResult {
@@ -82,23 +96,35 @@ export function sortTimelineEvents(events: TimelineEvent[]): TimelineEvent[] {
 }
 
 export function filterAdmittedExhibits(exhibits: EvidenceExhibit[]): EvidenceExhibit[] {
-  return exhibits.filter(e => e.objectionsRuled === 'admitted');
+  return exhibits.filter((e) => e.objectionsRuled === 'admitted');
 }
 
-export function exhibitsByClass(exhibits: EvidenceExhibit[], cls: EvidenceClass): EvidenceExhibit[] {
-  return exhibits.filter(e => e.class === cls);
+export function exhibitsByClass(
+  exhibits: EvidenceExhibit[],
+  cls: EvidenceClass
+): EvidenceExhibit[] {
+  return exhibits.filter((e) => e.class === cls);
 }
 
 export function isExhibitVisible(exhibit: EvidenceExhibit, pov: WitnessPOV): boolean {
   return pov.canSee.includes(exhibit.id);
 }
 
-export function annotationsForExhibit(annotations: Annotation3D[], exhibitId: string): Annotation3D[] {
-  return annotations.filter(a => a.linkedEvidenceId === exhibitId);
+export function annotationsForExhibit(
+  annotations: Annotation3D[],
+  exhibitId: string
+): Annotation3D[] {
+  return annotations.filter((a) => a.linkedEvidenceId === exhibitId);
 }
 
 export function totalExhibitCount(exhibits: EvidenceExhibit[]): Record<EvidenceClass, number> {
-  const counts: Record<EvidenceClass, number> = { physical: 0, digital: 0, testimonial: 0, demonstrative: 0, documentary: 0 };
+  const counts: Record<EvidenceClass, number> = {
+    physical: 0,
+    digital: 0,
+    testimonial: 0,
+    demonstrative: 0,
+    documentary: 0,
+  };
   for (const e of exhibits) counts[e.class]++;
   return counts;
 }
@@ -150,7 +176,7 @@ export function activeVoiceAnnotation(
   annotations: VoiceAnnotation[],
   timeSec: number
 ): VoiceAnnotation | null {
-  return annotations.find(a => timeSec >= a.startTimeSec && timeSec < a.endTimeSec) ?? null;
+  return annotations.find((a) => timeSec >= a.startTimeSec && timeSec < a.endTimeSec) ?? null;
 }
 
 /**

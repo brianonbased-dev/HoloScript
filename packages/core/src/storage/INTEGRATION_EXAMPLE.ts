@@ -82,15 +82,11 @@ async function uploadLargeAsset() {
   // Track upload progress
   const result = await ipfs.upload({
     name: 'large_scene',
-    files: [
-      { path: 'scene.glb', content: await fs.readFile('./assets/large_scene.glb') },
-    ],
+    files: [{ path: 'scene.glb', content: await fs.readFile('./assets/large_scene.glb') }],
     onProgress: (progress: UploadProgress) => {
       const bar = '='.repeat(Math.floor(progress.percentage / 2));
       const spaces = ' '.repeat(50 - bar.length);
-      console.log(
-        `[${bar}${spaces}] ${progress.percentage.toFixed(1)}% - ${progress.currentFile}`
-      );
+      console.log(`[${bar}${spaces}] ${progress.percentage.toFixed(1)}% - ${progress.currentFile}`);
     },
   });
 
@@ -125,9 +121,7 @@ async function uploadWithFallback() {
   // Upload will automatically retry and fallback on failure
   const result = await ipfs.upload({
     name: 'resilient_upload',
-    files: [
-      { path: 'asset.glb', content: await fs.readFile('./assets/asset.glb') },
-    ],
+    files: [{ path: 'asset.glb', content: await fs.readFile('./assets/asset.glb') }],
   });
 
   console.log('Upload succeeded with resilient fallback!');
@@ -318,9 +312,7 @@ async function uploadWithErrorHandling() {
   try {
     const result = await ipfs.upload({
       name: 'test_upload',
-      files: [
-        { path: 'asset.glb', content: await fs.readFile('./assets/asset.glb') },
-      ],
+      files: [{ path: 'asset.glb', content: await fs.readFile('./assets/asset.glb') }],
     });
 
     console.log('Upload successful:', result.cid);

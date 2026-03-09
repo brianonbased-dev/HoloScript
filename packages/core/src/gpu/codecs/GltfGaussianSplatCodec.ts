@@ -29,10 +29,7 @@
  * @version 1.0.0
  */
 
-import {
-  AbstractGaussianCodec,
-  CodecDecodeError,
-} from './IGaussianCodec.js';
+import { AbstractGaussianCodec, CodecDecodeError } from './IGaussianCodec.js';
 import type {
   GaussianSplatData,
   GaussianCodecCapabilities,
@@ -187,9 +184,7 @@ type GaussianColorSpace = 'srgb_rec709_display' | 'lin_rec709_display';
  * Standard sRGB transfer function inverse.
  */
 function srgbToLinear(srgb: number): number {
-  return srgb <= 0.04045
-    ? srgb / 12.92
-    : Math.pow((srgb + 0.055) / 1.055, 2.4);
+  return srgb <= 0.04045 ? srgb / 12.92 : Math.pow((srgb + 0.055) / 1.055, 2.4);
 }
 
 /**
@@ -197,9 +192,7 @@ function srgbToLinear(srgb: number): number {
  * Standard sRGB transfer function.
  */
 function linearToSrgb(linear: number): number {
-  return linear <= 0.0031308
-    ? linear * 12.92
-    : 1.055 * Math.pow(linear, 1.0 / 2.4) - 0.055;
+  return linear <= 0.0031308 ? linear * 12.92 : 1.055 * Math.pow(linear, 1.0 / 2.4) - 0.055;
 }
 
 // =============================================================================
@@ -255,7 +248,8 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
 
     // Check for JSON-based glTF: starts with '{'
     const firstByte = new Uint8Array(buffer, 0, 1)[0];
-    if (firstByte === 0x7b) { // '{'
+    if (firstByte === 0x7b) {
+      // '{'
       // Quick heuristic: look for "KHR_gaussian_splatting" in the first bytes
       try {
         const decoder = new TextDecoder('utf-8');
@@ -315,7 +309,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
 
   async decode(
     buffer: ArrayBuffer,
-    options?: GaussianDecodeOptions,
+    options?: GaussianDecodeOptions
   ): Promise<CodecResult<GaussianSplatData>> {
     const startTime = performance.now();
     const warnings: string[] = [];
@@ -356,7 +350,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
         maxGaussians,
         maxMemoryMB,
         decodeSH,
-        warnings,
+        warnings
       );
     }
 
@@ -415,14 +409,14 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
     if (version < 2) {
       throw new CodecDecodeError(
         this.codecId,
-        `Unsupported GLB version: ${version} (expected >= 2)`,
+        `Unsupported GLB version: ${version} (expected >= 2)`
       );
     }
 
     if (totalLength > buffer.byteLength) {
       throw new CodecDecodeError(
         this.codecId,
-        `GLB header declares ${totalLength} bytes but buffer is only ${buffer.byteLength} bytes`,
+        `GLB header declares ${totalLength} bytes but buffer is only ${buffer.byteLength} bytes`
       );
     }
 
@@ -442,7 +436,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
       if (chunkDataEnd > totalLength) {
         throw new CodecDecodeError(
           this.codecId,
-          `GLB chunk at offset ${offset} extends beyond file (${chunkDataEnd} > ${totalLength})`,
+          `GLB chunk at offset ${offset} extends beyond file (${chunkDataEnd} > ${totalLength})`
         );
       }
 
@@ -456,7 +450,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
           throw new CodecDecodeError(
             this.codecId,
             'Failed to parse GLB JSON chunk',
-            e instanceof Error ? e : undefined,
+            e instanceof Error ? e : undefined
           );
         }
       } else if (chunkType === GLB_CHUNK_TYPE_BIN) {
@@ -470,10 +464,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
     }
 
     if (!jsonChunk) {
-      throw new CodecDecodeError(
-        this.codecId,
-        'GLB file does not contain a JSON chunk',
-      );
+      throw new CodecDecodeError(this.codecId, 'GLB file does not contain a JSON chunk');
     }
 
     return {
@@ -496,7 +487,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
       throw new CodecDecodeError(
         this.codecId,
         'Failed to parse glTF JSON',
-        e instanceof Error ? e : undefined,
+        e instanceof Error ? e : undefined
       );
     }
 
@@ -519,10 +510,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
     spzExt: KhrGaussianSplattingCompressionSpz | undefined;
   } {
     if (!gltf.meshes || gltf.meshes.length === 0) {
-      throw new CodecDecodeError(
-        this.codecId,
-        'glTF file contains no meshes',
-      );
+      throw new CodecDecodeError(this.codecId, 'glTF file contains no meshes');
     }
 
     for (const mesh of gltf.meshes) {
@@ -543,7 +531,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
 
     throw new CodecDecodeError(
       this.codecId,
-      `No mesh primitive with ${EXT_GAUSSIAN_SPLATTING} extension found in glTF file`,
+      `No mesh primitive with ${EXT_GAUSSIAN_SPLATTING} extension found in glTF file`
     );
   }
 
@@ -558,7 +546,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
     if (!gltf.bufferViews || bufferViewIndex >= gltf.bufferViews.length) {
       throw new CodecDecodeError(
         this.codecId,
-        `BufferView index ${bufferViewIndex} is out of range (${gltf.bufferViews?.length ?? 0} bufferViews)`,
+        `BufferView index ${bufferViewIndex} is out of range (${gltf.bufferViews?.length ?? 0} bufferViews)`
       );
     }
 
@@ -574,7 +562,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
       throw new CodecDecodeError(
         this.codecId,
         `BufferView [${bufferViewIndex}] range (${byteOffset}..${byteOffset + byteLength}) ` +
-        `exceeds buffer [${bufferIndex}] size (${bufferData.byteLength})`,
+          `exceeds buffer [${bufferIndex}] size (${bufferData.byteLength})`
       );
     }
 
@@ -604,7 +592,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
     throw new CodecDecodeError(
       this.codecId,
       `Cannot resolve buffer [${bufferIndex}]: external URI buffers are not supported in synchronous decode. ` +
-      `Use GLB format or data URIs for embedded data.`,
+        `Use GLB format or data URIs for embedded data.`
     );
   }
 
@@ -647,17 +635,11 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
    *   - UNSIGNED_BYTE/UNSIGNED_SHORT (normalized): Scale to [0, 1]
    *   - BYTE/SHORT/UNSIGNED_BYTE/UNSIGNED_SHORT (non-normalized): Direct int-to-float
    */
-  private readAccessorFloat32(
-    parsed: ParsedGltf,
-    accessorIndex: number,
-  ): Float32Array {
+  private readAccessorFloat32(parsed: ParsedGltf, accessorIndex: number): Float32Array {
     const gltf = parsed.json;
 
     if (!gltf.accessors || accessorIndex >= gltf.accessors.length) {
-      throw new CodecDecodeError(
-        this.codecId,
-        `Accessor index ${accessorIndex} is out of range`,
-      );
+      throw new CodecDecodeError(this.codecId, `Accessor index ${accessorIndex} is out of range`);
     }
 
     const accessor = gltf.accessors[accessorIndex];
@@ -674,7 +656,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
     const bufferData = this.resolveBuffer(parsed, bv.buffer);
     const byteOffset = (bv.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
     const componentSize = GLTF_COMPONENT_SIZES[accessor.componentType] ?? 4;
-    const stride = bv.byteStride ?? (componentCount * componentSize);
+    const stride = bv.byteStride ?? componentCount * componentSize;
 
     const dataView = new DataView(bufferData);
 
@@ -732,7 +714,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
     maxGaussians: number,
     maxMemoryMB: number,
     decodeSH: boolean,
-    warnings: string[],
+    warnings: string[]
   ): CodecResult<GaussianSplatData> {
     const attrs = primitive.attributes;
 
@@ -741,7 +723,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
     if (posIndex === undefined) {
       throw new CodecDecodeError(
         this.codecId,
-        'Missing required POSITION attribute in Gaussian splatting primitive',
+        'Missing required POSITION attribute in Gaussian splatting primitive'
       );
     }
 
@@ -751,7 +733,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
 
     if (N < totalCount) {
       warnings.push(
-        `Clamped Gaussian count from ${totalCount.toLocaleString()} to ${N.toLocaleString()} (maxGaussians limit)`,
+        `Clamped Gaussian count from ${totalCount.toLocaleString()} to ${N.toLocaleString()} (maxGaussians limit)`
       );
     }
 
@@ -816,8 +798,7 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
     const colors = new Float32Array(N * 4);
     const colorIndex = attrs['COLOR_0'];
     const shDc0Index =
-      attrs['KHR_gaussian_splatting:SH_DEGREE_0_COEF_0'] ??
-      attrs['_SH_DEGREE_0_COEF_0'];
+      attrs['KHR_gaussian_splatting:SH_DEGREE_0_COEF_0'] ?? attrs['_SH_DEGREE_0_COEF_0'];
 
     if (colorIndex !== undefined) {
       const rawColors = this.readAccessorFloat32(parsed, colorIndex);
@@ -830,9 +811,8 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
           colors[i * 4 + 1] = rawColors[i * colorComponents + 1];
           colors[i * 4 + 2] = rawColors[i * colorComponents + 2];
         }
-        colors[i * 4 + 3] = colorComponents >= 4
-          ? rawColors[i * colorComponents + 3]
-          : opacities[i];
+        colors[i * 4 + 3] =
+          colorComponents >= 4 ? rawColors[i * colorComponents + 3] : opacities[i];
       }
     } else if (shDc0Index !== undefined) {
       // Convert SH DC (degree 0) coefficients to RGB color
@@ -986,10 +966,15 @@ interface ParsedGltf {
  */
 function shDimForDegree(degree: number): number {
   switch (degree) {
-    case 0: return 0;
-    case 1: return 3;
-    case 2: return 8;
-    case 3: return 15;
-    default: return 0;
+    case 0:
+      return 0;
+    case 1:
+      return 3;
+    case 2:
+      return 8;
+    case 3:
+      return 15;
+    default:
+      return 0;
   }
 }

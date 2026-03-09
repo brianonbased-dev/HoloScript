@@ -5,6 +5,7 @@ Complete reference for HoloScript's advanced `.holo` format using the entity-tra
 ## Overview
 
 The `.holo` entity pattern provides:
+
 - **Trait-based architecture** - Fine-grained component configuration
 - **Advanced features** - Complex VR/AR spatial computing
 - **Entity-component system** - Modular, composable design
@@ -31,6 +32,7 @@ composition SimpleScene {
 ```
 
 **Key differences from `.hs`/`.hsplus`:**
+
 - No quotes around entity names
 - Properties use `:` with object syntax `{ }`
 - Arrays use `[  ]` instead of `{ }`
@@ -309,6 +311,7 @@ composition VRScene {
 ## When to Use Entity Pattern
 
 Use the entity-trait pattern when:
+
 - Each object is unique with specific configurations
 - You need fine-grained control over traits
 - Building advanced VR/AR/XR experiences

@@ -38,11 +38,15 @@ describe('Cycle 156: Skeletal Animation', () => {
     const blender = new SkeletalBlender();
 
     blender.addLayer({
-      id: 'idle', weight: 0.5, mode: 'override',
+      id: 'idle',
+      weight: 0.5,
+      mode: 'override',
       poses: [{ boneId: 'arm', tx: 0, ty: 0, tz: 0, sx: 1, sy: 1, sz: 1 }],
     });
     blender.addLayer({
-      id: 'wave', weight: 1.0, mode: 'override',
+      id: 'wave',
+      weight: 1.0,
+      mode: 'override',
       poses: [{ boneId: 'arm', tx: 10, ty: 0, tz: 0, sx: 1, sy: 1, sz: 1 }],
     });
 
@@ -55,11 +59,15 @@ describe('Cycle 156: Skeletal Animation', () => {
     const blender = new SkeletalBlender();
 
     blender.addLayer({
-      id: 'base', weight: 1.0, mode: 'override',
+      id: 'base',
+      weight: 1.0,
+      mode: 'override',
       poses: [{ boneId: 'leg', tx: 5, ty: 0, tz: 0, sx: 1, sy: 1, sz: 1 }],
     });
     blender.addLayer({
-      id: 'flinch', weight: 0.5, mode: 'additive',
+      id: 'flinch',
+      weight: 0.5,
+      mode: 'additive',
       poses: [{ boneId: 'leg', tx: 4, ty: 0, tz: 0, sx: 1, sy: 1, sz: 1 }],
     });
 
@@ -84,7 +92,7 @@ describe('Cycle 156: Skeletal Animation', () => {
     morph.setWeight('smile', 0.5);
 
     const deformed = morph.computeDeformedPositions(base);
-    expect(deformed[1]).toBeCloseTo(0.5);  // vertex 0 y += 1 * 0.5
+    expect(deformed[1]).toBeCloseTo(0.5); // vertex 0 y += 1 * 0.5
     expect(deformed[7]).toBeCloseTo(-0.5); // vertex 2 y += -1 * 0.5
   });
 
@@ -93,7 +101,13 @@ describe('Cycle 156: Skeletal Animation', () => {
     morph.addTarget('happy', []);
     morph.addTarget('sad', []);
 
-    morph.addPreset('emotion_happy', new Map([['happy', 1.0], ['sad', 0.0]]));
+    morph.addPreset(
+      'emotion_happy',
+      new Map([
+        ['happy', 1.0],
+        ['sad', 0.0],
+      ])
+    );
     morph.applyPreset('emotion_happy');
 
     expect(morph.getWeight('happy')).toBe(1.0);

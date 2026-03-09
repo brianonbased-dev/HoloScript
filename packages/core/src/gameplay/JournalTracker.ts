@@ -17,7 +17,7 @@ export interface JournalEntry {
   category: string;
   description: string;
   status: string;
-  progress: number;       // 0-1
+  progress: number; // 0-1
   pinned: boolean;
   addedAt: number;
   updatedAt: number;
@@ -49,11 +49,22 @@ export class JournalTracker {
   // Entry Management
   // ---------------------------------------------------------------------------
 
-  addEntry(questId: string, questName: string, category: string, description: string): JournalEntry {
+  addEntry(
+    questId: string,
+    questName: string,
+    category: string,
+    description: string
+  ): JournalEntry {
     const entry: JournalEntry = {
-      questId, questName, category, description,
-      status: 'active', progress: 0, pinned: false,
-      addedAt: Date.now(), updatedAt: Date.now(),
+      questId,
+      questName,
+      category,
+      description,
+      status: 'active',
+      progress: 0,
+      pinned: false,
+      addedAt: Date.now(),
+      updatedAt: Date.now(),
       objectiveSummaries: [],
     };
     this.entries.set(questId, entry);
@@ -61,7 +72,10 @@ export class JournalTracker {
     return entry;
   }
 
-  updateEntry(questId: string, updates: Partial<Pick<JournalEntry, 'status' | 'progress' | 'objectiveSummaries'>>): boolean {
+  updateEntry(
+    questId: string,
+    updates: Partial<Pick<JournalEntry, 'status' | 'progress' | 'objectiveSummaries'>>
+  ): boolean {
     const entry = this.entries.get(questId);
     if (!entry) return false;
 
@@ -107,7 +121,7 @@ export class JournalTracker {
 
   getPinned(): JournalEntry[] {
     return [...this.pinnedQuests]
-      .map(id => this.entries.get(id))
+      .map((id) => this.entries.get(id))
       .filter((e): e is JournalEntry => !!e);
   }
 
@@ -117,42 +131,51 @@ export class JournalTracker {
 
   private notify(type: JournalNotification['type'], questId: string, message: string): void {
     this.notifications.push({
-      id: `notif_${_notifId++}`, type, questId, message,
-      timestamp: Date.now(), read: false,
+      id: `notif_${_notifId++}`,
+      type,
+      questId,
+      message,
+      timestamp: Date.now(),
+      read: false,
     });
     if (this.notifications.length > this.maxNotifications) this.notifications.shift();
   }
 
   getNotifications(unreadOnly = false): JournalNotification[] {
-    if (unreadOnly) return this.notifications.filter(n => !n.read);
+    if (unreadOnly) return this.notifications.filter((n) => !n.read);
     return [...this.notifications];
   }
 
   markRead(id: string): void {
-    const notif = this.notifications.find(n => n.id === id);
+    const notif = this.notifications.find((n) => n.id === id);
     if (notif) notif.read = true;
   }
 
-  markAllRead(): void { for (const n of this.notifications) n.read = true; }
+  markAllRead(): void {
+    for (const n of this.notifications) n.read = true;
+  }
 
-  getUnreadCount(): number { return this.notifications.filter(n => !n.read).length; }
+  getUnreadCount(): number {
+    return this.notifications.filter((n) => !n.read).length;
+  }
 
   // ---------------------------------------------------------------------------
   // Filtering & Sorting
   // ---------------------------------------------------------------------------
 
   getByCategory(category: string): JournalEntry[] {
-    return [...this.entries.values()].filter(e => e.category === category);
+    return [...this.entries.values()].filter((e) => e.category === category);
   }
 
   getByStatus(status: string): JournalEntry[] {
-    return [...this.entries.values()].filter(e => e.status === status);
+    return [...this.entries.values()].filter((e) => e.status === status);
   }
 
   search(query: string): JournalEntry[] {
     const lower = query.toLowerCase();
-    return [...this.entries.values()].filter(e =>
-      e.questName.toLowerCase().includes(lower) || e.description.toLowerCase().includes(lower)
+    return [...this.entries.values()].filter(
+      (e) =>
+        e.questName.toLowerCase().includes(lower) || e.description.toLowerCase().includes(lower)
     );
   }
 
@@ -160,8 +183,16 @@ export class JournalTracker {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getEntry(questId: string): JournalEntry | undefined { return this.entries.get(questId); }
-  getEntryCount(): number { return this.entries.size; }
-  getCategories(): string[] { return [...new Set([...this.entries.values()].map(e => e.category))]; }
-  getAllEntries(): JournalEntry[] { return [...this.entries.values()]; }
+  getEntry(questId: string): JournalEntry | undefined {
+    return this.entries.get(questId);
+  }
+  getEntryCount(): number {
+    return this.entries.size;
+  }
+  getCategories(): string[] {
+    return [...new Set([...this.entries.values()].map((e) => e.category))];
+  }
+  getAllEntries(): JournalEntry[] {
+    return [...this.entries.values()];
+  }
 }

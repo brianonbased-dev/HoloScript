@@ -21,8 +21,8 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
-import { useSceneStore, useSceneGraphStore } from '@/lib/store';
-import type { SceneNode } from '@/lib/store';
+import { useSceneStore, useSceneGraphStore } from '@/lib/stores';
+import type { SceneNode } from '@/lib/stores';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,17 +39,33 @@ const DEFAULT_WS_SERVER = process.env.NEXT_PUBLIC_COLLAB_WS ?? 'wss://demos.yjs.
 
 // ─── Per-user color palette ───────────────────────────────────────────────────
 const PALETTE = [
-  '#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#ec4899',
-  '#14b8a6', '#8b5cf6', '#f97316', '#06b6d4', '#a3e635',
+  '#6366f1',
+  '#22c55e',
+  '#f59e0b',
+  '#ef4444',
+  '#ec4899',
+  '#14b8a6',
+  '#8b5cf6',
+  '#f97316',
+  '#06b6d4',
+  '#a3e635',
 ];
 
 let _localName = `User-${Math.floor(Math.random() * 9000 + 1000)}`;
 let _localColor = PALETTE[Math.floor(Math.random() * PALETTE.length)];
 
-export function setLocalName(name: string) { _localName = name; }
-export function setLocalColor(color: string) { _localColor = color; }
-export function getLocalName() { return _localName; }
-export function getLocalColor() { return _localColor; }
+export function setLocalName(name: string) {
+  _localName = name;
+}
+export function setLocalColor(color: string) {
+  _localColor = color;
+}
+export function getLocalName() {
+  return _localName;
+}
+export function getLocalColor() {
+  return _localColor;
+}
 
 // ─── Main hook ────────────────────────────────────────────────────────────────
 

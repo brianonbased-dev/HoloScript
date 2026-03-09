@@ -15,8 +15,8 @@ describe('Cycle 160: Audio Processing', () => {
     const belowCutoff = filter.getResponse(500);
     const aboveCutoff = filter.getResponse(4000);
 
-    expect(belowCutoff).toBe(0);                // No attenuation below
-    expect(aboveCutoff).toBeLessThan(0);         // Attenuated above
+    expect(belowCutoff).toBe(0); // No attenuation below
+    expect(aboveCutoff).toBeLessThan(0); // Attenuated above
   });
 
   it('should apply peaking EQ gain around center frequency', () => {

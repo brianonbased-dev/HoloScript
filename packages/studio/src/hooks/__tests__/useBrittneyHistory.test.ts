@@ -257,10 +257,9 @@ describe('useBrittneyHistory', () => {
         { role: 'user', content: 'Project B', timestamp: 2 },
       ]);
 
-      const { result, rerender } = renderHook(
-        ({ projectId }) => useBrittneyHistory(projectId),
-        { initialProps: { projectId: 'project-a' } }
-      );
+      const { result, rerender } = renderHook(({ projectId }) => useBrittneyHistory(projectId), {
+        initialProps: { projectId: 'project-a' },
+      });
 
       await vi.waitFor(() => {
         expect(result.current.history[0]?.content).toBe('Project A');
@@ -274,10 +273,9 @@ describe('useBrittneyHistory', () => {
     });
 
     it('should not persist messages to old projectId after change', async () => {
-      const { result, rerender } = renderHook(
-        ({ projectId }) => useBrittneyHistory(projectId),
-        { initialProps: { projectId: 'project-old' } }
-      );
+      const { result, rerender } = renderHook(({ projectId }) => useBrittneyHistory(projectId), {
+        initialProps: { projectId: 'project-old' },
+      });
 
       rerender({ projectId: 'project-new' });
 
@@ -384,10 +382,9 @@ describe('useBrittneyHistory', () => {
     });
 
     it('should recreate callbacks when projectId changes', () => {
-      const { result, rerender } = renderHook(
-        ({ projectId }) => useBrittneyHistory(projectId),
-        { initialProps: { projectId: 'project-a' } }
-      );
+      const { result, rerender } = renderHook(({ projectId }) => useBrittneyHistory(projectId), {
+        initialProps: { projectId: 'project-a' },
+      });
 
       const firstAddMessage = result.current.addMessage;
 
@@ -455,7 +452,11 @@ describe('useBrittneyHistory', () => {
       expect(result.current.history[0].timestamp).toBe(0);
 
       act(() => {
-        result.current.addMessage({ role: 'user', content: 'Max', timestamp: Number.MAX_SAFE_INTEGER });
+        result.current.addMessage({
+          role: 'user',
+          content: 'Max',
+          timestamp: Number.MAX_SAFE_INTEGER,
+        });
       });
 
       expect(result.current.history[1].timestamp).toBe(Number.MAX_SAFE_INTEGER);

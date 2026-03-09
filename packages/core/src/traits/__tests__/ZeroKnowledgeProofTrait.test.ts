@@ -68,7 +68,9 @@ describe('ZeroKnowledgeProofTrait', () => {
         trusted_setup_required: false,
       };
 
-      expect(() => ZeroKnowledgeProofTrait.validate(config)).toThrow('groth16 requires trusted setup');
+      expect(() => ZeroKnowledgeProofTrait.validate(config)).toThrow(
+        'groth16 requires trusted setup'
+      );
     });
 
     it('should warn when zk-STARKs have trusted_setup_required set to true', () => {

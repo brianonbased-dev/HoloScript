@@ -30,11 +30,7 @@ import {
   dot,
 } from './SpatialTypes';
 
-import type {
-  Vector3,
-  BoundingBox,
-  BoundingSphere,
-} from './SpatialTypes';
+import type { Vector3, BoundingBox, BoundingSphere } from './SpatialTypes';
 
 import type {
   SpatialConstraint,
@@ -144,8 +140,11 @@ export class SpatialConstraintValidator {
         adjacentCount: allConstraints.filter((c) => c.kind === 'spatial_adjacent').length,
         containsCount: allConstraints.filter((c) => c.kind === 'spatial_contains').length,
         reachableCount: allConstraints.filter((c) => c.kind === 'spatial_reachable').length,
-        temporalAdjacentCount: allConstraints.filter((c) => c.kind === 'spatial_temporal_adjacent').length,
-        temporalReachableCount: allConstraints.filter((c) => c.kind === 'spatial_temporal_reachable').length,
+        temporalAdjacentCount: allConstraints.filter((c) => c.kind === 'spatial_temporal_adjacent')
+          .length,
+        temporalReachableCount: allConstraints.filter(
+          (c) => c.kind === 'spatial_temporal_reachable'
+        ).length,
         trajectoryCount: allConstraints.filter((c) => c.kind === 'spatial_trajectory').length,
         errorsCount: errors.length,
         warningsCount: warnings.length,
@@ -311,9 +310,7 @@ export class SpatialConstraintValidator {
         'HSP030',
         `spatial_adjacent violation: '${source.entityId}' is ${dist.toFixed(2)}m from ` +
           `'${constraint.targetId}' but must be within ${constraint.maxDistance}m` +
-          (constraint.axis && constraint.axis !== 'xyz'
-            ? ` (on ${constraint.axis} axis)`
-            : '') +
+          (constraint.axis && constraint.axis !== 'xyz' ? ` (on ${constraint.axis} axis)` : '') +
           `.${constraint.label ? ` (${constraint.label})` : ''}`,
         source.line ?? 0,
         source.column ?? 0,
@@ -396,20 +393,10 @@ export class SpatialConstraintValidator {
 
     if (constraint.strict && contained.bounds) {
       // Strict mode: contained entity's full bounds must be inside
-      this.validateStrictContainment(
-        source,
-        constraint,
-        contained,
-        margin
-      );
+      this.validateStrictContainment(source, constraint, contained, margin);
     } else {
       // Non-strict: check center point
-      this.validatePointContainment(
-        source,
-        constraint,
-        contained.position,
-        margin
-      );
+      this.validatePointContainment(source, constraint, contained.position, margin);
     }
 
     // Recursive check
@@ -759,9 +746,7 @@ export class SpatialConstraintValidator {
           `spatial_temporal_adjacent violation: '${source.entityId}' is ${dist.toFixed(2)}m from ` +
             `'${constraint.targetId}' (max: ${constraint.maxDistance}m). The duration constraint ` +
             `of ${constraint.minDuration}s cannot be satisfied if entities start out of range` +
-            (constraint.axis && constraint.axis !== 'xyz'
-              ? ` (on ${constraint.axis} axis)`
-              : '') +
+            (constraint.axis && constraint.axis !== 'xyz' ? ` (on ${constraint.axis} axis)` : '') +
             `.${constraint.label ? ` (${constraint.label})` : ''}`,
           source.line ?? 0,
           source.column ?? 0,
@@ -1238,10 +1223,7 @@ export class SpatialConstraintValidator {
   /**
    * Convert any bounds type to a BoundingBox, optionally offset by position.
    */
-  private toBoundingBox(
-    bounds: BoundingBox | BoundingSphere,
-    offset?: Vector3
-  ): BoundingBox {
+  private toBoundingBox(bounds: BoundingBox | BoundingSphere, offset?: Vector3): BoundingBox {
     const ox = offset?.x ?? 0;
     const oy = offset?.y ?? 0;
     const oz = offset?.z ?? 0;
@@ -1344,10 +1326,7 @@ export class SpatialConstraintValidator {
     const containers: string[] = [];
     for (const [containerId, decl] of this.declarations) {
       for (const constraint of decl.constraints) {
-        if (
-          constraint.kind === 'spatial_contains' &&
-          constraint.containedId === entityId
-        ) {
+        if (constraint.kind === 'spatial_contains' && constraint.containedId === entityId) {
           containers.push(containerId);
         }
       }

@@ -16,9 +16,9 @@ import { NavMesh, NavPoint, NavPolygon } from './NavMesh';
 export interface PathNode {
   polyId: string;
   position: NavPoint;
-  g: number;        // Cost from start
-  h: number;        // Heuristic to goal
-  f: number;        // g + h
+  g: number; // Cost from start
+  h: number; // Heuristic to goal
+  f: number; // g + h
   parent: PathNode | null;
 }
 
@@ -62,19 +62,27 @@ export class AStarPathfinder {
     const cached = this.pathCache.get(cacheKey);
     if (cached) return cached;
 
-    const startPoly = this.navMesh.findPolygonAtPoint(start)
-      ?? this.navMesh.findNearestPolygon(start);
-    const goalPoly = this.navMesh.findPolygonAtPoint(goal)
-      ?? this.navMesh.findNearestPolygon(goal);
+    const startPoly =
+      this.navMesh.findPolygonAtPoint(start) ?? this.navMesh.findNearestPolygon(start);
+    const goalPoly = this.navMesh.findPolygonAtPoint(goal) ?? this.navMesh.findNearestPolygon(goal);
 
     if (!startPoly || !goalPoly) {
-      return { found: false, path: [], cost: 0, polygonsVisited: 0, timeMs: performance.now() - t0 };
+      return {
+        found: false,
+        path: [],
+        cost: 0,
+        polygonsVisited: 0,
+        timeMs: performance.now() - t0,
+      };
     }
 
     if (startPoly.id === goalPoly.id) {
       return {
-        found: true, path: [start, goal], cost: this.dist(start, goal),
-        polygonsVisited: 1, timeMs: performance.now() - t0,
+        found: true,
+        path: [start, goal],
+        cost: this.dist(start, goal),
+        polygonsVisited: 1,
+        timeMs: performance.now() - t0,
       };
     }
 
@@ -148,7 +156,13 @@ export class AStarPathfinder {
       }
     }
 
-    return { found: false, path: [], cost: 0, polygonsVisited: visited, timeMs: performance.now() - t0 };
+    return {
+      found: false,
+      path: [],
+      cost: 0,
+      polygonsVisited: visited,
+      timeMs: performance.now() - t0,
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -178,7 +192,8 @@ export class AStarPathfinder {
 
   private canSkipTo(path: NavPoint[], from: number, to: number): boolean {
     // Simplified: skip if intermediate points are all within threshold of line
-    const a = path[from], b = path[to];
+    const a = path[from],
+      b = path[to];
     const lineLen = this.dist(a, b);
     if (lineLen < 0.001) return true;
 
@@ -205,7 +220,9 @@ export class AStarPathfinder {
     this.pathCache.clear();
   }
 
-  getObstacleCount(): number { return this.obstacles.size; }
+  getObstacleCount(): number {
+    return this.obstacles.size;
+  }
 
   private isBlocked(point: NavPoint): boolean {
     for (const obs of this.obstacles.values()) {
@@ -237,6 +254,10 @@ export class AStarPathfinder {
     return `${a.x.toFixed(1)},${a.y.toFixed(1)},${a.z.toFixed(1)}->${b.x.toFixed(1)},${b.y.toFixed(1)},${b.z.toFixed(1)}`;
   }
 
-  clearCache(): void { this.pathCache.clear(); }
-  setMaxIterations(n: number): void { this.maxIterations = n; }
+  clearCache(): void {
+    this.pathCache.clear();
+  }
+  setMaxIterations(n: number): void {
+    this.maxIterations = n;
+  }
 }

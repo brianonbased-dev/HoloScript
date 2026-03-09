@@ -68,13 +68,17 @@ export class FallbackDataProvider {
    * Get fallback data for an operation
    */
   static get(operationName: string): any {
-    return this.fallbacks.get(operationName) || {
-      data: null,
-      errors: [{
-        message: 'Service temporarily unavailable',
-        extensions: { degradedMode: true }
-      }]
-    };
+    return (
+      this.fallbacks.get(operationName) || {
+        data: null,
+        errors: [
+          {
+            message: 'Service temporarily unavailable',
+            extensions: { degradedMode: true },
+          },
+        ],
+      }
+    );
   }
 
   /**
@@ -102,9 +106,7 @@ export class GraphQLCircuitBreakerClient {
   private cacheTTL: number = 5 * 60 * 1000; // 5 minutes default
 
   constructor(private options: GraphQLClientOptions) {
-    this.circuitManager = new CircuitBreakerManager(
-      options.circuitBreakerConfig
-    );
+    this.circuitManager = new CircuitBreakerManager(options.circuitBreakerConfig);
   }
 
   /**
@@ -158,7 +160,7 @@ export class GraphQLCircuitBreakerClient {
           success: false,
           error: new Error(response.errors[0].message),
           data: response.data,
-          retriedCount: attemptNumber
+          retriedCount: attemptNumber,
         };
       }
 
@@ -169,16 +171,17 @@ export class GraphQLCircuitBreakerClient {
       return {
         success: true,
         data: response.data,
-        retriedCount: attemptNumber
+        retriedCount: attemptNumber,
       };
-
     } catch (error: any) {
       const isTimeout = error.name === 'TimeoutError' || error.code === 'ETIMEDOUT';
 
       // Check for retry
       if (attemptNumber < (this.options.maxRetries || 3)) {
         const delay = circuit.calculateRetryDelay(attemptNumber);
-        console.info(`[Retry] ${operationName} attempt ${attemptNumber + 1} after ${delay}ms (${error.message})`);
+        console.info(
+          `[Retry] ${operationName} attempt ${attemptNumber + 1} after ${delay}ms (${error.message})`
+        );
 
         await this.sleep(delay);
         return this.executeWithRetries<T>(request, operationName, circuit, attemptNumber + 1);
@@ -190,7 +193,7 @@ export class GraphQLCircuitBreakerClient {
       return {
         success: false,
         error: error instanceof Error ? error : new Error(String(error)),
-        retriedCount: attemptNumber
+        retriedCount: attemptNumber,
       };
     }
   }
@@ -207,14 +210,14 @@ export class GraphQLCircuitBreakerClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...this.options.headers
+          ...this.options.headers,
         },
         body: JSON.stringify({
           query: request.query,
           variables: request.variables,
-          operationName: request.operationName
+          operationName: request.operationName,
         }),
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       clearTimeout(timeout);
@@ -224,7 +227,6 @@ export class GraphQLCircuitBreakerClient {
       }
 
       return await response.json();
-
     } catch (error: any) {
       clearTimeout(timeout);
 
@@ -241,10 +243,7 @@ export class GraphQLCircuitBreakerClient {
   /**
    * Handle open circuit - try cache or fallback
    */
-  private handleOpenCircuit<T>(
-    operationName: string,
-    request: GraphQLRequest
-  ): RequestResult<T> {
+  private handleOpenCircuit<T>(operationName: string, request: GraphQLRequest): RequestResult<T> {
     // Try cache first
     if (this.options.enableCacheFallback) {
       const cached = this.getCachedResponse<T>(operationName);
@@ -256,7 +255,7 @@ export class GraphQLCircuitBreakerClient {
         return {
           success: true,
           data: cached,
-          fromCache: true
+          fromCache: true,
         };
       }
     }
@@ -270,7 +269,7 @@ export class GraphQLCircuitBreakerClient {
         success: false,
         data: fallback.data,
         error: new Error('Circuit breaker open - serving fallback data'),
-        fromCache: true
+        fromCache: true,
       };
     }
 
@@ -278,7 +277,7 @@ export class GraphQLCircuitBreakerClient {
     return {
       success: false,
       error: new Error(`Circuit breaker open for ${operationName} - no cache available`),
-      fromCache: false
+      fromCache: false,
     };
   }
 
@@ -290,10 +289,10 @@ export class GraphQLCircuitBreakerClient {
       'INTERNAL_SERVER_ERROR',
       'SERVICE_UNAVAILABLE',
       'TIMEOUT',
-      'RATE_LIMIT_EXCEEDED'
+      'RATE_LIMIT_EXCEEDED',
     ];
 
-    return errors.some(error => {
+    return errors.some((error) => {
       const code = error.extensions?.code;
       return code && retriableCodes.includes(code);
     });
@@ -305,7 +304,7 @@ export class GraphQLCircuitBreakerClient {
   private cacheResponse(operationName: string, data: any): void {
     this.cache.set(operationName, {
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -348,7 +347,7 @@ export class GraphQLCircuitBreakerClient {
    * Sleep utility
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -364,7 +363,7 @@ export class GraphQLCircuitBreakerClient {
         state: metric.state,
         failureRate: metric.failureRate,
         totalRequests: metric.totalRequests,
-        cacheHits: this.cacheHits.get(operationName) || 0
+        cacheHits: this.cacheHits.get(operationName) || 0,
       });
     }
 
@@ -383,9 +382,9 @@ export class GraphQLCircuitBreakerClient {
       circuits: circuitStats,
       cache: {
         size: cacheSize,
-        totalHits: totalCacheHits
+        totalHits: totalCacheHits,
       },
-      degradedMode: circuitStats.byState.open > 0
+      degradedMode: circuitStats.byState.open > 0,
     };
   }
 
@@ -416,9 +415,7 @@ export class GraphQLCircuitBreakerClient {
 /**
  * Apollo Client Integration Helper
  */
-export function createApolloCircuitBreakerLink(
-  client: GraphQLCircuitBreakerClient
-) {
+export function createApolloCircuitBreakerLink(client: GraphQLCircuitBreakerClient) {
   // This would integrate with Apollo Client's link chain
   // Full implementation depends on Apollo Client version
   return {
@@ -426,20 +423,18 @@ export function createApolloCircuitBreakerLink(
       const result = await client.query({
         query: operation.query,
         variables: operation.variables,
-        operationName: operation.operationName
+        operationName: operation.operationName,
       });
 
       return result;
-    }
+    },
   };
 }
 
 /**
  * URQL Exchange Integration Helper
  */
-export function createUrqlCircuitBreakerExchange(
-  client: GraphQLCircuitBreakerClient
-) {
+export function createUrqlCircuitBreakerExchange(client: GraphQLCircuitBreakerClient) {
   // This would integrate with URQL's exchange pipeline
   return (options: any) => (ops$: any) => {
     // Implementation depends on URQL version

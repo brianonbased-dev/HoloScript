@@ -20,28 +20,39 @@ export * from './types.js';
 
 // Spatial math (v4.2)
 export {
-  Vec3, Quaternion, Transform, Ray, AABB,
-  distance, lerp as spatialLerp, clamp as spatialClamp,
-  degToRad as spatialDegToRad, radToDeg as spatialRadToDeg,
+  Vec3,
+  Quaternion,
+  Transform,
+  Ray,
+  AABB,
+  distance,
+  lerp as spatialLerp,
+  clamp as spatialClamp,
+  degToRad as spatialDegToRad,
+  radToDeg as spatialRadToDeg,
 } from './spatial.js';
 
 // Physics primitives (v4.2)
 export {
-  createBoxCollider, createSphereCollider, createCapsuleCollider,
+  createBoxCollider,
+  createSphereCollider,
+  createCapsuleCollider,
   createRigidbody,
 } from './physics.js';
 export type {
-  ColliderConfig, ColliderShapeType, RigidbodyConfig,
-  ForceFieldConfig, ForceFieldType, JointConfig, JointType, RaycastHit,
+  ColliderConfig,
+  ColliderShapeType,
+  RigidbodyConfig,
+  ForceFieldConfig,
+  ForceFieldType,
+  JointConfig,
+  JointType,
+  RaycastHit,
 } from './physics.js';
 
 // Materials (v4.2)
-export {
-  MATERIAL_PRESETS, createPBRMaterial,
-} from './materials.js';
-export type {
-  PBRMaterial, UnlitMaterial, TextureMapType, TextureConfig,
-} from './materials.js';
+export { MATERIAL_PRESETS, createPBRMaterial } from './materials.js';
+export type { PBRMaterial, UnlitMaterial, TextureMapType, TextureConfig } from './materials.js';
 
 // Events (v4.2)
 export { EventBus } from './events.js';
@@ -209,9 +220,7 @@ export {
   validateTraitComposition,
   getRequiredPermissions,
 } from './traits/EconomicTraits.js';
-export type {
-  EconomicTraitDefinition,
-} from './traits/EconomicTraits.js';
+export type { EconomicTraitDefinition } from './traits/EconomicTraits.js';
 
 // SimulationLab primitives (v4.3)
 export {
@@ -253,9 +262,7 @@ export {
   getSimulationTraitNames,
   getSimulationTrait,
 } from './traits/SimulationLabTraits.js';
-export type {
-  SimulationTraitDefinition,
-} from './traits/SimulationLabTraits.js';
+export type { SimulationTraitDefinition } from './traits/SimulationLabTraits.js';
 
 // Time utilities
 export {

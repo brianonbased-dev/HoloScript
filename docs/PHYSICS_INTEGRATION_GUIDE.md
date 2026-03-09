@@ -18,6 +18,7 @@ HoloScript provides four advanced physics systems that can work together:
 Convert destroyed fragments into granular particles for realistic debris piles.
 
 **Use Cases:**
+
 - Building collapse → debris pile
 - Wall destruction → falling rubble
 - Explosive demolition → scattered fragments
@@ -73,6 +74,7 @@ function update(dt: number) {
 Apply stress from particle piles to structures below.
 
 **Use Cases:**
+
 - Weight of debris causing structural collapse
 - Sand pile stress on floor/foundation
 - Avalanche pressure on barriers
@@ -100,6 +102,7 @@ integration.granularToDestruction.applyPileStress(
 Simulate fluid interaction with particles (wet sand, erosion).
 
 **Use Cases:**
+
 - Water washing away sand
 - Wet sand with increased cohesion
 - Mudslides and erosion
@@ -136,6 +139,7 @@ function update(dt: number) {
 Simulate wet cloth behavior.
 
 **Use Cases:**
+
 - Cloth getting wet and heavy
 - Flag in rain
 - Underwater fabric movement
@@ -184,10 +188,10 @@ Call all active integrations at once:
 
 ```typescript
 manager.update({
-  fracture,    // Optional: VoronoiFractureSystem
-  granular,    // Optional: GranularMaterialSystem
-  fluid,       // Optional: FluidSimulationSystem
-  cloth,       // Optional: AdvancedClothSystem
+  fracture, // Optional: VoronoiFractureSystem
+  granular, // Optional: GranularMaterialSystem
+  fluid, // Optional: FluidSimulationSystem
+  cloth, // Optional: AdvancedClothSystem
 });
 ```
 
@@ -217,6 +221,7 @@ manager.clothFluid.applyWetWeight(cloth, fluid, weightMultiplier);
 See [`samples/physics-integration-demo.holo`](../samples/physics-integration-demo.holo) for a complete wrecking ball demolition demo.
 
 **Demo features:**
+
 - Wrecking ball destroys brick wall (Voronoi fracture)
 - Destroyed fragments convert to granular particles
 - Particles settle into realistic debris pile
@@ -250,34 +255,39 @@ holoscript compile samples/physics-integration-demo.holo --target unity
 ### Optimization Tips
 
 1. **Use LOD** for distant fragments:
+
    ```typescript
-   fracture.updateLOD();  // Call every frame
+   fracture.updateLOD(); // Call every frame
    ```
 
 2. **Enable pooling** to reuse fragments:
+
    ```typescript
    { enablePooling: true, maxPooledFragments: 100 }
    ```
 
 3. **Sleep inactive particles**:
+
    ```typescript
    // Automatically handled by granular system
-   { sleepVelocityThreshold: 0.1 }
+   {
+     sleepVelocityThreshold: 0.1;
+   }
    ```
 
 4. **Spatial hashing** for fast collision detection:
+
    ```typescript
-   { spatialHashCellSize: 0.1 }  // Tune based on particle size
+   {
+     spatialHashCellSize: 0.1;
+   } // Tune based on particle size
    ```
 
 5. **Limit conversion rate**:
+
    ```typescript
    // Convert only X fragments per frame
-   const stats = manager.destructionToGranular.convertDestroyedFragments(
-     fracture,
-     granular,
-     true
-   );
+   const stats = manager.destructionToGranular.convertDestroyedFragments(fracture, granular, true);
 
    if (stats.fragmentsConverted > 10) {
      // Pause conversion for this frame
@@ -293,6 +303,7 @@ holoscript compile demo.holo --target unity
 ```
 
 Exports:
+
 - `WallFragment.cs` - Fragment behavior
 - `DebrisParticle.cs` - Granular particle
 - `DemoScene.unity` - Complete scene setup
@@ -304,6 +315,7 @@ holoscript compile demo.holo --target unreal
 ```
 
 Exports:
+
 - `WallFragment.h/cpp` - Fragment actor
 - `DebrisParticle.h/cpp` - Niagara particle
 - `DemoLevel.umap` - Level blueprint
@@ -315,6 +327,7 @@ holoscript compile demo.holo --target godot
 ```
 
 Exports:
+
 - `wall_fragment.gd` - Fragment script
 - `debris_particle.gd` - Particle script
 - `demo_scene.tscn` - Scene file
@@ -337,7 +350,7 @@ granular.addRigidBodyPlane({ x: 0, y: 0, z: 0 }, { x: 0, y: 1, z: 0 });
 
 ```typescript
 manager.destructionToGranular.updateConfig({
-  minFragmentSize: 0.001,  // Lower threshold
+  minFragmentSize: 0.001, // Lower threshold
   enableDestructionToGranular: true,
 });
 ```
@@ -347,6 +360,7 @@ manager.destructionToGranular.updateConfig({
 **Problem:** Too many particles or fragments.
 
 **Solutions:**
+
 1. Reduce fragment count
 2. Enable LOD and pooling
 3. Increase `minFragmentSize` to skip small fragments
@@ -368,14 +382,14 @@ const concrete = {
 const sand = {
   youngsModulus: 1e6,
   density: 1600,
-  cohesion: 0,  // Dry sand
+  cohesion: 0, // Dry sand
 };
 
 // Wet mud
 const mud = {
   youngsModulus: 0.5e6,
   density: 1800,
-  cohesion: 200,  // High cohesion
+  cohesion: 200, // High cohesion
 };
 ```
 

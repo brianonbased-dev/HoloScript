@@ -166,10 +166,7 @@ describe('getResponsiveClasses', () => {
 
 describe('breakpoint resolution logic', () => {
   // Test the breakpoint determination logic directly
-  function getBreakpoint(
-    width: number,
-    breakpoints = DEFAULT_BREAKPOINTS,
-  ): string {
+  function getBreakpoint(width: number, breakpoints = DEFAULT_BREAKPOINTS): string {
     if (width <= breakpoints.mobile) return 'mobile';
     if (width <= breakpoints.tablet) return 'tablet';
     if (width <= breakpoints.desktop) return 'desktop';

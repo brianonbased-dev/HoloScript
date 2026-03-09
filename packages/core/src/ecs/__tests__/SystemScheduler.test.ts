@@ -4,7 +4,9 @@ import { SystemScheduler } from '../SystemScheduler';
 describe('SystemScheduler', () => {
   let scheduler: SystemScheduler;
 
-  beforeEach(() => { scheduler = new SystemScheduler(); });
+  beforeEach(() => {
+    scheduler = new SystemScheduler();
+  });
 
   // ---------------------------------------------------------------------------
   // Registration

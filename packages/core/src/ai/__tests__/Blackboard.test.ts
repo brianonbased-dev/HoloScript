@@ -4,7 +4,9 @@ import { Blackboard } from '../Blackboard';
 describe('Blackboard', () => {
   let bb: Blackboard;
 
-  beforeEach(() => { bb = new Blackboard(); });
+  beforeEach(() => {
+    bb = new Blackboard();
+  });
 
   // ---------------------------------------------------------------------------
   // Get / Set / Has / Delete

@@ -5,12 +5,21 @@ import { ComponentStore } from '../ecs/ComponentStore';
 // C251 — Component Store
 // =============================================================================
 
-interface Position { x: number; y: number; z: number; }
-interface Health { hp: number; maxHp: number; }
+interface Position {
+  x: number;
+  y: number;
+  z: number;
+}
+interface Health {
+  hp: number;
+  maxHp: number;
+}
 
 describe('ComponentStore', () => {
   let store: ComponentStore;
-  beforeEach(() => { store = new ComponentStore(); });
+  beforeEach(() => {
+    store = new ComponentStore();
+  });
 
   it('registerPool creates new pool', () => {
     store.registerPool<Position>('position');

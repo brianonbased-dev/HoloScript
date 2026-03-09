@@ -16,7 +16,6 @@ async function tick() {
 }
 
 describe('GizmoSystem — Production Tests', () => {
-
   describe('initialization', () => {
     it('creates without throwing', () => {
       expect(() => makeSetup()).not.toThrow();
@@ -24,7 +23,7 @@ describe('GizmoSystem — Production Tests', () => {
 
     it('starts with no gizmo entities for empty selection', () => {
       const { world } = makeSetup();
-      const tagged = world.getAllEntities().filter(e => world.hasTag(e, 'Gizmo'));
+      const tagged = world.getAllEntities().filter((e) => world.hasTag(e, 'Gizmo'));
       expect(tagged.length).toBe(0);
     });
   });
@@ -36,11 +35,11 @@ describe('GizmoSystem — Production Tests', () => {
       world.addComponent(entity, 'Transform', {
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 }
+        scale: { x: 1, y: 1, z: 1 },
       });
       selection.select(entity);
       await tick(); // wait for reactive effect to fire
-      const gizmoEntities = world.getAllEntities().filter(e => world.hasTag(e, 'Gizmo'));
+      const gizmoEntities = world.getAllEntities().filter((e) => world.hasTag(e, 'Gizmo'));
       expect(gizmoEntities.length).toBeGreaterThan(0);
     });
 
@@ -50,11 +49,11 @@ describe('GizmoSystem — Production Tests', () => {
       world.addComponent(entity, 'Transform', {
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 }
+        scale: { x: 1, y: 1, z: 1 },
       });
       selection.select(entity);
       await tick();
-      const roots = world.getAllEntities().filter(e => world.hasTag(e, 'GizmoRoot'));
+      const roots = world.getAllEntities().filter((e) => world.hasTag(e, 'GizmoRoot'));
       expect(roots.length).toBe(1);
     });
 
@@ -64,13 +63,13 @@ describe('GizmoSystem — Production Tests', () => {
       world.addComponent(entity, 'Transform', {
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 }
+        scale: { x: 1, y: 1, z: 1 },
       });
       selection.select(entity);
       await tick();
-      expect(world.getAllEntities().filter(e => world.hasTag(e, 'GizmoAxisX')).length).toBe(1);
-      expect(world.getAllEntities().filter(e => world.hasTag(e, 'GizmoAxisY')).length).toBe(1);
-      expect(world.getAllEntities().filter(e => world.hasTag(e, 'GizmoAxisZ')).length).toBe(1);
+      expect(world.getAllEntities().filter((e) => world.hasTag(e, 'GizmoAxisX')).length).toBe(1);
+      expect(world.getAllEntities().filter((e) => world.hasTag(e, 'GizmoAxisY')).length).toBe(1);
+      expect(world.getAllEntities().filter((e) => world.hasTag(e, 'GizmoAxisZ')).length).toBe(1);
     });
 
     it('GizmoRoot has NoSelect tag', async () => {
@@ -79,11 +78,11 @@ describe('GizmoSystem — Production Tests', () => {
       world.addComponent(entity, 'Transform', {
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 }
+        scale: { x: 1, y: 1, z: 1 },
       });
       selection.select(entity);
       await tick();
-      const roots = world.getAllEntities().filter(e => world.hasTag(e, 'GizmoRoot'));
+      const roots = world.getAllEntities().filter((e) => world.hasTag(e, 'GizmoRoot'));
       expect(world.hasTag(roots[0], 'NoSelect')).toBe(true);
     });
 
@@ -93,14 +92,19 @@ describe('GizmoSystem — Production Tests', () => {
       world.addComponent(entity, 'Transform', {
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 }
+        scale: { x: 1, y: 1, z: 1 },
       });
       selection.select(entity);
       await tick();
-      const axes = world.getAllEntities().filter(e =>
-        world.hasTag(e, 'GizmoAxisX') || world.hasTag(e, 'GizmoAxisY') || world.hasTag(e, 'GizmoAxisZ')
-      );
-      axes.forEach(ax => expect(world.hasTag(ax, 'NoSelect')).toBe(true));
+      const axes = world
+        .getAllEntities()
+        .filter(
+          (e) =>
+            world.hasTag(e, 'GizmoAxisX') ||
+            world.hasTag(e, 'GizmoAxisY') ||
+            world.hasTag(e, 'GizmoAxisZ')
+        );
+      axes.forEach((ax) => expect(world.hasTag(ax, 'NoSelect')).toBe(true));
     });
 
     it('gizmo root has a Transform component', async () => {
@@ -109,11 +113,11 @@ describe('GizmoSystem — Production Tests', () => {
       world.addComponent(entity, 'Transform', {
         position: { x: 5, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 }
+        scale: { x: 1, y: 1, z: 1 },
       });
       selection.select(entity);
       await tick();
-      const roots = world.getAllEntities().filter(e => world.hasTag(e, 'GizmoRoot'));
+      const roots = world.getAllEntities().filter((e) => world.hasTag(e, 'GizmoRoot'));
       expect(world.getComponent(roots[0], 'Transform')).toBeDefined();
     });
   });
@@ -125,13 +129,13 @@ describe('GizmoSystem — Production Tests', () => {
       world.addComponent(entity, 'Transform', {
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 }
+        scale: { x: 1, y: 1, z: 1 },
       });
       selection.select(entity);
       await tick(); // create gizmos
       selection.clear();
       await tick(); // destroy gizmos
-      const gizmos = world.getAllEntities().filter(e => world.hasTag(e, 'Gizmo'));
+      const gizmos = world.getAllEntities().filter((e) => world.hasTag(e, 'Gizmo'));
       expect(gizmos.length).toBe(0);
     });
   });
@@ -143,12 +147,12 @@ describe('GizmoSystem — Production Tests', () => {
       world.addComponent(entity, 'Transform', {
         position: { x: 3, y: 4, z: 5 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 }
+        scale: { x: 1, y: 1, z: 1 },
       });
       selection.select(entity);
       await tick();
       gizmo.update(0.016);
-      const roots = world.getAllEntities().filter(e => world.hasTag(e, 'GizmoRoot'));
+      const roots = world.getAllEntities().filter((e) => world.hasTag(e, 'GizmoRoot'));
       const rootTf = world.getComponent<any>(roots[0], 'Transform');
       expect(rootTf.position).toEqual({ x: 3, y: 4, z: 5 });
     });
@@ -166,7 +170,7 @@ describe('GizmoSystem — Production Tests', () => {
       world.addComponent(entity, 'Transform', {
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 }
+        scale: { x: 1, y: 1, z: 1 },
       });
       selection.select(entity);
       await tick();
@@ -181,7 +185,7 @@ describe('GizmoSystem — Production Tests', () => {
       world.addComponent(entity, 'Transform', {
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 }
+        scale: { x: 1, y: 1, z: 1 },
       });
       selection.select(entity);
       await tick();
@@ -196,7 +200,7 @@ describe('GizmoSystem — Production Tests', () => {
       world.addComponent(entity, 'Transform', {
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 }
+        scale: { x: 1, y: 1, z: 1 },
       });
       selection.select(entity);
       await tick();

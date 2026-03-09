@@ -20,7 +20,7 @@ import {
   CompilerStateMonitor,
   createCompilerStateMonitor,
   type MemoryStats,
-  type MemoryAlert
+  type MemoryAlert,
 } from '@holoscript/core';
 ```
 
@@ -37,7 +37,7 @@ const monitor = createCompilerStateMonitor({
   monitoringInterval: 5000, // Check every 5 seconds
   onAlert: (alert) => {
     console.warn(`Memory Alert [${alert.level}]: ${alert.message}`);
-  }
+  },
 });
 
 // Set the AST to monitor
@@ -64,14 +64,14 @@ const exportManager = getExportManager({
   useMemoryMonitoring: true, // Enabled by default
   memoryMonitorConfig: {
     thresholds: {
-      ramUtilizationAlert: 0.70,
+      ramUtilizationAlert: 0.7,
       ramUtilizationCritical: 0.75,
       astNodeCountThreshold: 500_000,
       symbolTableThreshold: 100_000,
     },
     autoPrune: true,
     autoIncrementalCompile: true,
-  }
+  },
 });
 
 const result = await exportManager.export('unity', composition);
@@ -93,11 +93,11 @@ const stats = monitor?.getStats();
 ```typescript
 const monitor = createCompilerStateMonitor({
   thresholds: {
-    ramUtilizationAlert: 0.70,      // Alert at 70% RAM usage
-    ramUtilizationCritical: 0.75,   // Critical at 75% RAM usage
+    ramUtilizationAlert: 0.7, // Alert at 70% RAM usage
+    ramUtilizationCritical: 0.75, // Critical at 75% RAM usage
     astNodeCountThreshold: 500_000, // Alert at 500K AST nodes
-    symbolTableThreshold: 100_000,  // Alert at 100K symbols
-  }
+    symbolTableThreshold: 100_000, // Alert at 100K symbols
+  },
 });
 ```
 
@@ -105,7 +105,7 @@ const monitor = createCompilerStateMonitor({
 
 ```typescript
 const monitor = createCompilerStateMonitor({
-  autoPrune: true,              // Automatically prune AST when threshold exceeded
+  autoPrune: true, // Automatically prune AST when threshold exceeded
   autoIncrementalCompile: true, // Trigger incremental compilation on critical memory
   onAlert: (alert) => {
     // Custom alert handler
@@ -115,7 +115,7 @@ const monitor = createCompilerStateMonitor({
         console.error('Critical memory pressure - triggering incremental compilation');
       }
     }
-  }
+  },
 });
 ```
 
@@ -193,7 +193,7 @@ const monitor = createCompilerStateMonitor({
         // Reduce compilation batch size
         break;
     }
-  }
+  },
 });
 
 // Get all alerts
@@ -244,7 +244,7 @@ console.log('Timestamp:', new Date(result.timestamp));
 monitor.registerSymbol('MyClass', {
   type: 'class',
   location: 'file.ts:10',
-  exports: ['method1', 'method2']
+  exports: ['method1', 'method2'],
 });
 
 // Retrieve symbol
@@ -270,7 +270,7 @@ import { IncrementalCompiler, createCompilerStateMonitor } from '@holoscript/cor
 
 const incrementalCompiler = new IncrementalCompiler();
 const monitor = createCompilerStateMonitor({
-  autoIncrementalCompile: true
+  autoIncrementalCompile: true,
 });
 
 // Connect monitor to incremental compiler
@@ -290,8 +290,8 @@ const monitor = createCompilerStateMonitor({
   enabled: true,
   monitoringInterval: 3000, // Check more frequently
   thresholds: {
-    ramUtilizationAlert: 0.60,      // Lower threshold for safety
-    ramUtilizationCritical: 0.70,
+    ramUtilizationAlert: 0.6, // Lower threshold for safety
+    ramUtilizationCritical: 0.7,
     astNodeCountThreshold: 300_000, // Lower threshold
     symbolTableThreshold: 50_000,
   },
@@ -307,7 +307,7 @@ const monitor = createCompilerStateMonitor({
         global.gc();
       }
     }
-  }
+  },
 });
 ```
 
@@ -331,7 +331,7 @@ const monitor = createCompilerStateMonitor({
       message: alert.message,
       stats: alert.stats,
     });
-  }
+  },
 });
 ```
 
@@ -372,12 +372,12 @@ it('should compile without memory issues', () => {
 
 ```typescript
 interface CompilerStateMonitorOptions {
-  enabled?: boolean;                    // Enable monitoring (default: true)
+  enabled?: boolean; // Enable monitoring (default: true)
   thresholds?: Partial<MemoryThresholds>;
-  autoPrune?: boolean;                  // Auto-prune on threshold (default: true)
-  autoIncrementalCompile?: boolean;     // Auto-trigger incremental compile (default: true)
+  autoPrune?: boolean; // Auto-prune on threshold (default: true)
+  autoIncrementalCompile?: boolean; // Auto-trigger incremental compile (default: true)
   onAlert?: (alert: MemoryAlert) => void;
-  monitoringInterval?: number;          // Check interval in ms (default: 5000)
+  monitoringInterval?: number; // Check interval in ms (default: 5000)
 }
 ```
 
@@ -444,6 +444,7 @@ If you're getting false alerts:
 ## Examples
 
 See the comprehensive test suite for more examples:
+
 - `packages/core/src/compiler/__tests__/CompilerStateMonitor.test.ts`
 
 ## Resources

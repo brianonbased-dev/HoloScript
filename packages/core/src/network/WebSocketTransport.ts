@@ -15,22 +15,22 @@
 export interface WebSocketTransportConfig {
   /** Server URL (e.g., 'ws://localhost:8080') */
   serverUrl: string;
-  
+
   /** Room ID for message isolation */
   roomId: string;
-  
+
   /** Peer ID (auto-generated if not provided) */
   peerId?: string;
-  
+
   /** Max reconnection attempts */
   maxReconnectAttempts: number;
-  
+
   /** Initial backoff in ms */
   initialBackoffMs: number;
-  
+
   /** Max backoff in ms */
   maxBackoffMs: number;
-  
+
   /** Heartbeat interval in ms */
   heartbeatIntervalMs: number;
 }
@@ -79,7 +79,7 @@ export class WebSocketTransport {
           console.log(`✓ WebSocket connected to ${this.config.serverUrl}`);
           this.isConnected = true;
           this.reconnectAttempts = 0;
-          
+
           // Send auth message
           this.sendMessage({
             type: 'auth',
@@ -125,9 +125,7 @@ export class WebSocketTransport {
   /**
    * Send a network message
    */
-  sendMessage(
-    msg: Omit<NetworkMessage, 'id' | 'peerId' | 'roomId' | 'timestamp'>
-  ): void {
+  sendMessage(msg: Omit<NetworkMessage, 'id' | 'peerId' | 'roomId' | 'timestamp'>): void {
     const fullMessage: NetworkMessage = {
       ...msg,
       id: `${this.peerId}-${this.messageId++}`,
@@ -150,10 +148,7 @@ export class WebSocketTransport {
   /**
    * Register message handler
    */
-  onMessage(
-    type: NetworkMessage['type'],
-    handler: (msg: NetworkMessage) => void
-  ): void {
+  onMessage(type: NetworkMessage['type'], handler: (msg: NetworkMessage) => void): void {
     this.messageHandlers.set(type, handler);
   }
 
@@ -203,19 +198,20 @@ export class WebSocketTransport {
   }
 
   private flushMessageQueue(): void {
-    while (this.messageQueue.length > 0 && this.isConnected && this.ws?.readyState === WebSocket.OPEN) {
+    while (
+      this.messageQueue.length > 0 &&
+      this.isConnected &&
+      this.ws?.readyState === WebSocket.OPEN
+    ) {
       const msg = this.messageQueue.shift();
       if (msg) this.ws.send(JSON.stringify(msg));
     }
   }
 
   private startHeartbeat(): void {
-    this.heartbeatTimer = setInterval(
-      () => {
-        this.sendMessage({ type: 'heartbeat', payload: {} });
-      },
-      this.config.heartbeatIntervalMs
-    );
+    this.heartbeatTimer = setInterval(() => {
+      this.sendMessage({ type: 'heartbeat', payload: {} });
+    }, this.config.heartbeatIntervalMs);
   }
 
   private stopHeartbeat(): void {

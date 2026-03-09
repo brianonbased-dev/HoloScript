@@ -36,6 +36,7 @@ holoscript --version
 ```
 
 **Uninstall**:
+
 ```bash
 brew uninstall holoscript
 brew untap brianonbased-dev/holoscript
@@ -54,6 +55,7 @@ holoscript --version
 ```
 
 **Uninstall**:
+
 ```powershell
 choco uninstall holoscript
 ```
@@ -70,6 +72,7 @@ holoscript --version
 ```
 
 **Uninstall**:
+
 ```bash
 snap remove holoscript
 ```
@@ -90,6 +93,7 @@ docker run -it -v $(pwd):/workspace holoscript:latest holoscript build /workspac
 ```
 
 **Docker Compose**:
+
 ```yaml
 version: '3.9'
 services:
@@ -108,11 +112,13 @@ services:
 ### Global Config
 
 HoloScript reads config from (in order):
+
 1. `~/.holoscript/config.json` (user)
 2. `./.holoscriptrc.json` (project)
 3. Environment variables (prefix: `HOLOSCRIPT_`)
 
 **Sample config.json**:
+
 ```json
 {
   "compiler": {
@@ -166,7 +172,7 @@ cd my-scene
 cat > scene.holo << 'EOF'
 composition "Hello World" {
   environment { skybox: "default" }
-  
+
   object "Cube" {
     geometry: "cube"
     position: [0, 0, 0]
@@ -205,6 +211,7 @@ holoscript test-connection
 ### "Command not found: holoscript"
 
 **macOS/Linux**:
+
 ```bash
 # Add to PATH if needed
 export PATH="$PATH:$(npm config get prefix)/bin"
@@ -214,6 +221,7 @@ npm install -g @holoscript/cli
 ```
 
 **Windows**:
+
 - Restart terminal after installing Chocolatey package
 - Check `C:\Program Files\HoloScript\bin` is in PATH
 
@@ -260,6 +268,7 @@ echo '{"compiler": {"maxMemoryMb": 4096}}' > ~/.holoscript/config.json
 ### CI/CD Integration
 
 **GitHub Actions**:
+
 ```yaml
 name: Build HoloScript
 
@@ -270,15 +279,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
-      
+
       - run: npm install -g @holoscript/cli
-      
+
       - run: holoscript build .
-      
+
       - uses: actions/upload-artifact@v3
         with:
           name: build
@@ -286,6 +295,7 @@ jobs:
 ```
 
 **GitLab CI**:
+
 ```yaml
 build:
   image: node:18
@@ -340,21 +350,25 @@ holoscript changelog
 ### Update to Latest
 
 **npm**:
+
 ```bash
 npm install -g @holoscript/cli@latest
 ```
 
 **Homebrew**:
+
 ```bash
 brew upgrade holoscript
 ```
 
 **Chocolatey**:
+
 ```powershell
 choco upgrade holoscript
 ```
 
 **Snap**:
+
 ```bash
 snap refresh holoscript
 ```
@@ -366,21 +380,25 @@ snap refresh holoscript
 ### Remove HoloScript
 
 **npm**:
+
 ```bash
 npm uninstall -g @holoscript/cli
 ```
 
 **Homebrew**:
+
 ```bash
 brew uninstall holoscript
 ```
 
 **Chocolatey**:
+
 ```powershell
 choco uninstall holoscript
 ```
 
 **Snap**:
+
 ```bash
 snap remove holoscript
 ```

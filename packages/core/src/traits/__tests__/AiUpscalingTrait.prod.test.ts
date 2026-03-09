@@ -9,8 +9,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { aiUpscalingHandler, neuralUpscalingHandler } from '../AiUpscalingTrait';
 
-function makeNode() { return { id: 'upscale_node' }; }
-function makeContext() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'upscale_node' };
+}
+function makeContext() {
+  return { emit: vi.fn() };
+}
 function attachNode(config: any = {}) {
   const node = makeNode();
   const ctx = makeContext();
@@ -22,23 +26,33 @@ function attachNode(config: any = {}) {
 // ─── defaultConfig ────────────────────────────────────────────────────────────
 
 describe('aiUpscalingHandler.defaultConfig', () => {
-  it('upscale_model = realesrgan', () => expect(aiUpscalingHandler.defaultConfig!.upscale_model).toBe('realesrgan'));
+  it('upscale_model = realesrgan', () =>
+    expect(aiUpscalingHandler.defaultConfig!.upscale_model).toBe('realesrgan'));
   it('scale_factor = 4', () => expect(aiUpscalingHandler.defaultConfig!.scale_factor).toBe(4));
   it('tile_size = 512', () => expect(aiUpscalingHandler.defaultConfig!.tile_size).toBe(512));
-  it('denoise_strength = 0.5', () => expect(aiUpscalingHandler.defaultConfig!.denoise_strength).toBe(0.5));
-  it('input_source = texture', () => expect(aiUpscalingHandler.defaultConfig!.input_source).toBe('texture'));
-  it('output_resolution = undefined', () => expect(aiUpscalingHandler.defaultConfig!.output_resolution).toBeUndefined());
-  it('preserve_details = true', () => expect(aiUpscalingHandler.defaultConfig!.preserve_details).toBe(true));
-  it('apply_to_material = true', () => expect(aiUpscalingHandler.defaultConfig!.apply_to_material).toBe(true));
+  it('denoise_strength = 0.5', () =>
+    expect(aiUpscalingHandler.defaultConfig!.denoise_strength).toBe(0.5));
+  it('input_source = texture', () =>
+    expect(aiUpscalingHandler.defaultConfig!.input_source).toBe('texture'));
+  it('output_resolution = undefined', () =>
+    expect(aiUpscalingHandler.defaultConfig!.output_resolution).toBeUndefined());
+  it('preserve_details = true', () =>
+    expect(aiUpscalingHandler.defaultConfig!.preserve_details).toBe(true));
+  it('apply_to_material = true', () =>
+    expect(aiUpscalingHandler.defaultConfig!.apply_to_material).toBe(true));
 });
 
 // ─── neuralUpscalingHandler alias ────────────────────────────────────────────
 
 describe('neuralUpscalingHandler', () => {
-  it('name = neural_upscaling', () => expect((neuralUpscalingHandler as any).name).toBe('neural_upscaling'));
-  it('upscale_model = swinir', () => expect(neuralUpscalingHandler.defaultConfig!.upscale_model).toBe('swinir'));
-  it('preserve_details = true', () => expect(neuralUpscalingHandler.defaultConfig!.preserve_details).toBe(true));
-  it('scale_factor inherited from aiUpscalingHandler (4)', () => expect(neuralUpscalingHandler.defaultConfig!.scale_factor).toBe(4));
+  it('name = neural_upscaling', () =>
+    expect((neuralUpscalingHandler as any).name).toBe('neural_upscaling'));
+  it('upscale_model = swinir', () =>
+    expect(neuralUpscalingHandler.defaultConfig!.upscale_model).toBe('swinir'));
+  it('preserve_details = true', () =>
+    expect(neuralUpscalingHandler.defaultConfig!.preserve_details).toBe(true));
+  it('scale_factor inherited from aiUpscalingHandler (4)', () =>
+    expect(neuralUpscalingHandler.defaultConfig!.scale_factor).toBe(4));
 });
 
 // ─── onAttach ────────────────────────────────────────────────────────────────
@@ -62,7 +76,10 @@ describe('aiUpscalingHandler.onAttach', () => {
   });
   it('emits ai_upscaling_init with model and scaleFactor', () => {
     const { ctx } = attachNode({ upscale_model: 'swinir', scale_factor: 2 });
-    expect(ctx.emit).toHaveBeenCalledWith('ai_upscaling_init', expect.objectContaining({ model: 'swinir', scaleFactor: 2 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'ai_upscaling_init',
+      expect.objectContaining({ model: 'swinir', scaleFactor: 2 })
+    );
   });
   it('auto-kicks ai_upscaling_request for input_source=texture', () => {
     const { ctx } = attachNode({ input_source: 'texture' });
@@ -157,17 +174,33 @@ describe('aiUpscalingHandler.onUpdate (live mode)', () => {
 describe('aiUpscalingHandler.onEvent — ai_upscaling_result', () => {
   it('sets is_processing=false', () => {
     const { node, cfg, ctx } = attachNode({ input_source: 'texture' });
-    aiUpscalingHandler.onEvent!(node, cfg, ctx, { type: 'ai_upscaling_result', texture: 'tex_hd', processingTime: 250 });
+    aiUpscalingHandler.onEvent!(node, cfg, ctx, {
+      type: 'ai_upscaling_result',
+      texture: 'tex_hd',
+      processingTime: 250,
+    });
     expect((node as any).__aiUpscalingState.is_processing).toBe(false);
   });
   it('sets output_texture', () => {
     const { node, cfg, ctx } = attachNode({ input_source: 'texture' });
-    aiUpscalingHandler.onEvent!(node, cfg, ctx, { type: 'ai_upscaling_result', texture: 'tex_hd', processingTime: 250 });
+    aiUpscalingHandler.onEvent!(node, cfg, ctx, {
+      type: 'ai_upscaling_result',
+      texture: 'tex_hd',
+      processingTime: 250,
+    });
     expect((node as any).__aiUpscalingState.output_texture).toBe('tex_hd');
   });
   it('caches result by model_scaleFactor key', () => {
-    const { node, cfg, ctx } = attachNode({ input_source: 'texture', upscale_model: 'esrgan', scale_factor: 2 });
-    aiUpscalingHandler.onEvent!(node, cfg, ctx, { type: 'ai_upscaling_result', texture: 'tex_2x', processingTime: 100 });
+    const { node, cfg, ctx } = attachNode({
+      input_source: 'texture',
+      upscale_model: 'esrgan',
+      scale_factor: 2,
+    });
+    aiUpscalingHandler.onEvent!(node, cfg, ctx, {
+      type: 'ai_upscaling_result',
+      texture: 'tex_2x',
+      processingTime: 100,
+    });
     const cached = (node as any).__aiUpscalingState.cache.get('esrgan_2x');
     expect(cached).toBeDefined();
     expect(cached.texture).toBe('tex_2x');
@@ -175,20 +208,47 @@ describe('aiUpscalingHandler.onEvent — ai_upscaling_result', () => {
   it('emits material_set_texture when apply_to_material=true', () => {
     const { node, cfg, ctx } = attachNode({ input_source: 'texture', apply_to_material: true });
     ctx.emit.mockClear();
-    aiUpscalingHandler.onEvent!(node, cfg, ctx, { type: 'ai_upscaling_result', texture: 'hd_tex', processingTime: 50 });
-    expect(ctx.emit).toHaveBeenCalledWith('material_set_texture', expect.objectContaining({ texture: 'hd_tex' }));
+    aiUpscalingHandler.onEvent!(node, cfg, ctx, {
+      type: 'ai_upscaling_result',
+      texture: 'hd_tex',
+      processingTime: 50,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'material_set_texture',
+      expect.objectContaining({ texture: 'hd_tex' })
+    );
   });
   it('does NOT emit material_set_texture when apply_to_material=false', () => {
     const { node, cfg, ctx } = attachNode({ input_source: 'texture', apply_to_material: false });
     ctx.emit.mockClear();
-    aiUpscalingHandler.onEvent!(node, cfg, ctx, { type: 'ai_upscaling_result', texture: 'hd_tex', processingTime: 50 });
+    aiUpscalingHandler.onEvent!(node, cfg, ctx, {
+      type: 'ai_upscaling_result',
+      texture: 'hd_tex',
+      processingTime: 50,
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('material_set_texture', expect.any(Object));
   });
   it('emits on_upscaling_complete with texture, model, scaleFactor, processingTime', () => {
-    const { node, cfg, ctx } = attachNode({ input_source: 'texture', upscale_model: 'swinir', scale_factor: 4 });
+    const { node, cfg, ctx } = attachNode({
+      input_source: 'texture',
+      upscale_model: 'swinir',
+      scale_factor: 4,
+    });
     ctx.emit.mockClear();
-    aiUpscalingHandler.onEvent!(node, cfg, ctx, { type: 'ai_upscaling_result', texture: 'out', processingTime: 300 });
-    expect(ctx.emit).toHaveBeenCalledWith('on_upscaling_complete', expect.objectContaining({ texture: 'out', model: 'swinir', scaleFactor: 4, processingTime: 300 }));
+    aiUpscalingHandler.onEvent!(node, cfg, ctx, {
+      type: 'ai_upscaling_result',
+      texture: 'out',
+      processingTime: 300,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_upscaling_complete',
+      expect.objectContaining({
+        texture: 'out',
+        model: 'swinir',
+        scaleFactor: 4,
+        processingTime: 300,
+      })
+    );
   });
 });
 
@@ -222,7 +282,13 @@ describe('aiUpscalingHandler.onEvent — ai_upscaling_error', () => {
   it('emits on_upscaling_error with error and model', () => {
     const { node, cfg, ctx } = attachNode({ input_source: 'texture', upscale_model: 'ldm' });
     ctx.emit.mockClear();
-    aiUpscalingHandler.onEvent!(node, cfg, ctx, { type: 'ai_upscaling_error', error: 'VRAM_LIMIT' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_upscaling_error', expect.objectContaining({ error: 'VRAM_LIMIT', model: 'ldm' }));
+    aiUpscalingHandler.onEvent!(node, cfg, ctx, {
+      type: 'ai_upscaling_error',
+      error: 'VRAM_LIMIT',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_upscaling_error',
+      expect.objectContaining({ error: 'VRAM_LIMIT', model: 'ldm' })
+    );
   });
 });

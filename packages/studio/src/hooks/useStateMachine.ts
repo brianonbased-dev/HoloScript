@@ -5,8 +5,15 @@
 import { useState, useCallback, useRef } from 'react';
 import { StateMachine } from '@holoscript/core';
 
-export interface SMState { id: string; parent?: string; }
-export interface SMTransition { from: string; to: string; event: string; }
+export interface SMState {
+  id: string;
+  parent?: string;
+}
+export interface SMTransition {
+  from: string;
+  to: string;
+  event: string;
+}
 
 export interface UseStateMachineReturn {
   currentState: string | null;
@@ -30,17 +37,24 @@ export function useStateMachine(): UseStateMachineReturn {
     setHistory(sm.current.getHistory());
   }, []);
 
-  const send = useCallback((event: string) => {
-    const ok = sm.current.send(event);
-    sync();
-    return ok;
-  }, [sync]);
+  const send = useCallback(
+    (event: string) => {
+      const ok = sm.current.send(event);
+      sync();
+      return ok;
+    },
+    [sync]
+  );
 
   const buildDemo = useCallback(() => {
     sm.current = new StateMachine();
     const demoStates: SMState[] = [
-      { id: 'idle' }, { id: 'patrol' }, { id: 'chase' },
-      { id: 'attack' }, { id: 'flee' }, { id: 'dead' },
+      { id: 'idle' },
+      { id: 'patrol' },
+      { id: 'chase' },
+      { id: 'attack' },
+      { id: 'flee' },
+      { id: 'dead' },
     ];
     const demoTransitions: SMTransition[] = [
       { from: 'idle', to: 'patrol', event: 'START' },
@@ -54,14 +68,20 @@ export function useStateMachine(): UseStateMachineReturn {
       { from: 'chase', to: 'dead', event: 'KILLED' },
     ];
     for (const s of demoStates) sm.current.addState({ id: s.id, parent: s.parent });
-    for (const t of demoTransitions) sm.current.addTransition({ from: t.from, to: t.to, event: t.event });
+    for (const t of demoTransitions)
+      sm.current.addTransition({ from: t.from, to: t.to, event: t.event });
     sm.current.setInitialState('idle');
     setStates(demoStates);
     setTransitions(demoTransitions);
     sync();
   }, [sync]);
 
-  const reset = useCallback(() => { sm.current = new StateMachine(); setStates([]); setTransitions([]); sync(); }, [sync]);
+  const reset = useCallback(() => {
+    sm.current = new StateMachine();
+    setStates([]);
+    setTransitions([]);
+    sync();
+  }, [sync]);
 
   return { currentState, states, transitions, history, send, buildDemo, reset };
 }

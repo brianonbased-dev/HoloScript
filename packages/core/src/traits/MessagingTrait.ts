@@ -96,17 +96,26 @@ async function telegramGetMe(token: string): Promise<{ id: number; username: str
 }
 
 async function telegramGetUpdates(token: string, offset: number, timeout = 5): Promise<any[]> {
-  const res = await fetch(`${TELEGRAM_API(token)}/getUpdates?offset=${offset}&timeout=${timeout}&allowed_updates=["message"]`);
+  const res = await fetch(
+    `${TELEGRAM_API(token)}/getUpdates?offset=${offset}&timeout=${timeout}&allowed_updates=["message"]`
+  );
   const data = await res.json();
   if (!data.ok) throw new Error(`Telegram getUpdates failed: ${data.description}`);
   return data.result ?? [];
 }
 
-async function telegramSendMessage(token: string, chatId: string, text: string, replyToId?: string): Promise<string> {
+async function telegramSendMessage(
+  token: string,
+  chatId: string,
+  text: string,
+  replyToId?: string
+): Promise<string> {
   const body: Record<string, unknown> = { chat_id: chatId, text, parse_mode: 'Markdown' };
   if (replyToId) body['reply_to_message_id'] = replyToId;
   const res = await fetch(`${TELEGRAM_API(token)}/sendMessage`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   });
   const data = await res.json();
   if (!data.ok) throw new Error(`Telegram sendMessage failed: ${data.description}`);
@@ -116,7 +125,7 @@ async function telegramSendMessage(token: string, chatId: string, text: string, 
 async function slackSendMessage(token: string, channel: string, text: string): Promise<string> {
   const res = await fetch('https://slack.com/api/chat.postMessage', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ channel, text }),
   });
   const data = await res.json();
@@ -127,7 +136,7 @@ async function slackSendMessage(token: string, channel: string, text: string): P
 async function discordSendMessage(token: string, channelId: string, text: string): Promise<string> {
   const res = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bot ${token}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bot ${token}` },
     body: JSON.stringify({ content: text }),
   });
   const data = await res.json();
@@ -157,7 +166,11 @@ export const messagingHandler = {
 
   async onAttach(node: any, config: MessagingConfig, ctx: any): Promise<void> {
     if (!config.token) {
-      ctx.emit('messaging_error', { node, platform: config.platform, error: 'No token configured' });
+      ctx.emit('messaging_error', {
+        node,
+        platform: config.platform,
+        error: 'No token configured',
+      });
       return;
     }
 
@@ -194,7 +207,12 @@ export const messagingHandler = {
         state.botId = 'webhook';
       }
 
-      ctx.emit('messaging_connected', { node, platform: config.platform, botId: state.botId, botUsername: state.botUsername });
+      ctx.emit('messaging_connected', {
+        node,
+        platform: config.platform,
+        botId: state.botId,
+        botUsername: state.botUsername,
+      });
     } catch (err: any) {
       ctx.emit('messaging_error', { node, platform: config.platform, error: err.message });
     }
@@ -241,23 +259,40 @@ export const messagingHandler = {
     }
   },
 
-  onUpdate(_node: any, _config: MessagingConfig, _ctx: any, _dt: number): void { /* polling via timer */ },
+  onUpdate(_node: any, _config: MessagingConfig, _ctx: any, _dt: number): void {
+    /* polling via timer */
+  },
 
-  _handleIncoming(state: MessagingState, node: any, config: MessagingConfig, ctx: any, msg: IncomingMessage): void {
+  _handleIncoming(
+    state: MessagingState,
+    node: any,
+    config: MessagingConfig,
+    ctx: any,
+    msg: IncomingMessage
+  ): void {
     state.totalReceived++;
 
     if (!isUserAllowed(msg.userId, config.allowed_users)) return;
 
     ctx.emit('message_received', {
-      node, platform: msg.platform, chat: msg.chatId, user: msg.userId,
-      username: msg.username, text: msg.text, messageId: msg.id,
+      node,
+      platform: msg.platform,
+      chat: msg.chatId,
+      user: msg.userId,
+      username: msg.username,
+      text: msg.text,
+      messageId: msg.id,
     });
 
     const command = parseCommand(msg.text, config.command_prefix);
     if (!command) return;
 
     ctx.emit('command_parsed', {
-      node, platform: msg.platform, command: command.name, args: command.args, chat: msg.chatId,
+      node,
+      platform: msg.platform,
+      command: command.name,
+      args: command.args,
+      chat: msg.chatId,
     });
 
     // Send "thinking" message for long operations
@@ -267,41 +302,61 @@ export const messagingHandler = {
 
     // Re-emit as domain event for other traits to handle
     ctx.emit(`command_${command.name}`, {
-      node, chat: msg.chatId, user: msg.userId, args: command.args, replyTo: msg.id,
+      node,
+      chat: msg.chatId,
+      user: msg.userId,
+      args: command.args,
+      replyTo: msg.id,
     });
   },
 
-  _sendMessage(state: MessagingState, node: any, config: MessagingConfig, ctx: any, chatId: string, text: string, replyToId?: string): void {
+  _sendMessage(
+    state: MessagingState,
+    node: any,
+    config: MessagingConfig,
+    ctx: any,
+    chatId: string,
+    text: string,
+    replyToId?: string
+  ): void {
     state.totalSent++;
     const sendFn: Promise<string> =
-      config.platform === 'telegram' ? telegramSendMessage(config.token, chatId, text, replyToId) :
-      config.platform === 'slack'    ? slackSendMessage(config.token, chatId, text) :
-      discordSendMessage(config.token, chatId, text);
+      config.platform === 'telegram'
+        ? telegramSendMessage(config.token, chatId, text, replyToId)
+        : config.platform === 'slack'
+          ? slackSendMessage(config.token, chatId, text)
+          : discordSendMessage(config.token, chatId, text);
 
-    sendFn.then(messageId => {
-      ctx.emit('message_sent', { node, platform: config.platform, chat: chatId, messageId });
-    }).catch((err: Error) => {
-      ctx.emit('messaging_error', { node, platform: config.platform, error: err.message });
-    });
+    sendFn
+      .then((messageId) => {
+        ctx.emit('message_sent', { node, platform: config.platform, chat: chatId, messageId });
+      })
+      .catch((err: Error) => {
+        ctx.emit('messaging_error', { node, platform: config.platform, error: err.message });
+      });
   },
 
   _pollTelegram(state: MessagingState, node: any, config: MessagingConfig, ctx: any): void {
-    telegramGetUpdates(config.token, state.lastUpdateId + 1).then(updates => {
-      for (const update of updates) {
-        state.lastUpdateId = Math.max(state.lastUpdateId, update.update_id);
-        const msg = update.message;
-        if (!msg?.text) continue;
-        const incoming: IncomingMessage = {
-          id: String(msg.message_id),
-          platform: 'telegram',
-          chatId: String(msg.chat.id),
-          userId: String(msg.from?.id ?? 'unknown'),
-          username: msg.from?.username ?? msg.from?.first_name ?? 'unknown',
-          text: msg.text,
-          timestamp: msg.date * 1000,
-        };
-        this._handleIncoming(state, node, config, ctx, incoming);
-      }
-    }).catch(() => { /* silent poll failure */ });
+    telegramGetUpdates(config.token, state.lastUpdateId + 1)
+      .then((updates) => {
+        for (const update of updates) {
+          state.lastUpdateId = Math.max(state.lastUpdateId, update.update_id);
+          const msg = update.message;
+          if (!msg?.text) continue;
+          const incoming: IncomingMessage = {
+            id: String(msg.message_id),
+            platform: 'telegram',
+            chatId: String(msg.chat.id),
+            userId: String(msg.from?.id ?? 'unknown'),
+            username: msg.from?.username ?? msg.from?.first_name ?? 'unknown',
+            text: msg.text,
+            timestamp: msg.date * 1000,
+          };
+          this._handleIncoming(state, node, config, ctx, incoming);
+        }
+      })
+      .catch(() => {
+        /* silent poll failure */
+      });
   },
 } as const;

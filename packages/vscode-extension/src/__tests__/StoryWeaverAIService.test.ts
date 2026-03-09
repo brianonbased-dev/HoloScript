@@ -237,9 +237,9 @@ describe('StoryWeaverAIService', () => {
       service = new StoryWeaverAIService({ apiKey: 'test-key' });
 
       // Should throw since real integration not implemented
-      await expect(
-        service.generateNarrative('Test', 'Theme')
-      ).rejects.toThrow('Real openai integration not yet implemented');
+      await expect(service.generateNarrative('Test', 'Theme')).rejects.toThrow(
+        'Real openai integration not yet implemented'
+      );
     });
   });
 

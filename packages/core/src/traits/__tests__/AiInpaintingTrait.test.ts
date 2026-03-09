@@ -247,7 +247,11 @@ describe('AiInpaintingTrait', () => {
 
       aiInpaintingHandler.onEvent!(node as any, defaultConfig, ctx as any, {
         type: 'inpainting:complete',
-        payload: { regionId: 'r1', resultUrl: 'https://cdn.example.com/result.png', elapsedMs: 1200 },
+        payload: {
+          regionId: 'r1',
+          resultUrl: 'https://cdn.example.com/result.png',
+          elapsedMs: 1200,
+        },
       });
 
       const state = ctx.getState().aiInpainting as any;
@@ -326,7 +330,10 @@ describe('AiInpaintingTrait', () => {
     });
 
     it('does not emit original_restored when preserve is false', () => {
-      const noPreserve: AiInpaintingConfig = { ...defaultConfig, preserve_original_on_mask_clear: false };
+      const noPreserve: AiInpaintingConfig = {
+        ...defaultConfig,
+        preserve_original_on_mask_clear: false,
+      };
 
       aiInpaintingHandler.onEvent!(node as any, noPreserve, ctx as any, {
         type: 'inpainting:set_mask',

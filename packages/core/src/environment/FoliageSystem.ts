@@ -14,11 +14,11 @@
 export interface FoliageType {
   id: string;
   meshId: string;
-  density: number;          // instances per unit area
+  density: number; // instances per unit area
   minScale: number;
   maxScale: number;
   alignToNormal: boolean;
-  windResponse: number;     // 0-1, how much wind affects it
+  windResponse: number; // 0-1, how much wind affects it
   castsShadow: boolean;
   lodDistances: number[];
 }
@@ -27,8 +27,8 @@ export interface FoliageInstance {
   typeId: string;
   position: { x: number; y: number; z: number };
   scale: number;
-  rotation: number;         // Y-axis rotation in radians
-  windPhase: number;        // offset to prevent uniform sway
+  rotation: number; // Y-axis rotation in radians
+  windPhase: number; // offset to prevent uniform sway
   lodLevel: number;
   visible: boolean;
 }
@@ -55,9 +55,15 @@ export class FoliageSystem {
   // Types
   // ---------------------------------------------------------------------------
 
-  registerType(type: FoliageType): void { this.types.set(type.id, type); }
-  getType(id: string): FoliageType | undefined { return this.types.get(id); }
-  getTypeCount(): number { return this.types.size; }
+  registerType(type: FoliageType): void {
+    this.types.set(type.id, type);
+  }
+  getType(id: string): FoliageType | undefined {
+    return this.types.get(id);
+  }
+  getTypeCount(): number {
+    return this.types.size;
+  }
 
   // ---------------------------------------------------------------------------
   // Wind
@@ -77,13 +83,22 @@ export class FoliageSystem {
   // Scattering
   // ---------------------------------------------------------------------------
 
-  scatter(patchId: string, typeId: string, bounds: FoliagePatch['bounds'], count: number, seed = 42): FoliagePatch {
+  scatter(
+    patchId: string,
+    typeId: string,
+    bounds: FoliagePatch['bounds'],
+    count: number,
+    seed = 42
+  ): FoliagePatch {
     const type = this.types.get(typeId);
     if (!type) throw new Error(`Unknown foliage type: ${typeId}`);
 
     const instances: FoliageInstance[] = [];
     let rng = seed;
-    const nextRand = () => { rng = (rng * 1103515245 + 12345) & 0x7FFFFFFF; return rng / 0x7FFFFFFF; };
+    const nextRand = () => {
+      rng = (rng * 1103515245 + 12345) & 0x7fffffff;
+      return rng / 0x7fffffff;
+    };
 
     for (let i = 0; i < count; i++) {
       const x = bounds.x + nextRand() * bounds.w;
@@ -101,7 +116,12 @@ export class FoliageSystem {
       });
     }
 
-    const patch: FoliagePatch = { id: patchId, bounds, instances, density: count / (bounds.w * bounds.h) };
+    const patch: FoliagePatch = {
+      id: patchId,
+      bounds,
+      instances,
+      density: count / (bounds.w * bounds.h),
+    };
     this.patches.set(patchId, patch);
     return patch;
   }
@@ -148,8 +168,12 @@ export class FoliageSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getPatch(id: string): FoliagePatch | undefined { return this.patches.get(id); }
-  getPatchCount(): number { return this.patches.size; }
+  getPatch(id: string): FoliagePatch | undefined {
+    return this.patches.get(id);
+  }
+  getPatchCount(): number {
+    return this.patches.size;
+  }
 
   getVisibleCount(): number {
     let count = 0;
@@ -165,5 +189,7 @@ export class FoliageSystem {
     return count;
   }
 
-  removePatch(id: string): boolean { return this.patches.delete(id); }
+  removePatch(id: string): boolean {
+    return this.patches.delete(id);
+  }
 }

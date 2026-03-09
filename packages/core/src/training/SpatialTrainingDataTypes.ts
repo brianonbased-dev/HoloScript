@@ -29,10 +29,7 @@ export type SpatialDifficulty = 'basic' | 'intermediate' | 'advanced';
 /**
  * The three core spatial relationship types from HoloScript's constraint system.
  */
-export type SpatialRelationshipType =
-  | 'spatial_adjacent'
-  | 'spatial_contains'
-  | 'spatial_reachable';
+export type SpatialRelationshipType = 'spatial_adjacent' | 'spatial_contains' | 'spatial_reachable';
 
 // =============================================================================
 // SCENE OBJECT DEFINITION

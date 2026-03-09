@@ -68,7 +68,7 @@ export class HierarchyPanel {
     const node = this.nodes.get(nodeId);
     if (!node) return;
 
-    // Reparent children  
+    // Reparent children
     for (const childId of node.childIds) {
       const child = this.nodes.get(childId);
       if (child) {

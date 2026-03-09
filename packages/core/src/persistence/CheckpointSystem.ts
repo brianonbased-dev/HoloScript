@@ -1,7 +1,7 @@
 /**
  * CheckpointSystem.ts
  *
- * Auto-checkpoint: periodic state snapshots, rollback to 
+ * Auto-checkpoint: periodic state snapshots, rollback to
  * any checkpoint, and diff-based storage efficiency.
  *
  * @module persistence
@@ -16,7 +16,7 @@ export interface Checkpoint {
   label: string;
   timestamp: number;
   data: Record<string, unknown>;
-  diff: Record<string, unknown> | null;  // Diff from previous, null = full snapshot
+  diff: Record<string, unknown> | null; // Diff from previous, null = full snapshot
   parentId: string | null;
   size: number;
 }
@@ -30,7 +30,7 @@ let _checkId = 0;
 export class CheckpointSystem {
   private checkpoints: Checkpoint[] = [];
   private maxCheckpoints = 50;
-  private autoInterval = 0;         // seconds, 0 = disabled
+  private autoInterval = 0; // seconds, 0 = disabled
   private autoTimer = 0;
   private currentState: Record<string, unknown> = {};
 
@@ -40,8 +40,8 @@ export class CheckpointSystem {
 
   createCheckpoint(label: string, data: Record<string, unknown>): Checkpoint {
     const serialized = JSON.stringify(data);
-    const parentId = this.checkpoints.length > 0
-      ? this.checkpoints[this.checkpoints.length - 1].id : null;
+    const parentId =
+      this.checkpoints.length > 0 ? this.checkpoints[this.checkpoints.length - 1].id : null;
 
     let diff: Record<string, unknown> | null = null;
     if (parentId) {
@@ -74,7 +74,7 @@ export class CheckpointSystem {
   // ---------------------------------------------------------------------------
 
   rollback(checkpointId: string): Record<string, unknown> | null {
-    const idx = this.checkpoints.findIndex(c => c.id === checkpointId);
+    const idx = this.checkpoints.findIndex((c) => c.id === checkpointId);
     if (idx < 0) return null;
 
     const checkpoint = this.checkpoints[idx];
@@ -95,7 +95,9 @@ export class CheckpointSystem {
   // Auto-checkpoint
   // ---------------------------------------------------------------------------
 
-  setAutoInterval(seconds: number): void { this.autoInterval = seconds; }
+  setAutoInterval(seconds: number): void {
+    this.autoInterval = seconds;
+  }
 
   update(dt: number): Checkpoint | null {
     if (this.autoInterval <= 0) return null;
@@ -116,7 +118,10 @@ export class CheckpointSystem {
   // Diff Computation
   // ---------------------------------------------------------------------------
 
-  private computeDiff(old: Record<string, unknown>, current: Record<string, unknown>): Record<string, unknown> {
+  private computeDiff(
+    old: Record<string, unknown>,
+    current: Record<string, unknown>
+  ): Record<string, unknown> {
     const diff: Record<string, unknown> = {};
     for (const key of Object.keys(current)) {
       if (JSON.stringify(old[key]) !== JSON.stringify(current[key])) {
@@ -136,11 +141,15 @@ export class CheckpointSystem {
   // ---------------------------------------------------------------------------
 
   getCheckpoint(id: string): Checkpoint | undefined {
-    return this.checkpoints.find(c => c.id === id);
+    return this.checkpoints.find((c) => c.id === id);
   }
 
-  getAllCheckpoints(): Checkpoint[] { return [...this.checkpoints]; }
-  getCheckpointCount(): number { return this.checkpoints.length; }
+  getAllCheckpoints(): Checkpoint[] {
+    return [...this.checkpoints];
+  }
+  getCheckpointCount(): number {
+    return this.checkpoints.length;
+  }
   getLatest(): Checkpoint | null {
     return this.checkpoints.length > 0 ? this.checkpoints[this.checkpoints.length - 1] : null;
   }
@@ -149,6 +158,10 @@ export class CheckpointSystem {
     return this.checkpoints.reduce((sum, c) => sum + c.size, 0);
   }
 
-  clear(): void { this.checkpoints = []; }
-  setMaxCheckpoints(max: number): void { this.maxCheckpoints = max; }
+  clear(): void {
+    this.checkpoints = [];
+  }
+  setMaxCheckpoints(max: number): void {
+    this.maxCheckpoints = max;
+  }
 }

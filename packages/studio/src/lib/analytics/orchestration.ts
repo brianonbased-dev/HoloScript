@@ -15,10 +15,7 @@ export interface OrchestrationEventProps {
  * @param event Event name (e.g., 'panel_opened', 'workflow_executed')
  * @param props Event properties
  */
-export function trackOrchestrationEvent(
-  event: string,
-  props: OrchestrationEventProps = {}
-) {
+export function trackOrchestrationEvent(event: string, props: OrchestrationEventProps = {}) {
   // Send to Google Analytics if available
   if (typeof window !== 'undefined' && (window as any).gtag) {
     (window as any).gtag('event', event, {
@@ -64,11 +61,7 @@ export function trackMCPServerDisconnected(serverName: string) {
   });
 }
 
-export function trackToolCallSuccess(
-  toolName: string,
-  serverName: string,
-  durationMs: number
-) {
+export function trackToolCallSuccess(toolName: string, serverName: string, durationMs: number) {
   trackOrchestrationEvent('tool_call_success', {
     tool_name: toolName,
     server_name: serverName,
@@ -76,11 +69,7 @@ export function trackToolCallSuccess(
   });
 }
 
-export function trackToolCallFailure(
-  toolName: string,
-  serverName: string,
-  errorMessage: string
-) {
+export function trackToolCallFailure(toolName: string, serverName: string, errorMessage: string) {
   trackOrchestrationEvent('tool_call_failure', {
     tool_name: toolName,
     server_name: serverName,
@@ -110,10 +99,7 @@ export function trackWorkflowExecuted(
   });
 }
 
-export function trackWorkflowNodeAdded(
-  workflowId: string,
-  nodeType: string
-) {
+export function trackWorkflowNodeAdded(workflowId: string, nodeType: string) {
   trackOrchestrationEvent('workflow_node_added', {
     workflow_id: workflowId,
     node_type: nodeType,

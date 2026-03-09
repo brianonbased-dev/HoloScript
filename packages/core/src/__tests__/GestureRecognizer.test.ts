@@ -7,7 +7,9 @@ import { GestureRecognizer } from '../input/GestureRecognizer';
 
 describe('GestureRecognizer', () => {
   let gr: GestureRecognizer;
-  beforeEach(() => { gr = new GestureRecognizer(); });
+  beforeEach(() => {
+    gr = new GestureRecognizer();
+  });
 
   it('default config has expected thresholds', () => {
     const c = gr.getConfig();

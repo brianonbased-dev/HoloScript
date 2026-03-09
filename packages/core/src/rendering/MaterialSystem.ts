@@ -56,7 +56,9 @@ export class MaterialSystem {
     this.shaders.set(id, { vertexSrc, fragmentSrc });
   }
 
-  getShader(id: string) { return this.shaders.get(id); }
+  getShader(id: string) {
+    return this.shaders.get(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Material CRUD
@@ -64,27 +66,46 @@ export class MaterialSystem {
 
   createMaterial(id: string, name: string, shaderId: string): Material {
     const mat: Material = {
-      id, name, shaderId,
+      id,
+      name,
+      shaderId,
       uniforms: new Map(),
-      blendMode: 'opaque', cullMode: 'back',
-      depthWrite: true, depthTest: true,
-      renderOrder: 0, doubleSided: false,
-      albedo: [1, 1, 1, 1], metallic: 0, roughness: 0.5,
-      emissive: [0, 0, 0], normalScale: 1,
+      blendMode: 'opaque',
+      cullMode: 'back',
+      depthWrite: true,
+      depthTest: true,
+      renderOrder: 0,
+      doubleSided: false,
+      albedo: [1, 1, 1, 1],
+      metallic: 0,
+      roughness: 0.5,
+      emissive: [0, 0, 0],
+      normalScale: 1,
     };
     this.materials.set(id, mat);
     return mat;
   }
 
-  getMaterial(id: string): Material | undefined { return this.materials.get(id); }
-  removeMaterial(id: string): void { this.materials.delete(id); }
-  getMaterialCount(): number { return this.materials.size; }
+  getMaterial(id: string): Material | undefined {
+    return this.materials.get(id);
+  }
+  removeMaterial(id: string): void {
+    this.materials.delete(id);
+  }
+  getMaterialCount(): number {
+    return this.materials.size;
+  }
 
   // ---------------------------------------------------------------------------
   // Uniforms
   // ---------------------------------------------------------------------------
 
-  setUniform(materialId: string, name: string, type: UniformType, value: number | number[] | string): void {
+  setUniform(
+    materialId: string,
+    name: string,
+    type: UniformType,
+    value: number | number[] | string
+  ): void {
     const mat = this.materials.get(materialId);
     if (mat) mat.uniforms.set(name, { name, type, value });
   }
@@ -97,7 +118,10 @@ export class MaterialSystem {
   // PBR Properties
   // ---------------------------------------------------------------------------
 
-  setPBR(materialId: string, props: Partial<Pick<Material, 'albedo' | 'metallic' | 'roughness' | 'emissive' | 'normalScale'>>): void {
+  setPBR(
+    materialId: string,
+    props: Partial<Pick<Material, 'albedo' | 'metallic' | 'roughness' | 'emissive' | 'normalScale'>>
+  ): void {
     const mat = this.materials.get(materialId);
     if (!mat) return;
     if (props.albedo) mat.albedo = props.albedo;
@@ -128,8 +152,12 @@ export class MaterialSystem {
   getSortedMaterials(): Material[] {
     const all = [...this.materials.values()];
     // Opaque first, then transparent sorted by render order
-    const opaque = all.filter(m => m.blendMode === 'opaque').sort((a, b) => a.renderOrder - b.renderOrder);
-    const transparent = all.filter(m => m.blendMode !== 'opaque').sort((a, b) => a.renderOrder - b.renderOrder);
+    const opaque = all
+      .filter((m) => m.blendMode === 'opaque')
+      .sort((a, b) => a.renderOrder - b.renderOrder);
+    const transparent = all
+      .filter((m) => m.blendMode !== 'opaque')
+      .sort((a, b) => a.renderOrder - b.renderOrder);
     return [...opaque, ...transparent];
   }
 
@@ -141,7 +169,9 @@ export class MaterialSystem {
     const source = this.materials.get(sourceId);
     if (!source) return null;
     const clone: Material = {
-      ...source, id: newId, name: newName,
+      ...source,
+      id: newId,
+      name: newName,
       uniforms: new Map(source.uniforms),
       albedo: [...source.albedo] as [number, number, number, number],
       emissive: [...source.emissive] as [number, number, number],

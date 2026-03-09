@@ -2,13 +2,7 @@
  * @holoscript/crdt adapter for benchmarks
  */
 
-import {
-  LWWRegister,
-  ORSet,
-  GCounter,
-  createTestSigner,
-  type DIDSigner,
-} from '@holoscript/crdt';
+import { LWWRegister, ORSet, GCounter, createTestSigner, type DIDSigner } from '@holoscript/crdt';
 import type { CRDTAdapter } from '../types.js';
 
 export class HoloScriptCRDTAdapter implements CRDTAdapter {

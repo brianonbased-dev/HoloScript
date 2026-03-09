@@ -54,7 +54,7 @@ export class OcclusionCulling {
   private currentFrame = 0;
   private visibleCount = 0;
   private culledCount = 0;
-  private layerMask = 0xFFFFFFFF;
+  private layerMask = 0xffffffff;
 
   // ---------------------------------------------------------------------------
   // Object Management
@@ -62,13 +62,19 @@ export class OcclusionCulling {
 
   register(id: string, bounds: AABB, layer = 0): CullableObject {
     const obj: CullableObject = {
-      id, bounds, visible: true, lastTestFrame: 0, layer,
+      id,
+      bounds,
+      visible: true,
+      lastTestFrame: 0,
+      layer,
     };
     this.objects.set(id, obj);
     return obj;
   }
 
-  unregister(id: string): boolean { return this.objects.delete(id); }
+  unregister(id: string): boolean {
+    return this.objects.delete(id);
+  }
 
   updateBounds(id: string, bounds: AABB): void {
     const obj = this.objects.get(id);
@@ -100,7 +106,9 @@ export class OcclusionCulling {
     this.frustumPlanes = planes;
   }
 
-  setLayerMask(mask: number): void { this.layerMask = mask; }
+  setLayerMask(mask: number): void {
+    this.layerMask = mask;
+  }
 
   // ---------------------------------------------------------------------------
   // Culling
@@ -151,9 +159,14 @@ export class OcclusionCulling {
   // ---------------------------------------------------------------------------
 
   testAABBOverlap(a: AABB, b: AABB): boolean {
-    return a.min.x <= b.max.x && a.max.x >= b.min.x &&
-           a.min.y <= b.max.y && a.max.y >= b.min.y &&
-           a.min.z <= b.max.z && a.max.z >= b.min.z;
+    return (
+      a.min.x <= b.max.x &&
+      a.max.x >= b.min.x &&
+      a.min.y <= b.max.y &&
+      a.max.y >= b.min.y &&
+      a.min.z <= b.max.z &&
+      a.max.z >= b.min.z
+    );
   }
 
   queryRegion(region: AABB): CullableObject[] {
@@ -198,14 +211,22 @@ export class OcclusionCulling {
   // ---------------------------------------------------------------------------
 
   getVisibleObjects(): CullableObject[] {
-    return [...this.objects.values()].filter(o => o.visible);
+    return [...this.objects.values()].filter((o) => o.visible);
   }
 
-  getVisibleCount(): number { return this.visibleCount; }
-  getCulledCount(): number { return this.culledCount; }
-  getTotalCount(): number { return this.objects.size; }
+  getVisibleCount(): number {
+    return this.visibleCount;
+  }
+  getCulledCount(): number {
+    return this.culledCount;
+  }
+  getTotalCount(): number {
+    return this.objects.size;
+  }
   getCullRatio(): number {
     return this.objects.size > 0 ? this.culledCount / this.objects.size : 0;
   }
-  getCurrentFrame(): number { return this.currentFrame; }
+  getCurrentFrame(): number {
+    return this.currentFrame;
+  }
 }

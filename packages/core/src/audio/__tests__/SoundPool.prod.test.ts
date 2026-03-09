@@ -15,14 +15,20 @@ function makeSfx(id: string, cat = 'sfx'): SoundDefinition {
 describe('SoundPool', () => {
   let pool: SoundPool;
 
-  beforeEach(() => { pool = new SoundPool(); });
+  beforeEach(() => {
+    pool = new SoundPool();
+  });
 
   // -------------------------------------------------------------------------
   // Construction
   // -------------------------------------------------------------------------
   describe('construction', () => {
-    it('starts empty', () => { expect(pool.count).toBe(0); });
-    it('listIds returns empty array', () => { expect(pool.listIds()).toHaveLength(0); });
+    it('starts empty', () => {
+      expect(pool.count).toBe(0);
+    });
+    it('listIds returns empty array', () => {
+      expect(pool.listIds()).toHaveLength(0);
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -85,7 +91,7 @@ describe('SoundPool', () => {
       pool.register(makeSfx('theme', 'music'));
       const sfx = pool.getByCategory('sfx');
       expect(sfx).toHaveLength(2);
-      expect(sfx.every(s => s.category === 'sfx')).toBe(true);
+      expect(sfx.every((s) => s.category === 'sfx')).toBe(true);
     });
 
     it('returns empty array for unknown category', () => {

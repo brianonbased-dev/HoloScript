@@ -180,7 +180,8 @@ describe('TileRenderer — Frustum Culling', () => {
     const map = makeMap(8, 8, 16);
     map.addLayer('ground', 0);
     // Place tiles at all 8×8 positions
-    for (let x = 0; x < 8; x++) for (let y = 0; y < 8; y++) map.setTile('ground', x, y, { id: 1, flags: 0 });
+    for (let x = 0; x < 8; x++)
+      for (let y = 0; y < 8; y++) map.setTile('ground', x, y, { id: 1, flags: 0 });
 
     const renderer = new TileRenderer(map, makeAtlas(4, 4));
     // View covers only tiles 0-3 in x and 0-3 in y (visible 64×64px)
@@ -191,17 +192,18 @@ describe('TileRenderer — Frustum Culling', () => {
   it('respects layer visibility — hidden layers are not rendered', () => {
     const map = makeMap(4, 4, 16);
     map.addLayer('background', 0);
-    map.addLayer('overlay', 1);  // 'overlay' is in TileRenderer's allowed layer list
+    map.addLayer('overlay', 1); // 'overlay' is in TileRenderer's allowed layer list
     // Set overlay layer invisible by directly mutating the layer object
     const overlayLayer = map.getLayer('overlay')!;
     overlayLayer.visible = false;
-    for (let x = 0; x < 4; x++) for (let y = 0; y < 4; y++) {
-      map.setTile('background', x, y, { id: 0, flags: 0 });
-      map.setTile('overlay', x, y, { id: 1, flags: 0 });
-    }
+    for (let x = 0; x < 4; x++)
+      for (let y = 0; y < 4; y++) {
+        map.setTile('background', x, y, { id: 0, flags: 0 });
+        map.setTile('overlay', x, y, { id: 1, flags: 0 });
+      }
     const renderer = new TileRenderer(map, makeAtlas(4, 4));
     const tiles = renderer.getVisibleTiles(0, 0, 64, 64);
-    expect(tiles.every(t => t.layerName === 'background')).toBe(true);
+    expect(tiles.every((t) => t.layerName === 'background')).toBe(true);
   });
 
   it('returned tiles have correct worldX/worldY for tileSize', () => {
@@ -210,7 +212,7 @@ describe('TileRenderer — Frustum Culling', () => {
     map.setTile('ground', 2, 3, { id: 0, flags: 0 });
     const renderer = new TileRenderer(map, makeAtlas(4, 4));
     const tiles = renderer.getVisibleTiles(0, 0, 64, 64);
-    const t = tiles.find(t => t.tileX === 2 && t.tileY === 3);
+    const t = tiles.find((t) => t.tileX === 2 && t.tileY === 3);
     expect(t).toBeDefined();
     expect(t!.worldX).toBe(2 * 16);
     expect(t!.worldY).toBe(3 * 16);
@@ -219,21 +221,23 @@ describe('TileRenderer — Frustum Culling', () => {
   it('tiles outside view are excluded', () => {
     const map = makeMap(8, 8, 16);
     map.addLayer('ground', 0);
-    for (let x = 0; x < 8; x++) for (let y = 0; y < 8; y++) map.setTile('ground', x, y, { id: 0, flags: 0 });
+    for (let x = 0; x < 8; x++)
+      for (let y = 0; y < 8; y++) map.setTile('ground', x, y, { id: 0, flags: 0 });
     const renderer = new TileRenderer(map, makeAtlas(4, 4));
     // View only covers x=0-1 (first 2 tiles)
     const tiles = renderer.getVisibleTiles(0, 0, 31, 128);
-    expect(tiles.every(t => t.tileX <= 1)).toBe(true);
+    expect(tiles.every((t) => t.tileX <= 1)).toBe(true);
   });
 
   it('layers are sorted by zOrder in output', () => {
     const map = makeMap(2, 2, 16);
     map.addLayer('foreground', 10);
     map.addLayer('background', 0);
-    for (let x = 0; x < 2; x++) for (let y = 0; y < 2; y++) {
-      map.setTile('foreground', x, y, { id: 1, flags: 0 });
-      map.setTile('background', x, y, { id: 0, flags: 0 });
-    }
+    for (let x = 0; x < 2; x++)
+      for (let y = 0; y < 2; y++) {
+        map.setTile('foreground', x, y, { id: 1, flags: 0 });
+        map.setTile('background', x, y, { id: 0, flags: 0 });
+      }
     const renderer = new TileRenderer(map, makeAtlas(4, 4));
     const tiles = renderer.getVisibleTiles(0, 0, 32, 32);
     // First 4 tiles should be background (zOrder 0), last 4 foreground (zOrder 10)
@@ -247,7 +251,7 @@ describe('TileRenderer — Frustum Culling', () => {
     map.setTile('ground', 0, 0, { id: 5, flags: 0 }); // tile id 5 → col 1, row 1 in 4×4 atlas
     const renderer = new TileRenderer(map, makeAtlas(4, 4));
     const tiles = renderer.getVisibleTiles(0, 0, 32, 32);
-    const t = tiles.find(t => t.tileX === 0 && t.tileY === 0);
+    const t = tiles.find((t) => t.tileX === 0 && t.tileY === 0);
     expect(t).toBeDefined();
     expect(t!.uvX).toBeCloseTo(1 / 4);
     expect(t!.uvY).toBeCloseTo(1 / 4);
@@ -256,10 +260,11 @@ describe('TileRenderer — Frustum Culling', () => {
   it('view offset correctly culls left/top tiles', () => {
     const map = makeMap(4, 4, 16);
     map.addLayer('ground', 0);
-    for (let x = 0; x < 4; x++) for (let y = 0; y < 4; y++) map.setTile('ground', x, y, { id: 0, flags: 0 });
+    for (let x = 0; x < 4; x++)
+      for (let y = 0; y < 4; y++) map.setTile('ground', x, y, { id: 0, flags: 0 });
     const renderer = new TileRenderer(map, makeAtlas(4, 4));
     // View starting at tile 2,2 (pixel 32,32) covering 32x32
     const tiles = renderer.getVisibleTiles(32, 32, 32, 32);
-    expect(tiles.every(t => t.tileX >= 2 && t.tileY >= 2)).toBe(true);
+    expect(tiles.every((t) => t.tileX >= 2 && t.tileY >= 2)).toBe(true);
   });
 });

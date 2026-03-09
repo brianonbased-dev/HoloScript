@@ -56,11 +56,16 @@ describe('useShaderCompilation', () => {
 
       const { result } = renderHook(() => useShaderCompilation(50));
 
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 1000 }
+      );
 
-      expect(result.current.compiled?.warnings).toContain('No output node found — add a Fragment Output node.');
+      expect(result.current.compiled?.warnings).toContain(
+        'No output node found — add a Fragment Output node.'
+      );
       expect(result.current.compiled?.fragmentCode).toBe('');
     });
   });
@@ -80,9 +85,12 @@ describe('useShaderCompilation', () => {
 
       const { result } = renderHook(() => useShaderCompilation(50));
 
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 1000 }
+      );
 
       expect(result.current.compiled?.fragmentCode).toContain('void main()');
       expect(result.current.compiled?.vertexCode).toContain('void main()');
@@ -113,9 +121,7 @@ describe('useShaderCompilation', () => {
       });
 
       expect(result.current.compiled?.uniforms).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'uTime', type: 'float' })
-        ])
+        expect.arrayContaining([expect.objectContaining({ name: 'uTime', type: 'float' })])
       );
     });
 
@@ -133,9 +139,12 @@ describe('useShaderCompilation', () => {
 
       const { result } = renderHook(() => useShaderCompilation(50));
 
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 1000 }
+      );
 
       expect(result.current.compiled?.vertexCode).toContain('varying vec2 vUv');
       expect(result.current.compiled?.vertexCode).toContain('varying vec3 vPosition');
@@ -179,9 +188,12 @@ describe('useShaderCompilation', () => {
 
       const { result } = renderHook(() => useShaderCompilation(50));
 
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 1000 }
+      );
 
       expect(result.current.compiled?.fragmentCode).toContain('vUv');
     });
@@ -316,9 +328,12 @@ describe('useShaderCompilation', () => {
 
       const { result } = renderHook(() => useShaderCompilation(50));
 
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 1000 }
+      );
 
       expect(result.current.compiled?.fragmentCode).toContain('texture2D');
       expect(result.current.compiled?.textures).toHaveLength(1);
@@ -344,9 +359,12 @@ describe('useShaderCompilation', () => {
       expect(result.current.compiled).toBeNull();
 
       // Wait for debounce to complete
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 1000 }
+      );
     });
 
     it('should use custom debounce delay', async () => {
@@ -366,9 +384,12 @@ describe('useShaderCompilation', () => {
       expect(result.current.compiled).toBeNull();
 
       // Wait for custom debounce to complete
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 1000 }
+      );
     });
 
     it('should reset debounce timer when graph changes', async () => {
@@ -386,9 +407,12 @@ describe('useShaderCompilation', () => {
       const { result, rerender } = renderHook(() => useShaderCompilation(100));
 
       // Wait for first compile
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 1000 }
+      );
 
       const firstCompiled = result.current.compiled;
 
@@ -426,12 +450,15 @@ describe('useShaderCompilation', () => {
       rerender();
 
       // Should trigger new compilation with different output
-      await waitFor(() => {
-        const currentCode = result.current.compiled?.fragmentCode;
-        expect(currentCode).toBeDefined();
-        expect(currentCode).toContain('vec4(0.5, 0.5, 1, 1)');
-        expect(currentCode).not.toBe(firstCompiled?.fragmentCode);
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          const currentCode = result.current.compiled?.fragmentCode;
+          expect(currentCode).toBeDefined();
+          expect(currentCode).toContain('vec4(0.5, 0.5, 1, 1)');
+          expect(currentCode).not.toBe(firstCompiled?.fragmentCode);
+        },
+        { timeout: 1000 }
+      );
     });
   });
 
@@ -457,9 +484,12 @@ describe('useShaderCompilation', () => {
       vi.useRealTimers();
 
       // Wait for compilation to complete
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 500 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 500 }
+      );
     });
 
     it('should track lastCompileTime', async () => {
@@ -485,14 +515,20 @@ describe('useShaderCompilation', () => {
       const { result } = renderHook(() => useShaderCompilation(50));
 
       // Use real timers and wait for compilation
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 1000 }
+      );
 
       // Check that lastCompileTime was calculated (should be 15ms from our mock)
-      await waitFor(() => {
-        expect(result.current.lastCompileTime).toBeGreaterThan(0);
-      }, { timeout: 500 });
+      await waitFor(
+        () => {
+          expect(result.current.lastCompileTime).toBeGreaterThan(0);
+        },
+        { timeout: 500 }
+      );
 
       // Should be 15ms based on our mock (second call minus first call)
       expect(result.current.lastCompileTime).toBe(15);
@@ -515,9 +551,12 @@ describe('useShaderCompilation', () => {
 
       const { result } = renderHook(() => useShaderCompilation(50));
 
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 1000 }
+      );
 
       // Should compile despite unknown node type (just produces /* unknown */ in code)
       expect(result.current.compiled?.warnings).toBeDefined();
@@ -590,9 +629,12 @@ describe('useShaderCompilation', () => {
 
       const { result } = renderHook(() => useShaderCompilation(50));
 
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 1000 }
+      );
 
       // Mock document.createElement to capture download
       const mockAnchor = {
@@ -600,7 +642,7 @@ describe('useShaderCompilation', () => {
         download: '',
         click: vi.fn(),
       };
-      
+
       global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
       global.URL.revokeObjectURL = vi.fn();
 
@@ -675,16 +717,37 @@ describe('useShaderCompilation', () => {
         ['output-1', outputNode],
       ]);
       mockGraph.connections = [
-        { id: 'c1', fromNodeId: 'time-1', fromPortId: 'time-out', toNodeId: 'sin-1', toPortId: 'x-in' },
-        { id: 'c2', fromNodeId: 'sin-1', fromPortId: 'result-out', toNodeId: 'mul-1', toPortId: 'a-in' },
-        { id: 'c3', fromNodeId: 'mul-1', fromPortId: 'result-out', toNodeId: 'output-1', toPortId: 'color-in' },
+        {
+          id: 'c1',
+          fromNodeId: 'time-1',
+          fromPortId: 'time-out',
+          toNodeId: 'sin-1',
+          toPortId: 'x-in',
+        },
+        {
+          id: 'c2',
+          fromNodeId: 'sin-1',
+          fromPortId: 'result-out',
+          toNodeId: 'mul-1',
+          toPortId: 'a-in',
+        },
+        {
+          id: 'c3',
+          fromNodeId: 'mul-1',
+          fromPortId: 'result-out',
+          toNodeId: 'output-1',
+          toPortId: 'color-in',
+        },
       ];
 
       const { result } = renderHook(() => useShaderCompilation(50));
 
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 1000 }
+      );
 
       const fragCode = result.current.compiled?.fragmentCode ?? '';
       expect(fragCode).toContain('sin');
@@ -700,9 +763,12 @@ describe('useShaderCompilation', () => {
 
       const { result } = renderHook(() => useShaderCompilation(50));
 
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 1000 }
+      );
 
       expect(result.current.compiled?.warnings).toHaveLength(1);
     });
@@ -734,9 +800,12 @@ describe('useShaderCompilation', () => {
 
       const { result } = renderHook(() => useShaderCompilation(50));
 
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 1000 }
+      );
 
       // Should compile with default output
       expect(result.current.compiled?.fragmentCode).toContain('void main()');
@@ -762,9 +831,12 @@ describe('useShaderCompilation', () => {
       });
       vi.useRealTimers();
 
-      await waitFor(() => {
-        expect(result.current.compiled).not.toBeNull();
-      }, { timeout: 500 });
+      await waitFor(
+        () => {
+          expect(result.current.compiled).not.toBeNull();
+        },
+        { timeout: 500 }
+      );
     });
   });
 });

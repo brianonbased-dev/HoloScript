@@ -21,14 +21,14 @@ orb speaker {
 
 The `@audio` trait enables sound playback on any object.
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `sound` | string | Path to audio file |
-| `volume` | float (0-1) | Playback volume |
-| `loop` | bool | Whether to loop |
-| `spatial` | bool | 3D positional audio |
-| `max_distance` | float | Distance at which sound fades to 0 |
-| `rolloff` | `"linear"` \| `"exponential"` | Distance falloff curve |
+| Property       | Type                          | Description                        |
+| -------------- | ----------------------------- | ---------------------------------- |
+| `sound`        | string                        | Path to audio file                 |
+| `volume`       | float (0-1)                   | Playback volume                    |
+| `loop`         | bool                          | Whether to loop                    |
+| `spatial`      | bool                          | 3D positional audio                |
+| `max_distance` | float                         | Distance at which sound fades to 0 |
+| `rolloff`      | `"linear"` \| `"exponential"` | Distance falloff curve             |
 
 ## Triggering Sounds on Events
 
@@ -124,6 +124,7 @@ orb proximity_alarm {
 ## Exercise
 
 Create a "haunted room" scene with:
+
 1. Background ambient creaking sounds
 2. A door that creaks when clicked
 3. A fireplace that crackles with audio attenuation

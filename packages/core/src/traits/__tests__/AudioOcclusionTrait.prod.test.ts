@@ -149,11 +149,18 @@ describe('audioOcclusionHandler.onUpdate — low-pass smoothing', () => {
     const { node, ctx, config } = attach({ mode: 'simple', low_pass_filter: true });
     ctx.emit.mockClear();
     audioOcclusionHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('audio_set_lowpass', expect.objectContaining({ frequency: expect.any(Number) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'audio_set_lowpass',
+      expect.objectContaining({ frequency: expect.any(Number) })
+    );
   });
 
   it('lowPassFrequency moves toward targetLowPass (upward)', () => {
-    const { node, ctx, config } = attach({ mode: 'simple', low_pass_filter: true, low_pass_max_freq: 22000 });
+    const { node, ctx, config } = attach({
+      mode: 'simple',
+      low_pass_filter: true,
+      low_pass_max_freq: 22000,
+    });
     const state = (node as any).__audioOcclusionState;
     state.lowPassFrequency = 1000;
     state.targetLowPass = 22000; // target is above current

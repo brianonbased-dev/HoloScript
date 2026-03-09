@@ -47,13 +47,18 @@ describe('Cycle 164: Persistence Extensions', () => {
     const mgr = new MigrationManager(3);
 
     mgr.registerMigration({
-      fromVersion: 1, toVersion: 2,
+      fromVersion: 1,
+      toVersion: 2,
       migrate: (d) => ({ ...d, newField: 'default' }),
       description: 'Added newField',
     });
     mgr.registerMigration({
-      fromVersion: 2, toVersion: 3,
-      migrate: (d) => { const { oldField, ...rest } = d; return rest; },
+      fromVersion: 2,
+      toVersion: 3,
+      migrate: (d) => {
+        const { oldField, ...rest } = d;
+        return rest;
+      },
       description: 'Removed oldField',
     });
 

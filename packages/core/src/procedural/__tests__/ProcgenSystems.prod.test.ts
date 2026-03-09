@@ -40,7 +40,8 @@ describe('DungeonGenerator', () => {
     const { rooms } = gen.generate();
     for (let i = 0; i < rooms.length; i++) {
       for (let j = i + 1; j < rooms.length; j++) {
-        const a = rooms[i], b = rooms[j];
+        const a = rooms[i],
+          b = rooms[j];
         const overlapX = a.x < b.x + b.width + 1 && a.x + a.width + 1 > b.x;
         const overlapY = a.y < b.y + b.height + 1 && a.y + a.height + 1 > b.y;
         expect(overlapX && overlapY).toBe(false);
@@ -77,7 +78,7 @@ describe('DungeonGenerator', () => {
   it('rooms have unique IDs starting at 0', () => {
     const gen = new DungeonGenerator({ maxRooms: 4, seed: 5 });
     const { rooms } = gen.generate();
-    const ids = rooms.map(r => r.id);
+    const ids = rooms.map((r) => r.id);
     const unique = new Set(ids);
     expect(unique.size).toBe(ids.length);
     expect(Math.min(...ids)).toBe(0);
@@ -97,7 +98,8 @@ describe('DungeonGenerator', () => {
     const { rooms: ra } = a.generate();
     const { rooms: rb } = b.generate();
     // At least one coordinate should differ
-    const same = ra.length === rb.length && ra.every((r, i) => r.x === rb[i]?.x && r.y === rb[i]?.y);
+    const same =
+      ra.length === rb.length && ra.every((r, i) => r.x === rb[i]?.x && r.y === rb[i]?.y);
     expect(same).toBe(false);
   });
 });
@@ -108,7 +110,9 @@ describe('DungeonGenerator', () => {
 
 describe('NoiseGenerator', () => {
   let ng: NoiseGenerator;
-  beforeEach(() => { ng = new NoiseGenerator({ seed: 42 }); });
+  beforeEach(() => {
+    ng = new NoiseGenerator({ seed: 42 });
+  });
 
   it('perlin2D returns value in roughly [-1, 1] range', () => {
     for (let x = 0; x < 5; x++) {
@@ -185,18 +189,28 @@ describe('WaveFunction', () => {
     {
       id: 'floor',
       weight: 3,
-      adjacency: { up: ['floor', 'wall'], down: ['floor', 'wall'], left: ['floor', 'wall'], right: ['floor', 'wall'] },
+      adjacency: {
+        up: ['floor', 'wall'],
+        down: ['floor', 'wall'],
+        left: ['floor', 'wall'],
+        right: ['floor', 'wall'],
+      },
     },
     {
       id: 'wall',
       weight: 1,
-      adjacency: { up: ['floor', 'wall'], down: ['floor', 'wall'], left: ['floor', 'wall'], right: ['floor', 'wall'] },
+      adjacency: {
+        up: ['floor', 'wall'],
+        down: ['floor', 'wall'],
+        left: ['floor', 'wall'],
+        right: ['floor', 'wall'],
+      },
     },
   ];
 
   it('initializes grid with all options for each cell', () => {
     const wfc = new WaveFunction(3, 3, 42);
-    makeTiles().forEach(t => wfc.addTile(t));
+    makeTiles().forEach((t) => wfc.addTile(t));
     wfc.initialize();
     const cell = wfc.getCell(0, 0);
     expect(cell?.options.length).toBe(2);
@@ -205,7 +219,7 @@ describe('WaveFunction', () => {
 
   it('getLowestEntropy returns uncollapsed cell after init', () => {
     const wfc = new WaveFunction(2, 2, 42);
-    makeTiles().forEach(t => wfc.addTile(t));
+    makeTiles().forEach((t) => wfc.addTile(t));
     wfc.initialize();
     const cell = wfc.getLowestEntropy();
     expect(cell).not.toBeNull();
@@ -214,7 +228,7 @@ describe('WaveFunction', () => {
 
   it('collapse reduces cell to one option', () => {
     const wfc = new WaveFunction(2, 2, 42);
-    makeTiles().forEach(t => wfc.addTile(t));
+    makeTiles().forEach((t) => wfc.addTile(t));
     wfc.initialize();
     const cell = wfc.getCell(0, 0)!;
     const ok = wfc.collapse(cell);
@@ -225,7 +239,7 @@ describe('WaveFunction', () => {
 
   it('solve completes the grid', () => {
     const wfc = new WaveFunction(4, 4, 42);
-    makeTiles().forEach(t => wfc.addTile(t));
+    makeTiles().forEach((t) => wfc.addTile(t));
     const solved = wfc.solve();
     expect(solved).toBe(true);
     expect(wfc.isComplete()).toBe(true);
@@ -233,7 +247,7 @@ describe('WaveFunction', () => {
 
   it('all cells have a tileId after solve', () => {
     const wfc = new WaveFunction(3, 3, 5);
-    makeTiles().forEach(t => wfc.addTile(t));
+    makeTiles().forEach((t) => wfc.addTile(t));
     wfc.solve();
     const grid = wfc.getGrid();
     for (const row of grid) {
@@ -245,7 +259,7 @@ describe('WaveFunction', () => {
 
   it('getContradictions returns 0 for a compatible tileset', () => {
     const wfc = new WaveFunction(3, 3, 42);
-    makeTiles().forEach(t => wfc.addTile(t));
+    makeTiles().forEach((t) => wfc.addTile(t));
     wfc.solve();
     expect(wfc.getContradictions()).toBe(0);
   });
@@ -259,8 +273,16 @@ describe('WaveFunction', () => {
   it('propagate reduces neighbor options based on adjacency', () => {
     // restricted tileset: floor can only be next to floor
     const wfc = new WaveFunction(3, 1, 42);
-    wfc.addTile({ id: 'floor', weight: 1, adjacency: { up: ['floor'], down: ['floor'], left: ['floor'], right: ['floor'] } });
-    wfc.addTile({ id: 'wall', weight: 1, adjacency: { up: ['wall'], down: ['wall'], left: ['wall'], right: ['wall'] } });
+    wfc.addTile({
+      id: 'floor',
+      weight: 1,
+      adjacency: { up: ['floor'], down: ['floor'], left: ['floor'], right: ['floor'] },
+    });
+    wfc.addTile({
+      id: 'wall',
+      weight: 1,
+      adjacency: { up: ['wall'], down: ['wall'], left: ['wall'], right: ['wall'] },
+    });
     wfc.initialize();
     const cell = wfc.getCell(1, 0)!;
     cell.options = ['floor'];

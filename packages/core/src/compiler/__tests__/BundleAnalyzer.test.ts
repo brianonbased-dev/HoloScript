@@ -27,18 +27,14 @@ function multiChunkInput(): BundleInput {
         name: 'entry',
         isEntry: true,
         isAsync: false,
-        files: [
-          { path: 'src/app.hsplus', content: 'object "Root" { }' },
-        ],
+        files: [{ path: 'src/app.hsplus', content: 'object "Root" { }' }],
       },
       {
         id: 'lazy',
         name: 'lazy-module',
         isEntry: false,
         isAsync: true,
-        files: [
-          { path: 'src/lazy.ts', content: 'export const data = [1,2,3,4,5];' },
-        ],
+        files: [{ path: 'src/lazy.ts', content: 'export const data = [1,2,3,4,5];' }],
       },
     ],
     dependencies: {
@@ -91,28 +87,28 @@ describe('BundleAnalyzer', () => {
   it('detects module types from path', () => {
     const analyzer = new BundleAnalyzer();
     const report = analyzer.analyze(simpleInput());
-    const holoMod = report.modules.find(m => m.path === 'src/main.hsplus');
+    const holoMod = report.modules.find((m) => m.path === 'src/main.hsplus');
     expect(holoMod?.type).toBe('holo');
   });
 
   it('tracks dependencies', () => {
     const analyzer = new BundleAnalyzer();
     const report = analyzer.analyze(multiChunkInput());
-    const appMod = report.modules.find(m => m.path === 'src/app.hsplus');
+    const appMod = report.modules.find((m) => m.path === 'src/app.hsplus');
     expect(appMod?.dependencies).toContain('src/lazy.ts');
   });
 
   it('tracks dependents (reverse)', () => {
     const analyzer = new BundleAnalyzer();
     const report = analyzer.analyze(multiChunkInput());
-    const lazyMod = report.modules.find(m => m.path === 'src/lazy.ts');
+    const lazyMod = report.modules.find((m) => m.path === 'src/lazy.ts');
     expect(lazyMod?.dependents).toContain('src/app.hsplus');
   });
 
   it('identifies unused exports', () => {
     const analyzer = new BundleAnalyzer({ trackUnusedExports: true });
     const report = analyzer.analyze(multiChunkInput());
-    const lazyMod = report.modules.find(m => m.path === 'src/lazy.ts');
+    const lazyMod = report.modules.find((m) => m.path === 'src/lazy.ts');
     expect(lazyMod?.unusedExports).toContain('unusedExport');
   });
 
@@ -127,20 +123,22 @@ describe('BundleAnalyzer', () => {
   it('detects side effects', () => {
     const analyzer = new BundleAnalyzer();
     const input: BundleInput = {
-      chunks: [{
-        id: 'c1',
-        name: 'c1',
-        isEntry: true,
-        isAsync: false,
-        files: [
-          { path: 'a.ts', content: 'console.log("side effect");' },
-          { path: 'b.ts', content: 'const pure = 42;' },
-        ],
-      }],
+      chunks: [
+        {
+          id: 'c1',
+          name: 'c1',
+          isEntry: true,
+          isAsync: false,
+          files: [
+            { path: 'a.ts', content: 'console.log("side effect");' },
+            { path: 'b.ts', content: 'const pure = 42;' },
+          ],
+        },
+      ],
     };
     const report = analyzer.analyze(input);
-    const a = report.modules.find(m => m.path === 'a.ts');
-    const b = report.modules.find(m => m.path === 'b.ts');
+    const a = report.modules.find((m) => m.path === 'a.ts');
+    const b = report.modules.find((m) => m.path === 'b.ts');
     expect(a?.sideEffects).toBe(true);
     expect(b?.sideEffects).toBe(false);
   });
@@ -149,16 +147,18 @@ describe('BundleAnalyzer', () => {
     const analyzer = new BundleAnalyzer();
     const dupContent = 'export const shared = true;';
     const input: BundleInput = {
-      chunks: [{
-        id: 'c1',
-        name: 'c1',
-        isEntry: true,
-        isAsync: false,
-        files: [
-          { path: 'lib/util-a.ts', content: dupContent },
-          { path: 'vendors/util-b.ts', content: dupContent },
-        ],
-      }],
+      chunks: [
+        {
+          id: 'c1',
+          name: 'c1',
+          isEntry: true,
+          isAsync: false,
+          files: [
+            { path: 'lib/util-a.ts', content: dupContent },
+            { path: 'vendors/util-b.ts', content: dupContent },
+          ],
+        },
+      ],
     };
     const report = analyzer.analyze(input);
     expect(report.duplicates.length).toBeGreaterThanOrEqual(1);
@@ -177,7 +177,7 @@ describe('BundleAnalyzer', () => {
       sizeThresholds: { module: 10 }, // 10 bytes threshold
     });
     const report = analyzer.analyze(simpleInput());
-    const sizeWarnings = report.warnings.filter(w => w.type === 'size');
+    const sizeWarnings = report.warnings.filter((w) => w.type === 'size');
     expect(sizeWarnings.length).toBeGreaterThan(0);
   });
 

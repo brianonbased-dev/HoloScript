@@ -36,7 +36,11 @@ export class CyclomaticComplexity {
       blocks.push({ name: m[2], startLine: ln, startIndex: m.index });
     }
     if (blocks.length === 0) {
-      const name = filePath.split('/').pop()?.replace(/\.[^.]+$/, '') ?? filePath;
+      const name =
+        filePath
+          .split('/')
+          .pop()
+          ?.replace(/\.[^.]+$/, '') ?? filePath;
       results.push({ name, complexity: this.calculate(source), line: 1 });
       return results;
     }
@@ -53,7 +57,10 @@ export class CyclomaticComplexity {
   }
   private _removeStrings(source: string): string {
     // Simple removal: replace double-quoted, single-quoted, and template strings
-    return source.replace(/"[^"]*"/g, '').replace(/'[^']*'/g, '').replace(/`[^`]*`/g, '');
+    return source
+      .replace(/"[^"]*"/g, '')
+      .replace(/'[^']*'/g, '')
+      .replace(/`[^`]*`/g, '');
   }
   private _removeComments(source: string): string {
     return source.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');

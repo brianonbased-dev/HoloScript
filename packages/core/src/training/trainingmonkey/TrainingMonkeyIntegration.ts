@@ -106,11 +106,14 @@ export class TrainingMonkeyIntegration {
     // Step 3: Apply SoftDedup reweighting
     const weightedEntries = this.config.enableSoftDedup
       ? this.applySoftDedup(alpacaEntries, entries)
-      : alpacaEntries.map((entry, index) => ({
-          ...entry,
-          sampling_weight: 1.0,
-          metadata: entries[index]?.metadata,
-        } as WeightedAlpacaEntry));
+      : alpacaEntries.map(
+          (entry, index) =>
+            ({
+              ...entry,
+              sampling_weight: 1.0,
+              metadata: entries[index]?.metadata,
+            }) as WeightedAlpacaEntry
+        );
 
     // Step 4: Split into train/validation
     const split = this.splitDataset(weightedEntries);
@@ -140,7 +143,7 @@ export class TrainingMonkeyIntegration {
    * @throws Error if a line contains invalid JSON
    */
   readJsonl(jsonlContent: string): SpatialTrainingJSONLEntry[] {
-    const lines = jsonlContent.split('\n').filter(line => line.trim() !== '');
+    const lines = jsonlContent.split('\n').filter((line) => line.trim() !== '');
     const entries: SpatialTrainingJSONLEntry[] = [];
 
     for (let i = 0; i < lines.length; i++) {
@@ -151,9 +154,7 @@ export class TrainingMonkeyIntegration {
         }
         entries.push(parsed);
       } catch (e) {
-        throw new Error(
-          `Failed to parse JSONL line ${i + 1}: ${(e as Error).message}`
-        );
+        throw new Error(`Failed to parse JSONL line ${i + 1}: ${(e as Error).message}`);
       }
     }
 
@@ -172,11 +173,9 @@ export class TrainingMonkeyIntegration {
    * @returns Alpaca-formatted entries
    */
   convertToAlpaca(entries: SpatialTrainingJSONLEntry[]): AlpacaEntry[] {
-    return entries.map(entry => {
+    return entries.map((entry) => {
       // Extract HoloScript scene block from instruction as separate input
-      const { questionPart, scenePart } = this.extractSceneFromInstruction(
-        entry.instruction
-      );
+      const { questionPart, scenePart } = this.extractSceneFromInstruction(entry.instruction);
 
       return {
         instruction: questionPart,
@@ -202,9 +201,7 @@ export class TrainingMonkeyIntegration {
     originalEntries: SpatialTrainingJSONLEntry[]
   ): WeightedAlpacaEntry[] {
     // Build text corpus from instruction + output for n-gram analysis
-    const textCorpus = alpacaEntries.map(
-      entry => `${entry.instruction} ${entry.output}`
-    );
+    const textCorpus = alpacaEntries.map((entry) => `${entry.instruction} ${entry.output}`);
 
     // Run SoftDedup
     const dedupResults: SoftDedupResult[] = this.softDedup.process(textCorpus);
@@ -294,14 +291,11 @@ export class TrainingMonkeyIntegration {
     const totalSteps = stepsPerEpoch * epochs;
 
     // Compute SoftDedup stats
-    const weights = split.train.map(e => e.sampling_weight);
+    const weights = split.train.map((e) => e.sampling_weight);
     const meanWeight =
-      weights.length > 0
-        ? weights.reduce((sum, w) => sum + w, 0) / weights.length
-        : 1.0;
+      weights.length > 0 ? weights.reduce((sum, w) => sum + w, 0) / weights.length : 1.0;
     const effectiveSize = weights.reduce((sum, w) => sum + w, 0);
-    const reductionRatio =
-      weights.length > 0 ? 1 - effectiveSize / weights.length : 0;
+    const reductionRatio = weights.length > 0 ? 1 - effectiveSize / weights.length : 0;
 
     return {
       model: {
@@ -344,7 +338,7 @@ export class TrainingMonkeyIntegration {
    * @returns JSONL string (one JSON object per line)
    */
   serializeJsonl(entries: WeightedAlpacaEntry[]): string {
-    return entries.map(entry => JSON.stringify(entry)).join('\n');
+    return entries.map((entry) => JSON.stringify(entry)).join('\n');
   }
 
   /**

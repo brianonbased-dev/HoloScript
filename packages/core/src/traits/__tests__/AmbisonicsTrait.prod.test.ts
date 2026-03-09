@@ -8,8 +8,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ambisonicsHandler } from '../AmbisonicsTrait';
 
-function makeNode() { return { id: 'amb_1' }; }
-function makeContext() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'amb_1' };
+}
+function makeContext() {
+  return { emit: vi.fn() };
+}
 function attachNode(config: any = {}) {
   const node = makeNode();
   const ctx = makeContext();
@@ -22,13 +26,16 @@ function attachNode(config: any = {}) {
 
 describe('ambisonicsHandler.defaultConfig', () => {
   it('order = 1', () => expect(ambisonicsHandler.defaultConfig!.order).toBe(1));
-  it('normalization = sn3d', () => expect(ambisonicsHandler.defaultConfig!.normalization).toBe('sn3d'));
-  it('channel_ordering = acn', () => expect(ambisonicsHandler.defaultConfig!.channel_ordering).toBe('acn'));
+  it('normalization = sn3d', () =>
+    expect(ambisonicsHandler.defaultConfig!.normalization).toBe('sn3d'));
+  it('channel_ordering = acn', () =>
+    expect(ambisonicsHandler.defaultConfig!.channel_ordering).toBe('acn'));
   it('decoder = binaural', () => expect(ambisonicsHandler.defaultConfig!.decoder).toBe('binaural'));
   it('source = empty string', () => expect(ambisonicsHandler.defaultConfig!.source).toBe(''));
   it('loop = true', () => expect(ambisonicsHandler.defaultConfig!.loop).toBe(true));
   it('volume = 1.0', () => expect(ambisonicsHandler.defaultConfig!.volume).toBe(1.0));
-  it('scene_rotation_lock = false', () => expect(ambisonicsHandler.defaultConfig!.scene_rotation_lock).toBe(false));
+  it('scene_rotation_lock = false', () =>
+    expect(ambisonicsHandler.defaultConfig!.scene_rotation_lock).toBe(false));
 });
 
 // ─── onAttach ────────────────────────────────────────────────────────────────
@@ -67,13 +74,26 @@ describe('ambisonicsHandler.onAttach', () => {
     expect(ctx.emit).toHaveBeenCalledWith('ambisonics_init_decoder', expect.any(Object));
   });
   it('init_decoder includes order, normalization, channelOrdering, decoderType', () => {
-    const { ctx } = attachNode({ order: 3, normalization: 'n3d', channel_ordering: 'fuma', decoder: 'stereo' });
+    const { ctx } = attachNode({
+      order: 3,
+      normalization: 'n3d',
+      channel_ordering: 'fuma',
+      decoder: 'stereo',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'ambisonics_init_decoder');
-    expect(call?.[1]).toMatchObject({ order: 3, normalization: 'n3d', channelOrdering: 'fuma', decoderType: 'stereo' });
+    expect(call?.[1]).toMatchObject({
+      order: 3,
+      normalization: 'n3d',
+      channelOrdering: 'fuma',
+      decoderType: 'stereo',
+    });
   });
   it('emits ambisonics_load_source when source is provided', () => {
     const { ctx } = attachNode({ source: 'scene.ogg' });
-    expect(ctx.emit).toHaveBeenCalledWith('ambisonics_load_source', expect.objectContaining({ url: 'scene.ogg' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'ambisonics_load_source',
+      expect.objectContaining({ url: 'scene.ogg' })
+    );
   });
   it('does NOT emit ambisonics_load_source when source is empty', () => {
     const { ctx } = attachNode({ source: '' });
@@ -166,7 +186,10 @@ describe('ambisonicsHandler.onEvent', () => {
     ctx.emit.mockClear();
     ambisonicsHandler.onEvent!(node, cfg, ctx, { type: 'ambisonics_play' });
     expect((node as any).__ambisonicsState.isPlaying).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('ambisonics_start_playback', expect.objectContaining({ loop: false }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'ambisonics_start_playback',
+      expect.objectContaining({ loop: false })
+    );
   });
   it('ambisonics_stop sets isPlaying=false and emits stop_playback', () => {
     const { node, cfg, ctx } = attachNode();
@@ -187,7 +210,10 @@ describe('ambisonicsHandler.onEvent', () => {
   it('listener_rotation_update sets rotation state', () => {
     const { node, cfg, ctx } = attachNode();
     const newRot = { x: 0.1, y: 0.2, z: 0.3, w: 0.9 };
-    ambisonicsHandler.onEvent!(node, cfg, ctx, { type: 'listener_rotation_update', rotation: newRot });
+    ambisonicsHandler.onEvent!(node, cfg, ctx, {
+      type: 'listener_rotation_update',
+      rotation: newRot,
+    });
     expect((node as any).__ambisonicsState.rotation).toEqual(newRot);
   });
   it('ambisonics_set_volume updates gain and emits ambisonics_update_gain', () => {
@@ -195,14 +221,20 @@ describe('ambisonicsHandler.onEvent', () => {
     ctx.emit.mockClear();
     ambisonicsHandler.onEvent!(node, cfg, ctx, { type: 'ambisonics_set_volume', volume: 0.3 });
     expect((node as any).__ambisonicsState.gain).toBe(0.3);
-    expect(ctx.emit).toHaveBeenCalledWith('ambisonics_update_gain', expect.objectContaining({ gain: 0.3 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'ambisonics_update_gain',
+      expect.objectContaining({ gain: 0.3 })
+    );
   });
   it('ambisonics_set_order updates currentOrder and emits ambisonics_reconfigure', () => {
     const { node, cfg, ctx } = attachNode({ order: 1 });
     ctx.emit.mockClear();
     ambisonicsHandler.onEvent!(node, cfg, ctx, { type: 'ambisonics_set_order', order: 3 });
     expect((node as any).__ambisonicsState.currentOrder).toBe(3);
-    expect(ctx.emit).toHaveBeenCalledWith('ambisonics_reconfigure', expect.objectContaining({ order: 3 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'ambisonics_reconfigure',
+      expect.objectContaining({ order: 3 })
+    );
   });
   it('ambisonics_set_order does not emit if same order', () => {
     const { node, cfg, ctx } = attachNode({ order: 2 });

@@ -13,12 +13,16 @@
 
 export interface OctreeEntry {
   id: string;
-  x: number; y: number; z: number;
+  x: number;
+  y: number;
+  z: number;
   radius: number;
 }
 
 interface OctreeNode {
-  cx: number; cy: number; cz: number; // Center
+  cx: number;
+  cy: number;
+  cz: number; // Center
   halfSize: number;
   entries: OctreeEntry[];
   children: OctreeNode[] | null;
@@ -36,7 +40,15 @@ export class OctreeSystem {
   private entryCount = 0;
 
   constructor(centerX: number, centerY: number, centerZ: number, halfSize: number) {
-    this.root = { cx: centerX, cy: centerY, cz: centerZ, halfSize, entries: [], children: null, depth: 0 };
+    this.root = {
+      cx: centerX,
+      cy: centerY,
+      cz: centerZ,
+      halfSize,
+      entries: [],
+      children: null,
+      depth: 0,
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -76,8 +88,11 @@ export class OctreeSystem {
   }
 
   private removeFromNode(node: OctreeNode, id: string): boolean {
-    const idx = node.entries.findIndex(e => e.id === id);
-    if (idx >= 0) { node.entries.splice(idx, 1); return true; }
+    const idx = node.entries.findIndex((e) => e.id === id);
+    if (idx >= 0) {
+      node.entries.splice(idx, 1);
+      return true;
+    }
 
     if (node.children) {
       for (const child of node.children) {
@@ -98,12 +113,21 @@ export class OctreeSystem {
     return results;
   }
 
-  private queryRadiusNode(node: OctreeNode, x: number, y: number, z: number, radius: number, results: OctreeEntry[]): void {
+  private queryRadiusNode(
+    node: OctreeNode,
+    x: number,
+    y: number,
+    z: number,
+    radius: number,
+    results: OctreeEntry[]
+  ): void {
     // Quick reject: check if sphere overlaps the node AABB
     if (!this.sphereOverlapsNode(node, x, y, z, radius)) return;
 
     for (const entry of node.entries) {
-      const dx = entry.x - x, dy = entry.y - y, dz = entry.z - z;
+      const dx = entry.x - x,
+        dy = entry.y - y,
+        dz = entry.z - z;
       if (Math.sqrt(dx * dx + dy * dy + dz * dz) <= radius + entry.radius) {
         results.push(entry);
       }
@@ -116,11 +140,17 @@ export class OctreeSystem {
     }
   }
 
-  private sphereOverlapsNode(node: OctreeNode, x: number, y: number, z: number, radius: number): boolean {
+  private sphereOverlapsNode(
+    node: OctreeNode,
+    x: number,
+    y: number,
+    z: number,
+    radius: number
+  ): boolean {
     const dx = Math.max(0, Math.abs(x - node.cx) - node.halfSize);
     const dy = Math.max(0, Math.abs(y - node.cy) - node.halfSize);
     const dz = Math.max(0, Math.abs(z - node.cz) - node.halfSize);
-    return (dx * dx + dy * dy + dz * dz) <= radius * radius;
+    return dx * dx + dy * dy + dz * dz <= radius * radius;
   }
 
   // ---------------------------------------------------------------------------
@@ -135,8 +165,13 @@ export class OctreeSystem {
       for (let y = -1; y <= 1; y += 2) {
         for (let z = -1; z <= 1; z += 2) {
           node.children.push({
-            cx: node.cx + x * hs, cy: node.cy + y * hs, cz: node.cz + z * hs,
-            halfSize: hs, entries: [], children: null, depth: node.depth + 1,
+            cx: node.cx + x * hs,
+            cy: node.cy + y * hs,
+            cz: node.cz + z * hs,
+            halfSize: hs,
+            entries: [],
+            children: null,
+            depth: node.depth + 1,
           });
         }
       }
@@ -163,11 +198,19 @@ export class OctreeSystem {
   // ---------------------------------------------------------------------------
 
   private containsPoint(node: OctreeNode, x: number, y: number, z: number): boolean {
-    return Math.abs(x - node.cx) <= node.halfSize &&
-           Math.abs(y - node.cy) <= node.halfSize &&
-           Math.abs(z - node.cz) <= node.halfSize;
+    return (
+      Math.abs(x - node.cx) <= node.halfSize &&
+      Math.abs(y - node.cy) <= node.halfSize &&
+      Math.abs(z - node.cz) <= node.halfSize
+    );
   }
 
-  getEntryCount(): number { return this.entryCount; }
-  clear(): void { this.root.entries = []; this.root.children = null; this.entryCount = 0; }
+  getEntryCount(): number {
+    return this.entryCount;
+  }
+  clear(): void {
+    this.root.entries = [];
+    this.root.children = null;
+    this.entryCount = 0;
+  }
 }

@@ -15,7 +15,13 @@ import { HoloLogger, type LogLevel } from './HoloLogger';
 
 export interface LogFormatter {
   name: string;
-  format(entry: { level: LogLevel; message: string; logger: string; timestamp: number; context?: Record<string, any> }): string;
+  format(entry: {
+    level: LogLevel;
+    message: string;
+    logger: string;
+    timestamp: number;
+    context?: Record<string, any>;
+  }): string;
 }
 
 // =============================================================================
@@ -102,7 +108,13 @@ export class LoggerFactory {
   /**
    * Format a log entry using the active formatter
    */
-  format(entry: { level: LogLevel; message: string; logger: string; timestamp: number; context?: Record<string, any> }): string {
+  format(entry: {
+    level: LogLevel;
+    message: string;
+    logger: string;
+    timestamp: number;
+    context?: Record<string, any>;
+  }): string {
     return this.formatter.format(entry);
   }
 

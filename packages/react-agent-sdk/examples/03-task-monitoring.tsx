@@ -22,14 +22,7 @@ export function TaskMonitoringExample() {
     <div>
       <button onClick={handleStartTask}>Deploy to Production</button>
 
-      {taskId && (
-        <TaskMonitor
-          taskId={taskId}
-          showLogs
-          showProgress
-          showPhase
-        />
-      )}
+      {taskId && <TaskMonitor taskId={taskId} showLogs showProgress showPhase />}
     </div>
   );
 }

@@ -297,7 +297,10 @@ describe('SkeletonTrait — parameters', () => {
   });
 
   it('initialises parameters from config', () => {
-    const params = new Map<string, number | boolean>([['speed', 0.5], ['grounded', true]]);
+    const params = new Map<string, number | boolean>([
+      ['speed', 0.5],
+      ['grounded', true],
+    ]);
     const sk = new SkeletonTrait({ parameters: params });
     expect(sk.getParameter('speed')).toBe(0.5);
     expect(sk.getParameter('grounded')).toBe(true);
@@ -371,12 +374,14 @@ describe('SkeletonTrait — enable/disable', () => {
 describe('SkeletonTrait — events', () => {
   it('on/off registers and unregisters listener', () => {
     const sk = new SkeletonTrait({
-      clips: [{
-        name: 'anim',
-        duration: 1,
-        loop: false,
-        events: [{ time: 0.1, name: 'footstep' }],
-      }],
+      clips: [
+        {
+          name: 'anim',
+          duration: 1,
+          loop: false,
+          events: [{ time: 0.1, name: 'footstep' }],
+        },
+      ],
     });
     const cb = vi.fn();
     sk.on('footstep', cb);
@@ -389,12 +394,14 @@ describe('SkeletonTrait — events', () => {
 
   it('off removes listener so it no longer fires', () => {
     const sk = new SkeletonTrait({
-      clips: [{
-        name: 'anim',
-        duration: 1,
-        loop: true,
-        events: [{ time: 0.05, name: 'hit' }],
-      }],
+      clips: [
+        {
+          name: 'anim',
+          duration: 1,
+          loop: true,
+          events: [{ time: 0.05, name: 'hit' }],
+        },
+      ],
     });
     const cb = vi.fn();
     sk.on('hit', cb);

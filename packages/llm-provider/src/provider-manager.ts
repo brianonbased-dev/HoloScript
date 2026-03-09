@@ -103,10 +103,7 @@ export class LLMProviderManager {
     const provider = this.getProvider(name);
 
     if (!provider) {
-      throw new LLMProviderError(
-        `Provider '${name}' is not registered`,
-        name
-      );
+      throw new LLMProviderError(`Provider '${name}' is not registered`, name);
     }
 
     return provider.complete(request);
@@ -115,8 +112,12 @@ export class LLMProviderManager {
   /**
    * Run health checks on all registered providers.
    */
-  async healthCheckAll(): Promise<Record<LLMProviderName, { ok: boolean; latencyMs: number; error?: string }>> {
-    const results: Partial<Record<LLMProviderName, { ok: boolean; latencyMs: number; error?: string }>> = {};
+  async healthCheckAll(): Promise<
+    Record<LLMProviderName, { ok: boolean; latencyMs: number; error?: string }>
+  > {
+    const results: Partial<
+      Record<LLMProviderName, { ok: boolean; latencyMs: number; error?: string }>
+    > = {};
 
     for (const [name, provider] of Object.entries(this.providers)) {
       if (provider) {

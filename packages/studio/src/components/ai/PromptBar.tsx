@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Send, Loader2, Sparkles } from 'lucide-react';
-import { useAIStore, useSceneStore } from '@/lib/store';
+import { useAIStore, useSceneStore } from '@/lib/stores';
 import { generateScene } from '@/lib/api';
 
 const SUGGESTIONS = [

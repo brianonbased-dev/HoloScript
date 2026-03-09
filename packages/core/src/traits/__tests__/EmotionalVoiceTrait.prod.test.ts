@@ -121,7 +121,10 @@ describe('emotionalVoiceHandler.onEvent — guards', () => {
 
   it('no-op when state is missing (node never attached)', () => {
     const node = makeNode();
-    emotionalVoiceHandler.onEvent!(node as any, makeConfig(), makeCtx() as any, { type: 'speak', data: { text: 'hi' } });
+    emotionalVoiceHandler.onEvent!(node as any, makeConfig(), makeCtx() as any, {
+      type: 'speak',
+      data: { text: 'hi' },
+    });
   });
 });
 
@@ -218,7 +221,10 @@ describe('handleSpeak — audio cache', () => {
     voiceSynthesizerRegistry.set('default', synth);
     const { node, ctx, config } = attach({ voiceId: 'v1', cacheEnabled: true });
 
-    const ev = { type: 'speak', data: { text: 'Cached text', emotion: 'friendly', intensity: 0.5 } };
+    const ev = {
+      type: 'speak',
+      data: { text: 'Cached text', emotion: 'friendly', intensity: 0.5 },
+    };
 
     emotionalVoiceHandler.onEvent!(node as any, config, ctx as any, ev);
     await vi.waitFor(() => expect(synth.generate).toHaveBeenCalledTimes(1));
@@ -235,12 +241,14 @@ describe('handleSpeak — audio cache', () => {
     const { node, ctx, config } = attach({ voiceId: 'v1', cacheEnabled: true });
 
     emotionalVoiceHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'speak', data: { text: 'First', emotion: 'neutral', intensity: 0.5 },
+      type: 'speak',
+      data: { text: 'First', emotion: 'neutral', intensity: 0.5 },
     });
     await vi.waitFor(() => expect(synth.generate).toHaveBeenCalledTimes(1));
 
     emotionalVoiceHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'speak', data: { text: 'Second', emotion: 'neutral', intensity: 0.5 },
+      type: 'speak',
+      data: { text: 'Second', emotion: 'neutral', intensity: 0.5 },
     });
     await vi.waitFor(() => expect(synth.generate).toHaveBeenCalledTimes(2));
   });

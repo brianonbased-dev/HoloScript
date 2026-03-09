@@ -270,7 +270,7 @@ export class PluginGuestSDK {
    */
   public async fetch(
     url: string,
-    options?: { method?: string; headers?: Record<string, string>; body?: string },
+    options?: { method?: string; headers?: Record<string, string>; body?: string }
   ): Promise<{ status: number; headers: Record<string, string>; body: string }> {
     return this.callHost('plugin:fetch', { url, options }) as Promise<{
       status: number;
@@ -426,7 +426,11 @@ export class PluginGuestSDK {
    *
    * @internal Used by API namespace classes
    */
-  public callHost(type: string, payload: Record<string, unknown>, timeout?: number): Promise<unknown> {
+  public callHost(
+    type: string,
+    payload: Record<string, unknown>,
+    timeout?: number
+  ): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const messageId = generateMessageId();
       const timeoutMs = timeout ?? this.options.defaultTimeout;
@@ -697,7 +701,11 @@ class EditorAPI {
   }
 
   /** Set viewport state */
-  async setViewport(viewport: { position?: number[]; zoom?: number; rotation?: number[] }): Promise<void> {
+  async setViewport(viewport: {
+    position?: number[];
+    zoom?: number;
+    rotation?: number[];
+  }): Promise<void> {
     await this.sdk.callAPI('editor', 'setViewport', [viewport]);
   }
 
@@ -729,10 +737,13 @@ class UIAPI {
   constructor(private sdk: PluginGuestSDK) {}
 
   /** Show a notification toast */
-  async showNotification(message: string, options?: {
-    type?: 'info' | 'success' | 'warning' | 'error';
-    duration?: number;
-  }): Promise<void> {
+  async showNotification(
+    message: string,
+    options?: {
+      type?: 'info' | 'success' | 'warning' | 'error';
+      duration?: number;
+    }
+  ): Promise<void> {
     await this.sdk.callAPI('ui', 'showNotification', [message, options]);
   }
 

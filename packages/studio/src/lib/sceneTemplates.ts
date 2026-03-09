@@ -5,29 +5,34 @@
  */
 
 // Re-export composition-based templates (SCENE_TEMPLATES, searchTemplates, SceneTemplate)
-export {
-  type SceneTemplate,
-  SCENE_TEMPLATES,
-  searchTemplates,
-} from './scene/sceneTemplates';
+export { type SceneTemplate, SCENE_TEMPLATES, searchTemplates } from './scene/sceneTemplates';
 
 export interface StudioTemplate {
   id: string;
   name: string;
   description: string;
   category: TemplateCategory;
-  thumbnail: string;           // URL or data URI
+  thumbnail: string; // URL or data URI
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   tags: string[];
   estimatedObjects: number;
-  holoScript: string;          // HoloScript source code
+  holoScript: string; // HoloScript source code
   featured: boolean;
 }
 
 export type TemplateCategory =
-  | 'architecture' | 'game' | 'education' | 'medical'
-  | 'retail' | 'art' | 'simulation' | 'social'
-  | 'industrial' | 'nature' | 'sci-fi' | 'starter';
+  | 'architecture'
+  | 'game'
+  | 'education'
+  | 'medical'
+  | 'retail'
+  | 'art'
+  | 'simulation'
+  | 'social'
+  | 'industrial'
+  | 'nature'
+  | 'sci-fi'
+  | 'starter';
 
 export const STUDIO_TEMPLATES: StudioTemplate[] = [
   {
@@ -141,7 +146,8 @@ export const STUDIO_TEMPLATES: StudioTemplate[] = [
   {
     id: 'native-robot',
     name: 'HoloBot',
-    description: 'A robot built from ~35 geometric primitives with emissive eyes, chrome joints, and a reactor core.',
+    description:
+      'A robot built from ~35 geometric primitives with emissive eyes, chrome joints, and a reactor core.',
     category: 'sci-fi',
     thumbnail: '/templates/native-robot.png',
     difficulty: 'intermediate',
@@ -247,7 +253,8 @@ export const STUDIO_TEMPLATES: StudioTemplate[] = [
   {
     id: 'native-starfighter',
     name: 'Starfighter',
-    description: 'A sleek starfighter with swept wings, twin engine thrust glow, and weapon hardpoints.',
+    description:
+      'A sleek starfighter with swept wings, twin engine thrust glow, and weapon hardpoints.',
     category: 'sci-fi',
     thumbnail: '/templates/native-starfighter.png',
     difficulty: 'intermediate',
@@ -362,7 +369,8 @@ export const STUDIO_TEMPLATES: StudioTemplate[] = [
   {
     id: 'native-castle',
     name: 'Medieval Castle',
-    description: 'A castle with four towers, gatehouse, central keep with lit windows, and battlements.',
+    description:
+      'A castle with four towers, gatehouse, central keep with lit windows, and battlements.',
     category: 'architecture',
     thumbnail: '/templates/native-castle.png',
     difficulty: 'advanced',
@@ -568,7 +576,8 @@ export const STUDIO_TEMPLATES: StudioTemplate[] = [
   {
     id: 'native-streetlamp',
     name: 'Street Lamp',
-    description: 'A Victorian street lamp with warm glass panes, glowing bulb, and decorative metalwork.',
+    description:
+      'A Victorian street lamp with warm glass panes, glowing bulb, and decorative metalwork.',
     category: 'architecture',
     thumbnail: '/templates/native-streetlamp.png',
     difficulty: 'intermediate',
@@ -647,7 +656,8 @@ export const STUDIO_TEMPLATES: StudioTemplate[] = [
   {
     id: 'native-spacestation',
     name: 'Space Station',
-    description: 'An orbital station with habitat torus ring, solar panels, docking bay, and radial spokes.',
+    description:
+      'An orbital station with habitat torus ring, solar panels, docking bay, and radial spokes.',
     category: 'sci-fi',
     thumbnail: '/templates/native-spacestation.png',
     difficulty: 'advanced',
@@ -743,14 +753,14 @@ export const STUDIO_TEMPLATES: StudioTemplate[] = [
  * Get studio templates by category.
  */
 export function templatesByCategory(category: TemplateCategory): StudioTemplate[] {
-  return STUDIO_TEMPLATES.filter(t => t.category === category);
+  return STUDIO_TEMPLATES.filter((t) => t.category === category);
 }
 
 /**
  * Get featured studio templates.
  */
 export function featuredTemplates(): StudioTemplate[] {
-  return STUDIO_TEMPLATES.filter(t => t.featured);
+  return STUDIO_TEMPLATES.filter((t) => t.featured);
 }
 
 /**
@@ -758,10 +768,11 @@ export function featuredTemplates(): StudioTemplate[] {
  */
 export function searchStudioTemplates(query: string): StudioTemplate[] {
   const q = query.toLowerCase();
-  return STUDIO_TEMPLATES.filter(t =>
-    t.name.toLowerCase().includes(q)
-    || t.tags.some(tag => tag.includes(q))
-    || t.description.toLowerCase().includes(q)
+  return STUDIO_TEMPLATES.filter(
+    (t) =>
+      t.name.toLowerCase().includes(q) ||
+      t.tags.some((tag) => tag.includes(q)) ||
+      t.description.toLowerCase().includes(q)
   );
 }
 
@@ -769,5 +780,5 @@ export function searchStudioTemplates(query: string): StudioTemplate[] {
  * Get all unique studio template categories.
  */
 export function templateCategories(): TemplateCategory[] {
-  return [...new Set(STUDIO_TEMPLATES.map(t => t.category))];
+  return [...new Set(STUDIO_TEMPLATES.map((t) => t.category))];
 }

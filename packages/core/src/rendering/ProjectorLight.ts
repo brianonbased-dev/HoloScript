@@ -17,7 +17,7 @@ export interface ProjectorConfig {
   position: { x: number; y: number; z: number };
   direction: { x: number; y: number; z: number };
   cookieTextureId: string;
-  fov: number;              // degrees
+  fov: number; // degrees
   aspectRatio: number;
   nearClip: number;
   farClip: number;
@@ -47,9 +47,15 @@ export class ProjectorLight {
     return proj;
   }
 
-  remove(id: string): boolean { return this.projectors.delete(id); }
-  get(id: string): ProjectorConfig | undefined { return this.projectors.get(id); }
-  getCount(): number { return this.projectors.size; }
+  remove(id: string): boolean {
+    return this.projectors.delete(id);
+  }
+  get(id: string): ProjectorConfig | undefined {
+    return this.projectors.get(id);
+  }
+  getCount(): number {
+    return this.projectors.size;
+  }
 
   // ---------------------------------------------------------------------------
   // Properties
@@ -100,8 +106,15 @@ export class ProjectorLight {
     const dz = point.z - p.position.z;
 
     // Dot with direction = depth
-    const dirLen = Math.sqrt(p.direction.x * p.direction.x + p.direction.y * p.direction.y + p.direction.z * p.direction.z) || 1;
-    const nx = p.direction.x / dirLen, ny = p.direction.y / dirLen, nz = p.direction.z / dirLen;
+    const dirLen =
+      Math.sqrt(
+        p.direction.x * p.direction.x +
+          p.direction.y * p.direction.y +
+          p.direction.z * p.direction.z
+      ) || 1;
+    const nx = p.direction.x / dirLen,
+      ny = p.direction.y / dirLen,
+      nz = p.direction.z / dirLen;
     const depth = dx * nx + dy * ny + dz * nz;
 
     if (depth < p.nearClip || depth > p.farClip) return false;
@@ -132,10 +145,14 @@ export class ProjectorLight {
     const d = Math.max(0, distance - p.nearClip);
 
     switch (p.falloff) {
-      case 'none': return p.intensity;
-      case 'linear': return p.intensity * Math.max(0, 1 - d / range);
-      case 'quadratic': return p.intensity / (1 + (d / range) * (d / range));
-      default: return p.intensity;
+      case 'none':
+        return p.intensity;
+      case 'linear':
+        return p.intensity * Math.max(0, 1 - d / range);
+      case 'quadratic':
+        return p.intensity / (1 + (d / range) * (d / range));
+      default:
+        return p.intensity;
     }
   }
 
@@ -144,6 +161,6 @@ export class ProjectorLight {
   // ---------------------------------------------------------------------------
 
   getActive(): ProjectorConfig[] {
-    return [...this.projectors.values()].filter(p => p.enabled);
+    return [...this.projectors.values()].filter((p) => p.enabled);
   }
 }

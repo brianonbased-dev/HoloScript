@@ -12,17 +12,23 @@ interface Snapshot {
   id: string;
   sceneId: string;
   label: string;
-  dataUrl: string;  // base64 PNG from canvas.toDataURL()
+  dataUrl: string; // base64 PNG from canvas.toDataURL()
   code: string;
   createdAt: string;
 }
 
-interface SnapshotStore { [sceneId: string]: Snapshot[] }
+interface SnapshotStore {
+  [sceneId: string]: Snapshot[];
+}
 
-declare global { var __snapshots__: SnapshotStore | undefined; }
+declare global {
+  var __snapshots__: SnapshotStore | undefined;
+}
 const store: SnapshotStore = globalThis.__snapshots__ ?? (globalThis.__snapshots__ = {});
 
-function uid() { return `snap_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`; }
+function uid() {
+  return `snap_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+}
 
 export async function GET(request: NextRequest) {
   const sceneId = request.nextUrl.searchParams.get('sceneId') ?? 'default';
@@ -31,11 +37,21 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   let body: Partial<Snapshot>;
-  try { body = (await request.json()) as Partial<Snapshot>; }
-  catch { return Response.json({ error: 'Bad JSON' }, { status: 400 }); }
+  try {
+    body = (await request.json()) as Partial<Snapshot>;
+  } catch {
+    return Response.json({ error: 'Bad JSON' }, { status: 400 });
+  }
 
   const { sceneId = 'default', label = 'Snapshot', dataUrl = '', code = '' } = body;
-  const snap: Snapshot = { id: uid(), sceneId, label, dataUrl, code, createdAt: new Date().toISOString() };
+  const snap: Snapshot = {
+    id: uid(),
+    sceneId,
+    label,
+    dataUrl,
+    code,
+    createdAt: new Date().toISOString(),
+  };
 
   if (!store[sceneId]) store[sceneId] = [];
   store[sceneId]!.push(snap);

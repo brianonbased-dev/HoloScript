@@ -51,7 +51,9 @@ describe('RSAEncryptionTrait', () => {
         hash_algorithm: 'sha256',
       };
 
-      expect(() => RSAEncryptionTrait.validate(config)).toThrow('RSA key size must be at least 2048 bits');
+      expect(() => RSAEncryptionTrait.validate(config)).toThrow(
+        'RSA key size must be at least 2048 bits'
+      );
     });
 
     it('should warn about PKCS#1 padding (deprecated)', () => {
@@ -64,7 +66,9 @@ describe('RSAEncryptionTrait', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       RSAEncryptionTrait.validate(config);
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('PKCS#1 padding is deprecated'));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('PKCS#1 padding is deprecated')
+      );
       consoleSpy.mockRestore();
     });
 
@@ -79,7 +83,9 @@ describe('RSAEncryptionTrait', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       RSAEncryptionTrait.validate(config);
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Hybrid encryption (RSA+AES) recommended'));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Hybrid encryption (RSA+AES) recommended')
+      );
       consoleSpy.mockRestore();
     });
   });

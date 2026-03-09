@@ -1,13 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { PluginLoader, PluginState, satisfiesSemver, parseSemver } from '../../plugins/PluginLoader';
+import {
+  PluginLoader,
+  PluginState,
+  satisfiesSemver,
+  parseSemver,
+} from '../../plugins/PluginLoader';
 import type { PluginManifest, PluginHooks } from '../../plugins/PluginLoader';
 
-function makeManifest(id: string, version = '1.0.0', deps?: Record<string, string>): PluginManifest {
+function makeManifest(
+  id: string,
+  version = '1.0.0',
+  deps?: Record<string, string>
+): PluginManifest {
   return { id, name: id, version, dependencies: deps };
 }
 
 describe('PluginLoader — Production Tests', () => {
-
   // ─── parseSemver ──────────────────────────────────────────────────────────
   describe('parseSemver()', () => {
     it('parses valid semver', () => {
@@ -119,7 +127,11 @@ describe('PluginLoader — Production Tests', () => {
     it('calls onInit hook', async () => {
       const loader = new PluginLoader();
       let called = false;
-      loader.register(makeManifest('p'), { onInit: async () => { called = true; } });
+      loader.register(makeManifest('p'), {
+        onInit: async () => {
+          called = true;
+        },
+      });
       await loader.initializeAll();
       expect(called).toBe(true);
     });
@@ -135,7 +147,11 @@ describe('PluginLoader — Production Tests', () => {
     it('calls onStart hook', async () => {
       const loader = new PluginLoader();
       let started = false;
-      loader.register(makeManifest('p'), { onStart: async () => { started = true; } });
+      loader.register(makeManifest('p'), {
+        onStart: async () => {
+          started = true;
+        },
+      });
       await loader.initializeAll();
       await loader.startAll();
       expect(started).toBe(true);
@@ -160,7 +176,11 @@ describe('PluginLoader — Production Tests', () => {
 
     it('init error sets plugin to ERROR state', async () => {
       const loader = new PluginLoader();
-      loader.register(makeManifest('p'), { onInit: async () => { throw new Error('bad init'); } });
+      loader.register(makeManifest('p'), {
+        onInit: async () => {
+          throw new Error('bad init');
+        },
+      });
       await loader.initializeAll();
       const plugin = loader.getPlugin('p')!;
       expect(plugin.state).toBe(PluginState.ERROR);

@@ -22,6 +22,7 @@ The Circuit Breaker pattern prevents cascading failures across HoloScript's 25+ 
 ### Design Principles
 
 Based on industry best practices:
+
 - [Circuit Breaker Pattern - Martin Fowler](https://martinfowler.com/bliki/CircuitBreaker.html)
 - [Azure Architecture Center - Circuit Breaker](https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker)
 - [AWS Prescriptive Guidance - Circuit Breaker](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/circuit-breaker.html)
@@ -78,10 +79,10 @@ import { CircuitBreaker } from '@holoscript/core/compiler';
 
 // Create circuit breaker for specific target
 const breaker = new CircuitBreaker('urdf', {
-  failureThreshold: 5,           // Open after 5 failures
+  failureThreshold: 5, // Open after 5 failures
   failureWindow: 10 * 60 * 1000, // Within 10 minutes
   halfOpenTimeout: 2 * 60 * 1000, // Test recovery after 2 min
-  successThreshold: 3,            // Close after 3 successes
+  successThreshold: 3, // Close after 3 successes
   enableFallback: true,
 });
 
@@ -193,11 +194,11 @@ const webgpuResult = await exportManager.export('webgpu', composition);
 
 ```typescript
 const DEFAULT_CONFIG = {
-  failureThreshold: 5,           // Failures before opening
+  failureThreshold: 5, // Failures before opening
   failureWindow: 10 * 60 * 1000, // Time window (10 min)
   halfOpenTimeout: 2 * 60 * 1000, // Recovery test timeout (2 min)
-  successThreshold: 3,            // Successes to close circuit
-  enableFallback: true,           // Use reference exporters
+  successThreshold: 3, // Successes to close circuit
+  enableFallback: true, // Use reference exporters
 };
 ```
 
@@ -206,10 +207,10 @@ const DEFAULT_CONFIG = {
 ```typescript
 const exportManager = new ExportManager({
   circuitConfig: {
-    failureThreshold: 3,          // More aggressive
+    failureThreshold: 3, // More aggressive
     failureWindow: 5 * 60 * 1000, // 5-minute window
-    halfOpenTimeout: 60 * 1000,   // 1-minute recovery test
-    successThreshold: 2,          // Quick recovery
+    halfOpenTimeout: 60 * 1000, // 1-minute recovery test
+    successThreshold: 2, // Quick recovery
   },
 });
 ```
@@ -385,33 +386,33 @@ console.log(prometheusMetrics);
 
 ## Supported Export Targets
 
-| Target | Circuit Breaker | Reference Exporter | Notes |
-|--------|----------------|-------------------|-------|
-| `urdf` | ✅ | ✅ | ROS 2 / Gazebo robotics |
-| `sdf` | ✅ | ✅ | Gazebo simulation |
-| `unity` | ✅ | ✅ | Unity Engine (C#) |
-| `unreal` | ✅ | ✅ | Unreal Engine (C++/Blueprint) |
-| `godot` | ✅ | ✅ | Godot Engine (GDScript) |
-| `vrchat` | ✅ | ✅ | VRChat SDK (Unity) |
-| `openxr` | ✅ | ✅ | OpenXR runtime |
-| `android` | ✅ | ✅ | Android XR (ARCore) |
-| `android-xr` | ✅ | ✅ | Android XR (dedicated) |
-| `ios` | ✅ | ✅ | iOS ARKit |
-| `visionos` | ✅ | ✅ | Apple Vision Pro (RealityKit) |
-| `ar` | ✅ | ⚠️ | Generic AR (limited fallback) |
-| `babylon` | ✅ | ✅ | Babylon.js |
-| `webgpu` | ✅ | ✅ | WebGPU API |
-| `r3f` | ✅ | ✅ | React Three Fiber |
-| `wasm` | ✅ | ✅ | WebAssembly |
-| `playcanvas` | ✅ | ⚠️ | PlayCanvas (limited fallback) |
-| `usd` | ✅ | ✅ | Pixar USD |
-| `usdz` | ✅ | ✅ | USDZ (iOS AR) |
-| `dtdl` | ✅ | ✅ | Azure Digital Twins |
-| `vrr` | ✅ | ⚠️ | VR Rendering (custom) |
-| `multi-layer` | ✅ | ⚠️ | Multi-layer compositions |
-| `incremental` | ✅ | ⚠️ | Incremental compilation |
-| `state` | ✅ | ⚠️ | State machine compilation |
-| `trait-composition` | ✅ | ⚠️ | Trait composition |
+| Target              | Circuit Breaker | Reference Exporter | Notes                         |
+| ------------------- | --------------- | ------------------ | ----------------------------- |
+| `urdf`              | ✅              | ✅                 | ROS 2 / Gazebo robotics       |
+| `sdf`               | ✅              | ✅                 | Gazebo simulation             |
+| `unity`             | ✅              | ✅                 | Unity Engine (C#)             |
+| `unreal`            | ✅              | ✅                 | Unreal Engine (C++/Blueprint) |
+| `godot`             | ✅              | ✅                 | Godot Engine (GDScript)       |
+| `vrchat`            | ✅              | ✅                 | VRChat SDK (Unity)            |
+| `openxr`            | ✅              | ✅                 | OpenXR runtime                |
+| `android`           | ✅              | ✅                 | Android XR (ARCore)           |
+| `android-xr`        | ✅              | ✅                 | Android XR (dedicated)        |
+| `ios`               | ✅              | ✅                 | iOS ARKit                     |
+| `visionos`          | ✅              | ✅                 | Apple Vision Pro (RealityKit) |
+| `ar`                | ✅              | ⚠️                 | Generic AR (limited fallback) |
+| `babylon`           | ✅              | ✅                 | Babylon.js                    |
+| `webgpu`            | ✅              | ✅                 | WebGPU API                    |
+| `r3f`               | ✅              | ✅                 | React Three Fiber             |
+| `wasm`              | ✅              | ✅                 | WebAssembly                   |
+| `playcanvas`        | ✅              | ⚠️                 | PlayCanvas (limited fallback) |
+| `usd`               | ✅              | ✅                 | Pixar USD                     |
+| `usdz`              | ✅              | ✅                 | USDZ (iOS AR)                 |
+| `dtdl`              | ✅              | ✅                 | Azure Digital Twins           |
+| `vrr`               | ✅              | ⚠️                 | VR Rendering (custom)         |
+| `multi-layer`       | ✅              | ⚠️                 | Multi-layer compositions      |
+| `incremental`       | ✅              | ⚠️                 | Incremental compilation       |
+| `state`             | ✅              | ⚠️                 | State machine compilation     |
+| `trait-composition` | ✅              | ⚠️                 | Trait composition             |
 
 **Legend**: ✅ Full support | ⚠️ Limited/Partial support
 
@@ -460,9 +461,8 @@ expect(result.warnings.length).toBeGreaterThan(0);
 ### 4. Configure Per Environment
 
 ```typescript
-const config = process.env.NODE_ENV === 'production'
-  ? productionCircuitConfig
-  : developmentCircuitConfig;
+const config =
+  process.env.NODE_ENV === 'production' ? productionCircuitConfig : developmentCircuitConfig;
 
 const manager = new ExportManager({ circuitConfig: config });
 ```
@@ -488,13 +488,16 @@ if (result.usedFallback) {
 **Symptom**: Circuit stays OPEN even after fixes
 
 **Solutions**:
+
 1. Check if failures are still occurring:
+
    ```typescript
    const metrics = exportManager.getMetrics('urdf');
    console.log('Recent failures:', metrics.failureRate);
    ```
 
 2. Manually reset circuit:
+
    ```typescript
    exportManager.resetCircuit('urdf');
    ```
@@ -512,7 +515,9 @@ if (result.usedFallback) {
 **Symptom**: Circuit keeps opening due to high failure rate
 
 **Solutions**:
+
 1. Investigate root cause:
+
    ```typescript
    const metrics = exportManager.getMetrics('urdf');
    console.log('Last error:', metrics.lastError);
@@ -535,7 +540,9 @@ if (result.usedFallback) {
 **Symptom**: Exports fail even with fallback enabled
 
 **Solutions**:
+
 1. Verify fallback is enabled:
+
    ```typescript
    const result = await exportManager.export('urdf', composition, {
      useFallback: true,
@@ -543,6 +550,7 @@ if (result.usedFallback) {
    ```
 
 2. Check if reference exporter exists:
+
    ```typescript
    const hasRef = exportManager.hasReferenceExporter('urdf');
    console.log('Has reference exporter:', hasRef);
@@ -585,6 +593,7 @@ if (result.usedFallback) {
 ### From Direct Compiler Usage
 
 **Before**:
+
 ```typescript
 import { URDFCompiler } from '@holoscript/core/compiler';
 
@@ -593,6 +602,7 @@ const output = compiler.compile(composition);
 ```
 
 **After**:
+
 ```typescript
 import { ExportManager } from '@holoscript/core/compiler';
 
@@ -607,6 +617,7 @@ if (result.success) {
 ### From Manual Error Handling
 
 **Before**:
+
 ```typescript
 try {
   const output = compiler.compile(composition);
@@ -617,6 +628,7 @@ try {
 ```
 
 **After**:
+
 ```typescript
 // Circuit breaker handles fallback automatically
 const result = await manager.export('urdf', composition);
@@ -656,11 +668,13 @@ pnpm test packages/core/src/compiler/__tests__/ExportManager.test.ts
 Primary interface for exports with circuit breaker protection.
 
 **Constructor**:
+
 ```typescript
 new ExportManager(options?: Partial<ExportOptions>)
 ```
 
 **Methods**:
+
 - `export(target, composition, options?)`: Export to single target
 - `batchExport(targets, composition, options?)`: Export to multiple targets
 - `getMetrics(target)`: Get circuit metrics for target
@@ -675,11 +689,13 @@ new ExportManager(options?: Partial<ExportOptions>)
 Low-level circuit breaker implementation.
 
 **Constructor**:
+
 ```typescript
 new CircuitBreaker<T>(target, config?)
 ```
 
 **Methods**:
+
 - `execute(operation, fallback?)`: Execute with protection
 - `executeSync(operation, fallback?)`: Sync execution
 - `getState()`: Get current state
@@ -692,11 +708,13 @@ new CircuitBreaker<T>(target, config?)
 Monitoring and alerting system.
 
 **Constructor**:
+
 ```typescript
 new CircuitBreakerMonitor(exportManager, alertConfig?)
 ```
 
 **Methods**:
+
 - `startMonitoring(intervalMs?)`: Start health checks
 - `stopMonitoring()`: Stop health checks
 - `getDashboardData()`: Get dashboard data

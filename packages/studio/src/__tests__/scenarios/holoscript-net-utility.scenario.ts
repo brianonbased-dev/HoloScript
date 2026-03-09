@@ -20,7 +20,7 @@ import {
   getCollabUrl,
   generateTwitterPlayerTags,
   generateIframeSnippet,
-  validateScenePayloadSize
+  validateScenePayloadSize,
 } from '../../lib/holoscriptNetUtils';
 
 describe('Scenario: Web Developer Integration — HoloScript.net Utilities', () => {
@@ -31,7 +31,7 @@ describe('Scenario: Web Developer Integration — HoloScript.net Utilities', () 
     it('getPlaygroundUrl() resolves to play.holoscript.net with query params', () => {
       const url = getPlaygroundUrl(sceneId);
       expect(url).toBe(`https://play.holoscript.net/?scene=${sceneId}`);
-      
+
       const autoStartUrl = getPlaygroundUrl(sceneId, { autoStart: true });
       expect(autoStartUrl).toBe(`https://play.holoscript.net/?scene=${sceneId}&autoStart=true`);
     });
@@ -51,15 +51,17 @@ describe('Scenario: Web Developer Integration — HoloScript.net Utilities', () 
     it('generateTwitterPlayerTags() outputs valid meta tags for social media previews', () => {
       const title = 'My Cool Scene';
       const tags = generateTwitterPlayerTags(sceneId, title);
-      
+
       expect(tags).toContain('<meta name="twitter:card" content="player" />');
       expect(tags).toContain(`<meta name="twitter:title" content="${title}" />`);
-      expect(tags).toContain(`<meta name="twitter:player" content="https://api.holoscript.net/render/${sceneId}" />`);
+      expect(tags).toContain(
+        `<meta name="twitter:player" content="https://api.holoscript.net/render/${sceneId}" />`
+      );
     });
 
     it('generateIframeSnippet() generates a responsive iframe code block', () => {
       const snippet = generateIframeSnippet(sceneId);
-      
+
       expect(snippet).toContain('<iframe');
       expect(snippet).toContain(`src="https://api.holoscript.net/embed/${sceneId}"`);
       expect(snippet).toContain('allow="xr-spatial-tracking; fullscreen"');
@@ -92,7 +94,7 @@ describe('Scenario: Web Developer Integration — HoloScript.net Utilities', () 
     it('validateScenePayloadSize() returns invalid with error message for payloads exceeding max limits', () => {
       const maxBytes = 10 * 1024 * 1024; // 10MB default
       const result = validateScenePayloadSize(15 * 1024 * 1024); // 15MB
-      
+
       expect(result.valid).toBe(false);
       expect(result.error).toContain(`exceeds maximum allowed size of ${maxBytes}`);
     });

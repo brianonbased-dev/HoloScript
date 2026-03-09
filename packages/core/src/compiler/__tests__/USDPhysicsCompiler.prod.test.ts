@@ -14,7 +14,7 @@
  * - PhysicsRigidBodyAPI requires @physics or @rigid trait.
  * - PhysicsMassAPI is added alongside PhysicsRigidBodyAPI.
  */
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { USDPhysicsCompiler } from '../USDPhysicsCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
@@ -25,7 +25,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
@@ -38,7 +37,11 @@ function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   } as HoloComposition;
 }
 
-function makeObj(name: string, props: Array<{ key: string; value: unknown }> = [], traits: any[] = []): HoloObjectDecl {
+function makeObj(
+  name: string,
+  props: Array<{ key: string; value: unknown }> = [],
+  traits: any[] = []
+): HoloObjectDecl {
   return {
     name,
     properties: props.map(({ key, value }) => ({ key, value })),
@@ -129,13 +132,21 @@ describe('USDPhysicsCompiler — Production', () => {
 
   // ─── Objects: rigid body ──────────────────────────────────────────────
   it('object with physics trait gets PhysicsRigidBodyAPI', () => {
-    const obj = makeObj('Cube', [{ key: 'mesh', value: 'cube' }], [{ name: 'physics', config: { mass: 1.0 } }]);
+    const obj = makeObj(
+      'Cube',
+      [{ key: 'mesh', value: 'cube' }],
+      [{ name: 'physics', config: { mass: 1.0 } }]
+    );
     const out = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toContain('PhysicsRigidBodyAPI');
   });
 
   it('rigid body object name appears in output', () => {
-    const obj = makeObj('FallingBox', [{ key: 'mesh', value: 'box' }], [{ name: 'physics', config: {} }]);
+    const obj = makeObj(
+      'FallingBox',
+      [{ key: 'mesh', value: 'box' }],
+      [{ name: 'physics', config: {} }]
+    );
     const out = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toContain('FallingBox');
   });

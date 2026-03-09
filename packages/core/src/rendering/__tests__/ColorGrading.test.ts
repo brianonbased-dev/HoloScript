@@ -4,7 +4,9 @@ import { ColorGrading } from '../ColorGrading';
 describe('ColorGrading', () => {
   let cg: ColorGrading;
 
-  beforeEach(() => { cg = new ColorGrading(); });
+  beforeEach(() => {
+    cg = new ColorGrading();
+  });
 
   // Defaults
   it('defaults to ACES tonemapper, enabled', () => {

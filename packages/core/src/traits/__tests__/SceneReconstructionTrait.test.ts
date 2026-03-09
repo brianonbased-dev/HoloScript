@@ -87,27 +87,38 @@ describe('SceneReconstructionTrait', () => {
 
   describe('scan lifecycle', () => {
     it('reconstruction:started enables scanning', () => {
-      sceneReconstructionHandler.onEvent!(node, config, ctx as any, { type: 'reconstruction:started' });
+      sceneReconstructionHandler.onEvent!(node, config, ctx as any, {
+        type: 'reconstruction:started',
+      });
       expect(getState(ctx).isScanning).toBe(true);
       expect(getState(ctx).scanProgress).toBe(0);
     });
 
     it('reconstruction:complete disables scanning and sets progress to 1', () => {
       // Start scanning
-      sceneReconstructionHandler.onEvent!(node, config, ctx as any, { type: 'reconstruction:started' });
+      sceneReconstructionHandler.onEvent!(node, config, ctx as any, {
+        type: 'reconstruction:started',
+      });
       // Complete
-      sceneReconstructionHandler.onEvent!(node, config, ctx as any, { type: 'reconstruction:complete' });
+      sceneReconstructionHandler.onEvent!(node, config, ctx as any, {
+        type: 'reconstruction:complete',
+      });
 
       const s = getState(ctx);
       expect(s.isScanning).toBe(false);
       expect(s.scanProgress).toBe(1);
-      expect(ctx.emit).toHaveBeenCalledWith('reconstruction:complete', expect.objectContaining({ faceCount: 0 }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'reconstruction:complete',
+        expect.objectContaining({ faceCount: 0 })
+      );
     });
   });
 
   describe('mesh received events', () => {
     it('updates face count from payload', () => {
-      sceneReconstructionHandler.onEvent!(node, config, ctx as any, { type: 'reconstruction:started' });
+      sceneReconstructionHandler.onEvent!(node, config, ctx as any, {
+        type: 'reconstruction:started',
+      });
       sceneReconstructionHandler.onEvent!(node, config, ctx as any, {
         type: 'reconstruction:mesh_received',
         payload: { faceCount: 25000 },
@@ -119,7 +130,9 @@ describe('SceneReconstructionTrait', () => {
     });
 
     it('clamps progress to 1.0 max', () => {
-      sceneReconstructionHandler.onEvent!(node, config, ctx as any, { type: 'reconstruction:started' });
+      sceneReconstructionHandler.onEvent!(node, config, ctx as any, {
+        type: 'reconstruction:started',
+      });
       sceneReconstructionHandler.onEvent!(node, config, ctx as any, {
         type: 'reconstruction:mesh_received',
         payload: { faceCount: 100000 }, // exceeds max_mesh_faces
@@ -129,7 +142,9 @@ describe('SceneReconstructionTrait', () => {
     });
 
     it('applies semantic labels when enabled', () => {
-      sceneReconstructionHandler.onEvent!(node, config, ctx as any, { type: 'reconstruction:started' });
+      sceneReconstructionHandler.onEvent!(node, config, ctx as any, {
+        type: 'reconstruction:started',
+      });
       sceneReconstructionHandler.onEvent!(node, config, ctx as any, {
         type: 'reconstruction:mesh_received',
         payload: {
@@ -168,7 +183,9 @@ describe('SceneReconstructionTrait', () => {
     });
 
     it('emits mesh_update when scanning and interval elapsed', () => {
-      sceneReconstructionHandler.onEvent!(node, config, ctx as any, { type: 'reconstruction:started' });
+      sceneReconstructionHandler.onEvent!(node, config, ctx as any, {
+        type: 'reconstruction:started',
+      });
       ctx.emit.mockClear();
 
       // update_interval_ms is 100ms, so we need delta >= 0.1s
@@ -181,7 +198,9 @@ describe('SceneReconstructionTrait', () => {
     });
 
     it('accumulates time across multiple updates', () => {
-      sceneReconstructionHandler.onEvent!(node, config, ctx as any, { type: 'reconstruction:started' });
+      sceneReconstructionHandler.onEvent!(node, config, ctx as any, {
+        type: 'reconstruction:started',
+      });
       ctx.emit.mockClear();
 
       // Two updates that individually are below threshold but together exceed it

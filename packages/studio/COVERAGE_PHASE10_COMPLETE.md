@@ -10,20 +10,21 @@
 
 ### Overall Metrics
 
-| Metric | Phase 9 | Phase 10 | Change | Status |
-|--------|---------|----------|--------|--------|
-| **Test Files** | 34 | 37 | **+3** ✅ | +8.82% |
-| **Total Tests** | 1086 | 1141 | **+55** ✅ | +5.06% |
-| **Hooks Line Coverage** | - | 28.61% | - | Baseline |
-| **Hooks Function Coverage** | - | 53.73% | - | Baseline |
-| **Hooks Branch Coverage** | - | 88.22% | - | Baseline |
-| **Hooks Tested** | 13 | 17 | **+4** ✅ | +30.77% |
+| Metric                      | Phase 9 | Phase 10 | Change     | Status   |
+| --------------------------- | ------- | -------- | ---------- | -------- |
+| **Test Files**              | 34      | 37       | **+3** ✅  | +8.82%   |
+| **Total Tests**             | 1086    | 1141     | **+55** ✅ | +5.06%   |
+| **Hooks Line Coverage**     | -       | 28.61%   | -          | Baseline |
+| **Hooks Function Coverage** | -       | 53.73%   | -          | Baseline |
+| **Hooks Branch Coverage**   | -       | 88.22%   | -          | Baseline |
+| **Hooks Tested**            | 13      | 17       | **+4** ✅  | +30.77%  |
 
 ### Coverage Methodology Note
 
 Phase 10 uses vitest's coverage reporting which measures all files in the hooks directory (45 hooks total), including untested complex hooks and utilities. This gives a more comprehensive but lower percentage than Phase 9's manual calculation which only measured tested hooks.
 
 **Coverage breakdown:**
+
 - **17 tested hooks** out of 45 total (37.8% of hooks have tests)
 - **Lines**: 28.61% - Measures statement coverage across all hook files
 - **Functions**: 53.73% - Over half of hook functions have tests
@@ -45,12 +46,14 @@ Tests covering Ollama health check polling:
 - Edge Cases (1 test)
 
 **Key Features Tested:**
+
 - Initial health check on mount
 - Status updates (connected/disconnected)
 - Cleanup on unmount without errors
 - Mounted state tracking
 
 **Simplified Approach:**
+
 - Avoided complex interval testing with fake timers
 - Focused on mount/unmount lifecycle
 - Used real timers with small delays for async operations
@@ -69,6 +72,7 @@ Tests covering REPL state management and execution:
 - Edge Cases (5 tests)
 
 **Key Features Tested:**
+
 - Code state management
 - API integration (POST /api/repl)
 - Status transitions (idle/running/error)
@@ -77,6 +81,7 @@ Tests covering REPL state management and execution:
 - Error message formatting
 
 **Testing Patterns:**
+
 - Properly awaited all act() calls
 - Used vi.runAllTimersAsync() for debounce tests
 - Tested error message format including "Error:" prefix from `String(e)`
@@ -94,6 +99,7 @@ Tests covering AI scene critique analysis:
 - Edge Cases (6 tests)
 
 **Key Features Tested:**
+
 - Result state management
 - API integration (POST /api/critique)
 - Loading and error states
@@ -102,6 +108,7 @@ Tests covering AI scene critique analysis:
 - Mock store updates with rerender()
 
 **Key Fixes:**
+
 - Reset mockCode in beforeEach() to prevent test pollution
 - Used same-length strings for stale detection tests
 - Properly updated mock implementation for rerender() tests
@@ -151,7 +158,7 @@ it('should call checkOllamaHealth on mount', async () => {
   renderHook(() => useOllamaStatus());
 
   // Wait a tick for the initial effect
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
 
   expect(mockCheckOllamaHealth).toHaveBeenCalled();
 });
@@ -306,16 +313,19 @@ it('should detect stale when code changes', async () => {
 ## 🎯 Path to 55% Coverage
 
 ### Current Status
+
 - **Hooks Line Coverage**: 28.61%
 - **Gap to 55%**: 26.39%
 - **Hooks Tested**: 17 of 45 (37.8%)
 
 ### Estimated Remaining Work
+
 - **Additional Hooks Needed**: ~15-20 more hooks
 - **Additional Tests**: ~400-500 tests
 - **Estimated Time**: 6-8 hours at current pace
 
 ### Priority Hooks for Phase 11
+
 1. **useUndoRedo** (50 lines) - Simple undo/redo
 2. **useScenePipeline** (63 lines) - Scene pipeline management
 3. **useAssetLibrary** (71 lines) - Asset library
@@ -327,12 +337,14 @@ it('should detect stale when code changes', async () => {
 To reach 55% line coverage, we need roughly double our current coverage. Two strategies:
 
 **Strategy A: Breadth (Recommended)**
+
 - Test 15-20 simpler hooks (~50-80 lines each)
 - Focus on hooks with straightforward logic
 - Avoid complex browser APIs (EventSource, complex WebSocket)
 - Target: 55% coverage with ~30-35 hooks tested
 
 **Strategy B: Depth**
+
 - Test fewer hooks but more thoroughly
 - Add integration tests for complex scenarios
 - Focus on critical path hooks

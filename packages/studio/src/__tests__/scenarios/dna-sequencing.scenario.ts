@@ -7,10 +7,19 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  complement, complementStrand, transcribe, reverseComplement,
-  translateCodon, translateMRNA,
-  gcContent, sequenceLength, findMotif, detectMutations,
-  crisprOnTargetScore, neighborJoiningTree, blastLocalAlignment,
+  complement,
+  complementStrand,
+  transcribe,
+  reverseComplement,
+  translateCodon,
+  translateMRNA,
+  gcContent,
+  sequenceLength,
+  findMotif,
+  detectMutations,
+  crisprOnTargetScore,
+  neighborJoiningTree,
+  blastLocalAlignment,
   type CRISPRTarget,
 } from '@/lib/dnaSequencing';
 
@@ -98,12 +107,26 @@ describe('Scenario: DNA — Sequence Analysis', () => {
 
 describe('Scenario: DNA — CRISPR', () => {
   it('crisprOnTargetScore: excellent (high eff, low off-target)', () => {
-    const target: CRISPRTarget = { guideRNA: 'ATGCGATCGATCGATCGATC', pamSite: 'NGG', targetGene: 'TP53', cutPosition: 100, offTargetScore: 10, efficiency: 85 };
+    const target: CRISPRTarget = {
+      guideRNA: 'ATGCGATCGATCGATCGATC',
+      pamSite: 'NGG',
+      targetGene: 'TP53',
+      cutPosition: 100,
+      offTargetScore: 10,
+      efficiency: 85,
+    };
     expect(crisprOnTargetScore(target)).toBe('excellent');
   });
 
   it('crisprOnTargetScore: poor (low efficiency)', () => {
-    const target: CRISPRTarget = { guideRNA: 'ATGCGATCGATCGATCGATC', pamSite: 'NGG', targetGene: 'BRCA1', cutPosition: 200, offTargetScore: 60, efficiency: 20 };
+    const target: CRISPRTarget = {
+      guideRNA: 'ATGCGATCGATCGATCGATC',
+      pamSite: 'NGG',
+      targetGene: 'BRCA1',
+      cutPosition: 200,
+      offTargetScore: 60,
+      efficiency: 20,
+    };
     expect(crisprOnTargetScore(target)).toBe('poor');
   });
 

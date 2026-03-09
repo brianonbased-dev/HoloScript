@@ -64,7 +64,11 @@ describe('audioMaterialHandler.onAttach — state', () => {
   });
 
   it('register payload contains reflection, transmission, scattering', () => {
-    const { ctx } = attach({ reflection_coefficient: 0.7, transmission_coefficient: 0.05, scattering_coefficient: 0.2 });
+    const { ctx } = attach({
+      reflection_coefficient: 0.7,
+      transmission_coefficient: 0.05,
+      scattering_coefficient: 0.2,
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'audio_material_register');
     expect(call![1].reflection).toBe(0.7);
     expect(call![1].transmission).toBe(0.05);
@@ -91,7 +95,10 @@ describe('audioMaterialHandler.onAttach — effectiveAbsorption', () => {
 
   it('custom absorption_coefficients override the preset', () => {
     const customCoeffs = { 125: 0.5, 250: 0.5, 500: 0.5, 1000: 0.5, 2000: 0.5, 4000: 0.5 };
-    const { node, ctx } = attach({ absorption_coefficients: customCoeffs, material_preset: 'concrete' });
+    const { node, ctx } = attach({
+      absorption_coefficients: customCoeffs,
+      material_preset: 'concrete',
+    });
     // All 0.5 → mean = 0.5
     expect((node as any).__audioMaterialState.effectiveAbsorption).toBeCloseTo(0.5, 5);
     // register payload should use custom, not preset
@@ -136,7 +143,9 @@ describe('audioMaterialHandler.onUpdate', () => {
 
   it('does not throw', () => {
     const { node, ctx, config } = attach();
-    expect(() => audioMaterialHandler.onUpdate!(node as any, config, ctx as any, 0.016)).not.toThrow();
+    expect(() =>
+      audioMaterialHandler.onUpdate!(node as any, config, ctx as any, 0.016)
+    ).not.toThrow();
   });
 });
 
@@ -163,7 +172,10 @@ describe('audioMaterialHandler.onEvent — audio_material_query', () => {
     const customCoeffs = { 125: 0.9 };
     const { node, ctx, config } = attach({ absorption_coefficients: customCoeffs });
     ctx.emit.mockClear();
-    audioMaterialHandler.onEvent!(node as any, config, ctx as any, { type: 'audio_material_query', queryId: 'q1' });
+    audioMaterialHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'audio_material_query',
+      queryId: 'q1',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'audio_material_response');
     expect(call![1].absorption[125]).toBe(0.9);
   });
@@ -171,7 +183,10 @@ describe('audioMaterialHandler.onEvent — audio_material_query', () => {
   it('uses preset absorption when absorption_coefficients={} in query', () => {
     const { node, ctx, config } = attach({ material_preset: 'metal', absorption_coefficients: {} });
     ctx.emit.mockClear();
-    audioMaterialHandler.onEvent!(node as any, config, ctx as any, { type: 'audio_material_query', queryId: 'q2' });
+    audioMaterialHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'audio_material_query',
+      queryId: 'q2',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'audio_material_response');
     // metal[1000] = 0.01
     expect(call![1].absorption[1000]).toBe(0.01);
@@ -183,7 +198,10 @@ describe('audioMaterialHandler.onEvent — audio_material_query', () => {
     const config = audioMaterialHandler.defaultConfig!;
     // Do not call attach — state absent
     expect(() =>
-      audioMaterialHandler.onEvent!(node as any, config, ctx as any, { type: 'audio_material_query', queryId: 'q' })
+      audioMaterialHandler.onEvent!(node as any, config, ctx as any, {
+        type: 'audio_material_query',
+        queryId: 'q',
+      })
     ).not.toThrow();
     expect(ctx.emit).not.toHaveBeenCalled();
   });

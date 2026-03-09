@@ -4,7 +4,7 @@
  * Tests the per-node reactive state extraction from HS+ AST stateBlock fields.
  */
 
-import { describe, it, expect, vi} from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { StateCompiler } from '../../compiler/StateCompiler';
 import type { HSPlusAST, HSPlusNode } from '../../types/HoloScriptPlus';
 
@@ -16,10 +16,13 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   };
 });
 
-
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function makeNode(name: string, stateBlock?: Record<string, unknown>, children?: HSPlusNode[]): HSPlusNode {
+function makeNode(
+  name: string,
+  stateBlock?: Record<string, unknown>,
+  children?: HSPlusNode[]
+): HSPlusNode {
   return {
     type: 'Object',
     name,
@@ -61,12 +64,14 @@ describe('StateCompiler — Production', () => {
   });
 
   it('skips internal __spread_ keys', () => {
-    const ast = makeAST(makeNode('Obj', {
-      score: 0,
-      __spread_0: { type: 'spread', argument: 'baseState' },
-    }));
+    const ast = makeAST(
+      makeNode('Obj', {
+        score: 0,
+        __spread_0: { type: 'spread', argument: 'baseState' },
+      })
+    );
     const shape = compiler.compile(ast, 'test-token').get('Obj')!;
-    expect(shape.vars.map(v => v.name)).toEqual(['score']);
+    expect(shape.vars.map((v) => v.name)).toEqual(['score']);
     expect(shape.initialState.__spread_0).toBeUndefined();
   });
 
@@ -80,12 +85,14 @@ describe('StateCompiler — Production', () => {
   });
 
   it('handles string, bool, number, and array initial values', () => {
-    const ast = makeAST(makeNode('Hero', {
-      name: 'Aria',
-      alive: true,
-      position: [0, 1, 0],
-      maxHp: 200,
-    }));
+    const ast = makeAST(
+      makeNode('Hero', {
+        name: 'Aria',
+        alive: true,
+        position: [0, 1, 0],
+        maxHp: 200,
+      })
+    );
     const shape = compiler.compile(ast, 'test-token').get('Hero')!;
     expect(shape.initialState.name).toBe('Aria');
     expect(shape.initialState.alive).toBe(true);
@@ -141,7 +148,7 @@ describe('StateCompiler — Production', () => {
   it('vars descriptors match keys in initialState', () => {
     const ast = makeAST(makeNode('Obj', { a: 1, b: 2, c: 3 }));
     const shape = compiler.compile(ast, 'test-token').get('Obj')!;
-    const varNames = shape.vars.map(v => v.name).sort();
+    const varNames = shape.vars.map((v) => v.name).sort();
     const initKeys = Object.keys(shape.initialState).sort();
     expect(varNames).toEqual(initKeys);
   });

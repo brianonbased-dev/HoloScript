@@ -52,25 +52,67 @@ class TestAgent extends BaseAgent {
   };
 
   async intake(ctx: Record<string, unknown>): Promise<PhaseResult> {
-    return { phase: ProtocolPhase.INTAKE, status: 'success', data: { ingested: ctx }, durationMs: 0, timestamp: Date.now() };
+    return {
+      phase: ProtocolPhase.INTAKE,
+      status: 'success',
+      data: { ingested: ctx },
+      durationMs: 0,
+      timestamp: Date.now(),
+    };
   }
   async reflect(data: unknown): Promise<PhaseResult> {
-    return { phase: ProtocolPhase.REFLECT, status: 'success', data: { analyzed: true }, durationMs: 0, timestamp: Date.now() };
+    return {
+      phase: ProtocolPhase.REFLECT,
+      status: 'success',
+      data: { analyzed: true },
+      durationMs: 0,
+      timestamp: Date.now(),
+    };
   }
   async execute(plan: unknown): Promise<PhaseResult> {
-    return { phase: ProtocolPhase.EXECUTE, status: 'success', data: { executed: true }, durationMs: 0, timestamp: Date.now() };
+    return {
+      phase: ProtocolPhase.EXECUTE,
+      status: 'success',
+      data: { executed: true },
+      durationMs: 0,
+      timestamp: Date.now(),
+    };
   }
   async compress(results: unknown): Promise<PhaseResult> {
-    return { phase: ProtocolPhase.COMPRESS, status: 'success', data: { compressed: true }, durationMs: 0, timestamp: Date.now() };
+    return {
+      phase: ProtocolPhase.COMPRESS,
+      status: 'success',
+      data: { compressed: true },
+      durationMs: 0,
+      timestamp: Date.now(),
+    };
   }
   async reintake(compressed: unknown): Promise<PhaseResult> {
-    return { phase: ProtocolPhase.REINTAKE, status: 'success', data: { reingested: true }, durationMs: 0, timestamp: Date.now() };
+    return {
+      phase: ProtocolPhase.REINTAKE,
+      status: 'success',
+      data: { reingested: true },
+      durationMs: 0,
+      timestamp: Date.now(),
+    };
   }
   async grow(learnings: unknown): Promise<PhaseResult> {
-    return { phase: ProtocolPhase.GROW, status: 'success', data: { learned: true }, durationMs: 0, timestamp: Date.now() };
+    return {
+      phase: ProtocolPhase.GROW,
+      status: 'success',
+      data: { learned: true },
+      durationMs: 0,
+      timestamp: Date.now(),
+    };
   }
   async evolve(adaptations: unknown): Promise<PhaseResult> {
-    return { phase: ProtocolPhase.EVOLVE, status: 'success', data: { evolved: true }, durationMs: 0, timestamp: Date.now() };
+    return {
+      phase: ProtocolPhase.EVOLVE,
+      status: 'success',
+      data: { evolved: true },
+      durationMs: 0,
+      timestamp: Date.now(),
+    };
   }
 }
 
@@ -153,9 +195,14 @@ describe('BaseService', () => {
 describe('PWG Knowledge Format', () => {
   it('should identify patterns', () => {
     const pattern: Pattern = {
-      id: 'P.LOGGING.01', domain: 'logging', problem: 'Inconsistent logs',
-      solution: 'Use unified logger', tags: ['logging'], confidence: 0.9,
-      createdAt: Date.now(), updatedAt: Date.now(),
+      id: 'P.LOGGING.01',
+      domain: 'logging',
+      problem: 'Inconsistent logs',
+      solution: 'Use unified logger',
+      tags: ['logging'],
+      confidence: 0.9,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     };
     expect(isPattern(pattern)).toBe(true);
     expect(isWisdom(pattern)).toBe(false);
@@ -164,8 +211,12 @@ describe('PWG Knowledge Format', () => {
 
   it('should identify wisdom', () => {
     const wisdom: Wisdom = {
-      id: 'W.ARCH.01', domain: 'architecture', insight: 'Decouple services',
-      context: 'Microservices', source: 'experience', tags: ['architecture'],
+      id: 'W.ARCH.01',
+      domain: 'architecture',
+      insight: 'Decouple services',
+      context: 'Microservices',
+      source: 'experience',
+      tags: ['architecture'],
       createdAt: Date.now(),
     };
     expect(isWisdom(wisdom)).toBe(true);
@@ -174,8 +225,13 @@ describe('PWG Knowledge Format', () => {
 
   it('should identify gotchas', () => {
     const gotcha: Gotcha = {
-      id: 'G.ENV.01', domain: 'environment', mistake: 'Hardcoded paths',
-      fix: 'Use env vars', severity: 'high', tags: ['env'], createdAt: Date.now(),
+      id: 'G.ENV.01',
+      domain: 'environment',
+      mistake: 'Hardcoded paths',
+      fix: 'Use env vars',
+      severity: 'high',
+      tags: ['env'],
+      createdAt: Date.now(),
     };
     expect(isGotcha(gotcha)).toBe(true);
     expect(isPattern(gotcha)).toBe(false);
@@ -218,26 +274,57 @@ describe('MicroPhaseDecomposer', () => {
 
   it('should register tasks', () => {
     decomposer.registerTask({
-      id: 'A', name: 'Task A', estimatedDuration: 100,
-      dependencies: [], execute: async () => 'A done',
+      id: 'A',
+      name: 'Task A',
+      estimatedDuration: 100,
+      dependencies: [],
+      execute: async () => 'A done',
     });
-    expect(() => decomposer.registerTask({
-      id: 'A', name: 'Duplicate', estimatedDuration: 50,
-      dependencies: [], execute: async () => {},
-    })).toThrow('already registered');
+    expect(() =>
+      decomposer.registerTask({
+        id: 'A',
+        name: 'Duplicate',
+        estimatedDuration: 50,
+        dependencies: [],
+        execute: async () => {},
+      })
+    ).toThrow('already registered');
   });
 
   it('should reject missing dependencies', () => {
-    expect(() => decomposer.registerTask({
-      id: 'B', name: 'Task B', estimatedDuration: 50,
-      dependencies: ['nonexistent'], execute: async () => {},
-    })).toThrow('not registered');
+    expect(() =>
+      decomposer.registerTask({
+        id: 'B',
+        name: 'Task B',
+        estimatedDuration: 50,
+        dependencies: ['nonexistent'],
+        execute: async () => {},
+      })
+    ).toThrow('not registered');
   });
 
   it('should create execution plan with parallelization', () => {
-    decomposer.registerTask({ id: 'A', name: 'A', estimatedDuration: 100, dependencies: [], execute: async () => {} });
-    decomposer.registerTask({ id: 'B', name: 'B', estimatedDuration: 100, dependencies: [], execute: async () => {} });
-    decomposer.registerTask({ id: 'C', name: 'C', estimatedDuration: 50, dependencies: ['A', 'B'], execute: async () => {} });
+    decomposer.registerTask({
+      id: 'A',
+      name: 'A',
+      estimatedDuration: 100,
+      dependencies: [],
+      execute: async () => {},
+    });
+    decomposer.registerTask({
+      id: 'B',
+      name: 'B',
+      estimatedDuration: 100,
+      dependencies: [],
+      execute: async () => {},
+    });
+    decomposer.registerTask({
+      id: 'C',
+      name: 'C',
+      estimatedDuration: 50,
+      dependencies: ['A', 'B'],
+      execute: async () => {},
+    });
 
     const plan = decomposer.createExecutionPlan();
     expect(plan.groups).toHaveLength(2);
@@ -247,22 +334,39 @@ describe('MicroPhaseDecomposer', () => {
   });
 
   it('should execute plan and return results', async () => {
-    decomposer.registerTask({ id: 'X', name: 'X', estimatedDuration: 10, dependencies: [], execute: async () => 42 });
-    decomposer.registerTask({ id: 'Y', name: 'Y', estimatedDuration: 10, dependencies: ['X'], execute: async () => 99 });
+    decomposer.registerTask({
+      id: 'X',
+      name: 'X',
+      estimatedDuration: 10,
+      dependencies: [],
+      execute: async () => 42,
+    });
+    decomposer.registerTask({
+      id: 'Y',
+      name: 'Y',
+      estimatedDuration: 10,
+      dependencies: ['X'],
+      execute: async () => 99,
+    });
 
     const plan = decomposer.createExecutionPlan();
     const results = await decomposer.executePlan(plan);
 
     expect(results).toHaveLength(2);
-    expect(results.find(r => r.taskId === 'X')?.status).toBe('success');
-    expect(results.find(r => r.taskId === 'X')?.result).toBe(42);
-    expect(results.find(r => r.taskId === 'Y')?.result).toBe(99);
+    expect(results.find((r) => r.taskId === 'X')?.status).toBe('success');
+    expect(results.find((r) => r.taskId === 'X')?.result).toBe(42);
+    expect(results.find((r) => r.taskId === 'Y')?.result).toBe(99);
   });
 
   it('should handle task failures', async () => {
     decomposer.registerTask({
-      id: 'F', name: 'Failing', estimatedDuration: 10,
-      dependencies: [], execute: async () => { throw new Error('boom'); },
+      id: 'F',
+      name: 'Failing',
+      estimatedDuration: 10,
+      dependencies: [],
+      execute: async () => {
+        throw new Error('boom');
+      },
     });
 
     const plan = decomposer.createExecutionPlan();
@@ -273,9 +377,21 @@ describe('MicroPhaseDecomposer', () => {
   });
 
   it('should reset state', () => {
-    decomposer.registerTask({ id: 'R', name: 'R', estimatedDuration: 10, dependencies: [], execute: async () => {} });
+    decomposer.registerTask({
+      id: 'R',
+      name: 'R',
+      estimatedDuration: 10,
+      dependencies: [],
+      execute: async () => {},
+    });
     decomposer.reset();
     // Should be able to re-register
-    decomposer.registerTask({ id: 'R', name: 'R', estimatedDuration: 10, dependencies: [], execute: async () => {} });
+    decomposer.registerTask({
+      id: 'R',
+      name: 'R',
+      estimatedDuration: 10,
+      dependencies: [],
+      execute: async () => {},
+    });
   });
 });

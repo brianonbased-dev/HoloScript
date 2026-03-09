@@ -30,11 +30,7 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
 class TestCompiler extends CompilerBase {
   protected readonly compilerName = 'TestCompiler';
 
-  compile(
-    _composition: HoloComposition,
-    agentToken: string,
-    outputPath?: string,
-  ): string {
+  compile(_composition: HoloComposition, agentToken: string, outputPath?: string): string {
     this.validateCompilerAccess(agentToken, outputPath);
     return '// compiled';
   }
@@ -99,11 +95,7 @@ describe('CompilerBase', () => {
         agentRole: 'syntax_analyzer' as any,
       };
 
-      const err = new UnauthorizedCompilerAccessError(
-        decision,
-        'AST access',
-        'UnityCompiler',
-      );
+      const err = new UnauthorizedCompilerAccessError(decision, 'AST access', 'UnityCompiler');
 
       expect(err).toBeInstanceOf(Error);
       expect(err).toBeInstanceOf(UnauthorizedCompilerAccessError);
@@ -121,11 +113,7 @@ describe('CompilerBase', () => {
         agentRole: 'syntax_analyzer' as any,
       };
 
-      const err = new UnauthorizedCompilerAccessError(
-        decision,
-        'AST access',
-        'GodotCompiler',
-      );
+      const err = new UnauthorizedCompilerAccessError(decision, 'AST access', 'GodotCompiler');
 
       expect(err.message).toContain('[GodotCompiler]');
       expect(err.message).toContain('Unauthorized AST access');
@@ -137,11 +125,7 @@ describe('CompilerBase', () => {
     it('falls back to defaults when decision fields are undefined', () => {
       const decision: AccessDecision = { allowed: false };
 
-      const err = new UnauthorizedCompilerAccessError(
-        decision,
-        'code generation',
-        'WASMCompiler',
-      );
+      const err = new UnauthorizedCompilerAccessError(decision, 'code generation', 'WASMCompiler');
 
       expect(err.message).toContain('Access denied');
       expect(err.message).toContain('Agent Role: unknown');
@@ -154,11 +138,7 @@ describe('CompilerBase', () => {
         reason: 'No permission',
       };
 
-      const err = new UnauthorizedCompilerAccessError(
-        decision,
-        'output write',
-        'R3FCompiler',
-      );
+      const err = new UnauthorizedCompilerAccessError(decision, 'output write', 'R3FCompiler');
 
       // TypeScript readonly prevents assignment at compile time, but we can
       // verify the values are set correctly
@@ -191,7 +171,7 @@ describe('CompilerBase', () => {
       mockCheckAccess.mockReturnValue(denied);
 
       expect(() => compiler.exposeValidateASTAccess(FAKE_TOKEN)).toThrowError(
-        UnauthorizedCompilerAccessError,
+        UnauthorizedCompilerAccessError
       );
 
       try {
@@ -229,7 +209,7 @@ describe('CompilerBase', () => {
       mockCheckAccess.mockReturnValue(denied);
 
       expect(() => compiler.exposeValidateCodeGeneration(FAKE_TOKEN)).toThrowError(
-        UnauthorizedCompilerAccessError,
+        UnauthorizedCompilerAccessError
       );
 
       try {
@@ -253,9 +233,7 @@ describe('CompilerBase', () => {
     it('does not throw when access is allowed', () => {
       mockCheckAccess.mockReturnValue(makeAllowedDecision());
 
-      expect(() =>
-        compiler.exposeValidateOutputPath(FAKE_TOKEN, OUTPUT_PATH),
-      ).not.toThrow();
+      expect(() => compiler.exposeValidateOutputPath(FAKE_TOKEN, OUTPUT_PATH)).not.toThrow();
 
       expect(mockCheckAccess).toHaveBeenCalledOnce();
       expect(mockCheckAccess).toHaveBeenCalledWith({
@@ -271,9 +249,9 @@ describe('CompilerBase', () => {
       const denied = makeDeniedDecision({ reason: 'Path outside scope' });
       mockCheckAccess.mockReturnValue(denied);
 
-      expect(() =>
-        compiler.exposeValidateOutputPath(FAKE_TOKEN, OUTPUT_PATH),
-      ).toThrowError(UnauthorizedCompilerAccessError);
+      expect(() => compiler.exposeValidateOutputPath(FAKE_TOKEN, OUTPUT_PATH)).toThrowError(
+        UnauthorizedCompilerAccessError
+      );
 
       try {
         compiler.exposeValidateOutputPath(FAKE_TOKEN, OUTPUT_PATH);
@@ -305,9 +283,7 @@ describe('CompilerBase', () => {
     it('succeeds when all validations pass (without outputPath)', () => {
       mockCheckAccess.mockReturnValue(makeAllowedDecision());
 
-      expect(() =>
-        compiler.exposeValidateCompilerAccess(FAKE_TOKEN),
-      ).not.toThrow();
+      expect(() => compiler.exposeValidateCompilerAccess(FAKE_TOKEN)).not.toThrow();
 
       // Should call checkAccess exactly twice: AST access + code generation
       expect(mockCheckAccess).toHaveBeenCalledTimes(2);
@@ -317,7 +293,7 @@ describe('CompilerBase', () => {
       mockCheckAccess.mockReturnValue(makeAllowedDecision());
 
       expect(() =>
-        compiler.exposeValidateCompilerAccess(FAKE_TOKEN, '/out/scene.cs'),
+        compiler.exposeValidateCompilerAccess(FAKE_TOKEN, '/out/scene.cs')
       ).not.toThrow();
 
       // Should call checkAccess exactly three times: AST + code gen + output
@@ -327,9 +303,9 @@ describe('CompilerBase', () => {
     it('throws when AST access is denied (first check)', () => {
       mockCheckAccess.mockReturnValueOnce(makeDeniedDecision({ reason: 'No AST read' }));
 
-      expect(() =>
-        compiler.exposeValidateCompilerAccess(FAKE_TOKEN, '/out/scene.cs'),
-      ).toThrowError(UnauthorizedCompilerAccessError);
+      expect(() => compiler.exposeValidateCompilerAccess(FAKE_TOKEN, '/out/scene.cs')).toThrowError(
+        UnauthorizedCompilerAccessError
+      );
 
       // Should stop at first failure -- only 1 call made
       expect(mockCheckAccess).toHaveBeenCalledTimes(1);
@@ -340,9 +316,9 @@ describe('CompilerBase', () => {
         .mockReturnValueOnce(makeAllowedDecision()) // AST access passes
         .mockReturnValueOnce(makeDeniedDecision({ reason: 'No code gen' })); // code gen fails
 
-      expect(() =>
-        compiler.exposeValidateCompilerAccess(FAKE_TOKEN, '/out/scene.cs'),
-      ).toThrowError(UnauthorizedCompilerAccessError);
+      expect(() => compiler.exposeValidateCompilerAccess(FAKE_TOKEN, '/out/scene.cs')).toThrowError(
+        UnauthorizedCompilerAccessError
+      );
 
       // Should stop at second failure -- only 2 calls made
       expect(mockCheckAccess).toHaveBeenCalledTimes(2);
@@ -355,7 +331,7 @@ describe('CompilerBase', () => {
         .mockReturnValueOnce(makeDeniedDecision({ reason: 'Path restricted' })); // output fails
 
       expect(() =>
-        compiler.exposeValidateCompilerAccess(FAKE_TOKEN, '/restricted/out.cs'),
+        compiler.exposeValidateCompilerAccess(FAKE_TOKEN, '/restricted/out.cs')
       ).toThrowError(UnauthorizedCompilerAccessError);
 
       expect(mockCheckAccess).toHaveBeenCalledTimes(3);
@@ -417,7 +393,7 @@ describe('CompilerBase', () => {
       const composition = { name: 'Scene', objects: [] } as unknown as HoloComposition;
 
       expect(() => compiler.compile(composition, FAKE_TOKEN)).toThrowError(
-        UnauthorizedCompilerAccessError,
+        UnauthorizedCompilerAccessError
       );
     });
   });
@@ -513,11 +489,7 @@ describe('CompilerBase', () => {
         requiredPermission: 'write:output' as any,
       };
 
-      const err = new UnauthorizedCompilerAccessError(
-        decision,
-        'export',
-        'ExporterCompiler',
-      );
+      const err = new UnauthorizedCompilerAccessError(decision, 'export', 'ExporterCompiler');
 
       // Empty string is falsy, so it should fall back to 'Access denied'
       expect(err.message).toContain('Access denied');
@@ -533,7 +505,7 @@ describe('CompilerBase', () => {
       const err = new UnauthorizedCompilerAccessError(
         decision,
         "output write to '/path/with spaces/file.cs'",
-        'My/Custom\\Compiler',
+        'My/Custom\\Compiler'
       );
 
       expect(err.message).toContain('[My/Custom\\Compiler]');

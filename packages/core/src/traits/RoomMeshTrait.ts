@@ -96,8 +96,12 @@ function estimateFloorArea(blocks: Map<string, MeshBlock>): number {
 
 function computeRoomBounds(blocks: Map<string, MeshBlock>): { min: Vector3; max: Vector3 } | null {
   if (blocks.size === 0) return null;
-  let minX = Infinity, minY = Infinity, minZ = Infinity;
-  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    minZ = Infinity;
+  let maxX = -Infinity,
+    maxY = -Infinity,
+    maxZ = -Infinity;
   for (const block of blocks.values()) {
     minX = Math.min(minX, block.bounds.min.x);
     minY = Math.min(minY, block.bounds.min.y);
@@ -256,7 +260,6 @@ export const roomMeshHandler: TraitHandler<RoomMeshConfig> = {
         vertexCount: block.vertexCount,
         totalBlocks: state.meshBlocks.size,
       });
-
     } else if (event.type === 'mesh_block_removed') {
       const blockId = event.blockId as string;
       const block = state.meshBlocks.get(blockId);
@@ -266,7 +269,6 @@ export const roomMeshHandler: TraitHandler<RoomMeshConfig> = {
         state.meshBlocks.delete(blockId);
         context.emit?.('mesh_block_remove', { blockId });
       }
-
     } else if (event.type === 'room_boundary_detected') {
       state.roomBounds = event.bounds as { min: Vector3; max: Vector3 };
       const floorArea = estimateFloorArea(state.meshBlocks);
@@ -281,7 +283,6 @@ export const roomMeshHandler: TraitHandler<RoomMeshConfig> = {
         surfaceCount: state.detectedSurfaces.size,
         totalBlocks: state.meshBlocks.size,
       });
-
     } else if (event.type === 'room_mesh_complete') {
       state.isScanning = false;
       context.emit?.('on_room_mesh_complete', {
@@ -292,10 +293,8 @@ export const roomMeshHandler: TraitHandler<RoomMeshConfig> = {
         surfaces: Object.fromEntries(state.detectedSurfaces),
         roomBounds: state.roomBounds,
       });
-
     } else if (event.type === 'room_mesh_scan_progress') {
       state.scanProgress = event.progress as number;
-
     } else if (event.type === 'room_mesh_pause') {
       state.isScanning = false;
     } else if (event.type === 'room_mesh_resume') {

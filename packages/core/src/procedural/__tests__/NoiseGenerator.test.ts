@@ -4,7 +4,9 @@ import { NoiseGenerator } from '../NoiseGenerator';
 describe('NoiseGenerator', () => {
   let noise: NoiseGenerator;
 
-  beforeEach(() => { noise = new NoiseGenerator({ seed: 42 }); });
+  beforeEach(() => {
+    noise = new NoiseGenerator({ seed: 42 });
+  });
 
   // ---------------------------------------------------------------------------
   // Seeding

@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { remotePresenceHandler } from '../RemotePresenceTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('RemotePresenceTrait', () => {
   let node: Record<string, unknown>;
@@ -36,7 +43,9 @@ describe('RemotePresenceTrait', () => {
 
   it('connected event updates state', () => {
     sendEvent(remotePresenceHandler, node, cfg, ctx, {
-      type: 'remote_presence_connected', peerId: 'local1', isHost: true,
+      type: 'remote_presence_connected',
+      peerId: 'local1',
+      isHost: true,
     });
     const state = (node as any).__remotePresenceState;
     expect(state.isConnected).toBe(true);
@@ -46,7 +55,8 @@ describe('RemotePresenceTrait', () => {
 
   it('peer_joined adds peer and emits events', () => {
     sendEvent(remotePresenceHandler, node, cfg, ctx, {
-      type: 'remote_presence_peer_joined', peerId: 'p1',
+      type: 'remote_presence_peer_joined',
+      peerId: 'p1',
     });
     expect((node as any).__remotePresenceState.peers.size).toBe(1);
     expect(getEventCount(ctx, 'remote_presence_spawn_avatar')).toBe(1);
@@ -55,10 +65,12 @@ describe('RemotePresenceTrait', () => {
 
   it('peer_left removes peer', () => {
     sendEvent(remotePresenceHandler, node, cfg, ctx, {
-      type: 'remote_presence_peer_joined', peerId: 'p1',
+      type: 'remote_presence_peer_joined',
+      peerId: 'p1',
     });
     sendEvent(remotePresenceHandler, node, cfg, ctx, {
-      type: 'remote_presence_peer_left', peerId: 'p1',
+      type: 'remote_presence_peer_left',
+      peerId: 'p1',
     });
     expect((node as any).__remotePresenceState.peers.size).toBe(0);
     expect(getEventCount(ctx, 'on_peer_left')).toBe(1);
@@ -73,7 +85,8 @@ describe('RemotePresenceTrait', () => {
 
   it('bandwidth_update sets bandwidth', () => {
     sendEvent(remotePresenceHandler, node, cfg, ctx, {
-      type: 'remote_presence_bandwidth_update', bytesPerSec: 50000,
+      type: 'remote_presence_bandwidth_update',
+      bytesPerSec: 50000,
     });
     expect((node as any).__remotePresenceState.bandwidthUsage).toBe(50000);
   });

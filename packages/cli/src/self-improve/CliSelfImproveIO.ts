@@ -131,9 +131,18 @@ export class CliSelfImproveIO implements SelfImproveIO {
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);
           if (entry.isDirectory()) {
-            if (entry.name === 'node_modules' || entry.name === '__tests__' || entry.name === 'coverage') continue;
+            if (
+              entry.name === 'node_modules' ||
+              entry.name === '__tests__' ||
+              entry.name === 'coverage'
+            )
+              continue;
             files.push(...walkDir(fullPath));
-          } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.test.ts') && !entry.name.endsWith('.d.ts')) {
+          } else if (
+            entry.name.endsWith('.ts') &&
+            !entry.name.endsWith('.test.ts') &&
+            !entry.name.endsWith('.d.ts')
+          ) {
             files.push(fullPath);
           }
         }
@@ -185,7 +194,8 @@ export class CliSelfImproveIO implements SelfImproveIO {
     // Determine test file path
     const sourceDir = path.dirname(target.filePath);
     const baseName = path.basename(target.filePath, '.ts');
-    const testFilePath = path.join(sourceDir, '__tests__', `${baseName}.test.ts`)
+    const testFilePath = path
+      .join(sourceDir, '__tests__', `${baseName}.test.ts`)
       .replace(/\\/g, '/');
 
     // Generate a basic test scaffold
@@ -240,10 +250,11 @@ export class CliSelfImproveIO implements SelfImproveIO {
 
   async runVitest(testFilePath: string): Promise<VitestResult> {
     try {
-      const { stdout } = await execAsync(
-        `npx vitest run "${testFilePath}" --reporter=json 2>&1`,
-        { cwd: this.rootDir, timeout: 120_000, maxBuffer: 50 * 1024 * 1024 },
-      );
+      const { stdout } = await execAsync(`npx vitest run "${testFilePath}" --reporter=json 2>&1`, {
+        cwd: this.rootDir,
+        timeout: 120_000,
+        maxBuffer: 50 * 1024 * 1024,
+      });
 
       const jsonMatch = stdout.match(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
       if (jsonMatch) {
@@ -283,10 +294,11 @@ export class CliSelfImproveIO implements SelfImproveIO {
 
   async runFullVitest(): Promise<VitestSuiteResult> {
     try {
-      const { stdout } = await execAsync(
-        'npx vitest run --reporter=json 2>&1',
-        { cwd: this.rootDir, timeout: 300_000, maxBuffer: 50 * 1024 * 1024 },
-      );
+      const { stdout } = await execAsync('npx vitest run --reporter=json 2>&1', {
+        cwd: this.rootDir,
+        timeout: 300_000,
+        maxBuffer: 50 * 1024 * 1024,
+      });
 
       const jsonMatch = stdout.match(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
       if (jsonMatch) {

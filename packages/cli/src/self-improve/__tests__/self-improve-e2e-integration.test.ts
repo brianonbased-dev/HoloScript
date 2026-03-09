@@ -111,19 +111,21 @@ describe('TodoItem composition', () => {
  * - Vitest execution returning configurable pass/fail
  * - Quality metrics returning realistic values
  */
-function createEndToEndMockIO(options: {
-  testPassed?: boolean;
-  absorbError?: boolean;
-  noTargets?: boolean;
-  targets?: UntestedTarget[];
-  qualityMetrics?: {
-    testsPassed?: number;
-    testsTotal?: number;
-    coveragePercent?: number;
-    typeCheckPassed?: boolean;
-    lintIssues?: number;
-  };
-} = {}): SelfImproveIO & {
+function createEndToEndMockIO(
+  options: {
+    testPassed?: boolean;
+    absorbError?: boolean;
+    noTargets?: boolean;
+    targets?: UntestedTarget[];
+    qualityMetrics?: {
+      testsPassed?: number;
+      testsTotal?: number;
+      coveragePercent?: number;
+      typeCheckPassed?: boolean;
+      lintIssues?: number;
+    };
+  } = {}
+): SelfImproveIO & {
   logs: Array<{ level: string; message: string }>;
   writtenFiles: Map<string, string>;
 } {
@@ -135,7 +137,8 @@ function createEndToEndMockIO(options: {
     filePath: 'src/compositions/TodoItem.hsplus',
     language: 'holoscript',
     relevanceScore: 0.95,
-    description: 'TodoItem composition with TODO stubs for interaction handlers and state management',
+    description:
+      'TodoItem composition with TODO stubs for interaction handlers and state management',
   };
 
   const targets = options.noTargets ? [] : (options.targets ?? [defaultTarget]);
@@ -156,19 +159,19 @@ function createEndToEndMockIO(options: {
 
     queryUntested: vi.fn<(query: string) => Promise<UntestedTarget[]>>().mockResolvedValue(targets),
 
-    generateTest: vi.fn<(target: UntestedTarget) => Promise<GeneratedTest>>().mockImplementation(
-      async (target) => ({
+    generateTest: vi
+      .fn<(target: UntestedTarget) => Promise<GeneratedTest>>()
+      .mockImplementation(async (target) => ({
         testFilePath: `src/compositions/__tests__/${target.symbolName.replace(/\./g, '_')}.test.ts`,
         content: MOCK_GENERATED_TEST_CONTENT,
         target,
-      }),
-    ),
+      })),
 
-    writeFile: vi.fn<(filePath: string, content: string) => Promise<void>>().mockImplementation(
-      async (filePath, content) => {
+    writeFile: vi
+      .fn<(filePath: string, content: string) => Promise<void>>()
+      .mockImplementation(async (filePath, content) => {
         writtenFiles.set(filePath, content);
-      },
-    ),
+      }),
 
     runVitest: vi.fn<(testFilePath: string) => Promise<VitestResult>>().mockResolvedValue({
       passed: testPassed,
@@ -183,16 +186,16 @@ function createEndToEndMockIO(options: {
       passed: true,
       testsPassed: options.qualityMetrics?.testsPassed ?? 195,
       testsFailed: options.qualityMetrics?.testsTotal
-        ? (options.qualityMetrics.testsTotal - (options.qualityMetrics.testsPassed ?? 195))
+        ? options.qualityMetrics.testsTotal - (options.qualityMetrics.testsPassed ?? 195)
         : 5,
       testsTotal: options.qualityMetrics?.testsTotal ?? 200,
       coveragePercent: options.qualityMetrics?.coveragePercent ?? 68,
       duration: 15000,
     }),
 
-    runTypeCheck: vi.fn<() => Promise<boolean>>().mockResolvedValue(
-      options.qualityMetrics?.typeCheckPassed ?? true,
-    ),
+    runTypeCheck: vi
+      .fn<() => Promise<boolean>>()
+      .mockResolvedValue(options.qualityMetrics?.typeCheckPassed ?? true),
 
     runLint: vi.fn<() => Promise<LintResult>>().mockResolvedValue({
       issueCount: options.qualityMetrics?.lintIssues ?? 4,
@@ -248,9 +251,11 @@ describe('CLI arg parsing -- self-improve extended flags', () => {
       'self-improve',
       '--verbose',
       '--harvest',
-      '--cycles', '12',
+      '--cycles',
+      '12',
       '--commit',
-      '--max-failures', '8',
+      '--max-failures',
+      '8',
     ]);
     expect(opts.command).toBe('self-improve');
     expect(opts.verbose).toBe(true);
@@ -309,33 +314,31 @@ describe('Self-improve pipeline end-to-end integration', () => {
       expect(io.absorb).toHaveBeenCalledWith('/mock/holoscript-project');
 
       // Verify GraphRAG query was issued
-      expect(io.queryUntested).toHaveBeenCalledWith(
-        expect.stringContaining('test coverage'),
-      );
+      expect(io.queryUntested).toHaveBeenCalledWith(expect.stringContaining('test coverage'));
 
       // Verify the TODO target was identified
       expect(io.generateTest).toHaveBeenCalledWith(
         expect.objectContaining({
           symbolName: 'TodoItem.toggle_completion',
           filePath: 'src/compositions/TodoItem.hsplus',
-        }),
+        })
       );
 
       // Verify test file was written
       expect(io.writeFile).toHaveBeenCalledWith(
         expect.stringContaining('.test.ts'),
-        MOCK_GENERATED_TEST_CONTENT,
+        MOCK_GENERATED_TEST_CONTENT
       );
 
       // Verify vitest was run on the generated test
       expect(io.runVitest).toHaveBeenCalledWith(
-        expect.stringContaining('TodoItem_toggle_completion.test.ts'),
+        expect.stringContaining('TodoItem_toggle_completion.test.ts')
       );
 
       // Verify commit happened for passing test
       expect(io.gitAdd).toHaveBeenCalled();
       expect(io.gitCommit).toHaveBeenCalledWith(
-        expect.stringContaining('test(self-improve): add test for TodoItem.toggle_completion'),
+        expect.stringContaining('test(self-improve): add test for TodoItem.toggle_completion')
       );
 
       // Verify result structure
@@ -379,7 +382,7 @@ describe('Self-improve pipeline end-to-end integration', () => {
         expect.objectContaining({
           symbolName: 'Card.onGrab',
           relevanceScore: 0.88,
-        }),
+        })
       );
 
       expect(result.iterations[0].target?.symbolName).toBe('Card.onGrab');
@@ -441,13 +444,15 @@ describe('Self-improve pipeline end-to-end integration', () => {
       (io.queryUntested as ReturnType<typeof vi.fn>).mockImplementation(async () => {
         callCount++;
         if (callCount === 1) {
-          return [{
-            symbolName: 'TodoItem.toggle_completion',
-            filePath: 'src/compositions/TodoItem.hsplus',
-            language: 'holoscript',
-            relevanceScore: 0.95,
-            description: 'Needs tests',
-          }];
+          return [
+            {
+              symbolName: 'TodoItem.toggle_completion',
+              filePath: 'src/compositions/TodoItem.hsplus',
+              language: 'holoscript',
+              relevanceScore: 0.95,
+              description: 'Needs tests',
+            },
+          ];
         }
         return [];
       });
@@ -569,7 +574,10 @@ describe('Self-improve pipeline end-to-end integration', () => {
         duration: 5000,
       });
       (io.runTypeCheck as ReturnType<typeof vi.fn>).mockResolvedValue(true);
-      (io.runLint as ReturnType<typeof vi.fn>).mockResolvedValue({ issueCount: 0, filesLinted: 100 });
+      (io.runLint as ReturnType<typeof vi.fn>).mockResolvedValue({
+        issueCount: 0,
+        filesLinted: 100,
+      });
       (io.getCircuitBreakerHealth as ReturnType<typeof vi.fn>).mockResolvedValue(100);
 
       const cmd = new SelfImproveCommand(io, {
@@ -645,7 +653,9 @@ describe('Self-improve pipeline end-to-end integration', () => {
       expect(result.iterations).toHaveLength(0);
       expect(io.queryUntested).not.toHaveBeenCalled();
       expect(io.generateTest).not.toHaveBeenCalled();
-      expect(io.logs.some(l => l.level === 'error' && l.message.includes('Absorb failed'))).toBe(true);
+      expect(io.logs.some((l) => l.level === 'error' && l.message.includes('Absorb failed'))).toBe(
+        true
+      );
     });
   });
 
@@ -754,31 +764,31 @@ describe('Self-improve pipeline end-to-end integration', () => {
 
       await cmd.execute();
 
-      const messages = io.logs.map(l => l.message);
+      const messages = io.logs.map((l) => l.message);
 
       // Should log pipeline start
-      expect(messages.some(m => m.includes('Self-Improve Pipeline Starting'))).toBe(true);
+      expect(messages.some((m) => m.includes('Self-Improve Pipeline Starting'))).toBe(true);
 
       // Should log absorb phase
-      expect(messages.some(m => m.includes('Absorbing codebase'))).toBe(true);
+      expect(messages.some((m) => m.includes('Absorbing codebase'))).toBe(true);
 
       // Should log absorbed metrics
-      expect(messages.some(m => m.includes('42 files'))).toBe(true);
+      expect(messages.some((m) => m.includes('42 files'))).toBe(true);
 
       // Should log iteration header
-      expect(messages.some(m => m.includes('Iteration 1'))).toBe(true);
+      expect(messages.some((m) => m.includes('Iteration 1'))).toBe(true);
 
       // Should log target selection
-      expect(messages.some(m => m.includes('TodoItem.toggle_completion'))).toBe(true);
+      expect(messages.some((m) => m.includes('TodoItem.toggle_completion'))).toBe(true);
 
       // Should log test generation
-      expect(messages.some(m => m.includes('Generating test'))).toBe(true);
+      expect(messages.some((m) => m.includes('Generating test'))).toBe(true);
 
       // Should log test result
-      expect(messages.some(m => m.includes('Tests PASSED'))).toBe(true);
+      expect(messages.some((m) => m.includes('Tests PASSED'))).toBe(true);
 
       // Should log commit
-      expect(messages.some(m => m.includes('Committing'))).toBe(true);
+      expect(messages.some((m) => m.includes('Committing'))).toBe(true);
     });
 
     it('logs test failures with error details', async () => {
@@ -790,8 +800,8 @@ describe('Self-improve pipeline end-to-end integration', () => {
 
       await cmd.execute();
 
-      const warnLogs = io.logs.filter(l => l.level === 'warn');
-      expect(warnLogs.some(l => l.message.includes('Tests FAILED'))).toBe(true);
+      const warnLogs = io.logs.filter((l) => l.level === 'warn');
+      expect(warnLogs.some((l) => l.message.includes('Tests FAILED'))).toBe(true);
     });
   });
 
@@ -842,7 +852,7 @@ describe('Self-improve pipeline end-to-end integration', () => {
     it('iteration records track error information', async () => {
       const io = createEndToEndMockIO();
       (io.generateTest as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-        new Error('LLM generation timeout'),
+        new Error('LLM generation timeout')
       );
 
       const cmd = new SelfImproveCommand(io, {
@@ -880,13 +890,15 @@ describe('Self-improve pipeline end-to-end integration', () => {
         if (queryCount >= 3) {
           cmd.stop();
         }
-        return [{
-          symbolName: `Target_${queryCount}`,
-          filePath: `src/target_${queryCount}.ts`,
-          language: 'typescript',
-          relevanceScore: 0.8,
-          description: 'test target',
-        }];
+        return [
+          {
+            symbolName: `Target_${queryCount}`,
+            filePath: `src/target_${queryCount}.ts`,
+            language: 'typescript',
+            relevanceScore: 0.8,
+            description: 'test target',
+          },
+        ];
       });
 
       const result = await cmd.execute();
@@ -927,7 +939,7 @@ describe('Self-improve harvest JSONL entry production', () => {
       MOCK_GENERATED_TEST_CONTENT,
       'pass',
       0.85,
-      { target: 'TodoItem.toggle_completion', iteration: 1 },
+      { target: 'TodoItem.toggle_completion', iteration: 1 }
     );
 
     const stats = harvester.getStats();
@@ -951,13 +963,7 @@ describe('Self-improve harvest JSONL entry production', () => {
     });
 
     // Below threshold - should be filtered
-    harvester.harvestFromCycle(
-      'Low quality instruction',
-      'Low quality output',
-      'fail',
-      0.3,
-      {},
-    );
+    harvester.harvestFromCycle('Low quality instruction', 'Low quality output', 'fail', 0.3, {});
 
     // Above threshold - should be accepted
     harvester.harvestFromCycle(
@@ -965,7 +971,7 @@ describe('Self-improve harvest JSONL entry production', () => {
       MOCK_GENERATED_TEST_CONTENT,
       'pass',
       0.9,
-      { target: 'HighQualityTarget' },
+      { target: 'HighQualityTarget' }
     );
 
     const stats = harvester.getStats();
@@ -1111,13 +1117,15 @@ describe('Edge cases in self-improve pipeline', () => {
   it('handles targets with special characters in symbol names', async () => {
     const io = createEndToEndMockIO({
       testPassed: true,
-      targets: [{
-        symbolName: 'Scene["main-view"].render',
-        filePath: 'src/scenes/main-view.hsplus',
-        language: 'holoscript',
-        relevanceScore: 0.9,
-        description: 'Main scene render',
-      }],
+      targets: [
+        {
+          symbolName: 'Scene["main-view"].render',
+          filePath: 'src/scenes/main-view.hsplus',
+          language: 'holoscript',
+          relevanceScore: 0.9,
+          description: 'Main scene render',
+        },
+      ],
     });
 
     const cmd = new SelfImproveCommand(io, {
@@ -1130,9 +1138,7 @@ describe('Edge cases in self-improve pipeline', () => {
     expect(result.iterations).toHaveLength(1);
     expect(result.totalTestsAdded).toBe(1);
     // Commit message should include the symbol name
-    expect(io.gitCommit).toHaveBeenCalledWith(
-      expect.stringContaining('Scene["main-view"].render'),
-    );
+    expect(io.gitCommit).toHaveBeenCalledWith(expect.stringContaining('Scene["main-view"].render'));
   });
 
   it('totalDuration reflects actual execution time', async () => {
@@ -1140,7 +1146,7 @@ describe('Edge cases in self-improve pipeline', () => {
 
     // Add a small delay to absorb
     (io.absorb as ReturnType<typeof vi.fn>).mockImplementation(async () => {
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise((r) => setTimeout(r, 50));
       return { filesScanned: 10, symbolsIndexed: 20, graphNodes: 20, graphEdges: 30 };
     });
 

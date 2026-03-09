@@ -32,14 +32,12 @@ describe('ReachabilityAnalyzer — Production', () => {
     ]);
     const analyzer = new ReachabilityAnalyzer(g);
     const result = analyzer.analyze();
-    const unreachableNames = result.unreachable.map(u => u.name);
+    const unreachableNames = result.unreachable.map((u) => u.name);
     expect(unreachableNames).toContain('unusedHelper');
   });
 
   it('stats includes coverage percent', () => {
-    const g = buildGraph([
-      { type: 'object', name: 'A', loc: { start: { line: 1, column: 1 } } },
-    ]);
+    const g = buildGraph([{ type: 'object', name: 'A', loc: { start: { line: 1, column: 1 } } }]);
     const analyzer = new ReachabilityAnalyzer(g);
     const result = analyzer.analyze();
     expect(result.stats.coveragePercent).toBeDefined();
@@ -67,14 +65,12 @@ describe('ReachabilityAnalyzer — Production', () => {
     const analyzer = new ReachabilityAnalyzer(g);
     const result = analyzer.analyze();
     const unusedFuncs = analyzer.getUnusedFunctions(result);
-    const names = unusedFuncs.map(f => f.symbol.name);
+    const names = unusedFuncs.map((f) => f.symbol.name);
     expect(names).toContain('deadFunc');
   });
 
   it('generateReport produces non-empty string', () => {
-    const g = buildGraph([
-      { type: 'object', name: 'A', loc: { start: { line: 1, column: 1 } } },
-    ]);
+    const g = buildGraph([{ type: 'object', name: 'A', loc: { start: { line: 1, column: 1 } } }]);
     const analyzer = new ReachabilityAnalyzer(g);
     const result = analyzer.analyze();
     const report = analyzer.generateReport(result);
@@ -89,7 +85,7 @@ describe('ReachabilityAnalyzer — Production', () => {
     ]);
     const analyzer = new ReachabilityAnalyzer(g, { ignorePatterns: [/^_/] });
     const result = analyzer.analyze();
-    const deadNames = result.deadCode.map(d => d.symbol.name);
+    const deadNames = result.deadCode.map((d) => d.symbol.name);
     expect(deadNames).not.toContain('_internal');
   });
 
@@ -107,7 +103,7 @@ describe('ReachabilityAnalyzer — Production', () => {
     ]);
     const analyzer = new ReachabilityAnalyzer(g, { additionalEntryPoints: ['myFunc'] });
     const result = analyzer.analyze();
-    const reachableNames = result.reachable.map(r => r.name);
+    const reachableNames = result.reachable.map((r) => r.name);
     expect(reachableNames).toContain('myFunc');
   });
 });

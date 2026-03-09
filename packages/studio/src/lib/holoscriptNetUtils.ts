@@ -1,6 +1,6 @@
 /**
  * holoscriptNetUtils.ts
- * 
+ *
  * Utility functions for integrating with holoscript.net web services.
  */
 
@@ -47,9 +47,15 @@ export function generateIframeSnippet(sceneId: string, width = '100%', height = 
   return `<iframe src="${getEmbedUrl(sceneId)}" width="${width}" height="${height}" frameborder="0" allow="xr-spatial-tracking; fullscreen"></iframe>`;
 }
 
-export function validateScenePayloadSize(payloadBytes: number, maxBytes = 10 * 1024 * 1024): { valid: boolean; error?: string } {
+export function validateScenePayloadSize(
+  payloadBytes: number,
+  maxBytes = 10 * 1024 * 1024
+): { valid: boolean; error?: string } {
   if (payloadBytes > maxBytes) {
-    return { valid: false, error: `Payload size ${payloadBytes} exceeds maximum allowed size of ${maxBytes} bytes.` };
+    return {
+      valid: false,
+      error: `Payload size ${payloadBytes} exceeds maximum allowed size of ${maxBytes} bytes.`,
+    };
   }
   return { valid: true };
 }

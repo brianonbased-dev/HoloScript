@@ -112,9 +112,7 @@ describe('IPFSService', () => {
 
       const result = await service.upload({
         name: 'test-upload',
-        files: [
-          { path: 'test.txt', content: Buffer.from('Hello IPFS') },
-        ],
+        files: [{ path: 'test.txt', content: Buffer.from('Hello IPFS') }],
       });
 
       expect(result.cid).toBe('QmTestHash123');
@@ -146,9 +144,7 @@ describe('IPFSService', () => {
 
       const result = await service.upload({
         name: 'test-upload',
-        files: [
-          { path: 'test.json', content: JSON.stringify({ test: true }) },
-        ],
+        files: [{ path: 'test.json', content: JSON.stringify({ test: true }) }],
       });
 
       expect(result.cid).toBe('bafyTest123');
@@ -156,8 +152,10 @@ describe('IPFSService', () => {
     });
 
     it('should upload files to Infura successfully', async () => {
-      const mockResponse = JSON.stringify({ Hash: 'QmDir', Size: 512 }) + '\n' +
-                          JSON.stringify({ Hash: 'QmInfuraTest', Size: 1536 });
+      const mockResponse =
+        JSON.stringify({ Hash: 'QmDir', Size: 512 }) +
+        '\n' +
+        JSON.stringify({ Hash: 'QmInfuraTest', Size: 1536 });
 
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
@@ -172,9 +170,7 @@ describe('IPFSService', () => {
 
       const result = await service.upload({
         name: 'test-upload',
-        files: [
-          { path: 'data.bin', content: new Uint8Array([1, 2, 3, 4]) },
-        ],
+        files: [{ path: 'data.bin', content: new Uint8Array([1, 2, 3, 4]) }],
       });
 
       expect(result.cid).toBe('QmInfuraTest');
@@ -333,9 +329,7 @@ describe('IPFSService', () => {
         apiKey: 'pinata-key',
         maxRetries: 1,
         retryDelay: 10,
-        fallbackProviders: [
-          { provider: 'nft.storage', apiKey: 'nft-key' },
-        ],
+        fallbackProviders: [{ provider: 'nft.storage', apiKey: 'nft-key' }],
       });
 
       const result = await service.upload({
@@ -674,7 +668,7 @@ describe('IPFSService', () => {
 
       const results = await Promise.all(uploads);
       expect(results).toHaveLength(5);
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.cid).toContain('QmConcurrent');
       });
     });

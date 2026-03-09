@@ -28,7 +28,12 @@ function makeSys(overrides: Parameters<typeof VoronoiFractureSystem>[0] = {}) {
 }
 
 // Full-damage event centred at origin, hits everything within radius 10
-const WIPE_EVENT: DamageEvent = { position: { x: 0, y: 0, z: 0 }, radius: 10, maxDamage: 1000, falloff: 1 };
+const WIPE_EVENT: DamageEvent = {
+  position: { x: 0, y: 0, z: 0 },
+  radius: 10,
+  maxDamage: 1000,
+  falloff: 1,
+};
 
 // ─── Constructor / defaults ──────────────────────────────────────────────────────
 
@@ -139,7 +144,12 @@ describe('VoronoiFractureSystem — applyDamage', () => {
 
   it('fragments outside radius are untouched', () => {
     // All fragments are within (-0.5,0.5) bounds; damage from very far away
-    sys.applyDamage({ position: { x: 1000, y: 1000, z: 1000 }, radius: 0.01, maxDamage: 100, falloff: 1 });
+    sys.applyDamage({
+      position: { x: 1000, y: 1000, z: 1000 },
+      radius: 0.01,
+      maxDamage: 100,
+      falloff: 1,
+    });
     const damaged = sys.getFragments().filter((f) => f.damage > 0);
     expect(damaged.length).toBe(0);
   });
@@ -183,8 +193,9 @@ describe('VoronoiFractureSystem — destruction counts', () => {
     const sys = makeSys({ voronoiSites: 5 });
     sys.generateVoronoiFracture();
     sys.applyDamage(WIPE_EVENT);
-    expect(sys.getDestroyedFragmentCount() + sys.getActiveFragmentCount())
-      .toBe(sys.getFragmentCount());
+    expect(sys.getDestroyedFragmentCount() + sys.getActiveFragmentCount()).toBe(
+      sys.getFragmentCount()
+    );
   });
 });
 

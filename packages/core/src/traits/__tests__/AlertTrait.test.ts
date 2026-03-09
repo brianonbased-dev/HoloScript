@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { alertHandler } from '../AlertTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('AlertTrait', () => {
   let node: Record<string, unknown>;
@@ -31,7 +37,11 @@ describe('AlertTrait', () => {
   });
 
   it('trigger creates alert with all feedback', () => {
-    sendEvent(alertHandler, node, cfg, ctx, { type: 'alert_trigger', id: 'a1', message: 'Problem!' });
+    sendEvent(alertHandler, node, cfg, ctx, {
+      type: 'alert_trigger',
+      id: 'a1',
+      message: 'Problem!',
+    });
     expect((node as any).__alertState.isTriggered).toBe(true);
     expect(getEventCount(ctx, 'alert_visual_effect')).toBe(1);
     expect(getEventCount(ctx, 'alert_play_sound')).toBe(1);

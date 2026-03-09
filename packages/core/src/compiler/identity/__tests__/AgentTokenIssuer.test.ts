@@ -12,11 +12,7 @@ import {
   generateAgentKeyPair,
   getDefaultPermissions,
 } from '../AgentIdentity';
-import {
-  AgentTokenIssuer,
-  TokenRequest,
-  resetTokenIssuer,
-} from '../AgentTokenIssuer';
+import { AgentTokenIssuer, TokenRequest, resetTokenIssuer } from '../AgentTokenIssuer';
 import {
   PERMISSION_TO_ACTION,
   HOLOSCRIPT_RESOURCE_ALL,
@@ -386,9 +382,7 @@ describe('AgentTokenIssuer', () => {
       // Each permission should map to a capability action
       for (const perm of permissions) {
         const expectedAction = PERMISSION_TO_ACTION[perm];
-        const found = capToken.payload.att.some(
-          (cap) => cap.can === expectedAction
-        );
+        const found = capToken.payload.att.some((cap) => cap.can === expectedAction);
         expect(found).toBe(true);
       }
     });
@@ -745,14 +739,12 @@ describe('AgentTokenIssuer', () => {
       const level3Token = await issuer.delegateCapability(
         level2Token,
         'agent:syntax_analyzer:syntax-v1',
-        [
-          { with: HOLOSCRIPT_RESOURCE_ALL, can: CapabilityActions.AST_READ },
-        ],
+        [{ with: HOLOSCRIPT_RESOURCE_ALL, can: CapabilityActions.AST_READ }],
         analyzerKeyPair
       );
 
       expect(level3Token.payload.prf).toHaveLength(2); // 2 parent proofs
-      expect(level3Token.payload.att).toHaveLength(1);  // only AST_READ
+      expect(level3Token.payload.att).toHaveLength(1); // only AST_READ
       expect(level3Token.payload.att[0].can).toBe(CapabilityActions.AST_READ);
     });
   });

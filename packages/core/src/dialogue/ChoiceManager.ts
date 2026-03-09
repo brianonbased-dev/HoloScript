@@ -52,11 +52,17 @@ export class ChoiceManager {
   // Record Choice
   // ---------------------------------------------------------------------------
 
-  recordChoice(dialogueId: string, nodeId: string, choiceText: string,
-               consequences: ChoiceConsequence[] = []): PlayerChoice {
+  recordChoice(
+    dialogueId: string,
+    nodeId: string,
+    choiceText: string,
+    consequences: ChoiceConsequence[] = []
+  ): PlayerChoice {
     const choice: PlayerChoice = {
       id: `choice_${this.choices.length}`,
-      dialogueId, nodeId, choiceText,
+      dialogueId,
+      nodeId,
+      choiceText,
       timestamp: Date.now(),
       consequences,
     };
@@ -118,28 +124,40 @@ export class ChoiceManager {
   // Flags
   // ---------------------------------------------------------------------------
 
-  setFlag(name: string, value = true): void { this.flags.set(name, value); }
-  getFlag(name: string): boolean { return this.flags.get(name) ?? false; }
-  hasFlag(name: string): boolean { return this.flags.has(name); }
+  setFlag(name: string, value = true): void {
+    this.flags.set(name, value);
+  }
+  getFlag(name: string): boolean {
+    return this.flags.get(name) ?? false;
+  }
+  hasFlag(name: string): boolean {
+    return this.flags.has(name);
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getChoiceCount(): number { return this.choices.length; }
+  getChoiceCount(): number {
+    return this.choices.length;
+  }
 
   getChoicesForDialogue(dialogueId: string): PlayerChoice[] {
-    return this.choices.filter(c => c.dialogueId === dialogueId);
+    return this.choices.filter((c) => c.dialogueId === dialogueId);
   }
 
   hasChosen(dialogueId: string, nodeId: string): boolean {
-    return this.choices.some(c => c.dialogueId === dialogueId && c.nodeId === nodeId);
+    return this.choices.some((c) => c.dialogueId === dialogueId && c.nodeId === nodeId);
   }
 
   getRecentChoices(count: number): PlayerChoice[] {
     return this.choices.slice(-count);
   }
 
-  getAllReputations(): Map<string, ReputationEntry> { return new Map(this.reputations); }
-  getAllRelationships(): Map<string, RelationshipEntry> { return new Map(this.relationships); }
+  getAllReputations(): Map<string, ReputationEntry> {
+    return new Map(this.reputations);
+  }
+  getAllRelationships(): Map<string, RelationshipEntry> {
+    return new Map(this.relationships);
+  }
 }

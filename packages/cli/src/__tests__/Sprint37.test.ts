@@ -9,7 +9,11 @@ import { describe, it, expect } from 'vitest';
 import { parseArgs } from '../args';
 import { formatError } from '../formatters';
 import {
-  TRAITS, getTraitsByCategory, getCategories, formatTrait, formatAllTraits,
+  TRAITS,
+  getTraitsByCategory,
+  getCategories,
+  formatTrait,
+  formatAllTraits,
 } from '../traits';
 import { listTemplates, getTemplate } from '../generator';
 
@@ -215,7 +219,16 @@ describe('TRAITS catalog', () => {
   });
 
   it('getTraitsByCategory covers all categories', () => {
-    const categories = ['interaction', 'physics', 'visual', 'networking', 'behavior', 'spatial', 'audio', 'state'] as const;
+    const categories = [
+      'interaction',
+      'physics',
+      'visual',
+      'networking',
+      'behavior',
+      'spatial',
+      'audio',
+      'state',
+    ] as const;
     for (const cat of categories) {
       const list = getTraitsByCategory(cat);
       expect(Array.isArray(list)).toBe(true);

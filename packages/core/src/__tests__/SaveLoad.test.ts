@@ -90,7 +90,10 @@ describe('Cycle 122: Save/Load & Persistence', () => {
     const ctx = new DataBindingContext();
     ctx.bind('price', 100);
     ctx.bind('tax', 0.1);
-    ctx.addComputed('total', () => (ctx.get<number>('price')! * (1 + ctx.get<number>('tax')!)), ['price', 'tax']);
+    ctx.addComputed('total', () => ctx.get<number>('price')! * (1 + ctx.get<number>('tax')!), [
+      'price',
+      'tax',
+    ]);
 
     expect(ctx.getComputed<number>('total')).toBeCloseTo(110);
 

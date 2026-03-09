@@ -31,8 +31,14 @@ function makeStep(overrides: Partial<ChoreographyStep> = {}): ChoreographyStep {
 }
 
 // Minimal participant that satisfies the validator
-const AGENT_1 = { id: 'agent-1', name: 'agent-1', version: '1.0.0',
-  capabilities: [], endpoints: [], trustLevel: 'local' as const };
+const AGENT_1 = {
+  id: 'agent-1',
+  name: 'agent-1',
+  version: '1.0.0',
+  capabilities: [],
+  endpoints: [],
+  trustLevel: 'local' as const,
+};
 
 function makeSuccessHandler() {
   return vi.fn().mockResolvedValue({ success: true, output: { result: 42 } });
@@ -151,10 +157,14 @@ describe('ChoreographyEngine', () => {
       const order: string[] = [];
       // ActionHandler signature: (agent, action, inputs, context)
       // Step ID is in context.currentStep.id
-      engine.setActionHandler(vi.fn().mockImplementation(async (_agent: any, _action: any, _inputs: any, context: any) => {
-        order.push(context.currentStep.id);
-        return {};
-      }));
+      engine.setActionHandler(
+        vi
+          .fn()
+          .mockImplementation(async (_agent: any, _action: any, _inputs: any, context: any) => {
+            order.push(context.currentStep.id);
+            return {};
+          })
+      );
 
       const step1 = makeStep({ id: 'step1', dependencies: [] });
       const step2 = makeStep({ id: 'step2', dependencies: ['step1'] });

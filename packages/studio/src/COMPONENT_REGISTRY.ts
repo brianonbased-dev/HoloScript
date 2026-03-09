@@ -16,7 +16,6 @@
  */
 
 export const COMPONENT_REGISTRY = {
-
   // ═══════════════════════════════════════════════════════════════════
   // ERROR BOUNDARIES
   // ═══════════════════════════════════════════════════════════════════
@@ -25,7 +24,8 @@ export const COMPONENT_REGISTRY = {
     canonical: 'components/ErrorBoundary.tsx',
     exports: ['ErrorBoundary'],
     domain: 'app-shell',
-    description: 'App-level error boundary wrapping the entire application. Full-page recovery UI with Try Again + Reload buttons and technical details.',
+    description:
+      'App-level error boundary wrapping the entire application. Full-page recovery UI with Try Again + Reload buttons and technical details.',
     usedIn: ['app/providers.tsx'],
   },
 
@@ -33,7 +33,8 @@ export const COMPONENT_REGISTRY = {
     canonical: 'components/ui/StudioErrorBoundary.tsx',
     exports: ['StudioErrorBoundary'],
     domain: 'ui-primitives',
-    description: 'Panel-level error boundary with label, onError callback, role="alert", dev-only stack trace. Use this for wrapping individual panels/features.',
+    description:
+      'Panel-level error boundary with label, onError callback, role="alert", dev-only stack trace. Use this for wrapping individual panels/features.',
     usedIn: ['app/create/page.tsx (multiple panels)'],
     deprecated: [
       {
@@ -52,7 +53,8 @@ export const COMPONENT_REGISTRY = {
     canonical: 'components/shader-editor/ShaderEditor.tsx',
     exports: ['ShaderEditor'],
     domain: 'shader-editor',
-    description: 'Visual node-graph shader editor with toolbar, node palette, canvas, material preview, and code panel.',
+    description:
+      'Visual node-graph shader editor with toolbar, node palette, canvas, material preview, and code panel.',
     usedIn: ['app/shader-editor/page.tsx'],
   },
 
@@ -60,22 +62,31 @@ export const COMPONENT_REGISTRY = {
     canonical: 'components/shader-editor/ShaderEditorPanel.tsx',
     exports: ['ShaderEditorPanel'],
     domain: 'shader-editor',
-    description: 'Monaco-based GLSL editor with live Three.js preview sphere, vertex/fragment tabs, and apply-to-material.',
+    description:
+      'Monaco-based GLSL editor with live Three.js preview sphere, vertex/fragment tabs, and apply-to-material.',
     usedIn: ['app/create/page.tsx (bottom panel)'],
     deprecated: [
       {
         file: 'components/shader/ShaderEditorPanel.tsx',
         export: 'GlslShaderPanel',
-        reason: 'V1 textarea-based GLSL editor. Replaced by Monaco ShaderEditorPanel with live preview.',
+        reason:
+          'V1 textarea-based GLSL editor. Replaced by Monaco ShaderEditorPanel with live preview.',
       },
     ],
   },
 
   ShaderEditor_Services: {
     canonical: 'features/shader-editor/index.ts',
-    exports: ['ShaderEditorService', 'LivePreviewService', 'MaterialLibrary', 'ShaderTemplateLibrary', 'UndoRedoSystem'],
+    exports: [
+      'ShaderEditorService',
+      'LivePreviewService',
+      'MaterialLibrary',
+      'ShaderTemplateLibrary',
+      'UndoRedoSystem',
+    ],
     domain: 'shader-editor',
-    description: 'Backend services for the shader editor: persistence, live preview, material library, templates, and undo/redo system.',
+    description:
+      'Backend services for the shader editor: persistence, live preview, material library, templates, and undo/redo system.',
     usedIn: ['features/shader-editor/**'],
   },
 
@@ -87,13 +98,15 @@ export const COMPONENT_REGISTRY = {
     canonical: 'components/collab/CollabCursorsV2.tsx',
     exports: ['CollabCursorsV2'],
     domain: 'collaboration',
-    description: 'Named colored cursor overlays for multiplayer presence. Uses useMultiplayerRoom with deterministic HSL colors and smooth transitions.',
+    description:
+      'Named colored cursor overlays for multiplayer presence. Uses useMultiplayerRoom with deterministic HSL colors and smooth transitions.',
     usedIn: ['app/create/page.tsx'],
     deprecated: [
       {
         file: 'components/collab/CollabCursors.tsx',
         export: 'CollabCursors',
-        reason: 'V1 using useCollabStore. Replaced by V2 with better color assignment and transitions.',
+        reason:
+          'V1 using useCollabStore. Replaced by V2 with better color assignment and transitions.',
       },
     ],
   },
@@ -114,13 +127,15 @@ export const COMPONENT_REGISTRY = {
     canonical: 'components/profiler/PerformanceOverlay.tsx',
     exports: ['PerformanceOverlay'],
     domain: 'profiler',
-    description: 'Rich performance overlay inside R3F Canvas (via drei Html). FPS sparkline, ring buffer, frame time, draw calls, triangles, geometries, textures.',
+    description:
+      'Rich performance overlay inside R3F Canvas (via drei Html). FPS sparkline, ring buffer, frame time, draw calls, triangles, geometries, textures.',
     usedIn: ['components/scene/SceneRenderer.tsx'],
     deprecated: [
       {
         file: 'components/perf/PerfOverlay.tsx',
         export: 'PerfOverlay',
-        reason: 'Dead code — never imported anywhere. PerformanceOverlay is the canonical in-canvas overlay.',
+        reason:
+          'Dead code — never imported anywhere. PerformanceOverlay is the canonical in-canvas overlay.',
       },
     ],
   },
@@ -129,7 +144,8 @@ export const COMPONENT_REGISTRY = {
     canonical: 'components/profiler/ProfilerOverlay.tsx',
     exports: ['ProfilerOverlay'],
     domain: 'profiler',
-    description: 'HTML overlay outside Canvas using useProfiler hook. Compact HUD with FPS, frame-ms, dropped frames, and mini sparkline.',
+    description:
+      'HTML overlay outside Canvas using useProfiler hook. Compact HUD with FPS, frame-ms, dropped frames, and mini sparkline.',
     usedIn: ['app/create/page.tsx (viewport overlay)'],
   },
 
@@ -141,13 +157,15 @@ export const COMPONENT_REGISTRY = {
     canonical: 'components/HistoryPanel.tsx',
     exports: ['HistoryPanel'],
     domain: 'history',
-    description: 'Full history sidebar with list/tree view toggle, labeled entries from historyLabelStore, undo/redo/clear buttons, and future state display.',
+    description:
+      'Full history sidebar with list/tree view toggle, labeled entries from historyLabelStore, undo/redo/clear buttons, and future state display.',
     usedIn: ['app/create/page.tsx (historyOpen rail, undoHistoryOpen rail)'],
     deprecated: [
       {
         file: 'components/history/UndoHistorySidebar.tsx',
         export: 'UndoHistorySidebar',
-        reason: 'V1 sidebar using useUndoHistory hook. Replaced by HistoryPanel with list/tree toggle and richer features.',
+        reason:
+          'V1 sidebar using useUndoHistory hook. Replaced by HistoryPanel with list/tree toggle and richer features.',
       },
     ],
   },
@@ -156,7 +174,8 @@ export const COMPONENT_REGISTRY = {
     canonical: 'hooks/useUndoRedo.ts',
     exports: ['useUndoRedo'],
     domain: 'history',
-    description: 'Keyboard shortcut hook for Ctrl+Z/Ctrl+Shift+Z/Ctrl+Y. Skips when focus is in text inputs.',
+    description:
+      'Keyboard shortcut hook for Ctrl+Z/Ctrl+Shift+Z/Ctrl+Y. Skips when focus is in text inputs.',
     usedIn: ['app/create/page.tsx'],
   },
 
@@ -164,15 +183,27 @@ export const COMPONENT_REGISTRY = {
     canonical: 'hooks/useUndoHistory.ts',
     exports: ['useUndoHistory', 'HistoryEntry'],
     domain: 'history',
-    description: 'Data hook that reads temporal store and returns labeled HistoryEntry[] with jumpTo function.',
+    description:
+      'Data hook that reads temporal store and returns labeled HistoryEntry[] with jumpTo function.',
     usedIn: ['components/history/UndoHistorySidebar.tsx (deprecated)'],
   },
 
   UndoRedo_ShaderGraph: {
     canonical: 'features/shader-editor/UndoRedoSystem.ts',
-    exports: ['UndoRedoSystem', 'ICommand', 'AddNodeCommand', 'DeleteNodeCommand', 'ConnectCommand', 'DisconnectCommand', 'SetPropertyCommand', 'MoveNodeCommand', 'BatchCommand'],
+    exports: [
+      'UndoRedoSystem',
+      'ICommand',
+      'AddNodeCommand',
+      'DeleteNodeCommand',
+      'ConnectCommand',
+      'DisconnectCommand',
+      'SetPropertyCommand',
+      'MoveNodeCommand',
+      'BatchCommand',
+    ],
     domain: 'shader-editor',
-    description: 'Command pattern undo/redo system specific to the shader graph editor. Not a duplicate of the scene-level temporal store.',
+    description:
+      'Command pattern undo/redo system specific to the shader graph editor. Not a duplicate of the scene-level temporal store.',
     usedIn: ['features/shader-editor/**'],
   },
 
@@ -184,19 +215,25 @@ export const COMPONENT_REGISTRY = {
     canonical: 'components/export/ExportPanel.tsx',
     exports: ['ExportPanel'],
     domain: 'export',
-    description: 'Scene export panel with glTF/USD/USDZ/JSON format picker, scene summary, and ZIP download.',
+    description:
+      'Scene export panel with glTF/USD/USDZ/JSON format picker, scene summary, and ZIP download.',
     usedIn: ['app/create/page.tsx (exportOpen rail)'],
   },
 
   ExportPanel_Character: {
     canonical: 'components/character/export/ExportPanel.tsx',
-    exports: ['CharacterExportPanel', 'ExportPanel (deprecated alias)', 'buildCharacterCard', 'CharacterCard'],
+    exports: [
+      'CharacterExportPanel',
+      'ExportPanel (deprecated alias)',
+      'buildCharacterCard',
+      'CharacterCard',
+    ],
     domain: 'character',
-    description: 'Character export panel with Character Card JSON, Full Bundle ZIP, and raw GLB download.',
+    description:
+      'Character export panel with Character Card JSON, Full Bundle ZIP, and raw GLB download.',
     usedIn: ['components/character/layout/CharacterLayout.tsx'],
     note: 'Renamed from ExportPanel to CharacterExportPanel to avoid naming collision with scene export.',
   },
-
 } as const;
 
 /**

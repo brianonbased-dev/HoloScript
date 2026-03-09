@@ -101,6 +101,7 @@ holoscript compile hello.holo --target webxr --output hello.html
 ```
 
 > [SHOW: Compilation output]
+
 ```
 ✓ Parsing... OK
 ✓ Validating traits... OK
@@ -378,6 +379,7 @@ pnpm add -D @holoscript/core typescript vitest tsup
 ```
 
 **tsconfig.json:**
+
 ```json
 {
   "compilerOptions": {
@@ -401,9 +403,9 @@ import type { HSPlusNode } from '@holoscript/core';
 
 export interface HealthConfig {
   maxHealth: number;
-  regenRate: number;       // HP per second
-  invincibleTime: number;  // Seconds after taking damage
-  deathEffect: string;     // Particle effect name
+  regenRate: number; // HP per second
+  invincibleTime: number; // Seconds after taking damage
+  deathEffect: string; // Particle effect name
 }
 
 export const HealthTrait: TraitHandler<HealthConfig> = {
@@ -412,7 +414,7 @@ export const HealthTrait: TraitHandler<HealthConfig> = {
     maxHealth: 100,
     regenRate: 0,
     invincibleTime: 0.5,
-    deathEffect: 'explosion'
+    deathEffect: 'explosion',
   },
 
   onAttach(node: HSPlusNode, config: HealthConfig, context: TraitContext) {
@@ -438,7 +440,7 @@ export const HealthTrait: TraitHandler<HealthConfig> = {
       context.emit('health_changed', {
         nodeId: node.id,
         health: node.userData.health,
-        maxHealth: config.maxHealth
+        maxHealth: config.maxHealth,
       });
     }
   },
@@ -456,7 +458,7 @@ export const HealthTrait: TraitHandler<HealthConfig> = {
         nodeId: node.id,
         health: node.userData.health,
         maxHealth: config.maxHealth,
-        damageTaken: damage
+        damageTaken: damage,
       });
 
       // Death
@@ -464,7 +466,7 @@ export const HealthTrait: TraitHandler<HealthConfig> = {
         node.userData.isDead = true;
         context.emit('death', {
           nodeId: node.id,
-          effect: config.deathEffect
+          effect: config.deathEffect,
         });
       }
     }
@@ -476,7 +478,7 @@ export const HealthTrait: TraitHandler<HealthConfig> = {
         nodeId: node.id,
         health: node.userData.health,
         maxHealth: config.maxHealth,
-        healed: amount
+        healed: amount,
       });
     }
 
@@ -489,7 +491,7 @@ export const HealthTrait: TraitHandler<HealthConfig> = {
 
   onDetach(node: HSPlusNode, config: HealthConfig, context: TraitContext) {
     console.log(`[Health] Detached from ${node.id}`);
-  }
+  },
 };
 ```
 
@@ -528,8 +530,7 @@ describe('HealthTrait', () => {
     const context = makeContext();
 
     HealthTrait.onAttach!(node as any, config, context as any);
-    HealthTrait.onEvent!(node as any, config, context as any,
-      { type: 'damage', payload: 30 });
+    HealthTrait.onEvent!(node as any, config, context as any, { type: 'damage', payload: 30 });
 
     expect(node.userData.health).toBe(70);
     expect(context.emit).toHaveBeenCalledWith('health_changed', expect.any(Object));
@@ -541,8 +542,7 @@ describe('HealthTrait', () => {
     const context = makeContext();
 
     HealthTrait.onAttach!(node as any, config, context as any);
-    HealthTrait.onEvent!(node as any, config, context as any,
-      { type: 'damage', payload: 100 });
+    HealthTrait.onEvent!(node as any, config, context as any, { type: 'damage', payload: 100 });
 
     expect(node.userData.isDead).toBe(true);
     expect(context.emit).toHaveBeenCalledWith('death', expect.any(Object));
@@ -555,13 +555,11 @@ describe('HealthTrait', () => {
 
     HealthTrait.onAttach!(node as any, config, context as any);
     // First hit (no invincibility)
-    HealthTrait.onEvent!(node as any, config, context as any,
-      { type: 'damage', payload: 20 });
+    HealthTrait.onEvent!(node as any, config, context as any, { type: 'damage', payload: 20 });
     expect(node.userData.health).toBe(80);
 
     // Second hit (invincible!)
-    HealthTrait.onEvent!(node as any, config, context as any,
-      { type: 'damage', payload: 20 });
+    HealthTrait.onEvent!(node as any, config, context as any, { type: 'damage', payload: 20 });
     expect(node.userData.health).toBe(80); // Unchanged
   });
 });
@@ -583,6 +581,7 @@ pnpm test
 ### PUBLISHING (10:00 - 13:00)
 
 **package.json:**
+
 ```json
 {
   "name": "@myorg/holoscript-health",
@@ -594,6 +593,7 @@ pnpm test
 ```
 
 **src/index.ts:**
+
 ```typescript
 export { HealthTrait, type HealthConfig } from './HealthTrait';
 
@@ -656,6 +656,7 @@ npm install -g @holoscript/mcp-server
 ```
 
 **Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):**
+
 ```json
 {
   "mcpServers": {
@@ -683,6 +684,7 @@ npm install -g @holoscript/mcp-server
 > [SCREEN: Claude using generate_scene tool]
 
 **Claude's response using MCP:**
+
 ```
 I'll use the generate_scene tool to create a haunted mansion scene...
 
@@ -744,7 +746,7 @@ import { AIValidator } from '@holoscript/ai-validator';
 
 const validator = new AIValidator({
   provider: 'anthropic',
-  hallucinationThreshold: 50
+  hallucinationThreshold: 50,
 });
 
 const claudeOutput = `/* ... the generated scene code ... */`;
@@ -754,7 +756,7 @@ if (result.valid) {
   console.log(`✓ Valid! Hallucination score: ${result.metadata.hallucinationScore}/100`);
 } else {
   // Send errors back to Claude for regeneration
-  const feedback = result.errors.map(e => e.message).join('\n');
+  const feedback = result.errors.map((e) => e.message).join('\n');
   console.log('Errors to fix:\n', feedback);
 }
 ```
@@ -776,12 +778,12 @@ import { HoloScriptSandbox } from '@holoscript/security-sandbox';
 
 const sandbox = new HoloScriptSandbox({
   timeout: 5000,
-  enableLogging: true
+  enableLogging: true,
 });
 
 // Execute in isolated VM
 const result = await sandbox.executeHoloScript(claudeOutput, {
-  source: 'ai-generated'
+  source: 'ai-generated',
 });
 
 if (result.success) {
@@ -810,7 +812,7 @@ async function generateAndRender(prompt: string) {
 
   // 3. Execute safely
   const result = await sandbox.executeHoloScript(generated.code, {
-    source: 'ai-generated'
+    source: 'ai-generated',
   });
 
   // 4. Render
@@ -831,6 +833,7 @@ This is the future of spatial computing — AI co-creation with safety guardrail
 ## Production Notes
 
 ### Recording Setup
+
 - **Resolution:** 4K (3840×2160), downscaled to 1080p
 - **Screen recording:** OBS Studio with lossless capture
 - **Terminal font:** JetBrains Mono 16px
@@ -838,15 +841,17 @@ This is the future of spatial computing — AI co-creation with safety guardrail
 - **Microphone:** Condenser, noise-gated
 
 ### Post-Production
+
 - Add captions for accessibility
 - Chapter markers at each major section
 - Timestamp descriptions in video
 
 ### Distribution
+
 - Primary: YouTube with full descriptions
 - Secondary: HoloScript docs site (embedded)
 - Shorts: Extract 60-second clips from each tutorial
 
 ---
 
-*Last updated: 2026-02-16 | HoloScript v3.4.0*
+_Last updated: 2026-02-16 | HoloScript v3.4.0_

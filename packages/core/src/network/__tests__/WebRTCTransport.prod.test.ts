@@ -23,11 +23,17 @@ class MockWebSocket {
   close = vi.fn();
 
   /** Helper: trigger open */
-  fireOpen() { this.onopen?.(); }
+  fireOpen() {
+    this.onopen?.();
+  }
   /** Helper: trigger message */
-  fireMessage(data: unknown) { this.onmessage?.({ data: JSON.stringify(data) }); }
+  fireMessage(data: unknown) {
+    this.onmessage?.({ data: JSON.stringify(data) });
+  }
   /** Helper: trigger error */
-  fireError() { this.onerror?.(new Event('error')); }
+  fireError() {
+    this.onerror?.(new Event('error'));
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -58,8 +64,12 @@ class MockRTCDataChannel {
   onclose: (() => void) | null = null;
   send = vi.fn();
   close = vi.fn();
-  constructor(label: string) { this.label = label; }
-  fireMessage(data: unknown) { this.onmessage?.({ data: JSON.stringify(data) }); }
+  constructor(label: string) {
+    this.label = label;
+  }
+  fireMessage(data: unknown) {
+    this.onmessage?.({ data: JSON.stringify(data) });
+  }
 }
 
 class MockRTCSessionDescription {

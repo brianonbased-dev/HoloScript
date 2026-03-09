@@ -8,9 +8,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import {
-  Package, Search, Download, Globe, Star, Tag, Loader2, ArrowLeft,
-} from 'lucide-react';
+import { Package, Search, Download, Globe, Star, Tag, Loader2, ArrowLeft } from 'lucide-react';
 
 interface RegistryPack {
   packId: string;
@@ -31,7 +29,17 @@ function humanBytes(bytes: number) {
   return `${(bytes / 1048576).toFixed(1)}MB`;
 }
 
-const ALL_TAGS = ['fantasy', 'sci-fi', 'nature', 'interior', 'architecture', 'modular', 'vegetation', 'outdoor', 'medieval'];
+const ALL_TAGS = [
+  'fantasy',
+  'sci-fi',
+  'nature',
+  'interior',
+  'architecture',
+  'modular',
+  'vegetation',
+  'outdoor',
+  'medieval',
+];
 
 export default function RegistryPage() {
   const [packs, setPacks] = useState<RegistryPack[]>([]);
@@ -54,7 +62,9 @@ export default function RegistryPage() {
     }
   }, []);
 
-  useEffect(() => { fetchPacks(); }, [fetchPacks]);
+  useEffect(() => {
+    fetchPacks();
+  }, [fetchPacks]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +92,10 @@ export default function RegistryPage() {
       {/* Header */}
       <header className="border-b border-white/10 bg-[#0d0d1a]/80 px-6 py-4 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-4">
-          <Link href="/" className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition"
+          >
             <ArrowLeft className="h-4 w-4" /> Studio
           </Link>
           <div className="flex items-center gap-2">
@@ -134,7 +147,8 @@ export default function RegistryPage() {
                     : 'bg-white/8 text-white/50 hover:bg-white/12 hover:text-white'
                 }`}
               >
-                <Tag className="h-3 w-3" />{tag}
+                <Tag className="h-3 w-3" />
+                {tag}
               </button>
             ))}
           </div>
@@ -184,9 +198,12 @@ export default function RegistryPage() {
                   {/* Meta */}
                   <div className="mt-3 flex items-center gap-3 text-[11px] text-white/35">
                     <span>{pack.author}</span>
-                    <span>{pack.files.length} files · {humanBytes(totalSize)}</span>
+                    <span>
+                      {pack.files.length} files · {humanBytes(totalSize)}
+                    </span>
                     <span className="flex items-center gap-1">
-                      <Star className="h-3 w-3" />{pack.downloads.toLocaleString()}
+                      <Star className="h-3 w-3" />
+                      {pack.downloads.toLocaleString()}
                     </span>
                   </div>
 

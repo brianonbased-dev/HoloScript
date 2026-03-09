@@ -369,11 +369,7 @@ export class Layer3MCPClient extends EventEmitter {
   /**
    * Call MCP tool via orchestrator
    */
-  private async mcpToolCall(
-    server: string,
-    tool: string,
-    args: Record<string, any>
-  ): Promise<any> {
+  private async mcpToolCall(server: string, tool: string, args: Record<string, any>): Promise<any> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
 

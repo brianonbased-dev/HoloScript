@@ -28,9 +28,8 @@ async function runSerializationTest(
   const serialized = adapter.serialize();
   const serializeTime = performance.now() - serializeStart;
 
-  const serializedSize = typeof serialized === 'string'
-    ? new Blob([serialized]).size
-    : serialized.byteLength;
+  const serializedSize =
+    typeof serialized === 'string' ? new Blob([serialized]).size : serialized.byteLength;
 
   // Measure deserialization
   const newAdapter = new AdapterClass();
@@ -82,7 +81,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log(`  Size: ${(result.serializedSize / 1024).toFixed(2)} KB`);
     console.log(`  Serialize time: ${result.serializeTime.toFixed(4)} ms`);
     console.log(`  Deserialize time: ${result.deserializeTime.toFixed(4)} ms`);
-    console.log(`  Bytes per operation: ${(result.serializedSize / result.operationCount).toFixed(2)}`);
+    console.log(
+      `  Bytes per operation: ${(result.serializedSize / result.operationCount).toFixed(2)}`
+    );
     console.log('');
   }
 }

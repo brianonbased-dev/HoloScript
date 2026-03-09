@@ -42,7 +42,7 @@ describe('SubtitleRenderer', () => {
 
     it('should expire subtitle after duration', () => {
       renderer.add('Temp', 1);
-      renderer.update(0);   // activate
+      renderer.update(0); // activate
       expect(renderer.getActiveSubtitles().length).toBe(1);
 
       renderer.update(1.5); // elapsed > duration

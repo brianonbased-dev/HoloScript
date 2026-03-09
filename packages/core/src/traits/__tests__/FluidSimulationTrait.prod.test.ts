@@ -52,7 +52,8 @@ describe('spikyKernelGradient', () => {
 describe('viscosityKernelLaplacian', () => {
   it('returns 0 when r > h', () => expect(viscosityKernelLaplacian(0.1, 0.04)).toBe(0));
   it('returns 0 when r < 0', () => expect(viscosityKernelLaplacian(-1, 0.04)).toBe(0));
-  it('returns positive when r <= h', () => expect(viscosityKernelLaplacian(0.02, 0.04)).toBeGreaterThan(0));
+  it('returns positive when r <= h', () =>
+    expect(viscosityKernelLaplacian(0.02, 0.04)).toBeGreaterThan(0));
   it('larger at smaller r (monotonically decreasing)', () => {
     const h = 0.04;
     expect(viscosityKernelLaplacian(0.01, h)).toBeGreaterThan(viscosityKernelLaplacian(0.03, h));
@@ -65,7 +66,9 @@ describe('viscosityKernelLaplacian', () => {
 
 describe('SpatialHash', () => {
   let hash: SpatialHash;
-  beforeEach(() => { hash = new SpatialHash(0.04); });
+  beforeEach(() => {
+    hash = new SpatialHash(0.04);
+  });
 
   it('getNeighbors returns empty for empty grid', () => {
     expect(hash.getNeighbors({ x: 0, y: 0, z: 0 })).toHaveLength(0);
@@ -92,7 +95,8 @@ describe('SpatialHash', () => {
     hash.insert(0, { x: 0.01, y: 0, z: 0 });
     hash.insert(1, { x: 0.02, y: 0, z: 0 });
     const ns = hash.getNeighbors({ x: 0.01, y: 0, z: 0 });
-    expect(ns).toContain(0); expect(ns).toContain(1);
+    expect(ns).toContain(0);
+    expect(ns).toContain(1);
   });
 });
 
@@ -119,13 +123,16 @@ describe('FluidSimulationSystem — construction & defaults', () => {
 
 describe('FluidSimulationSystem — particle management', () => {
   let sim: FluidSimulationSystem;
-  beforeEach(() => { sim = new FluidSimulationSystem(); });
+  beforeEach(() => {
+    sim = new FluidSimulationSystem();
+  });
 
   it('starts with 0 particles', () => expect(sim.getParticleCount()).toBe(0));
   it('addParticle returns incrementing IDs', () => {
     const id0 = sim.addParticle({ x: 0, y: 0, z: 0 });
     const id1 = sim.addParticle({ x: 1, y: 0, z: 0 });
-    expect(id0).toBe(0); expect(id1).toBe(1);
+    expect(id0).toBe(0);
+    expect(id1).toBe(1);
   });
   it('getParticle retrieves by id', () => {
     const id = sim.addParticle({ x: 1, y: 2, z: 3 });
@@ -168,15 +175,27 @@ describe('FluidSimulationSystem — particle management', () => {
 
 describe('FluidSimulationSystem — boundary management', () => {
   let sim: FluidSimulationSystem;
-  beforeEach(() => { sim = new FluidSimulationSystem(); });
+  beforeEach(() => {
+    sim = new FluidSimulationSystem();
+  });
 
   it('starts with empty boundaries', () => expect(sim.getBoundaries()).toHaveLength(0));
   it('addBoundary + getBoundaries', () => {
-    sim.addBoundary({ type: 'plane', position: { x:0,y:0,z:0 }, normal: { x:0,y:1,z:0 }, restitution: 0.5 });
+    sim.addBoundary({
+      type: 'plane',
+      position: { x: 0, y: 0, z: 0 },
+      normal: { x: 0, y: 1, z: 0 },
+      restitution: 0.5,
+    });
     expect(sim.getBoundaries()).toHaveLength(1);
   });
   it('clearBoundaries empties list', () => {
-    sim.addBoundary({ type: 'plane', position: { x:0,y:0,z:0 }, normal: { x:0,y:1,z:0 }, restitution: 0 });
+    sim.addBoundary({
+      type: 'plane',
+      position: { x: 0, y: 0, z: 0 },
+      normal: { x: 0, y: 1, z: 0 },
+      restitution: 0,
+    });
     sim.clearBoundaries();
     expect(sim.getBoundaries()).toHaveLength(0);
   });
@@ -202,18 +221,22 @@ describe('FluidSimulationSystem — step() physics', () => {
     const p = sim.getParticle(id)!;
     expect(p.position.y).toBeLessThan(1); // fell due to gravity
   });
-  it('step with zero gravity doesn\'t change y position (no neighbors)', () => {
-    const sim = new FluidSimulationSystem({ gravity: { x:0, y:0, z:0 }, timeStep: 0.016 });
+  it("step with zero gravity doesn't change y position (no neighbors)", () => {
+    const sim = new FluidSimulationSystem({ gravity: { x: 0, y: 0, z: 0 }, timeStep: 0.016 });
     const id = sim.addParticle({ x: 0, y: 0, z: 0 });
     sim.step();
     expect(sim.getParticle(id)?.position.y).toBeCloseTo(0);
   });
   it('velocity clamped to maxVelocity', () => {
-    const sim = new FluidSimulationSystem({ maxVelocity: 0.01, gravity: { x:0, y:-9.81, z:0 }, timeStep: 1.0 });
+    const sim = new FluidSimulationSystem({
+      maxVelocity: 0.01,
+      gravity: { x: 0, y: -9.81, z: 0 },
+      timeStep: 1.0,
+    });
     const id = sim.addParticle({ x: 0, y: 100, z: 0 });
     sim.step();
     const p = sim.getParticle(id)!;
-    const speed = Math.sqrt(p.velocity.x**2 + p.velocity.y**2 + p.velocity.z**2);
+    const speed = Math.sqrt(p.velocity.x ** 2 + p.velocity.y ** 2 + p.velocity.z ** 2);
     expect(speed).toBeLessThanOrEqual(0.011);
   });
   it('FLIP solver falls back to SPH (no crash)', () => {
@@ -231,7 +254,7 @@ describe('FluidSimulationSystem — step() physics', () => {
     expect(() => sim.step()).not.toThrow();
   });
   it('custom dt overrides timeStep', () => {
-    const sim = new FluidSimulationSystem({ gravity: { x:0, y:-9.81, z:0 } });
+    const sim = new FluidSimulationSystem({ gravity: { x: 0, y: -9.81, z: 0 } });
     const id = sim.addParticle({ x: 0, y: 10, z: 0 });
     sim.step(0.001); // tiny dt
     const p = sim.getParticle(id)!;
@@ -241,10 +264,12 @@ describe('FluidSimulationSystem — step() physics', () => {
 
 describe('FluidSimulationSystem — plane boundary collision', () => {
   it('floor plane prevents particles from going below y=0', () => {
-    const sim = new FluidSimulationSystem({ gravity: { x:0, y:-9.81, z:0 }, timeStep: 0.1 });
+    const sim = new FluidSimulationSystem({ gravity: { x: 0, y: -9.81, z: 0 }, timeStep: 0.1 });
     sim.addBoundary({
-      type: 'plane', position: { x:0, y:0, z:0 },
-      normal: { x:0, y:1, z:0 }, restitution: 0,
+      type: 'plane',
+      position: { x: 0, y: 0, z: 0 },
+      normal: { x: 0, y: 1, z: 0 },
+      restitution: 0,
     });
     const id = sim.addParticle({ x: 0, y: 0.1, z: 0 });
     for (let i = 0; i < 20; i++) sim.step();
@@ -255,25 +280,31 @@ describe('FluidSimulationSystem — plane boundary collision', () => {
 
 describe('FluidSimulationSystem — sphere boundary', () => {
   it('sphere boundary keeps particles inside', () => {
-    const sim = new FluidSimulationSystem({ gravity: { x:0, y:0, z:0 }, timeStep: 0.016 });
+    const sim = new FluidSimulationSystem({ gravity: { x: 0, y: 0, z: 0 }, timeStep: 0.016 });
     sim.addBoundary({
-      type: 'sphere', position: { x:0, y:0, z:0 }, radius: 1.0, restitution: 0,
+      type: 'sphere',
+      position: { x: 0, y: 0, z: 0 },
+      radius: 1.0,
+      restitution: 0,
     });
     // Start outside radius
     const id = sim.addParticle({ x: 1.5, y: 0, z: 0 });
     sim.step();
     const p = sim.getParticle(id)!;
-    const dist = Math.sqrt(p.position.x**2 + p.position.y**2 + p.position.z**2);
+    const dist = Math.sqrt(p.position.x ** 2 + p.position.y ** 2 + p.position.z ** 2);
     expect(dist).toBeLessThanOrEqual(1.0 - sim.getConfig().particleRadius + 0.01);
   });
 });
 
 describe('FluidSimulationSystem — box boundary', () => {
   it('box boundary clamps particles within extents', () => {
-    const sim = new FluidSimulationSystem({ gravity: { x:0, y:0, z:0 }, timeStep: 0.016 });
+    const sim = new FluidSimulationSystem({ gravity: { x: 0, y: 0, z: 0 }, timeStep: 0.016 });
     const boxSize = { x: 2, y: 2, z: 2 };
     sim.addBoundary({
-      type: 'box', position: { x:0, y:0, z:0 }, size: boxSize, restitution: 0,
+      type: 'box',
+      position: { x: 0, y: 0, z: 0 },
+      size: boxSize,
+      restitution: 0,
     });
     // Place particle outside box on x axis
     const id = sim.addParticle({ x: 2.5, y: 0, z: 0 }, { x: 5, y: 0, z: 0 });
@@ -320,6 +351,3 @@ describe('FluidSimulationSystem — multi-particle SPH interactions', () => {
     expect(densityAt).toBeGreaterThan(densityFar);
   });
 });
-
-
-

@@ -20,19 +20,19 @@ on:
   workflow_dispatch:
     inputs:
       composition:
-        description: "Composition to render (leave empty for all)"
+        description: 'Composition to render (leave empty for all)'
         required: false
-        default: ""
+        default: ''
         type: string
       attach_to_release:
-        description: "Attach to latest release"
+        description: 'Attach to latest release'
         required: false
-        default: "false"
+        default: 'false'
         type: boolean
 
   schedule:
     # Run every Sunday at 03:00 UTC to keep videos current
-    - cron: "0 3 * * 0"
+    - cron: '0 3 * * 0'
 
 jobs:
   render:
@@ -72,8 +72,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "pnpm"
+          node-version: '20'
+          cache: 'pnpm'
 
       # ── Install dependencies ─────────────────────────────────────────────────
       - name: Install dependencies

@@ -97,7 +97,6 @@ function getState(node: Record<string, unknown>) {
 // =============================================================================
 
 describe('GaussianSplatTrait — defaultConfig', () => {
-
   it('has correct default format and quality', () => {
     expect(gaussianSplatHandler.defaultConfig!.format).toBe('ply');
     expect(gaussianSplatHandler.defaultConfig!.quality).toBe('medium');
@@ -141,7 +140,6 @@ describe('GaussianSplatTrait — defaultConfig', () => {
 // =============================================================================
 
 describe('GaussianSplatTrait — onAttach', () => {
-
   it('initializes state with isLoaded=false', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -166,14 +164,18 @@ describe('GaussianSplatTrait — onAttach', () => {
     const node = makeNode();
     const ctx = makeContext();
     gaussianSplatHandler.onAttach!(node as any, makeConfig({ source: 'scene.ply' }), ctx as any);
-    expect(ctx.emitted.some(e => e.event === 'splat_load')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'splat_load')).toBe(true);
   });
 
   it('splat_load payload includes source and shDegree', () => {
     const node = makeNode();
     const ctx = makeContext();
-    gaussianSplatHandler.onAttach!(node as any, makeConfig({ source: 'room.ply', sh_degree: 2 }), ctx as any);
-    const load = ctx.emitted.find(e => e.event === 'splat_load');
+    gaussianSplatHandler.onAttach!(
+      node as any,
+      makeConfig({ source: 'room.ply', sh_degree: 2 }),
+      ctx as any
+    );
+    const load = ctx.emitted.find((e) => e.event === 'splat_load');
     expect((load!.data as any).source).toBe('room.ply');
     expect((load!.data as any).shDegree).toBe(2);
   });
@@ -181,8 +183,12 @@ describe('GaussianSplatTrait — onAttach', () => {
   it('splat_load payload includes v4.1 fields', () => {
     const node = makeNode();
     const ctx = makeContext();
-    gaussianSplatHandler.onAttach!(node as any, makeConfig({ source: 'scene.spz', format: 'spz' }), ctx as any);
-    const load = ctx.emitted.find(e => e.event === 'splat_load');
+    gaussianSplatHandler.onAttach!(
+      node as any,
+      makeConfig({ source: 'scene.spz', format: 'spz' }),
+      ctx as any
+    );
+    const load = ctx.emitted.find((e) => e.event === 'splat_load');
     expect((load!.data as any).format).toBe('spz');
     expect((load!.data as any).lod).toBeDefined();
     expect((load!.data as any).temporalMode).toBe('static');
@@ -195,7 +201,7 @@ describe('GaussianSplatTrait — onAttach', () => {
     const node = makeNode();
     const ctx = makeContext();
     gaussianSplatHandler.onAttach!(node as any, makeConfig({ source: '' }), ctx as any);
-    expect(ctx.emitted.some(e => e.event === 'splat_load')).toBe(false);
+    expect(ctx.emitted.some((e) => e.event === 'splat_load')).toBe(false);
   });
 });
 
@@ -204,7 +210,6 @@ describe('GaussianSplatTrait — onAttach', () => {
 // =============================================================================
 
 describe('GaussianSplatTrait — onDetach', () => {
-
   it('removes state from node', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -220,7 +225,7 @@ describe('GaussianSplatTrait — onDetach', () => {
     getState(node).renderHandle = { id: 'handle-1' };
     ctx.emitted.length = 0;
     gaussianSplatHandler.onDetach!(node as any, makeConfig(), ctx as any);
-    expect(ctx.emitted.some(e => e.event === 'splat_destroy')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'splat_destroy')).toBe(true);
   });
 
   it('no splat_destroy when renderHandle is null', () => {
@@ -229,7 +234,7 @@ describe('GaussianSplatTrait — onDetach', () => {
     gaussianSplatHandler.onAttach!(node as any, makeConfig({ source: '' }), ctx as any);
     ctx.emitted.length = 0;
     gaussianSplatHandler.onDetach!(node as any, makeConfig(), ctx as any);
-    expect(ctx.emitted.some(e => e.event === 'splat_destroy')).toBe(false);
+    expect(ctx.emitted.some((e) => e.event === 'splat_destroy')).toBe(false);
   });
 });
 
@@ -238,7 +243,6 @@ describe('GaussianSplatTrait — onDetach', () => {
 // =============================================================================
 
 describe('GaussianSplatTrait — onUpdate', () => {
-
   function attachLoaded(config = {}) {
     const node = makeNode();
     const ctx = makeContext();
@@ -268,7 +272,7 @@ describe('GaussianSplatTrait — onUpdate', () => {
 
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
 
-    expect(ctx.emitted.some(e => e.event === 'splat_sort')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'splat_sort')).toBe(true);
     expect(st.needsSort).toBe(false);
   });
 
@@ -279,7 +283,7 @@ describe('GaussianSplatTrait — onUpdate', () => {
     ctx.camera = { position: { x: 1, y: 0, z: 0 } };
 
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
-    expect(ctx.emitted.some(e => e.event === 'splat_sort')).toBe(false);
+    expect(ctx.emitted.some((e) => e.event === 'splat_sort')).toBe(false);
   });
 
   it('sets initial camera position on first update', () => {
@@ -297,7 +301,7 @@ describe('GaussianSplatTrait — onUpdate', () => {
     ctx.camera = { position: { x: 0.05, y: 0, z: 0 } };
 
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
-    expect(ctx.emitted.some(e => e.event === 'splat_sort')).toBe(false);
+    expect(ctx.emitted.some((e) => e.event === 'splat_sort')).toBe(false);
   });
 });
 
@@ -306,7 +310,6 @@ describe('GaussianSplatTrait — onUpdate', () => {
 // =============================================================================
 
 describe('GaussianSplatTrait — onUpdate LOD', () => {
-
   function attachLoadedWithLOD(lodConfig: Record<string, unknown> = {}) {
     const node = makeNode();
     const ctx = makeContext();
@@ -336,7 +339,7 @@ describe('GaussianSplatTrait — onUpdate LOD', () => {
     ctx.camera = { position: { x: 5, y: 5, z: 50 } };
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
 
-    const lodEvt = ctx.emitted.find(e => e.event === 'splat_lod_change');
+    const lodEvt = ctx.emitted.find((e) => e.event === 'splat_lod_change');
     expect(lodEvt).toBeDefined();
     expect((lodEvt!.data as any).previousLevel).toBe(0);
     expect((lodEvt!.data as any).currentLevel).toBe(3);
@@ -347,7 +350,7 @@ describe('GaussianSplatTrait — onUpdate LOD', () => {
     st.lastCameraPosition = { x: 5, y: 5, z: 5 };
     ctx.camera = { position: { x: 5, y: 5, z: 50 } };
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
-    expect(ctx.emitted.some(e => e.event === 'splat_lod_change')).toBe(false);
+    expect(ctx.emitted.some((e) => e.event === 'splat_lod_change')).toBe(false);
   });
 
   it('does NOT emit splat_lod_change when level stays the same', () => {
@@ -357,7 +360,7 @@ describe('GaussianSplatTrait — onUpdate LOD', () => {
     // Camera at center -> dist = 0 -> level 0 (same as current)
     ctx.camera = { position: { x: 5, y: 5.2, z: 5 } };
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
-    expect(ctx.emitted.some(e => e.event === 'splat_lod_change')).toBe(false);
+    expect(ctx.emitted.some((e) => e.event === 'splat_lod_change')).toBe(false);
   });
 });
 
@@ -366,8 +369,10 @@ describe('GaussianSplatTrait — onUpdate LOD', () => {
 // =============================================================================
 
 describe('GaussianSplatTrait — onUpdate Budget', () => {
-
-  function attachWithBudget(budget: { total_cap: number; per_avatar_reservation: number }, splatCount: number) {
+  function attachWithBudget(
+    budget: { total_cap: number; per_avatar_reservation: number },
+    splatCount: number
+  ) {
     const node = makeNode();
     const ctx = makeContext();
     const cfg = makeConfig({ source: 'scene.ply', gaussian_budget: budget });
@@ -381,10 +386,13 @@ describe('GaussianSplatTrait — onUpdate Budget', () => {
   }
 
   it('emits splat_budget_exceeded when over cap', () => {
-    const { node, ctx, cfg } = attachWithBudget({ total_cap: 180000, per_avatar_reservation: 60000 }, 200000);
+    const { node, ctx, cfg } = attachWithBudget(
+      { total_cap: 180000, per_avatar_reservation: 60000 },
+      200000
+    );
     ctx.camera = { position: { x: 0, y: 0, z: 0 } };
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
-    const evt = ctx.emitted.find(e => e.event === 'splat_budget_exceeded');
+    const evt = ctx.emitted.find((e) => e.event === 'splat_budget_exceeded');
     expect(evt).toBeDefined();
     expect((evt!.data as any).current).toBe(200000);
     expect((evt!.data as any).cap).toBe(180000);
@@ -392,17 +400,23 @@ describe('GaussianSplatTrait — onUpdate Budget', () => {
   });
 
   it('does NOT emit splat_budget_exceeded when under cap', () => {
-    const { node, ctx, cfg } = attachWithBudget({ total_cap: 180000, per_avatar_reservation: 60000 }, 150000);
+    const { node, ctx, cfg } = attachWithBudget(
+      { total_cap: 180000, per_avatar_reservation: 60000 },
+      150000
+    );
     ctx.camera = { position: { x: 0, y: 0, z: 0 } };
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
-    expect(ctx.emitted.some(e => e.event === 'splat_budget_exceeded')).toBe(false);
+    expect(ctx.emitted.some((e) => e.event === 'splat_budget_exceeded')).toBe(false);
   });
 
   it('does NOT emit when total_cap=0 (disabled)', () => {
-    const { node, ctx, cfg } = attachWithBudget({ total_cap: 0, per_avatar_reservation: 0 }, 500000);
+    const { node, ctx, cfg } = attachWithBudget(
+      { total_cap: 0, per_avatar_reservation: 0 },
+      500000
+    );
     ctx.camera = { position: { x: 0, y: 0, z: 0 } };
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
-    expect(ctx.emitted.some(e => e.event === 'splat_budget_exceeded')).toBe(false);
+    expect(ctx.emitted.some((e) => e.event === 'splat_budget_exceeded')).toBe(false);
   });
 });
 
@@ -411,7 +425,6 @@ describe('GaussianSplatTrait — onUpdate Budget', () => {
 // =============================================================================
 
 describe('GaussianSplatTrait — onEvent(splat_load_complete)', () => {
-
   it('sets isLoaded and splatCount', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -421,7 +434,7 @@ describe('GaussianSplatTrait — onEvent(splat_load_complete)', () => {
       type: 'splat_load_complete',
       splatCount: 250000,
       memoryUsage: 40,
-      boundingBox: { min: [-5,-5,-5], max: [5,5,5] },
+      boundingBox: { min: [-5, -5, -5], max: [5, 5, 5] },
       renderHandle: { id: 'h1' },
     });
 
@@ -429,12 +442,11 @@ describe('GaussianSplatTrait — onEvent(splat_load_complete)', () => {
     expect(st.isLoaded).toBe(true);
     expect(st.splatCount).toBe(250000);
     expect(st.gaussianBudgetUsed).toBe(250000);
-    expect(ctx.emitted.some(e => e.event === 'on_splat_loaded')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'on_splat_loaded')).toBe(true);
   });
 });
 
 describe('GaussianSplatTrait — onEvent(splat_load_error)', () => {
-
   it('emits on_splat_error', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -444,13 +456,12 @@ describe('GaussianSplatTrait — onEvent(splat_load_error)', () => {
       type: 'splat_load_error',
       error: 'Not found',
     });
-    expect(ctx.emitted.some(e => e.event === 'on_splat_error')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'on_splat_error')).toBe(true);
     expect(getState(node).isLoading).toBe(false);
   });
 });
 
 describe('GaussianSplatTrait — onEvent(splat_load_progress)', () => {
-
   it('emits on_splat_progress with progress value', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -461,7 +472,7 @@ describe('GaussianSplatTrait — onEvent(splat_load_progress)', () => {
       progress: 0.45,
       loadedSplats: 112500,
     });
-    const prg = ctx.emitted.find(e => e.event === 'on_splat_progress');
+    const prg = ctx.emitted.find((e) => e.event === 'on_splat_progress');
     expect(prg).toBeDefined();
     expect((prg!.data as any).progress).toBe(0.45);
   });
@@ -472,7 +483,6 @@ describe('GaussianSplatTrait — onEvent(splat_load_progress)', () => {
 // =============================================================================
 
 describe('GaussianSplatTrait — onEvent(splat_set_source)', () => {
-
   it('destroys old handle and loads new source', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -487,8 +497,8 @@ describe('GaussianSplatTrait — onEvent(splat_set_source)', () => {
       source: 'new.ply',
     });
 
-    expect(ctx.emitted.some(e => e.event === 'splat_destroy')).toBe(true);
-    expect(ctx.emitted.some(e => e.event === 'splat_load')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'splat_destroy')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'splat_load')).toBe(true);
   });
 
   it('no action when source is same', () => {
@@ -508,7 +518,6 @@ describe('GaussianSplatTrait — onEvent(splat_set_source)', () => {
 });
 
 describe('GaussianSplatTrait — onEvent(splat_set_quality)', () => {
-
   it('emits splat_update_quality', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -518,14 +527,13 @@ describe('GaussianSplatTrait — onEvent(splat_set_quality)', () => {
       type: 'splat_set_quality',
       quality: 'ultra',
     });
-    const qEvt = ctx.emitted.find(e => e.event === 'splat_update_quality');
+    const qEvt = ctx.emitted.find((e) => e.event === 'splat_update_quality');
     expect(qEvt).toBeDefined();
     expect((qEvt!.data as any).quality).toBe('ultra');
   });
 });
 
 describe('GaussianSplatTrait — onEvent(splat_query)', () => {
-
   it('emits splat_info with current state including v4.1 fields', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -540,7 +548,7 @@ describe('GaussianSplatTrait — onEvent(splat_query)', () => {
       type: 'splat_query',
       queryId: 'q1',
     });
-    const info = ctx.emitted.find(e => e.event === 'splat_info');
+    const info = ctx.emitted.find((e) => e.event === 'splat_info');
     expect(info).toBeDefined();
     expect((info!.data as any).queryId).toBe('q1');
     expect((info!.data as any).splatCount).toBe(50000);
@@ -551,7 +559,6 @@ describe('GaussianSplatTrait — onEvent(splat_query)', () => {
 });
 
 describe('GaussianSplatTrait — onEvent(splat_visibility_update)', () => {
-
   it('updates visibleSplats count', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -569,7 +576,6 @@ describe('GaussianSplatTrait — onEvent(splat_visibility_update)', () => {
 // =============================================================================
 
 describe('GaussianSplatTrait — onEvent(splat_set_lod) v4.1', () => {
-
   it('emits splat_update_lod with new LOD config', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -581,7 +587,7 @@ describe('GaussianSplatTrait — onEvent(splat_set_lod) v4.1', () => {
       octree_depth: 6,
       anchor_thresholds: [5, 10, 20, 40],
     });
-    const evt = ctx.emitted.find(e => e.event === 'splat_update_lod');
+    const evt = ctx.emitted.find((e) => e.event === 'splat_update_lod');
     expect(evt).toBeDefined();
     expect((evt!.data as any).mode).toBe('octree');
     expect((evt!.data as any).octree_depth).toBe(6);
@@ -601,7 +607,7 @@ describe('GaussianSplatTrait — onEvent(splat_set_lod) v4.1', () => {
       type: 'splat_set_lod',
       mode: 'octree',
     });
-    const evt = ctx.emitted.find(e => e.event === 'splat_update_lod');
+    const evt = ctx.emitted.find((e) => e.event === 'splat_update_lod');
     expect((evt!.data as any).mode).toBe('octree');
     expect((evt!.data as any).octree_depth).toBe(4); // from config
     expect((evt!.data as any).anchor_thresholds).toEqual([10, 20]); // from config
@@ -609,7 +615,6 @@ describe('GaussianSplatTrait — onEvent(splat_set_lod) v4.1', () => {
 });
 
 describe('GaussianSplatTrait — onEvent(splat_set_budget) v4.1', () => {
-
   it('emits splat_update_budget', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -620,7 +625,7 @@ describe('GaussianSplatTrait — onEvent(splat_set_budget) v4.1', () => {
       total_cap: 180000,
       per_avatar_reservation: 60000,
     });
-    const evt = ctx.emitted.find(e => e.event === 'splat_update_budget');
+    const evt = ctx.emitted.find((e) => e.event === 'splat_update_budget');
     expect(evt).toBeDefined();
     expect((evt!.data as any).total_cap).toBe(180000);
     expect((evt!.data as any).per_avatar_reservation).toBe(60000);
@@ -628,7 +633,6 @@ describe('GaussianSplatTrait — onEvent(splat_set_budget) v4.1', () => {
 });
 
 describe('GaussianSplatTrait — onEvent(splat_set_temporal_mode) v4.1', () => {
-
   it('emits splat_update_temporal and resets frame index', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -641,7 +645,7 @@ describe('GaussianSplatTrait — onEvent(splat_set_temporal_mode) v4.1', () => {
       temporal_mode: '4d',
     });
     expect(getState(node).temporalFrameIndex).toBe(0);
-    const evt = ctx.emitted.find(e => e.event === 'splat_update_temporal');
+    const evt = ctx.emitted.find((e) => e.event === 'splat_update_temporal');
     expect(evt).toBeDefined();
     expect((evt!.data as any).temporal_mode).toBe('4d');
     expect((evt!.data as any).previousMode).toBe('static');
@@ -649,7 +653,6 @@ describe('GaussianSplatTrait — onEvent(splat_set_temporal_mode) v4.1', () => {
 });
 
 describe('GaussianSplatTrait — onEvent(splat_temporal_advance) v4.1', () => {
-
   it('advances frame index in 4d mode', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -661,7 +664,7 @@ describe('GaussianSplatTrait — onEvent(splat_temporal_advance) v4.1', () => {
       frameIndex: 15,
     });
     expect(getState(node).temporalFrameIndex).toBe(15);
-    const evt = ctx.emitted.find(e => e.event === 'splat_temporal_frame');
+    const evt = ctx.emitted.find((e) => e.event === 'splat_temporal_frame');
     expect(evt).toBeDefined();
     expect((evt!.data as any).frameIndex).toBe(15);
     expect((evt!.data as any).temporal_mode).toBe('4d');
@@ -691,7 +694,7 @@ describe('GaussianSplatTrait — onEvent(splat_temporal_advance) v4.1', () => {
       frameIndex: 10,
     });
     expect(getState(node).temporalFrameIndex).toBe(0);
-    expect(ctx.emitted.some(e => e.event === 'splat_temporal_frame')).toBe(false);
+    expect(ctx.emitted.some((e) => e.event === 'splat_temporal_frame')).toBe(false);
   });
 });
 
@@ -700,37 +703,46 @@ describe('GaussianSplatTrait — onEvent(splat_temporal_advance) v4.1', () => {
 // =============================================================================
 
 describe('GaussianSplatTrait — no-state guard', () => {
-
   it('onEvent before onAttach does not crash', () => {
     const node = makeNode();
     const ctx = makeContext();
-    expect(() => gaussianSplatHandler.onEvent!(node as any, makeConfig(), ctx as any, {
-      type: 'splat_load_complete',
-      splatCount: 1,
-      memoryUsage: 1,
-      boundingBox: { min: [0,0,0], max: [1,1,1] },
-      renderHandle: null,
-    })).not.toThrow();
+    expect(() =>
+      gaussianSplatHandler.onEvent!(node as any, makeConfig(), ctx as any, {
+        type: 'splat_load_complete',
+        splatCount: 1,
+        memoryUsage: 1,
+        boundingBox: { min: [0, 0, 0], max: [1, 1, 1] },
+        renderHandle: null,
+      })
+    ).not.toThrow();
   });
 
   it('v4.1 events before onAttach do not crash', () => {
     const node = makeNode();
     const ctx = makeContext();
-    expect(() => gaussianSplatHandler.onEvent!(node as any, makeConfig(), ctx as any, {
-      type: 'splat_set_lod',
-      mode: 'octree',
-    })).not.toThrow();
-    expect(() => gaussianSplatHandler.onEvent!(node as any, makeConfig(), ctx as any, {
-      type: 'splat_set_budget',
-      total_cap: 180000,
-    })).not.toThrow();
-    expect(() => gaussianSplatHandler.onEvent!(node as any, makeConfig(), ctx as any, {
-      type: 'splat_set_temporal_mode',
-      temporal_mode: '4d',
-    })).not.toThrow();
-    expect(() => gaussianSplatHandler.onEvent!(node as any, makeConfig(), ctx as any, {
-      type: 'splat_temporal_advance',
-      frameIndex: 5,
-    })).not.toThrow();
+    expect(() =>
+      gaussianSplatHandler.onEvent!(node as any, makeConfig(), ctx as any, {
+        type: 'splat_set_lod',
+        mode: 'octree',
+      })
+    ).not.toThrow();
+    expect(() =>
+      gaussianSplatHandler.onEvent!(node as any, makeConfig(), ctx as any, {
+        type: 'splat_set_budget',
+        total_cap: 180000,
+      })
+    ).not.toThrow();
+    expect(() =>
+      gaussianSplatHandler.onEvent!(node as any, makeConfig(), ctx as any, {
+        type: 'splat_set_temporal_mode',
+        temporal_mode: '4d',
+      })
+    ).not.toThrow();
+    expect(() =>
+      gaussianSplatHandler.onEvent!(node as any, makeConfig(), ctx as any, {
+        type: 'splat_temporal_advance',
+        frameIndex: 5,
+      })
+    ).not.toThrow();
   });
 });

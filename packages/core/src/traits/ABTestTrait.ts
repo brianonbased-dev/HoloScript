@@ -154,7 +154,12 @@ export interface ABTestConfig {
  * Uses a simple string hash (djb2) to ensure same participant always gets same variant.
  * No PII needed - participantId can be any anonymous identifier.
  */
-function hashAssign(participantId: string, experimentId: string, variants: ABVariant[], strategy: AllocationStrategy): string {
+function hashAssign(
+  participantId: string,
+  experimentId: string,
+  variants: ABVariant[],
+  strategy: AllocationStrategy
+): string {
   if (variants.length === 0) return '';
   if (variants.length === 1) return variants[0].id;
 
@@ -258,9 +263,11 @@ function zTestTwoProportions(
  * Compute chi-squared test for independence.
  * Tests if conversion rates differ across variants.
  */
-function chiSquaredTest(
-  variants: Array<{ participants: number; conversions: number }>
-): { chiSquared: number; pValue: number; df: number } {
+function chiSquaredTest(variants: Array<{ participants: number; conversions: number }>): {
+  chiSquared: number;
+  pValue: number;
+  df: number;
+} {
   const total = variants.reduce((s, v) => s + v.participants, 0);
   const totalConversions = variants.reduce((s, v) => s + v.conversions, 0);
 
@@ -276,13 +283,11 @@ function chiSquaredTest(
     const expectedNonConversions = variant.participants * (1 - overallRate);
 
     if (expectedConversions > 0) {
-      chiSquared +=
-        (variant.conversions - expectedConversions) ** 2 / expectedConversions;
+      chiSquared += (variant.conversions - expectedConversions) ** 2 / expectedConversions;
     }
     if (expectedNonConversions > 0) {
       const nonConversions = variant.participants - variant.conversions;
-      chiSquared +=
-        (nonConversions - expectedNonConversions) ** 2 / expectedNonConversions;
+      chiSquared += (nonConversions - expectedNonConversions) ** 2 / expectedNonConversions;
     }
   }
 
@@ -381,14 +386,8 @@ function logGamma(x: number): number {
   // Lanczos approximation coefficients
   const g = 7;
   const c = [
-    0.99999999999980993,
-    676.5203681218851,
-    -1259.1392167224028,
-    771.32342877765313,
-    -176.61502916214059,
-    12.507343278686905,
-    -0.13857109526572012,
-    9.9843695780195716e-6,
+    0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
+    -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6,
     1.5056327351493116e-7,
   ];
 
@@ -431,7 +430,8 @@ function estimateRequiredSampleSize(
   const n =
     ((zAlpha * Math.sqrt(2 * pBar * (1 - pBar)) +
       zBeta * Math.sqrt(p1 * (1 - p1) + p2 * (1 - p2))) /
-      (p1 - p2)) ** 2;
+      (p1 - p2)) **
+    2;
 
   return Math.ceil(n);
 }
@@ -446,21 +446,18 @@ function normalQuantile(p: number): number {
   if (p === 0.5) return 0;
 
   const a = [
-    -3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2,
-    1.383577518672690e2, -3.066479806614716e1, 2.506628277459239e0,
+    -3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.38357751867269e2,
+    -3.066479806614716e1, 2.506628277459239,
   ];
   const b = [
-    -5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2,
-    6.680131188771972e1, -1.328068155288572e1,
+    -5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1,
+    -1.328068155288572e1,
   ];
   const c = [
-    -7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838e0,
-    -2.549732539343734e0, 4.374664141464968e0, 2.938163982698783e0,
+    -7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838, -2.549732539343734,
+    4.374664141464968, 2.938163982698783,
   ];
-  const d = [
-    7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996e0,
-    3.754408661907416e0,
-  ];
+  const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416];
 
   const pLow = 0.02425;
   const pHigh = 1 - pLow;
@@ -595,10 +592,7 @@ export const abTestHandler: TraitHandler<ABTestConfig> = {
     // Check experiment durations
     if (config.max_duration > 0) {
       for (const [experimentId, experiment] of state.experiments) {
-        if (
-          experiment.status === 'running' &&
-          now - experiment.start_time > config.max_duration
-        ) {
+        if (experiment.status === 'running' && now - experiment.start_time > config.max_duration) {
           experiment.status = 'completed';
           experiment.end_time = now;
           context.emit?.('abtest_experiment_completed', {
@@ -623,8 +617,7 @@ export const abTestHandler: TraitHandler<ABTestConfig> = {
         description: (event.description as string) || '',
         variants: (event.variants as ABVariant[]) || [],
         goals: (event.goals as ConversionGoal[]) || [],
-        allocation_strategy:
-          (event.strategy as AllocationStrategy) || config.default_strategy,
+        allocation_strategy: (event.strategy as AllocationStrategy) || config.default_strategy,
         status: 'draft',
         control_variant_id: (event.controlVariantId as string) || '',
         start_time: 0,
@@ -805,8 +798,7 @@ export const abTestHandler: TraitHandler<ABTestConfig> = {
 
           // Update conversion rate
           if (stats.participantCount > 0) {
-            stats.conversionRates[goalId] =
-              stats.conversionCounts[goalId] / stats.participantCount;
+            stats.conversionRates[goalId] = stats.conversionCounts[goalId] / stats.participantCount;
           }
 
           // Update avg time to conversion
@@ -816,8 +808,7 @@ export const abTestHandler: TraitHandler<ABTestConfig> = {
             const timeToConversion = Date.now() - exposureTime;
             const prevAvg = stats.avgTimeToConversion[goalId] || 0;
             const count = stats.conversionCounts[goalId];
-            stats.avgTimeToConversion[goalId] =
-              prevAvg + (timeToConversion - prevAvg) / count;
+            stats.avgTimeToConversion[goalId] = prevAvg + (timeToConversion - prevAvg) / count;
           }
 
           stats.lastConversionTime = Date.now();
@@ -873,12 +864,7 @@ export const abTestHandler: TraitHandler<ABTestConfig> = {
           const treatmentN = stats.participantCount;
           const treatmentX = stats.conversionCounts[goalId] || 0;
 
-          const { z, pValue } = zTestTwoProportions(
-            controlN,
-            controlX,
-            treatmentN,
-            treatmentX
-          );
+          const { z, pValue } = zTestTwoProportions(controlN, controlX, treatmentN, treatmentX);
 
           const controlRate = controlN > 0 ? controlX / controlN : 0;
           const treatmentRate = treatmentN > 0 ? treatmentX / treatmentN : 0;
@@ -898,7 +884,10 @@ export const abTestHandler: TraitHandler<ABTestConfig> = {
             testType: 'z_test',
             testStatistic: z,
             pValue,
-            isSignificant: pValue < config.alpha && controlN >= config.min_sample_size && treatmentN >= config.min_sample_size,
+            isSignificant:
+              pValue < config.alpha &&
+              controlN >= config.min_sample_size &&
+              treatmentN >= config.min_sample_size,
             confidenceLevel: 1 - config.alpha,
             uplift,
             controlRate,

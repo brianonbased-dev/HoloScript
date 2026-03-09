@@ -40,9 +40,27 @@ import {
 // ═══════════════════════════════════════════════════════════════════
 
 describe('Scenario: Molecular Drug Designer — Molecular Properties', () => {
-  const carbon: Atom = { id: 'C1', element: 'C', position: { x: 0, y: 0, z: 0 }, charge: 0, radius: 1.70 };
-  const oxygen: Atom = { id: 'O1', element: 'O', position: { x: 1.43, y: 0, z: 0 }, charge: -0.5, radius: 1.52 };
-  const hydrogen: Atom = { id: 'H1', element: 'H', position: { x: -0.5, y: 0.87, z: 0 }, charge: 0.25, radius: 1.20 };
+  const carbon: Atom = {
+    id: 'C1',
+    element: 'C',
+    position: { x: 0, y: 0, z: 0 },
+    charge: 0,
+    radius: 1.7,
+  };
+  const oxygen: Atom = {
+    id: 'O1',
+    element: 'O',
+    position: { x: 1.43, y: 0, z: 0 },
+    charge: -0.5,
+    radius: 1.52,
+  };
+  const hydrogen: Atom = {
+    id: 'H1',
+    element: 'H',
+    position: { x: -0.5, y: 0.87, z: 0 },
+    charge: 0.25,
+    radius: 1.2,
+  };
 
   it('atomDistance() calculates distance between two atoms', () => {
     const dist = atomDistance(carbon, oxygen);
@@ -50,7 +68,15 @@ describe('Scenario: Molecular Drug Designer — Molecular Properties', () => {
   });
 
   it('molecularFormula() generates Hill system notation', () => {
-    const formula = molecularFormula([carbon, carbon, oxygen, hydrogen, hydrogen, hydrogen, hydrogen]);
+    const formula = molecularFormula([
+      carbon,
+      carbon,
+      oxygen,
+      hydrogen,
+      hydrogen,
+      hydrogen,
+      hydrogen,
+    ]);
     expect(formula).toBe('C2H4O');
   });
 
@@ -65,10 +91,10 @@ describe('Scenario: Molecular Drug Designer — Molecular Properties', () => {
   });
 
   it('VDW_RADII has entries for common elements', () => {
-    expect(VDW_RADII['C']).toBe(1.70);
+    expect(VDW_RADII['C']).toBe(1.7);
     expect(VDW_RADII['N']).toBe(1.55);
     expect(VDW_RADII['O']).toBe(1.52);
-    expect(VDW_RADII['H']).toBe(1.20);
+    expect(VDW_RADII['H']).toBe(1.2);
   });
 
   it('ELEMENT_COLORS maps elements to hex colors', () => {
@@ -84,19 +110,31 @@ describe('Scenario: Molecular Drug Designer — Molecular Properties', () => {
 
 describe('Scenario: Molecular Drug Designer — Lipinski Rules', () => {
   const aspirinLike: Molecule = {
-    id: 'aspirin', name: 'Aspirin-like', formula: 'C9H8O4',
-    atoms: [], bonds: [],
-    molecularWeight: 180.16, logP: 1.2,
-    hBondDonors: 1, hBondAcceptors: 4,
-    rotatableBonds: 3, polarSurfaceArea: 63.6,
+    id: 'aspirin',
+    name: 'Aspirin-like',
+    formula: 'C9H8O4',
+    atoms: [],
+    bonds: [],
+    molecularWeight: 180.16,
+    logP: 1.2,
+    hBondDonors: 1,
+    hBondAcceptors: 4,
+    rotatableBonds: 3,
+    polarSurfaceArea: 63.6,
   };
 
   const violator: Molecule = {
-    id: 'big-mol', name: 'Over-sized', formula: 'C40H50N8O10',
-    atoms: [], bonds: [],
-    molecularWeight: 820, logP: 6.5,
-    hBondDonors: 8, hBondAcceptors: 12,
-    rotatableBonds: 15, polarSurfaceArea: 200,
+    id: 'big-mol',
+    name: 'Over-sized',
+    formula: 'C40H50N8O10',
+    atoms: [],
+    bonds: [],
+    molecularWeight: 820,
+    logP: 6.5,
+    hBondDonors: 8,
+    hBondAcceptors: 12,
+    rotatableBonds: 15,
+    polarSurfaceArea: 200,
   };
 
   it('aspirin-like molecule passes Lipinski', () => {
@@ -240,18 +278,25 @@ describe('Scenario: Molecular Drug Designer — Amino Acids', () => {
 
   it('pharmacophoreFeatures() — identifies H-bond and hydrophobic features', () => {
     const mol: Molecule = {
-      id: 'test', name: 'Test', formula: 'CNO',
+      id: 'test',
+      name: 'Test',
+      formula: 'CNO',
       atoms: [
         { id: 'C1', element: 'C', position: { x: 0, y: 0, z: 0 }, charge: 0, radius: 1.7 },
         { id: 'N1', element: 'N', position: { x: 1, y: 0, z: 0 }, charge: 0.1, radius: 1.55 },
         { id: 'O1', element: 'O', position: { x: 2, y: 0, z: 0 }, charge: -0.5, radius: 1.52 },
       ],
-      bonds: [], molecularWeight: 42, logP: 0.5,
-      hBondDonors: 1, hBondAcceptors: 2, rotatableBonds: 1, polarSurfaceArea: 40,
+      bonds: [],
+      molecularWeight: 42,
+      logP: 0.5,
+      hBondDonors: 1,
+      hBondAcceptors: 2,
+      rotatableBonds: 1,
+      polarSurfaceArea: 40,
     };
     const features = pharmacophoreFeatures(mol);
-    expect(features.some(f => f.type === 'hydrophobic')).toBe(true);
-    expect(features.some(f => f.type === 'h-bond-acceptor')).toBe(true);
-    expect(features.some(f => f.type === 'negative')).toBe(true);
+    expect(features.some((f) => f.type === 'hydrophobic')).toBe(true);
+    expect(features.some((f) => f.type === 'h-bond-acceptor')).toBe(true);
+    expect(features.some((f) => f.type === 'negative')).toBe(true);
   });
 });

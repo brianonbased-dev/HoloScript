@@ -19,20 +19,18 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  OctreeLODSystem,
-  GaussianAnchor,
-  OctreeLODConfig,
-} from '../OctreeLODSystem';
+import { OctreeLODSystem, GaussianAnchor, OctreeLODConfig } from '../OctreeLODSystem';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeAnchor(
   id: string,
-  x: number, y: number, z: number,
+  x: number,
+  y: number,
+  z: number,
   lodLevel: number,
   gaussianCount = 1000,
-  scale = 1.0,
+  scale = 1.0
 ): GaussianAnchor {
   return { id, x, y, z, scale, lodLevel, gaussianCount };
 }
@@ -116,8 +114,18 @@ describe('OctreeLODSystem: power-law thresholds', () => {
   });
 
   it('higher exponent produces more front-loaded thresholds', () => {
-    const linear = new OctreeLODSystem({ powerLawExponent: 1.0, maxDepth: 4, baseDistance: 2, maxDistance: 100 });
-    const power = new OctreeLODSystem({ powerLawExponent: 2.0, maxDepth: 4, baseDistance: 2, maxDistance: 100 });
+    const linear = new OctreeLODSystem({
+      powerLawExponent: 1.0,
+      maxDepth: 4,
+      baseDistance: 2,
+      maxDistance: 100,
+    });
+    const power = new OctreeLODSystem({
+      powerLawExponent: 2.0,
+      maxDepth: 4,
+      baseDistance: 2,
+      maxDistance: 100,
+    });
 
     const linearT = linear.getThresholds();
     const powerT = power.getThresholds();
@@ -241,7 +249,7 @@ describe('OctreeLODSystem: LOD selection — distance-based', () => {
     lod.insertAnchor(makeAnchor('l0', 0, 0, 0, 0, 10000)); // coarsest
     lod.insertAnchor(makeAnchor('l1', 5, 0, 0, 1, 8000));
     lod.insertAnchor(makeAnchor('l2', -5, 0, 0, 2, 5000));
-    lod.insertAnchor(makeAnchor('l3', 0, 5, 0, 3, 2000));  // finest
+    lod.insertAnchor(makeAnchor('l3', 0, 5, 0, 3, 2000)); // finest
   });
 
   it('camera at scene center selects all levels', () => {
@@ -470,8 +478,8 @@ describe('OctreeLODSystem: metrics', () => {
     lod.insertAnchor(makeAnchor('c', 20, 0, 0, 2, 1000));
 
     const metrics = lod.getMetrics();
-    const level0 = metrics.levels.find(l => l.level === 0)!;
-    const level2 = metrics.levels.find(l => l.level === 2)!;
+    const level0 = metrics.levels.find((l) => l.level === 0)!;
+    const level2 = metrics.levels.find((l) => l.level === 2)!;
 
     expect(level0.anchorCount).toBe(2);
     expect(level0.gaussianCount).toBe(8000);

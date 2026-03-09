@@ -15,15 +15,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 // LLM Provider imports (no @holoscript/core dependency — import directly)
 // ---------------------------------------------------------------------------
 import { MockAdapter } from '../../../llm-provider/src/adapters/mock.js';
-import {
-  OPENAI_MODELS,
-} from '../../../llm-provider/src/adapters/openai.js';
-import {
-  ANTHROPIC_MODELS,
-} from '../../../llm-provider/src/adapters/anthropic.js';
-import {
-  GEMINI_MODELS,
-} from '../../../llm-provider/src/adapters/gemini.js';
+import { OPENAI_MODELS } from '../../../llm-provider/src/adapters/openai.js';
+import { ANTHROPIC_MODELS } from '../../../llm-provider/src/adapters/anthropic.js';
+import { GEMINI_MODELS } from '../../../llm-provider/src/adapters/gemini.js';
 import {
   LLMProviderError,
   LLMRateLimitError,
@@ -243,13 +237,17 @@ describe('Feature 3A: MockAdapter — failOnNextCall and reset()', () => {
 
   it('after forced failure, failOnNextCall resets to false', async () => {
     mock.failOnNextCall = true;
-    try { await mock.complete({ messages: [{ role: 'user', content: 'x' }] }); } catch {}
+    try {
+      await mock.complete({ messages: [{ role: 'user', content: 'x' }] });
+    } catch {}
     expect(mock.failOnNextCall).toBe(false);
   });
 
   it('after forced failure, next call succeeds', async () => {
     mock.failOnNextCall = true;
-    try { await mock.complete({ messages: [{ role: 'user', content: 'x' }] }); } catch {}
+    try {
+      await mock.complete({ messages: [{ role: 'user', content: 'x' }] });
+    } catch {}
     const result = await mock.complete({ messages: [{ role: 'user', content: 'y' }] });
     expect(result.content).toBeDefined();
   });

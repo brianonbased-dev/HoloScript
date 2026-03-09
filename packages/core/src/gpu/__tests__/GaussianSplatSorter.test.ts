@@ -37,10 +37,10 @@ function packRGBA8(r: number, g: number, b: number, a: number): number {
  */
 function unpackRGBA8(packed: number): [number, number, number, number] {
   return [
-    (packed & 0xFF) / 255,
-    ((packed >>> 8) & 0xFF) / 255,
-    ((packed >>> 16) & 0xFF) / 255,
-    ((packed >>> 24) & 0xFF) / 255,
+    (packed & 0xff) / 255,
+    ((packed >>> 8) & 0xff) / 255,
+    ((packed >>> 16) & 0xff) / 255,
+    ((packed >>> 24) & 0xff) / 255,
   ];
 }
 
@@ -55,18 +55,18 @@ function f32ToF16(value: number): number {
   const bits = u32View[0];
 
   const sign = (bits >>> 16) & 0x8000;
-  const exponent = (bits >>> 23) & 0xFF;
-  const mantissa = bits & 0x7FFFFF;
+  const exponent = (bits >>> 23) & 0xff;
+  const mantissa = bits & 0x7fffff;
 
   if (exponent === 0) return sign;
   if (exponent === 255) {
-    if (mantissa !== 0) return sign | 0x7E00; // NaN
-    return sign | 0x7C00; // Inf
+    if (mantissa !== 0) return sign | 0x7e00; // NaN
+    return sign | 0x7c00; // Inf
   }
 
   const newExponent = exponent - 127 + 15;
   if (newExponent <= 0) return sign;
-  if (newExponent >= 31) return sign | 0x7C00;
+  if (newExponent >= 31) return sign | 0x7c00;
 
   return sign | (newExponent << 10) | (mantissa >>> 13);
 }
@@ -76,8 +76,8 @@ function f32ToF16(value: number): number {
  */
 function f16ToF32(h: number): number {
   const sign = (h & 0x8000) << 16;
-  const exponent = (h >>> 10) & 0x1F;
-  const mantissa = h & 0x3FF;
+  const exponent = (h >>> 10) & 0x1f;
+  const mantissa = h & 0x3ff;
 
   if (exponent === 0) {
     if (mantissa === 0) {
@@ -92,7 +92,7 @@ function f16ToF32(h: number): number {
       e++;
     }
     const newExp = (127 - 15 - e) << 23;
-    const newMant = (m & 0x3FF) << 13;
+    const newMant = (m & 0x3ff) << 13;
     const buf = new ArrayBuffer(4);
     new Uint32Array(buf)[0] = sign | newExp | newMant;
     return new Float32Array(buf)[0];
@@ -100,9 +100,9 @@ function f16ToF32(h: number): number {
   if (exponent === 31) {
     const buf = new ArrayBuffer(4);
     if (mantissa === 0) {
-      new Uint32Array(buf)[0] = sign | 0x7F800000;
+      new Uint32Array(buf)[0] = sign | 0x7f800000;
     } else {
-      new Uint32Array(buf)[0] = sign | 0x7FC00000;
+      new Uint32Array(buf)[0] = sign | 0x7fc00000;
     }
     return new Float32Array(buf)[0];
   }
@@ -118,7 +118,7 @@ function f16ToF32(h: number): number {
  * Extract radix digit (mirrors extractDigit in radix-sort.wgsl)
  */
 function extractDigit(key: number, bitOffset: number): number {
-  return (key >>> bitOffset) & 0xFF;
+  return (key >>> bitOffset) & 0xff;
 }
 
 /**
@@ -210,7 +210,7 @@ function cpuRadixSort(keys: number[], values: number[]): { keys: number[]; value
  * Generate depth key from camera-space Z (mirrors compressAndKey in splat-compress.wgsl)
  */
 function generateDepthKey(depth: number): number {
-  if (depth < 0.01) return 0xFFFFFFFF;
+  if (depth < 0.01) return 0xffffffff;
   const buf = new ArrayBuffer(4);
   new Float32Array(buf)[0] = depth;
   return new Uint32Array(buf)[0];
@@ -221,7 +221,6 @@ function generateDepthKey(depth: number): number {
 // =============================================================================
 
 describe('GaussianSplatSorter', () => {
-
   // ─── RGBA8 Packing ─────────────────────────────────────────────────────────
 
   describe('RGBA8 Color Packing', () => {
@@ -274,7 +273,7 @@ describe('GaussianSplatSorter', () => {
       const packed = packRGBA8(0.5, 0.5, 0.5, 0.5);
       // Packed value should fit in u32
       expect(packed).toBeGreaterThanOrEqual(0);
-      expect(packed).toBeLessThanOrEqual(0xFFFFFFFF);
+      expect(packed).toBeLessThanOrEqual(0xffffffff);
     });
   });
 
@@ -354,15 +353,15 @@ describe('GaussianSplatSorter', () => {
 
   describe('Depth Key Generation', () => {
     it('should generate max key for behind-camera splats', () => {
-      expect(generateDepthKey(-1.0)).toBe(0xFFFFFFFF);
-      expect(generateDepthKey(0.0)).toBe(0xFFFFFFFF);
-      expect(generateDepthKey(0.005)).toBe(0xFFFFFFFF);
+      expect(generateDepthKey(-1.0)).toBe(0xffffffff);
+      expect(generateDepthKey(0.0)).toBe(0xffffffff);
+      expect(generateDepthKey(0.005)).toBe(0xffffffff);
     });
 
     it('should generate valid key for visible splats', () => {
       const key = generateDepthKey(5.0);
       expect(key).toBeGreaterThan(0);
-      expect(key).toBeLessThan(0xFFFFFFFF);
+      expect(key).toBeLessThan(0xffffffff);
     });
 
     it('should preserve depth ordering for positive values', () => {
@@ -409,10 +408,10 @@ describe('GaussianSplatSorter', () => {
     });
 
     it('should handle max value', () => {
-      expect(extractDigit(0xFFFFFFFF, 0)).toBe(0xFF);
-      expect(extractDigit(0xFFFFFFFF, 8)).toBe(0xFF);
-      expect(extractDigit(0xFFFFFFFF, 16)).toBe(0xFF);
-      expect(extractDigit(0xFFFFFFFF, 24)).toBe(0xFF);
+      expect(extractDigit(0xffffffff, 0)).toBe(0xff);
+      expect(extractDigit(0xffffffff, 8)).toBe(0xff);
+      expect(extractDigit(0xffffffff, 16)).toBe(0xff);
+      expect(extractDigit(0xffffffff, 24)).toBe(0xff);
     });
   });
 
@@ -508,7 +507,7 @@ describe('GaussianSplatSorter', () => {
     });
 
     it('should sort large values (32-bit range)', () => {
-      const keys = [0xFFFF0000, 0x0000FFFF, 0xFF00FF00, 0x00FF00FF, 0x12345678];
+      const keys = [0xffff0000, 0x0000ffff, 0xff00ff00, 0x00ff00ff, 0x12345678];
       const values = [0, 1, 2, 3, 4];
 
       const result = cpuRadixSort(keys, values);
@@ -549,7 +548,7 @@ describe('GaussianSplatSorter', () => {
 
     it('should sort 1000 random keys correctly', () => {
       const n = 1000;
-      const keys = Array.from({ length: n }, () => Math.floor(Math.random() * 0xFFFFFFFF));
+      const keys = Array.from({ length: n }, () => Math.floor(Math.random() * 0xffffffff));
       const values = Array.from({ length: n }, (_, i) => i);
 
       const result = cpuRadixSort(keys, values);
@@ -582,7 +581,10 @@ describe('GaussianSplatSorter', () => {
       const prefixSize = 256 * 4;
       const uniformSize = 160 + 16 + 160;
 
-      const totalMB = (rawSize + compressedSize + sortBuffersSize + histogramSize + prefixSize + uniformSize) / 1024 / 1024;
+      const totalMB =
+        (rawSize + compressedSize + sortBuffersSize + histogramSize + prefixSize + uniformSize) /
+        1024 /
+        1024;
 
       // Should be under 15 MB for 100K splats
       expect(totalMB).toBeLessThan(15);
@@ -725,10 +727,10 @@ describe('GaussianSplatSorter', () => {
     });
 
     it('should handle max u32 key', () => {
-      const keys = [0xFFFFFFFF, 0, 0xFFFFFFFF, 0];
+      const keys = [0xffffffff, 0, 0xffffffff, 0];
       const values = [0, 1, 2, 3];
       const result = cpuRadixSort(keys, values);
-      expect(result.keys).toEqual([0, 0, 0xFFFFFFFF, 0xFFFFFFFF]);
+      expect(result.keys).toEqual([0, 0, 0xffffffff, 0xffffffff]);
     });
 
     it('should handle two elements', () => {

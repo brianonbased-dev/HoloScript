@@ -265,7 +265,10 @@ export class CompileTraitByIdInput {
   @Field(() => CompilerTarget, { description: 'Target platform to compile for' })
   target!: CompilerTarget;
 
-  @Field(() => String, { nullable: true, description: 'Semver version constraint (e.g. "1.2.0"). Omit for latest.' })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Semver version constraint (e.g. "1.2.0"). Omit for latest.',
+  })
   version?: string;
 
   @Field(() => CompilerOptionsInput, { nullable: true })

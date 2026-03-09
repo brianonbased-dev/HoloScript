@@ -3,9 +3,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useNodeInspector } from '../useNodeInspector';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
-vi.mock('@/lib/store', () => ({
+vi.mock('@/lib/stores', () => ({
   useSceneStore: vi.fn(),
 }));
 
@@ -648,10 +648,9 @@ object "box2" {
         return selector(state);
       });
 
-      const { result, rerender } = renderHook(
-        ({ name }) => useNodeInspector(name),
-        { initialProps: { name: 'box1' } }
-      );
+      const { result, rerender } = renderHook(({ name }) => useNodeInspector(name), {
+        initialProps: { name: 'box1' },
+      });
 
       expect(result.current.groups).toHaveLength(1);
       const box1Pos = result.current.groups[0].props.find((p) => p.key === 'position')?.value;

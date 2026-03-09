@@ -46,18 +46,33 @@ export function validateWGSL(code: string): ShaderError[] {
       if (ch === '}') braceDepth--;
     }
     if (braceDepth < 0) {
-      errors.push({ line: i + 1, column: 0, message: 'Unexpected closing brace', severity: 'error' });
+      errors.push({
+        line: i + 1,
+        column: 0,
+        message: 'Unexpected closing brace',
+        severity: 'error',
+      });
     }
   }
   if (braceDepth !== 0) {
-    errors.push({ line: lines.length, column: 0, message: `Unmatched braces: ${braceDepth > 0 ? 'missing }' : 'extra }'}`, severity: 'error' });
+    errors.push({
+      line: lines.length,
+      column: 0,
+      message: `Unmatched braces: ${braceDepth > 0 ? 'missing }' : 'extra }'}`,
+      severity: 'error',
+    });
   }
 
   // Check for required entry point annotations
   if (code.includes('@vertex') || code.includes('@fragment') || code.includes('@compute')) {
     // Has stage annotation — OK
   } else {
-    errors.push({ line: 1, column: 0, message: 'Missing stage annotation (@vertex, @fragment, or @compute)', severity: 'warning' });
+    errors.push({
+      line: 1,
+      column: 0,
+      message: 'Missing stage annotation (@vertex, @fragment, or @compute)',
+      severity: 'warning',
+    });
   }
 
   return errors;
@@ -83,7 +98,7 @@ export function countTextureBindings(code: string): number {
  * Estimate instruction count (very rough approximation).
  */
 export function estimateInstructions(code: string): number {
-  const lines = code.split('\n').filter(l => {
+  const lines = code.split('\n').filter((l) => {
     const trimmed = l.trim();
     return trimmed.length > 0 && !trimmed.startsWith('//') && !trimmed.startsWith('/*');
   });
@@ -95,9 +110,9 @@ export function estimateInstructions(code: string): number {
  */
 export function stripComments(code: string): string {
   return code
-    .replace(/\/\/.*$/gm, '')         // Line comments
+    .replace(/\/\/.*$/gm, '') // Line comments
     .replace(/\/\*[\s\S]*?\*\//g, '') // Block comments
-    .replace(/\n\s*\n/g, '\n');       // Empty lines
+    .replace(/\n\s*\n/g, '\n'); // Empty lines
 }
 
 /**
@@ -113,8 +128,8 @@ export function extractEntryPoint(code: string): string | null {
  */
 export function compileShader(source: ShaderSource): CompilationResult {
   const errors = source.language === 'wgsl' ? validateWGSL(source.code) : [];
-  const actualErrors = errors.filter(e => e.severity === 'error');
-  const warnings = errors.filter(e => e.severity === 'warning');
+  const actualErrors = errors.filter((e) => e.severity === 'error');
+  const warnings = errors.filter((e) => e.severity === 'warning');
 
   return {
     success: actualErrors.length === 0,

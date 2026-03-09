@@ -35,7 +35,7 @@ describe('JointSystem — Production', () => {
   it('solve hinge applies motor and updates angle', () => {
     const js = new JointSystem();
     const j = js.createJoint('hinge', 'a', 'b', { motorSpeed: 2, motorForce: 10 });
-    js.solve(1/60);
+    js.solve(1 / 60);
     const st = js.getState(j.id)!;
     expect(st.currentAngle).toBeGreaterThan(0);
   });
@@ -43,11 +43,12 @@ describe('JointSystem — Production', () => {
   it('solve hinge clamps to limits', () => {
     const js = new JointSystem();
     const j = js.createJoint('hinge', 'a', 'b', {
-      motorSpeed: 0, motorForce: 0,
+      motorSpeed: 0,
+      motorForce: 0,
       limits: { min: -1, max: 1 },
     });
     js.setAngle(j.id, 5);
-    js.solve(1/60);
+    js.solve(1 / 60);
     const st = js.getState(j.id)!;
     // Without motor, angle should be clamped to max limit
     expect(st.currentAngle).toBeLessThanOrEqual(1);
@@ -56,12 +57,13 @@ describe('JointSystem — Production', () => {
   it('solve spring computes force from stiffness + damping', () => {
     const js = new JointSystem();
     const j = js.createJoint('spring', 'a', 'b', {
-      stiffness: 100, damping: 0.5,
+      stiffness: 100,
+      damping: 0.5,
       anchorA: { x: 0, y: 0, z: 0 },
       anchorB: { x: 5, y: 0, z: 0 },
     });
     js.getState(j.id)!.currentDistance = 10; // stretched
-    js.solve(1/60);
+    js.solve(1 / 60);
     expect(js.getState(j.id)!.currentForce).not.toBe(0);
   });
 
@@ -69,7 +71,7 @@ describe('JointSystem — Production', () => {
     const js = new JointSystem();
     const j = js.createJoint('slider', 'a', 'b', { limits: { min: 0, max: 5 } });
     js.setDistance(j.id, 10);
-    js.solve(1/60);
+    js.solve(1 / 60);
     expect(js.getState(j.id)!.currentDistance).toBeLessThanOrEqual(5);
   });
 
@@ -79,7 +81,7 @@ describe('JointSystem — Production', () => {
       anchorA: { x: 0, y: 0, z: 0 },
       anchorB: { x: 3, y: 4, z: 0 },
     });
-    js.solve(1/60);
+    js.solve(1 / 60);
     expect(js.getState(j.id)!.currentDistance).toBeCloseTo(5, 1);
   });
 
@@ -87,10 +89,13 @@ describe('JointSystem — Production', () => {
   it('joint breaks when force exceeds breakForce', () => {
     const js = new JointSystem();
     const j = js.createJoint('hinge', 'a', 'b', {
-      breakForce: 0.001, stiffness: 100, motorSpeed: 100, motorForce: 10,
+      breakForce: 0.001,
+      stiffness: 100,
+      motorSpeed: 100,
+      motorForce: 10,
     });
     js.setAngle(j.id, 100);
-    js.solve(1/60);
+    js.solve(1 / 60);
     expect(j.broken).toBe(true);
     expect(js.getBrokenJoints().length).toBe(1);
   });
@@ -100,7 +105,7 @@ describe('JointSystem — Production', () => {
     const js = new JointSystem();
     const j = js.createJoint('hinge', 'a', 'b', { motorSpeed: 10, motorForce: 5 });
     js.setEnabled(j.id, false);
-    js.solve(1/60);
+    js.solve(1 / 60);
     expect(js.getState(j.id)!.currentAngle).toBe(0);
   });
 

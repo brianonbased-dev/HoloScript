@@ -171,12 +171,12 @@ export class StateCompiler {
 export class UnauthorizedStateCompilerAccessError extends Error {
   constructor(
     public readonly decision: AccessDecision,
-    public readonly compilerName: string,
+    public readonly compilerName: string
   ) {
     super(
       `[${compilerName}] Unauthorized access: ${decision.reason || 'Access denied'}\n` +
-      `Agent Role: ${decision.agentRole || 'unknown'}\n` +
-      `Required Permission: ${decision.requiredPermission || 'unknown'}`,
+        `Agent Role: ${decision.agentRole || 'unknown'}\n` +
+        `Required Permission: ${decision.requiredPermission || 'unknown'}`
     );
     this.name = 'UnauthorizedStateCompilerAccessError';
   }

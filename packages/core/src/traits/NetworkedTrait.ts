@@ -271,7 +271,10 @@ export class NetworkedTrait {
    * Supports transport types: 'local', 'websocket', 'webrtc', 'auto'
    * 'auto' mode tries WebRTC → WebSocket → local in priority order
    */
-  public async connect(transport: TransportType | 'auto' = 'local', serverUrl?: string): Promise<void> {
+  public async connect(
+    transport: TransportType | 'auto' = 'local',
+    serverUrl?: string
+  ): Promise<void> {
     const roomId = this.config.room || 'default-room';
 
     // Auto-detection mode: try WebRTC → WebSocket → local

@@ -77,7 +77,7 @@ describe('Workspace API — service layer', () => {
     it('sets owner as member with owner role', async () => {
       const ws = await service.createWorkspace(makeWorkspaceData(), 'owner-user');
       const members = await service.getMembers(ws.id, 'owner-user');
-      const ownerMember = members.find(m => m.userId === 'owner-user');
+      const ownerMember = members.find((m) => m.userId === 'owner-user');
       expect(ownerMember).toBeDefined();
       expect(ownerMember?.role).toBe('owner');
     });
@@ -132,7 +132,11 @@ describe('Workspace API — service layer', () => {
       const ws = await service.createWorkspace(makeWorkspaceData(), 'owner-id');
       const updated = await service.updateWorkspace(
         ws.id,
-        { settings: { formatter: { tabWidth: 4, useTabs: false, printWidth: 100, trailingComma: false } } },
+        {
+          settings: {
+            formatter: { tabWidth: 4, useTabs: false, printWidth: 100, trailingComma: false },
+          },
+        },
         'owner-id'
       );
       expect(updated.settings.formatter.tabWidth).toBe(4);
@@ -200,7 +204,7 @@ describe('Workspace API — service layer', () => {
       await service.inviteMember(ws.id, { userId: 'temp-user', role: 'viewer' }, 'owner-id');
       await service.removeMember(ws.id, 'temp-user', 'owner-id');
       const members = await service.getMembers(ws.id, 'owner-id');
-      expect(members.find(m => m.userId === 'temp-user')).toBeUndefined();
+      expect(members.find((m) => m.userId === 'temp-user')).toBeUndefined();
     });
 
     it('prevents owner removal', async () => {
@@ -240,7 +244,7 @@ describe('Workspace API — service layer', () => {
       await service.setSecret(ws.id, { name: 'REDIS_URL', value: 'redis://...' }, 'owner-id');
       const secrets = await service.listSecrets(ws.id, 'owner-id');
       expect(secrets.length).toBe(2);
-      expect(secrets.every(s => !(s as Record<string, unknown>).value)).toBe(true);
+      expect(secrets.every((s) => !(s as Record<string, unknown>).value)).toBe(true);
     });
 
     it('deletes a secret', async () => {
@@ -248,7 +252,7 @@ describe('Workspace API — service layer', () => {
       await service.setSecret(ws.id, { name: 'TEMP_KEY', value: 'xyz' }, 'owner-id');
       await service.deleteSecret(ws.id, 'TEMP_KEY', 'owner-id');
       const secrets = await service.listSecrets(ws.id, 'owner-id');
-      expect(secrets.find(s => s.name === 'TEMP_KEY')).toBeUndefined();
+      expect(secrets.find((s) => s.name === 'TEMP_KEY')).toBeUndefined();
     });
 
     it('prevents viewer from setting secrets', async () => {
@@ -275,7 +279,7 @@ describe('Workspace API — service layer', () => {
       const ws = await service.createWorkspace(makeWorkspaceData(), 'owner-id');
       await service.inviteMember(ws.id, { userId: 'new-dev', role: 'developer' }, 'owner-id');
       const feed = await service.getActivityFeed(ws.id, 'owner-id', 50, 0);
-      const inviteActivity = feed.activities.find(a => a.action.includes('member'));
+      const inviteActivity = feed.activities.find((a) => a.action.includes('member'));
       expect(inviteActivity).toBeDefined();
     });
 
@@ -287,9 +291,9 @@ describe('Workspace API — service layer', () => {
 
     it('throws for non-member accessing activity', async () => {
       const ws = await service.createWorkspace(makeWorkspaceData(), 'owner-id');
-      await expect(
-        service.getActivityFeed(ws.id, 'outsider-id', 50, 0)
-      ).rejects.toThrow(WorkspaceServiceError);
+      await expect(service.getActivityFeed(ws.id, 'outsider-id', 50, 0)).rejects.toThrow(
+        WorkspaceServiceError
+      );
     });
   });
 

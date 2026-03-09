@@ -20,7 +20,7 @@ interface NPCAIState {
   lastResponse: string;
   emotionalState: string;
   goals: string[];
-  conversationHistory: Array<{ role: 'user' | 'assistant', content: string }>;
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
 interface NPCAIConfig {
@@ -85,21 +85,22 @@ export const npcAIHandler: TraitHandler<NPCAIConfig> = {
 
       const adapter = getDefaultAIAdapter();
       if (adapter && adapter.chat) {
-        adapter.chat(prompt, undefined, state.conversationHistory.slice(0, -1))
-          .then(response => {
+        adapter
+          .chat(prompt, undefined, state.conversationHistory.slice(0, -1))
+          .then((response) => {
             // Re-emit as AI response event
             context.emit?.('npc_ai_response', { node, text: response });
           })
-          .catch(error => {
+          .catch((error) => {
             state.isThinking = false;
             context.emit?.('npc_ai_error', { node, error: error.message });
           });
       } else {
         // Fallback to local stub if no adapter is registered
         setTimeout(() => {
-          context.emit?.('npc_ai_response', { 
-            node, 
-            text: `[STUB] I heard "${prompt}", but no AI adapter is registered.` 
+          context.emit?.('npc_ai_response', {
+            node,
+            text: `[STUB] I heard "${prompt}", but no AI adapter is registered.`,
           });
         }, 500);
       }
@@ -110,7 +111,7 @@ export const npcAIHandler: TraitHandler<NPCAIConfig> = {
       state.conversationHistory.push({ role: 'assistant', content: response });
 
       context.emit?.('npc_ai_think_end', { node, response });
-      
+
       // Phase 12.1: Action Parsing (Behavior Synthesis)
       const actionRegex = /<action\s+type="([^"]+)"(?:\s+([^>]+))?\s*\/>/g;
       let match;
@@ -118,7 +119,7 @@ export const npcAIHandler: TraitHandler<NPCAIConfig> = {
         const type = match[1];
         const rawParams = match[2] || '';
         const params: Record<string, string> = {};
-        
+
         // Parse simple attributes: key="value"
         const paramRegex = /(\w+)="([^"]+)"/g;
         let pMatch;
@@ -127,12 +128,12 @@ export const npcAIHandler: TraitHandler<NPCAIConfig> = {
         }
 
         // Emit behavior event
-        context.emit?.(`npc_behavior_${type}`, { 
-          node, 
+        context.emit?.(`npc_behavior_${type}`, {
+          node,
           params,
-          source: 'ai_synthesis' 
+          source: 'ai_synthesis',
         });
-        
+
         // Generic action event for global listeners
         context.emit?.('npc_action', { type, node, params });
       }

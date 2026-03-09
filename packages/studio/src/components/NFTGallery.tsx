@@ -20,11 +20,11 @@ export function NFTGallery({ nfts, loading }: NFTGalleryProps) {
   const currentNFTs = nfts.slice(startIndex, endIndex);
 
   const handlePreviousPage = () => {
-    setCurrentPage(prev => Math.max(1, prev - 1));
+    setCurrentPage((prev) => Math.max(1, prev - 1));
   };
 
   const handleNextPage = () => {
-    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
   };
 
   if (loading) {
@@ -69,7 +69,7 @@ export function NFTGallery({ nfts, loading }: NFTGalleryProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
-        {currentNFTs.map(nft => (
+        {currentNFTs.map((nft) => (
           <div
             key={nft.id}
             className="bg-gray-700 rounded-lg overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all group"

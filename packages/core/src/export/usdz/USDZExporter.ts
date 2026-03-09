@@ -222,12 +222,7 @@ export class USDZExporter {
   // Private Methods - Node Conversion
   // ========================================================================
 
-  private convertNode(
-    node: any,
-    parentPrim: IUSDPrim,
-    sceneGraph: ISceneGraph,
-    depth = 0
-  ): void {
+  private convertNode(node: any, parentPrim: IUSDPrim, sceneGraph: ISceneGraph, depth = 0): void {
     if (!node || depth > 100) return; // Prevent infinite recursion
 
     const nodeName = sanitizeUSDName(node.name || `Node_${this.primCounter++}`);
@@ -251,10 +246,12 @@ export class USDZExporter {
       const meshPath = this.meshMap.get(meshComp.meshRef);
       if (meshPath) {
         // Create reference to mesh
-        xformPrim.relationships = [{
-          name: 'mesh',
-          targets: [meshPath],
-        }];
+        xformPrim.relationships = [
+          {
+            name: 'mesh',
+            targets: [meshPath],
+          },
+        ];
       }
     }
 
@@ -304,7 +301,7 @@ export class USDZExporter {
       prim.attributes.push({
         name: 'xformOpOrder',
         type: 'token[]',
-        value: ops.map(op => `xformOp:${op.type}`),
+        value: ops.map((op) => `xformOp:${op.type}`),
       });
 
       for (const op of ops) {
@@ -319,14 +316,20 @@ export class USDZExporter {
 
   private getXformOpType(opType: string): any {
     switch (opType) {
-      case 'translate': return 'float3';
-      case 'rotateXYZ': return 'float3';
+      case 'translate':
+        return 'float3';
+      case 'rotateXYZ':
+        return 'float3';
       case 'rotateX':
       case 'rotateY':
-      case 'rotateZ': return 'float';
-      case 'scale': return 'float3';
-      case 'transform': return 'matrix4d';
-      default: return 'float3';
+      case 'rotateZ':
+        return 'float';
+      case 'scale':
+        return 'float3';
+      case 'transform':
+        return 'matrix4d';
+      default:
+        return 'float3';
     }
   }
 
@@ -381,7 +384,7 @@ export class USDZExporter {
     if (!this.stage.prims[0].children) this.stage.prims[0].children = [];
 
     // Create Materials scope if it doesn't exist
-    let materialsScope = this.stage.prims[0].children.find(p => p.name === 'Materials');
+    let materialsScope = this.stage.prims[0].children.find((p) => p.name === 'Materials');
     if (!materialsScope) {
       materialsScope = {
         path: '/Root/Materials',
@@ -440,7 +443,7 @@ export class USDZExporter {
     const meshPath = `/Root/Geometry/${meshName}`;
 
     // Create Geometry scope if needed
-    let geometryScope = this.stage.prims[0].children?.find(p => p.name === 'Geometry');
+    let geometryScope = this.stage.prims[0].children?.find((p) => p.name === 'Geometry');
     if (!geometryScope) {
       geometryScope = {
         path: '/Root/Geometry',
@@ -459,12 +462,7 @@ export class USDZExporter {
       const primName = mesh.primitives.length > 1 ? `${meshName}_${i}` : meshName;
       const primPath = mesh.primitives.length > 1 ? `${meshPath}_${i}` : meshPath;
 
-      const usdMesh = await this.convertMeshPrimitive(
-        primitive,
-        primName,
-        primPath,
-        sceneGraph
-      );
+      const usdMesh = await this.convertMeshPrimitive(primitive, primName, primPath, sceneGraph);
 
       geometryScope.children!.push(usdMesh);
       this.meshMap.set(mesh.id, primPath);
@@ -478,10 +476,7 @@ export class USDZExporter {
     sceneGraph: ISceneGraph
   ): Promise<IUSDMesh> {
     // Extract vertex data from accessors
-    const positions = this.extractAccessorData(
-      primitive.attributes.POSITION,
-      sceneGraph
-    );
+    const positions = this.extractAccessorData(primitive.attributes.POSITION, sceneGraph);
     const normals = primitive.attributes.NORMAL
       ? this.extractAccessorData(primitive.attributes.NORMAL, sceneGraph)
       : undefined;
@@ -489,9 +484,10 @@ export class USDZExporter {
       ? this.extractAccessorData(primitive.attributes.TEXCOORD_0, sceneGraph)
       : undefined;
 
-    const indices = primitive.indices !== undefined
-      ? this.extractAccessorData(primitive.indices, sceneGraph)
-      : undefined;
+    const indices =
+      primitive.indices !== undefined
+        ? this.extractAccessorData(primitive.indices, sceneGraph)
+        : undefined;
 
     // Build face data
     const { faceVertexCounts, faceVertexIndices } = this.buildFaceData(
@@ -526,22 +522,26 @@ export class USDZExporter {
 
     // Add UVs
     if (uvs) {
-      usdMesh.primvars = [{
-        name: 'st',
-        type: 'texCoord2f[]',
-        interpolation: 'vertex',
-        values: uvs,
-      }];
+      usdMesh.primvars = [
+        {
+          name: 'st',
+          type: 'texCoord2f[]',
+          interpolation: 'vertex',
+          values: uvs,
+        },
+      ];
     }
 
     // Add material binding
     if (primitive.materialRef) {
       const matPath = this.materialMap.get(primitive.materialRef);
       if (matPath) {
-        usdMesh.relationships = [{
-          name: 'material:binding',
-          targets: [matPath],
-        }];
+        usdMesh.relationships = [
+          {
+            name: 'material:binding',
+            targets: [matPath],
+          },
+        ];
       }
     }
 
@@ -588,14 +588,22 @@ export class USDZExporter {
 
   private getComponentCount(type: string): number {
     switch (type.toLowerCase()) {
-      case 'scalar': return 1;
-      case 'vec2': return 2;
-      case 'vec3': return 3;
-      case 'vec4': return 4;
-      case 'mat2': return 4;
-      case 'mat3': return 9;
-      case 'mat4': return 16;
-      default: return 1;
+      case 'scalar':
+        return 1;
+      case 'vec2':
+        return 2;
+      case 'vec3':
+        return 3;
+      case 'vec4':
+        return 4;
+      case 'mat2':
+        return 4;
+      case 'mat3':
+        return 9;
+      case 'mat4':
+        return 16;
+      default:
+        return 1;
     }
   }
 
@@ -726,7 +734,7 @@ export class USDZExporter {
     if (prim.relationships) {
       for (const rel of prim.relationships) {
         const relInd = '    '.repeat(indent + 1);
-        const targets = rel.targets.map(t => `<${t}>`).join(', ');
+        const targets = rel.targets.map((t) => `<${t}>`).join(', ');
         lines.push(`${relInd}rel ${rel.name} = [${targets}]`);
       }
     }
@@ -752,7 +760,7 @@ export class USDZExporter {
     if (Array.isArray(value)) {
       if (type.includes('[]')) {
         // Array type
-        return `[${value.map(v => this.serializeScalar(v, type.replace('[]', ''))).join(', ')}]`;
+        return `[${value.map((v) => this.serializeScalar(v, type.replace('[]', ''))).join(', ')}]`;
       } else {
         // Tuple type (e.g., float3)
         return `(${value.join(', ')})`;

@@ -98,6 +98,7 @@ const config: RenderNetworkConfig = {
 ```
 
 Webhook payload structure:
+
 ```json
 {
   "event": "job_complete",
@@ -195,7 +196,6 @@ pnpm test RenderNetworkTrait.v32.production
 
 1. **MSW Dependency**: Not installed due to workspace conflicts
    - **Workaround**: Fix `@zoralabs/protocol-sdk` version in `packages/marketplace-api/package.json`
-   
 2. **IndexedDB in Node.js**: Not available in test environment
    - **Workaround**: Tests gracefully handle missing IndexedDB
 
@@ -241,6 +241,7 @@ const region = state.selectedRegion;
 ## Support
 
 For issues related to:
+
 - **Render Network API**: See https://rendernetwork.com/docs
 - **HoloScript Core**: See packages/core/README.md
 - **Production Issues**: File an issue with `[RenderNetwork]` tag

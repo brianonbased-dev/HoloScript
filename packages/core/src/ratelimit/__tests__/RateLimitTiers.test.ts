@@ -16,8 +16,12 @@ describe('RateLimitTiers', () => {
   });
 
   it('tiers have increasing limits', () => {
-    expect(RATE_LIMIT_TIERS.pro.tokensPerSecond).toBeGreaterThan(RATE_LIMIT_TIERS.free.tokensPerSecond);
-    expect(RATE_LIMIT_TIERS.enterprise.tokensPerSecond).toBeGreaterThan(RATE_LIMIT_TIERS.pro.tokensPerSecond);
+    expect(RATE_LIMIT_TIERS.pro.tokensPerSecond).toBeGreaterThan(
+      RATE_LIMIT_TIERS.free.tokensPerSecond
+    );
+    expect(RATE_LIMIT_TIERS.enterprise.tokensPerSecond).toBeGreaterThan(
+      RATE_LIMIT_TIERS.pro.tokensPerSecond
+    );
   });
 
   it('all rate limit configs have positive values', () => {
@@ -45,7 +49,9 @@ describe('RateLimitTiers', () => {
   });
 
   it('free quotas are more restrictive than pro', () => {
-    expect(QUOTA_TIERS.free.daily.parseOperations).toBeLessThan(QUOTA_TIERS.pro.daily.parseOperations);
+    expect(QUOTA_TIERS.free.daily.parseOperations).toBeLessThan(
+      QUOTA_TIERS.pro.daily.parseOperations
+    );
     expect(QUOTA_TIERS.free.monthly.apiCalls).toBeLessThan(QUOTA_TIERS.pro.monthly.apiCalls);
   });
 

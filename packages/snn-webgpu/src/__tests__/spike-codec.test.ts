@@ -289,7 +289,7 @@ describe('SpikeDecoder', () => {
 
       const curves = new Float32Array(NEURON_COUNT);
       for (let i = 0; i < NEURON_COUNT; i++) {
-        curves[i] = Math.sin(i * Math.PI / NEURON_COUNT);
+        curves[i] = Math.sin((i * Math.PI) / NEURON_COUNT);
       }
       decoder.setTuningCurves(curves);
       decoder.destroy();

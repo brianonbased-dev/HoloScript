@@ -8,7 +8,10 @@ import { describe, it, expect } from 'vitest';
 import { SnapshotInterpolation, Snapshot } from '../SnapshotInterpolation';
 
 // ─── Helpers ────────────────────────────────────────────────────────
-function makeSnapshot(ts: number, entities: Record<string, { x: number; y: number; z: number }>): Snapshot {
+function makeSnapshot(
+  ts: number,
+  entities: Record<string, { x: number; y: number; z: number }>
+): Snapshot {
   return { timestamp: ts, entities: new Map(Object.entries(entities)) };
 }
 
@@ -45,7 +48,7 @@ describe('SnapshotInterpolation — Production', () => {
     si.pushSnapshot(makeSnapshot(200, { a: { x: 2, y: 0, z: 0 } }));
     // Interpolate at renderTime = 150, should lerp between t=100 and t=200
     const results = si.interpolate(150);
-    const a = results.find(e => e.id === 'a')!;
+    const a = results.find((e) => e.id === 'a')!;
     expect(a.interpolated).toBe(true);
     expect(a.x).toBeCloseTo(1.5, 1);
   });
@@ -56,7 +59,7 @@ describe('SnapshotInterpolation — Production', () => {
     si.pushSnapshot(makeSnapshot(0, { p1: { x: 0, y: 0, z: 0 } }));
     si.pushSnapshot(makeSnapshot(100, { p1: { x: 10, y: 0, z: 0 } }));
     const results = si.interpolate(50);
-    const p = results.find(e => e.id === 'p1')!;
+    const p = results.find((e) => e.id === 'p1')!;
     expect(p.interpolated).toBe(true);
     expect(p.x).toBeCloseTo(5, 1);
     expect(p.y).toBe(0);
@@ -67,7 +70,7 @@ describe('SnapshotInterpolation — Production', () => {
     si.pushSnapshot(makeSnapshot(0, { e: { x: 0, y: 0, z: 0 } }));
     si.pushSnapshot(makeSnapshot(100, { e: { x: 0, y: 10, z: 20 } }));
     const results = si.interpolate(75);
-    const e = results.find(r => r.id === 'e')!;
+    const e = results.find((r) => r.id === 'e')!;
     expect(e.y).toBeCloseTo(7.5, 1);
     expect(e.z).toBeCloseTo(15, 1);
   });
@@ -78,7 +81,7 @@ describe('SnapshotInterpolation — Production', () => {
     si.pushSnapshot(makeSnapshot(100, { a: { x: 10, y: 0, z: 0 } }));
     // currentTime=100, renderTime=50
     const results = si.interpolate(100);
-    const a = results.find(e => e.id === 'a')!;
+    const a = results.find((e) => e.id === 'a')!;
     expect(a.x).toBeCloseTo(5, 1);
   });
 
@@ -87,7 +90,7 @@ describe('SnapshotInterpolation — Production', () => {
     const si = new SnapshotInterpolation(10, 0);
     si.pushSnapshot(makeSnapshot(100, { e: { x: 5, y: 0, z: 0 } }));
     const results = si.interpolate(999); // way beyond
-    const e = results.find(r => r.id === 'e')!;
+    const e = results.find((r) => r.id === 'e')!;
     expect(e.interpolated).toBe(false);
     expect(e.x).toBe(5);
   });
@@ -103,8 +106,8 @@ describe('SnapshotInterpolation — Production', () => {
     si.pushSnapshot(makeSnapshot(0, { a: { x: 0, y: 0, z: 0 }, b: { x: 1, y: 0, z: 0 } }));
     si.pushSnapshot(makeSnapshot(100, { a: { x: 10, y: 0, z: 0 } })); // b gone
     const results = si.interpolate(50);
-    const a = results.find(e => e.id === 'a')!;
-    const b = results.find(e => e.id === 'b')!;
+    const a = results.find((e) => e.id === 'a')!;
+    const b = results.find((e) => e.id === 'b')!;
     expect(a.interpolated).toBe(true);
     expect(b.interpolated).toBe(false); // can't interpolate, uses 'from' pos
     expect(b.x).toBe(1);

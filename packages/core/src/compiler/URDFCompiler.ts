@@ -338,7 +338,10 @@ export class URDFCompiler extends CompilerBase {
     if (!trait) return undefined;
     if (typeof trait === 'string') return {};
     // Return the trait object minus the name
-    const { name: _name, ...config } = trait as unknown as { name: string } & Record<string, unknown>;
+    const { name: _name, ...config } = trait as unknown as { name: string } & Record<
+      string,
+      unknown
+    >;
     return config;
   }
 
@@ -548,7 +551,10 @@ export class URDFCompiler extends CompilerBase {
           geometryValue.endsWith('.stl') ||
           geometryValue.endsWith('.obj')
         ) {
-          const filename = geometryValue.replace('.glb', '.stl').replace('.dae', '.stl').replace('.obj', '.stl');
+          const filename = geometryValue
+            .replace('.glb', '.stl')
+            .replace('.dae', '.stl')
+            .replace('.obj', '.stl');
           return {
             type: 'mesh',
             filename: `${this.options.meshPathPrefix}${filename}`,
@@ -701,39 +707,43 @@ export class URDFCompiler extends CompilerBase {
     this.emitBlank();
     this.emit('<!-- v4.2 Domain Blocks -->');
 
-    const compiled = compileDomainBlocks(domainBlocks, {
-      material: (block) => {
-        const mat = compileMaterialBlock(block);
-        const lines: string[] = [];
-        lines.push(`<material name="${mat.name}">`);
-        if (mat.baseColor) {
-          const h = mat.baseColor.replace('#', '');
-          const r = (parseInt(h.substring(0, 2), 16) / 255).toFixed(3);
-          const g = (parseInt(h.substring(2, 4), 16) / 255).toFixed(3);
-          const b = (parseInt(h.substring(4, 6), 16) / 255).toFixed(3);
-          lines.push(`  <color rgba="${r} ${g} ${b} ${mat.opacity ?? 1}"/>`);
-        }
-        for (const [mapType, path] of Object.entries(mat.textureMaps)) {
-          if (mapType === 'albedo_map') {
-            lines.push(`  <texture filename="${path}"/>`);
+    const compiled = compileDomainBlocks(
+      domainBlocks,
+      {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          const lines: string[] = [];
+          lines.push(`<material name="${mat.name}">`);
+          if (mat.baseColor) {
+            const h = mat.baseColor.replace('#', '');
+            const r = (parseInt(h.substring(0, 2), 16) / 255).toFixed(3);
+            const g = (parseInt(h.substring(2, 4), 16) / 255).toFixed(3);
+            const b = (parseInt(h.substring(4, 6), 16) / 255).toFixed(3);
+            lines.push(`  <color rgba="${r} ${g} ${b} ${mat.opacity ?? 1}"/>`);
           }
-        }
-        lines.push('</material>');
-        return lines.join('\n');
+          for (const [mapType, path] of Object.entries(mat.textureMaps)) {
+            if (mapType === 'albedo_map') {
+              lines.push(`  <texture filename="${path}"/>`);
+            }
+          }
+          lines.push('</material>');
+          return lines.join('\n');
+        },
+        physics: (block) => {
+          const phys = compilePhysicsBlock(block);
+          return physicsToURDF(phys);
+        },
+        audio: (block) => {
+          const audio = compileAudioSourceBlock(block);
+          return `<!-- Audio: ${audio.name} (${audio.keyword}) clip="${audio.properties.clip || ''}" volume="${audio.properties.volume ?? 1}" -->`;
+        },
+        weather: (block) => {
+          const weather = compileWeatherBlock(block);
+          return `<!-- Weather: ${weather.keyword} "${weather.name || ''}" layers: ${weather.layers.map((l) => l.type).join(', ')} -->`;
+        },
       },
-      physics: (block) => {
-        const phys = compilePhysicsBlock(block);
-        return physicsToURDF(phys);
-      },
-      audio: (block) => {
-        const audio = compileAudioSourceBlock(block);
-        return `<!-- Audio: ${audio.name} (${audio.keyword}) clip="${audio.properties.clip || ''}" volume="${audio.properties.volume ?? 1}" -->`;
-      },
-      weather: (block) => {
-        const weather = compileWeatherBlock(block);
-        return `<!-- Weather: ${weather.keyword} "${weather.name || ''}" layers: ${weather.layers.map(l => l.type).join(', ')} -->`;
-      },
-    }, (block) => `<!-- Domain block: ${block.domain}/${block.keyword} "${block.name}" -->`);
+      (block) => `<!-- Domain block: ${block.domain}/${block.keyword} "${block.name}" -->`
+    );
 
     for (const output of compiled) {
       for (const line of output.split('\n')) {
@@ -894,11 +904,11 @@ export class URDFCompiler extends CompilerBase {
           lower:
             joint.type === 'revolute'
               ? ((limitsConfig.min ?? -180) * Math.PI) / 180
-              : limitsConfig.min ?? -1,
+              : (limitsConfig.min ?? -1),
           upper:
             joint.type === 'revolute'
               ? ((limitsConfig.max ?? 180) * Math.PI) / 180
-              : limitsConfig.max ?? 1,
+              : (limitsConfig.max ?? 1),
           effort: limitsConfig.effort ?? 100,
           velocity: limitsConfig.velocity ?? 1,
         };
@@ -1022,10 +1032,7 @@ export class URDFCompiler extends CompilerBase {
   }
 
   /** Process @sensor trait into sensor definition */
-  private processSensorTrait(
-    config: Record<string, unknown>,
-    parentLink: string
-  ): void {
+  private processSensorTrait(config: Record<string, unknown>, parentLink: string): void {
     const sensorType = (config.sensorType || config.type || 'camera') as string;
     const name = (config.name || `${parentLink}_${sensorType}_sensor`) as string;
 
@@ -1292,9 +1299,7 @@ export class URDFCompiler extends CompilerBase {
         break;
       case 'mesh':
         if (geom.scale && (geom.scale[0] !== 1 || geom.scale[1] !== 1 || geom.scale[2] !== 1)) {
-          this.emit(
-            `<mesh filename="${geom.filename}" scale="${geom.scale.join(' ')}"/>`
-          );
+          this.emit(`<mesh filename="${geom.filename}" scale="${geom.scale.join(' ')}"/>`);
         } else {
           this.emit(`<mesh filename="${geom.filename}"/>`);
         }
@@ -1405,7 +1410,9 @@ export class URDFCompiler extends CompilerBase {
     if (this.options.includeROS2Control && this.ros2Controls.length > 0) {
       this.emit('<plugin filename="gz_ros2_control-system" name="gz_ros2_control">');
       this.indentLevel++;
-      this.emit('<parameters>$(find ' + this.options.packageName + ')/config/controllers.yaml</parameters>');
+      this.emit(
+        '<parameters>$(find ' + this.options.packageName + ')/config/controllers.yaml</parameters>'
+      );
       this.indentLevel--;
       this.emit('</plugin>');
     }
@@ -1542,7 +1549,9 @@ export class URDFCompiler extends CompilerBase {
       this.emit('<imu>');
       this.indentLevel++;
       if (sensor.imu?.gaussianNoise) {
-        this.emit(`<noise><type>gaussian</type><stddev>${sensor.imu.gaussianNoise}</stddev></noise>`);
+        this.emit(
+          `<noise><type>gaussian</type><stddev>${sensor.imu.gaussianNoise}</stddev></noise>`
+        );
       }
       this.indentLevel--;
       this.emit('</imu>');
@@ -1575,7 +1584,9 @@ export class URDFCompiler extends CompilerBase {
 
       this.emit('<plugin name="bumper_controller" filename="libgazebo_ros_bumper.so">');
       this.indentLevel++;
-      this.emit(`<ros><remapping>bumper_states:=${sensor.topicName || '/bumper'}</remapping></ros>`);
+      this.emit(
+        `<ros><remapping>bumper_states:=${sensor.topicName || '/bumper'}</remapping></ros>`
+      );
       this.emit(`<frame_name>${sensor.frameName}</frame_name>`);
       this.indentLevel--;
       this.emit('</plugin>');
@@ -1677,7 +1688,9 @@ export class URDFCompiler extends CompilerBase {
 
   /** Emit Isaac Sim sensor extension tag */
   private emitIsaacSimSensor(sensor: URDFIsaacSimSensor): void {
-    this.emit(`<sensor name="${sensor.name}" type="${sensor.type}" isaac_sim_config="${sensor.isaacSimConfig}">`);
+    this.emit(
+      `<sensor name="${sensor.name}" type="${sensor.type}" isaac_sim_config="${sensor.isaacSimConfig}">`
+    );
     this.indentLevel++;
     this.emit(`<parent link="${sensor.parentLink}"/>`);
     if (sensor.origin) {
@@ -1691,8 +1704,12 @@ export class URDFCompiler extends CompilerBase {
   private emitLoopJoint(loopJoint: URDFLoopJoint): void {
     this.emit(`<loop_joint name="${loopJoint.name}" type="${loopJoint.type}">`);
     this.indentLevel++;
-    this.emit(`<link1 link="${loopJoint.link1.link}" rpy="${loopJoint.link1.rpy.join(' ')}" xyz="${loopJoint.link1.xyz.join(' ')}"/>`);
-    this.emit(`<link1 link="${loopJoint.link2.link}" rpy="${loopJoint.link2.rpy.join(' ')}" xyz="${loopJoint.link2.xyz.join(' ')}"/>`);
+    this.emit(
+      `<link1 link="${loopJoint.link1.link}" rpy="${loopJoint.link1.rpy.join(' ')}" xyz="${loopJoint.link1.xyz.join(' ')}"/>`
+    );
+    this.emit(
+      `<link1 link="${loopJoint.link2.link}" rpy="${loopJoint.link2.rpy.join(' ')}" xyz="${loopJoint.link2.xyz.join(' ')}"/>`
+    );
     this.indentLevel--;
     this.emit('</loop_joint>');
   }
@@ -1730,8 +1747,12 @@ export class URDFCompiler extends CompilerBase {
     }
 
     // PhysX tuning as comments (for post-import configuration scripts)
-    this.emit(`<!-- isaac_sim_config: drive_type=${this.options.isaacSimDriveType} target_type=${this.options.isaacSimTargetType} -->`);
-    this.emit(`<!-- isaac_sim_config: solver_position_iterations=${this.options.isaacSimSolverPositionIterations} solver_velocity_iterations=${this.options.isaacSimSolverVelocityIterations} -->`);
+    this.emit(
+      `<!-- isaac_sim_config: drive_type=${this.options.isaacSimDriveType} target_type=${this.options.isaacSimTargetType} -->`
+    );
+    this.emit(
+      `<!-- isaac_sim_config: solver_position_iterations=${this.options.isaacSimSolverPositionIterations} solver_velocity_iterations=${this.options.isaacSimSolverVelocityIterations} -->`
+    );
   }
 }
 
@@ -1742,10 +1763,7 @@ export class URDFCompiler extends CompilerBase {
 /**
  * Compile HoloScript composition to URDF format
  */
-export function compileToURDF(
-  composition: HoloComposition,
-  options?: URDFCompilerOptions
-): string {
+export function compileToURDF(composition: HoloComposition, options?: URDFCompilerOptions): string {
   const compiler = new URDFCompiler(options);
   return compiler.compile(composition);
 }
@@ -1831,7 +1849,10 @@ export function generateROS2LaunchFile(
   const useSimTime = options?.useSimTime ?? true;
   const rviz = options?.rviz ?? true;
   const gazebo = options?.gazebo ?? true;
-  const controllers = options?.controllers ?? ['joint_state_broadcaster', 'joint_trajectory_controller'];
+  const controllers = options?.controllers ?? [
+    'joint_state_broadcaster',
+    'joint_trajectory_controller',
+  ];
 
   const lines: string[] = [];
   lines.push('"""');
@@ -1842,11 +1863,15 @@ export function generateROS2LaunchFile(
   lines.push('import os');
   lines.push('from ament_index_python.packages import get_package_share_directory');
   lines.push('from launch import LaunchDescription');
-  lines.push('from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, RegisterEventHandler');
+  lines.push(
+    'from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, RegisterEventHandler'
+  );
   lines.push('from launch.conditions import IfCondition');
   lines.push('from launch.event_handlers import OnProcessExit');
   lines.push('from launch.launch_description_sources import PythonLaunchDescriptionSource');
-  lines.push('from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution');
+  lines.push(
+    'from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution'
+  );
   lines.push('from launch_ros.actions import Node');
   lines.push('from launch_ros.substitutions import FindPackageShare');
   lines.push('');
@@ -1885,11 +1910,11 @@ export function generateROS2LaunchFile(
 
   if (gazebo) {
     lines.push('    # Gazebo');
-    lines.push("    gazebo = IncludeLaunchDescription(");
-    lines.push("        PythonLaunchDescriptionSource([");
+    lines.push('    gazebo = IncludeLaunchDescription(');
+    lines.push('        PythonLaunchDescriptionSource([');
     lines.push("            FindPackageShare('ros_gz_sim'),");
     lines.push("            '/launch/gz_sim.launch.py',");
-    lines.push("        ]),");
+    lines.push('        ]),');
     lines.push("        launch_arguments={'gz_args': '-r empty.sdf'}.items(),");
     lines.push('    )');
     lines.push('');
@@ -1897,7 +1922,9 @@ export function generateROS2LaunchFile(
     lines.push('    spawn_entity = Node(');
     lines.push("        package='ros_gz_sim',");
     lines.push("        executable='create',");
-    lines.push("        arguments=['-topic', 'robot_description', '-name', '" + packageName + "'],");
+    lines.push(
+      "        arguments=['-topic', 'robot_description', '-name', '" + packageName + "'],"
+    );
     lines.push("        output='screen',");
     lines.push('    )');
     lines.push('');
@@ -1942,7 +1969,8 @@ export function generateControllersYaml(
     publishRate?: number;
   }
 ): string {
-  const controllerType = options?.controllerType ?? 'joint_trajectory_controller/JointTrajectoryController';
+  const controllerType =
+    options?.controllerType ?? 'joint_trajectory_controller/JointTrajectoryController';
   const publishRate = options?.publishRate ?? 50;
 
   const lines: string[] = [];

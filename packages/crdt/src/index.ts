@@ -21,11 +21,7 @@ export {
   CRDTOperationType,
 } from './auth/DIDSigner';
 
-export {
-  OperationLog,
-  type OperationLogConfig,
-  type LogEntry,
-} from './auth/OperationLog';
+export { OperationLog, type OperationLogConfig, type LogEntry } from './auth/OperationLog';
 
 export {
   RBACConflictResolver,
@@ -38,18 +34,11 @@ export {
 } from './auth/RBACConflictResolver';
 
 // CRDT types
-export {
-  LWWRegister,
-  type LWWValue,
-} from './types/LWWRegister';
+export { LWWRegister, type LWWValue } from './types/LWWRegister';
 
-export {
-  ORSet,
-} from './types/ORSet';
+export { ORSet } from './types/ORSet';
 
-export {
-  GCounter,
-} from './types/GCounter';
+export { GCounter } from './types/GCounter';
 
 // Synchronization
 export {

@@ -13,13 +13,15 @@
 
 export interface MorphDelta {
   vertexIndex: number;
-  dx: number; dy: number; dz: number;
+  dx: number;
+  dy: number;
+  dz: number;
 }
 
 export interface MorphTarget {
   name: string;
   deltas: MorphDelta[];
-  weight: number;           // 0-1
+  weight: number; // 0-1
 }
 
 export interface MorphPreset {
@@ -36,7 +38,9 @@ export class MorphTargetSystem {
   private presets: Map<string, MorphPreset> = new Map();
   private vertexCount: number;
 
-  constructor(vertexCount: number) { this.vertexCount = vertexCount; }
+  constructor(vertexCount: number) {
+    this.vertexCount = vertexCount;
+  }
 
   // ---------------------------------------------------------------------------
   // Target Management
@@ -46,14 +50,18 @@ export class MorphTargetSystem {
     this.targets.set(name, { name, deltas, weight: 0 });
   }
 
-  removeTarget(name: string): void { this.targets.delete(name); }
+  removeTarget(name: string): void {
+    this.targets.delete(name);
+  }
 
   setWeight(name: string, weight: number): void {
     const target = this.targets.get(name);
     if (target) target.weight = Math.max(0, Math.min(1, weight));
   }
 
-  getWeight(name: string): number { return this.targets.get(name)?.weight ?? 0; }
+  getWeight(name: string): number {
+    return this.targets.get(name)?.weight ?? 0;
+  }
 
   // ---------------------------------------------------------------------------
   // Preset Management
@@ -109,7 +117,13 @@ export class MorphTargetSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getTargetCount(): number { return this.targets.size; }
-  getActiveTargets(): string[] { return [...this.targets.values()].filter(t => t.weight > 0).map(t => t.name); }
-  getVertexCount(): number { return this.vertexCount; }
+  getTargetCount(): number {
+    return this.targets.size;
+  }
+  getActiveTargets(): string[] {
+    return [...this.targets.values()].filter((t) => t.weight > 0).map((t) => t.name);
+  }
+  getVertexCount(): number {
+    return this.vertexCount;
+  }
 }

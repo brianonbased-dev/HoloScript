@@ -10,9 +10,15 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
   it('should sample linear keyframes', () => {
     const clip = new AnimClip('walk', 'Walk', 2);
     clip.addTrack({
-      id: 't1', targetPath: 'root', property: 'position', component: 'y',
+      id: 't1',
+      targetPath: 'root',
+      property: 'position',
+      component: 'y',
       interpolation: 'linear',
-      keyframes: [{ time: 0, value: 0 }, { time: 2, value: 10 }],
+      keyframes: [
+        { time: 0, value: 0 },
+        { time: 2, value: 10 },
+      ],
     });
 
     const mid = clip.sample(1);
@@ -43,9 +49,16 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
   it('should support step interpolation', () => {
     const clip = new AnimClip('step', 'Step', 2);
     clip.addTrack({
-      id: 't1', targetPath: 'root', property: 'frame', component: undefined,
+      id: 't1',
+      targetPath: 'root',
+      property: 'frame',
+      component: undefined,
       interpolation: 'step',
-      keyframes: [{ time: 0, value: 0 }, { time: 1, value: 5 }, { time: 2, value: 10 }],
+      keyframes: [
+        { time: 0, value: 0 },
+        { time: 1, value: 5 },
+        { time: 2, value: 10 },
+      ],
     });
 
     expect(clip.sample(0.5).get('root.frame')).toBe(0); // Step holds value
@@ -59,9 +72,24 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
   it('should solve two-bone IK toward target', () => {
     const solver = new IKSolver();
     const bones: IKBone[] = [
-      { id: 'upper', position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 5 },
-      { id: 'lower', position: { x: 5, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 5 },
-      { id: 'end',   position: { x: 10, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 0 },
+      {
+        id: 'upper',
+        position: { x: 0, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        length: 5,
+      },
+      {
+        id: 'lower',
+        position: { x: 5, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        length: 5,
+      },
+      {
+        id: 'end',
+        position: { x: 10, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        length: 0,
+      },
     ];
 
     solver.addChain({ id: 'arm', bones, target: { x: 7, y: 3, z: 0 }, weight: 1, iterations: 10 });
@@ -78,7 +106,8 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
     const bones: IKBone[] = [];
     for (let i = 0; i < 5; i++) {
       bones.push({
-        id: `bone${i}`, length: 2,
+        id: `bone${i}`,
+        length: 2,
         position: { x: i * 2, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
       });
@@ -89,7 +118,8 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
 
     const chain = solver.getChain('tail')!;
     const end = chain.bones[chain.bones.length - 1].position;
-    const dx = end.x - 4, dy = end.y - 4;
+    const dx = end.x - 4,
+      dy = end.y - 4;
     const dist = Math.sqrt(dx * dx + dy * dy);
     expect(dist).toBeLessThan(3); // Should be reasonably close
   });
@@ -113,8 +143,20 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
       { id: 'c', position: { x: 6, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 0 },
     ];
 
-    solver.addChain({ id: 'left', bones: makeBones(), target: { x: 4, y: 2, z: 0 }, weight: 1, iterations: 10 });
-    solver.addChain({ id: 'right', bones: makeBones(), target: { x: 4, y: -2, z: 0 }, weight: 1, iterations: 10 });
+    solver.addChain({
+      id: 'left',
+      bones: makeBones(),
+      target: { x: 4, y: 2, z: 0 },
+      weight: 1,
+      iterations: 10,
+    });
+    solver.addChain({
+      id: 'right',
+      bones: makeBones(),
+      target: { x: 4, y: -2, z: 0 },
+      weight: 1,
+      iterations: 10,
+    });
 
     solver.solveAll();
     expect(solver.getChainCount()).toBe(2);

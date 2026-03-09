@@ -27,16 +27,16 @@ export enum CircuitBreakerState {
 export interface CircuitBreakerConfig {
   /** Failure threshold before opening circuit */
   failureThreshold: number;
-  
+
   /** Success threshold to close circuit from half-open state */
   successThreshold: number;
-  
+
   /** Time to wait before transitioning to half-open (ms) */
   resetTimeoutMs: number;
-  
+
   /** Rolling window size for tracking failures (ms) */
   windowMs: number;
-  
+
   /** Function to determine if error is retryable */
   isRetryable?: (error: Error) => boolean;
 }
@@ -44,19 +44,19 @@ export interface CircuitBreakerConfig {
 export interface RetryConfig {
   /** Maximum number of attempts */
   maxAttempts: number;
-  
+
   /** Initial backoff in ms */
   initialBackoffMs: number;
-  
+
   /** Maximum backoff in ms */
   maxBackoffMs: number;
-  
+
   /** Backoff multiplier */
   multiplier: number;
-  
+
   /** Add random jitter to backoff */
   jitter: boolean;
-  
+
   /** Function to determine if error should be retried */
   isRetryable?: (error: Error, attempt: number) => boolean;
 }
@@ -64,10 +64,10 @@ export interface RetryConfig {
 export interface BulkheadConfig {
   /** Maximum concurrent operations */
   maxConcurrent: number;
-  
+
   /** Queue size for pending operations */
   queueSize: number;
-  
+
   /** Timeout for queued operations (ms) */
   timeoutMs: number;
 }
@@ -126,9 +126,7 @@ export class CircuitBreaker {
 
   private onSuccess(): void {
     this.failureCount = 0;
-    this.failures = this.failures.filter(
-      (f) => Date.now() - f.timestamp < this.config.windowMs
-    );
+    this.failures = this.failures.filter((f) => Date.now() - f.timestamp < this.config.windowMs);
 
     if (this.state === CircuitBreakerState.HALF_OPEN) {
       this.successCount++;
@@ -145,18 +143,14 @@ export class CircuitBreaker {
     this.failures.push({ timestamp: Date.now(), error });
 
     // Remove old failures outside window
-    this.failures = this.failures.filter(
-      (f) => Date.now() - f.timestamp < this.config.windowMs
-    );
+    this.failures = this.failures.filter((f) => Date.now() - f.timestamp < this.config.windowMs);
 
     if (this.state === CircuitBreakerState.HALF_OPEN) {
       this.state = CircuitBreakerState.OPEN;
       console.log('Circuit breaker OPEN - service still failing');
     } else if (this.failureCount >= this.config.failureThreshold) {
       this.state = CircuitBreakerState.OPEN;
-      console.error(
-        `Circuit breaker OPEN after ${this.failureCount} failures: ${error.message}`
-      );
+      console.error(`Circuit breaker OPEN after ${this.failureCount} failures: ${error.message}`);
     }
   }
 
@@ -281,16 +275,13 @@ export class Bulkhead {
     }
 
     return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(
-        () => {
-          const idx = this.queue.findIndex((item) => item.resolve === resolve);
-          if (idx !== -1) {
-            this.queue.splice(idx, 1);
-          }
-          reject(new Error('Bulkhead operation timeout'));
-        },
-        this.config.timeoutMs
-      );
+      const timeoutId = setTimeout(() => {
+        const idx = this.queue.findIndex((item) => item.resolve === resolve);
+        if (idx !== -1) {
+          this.queue.splice(idx, 1);
+        }
+        reject(new Error('Bulkhead operation timeout'));
+      }, this.config.timeoutMs);
 
       this.queue.push({
         fn,
@@ -365,9 +356,7 @@ export class Bulkhead {
 /**
  * Try multiple strategies in order until one succeeds
  */
-export async function fallbackChain<T>(
-  strategies: Array<() => Promise<T>>
-): Promise<T> {
+export async function fallbackChain<T>(strategies: Array<() => Promise<T>>): Promise<T> {
   let lastError: Error | null = null;
 
   for (let i = 0; i < strategies.length; i++) {
@@ -423,17 +412,11 @@ function sleep(ms: number): Promise<void> {
 /**
  * Timeout helper
  */
-export async function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number
-): Promise<T> {
+export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`Operation timeout after ${timeoutMs}ms`)),
-        timeoutMs
-      )
+      setTimeout(() => reject(new Error(`Operation timeout after ${timeoutMs}ms`)), timeoutMs)
     ),
   ]);
 }

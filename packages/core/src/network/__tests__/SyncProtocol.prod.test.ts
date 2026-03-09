@@ -16,7 +16,9 @@ import { DeltaEncoder, InterestManager } from '../SyncProtocol';
 describe('DeltaEncoder', () => {
   let enc: DeltaEncoder;
 
-  beforeEach(() => { enc = new DeltaEncoder(0.001); });
+  beforeEach(() => {
+    enc = new DeltaEncoder(0.001);
+  });
 
   // -------------------------------------------------------------------------
   // encode — first call (baseline)
@@ -58,13 +60,13 @@ describe('DeltaEncoder', () => {
     it('removed key produces delete op', () => {
       enc.encode('e1', { x: 1, y: 2 });
       const d = enc.encode('e1', { x: 1 });
-      expect(d!.changes.some(c => c.op === 'delete' && c.path === 'y')).toBe(true);
+      expect(d!.changes.some((c) => c.op === 'delete' && c.path === 'y')).toBe(true);
     });
 
     it('added key produces set op', () => {
       enc.encode('e1', { x: 1 });
       const d = enc.encode('e1', { x: 1, z: 99 });
-      expect(d!.changes.some(c => c.op === 'set' && c.path === 'z')).toBe(true);
+      expect(d!.changes.some((c) => c.op === 'set' && c.path === 'z')).toBe(true);
     });
 
     it('delta has correct version range', () => {
@@ -130,9 +132,16 @@ describe('DeltaEncoder', () => {
     });
 
     it('decodes increment op', () => {
-      enc.setFullState('e1', { entityId: 'e1', version: 1, timestamp: 0, properties: { count: 10 } });
+      enc.setFullState('e1', {
+        entityId: 'e1',
+        version: 1,
+        timestamp: 0,
+        properties: { count: 10 },
+      });
       const state = enc.decode({
-        entityId: 'e1', baseVersion: 1, targetVersion: 2,
+        entityId: 'e1',
+        baseVersion: 1,
+        targetVersion: 2,
         changes: [{ path: 'count', op: 'increment', value: 5 }],
         timestamp: Date.now(),
       });
@@ -140,9 +149,16 @@ describe('DeltaEncoder', () => {
     });
 
     it('decodes append op', () => {
-      enc.setFullState('e1', { entityId: 'e1', version: 1, timestamp: 0, properties: { list: [1, 2] } });
+      enc.setFullState('e1', {
+        entityId: 'e1',
+        version: 1,
+        timestamp: 0,
+        properties: { list: [1, 2] },
+      });
       const state = enc.decode({
-        entityId: 'e1', baseVersion: 1, targetVersion: 2,
+        entityId: 'e1',
+        baseVersion: 1,
+        targetVersion: 2,
         changes: [{ path: 'list', op: 'append', value: [3] }],
         timestamp: Date.now(),
       });
@@ -155,7 +171,12 @@ describe('DeltaEncoder', () => {
   // -------------------------------------------------------------------------
   describe('setFullState / getCachedState / clear', () => {
     it('setFullState makes state available via getCachedState', () => {
-      enc.setFullState('e1', { entityId: 'e1', version: 10, timestamp: 0, properties: { hp: 100 } });
+      enc.setFullState('e1', {
+        entityId: 'e1',
+        version: 10,
+        timestamp: 0,
+        properties: { hp: 100 },
+      });
       expect(enc.getCachedState('e1')!.version).toBe(10);
     });
 
@@ -178,7 +199,9 @@ describe('DeltaEncoder', () => {
 describe('InterestManager', () => {
   let im: InterestManager;
 
-  beforeEach(() => { im = new InterestManager(); });
+  beforeEach(() => {
+    im = new InterestManager();
+  });
 
   // -------------------------------------------------------------------------
   // setInterest / isInInterest

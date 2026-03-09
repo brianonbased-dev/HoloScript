@@ -5,7 +5,7 @@
  * sent to the LLM with each message.
  */
 
-import type { SceneNode } from '@/lib/store';
+import type { SceneNode } from '@/lib/stores';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

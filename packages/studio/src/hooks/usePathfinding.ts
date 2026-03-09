@@ -3,10 +3,7 @@
  * usePathfinding — Hook for A* pathfinding visualization
  */
 import { useState, useCallback, useRef } from 'react';
-import {
-  NavMesh, AStarPathfinder,
-  type NavPoint, type PathResult,
-} from '@holoscript/core';
+import { NavMesh, AStarPathfinder, type NavPoint, type PathResult } from '@holoscript/core';
 
 export interface UsePathfindingReturn {
   pathfinder: AStarPathfinder;
@@ -27,12 +24,16 @@ function createGridMesh(cols: number, rows: number, cellSize: number): NavMesh {
   for (let r = 0; r < rows; r++) {
     polyIds[r] = [];
     for (let c = 0; c < cols; c++) {
-      const poly = mesh.addPolygon([
-        { x: c * cellSize, y: 0, z: r * cellSize },
-        { x: (c + 1) * cellSize, y: 0, z: r * cellSize },
-        { x: (c + 1) * cellSize, y: 0, z: (r + 1) * cellSize },
-        { x: c * cellSize, y: 0, z: (r + 1) * cellSize },
-      ], true, 1);
+      const poly = mesh.addPolygon(
+        [
+          { x: c * cellSize, y: 0, z: r * cellSize },
+          { x: (c + 1) * cellSize, y: 0, z: r * cellSize },
+          { x: (c + 1) * cellSize, y: 0, z: (r + 1) * cellSize },
+          { x: c * cellSize, y: 0, z: (r + 1) * cellSize },
+        ],
+        true,
+        1
+      );
       polyIds[r][c] = poly.id;
     }
   }
@@ -51,7 +52,9 @@ export function usePathfinding(): UsePathfindingReturn {
   const meshRef = useRef(createGridMesh(8, 8, 4));
   const pfRef = useRef(new AStarPathfinder(meshRef.current));
   const [lastResult, setLastResult] = useState<PathResult | null>(null);
-  const [obstacles, setObstacles] = useState<Array<{ id: string; position: NavPoint; radius: number }>>([]);
+  const [obstacles, setObstacles] = useState<
+    Array<{ id: string; position: NavPoint; radius: number }>
+  >([]);
 
   const findPath = useCallback((start: NavPoint, goal: NavPoint) => {
     const result = pfRef.current.findPath(start, goal);
@@ -62,12 +65,12 @@ export function usePathfinding(): UsePathfindingReturn {
   const addObstacle = useCallback((pos: NavPoint, radius = 2) => {
     const id = `obs-${Date.now()}`;
     pfRef.current.addObstacle(id, pos, radius);
-    setObstacles(prev => [...prev, { id, position: pos, radius }]);
+    setObstacles((prev) => [...prev, { id, position: pos, radius }]);
   }, []);
 
   const removeObstacle = useCallback((id: string) => {
     pfRef.current.removeObstacle(id);
-    setObstacles(prev => prev.filter(o => o.id !== id));
+    setObstacles((prev) => prev.filter((o) => o.id !== id));
   }, []);
 
   const buildDemoMesh = useCallback(() => {
@@ -86,5 +89,15 @@ export function usePathfinding(): UsePathfindingReturn {
     setLastResult(null);
   }, []);
 
-  return { pathfinder: pfRef.current, mesh: meshRef.current, lastResult, obstacles, findPath, addObstacle, removeObstacle, buildDemoMesh, reset };
+  return {
+    pathfinder: pfRef.current,
+    mesh: meshRef.current,
+    lastResult,
+    obstacles,
+    findPath,
+    addObstacle,
+    removeObstacle,
+    buildDemoMesh,
+    reset,
+  };
 }

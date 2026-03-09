@@ -113,7 +113,9 @@ async function testMultiplayer() {
 
     if (eventFired) {
       console.log('   ✓ Property change event fired');
-      console.log(`     - Event: ${updates.player1[0]?.property} = ${JSON.stringify(updates.player1[0]?.value)}`);
+      console.log(
+        `     - Event: ${updates.player1[0]?.property} = ${JSON.stringify(updates.player1[0]?.value)}`
+      );
       testsPassed++;
     } else {
       console.log('   ✗ Event listener not triggered');
@@ -199,7 +201,6 @@ async function testMultiplayer() {
     player3.disconnect();
     fallbackTrait.disconnect();
     console.log('   ✓ All players disconnected');
-
   } catch (error) {
     console.error('\n❌ Unexpected error:', error);
     testsFailed++;

@@ -12,7 +12,7 @@ describe('NPCAI Trait (Phase 12)', () => {
       id: 'mock-ai',
       name: 'Mock AI',
       isReady: () => true,
-      chat: vi.fn().mockResolvedValue('Hello, user!')
+      chat: vi.fn().mockResolvedValue('Hello, user!'),
     };
     registerAIAdapter(mockAdapter, true);
 
@@ -21,11 +21,11 @@ describe('NPCAI Trait (Phase 12)', () => {
     const mockContext = { emit: vi.fn() } as any;
 
     npcAIHandler.onAttach!(mockNode as any, mockConfig, mockContext);
-    
+
     // Simulate prompt event
-    npcAIHandler.onEvent!(mockNode as any, mockConfig, mockContext, { 
-      type: 'npc_ai_prompt', 
-      prompt: 'Hello NPC' 
+    npcAIHandler.onEvent!(mockNode as any, mockConfig, mockContext, {
+      type: 'npc_ai_prompt',
+      prompt: 'Hello NPC',
     });
 
     const state = (mockNode as any).__npcAIState;
@@ -33,8 +33,10 @@ describe('NPCAI Trait (Phase 12)', () => {
     expect(state.conversationHistory).toHaveLength(1);
 
     // Wait for the async promise in onEvent
-    await vi.waitFor(() => expect(mockContext.emit).toHaveBeenCalledWith('npc_ai_response', expect.anything()));
-    
+    await vi.waitFor(() =>
+      expect(mockContext.emit).toHaveBeenCalledWith('npc_ai_response', expect.anything())
+    );
+
     expect(mockAdapter.chat).toHaveBeenCalledWith('Hello NPC', undefined, expect.anything());
   });
 
@@ -48,16 +50,23 @@ describe('NPCAI Trait (Phase 12)', () => {
     const mockContext = { emit: vi.fn() } as any;
 
     npcAIHandler.onAttach!(mockNode as any, mockConfig, mockContext);
-    
+
     // Simulate prompt
-    npcAIHandler.onEvent!(mockNode as any, mockConfig, mockContext, { 
-      type: 'npc_ai_prompt', 
-      prompt: 'Hello' 
+    npcAIHandler.onEvent!(mockNode as any, mockConfig, mockContext, {
+      type: 'npc_ai_prompt',
+      prompt: 'Hello',
     });
 
     // Wait for the stub timeout
-    await vi.waitFor(() => expect(mockContext.emit).toHaveBeenCalledWith('npc_ai_response', expect.objectContaining({
-      text: expect.stringContaining('[STUB]')
-    })), { timeout: 1000 });
+    await vi.waitFor(
+      () =>
+        expect(mockContext.emit).toHaveBeenCalledWith(
+          'npc_ai_response',
+          expect.objectContaining({
+            text: expect.stringContaining('[STUB]'),
+          })
+        ),
+      { timeout: 1000 }
+    );
   });
 });

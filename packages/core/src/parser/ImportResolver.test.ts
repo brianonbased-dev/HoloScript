@@ -210,8 +210,8 @@ describe('ImportResolver - Named imports', () => {
     const result = await parseWith(sceneSrc);
     const res = await resolver.resolve(result, `${BASE}/scene.hs`, opts(reader));
 
-    expect(res.errors.some(e => e.code === 'named_not_exported')).toBe(true);
-    expect(res.errors.find(e => e.code === 'named_not_exported')?.message).toContain('Ghost');
+    expect(res.errors.some((e) => e.code === 'named_not_exported')).toBe(true);
+    expect(res.errors.find((e) => e.code === 'named_not_exported')?.message).toContain('Ghost');
   });
 });
 
@@ -236,7 +236,7 @@ describe('ImportResolver - Module cache', () => {
     await resolver.resolve(src1, `${BASE}/scene1.hs`, opts(reader));
     await resolver.resolve(src2, `${BASE}/scene2.hs`, opts(reader));
 
-    expect(calls.filter(c => c === `${BASE}/shared.hs`).length).toBe(1);
+    expect(calls.filter((c) => c === `${BASE}/shared.hs`).length).toBe(1);
   });
 
   it('getCachedPaths returns resolved paths', async () => {
@@ -303,7 +303,7 @@ describe('ImportResolver - File not found', () => {
     const result = await parseWith(sceneSrc);
     const res = await resolver.resolve(result, `${BASE}/scene.hs`, opts(reader));
 
-    expect(res.errors.some(e => e.code === 'not_found')).toBe(true);
+    expect(res.errors.some((e) => e.code === 'not_found')).toBe(true);
     expect(res.scope.has('found.Found')).toBe(true);
   });
 });
@@ -326,7 +326,7 @@ describe('ImportResolver - Cycle detection', () => {
     const result = await parseWith(selfSrc);
     const res = await resolver.resolve(result, `${BASE}/self.hs`, opts(reader));
 
-    expect(res.errors.some(e => e.code === 'cycle')).toBe(true);
+    expect(res.errors.some((e) => e.code === 'cycle')).toBe(true);
   });
 
   it('detects two-file cycle: a -> b -> a', async () => {
@@ -340,8 +340,8 @@ describe('ImportResolver - Cycle detection', () => {
     const result = await parseWith(aSrc);
     const res = await resolver.resolve(result, `${BASE}/a.hs`, opts(reader));
 
-    expect(res.errors.some(e => e.code === 'cycle')).toBe(true);
-    const cycleErr = res.errors.find(e => e.code === 'cycle')!;
+    expect(res.errors.some((e) => e.code === 'cycle')).toBe(true);
+    const cycleErr = res.errors.find((e) => e.code === 'cycle')!;
     expect(cycleErr.message).toContain('Circular import');
   });
 
@@ -419,13 +419,9 @@ describe('ImportResolver - Max depth', () => {
     });
 
     const result = await parseWith(aSrc);
-    const res = await resolver.resolve(
-      result,
-      `${BASE}/a.hs`,
-      opts(reader, { maxDepth: 1 })
-    );
+    const res = await resolver.resolve(result, `${BASE}/a.hs`, opts(reader, { maxDepth: 1 }));
 
-    expect(res.errors.some(e => e.code === 'max_depth')).toBe(true);
+    expect(res.errors.some((e) => e.code === 'max_depth')).toBe(true);
   });
 
   it('default maxDepth allows reasonable depth', async () => {
@@ -447,7 +443,7 @@ describe('ImportResolver - Max depth', () => {
     const result = await parseWith(level1);
     const res = await resolver.resolve(result, `${BASE}/l1.hs`, opts(reader));
 
-    expect(res.errors.filter(e => e.code === 'max_depth')).toHaveLength(0);
+    expect(res.errors.filter((e) => e.code === 'max_depth')).toHaveLength(0);
   });
 });
 

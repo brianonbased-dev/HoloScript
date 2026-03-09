@@ -8,7 +8,13 @@ describe('Terrain Tools (Cycle 174)', () => {
     let brush: TerrainBrush;
 
     beforeEach(() => {
-      brush = new TerrainBrush(16, { mode: 'raise', radius: 3, strength: 1, falloff: 'smooth', opacity: 1 });
+      brush = new TerrainBrush(16, {
+        mode: 'raise',
+        radius: 3,
+        strength: 1,
+        falloff: 'smooth',
+        opacity: 1,
+      });
     });
 
     it('should raise terrain height', () => {
@@ -63,8 +69,22 @@ describe('Terrain Tools (Cycle 174)', () => {
 
     beforeEach(() => {
       paint = new TerrainPaintLayer(16);
-      paint.addLayer({ id: 'grass', name: 'Grass', textureId: 'tex_grass', tiling: 1, metallic: 0, roughness: 0.9 });
-      paint.addLayer({ id: 'rock', name: 'Rock', textureId: 'tex_rock', tiling: 2, metallic: 0.3, roughness: 0.7 });
+      paint.addLayer({
+        id: 'grass',
+        name: 'Grass',
+        textureId: 'tex_grass',
+        tiling: 1,
+        metallic: 0,
+        roughness: 0.9,
+      });
+      paint.addLayer({
+        id: 'rock',
+        name: 'Rock',
+        textureId: 'tex_rock',
+        tiling: 2,
+        metallic: 0.3,
+        roughness: 0.7,
+      });
     });
 
     it('should add and track layers', () => {

@@ -12,11 +12,7 @@ import type {
   ImportEdge,
   CallEdge,
 } from '../types';
-import {
-  walkTree,
-  nodeToSymbol,
-  getFieldText,
-} from './BaseAdapter';
+import { walkTree, nodeToSymbol, getFieldText } from './BaseAdapter';
 
 export class GoAdapter implements LanguageAdapter {
   readonly language = 'go' as const;
@@ -35,11 +31,13 @@ export class GoAdapter implements LanguageAdapter {
             const result = node.childForFieldName('result');
             let sig = `func ${name}(${params?.text ?? ''})`;
             if (result) sig += ` ${result.text}`;
-            symbols.push(nodeToSymbol(node, name, 'function', 'go', filePath, {
-              visibility: this.goVisibility(name),
-              isExported: this.isExported(name),
-              signature: sig,
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'function', 'go', filePath, {
+                visibility: this.goVisibility(name),
+                isExported: this.isExported(name),
+                signature: sig,
+              })
+            );
           }
           return false;
         }
@@ -51,11 +49,13 @@ export class GoAdapter implements LanguageAdapter {
             const receiverType = this.extractReceiverType(receiver);
             const params = node.childForFieldName('parameters');
             const sig = `func (${receiver?.text ?? ''}) ${name}(${params?.text ?? ''})`;
-            symbols.push(nodeToSymbol(node, name, 'method', 'go', filePath, {
-              visibility: this.goVisibility(name),
-              owner: receiverType,
-              signature: sig,
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'method', 'go', filePath, {
+                visibility: this.goVisibility(name),
+                owner: receiverType,
+                signature: sig,
+              })
+            );
           }
           return false;
         }
@@ -66,15 +66,20 @@ export class GoAdapter implements LanguageAdapter {
               const name = getFieldText(spec, 'name');
               const typeNode = spec.childForFieldName('type');
               if (name && typeNode) {
-                const symType = typeNode.type === 'struct_type' ? 'struct' as const
-                  : typeNode.type === 'interface_type' ? 'interface' as const
-                  : 'type_alias' as const;
+                const symType =
+                  typeNode.type === 'struct_type'
+                    ? ('struct' as const)
+                    : typeNode.type === 'interface_type'
+                      ? ('interface' as const)
+                      : ('type_alias' as const);
 
-                symbols.push(nodeToSymbol(spec, name, symType, 'go', filePath, {
-                  visibility: this.goVisibility(name),
-                  isExported: this.isExported(name),
-                  signature: `type ${name} ${typeNode.type.replace('_type', '')}`,
-                }));
+                symbols.push(
+                  nodeToSymbol(spec, name, symType, 'go', filePath, {
+                    visibility: this.goVisibility(name),
+                    isExported: this.isExported(name),
+                    signature: `type ${name} ${typeNode.type.replace('_type', '')}`,
+                  })
+                );
 
                 // Extract struct fields
                 if (typeNode.type === 'struct_type') {
@@ -92,10 +97,12 @@ export class GoAdapter implements LanguageAdapter {
             if (spec.type === 'const_spec' || spec.type === 'var_spec') {
               const name = getFieldText(spec, 'name');
               if (name) {
-                symbols.push(nodeToSymbol(spec, name, 'constant', 'go', filePath, {
-                  visibility: this.goVisibility(name),
-                  isExported: this.isExported(name),
-                }));
+                symbols.push(
+                  nodeToSymbol(spec, name, 'constant', 'go', filePath, {
+                    visibility: this.goVisibility(name),
+                    isExported: this.isExported(name),
+                  })
+                );
               }
             }
           }
@@ -192,7 +199,9 @@ export class GoAdapter implements LanguageAdapter {
   // ── Helpers ──────────────────────────────────────────────────────
 
   private isExported(name: string): boolean {
-    return name.length > 0 && name[0] === name[0].toUpperCase() && name[0] !== name[0].toLowerCase();
+    return (
+      name.length > 0 && name[0] === name[0].toUpperCase() && name[0] !== name[0].toLowerCase()
+    );
   }
 
   private goVisibility(name: string): 'public' | 'internal' {
@@ -217,7 +226,7 @@ export class GoAdapter implements LanguageAdapter {
     structNode: any,
     structName: string,
     filePath: string,
-    symbols: ExternalSymbolDefinition[],
+    symbols: ExternalSymbolDefinition[]
   ): void {
     for (const child of structNode.namedChildren) {
       if (child.type === 'field_declaration_list') {
@@ -225,10 +234,12 @@ export class GoAdapter implements LanguageAdapter {
           if (field.type === 'field_declaration') {
             const name = getFieldText(field, 'name');
             if (name) {
-              symbols.push(nodeToSymbol(field, name, 'field', 'go', filePath, {
-                visibility: this.goVisibility(name),
-                owner: structName,
-              }));
+              symbols.push(
+                nodeToSymbol(field, name, 'field', 'go', filePath, {
+                  visibility: this.goVisibility(name),
+                  owner: structName,
+                })
+              );
             }
           }
         }

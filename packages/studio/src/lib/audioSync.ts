@@ -6,7 +6,7 @@
 
 export interface AudioAnalysis {
   bpm: number;
-  beats: number[];        // Timestamps in seconds
+  beats: number[]; // Timestamps in seconds
   waveform: Float32Array | number[];
   spectrum: Float32Array | number[];
   duration: number;
@@ -15,18 +15,18 @@ export interface AudioAnalysis {
 
 export interface BeatEvent {
   time: number;
-  strength: number;       // 0..1 normalized beat strength
+  strength: number; // 0..1 normalized beat strength
   index: number;
 }
 
 export interface SyncBinding {
   id: string;
-  targetProperty: string;  // e.g., 'scale.x', 'emissionRate', 'color.r'
+  targetProperty: string; // e.g., 'scale.x', 'emissionRate', 'color.r'
   source: 'beat' | 'amplitude' | 'frequency-band';
-  band?: number;           // Frequency band index (for 'frequency-band')
-  scale: number;           // Multiplier
-  offset: number;          // Base value
-  smoothing: number;       // 0..1 (0 = instant, 1 = very smooth)
+  band?: number; // Frequency band index (for 'frequency-band')
+  scale: number; // Multiplier
+  offset: number; // Base value
+  smoothing: number; // 0..1 (0 = instant, 1 = very smooth)
 }
 
 /**
@@ -43,7 +43,11 @@ export function detectBeats(
   let lastBeatSample = -minSamples;
 
   for (let i = 1; i < amplitudes.length; i++) {
-    if (amplitudes[i] >= threshold && amplitudes[i] > amplitudes[i - 1] && (i - lastBeatSample) >= minSamples) {
+    if (
+      amplitudes[i] >= threshold &&
+      amplitudes[i] > amplitudes[i - 1] &&
+      i - lastBeatSample >= minSamples
+    ) {
       beats.push({
         time: i / sampleRate,
         strength: Math.min(1, amplitudes[i]),

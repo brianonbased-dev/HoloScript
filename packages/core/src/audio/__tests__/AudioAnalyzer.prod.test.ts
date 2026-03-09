@@ -14,7 +14,7 @@ import { AudioAnalyzer, DEFAULT_BANDS } from '../AudioAnalyzer';
 function makeSine(freq: number, samples: number, sampleRate: number): Float32Array {
   const buf = new Float32Array(samples);
   for (let i = 0; i < samples; i++) {
-    buf[i] = Math.sin(2 * Math.PI * freq * i / sampleRate);
+    buf[i] = Math.sin((2 * Math.PI * freq * i) / sampleRate);
   }
   return buf;
 }
@@ -60,7 +60,7 @@ describe('AudioAnalyzer', () => {
     it('starts with 7 default bands', () => {
       const bands = analyzer.getBands();
       expect(bands).toHaveLength(DEFAULT_BANDS.length);
-      expect(bands.map(b => b.name)).toEqual(DEFAULT_BANDS.map(b => b.name));
+      expect(bands.map((b) => b.name)).toEqual(DEFAULT_BANDS.map((b) => b.name));
     });
 
     it('starts with silent loudness metrics', () => {
@@ -127,7 +127,7 @@ describe('AudioAnalyzer', () => {
 
     it('all 7 named bands are present', () => {
       analyzer.analyze(makeSine(440, 256, 44100), 0);
-      const names = analyzer.getBands().map(b => b.name);
+      const names = analyzer.getBands().map((b) => b.name);
       expect(names).toContain('bass');
       expect(names).toContain('mid');
       expect(names).toContain('brilliance');
@@ -269,7 +269,11 @@ describe('AudioAnalyzer', () => {
     });
 
     it('clears beat history after reset', () => {
-      const hot = new AudioAnalyzer(256, 44100, { sensitivity: 0.1, energyThreshold: 0, minInterval: 100 });
+      const hot = new AudioAnalyzer(256, 44100, {
+        sensitivity: 0.1,
+        energyThreshold: 0,
+        minInterval: 100,
+      });
       let t = 0;
       for (let i = 0; i < 50; i++) {
         hot.analyze(i % 2 === 0 ? makeFullAmplitude(256) : makeSilence(256), t);

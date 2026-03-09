@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { rooftopAnchorHandler } from '../RooftopAnchorTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('RooftopAnchorTrait', () => {
   let node: Record<string, unknown>;
@@ -67,7 +74,10 @@ describe('RooftopAnchorTrait', () => {
   });
 
   it('unavailable sets state', () => {
-    sendEvent(rooftopAnchorHandler, node, cfg, ctx, { type: 'rooftop_anchor_unavailable', reason: 'no data' });
+    sendEvent(rooftopAnchorHandler, node, cfg, ctx, {
+      type: 'rooftop_anchor_unavailable',
+      reason: 'no data',
+    });
     expect((node as any).__rooftopAnchorState.state).toBe('unavailable');
     expect(getEventCount(ctx, 'on_rooftop_unavailable')).toBe(1);
   });
@@ -85,7 +95,10 @@ describe('RooftopAnchorTrait', () => {
   });
 
   it('query emits info', () => {
-    sendEvent(rooftopAnchorHandler, node, cfg, ctx, { type: 'rooftop_anchor_query', queryId: 'q1' });
+    sendEvent(rooftopAnchorHandler, node, cfg, ctx, {
+      type: 'rooftop_anchor_query',
+      queryId: 'q1',
+    });
     expect(getEventCount(ctx, 'rooftop_anchor_info')).toBe(1);
   });
 

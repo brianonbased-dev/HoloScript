@@ -14,9 +14,9 @@
 export type RolloffModel = 'linear' | 'inverse' | 'exponential' | 'custom';
 
 export interface AudioCone {
-  innerAngle: number;     // degrees — full volume
-  outerAngle: number;     // degrees — outer gain applies
-  outerGain: number;      // 0-1
+  innerAngle: number; // degrees — full volume
+  outerAngle: number; // degrees — outer gain applies
+  outerGain: number; // 0-1
 }
 
 export interface SpatialAudioConfig {
@@ -30,8 +30,8 @@ export interface SpatialAudioConfig {
   loop: boolean;
   cone: AudioCone | null;
   dopplerFactor: number;
-  rolloffFactor: number;  // New: 0-infinite, default 1
-  spatialBlend: number;   // 0 = 2D, 1 = full 3D
+  rolloffFactor: number; // New: 0-infinite, default 1
+  spatialBlend: number; // 0 = 2D, 1 = full 3D
 }
 
 // =============================================================================
@@ -44,15 +44,15 @@ export class SpatialAudioSource {
   private paused = false;
   private time = 0;
   private clipDuration = 0;
-  private gain = 1;       // Computed gain after attenuation
-  private pan = 0;        // -1 (left) to 1 (right)
+  private gain = 1; // Computed gain after attenuation
+  private pan = 0; // -1 (left) to 1 (right)
 
   constructor(config?: Partial<SpatialAudioConfig>) {
     this.config = {
       position: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       rolloff: 'inverse',
-      minDistance: 3,     // Tuned for voice: audible within 3m
+      minDistance: 3, // Tuned for voice: audible within 3m
       maxDistance: 100,
       volume: 1,
       pitch: 1,
@@ -69,28 +69,67 @@ export class SpatialAudioSource {
   // Playback
   // ---------------------------------------------------------------------------
 
-  play(duration = 5): void { this.playing = true; this.paused = false; this.time = 0; this.clipDuration = duration; }
-  stop(): void { this.playing = false; this.paused = false; this.time = 0; }
-  pause(): void { if (this.playing) this.paused = true; }
-  resume(): void { this.paused = false; }
-  isPlaying(): boolean { return this.playing && !this.paused; }
+  play(duration = 5): void {
+    this.playing = true;
+    this.paused = false;
+    this.time = 0;
+    this.clipDuration = duration;
+  }
+  stop(): void {
+    this.playing = false;
+    this.paused = false;
+    this.time = 0;
+  }
+  pause(): void {
+    if (this.playing) this.paused = true;
+  }
+  resume(): void {
+    this.paused = false;
+  }
+  isPlaying(): boolean {
+    return this.playing && !this.paused;
+  }
 
   // ---------------------------------------------------------------------------
   // Position / Properties
   // ---------------------------------------------------------------------------
 
-  setPosition(x: number, y: number, z: number): void { this.config.position = { x, y, z }; }
-  getPosition(): { x: number; y: number; z: number } { return { ...this.config.position }; }
-  setVelocity(x: number, y: number, z: number): void { this.config.velocity = { x, y, z }; }
-  setVolume(v: number): void { this.config.volume = Math.max(0, Math.min(1, v)); }
-  getVolume(): number { return this.config.volume; }
-  setPitch(p: number): void { this.config.pitch = Math.max(0.1, p); }
-  setLoop(loop: boolean): void { this.config.loop = loop; }
-  setRolloff(model: RolloffModel): void { this.config.rolloff = model; }
-  setMinDistance(d: number): void { this.config.minDistance = Math.max(0.01, d); }
-  setMaxDistance(d: number): void { this.config.maxDistance = Math.max(this.config.minDistance, d); }
-  setSpatialBlend(blend: number): void { this.config.spatialBlend = Math.max(0, Math.min(1, blend)); }
-  setCone(cone: AudioCone): void { this.config.cone = { ...cone }; }
+  setPosition(x: number, y: number, z: number): void {
+    this.config.position = { x, y, z };
+  }
+  getPosition(): { x: number; y: number; z: number } {
+    return { ...this.config.position };
+  }
+  setVelocity(x: number, y: number, z: number): void {
+    this.config.velocity = { x, y, z };
+  }
+  setVolume(v: number): void {
+    this.config.volume = Math.max(0, Math.min(1, v));
+  }
+  getVolume(): number {
+    return this.config.volume;
+  }
+  setPitch(p: number): void {
+    this.config.pitch = Math.max(0.1, p);
+  }
+  setLoop(loop: boolean): void {
+    this.config.loop = loop;
+  }
+  setRolloff(model: RolloffModel): void {
+    this.config.rolloff = model;
+  }
+  setMinDistance(d: number): void {
+    this.config.minDistance = Math.max(0.01, d);
+  }
+  setMaxDistance(d: number): void {
+    this.config.maxDistance = Math.max(this.config.minDistance, d);
+  }
+  setSpatialBlend(blend: number): void {
+    this.config.spatialBlend = Math.max(0, Math.min(1, blend));
+  }
+  setCone(cone: AudioCone): void {
+    this.config.cone = { ...cone };
+  }
 
   // ---------------------------------------------------------------------------
   // Update
@@ -176,8 +215,20 @@ export class SpatialAudioSource {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getGain(): number { return this.gain; }
-  getPan(): number { return this.pan; }
-  getTime(): number { return this.time; }
-  getConfig(): SpatialAudioConfig { return { ...this.config, position: { ...this.config.position }, velocity: { ...this.config.velocity } }; }
+  getGain(): number {
+    return this.gain;
+  }
+  getPan(): number {
+    return this.pan;
+  }
+  getTime(): number {
+    return this.time;
+  }
+  getConfig(): SpatialAudioConfig {
+    return {
+      ...this.config,
+      position: { ...this.config.position },
+      velocity: { ...this.config.velocity },
+    };
+  }
 }

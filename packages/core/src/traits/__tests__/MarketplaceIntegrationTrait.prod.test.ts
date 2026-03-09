@@ -13,8 +13,13 @@ import marketplaceIntegrationHandler, {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function makeNode(): any { return {}; }
-function makeCtx() { const emit = vi.fn(); return { emit }; }
+function makeNode(): any {
+  return {};
+}
+function makeCtx() {
+  const emit = vi.fn();
+  return { emit };
+}
 
 function makeConfig(overrides: Record<string, unknown> = {}) {
   return {
@@ -40,7 +45,9 @@ function attach(overrides: Record<string, unknown> = {}) {
   return { node, ctx, cfg };
 }
 
-function st(node: any) { return (node as any).__marketplaceIntegrationState; }
+function st(node: any) {
+  return (node as any).__marketplaceIntegrationState;
+}
 
 function fire(node: any, cfg: any, ctx: any, event: Record<string, unknown>) {
   marketplaceIntegrationHandler.onEvent!(node, cfg, ctx as any, event);
@@ -49,7 +56,6 @@ function fire(node: any, cfg: any, ctx: any, event: Record<string, unknown>) {
 // ─── Tests: validateSemVer ───────────────────────────────────────────────────
 
 describe('validateSemVer — helper', () => {
-
   it('accepts valid semver 1.0.0', () => expect(validateSemVer('1.0.0')).toBe(true));
   it('accepts valid semver 2.3.11', () => expect(validateSemVer('2.3.11')).toBe(true));
   it('accepts prerelease 1.0.0-alpha.1', () => expect(validateSemVer('1.0.0-alpha.1')).toBe(true));
@@ -62,7 +68,6 @@ describe('validateSemVer — helper', () => {
 // ─── Tests: compareSemVer ────────────────────────────────────────────────────
 
 describe('compareSemVer — helper', () => {
-
   it('returns 0 for equal versions', () => expect(compareSemVer('1.0.0', '1.0.0')).toBe(0));
   it('returns 1 when a > b (major)', () => expect(compareSemVer('2.0.0', '1.9.9')).toBe(1));
   it('returns -1 when a < b (major)', () => expect(compareSemVer('1.0.0', '2.0.0')).toBe(-1));
@@ -73,7 +78,6 @@ describe('compareSemVer — helper', () => {
 // ─── Tests: defaultConfig / name ─────────────────────────────────────────────
 
 describe('MarketplaceIntegrationTrait — defaultConfig', () => {
-
   it('has name marketplace_integration', () => {
     expect(marketplaceIntegrationHandler.name).toBe('marketplace_integration');
   });
@@ -94,7 +98,6 @@ describe('MarketplaceIntegrationTrait — defaultConfig', () => {
 // ─── Tests: onAttach ─────────────────────────────────────────────────────────
 
 describe('MarketplaceIntegrationTrait — onAttach', () => {
-
   beforeEach(() => vi.clearAllMocks());
 
   it('creates state with empty arrays and zero counters', () => {
@@ -113,10 +116,13 @@ describe('MarketplaceIntegrationTrait — onAttach', () => {
     const s = st(node);
     expect(s.isAuthenticated).toBe(true);
     expect(s.publisherName).toBe('Alice');
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_authenticated', expect.objectContaining({
-      publisherId: 'pub_abc',
-      publisherName: 'Alice',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_authenticated',
+      expect.objectContaining({
+        publisherId: 'pub_abc',
+        publisherName: 'Alice',
+      })
+    );
   });
 
   it('uses publisher_id as name when publisher_name is empty', () => {
@@ -131,53 +137,71 @@ describe('MarketplaceIntegrationTrait — onAttach', () => {
 
   it('emits marketplace_integration_initialized', () => {
     const { ctx } = attach();
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_integration_initialized', expect.objectContaining({
-      marketplaceUrl: 'https://marketplace.holoscript.net',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_integration_initialized',
+      expect.objectContaining({
+        marketplaceUrl: 'https://marketplace.holoscript.net',
+      })
+    );
   });
 });
 
 // ─── Tests: onDetach ─────────────────────────────────────────────────────────
 
 describe('MarketplaceIntegrationTrait — onDetach', () => {
-
   it('removes state and emits marketplace_integration_disconnected', () => {
     const { node, ctx, cfg } = attach();
     marketplaceIntegrationHandler.onDetach!(node, cfg as any, ctx as any);
     expect(st(node)).toBeUndefined();
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_integration_disconnected', expect.objectContaining({ node }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_integration_disconnected',
+      expect.objectContaining({ node })
+    );
   });
 });
 
 // ─── Tests: onEvent: publish ──────────────────────────────────────────────────
 
 describe('MarketplaceIntegrationTrait — marketplace_publish', () => {
-
   beforeEach(() => vi.clearAllMocks());
 
   it('rejects publish when not authenticated', () => {
     const { node, ctx, cfg } = attach({ publisher_id: '' });
     fire(node, cfg, ctx, { type: 'marketplace_publish', name: 'MyTrait', version: '1.0.0' });
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-      error: expect.stringContaining('authenticated'),
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_error',
+      expect.objectContaining({
+        error: expect.stringContaining('authenticated'),
+      })
+    );
     expect(st(node).publishedPackages).toHaveLength(0);
   });
 
   it('rejects invalid semver', () => {
     const { node, ctx, cfg } = attach();
     fire(node, cfg, ctx, { type: 'marketplace_publish', name: 'T', version: 'bad' });
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-      error: expect.stringContaining('semver'),
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_error',
+      expect.objectContaining({
+        error: expect.stringContaining('semver'),
+      })
+    );
   });
 
   it('rejects file exceeding max size', () => {
     const { node, ctx, cfg } = attach({ max_package_size_mb: 1 });
-    fire(node, cfg, ctx, { type: 'marketplace_publish', name: 'T', version: '1.0.0', fileSize: 2 * 1024 * 1024 });
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-      error: expect.stringContaining('size'),
-    }));
+    fire(node, cfg, ctx, {
+      type: 'marketplace_publish',
+      name: 'T',
+      version: '1.0.0',
+      fileSize: 2 * 1024 * 1024,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_error',
+      expect.objectContaining({
+        error: expect.stringContaining('size'),
+      })
+    );
   });
 
   it('publishes directly when require_review=false', () => {
@@ -185,10 +209,13 @@ describe('MarketplaceIntegrationTrait — marketplace_publish', () => {
     fire(node, cfg, ctx, { type: 'marketplace_publish', name: 'AwesomeTrait', version: '1.0.0' });
     expect(st(node).publishedPackages).toHaveLength(1);
     expect(st(node).publishedPackages[0].status).toBe('published');
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_published', expect.objectContaining({
-      name: 'AwesomeTrait',
-      status: 'published',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_published',
+      expect.objectContaining({
+        name: 'AwesomeTrait',
+        status: 'published',
+      })
+    );
   });
 
   it('adds to pendingPublications when require_review=true', () => {
@@ -203,7 +230,6 @@ describe('MarketplaceIntegrationTrait — marketplace_publish', () => {
 // ─── Tests: onEvent: review_result ───────────────────────────────────────────
 
 describe('MarketplaceIntegrationTrait — marketplace_review_result', () => {
-
   beforeEach(() => vi.clearAllMocks());
 
   it('approves pending package and moves to published', () => {
@@ -214,7 +240,10 @@ describe('MarketplaceIntegrationTrait — marketplace_review_result', () => {
     fire(node, cfg, ctx, { type: 'marketplace_review_result', packageId: pkgId, approved: true });
     expect(st(node).pendingPublications).toHaveLength(0);
     expect(st(node).publishedPackages).toHaveLength(1);
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_approved', expect.objectContaining({ packageId: pkgId }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_approved',
+      expect.objectContaining({ packageId: pkgId })
+    );
   });
 
   it('rejects pending package and removes from pending', () => {
@@ -222,17 +251,24 @@ describe('MarketplaceIntegrationTrait — marketplace_review_result', () => {
     fire(node, cfg, ctx, { type: 'marketplace_publish', name: 'P', version: '1.0.0' });
     const pkgId = st(node).pendingPublications[0].id;
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'marketplace_review_result', packageId: pkgId, approved: false, reason: 'Policy violation' });
+    fire(node, cfg, ctx, {
+      type: 'marketplace_review_result',
+      packageId: pkgId,
+      approved: false,
+      reason: 'Policy violation',
+    });
     expect(st(node).pendingPublications).toHaveLength(0);
     expect(st(node).publishedPackages).toHaveLength(0);
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_rejected', expect.objectContaining({ reason: 'Policy violation' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_rejected',
+      expect.objectContaining({ reason: 'Policy violation' })
+    );
   });
 });
 
 // ─── Tests: unpublish ────────────────────────────────────────────────────────
 
 describe('MarketplaceIntegrationTrait — marketplace_unpublish', () => {
-
   it('sets status to unpublished and emits marketplace_unpublished', () => {
     const { node, ctx, cfg } = attach({ require_review: false });
     fire(node, cfg, ctx, { type: 'marketplace_publish', name: 'T', version: '1.0.0' });
@@ -240,22 +276,31 @@ describe('MarketplaceIntegrationTrait — marketplace_unpublish', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'marketplace_unpublish', packageId: pkgId });
     expect(st(node).publishedPackages[0].status).toBe('unpublished');
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_unpublished', expect.objectContaining({ packageId: pkgId }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_unpublished',
+      expect.objectContaining({ packageId: pkgId })
+    );
   });
 });
 
 // ─── Tests: update_version ───────────────────────────────────────────────────
 
 describe('MarketplaceIntegrationTrait — marketplace_update_version', () => {
-
   it('updates version when new is higher than current', () => {
     const { node, ctx, cfg } = attach({ require_review: false });
     fire(node, cfg, ctx, { type: 'marketplace_publish', name: 'T', version: '1.0.0' });
     const pkgId = st(node).publishedPackages[0].id;
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'marketplace_update_version', packageId: pkgId, version: '1.1.0' });
+    fire(node, cfg, ctx, {
+      type: 'marketplace_update_version',
+      packageId: pkgId,
+      version: '1.1.0',
+    });
     expect(st(node).publishedPackages[0].version).toBe('1.1.0');
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_version_updated', expect.objectContaining({ version: '1.1.0' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_version_updated',
+      expect.objectContaining({ version: '1.1.0' })
+    );
   });
 
   it('rejects downgrade (new version <= current)', () => {
@@ -263,10 +308,17 @@ describe('MarketplaceIntegrationTrait — marketplace_update_version', () => {
     fire(node, cfg, ctx, { type: 'marketplace_publish', name: 'T', version: '2.0.0' });
     const pkgId = st(node).publishedPackages[0].id;
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'marketplace_update_version', packageId: pkgId, version: '1.0.0' });
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-      error: expect.stringContaining('greater than'),
-    }));
+    fire(node, cfg, ctx, {
+      type: 'marketplace_update_version',
+      packageId: pkgId,
+      version: '1.0.0',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_error',
+      expect.objectContaining({
+        error: expect.stringContaining('greater than'),
+      })
+    );
   });
 
   it('rejects invalid semver on version update', () => {
@@ -274,36 +326,63 @@ describe('MarketplaceIntegrationTrait — marketplace_update_version', () => {
     fire(node, cfg, ctx, { type: 'marketplace_publish', name: 'T', version: '1.0.0' });
     const pkgId = st(node).publishedPackages[0].id;
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'marketplace_update_version', packageId: pkgId, version: 'not-valid' });
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-      error: expect.stringContaining('Invalid version'),
-    }));
+    fire(node, cfg, ctx, {
+      type: 'marketplace_update_version',
+      packageId: pkgId,
+      version: 'not-valid',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_error',
+      expect.objectContaining({
+        error: expect.stringContaining('Invalid version'),
+      })
+    );
   });
 });
 
 // ─── Tests: install / uninstall ──────────────────────────────────────────────
 
 describe('MarketplaceIntegrationTrait — install/uninstall', () => {
-
   it('installs a trait and emits marketplace_installed', () => {
     const { node, ctx, cfg } = attach();
-    fire(node, cfg, ctx, { type: 'marketplace_install', packageId: 'ext_pkg_1', name: 'CoolTrait', version: '1.0.0' });
-    expect(st(node).installedTraits).toHaveLength(1);
-    expect(st(node).installedTraits[0].packageId).toBe('ext_pkg_1');
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_installed', expect.objectContaining({
+    fire(node, cfg, ctx, {
+      type: 'marketplace_install',
       packageId: 'ext_pkg_1',
       name: 'CoolTrait',
-    }));
+      version: '1.0.0',
+    });
+    expect(st(node).installedTraits).toHaveLength(1);
+    expect(st(node).installedTraits[0].packageId).toBe('ext_pkg_1');
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_installed',
+      expect.objectContaining({
+        packageId: 'ext_pkg_1',
+        name: 'CoolTrait',
+      })
+    );
   });
 
   it('prevents duplicate installs and emits error', () => {
     const { node, ctx, cfg } = attach();
-    fire(node, cfg, ctx, { type: 'marketplace_install', packageId: 'pkg_dup', name: 'D', version: '1.0.0' });
+    fire(node, cfg, ctx, {
+      type: 'marketplace_install',
+      packageId: 'pkg_dup',
+      name: 'D',
+      version: '1.0.0',
+    });
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'marketplace_install', packageId: 'pkg_dup', name: 'D', version: '1.0.0' });
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-      error: expect.stringContaining('already installed'),
-    }));
+    fire(node, cfg, ctx, {
+      type: 'marketplace_install',
+      packageId: 'pkg_dup',
+      name: 'D',
+      version: '1.0.0',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_error',
+      expect.objectContaining({
+        error: expect.stringContaining('already installed'),
+      })
+    );
     expect(st(node).installedTraits).toHaveLength(1);
   });
 
@@ -311,36 +390,56 @@ describe('MarketplaceIntegrationTrait — install/uninstall', () => {
     const { node, ctx, cfg } = attach({ require_review: false });
     fire(node, cfg, ctx, { type: 'marketplace_publish', name: 'T', version: '1.0.0' });
     const pkgId = st(node).publishedPackages[0].id;
-    fire(node, cfg, ctx, { type: 'marketplace_install', packageId: pkgId, name: 'T', version: '1.0.0' });
+    fire(node, cfg, ctx, {
+      type: 'marketplace_install',
+      packageId: pkgId,
+      name: 'T',
+      version: '1.0.0',
+    });
     expect(st(node).publishedPackages[0].downloads).toBe(1);
     expect(st(node).totalDownloads).toBe(1);
   });
 
   it('uninstalls a trait and emits marketplace_uninstalled', () => {
     const { node, ctx, cfg } = attach();
-    fire(node, cfg, ctx, { type: 'marketplace_install', packageId: 'pkg_x', name: 'X', version: '1.0.0' });
+    fire(node, cfg, ctx, {
+      type: 'marketplace_install',
+      packageId: 'pkg_x',
+      name: 'X',
+      version: '1.0.0',
+    });
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'marketplace_uninstall', packageId: 'pkg_x' });
     expect(st(node).installedTraits).toHaveLength(0);
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_uninstalled', expect.objectContaining({ packageId: 'pkg_x' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_uninstalled',
+      expect.objectContaining({ packageId: 'pkg_x' })
+    );
   });
 });
 
 // ─── Tests: submit_review ────────────────────────────────────────────────────
 
 describe('MarketplaceIntegrationTrait — marketplace_submit_review', () => {
-
   it('stores review and emits marketplace_review_submitted', () => {
     const { node, ctx, cfg } = attach({ require_review: false });
     fire(node, cfg, ctx, { type: 'marketplace_publish', name: 'T', version: '1.0.0' });
     const pkgId = st(node).publishedPackages[0].id;
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'marketplace_submit_review', packageId: pkgId, rating: 5, comment: 'Great!' });
-    expect(st(node).reviews).toHaveLength(1);
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_review_submitted', expect.objectContaining({
+    fire(node, cfg, ctx, {
+      type: 'marketplace_submit_review',
       packageId: pkgId,
       rating: 5,
-    }));
+      comment: 'Great!',
+    });
+    expect(st(node).reviews).toHaveLength(1);
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_review_submitted',
+      expect.objectContaining({
+        packageId: pkgId,
+        rating: 5,
+      })
+    );
   });
 
   it('rating is clamped between 1 and 5', () => {
@@ -357,8 +456,18 @@ describe('MarketplaceIntegrationTrait — marketplace_submit_review', () => {
     const { node, ctx, cfg } = attach({ require_review: false });
     fire(node, cfg, ctx, { type: 'marketplace_publish', name: 'T', version: '1.0.0' });
     const pkgId = st(node).publishedPackages[0].id;
-    fire(node, cfg, ctx, { type: 'marketplace_submit_review', packageId: pkgId, rating: 4, reviewer: 'u1' });
-    fire(node, cfg, ctx, { type: 'marketplace_submit_review', packageId: pkgId, rating: 2, reviewer: 'u2' });
+    fire(node, cfg, ctx, {
+      type: 'marketplace_submit_review',
+      packageId: pkgId,
+      rating: 4,
+      reviewer: 'u1',
+    });
+    fire(node, cfg, ctx, {
+      type: 'marketplace_submit_review',
+      packageId: pkgId,
+      rating: 2,
+      reviewer: 'u2',
+    });
     const rating = st(node).publishedPackages[0].rating;
     expect(rating).toBeCloseTo(3, 5); // (4+2)/2 = 3
   });
@@ -367,7 +476,6 @@ describe('MarketplaceIntegrationTrait — marketplace_submit_review', () => {
 // ─── Tests: revenue ──────────────────────────────────────────────────────────
 
 describe('MarketplaceIntegrationTrait — marketplace_revenue', () => {
-
   it('records revenue on package and totalRevenue', () => {
     const { node, ctx, cfg } = attach({ require_review: false });
     fire(node, cfg, ctx, { type: 'marketplace_publish', name: 'T', version: '1.0.0' });
@@ -375,36 +483,40 @@ describe('MarketplaceIntegrationTrait — marketplace_revenue', () => {
     fire(node, cfg, ctx, { type: 'marketplace_revenue', packageId: pkgId, amount: 99.5 });
     expect(st(node).publishedPackages[0].revenue).toBe(99.5);
     expect(st(node).totalRevenue).toBe(99.5);
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_revenue_recorded', expect.objectContaining({
-      amount: 99.5,
-      totalRevenue: 99.5,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_revenue_recorded',
+      expect.objectContaining({
+        amount: 99.5,
+        totalRevenue: 99.5,
+      })
+    );
   });
 });
 
 // ─── Tests: query ────────────────────────────────────────────────────────────
 
 describe('MarketplaceIntegrationTrait — marketplace_query', () => {
-
   it('emits marketplace_integration_info with full state snapshot', () => {
     const { node, ctx, cfg } = attach({ require_review: false });
     fire(node, cfg, ctx, { type: 'marketplace_publish', name: 'T', version: '1.0.0' });
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'marketplace_query', queryId: 'Q1' });
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_integration_info', expect.objectContaining({
-      queryId: 'Q1',
-      publishedCount: 1,
-      installedCount: 0,
-      pendingCount: 0,
-      totalRevenue: 0,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_integration_info',
+      expect.objectContaining({
+        queryId: 'Q1',
+        publishedCount: 1,
+        installedCount: 0,
+        pendingCount: 0,
+        totalRevenue: 0,
+      })
+    );
   });
 });
 
 // ─── Unknown event ───────────────────────────────────────────────────────────
 
 describe('MarketplaceIntegrationTrait — unknown events', () => {
-
   it('unknown event type is silently ignored', () => {
     const { node, ctx, cfg } = attach();
     expect(() => fire(node, cfg, ctx, { type: 'completely_bogus_event' })).not.toThrow();

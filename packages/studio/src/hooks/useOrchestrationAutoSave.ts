@@ -45,10 +45,7 @@ export function useOrchestrationAutoSave() {
       try {
         // Persist workflows
         const workflowsArray = Array.from(workflows.entries());
-        localStorage.setItem(
-          `${STORAGE_PREFIX}-workflows`,
-          JSON.stringify(workflowsArray)
-        );
+        localStorage.setItem(`${STORAGE_PREFIX}-workflows`, JSON.stringify(workflowsArray));
 
         // Persist behavior trees
         const behaviorTreesArray = Array.from(behaviorTrees.entries());
@@ -59,41 +56,34 @@ export function useOrchestrationAutoSave() {
 
         // Persist active workflow ID
         if (activeWorkflow) {
-          localStorage.setItem(
-            `${STORAGE_PREFIX}-active-workflow`,
-            activeWorkflow
-          );
+          localStorage.setItem(`${STORAGE_PREFIX}-active-workflow`, activeWorkflow);
         } else {
           localStorage.removeItem(`${STORAGE_PREFIX}-active-workflow`);
         }
 
         // Persist active behavior tree ID
         if (activeBehaviorTree) {
-          localStorage.setItem(
-            `${STORAGE_PREFIX}-active-behavior-tree`,
-            activeBehaviorTree
-          );
+          localStorage.setItem(`${STORAGE_PREFIX}-active-behavior-tree`, activeBehaviorTree);
         } else {
           localStorage.removeItem(`${STORAGE_PREFIX}-active-behavior-tree`);
         }
 
         // Log successful save
-        console.log(
-          `[OrchestrationAutoSave] Saved at ${new Date().toLocaleTimeString()}:`,
-          {
-            workflows: workflowsArray.length,
-            behaviorTrees: behaviorTreesArray.length,
-            activeWorkflow,
-            activeBehaviorTree,
-          }
-        );
+        console.log(`[OrchestrationAutoSave] Saved at ${new Date().toLocaleTimeString()}:`, {
+          workflows: workflowsArray.length,
+          behaviorTrees: behaviorTreesArray.length,
+          activeWorkflow,
+          activeBehaviorTree,
+        });
       } catch (error) {
         // Handle localStorage quota errors, security errors, etc.
         console.error('[OrchestrationAutoSave] Failed to save:', error);
 
         // If quota exceeded, try clearing old data
         if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-          console.warn('[OrchestrationAutoSave] localStorage quota exceeded. Consider clearing old data.');
+          console.warn(
+            '[OrchestrationAutoSave] localStorage quota exceeded. Consider clearing old data.'
+          );
         }
       }
     }, AUTO_SAVE_INTERVAL);

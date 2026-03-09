@@ -12,7 +12,9 @@ function sfx(id: string, cat = 'sfx'): SoundDefinition {
 
 describe('SoundPool', () => {
   let pool: SoundPool;
-  beforeEach(() => { pool = new SoundPool(); });
+  beforeEach(() => {
+    pool = new SoundPool();
+  });
 
   it('register and get', () => {
     pool.register(sfx('hit'));

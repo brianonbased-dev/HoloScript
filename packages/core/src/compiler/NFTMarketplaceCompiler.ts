@@ -106,11 +106,7 @@ export class NFTMarketplaceCompiler extends CompilerBase {
 
     // Generate deployment scripts for each chain
     for (const chain of marketplace.chains) {
-      const script = this.generateDeploymentScript(
-        marketplace,
-        chain.network,
-        contracts
-      );
+      const script = this.generateDeploymentScript(marketplace, chain.network, contracts);
 
       deploymentScripts.push({
         chain: chain.network,
@@ -274,10 +270,7 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     this.emit(' */');
   }
 
-  private buildInheritance(
-    contract: NFTContract,
-    royalties?: RoyaltyConfig
-  ): string[] {
+  private buildInheritance(contract: NFTContract, royalties?: RoyaltyConfig): string[] {
     const inheritance: string[] = [];
 
     if (contract.standard === 'ERC1155' || contract.standard === 'Hybrid') {
@@ -398,7 +391,8 @@ export class NFTMarketplaceCompiler extends CompilerBase {
         severity: 'medium',
         location: 'Storage layout',
         issue: `${wastedSpace} bytes of wasted storage space detected`,
-        suggestion: 'Reorder state variables to pack efficiently (uint256 -> uint128 -> uint64 -> bool)',
+        suggestion:
+          'Reorder state variables to pack efficiently (uint256 -> uint128 -> uint64 -> bool)',
         potentialSavings: wastedSpace * 20000, // ~20k gas per wasted slot
       });
     }
@@ -410,10 +404,14 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     this.emit('event TokenMinted(uint256 indexed tokenId, address indexed to, uint256 amount);');
 
     if (lazyMinting?.enabled) {
-      this.emit('event VoucherRedeemed(bytes32 indexed voucherId, address indexed redeemer, uint256 tokenId);');
+      this.emit(
+        'event VoucherRedeemed(bytes32 indexed voucherId, address indexed redeemer, uint256 tokenId);'
+      );
     }
 
-    this.emit('event RoyaltyUpdated(uint256 indexed tokenId, address receiver, uint96 feeNumerator);');
+    this.emit(
+      'event RoyaltyUpdated(uint256 indexed tokenId, address receiver, uint96 feeNumerator);'
+    );
     this.emit('event BaseURIUpdated(string newBaseURI);');
   }
 
@@ -480,10 +478,7 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     this.emit('}');
   }
 
-  private emitLazyMintingFunctions(
-    contract: NFTContract,
-    lazyMinting: LazyMintingConfig
-  ): void {
+  private emitLazyMintingFunctions(contract: NFTContract, lazyMinting: LazyMintingConfig): void {
     this.emit('// ============ Lazy Minting Functions ============');
     this.emit('');
 
@@ -540,7 +535,9 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     this.emit('');
 
     // Hash function
-    this.emit('function _hashVoucher(NFTVoucher calldata voucher) internal view returns (bytes32) {');
+    this.emit(
+      'function _hashVoucher(NFTVoucher calldata voucher) internal view returns (bytes32) {'
+    );
     this.indentLevel++;
     this.emit('return keccak256(abi.encode(');
     this.indentLevel++;
@@ -795,7 +792,9 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     this.emit('');
 
     // Events
-    this.emit('event Listed(bytes32 indexed listingId, address indexed seller, address nftContract, uint256 tokenId, uint256 price);');
+    this.emit(
+      'event Listed(bytes32 indexed listingId, address indexed seller, address nftContract, uint256 tokenId, uint256 price);'
+    );
     this.emit('event Sold(bytes32 indexed listingId, address indexed buyer, uint256 amount);');
     this.emit('event Cancelled(bytes32 indexed listingId);');
     this.emit('');
@@ -820,7 +819,9 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     this.emit(') external returns (bytes32) {');
     this.indentLevel++;
 
-    this.emit('bytes32 listingId = keccak256(abi.encode(msg.sender, nftContract, tokenId, block.timestamp));');
+    this.emit(
+      'bytes32 listingId = keccak256(abi.encode(msg.sender, nftContract, tokenId, block.timestamp));'
+    );
     this.emit('');
     this.emit('listings[listingId] = Listing({');
     this.indentLevel++;
@@ -861,7 +862,9 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     this.emit('');
 
     this.emit('// Query ERC-2981 royalty info');
-    this.emit('try IERC2981(listing.nftContract).royaltyInfo(listing.tokenId, totalPrice) returns (');
+    this.emit(
+      'try IERC2981(listing.nftContract).royaltyInfo(listing.tokenId, totalPrice) returns ('
+    );
     this.indentLevel++;
     this.emit('address receiver,');
     this.emit('uint256 royalty');
@@ -934,9 +937,13 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     for (const contract of contracts) {
       lines.push(`  // Deploy ${contract.name}`);
       lines.push(`  const ${contract.name} = await ethers.getContractFactory("${contract.name}");`);
-      lines.push(`  const ${contract.name.toLowerCase()} = await ${contract.name}.deploy(/* constructor args */);`);
+      lines.push(
+        `  const ${contract.name.toLowerCase()} = await ${contract.name}.deploy(/* constructor args */);`
+      );
       lines.push(`  await ${contract.name.toLowerCase()}.waitForDeployment();`);
-      lines.push(`  console.log("${contract.name} deployed to:", await ${contract.name.toLowerCase()}.getAddress());`);
+      lines.push(
+        `  console.log("${contract.name} deployed to:", await ${contract.name.toLowerCase()}.getAddress());`
+      );
       lines.push('');
     }
 
@@ -956,7 +963,7 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     return {
       totalOptimizations: this.gasAnalysis.length,
       estimatedSavings: totalSavings,
-      criticalIssues: this.gasAnalysis.filter(i => i.severity === 'critical'),
+      criticalIssues: this.gasAnalysis.filter((i) => i.severity === 'critical'),
       recommendations: [
         'Enable Solidity optimizer with runs=200 for deployment gas optimization',
         'Use custom errors instead of require strings (saves ~50 gas per revert)',
@@ -973,7 +980,9 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     const warnings: string[] = [];
 
     if (!marketplace.gasOptimization?.enableStaticAnalysis) {
-      warnings.push('Gas optimization static analysis is disabled. Enable for production deployments.');
+      warnings.push(
+        'Gas optimization static analysis is disabled. Enable for production deployments.'
+      );
     }
 
     if (marketplace.royalties && marketplace.royalties.defaultRoyalty.bps > 1000) {
@@ -994,8 +1003,8 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     const polygonGasPrice = 30; // gwei on Polygon
     const deploymentGas = avgBytecodeSize * 200; // ~200 gas per byte
 
-    const baseCost = (deploymentGas * baseGasPrice / 1e9) * contracts.length;
-    const polygonCost = (deploymentGas * polygonGasPrice / 1e9) * contracts.length;
+    const baseCost = ((deploymentGas * baseGasPrice) / 1e9) * contracts.length;
+    const polygonCost = ((deploymentGas * polygonGasPrice) / 1e9) * contracts.length;
 
     return {
       base: `~$${baseCost.toFixed(4)} USD`,

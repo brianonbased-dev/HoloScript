@@ -155,9 +155,9 @@ describe('DemolitionPhysics', () => {
 
       const stats = physics.getStatistics();
       // Should have either particles or fragments (or both) if fracture occurred
-      expect(stats.particles.activeParticles + stats.fracture.totalFragments).toBeGreaterThanOrEqual(
-        0
-      );
+      expect(
+        stats.particles.activeParticles + stats.fracture.totalFragments
+      ).toBeGreaterThanOrEqual(0);
     });
   });
 

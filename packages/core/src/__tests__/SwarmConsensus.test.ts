@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi } from 'vitest';
 import { blackboardHandler } from '../traits/BlackboardTrait';
 
@@ -13,7 +12,7 @@ describe('Swarm Intelligence (Phase 13)', () => {
       type: 'blackboard_post_belief',
       key: 'enemy_location',
       value: { x: 10, y: 20 },
-      authorId: 'agent1'
+      authorId: 'agent1',
     });
 
     // Agent 2 reads the belief
@@ -25,13 +24,16 @@ describe('Swarm Intelligence (Phase 13)', () => {
     blackboardHandler.onEvent!(agent2Node as any, blackboardHandler.defaultConfig, agent2Context, {
       type: 'blackboard_read_belief',
       key: 'enemy_location',
-      queryId: 'q1'
+      queryId: 'q1',
     });
 
-    expect(agent2Context.emit).toHaveBeenCalledWith('blackboard_belief_result', expect.objectContaining({
-      found: true,
-      value: { x: 10, y: 20 }
-    }));
+    expect(agent2Context.emit).toHaveBeenCalledWith(
+      'blackboard_belief_result',
+      expect.objectContaining({
+        found: true,
+        value: { x: 10, y: 20 },
+      })
+    );
   });
 
   it('should reach consensus on a proposal', () => {
@@ -50,10 +52,12 @@ describe('Swarm Intelligence (Phase 13)', () => {
       type: 'blackboard_propose_action',
       actionType: 'attack',
       payload: { targetId: 'enemy_base' },
-      proposerId: 'agent1'
+      proposerId: 'agent1',
     });
 
-    const proposalId = agent1Context.emit.mock.calls.find((c: any) => c[0] === 'blackboard_proposal_created')[1].proposal.id;
+    const proposalId = agent1Context.emit.mock.calls.find(
+      (c: any) => c[0] === 'blackboard_proposal_created'
+    )[1].proposal.id;
 
     // Agent 2: Votes Yes
     const agent2Node = { id: 'agent2', properties: {}, __blackboardState: sharedState };
@@ -63,13 +67,16 @@ describe('Swarm Intelligence (Phase 13)', () => {
       type: 'blackboard_vote',
       proposalId,
       voterId: 'agent2',
-      vote: 'accept'
+      vote: 'accept',
     });
 
     // Verification: Consensus reached (since we have > 2 accepts logic in trait)
     // Wait... logic was >= 2 accepts. Agent 1 auto-votes yes. Agent 2 votes yes. Total = 2.
-    expect(agent2Context.emit).toHaveBeenCalledWith('blackboard_consensus_reached', expect.objectContaining({
-      proposal: expect.objectContaining({ id: proposalId, status: 'accepted' })
-    }));
+    expect(agent2Context.emit).toHaveBeenCalledWith(
+      'blackboard_consensus_reached',
+      expect.objectContaining({
+        proposal: expect.objectContaining({ id: proposalId, status: 'accepted' }),
+      })
+    );
   });
 });

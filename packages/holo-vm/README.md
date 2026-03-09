@@ -13,9 +13,7 @@ const builder = new HoloBytecodeBuilder();
 builder.addEntity('MyCube', 0);
 
 const main = builder.addFunction('main');
-main.setGeometry(1, GeometryType.Cube)
-    .transform(1, 0, 2, -5)
-    .halt();
+main.setGeometry(1, GeometryType.Cube).transform(1, 0, 2, -5).halt();
 
 const vm = new HoloVM();
 vm.load(builder.build());

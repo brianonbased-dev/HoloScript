@@ -4,8 +4,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { factionHandler } from '../FactionTrait';
 
-function makeNode() { return { id: 'faction_node' }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'faction_node' };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}) {
   const node = makeNode();
   const ctx = makeCtx();
@@ -34,12 +38,16 @@ describe('factionHandler.defaultConfig', () => {
 
 describe('factionHandler.onAttach', () => {
   it('creates __factionState', () => expect(attach().node.__factionState).toBeDefined());
-  it('relations Map starts empty for default config', () => expect(attach().node.__factionState.relations.size).toBe(0));
+  it('relations Map starts empty for default config', () =>
+    expect(attach().node.__factionState.relations.size).toBe(0));
   it('history starts empty', () => expect(attach().node.__factionState.history).toHaveLength(0));
   it('decayTimer=0', () => expect(attach().node.__factionState.decayTimer).toBe(0));
   it('emits faction_registered', () => {
     const { ctx } = attach({ faction_id: 'elves' });
-    expect(ctx.emit).toHaveBeenCalledWith('faction_registered', expect.objectContaining({ factionId: 'elves' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'faction_registered',
+      expect.objectContaining({ factionId: 'elves' })
+    );
   });
   it('initializes relations from config.reputation', () => {
     const { node } = attach({ reputation: { orcs: -50, humans: 30 } });
@@ -82,7 +90,10 @@ describe('factionHandler.onDetach', () => {
     const { node, config, ctx } = attach({ faction_id: 'dwarves' });
     ctx.emit.mockClear();
     factionHandler.onDetach!(node, config, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('faction_unregistered', expect.objectContaining({ factionId: 'dwarves' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'faction_unregistered',
+      expect.objectContaining({ factionId: 'dwarves' })
+    );
   });
 });
 
@@ -91,37 +102,68 @@ describe('factionHandler.onDetach', () => {
 describe('factionHandler.onEvent — reputation_change', () => {
   it('creates new relation when unknown faction', () => {
     const { node, ctx, config } = attach();
-    factionHandler.onEvent!(node, config, ctx, { type: 'reputation_change', factionId: 'gnomes', amount: 10, reason: 'quest' });
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'reputation_change',
+      factionId: 'gnomes',
+      amount: 10,
+      reason: 'quest',
+    });
     expect(node.__factionState.relations.has('gnomes')).toBe(true);
   });
   it('increases standing', () => {
     const { node, ctx, config } = attach({ reputation: { gnomes: 20 } });
-    factionHandler.onEvent!(node, config, ctx, { type: 'reputation_change', factionId: 'gnomes', amount: 15 });
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'reputation_change',
+      factionId: 'gnomes',
+      amount: 15,
+    });
     expect(node.__factionState.relations.get('gnomes').standing).toBe(35);
   });
   it('decreases standing', () => {
     const { node, ctx, config } = attach({ reputation: { gnomes: 30 } });
-    factionHandler.onEvent!(node, config, ctx, { type: 'reputation_change', factionId: 'gnomes', amount: -20 });
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'reputation_change',
+      factionId: 'gnomes',
+      amount: -20,
+    });
     expect(node.__factionState.relations.get('gnomes').standing).toBe(10);
   });
   it('clamps standing at +100', () => {
     const { node, ctx, config } = attach({ reputation: { gnomes: 90 } });
-    factionHandler.onEvent!(node, config, ctx, { type: 'reputation_change', factionId: 'gnomes', amount: 50 });
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'reputation_change',
+      factionId: 'gnomes',
+      amount: 50,
+    });
     expect(node.__factionState.relations.get('gnomes').standing).toBe(100);
   });
   it('clamps standing at -100', () => {
     const { node, ctx, config } = attach({ reputation: { gnomes: -90 } });
-    factionHandler.onEvent!(node, config, ctx, { type: 'reputation_change', factionId: 'gnomes', amount: -50 });
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'reputation_change',
+      factionId: 'gnomes',
+      amount: -50,
+    });
     expect(node.__factionState.relations.get('gnomes').standing).toBe(-100);
   });
   it('locked faction ignores reputation change', () => {
     const { node, ctx, config } = attach({ hostile_factions: ['undead'] });
-    factionHandler.onEvent!(node, config, ctx, { type: 'reputation_change', factionId: 'undead', amount: 200 });
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'reputation_change',
+      factionId: 'undead',
+      amount: 200,
+    });
     expect(node.__factionState.relations.get('undead').standing).toBe(-100);
   });
   it('records history entry', () => {
     const { node, ctx, config } = attach();
-    factionHandler.onEvent!(node, config, ctx, { type: 'reputation_change', factionId: 'elves', amount: 10, reason: 'trade', sourceId: 'quest_01' });
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'reputation_change',
+      factionId: 'elves',
+      amount: 10,
+      reason: 'trade',
+      sourceId: 'quest_01',
+    });
     expect(node.__factionState.history).toHaveLength(1);
     expect(node.__factionState.history[0].factionId).toBe('elves');
     expect(node.__factionState.history[0].reason).toBe('trade');
@@ -129,37 +171,68 @@ describe('factionHandler.onEvent — reputation_change', () => {
   it('history limited by history_limit', () => {
     const { node, ctx, config } = attach({ history_limit: 3 });
     for (let i = 0; i < 5; i++) {
-      factionHandler.onEvent!(node, config, ctx, { type: 'reputation_change', factionId: 'elves', amount: 1 });
+      factionHandler.onEvent!(node, config, ctx, {
+        type: 'reputation_change',
+        factionId: 'elves',
+        amount: 1,
+      });
     }
     expect(node.__factionState.history).toHaveLength(3);
   });
   it('emits reputation_updated', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    factionHandler.onEvent!(node, config, ctx, { type: 'reputation_change', factionId: 'orcs', amount: 5, reason: 'trade' });
-    expect(ctx.emit).toHaveBeenCalledWith('reputation_updated', expect.objectContaining({ factionId: 'orcs', change: 5, reason: 'trade' }));
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'reputation_change',
+      factionId: 'orcs',
+      amount: 5,
+      reason: 'trade',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'reputation_updated',
+      expect.objectContaining({ factionId: 'orcs', change: 5, reason: 'trade' })
+    );
   });
   it('emits faction_relation_changed when type transitions', () => {
     // neutral → friendly: need standing > 50 (friendly_threshold). Start at 0, add 60.
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    factionHandler.onEvent!(node, config, ctx, { type: 'reputation_change', factionId: 'merchants', amount: 60 });
-    expect(ctx.emit).toHaveBeenCalledWith('faction_relation_changed', expect.objectContaining({ factionId: 'merchants', from: 'neutral', to: 'friendly' }));
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'reputation_change',
+      factionId: 'merchants',
+      amount: 60,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'faction_relation_changed',
+      expect.objectContaining({ factionId: 'merchants', from: 'neutral', to: 'friendly' })
+    );
   });
   it('no faction_relation_changed when type stays same', () => {
     const { node, ctx, config } = attach({ reputation: { elves: 10 } });
     ctx.emit.mockClear();
-    factionHandler.onEvent!(node, config, ctx, { type: 'reputation_change', factionId: 'elves', amount: 5 }); // stays neutral
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'reputation_change',
+      factionId: 'elves',
+      amount: 5,
+    }); // stays neutral
     expect(ctx.emit).not.toHaveBeenCalledWith('faction_relation_changed', expect.anything());
   });
   it('standing=-100 maps to hostile relation type', () => {
     const { node, ctx, config } = attach();
-    factionHandler.onEvent!(node, config, ctx, { type: 'reputation_change', factionId: 'orcs', amount: -100 });
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'reputation_change',
+      factionId: 'orcs',
+      amount: -100,
+    });
     expect(node.__factionState.relations.get('orcs').type).toBe('hostile');
   });
   it('standing > allied_threshold maps to allied relation type', () => {
     const { node, ctx, config } = attach({ allied_threshold: 75 });
-    factionHandler.onEvent!(node, config, ctx, { type: 'reputation_change', factionId: 'rangers', amount: 80 });
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'reputation_change',
+      factionId: 'rangers',
+      amount: 80,
+    });
     expect(node.__factionState.relations.get('rangers').type).toBe('allied');
   });
 });
@@ -170,12 +243,23 @@ describe('factionHandler.onEvent — get_relation', () => {
   it('returns relation type and standing', () => {
     const { node, ctx, config } = attach({ reputation: { orcs: -50 } });
     ctx.emit.mockClear();
-    factionHandler.onEvent!(node, config, ctx, { type: 'get_relation', factionId: 'orcs', queryId: 'r1' });
-    expect(ctx.emit).toHaveBeenCalledWith('relation_result', expect.objectContaining({ queryId: 'r1', factionId: 'orcs', standing: -50 }));
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'get_relation',
+      factionId: 'orcs',
+      queryId: 'r1',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'relation_result',
+      expect.objectContaining({ queryId: 'r1', factionId: 'orcs', standing: -50 })
+    );
   });
   it('returns neutral/0 for unknown faction', () => {
     const { node, ctx, config } = attach();
-    factionHandler.onEvent!(node, config, ctx, { type: 'get_relation', factionId: 'goblins', queryId: 'r2' });
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'get_relation',
+      factionId: 'goblins',
+      queryId: 'r2',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'relation_result')!;
     expect(call[1].relation).toBe('neutral');
     expect(call[1].standing).toBe(0);
@@ -188,7 +272,11 @@ describe('factionHandler.onEvent — check_hostile', () => {
   it('isHostile=true for hostile faction', () => {
     const { node, ctx, config } = attach({ hostile_factions: ['undead'] });
     ctx.emit.mockClear();
-    factionHandler.onEvent!(node, config, ctx, { type: 'check_hostile', factionId: 'undead', queryId: 'h1' });
+    factionHandler.onEvent!(node, config, ctx, {
+      type: 'check_hostile',
+      factionId: 'undead',
+      queryId: 'h1',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'hostility_result')!;
     expect(call[1].isHostile).toBe(true);
   });
@@ -228,25 +316,45 @@ describe('factionHandler.onUpdate — decay', () => {
     expect(node.__factionState.decayTimer).toBe(0);
   });
   it('positive standing decays toward 0', () => {
-    const { node, ctx, config } = attach({ reputation: { elves: 50 }, reputation_decay: 5, decay_interval: 1 });
+    const { node, ctx, config } = attach({
+      reputation: { elves: 50 },
+      reputation_decay: 5,
+      decay_interval: 1,
+    });
     factionHandler.onUpdate!(node, config, ctx, 2);
     expect(node.__factionState.relations.get('elves').standing).toBe(45);
   });
   it('negative standing decays toward 0', () => {
-    const { node, ctx, config } = attach({ reputation: { orcs: -50 }, reputation_decay: 5, decay_interval: 1 });
+    const { node, ctx, config } = attach({
+      reputation: { orcs: -50 },
+      reputation_decay: 5,
+      decay_interval: 1,
+    });
     factionHandler.onUpdate!(node, config, ctx, 2);
     expect(node.__factionState.relations.get('orcs').standing).toBe(-45);
   });
   it('locked relations do not decay', () => {
-    const { node, ctx, config } = attach({ hostile_factions: ['undead'], reputation_decay: 20, decay_interval: 1 });
+    const { node, ctx, config } = attach({
+      hostile_factions: ['undead'],
+      reputation_decay: 20,
+      decay_interval: 1,
+    });
     factionHandler.onUpdate!(node, config, ctx, 2);
     expect(node.__factionState.relations.get('undead').standing).toBe(-100);
   });
   it('emits faction_relation_changed when decay crosses threshold', () => {
     // Start at 51 (friendly, > friendly_threshold=50), decay by 5 → 46 (neutral)
-    const { node, ctx, config } = attach({ reputation: { merchants: 51 }, reputation_decay: 5, decay_interval: 1, friendly_threshold: 50 });
+    const { node, ctx, config } = attach({
+      reputation: { merchants: 51 },
+      reputation_decay: 5,
+      decay_interval: 1,
+      friendly_threshold: 50,
+    });
     ctx.emit.mockClear();
     factionHandler.onUpdate!(node, config, ctx, 2);
-    expect(ctx.emit).toHaveBeenCalledWith('faction_relation_changed', expect.objectContaining({ factionId: 'merchants', from: 'friendly' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'faction_relation_changed',
+      expect.objectContaining({ factionId: 'merchants', from: 'friendly' })
+    );
   });
 });

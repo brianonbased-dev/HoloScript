@@ -59,16 +59,16 @@ export function catmullRom(
   p1: IVector3,
   p2: IVector3,
   p3: IVector3,
-  t: number,
+  t: number
 ): IVector3 {
   const t2 = t * t;
   const t3 = t2 * t;
 
   // Standard Catmull-Rom coefficients (tension α = 0.5)
   const c0 = -0.5 * t3 + t2 - 0.5 * t;
-  const c1 =  1.5 * t3 - 2.5 * t2 + 1.0;
+  const c1 = 1.5 * t3 - 2.5 * t2 + 1.0;
   const c2 = -1.5 * t3 + 2.0 * t2 + 0.5 * t;
-  const c3 =  0.5 * t3 - 0.5 * t2;
+  const c3 = 0.5 * t3 - 0.5 * t2;
 
   return {
     x: c0 * p0.x + c1 * p1.x + c2 * p2.x + c3 * p3.x,
@@ -99,15 +99,15 @@ export function hermiteInterpolate(
   pos1: IVector3,
   vel1: IVector3,
   t: number,
-  dt: number,
+  dt: number
 ): IVector3 {
   const t2 = t * t;
   const t3 = t2 * t;
 
-  const h00 =  2 * t3 - 3 * t2 + 1;  // starts 1, ends 0
-  const h10 =      t3 - 2 * t2 + t;  // tangent at start
-  const h01 = -2 * t3 + 3 * t2;      // starts 0, ends 1
-  const h11 =      t3 -     t2;      // tangent at end
+  const h00 = 2 * t3 - 3 * t2 + 1; // starts 1, ends 0
+  const h10 = t3 - 2 * t2 + t; // tangent at start
+  const h01 = -2 * t3 + 3 * t2; // starts 0, ends 1
+  const h11 = t3 - t2; // tangent at end
 
   return {
     x: h00 * pos0.x + h10 * vel0.x * dt + h01 * pos1.x + h11 * vel1.x * dt,
@@ -137,15 +137,15 @@ export function cubicBezier(
   c1: IVector3,
   c2: IVector3,
   p3: IVector3,
-  t: number,
+  t: number
 ): IVector3 {
-  const inv  = 1 - t;
+  const inv = 1 - t;
   const inv2 = inv * inv;
-  const t2   = t * t;
-  const b0   = inv2 * inv;
-  const b1   = 3 * inv2 * t;
-  const b2   = 3 * inv  * t2;
-  const b3   = t * t2;
+  const t2 = t * t;
+  const b0 = inv2 * inv;
+  const b1 = 3 * inv2 * t;
+  const b2 = 3 * inv * t2;
+  const b3 = t * t2;
 
   return {
     x: b0 * p0.x + b1 * c1.x + b2 * c2.x + b3 * p3.x,

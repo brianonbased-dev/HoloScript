@@ -32,10 +32,7 @@ import { useAgentContext } from '../context/AgentContext';
  * );
  * ```
  */
-export function useTaskStatus(
-  taskId: string,
-  pollInterval = 1000
-): UseTaskStatusReturn {
+export function useTaskStatus(taskId: string, pollInterval = 1000): UseTaskStatusReturn {
   const context = useAgentContext();
   const [status, setStatus] = useState<UseTaskStatusReturn['status']>('idle');
   const [progress, setProgress] = useState(0);
@@ -48,15 +45,12 @@ export function useTaskStatus(
    */
   const fetchStatus = useCallback(async () => {
     try {
-      const response = await fetch(
-        `${context.apiUrl}/api/tasks/${taskId}/status`,
-        {
-          headers: {
-            ...context.headers,
-            ...(context.token && { Authorization: `Bearer ${context.token}` }),
-          },
-        }
-      );
+      const response = await fetch(`${context.apiUrl}/api/tasks/${taskId}/status`, {
+        headers: {
+          ...context.headers,
+          ...(context.token && { Authorization: `Bearer ${context.token}` }),
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch task status: ${response.statusText}`);
@@ -73,9 +67,7 @@ export function useTaskStatus(
       if (data.logs && Array.isArray(data.logs)) {
         setLogs((prevLogs) => {
           const existingIds = new Set(prevLogs.map((log) => log.timestamp));
-          const newLogs = data.logs.filter(
-            (log: TaskLog) => !existingIds.has(log.timestamp)
-          );
+          const newLogs = data.logs.filter((log: TaskLog) => !existingIds.has(log.timestamp));
           return [...prevLogs, ...newLogs];
         });
       }
@@ -94,11 +86,7 @@ export function useTaskStatus(
     // Poll for updates
     const interval = setInterval(() => {
       // Stop polling if task is complete
-      if (
-        status === 'success' ||
-        status === 'error' ||
-        status === 'cancelled'
-      ) {
+      if (status === 'success' || status === 'error' || status === 'cancelled') {
         clearInterval(interval);
         return;
       }

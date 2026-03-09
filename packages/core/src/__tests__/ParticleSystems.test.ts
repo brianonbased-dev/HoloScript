@@ -26,7 +26,9 @@ describe('ParticleSystem', () => {
   };
 
   let ps: ParticleSystem;
-  beforeEach(() => { ps = new ParticleSystem(baseConfig); });
+  beforeEach(() => {
+    ps = new ParticleSystem(baseConfig);
+  });
 
   it('initializes with zero active particles', () => {
     expect(ps.getActiveCount()).toBe(0);
@@ -74,7 +76,9 @@ describe('ParticleSystem', () => {
 
   it('addAffector modifies particles', () => {
     let called = false;
-    ps.addAffector((_p, _dt) => { called = true; });
+    ps.addAffector((_p, _dt) => {
+      called = true;
+    });
     ps.burst(1);
     ps.update(0.016);
     expect(called).toBe(true);
@@ -85,7 +89,7 @@ describe('ParticleSystem', () => {
     ps.update(0.001);
     const alive = ps.getAliveParticles();
     expect(alive.length).toBeGreaterThanOrEqual(5);
-    alive.forEach(p => expect(p.alive).toBe(true));
+    alive.forEach((p) => expect(p.alive).toBe(true));
   });
 
   it('setPosition updates emitter origin', () => {
@@ -99,8 +103,8 @@ describe('ParticleSystem', () => {
     sps.burst(20);
     sps.update(0.001);
     const alive = sps.getAliveParticles();
-    const positions = alive.map(p => ({ x: p.x, y: p.y, z: p.z }));
-    const allSame = positions.every(p => p.x === positions[0].x && p.y === positions[0].y);
+    const positions = alive.map((p) => ({ x: p.x, y: p.y, z: p.z }));
+    const allSame = positions.every((p) => p.x === positions[0].x && p.y === positions[0].y);
     expect(allSame).toBe(false);
   });
 });
@@ -184,7 +188,7 @@ describe('ParticleEmitter', () => {
     emitter.play();
     emitter.update(0.1);
     const alive = emitter.getAliveParticles();
-    alive.forEach(p => expect(p.alive).toBe(true));
+    alive.forEach((p) => expect(p.alive).toBe(true));
   });
 
   it('particles have position and velocity', () => {

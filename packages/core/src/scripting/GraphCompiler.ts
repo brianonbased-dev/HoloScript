@@ -43,11 +43,14 @@ export class GraphCompiler {
 
     const steps: CompiledStep[] = order.map((nodeId, idx) => {
       const node = graph.getNode(nodeId)!;
-      const inputs: Record<string, { source: 'wire' | 'default'; value: unknown; wireFrom?: string }> = {};
+      const inputs: Record<
+        string,
+        { source: 'wire' | 'default'; value: unknown; wireFrom?: string }
+      > = {};
 
       for (const port of node.ports) {
         if (port.direction === 'input') {
-          const wires = graph.getWiresForNode(nodeId).filter(w => w.toPortId === port.id);
+          const wires = graph.getWiresForNode(nodeId).filter((w) => w.toPortId === port.id);
           if (wires.length > 0) {
             inputs[port.id] = { source: 'wire', value: null, wireFrom: wires[0].fromNodeId };
           } else {
@@ -61,9 +64,9 @@ export class GraphCompiler {
 
     // Simple optimization: warn about unconnected outputs
     for (const node of graph.getAllNodes()) {
-      const outputPorts = node.ports.filter(p => p.direction === 'output');
+      const outputPorts = node.ports.filter((p) => p.direction === 'output');
       for (const port of outputPorts) {
-        const wires = graph.getWiresForNode(node.id).filter(w => w.fromPortId === port.id);
+        const wires = graph.getWiresForNode(node.id).filter((w) => w.fromPortId === port.id);
         if (wires.length === 0) {
           warnings.push(`Node "${node.label}" output "${port.name}" is unconnected`);
         }
@@ -83,6 +86,10 @@ export class GraphCompiler {
     return { valid: errors.length === 0, errors };
   }
 
-  getOptimizationPasses(): string[] { return [...this.optimizationPasses]; }
-  setOptimizationPasses(passes: string[]): void { this.optimizationPasses = passes; }
+  getOptimizationPasses(): string[] {
+    return [...this.optimizationPasses];
+  }
+  setOptimizationPasses(passes: string[]): void {
+    this.optimizationPasses = passes;
+  }
 }

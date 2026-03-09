@@ -4,8 +4,12 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  createSubmission, verifySubmission, publishSubmission, submissionSummary,
-  MarketplacePackage, Publisher,
+  createSubmission,
+  verifySubmission,
+  publishSubmission,
+  submissionSummary,
+  MarketplacePackage,
+  Publisher,
 } from '../marketplace/MarketplaceSubmission';
 import { MarketplaceRegistry } from '../marketplace/MarketplaceRegistry';
 import { gateCheck, RuntimeMonitor } from '../runtime/SafetyGate';
@@ -15,8 +19,11 @@ import { EffectASTNode } from '../compiler/safety/CompilerSafetyPass';
 // ── Fixtures ───────────────────────────────────────────────────────────────
 
 const testPublisher: Publisher = {
-  id: 'pub-001', name: 'TestDev', did: 'did:key:z6MkTest',
-  verified: true, trustLevel: 'trusted',
+  id: 'pub-001',
+  name: 'TestDev',
+  did: 'did:key:z6MkTest',
+  verified: true,
+  trustLevel: 'trusted',
 };
 
 function makePackage(overrides: Partial<MarketplacePackage> = {}): MarketplacePackage {
@@ -37,7 +44,8 @@ function makePackage(overrides: Partial<MarketplacePackage> = {}): MarketplacePa
     },
     nodes: [
       {
-        type: 'object', name: 'Player',
+        type: 'object',
+        name: 'Player',
         traits: ['@mesh', '@physics'],
         calls: [],
         declaredEffects: ['render:spawn', 'physics:force', 'physics:collision', 'resource:cpu'],
@@ -50,12 +58,15 @@ function makePackage(overrides: Partial<MarketplacePackage> = {}): MarketplacePa
 }
 
 function makeSafeNodes(): EffectASTNode[] {
-  return [{
-    type: 'object', name: 'SafeObj',
-    traits: ['@mesh'],
-    calls: [],
-    declaredEffects: ['render:spawn'],
-  }];
+  return [
+    {
+      type: 'object',
+      name: 'SafeObj',
+      traits: ['@mesh'],
+      calls: [],
+      declaredEffects: ['render:spawn'],
+    },
+  ];
 }
 
 // =============================================================================
@@ -318,7 +329,10 @@ describe('CultureRuntime', () => {
   it('records experiences and traces', () => {
     const runtime = new CultureRuntime();
     runtime.agentJoin('agent1');
-    runtime.recordExperience('agent1', 'Found treasure', { valence: 0.9, normId: 'resource_sharing' });
+    runtime.recordExperience('agent1', 'Found treasure', {
+      valence: 0.9,
+      normId: 'resource_sharing',
+    });
     runtime.leaveTrace('agent1', 'zone_a', 'treasure_here', { x: 10, y: 0, z: 10 });
     const traces = runtime.perceiveTraces('zone_a', { x: 11, y: 0, z: 10 });
     expect(traces).toHaveLength(1);

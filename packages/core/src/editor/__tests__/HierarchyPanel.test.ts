@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { HierarchyPanel, HierarchyNode } from '../HierarchyPanel';
 
-function makeNode(id: string, parentId: string | null = null, opts: Partial<HierarchyNode> = {}): HierarchyNode {
+function makeNode(
+  id: string,
+  parentId: string | null = null,
+  opts: Partial<HierarchyNode> = {}
+): HierarchyNode {
   return {
     id,
     name: opts.name ?? id,

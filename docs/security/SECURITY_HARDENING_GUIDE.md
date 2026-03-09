@@ -9,6 +9,7 @@
 ## Executive Summary
 
 This guide addresses critical security gaps identified in the uAA2++ research audit:
+
 - PartnerSDK uses placeholder hash functions ❌
 - Missing input validation framework ⚠️
 - No rate limiting on API endpoints ⚠️
@@ -37,6 +38,7 @@ function hashToken(token: string): string {
 ```
 
 **Issues**:
+
 - ❌ Not cryptographically secure
 - ❌ Collisions possible
 - ❌ Reversible in many cases
@@ -69,20 +71,15 @@ export function verifyToken(token: string, hash: string): boolean {
   const buffer = Buffer.from(hash, 'base64');
   const salt = buffer.slice(0, 32);
   const storedHash = buffer.slice(32);
-  
-  const computed = crypto.pbkdf2Sync(
-    token,
-    salt,
-    100000,
-    48,
-    'sha256'
-  );
-  
+
+  const computed = crypto.pbkdf2Sync(token, salt, 100000, 48, 'sha256');
+
   return crypto.timingSafeEqual(computed, storedHash);
 }
 ```
 
 **Implementation**:
+
 ```bash
 # File to create
 packages/core/src/security/CryptoUtils.ts
@@ -98,6 +95,7 @@ npm install --save-exact crypto-js
 ### ❌ Current Issues
 
 Missing centralized validation allows:
+
 - SQL injection (if using databases)
 - XSS attacks (if rendering untrusted content)
 - Type confusion attacks
@@ -145,11 +143,13 @@ export function tryValidateAgentAction(input: unknown): AgentAction | null {
 ```
 
 **Installation**:
+
 ```bash
 npm install --save zod
 ```
 
 **Usage**:
+
 ```typescript
 // In HITLManager
 const validatedAction = validateAgentAction(input);
@@ -163,6 +163,7 @@ const validatedAction = validateAgentAction(input);
 ### ❌ Current Issues
 
 No protection against:
+
 - Brute force attacks
 - DDoS attacks
 - API abuse
@@ -244,6 +245,7 @@ if (!limiter.isAllowed(userId)) {
 ### ❌ Current Issues
 
 Missing:
+
 - Role-based access control (RBAC)
 - Fine-grained permissions
 - Audit logging
@@ -280,11 +282,7 @@ const rolePermissions: Record<Role, Permission[]> = {
     Permission.APPROVE_HITL,
     Permission.VIEW_AUDIT_LOG,
   ],
-  [Role.MODERATOR]: [
-    Permission.MODIFY_SCENE,
-    Permission.EXECUTE_ACTION,
-    Permission.APPROVE_HITL,
-  ],
+  [Role.MODERATOR]: [Permission.MODIFY_SCENE, Permission.EXECUTE_ACTION, Permission.APPROVE_HITL],
   [Role.USER]: [Permission.EXECUTE_ACTION],
   [Role.GUEST]: [],
 };
@@ -302,21 +300,14 @@ export class AuthorizationManager {
    */
   static requirePermission(userRole: Role, permission: Permission): void {
     if (!this.hasPermission(userRole, permission)) {
-      throw new Error(
-        `Permission denied: ${userRole} cannot ${permission}`
-      );
+      throw new Error(`Permission denied: ${userRole} cannot ${permission}`);
     }
   }
 
   /**
    * Audit log
    */
-  static auditAction(
-    userId: string,
-    action: string,
-    resource: string,
-    allowed: boolean
-  ): void {
+  static auditAction(userId: string, action: string, resource: string, allowed: boolean): void {
     console.log(
       `[AUDIT] user=${userId}, action=${action}, resource=${resource}, allowed=${allowed}`
     );
@@ -369,10 +360,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
-      
+
       - name: Run npm audit
         run: npm audit --audit-level=moderate
-      
+
       - name: Run npm outdated check
         run: npm outdated || true
 ```
@@ -425,34 +416,25 @@ if (!config.openaiKey) {
 import * as crypto from 'crypto';
 
 // For sensitive data in storage
-export function encryptSensitiveData(
-  data: string,
-  masterKey: Buffer
-): string {
+export function encryptSensitiveData(data: string, masterKey: Buffer): string {
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv('aes-256-gcm', masterKey, iv);
-  
-  const encrypted = Buffer.concat([
-    cipher.update(data, 'utf-8'),
-    cipher.final(),
-  ]);
-  
+
+  const encrypted = Buffer.concat([cipher.update(data, 'utf-8'), cipher.final()]);
+
   const tag = cipher.getAuthTag();
   return Buffer.concat([iv, tag, encrypted]).toString('base64');
 }
 
-export function decryptSensitiveData(
-  encryptedData: string,
-  masterKey: Buffer
-): string {
+export function decryptSensitiveData(encryptedData: string, masterKey: Buffer): string {
   const buffer = Buffer.from(encryptedData, 'base64');
   const iv = buffer.slice(0, 16);
   const tag = buffer.slice(16, 32);
   const cipher = buffer.slice(32);
-  
+
   const decipher = crypto.createDecipheriv('aes-256-gcm', masterKey, iv);
   decipher.setAuthTag(tag);
-  
+
   return decipher.update(cipher, undefined, 'utf8') + decipher.final('utf8');
 }
 ```

@@ -6,20 +6,29 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  CATEGORY_COLORS,
-  CATEGORY_LABELS,
-  PLATFORM_LABELS,
-  SORT_OPTIONS,
-} from '../types';
+import { CATEGORY_COLORS, CATEGORY_LABELS, PLATFORM_LABELS, SORT_OPTIONS } from '../types';
 import type { TraitCategory, Platform } from '../types';
 
 const ALL_CATEGORIES: TraitCategory[] = [
-  'rendering', 'physics', 'networking', 'audio', 'ui', 'ai', 'blockchain', 'utility'
+  'rendering',
+  'physics',
+  'networking',
+  'audio',
+  'ui',
+  'ai',
+  'blockchain',
+  'utility',
 ];
 
 const ALL_PLATFORMS: Platform[] = [
-  'web', 'unity', 'unreal', 'godot', 'native', 'mobile', 'vr', 'ar'
+  'web',
+  'unity',
+  'unreal',
+  'godot',
+  'native',
+  'mobile',
+  'vr',
+  'ar',
 ];
 
 describe('CATEGORY_COLORS', () => {
@@ -76,7 +85,7 @@ describe('SORT_OPTIONS', () => {
   });
 
   it('includes relevance and downloads', () => {
-    const values = SORT_OPTIONS.map(o => o.value);
+    const values = SORT_OPTIONS.map((o) => o.value);
     expect(values).toContain('relevance');
     expect(values).toContain('downloads');
   });

@@ -36,7 +36,10 @@ function makeCtx(cameraPos = { x: 0, y: 0, z: 0 }) {
   return { emit: vi.fn(), camera: { position: cameraPos } };
 }
 
-function attach(cfg: Partial<typeof pointCloudHandler.defaultConfig> = {}, camera = { x: 0, y: 0, z: 0 }) {
+function attach(
+  cfg: Partial<typeof pointCloudHandler.defaultConfig> = {},
+  camera = { x: 0, y: 0, z: 0 }
+) {
   const node = makeNode();
   const ctx = makeCtx(camera);
   const config = { ...pointCloudHandler.defaultConfig!, source: '', ...cfg };
@@ -44,7 +47,10 @@ function attach(cfg: Partial<typeof pointCloudHandler.defaultConfig> = {}, camer
   return { node, ctx, config };
 }
 
-function attachLoaded(overrideState: Partial<any> = {}, cfg: Partial<typeof pointCloudHandler.defaultConfig> = {}) {
+function attachLoaded(
+  overrideState: Partial<any> = {},
+  cfg: Partial<typeof pointCloudHandler.defaultConfig> = {}
+) {
   const { node, ctx, config } = attach(cfg);
   Object.assign((node as any).__pointCloudState, {
     isLoaded: true,
@@ -100,7 +106,10 @@ describe('pointCloudHandler.onAttach', () => {
 
   it('source set → emits point_cloud_load', () => {
     const { ctx } = attach({ source: 'scene.ply' });
-    expect(ctx.emit).toHaveBeenCalledWith('point_cloud_load', expect.objectContaining({ source: 'scene.ply' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'point_cloud_load',
+      expect.objectContaining({ source: 'scene.ply' })
+    );
   });
 
   it('source empty → does NOT emit point_cloud_load', () => {
@@ -110,11 +119,14 @@ describe('pointCloudHandler.onAttach', () => {
 
   it('point_cloud_load carries format and lod settings', () => {
     const { ctx } = attach({ source: 'city.las', format: 'las', lod: true, lod_levels: 5 });
-    expect(ctx.emit).toHaveBeenCalledWith('point_cloud_load', expect.objectContaining({
-      format: 'las',
-      buildLod: true,
-      lodLevels: 5,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'point_cloud_load',
+      expect.objectContaining({
+        format: 'las',
+        buildLod: true,
+        lodLevels: 5,
+      })
+    );
   });
 });
 
@@ -159,7 +171,10 @@ describe('pointCloudHandler.onUpdate', () => {
     (ctx as any).camera = { position: { x: 5, y: 2.5, z: 55 } };
     ctx.emit.mockClear();
     pointCloudHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('point_cloud_set_lod', expect.objectContaining({ level: 3 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'point_cloud_set_lod',
+      expect.objectContaining({ level: 3 })
+    );
   });
 
   it('does NOT emit point_cloud_set_lod when level is unchanged', () => {
@@ -186,7 +201,11 @@ describe('pointCloudHandler.onEvent — point_cloud_loaded', () => {
   it('sets isLoaded=true', () => {
     const { node, ctx, config } = attach();
     pointCloudHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'point_cloud_loaded', pointCount: 500000, boundingBox: { min: [0,0,0], max: [10,10,10] }, memoryUsage: 256, octree: { h: 1 },
+      type: 'point_cloud_loaded',
+      pointCount: 500000,
+      boundingBox: { min: [0, 0, 0], max: [10, 10, 10] },
+      memoryUsage: 256,
+      octree: { h: 1 },
     });
     expect((node as any).__pointCloudState.isLoaded).toBe(true);
   });
@@ -194,7 +213,11 @@ describe('pointCloudHandler.onEvent — point_cloud_loaded', () => {
   it('populates pointCount and octreeHandle', () => {
     const { node, ctx, config } = attach();
     pointCloudHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'point_cloud_loaded', pointCount: 1234567, boundingBox: { min: [0,0,0], max: [1,1,1] }, memoryUsage: 100, octree: 'oct-handle',
+      type: 'point_cloud_loaded',
+      pointCount: 1234567,
+      boundingBox: { min: [0, 0, 0], max: [1, 1, 1] },
+      memoryUsage: 100,
+      octree: 'oct-handle',
     });
     expect((node as any).__pointCloudState.pointCount).toBe(1234567);
     expect((node as any).__pointCloudState.octreeHandle).toBe('oct-handle');
@@ -204,9 +227,16 @@ describe('pointCloudHandler.onEvent — point_cloud_loaded', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     pointCloudHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'point_cloud_loaded', pointCount: 100, boundingBox: { min: [0,0,0], max: [1,1,1] }, memoryUsage: 10, octree: {},
+      type: 'point_cloud_loaded',
+      pointCount: 100,
+      boundingBox: { min: [0, 0, 0], max: [1, 1, 1] },
+      memoryUsage: 10,
+      octree: {},
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_point_cloud_loaded', expect.objectContaining({ pointCount: 100 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_point_cloud_loaded',
+      expect.objectContaining({ pointCount: 100 })
+    );
   });
 });
 
@@ -217,9 +247,15 @@ describe('pointCloudHandler.onEvent — point_cloud_load_progress', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     pointCloudHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'point_cloud_load_progress', loadedPoints: 50000, totalPoints: 100000, progress: 0.5,
+      type: 'point_cloud_load_progress',
+      loadedPoints: 50000,
+      totalPoints: 100000,
+      progress: 0.5,
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_point_cloud_progress', expect.objectContaining({ progress: 0.5 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_point_cloud_progress',
+      expect.objectContaining({ progress: 0.5 })
+    );
   });
 });
 
@@ -230,9 +266,15 @@ describe('pointCloudHandler.onEvent — point_cloud_load_error', () => {
     const { node, ctx, config } = attach();
     (node as any).__pointCloudState.isLoading = true;
     ctx.emit.mockClear();
-    pointCloudHandler.onEvent!(node as any, config, ctx as any, { type: 'point_cloud_load_error', error: 'File not found' });
+    pointCloudHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'point_cloud_load_error',
+      error: 'File not found',
+    });
     expect((node as any).__pointCloudState.isLoading).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('on_point_cloud_error', expect.objectContaining({ error: 'File not found' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_point_cloud_error',
+      expect.objectContaining({ error: 'File not found' })
+    );
   });
 });
 
@@ -241,26 +283,41 @@ describe('pointCloudHandler.onEvent — point_cloud_load_error', () => {
 describe('pointCloudHandler.onEvent — visibility / size / color', () => {
   it('point_cloud_visibility_update sets visiblePoints', () => {
     const { node, ctx, config } = attach();
-    pointCloudHandler.onEvent!(node as any, config, ctx as any, { type: 'point_cloud_visibility_update', visibleCount: 250000 });
+    pointCloudHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'point_cloud_visibility_update',
+      visibleCount: 250000,
+    });
     expect((node as any).__pointCloudState.visiblePoints).toBe(250000);
   });
 
   it('point_cloud_set_point_size emits point_cloud_update_size', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    pointCloudHandler.onEvent!(node as any, config, ctx as any, { type: 'point_cloud_set_point_size', size: 2.5 });
-    expect(ctx.emit).toHaveBeenCalledWith('point_cloud_update_size', expect.objectContaining({ size: 2.5 }));
+    pointCloudHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'point_cloud_set_point_size',
+      size: 2.5,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'point_cloud_update_size',
+      expect.objectContaining({ size: 2.5 })
+    );
   });
 
   it('point_cloud_set_color_mode emits point_cloud_update_color with ranges from config', () => {
     const { node, ctx, config } = attach({ intensity_range: [10, 200], height_range: [5, 50] });
     ctx.emit.mockClear();
-    pointCloudHandler.onEvent!(node as any, config, ctx as any, { type: 'point_cloud_set_color_mode', mode: 'intensity' });
-    expect(ctx.emit).toHaveBeenCalledWith('point_cloud_update_color', expect.objectContaining({
+    pointCloudHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'point_cloud_set_color_mode',
       mode: 'intensity',
-      intensityRange: [10, 200],
-      heightRange: [5, 50],
-    }));
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'point_cloud_update_color',
+      expect.objectContaining({
+        mode: 'intensity',
+        intensityRange: [10, 200],
+        heightRange: [5, 50],
+      })
+    );
   });
 });
 
@@ -271,15 +328,21 @@ describe('pointCloudHandler.onEvent — filter / clear_filter', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     pointCloudHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'point_cloud_filter', filter: { classification: [1, 2], heightRange: [0, 10] },
+      type: 'point_cloud_filter',
+      filter: { classification: [1, 2], heightRange: [0, 10] },
     });
-    expect(ctx.emit).toHaveBeenCalledWith('point_cloud_apply_filter', expect.objectContaining({ classification: [1, 2] }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'point_cloud_apply_filter',
+      expect.objectContaining({ classification: [1, 2] })
+    );
   });
 
   it('point_cloud_clear_filter emits point_cloud_reset_filter', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    pointCloudHandler.onEvent!(node as any, config, ctx as any, { type: 'point_cloud_clear_filter' });
+    pointCloudHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'point_cloud_clear_filter',
+    });
     expect(ctx.emit).toHaveBeenCalledWith('point_cloud_reset_filter', expect.any(Object));
   });
 });
@@ -290,16 +353,25 @@ describe('pointCloudHandler.onEvent — point_cloud_set_source', () => {
   it('emits point_cloud_destroy when old octreeHandle exists', () => {
     const { node, ctx, config } = attachLoaded();
     ctx.emit.mockClear();
-    pointCloudHandler.onEvent!(node as any, config, ctx as any, { type: 'point_cloud_set_source', source: 'new.ply' });
+    pointCloudHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'point_cloud_set_source',
+      source: 'new.ply',
+    });
     expect(ctx.emit).toHaveBeenCalledWith('point_cloud_destroy', expect.any(Object));
   });
 
   it('resets isLoaded=false and emits point_cloud_load for new source', () => {
     const { node, ctx, config } = attachLoaded();
     ctx.emit.mockClear();
-    pointCloudHandler.onEvent!(node as any, config, ctx as any, { type: 'point_cloud_set_source', source: 'new.ply' });
+    pointCloudHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'point_cloud_set_source',
+      source: 'new.ply',
+    });
     expect((node as any).__pointCloudState.isLoaded).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('point_cloud_load', expect.objectContaining({ source: 'new.ply' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'point_cloud_load',
+      expect.objectContaining({ source: 'new.ply' })
+    );
   });
 });
 
@@ -309,21 +381,40 @@ describe('pointCloudHandler.onEvent — pick / query', () => {
   it('point_cloud_pick emits point_cloud_ray_pick', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    pointCloudHandler.onEvent!(node as any, config, ctx as any, { type: 'point_cloud_pick', x: 320, y: 240, callbackId: 'cb1' });
-    expect(ctx.emit).toHaveBeenCalledWith('point_cloud_ray_pick', expect.objectContaining({ screenX: 320, screenY: 240, callbackId: 'cb1' }));
+    pointCloudHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'point_cloud_pick',
+      x: 320,
+      y: 240,
+      callbackId: 'cb1',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'point_cloud_ray_pick',
+      expect.objectContaining({ screenX: 320, screenY: 240, callbackId: 'cb1' })
+    );
   });
 
   it('point_cloud_query emits point_cloud_info snapshot', () => {
-    const { node, ctx, config } = attachLoaded({ pointCount: 42, visiblePoints: 10, lodLevel: 2, memoryUsage: 512 });
-    ctx.emit.mockClear();
-    pointCloudHandler.onEvent!(node as any, config, ctx as any, { type: 'point_cloud_query', queryId: 'q1' });
-    expect(ctx.emit).toHaveBeenCalledWith('point_cloud_info', expect.objectContaining({
-      queryId: 'q1',
-      isLoaded: true,
+    const { node, ctx, config } = attachLoaded({
       pointCount: 42,
       visiblePoints: 10,
       lodLevel: 2,
       memoryUsage: 512,
-    }));
+    });
+    ctx.emit.mockClear();
+    pointCloudHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'point_cloud_query',
+      queryId: 'q1',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'point_cloud_info',
+      expect.objectContaining({
+        queryId: 'q1',
+        isLoaded: true,
+        pointCount: 42,
+        visiblePoints: 10,
+        lodLevel: 2,
+        memoryUsage: 512,
+      })
+    );
   });
 });

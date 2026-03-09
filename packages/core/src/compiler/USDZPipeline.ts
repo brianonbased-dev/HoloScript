@@ -151,9 +151,7 @@ export class USDZPipeline {
     const usdaBytes = new TextEncoder().encode(usda);
     const usdaName = `${this.sanitizeName(composition.name)}.usda`;
 
-    const files: Array<{ name: string; data: Uint8Array }> = [
-      { name: usdaName, data: usdaBytes },
-    ];
+    const files: Array<{ name: string; data: Uint8Array }> = [{ name: usdaName, data: usdaBytes }];
 
     // Add texture files
     if (this.options.textureData) {
@@ -172,8 +170,15 @@ export class USDZPipeline {
    * Create an uncompressed ZIP with 64-byte aligned file data.
    * USDZ requires uncompressed storage and 64-byte alignment per Apple spec.
    */
-  private static createUncompressedZip(files: Array<{ name: string; data: Uint8Array }>): Uint8Array {
-    const localHeaders: Array<{ offset: number; nameBytes: Uint8Array; crc: number; size: number }> = [];
+  private static createUncompressedZip(
+    files: Array<{ name: string; data: Uint8Array }>
+  ): Uint8Array {
+    const localHeaders: Array<{
+      offset: number;
+      nameBytes: Uint8Array;
+      crc: number;
+      size: number;
+    }> = [];
     const chunks: Uint8Array[] = [];
     let offset = 0;
 
@@ -317,18 +322,18 @@ export class USDZPipeline {
       for (let i = 0; i < 256; i++) {
         let c = i;
         for (let j = 0; j < 8; j++) {
-          c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+          c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
         }
         table[i] = c;
       }
       USDZPipeline._crc32Table = table;
     }
 
-    let crc = 0xFFFFFFFF;
+    let crc = 0xffffffff;
     for (let i = 0; i < data.length; i++) {
-      crc = USDZPipeline._crc32Table[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
+      crc = USDZPipeline._crc32Table[(crc ^ data[i]) & 0xff] ^ (crc >>> 8);
     }
-    return (crc ^ 0xFFFFFFFF) >>> 0;
+    return (crc ^ 0xffffffff) >>> 0;
   }
   private static _crc32Table: Uint32Array | null = null;
 
@@ -418,8 +423,12 @@ export class USDZPipeline {
       const mat: USDMaterial = { name: matName };
 
       // 1. Named material preset (e.g., material: "glass")
-      const presetName = typeof material === 'string' ? material
-        : typeof materialPreset === 'string' ? materialPreset : undefined;
+      const presetName =
+        typeof material === 'string'
+          ? material
+          : typeof materialPreset === 'string'
+            ? materialPreset
+            : undefined;
       if (presetName && MATERIAL_PRESETS[presetName]) {
         const preset = MATERIAL_PRESETS[presetName];
         if (preset.color) mat.baseColor = this.hexToRGB(preset.color);
@@ -427,21 +436,25 @@ export class USDZPipeline {
         if (preset.roughness !== undefined) mat.roughness = preset.roughness;
         if (preset.opacity !== undefined) mat.opacity = preset.opacity;
         if (preset.emissive) mat.emissiveColor = this.hexToRGB(preset.emissive);
-        if (preset.emissiveIntensity !== undefined) mat.emissiveIntensity = preset.emissiveIntensity;
+        if (preset.emissiveIntensity !== undefined)
+          mat.emissiveIntensity = preset.emissiveIntensity;
         if (preset.transmission !== undefined) mat.transmission = preset.transmission;
         if (preset.ior !== undefined) mat.ior = preset.ior;
         if (preset.thickness !== undefined) mat.thickness = preset.thickness;
         if (preset.clearcoat !== undefined) mat.clearcoat = preset.clearcoat;
-        if (preset.clearcoatRoughness !== undefined) mat.clearcoatRoughness = preset.clearcoatRoughness;
+        if (preset.clearcoatRoughness !== undefined)
+          mat.clearcoatRoughness = preset.clearcoatRoughness;
         if (preset.sheen !== undefined) mat.sheen = preset.sheen;
         if (preset.sheenRoughness !== undefined) mat.sheenRoughness = preset.sheenRoughness;
         if (preset.sheenColor) mat.sheenColor = this.hexToRGB(preset.sheenColor);
         if (preset.iridescence !== undefined) mat.iridescence = preset.iridescence;
         if (preset.iridescenceIOR !== undefined) mat.iridescenceIOR = preset.iridescenceIOR;
         if (preset.anisotropy !== undefined) mat.anisotropy = preset.anisotropy;
-        if (preset.anisotropyRotation !== undefined) mat.anisotropyRotation = preset.anisotropyRotation;
+        if (preset.anisotropyRotation !== undefined)
+          mat.anisotropyRotation = preset.anisotropyRotation;
         if (preset.attenuationColor) mat.attenuationColor = this.hexToRGB(preset.attenuationColor);
-        if (preset.attenuationDistance !== undefined) mat.attenuationDistance = preset.attenuationDistance;
+        if (preset.attenuationDistance !== undefined)
+          mat.attenuationDistance = preset.attenuationDistance;
         if (preset.transparent && mat.opacity === undefined) mat.opacity = 0.99;
       }
 
@@ -486,7 +499,10 @@ export class USDZPipeline {
       // 5. Collect texture maps from object properties
       const textureMaps: Record<string, string> = {};
       for (const prop of obj.properties || []) {
-        if (typeof prop.value === 'string' && (prop.key.endsWith('Map') || prop.key.endsWith('_map'))) {
+        if (
+          typeof prop.value === 'string' &&
+          (prop.key.endsWith('Map') || prop.key.endsWith('_map'))
+        ) {
           if (!prop.value.startsWith('#') && !prop.value.startsWith('rgb')) {
             textureMaps[prop.key] = prop.value;
           }
@@ -522,7 +538,10 @@ export class USDZPipeline {
   }
 
   // Texture channel mapping: HoloScript → USD UsdPreviewSurface input name
-  private static readonly TEXTURE_CHANNEL_MAP: Record<string, { input: string; type: 'color3f' | 'float' | 'normal3f' }> = {
+  private static readonly TEXTURE_CHANNEL_MAP: Record<
+    string,
+    { input: string; type: 'color3f' | 'float' | 'normal3f' }
+  > = {
     albedo_map: { input: 'diffuseColor', type: 'color3f' },
     baseColorMap: { input: 'diffuseColor', type: 'color3f' },
     normal_map: { input: 'normal', type: 'normal3f' },
@@ -567,7 +586,9 @@ export class USDZPipeline {
 
       // diffuseColor — may be connected to texture
       if (textureConnections.has('diffuseColor')) {
-        lines.push(`        color3f inputs:diffuseColor.connect = </${name}/${textureConnections.get('diffuseColor')}.outputs:rgb>`);
+        lines.push(
+          `        color3f inputs:diffuseColor.connect = </${name}/${textureConnections.get('diffuseColor')}.outputs:rgb>`
+        );
       } else if (mat.baseColor) {
         lines.push(
           `        color3f inputs:diffuseColor = (${mat.baseColor[0]}, ${mat.baseColor[1]}, ${mat.baseColor[2]})`
@@ -576,21 +597,27 @@ export class USDZPipeline {
 
       // metallic — may be connected to texture
       if (textureConnections.has('metallic')) {
-        lines.push(`        float inputs:metallic.connect = </${name}/${textureConnections.get('metallic')}.outputs:r>`);
+        lines.push(
+          `        float inputs:metallic.connect = </${name}/${textureConnections.get('metallic')}.outputs:r>`
+        );
       } else {
         lines.push(`        float inputs:metallic = ${mat.metallic ?? 0}`);
       }
 
       // roughness — may be connected to texture
       if (textureConnections.has('roughness')) {
-        lines.push(`        float inputs:roughness.connect = </${name}/${textureConnections.get('roughness')}.outputs:r>`);
+        lines.push(
+          `        float inputs:roughness.connect = </${name}/${textureConnections.get('roughness')}.outputs:r>`
+        );
       } else {
         lines.push(`        float inputs:roughness = ${mat.roughness ?? 0.5}`);
       }
 
       // emissiveColor — scale by emissiveIntensity (USD has no separate intensity)
       if (textureConnections.has('emissiveColor')) {
-        lines.push(`        color3f inputs:emissiveColor.connect = </${name}/${textureConnections.get('emissiveColor')}.outputs:rgb>`);
+        lines.push(
+          `        color3f inputs:emissiveColor.connect = </${name}/${textureConnections.get('emissiveColor')}.outputs:rgb>`
+        );
       } else if (mat.emissiveColor) {
         const intensity = mat.emissiveIntensity ?? 1;
         const scaled: [number, number, number] = [
@@ -626,17 +653,23 @@ export class USDZPipeline {
 
       // normal — may be connected to texture
       if (textureConnections.has('normal')) {
-        lines.push(`        normal3f inputs:normal.connect = </${name}/${textureConnections.get('normal')}.outputs:rgb>`);
+        lines.push(
+          `        normal3f inputs:normal.connect = </${name}/${textureConnections.get('normal')}.outputs:rgb>`
+        );
       }
 
       // occlusion — may be connected to texture
       if (textureConnections.has('occlusion')) {
-        lines.push(`        float inputs:occlusion.connect = </${name}/${textureConnections.get('occlusion')}.outputs:r>`);
+        lines.push(
+          `        float inputs:occlusion.connect = </${name}/${textureConnections.get('occlusion')}.outputs:r>`
+        );
       }
 
       // displacement — may be connected to texture
       if (textureConnections.has('displacement')) {
-        lines.push(`        float inputs:displacement.connect = </${name}/${textureConnections.get('displacement')}.outputs:r>`);
+        lines.push(
+          `        float inputs:displacement.connect = </${name}/${textureConnections.get('displacement')}.outputs:r>`
+        );
       }
 
       lines.push('        token outputs:surface');
@@ -656,23 +689,31 @@ export class USDZPipeline {
         lines.push(`    # HoloScript:thickness = ${mat.thickness}`);
       }
       if (mat.attenuationColor) {
-        lines.push(`    # HoloScript:attenuationColor = (${mat.attenuationColor[0]}, ${mat.attenuationColor[1]}, ${mat.attenuationColor[2]})`);
+        lines.push(
+          `    # HoloScript:attenuationColor = (${mat.attenuationColor[0]}, ${mat.attenuationColor[1]}, ${mat.attenuationColor[2]})`
+        );
       }
       if (mat.attenuationDistance !== undefined) {
         lines.push(`    # HoloScript:attenuationDistance = ${mat.attenuationDistance}`);
       }
       if (mat.sheen && mat.sheen > 0) {
         lines.push(`    # HoloScript:sheen = ${mat.sheen}`);
-        if (mat.sheenRoughness !== undefined) lines.push(`    # HoloScript:sheenRoughness = ${mat.sheenRoughness}`);
-        if (mat.sheenColor) lines.push(`    # HoloScript:sheenColor = (${mat.sheenColor[0]}, ${mat.sheenColor[1]}, ${mat.sheenColor[2]})`);
+        if (mat.sheenRoughness !== undefined)
+          lines.push(`    # HoloScript:sheenRoughness = ${mat.sheenRoughness}`);
+        if (mat.sheenColor)
+          lines.push(
+            `    # HoloScript:sheenColor = (${mat.sheenColor[0]}, ${mat.sheenColor[1]}, ${mat.sheenColor[2]})`
+          );
       }
       if (mat.iridescence && mat.iridescence > 0) {
         lines.push(`    # HoloScript:iridescence = ${mat.iridescence}`);
-        if (mat.iridescenceIOR !== undefined) lines.push(`    # HoloScript:iridescenceIOR = ${mat.iridescenceIOR}`);
+        if (mat.iridescenceIOR !== undefined)
+          lines.push(`    # HoloScript:iridescenceIOR = ${mat.iridescenceIOR}`);
       }
       if (mat.anisotropy && mat.anisotropy > 0) {
         lines.push(`    # HoloScript:anisotropy = ${mat.anisotropy}`);
-        if (mat.anisotropyRotation !== undefined) lines.push(`    # HoloScript:anisotropyRotation = ${mat.anisotropyRotation}`);
+        if (mat.anisotropyRotation !== undefined)
+          lines.push(`    # HoloScript:anisotropyRotation = ${mat.anisotropyRotation}`);
       }
 
       lines.push('}');
@@ -1011,40 +1052,44 @@ export class USDZPipeline {
     const domainBlocks = (composition as any).domainBlocks ?? [];
     if (domainBlocks.length === 0) return '';
 
-    const compiled = compileDomainBlocks(domainBlocks, {
-      material: (block) => {
-        const mat = compileMaterialBlock(block);
-        return materialToUSD(mat);
+    const compiled = compileDomainBlocks(
+      domainBlocks,
+      {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          return materialToUSD(mat);
+        },
+        physics: (block) => {
+          const phys = compilePhysicsBlock(block);
+          return `# Physics: ${phys.keyword} "${phys.name || ''}" — ${JSON.stringify(phys.properties)}`;
+        },
+        vfx: (block) => {
+          const ps = compileParticleBlock(block);
+          return particlesToUSD(ps);
+        },
+        postfx: (block) => {
+          const pp = compilePostProcessingBlock(block);
+          return postProcessingToUSD(pp);
+        },
+        audio: (block) => {
+          const audio = compileAudioSourceBlock(block);
+          return audioSourceToUSD(audio);
+        },
+        weather: (block) => {
+          const weather = compileWeatherBlock(block);
+          return weatherToUSD(weather);
+        },
+        narrative: (block) => {
+          const narr = compileNarrativeBlock(block);
+          return narrativeToUSDA(narr);
+        },
+        payment: (block) => {
+          const pay = compilePaymentBlock(block);
+          return paymentToUSDA(pay);
+        },
       },
-      physics: (block) => {
-        const phys = compilePhysicsBlock(block);
-        return `# Physics: ${phys.keyword} "${phys.name || ''}" — ${JSON.stringify(phys.properties)}`;
-      },
-      vfx: (block) => {
-        const ps = compileParticleBlock(block);
-        return particlesToUSD(ps);
-      },
-      postfx: (block) => {
-        const pp = compilePostProcessingBlock(block);
-        return postProcessingToUSD(pp);
-      },
-      audio: (block) => {
-        const audio = compileAudioSourceBlock(block);
-        return audioSourceToUSD(audio);
-      },
-      weather: (block) => {
-        const weather = compileWeatherBlock(block);
-        return weatherToUSD(weather);
-      },
-      narrative: (block) => {
-        const narr = compileNarrativeBlock(block);
-        return narrativeToUSDA(narr);
-      },
-      payment: (block) => {
-        const pay = compilePaymentBlock(block);
-        return paymentToUSDA(pay);
-      },
-    }, (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+      (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`
+    );
 
     return `# === v4.2 Domain Blocks ===\n${compiled.join('\n\n')}`;
   }
@@ -1065,7 +1110,10 @@ export function generateUSDA(composition: HoloComposition, options?: USDZPipelin
 /**
  * Generate binary USDZ from composition
  */
-export function generateUSDZ(composition: HoloComposition, options?: USDZPipelineOptions): Uint8Array {
+export function generateUSDZ(
+  composition: HoloComposition,
+  options?: USDZPipelineOptions
+): Uint8Array {
   const pipeline = new USDZPipeline(options);
   return pipeline.generateUSDZ(composition);
 }

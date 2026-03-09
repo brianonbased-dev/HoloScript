@@ -178,7 +178,7 @@ export function resolveWasmUrl(): string {
  * (via wgpu adapter enumeration) than from the browser WebGPU API.
  */
 export async function enhancePlatformWithTauri(
-  caps: PlatformCapabilities,
+  caps: PlatformCapabilities
 ): Promise<PlatformCapabilities> {
   if (!caps.isTauri) return caps;
 
@@ -205,7 +205,7 @@ export async function enhancePlatformWithTauri(
  */
 export async function saveProjectNative(
   path: string,
-  content: string,
+  content: string
 ): Promise<{ success: boolean; message: string }> {
   const invoke = await getTauriInvoke();
   if (!invoke) {
@@ -213,7 +213,7 @@ export async function saveProjectNative(
   }
 
   try {
-    const result = await invoke('save_project', { path, content }) as string;
+    const result = (await invoke('save_project', { path, content })) as string;
     return { success: true, message: result };
   } catch (error) {
     return { success: false, message: String(error) };
@@ -225,7 +225,7 @@ export async function saveProjectNative(
  * Returns null if not in Tauri context.
  */
 export async function loadProjectNative(
-  path: string,
+  path: string
 ): Promise<{ success: boolean; content?: string; message: string }> {
   const invoke = await getTauriInvoke();
   if (!invoke) {
@@ -233,7 +233,7 @@ export async function loadProjectNative(
   }
 
   try {
-    const content = await invoke('load_project', { path }) as string;
+    const content = (await invoke('load_project', { path })) as string;
     return { success: true, content, message: 'Loaded successfully' };
   } catch (error) {
     return { success: false, message: String(error) };
@@ -244,14 +244,12 @@ export async function loadProjectNative(
  * List recent HoloScript projects from a directory.
  * Returns empty array if not in Tauri context.
  */
-export async function listProjectsNative(
-  directory: string,
-): Promise<TauriProjectMeta[]> {
+export async function listProjectsNative(directory: string): Promise<TauriProjectMeta[]> {
   const invoke = await getTauriInvoke();
   if (!invoke) return [];
 
   try {
-    return await invoke('list_projects', { directory }) as TauriProjectMeta[];
+    return (await invoke('list_projects', { directory })) as TauriProjectMeta[];
   } catch {
     return [];
   }
@@ -277,8 +275,17 @@ export async function listProjectsNative(
  * @param caps - Pre-detected platform capabilities
  */
 export async function initBridgeForPlatform(
-  bridge: { init(wasmUrl: string, world: 'holoscript-runtime' | 'holoscript-parser' | 'holoscript-compiler' | 'holoscript-spatial'): Promise<unknown> },
-  caps: PlatformCapabilities,
+  bridge: {
+    init(
+      wasmUrl: string,
+      world:
+        | 'holoscript-runtime'
+        | 'holoscript-parser'
+        | 'holoscript-compiler'
+        | 'holoscript-spatial'
+    ): Promise<unknown>;
+  },
+  caps: PlatformCapabilities
 ): Promise<void> {
   const wasmUrl = resolveWasmUrl();
 
@@ -287,8 +294,8 @@ export async function initBridgeForPlatform(
     if (features.gpuInfo) {
       console.info(
         `[HoloScript] Tauri desktop: GPU=${features.gpuInfo.name}, ` +
-        `Backend=${features.gpuInfo.backend}, ` +
-        `WebGPU=${features.gpuInfo.supports_webgpu}`,
+          `Backend=${features.gpuInfo.backend}, ` +
+          `WebGPU=${features.gpuInfo.supports_webgpu}`
       );
     }
     // Desktop always gets the full runtime

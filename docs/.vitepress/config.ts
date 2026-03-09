@@ -10,15 +10,15 @@ export default defineConfig({
 
   // Exclude legacy dev notes and directories not part of user-facing docs
   srcExclude: [
-    'knowledge/**',      // legacy - content migrated to language/ section
-    '_archive/**',       // dev notes archived from root
-    'planning/**',       // sprint planning notes
-    'research/**',       // research notes
-    'archive/**',        // old migration docs
-    'integration/**',    // old UPPERCASE integration files (replaced by integrations/)
-    'graphics/**',       // graphics dev notes
+    'knowledge/**', // legacy - content migrated to language/ section
+    '_archive/**', // dev notes archived from root
+    'planning/**', // sprint planning notes
+    'research/**', // research notes
+    'archive/**', // old migration docs
+    'integration/**', // old UPPERCASE integration files (replaced by integrations/)
+    'graphics/**', // graphics dev notes
     'getting-started/**', // old directory (replaced by guides/)
-    'ecosystem/**',      // ecosystem dev notes
+    'ecosystem/**', // ecosystem dev notes
     // Root-level UPPERCASE dev note files
     'PLUGIN_SYSTEM_V2_DESIGN.md',
     'SPREAD_OPERATOR_IMPLEMENTATION.md',
@@ -58,7 +58,10 @@ export default defineConfig({
     ['meta', { name: 'theme-color', content: '#00ffff' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:url', content: 'https://holoscript.net' }],
-    ['meta', { property: 'og:title', content: 'HoloScript - The Open Platform for Spatial Worlds' }],
+    [
+      'meta',
+      { property: 'og:title', content: 'HoloScript - The Open Platform for Spatial Worlds' },
+    ],
     [
       'meta',
       {
@@ -70,7 +73,10 @@ export default defineConfig({
     ['meta', { property: 'og:image', content: 'https://holoscript.net/og-image.png' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['meta', { name: 'twitter:site', content: '@holoscript' }],
-    ['meta', { name: 'twitter:title', content: 'HoloScript - The Open Platform for Spatial Worlds' }],
+    [
+      'meta',
+      { name: 'twitter:title', content: 'HoloScript - The Open Platform for Spatial Worlds' },
+    ],
     [
       'meta',
       {
@@ -82,11 +88,21 @@ export default defineConfig({
     ['meta', { name: 'twitter:image', content: 'https://holoscript.net/og-image.png' }],
 
     // Security Headers (via meta tags for GitHub Pages)
-    ['meta', { 'http-equiv': 'Content-Security-Policy', content: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';" }],
+    [
+      'meta',
+      {
+        'http-equiv': 'Content-Security-Policy',
+        content:
+          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';",
+      },
+    ],
     ['meta', { 'http-equiv': 'X-Content-Type-Options', content: 'nosniff' }],
     ['meta', { 'http-equiv': 'X-Frame-Options', content: 'DENY' }],
     ['meta', { 'http-equiv': 'Referrer-Policy', content: 'strict-origin-when-cross-origin' }],
-    ['meta', { 'http-equiv': 'Permissions-Policy', content: 'geolocation=(), microphone=(), camera=()' }],
+    [
+      'meta',
+      { 'http-equiv': 'Permissions-Policy', content: 'geolocation=(), microphone=(), camera=()' },
+    ],
 
     // Remove version disclosure
     ['meta', { name: 'generator', content: 'VitePress' }],
@@ -180,15 +196,24 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Academy Overview', link: '/academy/' },
-            { text: '1. What is HoloScript?', link: '/academy/level-1-fundamentals/01-what-is-holoscript' },
+            {
+              text: '1. What is HoloScript?',
+              link: '/academy/level-1-fundamentals/01-what-is-holoscript',
+            },
             { text: '2. Installation', link: '/academy/level-1-fundamentals/02-installation' },
             { text: '3. First Scene', link: '/academy/level-1-fundamentals/03-first-scene' },
-            { text: '4. Compositions', link: '/academy/level-1-fundamentals/04-understanding-compositions' },
+            {
+              text: '4. Compositions',
+              link: '/academy/level-1-fundamentals/04-understanding-compositions',
+            },
             { text: '5. Properties', link: '/academy/level-1-fundamentals/05-properties' },
             { text: '6. Traits Intro', link: '/academy/level-1-fundamentals/06-traits-intro' },
             { text: '7. Interactivity', link: '/academy/level-1-fundamentals/07-interactivity' },
             { text: '8. Templates', link: '/academy/level-1-fundamentals/08-templates' },
-            { text: '9. Project Structure', link: '/academy/level-1-fundamentals/09-project-structure' },
+            {
+              text: '9. Project Structure',
+              link: '/academy/level-1-fundamentals/09-project-structure',
+            },
             { text: '10. Building', link: '/academy/level-1-fundamentals/10-building' },
           ],
         },
@@ -197,15 +222,33 @@ export default defineConfig({
           collapsed: true,
           items: [
             { text: 'Level 2 Overview', link: '/academy/level-2-intermediate/' },
-            { text: '1. Advanced Traits', link: '/academy/level-2-intermediate/01-advanced-traits' },
+            {
+              text: '1. Advanced Traits',
+              link: '/academy/level-2-intermediate/01-advanced-traits',
+            },
             { text: '2. Physics Deep Dive', link: '/academy/level-2-intermediate/02-physics' },
             { text: '7. Networking', link: '/academy/level-2-intermediate/07-networking' },
             { text: '8. State Machines', link: '/academy/level-2-intermediate/08-state-machines' },
-            { text: '9. NPCs & Behaviors', link: '/academy/level-2-intermediate/09-npc-and-behaviors' },
-            { text: '10. Biome Encounters', link: '/academy/level-2-intermediate/10-biome-encounters' },
-            { text: '11. Publishing to HoloHub', link: '/academy/level-2-intermediate/11-publishing-holohub' },
-            { text: '12. Spatial Discovery', link: '/academy/level-2-intermediate/12-spatial-discovery' },
-            { text: '13. Coordination Layer', link: '/academy/level-2-intermediate/13-coordination-layer' },
+            {
+              text: '9. NPCs & Behaviors',
+              link: '/academy/level-2-intermediate/09-npc-and-behaviors',
+            },
+            {
+              text: '10. Biome Encounters',
+              link: '/academy/level-2-intermediate/10-biome-encounters',
+            },
+            {
+              text: '11. Publishing to HoloHub',
+              link: '/academy/level-2-intermediate/11-publishing-holohub',
+            },
+            {
+              text: '12. Spatial Discovery',
+              link: '/academy/level-2-intermediate/12-spatial-discovery',
+            },
+            {
+              text: '13. Coordination Layer',
+              link: '/academy/level-2-intermediate/13-coordination-layer',
+            },
           ],
         },
         {
@@ -215,8 +258,14 @@ export default defineConfig({
             { text: 'Level 3 Overview', link: '/academy/level-3-advanced/' },
             { text: '1. Custom Traits', link: '/academy/level-3-advanced/01-custom-traits' },
             { text: '4. Procedural Generation', link: '/academy/level-3-advanced/04-procedural' },
-            { text: '5. Agent Choreography', link: '/academy/level-3-advanced/05-agent-choreography' },
-            { text: '6. Agent Communication', link: '/academy/level-3-advanced/06-agent-communication' },
+            {
+              text: '5. Agent Choreography',
+              link: '/academy/level-3-advanced/05-agent-choreography',
+            },
+            {
+              text: '6. Agent Communication',
+              link: '/academy/level-3-advanced/06-agent-communication',
+            },
             { text: '7. Spatial Context', link: '/academy/level-3-advanced/07-spatial-context' },
             { text: '8. Consensus Systems', link: '/academy/level-3-advanced/08-consensus' },
           ],
@@ -270,18 +319,14 @@ export default defineConfig({
         },
         {
           text: 'Advanced',
-          items: [
-            { text: 'Advanced Traits', link: '/traits/advanced' },
-          ],
+          items: [{ text: 'Advanced Traits', link: '/traits/advanced' }],
         },
       ],
 
       '/compilers/': [
         {
           text: 'Overview',
-          items: [
-            { text: 'All 25+ Targets', link: '/compilers/' },
-          ],
+          items: [{ text: 'All 25+ Targets', link: '/compilers/' }],
         },
         {
           text: 'Game Engines',
@@ -294,9 +339,7 @@ export default defineConfig({
         },
         {
           text: 'Web & Browser',
-          items: [
-            { text: 'WebGPU', link: '/compilers/webgpu' },
-          ],
+          items: [{ text: 'WebGPU', link: '/compilers/webgpu' }],
         },
         {
           text: 'Mobile & XR',
@@ -369,9 +412,7 @@ export default defineConfig({
         {
           text: 'Basic Syntax (.hs)',
           collapsed: false,
-          items: [
-            { text: 'Basic Objects', link: '/language/reference-hs-basic' },
-          ],
+          items: [{ text: 'Basic Objects', link: '/language/reference-hs-basic' }],
         },
         {
           text: 'Extended Syntax (.hsplus)',

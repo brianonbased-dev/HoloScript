@@ -9,17 +9,27 @@ vi.mock('@holoscript/core', () => ({
   parseHolo: vi.fn().mockReturnValue({ type: 'composition', body: [] }),
   MATERIAL_PRESETS: {},
   HoloScriptValidator: class {
-    validate() { return []; }
+    validate() {
+      return [];
+    }
   },
   HoloScriptPlusParser: class {
-    parse() { return { ast: { type: 'program', body: [] } }; }
+    parse() {
+      return { ast: { type: 'program', body: [] } };
+    }
   },
   HoloCompositionParser: class {
-    parse() { return { ast: { type: 'composition', body: [] } }; }
+    parse() {
+      return { ast: { type: 'composition', body: [] } };
+    }
   },
   R3FCompiler: class {
-    compile() { return { type: 'group', children: [] }; }
-    compileComposition() { return { type: 'group', children: [] }; }
+    compile() {
+      return { type: 'group', children: [] };
+    }
+    compileComposition() {
+      return { type: 'group', children: [] };
+    }
   },
 }));
 
@@ -65,12 +75,15 @@ vi.mock('@react-three/xr', () => ({
 }));
 
 // Mock Worker
-vi.stubGlobal('Worker', vi.fn().mockImplementation(() => ({
-  addEventListener: vi.fn(),
-  removeEventListener: vi.fn(),
-  postMessage: vi.fn(),
-  terminate: vi.fn(),
-})));
+vi.stubGlobal(
+  'Worker',
+  vi.fn().mockImplementation(() => ({
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    postMessage: vi.fn(),
+    terminate: vi.fn(),
+  }))
+);
 
 import React from 'react';
 

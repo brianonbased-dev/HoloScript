@@ -18,30 +18,36 @@ export class VRPhysicsBridge {
   private lastRotations: Map<string, IQuaternion> = new Map();
   private onHaptic: (hand: 'left' | 'right', intensity: number, duration: number) => void;
 
-  constructor(world: IPhysicsWorld, onHaptic?: (hand: 'left' | 'right', intensity: number, duration: number) => void) {
+  constructor(
+    world: IPhysicsWorld,
+    onHaptic?: (hand: 'left' | 'right', intensity: number, duration: number) => void
+  ) {
     this.world = world;
     this.onHaptic = onHaptic || (() => {});
   }
 
-  public update(vrContext: { hands: { left: VRHand | null; right: VRHand | null } }, delta: number): void {
+  public update(
+    vrContext: { hands: { left: VRHand | null; right: VRHand | null } },
+    delta: number
+  ): void {
     this.updateHand(vrContext.hands.left, 'left', delta);
     this.updateHand(vrContext.hands.right, 'right', delta);
     this.checkCollisions();
   }
 
   private checkCollisions(): void {
-      const contacts = this.world.getContacts();
-      
-      for (const contact of contacts) {
-          if (contact.type === 'begin') {
-             if (contact.bodyA === 'hand_left' || contact.bodyB === 'hand_left') {
-                 this.onHaptic('left', 0.5, 50);
-             }
-             if (contact.bodyA === 'hand_right' || contact.bodyB === 'hand_right') {
-                 this.onHaptic('right', 0.5, 50);
-             }
-          }
+    const contacts = this.world.getContacts();
+
+    for (const contact of contacts) {
+      if (contact.type === 'begin') {
+        if (contact.bodyA === 'hand_left' || contact.bodyB === 'hand_left') {
+          this.onHaptic('left', 0.5, 50);
+        }
+        if (contact.bodyA === 'hand_right' || contact.bodyB === 'hand_right') {
+          this.onHaptic('right', 0.5, 50);
+        }
       }
+    }
   }
 
   // Make public for testing
@@ -73,7 +79,7 @@ export class VRPhysicsBridge {
         isTrigger: true, // Hands are triggers for "Grab" detection, OR kinematic colliders for pushing?
         // Let's make them Kinematic Colliders so they push things, but we listen for collisions for grab
       };
-      
+
       this.world.addBody(bodyId, config);
       body = this.world.getBody(bodyId);
     }
@@ -82,9 +88,13 @@ export class VRPhysicsBridge {
       // Calculate Velocity (vital for throwing)
       // Use a simple history buffer if needed, but for now simple delta is okay if smoothed
       // Let's implement a small exponential smoothing or just raw delta if frame rate is high
-      
-      const prevPos = this.lastPositions.get(bodyId) || { x: hand.position.x, y: hand.position.y, z: hand.position.z };
-      
+
+      const prevPos = this.lastPositions.get(bodyId) || {
+        x: hand.position.x,
+        y: hand.position.y,
+        z: hand.position.z,
+      };
+
       // Prevent divide by zero
       const safeDelta = delta > 0.001 ? delta : 0.016;
 
@@ -98,16 +108,16 @@ export class VRPhysicsBridge {
       // This helps reduce jitter in physics interactions
       const prevVel = body.velocity || { x: 0, y: 0, z: 0 };
       const smoothingFactor = 0.5; // 0 = old, 1 = new
-      
+
       const smoothedVelocity = {
-          x: prevVel.x * (1 - smoothingFactor) + rawVelocity.x * smoothingFactor,
-          y: prevVel.y * (1 - smoothingFactor) + rawVelocity.y * smoothingFactor,
-          z: prevVel.z * (1 - smoothingFactor) + rawVelocity.z * smoothingFactor,
+        x: prevVel.x * (1 - smoothingFactor) + rawVelocity.x * smoothingFactor,
+        y: prevVel.y * (1 - smoothingFactor) + rawVelocity.y * smoothingFactor,
+        z: prevVel.z * (1 - smoothingFactor) + rawVelocity.z * smoothingFactor,
       };
 
       // Update Body Transform
       body.position = { x: hand.position.x, y: hand.position.y, z: hand.position.z };
-      
+
       // Update Body Velocity
       body.velocity = smoothedVelocity;
 

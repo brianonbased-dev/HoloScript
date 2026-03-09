@@ -4,7 +4,9 @@ import { MaterialLibrary, MATERIAL_PRESETS } from '../MaterialLibrary';
 describe('MaterialLibrary', () => {
   let ml: MaterialLibrary;
 
-  beforeEach(() => { ml = new MaterialLibrary(); });
+  beforeEach(() => {
+    ml = new MaterialLibrary();
+  });
 
   // Default registration
   it('starts with default material', () => {
@@ -14,7 +16,22 @@ describe('MaterialLibrary', () => {
 
   // Registration
   it('register adds material', () => {
-    ml.register({ id: 'custom', name: 'Custom', albedo: { r: 1, g: 0, b: 0, a: 1 }, metallic: 0, roughness: 0.5, emission: { r: 0, g: 0, b: 0 }, emissionStrength: 0, normalScale: 1, aoStrength: 1, blendMode: 'opaque', cullMode: 'back', depthWrite: true, depthTest: true, doubleSided: false });
+    ml.register({
+      id: 'custom',
+      name: 'Custom',
+      albedo: { r: 1, g: 0, b: 0, a: 1 },
+      metallic: 0,
+      roughness: 0.5,
+      emission: { r: 0, g: 0, b: 0 },
+      emissionStrength: 0,
+      normalScale: 1,
+      aoStrength: 1,
+      blendMode: 'opaque',
+      cullMode: 'back',
+      depthWrite: true,
+      depthTest: true,
+      doubleSided: false,
+    });
     expect(ml.getMaterialCount()).toBe(2);
   });
 

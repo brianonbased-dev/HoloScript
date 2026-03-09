@@ -189,8 +189,8 @@ object Historian @memory(capacity: 100, consolidation_interval: 60000) {
 
 ---
 
-
 ## See Also
+
 - [AI Autonomous Traits](/traits/ai-autonomous)
 - [MCP Server Integration](/integrations/)
 - [API Reference](/api/)

@@ -7,6 +7,7 @@ A comprehensive multiplayer VR example demonstrating networked collaboration wit
 Build real-time collaborative VR experiences with HoloScript's built-in networking system. Supports up to 16 simultaneous users with spatial voice chat, shared object manipulation, and cross-platform compatibility.
 
 **Use Cases:**
+
 - Virtual meetings and conferences
 - Remote collaboration and design reviews
 - Training simulations with multiple participants
@@ -16,6 +17,7 @@ Build real-time collaborative VR experiences with HoloScript's built-in networki
 ## Features
 
 ### Networking
+
 - **Lobby System**: Create/join rooms with matchmaking
 - **Auto Synchronization**: Player positions, rotations, actions
 - **Ownership Transfer**: Request ownership when grabbing objects
@@ -23,18 +25,21 @@ Build real-time collaborative VR experiences with HoloScript's built-in networki
 - **Reconnection**: Auto-reconnect on network interruption
 
 ### Voice Chat
+
 - **Spatial Audio**: 3D positional voice (closer = louder)
 - **Voice Detection**: Auto-detect or push-to-talk modes
 - **Opus Codec**: High-quality, low-latency audio
 - **Visual Indicators**: See who's speaking with particle effects
 
 ### Shared Interactions
+
 - **Collaborative Whiteboard**: Draw together in real-time
 - **Grabbable Objects**: Pick up and pass objects between players
 - **Document Sharing**: Synchronized slide presentations
 - **Video Playback**: Watch videos together (synced play/pause)
 
 ### Cross-Platform
+
 - ✅ Quest 2/3 (standalone)
 - ✅ PCVR (SteamVR, Oculus Link)
 - ✅ WebXR (browser-based, experimental)
@@ -49,6 +54,7 @@ holoscript compile vr-meeting-space.holo --target unity --network photon --outpu
 ```
 
 **Output:**
+
 ```
 build/unity/
 ├── Scripts/
@@ -78,6 +84,7 @@ network_manager#multiplayer @photon {
 ```
 
 Or in Unity:
+
 ```
 Window > Photon Unity Networking > PUN Wizard
 Paste App ID > Setup Project
@@ -123,12 +130,14 @@ HoloScript supports multiple network backends:
 ### Photon (Recommended for Unity)
 
 **Pros:**
+
 - Free tier (20 CCU)
 - Global infrastructure
 - Built-in matchmaking
 - Easy setup
 
 **Cons:**
+
 - Paid for >20 players
 - Requires internet
 
@@ -142,11 +151,13 @@ network_manager @photon {
 ### Unity Mirror (Self-Hosted)
 
 **Pros:**
+
 - Free, open source
 - Full control
 - LAN support
 
 **Cons:**
+
 - Requires server setup
 - More configuration
 
@@ -160,11 +171,13 @@ network_manager @mirror {
 ### Unreal Replication (Native)
 
 **Pros:**
+
 - Native to Unreal
 - High performance
 - No external dependencies
 
 **Cons:**
+
 - Unreal-only
 
 ```holoscript
@@ -177,11 +190,13 @@ network_manager @unreal_replication {
 ### WebRTC (WebXR)
 
 **Pros:**
+
 - Browser-based
 - Peer-to-peer option
 - No installation
 
 **Cons:**
+
 - Experimental
 - NAT traversal issues
 - Lower player count
@@ -213,6 +228,7 @@ player#vr_rig @networked {
 ```
 
 **What's synced:**
+
 - Head position/rotation (HMD)
 - Left hand position/rotation
 - Right hand position/rotation
@@ -235,6 +251,7 @@ on_grab(object) {
 ```
 
 **Ownership modes:**
+
 - `"mine"` - Only owner can modify
 - `"request"` - Request from current owner
 - `"shared"` - Multiple users can modify (whiteboard)
@@ -297,6 +314,7 @@ voice_chat#player_voice @photon_voice {
 ```
 
 **Unity Setup:**
+
 1. Install Photon Voice 2 from Asset Store
 2. Add `PhotonVoiceNetwork` component to scene
 3. Add `Recorder` to player prefab
@@ -339,6 +357,7 @@ object#whiteboard @drawable {
 ```
 
 **Optimization:**
+
 - Strokes sent as point arrays
 - Compressed with delta encoding
 - Accumulated locally, synced incrementally
@@ -351,6 +370,7 @@ object#whiteboard @drawable {
 Target: <100 kbps per player (without voice)
 
 **Optimization strategies:**
+
 - Reduce `send_rate` for non-critical objects
 - Use `interpolation` for smooth movement at lower rates
 - Only sync when values change significantly

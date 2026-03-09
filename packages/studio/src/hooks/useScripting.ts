@@ -36,31 +36,55 @@ export function useScripting(): UseScriptingReturn {
       try {
         const v = rtRef.current.getVariable(name);
         if (v !== undefined && v !== null) vars.push({ name, value: JSON.stringify(v) });
-      } catch { /* not defined */ }
+      } catch {
+        /* not defined */
+      }
     }
     setVariables(vars);
   }, []);
 
-  const evaluate = useCallback(async (code: string) => {
-    const id = nextId.current++;
-    try {
-      // Use evaluateExpression for simple expressions
-      const result = rtRef.current.evaluateExpression(code);
-      const output = result !== undefined ? JSON.stringify(result, null, 2) : 'undefined';
-      setHistory(prev => [...prev, { id, input: code, output, success: true, timestamp: Date.now() }]);
-    } catch (err: any) {
-      setHistory(prev => [...prev, { id, input: code, output: err?.message || 'Error', success: false, timestamp: Date.now() }]);
-    }
-    syncVars();
-  }, [syncVars]);
+  const evaluate = useCallback(
+    async (code: string) => {
+      const id = nextId.current++;
+      try {
+        // Use evaluateExpression for simple expressions
+        const result = rtRef.current.evaluateExpression(code);
+        const output = result !== undefined ? JSON.stringify(result, null, 2) : 'undefined';
+        setHistory((prev) => [
+          ...prev,
+          { id, input: code, output, success: true, timestamp: Date.now() },
+        ]);
+      } catch (err: any) {
+        setHistory((prev) => [
+          ...prev,
+          {
+            id,
+            input: code,
+            output: err?.message || 'Error',
+            success: false,
+            timestamp: Date.now(),
+          },
+        ]);
+      }
+      syncVars();
+    },
+    [syncVars]
+  );
 
-  const setVariable = useCallback((name: string, value: any) => {
-    rtRef.current.setVariable(name, value);
-    syncVars();
-  }, [syncVars]);
+  const setVariable = useCallback(
+    (name: string, value: any) => {
+      rtRef.current.setVariable(name, value);
+      syncVars();
+    },
+    [syncVars]
+  );
 
   const clearHistory = useCallback(() => setHistory([]), []);
-  const reset = useCallback(() => { rtRef.current = new HoloScriptRuntime(); setHistory([]); setVariables([]); }, []);
+  const reset = useCallback(() => {
+    rtRef.current = new HoloScriptRuntime();
+    setHistory([]);
+    setVariables([]);
+  }, []);
 
   return { runtime: rtRef.current, history, variables, evaluate, setVariable, clearHistory, reset };
 }

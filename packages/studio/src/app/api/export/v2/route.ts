@@ -31,7 +31,10 @@ interface ParsedObject {
   color?: string;
 }
 
-interface ParsedScene { name: string; objects: ParsedObject[] }
+interface ParsedScene {
+  name: string;
+  objects: ParsedObject[];
+}
 
 function parseScene(code: string): ParsedScene {
   const sceneMatch = code.match(/scene\s+"([^"]+)"/);
@@ -77,23 +80,31 @@ function toOBJ(scene: ParsedScene): { obj: string; mtl: string } {
     const [px, py, pz] = o.position;
 
     // Simple box geometry scaled by transform
-    const hw = (sx ?? 1) * 0.5; const hh = (sy ?? 1) * 0.5; const hd = (sz ?? 1) * 0.5;
+    const hw = (sx ?? 1) * 0.5;
+    const hh = (sy ?? 1) * 0.5;
+    const hd = (sz ?? 1) * 0.5;
     const verts: [number, number, number][] = [
-      [px - hw, py - hh, pz - hd], [px + hw, py - hh, pz - hd],
-      [px + hw, py + hh, pz - hd], [px - hw, py + hh, pz - hd],
-      [px - hw, py - hh, pz + hd], [px + hw, py - hh, pz + hd],
-      [px + hw, py + hh, pz + hd], [px - hw, py + hh, pz + hd],
+      [px - hw, py - hh, pz - hd],
+      [px + hw, py - hh, pz - hd],
+      [px + hw, py + hh, pz - hd],
+      [px - hw, py + hh, pz - hd],
+      [px - hw, py - hh, pz + hd],
+      [px + hw, py - hh, pz + hd],
+      [px + hw, py + hh, pz + hd],
+      [px - hw, py + hh, pz + hd],
     ];
     const base = i * 8 + 1;
     obj += `o ${safeName}\nusemtl Mat_${safeName}\n`;
-    verts.forEach(([x, y, z]) => { obj += `v ${x.toFixed(4)} ${y.toFixed(4)} ${z.toFixed(4)}\n`; });
+    verts.forEach(([x, y, z]) => {
+      obj += `v ${x.toFixed(4)} ${y.toFixed(4)} ${z.toFixed(4)}\n`;
+    });
     // 6 faces (quads → 2 tris each)
-    obj += `f ${base} ${base+1} ${base+2} ${base+3}\n`;
-    obj += `f ${base+4} ${base+5} ${base+6} ${base+7}\n`;
-    obj += `f ${base} ${base+1} ${base+5} ${base+4}\n`;
-    obj += `f ${base+2} ${base+3} ${base+7} ${base+6}\n`;
-    obj += `f ${base+3} ${base} ${base+4} ${base+7}\n`;
-    obj += `f ${base+1} ${base+2} ${base+6} ${base+5}\n\n`;
+    obj += `f ${base} ${base + 1} ${base + 2} ${base + 3}\n`;
+    obj += `f ${base + 4} ${base + 5} ${base + 6} ${base + 7}\n`;
+    obj += `f ${base} ${base + 1} ${base + 5} ${base + 4}\n`;
+    obj += `f ${base + 2} ${base + 3} ${base + 7} ${base + 6}\n`;
+    obj += `f ${base + 3} ${base} ${base + 4} ${base + 7}\n`;
+    obj += `f ${base + 1} ${base + 2} ${base + 6} ${base + 5}\n\n`;
 
     // MTL material
     const hex = o.color ?? '#cccccc';
@@ -126,15 +137,32 @@ function toFBX(scene: ParsedScene): string {
 }
 
 function toGLTF(scene: ParsedScene): string {
-  const nodes = scene.objects.map((o) => ({ name: o.name, translation: o.position, scale: o.scale }));
-  return JSON.stringify({ asset: { version: '2.0', generator: 'HoloScript Studio v1.0' }, scene: 0, scenes: [{ name: scene.name, nodes: scene.objects.map((_, i) => i) }], nodes }, null, 2);
+  const nodes = scene.objects.map((o) => ({
+    name: o.name,
+    translation: o.position,
+    scale: o.scale,
+  }));
+  return JSON.stringify(
+    {
+      asset: { version: '2.0', generator: 'HoloScript Studio v1.0' },
+      scene: 0,
+      scenes: [{ name: scene.name, nodes: scene.objects.map((_, i) => i) }],
+      nodes,
+    },
+    null,
+    2
+  );
 }
 
 // ── Minimal ZIP (CRC32 + STORED) ──────────────────────────────────────────────
 
 function crc32(data: Uint8Array): number {
   const t = new Uint32Array(256);
-  for (let i = 0; i < 256; i++) { let c = i; for (let j = 0; j < 8; j++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[i] = c; }
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let j = 0; j < 8; j++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[i] = c;
+  }
   let crc = 0xffffffff;
   for (const b of data) crc = t[(crc ^ b) & 0xff]! ^ (crc >>> 8);
   return (crc ^ 0xffffffff) >>> 0;
@@ -142,31 +170,81 @@ function crc32(data: Uint8Array): number {
 
 function buildZip(files: { name: string; data: Uint8Array }[]): Uint8Array {
   const enc = new TextEncoder();
-  const lhs: Uint8Array[] = []; const offs: number[] = []; let off = 0;
+  const lhs: Uint8Array[] = [];
+  const offs: number[] = [];
+  let off = 0;
   for (const f of files) {
-    const nb = enc.encode(f.name); const cr = crc32(f.data);
+    const nb = enc.encode(f.name);
+    const cr = crc32(f.data);
     const h = new DataView(new ArrayBuffer(30 + nb.length));
-    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0, true); h.setUint16(8, 0, true); h.setUint16(10, 0, true); h.setUint16(12, 0, true);
-    h.setUint32(14, cr, true); h.setUint32(18, f.data.length, true); h.setUint32(22, f.data.length, true); h.setUint16(26, nb.length, true); h.setUint16(28, 0, true);
-    const arr = new Uint8Array(h.buffer); nb.forEach((b, i) => arr[30 + i] = b);
-    offs.push(off); lhs.push(arr); off += arr.length + f.data.length;
+    h.setUint32(0, 0x04034b50, true);
+    h.setUint16(4, 20, true);
+    h.setUint16(6, 0, true);
+    h.setUint16(8, 0, true);
+    h.setUint16(10, 0, true);
+    h.setUint16(12, 0, true);
+    h.setUint32(14, cr, true);
+    h.setUint32(18, f.data.length, true);
+    h.setUint32(22, f.data.length, true);
+    h.setUint16(26, nb.length, true);
+    h.setUint16(28, 0, true);
+    const arr = new Uint8Array(h.buffer);
+    nb.forEach((b, i) => (arr[30 + i] = b));
+    offs.push(off);
+    lhs.push(arr);
+    off += arr.length + f.data.length;
   }
-  const cdOff = off; const cds: Uint8Array[] = [];
+  const cdOff = off;
+  const cds: Uint8Array[] = [];
   for (let i = 0; i < files.length; i++) {
-    const f = files[i]!; const nb = enc.encode(f.name); const cr = crc32(f.data);
+    const f = files[i]!;
+    const nb = enc.encode(f.name);
+    const cr = crc32(f.data);
     const cd = new DataView(new ArrayBuffer(46 + nb.length));
-    cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true); cd.setUint16(8, 0, true); cd.setUint16(10, 0, true); cd.setUint16(12, 0, true); cd.setUint16(14, 0, true);
-    cd.setUint32(16, cr, true); cd.setUint32(20, f.data.length, true); cd.setUint32(24, f.data.length, true); cd.setUint16(28, nb.length, true);
-    cd.setUint16(30, 0, true); cd.setUint16(32, 0, true); cd.setUint16(34, 0, true); cd.setUint16(36, 0, true); cd.setUint32(38, 0, true); cd.setUint32(42, offs[i]!, true);
-    const arr = new Uint8Array(cd.buffer); nb.forEach((b, j) => arr[46 + j] = b); cds.push(arr);
+    cd.setUint32(0, 0x02014b50, true);
+    cd.setUint16(4, 20, true);
+    cd.setUint16(6, 20, true);
+    cd.setUint16(8, 0, true);
+    cd.setUint16(10, 0, true);
+    cd.setUint16(12, 0, true);
+    cd.setUint16(14, 0, true);
+    cd.setUint32(16, cr, true);
+    cd.setUint32(20, f.data.length, true);
+    cd.setUint32(24, f.data.length, true);
+    cd.setUint16(28, nb.length, true);
+    cd.setUint16(30, 0, true);
+    cd.setUint16(32, 0, true);
+    cd.setUint16(34, 0, true);
+    cd.setUint16(36, 0, true);
+    cd.setUint32(38, 0, true);
+    cd.setUint32(42, offs[i]!, true);
+    const arr = new Uint8Array(cd.buffer);
+    nb.forEach((b, j) => (arr[46 + j] = b));
+    cds.push(arr);
   }
   const cdSz = cds.reduce((s, c) => s + c.length, 0);
   const eocd = new DataView(new ArrayBuffer(22));
-  eocd.setUint32(0, 0x06054b50, true); eocd.setUint16(4, 0, true); eocd.setUint16(6, 0, true); eocd.setUint16(8, files.length, true); eocd.setUint16(10, files.length, true); eocd.setUint32(12, cdSz, true); eocd.setUint32(16, cdOff, true); eocd.setUint16(20, 0, true);
+  eocd.setUint32(0, 0x06054b50, true);
+  eocd.setUint16(4, 0, true);
+  eocd.setUint16(6, 0, true);
+  eocd.setUint16(8, files.length, true);
+  eocd.setUint16(10, files.length, true);
+  eocd.setUint32(12, cdSz, true);
+  eocd.setUint32(16, cdOff, true);
+  eocd.setUint16(20, 0, true);
   const total = lhs.reduce((s, h, i) => s + h.length + files[i]!.data.length, 0) + cdSz + 22;
-  const out = new Uint8Array(total); let pos = 0;
-  for (let i = 0; i < files.length; i++) { out.set(lhs[i]!, pos); pos += lhs[i]!.length; out.set(files[i]!.data, pos); pos += files[i]!.data.length; }
-  cds.forEach((c) => { out.set(c, pos); pos += c.length; });
+  const out = new Uint8Array(total);
+  let pos = 0;
+  for (let i = 0; i < files.length; i++) {
+    out.set(lhs[i]!, pos);
+    pos += lhs[i]!.length;
+    out.set(files[i]!.data, pos);
+    pos += files[i]!.data.length;
+  }
+  cds.forEach((c) => {
+    out.set(c, pos);
+    pos += c.length;
+  });
   out.set(new Uint8Array(eocd.buffer), pos);
   return out;
 }
@@ -175,8 +253,11 @@ function buildZip(files: { name: string; data: Uint8Array }[]): Uint8Array {
 
 export async function POST(request: NextRequest) {
   let body: V2ExportRequest;
-  try { body = (await request.json()) as V2ExportRequest; }
-  catch { return Response.json({ error: 'Bad JSON' }, { status: 400 }); }
+  try {
+    body = (await request.json()) as V2ExportRequest;
+  } catch {
+    return Response.json({ error: 'Bad JSON' }, { status: 400 });
+  }
 
   const { code = '', format = 'obj', sceneName } = body;
   const enc = new TextEncoder();
@@ -193,7 +274,12 @@ export async function POST(request: NextRequest) {
         { name: `${slug}.obj`, data: enc.encode(obj) },
         { name: `${slug}.mtl`, data: enc.encode(mtl) },
         { name: 'source.holoscript', data: enc.encode(code) },
-        { name: 'README.txt', data: enc.encode(`HoloScript Studio Export\nFormat: Wavefront OBJ\nScene: ${scene.name}\nObjects: ${scene.objects.length}\n`) },
+        {
+          name: 'README.txt',
+          data: enc.encode(
+            `HoloScript Studio Export\nFormat: Wavefront OBJ\nScene: ${scene.name}\nObjects: ${scene.objects.length}\n`
+          ),
+        },
       ];
       break;
     }
@@ -201,7 +287,12 @@ export async function POST(request: NextRequest) {
       files = [
         { name: `${slug}.fbx`, data: enc.encode(toFBX(scene)) },
         { name: 'source.holoscript', data: enc.encode(code) },
-        { name: 'README.txt', data: enc.encode(`HoloScript Studio Export\nFormat: ASCII FBX 7.4\nScene: ${scene.name}\nNote: This is an ASCII FBX scaffold. Import into Blender/Maya then assign materials.\n`) },
+        {
+          name: 'README.txt',
+          data: enc.encode(
+            `HoloScript Studio Export\nFormat: ASCII FBX 7.4\nScene: ${scene.name}\nNote: This is an ASCII FBX scaffold. Import into Blender/Maya then assign materials.\n`
+          ),
+        },
       ];
       break;
     }
@@ -220,9 +311,19 @@ export async function POST(request: NextRequest) {
       ];
       break;
     }
-    default: { // json
+    default: {
+      // json
       files = [
-        { name: `${slug}.json`, data: enc.encode(JSON.stringify({ meta: { generator: 'HoloScript Studio', version: '2.0' }, scene, source: code }, null, 2)) },
+        {
+          name: `${slug}.json`,
+          data: enc.encode(
+            JSON.stringify(
+              { meta: { generator: 'HoloScript Studio', version: '2.0' }, scene, source: code },
+              null,
+              2
+            )
+          ),
+        },
       ];
     }
   }

@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createMockNode, createMockContext, attachTrait, updateTrait, sendEvent } from './traitTestHelpers';
+import {
+  createMockNode,
+  createMockContext,
+  attachTrait,
+  updateTrait,
+  sendEvent,
+} from './traitTestHelpers';
 
 // Mock dependencies — use class-style mocks for constructors
 const mockEngine = {
@@ -58,9 +64,12 @@ describe('GPUPhysicsTrait', () => {
 
   it('registers as static when isStatic is true', () => {
     attachTrait(gpuPhysicsHandler, node, { ...rigidCfg, isStatic: true }, ctx);
-    expect(mockEngine.addBody).toHaveBeenCalledWith('physObj', expect.objectContaining({
-      type: 'static',
-    }));
+    expect(mockEngine.addBody).toHaveBeenCalledWith(
+      'physObj',
+      expect.objectContaining({
+        type: 'static',
+      })
+    );
   });
 
   it('initializes soft body path', () => {

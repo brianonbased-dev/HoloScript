@@ -12,17 +12,20 @@
 // =============================================================================
 
 export interface Bounds {
-  minX: number; maxX: number;
-  minY: number; maxY: number;
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
 }
 
 export interface DeadZone {
-  width: number; height: number;  // Size of dead zone centered on target
+  width: number;
+  height: number; // Size of dead zone centered on target
 }
 
 export interface SoftLimit {
   distance: number;
-  stiffness: number;  // 0-1: how strongly the camera pulls back
+  stiffness: number; // 0-1: how strongly the camera pulls back
 }
 
 // =============================================================================
@@ -33,7 +36,7 @@ export class CameraConstraints {
   private bounds: Bounds | null = null;
   private deadZone: DeadZone | null = null;
   private softLimit: SoftLimit | null = null;
-  private smoothing = 0.1;         // Lerp factor (0 = no movement, 1 = instant)
+  private smoothing = 0.1; // Lerp factor (0 = no movement, 1 = instant)
   private lookAheadDistance = 0;
   private currentX = 0;
   private currentY = 0;
@@ -42,11 +45,21 @@ export class CameraConstraints {
   // Configuration
   // ---------------------------------------------------------------------------
 
-  setBounds(bounds: Bounds): void { this.bounds = bounds; }
-  setDeadZone(dz: DeadZone): void { this.deadZone = dz; }
-  setSoftLimit(sl: SoftLimit): void { this.softLimit = sl; }
-  setSmoothing(factor: number): void { this.smoothing = Math.max(0, Math.min(1, factor)); }
-  setLookAhead(distance: number): void { this.lookAheadDistance = distance; }
+  setBounds(bounds: Bounds): void {
+    this.bounds = bounds;
+  }
+  setDeadZone(dz: DeadZone): void {
+    this.deadZone = dz;
+  }
+  setSoftLimit(sl: SoftLimit): void {
+    this.softLimit = sl;
+  }
+  setSmoothing(factor: number): void {
+    this.smoothing = Math.max(0, Math.min(1, factor));
+  }
+  setLookAhead(distance: number): void {
+    this.lookAheadDistance = distance;
+  }
 
   // ---------------------------------------------------------------------------
   // Update
@@ -126,6 +139,11 @@ export class CameraConstraints {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getPosition(): { x: number; y: number } { return { x: this.currentX, y: this.currentY }; }
-  setPosition(x: number, y: number): void { this.currentX = x; this.currentY = y; }
+  getPosition(): { x: number; y: number } {
+    return { x: this.currentX, y: this.currentY };
+  }
+  setPosition(x: number, y: number): void {
+    this.currentX = x;
+    this.currentY = y;
+  }
 }

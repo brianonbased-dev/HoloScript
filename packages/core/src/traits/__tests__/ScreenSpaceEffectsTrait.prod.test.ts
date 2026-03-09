@@ -22,7 +22,6 @@ const invalidSamples: ScreenSpaceEffectsConfig = {
 };
 
 describe('ScreenSpaceEffectsTrait — Production Tests', () => {
-
   describe('validate()', () => {
     it('accepts full config', () => {
       expect(ScreenSpaceEffectsTrait.validate(fullConfig)).toBe(true);

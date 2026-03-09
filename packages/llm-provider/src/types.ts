@@ -191,18 +191,13 @@ export interface ILLMProvider {
   /**
    * Send a completion request to the provider.
    */
-  complete(
-    request: LLMCompletionRequest,
-    model?: string
-  ): Promise<LLMCompletionResponse>;
+  complete(request: LLMCompletionRequest, model?: string): Promise<LLMCompletionResponse>;
 
   /**
    * Generate HoloScript code from a natural language description.
    * Includes automatic validation and retry logic.
    */
-  generateHoloScript(
-    request: HoloScriptGenerationRequest
-  ): Promise<HoloScriptGenerationResponse>;
+  generateHoloScript(request: HoloScriptGenerationRequest): Promise<HoloScriptGenerationResponse>;
 
   /**
    * Check if the provider is correctly configured and reachable.
@@ -268,13 +263,11 @@ export class LLMAuthenticationError extends LLMProviderError {
 }
 
 export class LLMContextLengthError extends LLMProviderError {
-  constructor(provider: LLMProviderName, public readonly tokenCount: number) {
-    super(
-      `Context length exceeded for ${provider} (${tokenCount} tokens)`,
-      provider,
-      400,
-      false
-    );
+  constructor(
+    provider: LLMProviderName,
+    public readonly tokenCount: number
+  ) {
+    super(`Context length exceeded for ${provider} (${tokenCount} tokens)`, provider, 400, false);
     this.name = 'LLMContextLengthError';
   }
 }

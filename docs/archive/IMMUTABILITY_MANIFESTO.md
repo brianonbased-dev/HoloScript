@@ -1,6 +1,6 @@
 # The HoloLand Immutability Manifesto
 
-> *"What we could change, we choose not to. What we promise today, we cannot take back tomorrow."*
+> _"What we could change, we choose not to. What we promise today, we cannot take back tomorrow."_
 
 **Version 1.0 — February 2026**  
 **Status: Binding from first commit. Irrevocable.**
@@ -29,6 +29,7 @@ It is not a Terms of Service document (those can be changed). It is a public, ve
 HoloScript core (`@holoscript/core`, `@holoscript/compiler`, `@holoscript/runtime`) is and will always be licensed under the [MIT License](https://opensource.org/licenses/MIT).
 
 **What this means for you:**
+
 - You can use HoloScript in commercial products **without paying us anything**
 - You can fork it, modify it, sell it, embed it — no restrictions
 - If HoloLand ceases to exist tomorrow, your investment in HoloScript survives
@@ -51,14 +52,14 @@ HoloLand takes **no more than 10%** of marketplace revenue. Creators keep **at m
 
 **The math that matters:**
 
-| Platform | Creator Cut | Platform Cut |
-|---|---|---|
-| Apple App Store | 70% | 30% |
-| Google Play | 70–85% | 15–30% |
-| Unity Asset Store | 70% | 30% |
-| Roblox (2024) | ~25% (via Robux) | ~75% |
-| Epic Games Store | 88% | 12% |
-| **HoloLand** | **90–95%** | **5–10%** |
+| Platform          | Creator Cut      | Platform Cut |
+| ----------------- | ---------------- | ------------ |
+| Apple App Store   | 70%              | 30%          |
+| Google Play       | 70–85%           | 15–30%       |
+| Unity Asset Store | 70%              | 30%          |
+| Roblox (2024)     | ~25% (via Robux) | ~75%         |
+| Epic Games Store  | 88%              | 12%          |
+| **HoloLand**      | **90–95%**       | **5–10%**    |
 
 **HoloLand Founders Program (Alpha):**  
 First 100 creators receive **95/5** split permanently, plus **$2,000/month guaranteed income** for 12 months. No strings. This is our bet on your success.
@@ -74,12 +75,14 @@ We make money when you make money. At scale, 10% of a thriving creator economy e
 HoloLand will **never** charge per-install, per-play, or per-user fees for games built with HoloScript.
 
 **Specifically prohibited:**
+
 - ❌ Per-install charges (Unity 2023 debacle)
 - ❌ Minimum revenue thresholds before launch
 - ❌ Retroactive fee changes for games already launched
 - ❌ "Platform-tier" paywalls that lock basic features
 
 **What we charge instead:**
+
 - ✅ Optional marketplace listing (subject to 90/10 split above)
 - ✅ Optional managed hosting (competitive market rates, not required)
 - ✅ Optional enterprise support contracts
@@ -94,6 +97,7 @@ If you host your own HoloScript world via the open source runtime, **you pay not
 Your scenes, assets, player data, and analytics belong to you. HoloLand is a custodian, not an owner.
 
 **Your rights:**
+
 - **Export anytime**: Full data export in open formats (glTF 2.0, USD, JSON) within 24 hours of request
 - **Portability**: Your HoloScript scenes run on any compliant runtime — not just HoloLand's
 - **No training without consent**: We will never use your game data to train AI models without explicit, per-asset opt-in
@@ -110,12 +114,14 @@ Every HoloScript scene compiles to standard formats. The `compile_target` flag e
 Material changes to these commitments require public proposal, 90-day comment period, and supermajority approval from the **HoloLand Creator Council** (elected annually, one seat per 1,000 monthly active creators).
 
 **What "material change" means:**
+
 - Any reduction in creator revenue share
 - Any introduction of new per-unit fees
 - Any licensing change to HoloScript core
 - Any change to data sovereignty rights
 
 **What we can change without council approval:**
+
 - Bug fixes and security patches
 - New optional features
 - Infrastructure providers
@@ -158,20 +164,20 @@ If we violate this manifesto, we expect — and deserve — to be forked.
 
 This manifesto is adopted by the founding team and incorporated by reference into HoloLand's corporate charter.
 
-| Name | Role | Signed |
-|---|---|---|
-| *(Founders)* | *(Titles)* | February 2026 |
+| Name         | Role       | Signed        |
+| ------------ | ---------- | ------------- |
+| _(Founders)_ | _(Titles)_ | February 2026 |
 
 ---
 
 ## Version History
 
-| Version | Date | Changes |
-|---|---|---|
-| 1.0 | 2026-02-23 | Initial publication |
+| Version | Date       | Changes             |
+| ------- | ---------- | ------------------- |
+| 1.0     | 2026-02-23 | Initial publication |
 
 ---
 
-*This document is maintained in the HoloScript monorepo at `IMMUTABILITY_MANIFESTO.md`. Proposed amendments must be submitted as pull requests with a minimum 90-day comment period.*
+_This document is maintained in the HoloScript monorepo at `IMMUTABILITY_MANIFESTO.md`. Proposed amendments must be submitted as pull requests with a minimum 90-day comment period._
 
-*"First, do no harm to your creators."*
+_"First, do no harm to your creators."_

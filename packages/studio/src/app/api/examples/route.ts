@@ -56,7 +56,10 @@ function extractDescription(code: string): string {
       if (desc.length > 5) return desc;
     }
     if (trimmed.startsWith('/*')) {
-      const desc = trimmed.replace(/^\/\*\s*/, '').replace(/\s*\*\/$/, '').trim();
+      const desc = trimmed
+        .replace(/^\/\*\s*/, '')
+        .replace(/\s*\*\/$/, '')
+        .trim();
       if (desc.length > 5) return desc;
     }
   }
@@ -75,7 +78,7 @@ function extractTraits(code: string): string[] {
 function prettifyName(filename: string): string {
   return filename
     .replace(/\.holo$/, '')
-    .replace(/^\d+-/, '')           // Remove leading numbers like "1-"
+    .replace(/^\d+-/, '') // Remove leading numbers like "1-"
     .replace(/[-_]/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -140,7 +143,9 @@ function scanExamples(): { examples: ExampleFile[]; categories: string[] } {
 
   cachedExamples = examples;
   cachedCategories = [...categorySet].sort(
-    (a, b) => (priority.indexOf(a) === -1 ? 99 : priority.indexOf(a)) - (priority.indexOf(b) === -1 ? 99 : priority.indexOf(b))
+    (a, b) =>
+      (priority.indexOf(a) === -1 ? 99 : priority.indexOf(a)) -
+      (priority.indexOf(b) === -1 ? 99 : priority.indexOf(b))
   );
 
   return { examples: cachedExamples, categories: cachedCategories };
@@ -157,12 +162,13 @@ export async function GET(request: NextRequest) {
     filtered = filtered.filter((e) => e.category === category);
   }
   if (q) {
-    filtered = filtered.filter((e) =>
-      e.name.toLowerCase().includes(q) ||
-      e.filename.toLowerCase().includes(q) ||
-      e.description.toLowerCase().includes(q) ||
-      e.category.toLowerCase().includes(q) ||
-      e.traits.some((t) => t.toLowerCase().includes(q))
+    filtered = filtered.filter(
+      (e) =>
+        e.name.toLowerCase().includes(q) ||
+        e.filename.toLowerCase().includes(q) ||
+        e.description.toLowerCase().includes(q) ||
+        e.category.toLowerCase().includes(q) ||
+        e.traits.some((t) => t.toLowerCase().includes(q))
     );
   }
 

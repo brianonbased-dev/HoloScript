@@ -137,7 +137,9 @@ describe('AdvancedPBRTrait', () => {
 
       const consoleSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
       expect(() => AdvancedPBRTrait.validate(config)).not.toThrow();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('SSS is computationally expensive'));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('SSS is computationally expensive')
+      );
       consoleSpy.mockRestore();
     });
 
@@ -152,7 +154,9 @@ describe('AdvancedPBRTrait', () => {
         },
       };
 
-      expect(() => AdvancedPBRTrait.validate(config)).toThrow('subsurface_scattering.radius must be > 0');
+      expect(() => AdvancedPBRTrait.validate(config)).toThrow(
+        'subsurface_scattering.radius must be > 0'
+      );
     });
   });
 
@@ -210,9 +214,20 @@ describe('AdvancedPBRTrait', () => {
         clearcoat: { intensity: 0.8, roughness: 0.1 },
         anisotropy: { strength: 0.7, rotation: 0 },
         sheen: { color: [1.0, 0.0, 0.0], roughness: 0.3, intensity: 0.5 },
-        subsurface_scattering: { method: 'burley', color: [1.0, 0.5, 0.3], radius: 1.0, thickness: 0.5 },
+        subsurface_scattering: {
+          method: 'burley',
+          color: [1.0, 0.5, 0.3],
+          radius: 1.0,
+          thickness: 0.5,
+        },
         iridescence: { intensity: 0.5, ior: 1.5, thickness_min: 100, thickness_max: 400 },
-        transmission: { factor: 0.5, ior: 1.5, thickness: 0.1, attenuation_distance: 1.0, attenuation_color: [1, 1, 1] },
+        transmission: {
+          factor: 0.5,
+          ior: 1.5,
+          thickness: 0.1,
+          attenuation_distance: 1.0,
+          attenuation_color: [1, 1, 1],
+        },
       };
 
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});

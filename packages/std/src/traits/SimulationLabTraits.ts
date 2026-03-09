@@ -66,15 +66,13 @@ export const SimulationLabTraits: Record<string, SimulationTraitDefinition> = {
         type: 'string',
         required: false,
         default: 'different',
-        description:
-          'Expected direction of effect: greater | less | different | equal.',
+        description: 'Expected direction of effect: greater | less | different | equal.',
       },
       epochs: {
         type: 'number',
         required: false,
         default: 1000,
-        description:
-          'Number of simulation runs per parameter combination. More = higher power.',
+        description: 'Number of simulation runs per parameter combination. More = higher power.',
       },
       seed_start: {
         type: 'number',
@@ -86,8 +84,7 @@ export const SimulationLabTraits: Record<string, SimulationTraitDefinition> = {
         type: 'number',
         required: false,
         default: 0.95,
-        description:
-          'Confidence level for statistical tests (0.0 - 1.0). Default 0.95 = α=0.05.',
+        description: 'Confidence level for statistical tests (0.0 - 1.0). Default 0.95 = α=0.05.',
       },
       metrics: {
         type: 'string[]',
@@ -107,8 +104,7 @@ export const SimulationLabTraits: Record<string, SimulationTraitDefinition> = {
         type: 'boolean',
         required: false,
         default: false,
-        description:
-          'Whether to export results as training data for DataForge pipeline.',
+        description: 'Whether to export results as training data for DataForge pipeline.',
       },
       marketplace_publishable: {
         type: 'boolean',
@@ -134,20 +130,30 @@ export const SimulationLabTraits: Record<string, SimulationTraitDefinition> = {
     },
     validator: (params) => {
       if (!params.hypothesis || typeof params.hypothesis !== 'string') return false;
-      if (!params.metrics || !Array.isArray(params.metrics) || params.metrics.length === 0) return false;
-      if (params.epochs !== undefined && (params.epochs < 1 || params.epochs > 1000000)) return false;
-      if (params.confidence_level !== undefined && (params.confidence_level <= 0 || params.confidence_level >= 1)) return false;
+      if (!params.metrics || !Array.isArray(params.metrics) || params.metrics.length === 0)
+        return false;
+      if (params.epochs !== undefined && (params.epochs < 1 || params.epochs > 1000000))
+        return false;
+      if (
+        params.confidence_level !== undefined &&
+        (params.confidence_level <= 0 || params.confidence_level >= 1)
+      )
+        return false;
       if (params.direction !== undefined) {
         if (!['greater', 'less', 'different', 'equal'].includes(params.direction)) return false;
       }
       if (params.statistical_test !== undefined) {
-        if (!['t_test', 'mann_whitney_u', 'chi_squared', 'auto'].includes(params.statistical_test)) return false;
+        if (!['t_test', 'mann_whitney_u', 'chi_squared', 'auto'].includes(params.statistical_test))
+          return false;
       }
       return true;
     },
     composesWith: [
-      '@tradeable', '@depreciating', '@bonding_curved',
-      '@taxable_wealth', '@pid_controlled',
+      '@tradeable',
+      '@depreciating',
+      '@bonding_curved',
+      '@taxable_wealth',
+      '@pid_controlled',
     ],
     compiler_hints: {
       requires_runtime: [
@@ -171,7 +177,7 @@ export const SimulationLabTraits: Record<string, SimulationTraitDefinition> = {
  * Get all simulation trait names.
  */
 export function getSimulationTraitNames(): string[] {
-  return Object.keys(SimulationLabTraits).map(k => SimulationLabTraits[k].name);
+  return Object.keys(SimulationLabTraits).map((k) => SimulationLabTraits[k].name);
 }
 
 /**

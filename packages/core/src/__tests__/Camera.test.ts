@@ -9,7 +9,11 @@ describe('Cycle 123: Camera System', () => {
   // -------------------------------------------------------------------------
 
   it('should follow target with smoothing', () => {
-    const cam = new CameraController({ mode: 'follow', smoothing: 1, followOffset: { x: 0, y: 0, z: 0 } });
+    const cam = new CameraController({
+      mode: 'follow',
+      smoothing: 1,
+      followOffset: { x: 0, y: 0, z: 0 },
+    });
     cam.setTarget(10, 0, 0);
     cam.update(1 / 60);
 

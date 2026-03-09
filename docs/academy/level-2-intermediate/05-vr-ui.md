@@ -5,6 +5,7 @@ Building interfaces that feel native in 3D space.
 ## Why VR UI is Different
 
 Traditional flat-screen UIs don't translate to VR. HoloScript's UI system is designed for:
+
 - **Diegetic UI** — interfaces embedded in the world (e.g., a floating holographic panel)
 - **Gaze targeting** — looking at an element to focus it
 - **Hand/controller interaction** — pointing and pinching instead of mouse clicks
@@ -41,14 +42,14 @@ orb hud_panel {
 
 ## `@ui_panel` Trait
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `width` | float (meters) | Panel width in world space |
-| `height` | float (meters) | Panel height |
-| `opacity` | float (0–1) | Panel transparency |
-| `billboard` | bool | Always face the user |
-| `gaze_open` | bool | Show panel when user looks at it |
-| `follow_head` | bool | Panel follows head movement |
+| Property      | Type           | Description                      |
+| ------------- | -------------- | -------------------------------- |
+| `width`       | float (meters) | Panel width in world space       |
+| `height`      | float (meters) | Panel height                     |
+| `opacity`     | float (0–1)    | Panel transparency               |
+| `billboard`   | bool           | Always face the user             |
+| `gaze_open`   | bool           | Show panel when user looks at it |
+| `follow_head` | bool           | Panel follows head movement      |
 
 ## UI Elements
 

@@ -26,7 +26,13 @@ export function useSceneGenerator() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, existingCode }),
       });
-      const data = (await res.json()) as { code?: string; success?: boolean; error?: string; warning?: string; source?: string };
+      const data = (await res.json()) as {
+        code?: string;
+        success?: boolean;
+        error?: string;
+        warning?: string;
+        source?: string;
+      };
       if (!res.ok || !data.success) {
         throw new Error(data.error ?? `HTTP ${res.status}`);
       }

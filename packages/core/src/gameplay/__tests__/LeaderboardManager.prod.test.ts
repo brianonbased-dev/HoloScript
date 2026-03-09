@@ -154,7 +154,7 @@ describe('LeaderboardManager', () => {
 
     it('getAroundPlayer returns nearby entries', () => {
       const around = mgr.getAroundPlayer('hs', 'p3', 1);
-      const ids = around.map(e => e.playerId);
+      const ids = around.map((e) => e.playerId);
       expect(ids).toContain('p2');
       expect(ids).toContain('p3');
       expect(ids).toContain('p4');

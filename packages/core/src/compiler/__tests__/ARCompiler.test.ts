@@ -1,4 +1,4 @@
-import { describe, expect, test, vi} from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { ARCompiler } from '../ARCompiler';
 import { HoloCompositionParser } from '../../parser/HoloCompositionParser';
 
@@ -10,7 +10,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   };
 });
 
-
 describe('ARCompiler', () => {
   const parser = new HoloCompositionParser();
 
@@ -21,8 +20,8 @@ describe('ARCompiler', () => {
       source_maps: false,
       features: {
         hit_test: true,
-        image_tracking: false
-      }
+        image_tracking: false,
+      },
     });
 
     const input = `
@@ -52,8 +51,8 @@ describe('ARCompiler', () => {
       source_maps: false,
       features: {
         hit_test: false,
-        image_tracking: true
-      }
+        image_tracking: true,
+      },
     });
 
     const input = `
@@ -68,12 +67,8 @@ describe('ARCompiler', () => {
 
     const parseResult = parser.parse(input);
     const result = compiler.compile(parseResult.ast!, 'test-token');
-    console.log("VITEST GOT:", result.code);
+    console.log('VITEST GOT:', result.code);
     expect(result.success).toBe(true);
     expect(result.code).toContain("arRuntime.onBeaconDetected('global', (pose) => {");
   });
 });
-
-
-
-

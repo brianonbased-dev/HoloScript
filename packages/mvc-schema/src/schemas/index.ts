@@ -26,7 +26,7 @@ export {
 export const mvcSchemas = {
   'decision-history': decisionHistorySchema,
   'task-state': taskStateSchema,
-  'preferences': preferencesSchema,
+  preferences: preferencesSchema,
   'spatial-context': spatialContextSchema,
   'evidence-trail': evidenceTrailSchema,
 } as const;

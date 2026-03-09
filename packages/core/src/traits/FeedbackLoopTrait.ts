@@ -35,7 +35,7 @@ export interface QualityMetric {
   min: number;
   max: number;
   trend: MetricTrend;
-  history: number[];          // Rolling window of recent values
+  history: number[]; // Rolling window of recent values
   historyMaxLength: number;
   lastUpdated: number;
 }
@@ -43,7 +43,7 @@ export interface QualityMetric {
 export interface FeedbackEntry {
   id: string;
   userId: string;
-  rating: number;             // 1-5
+  rating: number; // 1-5
   message: string;
   context: Record<string, unknown>;
   timestamp: number;
@@ -53,7 +53,7 @@ export interface OptimizationSignal {
   id: string;
   metric: string;
   direction: 'increase' | 'decrease';
-  magnitude: number;          // 0-1 urgency
+  magnitude: number; // 0-1 urgency
   suggestedAction: string;
   timestamp: number;
   acknowledged: boolean;
@@ -101,7 +101,10 @@ function computeTrend(history: number[], minSamples: number): MetricTrend {
 
   // Linear regression slope over recent window
   const n = history.length;
-  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  let sumX = 0,
+    sumY = 0,
+    sumXY = 0,
+    sumXX = 0;
   for (let i = 0; i < n; i++) {
     sumX += i;
     sumY += history[i];
@@ -120,7 +123,7 @@ function computeTrend(history: number[], minSamples: number): MetricTrend {
 
 function driftPercent(value: number, target: number): number {
   if (target === 0) return value === 0 ? 0 : 100;
-  return Math.abs(value - target) / Math.abs(target) * 100;
+  return (Math.abs(value - target) / Math.abs(target)) * 100;
 }
 
 function suggestAction(name: string, value: number, target: number): string {
@@ -314,14 +317,15 @@ export const feedbackLoopHandler: TraitHandler<FeedbackConfig> = {
 
       // ─── Acknowledge signal ─────────────────────────────────────────
       case 'feedback:acknowledge_signal': {
-        const sig = state.signals.find(s => s.id === payload.signalId);
+        const sig = state.signals.find((s) => s.id === payload.signalId);
         if (sig) sig.acknowledged = true;
         break;
       }
 
       // ─── Report generation ──────────────────────────────────────────
       case 'feedback:get_report': {
-        const metricsReport: Record<string, { value: number; target: number; trend: MetricTrend }> = {};
+        const metricsReport: Record<string, { value: number; target: number; trend: MetricTrend }> =
+          {};
         for (const [name, m] of state.metrics) {
           metricsReport[name] = { value: m.value, target: m.target, trend: m.trend };
         }
@@ -330,7 +334,7 @@ export const feedbackLoopHandler: TraitHandler<FeedbackConfig> = {
           metrics: metricsReport,
           averageRating: state.totalFeedback > 0 ? state.ratingSum / state.totalFeedback : 0,
           totalFeedback: state.totalFeedback,
-          pendingSignals: state.signals.filter(s => !s.acknowledged).length,
+          pendingSignals: state.signals.filter((s) => !s.acknowledged).length,
           trendSummary: Object.fromEntries(
             Array.from(state.metrics.entries()).map(([k, v]) => [k, v.trend])
           ),

@@ -2,12 +2,9 @@
 
 import { useRef, Suspense } from 'react';
 import type { R3FNode } from '@holoscript/core';
-import { useEditorStore, useSceneGraphStore } from '@/lib/store';
+import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
-import {
-  FireEmbers,
-  useKeyframeAnimation,
-} from './ProceduralMesh';
+import { FireEmbers, useKeyframeAnimation } from './ProceduralMesh';
 import { getGeometry, getMaterialProps, isScaledBody, isFireMesh } from './materialUtils';
 import { useHoloTextures, hasTextures } from '@/hooks/useHoloTextures';
 import { useProceduralTexture } from '@/hooks/useProceduralTexture';
@@ -62,10 +59,10 @@ export function MeshNode({ node }: MeshNodeProps) {
   const matProps = getMaterialProps(node);
 
   // Generate procedural scale texture + normal map for hull/metaball meshes
-  const proceduralMaps = useProceduralTexture(
-    isScaledBody(hsType) ? 'scaleFull' : null,
-    { size: 512, tiling: [3, 3] }
-  );
+  const proceduralMaps = useProceduralTexture(isScaledBody(hsType) ? 'scaleFull' : null, {
+    size: 512,
+    tiling: [3, 3],
+  });
 
   // Keyframe animation
   useKeyframeAnimation(meshRef, props.keyframes);
@@ -79,9 +76,7 @@ export function MeshNode({ node }: MeshNodeProps) {
   // Recursively render nested children (native asset primitives)
   const childMeshes = node.children
     ?.filter((c: R3FNode) => c.type === 'mesh')
-    .map((child: R3FNode, i: number) => (
-      <MeshNode key={child.id || `child-${i}`} node={child} />
-    ));
+    .map((child: R3FNode, i: number) => <MeshNode key={child.id || `child-${i}`} node={child} />);
 
   // Default material with procedural textures (no external texture loading)
   const defaultMaterial = (

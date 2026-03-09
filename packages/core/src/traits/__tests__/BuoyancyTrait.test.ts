@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { buoyancyHandler } from '../BuoyancyTrait';
-import { createMockContext, createMockNode, attachTrait, updateTrait, sendEvent, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  updateTrait,
+  sendEvent,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('BuoyancyTrait', () => {
   let node: Record<string, unknown>;

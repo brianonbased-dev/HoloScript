@@ -11,13 +11,21 @@
 // TYPES
 // =============================================================================
 
-export type AudioNodeType = 'source' | 'gain' | 'filter' | 'delay' | 'reverb' | 'compressor' | 'output' | 'mixer';
+export type AudioNodeType =
+  | 'source'
+  | 'gain'
+  | 'filter'
+  | 'delay'
+  | 'reverb'
+  | 'compressor'
+  | 'output'
+  | 'mixer';
 
 export interface AudioGraphNode {
   id: string;
   type: AudioNodeType;
   params: Map<string, number>;
-  inputs: string[];      // Connected node IDs
+  inputs: string[]; // Connected node IDs
   outputs: string[];
   bypassed: boolean;
 }
@@ -63,19 +71,33 @@ export class AudioGraph {
   addNode(type: AudioNodeType, params?: Record<string, number>): AudioGraphNode {
     const id = `anode_${_nodeId++}`;
     const node: AudioGraphNode = {
-      id, type, params: new Map(Object.entries(params ?? {})),
-      inputs: [], outputs: [], bypassed: false,
+      id,
+      type,
+      params: new Map(Object.entries(params ?? {})),
+      inputs: [],
+      outputs: [],
+      bypassed: false,
     };
     this.nodes.set(id, node);
     this.dirty = true;
 
     // Default params
     switch (type) {
-      case 'gain': if (!node.params.has('gain')) node.params.set('gain', 1); break;
-      case 'filter': if (!node.params.has('cutoff')) node.params.set('cutoff', 1000); break;
-      case 'delay': if (!node.params.has('time')) node.params.set('time', 0.5); break;
-      case 'reverb': if (!node.params.has('decay')) node.params.set('decay', 1.5); break;
-      case 'compressor': if (!node.params.has('threshold')) node.params.set('threshold', -24); break;
+      case 'gain':
+        if (!node.params.has('gain')) node.params.set('gain', 1);
+        break;
+      case 'filter':
+        if (!node.params.has('cutoff')) node.params.set('cutoff', 1000);
+        break;
+      case 'delay':
+        if (!node.params.has('time')) node.params.set('time', 0.5);
+        break;
+      case 'reverb':
+        if (!node.params.has('decay')) node.params.set('decay', 1.5);
+        break;
+      case 'compressor':
+        if (!node.params.has('threshold')) node.params.set('threshold', -24);
+        break;
     }
 
     return node;
@@ -115,8 +137,8 @@ export class AudioGraph {
 
     const source = this.nodes.get(conn.sourceId);
     const target = this.nodes.get(conn.targetId);
-    if (source) source.outputs = source.outputs.filter(id => id !== conn.targetId);
-    if (target) target.inputs = target.inputs.filter(id => id !== conn.sourceId);
+    if (source) source.outputs = source.outputs.filter((id) => id !== conn.targetId);
+    if (target) target.inputs = target.inputs.filter((id) => id !== conn.sourceId);
 
     this.dirty = true;
     return this.connections.delete(connId);
@@ -127,7 +149,11 @@ export class AudioGraph {
   // ---------------------------------------------------------------------------
 
   automate(nodeId: string, paramName: string, points: AutomationPoint[]): void {
-    this.automations.push({ nodeId, paramName, points: [...points].sort((a, b) => a.time - b.time) });
+    this.automations.push({
+      nodeId,
+      paramName,
+      points: [...points].sort((a, b) => a.time - b.time),
+    });
   }
 
   applyAutomation(time: number): void {
@@ -149,9 +175,13 @@ export class AudioGraph {
       if (time >= points[i].time && time < points[i + 1].time) {
         const t = (time - points[i].time) / (points[i + 1].time - points[i].time);
         switch (points[i + 1].curve) {
-          case 'step': return points[i].value;
-          case 'exponential': return points[i].value * Math.pow(points[i + 1].value / points[i].value, t);
-          case 'linear': default: return points[i].value + (points[i + 1].value - points[i].value) * t;
+          case 'step':
+            return points[i].value;
+          case 'exponential':
+            return points[i].value * Math.pow(points[i + 1].value / points[i].value, t);
+          case 'linear':
+          default:
+            return points[i].value + (points[i + 1].value - points[i].value) * t;
         }
       }
     }
@@ -203,7 +233,13 @@ export class AudioGraph {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getNode(id: string): AudioGraphNode | undefined { return this.nodes.get(id); }
-  getNodeCount(): number { return this.nodes.size; }
-  getConnectionCount(): number { return this.connections.size; }
+  getNode(id: string): AudioGraphNode | undefined {
+    return this.nodes.get(id);
+  }
+  getNodeCount(): number {
+    return this.nodes.size;
+  }
+  getConnectionCount(): number {
+    return this.connections.size;
+  }
 }

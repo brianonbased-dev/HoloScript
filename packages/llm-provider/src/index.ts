@@ -73,8 +73,11 @@ export { QuestGenerator } from './QuestGenerator';
 export type { QuestNarrativeRequest, QuestNarrativeResponse } from './QuestGenerator';
 
 // Narrative Quest Service
-export { getNarrativeQuestService, NarrativeQuestService, type QuestParams } from './services/NarrativeQuestService';
-
+export {
+  getNarrativeQuestService,
+  NarrativeQuestService,
+  type QuestParams,
+} from './services/NarrativeQuestService';
 
 // =============================================================================
 // Convenience factory functions
@@ -85,20 +88,15 @@ import { AnthropicAdapter } from './adapters/anthropic';
 import { GeminiAdapter } from './adapters/gemini';
 import { MockAdapter } from './adapters/mock';
 import { LLMProviderManager } from './provider-manager';
-import type {
-  OpenAIProviderConfig,
-  AnthropicProviderConfig,
-  GeminiProviderConfig,
-} from './types';
+import type { OpenAIProviderConfig, AnthropicProviderConfig, GeminiProviderConfig } from './types';
 
 /**
  * Create an OpenAI adapter from environment variables.
  * Uses OPENAI_API_KEY environment variable.
  */
-export function createOpenAIProvider(
-  config?: Partial<OpenAIProviderConfig>
-): OpenAIAdapter {
-  const apiKey = config?.apiKey ?? (typeof process !== 'undefined' ? process.env.OPENAI_API_KEY : '') ?? '';
+export function createOpenAIProvider(config?: Partial<OpenAIProviderConfig>): OpenAIAdapter {
+  const apiKey =
+    config?.apiKey ?? (typeof process !== 'undefined' ? process.env.OPENAI_API_KEY : '') ?? '';
   if (!apiKey) {
     throw new Error('OpenAI API key required. Set OPENAI_API_KEY or pass apiKey in config.');
   }
@@ -112,7 +110,8 @@ export function createOpenAIProvider(
 export function createAnthropicProvider(
   config?: Partial<AnthropicProviderConfig>
 ): AnthropicAdapter {
-  const apiKey = config?.apiKey ?? (typeof process !== 'undefined' ? process.env.ANTHROPIC_API_KEY : '') ?? '';
+  const apiKey =
+    config?.apiKey ?? (typeof process !== 'undefined' ? process.env.ANTHROPIC_API_KEY : '') ?? '';
   if (!apiKey) {
     throw new Error('Anthropic API key required. Set ANTHROPIC_API_KEY or pass apiKey in config.');
   }
@@ -123,12 +122,13 @@ export function createAnthropicProvider(
  * Create a Gemini adapter from environment variables.
  * Uses GEMINI_API_KEY or GOOGLE_AI_API_KEY environment variable.
  */
-export function createGeminiProvider(
-  config?: Partial<GeminiProviderConfig>
-): GeminiAdapter {
-  const apiKey = config?.apiKey ?? (typeof process !== 'undefined'
-    ? (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_AI_API_KEY)
-    : '') ?? '';
+export function createGeminiProvider(config?: Partial<GeminiProviderConfig>): GeminiAdapter {
+  const apiKey =
+    config?.apiKey ??
+    (typeof process !== 'undefined'
+      ? (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_AI_API_KEY)
+      : '') ??
+    '';
   if (!apiKey) {
     throw new Error('Gemini API key required. Set GEMINI_API_KEY or pass apiKey in config.');
   }
@@ -155,9 +155,10 @@ export function createProviderManager(): LLMProviderManager {
 
   const openaiKey = typeof process !== 'undefined' ? process.env.OPENAI_API_KEY : '';
   const anthropicKey = typeof process !== 'undefined' ? process.env.ANTHROPIC_API_KEY : '';
-  const geminiKey = typeof process !== 'undefined'
-    ? (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_AI_API_KEY)
-    : '';
+  const geminiKey =
+    typeof process !== 'undefined'
+      ? (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_AI_API_KEY)
+      : '';
 
   if (openaiKey) providers.openai = new OpenAIAdapter({ apiKey: openaiKey });
   if (anthropicKey) providers.anthropic = new AnthropicAdapter({ apiKey: anthropicKey });

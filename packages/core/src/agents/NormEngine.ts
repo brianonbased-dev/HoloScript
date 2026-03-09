@@ -18,7 +18,14 @@
  * @version 1.0.0
  */
 
-import { CulturalNorm, NormEnforcement, NormScope, NormCategory, BUILTIN_NORMS, criticalMassForChange } from '../traits/CultureTraits';
+import {
+  CulturalNorm,
+  NormEnforcement,
+  NormScope,
+  NormCategory,
+  BUILTIN_NORMS,
+  criticalMassForChange,
+} from '../traits/CultureTraits';
 import { EffectRow, VREffect } from '../types/effects';
 
 // =============================================================================
@@ -144,7 +151,7 @@ export class NormEngine {
     // Check if threshold reached
     const totalAgents = this.agents.size;
     if (totalAgents === 0) return true;
-    const approvals = [...proposal.votes.values()].filter(v => v).length;
+    const approvals = [...proposal.votes.values()].filter((v) => v).length;
     const ratio = approvals / totalAgents;
 
     if (ratio >= this.config.proposalThreshold) {
@@ -215,7 +222,9 @@ export class NormEngine {
   isActive(normId: string): boolean {
     const norm = this.norms.get(normId);
     if (!norm) return false;
-    return this.adoptionRate(normId) >= (norm.activationThreshold || this.config.activationThreshold);
+    return (
+      this.adoptionRate(normId) >= (norm.activationThreshold || this.config.activationThreshold)
+    );
   }
 
   // ── E: Evaluation ────────────────────────────────────────────────────────
@@ -322,7 +331,7 @@ export class NormEngine {
    * Get adoption curve data for a norm.
    */
   adoptionCurve(normId: string): { tick: number; rate: number }[] {
-    return this.adoptionHistory.filter(h => h.normId === normId);
+    return this.adoptionHistory.filter((h) => h.normId === normId);
   }
 
   /**
@@ -331,10 +340,12 @@ export class NormEngine {
    */
   culturalHealth(): number {
     if (this.agents.size === 0) return 1;
-    let totalCompliance = 0; let count = 0;
+    let totalCompliance = 0;
+    let count = 0;
     for (const state of this.agents.values()) {
       for (const score of state.compliance.values()) {
-        totalCompliance += score; count++;
+        totalCompliance += score;
+        count++;
       }
     }
     return count > 0 ? totalCompliance / count : 1;
@@ -343,11 +354,18 @@ export class NormEngine {
   /**
    * Get statistics.
    */
-  stats(): { norms: number; agents: number; activeNorms: number; violations: number; proposals: number; culturalHealth: number } {
+  stats(): {
+    norms: number;
+    agents: number;
+    activeNorms: number;
+    violations: number;
+    proposals: number;
+    culturalHealth: number;
+  } {
     return {
       norms: this.norms.size,
       agents: this.agents.size,
-      activeNorms: [...this.norms.keys()].filter(id => this.isActive(id)).length,
+      activeNorms: [...this.norms.keys()].filter((id) => this.isActive(id)).length,
       violations: this.violationLog.length,
       proposals: this.proposals.size,
       culturalHealth: this.culturalHealth(),

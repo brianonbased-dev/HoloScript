@@ -821,7 +821,10 @@ composition "Hololand Central" {
       const systems = comp.children.filter((n: any) => n.type === 'system');
       expect(systems.length).toBe(4);
       expect(systems.map((s: any) => s.id)).toEqual([
-        'TutorialSystem', 'EasterEggSystem', 'ThemeSystem', 'MultiplayerSystem'
+        'TutorialSystem',
+        'EasterEggSystem',
+        'ThemeSystem',
+        'MultiplayerSystem',
       ]);
 
       // Verify template has properties
@@ -835,4 +838,5 @@ composition "Hololand Central" {
       expect(obj.name).toBe('MainPortal');
       expect(obj.template).toBe('Portal');
     });
-  });});
+  });
+});

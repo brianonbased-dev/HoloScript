@@ -31,6 +31,7 @@ public getAllParticles(): {
 ```
 
 **Features**:
+
 - ✅ Efficient Float32Array format (zero-copy to GPU)
 - ✅ LOD-aware (near particles for performance)
 - ✅ Color data (particle heat/lifetime visualization)
@@ -62,6 +63,7 @@ if (this.rendererParticleSystemId) {
 ```
 
 **Features**:
+
 - ✅ Auto-sync every frame (60 FPS)
 - ✅ Position updates
 - ✅ Color updates (particle state visualization)
@@ -112,11 +114,13 @@ DemolitionRuntimeExecutor.updateRenderer()
 ### Particle System Capacity
 
 **Design Limits**:
+
 - Max particles: 120,000
 - Active particles: Varies (0-120K)
 - LOD levels: 3 (near, medium, far)
 
 **Rendering Strategy**:
+
 - Near LOD: All particles (< 50m from camera)
 - Medium LOD: Reduced (50-200m from camera)
 - Far LOD: Minimal (> 200m from camera)
@@ -124,18 +128,21 @@ DemolitionRuntimeExecutor.updateRenderer()
 ### Sync Performance
 
 **Per Frame (60 FPS)**:
+
 - Get particle data: ~0.5ms
 - Convert to Float32Arrays: ~0.3ms
 - Update renderer buffers: ~0.2ms
 - **Total sync overhead**: ~1.0ms (6% of 16.67ms budget)
 
 **Memory Transfer**:
-- Positions: count * 12 bytes (3 floats)
-- Colors: count * 12 bytes (3 floats)
-- Sizes: count * 4 bytes (1 float)
-- **Total**: count * 28 bytes
+
+- Positions: count \* 12 bytes (3 floats)
+- Colors: count \* 12 bytes (3 floats)
+- Sizes: count \* 4 bytes (1 float)
+- **Total**: count \* 28 bytes
 
 **Example** (10,000 particles):
+
 - Memory transfer: 280KB per frame
 - At 60 FPS: 16.8MB/s
 - Acceptable for modern systems ✅
@@ -145,11 +152,13 @@ DemolitionRuntimeExecutor.updateRenderer()
 ### Real-time Visualization
 
 **Before** (no particle sync):
+
 - Physics simulation runs ✅
 - Particles invisible ❌
 - No visual feedback ❌
 
 **After** (with particle sync):
+
 - Physics simulation runs ✅
 - Particles visible in real-time ✅
 - Visual feedback instant ✅
@@ -185,16 +194,19 @@ DemolitionRuntimeExecutor.updateRenderer()
 ### Manual Testing Completed
 
 ✅ **Particle Creation**
+
 - Particles spawn from fracture events
 - Particle pool management works
 - LOD system filters correctly
 
 ✅ **Particle Sync**
+
 - getParticleData() returns correct count
 - Float32Arrays populated correctly
 - Renderer updates each frame
 
 ✅ **Visual Verification**
+
 - Particles visible in renderer
 - Positions match physics
 - Colors update correctly
@@ -202,6 +214,7 @@ DemolitionRuntimeExecutor.updateRenderer()
 ### Expected Visual Results
 
 When explosion occurs:
+
 1. Objects fracture ✅
 2. Fragments fly outward ✅
 3. **Particles spawn and render** ✅ (NEW!)
@@ -213,6 +226,7 @@ When explosion occurs:
 ### ✅ Complete (100%)
 
 **Physics → Renderer Integration**:
+
 - ✅ Object transform sync (position, rotation)
 - ✅ Particle position sync
 - ✅ Particle color sync
@@ -222,6 +236,7 @@ When explosion occurs:
 - ✅ Auto-sync mechanism
 
 **Missing**:
+
 - 🚧 Fragment visualization (fracture → renderer.addObject)
 - 🚧 Structural damage visualization
 - 🚧 Post-processing effects
@@ -231,6 +246,7 @@ When explosion occurs:
 ### DemolitionDemoScene.ts (+100 lines)
 
 **Added Methods**:
+
 - `getParticleData()` - Get near-LOD particles (optimized)
 - `getAllParticles()` - Get all particles (debugging)
 
@@ -239,6 +255,7 @@ When explosion occurs:
 ### DemolitionRuntimeExecutor.ts (+15 lines)
 
 **Enhanced Method**:
+
 - `updateRenderer()` - Now syncs particle data
 
 **Impact**: Particles render in real-time at 60 FPS
@@ -248,16 +265,19 @@ When explosion occurs:
 ### Week 8-9 Journey
 
 **Day 1-2**: Runtime Registry + Rendering System
+
 - RuntimeRenderer interface
 - ThreeJSRenderer implementation
 - 80+ material presets
 
 **Day 3**: Physics → Renderer Integration
+
 - Auto-sync mechanism
 - Object transform sync
 - Lighting & camera sync
 
 **Day 4**: Particle Sync (TODAY!)
+
 - Particle data exposure
 - Real-time particle rendering
 - Complete visual integration
@@ -295,6 +315,7 @@ When explosion occurs:
 ✅ **Particle Sync is COMPLETE!**
 
 HoloScript can now:
+
 1. Simulate 120K particles with physics ✅
 2. Render particles in real-time at 60 FPS ✅
 3. Sync particle positions/colors each frame ✅

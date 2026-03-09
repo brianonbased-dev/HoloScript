@@ -204,7 +204,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     // Otherwise, this is an error - the caller should use compileNIRGraph()
     throw new Error(
       'NIRToWGSLCompiler.compile() requires a pre-built NIR graph. ' +
-      'Use compileNIRGraph(nirGraphJson) instead, or pipe through NIRCompiler first.'
+        'Use compileNIRGraph(nirGraphJson) instead, or pipe through NIRCompiler first.'
     );
   }
 
@@ -445,14 +445,70 @@ export class NIRToWGSLCompiler extends CompilerBase {
     }
 
     const buffers: WGSLBufferDefinition[] = [
-      { binding: 0, name: 'simulation_params', type: 'uniform', elementType: 'SimParams', size: 1, role: 'simulation' },
-      { binding: 1, name: `${node.id}_input`, type: 'read-only-storage', elementType: 'f32', size, role: 'input' },
-      { binding: 2, name: `${node.id}_tau`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-      { binding: 3, name: `${node.id}_r`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-      { binding: 4, name: `${node.id}_v_leak`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-      { binding: 5, name: `${node.id}_v_threshold`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-      { binding: 6, name: `${node.id}_voltage`, type: 'storage', elementType: 'f32', size, role: 'state' },
-      { binding: 7, name: `${node.id}_output`, type: 'storage', elementType: 'u32', size, role: 'output' },
+      {
+        binding: 0,
+        name: 'simulation_params',
+        type: 'uniform',
+        elementType: 'SimParams',
+        size: 1,
+        role: 'simulation',
+      },
+      {
+        binding: 1,
+        name: `${node.id}_input`,
+        type: 'read-only-storage',
+        elementType: 'f32',
+        size,
+        role: 'input',
+      },
+      {
+        binding: 2,
+        name: `${node.id}_tau`,
+        type: 'read-only-storage',
+        elementType: 'f32',
+        size,
+        role: 'params',
+      },
+      {
+        binding: 3,
+        name: `${node.id}_r`,
+        type: 'read-only-storage',
+        elementType: 'f32',
+        size,
+        role: 'params',
+      },
+      {
+        binding: 4,
+        name: `${node.id}_v_leak`,
+        type: 'read-only-storage',
+        elementType: 'f32',
+        size,
+        role: 'params',
+      },
+      {
+        binding: 5,
+        name: `${node.id}_v_threshold`,
+        type: 'read-only-storage',
+        elementType: 'f32',
+        size,
+        role: 'params',
+      },
+      {
+        binding: 6,
+        name: `${node.id}_voltage`,
+        type: 'storage',
+        elementType: 'f32',
+        size,
+        role: 'state',
+      },
+      {
+        binding: 7,
+        name: `${node.id}_output`,
+        type: 'storage',
+        elementType: 'u32',
+        size,
+        role: 'output',
+      },
     ];
 
     return {
@@ -583,17 +639,94 @@ export class NIRToWGSLCompiler extends CompilerBase {
     }
 
     const buffers: WGSLBufferDefinition[] = [
-      { binding: 0, name: 'simulation_params', type: 'uniform', elementType: 'SimParams', size: 1, role: 'simulation' },
-      { binding: 1, name: `${node.id}_input`, type: 'read-only-storage', elementType: 'f32', size, role: 'input' },
-      { binding: 2, name: `${node.id}_tau_syn`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-      { binding: 3, name: `${node.id}_tau_mem`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-      { binding: 4, name: `${node.id}_r`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-      { binding: 5, name: `${node.id}_v_leak`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-      { binding: 6, name: `${node.id}_v_threshold`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-      { binding: 7, name: `${node.id}_w_in`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-      { binding: 8, name: `${node.id}_i_syn`, type: 'storage', elementType: 'f32', size, role: 'state' },
-      { binding: 9, name: `${node.id}_voltage`, type: 'storage', elementType: 'f32', size, role: 'state' },
-      { binding: 10, name: `${node.id}_output`, type: 'storage', elementType: 'u32', size, role: 'output' },
+      {
+        binding: 0,
+        name: 'simulation_params',
+        type: 'uniform',
+        elementType: 'SimParams',
+        size: 1,
+        role: 'simulation',
+      },
+      {
+        binding: 1,
+        name: `${node.id}_input`,
+        type: 'read-only-storage',
+        elementType: 'f32',
+        size,
+        role: 'input',
+      },
+      {
+        binding: 2,
+        name: `${node.id}_tau_syn`,
+        type: 'read-only-storage',
+        elementType: 'f32',
+        size,
+        role: 'params',
+      },
+      {
+        binding: 3,
+        name: `${node.id}_tau_mem`,
+        type: 'read-only-storage',
+        elementType: 'f32',
+        size,
+        role: 'params',
+      },
+      {
+        binding: 4,
+        name: `${node.id}_r`,
+        type: 'read-only-storage',
+        elementType: 'f32',
+        size,
+        role: 'params',
+      },
+      {
+        binding: 5,
+        name: `${node.id}_v_leak`,
+        type: 'read-only-storage',
+        elementType: 'f32',
+        size,
+        role: 'params',
+      },
+      {
+        binding: 6,
+        name: `${node.id}_v_threshold`,
+        type: 'read-only-storage',
+        elementType: 'f32',
+        size,
+        role: 'params',
+      },
+      {
+        binding: 7,
+        name: `${node.id}_w_in`,
+        type: 'read-only-storage',
+        elementType: 'f32',
+        size,
+        role: 'params',
+      },
+      {
+        binding: 8,
+        name: `${node.id}_i_syn`,
+        type: 'storage',
+        elementType: 'f32',
+        size,
+        role: 'state',
+      },
+      {
+        binding: 9,
+        name: `${node.id}_voltage`,
+        type: 'storage',
+        elementType: 'f32',
+        size,
+        role: 'state',
+      },
+      {
+        binding: 10,
+        name: `${node.id}_output`,
+        type: 'storage',
+        elementType: 'u32',
+        size,
+        role: 'output',
+      },
     ];
 
     return {
@@ -754,12 +887,54 @@ export class NIRToWGSLCompiler extends CompilerBase {
       nodeType: 'IF',
       wgsl: lines.join('\n'),
       buffers: [
-        { binding: 0, name: 'simulation_params', type: 'uniform', elementType: 'SimParams', size: 1, role: 'simulation' },
-        { binding: 1, name: `${node.id}_input`, type: 'read-only-storage', elementType: 'f32', size, role: 'input' },
-        { binding: 2, name: `${node.id}_r`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-        { binding: 3, name: `${node.id}_v_threshold`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-        { binding: 4, name: `${node.id}_voltage`, type: 'storage', elementType: 'f32', size, role: 'state' },
-        { binding: 5, name: `${node.id}_output`, type: 'storage', elementType: 'u32', size, role: 'output' },
+        {
+          binding: 0,
+          name: 'simulation_params',
+          type: 'uniform',
+          elementType: 'SimParams',
+          size: 1,
+          role: 'simulation',
+        },
+        {
+          binding: 1,
+          name: `${node.id}_input`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size,
+          role: 'input',
+        },
+        {
+          binding: 2,
+          name: `${node.id}_r`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size,
+          role: 'params',
+        },
+        {
+          binding: 3,
+          name: `${node.id}_v_threshold`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size,
+          role: 'params',
+        },
+        {
+          binding: 4,
+          name: `${node.id}_voltage`,
+          type: 'storage',
+          elementType: 'f32',
+          size,
+          role: 'state',
+        },
+        {
+          binding: 5,
+          name: `${node.id}_output`,
+          type: 'storage',
+          elementType: 'u32',
+          size,
+          role: 'output',
+        },
       ],
       dispatch: [Math.ceil(size / wgSize), 1, 1],
     };
@@ -816,13 +991,62 @@ export class NIRToWGSLCompiler extends CompilerBase {
       nodeType: 'LI',
       wgsl: lines.join('\n'),
       buffers: [
-        { binding: 0, name: 'simulation_params', type: 'uniform', elementType: 'SimParams', size: 1, role: 'simulation' },
-        { binding: 1, name: `${node.id}_input`, type: 'read-only-storage', elementType: 'f32', size, role: 'input' },
-        { binding: 2, name: `${node.id}_tau`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-        { binding: 3, name: `${node.id}_r`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-        { binding: 4, name: `${node.id}_v_leak`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-        { binding: 5, name: `${node.id}_voltage`, type: 'storage', elementType: 'f32', size, role: 'state' },
-        { binding: 6, name: `${node.id}_output`, type: 'storage', elementType: 'f32', size, role: 'output' },
+        {
+          binding: 0,
+          name: 'simulation_params',
+          type: 'uniform',
+          elementType: 'SimParams',
+          size: 1,
+          role: 'simulation',
+        },
+        {
+          binding: 1,
+          name: `${node.id}_input`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size,
+          role: 'input',
+        },
+        {
+          binding: 2,
+          name: `${node.id}_tau`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size,
+          role: 'params',
+        },
+        {
+          binding: 3,
+          name: `${node.id}_r`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size,
+          role: 'params',
+        },
+        {
+          binding: 4,
+          name: `${node.id}_v_leak`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size,
+          role: 'params',
+        },
+        {
+          binding: 5,
+          name: `${node.id}_voltage`,
+          type: 'storage',
+          elementType: 'f32',
+          size,
+          role: 'state',
+        },
+        {
+          binding: 6,
+          name: `${node.id}_output`,
+          type: 'storage',
+          elementType: 'f32',
+          size,
+          role: 'output',
+        },
       ],
       dispatch: [Math.ceil(size / wgSize), 1, 1],
     };
@@ -869,11 +1093,46 @@ export class NIRToWGSLCompiler extends CompilerBase {
       nodeType: 'Integrator',
       wgsl: lines.join('\n'),
       buffers: [
-        { binding: 0, name: 'simulation_params', type: 'uniform', elementType: 'SimParams', size: 1, role: 'simulation' },
-        { binding: 1, name: `${node.id}_input`, type: 'read-only-storage', elementType: 'f32', size, role: 'input' },
-        { binding: 2, name: `${node.id}_r`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-        { binding: 3, name: `${node.id}_voltage`, type: 'storage', elementType: 'f32', size, role: 'state' },
-        { binding: 4, name: `${node.id}_output`, type: 'storage', elementType: 'f32', size, role: 'output' },
+        {
+          binding: 0,
+          name: 'simulation_params',
+          type: 'uniform',
+          elementType: 'SimParams',
+          size: 1,
+          role: 'simulation',
+        },
+        {
+          binding: 1,
+          name: `${node.id}_input`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size,
+          role: 'input',
+        },
+        {
+          binding: 2,
+          name: `${node.id}_r`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size,
+          role: 'params',
+        },
+        {
+          binding: 3,
+          name: `${node.id}_voltage`,
+          type: 'storage',
+          elementType: 'f32',
+          size,
+          role: 'state',
+        },
+        {
+          binding: 4,
+          name: `${node.id}_output`,
+          type: 'storage',
+          elementType: 'f32',
+          size,
+          role: 'output',
+        },
       ],
       dispatch: [Math.ceil(size / wgSize), 1, 1],
     };
@@ -923,10 +1182,38 @@ export class NIRToWGSLCompiler extends CompilerBase {
       nodeType: 'Affine',
       wgsl: lines.join('\n'),
       buffers: [
-        { binding: 0, name: `${node.id}_input`, type: 'read-only-storage', elementType: 'f32', size: inputSize, role: 'input' },
-        { binding: 1, name: `${node.id}_weight`, type: 'read-only-storage', elementType: 'f32', size: outputSize * inputSize, role: 'params' },
-        { binding: 2, name: `${node.id}_bias`, type: 'read-only-storage', elementType: 'f32', size: outputSize, role: 'params' },
-        { binding: 3, name: `${node.id}_output`, type: 'storage', elementType: 'f32', size: outputSize, role: 'output' },
+        {
+          binding: 0,
+          name: `${node.id}_input`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size: inputSize,
+          role: 'input',
+        },
+        {
+          binding: 1,
+          name: `${node.id}_weight`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size: outputSize * inputSize,
+          role: 'params',
+        },
+        {
+          binding: 2,
+          name: `${node.id}_bias`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size: outputSize,
+          role: 'params',
+        },
+        {
+          binding: 3,
+          name: `${node.id}_output`,
+          type: 'storage',
+          elementType: 'f32',
+          size: outputSize,
+          role: 'output',
+        },
       ],
       dispatch: [Math.ceil(outputSize / wgSize), 1, 1],
     };
@@ -971,9 +1258,30 @@ export class NIRToWGSLCompiler extends CompilerBase {
       nodeType: 'Linear',
       wgsl: lines.join('\n'),
       buffers: [
-        { binding: 0, name: `${node.id}_input`, type: 'read-only-storage', elementType: 'f32', size: inputSize, role: 'input' },
-        { binding: 1, name: `${node.id}_weight`, type: 'read-only-storage', elementType: 'f32', size: outputSize * inputSize, role: 'params' },
-        { binding: 2, name: `${node.id}_output`, type: 'storage', elementType: 'f32', size: outputSize, role: 'output' },
+        {
+          binding: 0,
+          name: `${node.id}_input`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size: inputSize,
+          role: 'input',
+        },
+        {
+          binding: 1,
+          name: `${node.id}_weight`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size: outputSize * inputSize,
+          role: 'params',
+        },
+        {
+          binding: 2,
+          name: `${node.id}_output`,
+          type: 'storage',
+          elementType: 'f32',
+          size: outputSize,
+          role: 'output',
+        },
       ],
       dispatch: [Math.ceil(outputSize / wgSize), 1, 1],
     };
@@ -1006,7 +1314,9 @@ export class NIRToWGSLCompiler extends CompilerBase {
     if (this.options.includeComments) {
       lines.push(`// Conv2d: ${node.id}`);
       lines.push(`// Kernel: ${outChannels} x ${inChannelsPerGroup} x ${kH} x ${kW}`);
-      lines.push(`// Stride: [${strideH}, ${strideW}], Padding: [${padH}, ${padW}], Groups: ${groups}`);
+      lines.push(
+        `// Stride: [${strideH}, ${strideW}], Padding: [${padH}, ${padW}], Groups: ${groups}`
+      );
       lines.push('');
     }
 
@@ -1051,7 +1361,9 @@ export class NIRToWGSLCompiler extends CompilerBase {
     lines.push(`        let iw = ow * STRIDE_W + kw - PAD_W;`);
     lines.push(`        if (ih < IN_H && iw < IN_W) {`);
     lines.push(`          let in_idx = (ic_start + ic) * IN_H * IN_W + ih * IN_W + iw;`);
-    lines.push(`          let w_idx = oc * IN_C_PER_GROUP * KH * KW + ic * KH * KW + kh * KW + kw;`);
+    lines.push(
+      `          let w_idx = oc * IN_C_PER_GROUP * KH * KW + ic * KH * KW + kh * KW + kw;`
+    );
     lines.push(`          sum = sum + input[in_idx] * weight[w_idx];`);
     lines.push(`        }`);
     lines.push(`      }`);
@@ -1065,9 +1377,30 @@ export class NIRToWGSLCompiler extends CompilerBase {
       nodeType: 'Conv2d',
       wgsl: lines.join('\n'),
       buffers: [
-        { binding: 0, name: `${node.id}_input`, type: 'read-only-storage', elementType: 'f32', size: inChannelsPerGroup * groups * spatialH * spatialW, role: 'input' },
-        { binding: 1, name: `${node.id}_weight`, type: 'read-only-storage', elementType: 'f32', size: outChannels * inChannelsPerGroup * kH * kW, role: 'params' },
-        { binding: 2, name: `${node.id}_output`, type: 'storage', elementType: 'f32', size: totalOutputElements, role: 'output' },
+        {
+          binding: 0,
+          name: `${node.id}_input`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size: inChannelsPerGroup * groups * spatialH * spatialW,
+          role: 'input',
+        },
+        {
+          binding: 1,
+          name: `${node.id}_weight`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size: outChannels * inChannelsPerGroup * kH * kW,
+          role: 'params',
+        },
+        {
+          binding: 2,
+          name: `${node.id}_output`,
+          type: 'storage',
+          elementType: 'f32',
+          size: totalOutputElements,
+          role: 'output',
+        },
       ],
       dispatch: [Math.ceil(totalOutputElements / wgSize), 1, 1],
     };
@@ -1113,9 +1446,30 @@ export class NIRToWGSLCompiler extends CompilerBase {
       nodeType: 'Threshold',
       wgsl: lines.join('\n'),
       buffers: [
-        { binding: 0, name: `${node.id}_input`, type: 'read-only-storage', elementType: 'f32', size, role: 'input' },
-        { binding: 1, name: `${node.id}_threshold`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-        { binding: 2, name: `${node.id}_output`, type: 'storage', elementType: 'f32', size, role: 'output' },
+        {
+          binding: 0,
+          name: `${node.id}_input`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size,
+          role: 'input',
+        },
+        {
+          binding: 1,
+          name: `${node.id}_threshold`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size,
+          role: 'params',
+        },
+        {
+          binding: 2,
+          name: `${node.id}_output`,
+          type: 'storage',
+          elementType: 'f32',
+          size,
+          role: 'output',
+        },
       ],
       dispatch: [Math.ceil(size / wgSize), 1, 1],
     };
@@ -1152,9 +1506,30 @@ export class NIRToWGSLCompiler extends CompilerBase {
       nodeType: 'Scale',
       wgsl: lines.join('\n'),
       buffers: [
-        { binding: 0, name: `${node.id}_input`, type: 'read-only-storage', elementType: 'f32', size, role: 'input' },
-        { binding: 1, name: `${node.id}_scale`, type: 'read-only-storage', elementType: 'f32', size, role: 'params' },
-        { binding: 2, name: `${node.id}_output`, type: 'storage', elementType: 'f32', size, role: 'output' },
+        {
+          binding: 0,
+          name: `${node.id}_input`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size,
+          role: 'input',
+        },
+        {
+          binding: 1,
+          name: `${node.id}_scale`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size,
+          role: 'params',
+        },
+        {
+          binding: 2,
+          name: `${node.id}_output`,
+          type: 'storage',
+          elementType: 'f32',
+          size,
+          role: 'output',
+        },
       ],
       dispatch: [Math.ceil(size / wgSize), 1, 1],
     };
@@ -1205,11 +1580,46 @@ export class NIRToWGSLCompiler extends CompilerBase {
       nodeType: 'Delay',
       wgsl: lines.join('\n'),
       buffers: [
-        { binding: 0, name: 'simulation_params', type: 'uniform', elementType: 'SimParams', size: 1, role: 'simulation' },
-        { binding: 1, name: `${node.id}_input`, type: 'read-only-storage', elementType: 'f32', size, role: 'input' },
-        { binding: 2, name: `${node.id}_delay_steps`, type: 'read-only-storage', elementType: 'u32', size, role: 'params' },
-        { binding: 3, name: `${node.id}_ring_buffer`, type: 'storage', elementType: 'f32', size: size * 256, role: 'state' },
-        { binding: 4, name: `${node.id}_output`, type: 'storage', elementType: 'f32', size, role: 'output' },
+        {
+          binding: 0,
+          name: 'simulation_params',
+          type: 'uniform',
+          elementType: 'SimParams',
+          size: 1,
+          role: 'simulation',
+        },
+        {
+          binding: 1,
+          name: `${node.id}_input`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size,
+          role: 'input',
+        },
+        {
+          binding: 2,
+          name: `${node.id}_delay_steps`,
+          type: 'read-only-storage',
+          elementType: 'u32',
+          size,
+          role: 'params',
+        },
+        {
+          binding: 3,
+          name: `${node.id}_ring_buffer`,
+          type: 'storage',
+          elementType: 'f32',
+          size: size * 256,
+          role: 'state',
+        },
+        {
+          binding: 4,
+          name: `${node.id}_output`,
+          type: 'storage',
+          elementType: 'f32',
+          size,
+          role: 'output',
+        },
       ],
       dispatch: [Math.ceil(size / wgSize), 1, 1],
     };
@@ -1247,8 +1657,22 @@ export class NIRToWGSLCompiler extends CompilerBase {
       nodeType: 'Flatten',
       wgsl: lines.join('\n'),
       buffers: [
-        { binding: 0, name: `${node.id}_input`, type: 'read-only-storage', elementType: 'f32', size: totalSize, role: 'input' },
-        { binding: 1, name: `${node.id}_output`, type: 'storage', elementType: 'f32', size: totalSize, role: 'output' },
+        {
+          binding: 0,
+          name: `${node.id}_input`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size: totalSize,
+          role: 'input',
+        },
+        {
+          binding: 1,
+          name: `${node.id}_output`,
+          type: 'storage',
+          elementType: 'f32',
+          size: totalSize,
+          role: 'output',
+        },
       ],
       dispatch: [Math.ceil(totalSize / wgSize), 1, 1],
     };
@@ -1305,8 +1729,22 @@ export class NIRToWGSLCompiler extends CompilerBase {
       nodeType: 'SumPooling',
       wgsl: lines.join('\n'),
       buffers: [
-        { binding: 0, name: `${node.id}_input`, type: 'read-only-storage', elementType: 'f32', size: inH * inW, role: 'input' },
-        { binding: 1, name: `${node.id}_output`, type: 'storage', elementType: 'f32', size: totalOutput, role: 'output' },
+        {
+          binding: 0,
+          name: `${node.id}_input`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size: inH * inW,
+          role: 'input',
+        },
+        {
+          binding: 1,
+          name: `${node.id}_output`,
+          type: 'storage',
+          elementType: 'f32',
+          size: totalOutput,
+          role: 'output',
+        },
       ],
       dispatch: [Math.ceil(totalOutput / wgSize), 1, 1],
     };
@@ -1364,8 +1802,22 @@ export class NIRToWGSLCompiler extends CompilerBase {
       nodeType: 'AvgPooling',
       wgsl: lines.join('\n'),
       buffers: [
-        { binding: 0, name: `${node.id}_input`, type: 'read-only-storage', elementType: 'f32', size: inH * inW, role: 'input' },
-        { binding: 1, name: `${node.id}_output`, type: 'storage', elementType: 'f32', size: totalOutput, role: 'output' },
+        {
+          binding: 0,
+          name: `${node.id}_input`,
+          type: 'read-only-storage',
+          elementType: 'f32',
+          size: inH * inW,
+          role: 'input',
+        },
+        {
+          binding: 1,
+          name: `${node.id}_output`,
+          type: 'storage',
+          elementType: 'f32',
+          size: totalOutput,
+          role: 'output',
+        },
       ],
       dispatch: [Math.ceil(totalOutput / wgSize), 1, 1],
     };

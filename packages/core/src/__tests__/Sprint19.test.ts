@@ -224,7 +224,9 @@ describe('Feature 1E: generate() — state properties from node.properties.state
     const gen = new ThingDescriptionGenerator();
     const node = {
       name: 'sensor',
-      directives: [{ type: 'trait', name: 'wot_thing', args: { title: 'Sensor', security: 'nosec' } }],
+      directives: [
+        { type: 'trait', name: 'wot_thing', args: { title: 'Sensor', security: 'nosec' } },
+      ],
       properties: {
         state: { temperature: 22.5, active: true, label: 'main' },
       },
@@ -237,7 +239,9 @@ describe('Feature 1E: generate() — state properties from node.properties.state
     const gen = new ThingDescriptionGenerator();
     const node = {
       name: 'sensor',
-      directives: [{ type: 'trait', name: 'wot_thing', args: { title: 'Sensor', security: 'nosec' } }],
+      directives: [
+        { type: 'trait', name: 'wot_thing', args: { title: 'Sensor', security: 'nosec' } },
+      ],
       properties: { state: { temperature: 22.5 } },
     };
     const td = gen.generate(node as any)!;
@@ -248,7 +252,9 @@ describe('Feature 1E: generate() — state properties from node.properties.state
     const gen = new ThingDescriptionGenerator();
     const node = {
       name: 'counter',
-      directives: [{ type: 'trait', name: 'wot_thing', args: { title: 'Counter', security: 'nosec' } }],
+      directives: [
+        { type: 'trait', name: 'wot_thing', args: { title: 'Counter', security: 'nosec' } },
+      ],
       properties: { state: { count: 42 } },
     };
     const td = gen.generate(node as any)!;
@@ -654,7 +660,12 @@ describe('Feature 6: LoggerFactory', () => {
   });
 
   it('format() returns a non-empty string', () => {
-    const entry = { level: 'info' as const, message: 'hello', logger: 'app', timestamp: Date.now() };
+    const entry = {
+      level: 'info' as const,
+      message: 'hello',
+      logger: 'app',
+      timestamp: Date.now(),
+    };
     expect(typeof factory.format(entry)).toBe('string');
     expect(factory.format(entry).length).toBeGreaterThan(0);
   });
@@ -900,8 +911,14 @@ describe('Feature 9: LogMiddlewarePipeline', () => {
 
   it('process() runs middleware in order', () => {
     const order: number[] = [];
-    pipeline.use((e) => { order.push(1); return e; });
-    pipeline.use((e) => { order.push(2); return e; });
+    pipeline.use((e) => {
+      order.push(1);
+      return e;
+    });
+    pipeline.use((e) => {
+      order.push(2);
+      return e;
+    });
     pipeline.process(makeLogEntry());
     expect(order).toEqual([1, 2]);
   });
@@ -914,7 +931,10 @@ describe('Feature 9: LogMiddlewarePipeline', () => {
   it('process() short-circuits on null', () => {
     let called = false;
     pipeline.use(() => null);
-    pipeline.use((e) => { called = true; return e; });
+    pipeline.use((e) => {
+      called = true;
+      return e;
+    });
     pipeline.process(makeLogEntry());
     expect(called).toBe(false);
   });

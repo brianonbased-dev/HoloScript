@@ -36,7 +36,17 @@ describe('Scenario: Scene Templates — Catalogue', () => {
   });
 
   it('all templates have valid categories', () => {
-    const validCategories = ['game', 'social', 'art', 'tabletop', 'education', 'healthcare', 'ecommerce', 'industrial', 'sports'];
+    const validCategories = [
+      'game',
+      'social',
+      'art',
+      'tabletop',
+      'education',
+      'healthcare',
+      'ecommerce',
+      'industrial',
+      'sports',
+    ];
     for (const t of SCENE_TEMPLATES) {
       expect(validCategories).toContain(t.category);
     }

@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,11 +28,11 @@ export interface SceneProp {
   min?: number;
   max?: number;
   step?: number;
-  options?: string[];   // for enum
+  options?: string[]; // for enum
 }
 
 export interface PropGroup {
-  trait: string;       // e.g. 'transform', 'material', 'light'
+  trait: string; // e.g. 'transform', 'material', 'light'
   label: string;
   icon: string;
   props: SceneProp[];
@@ -40,83 +40,112 @@ export interface PropGroup {
 
 export interface InspectorResult {
   objectName: string | null;
-  objectType: string | null;         // e.g. 'object', 'scene'
+  objectType: string | null; // e.g. 'object', 'scene'
   groups: PropGroup[];
   lineRange: [number, number] | null; // [start, end] 1-indexed in code
-  setProperty: (trait: string, key: string, value: string | number | boolean | [number,number,number]) => void;
+  setProperty: (
+    trait: string,
+    key: string,
+    value: string | number | boolean | [number, number, number]
+  ) => void;
 }
 
 // ─── Trait schemas ────────────────────────────────────────────────────────────
 
-const TRAIT_SCHEMA: Record<string, { label: string; icon: string; props: Omit<SceneProp, 'value'>[] }> = {
+const TRAIT_SCHEMA: Record<
+  string,
+  { label: string; icon: string; props: Omit<SceneProp, 'value'>[] }
+> = {
   transform: {
     label: 'Transform',
     icon: '↔',
     props: [
       { key: 'position', type: 'vec3', label: 'Position' },
       { key: 'rotation', type: 'vec3', label: 'Rotation', min: -360, max: 360, step: 1 },
-      { key: 'scale',    type: 'vec3', label: 'Scale',    min: 0.001, max: 100, step: 0.01 },
+      { key: 'scale', type: 'vec3', label: 'Scale', min: 0.001, max: 100, step: 0.01 },
     ],
   },
   material: {
     label: 'Material',
     icon: '🎨',
     props: [
-      { key: 'albedo',           type: 'color',   label: 'Albedo' },
-      { key: 'emissive',         type: 'color',   label: 'Emissive' },
-      { key: 'metallic',         type: 'float',   label: 'Metallic',    min: 0, max: 1, step: 0.01 },
-      { key: 'roughness',        type: 'float',   label: 'Roughness',   min: 0, max: 1, step: 0.01 },
-      { key: 'opacity',          type: 'float',   label: 'Opacity',     min: 0, max: 1, step: 0.01 },
-      { key: 'emissiveIntensity',type: 'float',   label: 'Emissive Intensity', min: 0, max: 20, step: 0.1 },
+      { key: 'albedo', type: 'color', label: 'Albedo' },
+      { key: 'emissive', type: 'color', label: 'Emissive' },
+      { key: 'metallic', type: 'float', label: 'Metallic', min: 0, max: 1, step: 0.01 },
+      { key: 'roughness', type: 'float', label: 'Roughness', min: 0, max: 1, step: 0.01 },
+      { key: 'opacity', type: 'float', label: 'Opacity', min: 0, max: 1, step: 0.01 },
+      {
+        key: 'emissiveIntensity',
+        type: 'float',
+        label: 'Emissive Intensity',
+        min: 0,
+        max: 20,
+        step: 0.1,
+      },
     ],
   },
   light: {
     label: 'Light',
     icon: '💡',
     props: [
-      { key: 'type',      type: 'enum',  label: 'Type',      options: ['point','spot','directional','area'] },
-      { key: 'color',     type: 'color', label: 'Color' },
-      { key: 'intensity', type: 'float', label: 'Intensity',  min: 0, max: 20,  step: 0.1 },
-      { key: 'range',     type: 'float', label: 'Range',      min: 0, max: 500, step: 0.5 },
-      { key: 'castShadow',type: 'boolean',label: 'Cast Shadow' },
+      {
+        key: 'type',
+        type: 'enum',
+        label: 'Type',
+        options: ['point', 'spot', 'directional', 'area'],
+      },
+      { key: 'color', type: 'color', label: 'Color' },
+      { key: 'intensity', type: 'float', label: 'Intensity', min: 0, max: 20, step: 0.1 },
+      { key: 'range', type: 'float', label: 'Range', min: 0, max: 500, step: 0.5 },
+      { key: 'castShadow', type: 'boolean', label: 'Cast Shadow' },
     ],
   },
   physics: {
     label: 'Physics',
     icon: '⚡',
     props: [
-      { key: 'type',  type: 'enum',  label: 'Body Type', options: ['static','dynamic','kinematic'] },
-      { key: 'mass',  type: 'float', label: 'Mass (kg)',  min: 0, max: 1000, step: 0.1 },
+      {
+        key: 'type',
+        type: 'enum',
+        label: 'Body Type',
+        options: ['static', 'dynamic', 'kinematic'],
+      },
+      { key: 'mass', type: 'float', label: 'Mass (kg)', min: 0, max: 1000, step: 0.1 },
     ],
   },
   particles: {
     label: 'Particles',
     icon: '✨',
     props: [
-      { key: 'type',     type: 'enum',  label: 'Emitter',  options: ['fire','smoke','sparkle','rain','snow','dust','debris','custom'] },
-      { key: 'rate',     type: 'float', label: 'Rate/s',   min: 0, max: 500, step: 1 },
-      { key: 'lifetime', type: 'float', label: 'Lifetime', min: 0, max: 30,  step: 0.1 },
-      { key: 'size',     type: 'float', label: 'Size',     min: 0, max: 10,  step: 0.01 },
-      { key: 'color',    type: 'color', label: 'Color' },
+      {
+        key: 'type',
+        type: 'enum',
+        label: 'Emitter',
+        options: ['fire', 'smoke', 'sparkle', 'rain', 'snow', 'dust', 'debris', 'custom'],
+      },
+      { key: 'rate', type: 'float', label: 'Rate/s', min: 0, max: 500, step: 1 },
+      { key: 'lifetime', type: 'float', label: 'Lifetime', min: 0, max: 30, step: 0.1 },
+      { key: 'size', type: 'float', label: 'Size', min: 0, max: 10, step: 0.01 },
+      { key: 'color', type: 'color', label: 'Color' },
     ],
   },
   animation: {
     label: 'Animation',
     icon: '🎬',
     props: [
-      { key: 'speed', type: 'float',  label: 'Speed',  min: 0, max: 10, step: 0.1 },
-      { key: 'loop',  type: 'boolean',label: 'Loop' },
+      { key: 'speed', type: 'float', label: 'Speed', min: 0, max: 10, step: 0.1 },
+      { key: 'loop', type: 'boolean', label: 'Loop' },
     ],
   },
   audio: {
     label: 'Audio',
     icon: '🎵',
     props: [
-      { key: 'src',         type: 'string',  label: 'Source' },
-      { key: 'volume',      type: 'float',   label: 'Volume',  min: 0, max: 1, step: 0.01 },
-      { key: 'loop',        type: 'boolean', label: 'Loop' },
-      { key: 'spatial',     type: 'boolean', label: 'Spatial' },
-      { key: 'maxDistance', type: 'float',   label: 'Max Dist', min: 0, max: 100, step: 0.5 },
+      { key: 'src', type: 'string', label: 'Source' },
+      { key: 'volume', type: 'float', label: 'Volume', min: 0, max: 1, step: 0.01 },
+      { key: 'loop', type: 'boolean', label: 'Loop' },
+      { key: 'spatial', type: 'boolean', label: 'Spatial' },
+      { key: 'maxDistance', type: 'float', label: 'Max Dist', min: 0, max: 100, step: 0.5 },
     ],
   },
 };
@@ -124,7 +153,10 @@ const TRAIT_SCHEMA: Record<string, { label: string; icon: string; props: Omit<Sc
 // ─── Parser helpers ───────────────────────────────────────────────────────────
 
 function parseVec3(raw: string): [number, number, number] {
-  const m = raw.replace(/[\[\]]/g, '').split(',').map(Number);
+  const m = raw
+    .replace(/[\[\]]/g, '')
+    .split(',')
+    .map(Number);
   return [m[0] ?? 0, m[1] ?? 0, m[2] ?? 0];
 }
 
@@ -138,7 +170,7 @@ function parseValue(raw: string, type: PropType): SceneProp['value'] {
 
 function formatValue(value: SceneProp['value'], type: PropType): string {
   if (type === 'vec3' && Array.isArray(value))
-    return `[${(value as [number,number,number]).map((v) => v.toFixed(3)).join(', ')}]`;
+    return `[${(value as [number, number, number]).map((v) => v.toFixed(3)).join(', ')}]`;
   if (type === 'color') return `"${value}"`;
   if (type === 'string') return `"${value}"`;
   return String(value);
@@ -150,7 +182,9 @@ function findObjectBlock(lines: string[], name: string): [number, number] | null
   let start = -1;
   let depth = 0;
   for (let i = 0; i < lines.length; i++) {
-    if (start === -1 && startRe.test(lines[i])) { start = i; }
+    if (start === -1 && startRe.test(lines[i])) {
+      start = i;
+    }
     if (start !== -1) {
       depth += (lines[i].match(/\{/g) ?? []).length;
       depth -= (lines[i].match(/\}/g) ?? []).length;
@@ -170,9 +204,16 @@ function extractGroups(lines: string[], start: number, end: number): PropGroup[]
     const schema = TRAIT_SCHEMA[currentTrait];
     const props: SceneProp[] = schema.props.map((p) => ({
       ...p,
-      value: propMap[p.key] != null ? parseValue(propMap[p.key], p.type) : (
-        p.type === 'float' ? 0 : p.type === 'boolean' ? false : p.type === 'vec3' ? [0,0,0] as [number,number,number] : ''
-      ),
+      value:
+        propMap[p.key] != null
+          ? parseValue(propMap[p.key], p.type)
+          : p.type === 'float'
+            ? 0
+            : p.type === 'boolean'
+              ? false
+              : p.type === 'vec3'
+                ? ([0, 0, 0] as [number, number, number])
+                : '',
     }));
     groups.push({ trait: currentTrait, label: schema.label, icon: schema.icon, props });
   };
@@ -217,51 +258,58 @@ export function useNodeInspector(objectName: string | null): InspectorResult {
     return { lineRange, groups, objectType: typeMatch?.[1] ?? 'object' };
   }, [code, objectName]);
 
-  const setProperty = useCallback((trait: string, key: string, value: SceneProp['value']) => {
-    if (!objectName) return;
-    const schema = TRAIT_SCHEMA[trait];
-    if (!schema) return;
-    const propDef = schema.props.find((p) => p.key === key);
-    if (!propDef) return;
-    const formatted = formatValue(value, propDef.type);
-    const lines = code.split('\n');
-    const range = findObjectBlock(lines, objectName);
-    if (!range) return;
+  const setProperty = useCallback(
+    (trait: string, key: string, value: SceneProp['value']) => {
+      if (!objectName) return;
+      const schema = TRAIT_SCHEMA[trait];
+      if (!schema) return;
+      const propDef = schema.props.find((p) => p.key === key);
+      if (!propDef) return;
+      const formatted = formatValue(value, propDef.type);
+      const lines = code.split('\n');
+      const range = findObjectBlock(lines, objectName);
+      if (!range) return;
 
-    // Try to update existing line first
-    let found = false;
-    for (let i = range[0] - 1; i < range[1] - 1; i++) {
-      if (new RegExp(`^\\s*${key}\\s*:`).test(lines[i])) {
-        lines[i] = lines[i].replace(/:\s*.+$/, `: ${formatted}`);
-        found = true;
-        break;
-      }
-    }
-
-    if (!found) {
-      // Append to the @trait block if it exists, else insert new block
-      let traitLine = -1;
-      let traitDepth = 0;
+      // Try to update existing line first
+      let found = false;
       for (let i = range[0] - 1; i < range[1] - 1; i++) {
-        if (new RegExp(`^\\s*@${trait}\\s*\\{?`).test(lines[i])) traitLine = i;
-        if (traitLine !== -1) {
-          traitDepth += (lines[i].match(/\{/g) ?? []).length;
-          traitDepth -= (lines[i].match(/\}/g) ?? []).length;
-          if (traitDepth <= 0) {
-            lines.splice(i, 0, `    ${key}: ${formatted}`);
-            found = true;
-            break;
-          }
+        if (new RegExp(`^\\s*${key}\\s*:`).test(lines[i])) {
+          lines[i] = lines[i].replace(/:\s*.+$/, `: ${formatted}`);
+          found = true;
+          break;
         }
       }
+
       if (!found) {
-        const indent = '  ';
-        const newBlock = [`${indent}@${trait} {`, `${indent}  ${key}: ${formatted}`, `${indent}}`];
-        lines.splice(range[1] - 1, 0, ...newBlock);
+        // Append to the @trait block if it exists, else insert new block
+        let traitLine = -1;
+        let traitDepth = 0;
+        for (let i = range[0] - 1; i < range[1] - 1; i++) {
+          if (new RegExp(`^\\s*@${trait}\\s*\\{?`).test(lines[i])) traitLine = i;
+          if (traitLine !== -1) {
+            traitDepth += (lines[i].match(/\{/g) ?? []).length;
+            traitDepth -= (lines[i].match(/\}/g) ?? []).length;
+            if (traitDepth <= 0) {
+              lines.splice(i, 0, `    ${key}: ${formatted}`);
+              found = true;
+              break;
+            }
+          }
+        }
+        if (!found) {
+          const indent = '  ';
+          const newBlock = [
+            `${indent}@${trait} {`,
+            `${indent}  ${key}: ${formatted}`,
+            `${indent}}`,
+          ];
+          lines.splice(range[1] - 1, 0, ...newBlock);
+        }
       }
-    }
-    setCode(lines.join('\n'));
-  }, [code, setCode, objectName]);
+      setCode(lines.join('\n'));
+    },
+    [code, setCode, objectName]
+  );
 
   return {
     objectName,

@@ -44,22 +44,24 @@ describe('OptimizationPass', () => {
     const lights = Array.from({ length: 20 }, (_, i) => makeNode('pointLight', `light${i}`));
     const scene = makeScene(lights);
     const report = new OptimizationPass({ lightBudget: 8 }).analyze(scene);
-    const lightHints = report.hints.filter(h => h.message.includes('lights'));
+    const lightHints = report.hints.filter((h) => h.message.includes('lights'));
     expect(lightHints.length).toBeGreaterThan(0);
   });
 
   it('warns when draw calls exceed budget', () => {
-    const meshes = Array.from({ length: 400 }, (_, i) => makeNode('mesh', `m${i}`, { hsType: 'box' }));
+    const meshes = Array.from({ length: 400 }, (_, i) =>
+      makeNode('mesh', `m${i}`, { hsType: 'box' })
+    );
     const scene = makeScene(meshes);
     const report = new OptimizationPass({ drawCallBudget: 200 }).analyze(scene);
-    const dcHints = report.hints.filter(h => h.category === 'drawcalls');
+    const dcHints = report.hints.filter((h) => h.category === 'drawcalls');
     expect(dcHints.length).toBeGreaterThan(0);
   });
 
   it('detects LOD opportunities for high-poly objects', () => {
     const scene = makeScene([
       makeNode('mesh', 'sphere1', { hsType: 'sphere' }), // 2048 tris → LOD candidate
-      makeNode('mesh', 'box1', { hsType: 'box' }),       // 12 tris → not a candidate
+      makeNode('mesh', 'box1', { hsType: 'box' }), // 12 tris → not a candidate
     ]);
     const report = new OptimizationPass({ analyzeLOD: true }).analyze(scene);
     expect(report.lodRecommendations.length).toBe(1);
@@ -109,7 +111,9 @@ describe('OptimizationPass', () => {
 
   it('score decreases with critical issues', () => {
     const clean = new OptimizationPass().analyze(makeScene());
-    const meshes = Array.from({ length: 500 }, (_, i) => makeNode('mesh', `m${i}`, { hsType: 'box' }));
+    const meshes = Array.from({ length: 500 }, (_, i) =>
+      makeNode('mesh', `m${i}`, { hsType: 'box' })
+    );
     const heavy = new OptimizationPass({ drawCallBudget: 100 }).analyze(makeScene(meshes));
     expect(heavy.score).toBeLessThan(clean.score);
   });
@@ -127,16 +131,16 @@ describe('OptimizationPass', () => {
     );
     const scene = makeScene(tMeshes);
     const report = new OptimizationPass({ platform: 'vr' }).analyze(scene);
-    const overdraw = report.hints.filter(h => h.category === 'overdraw');
+    const overdraw = report.hints.filter((h) => h.category === 'overdraw');
     expect(overdraw.length).toBeGreaterThan(0);
   });
 
   it('warns about physics jitter (animated + rigidBody)', () => {
-    const scene = makeScene([
-      makeNode('mesh', 'jitter', { animated: true, rigidBody: true }),
-    ]);
+    const scene = makeScene([makeNode('mesh', 'jitter', { animated: true, rigidBody: true })]);
     const report = new OptimizationPass().analyze(scene);
-    const physics = report.hints.filter(h => h.category === 'physics' && h.message.includes('jitter'));
+    const physics = report.hints.filter(
+      (h) => h.category === 'physics' && h.message.includes('jitter')
+    );
     expect(physics.length).toBe(1);
   });
 });

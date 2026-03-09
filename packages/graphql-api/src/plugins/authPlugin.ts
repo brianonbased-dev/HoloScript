@@ -57,10 +57,9 @@ export interface AuthPluginOptions {
  * - TOKEN_EXPIRED: Token has expired
  * - INVALID_TOKEN: Token is malformed or invalid
  */
-export function createAuthPlugin(
-  options: AuthPluginOptions = {}
-): ApolloServerPlugin<BaseContext> {
-  const includeStatus = options.includeAuthStatusInExtensions ?? process.env.NODE_ENV !== 'production';
+export function createAuthPlugin(options: AuthPluginOptions = {}): ApolloServerPlugin<BaseContext> {
+  const includeStatus =
+    options.includeAuthStatusInExtensions ?? process.env.NODE_ENV !== 'production';
 
   return {
     async requestDidStart(requestContext): Promise<GraphQLRequestListener<BaseContext>> {
@@ -98,7 +97,10 @@ export function createAuthPlugin(
 
           // Check operation-specific permissions
           if (!isPublic && authContext.isAuthenticated) {
-            const canPerform = authService.canPerformOperation(authContext.user, operationName || '');
+            const canPerform = authService.canPerformOperation(
+              authContext.user,
+              operationName || ''
+            );
 
             if (!canPerform) {
               throw new GraphQLError(

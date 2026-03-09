@@ -46,19 +46,36 @@ describe('RagdollSystem', () => {
   it('humanoid has constraints linking child to parent', () => {
     const rd = sys.createHumanoid('h5', { x: 0, y: 0, z: 0 });
     // bones with parents should have constraints
-    const bonesWithParents = HUMANOID_PRESET.filter(b => b.parentBone);
+    const bonesWithParents = HUMANOID_PRESET.filter((b) => b.parentBone);
     expect(rd.constraints.length).toBe(bonesWithParents.length);
   });
 
   it('custom ragdoll definition works', () => {
-    const rd = sys.createRagdoll({
-      id: 'custom',
-      bones: [
-        { id: 'torso', length: 0.5, radius: 0.1, mass: 10, localOffset: { x: 0, y: 0, z: 0 }, jointType: 'cone' as const },
-        { id: 'head', parentBone: 'torso', length: 0.2, radius: 0.08, mass: 3,
-          localOffset: { x: 0, y: 0.5, z: 0 }, jointType: 'cone' as const },
-      ]
-    }, { x: 0, y: 0, z: 0 });
+    const rd = sys.createRagdoll(
+      {
+        id: 'custom',
+        bones: [
+          {
+            id: 'torso',
+            length: 0.5,
+            radius: 0.1,
+            mass: 10,
+            localOffset: { x: 0, y: 0, z: 0 },
+            jointType: 'cone' as const,
+          },
+          {
+            id: 'head',
+            parentBone: 'torso',
+            length: 0.2,
+            radius: 0.08,
+            mass: 3,
+            localOffset: { x: 0, y: 0.5, z: 0 },
+            jointType: 'cone' as const,
+          },
+        ],
+      },
+      { x: 0, y: 0, z: 0 }
+    );
     expect(rd.bodies.length).toBe(2);
     expect(rd.constraints.length).toBe(1);
   });

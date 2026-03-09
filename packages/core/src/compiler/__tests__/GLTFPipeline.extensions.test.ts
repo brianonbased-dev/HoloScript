@@ -163,11 +163,13 @@ describe('GLTFPipeline KHR Material Extensions', () => {
 
   it('does not add extensions for unset material', () => {
     const comp = makeComposition({
-      objects: [{
-        name: 'plain',
-        properties: [{ key: 'geometry', value: 'box' }],
-        traits: [],
-      }] as any,
+      objects: [
+        {
+          name: 'plain',
+          properties: [{ key: 'geometry', value: 'box' }],
+          traits: [],
+        },
+      ] as any,
     });
     const { materials } = getGLTFMaterials(new GLTFPipeline(), comp);
 
@@ -214,15 +216,24 @@ describe('GLTFPipeline KHR Material Extensions', () => {
 function makeFakePNG(): Uint8Array {
   // PNG magic bytes followed by enough data to be recognized
   const png = new Uint8Array(68);
-  png[0] = 0x89; png[1] = 0x50; png[2] = 0x4E; png[3] = 0x47;
-  png[4] = 0x0D; png[5] = 0x0A; png[6] = 0x1A; png[7] = 0x0A;
+  png[0] = 0x89;
+  png[1] = 0x50;
+  png[2] = 0x4e;
+  png[3] = 0x47;
+  png[4] = 0x0d;
+  png[5] = 0x0a;
+  png[6] = 0x1a;
+  png[7] = 0x0a;
   return png;
 }
 
 /** Minimal JPEG header bytes */
 function makeFakeJPEG(): Uint8Array {
   const jpg = new Uint8Array(32);
-  jpg[0] = 0xFF; jpg[1] = 0xD8; jpg[2] = 0xFF; jpg[3] = 0xE0;
+  jpg[0] = 0xff;
+  jpg[1] = 0xd8;
+  jpg[2] = 0xff;
+  jpg[3] = 0xe0;
   return jpg;
 }
 
@@ -366,11 +377,13 @@ describe('GLTFPipeline Texture Map Export', () => {
 
   it('embeds multiple texture channels on one material', () => {
     const comp = makeComposition({
-      objects: [makeTexturedObject('multi_obj', {
-        baseColorMap: 'textures/color.png',
-        normalMap: 'textures/normal.png',
-        roughnessMap: 'textures/rough.png',
-      })],
+      objects: [
+        makeTexturedObject('multi_obj', {
+          baseColorMap: 'textures/color.png',
+          normalMap: 'textures/normal.png',
+          roughnessMap: 'textures/rough.png',
+        }),
+      ],
     });
     const pipeline = new GLTFPipeline({
       format: 'gltf',
@@ -408,10 +421,12 @@ describe('GLTFPipeline Texture Map Export', () => {
 
   it('supports underscore aliases (albedo_map, normal_map)', () => {
     const comp = makeComposition({
-      objects: [makeTexturedObject('alias_obj', {
-        albedo_map: 'textures/albedo.png',
-        normal_map: 'textures/normal.png',
-      })],
+      objects: [
+        makeTexturedObject('alias_obj', {
+          albedo_map: 'textures/albedo.png',
+          normal_map: 'textures/normal.png',
+        }),
+      ],
     });
     const pipeline = new GLTFPipeline({
       format: 'gltf',

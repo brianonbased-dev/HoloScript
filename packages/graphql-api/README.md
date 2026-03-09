@@ -43,9 +43,7 @@ Server will be available at `http://localhost:4000` with GraphQL Playground enab
 
 ```graphql
 query ParseExample {
-  parseHoloScript(input: {
-    code: "composition MyWorld { environment { sky_color: #87CEEB } }"
-  }) {
+  parseHoloScript(input: { code: "composition MyWorld { environment { sky_color: #87CEEB } }" }) {
     success
     ast
     errors {
@@ -66,14 +64,13 @@ query ParseExample {
 
 ```graphql
 mutation CompileToUnity {
-  compile(input: {
-    code: "composition MyWorld { environment { sky_color: #87CEEB } }"
-    target: UNITY
-    options: {
-      minify: false
-      sourceMaps: true
+  compile(
+    input: {
+      code: "composition MyWorld { environment { sky_color: #87CEEB } }"
+      target: UNITY
+      options: { minify: false, sourceMaps: true }
     }
-  }) {
+  ) {
     success
     output
     errors {
@@ -118,6 +115,7 @@ query GetUnityInfo {
 - ✅ **R3F** - React Three Fiber renderer
 
 **Coming Soon** (Week 2-4):
+
 - Unreal Engine
 - VRChat (Udon)
 - WebAssembly
@@ -148,6 +146,7 @@ query GetUnityInfo {
 ## Development Roadmap
 
 ### ✅ Week 1 (Current): POC
+
 - [x] Package structure
 - [x] TypeGraphQL resolvers (Query, Compiler)
 - [x] Apollo Server setup
@@ -155,16 +154,19 @@ query GetUnityInfo {
 - [ ] Test with GraphQL Playground
 
 ### Week 2: Core Mutations
+
 - [ ] Batch compilation with DataLoader
 - [ ] All 25+ compiler targets
 - [ ] Performance optimizations
 
 ### Week 3: Subscriptions
+
 - [ ] Real-time compilation progress
 - [ ] Live validation
 - [ ] Redis pub/sub
 
 ### Week 4-6: Production Ready
+
 - [ ] Query complexity limits
 - [ ] Rate limiting
 - [ ] Authentication/Authorization

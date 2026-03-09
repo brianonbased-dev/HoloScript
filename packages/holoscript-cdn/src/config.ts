@@ -10,31 +10,31 @@ export interface HoloCDNConfig {
 }
 
 export const defaultCDNConfig: HoloCDNConfig = {
-  cdnBase: "https://cdn.holoscript.net",
-  defaultTarget: "threejs",
+  cdnBase: 'https://cdn.holoscript.net',
+  defaultTarget: 'threejs',
   debug: false,
   loadTimeoutMs: 10000,
 };
 
 export function detectOptimalTarget(): string {
-  if (typeof navigator === "undefined") return "threejs";
+  if (typeof navigator === 'undefined') return 'threejs';
 
-  if ("xr" in navigator) {
+  if ('xr' in navigator) {
     const nav = navigator as any;
     if (nav.xr?.isSessionSupported) {
-      return "webxr";
+      return 'webxr';
     }
   }
 
-  if ("gpu" in navigator) {
-    return "webgpu";
+  if ('gpu' in navigator) {
+    return 'webgpu';
   }
 
-  return "threejs";
+  return 'threejs';
 }
 
-export async function checkXRSupport(mode: "immersive-vr" | "immersive-ar"): Promise<boolean> {
-  if (typeof navigator === "undefined" || !("xr" in navigator)) return false;
+export async function checkXRSupport(mode: 'immersive-vr' | 'immersive-ar'): Promise<boolean> {
+  if (typeof navigator === 'undefined' || !('xr' in navigator)) return false;
   try {
     const nav = navigator as any;
     return await nav.xr.isSessionSupported(mode);

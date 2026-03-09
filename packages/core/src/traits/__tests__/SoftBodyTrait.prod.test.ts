@@ -43,7 +43,9 @@ function mkNode() {
 
 function mkCtx() {
   const ctx = { emitted: [] as Array<{ type: string; payload: any }>, emit: vi.fn() };
-  ctx.emit = vi.fn((type: string, payload: any) => { ctx.emitted.push({ type, payload }); }) as any;
+  ctx.emit = vi.fn((type: string, payload: any) => {
+    ctx.emitted.push({ type, payload });
+  }) as any;
   return ctx;
 }
 
@@ -59,11 +61,15 @@ describe('softBodyHandler — defaultConfig', () => {
   it('damping = 0.05', () => expect(softBodyHandler.defaultConfig?.damping).toBeCloseTo(0.05));
   it('mass = 1.0', () => expect(softBodyHandler.defaultConfig?.mass).toBeCloseTo(1.0));
   it('pressure = 1.0', () => expect(softBodyHandler.defaultConfig?.pressure).toBeCloseTo(1.0));
-  it('volume_conservation = 0.9', () => expect(softBodyHandler.defaultConfig?.volume_conservation).toBeCloseTo(0.9));
-  it('solver_iterations = 10', () => expect(softBodyHandler.defaultConfig?.solver_iterations).toBe(10));
+  it('volume_conservation = 0.9', () =>
+    expect(softBodyHandler.defaultConfig?.volume_conservation).toBeCloseTo(0.9));
+  it('solver_iterations = 10', () =>
+    expect(softBodyHandler.defaultConfig?.solver_iterations).toBe(10));
   it('tetrahedral = false', () => expect(softBodyHandler.defaultConfig?.tetrahedral).toBe(false));
-  it('surface_stiffness = 0.5', () => expect(softBodyHandler.defaultConfig?.surface_stiffness).toBeCloseTo(0.5));
-  it('bending_stiffness = 0.3', () => expect(softBodyHandler.defaultConfig?.bending_stiffness).toBeCloseTo(0.3));
+  it('surface_stiffness = 0.5', () =>
+    expect(softBodyHandler.defaultConfig?.surface_stiffness).toBeCloseTo(0.5));
+  it('bending_stiffness = 0.3', () =>
+    expect(softBodyHandler.defaultConfig?.bending_stiffness).toBeCloseTo(0.3));
 });
 
 // ─── onAttach ─────────────────────────────────────────────────────────────────────
@@ -97,7 +103,7 @@ describe('softBodyHandler — onDetach', () => {
   it('emits soft_body_destroy when simulating', () => {
     const { node, ctx, cfg } = attach();
     softBodyHandler.onDetach!(node as any, cfg, ctx as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_destroy')).toBeDefined();
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_destroy')).toBeDefined();
   });
   it('removes __softBodyState', () => {
     const { node, ctx, cfg } = attach();
@@ -109,7 +115,7 @@ describe('softBodyHandler — onDetach', () => {
     softBodyHandler.onEvent!(node as any, cfg, ctx as any, { type: 'soft_body_pause' } as any);
     ctx.emitted.length = 0;
     softBodyHandler.onDetach!(node as any, cfg, ctx as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_destroy')).toBeUndefined();
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_destroy')).toBeUndefined();
   });
 });
 
@@ -118,58 +124,93 @@ describe('softBodyHandler — onDetach', () => {
 describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
   it('stores vertices from positions array', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_vertex_update',
-      positions: [{ x: 0.5, y: 0, z: 0 }],
-      normals: [],
-    } as any);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_vertex_update',
+        positions: [{ x: 0.5, y: 0, z: 0 }],
+        normals: [],
+      } as any
+    );
     expect((node as any).__softBodyState.vertices[0].position).toEqual({ x: 0.5, y: 0, z: 0 });
   });
   it('emits soft_body_mesh_update', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_vertex_update',
-      positions: [{ x: 0, y: 0, z: 0 }],
-      normals: [],
-    } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_mesh_update')).toBeDefined();
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_vertex_update',
+        positions: [{ x: 0, y: 0, z: 0 }],
+        normals: [],
+      } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_mesh_update')).toBeDefined();
   });
   it('isDeformed = true when positions differ from restPositions', () => {
     const { node, ctx } = attach();
     // First set rest via vertex_update (positions become restPosition for new vertices)
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_vertex_update',
-      positions: [{ x: 0, y: 0, z: 0 }],
-      normals: [],
-    } as any);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_vertex_update',
+        positions: [{ x: 0, y: 0, z: 0 }],
+        normals: [],
+      } as any
+    );
     // Now move it > 0.01 away from rest
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_vertex_update',
-      positions: [{ x: 1, y: 0, z: 0 }],
-      normals: [],
-    } as any);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_vertex_update',
+        positions: [{ x: 1, y: 0, z: 0 }],
+        normals: [],
+      } as any
+    );
     expect((node as any).__softBodyState.isDeformed).toBe(true);
   });
   it('emits on_soft_body_deform when deformed', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_vertex_update',
-      positions: [{ x: 0, y: 0, z: 0 }],
-    } as any);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_vertex_update',
+        positions: [{ x: 0, y: 0, z: 0 }],
+      } as any
+    );
     ctx.emitted.length = 0;
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_vertex_update',
-      positions: [{ x: 1, y: 0, z: 0 }],
-    } as any);
-    expect(ctx.emitted.find(e => e.type === 'on_soft_body_deform')).toBeDefined();
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_vertex_update',
+        positions: [{ x: 1, y: 0, z: 0 }],
+      } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'on_soft_body_deform')).toBeDefined();
   });
   it('updates currentVolume from event', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_vertex_update',
-      positions: [{ x: 0, y: 0, z: 0 }],
-      volume: 2.5,
-    } as any);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_vertex_update',
+        positions: [{ x: 0, y: 0, z: 0 }],
+        volume: 2.5,
+      } as any
+    );
     expect((node as any).__softBodyState.currentVolume).toBeCloseTo(2.5);
   });
 });
@@ -179,30 +220,47 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
 describe('softBodyHandler — onEvent soft_body_apply_force', () => {
   it('emits soft_body_external_force', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_apply_force',
-      force: { x: 1, y: 2, z: 3 },
-      position: { x: 0, y: 0, z: 0 },
-      radius: 0.2,
-    } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_external_force')).toBeDefined();
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_apply_force',
+        force: { x: 1, y: 2, z: 3 },
+        position: { x: 0, y: 0, z: 0 },
+        radius: 0.2,
+      } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_external_force')).toBeDefined();
   });
   it('includes force in payload', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_apply_force',
-      force: { x: 5, y: 0, z: 0 },
-    } as any);
-    const ev = ctx.emitted.find(e => e.type === 'soft_body_external_force');
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_apply_force',
+        force: { x: 5, y: 0, z: 0 },
+      } as any
+    );
+    const ev = ctx.emitted.find((e) => e.type === 'soft_body_external_force');
     expect(ev?.payload.force).toEqual({ x: 5, y: 0, z: 0 });
   });
   it('default radius = 0.1 when not provided', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_apply_force',
-      force: { x: 0, y: 0, z: 1 },
-    } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_external_force')?.payload.radius).toBeCloseTo(0.1);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_apply_force',
+        force: { x: 0, y: 0, z: 1 },
+      } as any
+    );
+    expect(
+      ctx.emitted.find((e) => e.type === 'soft_body_external_force')?.payload.radius
+    ).toBeCloseTo(0.1);
   });
 });
 
@@ -211,32 +269,47 @@ describe('softBodyHandler — onEvent soft_body_apply_force', () => {
 describe('softBodyHandler — onEvent soft_body_poke', () => {
   it('emits soft_body_impulse', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_poke',
-      position: { x: 0, y: 0, z: 0 },
-      force: 5,
-      direction: { x: 0, y: -1, z: 0 },
-    } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_impulse')).toBeDefined();
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_poke',
+        position: { x: 0, y: 0, z: 0 },
+        force: 5,
+        direction: { x: 0, y: -1, z: 0 },
+      } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_impulse')).toBeDefined();
   });
   it('impulse force scaled by force magnitude', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_poke',
-      position: { x: 0, y: 0, z: 0 },
-      force: 10,
-      direction: { x: 0, y: -1, z: 0 },
-    } as any);
-    const ev = ctx.emitted.find(e => e.type === 'soft_body_impulse');
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_poke',
+        position: { x: 0, y: 0, z: 0 },
+        force: 10,
+        direction: { x: 0, y: -1, z: 0 },
+      } as any
+    );
+    const ev = ctx.emitted.find((e) => e.type === 'soft_body_impulse');
     expect(ev?.payload.force.y).toBeCloseTo(-10);
   });
   it('default force = 10 and direction = {0,-1,0}', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_poke',
-      position: { x: 0, y: 0, z: 0 },
-    } as any);
-    const ev = ctx.emitted.find(e => e.type === 'soft_body_impulse');
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_poke',
+        position: { x: 0, y: 0, z: 0 },
+      } as any
+    );
+    const ev = ctx.emitted.find((e) => e.type === 'soft_body_impulse');
     expect(ev?.payload.force.y).toBeCloseTo(-10);
   });
 });
@@ -246,20 +319,32 @@ describe('softBodyHandler — onEvent soft_body_poke', () => {
 describe('softBodyHandler — onEvent soft_body_set_anchor', () => {
   it('emits soft_body_anchor_vertex', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_set_anchor',
-      vertexIndex: 2,
-      targetPosition: { x: 1, y: 0, z: 0 },
-    } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_anchor_vertex')).toBeDefined();
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_set_anchor',
+        vertexIndex: 2,
+        targetPosition: { x: 1, y: 0, z: 0 },
+      } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_anchor_vertex')).toBeDefined();
   });
   it('includes vertexIndex in payload', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_set_anchor',
-      vertexIndex: 5,
-    } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_anchor_vertex')?.payload.vertexIndex).toBe(5);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_set_anchor',
+        vertexIndex: 5,
+      } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_anchor_vertex')?.payload.vertexIndex).toBe(
+      5
+    );
   });
 });
 
@@ -268,17 +353,31 @@ describe('softBodyHandler — onEvent soft_body_set_anchor', () => {
 describe('softBodyHandler — onEvent soft_body_release_anchor', () => {
   it('emits soft_body_unanchor_vertex', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_release_anchor', vertexIndex: 2,
-    } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_unanchor_vertex')).toBeDefined();
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_release_anchor',
+        vertexIndex: 2,
+      } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_unanchor_vertex')).toBeDefined();
   });
   it('includes vertexIndex in payload', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_release_anchor', vertexIndex: 7,
-    } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_unanchor_vertex')?.payload.vertexIndex).toBe(7);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_release_anchor',
+        vertexIndex: 7,
+      } as any
+    );
+    expect(
+      ctx.emitted.find((e) => e.type === 'soft_body_unanchor_vertex')?.payload.vertexIndex
+    ).toBe(7);
   });
 });
 
@@ -287,37 +386,60 @@ describe('softBodyHandler — onEvent soft_body_release_anchor', () => {
 describe('softBodyHandler — onEvent grab', () => {
   it('soft_body_grab_start emits soft_body_grab_begin', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_grab_start',
-      handId: 'right',
-      handPosition: { x: 0, y: 1, z: 0 },
-      grabRadius: 0.2,
-    } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_grab_begin')).toBeDefined();
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_grab_start',
+        handId: 'right',
+        handPosition: { x: 0, y: 1, z: 0 },
+        grabRadius: 0.2,
+      } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_grab_begin')).toBeDefined();
   });
   it('soft_body_grab_update emits soft_body_grab_move', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_grab_update',
-      handId: 'right',
-      handPosition: { x: 1, y: 1, z: 0 },
-    } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_grab_move')).toBeDefined();
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_grab_update',
+        handId: 'right',
+        handPosition: { x: 1, y: 1, z: 0 },
+      } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_grab_move')).toBeDefined();
   });
   it('soft_body_grab_end emits soft_body_grab_release', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_grab_end', handId: 'right',
-    } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_grab_release')).toBeDefined();
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_grab_end',
+        handId: 'right',
+      } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_grab_release')).toBeDefined();
   });
   it('grab handId defaults to "default"', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_grab_start',
-      handPosition: { x: 0, y: 0, z: 0 },
-    } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_grab_begin')?.payload.handId).toBe('default');
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_grab_start',
+        handPosition: { x: 0, y: 0, z: 0 },
+      } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_grab_begin')?.payload.handId).toBe(
+      'default'
+    );
   });
 });
 
@@ -326,37 +448,74 @@ describe('softBodyHandler — onEvent grab', () => {
 describe('softBodyHandler — onEvent soft_body_reset', () => {
   it('emits soft_body_reset_shape', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, { type: 'soft_body_reset' } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_reset_shape')).toBeDefined();
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      { type: 'soft_body_reset' } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_reset_shape')).toBeDefined();
   });
   it('clears isDeformed', () => {
     const { node, ctx } = attach();
     // Deform first
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_vertex_update',
-      positions: [{ x: 0, y: 0, z: 0 }],
-    } as any);
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_vertex_update',
-      positions: [{ x: 2, y: 0, z: 0 }],
-    } as any);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_vertex_update',
+        positions: [{ x: 0, y: 0, z: 0 }],
+      } as any
+    );
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_vertex_update',
+        positions: [{ x: 2, y: 0, z: 0 }],
+      } as any
+    );
     expect((node as any).__softBodyState.isDeformed).toBe(true);
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, { type: 'soft_body_reset' } as any);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      { type: 'soft_body_reset' } as any
+    );
     expect((node as any).__softBodyState.isDeformed).toBe(false);
   });
   it('deformationAmount = 0 after reset', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, { type: 'soft_body_reset' } as any);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      { type: 'soft_body_reset' } as any
+    );
     expect((node as any).__softBodyState.deformationAmount).toBe(0);
   });
   it('currentVolume reset to restVolume', () => {
     const { node, ctx } = attach();
     // Change currentVolume
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_vertex_update', positions: [{ x: 0, y: 0, z: 0 }], volume: 2.0,
-    } as any);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_vertex_update',
+        positions: [{ x: 0, y: 0, z: 0 }],
+        volume: 2.0,
+      } as any
+    );
     const rest = (node as any).__softBodyState.restVolume;
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, { type: 'soft_body_reset' } as any);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      { type: 'soft_body_reset' } as any
+    );
     expect((node as any).__softBodyState.currentVolume).toBeCloseTo(rest);
   });
 });
@@ -366,13 +525,28 @@ describe('softBodyHandler — onEvent soft_body_reset', () => {
 describe('softBodyHandler — onEvent pause / resume', () => {
   it('soft_body_pause sets isSimulating = false', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, { type: 'soft_body_pause' } as any);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      { type: 'soft_body_pause' } as any
+    );
     expect((node as any).__softBodyState.isSimulating).toBe(false);
   });
   it('soft_body_resume sets isSimulating = true', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, { type: 'soft_body_pause' } as any);
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, { type: 'soft_body_resume' } as any);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      { type: 'soft_body_pause' } as any
+    );
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      { type: 'soft_body_resume' } as any
+    );
     expect((node as any).__softBodyState.isSimulating).toBe(true);
   });
 });
@@ -382,25 +556,48 @@ describe('softBodyHandler — onEvent pause / resume', () => {
 describe('softBodyHandler — onEvent soft_body_query', () => {
   it('emits soft_body_info', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, {
-      type: 'soft_body_query', queryId: 'q1',
-    } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_info')).toBeDefined();
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      {
+        type: 'soft_body_query',
+        queryId: 'q1',
+      } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_info')).toBeDefined();
   });
   it('info includes isSimulating', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, { type: 'soft_body_query', queryId: 'q1' } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_info')?.payload.isSimulating).toBe(true);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      { type: 'soft_body_query', queryId: 'q1' } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_info')?.payload.isSimulating).toBe(true);
   });
   it('info includes queryId', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, { type: 'soft_body_query', queryId: 'abc' } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_info')?.payload.queryId).toBe('abc');
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      { type: 'soft_body_query', queryId: 'abc' } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_info')?.payload.queryId).toBe('abc');
   });
   it('volumeRatio = 1 initially (currentVolume/restVolume)', () => {
     const { node, ctx } = attach();
-    softBodyHandler.onEvent!(node as any, mkConfig(), ctx as any, { type: 'soft_body_query', queryId: 'q1' } as any);
-    expect(ctx.emitted.find(e => e.type === 'soft_body_info')?.payload.volumeRatio).toBeCloseTo(1.0);
+    softBodyHandler.onEvent!(
+      node as any,
+      mkConfig(),
+      ctx as any,
+      { type: 'soft_body_query', queryId: 'q1' } as any
+    );
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_info')?.payload.volumeRatio).toBeCloseTo(
+      1.0
+    );
   });
 });
 
@@ -408,6 +605,13 @@ describe('softBodyHandler — onEvent soft_body_query', () => {
 
 describe('softBodyHandler — edge cases', () => {
   it('onEvent no-op when no state on node', () => {
-    expect(() => softBodyHandler.onEvent!(mkNode() as any, mkConfig(), mkCtx() as any, { type: 'soft_body_poke', position: { x: 0, y: 0, z: 0 } } as any)).not.toThrow();
+    expect(() =>
+      softBodyHandler.onEvent!(
+        mkNode() as any,
+        mkConfig(),
+        mkCtx() as any,
+        { type: 'soft_body_poke', position: { x: 0, y: 0, z: 0 } } as any
+      )
+    ).not.toThrow();
   });
 });

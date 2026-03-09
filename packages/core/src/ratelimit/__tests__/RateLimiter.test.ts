@@ -11,9 +11,15 @@ function makeLimiter() {
 
 describe('TokenBucketRateLimiter', () => {
   it('constructor rejects invalid configs', () => {
-    expect(() => new TokenBucketRateLimiter({ tokensPerSecond: 0, tokensPerMinute: 10, burstSize: 5 })).toThrow();
-    expect(() => new TokenBucketRateLimiter({ tokensPerSecond: 10, tokensPerMinute: 0, burstSize: 5 })).toThrow();
-    expect(() => new TokenBucketRateLimiter({ tokensPerSecond: 10, tokensPerMinute: 10, burstSize: 0 })).toThrow();
+    expect(
+      () => new TokenBucketRateLimiter({ tokensPerSecond: 0, tokensPerMinute: 10, burstSize: 5 })
+    ).toThrow();
+    expect(
+      () => new TokenBucketRateLimiter({ tokensPerSecond: 10, tokensPerMinute: 0, burstSize: 5 })
+    ).toThrow();
+    expect(
+      () => new TokenBucketRateLimiter({ tokensPerSecond: 10, tokensPerMinute: 10, burstSize: 0 })
+    ).toThrow();
   });
 
   it('getConfig returns config copy', () => {

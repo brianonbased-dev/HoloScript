@@ -29,7 +29,9 @@ export class EntityInspector {
     this.entities.set(entity.id, entity);
   }
 
-  removeEntity(id: string): boolean { return this.entities.delete(id); }
+  removeEntity(id: string): boolean {
+    return this.entities.delete(id);
+  }
 
   select(id: string): boolean {
     if (!this.entities.has(id)) return false;
@@ -38,7 +40,7 @@ export class EntityInspector {
   }
 
   getSelected(): InspectedEntity | null {
-    return this.selectedId ? this.entities.get(this.selectedId) ?? null : null;
+    return this.selectedId ? (this.entities.get(this.selectedId) ?? null) : null;
   }
 
   /**
@@ -65,11 +67,11 @@ export class EntityInspector {
     let result = [...this.entities.values()];
     if (f.nameQuery) {
       const q = f.nameQuery.toLowerCase();
-      result = result.filter(e => e.name.toLowerCase().includes(q));
+      result = result.filter((e) => e.name.toLowerCase().includes(q));
     }
-    if (f.tag) result = result.filter(e => e.tags.includes(f.tag!));
-    if (f.componentType) result = result.filter(e => e.components.has(f.componentType!));
-    if (f.activeOnly) result = result.filter(e => e.active);
+    if (f.tag) result = result.filter((e) => e.tags.includes(f.tag!));
+    if (f.componentType) result = result.filter((e) => e.components.has(f.componentType!));
+    if (f.activeOnly) result = result.filter((e) => e.active);
     return result;
   }
 
@@ -80,6 +82,10 @@ export class EntityInspector {
     this.watchedProperties.set(entityId, properties);
   }
 
-  getWatched(): Map<string, string[]> { return new Map(this.watchedProperties); }
-  getEntityCount(): number { return this.entities.size; }
+  getWatched(): Map<string, string[]> {
+    return new Map(this.watchedProperties);
+  }
+  getEntityCount(): number {
+    return this.entities.size;
+  }
 }

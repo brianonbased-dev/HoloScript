@@ -16,8 +16,8 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useSceneGraphStore } from '@/lib/store';
-import type { SceneNode } from '@/lib/store';
+import { useSceneGraphStore } from '@/lib/stores';
+import type { SceneNode } from '@/lib/stores';
 import { usePhysicsStore } from '@/lib/physicsStore';
 
 // ─── Physics step ─────────────────────────────────────────────────────────────
@@ -65,8 +65,8 @@ export function PhysicsProvider() {
           phys.properties.type === 'static'
             ? RAPIER.RigidBodyType.Fixed
             : phys.properties.type === 'kinematic'
-            ? RAPIER.RigidBodyType.KinematicPositionBased
-            : RAPIER.RigidBodyType.Dynamic;
+              ? RAPIER.RigidBodyType.KinematicPositionBased
+              : RAPIER.RigidBodyType.Dynamic;
 
         const bodyDesc = new RAPIER.RigidBodyDesc(bodyType).setTranslation(px, py, pz);
         const body = world.createRigidBody(bodyDesc);

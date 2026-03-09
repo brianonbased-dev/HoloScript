@@ -7,7 +7,14 @@
  * @module physics
  */
 
-import { IVector3, IQuaternion, IRigidBodyConfig, Constraint, IConeConstraint, IHingeConstraint } from './PhysicsTypes';
+import {
+  IVector3,
+  IQuaternion,
+  IRigidBodyConfig,
+  Constraint,
+  IConeConstraint,
+  IHingeConstraint,
+} from './PhysicsTypes';
 
 // =============================================================================
 // TYPES
@@ -49,50 +56,298 @@ export interface RagdollInstance {
 
 export const HUMANOID_PRESET: BoneDefinition[] = [
   // Torso
-  { id: 'pelvis', length: 0.25, radius: 0.12, mass: 15, localOffset: { x: 0, y: 0, z: 0 }, jointType: 'cone' },
-  { id: 'spine', parentBone: 'pelvis', length: 0.3, radius: 0.1, mass: 12, localOffset: { x: 0, y: 0.25, z: 0 }, jointType: 'cone', jointLimits: { swingSpan1: 0.3, swingSpan2: 0.3, twistSpan: 0.2 } },
-  { id: 'chest', parentBone: 'spine', length: 0.25, radius: 0.12, mass: 10, localOffset: { x: 0, y: 0.3, z: 0 }, jointType: 'cone', jointLimits: { swingSpan1: 0.2, swingSpan2: 0.2, twistSpan: 0.15 } },
-  { id: 'head', parentBone: 'chest', length: 0.2, radius: 0.1, mass: 5, localOffset: { x: 0, y: 0.25, z: 0 }, jointType: 'cone', jointLimits: { swingSpan1: 0.5, swingSpan2: 0.3, twistSpan: 0.4 } },
+  {
+    id: 'pelvis',
+    length: 0.25,
+    radius: 0.12,
+    mass: 15,
+    localOffset: { x: 0, y: 0, z: 0 },
+    jointType: 'cone',
+  },
+  {
+    id: 'spine',
+    parentBone: 'pelvis',
+    length: 0.3,
+    radius: 0.1,
+    mass: 12,
+    localOffset: { x: 0, y: 0.25, z: 0 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 0.3, swingSpan2: 0.3, twistSpan: 0.2 },
+  },
+  {
+    id: 'chest',
+    parentBone: 'spine',
+    length: 0.25,
+    radius: 0.12,
+    mass: 10,
+    localOffset: { x: 0, y: 0.3, z: 0 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 0.2, swingSpan2: 0.2, twistSpan: 0.15 },
+  },
+  {
+    id: 'head',
+    parentBone: 'chest',
+    length: 0.2,
+    radius: 0.1,
+    mass: 5,
+    localOffset: { x: 0, y: 0.25, z: 0 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 0.5, swingSpan2: 0.3, twistSpan: 0.4 },
+  },
 
   // Left arm
-  { id: 'l_upper_arm', parentBone: 'chest', length: 0.28, radius: 0.04, mass: 3, localOffset: { x: -0.18, y: 0.15, z: 0 }, jointType: 'cone', jointLimits: { swingSpan1: 1.5, swingSpan2: 1.0, twistSpan: 0.8 } },
-  { id: 'l_forearm', parentBone: 'l_upper_arm', length: 0.25, radius: 0.035, mass: 2, localOffset: { x: 0, y: -0.28, z: 0 }, jointType: 'hinge', jointLimits: { low: 0, high: 2.5 } },
-  { id: 'l_hand', parentBone: 'l_forearm', length: 0.1, radius: 0.03, mass: 0.5, localOffset: { x: 0, y: -0.25, z: 0 }, jointType: 'cone', jointLimits: { swingSpan1: 0.5, swingSpan2: 0.3, twistSpan: 0.3 } },
+  {
+    id: 'l_upper_arm',
+    parentBone: 'chest',
+    length: 0.28,
+    radius: 0.04,
+    mass: 3,
+    localOffset: { x: -0.18, y: 0.15, z: 0 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 1.5, swingSpan2: 1.0, twistSpan: 0.8 },
+  },
+  {
+    id: 'l_forearm',
+    parentBone: 'l_upper_arm',
+    length: 0.25,
+    radius: 0.035,
+    mass: 2,
+    localOffset: { x: 0, y: -0.28, z: 0 },
+    jointType: 'hinge',
+    jointLimits: { low: 0, high: 2.5 },
+  },
+  {
+    id: 'l_hand',
+    parentBone: 'l_forearm',
+    length: 0.1,
+    radius: 0.03,
+    mass: 0.5,
+    localOffset: { x: 0, y: -0.25, z: 0 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 0.5, swingSpan2: 0.3, twistSpan: 0.3 },
+  },
 
   // Right arm
-  { id: 'r_upper_arm', parentBone: 'chest', length: 0.28, radius: 0.04, mass: 3, localOffset: { x: 0.18, y: 0.15, z: 0 }, jointType: 'cone', jointLimits: { swingSpan1: 1.5, swingSpan2: 1.0, twistSpan: 0.8 } },
-  { id: 'r_forearm', parentBone: 'r_upper_arm', length: 0.25, radius: 0.035, mass: 2, localOffset: { x: 0, y: -0.28, z: 0 }, jointType: 'hinge', jointLimits: { low: 0, high: 2.5 } },
-  { id: 'r_hand', parentBone: 'r_forearm', length: 0.1, radius: 0.03, mass: 0.5, localOffset: { x: 0, y: -0.25, z: 0 }, jointType: 'cone', jointLimits: { swingSpan1: 0.5, swingSpan2: 0.3, twistSpan: 0.3 } },
+  {
+    id: 'r_upper_arm',
+    parentBone: 'chest',
+    length: 0.28,
+    radius: 0.04,
+    mass: 3,
+    localOffset: { x: 0.18, y: 0.15, z: 0 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 1.5, swingSpan2: 1.0, twistSpan: 0.8 },
+  },
+  {
+    id: 'r_forearm',
+    parentBone: 'r_upper_arm',
+    length: 0.25,
+    radius: 0.035,
+    mass: 2,
+    localOffset: { x: 0, y: -0.28, z: 0 },
+    jointType: 'hinge',
+    jointLimits: { low: 0, high: 2.5 },
+  },
+  {
+    id: 'r_hand',
+    parentBone: 'r_forearm',
+    length: 0.1,
+    radius: 0.03,
+    mass: 0.5,
+    localOffset: { x: 0, y: -0.25, z: 0 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 0.5, swingSpan2: 0.3, twistSpan: 0.3 },
+  },
 
   // Left leg
-  { id: 'l_thigh', parentBone: 'pelvis', length: 0.4, radius: 0.06, mass: 8, localOffset: { x: -0.1, y: -0.15, z: 0 }, jointType: 'cone', jointLimits: { swingSpan1: 1.2, swingSpan2: 0.5, twistSpan: 0.3 } },
-  { id: 'l_shin', parentBone: 'l_thigh', length: 0.38, radius: 0.05, mass: 5, localOffset: { x: 0, y: -0.4, z: 0 }, jointType: 'hinge', jointLimits: { low: -2.5, high: 0 } },
-  { id: 'l_foot', parentBone: 'l_shin', length: 0.15, radius: 0.04, mass: 1, localOffset: { x: 0, y: -0.38, z: 0.05 }, jointType: 'hinge', jointLimits: { low: -0.5, high: 0.5 } },
+  {
+    id: 'l_thigh',
+    parentBone: 'pelvis',
+    length: 0.4,
+    radius: 0.06,
+    mass: 8,
+    localOffset: { x: -0.1, y: -0.15, z: 0 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 1.2, swingSpan2: 0.5, twistSpan: 0.3 },
+  },
+  {
+    id: 'l_shin',
+    parentBone: 'l_thigh',
+    length: 0.38,
+    radius: 0.05,
+    mass: 5,
+    localOffset: { x: 0, y: -0.4, z: 0 },
+    jointType: 'hinge',
+    jointLimits: { low: -2.5, high: 0 },
+  },
+  {
+    id: 'l_foot',
+    parentBone: 'l_shin',
+    length: 0.15,
+    radius: 0.04,
+    mass: 1,
+    localOffset: { x: 0, y: -0.38, z: 0.05 },
+    jointType: 'hinge',
+    jointLimits: { low: -0.5, high: 0.5 },
+  },
 
   // Right leg
-  { id: 'r_thigh', parentBone: 'pelvis', length: 0.4, radius: 0.06, mass: 8, localOffset: { x: 0.1, y: -0.15, z: 0 }, jointType: 'cone', jointLimits: { swingSpan1: 1.2, swingSpan2: 0.5, twistSpan: 0.3 } },
-  { id: 'r_shin', parentBone: 'r_thigh', length: 0.38, radius: 0.05, mass: 5, localOffset: { x: 0, y: -0.4, z: 0 }, jointType: 'hinge', jointLimits: { low: -2.5, high: 0 } },
-  { id: 'r_foot', parentBone: 'r_shin', length: 0.15, radius: 0.04, mass: 1, localOffset: { x: 0, y: -0.38, z: 0.05 }, jointType: 'hinge', jointLimits: { low: -0.5, high: 0.5 } },
+  {
+    id: 'r_thigh',
+    parentBone: 'pelvis',
+    length: 0.4,
+    radius: 0.06,
+    mass: 8,
+    localOffset: { x: 0.1, y: -0.15, z: 0 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 1.2, swingSpan2: 0.5, twistSpan: 0.3 },
+  },
+  {
+    id: 'r_shin',
+    parentBone: 'r_thigh',
+    length: 0.38,
+    radius: 0.05,
+    mass: 5,
+    localOffset: { x: 0, y: -0.4, z: 0 },
+    jointType: 'hinge',
+    jointLimits: { low: -2.5, high: 0 },
+  },
+  {
+    id: 'r_foot',
+    parentBone: 'r_shin',
+    length: 0.15,
+    radius: 0.04,
+    mass: 1,
+    localOffset: { x: 0, y: -0.38, z: 0.05 },
+    jointType: 'hinge',
+    jointLimits: { low: -0.5, high: 0.5 },
+  },
 ];
 
 export const QUADRUPED_PRESET: BoneDefinition[] = [
   // Body
-  { id: 'body', length: 0.6, radius: 0.15, mass: 20, localOffset: { x: 0, y: 0, z: 0 }, jointType: 'cone' },
-  { id: 'neck', parentBone: 'body', length: 0.2, radius: 0.06, mass: 3, localOffset: { x: 0, y: 0.1, z: 0.3 }, jointType: 'cone', jointLimits: { swingSpan1: 0.8, swingSpan2: 0.4, twistSpan: 0.3 } },
-  { id: 'head', parentBone: 'neck', length: 0.15, radius: 0.08, mass: 2, localOffset: { x: 0, y: 0.05, z: 0.2 }, jointType: 'cone', jointLimits: { swingSpan1: 0.6, swingSpan2: 0.4, twistSpan: 0.3 } },
-  { id: 'tail', parentBone: 'body', length: 0.3, radius: 0.02, mass: 0.5, localOffset: { x: 0, y: 0.05, z: -0.35 }, jointType: 'cone', jointLimits: { swingSpan1: 1.0, swingSpan2: 0.5, twistSpan: 0.5 } },
+  {
+    id: 'body',
+    length: 0.6,
+    radius: 0.15,
+    mass: 20,
+    localOffset: { x: 0, y: 0, z: 0 },
+    jointType: 'cone',
+  },
+  {
+    id: 'neck',
+    parentBone: 'body',
+    length: 0.2,
+    radius: 0.06,
+    mass: 3,
+    localOffset: { x: 0, y: 0.1, z: 0.3 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 0.8, swingSpan2: 0.4, twistSpan: 0.3 },
+  },
+  {
+    id: 'head',
+    parentBone: 'neck',
+    length: 0.15,
+    radius: 0.08,
+    mass: 2,
+    localOffset: { x: 0, y: 0.05, z: 0.2 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 0.6, swingSpan2: 0.4, twistSpan: 0.3 },
+  },
+  {
+    id: 'tail',
+    parentBone: 'body',
+    length: 0.3,
+    radius: 0.02,
+    mass: 0.5,
+    localOffset: { x: 0, y: 0.05, z: -0.35 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 1.0, swingSpan2: 0.5, twistSpan: 0.5 },
+  },
 
   // Front legs
-  { id: 'fl_upper', parentBone: 'body', length: 0.25, radius: 0.03, mass: 2, localOffset: { x: -0.12, y: -0.15, z: 0.2 }, jointType: 'cone', jointLimits: { swingSpan1: 0.8, swingSpan2: 0.4, twistSpan: 0.2 } },
-  { id: 'fl_lower', parentBone: 'fl_upper', length: 0.2, radius: 0.025, mass: 1.5, localOffset: { x: 0, y: -0.25, z: 0 }, jointType: 'hinge', jointLimits: { low: -2.0, high: 0 } },
-  { id: 'fr_upper', parentBone: 'body', length: 0.25, radius: 0.03, mass: 2, localOffset: { x: 0.12, y: -0.15, z: 0.2 }, jointType: 'cone', jointLimits: { swingSpan1: 0.8, swingSpan2: 0.4, twistSpan: 0.2 } },
-  { id: 'fr_lower', parentBone: 'fr_upper', length: 0.2, radius: 0.025, mass: 1.5, localOffset: { x: 0, y: -0.25, z: 0 }, jointType: 'hinge', jointLimits: { low: -2.0, high: 0 } },
+  {
+    id: 'fl_upper',
+    parentBone: 'body',
+    length: 0.25,
+    radius: 0.03,
+    mass: 2,
+    localOffset: { x: -0.12, y: -0.15, z: 0.2 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 0.8, swingSpan2: 0.4, twistSpan: 0.2 },
+  },
+  {
+    id: 'fl_lower',
+    parentBone: 'fl_upper',
+    length: 0.2,
+    radius: 0.025,
+    mass: 1.5,
+    localOffset: { x: 0, y: -0.25, z: 0 },
+    jointType: 'hinge',
+    jointLimits: { low: -2.0, high: 0 },
+  },
+  {
+    id: 'fr_upper',
+    parentBone: 'body',
+    length: 0.25,
+    radius: 0.03,
+    mass: 2,
+    localOffset: { x: 0.12, y: -0.15, z: 0.2 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 0.8, swingSpan2: 0.4, twistSpan: 0.2 },
+  },
+  {
+    id: 'fr_lower',
+    parentBone: 'fr_upper',
+    length: 0.2,
+    radius: 0.025,
+    mass: 1.5,
+    localOffset: { x: 0, y: -0.25, z: 0 },
+    jointType: 'hinge',
+    jointLimits: { low: -2.0, high: 0 },
+  },
 
   // Hind legs
-  { id: 'hl_upper', parentBone: 'body', length: 0.28, radius: 0.04, mass: 3, localOffset: { x: -0.12, y: -0.15, z: -0.2 }, jointType: 'cone', jointLimits: { swingSpan1: 1.0, swingSpan2: 0.5, twistSpan: 0.2 } },
-  { id: 'hl_lower', parentBone: 'hl_upper', length: 0.22, radius: 0.03, mass: 2, localOffset: { x: 0, y: -0.28, z: 0 }, jointType: 'hinge', jointLimits: { low: 0, high: 2.0 } },
-  { id: 'hr_upper', parentBone: 'body', length: 0.28, radius: 0.04, mass: 3, localOffset: { x: 0.12, y: -0.15, z: -0.2 }, jointType: 'cone', jointLimits: { swingSpan1: 1.0, swingSpan2: 0.5, twistSpan: 0.2 } },
-  { id: 'hr_lower', parentBone: 'hr_upper', length: 0.22, radius: 0.03, mass: 2, localOffset: { x: 0, y: -0.28, z: 0 }, jointType: 'hinge', jointLimits: { low: 0, high: 2.0 } },
+  {
+    id: 'hl_upper',
+    parentBone: 'body',
+    length: 0.28,
+    radius: 0.04,
+    mass: 3,
+    localOffset: { x: -0.12, y: -0.15, z: -0.2 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 1.0, swingSpan2: 0.5, twistSpan: 0.2 },
+  },
+  {
+    id: 'hl_lower',
+    parentBone: 'hl_upper',
+    length: 0.22,
+    radius: 0.03,
+    mass: 2,
+    localOffset: { x: 0, y: -0.28, z: 0 },
+    jointType: 'hinge',
+    jointLimits: { low: 0, high: 2.0 },
+  },
+  {
+    id: 'hr_upper',
+    parentBone: 'body',
+    length: 0.28,
+    radius: 0.04,
+    mass: 3,
+    localOffset: { x: 0.12, y: -0.15, z: -0.2 },
+    jointType: 'cone',
+    jointLimits: { swingSpan1: 1.0, swingSpan2: 0.5, twistSpan: 0.2 },
+  },
+  {
+    id: 'hr_lower',
+    parentBone: 'hr_upper',
+    length: 0.22,
+    radius: 0.03,
+    mass: 2,
+    localOffset: { x: 0, y: -0.28, z: 0 },
+    jointType: 'hinge',
+    jointLimits: { low: 0, high: 2.0 },
+  },
 ];
 
 // =============================================================================
@@ -105,10 +360,7 @@ export class RagdollSystem {
   /**
    * Create a ragdoll from a definition at a given world position.
    */
-  createRagdoll(
-    definition: RagdollDefinition,
-    rootPosition: IVector3
-  ): RagdollInstance {
+  createRagdoll(definition: RagdollDefinition, rootPosition: IVector3): RagdollInstance {
     const bodies: IRigidBodyConfig[] = [];
     const constraints: Constraint[] = [];
     const bonePositions = new Map<string, IVector3>();

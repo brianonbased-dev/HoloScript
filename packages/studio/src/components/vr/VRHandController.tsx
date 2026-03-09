@@ -14,11 +14,17 @@ import { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useXR } from '@react-three/xr';
 import * as THREE from 'three';
-import { useSceneGraphStore, useEditorStore } from '@/lib/store';
+import { useSceneGraphStore, useEditorStore } from '@/lib/stores';
 
 // ─── Visual ray mesh (1m cylinder) ───────────────────────────────────────────
 
-function ControllerRay({ groupRef, color }: { groupRef: React.RefObject<THREE.Group | null>; color: string }) {
+function ControllerRay({
+  groupRef,
+  color,
+}: {
+  groupRef: React.RefObject<THREE.Group | null>;
+  color: string;
+}) {
   return (
     <group ref={groupRef}>
       <mesh position={[0, 0, -0.5]} rotation={[Math.PI / 2, 0, 0]}>
@@ -147,7 +153,9 @@ function HandController({ handedness }: HandControllerProps) {
     if (isDragging.current && selectedId) {
       const origin = new THREE.Vector3();
       groupRef.current.getWorldPosition(origin);
-      const direction = new THREE.Vector3(0, 0, -1).transformDirection(groupRef.current.matrixWorld).normalize();
+      const direction = new THREE.Vector3(0, 0, -1)
+        .transformDirection(groupRef.current.matrixWorld)
+        .normalize();
       const target = origin.clone().addScaledVector(direction, 1.0).add(dragOffset.current);
       updateNode(selectedId, { position: [target.x, target.y, target.z] });
     }

@@ -8,7 +8,13 @@
  * @version 1.0.0
  */
 
-import { EffectRow, VREffect, EffectViolation, EffectCertificate, EffectTrustLevel } from '../../types/effects';
+import {
+  EffectRow,
+  VREffect,
+  EffectViolation,
+  EffectCertificate,
+  EffectTrustLevel,
+} from '../../types/effects';
 import type { LinearViolation, LinearCheckResult } from '../../types/linear';
 import type { ModuleEffectCheckResult } from './EffectChecker';
 import type { BudgetAnalysisResult, BudgetDiagnostic } from './ResourceBudgetAnalyzer';
@@ -47,7 +53,12 @@ export interface SafetyReport {
   budget: {
     passed: boolean;
     diagnostics: BudgetDiagnostic[];
-    platformStatus: { platform: string; exceeded: boolean; worstCategory: string; worstPercent: number }[];
+    platformStatus: {
+      platform: string;
+      exceeded: boolean;
+      worstCategory: string;
+      worstPercent: number;
+    }[];
   };
 
   /** Layer 4: Capability analysis */
@@ -89,24 +100,27 @@ export function buildSafetyReport(
   budgetResult: BudgetAnalysisResult,
   capabilityResult: CapabilityCheckResult,
   dangerScore: number,
-  linearResult?: LinearCheckResult,
+  linearResult?: LinearCheckResult
 ): SafetyReport {
   const effectViolations = effectResult.violations;
   const budgetDiagnostics = budgetResult.diagnostics;
   const capMissing = capabilityResult.missing;
   const linearViolations = linearResult?.violations || [];
 
-  const totalErrors = effectViolations.filter(v => v.severity === 'error').length
-    + budgetDiagnostics.filter(d => d.severity === 'error').length
-    + capMissing.length
-    + linearViolations.filter(v => v.severity === 'error').length;
+  const totalErrors =
+    effectViolations.filter((v) => v.severity === 'error').length +
+    budgetDiagnostics.filter((d) => d.severity === 'error').length +
+    capMissing.length +
+    linearViolations.filter((v) => v.severity === 'error').length;
 
-  const totalWarnings = effectViolations.filter(v => v.severity === 'warning').length
-    + budgetDiagnostics.filter(d => d.severity === 'warning').length
-    + linearViolations.filter(v => v.severity === 'warning').length;
+  const totalWarnings =
+    effectViolations.filter((v) => v.severity === 'warning').length +
+    budgetDiagnostics.filter((d) => d.severity === 'warning').length +
+    linearViolations.filter((v) => v.severity === 'warning').length;
 
-  const totalInfos = effectViolations.filter(v => v.severity === 'info').length
-    + budgetDiagnostics.filter(d => d.severity === 'info').length;
+  const totalInfos =
+    effectViolations.filter((v) => v.severity === 'info').length +
+    budgetDiagnostics.filter((d) => d.severity === 'info').length;
 
   let verdict: SafetyVerdict = 'safe';
   if (totalErrors > 0) verdict = 'unsafe';
@@ -117,12 +131,17 @@ export function buildSafetyReport(
   if (capMissing.length === 0) {
     // Find the lowest trust level that covers all requirements
     const trustLevels = ['untrusted', 'basic', 'trusted', 'admin', 'system'];
-    minimumTrustLevel = capabilityResult.granted.length === 0 ? 'untrusted'
-      : capabilityResult.required.length === 0 ? 'untrusted' : 'basic';
+    minimumTrustLevel =
+      capabilityResult.granted.length === 0
+        ? 'untrusted'
+        : capabilityResult.required.length === 0
+          ? 'untrusted'
+          : 'basic';
   }
 
   const platformStatus = [...budgetResult.platformStatus.entries()].map(([platform, status]) => ({
-    platform, ...status,
+    platform,
+    ...status,
   }));
 
   return {
@@ -168,7 +187,7 @@ export function buildSafetyReport(
  */
 export function generateCertificate(report: SafetyReport): EffectCertificate | null {
   if (report.verdict === 'unsafe') return null;
-  
+
   const trust: EffectTrustLevel = report.verdict === 'safe' ? 'verified' : 'declared';
 
   return {
@@ -193,37 +212,47 @@ export function formatReport(report: SafetyReport): string {
   lines.push('');
 
   // Effects
-  lines.push(`Effects: ${report.effects.passed ? '✓' : '✗'} (${report.effects.totalEffects} effects across [${report.effects.categories.join(', ')}])`);
-  for (const v of report.effects.violations.filter(v => v.severity === 'error')) {
+  lines.push(
+    `Effects: ${report.effects.passed ? '✓' : '✗'} (${report.effects.totalEffects} effects across [${report.effects.categories.join(', ')}])`
+  );
+  for (const v of report.effects.violations.filter((v) => v.severity === 'error')) {
     lines.push(`  ✗ ${v.message}`);
   }
 
   // Budget
   lines.push(`Budget: ${report.budget.passed ? '✓' : '✗'}`);
-  for (const d of report.budget.diagnostics.filter(d => d.severity === 'error')) {
+  for (const d of report.budget.diagnostics.filter((d) => d.severity === 'error')) {
     lines.push(`  ✗ ${d.message}`);
   }
   for (const ps of report.budget.platformStatus) {
-    lines.push(`  ${ps.platform}: ${ps.exceeded ? '✗ EXCEEDED' : '✓ OK'} (worst: ${ps.worstCategory} at ${ps.worstPercent.toFixed(0)}%)`);
+    lines.push(
+      `  ${ps.platform}: ${ps.exceeded ? '✗ EXCEEDED' : '✓ OK'} (worst: ${ps.worstCategory} at ${ps.worstPercent.toFixed(0)}%)`
+    );
   }
 
   // Capabilities
-  lines.push(`Capabilities: ${report.capabilities.passed ? '✓' : '✗'} (min trust: ${report.capabilities.minimumTrustLevel})`);
+  lines.push(
+    `Capabilities: ${report.capabilities.passed ? '✓' : '✗'} (min trust: ${report.capabilities.minimumTrustLevel})`
+  );
   for (const m of report.capabilities.missing) {
     lines.push(`  ✗ Missing '${m.scope}': ${m.reason}`);
   }
 
   // Linear types
-  lines.push(`Linear Types: ${report.linear.passed ? '✓' : '✗'} (${report.linear.trackedResources} resources tracked)`);
-  for (const v of report.linear.violations.filter(v => v.severity === 'error')) {
+  lines.push(
+    `Linear Types: ${report.linear.passed ? '✓' : '✗'} (${report.linear.trackedResources} resources tracked)`
+  );
+  for (const v of report.linear.violations.filter((v) => v.severity === 'error')) {
     lines.push(`  ✗ ${v.message}`);
   }
-  for (const v of report.linear.violations.filter(v => v.severity === 'warning')) {
+  for (const v of report.linear.violations.filter((v) => v.severity === 'warning')) {
     lines.push(`  ⚠ ${v.message}`);
   }
 
   lines.push('');
-  lines.push(`Summary: ${report.summary.errors} errors, ${report.summary.warnings} warnings, ${report.summary.infos} infos`);
+  lines.push(
+    `Summary: ${report.summary.errors} errors, ${report.summary.warnings} warnings, ${report.summary.infos} infos`
+  );
 
   return lines.join('\n');
 }

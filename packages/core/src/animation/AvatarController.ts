@@ -11,9 +11,18 @@ import { IKSolver } from './IKSolver';
 import { BoneSystem } from './BoneSystem';
 
 export interface AvatarInput {
-  head: { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number; w: number } };
-  leftHand: { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number; w: number } };
-  rightHand: { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number; w: number } };
+  head: {
+    position: { x: number; y: number; z: number };
+    rotation: { x: number; y: number; z: number; w: number };
+  };
+  leftHand: {
+    position: { x: number; y: number; z: number };
+    rotation: { x: number; y: number; z: number; w: number };
+  };
+  rightHand: {
+    position: { x: number; y: number; z: number };
+    rotation: { x: number; y: number; z: number; w: number };
+  };
   height: number;
 }
 
@@ -21,7 +30,7 @@ export class AvatarController {
   private solver: IKSolver;
   private bones: BoneSystem;
   private calibrated = false;
-  
+
   // Configuration for VRIK
   private config = {
     headOffset: { x: 0, y: -0.1, z: 0 }, // Neck pivot relative to HMD
@@ -50,14 +59,24 @@ export class AvatarController {
     if (!this.calibrated) return;
 
     // 1. Head / Spine
-    // In a full VRIK system, we'd solve the spine. 
+    // In a full VRIK system, we'd solve the spine.
     // Here we map the head target directly for the neck/head chain ideally.
     // For now, let's assume we update the root position and rotation based on head.
-    
+
     // 2. Arms
-    this.solver.setTarget('leftArm', input.leftHand.position.x, input.leftHand.position.y, input.leftHand.position.z);
-    this.solver.setTarget('rightArm', input.rightHand.position.x, input.rightHand.position.y, input.rightHand.position.z);
-    
+    this.solver.setTarget(
+      'leftArm',
+      input.leftHand.position.x,
+      input.leftHand.position.y,
+      input.leftHand.position.z
+    );
+    this.solver.setTarget(
+      'rightArm',
+      input.rightHand.position.x,
+      input.rightHand.position.y,
+      input.rightHand.position.z
+    );
+
     // Set orientations if solver supported it (IKSolver currently only does position targets for chains)
     // We would manually set rotation of end effectors (hands) in BoneSystem
     const leftHandBone = this.bones.getBone('LeftHand');

@@ -35,7 +35,9 @@ export interface SaveData {
 export class SaveSerializer {
   private schema: SaveSchema;
 
-  constructor(schema: SaveSchema) { this.schema = schema; }
+  constructor(schema: SaveSchema) {
+    this.schema = schema;
+  }
 
   // ---------------------------------------------------------------------------
   // Encoding
@@ -98,14 +100,22 @@ export class SaveSerializer {
 
   private validateField(value: unknown, type: string): unknown {
     switch (type) {
-      case 'string': return String(value);
-      case 'number': return Number(value);
-      case 'boolean': return Boolean(value);
-      case 'object': return typeof value === 'object' ? value : {};
-      case 'array': return Array.isArray(value) ? value : [];
-      default: return value;
+      case 'string':
+        return String(value);
+      case 'number':
+        return Number(value);
+      case 'boolean':
+        return Boolean(value);
+      case 'object':
+        return typeof value === 'object' ? value : {};
+      case 'array':
+        return Array.isArray(value) ? value : [];
+      default:
+        return value;
     }
   }
 
-  getVersion(): number { return this.schema.version; }
+  getVersion(): number {
+    return this.schema.version;
+  }
 }

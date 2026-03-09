@@ -38,11 +38,11 @@ export interface ConnectionInfo {
 
 export interface TransportConfig {
   maxConnections: number;
-  simulatedLatency: number;     // ms
-  simulatedJitter: number;      // ms
-  simulatedPacketLoss: number;  // 0-1
+  simulatedLatency: number; // ms
+  simulatedJitter: number; // ms
+  simulatedPacketLoss: number; // 0-1
   maxMessageSize: number;
-  heartbeatInterval: number;    // ms
+  heartbeatInterval: number; // ms
 }
 
 // =============================================================================
@@ -119,7 +119,9 @@ export class NetworkTransport {
     return [...this.connections.keys()];
   }
 
-  getConnectionCount(): number { return this.connections.size; }
+  getConnectionCount(): number {
+    return this.connections.size;
+  }
 
   // ---------------------------------------------------------------------------
   // Messaging
@@ -205,7 +207,7 @@ export class NetworkTransport {
     this.currentTime += dt * 1000; // Convert to ms
 
     const toDeliver: Array<{ message: NetworkMessage; peerId: string }> = [];
-    this.delayedMessages = this.delayedMessages.filter(dm => {
+    this.delayedMessages = this.delayedMessages.filter((dm) => {
       if (this.currentTime >= dm.deliverAt) {
         toDeliver.push({ message: dm.message, peerId: dm.message.senderId });
         return false;
@@ -222,12 +224,28 @@ export class NetworkTransport {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getMessageQueue(): NetworkMessage[] { return [...this.messageQueue]; }
-  clearMessageQueue(): void { this.messageQueue = []; }
-  getPendingMessageCount(): number { return this.delayedMessages.length; }
-  getTotalBytesSent(): number { return this.totalBytesSent; }
-  getTotalBytesReceived(): number { return this.totalBytesReceived; }
-  getLocalId(): string { return this.localId; }
-  getMode(): TransportMode { return this.mode; }
-  setMode(mode: TransportMode): void { this.mode = mode; }
+  getMessageQueue(): NetworkMessage[] {
+    return [...this.messageQueue];
+  }
+  clearMessageQueue(): void {
+    this.messageQueue = [];
+  }
+  getPendingMessageCount(): number {
+    return this.delayedMessages.length;
+  }
+  getTotalBytesSent(): number {
+    return this.totalBytesSent;
+  }
+  getTotalBytesReceived(): number {
+    return this.totalBytesReceived;
+  }
+  getLocalId(): string {
+    return this.localId;
+  }
+  getMode(): TransportMode {
+    return this.mode;
+  }
+  setMode(mode: TransportMode): void {
+    this.mode = mode;
+  }
 }

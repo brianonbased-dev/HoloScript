@@ -133,7 +133,7 @@ export const aiUpscalingHandler: TraitHandler<AiUpscalingConfig> = {
       const texture = event.texture as string;
       state.is_processing = false;
       state.output_texture = texture;
-      state.processing_time = event.processingTime as number ?? 0;
+      state.processing_time = (event.processingTime as number) ?? 0;
 
       // Cache by model + scale key
       const cacheKey = `${config.upscale_model}_${config.scale_factor}x`;

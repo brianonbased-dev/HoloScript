@@ -20,10 +20,7 @@ export interface UseWebGPUResult {
   isLoading: boolean;
 }
 
-export function useWebGPU(
-  width: number,
-  height: number,
-): UseWebGPUResult {
+export function useWebGPU(width: number, height: number): UseWebGPUResult {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [gpuContext, setGpuContext] = useState<WebGPUContext | null>(null);
   const [isSupported, setIsSupported] = useState(true);

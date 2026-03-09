@@ -6,22 +6,49 @@
 
 import { describe, it, expect } from 'vitest';
 import { BaseDeployer } from '../deployers/BaseDeployer';
-import type { DeployConfig, DeployResult, DeploymentInfo, BuildOutput } from '../deployers/BaseDeployer';
+import type {
+  DeployConfig,
+  DeployResult,
+  DeploymentInfo,
+  BuildOutput,
+} from '../deployers/BaseDeployer';
 
 // Concrete subclass for testing abstract methods
 class TestDeployer extends BaseDeployer {
-  constructor() { super('test'); }
+  constructor() {
+    super('test');
+  }
   async deploy(_c: DeployConfig, _b: BuildOutput): Promise<DeployResult> {
-    return { success: true, url: '', deploymentId: '', duration: 0, regions: [], timestamp: new Date() };
+    return {
+      success: true,
+      url: '',
+      deploymentId: '',
+      duration: 0,
+      regions: [],
+      timestamp: new Date(),
+    };
   }
   async rollback(_id: string): Promise<DeployResult> {
-    return { success: true, url: '', deploymentId: '', duration: 0, regions: [], timestamp: new Date() };
+    return {
+      success: true,
+      url: '',
+      deploymentId: '',
+      duration: 0,
+      regions: [],
+      timestamp: new Date(),
+    };
   }
-  async getDeployments(): Promise<DeploymentInfo[]> { return []; }
-  async getPreviewUrl(_branch: string): Promise<string> { return ''; }
+  async getDeployments(): Promise<DeploymentInfo[]> {
+    return [];
+  }
+  async getPreviewUrl(_branch: string): Promise<string> {
+    return '';
+  }
 
   // Expose protected method for testing
-  public testGenerateDeploymentId() { return this.generateDeploymentId(); }
+  public testGenerateDeploymentId() {
+    return this.generateDeploymentId();
+  }
 }
 
 const validConfig: DeployConfig = {
@@ -40,23 +67,33 @@ describe('BaseDeployer.validateConfig — Production', () => {
   });
 
   it('rejects empty project name', () => {
-    expect(() => deployer.validateConfig({ ...validConfig, projectName: '' })).toThrow('Project name is required');
+    expect(() => deployer.validateConfig({ ...validConfig, projectName: '' })).toThrow(
+      'Project name is required'
+    );
   });
 
   it('rejects invalid project name characters', () => {
-    expect(() => deployer.validateConfig({ ...validConfig, projectName: 'bad name!' })).toThrow('alphanumeric');
+    expect(() => deployer.validateConfig({ ...validConfig, projectName: 'bad name!' })).toThrow(
+      'alphanumeric'
+    );
   });
 
   it('rejects invalid target', () => {
-    expect(() => deployer.validateConfig({ ...validConfig, target: 'aws' as any })).toThrow('Invalid target');
+    expect(() => deployer.validateConfig({ ...validConfig, target: 'aws' as any })).toThrow(
+      'Invalid target'
+    );
   });
 
   it('rejects invalid environment', () => {
-    expect(() => deployer.validateConfig({ ...validConfig, environment: 'dev' as any })).toThrow('Invalid environment');
+    expect(() => deployer.validateConfig({ ...validConfig, environment: 'dev' as any })).toThrow(
+      'Invalid environment'
+    );
   });
 
   it('rejects empty regions', () => {
-    expect(() => deployer.validateConfig({ ...validConfig, regions: [] })).toThrow('At least one region');
+    expect(() => deployer.validateConfig({ ...validConfig, regions: [] })).toThrow(
+      'At least one region'
+    );
   });
 
   it('rejects missing buildSettings', () => {
@@ -65,7 +102,10 @@ describe('BaseDeployer.validateConfig — Production', () => {
   });
 
   it('rejects non-boolean minify', () => {
-    const bad = { ...validConfig, buildSettings: { ...validConfig.buildSettings, minify: 'yes' } } as any;
+    const bad = {
+      ...validConfig,
+      buildSettings: { ...validConfig.buildSettings, minify: 'yes' },
+    } as any;
     expect(() => deployer.validateConfig(bad)).toThrow('minify must be a boolean');
   });
 });

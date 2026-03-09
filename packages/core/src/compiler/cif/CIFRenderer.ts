@@ -91,16 +91,14 @@ const PRIORITY_ORDER: Record<CIFPriority, number> = {
 };
 
 function sortByPriority(sections: CIFSection[]): CIFSection[] {
-  return [...sections].sort(
-    (a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority],
-  );
+  return [...sections].sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
 }
 
 /**
  * Filter sections by kind.
  */
 function sectionsOfKind(sections: CIFSection[], kind: CIFSectionKind): CIFSection[] {
-  return sections.filter(s => s.kind === kind);
+  return sections.filter((s) => s.kind === kind);
 }
 
 /**
@@ -121,25 +119,41 @@ function culturalPreamble(profile: CulturalProfileMetadata): string {
 
   // Cooperation framing
   if (profile.cooperation_index >= 0.8) {
-    lines.push('You are a highly cooperative agent. Always seek consensus, share information freely, and prioritize team goals over individual achievement.');
+    lines.push(
+      'You are a highly cooperative agent. Always seek consensus, share information freely, and prioritize team goals over individual achievement.'
+    );
   } else if (profile.cooperation_index >= 0.5) {
-    lines.push('You balance cooperation with independent judgment. Collaborate when beneficial, but maintain your own perspective and priorities.');
+    lines.push(
+      'You balance cooperation with independent judgment. Collaborate when beneficial, but maintain your own perspective and priorities.'
+    );
   } else if (profile.cooperation_index >= 0.2) {
-    lines.push('You operate independently and prioritize your own objectives. Cooperate selectively when it serves your goals.');
+    lines.push(
+      'You operate independently and prioritize your own objectives. Cooperate selectively when it serves your goals.'
+    );
   } else {
-    lines.push('You are a competitive agent. Pursue your objectives assertively and independently.');
+    lines.push(
+      'You are a competitive agent. Pursue your objectives assertively and independently.'
+    );
   }
 
   // Cultural family framing
   const familyDescriptions: Record<string, string> = {
-    cooperative: 'You follow cooperative protocols: mutual aid, shared goals, and consensus-seeking.',
-    competitive: 'You follow competitive protocols: individual achievement, performance ranking, and resource optimization.',
-    hierarchical: 'You follow hierarchical protocols: respect chain of command, delegate tasks, and report upward.',
-    egalitarian: 'You follow egalitarian protocols: equal voice for all, collective decision-making, and flat authority.',
-    isolationist: 'You follow isolationist protocols: self-sufficiency, minimal external interaction, and independent operation.',
-    mercantile: 'You follow mercantile protocols: value-based exchange, explicit contracts, and fair trade.',
-    exploratory: 'You follow exploratory protocols: discovery-driven, knowledge-seeking, and adaptive problem-solving.',
-    ritualistic: 'You follow ritualistic protocols: tradition-preserving, ceremony-driven, and pattern-following.',
+    cooperative:
+      'You follow cooperative protocols: mutual aid, shared goals, and consensus-seeking.',
+    competitive:
+      'You follow competitive protocols: individual achievement, performance ranking, and resource optimization.',
+    hierarchical:
+      'You follow hierarchical protocols: respect chain of command, delegate tasks, and report upward.',
+    egalitarian:
+      'You follow egalitarian protocols: equal voice for all, collective decision-making, and flat authority.',
+    isolationist:
+      'You follow isolationist protocols: self-sufficiency, minimal external interaction, and independent operation.',
+    mercantile:
+      'You follow mercantile protocols: value-based exchange, explicit contracts, and fair trade.',
+    exploratory:
+      'You follow exploratory protocols: discovery-driven, knowledge-seeking, and adaptive problem-solving.',
+    ritualistic:
+      'You follow ritualistic protocols: tradition-preserving, ceremony-driven, and pattern-following.',
   };
   if (familyDescriptions[profile.cultural_family]) {
     lines.push(familyDescriptions[profile.cultural_family]);
@@ -148,11 +162,16 @@ function culturalPreamble(profile: CulturalProfileMetadata): string {
   // Prompt dialect framing
   const dialectHints: Record<string, string> = {
     directive: 'Communicate using clear, imperative directives. Be concise and action-oriented.',
-    socratic: 'Communicate using questions and guided reasoning. Encourage exploration through inquiry.',
-    narrative: 'Communicate using narrative framing. Contextualize tasks within a story or scenario.',
-    structured: 'Communicate using structured data formats. Prefer schemas, lists, and explicit key-value pairs.',
-    consensus: 'Communicate using proposal-based dialogue. Suggest actions and seek agreement before proceeding.',
-    reactive: 'Communicate using event-response patterns. Define triggers and corresponding actions.',
+    socratic:
+      'Communicate using questions and guided reasoning. Encourage exploration through inquiry.',
+    narrative:
+      'Communicate using narrative framing. Contextualize tasks within a story or scenario.',
+    structured:
+      'Communicate using structured data formats. Prefer schemas, lists, and explicit key-value pairs.',
+    consensus:
+      'Communicate using proposal-based dialogue. Suggest actions and seek agreement before proceeding.',
+    reactive:
+      'Communicate using event-response patterns. Define triggers and corresponding actions.',
   };
   if (dialectHints[profile.prompt_dialect]) {
     lines.push(dialectHints[profile.prompt_dialect]);

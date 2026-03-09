@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { llmAgentHandler } from '../LLMAgentTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('LLMAgentTrait', () => {
   let node: Record<string, unknown>;
@@ -47,7 +55,8 @@ describe('LLMAgentTrait', () => {
 
   it('llm_prompt adds user message and emits request', () => {
     sendEvent(llmAgentHandler, node, cfg, ctx, {
-      type: 'llm_prompt', message: 'Hello',
+      type: 'llm_prompt',
+      message: 'Hello',
     });
     const state = (node as any).__llmAgentState;
     expect(state.conversationHistory).toHaveLength(2);
@@ -57,7 +66,8 @@ describe('LLMAgentTrait', () => {
 
   it('llm_prompt triggers escalation on keyword', () => {
     sendEvent(llmAgentHandler, node, cfg, ctx, {
-      type: 'llm_prompt', message: 'I need help with this',
+      type: 'llm_prompt',
+      message: 'I need help with this',
     });
     expect((node as any).__llmAgentState.isEscalated).toBe(true);
     expect(getEventCount(ctx, 'llm_escalation')).toBe(1);
@@ -65,10 +75,12 @@ describe('LLMAgentTrait', () => {
 
   it('llm_response stores response and emits llm_message', () => {
     sendEvent(llmAgentHandler, node, cfg, ctx, {
-      type: 'llm_prompt', message: 'Hi',
+      type: 'llm_prompt',
+      message: 'Hi',
     });
     sendEvent(llmAgentHandler, node, cfg, ctx, {
-      type: 'llm_response', response: { content: 'Hello there!' },
+      type: 'llm_response',
+      response: { content: 'Hello there!' },
     });
     const state = (node as any).__llmAgentState;
     expect(state.lastResponse).toBe('Hello there!');
@@ -78,7 +90,8 @@ describe('LLMAgentTrait', () => {
 
   it('llm_response with tool_calls queues them', () => {
     sendEvent(llmAgentHandler, node, cfg, ctx, {
-      type: 'llm_prompt', message: 'Search for this',
+      type: 'llm_prompt',
+      message: 'Search for this',
     });
     sendEvent(llmAgentHandler, node, cfg, ctx, {
       type: 'llm_response',

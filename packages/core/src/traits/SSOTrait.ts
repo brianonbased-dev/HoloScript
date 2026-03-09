@@ -510,7 +510,11 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
         }
         if (oldest && oldestId) {
           oldest.status = 'revoked';
-          context.emit('sso_session_revoked', { node, sessionId: oldestId, reason: 'max_sessions' });
+          context.emit('sso_session_revoked', {
+            node,
+            sessionId: oldestId,
+            reason: 'max_sessions',
+          });
         }
       }
 

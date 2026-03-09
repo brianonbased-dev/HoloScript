@@ -147,7 +147,10 @@ export class SceneInspector {
 
     // Add camera frustum helper
     if (this.config.showCameraFrustum && this.camera) {
-      if (this.camera instanceof THREE.PerspectiveCamera || this.camera instanceof THREE.OrthographicCamera) {
+      if (
+        this.camera instanceof THREE.PerspectiveCamera ||
+        this.camera instanceof THREE.OrthographicCamera
+      ) {
         this.cameraHelper = new THREE.CameraHelper(this.camera);
         this.scene.add(this.cameraHelper);
       }
@@ -217,7 +220,8 @@ export class SceneInspector {
     }
 
     // Calculate average frame time
-    const avgFrameTime = this.frameTimeSamples.reduce((a, b) => a + b, 0) / this.frameTimeSamples.length;
+    const avgFrameTime =
+      this.frameTimeSamples.reduce((a, b) => a + b, 0) / this.frameTimeSamples.length;
     this.frameTime = avgFrameTime;
     this.fps = 1000 / avgFrameTime;
 

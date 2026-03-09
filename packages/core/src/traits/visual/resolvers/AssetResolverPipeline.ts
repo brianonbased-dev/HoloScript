@@ -86,7 +86,10 @@ export class AssetResolverPipeline {
    * @returns Resolved asset on success, or a `PrimitiveFallback` when all
    *          resolvers fail (never returns null).
    */
-  async resolve(trait: string, config: TraitVisualConfig): Promise<ResolvedAsset | PrimitiveFallback> {
+  async resolve(
+    trait: string,
+    config: TraitVisualConfig
+  ): Promise<ResolvedAsset | PrimitiveFallback> {
     // 1. Cache hit
     const cached = this.cache.get(trait);
     if (cached) return cached;
@@ -123,27 +126,40 @@ export class AssetResolverPipeline {
     let size: [number, number, number] = [1, 1, 1];
     const t = trait.toLowerCase();
     if (t.includes('tree') || t.includes('tower') || t.includes('pillar')) {
-      shape = 'cylinder'; size = [0.3, 2, 0.3];
+      shape = 'cylinder';
+      size = [0.3, 2, 0.3];
     } else if (t.includes('rock') || t.includes('sphere') || t.includes('ball')) {
-      shape = 'sphere'; size = [0.8, 0.8, 0.8];
+      shape = 'sphere';
+      size = [0.8, 0.8, 0.8];
     } else if (t.includes('ground') || t.includes('floor') || t.includes('terrain')) {
-      shape = 'plane'; size = [4, 0.01, 4];
+      shape = 'plane';
+      size = [4, 0.01, 4];
     }
     return { shape, size, color: traitColor(trait) };
   }
 
   /** Switch offline mode at runtime. */
-  setOffline(offline: boolean): void { this.offline = offline; }
+  setOffline(offline: boolean): void {
+    this.offline = offline;
+  }
 
   /** Attach or replace the rate limiter. */
-  setRateLimiter(limiter: RateLimiter | undefined): void { this.rateLimiter = limiter; }
+  setRateLimiter(limiter: RateLimiter | undefined): void {
+    this.rateLimiter = limiter;
+  }
 
   /** Get the cache manager (for stats/clearing). */
-  getCache(): CacheManager { return this.cache; }
+  getCache(): CacheManager {
+    return this.cache;
+  }
 
   /** Number of registered plugins. */
-  get pluginCount(): number { return this.plugins.length; }
+  get pluginCount(): number {
+    return this.plugins.length;
+  }
 
   /** Number of API plugins subject to rate limiting / offline skip. */
-  get apiPluginCount(): number { return this.plugins.filter(isApiPlugin).length; }
+  get apiPluginCount(): number {
+    return this.plugins.filter(isApiPlugin).length;
+  }
 }

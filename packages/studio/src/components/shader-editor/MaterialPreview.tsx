@@ -29,7 +29,9 @@ export function MaterialPreview() {
   const { compiled, isCompiling } = useShaderCompilation();
 
   // Clear WebGL errors when a new shader is compiled
-  useEffect(() => { setWebGLError(null); }, [compiled]);
+  useEffect(() => {
+    setWebGLError(null);
+  }, [compiled]);
 
   const handleScreenshot = () => {
     if (!canvasRef.current) return;
@@ -109,11 +111,7 @@ export function MaterialPreview() {
           </div>
         )}
 
-        <Canvas
-          ref={canvasRef}
-          gl={{ preserveDrawingBuffer: true }}
-          className="w-full h-full"
-        >
+        <Canvas ref={canvasRef} gl={{ preserveDrawingBuffer: true }} className="w-full h-full">
           <PerspectiveCamera makeDefault position={[0, 0, 5]} />
           <OrbitControls enableDamping dampingFactor={0.05} />
 
@@ -150,9 +148,13 @@ export function MaterialPreview() {
                 onClick={() => setWebGLError(null)}
                 className="ml-auto text-red-400 hover:text-white text-xs"
                 aria-label="Dismiss GPU error"
-              >✕</button>
+              >
+                ✕
+              </button>
             </div>
-            <pre className="mt-1 text-[10px] text-red-300 overflow-auto max-h-28 whitespace-pre-wrap">{webGLError}</pre>
+            <pre className="mt-1 text-[10px] text-red-300 overflow-auto max-h-28 whitespace-pre-wrap">
+              {webGLError}
+            </pre>
           </div>
         )}
       </div>
@@ -270,11 +272,16 @@ function PreviewMeshComponent({
 
   const geometry = useMemo(() => {
     switch (type) {
-      case 'sphere': return <sphereGeometry args={[1, 64, 64]} />;
-      case 'cube':   return <boxGeometry args={[1.5, 1.5, 1.5]} />;
-      case 'plane':  return <planeGeometry args={[2, 2, 32, 32]} />;
-      case 'torus':  return <torusGeometry args={[1, 0.4, 32, 64]} />;
-      default:       return <sphereGeometry args={[1, 64, 64]} />;
+      case 'sphere':
+        return <sphereGeometry args={[1, 64, 64]} />;
+      case 'cube':
+        return <boxGeometry args={[1.5, 1.5, 1.5]} />;
+      case 'plane':
+        return <planeGeometry args={[2, 2, 32, 32]} />;
+      case 'torus':
+        return <torusGeometry args={[1, 0.4, 32, 64]} />;
+      default:
+        return <sphereGeometry args={[1, 64, 64]} />;
     }
   }, [type]);
 

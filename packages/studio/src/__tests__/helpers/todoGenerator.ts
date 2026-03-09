@@ -64,11 +64,16 @@ class TodoRegistry {
   /**
    * Register a TODO item from a test
    */
-  register(id: string, title: string, metadata: TodoMetadata, context: {
-    testFile: string;
-    scenarioName: string;
-    status: 'backlog' | 'failing' | 'blocked';
-  }) {
+  register(
+    id: string,
+    title: string,
+    metadata: TodoMetadata,
+    context: {
+      testFile: string;
+      scenarioName: string;
+      status: 'backlog' | 'failing' | 'blocked';
+    }
+  ) {
     this.items.set(id, {
       id,
       title,
@@ -94,9 +99,7 @@ class TodoRegistry {
    * Get TODOs filtered by priority
    */
   getByPriority(priority: TodoMetadata['priority']): TodoItem[] {
-    return Array.from(this.items.values()).filter(
-      (item) => item.metadata.priority === priority
-    );
+    return Array.from(this.items.values()).filter((item) => item.metadata.priority === priority);
   }
 
   /**
@@ -128,10 +131,10 @@ class TodoRegistry {
 
 | Priority | Count | Status |
 |----------|-------|--------|
-| 🔴 Critical | ${critical.length} | ${critical.filter(t => t.status === 'failing').length} failing |
-| 🟠 High | ${high.length} | ${high.filter(t => t.status === 'failing').length} failing |
-| 🟡 Medium | ${medium.length} | ${medium.filter(t => t.status === 'backlog').length} backlog |
-| 🟢 Low | ${low.length} | ${low.filter(t => t.status === 'backlog').length} backlog |
+| 🔴 Critical | ${critical.length} | ${critical.filter((t) => t.status === 'failing').length} failing |
+| 🟠 High | ${high.length} | ${high.filter((t) => t.status === 'failing').length} failing |
+| 🟡 Medium | ${medium.length} | ${medium.filter((t) => t.status === 'backlog').length} backlog |
+| 🟢 Low | ${low.length} | ${low.filter((t) => t.status === 'backlog').length} backlog |
 
 ---
 
@@ -233,7 +236,7 @@ ${item.metadata.relatedFiles.map((f) => `- \`${f}\``).join('\n')}
 
 **Test Location**: \`${item.testFile}\` > ${item.scenarioName}
 
-${item.metadata.tags ? `**Tags**: ${item.metadata.tags.map(t => `\`${t}\``).join(', ')}` : ''}
+${item.metadata.tags ? `**Tags**: ${item.metadata.tags.map((t) => `\`${t}\``).join(', ')}` : ''}
 
 ---
 `

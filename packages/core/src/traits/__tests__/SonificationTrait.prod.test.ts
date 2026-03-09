@@ -11,23 +11,34 @@ import { sonificationHandler } from '../SonificationTrait';
 
 // Inline implementation matching the source (private function — tested via behavior)
 function mapValue(
-  value: number, inMin: number, inMax: number,
-  outMin: number, outMax: number,
+  value: number,
+  inMin: number,
+  inMax: number,
+  outMin: number,
+  outMax: number,
   curve: 'linear' | 'exponential' | 'logarithmic'
 ): number {
   const normalized = Math.max(0, Math.min(1, (value - inMin) / (inMax - inMin)));
   let curved: number;
   switch (curve) {
-    case 'exponential': curved = Math.pow(normalized, 2); break;
-    case 'logarithmic': curved = Math.log10(1 + normalized * 9) / Math.log10(10); break;
-    default: curved = normalized;
+    case 'exponential':
+      curved = Math.pow(normalized, 2);
+      break;
+    case 'logarithmic':
+      curved = Math.log10(1 + normalized * 9) / Math.log10(10);
+      break;
+    default:
+      curved = normalized;
   }
   return outMin + curved * (outMax - outMin);
 }
 
-
-function makeNode() { return { id: 'soni_node' }; }
-function makeContext() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'soni_node' };
+}
+function makeContext() {
+  return { emit: vi.fn() };
+}
 function attachNode(config: any = {}) {
   const node = makeNode();
   const ctx = makeContext();
@@ -75,19 +86,22 @@ describe('mapValue', () => {
 // ─── defaultConfig ────────────────────────────────────────────────────────────
 
 describe('sonificationHandler.defaultConfig', () => {
-  it('data_source = empty string', () => expect(sonificationHandler.defaultConfig!.data_source).toBe(''));
+  it('data_source = empty string', () =>
+    expect(sonificationHandler.defaultConfig!.data_source).toBe(''));
   it('mapping = pitch', () => expect(sonificationHandler.defaultConfig!.mapping).toBe('pitch'));
   it('min_freq = 200', () => expect(sonificationHandler.defaultConfig!.min_freq).toBe(200));
   it('max_freq = 2000', () => expect(sonificationHandler.defaultConfig!.max_freq).toBe(2000));
   it('min_value = 0', () => expect(sonificationHandler.defaultConfig!.min_value).toBe(0));
   it('max_value = 100', () => expect(sonificationHandler.defaultConfig!.max_value).toBe(100));
-  it('pan_mode = spatial', () => expect(sonificationHandler.defaultConfig!.pan_mode).toBe('spatial'));
+  it('pan_mode = spatial', () =>
+    expect(sonificationHandler.defaultConfig!.pan_mode).toBe('spatial'));
   it('continuous = false', () => expect(sonificationHandler.defaultConfig!.continuous).toBe(false));
   it('instrument = sine', () => expect(sonificationHandler.defaultConfig!.instrument).toBe('sine'));
   it('volume = 0.5', () => expect(sonificationHandler.defaultConfig!.volume).toBe(0.5));
   it('attack = 0.01', () => expect(sonificationHandler.defaultConfig!.attack).toBe(0.01));
   it('release = 0.1', () => expect(sonificationHandler.defaultConfig!.release).toBe(0.1));
-  it('custom_mappings = []', () => expect(sonificationHandler.defaultConfig!.custom_mappings).toEqual([]));
+  it('custom_mappings = []', () =>
+    expect(sonificationHandler.defaultConfig!.custom_mappings).toEqual([]));
 });
 
 // ─── onAttach ────────────────────────────────────────────────────────────────
@@ -119,7 +133,10 @@ describe('sonificationHandler.onAttach', () => {
   });
   it('emits sonification_create with instrument and volume', () => {
     const { ctx } = attachNode({ instrument: 'sawtooth', volume: 0.8 });
-    expect(ctx.emit).toHaveBeenCalledWith('sonification_create', expect.objectContaining({ instrument: 'sawtooth', volume: 0.8 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'sonification_create',
+      expect.objectContaining({ instrument: 'sawtooth', volume: 0.8 })
+    );
   });
 });
 
@@ -155,7 +172,10 @@ describe('sonificationHandler.onUpdate', () => {
     (node as any).__sonificationState.currentFrequency = 880;
     ctx.emit.mockClear();
     sonificationHandler.onUpdate!(node, cfg, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('sonification_update_params', expect.objectContaining({ frequency: 880 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'sonification_update_params',
+      expect.objectContaining({ frequency: 880 })
+    );
   });
   it('does NOT emit when not active', () => {
     const { node, cfg, ctx } = attachNode({ continuous: true });
@@ -176,20 +196,43 @@ describe('sonificationHandler.onUpdate', () => {
 
 describe('sonificationHandler.onEvent — data_update (pitch)', () => {
   it('maps value to frequency via exponential curve for pitch mapping', () => {
-    const { node, cfg, ctx } = attachNode({ mapping: 'pitch', min_value: 0, max_value: 100, min_freq: 200, max_freq: 2000, data_source: 'health', continuous: true });
-    sonificationHandler.onEvent!(node, cfg, ctx, { type: 'sonification_data_update', property: 'health', value: 100 });
+    const { node, cfg, ctx } = attachNode({
+      mapping: 'pitch',
+      min_value: 0,
+      max_value: 100,
+      min_freq: 200,
+      max_freq: 2000,
+      data_source: 'health',
+      continuous: true,
+    });
+    sonificationHandler.onEvent!(node, cfg, ctx, {
+      type: 'sonification_data_update',
+      property: 'health',
+      value: 100,
+    });
     expect((node as any).__sonificationState.currentFrequency).toBeCloseTo(2000, 0);
   });
   it('stores value in currentValues map', () => {
     const { node, cfg, ctx } = attachNode({ data_source: 'score' });
-    sonificationHandler.onEvent!(node, cfg, ctx, { type: 'sonification_data_update', property: 'score', value: 42 });
+    sonificationHandler.onEvent!(node, cfg, ctx, {
+      type: 'sonification_data_update',
+      property: 'score',
+      value: 42,
+    });
     expect((node as any).__sonificationState.currentValues.get('score')).toBe(42);
   });
   it('emits sonification_value_changed', () => {
     const { node, cfg, ctx } = attachNode({ data_source: 'health', continuous: true });
     ctx.emit.mockClear();
-    sonificationHandler.onEvent!(node, cfg, ctx, { type: 'sonification_data_update', property: 'health', value: 50 });
-    expect(ctx.emit).toHaveBeenCalledWith('sonification_value_changed', expect.objectContaining({ property: 'health', value: 50 }));
+    sonificationHandler.onEvent!(node, cfg, ctx, {
+      type: 'sonification_data_update',
+      property: 'health',
+      value: 50,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'sonification_value_changed',
+      expect.objectContaining({ property: 'health', value: 50 })
+    );
   });
 });
 
@@ -197,13 +240,33 @@ describe('sonificationHandler.onEvent — data_update (pitch)', () => {
 
 describe('sonificationHandler.onEvent — data_update (volume)', () => {
   it('maps value 0→0 gain (linear)', () => {
-    const { node, cfg, ctx } = attachNode({ mapping: 'volume', min_value: 0, max_value: 100, data_source: 's', continuous: true });
-    sonificationHandler.onEvent!(node, cfg, ctx, { type: 'sonification_data_update', property: 's', value: 0 });
+    const { node, cfg, ctx } = attachNode({
+      mapping: 'volume',
+      min_value: 0,
+      max_value: 100,
+      data_source: 's',
+      continuous: true,
+    });
+    sonificationHandler.onEvent!(node, cfg, ctx, {
+      type: 'sonification_data_update',
+      property: 's',
+      value: 0,
+    });
     expect((node as any).__sonificationState.currentGain).toBeCloseTo(0, 3);
   });
   it('maps value 100→1 gain (linear)', () => {
-    const { node, cfg, ctx } = attachNode({ mapping: 'volume', min_value: 0, max_value: 100, data_source: 's', continuous: true });
-    sonificationHandler.onEvent!(node, cfg, ctx, { type: 'sonification_data_update', property: 's', value: 100 });
+    const { node, cfg, ctx } = attachNode({
+      mapping: 'volume',
+      min_value: 0,
+      max_value: 100,
+      data_source: 's',
+      continuous: true,
+    });
+    sonificationHandler.onEvent!(node, cfg, ctx, {
+      type: 'sonification_data_update',
+      property: 's',
+      value: 100,
+    });
     expect((node as any).__sonificationState.currentGain).toBeCloseTo(1, 3);
   });
 });
@@ -212,13 +275,33 @@ describe('sonificationHandler.onEvent — data_update (volume)', () => {
 
 describe('sonificationHandler.onEvent — data_update (pan)', () => {
   it('maps min value to -1 pan', () => {
-    const { node, cfg, ctx } = attachNode({ mapping: 'pan', min_value: 0, max_value: 100, data_source: 'x', continuous: true });
-    sonificationHandler.onEvent!(node, cfg, ctx, { type: 'sonification_data_update', property: 'x', value: 0 });
+    const { node, cfg, ctx } = attachNode({
+      mapping: 'pan',
+      min_value: 0,
+      max_value: 100,
+      data_source: 'x',
+      continuous: true,
+    });
+    sonificationHandler.onEvent!(node, cfg, ctx, {
+      type: 'sonification_data_update',
+      property: 'x',
+      value: 0,
+    });
     expect((node as any).__sonificationState.currentPan).toBeCloseTo(-1, 2);
   });
   it('maps max value to 1 pan', () => {
-    const { node, cfg, ctx } = attachNode({ mapping: 'pan', min_value: 0, max_value: 100, data_source: 'x', continuous: true });
-    sonificationHandler.onEvent!(node, cfg, ctx, { type: 'sonification_data_update', property: 'x', value: 100 });
+    const { node, cfg, ctx } = attachNode({
+      mapping: 'pan',
+      min_value: 0,
+      max_value: 100,
+      data_source: 'x',
+      continuous: true,
+    });
+    sonificationHandler.onEvent!(node, cfg, ctx, {
+      type: 'sonification_data_update',
+      property: 'x',
+      value: 100,
+    });
     expect((node as any).__sonificationState.currentPan).toBeCloseTo(1, 2);
   });
 });
@@ -229,19 +312,31 @@ describe('sonificationHandler.onEvent — non-continuous trigger', () => {
   it('emits sonification_trigger when not continuous and not active', () => {
     const { node, cfg, ctx } = attachNode({ continuous: false, data_source: 'hp' });
     ctx.emit.mockClear();
-    sonificationHandler.onEvent!(node, cfg, ctx, { type: 'sonification_data_update', property: 'hp', value: 50 });
+    sonificationHandler.onEvent!(node, cfg, ctx, {
+      type: 'sonification_data_update',
+      property: 'hp',
+      value: 50,
+    });
     expect(ctx.emit).toHaveBeenCalledWith('sonification_trigger', expect.any(Object));
   });
   it('sets isActive=true on trigger', () => {
     const { node, cfg, ctx } = attachNode({ continuous: false, data_source: 'hp' });
-    sonificationHandler.onEvent!(node, cfg, ctx, { type: 'sonification_data_update', property: 'hp', value: 50 });
+    sonificationHandler.onEvent!(node, cfg, ctx, {
+      type: 'sonification_data_update',
+      property: 'hp',
+      value: 50,
+    });
     expect((node as any).__sonificationState.isActive).toBe(true);
   });
   it('does NOT re-trigger when already active', () => {
     const { node, cfg, ctx } = attachNode({ continuous: false, data_source: 'hp' });
     (node as any).__sonificationState.isActive = true;
     ctx.emit.mockClear();
-    sonificationHandler.onEvent!(node, cfg, ctx, { type: 'sonification_data_update', property: 'hp', value: 50 });
+    sonificationHandler.onEvent!(node, cfg, ctx, {
+      type: 'sonification_data_update',
+      property: 'hp',
+      value: 50,
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('sonification_trigger', expect.any(Object));
   });
 });
@@ -253,28 +348,46 @@ describe('sonificationHandler.onEvent — custom_mappings', () => {
     const { node, cfg, ctx } = attachNode({
       data_source: '',
       continuous: true,
-      custom_mappings: [{
-        property: 'speed', type: 'pitch',
-        min_input: 0, max_input: 10,
-        min_output: 100, max_output: 1000,
-        curve: 'linear',
-      }],
+      custom_mappings: [
+        {
+          property: 'speed',
+          type: 'pitch',
+          min_input: 0,
+          max_input: 10,
+          min_output: 100,
+          max_output: 1000,
+          curve: 'linear',
+        },
+      ],
     });
-    sonificationHandler.onEvent!(node, cfg, ctx, { type: 'sonification_data_update', property: 'speed', value: 10 });
+    sonificationHandler.onEvent!(node, cfg, ctx, {
+      type: 'sonification_data_update',
+      property: 'speed',
+      value: 10,
+    });
     expect((node as any).__sonificationState.currentFrequency).toBeCloseTo(1000, 0);
   });
   it('applies custom volume mapping', () => {
     const { node, cfg, ctx } = attachNode({
       data_source: '',
       continuous: true,
-      custom_mappings: [{
-        property: 'hp', type: 'volume',
-        min_input: 0, max_input: 100,
-        min_output: 0, max_output: 1,
-        curve: 'linear',
-      }],
+      custom_mappings: [
+        {
+          property: 'hp',
+          type: 'volume',
+          min_input: 0,
+          max_input: 100,
+          min_output: 0,
+          max_output: 1,
+          curve: 'linear',
+        },
+      ],
     });
-    sonificationHandler.onEvent!(node, cfg, ctx, { type: 'sonification_data_update', property: 'hp', value: 50 });
+    sonificationHandler.onEvent!(node, cfg, ctx, {
+      type: 'sonification_data_update',
+      property: 'hp',
+      value: 50,
+    });
     expect((node as any).__sonificationState.currentGain).toBeCloseTo(0.5, 2);
   });
 });
@@ -300,7 +413,13 @@ describe('sonificationHandler.onEvent — start/stop/set_instrument', () => {
   it('sonification_set_instrument emits sonification_change_instrument', () => {
     const { node, cfg, ctx } = attachNode();
     ctx.emit.mockClear();
-    sonificationHandler.onEvent!(node, cfg, ctx, { type: 'sonification_set_instrument', instrument: 'square' });
-    expect(ctx.emit).toHaveBeenCalledWith('sonification_change_instrument', expect.objectContaining({ instrument: 'square' }));
+    sonificationHandler.onEvent!(node, cfg, ctx, {
+      type: 'sonification_set_instrument',
+      instrument: 'square',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'sonification_change_instrument',
+      expect.objectContaining({ instrument: 'square' })
+    );
   });
 });

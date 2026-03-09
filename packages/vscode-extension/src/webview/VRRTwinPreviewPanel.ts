@@ -65,11 +65,7 @@ export class VRRTwinPreviewPanel {
     extensionUri: vscode.Uri,
     services: HololandServices
   ) {
-    VRRTwinPreviewPanel.currentPanel = new VRRTwinPreviewPanel(
-      panel,
-      extensionUri,
-      services
-    );
+    VRRTwinPreviewPanel.currentPanel = new VRRTwinPreviewPanel(panel, extensionUri, services);
   }
 
   private constructor(

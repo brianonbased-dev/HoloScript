@@ -268,7 +268,7 @@ export class ForgettingDetector {
   private detectForBenchmark(
     benchmark: string,
     tracker: BenchmarkTracker,
-    step: number,
+    step: number
   ): ForgettingResult {
     const n = tracker.scores.length;
     const currentScore = n > 0 ? tracker.scores[n - 1] : tracker.baseline;
@@ -279,9 +279,7 @@ export class ForgettingDetector {
 
     // Compute slope over sliding window
     const window = tracker.scores.slice(-this.config.windowSize);
-    const slope = window.length >= this.config.minDataPoints
-      ? this.computeSlope(window)
-      : 0;
+    const slope = window.length >= this.config.minDataPoints ? this.computeSlope(window) : 0;
 
     // Determine severity
     let severity: ForgettingSeverity = 'none';

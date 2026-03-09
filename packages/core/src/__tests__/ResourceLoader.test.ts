@@ -11,7 +11,9 @@ function req(id: string, deps: string[] = [], priority = 0): ResourceRequest {
 
 describe('ResourceLoader', () => {
   let loader: ResourceLoader;
-  beforeEach(() => { loader = new ResourceLoader(); });
+  beforeEach(() => {
+    loader = new ResourceLoader();
+  });
 
   it('loads a single resource', async () => {
     loader.addRequest(req('a'));
@@ -22,7 +24,10 @@ describe('ResourceLoader', () => {
 
   it('loads resources in dependency order', async () => {
     const order: string[] = [];
-    const rl = new ResourceLoader(async (r) => { order.push(r.id); return r.id; });
+    const rl = new ResourceLoader(async (r) => {
+      order.push(r.id);
+      return r.id;
+    });
     rl.addRequest(req('b', ['a']));
     rl.addRequest(req('a'));
     await rl.loadAll();
@@ -37,7 +42,7 @@ describe('ResourceLoader', () => {
     rl.addRequest(req('a'));
     rl.addRequest(req('b', ['a']));
     const results = await rl.loadAll();
-    const bResult = results.find(r => r.id === 'b');
+    const bResult = results.find((r) => r.id === 'b');
     expect(bResult?.status).toBe('error');
     expect(bResult?.error).toBe('dependency failed');
   });
@@ -59,7 +64,9 @@ describe('ResourceLoader', () => {
   });
 
   it('handles loader errors gracefully', async () => {
-    const rl = new ResourceLoader(async () => { throw new Error('network'); });
+    const rl = new ResourceLoader(async () => {
+      throw new Error('network');
+    });
     rl.addRequest(req('x'));
     const results = await rl.loadAll();
     expect(results[0].status).toBe('error');
@@ -87,7 +94,10 @@ describe('ResourceLoader', () => {
 
   it('higher priority resources appear earlier in order', async () => {
     const order: string[] = [];
-    const rl = new ResourceLoader(async (r) => { order.push(r.id); return r.id; });
+    const rl = new ResourceLoader(async (r) => {
+      order.push(r.id);
+      return r.id;
+    });
     rl.addRequest({ ...req('low'), priority: 1 });
     rl.addRequest({ ...req('high'), priority: 10 });
     await rl.loadAll();

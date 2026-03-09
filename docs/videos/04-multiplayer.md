@@ -34,6 +34,7 @@ orb "SharedBall" {
 ```
 
 > "That's it. `@synced` automatically:
+>
 > - Broadcasts property changes to all connected users
 > - Resolves conflicts with the authority strategy
 > - Throttles updates to the rate you specify (20 updates/sec here)"
@@ -199,6 +200,7 @@ holoscript dev --players=2
 **[SCREEN: two browser windows, moving a ball in one appears in the other]**
 
 For production deployment:
+
 ```bash
 holoscript build --target=webxr src/scene.hsplus
 holoscript deploy --platform=vercel
@@ -209,6 +211,7 @@ holoscript deploy --platform=vercel
 ### 14:00 — Common Pitfalls (60s)
 
 1. **Syncing too many properties** — sync only what changes, not everything
+
    ```hsplus
    // Bad: syncs all properties every frame
    @synced { properties: ["*"] rate: 60 }

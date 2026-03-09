@@ -3,13 +3,13 @@ import { RewardSystem } from '../RewardSystem';
 
 describe('RewardSystem', () => {
   let rs: RewardSystem;
-  beforeEach(() => { rs = new RewardSystem(); });
+  beforeEach(() => {
+    rs = new RewardSystem();
+  });
 
   // --- Bundles ---
   it('createBundle stores bundle', () => {
-    const b = rs.createBundle('Starter Pack', [
-      { type: 'xp', target: '', amount: 100 },
-    ]);
+    const b = rs.createBundle('Starter Pack', [{ type: 'xp', target: '', amount: 100 }]);
     expect(b.id).toBeDefined();
     expect(b.claimed).toBe(false);
     expect(rs.getBundleCount()).toBe(1);
@@ -80,7 +80,9 @@ describe('RewardSystem', () => {
   // --- Currency ---
   it('spendCurrency deducts', () => {
     rs.createBundle('Gold', [{ type: 'currency', target: 'gold', amount: 100 }]);
-    rs.claim(rs.getBundle(rs.createBundle('G', [{ type: 'currency', target: 'gold', amount: 100 }]).id)!.id);
+    rs.claim(
+      rs.getBundle(rs.createBundle('G', [{ type: 'currency', target: 'gold', amount: 100 }]).id)!.id
+    );
     // getCurrency should show gold from the second bundle
     const total = rs.getCurrency('gold');
     expect(rs.spendCurrency('gold', 50)).toBe(true);

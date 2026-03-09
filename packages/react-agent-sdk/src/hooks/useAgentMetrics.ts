@@ -33,10 +33,7 @@ import { useAgentContext } from '../context/AgentContext';
  * );
  * ```
  */
-export function useAgentMetrics(
-  agentName: string,
-  refreshInterval = 5000
-): UseAgentMetricsReturn {
+export function useAgentMetrics(agentName: string, refreshInterval = 5000): UseAgentMetricsReturn {
   const context = useAgentContext();
   const [metrics, setMetrics] = useState<UseAgentMetricsReturn['metrics']>(null);
   const [loading, setLoading] = useState(true);
@@ -47,15 +44,12 @@ export function useAgentMetrics(
    */
   const fetchMetrics = useCallback(async () => {
     try {
-      const response = await fetch(
-        `${context.apiUrl}/api/agents/${agentName}/metrics`,
-        {
-          headers: {
-            ...context.headers,
-            ...(context.token && { Authorization: `Bearer ${context.token}` }),
-          },
-        }
-      );
+      const response = await fetch(`${context.apiUrl}/api/agents/${agentName}/metrics`, {
+        headers: {
+          ...context.headers,
+          ...(context.token && { Authorization: `Bearer ${context.token}` }),
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch metrics: ${response.statusText}`);

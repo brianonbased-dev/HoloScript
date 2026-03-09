@@ -44,11 +44,27 @@ export interface ValidatorConfig {
 
 const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; rule: string; message: string }> = [
   { pattern: /\beval\s*\(/, rule: 'no-eval', message: 'eval() is forbidden in generated code' },
-  { pattern: /\bFunction\s*\(/, rule: 'no-function-constructor', message: 'Function constructor is forbidden' },
-  { pattern: /\brequire\s*\(/, rule: 'no-require', message: 'require() is forbidden — use imports' },
+  {
+    pattern: /\bFunction\s*\(/,
+    rule: 'no-function-constructor',
+    message: 'Function constructor is forbidden',
+  },
+  {
+    pattern: /\brequire\s*\(/,
+    rule: 'no-require',
+    message: 'require() is forbidden — use imports',
+  },
   { pattern: /\b__proto__\b/, rule: 'no-proto', message: '__proto__ access is forbidden' },
-  { pattern: /\bconstructor\s*\[/, rule: 'no-constructor-bracket', message: 'Constructor bracket access is forbidden' },
-  { pattern: /\bprocess\s*\./, rule: 'no-process', message: 'process.* is forbidden in sandboxed code' },
+  {
+    pattern: /\bconstructor\s*\[/,
+    rule: 'no-constructor-bracket',
+    message: 'Constructor bracket access is forbidden',
+  },
+  {
+    pattern: /\bprocess\s*\./,
+    rule: 'no-process',
+    message: 'process.* is forbidden in sandboxed code',
+  },
   { pattern: /\bchild_process\b/, rule: 'no-child-process', message: 'child_process is forbidden' },
   { pattern: /\bfs\s*\./, rule: 'no-fs', message: 'Direct fs access is forbidden' },
   { pattern: /import\s*\(/, rule: 'no-dynamic-import', message: 'Dynamic import() is forbidden' },
@@ -69,7 +85,10 @@ const DEFAULT_CONFIG: ValidatorConfig = {
 /**
  * Validate AI-generated code for safety and correctness.
  */
-export function validateAIOutput(code: string, config: Partial<ValidatorConfig> = {}): ValidationResult {
+export function validateAIOutput(
+  code: string,
+  config: Partial<ValidatorConfig> = {}
+): ValidationResult {
   const cfg: ValidatorConfig = { ...DEFAULT_CONFIG, ...config };
   const issues: ValidationIssue[] = [];
   const lines = code.split('\n');
@@ -108,8 +127,12 @@ export function validateAIOutput(code: string, config: Partial<ValidatorConfig> 
   let currentNesting = 0;
   for (const line of lines) {
     for (const ch of line) {
-      if (ch === '{') { currentNesting++; maxNesting = Math.max(maxNesting, currentNesting); }
-      else if (ch === '}') { currentNesting = Math.max(0, currentNesting - 1); }
+      if (ch === '{') {
+        currentNesting++;
+        maxNesting = Math.max(maxNesting, currentNesting);
+      } else if (ch === '}') {
+        currentNesting = Math.max(0, currentNesting - 1);
+      }
     }
   }
 
@@ -144,7 +167,7 @@ export function validateAIOutput(code: string, config: Partial<ValidatorConfig> 
 
   // --- Allowed traits check ---
   if (cfg.allowedTraits && cfg.allowedTraits.length > 0) {
-    const allowed = new Set(cfg.allowedTraits.map(t => t.startsWith('@') ? t : `@${t}`));
+    const allowed = new Set(cfg.allowedTraits.map((t) => (t.startsWith('@') ? t : `@${t}`)));
     for (const trait of traitMatches) {
       if (!allowed.has(trait)) {
         issues.push({
@@ -157,9 +180,12 @@ export function validateAIOutput(code: string, config: Partial<ValidatorConfig> 
   }
 
   // --- Confidence scoring ---
-  const errorCount = issues.filter(i => i.severity === 'error').length;
-  const warningCount = issues.filter(i => i.severity === 'warning').length;
-  const confidence = Math.max(0, 1.0 - errorCount * 0.3 - warningCount * 0.1 - dangerousPatternCount * 0.2);
+  const errorCount = issues.filter((i) => i.severity === 'error').length;
+  const warningCount = issues.filter((i) => i.severity === 'warning').length;
+  const confidence = Math.max(
+    0,
+    1.0 - errorCount * 0.3 - warningCount * 0.1 - dangerousPatternCount * 0.2
+  );
 
   return {
     valid: errorCount === 0,

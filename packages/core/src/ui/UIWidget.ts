@@ -5,7 +5,13 @@
  */
 
 export type WidgetType = 'panel' | 'label' | 'button' | 'image' | 'input' | 'slider' | 'container';
-export type AnchorPreset = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center' | 'stretch';
+export type AnchorPreset =
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-right'
+  | 'center'
+  | 'stretch';
 export type LayoutMode = 'absolute' | 'horizontal' | 'vertical' | 'grid';
 
 export interface WidgetStyle {
@@ -23,7 +29,10 @@ export interface WidgetStyle {
 export interface UIWidgetDef {
   id: string;
   type: WidgetType;
-  x: number; y: number; width: number; height: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
   anchor: AnchorPreset;
   visible: boolean;
   interactive: boolean;
@@ -38,10 +47,18 @@ export class UIWidget {
   private widgets: Map<string, UIWidgetDef> = new Map();
   private rootId: string | null = null;
 
-  createWidget(id: string, type: WidgetType, opts: Partial<Omit<UIWidgetDef, 'id' | 'type'>> = {}): UIWidgetDef {
+  createWidget(
+    id: string,
+    type: WidgetType,
+    opts: Partial<Omit<UIWidgetDef, 'id' | 'type'>> = {}
+  ): UIWidgetDef {
     const widget: UIWidgetDef = {
-      id, type,
-      x: opts.x ?? 0, y: opts.y ?? 0, width: opts.width ?? 100, height: opts.height ?? 40,
+      id,
+      type,
+      x: opts.x ?? 0,
+      y: opts.y ?? 0,
+      width: opts.width ?? 100,
+      height: opts.height ?? 40,
       anchor: opts.anchor ?? 'top-left',
       visible: opts.visible ?? true,
       interactive: opts.interactive ?? (type === 'button' || type === 'input' || type === 'slider'),
@@ -74,14 +91,16 @@ export class UIWidget {
     if (!widget) return false;
     if (widget.parentId) {
       const parent = this.widgets.get(widget.parentId);
-      if (parent) parent.children = parent.children.filter(c => c !== id);
+      if (parent) parent.children = parent.children.filter((c) => c !== id);
     }
     // Recursively remove children
     for (const childId of widget.children) this.removeWidget(childId);
     return this.widgets.delete(id);
   }
 
-  getWidget(id: string): UIWidgetDef | undefined { return this.widgets.get(id); }
+  getWidget(id: string): UIWidgetDef | undefined {
+    return this.widgets.get(id);
+  }
 
   setStyle(id: string, style: Partial<WidgetStyle>): void {
     const w = this.widgets.get(id);
@@ -102,9 +121,7 @@ export class UIWidget {
    * Get widgets sorted by z-index for rendering
    */
   getRenderOrder(): UIWidgetDef[] {
-    return [...this.widgets.values()]
-      .filter(w => w.visible)
-      .sort((a, b) => a.zIndex - b.zIndex);
+    return [...this.widgets.values()].filter((w) => w.visible).sort((a, b) => a.zIndex - b.zIndex);
   }
 
   /**
@@ -119,6 +136,10 @@ export class UIWidget {
     return null;
   }
 
-  getWidgetCount(): number { return this.widgets.size; }
-  getRoot(): UIWidgetDef | undefined { return this.rootId ? this.widgets.get(this.rootId) : undefined; }
+  getWidgetCount(): number {
+    return this.widgets.size;
+  }
+  getRoot(): UIWidgetDef | undefined {
+    return this.rootId ? this.widgets.get(this.rootId) : undefined;
+  }
 }

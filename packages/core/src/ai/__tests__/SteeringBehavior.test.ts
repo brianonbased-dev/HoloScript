@@ -5,7 +5,9 @@ function agent(pos: Vec2 = { x: 0, z: 0 }, vel: Vec2 = { x: 0, z: 0 }): Steering
   return { position: pos, velocity: vel, maxSpeed: 10, maxForce: 5, mass: 1 };
 }
 
-function mag(v: Vec2): number { return Math.sqrt(v.x ** 2 + v.z ** 2); }
+function mag(v: Vec2): number {
+  return Math.sqrt(v.x ** 2 + v.z ** 2);
+}
 
 describe('SteeringBehavior', () => {
   // --- Seek ---
@@ -120,9 +122,7 @@ describe('SteeringBehavior', () => {
   });
 
   it('blend truncates to maxForce', () => {
-    const outputs: SteeringOutput[] = [
-      { force: { x: 100, z: 0 }, type: 'seek', weight: 1 },
-    ];
+    const outputs: SteeringOutput[] = [{ force: { x: 100, z: 0 }, type: 'seek', weight: 1 }];
     const f = SteeringBehavior.blend(outputs, 5);
     expect(mag(f)).toBeCloseTo(5, 1);
   });

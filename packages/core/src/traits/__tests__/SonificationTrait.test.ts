@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { sonificationHandler } from '../SonificationTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('SonificationTrait', () => {
   let node: Record<string, unknown>;
@@ -33,7 +41,11 @@ describe('SonificationTrait', () => {
   });
 
   it('data_update maps pitch via exponential curve', () => {
-    sendEvent(sonificationHandler, node, cfg, ctx, { type: 'sonification_data_update', value: 50, property: 'temperature' });
+    sendEvent(sonificationHandler, node, cfg, ctx, {
+      type: 'sonification_data_update',
+      value: 50,
+      property: 'temperature',
+    });
     const s = (node as any).__sonificationState;
     expect(s.currentFrequency).toBeGreaterThan(200);
     expect(s.currentFrequency).toBeLessThan(2000);
@@ -79,7 +91,10 @@ describe('SonificationTrait', () => {
   });
 
   it('set_instrument emits change', () => {
-    sendEvent(sonificationHandler, node, cfg, ctx, { type: 'sonification_set_instrument', instrument: 'square' });
+    sendEvent(sonificationHandler, node, cfg, ctx, {
+      type: 'sonification_set_instrument',
+      instrument: 'square',
+    });
     expect(getEventCount(ctx, 'sonification_change_instrument')).toBe(1);
   });
 

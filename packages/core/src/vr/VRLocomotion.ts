@@ -7,7 +7,9 @@
 export type LocomotionMode = 'teleport' | 'smooth' | 'snap-turn';
 
 export interface TeleportTarget {
-  x: number; y: number; z: number;
+  x: number;
+  y: number;
+  z: number;
   valid: boolean;
   normal: { x: number; y: number; z: number };
 }
@@ -44,9 +46,7 @@ export class VRLocomotion {
    */
   teleport(target: TeleportTarget): boolean {
     if (!target.valid) return false;
-    const dist = Math.sqrt(
-      (target.x - this.position.x) ** 2 + (target.z - this.position.z) ** 2
-    );
+    const dist = Math.sqrt((target.x - this.position.x) ** 2 + (target.z - this.position.z) ** 2);
     if (dist > this.config.teleportRange) return false;
 
     this.position = { x: target.x, y: target.y, z: target.z };
@@ -95,9 +95,19 @@ export class VRLocomotion {
     return this.config.comfortVignette && this.config.mode === 'smooth';
   }
 
-  getPosition(): { x: number; y: number; z: number } { return { ...this.position }; }
-  getRotation(): number { return this.rotation; }
-  getConfig(): LocomotionConfig { return { ...this.config }; }
-  setMode(mode: LocomotionMode): void { this.config.mode = mode; }
-  getTeleportHistory(): TeleportTarget[] { return [...this.teleportHistory]; }
+  getPosition(): { x: number; y: number; z: number } {
+    return { ...this.position };
+  }
+  getRotation(): number {
+    return this.rotation;
+  }
+  getConfig(): LocomotionConfig {
+    return { ...this.config };
+  }
+  setMode(mode: LocomotionMode): void {
+    this.config.mode = mode;
+  }
+  getTeleportHistory(): TeleportTarget[] {
+    return [...this.teleportHistory];
+  }
 }

@@ -42,11 +42,20 @@ function varName(nodeId: string, portName = 'result') {
 /** Returns the GLSL type for a shader data type string. */
 function glslType(t: string): string {
   const map: Record<string, string> = {
-    float: 'float', int: 'int', bool: 'bool',
-    vec2: 'vec2', vec3: 'vec3', vec4: 'vec4',
-    mat2: 'mat2', mat3: 'mat3', mat4: 'mat4',
-    sampler2D: 'sampler2D', samplerCube: 'samplerCube',
-    ivec2: 'ivec2', ivec3: 'ivec3', ivec4: 'ivec4',
+    float: 'float',
+    int: 'int',
+    bool: 'bool',
+    vec2: 'vec2',
+    vec3: 'vec3',
+    vec4: 'vec4',
+    mat2: 'mat2',
+    mat3: 'mat3',
+    mat4: 'mat4',
+    sampler2D: 'sampler2D',
+    samplerCube: 'samplerCube',
+    ivec2: 'ivec2',
+    ivec3: 'ivec3',
+    ivec4: 'ivec4',
   };
   return map[t] ?? 'float';
 }
@@ -58,16 +67,20 @@ const _warnedNodeTypes = new Set<string>();
 function emitNodeExpr(
   node: IShaderNode,
   connections: IShaderConnection[],
-  resolvedPorts: Map<string, string>  // portId → GLSL expression
+  resolvedPorts: Map<string, string> // portId → GLSL expression
 ): string {
   const getInput = (portId: string, fallback = '0.0') => resolvedPorts.get(portId) ?? fallback;
 
   switch (node.type) {
     // ── Inputs ──────────────────────────────────────────────────────────────
-    case 'UVInput':       return 'vUv';
-    case 'TimeInput':     return 'uTime';
-    case 'PositionInput': return 'vPosition';
-    case 'NormalInput':   return 'vNormal';
+    case 'UVInput':
+      return 'vUv';
+    case 'TimeInput':
+      return 'uTime';
+    case 'PositionInput':
+      return 'vPosition';
+    case 'NormalInput':
+      return 'vNormal';
 
     // ── Constants ──────────────────────────────────────────────────────────
     case 'ColorConstant': {
@@ -95,7 +108,7 @@ function emitNodeExpr(
     }
     case 'PowNode': {
       const base = getInput(node.inputs[0]?.id, '1.0');
-      const exp  = getInput(node.inputs[1]?.id, '2.0');
+      const exp = getInput(node.inputs[1]?.id, '2.0');
       return `pow(${base}, ${exp})`;
     }
 
@@ -118,7 +131,7 @@ function emitNodeExpr(
 
     // ── Utility ─────────────────────────────────────────────────────────────
     case 'Clamp': {
-      const x   = getInput(node.inputs[0]?.id, '0.5');
+      const x = getInput(node.inputs[0]?.id, '0.5');
       const min = getInput(node.inputs[1]?.id, '0.0');
       const max = getInput(node.inputs[2]?.id, '1.0');
       return `clamp(${x}, ${min}, ${max})`;
@@ -159,16 +172,46 @@ function emitNodeExpr(
       const b = getInput(node.inputs[1]?.id, '1.0');
       return `(${a} / max(${b}, 0.0001))`;
     }
-    case 'AbsNode': { const x = getInput(node.inputs[0]?.id, '0.0'); return `abs(${x})`; }
-    case 'FloorNode': { const x = getInput(node.inputs[0]?.id, '0.0'); return `floor(${x})`; }
-    case 'CeilNode': { const x = getInput(node.inputs[0]?.id, '0.0'); return `ceil(${x})`; }
-    case 'FractNode': { const x = getInput(node.inputs[0]?.id, '0.0'); return `fract(${x})`; }
-    case 'SqrtNode': { const x = getInput(node.inputs[0]?.id, '1.0'); return `sqrt(max(${x}, 0.0))`; }
-    case 'ExpNode': { const x = getInput(node.inputs[0]?.id, '0.0'); return `exp(${x})`; }
-    case 'LogNode': { const x = getInput(node.inputs[0]?.id, '1.0'); return `log(max(${x}, 0.0001))`; }
-    case 'CosNode': { const x = getInput(node.inputs[0]?.id, 'uTime'); return `cos(${x})`; }
-    case 'TanNode': { const x = getInput(node.inputs[0]?.id, '0.0'); return `tan(${x})`; }
-    case 'AtanNode': { const x = getInput(node.inputs[0]?.id, '0.0'); return `atan(${x})`; }
+    case 'AbsNode': {
+      const x = getInput(node.inputs[0]?.id, '0.0');
+      return `abs(${x})`;
+    }
+    case 'FloorNode': {
+      const x = getInput(node.inputs[0]?.id, '0.0');
+      return `floor(${x})`;
+    }
+    case 'CeilNode': {
+      const x = getInput(node.inputs[0]?.id, '0.0');
+      return `ceil(${x})`;
+    }
+    case 'FractNode': {
+      const x = getInput(node.inputs[0]?.id, '0.0');
+      return `fract(${x})`;
+    }
+    case 'SqrtNode': {
+      const x = getInput(node.inputs[0]?.id, '1.0');
+      return `sqrt(max(${x}, 0.0))`;
+    }
+    case 'ExpNode': {
+      const x = getInput(node.inputs[0]?.id, '0.0');
+      return `exp(${x})`;
+    }
+    case 'LogNode': {
+      const x = getInput(node.inputs[0]?.id, '1.0');
+      return `log(max(${x}, 0.0001))`;
+    }
+    case 'CosNode': {
+      const x = getInput(node.inputs[0]?.id, 'uTime');
+      return `cos(${x})`;
+    }
+    case 'TanNode': {
+      const x = getInput(node.inputs[0]?.id, '0.0');
+      return `tan(${x})`;
+    }
+    case 'AtanNode': {
+      const x = getInput(node.inputs[0]?.id, '0.0');
+      return `atan(${x})`;
+    }
     case 'ModNode': {
       const a = getInput(node.inputs[0]?.id, '1.0');
       const b = getInput(node.inputs[1]?.id, '1.0');
@@ -186,13 +229,13 @@ function emitNodeExpr(
     }
     case 'StepNode': {
       const edge = getInput(node.inputs[0]?.id, '0.5');
-      const x    = getInput(node.inputs[1]?.id, '0.0');
+      const x = getInput(node.inputs[1]?.id, '0.0');
       return `step(${edge}, ${x})`;
     }
     case 'SmoothstepNode': {
       const e0 = getInput(node.inputs[0]?.id, '0.0');
       const e1 = getInput(node.inputs[1]?.id, '1.0');
-      const x  = getInput(node.inputs[2]?.id, '0.5');
+      const x = getInput(node.inputs[2]?.id, '0.5');
       return `smoothstep(${e0}, ${e1}, ${x})`;
     }
 
@@ -218,12 +261,12 @@ function emitNodeExpr(
 
     // ── Procedural ──────────────────────────────────────────────────────────
     case 'NoiseNode': {
-      const uv    = getInput(node.inputs[0]?.id, 'vUv');
+      const uv = getInput(node.inputs[0]?.id, 'vUv');
       const scale = getInput(node.inputs[1]?.id, '10.0');
       return `fract(sin(dot(${uv} * ${scale}, vec2(127.1, 311.7))) * 43758.5453)`;
     }
     case 'VoronoiNode': {
-      const uv    = getInput(node.inputs[0]?.id, 'vUv');
+      const uv = getInput(node.inputs[0]?.id, 'vUv');
       const scale = getInput(node.inputs[1]?.id, '5.0');
       return `(1.0 - fract(sin(dot(floor(${uv} * ${scale}), vec2(127.1, 311.7))) * 43758.5453))`;
     }
@@ -274,10 +317,18 @@ function compileGraph(
   const warnings: string[] = [];
 
   // 1. Find output node
-  const outputNode = [...nodes.values()].find((n) => n.category === 'output' || n.type === 'FragOutput' || n.type === 'PBROutput');
+  const outputNode = [...nodes.values()].find(
+    (n) => n.category === 'output' || n.type === 'FragOutput' || n.type === 'PBROutput'
+  );
   if (!outputNode) {
-    return { vertexCode: '', fragmentCode: '', uniforms: [], textures: [],
-      warnings: ['No output node found — add a Fragment Output node.'], errors: [] };
+    return {
+      vertexCode: '',
+      fragmentCode: '',
+      uniforms: [],
+      textures: [],
+      warnings: ['No output node found — add a Fragment Output node.'],
+      errors: [],
+    };
   }
 
   // 2. Topological sort
@@ -305,7 +356,10 @@ function compileGraph(
         }
       } else if (inPort.defaultValue !== undefined) {
         const dv = inPort.defaultValue;
-        resolvedPorts.set(inPort.id, Array.isArray(dv) ? `vec${dv.length}(${dv.join(',')})` : String(dv));
+        resolvedPorts.set(
+          inPort.id,
+          Array.isArray(dv) ? `vec${dv.length}(${dv.join(',')})` : String(dv)
+        );
       }
     }
 
@@ -333,7 +387,9 @@ function compileGraph(
   usedUniforms.add('uTime');
 
   if (outputInputPort) {
-    const conn = connections.find((c) => c.toNodeId === outputNode.id && c.toPortId === outputInputPort.id);
+    const conn = connections.find(
+      (c) => c.toNodeId === outputNode.id && c.toPortId === outputInputPort.id
+    );
     if (conn) {
       const fromNode = nodes.get(conn.fromNodeId);
       if (fromNode) {
@@ -450,7 +506,11 @@ export function useShaderCompilation(debounceMs = 300) {
         ...prev,
         isCompiling: false,
         compiled: {
-          vertexCode: '', fragmentCode: '', uniforms: [], textures: [], warnings: [],
+          vertexCode: '',
+          fragmentCode: '',
+          uniforms: [],
+          textures: [],
+          warnings: [],
           errors: [err instanceof Error ? err.message : 'Unknown compilation error'],
         },
       }));

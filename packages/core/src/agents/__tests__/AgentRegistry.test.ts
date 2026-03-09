@@ -32,7 +32,7 @@ describe('AgentRegistry', () => {
 
   it('register adds an agent', async () => {
     await registry.register(makeManifest('agent-1'));
-    expect(registry.size).toBe(1);           // size is a getter
+    expect(registry.size).toBe(1); // size is a getter
   });
 
   it('has returns true for registered agent', async () => {
@@ -80,14 +80,20 @@ describe('AgentRegistry', () => {
   // ---------------------------------------------------------------------------
 
   it('discover finds matching agents', async () => {
-    await registry.register(makeManifest('a1', { capabilities: [{ type: 'compute', domain: 'general' }] }));
-    await registry.register(makeManifest('a2', { capabilities: [{ type: 'render', domain: 'graphics' }] }));
+    await registry.register(
+      makeManifest('a1', { capabilities: [{ type: 'compute', domain: 'general' }] })
+    );
+    await registry.register(
+      makeManifest('a2', { capabilities: [{ type: 'render', domain: 'graphics' }] })
+    );
     const results = await registry.discover({ type: 'compute' });
     expect(results.length).toBeGreaterThanOrEqual(1);
   });
 
   it('findBest returns the best match', async () => {
-    await registry.register(makeManifest('a1', { capabilities: [{ type: 'compute', domain: 'general' }] }));
+    await registry.register(
+      makeManifest('a1', { capabilities: [{ type: 'compute', domain: 'general' }] })
+    );
     const best = await registry.findBest({ type: 'compute' });
     expect(best).not.toBeNull();
     expect(best!.id).toBe('a1');

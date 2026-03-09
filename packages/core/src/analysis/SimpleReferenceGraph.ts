@@ -22,9 +22,15 @@ export class SimpleReferenceGraph {
     this.edges.get(fromId).add(toId);
     this.reverseEdges.get(toId).add(fromId);
   }
-  getReferences(id: string): string[] { return Array.from(this.edges.get(id) ?? []); }
-  getReferencedBy(id: string): string[] { return Array.from(this.reverseEdges.get(id) ?? []); }
-  getAllNodes(): SimpleGraphNode[] { return Array.from(this.nodes.values()); }
+  getReferences(id: string): string[] {
+    return Array.from(this.edges.get(id) ?? []);
+  }
+  getReferencedBy(id: string): string[] {
+    return Array.from(this.reverseEdges.get(id) ?? []);
+  }
+  getAllNodes(): SimpleGraphNode[] {
+    return Array.from(this.nodes.values());
+  }
   getUnreachable(entryPoints: string[]): SimpleGraphNode[] {
     const visited = new Set(entryPoints);
     const queue = [...entryPoints];
@@ -32,9 +38,12 @@ export class SimpleReferenceGraph {
     while (head < queue.length) {
       const current = queue[head++];
       for (const nb of this.edges.get(current) ?? []) {
-        if (visited.has(nb) === false) { visited.add(nb); queue.push(nb); }
+        if (visited.has(nb) === false) {
+          visited.add(nb);
+          queue.push(nb);
+        }
       }
     }
-    return Array.from(this.nodes.values()).filter(n => visited.has(n.id) === false);
+    return Array.from(this.nodes.values()).filter((n) => visited.has(n.id) === false);
   }
 }

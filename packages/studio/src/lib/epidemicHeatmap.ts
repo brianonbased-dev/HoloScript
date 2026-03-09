@@ -5,10 +5,18 @@
  * quarantine zone management, R0 estimation, and intervention planning.
  */
 
-export interface GeoPoint { lat: number; lon: number }
+export interface GeoPoint {
+  lat: number;
+  lon: number;
+}
 
 export type InfectionStatus = 'susceptible' | 'exposed' | 'infected' | 'recovered' | 'deceased';
-export type InterventionType = 'quarantine' | 'vaccination' | 'testing' | 'contact-trace' | 'lockdown';
+export type InterventionType =
+  | 'quarantine'
+  | 'vaccination'
+  | 'testing'
+  | 'contact-trace'
+  | 'lockdown';
 export type RiskLevel = 'low' | 'moderate' | 'high' | 'critical';
 
 export interface PopulationZone {
@@ -17,7 +25,7 @@ export interface PopulationZone {
   center: GeoPoint;
   radiusKm: number;
   population: number;
-  density: number;           // people per km²
+  density: number; // people per km²
   infected: number;
   recovered: number;
   deceased: number;
@@ -41,7 +49,7 @@ export interface QuarantineZone {
   startDate: number;
   endDate: number | null;
   population: number;
-  complianceRate: number;    // 0-1
+  complianceRate: number; // 0-1
 }
 
 export interface Intervention {
@@ -49,7 +57,7 @@ export interface Intervention {
   type: InterventionType;
   targetZoneId: string;
   startDate: number;
-  effectiveness: number;     // 0-1
+  effectiveness: number; // 0-1
   costPerDay: number;
   capacityPerDay: number;
 }
@@ -81,7 +89,7 @@ export function effectiveR(r0: number, immuneFraction: number): number {
 
 export function herdImmunityThreshold(r0: number): number {
   if (r0 <= 1) return 0;
-  return 1 - (1 / r0);
+  return 1 - 1 / r0;
 }
 
 export function infectionRate(zone: PopulationZone): number {
@@ -107,13 +115,13 @@ export function caseFatalityRate(deceased: number, totalCases: number): number {
 
 export function stepSEIR(
   state: SEIRState,
-  beta: number,              // transmission rate
-  sigma: number,             // incubation rate (1/latent period)
-  gamma: number,             // recovery rate (1/infectious period)
+  beta: number, // transmission rate
+  sigma: number, // incubation rate (1/latent period)
+  gamma: number // recovery rate (1/infectious period)
 ): SEIRState {
   const N = state.total;
-  const dS = -beta * state.susceptible * state.infected / N;
-  const dE = beta * state.susceptible * state.infected / N - sigma * state.exposed;
+  const dS = (-beta * state.susceptible * state.infected) / N;
+  const dE = (beta * state.susceptible * state.infected) / N - sigma * state.exposed;
   const dI = sigma * state.exposed - gamma * state.infected;
   const dR = gamma * state.infected;
   return {
@@ -130,12 +138,9 @@ export function stepSEIR(
 // ═══════════════════════════════════════════════════════════════════
 
 export function quarantineEffectiveness(zone: QuarantineZone): number {
-  const durationDays = zone.endDate
-    ? (zone.endDate - zone.startDate) / (1000 * 60 * 60 * 24)
-    : 14; // Default 14 days
-  const levelMultiplier = zone.restrictionLevel === 'enforced' ? 1.0
-    : zone.restrictionLevel === 'mandatory' ? 0.8
-    : 0.5;
+  const durationDays = zone.endDate ? (zone.endDate - zone.startDate) / (1000 * 60 * 60 * 24) : 14; // Default 14 days
+  const levelMultiplier =
+    zone.restrictionLevel === 'enforced' ? 1.0 : zone.restrictionLevel === 'mandatory' ? 0.8 : 0.5;
   return Math.min(1, zone.complianceRate * levelMultiplier * Math.min(1, durationDays / 14));
 }
 
@@ -162,8 +167,8 @@ export function daysToHerdImmunity(
 // ═══════════════════════════════════════════════════════════════════
 
 export interface ContactEdge {
-  from: string;  // patient ID
-  to: string;    // contact ID
+  from: string; // patient ID
+  to: string; // contact ID
   timestamp: number;
   location?: GeoPoint;
 }
@@ -171,7 +176,7 @@ export interface ContactEdge {
 export interface ContactGraph {
   nodes: string[];
   edges: ContactEdge[];
-  superSpreaders: string[];  // nodes with > threshold connections
+  superSpreaders: string[]; // nodes with > threshold connections
 }
 
 /**
@@ -252,9 +257,8 @@ export function icuCapacityProjection(
       overCapacity: icuPatients > availableBeds,
       surplusDeficit: Math.round(availableBeds - icuPatients),
     });
-    infected *= (1 + growthRatePerDay);
+    infected *= 1 + growthRatePerDay;
   }
 
   return projections;
 }
-

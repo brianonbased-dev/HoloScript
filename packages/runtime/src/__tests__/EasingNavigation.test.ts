@@ -70,9 +70,16 @@ describe('easing functions — Production', () => {
 
   it('all easings return 0 at t=0 and ~1 at t=1', () => {
     const fns = [
-      'linear', 'easeIn', 'easeOut', 'easeInOut',
-      'easeInCubic', 'easeOutCubic', 'easeInOutCubic',
-      'easeInElastic', 'easeOutElastic', 'easeOutBounce',
+      'linear',
+      'easeIn',
+      'easeOut',
+      'easeInOut',
+      'easeInCubic',
+      'easeOutCubic',
+      'easeInOutCubic',
+      'easeInElastic',
+      'easeOutElastic',
+      'easeOutBounce',
     ] as const;
     for (const name of fns) {
       expect(easing[name](0)).toBe(0);

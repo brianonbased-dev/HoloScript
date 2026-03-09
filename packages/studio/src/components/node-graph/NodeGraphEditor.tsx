@@ -58,7 +58,12 @@ function ConstantNode({ data }: { data: { label: string; value: number } }) {
         readOnly
         className="w-full rounded bg-studio-surface px-2 py-0.5 text-right text-xs outline-none"
       />
-      <Handle type="source" position={Position.Right} id="out" style={{ background: H.out, width: 8, height: 8 }} />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="out"
+        style={{ background: H.out, width: 8, height: 8 }}
+      />
     </div>
   );
 }
@@ -68,7 +73,12 @@ function TimeNode({ data }: { data: { label: string } }) {
     <div className={nodeBase}>
       <div className={nodeLabel}>{data.label}</div>
       <span className="text-xs text-studio-accent font-mono">uTime</span>
-      <Handle type="source" position={Position.Right} id="out" style={{ background: H.out, width: 8, height: 8 }} />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="out"
+        style={{ background: H.out, width: 8, height: 8 }}
+      />
     </div>
   );
 }
@@ -77,8 +87,15 @@ function UVNode({ data }: { data: { label: string; channel: number } }) {
   return (
     <div className={nodeBase}>
       <div className={nodeLabel}>{data.label}</div>
-      <span className="text-xs text-studio-text font-mono">vUv.{data.channel === 0 ? 'x' : 'y'}</span>
-      <Handle type="source" position={Position.Right} id="out" style={{ background: H.out, width: 8, height: 8 }} />
+      <span className="text-xs text-studio-text font-mono">
+        vUv.{data.channel === 0 ? 'x' : 'y'}
+      </span>
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="out"
+        style={{ background: H.out, width: 8, height: 8 }}
+      />
     </div>
   );
 }
@@ -88,9 +105,24 @@ function MathNode({ data }: { data: { label: string; op: string } }) {
     <div className={nodeBase}>
       <div className={nodeLabel}>{data.label}</div>
       <span className="font-mono text-xs text-studio-accent">{data.op}()</span>
-      <Handle type="target" position={Position.Left} id="a" style={{ top: '40%', background: H.in, width: 8, height: 8 }} />
-      <Handle type="target" position={Position.Left} id="b" style={{ top: '65%', background: H.in, width: 8, height: 8 }} />
-      <Handle type="source" position={Position.Right} id="out" style={{ background: H.out, width: 8, height: 8 }} />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="a"
+        style={{ top: '40%', background: H.in, width: 8, height: 8 }}
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="b"
+        style={{ top: '65%', background: H.in, width: 8, height: 8 }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="out"
+        style={{ background: H.out, width: 8, height: 8 }}
+      />
     </div>
   );
 }
@@ -100,8 +132,18 @@ function OutputNode({ data }: { data: { label: string; outputType: string } }) {
     <div className={`${nodeBase} border-studio-accent/50`}>
       <div className={nodeLabel}>Output</div>
       <span className="text-xs text-studio-accent">{data.outputType}</span>
-      <Handle type="target" position={Position.Left} id="rgb" style={{ top: '40%', background: H.in, width: 8, height: 8 }} />
-      <Handle type="target" position={Position.Left} id="alpha" style={{ top: '65%', background: H.in, width: 8, height: 8 }} />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="rgb"
+        style={{ top: '40%', background: H.in, width: 8, height: 8 }}
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="alpha"
+        style={{ top: '65%', background: H.in, width: 8, height: 8 }}
+      />
     </div>
   );
 }
@@ -117,15 +159,23 @@ const NODE_TYPES: NodeTypes = {
 // ─── Palette items ────────────────────────────────────────────────────────────
 
 const PALETTE = [
-  { label: 'Time',     type: 'timeNode',     data: { type: 'time',     label: 'Time' } },
-  { label: 'UV',       type: 'uvNode',        data: { type: 'uv',       label: 'UV',      channel: 0 } },
-  { label: 'Constant', type: 'constantNode',  data: { type: 'constant', label: 'Value',   value: 1.0 } },
-  { label: 'Sin',      type: 'mathNode',      data: { type: 'math',     label: 'Sin',     op: 'sin' } },
-  { label: 'Cos',      type: 'mathNode',      data: { type: 'math',     label: 'Cos',     op: 'cos' } },
-  { label: 'Mul',      type: 'mathNode',      data: { type: 'math',     label: 'Multiply', op: 'mul' } },
-  { label: 'Add',      type: 'mathNode',      data: { type: 'math',     label: 'Add',     op: 'add' } },
-  { label: 'Mix',      type: 'mathNode',      data: { type: 'math',     label: 'Mix',     op: 'mix' } },
-  { label: 'Output',   type: 'outputNode',    data: { type: 'output',   label: 'Output',  outputType: 'fragColor' } },
+  { label: 'Time', type: 'timeNode', data: { type: 'time', label: 'Time' } },
+  { label: 'UV', type: 'uvNode', data: { type: 'uv', label: 'UV', channel: 0 } },
+  {
+    label: 'Constant',
+    type: 'constantNode',
+    data: { type: 'constant', label: 'Value', value: 1.0 },
+  },
+  { label: 'Sin', type: 'mathNode', data: { type: 'math', label: 'Sin', op: 'sin' } },
+  { label: 'Cos', type: 'mathNode', data: { type: 'math', label: 'Cos', op: 'cos' } },
+  { label: 'Mul', type: 'mathNode', data: { type: 'math', label: 'Multiply', op: 'mul' } },
+  { label: 'Add', type: 'mathNode', data: { type: 'math', label: 'Add', op: 'add' } },
+  { label: 'Mix', type: 'mathNode', data: { type: 'math', label: 'Mix', op: 'mix' } },
+  {
+    label: 'Output',
+    type: 'outputNode',
+    data: { type: 'output', label: 'Output', outputType: 'fragColor' },
+  },
 ];
 
 // ─── Main editor ──────────────────────────────────────────────────────────────
@@ -138,12 +188,12 @@ interface NodeGraphEditorProps {
 let nodeSeq = 10;
 
 export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
-  const nodes         = useNodeGraphStore((s) => s.nodes);
-  const edges         = useNodeGraphStore((s) => s.edges);
-  const setNodes      = useNodeGraphStore((s) => s.setNodes);
-  const setEdges      = useNodeGraphStore((s) => s.setEdges);
+  const nodes = useNodeGraphStore((s) => s.nodes);
+  const edges = useNodeGraphStore((s) => s.edges);
+  const setNodes = useNodeGraphStore((s) => s.setNodes);
+  const setEdges = useNodeGraphStore((s) => s.setEdges);
   const setCompiledGLSL = useNodeGraphStore((s) => s.setCompiledGLSL);
-  const reset         = useNodeGraphStore((s) => s.reset);
+  const reset = useNodeGraphStore((s) => s.reset);
 
   const { canUndo, canRedo, record, undo, redo, clear } = useNodeGraphHistory();
 
@@ -157,11 +207,17 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
       if (e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
         const snap = undo({ nodes, edges });
-        if (snap) { setNodes(snap.nodes); setEdges(snap.edges); }
-      } else if ((e.key === 'Z' || (e.key === 'z' && e.shiftKey)) || e.key === 'y') {
+        if (snap) {
+          setNodes(snap.nodes);
+          setEdges(snap.edges);
+        }
+      } else if (e.key === 'Z' || (e.key === 'z' && e.shiftKey) || e.key === 'y') {
         e.preventDefault();
         const snap = redo({ nodes, edges });
-        if (snap) { setNodes(snap.nodes); setEdges(snap.edges); }
+        if (snap) {
+          setNodes(snap.nodes);
+          setEdges(snap.edges);
+        }
       }
     };
     window.addEventListener('keydown', handleKey);
@@ -192,7 +248,9 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
   // Stable signature: edge topology + node types (NOT positions)
   const graphSignature = useMemo(() => {
     const nodeKey = nodes.map((n) => `${n.id}:${n.type}:${JSON.stringify(n.data)}`).join('|');
-    const edgeKey = edges.map((e) => `${e.source}>${e.sourceHandle}->${e.target}>${e.targetHandle}`).join('|');
+    const edgeKey = edges
+      .map((e) => `${e.source}>${e.sourceHandle}->${e.target}>${e.targetHandle}`)
+      .join('|');
     return `${nodeKey}\n${edgeKey}`;
   }, [nodes, edges]);
 
@@ -216,18 +274,26 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
       if (statusTimer.current) clearTimeout(statusTimer.current);
       statusTimer.current = setTimeout(() => setAutoCompileStatus('idle'), 2000);
     }, 600);
-    return () => { if (autoCompileTimer.current) clearTimeout(autoCompileTimer.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      if (autoCompileTimer.current) clearTimeout(autoCompileTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graphSignature]);
 
   const handleUndo = useCallback(() => {
     const snap = undo({ nodes, edges });
-    if (snap) { setNodes(snap.nodes); setEdges(snap.edges); }
+    if (snap) {
+      setNodes(snap.nodes);
+      setEdges(snap.edges);
+    }
   }, [nodes, edges, undo, setNodes, setEdges]);
 
   const handleRedo = useCallback(() => {
     const snap = redo({ nodes, edges });
-    if (snap) { setNodes(snap.nodes); setEdges(snap.edges); }
+    if (snap) {
+      setNodes(snap.nodes);
+      setEdges(snap.edges);
+    }
   }, [nodes, edges, redo, setNodes, setEdges]);
 
   const handleReset = useCallback(() => {
@@ -236,18 +302,21 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
   }, [clear, reset]);
 
   const addNodeFromPalette = useCallback(
-    (item: typeof PALETTE[0]) => {
+    (item: (typeof PALETTE)[0]) => {
       record(nodes, edges);
       const id = `node_${++nodeSeq}`;
-      setNodes((ns) => [
-        ...ns,
-        {
-          id,
-          type: item.type,
-          position: { x: 200 + Math.random() * 100, y: 100 + Math.random() * 200 },
-          data: { ...item.data },
-        },
-      ] as GNode[]);
+      setNodes(
+        (ns) =>
+          [
+            ...ns,
+            {
+              id,
+              type: item.type,
+              position: { x: 200 + Math.random() * 100, y: 100 + Math.random() * 200 },
+              data: { ...item.data },
+            },
+          ] as GNode[]
+      );
     },
     [setNodes, record, nodes, edges]
   );
@@ -258,7 +327,9 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
     <div className="flex h-full flex-col bg-[#0a0a12]">
       {/* Toolbar */}
       <div className="flex h-10 shrink-0 items-center gap-1.5 border-b border-studio-border px-3">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted mr-2">Add Node:</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted mr-2">
+          Add Node:
+        </span>
         {PALETTE.map((item) => (
           <button
             key={`${item.type}-${item.label}`}
@@ -297,7 +368,9 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
           {autoCompileStatus !== 'idle' && (
             <span
               className={`text-[9px] px-1.5 py-0.5 rounded font-mono transition-opacity ${
-                autoCompileStatus === 'ok' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                autoCompileStatus === 'ok'
+                  ? 'bg-green-500/20 text-green-400'
+                  : 'bg-red-500/20 text-red-400'
               }`}
             >
               {autoCompileStatus === 'ok' ? '✓ compiled' : '✗ error'}
@@ -332,16 +405,19 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
           onNodesChange={(changes) => {
             const hasRemove = changes.some((c) => c.type === 'remove');
             if (hasRemove) record(nodes, edges);
-            setNodes((ns) =>
-              ns.map((n) => {
-                const change = changes.find((c) => c.type === 'position' && c.id === n.id);
-                if (change && change.type === 'position' && change.position) {
-                  return { ...n, position: change.position };
-                }
-                const rem = changes.find((c) => c.type === 'remove' && c.id === n.id);
-                if (rem) return null;
-                return n;
-              }).filter(Boolean) as typeof ns
+            setNodes(
+              (ns) =>
+                ns
+                  .map((n) => {
+                    const change = changes.find((c) => c.type === 'position' && c.id === n.id);
+                    if (change && change.type === 'position' && change.position) {
+                      return { ...n, position: change.position };
+                    }
+                    const rem = changes.find((c) => c.type === 'remove' && c.id === n.id);
+                    if (rem) return null;
+                    return n;
+                  })
+                  .filter(Boolean) as typeof ns
             );
           }}
           onEdgesChange={(changes) => {

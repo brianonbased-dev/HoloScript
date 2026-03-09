@@ -33,11 +33,9 @@ describe('SelfImprovementPipeline', () => {
     });
 
     test('should capture parse errors via convenience method', () => {
-      pipeline.captureParseError(
-        'Create a template',
-        'template "Test" { geometry: "cube" ',
-        ['unexpected end of input'],
-      );
+      pipeline.captureParseError('Create a template', 'template "Test" { geometry: "cube" ', [
+        'unexpected end of input',
+      ]);
 
       const stats = pipeline.getStats();
       expect(stats.totalCaptures).toBe(1);
@@ -87,9 +85,7 @@ describe('SelfImprovementPipeline', () => {
       expect(examples.length).toBeGreaterThan(0);
 
       // Corrected code should have "sphere"
-      const fixExample = examples.find((e) =>
-        e.instruction.includes('Fix the following'),
-      );
+      const fixExample = examples.find((e) => e.instruction.includes('Fix the following'));
       expect(fixExample?.output).toContain('geometry: "sphere"');
     });
 
@@ -105,9 +101,7 @@ describe('SelfImprovementPipeline', () => {
       });
 
       const examples = pipeline.getTrainingExamples();
-      const fixExample = examples.find((e) =>
-        e.instruction.includes('Fix the following'),
-      );
+      const fixExample = examples.find((e) => e.instruction.includes('Fix the following'));
       // Should close the missing braces
       expect(fixExample?.output).toBeDefined();
       const closeBraces = (fixExample?.output.match(/}/g) || []).length;
@@ -127,9 +121,7 @@ describe('SelfImprovementPipeline', () => {
       });
 
       const examples = pipeline.getTrainingExamples();
-      const fixExample = examples.find((e) =>
-        e.instruction.includes('Fix the following'),
-      );
+      const fixExample = examples.find((e) => e.instruction.includes('Fix the following'));
       expect(fixExample?.output).toContain('rotation.y');
     });
 
@@ -145,9 +137,7 @@ describe('SelfImprovementPipeline', () => {
       });
 
       const examples = pipeline.getTrainingExamples();
-      const fixExample = examples.find((e) =>
-        e.instruction.includes('Fix the following'),
-      );
+      const fixExample = examples.find((e) => e.instruction.includes('Fix the following'));
       expect(fixExample?.output).toContain('@grabbable');
     });
   });

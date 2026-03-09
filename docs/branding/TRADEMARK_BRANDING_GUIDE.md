@@ -24,33 +24,33 @@ These are proprietary trademarks owned by the HoloScript project.
 
 ### Core Trademarks
 
-| Trademark | Status | Description | First Use | Usage Context |
-|-----------|--------|-------------|-----------|---------------|
-| **HoloScript** | ✅ Primary | The core language for building VR/XR experiences | 2024 | Language name, package names, documentation |
-| **HoloScript Plus** | ✅ Active | Extended language version with VR traits | 2024 | `.hsplus` files, advanced features |
-| **HoloHub** | ✅ Active | Marketplace and asset distribution platform | 2024 | Asset marketplace, community hub, plugin discovery |
-| **StoryWeaver Protocol** | ✅ Active | AI-generated narrative worlds system | 2025 | AI narrative generation, business quests |
-| **VRR (Virtual Reality Reality)** | ✅ Active | 1:1 digital twin layer in Hololand architecture | 2024 | Real-world synchronization, AR→VRR→VR pipeline |
-| **Hololand** | ✅ Active | 3-layer immersive platform (AR → VRR → VR) | 2024 | Platform name, ecosystem integration |
+| Trademark                         | Status     | Description                                      | First Use | Usage Context                                      |
+| --------------------------------- | ---------- | ------------------------------------------------ | --------- | -------------------------------------------------- |
+| **HoloScript**                    | ✅ Primary | The core language for building VR/XR experiences | 2024      | Language name, package names, documentation        |
+| **HoloScript Plus**               | ✅ Active  | Extended language version with VR traits         | 2024      | `.hsplus` files, advanced features                 |
+| **HoloHub**                       | ✅ Active  | Marketplace and asset distribution platform      | 2024      | Asset marketplace, community hub, plugin discovery |
+| **StoryWeaver Protocol**          | ✅ Active  | AI-generated narrative worlds system             | 2025      | AI narrative generation, business quests           |
+| **VRR (Virtual Reality Reality)** | ✅ Active  | 1:1 digital twin layer in Hololand architecture  | 2024      | Real-world synchronization, AR→VRR→VR pipeline     |
+| **Hololand**                      | ✅ Active  | 3-layer immersive platform (AR → VRR → VR)       | 2024      | Platform name, ecosystem integration               |
 
 ### Feature Brands
 
-| Trademark | Status | Description | Usage |
-|-----------|--------|-------------|-------|
-| **x402 Protocol** | ✅ Active | HTTP 402 "Payment Required" blockchain payment system | Machine-to-machine payments, layer access fees |
-| **HoloComposer** | 🔄 Proposed | Visual composition tool for HoloScript | IDE integration, drag-drop editor |
-| **HoloRuntime** | ⚠️ Generic | Runtime execution engine | Internal use only, not consumer-facing |
+| Trademark         | Status      | Description                                           | Usage                                          |
+| ----------------- | ----------- | ----------------------------------------------------- | ---------------------------------------------- |
+| **x402 Protocol** | ✅ Active   | HTTP 402 "Payment Required" blockchain payment system | Machine-to-machine payments, layer access fees |
+| **HoloComposer**  | 🔄 Proposed | Visual composition tool for HoloScript                | IDE integration, drag-drop editor              |
+| **HoloRuntime**   | ⚠️ Generic  | Runtime execution engine                              | Internal use only, not consumer-facing         |
 
 ### Hololand Platform Brands
 
-| Trademark | Status | Description | First Use | Usage Context |
-|-----------|--------|-------------|-----------|---------------|
-| **Hololand Platform** | ✅ Active | Commercial platform service (hosting, AI agents, payment processing) | 2024 | Platform-as-a-Service offering, 20% platform fee |
-| **Infinity Assistant** | ✅ Active | AI building service for VR/AR world creation | 2024 | infinityassistant.io, AI-powered builder |
-| **Brittney** / **Brittney AI** | ✅ Active | AI architect and building assistant | 2024 | World builder, code generator, 403.7K training samples |
-| **HololandCanvas** | ✅ Active | React component for VR rendering | 2024 | `@hololand/react-three` package |
-| **HololandObject** | ✅ Active | React component for 3D objects | 2024 | `@hololand/react-three` package |
-| **HololandAIBridge** | ✅ Active | AI integration bridge component | 2024 | `@hololand/ai-bridge` package |
+| Trademark                      | Status    | Description                                                          | First Use | Usage Context                                          |
+| ------------------------------ | --------- | -------------------------------------------------------------------- | --------- | ------------------------------------------------------ |
+| **Hololand Platform**          | ✅ Active | Commercial platform service (hosting, AI agents, payment processing) | 2024      | Platform-as-a-Service offering, 20% platform fee       |
+| **Infinity Assistant**         | ✅ Active | AI building service for VR/AR world creation                         | 2024      | infinityassistant.io, AI-powered builder               |
+| **Brittney** / **Brittney AI** | ✅ Active | AI architect and building assistant                                  | 2024      | World builder, code generator, 403.7K training samples |
+| **HololandCanvas**             | ✅ Active | React component for VR rendering                                     | 2024      | `@hololand/react-three` package                        |
+| **HololandObject**             | ✅ Active | React component for 3D objects                                       | 2024      | `@hololand/react-three` package                        |
+| **HololandAIBridge**           | ✅ Active | AI integration bridge component                                      | 2024      | `@hololand/ai-bridge` package                          |
 
 ---
 
@@ -60,42 +60,42 @@ These are trademarks owned by third parties that HoloScript integrates with.
 
 ### Blockchain & Web3
 
-| Trademark | Owner | License | Usage |
-|-----------|-------|---------|-------|
-| **Coinbase** | Coinbase Global, Inc. | Trademark Fair Use | Integration references, documentation |
-| **Base L2** | Coinbase Global, Inc. | Trademark Fair Use | Blockchain network references |
-| **AgentKit** | Coinbase Global, Inc. | Apache 2.0 License | AI agent wallet SDK integration |
-| **Zora Protocol** | Zora Labs, Inc. | Trademark Fair Use | NFT marketplace integration |
-| **Ethereum** | Ethereum Foundation | Trademark Fair Use | Blockchain references |
+| Trademark         | Owner                 | License            | Usage                                 |
+| ----------------- | --------------------- | ------------------ | ------------------------------------- |
+| **Coinbase**      | Coinbase Global, Inc. | Trademark Fair Use | Integration references, documentation |
+| **Base L2**       | Coinbase Global, Inc. | Trademark Fair Use | Blockchain network references         |
+| **AgentKit**      | Coinbase Global, Inc. | Apache 2.0 License | AI agent wallet SDK integration       |
+| **Zora Protocol** | Zora Labs, Inc.       | Trademark Fair Use | NFT marketplace integration           |
+| **Ethereum**      | Ethereum Foundation   | Trademark Fair Use | Blockchain references                 |
 
 ### AI & Services
 
-| Trademark | Owner | License | Usage |
-|-----------|-------|---------|-------|
-| **OpenAI** | OpenAI, Inc. | Trademark Fair Use | AI service provider references |
-| **GPT-4** | OpenAI, Inc. | Trademark Fair Use | LLM model references |
-| **DALL-E 3** | OpenAI, Inc. | Trademark Fair Use | Image generation references |
-| **Claude** | Anthropic PBC | Trademark Fair Use | LLM model references |
-| **Gemini** | Google LLC | Trademark Fair Use | LLM model references |
+| Trademark    | Owner         | License            | Usage                          |
+| ------------ | ------------- | ------------------ | ------------------------------ |
+| **OpenAI**   | OpenAI, Inc.  | Trademark Fair Use | AI service provider references |
+| **GPT-4**    | OpenAI, Inc.  | Trademark Fair Use | LLM model references           |
+| **DALL-E 3** | OpenAI, Inc.  | Trademark Fair Use | Image generation references    |
+| **Claude**   | Anthropic PBC | Trademark Fair Use | LLM model references           |
+| **Gemini**   | Google LLC    | Trademark Fair Use | LLM model references           |
 
 ### Platforms & IDEs
 
-| Trademark | Owner | License | Usage |
-|-----------|-------|---------|-------|
-| **Visual Studio Code** | Microsoft Corporation | Trademark Fair Use | Plugin integration |
-| **IntelliJ IDEA** | JetBrains s.r.o. | Trademark Fair Use | Plugin integration |
-| **Neovim** | Neovim Contributors | Apache 2.0 | Plugin integration |
-| **Unity** | Unity Technologies | Trademark Fair Use | Export target references |
-| **Unreal Engine** | Epic Games, Inc. | Trademark Fair Use | Export target references |
-| **Godot** | Godot Engine Community | MIT License | Export target references |
+| Trademark              | Owner                  | License            | Usage                    |
+| ---------------------- | ---------------------- | ------------------ | ------------------------ |
+| **Visual Studio Code** | Microsoft Corporation  | Trademark Fair Use | Plugin integration       |
+| **IntelliJ IDEA**      | JetBrains s.r.o.       | Trademark Fair Use | Plugin integration       |
+| **Neovim**             | Neovim Contributors    | Apache 2.0         | Plugin integration       |
+| **Unity**              | Unity Technologies     | Trademark Fair Use | Export target references |
+| **Unreal Engine**      | Epic Games, Inc.       | Trademark Fair Use | Export target references |
+| **Godot**              | Godot Engine Community | MIT License        | Export target references |
 
 ### APIs & Services
 
-| Trademark | Owner | License | Usage |
-|-----------|-------|---------|-------|
-| **Weather.gov** | NOAA (U.S. Government) | Public Domain | VRR weather sync API |
-| **Eventbrite** | Eventbrite, Inc. | API Terms of Service | VRR event sync API |
-| **Square POS** | Block, Inc. | API Terms of Service | VRR inventory sync API |
+| Trademark       | Owner                  | License              | Usage                  |
+| --------------- | ---------------------- | -------------------- | ---------------------- |
+| **Weather.gov** | NOAA (U.S. Government) | Public Domain        | VRR weather sync API   |
+| **Eventbrite**  | Eventbrite, Inc.       | API Terms of Service | VRR event sync API     |
+| **Square POS**  | Block, Inc.            | API Terms of Service | VRR inventory sync API |
 
 ---
 
@@ -103,14 +103,14 @@ These are trademarks owned by third parties that HoloScript integrates with.
 
 These are technical protocol/framework names (may have generic/descriptive status).
 
-| Name | Type | Description | Protection Level |
-|------|------|-------------|------------------|
-| **uAA2++ Protocol** | Framework | Universal Autonomous Agent Protocol v2++ | ⚠️ Descriptive (low protection) |
-| **Infinity Protocol** | Framework | Self-perpetuating agent protocol | ⚠️ Descriptive (low protection) |
-| **IDEA Protocol** | Framework | Initialize-Discover-Execute-Affirm workflow | ⚠️ Acronym (low protection) |
-| **WebGPU** | Standard | W3C graphics API | Public Standard |
-| **WebRTC** | Standard | W3C real-time communication | Public Standard |
-| **OpenXR** | Standard | Khronos Group XR standard | Public Standard |
+| Name                  | Type      | Description                                 | Protection Level                |
+| --------------------- | --------- | ------------------------------------------- | ------------------------------- |
+| **uAA2++ Protocol**   | Framework | Universal Autonomous Agent Protocol v2++    | ⚠️ Descriptive (low protection) |
+| **Infinity Protocol** | Framework | Self-perpetuating agent protocol            | ⚠️ Descriptive (low protection) |
+| **IDEA Protocol**     | Framework | Initialize-Discover-Execute-Affirm workflow | ⚠️ Acronym (low protection)     |
+| **WebGPU**            | Standard  | W3C graphics API                            | Public Standard                 |
+| **WebRTC**            | Standard  | W3C real-time communication                 | Public Standard                 |
+| **OpenXR**            | Standard  | Khronos Group XR standard                   | Public Standard                 |
 
 ---
 
@@ -118,11 +118,11 @@ These are technical protocol/framework names (may have generic/descriptive statu
 
 These are fictional business/project names used in examples and tutorials.
 
-| Name | Type | Usage | Status |
-|------|------|-------|--------|
-| **Phoenix Brew** | Business Example | Coffee shop used throughout tutorials | 🎭 Fictional (safe to use) |
-| **Downtown Seattle VRR** | Location Example | Example VRR twin location | 🎭 Fictional (safe to use) |
-| **Treasure Hunt Quest** | Quest Example | Example business quest | 🎭 Fictional (safe to use) |
+| Name                     | Type             | Usage                                 | Status                     |
+| ------------------------ | ---------------- | ------------------------------------- | -------------------------- |
+| **Phoenix Brew**         | Business Example | Coffee shop used throughout tutorials | 🎭 Fictional (safe to use) |
+| **Downtown Seattle VRR** | Location Example | Example VRR twin location             | 🎭 Fictional (safe to use) |
+| **Treasure Hunt Quest**  | Quest Example    | Example business quest                | 🎭 Fictional (safe to use) |
 
 ---
 
@@ -276,17 +276,17 @@ Use this in source files:
 
 ### Completed Rebrands
 
-| Old Name | New Name | Date | Reason | Repository | Files Affected |
-|----------|----------|------|--------|------------|----------------|
-| PageMaster | StoryWeaver Protocol | 2025-02-19 | Better clarity, avoid conflicts | HoloScript | 7 files, 61 references |
-| PageMaster | StoryWeaver Protocol | 2025-02-19 | Consistency with HoloScript rebrand | Hololand | 18 files, 100+ references |
+| Old Name   | New Name             | Date       | Reason                              | Repository | Files Affected            |
+| ---------- | -------------------- | ---------- | ----------------------------------- | ---------- | ------------------------- |
+| PageMaster | StoryWeaver Protocol | 2025-02-19 | Better clarity, avoid conflicts     | HoloScript | 7 files, 61 references    |
+| PageMaster | StoryWeaver Protocol | 2025-02-19 | Consistency with HoloScript rebrand | Hololand   | 18 files, 100+ references |
 
 ### Future Rebrands (Proposed)
 
-| Current Name | Proposed New Name | Reason | Status |
-|--------------|-------------------|--------|--------|
-| HoloRuntime | _Keep as-is_ | Internal use only | ✅ Decided |
-| HoloComposer | _TBD_ | Market research needed | 🔄 Under review |
+| Current Name | Proposed New Name | Reason                 | Status          |
+| ------------ | ----------------- | ---------------------- | --------------- |
+| HoloRuntime  | _Keep as-is_      | Internal use only      | ✅ Decided      |
+| HoloComposer | _TBD_             | Market research needed | 🔄 Under review |
 
 ---
 
@@ -366,9 +366,9 @@ X402 payments use agentkit wallets on BASE.
 
 ## Revision History
 
-| Version | Date | Changes | Author |
-|---------|------|---------|--------|
-| 1.0.0 | 2025-02-19 | Initial creation after StoryWeaver rebrand | Claude |
+| Version | Date       | Changes                                    | Author |
+| ------- | ---------- | ------------------------------------------ | ------ |
+| 1.0.0   | 2025-02-19 | Initial creation after StoryWeaver rebrand | Claude |
 
 ---
 
@@ -378,4 +378,4 @@ X402 payments use agentkit wallets on BASE.
 
 ---
 
-*This document is part of the HoloScript project. All trademarks are property of their respective owners.*
+_This document is part of the HoloScript project. All trademarks are property of their respective owners._

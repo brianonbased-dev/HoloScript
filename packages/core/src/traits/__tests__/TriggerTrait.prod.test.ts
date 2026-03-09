@@ -273,7 +273,6 @@ describe('TriggerTrait.setEnabled', () => {
   });
 });
 
-
 describe('TriggerTrait.on/off', () => {
   it('off removes listener', () => {
     const t = new TriggerTrait();
@@ -285,8 +284,10 @@ describe('TriggerTrait.on/off', () => {
   });
   it('multiple listeners fire', () => {
     const t = new TriggerTrait();
-    const cb1 = vi.fn(); const cb2 = vi.fn();
-    t.on('enter', cb1); t.on('enter', cb2);
+    const cb1 = vi.fn();
+    const cb2 = vi.fn();
+    t.on('enter', cb1);
+    t.on('enter', cb2);
     t.handleEnter('x');
     expect(cb1).toHaveBeenCalled();
     expect(cb2).toHaveBeenCalled();

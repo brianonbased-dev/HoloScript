@@ -332,7 +332,7 @@ describe('Feature 6: TelemetryCollector', () => {
     const tc = new TelemetryCollector();
     tc.recordEvent('task_completed', 'agentX');
     const recent = tc.getRecentEvents(10);
-    expect(recent.some(e => e.agentId === 'agentX')).toBe(true);
+    expect(recent.some((e) => e.agentId === 'agentX')).toBe(true);
   });
 
   it('startSpan returns a TraceSpan', () => {
@@ -363,7 +363,9 @@ describe('Feature 6: TelemetryCollector', () => {
 describe('Feature 7: AgentInspector', () => {
   function makeManifest(id: string) {
     return {
-      id, name: id, version: '1.0.0',
+      id,
+      name: id,
+      version: '1.0.0',
       capabilities: [],
       endpoints: [],
     };
@@ -427,8 +429,13 @@ describe('Feature 7: AgentInspector', () => {
 describe('Feature 8: AuditLogger', () => {
   function makeEvent(action: string, outcome: 'success' | 'failure' | 'denied' = 'success') {
     return {
-      tenantId: 'org1', actorId: 'user1', actorType: 'user' as const,
-      action, resource: 'config', outcome, metadata: {},
+      tenantId: 'org1',
+      actorId: 'user1',
+      actorType: 'user' as const,
+      action,
+      resource: 'config',
+      outcome,
+      metadata: {},
     };
   }
 
@@ -523,8 +530,7 @@ describe('Feature 9: AuditQuery (AuditQueryBuilder)', () => {
   });
 
   it('chain methods fluently', () => {
-    const filter = new AuditQuery()
-      .tenant('org').actor('admin').action('write').limit(10).build();
+    const filter = new AuditQuery().tenant('org').actor('admin').action('write').limit(10).build();
     expect(filter.tenantId).toBe('org');
     expect(filter.actorId).toBe('admin');
     expect(filter.limit).toBe(10);
@@ -532,7 +538,15 @@ describe('Feature 9: AuditQuery (AuditQueryBuilder)', () => {
 
   it('AuditQuery used with AuditLogger.query', () => {
     const al = new AuditLogger();
-    al.log({ tenantId: 'corp', actorId: 'u1', actorType: 'user', action: 'view', resource: 'report', outcome: 'success', metadata: {} });
+    al.log({
+      tenantId: 'corp',
+      actorId: 'u1',
+      actorType: 'user',
+      action: 'view',
+      resource: 'report',
+      outcome: 'success',
+      metadata: {},
+    });
     const filter = new AuditQuery().tenant('corp').build();
     expect(al.query(filter)).toHaveLength(1);
   });

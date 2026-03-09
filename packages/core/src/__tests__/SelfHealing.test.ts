@@ -39,7 +39,9 @@ function makeFailure(type: FailureType = 'unknown', agentId = 'agent-1'): IAgent
 }
 
 describe('SelfHealingService', () => {
-  beforeEach(() => { failureCounter = 0; });
+  beforeEach(() => {
+    failureCounter = 0;
+  });
 
   it('registerStrategy adds a strategy', () => {
     const shs = new SelfHealingService();
@@ -113,7 +115,7 @@ describe('SelfHealingService', () => {
     const patterns = shs.getFailurePatterns();
     expect(patterns.length).toBeGreaterThanOrEqual(1);
     // Check that the pattern has been seen multiple times
-    const unknownPattern = patterns.find(p => p.errorType === 'unknown');
+    const unknownPattern = patterns.find((p) => p.errorType === 'unknown');
     expect(unknownPattern).toBeDefined();
   });
 

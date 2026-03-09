@@ -12,11 +12,11 @@
 // =============================================================================
 
 export interface BloomConfig {
-  threshold: number;      // Brightness threshold
-  softKnee: number;       // Smooth transition around threshold
-  intensity: number;      // Final bloom strength
-  radius: number;         // Blur radius
-  passes: number;         // Number of blur iterations
+  threshold: number; // Brightness threshold
+  softKnee: number; // Smooth transition around threshold
+  intensity: number; // Final bloom strength
+  radius: number; // Blur radius
+  passes: number; // Number of blur iterations
   enabled: boolean;
 }
 
@@ -38,13 +38,27 @@ export class BloomEffect {
   // Configuration
   // ---------------------------------------------------------------------------
 
-  setThreshold(val: number): void { this.config.threshold = Math.max(0, val); }
-  setSoftKnee(val: number): void { this.config.softKnee = Math.max(0, Math.min(1, val)); }
-  setIntensity(val: number): void { this.config.intensity = Math.max(0, val); }
-  setRadius(val: number): void { this.config.radius = Math.max(1, Math.floor(val)); }
-  setPasses(val: number): void { this.config.passes = Math.max(1, Math.floor(val)); }
-  setEnabled(val: boolean): void { this.config.enabled = val; }
-  getConfig(): BloomConfig { return { ...this.config }; }
+  setThreshold(val: number): void {
+    this.config.threshold = Math.max(0, val);
+  }
+  setSoftKnee(val: number): void {
+    this.config.softKnee = Math.max(0, Math.min(1, val));
+  }
+  setIntensity(val: number): void {
+    this.config.intensity = Math.max(0, val);
+  }
+  setRadius(val: number): void {
+    this.config.radius = Math.max(1, Math.floor(val));
+  }
+  setPasses(val: number): void {
+    this.config.passes = Math.max(1, Math.floor(val));
+  }
+  setEnabled(val: boolean): void {
+    this.config.enabled = val;
+  }
+  getConfig(): BloomConfig {
+    return { ...this.config };
+  }
 
   // ---------------------------------------------------------------------------
   // Processing Steps
@@ -93,11 +107,18 @@ export class BloomEffect {
     // Simple box blur (horizontal only for performance)
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        let r = 0, g = 0, b = 0, a = 0, count = 0;
+        let r = 0,
+          g = 0,
+          b = 0,
+          a = 0,
+          count = 0;
         for (let dx = -radius; dx <= radius; dx++) {
           const sx = Math.max(0, Math.min(width - 1, x + dx));
           const idx = (y * width + sx) * 4;
-          r += pixels[idx]; g += pixels[idx + 1]; b += pixels[idx + 2]; a += pixels[idx + 3];
+          r += pixels[idx];
+          g += pixels[idx + 1];
+          b += pixels[idx + 2];
+          a += pixels[idx + 3];
           count++;
         }
         const idx = (y * width + x) * 4;

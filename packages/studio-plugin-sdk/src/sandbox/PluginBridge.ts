@@ -34,19 +34,19 @@ import type { PluginSandbox } from './PluginSandbox.js';
  * Maps API namespaces to the permissions they require.
  */
 const NAMESPACE_PERMISSION_MAP: Record<string, SandboxPermission[]> = {
-  'scene.read':       ['scene:read'],
-  'scene.write':      ['scene:write'],
-  'scene.subscribe':  ['scene:subscribe'],
+  'scene.read': ['scene:read'],
+  'scene.write': ['scene:write'],
+  'scene.subscribe': ['scene:subscribe'],
   'editor.selection': ['editor:selection'],
-  'editor.viewport':  ['editor:viewport'],
-  'editor.undo':      ['editor:undo'],
-  'ui.panel':         ['ui:panel'],
-  'ui.toolbar':       ['ui:toolbar'],
-  'ui.menu':          ['ui:menu'],
-  'ui.modal':         ['ui:modal'],
-  'ui.notification':  ['ui:notification'],
-  'ui.theme':         ['ui:theme'],
-  'user.read':        ['user:read'],
+  'editor.viewport': ['editor:viewport'],
+  'editor.undo': ['editor:undo'],
+  'ui.panel': ['ui:panel'],
+  'ui.toolbar': ['ui:toolbar'],
+  'ui.menu': ['ui:menu'],
+  'ui.modal': ['ui:modal'],
+  'ui.notification': ['ui:notification'],
+  'ui.theme': ['ui:theme'],
+  'user.read': ['user:read'],
 };
 
 /**
@@ -60,11 +60,11 @@ interface RateLimitConfig {
 }
 
 const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
-  'api-call':   { maxCalls: 100, windowMs: 1000 },   // 100 API calls/sec
-  'storage':    { maxCalls: 50,  windowMs: 1000 },    // 50 storage ops/sec
-  'fetch':      { maxCalls: 10,  windowMs: 1000 },    // 10 network requests/sec
-  'clipboard':  { maxCalls: 5,   windowMs: 5000 },    // 5 clipboard ops per 5 sec
-  'register':   { maxCalls: 50,  windowMs: 60000 },   // 50 registrations per minute
+  'api-call': { maxCalls: 100, windowMs: 1000 }, // 100 API calls/sec
+  storage: { maxCalls: 50, windowMs: 1000 }, // 50 storage ops/sec
+  fetch: { maxCalls: 10, windowMs: 1000 }, // 10 network requests/sec
+  clipboard: { maxCalls: 5, windowMs: 5000 }, // 5 clipboard ops per 5 sec
+  register: { maxCalls: 50, windowMs: 60000 }, // 50 registrations per minute
 };
 
 /**
@@ -113,7 +113,7 @@ export type APIHandler = (
   pluginId: string,
   namespace: string,
   method: string,
-  args: unknown[],
+  args: unknown[]
 ) => Promise<unknown>;
 
 /**
@@ -124,7 +124,7 @@ export type StorageHandler = (
   scope: 'local' | 'project',
   operation: 'get' | 'set' | 'delete' | 'keys',
   key?: string,
-  value?: unknown,
+  value?: unknown
 ) => Promise<unknown>;
 
 /**
@@ -133,7 +133,7 @@ export type StorageHandler = (
 export type FetchHandler = (
   pluginId: string,
   url: string,
-  options?: { method?: string; headers?: Record<string, string>; body?: string },
+  options?: { method?: string; headers?: Record<string, string>; body?: string }
 ) => Promise<{ status: number; headers: Record<string, string>; body: string }>;
 
 /**
@@ -142,7 +142,7 @@ export type FetchHandler = (
 export type RegisterHandler = (
   pluginId: string,
   kind: string,
-  descriptor: Record<string, unknown>,
+  descriptor: Record<string, unknown>
 ) => Promise<void>;
 
 /**
@@ -293,17 +293,20 @@ export class PluginBridge {
     }
 
     // 2. Check permission
-    const requiredPermissions = NAMESPACE_PERMISSION_MAP[permissionKey]
-      ?? NAMESPACE_PERMISSION_MAP[`${namespace}.*`]
-      ?? this.inferPermission(namespace, method);
+    const requiredPermissions =
+      NAMESPACE_PERMISSION_MAP[permissionKey] ??
+      NAMESPACE_PERMISSION_MAP[`${namespace}.*`] ??
+      this.inferPermission(namespace, method);
 
     if (requiredPermissions.length > 0) {
-      const hasAllPermissions = requiredPermissions.every((perm) => this.sandbox.hasPermission(perm));
+      const hasAllPermissions = requiredPermissions.every((perm) =>
+        this.sandbox.hasPermission(perm)
+      );
       if (!hasAllPermissions) {
         const missing = requiredPermissions.filter((perm) => !this.sandbox.hasPermission(perm));
         this.sandbox.recordPermissionViolation(
           missing[0],
-          `API call ${namespace}.${method} requires ${missing.join(', ')}`,
+          `API call ${namespace}.${method} requires ${missing.join(', ')}`
         );
         this.sandbox.sendResponse(message.id, false, undefined, {
           code: 'PERMISSION_DENIED',
@@ -350,7 +353,8 @@ export class PluginBridge {
     }
 
     // Check permission
-    const requiredPermission: SandboxPermission = scope === 'local' ? 'storage:local' : 'storage:project';
+    const requiredPermission: SandboxPermission =
+      scope === 'local' ? 'storage:local' : 'storage:project';
     if (!this.sandbox.hasPermission(requiredPermission)) {
       this.sandbox.recordPermissionViolation(requiredPermission, `Storage ${scope}.${operation}`);
       this.sandbox.sendResponse(message.id, false, undefined, {
@@ -453,7 +457,8 @@ export class PluginBridge {
     }
 
     // Check permission
-    const requiredPermission: SandboxPermission = operation === 'read' ? 'clipboard:read' : 'clipboard:write';
+    const requiredPermission: SandboxPermission =
+      operation === 'read' ? 'clipboard:read' : 'clipboard:write';
     if (!this.sandbox.hasPermission(requiredPermission)) {
       this.sandbox.recordPermissionViolation(requiredPermission, `Clipboard ${operation}`);
       this.sandbox.sendResponse(message.id, false, undefined, {
@@ -503,7 +508,7 @@ export class PluginBridge {
 
     // Map registration kind to required permission
     const kindPermissionMap: Record<string, SandboxPermission> = {
-      'panel': 'ui:panel',
+      panel: 'ui:panel',
       'toolbar-button': 'ui:toolbar',
       'menu-item': 'ui:menu',
       'keyboard-shortcut': 'keyboard:shortcuts',
@@ -570,7 +575,9 @@ export class PluginBridge {
 
       // Get network policy from manifest
       // Access the manifest through sandbox options
-      const networkPolicy = (this.sandbox as any).options?.manifest?.networkPolicy as NetworkPolicy | undefined;
+      const networkPolicy = (this.sandbox as any).options?.manifest?.networkPolicy as
+        | NetworkPolicy
+        | undefined;
 
       if (!networkPolicy) {
         // No network policy = no URLs allowed

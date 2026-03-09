@@ -14,7 +14,13 @@ import type { TraitHandler } from './TraitTypes';
 // TYPES
 // =============================================================================
 
-export type TextureStyle = 'photorealistic' | 'stylized' | 'cartoon' | 'sci-fi' | 'fantasy' | 'abstract';
+export type TextureStyle =
+  | 'photorealistic'
+  | 'stylized'
+  | 'cartoon'
+  | 'sci-fi'
+  | 'fantasy'
+  | 'abstract';
 export type TextureResolution = 256 | 512 | 1024 | 2048 | 4096;
 export type MaterialType = 'diffuse' | 'pbr' | 'emissive' | 'transparent';
 
@@ -22,7 +28,7 @@ export interface AiTextureGenConfig {
   style: TextureStyle;
   resolution: TextureResolution;
   seamless: boolean;
-  tiling_factor: number;   // how many times the texture tiles across UV space
+  tiling_factor: number; // how many times the texture tiles across UV space
   uv_space: 'object' | 'world' | 'triplanar';
   material_type: MaterialType;
   generate_normal_map: boolean;
@@ -40,7 +46,7 @@ interface GeneratedTexture {
 
 interface AiTextureGenState {
   isGenerating: boolean;
-  queue: string[];           // queued prompt IDs
+  queue: string[]; // queued prompt IDs
   textures: Map<string, GeneratedTexture>;
   activeTextureId: string | null;
   totalGenerated: number;
@@ -126,9 +132,10 @@ export const aiTextureGenHandler: TraitHandler<AiTextureGenConfig> = {
       state.totalGenerated += 1;
 
       const elapsed: number = payload?.elapsedMs ?? 0;
-      state.avgGenTimeMs = state.totalGenerated > 1
-        ? (state.avgGenTimeMs * (state.totalGenerated - 1) + elapsed) / state.totalGenerated
-        : elapsed;
+      state.avgGenTimeMs =
+        state.totalGenerated > 1
+          ? (state.avgGenTimeMs * (state.totalGenerated - 1) + elapsed) / state.totalGenerated
+          : elapsed;
 
       context.emit('texture_gen:applied', {
         textureId: texture.id,

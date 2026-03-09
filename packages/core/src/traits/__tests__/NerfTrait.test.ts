@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { nerfHandler } from '../NerfTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('NerfTrait', () => {
   let node: Record<string, unknown>;
@@ -73,7 +79,12 @@ describe('NerfTrait', () => {
   });
 
   it('clear_cache empties cache', () => {
-    sendEvent(nerfHandler, node, cfg, ctx, { type: 'nerf_frame_rendered', renderTime: 1, cacheKey: 'k', frame: {} });
+    sendEvent(nerfHandler, node, cfg, ctx, {
+      type: 'nerf_frame_rendered',
+      renderTime: 1,
+      cacheKey: 'k',
+      frame: {},
+    });
     sendEvent(nerfHandler, node, cfg, ctx, { type: 'nerf_clear_cache' });
     expect((node as any).__nerfState.frameCache.size).toBe(0);
   });

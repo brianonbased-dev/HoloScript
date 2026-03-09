@@ -70,7 +70,7 @@ export interface IGaussianCodec {
    */
   encode(
     data: GaussianSplatData,
-    options?: GaussianEncodeOptions,
+    options?: GaussianEncodeOptions
   ): Promise<CodecResult<EncodedGaussianData>>;
 
   /**
@@ -86,7 +86,7 @@ export interface IGaussianCodec {
    */
   decode(
     buffer: ArrayBuffer,
-    options?: GaussianDecodeOptions,
+    options?: GaussianDecodeOptions
   ): Promise<CodecResult<GaussianSplatData>>;
 
   /**
@@ -102,7 +102,7 @@ export interface IGaussianCodec {
    */
   stream(
     source: string | ReadableStream<Uint8Array>,
-    options?: GaussianStreamDecodeOptions,
+    options?: GaussianStreamDecodeOptions
   ): AsyncIterable<CodecResult<GaussianSplatData>>;
 
   /**
@@ -179,7 +179,7 @@ export class GaussianCodecError extends Error {
     message: string,
     public readonly codecId: string,
     public readonly operation: string,
-    public readonly cause?: Error,
+    public readonly cause?: Error
   ) {
     super(`[${codecId}] ${operation}: ${message}`);
     this.name = 'GaussianCodecError';
@@ -193,9 +193,9 @@ export class CodecNotSupportedError extends GaussianCodecError {
   constructor(codecId: string, operation: string) {
     super(
       `Operation '${operation}' is not supported by this codec. ` +
-      `Check capabilities before calling.`,
+        `Check capabilities before calling.`,
       codecId,
-      operation,
+      operation
     );
     this.name = 'CodecNotSupportedError';
   }
@@ -228,13 +228,13 @@ export class CodecMemoryError extends GaussianCodecError {
   constructor(
     codecId: string,
     public readonly requiredMB: number,
-    public readonly budgetMB: number,
+    public readonly budgetMB: number
   ) {
     super(
       `Memory budget exceeded: operation requires ~${requiredMB.toFixed(1)} MB ` +
-      `but budget is ${budgetMB} MB`,
+        `but budget is ${budgetMB} MB`,
       codecId,
-      'decode',
+      'decode'
     );
     this.name = 'CodecMemoryError';
   }
@@ -280,7 +280,7 @@ export abstract class AbstractGaussianCodec implements IGaussianCodec {
   // Concrete codecs MUST implement these:
   abstract decode(
     buffer: ArrayBuffer,
-    options?: GaussianDecodeOptions,
+    options?: GaussianDecodeOptions
   ): Promise<CodecResult<GaussianSplatData>>;
 
   abstract getCapabilities(): GaussianCodecCapabilities;
@@ -293,14 +293,14 @@ export abstract class AbstractGaussianCodec implements IGaussianCodec {
 
   async encode(
     _data: GaussianSplatData,
-    _options?: GaussianEncodeOptions,
+    _options?: GaussianEncodeOptions
   ): Promise<CodecResult<EncodedGaussianData>> {
     throw new CodecNotSupportedError(this.getCapabilities().id, 'encode');
   }
 
   async *stream(
     _source: string | ReadableStream<Uint8Array>,
-    _options?: GaussianStreamDecodeOptions,
+    _options?: GaussianStreamDecodeOptions
   ): AsyncIterable<CodecResult<GaussianSplatData>> {
     throw new CodecNotSupportedError(this.getCapabilities().id, 'stream');
   }

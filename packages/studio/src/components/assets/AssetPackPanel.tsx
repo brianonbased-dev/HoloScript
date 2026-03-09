@@ -54,9 +54,7 @@ export function AssetPackPanel({ onClose }: AssetPackPanelProps) {
 
   // Process all queued files sequentially
   const processAll = useCallback(async () => {
-    setFiles((prev) =>
-      prev.map((e) => (e.state === 'queued' ? { ...e, state: 'processing' } : e))
-    );
+    setFiles((prev) => prev.map((e) => (e.state === 'queued' ? { ...e, state: 'processing' } : e)));
 
     for (const entry of files.filter((e) => e.state === 'queued')) {
       setFiles((prev) =>
@@ -73,16 +71,12 @@ export function AssetPackPanel({ onClose }: AssetPackPanelProps) {
           trait: makeTraitSnippet(assetId, entry.file.name),
         };
         setFiles((prev) =>
-          prev.map((e) =>
-            e.file === entry.file ? { ...e, state: 'done', result } : e
-          )
+          prev.map((e) => (e.file === entry.file ? { ...e, state: 'done', result } : e))
         );
       } catch (err) {
         setFiles((prev) =>
           prev.map((e) =>
-            e.file === entry.file
-              ? { ...e, state: 'error', error: String(err) }
-              : e
+            e.file === entry.file ? { ...e, state: 'error', error: String(err) } : e
           )
         );
       }
@@ -115,14 +109,20 @@ export function AssetPackPanel({ onClose }: AssetPackPanelProps) {
       <div className="flex shrink-0 items-center gap-2 border-b border-studio-border px-3 py-2.5">
         <Package className="h-4 w-4 text-studio-accent" />
         <span className="text-[12px] font-semibold">Asset Pack Importer</span>
-        <button onClick={onClose} className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text">
+        <button
+          onClick={onClose}
+          className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
 
       {/* Drop zone */}
       <div
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         className={`mx-3 mt-3 flex flex-col items-center gap-2 rounded-xl border-2 border-dashed py-6 transition ${
@@ -131,7 +131,9 @@ export function AssetPackPanel({ onClose }: AssetPackPanelProps) {
             : 'border-studio-border bg-studio-surface/50'
         }`}
       >
-        <Upload className={`h-8 w-8 transition ${isDragging ? 'text-studio-accent' : 'text-studio-muted/40'}`} />
+        <Upload
+          className={`h-8 w-8 transition ${isDragging ? 'text-studio-accent' : 'text-studio-muted/40'}`}
+        />
         <p className="text-[11px] text-studio-muted">
           {isDragging ? 'Drop files here' : 'Drag GLB/GLTF/images here'}
         </p>
@@ -165,8 +167,12 @@ export function AssetPackPanel({ onClose }: AssetPackPanelProps) {
               <span className="text-[10px] text-studio-muted">
                 {(entry.file.size / 1024).toFixed(0)} KB
               </span>
-              {entry.state === 'queued' && <span className="text-[9px] text-studio-muted">Queued</span>}
-              {entry.state === 'processing' && <Loader2 className="h-3.5 w-3.5 animate-spin text-studio-accent" />}
+              {entry.state === 'queued' && (
+                <span className="text-[9px] text-studio-muted">Queued</span>
+              )}
+              {entry.state === 'processing' && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-studio-accent" />
+              )}
               {entry.state === 'done' && <CheckCircle className="h-3.5 w-3.5 text-green-400" />}
               {entry.state === 'error' && <XCircle className="h-3.5 w-3.5 text-red-400" />}
             </div>
@@ -204,9 +210,13 @@ export function AssetPackPanel({ onClose }: AssetPackPanelProps) {
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-studio-accent py-2 text-[12px] font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
           >
             {processing > 0 ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</>
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Processing…
+              </>
             ) : (
-              <><Upload className="h-4 w-4" /> Import {queued} file{queued !== 1 ? 's' : ''}</>
+              <>
+                <Upload className="h-4 w-4" /> Import {queued} file{queued !== 1 ? 's' : ''}
+              </>
             )}
           </button>
         </div>

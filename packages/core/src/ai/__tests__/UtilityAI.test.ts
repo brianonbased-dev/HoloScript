@@ -3,9 +3,12 @@ import { UtilityAI, type UtilityAction, type Consideration } from '../UtilityAI'
 
 function makeAction(id: string, overrides: Partial<UtilityAction> = {}): UtilityAction {
   return {
-    id, name: id,
+    id,
+    name: id,
     considerations: [{ name: 'always', input: () => 1, curve: 'linear', weight: 1, invert: false }],
-    cooldown: 0, lastExecuted: -999, bonus: 0,
+    cooldown: 0,
+    lastExecuted: -999,
+    bonus: 0,
     execute: vi.fn(),
     ...overrides,
   };
@@ -14,7 +17,9 @@ function makeAction(id: string, overrides: Partial<UtilityAction> = {}): Utility
 describe('UtilityAI', () => {
   let ai: UtilityAI;
 
-  beforeEach(() => { ai = new UtilityAI(); });
+  beforeEach(() => {
+    ai = new UtilityAI();
+  });
 
   // ---------------------------------------------------------------------------
   // Action Management
@@ -49,21 +54,45 @@ describe('UtilityAI', () => {
   });
 
   it('scoreAction applies quadratic curve', () => {
-    const c: Consideration = { name: 'c', input: () => 0.5, curve: 'quadratic', weight: 1, invert: false };
+    const c: Consideration = {
+      name: 'c',
+      input: () => 0.5,
+      curve: 'quadratic',
+      weight: 1,
+      invert: false,
+    };
     const act = makeAction('a', { considerations: [c] });
     ai.addAction(act);
     expect(ai.scoreAction(act)).toBeCloseTo(0.25); // 0.5^2
   });
 
   it('scoreAction applies step curve', () => {
-    const cLow: Consideration = { name: 'c', input: () => 0.3, curve: 'step', weight: 1, invert: false };
-    const cHigh: Consideration = { name: 'c2', input: () => 0.7, curve: 'step', weight: 1, invert: false };
+    const cLow: Consideration = {
+      name: 'c',
+      input: () => 0.3,
+      curve: 'step',
+      weight: 1,
+      invert: false,
+    };
+    const cHigh: Consideration = {
+      name: 'c2',
+      input: () => 0.7,
+      curve: 'step',
+      weight: 1,
+      invert: false,
+    };
     expect(ai.scoreAction(makeAction('lo', { considerations: [cLow] }))).toBe(0);
     expect(ai.scoreAction(makeAction('hi', { considerations: [cHigh] }))).toBe(1);
   });
 
   it('scoreAction with invert flips input', () => {
-    const c: Consideration = { name: 'c', input: () => 0.2, curve: 'linear', weight: 1, invert: true };
+    const c: Consideration = {
+      name: 'c',
+      input: () => 0.2,
+      curve: 'linear',
+      weight: 1,
+      invert: true,
+    };
     const act = makeAction('a', { considerations: [c] });
     expect(ai.scoreAction(act)).toBeCloseTo(0.8);
   });

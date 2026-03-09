@@ -151,9 +151,7 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
         autoClaimOnInteract: config.auto_claim_on_interact,
       },
       room: config.room,
-      persistence: config.persistence
-        ? { enabled: true, saveOnDisconnect: true }
-        : undefined,
+      persistence: config.persistence ? { enabled: true, saveOnDisconnect: true } : undefined,
     });
 
     const state: HandlerState = {
@@ -218,7 +216,12 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
   // ===========================================================================
   // onUpdate — per-frame sync
   // ===========================================================================
-  onUpdate(node: HSPlusNode, config: NetworkedHandlerConfig, context: TraitContext, delta: number): void {
+  onUpdate(
+    node: HSPlusNode,
+    config: NetworkedHandlerConfig,
+    context: TraitContext,
+    delta: number
+  ): void {
     const key = getNodeKey(node);
     const state = handlerStates.get(key);
     if (!state || !state.registered) return;
@@ -279,7 +282,12 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
   // ===========================================================================
   // onEvent — handle grab/release/network events
   // ===========================================================================
-  onEvent(node: HSPlusNode, config: NetworkedHandlerConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: NetworkedHandlerConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const key = getNodeKey(node);
     const state = handlerStates.get(key);
     if (!state) return;

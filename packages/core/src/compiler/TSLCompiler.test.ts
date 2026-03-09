@@ -32,7 +32,7 @@ function createComposition(overrides: Partial<HoloComposition> = {}): HoloCompos
 
 function createObject(
   name: string,
-  traits: Array<{ name: string; config?: Record<string, any> }> = [],
+  traits: Array<{ name: string; config?: Record<string, any> }> = []
 ): HoloObjectDecl {
   return {
     type: 'Object',
@@ -102,11 +102,9 @@ describe('TSLCompiler', () => {
 
   it('composes multiple material + VFX traits', () => {
     const comp = createComposition({
-      objects: [createObject('Shield', [
-        { name: 'pbr' },
-        { name: 'force_field' },
-        { name: 'emissive' },
-      ])],
+      objects: [
+        createObject('Shield', [{ name: 'pbr' }, { name: 'force_field' }, { name: 'emissive' }]),
+      ],
     });
     const result = compiler.compile(comp);
     const fs = result['Shield.fragment.wgsl'];

@@ -14,7 +14,7 @@
  * - addEnvironmentProperty() handles only: 'skybox', 'ambient_light', 'fog'.
  *   Arbitrary keys (like 'temperature') are ignored by the current implementation.
  */
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DTDLCompiler } from '../DTDLCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
@@ -25,7 +25,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
@@ -38,7 +37,11 @@ function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   } as HoloComposition;
 }
 
-function makeObj(name: string, props: Array<{ key: string; value: unknown }> = [], traits: any[] = []): HoloObjectDecl {
+function makeObj(
+  name: string,
+  props: Array<{ key: string; value: unknown }> = [],
+  traits: any[] = []
+): HoloObjectDecl {
   return {
     name,
     properties: props.map(({ key, value }) => ({ key, value })),
@@ -102,7 +105,9 @@ describe('DTDLCompiler — Production', () => {
   });
 
   it('first item has @id matching composition name', () => {
-    const interfaces = JSON.parse(compiler.compile(makeComp({ name: 'SmartFactory' }), 'test-token'));
+    const interfaces = JSON.parse(
+      compiler.compile(makeComp({ name: 'SmartFactory' }), 'test-token')
+    );
     expect(interfaces[0]['@id']).toContain('SmartFactory');
   });
 
@@ -130,23 +135,32 @@ describe('DTDLCompiler — Production', () => {
 
   // ─── Objects with sensor trait generate telemetry ─────────────────────
   it('object with sensor trait gets sensorReading telemetry in interface', () => {
-    const obj = makeObj('Robot', [
-      { key: 'speed', value: 0 },
-      { key: 'active', value: true },
-    ], [{ name: 'sensor' }]);
+    const obj = makeObj(
+      'Robot',
+      [
+        { key: 'speed', value: 0 },
+        { key: 'active', value: true },
+      ],
+      [{ name: 'sensor' }]
+    );
     // Sensor trait triggers objectNeedsInterface() via hasTrait check
     const interfaces = JSON.parse(compiler.compile(makeComp({ objects: [obj] }), 'test-token'));
     // Should have more than one interface (main + Robot)
     expect(interfaces.length).toBeGreaterThanOrEqual(1);
-    expect(() => JSON.parse(compiler.compile(makeComp({ objects: [obj] }), 'test-token'))).not.toThrow();
+    expect(() =>
+      JSON.parse(compiler.compile(makeComp({ objects: [obj] }), 'test-token'))
+    ).not.toThrow();
   });
 
   // ─── Environment ─────────────────────────────────────────────────────
   // addEnvironmentProperty handles: 'skybox', 'ambient_light', 'fog'
   it('skybox environment property generates DTDL property', () => {
-    const out = compiler.compile(makeComp({
-      environment: { skybox: 'sunset' },
-    } as any), 'test-token');
+    const out = compiler.compile(
+      makeComp({
+        environment: { skybox: 'sunset' },
+      } as any),
+      'test-token'
+    );
     const interfaces = JSON.parse(out);
     // skybox is a handled key → generates a Property in contents
     expect(interfaces[0].contents.length).toBeGreaterThan(0);
@@ -155,9 +169,12 @@ describe('DTDLCompiler — Production', () => {
   });
 
   it('ambient_light environment property generates DTDL property', () => {
-    const out = compiler.compile(makeComp({
-      environment: { ambient_light: 0.8 },
-    } as any), 'test-token');
+    const out = compiler.compile(
+      makeComp({
+        environment: { ambient_light: 0.8 },
+      } as any),
+      'test-token'
+    );
     const interfaces = JSON.parse(out);
     expect(interfaces[0].contents.length).toBeGreaterThan(0);
   });

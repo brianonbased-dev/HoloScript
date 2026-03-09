@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  SoftDedup,
-  createSoftDedup,
-  DEFAULT_SOFTDEDUP_CONFIG,
-} from '../SoftDedup';
+import { SoftDedup, createSoftDedup, DEFAULT_SOFTDEDUP_CONFIG } from '../SoftDedup';
 import type { SoftDedupConfig, SoftDedupResult } from '../SoftDedup';
 
 // =============================================================================
@@ -65,9 +61,7 @@ describe('SoftDedup', () => {
     });
 
     it('throws on invalid maxWeight (< minWeight)', () => {
-      expect(() => new SoftDedup({ minWeight: 0.5, maxWeight: 0.3 })).toThrow(
-        'maxWeight',
-      );
+      expect(() => new SoftDedup({ minWeight: 0.5, maxWeight: 0.3 })).toThrow('maxWeight');
     });
 
     it('throws on invalid maxWeight (> 1)', () => {
@@ -80,12 +74,12 @@ describe('SoftDedup', () => {
     });
 
     it('throws on invalid commonThresholdPercentile', () => {
-      expect(
-        () => new SoftDedup({ commonThresholdPercentile: -0.1 }),
-      ).toThrow('commonThresholdPercentile');
-      expect(
-        () => new SoftDedup({ commonThresholdPercentile: 1.5 }),
-      ).toThrow('commonThresholdPercentile');
+      expect(() => new SoftDedup({ commonThresholdPercentile: -0.1 })).toThrow(
+        'commonThresholdPercentile'
+      );
+      expect(() => new SoftDedup({ commonThresholdPercentile: 1.5 })).toThrow(
+        'commonThresholdPercentile'
+      );
     });
 
     it('throws on empty ngramSizes', () => {
@@ -93,15 +87,11 @@ describe('SoftDedup', () => {
     });
 
     it('throws on non-integer ngramSizes', () => {
-      expect(() => new SoftDedup({ ngramSizes: [2.5] })).toThrow(
-        'positive integer',
-      );
+      expect(() => new SoftDedup({ ngramSizes: [2.5] })).toThrow('positive integer');
     });
 
     it('throws on zero ngramSize', () => {
-      expect(() => new SoftDedup({ ngramSizes: [0] })).toThrow(
-        'positive integer',
-      );
+      expect(() => new SoftDedup({ ngramSizes: [0] })).toThrow('positive integer');
     });
   });
 
@@ -177,13 +167,10 @@ describe('SoftDedup', () => {
 
       // The unique world example (last one) should have a higher weight
       // than the template-based ones
-      const templateWeights = results
-        .slice(0, -1)
-        .map((r) => r.samplingWeight);
+      const templateWeights = results.slice(0, -1).map((r) => r.samplingWeight);
       const uniqueWeight = results[results.length - 1].samplingWeight;
 
-      const avgTemplateWeight =
-        templateWeights.reduce((a, b) => a + b, 0) / templateWeights.length;
+      const avgTemplateWeight = templateWeights.reduce((a, b) => a + b, 0) / templateWeights.length;
 
       expect(uniqueWeight).toBeGreaterThanOrEqual(avgTemplateWeight);
     });
@@ -222,16 +209,14 @@ describe('SoftDedup', () => {
       const results = dedup.process(UNIQUE_EXAMPLES);
 
       for (const r of results) {
-        expect(r.ngramStats.commonNgrams).toBeLessThanOrEqual(
-          r.ngramStats.totalNgrams,
-        );
+        expect(r.ngramStats.commonNgrams).toBeLessThanOrEqual(r.ngramStats.totalNgrams);
         expect(r.ngramStats.commonRatio).toBeGreaterThanOrEqual(0);
         expect(r.ngramStats.commonRatio).toBeLessThanOrEqual(1);
 
         if (r.ngramStats.totalNgrams > 0) {
           expect(r.ngramStats.commonRatio).toBeCloseTo(
             r.ngramStats.commonNgrams / r.ngramStats.totalNgrams,
-            10,
+            10
           );
         }
       }
@@ -335,9 +320,7 @@ describe('SoftDedup', () => {
       const stats = dedup.computeStats(results);
 
       // With duplicates, effective size should be less than total
-      expect(stats.effectiveDatasetSize).toBeLessThanOrEqual(
-        stats.totalExamples,
-      );
+      expect(stats.effectiveDatasetSize).toBeLessThanOrEqual(stats.totalExamples);
       expect(stats.reductionRatio).toBeGreaterThanOrEqual(0);
     });
 
@@ -428,7 +411,5 @@ describe('SoftDedup', () => {
 function computeVariance(values: number[]): number {
   if (values.length === 0) return 0;
   const mean = values.reduce((a, b) => a + b, 0) / values.length;
-  return (
-    values.reduce((acc, v) => acc + (v - mean) ** 2, 0) / values.length
-  );
+  return values.reduce((acc, v) => acc + (v - mean) ** 2, 0) / values.length;
 }

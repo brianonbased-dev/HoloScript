@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createMockNode, createMockContext, attachTrait, updateTrait, sendEvent } from './traitTestHelpers';
+import {
+  createMockNode,
+  createMockContext,
+  attachTrait,
+  updateTrait,
+  sendEvent,
+} from './traitTestHelpers';
 
 // Mock MQTTClient module
 const mockSubscribe = vi.fn();
@@ -11,8 +17,11 @@ const mockOn = vi.fn();
 vi.mock('../../runtime/protocols/MQTTClient', () => ({
   MQTTClient: {
     parsePayload: vi.fn((msg: any) => {
-      try { return JSON.parse(msg.payload); }
-      catch { return msg.payload; }
+      try {
+        return JSON.parse(msg.payload);
+      } catch {
+        return msg.payload;
+      }
     }),
   },
   createMQTTClient: vi.fn(() => ({
@@ -26,7 +35,12 @@ vi.mock('../../runtime/protocols/MQTTClient', () => ({
   registerMQTTClient: vi.fn(),
 }));
 
-import { mqttSourceHandler, hasMQTTSourceTrait, getMQTTSourceState, isMQTTSourceConnected } from '../MQTTSourceTrait';
+import {
+  mqttSourceHandler,
+  hasMQTTSourceTrait,
+  getMQTTSourceState,
+  isMQTTSourceConnected,
+} from '../MQTTSourceTrait';
 
 describe('MQTTSourceTrait', () => {
   let node: Record<string, unknown>;

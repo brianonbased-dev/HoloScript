@@ -12,7 +12,7 @@ function makeCtx() {
   return {
     emit: (type: string, payload: unknown) => events.push({ type, payload }),
     events,
-    of: (type: string) => events.filter(e => e.type === type),
+    of: (type: string) => events.filter((e) => e.type === type),
   };
 }
 
@@ -34,19 +34,48 @@ function makeMockPage(): PlaywrightPageLike & { calls: string[] } {
   const calls: string[] = [];
   return {
     calls,
-    goto: async (url: string) => { calls.push(`goto:${url}`); return { url: () => url }; },
-    click: async (sel: string) => { calls.push(`click:${sel}`); },
-    fill: async (sel: string, text: string) => { calls.push(`fill:${sel}:${text}`); },
-    type: async (sel: string, text: string) => { calls.push(`type:${sel}:${text}`); },
-    screenshot: async () => { calls.push('screenshot'); return Buffer.from('fake-png-data'); },
-    $$: async (sel: string) => { calls.push(`$$:${sel}`); return [{}]; },
-    $: async (sel: string) => { calls.push(`$:${sel}`); return {}; },
-    textContent: async (sel: string) => { calls.push(`textContent:${sel}`); return `content of ${sel}`; },
-    evaluate: async (fn: string) => { calls.push(`evaluate:${fn}`); return 'eval-result'; },
-    waitForSelector: async (sel: string) => { calls.push(`waitForSelector:${sel}`); return {}; },
+    goto: async (url: string) => {
+      calls.push(`goto:${url}`);
+      return { url: () => url };
+    },
+    click: async (sel: string) => {
+      calls.push(`click:${sel}`);
+    },
+    fill: async (sel: string, text: string) => {
+      calls.push(`fill:${sel}:${text}`);
+    },
+    type: async (sel: string, text: string) => {
+      calls.push(`type:${sel}:${text}`);
+    },
+    screenshot: async () => {
+      calls.push('screenshot');
+      return Buffer.from('fake-png-data');
+    },
+    $$: async (sel: string) => {
+      calls.push(`$$:${sel}`);
+      return [{}];
+    },
+    $: async (sel: string) => {
+      calls.push(`$:${sel}`);
+      return {};
+    },
+    textContent: async (sel: string) => {
+      calls.push(`textContent:${sel}`);
+      return `content of ${sel}`;
+    },
+    evaluate: async (fn: string) => {
+      calls.push(`evaluate:${fn}`);
+      return 'eval-result';
+    },
+    waitForSelector: async (sel: string) => {
+      calls.push(`waitForSelector:${sel}`);
+      return {};
+    },
     url: () => 'https://example.com',
     title: async () => 'Example Page',
-    close: async () => { calls.push('close'); },
+    close: async () => {
+      calls.push('close');
+    },
   } as PlaywrightPageLike & { calls: string[] };
 }
 
@@ -65,9 +94,12 @@ async function openBrowserWithMock(node: any, ctx: any, config: ComputerUseConfi
     type: 'computer_use_inject_factory',
     payload: { factory: async () => mockPage },
   });
-  computerUseHandler.onEvent(node, config, ctx, { type: 'browser_open', payload: { browserId: 'test-browser' } });
+  computerUseHandler.onEvent(node, config, ctx, {
+    type: 'browser_open',
+    payload: { browserId: 'test-browser' },
+  });
   // Wait for async page init
-  await new Promise(r => setTimeout(r, 50));
+  await new Promise((r) => setTimeout(r, 50));
   return { mockPage };
 }
 
@@ -98,9 +130,15 @@ describe('ComputerUseTrait — browser_open', () => {
   it('auto-navigates when url provided in open', async () => {
     const { node, ctx, config } = attach();
     const mockPage = makeMockPage();
-    computerUseHandler.onEvent(node, config, ctx, { type: 'computer_use_inject_factory', payload: { factory: async () => mockPage } });
-    computerUseHandler.onEvent(node, config, ctx, { type: 'browser_open', payload: { browserId: 'b2', url: 'https://holoscript.io' } });
-    await new Promise(r => setTimeout(r, 100));
+    computerUseHandler.onEvent(node, config, ctx, {
+      type: 'computer_use_inject_factory',
+      payload: { factory: async () => mockPage },
+    });
+    computerUseHandler.onEvent(node, config, ctx, {
+      type: 'browser_open',
+      payload: { browserId: 'b2', url: 'https://holoscript.io' },
+    });
+    await new Promise((r) => setTimeout(r, 100));
     expect(mockPage.calls).toContain('goto:https://holoscript.io');
   });
 
@@ -119,9 +157,12 @@ describe('ComputerUseTrait — browser_action', () => {
     const { mockPage } = await openBrowserWithMock(node, ctx, config);
     computerUseHandler.onEvent(node, config, ctx, {
       type: 'browser_action',
-      payload: { browserId: 'test-browser', action: { type: 'navigate', url: 'https://example.com' } },
+      payload: {
+        browserId: 'test-browser',
+        action: { type: 'navigate', url: 'https://example.com' },
+      },
     });
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 50));
     expect(mockPage.calls).toContain('goto:https://example.com');
     expect(ctx.of('browser_navigated').length).toBe(1);
   });
@@ -133,7 +174,7 @@ describe('ComputerUseTrait — browser_action', () => {
       type: 'browser_action',
       payload: { browserId: 'test-browser', action: { type: 'click', selector: '#buy-button' } },
     });
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 50));
     expect(mockPage.calls).toContain('click:#buy-button');
     expect(ctx.of('action_executed').length).toBe(1);
   });
@@ -143,10 +184,13 @@ describe('ComputerUseTrait — browser_action', () => {
     const { mockPage } = await openBrowserWithMock(node, ctx, config);
     computerUseHandler.onEvent(node, config, ctx, {
       type: 'browser_action',
-      payload: { browserId: 'test-browser', action: { type: 'type', selector: '#search', text: 'holoscript' } },
+      payload: {
+        browserId: 'test-browser',
+        action: { type: 'type', selector: '#search', text: 'holoscript' },
+      },
     });
-    await new Promise(r => setTimeout(r, 50));
-    expect(mockPage.calls.some(c => c.includes('fill:#search:holoscript'))).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(mockPage.calls.some((c) => c.includes('fill:#search:holoscript'))).toBe(true);
   });
 
   it('executes screenshot action', async () => {
@@ -156,7 +200,7 @@ describe('ComputerUseTrait — browser_action', () => {
       type: 'browser_action',
       payload: { browserId: 'test-browser', action: { type: 'screenshot' } },
     });
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 50));
     expect(mockPage.calls).toContain('screenshot');
     const r = ctx.of('action_executed').find((e: any) => e.payload?.action === 'screenshot');
     expect(r).toBeDefined();
@@ -169,8 +213,8 @@ describe('ComputerUseTrait — browser_action', () => {
       type: 'browser_action',
       payload: { browserId: 'test-browser', action: { type: 'extract_text', selector: '.price' } },
     });
-    await new Promise(r => setTimeout(r, 50));
-    expect(mockPage.calls.some(c => c.startsWith('textContent:.price'))).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(mockPage.calls.some((c) => c.startsWith('textContent:.price'))).toBe(true);
   });
 
   it('emits computer_use_error for actions on nonexistent session', () => {
@@ -191,8 +235,10 @@ describe('ComputerUseTrait — browser_action', () => {
         payload: { browserId: 'test-browser', action: { type: 'click', selector: `#btn${i}` } },
       });
     }
-    await new Promise(r => setTimeout(r, 100));
-    expect(ctx.of('computer_use_error').some((e: any) => e.payload.error.includes('max_actions'))).toBe(true);
+    await new Promise((r) => setTimeout(r, 100));
+    expect(
+      ctx.of('computer_use_error').some((e: any) => e.payload.error.includes('max_actions'))
+    ).toBe(true);
   });
 
   it('enforces domain allowlist', async () => {
@@ -200,10 +246,15 @@ describe('ComputerUseTrait — browser_action', () => {
     await openBrowserWithMock(node, ctx, config);
     computerUseHandler.onEvent(node, config, ctx, {
       type: 'browser_action',
-      payload: { browserId: 'test-browser', action: { type: 'navigate', url: 'https://evil.com/steal' } },
+      payload: {
+        browserId: 'test-browser',
+        action: { type: 'navigate', url: 'https://evil.com/steal' },
+      },
     });
-    await new Promise(r => setTimeout(r, 50));
-    expect(ctx.of('computer_use_error').some((e: any) => e.payload.error.includes('Domain not allowed'))).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(
+      ctx.of('computer_use_error').some((e: any) => e.payload.error.includes('Domain not allowed'))
+    ).toBe(true);
   });
 });
 
@@ -224,7 +275,7 @@ describe('ComputerUseTrait — browser_run_sequence', () => {
         ],
       },
     });
-    await new Promise(r => setTimeout(r, 150));
+    await new Promise((r) => setTimeout(r, 150));
     expect(ctx.of('sequence_complete').length).toBe(1);
     expect((ctx.of('sequence_complete')[0].payload as any).count).toBe(3);
   });
@@ -249,8 +300,11 @@ describe('ComputerUseTrait — browser_close', () => {
   it('closes a browser session', async () => {
     const { node, ctx, config } = attach();
     await openBrowserWithMock(node, ctx, config);
-    computerUseHandler.onEvent(node, config, ctx, { type: 'browser_close', payload: { browserId: 'test-browser' } });
-    await new Promise(r => setTimeout(r, 50));
+    computerUseHandler.onEvent(node, config, ctx, {
+      type: 'browser_close',
+      payload: { browserId: 'test-browser' },
+    });
+    await new Promise((r) => setTimeout(r, 50));
     expect(node.__computerUseState.sessions.has('test-browser')).toBe(false);
     expect(ctx.of('browser_closed').length).toBe(1);
   });

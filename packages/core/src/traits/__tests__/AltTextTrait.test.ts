@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { altTextHandler } from '../AltTextTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('AltTextTrait', () => {
   let node: Record<string, unknown>;
@@ -47,13 +54,21 @@ describe('AltTextTrait', () => {
   });
 
   it('query returns brief text', () => {
-    sendEvent(altTextHandler, node, cfg, ctx, { type: 'alt_text_query', queryId: 'q1', verbosity: 'brief' });
+    sendEvent(altTextHandler, node, cfg, ctx, {
+      type: 'alt_text_query',
+      queryId: 'q1',
+      verbosity: 'brief',
+    });
     const resp = getLastEvent(ctx, 'alt_text_response');
     expect(resp.text).toBe('A red cube');
   });
 
   it('query returns verbose text', () => {
-    sendEvent(altTextHandler, node, cfg, ctx, { type: 'alt_text_query', queryId: 'q2', verbosity: 'verbose' });
+    sendEvent(altTextHandler, node, cfg, ctx, {
+      type: 'alt_text_query',
+      queryId: 'q2',
+      verbosity: 'verbose',
+    });
     const resp = getLastEvent(ctx, 'alt_text_response');
     expect(resp.text).toBe('A red cube with rounded edges on a table');
   });

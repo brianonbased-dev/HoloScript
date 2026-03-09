@@ -15,7 +15,9 @@ import type { EngineSystem } from '../engine/SpatialEngine';
 // =============================================================================
 
 export interface Vec3 {
-  x: number; y: number; z: number;
+  x: number;
+  y: number;
+  z: number;
 }
 
 export interface EntityState {
@@ -44,7 +46,7 @@ export interface InterestArea {
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 
 export interface NetworkMetrics {
-  rtt: number;         // Round-trip time (ms)
+  rtt: number; // Round-trip time (ms)
   bytesSent: number;
   bytesReceived: number;
   packetsDropped: number;
@@ -132,7 +134,7 @@ export class DeltaCompressor {
       const aKeys = Object.keys(aObj);
       const bKeys = Object.keys(bObj);
       if (aKeys.length !== bKeys.length) return false;
-      return aKeys.every(k => this.deepEqual(aObj[k], bObj[k]));
+      return aKeys.every((k) => this.deepEqual(aObj[k], bObj[k]));
     }
     return false;
   }
@@ -161,11 +163,11 @@ export class InterestManager {
     const c = this.playerArea.center;
     const r2 = this.playerArea.radius * this.playerArea.radius;
 
-    return entities.filter(e => {
+    return entities.filter((e) => {
       const dx = e.position.x - c.x;
       const dy = e.position.y - c.y;
       const dz = e.position.z - c.z;
-      return (dx * dx + dy * dy + dz * dz) <= r2;
+      return dx * dx + dy * dy + dz * dz <= r2;
     });
   }
 
@@ -175,7 +177,7 @@ export class InterestManager {
     const dx = pos.x - c.x;
     const dy = pos.y - c.y;
     const dz = pos.z - c.z;
-    return (dx * dx + dy * dy + dz * dz) <= this.playerArea.radius * this.playerArea.radius;
+    return dx * dx + dy * dy + dz * dz <= this.playerArea.radius * this.playerArea.radius;
   }
 
   getArea(): InterestArea {
@@ -279,8 +281,14 @@ export class NetworkSystem implements EngineSystem {
   private outboundQueue: NetworkDelta[] = [];
   private sequence = 0;
   private metrics: NetworkMetrics = {
-    rtt: 0, bytesSent: 0, bytesReceived: 0, packetsDropped: 0,
-    entitiesTracked: 0, deltasSent: 0, deltasReceived: 0, compressionRatio: 1,
+    rtt: 0,
+    bytesSent: 0,
+    bytesReceived: 0,
+    packetsDropped: 0,
+    entitiesTracked: 0,
+    deltasSent: 0,
+    deltasReceived: 0,
+    compressionRatio: 1,
   };
 
   // Send rate limiting
@@ -296,7 +304,9 @@ export class NetworkSystem implements EngineSystem {
     this.sendIntervalMs = 1000 / sendRate;
   }
 
-  getConnectionState(): ConnectionState { return this.state; }
+  getConnectionState(): ConnectionState {
+    return this.state;
+  }
 
   connect(): void {
     if (this.state !== 'disconnected') return;
@@ -381,8 +391,12 @@ export class NetworkSystem implements EngineSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getMetrics(): NetworkMetrics { return { ...this.metrics }; }
-  getPendingDeltaCount(): number { return this.outboundQueue.length; }
+  getMetrics(): NetworkMetrics {
+    return { ...this.metrics };
+  }
+  getPendingDeltaCount(): number {
+    return this.outboundQueue.length;
+  }
 
   destroy(): void {
     this.disconnect();

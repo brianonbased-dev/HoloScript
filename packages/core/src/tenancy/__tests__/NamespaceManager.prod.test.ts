@@ -26,7 +26,9 @@ describe('NamespaceManager — Construction', () => {
 describe('NamespaceManager — createNamespace', () => {
   let mgr: NamespaceManager;
 
-  beforeEach(() => { mgr = new NamespaceManager(); });
+  beforeEach(() => {
+    mgr = new NamespaceManager();
+  });
 
   it('creates namespace with correct tenantId and name', () => {
     const ns = mgr.createNamespace('t1', 'config');
@@ -83,7 +85,9 @@ describe('NamespaceManager — createNamespace', () => {
 describe('NamespaceManager — getNamespace', () => {
   let mgr: NamespaceManager;
 
-  beforeEach(() => { mgr = new NamespaceManager(); });
+  beforeEach(() => {
+    mgr = new NamespaceManager();
+  });
 
   it('returns the created namespace', () => {
     mgr.createNamespace('t1', 'ns');
@@ -114,7 +118,9 @@ describe('NamespaceManager — getNamespace', () => {
 describe('NamespaceManager — hasNamespace', () => {
   let mgr: NamespaceManager;
 
-  beforeEach(() => { mgr = new NamespaceManager(); });
+  beforeEach(() => {
+    mgr = new NamespaceManager();
+  });
 
   it('returns false for unknown tenant', () => {
     expect(mgr.hasNamespace('ghost', 'ns')).toBe(false);
@@ -144,7 +150,9 @@ describe('NamespaceManager — hasNamespace', () => {
 describe('NamespaceManager — listNamespaces', () => {
   let mgr: NamespaceManager;
 
-  beforeEach(() => { mgr = new NamespaceManager(); });
+  beforeEach(() => {
+    mgr = new NamespaceManager();
+  });
 
   it('returns [] for unknown tenant', () => {
     expect(mgr.listNamespaces('ghost')).toEqual([]);
@@ -155,8 +163,8 @@ describe('NamespaceManager — listNamespaces', () => {
     mgr.createNamespace('t1', 'ns2');
     const list = mgr.listNamespaces('t1');
     expect(list).toHaveLength(2);
-    expect(list.map(n => n.name)).toContain('ns1');
-    expect(list.map(n => n.name)).toContain('ns2');
+    expect(list.map((n) => n.name)).toContain('ns1');
+    expect(list.map((n) => n.name)).toContain('ns2');
   });
 
   it('info has dataKeyCount = 0 for fresh namespace', () => {
@@ -176,7 +184,7 @@ describe('NamespaceManager — listNamespaces', () => {
   it('namespace list for t1 does not include t2 namespaces', () => {
     mgr.createNamespace('t1', 'ns');
     mgr.createNamespace('t2', 'other');
-    expect(mgr.listNamespaces('t1').map(n => n.name)).not.toContain('other');
+    expect(mgr.listNamespaces('t1').map((n) => n.name)).not.toContain('other');
   });
 });
 
@@ -187,7 +195,9 @@ describe('NamespaceManager — listNamespaces', () => {
 describe('NamespaceManager — deleteNamespace', () => {
   let mgr: NamespaceManager;
 
-  beforeEach(() => { mgr = new NamespaceManager(); });
+  beforeEach(() => {
+    mgr = new NamespaceManager();
+  });
 
   it('deletes an existing namespace', () => {
     mgr.createNamespace('t1', 'ns');
@@ -219,7 +229,9 @@ describe('NamespaceManager — deleteNamespace', () => {
 describe('NamespaceManager — setNamespaceData / getNamespaceData', () => {
   let mgr: NamespaceManager;
 
-  beforeEach(() => { mgr = new NamespaceManager(); });
+  beforeEach(() => {
+    mgr = new NamespaceManager();
+  });
 
   it('stores and retrieves a value', () => {
     mgr.createNamespace('t1', 'ns');

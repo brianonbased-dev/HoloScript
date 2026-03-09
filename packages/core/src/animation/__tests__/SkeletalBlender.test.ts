@@ -6,14 +6,21 @@ function makePose(boneId: string, tx = 0, ty = 0, tz = 0, sx = 1, sy = 1, sz = 1
   return { boneId, tx, ty, tz, sx, sy, sz };
 }
 
-function makeLayer(id: string, poses: AnimPose[], weight = 1, mode: 'override' | 'additive' = 'override'): AnimLayer {
+function makeLayer(
+  id: string,
+  poses: AnimPose[],
+  weight = 1,
+  mode: 'override' | 'additive' = 'override'
+): AnimLayer {
   return { id, poses, weight, mode };
 }
 
 describe('SkeletalBlender', () => {
   let blender: SkeletalBlender;
 
-  beforeEach(() => { blender = new SkeletalBlender(); });
+  beforeEach(() => {
+    blender = new SkeletalBlender();
+  });
 
   // ---------------------------------------------------------------------------
   // Layer Management

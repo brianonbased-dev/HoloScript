@@ -21,7 +21,7 @@ import {
   browserScreenshot,
   BrowserLaunchSchema,
   BrowserExecuteSchema,
-  BrowserScreenshotSchema
+  BrowserScreenshotSchema,
 } from './browser/browser-tools';
 
 // Trait categories mapping
@@ -940,9 +940,7 @@ async function handleGenerateHololandTraining(args: Record<string, unknown>) {
   let examples = generateHololandDataset(variationsPerExample);
 
   if (categoryFilter !== 'all') {
-    examples = examples.filter(
-      (e) => e.metadata.category === (categoryFilter as TrainingCategory),
-    );
+    examples = examples.filter((e) => e.metadata.category === (categoryFilter as TrainingCategory));
   }
 
   const jsonl = datasetToJsonl(examples);

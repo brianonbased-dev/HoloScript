@@ -10,22 +10,22 @@
 
 ### Overall Metrics
 
-| Metric | Phase 4 | Phase 5 | Change | Status |
-|--------|---------|---------|--------|--------|
-| **Test Files** | 27 | 28 | **+1** ✅ | +3.70% |
-| **Total Tests** | 916 | 926 | **+10** ✅ | +1.09% |
-| **Lines Coverage** | 18.17% | 18.35% | **+0.18%** ✅ | Improved |
-| **Function Coverage** | 72.43% | 73.35% | **+0.92%** ✅ | Improved |
-| **Branch Coverage** | 79.45% | 80.30% | **+0.85%** ✅ | Improved |
-| **Hooks Coverage** | 27.17% | 31.03% | **+3.86%** ✅ | +14.21% |
+| Metric                | Phase 4 | Phase 5 | Change        | Status   |
+| --------------------- | ------- | ------- | ------------- | -------- |
+| **Test Files**        | 27      | 28      | **+1** ✅     | +3.70%   |
+| **Total Tests**       | 916     | 926     | **+10** ✅    | +1.09%   |
+| **Lines Coverage**    | 18.17%  | 18.35%  | **+0.18%** ✅ | Improved |
+| **Function Coverage** | 72.43%  | 73.35%  | **+0.92%** ✅ | Improved |
+| **Branch Coverage**   | 79.45%  | 80.30%  | **+0.85%** ✅ | Improved |
+| **Hooks Coverage**    | 27.17%  | 31.03%  | **+3.86%** ✅ | +14.21%  |
 
 ### Cumulative Progress (Baseline → Phase 5)
 
-| Metric | Baseline | Phase 5 | Total Change |
-|--------|----------|---------|--------------|
-| **Test Files** | 22 | 28 | **+6** (+27.27%) |
-| **Total Tests** | 766 | 926 | **+160** (+20.89%) |
-| **Hooks Coverage** | 12.98% | 31.03% | **+18.05%** (+139.06%) |
+| Metric             | Baseline | Phase 5 | Total Change           |
+| ------------------ | -------- | ------- | ---------------------- |
+| **Test Files**     | 22       | 28      | **+6** (+27.27%)       |
+| **Total Tests**    | 766      | 926     | **+160** (+20.89%)     |
+| **Hooks Coverage** | 12.98%   | 31.03%  | **+18.05%** (+139.06%) |
 
 ---
 
@@ -110,11 +110,11 @@ Tests covering node graph editor state management:
 
 ### Hooks Directory Progress
 
-| Metric | Baseline | Phase 1 | Phase 2 | Phase 3 | Phase 4 | Phase 5 | Total Change |
-|--------|----------|---------|---------|---------|---------|---------|--------------|
-| **Lines** | 12.98% | 15.86% | 18.58% | 22.58% | 27.17% | 31.03% | **+18.05%** |
-| **Functions** | 63.75% | 71.35% | 76.15% | 79.45% | 80.30% | 83.35% | **+19.60%** |
-| **Branches** | 42.85% | 45.05% | 48.38% | 50.11% | 52.45% | 55.30% | **+12.45%** |
+| Metric        | Baseline | Phase 1 | Phase 2 | Phase 3 | Phase 4 | Phase 5 | Total Change |
+| ------------- | -------- | ------- | ------- | ------- | ------- | ------- | ------------ |
+| **Lines**     | 12.98%   | 15.86%  | 18.58%  | 22.58%  | 27.17%  | 31.03%  | **+18.05%**  |
+| **Functions** | 63.75%   | 71.35%  | 76.15%  | 79.45%  | 80.30%  | 83.35%  | **+19.60%**  |
+| **Branches**  | 42.85%   | 45.05%  | 48.38%  | 50.11%  | 52.45%  | 55.30%  | **+12.45%**  |
 
 ### Test Distribution
 
@@ -167,7 +167,7 @@ it('should add node with custom position', () => {
 ```typescript
 it('should prevent duplicate connections to same input', () => {
   mockUseNodeGraphStore.edges = [
-    { id: 'edge-1', fromNode: 'node-1', fromOutput: 'result', toNode: 'node-2', toInput: 'a' }
+    { id: 'edge-1', fromNode: 'node-1', fromOutput: 'result', toNode: 'node-2', toInput: 'a' },
   ];
 
   act(() => {

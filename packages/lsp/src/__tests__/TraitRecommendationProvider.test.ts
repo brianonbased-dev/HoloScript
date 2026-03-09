@@ -276,9 +276,21 @@ composition "Scene" {
 
   describe('all 15 verticals', () => {
     const verticals = [
-      'healthcare', 'education', 'retail', 'gaming', 'architecture',
-      'manufacturing', 'entertainment', 'real-estate', 'fitness',
-      'social', 'art', 'automotive', 'aerospace', 'tourism', 'robotics',
+      'healthcare',
+      'education',
+      'retail',
+      'gaming',
+      'architecture',
+      'manufacturing',
+      'entertainment',
+      'real-estate',
+      'fitness',
+      'social',
+      'art',
+      'automotive',
+      'aerospace',
+      'tourism',
+      'robotics',
     ];
 
     for (const vertical of verticals) {

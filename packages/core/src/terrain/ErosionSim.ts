@@ -14,11 +14,11 @@
 export interface ErosionConfig {
   iterations: number;
   rainAmount: number;
-  solubility: number;        // How much material water can carry
+  solubility: number; // How much material water can carry
   evaporationRate: number;
   depositionRate: number;
   gravity: number;
-  thermalAngle: number;      // Max slope angle (degrees) for thermal erosion
+  thermalAngle: number; // Max slope angle (degrees) for thermal erosion
   thermalRate: number;
   seed: number;
 }
@@ -62,7 +62,10 @@ export class ErosionSim {
     let maxDepthChange = 0;
 
     let rng = this.config.seed;
-    const rand = () => { rng = (rng * 1103515245 + 12345) & 0x7FFFFFFF; return rng / 0x7FFFFFFF; };
+    const rand = () => {
+      rng = (rng * 1103515245 + 12345) & 0x7fffffff;
+      return rng / 0x7fffffff;
+    };
 
     for (let iter = 0; iter < this.config.iterations; iter++) {
       // Random raindrop position
@@ -73,7 +76,8 @@ export class ErosionSim {
       let speed = 1;
 
       for (let step = 0; step < 64; step++) {
-        const ix = Math.floor(x), iz = Math.floor(z);
+        const ix = Math.floor(x),
+          iz = Math.floor(z);
         if (ix < 1 || ix >= width - 1 || iz < 1 || iz >= height - 1) break;
 
         const idx = iz * width + ix;
@@ -88,7 +92,8 @@ export class ErosionSim {
         x -= gx / gradLen;
         z -= gz / gradLen;
 
-        const newIx = Math.floor(x), newIz = Math.floor(z);
+        const newIx = Math.floor(x),
+          newIz = Math.floor(z);
         if (newIx < 0 || newIx >= width || newIz < 0 || newIz >= height) break;
 
         const newH = heightmap[newIz * width + newIx];
@@ -99,9 +104,8 @@ export class ErosionSim {
 
         if (sediment > capacity || dh < 0) {
           // Deposit
-          const deposit = (dh < 0)
-            ? Math.min(sediment, -dh)
-            : (sediment - capacity) * this.config.depositionRate;
+          const deposit =
+            dh < 0 ? Math.min(sediment, -dh) : (sediment - capacity) * this.config.depositionRate;
           heightmap[idx] += deposit;
           sediment -= deposit;
           totalDeposited += deposit;
@@ -116,7 +120,7 @@ export class ErosionSim {
         }
 
         speed = Math.sqrt(Math.max(0, speed * speed + dh * this.config.gravity));
-        water *= (1 - this.config.evaporationRate);
+        water *= 1 - this.config.evaporationRate;
         if (water < 0.001) break;
       }
     }
@@ -128,14 +132,24 @@ export class ErosionSim {
   // Thermal Erosion
   // ---------------------------------------------------------------------------
 
-  thermalErode(heightmap: Float32Array, width: number, height: number, iterations?: number): ErosionResult {
+  thermalErode(
+    heightmap: Float32Array,
+    width: number,
+    height: number,
+    iterations?: number
+  ): ErosionResult {
     const maxSlope = Math.tan((this.config.thermalAngle * Math.PI) / 180);
     const iters = iterations ?? Math.floor(this.config.iterations / 10);
     let totalEroded = 0;
     let totalDeposited = 0;
     let maxDepthChange = 0;
 
-    const offsets = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    const offsets = [
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+      [0, 1],
+    ];
 
     for (let iter = 0; iter < iters; iter++) {
       for (let z = 1; z < height - 1; z++) {
@@ -149,7 +163,10 @@ export class ErosionSim {
           for (const [dx, dz] of offsets) {
             const nIdx = (z + dz) * width + (x + dx);
             const dh = h - heightmap[nIdx];
-            if (dh > maxDh) { maxDh = dh; steepestIdx = nIdx; }
+            if (dh > maxDh) {
+              maxDh = dh;
+              steepestIdx = nIdx;
+            }
           }
 
           if (maxDh > maxSlope && steepestIdx >= 0) {
@@ -171,6 +188,10 @@ export class ErosionSim {
   // Config
   // ---------------------------------------------------------------------------
 
-  setConfig(config: Partial<ErosionConfig>): void { Object.assign(this.config, config); }
-  getConfig(): ErosionConfig { return { ...this.config }; }
+  setConfig(config: Partial<ErosionConfig>): void {
+    Object.assign(this.config, config);
+  }
+  getConfig(): ErosionConfig {
+    return { ...this.config };
+  }
 }

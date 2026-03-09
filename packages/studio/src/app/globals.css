@@ -1072,7 +1072,9 @@ pre,
   text-decoration: none;
   padding: 4px 8px;
   border-radius: 10px;
-  transition: transform 0.2s, background 0.2s;
+  transition:
+    transform 0.2s,
+    background 0.2s;
   background: rgba(255, 255, 255, 0.06);
 }
 
@@ -1090,7 +1092,9 @@ pre,
   letter-spacing: 0.02em;
 }
 
-.play-title-emoji { font-size: 1.3rem; }
+.play-title-emoji {
+  font-size: 1.3rem;
+}
 
 .play-subtitle {
   font-size: 0.75rem;
@@ -1222,7 +1226,9 @@ pre,
   animation: play-hint-bob 2.5s infinite ease-in-out;
 }
 
-.play-hint-emoji { font-size: 2.5rem; }
+.play-hint-emoji {
+  font-size: 2.5rem;
+}
 
 .play-hint-sub {
   font-size: 0.8rem;
@@ -1230,8 +1236,13 @@ pre,
 }
 
 @keyframes play-hint-bob {
-  0%, 100% { transform: translate(-50%, -50%); }
-  50% { transform: translate(-50%, -56%); }
+  0%,
+  100% {
+    transform: translate(-50%, -50%);
+  }
+  50% {
+    transform: translate(-50%, -56%);
+  }
 }
 
 /* â”€â”€ Right Properties Panel â”€â”€ */
@@ -1368,21 +1379,46 @@ pre,
 
 /* â”€â”€ Responsive â”€â”€ */
 @media (max-width: 768px) {
-  .play-toolbar { width: 60px; padding: 6px 4px; }
-  .play-tool-emoji { font-size: 18px; }
-  .play-tool-label { display: none; }
-  .play-properties { width: 120px; }
-  .play-footer-hints { display: none; }
-  .play-header { padding: 6px 10px; }
-  .play-title { font-size: 0.95rem; }
-  .play-subtitle { display: none; }
+  .play-toolbar {
+    width: 60px;
+    padding: 6px 4px;
+  }
+  .play-tool-emoji {
+    font-size: 18px;
+  }
+  .play-tool-label {
+    display: none;
+  }
+  .play-properties {
+    width: 120px;
+  }
+  .play-footer-hints {
+    display: none;
+  }
+  .play-header {
+    padding: 6px 10px;
+  }
+  .play-title {
+    font-size: 0.95rem;
+  }
+  .play-subtitle {
+    display: none;
+  }
 }
 
 @media (max-width: 480px) {
-  .play-toolbar { width: 48px; }
-  .play-properties { width: 100px; }
-  .play-color-grid { grid-template-columns: repeat(3, 1fr); }
-  .play-lighting-bar { display: none; }
+  .play-toolbar {
+    width: 48px;
+  }
+  .play-properties {
+    width: 100px;
+  }
+  .play-color-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .play-lighting-bar {
+    display: none;
+  }
 }
 
 /* ── Physics Toggle ── */
@@ -1441,9 +1477,17 @@ pre,
 
 /* ── Responsive: footer with lighting ── */
 @media (max-width: 768px) {
-  .play-lighting-bar { gap: 2px; }
-  .play-lighting-btn { padding: 2px 6px; font-size: 0.6rem; }
-  .play-physics-toggle { font-size: 0.65rem; padding: 3px 8px; }
+  .play-lighting-bar {
+    gap: 2px;
+  }
+  .play-lighting-btn {
+    padding: 2px 6px;
+    font-size: 0.6rem;
+  }
+  .play-physics-toggle {
+    font-size: 0.65rem;
+    padding: 3px 8px;
+  }
 }
 
 /* ── Animation & Particle Pickers ── */
@@ -1537,8 +1581,14 @@ pre,
 }
 
 @keyframes play-sim-enter {
-  from { opacity: 0; transform: translateY(8px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .play-sim-header {
@@ -1582,7 +1632,7 @@ pre,
   font-weight: 500;
 }
 
-.play-sim-row input[type="range"] {
+.play-sim-row input[type='range'] {
   flex: 1;
   height: 4px;
   background: rgba(255, 255, 255, 0.1);
@@ -1592,7 +1642,7 @@ pre,
   appearance: none;
 }
 
-.play-sim-row input[type="range"]::-webkit-slider-thumb {
+.play-sim-row input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 14px;
   height: 14px;
@@ -1604,7 +1654,7 @@ pre,
   transition: transform 0.15s;
 }
 
-.play-sim-row input[type="range"]::-webkit-slider-thumb:hover {
+.play-sim-row input[type='range']::-webkit-slider-thumb:hover {
   transform: scale(1.2);
 }
 
@@ -1618,12 +1668,22 @@ pre,
 
 /* ── Responsive: sim panel ── */
 @media (max-width: 768px) {
-  .play-sim-panel { left: 66px; width: 220px; bottom: 50px; }
-  .play-anim-btn { font-size: 0.85rem; padding: 3px 4px; }
+  .play-sim-panel {
+    left: 66px;
+    width: 220px;
+    bottom: 50px;
+  }
+  .play-anim-btn {
+    font-size: 0.85rem;
+    padding: 3px 4px;
+  }
 }
 
 @media (max-width: 480px) {
-  .play-sim-panel { left: 54px; width: 190px; }
+  .play-sim-panel {
+    left: 54px;
+    width: 190px;
+  }
 }
 
 /* ── Garden Demo HUD ── */
@@ -1643,19 +1703,21 @@ pre,
   z-index: 10;
   font-size: 0.82rem;
   font-weight: 600;
-  color: #A3D9A5;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 12px rgba(46, 204, 113, 0.08);
+  color: #a3d9a5;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    0 0 12px rgba(46, 204, 113, 0.08);
   animation: play-sim-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
 }
 
 .play-garden-counter {
-  color: #FDCB6E;
+  color: #fdcb6e;
   font-variant-numeric: tabular-nums;
 }
 
 .play-garden-gold {
-  color: #F0B90B;
+  color: #f0b90b;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 0 8px rgba(240, 185, 11, 0.3);
 }
@@ -1667,6 +1729,12 @@ pre,
 }
 
 @media (max-width: 768px) {
-  .play-garden-hud { font-size: 0.72rem; gap: 10px; padding: 6px 14px; }
-  .play-garden-hint { display: none; }
+  .play-garden-hud {
+    font-size: 0.72rem;
+    gap: 10px;
+    padding: 6px 14px;
+  }
+  .play-garden-hint {
+    display: none;
+  }
 }

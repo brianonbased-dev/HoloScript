@@ -73,11 +73,7 @@ describe('AudioDiffraction', () => {
       system.setEdgeDetectionProvider(() => edges);
       system.setLineOfSightProvider(() => true); // Always clear
 
-      const result = system.computeDiffraction(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        'src1',
-      );
+      const result = system.computeDiffraction({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
 
       expect(result.hasDiffraction).toBe(false);
       expect(result.paths.length).toBe(0);
@@ -99,22 +95,14 @@ describe('AudioDiffraction', () => {
       system.setEdgeDetectionProvider(() => edges);
       system.setLineOfSightProvider(() => false); // Obstructed
 
-      const result = system.computeDiffraction(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        'src1',
-      );
+      const result = system.computeDiffraction({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
 
       expect(result.hasDiffraction).toBe(false);
       expect(result.paths.length).toBe(0);
     });
 
     it('returns no diffraction when no providers set', () => {
-      const result = system.computeDiffraction(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        'src1',
-      );
+      const result = system.computeDiffraction({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
 
       expect(result.hasDiffraction).toBe(false);
       expect(result.paths.length).toBe(0);
@@ -140,10 +128,7 @@ describe('AudioDiffraction', () => {
       // Direct path blocked, but edge paths clear
       const losProvider: LineOfSightProvider = (p1, p2) => {
         // Block direct path from source to listener
-        if (
-          (p1.x === 0 && p2.x === 10) ||
-          (p1.x === 10 && p2.x === 0)
-        ) {
+        if ((p1.x === 0 && p2.x === 10) || (p1.x === 10 && p2.x === 0)) {
           return false;
         }
         return true; // Edge paths are clear
@@ -151,11 +136,7 @@ describe('AudioDiffraction', () => {
 
       system.setLineOfSightProvider(losProvider);
 
-      const result = system.computeDiffraction(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        'src1',
-      );
+      const result = system.computeDiffraction({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
 
       expect(result.hasDiffraction).toBe(true);
       expect(result.paths.length).toBeGreaterThan(0);
@@ -181,11 +162,7 @@ describe('AudioDiffraction', () => {
         return true;
       });
 
-      const result = system.computeDiffraction(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        'src1',
-      );
+      const result = system.computeDiffraction({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
 
       expect(result.paths.length).toBe(1);
       const path = result.paths[0];
@@ -218,11 +195,7 @@ describe('AudioDiffraction', () => {
         return true;
       });
 
-      const result = system.computeDiffraction(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        'src1',
-      );
+      const result = system.computeDiffraction({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
 
       const path = result.paths[0];
       // In some geometric configurations (e.g., edge at exact midpoint),
@@ -258,11 +231,7 @@ describe('AudioDiffraction', () => {
         return true; // Edge paths clear
       });
 
-      const result = system.computeDiffraction(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        'src1',
-      );
+      const result = system.computeDiffraction({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
 
       expect(result.paths.length).toBe(2);
       expect(result.paths[0].edgeId).toBeDefined();
@@ -299,11 +268,7 @@ describe('AudioDiffraction', () => {
         return true;
       });
 
-      const result = system.computeDiffraction(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        'src1',
-      );
+      const result = system.computeDiffraction({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
 
       expect(result.paths.length).toBe(1); // Limited to maxPaths
     });
@@ -330,15 +295,11 @@ describe('AudioDiffraction', () => {
         return true;
       });
 
-      const result = system.computeDiffraction(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        'src1',
-      );
+      const result = system.computeDiffraction({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
 
       if (result.paths.length >= 2) {
         expect(result.paths[0].diffractionCoefficient).toBeGreaterThanOrEqual(
-          result.paths[1].diffractionCoefficient,
+          result.paths[1].diffractionCoefficient
         );
       }
     });
@@ -362,11 +323,7 @@ describe('AudioDiffraction', () => {
         return true;
       });
 
-      const result = system.computeDiffraction(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        'src1',
-      );
+      const result = system.computeDiffraction({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
 
       // Paths with low coefficients should be filtered out
       for (const path of result.paths) {
@@ -394,11 +351,7 @@ describe('AudioDiffraction', () => {
       // Block everything
       system.setLineOfSightProvider(() => false);
 
-      const result = system.computeDiffraction(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        'src1',
-      );
+      const result = system.computeDiffraction({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
 
       expect(result.hasDiffraction).toBe(false);
       expect(result.paths.length).toBe(0);
@@ -430,11 +383,7 @@ describe('AudioDiffraction', () => {
 
       system.setLineOfSightProvider(losProvider);
 
-      const result = system.computeDiffraction(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        'src1',
-      );
+      const result = system.computeDiffraction({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
 
       expect(result.hasDiffraction).toBe(false);
       expect(result.paths.length).toBe(0);
@@ -632,11 +581,7 @@ describe('AudioDiffraction', () => {
         return true;
       });
 
-      const result = system.computeDiffraction(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        'src1',
-      );
+      const result = system.computeDiffraction({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
 
       // Should handle gracefully (may or may not produce diffraction)
       expect(result).toBeDefined();
@@ -657,7 +602,7 @@ describe('AudioDiffraction', () => {
       const result = system.computeDiffraction(
         { x: 0, y: 0, z: 0 },
         { x: 0, y: 0, z: 0 }, // Same position
-        'src1',
+        'src1'
       );
 
       expect(result).toBeDefined();
@@ -667,11 +612,7 @@ describe('AudioDiffraction', () => {
       system.setEdgeDetectionProvider(() => []); // No edges
       system.setLineOfSightProvider(() => false);
 
-      const result = system.computeDiffraction(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        'src1',
-      );
+      const result = system.computeDiffraction({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
 
       expect(result.hasDiffraction).toBe(false);
       expect(result.paths.length).toBe(0);
@@ -705,7 +646,7 @@ describe('AudioDiffraction', () => {
       const result1 = system.computeDiffraction(
         { x: 0, y: 0, z: 0 },
         { x: 10, y: 0, z: 0 },
-        'src1',
+        'src1'
       );
 
       // High frequency (10000 Hz)
@@ -713,13 +654,13 @@ describe('AudioDiffraction', () => {
       const result2 = system.computeDiffraction(
         { x: 0, y: 0, z: 0 },
         { x: 10, y: 0, z: 0 },
-        'src2',
+        'src2'
       );
 
       // Higher frequency should have lower coefficient (more attenuation)
       if (result1.paths.length > 0 && result2.paths.length > 0) {
         expect(result2.paths[0].diffractionCoefficient).toBeLessThanOrEqual(
-          result1.paths[0].diffractionCoefficient,
+          result1.paths[0].diffractionCoefficient
         );
       }
     });

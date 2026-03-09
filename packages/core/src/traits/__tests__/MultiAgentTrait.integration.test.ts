@@ -116,7 +116,9 @@ describe('MultiAgentTrait — Integration', () => {
         payload: { capability: 'render' },
       });
 
-      const result = a.ctx.emit.mock.calls.find((c: any) => c[0] === 'multi_agent_discovery_result');
+      const result = a.ctx.emit.mock.calls.find(
+        (c: any) => c[0] === 'multi_agent_discovery_result'
+      );
       expect(result).toBeDefined();
       expect(result![1].agents).toHaveLength(1);
       expect(result![1].agents[0].id).toBe('b1');
@@ -679,7 +681,9 @@ describe('MultiAgentTrait — Integration', () => {
         payload: {},
       });
 
-      const result = a.ctx.emit.mock.calls.find((c: any) => c[0] === 'multi_agent_discovery_result');
+      const result = a.ctx.emit.mock.calls.find(
+        (c: any) => c[0] === 'multi_agent_discovery_result'
+      );
       // Only self should be returned (offline B excluded)
       expect(result![1].agents).toHaveLength(1);
       expect(result![1].agents[0].id).toBe('a1');

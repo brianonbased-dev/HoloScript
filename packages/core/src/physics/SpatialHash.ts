@@ -28,7 +28,9 @@ export class SpatialHash {
   private cells: Map<string, Set<string>> = new Map();
   private entries: Map<string, SpatialEntry> = new Map();
 
-  constructor(cellSize: number) { this.cellSize = cellSize; }
+  constructor(cellSize: number) {
+    this.cellSize = cellSize;
+  }
 
   // ---------------------------------------------------------------------------
   // Insert / Remove
@@ -61,7 +63,9 @@ export class SpatialHash {
   update(id: string, x: number, y: number, z: number): void {
     this.remove(id);
     const entry = this.entries.get(id) ?? { id, x, y, z, radius: 0 };
-    entry.x = x; entry.y = y; entry.z = z;
+    entry.x = x;
+    entry.y = y;
+    entry.z = z;
     this.insert(entry);
   }
 
@@ -73,7 +77,7 @@ export class SpatialHash {
     const key = this.cellKey(
       Math.floor(x / this.cellSize),
       Math.floor(y / this.cellSize),
-      Math.floor(z / this.cellSize),
+      Math.floor(z / this.cellSize)
     );
     const cell = this.cells.get(key);
     return cell ? [...cell] : [];
@@ -96,7 +100,9 @@ export class SpatialHash {
           for (const id of cell) {
             const entry = this.entries.get(id);
             if (entry) {
-              const dx = entry.x - x, dy = entry.y - y, dz = entry.z - z;
+              const dx = entry.x - x,
+                dy = entry.y - y,
+                dz = entry.z - z;
               const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
               if (dist <= radius + entry.radius) results.add(id);
             }
@@ -151,13 +157,22 @@ export class SpatialHash {
     return keys;
   }
 
-  private cellKey(cx: number, cy: number, cz: number): string { return `${cx}:${cy}:${cz}`; }
+  private cellKey(cx: number, cy: number, cz: number): string {
+    return `${cx}:${cy}:${cz}`;
+  }
 
   // ---------------------------------------------------------------------------
   // Stats
   // ---------------------------------------------------------------------------
 
-  getEntryCount(): number { return this.entries.size; }
-  getCellCount(): number { return this.cells.size; }
-  clear(): void { this.cells.clear(); this.entries.clear(); }
+  getEntryCount(): number {
+    return this.entries.size;
+  }
+  getCellCount(): number {
+    return this.cells.size;
+  }
+  clear(): void {
+    this.cells.clear();
+    this.entries.clear();
+  }
 }

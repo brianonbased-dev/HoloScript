@@ -65,8 +65,12 @@ describe('Cycle 162: Dialogue Extensions', () => {
   it('should trigger contextual barks with cooldowns', () => {
     const barks = new BarkManager();
     barks.registerBark({
-      id: 'combat_taunt', context: 'combat', lines: ['Ha!', 'Take that!'],
-      priority: 5, cooldown: 2, maxRange: 0,
+      id: 'combat_taunt',
+      context: 'combat',
+      lines: ['Ha!', 'Take that!'],
+      priority: 5,
+      cooldown: 2,
+      maxRange: 0,
     });
 
     barks.tick(0);

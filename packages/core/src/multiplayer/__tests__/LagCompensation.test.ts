@@ -80,7 +80,9 @@ describe('LagCompensation', () => {
 
     it('verifies a valid hit within radius', () => {
       const query: HitQuery = {
-        originX: 10, originY: 0, originZ: 0,
+        originX: 10,
+        originY: 0,
+        originZ: 0,
         targetId: 'target',
         clientTimestamp: 250,
         clientLatency: 50, // rewind to 200
@@ -93,7 +95,9 @@ describe('LagCompensation', () => {
 
     it('rejects hit outside radius', () => {
       const query: HitQuery = {
-        originX: 100, originY: 100, originZ: 100,
+        originX: 100,
+        originY: 100,
+        originZ: 100,
         targetId: 'target',
         clientTimestamp: 250,
         clientLatency: 50,
@@ -105,7 +109,9 @@ describe('LagCompensation', () => {
 
     it('returns miss for unknown target', () => {
       const query: HitQuery = {
-        originX: 0, originY: 0, originZ: 0,
+        originX: 0,
+        originY: 0,
+        originZ: 0,
         targetId: 'nonexistent',
         clientTimestamp: 250,
         clientLatency: 50,
@@ -118,8 +124,12 @@ describe('LagCompensation', () => {
     it('returns miss for empty history', () => {
       const lc = new LagCompensation();
       const result = lc.verifyHit({
-        originX: 0, originY: 0, originZ: 0,
-        targetId: 'x', clientTimestamp: 100, clientLatency: 0,
+        originX: 0,
+        originY: 0,
+        originZ: 0,
+        targetId: 'x',
+        clientTimestamp: 100,
+        clientLatency: 0,
       });
       expect(result.hit).toBe(false);
     });
@@ -157,7 +167,7 @@ describe('LagCompensation', () => {
 
 function makeState(
   timestamp: number,
-  entities: Record<string, [number, number, number, number]>,
+  entities: Record<string, [number, number, number, number]>
 ): HistoryState {
   const map = new Map<string, { x: number; y: number; z: number; radius: number }>();
   for (const [id, [x, y, z, r]] of Object.entries(entities)) {

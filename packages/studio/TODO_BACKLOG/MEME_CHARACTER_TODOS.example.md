@@ -6,12 +6,12 @@
 
 ## Summary
 
-| Priority | Count | Status |
-|----------|-------|--------|
-| 🔴 Critical | 2 | 0 failing |
-| 🟠 High | 5 | 0 failing |
-| 🟡 Medium | 7 | 0 backlog |
-| 🟢 Low | 3 | 0 backlog |
+| Priority    | Count | Status    |
+| ----------- | ----- | --------- |
+| 🔴 Critical | 2     | 0 failing |
+| 🟠 High     | 5     | 0 failing |
+| 🟡 Medium   | 7     | 0 backlog |
+| 🟢 Low      | 3     | 0 backlog |
 
 ---
 
@@ -28,6 +28,7 @@
 **Acceptance Criteria**: Characters load in under 500ms on average connection
 
 **Related Files**:
+
 - `GlbViewer.tsx`
 - `loaderOptimizations.ts (new)`
 
@@ -46,6 +47,7 @@
 **Acceptance Criteria**: One-click export to 1080x1080 MP4 (TikTok format)
 
 **Related Files**:
+
 - `exporters/mp4Exporter.ts (new)`
 - `ClipLibrary.tsx`
 
@@ -66,6 +68,7 @@
 **Acceptance Criteria**: Auto-apply meme-specific bones, traits, and animations
 
 **Related Files**:
+
 - `GlbDropZone.tsx`
 - `characterStore.ts`
 
@@ -84,6 +87,7 @@
 **Acceptance Criteria**: Emojis (💀, 🔥, 😂, 💎) spawn and float up on event
 
 **Related Files**:
+
 - `traits/emojiReactionTrait.ts (new)`
 - `traitRegistry.ts`
 
@@ -102,6 +106,7 @@
 **Acceptance Criteria**: Animations seamlessly loop without jarring transitions
 
 **Related Files**:
+
 - `animationBuilder.ts`
 - `ClipLibrary.tsx`
 
@@ -120,6 +125,7 @@
 **Acceptance Criteria**: Timeline shows waveform, markers for beat drops
 
 **Related Files**:
+
 - `AudioTimeline.tsx (new)`
 - `audioSync.ts (new)`
 - `characterStore.ts`
@@ -139,6 +145,7 @@
 **Acceptance Criteria**: R=record, S=stop, SPACE=play, E=export, 1-9=preset poses
 
 **Related Files**:
+
 - `useHotkeys.ts (new)`
 - `CharacterLayout.tsx`
 
@@ -159,6 +166,7 @@
 **Acceptance Criteria**: Preset picker with 10+ popular meme characters
 
 **Related Files**:
+
 - `CharacterLayout.tsx`
 - `PresetLibrary.tsx (new)`
 
@@ -177,6 +185,7 @@
 **Acceptance Criteria**: Character auto-performs trending poses from library
 
 **Related Files**:
+
 - `traits/viralPoseTrait.ts (new)`
 - `poseLibrary.ts (new)`
 
@@ -195,6 +204,7 @@
 **Acceptance Criteria**: Character reacts when someone adds 🔥 emoji in Discord
 
 **Related Files**:
+
 - `integrations/discordWebhook.ts (new)`
 - `reactionTriggerTrait.ts (new)`
 
@@ -213,6 +223,7 @@
 **Acceptance Criteria**: Generate 10 variations of same character in 30 seconds
 
 **Related Files**:
+
 - `batchRenderer.ts (new)`
 - `variationGenerator.ts (new)`
 
@@ -231,6 +242,7 @@
 **Acceptance Criteria**: One-click publish, get shareable link for Twitter/Discord
 
 **Related Files**:
+
 - `api/publishCharacter.ts (new)`
 - `ShareModal.tsx (new)`
 
@@ -251,6 +263,7 @@
 **Acceptance Criteria**: One-click shader that makes any character look 10x more expensive
 
 **Related Files**:
+
 - `shaders/dripShader.ts (new)`
 - `materialPresets.ts`
 
@@ -271,6 +284,7 @@
 **Acceptance Criteria**: Character celebrates when meme gets quote tweeted
 
 **Related Files**:
+
 - `integrations/twitterWebhook.ts (new)`
 - `particleSystem.ts`
 
@@ -289,6 +303,7 @@
 **Acceptance Criteria**: Listens to smart contract events, triggers animations
 
 **Related Files**:
+
 - `integrations/web3Listener.ts (new)`
 - `contractEventTrait.ts (new)`
 
@@ -354,11 +369,11 @@ All 17 items are currently in backlog (see priority sections above)
 **Total Estimated Time**: 11 days, 7 hours (95 hours total)
 
 | Priority | Estimated Time |
-|----------|---------------|
-| Critical | 10 hours |
-| High | 21 hours |
-| Medium | 34 hours |
-| Low | 21 hours |
+| -------- | -------------- |
+| Critical | 10 hours       |
+| High     | 21 hours       |
+| Medium   | 34 hours       |
+| Low      | 21 hours       |
 
 ---
 

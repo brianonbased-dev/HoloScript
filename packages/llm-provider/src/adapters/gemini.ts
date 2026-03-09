@@ -9,11 +9,7 @@
  */
 
 import { BaseLLMAdapter } from '../base-adapter';
-import type {
-  LLMCompletionRequest,
-  LLMCompletionResponse,
-  GeminiProviderConfig,
-} from '../types';
+import type { LLMCompletionRequest, LLMCompletionResponse, GeminiProviderConfig } from '../types';
 import {
   LLMAuthenticationError,
   LLMRateLimitError,
@@ -133,7 +129,7 @@ export class GeminiAdapter extends BaseLLMAdapter {
 
       clearTimeout(timeoutId);
 
-      const data: GeminiResponse = await response.json() as GeminiResponse;
+      const data: GeminiResponse = (await response.json()) as GeminiResponse;
 
       if (!response.ok || data.error) {
         throw this.mapGeminiError(response.status, data.error?.message ?? 'Unknown error');
@@ -157,26 +153,31 @@ export class GeminiAdapter extends BaseLLMAdapter {
       };
     } catch (err: unknown) {
       clearTimeout(timeoutId);
-      if (err instanceof LLMProviderError || err instanceof LLMAuthenticationError ||
-          err instanceof LLMRateLimitError || err instanceof LLMContextLengthError) {
+      if (
+        err instanceof LLMProviderError ||
+        err instanceof LLMAuthenticationError ||
+        err instanceof LLMRateLimitError ||
+        err instanceof LLMContextLengthError
+      ) {
         throw err;
       }
       if (err instanceof Error && err.name === 'AbortError') {
         throw new LLMProviderError(`Request timeout after ${this.config.timeoutMs}ms`, 'gemini');
       }
-      throw new LLMProviderError(
-        err instanceof Error ? err.message : String(err),
-        'gemini'
-      );
+      throw new LLMProviderError(err instanceof Error ? err.message : String(err), 'gemini');
     }
   }
 
   private mapFinishReason(reason: string | undefined): LLMCompletionResponse['finishReason'] {
     switch (reason) {
-      case 'STOP': return 'stop';
-      case 'MAX_TOKENS': return 'length';
-      case 'SAFETY': return 'content_filter';
-      default: return 'stop';
+      case 'STOP':
+        return 'stop';
+      case 'MAX_TOKENS':
+        return 'length';
+      case 'SAFETY':
+        return 'content_filter';
+      default:
+        return 'stop';
     }
   }
 

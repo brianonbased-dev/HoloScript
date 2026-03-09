@@ -17,12 +17,16 @@
 
 import { useRef, useEffect, useCallback } from 'react';
 import MonacoEditor, { type Monaco, type OnMount } from '@monaco-editor/react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 import { EditorToolbar } from './EditorToolbar';
 
 /** Minimal IStandaloneCodeEditor surface used by this component. */
 interface IStandaloneCodeEditor {
-  getModel(): { getLineLength(line: number): number; getValue(): string; setValue(value: string): void } | null;
+  getModel(): {
+    getLineLength(line: number): number;
+    getValue(): string;
+    setValue(value: string): void;
+  } | null;
   dispose(): void;
   addAction(action: {
     id: string;
@@ -48,81 +52,304 @@ interface IMarkerData {
 const HOLOSCRIPT_LANGUAGE_ID = 'holoscript';
 
 const KEYWORDS = [
-  'scene', 'object', 'trait', 'extends', 'import', 'from', 'export',
-  'if', 'else', 'for', 'while', 'return', 'let', 'const', 'var',
-  'true', 'false', 'null', 'undefined', 'new', 'this',
-  'world', 'entity', 'component', 'system', 'query', 'spawn', 'despawn',
-  'on_create', 'on_update', 'on_destroy', 'on_collision', 'on_trigger',
+  'scene',
+  'object',
+  'trait',
+  'extends',
+  'import',
+  'from',
+  'export',
+  'if',
+  'else',
+  'for',
+  'while',
+  'return',
+  'let',
+  'const',
+  'var',
+  'true',
+  'false',
+  'null',
+  'undefined',
+  'new',
+  'this',
+  'world',
+  'entity',
+  'component',
+  'system',
+  'query',
+  'spawn',
+  'despawn',
+  'on_create',
+  'on_update',
+  'on_destroy',
+  'on_collision',
+  'on_trigger',
 ];
 
 const TYPE_KEYWORDS = [
-  'number', 'string', 'boolean', 'void', 'any', 'Vec2', 'Vec3', 'Vec4',
-  'Mat3', 'Mat4', 'Quat', 'Color', 'Entity', 'World', 'Scene',
+  'number',
+  'string',
+  'boolean',
+  'void',
+  'any',
+  'Vec2',
+  'Vec3',
+  'Vec4',
+  'Mat3',
+  'Mat4',
+  'Quat',
+  'Color',
+  'Entity',
+  'World',
+  'Scene',
 ];
 
 // 60+ traits covering all major HoloScript subsystems
 const BUILTIN_TRAITS: { name: string; detail: string; docs: string }[] = [
   // Core rendering
-  { name: '@mesh', detail: 'Mesh renderer', docs: 'Attaches a 3D mesh geometry (box, sphere, cylinder, custom) to the entity.' },
-  { name: '@material', detail: 'Material', docs: 'Assigns a PBR material with color, roughness, metalness, textures.' },
-  { name: '@light', detail: 'Light source', docs: 'Adds a light source to the scene (point, spot, directional, ambient).' },
-  { name: '@camera', detail: 'Camera', docs: 'Defines a camera viewpoint with FOV, near/far planes, and projection.' },
-  { name: '@gaussian_splat', detail: 'Gaussian Splat', docs: 'Renders a 3D Gaussian splatting point cloud for photorealistic scenes.' },
+  {
+    name: '@mesh',
+    detail: 'Mesh renderer',
+    docs: 'Attaches a 3D mesh geometry (box, sphere, cylinder, custom) to the entity.',
+  },
+  {
+    name: '@material',
+    detail: 'Material',
+    docs: 'Assigns a PBR material with color, roughness, metalness, textures.',
+  },
+  {
+    name: '@light',
+    detail: 'Light source',
+    docs: 'Adds a light source to the scene (point, spot, directional, ambient).',
+  },
+  {
+    name: '@camera',
+    detail: 'Camera',
+    docs: 'Defines a camera viewpoint with FOV, near/far planes, and projection.',
+  },
+  {
+    name: '@gaussian_splat',
+    detail: 'Gaussian Splat',
+    docs: 'Renders a 3D Gaussian splatting point cloud for photorealistic scenes.',
+  },
   // Physics
-  { name: '@physics', detail: 'Physics body', docs: 'Adds physics simulation with mass, friction, restitution.' },
-  { name: '@collider', detail: 'Collision shape', docs: 'Defines collision geometry: box, sphere, capsule, mesh, or compound.' },
-  { name: '@rigidbody', detail: 'Rigid body', docs: 'Enables rigid body dynamics with velocity, angular velocity, forces.' },
-  { name: '@buoyancy', detail: 'Buoyancy', docs: 'Simulates fluid buoyancy forces for water interactions.' },
+  {
+    name: '@physics',
+    detail: 'Physics body',
+    docs: 'Adds physics simulation with mass, friction, restitution.',
+  },
+  {
+    name: '@collider',
+    detail: 'Collision shape',
+    docs: 'Defines collision geometry: box, sphere, capsule, mesh, or compound.',
+  },
+  {
+    name: '@rigidbody',
+    detail: 'Rigid body',
+    docs: 'Enables rigid body dynamics with velocity, angular velocity, forces.',
+  },
+  {
+    name: '@buoyancy',
+    detail: 'Buoyancy',
+    docs: 'Simulates fluid buoyancy forces for water interactions.',
+  },
   // Animation
-  { name: '@animation', detail: 'Animation clip', docs: 'Plays skeletal or morph target animations with blending.' },
-  { name: '@particle', detail: 'Particle system', docs: 'Emits particles with configurable rate, lifetime, velocity, color.' },
-  { name: '@choreography', detail: 'Choreography', docs: 'Sequences multi-entity animations with timing and sync.' },
+  {
+    name: '@animation',
+    detail: 'Animation clip',
+    docs: 'Plays skeletal or morph target animations with blending.',
+  },
+  {
+    name: '@particle',
+    detail: 'Particle system',
+    docs: 'Emits particles with configurable rate, lifetime, velocity, color.',
+  },
+  {
+    name: '@choreography',
+    detail: 'Choreography',
+    docs: 'Sequences multi-entity animations with timing and sync.',
+  },
   // Audio
-  { name: '@audio', detail: 'Audio source', docs: 'Attaches a spatial audio source with 3D falloff.' },
-  { name: '@audio_source', detail: 'Audio emitter', docs: 'Configures audio playback: volume, loop, spatial blending.' },
-  { name: '@audio_occlusion', detail: 'Audio occlusion', docs: 'Simulates sound occlusion through walls and obstacles.' },
+  {
+    name: '@audio',
+    detail: 'Audio source',
+    docs: 'Attaches a spatial audio source with 3D falloff.',
+  },
+  {
+    name: '@audio_source',
+    detail: 'Audio emitter',
+    docs: 'Configures audio playback: volume, loop, spatial blending.',
+  },
+  {
+    name: '@audio_occlusion',
+    detail: 'Audio occlusion',
+    docs: 'Simulates sound occlusion through walls and obstacles.',
+  },
   // Spatial
-  { name: '@point_light', detail: 'Point light', docs: 'Omnidirectional light with configurable range, intensity, and color.' },
-  { name: '@spot_light', detail: 'Spot light', docs: 'Focused cone light with angle, penumbra, and decay.' },
-  { name: '@directional_light', detail: 'Directional light', docs: 'Infinite-distance light simulating sunlight with shadow support.' },
-  { name: '@ambient_light', detail: 'Ambient light', docs: 'Global ambient illumination for the entire scene.' },
+  {
+    name: '@point_light',
+    detail: 'Point light',
+    docs: 'Omnidirectional light with configurable range, intensity, and color.',
+  },
+  {
+    name: '@spot_light',
+    detail: 'Spot light',
+    docs: 'Focused cone light with angle, penumbra, and decay.',
+  },
+  {
+    name: '@directional_light',
+    detail: 'Directional light',
+    docs: 'Infinite-distance light simulating sunlight with shadow support.',
+  },
+  {
+    name: '@ambient_light',
+    detail: 'Ambient light',
+    docs: 'Global ambient illumination for the entire scene.',
+  },
   // Interaction
-  { name: '@script', detail: 'Script component', docs: 'Attaches custom logic with lifecycle hooks (on_create, on_update).' },
-  { name: '@input', detail: 'Input handler', docs: 'Captures keyboard, mouse, gamepad, and XR controller input.' },
-  { name: '@gesture', detail: 'Gesture recognition', docs: 'Detects hand gestures: pinch, grab, point, fist, wave.' },
-  { name: '@eye_tracked', detail: 'Eye tracking', docs: 'Enables eye-tracking fixation, saccade, and dwell detection.' },
-  { name: '@body_tracking', detail: 'Body tracking', docs: 'Full body tracking with joint positions and rotations.' },
+  {
+    name: '@script',
+    detail: 'Script component',
+    docs: 'Attaches custom logic with lifecycle hooks (on_create, on_update).',
+  },
+  {
+    name: '@input',
+    detail: 'Input handler',
+    docs: 'Captures keyboard, mouse, gamepad, and XR controller input.',
+  },
+  {
+    name: '@gesture',
+    detail: 'Gesture recognition',
+    docs: 'Detects hand gestures: pinch, grab, point, fist, wave.',
+  },
+  {
+    name: '@eye_tracked',
+    detail: 'Eye tracking',
+    docs: 'Enables eye-tracking fixation, saccade, and dwell detection.',
+  },
+  {
+    name: '@body_tracking',
+    detail: 'Body tracking',
+    docs: 'Full body tracking with joint positions and rotations.',
+  },
   // AI & Agents
-  { name: '@ai_npc_brain', detail: 'NPC AI brain', docs: 'Adds autonomous NPC behavior with goal planning and memory.' },
-  { name: '@behavior_tree', detail: 'Behavior tree', docs: 'Decision tree for complex AI behaviors with sequence/selector nodes.' },
-  { name: '@agent_memory', detail: 'Agent memory', docs: 'Persistent episodic and semantic memory for AI agents.' },
-  { name: '@dialogue', detail: 'Dialogue system', docs: 'Branching dialogue trees with conditions and effects.' },
+  {
+    name: '@ai_npc_brain',
+    detail: 'NPC AI brain',
+    docs: 'Adds autonomous NPC behavior with goal planning and memory.',
+  },
+  {
+    name: '@behavior_tree',
+    detail: 'Behavior tree',
+    docs: 'Decision tree for complex AI behaviors with sequence/selector nodes.',
+  },
+  {
+    name: '@agent_memory',
+    detail: 'Agent memory',
+    docs: 'Persistent episodic and semantic memory for AI agents.',
+  },
+  {
+    name: '@dialogue',
+    detail: 'Dialogue system',
+    docs: 'Branching dialogue trees with conditions and effects.',
+  },
   // Multiplayer
-  { name: '@multiplayer', detail: 'Network sync', docs: 'Synchronizes entity state across the network for multiplayer.' },
-  { name: '@networked', detail: 'Networked entity', docs: 'Marks entity for network replication with ownership model.' },
+  {
+    name: '@multiplayer',
+    detail: 'Network sync',
+    docs: 'Synchronizes entity state across the network for multiplayer.',
+  },
+  {
+    name: '@networked',
+    detail: 'Networked entity',
+    docs: 'Marks entity for network replication with ownership model.',
+  },
   // VR/XR
   { name: '@vr', detail: 'VR component', docs: 'VR-specific rendering and interaction setup.' },
-  { name: '@avatar', detail: 'Avatar embodiment', docs: 'Maps user body to a 3D avatar with IK and hand tracking.' },
+  {
+    name: '@avatar',
+    detail: 'Avatar embodiment',
+    docs: 'Maps user body to a 3D avatar with IK and hand tracking.',
+  },
   // World
-  { name: '@terrain', detail: 'Terrain', docs: 'Generates terrain with heightmaps, textures, and vegetation.' },
-  { name: '@navigation', detail: 'Navigation mesh', docs: 'Bakes and uses NavMesh for AI pathfinding.' },
-  { name: '@lod', detail: 'Level of detail', docs: 'Automatic LOD switching based on camera distance.' },
+  {
+    name: '@terrain',
+    detail: 'Terrain',
+    docs: 'Generates terrain with heightmaps, textures, and vegetation.',
+  },
+  {
+    name: '@navigation',
+    detail: 'Navigation mesh',
+    docs: 'Bakes and uses NavMesh for AI pathfinding.',
+  },
+  {
+    name: '@lod',
+    detail: 'Level of detail',
+    docs: 'Automatic LOD switching based on camera distance.',
+  },
   // IoT/Digital Twin
-  { name: '@sensor_stream', detail: 'Sensor stream', docs: 'Binds real-time IoT sensor data to entity properties.' },
-  { name: '@digital_twin', detail: 'Digital twin', docs: 'Mirrors a physical device/system as a live 3D representation.' },
+  {
+    name: '@sensor_stream',
+    detail: 'Sensor stream',
+    docs: 'Binds real-time IoT sensor data to entity properties.',
+  },
+  {
+    name: '@digital_twin',
+    detail: 'Digital twin',
+    docs: 'Mirrors a physical device/system as a live 3D representation.',
+  },
   // Security
-  { name: '@audit_log', detail: 'Audit log', docs: 'Logs all entity mutations for compliance and debugging.' },
-  { name: '@accessible', detail: 'Accessibility', docs: 'Adds screen reader labels, keyboard navigation, and contrast modes.' },
+  {
+    name: '@audit_log',
+    detail: 'Audit log',
+    docs: 'Logs all entity mutations for compliance and debugging.',
+  },
+  {
+    name: '@accessible',
+    detail: 'Accessibility',
+    docs: 'Adds screen reader labels, keyboard navigation, and contrast modes.',
+  },
   // Procedural
-  { name: '@procedural', detail: 'Procedural generation', docs: 'Generates content procedurally: meshes, textures, worlds.' },
-  { name: '@tilemap', detail: 'Tilemap', docs: 'Creates 2D/3D tile-based maps with auto-tiling rules.' },
+  {
+    name: '@procedural',
+    detail: 'Procedural generation',
+    docs: 'Generates content procedurally: meshes, textures, worlds.',
+  },
+  {
+    name: '@tilemap',
+    detail: 'Tilemap',
+    docs: 'Creates 2D/3D tile-based maps with auto-tiling rules.',
+  },
 ];
 
 const BUILTIN_FUNCTIONS = [
-  'vec2', 'vec3', 'vec4', 'mat3', 'mat4', 'quat',
-  'lerp', 'clamp', 'mix', 'smoothstep', 'length', 'normalize',
-  'cross', 'dot', 'sin', 'cos', 'tan', 'abs', 'floor', 'ceil',
-  'spawn', 'despawn', 'query', 'emit', 'listen', 'broadcast',
+  'vec2',
+  'vec3',
+  'vec4',
+  'mat3',
+  'mat4',
+  'quat',
+  'lerp',
+  'clamp',
+  'mix',
+  'smoothstep',
+  'length',
+  'normalize',
+  'cross',
+  'dot',
+  'sin',
+  'cos',
+  'tan',
+  'abs',
+  'floor',
+  'ceil',
+  'spawn',
+  'despawn',
+  'query',
+  'emit',
+  'listen',
+  'broadcast',
 ];
 
 // â”€â”€â”€ Formatter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -174,13 +401,16 @@ function registerHoloScript(monaco: Monaco) {
         [/\d+(\.\d+)?([eE][+-]?\d+)?/, 'number.float'],
         [/0x[0-9a-fA-F]+/, 'number.hex'],
         // Identifiers + keywords
-        [/[a-zA-Z_]\w*/, {
-          cases: {
-            '@keywords': 'keyword',
-            '@typeKeywords': 'type',
-            '@default': 'identifier',
+        [
+          /[a-zA-Z_]\w*/,
+          {
+            cases: {
+              '@keywords': 'keyword',
+              '@typeKeywords': 'type',
+              '@default': 'identifier',
+            },
           },
-        }],
+        ],
         // Scene block header: scene "Name" {
         [/scene\s+"[^"]*"/, 'type.identifier'],
         // Punctuation
@@ -199,10 +429,7 @@ function registerHoloScript(monaco: Monaco) {
         [/\$\{/, { token: 'delimiter.bracket', next: '@templateExpr' }],
         [/./, 'string'],
       ],
-      templateExpr: [
-        [/}/, { token: 'delimiter.bracket', next: '@pop' }],
-        { include: 'root' },
-      ],
+      templateExpr: [[/}/, { token: 'delimiter.bracket', next: '@pop' }], { include: 'root' }],
     },
   } as Parameters<typeof monaco.languages.setMonarchTokensProvider>[1]);
 
@@ -262,7 +489,8 @@ function registerHoloScript(monaco: Monaco) {
         {
           label: 'object',
           kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: 'object ${1:MyObject} {\n\t@mesh { geometry: "${2:box}" }\n\t@material { color: "${3:#ffffff}" }\n}',
+          insertText:
+            'object ${1:MyObject} {\n\t@mesh { geometry: "${2:box}" }\n\t@material { color: "${3:#ffffff}" }\n}',
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: 'Create a new scene object with mesh and material',
           range,
@@ -278,7 +506,8 @@ function registerHoloScript(monaco: Monaco) {
         {
           label: 'world',
           kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: 'world "${1:MyWorld}" {\n\t@terrain { heightmap: "${2:flat}" }\n\t@ambient_light { intensity: ${3:0.5} }\n\n\t$0\n}',
+          insertText:
+            'world "${1:MyWorld}" {\n\t@terrain { heightmap: "${2:flat}" }\n\t@ambient_light { intensity: ${3:0.5} }\n\n\t$0\n}',
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: 'Create a new HoloScript world with terrain and lighting',
           range,
@@ -286,7 +515,8 @@ function registerHoloScript(monaco: Monaco) {
         {
           label: 'physics-object',
           kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: 'object ${1:PhysicsObj} {\n\t@mesh { geometry: "${2:sphere}" }\n\t@material { color: "${3:#6366f1}" }\n\t@rigidbody { mass: ${4:1.0} }\n\t@collider { shape: "${5:sphere}" }\n}',
+          insertText:
+            'object ${1:PhysicsObj} {\n\t@mesh { geometry: "${2:sphere}" }\n\t@material { color: "${3:#6366f1}" }\n\t@rigidbody { mass: ${4:1.0} }\n\t@collider { shape: "${5:sphere}" }\n}',
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: 'Create a physics-enabled object with collider',
           range,
@@ -294,7 +524,8 @@ function registerHoloScript(monaco: Monaco) {
         {
           label: 'npc',
           kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: 'object ${1:NPC} {\n\t@mesh { geometry: "humanoid" }\n\t@avatar { model: "${2:default}" }\n\t@ai_npc_brain {\n\t\tgoals: ["${3:patrol}", "${4:interact}"]\n\t}\n\t@dialogue {\n\t\tgreeting: "${5:Hello, traveler!}"\n\t}\n}',
+          insertText:
+            'object ${1:NPC} {\n\t@mesh { geometry: "humanoid" }\n\t@avatar { model: "${2:default}" }\n\t@ai_npc_brain {\n\t\tgoals: ["${3:patrol}", "${4:interact}"]\n\t}\n\t@dialogue {\n\t\tgreeting: "${5:Hello, traveler!}"\n\t}\n}',
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: 'Create an AI-driven NPC with dialogue',
           range,
@@ -325,10 +556,7 @@ function registerHoloScript(monaco: Monaco) {
               endLineNumber: position.lineNumber,
               endColumn: lineText.indexOf(traitName) + traitName.length + 1,
             },
-            contents: [
-              { value: `**${trait.name}** â€” *${trait.detail}*` },
-              { value: trait.docs },
-            ],
+            contents: [{ value: `**${trait.name}** â€” *${trait.detail}*` }, { value: trait.docs }],
           };
         }
       }
@@ -412,54 +640,60 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
     monaco.editor.setModelMarkers(model as any, 'holoscript', markers as any);
   }, [errors]);
 
-  const handleMount: OnMount = useCallback((editor, monaco) => {
-    editorRef.current = editor;
-    monacoRef.current = monaco;
-    registerHoloScript(monaco);
-    monaco.editor.setTheme('holoscript-dark');
+  const handleMount: OnMount = useCallback(
+    (editor, monaco) => {
+      editorRef.current = editor;
+      monacoRef.current = monaco;
+      registerHoloScript(monaco);
+      monaco.editor.setTheme('holoscript-dark');
 
-    // Set model language
-    const model = editor.getModel();
-    if (model) monaco.editor.setModelLanguage(model, HOLOSCRIPT_LANGUAGE_ID);
+      // Set model language
+      const model = editor.getModel();
+      if (model) monaco.editor.setModelLanguage(model, HOLOSCRIPT_LANGUAGE_ID);
 
-    // Register format action (Ctrl+Shift+F)
-    editor.addAction({
-      id: 'holoscript.format',
-      label: 'Format HoloScript',
-      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF],
-      run: (ed: IStandaloneCodeEditor) => {
-        const m = ed.getModel();
-        if (!m) return;
-        const formatted = formatHoloScript(m.getValue());
-        if (formatted !== m.getValue()) {
-          m.setValue(formatted);
-        }
-      },
-    });
+      // Register format action (Ctrl+Shift+F)
+      editor.addAction({
+        id: 'holoscript.format',
+        label: 'Format HoloScript',
+        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF],
+        run: (ed: IStandaloneCodeEditor) => {
+          const m = ed.getModel();
+          if (!m) return;
+          const formatted = formatHoloScript(m.getValue());
+          if (formatted !== m.getValue()) {
+            m.setValue(formatted);
+          }
+        },
+      });
 
-    // Format on save (Ctrl+S)
-    editor.addAction({
-      id: 'holoscript.formatOnSave',
-      label: 'Format & Save HoloScript',
-      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
-      run: (ed: IStandaloneCodeEditor) => {
-        const m = ed.getModel();
-        if (!m) return;
-        const formatted = formatHoloScript(m.getValue());
-        if (formatted !== m.getValue()) {
-          m.setValue(formatted);
-        }
-        setCode(formatted);
-      },
-    });
-  }, [setCode]);
+      // Format on save (Ctrl+S)
+      editor.addAction({
+        id: 'holoscript.formatOnSave',
+        label: 'Format & Save HoloScript',
+        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
+        run: (ed: IStandaloneCodeEditor) => {
+          const m = ed.getModel();
+          if (!m) return;
+          const formatted = formatHoloScript(m.getValue());
+          if (formatted !== m.getValue()) {
+            m.setValue(formatted);
+          }
+          setCode(formatted);
+        },
+      });
+    },
+    [setCode]
+  );
 
-  const handleChange = useCallback((value: string | undefined) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setCode(value ?? '');
-    }, 300);
-  }, [setCode]);
+  const handleChange = useCallback(
+    (value: string | undefined) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        setCode(value ?? '');
+      }, 300);
+    },
+    [setCode]
+  );
 
   return (
     <div className="flex flex-col h-full">
@@ -505,4 +739,3 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
     </div>
   );
 }
-

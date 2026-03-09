@@ -12,9 +12,21 @@ describe('AI & Pathfinding (Cycle 180)', () => {
     beforeEach(() => {
       nav = new NavMesh();
       // Create a simple 3-node path: A → B → C
-      const a = nav.addPolygon([{ x: 0, z: 0 }, { x: 2, z: 0 }, { x: 1, z: 2 }]);
-      const b = nav.addPolygon([{ x: 2, z: 0 }, { x: 4, z: 0 }, { x: 3, z: 2 }]);
-      const c = nav.addPolygon([{ x: 4, z: 0 }, { x: 6, z: 0 }, { x: 5, z: 2 }]);
+      const a = nav.addPolygon([
+        { x: 0, z: 0 },
+        { x: 2, z: 0 },
+        { x: 1, z: 2 },
+      ]);
+      const b = nav.addPolygon([
+        { x: 2, z: 0 },
+        { x: 4, z: 0 },
+        { x: 3, z: 2 },
+      ]);
+      const c = nav.addPolygon([
+        { x: 4, z: 0 },
+        { x: 6, z: 0 },
+        { x: 5, z: 2 },
+      ]);
       nav.connect(a, b);
       nav.connect(b, c);
     });
@@ -32,7 +44,11 @@ describe('AI & Pathfinding (Cycle 180)', () => {
     });
 
     it('should return null for disconnected polygons', () => {
-      const isolated = nav.addPolygon([{ x: 100, z: 100 }, { x: 102, z: 100 }, { x: 101, z: 102 }]);
+      const isolated = nav.addPolygon([
+        { x: 100, z: 100 },
+        { x: 102, z: 100 },
+        { x: 101, z: 102 },
+      ]);
       expect(nav.findPath(0, isolated)).toBeNull();
     });
 
@@ -52,7 +68,13 @@ describe('AI & Pathfinding (Cycle 180)', () => {
     let agent: SteeringAgent;
 
     beforeEach(() => {
-      agent = { position: { x: 0, z: 0 }, velocity: { x: 1, z: 0 }, maxSpeed: 5, maxForce: 10, mass: 1 };
+      agent = {
+        position: { x: 0, z: 0 },
+        velocity: { x: 1, z: 0 },
+        maxSpeed: 5,
+        maxForce: 10,
+        mass: 1,
+      };
     });
 
     it('should seek toward a target', () => {
@@ -77,10 +99,13 @@ describe('AI & Pathfinding (Cycle 180)', () => {
     });
 
     it('should blend multiple steering outputs', () => {
-      const result = SteeringBehavior.blend([
-        { force: { x: 5, z: 0 }, type: 'seek', weight: 0.5 },
-        { force: { x: 0, z: 5 }, type: 'avoid', weight: 0.5 },
-      ], 10);
+      const result = SteeringBehavior.blend(
+        [
+          { force: { x: 5, z: 0 }, type: 'seek', weight: 0.5 },
+          { force: { x: 0, z: 5 }, type: 'avoid', weight: 0.5 },
+        ],
+        10
+      );
       expect(result.x).toBeGreaterThan(0);
       expect(result.z).toBeGreaterThan(0);
     });
@@ -100,8 +125,14 @@ describe('AI & Pathfinding (Cycle 180)', () => {
       const bt = new BehaviorTree();
       let counter = 0;
       const seq = new SequenceNode('seq', [
-        new ActionNode('inc1', () => { counter++; return 'success'; }),
-        new ActionNode('inc2', () => { counter++; return 'success'; }),
+        new ActionNode('inc1', () => {
+          counter++;
+          return 'success';
+        }),
+        new ActionNode('inc2', () => {
+          counter++;
+          return 'success';
+        }),
       ]);
       bt.createTree('t', seq, 'e1');
       bt.tick('t', 0.016);

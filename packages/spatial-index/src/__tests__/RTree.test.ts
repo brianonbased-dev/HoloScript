@@ -44,7 +44,7 @@ describe('RTree', () => {
         minLat: 37.76,
         minLon: -122.43,
         maxLat: 37.79,
-        maxLon: -122.40,
+        maxLon: -122.4,
       });
 
       expect(results.length).toBeGreaterThanOrEqual(2);
@@ -189,11 +189,11 @@ describe('RTree', () => {
         minLat: 37.76,
         minLon: -122.43,
         maxLat: 37.79,
-        maxLon: -122.40,
+        maxLon: -122.4,
       });
 
       expect(results).toHaveLength(2);
-      expect(results.find(r => r.id === 'a2')).toBeUndefined();
+      expect(results.find((r) => r.id === 'a2')).toBeUndefined();
     });
   });
 
@@ -295,7 +295,7 @@ describe('RTree', () => {
       const results = rtree.searchRadius({ lat: 37.7749, lon: -122.4194 }, 10);
 
       expect(results).toHaveLength(3);
-      results.forEach(r => {
+      results.forEach((r) => {
         expect(r.distance).toBeLessThan(1);
       });
     });
@@ -349,7 +349,7 @@ describe('RTree', () => {
       const anchor: GeospatialAnchor = {
         id: 'mt-everest',
         lat: 27.9881,
-        lon: 86.9250,
+        lon: 86.925,
         alt: 8848,
         metadata: { name: 'Mount Everest' },
       };

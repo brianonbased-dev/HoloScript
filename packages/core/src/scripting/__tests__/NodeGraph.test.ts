@@ -8,7 +8,9 @@ function makeNode(id: string, ports: GraphNode['ports'] = []): GraphNode {
 describe('NodeGraph', () => {
   let graph: NodeGraph;
 
-  beforeEach(() => { graph = new NodeGraph(); });
+  beforeEach(() => {
+    graph = new NodeGraph();
+  });
 
   it('addNode and getNodeCount', () => {
     graph.addNode(makeNode('a'));
@@ -82,10 +84,12 @@ describe('NodeGraph', () => {
   // Topological order
   it('getTopologicalOrder for linear chain', () => {
     graph.addNode(makeNode('a', [{ id: 'out', name: 'out', type: 'number', direction: 'output' }]));
-    graph.addNode(makeNode('b', [
-      { id: 'in', name: 'in', type: 'number', direction: 'input' },
-      { id: 'out', name: 'out', type: 'number', direction: 'output' },
-    ]));
+    graph.addNode(
+      makeNode('b', [
+        { id: 'in', name: 'in', type: 'number', direction: 'input' },
+        { id: 'out', name: 'out', type: 'number', direction: 'output' },
+      ])
+    );
     graph.addNode(makeNode('c', [{ id: 'in', name: 'in', type: 'number', direction: 'input' }]));
     graph.connect('a', 'out', 'b', 'in');
     graph.connect('b', 'out', 'c', 'in');

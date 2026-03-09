@@ -17,9 +17,5 @@ interface OrchestrationErrorBoundaryProps {
  * @deprecated Use `<StudioErrorBoundary label="Orchestration">` directly.
  */
 export function OrchestrationErrorBoundary({ children }: OrchestrationErrorBoundaryProps) {
-  return (
-    <StudioErrorBoundary label="Orchestration">
-      {children}
-    </StudioErrorBoundary>
-  );
+  return <StudioErrorBoundary label="Orchestration">{children}</StudioErrorBoundary>;
 }

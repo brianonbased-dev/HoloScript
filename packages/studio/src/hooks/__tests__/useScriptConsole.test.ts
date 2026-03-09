@@ -3,9 +3,9 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useScriptConsole } from '../useScriptConsole';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
-vi.mock('@/lib/store', () => ({
+vi.mock('@/lib/stores', () => ({
   useSceneStore: vi.fn(),
 }));
 
@@ -79,7 +79,9 @@ describe('useScriptConsole', () => {
         result.current.evaluate('console.log("test")');
       });
 
-      expect(result.current.entries.some(e => e.content === 'test' && e.level === 'log')).toBe(true);
+      expect(result.current.entries.some((e) => e.content === 'test' && e.level === 'log')).toBe(
+        true
+      );
     });
 
     it('should capture console.warn', () => {
@@ -89,7 +91,9 @@ describe('useScriptConsole', () => {
         result.current.evaluate('console.warn("warning")');
       });
 
-      expect(result.current.entries.some(e => e.content === 'warning' && e.level === 'warn')).toBe(true);
+      expect(
+        result.current.entries.some((e) => e.content === 'warning' && e.level === 'warn')
+      ).toBe(true);
     });
 
     it('should capture console.error', () => {
@@ -99,7 +103,9 @@ describe('useScriptConsole', () => {
         result.current.evaluate('console.error("error")');
       });
 
-      expect(result.current.entries.some(e => e.content === 'error' && e.level === 'error')).toBe(true);
+      expect(result.current.entries.some((e) => e.content === 'error' && e.level === 'error')).toBe(
+        true
+      );
     });
 
     it('should catch evaluation errors', () => {
@@ -132,7 +138,7 @@ describe('useScriptConsole', () => {
         result.current.evaluate('1 + 1');
       });
 
-      const logEntry = result.current.entries.find(e => e.content === '> 1 + 1');
+      const logEntry = result.current.entries.find((e) => e.content === '> 1 + 1');
       expect(logEntry).toBeDefined();
     });
   });

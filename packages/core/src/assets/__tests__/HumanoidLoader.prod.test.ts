@@ -6,7 +6,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HumanoidLoader, type HumanoidConfig, type Transform, type Vector3 } from '../HumanoidLoader';
+import {
+  HumanoidLoader,
+  type HumanoidConfig,
+  type Transform,
+  type Vector3,
+} from '../HumanoidLoader';
 
 // Create a loader without SmartAssetLoader dependency (optional param)
 function makeLoader(): HumanoidLoader {

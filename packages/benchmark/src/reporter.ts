@@ -29,9 +29,11 @@ export interface AllResults {
 
 function barSvg(value: number, max: number, width = 200): string {
   const pct = max === 0 ? 0 : Math.min((value / max) * width, width);
-  return `<svg width="${width}" height="14" style="vertical-align:middle">` +
+  return (
+    `<svg width="${width}" height="14" style="vertical-align:middle">` +
     `<rect width="${pct.toFixed(1)}" height="14" fill="#4caf50" rx="2"/>` +
-    `</svg>`;
+    `</svg>`
+  );
 }
 
 function formatOps(ops: number): string {
@@ -42,14 +44,18 @@ function formatOps(ops: number): string {
 
 function buildSuiteTable(suite: SuiteResults): string {
   const maxOps = Math.max(...suite.results.map((r) => r.opsPerSecond), 1);
-  const rows = suite.results.map((r) => `
+  const rows = suite.results
+    .map(
+      (r) => `
     <tr>
       <td style="padding:4px 8px;font-family:monospace">${r.name}</td>
       <td style="padding:4px 8px;text-align:right">${r.meanMs.toFixed(3)}ms</td>
       <td style="padding:4px 8px;text-align:right">${formatOps(r.opsPerSecond)}</td>
       <td style="padding:4px 8px;text-align:right">±${r.marginOfError.toFixed(1)}%</td>
       <td style="padding:4px 8px">${barSvg(r.opsPerSecond, maxOps)}</td>
-    </tr>`).join('');
+    </tr>`
+    )
+    .join('');
 
   return `
   <div style="margin-bottom:32px">

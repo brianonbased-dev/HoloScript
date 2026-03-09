@@ -6,13 +6,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  SemanticRegistry,
-} from '../../semantics/SemanticAnnotation';
-import type {
-  SemanticSchema,
-  SemanticAnnotation,
-} from '../../semantics/SemanticAnnotation';
+import { SemanticRegistry } from '../../semantics/SemanticAnnotation';
+import type { SemanticSchema, SemanticAnnotation } from '../../semantics/SemanticAnnotation';
 
 function makeAnnotation(id: string, opts: Partial<SemanticAnnotation> = {}): SemanticAnnotation {
   return {
@@ -22,9 +17,15 @@ function makeAnnotation(id: string, opts: Partial<SemanticAnnotation> = {}): Sem
     category: opts.category || 'transform',
     intent: opts.intent || 'position',
     flags: opts.flags || {
-      mutable: true, networked: false, persistent: false,
-      inspectable: true, animatable: false, affectsRender: true,
-      affectsPhysics: false, required: false, deprecated: false,
+      mutable: true,
+      networked: false,
+      persistent: false,
+      inspectable: true,
+      animatable: false,
+      affectsRender: true,
+      affectsPhysics: false,
+      required: false,
+      deprecated: false,
       sensitive: false,
     },
     constraints: opts.constraints || {},
@@ -35,7 +36,11 @@ function makeAnnotation(id: string, opts: Partial<SemanticAnnotation> = {}): Sem
   };
 }
 
-function makeSchema(id: string, entityType: string, annotations: SemanticAnnotation[]): SemanticSchema {
+function makeSchema(
+  id: string,
+  entityType: string,
+  annotations: SemanticAnnotation[]
+): SemanticSchema {
   const annMap = new Map<string, SemanticAnnotation>();
   for (const a of annotations) annMap.set(a.propertyPath, a);
   return {
@@ -114,20 +119,24 @@ describe('SemanticRegistry — Production', () => {
   // ─── Category / Intent Queries ────────────────────────────────────
 
   it('findByCategory returns matching annotations', () => {
-    registry.registerSchema(makeSchema('s5', 'Box', [
-      makeAnnotation('t1', { category: 'physics', propertyPath: 'mass' }),
-      makeAnnotation('t2', { category: 'visual', propertyPath: 'color' }),
-    ]));
+    registry.registerSchema(
+      makeSchema('s5', 'Box', [
+        makeAnnotation('t1', { category: 'physics', propertyPath: 'mass' }),
+        makeAnnotation('t2', { category: 'visual', propertyPath: 'color' }),
+      ])
+    );
     const physics = registry.findByCategory('physics');
     expect(physics.length).toBe(1);
     expect(physics[0].propertyPath).toBe('mass');
   });
 
   it('findByIntent returns matching annotations', () => {
-    registry.registerSchema(makeSchema('s6', 'Light', [
-      makeAnnotation('i1', { intent: 'color', propertyPath: 'color' }),
-      makeAnnotation('i2', { intent: 'intensity', propertyPath: 'brightness' }),
-    ]));
+    registry.registerSchema(
+      makeSchema('s6', 'Light', [
+        makeAnnotation('i1', { intent: 'color', propertyPath: 'color' }),
+        makeAnnotation('i2', { intent: 'intensity', propertyPath: 'brightness' }),
+      ])
+    );
     const colorAnns = registry.findByIntent('color');
     expect(colorAnns.length).toBe(1);
   });
@@ -135,9 +144,11 @@ describe('SemanticRegistry — Production', () => {
   // ─── AI Context ───────────────────────────────────────────────────
 
   it('generateAIContext returns string for registered entity', () => {
-    registry.registerSchema(makeSchema('s7', 'NPC', [
-      makeAnnotation('npc_health', { propertyPath: 'health', label: 'Health Points' }),
-    ]));
+    registry.registerSchema(
+      makeSchema('s7', 'NPC', [
+        makeAnnotation('npc_health', { propertyPath: 'health', label: 'Health Points' }),
+      ])
+    );
     const ctx = registry.generateAIContext('NPC');
     expect(typeof ctx).toBe('string');
     expect(ctx.length).toBeGreaterThan(0);
@@ -151,19 +162,21 @@ describe('SemanticRegistry — Production', () => {
   // ─── Property Suggestions ─────────────────────────────────────────
 
   it('getPropertySuggestions matches partial path', () => {
-    registry.registerSchema(makeSchema('s8', 'Character', [
-      makeAnnotation('a1', { propertyPath: 'position.x' }),
-      makeAnnotation('a2', { propertyPath: 'position.y' }),
-      makeAnnotation('a3', { propertyPath: 'rotation.z' }),
-    ]));
+    registry.registerSchema(
+      makeSchema('s8', 'Character', [
+        makeAnnotation('a1', { propertyPath: 'position.x' }),
+        makeAnnotation('a2', { propertyPath: 'position.y' }),
+        makeAnnotation('a3', { propertyPath: 'rotation.z' }),
+      ])
+    );
     const suggestions = registry.getPropertySuggestions('Character', 'pos');
     expect(suggestions.length).toBe(2);
   });
 
   it('getPropertySuggestions returns empty for no match', () => {
-    registry.registerSchema(makeSchema('s9', 'Tree', [
-      makeAnnotation('a1', { propertyPath: 'height' }),
-    ]));
+    registry.registerSchema(
+      makeSchema('s9', 'Tree', [makeAnnotation('a1', { propertyPath: 'height' })])
+    );
     const suggestions = registry.getPropertySuggestions('Tree', 'zzz');
     expect(suggestions.length).toBe(0);
   });

@@ -68,14 +68,14 @@ const url = URL.createObjectURL(blob);
 
 The USDZ exporter converts HoloScript PBR materials to `UsdPreviewSurface`:
 
-| HoloScript | USD Preview Surface |
-|------------|---------------------|
-| `baseColor` | `diffuseColor` |
-| `metallic` | `metallic` |
-| `roughness` | `roughness` |
-| `emissiveColor` | `emissiveColor` |
-| `normalTexture` | `normal` |
-| `occlusionTexture` | `occlusion` |
+| HoloScript         | USD Preview Surface |
+| ------------------ | ------------------- |
+| `baseColor`        | `diffuseColor`      |
+| `metallic`         | `metallic`          |
+| `roughness`        | `roughness`         |
+| `emissiveColor`    | `emissiveColor`     |
+| `normalTexture`    | `normal`            |
+| `occlusionTexture` | `occlusion`         |
 
 ### Alpha Modes
 
@@ -89,7 +89,7 @@ The USDZ exporter converts HoloScript PBR materials to `UsdPreviewSurface`:
 
 ```html
 <a href="model.usdz" rel="ar">
-  <img src="thumbnail.png" alt="View in AR">
+  <img src="thumbnail.png" alt="View in AR" />
 </a>
 ```
 
@@ -150,12 +150,12 @@ USD hierarchy structure:
 
 Export performance for typical scenes:
 
-| Scene Complexity | Export Time | File Size |
-|------------------|-------------|-----------|
-| Simple (< 10 objects) | < 100ms | < 1 MB |
-| Medium (10-50 objects) | < 500ms | 1-5 MB |
-| Complex (50-200 objects) | < 2s | 5-20 MB |
-| Very Complex (200+ objects) | < 5s | 20+ MB |
+| Scene Complexity            | Export Time | File Size |
+| --------------------------- | ----------- | --------- |
+| Simple (< 10 objects)       | < 100ms     | < 1 MB    |
+| Medium (10-50 objects)      | < 500ms     | 1-5 MB    |
+| Complex (50-200 objects)    | < 2s        | 5-20 MB   |
+| Very Complex (200+ objects) | < 5s        | 20+ MB    |
 
 ## API Reference
 
@@ -192,13 +192,13 @@ interface IUSDZExportResult {
 
 ```typescript
 interface IUSDZExportStats {
-  primCount: number;        // Total USD prims
-  meshCount: number;        // Mesh prims
-  materialCount: number;    // Material prims
-  textureCount: number;     // Embedded textures
-  fileCount: number;        // Files in package
-  usdzSize: number;         // Total package size (bytes)
-  exportTime: number;       // Export duration (ms)
+  primCount: number; // Total USD prims
+  meshCount: number; // Mesh prims
+  materialCount: number; // Material prims
+  textureCount: number; // Embedded textures
+  fileCount: number; // Files in package
+  usdzSize: number; // Total package size (bytes)
+  exportTime: number; // Export duration (ms)
 }
 ```
 
@@ -303,7 +303,7 @@ console.log('Prims:', result.stage.prims.length);
 // Traverse prims
 function traversePrims(prim: IUSDPrim, depth = 0) {
   console.log('  '.repeat(depth) + prim.type + ': ' + prim.name);
-  prim.children?.forEach(child => traversePrims(child, depth + 1));
+  prim.children?.forEach((child) => traversePrims(child, depth + 1));
 }
 traversePrims(result.stage.prims[0]);
 ```
@@ -333,11 +333,11 @@ open -a "Reality Converter" model.usdz
 
 ## Browser Compatibility
 
-| Feature | Chrome | Safari | Firefox | Edge |
-|---------|--------|--------|---------|------|
-| USDZ Export | ✅ | ✅ | ✅ | ✅ |
-| AR Quick Look | ❌ | ✅ (iOS) | ❌ | ❌ |
-| Vision Pro | ❌ | ✅ | ❌ | ❌ |
+| Feature       | Chrome | Safari   | Firefox | Edge |
+| ------------- | ------ | -------- | ------- | ---- |
+| USDZ Export   | ✅     | ✅       | ✅      | ✅   |
+| AR Quick Look | ❌     | ✅ (iOS) | ❌      | ❌   |
+| Vision Pro    | ❌     | ✅       | ❌      | ❌   |
 
 ## References
 

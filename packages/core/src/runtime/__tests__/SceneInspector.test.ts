@@ -167,7 +167,7 @@ describe('SceneInspector', () => {
         'showGrid',
       ];
 
-      features.forEach(feature => {
+      features.forEach((feature) => {
         expect(() => inspector.toggleFeature(feature)).not.toThrow();
       });
     });
@@ -423,7 +423,7 @@ describe('SceneInspector', () => {
         new THREE.PerspectiveCamera(),
       ];
 
-      objects.forEach(obj => {
+      objects.forEach((obj) => {
         const info = inspector.getObjectInfo(obj);
         expect(info).toBeDefined();
         expect(info.type).toBeDefined();
@@ -466,7 +466,7 @@ describe('SceneInspector', () => {
 
       inspector = new SceneInspector(allTrue);
 
-      Object.values(inspector.getConfig()).forEach(value => {
+      Object.values(inspector.getConfig()).forEach((value) => {
         expect(value).toBe(true);
       });
     });

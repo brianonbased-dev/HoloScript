@@ -7,7 +7,9 @@ vi.mock('../StateMachine', () => ({
     constructor(config: any) {
       this.state = config.initialState || 'idle';
     }
-    getCurrentState() { return this.state; }
+    getCurrentState() {
+      return this.state;
+    }
     update(_dt: number) {}
   },
 }));

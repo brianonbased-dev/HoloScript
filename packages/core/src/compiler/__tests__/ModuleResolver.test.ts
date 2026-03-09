@@ -46,10 +46,7 @@ function norm(s: string): string {
  * Create a ModuleResolver backed by an in-memory file system.
  * Keys in the `files` map should use the `p()` helper for platform portability.
  */
-function makeResolver(
-  files: Record<string, string>,
-  graph?: TraitDependencyGraph,
-): ModuleResolver {
+function makeResolver(files: Record<string, string>, graph?: TraitDependencyGraph): ModuleResolver {
   return new ModuleResolver({
     graph,
     loader: (canonicalPath: string) => {
@@ -178,9 +175,7 @@ describe('ModuleResolver', () => {
 
       expect(header.imports).toHaveLength(1);
       expect(header.imports[0].specifiers).toEqual(['physics', 'ai_npc']);
-      expect(norm(header.imports[0].canonicalPath)).toBe(
-        norm(p('project', 'src', 'physics.hs')),
-      );
+      expect(norm(header.imports[0].canonicalPath)).toBe(norm(p('project', 'src', 'physics.hs')));
     });
 
     it('should parse a single named import: @import @physics from "./physics.hs"', () => {
@@ -197,9 +192,7 @@ describe('ModuleResolver', () => {
 
       expect(header.imports).toHaveLength(1);
       expect(header.imports[0].specifiers).toEqual(['*']);
-      expect(norm(header.imports[0].canonicalPath)).toBe(
-        norm(p('project', 'src', 'shared.hs')),
-      );
+      expect(norm(header.imports[0].canonicalPath)).toBe(norm(p('project', 'src', 'shared.hs')));
     });
 
     it('should parse alias import: @import @physics as @p from "./physics.hs"', () => {
@@ -225,7 +218,7 @@ describe('ModuleResolver', () => {
       expect(header.imports[1].specifiers).toEqual(['ai_npc', 'pathfinding']);
     });
 
-    it('should handle single-quoted paths: @import @a from \'./a.hs\'', () => {
+    it("should handle single-quoted paths: @import @a from './a.hs'", () => {
       const source = "@import @a from './a.hs'\n@object x {}";
       const header = resolver.parseHeader(source, fromFile);
 
@@ -297,7 +290,7 @@ describe('ModuleResolver', () => {
       const source = [
         '@import @a from "./a.hs"',
         '@object turret {',
-        '  @import @b from "./b.hs"',  // This should NOT be parsed
+        '  @import @b from "./b.hs"', // This should NOT be parsed
         '}',
       ].join('\n');
 
@@ -470,11 +463,9 @@ describe('ModuleResolver', () => {
       const fileD = p('project', 'd.hs');
 
       const resolver = makeResolver({
-        [fileA]: [
-          '@import @b from "./b.hs"',
-          '@import @c from "./c.hs"',
-          '@object a {}',
-        ].join('\n'),
+        [fileA]: ['@import @b from "./b.hs"', '@import @c from "./c.hs"', '@object a {}'].join(
+          '\n'
+        ),
         [fileB]: '@import @d from "./d.hs"\n@object b {}',
         [fileC]: '@import @d from "./d.hs"\n@object c {}',
         [fileD]: '@export @shared\n@object d {}',
@@ -702,15 +693,12 @@ describe('ModuleResolver', () => {
           [fileA]: '@import @b from "./b.hs"\n@object a {}',
           [fileB]: '@object b {}',
         },
-        graph,
+        graph
       );
 
       resolver.load(fileA);
 
-      expect(registerSpy).toHaveBeenCalledWith(
-        fileA,
-        expect.stringContaining('b.hs'),
-      );
+      expect(registerSpy).toHaveBeenCalledWith(fileA, expect.stringContaining('b.hs'));
     });
 
     it('should clear import edges before re-registering on load', () => {
@@ -725,7 +713,7 @@ describe('ModuleResolver', () => {
           [fileA]: '@import @b from "./b.hs"\n@object a {}',
           [fileB]: '@object b {}',
         },
-        graph,
+        graph
       );
 
       resolver.load(fileA);

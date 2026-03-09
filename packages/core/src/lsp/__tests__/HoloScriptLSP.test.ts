@@ -169,15 +169,15 @@ describe('HoloScriptLSP', () => {
 
     it('finds composition as top-level symbol', () => {
       const symbols = lsp.getDocumentSymbols(VALID_SCENE);
-      const names = symbols.map(s => s.name);
-      expect(names.some(n => n.includes('Gallery'))).toBe(true);
+      const names = symbols.map((s) => s.name);
+      expect(names.some((n) => n.includes('Gallery'))).toBe(true);
     });
 
     it('finds object symbols', () => {
       const symbols = lsp.getDocumentSymbols(VALID_SCENE);
       // Should find cube and/or painting in children
       const allNames = flattenSymbolNames(symbols);
-      expect(allNames.some(n => n.includes('cube'))).toBe(true);
+      expect(allNames.some((n) => n.includes('cube'))).toBe(true);
     });
 
     it('returns empty array for empty string', () => {

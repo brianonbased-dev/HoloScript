@@ -84,7 +84,11 @@ export class NIRCompiler extends CompilerBase {
     super();
     this.options = {
       targetPlatforms: options.targetPlatforms ?? [
-        'loihi2', 'spinnaker2', 'synsense_speck', 'synsense_xylo', 'brainscales2',
+        'loihi2',
+        'spinnaker2',
+        'synsense_speck',
+        'synsense_xylo',
+        'brainscales2',
       ],
       includeMetadata: options.includeMetadata ?? true,
       validateGraph: options.validateGraph ?? true,
@@ -112,9 +116,7 @@ export class NIRCompiler extends CompilerBase {
       }
     }
 
-    return this.options.prettyPrint
-      ? JSON.stringify(graph, null, 2)
-      : JSON.stringify(graph);
+    return this.options.prettyPrint ? JSON.stringify(graph, null, 2) : JSON.stringify(graph);
   }
 
   /**
@@ -252,7 +254,7 @@ export class NIRCompiler extends CompilerBase {
     // Process each trait
     for (const trait of traits) {
       const traitName = typeof trait === 'string' ? trait : trait.name;
-      const traitConfig = typeof trait === 'string' ? {} : (trait.config || {});
+      const traitConfig = typeof trait === 'string' ? {} : trait.config || {};
 
       // Merge object properties into trait config
       const config = { ...traitConfig };
@@ -270,9 +272,7 @@ export class NIRCompiler extends CompilerBase {
       const mapping = getNIRTraitMapping(traitName);
       if (mapping) {
         // Check platform compatibility
-        const compatible = mapping.platforms.some(
-          p => this.options.targetPlatforms.includes(p)
-        );
+        const compatible = mapping.platforms.some((p) => this.options.targetPlatforms.includes(p));
         if (!compatible) continue;
 
         const nodeId = this.sanitizeNodeId(obj.name);
@@ -385,9 +385,7 @@ export class NIRCompiler extends CompilerBase {
 
       // Only add edge if both nodes exist and edge doesn't already exist
       if (nodes[sourceId] && nodes[targetId]) {
-        const edgeExists = edges.some(
-          e => e.source === sourceId && e.target === targetId
-        );
+        const edgeExists = edges.some((e) => e.source === sourceId && e.target === targetId);
         if (!edgeExists) {
           edges.push({ source: sourceId, target: targetId });
         }
@@ -402,7 +400,7 @@ export class NIRCompiler extends CompilerBase {
    */
   private findFirstSubNode(baseId: string, nodes: Record<string, NIRNode>): string {
     // Check if there are sub-nodes with common prefixes
-    const subNodeIds = Object.keys(nodes).filter(id => id.startsWith(baseId + '_'));
+    const subNodeIds = Object.keys(nodes).filter((id) => id.startsWith(baseId + '_'));
     if (subNodeIds.length > 0) {
       return subNodeIds[0];
     }
@@ -413,7 +411,7 @@ export class NIRCompiler extends CompilerBase {
    * Find the last sub-node of a composite node.
    */
   private findLastSubNode(baseId: string, nodes: Record<string, NIRNode>): string {
-    const subNodeIds = Object.keys(nodes).filter(id => id.startsWith(baseId + '_'));
+    const subNodeIds = Object.keys(nodes).filter((id) => id.startsWith(baseId + '_'));
     if (subNodeIds.length > 0) {
       return subNodeIds[subNodeIds.length - 1];
     }
@@ -438,8 +436,10 @@ export class NIRCompiler extends CompilerBase {
    * Check if a node is an encoder node.
    */
   private isEncoderNode(node: NIRNode): boolean {
-    return node.metadata?.source_trait === 'spike_encoder' ||
-           node.metadata?.source_trait === 'rate_encoder';
+    return (
+      node.metadata?.source_trait === 'spike_encoder' ||
+      node.metadata?.source_trait === 'rate_encoder'
+    );
   }
 
   /**
@@ -455,7 +455,7 @@ export class NIRCompiler extends CompilerBase {
   private inferInputSize(composition: HoloComposition): number {
     if (composition.state) {
       const inputProp = composition.state.properties.find(
-        p => p.key === 'input_size' || p.key === 'inputSize'
+        (p) => p.key === 'input_size' || p.key === 'inputSize'
       );
       if (inputProp && typeof inputProp.value === 'number') {
         return inputProp.value;
@@ -467,14 +467,11 @@ export class NIRCompiler extends CompilerBase {
   /**
    * Infer output size from the last neuron layer or composition state.
    */
-  private inferOutputSize(
-    composition: HoloComposition,
-    nodes: Record<string, NIRNode>
-  ): number {
+  private inferOutputSize(composition: HoloComposition, nodes: Record<string, NIRNode>): number {
     // Check state for explicit output_size
     if (composition.state) {
       const outputProp = composition.state.properties.find(
-        p => p.key === 'output_size' || p.key === 'outputSize'
+        (p) => p.key === 'output_size' || p.key === 'outputSize'
       );
       if (outputProp && typeof outputProp.value === 'number') {
         return outputProp.value;
@@ -482,7 +479,7 @@ export class NIRCompiler extends CompilerBase {
     }
 
     // Try to infer from the last neuron node
-    const neuronNodes = Object.values(nodes).filter(n => this.isNeuronNode(n));
+    const neuronNodes = Object.values(nodes).filter((n) => this.isNeuronNode(n));
     if (neuronNodes.length > 0) {
       const lastNeuron = neuronNodes[neuronNodes.length - 1];
       const params = lastNeuron.params as Record<string, unknown>;

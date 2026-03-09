@@ -7,10 +7,19 @@
  * Integration: .holo file → Parser → RuntimeExecutor → EarthquakeSimulation → ThreeJSRenderer
  */
 
-import { EarthquakeSimulation, type EarthquakeSimulationConfig, createEarthquakeSimulation } from './EarthquakeSimulation';
+import {
+  EarthquakeSimulation,
+  type EarthquakeSimulationConfig,
+  createEarthquakeSimulation,
+} from './EarthquakeSimulation';
 import { type EarthquakeConfig } from './FracturePhysics';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
-import type { RuntimeRenderer, RenderableObject, RenderableLight, ParticleSystem } from '../../runtime/RuntimeRenderer';
+import type {
+  RuntimeRenderer,
+  RenderableObject,
+  RenderableLight,
+  ParticleSystem,
+} from '../../runtime/RuntimeRenderer';
 
 export interface EarthquakeRuntimeConfig {
   /** Enable debug logging */
@@ -82,7 +91,9 @@ export class EarthquakeRuntimeExecutor {
       this.simulation = await createEarthquakeSimulation(this.simulationConfig);
     } catch (error) {
       if (this.config.debug) {
-        console.warn('[EarthquakeRuntimeExecutor] Could not create WebGPU simulation, using fallback');
+        console.warn(
+          '[EarthquakeRuntimeExecutor] Could not create WebGPU simulation, using fallback'
+        );
       }
       // Fallback: Create a minimal simulation stub
       // In production, this would be a proper CPU fallback implementation
@@ -531,7 +542,9 @@ export class EarthquakeRuntimeExecutor {
     this.simulation.triggerEarthquake(earthquakeConfig);
 
     if (this.config.debug) {
-      console.log(`[EarthquakeRuntimeExecutor] Triggered earthquake with intensity ${earthquakeConfig.intensity}`);
+      console.log(
+        `[EarthquakeRuntimeExecutor] Triggered earthquake with intensity ${earthquakeConfig.intensity}`
+      );
     }
   }
 

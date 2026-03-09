@@ -9,19 +9,49 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  distance3D, isNearCriticalStructure, hapticResistanceForTissue,
-  procedureProgress, estimateProcedureDuration, stepsByRisk,
-  getNextStep, validateStepOrder, instrumentForStep,
-  anatomyAtlas, bloodFlowSim,
-  type SurgicalInstrument, type AnatomicalLandmark, type ProcedureStep,
-  type SurgicalSession, type OrganModel, type VesselSegment,
+  distance3D,
+  isNearCriticalStructure,
+  hapticResistanceForTissue,
+  procedureProgress,
+  estimateProcedureDuration,
+  stepsByRisk,
+  getNextStep,
+  validateStepOrder,
+  instrumentForStep,
+  anatomyAtlas,
+  bloodFlowSim,
+  type SurgicalInstrument,
+  type AnatomicalLandmark,
+  type ProcedureStep,
+  type SurgicalSession,
+  type OrganModel,
+  type VesselSegment,
 } from '@/lib/surgicalRehearsal';
 
 describe('Scenario: Surgical Rehearsal — Safety', () => {
-  const scalpel: SurgicalInstrument = { id: 'i1', name: 'Scalpel #10', type: 'scalpel', tipPosition: { x: 5, y: 3, z: 2 }, safetyRadius: 1.0, maxForceNewtons: 5 };
+  const scalpel: SurgicalInstrument = {
+    id: 'i1',
+    name: 'Scalpel #10',
+    type: 'scalpel',
+    tipPosition: { x: 5, y: 3, z: 2 },
+    safetyRadius: 1.0,
+    maxForceNewtons: 5,
+  };
   const landmarks: AnatomicalLandmark[] = [
-    { id: 'l1', name: 'Femoral Artery', position: { x: 5.5, y: 3, z: 2 }, system: 'cardiovascular', critical: true },
-    { id: 'l2', name: 'Fat Pad', position: { x: 10, y: 3, z: 2 }, system: 'muscular', critical: false },
+    {
+      id: 'l1',
+      name: 'Femoral Artery',
+      position: { x: 5.5, y: 3, z: 2 },
+      system: 'cardiovascular',
+      critical: true,
+    },
+    {
+      id: 'l2',
+      name: 'Fat Pad',
+      position: { x: 10, y: 3, z: 2 },
+      system: 'muscular',
+      critical: false,
+    },
   ];
 
   it('isNearCriticalStructure() warns when instrument is within safety radius', () => {
@@ -65,21 +95,88 @@ describe('Scenario: Surgical Rehearsal — Haptics', () => {
 
 describe('Scenario: Surgical Rehearsal — Procedure Steps', () => {
   const steps: ProcedureStep[] = [
-    { id: 's1', order: 1, name: 'Incision', description: 'Initial cut', instrumentRequired: 'scalpel', targetLandmark: 'l1', durationMinutes: 5, riskLevel: 'moderate', completed: true },
-    { id: 's2', order: 2, name: 'Retraction', description: 'Open field', instrumentRequired: 'retractor', targetLandmark: 'l2', durationMinutes: 3, riskLevel: 'low', completed: true },
-    { id: 's3', order: 3, name: 'Repair', description: 'Suture vessel', instrumentRequired: 'suture', targetLandmark: 'l3', durationMinutes: 15, riskLevel: 'critical', completed: false },
-    { id: 's4', order: 4, name: 'Closure', description: 'Close layers', instrumentRequired: 'suture', targetLandmark: 'l4', durationMinutes: 10, riskLevel: 'low', completed: false },
+    {
+      id: 's1',
+      order: 1,
+      name: 'Incision',
+      description: 'Initial cut',
+      instrumentRequired: 'scalpel',
+      targetLandmark: 'l1',
+      durationMinutes: 5,
+      riskLevel: 'moderate',
+      completed: true,
+    },
+    {
+      id: 's2',
+      order: 2,
+      name: 'Retraction',
+      description: 'Open field',
+      instrumentRequired: 'retractor',
+      targetLandmark: 'l2',
+      durationMinutes: 3,
+      riskLevel: 'low',
+      completed: true,
+    },
+    {
+      id: 's3',
+      order: 3,
+      name: 'Repair',
+      description: 'Suture vessel',
+      instrumentRequired: 'suture',
+      targetLandmark: 'l3',
+      durationMinutes: 15,
+      riskLevel: 'critical',
+      completed: false,
+    },
+    {
+      id: 's4',
+      order: 4,
+      name: 'Closure',
+      description: 'Close layers',
+      instrumentRequired: 'suture',
+      targetLandmark: 'l4',
+      durationMinutes: 10,
+      riskLevel: 'low',
+      completed: false,
+    },
   ];
 
   const instruments: SurgicalInstrument[] = [
-    { id: 'i1', name: 'Scalpel', type: 'scalpel', tipPosition: { x: 0, y: 0, z: 0 }, safetyRadius: 1, maxForceNewtons: 5 },
-    { id: 'i2', name: 'Retractor', type: 'retractor', tipPosition: { x: 0, y: 0, z: 0 }, safetyRadius: 2, maxForceNewtons: 20 },
-    { id: 'i3', name: 'Suture Kit', type: 'suture', tipPosition: { x: 0, y: 0, z: 0 }, safetyRadius: 0.5, maxForceNewtons: 3 },
+    {
+      id: 'i1',
+      name: 'Scalpel',
+      type: 'scalpel',
+      tipPosition: { x: 0, y: 0, z: 0 },
+      safetyRadius: 1,
+      maxForceNewtons: 5,
+    },
+    {
+      id: 'i2',
+      name: 'Retractor',
+      type: 'retractor',
+      tipPosition: { x: 0, y: 0, z: 0 },
+      safetyRadius: 2,
+      maxForceNewtons: 20,
+    },
+    {
+      id: 'i3',
+      name: 'Suture Kit',
+      type: 'suture',
+      tipPosition: { x: 0, y: 0, z: 0 },
+      safetyRadius: 0.5,
+      maxForceNewtons: 3,
+    },
   ];
 
   const session: SurgicalSession = {
-    id: 'sess-1', procedureName: 'Femoral Bypass', patient: { age: 65, weight: 80, conditions: ['diabetes'] },
-    steps, currentStep: 2, startTime: Date.now(), instruments, complications: [],
+    id: 'sess-1',
+    procedureName: 'Femoral Bypass',
+    patient: { age: 65, weight: 80, conditions: ['diabetes'] },
+    steps,
+    currentStep: 2,
+    startTime: Date.now(),
+    instruments,
+    complications: [],
   };
 
   it('procedureProgress() = completed / total', () => {
@@ -115,18 +212,42 @@ describe('Scenario: Surgical Rehearsal — Procedure Steps', () => {
   });
 
   it('instrumentForStep() returns null if not available', () => {
-    const missing = instrumentForStep(
-      { ...steps[0], instrumentRequired: 'laser' },
-      instruments
-    );
+    const missing = instrumentForStep({ ...steps[0], instrumentRequired: 'laser' }, instruments);
     expect(missing).toBeNull();
   });
 
   it('3D anatomy atlas — load DICOM/mesh organ models', () => {
     const organs: OrganModel[] = [
-      { id: 'heart', name: 'Heart', system: 'cardiovascular', position: { x: 0, y: 10, z: 0 }, boundingRadius: 6, tissueType: 'organ', density: 1.06, landmarks: [] },
-      { id: 'aorta', name: 'Aorta', system: 'cardiovascular', position: { x: 2, y: 12, z: 1 }, boundingRadius: 2, tissueType: 'vessel', density: 1.05, landmarks: [] },
-      { id: 'lung', name: 'Left Lung', system: 'respiratory', position: { x: -5, y: 10, z: 0 }, boundingRadius: 8, tissueType: 'organ', density: 0.5, landmarks: [] },
+      {
+        id: 'heart',
+        name: 'Heart',
+        system: 'cardiovascular',
+        position: { x: 0, y: 10, z: 0 },
+        boundingRadius: 6,
+        tissueType: 'organ',
+        density: 1.06,
+        landmarks: [],
+      },
+      {
+        id: 'aorta',
+        name: 'Aorta',
+        system: 'cardiovascular',
+        position: { x: 2, y: 12, z: 1 },
+        boundingRadius: 2,
+        tissueType: 'vessel',
+        density: 1.05,
+        landmarks: [],
+      },
+      {
+        id: 'lung',
+        name: 'Left Lung',
+        system: 'respiratory',
+        position: { x: -5, y: 10, z: 0 },
+        boundingRadius: 8,
+        tissueType: 'organ',
+        density: 0.5,
+        landmarks: [],
+      },
     ];
     const cardio = anatomyAtlas(organs, 'cardiovascular', { x: 0, y: 10, z: 0 });
     expect(cardio).toHaveLength(2); // Heart + Aorta
@@ -135,8 +256,20 @@ describe('Scenario: Surgical Rehearsal — Procedure Steps', () => {
 
   it('blood flow simulation — real-time vessel perfusion visualization', () => {
     const vessels: VesselSegment[] = [
-      { id: 'fem-a', startPos: { x: 0, y: 0, z: 0 }, endPos: { x: 0, y: -20, z: 0 }, diameterMm: 6, flowRateMlS: 5 },
-      { id: 'fem-v', startPos: { x: 1, y: -20, z: 0 }, endPos: { x: 1, y: 0, z: 0 }, diameterMm: 8, flowRateMlS: 4 },
+      {
+        id: 'fem-a',
+        startPos: { x: 0, y: 0, z: 0 },
+        endPos: { x: 0, y: -20, z: 0 },
+        diameterMm: 6,
+        flowRateMlS: 5,
+      },
+      {
+        id: 'fem-v',
+        startPos: { x: 1, y: -20, z: 0 },
+        endPos: { x: 1, y: 0, z: 0 },
+        diameterMm: 8,
+        flowRateMlS: 4,
+      },
     ];
     const flow = bloodFlowSim(vessels, 72, 120);
     expect(flow).toHaveLength(2);

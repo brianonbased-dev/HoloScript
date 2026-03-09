@@ -9,15 +9,8 @@
  *       are not tested here.
  */
 import { describe, it, expect } from 'vitest';
-import {
-  defaultCDNConfig,
-  HoloSceneRenderer,
-} from '../index';
-import {
-  detectOptimalTarget,
-  checkXRSupport,
-  type HoloCDNConfig,
-} from '../config';
+import { defaultCDNConfig, HoloSceneRenderer } from '../index';
+import { detectOptimalTarget, checkXRSupport, type HoloCDNConfig } from '../config';
 
 // ═══════════════════════════════════════════════
 // defaultCDNConfig
@@ -70,7 +63,17 @@ describe('detectOptimalTarget', () => {
   });
 
   it('returns a valid HoloSceneTarget value', () => {
-    const valid = ['webxr', 'threejs', 'babylon', 'unity', 'godot', 'visionos', 'android-xr', 'auto', 'webgpu'];
+    const valid = [
+      'webxr',
+      'threejs',
+      'babylon',
+      'unity',
+      'godot',
+      'visionos',
+      'android-xr',
+      'auto',
+      'webgpu',
+    ];
     const target = detectOptimalTarget();
     expect(valid).toContain(target);
   });

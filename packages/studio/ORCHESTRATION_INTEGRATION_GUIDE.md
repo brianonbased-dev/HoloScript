@@ -106,7 +106,7 @@ const [toolCallGraphOpen, setToolCallGraphOpen] = useState(false);
     <Zap className="h-4 w-4" />
     Tools
   </button>
-</div>
+</div>;
 ```
 
 ### Step 2: Render Panels Conditionally
@@ -125,51 +125,60 @@ import {
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
 
 // Inside main component return:
-{mcpConfigOpen && (
-  <div className="fixed right-0 top-16 bottom-0 w-96 border-l border-studio-border z-50">
-    <MCPServerConfigPanel onClose={() => setMcpConfigOpen(false)} />
-  </div>
-)}
-
-{agentWorkflowOpen && (
-  <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
-    <div className="absolute inset-4 bg-studio-panel rounded-xl border border-studio-border">
-      <AgentOrchestrationGraphEditor
-        workflowId={activeWorkflow || 'default'}
-        onClose={() => setAgentWorkflowOpen(false)}
-      />
+{
+  mcpConfigOpen && (
+    <div className="fixed right-0 top-16 bottom-0 w-96 border-l border-studio-border z-50">
+      <MCPServerConfigPanel onClose={() => setMcpConfigOpen(false)} />
     </div>
-  </div>
-)}
+  );
+}
 
-{behaviorTreeOpen && (
-  <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
-    <div className="absolute inset-4 bg-studio-panel rounded-xl border border-studio-border">
-      <BehaviorTreeVisualEditor
-        treeId="default"
-        onClose={() => setBehaviorTreeOpen(false)}
-      />
+{
+  agentWorkflowOpen && (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
+      <div className="absolute inset-4 bg-studio-panel rounded-xl border border-studio-border">
+        <AgentOrchestrationGraphEditor
+          workflowId={activeWorkflow || 'default'}
+          onClose={() => setAgentWorkflowOpen(false)}
+        />
+      </div>
     </div>
-  </div>
-)}
+  );
+}
 
-{agentEnsembleOpen && (
-  <div className="fixed right-0 top-16 bottom-0 w-[600px] border-l border-studio-border z-50">
-    <DesktopAgentEnsemble onClose={() => setAgentEnsembleOpen(false)} />
-  </div>
-)}
+{
+  behaviorTreeOpen && (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
+      <div className="absolute inset-4 bg-studio-panel rounded-xl border border-studio-border">
+        <BehaviorTreeVisualEditor treeId="default" onClose={() => setBehaviorTreeOpen(false)} />
+      </div>
+    </div>
+  );
+}
 
-{eventMonitorOpen && (
-  <div className="fixed right-0 top-16 bottom-0 w-96 border-l border-studio-border z-50">
-    <AgentEventMonitorPanel onClose={() => setEventMonitorOpen(false)} />
-  </div>
-)}
+{
+  agentEnsembleOpen && (
+    <div className="fixed right-0 top-16 bottom-0 w-[600px] border-l border-studio-border z-50">
+      <DesktopAgentEnsemble onClose={() => setAgentEnsembleOpen(false)} />
+    </div>
+  );
+}
 
-{toolCallGraphOpen && (
-  <div className="fixed right-0 top-16 bottom-0 w-96 border-l border-studio-border z-50">
-    <ToolCallGraphVisualizer onClose={() => setToolCallGraphOpen(false)} />
-  </div>
-)}
+{
+  eventMonitorOpen && (
+    <div className="fixed right-0 top-16 bottom-0 w-96 border-l border-studio-border z-50">
+      <AgentEventMonitorPanel onClose={() => setEventMonitorOpen(false)} />
+    </div>
+  );
+}
+
+{
+  toolCallGraphOpen && (
+    <div className="fixed right-0 top-16 bottom-0 w-96 border-l border-studio-border z-50">
+      <ToolCallGraphVisualizer onClose={() => setToolCallGraphOpen(false)} />
+    </div>
+  );
+}
 ```
 
 ---
@@ -179,6 +188,7 @@ import { useOrchestrationStore } from '@/lib/orchestrationStore';
 ### Prerequisites
 
 1. **Start MCP Orchestrator:**
+
    ```bash
    # Ensure orchestrator is running
    curl http://localhost:5567/health
@@ -194,6 +204,7 @@ import { useOrchestrationStore } from '@/lib/orchestrationStore';
 ### Test 1: MCPServerConfigPanel
 
 **Steps:**
+
 1. Click **MCP** button in toolbar
 2. Verify server list appears (should show "mcp-orchestrator")
 3. Check health indicator (green = online, red = offline)
@@ -209,6 +220,7 @@ import { useOrchestrationStore } from '@/lib/orchestrationStore';
 ### Test 2: AgentOrchestrationGraphEditor
 
 **Steps:**
+
 1. Click **Workflow** button
 2. Click **+ Agent** to add agent node
 3. Drag agent node to position
@@ -223,6 +235,7 @@ import { useOrchestrationStore } from '@/lib/orchestrationStore';
 ### Test 3: BehaviorTreeVisualEditor
 
 **Steps:**
+
 1. Click **BT** button
 2. Click **+ Sequence** to add sequence node
 3. Drag to position
@@ -236,6 +249,7 @@ import { useOrchestrationStore } from '@/lib/orchestrationStore';
 ### Test 4: DesktopAgentEnsemble
 
 **Steps:**
+
 1. Click **Agents** button
 2. Verify 4 agent orbs visible (Physics, Art, Animator, Sound)
 3. Drag an orb to new position
@@ -248,6 +262,7 @@ import { useOrchestrationStore } from '@/lib/orchestrationStore';
 ### Test 5: AgentEventMonitorPanel
 
 **Steps:**
+
 1. Click **Events** button
 2. Verify event list appears (may be empty initially)
 3. Trigger test event (via console):
@@ -272,6 +287,7 @@ import { useOrchestrationStore } from '@/lib/orchestrationStore';
 ### Test 6: ToolCallGraphVisualizer
 
 **Steps:**
+
 1. Click **Tools** button
 2. Verify stats grid (Total, Success, Error, Avg Time)
 3. Trigger test tool call (via console):
@@ -347,6 +363,7 @@ import { useOrchestrationStore } from '@/lib/orchestrationStore';
 ## 🚀 Accessibility Impact
 
 ### Before Implementation:
+
 - MCP Config UI: **0%**
 - Agent Orchestration Visual: **0%**
 - Behavior Tree Visual: **60%** (code-only)
@@ -355,6 +372,7 @@ import { useOrchestrationStore } from '@/lib/orchestrationStore';
 - Tool Call Tracing: **0%**
 
 ### After Implementation:
+
 - MCP Config UI: **95%** ✅ (+95%)
 - Agent Orchestration Visual: **90%** ✅ (+90%)
 - Behavior Tree Visual: **88%** ✅ (+28%)

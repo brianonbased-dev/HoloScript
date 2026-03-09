@@ -48,9 +48,15 @@ export class MeshDiscovery {
     return false;
   }
 
-  getPeers(): PeerMetadata[] { return [...this.peers.values()]; }
-  getPeer(id: string): PeerMetadata | undefined { return this.peers.get(id); }
-  getPeerCount(): number { return this.peers.size; }
+  getPeers(): PeerMetadata[] {
+    return [...this.peers.values()];
+  }
+  getPeer(id: string): PeerMetadata | undefined {
+    return this.peers.get(id);
+  }
+  getPeerCount(): number {
+    return this.peers.size;
+  }
 
   pruneStalePeers(timeoutMs: number = 15000): number {
     const now = Date.now();
@@ -98,7 +104,10 @@ export class SignalService {
     this.nodeId = nodeId ?? `node-${Date.now().toString(36)}`;
   }
 
-  broadcastSignal(signal: Omit<MeshSignal, 'nodeId' | 'expiresAt'>, ttlMs: number = 3600000): MeshSignal {
+  broadcastSignal(
+    signal: Omit<MeshSignal, 'nodeId' | 'expiresAt'>,
+    ttlMs: number = 3600000
+  ): MeshSignal {
     const full: MeshSignal = { ...signal, nodeId: this.nodeId, expiresAt: Date.now() + ttlMs };
     this.localSignals.set(`${full.type}:${full.nodeId}`, full);
     return full;
@@ -114,12 +123,14 @@ export class SignalService {
     for (const [key, sig] of this.remoteSignals) {
       if (sig.expiresAt < now) this.remoteSignals.delete(key);
     }
-    const remote = [...this.remoteSignals.values()].filter(s => s.type === type);
-    const local = [...this.localSignals.values()].filter(s => s.type === type);
+    const remote = [...this.remoteSignals.values()].filter((s) => s.type === type);
+    const local = [...this.localSignals.values()].filter((s) => s.type === type);
     return [...remote, ...local];
   }
 
-  getLocalSignals(): MeshSignal[] { return [...this.localSignals.values()]; }
+  getLocalSignals(): MeshSignal[] {
+    return [...this.localSignals.values()];
+  }
 }
 
 // =============================================================================
@@ -161,8 +172,12 @@ export class GossipProtocol {
     return absorbed;
   }
 
-  getPool(): Map<string, GossipPacket> { return new Map(this.pool); }
-  getPoolSize(): number { return this.pool.size; }
+  getPool(): Map<string, GossipPacket> {
+    return new Map(this.pool);
+  }
+  getPoolSize(): number {
+    return this.pool.size;
+  }
 }
 
 // =============================================================================

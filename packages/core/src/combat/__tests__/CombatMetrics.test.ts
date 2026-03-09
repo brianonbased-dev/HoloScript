@@ -22,7 +22,7 @@ describe('Combat Metrics & Systems', () => {
         active: true,
         damage: 50,
         damageType: 'physical',
-        knockback: 10
+        knockback: 10,
       };
 
       // 2. Setup Hurtboxes
@@ -31,7 +31,7 @@ describe('Combat Metrics & Systems', () => {
         ownerId: 'enemy_1',
         position: { x: 1, y: 1, z: 0 },
         size: { x: 2, y: 2, z: 2 }, // Intersects
-        active: true
+        active: true,
       };
 
       const missTarget: HurtBox = {
@@ -39,7 +39,7 @@ describe('Combat Metrics & Systems', () => {
         ownerId: 'enemy_2',
         position: { x: 10, y: 10, z: 10 },
         size: { x: 1, y: 1, z: 1 }, // No intersection
-        active: true
+        active: true,
       };
 
       combatManager.addHitBox(hitbox);
@@ -56,23 +56,34 @@ describe('Combat Metrics & Systems', () => {
 
     it('rejects self-harm and inactive boxes', () => {
       const hitbox: HitBox = {
-         id: 'hb-self', ownerId: 'player_1', 
-         position: { x:0, y:0, z:0 }, size: { x: 2, y: 2, z: 2 }, active: true,
-         damage: 10, damageType: 'fire', knockback: 0
+        id: 'hb-self',
+        ownerId: 'player_1',
+        position: { x: 0, y: 0, z: 0 },
+        size: { x: 2, y: 2, z: 2 },
+        active: true,
+        damage: 10,
+        damageType: 'fire',
+        knockback: 0,
       };
       const hurtbox: HurtBox = {
-         id: 'hr-self', ownerId: 'player_1', 
-         position: { x:0, y:0, z:0 }, size: { x: 2, y: 2, z: 2 }, active: true
+        id: 'hr-self',
+        ownerId: 'player_1',
+        position: { x: 0, y: 0, z: 0 },
+        size: { x: 2, y: 2, z: 2 },
+        active: true,
       };
 
       combatManager.addHitBox(hitbox);
       combatManager.addHurtBox(hurtbox);
 
       expect(combatManager.checkCollisions().length).toBe(0); // Ignore self
-      
+
       const hrEnemy: HurtBox = {
-         id: 'hr-enemy', ownerId: 'enemy_1', 
-         position: { x:0, y:0, z:0 }, size: { x:2, y:2, z:2 }, active: false // Inactive
+        id: 'hr-enemy',
+        ownerId: 'enemy_1',
+        position: { x: 0, y: 0, z: 0 },
+        size: { x: 2, y: 2, z: 2 },
+        active: false, // Inactive
       };
       combatManager.addHurtBox(hrEnemy);
       expect(combatManager.checkCollisions().length).toBe(0);
@@ -83,12 +94,12 @@ describe('Combat Metrics & Systems', () => {
     it('applies armor penetration and global multipliers', () => {
       damageSystem.setConfig({ globalMultiplier: 1.5, armorPenetration: 0.5, critChance: 0 });
       damageSystem.setResistances('boss_1', { fire: 0.8 }); // 80% fire resistance
-      
+
       // Base damage: 100
       // Effective Resistance: 0.8 * (1 - 0.5) = 0.4
       // Post-Resist Damage: 100 * (1 - 0.4) = 60
       // Post-Multiplier Damage: 60 * 1.5 = 90
-      
+
       const instance = damageSystem.calculateDamage('player_1', 'boss_1', 100, 'fire');
       expect(instance.finalDamage).toBe(90);
     });

@@ -32,7 +32,7 @@ export class TraitTreeItem extends vscode.TreeItem {
       node.label,
       node.children.length > 0
         ? vscode.TreeItemCollapsibleState.Collapsed
-        : vscode.TreeItemCollapsibleState.None,
+        : vscode.TreeItemCollapsibleState.None
     );
 
     this.id = node.id;
@@ -59,7 +59,10 @@ export class TraitTreeItem extends vscode.TreeItem {
 
     // Warning icon for diamond inheritance
     if (node.kind === 'warning') {
-      this.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('list.warningForeground'));
+      this.iconPath = new vscode.ThemeIcon(
+        'warning',
+        new vscode.ThemeColor('list.warningForeground')
+      );
     }
   }
 
@@ -71,7 +74,10 @@ export class TraitTreeItem extends vscode.TreeItem {
       // Apply color tints for specific contexts
       switch (node.contextValue) {
         case 'traitCategory.overrides':
-          return new vscode.ThemeIcon(node.iconId, new vscode.ThemeColor('editorWarning.foreground'));
+          return new vscode.ThemeIcon(
+            node.iconId,
+            new vscode.ThemeColor('editorWarning.foreground')
+          );
         case 'traitCategory.warnings':
           return new vscode.ThemeIcon(node.iconId, new vscode.ThemeColor('list.warningForeground'));
         case 'traitDefinition.unresolved':
@@ -79,7 +85,10 @@ export class TraitTreeItem extends vscode.TreeItem {
         case 'traitWarning.diamond':
           return new vscode.ThemeIcon(node.iconId, new vscode.ThemeColor('list.warningForeground'));
         case 'traitProperty.override':
-          return new vscode.ThemeIcon(node.iconId, new vscode.ThemeColor('editorWarning.foreground'));
+          return new vscode.ThemeIcon(
+            node.iconId,
+            new vscode.ThemeColor('editorWarning.foreground')
+          );
         default:
           return new vscode.ThemeIcon(node.iconId);
       }
@@ -136,7 +145,7 @@ export class TraitCompositionTreeProvider implements vscode.TreeDataProvider<Tra
         if (editor && this.isHoloScriptFile(editor.document)) {
           this.refresh();
         }
-      }),
+      })
     );
 
     // Listen for document saves
@@ -145,7 +154,7 @@ export class TraitCompositionTreeProvider implements vscode.TreeDataProvider<Tra
         if (this.isHoloScriptFile(doc)) {
           this.refresh();
         }
-      }),
+      })
     );
 
     // Listen for document content changes (debounced via save)
@@ -155,7 +164,7 @@ export class TraitCompositionTreeProvider implements vscode.TreeDataProvider<Tra
           // Debounce: only refresh if the tree is visible
           this.scheduleRefresh();
         }
-      }),
+      })
     );
 
     // Initial analysis
@@ -286,14 +295,10 @@ export class TraitCompositionTreeProvider implements vscode.TreeDataProvider<Tra
         if (comp.location) {
           const range = new vscode.Range(
             new vscode.Position(comp.location.line - 1, comp.location.column),
-            new vscode.Position(comp.location.line - 1, comp.location.column + 50),
+            new vscode.Position(comp.location.line - 1, comp.location.column + 50)
           );
           diagnostics.push(
-            new vscode.Diagnostic(
-              range,
-              warning.message,
-              vscode.DiagnosticSeverity.Warning,
-            ),
+            new vscode.Diagnostic(range, warning.message, vscode.DiagnosticSeverity.Warning)
           );
         }
       }
@@ -302,11 +307,7 @@ export class TraitCompositionTreeProvider implements vscode.TreeDataProvider<Tra
     // Report parse errors
     for (const error of this.currentAnalysis.errors) {
       diagnostics.push(
-        new vscode.Diagnostic(
-          new vscode.Range(0, 0, 0, 0),
-          error,
-          vscode.DiagnosticSeverity.Error,
-        ),
+        new vscode.Diagnostic(new vscode.Range(0, 0, 0, 0), error, vscode.DiagnosticSeverity.Error)
       );
     }
 
@@ -334,10 +335,7 @@ export class TraitCompositionTreeProvider implements vscode.TreeDataProvider<Tra
   /**
    * Find the parent of a node by ID (recursive search).
    */
-  private findParent(
-    current: TraitTreeNode,
-    targetId: string,
-  ): TraitTreeNode | undefined {
+  private findParent(current: TraitTreeNode, targetId: string): TraitTreeNode | undefined {
     for (const child of current.children) {
       if (child.id === targetId) return current;
       const found = this.findParent(child, targetId);
@@ -363,7 +361,7 @@ export class TraitCompositionTreeProvider implements vscode.TreeDataProvider<Tra
  */
 export function registerTraitTreeCommands(
   context: vscode.ExtensionContext,
-  provider: TraitCompositionTreeProvider,
+  provider: TraitCompositionTreeProvider
 ): void {
   // Navigate to trait/property definition
   context.subscriptions.push(
@@ -380,15 +378,15 @@ export function registerTraitTreeCommands(
           selection: range,
           preview: true,
         });
-      },
-    ),
+      }
+    )
   );
 
   // Manual refresh command
   context.subscriptions.push(
     vscode.commands.registerCommand('holoscript.traitTree.refresh', () => {
       provider.refresh();
-    }),
+    })
   );
 
   // Reveal in editor command (from tree context menu)
@@ -405,20 +403,17 @@ export function registerTraitTreeCommands(
           selection: new vscode.Range(position, position),
           preview: false,
         });
-      },
-    ),
+      }
+    )
   );
 
   // Copy trait name command
   context.subscriptions.push(
-    vscode.commands.registerCommand(
-      'holoscript.traitTree.copyTraitName',
-      (node: TraitTreeNode) => {
-        if (!node) return;
-        const name = node.kind === 'trait' ? `@${node.label}` : node.label;
-        vscode.env.clipboard.writeText(name);
-        vscode.window.showInformationMessage(`Copied "${name}" to clipboard.`);
-      },
-    ),
+    vscode.commands.registerCommand('holoscript.traitTree.copyTraitName', (node: TraitTreeNode) => {
+      if (!node) return;
+      const name = node.kind === 'trait' ? `@${node.label}` : node.label;
+      vscode.env.clipboard.writeText(name);
+      vscode.window.showInformationMessage(`Copied "${name}" to clipboard.`);
+    })
   );
 }

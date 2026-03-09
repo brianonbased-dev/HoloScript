@@ -34,7 +34,7 @@ export interface ComboStep {
   name: string;
   input: string;
   damage: number;
-  window: number;          // seconds to input next step
+  window: number; // seconds to input next step
   hitboxId?: string;
 }
 
@@ -74,10 +74,18 @@ export class CombatManager {
   // Hitbox / Hurtbox
   // ---------------------------------------------------------------------------
 
-  addHitBox(hitbox: HitBox): void { this.hitboxes.set(hitbox.id, hitbox); }
-  addHurtBox(hurtbox: HurtBox): void { this.hurtboxes.set(hurtbox.id, hurtbox); }
-  removeHitBox(id: string): void { this.hitboxes.delete(id); }
-  removeHurtBox(id: string): void { this.hurtboxes.delete(id); }
+  addHitBox(hitbox: HitBox): void {
+    this.hitboxes.set(hitbox.id, hitbox);
+  }
+  addHurtBox(hurtbox: HurtBox): void {
+    this.hurtboxes.set(hurtbox.id, hurtbox);
+  }
+  removeHitBox(id: string): void {
+    this.hitboxes.delete(id);
+  }
+  removeHurtBox(id: string): void {
+    this.hurtboxes.delete(id);
+  }
 
   setHitBoxActive(id: string, active: boolean): void {
     const hb = this.hitboxes.get(id);
@@ -104,8 +112,10 @@ export class CombatManager {
   }
 
   private aabbOverlap(
-    posA: { x: number; y: number; z: number }, sizeA: { x: number; y: number; z: number },
-    posB: { x: number; y: number; z: number }, sizeB: { x: number; y: number; z: number }
+    posA: { x: number; y: number; z: number },
+    sizeA: { x: number; y: number; z: number },
+    posB: { x: number; y: number; z: number },
+    sizeB: { x: number; y: number; z: number }
   ): boolean {
     return (
       Math.abs(posA.x - posB.x) < (sizeA.x + sizeB.x) / 2 &&
@@ -157,7 +167,11 @@ export class CombatManager {
 
   resetCombo(comboId: string): void {
     const combo = this.combos.get(comboId);
-    if (combo) { combo.currentStep = 0; combo.timer = 0; combo.completed = false; }
+    if (combo) {
+      combo.currentStep = 0;
+      combo.timer = 0;
+      combo.completed = false;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -189,18 +203,22 @@ export class CombatManager {
 
   findTargets(
     position: { x: number; y: number; z: number },
-    candidates: Array<{ entityId: string; position: { x: number; y: number; z: number }; priority?: number }>,
+    candidates: Array<{
+      entityId: string;
+      position: { x: number; y: number; z: number };
+      priority?: number;
+    }>,
     maxRange: number
   ): CombatTarget[] {
     return candidates
-      .map(c => {
+      .map((c) => {
         const dx = c.position.x - position.x;
         const dy = c.position.y - position.y;
         const dz = c.position.z - position.z;
         const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
         return { entityId: c.entityId, position: c.position, priority: c.priority ?? 0, distance };
       })
-      .filter(t => t.distance <= maxRange)
+      .filter((t) => t.distance <= maxRange)
       .sort((a, b) => b.priority - a.priority || a.distance - b.distance);
   }
 
@@ -208,7 +226,13 @@ export class CombatManager {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getHitLog(): typeof this.hitLog { return [...this.hitLog]; }
-  getHitBoxCount(): number { return this.hitboxes.size; }
-  getHurtBoxCount(): number { return this.hurtboxes.size; }
+  getHitLog(): typeof this.hitLog {
+    return [...this.hitLog];
+  }
+  getHitBoxCount(): number {
+    return this.hitboxes.size;
+  }
+  getHurtBoxCount(): number {
+    return this.hurtboxes.size;
+  }
 }

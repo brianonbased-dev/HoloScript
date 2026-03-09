@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { StateSynchronizerImpl } from '../../network/StateSynchronizerImpl';
 
 describe('StateSynchronizerImpl — Production Tests', () => {
-
   describe('set() / get()', () => {
     it('stores and retrieves a value', () => {
       const s = new StateSynchronizerImpl('peer-1');
@@ -32,7 +31,14 @@ describe('StateSynchronizerImpl — Production Tests', () => {
     it('rejects modification of foreign-owned key in authoritative mode', () => {
       const s = new StateSynchronizerImpl('peer-1', { mode: 'authoritative' });
       // Inject a state owned by peer-2
-      s.applyRemoteUpdate({ key: 'pos', value: 0, version: 1, ownerId: 'peer-2', timestamp: Date.now(), origin: 'remote' });
+      s.applyRemoteUpdate({
+        key: 'pos',
+        value: 0,
+        version: 1,
+        ownerId: 'peer-2',
+        timestamp: Date.now(),
+        origin: 'remote',
+      });
       expect(() => s.set('pos', 99)).toThrow('owned by');
     });
   });
@@ -68,13 +74,16 @@ describe('StateSynchronizerImpl — Production Tests', () => {
 
     it('keys() returns all key names', () => {
       const s = new StateSynchronizerImpl('peer-1');
-      s.set('a', 1); s.set('b', 2);
+      s.set('a', 1);
+      s.set('b', 2);
       expect(s.keys().sort()).toEqual(['a', 'b']);
     });
 
     it('getStateCount() reflects correct count', () => {
       const s = new StateSynchronizerImpl('peer-1');
-      s.set('a', 1); s.set('b', 2); s.set('c', 3);
+      s.set('a', 1);
+      s.set('b', 2);
+      s.set('c', 3);
       expect(s.getStateCount()).toBe(3);
     });
   });
@@ -139,7 +148,9 @@ describe('StateSynchronizerImpl — Production Tests', () => {
 
     it('getHistory() returns all snapshots', () => {
       const s = new StateSynchronizerImpl('peer-1');
-      s.takeSnapshot(); s.takeSnapshot(); s.takeSnapshot();
+      s.takeSnapshot();
+      s.takeSnapshot();
+      s.takeSnapshot();
       expect(s.getHistory().length).toBe(3);
     });
 
@@ -154,7 +165,14 @@ describe('StateSynchronizerImpl — Production Tests', () => {
     it('applies remote update in crdt mode (higher version wins)', () => {
       const s = new StateSynchronizerImpl('peer-1', { mode: 'crdt' });
       s.set('hp', 100);
-      const accepted = s.applyRemoteUpdate({ key: 'hp', value: 80, version: 5, ownerId: 'peer-2', timestamp: Date.now(), origin: 'remote' });
+      const accepted = s.applyRemoteUpdate({
+        key: 'hp',
+        value: 80,
+        version: 5,
+        ownerId: 'peer-2',
+        timestamp: Date.now(),
+        origin: 'remote',
+      });
       expect(accepted).toBe(true);
       expect(s.get('hp')).toBe(80);
     });
@@ -162,14 +180,28 @@ describe('StateSynchronizerImpl — Production Tests', () => {
     it('rejects remote update with lower version in crdt mode', () => {
       const s = new StateSynchronizerImpl('peer-1', { mode: 'crdt' });
       s.set('hp', 100);
-      const rejected = s.applyRemoteUpdate({ key: 'hp', value: 999, version: 0, ownerId: 'peer-2', timestamp: Date.now(), origin: 'remote' });
+      const rejected = s.applyRemoteUpdate({
+        key: 'hp',
+        value: 999,
+        version: 0,
+        ownerId: 'peer-2',
+        timestamp: Date.now(),
+        origin: 'remote',
+      });
       expect(rejected).toBe(false);
       expect(s.get('hp')).toBe(100);
     });
 
     it('accepts new keys regardless of mode', () => {
       const s = new StateSynchronizerImpl('peer-1', { mode: 'authoritative' });
-      const ok = s.applyRemoteUpdate({ key: 'newKey', value: 77, version: 1, ownerId: 'peer-2', timestamp: Date.now(), origin: 'remote' });
+      const ok = s.applyRemoteUpdate({
+        key: 'newKey',
+        value: 77,
+        version: 1,
+        ownerId: 'peer-2',
+        timestamp: Date.now(),
+        origin: 'remote',
+      });
       expect(ok).toBe(true);
     });
   });
@@ -187,7 +219,8 @@ describe('StateSynchronizerImpl — Production Tests', () => {
 
     it('isPaused is false after resume()', () => {
       const s = new StateSynchronizerImpl('peer-1');
-      s.pause(); s.resume();
+      s.pause();
+      s.resume();
       expect(s.isPaused).toBe(false);
     });
   });
@@ -195,7 +228,8 @@ describe('StateSynchronizerImpl — Production Tests', () => {
   describe('clear()', () => {
     it('removes all state and resets tick', () => {
       const s = new StateSynchronizerImpl('peer-1');
-      s.set('a', 1); s.set('b', 2);
+      s.set('a', 1);
+      s.set('b', 2);
       s.takeSnapshot();
       s.clear();
       expect(s.getStateCount()).toBe(0);
@@ -229,7 +263,8 @@ describe('StateSynchronizerImpl — Production Tests', () => {
       const s = new StateSynchronizerImpl('peer-1');
       const keys: string[] = [];
       s.onAnyStateChanged((e) => keys.push(e.key));
-      s.set('a', 1); s.set('b', 2);
+      s.set('a', 1);
+      s.set('b', 2);
       expect(keys).toContain('a');
       expect(keys).toContain('b');
     });

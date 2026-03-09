@@ -100,7 +100,7 @@ export interface PruningResult {
 // =============================================================================
 
 const DEFAULT_THRESHOLDS: MemoryThresholds = {
-  ramUtilizationAlert: 0.70, // Alert at 70% RAM usage
+  ramUtilizationAlert: 0.7, // Alert at 70% RAM usage
   ramUtilizationCritical: 0.75, // Critical at 75% RAM usage
   astNodeCountThreshold: 500_000, // 500K nodes
   symbolTableThreshold: 100_000, // 100K symbols
@@ -255,7 +255,7 @@ export class CompilerStateMonitor {
         this.emitAlert({
           level: 'warning',
           type: 'heap_growth',
-          message: `Rapid heap growth detected: ${(growthRate * 100).toFixed(1)}% in ${this.options.monitoringInterval * 4 / 1000}s`,
+          message: `Rapid heap growth detected: ${(growthRate * 100).toFixed(1)}% in ${(this.options.monitoringInterval * 4) / 1000}s`,
           stats,
           action: 'incremental_compile',
           timestamp: Date.now(),

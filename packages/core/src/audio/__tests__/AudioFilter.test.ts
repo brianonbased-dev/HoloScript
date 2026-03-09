@@ -4,7 +4,9 @@ import { AudioFilter } from '../AudioFilter';
 describe('AudioFilter', () => {
   let filter: AudioFilter;
 
-  beforeEach(() => { filter = new AudioFilter(); });
+  beforeEach(() => {
+    filter = new AudioFilter();
+  });
 
   // ---------------------------------------------------------------------------
   // Band Management

@@ -397,7 +397,7 @@ export class AdvancedCompression {
     options: KTX2Options
   ): Uint8Array {
     // Calculate compression ratio based on quality and format
-    const baseRatio = options.format === BasisTextureFormat.UASTC ? 0.15 : 0.10;
+    const baseRatio = options.format === BasisTextureFormat.UASTC ? 0.15 : 0.1;
     const qualityFactor = 1 + (options.quality / 255) * 0.5;
     const compressionRatio = baseRatio * qualityFactor;
 
@@ -415,7 +415,7 @@ export class AdvancedCompression {
   private simulateDracoCompression(meshData: any, options: DracoOptions): Uint8Array {
     // Calculate compression ratio based on compression level
     // Higher compression level = smaller size (better compression)
-    const baseRatio = 0.30; // 70% reduction base
+    const baseRatio = 0.3; // 70% reduction base
     const levelFactor = 1 - (options.compressionLevel / 10) * 0.6; // Up to 60% additional reduction
     const compressionRatio = baseRatio * levelFactor;
 

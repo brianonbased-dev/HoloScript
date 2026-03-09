@@ -31,7 +31,10 @@ describe('DiffusionRealtimeTrait — Production', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
     expect(ctx.getState().diffusionRealtime.isStreaming).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('diffusion_rt:ready', expect.objectContaining({ backend: 'lcm' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'diffusion_rt:ready',
+      expect.objectContaining({ backend: 'lcm' })
+    );
   });
 
   it('start event begins streaming', () => {
@@ -46,7 +49,10 @@ describe('DiffusionRealtimeTrait — Production', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
     handler.onEvent!(mockNode, config, ctx, { type: 'diffusion_rt:start', payload: {} });
-    handler.onEvent!(mockNode, config, ctx, { type: 'diffusion_rt:frame', payload: { frameUrl: 'f1', latencyMs: 16 } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'diffusion_rt:frame',
+      payload: { frameUrl: 'f1', latencyMs: 16 },
+    });
     expect(ctx.getState().diffusionRealtime.frameCount).toBe(1);
     expect(ctx.getState().diffusionRealtime.lastFrameUrl).toBe('f1');
   });
@@ -79,8 +85,13 @@ describe('DiffusionRealtimeTrait — Production', () => {
   it('prompt_update emits new prompt', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
-    handler.onEvent!(mockNode, config, ctx, { type: 'diffusion_rt:prompt_update', payload: { prompt: 'cyberpunk city' } });
-    expect(ctx.emit).toHaveBeenCalledWith('diffusion_rt:prompt_updated', { prompt: 'cyberpunk city' });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'diffusion_rt:prompt_update',
+      payload: { prompt: 'cyberpunk city' },
+    });
+    expect(ctx.emit).toHaveBeenCalledWith('diffusion_rt:prompt_updated', {
+      prompt: 'cyberpunk city',
+    });
   });
 });
 
@@ -100,7 +111,10 @@ describe('EmbeddingSearchTrait — Production', () => {
   it('query starts search', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
-    handler.onEvent!(mockNode, config, ctx, { type: 'search:query', payload: { query: 'find red orbs' } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'find red orbs' },
+    });
     expect(ctx.getState().embeddingSearch.totalQueries).toBe(1);
     expect(ctx.getState().embeddingSearch.isSearching).toBe(true);
   });
@@ -129,9 +143,15 @@ describe('EmbeddingSearchTrait — Production', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
     handler.onEvent!(mockNode, config, ctx, { type: 'search:query', payload: { query: 'q1' } });
-    handler.onEvent!(mockNode, config, ctx, { type: 'search:results', payload: { queryTimeMs: 10, results: [] } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'search:results',
+      payload: { queryTimeMs: 10, results: [] },
+    });
     handler.onEvent!(mockNode, config, ctx, { type: 'search:query', payload: { query: 'q2' } });
-    handler.onEvent!(mockNode, config, ctx, { type: 'search:results', payload: { queryTimeMs: 20, results: [] } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'search:results',
+      payload: { queryTimeMs: 20, results: [] },
+    });
     expect(ctx.getState().embeddingSearch.avgQueryTimeMs).toBe(15);
   });
 

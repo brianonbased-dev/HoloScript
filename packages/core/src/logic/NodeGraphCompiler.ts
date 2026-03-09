@@ -34,7 +34,6 @@ export interface CompilationResult {
 // =============================================================================
 
 export class NodeGraphCompiler {
-
   /**
    * Compile a NodeGraph into HoloScript+ directives.
    */
@@ -52,9 +51,8 @@ export class NodeGraphCompiler {
       if (node.type === 'SetState' || node.type === 'GetState') {
         const key = String(node.data.key || this.getInputDefault(node, 'key') || '');
         if (key && !(key in stateDeclarations)) {
-          stateDeclarations[key] = node.type === 'SetState'
-            ? (node.data.initialValue ?? 0)
-            : undefined;
+          stateDeclarations[key] =
+            node.type === 'SetState' ? (node.data.initialValue ?? 0) : undefined;
         }
       }
     }
@@ -70,7 +68,9 @@ export class NodeGraphCompiler {
     // Pass 2: Extract event listeners from OnEvent nodes
     for (const node of nodes) {
       if (node.type === 'OnEvent') {
-        const eventName = String(node.data.eventName || this.getInputDefault(node, 'eventName') || 'tick');
+        const eventName = String(
+          node.data.eventName || this.getInputDefault(node, 'eventName') || 'tick'
+        );
         const downstream = this.traceDownstream(node.id, graph);
         const handlerCode = this.generateHandler(downstream, graph);
 
@@ -85,13 +85,15 @@ export class NodeGraphCompiler {
     }
 
     // Pass 3: Generate update lifecycle for Timer nodes
-    const timerNodes = nodes.filter(n => n.type === 'Timer');
+    const timerNodes = nodes.filter((n) => n.type === 'Timer');
     if (timerNodes.length > 0) {
-      const timerCode = timerNodes.map(t => {
-        const duration = t.data.duration || this.getInputDefault(t, 'duration') || 1;
-        const loop = t.data.loop || this.getInputDefault(t, 'loop') || false;
-        return `  // Timer ${t.id}: duration=${duration}, loop=${loop}`;
-      }).join('\n');
+      const timerCode = timerNodes
+        .map((t) => {
+          const duration = t.data.duration || this.getInputDefault(t, 'duration') || 1;
+          const loop = t.data.loop || this.getInputDefault(t, 'loop') || false;
+          return `  // Timer ${t.id}: duration=${duration}, loop=${loop}`;
+        })
+        .join('\n');
 
       directives.push({
         type: 'lifecycle',
@@ -102,8 +104,8 @@ export class NodeGraphCompiler {
 
     // Warnings for disconnected nodes
     for (const node of nodes) {
-      const hasInputConnections = connections.some(c => c.toNode === node.id);
-      const hasOutputConnections = connections.some(c => c.fromNode === node.id);
+      const hasInputConnections = connections.some((c) => c.toNode === node.id);
+      const hasOutputConnections = connections.some((c) => c.fromNode === node.id);
 
       if (!hasInputConnections && !hasOutputConnections && node.type !== 'OnEvent') {
         warnings.push(`Node "${node.id}" (${node.type}) is disconnected.`);
@@ -132,10 +134,14 @@ export class NodeGraphCompiler {
 
       switch (node.type) {
         case 'SetState':
-          lines.push(`  state.${node.data.key || 'value'} = ${JSON.stringify(node.data.value ?? 0)};`);
+          lines.push(
+            `  state.${node.data.key || 'value'} = ${JSON.stringify(node.data.value ?? 0)};`
+          );
           break;
         case 'EmitEvent':
-          lines.push(`  emit('${node.data.eventName || 'custom'}', ${JSON.stringify(node.data.payload ?? null)});`);
+          lines.push(
+            `  emit('${node.data.eventName || 'custom'}', ${JSON.stringify(node.data.payload ?? null)});`
+          );
           break;
         case 'MathAdd':
           lines.push(`  // MathAdd: a + b`);
@@ -185,7 +191,7 @@ export class NodeGraphCompiler {
    * Get the default value for an input port.
    */
   private getInputDefault(node: LogicNode, portName: string): unknown {
-    const port = node.inputs.find(p => p.name === portName);
+    const port = node.inputs.find((p) => p.name === portName);
     return port?.defaultValue ?? null;
   }
 }

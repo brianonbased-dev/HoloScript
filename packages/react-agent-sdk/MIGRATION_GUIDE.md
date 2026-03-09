@@ -20,7 +20,7 @@ function MyComponent() {
       try {
         const registry = getDefaultRegistry();
         const agent = await registry.findBest({
-          capability: 'code-generation'
+          capability: 'code-generation',
         });
 
         if (!agent) {
@@ -55,6 +55,7 @@ function MyComponent() {
 ```
 
 **Problems:**
+
 - Verbose (30+ lines)
 - Manual state management
 - No retry logic
@@ -82,6 +83,7 @@ function MyComponent() {
 ```
 
 **Benefits:**
+
 - Concise (9 lines vs 30+)
 - Automatic state management
 - Built-in retry with exponential backoff
@@ -113,10 +115,12 @@ import { AgentProvider } from '@hololand/react-agent-sdk';
 
 function App() {
   return (
-    <AgentProvider config={{
-      apiUrl: 'https://api.hololand.ai',
-      token: process.env.REACT_APP_API_TOKEN,
-    }}>
+    <AgentProvider
+      config={{
+        apiUrl: 'https://api.hololand.ai',
+        token: process.env.REACT_APP_API_TOKEN,
+      }}
+    >
       <YourApp />
     </AgentProvider>
   );
@@ -128,6 +132,7 @@ function App() {
 #### Example 1: Basic Task Execution
 
 **Before:**
+
 ```tsx
 useEffect(() => {
   const execute = async () => {
@@ -143,6 +148,7 @@ useEffect(() => {
 ```
 
 **After:**
+
 ```tsx
 const { agent } = useAgent('brittney');
 const { data } = useTask(agent, 'analyze');
@@ -151,6 +157,7 @@ const { data } = useTask(agent, 'analyze');
 #### Example 2: Manual Retry Logic
 
 **Before:**
+
 ```tsx
 const retry = async (fn, maxAttempts = 3) => {
   for (let i = 0; i < maxAttempts; i++) {
@@ -158,7 +165,7 @@ const retry = async (fn, maxAttempts = 3) => {
       return await fn();
     } catch (err) {
       if (i === maxAttempts - 1) throw err;
-      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));
+      await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, i)));
     }
   }
 };
@@ -167,11 +174,14 @@ useEffect(() => {
   retry(async () => {
     const response = await fetch('/api/task');
     return response.json();
-  }).then(setData).catch(setError);
+  })
+    .then(setData)
+    .catch(setError);
 }, []);
 ```
 
 **After:**
+
 ```tsx
 const { agent } = useAgent('brittney');
 const { data } = useTask(agent, 'myTask', {
@@ -183,6 +193,7 @@ const { data } = useTask(agent, 'myTask', {
 #### Example 3: Circuit Breaker
 
 **Before:**
+
 ```tsx
 // Manual circuit breaker implementation (50+ lines)
 class CircuitBreaker {
@@ -192,14 +203,18 @@ class CircuitBreaker {
 const breaker = new CircuitBreaker();
 
 useEffect(() => {
-  breaker.execute(async () => {
-    const response = await fetch('/api/task');
-    return response.json();
-  }).then(setData).catch(setError);
+  breaker
+    .execute(async () => {
+      const response = await fetch('/api/task');
+      return response.json();
+    })
+    .then(setData)
+    .catch(setError);
 }, []);
 ```
 
 **After:**
+
 ```tsx
 const { agent } = useAgent('brittney', {
   enableCircuitBreaker: true,
@@ -210,6 +225,7 @@ const { data } = useTask(agent, 'myTask');
 #### Example 4: Progress Tracking
 
 **Before:**
+
 ```tsx
 const pollProgress = async (taskId) => {
   const interval = setInterval(async () => {
@@ -225,6 +241,7 @@ const pollProgress = async (taskId) => {
 ```
 
 **After:**
+
 ```tsx
 const { status, progress, logs } = useTaskStatus(taskId);
 ```
@@ -232,6 +249,7 @@ const { status, progress, logs } = useTaskStatus(taskId);
 ### Step 4: Add Error Boundaries
 
 **Before:**
+
 ```tsx
 function MyComponent() {
   const [error, setError] = useState(null);
@@ -245,6 +263,7 @@ function MyComponent() {
 ```
 
 **After:**
+
 ```tsx
 import { AgentErrorBoundary } from '@hololand/react-agent-sdk';
 
@@ -257,7 +276,7 @@ import { AgentErrorBoundary } from '@hololand/react-agent-sdk';
   )}
 >
   <MyComponent />
-</AgentErrorBoundary>
+</AgentErrorBoundary>;
 ```
 
 ### Step 5: Use Suspense (Optional)
@@ -265,6 +284,7 @@ import { AgentErrorBoundary } from '@hololand/react-agent-sdk';
 If you're using React Suspense:
 
 **Before:**
+
 ```tsx
 function MyComponent() {
   const [data, setData] = useState(null);
@@ -279,6 +299,7 @@ function MyComponent() {
 ```
 
 **After:**
+
 ```tsx
 import { SuspenseTask } from '@hololand/react-agent-sdk';
 
@@ -286,11 +307,7 @@ function MyComponent() {
   const { agent } = useAgent('brittney');
 
   return (
-    <SuspenseTask
-      agent={agent}
-      taskName="fetchData"
-      fallback={<Spinner />}
-    >
+    <SuspenseTask agent={agent} taskName="fetchData" fallback={<Spinner />}>
       {(data) => <Result data={data} />}
     </SuspenseTask>
   );
@@ -302,6 +319,7 @@ function MyComponent() {
 ### Pattern 1: Sequential Tasks
 
 **Before:**
+
 ```tsx
 useEffect(() => {
   const run = async () => {
@@ -315,6 +333,7 @@ useEffect(() => {
 ```
 
 **After:**
+
 ```tsx
 const { agent } = useAgent('brittney');
 const step1 = useTask(agent, 'task1');
@@ -325,19 +344,19 @@ const step3 = useTask(agent, 'task3', { input: step2.data });
 ### Pattern 2: Parallel Tasks
 
 **Before:**
+
 ```tsx
 useEffect(() => {
-  Promise.all([
-    fetch('/api/task1'),
-    fetch('/api/task2'),
-    fetch('/api/task3'),
-  ]).then(([r1, r2, r3]) => {
-    setData({ r1, r2, r3 });
-  });
+  Promise.all([fetch('/api/task1'), fetch('/api/task2'), fetch('/api/task3')]).then(
+    ([r1, r2, r3]) => {
+      setData({ r1, r2, r3 });
+    }
+  );
 }, []);
 ```
 
 **After:**
+
 ```tsx
 const { agent } = useAgent('brittney');
 const task1 = useTask(agent, 'task1');
@@ -354,6 +373,7 @@ const allData = {
 ### Pattern 3: Conditional Execution
 
 **Before:**
+
 ```tsx
 useEffect(() => {
   if (condition) {
@@ -363,12 +383,10 @@ useEffect(() => {
 ```
 
 **After:**
+
 ```tsx
 const { agent } = useAgent('brittney');
-const { data } = useTask(
-  condition ? agent : null,
-  'fetchData'
-);
+const { data } = useTask(condition ? agent : null, 'fetchData');
 ```
 
 ## TypeScript Migration
@@ -419,10 +437,7 @@ function MyComponent() {
 ```tsx
 function MyComponent() {
   const { agent } = useAgent('brittney');
-  const { data } = useTask(
-    typeof window !== 'undefined' ? agent : null,
-    'fetchData'
-  );
+  const { data } = useTask(typeof window !== 'undefined' ? agent : null, 'fetchData');
 
   return <div>{data}</div>;
 }

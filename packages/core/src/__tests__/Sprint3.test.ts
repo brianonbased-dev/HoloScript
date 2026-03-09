@@ -72,7 +72,13 @@ describe('Sprint 3 - Trait Constraints', () => {
       const result = checker.check([orb]);
       const errors = result.diagnostics.filter((d) => d.code === 'HSP014');
       expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some((e) => e.message.toLowerCase().includes('conflict') || e.message.toLowerCase().includes('static'))).toBe(true);
+      expect(
+        errors.some(
+          (e) =>
+            e.message.toLowerCase().includes('conflict') ||
+            e.message.toLowerCase().includes('static')
+        )
+      ).toBe(true);
     });
 
     test('@static conflicts with @grabbable', () => {
@@ -165,9 +171,7 @@ describe('Sprint 3 - Trait Constraints', () => {
 
     test('checker.loadConfig merges custom constraints', () => {
       checker.loadConfig({
-        traitConstraints: [
-          { type: 'requires', source: 'fancy', targets: ['collidable'] },
-        ],
+        traitConstraints: [{ type: 'requires', source: 'fancy', targets: ['collidable'] }],
       });
       const orb = makeOrb(['fancy']); // missing collidable
       const result = checker.check([orb]);
@@ -182,9 +186,7 @@ describe('Sprint 3 - Trait Constraints', () => {
       const result = checker.check([orb]);
       const errors = result.diagnostics.filter((d) => d.code === 'HSP014');
       expect(errors.length).toBeGreaterThan(0);
-      const hassuggestion = errors.some(
-        (e) => e.suggestions && e.suggestions.length > 0
-      );
+      const hassuggestion = errors.some((e) => e.suggestions && e.suggestions.length > 0);
       expect(hassuggestion).toBe(true);
     });
 
@@ -193,9 +195,7 @@ describe('Sprint 3 - Trait Constraints', () => {
       const result = checker.check([orb]);
       const errors = result.diagnostics.filter((d) => d.code === 'HSP014');
       expect(errors.length).toBeGreaterThan(0);
-      const hasSuggestion = errors.some(
-        (e) => e.suggestions && e.suggestions.length > 0
-      );
+      const hasSuggestion = errors.some((e) => e.suggestions && e.suggestions.length > 0);
       expect(hasSuggestion).toBe(true);
     });
 

@@ -46,9 +46,11 @@ beforeEach(() => {
 // ─── tests ───────────────────────────────────────────────────────────────────
 
 describe('flowFieldHandler — defaultConfig', () => {
-  it('destinationId = empty string', () => expect(flowFieldHandler.defaultConfig?.destinationId).toBe(''));
+  it('destinationId = empty string', () =>
+    expect(flowFieldHandler.defaultConfig?.destinationId).toBe(''));
   it('speed = 3.0', () => expect(flowFieldHandler.defaultConfig?.speed).toBe(3.0));
-  it('steeringWeight = 0.8', () => expect(flowFieldHandler.defaultConfig?.steeringWeight).toBe(0.8));
+  it('steeringWeight = 0.8', () =>
+    expect(flowFieldHandler.defaultConfig?.steeringWeight).toBe(0.8));
   it('stopDistance = 0.5', () => expect(flowFieldHandler.defaultConfig?.stopDistance).toBe(0.5));
 });
 
@@ -70,7 +72,8 @@ describe('flowFieldHandler — onAttach', () => {
 describe('flowFieldHandler — onDetach', () => {
   it('removes __flowFieldState', () => {
     const cfg = mkCfg({ destinationId: 'dest' });
-    const node = mkNode(); const ctx = mkCtx();
+    const node = mkNode();
+    const ctx = mkCtx();
     flowFieldHandler.onAttach!(node, cfg, ctx as any);
     flowFieldHandler.onDetach!(node);
     expect((node as any).__flowFieldState).toBeUndefined();
@@ -88,8 +91,11 @@ describe('flowFieldHandler — onUpdate: no-op guards', () => {
   });
 
   it('no position update when no state', () => {
-    const node = mkNode(); const ctx = mkCtx();
-    expect(() => flowFieldHandler.onUpdate!(node, mkCfg({ destinationId: 'dest' }), ctx as any, 0.1)).not.toThrow();
+    const node = mkNode();
+    const ctx = mkCtx();
+    expect(() =>
+      flowFieldHandler.onUpdate!(node, mkCfg({ destinationId: 'dest' }), ctx as any, 0.1)
+    ).not.toThrow();
   });
 });
 

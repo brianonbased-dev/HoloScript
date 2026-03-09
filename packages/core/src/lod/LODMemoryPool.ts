@@ -68,7 +68,7 @@ export class LODMemoryPool {
       defragmentationThreshold: 0.3,
       memoryPressureThreshold: 0.8,
       autoAdjustLODBias: true,
-      ...options
+      ...options,
     };
 
     this.stats = this.createEmptyStats();
@@ -117,7 +117,7 @@ export class LODMemoryPool {
       uvs,
       inUse: false,
       lastUsed: 0,
-      size: vertexCount
+      size: vertexCount,
     };
 
     this.stats.allocationCount++;
@@ -144,7 +144,7 @@ export class LODMemoryPool {
     if (!pool) return null;
 
     // Find available buffer
-    let buffer = pool.find(b => !b.inUse);
+    let buffer = pool.find((b) => !b.inUse);
 
     if (!buffer) {
       // Try to grow pool if under max size
@@ -154,7 +154,7 @@ export class LODMemoryPool {
       } else {
         // Pool exhausted, try to defragment or return null
         this.defragment();
-        buffer = pool.find(b => !b.inUse);
+        buffer = pool.find((b) => !b.inUse);
 
         if (!buffer) {
           console.warn(`[MemoryPool] Pool exhausted for size ${sizeKey}`);
@@ -194,7 +194,7 @@ export class LODMemoryPool {
    */
   releaseById(bufferId: string): void {
     for (const pool of this.pools.values()) {
-      const buffer = pool.find(b => b.id === bufferId);
+      const buffer = pool.find((b) => b.id === bufferId);
       if (buffer) {
         this.release(buffer);
         return;
@@ -234,7 +234,7 @@ export class LODMemoryPool {
       const now = Date.now();
       const unusedTime = 60000; // 1 minute
 
-      const activeBuffers = pool.filter(b => {
+      const activeBuffers = pool.filter((b) => {
         if (b.inUse) return true;
         if (now - b.lastUsed < unusedTime) return true;
         return false;
@@ -313,7 +313,7 @@ export class LODMemoryPool {
       allocationCount: 0,
       reuseCount: 0,
       defragmentationCount: 0,
-      hitRate: 0
+      hitRate: 0,
     };
   }
 
@@ -458,7 +458,7 @@ export function createVRMemoryPool(): LODMemoryPool {
     enableDefragmentation: true,
     defragmentationThreshold: 0.4,
     memoryPressureThreshold: 0.7,
-    autoAdjustLODBias: true
+    autoAdjustLODBias: true,
   });
 }
 
@@ -473,6 +473,6 @@ export function createMobileMemoryPool(): LODMemoryPool {
     enableDefragmentation: true,
     defragmentationThreshold: 0.5,
     memoryPressureThreshold: 0.6,
-    autoAdjustLODBias: true
+    autoAdjustLODBias: true,
   });
 }

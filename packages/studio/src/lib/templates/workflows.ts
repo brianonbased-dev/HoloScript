@@ -32,7 +32,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         data: {
           type: 'agent',
           agentId: 'brittney',
-          systemPrompt: 'You are a 3D scene optimization expert. Analyze scenes for performance bottlenecks, draw call reduction opportunities, and visual quality improvements.',
+          systemPrompt:
+            'You are a 3D scene optimization expert. Analyze scenes for performance bottlenecks, draw call reduction opportunities, and visual quality improvements.',
           temperature: 0.3,
           tools: ['semantic_search', 'search_knowledge'],
           maxTokens: 2048,
@@ -59,7 +60,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         data: {
           type: 'agent',
           agentId: 'brittney',
-          systemPrompt: 'Apply scene optimizations based on analysis. Focus on LOD, occlusion culling, texture compression, and draw call batching.',
+          systemPrompt:
+            'Apply scene optimizations based on analysis. Focus on LOD, occlusion culling, texture compression, and draw call batching.',
           temperature: 0.2,
           tools: [],
           maxTokens: 4096,
@@ -74,7 +76,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'multi-agent-code-review',
     name: 'Multi-Agent Code Review',
-    description: 'Multiple AI agents review code from different perspectives (security, performance, style)',
+    description:
+      'Multiple AI agents review code from different perspectives (security, performance, style)',
     category: 'workflow',
     tags: ['code-review', 'multi-agent', 'quality'],
     nodes: [
@@ -111,7 +114,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         data: {
           type: 'agent',
           agentId: 'brittney',
-          systemPrompt: 'Review code for security vulnerabilities, injection risks, and auth issues.',
+          systemPrompt:
+            'Review code for security vulnerabilities, injection risks, and auth issues.',
           temperature: 0.2,
           tools: ['search_knowledge'],
           maxTokens: 2048,
@@ -125,7 +129,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         data: {
           type: 'agent',
           agentId: 'brittney',
-          systemPrompt: 'Review code for performance issues, memory leaks, and optimization opportunities.',
+          systemPrompt:
+            'Review code for performance issues, memory leaks, and optimization opportunities.',
           temperature: 0.2,
           tools: ['search_knowledge'],
           maxTokens: 2048,
@@ -164,7 +169,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         data: {
           type: 'agent',
           agentId: 'brittney',
-          systemPrompt: 'Synthesize all review feedback into a comprehensive report with prioritized action items.',
+          systemPrompt:
+            'Synthesize all review feedback into a comprehensive report with prioritized action items.',
           temperature: 0.4,
           tools: [],
           maxTokens: 4096,

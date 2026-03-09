@@ -20,8 +20,13 @@ import { LobbyManager } from '../network/LobbyManager.js';
 import { Matchmaker } from '../network/Matchmaker.js';
 import { RoomManager } from '../network/RoomManager.js';
 import {
-  generateMessageId, generatePeerId, createMessage,
-  createPeerInfo, lerpVector3, distanceVector3, createSpawnRequest,
+  generateMessageId,
+  generatePeerId,
+  createMessage,
+  createPeerInfo,
+  lerpVector3,
+  distanceVector3,
+  createSpawnRequest,
 } from '../network/NetworkTypes.js';
 import { NetworkTransport } from '../network/NetworkTransport.js';
 import { RPCManager } from '../network/RPCManager.js';
@@ -491,7 +496,9 @@ describe('Feature 9: ClientPrediction', () => {
     x: state.x + (input.actions.moveX ?? 0),
     y: state.y,
     z: state.z + (input.actions.moveZ ?? 0),
-    vx: state.vx, vy: state.vy, vz: state.vz,
+    vx: state.vx,
+    vy: state.vy,
+    vz: state.vz,
   });
 
   it('getState returns initial state', () => {
@@ -535,23 +542,41 @@ describe('Feature 9: ClientPrediction', () => {
 describe('Feature 10: NetworkInterpolation', () => {
   it('pushSnapshot does not throw', () => {
     const ni = new NetworkInterpolation();
-    expect(() => ni.pushSnapshot({
-      entityId: 'e1', timestamp: 100,
-      position: { x: 0, y: 0, z: 0 },
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
-    })).not.toThrow();
+    expect(() =>
+      ni.pushSnapshot({
+        entityId: 'e1',
+        timestamp: 100,
+        position: { x: 0, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+      })
+    ).not.toThrow();
   });
 
   it('getBufferSize returns count of snapshots', () => {
     const ni = new NetworkInterpolation();
-    ni.pushSnapshot({ entityId: 'e1', timestamp: 100, position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } });
-    ni.pushSnapshot({ entityId: 'e1', timestamp: 200, position: { x: 5, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } });
+    ni.pushSnapshot({
+      entityId: 'e1',
+      timestamp: 100,
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
+    });
+    ni.pushSnapshot({
+      entityId: 'e1',
+      timestamp: 200,
+      position: { x: 5, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
+    });
     expect(ni.getBufferSize('e1')).toBe(2);
   });
 
   it('clearEntity empties the buffer for an entity', () => {
     const ni = new NetworkInterpolation();
-    ni.pushSnapshot({ entityId: 'e1', timestamp: 100, position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } });
+    ni.pushSnapshot({
+      entityId: 'e1',
+      timestamp: 100,
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
+    });
     ni.clearEntity('e1');
     expect(ni.getBufferSize('e1')).toBe(0);
   });
@@ -564,8 +589,18 @@ describe('Feature 10: NetworkInterpolation', () => {
   it('getInterpolatedState returns a state with snapshots', () => {
     const ni = new NetworkInterpolation({ bufferTimeMs: 50 });
     const now = Date.now();
-    ni.pushSnapshot({ entityId: 'e1', timestamp: now - 200, position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } });
-    ni.pushSnapshot({ entityId: 'e1', timestamp: now - 100, position: { x: 10, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } });
+    ni.pushSnapshot({
+      entityId: 'e1',
+      timestamp: now - 200,
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
+    });
+    ni.pushSnapshot({
+      entityId: 'e1',
+      timestamp: now - 100,
+      position: { x: 10, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
+    });
     const state = ni.getInterpolatedState('e1', now - 150);
     // May return null or a state depending on bufferDelay; just test it doesn't throw
     expect(state === null || typeof state.position === 'object').toBe(true);

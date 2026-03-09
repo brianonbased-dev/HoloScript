@@ -106,7 +106,9 @@ describe('SpatialPersonaTrait', () => {
 
       const s = getState(ctx);
       expect(s.isActive).toBe(false);
-      expect(ctx.emit).toHaveBeenCalledWith('persona:deactivated', { personaId: 'persona_sp-node' });
+      expect(ctx.emit).toHaveBeenCalledWith('persona:deactivated', {
+        personaId: 'persona_sp-node',
+      });
     });
   });
 
@@ -213,7 +215,9 @@ describe('SpatialPersonaTrait', () => {
       spatialPersonaHandler.onEvent!(node, config, ctx as any, { type: 'persona:activate' });
       ctx.emit.mockClear();
       spatialPersonaHandler.onDetach!(node, config, ctx as any);
-      expect(ctx.emit).toHaveBeenCalledWith('persona:deactivated', { personaId: 'persona_sp-node' });
+      expect(ctx.emit).toHaveBeenCalledWith('persona:deactivated', {
+        personaId: 'persona_sp-node',
+      });
     });
 
     it('does not emit if not active', () => {

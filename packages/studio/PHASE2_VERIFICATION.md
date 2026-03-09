@@ -10,13 +10,16 @@
 ### ✅ Task 4: Undo/Redo for All Editors (COMPLETE)
 
 **Files Created:**
+
 - ✅ `src/hooks/useOrchestrationHistory.ts` (200 lines)
 
 **Files Modified:**
+
 - ✅ `src/components/orchestration/AgentOrchestrationGraphEditor.tsx` (undo/redo integration)
 - ✅ `src/components/orchestration/BehaviorTreeVisualEditor.tsx` (undo/redo integration)
 
 **Features Implemented:**
+
 - Snapshot-based history (max 50 snapshots)
 - Debounced snapshots (500ms to prevent excessive history during drag operations)
 - Keyboard shortcuts: `Ctrl+Z` (undo), `Ctrl+Shift+Z` (redo), `Ctrl+Y` (redo)
@@ -26,14 +29,17 @@
 ### ✅ Task 5: Analytics Integration (COMPLETE)
 
 **Files Created:**
+
 - ✅ `src/lib/analytics/orchestration.ts` (400 lines)
 
 **Files Modified:**
+
 - ✅ `src/components/orchestration/AgentOrchestrationGraphEditor.tsx` (analytics tracking)
 - ✅ `src/components/orchestration/BehaviorTreeVisualEditor.tsx` (analytics tracking)
 - ✅ `src/components/orchestration/AgentEventMonitorPanel.tsx` (analytics tracking)
 
 **Events Tracked:**
+
 - Panel open/close with duration
 - Workflow node additions, saves
 - Behavior tree node additions
@@ -50,6 +56,7 @@
 ### 1. File Integrity
 
 **Check all files exist:**
+
 ```bash
 # Phase 2 Task 4 files
 ls -la src/hooks/useOrchestrationHistory.ts
@@ -70,6 +77,7 @@ ls -la src/components/orchestration/AgentEventMonitorPanel.tsx
 ### 2. TypeScript Compilation
 
 **Run type check:**
+
 ```bash
 cd packages/studio
 pnpm run type-check
@@ -78,6 +86,7 @@ pnpm run type-check
 **Expected Result:** No TypeScript errors related to Phase 2 changes.
 
 **Known Issues:**
+
 - ⚠️ Pre-existing error in `SceneGraphPanel.tsx` (Icon type inference) - not related to Phase 2
 
 ---
@@ -85,6 +94,7 @@ pnpm run type-check
 ### 3. Import/Export Verification
 
 **Check useOrchestrationHistory exports:**
+
 ```typescript
 // Expected exports from useOrchestrationHistory.ts
 export interface HistoryState<T>
@@ -93,6 +103,7 @@ export function useOrchestrationKeyboardShortcuts
 ```
 
 **Check analytics exports:**
+
 ```typescript
 // Expected exports from orchestration.ts
 export function trackOrchestrationEvent
@@ -116,10 +127,12 @@ export function trackEventMonitorCleared
 ### Test 1: Undo/Redo in Workflow Editor
 
 **Prerequisites:**
+
 - Start HoloScript Studio dev server
 - Open workflow editor (click Workflow button in toolbar)
 
 **Test Steps:**
+
 1. Add an Agent node
 2. Add a Decision node
 3. Connect them with an edge
@@ -138,6 +151,7 @@ export function trackEventMonitorCleared
    - Verify redo button is disabled when at end of history
 
 **Expected Result:**
+
 - All undo/redo operations work correctly
 - Buttons show disabled state appropriately
 - Keyboard shortcuts work
@@ -148,9 +162,11 @@ export function trackEventMonitorCleared
 ### Test 2: Undo/Redo in Behavior Tree Editor
 
 **Prerequisites:**
+
 - Open behavior tree editor (click BT button in toolbar)
 
 **Test Steps:**
+
 1. Add a Sequence node
 2. Add an Inverter node
 3. Add a Repeat node
@@ -161,6 +177,7 @@ export function trackEventMonitorCleared
    - Test `Ctrl+Y` for redo (Windows convention)
 
 **Expected Result:**
+
 - All operations undo/redo correctly
 - Tree structure is preserved
 - No console errors
@@ -170,10 +187,12 @@ export function trackEventMonitorCleared
 ### Test 3: Analytics Tracking - Workflow Operations
 
 **Prerequisites:**
+
 - Open browser DevTools console
 - Set up console filter for "[Analytics]"
 
 **Test Steps:**
+
 1. Open workflow editor
    - **Expected Log:** `[Analytics] panel_opened { panel_name: 'workflow_editor', timestamp: ... }`
 2. Add Agent node
@@ -192,6 +211,7 @@ export function trackEventMonitorCleared
    - **Expected Log:** `[Analytics] panel_closed { panel_name: 'workflow_editor', duration_ms: ... }`
 
 **Expected Result:**
+
 - All events are logged to console in development mode
 - Event properties match expected values
 - No errors or warnings
@@ -201,6 +221,7 @@ export function trackEventMonitorCleared
 ### Test 4: Analytics Tracking - Behavior Tree Operations
 
 **Test Steps:**
+
 1. Open behavior tree editor
    - **Expected:** `panel_opened` event
 2. Add various node types (Sequence, Inverter, Repeat, Retry, Guard, Timeout)
@@ -211,6 +232,7 @@ export function trackEventMonitorCleared
    - **Expected:** `panel_closed` event with duration
 
 **Expected Result:**
+
 - All BT-specific events tracked correctly
 - Duration calculated accurately
 
@@ -219,6 +241,7 @@ export function trackEventMonitorCleared
 ### Test 5: Analytics Tracking - Event Monitor
 
 **Test Steps:**
+
 1. Open event monitor panel
    - **Expected:** `[Analytics] event_monitor_opened { event_count: 0 }`
 2. Type in filter box (e.g., "test")
@@ -240,6 +263,7 @@ export function trackEventMonitorCleared
    - **Expected:** `[Analytics] panel_closed`
 
 **Expected Result:**
+
 - All event monitor operations tracked
 - Event counts accurate
 
@@ -250,6 +274,7 @@ export function trackEventMonitorCleared
 **Purpose:** Verify that dragging nodes doesn't create excessive history snapshots
 
 **Test Steps:**
+
 1. Open workflow editor
 2. Add an Agent node
 3. Rapidly drag the node around for 3-5 seconds
@@ -258,6 +283,7 @@ export function trackEventMonitorCleared
 6. **Observe:** Node should return to its position from ~500ms ago, NOT every intermediate position
 
 **Expected Result:**
+
 - Only one snapshot per 500ms during drag operations
 - History size remains manageable
 - Undo behavior is smooth and predictable
@@ -269,18 +295,20 @@ export function trackEventMonitorCleared
 **Purpose:** Verify max 50 snapshots limit
 
 **Test Steps:**
+
 1. Open workflow editor
 2. Add 60 nodes one by one (simulating 60 operations)
 3. Verify history state:
    ```javascript
    // Browser console
-   console.log('History length:', history.historyLength)
-   console.log('Can undo 50 times?')
+   console.log('History length:', history.historyLength);
+   console.log('Can undo 50 times?');
    ```
 4. Try to undo 51 times
    - **Expected:** Can only undo up to 50 operations
 
 **Expected Result:**
+
 - History capped at 50 snapshots
 - Oldest snapshots are discarded
 - No memory leaks
@@ -292,6 +320,7 @@ export function trackEventMonitorCleared
 **Purpose:** Verify workflow and BT editors have separate history
 
 **Test Steps:**
+
 1. Open workflow editor
 2. Add 3 nodes
 3. Close workflow editor
@@ -305,6 +334,7 @@ export function trackEventMonitorCleared
    - **Expected:** Workflow nodes should still be in history
 
 **Expected Result:**
+
 - Each editor maintains independent history
 - History persists across panel close/open (within same session)
 
@@ -315,6 +345,7 @@ export function trackEventMonitorCleared
 ### Test 9: Full Workflow - Create, Edit, Undo, Analytics
 
 **Combined Test:**
+
 1. Open workflow editor (track panel_opened)
 2. Add 5 different node types (track each node_added)
 3. Connect nodes with edges
@@ -326,6 +357,7 @@ export function trackEventMonitorCleared
 9. Close panel (track panel_closed with accurate duration)
 
 **Expected Analytics Events (in order):**
+
 ```
 1. panel_opened
 2. workflow_node_added (×5)
@@ -338,6 +370,7 @@ export function trackEventMonitorCleared
 ```
 
 **Expected Result:**
+
 - All events fire in correct order
 - No duplicate events
 - No missing events
@@ -350,6 +383,7 @@ export function trackEventMonitorCleared
 ### Test 10: Large History Performance
 
 **Test:**
+
 ```javascript
 // Browser console - simulate 50 rapid operations
 for (let i = 0; i < 50; i++) {
@@ -357,10 +391,11 @@ for (let i = 0; i < 50; i++) {
   // Wait 600ms (longer than debounce)
 }
 // Measure memory usage
-console.log(performance.memory)
+console.log(performance.memory);
 ```
 
 **Expected Result:**
+
 - Memory usage remains stable
 - Undo/redo remain responsive
 - No performance degradation
@@ -370,21 +405,23 @@ console.log(performance.memory)
 ### Test 11: Analytics Overhead
 
 **Test:**
+
 ```javascript
 // Disable analytics
-const startTime = performance.now()
+const startTime = performance.now();
 // Perform 100 operations
-const endTime = performance.now()
-console.log('Time without analytics:', endTime - startTime)
+const endTime = performance.now();
+console.log('Time without analytics:', endTime - startTime);
 
 // Enable analytics
-const startTime2 = performance.now()
+const startTime2 = performance.now();
 // Perform 100 operations
-const endTime2 = performance.now()
-console.log('Time with analytics:', endTime2 - startTime2)
+const endTime2 = performance.now();
+console.log('Time with analytics:', endTime2 - startTime2);
 ```
 
 **Expected Result:**
+
 - Analytics overhead < 5% of operation time
 - No noticeable lag during normal usage
 
@@ -395,17 +432,19 @@ console.log('Time with analytics:', endTime2 - startTime2)
 ### Test 12: Invalid History State
 
 **Test Steps:**
+
 1. Manually corrupt history state:
    ```javascript
    // Browser console
-   history.pushSnapshot(null)
-   history.pushSnapshot(undefined)
-   history.pushSnapshot({})
+   history.pushSnapshot(null);
+   history.pushSnapshot(undefined);
+   history.pushSnapshot({});
    ```
 2. Try to undo/redo
    - **Expected:** Graceful degradation, no crashes
 
 **Expected Result:**
+
 - Errors caught and handled
 - UI remains functional
 - Console shows helpful error message
@@ -415,15 +454,17 @@ console.log('Time with analytics:', endTime2 - startTime2)
 ### Test 13: Analytics Failure Resilience
 
 **Test Steps:**
+
 1. Simulate gtag unavailable:
    ```javascript
    // Browser console
-   delete window.gtag
+   delete window.gtag;
    ```
 2. Perform tracked operations
    - **Expected:** No errors, operations continue normally
 
 **Expected Result:**
+
 - Analytics failures don't break functionality
 - Fallback to console-only logging
 - No error spam in console
@@ -438,21 +479,21 @@ console.log('Time with analytics:', endTime2 - startTime2)
 // Run in browser console after opening workflow editor
 
 // Check analytics functions exist
-console.log('trackWorkflowNodeAdded:', typeof trackWorkflowNodeAdded)
-console.log('trackPanelOpened:', typeof trackPanelOpened)
+console.log('trackWorkflowNodeAdded:', typeof trackWorkflowNodeAdded);
+console.log('trackPanelOpened:', typeof trackPanelOpened);
 
 // Monitor analytics events
-const originalGtag = window.gtag
-const events = []
-window.gtag = function(type, event, props) {
-  events.push({ type, event, props })
-  console.log('📊 Analytics Event:', event, props)
-  if (originalGtag) originalGtag.apply(this, arguments)
-}
+const originalGtag = window.gtag;
+const events = [];
+window.gtag = function (type, event, props) {
+  events.push({ type, event, props });
+  console.log('📊 Analytics Event:', event, props);
+  if (originalGtag) originalGtag.apply(this, arguments);
+};
 
 // After performing some actions:
-console.log('Total events tracked:', events.length)
-console.log('Events:', events)
+console.log('Total events tracked:', events.length);
+console.log('Events:', events);
 ```
 
 ### Script 2: Test History State
@@ -462,18 +503,18 @@ console.log('Events:', events)
 
 // Access history (if exposed or via React DevTools)
 // Check current state
-console.log('History length:', history.historyLength)
-console.log('Current index:', history.currentIndex)
-console.log('Can undo?', history.canUndo)
-console.log('Can redo?', history.canRedo)
+console.log('History length:', history.historyLength);
+console.log('Current index:', history.currentIndex);
+console.log('Can undo?', history.canUndo);
+console.log('Can redo?', history.canRedo);
 
 // Test undo
-history.undo()
-console.log('After undo - Current index:', history.currentIndex)
+history.undo();
+console.log('After undo - Current index:', history.currentIndex);
 
 // Test redo
-history.redo()
-console.log('After redo - Current index:', history.currentIndex)
+history.redo();
+console.log('After redo - Current index:', history.currentIndex);
 ```
 
 ### Script 3: Trigger Test Events
@@ -481,7 +522,7 @@ console.log('After redo - Current index:', history.currentIndex)
 ```javascript
 // Add test events to event monitor
 
-const store = useOrchestrationStore.getState()
+const store = useOrchestrationStore.getState();
 
 // Add 5 test events
 for (let i = 0; i < 5; i++) {
@@ -492,11 +533,11 @@ for (let i = 0; i < 5; i++) {
     senderId: `agent${i % 3}`,
     timestamp: Date.now() + i,
     receivedBy: [`receiver${i % 2}`],
-  })
+  });
 }
 
-console.log('Added 5 test events')
-console.log('Total events:', store.events.length)
+console.log('Added 5 test events');
+console.log('Total events:', store.events.length);
 ```
 
 ---
@@ -504,12 +545,14 @@ console.log('Total events:', store.events.length)
 ## Known Issues & Limitations
 
 ### Pre-Existing Issues (Not Phase 2 Related)
+
 1. ⚠️ **SceneGraphPanel.tsx** - Icon type inference error (line 154)
    - **Status:** Unrelated to Phase 2, blocking build
    - **Impact:** Does not affect orchestration features
    - **Next Step:** Requires separate fix
 
 ### Phase 2 Limitations
+
 1. **History persistence:** History is not persisted to localStorage (session-only)
    - **Future:** Phase 1 auto-save will add persistence
 2. **Analytics backend:** Only logs to console in dev mode (gtag integration passive)

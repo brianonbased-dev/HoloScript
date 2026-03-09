@@ -71,7 +71,9 @@ describe('Parser Edge Cases - Error Recovery', () => {
       // HoloScriptPlusParser may not support full composition syntax
       // (use HoloCompositionParser for that). Either it parses or it reports errors.
       expect(result).toBeDefined();
-      expect(result.success === true || (result.errors && result.errors.length > 0) || result.ast).toBeDefined();
+      expect(
+        result.success === true || (result.errors && result.errors.length > 0) || result.ast
+      ).toBeDefined();
     });
 
     it('should parse array with mixed types', () => {
@@ -357,7 +359,7 @@ describe('Parser Performance with Edge Cases', () => {
       if (i < 999) source += ',';
     }
     source += `] }`;
-    
+
     const start = performance.now();
     const result = parser.parse(source);
     const elapsed = performance.now() - start;
@@ -373,7 +375,7 @@ describe('Parser Performance with Edge Cases', () => {
       source += `object "o${i}" @grabbable @networked { position: [${i},0,0] color: "#fff" }`;
     }
     source += '}';
-    
+
     const result = parser.parse(source);
     const elapsed = performance.now() - start;
 
@@ -387,7 +389,7 @@ describe('Error Recovery System', () => {
     const parser = new HoloScriptPlusParser({ enableVRTraits: true });
     const source = `orb#test { invalid syntax here }`;
     const result = parser.parse(source);
-    
+
     if (!result.success && result.errors) {
       expect(result.errors.length).toBeGreaterThan(0);
       expect(result.errors[0].message).toBeDefined();
@@ -403,17 +405,17 @@ describe('Error Recovery System', () => {
       invalid: !!!
     }`;
     const result = parser.parse(source);
-    
+
     if (!result.success && result.errors) {
-      expect(result.errors.some(e => e.line === 3)).toBe(true);
+      expect(result.errors.some((e) => e.line === 3)).toBe(true);
     }
   });
 
   it('should suggest valid alternatives on typos', () => {
     const parser = new HoloScriptPlusParser({ enableVRTraits: true });
-    const source = `orb#test @grabble { }`;  // typo: grabble instead of grabbable
+    const source = `orb#test @grabble { }`; // typo: grabble instead of grabbable
     const result = parser.parse(source);
-    
+
     // Depending on implementation, should either parse or suggest correction
     expect(result).toBeDefined();
   });

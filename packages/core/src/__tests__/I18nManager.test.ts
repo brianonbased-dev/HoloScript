@@ -69,7 +69,9 @@ describe('I18nManager', () => {
 
   it('onLocaleChange listener fires', () => {
     let newLocale = '';
-    i18n.onLocaleChange((l) => { newLocale = l; });
+    i18n.onLocaleChange((l) => {
+      newLocale = l;
+    });
     i18n.setLocale('fr');
     expect(newLocale).toBe('fr');
   });

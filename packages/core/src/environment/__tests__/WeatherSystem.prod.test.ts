@@ -12,7 +12,9 @@ import type { WeatherType } from '../WeatherSystem';
 describe('WeatherSystem', () => {
   let ws: WeatherSystem;
 
-  beforeEach(() => { ws = new WeatherSystem('clear'); });
+  beforeEach(() => {
+    ws = new WeatherSystem('clear');
+  });
 
   // -------------------------------------------------------------------------
   // Construction & initial state
@@ -148,11 +150,14 @@ describe('WeatherSystem', () => {
   // Weather type properties
   // -------------------------------------------------------------------------
   describe('weather type defaults', () => {
-    const weatherChecks: [WeatherType, Partial<{ intensity: number; visibility: number; precipitation: number }>][] = [
-      ['clear',     { intensity: 0, visibility: 1, precipitation: 0 }],
-      ['rain',      { precipitation: 0.7 }],
+    const weatherChecks: [
+      WeatherType,
+      Partial<{ intensity: number; visibility: number; precipitation: number }>,
+    ][] = [
+      ['clear', { intensity: 0, visibility: 1, precipitation: 0 }],
+      ['rain', { precipitation: 0.7 }],
       ['sandstorm', { visibility: 0.15 }],
-      ['snow',      { precipitation: 0.6 }],
+      ['snow', { precipitation: 0.6 }],
     ];
     for (const [type, checks] of weatherChecks) {
       it(`${type}: matches defaults`, () => {

@@ -31,7 +31,7 @@ async function runMergeTest(
   // Measure merge time (serialize all, deserialize into one)
   const mergeStart = performance.now();
 
-  const serializedStates = adapters.map(a => a.serialize());
+  const serializedStates = adapters.map((a) => a.serialize());
   const mergedAdapter = new AdapterClass();
 
   for (const state of serializedStates) {
@@ -53,7 +53,7 @@ async function runMergeTest(
     resolved: finalSize > 0, // Simple check: merged state has data
   };
 
-  adapters.forEach(a => a.destroy());
+  adapters.forEach((a) => a.destroy());
   mergedAdapter.destroy();
 
   return result;

@@ -26,8 +26,12 @@ describe('MeshDiscovery', () => {
 
   it('should register and retrieve peers', () => {
     const peer: PeerMetadata = {
-      id: 'peer-1', hostname: 'localhost', port: 3001,
-      version: '1.0.0', agentCount: 2, capabilities: ['holoscript'],
+      id: 'peer-1',
+      hostname: 'localhost',
+      port: 3001,
+      version: '1.0.0',
+      agentCount: 2,
+      capabilities: ['holoscript'],
       lastSeen: Date.now(),
     };
     mesh.registerPeer(peer);
@@ -38,11 +42,18 @@ describe('MeshDiscovery', () => {
 
   it('should emit peer:discovered event', () => {
     let discovered: PeerMetadata | null = null;
-    mesh.onPeerDiscovered((peer) => { discovered = peer; });
+    mesh.onPeerDiscovered((peer) => {
+      discovered = peer;
+    });
 
     mesh.registerPeer({
-      id: 'new-peer', hostname: 'remote', port: 5000,
-      version: '1.0.0', agentCount: 0, capabilities: [], lastSeen: Date.now(),
+      id: 'new-peer',
+      hostname: 'remote',
+      port: 5000,
+      version: '1.0.0',
+      agentCount: 0,
+      capabilities: [],
+      lastSeen: Date.now(),
     });
 
     expect(discovered).not.toBeNull();
@@ -51,8 +62,13 @@ describe('MeshDiscovery', () => {
 
   it('should remove peers', () => {
     mesh.registerPeer({
-      id: 'temp', hostname: 'x', port: 1, version: '1', agentCount: 0,
-      capabilities: [], lastSeen: Date.now(),
+      id: 'temp',
+      hostname: 'x',
+      port: 1,
+      version: '1',
+      agentCount: 0,
+      capabilities: [],
+      lastSeen: Date.now(),
     });
     expect(mesh.removePeer('temp')).toBe(true);
     expect(mesh.getPeerCount()).toBe(0);
@@ -60,12 +76,22 @@ describe('MeshDiscovery', () => {
 
   it('should prune stale peers', () => {
     mesh.registerPeer({
-      id: 'stale', hostname: 'x', port: 1, version: '1', agentCount: 0,
-      capabilities: [], lastSeen: Date.now() - 30000,
+      id: 'stale',
+      hostname: 'x',
+      port: 1,
+      version: '1',
+      agentCount: 0,
+      capabilities: [],
+      lastSeen: Date.now() - 30000,
     });
     mesh.registerPeer({
-      id: 'fresh', hostname: 'x', port: 2, version: '1', agentCount: 0,
-      capabilities: [], lastSeen: Date.now(),
+      id: 'fresh',
+      hostname: 'x',
+      port: 2,
+      version: '1',
+      agentCount: 0,
+      capabilities: [],
+      lastSeen: Date.now(),
     });
     const pruned = mesh.pruneStalePeers(15000);
     expect(pruned).toBe(1);
@@ -86,7 +112,9 @@ describe('SignalService', () => {
 
   it('should broadcast local signals', () => {
     const sig = signals.broadcastSignal({
-      type: 'mcp-server', url: 'http://localhost:3000', capabilities: ['knowledge'],
+      type: 'mcp-server',
+      url: 'http://localhost:3000',
+      capabilities: ['knowledge'],
     });
     expect(sig.nodeId).toBe('node-test');
     expect(sig.expiresAt).toBeGreaterThan(Date.now());
@@ -94,7 +122,9 @@ describe('SignalService', () => {
 
   it('should discover local signals', () => {
     signals.broadcastSignal({
-      type: 'mcp-server', url: 'http://localhost:3000', capabilities: [],
+      type: 'mcp-server',
+      url: 'http://localhost:3000',
+      capabilities: [],
     });
     const found = signals.discoverSignals('mcp-server');
     expect(found).toHaveLength(1);
@@ -103,8 +133,11 @@ describe('SignalService', () => {
 
   it('should discover remote signals', () => {
     signals.receiveSignal({
-      type: 'did-resolver', nodeId: 'remote-1', url: 'http://remote:9000',
-      capabilities: ['resolve'], expiresAt: Date.now() + 60000,
+      type: 'did-resolver',
+      nodeId: 'remote-1',
+      url: 'http://remote:9000',
+      capabilities: ['resolve'],
+      expiresAt: Date.now() + 60000,
     });
     const found = signals.discoverSignals('did-resolver');
     expect(found).toHaveLength(1);
@@ -112,8 +145,11 @@ describe('SignalService', () => {
 
   it('should prune expired remote signals', () => {
     signals.receiveSignal({
-      type: 'storage-node', nodeId: 'expired', url: 'http://old',
-      capabilities: [], expiresAt: Date.now() - 1000,
+      type: 'storage-node',
+      nodeId: 'expired',
+      url: 'http://old',
+      capabilities: [],
+      expiresAt: Date.now() - 1000,
     });
     const found = signals.discoverSignals('storage-node');
     expect(found).toHaveLength(0);
@@ -176,13 +212,13 @@ describe('MCP Tool Schemas', () => {
   });
 
   it('should include search_knowledge', () => {
-    const tool = MCP_TOOL_SCHEMAS.find(t => t.name === 'search_knowledge');
+    const tool = MCP_TOOL_SCHEMAS.find((t) => t.name === 'search_knowledge');
     expect(tool).toBeDefined();
     expect(tool!.description).toContain('Semantic');
   });
 
   it('should include add_pattern with required fields', () => {
-    const tool = MCP_TOOL_SCHEMAS.find(t => t.name === 'add_pattern');
+    const tool = MCP_TOOL_SCHEMAS.find((t) => t.name === 'add_pattern');
     expect(tool).toBeDefined();
     const schema = tool!.inputSchema as any;
     expect(schema.required).toContain('id');
@@ -191,7 +227,7 @@ describe('MCP Tool Schemas', () => {
   });
 
   it('should include add_gotcha with severity enum', () => {
-    const tool = MCP_TOOL_SCHEMAS.find(t => t.name === 'add_gotcha');
+    const tool = MCP_TOOL_SCHEMAS.find((t) => t.name === 'add_gotcha');
     expect(tool).toBeDefined();
     const schema = tool!.inputSchema as any;
     expect(schema.properties.severity.enum).toContain('critical');
@@ -220,7 +256,10 @@ describe('Agent Card', () => {
 
   it('should validate a correct agent card', () => {
     const card = createAgentCard({
-      name: 'Agent', description: 'Test', version: '1.0', url: 'http://x',
+      name: 'Agent',
+      description: 'Test',
+      version: '1.0',
+      url: 'http://x',
       skills: [],
     });
     const result = validateAgentCard(card);

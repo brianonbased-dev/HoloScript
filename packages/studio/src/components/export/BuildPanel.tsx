@@ -16,15 +16,30 @@
 
 import { useState, useCallback } from 'react';
 import {
-  Globe, Code, Smartphone, Bot, Box, FileJson,
-  Download, Loader2, CheckCircle, AlertTriangle, Hammer,
-  Settings, ChevronDown,
+  Globe,
+  Code,
+  Smartphone,
+  Bot,
+  Box,
+  FileJson,
+  Download,
+  Loader2,
+  CheckCircle,
+  AlertTriangle,
+  Hammer,
+  Settings,
+  ChevronDown,
 } from 'lucide-react';
 import {
-  build, downloadBuildResult, getAllTargets, getTargetMeta,
-  type BuildTarget, type BuildResult, type BuildConfig,
+  build,
+  downloadBuildResult,
+  getAllTargets,
+  getTargetMeta,
+  type BuildTarget,
+  type BuildResult,
+  type BuildConfig,
 } from '@/lib/buildService';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 const TARGET_ICONS: Record<BuildTarget, typeof Globe> = {
   web: Globe,
@@ -90,7 +105,10 @@ export function BuildPanel() {
           return (
             <button
               key={id}
-              onClick={() => { setTarget(id); setResult(null); }}
+              onClick={() => {
+                setTarget(id);
+                setResult(null);
+              }}
               className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-[10px] transition ${
                 active
                   ? 'border-studio-accent bg-studio-accent/10 text-studio-accent'
@@ -124,7 +142,10 @@ export function BuildPanel() {
             { key: 'includeAI', label: 'Include AI/NPC system' },
             { key: 'embedAssets', label: 'Embed assets inline' },
           ].map(({ key, label }) => (
-            <label key={key} className="flex items-center gap-2 text-studio-muted cursor-pointer hover:text-studio-text">
+            <label
+              key={key}
+              className="flex items-center gap-2 text-studio-muted cursor-pointer hover:text-studio-text"
+            >
               <input
                 type="checkbox"
                 checked={(config as any)[key] ?? false}
@@ -158,11 +179,13 @@ export function BuildPanel() {
 
       {/* Result */}
       {result && (
-        <div className={`rounded-lg border p-3 ${
-          result.success
-            ? 'border-emerald-500/30 bg-emerald-950/20'
-            : 'border-red-500/30 bg-red-950/20'
-        }`}>
+        <div
+          className={`rounded-lg border p-3 ${
+            result.success
+              ? 'border-emerald-500/30 bg-emerald-950/20'
+              : 'border-red-500/30 bg-red-950/20'
+          }`}
+        >
           {/* Status */}
           <div className="flex items-center gap-2 text-sm">
             {result.success ? (
@@ -187,7 +210,9 @@ export function BuildPanel() {
           {/* Warnings */}
           {result.warnings.length > 0 && (
             <div className="mt-2 text-[11px] text-amber-400">
-              {result.warnings.map((w, i) => <div key={i}>⚠ {w}</div>)}
+              {result.warnings.map((w, i) => (
+                <div key={i}>⚠ {w}</div>
+              ))}
             </div>
           )}
 
@@ -195,7 +220,10 @@ export function BuildPanel() {
           {result.errors.length > 0 && (
             <div className="mt-2 text-[11px] text-red-400">
               {result.errors.map((e, i) => (
-                <div key={i}>✗ {e.message}{e.line ? ` (line ${e.line})` : ''}</div>
+                <div key={i}>
+                  ✗ {e.message}
+                  {e.line ? ` (line ${e.line})` : ''}
+                </div>
               ))}
             </div>
           )}

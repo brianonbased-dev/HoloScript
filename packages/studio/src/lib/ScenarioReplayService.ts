@@ -26,8 +26,8 @@ export interface ReplayEvent {
   timestamp: number;
   scenarioId: string;
   type: ReplayEventType;
-  target: string;        // e.g. 'dropHeight', 'food', 'dna-sequence'
-  value: unknown;        // the new value
+  target: string; // e.g. 'dropHeight', 'food', 'dna-sequence'
+  value: unknown; // the new value
   previousValue?: unknown;
   metadata?: Record<string, unknown>;
 }
@@ -114,7 +114,7 @@ export class ScenarioReplayService {
   }
 
   getActiveSession(): ReplaySession | null {
-    return this.activeSessionId ? this.sessions.get(this.activeSessionId) ?? null : null;
+    return this.activeSessionId ? (this.sessions.get(this.activeSessionId) ?? null) : null;
   }
 
   // ─── Recording ───────────────────────────────────────────────
@@ -157,7 +157,7 @@ export class ScenarioReplayService {
     for (const event of session.events) {
       const delay = (event.timestamp - prevTimestamp) / speed;
       if (delay > 0 && delay < 10000) {
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
       prevTimestamp = event.timestamp;
       yield event;
@@ -191,7 +191,7 @@ export class ScenarioReplayService {
   }
 
   eventsByType(sessionId: string, type: ReplayEventType): ReplayEvent[] {
-    return this.sessions.get(sessionId)?.events.filter(e => e.type === type) ?? [];
+    return this.sessions.get(sessionId)?.events.filter((e) => e.type === type) ?? [];
   }
 
   mostInteractedTargets(sessionId: string, limit = 5): Array<{ target: string; count: number }> {

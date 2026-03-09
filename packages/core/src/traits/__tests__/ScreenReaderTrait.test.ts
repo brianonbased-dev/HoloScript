@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { screenReaderHandler } from '../ScreenReaderTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('ScreenReaderTrait', () => {
   let node: Record<string, unknown>;
@@ -55,7 +63,10 @@ describe('ScreenReaderTrait', () => {
   });
 
   it('navigate_in focuses first child', () => {
-    sendEvent(screenReaderHandler, node, cfg, ctx, { type: 'screen_reader_add_child', childId: 'c1' });
+    sendEvent(screenReaderHandler, node, cfg, ctx, {
+      type: 'screen_reader_add_child',
+      childId: 'c1',
+    });
     sendEvent(screenReaderHandler, node, cfg, ctx, { type: 'screen_reader_navigate_in' });
     expect(getEventCount(ctx, 'screen_reader_focus_child')).toBe(1);
   });

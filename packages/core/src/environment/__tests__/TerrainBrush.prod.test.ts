@@ -48,16 +48,22 @@ describe('TerrainBrush — construction & config', () => {
   it('setRadius clamps to [1,50]', () => {
     const { system } = makeFlatTerrain();
     const brush = makeBrush(system);
-    brush.setRadius(0); expect(brush.getConfig().radius).toBe(1);
-    brush.setRadius(200); expect(brush.getConfig().radius).toBe(50);
-    brush.setRadius(10); expect(brush.getConfig().radius).toBe(10);
+    brush.setRadius(0);
+    expect(brush.getConfig().radius).toBe(1);
+    brush.setRadius(200);
+    expect(brush.getConfig().radius).toBe(50);
+    brush.setRadius(10);
+    expect(brush.getConfig().radius).toBe(10);
   });
   it('setStrength clamps to [0,1]', () => {
     const { system } = makeFlatTerrain();
     const brush = makeBrush(system);
-    brush.setStrength(-1); expect(brush.getConfig().strength).toBe(0);
-    brush.setStrength(2); expect(brush.getConfig().strength).toBe(1);
-    brush.setStrength(0.5); expect(brush.getConfig().strength).toBe(0.5);
+    brush.setStrength(-1);
+    expect(brush.getConfig().strength).toBe(0);
+    brush.setStrength(2);
+    expect(brush.getConfig().strength).toBe(1);
+    brush.setStrength(0.5);
+    expect(brush.getConfig().strength).toBe(0.5);
   });
   it('setConfig merges partial update', () => {
     const { system } = makeFlatTerrain();
@@ -134,7 +140,13 @@ describe('TerrainBrush — lower mode', () => {
 describe('TerrainBrush — flatten mode', () => {
   it('moves height toward flattenHeight', () => {
     const { system, id } = makeFlatTerrain(); // all 0.5
-    const brush = makeBrush(system, { mode: 'flatten', strength: 1, flattenHeight: 0.8, radius: 1, falloff: 0 });
+    const brush = makeBrush(system, {
+      mode: 'flatten',
+      strength: 1,
+      flattenHeight: 0.8,
+      radius: 1,
+      falloff: 0,
+    });
     const t = system.getTerrain(id)!;
     const res = t.config.resolution;
     const center = 16;
@@ -146,7 +158,13 @@ describe('TerrainBrush — flatten mode', () => {
     const { system, id } = makeFlatTerrain();
     const t = system.getTerrain(id)!;
     t.heightmap.fill(0.9);
-    const brush = makeBrush(system, { mode: 'flatten', strength: 1, flattenHeight: 0.3, radius: 1, falloff: 0 });
+    const brush = makeBrush(system, {
+      mode: 'flatten',
+      strength: 1,
+      flattenHeight: 0.3,
+      radius: 1,
+      falloff: 0,
+    });
     const center = 16;
     brush.apply(id, center, center);
     expect(t.heightmap[center * t.config.resolution + center]).toBeLessThan(0.9);
@@ -278,9 +296,15 @@ describe('TerrainBrush — undo/redo', () => {
     brush.apply(id, 15, 15);
     brush.apply(id, 17, 17);
     expect(brush.getUndoCount()).toBe(2);
-    brush.undo(); expect(brush.getUndoCount()).toBe(1); expect(brush.getRedoCount()).toBe(1);
-    brush.undo(); expect(brush.getUndoCount()).toBe(0); expect(brush.getRedoCount()).toBe(2);
-    brush.redo(); expect(brush.getUndoCount()).toBe(1); expect(brush.getRedoCount()).toBe(1);
+    brush.undo();
+    expect(brush.getUndoCount()).toBe(1);
+    expect(brush.getRedoCount()).toBe(1);
+    brush.undo();
+    expect(brush.getUndoCount()).toBe(0);
+    expect(brush.getRedoCount()).toBe(2);
+    brush.redo();
+    expect(brush.getUndoCount()).toBe(1);
+    expect(brush.getRedoCount()).toBe(1);
   });
 });
 

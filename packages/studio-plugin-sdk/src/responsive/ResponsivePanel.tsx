@@ -96,7 +96,7 @@ const DEFAULT_RESPONSIVE_CONFIG: Record<ResponsiveBreakpoint, ResponsivePanelCon
 
 function resolveConfig(
   panel: CustomPanel,
-  breakpoint: ResponsiveBreakpoint,
+  breakpoint: ResponsiveBreakpoint
 ): ResponsivePanelConfig {
   const defaults = DEFAULT_RESPONSIVE_CONFIG[breakpoint];
   const overrides = panel.responsive?.[breakpoint];
@@ -114,7 +114,7 @@ function computeStyles(
   panel: CustomPanel,
   isCollapsed: boolean,
   isVisible: boolean,
-  layout: ResponsiveLayoutState,
+  layout: ResponsiveLayoutState
 ): CSSProperties {
   const base: CSSProperties = {
     position: 'absolute',
@@ -217,9 +217,7 @@ function computeStyles(
       Object.assign(base, {
         top: '50%',
         left: '50%',
-        transform: isVisible
-          ? 'translate(-50%, -50%)'
-          : 'translate(-50%, -50%) scale(0.9)',
+        transform: isVisible ? 'translate(-50%, -50%)' : 'translate(-50%, -50%) scale(0.9)',
         width,
         height,
         maxWidth: '90vw',
@@ -227,7 +225,7 @@ function computeStyles(
         borderRadius: 12,
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
         opacity: isVisible ? 1 : 0,
-        pointerEvents: isVisible ? 'auto' as const : 'none' as const,
+        pointerEvents: isVisible ? ('auto' as const) : ('none' as const),
       });
       break;
     }
@@ -291,14 +289,9 @@ export const ResponsivePanel: React.FC<ResponsivePanelProps> = ({
     : rawLayout;
 
   // Resolve responsive config for current breakpoint
-  const config = useMemo(
-    () => resolveConfig(panel, layout.breakpoint),
-    [panel, layout.breakpoint],
-  );
+  const config = useMemo(() => resolveConfig(panel, layout.breakpoint), [panel, layout.breakpoint]);
 
-  const [isCollapsed, setIsCollapsed] = useState(
-    config.defaultCollapsed ?? false,
-  );
+  const [isCollapsed, setIsCollapsed] = useState(config.defaultCollapsed ?? false);
 
   // Notify parent of layout changes
   const prevBreakpointRef = useRef(layout.breakpoint);
@@ -316,9 +309,7 @@ export const ResponsivePanel: React.FC<ResponsivePanelProps> = ({
   const handleGestureAction = useCallback(
     (gestureEvent: TouchGestureEvent) => {
       // Find matching gesture action from panel config
-      const gestureAction = panel.touchGestures?.find(
-        (g) => g.gesture === gestureEvent.type,
-      );
+      const gestureAction = panel.touchGestures?.find((g) => g.gesture === gestureEvent.type);
       if (!gestureAction) return;
 
       switch (gestureAction.action) {
@@ -346,7 +337,7 @@ export const ResponsivePanel: React.FC<ResponsivePanelProps> = ({
           break;
       }
     },
-    [panel.touchGestures, onDismiss, onExpand, onCollapse],
+    [panel.touchGestures, onDismiss, onExpand, onCollapse]
   );
 
   // Build gesture list -- combine panel-defined gestures with defaults
@@ -365,8 +356,11 @@ export const ResponsivePanel: React.FC<ResponsivePanelProps> = ({
     ) {
       const position = config.position ?? panel.position ?? 'right';
       const dismissGesture: TouchGestureType =
-        position === 'bottom' || position === 'top' ? 'swipe-down' :
-        position === 'left' ? 'swipe-left' : 'swipe-right';
+        position === 'bottom' || position === 'top'
+          ? 'swipe-down'
+          : position === 'left'
+            ? 'swipe-left'
+            : 'swipe-right';
 
       gestures.push({
         gesture: dismissGesture,
@@ -391,7 +385,7 @@ export const ResponsivePanel: React.FC<ResponsivePanelProps> = ({
   // Compute styles
   const panelStyles = useMemo(
     () => computeStyles(config, panel, isCollapsed, visible, layout),
-    [config, panel, isCollapsed, visible, layout],
+    [config, panel, isCollapsed, visible, layout]
   );
 
   // Build CSS class names
@@ -402,7 +396,9 @@ export const ResponsivePanel: React.FC<ResponsivePanelProps> = ({
     isCollapsed ? 'studio-panel-collapsed' : 'studio-panel-expanded',
     layout.isTouchDevice ? 'studio-panel-touch' : 'studio-panel-pointer',
     className,
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   // Handle collapse toggle for collapsed pill
   const handleCollapsedClick = useCallback(() => {
@@ -563,7 +559,7 @@ export const ResponsivePanel: React.FC<ResponsivePanelProps> = ({
               flex: 1,
               overflow: 'auto',
               WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
-              overscrollBehavior: 'contain',     // Prevent scroll chaining
+              overscrollBehavior: 'contain', // Prevent scroll chaining
             }}
           >
             {children}

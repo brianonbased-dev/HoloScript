@@ -9,13 +9,17 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
-export interface Vec3 { x: number; y: number; z: number }
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 export interface VRHeadset {
   position: Vec3;
-  rotation: Vec3;         // Euler angles (degrees)
-  ipd: number;            // Inter-pupillary distance (mm)
-  refreshRate: number;    // Hz
+  rotation: Vec3; // Euler angles (degrees)
+  ipd: number; // Inter-pupillary distance (mm)
+  refreshRate: number; // Hz
   fovDegrees: number;
   tracking: '3dof' | '6dof';
 }
@@ -23,7 +27,7 @@ export interface VRHeadset {
 export interface TeleportTarget {
   id: string;
   position: Vec3;
-  normal: Vec3;           // Surface normal (for orientation)
+  normal: Vec3; // Surface normal (for orientation)
   isValid: boolean;
   distance: number;
 }
@@ -39,16 +43,16 @@ export interface RoomBounds {
 export interface HandPose {
   handedness: 'left' | 'right';
   wristPosition: Vec3;
-  fingerTips: Vec3[];     // Index 0=thumb, 1=index, 2=middle, 3=ring, 4=pinky
-  gripStrength: number;   // 0..1
-  pinchStrength: number;  // 0..1
+  fingerTips: Vec3[]; // Index 0=thumb, 1=index, 2=middle, 3=ring, 4=pinky
+  gripStrength: number; // 0..1
+  pinchStrength: number; // 0..1
   gesture: 'open' | 'fist' | 'point' | 'pinch' | 'thumbs-up' | 'unknown';
 }
 
 export interface ComfortSettings {
-  snapTurnDegrees: number;        // 0 = smooth turn
+  snapTurnDegrees: number; // 0 = smooth turn
   vignetteOnMove: boolean;
-  movementSpeed: number;          // m/s
+  movementSpeed: number; // m/s
   teleportOnly: boolean;
   seatedMode: boolean;
   heightOffsetM: number;
@@ -168,7 +172,8 @@ export function detectGesture(hand: HandPose): HandPose['gesture'] {
   // Check if index finger is extended (pointing)
   if (hand.fingerTips.length >= 2) {
     const indexDist = vec3Dist(hand.wristPosition, hand.fingerTips[1]);
-    const middleDist = hand.fingerTips.length >= 3 ? vec3Dist(hand.wristPosition, hand.fingerTips[2]) : 0;
+    const middleDist =
+      hand.fingerTips.length >= 3 ? vec3Dist(hand.wristPosition, hand.fingerTips[2]) : 0;
     if (indexDist > 0.15 && middleDist < 0.08) return 'point';
   }
 
@@ -177,7 +182,9 @@ export function detectGesture(hand: HandPose): HandPose['gesture'] {
 }
 
 function vec3Dist(a: Vec3, b: Vec3): number {
-  const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+  const dx = b.x - a.x,
+    dy = b.y - a.y,
+    dz = b.z - a.z;
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
@@ -200,10 +207,7 @@ export function handReachDistance(hand: HandPose, shoulderHeight: number = 1.4):
 /**
  * Apply comfort settings to movement vector.
  */
-export function applyComfortMovement(
-  inputDirection: Vec3,
-  settings: ComfortSettings
-): Vec3 {
+export function applyComfortMovement(inputDirection: Vec3, settings: ComfortSettings): Vec3 {
   if (settings.teleportOnly) return { x: 0, y: 0, z: 0 }; // No smooth movement
 
   const speed = settings.movementSpeed;
@@ -217,15 +221,22 @@ export function applyComfortMovement(
 /**
  * Calculate snap turn rotation.
  */
-export function snapTurn(currentYaw: number, direction: 'left' | 'right', snapDegrees: number = 45): number {
+export function snapTurn(
+  currentYaw: number,
+  direction: 'left' | 'right',
+  snapDegrees: number = 45
+): number {
   const delta = direction === 'right' ? snapDegrees : -snapDegrees;
-  return ((currentYaw + delta) % 360 + 360) % 360;
+  return (((currentYaw + delta) % 360) + 360) % 360;
 }
 
 /**
  * Check if frame rate is sufficient for comfort (≥72 Hz recommended).
  */
-export function isComfortableFrameRate(fps: number): { comfortable: boolean; risk: 'none' | 'mild' | 'severe' } {
+export function isComfortableFrameRate(fps: number): {
+  comfortable: boolean;
+  risk: 'none' | 'mild' | 'severe';
+} {
   if (fps >= 72) return { comfortable: true, risk: 'none' };
   if (fps >= 45) return { comfortable: false, risk: 'mild' };
   return { comfortable: false, risk: 'severe' };
@@ -245,7 +256,10 @@ export function walkthroughDuration(waypoints: WalkthroughWaypoint[]): number {
 /**
  * Get the walkthrough waypoint at a given time.
  */
-export function waypointAtTime(waypoints: WalkthroughWaypoint[], timeSec: number): WalkthroughWaypoint | null {
+export function waypointAtTime(
+  waypoints: WalkthroughWaypoint[],
+  timeSec: number
+): WalkthroughWaypoint | null {
   let elapsed = 0;
   for (const wp of waypoints) {
     if (timeSec >= elapsed && timeSec < elapsed + wp.durationSec) return wp;

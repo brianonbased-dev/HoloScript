@@ -19,6 +19,7 @@ This autonomous build management system provides intelligent archival, monitorin
 ## Quick Start
 
 ### Full Autonomous Workflow
+
 ```bash
 pnpm build:auto
 # Builds all packages -> Archives artifacts -> Monitors disk -> Auto-prunes if needed
@@ -27,31 +28,38 @@ pnpm build:auto
 ### Individual Operations
 
 #### Archive Current Builds
+
 ```bash
 pnpm build:archive
 ```
+
 - Compresses all `dist/` directories into `.tar.gz` archives
 - Deletes uncompressed artifacts
 - Retains error logs in `.build-logs/`
 - Expected savings: 70-90%
 
 #### Monitor Disk Usage
+
 ```bash
 pnpm build:monitor
 ```
+
 - Shows disk usage and repository breakdown
 - Triggers automatic pruning if disk usage > 80%
 - Displays potential space savings
 
 #### Prune Old Archives
+
 ```bash
 pnpm build:prune
 ```
+
 - Removes archives older than 30 days
 - Removes old error logs
 - Custom age: `bash scripts/prune-old-archives.sh --max-age 14`
 
 #### Restore Archived Build
+
 ```bash
 pnpm build:restore latest
 pnpm build:restore core_20260227_120000.tar.gz
@@ -84,9 +92,11 @@ HoloScript/
 ## Scripts Reference
 
 ### 1. `archive-build-artifacts.sh`
+
 **Purpose**: Archive successful builds, delete uncompressed artifacts, retain error logs
 
 **Workflow**:
+
 1. Calculate current disk usage
 2. For each package with `dist/`:
    - Check if build is successful (has `.js` files)
@@ -97,6 +107,7 @@ HoloScript/
 5. Calculate space savings
 
 **Output**:
+
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   HoloScript Build Artifact Archival System
@@ -137,13 +148,16 @@ Phase 5: Calculating space savings...
 ```
 
 ### 2. `prune-old-archives.sh`
+
 **Purpose**: Remove archives and logs older than 30 days
 
 **Options**:
+
 - `--max-age DAYS`: Custom age threshold (default: 30)
 - `--dry-run`: Preview what would be deleted
 
 **Usage**:
+
 ```bash
 bash scripts/prune-old-archives.sh
 bash scripts/prune-old-archives.sh --max-age 14
@@ -151,6 +165,7 @@ bash scripts/prune-old-archives.sh --dry-run
 ```
 
 **Output**:
+
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   HoloScript Archive Pruning System
@@ -178,13 +193,16 @@ Phase 2: Scanning for old logs...
 ```
 
 ### 3. `monitor-disk-usage.sh`
+
 **Purpose**: Monitor disk usage and trigger automatic pruning
 
 **Options**:
+
 - `--threshold PCT`: Custom threshold (default: 80)
 - `--no-auto-prune`: Disable automatic pruning
 
 **Usage**:
+
 ```bash
 bash scripts/monitor-disk-usage.sh
 bash scripts/monitor-disk-usage.sh --threshold 70
@@ -192,6 +210,7 @@ bash scripts/monitor-disk-usage.sh --no-auto-prune
 ```
 
 **Output** (Normal):
+
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   HoloScript Disk Usage Monitor (Focus Agent)
@@ -225,6 +244,7 @@ Potential Space Savings:
 ```
 
 **Output** (Critical - 80%+ usage):
+
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚠ DISK USAGE CRITICAL: 85% (threshold: 80%)
@@ -241,9 +261,11 @@ Additional recommendations:
 ```
 
 ### 4. `restore-build-archive.sh`
+
 **Purpose**: Restore archived builds
 
 **Usage**:
+
 ```bash
 bash scripts/restore-build-archive.sh latest
 bash scripts/restore-build-archive.sh core_20260227_120000.tar.gz
@@ -252,6 +274,7 @@ bash scripts/restore-build-archive.sh  # Shows available archives
 ```
 
 **Output**:
+
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   HoloScript Build Archive Restoration
@@ -271,14 +294,17 @@ Extracting archive...
 ```
 
 ### 5. `auto-build-manager.sh`
+
 **Purpose**: Complete autonomous workflow
 
 **Options**:
+
 - `--build-only`: Only build packages
 - `--archive-only`: Only archive existing builds
 - `--monitor-only`: Only monitor disk usage
 
 **Usage**:
+
 ```bash
 bash scripts/auto-build-manager.sh
 bash scripts/auto-build-manager.sh --build-only
@@ -286,6 +312,7 @@ bash scripts/auto-build-manager.sh --archive-only
 ```
 
 **Output**:
+
 ```
 ╔════════════════════════════════════════════════════════════════╗
 ║                                                                ║
@@ -334,6 +361,7 @@ Next actions:
 ## CI/CD Integration
 
 ### GitHub Actions Example
+
 ```yaml
 name: Build and Archive
 
@@ -364,6 +392,7 @@ jobs:
 ```
 
 ### Cron Job for Automatic Pruning
+
 ```bash
 # Add to crontab (daily at 2am)
 0 2 * * * cd /path/to/HoloScript && bash scripts/prune-old-archives.sh
@@ -372,16 +401,19 @@ jobs:
 ## Performance Metrics
 
 ### Baseline (Before Implementation)
+
 - Total `dist/` size: **36.6 MB**
 - Number of packages: **20**
 - Disk usage: **Unmanaged**
 
 ### Expected After Implementation
+
 - Compressed archives: **~8-11 MB** (70-77% compression)
 - Space savings: **28-33 MB** per build cycle
 - Annual savings (52 builds): **~1.4-1.7 GB**
 
 ### Actual Results (Sample)
+
 ```
 Package: core
   Before: 29 MB (847 files)
@@ -402,9 +434,11 @@ Package: ai-validator
 ## Troubleshooting
 
 ### Issue: Archives not created
+
 **Symptom**: `archive-build-artifacts.sh` skips packages
 
 **Solution**: Ensure packages have successful builds
+
 ```bash
 cd packages/<package-name>
 pnpm build
@@ -412,17 +446,21 @@ ls dist/  # Should contain .js files
 ```
 
 ### Issue: Disk still at 80%+ after pruning
+
 **Symptom**: Monitor shows critical usage even after pruning
 
 **Solutions**:
+
 1. Remove all `dist/` directories: `pnpm clean`
 2. Clean node_modules: `rm -rf node_modules && pnpm install`
 3. Clean old archives manually: `rm -rf .build-archives/*`
 
 ### Issue: Cannot restore archive
+
 **Symptom**: `restore-build-archive.sh` fails
 
 **Solution**: Check archive integrity
+
 ```bash
 tar -tzf .build-archives/<archive-name>.tar.gz
 # Should list files without errors
@@ -431,7 +469,9 @@ tar -tzf .build-archives/<archive-name>.tar.gz
 ## Best Practices
 
 ### 1. Regular Archival
+
 Archive builds after major releases or feature completions:
+
 ```bash
 pnpm build
 pnpm build:archive
@@ -440,7 +480,9 @@ git push --tags
 ```
 
 ### 2. Monitor Before Large Operations
+
 Check disk usage before large builds:
+
 ```bash
 pnpm build:monitor
 # If critical, clean first:
@@ -448,14 +490,18 @@ pnpm clean
 ```
 
 ### 3. Prune Weekly
+
 Set up weekly pruning in CI or cron:
+
 ```bash
 # Every Monday at 2am
 0 2 * * 1 cd /path/to/HoloScript && bash scripts/prune-old-archives.sh
 ```
 
 ### 4. Keep Recent Archives
+
 Don't set `--max-age` too low. Recommended:
+
 - **Development**: 14-30 days
 - **Production**: 60-90 days
 - **Long-term storage**: Use Git tags + external storage
@@ -463,12 +509,15 @@ Don't set `--max-age` too low. Recommended:
 ## Security Considerations
 
 ### Archive Safety
+
 - Archives are created with standard permissions (644)
 - No sensitive data should be in `dist/` directories
 - Archives are local-only (not committed to Git)
 
 ### Git Ignore
+
 The following are automatically ignored (`.gitignore`):
+
 ```
 .build-archives/
 .build-logs/
@@ -477,7 +526,9 @@ dist/
 ```
 
 ### Access Control
+
 Scripts only operate within repository boundaries:
+
 - No external network access
 - No system-wide changes
 - Repository-scoped operations only
@@ -485,6 +536,7 @@ Scripts only operate within repository boundaries:
 ## Future Enhancements
 
 ### Planned Features (v2.0)
+
 - [ ] Remote archive storage (S3, Google Cloud)
 - [ ] Incremental archival (only changed files)
 - [ ] Differential compression
@@ -495,6 +547,7 @@ Scripts only operate within repository boundaries:
 - [ ] Multi-repository support
 
 ### Research Topics
+
 - **Delta compression**: Only store file differences between builds
 - **Deduplication**: Share common files across archives
 - **Smart pruning**: Keep archives of tagged releases indefinitely
@@ -503,6 +556,7 @@ Scripts only operate within repository boundaries:
 ## Support
 
 For issues or questions:
+
 1. Check this documentation
 2. Review script output for errors
 3. Test with `--dry-run` flags
@@ -511,6 +565,7 @@ For issues or questions:
 ## Changelog
 
 ### v1.0 (2026-02-27)
+
 - Initial implementation
 - 5 core scripts: archive, prune, monitor, restore, auto-manager
 - pnpm script integration
@@ -520,5 +575,5 @@ For issues or questions:
 ---
 
 **HoloScript Autonomous Build Management System v1.0**
-*Built with Intelligence Compounding • CEO-Level Automation • Focus Agent Integration*
-*Repository: `c:\Users\josep\Documents\GitHub\HoloScript`*
+_Built with Intelligence Compounding • CEO-Level Automation • Focus Agent Integration_
+_Repository: `c:\Users\josep\Documents\GitHub\HoloScript`_

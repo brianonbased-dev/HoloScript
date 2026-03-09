@@ -85,7 +85,9 @@ describe('Feature 1A: AIValidator -- instantiation', () => {
 
 describe('Feature 1B: AIValidator -- getStats() defaults', () => {
   let validator: AIValidator;
-  beforeEach(() => { validator = new AIValidator(); });
+  beforeEach(() => {
+    validator = new AIValidator();
+  });
 
   it('getStats returns an object', () => {
     const stats = validator.getStats();
@@ -125,7 +127,9 @@ describe('Feature 1B: AIValidator -- getStats() defaults', () => {
 
 describe('Feature 2A: AIValidator.validate() -- result shape', () => {
   let validator: AIValidator;
-  beforeEach(() => { validator = new AIValidator(); });
+  beforeEach(() => {
+    validator = new AIValidator();
+  });
 
   it('validate() returns a Promise', () => {
     const result = validator.validate('composition "T" {}');
@@ -190,7 +194,9 @@ describe('Feature 2A: AIValidator.validate() -- result shape', () => {
 
 describe('Feature 2B: AIValidator.validate() -- error detection', () => {
   let validator: AIValidator;
-  beforeEach(() => { validator = new AIValidator(); });
+  beforeEach(() => {
+    validator = new AIValidator();
+  });
 
   it('unbalanced opening brace produces structural error', async () => {
     const result = await validator.validate('composition "T" { unclosed');
@@ -263,7 +269,9 @@ describe('Feature 2B: AIValidator.validate() -- error detection', () => {
 
 describe('Feature 2C: AIValidator.validate() -- known traits pass', () => {
   let validator: AIValidator;
-  beforeEach(() => { validator = new AIValidator(); });
+  beforeEach(() => {
+    validator = new AIValidator();
+  });
 
   it('@grabbable is a known trait (no trait error)', async () => {
     const result = await validator.validate('@grabbable');
@@ -333,9 +341,7 @@ describe('Feature 3B: ValidationResultSchema', () => {
   });
 
   it('throws on invalid data', () => {
-    expect(() =>
-      ValidationResultSchema.parse({ valid: 'not-a-boolean' })
-    ).toThrow();
+    expect(() => ValidationResultSchema.parse({ valid: 'not-a-boolean' })).toThrow();
   });
 });
 
@@ -389,7 +395,9 @@ describe('Feature 4A: HoloScriptSandbox -- instantiation', () => {
 
 describe('Feature 4B: HoloScriptSandbox -- initial state', () => {
   let sandbox: HoloScriptSandbox;
-  beforeEach(() => { sandbox = new HoloScriptSandbox(); });
+  beforeEach(() => {
+    sandbox = new HoloScriptSandbox();
+  });
 
   it('getAuditLogs() returns an array initially', () => {
     expect(Array.isArray(sandbox.getAuditLogs())).toBe(true);
@@ -433,7 +441,9 @@ describe('Feature 4B: HoloScriptSandbox -- initial state', () => {
 
 describe('Feature 4C: HoloScriptSandbox -- executeHoloScript() invalid code', () => {
   let sandbox: HoloScriptSandbox;
-  beforeEach(() => { sandbox = new HoloScriptSandbox(); });
+  beforeEach(() => {
+    sandbox = new HoloScriptSandbox();
+  });
 
   it('executeHoloScript returns a Promise', () => {
     const result = sandbox.executeHoloScript('invalid code !!!');
@@ -484,7 +494,9 @@ describe('Feature 4C: HoloScriptSandbox -- executeHoloScript() invalid code', ()
 
 describe('Feature 4D: HoloScriptSandbox -- audit logging', () => {
   let sandbox: HoloScriptSandbox;
-  beforeEach(() => { sandbox = new HoloScriptSandbox({ enableLogging: true }); });
+  beforeEach(() => {
+    sandbox = new HoloScriptSandbox({ enableLogging: true });
+  });
 
   it('after failed execution, audit log has entries', async () => {
     await sandbox.executeHoloScript('invalid code');

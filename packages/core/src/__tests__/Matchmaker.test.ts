@@ -4,7 +4,9 @@ import { Matchmaker } from '../network/Matchmaker';
 describe('Matchmaker', () => {
   let mm: Matchmaker;
 
-  beforeEach(() => { mm = new Matchmaker({ minPlayers: 2, maxPlayers: 4, ratingWindow: 100 }); });
+  beforeEach(() => {
+    mm = new Matchmaker({ minPlayers: 2, maxPlayers: 4, ratingWindow: 100 });
+  });
 
   it('enqueue adds player to queue', () => {
     mm.enqueue({ id: 'p1', name: 'Alice', rating: 1000, region: 'us-east' });

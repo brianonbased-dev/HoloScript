@@ -224,7 +224,10 @@ export class AdvancedEarthquakeDemo {
         case 'b':
           // Toggle bounding boxes
           this.inspector.toggleFeature('showBoundingBoxes');
-          console.log('📦 Bounding boxes:', this.inspector.getConfig().showBoundingBoxes ? 'ON' : 'OFF');
+          console.log(
+            '📦 Bounding boxes:',
+            this.inspector.getConfig().showBoundingBoxes ? 'ON' : 'OFF'
+          );
           break;
 
         case 'g':
@@ -380,9 +383,14 @@ Features Enabled:
     this.postProcessing.render(deltaTime);
 
     // Log stats every 2 seconds
-    if (Math.floor(this.clock.getElapsedTime()) % 2 === 0 && this.clock.getElapsedTime() % 1 < deltaTime) {
+    if (
+      Math.floor(this.clock.getElapsedTime()) % 2 === 0 &&
+      this.clock.getElapsedTime() % 1 < deltaTime
+    ) {
       const stats = this.inspector.getStats();
-      console.log(`📊 FPS: ${stats.fps} | Objects: ${stats.objectCount} | Draw Calls: ${stats.drawCalls}`);
+      console.log(
+        `📊 FPS: ${stats.fps} | Objects: ${stats.objectCount} | Draw Calls: ${stats.drawCalls}`
+      );
     }
   }
 

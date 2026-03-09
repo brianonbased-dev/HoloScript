@@ -30,10 +30,7 @@ import { useAgentContext } from '../context/AgentContext';
  * );
  * ```
  */
-export function useCircuitBreaker(
-  queryName: string,
-  pollInterval = 1000
-): UseCircuitBreakerReturn {
+export function useCircuitBreaker(queryName: string, pollInterval = 1000): UseCircuitBreakerReturn {
   const context = useAgentContext();
   const [state, setState] = useState<UseCircuitBreakerReturn['state']>('closed');
   const [failureRate, setFailureRate] = useState(0);
@@ -50,15 +47,12 @@ export function useCircuitBreaker(
    */
   const fetchStatus = useCallback(async () => {
     try {
-      const response = await fetch(
-        `${context.apiUrl}/api/circuit-breaker/${queryName}`,
-        {
-          headers: {
-            ...context.headers,
-            ...(context.token && { Authorization: `Bearer ${context.token}` }),
-          },
-        }
-      );
+      const response = await fetch(`${context.apiUrl}/api/circuit-breaker/${queryName}`, {
+        headers: {
+          ...context.headers,
+          ...(context.token && { Authorization: `Bearer ${context.token}` }),
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch circuit breaker status: ${response.statusText}`);
@@ -88,16 +82,13 @@ export function useCircuitBreaker(
    */
   const reset = useCallback(async () => {
     try {
-      const response = await fetch(
-        `${context.apiUrl}/api/circuit-breaker/${queryName}/reset`,
-        {
-          method: 'POST',
-          headers: {
-            ...context.headers,
-            ...(context.token && { Authorization: `Bearer ${context.token}` }),
-          },
-        }
-      );
+      const response = await fetch(`${context.apiUrl}/api/circuit-breaker/${queryName}/reset`, {
+        method: 'POST',
+        headers: {
+          ...context.headers,
+          ...(context.token && { Authorization: `Bearer ${context.token}` }),
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to reset circuit breaker: ${response.statusText}`);

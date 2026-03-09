@@ -126,7 +126,9 @@ describe('useAIMaterial', () => {
         await result.current.generate({ prompt: 'red surface' });
       });
 
-      expect(result.current.glsl).toBe('uniform float time;\nvoid main() { gl_FragColor = vec4(1.0); }');
+      expect(result.current.glsl).toBe(
+        'uniform float time;\nvoid main() { gl_FragColor = vec4(1.0); }'
+      );
       expect(result.current.traits).toBe('@material(color: "#ff0000", shader: "custom")');
     });
 
@@ -276,12 +278,10 @@ describe('useAIMaterial', () => {
     });
 
     it('should clear previous error on new generate', async () => {
-      mockFetch
-        .mockRejectedValueOnce(new Error('First error'))
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ glsl: 'success', traits: 'success' }),
-        });
+      mockFetch.mockRejectedValueOnce(new Error('First error')).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ glsl: 'success', traits: 'success' }),
+      });
 
       const { result } = renderHook(() => useAIMaterial());
 

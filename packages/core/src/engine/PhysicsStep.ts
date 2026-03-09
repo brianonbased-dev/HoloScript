@@ -15,7 +15,9 @@ import type { EngineSystem } from './SpatialEngine';
 // =============================================================================
 
 export interface Vec3 {
-  x: number; y: number; z: number;
+  x: number;
+  y: number;
+  z: number;
 }
 
 export interface PhysicsBodyState {
@@ -140,8 +142,8 @@ export class PhysicsStep implements EngineSystem {
         body.position.y = 0;
         body.velocity.y = -body.velocity.y * body.restitution;
         // Friction
-        body.velocity.x *= (1 - body.friction * dt);
-        body.velocity.z *= (1 - body.friction * dt);
+        body.velocity.x *= 1 - body.friction * dt;
+        body.velocity.z *= 1 - body.friction * dt;
       }
     }
   }
@@ -160,7 +162,9 @@ export class PhysicsStep implements EngineSystem {
     if (dist >= minDist || dist < 1e-6) return;
 
     // Normal
-    const nx = dx / dist, ny = dy / dist, nz = dz / dist;
+    const nx = dx / dist,
+      ny = dy / dist,
+      nz = dz / dist;
 
     // Relative velocity along normal
     const dvx = a.velocity.x - b.velocity.x;
@@ -174,17 +178,17 @@ export class PhysicsStep implements EngineSystem {
     const totalMass = (a.isStatic ? 0 : a.mass) + (b.isStatic ? 0 : b.mass);
     if (totalMass === 0) return;
 
-    const impulse = -(1 + restitution) * relVel / totalMass;
+    const impulse = (-(1 + restitution) * relVel) / totalMass;
 
     if (!a.isStatic) {
-      a.velocity.x -= impulse * nx / a.mass;
-      a.velocity.y -= impulse * ny / a.mass;
-      a.velocity.z -= impulse * nz / a.mass;
+      a.velocity.x -= (impulse * nx) / a.mass;
+      a.velocity.y -= (impulse * ny) / a.mass;
+      a.velocity.z -= (impulse * nz) / a.mass;
     }
     if (!b.isStatic) {
-      b.velocity.x += impulse * nx / b.mass;
-      b.velocity.y += impulse * ny / b.mass;
-      b.velocity.z += impulse * nz / b.mass;
+      b.velocity.x += (impulse * nx) / b.mass;
+      b.velocity.y += (impulse * ny) / b.mass;
+      b.velocity.z += (impulse * nz) / b.mass;
     }
 
     // Positional correction (push apart)
@@ -202,7 +206,8 @@ export class PhysicsStep implements EngineSystem {
 
     // Fire collision event
     const event: CollisionEvent = {
-      bodyA: a.id, bodyB: b.id,
+      bodyA: a.id,
+      bodyB: b.id,
       contactPoint: {
         x: (a.position.x + b.position.x) / 2,
         y: (a.position.y + b.position.y) / 2,
@@ -226,7 +231,11 @@ export class PhysicsStep implements EngineSystem {
   // ---------------------------------------------------------------------------
 
   /** Raycast against all bodies, returns first hit. */
-  raycast(origin: Vec3, direction: Vec3, maxDist: number): { bodyId: string; distance: number; point: Vec3 } | null {
+  raycast(
+    origin: Vec3,
+    direction: Vec3,
+    maxDist: number
+  ): { bodyId: string; distance: number; point: Vec3 } | null {
     let closest: { bodyId: string; distance: number; point: Vec3 } | null = null;
 
     for (const body of this.bodies.values()) {

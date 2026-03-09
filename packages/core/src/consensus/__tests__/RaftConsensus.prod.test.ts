@@ -359,8 +359,18 @@ describe('RaftConsensus', () => {
     it('leader handles append_entries_response without throwing', () => {
       cluster[0].triggerElection();
       const term = cluster[0].getDebugState().term;
-      cluster[0].handleMessage('n2', { type: 'request_vote_response', term, senderId: 'n2', voteGranted: true });
-      cluster[0].handleMessage('n3', { type: 'request_vote_response', term, senderId: 'n3', voteGranted: true });
+      cluster[0].handleMessage('n2', {
+        type: 'request_vote_response',
+        term,
+        senderId: 'n2',
+        voteGranted: true,
+      });
+      cluster[0].handleMessage('n3', {
+        type: 'request_vote_response',
+        term,
+        senderId: 'n3',
+        voteGranted: true,
+      });
       cluster[0].stop();
 
       if (cluster[0].isLeader()) {

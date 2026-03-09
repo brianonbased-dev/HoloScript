@@ -7,6 +7,7 @@
 Compiles HoloScript to TypeScript using the [Babylon.js](https://www.babylonjs.com/) rendering engine — a full-featured, production-ready WebXR framework from Microsoft.
 
 Choose Babylon.js when you need:
+
 - Enterprise-grade WebXR with Microsoft backing
 - Built-in PBR materials and the Babylon Inspector debugger
 - Complex physics via Havok or Ammo.js
@@ -71,17 +72,30 @@ composition "Demo" {
 
 ```typescript
 import {
-  Engine, Scene, Vector3, Color3,
-  MeshBuilder, StandardMaterial, GlowLayer,
-  PhysicsAggregate, PhysicsShapeType,
-  WebXRDefaultExperience
+  Engine,
+  Scene,
+  Vector3,
+  Color3,
+  MeshBuilder,
+  StandardMaterial,
+  GlowLayer,
+  PhysicsAggregate,
+  PhysicsShapeType,
+  WebXRDefaultExperience,
 } from '@babylonjs/core';
 
 export async function createScene(engine: Engine): Promise<Scene> {
   const scene = new Scene(engine);
 
   // Camera and lighting
-  const camera = new BABYLON.ArcRotateCamera('cam', -Math.PI / 2, Math.PI / 4, 10, Vector3.Zero(), scene);
+  const camera = new BABYLON.ArcRotateCamera(
+    'cam',
+    -Math.PI / 2,
+    Math.PI / 4,
+    10,
+    Vector3.Zero(),
+    scene
+  );
   const light = new BABYLON.HemisphericLight('light', new Vector3(0, 1, 0), scene);
 
   // Glow layer
@@ -102,13 +116,14 @@ export async function createScene(engine: Engine): Promise<Scene> {
   // WebXR
   const xr = await WebXRDefaultExperience.CreateAsync(scene, {
     floorMeshes: [],
-    optionalFeatures: true
+    optionalFeatures: true,
   });
 
   // Grab interaction
   const featureManager = xr.baseExperience.featuresManager;
   const motionControllers = featureManager.enableFeature(
-    BABYLON.WebXRFeatureName.HAND_TRACKING, 'latest'
+    BABYLON.WebXRFeatureName.HAND_TRACKING,
+    'latest'
   );
 
   return scene;
@@ -117,16 +132,16 @@ export async function createScene(engine: Engine): Promise<Scene> {
 
 ## Trait Mapping
 
-| HoloScript Trait | Babylon.js Implementation |
-| --- | --- |
-| `@grabbable` | `WebXRMotionControllerTeleportation` + `SixDofDragBehavior` |
-| `@throwable` | Velocity-based release via `PhysicsAggregate` |
-| `@physics` | `PhysicsAggregate` (Havok or Ammo.js) |
-| `@collidable` | `PhysicsImpostor` mesh collider |
-| `@glowing` | `GlowLayer` with emissive material |
-| `@networked` | Babylon.js Multiplayer (via Colyseus or custom) |
-| `@spatial_audio` | `Sound` with spatial properties |
-| `@billboard` | `BillboardMode.BILLBOARDMODE_ALL` |
+| HoloScript Trait | Babylon.js Implementation                                   |
+| ---------------- | ----------------------------------------------------------- |
+| `@grabbable`     | `WebXRMotionControllerTeleportation` + `SixDofDragBehavior` |
+| `@throwable`     | Velocity-based release via `PhysicsAggregate`               |
+| `@physics`       | `PhysicsAggregate` (Havok or Ammo.js)                       |
+| `@collidable`    | `PhysicsImpostor` mesh collider                             |
+| `@glowing`       | `GlowLayer` with emissive material                          |
+| `@networked`     | Babylon.js Multiplayer (via Colyseus or custom)             |
+| `@spatial_audio` | `Sound` with spatial properties                             |
+| `@billboard`     | `BillboardMode.BILLBOARDMODE_ALL`                           |
 
 ## Features
 

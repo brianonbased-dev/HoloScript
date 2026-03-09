@@ -6,10 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  createHybridChunker,
-  type ChunkingOptions,
-} from '../HybridChunker';
+import { createHybridChunker, type ChunkingOptions } from '../HybridChunker';
 import { ChunkDetector } from '../ChunkDetector';
 
 // ===========================================================================
@@ -88,11 +85,7 @@ interface BenchmarkResult {
   throughput: number; // chunks per second
 }
 
-function benchmark(
-  name: string,
-  fn: () => void,
-  iterations: number = 100
-): BenchmarkResult {
+function benchmark(name: string, fn: () => void, iterations: number = 100): BenchmarkResult {
   const start = performance.now();
   let chunks = 0;
 
@@ -268,19 +261,13 @@ composition "TestWorld" {
         100;
 
       console.log('\n--- Hybrid vs Legacy Comparison ---');
-      console.log(
-        `HybridChunker: ${hybridResult.avgTimePerChunk.toFixed(2)}ms/op`
-      );
-      console.log(
-        `Legacy ChunkDetector: ${legacyResult.avgTimePerChunk.toFixed(2)}ms/op`
-      );
+      console.log(`HybridChunker: ${hybridResult.avgTimePerChunk.toFixed(2)}ms/op`);
+      console.log(`Legacy ChunkDetector: ${legacyResult.avgTimePerChunk.toFixed(2)}ms/op`);
       console.log(`Improvement: ${improvement.toFixed(1)}%`);
 
       // Target: 20-30% improvement (may vary based on content)
       // For small files, difference might be minimal
-      expect(hybridResult.avgTimePerChunk).toBeLessThanOrEqual(
-        legacyResult.avgTimePerChunk * 1.2
-      ); // Allow up to 20% slower for overhead
+      expect(hybridResult.avgTimePerChunk).toBeLessThanOrEqual(legacyResult.avgTimePerChunk * 1.2); // Allow up to 20% slower for overhead
     });
 
     it('should show significant improvement for large mixed workloads', () => {
@@ -337,7 +324,9 @@ composition "TestWorld" {
       const ratio2 = results[2].time / results[1].time;
       const ratio3 = results[3].time / results[2].time;
 
-      console.log(`Growth ratios: ${ratio1.toFixed(2)}, ${ratio2.toFixed(2)}, ${ratio3.toFixed(2)}`);
+      console.log(
+        `Growth ratios: ${ratio1.toFixed(2)}, ${ratio2.toFixed(2)}, ${ratio3.toFixed(2)}`
+      );
 
       // Ratios should be similar (linear growth)
       expect(ratio3).toBeLessThan(ratio1 * 2); // Not exponential
@@ -354,9 +343,7 @@ composition "TestWorld" {
       const start = performance.now();
 
       // Chunk all files "concurrently" (simulated)
-      const results = files.map((file) =>
-        hybridChunker.chunk(file.content, file.path)
-      );
+      const results = files.map((file) => hybridChunker.chunk(file.content, file.path));
 
       const totalTime = performance.now() - start;
       const avgTime = totalTime / files.length;
@@ -364,9 +351,7 @@ composition "TestWorld" {
       console.log('\n--- Concurrent Chunking Test ---');
       console.log(`Total time for 20 files: ${totalTime.toFixed(2)}ms`);
       console.log(`Avg time per file: ${avgTime.toFixed(2)}ms`);
-      console.log(
-        `Total chunks produced: ${results.reduce((sum, r) => sum + r.length, 0)}`
-      );
+      console.log(`Total chunks produced: ${results.reduce((sum, r) => sum + r.length, 0)}`);
 
       expect(avgTime).toBeLessThan(30); // Should be fast per file
     });
@@ -407,9 +392,7 @@ composition "TestWorld" {
       console.log(`Content length: ${code.length} chars`);
       console.log(`Total tokens: ${totalTokens}`);
       console.log(`Chunks: ${chunks.length}`);
-      console.log(
-        `Avg tokens/chunk: ${(totalTokens / chunks.length).toFixed(0)}`
-      );
+      console.log(`Avg tokens/chunk: ${(totalTokens / chunks.length).toFixed(0)}`);
     });
   });
 
@@ -420,11 +403,9 @@ composition "TestWorld" {
       const chunks = chunker.chunk(code, 'test.ts');
 
       const tokenCounts = chunks.map((c) => c.tokens);
-      const avg =
-        tokenCounts.reduce((a, b) => a + b, 0) / tokenCounts.length;
+      const avg = tokenCounts.reduce((a, b) => a + b, 0) / tokenCounts.length;
       const variance =
-        tokenCounts.reduce((sum, t) => sum + Math.pow(t - avg, 2), 0) /
-        tokenCounts.length;
+        tokenCounts.reduce((sum, t) => sum + Math.pow(t - avg, 2), 0) / tokenCounts.length;
       const stdDev = Math.sqrt(variance);
 
       console.log('\n--- Chunk Size Distribution ---');

@@ -15,9 +15,7 @@ function flatMap(w: number, h: number, val = 0.5): Float32Array {
 
 function rampMap(w: number, h: number): Float32Array {
   const map = new Float32Array(w * h);
-  for (let z = 0; z < h; z++)
-    for (let x = 0; x < w; x++)
-      map[z * w + x] = (h - z) / h; // high at top, low at bottom
+  for (let z = 0; z < h; z++) for (let x = 0; x < w; x++) map[z * w + x] = (h - z) / h; // high at top, low at bottom
   return map;
 }
 
@@ -76,7 +74,10 @@ describe('ErosionSim — Production', () => {
     sim.hydraulicErode(map, 16, 16);
     let changed = false;
     for (let i = 0; i < map.length; i++) {
-      if (Math.abs(map[i] - original[i]) > 1e-7) { changed = true; break; }
+      if (Math.abs(map[i] - original[i]) > 1e-7) {
+        changed = true;
+        break;
+      }
     }
     expect(changed).toBe(true);
   });
@@ -123,7 +124,8 @@ describe('ErosionSim — Production', () => {
   it('thermalErode flattens steep slope', () => {
     // Use a sim with a very small thermalAngle so tan(10°)≈0.18 triggers easily
     const steep = new ErosionSim({ iterations: 10, thermalAngle: 10, seed: 42 });
-    const w = 8, h = 8;
+    const w = 8,
+      h = 8;
     const map = new Float32Array(w * h);
     // Set top 4 rows to height 1.0, bottom 4 to 0.0 — yields slope = 1.0/cell >> 0.18
     for (let z = 0; z < 4; z++) for (let x = 0; x < w; x++) map[z * w + x] = 1;
@@ -131,7 +133,10 @@ describe('ErosionSim — Production', () => {
     steep.thermalErode(map, w, h, 50);
     let moved = false;
     for (let i = 0; i < map.length; i++) {
-      if (Math.abs(map[i] - original[i]) > 1e-7) { moved = true; break; }
+      if (Math.abs(map[i] - original[i]) > 1e-7) {
+        moved = true;
+        break;
+      }
     }
     expect(moved).toBe(true);
   });

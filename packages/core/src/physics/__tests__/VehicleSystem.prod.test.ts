@@ -64,7 +64,7 @@ describe('VehicleSystem — Production', () => {
     const vs = new VehicleSystem();
     vs.createVehicle(createDefaultCar('v1'), { x: 0, y: 0, z: 0 });
     vs.setThrottle('v1', 1.0);
-    vs.update('v1', 1/60);
+    vs.update('v1', 1 / 60);
     const v = vs.getVehicle('v1')!;
     // speed should increase or position should change
     expect(v.speed !== 0 || v.position.z !== 0 || v.linearVelocity.z !== 0).toBe(true);
@@ -72,7 +72,7 @@ describe('VehicleSystem — Production', () => {
 
   it('update returns null for unknown vehicle', () => {
     const vs = new VehicleSystem();
-    expect(vs.update('nope', 1/60)).toBeNull();
+    expect(vs.update('nope', 1 / 60)).toBeNull();
   });
 
   // ─── Forward Vector ───────────────────────────────────────────────

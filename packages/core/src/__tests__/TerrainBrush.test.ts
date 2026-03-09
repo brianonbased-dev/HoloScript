@@ -8,7 +8,13 @@ import { TerrainBrush } from '../terrain/TerrainBrush';
 describe('TerrainBrush', () => {
   let brush: TerrainBrush;
   beforeEach(() => {
-    brush = new TerrainBrush(16, { mode: 'raise', radius: 2, strength: 1, falloff: 'linear', opacity: 1 });
+    brush = new TerrainBrush(16, {
+      mode: 'raise',
+      radius: 2,
+      strength: 1,
+      falloff: 'linear',
+      opacity: 1,
+    });
   });
 
   it('starts with flat terrain', () => {

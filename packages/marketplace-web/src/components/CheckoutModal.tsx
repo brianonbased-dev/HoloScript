@@ -15,7 +15,9 @@ interface CheckoutModalProps {
 export function CheckoutModal({ trait, isOpen, onClose, onSuccess }: CheckoutModalProps) {
   const { isConnected, address } = useAccount();
   const { signTypedDataAsync } = useSignTypedData();
-  const [status, setStatus] = useState<'idle' | 'signing' | 'processing' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'signing' | 'processing' | 'success' | 'error'>(
+    'idle'
+  );
   const [errorMessage, setErrorMessage] = useState('');
 
   if (!isOpen) return null;
@@ -31,7 +33,7 @@ export function CheckoutModal({ trait, isOpen, onClose, onSuccess }: CheckoutMod
 
     try {
       setStatus('signing');
-      
+
       // EIP-712 Signature (Simulating x402PaymentService challenge)
       const domain = {
         name: 'HoloScript Marketplace',
@@ -62,7 +64,7 @@ export function CheckoutModal({ trait, isOpen, onClose, onSuccess }: CheckoutMod
       });
 
       setStatus('processing');
-      
+
       // Simulate backend M2M transaction finalizing
       setTimeout(() => {
         setStatus('success');
@@ -71,7 +73,6 @@ export function CheckoutModal({ trait, isOpen, onClose, onSuccess }: CheckoutMod
           onClose();
         }, 1500);
       }, 2000);
-      
     } catch (err: any) {
       console.error('Checkout failed:', err);
       setErrorMessage(err.message || 'Signature rejected or transaction failed');
@@ -84,7 +85,10 @@ export function CheckoutModal({ trait, isOpen, onClose, onSuccess }: CheckoutMod
       <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
         <div className="flex items-center justify-between p-6 border-b border-zinc-100 dark:border-zinc-800">
           <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Checkout</h2>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+          <button
+            onClick={onClose}
+            className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>

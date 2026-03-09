@@ -12,15 +12,17 @@
 // =============================================================================
 
 export interface NavPoint {
-  x: number; y: number; z: number;
+  x: number;
+  y: number;
+  z: number;
 }
 
 export interface NavPolygon {
   id: string;
   vertices: NavPoint[];
-  neighbors: string[];     // Adjacent polygon IDs
+  neighbors: string[]; // Adjacent polygon IDs
   walkable: boolean;
-  cost: number;            // Traversal cost multiplier
+  cost: number; // Traversal cost multiplier
   center: NavPoint;
   tag?: string;
 }
@@ -64,7 +66,7 @@ export class NavMesh {
     for (const nid of poly.neighbors) {
       const neighbor = this.polygons.get(nid);
       if (neighbor) {
-        neighbor.neighbors = neighbor.neighbors.filter(n => n !== id);
+        neighbor.neighbors = neighbor.neighbors.filter((n) => n !== id);
       }
     }
     return this.polygons.delete(id);
@@ -129,7 +131,7 @@ export class NavMesh {
     const poly = this.polygons.get(polyId);
     if (!poly) return [];
     return poly.neighbors
-      .map(id => this.polygons.get(id))
+      .map((id) => this.polygons.get(id))
       .filter((p): p is NavPolygon => p !== undefined && p.walkable);
   }
 
@@ -143,8 +145,12 @@ export class NavMesh {
     const max: NavPoint = { x: -Infinity, y: -Infinity, z: -Infinity };
     for (const p of polys) {
       for (const v of p.vertices) {
-        min.x = Math.min(min.x, v.x); min.y = Math.min(min.y, v.y); min.z = Math.min(min.z, v.z);
-        max.x = Math.max(max.x, v.x); max.y = Math.max(max.y, v.y); max.z = Math.max(max.z, v.z);
+        min.x = Math.min(min.x, v.x);
+        min.y = Math.min(min.y, v.y);
+        min.z = Math.min(min.z, v.z);
+        max.x = Math.max(max.x, v.x);
+        max.y = Math.max(max.y, v.y);
+        max.z = Math.max(max.z, v.z);
       }
     }
     return { polygons: polys, bounds: { min, max } };
@@ -156,7 +162,11 @@ export class NavMesh {
 
   private computeCenter(vertices: NavPoint[]): NavPoint {
     const c = { x: 0, y: 0, z: 0 };
-    for (const v of vertices) { c.x += v.x; c.y += v.y; c.z += v.z; }
+    for (const v of vertices) {
+      c.x += v.x;
+      c.y += v.y;
+      c.z += v.z;
+    }
     const n = vertices.length || 1;
     return { x: c.x / n, y: c.y / n, z: c.z / n };
   }
@@ -165,10 +175,14 @@ export class NavMesh {
     let inside = false;
     const n = vertices.length;
     for (let i = 0, j = n - 1; i < n; j = i++) {
-      const xi = vertices[i].x, yi = vertices[i].z;
-      const xj = vertices[j].x, yj = vertices[j].z;
-      if (((yi > point.z) !== (yj > point.z)) &&
-          (point.x < (xj - xi) * (point.z - yi) / (yj - yi) + xi)) {
+      const xi = vertices[i].x,
+        yi = vertices[i].z;
+      const xj = vertices[j].x,
+        yj = vertices[j].z;
+      if (
+        yi > point.z !== yj > point.z &&
+        point.x < ((xj - xi) * (point.z - yi)) / (yj - yi) + xi
+      ) {
         inside = !inside;
       }
     }

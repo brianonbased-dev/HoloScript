@@ -47,9 +47,21 @@ const DEMO_AST: any = {
       type: 'ObjectNode',
       name: 'Player',
       traits: {
-        transform: { type: 'TraitNode', name: 'TransformTrait', properties: { position: [0, 1, 0], rotation: [0, 0, 0], scale: [1, 1, 1] } },
-        renderable: { type: 'TraitNode', name: 'RenderableTrait', properties: { mesh: 'cube', material: 'default' } },
-        physics: { type: 'TraitNode', name: 'PhysicsTrait', properties: { mass: 80, kinematic: false } },
+        transform: {
+          type: 'TraitNode',
+          name: 'TransformTrait',
+          properties: { position: [0, 1, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+        },
+        renderable: {
+          type: 'TraitNode',
+          name: 'RenderableTrait',
+          properties: { mesh: 'cube', material: 'default' },
+        },
+        physics: {
+          type: 'TraitNode',
+          name: 'PhysicsTrait',
+          properties: { mass: 80, kinematic: false },
+        },
       },
       children: [],
     },
@@ -57,9 +69,21 @@ const DEMO_AST: any = {
       type: 'ObjectNode',
       name: 'Ground',
       traits: {
-        transform: { type: 'TraitNode', name: 'TransformTrait', properties: { position: [0, 0, 0], scale: [100, 0.1, 100] } },
-        renderable: { type: 'TraitNode', name: 'RenderableTrait', properties: { mesh: 'plane', material: 'grass' } },
-        physics: { type: 'TraitNode', name: 'PhysicsTrait', properties: { mass: 0, kinematic: true } },
+        transform: {
+          type: 'TraitNode',
+          name: 'TransformTrait',
+          properties: { position: [0, 0, 0], scale: [100, 0.1, 100] },
+        },
+        renderable: {
+          type: 'TraitNode',
+          name: 'RenderableTrait',
+          properties: { mesh: 'plane', material: 'grass' },
+        },
+        physics: {
+          type: 'TraitNode',
+          name: 'PhysicsTrait',
+          properties: { mass: 0, kinematic: true },
+        },
       },
       children: [],
     },
@@ -78,7 +102,9 @@ try {
   COMPILER_MAP['urdf'] = new URDFCompiler();
   COMPILER_MAP['dtdl'] = new DTDLCompiler();
   COMPILER_MAP['sdf'] = new SDFCompiler();
-} catch (_) { /* compilers may not be available in all environments */ }
+} catch (_) {
+  /* compilers may not be available in all environments */
+}
 
 const BYPASS_TOKEN = 'studio-admin';
 
@@ -103,15 +129,25 @@ export interface UseCompilerReturn {
 }
 
 export function useCompiler(): UseCompilerReturn {
-  const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set(['unity', 'godot', 'babylon']));
+  const [selectedTargets, setSelectedTargets] = useState<Set<string>>(
+    new Set(['unity', 'godot', 'babylon'])
+  );
   const [results, setResults] = useState<CompileResult[]>([]);
   const [isCompiling, setIsCompiling] = useState(false);
 
   const toggleTarget = useCallback((id: string) => {
-    setSelectedTargets(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+    setSelectedTargets((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }, []);
 
-  const selectAll = useCallback(() => setSelectedTargets(new Set(ALL_TARGETS.map(t => t.id))), []);
+  const selectAll = useCallback(
+    () => setSelectedTargets(new Set(ALL_TARGETS.map((t) => t.id))),
+    []
+  );
   const clearAll = useCallback(() => setSelectedTargets(new Set()), []);
 
   const compile = useCallback(() => {
@@ -119,7 +155,7 @@ export function useCompiler(): UseCompilerReturn {
     const newResults: CompileResult[] = [];
 
     for (const id of selectedTargets) {
-      const target = ALL_TARGETS.find(t => t.id === id);
+      const target = ALL_TARGETS.find((t) => t.id === id);
       if (!target) continue;
       const start = performance.now();
 
@@ -166,5 +202,15 @@ export function useCompiler(): UseCompilerReturn {
 
   const clearResults = useCallback(() => setResults([]), []);
 
-  return { targets: ALL_TARGETS, selectedTargets, results, isCompiling, toggleTarget, selectAll, clearAll, compile, clearResults };
+  return {
+    targets: ALL_TARGETS,
+    selectedTargets,
+    results,
+    isCompiling,
+    toggleTarget,
+    selectAll,
+    clearAll,
+    compile,
+    clearResults,
+  };
 }

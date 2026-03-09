@@ -15,7 +15,9 @@ function makeTex(id = 'tex1'): TextureInput {
 
 describe('ImportPipeline — addModelJob', () => {
   let pipe: ImportPipeline;
-  beforeEach(() => { pipe = new ImportPipeline(); });
+  beforeEach(() => {
+    pipe = new ImportPipeline();
+  });
 
   it('returns a job id string with job_ prefix', () => {
     const id = pipe.addModelJob('model.gltf', 'data');
@@ -44,7 +46,9 @@ describe('ImportPipeline — addModelJob', () => {
 
 describe('ImportPipeline — addTextureJob', () => {
   let pipe: ImportPipeline;
-  beforeEach(() => { pipe = new ImportPipeline(); });
+  beforeEach(() => {
+    pipe = new ImportPipeline();
+  });
 
   it('returns a job id with job_ prefix', () => {
     const id = pipe.addTextureJob('sprite.png', makeTex());
@@ -64,7 +68,9 @@ describe('ImportPipeline — addTextureJob', () => {
 
 describe('ImportPipeline — runAll', () => {
   let pipe: ImportPipeline;
-  beforeEach(() => { pipe = new ImportPipeline(); });
+  beforeEach(() => {
+    pipe = new ImportPipeline();
+  });
 
   it('runAll on no jobs returns empty stats', () => {
     const stats = pipe.runAll();
@@ -115,7 +121,9 @@ describe('ImportPipeline — runAll', () => {
 
 describe('ImportPipeline — job results', () => {
   let pipe: ImportPipeline;
-  beforeEach(() => { pipe = new ImportPipeline(); });
+  beforeEach(() => {
+    pipe = new ImportPipeline();
+  });
 
   it('completed model job has a result', () => {
     const id = pipe.addModelJob('model.gltf', 'data');
@@ -162,7 +170,9 @@ describe('ImportPipeline — job results', () => {
 
 describe('ImportPipeline — getStats / clear / getJobCount', () => {
   let pipe: ImportPipeline;
-  beforeEach(() => { pipe = new ImportPipeline(); });
+  beforeEach(() => {
+    pipe = new ImportPipeline();
+  });
 
   it('getJobCount after adding jobs', () => {
     pipe.addModelJob('a.gltf', '');

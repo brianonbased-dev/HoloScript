@@ -361,7 +361,7 @@ environment { z: 3 }
 
 logic { w: 4 }`;
     const chunks = ChunkDetector.detect(source);
-    const ids = new Set(chunks.map(c => c.id));
+    const ids = new Set(chunks.map((c) => c.id));
     expect(ids.size).toBe(chunks.length);
   });
 
@@ -412,7 +412,9 @@ describe('ChunkDetector.detectHybrid', () => {
     const source = `function test() { return 1; }`;
     const chunks = ChunkDetector.detectHybrid(source, 'test.ts');
     for (const chunk of chunks) {
-      expect(['orb', 'template', 'environment', 'logic', 'directive', 'unknown']).toContain(chunk.type);
+      expect(['orb', 'template', 'environment', 'logic', 'directive', 'unknown']).toContain(
+        chunk.type
+      );
     }
   });
 

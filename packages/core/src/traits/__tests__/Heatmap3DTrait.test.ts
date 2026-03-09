@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { heatmap3dHandler } from '../Heatmap3DTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('Heatmap3DTrait', () => {
   let node: Record<string, unknown>;
@@ -69,7 +76,10 @@ describe('Heatmap3DTrait', () => {
   });
 
   it('set colormap emits change', () => {
-    sendEvent(heatmap3dHandler, node, cfg, ctx, { type: 'heatmap_set_colormap', colorMap: 'plasma' });
+    sendEvent(heatmap3dHandler, node, cfg, ctx, {
+      type: 'heatmap_set_colormap',
+      colorMap: 'plasma',
+    });
     expect(getEventCount(ctx, 'heatmap_change_colormap')).toBe(1);
   });
 

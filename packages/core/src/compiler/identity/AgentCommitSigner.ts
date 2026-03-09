@@ -220,10 +220,7 @@ export class AgentCommitSigner {
    * Agent-Public-Key: -----BEGIN PUBLIC KEY-----...
    * ```
    */
-  formatCommitMessage(
-    message: string,
-    metadata: AgentCommitMetadata
-  ): string {
+  formatCommitMessage(message: string, metadata: AgentCommitMetadata): string {
     // Compress public key to single line for git trailer compatibility
     const compressedPubKey = metadata.publicKey
       .replace(/-----BEGIN PUBLIC KEY-----/, '')
@@ -273,9 +270,16 @@ export class AgentCommitSigner {
 
     // Validate all required fields are present
     if (
-      !agentRole || !agentId || !agentChecksum || !workflowId ||
-      !workflowStep || !signedAt || !changeSetDigest || !fileCountStr ||
-      !signature || !compressedPubKey
+      !agentRole ||
+      !agentId ||
+      !agentChecksum ||
+      !workflowId ||
+      !workflowStep ||
+      !signedAt ||
+      !changeSetDigest ||
+      !fileCountStr ||
+      !signature ||
+      !compressedPubKey
     ) {
       return null;
     }
@@ -289,9 +293,7 @@ export class AgentCommitSigner {
       agentChecksum,
       workflowId,
       workflowStep,
-      delegationChain: delegationChainStr
-        ? (delegationChainStr.split(',') as AgentRole[])
-        : [],
+      delegationChain: delegationChainStr ? (delegationChainStr.split(',') as AgentRole[]) : [],
       signedAt,
       signature,
       changeSetDigest,

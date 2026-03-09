@@ -154,21 +154,21 @@ export const VRRTraits: Record<string, VRRTrait> = {
     name: '@vrr_twin',
     description: 'Marks composition as VRR digital twin (1:1 real-world mirror)',
     params: {
-      mirror: { type: 'string', required: true, description: 'Real-world location to mirror' }
+      mirror: { type: 'string', required: true, description: 'Real-world location to mirror' },
     },
     validator: (params) => !!params.mirror,
     compiler_hints: {
-      generates_api_calls: ['geo_location']
-    }
+      generates_api_calls: ['geo_location'],
+    },
   },
 
   reality_mirror: {
     name: '@reality_mirror',
     description: 'Enables real-world synchronization (weather, events, inventory)',
     params: {
-      sync: { type: 'array', required: true, description: 'List of sync types' }
+      sync: { type: 'array', required: true, description: 'List of sync types' },
     },
-    validator: (params) => Array.isArray(params.sync) && params.sync.length > 0
+    validator: (params) => Array.isArray(params.sync) && params.sync.length > 0,
   },
 
   geo_anchor: {
@@ -176,14 +176,18 @@ export const VRRTraits: Record<string, VRRTrait> = {
     description: 'Geo-location anchoring (lat/lng positioning)',
     params: {
       lat: { type: 'number', required: true, description: 'Latitude' },
-      lng: { type: 'number', required: true, description: 'Longitude' }
+      lng: { type: 'number', required: true, description: 'Longitude' },
     },
     validator: (params) => {
-      return typeof params.lat === 'number' &&
-             typeof params.lng === 'number' &&
-             params.lat >= -90 && params.lat <= 90 &&
-             params.lng >= -180 && params.lng <= 180;
-    }
+      return (
+        typeof params.lat === 'number' &&
+        typeof params.lng === 'number' &&
+        params.lat >= -90 &&
+        params.lat <= 90 &&
+        params.lng >= -180 &&
+        params.lng <= 180
+      );
+    },
   },
 
   weather_sync: {
@@ -191,13 +195,18 @@ export const VRRTraits: Record<string, VRRTrait> = {
     description: 'Real-time weather synchronization',
     params: {
       provider: { type: 'string', required: true, description: 'weather.gov | openweathermap' },
-      refresh: { type: 'duration', required: false, default: '5_minutes', description: 'Refresh interval' }
+      refresh: {
+        type: 'duration',
+        required: false,
+        default: '5_minutes',
+        description: 'Refresh interval',
+      },
     },
     validator: (params) => ['weather.gov', 'openweathermap'].includes(params.provider),
     compiler_hints: {
       requires_runtime: ['VRRRuntime.syncWeather'],
-      generates_api_calls: ['weather.gov', 'openweathermap']
-    }
+      generates_api_calls: ['weather.gov', 'openweathermap'],
+    },
   },
 
   event_sync: {
@@ -205,37 +214,56 @@ export const VRRTraits: Record<string, VRRTrait> = {
     description: 'Real-time event synchronization (festivals, concerts)',
     params: {
       provider: { type: 'string', required: true, description: 'eventbrite | ticketmaster' },
-      refresh: { type: 'duration', required: false, default: '5_minutes', description: 'Refresh interval' }
+      refresh: {
+        type: 'duration',
+        required: false,
+        default: '5_minutes',
+        description: 'Refresh interval',
+      },
     },
     validator: (params) => ['eventbrite', 'ticketmaster'].includes(params.provider),
     compiler_hints: {
       requires_runtime: ['VRRRuntime.syncEvents'],
-      generates_api_calls: ['eventbrite', 'ticketmaster']
-    }
+      generates_api_calls: ['eventbrite', 'ticketmaster'],
+    },
   },
 
   inventory_sync: {
     name: '@inventory_sync',
     description: 'Real-time inventory synchronization (Square POS, Shopify)',
     params: {
-      provider: { type: 'string', required: true, description: 'square_pos | shopify | woocommerce' },
-      refresh: { type: 'duration', required: false, default: '1_minute', description: 'Refresh interval' },
-      websocket: { type: 'boolean', required: false, default: false, description: 'Use WebSocket for real-time' }
+      provider: {
+        type: 'string',
+        required: true,
+        description: 'square_pos | shopify | woocommerce',
+      },
+      refresh: {
+        type: 'duration',
+        required: false,
+        default: '1_minute',
+        description: 'Refresh interval',
+      },
+      websocket: {
+        type: 'boolean',
+        required: false,
+        default: false,
+        description: 'Use WebSocket for real-time',
+      },
     },
     validator: (params) => ['square_pos', 'shopify', 'woocommerce'].includes(params.provider),
     compiler_hints: {
       requires_runtime: ['VRRRuntime.syncInventory'],
-      generates_api_calls: ['square_pos', 'shopify', 'woocommerce']
-    }
+      generates_api_calls: ['square_pos', 'shopify', 'woocommerce'],
+    },
   },
 
   quest_hub: {
     name: '@quest_hub',
     description: 'Marks business as quest starting point',
     params: {
-      quests: { type: 'array', required: true, description: 'List of quest IDs' }
+      quests: { type: 'array', required: true, description: 'List of quest IDs' },
     },
-    validator: (params) => Array.isArray(params.quests) && params.quests.length > 0
+    validator: (params) => Array.isArray(params.quests) && params.quests.length > 0,
   },
 
   layer_shift: {
@@ -245,15 +273,20 @@ export const VRRTraits: Record<string, VRRTrait> = {
       from: { type: 'string', required: true, description: 'ar | vrr | vr' },
       to: { type: 'string', required: true, description: 'ar | vrr | vr' },
       price: { type: 'number', required: false, description: 'USDC price for transition' },
-      persist_state: { type: 'boolean', required: false, default: true, description: 'Persist state across layers' }
+      persist_state: {
+        type: 'boolean',
+        required: false,
+        default: true,
+        description: 'Persist state across layers',
+      },
     },
     validator: (params) => {
       const validLayers = ['ar', 'vrr', 'vr'];
       return validLayers.includes(params.from) && validLayers.includes(params.to);
     },
     compiler_hints: {
-      requires_runtime: ['VRRRuntime.persistState', 'ARRuntime.createARPortal']
-    }
+      requires_runtime: ['VRRRuntime.persistState', 'ARRuntime.createARPortal'],
+    },
   },
 
   x402_paywall: {
@@ -262,16 +295,23 @@ export const VRRTraits: Record<string, VRRTrait> = {
     params: {
       price: { type: 'number', required: true, description: 'Price in USDC' },
       asset: { type: 'string', required: false, default: 'USDC', description: 'USDC | ETH | SOL' },
-      network: { type: 'string', required: false, default: 'base', description: 'base | ethereum | solana' }
+      network: {
+        type: 'string',
+        required: false,
+        default: 'base',
+        description: 'base | ethereum | solana',
+      },
     },
     validator: (params) => {
-      return params.price > 0 &&
-             ['USDC', 'ETH', 'SOL'].includes(params.asset || 'USDC') &&
-             ['base', 'ethereum', 'solana'].includes(params.network || 'base');
+      return (
+        params.price > 0 &&
+        ['USDC', 'ETH', 'SOL'].includes(params.asset || 'USDC') &&
+        ['base', 'ethereum', 'solana'].includes(params.network || 'base')
+      );
     },
     compiler_hints: {
-      generates_api_calls: ['x402_payment_service']
-    }
+      generates_api_calls: ['x402_payment_service'],
+    },
   },
 
   geo_sync: {
@@ -279,8 +319,8 @@ export const VRRTraits: Record<string, VRRTrait> = {
     description: 'Geographic data synchronization (POIs, traffic, events)',
     params: {
       center: { type: 'string', required: true, description: 'Center point identifier' },
-      radius: { type: 'number', required: false, default: 5000, description: 'Radius in meters' }
+      radius: { type: 'number', required: false, default: 5000, description: 'Radius in meters' },
     },
-    validator: (params) => !!params.center && (params.radius || 0) >= 0
-  }
+    validator: (params) => !!params.center && (params.radius || 0) >= 0,
+  },
 };

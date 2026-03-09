@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IncrementalCompiler } from '../IncrementalCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
@@ -10,14 +10,10 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   };
 });
 
-
 /**
  * Build a minimal HoloComposition.
  */
-function makeComposition(
-  name: string,
-  objects: HoloObjectDecl[] = []
-): HoloComposition {
+function makeComposition(name: string, objects: HoloObjectDecl[] = []): HoloComposition {
   return {
     type: 'Composition',
     name,
@@ -47,7 +43,7 @@ function makeObject(
   return {
     type: 'Object',
     name,
-    properties: props.map(p => ({ type: 'ObjectProperty', ...p })),
+    properties: props.map((p) => ({ type: 'ObjectProperty', ...p })),
     traits,
     children: [],
   } as unknown as HoloObjectDecl;
@@ -161,9 +157,7 @@ describe('IncrementalCompiler', () => {
   });
 
   it('extracts trait usages from object traits', () => {
-    const result = (compiler as any).extractTraitUsages([
-      { name: 'physics', config: { mass: 5 } },
-    ]);
+    const result = (compiler as any).extractTraitUsages([{ name: 'physics', config: { mass: 5 } }]);
     expect(result.length).toBe(1);
     expect(result[0].name).toBe('physics');
     expect(result[0].configHash).toBeDefined();

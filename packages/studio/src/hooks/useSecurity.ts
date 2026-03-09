@@ -4,8 +4,11 @@
  */
 import { useState, useCallback, useRef } from 'react';
 import {
-  createSandbox, executeSandbox, destroySandbox,
-  type Sandbox, type SandboxExecutionResult,
+  createSandbox,
+  executeSandbox,
+  destroySandbox,
+  type Sandbox,
+  type SandboxExecutionResult,
 } from '@holoscript/core';
 
 export interface UseSecurityReturn {
@@ -21,8 +24,14 @@ export interface UseSecurityReturn {
 
 const DEMO_SNIPPETS = [
   { label: 'Math', code: 'const result = Math.sqrt(144) + Math.PI;\nresult;' },
-  { label: 'String', code: 'const greeting = "Hello, HoloScript!";\ngreeting.split("").reverse().join("");' },
-  { label: 'JSON', code: 'JSON.stringify({ world: "HoloLand", version: 5.0, entities: 42 }, null, 2);' },
+  {
+    label: 'String',
+    code: 'const greeting = "Hello, HoloScript!";\ngreeting.split("").reverse().join("");',
+  },
+  {
+    label: 'JSON',
+    code: 'JSON.stringify({ world: "HoloLand", version: 5.0, entities: 42 }, null, 2);',
+  },
   { label: 'Blocked', code: 'process.exit(1);' },
 ];
 
@@ -47,22 +56,32 @@ export function useSecurity(): UseSecurityReturn {
     setSandbox(sb);
   }, []);
 
-  const executeCode = useCallback(async (code: string) => {
-    if (!sandboxRef.current) createNewSandbox();
-    if (!sandboxRef.current) return;
-    setIsRunning(true);
-    try {
-      const result = await executeSandbox(code, sandboxRef.current);
-      setResults(prev => [...prev, result]);
-      setSandbox({ ...sandboxRef.current });
-    } catch {
-      setResults(prev => [...prev, { success: false, error: 'Execution failed', memoryUsed: 0, cpuTimeUsed: 0 }]);
-    }
-    setIsRunning(false);
-  }, [createNewSandbox]);
+  const executeCode = useCallback(
+    async (code: string) => {
+      if (!sandboxRef.current) createNewSandbox();
+      if (!sandboxRef.current) return;
+      setIsRunning(true);
+      try {
+        const result = await executeSandbox(code, sandboxRef.current);
+        setResults((prev) => [...prev, result]);
+        setSandbox({ ...sandboxRef.current });
+      } catch {
+        setResults((prev) => [
+          ...prev,
+          { success: false, error: 'Execution failed', memoryUsed: 0, cpuTimeUsed: 0 },
+        ]);
+      }
+      setIsRunning(false);
+    },
+    [createNewSandbox]
+  );
 
   const destroyCurrentSandbox = useCallback(() => {
-    if (sandboxRef.current) { destroySandbox(sandboxRef.current); sandboxRef.current = null; setSandbox(null); }
+    if (sandboxRef.current) {
+      destroySandbox(sandboxRef.current);
+      sandboxRef.current = null;
+      setSandbox(null);
+    }
   }, []);
 
   const runDemo = useCallback(async () => {
@@ -74,7 +93,16 @@ export function useSecurity(): UseSecurityReturn {
 
   const clearResults = useCallback(() => setResults([]), []);
 
-  return { sandbox, results, isRunning, createNewSandbox, executeCode, destroyCurrentSandbox, runDemo, clearResults };
+  return {
+    sandbox,
+    results,
+    isRunning,
+    createNewSandbox,
+    executeCode,
+    destroyCurrentSandbox,
+    runDemo,
+    clearResults,
+  };
 }
 
 export { DEMO_SNIPPETS };

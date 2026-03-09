@@ -36,9 +36,11 @@ export class ActionNode implements BehaviorNode {
   readonly type = 'action';
   constructor(
     readonly label: string,
-    private _fn: (ctx: BehaviorContext) => BehaviorStatus,
+    private _fn: (ctx: BehaviorContext) => BehaviorStatus
   ) {}
-  execute(ctx: BehaviorContext): BehaviorStatus { return this._fn(ctx); }
+  execute(ctx: BehaviorContext): BehaviorStatus {
+    return this._fn(ctx);
+  }
 }
 
 /**
@@ -48,7 +50,7 @@ export class ConditionNode implements BehaviorNode {
   readonly type = 'condition';
   constructor(
     readonly label: string,
-    private _predicate: (ctx: BehaviorContext) => boolean,
+    private _predicate: (ctx: BehaviorContext) => boolean
   ) {}
   execute(ctx: BehaviorContext): BehaviorStatus {
     return this._predicate(ctx) ? 'SUCCESS' : 'FAILURE';
@@ -82,7 +84,10 @@ export const RUNNING: BehaviorNode = {
  */
 export class SequenceNode implements BehaviorNode {
   readonly type = 'sequence';
-  constructor(readonly label = 'Sequence', readonly children: BehaviorNode[]) {}
+  constructor(
+    readonly label = 'Sequence',
+    readonly children: BehaviorNode[]
+  ) {}
   execute(ctx: BehaviorContext): BehaviorStatus {
     for (const child of this.children) {
       const s = child.execute(ctx);
@@ -98,7 +103,10 @@ export class SequenceNode implements BehaviorNode {
  */
 export class SelectorNode implements BehaviorNode {
   readonly type = 'selector';
-  constructor(readonly label = 'Selector', readonly children: BehaviorNode[]) {}
+  constructor(
+    readonly label = 'Selector',
+    readonly children: BehaviorNode[]
+  ) {}
   execute(ctx: BehaviorContext): BehaviorStatus {
     for (const child of this.children) {
       const s = child.execute(ctx);
@@ -118,12 +126,12 @@ export class ParallelNode implements BehaviorNode {
   constructor(
     readonly label = 'Parallel',
     readonly children: BehaviorNode[],
-    readonly policy: 'require-all' | 'require-one' = 'require-all',
+    readonly policy: 'require-all' | 'require-one' = 'require-all'
   ) {}
   execute(ctx: BehaviorContext): BehaviorStatus {
-    const statuses = this.children.map(c => c.execute(ctx));
-    const successes = statuses.filter(s => s === 'SUCCESS').length;
-    const failures  = statuses.filter(s => s === 'FAILURE').length;
+    const statuses = this.children.map((c) => c.execute(ctx));
+    const successes = statuses.filter((s) => s === 'SUCCESS').length;
+    const failures = statuses.filter((s) => s === 'FAILURE').length;
     if (this.policy === 'require-all') {
       if (failures > 0) return 'FAILURE';
       return successes === this.children.length ? 'SUCCESS' : 'RUNNING';
@@ -139,7 +147,10 @@ export class ParallelNode implements BehaviorNode {
 /** Invert the child's SUCCESS/FAILURE (NOT gate). RUNNING passes through. */
 export class InverterNode implements BehaviorNode {
   readonly type = 'inverter';
-  constructor(readonly label = 'Inverter', readonly child: BehaviorNode) {}
+  constructor(
+    readonly label = 'Inverter',
+    readonly child: BehaviorNode
+  ) {}
   execute(ctx: BehaviorContext): BehaviorStatus {
     const s = this.child.execute(ctx);
     if (s === 'SUCCESS') return 'FAILURE';
@@ -151,7 +162,11 @@ export class InverterNode implements BehaviorNode {
 /** Repeat child N times. Stops early on FAILURE. */
 export class RepeatNode implements BehaviorNode {
   readonly type = 'repeat';
-  constructor(readonly label: string, readonly child: BehaviorNode, readonly times: number) {}
+  constructor(
+    readonly label: string,
+    readonly child: BehaviorNode,
+    readonly times: number
+  ) {}
   execute(ctx: BehaviorContext): BehaviorStatus {
     for (let i = 0; i < this.times; i++) {
       const s = this.child.execute(ctx);
@@ -167,7 +182,7 @@ export class GuardNode implements BehaviorNode {
   constructor(
     readonly label: string,
     readonly guard: (ctx: BehaviorContext) => boolean,
-    readonly child: BehaviorNode,
+    readonly child: BehaviorNode
   ) {}
   execute(ctx: BehaviorContext): BehaviorStatus {
     return this.guard(ctx) ? this.child.execute(ctx) : 'FAILURE';
@@ -177,19 +192,22 @@ export class GuardNode implements BehaviorNode {
 // ── Tree Builder (DSL helpers) ────────────────────────────────────────────────
 
 export const bt = {
-  sequence:  (label: string, ...children: BehaviorNode[]) => new SequenceNode(label, children),
-  selector:  (label: string, ...children: BehaviorNode[]) => new SelectorNode(label, children),
-  parallel:  (label: string, policy: 'require-all' | 'require-one', ...children: BehaviorNode[]) =>
-               new ParallelNode(label, children, policy),
-  action:    (label: string, fn: (ctx: BehaviorContext) => BehaviorStatus) => new ActionNode(label, fn),
-  condition: (label: string, pred: (ctx: BehaviorContext) => boolean) => new ConditionNode(label, pred),
-  invert:    (child: BehaviorNode) => new InverterNode(`NOT ${child.label}`, child),
-  repeat:    (n: number, child: BehaviorNode) => new RepeatNode(`Repeat×${n} ${child.label}`, child, n),
-  guard:     (pred: (ctx: BehaviorContext) => boolean, child: BehaviorNode, label = 'Guard') =>
-               new GuardNode(label, pred, child),
-  succeed:   SUCCEED,
-  fail:      FAIL,
-  running:   RUNNING,
+  sequence: (label: string, ...children: BehaviorNode[]) => new SequenceNode(label, children),
+  selector: (label: string, ...children: BehaviorNode[]) => new SelectorNode(label, children),
+  parallel: (label: string, policy: 'require-all' | 'require-one', ...children: BehaviorNode[]) =>
+    new ParallelNode(label, children, policy),
+  action: (label: string, fn: (ctx: BehaviorContext) => BehaviorStatus) =>
+    new ActionNode(label, fn),
+  condition: (label: string, pred: (ctx: BehaviorContext) => boolean) =>
+    new ConditionNode(label, pred),
+  invert: (child: BehaviorNode) => new InverterNode(`NOT ${child.label}`, child),
+  repeat: (n: number, child: BehaviorNode) =>
+    new RepeatNode(`Repeat×${n} ${child.label}`, child, n),
+  guard: (pred: (ctx: BehaviorContext) => boolean, child: BehaviorNode, label = 'Guard') =>
+    new GuardNode(label, pred, child),
+  succeed: SUCCEED,
+  fail: FAIL,
+  running: RUNNING,
 };
 
 // ── Tree Runner ───────────────────────────────────────────────────────────────
@@ -210,7 +228,7 @@ export interface TreeRunResult {
 export function runTree(
   root: BehaviorNode,
   initialBlackboard: Record<string, unknown> = {},
-  maxTicks = 1,
+  maxTicks = 1
 ): TreeRunResult {
   const ctx: BehaviorContext = { blackboard: { ...initialBlackboard }, elapsed: 0, tick: 0 };
   let status: BehaviorStatus = 'RUNNING';
@@ -254,7 +272,11 @@ export function serializeTree(node: BehaviorNode): SerializedNode {
 /** Count total nodes in a tree (recursive). */
 export function countNodes(node: BehaviorNode): number {
   let count = 1;
-  if (node instanceof SequenceNode || node instanceof SelectorNode || node instanceof ParallelNode) {
+  if (
+    node instanceof SequenceNode ||
+    node instanceof SelectorNode ||
+    node instanceof ParallelNode
+  ) {
     for (const c of node.children) count += countNodes(c);
   } else if (node instanceof InverterNode || node instanceof GuardNode) {
     count += countNodes(node.child);

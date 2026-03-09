@@ -89,15 +89,18 @@ export function parseManifest(raw: unknown): AssetManifestDocument {
     }
     const validTypes: ResolvedAssetType[] = ['model', 'texture', 'shader'];
     if (!validTypes.includes(e.type as ResolvedAssetType)) {
-      throw new ManifestValidationError(`entry[${i}].type must be one of: ${validTypes.join(', ')}`);
+      throw new ManifestValidationError(
+        `entry[${i}].type must be one of: ${validTypes.join(', ')}`
+      );
     }
     entries.push({
       trait: e.trait as string,
       url: e.url as string,
       type: e.type as ResolvedAssetType,
-      metadata: typeof e.metadata === 'object' && e.metadata !== null
-        ? (e.metadata as Record<string, unknown>)
-        : undefined,
+      metadata:
+        typeof e.metadata === 'object' && e.metadata !== null
+          ? (e.metadata as Record<string, unknown>)
+          : undefined,
     });
   }
 

@@ -305,7 +305,11 @@ export class CameraController {
   /**
    * Set camera immediately (no transition)
    */
-  setCamera(position: [number, number, number], target: [number, number, number], fov: number): void {
+  setCamera(
+    position: [number, number, number],
+    target: [number, number, number],
+    fov: number
+  ): void {
     this.currentPosition = [...position];
     this.currentTarget = [...target];
     this.currentFOV = fov;

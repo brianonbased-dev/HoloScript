@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  createDefaultPolicy,
-  createStrictPolicy,
-  mergePolicy,
-} from '../SecurityPolicy';
+import { createDefaultPolicy, createStrictPolicy, mergePolicy } from '../SecurityPolicy';
 
 describe('SecurityPolicy', () => {
   it('createDefaultPolicy returns expected defaults', () => {

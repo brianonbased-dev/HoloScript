@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  SparsityMonitor,
-  createSparsityMonitor,
-} from '../SparsityMonitor';
+import { SparsityMonitor, createSparsityMonitor } from '../SparsityMonitor';
 import type { LayerActivityInput } from '../SparsityMonitor';
 import type {
   SNNLayerMetrics,
@@ -33,9 +30,7 @@ function makeInput(overrides: Partial<LayerActivityInput> = {}): LayerActivityIn
  * - Per-layer tracking enabled
  * - Energy metrics enabled
  */
-function createTestMonitor(
-  overrides: Partial<SparsityMonitorConfig> = {},
-): SparsityMonitor {
+function createTestMonitor(overrides: Partial<SparsityMonitorConfig> = {}): SparsityMonitor {
   return new SparsityMonitor({
     sparsityThreshold: 0.93,
     windowSize: 50,
@@ -80,9 +75,9 @@ describe('SparsityMonitor', () => {
     });
 
     it('should merge custom config with defaults', () => {
-      const monitor = new SparsityMonitor({ sparsityThreshold: 0.90 });
+      const monitor = new SparsityMonitor({ sparsityThreshold: 0.9 });
       const config = monitor.getConfig();
-      expect(config.sparsityThreshold).toBe(0.90);
+      expect(config.sparsityThreshold).toBe(0.9);
       expect(config.windowSize).toBe(50); // default
       expect(config.perLayerTracking).toBe(true); // default
       expect(config.avgSynapsesPerNeuron).toBe(100); // default
@@ -111,62 +106,85 @@ describe('SparsityMonitor', () => {
     });
 
     it('should compute spike rate correctly', () => {
-      const metrics = monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 200,
-        spikeCount: 40,
-      }));
+      const metrics = monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 200,
+          spikeCount: 40,
+        })
+      );
       expect(metrics.spikeRate).toBeCloseTo(0.2, 4);
     });
 
     it('should compute activation sparsity as 1 - spikeRate', () => {
-      const metrics = monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 200,
-        spikeCount: 40,
-      }));
+      const metrics = monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 200,
+          spikeCount: 40,
+        })
+      );
       expect(metrics.activationSparsity).toBeCloseTo(0.8, 4);
     });
 
     it('should handle zero spikes (100% sparsity)', () => {
-      const metrics = monitor.recordLayerActivity('layer1', makeInput({
-        spikeCount: 0,
-      }));
+      const metrics = monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          spikeCount: 0,
+        })
+      );
       expect(metrics.spikeRate).toBe(0);
       expect(metrics.activationSparsity).toBe(1);
     });
 
     it('should handle all neurons spiking (0% sparsity)', () => {
-      const metrics = monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 100,
-      }));
+      const metrics = monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 100,
+        })
+      );
       expect(metrics.spikeRate).toBe(1);
       expect(metrics.activationSparsity).toBe(0);
     });
 
     it('should store average membrane potential when provided', () => {
-      const metrics = monitor.recordLayerActivity('layer1', makeInput({
-        avgMembranePotential: -0.65,
-      }));
+      const metrics = monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          avgMembranePotential: -0.65,
+        })
+      );
       expect(metrics.avgMembranePotential).toBe(-0.65);
     });
 
     it('should throw on non-positive neuronCount', () => {
-      expect(() => monitor.recordLayerActivity('layer1', makeInput({ neuronCount: 0 })))
-        .toThrow('neuronCount must be positive');
-      expect(() => monitor.recordLayerActivity('layer1', makeInput({ neuronCount: -5 })))
-        .toThrow('neuronCount must be positive');
+      expect(() => monitor.recordLayerActivity('layer1', makeInput({ neuronCount: 0 }))).toThrow(
+        'neuronCount must be positive'
+      );
+      expect(() => monitor.recordLayerActivity('layer1', makeInput({ neuronCount: -5 }))).toThrow(
+        'neuronCount must be positive'
+      );
     });
 
     it('should throw on negative spikeCount', () => {
-      expect(() => monitor.recordLayerActivity('layer1', makeInput({ spikeCount: -1 })))
-        .toThrow('spikeCount must be non-negative');
+      expect(() => monitor.recordLayerActivity('layer1', makeInput({ spikeCount: -1 }))).toThrow(
+        'spikeCount must be non-negative'
+      );
     });
 
     it('should throw when spikeCount exceeds neuronCount', () => {
-      expect(() => monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 150,
-      }))).toThrow('spikeCount (150) cannot exceed neuronCount (100)');
+      expect(() =>
+        monitor.recordLayerActivity(
+          'layer1',
+          makeInput({
+            neuronCount: 100,
+            spikeCount: 150,
+          })
+        )
+      ).toThrow('spikeCount (150) cannot exceed neuronCount (100)');
     });
 
     it('should update current layer metrics on successive recordings', () => {
@@ -275,17 +293,23 @@ describe('SparsityMonitor', () => {
 
     it('should capture aggregate metrics across all layers', () => {
       // Layer 1: 1000 neurons, 50 spikes = 5% spike rate, 95% sparsity
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 1000,
-        spikeCount: 50,
-        timestep: 0,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 50,
+          timestep: 0,
+        })
+      );
       // Layer 2: 500 neurons, 25 spikes = 5% spike rate, 95% sparsity
-      monitor.recordLayerActivity('layer2', makeInput({
-        neuronCount: 500,
-        spikeCount: 25,
-        timestep: 0,
-      }));
+      monitor.recordLayerActivity(
+        'layer2',
+        makeInput({
+          neuronCount: 500,
+          spikeCount: 25,
+          timestep: 0,
+        })
+      );
 
       const snapshot = monitor.takeSnapshot();
       expect(snapshot).not.toBeNull();
@@ -297,17 +321,23 @@ describe('SparsityMonitor', () => {
 
     it('should weight aggregate sparsity by neuron count', () => {
       // Layer 1: 900 neurons, 90 spikes (10% spike rate)
-      monitor.recordLayerActivity('big', makeInput({
-        neuronCount: 900,
-        spikeCount: 90,
-        timestep: 0,
-      }));
+      monitor.recordLayerActivity(
+        'big',
+        makeInput({
+          neuronCount: 900,
+          spikeCount: 90,
+          timestep: 0,
+        })
+      );
       // Layer 2: 100 neurons, 50 spikes (50% spike rate)
-      monitor.recordLayerActivity('small', makeInput({
-        neuronCount: 100,
-        spikeCount: 50,
-        timestep: 0,
-      }));
+      monitor.recordLayerActivity(
+        'small',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 50,
+          timestep: 0,
+        })
+      );
 
       const snapshot = monitor.takeSnapshot()!;
       // Total: 1000 neurons, 140 spikes -> 14% spike rate
@@ -350,11 +380,14 @@ describe('SparsityMonitor', () => {
 
     it('should detect violations in snapshot', () => {
       // Layer with < 93% sparsity (50% spike rate)
-      monitor.recordLayerActivity('bad_layer', makeInput({
-        neuronCount: 100,
-        spikeCount: 50,
-        timestep: 0,
-      }));
+      monitor.recordLayerActivity(
+        'bad_layer',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 50,
+          timestep: 0,
+        })
+      );
 
       const snapshot = monitor.takeSnapshot()!;
       expect(snapshot.violations.length).toBe(1);
@@ -576,10 +609,13 @@ describe('SparsityMonitor', () => {
 
     it('should not flag layers at or above threshold', () => {
       // 95% sparsity >= 93% threshold
-      monitor.recordLayerActivity('good_layer', makeInput({
-        neuronCount: 1000,
-        spikeCount: 50,
-      }));
+      monitor.recordLayerActivity(
+        'good_layer',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 50,
+        })
+      );
 
       const violations = monitor.getActiveViolations();
       expect(violations.length).toBe(0);
@@ -587,10 +623,13 @@ describe('SparsityMonitor', () => {
 
     it('should flag layers below threshold as warning', () => {
       // 90% sparsity < 93% threshold but >= 85% critical
-      monitor.recordLayerActivity('warn_layer', makeInput({
-        neuronCount: 100,
-        spikeCount: 10,
-      }));
+      monitor.recordLayerActivity(
+        'warn_layer',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 10,
+        })
+      );
 
       const violations = monitor.getActiveViolations();
       expect(violations.length).toBe(1);
@@ -600,10 +639,13 @@ describe('SparsityMonitor', () => {
 
     it('should flag layers below critical threshold as critical', () => {
       // 50% sparsity < 85% critical threshold
-      monitor.recordLayerActivity('bad_layer', makeInput({
-        neuronCount: 100,
-        spikeCount: 50,
-      }));
+      monitor.recordLayerActivity(
+        'bad_layer',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 50,
+        })
+      );
 
       const violations = monitor.getActiveViolations();
       expect(violations.length).toBe(1);
@@ -612,10 +654,13 @@ describe('SparsityMonitor', () => {
 
     it('should calculate deficit correctly', () => {
       // 90% sparsity, threshold 93%
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 10,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 10,
+        })
+      );
 
       const violations = monitor.getActiveViolations();
       expect(violations.length).toBe(1);
@@ -623,16 +668,22 @@ describe('SparsityMonitor', () => {
     });
 
     it('should track violation history', () => {
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 20,
-        timestep: 0,
-      }));
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 15,
-        timestep: 1,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 20,
+          timestep: 0,
+        })
+      );
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 15,
+          timestep: 1,
+        })
+      );
 
       const history = monitor.getViolationHistory();
       expect(history.length).toBe(2);
@@ -642,11 +693,14 @@ describe('SparsityMonitor', () => {
       const mon = createTestMonitor({ maxViolationHistory: 3 });
 
       for (let i = 0; i < 5; i++) {
-        mon.recordLayerActivity('layer1', makeInput({
-          neuronCount: 100,
-          spikeCount: 20,
-          timestep: i,
-        }));
+        mon.recordLayerActivity(
+          'layer1',
+          makeInput({
+            neuronCount: 100,
+            spikeCount: 20,
+            timestep: i,
+          })
+        );
       }
 
       const history = mon.getViolationHistory();
@@ -654,38 +708,53 @@ describe('SparsityMonitor', () => {
     });
 
     it('should clear active violations when layer comes back into compliance', () => {
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 20,
-        timestep: 0,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 20,
+          timestep: 0,
+        })
+      );
       expect(monitor.getActiveViolations().length).toBe(1);
 
       // Layer now has 1% spike rate (99% sparsity) = in compliance
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 1,
-        timestep: 1,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 1,
+          timestep: 1,
+        })
+      );
       expect(monitor.getActiveViolations().length).toBe(0);
     });
 
     it('should detect violations across multiple layers independently', () => {
       // Layer 1: in compliance (95% sparsity)
-      monitor.recordLayerActivity('good', makeInput({
-        neuronCount: 1000,
-        spikeCount: 50,
-      }));
+      monitor.recordLayerActivity(
+        'good',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 50,
+        })
+      );
       // Layer 2: warning (90% sparsity)
-      monitor.recordLayerActivity('warn', makeInput({
-        neuronCount: 100,
-        spikeCount: 10,
-      }));
+      monitor.recordLayerActivity(
+        'warn',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 10,
+        })
+      );
       // Layer 3: critical (50% sparsity)
-      monitor.recordLayerActivity('bad', makeInput({
-        neuronCount: 100,
-        spikeCount: 50,
-      }));
+      monitor.recordLayerActivity(
+        'bad',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 50,
+        })
+      );
 
       const violations = monitor.getActiveViolations();
       expect(violations.length).toBe(2);
@@ -699,31 +768,40 @@ describe('SparsityMonitor', () => {
     });
 
     it('should include required threshold in violation', () => {
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 20,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 20,
+        })
+      );
 
       const violations = monitor.getActiveViolations();
       expect(violations[0].requiredThreshold).toBe(0.93);
     });
 
     it('should include timestep in violation', () => {
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 20,
-        timestep: 42,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 20,
+          timestep: 42,
+        })
+      );
 
       const violations = monitor.getActiveViolations();
       expect(violations[0].timestep).toBe(42);
     });
 
     it('should include timestamp in violation', () => {
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 20,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 20,
+        })
+      );
 
       const violations = monitor.getActiveViolations();
       expect(violations[0].detectedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
@@ -777,32 +855,44 @@ describe('SparsityMonitor', () => {
 
     it('should calculate mean sparsity', () => {
       // All layers with 95% sparsity
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 1000,
-        spikeCount: 50,
-        timestep: 0,
-      }));
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 1000,
-        spikeCount: 50,
-        timestep: 1,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 50,
+          timestep: 0,
+        })
+      );
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 50,
+          timestep: 1,
+        })
+      );
 
       const stats = monitor.getStats();
       expect(stats.meanSparsity).toBeCloseTo(0.95, 4);
     });
 
     it('should calculate min and max sparsity', () => {
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 1000,
-        spikeCount: 50,
-        timestep: 0,
-      }));
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 1000,
-        spikeCount: 100,
-        timestep: 1,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 50,
+          timestep: 0,
+        })
+      );
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 100,
+          timestep: 1,
+        })
+      );
 
       const stats = monitor.getStats();
       expect(stats.minSparsity).toBeCloseTo(0.9, 4);
@@ -811,21 +901,30 @@ describe('SparsityMonitor', () => {
 
     it('should calculate standard deviation', () => {
       // Record varying sparsities
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 5,
-        timestep: 0,
-      })); // 95%
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 10,
-        timestep: 1,
-      })); // 90%
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 1,
-        timestep: 2,
-      })); // 99%
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 5,
+          timestep: 0,
+        })
+      ); // 95%
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 10,
+          timestep: 1,
+        })
+      ); // 90%
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 1,
+          timestep: 2,
+        })
+      ); // 99%
 
       const stats = monitor.getStats();
       expect(stats.stdDevSparsity).toBeGreaterThan(0);
@@ -838,17 +937,23 @@ describe('SparsityMonitor', () => {
 
     it('should count violations by severity', () => {
       // Warning violation
-      monitor.recordLayerActivity('warn_layer', makeInput({
-        neuronCount: 100,
-        spikeCount: 10,
-        timestep: 0,
-      })); // 90% sparsity
+      monitor.recordLayerActivity(
+        'warn_layer',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 10,
+          timestep: 0,
+        })
+      ); // 90% sparsity
       // Critical violation
-      monitor.recordLayerActivity('bad_layer', makeInput({
-        neuronCount: 100,
-        spikeCount: 50,
-        timestep: 0,
-      })); // 50% sparsity
+      monitor.recordLayerActivity(
+        'bad_layer',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 50,
+          timestep: 0,
+        })
+      ); // 50% sparsity
 
       const stats = monitor.getStats();
       expect(stats.totalViolations).toBe(2);
@@ -857,25 +962,34 @@ describe('SparsityMonitor', () => {
     });
 
     it('should track per-layer mean sparsity', () => {
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 5,
-        timestep: 0,
-      })); // 95%
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 3,
-        timestep: 1,
-      })); // 97%
-      monitor.recordLayerActivity('layer2', makeInput({
-        neuronCount: 100,
-        spikeCount: 10,
-        timestep: 0,
-      })); // 90%
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 5,
+          timestep: 0,
+        })
+      ); // 95%
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 3,
+          timestep: 1,
+        })
+      ); // 97%
+      monitor.recordLayerActivity(
+        'layer2',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 10,
+          timestep: 0,
+        })
+      ); // 90%
 
       const stats = monitor.getStats();
       expect(stats.perLayerMeanSparsity['layer1']).toBeCloseTo(0.96, 2);
-      expect(stats.perLayerMeanSparsity['layer2']).toBeCloseTo(0.90, 4);
+      expect(stats.perLayerMeanSparsity['layer2']).toBeCloseTo(0.9, 4);
     });
 
     it('should calculate mean energy efficiency', () => {
@@ -890,17 +1004,23 @@ describe('SparsityMonitor', () => {
 
     it('should report inCompliance correctly', () => {
       // All layers in compliance
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 1000,
-        spikeCount: 50,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 50,
+        })
+      );
       expect(monitor.getStats().inCompliance).toBe(true);
 
       // Add a violating layer
-      monitor.recordLayerActivity('bad', makeInput({
-        neuronCount: 100,
-        spikeCount: 20,
-      }));
+      monitor.recordLayerActivity(
+        'bad',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 20,
+        })
+      );
       expect(monitor.getStats().inCompliance).toBe(false);
     });
 
@@ -941,10 +1061,13 @@ describe('SparsityMonitor', () => {
 
     it('should calculate composite as sparsity/threshold ratio', () => {
       // 95% sparsity / 93% threshold = ~1.02 -> capped at 1.0
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 1000,
-        spikeCount: 50,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 50,
+        })
+      );
       monitor.takeSnapshot();
 
       const entry = monitor.toQualityHistoryEntry(1);
@@ -953,10 +1076,13 @@ describe('SparsityMonitor', () => {
 
     it('should scale composite below 1 when sparsity is below threshold', () => {
       // 80% sparsity / 93% threshold = ~0.86
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 20,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 20,
+        })
+      );
       monitor.takeSnapshot();
 
       const entry = monitor.toQualityHistoryEntry(1);
@@ -965,10 +1091,13 @@ describe('SparsityMonitor', () => {
     });
 
     it('should assign correct grade A (>= 95% composite)', () => {
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 1000,
-        spikeCount: 10,
-      })); // 99% sparsity
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 10,
+        })
+      ); // 99% sparsity
       monitor.takeSnapshot();
 
       const entry = monitor.toQualityHistoryEntry(1);
@@ -979,10 +1108,13 @@ describe('SparsityMonitor', () => {
       // Need sparsity such that sparsity/0.93 is between 0.85 and 0.95
       // 0.85 * 0.93 = 0.7905, 0.95 * 0.93 = 0.8835
       // Use sparsity = 0.84 -> 0.84/0.93 = 0.9032 -> grade B
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 16,
-      })); // 84% sparsity
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 16,
+        })
+      ); // 84% sparsity
       monitor.takeSnapshot();
 
       const entry = monitor.toQualityHistoryEntry(1);
@@ -993,10 +1125,13 @@ describe('SparsityMonitor', () => {
       // Need sparsity such that sparsity/0.93 < 0.5
       // 0.5 * 0.93 = 0.465
       // Use sparsity = 0.40 -> 0.40/0.93 = 0.43 -> grade F
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 100,
-        spikeCount: 60,
-      })); // 40% sparsity
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 60,
+        })
+      ); // 40% sparsity
       monitor.takeSnapshot();
 
       const entry = monitor.toQualityHistoryEntry(1);
@@ -1021,10 +1156,13 @@ describe('SparsityMonitor', () => {
     });
 
     it('should include violation count in sparsity metrics', () => {
-      monitor.recordLayerActivity('bad', makeInput({
-        neuronCount: 100,
-        spikeCount: 20,
-      }));
+      monitor.recordLayerActivity(
+        'bad',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 20,
+        })
+      );
       monitor.takeSnapshot();
 
       const entry = monitor.toQualityHistoryEntry(1);
@@ -1101,10 +1239,13 @@ describe('SparsityMonitor', () => {
     });
 
     it('should reflect current state accurately', () => {
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 1000,
-        spikeCount: 50,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 50,
+        })
+      );
 
       const metrics = monitor.getHarvesterMetrics();
       expect(metrics.snn_mean_sparsity).toBeCloseTo(0.95, 4);
@@ -1114,10 +1255,13 @@ describe('SparsityMonitor', () => {
     });
 
     it('should show violation count when violations exist', () => {
-      monitor.recordLayerActivity('bad', makeInput({
-        neuronCount: 100,
-        spikeCount: 20,
-      }));
+      monitor.recordLayerActivity(
+        'bad',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 20,
+        })
+      );
 
       const metrics = monitor.getHarvesterMetrics();
       expect(metrics.snn_violation_count).toBeGreaterThan(0);
@@ -1186,10 +1330,13 @@ describe('SparsityMonitor', () => {
     it('should pass layers with exactly 93% sparsity', () => {
       const monitor = createTestMonitor();
       // 93% sparsity = 7% spike rate = 70 spikes out of 1000
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 1000,
-        spikeCount: 70,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 70,
+        })
+      );
 
       const violations = monitor.getActiveViolations();
       expect(violations.length).toBe(0);
@@ -1198,10 +1345,13 @@ describe('SparsityMonitor', () => {
     it('should fail layers with 92.9% sparsity', () => {
       const monitor = createTestMonitor();
       // 92.9% sparsity = 7.1% spike rate = 71 spikes out of 1000
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 1000,
-        spikeCount: 71,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 71,
+        })
+      );
 
       const violations = monitor.getActiveViolations();
       expect(violations.length).toBe(1);
@@ -1211,17 +1361,23 @@ describe('SparsityMonitor', () => {
       const monitor = createTestMonitor();
 
       // Start compliant
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 1000,
-        spikeCount: 50,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 50,
+        })
+      );
       expect(monitor.getStats().inCompliance).toBe(true);
 
       // Become non-compliant
-      monitor.recordLayerActivity('layer2', makeInput({
-        neuronCount: 100,
-        spikeCount: 20,
-      }));
+      monitor.recordLayerActivity(
+        'layer2',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 20,
+        })
+      );
       expect(monitor.getStats().inCompliance).toBe(false);
     });
 
@@ -1229,10 +1385,13 @@ describe('SparsityMonitor', () => {
       const monitor = createTestMonitor({ sparsityThreshold: 0.95 });
 
       // 94% sparsity would be fine at 93% but fails at 95%
-      monitor.recordLayerActivity('layer1', makeInput({
-        neuronCount: 1000,
-        spikeCount: 60,
-      }));
+      monitor.recordLayerActivity(
+        'layer1',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 60,
+        })
+      );
 
       const violations = monitor.getActiveViolations();
       expect(violations.length).toBe(1);
@@ -1246,19 +1405,25 @@ describe('SparsityMonitor', () => {
   describe('edge cases', () => {
     it('should handle single neuron layer', () => {
       const monitor = createTestMonitor();
-      const metrics = monitor.recordLayerActivity('tiny', makeInput({
-        neuronCount: 1,
-        spikeCount: 0,
-      }));
+      const metrics = monitor.recordLayerActivity(
+        'tiny',
+        makeInput({
+          neuronCount: 1,
+          spikeCount: 0,
+        })
+      );
       expect(metrics.activationSparsity).toBe(1);
     });
 
     it('should handle very large neuron counts', () => {
       const monitor = createTestMonitor();
-      const metrics = monitor.recordLayerActivity('huge', makeInput({
-        neuronCount: 1_000_000,
-        spikeCount: 50_000,
-      }));
+      const metrics = monitor.recordLayerActivity(
+        'huge',
+        makeInput({
+          neuronCount: 1_000_000,
+          spikeCount: 50_000,
+        })
+      );
       expect(metrics.spikeRate).toBeCloseTo(0.05, 4);
       expect(metrics.activationSparsity).toBeCloseTo(0.95, 4);
     });
@@ -1266,10 +1431,13 @@ describe('SparsityMonitor', () => {
     it('should handle rapid successive recordings', () => {
       const monitor = createTestMonitor();
       for (let t = 0; t < 1000; t++) {
-        monitor.recordLayerActivity('layer1', makeInput({
-          spikeCount: Math.floor(Math.random() * 100),
-          timestep: t,
-        }));
+        monitor.recordLayerActivity(
+          'layer1',
+          makeInput({
+            spikeCount: Math.floor(Math.random() * 100),
+            timestep: t,
+          })
+        );
       }
       const stats = monitor.getStats();
       expect(stats.totalTimesteps).toBe(1000);
@@ -1278,9 +1446,12 @@ describe('SparsityMonitor', () => {
     it('should handle many layers simultaneously', () => {
       const monitor = createTestMonitor();
       for (let i = 0; i < 100; i++) {
-        monitor.recordLayerActivity(`layer_${i}`, makeInput({
-          spikeCount: i,
-        }));
+        monitor.recordLayerActivity(
+          `layer_${i}`,
+          makeInput({
+            spikeCount: i,
+          })
+        );
       }
       expect(monitor.getCurrentLayerMetrics().size).toBe(100);
     });
@@ -1296,14 +1467,20 @@ describe('SparsityMonitor', () => {
 
     it('should handle snapshot with all layers violating', () => {
       const monitor = createTestMonitor();
-      monitor.recordLayerActivity('a', makeInput({
-        neuronCount: 100,
-        spikeCount: 50,
-      }));
-      monitor.recordLayerActivity('b', makeInput({
-        neuronCount: 100,
-        spikeCount: 40,
-      }));
+      monitor.recordLayerActivity(
+        'a',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 50,
+        })
+      );
+      monitor.recordLayerActivity(
+        'b',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 40,
+        })
+      );
 
       const snapshot = monitor.takeSnapshot()!;
       expect(snapshot.violations.length).toBe(2);
@@ -1320,21 +1497,30 @@ describe('SparsityMonitor', () => {
 
       // Simulate 10 timesteps across 3 layers
       for (let t = 0; t < 10; t++) {
-        monitor.recordLayerActivity('lif_input', makeInput({
-          neuronCount: 784,
-          spikeCount: Math.floor(784 * 0.03), // ~3% spike rate (97% sparsity)
-          timestep: t,
-        }));
-        monitor.recordLayerActivity('lif_hidden', makeInput({
-          neuronCount: 256,
-          spikeCount: Math.floor(256 * 0.05), // ~5% spike rate (95% sparsity)
-          timestep: t,
-        }));
-        monitor.recordLayerActivity('lif_output', makeInput({
-          neuronCount: 10,
-          spikeCount: Math.floor(10 * 0.02), // ~2% spike rate (98% sparsity)
-          timestep: t,
-        }));
+        monitor.recordLayerActivity(
+          'lif_input',
+          makeInput({
+            neuronCount: 784,
+            spikeCount: Math.floor(784 * 0.03), // ~3% spike rate (97% sparsity)
+            timestep: t,
+          })
+        );
+        monitor.recordLayerActivity(
+          'lif_hidden',
+          makeInput({
+            neuronCount: 256,
+            spikeCount: Math.floor(256 * 0.05), // ~5% spike rate (95% sparsity)
+            timestep: t,
+          })
+        );
+        monitor.recordLayerActivity(
+          'lif_output',
+          makeInput({
+            neuronCount: 10,
+            spikeCount: Math.floor(10 * 0.02), // ~2% spike rate (98% sparsity)
+            timestep: t,
+          })
+        );
 
         monitor.takeSnapshot();
       }
@@ -1367,22 +1553,31 @@ describe('SparsityMonitor', () => {
       const monitor = createTestMonitor();
 
       // Good layer (96% sparsity)
-      monitor.recordLayerActivity('healthy', makeInput({
-        neuronCount: 1000,
-        spikeCount: 40,
-      }));
+      monitor.recordLayerActivity(
+        'healthy',
+        makeInput({
+          neuronCount: 1000,
+          spikeCount: 40,
+        })
+      );
 
       // Warning layer (90% sparsity) - below 93% threshold but above 85% critical
-      monitor.recordLayerActivity('struggling', makeInput({
-        neuronCount: 100,
-        spikeCount: 10,
-      }));
+      monitor.recordLayerActivity(
+        'struggling',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 10,
+        })
+      );
 
       // Critical layer (50% sparsity) - below 85% critical threshold
-      monitor.recordLayerActivity('failing', makeInput({
-        neuronCount: 100,
-        spikeCount: 50,
-      }));
+      monitor.recordLayerActivity(
+        'failing',
+        makeInput({
+          neuronCount: 100,
+          spikeCount: 50,
+        })
+      );
 
       const snapshot = monitor.takeSnapshot()!;
       const stats = monitor.getStats();

@@ -46,10 +46,7 @@ export function TaskMonitor({
       {showProgress && (
         <div className="task-monitor__progress">
           <div className="task-monitor__progress-bar">
-            <div
-              className="task-monitor__progress-fill"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="task-monitor__progress-fill" style={{ width: `${progress}%` }} />
           </div>
           <span className="task-monitor__progress-text">{progress}%</span>
         </div>
@@ -67,9 +64,7 @@ export function TaskMonitor({
       {estimatedTime !== undefined && (
         <div className="task-monitor__eta">
           <span className="task-monitor__eta-label">ETA:</span>
-          <span className="task-monitor__eta-value">
-            {Math.ceil(estimatedTime / 1000)}s
-          </span>
+          <span className="task-monitor__eta-value">{Math.ceil(estimatedTime / 1000)}s</span>
         </div>
       )}
 
@@ -94,7 +89,9 @@ export function TaskMonitor({
         </div>
       )}
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .task-monitor {
           padding: 16px;
           border: 1px solid #e0e0e0;
@@ -241,7 +238,9 @@ export function TaskMonitor({
         .task-monitor__log-message {
           color: #333;
         }
-      ` }} />
+      `,
+        }}
+      />
     </div>
   );
 }

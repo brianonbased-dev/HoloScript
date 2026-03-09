@@ -25,33 +25,46 @@
 /** Specific platform targets */
 export type PlatformTarget =
   // VR
-  | 'quest3' | 'pcvr' | 'visionos' | 'android-xr'
+  | 'quest3'
+  | 'pcvr'
+  | 'visionos'
+  | 'android-xr'
   // AR
-  | 'visionos-ar' | 'android-xr-ar' | 'webxr'
+  | 'visionos-ar'
+  | 'android-xr-ar'
+  | 'webxr'
   // Mobile
-  | 'ios' | 'android'
+  | 'ios'
+  | 'android'
   // Desktop
-  | 'windows' | 'macos' | 'linux' | 'web'
+  | 'windows'
+  | 'macos'
+  | 'linux'
+  | 'web'
   // Automotive
-  | 'android-auto' | 'carplay'
+  | 'android-auto'
+  | 'carplay'
   // Wearable
-  | 'watchos' | 'wearos';
+  | 'watchos'
+  | 'wearos';
 
 /** Platform category (form factor) */
 export type PlatformCategory = 'vr' | 'ar' | 'mobile' | 'desktop' | 'automotive' | 'wearable';
 
 /** Map categories to their member platforms */
 export const PLATFORM_CATEGORIES: Record<PlatformCategory, PlatformTarget[]> = {
-  vr:         ['quest3', 'pcvr', 'visionos', 'android-xr'],
-  ar:         ['visionos-ar', 'android-xr-ar', 'webxr'],
-  mobile:     ['ios', 'android'],
-  desktop:    ['windows', 'macos', 'linux', 'web'],
+  vr: ['quest3', 'pcvr', 'visionos', 'android-xr'],
+  ar: ['visionos-ar', 'android-xr-ar', 'webxr'],
+  mobile: ['ios', 'android'],
+  desktop: ['windows', 'macos', 'linux', 'web'],
   automotive: ['android-auto', 'carplay'],
-  wearable:   ['watchos', 'wearos'],
+  wearable: ['watchos', 'wearos'],
 };
 
 /** All valid platform targets (flattened) */
-export const ALL_PLATFORMS: PlatformTarget[] = Object.values(PLATFORM_CATEGORIES).flat() as PlatformTarget[];
+export const ALL_PLATFORMS: PlatformTarget[] = Object.values(
+  PLATFORM_CATEGORIES
+).flat() as PlatformTarget[];
 
 /** Get the category of a platform */
 export function platformCategory(target: PlatformTarget): PlatformCategory {
@@ -85,23 +98,261 @@ export interface PlatformCapabilities {
 
 /** Per-platform capability profiles */
 export const PLATFORM_CAPABILITIES: Record<PlatformTarget, PlatformCapabilities> = {
-  'quest3':       { spatialTracking: true, handTracking: true, eyeTracking: true, haptics: true, spatialAudio: true, gpu3D: true, arCamera: true, gps: false, npu: true, webxrSupport: true, frameBudgetMs: 11.1, agentBudgetMs: 5, computeModel: 'edge-first' },
-  'pcvr':         { spatialTracking: true, handTracking: true, eyeTracking: true, haptics: true, spatialAudio: true, gpu3D: true, arCamera: false, gps: false, npu: false, webxrSupport: true, frameBudgetMs: 11.1, agentBudgetMs: 5, computeModel: 'edge-first' },
-  'visionos':     { spatialTracking: true, handTracking: true, eyeTracking: true, haptics: false, spatialAudio: true, gpu3D: true, arCamera: true, gps: false, npu: true, webxrSupport: false, frameBudgetMs: 11.1, agentBudgetMs: 5, computeModel: 'edge-first' },
-  'android-xr':   { spatialTracking: true, handTracking: true, eyeTracking: true, haptics: true, spatialAudio: true, gpu3D: true, arCamera: true, gps: true, npu: true, webxrSupport: true, frameBudgetMs: 11.1, agentBudgetMs: 5, computeModel: 'edge-first' },
-  'visionos-ar':  { spatialTracking: true, handTracking: true, eyeTracking: true, haptics: false, spatialAudio: true, gpu3D: true, arCamera: true, gps: true, npu: true, webxrSupport: false, frameBudgetMs: 16.6, agentBudgetMs: 10, computeModel: 'edge-first' },
-  'android-xr-ar': { spatialTracking: true, handTracking: true, eyeTracking: false, haptics: true, spatialAudio: true, gpu3D: true, arCamera: true, gps: true, npu: true, webxrSupport: true, frameBudgetMs: 16.6, agentBudgetMs: 10, computeModel: 'edge-first' },
-  'webxr':        { spatialTracking: true, handTracking: false, eyeTracking: false, haptics: false, spatialAudio: false, gpu3D: true, arCamera: true, gps: false, npu: false, webxrSupport: true, frameBudgetMs: 16.6, agentBudgetMs: 15, computeModel: 'cloud-first' },
-  'ios':          { spatialTracking: false, handTracking: false, eyeTracking: false, haptics: true, spatialAudio: false, gpu3D: true, arCamera: true, gps: true, npu: true, webxrSupport: false, frameBudgetMs: 16.6, agentBudgetMs: 100, computeModel: 'cloud-first' },
-  'android':      { spatialTracking: false, handTracking: false, eyeTracking: false, haptics: true, spatialAudio: false, gpu3D: true, arCamera: true, gps: true, npu: true, webxrSupport: true, frameBudgetMs: 16.6, agentBudgetMs: 100, computeModel: 'cloud-first' },
-  'windows':      { spatialTracking: false, handTracking: false, eyeTracking: false, haptics: false, spatialAudio: false, gpu3D: true, arCamera: false, gps: false, npu: false, webxrSupport: true, frameBudgetMs: 16.6, agentBudgetMs: 200, computeModel: 'cloud-first' },
-  'macos':        { spatialTracking: false, handTracking: false, eyeTracking: false, haptics: false, spatialAudio: false, gpu3D: true, arCamera: false, gps: false, npu: true, webxrSupport: true, frameBudgetMs: 16.6, agentBudgetMs: 200, computeModel: 'cloud-first' },
-  'linux':        { spatialTracking: false, handTracking: false, eyeTracking: false, haptics: false, spatialAudio: false, gpu3D: true, arCamera: false, gps: false, npu: false, webxrSupport: true, frameBudgetMs: 16.6, agentBudgetMs: 200, computeModel: 'cloud-first' },
-  'web':          { spatialTracking: false, handTracking: false, eyeTracking: false, haptics: false, spatialAudio: false, gpu3D: true, arCamera: false, gps: false, npu: false, webxrSupport: true, frameBudgetMs: 16.6, agentBudgetMs: 200, computeModel: 'cloud-first' },
-  'android-auto': { spatialTracking: false, handTracking: false, eyeTracking: false, haptics: false, spatialAudio: true, gpu3D: false, arCamera: false, gps: true, npu: false, webxrSupport: false, frameBudgetMs: 30, agentBudgetMs: 15, computeModel: 'safety-critical' },
-  'carplay':      { spatialTracking: false, handTracking: false, eyeTracking: false, haptics: false, spatialAudio: true, gpu3D: false, arCamera: false, gps: true, npu: false, webxrSupport: false, frameBudgetMs: 30, agentBudgetMs: 15, computeModel: 'safety-critical' },
-  'watchos':      { spatialTracking: false, handTracking: false, eyeTracking: false, haptics: true, spatialAudio: false, gpu3D: false, arCamera: false, gps: true, npu: true, webxrSupport: false, frameBudgetMs: 33.3, agentBudgetMs: 50, computeModel: 'cloud-first' },
-  'wearos':       { spatialTracking: false, handTracking: false, eyeTracking: false, haptics: true, spatialAudio: false, gpu3D: false, arCamera: false, gps: true, npu: false, webxrSupport: false, frameBudgetMs: 33.3, agentBudgetMs: 50, computeModel: 'cloud-first' },
+  quest3: {
+    spatialTracking: true,
+    handTracking: true,
+    eyeTracking: true,
+    haptics: true,
+    spatialAudio: true,
+    gpu3D: true,
+    arCamera: true,
+    gps: false,
+    npu: true,
+    webxrSupport: true,
+    frameBudgetMs: 11.1,
+    agentBudgetMs: 5,
+    computeModel: 'edge-first',
+  },
+  pcvr: {
+    spatialTracking: true,
+    handTracking: true,
+    eyeTracking: true,
+    haptics: true,
+    spatialAudio: true,
+    gpu3D: true,
+    arCamera: false,
+    gps: false,
+    npu: false,
+    webxrSupport: true,
+    frameBudgetMs: 11.1,
+    agentBudgetMs: 5,
+    computeModel: 'edge-first',
+  },
+  visionos: {
+    spatialTracking: true,
+    handTracking: true,
+    eyeTracking: true,
+    haptics: false,
+    spatialAudio: true,
+    gpu3D: true,
+    arCamera: true,
+    gps: false,
+    npu: true,
+    webxrSupport: false,
+    frameBudgetMs: 11.1,
+    agentBudgetMs: 5,
+    computeModel: 'edge-first',
+  },
+  'android-xr': {
+    spatialTracking: true,
+    handTracking: true,
+    eyeTracking: true,
+    haptics: true,
+    spatialAudio: true,
+    gpu3D: true,
+    arCamera: true,
+    gps: true,
+    npu: true,
+    webxrSupport: true,
+    frameBudgetMs: 11.1,
+    agentBudgetMs: 5,
+    computeModel: 'edge-first',
+  },
+  'visionos-ar': {
+    spatialTracking: true,
+    handTracking: true,
+    eyeTracking: true,
+    haptics: false,
+    spatialAudio: true,
+    gpu3D: true,
+    arCamera: true,
+    gps: true,
+    npu: true,
+    webxrSupport: false,
+    frameBudgetMs: 16.6,
+    agentBudgetMs: 10,
+    computeModel: 'edge-first',
+  },
+  'android-xr-ar': {
+    spatialTracking: true,
+    handTracking: true,
+    eyeTracking: false,
+    haptics: true,
+    spatialAudio: true,
+    gpu3D: true,
+    arCamera: true,
+    gps: true,
+    npu: true,
+    webxrSupport: true,
+    frameBudgetMs: 16.6,
+    agentBudgetMs: 10,
+    computeModel: 'edge-first',
+  },
+  webxr: {
+    spatialTracking: true,
+    handTracking: false,
+    eyeTracking: false,
+    haptics: false,
+    spatialAudio: false,
+    gpu3D: true,
+    arCamera: true,
+    gps: false,
+    npu: false,
+    webxrSupport: true,
+    frameBudgetMs: 16.6,
+    agentBudgetMs: 15,
+    computeModel: 'cloud-first',
+  },
+  ios: {
+    spatialTracking: false,
+    handTracking: false,
+    eyeTracking: false,
+    haptics: true,
+    spatialAudio: false,
+    gpu3D: true,
+    arCamera: true,
+    gps: true,
+    npu: true,
+    webxrSupport: false,
+    frameBudgetMs: 16.6,
+    agentBudgetMs: 100,
+    computeModel: 'cloud-first',
+  },
+  android: {
+    spatialTracking: false,
+    handTracking: false,
+    eyeTracking: false,
+    haptics: true,
+    spatialAudio: false,
+    gpu3D: true,
+    arCamera: true,
+    gps: true,
+    npu: true,
+    webxrSupport: true,
+    frameBudgetMs: 16.6,
+    agentBudgetMs: 100,
+    computeModel: 'cloud-first',
+  },
+  windows: {
+    spatialTracking: false,
+    handTracking: false,
+    eyeTracking: false,
+    haptics: false,
+    spatialAudio: false,
+    gpu3D: true,
+    arCamera: false,
+    gps: false,
+    npu: false,
+    webxrSupport: true,
+    frameBudgetMs: 16.6,
+    agentBudgetMs: 200,
+    computeModel: 'cloud-first',
+  },
+  macos: {
+    spatialTracking: false,
+    handTracking: false,
+    eyeTracking: false,
+    haptics: false,
+    spatialAudio: false,
+    gpu3D: true,
+    arCamera: false,
+    gps: false,
+    npu: true,
+    webxrSupport: true,
+    frameBudgetMs: 16.6,
+    agentBudgetMs: 200,
+    computeModel: 'cloud-first',
+  },
+  linux: {
+    spatialTracking: false,
+    handTracking: false,
+    eyeTracking: false,
+    haptics: false,
+    spatialAudio: false,
+    gpu3D: true,
+    arCamera: false,
+    gps: false,
+    npu: false,
+    webxrSupport: true,
+    frameBudgetMs: 16.6,
+    agentBudgetMs: 200,
+    computeModel: 'cloud-first',
+  },
+  web: {
+    spatialTracking: false,
+    handTracking: false,
+    eyeTracking: false,
+    haptics: false,
+    spatialAudio: false,
+    gpu3D: true,
+    arCamera: false,
+    gps: false,
+    npu: false,
+    webxrSupport: true,
+    frameBudgetMs: 16.6,
+    agentBudgetMs: 200,
+    computeModel: 'cloud-first',
+  },
+  'android-auto': {
+    spatialTracking: false,
+    handTracking: false,
+    eyeTracking: false,
+    haptics: false,
+    spatialAudio: true,
+    gpu3D: false,
+    arCamera: false,
+    gps: true,
+    npu: false,
+    webxrSupport: false,
+    frameBudgetMs: 30,
+    agentBudgetMs: 15,
+    computeModel: 'safety-critical',
+  },
+  carplay: {
+    spatialTracking: false,
+    handTracking: false,
+    eyeTracking: false,
+    haptics: false,
+    spatialAudio: true,
+    gpu3D: false,
+    arCamera: false,
+    gps: true,
+    npu: false,
+    webxrSupport: false,
+    frameBudgetMs: 30,
+    agentBudgetMs: 15,
+    computeModel: 'safety-critical',
+  },
+  watchos: {
+    spatialTracking: false,
+    handTracking: false,
+    eyeTracking: false,
+    haptics: true,
+    spatialAudio: false,
+    gpu3D: false,
+    arCamera: false,
+    gps: true,
+    npu: true,
+    webxrSupport: false,
+    frameBudgetMs: 33.3,
+    agentBudgetMs: 50,
+    computeModel: 'cloud-first',
+  },
+  wearos: {
+    spatialTracking: false,
+    handTracking: false,
+    eyeTracking: false,
+    haptics: true,
+    spatialAudio: false,
+    gpu3D: false,
+    arCamera: false,
+    gps: true,
+    npu: false,
+    webxrSupport: false,
+    frameBudgetMs: 33.3,
+    agentBudgetMs: 50,
+    computeModel: 'cloud-first',
+  },
 };
 
 // =============================================================================
@@ -127,7 +378,13 @@ export interface PlatformBlock<T = unknown> {
 }
 
 /** Agent embodiment type per form factor */
-export type EmbodimentType = 'Avatar3D' | 'SpatialPersona' | 'VoiceHUD' | 'UI2D' | 'FullGUI' | 'WebXR';
+export type EmbodimentType =
+  | 'Avatar3D'
+  | 'SpatialPersona'
+  | 'VoiceHUD'
+  | 'UI2D'
+  | 'FullGUI'
+  | 'WebXR';
 
 /** Map platform categories to default embodiment */
 export const DEFAULT_EMBODIMENT: Record<PlatformCategory, EmbodimentType> = {
@@ -166,13 +423,15 @@ export function resolvePlatforms(condition: PlatformCondition): PlatformTarget[]
 
   // Filter by required capabilities
   if (condition.requireCapabilities) {
-    platforms = new Set([...platforms].filter(p => {
-      const caps = PLATFORM_CAPABILITIES[p];
-      return condition.requireCapabilities!.every(cap => {
-        const val = caps[cap];
-        return typeof val === 'boolean' ? val : Number(val) > 0;
-      });
-    }));
+    platforms = new Set(
+      [...platforms].filter((p) => {
+        const caps = PLATFORM_CAPABILITIES[p];
+        return condition.requireCapabilities!.every((cap) => {
+          const val = caps[cap];
+          return typeof val === 'boolean' ? val : Number(val) > 0;
+        });
+      })
+    );
   }
 
   return [...platforms];
@@ -201,7 +460,7 @@ export function selectBlock<T>(target: PlatformTarget, blocks: PlatformBlock<T>[
  * platform-conditional blocks to only those that apply.
  */
 export function eliminateDeadCode<T>(target: PlatformTarget, blocks: PlatformBlock<T>[]): T[] {
-  return blocks.filter(b => matchesPlatform(target, b.condition)).map(b => b.body);
+  return blocks.filter((b) => matchesPlatform(target, b.condition)).map((b) => b.body);
 }
 
 /**

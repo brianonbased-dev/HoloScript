@@ -7,10 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  CRDTRoomTraitHandler,
-  createCRDTRoomTraitHandler,
-} from '../CRDTRoomTraitHandler';
+import { CRDTRoomTraitHandler, createCRDTRoomTraitHandler } from '../CRDTRoomTraitHandler';
 import type { CRDTRoomConfigOutput } from '../CRDTRoomTraitHandler';
 import {
   resolveCRDTRoomTraitConfig,
@@ -24,7 +21,9 @@ import type { CRDTRoomTraitConfig } from '../CRDTRoomTrait';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeResolvedConfig(overrides: Partial<CRDTRoomTraitConfig> = {}): Required<CRDTRoomTraitConfig> {
+function makeResolvedConfig(
+  overrides: Partial<CRDTRoomTraitConfig> = {}
+): Required<CRDTRoomTraitConfig> {
   const parsed = parseCRDTRoomTraitConfig({ ...overrides });
   validateCRDTRoomTraitConfig(parsed);
   return resolveCRDTRoomTraitConfig(parsed);
@@ -266,9 +265,7 @@ describe('CRDTRoomTraitHandler', () => {
 
     it('getInterestRegionDecls returns copy of declarations', () => {
       const handler = makeHandler({
-        interestRegions: [
-          { id: 'r1', center: [0, 0, 0], radius: 10, priority: 0, syncRateHz: 30 },
-        ],
+        interestRegions: [{ id: 'r1', center: [0, 0, 0], radius: 10, priority: 0, syncRateHz: 30 }],
       });
       const decls = handler.getInterestRegionDecls();
       expect(decls).toHaveLength(1);
@@ -294,9 +291,7 @@ describe('CRDTRoomTraitHandler', () => {
     });
 
     it('throws on invalid raw config', () => {
-      expect(() =>
-        createCRDTRoomTraitHandler({ maxPlayers: -5 }),
-      ).toThrow();
+      expect(() => createCRDTRoomTraitHandler({ maxPlayers: -5 })).toThrow();
     });
 
     it('applies defaults for missing fields', () => {

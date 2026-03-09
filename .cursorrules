@@ -54,7 +54,8 @@ User is new to HoloScript?
   NO  ↓
 
 Modifying TypeScript in packages/?
-  YES → pnpm test → edit → pnpm test → explicit git add
+  YES → PRE-REFACTOR: run `npx tsx packages/cli/src/cli.ts absorb <package-path> > knowledge.holo`
+  THEN → pnpm test → edit → pnpm test → explicit git add
   NO  ↓
 
 Writing documentation?
@@ -206,6 +207,7 @@ composition "WorldScene" {
 ```
 □ validate_holoscript called on all generated HoloScript?
 □ pnpm test run if any TypeScript modified?
+□ Did I run `holoscript absorb` BEFORE refactoring ANY TypeScript package?
 □ Explicit git add used (never git add -A)?
 □ docs/.vitepress/config.ts updated if new doc page created?
 □ Output matches what user actually asked for?

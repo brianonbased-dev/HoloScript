@@ -11,7 +11,7 @@
 
 import { useMemo } from 'react';
 import { GitCompare, X, Check, Minus, Plus } from 'lucide-react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 interface DiffLine {
   type: 'same' | 'add' | 'remove';
@@ -25,7 +25,8 @@ function computeDiff(before: string, after: string): DiffLine[] {
 
   // Simple LCS-based line diff (greedy match)
   const result: DiffLine[] = [];
-  let i = 0, j = 0;
+  let i = 0,
+    j = 0;
 
   while (i < beforeLines.length || j < afterLines.length) {
     const b = beforeLines[i];
@@ -39,16 +40,19 @@ function computeDiff(before: string, after: string): DiffLine[] {
       i++;
     } else if (b === a) {
       result.push({ type: 'same', content: b, lineNo: i + 1 });
-      i++; j++;
+      i++;
+      j++;
     } else {
       // Look ahead to find the next match
       const lookAhead = 4;
-      let matchB = -1, matchA = -1;
+      let matchB = -1,
+        matchA = -1;
 
       for (let di = 1; di <= lookAhead && matchB === -1; di++) {
         for (let dj = 1; dj <= lookAhead && matchB === -1; dj++) {
           if (beforeLines[i + di] === afterLines[j + dj]) {
-            matchB = di; matchA = dj;
+            matchB = di;
+            matchA = dj;
           }
         }
       }
@@ -60,11 +64,13 @@ function computeDiff(before: string, after: string): DiffLine[] {
         for (let x = 0; x < matchA; x++) {
           result.push({ type: 'add', content: afterLines[j + x], lineNo: j + x + 1 });
         }
-        i += matchB; j += matchA;
+        i += matchB;
+        j += matchA;
       } else {
         result.push({ type: 'remove', content: b, lineNo: i + 1 });
         result.push({ type: 'add', content: a, lineNo: j + 1 });
-        i++; j++;
+        i++;
+        j++;
       }
     }
   }
@@ -115,7 +121,10 @@ export function SceneDiffPanel({
               <Check className="h-3 w-3" /> Accept
             </button>
           )}
-          <button onClick={onClose} className="rounded p-1 text-studio-muted hover:text-studio-text">
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-studio-muted hover:text-studio-text"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -131,17 +140,13 @@ export function SceneDiffPanel({
       <div className="flex-1 overflow-y-auto font-mono text-[11px] leading-relaxed">
         {diff.map((line, i) => {
           const bg =
-            line.type === 'add'
-              ? 'bg-green-500/10'
-              : line.type === 'remove'
-              ? 'bg-red-500/10'
-              : '';
+            line.type === 'add' ? 'bg-green-500/10' : line.type === 'remove' ? 'bg-red-500/10' : '';
           const text =
             line.type === 'add'
               ? 'text-green-400'
               : line.type === 'remove'
-              ? 'text-red-400'
-              : 'text-studio-muted/80';
+                ? 'text-red-400'
+                : 'text-studio-muted/80';
 
           return (
             <div key={i} className={`flex items-start px-3 py-0.5 ${bg}`}>

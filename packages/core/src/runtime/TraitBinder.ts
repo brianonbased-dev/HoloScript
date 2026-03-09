@@ -72,7 +72,7 @@ export class TraitBinder {
   registerComposed(
     name: string,
     sourceNames: string[],
-    graph?: import('../compiler/TraitDependencyGraph').TraitDependencyGraph,
+    graph?: import('../compiler/TraitDependencyGraph').TraitDependencyGraph
   ): string[] {
     const composer = new TraitComposer(graph);
     const result = composer.compose(name, this.handlers, sourceNames);

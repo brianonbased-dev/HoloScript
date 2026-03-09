@@ -12,9 +12,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 vi.mock('../RenderJobPersistence', () => ({
   JobQueuePersistence: class {
     async init() {}
-    async loadState() { return null; }
-    async loadActiveJobs() { return []; }
-    async loadCompletedJobs() { return []; }
+    async loadState() {
+      return null;
+    }
+    async loadActiveJobs() {
+      return [];
+    }
+    async loadCompletedJobs() {
+      return [];
+    }
     async saveJob() {}
     async saveState() {}
     async moveToCompleted() {}

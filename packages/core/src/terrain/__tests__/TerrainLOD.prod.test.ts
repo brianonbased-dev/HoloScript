@@ -15,7 +15,13 @@ describe('TerrainLOD — Production', () => {
   let lod: TerrainLOD;
 
   beforeEach(() => {
-    lod = new TerrainLOD({ totalSize: 1024, maxLOD: 3, baseResolution: 8, lodDistances: [50, 200, 500], morphRange: 0.2 });
+    lod = new TerrainLOD({
+      totalSize: 1024,
+      maxLOD: 3,
+      baseResolution: 8,
+      lodDistances: [50, 200, 500],
+      morphRange: 0.2,
+    });
     lod.generateQuadtree(flatSampler);
   });
 
@@ -46,11 +52,17 @@ describe('TerrainLOD — Production', () => {
   });
 
   it('heightData is populated from sampler', () => {
-    const lod2 = new TerrainLOD({ totalSize: 1024, maxLOD: 2, baseResolution: 4, lodDistances: [50, 200], morphRange: 0.2 });
+    const lod2 = new TerrainLOD({
+      totalSize: 1024,
+      maxLOD: 2,
+      baseResolution: 4,
+      lodDistances: [50, 200],
+      morphRange: 0.2,
+    });
     lod2.generateQuadtree(rampSampler);
     const chunks = lod2.getActiveChunks();
     // rampSampler returns > 0 for x > 0; check at least one non-zero height
-    const hasNonZero = chunks.some(c => c.heightData.some(v => v > 0));
+    const hasNonZero = chunks.some((c) => c.heightData.some((v) => v > 0));
     expect(hasNonZero).toBe(true);
   });
 
@@ -80,7 +92,7 @@ describe('TerrainLOD — Production', () => {
     lod.selectLOD(512, 512);
     const chunks = lod.getActiveChunks();
     // Check that some active chunk has morphFactor between 0 and 1
-    const hasMorph = chunks.some(c => c.morphFactor >= 0 && c.morphFactor <= 1);
+    const hasMorph = chunks.some((c) => c.morphFactor >= 0 && c.morphFactor <= 1);
     expect(hasMorph).toBe(true);
   });
 

@@ -12,7 +12,7 @@ describe('AudioMixer', () => {
   it('creates default channels on construction', () => {
     const channels = mixer.getChannels();
     expect(channels.length).toBeGreaterThanOrEqual(6);
-    const names = channels.map(c => c.name);
+    const names = channels.map((c) => c.name);
     expect(names).toContain('master');
     expect(names).toContain('sfx');
     expect(names).toContain('music');

@@ -23,7 +23,9 @@ describe('ResourceCache — construction', () => {
 
 describe('ResourceCache — put / get / has / remove', () => {
   let cache: ResourceCache<string>;
-  beforeEach(() => { cache = new ResourceCache<string>(10000); });
+  beforeEach(() => {
+    cache = new ResourceCache<string>(10000);
+  });
 
   it('put and get round-trip', () => {
     cache.put('k1', 'hello', 100);
@@ -83,7 +85,9 @@ describe('ResourceCache — put / get / has / remove', () => {
 });
 
 describe('ResourceCache — TTL expiry', () => {
-  afterEach(() => { vi.useRealTimers(); });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('returns value before TTL expires', () => {
     vi.useFakeTimers();
@@ -125,7 +129,9 @@ describe('ResourceCache — TTL expiry', () => {
 
 describe('ResourceCache — reference counting', () => {
   let cache: ResourceCache<string>;
-  beforeEach(() => { cache = new ResourceCache<string>(10000); });
+  beforeEach(() => {
+    cache = new ResourceCache<string>(10000);
+  });
 
   it('starts with refCount=0', () => {
     cache.put('k', 'v', 100);

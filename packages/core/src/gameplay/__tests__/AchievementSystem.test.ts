@@ -2,14 +2,22 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { AchievementSystem } from '../AchievementSystem';
 
 const ach = (id: string, rarity: 'bronze' | 'gold' = 'bronze', max = 10) => ({
-  id, name: id, description: 'Test', icon: '🏆', rarity,
-  maxProgress: max, hidden: false, category: 'general',
+  id,
+  name: id,
+  description: 'Test',
+  icon: '🏆',
+  rarity,
+  maxProgress: max,
+  hidden: false,
+  category: 'general',
 });
 
 describe('AchievementSystem', () => {
   let sys: AchievementSystem;
 
-  beforeEach(() => { sys = new AchievementSystem(); });
+  beforeEach(() => {
+    sys = new AchievementSystem();
+  });
 
   it('register adds achievement', () => {
     sys.register(ach('a'));
@@ -58,7 +66,7 @@ describe('AchievementSystem', () => {
 
   it('onUnlock listener fires', () => {
     const fired: string[] = [];
-    sys.onUnlock(a => fired.push(a.id));
+    sys.onUnlock((a) => fired.push(a.id));
     sys.register(ach('a', 'bronze', 1));
     sys.addProgress('a', 1);
     expect(fired).toEqual(['a']);

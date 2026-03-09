@@ -48,13 +48,7 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
     name: 'pepe',
     displayName: 'Pepe',
     description: 'The OG meme frog. Rare, comfy, or wojak mode.',
-    filenamePatterns: [
-      /pepe/i,
-      /pepega/i,
-      /monkas/i,
-      /feelsgood/i,
-      /feels.*man/i,
-    ],
+    filenamePatterns: [/pepe/i, /pepega/i, /monkas/i, /feelsgood/i, /feels.*man/i],
     bonePatterns: ['Frog_Root', 'Pepe_Head', 'Mouth_Smile'],
     defaultTraits: [
       {
@@ -173,13 +167,7 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
     name: 'wojak',
     displayName: 'Wojak',
     description: 'Sad boy hours. Doomer, bloomer, or soyjak variants.',
-    filenamePatterns: [
-      /wojak/i,
-      /doomer/i,
-      /bloomer/i,
-      /soyjak/i,
-      /coper/i,
-    ],
+    filenamePatterns: [/wojak/i, /doomer/i, /bloomer/i, /soyjak/i, /coper/i],
     bonePatterns: ['Wojak_Root', 'Sad_Face', 'Tear_L', 'Tear_R'],
     defaultTraits: [
       {
@@ -287,12 +275,7 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
     name: 'chad',
     displayName: 'Gigachad',
     description: 'Sigma male energy. Based and gigapilled.',
-    filenamePatterns: [
-      /chad/i,
-      /gigachad/i,
-      /sigma/i,
-      /based/i,
-    ],
+    filenamePatterns: [/chad/i, /gigachad/i, /sigma/i, /based/i],
     bonePatterns: ['Chad_Root', 'Jaw_Lower', 'Muscles'],
     defaultTraits: [
       {
@@ -421,12 +404,7 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
     name: 'doge',
     displayName: 'Doge',
     description: 'Much wow. Such meme. Very crypto.',
-    filenamePatterns: [
-      /doge/i,
-      /shiba/i,
-      /shibainu/i,
-      /kabosu/i,
-    ],
+    filenamePatterns: [/doge/i, /shiba/i, /shibainu/i, /kabosu/i],
     bonePatterns: ['Doge_Root', 'Shiba_Head', 'Tail'],
     defaultTraits: [
       {
@@ -555,11 +533,7 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
     name: 'trollface',
     displayName: 'Trollface',
     description: 'Problem? U mad bro?',
-    filenamePatterns: [
-      /troll/i,
-      /problem/i,
-      /umad/i,
-    ],
+    filenamePatterns: [/troll/i, /problem/i, /umad/i],
     defaultTraits: [
       {
         name: 'troll-grin',
@@ -634,12 +608,7 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
     name: 'cursed_cat',
     displayName: 'Cursed Cat (Smudge)',
     description: 'Confused cat at dinner table. He no like vegetals.',
-    filenamePatterns: [
-      /smudge/i,
-      /cursed.*cat/i,
-      /confused.*cat/i,
-      /table.*cat/i,
-    ],
+    filenamePatterns: [/smudge/i, /cursed.*cat/i, /confused.*cat/i, /table.*cat/i],
     defaultTraits: [
       {
         name: 'head-bob',
@@ -722,11 +691,7 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
     name: 'spongebob_mocking',
     displayName: 'Mocking SpongeBob',
     description: 'sPoNgEbOb MoCkInG mEmE',
-    filenamePatterns: [
-      /spongebob/i,
-      /mocking/i,
-      /caveman/i,
-    ],
+    filenamePatterns: [/spongebob/i, /mocking/i, /caveman/i],
     defaultTraits: [
       {
         name: 'random-caps-text',
@@ -838,12 +803,7 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
     name: 'big_brain',
     displayName: 'Big Brain',
     description: 'Galaxy brain. Expanding brain. IQ 200.',
-    filenamePatterns: [
-      /brain/i,
-      /thinking/i,
-      /galaxy.*brain/i,
-      /expanding/i,
-    ],
+    filenamePatterns: [/brain/i, /thinking/i, /galaxy.*brain/i, /expanding/i],
     defaultTraits: [
       {
         name: 'brain-expansion',
@@ -924,9 +884,7 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
 export function detectMemeTemplate(filename: string, boneNames?: string[]): MemeTemplate | null {
   // Check filename patterns
   for (const template of MEME_TEMPLATES) {
-    const filenameMatch = template.filenamePatterns.some((pattern) =>
-      pattern.test(filename)
-    );
+    const filenameMatch = template.filenamePatterns.some((pattern) => pattern.test(filename));
 
     if (filenameMatch) {
       return template;

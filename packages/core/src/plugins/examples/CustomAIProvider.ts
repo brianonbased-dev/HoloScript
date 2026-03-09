@@ -8,14 +8,8 @@
  * @example Example plugin implementation
  */
 
-import {
-  BaseAIProvider,
-  type AIProviderConfig,
-} from '../HololandExtensionPoint';
-import type {
-  AIGeneratedNarrative,
-  AIGeneratedQuest,
-} from '../HololandTypes';
+import { BaseAIProvider, type AIProviderConfig } from '../HololandExtensionPoint';
+import type { AIGeneratedNarrative, AIGeneratedQuest } from '../HololandTypes';
 
 /**
  * Custom AI provider implementation
@@ -86,7 +80,7 @@ export class CustomAIProvider extends BaseAIProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
+          Authorization: `Bearer ${this.config.apiKey}`,
         },
         body: JSON.stringify({
           model: this.config.model || 'default-model',
@@ -146,7 +140,7 @@ export class CustomAIProvider extends BaseAIProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
+          Authorization: `Bearer ${this.config.apiKey}`,
         },
         body: JSON.stringify({
           model: this.config.model || 'default-model',
@@ -195,7 +189,7 @@ export class CustomAIProvider extends BaseAIProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
+          Authorization: `Bearer ${this.config.apiKey}`,
         },
         body: JSON.stringify({
           model: this.config.model || 'default-model',
@@ -249,12 +243,22 @@ export class CustomAIProvider extends BaseAIProvider {
       description: `An exciting quest themed around ${theme}`,
       narrative: text,
       objectives: [
-        { id: 'obj1', type: 'location', description: 'Visit the location', targetValue: 1, required: true },
-        { id: 'obj2', type: 'interact', description: 'Complete the interaction', targetValue: 1, required: true },
+        {
+          id: 'obj1',
+          type: 'location',
+          description: 'Visit the location',
+          targetValue: 1,
+          required: true,
+        },
+        {
+          id: 'obj2',
+          type: 'interact',
+          description: 'Complete the interaction',
+          targetValue: 1,
+          required: true,
+        },
       ],
-      rewards: [
-        { type: 'xp', value: 100, description: '100 XP' },
-      ],
+      rewards: [{ type: 'xp', value: 100, description: '100 XP' }],
       difficulty: 'medium',
       estimatedDuration: 15,
       theme,

@@ -115,9 +115,7 @@ describe('handleHoloScriptTool', () => {
 
   it('should dispatch holo_sparsity_check correctly', async () => {
     const result = await handleHoloScriptTool('holo_sparsity_check', {
-      layers: [
-        { layerId: 'test_layer', neuronCount: 1000, spikeCount: 50, timestep: 0 },
-      ],
+      layers: [{ layerId: 'test_layer', neuronCount: 1000, spikeCount: 50, timestep: 0 }],
     });
     expect(result).not.toBeNull();
     expect(result!.success).toBe(true);
@@ -355,9 +353,7 @@ describe('handleSparsityCheck', () => {
 
   it('should analyze a single layer with high sparsity (no violations)', async () => {
     const result = await handleSparsityCheck({
-      layers: [
-        { layerId: 'lif_hidden_1', neuronCount: 1000, spikeCount: 50, timestep: 0 },
-      ],
+      layers: [{ layerId: 'lif_hidden_1', neuronCount: 1000, spikeCount: 50, timestep: 0 }],
     });
 
     expect(result.success).toBe(true);
@@ -382,9 +378,7 @@ describe('handleSparsityCheck', () => {
 
   it('should detect violations when sparsity is below threshold', async () => {
     const result = await handleSparsityCheck({
-      layers: [
-        { layerId: 'dense_layer', neuronCount: 100, spikeCount: 50, timestep: 0 },
-      ],
+      layers: [{ layerId: 'dense_layer', neuronCount: 100, spikeCount: 50, timestep: 0 }],
     });
 
     expect(result.success).toBe(true);
@@ -418,9 +412,7 @@ describe('handleSparsityCheck', () => {
 
   it('should include energy efficiency metrics', async () => {
     const result = await handleSparsityCheck({
-      layers: [
-        { layerId: 'efficient_layer', neuronCount: 1000, spikeCount: 10, timestep: 0 },
-      ],
+      layers: [{ layerId: 'efficient_layer', neuronCount: 1000, spikeCount: 10, timestep: 0 }],
     });
 
     expect(result.success).toBe(true);
@@ -441,9 +433,7 @@ describe('handleSparsityCheck', () => {
 
   it('should respect custom sparsity threshold', async () => {
     const result = await handleSparsityCheck({
-      layers: [
-        { layerId: 'layer', neuronCount: 100, spikeCount: 8, timestep: 0 },
-      ],
+      layers: [{ layerId: 'layer', neuronCount: 100, spikeCount: 8, timestep: 0 }],
       config: { sparsityThreshold: 0.95 },
     });
 
@@ -457,9 +447,7 @@ describe('handleSparsityCheck', () => {
 
   it('should include quality history entry', async () => {
     const result = await handleSparsityCheck({
-      layers: [
-        { layerId: 'layer', neuronCount: 1000, spikeCount: 50, timestep: 0 },
-      ],
+      layers: [{ layerId: 'layer', neuronCount: 1000, spikeCount: 50, timestep: 0 }],
       cycle: 5,
     });
 
@@ -547,12 +535,8 @@ describe('handleAgentCreate', () => {
       description: 'Full-featured agent',
       version: '2.0.0',
       url: 'http://localhost:7070',
-      skills: [
-        { id: 's1', name: 'Skill 1', description: 'First skill', tags: ['test'] },
-      ],
-      capabilities: [
-        { id: 'cap1', name: 'Compute', description: 'Can run computations' },
-      ],
+      skills: [{ id: 's1', name: 'Skill 1', description: 'First skill', tags: ['test'] }],
+      capabilities: [{ id: 'cap1', name: 'Compute', description: 'Can run computations' }],
       auth: { type: 'api-key' },
     });
 

@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { dialogueHandler } from '../DialogueTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('DialogueTrait', () => {
   let node: Record<string, unknown>;
@@ -70,14 +78,20 @@ describe('DialogueTrait', () => {
   });
 
   it('presents filtered options (brave explicitly false)', () => {
-    sendEvent(dialogueHandler, node, cfg, ctx, { type: 'start_dialogue', context: { brave: false } });
+    sendEvent(dialogueHandler, node, cfg, ctx, {
+      type: 'start_dialogue',
+      context: { brave: false },
+    });
     const opts = getLastEvent(ctx, 'dialogue_options') as any;
     expect(opts.options).toHaveLength(1);
     expect(opts.options[0].text).toBe('A friend.');
   });
 
   it('shows conditional option when blackboard has key', () => {
-    sendEvent(dialogueHandler, node, cfg, ctx, { type: 'start_dialogue', context: { brave: true } });
+    sendEvent(dialogueHandler, node, cfg, ctx, {
+      type: 'start_dialogue',
+      context: { brave: true },
+    });
     const opts = getLastEvent(ctx, 'dialogue_options') as any;
     expect(opts.options).toHaveLength(2);
   });
@@ -99,13 +113,21 @@ describe('DialogueTrait', () => {
 
   it('inject_text adds to history', () => {
     sendEvent(dialogueHandler, node, cfg, ctx, { type: 'start_dialogue' });
-    sendEvent(dialogueHandler, node, cfg, ctx, { type: 'inject_text', text: 'Dynamic line', speaker: 'AI' });
+    sendEvent(dialogueHandler, node, cfg, ctx, {
+      type: 'inject_text',
+      text: 'Dynamic line',
+      speaker: 'AI',
+    });
     expect(getEventCount(ctx, 'dialogue_line')).toBe(2);
   });
 
   it('set_dialogue_var updates blackboard', () => {
     sendEvent(dialogueHandler, node, cfg, ctx, { type: 'start_dialogue' });
-    sendEvent(dialogueHandler, node, cfg, ctx, { type: 'set_dialogue_var', key: 'gold', value: 100 });
+    sendEvent(dialogueHandler, node, cfg, ctx, {
+      type: 'set_dialogue_var',
+      key: 'gold',
+      value: 100,
+    });
     expect((node as any).__dialogueState.blackboard.gold).toBe(100);
   });
 

@@ -57,7 +57,9 @@ export function HistoryTimeline({ commits, onRevert, onView }: HistoryTimelinePr
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <GitCommit className="h-12 w-12 text-studio-border mb-2" />
         <p className="text-sm text-studio-muted">No commits yet</p>
-        <p className="text-xs text-studio-muted mt-1">Create your first commit to start version history</p>
+        <p className="text-xs text-studio-muted mt-1">
+          Create your first commit to start version history
+        </p>
       </div>
     );
   }

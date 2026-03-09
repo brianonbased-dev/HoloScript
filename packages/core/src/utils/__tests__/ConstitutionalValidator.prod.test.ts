@@ -20,7 +20,6 @@ function action(name: string, category: string, description = '') {
 // ─── Suite ───────────────────────────────────────────────────────────────────
 
 describe('ConstitutionalValidator: production', () => {
-
   // ─── Allowed actions ──────────────────────────────────────────────────────
   describe('allowed actions', () => {
     it('unrelated action is allowed', () => {
@@ -47,7 +46,7 @@ describe('ConstitutionalValidator: production', () => {
     it('exact category + action triggers violation', () => {
       const result = ConstitutionalValidator.validate(action('delete_all', 'delete'));
       expect(result.allowed).toBe(false);
-      expect(result.violations.some(v => v.id === 'NO_GLOBAL_DELETE')).toBe(true);
+      expect(result.violations.some((v) => v.id === 'NO_GLOBAL_DELETE')).toBe(true);
     });
 
     it('escalation level is emergency_stop for critical', () => {
@@ -61,7 +60,7 @@ describe('ConstitutionalValidator: production', () => {
     it('financial category triggers violation', () => {
       const result = ConstitutionalValidator.validate(action('mint_tokens', 'financial'));
       expect(result.allowed).toBe(false);
-      expect(result.violations.some(v => v.id === 'NO_UNAUTHORIZED_MINT')).toBe(true);
+      expect(result.violations.some((v) => v.id === 'NO_UNAUTHORIZED_MINT')).toBe(true);
     });
 
     it('escalation level is hard_block for hard severity', () => {
@@ -82,7 +81,7 @@ describe('ConstitutionalValidator: production', () => {
     it('custom soft rule triggers violation', () => {
       const result = ConstitutionalValidator.validate(action('play_sound', 'audio'), [softRule]);
       expect(result.allowed).toBe(false);
-      expect(result.violations.some(v => v.id === 'NO_LOUD_MUSIC')).toBe(true);
+      expect(result.violations.some((v) => v.id === 'NO_LOUD_MUSIC')).toBe(true);
     });
 
     it('soft violation sets escalation to soft_block', () => {

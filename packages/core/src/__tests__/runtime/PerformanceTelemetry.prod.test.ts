@@ -14,7 +14,9 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { PerformanceTelemetry } from '../../runtime/PerformanceTelemetry';
 import type { AnalyticsExporter } from '../../runtime/PerformanceTelemetry';
 
-function makePT() { return new PerformanceTelemetry(); }
+function makePT() {
+  return new PerformanceTelemetry();
+}
 
 // Helper: create & start PT, record N frames (each ~16ms apart), stop
 function recordFrames(pt: PerformanceTelemetry, count: number) {
@@ -29,19 +31,20 @@ function recordFrames(pt: PerformanceTelemetry, count: number) {
 // ── recordMetric ──────────────────────────────────────────────────────────────
 
 describe('PerformanceTelemetry — recordMetric', () => {
-
   it('stores metric with provided values', async () => {
     const pt = makePT();
     pt.recordMetric({ name: 'myMetric', type: 'gauge', value: 42 });
     // Verify via exportMetrics capturing the export call
     const exported: any[] = [];
     const exporter: AnalyticsExporter = {
-      export: vi.fn(async (m) => { exported.push(...m); }),
+      export: vi.fn(async (m) => {
+        exported.push(...m);
+      }),
       flush: vi.fn(),
     };
     pt.addExporter(exporter);
     await pt.exportMetrics();
-    const m = exported.find(x => x.name === 'myMetric');
+    const m = exported.find((x) => x.name === 'myMetric');
     expect(m?.value).toBe(42);
     expect(m?.type).toBe('gauge');
   });
@@ -51,9 +54,14 @@ describe('PerformanceTelemetry — recordMetric', () => {
     const ts = 1234567890000;
     pt.recordMetric({ name: 'timed', type: 'counter', value: 1, timestamp: ts });
     const exported: any[] = [];
-    pt.addExporter({ export: async (m) => { exported.push(...m); }, flush: async () => {} });
+    pt.addExporter({
+      export: async (m) => {
+        exported.push(...m);
+      },
+      flush: async () => {},
+    });
     await pt.exportMetrics();
-    expect(exported.find(x => x.name === 'timed')?.timestamp).toBe(ts);
+    expect(exported.find((x) => x.name === 'timed')?.timestamp).toBe(ts);
   });
 
   it('applies fallback timestamp when none provided', async () => {
@@ -62,9 +70,14 @@ describe('PerformanceTelemetry — recordMetric', () => {
     pt.recordMetric({ name: 'auto', type: 'gauge', value: 0 });
     const after = Date.now();
     const exported: any[] = [];
-    pt.addExporter({ export: async (m) => { exported.push(...m); }, flush: async () => {} });
+    pt.addExporter({
+      export: async (m) => {
+        exported.push(...m);
+      },
+      flush: async () => {},
+    });
     await pt.exportMetrics();
-    const ts = exported.find(x => x.name === 'auto')?.timestamp;
+    const ts = exported.find((x) => x.name === 'auto')?.timestamp;
     expect(ts).toBeGreaterThanOrEqual(before);
     expect(ts).toBeLessThanOrEqual(after);
   });
@@ -73,16 +86,20 @@ describe('PerformanceTelemetry — recordMetric', () => {
     const pt = makePT();
     pt.recordMetric({ name: 'tagged', type: 'gauge', value: 1, tags: { region: 'us-west' } });
     const exported: any[] = [];
-    pt.addExporter({ export: async (m) => { exported.push(...m); }, flush: async () => {} });
+    pt.addExporter({
+      export: async (m) => {
+        exported.push(...m);
+      },
+      flush: async () => {},
+    });
     await pt.exportMetrics();
-    expect(exported.find(x => x.name === 'tagged')?.tags?.region).toBe('us-west');
+    expect(exported.find((x) => x.name === 'tagged')?.tags?.region).toBe('us-west');
   });
 });
 
 // ── recordFrame ───────────────────────────────────────────────────────────────
 
 describe('PerformanceTelemetry — recordFrame', () => {
-
   it('recordFrame is ignored when monitoring disabled', async () => {
     const pt = makePT(); // NOT started
     pt.recordFrame(1, 1, 1, 1);
@@ -99,34 +116,48 @@ describe('PerformanceTelemetry — recordFrame', () => {
     const pt = makePT();
     recordFrames(pt, 1);
     const exported: any[] = [];
-    pt.addExporter({ export: async (m) => { exported.push(...m); }, flush: async () => {} });
+    pt.addExporter({
+      export: async (m) => {
+        exported.push(...m);
+      },
+      flush: async () => {},
+    });
     await pt.exportMetrics();
-    expect(exported.some(m => m.name === 'frame_duration')).toBe(true);
+    expect(exported.some((m) => m.name === 'frame_duration')).toBe(true);
   });
 
   it('recordFrame records fps metric', async () => {
     const pt = makePT();
     recordFrames(pt, 1);
     const exported: any[] = [];
-    pt.addExporter({ export: async (m) => { exported.push(...m); }, flush: async () => {} });
+    pt.addExporter({
+      export: async (m) => {
+        exported.push(...m);
+      },
+      flush: async () => {},
+    });
     await pt.exportMetrics();
-    expect(exported.some(m => m.name === 'fps')).toBe(true);
+    expect(exported.some((m) => m.name === 'fps')).toBe(true);
   });
 
   it('recordFrame records render_time metric', async () => {
     const pt = makePT();
     recordFrames(pt, 1);
     const exported: any[] = [];
-    pt.addExporter({ export: async (m) => { exported.push(...m); }, flush: async () => {} });
+    pt.addExporter({
+      export: async (m) => {
+        exported.push(...m);
+      },
+      flush: async () => {},
+    });
     await pt.exportMetrics();
-    expect(exported.some(m => m.name === 'render_time')).toBe(true);
+    expect(exported.some((m) => m.name === 'render_time')).toBe(true);
   });
 });
 
 // ── getAverageFPS ─────────────────────────────────────────────────────────────
 
 describe('PerformanceTelemetry — getAverageFPS', () => {
-
   it('returns 0 when no frames recorded', () => {
     expect(makePT().getAverageFPS()).toBe(0);
   });
@@ -141,7 +172,6 @@ describe('PerformanceTelemetry — getAverageFPS', () => {
 // ── getRecentFrameTimings ──────────────────────────────────────────────────────
 
 describe('PerformanceTelemetry — getRecentFrameTimings', () => {
-
   it('returns empty array before frames are recorded', () => {
     expect(makePT().getRecentFrameTimings(10)).toHaveLength(0);
   });
@@ -162,34 +192,36 @@ describe('PerformanceTelemetry — getRecentFrameTimings', () => {
 // ── setBudget ─────────────────────────────────────────────────────────────────
 
 describe('PerformanceTelemetry — setBudget', () => {
-
   it('setBudget does not throw', () => {
     const pt = makePT();
-    expect(() => pt.setBudget({
-      metricName: 'custom',
-      maxValue: 50,
-      severity: 'critical',
-      enabled: true,
-    })).not.toThrow();
+    expect(() =>
+      pt.setBudget({
+        metricName: 'custom',
+        maxValue: 50,
+        severity: 'critical',
+        enabled: true,
+      })
+    ).not.toThrow();
   });
 
   it('setBudget overwrites default budget for same metricName', () => {
     const pt = makePT();
     // Default frame_duration budget is 16.67. Setting to 99ms should NOT trigger
     // violation warnings in console (not easily verifiable here, just no-throw).
-    expect(() => pt.setBudget({
-      metricName: 'frame_duration',
-      maxValue: 99999,
-      severity: 'info',
-      enabled: true,
-    })).not.toThrow();
+    expect(() =>
+      pt.setBudget({
+        metricName: 'frame_duration',
+        maxValue: 99999,
+        severity: 'info',
+        enabled: true,
+      })
+    ).not.toThrow();
   });
 });
 
 // ── exportMetrics ──────────────────────────────────────────────────────────────
 
 describe('PerformanceTelemetry — exportMetrics', () => {
-
   it('exportMetrics is no-op when metrics array is empty', async () => {
     const pt = makePT();
     const exporter: AnalyticsExporter = { export: vi.fn(), flush: vi.fn() };
@@ -203,10 +235,15 @@ describe('PerformanceTelemetry — exportMetrics', () => {
     pt.recordMetric({ name: 'a', type: 'gauge', value: 1 });
     pt.recordMetric({ name: 'b', type: 'counter', value: 2 });
     const captured: any[] = [];
-    pt.addExporter({ export: async (m) => { captured.push(...m); }, flush: async () => {} });
+    pt.addExporter({
+      export: async (m) => {
+        captured.push(...m);
+      },
+      flush: async () => {},
+    });
     await pt.exportMetrics();
-    expect(captured.map(x => x.name)).toContain('a');
-    expect(captured.map(x => x.name)).toContain('b');
+    expect(captured.map((x) => x.name)).toContain('a');
+    expect(captured.map((x) => x.name)).toContain('b');
   });
 
   it('exportMetrics clears metrics after export', async () => {
@@ -224,7 +261,12 @@ describe('PerformanceTelemetry — exportMetrics', () => {
   it('exporter error does not propagate', async () => {
     const pt = makePT();
     pt.recordMetric({ name: 'x', type: 'gauge', value: 0 });
-    pt.addExporter({ export: async () => { throw new Error('export failed'); }, flush: async () => {} });
+    pt.addExporter({
+      export: async () => {
+        throw new Error('export failed');
+      },
+      flush: async () => {},
+    });
     await expect(pt.exportMetrics()).resolves.not.toThrow();
   });
 });
@@ -232,7 +274,6 @@ describe('PerformanceTelemetry — exportMetrics', () => {
 // ── generateReport ────────────────────────────────────────────────────────────
 
 describe('PerformanceTelemetry — generateReport', () => {
-
   it('returns a string', () => {
     expect(typeof makePT().generateReport()).toBe('string');
   });
@@ -253,7 +294,6 @@ describe('PerformanceTelemetry — generateReport', () => {
 // ── dispose ───────────────────────────────────────────────────────────────────
 
 describe('PerformanceTelemetry — dispose', () => {
-
   it('dispose clears frame timings', () => {
     const pt = makePT();
     recordFrames(pt, 5);

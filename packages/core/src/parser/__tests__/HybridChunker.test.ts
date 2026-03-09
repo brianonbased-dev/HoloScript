@@ -294,9 +294,7 @@ All queries are parameterized for security.
 
       // Related paragraphs about authentication should be grouped
       const hasAuthChunk = chunks.some(
-        (c) =>
-          c.content.includes('authentication') &&
-          c.content.includes('credentials')
+        (c) => c.content.includes('authentication') && c.content.includes('credentials')
       );
       expect(hasAuthChunk || chunks.length === 1).toBe(true);
     });
@@ -329,9 +327,7 @@ More content after list.
     it('should respect maxTokens in semantic grouping', () => {
       // Use smaller paragraphs that are individually under maxTokens
       // so we can test that merging respects the limit
-      const mediumParagraph = Array(30)
-        .fill('This is a sentence about the same topic.')
-        .join(' ');
+      const mediumParagraph = Array(30).fill('This is a sentence about the same topic.').join(' ');
 
       const markdown = `
 # Section 1
@@ -433,18 +429,9 @@ export function c() { return 3; }
     });
 
     it('should track strategy distribution correctly', () => {
-      const codeChunks = chunker.chunk(
-        'function test() {}',
-        'code.ts'
-      );
-      const logChunks = chunker.chunk(
-        '[INFO] Log entry',
-        'app.log'
-      );
-      const mdChunks = chunker.chunk(
-        '# Title\n\nContent',
-        'README.md'
-      );
+      const codeChunks = chunker.chunk('function test() {}', 'code.ts');
+      const logChunks = chunker.chunk('[INFO] Log entry', 'app.log');
+      const mdChunks = chunker.chunk('# Title\n\nContent', 'README.md');
 
       const allChunks = [...codeChunks, ...logChunks, ...mdChunks];
       const stats = chunker.getStats(allChunks);
@@ -470,10 +457,7 @@ export function c() { return 3; }
     });
 
     it('should handle single-line files', () => {
-      const chunks = chunker.chunk(
-        'export const x = 42;',
-        'const.ts'
-      );
+      const chunks = chunker.chunk('export const x = 42;', 'const.ts');
       expect(chunks.length).toBe(1);
       expect(chunks[0].strategy).toBe('structure');
     });
@@ -542,21 +526,15 @@ export function function${i}() {
       const testFiles = [
         {
           path: 'code.ts',
-          content: Array(50)
-            .fill('function f() { return 42; }')
-            .join('\n'),
+          content: Array(50).fill('function f() { return 42; }').join('\n'),
         },
         {
           path: 'log.log',
-          content: Array(100)
-            .fill('[INFO] Log entry')
-            .join('\n'),
+          content: Array(100).fill('[INFO] Log entry').join('\n'),
         },
         {
           path: 'doc.md',
-          content: Array(50)
-            .fill('# Section\n\nContent paragraph.')
-            .join('\n\n'),
+          content: Array(50).fill('# Section\n\nContent paragraph.').join('\n\n'),
         },
       ];
 
@@ -578,9 +556,7 @@ export function function${i}() {
     it('should respect custom maxTokens', () => {
       const chunker = createHybridChunker({ maxTokens: 128 });
 
-      const code = Array(50)
-        .fill('function test() { return 42; }')
-        .join('\n');
+      const code = Array(50).fill('function test() { return 42; }').join('\n');
 
       const chunks = chunker.chunk(code, 'test.ts');
 
@@ -595,9 +571,7 @@ export function function${i}() {
         overlapTokens: 128,
       });
 
-      const logContent = Array(100)
-        .fill('[INFO] Log entry with some content')
-        .join('\n');
+      const logContent = Array(100).fill('[INFO] Log entry with some content').join('\n');
 
       const chunks = chunker.chunk(logContent, 'app.log');
 

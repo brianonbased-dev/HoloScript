@@ -29,7 +29,6 @@ function makeEntry(id: string, agentId = 'agent-1', decision = 'approved'): Audi
 // ─── Suite ───────────────────────────────────────────────────────────────────
 
 describe('HITLAuditLogger: production', () => {
-
   // ─── log (Node environment — no localStorage) ─────────────────────────────
   describe('log – Node env', () => {
     it('resolves without throwing', async () => {
@@ -102,7 +101,7 @@ describe('HITLAuditLogger: production', () => {
 
     it('filters by agentId', async () => {
       const logs = await HITLAuditLogger.getLogs({ agentId: 'agent-1' });
-      expect(logs.every(l => l.agentId === 'agent-1')).toBe(true);
+      expect(logs.every((l) => l.agentId === 'agent-1')).toBe(true);
       expect(logs).toHaveLength(2);
     });
 

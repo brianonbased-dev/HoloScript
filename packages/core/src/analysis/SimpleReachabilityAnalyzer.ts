@@ -16,16 +16,36 @@ export class SimpleReachabilityAnalyzer {
   analyze(ast: AnalysisAST, entryPoints?: string[]): SimpleDeadCodeResult {
     const graph = new SimpleReferenceGraph();
     for (const c of ast.compositions ?? []) {
-      graph.addNode({ id: 'comp:' + c.name, kind: 'composition', name: c.name, filePath: c.filePath, line: c.line });
+      graph.addNode({
+        id: 'comp:' + c.name,
+        kind: 'composition',
+        name: c.name,
+        filePath: c.filePath,
+        line: c.line,
+      });
     }
     for (const t of ast.templates ?? []) {
-      graph.addNode({ id: 'tmpl:' + t.name, kind: 'template', name: t.name, filePath: t.filePath, line: t.line });
+      graph.addNode({
+        id: 'tmpl:' + t.name,
+        kind: 'template',
+        name: t.name,
+        filePath: t.filePath,
+        line: t.line,
+      });
     }
     for (const fn of ast.functions ?? []) {
-      graph.addNode({ id: 'fn:' + fn.name, kind: 'function', name: fn.name, filePath: fn.filePath, line: fn.line });
+      graph.addNode({
+        id: 'fn:' + fn.name,
+        kind: 'function',
+        name: fn.name,
+        filePath: fn.filePath,
+        line: fn.line,
+      });
     }
-    for (const r of ast.references ?? []) { graph.addReference(r.from, r.to); }
-    const eps = entryPoints ?? (ast.compositions ?? []).map(c => 'comp:' + c.name);
+    for (const r of ast.references ?? []) {
+      graph.addReference(r.from, r.to);
+    }
+    const eps = entryPoints ?? (ast.compositions ?? []).map((c) => 'comp:' + c.name);
     const unreachable = graph.getUnreachable(eps);
     const total = graph.getAllNodes().length;
     return {

@@ -236,7 +236,12 @@ const COMPILER_TEST_CASES: CompilerTestCase[] = [
   },
   {
     name: 'VRRCompiler',
-    factory: () => new VRRCompiler({ renderEngine: 'threejs', adaptationLevel: 'full', enableRealTimeFeeds: false }),
+    factory: () =>
+      new VRRCompiler({
+        renderEngine: 'threejs',
+        adaptationLevel: 'full',
+        enableRealTimeFeeds: false,
+      }),
     expectedPath: ANSCapabilityPath.VRR,
   },
   {
@@ -259,14 +264,11 @@ const COMPILER_TEST_CASES: CompilerTestCase[] = [
 
 describe('P5 Compiler Fleet ANS Migration', () => {
   describe('CompilerBase subclasses return correct ANS capability path', () => {
-    it.each(COMPILER_TEST_CASES)(
-      '$name returns $expectedPath',
-      ({ factory, expectedPath }) => {
-        const compiler = factory();
-        const capability = exposeCapability(compiler);
-        expect(capability).toBe(expectedPath);
-      },
-    );
+    it.each(COMPILER_TEST_CASES)('$name returns $expectedPath', ({ factory, expectedPath }) => {
+      const compiler = factory();
+      const capability = exposeCapability(compiler);
+      expect(capability).toBe(expectedPath);
+    });
   });
 
   describe('DomainBlockCompilerMixin (standalone utility module)', () => {
@@ -303,7 +305,7 @@ describe('P5 Compiler Fleet ANS Migration', () => {
         const capability = exposeCapability(compiler)!;
         if (seen.has(capability)) {
           throw new Error(
-            `ANS path collision: ${name} and ${seen.get(capability)} both return "${capability}"`,
+            `ANS path collision: ${name} and ${seen.get(capability)} both return "${capability}"`
           );
         }
         seen.set(capability, name);
@@ -315,7 +317,9 @@ describe('P5 Compiler Fleet ANS Migration', () => {
       for (const { name, factory } of COMPILER_TEST_CASES) {
         const compiler = factory();
         const capability = exposeCapability(compiler)!;
-        expect(capability, `${name}: "${capability}" should match /compile/DOMAIN/TARGET`).toMatch(pattern);
+        expect(capability, `${name}: "${capability}" should match /compile/DOMAIN/TARGET`).toMatch(
+          pattern
+        );
       }
     });
   });

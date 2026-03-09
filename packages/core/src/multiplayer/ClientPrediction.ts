@@ -18,8 +18,12 @@ export interface InputFrame {
 }
 
 export interface PredictedState {
-  x: number; y: number; z: number;
-  vx: number; vy: number; vz: number;
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
 }
 
 export type PredictionFn = (state: PredictedState, input: InputFrame) => PredictedState;
@@ -61,7 +65,7 @@ export class ClientPrediction {
     const oldState = { ...this.currentState };
 
     // Discard acknowledged inputs
-    this.pendingInputs = this.pendingInputs.filter(i => i.sequence > ackedSequence);
+    this.pendingInputs = this.pendingInputs.filter((i) => i.sequence > ackedSequence);
     this.lastAckedSequence = ackedSequence;
 
     // Re-predict from server state
@@ -71,7 +75,9 @@ export class ClientPrediction {
     }
 
     // Check for misprediction
-    const dx = state.x - oldState.x, dy = state.y - oldState.y, dz = state.z - oldState.z;
+    const dx = state.x - oldState.x,
+      dy = state.y - oldState.y,
+      dz = state.z - oldState.z;
     if (Math.sqrt(dx * dx + dy * dy + dz * dz) > 0.01) this.mispredictions++;
 
     this.currentState = state;
@@ -82,8 +88,16 @@ export class ClientPrediction {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getState(): PredictedState { return { ...this.currentState }; }
-  getPendingCount(): number { return this.pendingInputs.length; }
-  getMispredictions(): number { return this.mispredictions; }
-  getLastAckedSequence(): number { return this.lastAckedSequence; }
+  getState(): PredictedState {
+    return { ...this.currentState };
+  }
+  getPendingCount(): number {
+    return this.pendingInputs.length;
+  }
+  getMispredictions(): number {
+    return this.mispredictions;
+  }
+  getLastAckedSequence(): number {
+    return this.lastAckedSequence;
+  }
 }

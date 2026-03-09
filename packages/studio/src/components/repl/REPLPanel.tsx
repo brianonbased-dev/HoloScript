@@ -12,19 +12,19 @@ import { Terminal, Play, Loader2, Globe, Package, Zap, Info } from 'lucide-react
 import { useREPL, type TraceEntry } from '@/hooks/useREPL';
 
 const TYPE_COLORS: Record<TraceEntry['type'], string> = {
-  scene:  'text-studio-accent',
+  scene: 'text-studio-accent',
   object: 'text-blue-400',
-  trait:  'text-green-400',
-  error:  'text-red-400',
-  info:   'text-studio-muted',
+  trait: 'text-green-400',
+  error: 'text-red-400',
+  info: 'text-studio-muted',
 };
 
 const TYPE_ICONS: Record<TraceEntry['type'], React.ComponentType<{ className?: string }>> = {
-  scene:  Globe,
+  scene: Globe,
   object: Package,
-  trait:  Zap,
-  error:  Zap,
-  info:   Info,
+  trait: Zap,
+  error: Zap,
+  info: Info,
 };
 
 function TraceRow({ entry }: { entry: TraceEntry }) {
@@ -88,7 +88,10 @@ export function REPLPanel({ onClose }: REPLPanelProps) {
             Run
           </button>
           {onClose && (
-            <button onClick={onClose} className="rounded p-1 text-studio-muted hover:text-studio-text">
+            <button
+              onClick={onClose}
+              className="rounded p-1 text-studio-muted hover:text-studio-text"
+            >
               ×
             </button>
           )}
@@ -103,7 +106,9 @@ export function REPLPanel({ onClose }: REPLPanelProps) {
         <textarea
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          placeholder={'// Type HoloScript here…\nscene "Test" {\n  object "Cube" {\n    @mesh(geometry: "box")\n  }\n}'}
+          placeholder={
+            '// Type HoloScript here…\nscene "Test" {\n  object "Cube" {\n    @mesh(geometry: "box")\n  }\n}'
+          }
           spellCheck={false}
           className="h-[calc(100%-24px)] w-full resize-none bg-[#070710] px-3 py-2 font-mono text-[11px] text-studio-muted outline-none focus:text-studio-text placeholder-studio-muted/30"
         />
@@ -113,9 +118,7 @@ export function REPLPanel({ onClose }: REPLPanelProps) {
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="flex h-6 shrink-0 items-center border-b border-studio-border/50 px-3 text-[9px] text-studio-muted uppercase tracking-widest">
           <span>Execution Trace</span>
-          {trace.length > 0 && (
-            <span className="ml-auto tabular-nums">{trace.length} steps</span>
-          )}
+          {trace.length > 0 && <span className="ml-auto tabular-nums">{trace.length} steps</span>}
         </div>
 
         <div className="flex-1 overflow-y-auto">

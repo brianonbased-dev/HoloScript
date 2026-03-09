@@ -52,7 +52,9 @@ export class BufferManager {
 
     if (initialData) {
       const mapped = new Float32Array(buffer.getMappedRange());
-      mapped.set(initialData instanceof Float32Array ? initialData : new Float32Array(initialData.buffer));
+      mapped.set(
+        initialData instanceof Float32Array ? initialData : new Float32Array(initialData.buffer)
+      );
       buffer.unmap();
     }
 
@@ -88,17 +90,14 @@ export class BufferManager {
   createStorageBuffer(
     sizeOrData: number | Float32Array,
     label?: string,
-    readOnly: boolean = false,
+    readOnly: boolean = false
   ): GPUBufferHandle {
     const isData = sizeOrData instanceof Float32Array;
     const size = isData ? sizeOrData.byteLength : sizeOrData;
 
     return this.createBuffer({
       size,
-      usage:
-        GPUBufferUsage.STORAGE |
-        GPUBufferUsage.COPY_SRC |
-        GPUBufferUsage.COPY_DST,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
       label: label ?? 'storage-buffer',
       initialData: isData ? sizeOrData : undefined,
       mappedAtCreation: isData,
@@ -122,7 +121,7 @@ export class BufferManager {
       offset,
       data.buffer as ArrayBuffer,
       data.byteOffset,
-      data.byteLength,
+      data.byteLength
     );
   }
 
@@ -130,7 +129,11 @@ export class BufferManager {
    * Async readback: copy GPU buffer contents to CPU.
    * Creates a staging buffer, copies, maps, and reads.
    */
-  async readBuffer(handle: GPUBufferHandle, byteOffset: number = 0, byteLength?: number): Promise<ReadbackResult> {
+  async readBuffer(
+    handle: GPUBufferHandle,
+    byteOffset: number = 0,
+    byteLength?: number
+  ): Promise<ReadbackResult> {
     const readSize = byteLength ?? handle.size;
     const start = performance.now();
 

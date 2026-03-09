@@ -7,7 +7,9 @@ import { SkyRenderer } from '../environment/SkyRenderer';
 
 describe('SkyRenderer', () => {
   let sky: SkyRenderer;
-  beforeEach(() => { sky = new SkyRenderer(); });
+  beforeEach(() => {
+    sky = new SkyRenderer();
+  });
 
   it('sampleGradient at 0 returns bottom color', () => {
     const c = sky.sampleGradient(0);

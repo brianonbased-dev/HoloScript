@@ -269,9 +269,7 @@ export class FractureSystem {
       activeFragments,
       fractureEvents: this.fractureEvents.length,
       avgFragmentsPerFracture:
-        this.fractureEvents.length > 0
-          ? totalFragments / this.fractureEvents.length
-          : 0,
+        this.fractureEvents.length > 0 ? totalFragments / this.fractureEvents.length : 0,
     };
   }
 

@@ -33,13 +33,37 @@ export function useCulture(): UseCultureReturn {
     setTickCount(d.tickCount);
   }, []);
 
-  const joinAgent = useCallback((id: string) => { rt.current.agentJoin(id); sync(); }, [sync]);
-  const leaveAgent = useCallback((id: string) => { rt.current.agentLeave(id); sync(); }, [sync]);
-  const tick = useCallback(() => { rt.current.tick(); sync(); }, [sync]);
-  const tickN = useCallback((n: number) => { for (let i = 0; i < n; i++) rt.current.tick(); sync(); }, [sync]);
+  const joinAgent = useCallback(
+    (id: string) => {
+      rt.current.agentJoin(id);
+      sync();
+    },
+    [sync]
+  );
+  const leaveAgent = useCallback(
+    (id: string) => {
+      rt.current.agentLeave(id);
+      sync();
+    },
+    [sync]
+  );
+  const tick = useCallback(() => {
+    rt.current.tick();
+    sync();
+  }, [sync]);
+  const tickN = useCallback(
+    (n: number) => {
+      for (let i = 0; i < n; i++) rt.current.tick();
+      sync();
+    },
+    [sync]
+  );
 
   const buildDemo = useCallback(() => {
-    rt.current = new CultureRuntime({ defaultNorms: ['no_griefing', 'fair_trade', 'shared_resources'], maxEventHistory: 100 });
+    rt.current = new CultureRuntime({
+      defaultNorms: ['no_griefing', 'fair_trade', 'shared_resources'],
+      maxEventHistory: 100,
+    });
     rt.current.agentJoin('merchant-01', ['fair_trade']);
     rt.current.agentJoin('warrior-01', ['no_griefing']);
     rt.current.agentJoin('explorer-01', ['shared_resources']);
@@ -48,7 +72,21 @@ export function useCulture(): UseCultureReturn {
     sync();
   }, [sync]);
 
-  const reset = useCallback(() => { rt.current = new CultureRuntime({ maxEventHistory: 50 }); sync(); }, [sync]);
+  const reset = useCallback(() => {
+    rt.current = new CultureRuntime({ maxEventHistory: 50 });
+    sync();
+  }, [sync]);
 
-  return { health, agentCount, events, tickCount, joinAgent, leaveAgent, tick, tickN, buildDemo, reset };
+  return {
+    health,
+    agentCount,
+    events,
+    tickCount,
+    joinAgent,
+    leaveAgent,
+    tick,
+    tickN,
+    buildDemo,
+    reset,
+  };
 }

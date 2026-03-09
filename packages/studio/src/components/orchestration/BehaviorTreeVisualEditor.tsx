@@ -9,16 +9,25 @@
 
 import { useCallback, useState, useEffect } from 'react';
 import ReactFlow, {
-  Background, Controls, MiniMap, addEdge,
-  BackgroundVariant, type Connection, type NodeTypes,
-  useNodesState, useEdgesState,
+  Background,
+  Controls,
+  MiniMap,
+  addEdge,
+  BackgroundVariant,
+  type Connection,
+  type NodeTypes,
+  useNodesState,
+  useEdgesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { GitBranch, X, Save, Plus, BookTemplate, Undo, Redo } from 'lucide-react';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
 import type { BTNode } from '@/lib/orchestrationStore';
 import { TemplateBrowserPanel } from './TemplateBrowserPanel';
-import { useOrchestrationHistory, useOrchestrationKeyboardShortcuts } from '@/hooks/useOrchestrationHistory';
+import {
+  useOrchestrationHistory,
+  useOrchestrationKeyboardShortcuts,
+} from '@/hooks/useOrchestrationHistory';
 import {
   trackBehaviorTreeNodeAdded,
   trackPanelOpened,
@@ -184,7 +193,10 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
       position: { x: 100, y: 100 },
       data: {},
     };
-    setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node }]);
+    setNodes((ns) => [
+      ...ns,
+      { id: node.id, type: node.type, position: node.position, data: node },
+    ]);
     addBTNode(treeId, node);
     trackBehaviorTreeNodeAdded(treeId, 'sequence');
   };
@@ -197,7 +209,10 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
       position: { x: 200, y: 100 },
       data: {},
     };
-    setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node }]);
+    setNodes((ns) => [
+      ...ns,
+      { id: node.id, type: node.type, position: node.position, data: node },
+    ]);
     addBTNode(treeId, node);
     trackBehaviorTreeNodeAdded(treeId, 'inverter');
   };
@@ -210,7 +225,10 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
       position: { x: 300, y: 100 },
       data: { maxRepeats: 3 },
     };
-    setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node }]);
+    setNodes((ns) => [
+      ...ns,
+      { id: node.id, type: node.type, position: node.position, data: node },
+    ]);
     addBTNode(treeId, node);
     trackBehaviorTreeNodeAdded(treeId, 'repeat');
   };
@@ -223,7 +241,10 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
       position: { x: 400, y: 100 },
       data: { maxRetries: 3 },
     };
-    setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node }]);
+    setNodes((ns) => [
+      ...ns,
+      { id: node.id, type: node.type, position: node.position, data: node },
+    ]);
     addBTNode(treeId, node);
     trackBehaviorTreeNodeAdded(treeId, 'retry');
   };
@@ -236,7 +257,10 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
       position: { x: 500, y: 100 },
       data: { condition: 'true' },
     };
-    setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node }]);
+    setNodes((ns) => [
+      ...ns,
+      { id: node.id, type: node.type, position: node.position, data: node },
+    ]);
     addBTNode(treeId, node);
     trackBehaviorTreeNodeAdded(treeId, 'guard');
   };
@@ -249,13 +273,20 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
       position: { x: 600, y: 100 },
       data: { timeoutMs: 5000 },
     };
-    setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node }]);
+    setNodes((ns) => [
+      ...ns,
+      { id: node.id, type: node.type, position: node.position, data: node },
+    ]);
     addBTNode(treeId, node);
     trackBehaviorTreeNodeAdded(treeId, 'timeout');
   };
 
   if (!tree) {
-    return <div className="flex h-full items-center justify-center text-studio-muted">Tree not found</div>;
+    return (
+      <div className="flex h-full items-center justify-center text-studio-muted">
+        Tree not found
+      </div>
+    );
   }
 
   return (

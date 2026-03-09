@@ -84,9 +84,7 @@ export async function runSigningBench(): Promise<SigningResult[]> {
   {
     const register = new LWWRegister<string>('benchmark-register', signer);
     const operations = await Promise.all(
-      Array.from({ length: 100 }, (_, i) =>
-        register.set(`test-value-${i}`)
-      )
+      Array.from({ length: 100 }, (_, i) => register.set(`test-value-${i}`))
     );
 
     const bench = new Bench({ time: 2000, iterations: 500 });

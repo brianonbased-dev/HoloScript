@@ -12,19 +12,19 @@
 // =============================================================================
 
 export interface CompressorConfig {
-  threshold: number;    // dB
-  ratio: number;        // e.g. 4:1 = 4
-  attack: number;       // seconds
-  release: number;      // seconds
-  makeup: number;       // dB
-  knee: number;         // dB (soft knee width)
+  threshold: number; // dB
+  ratio: number; // e.g. 4:1 = 4
+  attack: number; // seconds
+  release: number; // seconds
+  makeup: number; // dB
+  knee: number; // dB (soft knee width)
 }
 
 export interface GateConfig {
-  threshold: number;    // dB
+  threshold: number; // dB
   attack: number;
   release: number;
-  range: number;        // dB of attenuation when closed
+  range: number; // dB of attenuation when closed
 }
 
 // =============================================================================
@@ -50,9 +50,15 @@ export class AudioDynamics {
   // Configuration
   // ---------------------------------------------------------------------------
 
-  setCompressor(config: Partial<CompressorConfig>): void { Object.assign(this.compressor, config); }
-  setGate(config: Partial<GateConfig>): void { Object.assign(this.gate, config); }
-  getCompressor(): CompressorConfig { return { ...this.compressor }; }
+  setCompressor(config: Partial<CompressorConfig>): void {
+    Object.assign(this.compressor, config);
+  }
+  setGate(config: Partial<GateConfig>): void {
+    Object.assign(this.gate, config);
+  }
+  getCompressor(): CompressorConfig {
+    return { ...this.compressor };
+  }
 
   // ---------------------------------------------------------------------------
   // Processing
@@ -70,7 +76,7 @@ export class AudioDynamics {
     } else {
       // Soft knee region
       const x = inputDb - c.threshold + c.knee / 2;
-      outputDb = inputDb + (1 / c.ratio - 1) * (x * x) / (2 * c.knee);
+      outputDb = inputDb + ((1 / c.ratio - 1) * (x * x)) / (2 * c.knee);
     }
 
     this.gainReduction = inputDb - outputDb;
@@ -99,7 +105,9 @@ export class AudioDynamics {
   // Sidechain Ducking
   // ---------------------------------------------------------------------------
 
-  setSidechainLevel(db: number): void { this.sidechainLevel = db; }
+  setSidechainLevel(db: number): void {
+    this.sidechainLevel = db;
+  }
 
   processDucking(inputDb: number, threshold: number, amount: number): number {
     if (this.sidechainLevel > threshold) {
@@ -124,8 +132,16 @@ export class AudioDynamics {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getGainReduction(): number { return this.gainReduction; }
-  isGateOpen(): boolean { return this.gateOpen; }
-  isDucking(): boolean { return this.ducking; }
-  getDuckAmount(): number { return this.duckAmount; }
+  getGainReduction(): number {
+    return this.gainReduction;
+  }
+  isGateOpen(): boolean {
+    return this.gateOpen;
+  }
+  isDucking(): boolean {
+    return this.ducking;
+  }
+  getDuckAmount(): number {
+    return this.duckAmount;
+  }
 }

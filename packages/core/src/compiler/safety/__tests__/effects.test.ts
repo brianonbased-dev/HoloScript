@@ -98,7 +98,9 @@ describe('EffectRow', () => {
 
   it('ofCategory filters by category', () => {
     const row = EffectRow.of('render:spawn', 'render:material', 'physics:force');
-    expect(row.ofCategory('render')).toEqual(expect.arrayContaining(['render:spawn', 'render:material']));
+    expect(row.ofCategory('render')).toEqual(
+      expect.arrayContaining(['render:spawn', 'render:material'])
+    );
     expect(row.ofCategory('physics')).toEqual(['physics:force']);
   });
 
@@ -239,65 +241,82 @@ describe('EffectChecker', () => {
 
   it('passes when declared effects match inferred', () => {
     const node: EffectASTNode = {
-      type: 'object', name: 'Player',
+      type: 'object',
+      name: 'Player',
       traits: ['@mesh', '@physics'],
       calls: [],
       declaredEffects: ['render:spawn', 'physics:force', 'physics:collision', 'resource:cpu'],
     };
     const result = checker.checkNode(node);
     expect(result.undeclared.isPure()).toBe(true);
-    expect(result.violations.filter(v => v.severity === 'error')).toHaveLength(0);
+    expect(result.violations.filter((v) => v.severity === 'error')).toHaveLength(0);
   });
 
   it('detects undeclared effects', () => {
     const node: EffectASTNode = {
-      type: 'object', name: 'SneakyAgent',
+      type: 'object',
+      name: 'SneakyAgent',
       traits: ['@mesh', '@networked'],
       calls: ['fetch'],
       declaredEffects: ['render:spawn'], // Missing network effects!
     };
     const result = checker.checkNode(node);
     expect(result.undeclared.isPure()).toBe(false);
-    expect(result.violations.some(v => v.severity === 'error' && v.effect === 'io:network')).toBe(true);
+    expect(result.violations.some((v) => v.severity === 'error' && v.effect === 'io:network')).toBe(
+      true
+    );
   });
 
   it('warns on unused declared effects', () => {
     const node: EffectASTNode = {
-      type: 'object', name: 'OverDeclared',
+      type: 'object',
+      name: 'OverDeclared',
       traits: ['@mesh'],
       calls: [],
       declaredEffects: ['render:spawn', 'physics:force'], // physics:force not used
     };
     const result = checker.checkNode(node);
     expect(result.unused.has('physics:force')).toBe(true);
-    expect(result.violations.some(v => v.severity === 'warning' && v.effect === 'physics:force')).toBe(true);
+    expect(
+      result.violations.some((v) => v.severity === 'warning' && v.effect === 'physics:force')
+    ).toBe(true);
   });
 
   it('pure function with no annotation passes', () => {
     const node: EffectASTNode = {
-      type: 'function', name: 'pureCalc',
-      traits: [], calls: ['Math.sin', 'lerp'],
+      type: 'function',
+      name: 'pureCalc',
+      traits: [],
+      calls: ['Math.sin', 'lerp'],
     };
     const result = checker.checkNode(node);
     expect(result.inferred.isPure()).toBe(true);
-    expect(result.violations.filter(v => v.severity === 'error')).toHaveLength(0);
+    expect(result.violations.filter((v) => v.severity === 'error')).toHaveLength(0);
   });
 
   it('unannotated effectful function fails', () => {
     const node: EffectASTNode = {
-      type: 'function', name: 'sneakySpawn',
-      traits: [], calls: ['spawn', 'applyForce'],
+      type: 'function',
+      name: 'sneakySpawn',
+      traits: [],
+      calls: ['spawn', 'applyForce'],
       // No declaredEffects — defaults to pure
     };
     const result = checker.checkNode(node);
     expect(result.undeclared.isPure()).toBe(false);
-    expect(result.violations.filter(v => v.severity === 'error').length).toBeGreaterThan(0);
+    expect(result.violations.filter((v) => v.severity === 'error').length).toBeGreaterThan(0);
   });
 
   describe('checkModule', () => {
     it('aggregates violations across functions', () => {
       const nodes: EffectASTNode[] = [
-        { type: 'object', name: 'A', traits: ['@mesh'], calls: [], declaredEffects: ['render:spawn'] },
+        {
+          type: 'object',
+          name: 'A',
+          traits: ['@mesh'],
+          calls: [],
+          declaredEffects: ['render:spawn'],
+        },
         { type: 'object', name: 'B', traits: ['@networked'], calls: [] }, // undeclared
       ];
       const result = checker.checkModule(nodes);
@@ -308,7 +327,13 @@ describe('EffectChecker', () => {
 
     it('passes when all functions are correct', () => {
       const nodes: EffectASTNode[] = [
-        { type: 'object', name: 'Safe', traits: ['@mesh'], calls: [], declaredEffects: ['render:spawn'] },
+        {
+          type: 'object',
+          name: 'Safe',
+          traits: ['@mesh'],
+          calls: [],
+          declaredEffects: ['render:spawn'],
+        },
       ];
       const result = checker.checkModule(nodes);
       expect(result.passed).toBe(true);
@@ -361,7 +386,9 @@ describe('dangerLevel', () => {
   });
 
   it('authority effects have high danger', () => {
-    expect(dangerLevel(EffectRow.of('authority:own', 'authority:delegate', 'agent:kill'))).toBeGreaterThan(5);
+    expect(
+      dangerLevel(EffectRow.of('authority:own', 'authority:delegate', 'agent:kill'))
+    ).toBeGreaterThan(5);
   });
 });
 
@@ -401,14 +428,15 @@ describe('EffectChecker config', () => {
   it('ignoredCategories suppresses specific categories', () => {
     const checker = createEffectChecker({ ignoredCategories: ['resource'] });
     const node: EffectASTNode = {
-      type: 'object', name: 'Heavy',
+      type: 'object',
+      name: 'Heavy',
       traits: ['@particle'],
       calls: [],
       declaredEffects: ['render:particle', 'render:spawn'],
     };
     const result = checker.checkNode(node);
     // @particle infers resource:gpu but 'resource' category is ignored
-    const resourceViolations = result.violations.filter(v => v.effect.startsWith('resource:'));
+    const resourceViolations = result.violations.filter((v) => v.effect.startsWith('resource:'));
     expect(resourceViolations).toHaveLength(0);
   });
 
@@ -416,7 +444,8 @@ describe('EffectChecker config', () => {
     const strictChecker = createEffectChecker({ strictUnknownTraits: true });
     const lenientChecker = createEffectChecker({ strictUnknownTraits: false });
     const node: EffectASTNode = {
-      type: 'object', name: 'UnknownTrait',
+      type: 'object',
+      name: 'UnknownTrait',
       traits: ['@completely_custom'],
       calls: [],
       declaredEffects: [],
@@ -465,11 +494,20 @@ describe('edge cases', () => {
 
   it('dangerLevel caps at 10', () => {
     const extreme = new EffectRow([
-      'authority:own', 'authority:delegate', 'authority:revoke',
-      'authority:zone', 'authority:world',
-      'inventory:take', 'inventory:destroy', 'inventory:duplicate', 'inventory:trade',
-      'agent:spawn', 'agent:kill', 'agent:control',
-      'io:network', 'io:write',
+      'authority:own',
+      'authority:delegate',
+      'authority:revoke',
+      'authority:zone',
+      'authority:world',
+      'inventory:take',
+      'inventory:destroy',
+      'inventory:duplicate',
+      'inventory:trade',
+      'agent:spawn',
+      'agent:kill',
+      'agent:control',
+      'io:network',
+      'io:write',
     ] as VREffect[]);
     expect(dangerLevel(extreme)).toBeLessThanOrEqual(10);
   });

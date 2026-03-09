@@ -53,10 +53,7 @@ describe('SceneRunner', () => {
   it('instantiates children recursively', () => {
     const root = makeNode({
       id: 'root',
-      children: [
-        makeNode({ id: 'child1', name: 'c1' }),
-        makeNode({ id: 'child2', name: 'c2' }),
-      ],
+      children: [makeNode({ id: 'child1', name: 'c1' }), makeNode({ id: 'child2', name: 'c2' })],
     });
     runner.run(root);
     expect(runner.spawnedCount).toBe(3);
@@ -109,9 +106,11 @@ describe('SceneRunner', () => {
   });
 
   it('getAllSpawned returns all', () => {
-    runner.run(makeNode({
-      children: [makeNode({ id: 'c1', name: 'child' })],
-    }));
+    runner.run(
+      makeNode({
+        children: [makeNode({ id: 'c1', name: 'child' })],
+      })
+    );
     expect(runner.getAllSpawned().length).toBe(2);
   });
 
@@ -129,7 +128,9 @@ describe('SceneRunner', () => {
 
   it('emits node:instantiated event', () => {
     let emitted = false;
-    eventBus.on('node:instantiated', () => { emitted = true; });
+    eventBus.on('node:instantiated', () => {
+      emitted = true;
+    });
     runner.run(makeNode());
     expect(emitted).toBe(true);
   });

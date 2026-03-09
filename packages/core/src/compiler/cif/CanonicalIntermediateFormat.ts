@@ -39,16 +39,16 @@ import type { CulturalProfileMetadata } from '../identity/AgentIdentity';
  * renderers know *where* to place the content in the final prompt.
  */
 export type CIFSectionKind =
-  | 'system'          // Top-level system instructions / preamble
-  | 'persona'         // Agent identity, personality, cultural profile
-  | 'context'         // Background knowledge, world state, memory
-  | 'instructions'    // Task-specific directives
-  | 'constraints'     // Guardrails, restrictions, safety rules
-  | 'examples'        // Few-shot examples / demonstrations
-  | 'output_format'   // Expected response structure (JSON schema, markdown, etc.)
-  | 'tools'           // Tool/function definitions available to the agent
-  | 'delegation'      // Multi-agent delegation / handoff instructions
-  | 'cultural';       // Explicit cultural norms and cooperation parameters
+  | 'system' // Top-level system instructions / preamble
+  | 'persona' // Agent identity, personality, cultural profile
+  | 'context' // Background knowledge, world state, memory
+  | 'instructions' // Task-specific directives
+  | 'constraints' // Guardrails, restrictions, safety rules
+  | 'examples' // Few-shot examples / demonstrations
+  | 'output_format' // Expected response structure (JSON schema, markdown, etc.)
+  | 'tools' // Tool/function definitions available to the agent
+  | 'delegation' // Multi-agent delegation / handoff instructions
+  | 'cultural'; // Explicit cultural norms and cooperation parameters
 
 /**
  * Priority level for a section.
@@ -159,7 +159,7 @@ export class CIFBuilder {
 
   constructor(
     private readonly agentId: string,
-    private readonly agentRole: string,
+    private readonly agentRole: string
   ) {}
 
   // ---- Cultural profile ----
@@ -215,7 +215,12 @@ export class CIFBuilder {
   }
 
   addOutputFormat(schema: Record<string, unknown>, priority: CIFPriority = 'normal'): this {
-    return this.addSection({ kind: 'output_format', label: 'Output Format', content: schema, priority });
+    return this.addSection({
+      kind: 'output_format',
+      label: 'Output Format',
+      content: schema,
+      priority,
+    });
   }
 
   addTools(tools: unknown[], priority: CIFPriority = 'normal'): this {

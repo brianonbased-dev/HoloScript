@@ -48,7 +48,7 @@ export class HotReloadBridge {
   constructor(
     hotReload: HotReloadManager,
     resolver: ModuleResolver,
-    options: HotReloadBridgeOptions = {},
+    options: HotReloadBridgeOptions = {}
   ) {
     this.hotReload = hotReload;
     this.resolver = resolver;
@@ -79,10 +79,7 @@ export class HotReloadBridge {
         this.opts.onReloaded?.(canonicalPath, meta.version);
       } catch (err) {
         if (this.opts.onError) {
-          this.opts.onError(
-            canonicalPath,
-            err instanceof Error ? err : new Error(String(err)),
-          );
+          this.opts.onError(canonicalPath, err instanceof Error ? err : new Error(String(err)));
         } else {
           throw err;
         }

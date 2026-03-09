@@ -7,15 +7,23 @@ import { InventorySystem, type ItemDef } from '../gameplay/InventorySystem';
 
 function item(overrides: Partial<ItemDef> = {}): ItemDef {
   return {
-    id: 'sword', name: 'Iron Sword', category: 'weapon', rarity: 'common',
-    weight: 3, maxStack: 1, value: 100, properties: {},
+    id: 'sword',
+    name: 'Iron Sword',
+    category: 'weapon',
+    rarity: 'common',
+    weight: 3,
+    maxStack: 1,
+    value: 100,
+    properties: {},
     ...overrides,
   };
 }
 
 describe('InventorySystem', () => {
   let inv: InventorySystem;
-  beforeEach(() => { inv = new InventorySystem(10, 50); });
+  beforeEach(() => {
+    inv = new InventorySystem(10, 50);
+  });
 
   it('adds an item and tracks slot count', () => {
     inv.addItem(item());

@@ -94,9 +94,11 @@ describe('QuotaManager', () => {
     });
 
     it('allows unlimited quota (-1)', () => {
-      const qmUnlimited = new QuotaManager(makeConfig({
-        daily: { parseOperations: -1, compileOperations: 10, generateOperations: 5 },
-      }));
+      const qmUnlimited = new QuotaManager(
+        makeConfig({
+          daily: { parseOperations: -1, compileOperations: 10, generateOperations: 5 },
+        })
+      );
       for (let i = 0; i < 1000; i++) qmUnlimited.recordUsage('u', 'parseOperations');
       const result = qmUnlimited.checkQuota('u', 'parseOperations');
       expect(result.allowed).toBe(true);

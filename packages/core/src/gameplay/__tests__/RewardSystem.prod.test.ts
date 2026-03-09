@@ -70,9 +70,7 @@ describe('RewardSystem', () => {
     });
 
     it('returns the array of granted rewards', () => {
-      const b = sys.createBundle('C', [
-        { type: 'xp', target: 'player', amount: 50 },
-      ]);
+      const b = sys.createBundle('C', [{ type: 'xp', target: 'player', amount: 50 }]);
       const granted = sys.claim(b.id);
       expect(granted).not.toBeNull();
       expect(granted).toHaveLength(1);
@@ -125,9 +123,7 @@ describe('RewardSystem', () => {
     });
 
     it('xp reward through bundle triggers leveling', () => {
-      const b = sys.createBundle('LevelUp', [
-        { type: 'xp', target: 'player', amount: 200 },
-      ]);
+      const b = sys.createBundle('LevelUp', [{ type: 'xp', target: 'player', amount: 200 }]);
       sys.claim(b.id);
       expect(sys.getLevel()).toBeGreaterThan(1);
     });
@@ -141,17 +137,13 @@ describe('RewardSystem', () => {
     });
 
     it('currency reward adds to balance', () => {
-      const b = sys.createBundle('Pay', [
-        { type: 'currency', target: 'gold', amount: 150 },
-      ]);
+      const b = sys.createBundle('Pay', [{ type: 'currency', target: 'gold', amount: 150 }]);
       sys.claim(b.id);
       expect(sys.getCurrency('gold')).toBe(150);
     });
 
     it('spendCurrency deducts balance', () => {
-      const b = sys.createBundle('Pay', [
-        { type: 'currency', target: 'gold', amount: 100 },
-      ]);
+      const b = sys.createBundle('Pay', [{ type: 'currency', target: 'gold', amount: 100 }]);
       sys.claim(b.id);
       expect(sys.spendCurrency('gold', 40)).toBe(true);
       expect(sys.getCurrency('gold')).toBe(60);
@@ -171,9 +163,7 @@ describe('RewardSystem', () => {
   describe('unlock rewards', () => {
     it('unlock reward sets hasUnlock to true', () => {
       expect(sys.hasUnlock('dungeon_key')).toBe(false);
-      const b = sys.createBundle('Key', [
-        { type: 'unlock', target: 'dungeon_key', amount: 1 },
-      ]);
+      const b = sys.createBundle('Key', [{ type: 'unlock', target: 'dungeon_key', amount: 1 }]);
       sys.claim(b.id);
       expect(sys.hasUnlock('dungeon_key')).toBe(true);
     });
@@ -183,9 +173,7 @@ describe('RewardSystem', () => {
 
   describe('skill_point rewards', () => {
     it('skill_point reward increases skillPoints', () => {
-      const b = sys.createBundle('Skill', [
-        { type: 'skill_point', target: '', amount: 3 },
-      ]);
+      const b = sys.createBundle('Skill', [{ type: 'skill_point', target: '', amount: 3 }]);
       sys.claim(b.id);
       expect(sys.getSkillPoints()).toBe(3);
     });

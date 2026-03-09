@@ -42,18 +42,34 @@ export function useTerrain(): UseTerrainReturn {
     }
   }, []);
 
-  const generate = useCallback((seed?: number) => {
-    const tid = sysRef.current.createTerrain(DEFAULT_CONFIG, { octaves: 4, lacunarity: 2, gain: 0.5, seed: seed ?? Math.random() * 10000, scale: 0.08 });
-    setTerrainId(tid);
-    sync(tid);
-  }, [sync]);
+  const generate = useCallback(
+    (seed?: number) => {
+      const tid = sysRef.current.createTerrain(DEFAULT_CONFIG, {
+        octaves: 4,
+        lacunarity: 2,
+        gain: 0.5,
+        seed: seed ?? Math.random() * 10000,
+        scale: 0.08,
+      });
+      setTerrainId(tid);
+      sync(tid);
+    },
+    [sync]
+  );
 
-  const raise = useCallback((gx: number, gz: number, amount: number) => {
-    if (!terrainId) return;
-    const current = sysRef.current.getHeightAt(terrainId, gx * (DEFAULT_CONFIG.width / DEFAULT_CONFIG.resolution), gz * (DEFAULT_CONFIG.depth / DEFAULT_CONFIG.resolution));
-    sysRef.current.setHeightAt(terrainId, gx, gz, current + amount);
-    sync(terrainId);
-  }, [terrainId, sync]);
+  const raise = useCallback(
+    (gx: number, gz: number, amount: number) => {
+      if (!terrainId) return;
+      const current = sysRef.current.getHeightAt(
+        terrainId,
+        gx * (DEFAULT_CONFIG.width / DEFAULT_CONFIG.resolution),
+        gz * (DEFAULT_CONFIG.depth / DEFAULT_CONFIG.resolution)
+      );
+      sysRef.current.setHeightAt(terrainId, gx, gz, current + amount);
+      sync(terrainId);
+    },
+    [terrainId, sync]
+  );
 
   const flatten = useCallback(() => {
     if (!terrainId) return;
@@ -73,5 +89,16 @@ export function useTerrain(): UseTerrainReturn {
     setLayers([]);
   }, []);
 
-  return { system: sysRef.current, terrainId, heights, resolution, layers, maxHeight: DEFAULT_CONFIG.maxHeight, generate, raise, flatten, reset };
+  return {
+    system: sysRef.current,
+    terrainId,
+    heights,
+    resolution,
+    layers,
+    maxHeight: DEFAULT_CONFIG.maxHeight,
+    generate,
+    raise,
+    flatten,
+    reset,
+  };
 }

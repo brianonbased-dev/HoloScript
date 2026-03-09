@@ -229,7 +229,7 @@ export const zoraCoinsHandler: TraitHandler<ZoraCoinsConfig> = {
     // Create execution context for blockchain operations
     const execContext: ZoraExecutionContext = {
       wallet: state.wallet,
-      emitEvent: (event: string, data: any) => context.emit?.(event, { node, ...data })
+      emitEvent: (event: string, data: any) => context.emit?.(event, { node, ...data }),
     };
 
     // Check pending mints for status updates
@@ -462,7 +462,7 @@ async function mintCoin(
     // Create execution context
     const execContext: ZoraExecutionContext = {
       wallet: state.wallet,
-      emitEvent: (event: string, data: any) => context.emit?.(event, { node, ...data })
+      emitEvent: (event: string, data: any) => context.emit?.(event, { node, ...data }),
     };
 
     // Real blockchain minting via Zora Protocol
@@ -647,7 +647,6 @@ async function checkMintStatus(
   _state: ZoraCoinsState,
   context: ZoraExecutionContext
 ): Promise<void> {
-
   // Only check mints in 'minting' status
   if (mint.status !== 'minting') {
     return;
@@ -663,7 +662,7 @@ async function checkMintStatus(
   try {
     // Poll for transaction receipt
     const receipt = await publicClient.getTransactionReceipt({
-      hash: mint.txHash as `0x${string}`
+      hash: mint.txHash as `0x${string}`,
     });
 
     if (receipt.status === 'success') {
@@ -673,10 +672,12 @@ async function checkMintStatus(
 
       // Extract minted token ID from logs
       // Zora emits a 'Minted' event with token ID
-      const mintLog = receipt.logs.find(log => {
+      const mintLog = receipt.logs.find((log) => {
         // Check for Zora Minted event signature
         // Event signature: Minted(address indexed minter, uint256 indexed tokenId, uint256 quantity)
-        return log.topics[0] === '0x30385c845b448a36257a6a1716e6ad2e1bc2cbe333cde1e69fe849ad6511adfe';
+        return (
+          log.topics[0] === '0x30385c845b448a36257a6a1716e6ad2e1bc2cbe333cde1e69fe849ad6511adfe'
+        );
       });
 
       if (mintLog && mintLog.topics[2]) {
@@ -691,9 +692,8 @@ async function checkMintStatus(
         contractAddress: mint.contractAddress,
         tokenId: mint.tokenId,
         blockNumber: mint.blockNumber,
-        gasUsed: receipt.gasUsed.toString()
+        gasUsed: receipt.gasUsed.toString(),
       });
-
     } else if (receipt.status === 'reverted') {
       // Transaction failed
       mint.status = 'failed';
@@ -702,10 +702,9 @@ async function checkMintStatus(
       context.emitEvent('zora_mint_failed', {
         mintId: mint.id,
         txHash: mint.txHash,
-        error: mint.error
+        error: mint.error,
       });
     }
-
   } catch (error: any) {
     // Transaction not yet confirmed or error fetching receipt
 
@@ -720,7 +719,7 @@ async function checkMintStatus(
       context.emitEvent('zora_mint_failed', {
         mintId: mint.id,
         txHash: mint.txHash,
-        error: mint.error
+        error: mint.error,
       });
     }
 
@@ -774,7 +773,6 @@ async function executeMinting(
   config: ZoraCoinsConfig,
   context: ZoraExecutionContext
 ): Promise<{ txHash: string; contractAddress: string }> {
-
   // 1. Validate wallet connection
   if (!context.wallet.isConnected()) {
     throw new Error(
@@ -797,7 +795,7 @@ async function executeMinting(
     // TODO: Implement auto-deployment in future version
     throw new Error(
       'collection_id is required. Auto-deployment not yet implemented. ' +
-      'Create a Zora collection first at https://zora.co/create'
+        'Create a Zora collection first at https://zora.co/create'
     );
   }
 
@@ -807,14 +805,10 @@ async function executeMinting(
   // 4. Estimate gas costs
   context.emitEvent('zora_estimating_gas', {
     mintId: mint.id,
-    quantity: Number(quantity)
+    quantity: Number(quantity),
   });
 
-  const gasEstimate = await GasEstimator.estimateMintGas(
-    publicClient,
-    contractAddress,
-    quantity
-  );
+  const gasEstimate = await GasEstimator.estimateMintGas(publicClient, contractAddress, quantity);
 
   const formattedEstimate = GasEstimator.formatEstimate(gasEstimate);
 
@@ -832,17 +826,17 @@ async function executeMinting(
 
     throw new Error(
       `Insufficient balance for mint transaction.\n` +
-      `Required: ${required}\n` +
-      `Available: ${balance}\n` +
-      `Shortfall: ${shortfall}\n\n` +
-      `Gas estimate: ${formattedEstimate.totalGasCostETH}\n` +
-      `Mint fee (0.000777 ETH × ${quantity}): ${formattedEstimate.mintFeeETH}`
+        `Required: ${required}\n` +
+        `Available: ${balance}\n` +
+        `Shortfall: ${shortfall}\n\n` +
+        `Gas estimate: ${formattedEstimate.totalGasCostETH}\n` +
+        `Mint fee (0.000777 ETH × ${quantity}): ${formattedEstimate.mintFeeETH}`
     );
   }
 
   context.emitEvent('zora_gas_estimated', {
     mintId: mint.id,
-    estimate: formattedEstimate
+    estimate: formattedEstimate,
   });
 
   // 6. Prepare mint transaction
@@ -856,40 +850,40 @@ async function executeMinting(
       abi: zoraCreator1155ImplABI,
       functionName: 'mintWithRewards',
       args: [
-        walletAddress,     // minter (who receives the NFT)
-        tokenId,           // tokenId (0 for new)
-        quantity,          // quantity to mint
-        '0x' as Hex,       // minterArguments (empty)
-        mintReferral       // mintReferral (who gets referral reward)
+        walletAddress, // minter (who receives the NFT)
+        tokenId, // tokenId (0 for new)
+        quantity, // quantity to mint
+        '0x' as Hex, // minterArguments (empty)
+        mintReferral, // mintReferral (who gets referral reward)
       ],
       value: gasEstimate.mintFee,
       account: walletClient.account,
       gas: gasEstimate.gasLimit,
       maxFeePerGas: gasEstimate.maxFeePerGas,
-      maxPriorityFeePerGas: gasEstimate.maxPriorityFeePerGas
+      maxPriorityFeePerGas: gasEstimate.maxPriorityFeePerGas,
     });
 
     context.emitEvent('zora_transaction_simulated', {
       mintId: mint.id,
-      success: true
+      success: true,
     });
 
     // 8. Execute transaction
     context.emitEvent('zora_transaction_sending', {
-      mintId: mint.id
+      mintId: mint.id,
     });
 
     const txHash = await walletClient.writeContract(request);
 
     context.emitEvent('zora_transaction_sent', {
       mintId: mint.id,
-      txHash
+      txHash,
     });
 
     // 9. Wait for transaction confirmation (1 block on Base ≈ 2 seconds)
     const receipt = await publicClient.waitForTransactionReceipt({
       hash: txHash,
-      confirmations: 1
+      confirmations: 1,
     });
 
     if (receipt.status === 'reverted') {
@@ -900,22 +894,21 @@ async function executeMinting(
       mintId: mint.id,
       txHash,
       blockNumber: Number(receipt.blockNumber),
-      gasUsed: receipt.gasUsed.toString()
+      gasUsed: receipt.gasUsed.toString(),
     });
 
     // 10. Return success
     return {
       txHash,
-      contractAddress
+      contractAddress,
     };
-
   } catch (error: any) {
     // Handle simulation or execution errors
     const errorMessage = error.message || 'Unknown error during mint transaction';
 
     context.emitEvent('zora_transaction_failed', {
       mintId: mint.id,
-      error: errorMessage
+      error: errorMessage,
     });
 
     throw new Error(`Zora mint transaction failed: ${errorMessage}`);

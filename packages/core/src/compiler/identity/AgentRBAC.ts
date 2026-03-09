@@ -356,7 +356,7 @@ export class AgentRBAC {
    */
   validateCulturalCompatibility(
     agentTokens: Map<string, string>,
-    normSets?: Map<string, string[]>,
+    normSets?: Map<string, string[]>
   ): CulturalCompatibilityResult | null {
     const entries: AgentCulturalEntry[] = [];
 

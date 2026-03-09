@@ -72,7 +72,7 @@ describe('HoloScriptDebugger', () => {
       const bp = dbg.setBreakpoint(10);
       expect(bp.enabled).toBe(true);
       dbg.toggleBreakpoint(bp.id);
-      const updated = dbg.getBreakpoints().find(b => b.id === bp.id);
+      const updated = dbg.getBreakpoints().find((b) => b.id === bp.id);
       expect(updated?.enabled).toBe(false);
     });
 

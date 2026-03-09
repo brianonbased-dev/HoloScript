@@ -7,7 +7,9 @@ import { RagdollController } from '../physics/RagdollController';
 
 describe('RagdollController', () => {
   let rag: RagdollController;
-  beforeEach(() => { rag = new RagdollController(); });
+  beforeEach(() => {
+    rag = new RagdollController();
+  });
 
   it('addBone creates bone', () => {
     rag.addBone('spine', null, 5, 1);

@@ -15,14 +15,16 @@ import type { EngineSystem } from '../engine/SpatialEngine';
 // =============================================================================
 
 export interface Vec3 {
-  x: number; y: number; z: number;
+  x: number;
+  y: number;
+  z: number;
 }
 
 export interface XRInputState {
   position: Vec3;
   rotation: Vec3;
-  trigger: number;     // 0-1
-  grip: number;        // 0-1
+  trigger: number; // 0-1
+  grip: number; // 0-1
   thumbstick: { x: number; y: number };
   buttons: boolean[];
 }
@@ -45,8 +47,18 @@ export interface XRFrameData {
   hands: Map<string, Map<string, Vec3>>; // side → joint → position
 }
 
-export type XREventType = 'sessionstart' | 'sessionend' | 'selectstart' | 'selectend' | 'squeezestart' | 'squeezeend';
-export type XREventCallback = (data: { type: XREventType; inputSource?: string; time: number }) => void;
+export type XREventType =
+  | 'sessionstart'
+  | 'sessionend'
+  | 'selectstart'
+  | 'selectend'
+  | 'squeezestart'
+  | 'squeezeend';
+export type XREventCallback = (data: {
+  type: XREventType;
+  inputSource?: string;
+  time: number;
+}) => void;
 
 // =============================================================================
 // WEBXR SYSTEM
@@ -105,11 +117,16 @@ export class WebXRSystem implements EngineSystem {
       }
 
       // Smooth locomotion via left thumbstick
-      if (id.includes('left') && (Math.abs(input.thumbstick.x) > 0.1 || Math.abs(input.thumbstick.y) > 0.1)) {
+      if (
+        id.includes('left') &&
+        (Math.abs(input.thumbstick.x) > 0.1 || Math.abs(input.thumbstick.y) > 0.1)
+      ) {
         const sinR = Math.sin(this.playerRotation);
         const cosR = Math.cos(this.playerRotation);
-        this.playerPosition.x += (input.thumbstick.x * cosR - input.thumbstick.y * sinR) * this.locomotionSpeed * dt;
-        this.playerPosition.z += (input.thumbstick.x * sinR + input.thumbstick.y * cosR) * this.locomotionSpeed * dt;
+        this.playerPosition.x +=
+          (input.thumbstick.x * cosR - input.thumbstick.y * sinR) * this.locomotionSpeed * dt;
+        this.playerPosition.z +=
+          (input.thumbstick.x * sinR + input.thumbstick.y * cosR) * this.locomotionSpeed * dt;
       }
 
       // Snap turn via right thumbstick
@@ -137,8 +154,12 @@ export class WebXRSystem implements EngineSystem {
   // Session Management
   // ---------------------------------------------------------------------------
 
-  isSupported(): boolean { return this.supported; }
-  getMode(): XRMode { return this.mode; }
+  isSupported(): boolean {
+    return this.supported;
+  }
+  getMode(): XRMode {
+    return this.mode;
+  }
 
   /** Simulate entering VR mode (for testing without real WebXR). */
   enterVR(): void {
@@ -175,8 +196,8 @@ export class WebXRSystem implements EngineSystem {
     this.handJoints = data.hands;
 
     // Extract stereo views
-    this.leftEye = data.views.find(v => v.eye === 'left') ?? null;
-    this.rightEye = data.views.find(v => v.eye === 'right') ?? null;
+    this.leftEye = data.views.find((v) => v.eye === 'left') ?? null;
+    this.rightEye = data.views.find((v) => v.eye === 'right') ?? null;
   }
 
   // ---------------------------------------------------------------------------
@@ -207,8 +228,12 @@ export class WebXRSystem implements EngineSystem {
   // Stereo Rendering
   // ---------------------------------------------------------------------------
 
-  getLeftEye(): XRViewState | null { return this.leftEye; }
-  getRightEye(): XRViewState | null { return this.rightEye; }
+  getLeftEye(): XRViewState | null {
+    return this.leftEye;
+  }
+  getRightEye(): XRViewState | null {
+    return this.rightEye;
+  }
   getStereoViews(): XRViewState[] {
     const views: XRViewState[] = [];
     if (this.leftEye) views.push(this.leftEye);
@@ -220,13 +245,21 @@ export class WebXRSystem implements EngineSystem {
   // Locomotion
   // ---------------------------------------------------------------------------
 
-  getPlayerPosition(): Vec3 { return { ...this.playerPosition }; }
-  getPlayerRotation(): number { return this.playerRotation; }
+  getPlayerPosition(): Vec3 {
+    return { ...this.playerPosition };
+  }
+  getPlayerRotation(): number {
+    return this.playerRotation;
+  }
 
-  setLocomotionSpeed(speed: number): void { this.locomotionSpeed = speed; }
+  setLocomotionSpeed(speed: number): void {
+    this.locomotionSpeed = speed;
+  }
 
   /** Queue a teleport to a world position. Executes next frame. */
-  teleportTo(target: Vec3): void { this.teleportTarget = { ...target }; }
+  teleportTo(target: Vec3): void {
+    this.teleportTarget = { ...target };
+  }
 
   // ---------------------------------------------------------------------------
   // Physics Integration Callbacks

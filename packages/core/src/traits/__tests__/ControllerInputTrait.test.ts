@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { controllerInputHandler } from '../ControllerInputTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('ControllerInputTrait', () => {
   let node: Record<string, unknown>;
@@ -39,8 +47,16 @@ describe('ControllerInputTrait', () => {
   });
 
   it('controller disconnect emits event', () => {
-    sendEvent(controllerInputHandler, node, cfg, ctx, { type: 'controller_data', hand: 'left', data: { connected: true } });
-    sendEvent(controllerInputHandler, node, cfg, ctx, { type: 'controller_data', hand: 'left', data: { connected: false } });
+    sendEvent(controllerInputHandler, node, cfg, ctx, {
+      type: 'controller_data',
+      hand: 'left',
+      data: { connected: true },
+    });
+    sendEvent(controllerInputHandler, node, cfg, ctx, {
+      type: 'controller_data',
+      hand: 'left',
+      data: { connected: false },
+    });
     expect(getEventCount(ctx, 'controller_disconnected')).toBe(1);
   });
 
@@ -90,12 +106,21 @@ describe('ControllerInputTrait', () => {
   });
 
   it('controller_vibrate emits haptic_pulse', () => {
-    sendEvent(controllerInputHandler, node, cfg, ctx, { type: 'controller_vibrate', hand: 'right', intensity: 0.5, duration: 100 });
+    sendEvent(controllerInputHandler, node, cfg, ctx, {
+      type: 'controller_vibrate',
+      hand: 'right',
+      intensity: 0.5,
+      duration: 100,
+    });
     expect(getEventCount(ctx, 'haptic_pulse')).toBe(1);
   });
 
   it('get_controller_pose returns pose data', () => {
-    sendEvent(controllerInputHandler, node, cfg, ctx, { type: 'get_controller_pose', hand: 'left', queryId: 'q1' });
+    sendEvent(controllerInputHandler, node, cfg, ctx, {
+      type: 'get_controller_pose',
+      hand: 'left',
+      queryId: 'q1',
+    });
     const r = getLastEvent(ctx, 'controller_pose_result') as any;
     expect(r.queryId).toBe('q1');
     expect(r.hand).toBe('left');

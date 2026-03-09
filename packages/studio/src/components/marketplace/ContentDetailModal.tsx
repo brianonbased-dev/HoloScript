@@ -4,7 +4,18 @@
  * ContentDetailModal - Full content item details with reviews
  */
 
-import { X, Download, Heart, Star, Eye, Calendar, Package, ExternalLink, CheckCircle, Sparkles } from 'lucide-react';
+import {
+  X,
+  Download,
+  Heart,
+  Star,
+  Eye,
+  Calendar,
+  Package,
+  ExternalLink,
+  CheckCircle,
+  Sparkles,
+} from 'lucide-react';
 import type { MarketplaceItem } from '@/lib/marketplace/types';
 import { CONTENT_TYPE_METADATA } from '@/lib/marketplace/types';
 import * as LucideIcons from 'lucide-react';
@@ -206,9 +217,7 @@ export function ContentDetailModal({
                   <div className="h-10 w-10 rounded-full bg-studio-accent/20" />
                 )}
                 <div>
-                  <div className="text-sm font-medium text-studio-text">
-                    {item.author.name}
-                  </div>
+                  <div className="text-sm font-medium text-studio-text">{item.author.name}</div>
                   <div className="text-xs text-studio-muted">Content Creator</div>
                 </div>
               </div>

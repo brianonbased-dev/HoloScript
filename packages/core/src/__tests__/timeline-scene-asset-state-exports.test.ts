@@ -2,13 +2,7 @@
  * @fileoverview Tests for Timeline, SceneManager, AssetRegistry, ReactiveState barrel exports
  */
 import { describe, it, expect } from 'vitest';
-import {
-  Timeline,
-  SceneManager,
-  AssetRegistry,
-  ReactiveState,
-  Easing,
-} from '../index';
+import { Timeline, SceneManager, AssetRegistry, ReactiveState, Easing } from '../index';
 
 describe('Timeline exports', () => {
   it('creates sequential timeline', () => {
@@ -26,8 +20,15 @@ describe('Timeline exports', () => {
 
   it('plays timeline and tracks elapsed', () => {
     const tl = new Timeline({ mode: 'parallel' });
-    tl.add({ id: 'a', property: 'x', from: 0, to: 1, duration: 1000, easing: Easing.linear }, () => {});
-    tl.add({ id: 'b', property: 'y', from: 0, to: 1, duration: 500, easing: Easing.linear }, () => {}, 200);
+    tl.add(
+      { id: 'a', property: 'x', from: 0, to: 1, duration: 1000, easing: Easing.linear },
+      () => {}
+    );
+    tl.add(
+      { id: 'b', property: 'y', from: 0, to: 1, duration: 500, easing: Easing.linear },
+      () => {},
+      200
+    );
     expect(tl.getDuration()).toBe(1000); // parallel: max of (0+1000, 200+500)
     tl.play();
     expect(tl.getProgress()).toBe(0);
@@ -57,7 +58,12 @@ describe('SceneManager exports', () => {
   it('lists saved scenes', () => {
     const sm = new SceneManager();
     sm.save('a', { type: 'root', name: 'A', traits: {}, children: [] } as any);
-    sm.save('b', { type: 'root', name: 'B', traits: {}, children: [{ type: 'entity', name: 'child', traits: {}, children: [] }] } as any);
+    sm.save('b', {
+      type: 'root',
+      name: 'B',
+      traits: {},
+      children: [{ type: 'entity', name: 'child', traits: {}, children: [] }],
+    } as any);
     const list = sm.list();
     expect(list.length).toBe(2);
     expect(list[1].nodeCount).toBe(2); // root + child
@@ -134,7 +140,9 @@ describe('ReactiveState exports', () => {
   it('subscribers receive updates', () => {
     const rs = new ReactiveState({ score: 0 });
     let received = false;
-    rs.subscribe(() => { received = true; });
+    rs.subscribe(() => {
+      received = true;
+    });
     rs.set('score', 10);
     expect(received).toBe(true);
   });

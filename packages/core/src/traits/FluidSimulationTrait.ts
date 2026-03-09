@@ -75,12 +75,7 @@ export function poly6Kernel(r: number, h: number): number {
  * Spiky kernel gradient for pressure forces.
  * Returns {x:0,y:0,z:0} when distance > h or distance is near zero.
  */
-export function spikyKernelGradient(
-  dx: number,
-  dy: number,
-  dz: number,
-  h: number,
-): Vec3 {
+export function spikyKernelGradient(dx: number, dy: number, dz: number, h: number): Vec3 {
   const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
   if (r > h || r < 1e-5) return { x: 0, y: 0, z: 0 };
   const coeff = (-45 / (Math.PI * h ** 6)) * (h - r) ** 2;
@@ -407,7 +402,8 @@ export class FluidSimulationSystem {
           p.position.y += b.normal.y * (pr - d);
           p.position.z += b.normal.z * (pr - d);
           // Reflect velocity
-          const vn = p.velocity.x * b.normal.x + p.velocity.y * b.normal.y + p.velocity.z * b.normal.z;
+          const vn =
+            p.velocity.x * b.normal.x + p.velocity.y * b.normal.y + p.velocity.z * b.normal.z;
           if (vn < 0) {
             p.velocity.x -= (1 + b.restitution) * vn * b.normal.x;
             p.velocity.y -= (1 + b.restitution) * vn * b.normal.y;

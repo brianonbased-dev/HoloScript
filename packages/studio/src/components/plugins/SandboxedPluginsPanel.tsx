@@ -13,14 +13,7 @@
 import { useState } from 'react';
 import { usePluginHost } from '@/hooks/usePluginHost';
 import { PluginPanelContainer } from './PluginPanelContainer';
-import {
-  Puzzle,
-  X,
-  Shield,
-  Activity,
-  ChevronDown,
-  Plus,
-} from 'lucide-react';
+import { Puzzle, X, Shield, Activity, ChevronDown, Plus } from 'lucide-react';
 import type { SandboxState } from '@holoscript/studio-plugin-sdk/sandbox';
 
 interface SandboxedPluginsPanelProps {
@@ -43,7 +36,7 @@ const STATE_DOT: Record<SandboxState, string> = {
 export function SandboxedPluginsPanel({ onClose, onOpenMarketplace }: SandboxedPluginsPanelProps) {
   const { loadedPlugins, getPluginState, healthSummary, ready } = usePluginHost();
   const [activePluginId, setActivePluginId] = useState<string | null>(
-    loadedPlugins.length > 0 ? loadedPlugins[0] : null,
+    loadedPlugins.length > 0 ? loadedPlugins[0] : null
   );
   const [showHealth, setShowHealth] = useState(false);
 
@@ -132,9 +125,7 @@ export function SandboxedPluginsPanel({ onClose, onOpenMarketplace }: SandboxedP
                 }`}
               >
                 {pluginState && (
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${STATE_DOT[pluginState]}`}
-                  />
+                  <span className={`h-1.5 w-1.5 rounded-full ${STATE_DOT[pluginState]}`} />
                 )}
                 <span className="max-w-[80px] truncate">{id}</span>
               </button>
@@ -167,8 +158,8 @@ export function SandboxedPluginsPanel({ onClose, onOpenMarketplace }: SandboxedP
             <Puzzle className="h-8 w-8 text-studio-muted/30" />
             <p className="text-[11px] text-studio-muted">No sandboxed plugins loaded</p>
             <p className="text-[9px] text-studio-muted/70">
-              Install plugins from the Marketplace to extend Studio with custom panels,
-              node types, and integrations - all running safely in isolated sandboxes.
+              Install plugins from the Marketplace to extend Studio with custom panels, node types,
+              and integrations - all running safely in isolated sandboxes.
             </p>
             {onOpenMarketplace && (
               <button
@@ -189,9 +180,7 @@ export function SandboxedPluginsPanel({ onClose, onOpenMarketplace }: SandboxedP
             displayName={activePluginId}
             hasUI={true}
             onClose={() => {
-              setActivePluginId(
-                loadedPlugins.filter((id) => id !== activePluginId)[0] ?? null,
-              );
+              setActivePluginId(loadedPlugins.filter((id) => id !== activePluginId)[0] ?? null);
             }}
           />
         ) : null}

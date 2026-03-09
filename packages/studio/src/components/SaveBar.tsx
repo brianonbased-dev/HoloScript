@@ -12,15 +12,10 @@
 
 import { useState, useCallback } from 'react';
 import { Save, FolderOpen, Share2, Package, Globe, Check, Loader2 } from 'lucide-react';
-import { useSceneStore, useSceneGraphStore } from '@/lib/store';
+import { useSceneStore, useSceneGraphStore } from '@/lib/stores';
 import { useAssetStore } from '@/components/assets/useAssetStore';
 import { PublishModal } from '@/components/PublishModal';
-import {
-  serializeScene,
-  downloadHoloFile,
-  openHoloFile,
-  copyShareURL,
-} from '@/lib/serializer';
+import { serializeScene, downloadHoloFile, openHoloFile, copyShareURL } from '@/lib/serializer';
 import type { HoloScene } from '@/lib/serializer';
 
 // ─── Toast indicator ──────────────────────────────────────────────────────────
@@ -173,21 +168,13 @@ export function SaveBar() {
   return (
     <div className="relative flex items-center gap-1 sm:gap-1.5">
       {/* Save */}
-      <button
-        onClick={handleSave}
-        title="Save scene as .holo file"
-        className={btnGhost}
-      >
+      <button onClick={handleSave} title="Save scene as .holo file" className={btnGhost}>
         <Save className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">Save</span>
       </button>
 
       {/* Open */}
-      <button
-        onClick={handleOpen}
-        title="Open a .holo file"
-        className={btnGhost}
-      >
+      <button onClick={handleOpen} title="Open a .holo file" className={btnGhost}>
         <FolderOpen className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">Open</span>
       </button>

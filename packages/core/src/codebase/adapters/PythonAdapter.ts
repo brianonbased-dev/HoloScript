@@ -12,12 +12,7 @@ import type {
   ImportEdge,
   CallEdge,
 } from '../types';
-import {
-  walkTree,
-  nodeToSymbol,
-  getFieldText,
-  extractVisibility,
-} from './BaseAdapter';
+import { walkTree, nodeToSymbol, getFieldText, extractVisibility } from './BaseAdapter';
 
 export class PythonAdapter implements LanguageAdapter {
   readonly language = 'python' as const;
@@ -33,10 +28,12 @@ export class PythonAdapter implements LanguageAdapter {
           const name = getFieldText(node, 'name');
           if (name) {
             const superclass = node.childForFieldName('superclasses');
-            symbols.push(nodeToSymbol(node, name, 'class', 'python', filePath, {
-              visibility: extractVisibility(node, 'python'),
-              signature: superclass ? `class ${name}(${superclass.text})` : `class ${name}`,
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'class', 'python', filePath, {
+                visibility: extractVisibility(node, 'python'),
+                signature: superclass ? `class ${name}(${superclass.text})` : `class ${name}`,
+              })
+            );
             this.extractMethods(node, name, filePath, symbols);
           }
           return false;
@@ -46,14 +43,16 @@ export class PythonAdapter implements LanguageAdapter {
           const name = getFieldText(node, 'name');
           if (name) {
             // Check if this is a method (inside a class)
-            const isMethod = node.parent?.type === 'block' &&
-              node.parent.parent?.type === 'class_definition';
+            const isMethod =
+              node.parent?.type === 'block' && node.parent.parent?.type === 'class_definition';
             if (!isMethod) {
               const params = node.childForFieldName('parameters');
-              symbols.push(nodeToSymbol(node, name, 'function', 'python', filePath, {
-                visibility: extractVisibility(node, 'python'),
-                signature: `def ${name}(${params?.text ?? ''})`,
-              }));
+              symbols.push(
+                nodeToSymbol(node, name, 'function', 'python', filePath, {
+                  visibility: extractVisibility(node, 'python'),
+                  signature: `def ${name}(${params?.text ?? ''})`,
+                })
+              );
             }
           }
           return false;
@@ -77,9 +76,10 @@ export class PythonAdapter implements LanguageAdapter {
         // import foo, import foo.bar
         for (const child of node.namedChildren) {
           if (child.type === 'dotted_name' || child.type === 'aliased_import') {
-            const name = child.type === 'aliased_import'
-              ? getFieldText(child, 'name') || child.text
-              : child.text;
+            const name =
+              child.type === 'aliased_import'
+                ? getFieldText(child, 'name') || child.text
+                : child.text;
             imports.push({
               fromFile: filePath,
               toModule: name,
@@ -171,25 +171,30 @@ export class PythonAdapter implements LanguageAdapter {
     classNode: any,
     className: string,
     filePath: string,
-    symbols: ExternalSymbolDefinition[],
+    symbols: ExternalSymbolDefinition[]
   ): void {
     const body = classNode.childForFieldName('body');
     if (!body) return;
 
     for (const child of body.namedChildren) {
-      const defNode = child.type === 'decorated_definition'
-        ? child.namedChildren.find((c: any) => c.type === 'function_definition')
-        : child.type === 'function_definition' ? child : null;
+      const defNode =
+        child.type === 'decorated_definition'
+          ? child.namedChildren.find((c: any) => c.type === 'function_definition')
+          : child.type === 'function_definition'
+            ? child
+            : null;
 
       if (defNode) {
         const name = getFieldText(defNode, 'name');
         if (name) {
           const params = defNode.childForFieldName('parameters');
-          symbols.push(nodeToSymbol(defNode, name, 'method', 'python', filePath, {
-            visibility: extractVisibility(defNode, 'python'),
-            owner: className,
-            signature: `${className}.${name}(${params?.text ?? ''})`,
-          }));
+          symbols.push(
+            nodeToSymbol(defNode, name, 'method', 'python', filePath, {
+              visibility: extractVisibility(defNode, 'python'),
+              owner: className,
+              signature: `${className}.${name}(${params?.text ?? ''})`,
+            })
+          );
         }
       }
     }

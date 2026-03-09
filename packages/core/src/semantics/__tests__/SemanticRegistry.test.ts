@@ -9,7 +9,18 @@ function makeAnnotation(id: string, opts: Partial<SemanticAnnotation> = {}): Sem
     label: opts.label ?? `Label ${id}`,
     category: opts.category ?? 'transform',
     intent: opts.intent ?? 'position',
-    flags: opts.flags ?? { mutable: true, networked: false, persistent: false, inspectable: true, animatable: false, affectsRender: false, affectsPhysics: false, required: false, deprecated: false, sensitive: false },
+    flags: opts.flags ?? {
+      mutable: true,
+      networked: false,
+      persistent: false,
+      inspectable: true,
+      animatable: false,
+      affectsRender: false,
+      affectsPhysics: false,
+      required: false,
+      deprecated: false,
+      sensitive: false,
+    },
     constraints: opts.constraints ?? {},
     relations: opts.relations ?? [],
     tags: opts.tags ?? [],
@@ -17,7 +28,11 @@ function makeAnnotation(id: string, opts: Partial<SemanticAnnotation> = {}): Sem
   };
 }
 
-function makeSchema(id: string, entityType: string, annotations: SemanticAnnotation[] = []): SemanticSchema {
+function makeSchema(
+  id: string,
+  entityType: string,
+  annotations: SemanticAnnotation[] = []
+): SemanticSchema {
   const annMap = new Map<string, SemanticAnnotation>();
   for (const a of annotations) annMap.set(a.propertyPath, a);
   return {

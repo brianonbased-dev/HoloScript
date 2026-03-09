@@ -67,7 +67,7 @@ import { IPFSService } from '@holoscript/core/storage';
 const ipfs = new IPFSService({
   provider: 'nft.storage',
   apiKey: process.env.NFT_STORAGE_KEY!,
-  enableCDN: true // Optional: Use Cloudflare CDN
+  enableCDN: true, // Optional: Use Cloudflare CDN
 });
 ```
 
@@ -80,17 +80,17 @@ const result = await ipfs.upload({
   files: [
     {
       path: 'image.png',
-      content: await fs.readFile('./image.png')
+      content: await fs.readFile('./image.png'),
     },
     {
       path: 'metadata.json',
       content: JSON.stringify({
         name: 'My NFT',
         description: 'Amazing NFT',
-        image: 'ipfs://[CID]/image.png'
-      })
-    }
-  ]
+        image: 'ipfs://[CID]/image.png',
+      }),
+    },
+  ],
 });
 
 console.log('IPFS URI:', result.uri);
@@ -118,7 +118,7 @@ async function uploadNFT() {
   const ipfs = new IPFSService({
     provider: 'nft.storage',
     apiKey: process.env.NFT_STORAGE_KEY!,
-    enableCDN: true
+    enableCDN: true,
   });
 
   // 2. Prepare metadata
@@ -128,17 +128,15 @@ async function uploadNFT() {
     image: '', // Will be set after upload
     attributes: [
       { trait_type: 'Type', value: 'Digital Art' },
-      { trait_type: 'Rarity', value: 'Common' }
-    ]
+      { trait_type: 'Rarity', value: 'Common' },
+    ],
   };
 
   // 3. Upload image first
   const imageBuffer = await fs.readFile('./my-image.png');
   const imageResult = await ipfs.upload({
     name: 'nft_image',
-    files: [
-      { path: 'image.png', content: imageBuffer }
-    ]
+    files: [{ path: 'image.png', content: imageBuffer }],
   });
 
   // 4. Update metadata with image URI
@@ -150,9 +148,9 @@ async function uploadNFT() {
     files: [
       {
         path: 'metadata.json',
-        content: JSON.stringify(metadata, null, 2)
-      }
-    ]
+        content: JSON.stringify(metadata, null, 2),
+      },
+    ],
   });
 
   console.log('✅ NFT assets uploaded!');
@@ -172,13 +170,11 @@ uploadNFT().catch(console.error);
 ```typescript
 await ipfs.upload({
   name: 'large_file',
-  files: [
-    { path: 'video.mp4', content: largeVideoBuffer }
-  ],
+  files: [{ path: 'video.mp4', content: largeVideoBuffer }],
   onProgress: (progress) => {
     console.log(`Uploading: ${progress.percentage.toFixed(1)}%`);
     console.log(`Current file: ${progress.currentFile}`);
-  }
+  },
 });
 ```
 
@@ -190,7 +186,7 @@ import { IPFSUploadError, FileSizeExceededError } from '@holoscript/core/storage
 try {
   const result = await ipfs.upload({
     name: 'test',
-    files: [{ path: 'file.txt', content: 'Hello' }]
+    files: [{ path: 'file.txt', content: 'Hello' }],
   });
   console.log('Success:', result.cid);
 } catch (error) {
@@ -216,21 +212,22 @@ const ipfs = new IPFSService({
   fallbackProviders: [
     {
       provider: 'nft.storage', // Fallback 1
-      apiKey: process.env.NFT_STORAGE_KEY!
+      apiKey: process.env.NFT_STORAGE_KEY!,
     },
     {
       provider: 'infura', // Fallback 2
       apiKey: process.env.INFURA_PROJECT_ID!,
-      apiSecret: process.env.INFURA_SECRET
-    }
+      apiSecret: process.env.INFURA_SECRET,
+    },
   ],
   enableCDN: true,
   maxRetries: 3,
-  maxFileSize: 100 * 1024 * 1024 // 100MB
+  maxFileSize: 100 * 1024 * 1024, // 100MB
 });
 ```
 
 This gives you:
+
 - **99.9% uptime** with automatic fallback
 - **3 retry attempts** per provider
 - **CDN for fast global access**
@@ -248,16 +245,19 @@ This gives you:
 ## Common Issues
 
 ### "Upload failed: Invalid API key"
+
 - Check your `.env` file
 - Verify API key is correct
 - Make sure no extra spaces
 
 ### "File size exceeded"
+
 - Default limit is 100MB
 - Increase with `maxFileSize` option
 - Or compress your files
 
 ### "All providers failed"
+
 - Check internet connection
 - Verify API keys are valid
 - Try again in a few minutes

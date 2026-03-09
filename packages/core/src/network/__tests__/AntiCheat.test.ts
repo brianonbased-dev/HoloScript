@@ -4,7 +4,14 @@ import { AntiCheat } from '../AntiCheat';
 describe('AntiCheat', () => {
   let ac: AntiCheat;
 
-  beforeEach(() => { ac = new AntiCheat({ maxSpeed: 20, maxTeleportDistance: 50, maxActionsPerSecond: 30, banThreshold: 5 }); });
+  beforeEach(() => {
+    ac = new AntiCheat({
+      maxSpeed: 20,
+      maxTeleportDistance: 50,
+      maxActionsPerSecond: 30,
+      banThreshold: 5,
+    });
+  });
 
   // ---------------------------------------------------------------------------
   // Player Registration

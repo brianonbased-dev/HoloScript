@@ -50,10 +50,10 @@ export type AIGlassesComponent =
   | 'AudioManager';
 
 export type TraitImplementationLevel =
-  | 'full'          // Generates complete Kotlin/Glimmer code
-  | 'partial'       // Generates some code with TODOs
-  | 'comment'       // Only generates documentation comment
-  | 'unsupported';  // Not available on AI Glasses form factor
+  | 'full' // Generates complete Kotlin/Glimmer code
+  | 'partial' // Generates some code with TODOs
+  | 'comment' // Only generates documentation comment
+  | 'unsupported'; // Not available on AI Glasses form factor
 
 export interface AIGlassesTraitMapping {
   /** HoloScript trait name */
@@ -79,11 +79,7 @@ export const UI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'glimmer_card',
     components: ['GlimmerCard', 'GlimmerText', 'GlimmerButton'],
     level: 'full',
-    imports: [
-      'androidx.xr.glimmer.Card',
-      'androidx.xr.glimmer.Text',
-      'androidx.xr.glimmer.Button',
-    ],
+    imports: ['androidx.xr.glimmer.Card', 'androidx.xr.glimmer.Text', 'androidx.xr.glimmer.Button'],
     generate: (varName, config) => {
       const title = String(config.title || varName);
       const subtitle = String(config.subtitle || '');
@@ -108,16 +104,10 @@ export const UI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'glimmer_list',
     components: ['GlimmerListItem', 'GlimmerText'],
     level: 'full',
-    imports: [
-      'androidx.xr.glimmer.ListItem',
-      'androidx.xr.glimmer.Text',
-    ],
+    imports: ['androidx.xr.glimmer.ListItem', 'androidx.xr.glimmer.Text'],
     generate: (varName, config) => {
       const items = (config.items as string[]) ?? [];
-      const lines = [
-        `// @glimmer_list -- Glimmer List composable for transparent HUD`,
-        `Column {`,
-      ];
+      const lines = [`// @glimmer_list -- Glimmer List composable for transparent HUD`, `Column {`];
       if (items.length > 0) {
         for (const item of items) {
           lines.push(`    ListItem(label = { Text("${item}") })`);
@@ -134,9 +124,7 @@ export const UI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'glimmer_title_chip',
     components: ['GlimmerTitleChip'],
     level: 'full',
-    imports: [
-      'androidx.xr.glimmer.TitleChip',
-    ],
+    imports: ['androidx.xr.glimmer.TitleChip'],
     generate: (varName, config) => {
       const title = String(config.title || varName);
       return [
@@ -150,10 +138,7 @@ export const UI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'glimmer_button',
     components: ['GlimmerButton', 'GlimmerText'],
     level: 'full',
-    imports: [
-      'androidx.xr.glimmer.Button',
-      'androidx.xr.glimmer.Text',
-    ],
+    imports: ['androidx.xr.glimmer.Button', 'androidx.xr.glimmer.Text'],
     generate: (varName, config) => {
       const label = String(config.label || varName);
       const size = String(config.size || 'medium');
@@ -178,10 +163,7 @@ export const UI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'glimmer_text',
     components: ['GlimmerText'],
     level: 'full',
-    imports: [
-      'androidx.xr.glimmer.Text',
-      'androidx.xr.glimmer.GlimmerTheme',
-    ],
+    imports: ['androidx.xr.glimmer.Text', 'androidx.xr.glimmer.GlimmerTheme'],
     generate: (varName, config) => {
       const content = String(config.content || config.text || varName);
       const style = String(config.style || 'body');
@@ -207,10 +189,7 @@ export const UI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'glimmer_surface',
     components: ['GlimmerSurface'],
     level: 'full',
-    imports: [
-      'androidx.xr.glimmer.surface',
-      'androidx.compose.ui.Modifier',
-    ],
+    imports: ['androidx.xr.glimmer.surface', 'androidx.compose.ui.Modifier'],
     generate: (varName, config) => {
       const focusable = config.focusable ?? true;
       const depth = String(config.depth || 'default');
@@ -231,10 +210,7 @@ export const UI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'glimmer_icon',
     components: ['GlimmerIcon'],
     level: 'full',
-    imports: [
-      'androidx.xr.glimmer.Icon',
-      'androidx.compose.material.icons.Icons',
-    ],
+    imports: ['androidx.xr.glimmer.Icon', 'androidx.compose.material.icons.Icons'],
     generate: (varName, config) => {
       const icon = String(config.icon || 'Info');
       const desc = String(config.description || varName);
@@ -252,10 +228,7 @@ export const UI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'ui_floating',
     components: ['GlimmerCard', 'GlimmerText'],
     level: 'full',
-    imports: [
-      'androidx.xr.glimmer.Card',
-      'androidx.xr.glimmer.Text',
-    ],
+    imports: ['androidx.xr.glimmer.Card', 'androidx.xr.glimmer.Text'],
     generate: (varName, config) => {
       const title = String(config.title || 'Info');
       return [
@@ -342,9 +315,7 @@ export const INPUT_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'glasses_touchpad',
     components: ['TouchpadGesture', 'GlimmerSurface'],
     level: 'full',
-    imports: [
-      'androidx.xr.glimmer.surface',
-    ],
+    imports: ['androidx.xr.glimmer.surface'],
     generate: (varName) => [
       `// @glasses_touchpad -- touchpad input on glasses temple arm`,
       `// Gestures: tap, swipe (up/down/left/right), long-press`,
@@ -381,7 +352,10 @@ export const INPUT_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
         ...(commands.length > 0
           ? [
               `        when {`,
-              ...commands.map(cmd => `            command.contains("${cmd.toLowerCase()}") -> { /* handle "${cmd}" */ }`),
+              ...commands.map(
+                (cmd) =>
+                  `            command.contains("${cmd.toLowerCase()}") -> { /* handle "${cmd}" */ }`
+              ),
               `            else -> { /* unrecognized command */ }`,
               `        }`,
             ]
@@ -404,10 +378,7 @@ export const INPUT_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'clickable',
     components: ['TouchpadGesture', 'GlimmerSurface'],
     level: 'full',
-    imports: [
-      'androidx.xr.glimmer.surface',
-      'androidx.compose.foundation.clickable',
-    ],
+    imports: ['androidx.xr.glimmer.surface', 'androidx.compose.foundation.clickable'],
     generate: (varName) => [
       `// @clickable -- touchpad tap handler (AI Glasses)`,
       `Modifier`,
@@ -420,9 +391,7 @@ export const INPUT_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'hoverable',
     components: ['TouchpadGesture', 'GlimmerSurface'],
     level: 'partial',
-    imports: [
-      'androidx.xr.glimmer.surface',
-    ],
+    imports: ['androidx.xr.glimmer.surface'],
     generate: (varName) => [
       `// @hoverable -- AI Glasses: touchpad focus replaces hover`,
       `// Outline-based visual feedback applied automatically by Glimmer`,
@@ -434,9 +403,7 @@ export const INPUT_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'draggable',
     components: ['TouchpadGesture'],
     level: 'partial',
-    imports: [
-      'androidx.xr.glimmer.surface',
-    ],
+    imports: ['androidx.xr.glimmer.surface'],
     generate: (varName, config) => {
       const direction = String(config.direction || 'horizontal');
       return [
@@ -563,10 +530,7 @@ export const DISPLAY_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'projected_audio',
     components: ['ProjectedContext', 'AudioManager'],
     level: 'full',
-    imports: [
-      'androidx.xr.projected.ProjectedContext',
-      'android.media.AudioManager',
-    ],
+    imports: ['androidx.xr.projected.ProjectedContext', 'android.media.AudioManager'],
     generate: (varName) => [
       `// @projected_audio -- AI Glasses audio via Bluetooth A2DP/HFP`,
       `// Audio routing handled automatically via Android AudioManager`,
@@ -586,10 +550,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'audio',
     components: ['AudioManager'],
     level: 'full',
-    imports: [
-      'android.media.AudioAttributes',
-      'android.media.SoundPool',
-    ],
+    imports: ['android.media.AudioAttributes', 'android.media.SoundPool'],
     generate: (varName, config) => {
       const src = String(config.src || config.source || '');
       const loop = config.loop ?? false;
@@ -674,9 +635,7 @@ export const ACCESSIBILITY_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'high_contrast',
     components: ['GlimmerSurface'],
     level: 'full',
-    imports: [
-      'android.provider.Settings',
-    ],
+    imports: ['android.provider.Settings'],
     generate: (varName) => [
       `// @high_contrast -- high contrast mode for transparent display`,
       `// CRITICAL for AI Glasses: additive display means low-contrast is unreadable`,
@@ -692,9 +651,7 @@ export const ACCESSIBILITY_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'motion_reduced',
     components: [],
     level: 'full',
-    imports: [
-      'android.provider.Settings',
-    ],
+    imports: ['android.provider.Settings'],
     generate: (varName) => [
       `// @motion_reduced -- respect reduce-motion for heads-up display`,
       `// AI Glasses default: 2-second transitions (not 500ms)`,
@@ -780,9 +737,7 @@ export const AR_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'geospatial',
     components: [],
     level: 'comment',
-    imports: [
-      'android.location.LocationManager',
-    ],
+    imports: ['android.location.LocationManager'],
     generate: (varName, config) => {
       const lat = config.latitude ?? 0;
       const lng = config.longitude ?? 0;
@@ -806,9 +761,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     level: 'full',
     generate: (varName, config) => {
       const visible = config.visible ?? true;
-      return visible
-        ? []
-        : [`// ${varName}: hidden`, `if (false) { /* ${varName} composable */ }`];
+      return visible ? [] : [`// ${varName}: hidden`, `if (false) { /* ${varName} composable */ }`];
     },
   },
 
@@ -816,9 +769,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
     trait: 'invisible',
     components: [],
     level: 'full',
-    generate: (varName) => [
-      `// ${varName}: invisible -- not rendered on glasses display`,
-    ],
+    generate: (varName) => [`// ${varName}: invisible -- not rendered on glasses display`],
   },
 
   billboard: {
@@ -1190,12 +1141,9 @@ export function generateCoverageReport(androidXRTraits: string[]): AIGlassesTrai
   const unsupported = listTraitsByLevel('unsupported');
 
   const total = glassesTraits.length;
-  const coveragePercent = total > 0
-    ? Math.round(((full.length + partial.length) / total) * 100 * 10) / 10
-    : 0;
-  const fullCoveragePercent = total > 0
-    ? Math.round((full.length / total) * 100 * 10) / 10
-    : 0;
+  const coveragePercent =
+    total > 0 ? Math.round(((full.length + partial.length) / total) * 100 * 10) / 10 : 0;
+  const fullCoveragePercent = total > 0 ? Math.round((full.length / total) * 100 * 10) / 10 : 0;
 
   const supported = [...full, ...partial, ...comment];
   const blockedByFormFactor = unsupported;
@@ -1205,7 +1153,8 @@ export function generateCoverageReport(androidXRTraits: string[]): AIGlassesTrai
     const mapping = AIGLASSES_TRAIT_MAP[trait];
     if (mapping) {
       const code = mapping.generate('_', {});
-      const reason = code[0]?.replace(/^\/\/ @\w+ -- /, '').replace(/ for _$/, '') || 'form factor constraint';
+      const reason =
+        code[0]?.replace(/^\/\/ @\w+ -- /, '').replace(/ for _$/, '') || 'form factor constraint';
       blockReasons[trait] = reason;
     }
   }

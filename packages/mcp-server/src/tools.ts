@@ -16,7 +16,7 @@ import { selfImproveTools } from './self-improve-tools';
 import {
   BrowserLaunchSchema,
   BrowserExecuteSchema,
-  BrowserScreenshotSchema
+  BrowserScreenshotSchema,
 } from './browser/browser-tools';
 
 /**
@@ -509,7 +509,8 @@ export const hololandTrainingTools: Tool[] = [
         },
         output_file: {
           type: 'string',
-          description: 'Optional file path to save JSONL output (e.g. "brittney-hololand-v1.jsonl")',
+          description:
+            'Optional file path to save JSONL output (e.g. "brittney-hololand-v1.jsonl")',
         },
       },
       required: [],

@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { AIDriverTrait, BehaviorTreeRunner, GOAPPlanner, createAIDriverTrait } from '../AIDriverTrait';
+import {
+  AIDriverTrait,
+  BehaviorTreeRunner,
+  GOAPPlanner,
+  createAIDriverTrait,
+} from '../AIDriverTrait';
 
 describe('AIDriverTrait', () => {
   let ai: AIDriverTrait;
@@ -69,7 +74,16 @@ describe('BehaviorTreeRunner', () => {
         { id: 'a2', type: 'action', action: async () => true },
       ],
     });
-    const ctx = { npcId: 'test', position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number], memory: new Map(), state: 'idle' as const, energy: 1, mood: 0, perception: { nearbyEntities: [], visibleEntities: [] } };
+    const ctx = {
+      npcId: 'test',
+      position: [0, 0, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+      memory: new Map(),
+      state: 'idle' as const,
+      energy: 1,
+      mood: 0,
+      perception: { nearbyEntities: [], visibleEntities: [] },
+    };
     expect(await runner.tick(ctx)).toBe(true);
   });
 
@@ -82,7 +96,16 @@ describe('BehaviorTreeRunner', () => {
         { id: 'a2', type: 'action', action: async () => false },
       ],
     });
-    const ctx = { npcId: 'test', position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number], memory: new Map(), state: 'idle' as const, energy: 1, mood: 0, perception: { nearbyEntities: [], visibleEntities: [] } };
+    const ctx = {
+      npcId: 'test',
+      position: [0, 0, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+      memory: new Map(),
+      state: 'idle' as const,
+      energy: 1,
+      mood: 0,
+      perception: { nearbyEntities: [], visibleEntities: [] },
+    };
     expect(await runner.tick(ctx)).toBe(false);
   });
 
@@ -95,7 +118,16 @@ describe('BehaviorTreeRunner', () => {
         { id: 'a2', type: 'action', action: async () => true },
       ],
     });
-    const ctx = { npcId: 'test', position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number], memory: new Map(), state: 'idle' as const, energy: 1, mood: 0, perception: { nearbyEntities: [], visibleEntities: [] } };
+    const ctx = {
+      npcId: 'test',
+      position: [0, 0, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+      memory: new Map(),
+      state: 'idle' as const,
+      energy: 1,
+      mood: 0,
+      perception: { nearbyEntities: [], visibleEntities: [] },
+    };
     expect(await runner.tick(ctx)).toBe(true);
   });
 
@@ -105,7 +137,16 @@ describe('BehaviorTreeRunner', () => {
       type: 'condition',
       condition: (ctx) => ctx.energy > 0.5,
     });
-    const ctx = { npcId: 'test', position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number], memory: new Map(), state: 'idle' as const, energy: 1, mood: 0, perception: { nearbyEntities: [], visibleEntities: [] } };
+    const ctx = {
+      npcId: 'test',
+      position: [0, 0, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+      memory: new Map(),
+      state: 'idle' as const,
+      energy: 1,
+      mood: 0,
+      perception: { nearbyEntities: [], visibleEntities: [] },
+    };
     expect(await runner.tick(ctx)).toBe(true);
   });
 
@@ -118,7 +159,16 @@ describe('BehaviorTreeRunner', () => {
         { id: 'a2', type: 'action', action: async () => true },
       ],
     });
-    const ctx = { npcId: 'test', position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number], memory: new Map(), state: 'idle' as const, energy: 1, mood: 0, perception: { nearbyEntities: [], visibleEntities: [] } };
+    const ctx = {
+      npcId: 'test',
+      position: [0, 0, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+      memory: new Map(),
+      state: 'idle' as const,
+      energy: 1,
+      mood: 0,
+      perception: { nearbyEntities: [], visibleEntities: [] },
+    };
     expect(await runner.tick(ctx)).toBe(true);
   });
 });
@@ -126,20 +176,48 @@ describe('BehaviorTreeRunner', () => {
 describe('GOAPPlanner', () => {
   it('plans achievable goal', () => {
     const planner = new GOAPPlanner([
-      { id: 'eat', name: 'Eat', priority: 1, preconditions: new Map([['hasFood', true]]), effects: new Map([['hunger', 0]]), cost: 1 },
+      {
+        id: 'eat',
+        name: 'Eat',
+        priority: 1,
+        preconditions: new Map([['hasFood', true]]),
+        effects: new Map([['hunger', 0]]),
+        cost: 1,
+      },
     ]);
     const state = new Map<string, unknown>([['hasFood', true]]);
-    const goal = { id: 'eat', name: 'Eat', priority: 1, preconditions: new Map([['hasFood', true]]), effects: new Map([['hunger', 0]]), cost: 1 };
+    const goal = {
+      id: 'eat',
+      name: 'Eat',
+      priority: 1,
+      preconditions: new Map([['hasFood', true]]),
+      effects: new Map([['hunger', 0]]),
+      cost: 1,
+    };
     const plan = planner.planGoal(state, goal);
     expect(plan).toHaveLength(1);
   });
 
   it('returns empty for unachievable goal', () => {
     const planner = new GOAPPlanner([
-      { id: 'eat', name: 'Eat', priority: 1, preconditions: new Map([['hasFood', true]]), effects: new Map(), cost: 1 },
+      {
+        id: 'eat',
+        name: 'Eat',
+        priority: 1,
+        preconditions: new Map([['hasFood', true]]),
+        effects: new Map(),
+        cost: 1,
+      },
     ]);
     const state = new Map<string, unknown>([['hasFood', false]]);
-    const goal = { id: 'eat', name: 'Eat', priority: 1, preconditions: new Map([['hasFood', true]]), effects: new Map(), cost: 1 };
+    const goal = {
+      id: 'eat',
+      name: 'Eat',
+      priority: 1,
+      preconditions: new Map([['hasFood', true]]),
+      effects: new Map(),
+      cost: 1,
+    };
     const plan = planner.planGoal(state, goal);
     expect(plan).toHaveLength(0);
   });

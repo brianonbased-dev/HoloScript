@@ -18,7 +18,6 @@ import { SmartAssetLoader, createSmartAssetLoader } from '../../assets/SmartAsse
 // ── constructor defaults ──────────────────────────────────────────────────────
 
 describe('SmartAssetLoader — constructor defaults', () => {
-
   it('default quality is medium', () => {
     const sal = new SmartAssetLoader();
     expect(sal.getConfig().quality).toBe('medium');
@@ -59,7 +58,6 @@ describe('SmartAssetLoader — constructor defaults', () => {
 // ── getConfig ─────────────────────────────────────────────────────────────────
 
 describe('SmartAssetLoader — getConfig', () => {
-
   it('getConfig returns a copy (mutation does not affect internal state)', () => {
     const sal = new SmartAssetLoader({ quality: 'low' });
     const cfg = sal.getConfig();
@@ -71,7 +69,6 @@ describe('SmartAssetLoader — getConfig', () => {
 // ── updateConfig ──────────────────────────────────────────────────────────────
 
 describe('SmartAssetLoader — updateConfig', () => {
-
   it('updateConfig merges partial config', () => {
     const sal = new SmartAssetLoader();
     sal.updateConfig({ timeout: 9999 });
@@ -94,7 +91,6 @@ describe('SmartAssetLoader — updateConfig', () => {
 // ── setPlatform ───────────────────────────────────────────────────────────────
 
 describe('SmartAssetLoader — setPlatform', () => {
-
   it('setPlatform updates the platform config', () => {
     const sal = new SmartAssetLoader({ platform: 'web' });
     sal.setPlatform('mobile');
@@ -103,7 +99,13 @@ describe('SmartAssetLoader — setPlatform', () => {
 
   it('setPlatform accepts all valid platforms', () => {
     const sal = new SmartAssetLoader();
-    const platforms: Array<'web' | 'mobile' | 'vr' | 'ar' | 'desktop'> = ['web', 'mobile', 'vr', 'ar', 'desktop'];
+    const platforms: Array<'web' | 'mobile' | 'vr' | 'ar' | 'desktop'> = [
+      'web',
+      'mobile',
+      'vr',
+      'ar',
+      'desktop',
+    ];
     for (const p of platforms) {
       sal.setPlatform(p);
       expect(sal.getConfig().platform).toBe(p);
@@ -114,7 +116,6 @@ describe('SmartAssetLoader — setPlatform', () => {
 // ── setQuality ────────────────────────────────────────────────────────────────
 
 describe('SmartAssetLoader — setQuality', () => {
-
   it('setQuality updates the quality config', () => {
     const sal = new SmartAssetLoader();
     sal.setQuality('ultra');
@@ -123,7 +124,12 @@ describe('SmartAssetLoader — setQuality', () => {
 
   it('setQuality accepts all valid quality levels', () => {
     const sal = new SmartAssetLoader();
-    const qualities: Array<'low' | 'medium' | 'high' | 'ultra'> = ['low', 'medium', 'high', 'ultra'];
+    const qualities: Array<'low' | 'medium' | 'high' | 'ultra'> = [
+      'low',
+      'medium',
+      'high',
+      'ultra',
+    ];
     for (const q of qualities) {
       sal.setQuality(q);
       expect(sal.getConfig().quality).toBe(q);
@@ -134,7 +140,6 @@ describe('SmartAssetLoader — setQuality', () => {
 // ── setModelParser ────────────────────────────────────────────────────────────
 
 describe('SmartAssetLoader — setModelParser', () => {
-
   it('setModelParser stores the parser in config', () => {
     const sal = new SmartAssetLoader();
     const parser = async (_buf: ArrayBuffer) => ({ parsed: true });
@@ -146,7 +151,6 @@ describe('SmartAssetLoader — setModelParser', () => {
 // ── getMemoryUsage ────────────────────────────────────────────────────────────
 
 describe('SmartAssetLoader — getMemoryUsage', () => {
-
   it('initial memory usage is 0', () => {
     const sal = new SmartAssetLoader();
     expect(sal.getMemoryUsage().current).toBe(0);
@@ -165,7 +169,6 @@ describe('SmartAssetLoader — getMemoryUsage', () => {
 // ── releaseMemory ─────────────────────────────────────────────────────────────
 
 describe('SmartAssetLoader — releaseMemory', () => {
-
   it('releaseMemory returns an array', () => {
     const result = new SmartAssetLoader().releaseMemory(1024);
     expect(Array.isArray(result)).toBe(true);
@@ -179,7 +182,6 @@ describe('SmartAssetLoader — releaseMemory', () => {
 // ── factory ───────────────────────────────────────────────────────────────────
 
 describe('SmartAssetLoader — factory', () => {
-
   it('createSmartAssetLoader returns SmartAssetLoader instance', () => {
     const sal = createSmartAssetLoader({ quality: 'high' });
     expect(sal).toBeInstanceOf(SmartAssetLoader);

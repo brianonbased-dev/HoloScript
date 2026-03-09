@@ -54,7 +54,13 @@ import type {
 } from './types.js';
 import { PluginSandbox } from './PluginSandbox.js';
 import { PluginBridge } from './PluginBridge.js';
-import type { APIHandler, StorageHandler, FetchHandler, RegisterHandler, PluginBridgeOptions } from './PluginBridge.js';
+import type {
+  APIHandler,
+  StorageHandler,
+  FetchHandler,
+  RegisterHandler,
+  PluginBridgeOptions,
+} from './PluginBridge.js';
 
 /**
  * Configuration for the SandboxedPluginHost.
@@ -125,16 +131,36 @@ export class SandboxedPluginHost {
 
   constructor(options: SandboxedPluginHostOptions = {}) {
     this.options = {
-      onAPICall: options.onAPICall ?? (async () => { throw new Error('No API handler'); }),
-      onStorage: options.onStorage ?? (async () => { throw new Error('No storage handler'); }),
-      onFetch: options.onFetch ?? (async () => { throw new Error('No fetch handler'); }),
-      onRegister: options.onRegister ?? (async () => { /* no-op default */ }),
-      onLog: options.onLog ?? ((pluginId, level, message) => {
-        console.log(`[Plugin:${pluginId}] [${level}]`, message);
-      }),
-      onError: options.onError ?? ((pluginId, code, message) => {
-        console.error(`[Plugin:${pluginId}] Error ${code}:`, message);
-      }),
+      onAPICall:
+        options.onAPICall ??
+        (async () => {
+          throw new Error('No API handler');
+        }),
+      onStorage:
+        options.onStorage ??
+        (async () => {
+          throw new Error('No storage handler');
+        }),
+      onFetch:
+        options.onFetch ??
+        (async () => {
+          throw new Error('No fetch handler');
+        }),
+      onRegister:
+        options.onRegister ??
+        (async () => {
+          /* no-op default */
+        }),
+      onLog:
+        options.onLog ??
+        ((pluginId, level, message) => {
+          console.log(`[Plugin:${pluginId}] [${level}]`, message);
+        }),
+      onError:
+        options.onError ??
+        ((pluginId, code, message) => {
+          console.error(`[Plugin:${pluginId}] Error ${code}:`, message);
+        }),
       maxPlugins: options.maxPlugins ?? 20,
       defaultInitTimeout: options.defaultInitTimeout ?? 10000,
       debug: options.debug ?? false,
@@ -159,7 +185,7 @@ export class SandboxedPluginHost {
     // Check limits
     if (this.plugins.size >= this.options.maxPlugins) {
       throw new Error(
-        `Cannot load plugin ${pluginId}: maximum plugin limit (${this.options.maxPlugins}) reached`,
+        `Cannot load plugin ${pluginId}: maximum plugin limit (${this.options.maxPlugins}) reached`
       );
     }
 
@@ -223,7 +249,12 @@ export class SandboxedPluginHost {
    */
   public async unloadPlugin(
     pluginId: string,
-    reason: 'user-disabled' | 'user-uninstalled' | 'error' | 'resource-limit' | 'studio-closing' = 'user-disabled',
+    reason:
+      | 'user-disabled'
+      | 'user-uninstalled'
+      | 'error'
+      | 'resource-limit'
+      | 'studio-closing' = 'user-disabled'
   ): Promise<void> {
     const plugin = this.plugins.get(pluginId);
     if (!plugin) {
@@ -295,7 +326,7 @@ export class SandboxedPluginHost {
     namespace: string,
     event: string,
     data: unknown,
-    targetPermission?: SandboxPermission,
+    targetPermission?: SandboxPermission
   ): void {
     for (const [pluginId, plugin] of this.plugins) {
       // Only send to running plugins
@@ -315,7 +346,12 @@ export class SandboxedPluginHost {
   /**
    * Sends an event to a specific plugin.
    */
-  public sendEventToPlugin(pluginId: string, namespace: string, event: string, data: unknown): void {
+  public sendEventToPlugin(
+    pluginId: string,
+    namespace: string,
+    event: string,
+    data: unknown
+  ): void {
     const plugin = this.plugins.get(pluginId);
     if (plugin && plugin.sandbox.getState() === 'running') {
       plugin.sandbox.sendEvent(namespace, event, data);
@@ -402,7 +438,7 @@ export class SandboxedPluginHost {
         this.log('warn', `Error shutting down plugin ${pluginId}:`, err);
         // Force terminate on error
         this.terminatePlugin(pluginId);
-      }),
+      })
     );
 
     await Promise.allSettled(shutdownPromises);
@@ -450,7 +486,10 @@ export class SandboxedPluginHost {
 
       // Check for excessive permission violations (potential attack)
       if (metrics.permissionViolations > 50) {
-        this.log('error', `Plugin ${pluginId} has ${metrics.permissionViolations} permission violations - terminating`);
+        this.log(
+          'error',
+          `Plugin ${pluginId} has ${metrics.permissionViolations} permission violations - terminating`
+        );
         this.terminatePlugin(pluginId);
       }
 
@@ -462,7 +501,10 @@ export class SandboxedPluginHost {
       // Check for memory budget (if available)
       const memoryBudget = plugin.options.manifest.memoryBudget ?? 64;
       if (metrics.memoryEstimate && metrics.memoryEstimate > memoryBudget * 1024 * 1024) {
-        this.log('warn', `Plugin ${pluginId} exceeds memory budget (${Math.round(metrics.memoryEstimate / 1024 / 1024)}MB > ${memoryBudget}MB)`);
+        this.log(
+          'warn',
+          `Plugin ${pluginId} exceeds memory budget (${Math.round(metrics.memoryEstimate / 1024 / 1024)}MB > ${memoryBudget}MB)`
+        );
       }
     }
   }

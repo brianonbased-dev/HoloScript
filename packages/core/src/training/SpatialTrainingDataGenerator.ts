@@ -99,8 +99,7 @@ const ADJACENT_QUESTION_TEMPLATES: Array<{
       `No. "${src}" is ${dist.toFixed(1)}m from "${tgt}", which exceeds the ${maxDist}m adjacency constraint.`,
   },
   {
-    question: (src, tgt) =>
-      `Are "${src}" and "${tgt}" adjacent to each other?`,
+    question: (src, tgt) => `Are "${src}" and "${tgt}" adjacent to each other?`,
     positiveAnswer: (src, tgt, dist) =>
       `Yes, "${src}" and "${tgt}" are adjacent. They are ${dist.toFixed(1)}m apart, satisfying the adjacency constraint.`,
     negativeAnswer: (src, tgt, dist, maxDist) =>
@@ -197,8 +196,7 @@ const CONTAINS_QUESTION_TEMPLATES: Array<{
   negativeAnswer: (container: string, contained: string) => string;
 }> = [
   {
-    question: (container, contained) =>
-      `Is "${contained}" inside "${container}"?`,
+    question: (container, contained) => `Is "${contained}" inside "${container}"?`,
     positiveAnswer: (container, contained) =>
       `Yes, "${contained}" is fully contained within "${container}"'s bounds.`,
     negativeAnswer: (container, contained) =>
@@ -221,8 +219,7 @@ const CONTAINS_QUESTION_TEMPLATES: Array<{
       `Verification failed: "${contained}" does not fit within "${container}"'s bounding volume.`,
   },
   {
-    question: (container) =>
-      `Which objects are inside "${container}" in this scene?`,
+    question: (container) => `Which objects are inside "${container}" in this scene?`,
     positiveAnswer: (container, contained) =>
       `"${contained}" is inside "${container}", satisfying the containment constraint.`,
     negativeAnswer: (container, contained) =>
@@ -303,16 +300,14 @@ const REACHABLE_QUESTION_TEMPLATES: Array<{
   negativeAnswer: (src: string, tgt: string, blocker: string) => string;
 }> = [
   {
-    question: (src, tgt) =>
-      `Is there a clear path from "${src}" to "${tgt}"?`,
+    question: (src, tgt) => `Is there a clear path from "${src}" to "${tgt}"?`,
     positiveAnswer: (src, tgt, pathLen) =>
       `Yes, there is a clear path from "${src}" to "${tgt}" with a path length of ${pathLen.toFixed(1)}m.`,
     negativeAnswer: (src, tgt, blocker) =>
       `No, the path from "${src}" to "${tgt}" is blocked by "${blocker}".`,
   },
   {
-    question: (src, tgt) =>
-      `Can "${src}" reach "${tgt}" without obstruction?`,
+    question: (src, tgt) => `Can "${src}" reach "${tgt}" without obstruction?`,
     positiveAnswer: (src, tgt, pathLen) =>
       `Yes, "${src}" can reach "${tgt}" unobstructed. The path length is ${pathLen.toFixed(1)}m.`,
     negativeAnswer: (src, tgt, blocker) =>
@@ -328,7 +323,7 @@ const REACHABLE_QUESTION_TEMPLATES: Array<{
   },
   {
     question: (src, tgt, obstacles) =>
-      `Given obstacles [${obstacles.map(o => `"${o}"`).join(', ')}], can "${src}" see "${tgt}"?`,
+      `Given obstacles [${obstacles.map((o) => `"${o}"`).join(', ')}], can "${src}" see "${tgt}"?`,
     positiveAnswer: (src, tgt) =>
       `Yes, despite the obstacles, "${src}" has line of sight to "${tgt}".`,
     negativeAnswer: (src, tgt, blocker) =>
@@ -343,26 +338,22 @@ const REACHABLE_QUESTION_TEMPLATES: Array<{
       `"${src}" does NOT have an unobstructed path to "${tgt}". "${blocker}" is in the way.`,
   },
   {
-    question: (src, tgt) =>
-      `In this HoloScript scene, is "${tgt}" reachable from "${src}"?`,
+    question: (src, tgt) => `In this HoloScript scene, is "${tgt}" reachable from "${src}"?`,
     positiveAnswer: (_src, tgt, pathLen) =>
       `Yes, "${tgt}" is reachable with a direct path of ${pathLen.toFixed(1)}m.`,
     negativeAnswer: (_src, tgt, blocker) =>
       `No, "${tgt}" is not reachable. An obstacle ("${blocker}") blocks the direct path.`,
   },
   {
-    question: (src, tgt) =>
-      `Check the reachability constraint: can "${src}" navigate to "${tgt}"?`,
+    question: (src, tgt) => `Check the reachability constraint: can "${src}" navigate to "${tgt}"?`,
     positiveAnswer: (src, tgt, pathLen) =>
       `Reachability check passed: "${src}" can navigate to "${tgt}" (${pathLen.toFixed(1)}m path).`,
     negativeAnswer: (src, tgt, blocker) =>
       `Reachability check failed: "${src}" cannot navigate to "${tgt}" due to "${blocker}".`,
   },
   {
-    question: (src, tgt) =>
-      `Is the line of sight between "${src}" and "${tgt}" clear?`,
-    positiveAnswer: (src, tgt) =>
-      `Yes, line of sight between "${src}" and "${tgt}" is clear.`,
+    question: (src, tgt) => `Is the line of sight between "${src}" and "${tgt}" clear?`,
+    positiveAnswer: (src, tgt) => `Yes, line of sight between "${src}" and "${tgt}" is clear.`,
     negativeAnswer: (src, tgt, blocker) =>
       `No, line of sight is blocked. "${blocker}" obstructs the view from "${src}" to "${tgt}".`,
   },
@@ -405,32 +396,98 @@ const REACHABLE_QUESTION_TEMPLATES: Array<{
 // =============================================================================
 
 const OBJECT_NAMES = [
-  'Table', 'Chair', 'Lamp', 'Bookshelf', 'Desk', 'Sofa', 'Cabinet', 'Mirror',
-  'Plant', 'Clock', 'Vase', 'Rug', 'Painting', 'Shelf', 'Stool', 'Bench',
-  'Chest', 'Barrel', 'Crate', 'Box', 'Pillar', 'Statue', 'Crystal',
-  'Orb', 'Pedestal', 'Platform', 'Beacon', 'Terminal', 'Console', 'Panel',
+  'Table',
+  'Chair',
+  'Lamp',
+  'Bookshelf',
+  'Desk',
+  'Sofa',
+  'Cabinet',
+  'Mirror',
+  'Plant',
+  'Clock',
+  'Vase',
+  'Rug',
+  'Painting',
+  'Shelf',
+  'Stool',
+  'Bench',
+  'Chest',
+  'Barrel',
+  'Crate',
+  'Box',
+  'Pillar',
+  'Statue',
+  'Crystal',
+  'Orb',
+  'Pedestal',
+  'Platform',
+  'Beacon',
+  'Terminal',
+  'Console',
+  'Panel',
 ];
 
 const ZONE_NAMES = [
-  'Room', 'Hall', 'Chamber', 'Arena', 'Gallery', 'Vault',
-  'Atrium', 'Courtyard', 'Alcove', 'Corridor', 'Laboratory', 'Workshop',
+  'Room',
+  'Hall',
+  'Chamber',
+  'Arena',
+  'Gallery',
+  'Vault',
+  'Atrium',
+  'Courtyard',
+  'Alcove',
+  'Corridor',
+  'Laboratory',
+  'Workshop',
 ];
 
 const OBSTACLE_NAMES = [
-  'Wall', 'Barrier', 'Fence', 'Pillar', 'Column', 'Boulder',
-  'Shield', 'Gate', 'Blockade', 'Partition', 'Divider', 'Screen',
+  'Wall',
+  'Barrier',
+  'Fence',
+  'Pillar',
+  'Column',
+  'Boulder',
+  'Shield',
+  'Gate',
+  'Blockade',
+  'Partition',
+  'Divider',
+  'Screen',
 ];
 
 const NPC_NAMES = [
-  'Guard', 'Merchant', 'Explorer', 'Scout', 'Villager', 'Artisan',
-  'Drone', 'Robot', 'Companion', 'Agent', 'Sentinel', 'Worker',
+  'Guard',
+  'Merchant',
+  'Explorer',
+  'Scout',
+  'Villager',
+  'Artisan',
+  'Drone',
+  'Robot',
+  'Companion',
+  'Agent',
+  'Sentinel',
+  'Worker',
 ];
 
 const GEOMETRY_TYPES = ['cube', 'sphere', 'cylinder', 'torus', 'cone', 'prism'];
 
 const COLORS = [
-  '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff',
-  '#ff8800', '#8800ff', '#00ff88', '#ff0088', '#888888', '#ffffff',
+  '#ff0000',
+  '#00ff00',
+  '#0000ff',
+  '#ffff00',
+  '#ff00ff',
+  '#00ffff',
+  '#ff8800',
+  '#8800ff',
+  '#00ff88',
+  '#ff0088',
+  '#888888',
+  '#ffffff',
 ];
 
 // =============================================================================
@@ -443,9 +500,13 @@ function generateObjectBlock(obj: SceneObject, indent: string = '  '): string {
   if (obj.geometry) {
     lines.push(`${indent}  geometry: "${obj.geometry}"`);
   }
-  lines.push(`${indent}  position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`);
+  lines.push(
+    `${indent}  position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`
+  );
   if (obj.scale.x !== 1 || obj.scale.y !== 1 || obj.scale.z !== 1) {
-    lines.push(`${indent}  scale: [${obj.scale.x.toFixed(1)}, ${obj.scale.y.toFixed(1)}, ${obj.scale.z.toFixed(1)}]`);
+    lines.push(
+      `${indent}  scale: [${obj.scale.x.toFixed(1)}, ${obj.scale.y.toFixed(1)}, ${obj.scale.z.toFixed(1)}]`
+    );
   }
   if (obj.color) {
     lines.push(`${indent}  color: "${obj.color}"`);
@@ -462,7 +523,9 @@ function generateZoneBlock(obj: SceneObject, indent: string = '  '): string {
   const sy = obj.scale.y;
   const sz = obj.scale.z;
   lines.push(`${indent}  size: [${sx.toFixed(1)}, ${sy.toFixed(1)}, ${sz.toFixed(1)}]`);
-  lines.push(`${indent}  position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`);
+  lines.push(
+    `${indent}  position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`
+  );
   lines.push(`${indent}}`);
   return lines.join('\n');
 }
@@ -486,13 +549,18 @@ function generateContainsTrait(targetId: string, margin?: number, strict?: boole
   return `@spatial_contains(${parts.join(', ')})`;
 }
 
-function generateReachableTrait(targetId: string, maxPathLength?: number, obstacles?: string[], algorithm?: string): string {
+function generateReachableTrait(
+  targetId: string,
+  maxPathLength?: number,
+  obstacles?: string[],
+  algorithm?: string
+): string {
   const parts = [`target: "${targetId}"`];
   if (maxPathLength !== undefined) {
     parts.push(`maxPathLength: ${maxPathLength.toFixed(0)}m`);
   }
   if (obstacles && obstacles.length > 0) {
-    parts.push(`obstacles: [${obstacles.map(o => `"${o}"`).join(', ')}]`);
+    parts.push(`obstacles: [${obstacles.map((o) => `"${o}"`).join(', ')}]`);
   }
   if (algorithm) {
     parts.push(`algorithm: "${algorithm}"`);
@@ -500,7 +568,10 @@ function generateReachableTrait(targetId: string, maxPathLength?: number, obstac
   return `@spatial_reachable(${parts.join(', ')})`;
 }
 
-function computeDistance(a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }): number {
+function computeDistance(
+  a: { x: number; y: number; z: number },
+  b: { x: number; y: number; z: number }
+): number {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const dz = b.z - a.z;
@@ -873,7 +944,9 @@ export class SpatialTrainingDataGenerator {
         // Source object gets the adjacent trait
         lines.push(`  object "${obj.id}" {`);
         if (obj.geometry) lines.push(`    geometry: "${obj.geometry}"`);
-        lines.push(`    position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`);
+        lines.push(
+          `    position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`
+        );
         if (obj.color) lines.push(`    color: "${obj.color}"`);
         lines.push(`    ${generateAdjacentTrait(tgtName, maxDistance)}`);
         lines.push('  }');
@@ -935,21 +1008,42 @@ export class SpatialTrainingDataGenerator {
     if (isPositive) {
       // Place inside container bounds (with margin)
       containedPos = {
-        x: this.rng.float(containerBounds.min.x + margin + 0.5, containerBounds.max.x - margin - 0.5),
-        y: this.rng.float(containerBounds.min.y + margin + 0.5, containerBounds.max.y - margin - 0.5),
-        z: this.rng.float(containerBounds.min.z + margin + 0.5, containerBounds.max.z - margin - 0.5),
+        x: this.rng.float(
+          containerBounds.min.x + margin + 0.5,
+          containerBounds.max.x - margin - 0.5
+        ),
+        y: this.rng.float(
+          containerBounds.min.y + margin + 0.5,
+          containerBounds.max.y - margin - 0.5
+        ),
+        z: this.rng.float(
+          containerBounds.min.z + margin + 0.5,
+          containerBounds.max.z - margin - 0.5
+        ),
       };
     } else {
       // Place outside container bounds
       const side = this.rng.int(0, 5);
       containedPos = { ...containerPos };
       switch (side) {
-        case 0: containedPos.x = containerBounds.max.x + this.rng.float(1, 5); break;
-        case 1: containedPos.x = containerBounds.min.x - this.rng.float(1, 5); break;
-        case 2: containedPos.y = containerBounds.max.y + this.rng.float(1, 5); break;
-        case 3: containedPos.y = containerBounds.min.y - this.rng.float(1, 5); break;
-        case 4: containedPos.z = containerBounds.max.z + this.rng.float(1, 5); break;
-        case 5: containedPos.z = containerBounds.min.z - this.rng.float(1, 5); break;
+        case 0:
+          containedPos.x = containerBounds.max.x + this.rng.float(1, 5);
+          break;
+        case 1:
+          containedPos.x = containerBounds.min.x - this.rng.float(1, 5);
+          break;
+        case 2:
+          containedPos.y = containerBounds.max.y + this.rng.float(1, 5);
+          break;
+        case 3:
+          containedPos.y = containerBounds.min.y - this.rng.float(1, 5);
+          break;
+        case 4:
+          containedPos.z = containerBounds.max.z + this.rng.float(1, 5);
+          break;
+        case 5:
+          containedPos.z = containerBounds.min.z - this.rng.float(1, 5);
+          break;
       }
     }
 
@@ -1044,9 +1138,15 @@ export class SpatialTrainingDataGenerator {
         if (obj.id === containerName) {
           lines.push(`  zone "${obj.id}" {`);
           lines.push(`    shape: "box"`);
-          lines.push(`    size: [${obj.scale.x.toFixed(1)}, ${obj.scale.y.toFixed(1)}, ${obj.scale.z.toFixed(1)}]`);
-          lines.push(`    position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`);
-          lines.push(`    ${generateContainsTrait(containedName, margin > 0 ? margin : undefined)}`);
+          lines.push(
+            `    size: [${obj.scale.x.toFixed(1)}, ${obj.scale.y.toFixed(1)}, ${obj.scale.z.toFixed(1)}]`
+          );
+          lines.push(
+            `    position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`
+          );
+          lines.push(
+            `    ${generateContainsTrait(containedName, margin > 0 ? margin : undefined)}`
+          );
           lines.push('  }');
         } else {
           lines.push(generateZoneBlock(obj));
@@ -1101,7 +1201,12 @@ export class SpatialTrainingDataGenerator {
     });
 
     // Generate obstacles
-    const obstacleCount = difficulty === 'basic' ? 0 : difficulty === 'intermediate' ? this.rng.int(1, 2) : this.rng.int(2, 4);
+    const obstacleCount =
+      difficulty === 'basic'
+        ? 0
+        : difficulty === 'intermediate'
+          ? this.rng.int(1, 2)
+          : this.rng.int(2, 4);
     const obstacleNames: string[] = [];
     const usedNames = [srcName, tgtName];
     let blockingObstacle: string | null = null;
@@ -1253,15 +1358,23 @@ export class SpatialTrainingDataGenerator {
       if (obj.id === srcName) {
         lines.push(`  object "${obj.id}" {`);
         if (obj.geometry) lines.push(`    geometry: "${obj.geometry}"`);
-        lines.push(`    position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`);
+        lines.push(
+          `    position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`
+        );
         if (obj.color) lines.push(`    color: "${obj.color}"`);
-        lines.push(`    ${generateReachableTrait(tgtName, maxPathLength, obstacleNames.length > 0 ? ['obstacle'] : undefined, 'line_of_sight')}`);
+        lines.push(
+          `    ${generateReachableTrait(tgtName, maxPathLength, obstacleNames.length > 0 ? ['obstacle'] : undefined, 'line_of_sight')}`
+        );
         lines.push('  }');
       } else if (obj.isObstacle) {
         lines.push(`  object "${obj.id}" {`);
         lines.push(`    geometry: "cube"`);
-        lines.push(`    position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`);
-        lines.push(`    scale: [${obj.scale.x.toFixed(1)}, ${obj.scale.y.toFixed(1)}, ${obj.scale.z.toFixed(1)}]`);
+        lines.push(
+          `    position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`
+        );
+        lines.push(
+          `    scale: [${obj.scale.x.toFixed(1)}, ${obj.scale.y.toFixed(1)}, ${obj.scale.z.toFixed(1)}]`
+        );
         lines.push('    @static');
         lines.push('    @collidable');
         lines.push('  }');
@@ -1320,9 +1433,7 @@ export class SpatialTrainingDataGenerator {
       case 'spatial_reachable': {
         templateIndex = this.rng.int(0, REACHABLE_QUESTION_TEMPLATES.length - 1);
         const template = REACHABLE_QUESTION_TEMPLATES[templateIndex];
-        const obstacles = scene.objects
-          .filter((o) => o.isObstacle)
-          .map((o) => o.id);
+        const obstacles = scene.objects.filter((o) => o.isObstacle).map((o) => o.id);
         const pathLen = computeDistance(
           scene.objects.find((o) => o.id === rel.sourceId)!.position,
           scene.objects.find((o) => o.id === rel.targetId)!.position

@@ -46,7 +46,9 @@ export class ReplayPlayback {
     this.state = 'stopped';
   }
 
-  isLoaded(): boolean { return this.data !== null; }
+  isLoaded(): boolean {
+    return this.data !== null;
+  }
 
   // ---------------------------------------------------------------------------
   // Control
@@ -57,15 +59,30 @@ export class ReplayPlayback {
     this.state = 'playing';
   }
 
-  pause(): void { this.state = 'paused'; }
-  stop(): void { this.state = 'stopped'; this.currentTime = 0; }
-  getState(): PlaybackState { return this.state; }
+  pause(): void {
+    this.state = 'paused';
+  }
+  stop(): void {
+    this.state = 'stopped';
+    this.currentTime = 0;
+  }
+  getState(): PlaybackState {
+    return this.state;
+  }
 
-  setSpeed(speed: number): void { this.speed = Math.max(0.1, Math.min(8, speed)); }
-  getSpeed(): number { return this.speed; }
+  setSpeed(speed: number): void {
+    this.speed = Math.max(0.1, Math.min(8, speed));
+  }
+  getSpeed(): number {
+    return this.speed;
+  }
 
-  setLoop(loop: boolean): void { this.looping = loop; }
-  isLooping(): boolean { return this.looping; }
+  setLoop(loop: boolean): void {
+    this.looping = loop;
+  }
+  isLooping(): boolean {
+    return this.looping;
+  }
 
   // ---------------------------------------------------------------------------
   // Seeking
@@ -87,14 +104,20 @@ export class ReplayPlayback {
     return this.currentTime / this.data.header.duration;
   }
 
-  getCurrentTime(): number { return this.currentTime; }
+  getCurrentTime(): number {
+    return this.currentTime;
+  }
 
   // ---------------------------------------------------------------------------
   // Camera
   // ---------------------------------------------------------------------------
 
-  setCameraMode(mode: CameraMode): void { this.cameraMode = mode; }
-  getCameraMode(): CameraMode { return this.cameraMode; }
+  setCameraMode(mode: CameraMode): void {
+    this.cameraMode = mode;
+  }
+  getCameraMode(): CameraMode {
+    return this.cameraMode;
+  }
 
   // ---------------------------------------------------------------------------
   // Events
@@ -125,7 +148,7 @@ export class ReplayPlayback {
     for (const evt of this.events) {
       if (evt.timestamp > prevTime && evt.timestamp <= this.currentTime) {
         const callbacks = this.eventCallbacks.get(evt.name);
-        if (callbacks) callbacks.forEach(cb => cb(evt));
+        if (callbacks) callbacks.forEach((cb) => cb(evt));
       }
     }
 
@@ -150,7 +173,8 @@ export class ReplayPlayback {
     if (!this.data || this.data.frames.length === 0) return null;
 
     // Find bracketing frames
-    let lo = 0, hi = this.data.frames.length - 1;
+    let lo = 0,
+      hi = this.data.frames.length - 1;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
       if (this.data.frames[mid].timestamp < timeMs) lo = mid + 1;
@@ -164,6 +188,10 @@ export class ReplayPlayback {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getDuration(): number { return this.data?.header.duration ?? 0; }
-  getFrameCount(): number { return this.data?.header.frameCount ?? 0; }
+  getDuration(): number {
+    return this.data?.header.duration ?? 0;
+  }
+  getFrameCount(): number {
+    return this.data?.header.frameCount ?? 0;
+  }
 }

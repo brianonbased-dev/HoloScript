@@ -355,29 +355,46 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
     const THREE = (window as any).THREE;
 
     const type = spec.type || 'box';
-    const size = Array.isArray(spec.size) ? spec.size : [spec.size || 1, spec.size || 1, spec.size || 1];
+    const size = Array.isArray(spec.size)
+      ? spec.size
+      : [spec.size || 1, spec.size || 1, spec.size || 1];
 
     const geometryMap: Record<string, any> = {
       // ===== CORE PRIMITIVES (7) =====
       box: () => new THREE.BoxGeometry(...size),
       sphere: () => new THREE.SphereGeometry(spec.radius || size[0], 32, 32),
-      cylinder: () => new THREE.CylinderGeometry(spec.radius || size[0], spec.radius || size[0], spec.height || size[1], 32),
+      cylinder: () =>
+        new THREE.CylinderGeometry(
+          spec.radius || size[0],
+          spec.radius || size[0],
+          spec.height || size[1],
+          32
+        ),
       cone: () => new THREE.ConeGeometry(spec.radius || size[0], spec.height || size[1], 32),
       plane: () => new THREE.PlaneGeometry(size[0], size[1]),
-      torus: () => new THREE.TorusGeometry(spec.radius || size[0], (spec.tube || size[0]) * 0.4, 32, 100),
-      ring: () => new THREE.RingGeometry(spec.innerRadius || size[0] * 0.5, spec.outerRadius || size[0], 32),
+      torus: () =>
+        new THREE.TorusGeometry(spec.radius || size[0], (spec.tube || size[0]) * 0.4, 32, 100),
+      ring: () =>
+        new THREE.RingGeometry(spec.innerRadius || size[0] * 0.5, spec.outerRadius || size[0], 32),
 
       // ===== ADDITIONAL CORE GEOMETRIES (4) =====
       circle: () => new THREE.CircleGeometry(spec.radius || size[0], 32),
-      capsule: () => new THREE.CapsuleGeometry(spec.radius || size[0] * 0.5, spec.length || size[1], spec.capSegments || 4, spec.radialSegments || 8),
-      torusknot: () => new THREE.TorusKnotGeometry(
-        spec.radius || size[0],
-        spec.tube || size[0] * 0.3,
-        spec.tubularSegments || 64,
-        spec.radialSegments || 8,
-        spec.p || 2,
-        spec.q || 3
-      ),
+      capsule: () =>
+        new THREE.CapsuleGeometry(
+          spec.radius || size[0] * 0.5,
+          spec.length || size[1],
+          spec.capSegments || 4,
+          spec.radialSegments || 8
+        ),
+      torusknot: () =>
+        new THREE.TorusKnotGeometry(
+          spec.radius || size[0],
+          spec.tube || size[0] * 0.3,
+          spec.tubularSegments || 64,
+          spec.radialSegments || 8,
+          spec.p || 2,
+          spec.q || 3
+        ),
 
       // ===== POLYHEDRONS (4) =====
       dodecahedron: () => new THREE.DodecahedronGeometry(spec.radius || size[0], spec.detail || 0),
@@ -388,32 +405,68 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
       // ===== ADVANCED SHAPES (2) =====
       tube: () => {
         // Curved tube along a path
-        const path = spec.path || new THREE.CatmullRomCurve3([
-          new THREE.Vector3(-size[0], 0, 0),
-          new THREE.Vector3(0, size[1] || size[0], 0),
-          new THREE.Vector3(size[0], 0, 0)
-        ]);
-        return new THREE.TubeGeometry(path, spec.segments || 20, spec.radius || 0.2, spec.radialSegments || 8);
+        const path =
+          spec.path ||
+          new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-size[0], 0, 0),
+            new THREE.Vector3(0, size[1] || size[0], 0),
+            new THREE.Vector3(size[0], 0, 0),
+          ]);
+        return new THREE.TubeGeometry(
+          path,
+          spec.segments || 20,
+          spec.radius || 0.2,
+          spec.radialSegments || 8
+        );
       },
 
       // ===== PROCEDURAL SHAPES (6) =====
       heart: () => {
         const shape = new THREE.Shape();
-        const x = 0, y = 0;
+        const x = 0,
+          y = 0;
         const scale = (spec.radius || size[0]) * 0.1;
         shape.moveTo(x + 5 * scale, y + 5 * scale);
         shape.bezierCurveTo(x + 5 * scale, y + 5 * scale, x + 4 * scale, y, x, y);
-        shape.bezierCurveTo(x - 6 * scale, y, x - 6 * scale, y + 7 * scale, x - 6 * scale, y + 7 * scale);
-        shape.bezierCurveTo(x - 6 * scale, y + 11 * scale, x - 3 * scale, y + 15.4 * scale, x + 5 * scale, y + 19 * scale);
-        shape.bezierCurveTo(x + 12 * scale, y + 15.4 * scale, x + 16 * scale, y + 11 * scale, x + 16 * scale, y + 7 * scale);
+        shape.bezierCurveTo(
+          x - 6 * scale,
+          y,
+          x - 6 * scale,
+          y + 7 * scale,
+          x - 6 * scale,
+          y + 7 * scale
+        );
+        shape.bezierCurveTo(
+          x - 6 * scale,
+          y + 11 * scale,
+          x - 3 * scale,
+          y + 15.4 * scale,
+          x + 5 * scale,
+          y + 19 * scale
+        );
+        shape.bezierCurveTo(
+          x + 12 * scale,
+          y + 15.4 * scale,
+          x + 16 * scale,
+          y + 11 * scale,
+          x + 16 * scale,
+          y + 7 * scale
+        );
         shape.bezierCurveTo(x + 16 * scale, y + 7 * scale, x + 16 * scale, y, x + 10 * scale, y);
-        shape.bezierCurveTo(x + 7 * scale, y, x + 5 * scale, y + 5 * scale, x + 5 * scale, y + 5 * scale);
+        shape.bezierCurveTo(
+          x + 7 * scale,
+          y,
+          x + 5 * scale,
+          y + 5 * scale,
+          x + 5 * scale,
+          y + 5 * scale
+        );
         return new THREE.ExtrudeGeometry(shape, {
           depth: spec.depth || size[2] || 1,
           bevelEnabled: true,
           bevelThickness: 0.2 * scale,
           bevelSize: 0.1 * scale,
-          bevelSegments: 2
+          bevelSegments: 2,
         });
       },
 
@@ -435,7 +488,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
 
         return new THREE.ExtrudeGeometry(shape, {
           depth: spec.depth || size[2] || 0.5,
-          bevelEnabled: false
+          bevelEnabled: false,
         });
       },
 
@@ -479,7 +532,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
 
         return new THREE.ExtrudeGeometry(shape, {
           depth: spec.depth || size[2] || 0.5,
-          bevelEnabled: false
+          bevelEnabled: false,
         });
       },
 
@@ -514,7 +567,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
         }
         geometry.computeVertexNormals();
         return geometry;
-      }
+      },
     };
 
     return geometryMap[type]?.() || new THREE.BoxGeometry(...size);
@@ -623,7 +676,9 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
       this.particleSystems.set(system.id, system);
 
       if (this.config.debug) {
-        console.log(`[ThreeJSRenderer] Added particle system: ${system.id} (${system.maxParticles} particles)`);
+        console.log(
+          `[ThreeJSRenderer] Added particle system: ${system.id} (${system.maxParticles} particles)`
+        );
       }
     } catch (error) {
       console.error(`[ThreeJSRenderer] Failed to add particle system ${system.id}:`, error);
@@ -682,7 +737,10 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
           break;
 
         case 'directional':
-          lightObject = new THREE.DirectionalLight(light.color || '#ffffff', light.intensity || 1.0);
+          lightObject = new THREE.DirectionalLight(
+            light.color || '#ffffff',
+            light.intensity || 1.0
+          );
           if (light.position) {
             lightObject.position.set(...light.position);
           }
@@ -713,11 +771,18 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
           break;
 
         case 'hemisphere':
-          lightObject = new THREE.HemisphereLight(light.color || '#ffffff', '#444444', light.intensity || 1.0);
+          lightObject = new THREE.HemisphereLight(
+            light.color || '#ffffff',
+            '#444444',
+            light.intensity || 1.0
+          );
           break;
 
         default:
-          lightObject = new THREE.DirectionalLight(light.color || '#ffffff', light.intensity || 1.0);
+          lightObject = new THREE.DirectionalLight(
+            light.color || '#ffffff',
+            light.intensity || 1.0
+          );
       }
 
       lightObject.name = light.id;
@@ -809,9 +874,9 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
         const params = effect.params || {};
         this.bloomPass = new THREE.UnrealBloomPass(
           new THREE.Vector2(this.config.width || 1920, this.config.height || 1080),
-          params.strength || 1.5,   // Bloom strength
-          params.radius || 0.4,      // Bloom radius
-          params.threshold || 0.85   // Luminance threshold
+          params.strength || 1.5, // Bloom strength
+          params.radius || 0.4, // Bloom radius
+          params.threshold || 0.85 // Luminance threshold
         );
         this.composer.addPass(this.bloomPass);
         this.enabledEffects.add('bloom');
@@ -828,9 +893,9 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
 
         const params = effect.params || {};
         this.bokehPass = new THREE.BokehPass(this.scene, this.activeCamera, {
-          focus: params.focus || 50.0,       // Focus distance
+          focus: params.focus || 50.0, // Focus distance
           aperture: params.aperture || 0.025, // Aperture size
-          maxblur: params.maxblur || 0.01    // Max blur amount
+          maxblur: params.maxblur || 0.01, // Max blur amount
         });
         this.composer.addPass(this.bokehPass);
         this.enabledEffects.add('dof');
@@ -900,7 +965,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
           width: this.config.width || 1920,
           height: this.config.height || 1080,
           groundReflector: null,
-          selects: null
+          selects: null,
         });
 
         // Configure SSR parameters

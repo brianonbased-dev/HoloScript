@@ -6,17 +6,24 @@ All notable changes to HoloScript are documented here.
 
 ## [Unreleased]
 
+### Studio Quality & DX Refinements (Track 1)
+- **AssetDropProcessor**: Fixed PBR shadows and `envMapIntensity` rendering artifacts by pre-warming imported GLB materials during the parser phase.
+- **Gizmo Synchronization**: Eliminated the 1-frame Gizmo sync latency in `SceneRenderer.tsx` by utilizing direct `onMouseUp` event handling rather than reactive hook bindings.
+- **Global Error Boundary**: Standardized runtime crashes by mapping `componentDidCatch` stack frames to AST component paths for direct debugging.
+
 ## [5.0.0] — 2026-03-04 (Autonomous Ecosystems)
 
 ### Major Features
 
 **Autonomous Ecosystems Framework (v5.0)**
+
 - **AgentPortalTrait** — Cross-scene agent communication via WebSocket relay with scene discovery, heartbeat pruning, agent migration (serialize + transfer), federated queries, hop-count TTL, and outbox queueing for offline scenarios
 - **EconomyPrimitivesTrait** — In-scene compute credits, agent bounties with escrow, transfers, subscriptions with auto-charge, spend limits, and transaction history
 - **FeedbackLoopTrait** — Quality metrics with linear regression trend detection, auto-optimization signals on drift (e.g., reduce GS quality when FPS drops), user feedback aggregation, and report generation
 - 26 comprehensive tests covering messaging lifecycle, escrow flows, trend detection, optimization signals, migration, and federation queries
 
 **Enterprise Multi-Tenancy System**
+
 - **TenantTrait** — Multi-organization isolation with namespace enforcement, tenant-scoped resource limits, and hierarchical configuration
 - **RBACTrait** — Role-based access control with permission inheritance, dynamic role assignment, and capability tokens
 - **SSOTrait** — Single sign-on integration supporting SAML 2.0, OAuth 2.0, and OpenID Connect
@@ -27,6 +34,7 @@ All notable changes to HoloScript are documented here.
 - 2,100+ tests across 7 enterprise trait modules
 
 **Post-Quantum Cryptography**
+
 - **HybridCryptoProvider** — Dual-mode encryption supporting both classical (Ed25519, ECDSA) and post-quantum (ML-DSA-65, ML-KEM-768) algorithms
 - **Capability-Based Access Control (CBAC)** — Fine-grained permission system with capability tokens, fleet ANS overrides, and ML-DSA-65 Phase 2 signatures
 - **AgentTokenIssuer** — Secure token generation and validation for agent authentication across distributed scenes
@@ -37,14 +45,17 @@ All notable changes to HoloScript are documented here.
 ## [4.2.0] — 2026-03-01 (Perception & Simulation Layer)
 
 ### tree-sitter-holoscript 2.0.0 (updated)
+
 - **12 simulation grammar constructs**: material_block (PBR/unlit/shader + texture_map + shader_connection), collider_block, rigidbody_block, force_field_block, articulation_block (with joint_block), particle_block (with particle_module), post_processing_block (with post_effect), audio_source_block, weather_block (with weather_layer), procedural_block (with noise_function + biome_rule), lod_block (with lod_level), navigation_block (with behavior_node), input_block (with input_binding), render_hints, annotation
 
 ### @holoscript/core 4.2.0
+
 - **29 simulation token types** + **55 simulation keywords** synced
 - **10 new domain categories** in HoloDomainType: material, physics, vfx, postfx, audio, weather, procedural, rendering, navigation, input
 - All simulation blocks route through unified `parseDomainBlock()`
 
 ### Examples
+
 - `examples/showcase/realistic-forest.holo` — 400+ line realistic simulation showcase
 
 ---
@@ -52,6 +63,7 @@ All notable changes to HoloScript are documented here.
 ## [4.0.0] — 2026-03-01 (Multi-Domain Expansion)
 
 ### tree-sitter-holoscript 2.0.0
+
 - **20+ HSPlus constructs**: `module`, `struct`, `enum`, `interface`, `import/export`, `function`, `variable_declaration`, `for_of`, `try/catch`, `throw`, `switch/case`, `await`, `new`, `optional_chain`, `generic_type`, `trait_with_body`, `decorator_event_handler`
 - **8 domain-specific blocks**: IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3 (72 keywords total)
 - **Extensible `custom_block`**: Any identifier as a block keyword via `prec(-1)` catch-all
@@ -59,6 +71,7 @@ All notable changes to HoloScript are documented here.
 - **Dialog system**: `dialog` blocks with `option` nodes
 
 ### @holoscript/core 4.0.0
+
 - **Parser sync**: `HoloCompositionParser` now handles all new constructs
 - **62 new token types**: HSPlus + domain blocks + spatial primitives
 - **100+ keywords**: Full domain block keyword vocabulary
@@ -66,10 +79,12 @@ All notable changes to HoloScript are documented here.
 - **Parse methods**: `parseDomainBlock()`, `parseSpawnGroup()`, `parseWaypointsBlock()`, `parseConstraintBlock()`, `parseTerrainBlock()`
 
 ### Examples
+
 - `examples/showcase/spatial-rpg.holo` — 456-line gaming/spatial showcase
 - `examples/showcase/multi-domain.holo` — 300+ line multi-domain showcase
 
 ### TrainingMonkey
+
 - 72 new domain block keywords in `holoscript-constants.ts`
 - `.hsplus` file support in extractor
 
@@ -234,29 +249,29 @@ All notable changes to HoloScript are documented here.
 
 #### Coverage by Subsystem
 
-| Subsystem | Suites | Highlights |
-|---|---|---|
-| **AI** | 10+ | BehaviorTree (all node types), StateMachine, UtilityAI (5 curve types), Blackboard, GoalPlanner (GOAP), InfluenceMap, PerceptionSystem, BehaviorSelector |
-| **UI** | 10+ | UIDataBinding, UIEventRouter, UIWidget tree, UILayout (flexbox), UIRenderer, UIButton/Slider/TextInput factories |
-| **Physics** | 10+ | SoftBodySolver, ClothSim, FluidSim (SPH), RopeSystem, VehicleSystem, JointSystem, RagdollSystem, ConstraintSolver, SpatialHash, TriggerZone, RaycastSystem, DeformableMesh |
-| **ECS** | 5 | World (entity lifecycle, tags, queries, undo/redo), ComponentStore, SystemScheduler, EntityRegistry, ReactiveECS |
-| **Animation** | 4 | AnimationGraph (state machine, layers), AnimationEngine (9 easing functions), CurveEditor (7 presets, wrapMode), Timeline |
-| **Audio** | 4 | AudioMixer, AudioEnvelope (ADSR), AudioDynamics (compressor/limiter/gate), AudioFilter (EQ 5 types), ErosionSim |
-| **Terrain** | 4 | TerrainLOD (quadtree, stitching), TerrainBrush (5 modes, undo), ErosionSim (hydraulic/thermal), WorldStreamer |
-| **Gameplay** | 10+ | QuestManager, InventorySystem, LootTable, CraftingSystem, AchievementSystem, JournalTracker, LeaderboardManager, ProgressionTree, RewardSystem |
-| **Combat/Dialogue** | 10+ | DamageSystem, StatusEffects, ComboTracker, CombatManager, HitboxSystem, ProjectileSystem, DialogueGraph, DialogueRunner, ChoiceManager, EmotionSystem, BarkManager, Localization |
-| **Procgen/Navigation** | 7 | DungeonGenerator (BSP), NoiseGenerator (perlin/value/worley/fBm), WaveFunction (WFC), NavMesh (A*), AStarPathfinder, SteeringBehaviors, BuildingGenerator |
-| **Spatial Indexing** | 5 | KDTree (2D/3D, k-nearest, radius), OctreeIndex, BVHBuilder (SAH), SpatialGrid, FrustumCuller |
-| **Scripting** | 5 | ScriptVM, EventScriptBridge, ScriptContext, ScriptScheduler, HoloScriptLang |
-| **Multiplayer** | 9 | SnapshotInterpolation, LagCompensation, ClientPrediction, EntityAuthority, NetworkInterpolation, ReplicationManager, NetworkedTrait, SyncProtocol, DeltaEncoder |
-| **Render** | 4 | WebGPURenderer (mock GPU), PostProcessPipeline (bloom/SSAO/tonemap), PostProcessEffect, PhysicsDebugDrawer |
-| **Compiler** | 15+ | TypeAliasRegistry, SecurityPolicy, TraitDependencyGraph, RichErrors, ErrorCollector, ParseCache, IncrementalCompiler, TypoDetector, SDFCompiler, CompletionProvider, BundleAnalyzer, BundleSplitter, TreeShaker, SourceMapGenerator |
-| **Assets** | 5 | AssetManifest, AssetRegistry, AssetValidator, ResourceLoader, SmartAssetLoader |
-| **Persistence** | 5 | SaveManager, AutoSaveSystem, SaveSerializer, SceneSerializer, CRDT/UndoManager/ReactiveState |
-| **Traits (XR/AI/Web3)** | 20+ | All VisionOS traits (SharePlay, VolumetricWindow, SpatialPersona, ObjectTracking, SceneReconstruction, RealityKitMesh), AI traits (DiffusionRealtime, EmbeddingSearch, AiInpainting, AiTextureGen, ControlNet, SpatialNavigation), Web3 (NFTTrait, WalletTrait, TokenGatedTrait, ZoraCoins, MarketplaceIntegration), MultiAgentTrait, LLMAgentTrait, RenderNetworkTrait |
-| **Debug/Tools** | 8 | Profiler, MemoryTracker, GarbageCollector, DebugConsole, DebugRenderer, EntityInspector, RuntimeProfiler, DeveloperExperience |
-| **Accessibility/i18n** | 2 | AccessibilitySystem (font scaling, contrast, screen reader, focus, remapping), I18nManager |
-| **Plugins/Audit** | 5 | ModRegistry, PluginAPI, AuditQueryBuilder, ComplianceReporter (SOC2/GDPR), BuildOptimizer |
+| Subsystem               | Suites | Highlights                                                                                                                                                                                                                                                                                                                                                              |
+| ----------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AI**                  | 10+    | BehaviorTree (all node types), StateMachine, UtilityAI (5 curve types), Blackboard, GoalPlanner (GOAP), InfluenceMap, PerceptionSystem, BehaviorSelector                                                                                                                                                                                                                |
+| **UI**                  | 10+    | UIDataBinding, UIEventRouter, UIWidget tree, UILayout (flexbox), UIRenderer, UIButton/Slider/TextInput factories                                                                                                                                                                                                                                                        |
+| **Physics**             | 10+    | SoftBodySolver, ClothSim, FluidSim (SPH), RopeSystem, VehicleSystem, JointSystem, RagdollSystem, ConstraintSolver, SpatialHash, TriggerZone, RaycastSystem, DeformableMesh                                                                                                                                                                                              |
+| **ECS**                 | 5      | World (entity lifecycle, tags, queries, undo/redo), ComponentStore, SystemScheduler, EntityRegistry, ReactiveECS                                                                                                                                                                                                                                                        |
+| **Animation**           | 4      | AnimationGraph (state machine, layers), AnimationEngine (9 easing functions), CurveEditor (7 presets, wrapMode), Timeline                                                                                                                                                                                                                                               |
+| **Audio**               | 4      | AudioMixer, AudioEnvelope (ADSR), AudioDynamics (compressor/limiter/gate), AudioFilter (EQ 5 types), ErosionSim                                                                                                                                                                                                                                                         |
+| **Terrain**             | 4      | TerrainLOD (quadtree, stitching), TerrainBrush (5 modes, undo), ErosionSim (hydraulic/thermal), WorldStreamer                                                                                                                                                                                                                                                           |
+| **Gameplay**            | 10+    | QuestManager, InventorySystem, LootTable, CraftingSystem, AchievementSystem, JournalTracker, LeaderboardManager, ProgressionTree, RewardSystem                                                                                                                                                                                                                          |
+| **Combat/Dialogue**     | 10+    | DamageSystem, StatusEffects, ComboTracker, CombatManager, HitboxSystem, ProjectileSystem, DialogueGraph, DialogueRunner, ChoiceManager, EmotionSystem, BarkManager, Localization                                                                                                                                                                                        |
+| **Procgen/Navigation**  | 7      | DungeonGenerator (BSP), NoiseGenerator (perlin/value/worley/fBm), WaveFunction (WFC), NavMesh (A\*), AStarPathfinder, SteeringBehaviors, BuildingGenerator                                                                                                                                                                                                              |
+| **Spatial Indexing**    | 5      | KDTree (2D/3D, k-nearest, radius), OctreeIndex, BVHBuilder (SAH), SpatialGrid, FrustumCuller                                                                                                                                                                                                                                                                            |
+| **Scripting**           | 5      | ScriptVM, EventScriptBridge, ScriptContext, ScriptScheduler, HoloScriptLang                                                                                                                                                                                                                                                                                             |
+| **Multiplayer**         | 9      | SnapshotInterpolation, LagCompensation, ClientPrediction, EntityAuthority, NetworkInterpolation, ReplicationManager, NetworkedTrait, SyncProtocol, DeltaEncoder                                                                                                                                                                                                         |
+| **Render**              | 4      | WebGPURenderer (mock GPU), PostProcessPipeline (bloom/SSAO/tonemap), PostProcessEffect, PhysicsDebugDrawer                                                                                                                                                                                                                                                              |
+| **Compiler**            | 15+    | TypeAliasRegistry, SecurityPolicy, TraitDependencyGraph, RichErrors, ErrorCollector, ParseCache, IncrementalCompiler, TypoDetector, SDFCompiler, CompletionProvider, BundleAnalyzer, BundleSplitter, TreeShaker, SourceMapGenerator                                                                                                                                     |
+| **Assets**              | 5      | AssetManifest, AssetRegistry, AssetValidator, ResourceLoader, SmartAssetLoader                                                                                                                                                                                                                                                                                          |
+| **Persistence**         | 5      | SaveManager, AutoSaveSystem, SaveSerializer, SceneSerializer, CRDT/UndoManager/ReactiveState                                                                                                                                                                                                                                                                            |
+| **Traits (XR/AI/Web3)** | 20+    | All VisionOS traits (SharePlay, VolumetricWindow, SpatialPersona, ObjectTracking, SceneReconstruction, RealityKitMesh), AI traits (DiffusionRealtime, EmbeddingSearch, AiInpainting, AiTextureGen, ControlNet, SpatialNavigation), Web3 (NFTTrait, WalletTrait, TokenGatedTrait, ZoraCoins, MarketplaceIntegration), MultiAgentTrait, LLMAgentTrait, RenderNetworkTrait |
+| **Debug/Tools**         | 8      | Profiler, MemoryTracker, GarbageCollector, DebugConsole, DebugRenderer, EntityInspector, RuntimeProfiler, DeveloperExperience                                                                                                                                                                                                                                           |
+| **Accessibility/i18n**  | 2      | AccessibilitySystem (font scaling, contrast, screen reader, focus, remapping), I18nManager                                                                                                                                                                                                                                                                              |
+| **Plugins/Audit**       | 5      | ModRegistry, PluginAPI, AuditQueryBuilder, ComplianceReporter (SOC2/GDPR), BuildOptimizer                                                                                                                                                                                                                                                                               |
 
 #### Notable Fixes Discovered During Testing
 
@@ -291,12 +306,15 @@ All notable changes to HoloScript are documented here.
 287 new source modules, 113 test suites, 1,800+ traits.
 
 #### Scientific Computing (24 traits)
+
 Narupa MD server integration, AutoDock molecular docking, RCSB/AlphaFold DB queries, molecular visualization (protein/ligand/bonds/surfaces), trajectory analysis, interactive VR forces on atoms.
 
 #### Robotics & Industrial (213 traits)
+
 Joints (42), Actuators/Motors (28), Sensors (36), End Effectors (22), Mobility (20), Control/Planning (25), Safety/Standards (22), Power/Communication (18). Export: URDF, USD, SDF, MJCF.
 
 #### New Subsystems
+
 - **AI & Behavior** — BehaviorTree, StateMachine, GoalPlanner (GOAP), UtilityAI, SteeringBehaviors, PerceptionSystem, InfluenceMap, Blackboard, BehaviorSelector, AICopilot.
 - **Physics** — SoftBodySolver, ClothSim, FluidSim, RopeSystem, RagdollSystem, JointSystem, VehicleSystem, DeformableMesh, ConstraintSolver, SpatialHash, TriggerZone, RaycastSystem, VRPhysicsBridge.
 - **Audio** — AudioEngine, AudioMixer, SpatialAudio, AudioAnalyzer, AudioFilter, AudioGraph, AudioOcclusion, SynthEngine, MusicGenerator, SoundPool.
@@ -312,6 +330,7 @@ Joints (42), Actuators/Motors (28), Sensors (36), End Effectors (22), Mobility (
 - **Companion repos** — `holoscript-compiler` (NVIDIA Isaac Sim target), `@holoscript/narupa-plugin` (VR drug discovery).
 
 ### Changed
+
 - Trait count: 1,525 → 1,800+. WebGPU renderer, HITL manager, CRDT state, and movement prediction all enhanced.
 
 ---
@@ -333,13 +352,16 @@ Joints (42), Actuators/Motors (28), Sensors (36), End Effectors (22), Mobility (
 - **Package Registry MVP** — Scoped packages, semver, dependency resolution.
 
 ### Changed
+
 - Minimum: Node.js 18+, TypeScript 5.0+. `parse()` returns `HSPlusAST`. `@networked` config restructured.
 - Performance: 50% faster parsing (incremental), 3× faster rebuilds (cache), parallel multi-file compilation.
 
 ### Deprecated
+
 - `@legacy_physics` → use `@physics`. `compile({ format: 'cjs' })`. `HoloScriptParser` → `HoloScriptPlusParser`.
 
 ### Fixed
+
 - Spread in nested objects, trait dependency cycles, source maps, LSP crash on malformed input, MQTT reconnection, workspace permission inheritance.
 
 ---

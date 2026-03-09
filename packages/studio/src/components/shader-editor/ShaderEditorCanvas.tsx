@@ -125,7 +125,12 @@ function ShaderEditorCanvasInner({
   // Handle new connections
   const onConnect = useCallback(
     (connection: Connection) => {
-      if (connection.source && connection.target && connection.sourceHandle && connection.targetHandle) {
+      if (
+        connection.source &&
+        connection.target &&
+        connection.sourceHandle &&
+        connection.targetHandle
+      ) {
         connect(
           connection.source,
           connection.sourceHandle,
@@ -138,13 +143,10 @@ function ShaderEditorCanvasInner({
   );
 
   // Handle connection validation
-  const isValidConnection = useCallback(
-    (connection: Connection) => {
-      if (connection.source === connection.target) return false;
-      return true;
-    },
-    []
-  );
+  const isValidConnection = useCallback((connection: Connection) => {
+    if (connection.source === connection.target) return false;
+    return true;
+  }, []);
 
   // Handle node selection
   const onSelectionChange = useCallback(
@@ -232,12 +234,7 @@ function ShaderEditorCanvasInner({
         attributionPosition="bottom-right"
         className="bg-gray-950"
       >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1}
-          color="#374151"
-        />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#374151" />
         <Controls className="bg-gray-800 border-gray-700" />
         <MiniMap
           className="bg-gray-900 border-gray-700"

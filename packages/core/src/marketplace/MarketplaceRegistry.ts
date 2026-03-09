@@ -11,7 +11,13 @@
  * @version 1.0.0
  */
 
-import { MarketplaceSubmission, PackageMetadata, ContentCategory, SemanticVersion, Publisher } from './MarketplaceSubmission';
+import {
+  MarketplaceSubmission,
+  PackageMetadata,
+  ContentCategory,
+  SemanticVersion,
+  Publisher,
+} from './MarketplaceSubmission';
 import { SafetyReport, SafetyVerdict } from '../compiler/safety/SafetyReport';
 import { PlatformTarget } from '../compiler/platform/PlatformConditional';
 
@@ -127,48 +133,47 @@ export class MarketplaceRegistry {
     // Text search (name, description, tags)
     if (filters.query) {
       const q = filters.query.toLowerCase();
-      results = results.filter(p =>
-        p.metadata.name.toLowerCase().includes(q) ||
-        p.metadata.description.toLowerCase().includes(q) ||
-        p.metadata.tags.some(t => t.toLowerCase().includes(q)),
+      results = results.filter(
+        (p) =>
+          p.metadata.name.toLowerCase().includes(q) ||
+          p.metadata.description.toLowerCase().includes(q) ||
+          p.metadata.tags.some((t) => t.toLowerCase().includes(q))
       );
     }
 
     // Category filter
     if (filters.category) {
-      results = results.filter(p => p.metadata.category === filters.category);
+      results = results.filter((p) => p.metadata.category === filters.category);
     }
 
     // Publisher filter
     if (filters.publisher) {
-      results = results.filter(p => p.metadata.publisher.id === filters.publisher);
+      results = results.filter((p) => p.metadata.publisher.id === filters.publisher);
     }
 
     // Platform filter
     if (filters.platform) {
-      results = results.filter(p => p.metadata.platforms.includes(filters.platform!));
+      results = results.filter((p) => p.metadata.platforms.includes(filters.platform!));
     }
 
     // Rating filter
     if (filters.minRating !== undefined) {
-      results = results.filter(p => p.rating >= filters.minRating!);
+      results = results.filter((p) => p.rating >= filters.minRating!);
     }
 
     // Safety verdict filter
     if (filters.safetyVerdict) {
-      results = results.filter(p => p.safetyReport.verdict === filters.safetyVerdict);
+      results = results.filter((p) => p.safetyReport.verdict === filters.safetyVerdict);
     }
 
     // Tags filter
     if (filters.tags?.length) {
-      results = results.filter(p =>
-        filters.tags!.some(t => p.metadata.tags.includes(t)),
-      );
+      results = results.filter((p) => filters.tags!.some((t) => p.metadata.tags.includes(t)));
     }
 
     // Featured filter
     if (filters.featured !== undefined) {
-      results = results.filter(p => p.featured === filters.featured);
+      results = results.filter((p) => p.featured === filters.featured);
     }
 
     const total = results.length;
@@ -177,11 +182,16 @@ export class MarketplaceRegistry {
     const sortBy = filters.sortBy || 'downloads';
     results.sort((a, b) => {
       switch (sortBy) {
-        case 'downloads': return b.downloads - a.downloads;
-        case 'rating': return b.rating - a.rating;
-        case 'recent': return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-        case 'name': return a.metadata.name.localeCompare(b.metadata.name);
-        default: return 0;
+        case 'downloads':
+          return b.downloads - a.downloads;
+        case 'rating':
+          return b.rating - a.rating;
+        case 'recent':
+          return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+        case 'name':
+          return a.metadata.name.localeCompare(b.metadata.name);
+        default:
+          return 0;
       }
     });
 
@@ -207,7 +217,7 @@ export class MarketplaceRegistry {
       version: listing.metadata.version,
       safetyVerdict: listing.safetyReport.verdict,
       dangerScore: listing.safetyReport.dangerScore,
-      requiredCapabilities: listing.safetyReport.capabilities.required.map(r => r.scope),
+      requiredCapabilities: listing.safetyReport.capabilities.required.map((r) => r.scope),
       targetPlatforms: listing.metadata.platforms,
       dependencies: listing.metadata.dependencies,
       installedAt: new Date().toISOString(),
@@ -261,7 +271,12 @@ export class MarketplaceRegistry {
   /**
    * Get registry statistics.
    */
-  stats(): { totalPackages: number; totalDownloads: number; totalInstalls: number; categories: Record<string, number> } {
+  stats(): {
+    totalPackages: number;
+    totalDownloads: number;
+    totalInstalls: number;
+    categories: Record<string, number>;
+  } {
     let totalDownloads = 0;
     const categories: Record<string, number> = {};
     for (const p of this.packages.values()) {

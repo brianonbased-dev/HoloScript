@@ -268,9 +268,7 @@ describe('GaussianBakingClient — Job Submission', () => {
   });
 
   it('should submit a baking job successfully', async () => {
-    mockFetch.mockResolvedValueOnce(
-      createMockResponse({ job_id: 'rndr_12345', status: 'queued' }),
-    );
+    mockFetch.mockResolvedValueOnce(createMockResponse({ job_id: 'rndr_12345', status: 'queued' }));
 
     const job = await client.submitBakingJob(DEFAULT_TEST_CONFIG);
 
@@ -293,9 +291,7 @@ describe('GaussianBakingClient — Job Submission', () => {
   });
 
   it('should skip training stage for PLY input', async () => {
-    mockFetch.mockResolvedValueOnce(
-      createMockResponse({ job_id: 'rndr_12345', status: 'queued' }),
-    );
+    mockFetch.mockResolvedValueOnce(createMockResponse({ job_id: 'rndr_12345', status: 'queued' }));
 
     const config = { ...DEFAULT_TEST_CONFIG, captureFormat: 'ply' as const };
     const job = await client.submitBakingJob(config);
@@ -305,9 +301,7 @@ describe('GaussianBakingClient — Job Submission', () => {
   });
 
   it('should skip compression stage when level is none', async () => {
-    mockFetch.mockResolvedValueOnce(
-      createMockResponse({ job_id: 'rndr_12345', status: 'queued' }),
-    );
+    mockFetch.mockResolvedValueOnce(createMockResponse({ job_id: 'rndr_12345', status: 'queued' }));
 
     const config = { ...DEFAULT_TEST_CONFIG, compressionLevel: 'none' as const };
     const job = await client.submitBakingJob(config);
@@ -357,7 +351,7 @@ describe('GaussianBakingClient — Upload Sessions', () => {
         session_id: 'upload_sess_123',
         chunk_size: 4194304,
         upload_url: 'https://upload.rendernetwork.com/123',
-      }),
+      })
     );
 
     const session = await client.createUploadSession('job_123', 100_000_000, 'images');
@@ -369,7 +363,7 @@ describe('GaussianBakingClient — Upload Sessions', () => {
 
   it('should upload chunks with progress', async () => {
     mockFetch.mockResolvedValueOnce(
-      createMockResponse({ uploaded_bytes: 4194304, complete: false }),
+      createMockResponse({ uploaded_bytes: 4194304, complete: false })
     );
 
     const chunk = new ArrayBuffer(4194304);
@@ -385,7 +379,7 @@ describe('GaussianBakingClient — Upload Sessions', () => {
         uploaded_bytes: 50_000_000,
         total_bytes: 100_000_000,
         complete: false,
-      }),
+      })
     );
 
     const progress = await client.getUploadProgress('sess_123');
@@ -508,7 +502,9 @@ describe('BakingProgressTracker', () => {
     let completed = false;
 
     const tracker = new BakingProgressTracker(client, jobState, { pollIntervalMs: 1000 });
-    tracker.on('complete', () => { completed = true; });
+    tracker.on('complete', () => {
+      completed = true;
+    });
 
     mockFetch.mockResolvedValueOnce(
       createMockResponse({
@@ -524,7 +520,7 @@ describe('BakingProgressTracker', () => {
             gaussian_count: 480_000,
           },
         ],
-      }),
+      })
     );
 
     tracker.start();
@@ -569,7 +565,9 @@ describe('BakingProgressTracker', () => {
     let receivedError: BakingPipelineError | null = null;
 
     const tracker = new BakingProgressTracker(client, jobState, { pollIntervalMs: 1000 });
-    tracker.on('error', (error) => { receivedError = error; });
+    tracker.on('error', (error) => {
+      receivedError = error;
+    });
 
     mockFetch.mockResolvedValueOnce(
       createMockResponse({
@@ -577,7 +575,7 @@ describe('BakingProgressTracker', () => {
         error: 'GPU out of memory during training',
         error_code: 'GPU_OOM',
         retryable: true,
-      }),
+      })
     );
 
     tracker.start();
@@ -635,9 +633,7 @@ describe('GaussianBakingPipeline', () => {
   });
 
   it('should prevent config updates during execution', async () => {
-    mockFetch.mockResolvedValue(
-      createMockResponse({ job_id: 'rndr_123', status: 'queued' }),
-    );
+    mockFetch.mockResolvedValue(createMockResponse({ job_id: 'rndr_123', status: 'queued' }));
 
     const pipeline = new GaussianBakingPipeline('test-key', {
       source: 'test.zip',
@@ -710,7 +706,8 @@ describe('Constants — OBh Pricing', () => {
   it('should have training estimates for all methods', () => {
     const methods = ['splatfacto', 'gsplat', '3dgs_original', 'sugar', 'mip_splatting'];
     for (const method of methods) {
-      const profile = TRAINING_GPU_HOURS_ESTIMATE[method as keyof typeof TRAINING_GPU_HOURS_ESTIMATE];
+      const profile =
+        TRAINING_GPU_HOURS_ESTIMATE[method as keyof typeof TRAINING_GPU_HOURS_ESTIMATE];
       expect(profile.baseHours).toBeGreaterThan(0);
       expect(profile.scalingFactor).toBeGreaterThan(0);
     }
@@ -726,13 +723,15 @@ describe('Constants — OBh Pricing', () => {
   });
 
   it('should have gsplat faster than splatfacto (4x less memory, 10% faster)', () => {
-    expect(TRAINING_GPU_HOURS_ESTIMATE.gsplat.baseHours)
-      .toBeLessThan(TRAINING_GPU_HOURS_ESTIMATE.splatfacto.baseHours);
+    expect(TRAINING_GPU_HOURS_ESTIMATE.gsplat.baseHours).toBeLessThan(
+      TRAINING_GPU_HOURS_ESTIMATE.splatfacto.baseHours
+    );
   });
 
   it('should have direct lighting much cheaper than path tracing', () => {
-    expect(BAKING_OBH_ESTIMATES.direct_lighting.obhPer1MGaussians)
-      .toBeLessThan(BAKING_OBH_ESTIMATES.path_trace.obhPer1MGaussians * 0.5);
+    expect(BAKING_OBH_ESTIMATES.direct_lighting.obhPer1MGaussians).toBeLessThan(
+      BAKING_OBH_ESTIMATES.path_trace.obhPer1MGaussians * 0.5
+    );
   });
 });
 
@@ -742,12 +741,7 @@ describe('Constants — OBh Pricing', () => {
 
 describe('BakingPipelineError', () => {
   it('should create error with all properties', () => {
-    const error = new BakingPipelineError(
-      'GPU out of memory',
-      'GPU_OOM',
-      'training',
-      true,
-    );
+    const error = new BakingPipelineError('GPU out of memory', 'GPU_OOM', 'training', true);
 
     expect(error.message).toBe('GPU out of memory');
     expect(error.code).toBe('GPU_OOM');

@@ -4,7 +4,9 @@ import { AudioAnalyzer } from '../AudioAnalyzer';
 describe('AudioAnalyzer', () => {
   let analyzer: AudioAnalyzer;
 
-  beforeEach(() => { analyzer = new AudioAnalyzer(256, 44100); });
+  beforeEach(() => {
+    analyzer = new AudioAnalyzer(256, 44100);
+  });
 
   // ---------------------------------------------------------------------------
   // Construction
@@ -39,7 +41,7 @@ describe('AudioAnalyzer', () => {
     const bands = analyzer.getBands();
     expect(bands.length).toBeGreaterThan(0);
     // All energies should be 0 before analysis
-    bands.forEach(b => expect(b.energy).toBe(0));
+    bands.forEach((b) => expect(b.energy).toBe(0));
   });
 
   it('getBandEnergy returns 0 for known band before analysis', () => {
@@ -75,7 +77,7 @@ describe('AudioAnalyzer', () => {
     const samples = new Float32Array(256);
     // sine wave at 440Hz
     for (let i = 0; i < samples.length; i++) {
-      samples[i] = Math.sin(2 * Math.PI * 440 * i / 44100);
+      samples[i] = Math.sin((2 * Math.PI * 440 * i) / 44100);
     }
     analyzer.analyze(samples, 0);
     const spectrum = analyzer.getSpectrum();
@@ -95,19 +97,19 @@ describe('AudioAnalyzer', () => {
   it('analyze updates band energies', () => {
     const samples = new Float32Array(256);
     for (let i = 0; i < samples.length; i++) {
-      samples[i] = Math.sin(2 * Math.PI * 100 * i / 44100); // bass frequency
+      samples[i] = Math.sin((2 * Math.PI * 100 * i) / 44100); // bass frequency
     }
     analyzer.analyze(samples, 0);
     // bass band should have some energy
     const bands = analyzer.getBands();
-    const bassBand = bands.find(b => b.name === 'bass');
+    const bassBand = bands.find((b) => b.name === 'bass');
     expect(bassBand).toBeDefined();
   });
 
   it('spectrum peakFrequency is populated', () => {
     const samples = new Float32Array(256);
     for (let i = 0; i < samples.length; i++) {
-      samples[i] = Math.sin(2 * Math.PI * 1000 * i / 44100);
+      samples[i] = Math.sin((2 * Math.PI * 1000 * i) / 44100);
     }
     analyzer.analyze(samples, 0);
     const spectrum = analyzer.getSpectrum()!;
@@ -130,7 +132,7 @@ describe('AudioAnalyzer', () => {
       const samples = new Float32Array(256);
       const loud = frame % 5 === 0;
       for (let i = 0; i < samples.length; i++) {
-        samples[i] = loud ? Math.sin(2 * Math.PI * 100 * i / 44100) : 0;
+        samples[i] = loud ? Math.sin((2 * Math.PI * 100 * i) / 44100) : 0;
       }
       analyzer2.analyze(samples, frame * 100);
     }

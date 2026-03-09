@@ -18,7 +18,7 @@ export interface CacheEntry<T = unknown> {
   refCount: number;
   lastAccess: number;
   createdAt: number;
-  ttlMs: number;           // 0 = no expiry
+  ttlMs: number; // 0 = no expiry
 }
 
 // =============================================================================
@@ -30,7 +30,9 @@ export class ResourceCache<T = unknown> {
   private maxBytes: number;
   private currentBytes = 0;
 
-  constructor(maxBytes: number) { this.maxBytes = maxBytes; }
+  constructor(maxBytes: number) {
+    this.maxBytes = maxBytes;
+  }
 
   // ---------------------------------------------------------------------------
   // Get / Put
@@ -46,8 +48,13 @@ export class ResourceCache<T = unknown> {
     if (this.entries.has(key)) this.remove(key);
 
     this.entries.set(key, {
-      key, data, sizeBytes, refCount: 0,
-      lastAccess: Date.now(), createdAt: Date.now(), ttlMs,
+      key,
+      data,
+      sizeBytes,
+      refCount: 0,
+      lastAccess: Date.now(),
+      createdAt: Date.now(),
+      ttlMs,
     });
     this.currentBytes += sizeBytes;
   }
@@ -66,7 +73,9 @@ export class ResourceCache<T = unknown> {
     return entry.data;
   }
 
-  has(key: string): boolean { return this.entries.has(key); }
+  has(key: string): boolean {
+    return this.entries.has(key);
+  }
 
   // ---------------------------------------------------------------------------
   // Reference Counting
@@ -82,7 +91,9 @@ export class ResourceCache<T = unknown> {
     if (entry) entry.refCount = Math.max(0, entry.refCount - 1);
   }
 
-  getRefCount(key: string): number { return this.entries.get(key)?.refCount ?? 0; }
+  getRefCount(key: string): number {
+    return this.entries.get(key)?.refCount ?? 0;
+  }
 
   // ---------------------------------------------------------------------------
   // Eviction
@@ -96,7 +107,10 @@ export class ResourceCache<T = unknown> {
       if (!oldest || entry.lastAccess < oldest.lastAccess) oldest = entry;
     }
 
-    if (oldest) { this.remove(oldest.key); return true; }
+    if (oldest) {
+      this.remove(oldest.key);
+      return true;
+    }
     return false;
   }
 
@@ -128,9 +142,20 @@ export class ResourceCache<T = unknown> {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getEntryCount(): number { return this.entries.size; }
-  getCurrentBytes(): number { return this.currentBytes; }
-  getMaxBytes(): number { return this.maxBytes; }
-  getUsageRatio(): number { return this.currentBytes / this.maxBytes; }
-  clear(): void { this.entries.clear(); this.currentBytes = 0; }
+  getEntryCount(): number {
+    return this.entries.size;
+  }
+  getCurrentBytes(): number {
+    return this.currentBytes;
+  }
+  getMaxBytes(): number {
+    return this.maxBytes;
+  }
+  getUsageRatio(): number {
+    return this.currentBytes / this.maxBytes;
+  }
+  clear(): void {
+    this.entries.clear();
+    this.currentBytes = 0;
+  }
 }

@@ -51,7 +51,16 @@ describe('TypoDetector', () => {
   });
 
   describe('findClosestMatch', () => {
-    const keywords = ['composition', 'template', 'object', 'environment', 'state', 'logic', 'material', 'sensor'];
+    const keywords = [
+      'composition',
+      'template',
+      'object',
+      'environment',
+      'state',
+      'logic',
+      'material',
+      'sensor',
+    ];
 
     it('finds exact match', () => {
       expect(TypoDetector.findClosestMatch('composition', keywords)).toBe('composition');
@@ -94,8 +103,8 @@ describe('TypoDetector', () => {
     it('finds all matches within threshold', () => {
       const matches = TypoDetector.findAllMatches('stat', keywords, 3);
       expect(matches.length).toBeGreaterThanOrEqual(2);
-      expect(matches.map(m => m.match)).toContain('state');
-      expect(matches.map(m => m.match)).toContain('start');
+      expect(matches.map((m) => m.match)).toContain('state');
+      expect(matches.map((m) => m.match)).toContain('start');
     });
 
     it('returns matches sorted by distance', () => {

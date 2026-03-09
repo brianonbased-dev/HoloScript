@@ -4,7 +4,9 @@ import { MetricsCollector } from '../MetricsCollector';
 describe('MetricsCollector', () => {
   let collector: MetricsCollector;
 
-  beforeEach(() => { collector = new MetricsCollector(); });
+  beforeEach(() => {
+    collector = new MetricsCollector();
+  });
 
   // Counters
   it('incrementCounter creates and increments', () => {

@@ -12,17 +12,17 @@
 // =============================================================================
 
 export interface CloudConfig {
-  coverage: number;         // 0-1
-  density: number;          // Multiplier
-  altitude: number;         // Base cloud height
-  thickness: number;        // Cloud layer thickness
+  coverage: number; // 0-1
+  density: number; // Multiplier
+  altitude: number; // Base cloud height
+  thickness: number; // Cloud layer thickness
   windSpeed: { x: number; z: number };
   lightColor: [number, number, number];
   ambientColor: [number, number, number];
   lightDirection: { x: number; y: number; z: number };
   noiseScale: number;
   detailScale: number;
-  layers: number;           // Noise octaves
+  layers: number; // Noise octaves
 }
 
 export interface CloudSample {
@@ -41,11 +41,17 @@ export class CloudRenderer {
 
   constructor(config?: Partial<CloudConfig>) {
     this.config = {
-      coverage: 0.5, density: 1, altitude: 200, thickness: 50,
-      windSpeed: { x: 5, z: 2 }, lightColor: [1, 0.95, 0.85],
+      coverage: 0.5,
+      density: 1,
+      altitude: 200,
+      thickness: 50,
+      windSpeed: { x: 5, z: 2 },
+      lightColor: [1, 0.95, 0.85],
       ambientColor: [0.4, 0.45, 0.55],
       lightDirection: { x: 0.3, y: -0.8, z: 0.5 },
-      noiseScale: 0.002, detailScale: 0.01, layers: 4,
+      noiseScale: 0.002,
+      detailScale: 0.01,
+      layers: 4,
       ...config,
     };
   }
@@ -54,14 +60,20 @@ export class CloudRenderer {
   // Configuration
   // ---------------------------------------------------------------------------
 
-  setConfig(config: Partial<CloudConfig>): void { Object.assign(this.config, config); }
-  getConfig(): CloudConfig { return { ...this.config }; }
+  setConfig(config: Partial<CloudConfig>): void {
+    Object.assign(this.config, config);
+  }
+  getConfig(): CloudConfig {
+    return { ...this.config };
+  }
 
   // ---------------------------------------------------------------------------
   // Update (wind drift)
   // ---------------------------------------------------------------------------
 
-  update(dt: number): void { this.time += dt; }
+  update(dt: number): void {
+    this.time += dt;
+  }
 
   // ---------------------------------------------------------------------------
   // Density Sampling
@@ -72,7 +84,8 @@ export class CloudRenderer {
     const relY = y - this.config.altitude;
     if (relY < 0 || relY > this.config.thickness) return 0;
 
-    const heightFactor = 1 - Math.abs(relY - this.config.thickness / 2) / (this.config.thickness / 2);
+    const heightFactor =
+      1 - Math.abs(relY - this.config.thickness / 2) / (this.config.thickness / 2);
 
     // Wind offset
     const wx = x + this.config.windSpeed.x * this.time;
@@ -89,7 +102,8 @@ export class CloudRenderer {
     }
 
     // Apply coverage and density
-    const density = Math.max(0, noise - (1 - this.config.coverage)) * this.config.density * heightFactor;
+    const density =
+      Math.max(0, noise - (1 - this.config.coverage)) * this.config.density * heightFactor;
     return density;
   }
 
@@ -133,7 +147,12 @@ export class CloudRenderer {
   // Coverage map
   // ---------------------------------------------------------------------------
 
-  getCoverageMap(gridSize: number, cellSize: number, worldOffsetX = 0, worldOffsetZ = 0): Float32Array {
+  getCoverageMap(
+    gridSize: number,
+    cellSize: number,
+    worldOffsetX = 0,
+    worldOffsetZ = 0
+  ): Float32Array {
     const map = new Float32Array(gridSize * gridSize);
     const y = this.config.altitude + this.config.thickness / 2;
 

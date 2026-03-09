@@ -66,18 +66,15 @@ export class AgentErrorBoundary extends Component<Props, State> {
         <div className="agent-error-boundary">
           <div className="agent-error-boundary__content">
             <h2 className="agent-error-boundary__title">Agent Error</h2>
-            <p className="agent-error-boundary__message">
-              {this.state.error.message}
-            </p>
-            <button
-              className="agent-error-boundary__reset-button"
-              onClick={this.resetError}
-            >
+            <p className="agent-error-boundary__message">{this.state.error.message}</p>
+            <button className="agent-error-boundary__reset-button" onClick={this.resetError}>
               Try Again
             </button>
           </div>
 
-          <style dangerouslySetInnerHTML={{ __html: `
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
             .agent-error-boundary {
               padding: 40px;
               background: #ffebee;
@@ -116,7 +113,9 @@ export class AgentErrorBoundary extends Component<Props, State> {
             .agent-error-boundary__reset-button:hover {
               background: #c62828;
             }
-          ` }} />
+          `,
+            }}
+          />
         </div>
       );
     }

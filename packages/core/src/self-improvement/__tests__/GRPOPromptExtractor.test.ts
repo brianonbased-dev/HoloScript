@@ -17,9 +17,7 @@ import {
  * Create a mock file system with predetermined file contents.
  * Files are stored in a simple Record<string, string> map.
  */
-function createMockFS(
-  files: Record<string, string> = {},
-): PromptExtractorFS {
+function createMockFS(files: Record<string, string> = {}): PromptExtractorFS {
   const written: Record<string, string> = {};
 
   return {
@@ -37,15 +35,9 @@ function createMockFS(
       written[filePath] = content;
     }),
 
-    listFiles: vi.fn(
-      async (
-        _rootDir: string,
-        _extensions: string[],
-        _excludeDirs: string[],
-      ) => {
-        return Object.keys(files);
-      },
-    ),
+    listFiles: vi.fn(async (_rootDir: string, _extensions: string[], _excludeDirs: string[]) => {
+      return Object.keys(files);
+    }),
 
     exists: vi.fn(async (filePath: string) => {
       return filePath in files;
@@ -200,9 +192,7 @@ describe('GRPOPromptExtractor', () => {
     });
 
     it('infers ai domain from self-improvement path', () => {
-      const tags = inferDomainTags(
-        '/packages/core/src/self-improvement/GRPOConfig.ts',
-      );
+      const tags = inferDomainTags('/packages/core/src/self-improvement/GRPOConfig.ts');
       expect(tags).toContain('ai');
       expect(tags).toContain('self-improvement');
     });
@@ -213,9 +203,7 @@ describe('GRPOPromptExtractor', () => {
     });
 
     it('infers security domain', () => {
-      const tags = inferDomainTags(
-        '/packages/security-sandbox/src/sandbox.ts',
-      );
+      const tags = inferDomainTags('/packages/security-sandbox/src/sandbox.ts');
       expect(tags).toContain('security');
     });
 
@@ -230,9 +218,7 @@ describe('GRPOPromptExtractor', () => {
     });
 
     it('can infer multiple tags from a single path', () => {
-      const tags = inferDomainTags(
-        '/packages/compiler-wasm/src/parser/compile.ts',
-      );
+      const tags = inferDomainTags('/packages/compiler-wasm/src/parser/compile.ts');
       expect(tags).toContain('compiler');
       expect(tags).toContain('parser');
       expect(tags).toContain('wasm');
@@ -248,7 +234,7 @@ describe('GRPOPromptExtractor', () => {
       const difficulty = estimateDifficulty(
         5,
         'add',
-        'function add(a: number, b: number): number {\n  return a + b;\n}',
+        'function add(a: number, b: number): number {\n  return a + b;\n}'
       );
       expect(difficulty).toBe('easy');
     });
@@ -268,7 +254,7 @@ describe('GRPOPromptExtractor', () => {
           '  }',
           '  return results;',
           '}',
-        ].join('\n'),
+        ].join('\n')
       );
       expect(difficulty).toBe('medium');
     });
@@ -297,7 +283,7 @@ describe('GRPOPromptExtractor', () => {
           '    }',
           '  }',
           '}',
-        ].join('\n'),
+        ].join('\n')
       );
       expect(difficulty).toBe('hard');
     });
@@ -309,36 +295,23 @@ describe('GRPOPromptExtractor', () => {
 
   describe('extractPackageName', () => {
     it('extracts package name from standard monorepo path', () => {
-      expect(
-        extractPackageName(
-          '/repo/packages/core/src/index.ts',
-          '/repo',
-        ),
-      ).toBe('core');
+      expect(extractPackageName('/repo/packages/core/src/index.ts', '/repo')).toBe('core');
     });
 
     it('extracts package name from nested path', () => {
       expect(
-        extractPackageName(
-          '/repo/packages/compiler-wasm/src/deep/nested/file.ts',
-          '/repo',
-        ),
+        extractPackageName('/repo/packages/compiler-wasm/src/deep/nested/file.ts', '/repo')
       ).toBe('compiler-wasm');
     });
 
     it('handles Windows-style paths', () => {
       expect(
-        extractPackageName(
-          'C:\\Users\\dev\\packages\\lsp\\src\\server.ts',
-          'C:\\Users\\dev',
-        ),
+        extractPackageName('C:\\Users\\dev\\packages\\lsp\\src\\server.ts', 'C:\\Users\\dev')
       ).toBe('lsp');
     });
 
     it('falls back to first directory segment', () => {
-      expect(
-        extractPackageName('/repo/src/file.ts', '/repo'),
-      ).toBe('src');
+      expect(extractPackageName('/repo/src/file.ts', '/repo')).toBe('src');
     });
   });
 
@@ -350,10 +323,7 @@ describe('GRPOPromptExtractor', () => {
     let extractor: GRPOPromptExtractor;
 
     beforeEach(() => {
-      extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        createMockFS(),
-      );
+      extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, createMockFS());
     });
 
     it('extracts TODO comments', () => {
@@ -393,9 +363,7 @@ describe('GRPOPromptExtractor', () => {
     });
 
     it('returns empty array for files without annotations', () => {
-      const annotations = extractor.parseTodoComments(
-        'const x = 1;\nconst y = 2;\n',
-      );
+      const annotations = extractor.parseTodoComments('const x = 1;\nconst y = 2;\n');
       expect(annotations).toEqual([]);
     });
   });
@@ -408,10 +376,7 @@ describe('GRPOPromptExtractor', () => {
     let extractor: GRPOPromptExtractor;
 
     beforeEach(() => {
-      extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        createMockFS(),
-      );
+      extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, createMockFS());
     });
 
     it('detects throw new Error("not implemented") stubs', () => {
@@ -461,10 +426,7 @@ export function realFunction(x: number): number {
     let extractor: GRPOPromptExtractor;
 
     beforeEach(() => {
-      extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        createMockFS(),
-      );
+      extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, createMockFS());
     });
 
     it('detects it.skip tests', () => {
@@ -516,10 +478,7 @@ describe('Working', () => {
     let extractor: GRPOPromptExtractor;
 
     beforeEach(() => {
-      extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        createMockFS(),
-      );
+      extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, createMockFS());
     });
 
     it('detects exported functions', () => {
@@ -546,7 +505,7 @@ describe('Working', () => {
     it('skips type-only exports (interfaces and type aliases)', () => {
       const exports = extractor.parseExportedSymbols(SAMPLE_EXPORT_FILE);
       const typeExport = exports.find(
-        (e) => e.symbolName === 'GraphConfig' || e.symbolName === 'GraphResult',
+        (e) => e.symbolName === 'GraphConfig' || e.symbolName === 'GraphResult'
       );
       expect(typeExport).toBeUndefined();
     });
@@ -569,7 +528,7 @@ describe('Working', () => {
     beforeEach(() => {
       extractor = new GRPOPromptExtractor(
         { rootDir: '/repo', maxRougeLSimilarity: 0.7 },
-        createMockFS(),
+        createMockFS()
       );
     });
 
@@ -626,10 +585,7 @@ describe('Working', () => {
     let extractor: GRPOPromptExtractor;
 
     beforeEach(() => {
-      extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        createMockFS(),
-      );
+      extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, createMockFS());
     });
 
     it('produces a valid TRL record', () => {
@@ -666,10 +622,7 @@ describe('Working', () => {
     let extractor: GRPOPromptExtractor;
 
     beforeEach(() => {
-      extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        createMockFS(),
-      );
+      extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, createMockFS());
     });
 
     it('computes correct statistics', () => {
@@ -683,11 +636,7 @@ describe('Working', () => {
 
       const deduped = raw.slice(0, 4); // E was removed by dedup
 
-      const stats = extractor.computeStats(
-        raw,
-        deduped,
-        'datasets/output.jsonl',
-      );
+      const stats = extractor.computeStats(raw, deduped, 'datasets/output.jsonl');
 
       expect(stats.totalExtracted).toBe(5);
       expect(stats.totalAfterDedup).toBe(4);
@@ -727,7 +676,7 @@ describe('Working', () => {
           outputDir: 'datasets',
           maxRougeLSimilarity: 0.7,
         },
-        mockFS,
+        mockFS
       );
 
       const result = await extractor.extract();
@@ -757,17 +706,12 @@ describe('Working', () => {
       // Stats should be computed
       expect(result.stats.totalExtracted).toBeGreaterThan(0);
       expect(result.stats.totalAfterDedup).toBeGreaterThan(0);
-      expect(result.stats.totalAfterDedup).toBeLessThanOrEqual(
-        result.stats.totalExtracted,
-      );
+      expect(result.stats.totalAfterDedup).toBeLessThanOrEqual(result.stats.totalExtracted);
     });
 
     it('handles empty monorepo gracefully', async () => {
       const mockFS = createMockFS({});
-      const extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        mockFS,
-      );
+      const extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, mockFS);
 
       const result = await extractor.extract();
 
@@ -783,14 +727,9 @@ describe('Working', () => {
       });
 
       // Make readFile fail for the broken file
-      vi.mocked(mockFS.readFile).mockRejectedValue(
-        new Error('Permission denied'),
-      );
+      vi.mocked(mockFS.readFile).mockRejectedValue(new Error('Permission denied'));
 
-      const extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        mockFS,
-      );
+      const extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, mockFS);
 
       // Should not throw; should simply skip unreadable files
       const result = await extractor.extract();
@@ -811,7 +750,7 @@ export function featureX(): void {
       const mockFS = createMockFS(files);
       const extractor = new GRPOPromptExtractor(
         { rootDir: '/repo', maxRougeLSimilarity: 0.7 },
-        mockFS,
+        mockFS
       );
 
       const result = await extractor.extract();
@@ -847,14 +786,11 @@ describe('Other', () => {
 
       const allFiles = { ...sourceFiles, ...testFiles };
       const mockFS = createMockFS(allFiles);
-      const extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        mockFS,
-      );
+      const extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, mockFS);
 
       const prompts = await extractor.extractLowCoverageExports(
         Object.keys(sourceFiles),
-        Object.keys(testFiles),
+        Object.keys(testFiles)
       );
 
       // orphanFunction and OrphanClass should be detected
@@ -884,14 +820,9 @@ describe('FooClass', () => {
       };
 
       const mockFS = createMockFS(testFiles);
-      const extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        mockFS,
-      );
+      const extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, mockFS);
 
-      const symbols = await extractor.collectTestedSymbols(
-        Object.keys(testFiles),
-      );
+      const symbols = await extractor.collectTestedSymbols(Object.keys(testFiles));
 
       expect(symbols.has('FooClass')).toBe(true);
       expect(symbols.has('barFunction')).toBe(true);
@@ -908,28 +839,16 @@ describe('FooClass', () => {
     let extractor: GRPOPromptExtractor;
 
     beforeEach(() => {
-      extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        createMockFS(),
-      );
+      extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, createMockFS());
     });
 
     it('finds enclosing function declaration', () => {
-      const lines = [
-        'function myFunction() {',
-        '  // some code',
-        '  // TODO: fix this',
-        '}',
-      ];
+      const lines = ['function myFunction() {', '  // some code', '  // TODO: fix this', '}'];
       expect(extractor.findEnclosingFunction(lines, 2)).toBe('myFunction');
     });
 
     it('finds enclosing arrow function', () => {
-      const lines = [
-        'const handler = async (req, res) => {',
-        '  // TODO: validate input',
-        '};',
-      ];
+      const lines = ['const handler = async (req, res) => {', '  // TODO: validate input', '};'];
       expect(extractor.findEnclosingFunction(lines, 1)).toBe('handler');
     });
 
@@ -947,18 +866,11 @@ describe('FooClass', () => {
     let extractor: GRPOPromptExtractor;
 
     beforeEach(() => {
-      extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        createMockFS(),
-      );
+      extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, createMockFS());
     });
 
     it('extracts body of a simple function', () => {
-      const lines = [
-        'function foo() {',
-        '  return 42;',
-        '}',
-      ];
+      const lines = ['function foo() {', '  return 42;', '}'];
       const result = extractor.extractFunctionBody(lines, 0);
       expect(result).toBeDefined();
       expect(result!.body).toContain('return 42;');
@@ -966,19 +878,14 @@ describe('FooClass', () => {
     });
 
     it('extracts body of an empty function', () => {
-      const lines = [
-        'function empty() {',
-        '}',
-      ];
+      const lines = ['function empty() {', '}'];
       const result = extractor.extractFunctionBody(lines, 0);
       expect(result).toBeDefined();
       expect(result!.body.trim()).toBe('');
     });
 
     it('returns null for functions without braces (arrow expression)', () => {
-      const lines = [
-        'const fn = (x: number) => x * 2;',
-      ];
+      const lines = ['const fn = (x: number) => x * 2;'];
       const result = extractor.extractFunctionBody(lines, 0);
       // Arrow expression: extracted after =>
       expect(result).toBeDefined();
@@ -996,10 +903,7 @@ describe('FooClass', () => {
       };
 
       const mockFS = createMockFS(files);
-      const extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        mockFS,
-      );
+      const extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, mockFS);
 
       const result = await extractor.extract();
       // No prompts should be extracted from a comment-only file
@@ -1007,10 +911,7 @@ describe('FooClass', () => {
     });
 
     it('handles extremely long files without stack overflow', () => {
-      const extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        createMockFS(),
-      );
+      const extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, createMockFS());
 
       // Generate a 10,000-line file
       const longLines: string[] = [];
@@ -1025,10 +926,7 @@ describe('FooClass', () => {
     });
 
     it('handles unicode in TODO comments', () => {
-      const extractor = new GRPOPromptExtractor(
-        { rootDir: '/repo' },
-        createMockFS(),
-      );
+      const extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, createMockFS());
 
       const code = `
 function renderText() {
@@ -1051,7 +949,7 @@ function makePrompt(
   instruction: string,
   source: GRPOPrompt['source'] = 'todo-comment',
   difficulty: GRPOPrompt['difficulty'] = 'medium',
-  packageName = 'core',
+  packageName = 'core'
 ): GRPOPrompt {
   return {
     instruction,

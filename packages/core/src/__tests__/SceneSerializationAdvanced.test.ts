@@ -9,8 +9,18 @@ describe('Cycle 115: Scene Serialization', () => {
 
   it('should manage scenes and set start scene', () => {
     const pm = new ProjectManager('TestProject');
-    pm.addScene({ id: 'scene1', name: 'Main Menu', path: '/scenes/menu.json', isStartScene: false });
-    pm.addScene({ id: 'scene2', name: 'Level 1', path: '/scenes/level1.json', isStartScene: false });
+    pm.addScene({
+      id: 'scene1',
+      name: 'Main Menu',
+      path: '/scenes/menu.json',
+      isStartScene: false,
+    });
+    pm.addScene({
+      id: 'scene2',
+      name: 'Level 1',
+      path: '/scenes/level1.json',
+      isStartScene: false,
+    });
 
     expect(pm.getScenes()).toHaveLength(2);
     expect(pm.getStartScene()).toBeUndefined();
@@ -21,8 +31,20 @@ describe('Cycle 115: Scene Serialization', () => {
 
   it('should track assets and find unused ones', () => {
     const pm = new ProjectManager('TestProject');
-    pm.addAsset({ id: 'tex1', type: 'texture', path: '/t1.png', usedByScenes: ['scene1'], sizeBytes: 1024 });
-    pm.addAsset({ id: 'tex2', type: 'texture', path: '/t2.png', usedByScenes: [], sizeBytes: 2048 });
+    pm.addAsset({
+      id: 'tex1',
+      type: 'texture',
+      path: '/t1.png',
+      usedByScenes: ['scene1'],
+      sizeBytes: 1024,
+    });
+    pm.addAsset({
+      id: 'tex2',
+      type: 'texture',
+      path: '/t2.png',
+      usedByScenes: [],
+      sizeBytes: 2048,
+    });
 
     const unused = pm.findUnusedAssets();
     expect(unused).toHaveLength(1);

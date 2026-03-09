@@ -10,22 +10,18 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import {
-  ObjectPool,
-  Lazy,
-  memoize,
-  LRUCache,
-} from '../../runtime/RuntimeOptimization';
+import { ObjectPool, Lazy, memoize, LRUCache } from '../../runtime/RuntimeOptimization';
 
 // ── ObjectPool ────────────────────────────────────────────────────────────────
 
 describe('ObjectPool — acquire / release', () => {
-
   function makePool(capacity = 10) {
     let id = 0;
     return new ObjectPool<{ id: number; value: number }>(
       () => ({ id: ++id, value: 0 }),
-      (obj) => { obj.value = 0; },
+      (obj) => {
+        obj.value = 0;
+      },
       capacity
     );
   }
@@ -64,14 +60,17 @@ describe('ObjectPool — acquire / release', () => {
 
   it('getStats tracks inUse count', () => {
     const pool = makePool();
-    pool.acquire(); pool.acquire();
+    pool.acquire();
+    pool.acquire();
     const stats = pool.getStats();
     expect(stats.inUse).toBe(2);
   });
 
   it('peakUsage tracks maximum concurrent acquisitions', () => {
     const pool = makePool();
-    const a = pool.acquire(); const b = pool.acquire(); const c = pool.acquire();
+    const a = pool.acquire();
+    const b = pool.acquire();
+    const c = pool.acquire();
     pool.release(a);
     expect(pool.getStats().peakUsage).toBeGreaterThanOrEqual(3);
   });
@@ -91,11 +90,12 @@ describe('ObjectPool — acquire / release', () => {
 });
 
 describe('ObjectPool — batch operations', () => {
-
   function makePool() {
     return new ObjectPool<{ v: number }>(
       () => ({ v: 0 }),
-      (obj) => { obj.v = 0; }
+      (obj) => {
+        obj.v = 0;
+      }
     );
   }
 
@@ -118,7 +118,6 @@ describe('ObjectPool — batch operations', () => {
 // ── Lazy ──────────────────────────────────────────────────────────────────────
 
 describe('Lazy', () => {
-
   it('get computes value on first call', () => {
     const fn = vi.fn(() => 42);
     const lazy = new Lazy(fn);
@@ -129,7 +128,9 @@ describe('Lazy', () => {
   it('get returns cached value on subsequent calls', () => {
     const fn = vi.fn(() => 42);
     const lazy = new Lazy(fn);
-    lazy.get(); lazy.get(); lazy.get();
+    lazy.get();
+    lazy.get();
+    lazy.get();
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
@@ -164,7 +165,6 @@ describe('Lazy', () => {
 // ── memoize ───────────────────────────────────────────────────────────────────
 
 describe('memoize', () => {
-
   it('returns same result for same args', () => {
     const fn = vi.fn((x: number, y: number) => x + y);
     const memo = memoize(fn as any);
@@ -176,14 +176,17 @@ describe('memoize', () => {
   it('calls fn again for different args', () => {
     const fn = vi.fn((x: number) => x * 2);
     const memo = memoize(fn as any);
-    memo(5); memo(10);
+    memo(5);
+    memo(10);
     expect(fn).toHaveBeenCalledTimes(2);
   });
 
   it('evicts oldest entry when maxSize exceeded (LRU-like)', () => {
     const fn = vi.fn((x: number) => x);
     const memo = memoize(fn as any, 3); // max 3
-    memo(1); memo(2); memo(3); // fills cache
+    memo(1);
+    memo(2);
+    memo(3); // fills cache
     memo(4); // should evict 1
     memo(1); // must recompute
     expect(fn).toHaveBeenCalledTimes(5); // 4 initial + 1 recompute
@@ -193,7 +196,6 @@ describe('memoize', () => {
 // ── LRUCache ──────────────────────────────────────────────────────────────────
 
 describe('LRUCache', () => {
-
   it('set and get returns stored value', () => {
     const cache = new LRUCache<string, number>(5);
     cache.set('a', 1);
@@ -217,7 +219,9 @@ describe('LRUCache', () => {
 
   it('accessing an entry keeps it from being evicted', () => {
     const cache = new LRUCache<string, number>(3);
-    cache.set('a', 1); cache.set('b', 2); cache.set('c', 3);
+    cache.set('a', 1);
+    cache.set('b', 2);
+    cache.set('c', 3);
     cache.get('a'); // touch a
     cache.set('d', 4); // evicts LRU (b)
     expect(cache.get('a')).toBe(1); // a should still be there
@@ -225,7 +229,8 @@ describe('LRUCache', () => {
 
   it('clear removes all entries', () => {
     const cache = new LRUCache<string, number>(5);
-    cache.set('a', 1); cache.set('b', 2);
+    cache.set('a', 1);
+    cache.set('b', 2);
     cache.clear();
     expect(cache.get('a')).toBeUndefined();
     expect(cache.get('b')).toBeUndefined();

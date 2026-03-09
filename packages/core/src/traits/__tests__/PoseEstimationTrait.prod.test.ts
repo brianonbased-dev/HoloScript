@@ -31,16 +31,26 @@ import type { Keypoint } from '../PoseEstimationTrait';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 let _nodeId = 0;
-function makeNode() { return { id: `pose_${++_nodeId}` }; }
-function makeCtx() { return { emit: vi.fn() }; }
-function makeConfig(o: any = {}) { return { ...poseEstimationHandler.defaultConfig!, ...o }; }
+function makeNode() {
+  return { id: `pose_${++_nodeId}` };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
+function makeConfig(o: any = {}) {
+  return { ...poseEstimationHandler.defaultConfig!, ...o };
+}
 
 function attach(o: any = {}) {
-  const node = makeNode(); const ctx = makeCtx(); const config = makeConfig(o);
+  const node = makeNode();
+  const ctx = makeCtx();
+  const config = makeConfig(o);
   poseEstimationHandler.onAttach!(node as any, config, ctx as any);
   return { node, ctx, config };
 }
-function getState(node: any) { return (node as any).__poseEstimationState; }
+function getState(node: any) {
+  return (node as any).__poseEstimationState;
+}
 
 function makeKeypoints(names: string[], val = 0.8): Keypoint[] {
   return names.map((name) => ({ x: 10, y: 20, z: 5, confidence: val, name }));
@@ -67,15 +77,22 @@ describe('poseEstimationHandler.onAttach', () => {
     const { node } = attach();
     expect(getState(node)).toBeDefined();
   });
-  it('detected_pose = null', () => expect(attach().node.__poseEstimationState?.detected_pose).toBeNull());
+  it('detected_pose = null', () =>
+    expect(attach().node.__poseEstimationState?.detected_pose).toBeNull());
   it('confidence = 0', () => expect(attach().node.__poseEstimationState?.confidence).toBe(0));
-  it('tracking_id = null', () => expect(attach().node.__poseEstimationState?.tracking_id).toBeNull());
-  it('smoothing_buffer = []', () => expect(attach().node.__poseEstimationState?.smoothing_buffer).toEqual([]));
+  it('tracking_id = null', () =>
+    expect(attach().node.__poseEstimationState?.tracking_id).toBeNull());
+  it('smoothing_buffer = []', () =>
+    expect(attach().node.__poseEstimationState?.smoothing_buffer).toEqual([]));
   it('emits pose_estimation_init with model + keypoints', () => {
     const { ctx } = attach({ model: 'movenet', keypoints: 33 });
-    expect(ctx.emit).toHaveBeenCalledWith('pose_estimation_init', expect.objectContaining({
-      model: 'movenet', keypoints: 33,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'pose_estimation_init',
+      expect.objectContaining({
+        model: 'movenet',
+        keypoints: 33,
+      })
+    );
   });
 });
 
@@ -97,7 +114,9 @@ describe('poseEstimationHandler.onUpdate', () => {
   it('does not throw and emits nothing', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    expect(() => poseEstimationHandler.onUpdate!(node as any, config, ctx as any, 0.016)).not.toThrow();
+    expect(() =>
+      poseEstimationHandler.onUpdate!(node as any, config, ctx as any, 0.016)
+    ).not.toThrow();
     expect(ctx.emit).not.toHaveBeenCalled();
   });
 });
@@ -108,7 +127,9 @@ describe("onEvent 'pose_detected'", () => {
     const { node, ctx, config } = attach({ min_confidence: 0.7 });
     ctx.emit.mockClear();
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: makeKeypoints(BASIC_KPS), confidence: 0.5,
+      type: 'pose_detected',
+      keypoints: makeKeypoints(BASIC_KPS),
+      confidence: 0.5,
     });
     expect(getState(node).detected_pose).toBeNull();
     expect(ctx.emit).not.toHaveBeenCalledWith('on_pose_updated', expect.anything());
@@ -117,7 +138,9 @@ describe("onEvent 'pose_detected'", () => {
   it('accepts detection exactly at min_confidence', () => {
     const { node, ctx, config } = attach({ min_confidence: 0.5 });
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: makeKeypoints(BASIC_KPS, 0.5), confidence: 0.5,
+      type: 'pose_detected',
+      keypoints: makeKeypoints(BASIC_KPS, 0.5),
+      confidence: 0.5,
     });
     expect(getState(node).detected_pose).not.toBeNull();
   });
@@ -126,7 +149,9 @@ describe("onEvent 'pose_detected'", () => {
     const { node, ctx, config } = attach();
     const kps = makeKeypoints(BASIC_KPS);
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: kps, confidence: 0.9,
+      type: 'pose_detected',
+      keypoints: kps,
+      confidence: 0.9,
     });
     const state = getState(node);
     expect(state.confidence).toBe(0.9);
@@ -137,17 +162,25 @@ describe("onEvent 'pose_detected'", () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: makeKeypoints(BASIC_KPS), confidence: 0.8,
+      type: 'pose_detected',
+      keypoints: makeKeypoints(BASIC_KPS),
+      confidence: 0.8,
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_pose_updated', expect.objectContaining({
-      confidence: 0.8, trackingId: expect.any(String),
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_pose_updated',
+      expect.objectContaining({
+        confidence: 0.8,
+        trackingId: expect.any(String),
+      })
+    );
   });
 
   it('creates tracking_id on first detection when tracking_enabled=true', () => {
     const { node, ctx, config } = attach({ tracking_enabled: true });
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: makeKeypoints(BASIC_KPS), confidence: 0.8,
+      type: 'pose_detected',
+      keypoints: makeKeypoints(BASIC_KPS),
+      confidence: 0.8,
     });
     expect(getState(node).tracking_id).toMatch(/^track_/);
   });
@@ -155,11 +188,15 @@ describe("onEvent 'pose_detected'", () => {
   it('does NOT replace tracking_id on subsequent detections', () => {
     const { node, ctx, config } = attach({ tracking_enabled: true });
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: makeKeypoints(BASIC_KPS), confidence: 0.8,
+      type: 'pose_detected',
+      keypoints: makeKeypoints(BASIC_KPS),
+      confidence: 0.8,
     });
     const firstId = getState(node).tracking_id;
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: makeKeypoints(BASIC_KPS), confidence: 0.9,
+      type: 'pose_detected',
+      keypoints: makeKeypoints(BASIC_KPS),
+      confidence: 0.9,
     });
     expect(getState(node).tracking_id).toBe(firstId);
   });
@@ -167,7 +204,9 @@ describe("onEvent 'pose_detected'", () => {
   it('tracking_id = null when tracking_enabled=false', () => {
     const { node, ctx, config } = attach({ tracking_enabled: false });
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: makeKeypoints(BASIC_KPS), confidence: 0.8,
+      type: 'pose_detected',
+      keypoints: makeKeypoints(BASIC_KPS),
+      confidence: 0.8,
     });
     expect(getState(node).tracking_id).toBeNull();
   });
@@ -176,7 +215,9 @@ describe("onEvent 'pose_detected'", () => {
     const { node, ctx, config } = attach();
     for (let i = 0; i < 7; i++) {
       poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-        type: 'pose_detected', keypoints: makeKeypoints(BASIC_KPS), confidence: 0.9,
+        type: 'pose_detected',
+        keypoints: makeKeypoints(BASIC_KPS),
+        confidence: 0.9,
       });
     }
     expect(getState(node).smoothing_buffer.length).toBe(5);
@@ -187,7 +228,9 @@ describe("onEvent 'pose_detected'", () => {
     // First detection (no buffer yet → no smoothing)
     const kps = [{ x: 50, y: 60, z: 0, confidence: 0.9, name: 'nose' }];
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: kps, confidence: 0.9,
+      type: 'pose_detected',
+      keypoints: kps,
+      confidence: 0.9,
     });
     // Store the first pose in buffer
     const poseAfterFirst = getState(node).detected_pose!;
@@ -196,7 +239,9 @@ describe("onEvent 'pose_detected'", () => {
     // Second detection: smoothing=0 → result = current * 1 + prev * 0 = current
     const kps2 = [{ x: 100, y: 200, z: 0, confidence: 0.9, name: 'nose' }];
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: kps2, confidence: 0.9,
+      type: 'pose_detected',
+      keypoints: kps2,
+      confidence: 0.9,
     });
     expect(getState(node).detected_pose![0].x).toBeCloseTo(100, 1);
   });
@@ -205,11 +250,15 @@ describe("onEvent 'pose_detected'", () => {
     const { node, ctx, config } = attach({ smoothing: 0.5, min_confidence: 0 });
     // First frame: x=0
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: [{ x: 0, y: 0, confidence: 1, name: 'nose' }], confidence: 1,
+      type: 'pose_detected',
+      keypoints: [{ x: 0, y: 0, confidence: 1, name: 'nose' }],
+      confidence: 1,
     });
     // Second frame: x=100, smoothing=0.5 → result = 100 * 0.5 + 0 * 0.5 = 50
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: [{ x: 100, y: 0, confidence: 1, name: 'nose' }], confidence: 1,
+      type: 'pose_detected',
+      keypoints: [{ x: 100, y: 0, confidence: 1, name: 'nose' }],
+      confidence: 1,
     });
     expect(getState(node).detected_pose![0].x).toBeCloseTo(50, 1);
   });
@@ -220,7 +269,9 @@ describe("onEvent 'pose_lost'", () => {
   it('clears detected_pose / confidence / tracking_id / smoothing_buffer', () => {
     const { node, ctx, config } = attach();
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: makeKeypoints(BASIC_KPS), confidence: 0.9,
+      type: 'pose_detected',
+      keypoints: makeKeypoints(BASIC_KPS),
+      confidence: 0.9,
     });
     ctx.emit.mockClear();
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, { type: 'pose_lost' });
@@ -244,29 +295,52 @@ describe("onEvent 'get_keypoint'", () => {
   it('emits on_keypoint_result with found=true and keypoint when present', () => {
     const { node, ctx, config } = attach();
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: makeKeypoints(['nose', 'left_eye']), confidence: 0.9,
+      type: 'pose_detected',
+      keypoints: makeKeypoints(['nose', 'left_eye']),
+      confidence: 0.9,
     });
     ctx.emit.mockClear();
-    poseEstimationHandler.onEvent!(node as any, config, ctx as any, { type: 'get_keypoint', name: 'nose' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_keypoint_result', expect.objectContaining({
-      found: true, keypoint: expect.objectContaining({ name: 'nose' }),
-    }));
+    poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'get_keypoint',
+      name: 'nose',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_keypoint_result',
+      expect.objectContaining({
+        found: true,
+        keypoint: expect.objectContaining({ name: 'nose' }),
+      })
+    );
   });
 
   it('emits on_keypoint_result with found=false when keypoint not in pose', () => {
     const { node, ctx, config } = attach();
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'pose_detected', keypoints: makeKeypoints(['nose']), confidence: 0.9,
+      type: 'pose_detected',
+      keypoints: makeKeypoints(['nose']),
+      confidence: 0.9,
     });
     ctx.emit.mockClear();
-    poseEstimationHandler.onEvent!(node as any, config, ctx as any, { type: 'get_keypoint', name: 'right_wrist' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_keypoint_result', expect.objectContaining({ found: false }));
+    poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'get_keypoint',
+      name: 'right_wrist',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_keypoint_result',
+      expect.objectContaining({ found: false })
+    );
   });
 
   it('emits on_keypoint_result with found=false when no pose detected', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    poseEstimationHandler.onEvent!(node as any, config, ctx as any, { type: 'get_keypoint', name: 'nose' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_keypoint_result', expect.objectContaining({ found: false }));
+    poseEstimationHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'get_keypoint',
+      name: 'nose',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_keypoint_result',
+      expect.objectContaining({ found: false })
+    );
   });
 });

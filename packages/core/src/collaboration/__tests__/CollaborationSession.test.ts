@@ -57,15 +57,15 @@ describe('CollaborationSession', () => {
     session.openDocument('a.hsplus');
     session.openDocument('b.hsplus');
     const docs = session.getOpenDocuments();
-    expect(docs.some(d => d.includes('a.hsplus'))).toBe(true);
-    expect(docs.some(d => d.includes('b.hsplus'))).toBe(true);
+    expect(docs.some((d) => d.includes('a.hsplus'))).toBe(true);
+    expect(docs.some((d) => d.includes('b.hsplus'))).toBe(true);
   });
 
   it('closeDocument removes doc', () => {
     session.openDocument('test.hsplus');
     session.closeDocument('test.hsplus');
     expect(session.getDocument('test.hsplus')).toBeUndefined();
-    expect(session.getOpenDocuments().some(d => d.includes('test.hsplus'))).toBe(false);
+    expect(session.getOpenDocuments().some((d) => d.includes('test.hsplus'))).toBe(false);
   });
 
   it('closeDocument on non-existent is no-op', () => {
@@ -84,7 +84,7 @@ describe('CollaborationSession', () => {
       joinedAt: Date.now(),
     });
     const peers = session.getPeers();
-    expect(peers.find(p => p.peerId === 'peer-2')).toBeDefined();
+    expect(peers.find((p) => p.peerId === 'peer-2')).toBeDefined();
   });
 
   it('getPeer returns specific peer', () => {
@@ -129,7 +129,9 @@ describe('CollaborationSession', () => {
     const encoded = doc.getEncodedState();
 
     // Open same file in session, then apply remote update
-    const session2 = makeSession({ localPeer: { peerId: 'peer-2', displayName: 'Bob', color: '#ff0', platform: 'web' } });
+    const session2 = makeSession({
+      localPeer: { peerId: 'peer-2', displayName: 'Bob', color: '#ff0', platform: 'web' },
+    });
     const doc2 = session2.openDocument('test.hsplus');
     session2.applyRemoteUpdate('test.hsplus', encoded, 'peer-1');
     expect(doc2.getText()).toBe('original');
@@ -138,7 +140,9 @@ describe('CollaborationSession', () => {
 
   it('applyRemoteUpdate on unopened doc is silent', () => {
     // Should not throw
-    expect(() => session.applyRemoteUpdate('nonexistent.hsplus', new Uint8Array([0]), 'peer-2')).not.toThrow();
+    expect(() =>
+      session.applyRemoteUpdate('nonexistent.hsplus', new Uint8Array([0]), 'peer-2')
+    ).not.toThrow();
   });
 
   // Event subscription

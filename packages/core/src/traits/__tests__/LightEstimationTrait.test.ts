@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { lightEstimationHandler } from '../LightEstimationTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('LightEstimationTrait', () => {
   let node: Record<string, unknown>;
@@ -33,7 +41,10 @@ describe('LightEstimationTrait', () => {
   });
 
   it('estimation_update smooths intensity', () => {
-    sendEvent(lightEstimationHandler, node, cfg, ctx, { type: 'light_estimation_update', intensity: 2.0 });
+    sendEvent(lightEstimationHandler, node, cfg, ctx, {
+      type: 'light_estimation_update',
+      intensity: 2.0,
+    });
     const s = (node as any).__lightEstimationState;
     // smoothed: 1.0 * 0.8 + 2.0 * 0.2 = 1.2
     expect(s.intensity).toBeCloseTo(1.2, 2);
@@ -41,21 +52,32 @@ describe('LightEstimationTrait', () => {
   });
 
   it('color temperature updates correction', () => {
-    sendEvent(lightEstimationHandler, node, cfg, ctx, { type: 'light_estimation_update', intensity: 1, colorTemperature: 3000 });
+    sendEvent(lightEstimationHandler, node, cfg, ctx, {
+      type: 'light_estimation_update',
+      intensity: 1,
+      colorTemperature: 3000,
+    });
     const s = (node as any).__lightEstimationState;
     expect(s.colorTemperature).toBeLessThan(6500);
     expect(s.colorCorrection.r).toBeGreaterThan(0);
   });
 
   it('direction is smoothed', () => {
-    sendEvent(lightEstimationHandler, node, cfg, ctx, { type: 'light_estimation_update', intensity: 1, direction: { x: 1, y: 0, z: 0 } });
+    sendEvent(lightEstimationHandler, node, cfg, ctx, {
+      type: 'light_estimation_update',
+      intensity: 1,
+      direction: { x: 1, y: 0, z: 0 },
+    });
     const s = (node as any).__lightEstimationState;
     // smoothed x: 0 * 0.8 + 1 * 0.2 = 0.2
     expect(s.primaryDirection.x).toBeCloseTo(0.2, 2);
   });
 
   it('env_map updates environment map', () => {
-    sendEvent(lightEstimationHandler, node, cfg, ctx, { type: 'light_estimation_env_map', envMap: 'map_handle' });
+    sendEvent(lightEstimationHandler, node, cfg, ctx, {
+      type: 'light_estimation_env_map',
+      envMap: 'map_handle',
+    });
     expect((node as any).__lightEstimationState.environmentMap).toBe('map_handle');
     expect(getEventCount(ctx, 'scene_environment_map_update')).toBe(1);
   });
@@ -68,7 +90,10 @@ describe('LightEstimationTrait', () => {
   });
 
   it('query returns state', () => {
-    sendEvent(lightEstimationHandler, node, cfg, ctx, { type: 'light_estimation_query', queryId: 'q1' });
+    sendEvent(lightEstimationHandler, node, cfg, ctx, {
+      type: 'light_estimation_query',
+      queryId: 'q1',
+    });
     const r = getLastEvent(ctx, 'light_estimation_response') as any;
     expect(r.intensity).toBe(1);
     expect(r.queryId).toBe('q1');

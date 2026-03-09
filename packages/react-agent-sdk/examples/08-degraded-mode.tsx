@@ -5,11 +5,7 @@
  */
 
 import React from 'react';
-import {
-  useDegradedMode,
-  useAgent,
-  useTask,
-} from '@hololand/react-agent-sdk';
+import { useDegradedMode, useAgent, useTask } from '@hololand/react-agent-sdk';
 
 export function DegradedModeExample() {
   const { isDegraded, affectedServices, recoveryStatus } = useDegradedMode();

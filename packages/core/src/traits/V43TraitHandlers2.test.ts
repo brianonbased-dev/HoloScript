@@ -62,7 +62,10 @@ describe('spatialPersonaHandler', () => {
   let node: HSPlusNode;
   let ctx: TraitContext;
 
-  beforeEach(() => { node = createMockNode(); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode();
+    ctx = createMockContext();
+  });
 
   describe('handler definition', () => {
     it('should have name "spatial_persona"', () => {
@@ -93,7 +96,7 @@ describe('spatialPersonaHandler', () => {
             isSpeaking: false,
             expressionState: 'neutral',
           }),
-        }),
+        })
       );
       expect(ctx.emit).toHaveBeenCalledWith('persona:init', {
         style: handler.defaultConfig.persona_style,
@@ -201,7 +204,10 @@ describe('sharePlayHandler', () => {
   let node: HSPlusNode;
   let ctx: TraitContext;
 
-  beforeEach(() => { node = createMockNode(); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode();
+    ctx = createMockContext();
+  });
 
   describe('handler definition', () => {
     it('should have name "shareplay"', () => {
@@ -228,7 +234,7 @@ describe('sharePlayHandler', () => {
             sessionId: null,
             isHost: false,
           }),
-        }),
+        })
       );
       expect(ctx.emit).toHaveBeenCalledWith('shareplay:ready', {
         activity: handler.defaultConfig.activity_title,
@@ -331,7 +337,10 @@ describe('controlNetHandler', () => {
   let node: HSPlusNode;
   let ctx: TraitContext;
 
-  beforeEach(() => { node = createMockNode(); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode();
+    ctx = createMockContext();
+  });
 
   describe('handler definition', () => {
     it('should have name "controlnet"', () => {
@@ -359,7 +368,7 @@ describe('controlNetHandler', () => {
             processCount: 0,
             lastResult: null,
           }),
-        }),
+        })
       );
       expect(ctx.emit).toHaveBeenCalledWith('controlnet:ready', {
         model: 'canny',
@@ -441,7 +450,10 @@ describe('aiTextureGenHandler', () => {
   let node: HSPlusNode;
   let ctx: TraitContext;
 
-  beforeEach(() => { node = createMockNode(); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode();
+    ctx = createMockContext();
+  });
 
   describe('handler definition', () => {
     it('should have name "ai_texture_gen"', () => {
@@ -470,7 +482,7 @@ describe('aiTextureGenHandler', () => {
             queue: [],
             totalGenerated: 0,
           }),
-        }),
+        })
       );
       expect(ctx.emit).toHaveBeenCalledWith('texture_gen:ready', {
         style: 'photorealistic',
@@ -489,10 +501,13 @@ describe('aiTextureGenHandler', () => {
 
       const state = ctx.getState().aiTextureGen as any;
       expect(state.isGenerating).toBe(true);
-      expect(ctx.emit).toHaveBeenCalledWith('texture_gen:started', expect.objectContaining({
-        requestId: 'req-001',
-        prompt: 'mossy stone wall',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'texture_gen:started',
+        expect.objectContaining({
+          requestId: 'req-001',
+          prompt: 'mossy stone wall',
+        })
+      );
     });
 
     it('texture_gen:generate while generating → queues request', () => {
@@ -533,10 +548,13 @@ describe('aiTextureGenHandler', () => {
       expect(state.totalGenerated).toBe(1);
       expect(state.textures.size).toBe(1);
       expect(state.activeTextureId).toBe('req-001');
-      expect(ctx.emit).toHaveBeenCalledWith('texture_gen:applied', expect.objectContaining({
-        textureId: 'req-001',
-        diffuseUrl: 'url://diffuse.png',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'texture_gen:applied',
+        expect.objectContaining({
+          textureId: 'req-001',
+          diffuseUrl: 'url://diffuse.png',
+        })
+      );
     });
   });
 });
@@ -550,7 +568,10 @@ describe('diffusionRealtimeHandler', () => {
   let node: HSPlusNode;
   let ctx: TraitContext;
 
-  beforeEach(() => { node = createMockNode(); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode();
+    ctx = createMockContext();
+  });
 
   describe('handler definition', () => {
     it('should have name "diffusion_realtime"', () => {
@@ -579,7 +600,7 @@ describe('diffusionRealtimeHandler', () => {
             frameCount: 0,
             droppedFrames: 0,
           }),
-        }),
+        })
       );
       expect(ctx.emit).toHaveBeenCalledWith('diffusion_rt:ready', {
         backend: 'lcm',
@@ -628,9 +649,12 @@ describe('diffusionRealtimeHandler', () => {
       } as any);
 
       expect(state.isStreaming).toBe(false);
-      expect(ctx.emit).toHaveBeenCalledWith('diffusion_rt:stopped', expect.objectContaining({
-        frameCount: 10,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'diffusion_rt:stopped',
+        expect.objectContaining({
+          frameCount: 10,
+        })
+      );
     });
 
     it('diffusion_rt:frame → increments frameCount, emits frame_ready', () => {
@@ -646,10 +670,13 @@ describe('diffusionRealtimeHandler', () => {
 
       expect(state.frameCount).toBe(1);
       expect(state.lastFrameUrl).toBe('data:image/jpeg;base64,...');
-      expect(ctx.emit).toHaveBeenCalledWith('diffusion_rt:frame_ready', expect.objectContaining({
-        frameCount: 1,
-        latencyMs: 67,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'diffusion_rt:frame_ready',
+        expect.objectContaining({
+          frameCount: 1,
+          latencyMs: 67,
+        })
+      );
     });
 
     it('diffusion_rt:frame → ignored when not streaming', () => {
@@ -685,7 +712,10 @@ describe('aiInpaintingHandler', () => {
   let node: HSPlusNode;
   let ctx: TraitContext;
 
-  beforeEach(() => { node = createMockNode(); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode();
+    ctx = createMockContext();
+  });
 
   describe('handler definition', () => {
     it('should have name "ai_inpainting"', () => {
@@ -713,7 +743,7 @@ describe('aiInpaintingHandler', () => {
             activeMask: null,
             totalInpaints: 0,
           }),
-        }),
+        })
       );
       expect(ctx.emit).toHaveBeenCalledWith('inpainting:ready', {
         model: 'sd-inpaint',
@@ -772,18 +802,27 @@ describe('aiInpaintingHandler', () => {
 
       expect(state.isProcessing).toBe(true);
       expect(state.regions.size).toBe(1);
-      expect(ctx.emit).toHaveBeenCalledWith('inpainting:started', expect.objectContaining({
-        regionId: 'r-001',
-        prompt: 'a glowing portal',
-        model: 'sd-inpaint',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'inpainting:started',
+        expect.objectContaining({
+          regionId: 'r-001',
+          prompt: 'a glowing portal',
+          model: 'sd-inpaint',
+        })
+      );
     });
 
     it('inpainting:complete → stores result, updates stats, emits inpainting:result', () => {
       handler.onAttach!(node, handler.defaultConfig, ctx);
       const state = ctx.getState().aiInpainting as any;
       state.isProcessing = true;
-      state.regions.set('r-001', { id: 'r-001', maskData: null, prompt: 'portal', resultUrl: null, appliedAt: null });
+      state.regions.set('r-001', {
+        id: 'r-001',
+        maskData: null,
+        prompt: 'portal',
+        resultUrl: null,
+        appliedAt: null,
+      });
 
       handler.onEvent!(node, handler.defaultConfig, ctx, {
         type: 'inpainting:complete',
@@ -793,11 +832,14 @@ describe('aiInpaintingHandler', () => {
       expect(state.isProcessing).toBe(false);
       expect(state.totalInpaints).toBe(1);
       expect(state.lastResultUrl).toBe('url://inpaint.png');
-      expect(ctx.emit).toHaveBeenCalledWith('inpainting:result', expect.objectContaining({
-        regionId: 'r-001',
-        resultUrl: 'url://inpaint.png',
-        blend_mode: 'seamless',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'inpainting:result',
+        expect.objectContaining({
+          regionId: 'r-001',
+          resultUrl: 'url://inpaint.png',
+          blend_mode: 'seamless',
+        })
+      );
     });
 
     it('inpainting:clear_mask → clears mask, emits original_restored when preserve=true', () => {

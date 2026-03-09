@@ -21,7 +21,7 @@ describe('GestureRecognizer', () => {
     gr.touchStart(0, 50, 50);
     vi.advanceTimersByTime(100);
     gr.touchEnd(0, 52, 52);
-    const taps = events.filter(e => e.type === 'tap');
+    const taps = events.filter((e) => e.type === 'tap');
     expect(taps.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -42,7 +42,7 @@ describe('GestureRecognizer', () => {
     gr.touchMove(0, 100, 100);
     vi.advanceTimersByTime(50);
     gr.touchEnd(0, 200, 100);
-    const swipes = events.filter(e => e.type === 'swipe');
+    const swipes = events.filter((e) => e.type === 'swipe');
     expect(swipes.length).toBeGreaterThanOrEqual(1);
     if (swipes.length > 0) {
       expect(swipes[0].direction).toBe('right');
@@ -55,7 +55,7 @@ describe('GestureRecognizer', () => {
     gr.touchMove(0, 100, 50);
     vi.advanceTimersByTime(50);
     gr.touchEnd(0, 100, 0);
-    const swipes = events.filter(e => e.type === 'swipe');
+    const swipes = events.filter((e) => e.type === 'swipe');
     expect(swipes.length).toBeGreaterThanOrEqual(1);
     if (swipes.length > 0) {
       expect(swipes[0].direction).toBe('up');
@@ -69,7 +69,7 @@ describe('GestureRecognizer', () => {
   it('detects long press', () => {
     gr.touchStart(0, 50, 50);
     vi.advanceTimersByTime(600); // > 500ms default
-    const presses = events.filter(e => e.type === 'longPress');
+    const presses = events.filter((e) => e.type === 'longPress');
     expect(presses.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -90,7 +90,7 @@ describe('GestureRecognizer', () => {
     // Spread apart
     gr.touchMove(0, 50, 100);
     gr.touchMove(1, 250, 100);
-    const pinches = events.filter(e => e.type === 'pinch');
+    const pinches = events.filter((e) => e.type === 'pinch');
     expect(pinches.length).toBeGreaterThanOrEqual(1);
   });
 

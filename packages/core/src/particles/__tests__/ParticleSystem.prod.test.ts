@@ -84,7 +84,7 @@ describe('ParticleSystem — Production', () => {
     ps.update(0.01); // small tick to process — doesn't kill them (lifetime > 0.01)
     const alive = ps.getAliveParticles();
     expect(alive.length).toBe(3);
-    expect(alive.every(p => p.alive)).toBe(true);
+    expect(alive.every((p) => p.alive)).toBe(true);
   });
 
   // ─── Config ───────────────────────────────────────────────────────

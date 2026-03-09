@@ -54,10 +54,10 @@ describe('Cycle 110: Integration Tests', () => {
 
     expect(result.directives.length).toBeGreaterThan(0);
     // Compiler extracts state from SetState nodes
-    const stateDirective = result.directives.find(d => d.type === 'state');
+    const stateDirective = result.directives.find((d) => d.type === 'state');
     expect(stateDirective).toBeDefined();
     // Compiler extracts lifecycle handlers from OnEvent nodes
-    const lifecycleDirective = result.directives.find(d => d.type === 'lifecycle');
+    const lifecycleDirective = result.directives.find((d) => d.type === 'lifecycle');
     expect(lifecycleDirective).toBeDefined();
   });
 
@@ -72,14 +72,17 @@ describe('Cycle 110: Integration Tests', () => {
     // Generate heightmap from noise
     const res = 33;
     const heightmap = noise.generateMap(res, res, 'value');
-    terrain.createFromHeightmap({
-      id: 'world',
-      width: 100,
-      depth: 100,
-      resolution: res,
-      maxHeight: 15,
-      position: { x: 0, y: 0, z: 0 },
-    }, heightmap);
+    terrain.createFromHeightmap(
+      {
+        id: 'world',
+        width: 100,
+        depth: 100,
+        resolution: res,
+        maxHeight: 15,
+        position: { x: 0, y: 0, z: 0 },
+      },
+      heightmap
+    );
 
     // Sculpt with brush
     const brush = new TerrainBrush(terrain, { mode: 'raise', radius: 3, strength: 0.5 });
@@ -145,8 +148,21 @@ describe('Cycle 110: Integration Tests', () => {
     // Animation graph
     const animGraph = new AnimationGraph();
     animGraph.addClip({
-      id: 'walk', name: 'Walk', duration: 1, loop: true, speed: 1,
-      tracks: [{ targetProperty: 'position.z', keyframes: [{ time: 0, value: 0 }, { time: 1, value: 2 }], interpolation: 'linear' }],
+      id: 'walk',
+      name: 'Walk',
+      duration: 1,
+      loop: true,
+      speed: 1,
+      tracks: [
+        {
+          targetProperty: 'position.z',
+          keyframes: [
+            { time: 0, value: 0 },
+            { time: 1, value: 2 },
+          ],
+          interpolation: 'linear',
+        },
+      ],
     });
     animGraph.addState('walk', 'walk');
 
@@ -182,14 +198,17 @@ describe('Cycle 110: Integration Tests', () => {
 
     // Create terrain
     const heightmap = noise.generateMap(17, 17, 'value');
-    terrain.createFromHeightmap({
-      id: 'forest',
-      width: 50,
-      depth: 50,
-      resolution: 17,
-      maxHeight: 10,
-      position: { x: 0, y: 0, z: 0 },
-    }, heightmap);
+    terrain.createFromHeightmap(
+      {
+        id: 'forest',
+        width: 50,
+        depth: 50,
+        resolution: 17,
+        maxHeight: 10,
+        position: { x: 0, y: 0, z: 0 },
+      },
+      heightmap
+    );
 
     // Place trees at sample points
     const treePositions: { x: number; y: number; z: number }[] = [];
@@ -204,7 +223,7 @@ describe('Cycle 110: Integration Tests', () => {
     const tree = lsys.generate(TREE_SIMPLE);
     expect(tree.segments.length).toBeGreaterThan(0);
     expect(treePositions).toHaveLength(5);
-    expect(treePositions.every(p => p.y >= 0)).toBe(true);
+    expect(treePositions.every((p) => p.y >= 0)).toBe(true);
   });
 
   // -------------------------------------------------------------------------

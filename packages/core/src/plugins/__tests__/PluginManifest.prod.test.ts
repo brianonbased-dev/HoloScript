@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { validatePluginManifest, createPluginManifest, PluginManifest } from '../../plugins/PluginManifest';
+import {
+  validatePluginManifest,
+  createPluginManifest,
+  PluginManifest,
+} from '../../plugins/PluginManifest';
 
 const valid: PluginManifest = {
   id: 'my-plugin',
@@ -28,13 +32,13 @@ describe('PluginManifest — Production Tests', () => {
       const { id, ...rest } = valid;
       const r = validatePluginManifest(rest);
       expect(r.valid).toBe(false);
-      expect(r.errors.some(e => e.includes('id'))).toBe(true);
+      expect(r.errors.some((e) => e.includes('id'))).toBe(true);
     });
 
     it('rejects non-kebab-case id', () => {
       const r = validatePluginManifest({ ...valid, id: 'My Plugin!' });
       expect(r.valid).toBe(false);
-      expect(r.errors.some(e => e.includes('kebab-case'))).toBe(true);
+      expect(r.errors.some((e) => e.includes('kebab-case'))).toBe(true);
     });
 
     it('accepts kebab-case id with numbers', () => {
@@ -46,20 +50,20 @@ describe('PluginManifest — Production Tests', () => {
       const { name, ...rest } = valid;
       const r = validatePluginManifest(rest);
       expect(r.valid).toBe(false);
-      expect(r.errors.some(e => e.includes('name'))).toBe(true);
+      expect(r.errors.some((e) => e.includes('name'))).toBe(true);
     });
 
     it('reports missing version', () => {
       const { version, ...rest } = valid;
       const r = validatePluginManifest(rest);
       expect(r.valid).toBe(false);
-      expect(r.errors.some(e => e.includes('version'))).toBe(true);
+      expect(r.errors.some((e) => e.includes('version'))).toBe(true);
     });
 
     it('rejects invalid semver format', () => {
       const r = validatePluginManifest({ ...valid, version: '1.0' });
       expect(r.valid).toBe(false);
-      expect(r.errors.some(e => e.includes('semver'))).toBe(true);
+      expect(r.errors.some((e) => e.includes('semver'))).toBe(true);
     });
 
     it('accepts pre-release semver (1.0.0-alpha)', () => {
@@ -77,7 +81,7 @@ describe('PluginManifest — Production Tests', () => {
       const { main, ...rest } = valid;
       const r = validatePluginManifest(rest);
       expect(r.valid).toBe(false);
-      expect(r.errors.some(e => e.includes('main'))).toBe(true);
+      expect(r.errors.some((e) => e.includes('main'))).toBe(true);
     });
 
     it('accumulates multiple errors', () => {
@@ -105,7 +109,7 @@ describe('PluginManifest — Production Tests', () => {
         },
       });
       expect(r.valid).toBe(false);
-      expect(r.errors.some(e => e.includes('VRR provider'))).toBe(true);
+      expect(r.errors.some((e) => e.includes('VRR provider'))).toBe(true);
     });
 
     it('rejects vrrProvider with invalid type', () => {
@@ -116,7 +120,7 @@ describe('PluginManifest — Production Tests', () => {
         },
       });
       expect(r.valid).toBe(false);
-      expect(r.errors.some(e => e.includes('invalid type'))).toBe(true);
+      expect(r.errors.some((e) => e.includes('invalid type'))).toBe(true);
     });
 
     it('accepts manifest with valid aiProviders', () => {

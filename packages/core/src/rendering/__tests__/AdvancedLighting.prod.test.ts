@@ -13,7 +13,6 @@ import {
 } from '../AdvancedLighting';
 
 describe('AdvancedLighting — Production Tests', () => {
-
   // ---------------------------------------------------------------------------
   // IES Profile
   // ---------------------------------------------------------------------------
@@ -42,7 +41,9 @@ describe('AdvancedLighting — Production Tests', () => {
       [100, 75, 25],
     ];
     let profile: IESProfile;
-    beforeEach(() => { profile = parseIESProfile('test', vert, horiz, candela); });
+    beforeEach(() => {
+      profile = parseIESProfile('test', vert, horiz, candela);
+    });
 
     it('returns 1.0 at peak (vertical=0, max candela)', () => {
       const v = sampleIES(profile, 0, 0);
@@ -79,19 +80,28 @@ describe('AdvancedLighting — Production Tests', () => {
         { x: 0, y: 5, z: 0 },
         { x: 1, y: 0, z: 0 },
         { x: 0, y: 0, z: 1 },
-        1, 1
+        1,
+        1
       );
       expect(sa).toBeGreaterThan(0);
     });
 
     it('solid angle decreases with distance', () => {
       const sa_close = rectSolidAngle(
-        { x: 0, y: 0, z: 0 }, { x: 0, y: 2, z: 0 },
-        { x: 1, y: 0, z: 0 }, { x: 0, y: 0, z: 1 }, 1, 1
+        { x: 0, y: 0, z: 0 },
+        { x: 0, y: 2, z: 0 },
+        { x: 1, y: 0, z: 0 },
+        { x: 0, y: 0, z: 1 },
+        1,
+        1
       );
       const sa_far = rectSolidAngle(
-        { x: 0, y: 0, z: 0 }, { x: 0, y: 20, z: 0 },
-        { x: 1, y: 0, z: 0 }, { x: 0, y: 0, z: 1 }, 1, 1
+        { x: 0, y: 0, z: 0 },
+        { x: 0, y: 20, z: 0 },
+        { x: 1, y: 0, z: 0 },
+        { x: 0, y: 0, z: 1 },
+        1,
+        1
       );
       expect(sa_close).toBeGreaterThan(sa_far);
     });
@@ -166,7 +176,9 @@ describe('AdvancedLighting — Production Tests', () => {
   // ---------------------------------------------------------------------------
   describe('AdvancedLightingManager', () => {
     let mgr: AdvancedLightingManager;
-    beforeEach(() => { mgr = new AdvancedLightingManager(); });
+    beforeEach(() => {
+      mgr = new AdvancedLightingManager();
+    });
 
     it('starts empty', () => {
       expect(mgr.getLightCount()).toBe(0);

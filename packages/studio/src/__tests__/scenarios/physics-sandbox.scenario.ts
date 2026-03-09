@@ -66,8 +66,11 @@ describe('Scenario: Physics Sandbox — World Management', () => {
     usePhysicsStore.getState().setWorld(fakeWorld);
     usePhysicsStore.getState().setPhysicsEnabled(true);
     usePhysicsStore.getState().setDebugVisible(true);
-    usePhysicsStore.setState(s => ({
-      bodyMap: new Map([['node-1', 42], ['node-2', 99]]),
+    usePhysicsStore.setState((s) => ({
+      bodyMap: new Map([
+        ['node-1', 42],
+        ['node-2', 99],
+      ]),
     }));
     usePhysicsStore.getState().reset();
     expect(usePhysicsStore.getState().world).toBeNull();
@@ -78,11 +81,16 @@ describe('Scenario: Physics Sandbox — World Management', () => {
   it('ragdoll — joint constraints generated from bone hierarchy', () => {
     const bones = ['Hips', 'Spine', 'Head', 'LeftArm', 'RightArm'];
     const joints = bones.slice(1).map((bone, i) => ({
-      parent: bones[i], child: bone,
+      parent: bones[i],
+      child: bone,
       limits: { minAngle: -Math.PI / 4, maxAngle: Math.PI / 4 },
     }));
     expect(joints).toHaveLength(4);
-    expect(joints[0]).toEqual({ parent: 'Hips', child: 'Spine', limits: { minAngle: -Math.PI / 4, maxAngle: Math.PI / 4 } });
+    expect(joints[0]).toEqual({
+      parent: 'Hips',
+      child: 'Spine',
+      limits: { minAngle: -Math.PI / 4, maxAngle: Math.PI / 4 },
+    });
   });
 
   it('collision event callback fires on body contact', () => {
@@ -122,7 +130,7 @@ describe('Scenario: Physics Sandbox — Rigid Body Registry', () => {
   });
 
   it('can register a body handle for a scene node', () => {
-    usePhysicsStore.setState(s => ({
+    usePhysicsStore.setState((s) => ({
       bodyMap: new Map([...s.bodyMap, ['cube-1', 1]]),
     }));
     expect(usePhysicsStore.getState().bodyMap.get('cube-1')).toBe(1);
@@ -130,14 +138,21 @@ describe('Scenario: Physics Sandbox — Rigid Body Registry', () => {
 
   it('can register multiple bodies', () => {
     usePhysicsStore.setState({
-      bodyMap: new Map([['a', 1], ['b', 2], ['c', 3]]),
+      bodyMap: new Map([
+        ['a', 1],
+        ['b', 2],
+        ['c', 3],
+      ]),
     });
     expect(usePhysicsStore.getState().bodyMap.size).toBe(3);
   });
 
   it('can remove a body by node ID', () => {
     usePhysicsStore.setState({
-      bodyMap: new Map([['a', 1], ['b', 2]]),
+      bodyMap: new Map([
+        ['a', 1],
+        ['b', 2],
+      ]),
     });
     const map = new Map(usePhysicsStore.getState().bodyMap);
     map.delete('a');
@@ -161,8 +176,8 @@ describe('Scenario: Physics Sandbox — Rigid Body Registry', () => {
       { nodeId: 'platform', type: 'kinematic' },
       { nodeId: 'floor', type: 'static' },
     ];
-    expect(bodyConfigs.find(b => b.nodeId === 'player')!.type).toBe('dynamic');
-    expect(bodyConfigs.find(b => b.nodeId === 'floor')!.type).toBe('static');
+    expect(bodyConfigs.find((b) => b.nodeId === 'player')!.type).toBe('dynamic');
+    expect(bodyConfigs.find((b) => b.nodeId === 'floor')!.type).toBe('static');
   });
 
   it('mass and friction are configurable per body', () => {
@@ -183,7 +198,12 @@ describe('Scenario: Physics Sandbox — Rigid Body Registry', () => {
 describe('Scenario: Physics Sandbox — Simulation', () => {
   it('simulation step advances time by dt', () => {
     let time = 0;
-    const fakeWorld = { step: () => { time += 1 / 60; }, free: () => {} };
+    const fakeWorld = {
+      step: () => {
+        time += 1 / 60;
+      },
+      free: () => {},
+    };
     fakeWorld.step();
     fakeWorld.step();
     fakeWorld.step();
@@ -198,7 +218,12 @@ describe('Scenario: Physics Sandbox — Simulation', () => {
   it('simulation respects physicsEnabled flag', () => {
     usePhysicsStore.setState({ physicsEnabled: false });
     let stepped = false;
-    const fakeWorld = { step: () => { stepped = true; }, free: () => {} };
+    const fakeWorld = {
+      step: () => {
+        stepped = true;
+      },
+      free: () => {},
+    };
     // Only step if enabled
     if (usePhysicsStore.getState().physicsEnabled) {
       fakeWorld.step();
@@ -208,21 +233,36 @@ describe('Scenario: Physics Sandbox — Simulation', () => {
 
   it('free() releases WASM world memory', () => {
     let freed = false;
-    const fakeWorld = { step: () => {}, free: () => { freed = true; } };
+    const fakeWorld = {
+      step: () => {},
+      free: () => {
+        freed = true;
+      },
+    };
     fakeWorld.free();
     expect(freed).toBe(true);
   });
 
   it('sub-stepping runs multiple physics steps per frame', () => {
     let stepCount = 0;
-    const fakeWorld = { step: () => { stepCount++; }, free: () => {} };
+    const fakeWorld = {
+      step: () => {
+        stepCount++;
+      },
+      free: () => {},
+    };
     const substeps = 4;
     for (let i = 0; i < substeps; i++) fakeWorld.step();
     expect(stepCount).toBe(4);
   });
 
   it('physics profiler tracks step time per frame', () => {
-    const profiler = { frameTimes: [] as number[], record(ms: number) { this.frameTimes.push(ms); } };
+    const profiler = {
+      frameTimes: [] as number[],
+      record(ms: number) {
+        this.frameTimes.push(ms);
+      },
+    };
     profiler.record(0.5);
     profiler.record(0.8);
     profiler.record(0.3);

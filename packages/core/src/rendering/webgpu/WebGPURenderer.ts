@@ -46,7 +46,6 @@ export class WebGPURenderer {
   private xrProjectionLayer: any | null = null; // XRWebGPUTypes['projectionLayer']
   private xrFramebuffer: GPUTexture | null = null;
 
-
   // Frame statistics
   private stats: IRendererStats = {
     currentFrame: this.createEmptyFrameStats(),
@@ -799,7 +798,6 @@ export class WebGPURenderer {
         ? this.msaaTexture!.createView()
         : this.context.context.getCurrentTexture().createView();
 
-
     const resolveTarget =
       this.options.sampleCount > 1
         ? this.context.context.getCurrentTexture().createView()
@@ -1009,7 +1007,9 @@ export class WebGPURenderer {
 
     const { device } = this.context;
     const session = frame.session;
-    const pose = frame.getViewerPose(this.xrBinding.nativeProjectionLayerSpace || this.xrSession.renderState.baseLayer!.space); 
+    const pose = frame.getViewerPose(
+      this.xrBinding.nativeProjectionLayerSpace || this.xrSession.renderState.baseLayer!.space
+    );
 
     if (!pose) return;
 
@@ -1019,18 +1019,21 @@ export class WebGPURenderer {
     // Iterate views (eyes)
     for (const view of pose.views) {
       const viewport = this.xrBinding.getViewSubImage(this.xrProjectionLayer, view).viewport;
-      
+
       // Update Camera Uniforms for this view
       this.updateCameraUniforms({
         viewMatrix: view.transform.inverse.matrix,
         projectionMatrix: view.projectionMatrix,
         // Calculate camera position from inverse view matrix
         cameraPosition: [
-           view.transform.position.x, 
-           view.transform.position.y, 
-           view.transform.position.z 
+          view.transform.position.x,
+          view.transform.position.y,
+          view.transform.position.z,
         ],
-        viewProjectionMatrix: this.multiplyMatrices(view.projectionMatrix, view.transform.inverse.matrix) 
+        viewProjectionMatrix: this.multiplyMatrices(
+          view.projectionMatrix,
+          view.transform.inverse.matrix
+        ),
       } as any);
 
       // Acquire texture from WebXR binding
@@ -1039,37 +1042,43 @@ export class WebGPURenderer {
         baseMipLevel: 0,
         mipLevelCount: 1,
         baseArrayLayer: subImage.imageIndex,
-        arrayLayerCount: 1
+        arrayLayerCount: 1,
       });
-      
-      const depthAttachment = subImage.depthStencilTexture ? subImage.depthStencilTexture.createView({
-         baseMipLevel: 0,
-         mipLevelCount: 1,
-         baseArrayLayer: subImage.imageIndex,
-         arrayLayerCount: 1
-      }) : undefined;
+
+      const depthAttachment = subImage.depthStencilTexture
+        ? subImage.depthStencilTexture.createView({
+            baseMipLevel: 0,
+            mipLevelCount: 1,
+            baseArrayLayer: subImage.imageIndex,
+            arrayLayerCount: 1,
+          })
+        : undefined;
 
       // Render Pass
       const pass = encoder.beginRenderPass({
-        colorAttachments: [{
-          view: colorAttachment,
-          loadOp: 'clear',
-          storeOp: 'store',
-          clearValue: { r: 0, g: 0, b: 0, a: 1 }
-        }],
-        depthStencilAttachment: depthAttachment ? {
-          view: depthAttachment,
-          depthLoadOp: 'clear',
-          depthStoreOp: 'store',
-          depthClearValue: 1.0,
-        } : undefined
+        colorAttachments: [
+          {
+            view: colorAttachment,
+            loadOp: 'clear',
+            storeOp: 'store',
+            clearValue: { r: 0, g: 0, b: 0, a: 1 },
+          },
+        ],
+        depthStencilAttachment: depthAttachment
+          ? {
+              view: depthAttachment,
+              depthLoadOp: 'clear',
+              depthStoreOp: 'store',
+              depthClearValue: 1.0,
+            }
+          : undefined,
       });
 
       // Set viewport
       pass.setViewport(viewport.x, viewport.y, viewport.width, viewport.height, 0, 1);
 
       // Execute Draw Calls would go here
-      // this.renderScene(pass); 
+      // this.renderScene(pass);
 
       pass.end();
     }
@@ -1083,15 +1092,15 @@ export class WebGPURenderer {
     // Simple 4x4 matrix multiply: out = a * b
     // Row-major vs Column-major usually depends on math lib, assuming standard WebGL column-major
     for (let i = 0; i < 4; i++) {
-        for (let j = 0; j < 4; j++) {
-            let sum = 0;
-            for (let k = 0; k < 4; k++) {
-                sum += a[i * 4 + k] * b[k * 4 + j];
-            }
-            out[i * 4 + j] = sum;
+      for (let j = 0; j < 4; j++) {
+        let sum = 0;
+        for (let k = 0; k < 4; k++) {
+          sum += a[i * 4 + k] * b[k * 4 + j];
         }
+        out[i * 4 + j] = sum;
+      }
     }
-    return out; 
+    return out;
   }
 
   /**
@@ -1134,18 +1143,18 @@ export class WebGPURenderer {
     if (!this.xrBinding) {
       // @ts-ignore - XRWebGPUBinding experimental
       if (typeof XRWebGPUBinding !== 'undefined') {
-         // @ts-ignore
-         this.xrBinding = new XRWebGPUBinding(session, device);
-         // @ts-ignore
-         this.xrProjectionLayer = this.xrBinding.createProjectionLayer({
-           space: refSpace,
-           stencil: false,
-         });
-         // @ts-ignore
-         session.updateRenderState({ layers: [this.xrProjectionLayer] });
+        // @ts-ignore
+        this.xrBinding = new XRWebGPUBinding(session, device);
+        // @ts-ignore
+        this.xrProjectionLayer = this.xrBinding.createProjectionLayer({
+          space: refSpace,
+          stencil: false,
+        });
+        // @ts-ignore
+        session.updateRenderState({ layers: [this.xrProjectionLayer] });
       } else {
-          console.warn('XRWebGPUBinding not defined');
-          return;
+        console.warn('XRWebGPUBinding not defined');
+        return;
       }
     }
 
@@ -1187,12 +1196,12 @@ export class WebGPURenderer {
       // Simple matrix multiplication for ViewProjection
       // Note: In a real engine, use a math library. Here we just pass raw matrices if possible or stub.
       // We'll update the camera uniforms directly.
-      
+
       this.updateCameraUniforms({
         projectionMatrix: view.projectionMatrix,
         viewMatrix: view.transform.inverse.matrix,
         // Mock VP matrix for now (or compute it if we had a math lib)
-        viewProjectionMatrix: view.projectionMatrix, 
+        viewProjectionMatrix: view.projectionMatrix,
         cameraPosition: [
           view.transform.position.x,
           view.transform.position.y,

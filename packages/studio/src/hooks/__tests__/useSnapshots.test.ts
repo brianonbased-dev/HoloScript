@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useSnapshots, type Snapshot } from '../useSnapshots';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 describe('useSnapshots', () => {
   const mockSceneId = 'test-scene-123';
@@ -52,9 +52,10 @@ describe('useSnapshots', () => {
     it('should load snapshots from API', async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({
-          snapshots: [mockSnapshot],
-        }),
+        json: () =>
+          Promise.resolve({
+            snapshots: [mockSnapshot],
+          }),
       });
 
       const { result } = renderHook(() => useSnapshots(mockSceneId));
@@ -360,23 +361,21 @@ describe('useSnapshots', () => {
         await result.current.remove('snap-1');
       });
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        '/api/snapshots?id=snap-1',
-        { method: 'DELETE' }
-      );
+      expect(global.fetch).toHaveBeenCalledWith('/api/snapshots?id=snap-1', { method: 'DELETE' });
     });
 
     it('should remove snapshot from list', async () => {
       (global.fetch as any)
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            snapshots: [
-              { ...mockSnapshot, id: 'snap-1' },
-              { ...mockSnapshot, id: 'snap-2' },
-              { ...mockSnapshot, id: 'snap-3' },
-            ],
-          }),
+          json: () =>
+            Promise.resolve({
+              snapshots: [
+                { ...mockSnapshot, id: 'snap-1' },
+                { ...mockSnapshot, id: 'snap-2' },
+                { ...mockSnapshot, id: 'snap-3' },
+              ],
+            }),
         })
         .mockResolvedValueOnce({ ok: true });
 
@@ -402,9 +401,10 @@ describe('useSnapshots', () => {
       (global.fetch as any)
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            snapshots: [mockSnapshot],
-          }),
+          json: () =>
+            Promise.resolve({
+              snapshots: [mockSnapshot],
+            }),
         })
         .mockResolvedValueOnce({ ok: false });
 
@@ -430,21 +430,22 @@ describe('useSnapshots', () => {
       (global.fetch as any)
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            snapshots: [{ ...mockSnapshot, sceneId: 'scene-1' }],
-          }),
+          json: () =>
+            Promise.resolve({
+              snapshots: [{ ...mockSnapshot, sceneId: 'scene-1' }],
+            }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            snapshots: [{ ...mockSnapshot, sceneId: 'scene-2' }],
-          }),
+          json: () =>
+            Promise.resolve({
+              snapshots: [{ ...mockSnapshot, sceneId: 'scene-2' }],
+            }),
         });
 
-      const { result, rerender } = renderHook(
-        ({ sceneId }) => useSnapshots(sceneId),
-        { initialProps: { sceneId: 'scene-1' } }
-      );
+      const { result, rerender } = renderHook(({ sceneId }) => useSnapshots(sceneId), {
+        initialProps: { sceneId: 'scene-1' },
+      });
 
       await act(async () => {
         await result.current.load();
@@ -459,9 +460,7 @@ describe('useSnapshots', () => {
         await result.current.load();
       });
 
-      expect(global.fetch).toHaveBeenLastCalledWith(
-        '/api/snapshots?sceneId=scene-2'
-      );
+      expect(global.fetch).toHaveBeenLastCalledWith('/api/snapshots?sceneId=scene-2');
     });
   });
 });

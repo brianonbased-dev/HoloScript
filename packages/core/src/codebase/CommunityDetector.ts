@@ -20,11 +20,7 @@ export class CommunityDetector {
    * Detect communities from file-level import and call edges.
    * Returns a map of community label -> file paths.
    */
-  detect(
-    files: string[],
-    imports: ImportEdge[],
-    calls: CallEdge[],
-  ): Map<string, string[]> {
+  detect(files: string[], imports: ImportEdge[], calls: CallEdge[]): Map<string, string[]> {
     // Build adjacency: file -> Set<file> (undirected, weighted by edge count)
     const adjacency = this.buildAdjacency(files, imports, calls);
 
@@ -48,7 +44,7 @@ export class CommunityDetector {
   private buildAdjacency(
     files: string[],
     imports: ImportEdge[],
-    calls: CallEdge[],
+    calls: CallEdge[]
   ): Map<string, Map<string, number>> {
     const adj: Map<string, Map<string, number>> = new Map();
 
@@ -85,11 +81,7 @@ export class CommunityDetector {
     return adj;
   }
 
-  private addEdge(
-    adj: Map<string, Map<string, number>>,
-    a: string,
-    b: string,
-  ): void {
+  private addEdge(adj: Map<string, Map<string, number>>, a: string, b: string): void {
     const aNeighbors = adj.get(a)!;
     aNeighbors.set(b, (aNeighbors.get(b) ?? 0) + 1);
 
@@ -109,10 +101,7 @@ export class CommunityDetector {
 
   // ── Louvain Algorithm ────────────────────────────────────────────────────
 
-  private louvain(
-    nodes: string[],
-    adj: Map<string, Map<string, number>>,
-  ): Map<string, string> {
+  private louvain(nodes: string[], adj: Map<string, Map<string, number>>): Map<string, string> {
     // Each node starts in its own community
     const nodeToComm: Map<string, string> = new Map();
     for (const node of nodes) {
@@ -190,8 +179,7 @@ export class CommunityDetector {
           //       + nodeDeg * currentCommDeg / (2 * totalWeight^2) )
           const gain =
             (edgesToCandidate - edgesToCurrent) / totalWeight -
-            (nodeDeg * (candidateCommDeg - currentCommDeg)) /
-              (2 * totalWeight * totalWeight);
+            (nodeDeg * (candidateCommDeg - currentCommDeg)) / (2 * totalWeight * totalWeight);
 
           if (gain > bestGain) {
             bestGain = gain;
@@ -236,9 +224,7 @@ export class CommunityDetector {
    * Rename community labels from arbitrary node names to descriptive labels
    * based on the most common directory prefix.
    */
-  private normalizeCommunityLabels(
-    nodeToComm: Map<string, string>,
-  ): Map<string, string> {
+  private normalizeCommunityLabels(nodeToComm: Map<string, string>): Map<string, string> {
     // Group nodes by community
     const communities = this.invertMapping(nodeToComm);
     const renamed: Map<string, string> = new Map();

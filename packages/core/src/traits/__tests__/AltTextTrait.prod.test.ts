@@ -4,8 +4,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { altTextHandler } from '../AltTextTrait';
 
-function makeNode(extras: any = {}) { return { id: 'alt_node', ...extras }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode(extras: any = {}) {
+  return { id: 'alt_node', ...extras };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}, nodeExtras: any = {}) {
   const node = makeNode(nodeExtras);
   const ctx = makeCtx();
@@ -30,12 +34,16 @@ describe('altTextHandler.defaultConfig', () => {
 
 describe('altTextHandler.onAttach', () => {
   it('creates __altTextState', () => expect(attach().node.__altTextState).toBeDefined());
-  it('isRegistered=false initially', () => expect(attach().node.__altTextState.isRegistered).toBe(false));
+  it('isRegistered=false initially', () =>
+    expect(attach().node.__altTextState.isRegistered).toBe(false));
   it('generatedText=null', () => expect(attach().node.__altTextState.generatedText).toBeNull());
   it('isGenerating=false', () => expect(attach().node.__altTextState.isGenerating).toBe(false));
   it('emits alt_text_register when text is set', () => {
     const { ctx } = attach({ text: 'A red cube' });
-    expect(ctx.emit).toHaveBeenCalledWith('alt_text_register', expect.objectContaining({ text: 'A red cube' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alt_text_register',
+      expect.objectContaining({ text: 'A red cube' })
+    );
   });
   it('sets isRegistered=true after text register', () => {
     const { node } = attach({ text: 'A cube' });
@@ -43,11 +51,17 @@ describe('altTextHandler.onAttach', () => {
   });
   it('includes verbose in alt_text_register', () => {
     const { ctx } = attach({ text: 'Cube', verbose: 'A shiny red cube with sharp corners' });
-    expect(ctx.emit).toHaveBeenCalledWith('alt_text_register', expect.objectContaining({ verbose: 'A shiny red cube with sharp corners' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alt_text_register',
+      expect.objectContaining({ verbose: 'A shiny red cube with sharp corners' })
+    );
   });
   it('includes language in alt_text_register', () => {
     const { ctx } = attach({ text: 'Cube', language: 'fr' });
-    expect(ctx.emit).toHaveBeenCalledWith('alt_text_register', expect.objectContaining({ language: 'fr' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alt_text_register',
+      expect.objectContaining({ language: 'fr' })
+    );
   });
   it('no alt_text_register when text is empty', () => {
     const { ctx } = attach({ text: '', auto_generate: false });
@@ -63,11 +77,17 @@ describe('altTextHandler.onAttach', () => {
   });
   it('alt_text_generate_request includes contextAware flag', () => {
     const { ctx } = attach({ text: '', auto_generate: true, context_aware: true });
-    expect(ctx.emit).toHaveBeenCalledWith('alt_text_generate_request', expect.objectContaining({ contextAware: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alt_text_generate_request',
+      expect.objectContaining({ contextAware: true })
+    );
   });
   it('alt_text_generate_request includes includeSpatial flag', () => {
     const { ctx } = attach({ text: '', auto_generate: true, include_spatial: true });
-    expect(ctx.emit).toHaveBeenCalledWith('alt_text_generate_request', expect.objectContaining({ includeSpatial: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alt_text_generate_request',
+      expect.objectContaining({ includeSpatial: true })
+    );
   });
 });
 
@@ -92,7 +112,10 @@ describe('altTextHandler.onDetach', () => {
 describe('altTextHandler.onEvent — alt_text_generated', () => {
   it('stores generatedText', () => {
     const { node, ctx, config } = attach({ text: '', auto_generate: true });
-    altTextHandler.onEvent!(node, config, ctx, { type: 'alt_text_generated', text: 'AI says: a sphere' });
+    altTextHandler.onEvent!(node, config, ctx, {
+      type: 'alt_text_generated',
+      text: 'AI says: a sphere',
+    });
     expect(node.__altTextState.generatedText).toBe('AI says: a sphere');
   });
   it('sets isGenerating=false', () => {
@@ -108,8 +131,15 @@ describe('altTextHandler.onEvent — alt_text_generated', () => {
   it('emits alt_text_register with generated text', () => {
     const { node, ctx, config } = attach({ text: '', auto_generate: true });
     ctx.emit.mockClear();
-    altTextHandler.onEvent!(node, config, ctx, { type: 'alt_text_generated', text: 'Sphere', verbose: 'A round sphere' });
-    expect(ctx.emit).toHaveBeenCalledWith('alt_text_register', expect.objectContaining({ text: 'Sphere', verbose: 'A round sphere' }));
+    altTextHandler.onEvent!(node, config, ctx, {
+      type: 'alt_text_generated',
+      text: 'Sphere',
+      verbose: 'A round sphere',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alt_text_register',
+      expect.objectContaining({ text: 'Sphere', verbose: 'A round sphere' })
+    );
   });
   it('verbose defaults to empty string when not provided', () => {
     const { node, ctx, config } = attach({ text: '', auto_generate: true });
@@ -126,20 +156,35 @@ describe('altTextHandler.onEvent — alt_text_query', () => {
   it('returns config.text for brief verbosity', () => {
     const { node, ctx, config } = attach({ text: 'Red cube' });
     ctx.emit.mockClear();
-    altTextHandler.onEvent!(node, config, ctx, { type: 'alt_text_query', queryId: 'q1', verbosity: 'brief' });
+    altTextHandler.onEvent!(node, config, ctx, {
+      type: 'alt_text_query',
+      queryId: 'q1',
+      verbosity: 'brief',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'alt_text_response')!;
     expect(call[1].text).toBe('Red cube');
   });
   it('returns config.verbose for verbose verbosity when set', () => {
-    const { node, ctx, config } = attach({ text: 'Red cube', verbose: 'A small red metallic cube' });
+    const { node, ctx, config } = attach({
+      text: 'Red cube',
+      verbose: 'A small red metallic cube',
+    });
     ctx.emit.mockClear();
-    altTextHandler.onEvent!(node, config, ctx, { type: 'alt_text_query', queryId: 'q1', verbosity: 'verbose' });
+    altTextHandler.onEvent!(node, config, ctx, {
+      type: 'alt_text_query',
+      queryId: 'q1',
+      verbosity: 'verbose',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'alt_text_response')!;
     expect(call[1].text).toBe('A small red metallic cube');
   });
   it('falls back to config.text when verbose is empty', () => {
     const { node, ctx, config } = attach({ text: 'Red cube', verbose: '' });
-    altTextHandler.onEvent!(node, config, ctx, { type: 'alt_text_query', queryId: 'q2', verbosity: 'verbose' });
+    altTextHandler.onEvent!(node, config, ctx, {
+      type: 'alt_text_query',
+      queryId: 'q2',
+      verbosity: 'verbose',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'alt_text_response')!;
     expect(call[1].text).toBe('Red cube');
   });
@@ -197,12 +242,19 @@ describe('altTextHandler.onEvent — alt_text_update', () => {
     const { node, ctx, config } = attach({ text: 'Old text' });
     ctx.emit.mockClear();
     altTextHandler.onEvent!(node, config, ctx, { type: 'alt_text_update', text: 'New text' });
-    expect(ctx.emit).toHaveBeenCalledWith('alt_text_register', expect.objectContaining({ text: 'New text' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alt_text_register',
+      expect.objectContaining({ text: 'New text' })
+    );
   });
   it('uses event.verbose when provided; falls back to config.verbose', () => {
     const { node, ctx, config } = attach({ text: 'Cube', verbose: 'Default verbose' });
     ctx.emit.mockClear();
-    altTextHandler.onEvent!(node, config, ctx, { type: 'alt_text_update', text: 'New cube', verbose: 'Extra detail' });
+    altTextHandler.onEvent!(node, config, ctx, {
+      type: 'alt_text_update',
+      text: 'New cube',
+      verbose: 'Extra detail',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'alt_text_register')!;
     expect(call[1].verbose).toBe('Extra detail');
   });

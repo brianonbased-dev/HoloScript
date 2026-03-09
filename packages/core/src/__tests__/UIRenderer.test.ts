@@ -7,7 +7,9 @@ import { UIRenderer } from '../ui/UIRenderer';
 
 describe('UIRenderer', () => {
   let renderer: UIRenderer;
-  beforeEach(() => { renderer = new UIRenderer(); });
+  beforeEach(() => {
+    renderer = new UIRenderer();
+  });
 
   it('constructor creates root node', () => {
     expect(renderer.getRoot()).toBeDefined();

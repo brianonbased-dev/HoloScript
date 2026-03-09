@@ -1,6 +1,6 @@
 /**
  * Render Network Trait v3.2 Production Tests
- * 
+ *
  * Testing production enhancements including:
  * - Retry logic with exponential backoff
  * - Job persistence (IndexedDB)

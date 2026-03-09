@@ -33,7 +33,7 @@ export interface RPCHandler {
   handler: (...args: unknown[]) => unknown;
   reliability: ReliabilityMode;
   channel: number;
-  rateLimit: number;         // Max calls per second, 0 = unlimited
+  rateLimit: number; // Max calls per second, 0 = unlimited
 }
 
 export interface RPCStats {
@@ -58,7 +58,13 @@ export class RPCManager {
   private localId: string;
   private defaultTimeout = 5000; // ms
   private rateLimitCounters: Map<string, { count: number; resetAt: number }> = new Map();
-  private stats: RPCStats = { totalCalls: 0, totalResponses: 0, totalErrors: 0, avgResponseTime: 0, callsPerSecond: 0 };
+  private stats: RPCStats = {
+    totalCalls: 0,
+    totalResponses: 0,
+    totalErrors: 0,
+    avgResponseTime: 0,
+    callsPerSecond: 0,
+  };
   private responseTimes: number[] = [];
 
   constructor(localId: string) {
@@ -69,8 +75,13 @@ export class RPCManager {
   // Handler Registration
   // ---------------------------------------------------------------------------
 
-  register(method: string, handler: (...args: unknown[]) => unknown,
-           reliability: ReliabilityMode = 'reliable', channel = 0, rateLimit = 0): void {
+  register(
+    method: string,
+    handler: (...args: unknown[]) => unknown,
+    reliability: ReliabilityMode = 'reliable',
+    channel = 0,
+    rateLimit = 0
+  ): void {
     this.handlers.set(method, { method, handler, reliability, channel, rateLimit });
   }
 
@@ -134,7 +145,12 @@ export class RPCManager {
   // Execution (called when an RPC message is received)
   // ---------------------------------------------------------------------------
 
-  execute(rpcId: number, method: string, args: unknown[], senderId: string): { result?: unknown; error?: string } {
+  execute(
+    rpcId: number,
+    method: string,
+    args: unknown[],
+    senderId: string
+  ): { result?: unknown; error?: string } {
     const handler = this.handlers.get(method);
     if (!handler) {
       return { error: `Unknown RPC method: ${method}` };
@@ -165,7 +181,8 @@ export class RPCManager {
     const responseTime = Date.now() - call.timestamp;
     this.responseTimes.push(responseTime);
     if (this.responseTimes.length > 100) this.responseTimes.shift();
-    this.stats.avgResponseTime = this.responseTimes.reduce((a, b) => a + b, 0) / this.responseTimes.length;
+    this.stats.avgResponseTime =
+      this.responseTimes.reduce((a, b) => a + b, 0) / this.responseTimes.length;
     this.stats.totalResponses++;
 
     if (error) this.stats.totalErrors++;
@@ -200,20 +217,34 @@ export class RPCManager {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getPendingCount(): number { return this.pendingCalls.size; }
-  getCallHistory(): RPCCall[] { return [...this.callHistory]; }
-  getStats(): RPCStats { return { ...this.stats }; }
-
-  getCallsByMethod(method: string): RPCCall[] {
-    return this.callHistory.filter(c => c.method === method);
+  getPendingCount(): number {
+    return this.pendingCalls.size;
+  }
+  getCallHistory(): RPCCall[] {
+    return [...this.callHistory];
+  }
+  getStats(): RPCStats {
+    return { ...this.stats };
   }
 
-  setTimeout(ms: number): void { this.defaultTimeout = ms; }
+  getCallsByMethod(method: string): RPCCall[] {
+    return this.callHistory.filter((c) => c.method === method);
+  }
+
+  setTimeout(ms: number): void {
+    this.defaultTimeout = ms;
+  }
 
   clear(): void {
     this.pendingCalls.clear();
     this.callHistory = [];
     this.responseTimes = [];
-    this.stats = { totalCalls: 0, totalResponses: 0, totalErrors: 0, avgResponseTime: 0, callsPerSecond: 0 };
+    this.stats = {
+      totalCalls: 0,
+      totalResponses: 0,
+      totalErrors: 0,
+      avgResponseTime: 0,
+      callsPerSecond: 0,
+    };
   }
 }

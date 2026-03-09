@@ -4,12 +4,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import type {
-  SNNSnapshot,
-  TimeWindow,
-  PlaybackState,
-  SpikeEvent,
-} from '../types';
+import type { SNNSnapshot, TimeWindow, PlaybackState, SpikeEvent } from '../types';
 
 export interface UseNeuralDataOptions {
   /** Duration of the visible time window in ms. */
@@ -43,14 +38,8 @@ export interface UseNeuralDataResult {
   snapshotBuffer: SNNSnapshot[];
 }
 
-export function useNeuralData(
-  options: UseNeuralDataOptions = {},
-): UseNeuralDataResult {
-  const {
-    timeWindowDurationMs = 1000,
-    initialSpeed = 1.0,
-    maxBufferSize = 1000,
-  } = options;
+export function useNeuralData(options: UseNeuralDataOptions = {}): UseNeuralDataResult {
+  const { timeWindowDurationMs = 1000, initialSpeed = 1.0, maxBufferSize = 1000 } = options;
 
   const [snapshotBuffer, setSnapshotBuffer] = useState<SNNSnapshot[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
@@ -77,7 +66,7 @@ export function useNeuralData(
         }));
       }
     },
-    [maxBufferSize, playback.isPlaying],
+    [maxBufferSize, playback.isPlaying]
   );
 
   const setPlaying = useCallback((playing: boolean) => {
@@ -88,30 +77,27 @@ export function useNeuralData(
     setPlayback((prev) => ({ ...prev, speed: Math.max(0.1, Math.min(10, speed)) }));
   }, []);
 
-  const seekTo = useCallback(
-    (timeMs: number) => {
-      const buffer = bufferRef.current;
-      if (buffer.length === 0) return;
+  const seekTo = useCallback((timeMs: number) => {
+    const buffer = bufferRef.current;
+    if (buffer.length === 0) return;
 
-      // Find the closest snapshot to the requested time
-      let closestIdx = 0;
-      let closestDist = Math.abs(buffer[0].timeMs - timeMs);
-      for (let i = 1; i < buffer.length; i++) {
-        const dist = Math.abs(buffer[i].timeMs - timeMs);
-        if (dist < closestDist) {
-          closestDist = dist;
-          closestIdx = i;
-        }
+    // Find the closest snapshot to the requested time
+    let closestIdx = 0;
+    let closestDist = Math.abs(buffer[0].timeMs - timeMs);
+    for (let i = 1; i < buffer.length; i++) {
+      const dist = Math.abs(buffer[i].timeMs - timeMs);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestIdx = i;
       }
+    }
 
-      setCurrentIndex(closestIdx);
-      setPlayback((prev) => ({
-        ...prev,
-        currentTimeMs: buffer[closestIdx].timeMs,
-      }));
-    },
-    [],
-  );
+    setCurrentIndex(closestIdx);
+    setPlayback((prev) => ({
+      ...prev,
+      currentTimeMs: buffer[closestIdx].timeMs,
+    }));
+  }, []);
 
   const setTimeWindowDuration = useCallback((durationMs: number) => {
     setWindowDuration(Math.max(100, durationMs));
@@ -147,9 +133,7 @@ export function useNeuralData(
   }, [playback.isPlaying, playback.speed, snapshotBuffer.length]);
 
   const currentSnapshot =
-    currentIndex >= 0 && currentIndex < snapshotBuffer.length
-      ? snapshotBuffer[currentIndex]
-      : null;
+    currentIndex >= 0 && currentIndex < snapshotBuffer.length ? snapshotBuffer[currentIndex] : null;
 
   const timeWindow: TimeWindow = {
     startMs: playback.currentTimeMs - windowDuration,

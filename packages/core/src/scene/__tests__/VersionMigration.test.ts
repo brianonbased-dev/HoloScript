@@ -96,7 +96,9 @@ describe('VersionMigration', () => {
         fromVersion: 100,
         toVersion: 101,
         name: 'boom',
-        migrate: () => { throw new Error('fail'); },
+        migrate: () => {
+          throw new Error('fail');
+        },
       });
       const data = { version: 100 };
       const result = vm.migrate(data, 101);

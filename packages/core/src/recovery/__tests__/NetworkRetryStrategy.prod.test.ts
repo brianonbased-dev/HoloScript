@@ -13,7 +13,6 @@ function makeFailure(errorType: IAgentFailure['errorType'] = 'network-timeout'):
 }
 
 describe('NetworkRetryStrategy — Production Tests', () => {
-
   describe('identity', () => {
     it('has correct id', () => {
       expect(new NetworkRetryStrategy().id).toBe('network-retry');
@@ -96,7 +95,9 @@ describe('NetworkRetryStrategy — Production Tests', () => {
 
     it('returns success: false and message when callback throws', async () => {
       const s = new NetworkRetryStrategy();
-      s.setRetryCallback(async () => { throw new Error('timeout again'); });
+      s.setRetryCallback(async () => {
+        throw new Error('timeout again');
+      });
       const result = await s.execute(makeFailure());
       expect(result.success).toBe(false);
       expect(result.message).toContain('timeout again');

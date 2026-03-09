@@ -97,11 +97,7 @@ describe('EmotionDirectiveTrait', () => {
   it('maxSegmentsPerTurn limits segments', () => {
     const t = new EmotionDirectiveTrait({ maxSegmentsPerTurn: 1 });
     t.processResponse({
-      segments: [
-        { text: 'A' },
-        { text: 'B' },
-        { text: 'C' },
-      ],
+      segments: [{ text: 'A' }, { text: 'B' }, { text: 'C' }],
     });
     // Only first segment
     expect(t.getCurrentSegment()!.text).toBe('A');

@@ -91,10 +91,12 @@ When tests complete, a markdown file is auto-generated:
 ## 🔴 Critical Priority (Fix Immediately)
 
 ### MEME-012: Load character in <500ms
+
 **Estimate**: ⏱️ 4 hours
 **Description**: Optimize GLB loading with compression
 
 ### MEME-008: Export clip as MP4
+
 **Estimate**: ⏱️ 6 hours
 **Description**: Render animation to MP4 format
 ```
@@ -135,25 +137,25 @@ describe('Scenario: [Feature] — [Aspect]', () => {
 
 ### Priority Levels
 
-| Priority | When to Use | Response Time |
-|----------|-------------|---------------|
-| **Critical** | Broken core features, blocking users | Fix immediately |
-| **High** | Missing key features, current sprint | Within 1 week |
-| **Medium** | Enhancement requests, next sprint | Within 2-4 weeks |
-| **Low** | Nice-to-haves, backlog | Future sprints |
+| Priority     | When to Use                          | Response Time    |
+| ------------ | ------------------------------------ | ---------------- |
+| **Critical** | Broken core features, blocking users | Fix immediately  |
+| **High**     | Missing key features, current sprint | Within 1 week    |
+| **Medium**   | Enhancement requests, next sprint    | Within 2-4 weeks |
+| **Low**      | Nice-to-haves, backlog               | Future sprints   |
 
 ### Metadata Fields
 
 ```typescript
 interface TodoMetadata {
   priority: 'critical' | 'high' | 'medium' | 'low';
-  estimate: string;           // '3 hours', '2 days', '1 week'
-  description: string;         // What needs to be done
-  acceptance: string;          // How to verify it's done
-  relatedFiles: string[];      // Files that need changes
-  assignee?: string;           // Who should do it
-  dueDate?: string;            // When it's needed
-  tags?: string[];             // For categorization
+  estimate: string; // '3 hours', '2 days', '1 week'
+  description: string; // What needs to be done
+  acceptance: string; // How to verify it's done
+  relatedFiles: string[]; // Files that need changes
+  assignee?: string; // Who should do it
+  dueDate?: string; // When it's needed
+  tags?: string[]; // For categorization
 }
 ```
 
@@ -162,6 +164,7 @@ interface TodoMetadata {
 ### 1. Write Persona-Driven Tests
 
 ❌ **Bad**: Technical implementation focus
+
 ```typescript
 it('should update CharacterStore.boneNames array', () => {
   // Too technical, not user-focused
@@ -169,6 +172,7 @@ it('should update CharacterStore.boneNames array', () => {
 ```
 
 ✅ **Good**: User-focused language
+
 ```typescript
 it('should extract skeleton bones from uploaded character', () => {
   // Describes what the USER accomplishes
@@ -178,39 +182,49 @@ it('should extract skeleton bones from uploaded character', () => {
 ### 2. Use Descriptive TODO IDs
 
 ❌ **Bad**: Generic IDs
+
 ```typescript
-TODO('001', { /* ... */ })  // What is 001?
+TODO('001', {
+  /* ... */
+}); // What is 001?
 ```
 
 ✅ **Good**: Semantic IDs
+
 ```typescript
-TODO('MEME-003', { /* ... */ })  // Clearly meme character feature
-TODO('ANIM-042', { /* ... */ })  // Animation system feature
+TODO('MEME-003', {
+  /* ... */
+}); // Clearly meme character feature
+TODO('ANIM-042', {
+  /* ... */
+}); // Animation system feature
 ```
 
 ### 3. Realistic Estimates
 
 ```typescript
 // Simple UI change
-estimate: '2 hours'
+estimate: '2 hours';
 
 // New feature with UI + logic
-estimate: '1 day'
+estimate: '1 day';
 
 // Complex integration
-estimate: '1 week'
+estimate: '1 week';
 ```
 
 ### 4. Actionable Acceptance Criteria
 
 ❌ **Bad**: Vague criteria
+
 ```typescript
-acceptance: 'It should work'
+acceptance: 'It should work';
 ```
 
 ✅ **Good**: Specific, testable criteria
+
 ```typescript
-acceptance: 'User can drag-and-drop GLB file, see skeleton in <500ms'
+acceptance: 'User can drag-and-drop GLB file, see skeleton in <500ms';
 ```
 
 ## Existing Scenarios
@@ -220,6 +234,7 @@ acceptance: 'User can drag-and-drop GLB file, see skeleton in <500ms'
 **Persona**: Marco - Professional character animator
 
 **Features Tested**:
+
 - Character Store (GLB loading, bone extraction)
 - Clip Recording (60fps frame capture)
 - Animation Builder (THREE.AnimationClip generation)
@@ -231,6 +246,7 @@ acceptance: 'User can drag-and-drop GLB file, see skeleton in <500ms'
 **Persona**: 0xDegen - Web3 meme lord
 
 **Features Tested**:
+
 - Quick character import (drag-and-drop)
 - Meme-specific traits (wiggle physics, emoji reactions)
 - Viral animation recording (dances, poses)
@@ -242,6 +258,7 @@ acceptance: 'User can drag-and-drop GLB file, see skeleton in <500ms'
 **Persona**: Alex - World builder
 
 **Features Tested**:
+
 - Scene Graph CRUD operations
 - Trait System (add/remove traits, properties)
 - Scene Serialization (JSON round-trip)
@@ -252,6 +269,7 @@ acceptance: 'User can drag-and-drop GLB file, see skeleton in <500ms'
 **Persona**: River - Indie game developer
 
 **Features Tested**:
+
 - Multi-scene projects (add/remove/rename scenes)
 - Dirty state tracking
 - Scene navigation & switching
@@ -268,8 +286,7 @@ import { todoRegistry } from '../helpers/todoGenerator';
 
 afterAll(() => {
   // Generate separate TODO files by category
-  const animTodos = todoRegistry.getByPriority('high')
-    .filter(t => t.id.startsWith('ANIM-'));
+  const animTodos = todoRegistry.getByPriority('high').filter((t) => t.id.startsWith('ANIM-'));
 
   todoRegistry.generateMarkdown('ANIMATION_TODOS.md', animTodos);
 });
@@ -320,7 +337,7 @@ ${todo.metadata.description}
 **Acceptance Criteria**: ${todo.metadata.acceptance}
 
 **Related Files**:
-${todo.metadata.relatedFiles.map(f => `- \`${f}\``).join('\n')}
+${todo.metadata.relatedFiles.map((f) => `- \`${f}\``).join('\n')}
       `,
       labels: ['todo', 'from-tests', todo.metadata.priority],
     });
@@ -373,6 +390,7 @@ Just modify the `TODO()` call in the test file. The markdown will regenerate on 
 ## Contributing
 
 When adding new features:
+
 1. Write scenario test FIRST (TDD)
 2. Use `it.todo()` for planned features
 3. Run tests to generate TODO backlog

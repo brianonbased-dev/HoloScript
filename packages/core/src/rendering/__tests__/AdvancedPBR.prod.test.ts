@@ -22,7 +22,6 @@ import {
 } from '../AdvancedPBR';
 
 describe('AdvancedPBR — Production Tests', () => {
-
   // ---------------------------------------------------------------------------
   // GGX Normal Distribution Function
   // ---------------------------------------------------------------------------
@@ -186,7 +185,7 @@ describe('AdvancedPBR — Production Tests', () => {
 
     it('produces channel variation (not all same value)', () => {
       const result = evaluateIridescence(0.8, ir);
-      const unique = new Set(result.map(v => Math.round(v * 1000)));
+      const unique = new Set(result.map((v) => Math.round(v * 1000)));
       expect(unique.size).toBeGreaterThan(1);
     });
   });

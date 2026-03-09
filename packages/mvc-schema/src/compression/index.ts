@@ -11,11 +11,32 @@
  */
 
 import type { MVCObject } from '../types';
-import { compressMVC, decompressMVC, type CompressionOptions, type CompressionResult } from './schema-compression';
-import { encodeCBOR, decodeCBOR, encodeCBORBase64, decodeCBORBase64, validateSize, type CBOROptions, type CBORResult } from './cbor-encoding';
+import {
+  compressMVC,
+  decompressMVC,
+  type CompressionOptions,
+  type CompressionResult,
+} from './schema-compression';
+import {
+  encodeCBOR,
+  decodeCBOR,
+  encodeCBORBase64,
+  decodeCBORBase64,
+  validateSize,
+  type CBOROptions,
+  type CBORResult,
+} from './cbor-encoding';
 
 export { compressMVC, decompressMVC, type CompressionOptions, type CompressionResult };
-export { encodeCBOR, decodeCBOR, encodeCBORBase64, decodeCBORBase64, validateSize, type CBOROptions, type CBORResult };
+export {
+  encodeCBOR,
+  decodeCBOR,
+  encodeCBORBase64,
+  decodeCBORBase64,
+  validateSize,
+  type CBOROptions,
+  type CBORResult,
+};
 
 /**
  * Full compression pipeline result
@@ -89,9 +110,7 @@ export function compressMVCFull(
 /**
  * Full decompression pipeline: CBOR decode + Schema decompression
  */
-export function decompressMVCFull<T extends MVCObject = MVCObject>(
-  compressed: Uint8Array
-): T {
+export function decompressMVCFull<T extends MVCObject = MVCObject>(compressed: Uint8Array): T {
   // Stage 1: CBOR decode
   const schemaCompressed = decodeCBOR(compressed);
 
@@ -118,9 +137,7 @@ export function compressMVCToBase64(
 /**
  * Decompress MVC object from base64 string
  */
-export function decompressMVCFromBase64<T extends MVCObject = MVCObject>(
-  base64: string
-): T {
+export function decompressMVCFromBase64<T extends MVCObject = MVCObject>(base64: string): T {
   const schemaCompressed = decodeCBORBase64(base64);
   return decompressMVC(schemaCompressed) as T;
 }

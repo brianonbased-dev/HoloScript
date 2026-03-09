@@ -10,7 +10,11 @@
  */
 
 import { FractureSystem, type FractureStatistics } from './FractureSystem';
-import { ShockWaveSolver, type ExplosionConfig, type ShockWaveSolverStatistics } from './ShockWaveSolver';
+import {
+  ShockWaveSolver,
+  type ExplosionConfig,
+  type ShockWaveSolverStatistics,
+} from './ShockWaveSolver';
 import { DebrisParticleSystem, type DebrisParticleStatistics } from './DebrisParticleSystem';
 import type { Fracturable } from './Fracturable';
 import type { Fragment, Vector3 } from './Fragment';
@@ -194,10 +198,7 @@ export class DemolitionPhysics {
       // Emit debris particles from new fragments
       if (this.config.emitDebrisParticles) {
         for (const fragment of newFragments) {
-          this.debrisParticleSystem.emitFromFragment(
-            fragment,
-            this.config.particlesPerUnitVolume
-          );
+          this.debrisParticleSystem.emitFromFragment(fragment, this.config.particlesPerUnitVolume);
         }
       }
     }

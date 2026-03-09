@@ -433,9 +433,7 @@ export class AudioSyncManager {
   getBeatAtTime(time: number, threshold = 0.1): Beat | null {
     if (!this.analysis) return null;
 
-    return (
-      this.analysis.beats.find((beat) => Math.abs(beat.time - time) < threshold) || null
-    );
+    return this.analysis.beats.find((beat) => Math.abs(beat.time - time) < threshold) || null;
   }
 
   /**

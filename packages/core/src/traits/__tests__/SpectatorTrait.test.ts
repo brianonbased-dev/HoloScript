@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { spectatorHandler } from '../SpectatorTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('SpectatorTrait', () => {
   let node: Record<string, unknown>;
@@ -53,23 +61,37 @@ describe('SpectatorTrait', () => {
 
   it('set_camera changes camera mode for spectator', () => {
     sendEvent(spectatorHandler, node, cfg, ctx, { type: 'spectator_join', spectatorId: 's1' });
-    sendEvent(spectatorHandler, node, cfg, ctx, { type: 'spectator_set_camera', spectatorId: 's1', mode: 'follow' });
+    sendEvent(spectatorHandler, node, cfg, ctx, {
+      type: 'spectator_set_camera',
+      spectatorId: 's1',
+      mode: 'follow',
+    });
     expect(getEventCount(ctx, 'spectator_camera_change')).toBe(1);
   });
 
   it('disallowed camera mode is rejected silently', () => {
     sendEvent(spectatorHandler, node, cfg, ctx, { type: 'spectator_join', spectatorId: 's1' });
-    sendEvent(spectatorHandler, node, cfg, ctx, { type: 'spectator_set_camera', spectatorId: 's1', mode: 'cinematic' });
+    sendEvent(spectatorHandler, node, cfg, ctx, {
+      type: 'spectator_set_camera',
+      spectatorId: 's1',
+      mode: 'cinematic',
+    });
     expect(getEventCount(ctx, 'spectator_camera_change')).toBe(0);
   });
 
   it('set_follow updates follow target', () => {
-    sendEvent(spectatorHandler, node, cfg, ctx, { type: 'spectator_set_follow', targetId: 'player1' });
+    sendEvent(spectatorHandler, node, cfg, ctx, {
+      type: 'spectator_set_follow',
+      targetId: 'player1',
+    });
     expect((node as any).__spectatorState.followTarget).toBe('player1');
   });
 
   it('broadcast emits event to spectators', () => {
-    sendEvent(spectatorHandler, node, cfg, ctx, { type: 'spectator_broadcast', data: { msg: 'hi' } });
+    sendEvent(spectatorHandler, node, cfg, ctx, {
+      type: 'spectator_broadcast',
+      data: { msg: 'hi' },
+    });
     expect(getEventCount(ctx, 'spectator_event_broadcast')).toBe(1);
   });
 

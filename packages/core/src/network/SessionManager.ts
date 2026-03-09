@@ -4,7 +4,13 @@
  * @version 1.0.0
  */
 
-export type SessionState = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'ended';
+export type SessionState =
+  | 'idle'
+  | 'connecting'
+  | 'connected'
+  | 'reconnecting'
+  | 'disconnected'
+  | 'ended';
 
 export interface SessionPlayer {
   id: string;
@@ -68,8 +74,12 @@ export class SessionManager {
    */
   addPlayer(id: string, name: string): void {
     this.players.set(id, {
-      id, name, connectedAt: Date.now(),
-      lastSeenAt: Date.now(), reconnectAttempts: 0, state: 'connected',
+      id,
+      name,
+      connectedAt: Date.now(),
+      lastSeenAt: Date.now(),
+      reconnectAttempts: 0,
+      state: 'connected',
     });
   }
 
@@ -148,10 +158,22 @@ export class SessionManager {
     this.stateHistory.push({ state, timestamp: Date.now() });
   }
 
-  getState(): SessionState { return this.state; }
-  getSessionId(): string | null { return this.sessionId; }
-  getPlayerCount(): number { return this.players.size; }
-  getPlayer(id: string): SessionPlayer | undefined { return this.players.get(id); }
-  getConfig(): SessionConfig { return { ...this.config }; }
-  getStateHistory(): { state: SessionState; timestamp: number }[] { return [...this.stateHistory]; }
+  getState(): SessionState {
+    return this.state;
+  }
+  getSessionId(): string | null {
+    return this.sessionId;
+  }
+  getPlayerCount(): number {
+    return this.players.size;
+  }
+  getPlayer(id: string): SessionPlayer | undefined {
+    return this.players.get(id);
+  }
+  getConfig(): SessionConfig {
+    return { ...this.config };
+  }
+  getStateHistory(): { state: SessionState; timestamp: number }[] {
+    return [...this.stateHistory];
+  }
 }

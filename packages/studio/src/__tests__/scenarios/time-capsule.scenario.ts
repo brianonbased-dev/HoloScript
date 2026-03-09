@@ -7,9 +7,15 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  capsuleStatus, daysUntilUnlock, yearsUntilUnlock,
-  capsuleItemCount, totalMemoDuration, isUnlockable, capsuleSizeEstimate,
-  blockchainTimestampProof, arReveal,
+  capsuleStatus,
+  daysUntilUnlock,
+  yearsUntilUnlock,
+  capsuleItemCount,
+  totalMemoDuration,
+  isUnlockable,
+  capsuleSizeEstimate,
+  blockchainTimestampProof,
+  arReveal,
   type TimeCapsule,
 } from '@/lib/timeCapsule';
 
@@ -19,18 +25,54 @@ describe('Scenario: Time Capsule — Status & Unlock', () => {
   const pastDate = now - 1000;
 
   const capsule: TimeCapsule = {
-    id: 'tc-1', title: 'Class of 2025', creatorName: 'Mika',
-    createdDate: now, unlockDate: futureDate, status: 'sealed',
+    id: 'tc-1',
+    title: 'Class of 2025',
+    creatorName: 'Mika',
+    createdDate: now,
+    unlockDate: futureDate,
+    status: 'sealed',
     items: [
-      { id: 'i1', type: '3d-scan', name: 'Trophy', position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: 1, fileUrl: '', dateCaptured: now, description: 'Championship trophy' },
-      { id: 'i2', type: 'photo', name: 'Group', position: { x: 1, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: 1, fileUrl: '', dateCaptured: now, description: 'Group photo' },
-      { id: 'i3', type: 'photo', name: 'Campus', position: { x: 2, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: 1, fileUrl: '', dateCaptured: now, description: 'Campus view' },
+      {
+        id: 'i1',
+        type: '3d-scan',
+        name: 'Trophy',
+        position: { x: 0, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0 },
+        scale: 1,
+        fileUrl: '',
+        dateCaptured: now,
+        description: 'Championship trophy',
+      },
+      {
+        id: 'i2',
+        type: 'photo',
+        name: 'Group',
+        position: { x: 1, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0 },
+        scale: 1,
+        fileUrl: '',
+        dateCaptured: now,
+        description: 'Group photo',
+      },
+      {
+        id: 'i3',
+        type: 'photo',
+        name: 'Campus',
+        position: { x: 2, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0 },
+        scale: 1,
+        fileUrl: '',
+        dateCaptured: now,
+        description: 'Campus view',
+      },
     ],
     memos: [
       { id: 'm1', duration: 120, linkedItemId: 'i1', recordedDate: now },
       { id: 'm2', duration: 60, recordedDate: now },
     ],
-    recipients: ['class@school.edu'], isEncrypted: true, message: 'Open in 2026!',
+    recipients: ['class@school.edu'],
+    isEncrypted: true,
+    message: 'Open in 2026!',
   };
 
   it('capsuleStatus() returns locked for future date', () => {
@@ -72,13 +114,43 @@ describe('Scenario: Time Capsule — Status & Unlock', () => {
 describe('Scenario: Time Capsule — Items & Memos', () => {
   const now = Date.now();
   const capsule: TimeCapsule = {
-    id: 'tc-2', title: 'Family', creatorName: 'Jo', createdDate: now, unlockDate: now + 1e10, status: 'sealed',
+    id: 'tc-2',
+    title: 'Family',
+    creatorName: 'Jo',
+    createdDate: now,
+    unlockDate: now + 1e10,
+    status: 'sealed',
     items: [
-      { id: 'i1', type: '3d-scan', name: 'Toy', position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: 1, fileUrl: '', dateCaptured: now, description: '' },
-      { id: 'i2', type: 'video', name: 'Message', position: { x: 1, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: 1, fileUrl: '', dateCaptured: now, description: '' },
+      {
+        id: 'i1',
+        type: '3d-scan',
+        name: 'Toy',
+        position: { x: 0, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0 },
+        scale: 1,
+        fileUrl: '',
+        dateCaptured: now,
+        description: '',
+      },
+      {
+        id: 'i2',
+        type: 'video',
+        name: 'Message',
+        position: { x: 1, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0 },
+        scale: 1,
+        fileUrl: '',
+        dateCaptured: now,
+        description: '',
+      },
     ],
-    memos: [{ id: 'm1', duration: 90, recordedDate: now }, { id: 'm2', duration: 45, recordedDate: now }],
-    recipients: [], isEncrypted: false, message: '',
+    memos: [
+      { id: 'm1', duration: 90, recordedDate: now },
+      { id: 'm2', duration: 45, recordedDate: now },
+    ],
+    recipients: [],
+    isEncrypted: false,
+    message: '',
   };
 
   it('capsuleItemCount() breaks down by type', () => {
@@ -113,10 +185,29 @@ describe('Scenario: Time Capsule — Items & Memos', () => {
   it('blockchainTimestampProof() — generates immutable seal proof', () => {
     const now = Date.now();
     const capsule: TimeCapsule = {
-      id: 'tc-proof', title: 'Proof Test', creatorName: 'Test',
-      createdDate: now, unlockDate: now + 1e10, status: 'sealed',
-      items: [{ id: 'i1', type: 'photo', name: 'Photo', position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: 1, fileUrl: '', dateCaptured: now, description: '' }],
-      memos: [], recipients: [], isEncrypted: false, message: 'Hello future!',
+      id: 'tc-proof',
+      title: 'Proof Test',
+      creatorName: 'Test',
+      createdDate: now,
+      unlockDate: now + 1e10,
+      status: 'sealed',
+      items: [
+        {
+          id: 'i1',
+          type: 'photo',
+          name: 'Photo',
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: 1,
+          fileUrl: '',
+          dateCaptured: now,
+          description: '',
+        },
+      ],
+      memos: [],
+      recipients: [],
+      isEncrypted: false,
+      message: 'Hello future!',
     };
     const proof = blockchainTimestampProof(capsule);
     expect(proof.hash).toMatch(/^0x[0-9a-f]+$/);

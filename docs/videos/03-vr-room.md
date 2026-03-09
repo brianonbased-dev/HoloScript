@@ -18,6 +18,7 @@ code .
 **[SCREEN: VS Code opens]**
 
 Plan for this video:
+
 1. Room structure (walls, floor, ceiling)
 2. Furniture with physics
 3. Lighting setup

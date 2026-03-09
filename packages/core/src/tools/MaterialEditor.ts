@@ -217,7 +217,9 @@ export class MaterialEditor {
     this.container.innerHTML = this.generateEditorHTML();
 
     // Get canvas reference
-    this.previewCanvas = this.container.querySelector('#material-preview-canvas') as HTMLCanvasElement;
+    this.previewCanvas = this.container.querySelector(
+      '#material-preview-canvas'
+    ) as HTMLCanvasElement;
 
     // Attach event listeners
     this.attachEventListeners();
@@ -691,7 +693,9 @@ export class MaterialEditor {
     });
 
     // Emissive intensity
-    const emissiveIntensityInput = this.container.querySelector('#emissive-intensity') as HTMLInputElement;
+    const emissiveIntensityInput = this.container.querySelector(
+      '#emissive-intensity'
+    ) as HTMLInputElement;
     emissiveIntensityInput?.addEventListener('input', (e) => {
       const value = parseFloat((e.target as HTMLInputElement).value);
       document.getElementById('emissive-intensity-value')!.textContent = value.toFixed(1);
@@ -792,12 +796,14 @@ export class MaterialEditor {
     const roughnessInput = document.getElementById('roughness') as HTMLInputElement;
     const opacityInput = document.getElementById('opacity') as HTMLInputElement;
     const emissiveColorInput = document.getElementById('emissive-color') as HTMLInputElement;
-    const emissiveIntensityInput = document.getElementById('emissive-intensity') as HTMLInputElement;
+    const emissiveIntensityInput = document.getElementById(
+      'emissive-intensity'
+    ) as HTMLInputElement;
 
     const material: Material = {
       id: '',
       name: 'Custom Material',
-      type: typeSelect?.value as any || 'standard',
+      type: (typeSelect?.value as any) || 'standard',
       color: colorInput?.value || '#888888',
       metalness: parseFloat(metalnessInput?.value || '0.5'),
       roughness: parseFloat(roughnessInput?.value || '0.5'),
@@ -826,7 +832,9 @@ export class MaterialEditor {
     const roughnessInput = document.getElementById('roughness') as HTMLInputElement;
     const opacityInput = document.getElementById('opacity') as HTMLInputElement;
     const emissiveColorInput = document.getElementById('emissive-color') as HTMLInputElement;
-    const emissiveIntensityInput = document.getElementById('emissive-intensity') as HTMLInputElement;
+    const emissiveIntensityInput = document.getElementById(
+      'emissive-intensity'
+    ) as HTMLInputElement;
 
     if (typeSelect) typeSelect.value = material.type;
     if (colorInput) colorInput.value = material.color || '#888888';
@@ -844,8 +852,12 @@ export class MaterialEditor {
 
     // Update value displays
     document.getElementById('color-value')!.textContent = material.color || '#888888';
-    document.getElementById('metalness-value')!.textContent = (material.metalness || 0.5).toFixed(2);
-    document.getElementById('roughness-value')!.textContent = (material.roughness || 0.5).toFixed(2);
+    document.getElementById('metalness-value')!.textContent = (material.metalness || 0.5).toFixed(
+      2
+    );
+    document.getElementById('roughness-value')!.textContent = (material.roughness || 0.5).toFixed(
+      2
+    );
     document.getElementById('opacity-value')!.textContent = (material.opacity || 1.0).toFixed(2);
 
     if (material.emissiveColor) {
@@ -853,7 +865,8 @@ export class MaterialEditor {
     }
 
     if (material.emissiveIntensity !== undefined) {
-      document.getElementById('emissive-intensity-value')!.textContent = material.emissiveIntensity.toFixed(1);
+      document.getElementById('emissive-intensity-value')!.textContent =
+        material.emissiveIntensity.toFixed(1);
     }
 
     // Update material type visibility

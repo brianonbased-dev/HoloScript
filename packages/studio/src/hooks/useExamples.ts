@@ -56,7 +56,7 @@ export function useExamples() {
         setLoading(false);
       }
     },
-    [query, activeCategory],
+    [query, activeCategory]
   );
 
   // Initial load

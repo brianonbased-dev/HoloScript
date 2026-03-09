@@ -359,7 +359,7 @@ describe('CompilerStateMonitor', () => {
       alertMonitor.dispose();
 
       expect(alerts.length).toBeGreaterThan(0);
-      const ramAlert = alerts.find(a => a.type === 'ram_utilization');
+      const ramAlert = alerts.find((a) => a.type === 'ram_utilization');
       expect(ramAlert).toBeDefined();
       expect(ramAlert!.level).toMatch(/warning|critical/);
       expect(ramAlert!.message).toContain('RAM utilization');
@@ -537,7 +537,7 @@ describe('CompilerStateMonitor', () => {
         enabled: false,
         autoIncrementalCompile: true,
         thresholds: {
-          ramUtilizationAlert: 0.70,
+          ramUtilizationAlert: 0.7,
           ramUtilizationCritical: 0.01, // Very low to trigger
           astNodeCountThreshold: 1000000,
           symbolTableThreshold: 100000,

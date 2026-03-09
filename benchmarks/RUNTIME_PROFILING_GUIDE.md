@@ -22,6 +22,7 @@ This document explains how to integrate runtime profiling (FPS, memory, draw cal
 **Goal**: Automatically collect runtime performance metrics for HoloScript-generated code vs. hand-written baselines.
 
 **Metrics to Collect**:
+
 - **FPS** (frames per second)
 - **Frame Time** (ms per frame)
 - **Memory Usage** (MB)
@@ -31,6 +32,7 @@ This document explains how to integrate runtime profiling (FPS, memory, draw cal
 - **CPU Time** (ms)
 
 **Platforms**:
+
 1. Unity Editor (desktop - quick iteration)
 2. Unity Quest 3 build (target device)
 3. Unreal Editor (desktop)
@@ -43,6 +45,7 @@ This document explains how to integrate runtime profiling (FPS, memory, draw cal
 ### Manual Profiling (Current)
 
 1. **Open Profiler**:
+
    ```
    Window → Analysis → Profiler
    ```
@@ -162,12 +165,14 @@ public class ProfilingCollector : MonoBehaviour
 ### Manual Profiling (Current)
 
 1. **Enable Unreal Insights**:
+
    ```cpp
    // In Project Settings → Plugins → Trace
    // Enable "Trace Utilization Tracking"
    ```
 
 2. **Start tracing**:
+
    ```
    Console command: trace.start default
    ```
@@ -175,6 +180,7 @@ public class ProfilingCollector : MonoBehaviour
 3. **Run for 60 seconds**
 
 4. **Stop tracing**:
+
    ```
    Console command: trace.stop
    ```
@@ -335,6 +341,7 @@ void AProfilingCollector::SaveResults()
 
 1. **Enable Developer Mode** on Quest 3
 2. **Install Android Debug Bridge (adb)**:
+
    ```bash
    # Windows
    choco install adb
@@ -354,6 +361,7 @@ void AProfilingCollector::SaveResults()
 **Best method for Quest-specific profiling.**
 
 **Installation**:
+
 ```bash
 # Download from Oculus Developer Portal
 # https://developer.oculus.com/downloads/package/ovr-metrics-tool/
@@ -476,9 +484,7 @@ interface RuntimeMetrics {
   avgTriangles: number;
 }
 
-async function profileUnityRuntime(
-  scenario: string
-): Promise<RuntimeMetrics> {
+async function profileUnityRuntime(scenario: string): Promise<RuntimeMetrics> {
   console.log('   → Profiling Unity runtime...');
 
   // Build Unity project
@@ -490,9 +496,7 @@ async function profileUnityRuntime(
   return metrics;
 }
 
-async function profileQuestRuntime(
-  scenario: string
-): Promise<RuntimeMetrics> {
+async function profileQuestRuntime(scenario: string): Promise<RuntimeMetrics> {
   console.log('   → Profiling on Quest 3...');
 
   // Deploy to Quest
@@ -530,33 +534,39 @@ function compareToBaseline(
   const comparisons: ComparisonResult[] = [];
 
   // FPS comparison (inverse - lower is worse)
-  const fpsOverhead = ((baselineResults.avgFPS - holoscriptResults.avgFPS) / baselineResults.avgFPS) * 100;
+  const fpsOverhead =
+    ((baselineResults.avgFPS - holoscriptResults.avgFPS) / baselineResults.avgFPS) * 100;
   comparisons.push({
     metric: 'FPS',
     baseline: baselineResults.avgFPS,
     holoscript: holoscriptResults.avgFPS,
     overhead: fpsOverhead,
-    status: fpsOverhead <= threshold ? 'PASS' : 'FAIL'
+    status: fpsOverhead <= threshold ? 'PASS' : 'FAIL',
   });
 
   // Frame time comparison
-  const frameTimeOverhead = ((holoscriptResults.avgFrameTimeMs - baselineResults.avgFrameTimeMs) / baselineResults.avgFrameTimeMs) * 100;
+  const frameTimeOverhead =
+    ((holoscriptResults.avgFrameTimeMs - baselineResults.avgFrameTimeMs) /
+      baselineResults.avgFrameTimeMs) *
+    100;
   comparisons.push({
     metric: 'Frame Time',
     baseline: baselineResults.avgFrameTimeMs,
     holoscript: holoscriptResults.avgFrameTimeMs,
     overhead: frameTimeOverhead,
-    status: frameTimeOverhead <= threshold ? 'PASS' : 'FAIL'
+    status: frameTimeOverhead <= threshold ? 'PASS' : 'FAIL',
   });
 
   // Memory comparison
-  const memoryOverhead = ((holoscriptResults.avgMemoryMB - baselineResults.avgMemoryMB) / baselineResults.avgMemoryMB) * 100;
+  const memoryOverhead =
+    ((holoscriptResults.avgMemoryMB - baselineResults.avgMemoryMB) / baselineResults.avgMemoryMB) *
+    100;
   comparisons.push({
     metric: 'Memory',
     baseline: baselineResults.avgMemoryMB,
     holoscript: holoscriptResults.avgMemoryMB,
     overhead: memoryOverhead,
-    status: memoryOverhead <= 15 ? 'PASS' : 'FAIL' // 15% for memory
+    status: memoryOverhead <= 15 ? 'PASS' : 'FAIL', // 15% for memory
   });
 
   return comparisons;
@@ -571,13 +581,17 @@ function printComparison(comparisons: ComparisonResult[]): void {
 
   for (const cmp of comparisons) {
     const status = cmp.status === 'PASS' ? '✅' : '❌';
-    console.log(`│ ${cmp.metric.padEnd(11)} │ ${cmp.baseline.toFixed(1).padStart(8)} │ ${cmp.holoscript.toFixed(1).padStart(10)} │ ${('+' + cmp.overhead.toFixed(1) + '%').padStart(8)} │ ${status} │`);
+    console.log(
+      `│ ${cmp.metric.padEnd(11)} │ ${cmp.baseline.toFixed(1).padStart(8)} │ ${cmp.holoscript.toFixed(1).padStart(10)} │ ${('+' + cmp.overhead.toFixed(1) + '%').padStart(8)} │ ${status} │`
+    );
   }
 
   console.log('└─────────────┴──────────┴────────────┴──────────┴───┘\n');
 
-  const allPassed = comparisons.every(c => c.status === 'PASS');
-  console.log(allPassed ? '✅ PASS: Overhead within acceptable range' : '❌ FAIL: Overhead exceeds threshold');
+  const allPassed = comparisons.every((c) => c.status === 'PASS');
+  console.log(
+    allPassed ? '✅ PASS: Overhead within acceptable range' : '❌ FAIL: Overhead exceeds threshold'
+  );
 }
 ```
 

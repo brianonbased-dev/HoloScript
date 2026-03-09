@@ -44,9 +44,7 @@ describe('ChoiceManager — Production', () => {
   // ─── Flag Consequence ─────────────────────────────────────────────
   it('flag consequence sets flag', () => {
     const cm = new ChoiceManager();
-    cm.recordChoice('d1', 'n1', 'Take key', [
-      { type: 'flag', target: 'hasKey', value: true },
-    ]);
+    cm.recordChoice('d1', 'n1', 'Take key', [{ type: 'flag', target: 'hasKey', value: true }]);
     expect(cm.getFlag('hasKey')).toBe(true);
     expect(cm.hasFlag('hasKey')).toBe(true);
   });

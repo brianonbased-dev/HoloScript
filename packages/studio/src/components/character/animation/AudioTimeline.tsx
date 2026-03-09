@@ -162,7 +162,8 @@ export function AudioTimeline({
             <h3 className="text-sm font-bold text-white">Audio Timeline</h3>
             {analysis && (
               <p className="text-xs text-studio-muted">
-                {formatTime(analysis.duration)} • {analysis.bpm.toFixed(0)} BPM • {analysis.beats.length} beats
+                {formatTime(analysis.duration)} • {analysis.bpm.toFixed(0)} BPM •{' '}
+                {analysis.beats.length} beats
               </p>
             )}
           </div>
@@ -233,7 +234,9 @@ export function AudioTimeline({
           className="flex h-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-studio-border bg-black/20 transition-all hover:border-purple-500/40 hover:bg-purple-500/5"
         >
           <Upload className="h-8 w-8 text-studio-muted" />
-          <p className="mt-2 text-sm font-semibold text-studio-text">Drop audio file or click to browse</p>
+          <p className="mt-2 text-sm font-semibold text-studio-text">
+            Drop audio file or click to browse
+          </p>
           <p className="text-xs text-studio-muted">MP3, WAV, OGG supported</p>
         </div>
       )}
@@ -303,7 +306,8 @@ export function AudioTimeline({
         <div className="rounded-lg border border-studio-border bg-black/10 p-2">
           <p className="text-[10px] text-studio-muted">
             <span className="font-semibold text-studio-text">Hotkeys:</span> Press{' '}
-            <kbd className="rounded bg-black/40 px-1 py-0.5 font-mono text-[9px]">Space</kbd> to play/pause •{' '}
+            <kbd className="rounded bg-black/40 px-1 py-0.5 font-mono text-[9px]">Space</kbd> to
+            play/pause •{' '}
             <kbd className="rounded bg-black/40 px-1 py-0.5 font-mono text-[9px]">←/→</kbd> to seek
           </p>
         </div>

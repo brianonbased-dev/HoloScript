@@ -12,7 +12,15 @@
 // TYPES
 // =============================================================================
 
-export type ShaderDataType = 'float' | 'vec2' | 'vec3' | 'vec4' | 'mat4' | 'sampler2D' | 'bool' | 'int';
+export type ShaderDataType =
+  | 'float'
+  | 'vec2'
+  | 'vec3'
+  | 'vec4'
+  | 'mat4'
+  | 'sampler2D'
+  | 'bool'
+  | 'int';
 
 export interface ShaderPort {
   name: string;
@@ -24,7 +32,7 @@ export interface ShaderNodeDef {
   type: string;
   inputs: ShaderPort[];
   outputs: ShaderPort[];
-  code: string;          // GLSL snippet with {{input_name}} / {{output_name}} placeholders
+  code: string; // GLSL snippet with {{input_name}} / {{output_name}} placeholders
 }
 
 export interface ShaderNode {
@@ -64,7 +72,10 @@ export const SHADER_NODES: Record<string, ShaderNodeDef> = {
   Color: {
     type: 'Color',
     inputs: [{ name: 'color', type: 'vec4', defaultValue: [1, 1, 1, 1] }],
-    outputs: [{ name: 'rgba', type: 'vec4' }, { name: 'rgb', type: 'vec3' }],
+    outputs: [
+      { name: 'rgba', type: 'vec4' },
+      { name: 'rgb', type: 'vec3' },
+    ],
     code: 'vec4 {{rgba}} = {{color}}; vec3 {{rgb}} = {{color}}.xyz;',
   },
   Texture: {
@@ -73,7 +84,10 @@ export const SHADER_NODES: Record<string, ShaderNodeDef> = {
       { name: 'uv', type: 'vec2', defaultValue: [0, 0] },
       { name: 'sampler', type: 'sampler2D' },
     ],
-    outputs: [{ name: 'color', type: 'vec4' }, { name: 'r', type: 'float' }],
+    outputs: [
+      { name: 'color', type: 'vec4' },
+      { name: 'r', type: 'float' },
+    ],
     code: 'vec4 {{color}} = texture2D({{sampler}}, {{uv}}); float {{r}} = {{color}}.r;',
   },
   Multiply: {
@@ -152,7 +166,12 @@ export class ShaderGraph {
   // Node Management
   // ---------------------------------------------------------------------------
 
-  addNode(type: string, x = 0, y = 0, overrides: Record<string, number | number[]> = {}): ShaderNode | null {
+  addNode(
+    type: string,
+    x = 0,
+    y = 0,
+    overrides: Record<string, number | number[]> = {}
+  ): ShaderNode | null {
     if (!this.nodeDefs.has(type)) return null;
     const node: ShaderNode = { id: `sn_${_shaderNodeId++}`, type, position: { x, y }, overrides };
     this.nodes.set(node.id, node);
@@ -161,28 +180,47 @@ export class ShaderGraph {
 
   removeNode(id: string): boolean {
     if (!this.nodes.delete(id)) return false;
-    this.connections = this.connections.filter(c => c.fromNode !== id && c.toNode !== id);
+    this.connections = this.connections.filter((c) => c.fromNode !== id && c.toNode !== id);
     return true;
   }
 
-  getNode(id: string): ShaderNode | undefined { return this.nodes.get(id); }
-  getNodes(): ShaderNode[] { return [...this.nodes.values()]; }
-  getNodeCount(): number { return this.nodes.size; }
+  getNode(id: string): ShaderNode | undefined {
+    return this.nodes.get(id);
+  }
+  getNodes(): ShaderNode[] {
+    return [...this.nodes.values()];
+  }
+  getNodeCount(): number {
+    return this.nodes.size;
+  }
 
   // ---------------------------------------------------------------------------
   // Connections
   // ---------------------------------------------------------------------------
 
-  connect(fromNode: string, fromPort: string, toNode: string, toPort: string): ShaderConnection | null {
+  connect(
+    fromNode: string,
+    fromPort: string,
+    toNode: string,
+    toPort: string
+  ): ShaderConnection | null {
     if (!this.nodes.has(fromNode) || !this.nodes.has(toNode)) return null;
     if (fromNode === toNode) return null;
 
-    const conn: ShaderConnection = { id: `sc_${_shaderConnId++}`, fromNode, fromPort, toNode, toPort };
+    const conn: ShaderConnection = {
+      id: `sc_${_shaderConnId++}`,
+      fromNode,
+      fromPort,
+      toNode,
+      toPort,
+    };
     this.connections.push(conn);
     return conn;
   }
 
-  getConnections(): ShaderConnection[] { return [...this.connections]; }
+  getConnections(): ShaderConnection[] {
+    return [...this.connections];
+  }
 
   // ---------------------------------------------------------------------------
   // Compilation
@@ -204,7 +242,7 @@ export class ShaderGraph {
 
       // Replace input placeholders with connected outputs or defaults
       for (const input of def.inputs) {
-        const conn = this.connections.find(c => c.toNode === nodeId && c.toPort === input.name);
+        const conn = this.connections.find((c) => c.toNode === nodeId && c.toPort === input.name);
         if (conn) {
           const varName = `${conn.fromNode}_${conn.fromPort}`;
           code = code.replace(new RegExp(`\\{\\{${input.name}\\}\\}`, 'g'), varName);

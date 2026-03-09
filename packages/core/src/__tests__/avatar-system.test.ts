@@ -37,9 +37,7 @@ function getObjectFromResult(result: any, objectName?: string) {
   const composition = ast?.children?.[0];
   if (!composition) return { composition: null, object: null };
   const objects = composition.children || [];
-  const object = objectName
-    ? objects.find((o: any) => o.name === objectName)
-    : objects[0];
+  const object = objectName ? objects.find((o: any) => o.name === objectName) : objects[0];
   return { composition, object };
 }
 
@@ -49,9 +47,7 @@ function getObjectFromResult(result: any, objectName?: string) {
  */
 function findTrait(object: any, traitName: string) {
   if (!object?.directives) return undefined;
-  return object.directives.find(
-    (d: any) => d.type === 'trait' && d.name === traitName
-  );
+  return object.directives.find((d: any) => d.type === 'trait' && d.name === traitName);
 }
 
 describe('Avatar System - Ready Player Me Integration', () => {
@@ -482,9 +478,7 @@ describe('Avatar System - Customization', () => {
     expect(morphTrait).toBeDefined();
     expect(morphTrait?.config?.targets).toBeDefined();
 
-    const bodyTargets = morphTrait?.config?.targets.filter(
-      (t: any) => t.category === 'body'
-    );
+    const bodyTargets = morphTrait?.config?.targets.filter((t: any) => t.category === 'body');
     expect(bodyTargets.length).toBeGreaterThanOrEqual(6);
     expect(morphTrait?.config?.presets.athletic).toBeDefined();
     expect(morphTrait?.config?.presets.athletic.body_muscular).toBe(0.6);

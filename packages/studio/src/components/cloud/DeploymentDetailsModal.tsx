@@ -19,10 +19,17 @@ interface DeploymentDetailsModalProps {
 
 type TabType = 'overview' | 'logs' | 'metrics';
 
-export function DeploymentDetailsModal({ deployment, onClose, onUpdate }: DeploymentDetailsModalProps) {
+export function DeploymentDetailsModal({
+  deployment,
+  onClose,
+  onUpdate,
+}: DeploymentDetailsModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const { redeploy, deleteDeployment, deploying } = useDeploy();
-  const { logs, loading: logsLoading } = useExecutionLogs(deployment.id, { limit: 100, autoRefresh: true });
+  const { logs, loading: logsLoading } = useExecutionLogs(deployment.id, {
+    limit: 100,
+    autoRefresh: true,
+  });
   const { metrics, loading: metricsLoading } = useDeploymentMetrics(deployment.id, true);
 
   const handleRedeploy = async () => {
@@ -174,10 +181,10 @@ export function DeploymentDetailsModal({ deployment, onClose, onUpdate }: Deploy
                         log.level === 'error'
                           ? 'text-red-400'
                           : log.level === 'warn'
-                          ? 'text-yellow-400'
-                          : log.level === 'info'
-                          ? 'text-sky-400'
-                          : 'text-studio-muted'
+                            ? 'text-yellow-400'
+                            : log.level === 'info'
+                              ? 'text-sky-400'
+                              : 'text-studio-muted'
                       }`}
                     >
                       [{log.level.toUpperCase()}]

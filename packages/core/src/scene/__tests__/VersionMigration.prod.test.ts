@@ -33,7 +33,7 @@ describe('VersionMigration: production', () => {
 
     it('custom migration is registered', () => {
       const before = vm.getMigrationCount();
-      vm.register({ fromVersion: 99, toVersion: 100, name: 'custom', migrate: d => d });
+      vm.register({ fromVersion: 99, toVersion: 100, name: 'custom', migrate: (d) => d });
       expect(vm.getMigrationCount()).toBe(before + 1);
     });
 
@@ -133,7 +133,7 @@ describe('VersionMigration: production', () => {
         fromVersion: 10,
         toVersion: 11,
         name: 'add-foo',
-        migrate: d => ({ ...d, foo: 'bar' }),
+        migrate: (d) => ({ ...d, foo: 'bar' }),
       });
       const result = vm.migrate({ version: 10 }, 11);
       expect(result.success).toBe(true);
@@ -148,11 +148,13 @@ describe('VersionMigration: production', () => {
         fromVersion: 20,
         toVersion: 21,
         name: 'crasher',
-        migrate: () => { throw new Error('migration failed'); },
+        migrate: () => {
+          throw new Error('migration failed');
+        },
       });
       const result = vm.migrate({ version: 20 }, 21);
       expect(result.success).toBe(false);
-      expect(result.warnings.some(w => w.includes('migration failed'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('migration failed'))).toBe(true);
     });
   });
 

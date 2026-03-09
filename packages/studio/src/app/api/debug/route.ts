@@ -52,20 +52,45 @@ function buildFrames(code: string, breakpoints: number[]): DebugFrame[] {
 
     if (sceneM) {
       ctx = sceneM[1];
-      frames.push({ index: frames.length, line: lineNum, type: 'scene', label: `scene "${sceneM[1]}"`, isBreakpoint: bp });
+      frames.push({
+        index: frames.length,
+        line: lineNum,
+        type: 'scene',
+        label: `scene "${sceneM[1]}"`,
+        isBreakpoint: bp,
+      });
       return;
     }
     if (objM) {
       ctx = objM[1];
-      frames.push({ index: frames.length, line: lineNum, type: 'object', label: `object "${objM[1]}"`, isBreakpoint: bp });
+      frames.push({
+        index: frames.length,
+        line: lineNum,
+        type: 'object',
+        label: `object "${objM[1]}"`,
+        isBreakpoint: bp,
+      });
       return;
     }
     if (traitM) {
-      frames.push({ index: frames.length, line: lineNum, type: 'trait', label: `@${traitM[1]}`, detail: traitM[2]?.trim(), isBreakpoint: bp });
+      frames.push({
+        index: frames.length,
+        line: lineNum,
+        type: 'trait',
+        label: `@${traitM[1]}`,
+        detail: traitM[2]?.trim(),
+        isBreakpoint: bp,
+      });
       return;
     }
     if (propM && ctx) {
-      frames.push({ index: frames.length, line: lineNum, type: 'property', label: `${propM[1]}: ${propM[2]}`, isBreakpoint: bp });
+      frames.push({
+        index: frames.length,
+        line: lineNum,
+        type: 'property',
+        label: `${propM[1]}: ${propM[2]}`,
+        isBreakpoint: bp,
+      });
     }
   });
 
@@ -86,7 +111,12 @@ function buildVars(frames: DebugFrame[], upTo: number): DebugVar[] {
       currentObj = f.label.replace('object "', '').replace('"', '');
       vars.push({ name: `${currentObj}.__active__`, type: 'bool', value: 'true', scope: 'object' });
     } else if (f.type === 'trait') {
-      vars.push({ name: `${currentObj}.${f.label.slice(1)}`, type: 'trait', value: f.detail ?? '{}', scope: 'object' });
+      vars.push({
+        name: `${currentObj}.${f.label.slice(1)}`,
+        type: 'trait',
+        value: f.detail ?? '{}',
+        scope: 'object',
+      });
     } else if (f.type === 'property') {
       const [k, v] = f.label.split(': ');
       vars.push({ name: `${currentObj}.${k}`, type: 'string', value: v ?? '', scope: 'object' });

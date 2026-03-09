@@ -4,7 +4,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Matchmaker, type MatchmakingPlayer } from '../Matchmaker';
 
-function player(id: string, rating: number, region = 'us-east'): Omit<MatchmakingPlayer, 'queuedAt'> {
+function player(
+  id: string,
+  rating: number,
+  region = 'us-east'
+): Omit<MatchmakingPlayer, 'queuedAt'> {
   return { id, name: `Player ${id}`, rating, region };
 }
 

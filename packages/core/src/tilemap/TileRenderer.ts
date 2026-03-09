@@ -22,16 +22,21 @@ export interface TileAtlas {
 
 export interface AnimatedTile {
   tileId: number;
-  frames: number[];        // Frame tile IDs
-  frameDuration: number;    // ms per frame
+  frames: number[]; // Frame tile IDs
+  frameDuration: number; // ms per frame
   currentFrame: number;
   elapsed: number;
 }
 
 export interface RenderTile {
-  tileX: number; tileY: number;
-  worldX: number; worldY: number;
-  uvX: number; uvY: number; uvW: number; uvH: number;
+  tileX: number;
+  tileY: number;
+  worldX: number;
+  worldY: number;
+  uvX: number;
+  uvY: number;
+  uvW: number;
+  uvH: number;
   layerName: string;
 }
 
@@ -113,8 +118,10 @@ export class TileRenderer {
 
           const uv = this.getTileUV(tile.id);
           tiles.push({
-            tileX: tx, tileY: ty,
-            worldX: tx * ts, worldY: ty * ts,
+            tileX: tx,
+            tileY: ty,
+            worldX: tx * ts,
+            worldY: ty * ts,
             ...uv,
             layerName: layer.name,
           });
@@ -149,5 +156,7 @@ export class TileRenderer {
     return names;
   }
 
-  getAnimatedTileCount(): number { return this.animatedTiles.size; }
+  getAnimatedTileCount(): number {
+    return this.animatedTiles.size;
+  }
 }

@@ -59,7 +59,6 @@ function getState(node: Record<string, unknown>) {
 // =============================================================================
 
 describe('LLMAgentTrait — onAttach', () => {
-
   it('initializes state on the node', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -76,7 +75,11 @@ describe('LLMAgentTrait — onAttach', () => {
   it('adds system message when system_prompt provided', () => {
     const node = makeNode();
     const ctx = makeContext();
-    llmAgentHandler.onAttach!(node as any, makeConfig({ system_prompt: 'You are helpful.' }), ctx as any);
+    llmAgentHandler.onAttach!(
+      node as any,
+      makeConfig({ system_prompt: 'You are helpful.' }),
+      ctx as any
+    );
 
     const st = getState(node);
     expect(st.conversationHistory).toHaveLength(1);
@@ -89,7 +92,7 @@ describe('LLMAgentTrait — onAttach', () => {
     const ctx = makeContext();
     llmAgentHandler.onAttach!(node as any, makeConfig(), ctx as any);
 
-    expect(ctx.emitted.some(e => e.event === 'llm_agent_ready')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'llm_agent_ready')).toBe(true);
   });
 
   it('no system message if system_prompt is empty', () => {
@@ -107,7 +110,6 @@ describe('LLMAgentTrait — onAttach', () => {
 // =============================================================================
 
 describe('LLMAgentTrait — onDetach', () => {
-
   it('removes state from node on detach', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -123,7 +125,6 @@ describe('LLMAgentTrait — onDetach', () => {
 // =============================================================================
 
 describe('LLMAgentTrait — onEvent(llm_prompt)', () => {
-
   function attachAndSend(message: string, configOverrides = {}) {
     const node = makeNode();
     const ctx = makeContext();
@@ -144,12 +145,12 @@ describe('LLMAgentTrait — onEvent(llm_prompt)', () => {
 
   it('emits llm_request event', () => {
     const { ctx } = attachAndSend('Hello');
-    expect(ctx.emitted.some(e => e.event === 'llm_request')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'llm_request')).toBe(true);
   });
 
   it('llm_request includes model and messages', () => {
     const { ctx } = attachAndSend('Hello', { model: 'gpt-4-turbo' });
-    const req = ctx.emitted.find(e => e.event === 'llm_request');
+    const req = ctx.emitted.find((e) => e.event === 'llm_request');
     expect((req!.data as any).model).toBe('gpt-4-turbo');
     expect((req!.data as any).messages).toBeInstanceOf(Array);
   });
@@ -162,35 +163,35 @@ describe('LLMAgentTrait — onEvent(llm_prompt)', () => {
     ctx.emitted.length = 0;
     // First prompt: should emit request
     llmAgentHandler.onEvent!(node as any, config, ctx as any, { type: 'llm_prompt', message: 'A' });
-    const beforeLen = ctx.emitted.filter(e => e.event === 'llm_request').length;
+    const beforeLen = ctx.emitted.filter((e) => e.event === 'llm_request').length;
     // Second prompt immediately: should be rate-limited
     llmAgentHandler.onEvent!(node as any, config, ctx as any, { type: 'llm_prompt', message: 'B' });
-    const afterLen = ctx.emitted.filter(e => e.event === 'llm_request').length;
+    const afterLen = ctx.emitted.filter((e) => e.event === 'llm_request').length;
 
     expect(beforeLen).toBe(1);
     expect(afterLen).toBe(1); // no second request
-    expect(ctx.emitted.some(e => e.event === 'llm_rate_limited')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'llm_rate_limited')).toBe(true);
   });
 
   it('keyword escalation emits llm_escalation', () => {
     const { ctx } = attachAndSend('this is urgent help', {
       escalation_conditions: [{ type: 'keyword', value: 'urgent', action: 'notify' }],
     });
-    expect(ctx.emitted.some(e => e.event === 'llm_escalation')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'llm_escalation')).toBe(true);
   });
 
   it('escalation action=pause suppresses llm_request', () => {
     const { ctx } = attachAndSend('emergency stop', {
       escalation_conditions: [{ type: 'keyword', value: 'emergency', action: 'pause' }],
     });
-    expect(ctx.emitted.some(e => e.event === 'llm_request')).toBe(false);
+    expect(ctx.emitted.some((e) => e.event === 'llm_request')).toBe(false);
   });
 
   it('uncertainty keyword triggers escalation', () => {
     const { ctx } = attachAndSend("I'm not sure, maybe it works", {
       escalation_conditions: [{ type: 'uncertainty', value: 'uncertain', action: 'notify' }],
     });
-    expect(ctx.emitted.some(e => e.event === 'llm_escalation')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'llm_escalation')).toBe(true);
   });
 });
 
@@ -199,14 +200,16 @@ describe('LLMAgentTrait — onEvent(llm_prompt)', () => {
 // =============================================================================
 
 describe('LLMAgentTrait — onEvent(llm_response)', () => {
-
   function attachAndRespond(response: Record<string, unknown>, configOverrides = {}) {
     const node = makeNode();
     const ctx = makeContext();
     const config = makeConfig({ rate_limit_ms: 0, ...configOverrides });
     llmAgentHandler.onAttach!(node as any, config, ctx as any);
     // Send user prompt first
-    llmAgentHandler.onEvent!(node as any, config, ctx as any, { type: 'llm_prompt', message: 'Hi' });
+    llmAgentHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'llm_prompt',
+      message: 'Hi',
+    });
     ctx.emitted.length = 0;
     // Simulate response
     llmAgentHandler.onEvent!(node as any, config, ctx as any, { type: 'llm_response', response });
@@ -220,7 +223,7 @@ describe('LLMAgentTrait — onEvent(llm_response)', () => {
 
   it('emits llm_message with content', () => {
     const { ctx } = attachAndRespond({ content: 'Hello!' });
-    const msg = ctx.emitted.find(e => e.event === 'llm_message');
+    const msg = ctx.emitted.find((e) => e.event === 'llm_message');
     expect(msg).toBeDefined();
     expect((msg!.data as any).content).toBe('Hello!');
   });
@@ -238,18 +241,21 @@ describe('LLMAgentTrait — onEvent(llm_response)', () => {
   });
 
   it('invalid tool_call JSON does not crash', () => {
-    expect(() => attachAndRespond({
-      tool_calls: [
-        { id: 'bad', function: { name: 'fn', arguments: 'NOT JSON' } },
-      ],
-    })).not.toThrow();
+    expect(() =>
+      attachAndRespond({
+        tool_calls: [{ id: 'bad', function: { name: 'fn', arguments: 'NOT JSON' } }],
+      })
+    ).not.toThrow();
   });
 
   it('response escalation detection fires llm_escalation', () => {
-    const { ctx } = attachAndRespond({ content: 'I am unsure about this' }, {
-      escalation_conditions: [{ type: 'uncertainty', value: 'uncertain', action: 'notify' }],
-    });
-    expect(ctx.emitted.some(e => e.event === 'llm_escalation')).toBe(true);
+    const { ctx } = attachAndRespond(
+      { content: 'I am unsure about this' },
+      {
+        escalation_conditions: [{ type: 'uncertainty', value: 'uncertain', action: 'notify' }],
+      }
+    );
+    expect(ctx.emitted.some((e) => e.event === 'llm_escalation')).toBe(true);
   });
 
   it('isProcessing set to false after response', () => {
@@ -263,7 +269,6 @@ describe('LLMAgentTrait — onEvent(llm_response)', () => {
 // =============================================================================
 
 describe('LLMAgentTrait — onEvent(llm_tool_result)', () => {
-
   it('appends tool message to history', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -290,7 +295,7 @@ describe('LLMAgentTrait — onEvent(llm_tool_result)', () => {
       result: { ok: true },
       callId: 'call-2',
     });
-    expect(ctx.emitted.some(e => e.event === 'llm_request')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'llm_request')).toBe(true);
   });
 });
 
@@ -299,14 +304,16 @@ describe('LLMAgentTrait — onEvent(llm_tool_result)', () => {
 // =============================================================================
 
 describe('LLMAgentTrait — onEvent(llm_clear_history)', () => {
-
   it('resets history to system prompt only', () => {
     const node = makeNode();
     const ctx = makeContext();
     const config = makeConfig({ system_prompt: 'You are a bot.', rate_limit_ms: 0 });
     llmAgentHandler.onAttach!(node as any, config, ctx as any);
     // Add some messages
-    llmAgentHandler.onEvent!(node as any, config, ctx as any, { type: 'llm_prompt', message: 'Hi' });
+    llmAgentHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'llm_prompt',
+      message: 'Hi',
+    });
     // Clear
     llmAgentHandler.onEvent!(node as any, config, ctx as any, { type: 'llm_clear_history' });
 
@@ -323,7 +330,6 @@ describe('LLMAgentTrait — onEvent(llm_clear_history)', () => {
 // =============================================================================
 
 describe('LLMAgentTrait — onUpdate (tool dispatch)', () => {
-
   it('dispatches pending tool call via llm_tool_call event', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -331,12 +337,16 @@ describe('LLMAgentTrait — onUpdate (tool dispatch)', () => {
     llmAgentHandler.onAttach!(node as any, config, ctx as any);
 
     // Manually push a pending tool call
-    getState(node).pendingToolCalls.push({ id: 'c1', name: 'fire_missile', arguments: { target: 'moon' } });
+    getState(node).pendingToolCalls.push({
+      id: 'c1',
+      name: 'fire_missile',
+      arguments: { target: 'moon' },
+    });
     ctx.emitted.length = 0;
 
     llmAgentHandler.onUpdate!(node as any, config, ctx as any, 16);
 
-    const toolEvt = ctx.emitted.find(e => e.event === 'llm_tool_call');
+    const toolEvt = ctx.emitted.find((e) => e.event === 'llm_tool_call');
     expect(toolEvt).toBeDefined();
     expect((toolEvt!.data as any).tool).toBe('fire_missile');
   });
@@ -344,7 +354,11 @@ describe('LLMAgentTrait — onUpdate (tool dispatch)', () => {
   it('emits llm_turn_limit_reached when bounded_autonomy limit hit', () => {
     const node = makeNode();
     const ctx = makeContext();
-    const config = makeConfig({ rate_limit_ms: 0, bounded_autonomy: true, max_actions_per_turn: 1 });
+    const config = makeConfig({
+      rate_limit_ms: 0,
+      bounded_autonomy: true,
+      max_actions_per_turn: 1,
+    });
     llmAgentHandler.onAttach!(node as any, config, ctx as any);
     const st = getState(node);
     st.turnActionCount = 1; // already at limit
@@ -352,13 +366,15 @@ describe('LLMAgentTrait — onUpdate (tool dispatch)', () => {
     ctx.emitted.length = 0;
     llmAgentHandler.onUpdate!(node as any, config, ctx as any, 16);
 
-    expect(ctx.emitted.some(e => e.event === 'llm_turn_limit_reached')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'llm_turn_limit_reached')).toBe(true);
   });
 
   it('no-ops when state is missing', () => {
     const node = makeNode(); // no attach
     const ctx = makeContext();
-    expect(() => llmAgentHandler.onUpdate!(node as any, makeConfig(), ctx as any, 16)).not.toThrow();
+    expect(() =>
+      llmAgentHandler.onUpdate!(node as any, makeConfig(), ctx as any, 16)
+    ).not.toThrow();
   });
 });
 
@@ -367,7 +383,6 @@ describe('LLMAgentTrait — onUpdate (tool dispatch)', () => {
 // =============================================================================
 
 describe('LLMAgentTrait — multi-turn conversation', () => {
-
   it('maintains growing history across turns', () => {
     const node = makeNode();
     const ctx = makeContext();
@@ -375,12 +390,24 @@ describe('LLMAgentTrait — multi-turn conversation', () => {
     llmAgentHandler.onAttach!(node as any, config, ctx as any);
 
     // Turn 1
-    llmAgentHandler.onEvent!(node as any, config, ctx as any, { type: 'llm_prompt', message: 'Turn 1' });
-    llmAgentHandler.onEvent!(node as any, config, ctx as any, { type: 'llm_response', response: { content: 'Reply 1' } });
+    llmAgentHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'llm_prompt',
+      message: 'Turn 1',
+    });
+    llmAgentHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'llm_response',
+      response: { content: 'Reply 1' },
+    });
 
     // Turn 2
-    llmAgentHandler.onEvent!(node as any, config, ctx as any, { type: 'llm_prompt', message: 'Turn 2' });
-    llmAgentHandler.onEvent!(node as any, config, ctx as any, { type: 'llm_response', response: { content: 'Reply 2' } });
+    llmAgentHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'llm_prompt',
+      message: 'Turn 2',
+    });
+    llmAgentHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'llm_response',
+      response: { content: 'Reply 2' },
+    });
 
     const hist = getState(node).conversationHistory;
     const roles = hist.map((m: any) => m.role);

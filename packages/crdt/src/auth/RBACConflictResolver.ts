@@ -116,7 +116,7 @@ export class RBACConflictResolver {
 
   constructor(
     permissionChecker: PermissionChecker,
-    defaultStrategy: ConflictStrategy = ConflictStrategy.LWW,
+    defaultStrategy: ConflictStrategy = ConflictStrategy.LWW
   ) {
     this.permissionChecker = permissionChecker;
     this.defaultStrategy = defaultStrategy;
@@ -130,7 +130,7 @@ export class RBACConflictResolver {
    */
   async resolveConflict(
     conflictSet: CRDTOperation[],
-    strategy?: ConflictStrategy,
+    strategy?: ConflictStrategy
   ): Promise<ConflictResolution> {
     const resolvedStrategy = strategy ?? this.defaultStrategy;
 
@@ -180,7 +180,7 @@ export class RBACConflictResolver {
       operations.map(async (op) => {
         const hasPermission = await this.permissionChecker.checkPermission(op.actorDid, op);
         return hasPermission ? op : null;
-      }),
+      })
     );
 
     return results.filter((op): op is CRDTOperation => op !== null);
@@ -212,9 +212,7 @@ export class RBACConflictResolver {
    *
    * ADMIN > EXECUTE > WRITE > READ
    */
-  private async resolveByPermissionLevel(
-    operations: CRDTOperation[],
-  ): Promise<ConflictResolution> {
+  private async resolveByPermissionLevel(operations: CRDTOperation[]): Promise<ConflictResolution> {
     const permissionOrder = [
       AgentPermissionLevel.ADMIN,
       AgentPermissionLevel.EXECUTE,
@@ -227,7 +225,7 @@ export class RBACConflictResolver {
       operations.map(async (op) => ({
         op,
         level: await this.permissionChecker.getPermissionLevel(op.actorDid),
-      })),
+      }))
     );
 
     // Find highest permission level
@@ -264,7 +262,7 @@ export class RBACConflictResolver {
       operations.map(async (op) => ({
         op,
         weight: await this.permissionChecker.getPriority(op.actorDid),
-      })),
+      }))
     );
 
     // Sort by weight descending
@@ -290,9 +288,7 @@ export class RBACConflictResolver {
    * If any admin operation exists, it always wins.
    * Otherwise, use permission priority.
    */
-  private async resolveAdminOverride(
-    operations: CRDTOperation[],
-  ): Promise<ConflictResolution> {
+  private async resolveAdminOverride(operations: CRDTOperation[]): Promise<ConflictResolution> {
     // Find admin operations
     const adminOps: CRDTOperation[] = [];
 

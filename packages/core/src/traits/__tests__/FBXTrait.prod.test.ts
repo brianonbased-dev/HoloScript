@@ -48,7 +48,10 @@ function makeLoadedState(overrides: Partial<FBXState> = {}): FBXState {
     ],
     playingAnimations: new Map(),
     morphTargetNames: ['smile', 'frown'],
-    morphWeights: new Map([['smile', 0], ['frown', 0]]),
+    morphWeights: new Map([
+      ['smile', 0],
+      ['frown', 0],
+    ]),
     skeleton: null,
     boundingBox: null,
     sceneRoot: null,
@@ -143,7 +146,16 @@ describe('fbxHandler.onAttach', () => {
 describe('fbxHandler.onDetach', () => {
   it('clears playingAnimations', () => {
     const state = makeLoadedState();
-    state.playingAnimations.set('idle', { stackName: 'idle', time: 0, duration: 3, speed: 1, weight: 1, loop: true, playing: true, layer: 0 });
+    state.playingAnimations.set('idle', {
+      stackName: 'idle',
+      time: 0,
+      duration: 3,
+      speed: 1,
+      weight: 1,
+      loop: true,
+      playing: true,
+      layer: 0,
+    });
     const { node, ctx, config } = attachWithState(state);
     fbxHandler.onDetach!(node as any, config, ctx as any);
     expect(state.playingAnimations.size).toBe(0);
@@ -156,7 +168,10 @@ describe('fbxHandler.onDetach', () => {
     config.source = 'model.fbx';
     ctx.emit.mockClear();
     fbxHandler.onDetach!(node as any, config, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('fbx:unloaded', expect.objectContaining({ source: 'model.fbx' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'fbx:unloaded',
+      expect.objectContaining({ source: 'model.fbx' })
+    );
   });
 
   it('does NOT emit fbx:unloaded when sceneRoot=null', () => {
@@ -186,7 +201,16 @@ describe('fbxHandler.onUpdate', () => {
 
   it('advances animation time by delta * speed', () => {
     const state = makeLoadedState();
-    state.playingAnimations.set('idle', { stackName: 'idle', time: 0, duration: 3, speed: 2, weight: 1, loop: true, playing: true, layer: 0 });
+    state.playingAnimations.set('idle', {
+      stackName: 'idle',
+      time: 0,
+      duration: 3,
+      speed: 2,
+      weight: 1,
+      loop: true,
+      playing: true,
+      layer: 0,
+    });
     const { node, ctx, config } = attachWithState(state);
     fbxHandler.onUpdate!(node as any, config, ctx as any, 0.1); // 0.1 × 2 = 0.2
     expect(state.playingAnimations.get('idle')!.time).toBeCloseTo(0.2, 5);
@@ -194,7 +218,16 @@ describe('fbxHandler.onUpdate', () => {
 
   it('wraps time on loop complete', () => {
     const state = makeLoadedState();
-    state.playingAnimations.set('walk', { stackName: 'walk', time: 0.95, duration: 1.0, speed: 1, weight: 1, loop: true, playing: true, layer: 0 });
+    state.playingAnimations.set('walk', {
+      stackName: 'walk',
+      time: 0.95,
+      duration: 1.0,
+      speed: 1,
+      weight: 1,
+      loop: true,
+      playing: true,
+      layer: 0,
+    });
     const { node, ctx, config } = attachWithState(state);
     fbxHandler.onUpdate!(node as any, config, ctx as any, 0.2); // 0.95+0.2=1.15 → 0.15
     expect(state.playingAnimations.get('walk')!.time).toBeCloseTo(0.15, 4);
@@ -202,12 +235,24 @@ describe('fbxHandler.onUpdate', () => {
 
   it('stops and emits fbx:animation_complete on non-loop end', () => {
     const state = makeLoadedState();
-    state.playingAnimations.set('idle', { stackName: 'idle', time: 2.95, duration: 3, speed: 1, weight: 1, loop: false, playing: true, layer: 0 });
+    state.playingAnimations.set('idle', {
+      stackName: 'idle',
+      time: 2.95,
+      duration: 3,
+      speed: 1,
+      weight: 1,
+      loop: false,
+      playing: true,
+      layer: 0,
+    });
     const { node, ctx, config } = attachWithState(state);
     ctx.emit.mockClear();
     fbxHandler.onUpdate!(node as any, config, ctx as any, 0.1);
     expect(state.playingAnimations.get('idle')!.playing).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('fbx:animation_complete', expect.objectContaining({ animation: 'idle' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'fbx:animation_complete',
+      expect.objectContaining({ animation: 'idle' })
+    );
   });
 
   it('emits fbx:morphs_updated when morphWeights is non-empty', () => {
@@ -216,7 +261,10 @@ describe('fbxHandler.onUpdate', () => {
     const { node, ctx, config } = attachWithState(state);
     ctx.emit.mockClear();
     fbxHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('fbx:morphs_updated', expect.objectContaining({ weights: { smile: 0.5, frown: 0 } }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'fbx:morphs_updated',
+      expect.objectContaining({ weights: { smile: 0.5, frown: 0 } })
+    );
   });
 
   it('does NOT emit fbx:morphs_updated when morphWeights is empty', () => {
@@ -234,7 +282,11 @@ describe('fbxHandler.onEvent — fbx:play_animation', () => {
   it('adds playback entry for known stack', () => {
     const state = makeLoadedState();
     const { node, ctx, config } = attachWithState(state);
-    fbxHandler.onEvent!(node as any, config, ctx as any, { type: 'fbx:play_animation', stack: 'idle', options: { loop: false, speed: 1.5 } });
+    fbxHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'fbx:play_animation',
+      stack: 'idle',
+      options: { loop: false, speed: 1.5 },
+    });
     expect(state.playingAnimations.has('idle')).toBe(true);
     expect(state.playingAnimations.get('idle')!.speed).toBe(1.5);
     expect(state.playingAnimations.get('idle')!.loop).toBe(false);
@@ -243,7 +295,10 @@ describe('fbxHandler.onEvent — fbx:play_animation', () => {
   it('ignores unknown stack', () => {
     const state = makeLoadedState();
     const { node, ctx, config } = attachWithState(state);
-    fbxHandler.onEvent!(node as any, config, ctx as any, { type: 'fbx:play_animation', stack: 'unknown' });
+    fbxHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'fbx:play_animation',
+      stack: 'unknown',
+    });
     expect(state.playingAnimations.has('unknown')).toBe(false);
   });
 });
@@ -253,16 +308,46 @@ describe('fbxHandler.onEvent — fbx:play_animation', () => {
 describe('fbxHandler.onEvent — fbx:stop_animation', () => {
   it('removes named animation from playingAnimations', () => {
     const state = makeLoadedState();
-    state.playingAnimations.set('idle', { stackName: 'idle', time: 0, duration: 3, speed: 1, weight: 1, loop: true, playing: true, layer: 0 });
+    state.playingAnimations.set('idle', {
+      stackName: 'idle',
+      time: 0,
+      duration: 3,
+      speed: 1,
+      weight: 1,
+      loop: true,
+      playing: true,
+      layer: 0,
+    });
     const { node, ctx, config } = attachWithState(state);
-    fbxHandler.onEvent!(node as any, config, ctx as any, { type: 'fbx:stop_animation', stack: 'idle' });
+    fbxHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'fbx:stop_animation',
+      stack: 'idle',
+    });
     expect(state.playingAnimations.has('idle')).toBe(false);
   });
 
   it('clears all animations when no stack specified', () => {
     const state = makeLoadedState();
-    state.playingAnimations.set('idle', { stackName: 'idle', time: 0, duration: 3, speed: 1, weight: 1, loop: true, playing: true, layer: 0 });
-    state.playingAnimations.set('walk', { stackName: 'walk', time: 0, duration: 1, speed: 1, weight: 1, loop: true, playing: true, layer: 0 });
+    state.playingAnimations.set('idle', {
+      stackName: 'idle',
+      time: 0,
+      duration: 3,
+      speed: 1,
+      weight: 1,
+      loop: true,
+      playing: true,
+      layer: 0,
+    });
+    state.playingAnimations.set('walk', {
+      stackName: 'walk',
+      time: 0,
+      duration: 1,
+      speed: 1,
+      weight: 1,
+      loop: true,
+      playing: true,
+      layer: 0,
+    });
     const { node, ctx, config } = attachWithState(state);
     fbxHandler.onEvent!(node as any, config, ctx as any, { type: 'fbx:stop_animation' });
     expect(state.playingAnimations.size).toBe(0);
@@ -275,23 +360,39 @@ describe('fbxHandler.onEvent — fbx:set_morph', () => {
   it('sets morph weight for known target', () => {
     const state = makeLoadedState();
     const { node, ctx, config } = attachWithState(state);
-    fbxHandler.onEvent!(node as any, config, ctx as any, { type: 'fbx:set_morph', target: 'smile', weight: 0.8 });
+    fbxHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'fbx:set_morph',
+      target: 'smile',
+      weight: 0.8,
+    });
     expect(state.morphWeights.get('smile')).toBeCloseTo(0.8, 4);
   });
 
   it('clamps morph weight to [0, 1]', () => {
     const state = makeLoadedState();
     const { node, ctx, config } = attachWithState(state);
-    fbxHandler.onEvent!(node as any, config, ctx as any, { type: 'fbx:set_morph', target: 'smile', weight: 2.0 });
+    fbxHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'fbx:set_morph',
+      target: 'smile',
+      weight: 2.0,
+    });
     expect(state.morphWeights.get('smile')).toBe(1);
-    fbxHandler.onEvent!(node as any, config, ctx as any, { type: 'fbx:set_morph', target: 'smile', weight: -0.5 });
+    fbxHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'fbx:set_morph',
+      target: 'smile',
+      weight: -0.5,
+    });
     expect(state.morphWeights.get('smile')).toBe(0);
   });
 
   it('ignores unknown morph target', () => {
     const state = makeLoadedState();
     const { node, ctx, config } = attachWithState(state);
-    fbxHandler.onEvent!(node as any, config, ctx as any, { type: 'fbx:set_morph', target: 'unknown', weight: 0.5 });
+    fbxHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'fbx:set_morph',
+      target: 'unknown',
+      weight: 0.5,
+    });
     expect(state.morphWeights.has('unknown')).toBe(false);
   });
 });
@@ -301,28 +402,49 @@ describe('fbxHandler.onEvent — fbx:set_morph', () => {
 describe('fbxHandler.onEvent — speed/weight/seek', () => {
   function playbackState() {
     const state = makeLoadedState();
-    state.playingAnimations.set('idle', { stackName: 'idle', time: 0, duration: 3, speed: 1, weight: 1, loop: true, playing: true, layer: 0 });
+    state.playingAnimations.set('idle', {
+      stackName: 'idle',
+      time: 0,
+      duration: 3,
+      speed: 1,
+      weight: 1,
+      loop: true,
+      playing: true,
+      layer: 0,
+    });
     return state;
   }
 
   it('fbx:set_animation_speed updates speed', () => {
     const state = playbackState();
     const { node, ctx, config } = attachWithState(state);
-    fbxHandler.onEvent!(node as any, config, ctx as any, { type: 'fbx:set_animation_speed', stack: 'idle', speed: 2.5 });
+    fbxHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'fbx:set_animation_speed',
+      stack: 'idle',
+      speed: 2.5,
+    });
     expect(state.playingAnimations.get('idle')!.speed).toBe(2.5);
   });
 
   it('fbx:set_animation_weight clamps to [0,1]', () => {
     const state = playbackState();
     const { node, ctx, config } = attachWithState(state);
-    fbxHandler.onEvent!(node as any, config, ctx as any, { type: 'fbx:set_animation_weight', stack: 'idle', weight: 5.0 });
+    fbxHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'fbx:set_animation_weight',
+      stack: 'idle',
+      weight: 5.0,
+    });
     expect(state.playingAnimations.get('idle')!.weight).toBe(1);
   });
 
   it('fbx:seek_animation clamps time to [0, duration]', () => {
     const state = playbackState();
     const { node, ctx, config } = attachWithState(state);
-    fbxHandler.onEvent!(node as any, config, ctx as any, { type: 'fbx:seek_animation', stack: 'idle', time: 10 });
+    fbxHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'fbx:seek_animation',
+      stack: 'idle',
+      time: 10,
+    });
     expect(state.playingAnimations.get('idle')!.time).toBe(3); // clamped to duration
   });
 });

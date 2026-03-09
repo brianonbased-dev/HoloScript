@@ -24,19 +24,9 @@ import type { MetricEntry } from './MetricsCollector';
 // Public interfaces (re-exported from types.ts for backward compatibility)
 // ---------------------------------------------------------------------------
 
-export type {
-  TelemetryConfig,
-  SpanEvent,
-  Span,
-  Metric,
-} from './types';
+export type { TelemetryConfig, SpanEvent, Span, Metric } from './types';
 
-import type {
-  TelemetryConfig,
-  SpanEvent,
-  Span,
-  Metric,
-} from './types';
+import type { TelemetryConfig, SpanEvent, Span, Metric } from './types';
 
 // ---------------------------------------------------------------------------
 // No-op span (returned when sampling decides not to trace)

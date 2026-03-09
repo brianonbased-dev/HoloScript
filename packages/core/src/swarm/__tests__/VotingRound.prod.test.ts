@@ -11,13 +11,22 @@ import { VotingRound } from '../VotingRound';
 import type { IHiveContribution } from '../../extensions';
 
 function makeContrib(id: string): IHiveContribution {
-  return { id, agentId: 'agent-1', type: 'insight', content: `Content ${id}`, confidence: 0.9, timestamp: Date.now() } as any;
+  return {
+    id,
+    agentId: 'agent-1',
+    type: 'insight',
+    content: `Content ${id}`,
+    confidence: 0.9,
+    timestamp: Date.now(),
+  } as any;
 }
 
 describe('VotingRound', () => {
   let round: VotingRound;
 
-  beforeEach(() => { round = new VotingRound({ minVotesRequired: 2, superMajorityThreshold: 0.5 }); });
+  beforeEach(() => {
+    round = new VotingRound({ minVotesRequired: 2, superMajorityThreshold: 0.5 });
+  });
 
   // -------------------------------------------------------------------------
   // registerContribution
@@ -161,8 +170,8 @@ describe('VotingRound', () => {
       round.castVote('a', 'v2', 'support');
       // b has no votes — not approved
       const approved = round.getApprovedContributions();
-      expect(approved.map(c => c.id)).toContain('a');
-      expect(approved.map(c => c.id)).not.toContain('b');
+      expect(approved.map((c) => c.id)).toContain('a');
+      expect(approved.map((c) => c.id)).not.toContain('b');
     });
 
     it('getWinner returns top-scored contribution', () => {
@@ -183,7 +192,9 @@ describe('VotingRound', () => {
   // close / isClosed
   // -------------------------------------------------------------------------
   describe('close() / isClosed()', () => {
-    it('starts open', () => { expect(round.isClosed()).toBe(false); });
+    it('starts open', () => {
+      expect(round.isClosed()).toBe(false);
+    });
     it('isClosed returns true after close()', () => {
       round.close();
       expect(round.isClosed()).toBe(true);

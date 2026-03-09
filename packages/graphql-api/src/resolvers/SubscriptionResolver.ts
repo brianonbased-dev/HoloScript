@@ -99,16 +99,18 @@ export class SubscriptionResolver {
           code: input.code,
           codeHash,
           isValid: !!result.ast && (!result.errors || result.errors.length === 0),
-          errors: result.errors?.map((e: any) => ({
-            message: e.message,
-            line: e.location?.line,
-            column: e.location?.column,
-          })) || [],
-          warnings: result.warnings?.map((w: any) => ({
-            message: w.message,
-            line: w.location?.line,
-            column: w.location?.column,
-          })) || [],
+          errors:
+            result.errors?.map((e: any) => ({
+              message: e.message,
+              line: e.location?.line,
+              column: e.location?.column,
+            })) || [],
+          warnings:
+            result.warnings?.map((w: any) => ({
+              message: w.message,
+              line: w.location?.line,
+              column: w.location?.column,
+            })) || [],
           timestamp: Date.now(),
         };
 

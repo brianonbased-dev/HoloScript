@@ -177,13 +177,21 @@
         },
         "holoscript.hololand.x402.defaultCurrency": {
           "type": "string",
-          "enum": ["ETH", "USDC", "DAI"],
+          "enum": [
+            "ETH",
+            "USDC",
+            "DAI"
+          ],
           "default": "ETH",
           "description": "Default cryptocurrency for x402 payments."
         },
         "holoscript.hololand.agentkit.network": {
           "type": "string",
-          "enum": ["base", "ethereum", "base-sepolia"],
+          "enum": [
+            "base",
+            "ethereum",
+            "base-sepolia"
+          ],
           "default": "base-sepolia",
           "description": "Blockchain network for AgentKit wallets."
         },
@@ -199,7 +207,12 @@
         },
         "holoscript.hololand.zora.network": {
           "type": "string",
-          "enum": ["base", "ethereum", "zora", "base-sepolia"],
+          "enum": [
+            "base",
+            "ethereum",
+            "zora",
+            "base-sepolia"
+          ],
           "default": "base",
           "description": "Network for Zora NFT minting."
         },
@@ -222,7 +235,11 @@
         },
         "holoscript.hololand.storyweaver.provider": {
           "type": "string",
-          "enum": ["openai", "anthropic", "gemini"],
+          "enum": [
+            "openai",
+            "anthropic",
+            "gemini"
+          ],
           "default": "openai",
           "description": "AI provider for StoryWeaver narrative generation."
         },
@@ -257,7 +274,12 @@
         },
         "holoscript.hololand.ar.defaultTrigger": {
           "type": "string",
-          "enum": ["qr", "nfc", "image", "location"],
+          "enum": [
+            "qr",
+            "nfc",
+            "image",
+            "location"
+          ],
           "default": "qr",
           "description": "Default AR portal trigger type."
         }

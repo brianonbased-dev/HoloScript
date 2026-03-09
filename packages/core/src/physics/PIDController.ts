@@ -328,7 +328,7 @@ class PIDLoop<T> {
     private readonly derivativeOnMeasurement: boolean,
     private readonly backCalcAntiWindup: boolean,
     private readonly backCalcGain: number,
-    math: PIDArithmetic<T>,
+    math: PIDArithmetic<T>
   ) {
     this.math = math;
     this.integral = math.zero();
@@ -373,7 +373,7 @@ class PIDLoop<T> {
     // Low-pass filter on derivative
     this.filteredDerivative = m.add(
       m.scale(this.filterAlpha, rawDerivative),
-      m.scale(1 - this.filterAlpha, this.filteredDerivative),
+      m.scale(1 - this.filterAlpha, this.filteredDerivative)
     );
     const dTerm = m.scale(kD, this.filteredDerivative);
 
@@ -400,16 +400,24 @@ class PIDLoop<T> {
   }
 
   /** Read-only integral accumulator. */
-  getIntegral(): T { return this.math.clone(this.integral); }
+  getIntegral(): T {
+    return this.math.clone(this.integral);
+  }
 
   /** Read-only derivative term. */
-  getDerivative(): T { return this.math.clone(this.filteredDerivative); }
+  getDerivative(): T {
+    return this.math.clone(this.filteredDerivative);
+  }
 
   /** Read-only previous error. */
-  getError(): T { return this.math.clone(this.prevError); }
+  getError(): T {
+    return this.math.clone(this.prevError);
+  }
 
   /** Read-only previous output. */
-  getOutput(): T { return this.math.clone(this.prevOutput); }
+  getOutput(): T {
+    return this.math.clone(this.prevOutput);
+  }
 
   /** Reset internal state (integral, derivative history). */
   reset(): void {
@@ -529,7 +537,7 @@ export class PIDController<T> {
       config.derivativeOnMeasurement,
       config.backCalculationAntiWindup,
       config.backCalculationGain,
-      math,
+      math
     );
 
     this.innerLoop = new PIDLoop<T>(
@@ -540,7 +548,7 @@ export class PIDController<T> {
       config.derivativeOnMeasurement,
       config.backCalculationAntiWindup,
       config.backCalculationGain,
-      math,
+      math
     );
 
     // Velocity ring buffer: 1 second of inner-loop samples
@@ -601,7 +609,10 @@ export class PIDController<T> {
     this.updateSetpointRamp(clampedDt);
 
     // --- Velocity estimation ---
-    const velocityEstimate = m.scale(1 / Math.max(clampedDt, 0.0001), m.sub(measurement, this.lastMeasurement));
+    const velocityEstimate = m.scale(
+      1 / Math.max(clampedDt, 0.0001),
+      m.sub(measurement, this.lastMeasurement)
+    );
     this.currentVelocityMagnitude = m.magnitude(velocityEstimate);
     this.velocityHistory.push(this.currentVelocityMagnitude);
     this.isVelocityExceeded = this.currentVelocityMagnitude > this.config.velocityLimit;
@@ -609,11 +620,7 @@ export class PIDController<T> {
     // --- Outer loop (position control) ---
     this.outerAccumulator += clampedDt;
     while (this.outerAccumulator >= this.outerDt) {
-      this.lastOuterOutput = this.outerLoop.update(
-        this.currentSetpoint,
-        measurement,
-        this.outerDt,
-      );
+      this.lastOuterOutput = this.outerLoop.update(this.currentSetpoint, measurement, this.outerDt);
       this.outerAccumulator -= this.outerDt;
       this.outerTickCount++;
     }
@@ -626,7 +633,7 @@ export class PIDController<T> {
       this.lastInnerOutput = this.innerLoop.update(
         this.lastOuterOutput,
         velocityEstimate,
-        this.innerDt,
+        this.innerDt
       );
       this.innerAccumulator -= this.innerDt;
       this.innerTickCount++;
@@ -660,17 +667,16 @@ export class PIDController<T> {
     this.updateSetpointRamp(clampedDt);
 
     // Velocity estimation
-    const velocityEstimate = m.scale(1 / Math.max(clampedDt, 0.0001), m.sub(measurement, this.lastMeasurement));
+    const velocityEstimate = m.scale(
+      1 / Math.max(clampedDt, 0.0001),
+      m.sub(measurement, this.lastMeasurement)
+    );
     this.currentVelocityMagnitude = m.magnitude(velocityEstimate);
     this.velocityHistory.push(this.currentVelocityMagnitude);
     this.isVelocityExceeded = this.currentVelocityMagnitude > this.config.velocityLimit;
 
     // Single PID update
-    this.lastOuterOutput = this.outerLoop.update(
-      this.currentSetpoint,
-      measurement,
-      clampedDt,
-    );
+    this.lastOuterOutput = this.outerLoop.update(this.currentSetpoint, measurement, clampedDt);
 
     this.lastInnerOutput = m.clone(this.lastOuterOutput);
     this.isSaturated = m.magnitude(this.lastInnerOutput) >= this.config.outputLimit * 0.99;
@@ -875,9 +881,7 @@ export interface PIDControllerTraitConfig {
 /**
  * Create a scalar PIDController from a trait config.
  */
-export function createScalarPIDController(
-  config: PIDControllerTraitConfig,
-): PIDController<number> {
+export function createScalarPIDController(config: PIDControllerTraitConfig): PIDController<number> {
   return new PIDController<number>(
     defaultPIDConfig('pid-scalar-' + config.id, 0, {
       outerGains: { kP: 2.0, kI: 0.1, kD: 0.5, ...config.outerGains },
@@ -889,7 +893,7 @@ export function createScalarPIDController(
       velocityLimit: config.velocityLimit ?? 50,
       derivativeFilterAlpha: config.derivativeFilterAlpha ?? 0.1,
     }),
-    ScalarArithmetic,
+    ScalarArithmetic
   );
 }
 
@@ -897,20 +901,24 @@ export function createScalarPIDController(
  * Create a Vector3 PIDController from a trait config.
  */
 export function createVector3PIDController(
-  config: PIDControllerTraitConfig,
+  config: PIDControllerTraitConfig
 ): PIDController<IVector3> {
   return new PIDController<IVector3>(
-    defaultPIDConfig('pid-vec3-' + config.id, { x: 0, y: 0, z: 0 }, {
-      outerGains: { kP: 2.0, kI: 0.1, kD: 0.5, ...config.outerGains },
-      innerGains: { kP: 1.0, kI: 0.0, kD: 0.1, ...config.innerGains },
-      timing: { innerHz: 200, outerHz: 60, ...config.timing },
-      outputLimit: config.outputLimit ?? 1000,
-      integralLimit: config.integralLimit ?? 100,
-      setpointRampRate: config.setpointRampRate ?? 0,
-      velocityLimit: config.velocityLimit ?? 50,
-      derivativeFilterAlpha: config.derivativeFilterAlpha ?? 0.1,
-    }),
-    Vector3Arithmetic,
+    defaultPIDConfig(
+      'pid-vec3-' + config.id,
+      { x: 0, y: 0, z: 0 },
+      {
+        outerGains: { kP: 2.0, kI: 0.1, kD: 0.5, ...config.outerGains },
+        innerGains: { kP: 1.0, kI: 0.0, kD: 0.1, ...config.innerGains },
+        timing: { innerHz: 200, outerHz: 60, ...config.timing },
+        outputLimit: config.outputLimit ?? 1000,
+        integralLimit: config.integralLimit ?? 100,
+        setpointRampRate: config.setpointRampRate ?? 0,
+        velocityLimit: config.velocityLimit ?? 50,
+        derivativeFilterAlpha: config.derivativeFilterAlpha ?? 0.1,
+      }
+    ),
+    Vector3Arithmetic
   );
 }
 
@@ -919,7 +927,7 @@ export function createVector3PIDController(
  * Dispatches on config.mode to create the appropriate controller type.
  */
 export function createPIDControllerTrait(
-  config: PIDControllerTraitConfig,
+  config: PIDControllerTraitConfig
 ): PIDController<number> | PIDController<IVector3> {
   if (config.mode === 'vector3') {
     return createVector3PIDController(config);

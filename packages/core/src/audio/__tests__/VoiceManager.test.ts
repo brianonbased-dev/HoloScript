@@ -39,8 +39,8 @@ describe('VoiceManager', () => {
   });
 
   it('toggleMute twice unmutes', () => {
-    vm.toggleMute();  // muted
-    vm.toggleMute();  // unmuted
+    vm.toggleMute(); // muted
+    vm.toggleMute(); // unmuted
     vm.setPushToTalkState(true);
     expect(mockTransport.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
   });

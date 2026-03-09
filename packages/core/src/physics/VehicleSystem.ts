@@ -15,18 +15,18 @@ import { IVector3 } from './PhysicsTypes';
 
 export interface WheelConfig {
   id: string;
-  connectionPoint: IVector3;        // Where the wheel connects to the chassis
-  direction: IVector3;               // Suspension direction (usually down: 0, -1, 0)
-  axle: IVector3;                    // Wheel axle direction (usually right: 1, 0, 0)
-  suspensionRestLength: number;      // Rest length of the suspension spring
-  suspensionStiffness: number;       // Spring constant
-  suspensionDamping: number;         // Damper coefficient
-  maxSuspensionTravel: number;       // Maximum compression/extension
+  connectionPoint: IVector3; // Where the wheel connects to the chassis
+  direction: IVector3; // Suspension direction (usually down: 0, -1, 0)
+  axle: IVector3; // Wheel axle direction (usually right: 1, 0, 0)
+  suspensionRestLength: number; // Rest length of the suspension spring
+  suspensionStiffness: number; // Spring constant
+  suspensionDamping: number; // Damper coefficient
+  maxSuspensionTravel: number; // Maximum compression/extension
   wheelRadius: number;
-  frictionSlip: number;              // Tire friction coefficient
-  isSteering: boolean;               // Whether this wheel steers
-  isDriving: boolean;                // Whether this wheel receives power
-  rollInfluence: number;             // Anti-roll bar (0 = no roll, 1 = full roll)
+  frictionSlip: number; // Tire friction coefficient
+  isSteering: boolean; // Whether this wheel steers
+  isDriving: boolean; // Whether this wheel receives power
+  rollInfluence: number; // Anti-roll bar (0 = no roll, 1 = full roll)
 }
 
 export interface VehicleDefinition {
@@ -34,9 +34,9 @@ export interface VehicleDefinition {
   chassisMass: number;
   chassisSize: IVector3;
   wheels: WheelConfig[];
-  maxSteerAngle: number;             // Maximum steering angle (radians)
-  maxEngineForce: number;            // Maximum drive force
-  maxBrakeForce: number;             // Maximum brake force
+  maxSteerAngle: number; // Maximum steering angle (radians)
+  maxEngineForce: number; // Maximum drive force
+  maxBrakeForce: number; // Maximum brake force
 }
 
 export interface WheelState {
@@ -45,9 +45,9 @@ export interface WheelState {
   suspensionForce: number;
   contactPoint: IVector3 | null;
   isGrounded: boolean;
-  rotation: number;                  // Spin angle (radians)
+  rotation: number; // Spin angle (radians)
   steerAngle: number;
-  skidFactor: number;               // 0 = full grip, 1 = full skid
+  skidFactor: number; // 0 = full grip, 1 = full skid
 }
 
 export interface VehicleState {
@@ -58,7 +58,7 @@ export interface VehicleState {
   linearVelocity: IVector3;
   angularVelocity: IVector3;
   wheels: WheelState[];
-  speed: number;                     // km/h
+  speed: number; // km/h
   engineForce: number;
   brakeForce: number;
   steerAngle: number;
@@ -70,8 +70,10 @@ export interface VehicleState {
 
 export function createDefaultCar(id: string): VehicleDefinition {
   const wheelConfig = (
-    x: number, z: number,
-    isSteering: boolean, isDriving: boolean
+    x: number,
+    z: number,
+    isSteering: boolean,
+    isDriving: boolean
   ): WheelConfig => ({
     id: `${id}_wheel_${x > 0 ? 'r' : 'l'}_${z > 0 ? 'f' : 'r'}`,
     connectionPoint: { x, y: -0.3, z },
@@ -93,10 +95,10 @@ export function createDefaultCar(id: string): VehicleDefinition {
     chassisMass: 1500,
     chassisSize: { x: 1.8, y: 0.6, z: 4.2 },
     wheels: [
-      wheelConfig(-0.8, 1.4, true, false),   // Front Left
-      wheelConfig(0.8, 1.4, true, false),    // Front Right
-      wheelConfig(-0.8, -1.4, false, true),  // Rear Left
-      wheelConfig(0.8, -1.4, false, true),   // Rear Right
+      wheelConfig(-0.8, 1.4, true, false), // Front Left
+      wheelConfig(0.8, 1.4, true, false), // Front Right
+      wheelConfig(-0.8, -1.4, false, true), // Rear Left
+      wheelConfig(0.8, -1.4, false, true), // Rear Right
     ],
     maxSteerAngle: 0.5,
     maxEngineForce: 3000,
@@ -106,8 +108,10 @@ export function createDefaultCar(id: string): VehicleDefinition {
 
 export function createTruck(id: string): VehicleDefinition {
   const wheelConfig = (
-    x: number, z: number,
-    isSteering: boolean, isDriving: boolean
+    x: number,
+    z: number,
+    isSteering: boolean,
+    isDriving: boolean
   ): WheelConfig => ({
     id: `${id}_wheel_${x > 0 ? 'r' : 'l'}_${z.toFixed(0)}`,
     connectionPoint: { x, y: -0.5, z },
@@ -153,7 +157,7 @@ export class VehicleSystem {
    * Create a vehicle from a definition at a given position.
    */
   createVehicle(definition: VehicleDefinition, position: IVector3): VehicleState {
-    const wheels: WheelState[] = definition.wheels.map(wc => ({
+    const wheels: WheelState[] = definition.wheels.map((wc) => ({
       config: wc,
       suspensionLength: wc.suspensionRestLength,
       suspensionForce: 0,
@@ -245,17 +249,16 @@ export class VehicleSystem {
       if (!wheel.isGrounded) continue;
 
       if (wheel.config.isDriving && vehicle.engineForce !== 0) {
-        const driveForce = vehicle.engineForce / vehicle.wheels.filter(w => w.config.isDriving).length;
-        vehicle.linearVelocity.x += forwardDir.x * driveForce / def.chassisMass * dt;
-        vehicle.linearVelocity.z += forwardDir.z * driveForce / def.chassisMass * dt;
+        const driveForce =
+          vehicle.engineForce / vehicle.wheels.filter((w) => w.config.isDriving).length;
+        vehicle.linearVelocity.x += ((forwardDir.x * driveForce) / def.chassisMass) * dt;
+        vehicle.linearVelocity.z += ((forwardDir.z * driveForce) / def.chassisMass) * dt;
       }
 
       if (vehicle.brakeForce > 0) {
-        const speed = Math.sqrt(
-          vehicle.linearVelocity.x ** 2 + vehicle.linearVelocity.z ** 2
-        );
+        const speed = Math.sqrt(vehicle.linearVelocity.x ** 2 + vehicle.linearVelocity.z ** 2);
         if (speed > 0.01) {
-          const brakeDec = Math.min(vehicle.brakeForce / def.chassisMass * dt, speed);
+          const brakeDec = Math.min((vehicle.brakeForce / def.chassisMass) * dt, speed);
           const factor = 1 - brakeDec / speed;
           vehicle.linearVelocity.x *= factor;
           vehicle.linearVelocity.z *= factor;
@@ -263,9 +266,7 @@ export class VehicleSystem {
       }
 
       // Wheel rotation (visual)
-      const wheelSpeed = Math.sqrt(
-        vehicle.linearVelocity.x ** 2 + vehicle.linearVelocity.z ** 2
-      );
+      const wheelSpeed = Math.sqrt(vehicle.linearVelocity.x ** 2 + vehicle.linearVelocity.z ** 2);
       wheel.rotation += (wheelSpeed / wheel.config.wheelRadius) * dt;
 
       // Skid factor
@@ -274,7 +275,7 @@ export class VehicleSystem {
     }
 
     // Apply gravity
-    const isGrounded = vehicle.wheels.some(w => w.isGrounded);
+    const isGrounded = vehicle.wheels.some((w) => w.isGrounded);
     if (!isGrounded) {
       vehicle.linearVelocity.y -= 9.81 * dt;
     } else {
@@ -289,9 +290,7 @@ export class VehicleSystem {
 
     // Steering yaw
     if (vehicle.steerAngle !== 0 && isGrounded) {
-      const speed = Math.sqrt(
-        vehicle.linearVelocity.x ** 2 + vehicle.linearVelocity.z ** 2
-      );
+      const speed = Math.sqrt(vehicle.linearVelocity.x ** 2 + vehicle.linearVelocity.z ** 2);
       const turnRate = vehicle.steerAngle * speed * 0.5;
       vehicle.angularVelocity.y = turnRate;
     } else {
@@ -304,9 +303,7 @@ export class VehicleSystem {
     vehicle.position.z += vehicle.linearVelocity.z * dt;
 
     // Compute speed in km/h
-    vehicle.speed = Math.sqrt(
-      vehicle.linearVelocity.x ** 2 + vehicle.linearVelocity.z ** 2
-    ) * 3.6;
+    vehicle.speed = Math.sqrt(vehicle.linearVelocity.x ** 2 + vehicle.linearVelocity.z ** 2) * 3.6;
 
     return vehicle;
   }
@@ -351,5 +348,4 @@ export class VehicleSystem {
     // Accumulated yaw approximation (simplified)
     return { x: Math.sin(yaw), y: 0, z: Math.cos(yaw) };
   }
-
 }

@@ -21,7 +21,9 @@ function funcNode(name: string, line = 1): ASTNode {
 describe('ReferenceGraph', () => {
   let graph: ReferenceGraph;
 
-  beforeEach(() => { graph = new ReferenceGraph(); });
+  beforeEach(() => {
+    graph = new ReferenceGraph();
+  });
 
   // ---------------------------------------------------------------------------
   // Definitions (via addDefinition + getDefinitions which returns Map)
@@ -45,7 +47,14 @@ describe('ReferenceGraph', () => {
   // ---------------------------------------------------------------------------
 
   it('addReference stores a reference', () => {
-    graph.addReference({ name: 'Player', type: 'orb', filePath: 'b.holo', line: 5, column: 10, context: 'usage' });
+    graph.addReference({
+      name: 'Player',
+      type: 'orb',
+      filePath: 'b.holo',
+      line: 5,
+      column: 10,
+      context: 'usage',
+    });
     expect(graph.getReferences()).toHaveLength(1);
   });
 

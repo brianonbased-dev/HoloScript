@@ -8,9 +8,19 @@ import { describe, it, expect } from 'vitest';
 import { NetworkInterpolation, NetworkSnapshot } from '../NetworkInterpolation';
 
 // ─── Helpers ────────────────────────────────────────────────────────
-function makeSnap(entityId: string, ts: number, x: number, y = 0, z = 0, vx?: number, vy?: number, vz?: number): NetworkSnapshot {
+function makeSnap(
+  entityId: string,
+  ts: number,
+  x: number,
+  y = 0,
+  z = 0,
+  vx?: number,
+  vy?: number,
+  vz?: number
+): NetworkSnapshot {
   return {
-    entityId, timestamp: ts,
+    entityId,
+    timestamp: ts,
     position: { x, y, z },
     rotation: { x: 0, y: 0, z: 0, w: 1 },
     velocity: vx !== undefined ? { x: vx, y: vy ?? 0, z: vz ?? 0 } : undefined,

@@ -251,9 +251,7 @@ describe('useAssetLibrary', () => {
         await result.current.search('robot', 'model' as AssetCategory);
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        '/api/assets?q=robot&category=model&page=1'
-      );
+      expect(mockFetch).toHaveBeenCalledWith('/api/assets?q=robot&category=model&page=1');
     });
 
     it('should update query state after search', async () => {

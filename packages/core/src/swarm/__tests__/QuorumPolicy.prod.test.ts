@@ -4,7 +4,9 @@
 import { describe, it, expect } from 'vitest';
 import { QuorumPolicy } from '../QuorumPolicy';
 
-function make(cfg = {}) { return new QuorumPolicy(cfg); }
+function make(cfg = {}) {
+  return new QuorumPolicy(cfg);
+}
 
 describe('QuorumPolicy — defaults', () => {
   it('constructs with no args', () => expect(() => make()).not.toThrow());
@@ -12,7 +14,8 @@ describe('QuorumPolicy — defaults', () => {
   it('default optimalSize=5', () => expect(make().getConfig().optimalSize).toBe(5));
   it('default maximumSize=50', () => expect(make().getConfig().maximumSize).toBe(50));
   it('default quorumPercentage=0.5', () => expect(make().getConfig().quorumPercentage).toBe(0.5));
-  it('default requireQuorumForOperations=true', () => expect(make().getConfig().requireQuorumForOperations).toBe(true));
+  it('default requireQuorumForOperations=true', () =>
+    expect(make().getConfig().requireQuorumForOperations).toBe(true));
 });
 
 describe('QuorumPolicy — config validation', () => {
@@ -61,34 +64,41 @@ describe('QuorumPolicy — setMemberCount / canJoin / canLeave', () => {
 describe('QuorumPolicy — hasQuorum', () => {
   // Default: optimal=5, quorumPct=0.5 → required = ceil(5*0.5)=3, effective=max(2,3)=3
   it('false when below quorum threshold', () => {
-    const p = make(); p.setMemberCount(2);
+    const p = make();
+    p.setMemberCount(2);
     expect(p.hasQuorum()).toBe(false);
   });
   it('true when at quorum threshold (3)', () => {
-    const p = make(); p.setMemberCount(3);
+    const p = make();
+    p.setMemberCount(3);
     expect(p.hasQuorum()).toBe(true);
   });
   it('true at and above quorum threshold', () => {
-    const p = make(); p.setMemberCount(10);
+    const p = make();
+    p.setMemberCount(10);
     expect(p.hasQuorum()).toBe(true);
   });
   it('quorumPct=0 → hasQuorum when at minimumSize', () => {
-    const p = make({ quorumPercentage: 0 }); p.setMemberCount(2);
+    const p = make({ quorumPercentage: 0 });
+    p.setMemberCount(2);
     expect(p.hasQuorum()).toBe(true);
   });
 });
 
 describe('QuorumPolicy — canOperate', () => {
   it('requires quorum when requireQuorumForOperations=true', () => {
-    const p = make({ requireQuorumForOperations: true }); p.setMemberCount(1);
+    const p = make({ requireQuorumForOperations: true });
+    p.setMemberCount(1);
     expect(p.canOperate()).toBe(false);
   });
   it('only needs >0 when requireQuorumForOperations=false', () => {
-    const p = make({ requireQuorumForOperations: false }); p.setMemberCount(1);
+    const p = make({ requireQuorumForOperations: false });
+    p.setMemberCount(1);
     expect(p.canOperate()).toBe(true);
   });
   it('0 members cannot operate regardless', () => {
-    const p = make({ requireQuorumForOperations: false }); p.setMemberCount(0);
+    const p = make({ requireQuorumForOperations: false });
+    p.setMemberCount(0);
     expect(p.canOperate()).toBe(false);
   });
 });
@@ -97,7 +107,7 @@ describe('QuorumPolicy — getStatus', () => {
   const cases: [number, string][] = [
     [0, 'below-minimum'],
     [1, 'below-minimum'],
-    [2, 'quorum'],  // at minimumSize=2, below optimalSize=5
+    [2, 'quorum'], // at minimumSize=2, below optimalSize=5
     [4, 'quorum'],
     [5, 'optimal'], // at optimalSize
     [20, 'optimal'], // above but within maximumSize
@@ -105,7 +115,8 @@ describe('QuorumPolicy — getStatus', () => {
   ];
   for (const [count, status] of cases) {
     it(`${count} members → ${status}`, () => {
-      const p = make(); p.setMemberCount(count);
+      const p = make();
+      p.setMemberCount(count);
       expect(p.getStatus()).toBe(status);
     });
   }
@@ -113,7 +124,8 @@ describe('QuorumPolicy — getStatus', () => {
 
 describe('QuorumPolicy — getState', () => {
   it('returns all required fields', () => {
-    const p = make(); p.setMemberCount(3);
+    const p = make();
+    p.setMemberCount(3);
     const s = p.getState();
     expect(s).toHaveProperty('currentSize', 3);
     expect(s).toHaveProperty('status');
@@ -123,58 +135,82 @@ describe('QuorumPolicy — getState', () => {
     expect(s).toHaveProperty('spotsAvailable');
   });
   it('spotsAvailable = maximumSize - currentSize', () => {
-    const p = make({ maximumSize: 50 }); p.setMemberCount(30);
+    const p = make({ maximumSize: 50 });
+    p.setMemberCount(30);
     expect(p.getState().spotsAvailable).toBe(20);
   });
   it('requiredForQuorum=0 when already has quorum', () => {
-    const p = make(); p.setMemberCount(10);
+    const p = make();
+    p.setMemberCount(10);
     expect(p.getState().requiredForQuorum).toBe(0);
   });
   it('requiredForQuorum>0 when below quorum', () => {
-    const p = make(); p.setMemberCount(1);
+    const p = make();
+    p.setMemberCount(1);
     expect(p.getState().requiredForQuorum).toBeGreaterThan(0);
   });
 });
 
 describe('QuorumPolicy — shouldRecruit / shouldSplit', () => {
   it('shouldRecruit=true below optimalSize', () => {
-    const p = make(); p.setMemberCount(3);
+    const p = make();
+    p.setMemberCount(3);
     expect(p.shouldRecruit()).toBe(true);
   });
   it('shouldRecruit=false at optimalSize', () => {
-    const p = make(); p.setMemberCount(5);
+    const p = make();
+    p.setMemberCount(5);
     expect(p.shouldRecruit()).toBe(false);
   });
   it('shouldSplit=false below maximumSize', () => {
-    const p = make({ maximumSize: 50 }); p.setMemberCount(49);
+    const p = make({ maximumSize: 50 });
+    p.setMemberCount(49);
     expect(p.shouldSplit()).toBe(false);
   });
   it('shouldSplit=true above maximumSize', () => {
-    const p = make({ maximumSize: 50 }); p.setMemberCount(51);
+    const p = make({ maximumSize: 50 });
+    p.setMemberCount(51);
     expect(p.shouldSplit()).toBe(true);
   });
 });
 
 describe('QuorumPolicy — getHealthScore', () => {
-  it('0 members → health=0', () => { const p = make(); p.setMemberCount(0); expect(p.getHealthScore()).toBe(0); });
-  it('at optimal → health=1', () => { const p = make(); p.setMemberCount(5); expect(p.getHealthScore()).toBe(1); });
-  it('above optimal (within max) → health=1', () => { const p = make(); p.setMemberCount(20); expect(p.getHealthScore()).toBe(1); });
+  it('0 members → health=0', () => {
+    const p = make();
+    p.setMemberCount(0);
+    expect(p.getHealthScore()).toBe(0);
+  });
+  it('at optimal → health=1', () => {
+    const p = make();
+    p.setMemberCount(5);
+    expect(p.getHealthScore()).toBe(1);
+  });
+  it('above optimal (within max) → health=1', () => {
+    const p = make();
+    p.setMemberCount(20);
+    expect(p.getHealthScore()).toBe(1);
+  });
   it('between min and optimal → 0.5 < health < 1', () => {
-    const p = make(); p.setMemberCount(3);
+    const p = make();
+    p.setMemberCount(3);
     expect(p.getHealthScore()).toBeGreaterThan(0.5);
     expect(p.getHealthScore()).toBeLessThan(1);
   });
   it('below minimum → health < 0.5', () => {
-    const p = make({ minimumSize: 5 }); p.setMemberCount(2);
+    const p = make({ minimumSize: 5 });
+    p.setMemberCount(2);
     expect(p.getHealthScore()).toBeLessThan(0.5);
     expect(p.getHealthScore()).toBeGreaterThan(0);
   });
   it('above maximum → health still >= 0.5 (degraded, not critical)', () => {
-    const p = make({ maximumSize: 10 }); p.setMemberCount(15);
+    const p = make({ maximumSize: 10 });
+    p.setMemberCount(15);
     expect(p.getHealthScore()).toBeGreaterThanOrEqual(0.5);
   });
   it('getConfig returns immutable copy', () => {
-    const p = make(); const c = p.getConfig(); c.minimumSize = 99;
+    const p = make();
+    const c = p.getConfig();
+    c.minimumSize = 99;
     expect(p.getConfig().minimumSize).toBe(2);
   });
 });

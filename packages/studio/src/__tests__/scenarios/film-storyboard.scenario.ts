@@ -7,19 +7,40 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  sceneDuration, totalFilmDuration, shotCountBySize,
-  panelsByMovement, scenesByAct, averageShotDuration,
-  threeActBalance, isBalancedStructure,
-  uniqueLocations, totalProductionDays, totalProductionHours,
-  generateShotList, filmPacing, previsCamera,
-  type Scene, type StoryboardPanel, type ProductionDay, type CameraKeyframe,
+  sceneDuration,
+  totalFilmDuration,
+  shotCountBySize,
+  panelsByMovement,
+  scenesByAct,
+  averageShotDuration,
+  threeActBalance,
+  isBalancedStructure,
+  uniqueLocations,
+  totalProductionDays,
+  totalProductionHours,
+  generateShotList,
+  filmPacing,
+  previsCamera,
+  type Scene,
+  type StoryboardPanel,
+  type ProductionDay,
+  type CameraKeyframe,
 } from '@/lib/filmStoryboard';
 
 const makePanel = (overrides: Partial<StoryboardPanel> = {}): StoryboardPanel => ({
-  id: 'p1', sceneNumber: 1, shotNumber: 1, shotSize: 'medium',
-  cameraMovement: 'static', lighting: 'three-point',
-  description: '', dialogue: '', durationSec: 5,
-  characters: [], location: 'studio', notes: '', ...overrides,
+  id: 'p1',
+  sceneNumber: 1,
+  shotNumber: 1,
+  shotSize: 'medium',
+  cameraMovement: 'static',
+  lighting: 'three-point',
+  description: '',
+  dialogue: '',
+  durationSec: 5,
+  characters: [],
+  location: 'studio',
+  notes: '',
+  ...overrides,
 });
 
 describe('Scenario: Film Storyboard — Shot Analysis', () => {
@@ -48,9 +69,36 @@ describe('Scenario: Film Storyboard — Shot Analysis', () => {
 
 describe('Scenario: Film Storyboard — Scenes & Narrative', () => {
   const scenes: Scene[] = [
-    { id: 's1', number: 1, name: 'Opening', act: 'setup', location: 'Park', timeOfDay: 'dawn', panels: [makePanel({ durationSec: 30 }), makePanel({ durationSec: 20 })], emotionalTone: 'hopeful' },
-    { id: 's2', number: 2, name: 'Chase', act: 'confrontation', location: 'Street', timeOfDay: 'day', panels: [makePanel({ durationSec: 60 }), makePanel({ durationSec: 40 })], emotionalTone: 'tense' },
-    { id: 's3', number: 3, name: 'Finale', act: 'resolution', location: 'Rooftop', timeOfDay: 'dusk', panels: [makePanel({ durationSec: 25 }), makePanel({ durationSec: 25 })], emotionalTone: 'cathartic' },
+    {
+      id: 's1',
+      number: 1,
+      name: 'Opening',
+      act: 'setup',
+      location: 'Park',
+      timeOfDay: 'dawn',
+      panels: [makePanel({ durationSec: 30 }), makePanel({ durationSec: 20 })],
+      emotionalTone: 'hopeful',
+    },
+    {
+      id: 's2',
+      number: 2,
+      name: 'Chase',
+      act: 'confrontation',
+      location: 'Street',
+      timeOfDay: 'day',
+      panels: [makePanel({ durationSec: 60 }), makePanel({ durationSec: 40 })],
+      emotionalTone: 'tense',
+    },
+    {
+      id: 's3',
+      number: 3,
+      name: 'Finale',
+      act: 'resolution',
+      location: 'Rooftop',
+      timeOfDay: 'dusk',
+      panels: [makePanel({ durationSec: 25 }), makePanel({ durationSec: 25 })],
+      emotionalTone: 'cathartic',
+    },
   ];
 
   it('sceneDuration(Opening) = 50 sec', () => {
@@ -68,16 +116,16 @@ describe('Scenario: Film Storyboard — Scenes & Narrative', () => {
   it('threeActBalance is approximately 25/50/25', () => {
     const balance = threeActBalance(scenes);
     expect(balance.setup).toBeCloseTo(0.25, 1);
-    expect(balance.confrontation).toBeCloseTo(0.50, 1);
+    expect(balance.confrontation).toBeCloseTo(0.5, 1);
     expect(balance.resolution).toBeCloseTo(0.25, 1);
   });
 
   it('isBalancedStructure returns true for classic structure', () => {
-    expect(isBalancedStructure({ setup: 0.25, confrontation: 0.50, resolution: 0.25 })).toBe(true);
+    expect(isBalancedStructure({ setup: 0.25, confrontation: 0.5, resolution: 0.25 })).toBe(true);
   });
 
   it('isBalancedStructure returns false for unbalanced', () => {
-    expect(isBalancedStructure({ setup: 0.05, confrontation: 0.85, resolution: 0.10 })).toBe(false);
+    expect(isBalancedStructure({ setup: 0.05, confrontation: 0.85, resolution: 0.1 })).toBe(false);
   });
 
   it('uniqueLocations returns 3 distinct locations', () => {
@@ -87,9 +135,30 @@ describe('Scenario: Film Storyboard — Scenes & Narrative', () => {
 
 describe('Scenario: Film Storyboard — Production', () => {
   const days: ProductionDay[] = [
-    { date: '2026-03-01', scenes: ['s1'], castRequired: ['Lead'], estimatedHours: 8, location: 'Park', weatherDependent: true },
-    { date: '2026-03-02', scenes: ['s2'], castRequired: ['Lead', 'Villain'], estimatedHours: 12, location: 'Street', weatherDependent: true },
-    { date: '2026-03-03', scenes: ['s3'], castRequired: ['Lead'], estimatedHours: 6, location: 'Studio', weatherDependent: false },
+    {
+      date: '2026-03-01',
+      scenes: ['s1'],
+      castRequired: ['Lead'],
+      estimatedHours: 8,
+      location: 'Park',
+      weatherDependent: true,
+    },
+    {
+      date: '2026-03-02',
+      scenes: ['s2'],
+      castRequired: ['Lead', 'Villain'],
+      estimatedHours: 12,
+      location: 'Street',
+      weatherDependent: true,
+    },
+    {
+      date: '2026-03-03',
+      scenes: ['s3'],
+      castRequired: ['Lead'],
+      estimatedHours: 6,
+      location: 'Studio',
+      weatherDependent: false,
+    },
   ];
 
   it('totalProductionDays = 3', () => {
@@ -102,8 +171,29 @@ describe('Scenario: Film Storyboard — Production', () => {
 
   it('shot list export — generate structured shot list per scene', () => {
     const scenes: Scene[] = [
-      { id: 's1', number: 1, name: 'Opening', act: 'setup', location: 'Park', timeOfDay: 'dawn', panels: [makePanel({ shotNumber: 1, shotSize: 'wide' }), makePanel({ shotNumber: 2, shotSize: 'close-up' })], emotionalTone: 'hopeful' },
-      { id: 's2', number: 2, name: 'Chase', act: 'confrontation', location: 'Street', timeOfDay: 'day', panels: [makePanel({ shotNumber: 1, shotSize: 'medium' })], emotionalTone: 'tense' },
+      {
+        id: 's1',
+        number: 1,
+        name: 'Opening',
+        act: 'setup',
+        location: 'Park',
+        timeOfDay: 'dawn',
+        panels: [
+          makePanel({ shotNumber: 1, shotSize: 'wide' }),
+          makePanel({ shotNumber: 2, shotSize: 'close-up' }),
+        ],
+        emotionalTone: 'hopeful',
+      },
+      {
+        id: 's2',
+        number: 2,
+        name: 'Chase',
+        act: 'confrontation',
+        location: 'Street',
+        timeOfDay: 'day',
+        panels: [makePanel({ shotNumber: 1, shotSize: 'medium' })],
+        emotionalTone: 'tense',
+      },
     ];
     const shotList = generateShotList(scenes);
     expect(shotList).toHaveLength(3);

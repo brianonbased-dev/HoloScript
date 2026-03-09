@@ -31,6 +31,7 @@ object "ScoreText" {
 ```
 
 **Cannot implement**:
+
 - State management (no score/timer tracking)
 - Actions (incrementScore is just a string)
 - Reactive UI (text doesn't update)
@@ -174,6 +175,7 @@ composition "TargetPracticeGame" {
 ```
 
 **Advantages**:
+
 - ✅ Full state management
 - ✅ Action functions
 - ✅ Computed values
@@ -369,6 +371,7 @@ composition TargetPracticeGameVR {
 ```
 
 **Advantages**:
+
 - ✅ Advanced trait system
 - ✅ State persistence (`save_state`)
 - ✅ Entity-component architecture
@@ -380,17 +383,17 @@ composition TargetPracticeGameVR {
 
 ## Key Differences Summary
 
-| Feature | `.hs` | `.hsplus` | `.holo` |
-|---------|-------|-----------|---------|
-| State management | ✗ | ✓ | ✓ (traits) |
-| Actions | ✗ | ✓ | ✓ (methods) |
-| Reactive UI | ✗ | ✓ (bind) | ✓ (on_update) |
-| Templates | ✗ | ✓ | ✓ (object pattern) |
-| VR interaction | ✗ | ✓ | ✓ (advanced) |
-| Event handlers | ✗ | ✓ | ✓ |
-| Particle effects | ✗ | ✗ | ✓ |
-| State persistence | ✗ | ✓ | ✓ (trait) |
-| Lines of code | ~60 | ~180 | ~280 |
+| Feature           | `.hs` | `.hsplus` | `.holo`            |
+| ----------------- | ----- | --------- | ------------------ |
+| State management  | ✗     | ✓         | ✓ (traits)         |
+| Actions           | ✗     | ✓         | ✓ (methods)        |
+| Reactive UI       | ✗     | ✓ (bind)  | ✓ (on_update)      |
+| Templates         | ✗     | ✓         | ✓ (object pattern) |
+| VR interaction    | ✗     | ✓         | ✓ (advanced)       |
+| Event handlers    | ✗     | ✓         | ✓                  |
+| Particle effects  | ✗     | ✗         | ✓                  |
+| State persistence | ✗     | ✓         | ✓ (trait)          |
+| Lines of code     | ~60   | ~180      | ~280               |
 
 ## When to Use Each Format
 

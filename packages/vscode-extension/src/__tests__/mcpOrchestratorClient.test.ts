@@ -233,9 +233,7 @@ describe('McpOrchestratorClient', () => {
       await vi.advanceTimersByTimeAsync(20000);
 
       const call = mockFetch.mock.calls[0];
-      expect(call[0]).toBe(
-        'http://localhost:5567/servers/holoscript-vscode-abcdef12/heartbeat'
-      );
+      expect(call[0]).toBe('http://localhost:5567/servers/holoscript-vscode-abcdef12/heartbeat');
     });
   });
 
@@ -336,9 +334,7 @@ describe('McpOrchestratorClient', () => {
 
     it('should fetch and normalize servers from object response', async () => {
       const serverData = {
-        servers: [
-          { id: 'srv-2', name: 'Second', status: 'inactive', tools: [] },
-        ],
+        servers: [{ id: 'srv-2', name: 'Second', status: 'inactive', tools: [] }],
       };
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -390,7 +386,11 @@ describe('McpOrchestratorClient', () => {
   describe('getServerTools', () => {
     it('should fetch tools for a given server', async () => {
       const toolsData = [
-        { name: 'search_knowledge', description: 'Semantic search', inputSchema: { type: 'object' } },
+        {
+          name: 'search_knowledge',
+          description: 'Semantic search',
+          inputSchema: { type: 'object' },
+        },
         { name: 'add_pattern' },
       ];
       mockFetch.mockResolvedValueOnce({
@@ -451,7 +451,8 @@ describe('McpOrchestratorClient', () => {
     it('should return ok status for healthy orchestrator', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ status: 'ok', uptime: 12345, serverCount: 8, version: '1.0.0' }),
+        json: () =>
+          Promise.resolve({ status: 'ok', uptime: 12345, serverCount: 8, version: '1.0.0' }),
       });
 
       const health = await client.getHealth();

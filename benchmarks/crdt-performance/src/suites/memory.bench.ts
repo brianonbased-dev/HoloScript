@@ -20,10 +20,7 @@ function measureMemory(): NodeJS.MemoryUsage {
   return process.memoryUsage();
 }
 
-async function runMemoryTest(
-  AdapterClass: any,
-  operationCount: number
-): Promise<MemoryResult> {
+async function runMemoryTest(AdapterClass: any, operationCount: number): Promise<MemoryResult> {
   const adapter = new AdapterClass();
 
   const before = measureMemory();

@@ -42,7 +42,11 @@ export function BrittneyAvatarMesh({ isSpeaking }: BrittneyAvatarMeshProps) {
     // Jaw open/close when speaking
     if (jawRef.current) {
       const target = isSpeaking ? 0.012 + Math.abs(Math.sin(t.current * 12)) * 0.015 : 0;
-      jawRef.current.scale.y = THREE.MathUtils.lerp(jawRef.current.scale.y, target === 0 ? 1 : 1 + target * 4, 0.25);
+      jawRef.current.scale.y = THREE.MathUtils.lerp(
+        jawRef.current.scale.y,
+        target === 0 ? 1 : 1 + target * 4,
+        0.25
+      );
     }
   });
 
@@ -51,7 +55,13 @@ export function BrittneyAvatarMesh({ isSpeaking }: BrittneyAvatarMeshProps) {
       {/* Aura glow sphere */}
       <mesh ref={glowRef} position={[0, 0.1, 0]}>
         <sphereGeometry args={[0.12, 16, 16]} />
-        <meshBasicMaterial color="#6366f1" transparent opacity={0.1} depthWrite={false} side={THREE.BackSide} />
+        <meshBasicMaterial
+          color="#6366f1"
+          transparent
+          opacity={0.1}
+          depthWrite={false}
+          side={THREE.BackSide}
+        />
       </mesh>
 
       {/* Body / torso */}

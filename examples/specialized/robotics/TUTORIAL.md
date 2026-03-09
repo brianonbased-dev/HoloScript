@@ -40,6 +40,7 @@ link#base_link @fixed {
 ```
 
 **Three components**:
+
 - `visual` - What you see
 - `collision` - Physics shape
 - `inertial` - Mass properties

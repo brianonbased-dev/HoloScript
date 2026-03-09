@@ -223,7 +223,9 @@ export async function example5_MultiMaterialObject(): Promise<void> {
   const exporter = new USDZExporter(options);
   const result = await exporter.export(sceneGraph);
 
-  console.log(`Complex object: ${result.stats.materialCount} materials, ${result.stats.usdzSize} bytes`);
+  console.log(
+    `Complex object: ${result.stats.materialCount} materials, ${result.stats.usdzSize} bytes`
+  );
 }
 
 // ============================================================================
@@ -255,7 +257,9 @@ export async function example6_PerformanceComparison(): Promise<void> {
     const result = await exporter.export(sceneGraph);
     const endTime = performance.now();
 
-    console.log(`${quality}: ${result.stats.usdzSize} bytes in ${(endTime - startTime).toFixed(2)}ms`);
+    console.log(
+      `${quality}: ${result.stats.usdzSize} bytes in ${(endTime - startTime).toFixed(2)}ms`
+    );
   }
 }
 

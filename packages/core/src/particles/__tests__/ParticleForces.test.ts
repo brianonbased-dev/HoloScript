@@ -18,7 +18,9 @@ function makeParticle(overrides: Partial<Particle> = {}): Particle {
 describe('ParticleForceSystem', () => {
   let system: ParticleForceSystem;
 
-  beforeEach(() => { system = new ParticleForceSystem(); });
+  beforeEach(() => {
+    system = new ParticleForceSystem();
+  });
 
   // Management
   it('addForce / getForceCount', () => {

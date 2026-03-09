@@ -354,9 +354,7 @@ describe('Debug mode (covers log() path)', () => {
     (parser as any).fallbackParser = new HoloScriptPlusParser({});
     (parser as any).isInitialized = true;
 
-    const files: FileInput[] = [
-      { path: 'debug.holo', content: `orb "Debug" { color: "red" }` },
-    ];
+    const files: FileInput[] = [{ path: 'debug.holo', content: `orb "Debug" { color: "red" }` }];
 
     // Should not throw even with debug enabled
     const result = await parser.parseFiles(files);
@@ -370,7 +368,9 @@ describe('removeAllListeners()', () => {
   it('removes specific event listeners', async () => {
     const parser = createSequentialParser({ enableProgress: true });
     let eventCount = 0;
-    const handler = () => { eventCount++; };
+    const handler = () => {
+      eventCount++;
+    };
     parser.on('progress', handler);
     parser.off('progress', handler);
 
@@ -384,7 +384,9 @@ describe('removeAllListeners()', () => {
   it('removeAllListeners() without argument clears all listeners', async () => {
     const parser = createSequentialParser({ enableProgress: true });
     let eventCount = 0;
-    parser.on('progress', () => { eventCount++; });
+    parser.on('progress', () => {
+      eventCount++;
+    });
     // Remove all without specifying event
     (parser as any).removeAllListeners();
 
@@ -399,8 +401,12 @@ describe('removeAllListeners()', () => {
     const parser = createSequentialParser({ enableProgress: true });
     let progressCount = 0;
     let otherCount = 0;
-    parser.on('progress', () => { progressCount++; });
-    parser.on('done', () => { otherCount++; });
+    parser.on('progress', () => {
+      progressCount++;
+    });
+    parser.on('done', () => {
+      otherCount++;
+    });
     (parser as any).removeAllListeners('progress');
 
     await parser.parseFiles([{ path: 'a.holo', content: `orb "A" {}` }]);

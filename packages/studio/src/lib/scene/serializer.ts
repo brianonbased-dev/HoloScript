@@ -15,7 +15,7 @@
  * simple base64 (no compression).
  */
 
-import type { SceneNode, TraitConfig } from '@/lib/store';
+import type { SceneNode, TraitConfig } from '@/lib/stores';
 import type { Asset } from '@/components/assets/useAssetStore';
 
 // ─── Format types ────────────────────────────────────────────────────────────
@@ -154,10 +154,7 @@ export async function encodeSceneToURL(scene: HoloScene): Promise<string> {
     return b64;
   } catch {
     // Fallback: plain base64 (no compression)
-    return btoa(encodeURIComponent(json))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
+    return btoa(encodeURIComponent(json)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
   }
 }
 
@@ -165,7 +162,7 @@ export async function encodeSceneToURL(scene: HoloScene): Promise<string> {
 export async function decodeSceneFromURL(encoded: string): Promise<DeserializeResult> {
   try {
     const b64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
-    const binary = atob(b64 + '=='.slice((b64.length % 4) || 4));
+    const binary = atob(b64 + '=='.slice(b64.length % 4 || 4));
     const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
 
     try {
@@ -177,7 +174,7 @@ export async function decodeSceneFromURL(encoded: string): Promise<DeserializeRe
       return deserializeScene(raw);
     } catch {
       // Fallback: assume plain base64
-      const raw = decodeURIComponent(atob(b64 + '=='.slice((b64.length % 4) || 4)));
+      const raw = decodeURIComponent(atob(b64 + '=='.slice(b64.length % 4 || 4)));
       return deserializeScene(raw);
     }
   } catch (e) {

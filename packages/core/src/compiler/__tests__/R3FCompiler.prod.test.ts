@@ -6,7 +6,7 @@
  * ENVIRONMENT_PRESETS (lighting configs), lights, camera, spatial groups,
  * traits, options, and default lighting injection.
  */
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { R3FCompiler, MATERIAL_PRESETS, ENVIRONMENT_PRESETS } from '../R3FCompiler';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
@@ -16,7 +16,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -91,24 +90,18 @@ describe('R3FCompiler — Production', () => {
 
     it('injects default lighting when no lights provided', () => {
       const result = compiler.compileComposition(makeComp());
-      const hasLight = result.children!.some(c =>
-        c.type.toLowerCase().includes('light')
-      );
+      const hasLight = result.children!.some((c) => c.type.toLowerCase().includes('light'));
       expect(hasLight).toBe(true);
     });
 
     it('compiles a single object into a child node', () => {
-      const result = compiler.compileComposition(
-        makeComp({ objects: [makeObj('cube')] })
-      );
+      const result = compiler.compileComposition(makeComp({ objects: [makeObj('cube')] }));
       expect(result.children!.length).toBeGreaterThan(0);
     });
 
     it('compiled object preserves name as id', () => {
-      const result = compiler.compileComposition(
-        makeComp({ objects: [makeObj('myBox')] })
-      );
-      const objNode = result.children!.find(c => c.id === 'myBox');
+      const result = compiler.compileComposition(makeComp({ objects: [makeObj('myBox')] }));
+      const objNode = result.children!.find((c) => c.id === 'myBox');
       expect(objNode).toBeDefined();
     });
 
@@ -116,7 +109,7 @@ describe('R3FCompiler — Production', () => {
       const result = compiler.compileComposition(
         makeComp({ objects: [makeObj('a'), makeObj('b')] })
       );
-      const children = result.children!.filter(c => c.id === 'a' || c.id === 'b');
+      const children = result.children!.filter((c) => c.id === 'a' || c.id === 'b');
       expect(children.length).toBe(2);
     });
 
@@ -124,17 +117,23 @@ describe('R3FCompiler — Production', () => {
       const result = compiler.compileComposition(
         makeComp({ objects: [makeObj('ball', 'sphere')] })
       );
-      expect(result.children!.some(c => c.id === 'ball')).toBe(true);
+      expect(result.children!.some((c) => c.id === 'ball')).toBe(true);
     });
 
     // ─── Lights ────────────────────────────────────────────────────────────
     it('compiles a directional light', () => {
       const result = compiler.compileComposition(
         makeComp({
-          lights: [{ name: 'sun', lightType: 'directional', properties: [{ key: 'intensity', value: 1.5 }] }],
+          lights: [
+            {
+              name: 'sun',
+              lightType: 'directional',
+              properties: [{ key: 'intensity', value: 1.5 }],
+            },
+          ],
         })
       );
-      const light = result.children!.find(c => c.type === 'directionalLight');
+      const light = result.children!.find((c) => c.type === 'directionalLight');
       expect(light).toBeDefined();
       expect(light!.props.intensity).toBe(1.5);
     });
@@ -142,10 +141,12 @@ describe('R3FCompiler — Production', () => {
     it('compiles a point light', () => {
       const result = compiler.compileComposition(
         makeComp({
-          lights: [{ name: 'lamp', lightType: 'point', properties: [{ key: 'color', value: '#ff0000' }] }],
+          lights: [
+            { name: 'lamp', lightType: 'point', properties: [{ key: 'color', value: '#ff0000' }] },
+          ],
         })
       );
-      const light = result.children!.find(c => c.type === 'pointLight');
+      const light = result.children!.find((c) => c.type === 'pointLight');
       expect(light).toBeDefined();
     });
 
@@ -155,7 +156,7 @@ describe('R3FCompiler — Production', () => {
           lights: [{ name: 'spot', lightType: 'spot', properties: [] }],
         })
       );
-      const light = result.children!.find(c => c.type === 'spotLight');
+      const light = result.children!.find((c) => c.type === 'spotLight');
       expect(light).toBeDefined();
     });
 
@@ -166,7 +167,7 @@ describe('R3FCompiler — Production', () => {
           camera: { cameraType: 'perspective', properties: [{ key: 'fov', value: 75 }] },
         })
       );
-      const cam = result.children!.find(c => c.type === 'Camera');
+      const cam = result.children!.find((c) => c.type === 'Camera');
       expect(cam).toBeDefined();
       expect(cam!.props.fov).toBe(75);
     });
@@ -175,37 +176,39 @@ describe('R3FCompiler — Production', () => {
     it('compiles spatial groups', () => {
       const result = compiler.compileComposition(
         makeComp({
-          spatialGroups: [{
-            name: 'grp1',
-            objects: [makeObj('child')],
-            properties: [],
-          }],
+          spatialGroups: [
+            {
+              name: 'grp1',
+              objects: [makeObj('child')],
+              properties: [],
+            },
+          ],
         })
       );
-      const grp = result.children!.find(c => c.id === 'grp1');
+      const grp = result.children!.find((c) => c.id === 'grp1');
       expect(grp).toBeDefined();
     });
 
     it('nested objects inside group produce children', () => {
       const result = compiler.compileComposition(
         makeComp({
-          spatialGroups: [{
-            name: 'grp1',
-            objects: [makeObj('inner')],
-            properties: [],
-          }],
+          spatialGroups: [
+            {
+              name: 'grp1',
+              objects: [makeObj('inner')],
+              properties: [],
+            },
+          ],
         })
       );
-      const grp = result.children!.find(c => c.id === 'grp1');
+      const grp = result.children!.find((c) => c.id === 'grp1');
       expect(grp).toBeDefined();
       expect(Array.isArray(grp!.children)).toBe(true);
     });
 
     // ─── Environment ────────────────────────────────────────────────────────
     it('compiles with environment preset', () => {
-      const result = compiler.compileComposition(
-        makeComp({ environment: { preset: 'sunset' } })
-      );
+      const result = compiler.compileComposition(makeComp({ environment: { preset: 'sunset' } }));
       expect(result).toBeDefined();
     });
   });

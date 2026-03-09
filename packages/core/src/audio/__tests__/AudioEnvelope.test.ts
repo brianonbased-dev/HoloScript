@@ -51,7 +51,8 @@ describe('AudioEnvelope', () => {
 
   it('sustain holds level', () => {
     env.noteOn();
-    env.process(0.1); env.process(0.1); // attack + decay
+    env.process(0.1);
+    env.process(0.1); // attack + decay
     env.process(1); // sustain
     expect(env.getStage()).toBe('sustain');
     expect(env.getLevel()).toBeCloseTo(0.7);
@@ -59,14 +60,16 @@ describe('AudioEnvelope', () => {
 
   it('noteOff transitions to release', () => {
     env.noteOn();
-    env.process(0.1); env.process(0.1); // to sustain
+    env.process(0.1);
+    env.process(0.1); // to sustain
     env.noteOff();
     expect(env.getStage()).toBe('release');
   });
 
   it('release returns to idle', () => {
     env.noteOn();
-    env.process(0.1); env.process(0.1); // to sustain
+    env.process(0.1);
+    env.process(0.1); // to sustain
     env.noteOff();
     env.process(0.2); // release done
     expect(env.getStage()).toBe('idle');
@@ -99,14 +102,20 @@ describe('AudioEnvelope', () => {
   // ---------------------------------------------------------------------------
 
   it('exponential curve shapes attack', () => {
-    const expEnv = new AudioEnvelope({ attack: 1, decay: 0.1, sustain: 0.5, release: 0.1 }, 'exponential');
+    const expEnv = new AudioEnvelope(
+      { attack: 1, decay: 0.1, sustain: 0.5, release: 0.1 },
+      'exponential'
+    );
     expEnv.noteOn();
     expEnv.process(0.5); // t=0.5 → curve = 0.25 (t²)
     expect(expEnv.getLevel()).toBeCloseTo(0.25);
   });
 
   it('logarithmic curve shapes attack', () => {
-    const logEnv = new AudioEnvelope({ attack: 1, decay: 0.1, sustain: 0.5, release: 0.1 }, 'logarithmic');
+    const logEnv = new AudioEnvelope(
+      { attack: 1, decay: 0.1, sustain: 0.5, release: 0.1 },
+      'logarithmic'
+    );
     logEnv.noteOn();
     logEnv.process(0.25); // t=0.25 → curve = sqrt(0.25) = 0.5
     expect(logEnv.getLevel()).toBeCloseTo(0.5);

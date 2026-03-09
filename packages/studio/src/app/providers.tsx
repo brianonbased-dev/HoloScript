@@ -8,12 +8,12 @@ import dynamic from 'next/dynamic';
 import { DevToolsInit } from '../components/DevToolsInit';
 
 const AppShell = dynamic(
-  () => import('../components/AppShell').then(m => ({ default: m.AppShell })),
-  { ssr: false },
+  () => import('../components/AppShell').then((m) => ({ default: m.AppShell })),
+  { ssr: false }
 );
 const PluginHostProvider = dynamic(
-  () => import('../hooks/usePluginHost').then(m => ({ default: m.PluginHostProvider })),
-  { ssr: false },
+  () => import('../hooks/usePluginHost').then((m) => ({ default: m.PluginHostProvider })),
+  { ssr: false }
 );
 
 // ═══════════════════════════════════════════════════════════════════
@@ -60,8 +60,12 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2" role="status" aria-live="polite">
-      {toasts.map(toast => (
+    <div
+      className="fixed bottom-4 right-4 z-50 flex flex-col gap-2"
+      role="status"
+      aria-live="polite"
+    >
+      {toasts.map((toast) => (
         <div
           key={toast.id}
           className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-sm shadow-lg animate-fade-in ${typeStyles[toast.type]}`}
@@ -88,19 +92,22 @@ export function Providers({ children }: { children: ReactNode }) {
 
   // Theme
   const [theme, setTheme] = useState<Theme>('dark');
-  const toggleTheme = useCallback(() => setTheme(t => (t === 'dark' ? 'light' : 'dark')), []);
+  const toggleTheme = useCallback(() => setTheme((t) => (t === 'dark' ? 'light' : 'dark')), []);
 
   // Toasts
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const addToast = useCallback((message: string, type: Toast['type'] = 'info', durationMs = 4000) => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    setToasts(prev => [...prev, { id, message, type, durationMs }]);
-    if (durationMs > 0) {
-      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), durationMs);
-    }
-  }, []);
+  const addToast = useCallback(
+    (message: string, type: Toast['type'] = 'info', durationMs = 4000) => {
+      const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      setToasts((prev) => [...prev, { id, message, type, durationMs }]);
+      if (durationMs > 0) {
+        setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), durationMs);
+      }
+    },
+    []
+  );
   const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   // React Query

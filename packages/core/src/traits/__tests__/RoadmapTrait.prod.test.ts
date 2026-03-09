@@ -43,11 +43,13 @@ function makeCtx() {
   return { emit: vi.fn() };
 }
 
-function makeConfig(overrides: Partial<{
-  milestone_id: string;
-  show_progress: boolean;
-  interactive: boolean;
-}> = {}) {
+function makeConfig(
+  overrides: Partial<{
+    milestone_id: string;
+    show_progress: boolean;
+    interactive: boolean;
+  }> = {}
+) {
   return { ...roadmapNodeHandler.defaultConfig, ...overrides };
 }
 
@@ -58,7 +60,6 @@ beforeEach(() => {
 // ── defaultConfig ─────────────────────────────────────────────────────────────
 
 describe('RoadmapTrait — defaultConfig', () => {
-
   it('name is roadmap_node', () => {
     expect(roadmapNodeHandler.name).toBe('roadmap_node');
   });
@@ -79,7 +80,6 @@ describe('RoadmapTrait — defaultConfig', () => {
 // ── onAttach ──────────────────────────────────────────────────────────────────
 
 describe('RoadmapTrait — onAttach', () => {
-
   it('sets node color from milestone status', () => {
     svcMock.getMilestone.mockReturnValue(milestone({ status: 'completed' }));
     const node = makeNode();
@@ -97,14 +97,22 @@ describe('RoadmapTrait — onAttach', () => {
   it('sets node progress when show_progress=true', () => {
     svcMock.getMilestone.mockReturnValue(milestone({ progress: 75 }));
     const node = makeNode();
-    roadmapNodeHandler.onAttach!(node, makeConfig({ milestone_id: 'm1', show_progress: true }), makeCtx() as any);
+    roadmapNodeHandler.onAttach!(
+      node,
+      makeConfig({ milestone_id: 'm1', show_progress: true }),
+      makeCtx() as any
+    );
     expect(node.properties.progress).toBe(75);
   });
 
   it('does NOT set node progress when show_progress=false', () => {
     svcMock.getMilestone.mockReturnValue(milestone({ progress: 75 }));
     const node = makeNode();
-    roadmapNodeHandler.onAttach!(node, makeConfig({ milestone_id: 'm1', show_progress: false }), makeCtx() as any);
+    roadmapNodeHandler.onAttach!(
+      node,
+      makeConfig({ milestone_id: 'm1', show_progress: false }),
+      makeCtx() as any
+    );
     expect(node.properties.progress).toBeUndefined();
   });
 
@@ -114,10 +122,13 @@ describe('RoadmapTrait — onAttach', () => {
     const node = makeNode();
     const ctx = makeCtx();
     roadmapNodeHandler.onAttach!(node, makeConfig({ milestone_id: 'm1' }), ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('roadmap_node_attached', expect.objectContaining({
-      nodeId: 'n1',
-      milestone: m,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'roadmap_node_attached',
+      expect.objectContaining({
+        nodeId: 'n1',
+        milestone: m,
+      })
+    );
   });
 
   it('still emits even when milestone is null (unknown id)', () => {
@@ -125,9 +136,12 @@ describe('RoadmapTrait — onAttach', () => {
     const node = makeNode();
     const ctx = makeCtx();
     roadmapNodeHandler.onAttach!(node, makeConfig({ milestone_id: 'unknown' }), ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('roadmap_node_attached', expect.objectContaining({
-      milestone: null,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'roadmap_node_attached',
+      expect.objectContaining({
+        milestone: null,
+      })
+    );
   });
 
   it('does not set node.properties when milestone is null', () => {
@@ -141,14 +155,15 @@ describe('RoadmapTrait — onAttach', () => {
   it('does not throw when node.properties is missing', () => {
     svcMock.getMilestone.mockReturnValue(milestone());
     const node = { id: 'n2' }; // no properties
-    expect(() => roadmapNodeHandler.onAttach!(node, makeConfig({ milestone_id: 'm1' }), makeCtx() as any)).not.toThrow();
+    expect(() =>
+      roadmapNodeHandler.onAttach!(node, makeConfig({ milestone_id: 'm1' }), makeCtx() as any)
+    ).not.toThrow();
   });
 });
 
 // ── onUpdate ──────────────────────────────────────────────────────────────────
 
 describe('RoadmapTrait — onUpdate', () => {
-
   it('updates color on every frame', () => {
     svcMock.getMilestone.mockReturnValue(milestone({ status: 'blocked' }));
     const node = makeNode();
@@ -159,7 +174,12 @@ describe('RoadmapTrait — onUpdate', () => {
   it('updates progress when show_progress=true', () => {
     svcMock.getMilestone.mockReturnValue(milestone({ progress: 90 }));
     const node = makeNode();
-    roadmapNodeHandler.onUpdate!(node, makeConfig({ milestone_id: 'm1', show_progress: true }), makeCtx() as any, 16);
+    roadmapNodeHandler.onUpdate!(
+      node,
+      makeConfig({ milestone_id: 'm1', show_progress: true }),
+      makeCtx() as any,
+      16
+    );
     expect(node.properties.progress).toBe(90);
   });
 
@@ -167,37 +187,53 @@ describe('RoadmapTrait — onUpdate', () => {
     svcMock.getMilestone.mockReturnValue(milestone({ progress: 90 }));
     const node = makeNode();
     node.properties.progress = 50; // previous value
-    roadmapNodeHandler.onUpdate!(node, makeConfig({ milestone_id: 'm1', show_progress: false }), makeCtx() as any, 16);
+    roadmapNodeHandler.onUpdate!(
+      node,
+      makeConfig({ milestone_id: 'm1', show_progress: false }),
+      makeCtx() as any,
+      16
+    );
     expect(node.properties.progress).toBe(50); // unchanged
   });
 
   it('does not throw when milestone is null', () => {
     svcMock.getMilestone.mockReturnValue(null);
     const node = makeNode();
-    expect(() => roadmapNodeHandler.onUpdate!(node, makeConfig(), makeCtx() as any, 16)).not.toThrow();
+    expect(() =>
+      roadmapNodeHandler.onUpdate!(node, makeConfig(), makeCtx() as any, 16)
+    ).not.toThrow();
   });
 });
 
 // ── onEvent ───────────────────────────────────────────────────────────────────
 
 describe('RoadmapTrait — onEvent', () => {
-
   it('click event emits show_milestone_details when interactive=true', () => {
     const m = milestone();
     svcMock.getMilestone.mockReturnValue(m);
     const node = makeNode();
     const ctx = makeCtx();
-    roadmapNodeHandler.onEvent!(node, makeConfig({ milestone_id: 'm1', interactive: true }), ctx as any, { type: 'click' });
-    expect(ctx.emit).toHaveBeenCalledWith('show_milestone_details', expect.objectContaining({
-      milestone: m,
-    }));
+    roadmapNodeHandler.onEvent!(
+      node,
+      makeConfig({ milestone_id: 'm1', interactive: true }),
+      ctx as any,
+      { type: 'click' }
+    );
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'show_milestone_details',
+      expect.objectContaining({
+        milestone: m,
+      })
+    );
   });
 
   it('click event does NOT emit when interactive=false', () => {
     svcMock.getMilestone.mockReturnValue(milestone());
     const node = makeNode();
     const ctx = makeCtx();
-    roadmapNodeHandler.onEvent!(node, makeConfig({ interactive: false }), ctx as any, { type: 'click' });
+    roadmapNodeHandler.onEvent!(node, makeConfig({ interactive: false }), ctx as any, {
+      type: 'click',
+    });
     expect(ctx.emit).not.toHaveBeenCalled();
   });
 
@@ -205,7 +241,9 @@ describe('RoadmapTrait — onEvent', () => {
     svcMock.getMilestone.mockReturnValue(milestone());
     const node = makeNode();
     const ctx = makeCtx();
-    roadmapNodeHandler.onEvent!(node, makeConfig({ interactive: true }), ctx as any, { type: 'hover' });
+    roadmapNodeHandler.onEvent!(node, makeConfig({ interactive: true }), ctx as any, {
+      type: 'hover',
+    });
     expect(ctx.emit).not.toHaveBeenCalled();
   });
 
@@ -213,7 +251,12 @@ describe('RoadmapTrait — onEvent', () => {
     svcMock.getMilestone.mockReturnValue(null);
     const node = makeNode();
     const ctx = makeCtx();
-    roadmapNodeHandler.onEvent!(node, makeConfig({ milestone_id: 'm_none', interactive: true }), ctx as any, { type: 'click' });
+    roadmapNodeHandler.onEvent!(
+      node,
+      makeConfig({ milestone_id: 'm_none', interactive: true }),
+      ctx as any,
+      { type: 'click' }
+    );
     expect(ctx.emit).not.toHaveBeenCalled();
   });
 });
@@ -221,13 +264,12 @@ describe('RoadmapTrait — onEvent', () => {
 // ── getStatusColor (indirectly via onAttach) ──────────────────────────────────
 
 describe('RoadmapTrait — status color mapping (via onAttach)', () => {
-
   const cases: [string, string][] = [
-    ['completed',   '#4caf50'],
+    ['completed', '#4caf50'],
     ['in-progress', '#2196f3'],
-    ['blocked',     '#f44336'],
-    ['planned',     '#9e9e9e'],
-    ['unknown',     '#ffffff'],
+    ['blocked', '#f44336'],
+    ['planned', '#9e9e9e'],
+    ['unknown', '#ffffff'],
   ];
 
   for (const [status, expectedColor] of cases) {

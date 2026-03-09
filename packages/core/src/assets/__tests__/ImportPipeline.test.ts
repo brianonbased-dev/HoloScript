@@ -18,7 +18,14 @@ describe('ImportPipeline', () => {
   });
 
   it('addTextureJob queues a texture job', () => {
-    const id = pipeline.addTextureJob('tex.png', { id: 't', name: 'T', width: 64, height: 64, format: 'rgba8', sizeBytes: 16384 });
+    const id = pipeline.addTextureJob('tex.png', {
+      id: 't',
+      name: 'T',
+      width: 64,
+      height: 64,
+      format: 'rgba8',
+      sizeBytes: 16384,
+    });
     expect(pipeline.getJob(id)!.type).toBe('texture');
   });
 
@@ -85,7 +92,14 @@ describe('ImportPipeline', () => {
   // ---- Texture Jobs ----
 
   it('texture job runs successfully', () => {
-    pipeline.addTextureJob('t.png', { id: 'tx', name: 'Tex', width: 128, height: 128, format: 'rgba8', sizeBytes: 65536 });
+    pipeline.addTextureJob('t.png', {
+      id: 'tx',
+      name: 'Tex',
+      width: 128,
+      height: 128,
+      format: 'rgba8',
+      sizeBytes: 65536,
+    });
     const stats = pipeline.runAll();
     expect(stats.completed).toBe(1);
   });

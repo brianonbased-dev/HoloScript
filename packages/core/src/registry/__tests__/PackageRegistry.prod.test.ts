@@ -27,7 +27,6 @@ import {
 } from '../PackageRegistry';
 
 describe('PackageRegistry — Production', () => {
-
   // ─── parseSemVer ──────────────────────────────────────────────────────────
 
   it('parseSemVer basic', () => {
@@ -178,13 +177,13 @@ describe('PackageRegistry — Production', () => {
   it('validateManifest rejects missing name', () => {
     const result = validateManifest({ version: '1.0.0' } as any);
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.toLowerCase().includes('name'))).toBe(true);
+    expect(result.errors.some((e) => e.toLowerCase().includes('name'))).toBe(true);
   });
 
   it('validateManifest rejects missing version', () => {
     const result = validateManifest({ name: 'pkg' } as any);
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.toLowerCase().includes('version'))).toBe(true);
+    expect(result.errors.some((e) => e.toLowerCase().includes('version'))).toBe(true);
   });
 
   it('validateManifest rejects invalid version string', () => {
@@ -265,7 +264,7 @@ describe('PackageRegistry — Production', () => {
     it('search returns matching package by name', async () => {
       await registry.publish({ name: 'holoscript-core', version: '1.0.0' });
       const results = await registry.search('holoscript');
-      expect(results.some(r => r.name === 'holoscript-core')).toBe(true);
+      expect(results.some((r) => r.name === 'holoscript-core')).toBe(true);
     });
 
     it('search returns empty array for no matches', async () => {

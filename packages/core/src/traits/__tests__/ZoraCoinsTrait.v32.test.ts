@@ -205,9 +205,12 @@ describe('ZoraCoinsTrait — v3.2 Production', () => {
       });
       zoraCoinsHandler.onAttach(node, config, ctx);
       // connectToZora is async — wait for fetch to be called
-      await vi.waitFor(() => {
-        if (mockFetch.mock.calls.length < 1) throw new Error('not yet');
-      }, { timeout: 2000 });
+      await vi.waitFor(
+        () => {
+          if (mockFetch.mock.calls.length < 1) throw new Error('not yet');
+        },
+        { timeout: 2000 }
+      );
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
@@ -264,10 +267,7 @@ describe('ZoraCoinsTrait — v3.2 Production', () => {
       await attachConnected(node, config, ctx);
       zoraCoinsHandler.onDetach!(node, config, ctx);
 
-      expect(ctx.emit).toHaveBeenCalledWith(
-        'zora_disconnect',
-        expect.objectContaining({ node })
-      );
+      expect(ctx.emit).toHaveBeenCalledWith('zora_disconnect', expect.objectContaining({ node }));
       expect((node as any).__zoraCoinsState).toBeUndefined();
     });
 
@@ -581,7 +581,12 @@ describe('ZoraCoinsTrait — v3.2 Production', () => {
         },
       ]);
 
-      const royaltyConfig = makeConfig({ creator_wallet: '', default_royalty: 5, enable_referrals: true, referral_percentage: 2.5 });
+      const royaltyConfig = makeConfig({
+        creator_wallet: '',
+        default_royalty: 5,
+        enable_referrals: true,
+        referral_percentage: 2.5,
+      });
 
       zoraCoinsHandler.onEvent!(node, royaltyConfig, ctx, {
         type: 'zora_secondary_sale',
@@ -611,7 +616,11 @@ describe('ZoraCoinsTrait — v3.2 Production', () => {
         },
       ]);
 
-      const noRefConfig = makeConfig({ creator_wallet: '', enable_referrals: false, default_royalty: 5 });
+      const noRefConfig = makeConfig({
+        creator_wallet: '',
+        enable_referrals: false,
+        default_royalty: 5,
+      });
 
       zoraCoinsHandler.onEvent!(node, noRefConfig, ctx, {
         type: 'zora_secondary_sale',

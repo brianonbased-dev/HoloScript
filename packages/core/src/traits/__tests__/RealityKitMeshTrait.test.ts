@@ -34,7 +34,12 @@ function getState(ctx: ReturnType<typeof makeContext>) {
   return ctx.getState().realityKitMesh;
 }
 
-function makeAnchor(id: string, classification = 'wall' as const, vertexCount = 100, faceCount = 50) {
+function makeAnchor(
+  id: string,
+  classification = 'wall' as const,
+  vertexCount = 100,
+  faceCount = 50
+) {
   return {
     id,
     classification,
@@ -109,7 +114,10 @@ describe('RealityKitMeshTrait', () => {
       expect(s.anchors.size).toBe(1);
       expect(s.totalVertices).toBe(200);
       expect(s.totalFaces).toBe(100);
-      expect(ctx.emit).toHaveBeenCalledWith('rkMesh:anchor_added', { id: 'a1', classification: 'floor' });
+      expect(ctx.emit).toHaveBeenCalledWith('rkMesh:anchor_added', {
+        id: 'a1',
+        classification: 'floor',
+      });
     });
 
     it('tracks classification counts when classification enabled', () => {

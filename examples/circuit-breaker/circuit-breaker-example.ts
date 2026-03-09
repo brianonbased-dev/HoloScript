@@ -4,10 +4,7 @@
  * Demonstrates practical usage patterns for the GraphQL Circuit Breaker
  */
 
-import {
-  GraphQLCircuitBreakerClient,
-  FallbackDataProvider
-} from '../GraphQLCircuitBreakerClient';
+import { GraphQLCircuitBreakerClient, FallbackDataProvider } from '../GraphQLCircuitBreakerClient';
 import { CircuitBreakerMetrics, MetricsMonitor } from '../CircuitBreakerMetrics';
 import { DegradedModeIndicator } from '../DegradedModeBanner';
 
@@ -20,7 +17,7 @@ export function example1_BasicSetup() {
     endpoint: 'https://api.example.com/graphql',
     timeout: 10000,
     enableCacheFallback: true,
-    maxRetries: 3
+    maxRetries: 3,
   });
 
   return client;
@@ -45,7 +42,7 @@ export async function example2_SimpleQuery() {
       }
     `,
     variables: { id: '123' },
-    operationName: 'GetUser'
+    operationName: 'GetUser',
   });
 
   if (result.success) {
@@ -68,8 +65,8 @@ export function example3_FallbackData() {
   // Register fallback data for common queries
   FallbackDataProvider.register('GetUsers', {
     data: {
-      users: [] // Empty array for list queries
-    }
+      users: [], // Empty array for list queries
+    },
   });
 
   FallbackDataProvider.register('GetDashboard', {
@@ -77,16 +74,16 @@ export function example3_FallbackData() {
       widgets: [],
       metrics: {
         loading: true,
-        message: 'Data temporarily unavailable'
-      }
-    }
+        message: 'Data temporarily unavailable',
+      },
+    },
   });
 
   FallbackDataProvider.register('GetNotifications', {
     data: {
       notifications: [],
-      unreadCount: 0
-    }
+      unreadCount: 0,
+    },
   });
 
   console.log('✓ Fallback data registered for 3 operations');
@@ -103,11 +100,11 @@ export function example4_MonitorCircuits(client: GraphQLCircuitBreakerClient) {
 
     console.log('\n━━━ Circuit Status ━━━');
 
-    stats.forEach(stat => {
+    stats.forEach((stat) => {
       const stateEmoji = {
         CLOSED: '🟢',
         HALF_OPEN: '🟡',
-        OPEN: '🔴'
+        OPEN: '🔴',
       }[stat.state];
 
       console.log(
@@ -193,16 +190,16 @@ export async function example8_MultipleQueries() {
   const [usersResult, postsResult, commentsResult] = await Promise.all([
     client.query({
       query: 'query GetUsers { users { id name } }',
-      operationName: 'GetUsers'
+      operationName: 'GetUsers',
     }),
     client.query({
       query: 'query GetPosts { posts { id title } }',
-      operationName: 'GetPosts'
+      operationName: 'GetPosts',
     }),
     client.query({
       query: 'query GetComments { comments { id text } }',
-      operationName: 'GetComments'
-    })
+      operationName: 'GetComments',
+    }),
   ]);
 
   console.log('Results:');
@@ -237,8 +234,8 @@ export function example9_EnvironmentConfig() {
 
       // More aggressive retries in production
       baseRetryDelay: isProduction ? 500 : 1000,
-      maxRetryDelay: isProduction ? 15000 : 30000
-    }
+      maxRetryDelay: isProduction ? 15000 : 30000,
+    },
   });
 
   console.log(`✓ Client configured for ${process.env.NODE_ENV}`);
@@ -256,10 +253,10 @@ export async function example10_TestingAgentIntegration() {
     headers: {
       'X-Agent-ID': process.env.AGENT_ID || 'testing-agent-001',
       'X-Agent-Role': 'testing-agent',
-      Authorization: `Bearer ${process.env.AGENT_TOKEN}`
+      Authorization: `Bearer ${process.env.AGENT_TOKEN}`,
     },
     enableCacheFallback: true,
-    maxRetries: 3
+    maxRetries: 3,
   });
 
   console.log('🤖 Testing Agent Circuit Breaker Initialized');
@@ -267,7 +264,7 @@ export async function example10_TestingAgentIntegration() {
   // Run health check before tests
   const healthResult = await client.query({
     query: 'query HealthCheck { ping }',
-    operationName: 'HealthCheck'
+    operationName: 'HealthCheck',
   });
 
   if (!healthResult.success) {
@@ -285,13 +282,13 @@ export async function example10_TestingAgentIntegration() {
       }
     `,
     variables: { input: { testId: 'test-123' } },
-    operationName: 'TestQuery'
+    operationName: 'TestQuery',
   });
 
   // Log metrics for test report
   const stats = client.getCircuitStats();
   console.log('\n📊 Test Execution Metrics:');
-  stats.forEach(stat => {
+  stats.forEach((stat) => {
     console.log(`  ${stat.operationName}:`);
     console.log(`    State: ${stat.state}`);
     console.log(`    Requests: ${stat.totalRequests}`);
@@ -313,8 +310,8 @@ export async function example11_ErrorRecoveryScenario() {
     circuitBreakerConfig: {
       openStateTimeout: 5000, // Quick recovery for demo
       healthCheckCount: 3,
-      successThreshold: 2
-    }
+      successThreshold: 2,
+    },
   });
 
   console.log('📋 Simulating error recovery scenario...\n');
@@ -323,7 +320,7 @@ export async function example11_ErrorRecoveryScenario() {
   console.log('Step 1: Execute successful query');
   await client.query({
     query: 'query GetData { data { id } }',
-    operationName: 'GetData'
+    operationName: 'GetData',
   });
 
   let stats = client.getCircuitStats();
@@ -336,7 +333,7 @@ export async function example11_ErrorRecoveryScenario() {
   // Step 3: Wait for half-open
   console.log('Step 3: Wait for automatic recovery attempt');
   console.log('  [Waiting 5 seconds...]\n');
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  await new Promise((resolve) => setTimeout(resolve, 5000));
 
   // Step 4: Health checks pass (circuit closes)
   console.log('Step 4: Health checks pass (circuit closes)');
@@ -362,7 +359,9 @@ export function example12_RealTimeMetrics(client: GraphQLCircuitBreakerClient) {
     console.log(`\n⏱️  ${snapshot.timestamp.toISOString()}`);
     console.log(`Health Score: ${snapshot.health.score}/100 (${snapshot.health.status})`);
     console.log(`Open Circuits: ${snapshot.aggregate.circuitsByState.open}`);
-    console.log(`Overall Failure Rate: ${(snapshot.aggregate.overallFailureRate * 100).toFixed(2)}%`);
+    console.log(
+      `Overall Failure Rate: ${(snapshot.aggregate.overallFailureRate * 100).toFixed(2)}%`
+    );
     console.log(`Cache Hits: ${snapshot.aggregate.totalCacheHits}`);
   }, 5000);
 }
@@ -382,7 +381,10 @@ export function example13_ManualCircuitManagement(client: GraphQLCircuitBreakerC
 
   // Verify reset
   const stats = client.getCircuitStats();
-  console.log('All circuits reset:', stats.every(s => s.totalRequests === 0));
+  console.log(
+    'All circuits reset:',
+    stats.every((s) => s.totalRequests === 0)
+  );
 }
 
 // ========================================
@@ -409,7 +411,7 @@ export async function runAllExamples() {
   const stopMonitoring = example5_MetricsDashboard(client);
 
   // Wait a bit to collect metrics
-  await new Promise(resolve => setTimeout(resolve, 15000));
+  await new Promise((resolve) => setTimeout(resolve, 15000));
 
   // Export metrics
   console.log('\n━━━ Metrics Export ━━━');

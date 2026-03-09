@@ -22,11 +22,11 @@ export interface VolumetricWindowConfig {
   window_type: WindowType;
   scale_mode: ScaleMode;
   immersion_style: ImmersionStyle;
-  initial_width: number;       // meters
-  initial_height: number;      // meters
-  initial_depth: number;       // meters (volumetric only)
+  initial_width: number; // meters
+  initial_height: number; // meters
+  initial_depth: number; // meters (volumetric only)
   resizable: boolean;
-  min_scale: number;           // scale multiplier
+  min_scale: number; // scale multiplier
   max_scale: number;
   default_placement: 'front' | 'hand' | 'scene';
   ornament_visibility: boolean; // show window chrome/controls
@@ -40,7 +40,7 @@ interface VolumetricWindowState {
   currentScale: number;
   placement: [number, number, number] | null;
   isImmersive: boolean;
-  immersionProgress: number;  // 0–1 for progressive immersion
+  immersionProgress: number; // 0–1 for progressive immersion
 }
 
 // =============================================================================
@@ -113,7 +113,10 @@ export const volumetricWindowHandler: TraitHandler<VolumetricWindowConfig> = {
         depth: state.currentDepth,
       });
     } else if (event.type === 'vWindow:scale') {
-      const scale = Math.max(config.min_scale, Math.min(config.max_scale, (event.payload as any)?.scale ?? 1));
+      const scale = Math.max(
+        config.min_scale,
+        Math.min(config.max_scale, (event.payload as any)?.scale ?? 1)
+      );
       state.currentScale = scale;
       context.emit('vWindow:scaled', { scale });
     } else if (event.type === 'vWindow:immersion_change') {

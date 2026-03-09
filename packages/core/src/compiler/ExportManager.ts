@@ -702,7 +702,7 @@ export class ExportManager {
   private analyzeGaussianBudget(
     target: ExportTarget,
     composition: HoloComposition,
-    options: Required<ExportOptions>,
+    options: Required<ExportOptions>
   ): { analysis: GaussianBudgetAnalysis; warningMessages: string[] } | null {
     if (!options.enableGaussianBudgetWarnings) return null;
 
@@ -712,7 +712,9 @@ export class ExportManager {
 
     const analyzer = new GaussianBudgetAnalyzer({
       platforms,
-      budgetOverrides: options.gaussianBudgetOverrides as Partial<Record<GaussianPlatform, number>> | undefined,
+      budgetOverrides: options.gaussianBudgetOverrides as
+        | Partial<Record<GaussianPlatform, number>>
+        | undefined,
       includeInfoMessages: false,
     });
 
@@ -723,9 +725,10 @@ export class ExportManager {
 
     // Format warnings as strings for the warnings array
     const warningMessages = analysis.warnings
-      .filter(w => w.severity === 'warning' || w.severity === 'critical')
-      .map(w => {
-        const prefix = w.severity === 'critical' ? '[GAUSSIAN BUDGET EXCEEDED]' : '[GAUSSIAN BUDGET WARNING]';
+      .filter((w) => w.severity === 'warning' || w.severity === 'critical')
+      .map((w) => {
+        const prefix =
+          w.severity === 'critical' ? '[GAUSSIAN BUDGET EXCEEDED]' : '[GAUSSIAN BUDGET WARNING]';
         return `${prefix} ${w.message}${w.suggestion ? ' Suggestion: ' + w.suggestion : ''}`;
       });
 

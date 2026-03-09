@@ -19,14 +19,14 @@ Expert topics: custom traits, procedural generation, and agent systems. For deve
 
 ## Lessons
 
-| # | Lesson | Topics |
-|---|--------|--------|
-| 1 | [Custom Traits](./01-custom-traits) | TraitHandler API, packaging |
-| 4 | [Procedural Generation](./04-procedural) | @procedural trait, runtime generation |
-| 5 | [Agent Choreography](./05-agent-choreography) | Multi-agent scene coordination |
-| 6 | [Agent Communication](./06-agent-communication) | Event protocols between agents |
-| 7 | [Spatial Context](./07-spatial-context) | Environment awareness, plane detection |
-| 8 | [Consensus Systems](./08-consensus) | Distributed coordination, shared state |
+| #   | Lesson                                          | Topics                                 |
+| --- | ----------------------------------------------- | -------------------------------------- |
+| 1   | [Custom Traits](./01-custom-traits)             | TraitHandler API, packaging            |
+| 4   | [Procedural Generation](./04-procedural)        | @procedural trait, runtime generation  |
+| 5   | [Agent Choreography](./05-agent-choreography)   | Multi-agent scene coordination         |
+| 6   | [Agent Communication](./06-agent-communication) | Event protocols between agents         |
+| 7   | [Spatial Context](./07-spatial-context)         | Environment awareness, plane detection |
+| 8   | [Consensus Systems](./08-consensus)             | Distributed coordination, shared state |
 
 ---
 

@@ -188,26 +188,44 @@ describe('SpanFactory — Production', () => {
 
   it('withSpan sync sets status ok on success', () => {
     let captured: any;
-    factory.withSpan('op', (span) => { captured = span; return 0; });
+    factory.withSpan('op', (span) => {
+      captured = span;
+      return 0;
+    });
     expect(captured.status).toBe('ok');
   });
 
   it('withSpan sync sets status error when callback throws', () => {
     let captured: any;
     try {
-      factory.withSpan('bad', (span) => { captured = span; throw new Error('boom'); });
-    } catch { /* expected */ }
+      factory.withSpan('bad', (span) => {
+        captured = span;
+        throw new Error('boom');
+      });
+    } catch {
+      /* expected */
+    }
     expect(captured.status).toBe('error');
   });
 
   it('withSpan sync re-throws callback error', () => {
-    expect(() => factory.withSpan('err', () => { throw new Error('x'); })).toThrow('x');
+    expect(() =>
+      factory.withSpan('err', () => {
+        throw new Error('x');
+      })
+    ).toThrow('x');
   });
 
   it('withSpan sync: parent span causes child to inherit traceId', () => {
     const parent = factory.createSpan('parent');
     let childTraceId: string | undefined;
-    factory.withSpan('child', (span) => { childTraceId = span.traceId; }, parent);
+    factory.withSpan(
+      'child',
+      (span) => {
+        childTraceId = span.traceId;
+      },
+      parent
+    );
     expect(childTraceId).toBe(parent.traceId);
   });
 
@@ -232,22 +250,28 @@ describe('SpanFactory — Production', () => {
 
   it('withSpan async sets status ok on resolve', async () => {
     let captured: any;
-    await factory.withSpan('op', async (span) => { captured = span; });
+    await factory.withSpan('op', async (span) => {
+      captured = span;
+    });
     expect(captured.status).toBe('ok');
   });
 
   it('withSpan async sets status error on reject', async () => {
     let captured: any;
-    await factory.withSpan('failing', async (span) => {
-      captured = span;
-      throw new Error('async fail');
-    }).catch(() => {});
+    await factory
+      .withSpan('failing', async (span) => {
+        captured = span;
+        throw new Error('async fail');
+      })
+      .catch(() => {});
     expect(captured.status).toBe('error');
   });
 
   it('withSpan async propagates rejection', async () => {
     await expect(
-      factory.withSpan('fail', async () => { throw new Error('rej'); }),
+      factory.withSpan('fail', async () => {
+        throw new Error('rej');
+      })
     ).rejects.toThrow('rej');
   });
 });

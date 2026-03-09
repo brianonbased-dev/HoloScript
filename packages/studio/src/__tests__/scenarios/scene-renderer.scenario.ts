@@ -30,9 +30,15 @@ interface Asset {
 function assetToTrait(asset: Asset): { name: string; properties: Record<string, unknown> } | null {
   switch (asset.category) {
     case 'splat':
-      return { name: 'gaussian_splat', properties: { source: asset.src, quality: 'medium', sh_degree: 3 } };
+      return {
+        name: 'gaussian_splat',
+        properties: { source: asset.src, quality: 'medium', sh_degree: 3 },
+      };
     case 'audio':
-      return { name: 'audio_source', properties: { src: asset.src, volume: 1.0, loop: false, spatial: true } };
+      return {
+        name: 'audio_source',
+        properties: { src: asset.src, volume: 1.0, loop: false, spatial: true },
+      };
     case 'hdri':
       return { name: 'environment', properties: { src: asset.src } };
     default:

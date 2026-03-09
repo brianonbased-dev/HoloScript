@@ -21,12 +21,12 @@ The `@` prefix marks a trait — a reusable behavior module.
 
 ### Common Traits
 
-| Trait        | Effect                          |
-|--------------|---------------------------------|
-| `@grabbable` | User can pick it up in VR       |
-| `@physics`   | Simulates gravity + collisions  |
-| `@synced`    | State synced across users       |
-| `@highlight` | Glows on hover                  |
+| Trait        | Effect                         |
+| ------------ | ------------------------------ |
+| `@grabbable` | User can pick it up in VR      |
+| `@physics`   | Simulates gravity + collisions |
+| `@synced`    | State synced across users      |
+| `@highlight` | Glows on hover                 |
 
 ## Try it:
 

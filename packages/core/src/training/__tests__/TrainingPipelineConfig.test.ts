@@ -33,22 +33,17 @@ describe('TrainingPipelineConfig', () => {
       expect(hyperparameters.gradientAccumulationSteps).toBe(4);
       // Effective batch = 8 * 4 = 32 (in range 32-512)
       const effectiveBatch =
-        hyperparameters.microBatchSize *
-        hyperparameters.gradientAccumulationSteps;
+        hyperparameters.microBatchSize * hyperparameters.gradientAccumulationSteps;
       expect(effectiveBatch).toBeGreaterThanOrEqual(32);
       expect(effectiveBatch).toBeLessThanOrEqual(512);
     });
 
     it('includes SoftDedup defaults (W.008)', () => {
-      expect(DEFAULT_TRAINING_PIPELINE_CONFIG.softDedup).toEqual(
-        DEFAULT_SOFTDEDUP_CONFIG,
-      );
+      expect(DEFAULT_TRAINING_PIPELINE_CONFIG.softDedup).toEqual(DEFAULT_SOFTDEDUP_CONFIG);
     });
 
     it('includes LR schedule defaults (W.009)', () => {
-      expect(DEFAULT_TRAINING_PIPELINE_CONFIG.lrSchedule).toEqual(
-        DEFAULT_LR_SCHEDULER_CONFIG,
-      );
+      expect(DEFAULT_TRAINING_PIPELINE_CONFIG.lrSchedule).toEqual(DEFAULT_LR_SCHEDULER_CONFIG);
     });
 
     it('enables all pipeline stages by default', () => {
@@ -68,7 +63,7 @@ describe('TrainingPipelineConfig', () => {
     it('returns defaults with no overrides', () => {
       const config = buildTrainingPipelineConfig();
       expect(config.hyperparameters.learningRate).toBe(
-        DEFAULT_TRAINING_PIPELINE_CONFIG.hyperparameters.learningRate,
+        DEFAULT_TRAINING_PIPELINE_CONFIG.hyperparameters.learningRate
       );
     });
 
@@ -89,9 +84,7 @@ describe('TrainingPipelineConfig', () => {
 
       expect(config.softDedup.temperature).toBe(0.5);
       expect(config.softDedup.wordLevel).toBe(true);
-      expect(config.softDedup.minWeight).toBe(
-        DEFAULT_SOFTDEDUP_CONFIG.minWeight,
-      ); // preserved
+      expect(config.softDedup.minWeight).toBe(DEFAULT_SOFTDEDUP_CONFIG.minWeight); // preserved
     });
 
     it('allows overriding lrSchedule settings', () => {
@@ -101,9 +94,7 @@ describe('TrainingPipelineConfig', () => {
 
       expect(config.lrSchedule.totalSteps).toBe(5000);
       expect(config.lrSchedule.warmupRatio).toBe(0.05);
-      expect(config.lrSchedule.baseLR).toBe(
-        DEFAULT_LR_SCHEDULER_CONFIG.baseLR,
-      ); // preserved
+      expect(config.lrSchedule.baseLR).toBe(DEFAULT_LR_SCHEDULER_CONFIG.baseLR); // preserved
     });
 
     it('allows disabling pipeline stages', () => {
@@ -121,14 +112,11 @@ describe('TrainingPipelineConfig', () => {
     });
 
     it('does not mutate the default config', () => {
-      const originalLR =
-        DEFAULT_TRAINING_PIPELINE_CONFIG.hyperparameters.learningRate;
+      const originalLR = DEFAULT_TRAINING_PIPELINE_CONFIG.hyperparameters.learningRate;
       buildTrainingPipelineConfig({
         hyperparameters: { learningRate: 999 },
       });
-      expect(
-        DEFAULT_TRAINING_PIPELINE_CONFIG.hyperparameters.learningRate,
-      ).toBe(originalLR);
+      expect(DEFAULT_TRAINING_PIPELINE_CONFIG.hyperparameters.learningRate).toBe(originalLR);
     });
   });
 

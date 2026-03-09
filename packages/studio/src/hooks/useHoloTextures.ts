@@ -109,16 +109,19 @@ function extractTextureConfigs(matProps: Record<string, any>): Map<string, Textu
  *   <meshPhysicalMaterial {...matProps} {...textureMaps} />
  */
 export function useHoloTextures(matProps: Record<string, any>): Record<string, THREE.Texture> {
-  const configs = useMemo(() => extractTextureConfigs(matProps), [
-    matProps.textureMaps,
-    matProps.textures,
-    // Check specific map props
-    matProps.normalMap,
-    matProps.roughnessMap,
-    matProps.metallicMap,
-    matProps.displacementMap,
-    matProps.emissionMap,
-  ]);
+  const configs = useMemo(
+    () => extractTextureConfigs(matProps),
+    [
+      matProps.textureMaps,
+      matProps.textures,
+      // Check specific map props
+      matProps.normalMap,
+      matProps.roughnessMap,
+      matProps.metallicMap,
+      matProps.displacementMap,
+      matProps.emissionMap,
+    ]
+  );
 
   // Collect all unique paths to load
   const paths = useMemo(() => {
@@ -135,7 +138,11 @@ export function useHoloTextures(matProps: Record<string, any>): Record<string, T
   // We use useLoader directly for more control
   const loadedTextures = useLoader(
     THREE.TextureLoader,
-    paths.length > 0 ? paths : ['data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='],
+    paths.length > 0
+      ? paths
+      : [
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        ]
   );
 
   // Map loaded textures back to Three.js prop names

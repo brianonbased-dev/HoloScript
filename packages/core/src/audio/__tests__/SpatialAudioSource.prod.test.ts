@@ -14,14 +14,21 @@ describe('SpatialAudioSource', () => {
   let src: SpatialAudioSource;
 
   beforeEach(() => {
-    src = new SpatialAudioSource({ minDistance: 1, maxDistance: 100, rolloff: 'inverse', rolloffFactor: 1 });
+    src = new SpatialAudioSource({
+      minDistance: 1,
+      maxDistance: 100,
+      rolloff: 'inverse',
+      rolloffFactor: 1,
+    });
   });
 
   // -------------------------------------------------------------------------
   // Playback State
   // -------------------------------------------------------------------------
   describe('playback state', () => {
-    it('starts not playing', () => { expect(src.isPlaying()).toBe(false); });
+    it('starts not playing', () => {
+      expect(src.isPlaying()).toBe(false);
+    });
 
     it('play() starts playback', () => {
       src.play(5);
@@ -99,7 +106,14 @@ describe('SpatialAudioSource', () => {
   // -------------------------------------------------------------------------
   describe('rolloff models', () => {
     function makeAt(x: number, rolloff: 'linear' | 'inverse' | 'exponential') {
-      const s = new SpatialAudioSource({ minDistance: 1, maxDistance: 50, rolloff, rolloffFactor: 1, volume: 1, spatialBlend: 1 });
+      const s = new SpatialAudioSource({
+        minDistance: 1,
+        maxDistance: 50,
+        rolloff,
+        rolloffFactor: 1,
+        volume: 1,
+        spatialBlend: 1,
+      });
       s.setPosition(x, 0, 0);
       s.play(99);
       s.update(0, LISTENER_AT_ORIGIN);
@@ -127,7 +141,13 @@ describe('SpatialAudioSource', () => {
     });
 
     it('custom rolloff: gain is 1 (no-op)', () => {
-      const s = new SpatialAudioSource({ rolloff: 'custom', minDistance: 1, maxDistance: 50, volume: 1, spatialBlend: 1 });
+      const s = new SpatialAudioSource({
+        rolloff: 'custom',
+        minDistance: 1,
+        maxDistance: 50,
+        volume: 1,
+        spatialBlend: 1,
+      });
       s.setPosition(5, 0, 0);
       s.play(99);
       s.update(0, LISTENER_AT_ORIGIN);
@@ -179,7 +199,12 @@ describe('SpatialAudioSource', () => {
   // -------------------------------------------------------------------------
   describe('spatialBlend', () => {
     it('blend=0 (2D): pan is always 0 regardless of position', () => {
-      const s = new SpatialAudioSource({ spatialBlend: 0, minDistance: 1, maxDistance: 100, volume: 1 });
+      const s = new SpatialAudioSource({
+        spatialBlend: 0,
+        minDistance: 1,
+        maxDistance: 100,
+        volume: 1,
+      });
       s.setPosition(50, 0, 0);
       s.play(10);
       s.update(0, LISTENER_AT_ORIGIN);
@@ -187,7 +212,14 @@ describe('SpatialAudioSource', () => {
     });
 
     it('blend=1 (3D): pan is non-zero for off-center source', () => {
-      const s = new SpatialAudioSource({ spatialBlend: 1, minDistance: 1, maxDistance: 100, rolloff: 'inverse', rolloffFactor: 1, volume: 1 });
+      const s = new SpatialAudioSource({
+        spatialBlend: 1,
+        minDistance: 1,
+        maxDistance: 100,
+        rolloff: 'inverse',
+        rolloffFactor: 1,
+        volume: 1,
+      });
       s.setPosition(5, 0, 0);
       s.play(10);
       s.update(0, LISTENER_AT_ORIGIN);
@@ -202,7 +234,12 @@ describe('SpatialAudioSource', () => {
     it('listener inside innerAngle has no cone reduction', () => {
       // Use minDistance=5 so listener at (5,0,0) is exactly at minDistance → attenuation≈1
       const s = new SpatialAudioSource({
-        minDistance: 5, maxDistance: 100, rolloff: 'inverse', rolloffFactor: 1, volume: 1, spatialBlend: 1,
+        minDistance: 5,
+        maxDistance: 100,
+        rolloff: 'inverse',
+        rolloffFactor: 1,
+        volume: 1,
+        spatialBlend: 1,
         cone: { innerAngle: 180, outerAngle: 360, outerGain: 0 },
       });
       s.setPosition(0, 0, 0);
@@ -213,7 +250,12 @@ describe('SpatialAudioSource', () => {
 
     it('listener outside outerAngle gets outerGain', () => {
       const s = new SpatialAudioSource({
-        minDistance: 1, maxDistance: 100, rolloff: 'inverse', rolloffFactor: 1, volume: 1, spatialBlend: 1,
+        minDistance: 1,
+        maxDistance: 100,
+        rolloff: 'inverse',
+        rolloffFactor: 1,
+        volume: 1,
+        spatialBlend: 1,
         cone: { innerAngle: 10, outerAngle: 20, outerGain: 0.1 },
       });
       // Source at origin, listener directly ahead at (1,0,0) which is ±90°

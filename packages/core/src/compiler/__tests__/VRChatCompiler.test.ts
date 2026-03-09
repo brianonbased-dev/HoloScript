@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VRChatCompiler } from '../VRChatCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -9,7 +9,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestWorld', objects: [], ...overrides } as HoloComposition;
@@ -94,7 +93,11 @@ describe('VRChatCompiler', () => {
   it('generates Udon scripts for interactable objects', () => {
     const comp = makeComposition({
       objects: [
-        { name: 'coin', properties: [{ key: 'geometry', value: 'sphere' }], traits: [{ name: 'grabbable' }] },
+        {
+          name: 'coin',
+          properties: [{ key: 'geometry', value: 'sphere' }],
+          traits: [{ name: 'grabbable' }],
+        },
       ] as any,
     });
     const result = compiler.compile(comp, 'test-token');

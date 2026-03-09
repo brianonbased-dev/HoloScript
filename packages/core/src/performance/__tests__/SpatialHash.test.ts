@@ -34,7 +34,7 @@ describe('SpatialHash', () => {
     hash.insert({ id: 'c', x: 100, y: 0, z: 0 });
 
     const nearby = hash.queryRadius(0, 0, 0, 5);
-    const ids = nearby.map(e => e.id);
+    const ids = nearby.map((e) => e.id);
     expect(ids).toContain('a');
     expect(ids).toContain('b');
     expect(ids).not.toContain('c');
@@ -44,13 +44,13 @@ describe('SpatialHash', () => {
     hash.insert({ id: 'big', x: 8, y: 0, z: 0, radius: 5 });
     const results = hash.queryRadius(0, 0, 0, 4);
     // Distance 8, but entity radius 5 + query radius 4 = 9 > 8 → should match
-    expect(results.some(e => e.id === 'big')).toBe(true);
+    expect(results.some((e) => e.id === 'big')).toBe(true);
   });
 
   it('does not duplicate results for multi-cell entities', () => {
     hash.insert({ id: 'big', x: 0, y: 0, z: 0, radius: 10 });
     const results = hash.queryRadius(0, 0, 0, 15);
-    const ids = results.filter(e => e.id === 'big');
+    const ids = results.filter((e) => e.id === 'big');
     expect(ids).toHaveLength(1);
   });
 
@@ -60,10 +60,10 @@ describe('SpatialHash', () => {
     expect(hash.count).toBe(1);
 
     const nearOld = hash.queryRadius(0, 0, 0, 2);
-    expect(nearOld.some(e => e.id === 'a')).toBe(false);
+    expect(nearOld.some((e) => e.id === 'a')).toBe(false);
 
     const nearNew = hash.queryRadius(50, 0, 0, 2);
-    expect(nearNew.some(e => e.id === 'a')).toBe(true);
+    expect(nearNew.some((e) => e.id === 'a')).toBe(true);
   });
 
   it('clears all entities', () => {

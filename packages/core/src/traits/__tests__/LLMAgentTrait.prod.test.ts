@@ -150,9 +150,7 @@ describe('LLMAgentTrait — Production', () => {
     });
 
     it('includes tools in request when configured', () => {
-      const tools = [
-        { name: 'search', description: 'Search the web', parameters: {} },
-      ];
+      const tools = [{ name: 'search', description: 'Search the web', parameters: {} }];
       const cfg = makeConfig({ tools });
       attachAndGetState(node, cfg, ctx);
 
@@ -301,9 +299,7 @@ describe('LLMAgentTrait — Production', () => {
       llmAgentHandler.onEvent!(node, config, ctx, {
         type: 'llm_response',
         response: {
-          tool_calls: [
-            { id: 'tc_bad', function: { name: 'parse', arguments: '{{invalid' } },
-          ],
+          tool_calls: [{ id: 'tc_bad', function: { name: 'parse', arguments: '{{invalid' } }],
         },
       });
 
@@ -378,9 +374,7 @@ describe('LLMAgentTrait — Production', () => {
   describe('escalation & safety guardrails', () => {
     it('escalates on keyword match in user prompt', () => {
       const cfg = makeConfig({
-        escalation_conditions: [
-          { type: 'keyword', value: 'emergency', action: 'escalate' },
-        ],
+        escalation_conditions: [{ type: 'keyword', value: 'emergency', action: 'escalate' }],
       });
       attachAndGetState(node, cfg, ctx);
       ctx.emit.mockClear();
@@ -402,9 +396,7 @@ describe('LLMAgentTrait — Production', () => {
 
     it('pauses processing when escalation action is pause', () => {
       const cfg = makeConfig({
-        escalation_conditions: [
-          { type: 'keyword', value: 'stop', action: 'pause' },
-        ],
+        escalation_conditions: [{ type: 'keyword', value: 'stop', action: 'pause' }],
       });
       attachAndGetState(node, cfg, ctx);
       ctx.emit.mockClear();
@@ -421,9 +413,7 @@ describe('LLMAgentTrait — Production', () => {
 
     it('escalates on uncertainty markers', () => {
       const cfg = makeConfig({
-        escalation_conditions: [
-          { type: 'uncertainty', value: '0.5', action: 'notify' },
-        ],
+        escalation_conditions: [{ type: 'uncertainty', value: '0.5', action: 'notify' }],
       });
       attachAndGetState(node, cfg, ctx);
       ctx.emit.mockClear();
@@ -433,16 +423,17 @@ describe('LLMAgentTrait — Production', () => {
         message: "I'm unsure about this approach",
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('llm_escalation', expect.objectContaining({
-        condition: expect.objectContaining({ type: 'uncertainty' }),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'llm_escalation',
+        expect.objectContaining({
+          condition: expect.objectContaining({ type: 'uncertainty' }),
+        })
+      );
     });
 
     it('escalates on action_count threshold', () => {
       const cfg = makeConfig({
-        escalation_conditions: [
-          { type: 'action_count', value: 2, action: 'escalate' },
-        ],
+        escalation_conditions: [{ type: 'action_count', value: 2, action: 'escalate' }],
       });
       const state = attachAndGetState(node, cfg, ctx);
       state.actionsTaken = 3;
@@ -453,16 +444,17 @@ describe('LLMAgentTrait — Production', () => {
         message: 'Continue working',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('llm_escalation', expect.objectContaining({
-        condition: expect.objectContaining({ type: 'action_count' }),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'llm_escalation',
+        expect.objectContaining({
+          condition: expect.objectContaining({ type: 'action_count' }),
+        })
+      );
     });
 
     it('escalates on uncertainty keywords in LLM response', () => {
       const cfg = makeConfig({
-        escalation_conditions: [
-          { type: 'uncertainty', value: '', action: 'notify' },
-        ],
+        escalation_conditions: [{ type: 'uncertainty', value: '', action: 'notify' }],
       });
       attachAndGetState(node, cfg, ctx);
       ctx.emit.mockClear();
@@ -633,9 +625,7 @@ describe('LLMAgentTrait — Production', () => {
         type: 'llm_response',
         response: {
           content: 'Let me search for that',
-          tool_calls: [
-            { id: 'tc99', function: { name: 'search', arguments: '{"q":"test"}' } },
-          ],
+          tool_calls: [{ id: 'tc99', function: { name: 'search', arguments: '{"q":"test"}' } }],
         },
       });
 
@@ -652,9 +642,7 @@ describe('LLMAgentTrait — Production', () => {
         type: 'llm_response',
         response: {
           content: 'Thinking...',
-          tool_calls: [
-            { id: 'tc1', function: { name: 'analyze', arguments: '{}' } },
-          ],
+          tool_calls: [{ id: 'tc1', function: { name: 'analyze', arguments: '{}' } }],
         },
       });
 

@@ -78,7 +78,10 @@ describe('SceneDeserializer: production', () => {
     });
 
     it('reconstructs traits as a Map', () => {
-      const traits = new Map<string, unknown>([['Health', { max: 100 }], ['Speed', 5]]);
+      const traits = new Map<string, unknown>([
+        ['Health', { max: 100 }],
+        ['Speed', 5],
+      ]);
       const root = makeHSNode('e1', 'entity', {}, traits);
       const json = makeScene(root);
       const { node } = deser.fromJSON(json);

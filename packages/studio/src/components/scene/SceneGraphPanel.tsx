@@ -15,9 +15,9 @@ import {
   Layers,
   Type,
 } from 'lucide-react';
-import { useSceneGraphStore } from '@/lib/store';
-import { useEditorStore } from '@/lib/store';
-import type { SceneNode } from '@/lib/store';
+import { useSceneGraphStore } from '@/lib/stores';
+import { useEditorStore } from '@/lib/stores';
+import type { SceneNode } from '@/lib/stores';
 
 const NODE_ICONS = {
   mesh: Box,
@@ -51,10 +51,7 @@ interface ContextMenuState {
  * Returns a flat ordered list of node IDs as they appear in the visible tree,
  * respecting the expanded/collapsed state of each node.
  */
-function getFlatVisibleIds(
-  nodes: SceneNode[],
-  expandedMap: Map<string, boolean>
-): string[] {
+function getFlatVisibleIds(nodes: SceneNode[], expandedMap: Map<string, boolean>): string[] {
   const result: string[] = [];
   const rootNodes = nodes.filter((n) => n.parentId === null);
 
@@ -234,11 +231,7 @@ interface ConnectedTreeNodeProps extends Omit<TreeNodeProps, 'isExpanded' | 'con
 function ConnectedTreeNode(props: ConnectedTreeNodeProps & { expandedMap?: Map<string, boolean> }) {
   const { expandedMap = new Map(), ...rest } = props;
   return (
-    <TreeNode
-      {...rest}
-      isExpanded={expandedMap.get(props.node.id) ?? true}
-      contextMenu={null}
-    />
+    <TreeNode {...rest} isExpanded={expandedMap.get(props.node.id) ?? true} contextMenu={null} />
   );
 }
 
@@ -323,21 +316,30 @@ function ContextMenuPopup({
     >
       <button
         role="menuitem"
-        onClick={() => { onDuplicate(state.nodeId); onClose(); }}
+        onClick={() => {
+          onDuplicate(state.nodeId);
+          onClose();
+        }}
         className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-studio-muted hover:bg-studio-surface hover:text-studio-text"
       >
         <Copy className="h-3 w-3" /> Duplicate
       </button>
       <button
         role="menuitem"
-        onClick={() => { onRename(state.nodeId); onClose(); }}
+        onClick={() => {
+          onRename(state.nodeId);
+          onClose();
+        }}
         className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-studio-muted hover:bg-studio-surface hover:text-studio-text"
       >
         <Type className="h-3 w-3" /> Rename
       </button>
       <button
         role="menuitem"
-        onClick={() => { onDelete(state.nodeId); onClose(); }}
+        onClick={() => {
+          onDelete(state.nodeId);
+          onClose();
+        }}
         className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
       >
         <Trash2 className="h-3 w-3" /> Delete
@@ -349,17 +351,17 @@ function ContextMenuPopup({
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
 export function SceneGraphPanel() {
-  const nodes         = useSceneGraphStore((s) => s.nodes);
-  const addNode       = useSceneGraphStore((s) => s.addNode);
-  const removeNode    = useSceneGraphStore((s) => s.removeNode);
-  const updateNode    = useSceneGraphStore((s) => s.updateNode);
-  const selectedId    = useEditorStore((s) => s.selectedObjectId);
+  const nodes = useSceneGraphStore((s) => s.nodes);
+  const addNode = useSceneGraphStore((s) => s.addNode);
+  const removeNode = useSceneGraphStore((s) => s.removeNode);
+  const updateNode = useSceneGraphStore((s) => s.updateNode);
+  const selectedId = useEditorStore((s) => s.selectedObjectId);
   const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
 
-  const [contextMenu, setContextMenu]   = useState<ContextMenuState | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   // Tracks expanded state per node id (default: expanded)
-  const [expandedMap, setExpandedMap]   = useState<Map<string, boolean>>(new Map());
-  const treeRef           = useRef<HTMLDivElement>(null);
+  const [expandedMap, setExpandedMap] = useState<Map<string, boolean>>(new Map());
+  const treeRef = useRef<HTMLDivElement>(null);
 
   const rootNodes = nodes.filter((n) => n.parentId === null);
 
@@ -369,8 +371,12 @@ export function SceneGraphPanel() {
     (type: SceneNode['type']) => {
       const id = `obj-${Date.now()}`;
       const labelMap: Record<string, string> = {
-        mesh: 'Object', light: 'Light', camera: 'Camera',
-        audio: 'Audio', group: 'Group', splat: 'Splat',
+        mesh: 'Object',
+        light: 'Light',
+        camera: 'Camera',
+        audio: 'Audio',
+        group: 'Group',
+        splat: 'Splat',
       };
       addNode({
         id,
@@ -395,33 +401,43 @@ export function SceneGraphPanel() {
     });
   }, []);
 
-  const handleSelect = useCallback((id: string) => {
-    setSelectedId(selectedId === id ? null : id);
-  }, [selectedId, setSelectedId]);
+  const handleSelect = useCallback(
+    (id: string) => {
+      setSelectedId(selectedId === id ? null : id);
+    },
+    [selectedId, setSelectedId]
+  );
 
-  const handleDelete = useCallback((id: string) => {
-    if (selectedId === id) setSelectedId(null);
-    removeNode(id);
-  }, [selectedId, setSelectedId, removeNode]);
+  const handleDelete = useCallback(
+    (id: string) => {
+      if (selectedId === id) setSelectedId(null);
+      removeNode(id);
+    },
+    [selectedId, setSelectedId, removeNode]
+  );
 
-  const handleDuplicate = useCallback((nodeOrId: SceneNode | string) => {
-    const node = typeof nodeOrId === 'string'
-      ? nodes.find((n) => n.id === nodeOrId)
-      : nodeOrId;
-    if (!node) return;
-    const newId = `${node.id}-copy-${Date.now()}`;
-    addNode({ ...node, id: newId, name: `${node.name} Copy` });
-    setSelectedId(newId);
-  }, [nodes, addNode, setSelectedId]);
+  const handleDuplicate = useCallback(
+    (nodeOrId: SceneNode | string) => {
+      const node = typeof nodeOrId === 'string' ? nodes.find((n) => n.id === nodeOrId) : nodeOrId;
+      if (!node) return;
+      const newId = `${node.id}-copy-${Date.now()}`;
+      addNode({ ...node, id: newId, name: `${node.name} Copy` });
+      setSelectedId(newId);
+    },
+    [nodes, addNode, setSelectedId]
+  );
 
-  const handleRename = useCallback((id: string) => {
-    const node = nodes.find((n) => n.id === id);
-    if (!node) return;
-    const newName = window.prompt(`Rename "${node.name}"`, node.name);
-    if (newName && newName.trim() !== '') {
-      updateNode(id, { name: newName.trim() });
-    }
-  }, [nodes, updateNode]);
+  const handleRename = useCallback(
+    (id: string) => {
+      const node = nodes.find((n) => n.id === id);
+      if (!node) return;
+      const newName = window.prompt(`Rename "${node.name}"`, node.name);
+      if (newName && newName.trim() !== '') {
+        updateNode(id, { name: newName.trim() });
+      }
+    },
+    [nodes, updateNode]
+  );
 
   // ─── Keyboard navigation ───────────────────────────────────────────────────
 
@@ -438,25 +454,25 @@ export function SceneGraphPanel() {
           const next = flatIds[Math.min(idx + 1, flatIds.length - 1)];
           setSelectedId(next);
           // Focus the row element
-          treeRef.current
-            ?.querySelector<HTMLElement>(`[data-nodeid="${next}"]`)
-            ?.focus();
+          treeRef.current?.querySelector<HTMLElement>(`[data-nodeid="${next}"]`)?.focus();
           break;
         }
         case 'ArrowUp': {
           e.preventDefault();
           const prev = flatIds[Math.max(idx - 1, 0)];
           setSelectedId(prev);
-          treeRef.current
-            ?.querySelector<HTMLElement>(`[data-nodeid="${prev}"]`)
-            ?.focus();
+          treeRef.current?.querySelector<HTMLElement>(`[data-nodeid="${prev}"]`)?.focus();
           break;
         }
         case 'ArrowRight': {
           // Expand selected node
           if (selectedId) {
             e.preventDefault();
-            setExpandedMap((m) => { const n = new Map(m); n.set(selectedId, true); return n; });
+            setExpandedMap((m) => {
+              const n = new Map(m);
+              n.set(selectedId, true);
+              return n;
+            });
           }
           break;
         }
@@ -464,7 +480,11 @@ export function SceneGraphPanel() {
           // Collapse selected node
           if (selectedId) {
             e.preventDefault();
-            setExpandedMap((m) => { const n = new Map(m); n.set(selectedId, false); return n; });
+            setExpandedMap((m) => {
+              const n = new Map(m);
+              n.set(selectedId, false);
+              return n;
+            });
           }
           break;
         }
@@ -553,7 +573,7 @@ export function SceneGraphPanel() {
           {nodes.length} object{nodes.length !== 1 ? 's' : ''}
           {selectedId && (
             <span className="ml-2 text-studio-accent">
-              · {nodes.find(n => n.id === selectedId)?.name ?? 'selected'}
+              · {nodes.find((n) => n.id === selectedId)?.name ?? 'selected'}
             </span>
           )}
           <span className="ml-auto float-right opacity-50">↑↓ navigate · Del delete</span>

@@ -5,16 +5,28 @@ type EffectDef = Omit<StatusEffect, 'id' | 'elapsed' | 'lastTick' | 'stacks'> & 
 
 function makeBuff(overrides: Partial<EffectDef> = {}): EffectDef {
   return {
-    name: 'regen', type: 'buff', duration: 10, maxStacks: 3,
-    stackBehavior: 'stack', modifiers: [], tickInterval: 0, tickDamage: 0,
+    name: 'regen',
+    type: 'buff',
+    duration: 10,
+    maxStacks: 3,
+    stackBehavior: 'stack',
+    modifiers: [],
+    tickInterval: 0,
+    tickDamage: 0,
     ...overrides,
   };
 }
 
 function makeDebuff(overrides: Partial<EffectDef> = {}): EffectDef {
   return {
-    name: 'poison', type: 'debuff', duration: 5, maxStacks: 1,
-    stackBehavior: 'replace', modifiers: [], tickInterval: 1, tickDamage: 3,
+    name: 'poison',
+    type: 'debuff',
+    duration: 5,
+    maxStacks: 1,
+    stackBehavior: 'replace',
+    modifiers: [],
+    tickInterval: 1,
+    tickDamage: 3,
     ...overrides,
   };
 }
@@ -23,7 +35,9 @@ describe('StatusEffectSystem', () => {
   let sys: StatusEffectSystem;
   const eid = 'player1';
 
-  beforeEach(() => { sys = new StatusEffectSystem(); });
+  beforeEach(() => {
+    sys = new StatusEffectSystem();
+  });
 
   // --- Apply / Remove / Query ---
   it('apply adds effect', () => {
@@ -105,10 +119,17 @@ describe('StatusEffectSystem', () => {
   });
 
   it('tick damage scales with stacks', () => {
-    sys.apply(eid, makeDebuff({
-      name: 'dot', stackBehavior: 'stack', maxStacks: 3,
-      tickInterval: 1, tickDamage: 2, stacks: 3,
-    }));
+    sys.apply(
+      eid,
+      makeDebuff({
+        name: 'dot',
+        stackBehavior: 'stack',
+        maxStacks: 3,
+        tickInterval: 1,
+        tickDamage: 2,
+        stacks: 3,
+      })
+    );
     sys.update(1.0);
     const ticks = sys.getTickResults();
     expect(ticks[0].damage).toBe(6); // 2 * 3 stacks
@@ -129,18 +150,24 @@ describe('StatusEffectSystem', () => {
 
   // --- Stat Modifiers ---
   it('getStatModifiers sums flat/percent from effects', () => {
-    sys.apply(eid, makeBuff({
-      modifiers: [{ stat: 'attack', flat: 10, percent: 1.2 }],
-    }));
+    sys.apply(
+      eid,
+      makeBuff({
+        modifiers: [{ stat: 'attack', flat: 10, percent: 1.2 }],
+      })
+    );
     const mods = sys.getStatModifiers(eid, 'attack');
     expect(mods.flat).toBe(10);
     expect(mods.percent).toBeCloseTo(1.2);
   });
 
   it('applyStatModifiers calculates final value', () => {
-    sys.apply(eid, makeBuff({
-      modifiers: [{ stat: 'attack', flat: 5, percent: 1.5 }],
-    }));
+    sys.apply(
+      eid,
+      makeBuff({
+        modifiers: [{ stat: 'attack', flat: 5, percent: 1.5 }],
+      })
+    );
     // (100 + 5) * 1.5 = 157.5
     expect(sys.applyStatModifiers(eid, 'attack', 100)).toBeCloseTo(157.5);
   });

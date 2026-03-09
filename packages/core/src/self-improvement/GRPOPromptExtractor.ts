@@ -47,9 +47,8 @@ export function computeRougeL(a: string, b: string): number {
   const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
-      dp[i][j] = tokA[i - 1] === tokB[j - 1]
-        ? dp[i - 1][j - 1] + 1
-        : Math.max(dp[i - 1][j], dp[i][j - 1]);
+      dp[i][j] =
+        tokA[i - 1] === tokB[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
     }
   }
   const lcs = dp[m][n];
@@ -66,11 +65,7 @@ export function computeRougeL(a: string, b: string): number {
 export type PromptDifficulty = 'easy' | 'medium' | 'hard';
 
 /** Extraction source that produced this prompt */
-export type PromptSource =
-  | 'todo-comment'
-  | 'stub-implementation'
-  | 'skipped-test'
-  | 'low-coverage';
+export type PromptSource = 'todo-comment' | 'stub-implementation' | 'skipped-test' | 'low-coverage';
 
 /** Domain tags inferred from file path and content */
 export type DomainTag =
@@ -204,11 +199,7 @@ export interface PromptExtractorFS {
   /** Write a file (creates directories if needed) */
   writeFile(filePath: string, content: string): Promise<void>;
   /** Recursively list files matching extensions under a directory */
-  listFiles(
-    rootDir: string,
-    extensions: string[],
-    excludeDirs: string[],
-  ): Promise<string[]>;
+  listFiles(rootDir: string, extensions: string[], excludeDirs: string[]): Promise<string[]>;
   /** Check if a file exists */
   exists(filePath: string): Promise<boolean>;
   /** Resolve a path to absolute */
@@ -235,15 +226,7 @@ const DEFAULT_CONFIG: PromptExtractorConfig = {
   maxContextLines: 30,
   maxInstructionLength: 500,
   extensions: ['.ts'],
-  excludeDirs: [
-    'node_modules',
-    'dist',
-    'build',
-    '.git',
-    'coverage',
-    '.stryker-tmp',
-    '.turbo',
-  ],
+  excludeDirs: ['node_modules', 'dist', 'build', '.git', 'coverage', '.stryker-tmp', '.turbo'],
 };
 
 // =============================================================================
@@ -311,7 +294,7 @@ export function inferDomainTags(filePath: string, content?: string): DomainTag[]
 export function estimateDifficulty(
   contextLines: number,
   symbolName: string,
-  content: string,
+  content: string
 ): PromptDifficulty {
   let score = 0;
 
@@ -372,9 +355,7 @@ function countMaxNesting(code: string): number {
 export function extractPackageName(filePath: string, rootDir: string): string {
   const normalised = filePath.replace(/\\/g, '/');
   const rootNorm = rootDir.replace(/\\/g, '/');
-  const relative = normalised.startsWith(rootNorm)
-    ? normalised.slice(rootNorm.length)
-    : normalised;
+  const relative = normalised.startsWith(rootNorm) ? normalised.slice(rootNorm.length) : normalised;
 
   // Match packages/{name}/
   const match = relative.match(/\/?packages\/([^/]+)\//);
@@ -449,10 +430,7 @@ export class GRPOPromptExtractor {
   private readonly config: PromptExtractorConfig;
   private readonly fs: PromptExtractorFS;
 
-  constructor(
-    config: Partial<PromptExtractorConfig> = {},
-    fs: PromptExtractorFS,
-  ) {
+  constructor(config: Partial<PromptExtractorConfig> = {}, fs: PromptExtractorFS) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.fs = fs;
   }
@@ -475,7 +453,7 @@ export class GRPOPromptExtractor {
     const allFiles = await this.fs.listFiles(
       this.config.rootDir,
       this.config.extensions,
-      this.config.excludeDirs,
+      this.config.excludeDirs
     );
 
     // 2. Extract prompts from all 4 sources
@@ -491,22 +469,16 @@ export class GRPOPromptExtractor {
 
     // Source C: Failing/skipped tests
     const testFiles = allFiles.filter(
-      (f) => f.includes('.test.') || f.includes('.spec.') || f.includes('__tests__'),
+      (f) => f.includes('.test.') || f.includes('.spec.') || f.includes('__tests__')
     );
     const skippedPrompts = await this.extractSkippedTests(testFiles);
     rawPrompts.push(...skippedPrompts);
 
     // Source D: Low-coverage functions (exported symbols without test files)
     const nonTestFiles = allFiles.filter(
-      (f) =>
-        !f.includes('.test.') &&
-        !f.includes('.spec.') &&
-        !f.includes('__tests__'),
+      (f) => !f.includes('.test.') && !f.includes('.spec.') && !f.includes('__tests__')
     );
-    const coveragePrompts = await this.extractLowCoverageExports(
-      nonTestFiles,
-      testFiles,
-    );
+    const coveragePrompts = await this.extractLowCoverageExports(nonTestFiles, testFiles);
     rawPrompts.push(...coveragePrompts);
 
     // 3. Deduplicate using ROUGE-L
@@ -514,16 +486,14 @@ export class GRPOPromptExtractor {
 
     // 4. Convert to TRL records
     const timestamp = Date.now();
-    const records: TRLPromptRecord[] = dedupedPrompts.map((p) =>
-      this.toTRLRecord(p, timestamp),
-    );
+    const records: TRLPromptRecord[] = dedupedPrompts.map((p) => this.toTRLRecord(p, timestamp));
 
     // 5. Write JSONL output
     const date = new Date().toISOString().slice(0, 10);
     const outputFile = this.fs.join(
       this.config.rootDir,
       this.config.outputDir,
-      `grpo-prompts-${date}.jsonl`,
+      `grpo-prompts-${date}.jsonl`
     );
     const jsonl = records.map((r) => JSON.stringify(r)).join('\n') + '\n';
     await this.fs.writeFile(outputFile, jsonl);
@@ -559,7 +529,7 @@ export class GRPOPromptExtractor {
         const actionVerb = this.todoActionVerb(ann.type);
         const instruction = truncate(
           `${actionVerb} ${ann.text} in ${this.fs.basename(filePath)}:${ann.functionName}`,
-          this.config.maxInstructionLength,
+          this.config.maxInstructionLength
         );
 
         const packageName = extractPackageName(filePath, this.config.rootDir);
@@ -573,7 +543,7 @@ export class GRPOPromptExtractor {
           difficulty: estimateDifficulty(
             ann.context.split('\n').length,
             ann.functionName,
-            ann.context,
+            ann.context
           ),
           domainTags: inferDomainTags(filePath),
           source: 'todo-comment',
@@ -593,8 +563,7 @@ export class GRPOPromptExtractor {
   parseTodoComments(content: string): CommentAnnotation[] {
     const annotations: CommentAnnotation[] = [];
     const lines = content.split('\n');
-    const todoPattern =
-      /\/\/\s*(TODO|FIXME|HACK)\s*:?\s*(.+)/i;
+    const todoPattern = /\/\/\s*(TODO|FIXME|HACK)\s*:?\s*(.+)/i;
 
     for (let i = 0; i < lines.length; i++) {
       const match = todoPattern.exec(lines[i]);
@@ -609,10 +578,7 @@ export class GRPOPromptExtractor {
 
       // Extract context around the annotation
       const contextStart = Math.max(0, i - this.config.minContextLines);
-      const contextEnd = Math.min(
-        lines.length,
-        i + this.config.maxContextLines,
-      );
+      const contextEnd = Math.min(lines.length, i + this.config.maxContextLines);
       const context = lines.slice(contextStart, contextEnd).join('\n');
 
       annotations.push({ type, text, line: lineNum, functionName, context });
@@ -654,7 +620,7 @@ export class GRPOPromptExtractor {
       for (const stub of stubs) {
         const instruction = truncate(
           `Complete the implementation of ${stub.name} in ${this.fs.basename(filePath)}`,
-          this.config.maxInstructionLength,
+          this.config.maxInstructionLength
         );
 
         const packageName = extractPackageName(filePath, this.config.rootDir);
@@ -665,11 +631,7 @@ export class GRPOPromptExtractor {
           context: stub.context,
           packageName,
           filePath: relativePath,
-          difficulty: estimateDifficulty(
-            stub.context.split('\n').length,
-            stub.name,
-            stub.context,
-          ),
+          difficulty: estimateDifficulty(stub.context.split('\n').length, stub.name, stub.context),
           domainTags: inferDomainTags(filePath),
           source: 'stub-implementation',
           line: stub.line,
@@ -694,8 +656,7 @@ export class GRPOPromptExtractor {
 
     // Pattern 2: Function with empty body (just braces or braces with only a comment)
     // Pattern 3: Function with only `return;` or `return undefined;` or `return null;`
-    const returnStubPattern =
-      /^\s*return\s*(?:undefined|null|void\s+0)?\s*;?\s*$/;
+    const returnStubPattern = /^\s*return\s*(?:undefined|null|void\s+0)?\s*;?\s*$/;
 
     // Find function declarations and arrow functions
     const funcPattern =
@@ -722,11 +683,7 @@ export class GRPOPromptExtractor {
 
       if (notImplPattern.test(bodyContent)) {
         stubType = 'not-implemented';
-      } else if (
-        bodyContent === '' ||
-        bodyContent === '{}' ||
-        /^\s*\/\//.test(bodyContent)
-      ) {
+      } else if (bodyContent === '' || bodyContent === '{}' || /^\s*\/\//.test(bodyContent)) {
         stubType = 'empty-body';
       } else if (returnStubPattern.test(bodyContent)) {
         stubType = 'single-return';
@@ -736,10 +693,7 @@ export class GRPOPromptExtractor {
 
       const signature = lines[i].trim();
       const contextStart = Math.max(0, i - this.config.minContextLines);
-      const contextEnd = Math.min(
-        lines.length,
-        bodyInfo.endLine + 1,
-      );
+      const contextEnd = Math.min(lines.length, bodyInfo.endLine + 1);
       const context = lines.slice(contextStart, contextEnd).join('\n');
 
       stubs.push({
@@ -777,7 +731,7 @@ export class GRPOPromptExtractor {
       for (const skip of skipped) {
         const instruction = truncate(
           `Write the test implementation for "${skip.description}" in ${this.fs.basename(filePath)}`,
-          this.config.maxInstructionLength,
+          this.config.maxInstructionLength
         );
 
         const packageName = extractPackageName(filePath, this.config.rootDir);
@@ -791,7 +745,7 @@ export class GRPOPromptExtractor {
           difficulty: estimateDifficulty(
             skip.context.split('\n').length,
             skip.description,
-            skip.context,
+            skip.context
           ),
           domainTags: inferDomainTags(filePath),
           source: 'skipped-test',
@@ -833,10 +787,7 @@ export class GRPOPromptExtractor {
 
         const description = match[1];
         const contextStart = Math.max(0, i - this.config.minContextLines);
-        const contextEnd = Math.min(
-          lines.length,
-          i + this.config.maxContextLines,
-        );
+        const contextEnd = Math.min(lines.length, i + this.config.maxContextLines);
         const context = lines.slice(contextStart, contextEnd).join('\n');
 
         skipped.push({
@@ -861,7 +812,7 @@ export class GRPOPromptExtractor {
    */
   async extractLowCoverageExports(
     sourceFiles: string[],
-    testFiles: string[],
+    testFiles: string[]
   ): Promise<GRPOPrompt[]> {
     const prompts: GRPOPrompt[] = [];
 
@@ -886,16 +837,13 @@ export class GRPOPromptExtractor {
         const baseName = this.fs.basename(filePath, '.ts');
         const hasTestFile = testFiles.some((tf) => {
           const testBase = this.fs.basename(tf);
-          return (
-            testBase.includes(baseName) ||
-            testBase.includes(exp.symbolName)
-          );
+          return testBase.includes(baseName) || testBase.includes(exp.symbolName);
         });
         if (hasTestFile) continue;
 
         const instruction = truncate(
           `Write tests for ${exp.symbolName} exported from ${this.fs.basename(filePath)}`,
-          this.config.maxInstructionLength,
+          this.config.maxInstructionLength
         );
 
         const packageName = extractPackageName(filePath, this.config.rootDir);
@@ -909,7 +857,7 @@ export class GRPOPromptExtractor {
           difficulty: estimateDifficulty(
             exp.context.split('\n').length,
             exp.symbolName,
-            exp.context,
+            exp.context
           ),
           domainTags: inferDomainTags(filePath),
           source: 'low-coverage',
@@ -938,13 +886,15 @@ export class GRPOPromptExtractor {
       }
 
       // Extract imported names from test files
-      const importPattern =
-        /import\s+(?:type\s+)?{([^}]+)}\s+from/g;
+      const importPattern = /import\s+(?:type\s+)?{([^}]+)}\s+from/g;
       let match: RegExpExecArray | null;
       while ((match = importPattern.exec(content)) !== null) {
         const names = match[1].split(',');
         for (const name of names) {
-          const clean = name.trim().split(/\s+as\s+/)[0].trim();
+          const clean = name
+            .trim()
+            .split(/\s+as\s+/)[0]
+            .trim();
           if (clean) symbols.add(clean);
         }
       }
@@ -987,7 +937,11 @@ export class GRPOPromptExtractor {
       symbolType: string;
     }> = [
       // export function name(...)
-      { pattern: /^export\s+(?:async\s+)?function\s+(\w+)/, getNameIndex: 1, symbolType: 'function' },
+      {
+        pattern: /^export\s+(?:async\s+)?function\s+(\w+)/,
+        getNameIndex: 1,
+        symbolType: 'function',
+      },
       // export class Name
       { pattern: /^export\s+class\s+(\w+)/, getNameIndex: 1, symbolType: 'class' },
       // export const name =
@@ -1013,13 +967,8 @@ export class GRPOPromptExtractor {
 
         const contextStart = Math.max(0, i - 2);
         const bodyEnd = this.findBlockEnd(lines, i);
-        const contextEnd = Math.min(
-          lines.length,
-          bodyEnd + 1,
-        );
-        const context = lines
-          .slice(contextStart, contextEnd)
-          .join('\n');
+        const contextEnd = Math.min(lines.length, bodyEnd + 1);
+        const context = lines.slice(contextStart, contextEnd).join('\n');
 
         exports.push({
           symbolName,
@@ -1117,11 +1066,7 @@ export class GRPOPromptExtractor {
   /**
    * Compute extraction statistics from raw and deduped prompt lists.
    */
-  computeStats(
-    raw: GRPOPrompt[],
-    deduped: GRPOPrompt[],
-    outputFile: string,
-  ): ExtractionStats {
+  computeStats(raw: GRPOPrompt[], deduped: GRPOPrompt[], outputFile: string): ExtractionStats {
     const bySource: Record<PromptSource, number> = {
       'todo-comment': 0,
       'stub-implementation': 0,
@@ -1187,9 +1132,14 @@ export class GRPOPromptExtractor {
       if (arrowMatch) return arrowMatch[1];
 
       const methodMatch = methodPattern.exec(line);
-      if (methodMatch && methodMatch[1] !== 'if' && methodMatch[1] !== 'for'
-          && methodMatch[1] !== 'while' && methodMatch[1] !== 'switch'
-          && methodMatch[1] !== 'catch') {
+      if (
+        methodMatch &&
+        methodMatch[1] !== 'if' &&
+        methodMatch[1] !== 'for' &&
+        methodMatch[1] !== 'while' &&
+        methodMatch[1] !== 'switch' &&
+        methodMatch[1] !== 'catch'
+      ) {
         return methodMatch[1];
       }
     }
@@ -1202,7 +1152,7 @@ export class GRPOPromptExtractor {
    */
   extractFunctionBody(
     lines: string[],
-    startLine: number,
+    startLine: number
   ): { body: string; endLine: number } | null {
     // Find the opening brace
     let braceStart = -1;
@@ -1336,7 +1286,7 @@ export function createNodeFS(): PromptExtractorFS {
     async listFiles(
       rootDir: string,
       extensions: string[],
-      excludeDirs: string[],
+      excludeDirs: string[]
     ): Promise<string[]> {
       const results: string[] = [];
       const extSet = new Set(extensions);
@@ -1393,9 +1343,7 @@ export function createNodeFS(): PromptExtractorFS {
     },
 
     basename(filePath: string, ext?: string): string {
-      return ext
-        ? pathModule.basename(filePath, ext)
-        : pathModule.basename(filePath);
+      return ext ? pathModule.basename(filePath, ext) : pathModule.basename(filePath);
     },
 
     join(...segments: string[]): string {

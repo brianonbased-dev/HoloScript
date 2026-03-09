@@ -78,13 +78,15 @@ describe('StateSnapshotCapture: production', () => {
       const snap = new StateSnapshotCapture().capture({ particleSystems });
       expect(snap.particles).toHaveLength(2);
       expect(snap.particles[0]).toEqual({ emitterId: 'fire-1', isEmitting: true, activeCount: 50 });
-      expect(snap.particles[1]).toEqual({ emitterId: 'smoke-2', isEmitting: false, activeCount: 0 });
+      expect(snap.particles[1]).toEqual({
+        emitterId: 'smoke-2',
+        isEmitting: false,
+        activeCount: 0,
+      });
     });
 
     it('handles single particle system', () => {
-      const particleSystems = [
-        { id: 'sparks', isEmitting: () => true, getActiveCount: () => 12 },
-      ];
+      const particleSystems = [{ id: 'sparks', isEmitting: () => true, getActiveCount: () => 12 }];
       const snap = new StateSnapshotCapture().capture({ particleSystems });
       expect(snap.particles[0].emitterId).toBe('sparks');
       expect(snap.particles[0].activeCount).toBe(12);

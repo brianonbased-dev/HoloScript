@@ -88,7 +88,7 @@ export const MembranePotentialHeatmap: React.FC<MembranePotentialHeatmapProps> =
       uniformData.byteLength,
       GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       uniformData,
-      'heatmap-uniforms',
+      'heatmap-uniforms'
     );
     uniformBufferRef.current = uniformBuffer;
 
@@ -98,7 +98,7 @@ export const MembranePotentialHeatmap: React.FC<MembranePotentialHeatmapProps> =
       Math.max(neuronCount * 4, 16),
       GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       normalizedVoltages,
-      'heatmap-voltages',
+      'heatmap-voltages'
     );
     voltageBufferRef.current = voltageBuffer;
 
@@ -109,7 +109,7 @@ export const MembranePotentialHeatmap: React.FC<MembranePotentialHeatmapProps> =
       colorMapData.byteLength,
       GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       colorMapData,
-      'heatmap-colormap',
+      'heatmap-colormap'
     );
     colorMapBufferRef.current = colorMapBuffer;
 
@@ -233,7 +233,7 @@ export const MembranePotentialHeatmap: React.FC<MembranePotentialHeatmapProps> =
         setTooltipInfo({ x: e.clientX, y: e.clientY, neuronIndex: idx, voltage: voltages[idx] });
       }
     },
-    [showTooltips, width, height, gridRows, gridCols, voltages],
+    [showTooltips, width, height, gridRows, gridCols, voltages]
   );
 
   const handleMouseLeave = useCallback(() => {
@@ -254,7 +254,7 @@ export const MembranePotentialHeatmap: React.FC<MembranePotentialHeatmapProps> =
         onNeuronClick(idx, voltages[idx]);
       }
     },
-    [onNeuronClick, width, height, gridRows, gridCols, voltages],
+    [onNeuronClick, width, height, gridRows, gridCols, voltages]
   );
 
   if (isLoading) {
@@ -263,7 +263,14 @@ export const MembranePotentialHeatmap: React.FC<MembranePotentialHeatmapProps> =
         className={className}
         role="status"
         aria-label="Loading heatmap"
-        style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1a1a2e' }}
+        style={{
+          width,
+          height,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#1a1a2e',
+        }}
       >
         <span style={{ color: '#ccc' }}>Initializing WebGPU...</span>
       </div>

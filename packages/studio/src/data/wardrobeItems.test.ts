@@ -24,12 +24,12 @@ describe('BUILTIN_ITEMS', () => {
   });
 
   it('all item IDs are unique', () => {
-    const ids = BUILTIN_ITEMS.map(w => w.id);
+    const ids = BUILTIN_ITEMS.map((w) => w.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('covers expected slot types', () => {
-    const slots = new Set(BUILTIN_ITEMS.map(w => w.slot));
+    const slots = new Set(BUILTIN_ITEMS.map((w) => w.slot));
     expect(slots.has('hair')).toBe(true);
     expect(slots.has('top')).toBe(true);
     expect(slots.has('bottom')).toBe(true);

@@ -18,7 +18,7 @@ export interface Behavior {
   priority: number;
   condition?: () => boolean;
   action: () => void;
-  lockoutMs: number;        // Minimum time between executions
+  lockoutMs: number; // Minimum time between executions
   lastExecuted: number;
 }
 
@@ -37,16 +37,26 @@ export class BehaviorSelector {
   private history: Array<{ behaviorId: string; timestamp: number }> = [];
   private maxHistory = 50;
 
-  constructor(mode: SelectionMode = 'priority') { this.mode = mode; }
+  constructor(mode: SelectionMode = 'priority') {
+    this.mode = mode;
+  }
 
   // ---------------------------------------------------------------------------
   // Behavior Management
   // ---------------------------------------------------------------------------
 
-  addBehavior(behavior: Behavior): void { this.behaviors.push(behavior); }
-  removeBehavior(id: string): void { this.behaviors = this.behaviors.filter(b => b.id !== id); }
-  setFallback(behavior: Behavior): void { this.fallback = behavior; }
-  setMode(mode: SelectionMode): void { this.mode = mode; }
+  addBehavior(behavior: Behavior): void {
+    this.behaviors.push(behavior);
+  }
+  removeBehavior(id: string): void {
+    this.behaviors = this.behaviors.filter((b) => b.id !== id);
+  }
+  setFallback(behavior: Behavior): void {
+    this.fallback = behavior;
+  }
+  setMode(mode: SelectionMode): void {
+    this.mode = mode;
+  }
 
   // ---------------------------------------------------------------------------
   // Selection
@@ -57,14 +67,17 @@ export class BehaviorSelector {
     if (available.length === 0) return this.fallback;
 
     switch (this.mode) {
-      case 'priority': return this.selectByPriority(available);
-      case 'weighted': return this.selectByWeight(available);
-      case 'sequential': return this.selectSequential(available);
+      case 'priority':
+        return this.selectByPriority(available);
+      case 'weighted':
+        return this.selectByWeight(available);
+      case 'sequential':
+        return this.selectSequential(available);
     }
   }
 
   private getAvailable(): Behavior[] {
-    return this.behaviors.filter(b => {
+    return this.behaviors.filter((b) => {
       if (this.currentTime - b.lastExecuted < b.lockoutMs) return false;
       if (b.condition && !b.condition()) return false;
       return true;
@@ -72,7 +85,7 @@ export class BehaviorSelector {
   }
 
   private selectByPriority(behaviors: Behavior[]): Behavior {
-    return behaviors.reduce((best, b) => b.priority > best.priority ? b : best);
+    return behaviors.reduce((best, b) => (b.priority > best.priority ? b : best));
   }
 
   private selectByWeight(behaviors: Behavior[]): Behavior {
@@ -110,7 +123,13 @@ export class BehaviorSelector {
   // Queries
   // ---------------------------------------------------------------------------
 
-  setTime(time: number): void { this.currentTime = time; }
-  getBehaviorCount(): number { return this.behaviors.length; }
-  getHistory() { return [...this.history]; }
+  setTime(time: number): void {
+    this.currentTime = time;
+  }
+  getBehaviorCount(): number {
+    return this.behaviors.length;
+  }
+  getHistory() {
+    return [...this.history];
+  }
 }

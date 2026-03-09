@@ -339,8 +339,9 @@ describe('ENTITY_BANDWIDTH_PROFILES', () => {
   });
 
   it('cosmetic has lowest bandwidth at 8 bytes × 1Hz', () => {
-    const bps = ENTITY_BANDWIDTH_PROFILES.cosmetic.bytesPerUpdate *
-                ENTITY_BANDWIDTH_PROFILES.cosmetic.updatesPerSecond;
+    const bps =
+      ENTITY_BANDWIDTH_PROFILES.cosmetic.bytesPerUpdate *
+      ENTITY_BANDWIDTH_PROFILES.cosmetic.updatesPerSecond;
     expect(bps).toBe(8);
   });
 });
@@ -359,10 +360,7 @@ describe('estimateAOIBandwidth', () => {
   });
 
   it('estimates bandwidth for mixed scenario (100 players + 100 agents)', () => {
-    const types: EntityType[] = [
-      ...Array(100).fill('player'),
-      ...Array(100).fill('agent'),
-    ];
+    const types: EntityType[] = [...Array(100).fill('player'), ...Array(100).fill('agent')];
     const result = estimateAOIBandwidth(types);
     // Players: 100 × 20 × 20 = 40,000
     // Agents: 100 × 150 × 3 = 45,000

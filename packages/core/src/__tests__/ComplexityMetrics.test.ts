@@ -105,7 +105,7 @@ describe('ComplexityAnalyzer', () => {
   it('analyze calculates cyclomatic complexity for update', () => {
     const ca = new ComplexityAnalyzer();
     const result = ca.analyze(COMPLEX_CODE);
-    const updateFn = result.functions.find(f => f.name === 'update');
+    const updateFn = result.functions.find((f) => f.name === 'update');
     expect(updateFn).toBeDefined();
     expect(updateFn!.cyclomatic).toBeGreaterThanOrEqual(2);
   });

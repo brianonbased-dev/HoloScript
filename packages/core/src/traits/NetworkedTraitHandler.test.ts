@@ -116,7 +116,7 @@ describe('NetworkedTraitHandler', () => {
             mode: 'owner',
             syncRate: 20,
           }),
-        }),
+        })
       );
     });
 
@@ -128,7 +128,7 @@ describe('NetworkedTraitHandler', () => {
           __networked: true,
           __networkId: expect.any(String),
           __networkMode: 'owner',
-        }),
+        })
       );
     });
 
@@ -149,7 +149,7 @@ describe('NetworkedTraitHandler', () => {
             mode: 'shared',
             syncRate: 60,
           }),
-        }),
+        })
       );
     });
 
@@ -181,7 +181,7 @@ describe('NetworkedTraitHandler', () => {
         expect.objectContaining({
           nodeId: 'player_1',
           entityId: expect.any(String),
-        }),
+        })
       );
     });
 
@@ -194,7 +194,7 @@ describe('NetworkedTraitHandler', () => {
           __networked: false,
           __networkId: null,
           __networkMode: null,
-        }),
+        })
       );
     });
 

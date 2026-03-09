@@ -1,19 +1,19 @@
 /**
  * Real Benchmark: WASM vs TypeScript
- * 
+ *
  * This script runs the actual WASM binary (458KB) against the TypeScript fallback
  * and measures real-world performance differences.
- * 
+ *
  * Usage:
  *   npx vitest run src/__tests__/wasm-performance.test.ts --reporter=verbose
- * 
+ *
  * Expected Output:
  *   - Initialization time for WASM vs TS
  *   - Parse latency comparison
  *   - Compile latency comparison
  *   - Speedup factors
  *   - Budget compliance
- * 
+ *
  * @vitest-environment jsdom
  */
 
@@ -23,17 +23,27 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('@holoscript/core', () => ({
   parseHolo: vi.fn().mockReturnValue({ type: 'composition', body: [] }),
   HoloScriptValidator: class {
-    validate() { return []; }
+    validate() {
+      return [];
+    }
   },
   HoloScriptPlusParser: class {
-    parse() { return { ast: { type: 'program', body: [] } }; }
+    parse() {
+      return { ast: { type: 'program', body: [] } };
+    }
   },
   HoloCompositionParser: class {
-    parse() { return { ast: { type: 'composition', body: [] } }; }
+    parse() {
+      return { ast: { type: 'composition', body: [] } };
+    }
   },
   R3FCompiler: class {
-    compile() { return { type: 'group', children: [] }; }
-    compileComposition() { return { type: 'group', children: [] }; }
+    compile() {
+      return { type: 'group', children: [] };
+    }
+    compileComposition() {
+      return { type: 'group', children: [] };
+    }
   },
 }));
 
@@ -232,13 +242,19 @@ describe('WASM Performance Benchmarks', () => {
       console.log('\n=== BUDGET COMPLIANCE ===');
 
       if (result.wasm?.budgetCheck) {
-        console.log('WASM Budget Check:', result.wasm.budgetCheck.withinBudget ? '✓ PASS' : '✗ FAIL');
+        console.log(
+          'WASM Budget Check:',
+          result.wasm.budgetCheck.withinBudget ? '✓ PASS' : '✗ FAIL'
+        );
         if (!result.wasm.budgetCheck.withinBudget) {
           console.log('Violations:', result.wasm.budgetCheck.violations);
         }
       }
 
-      console.log('TypeScript Budget Check:', result.typescript.budgetCheck.withinBudget ? '✓ PASS' : '✗ FAIL');
+      console.log(
+        'TypeScript Budget Check:',
+        result.typescript.budgetCheck.withinBudget ? '✓ PASS' : '✗ FAIL'
+      );
       if (!result.typescript.budgetCheck.withinBudget) {
         console.log('Violations:', result.typescript.budgetCheck.violations);
       }

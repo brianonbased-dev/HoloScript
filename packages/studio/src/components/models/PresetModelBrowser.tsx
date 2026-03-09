@@ -9,7 +9,7 @@
 
 import { useState, useMemo } from 'react';
 import { X, Search, Plus, Grid3x3 } from 'lucide-react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 import { ModelPreviewCanvas } from '@/components/scene/ModelPreviewCanvas';
 import {
   MODEL_PRESETS,
@@ -170,7 +170,10 @@ export function PresetModelBrowser({ onClose, onInsert }: PresetModelBrowserProp
         <Grid3x3 className="h-4 w-4 text-studio-accent" />
         <span className="text-[12px] font-semibold">3D Models</span>
         {onClose && (
-          <button onClick={onClose} className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text">
+          <button
+            onClick={onClose}
+            className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text"
+          >
             <X className="h-4 w-4" />
           </button>
         )}

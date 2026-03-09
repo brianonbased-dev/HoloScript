@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { coLocatedHandler } from '../CoLocatedTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('CoLocatedTrait', () => {
   let node: Record<string, unknown>;
@@ -42,26 +50,45 @@ describe('CoLocatedTrait', () => {
   });
 
   it('alignment_failed sets lost state', () => {
-    sendEvent(coLocatedHandler, node, cfg, ctx, { type: 'co_located_alignment_failed', reason: 'timeout' });
+    sendEvent(coLocatedHandler, node, cfg, ctx, {
+      type: 'co_located_alignment_failed',
+      reason: 'timeout',
+    });
     expect((node as any).__coLocatedState.state).toBe('lost');
     expect(getEventCount(ctx, 'on_co_located_failed')).toBe(1);
   });
 
   it('participant_joined adds participant', () => {
-    sendEvent(coLocatedHandler, node, cfg, ctx, { type: 'co_located_participant_joined', userId: 'u1' });
+    sendEvent(coLocatedHandler, node, cfg, ctx, {
+      type: 'co_located_participant_joined',
+      userId: 'u1',
+    });
     expect((node as any).__coLocatedState.participants.size).toBe(1);
     expect(getEventCount(ctx, 'on_co_presence_joined')).toBe(1);
   });
 
   it('participant_aligned marks participant aligned', () => {
-    sendEvent(coLocatedHandler, node, cfg, ctx, { type: 'co_located_participant_joined', userId: 'u1' });
-    sendEvent(coLocatedHandler, node, cfg, ctx, { type: 'co_located_participant_aligned', userId: 'u1', position: { x: 1, y: 0, z: 0 } });
+    sendEvent(coLocatedHandler, node, cfg, ctx, {
+      type: 'co_located_participant_joined',
+      userId: 'u1',
+    });
+    sendEvent(coLocatedHandler, node, cfg, ctx, {
+      type: 'co_located_participant_aligned',
+      userId: 'u1',
+      position: { x: 1, y: 0, z: 0 },
+    });
     expect((node as any).__coLocatedState.participants.get('u1').isAligned).toBe(true);
   });
 
   it('participant_left removes participant', () => {
-    sendEvent(coLocatedHandler, node, cfg, ctx, { type: 'co_located_participant_joined', userId: 'u2' });
-    sendEvent(coLocatedHandler, node, cfg, ctx, { type: 'co_located_participant_left', userId: 'u2' });
+    sendEvent(coLocatedHandler, node, cfg, ctx, {
+      type: 'co_located_participant_joined',
+      userId: 'u2',
+    });
+    sendEvent(coLocatedHandler, node, cfg, ctx, {
+      type: 'co_located_participant_left',
+      userId: 'u2',
+    });
     expect((node as any).__coLocatedState.participants.size).toBe(0);
   });
 
@@ -71,7 +98,10 @@ describe('CoLocatedTrait', () => {
       anchorId: 'a1',
       transform: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
     });
-    sendEvent(coLocatedHandler, node, cfg, ctx, { type: 'co_located_quality_update', quality: 0.1 });
+    sendEvent(coLocatedHandler, node, cfg, ctx, {
+      type: 'co_located_quality_update',
+      quality: 0.1,
+    });
     expect((node as any).__coLocatedState.state).toBe('lost');
   });
 

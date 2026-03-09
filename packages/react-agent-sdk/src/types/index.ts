@@ -14,8 +14,14 @@ export interface AgentConfig {
 }
 
 export type AgentPhase =
-  | 'intake' | 'reflect' | 'execute' | 'compress'
-  | 'reintake' | 'grow' | 'evolve' | 'autonomize';
+  | 'intake'
+  | 'reflect'
+  | 'execute'
+  | 'compress'
+  | 'reintake'
+  | 'grow'
+  | 'evolve'
+  | 'autonomize';
 
 export interface CycleResult {
   success: boolean;
@@ -257,10 +263,7 @@ export interface UseAgentReturn {
     /** Send message to agent */
     sendMessage: (action: string, payload: unknown) => Promise<AgentResponse>;
     /** Execute task */
-    executeTask: <T = unknown>(
-      taskName: string,
-      params?: TaskParams
-    ) => Promise<TaskResult<T>>;
+    executeTask: <T = unknown>(taskName: string, params?: TaskParams) => Promise<TaskResult<T>>;
     /** Get agent state */
     getState: () => unknown;
     /** Subscribe to agent events */

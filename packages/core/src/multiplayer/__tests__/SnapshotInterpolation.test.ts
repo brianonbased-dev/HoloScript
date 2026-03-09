@@ -115,7 +115,7 @@ describe('SnapshotInterpolation', () => {
       interp.pushSnapshot(makeSnapshot(200, { e1: [10, 0, 0] })); // e2 missing
 
       const result = interp.interpolate(250);
-      const e2 = result.find(r => r.id === 'e2');
+      const e2 = result.find((r) => r.id === 'e2');
       if (e2) {
         expect(e2.interpolated).toBe(false);
       }
@@ -137,7 +137,7 @@ describe('SnapshotInterpolation', () => {
 
 function makeSnapshot(
   timestamp: number,
-  entities: Record<string, [number, number, number]>,
+  entities: Record<string, [number, number, number]>
 ): Snapshot {
   const map = new Map<string, { x: number; y: number; z: number }>();
   for (const [id, [x, y, z]] of Object.entries(entities)) {

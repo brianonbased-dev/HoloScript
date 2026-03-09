@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  GossipProtocol,
-  AntiEntropySync,
-  type IGossipMessage,
-} from '../GossipProtocol';
+import { GossipProtocol, AntiEntropySync, type IGossipMessage } from '../GossipProtocol';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -49,12 +45,14 @@ describe('GossipProtocol — start / stop', () => {
   });
   it('isRunning() = false after stop', () => {
     const n = mkNode('s2', { gossipInterval: 99999 });
-    n.start(); n.stop();
+    n.start();
+    n.stop();
     expect(n.isRunning()).toBe(false);
   });
   it('start() is idempotent', () => {
     const n = mkNode('s3', { gossipInterval: 99999 });
-    n.start(); n.start();
+    n.start();
+    n.start();
     expect(n.isRunning()).toBe(true);
     n.stop();
   });
@@ -102,13 +100,15 @@ describe('GossipProtocol — peer management', () => {
   });
   it('getActivePeers filters inactive', () => {
     const n = mkNode();
-    n.addPeer('p1', 'a1'); n.addPeer('p2', 'a2');
+    n.addPeer('p1', 'a1');
+    n.addPeer('p2', 'a2');
     n.getPeer('p1')!.isActive = false;
     expect(n.getActivePeers()).toHaveLength(1);
   });
   it('getAllPeers includes all', () => {
     const n = mkNode();
-    n.addPeer('p1', 'a1'); n.addPeer('p2', 'a2');
+    n.addPeer('p1', 'a1');
+    n.addPeer('p2', 'a2');
     n.getPeer('p1')!.isActive = false;
     expect(n.getAllPeers()).toHaveLength(2);
   });
@@ -197,7 +197,7 @@ describe('GossipProtocol — receive', () => {
     const n = mkNode();
     n.addPeer('peer', 'addr');
     const before = n.getPeer('peer')!.lastSeen;
-    await new Promise(r => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, 5));
     await n.receive(mkMsg(), 'peer');
     expect(n.getPeer('peer')!.lastSeen).toBeGreaterThanOrEqual(before);
   });
@@ -246,7 +246,8 @@ describe('GossipProtocol — stats', () => {
   });
   it('getStats includes peerCount', () => {
     const n = mkNode();
-    n.addPeer('a', 'addr'); n.addPeer('b', 'addr2');
+    n.addPeer('a', 'addr');
+    n.addPeer('b', 'addr2');
     expect(n.getStats().peerCount).toBe(2);
   });
   it('getStats includes queueSize after publish', () => {
@@ -256,7 +257,8 @@ describe('GossipProtocol — stats', () => {
   });
   it('resetStats zeroes all counters', () => {
     const n = mkNode();
-    n.publish({}); n.resetStats();
+    n.publish({});
+    n.resetStats();
     expect(n.getStats().messagesSent).toBe(0);
   });
 });
@@ -264,10 +266,14 @@ describe('GossipProtocol — stats', () => {
 describe('GossipProtocol — setPeerSelector', () => {
   it('custom selector is called on gossipRound with messages', async () => {
     const n = mkNode('n', { fanout: 2 });
-    n.addPeer('a', 'addr1'); n.addPeer('b', 'addr2');
+    n.addPeer('a', 'addr1');
+    n.addPeer('b', 'addr2');
     n.start();
     let selectorCalled = false;
-    n.setPeerSelector((peers, count) => { selectorCalled = true; return peers.slice(0, count); });
+    n.setPeerSelector((peers, count) => {
+      selectorCalled = true;
+      return peers.slice(0, count);
+    });
     n.publish({ data: 1 });
     await n.gossipRound();
     expect(selectorCalled).toBe(true);
@@ -290,7 +296,8 @@ describe('AntiEntropySync — basic', () => {
   });
   it('keys() returns stored keys', () => {
     const sync = new AntiEntropySync('n', mkNode());
-    sync.set('a', 1); sync.set('b', 2);
+    sync.set('a', 1);
+    sync.set('b', 2);
     expect(sync.keys()).toContain('a');
     expect(sync.keys()).toContain('b');
   });
@@ -329,7 +336,7 @@ describe('AntiEntropySync — basic', () => {
     const proto = mkNode('n', { deduplicate: false });
     const sync = new AntiEntropySync('n', proto);
     sync.set('k', 'original'); // version 1
-    sync.set('k', 'updated');  // version 2
+    sync.set('k', 'updated'); // version 2
     // Simulate receiving version 1 again
     const oldMsg: IGossipMessage = {
       id: `old-${Math.random()}`,

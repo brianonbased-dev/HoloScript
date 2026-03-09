@@ -17,21 +17,21 @@ export interface InputBinding {
   id: string;
   action: string;
   source: BindingSource;
-  code: string;            // Key code, button index, or axis index
-  modifiers?: string[];    // Required modifier keys (e.g., ['Shift', 'Ctrl'])
-  scale?: number;          // Axis scale (-1 for inverted)
+  code: string; // Key code, button index, or axis index
+  modifiers?: string[]; // Required modifier keys (e.g., ['Shift', 'Ctrl'])
+  scale?: number; // Axis scale (-1 for inverted)
 }
 
 export interface CompositeAxis {
   name: string;
-  positive: string;        // Action or key for +1
-  negative: string;        // Action or key for -1
+  positive: string; // Action or key for +1
+  negative: string; // Action or key for -1
 }
 
 export interface ChordBinding {
   id: string;
   action: string;
-  keys: string[];           // All must be pressed simultaneously
+  keys: string[]; // All must be pressed simultaneously
   order: 'any' | 'sequence'; // Whether order matters
 }
 
@@ -69,10 +69,10 @@ export class InputBindings {
     // Default Bindings
     const p = this.profiles.get('default')!;
     p.bindings.push({
-        id: `bind_${_bindingId++}`,
-        action: 'VoicePushToTalk',
-        source: 'key',
-        code: 'KeyV'
+      id: `bind_${_bindingId++}`,
+      action: 'VoicePushToTalk',
+      source: 'key',
+      code: 'KeyV',
     });
   }
 
@@ -114,13 +114,21 @@ export class InputBindings {
   // Binding Management
   // ---------------------------------------------------------------------------
 
-  bind(action: string, source: BindingSource, code: string, modifiers?: string[], scale?: number): InputBinding | null {
+  bind(
+    action: string,
+    source: BindingSource,
+    code: string,
+    modifiers?: string[],
+    scale?: number
+  ): InputBinding | null {
     const profile = this.getActiveProfile();
     if (!profile) return null;
 
     const binding: InputBinding = {
       id: `bind_${_bindingId++}`,
-      action, source, code,
+      action,
+      source,
+      code,
       modifiers: modifiers ?? [],
       scale: scale ?? 1,
     };
@@ -131,7 +139,7 @@ export class InputBindings {
   unbind(bindingId: string): boolean {
     const profile = this.getActiveProfile();
     if (!profile) return false;
-    const idx = profile.bindings.findIndex(b => b.id === bindingId);
+    const idx = profile.bindings.findIndex((b) => b.id === bindingId);
     if (idx < 0) return false;
     profile.bindings.splice(idx, 1);
     return true;
@@ -141,14 +149,14 @@ export class InputBindings {
     const profile = this.getActiveProfile();
     if (!profile) return 0;
     const before = profile.bindings.length;
-    profile.bindings = profile.bindings.filter(b => b.action !== action);
+    profile.bindings = profile.bindings.filter((b) => b.action !== action);
     return before - profile.bindings.length;
   }
 
   getBindingsForAction(action: string): InputBinding[] {
     const profile = this.getActiveProfile();
     if (!profile) return [];
-    return profile.bindings.filter(b => b.action === action);
+    return profile.bindings.filter((b) => b.action === action);
   }
 
   // ---------------------------------------------------------------------------
@@ -171,7 +179,7 @@ export class InputBindings {
   resolveComposite(name: string, keyStates: Map<string, boolean>): number {
     const profile = this.getActiveProfile();
     if (!profile) return 0;
-    const comp = profile.composites.find(c => c.name === name);
+    const comp = profile.composites.find((c) => c.name === name);
     if (!comp) return 0;
 
     const pos = keyStates.get(comp.positive) ? 1 : 0;
@@ -193,9 +201,9 @@ export class InputBindings {
   isChordActive(chordId: string, pressedKeys: Set<string>): boolean {
     const profile = this.getActiveProfile();
     if (!profile) return false;
-    const chord = profile.chords.find(c => c.id === chordId);
+    const chord = profile.chords.find((c) => c.id === chordId);
     if (!chord) return false;
-    return chord.keys.every(k => pressedKeys.has(k));
+    return chord.keys.every((k) => pressedKeys.has(k));
   }
 
   // ---------------------------------------------------------------------------

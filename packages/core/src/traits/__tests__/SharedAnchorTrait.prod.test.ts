@@ -11,8 +11,12 @@ import { sharedAnchorHandler } from '../SharedAnchorTrait';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode() { return { id: 'sa_test' } as any; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'sa_test' } as any;
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 
 function attach(node: any, overrides: Record<string, unknown> = {}) {
   const cfg = { ...sharedAnchorHandler.defaultConfig!, ...overrides } as any;
@@ -21,7 +25,9 @@ function attach(node: any, overrides: Record<string, unknown> = {}) {
   return { cfg, ctx };
 }
 
-function st(node: any) { return node.__sharedAnchorState as any; }
+function st(node: any) {
+  return node.__sharedAnchorState as any;
+}
 
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
   sharedAnchorHandler.onEvent!(node, cfg, ctx as any, evt as any);
@@ -62,14 +68,20 @@ describe('SharedAnchorTrait — onAttach', () => {
   it('always emits shared_anchor_init with provider', () => {
     const node = makeNode();
     const { ctx } = attach(node, { cloud_provider: 'azure' });
-    expect(ctx.emit).toHaveBeenCalledWith('shared_anchor_init', expect.objectContaining({ provider: 'azure' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'shared_anchor_init',
+      expect.objectContaining({ provider: 'azure' })
+    );
   });
 
   it('auto_share=true: state=uploading + emits shared_anchor_upload', () => {
     const node = makeNode();
     const { ctx } = attach(node, { auto_share: true, cloud_provider: 'arkit' });
     expect(st(node).state).toBe('uploading');
-    expect(ctx.emit).toHaveBeenCalledWith('shared_anchor_upload', expect.objectContaining({ provider: 'arkit' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'shared_anchor_upload',
+      expect.objectContaining({ provider: 'arkit' })
+    );
   });
 
   it('auto_share=false: state stays local, no upload emit', () => {
@@ -90,7 +102,10 @@ describe('SharedAnchorTrait — onDetach', () => {
     st(node).cloudAnchorId = 'cloud-id';
     ctx.emit.mockClear();
     sharedAnchorHandler.onDetach!(node, cfg, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('shared_anchor_leave', expect.objectContaining({ cloudAnchorId: 'cloud-id' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'shared_anchor_leave',
+      expect.objectContaining({ cloudAnchorId: 'cloud-id' })
+    );
   });
 
   it('does NOT emit shared_anchor_leave when isShared=false', () => {
@@ -139,7 +154,10 @@ describe('SharedAnchorTrait — onUpdate', () => {
     ctx.emit.mockClear();
     sharedAnchorHandler.onUpdate!(node, cfg, ctx as any, 0.02); // +20ms → 260ms >= 250
     expect(st(node).syncAccumulator).toBe(0);
-    expect(ctx.emit).toHaveBeenCalledWith('shared_anchor_sync', expect.objectContaining({ cloudAnchorId: 'cid' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'shared_anchor_sync',
+      expect.objectContaining({ cloudAnchorId: 'cid' })
+    );
   });
 });
 
@@ -149,14 +167,21 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_upload_complete', () => {
   it('marks shared, creator, stores cloudId, emits on_anchor_shared', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node);
-    fire(node, cfg, ctx, { type: 'shared_anchor_upload_complete', cloudAnchorId: 'cloud-abc', quality: 0.9 });
+    fire(node, cfg, ctx, {
+      type: 'shared_anchor_upload_complete',
+      cloudAnchorId: 'cloud-abc',
+      quality: 0.9,
+    });
     const s = st(node);
     expect(s.cloudAnchorId).toBe('cloud-abc');
     expect(s.isShared).toBe(true);
     expect(s.isCreator).toBe(true);
     expect(s.state).toBe('shared');
     expect(s.quality).toBeCloseTo(0.9);
-    expect(ctx.emit).toHaveBeenCalledWith('on_anchor_shared', expect.objectContaining({ cloudAnchorId: 'cloud-abc', quality: 0.9 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_anchor_shared',
+      expect.objectContaining({ cloudAnchorId: 'cloud-abc', quality: 0.9 })
+    );
   });
 
   it('defaults quality to 1.0 when not provided', () => {
@@ -175,7 +200,10 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_upload_failed', () => {
     const { cfg, ctx } = attach(node);
     fire(node, cfg, ctx, { type: 'shared_anchor_upload_failed', error: 'network timeout' });
     expect(st(node).state).toBe('error');
-    expect(ctx.emit).toHaveBeenCalledWith('on_anchor_share_failed', expect.objectContaining({ error: 'network timeout' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_anchor_share_failed',
+      expect.objectContaining({ error: 'network timeout' })
+    );
   });
 });
 
@@ -187,9 +215,14 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_resolve', () => {
     const { cfg, ctx } = attach(node, { cloud_provider: 'azure', resolution_timeout: 5000 });
     fire(node, cfg, ctx, { type: 'shared_anchor_resolve', cloudAnchorId: 'remote-id' });
     expect(st(node).state).toBe('resolving');
-    expect(ctx.emit).toHaveBeenCalledWith('shared_anchor_resolve_request', expect.objectContaining({
-      cloudAnchorId: 'remote-id', provider: 'azure', timeout: 5000,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'shared_anchor_resolve_request',
+      expect.objectContaining({
+        cloudAnchorId: 'remote-id',
+        provider: 'azure',
+        timeout: 5000,
+      })
+    );
   });
 });
 
@@ -199,14 +232,21 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_resolved', () => {
   it('marks synchronized, isShared, not creator, emits on_anchor_resolved', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node);
-    fire(node, cfg, ctx, { type: 'shared_anchor_resolved', cloudAnchorId: 'rid', handle: { h: 1 } });
+    fire(node, cfg, ctx, {
+      type: 'shared_anchor_resolved',
+      cloudAnchorId: 'rid',
+      handle: { h: 1 },
+    });
     const s = st(node);
     expect(s.cloudAnchorId).toBe('rid');
     expect(s.isShared).toBe(true);
     expect(s.isCreator).toBe(false);
     expect(s.state).toBe('synchronized');
     expect(s.localAnchorHandle).toEqual({ h: 1 });
-    expect(ctx.emit).toHaveBeenCalledWith('on_anchor_resolved', expect.objectContaining({ cloudAnchorId: 'rid' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_anchor_resolved',
+      expect.objectContaining({ cloudAnchorId: 'rid' })
+    );
   });
 });
 
@@ -220,7 +260,10 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_user_joined', () => {
     expect(st(node).sharedUsers).toHaveLength(1);
     expect(st(node).sharedUsers[0].userId).toBe('u1');
     expect(st(node).sharedUsers[0].isResolved).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('on_user_joined', expect.objectContaining({ userId: 'u1', userCount: 1 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_user_joined',
+      expect.objectContaining({ userId: 'u1', userCount: 1 })
+    );
   });
 
   it('rejects user when max_users reached and emits shared_anchor_user_rejected', () => {
@@ -230,9 +273,13 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_user_joined', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'shared_anchor_user_joined', userId: 'u2' });
     expect(st(node).sharedUsers).toHaveLength(1); // still 1
-    expect(ctx.emit).toHaveBeenCalledWith('shared_anchor_user_rejected', expect.objectContaining({
-      userId: 'u2', reason: 'max_users_reached',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'shared_anchor_user_rejected',
+      expect.objectContaining({
+        userId: 'u2',
+        reason: 'max_users_reached',
+      })
+    );
   });
 });
 
@@ -250,7 +297,9 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_user_resolved', () => {
   it('unknown userId ignored gracefully', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node);
-    expect(() => fire(node, cfg, ctx, { type: 'shared_anchor_user_resolved', userId: 'ghost' })).not.toThrow();
+    expect(() =>
+      fire(node, cfg, ctx, { type: 'shared_anchor_user_resolved', userId: 'ghost' })
+    ).not.toThrow();
   });
 });
 
@@ -267,7 +316,10 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_user_left', () => {
     const users = st(node).sharedUsers;
     expect(users).toHaveLength(1);
     expect(users[0].userId).toBe('u2');
-    expect(ctx.emit).toHaveBeenCalledWith('on_user_left', expect.objectContaining({ userId: 'u1', userCount: 1 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_user_left',
+      expect.objectContaining({ userId: 'u1', userCount: 1 })
+    );
   });
 });
 
@@ -280,7 +332,10 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_share', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'shared_anchor_share' });
     expect(st(node).state).toBe('uploading');
-    expect(ctx.emit).toHaveBeenCalledWith('shared_anchor_upload', expect.objectContaining({ provider: 'arcore' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'shared_anchor_upload',
+      expect.objectContaining({ provider: 'arcore' })
+    );
   });
 
   it('does NOT trigger upload when already shared', () => {
@@ -306,13 +361,16 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_query', () => {
     fire(node, cfg, ctx, { type: 'shared_anchor_user_joined', userId: 'u1' });
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'shared_anchor_query', queryId: 'qs1' });
-    expect(ctx.emit).toHaveBeenCalledWith('shared_anchor_info', expect.objectContaining({
-      queryId: 'qs1',
-      state: 'synchronized',
-      cloudAnchorId: 'qid',
-      isCreator: true,
-      userCount: 1,
-      quality: 0.8,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'shared_anchor_info',
+      expect.objectContaining({
+        queryId: 'qs1',
+        state: 'synchronized',
+        cloudAnchorId: 'qid',
+        isCreator: true,
+        userCount: 1,
+        quality: 0.8,
+      })
+    );
   });
 });

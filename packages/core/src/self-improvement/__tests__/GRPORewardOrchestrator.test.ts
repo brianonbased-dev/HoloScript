@@ -59,25 +59,25 @@ describe('GRPORewardOrchestrator', () => {
     it('accepts custom weights that sum to 1.0', () => {
       const orch = new GRPORewardOrchestrator(runner, {
         weights: {
-          testPassReward: 0.50,
-          typeCheckReward: 0.20,
-          lintReward: 0.10,
-          coverageReward: 0.10,
-          circuitBreakerReward: 0.10,
+          testPassReward: 0.5,
+          typeCheckReward: 0.2,
+          lintReward: 0.1,
+          coverageReward: 0.1,
+          circuitBreakerReward: 0.1,
         },
       });
-      expect(orch.getWeights().testPassReward).toBe(0.50);
+      expect(orch.getWeights().testPassReward).toBe(0.5);
     });
 
     it('throws when weights do not sum to 1.0', () => {
       expect(() => {
         new GRPORewardOrchestrator(runner, {
           weights: {
-            testPassReward: 0.50,
-            typeCheckReward: 0.50,
-            lintReward: 0.50,
-            coverageReward: 0.50,
-            circuitBreakerReward: 0.50,
+            testPassReward: 0.5,
+            typeCheckReward: 0.5,
+            lintReward: 0.5,
+            coverageReward: 0.5,
+            circuitBreakerReward: 0.5,
           },
         });
       }).toThrow('must sum to 1.0');
@@ -151,10 +151,7 @@ describe('GRPORewardOrchestrator', () => {
 
       for (const fr of result.functionResults) {
         for (let i = 0; i < fr.rewards.length; i++) {
-          expect(fr.weightedRewards[i]).toBeCloseTo(
-            fr.rewards[i] * fr.weight,
-            4,
-          );
+          expect(fr.weightedRewards[i]).toBeCloseTo(fr.rewards[i] * fr.weight, 4);
         }
       }
     });

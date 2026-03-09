@@ -7,7 +7,9 @@ import { buoyancyHandler } from '../BuoyancyTrait';
 function makeNode(y = 0, scaleY = 1) {
   return { id: 'buoy', position: { x: 0, y, z: 0 }, scale: { x: 1, y: scaleY, z: 1 } };
 }
-function makeContext() { return { emit: vi.fn() }; }
+function makeContext() {
+  return { emit: vi.fn() };
+}
 function attachNode(config: any = {}, y = 0, scaleY = 1) {
   const node = makeNode(y, scaleY);
   const ctx = makeContext();
@@ -23,10 +25,12 @@ describe('buoyancyHandler.defaultConfig', () => {
   it('fluid_level = 0', () => expect(buoyancyHandler.defaultConfig!.fluid_level).toBe(0));
   it('drag = 1.0', () => expect(buoyancyHandler.defaultConfig!.drag).toBe(1.0));
   it('angular_drag = 0.5', () => expect(buoyancyHandler.defaultConfig!.angular_drag).toBe(0.5));
-  it('flow_direction = [0,0,0]', () => expect(buoyancyHandler.defaultConfig!.flow_direction).toEqual([0, 0, 0]));
+  it('flow_direction = [0,0,0]', () =>
+    expect(buoyancyHandler.defaultConfig!.flow_direction).toEqual([0, 0, 0]));
   it('flow_strength = 0', () => expect(buoyancyHandler.defaultConfig!.flow_strength).toBe(0));
   it('splash_effect = true', () => expect(buoyancyHandler.defaultConfig!.splash_effect).toBe(true));
-  it('submerge_threshold = 0.9', () => expect(buoyancyHandler.defaultConfig!.submerge_threshold).toBe(0.9));
+  it('submerge_threshold = 0.9', () =>
+    expect(buoyancyHandler.defaultConfig!.submerge_threshold).toBe(0.9));
   it('object_density = 500', () => expect(buoyancyHandler.defaultConfig!.object_density).toBe(500));
   it('object_volume = 1.0', () => expect(buoyancyHandler.defaultConfig!.object_volume).toBe(1.0));
 });
@@ -35,10 +39,13 @@ describe('buoyancyHandler.defaultConfig', () => {
 
 describe('buoyancyHandler.onAttach', () => {
   it('creates __buoyancyState', () => expect(attachNode().node.__buoyancyState).toBeDefined());
-  it('isSubmerged = false', () => expect(attachNode().node.__buoyancyState.isSubmerged).toBe(false));
-  it('submersionRatio = 0', () => expect(attachNode().node.__buoyancyState.submersionRatio).toBe(0));
+  it('isSubmerged = false', () =>
+    expect(attachNode().node.__buoyancyState.isSubmerged).toBe(false));
+  it('submersionRatio = 0', () =>
+    expect(attachNode().node.__buoyancyState.submersionRatio).toBe(0));
   it('buoyancyForce = 0', () => expect(attachNode().node.__buoyancyState.buoyancyForce).toBe(0));
-  it('velocity = {0,0,0}', () => expect(attachNode().node.__buoyancyState.velocity).toEqual({ x: 0, y: 0, z: 0 }));
+  it('velocity = {0,0,0}', () =>
+    expect(attachNode().node.__buoyancyState.velocity).toEqual({ x: 0, y: 0, z: 0 }));
   it('splashCooldown = 0', () => expect(attachNode().node.__buoyancyState.splashCooldown).toBe(0));
   it('lastPosition copies node.position', () => {
     const node = makeNode(3);
@@ -132,9 +139,15 @@ describe('buoyancyHandler.onUpdate — submersion & Archimedes force', () => {
     expect(dragCalls.length).toBeGreaterThanOrEqual(2);
   });
   it('emits flow force when flow_strength > 0 and submerged', () => {
-    const { node, cfg, ctx } = attachNode({
-      fluid_level: 0, flow_strength: 3, flow_direction: [1, 0, 0]
-    }, -5, 2);
+    const { node, cfg, ctx } = attachNode(
+      {
+        fluid_level: 0,
+        flow_strength: 3,
+        flow_direction: [1, 0, 0],
+      },
+      -5,
+      2
+    );
     (node as any).__buoyancyState.lastPosition = { x: 0, y: -5, z: 0 };
     ctx.emit.mockClear();
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
@@ -145,9 +158,15 @@ describe('buoyancyHandler.onUpdate — submersion & Archimedes force', () => {
     expect(flowForce.x).toBeGreaterThan(0);
   });
   it('does NOT emit flow force when flow_strength = 0', () => {
-    const { node, cfg, ctx } = attachNode({
-      fluid_level: 0, flow_strength: 0, flow_direction: [1, 0, 0]
-    }, -5, 2);
+    const { node, cfg, ctx } = attachNode(
+      {
+        fluid_level: 0,
+        flow_strength: 0,
+        flow_direction: [1, 0, 0],
+      },
+      -5,
+      2
+    );
     (node as any).__buoyancyState.lastPosition = { x: 0, y: -5, z: 0 };
     ctx.emit.mockClear();
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);

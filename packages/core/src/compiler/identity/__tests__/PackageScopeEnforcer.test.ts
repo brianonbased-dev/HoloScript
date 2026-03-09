@@ -12,10 +12,7 @@ import {
   getNetworkAccessPackages,
   getManifestSummary,
 } from '../PackagePermissionManifest';
-import {
-  PackageScopeEnforcer,
-  resetScopeEnforcer,
-} from '../PackageScopeEnforcer';
+import { PackageScopeEnforcer, resetScopeEnforcer } from '../PackageScopeEnforcer';
 import { AgentRole } from '../AgentIdentity';
 
 describe('PackagePermissionManifest', () => {

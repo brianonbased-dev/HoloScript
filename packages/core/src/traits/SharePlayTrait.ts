@@ -104,7 +104,7 @@ export const sharePlayHandler: TraitHandler<SharePlayConfig> = {
       state.participants.clear();
       context.emit('shareplay:ended', { sessionId: state.sessionId });
     } else if (event.type === 'shareplay:participant_joined') {
-      const participant = (event.payload as any) as SharePlayParticipant;
+      const participant = event.payload as any as SharePlayParticipant;
       if (state.participants.size < config.max_participants) {
         state.participants.set(participant.id, participant);
         context.emit('shareplay:participant_joined', {

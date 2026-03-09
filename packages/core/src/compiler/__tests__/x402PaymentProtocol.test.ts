@@ -73,8 +73,22 @@ describe('x402 Payment Protocol', () => {
   it('extracts gated content from children', () => {
     const block = makePaymentBlock({
       children: [
-        { type: 'DomainBlock', name: 'PremiumRoom', keyword: 'object', properties: {}, children: [], traits: [] },
-        { type: 'DomainBlock', name: 'SecretArea', keyword: 'object', properties: {}, children: [], traits: [] },
+        {
+          type: 'DomainBlock',
+          name: 'PremiumRoom',
+          keyword: 'object',
+          properties: {},
+          children: [],
+          traits: [],
+        },
+        {
+          type: 'DomainBlock',
+          name: 'SecretArea',
+          keyword: 'object',
+          properties: {},
+          children: [],
+          traits: [],
+        },
       ] as any,
     });
     const compiled = compilePaymentBlock(block);
@@ -170,17 +184,19 @@ describe('x402 Payment Protocol', () => {
   // =========== paymentToR3F ===========
 
   it('generates React payment gate config', () => {
-    const compiled = compilePaymentBlock(makePaymentBlock({
-      properties: {
-        price: 5,
-        asset: 'USDC',
-        network: 'base',
-        recipient: '0xCreatorWallet123',
-        description: 'Access premium content',
-        gated_content: ['PremiumStage'],
-        revenue_split: { creator: 80, platform: 10, agent: 10 },
-      },
-    }));
+    const compiled = compilePaymentBlock(
+      makePaymentBlock({
+        properties: {
+          price: 5,
+          asset: 'USDC',
+          network: 'base',
+          recipient: '0xCreatorWallet123',
+          description: 'Access premium content',
+          gated_content: ['PremiumStage'],
+          revenue_split: { creator: 80, platform: 10, agent: 10 },
+        },
+      })
+    );
     const code = paymentToR3F(compiled);
     expect(code).toContain('PremiumGatePaywallConfig');
     expect(code).toContain('price: 5');
@@ -195,14 +211,16 @@ describe('x402 Payment Protocol', () => {
   // =========== paymentToUSDA ===========
 
   it('generates USD customData annotations', () => {
-    const compiled = compilePaymentBlock(makePaymentBlock({
-      properties: {
-        price: 5,
-        asset: 'USDC',
-        network: 'base',
-        recipient: '0xCreatorWallet123',
-      },
-    }));
+    const compiled = compilePaymentBlock(
+      makePaymentBlock({
+        properties: {
+          price: 5,
+          asset: 'USDC',
+          network: 'base',
+          recipient: '0xCreatorWallet123',
+        },
+      })
+    );
     const usda = paymentToUSDA(compiled);
     expect(usda).toContain('def Scope "Paywall_PremiumGate"');
     expect(usda).toContain('holoscript:paywallType = "one_time"');

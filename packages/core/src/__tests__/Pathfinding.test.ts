@@ -12,10 +12,14 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
     const mesh = new NavMesh();
     // Two triangles side by side in XZ plane
     const p1 = mesh.addPolygon([
-      { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, { x: 5, y: 0, z: 10 },
+      { x: 0, y: 0, z: 0 },
+      { x: 10, y: 0, z: 0 },
+      { x: 5, y: 0, z: 10 },
     ]);
     const p2 = mesh.addPolygon([
-      { x: 10, y: 0, z: 0 }, { x: 20, y: 0, z: 0 }, { x: 15, y: 0, z: 10 },
+      { x: 10, y: 0, z: 0 },
+      { x: 20, y: 0, z: 0 },
+      { x: 15, y: 0, z: 10 },
     ]);
     mesh.connectPolygons(p1.id, p2.id);
     return mesh;
@@ -47,13 +51,22 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
   it('should find path through nav mesh', () => {
     const mesh = new NavMesh();
     const p1 = mesh.addPolygon([
-      { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, { x: 10, y: 0, z: 10 }, { x: 0, y: 0, z: 10 },
+      { x: 0, y: 0, z: 0 },
+      { x: 10, y: 0, z: 0 },
+      { x: 10, y: 0, z: 10 },
+      { x: 0, y: 0, z: 10 },
     ]);
     const p2 = mesh.addPolygon([
-      { x: 10, y: 0, z: 0 }, { x: 20, y: 0, z: 0 }, { x: 20, y: 0, z: 10 }, { x: 10, y: 0, z: 10 },
+      { x: 10, y: 0, z: 0 },
+      { x: 20, y: 0, z: 0 },
+      { x: 20, y: 0, z: 10 },
+      { x: 10, y: 0, z: 10 },
     ]);
     const p3 = mesh.addPolygon([
-      { x: 20, y: 0, z: 0 }, { x: 30, y: 0, z: 0 }, { x: 30, y: 0, z: 10 }, { x: 20, y: 0, z: 10 },
+      { x: 20, y: 0, z: 0 },
+      { x: 30, y: 0, z: 0 },
+      { x: 30, y: 0, z: 10 },
+      { x: 20, y: 0, z: 10 },
     ]);
     mesh.connectPolygons(p1.id, p2.id);
     mesh.connectPolygons(p2.id, p3.id);
@@ -69,10 +82,16 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
   it('should avoid dynamic obstacles', () => {
     const mesh = new NavMesh();
     const p1 = mesh.addPolygon([
-      { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, { x: 10, y: 0, z: 10 }, { x: 0, y: 0, z: 10 },
+      { x: 0, y: 0, z: 0 },
+      { x: 10, y: 0, z: 0 },
+      { x: 10, y: 0, z: 10 },
+      { x: 0, y: 0, z: 10 },
     ]);
     const p2 = mesh.addPolygon([
-      { x: 10, y: 0, z: 0 }, { x: 20, y: 0, z: 0 }, { x: 20, y: 0, z: 10 }, { x: 10, y: 0, z: 10 },
+      { x: 10, y: 0, z: 0 },
+      { x: 20, y: 0, z: 0 },
+      { x: 20, y: 0, z: 10 },
+      { x: 10, y: 0, z: 10 },
     ]);
     mesh.connectPolygons(p1.id, p2.id);
 
@@ -92,7 +111,7 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
 
     const path = [
       { x: 0, y: 0, z: 0 },
-      { x: 5, y: 0, z: 0.1 },   // Nearly collinear
+      { x: 5, y: 0, z: 0.1 }, // Nearly collinear
       { x: 10, y: 0, z: 0 },
     ];
     const smoothed = pathfinder.smoothPath(path);
@@ -107,7 +126,9 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
     return {
       position: { x, y: 0, z },
       velocity: { x: 0, y: 0, z: 0 },
-      maxSpeed: 10, maxForce: 5, mass: 1,
+      maxSpeed: 10,
+      maxForce: 5,
+      mass: 1,
     };
   }
 
@@ -140,7 +161,9 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
 
   it('should compute flock forces from neighbors', () => {
     const steering = new SteeringBehaviors({
-      separationRadius: 10, alignmentRadius: 20, cohesionRadius: 20,
+      separationRadius: 10,
+      alignmentRadius: 20,
+      cohesionRadius: 20,
     });
     const agent = makeAgent(0, 0);
     const neighbors = [makeAgent(2, 0), makeAgent(-2, 0), makeAgent(0, 3)];

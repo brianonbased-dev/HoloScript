@@ -128,7 +128,15 @@ describe('EVENT_NODES', () => {
   });
 
   it('all output port types are valid PortType values', () => {
-    const validTypes: PortType[] = ['flow', 'string', 'number', 'boolean', 'any', 'object', 'array'];
+    const validTypes: PortType[] = [
+      'flow',
+      'string',
+      'number',
+      'boolean',
+      'any',
+      'object',
+      'array',
+    ];
     for (const node of EVENT_NODES) {
       for (const port of node.outputs) {
         expect(validTypes).toContain(port.type);

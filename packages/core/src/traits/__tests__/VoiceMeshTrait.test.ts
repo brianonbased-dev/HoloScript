@@ -1,8 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { voiceMeshHandler } from '../VoiceMeshTrait';
 import {
-  createMockContext, createMockNode, attachTrait,
-  sendEvent, getEventCount, getLastEvent,
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
 } from './traitTestHelpers';
 
 describe('VoiceMeshTrait', () => {
@@ -16,7 +20,9 @@ describe('VoiceMeshTrait', () => {
     vad_threshold: -50,
   };
 
-  function state() { return (node as any).__voiceMeshState; }
+  function state() {
+    return (node as any).__voiceMeshState;
+  }
 
   beforeEach(() => {
     node = createMockNode('vm');
@@ -57,23 +63,39 @@ describe('VoiceMeshTrait', () => {
 
   it('voice_stream_received adds stream to remoteStreams', () => {
     const stream = {} as MediaStream;
-    sendEvent(voiceMeshHandler, node, cfg, ctx, { type: 'voice_stream_received', peerId: 'p1', stream });
+    sendEvent(voiceMeshHandler, node, cfg, ctx, {
+      type: 'voice_stream_received',
+      peerId: 'p1',
+      stream,
+    });
     expect(state().remoteStreams.get('p1')).toBe(stream);
   });
 
   it('voice_stream_received emits audio_source_loaded', () => {
-    sendEvent(voiceMeshHandler, node, cfg, ctx, { type: 'voice_stream_received', peerId: 'p1', stream: {} });
+    sendEvent(voiceMeshHandler, node, cfg, ctx, {
+      type: 'voice_stream_received',
+      peerId: 'p1',
+      stream: {},
+    });
     expect(getEventCount(ctx, 'audio_source_loaded')).toBe(1);
   });
 
   it('audio_source_loaded event includes peerId', () => {
-    sendEvent(voiceMeshHandler, node, cfg, ctx, { type: 'voice_stream_received', peerId: 'peer-42', stream: {} });
+    sendEvent(voiceMeshHandler, node, cfg, ctx, {
+      type: 'voice_stream_received',
+      peerId: 'peer-42',
+      stream: {},
+    });
     const ev = getLastEvent(ctx, 'audio_source_loaded') as any;
     expect(ev.sourceId).toBe('voice_peer-42');
   });
 
   it('audio_source_loaded event reflects spatial config', () => {
-    sendEvent(voiceMeshHandler, node, cfg, ctx, { type: 'voice_stream_received', peerId: 'p1', stream: {} });
+    sendEvent(voiceMeshHandler, node, cfg, ctx, {
+      type: 'voice_stream_received',
+      peerId: 'p1',
+      stream: {},
+    });
     const ev = getLastEvent(ctx, 'audio_source_loaded') as any;
     expect(ev.spatial).toBe(true);
   });
@@ -83,22 +105,42 @@ describe('VoiceMeshTrait', () => {
     const c2 = createMockContext();
     const nsCfg = { ...cfg, spatial: false };
     attachTrait(voiceMeshHandler, n2, nsCfg, c2);
-    sendEvent(voiceMeshHandler, n2, nsCfg, c2, { type: 'voice_stream_received', peerId: 'p1', stream: {} });
+    sendEvent(voiceMeshHandler, n2, nsCfg, c2, {
+      type: 'voice_stream_received',
+      peerId: 'p1',
+      stream: {},
+    });
     const ev = getLastEvent(c2, 'audio_source_loaded') as any;
     expect(ev.spatial).toBe(false);
   });
 
   it('multiple peers tracked separately', () => {
-    sendEvent(voiceMeshHandler, node, cfg, ctx, { type: 'voice_stream_received', peerId: 'p1', stream: {} });
-    sendEvent(voiceMeshHandler, node, cfg, ctx, { type: 'voice_stream_received', peerId: 'p2', stream: {} });
+    sendEvent(voiceMeshHandler, node, cfg, ctx, {
+      type: 'voice_stream_received',
+      peerId: 'p1',
+      stream: {},
+    });
+    sendEvent(voiceMeshHandler, node, cfg, ctx, {
+      type: 'voice_stream_received',
+      peerId: 'p2',
+      stream: {},
+    });
     expect(state().remoteStreams.size).toBe(2);
   });
 
   it('same peer overwritten with new stream', () => {
     const s1 = { id: 's1' } as unknown as MediaStream;
     const s2 = { id: 's2' } as unknown as MediaStream;
-    sendEvent(voiceMeshHandler, node, cfg, ctx, { type: 'voice_stream_received', peerId: 'p1', stream: s1 });
-    sendEvent(voiceMeshHandler, node, cfg, ctx, { type: 'voice_stream_received', peerId: 'p1', stream: s2 });
+    sendEvent(voiceMeshHandler, node, cfg, ctx, {
+      type: 'voice_stream_received',
+      peerId: 'p1',
+      stream: s1,
+    });
+    sendEvent(voiceMeshHandler, node, cfg, ctx, {
+      type: 'voice_stream_received',
+      peerId: 'p1',
+      stream: s2,
+    });
     expect(state().remoteStreams.get('p1')).toBe(s2);
   });
 
@@ -118,7 +160,11 @@ describe('VoiceMeshTrait', () => {
   });
 
   it('detach with peer streams still cleans up', () => {
-    sendEvent(voiceMeshHandler, node, cfg, ctx, { type: 'voice_stream_received', peerId: 'p1', stream: {} });
+    sendEvent(voiceMeshHandler, node, cfg, ctx, {
+      type: 'voice_stream_received',
+      peerId: 'p1',
+      stream: {},
+    });
     voiceMeshHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect((node as any).__voiceMeshState).toBeUndefined();
   });

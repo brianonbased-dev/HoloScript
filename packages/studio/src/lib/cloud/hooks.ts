@@ -191,10 +191,7 @@ export function useExecutionLogs(
     loadLogs();
 
     if (options?.autoRefresh && deploymentId) {
-      const interval = setInterval(
-        loadLogs,
-        options.refreshInterval || 5000
-      );
+      const interval = setInterval(loadLogs, options.refreshInterval || 5000);
       return () => clearInterval(interval);
     }
   }, [loadLogs, options?.autoRefresh, options?.refreshInterval, deploymentId]);

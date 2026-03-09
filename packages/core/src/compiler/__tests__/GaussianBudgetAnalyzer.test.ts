@@ -60,7 +60,7 @@ function createEmptyComposition(name = 'EmptyScene'): HoloComposition {
 function createGaussianSplatObject(
   name: string,
   maxSplats: number,
-  source = 'scene.ply',
+  source = 'scene.ply'
 ): HoloObjectDecl {
   return {
     type: 'ObjectDecl',
@@ -85,12 +85,10 @@ function createGaussianSplatObject(
 /** Create a composition with gaussian_splat objects */
 function createGaussianComposition(
   name: string,
-  splatObjects: Array<{ name: string; maxSplats: number; source?: string }>,
+  splatObjects: Array<{ name: string; maxSplats: number; source?: string }>
 ): HoloComposition {
   const comp = createEmptyComposition(name);
-  comp.objects = splatObjects.map((o) =>
-    createGaussianSplatObject(o.name, o.maxSplats, o.source),
-  );
+  comp.objects = splatObjects.map((o) => createGaussianSplatObject(o.name, o.maxSplats, o.source));
   return comp;
 }
 
@@ -167,9 +165,7 @@ describe('GaussianBudgetAnalyzer', () => {
 
   describe('Under Budget (well within limits)', () => {
     it('should report no warnings for 50K Gaussians on all platforms', () => {
-      const comp = createGaussianComposition('SmallScene', [
-        { name: 'avatar', maxSplats: 50_000 },
-      ]);
+      const comp = createGaussianComposition('SmallScene', [{ name: 'avatar', maxSplats: 50_000 }]);
       const analyzer = new GaussianBudgetAnalyzer();
       const result = analyzer.analyze(comp);
 
@@ -180,7 +176,7 @@ describe('GaussianBudgetAnalyzer', () => {
       expect(result.withinBudget).toBe(true);
 
       // No warning/critical for any platform since 50K is well under 80% of smallest (100K)
-      const nonInfoWarnings = result.warnings.filter(w => w.severity !== 'info');
+      const nonInfoWarnings = result.warnings.filter((w) => w.severity !== 'info');
       expect(nonInfoWarnings).toHaveLength(0);
     });
 
@@ -235,14 +231,14 @@ describe('GaussianBudgetAnalyzer', () => {
 
     it('should NOT emit warning at 79% utilization', () => {
       // 79% of 180K = 142,200
-      const comp = createGaussianComposition('JustUnder', [
-        { name: 'scene', maxSplats: 142_000 },
-      ]);
+      const comp = createGaussianComposition('JustUnder', [{ name: 'scene', maxSplats: 142_000 }]);
       const analyzer = new GaussianBudgetAnalyzer({ platforms: ['quest3'] });
       const result = analyzer.analyze(comp);
 
       // Should have no warnings (below 80%)
-      const warnings = result.warnings.filter(w => w.severity === 'warning' || w.severity === 'critical');
+      const warnings = result.warnings.filter(
+        (w) => w.severity === 'warning' || w.severity === 'critical'
+      );
       expect(warnings).toHaveLength(0);
     });
   });
@@ -274,9 +270,7 @@ describe('GaussianBudgetAnalyzer', () => {
     });
 
     it('should emit critical for Mobile AR at 150K (budget is 100K)', () => {
-      const comp = createGaussianComposition('ARScene', [
-        { name: 'ar_model', maxSplats: 150_000 },
-      ]);
+      const comp = createGaussianComposition('ARScene', [{ name: 'ar_model', maxSplats: 150_000 }]);
       const analyzer = new GaussianBudgetAnalyzer({ platforms: ['mobile_ar'] });
       const result = analyzer.analyze(comp);
 
@@ -314,10 +308,10 @@ describe('GaussianBudgetAnalyzer', () => {
       // Quest 3: 200K > 180K = critical
       // Desktop VR: 200K / 2M = 10% = no warning
       // Mobile AR: 200K > 100K = critical
-      const criticals = result.warnings.filter(w => w.severity === 'critical');
+      const criticals = result.warnings.filter((w) => w.severity === 'critical');
       expect(criticals.length).toBe(2);
-      expect(criticals.map(w => w.platform)).toContain('quest3');
-      expect(criticals.map(w => w.platform)).toContain('mobile_ar');
+      expect(criticals.map((w) => w.platform)).toContain('quest3');
+      expect(criticals.map((w) => w.platform)).toContain('mobile_ar');
     });
 
     it('should check all 5 platforms by default', () => {
@@ -371,8 +365,8 @@ describe('GaussianBudgetAnalyzer', () => {
 
       // Quest 3 with override: 160K / 200K = 80% => warning threshold
       // WebGPU: 160K / 500K = 32% => no warning
-      const quest3Warning = result.warnings.find(w => w.platform === 'quest3');
-      const webgpuWarning = result.warnings.find(w => w.platform === 'webgpu');
+      const quest3Warning = result.warnings.find((w) => w.platform === 'quest3');
+      const webgpuWarning = result.warnings.find((w) => w.platform === 'webgpu');
       expect(quest3Warning?.severity).toBe('warning');
       expect(quest3Warning?.budgetLimit).toBe(200_000);
       expect(webgpuWarning).toBeUndefined();
@@ -385,17 +379,13 @@ describe('GaussianBudgetAnalyzer', () => {
 
   describe('isWithinBudget()', () => {
     it('should return true when under budget', () => {
-      const comp = createGaussianComposition('Small', [
-        { name: 'obj', maxSplats: 100_000 },
-      ]);
+      const comp = createGaussianComposition('Small', [{ name: 'obj', maxSplats: 100_000 }]);
       const analyzer = new GaussianBudgetAnalyzer();
       expect(analyzer.isWithinBudget(comp, 'desktop_vr')).toBe(true);
     });
 
     it('should return false when over budget', () => {
-      const comp = createGaussianComposition('Big', [
-        { name: 'obj', maxSplats: 200_000 },
-      ]);
+      const comp = createGaussianComposition('Big', [{ name: 'obj', maxSplats: 200_000 }]);
       const analyzer = new GaussianBudgetAnalyzer();
       expect(analyzer.isWithinBudget(comp, 'quest3')).toBe(false);
     });
@@ -407,9 +397,7 @@ describe('GaussianBudgetAnalyzer', () => {
 
   describe('analyzeGaussianBudget() standalone function', () => {
     it('should analyze without requiring class instantiation', () => {
-      const comp = createGaussianComposition('Standalone', [
-        { name: 'scene', maxSplats: 300_000 },
-      ]);
+      const comp = createGaussianComposition('Standalone', [{ name: 'scene', maxSplats: 300_000 }]);
       const result = analyzeGaussianBudget(comp, ['quest3']);
 
       expect(result.totalGaussians).toBe(300_000);
@@ -441,8 +429,8 @@ describe('GaussianBudgetAnalyzer', () => {
 
       expect(comments.length).toBeGreaterThan(0);
       expect(comments[0]).toContain('//');
-      expect(comments.some(c => c.includes('GAUSSIAN SPLAT BUDGET ANALYSIS'))).toBe(true);
-      expect(comments.some(c => c.includes('ERROR'))).toBe(true);
+      expect(comments.some((c) => c.includes('GAUSSIAN SPLAT BUDGET ANALYSIS'))).toBe(true);
+      expect(comments.some((c) => c.includes('ERROR'))).toBe(true);
     });
 
     it('should support custom comment prefix', () => {
@@ -457,9 +445,7 @@ describe('GaussianBudgetAnalyzer', () => {
     });
 
     it('should return empty array when no warnings', () => {
-      const comp = createGaussianComposition('NoWarnings', [
-        { name: 'scene', maxSplats: 10_000 },
-      ]);
+      const comp = createGaussianComposition('NoWarnings', [{ name: 'scene', maxSplats: 10_000 }]);
       const analyzer = new GaussianBudgetAnalyzer({ platforms: ['desktop_vr'] });
       const analysis = analyzer.analyze(comp);
       const comments = analyzer.formatAsComments(analysis);
@@ -474,9 +460,7 @@ describe('GaussianBudgetAnalyzer', () => {
 
   describe('includeInfoMessages', () => {
     it('should include info-level messages when enabled', () => {
-      const comp = createGaussianComposition('InfoScene', [
-        { name: 'obj', maxSplats: 10_000 },
-      ]);
+      const comp = createGaussianComposition('InfoScene', [{ name: 'obj', maxSplats: 10_000 }]);
       const analyzer = new GaussianBudgetAnalyzer({
         platforms: ['desktop_vr'],
         includeInfoMessages: true,
@@ -489,9 +473,7 @@ describe('GaussianBudgetAnalyzer', () => {
     });
 
     it('should not include info messages by default', () => {
-      const comp = createGaussianComposition('NoInfoScene', [
-        { name: 'obj', maxSplats: 10_000 },
-      ]);
+      const comp = createGaussianComposition('NoInfoScene', [{ name: 'obj', maxSplats: 10_000 }]);
       const analyzer = new GaussianBudgetAnalyzer({
         platforms: ['desktop_vr'],
       });

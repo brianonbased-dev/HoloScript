@@ -11,7 +11,14 @@ function sightSense(range = 50, fov = 360, sensitivity = 1): SenseConfig {
   return { type: 'sight', range, fov, sensitivity };
 }
 
-function stim(id: string, type: 'sight' | 'hearing' | 'smell' = 'sight', x = 10, y = 0, z = 0, intensity = 0.8): Stimulus {
+function stim(
+  id: string,
+  type: 'sight' | 'hearing' | 'smell' = 'sight',
+  x = 10,
+  y = 0,
+  z = 0,
+  intensity = 0.8
+): Stimulus {
   return { id, type, sourceId: `src-${id}`, position: { x, y, z }, intensity, timestamp: 0 };
 }
 
@@ -55,7 +62,7 @@ describe('PerceptionSystem — Production', () => {
     const ps = new PerceptionSystem();
     ps.registerEntity('guard', [sightSense(50, 90)], 10); // 90° FOV
     ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }); // facing +X
-    ps.addStimulus(stim('ahead', 'sight', 10, 0, 0));  // directly ahead
+    ps.addStimulus(stim('ahead', 'sight', 10, 0, 0)); // directly ahead
     ps.update(1);
     expect(ps.isAwareOf('guard', 'ahead')).toBe(true);
   });
@@ -73,7 +80,14 @@ describe('PerceptionSystem — Production', () => {
   it('entity does not sense own stimuli', () => {
     const ps = new PerceptionSystem();
     ps.registerEntity('guard', [sightSense()]);
-    const s: Stimulus = { id: 'self', type: 'sight', sourceId: 'guard', position: { x: 0, y: 0, z: 0 }, intensity: 1, timestamp: 0 };
+    const s: Stimulus = {
+      id: 'self',
+      type: 'sight',
+      sourceId: 'guard',
+      position: { x: 0, y: 0, z: 0 },
+      intensity: 1,
+      timestamp: 0,
+    };
     ps.addStimulus(s);
     ps.update(1);
     expect(ps.isAwareOf('guard', 'self')).toBe(false);

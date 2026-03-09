@@ -59,9 +59,7 @@ export function GameHUD() {
               }`}
             />
           ))}
-          {lives > 3 && (
-            <span className="ml-1 text-xs font-bold text-red-400">+{lives - 3}</span>
-          )}
+          {lives > 3 && <span className="ml-1 text-xs font-bold text-red-400">+{lives - 3}</span>}
         </div>
       </div>
 

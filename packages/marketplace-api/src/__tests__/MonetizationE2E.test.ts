@@ -9,7 +9,7 @@ describe('Monetization Layer E2E Integration', () => {
     assets: [{ symbol: 'USDC' }],
     gasless: { enabled: true, subsidy_provider: 'coinbase', max_gas_price: 1000000 },
     receipt_storage: { provider: 'supabase', table: 'x402_receipts' },
-    webhook_endpoint: '/api/payments/x402/callback'
+    webhook_endpoint: '/api/payments/x402/callback',
   });
 
   it('simulates the complete AR → VRR payment flow and 80/10/10 split', async () => {
@@ -21,13 +21,22 @@ describe('Monetization Layer E2E Integration', () => {
     const req1 = {
       headers: {},
       url: '/api/vrr/phoenix-brew',
-      params: { twin_id: 'phoenix-brew' }
+      params: { twin_id: 'phoenix-brew' },
     } as unknown as Request;
 
     const res1 = {
-      status: vi.fn().mockImplementation((code) => { resStatus = code; return res1; }),
-      header: vi.fn().mockImplementation((key, val) => { resHeaders[key] = val; return res1; }),
-      json: vi.fn().mockImplementation((data) => { resBody = data; return res1; })
+      status: vi.fn().mockImplementation((code) => {
+        resStatus = code;
+        return res1;
+      }),
+      header: vi.fn().mockImplementation((key, val) => {
+        resHeaders[key] = val;
+        return res1;
+      }),
+      json: vi.fn().mockImplementation((data) => {
+        resBody = data;
+        return res1;
+      }),
     } as unknown as Response;
 
     const next1 = vi.fn();
@@ -37,7 +46,7 @@ describe('Monetization Layer E2E Integration', () => {
     expect(resStatus).toBe(402);
     expect(next1).not.toHaveBeenCalled();
     expect(resHeaders['WWW-Authenticate']).toContain('x402');
-    
+
     const paymentId = resBody.payment_id;
     expect(paymentId).toBeDefined();
 
@@ -52,13 +61,19 @@ describe('Monetization Layer E2E Integration', () => {
         transaction_hash: '0xHash123',
         network: 'base',
         creator_address: '0xPhoenixBrewOwner',
-        agent_address: '0xConciergeAgent' // The agent completing the transaction for the user
-      }
+        agent_address: '0xConciergeAgent', // The agent completing the transaction for the user
+      },
     } as unknown as Request;
 
     const res2 = {
-      status: vi.fn().mockImplementation((code) => { callbackStatus = code; return res2; }),
-      json: vi.fn().mockImplementation((data) => { callbackBody = data; return res2; })
+      status: vi.fn().mockImplementation((code) => {
+        callbackStatus = code;
+        return res2;
+      }),
+      json: vi.fn().mockImplementation((data) => {
+        callbackBody = data;
+        return res2;
+      }),
     } as unknown as Response;
 
     // We must mock the verifyPayment internal check to resolve true
@@ -66,7 +81,7 @@ describe('Monetization Layer E2E Integration', () => {
       payment_id: paymentId,
       amount: 10,
       content_id: 'phoenix-brew',
-      access_granted: true
+      access_granted: true,
     });
 
     await paymentService.facilitatorCallback(req2, res2);
@@ -86,23 +101,23 @@ describe('Monetization Layer E2E Integration', () => {
     // Should pass through successfully without 402 HTTP
     const req3 = {
       headers: {
-        'x-payment-id': paymentId
+        'x-payment-id': paymentId,
       },
       url: '/api/vrr/phoenix-brew',
-      params: { twin_id: 'phoenix-brew' }
+      params: { twin_id: 'phoenix-brew' },
     } as unknown as Request;
 
     const res3 = {
       status: vi.fn().mockReturnThis(),
       header: vi.fn().mockReturnThis(),
-      json: vi.fn().mockReturnThis()
+      json: vi.fn().mockReturnThis(),
     } as unknown as Response;
 
     const next3 = vi.fn();
     await middleware(req3, res3, next3);
 
     expect(next3).toHaveBeenCalled();
-    
+
     // VRR access is permanently unlocked! The E2E loop completes successfully.
   });
 });

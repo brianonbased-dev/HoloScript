@@ -932,10 +932,18 @@ export function validateConnectionConfig(config: IConnectionConfig): {
  * Tier-specific defaults for sync configuration.
  * P.NET.01: Each tier maps to a specific consistency model.
  */
-export const SYNC_TIER_DEFAULTS: Record<SyncTier, Required<Pick<ISyncConfig, 'mode' | 'frequency' | 'interpolate' | 'interpolationDelay' | 'maxHistorySize' | 'ownership'>>> = {
+export const SYNC_TIER_DEFAULTS: Record<
+  SyncTier,
+  Required<
+    Pick<
+      ISyncConfig,
+      'mode' | 'frequency' | 'interpolate' | 'interpolationDelay' | 'maxHistorySize' | 'ownership'
+    >
+  >
+> = {
   physics: {
     mode: 'authoritative',
-    frequency: 'tick',       // 60Hz server-authoritative
+    frequency: 'tick', // 60Hz server-authoritative
     interpolate: true,
     interpolationDelay: 50,
     maxHistorySize: 256,
@@ -943,7 +951,7 @@ export const SYNC_TIER_DEFAULTS: Record<SyncTier, Required<Pick<ISyncConfig, 'mo
   },
   movement: {
     mode: 'authoritative',
-    frequency: 'tick',       // 20Hz client-predicted
+    frequency: 'tick', // 20Hz client-predicted
     interpolate: true,
     interpolationDelay: 100,
     maxHistorySize: 128,
@@ -951,7 +959,7 @@ export const SYNC_TIER_DEFAULTS: Record<SyncTier, Required<Pick<ISyncConfig, 'mo
   },
   ai_agent: {
     mode: 'crdt',
-    frequency: 'manual',     // 1-5Hz eventual consistency
+    frequency: 'manual', // 1-5Hz eventual consistency
     interpolate: false,
     interpolationDelay: 200,
     maxHistorySize: 32,
@@ -959,7 +967,7 @@ export const SYNC_TIER_DEFAULTS: Record<SyncTier, Required<Pick<ISyncConfig, 'mo
   },
   cosmetic: {
     mode: 'last-write-wins',
-    frequency: 'manual',     // <1Hz fire-and-forget
+    frequency: 'manual', // <1Hz fire-and-forget
     interpolate: false,
     interpolationDelay: 0,
     maxHistorySize: 8,
@@ -991,12 +999,26 @@ export const SYNC_TIER_RATES: Record<SyncTier, number> = {
  * Resolve a SyncConfig by applying tier defaults.
  * If syncTier is set, it fills in missing fields from SYNC_TIER_DEFAULTS.
  */
-export function resolveSyncConfig(config: ISyncConfig): Required<Pick<ISyncConfig, 'mode' | 'frequency' | 'interpolate' | 'interpolationDelay' | 'maxHistorySize' | 'ownership'>> & ISyncConfig {
+export function resolveSyncConfig(
+  config: ISyncConfig
+): Required<
+  Pick<
+    ISyncConfig,
+    'mode' | 'frequency' | 'interpolate' | 'interpolationDelay' | 'maxHistorySize' | 'ownership'
+  >
+> &
+  ISyncConfig {
   const tierDefaults = config.syncTier ? SYNC_TIER_DEFAULTS[config.syncTier] : SYNC_DEFAULTS;
   return {
     ...tierDefaults,
     ...config,
-  } as Required<Pick<ISyncConfig, 'mode' | 'frequency' | 'interpolate' | 'interpolationDelay' | 'maxHistorySize' | 'ownership'>> & ISyncConfig;
+  } as Required<
+    Pick<
+      ISyncConfig,
+      'mode' | 'frequency' | 'interpolate' | 'interpolationDelay' | 'maxHistorySize' | 'ownership'
+    >
+  > &
+    ISyncConfig;
 }
 
 // ============================================================================
@@ -1070,7 +1092,11 @@ export function createGCounter(): IGCounter {
 }
 
 /** Increment a G-Counter for a peer */
-export function incrementGCounter(counter: IGCounter, peerId: string, delta: number = 1): IGCounter {
+export function incrementGCounter(
+  counter: IGCounter,
+  peerId: string,
+  delta: number = 1
+): IGCounter {
   return {
     counts: {
       ...counter.counts,
@@ -1270,12 +1296,15 @@ export class SpatialHashGrid implements IInterestManager {
  * W.NET.05: AI agents have fundamentally different bandwidth needs than players.
  * G.NET.04: Don't overestimate AI agent bandwidth.
  */
-export const ENTITY_BANDWIDTH_PROFILES: Record<EntityType, {
-  bytesPerUpdate: number;
-  updatesPerSecond: number;
-  delivery: DeliveryMode;
-  syncTier: SyncTier;
-}> = {
+export const ENTITY_BANDWIDTH_PROFILES: Record<
+  EntityType,
+  {
+    bytesPerUpdate: number;
+    updatesPerSecond: number;
+    delivery: DeliveryMode;
+    syncTier: SyncTier;
+  }
+> = {
   player: {
     bytesPerUpdate: 20,
     updatesPerSecond: 20,
@@ -1283,8 +1312,8 @@ export const ENTITY_BANDWIDTH_PROFILES: Record<EntityType, {
     syncTier: 'movement',
   },
   agent: {
-    bytesPerUpdate: 150,       // 50-200 bytes of decision state
-    updatesPerSecond: 3,       // 1-5 Hz
+    bytesPerUpdate: 150, // 50-200 bytes of decision state
+    updatesPerSecond: 3, // 1-5 Hz
     delivery: 'reliable',
     syncTier: 'ai_agent',
   },
@@ -1306,10 +1335,17 @@ export const ENTITY_BANDWIDTH_PROFILES: Record<EntityType, {
  * Estimate bandwidth for a set of entities within a player's AOI.
  * Uses proper per-entity-type profiles (G.NET.04: don't treat AI like players).
  */
-export function estimateAOIBandwidth(
-  entityTypes: EntityType[]
-): { totalBytesPerSecond: number; totalKbps: number; breakdown: Record<EntityType, number> } {
-  const breakdown: Record<EntityType, number> = { player: 0, agent: 0, physics_object: 0, cosmetic: 0 };
+export function estimateAOIBandwidth(entityTypes: EntityType[]): {
+  totalBytesPerSecond: number;
+  totalKbps: number;
+  breakdown: Record<EntityType, number>;
+} {
+  const breakdown: Record<EntityType, number> = {
+    player: 0,
+    agent: 0,
+    physics_object: 0,
+    cosmetic: 0,
+  };
   let totalBytesPerSecond = 0;
 
   for (const type of entityTypes) {

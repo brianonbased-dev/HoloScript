@@ -14,7 +14,9 @@ function makeNode(withMaterial = false) {
     ...(withMaterial ? { material: { color: '#AAAAAA', emissive: '#000000', opacity: 1 } } : {}),
   };
 }
-function makeContext() { return { emit: vi.fn() }; }
+function makeContext() {
+  return { emit: vi.fn() };
+}
 
 function attachNode(config: any = {}, withMaterial = false) {
   const node = makeNode(withMaterial);
@@ -29,11 +31,16 @@ function attachNode(config: any = {}, withMaterial = false) {
 describe('highContrastHandler.defaultConfig', () => {
   it('mode = auto', () => expect(highContrastHandler.defaultConfig!.mode).toBe('auto'));
   it('outline_width = 2', () => expect(highContrastHandler.defaultConfig!.outline_width).toBe(2));
-  it('outline_color = #FFFFFF', () => expect(highContrastHandler.defaultConfig!.outline_color).toBe('#FFFFFF'));
-  it('forced_colors = false', () => expect(highContrastHandler.defaultConfig!.forced_colors).toBe(false));
-  it('foreground_color = #FFFFFF', () => expect(highContrastHandler.defaultConfig!.foreground_color).toBe('#FFFFFF'));
-  it('background_color = #000000', () => expect(highContrastHandler.defaultConfig!.background_color).toBe('#000000'));
-  it('preserve_images = true', () => expect(highContrastHandler.defaultConfig!.preserve_images).toBe(true));
+  it('outline_color = #FFFFFF', () =>
+    expect(highContrastHandler.defaultConfig!.outline_color).toBe('#FFFFFF'));
+  it('forced_colors = false', () =>
+    expect(highContrastHandler.defaultConfig!.forced_colors).toBe(false));
+  it('foreground_color = #FFFFFF', () =>
+    expect(highContrastHandler.defaultConfig!.foreground_color).toBe('#FFFFFF'));
+  it('background_color = #000000', () =>
+    expect(highContrastHandler.defaultConfig!.background_color).toBe('#000000'));
+  it('preserve_images = true', () =>
+    expect(highContrastHandler.defaultConfig!.preserve_images).toBe(true));
 });
 
 // ─── onAttach ────────────────────────────────────────────────────────────────
@@ -97,7 +104,10 @@ describe('highContrastHandler.onDetach', () => {
     ctx.emit.mockClear();
     highContrastHandler.onDetach!(node, cfg, ctx);
     // Should attempt to restore (may emit on_contrast_change with isActive=false)
-    expect(ctx.emit).toHaveBeenCalledWith('on_contrast_change', expect.objectContaining({ isActive: false }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_contrast_change',
+      expect.objectContaining({ isActive: false })
+    );
   });
 });
 
@@ -117,19 +127,28 @@ describe('highContrastHandler.onUpdate', () => {
 describe('highContrastHandler.onEvent', () => {
   it('high_contrast_system_preference stores systemPreference', () => {
     const { node, cfg, ctx } = attachNode({ mode: 'auto' });
-    highContrastHandler.onEvent!(node, cfg, ctx, { type: 'high_contrast_system_preference', mode: 'dark' });
+    highContrastHandler.onEvent!(node, cfg, ctx, {
+      type: 'high_contrast_system_preference',
+      mode: 'dark',
+    });
     expect((node as any).__highContrastState.systemPreference).toBe('dark');
   });
   it('high_contrast_system_preference applies contrast when mode=auto', () => {
     const { node, cfg, ctx } = attachNode({ mode: 'auto' });
     ctx.emit.mockClear();
-    highContrastHandler.onEvent!(node, cfg, ctx, { type: 'high_contrast_system_preference', mode: 'dark' });
+    highContrastHandler.onEvent!(node, cfg, ctx, {
+      type: 'high_contrast_system_preference',
+      mode: 'dark',
+    });
     expect(ctx.emit).toHaveBeenCalledWith('high_contrast_apply', expect.any(Object));
   });
   it('high_contrast_system_preference does NOT apply when mode!=auto', () => {
     const { node, cfg, ctx } = attachNode({ mode: 'light' }); // not auto
     ctx.emit.mockClear();
-    highContrastHandler.onEvent!(node, cfg, ctx, { type: 'high_contrast_system_preference', mode: 'dark' });
+    highContrastHandler.onEvent!(node, cfg, ctx, {
+      type: 'high_contrast_system_preference',
+      mode: 'dark',
+    });
     const applied = ctx.emit.mock.calls.some((c: any[]) => c[0] === 'high_contrast_apply');
     expect(applied).toBe(false);
   });
@@ -141,7 +160,12 @@ describe('highContrastHandler.onEvent', () => {
     expect(ctx.emit).toHaveBeenCalledWith('high_contrast_apply', expect.any(Object));
   });
   it('high_contrast_enable with forced_colors uses config colors for palette', () => {
-    const { node, cfg, ctx } = attachNode({ forced_colors: true, foreground_color: '#FF0000', background_color: '#0000FF', outline_color: '#00FF00' });
+    const { node, cfg, ctx } = attachNode({
+      forced_colors: true,
+      foreground_color: '#FF0000',
+      background_color: '#0000FF',
+      outline_color: '#00FF00',
+    });
     ctx.emit.mockClear();
     highContrastHandler.onEvent!(node, cfg, ctx, { type: 'high_contrast_enable', mode: 'high' });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'high_contrast_apply');
@@ -154,7 +178,10 @@ describe('highContrastHandler.onEvent', () => {
     ctx.emit.mockClear();
     highContrastHandler.onEvent!(node, cfg, ctx, { type: 'high_contrast_disable' });
     expect((node as any).__highContrastState.isActive).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('on_contrast_change', expect.objectContaining({ isActive: false }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_contrast_change',
+      expect.objectContaining({ isActive: false })
+    );
   });
   it('high_contrast_toggle enables when isActive=false', () => {
     const { node, cfg, ctx } = attachNode({ mode: 'dark' });
@@ -177,9 +204,14 @@ describe('highContrastHandler.onEvent', () => {
     (node as any).__highContrastState.activeMode = 'dark';
     ctx.emit.mockClear();
     highContrastHandler.onEvent!(node, cfg, ctx, { type: 'high_contrast_query', queryId: 'qx' });
-    expect(ctx.emit).toHaveBeenCalledWith('high_contrast_info', expect.objectContaining({
-      queryId: 'qx', isActive: true, activeMode: 'dark',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'high_contrast_info',
+      expect.objectContaining({
+        queryId: 'qx',
+        isActive: true,
+        activeMode: 'dark',
+      })
+    );
   });
   it('activeMode = high after applying high palette', () => {
     const { node, cfg, ctx } = attachNode();

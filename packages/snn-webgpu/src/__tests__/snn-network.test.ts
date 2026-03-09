@@ -36,7 +36,13 @@ describe('SNNNetwork', () => {
     connections: [
       { from: 'input', to: 'hidden1', weightInit: 'random', stdpEnabled: true, learningRate: 0.01 },
       { from: 'hidden1', to: 'hidden2', weightInit: 'random', stdpEnabled: true },
-      { from: 'hidden2', to: 'output', weightInit: 'uniform', uniformValue: 0.3, stdpEnabled: false },
+      {
+        from: 'hidden2',
+        to: 'output',
+        weightInit: 'uniform',
+        uniformValue: 0.3,
+        stdpEnabled: false,
+      },
     ],
     dt: 0.5,
   };
@@ -79,9 +85,7 @@ describe('SNNNetwork', () => {
 
     it('should reject connections to unknown layers', async () => {
       const badConfig: NetworkConfig = {
-        layers: [
-          { name: 'input', neuronCount: 100 },
-        ],
+        layers: [{ name: 'input', neuronCount: 100 }],
         connections: [
           { from: 'input', to: 'nonexistent', weightInit: 'zeros', stdpEnabled: false },
         ],
@@ -94,9 +98,7 @@ describe('SNNNetwork', () => {
 
     it('should reject connections from unknown layers', async () => {
       const badConfig: NetworkConfig = {
-        layers: [
-          { name: 'output', neuronCount: 100 },
-        ],
+        layers: [{ name: 'output', neuronCount: 100 }],
         connections: [
           { from: 'nonexistent', to: 'output', weightInit: 'zeros', stdpEnabled: false },
         ],
@@ -133,9 +135,7 @@ describe('SNNNetwork', () => {
           { name: 'input', neuronCount: 5000 },
           { name: 'output', neuronCount: 5000 },
         ],
-        connections: [
-          { from: 'input', to: 'output', weightInit: 'zeros', stdpEnabled: false },
-        ],
+        connections: [{ from: 'input', to: 'output', weightInit: 'zeros', stdpEnabled: false }],
       };
 
       const network = new SNNNetwork(ctx, largeConfig);
@@ -263,7 +263,7 @@ describe('SNNNetwork', () => {
       await network.initialize();
 
       await expect(network.readConnectionWeights('output', 'input')).rejects.toThrow(
-        'No connection found',
+        'No connection found'
       );
 
       network.destroy();
@@ -339,7 +339,13 @@ describe('SNNNetwork', () => {
           { name: 'output', neuronCount: 20 },
         ],
         connections: [
-          { from: 'input', to: 'output', weightInit: 'random', stdpEnabled: true, learningRate: 0.01 },
+          {
+            from: 'input',
+            to: 'output',
+            weightInit: 'random',
+            stdpEnabled: true,
+            learningRate: 0.01,
+          },
         ],
       };
 

@@ -7,7 +7,9 @@ describe('VR Interaction (Cycle 179)', () => {
   describe('HandTracker', () => {
     let tracker: HandTracker;
 
-    beforeEach(() => { tracker = new HandTracker(); });
+    beforeEach(() => {
+      tracker = new HandTracker();
+    });
 
     it('should initialize both hands', () => {
       expect(tracker.getHand('left')).toBeDefined();
@@ -55,12 +57,24 @@ describe('VR Interaction (Cycle 179)', () => {
     });
 
     it('should reject teleport beyond range', () => {
-      const result = loco.teleport({ x: 99, y: 0, z: 99, valid: true, normal: { x: 0, y: 1, z: 0 } });
+      const result = loco.teleport({
+        x: 99,
+        y: 0,
+        z: 99,
+        valid: true,
+        normal: { x: 0, y: 1, z: 0 },
+      });
       expect(result).toBe(false);
     });
 
     it('should reject invalid targets', () => {
-      const result = loco.teleport({ x: 1, y: 0, z: 1, valid: false, normal: { x: 0, y: 1, z: 0 } });
+      const result = loco.teleport({
+        x: 1,
+        y: 0,
+        z: 1,
+        valid: false,
+        normal: { x: 0, y: 1, z: 0 },
+      });
       expect(result).toBe(false);
     });
 
@@ -85,7 +99,9 @@ describe('VR Interaction (Cycle 179)', () => {
   describe('HapticFeedback', () => {
     let haptics: HapticFeedback;
 
-    beforeEach(() => { haptics = new HapticFeedback(); });
+    beforeEach(() => {
+      haptics = new HapticFeedback();
+    });
 
     it('should have preset patterns', () => {
       expect(haptics.getPatternCount()).toBeGreaterThanOrEqual(4);

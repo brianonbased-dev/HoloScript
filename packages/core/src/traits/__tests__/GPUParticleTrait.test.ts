@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { gpuParticleHandler } from '../GPUParticleTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('GPUParticleTrait', () => {
   let node: Record<string, unknown>;
@@ -13,7 +21,13 @@ describe('GPUParticleTrait', () => {
     initial_velocity: [0, 5, 0] as [number, number, number],
     velocity_variance: [1, 1, 1] as [number, number, number],
     spread_angle: 30,
-    forces: [{ type: 'gravity' as const, strength: 9.81, direction: [0, -1, 0] as [number, number, number] }],
+    forces: [
+      {
+        type: 'gravity' as const,
+        strength: 9.81,
+        direction: [0, -1, 0] as [number, number, number],
+      },
+    ],
     color_over_life: [
       { time: 0, color: [1, 1, 1, 1] as [number, number, number, number] },
       { time: 1, color: [1, 1, 1, 0] as [number, number, number, number] },

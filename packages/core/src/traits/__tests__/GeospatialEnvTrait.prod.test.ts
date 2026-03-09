@@ -13,8 +13,12 @@ import { geospatialEnvHandler } from '../GeospatialEnvTrait';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode() { return { id: 'geo_test' } as any; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'geo_test' } as any;
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 
 function attach(node: any, overrides: Record<string, unknown> = {}) {
   const cfg = { ...geospatialEnvHandler.defaultConfig!, ...overrides } as any;
@@ -23,7 +27,9 @@ function attach(node: any, overrides: Record<string, unknown> = {}) {
   return { cfg, ctx };
 }
 
-function st(node: any) { return node.__geospatialEnvState as any; }
+function st(node: any) {
+  return node.__geospatialEnvState as any;
+}
 
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
   geospatialEnvHandler.onEvent!(node, cfg, ctx as any, evt as any);
@@ -69,10 +75,13 @@ describe('GeospatialEnvTrait — onAttach', () => {
   it('auto_initialize=true: emits geospatial_env_initialize with origin + useVPS', () => {
     const node = makeNode();
     const { ctx, cfg } = attach(node, { latitude: 48.8566, longitude: 2.3522, use_vps: true });
-    expect(ctx.emit).toHaveBeenCalledWith('geospatial_env_initialize', expect.objectContaining({
-      origin: expect.objectContaining({ latitude: 48.8566, longitude: 2.3522 }),
-      useVPS: true,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'geospatial_env_initialize',
+      expect.objectContaining({
+        origin: expect.objectContaining({ latitude: 48.8566, longitude: 2.3522 }),
+        useVPS: true,
+      })
+    );
   });
 
   it('auto_initialize=false: state stays idle, no emit', () => {
@@ -122,7 +131,10 @@ describe('GeospatialEnvTrait — onUpdate', () => {
     ctx.emit.mockClear();
     geospatialEnvHandler.onUpdate!(node, cfg, ctx as any, 0.016);
     expect(st(node).state).toBe('tracking');
-    expect(ctx.emit).toHaveBeenCalledWith('on_geospatial_tracking', expect.objectContaining({ accuracy: 3 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_geospatial_tracking',
+      expect.objectContaining({ accuracy: 3 })
+    );
   });
 
   it('transitions localized→tracking when accuracy <= threshold', () => {
@@ -178,7 +190,10 @@ describe('GeospatialEnvTrait — onEvent: geospatial_initialized', () => {
     fire(node, cfg, ctx, { type: 'geospatial_initialized', vpsAvailable: true });
     expect(st(node).state).toBe('localizing');
     expect(st(node).vpsAvailable).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('on_geospatial_initialized', expect.objectContaining({ vpsAvailable: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_geospatial_initialized',
+      expect.objectContaining({ vpsAvailable: true })
+    );
   });
 
   it('vpsAvailable=false stored correctly', () => {
@@ -195,7 +210,13 @@ describe('GeospatialEnvTrait — onEvent: geospatial_pose_update', () => {
   it('stores accuracy fields', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node);
-    fire(node, cfg, ctx, { type: 'geospatial_pose_update', accuracy: 3.5, verticalAccuracy: 2.1, headingAccuracy: 5.0, heading: 90 });
+    fire(node, cfg, ctx, {
+      type: 'geospatial_pose_update',
+      accuracy: 3.5,
+      verticalAccuracy: 2.1,
+      headingAccuracy: 5.0,
+      heading: 90,
+    });
     expect(st(node).accuracy).toBeCloseTo(3.5);
     expect(st(node).verticalAccuracy).toBeCloseTo(2.1);
     expect(st(node).headingAccuracy).toBeCloseTo(5.0);
@@ -203,8 +224,18 @@ describe('GeospatialEnvTrait — onEvent: geospatial_pose_update', () => {
 
   it('compass smoothing: heading = old*0.8 + new*0.2 when heading_alignment=true', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { heading: 0, heading_alignment: true, compass_smoothing: 0.8 });
-    fire(node, cfg, ctx, { type: 'geospatial_pose_update', accuracy: 5, verticalAccuracy: 1, headingAccuracy: 1, heading: 100 });
+    const { cfg, ctx } = attach(node, {
+      heading: 0,
+      heading_alignment: true,
+      compass_smoothing: 0.8,
+    });
+    fire(node, cfg, ctx, {
+      type: 'geospatial_pose_update',
+      accuracy: 5,
+      verticalAccuracy: 1,
+      headingAccuracy: 1,
+      heading: 100,
+    });
     // 0 * 0.8 + 100 * 0.2 = 20
     expect(st(node).heading).toBeCloseTo(20);
   });
@@ -212,7 +243,13 @@ describe('GeospatialEnvTrait — onEvent: geospatial_pose_update', () => {
   it('no compass smoothing when heading_alignment=false', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { heading: 0, heading_alignment: false });
-    fire(node, cfg, ctx, { type: 'geospatial_pose_update', accuracy: 3, verticalAccuracy: 1, headingAccuracy: 1, heading: 180 });
+    fire(node, cfg, ctx, {
+      type: 'geospatial_pose_update',
+      accuracy: 3,
+      verticalAccuracy: 1,
+      headingAccuracy: 1,
+      heading: 180,
+    });
     expect(st(node).heading).toBe(0); // unchanged
   });
 
@@ -221,9 +258,18 @@ describe('GeospatialEnvTrait — onEvent: geospatial_pose_update', () => {
     const { cfg, ctx } = attach(node, { auto_initialize: false });
     st(node).state = 'localizing';
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'geospatial_pose_update', accuracy: 4, verticalAccuracy: 2, headingAccuracy: 1, heading: 0 });
+    fire(node, cfg, ctx, {
+      type: 'geospatial_pose_update',
+      accuracy: 4,
+      verticalAccuracy: 2,
+      headingAccuracy: 1,
+      heading: 0,
+    });
     expect(st(node).state).toBe('localized');
-    expect(ctx.emit).toHaveBeenCalledWith('on_geospatial_localized', expect.objectContaining({ accuracy: 4 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_geospatial_localized',
+      expect.objectContaining({ accuracy: 4 })
+    );
   });
 
   it('does NOT re-emit localized when state is already localized', () => {
@@ -231,7 +277,13 @@ describe('GeospatialEnvTrait — onEvent: geospatial_pose_update', () => {
     const { cfg, ctx } = attach(node, { auto_initialize: false });
     st(node).state = 'localized'; // already
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'geospatial_pose_update', accuracy: 3, verticalAccuracy: 1, headingAccuracy: 1, heading: 0 });
+    fire(node, cfg, ctx, {
+      type: 'geospatial_pose_update',
+      accuracy: 3,
+      verticalAccuracy: 1,
+      headingAccuracy: 1,
+      heading: 0,
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('on_geospatial_localized', expect.any(Object));
   });
 });
@@ -273,14 +325,24 @@ describe('GeospatialEnvTrait — onEvent: geospatial_set_origin', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node);
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'geospatial_set_origin', latitude: 51.5074, longitude: -0.1278, altitude: 12 });
+    fire(node, cfg, ctx, {
+      type: 'geospatial_set_origin',
+      latitude: 51.5074,
+      longitude: -0.1278,
+      altitude: 12,
+    });
     const s = st(node);
     expect(s.originLat).toBeCloseTo(51.5074);
     expect(s.originLon).toBeCloseTo(-0.1278);
     expect(s.originAlt).toBe(12);
-    expect(ctx.emit).toHaveBeenCalledWith('geospatial_origin_update', expect.objectContaining({
-      latitude: 51.5074, longitude: -0.1278, altitude: 12,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'geospatial_origin_update',
+      expect.objectContaining({
+        latitude: 51.5074,
+        longitude: -0.1278,
+        altitude: 12,
+      })
+    );
   });
 });
 
@@ -296,13 +358,16 @@ describe('GeospatialEnvTrait — onEvent: geospatial_query_state', () => {
 
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'geospatial_query_state', queryId: 'q1' });
-    expect(ctx.emit).toHaveBeenCalledWith('geospatial_state_response', expect.objectContaining({
-      queryId: 'q1',
-      state: 'initializing',
-      accuracy: 2,
-      heading: 180,
-      vpsAvailable: true,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'geospatial_state_response',
+      expect.objectContaining({
+        queryId: 'q1',
+        state: 'initializing',
+        accuracy: 2,
+        heading: 180,
+        vpsAvailable: true,
+      })
+    );
   });
 });
 
@@ -314,6 +379,9 @@ describe('GeospatialEnvTrait — onEvent: geospatial_unavailable', () => {
     const { cfg, ctx } = attach(node);
     fire(node, cfg, ctx, { type: 'geospatial_unavailable', reason: 'gps_disabled' });
     expect(st(node).state).toBe('unavailable');
-    expect(ctx.emit).toHaveBeenCalledWith('on_geospatial_unavailable', expect.objectContaining({ reason: 'gps_disabled' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_geospatial_unavailable',
+      expect.objectContaining({ reason: 'gps_disabled' })
+    );
   });
 });

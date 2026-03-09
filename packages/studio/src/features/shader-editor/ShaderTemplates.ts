@@ -150,7 +150,8 @@ export class ShaderTemplateLibrary {
 
     // Connect
     if (normalNode && fresnelNode) graph.connect(normalNode.id, 'normal', fresnelNode.id, 'normal');
-    if (viewDirNode && fresnelNode) graph.connect(viewDirNode.id, 'direction', fresnelNode.id, 'viewDir');
+    if (viewDirNode && fresnelNode)
+      graph.connect(viewDirNode.id, 'direction', fresnelNode.id, 'viewDir');
 
     return {
       id: 'fresnel_rim_light',
@@ -218,7 +219,8 @@ export class ShaderTemplateLibrary {
 
     if (uvNode && pomNode) graph.connect(uvNode.id, 'uv', pomNode.id, 'uv');
     if (viewDirNode && pomNode) graph.connect(viewDirNode.id, 'direction', pomNode.id, 'viewDir');
-    if (heightScaleNode && pomNode) graph.connect(heightScaleNode.id, 'value', pomNode.id, 'heightScale');
+    if (heightScaleNode && pomNode)
+      graph.connect(heightScaleNode.id, 'value', pomNode.id, 'heightScale');
     if (layersNode && pomNode) graph.connect(layersNode.id, 'value', pomNode.id, 'numLayers');
 
     return {
@@ -329,7 +331,8 @@ export class ShaderTemplateLibrary {
     if (timeNode && waterNode) graph.connect(timeNode.id, 'time', waterNode.id, 'time');
     if (scaleNode && waterNode) graph.connect(scaleNode.id, 'value', waterNode.id, 'waveScale');
     if (speedNode && waterNode) graph.connect(speedNode.id, 'value', waterNode.id, 'waveSpeed');
-    if (waterNode && outputNode) graph.connect(waterNode.id, 'displacement', outputNode.id, 'offset');
+    if (waterNode && outputNode)
+      graph.connect(waterNode.id, 'displacement', outputNode.id, 'offset');
 
     return {
       id: 'water_waves',
@@ -377,7 +380,8 @@ export class ShaderTemplateLibrary {
     if (progressNode && stepNode) graph.connect(progressNode.id, 'value', stepNode.id, 'edge');
     if (noiseNode && stepNode) graph.connect(noiseNode.id, 'noise', stepNode.id, 'x');
     if (stepNode && outputNode) graph.connect(stepNode.id, 'result', outputNode.id, 'alpha');
-    if (edgeColorNode && outputNode) graph.connect(edgeColorNode.id, 'value', outputNode.id, 'emission');
+    if (edgeColorNode && outputNode)
+      graph.connect(edgeColorNode.id, 'value', outputNode.id, 'emission');
 
     return {
       id: 'dissolve_effect',
@@ -438,10 +442,12 @@ export class ShaderTemplateLibrary {
     if (timeNode && addNode) graph.connect(timeNode.id, 'time', addNode.id, 'b');
     if (addNode && sinNode) graph.connect(addNode.id, 'result', sinNode.id, 'angle');
     if (sinNode && finalMulNode) graph.connect(sinNode.id, 'result', finalMulNode.id, 'a');
-    if (intensityNode && finalMulNode) graph.connect(intensityNode.id, 'value', finalMulNode.id, 'b');
+    if (intensityNode && finalMulNode)
+      graph.connect(intensityNode.id, 'value', finalMulNode.id, 'b');
 
     if (normalNode && fresnelNode) graph.connect(normalNode.id, 'normal', fresnelNode.id, 'normal');
-    if (viewDirNode && fresnelNode) graph.connect(viewDirNode.id, 'direction', fresnelNode.id, 'viewDir');
+    if (viewDirNode && fresnelNode)
+      graph.connect(viewDirNode.id, 'direction', fresnelNode.id, 'viewDir');
 
     if (colorNode && outputNode) graph.connect(colorNode.id, 'value', outputNode.id, 'emission');
     if (fresnelNode && outputNode) graph.connect(fresnelNode.id, 'result', outputNode.id, 'alpha');
@@ -535,10 +541,12 @@ export class ShaderTemplateLibrary {
     if (timeNode && causticsNode) graph.connect(timeNode.id, 'time', causticsNode.id, 'time');
     if (scaleNode && causticsNode) graph.connect(scaleNode.id, 'value', causticsNode.id, 'scale');
     if (speedNode && causticsNode) graph.connect(speedNode.id, 'value', causticsNode.id, 'speed');
-    if (intensityNode && causticsNode) graph.connect(intensityNode.id, 'value', causticsNode.id, 'intensity');
+    if (intensityNode && causticsNode)
+      graph.connect(intensityNode.id, 'value', causticsNode.id, 'intensity');
     if (colorNode && causticsNode) graph.connect(colorNode.id, 'value', causticsNode.id, 'color');
 
-    if (causticsNode && outputNode) graph.connect(causticsNode.id, 'caustic', outputNode.id, 'emission');
+    if (causticsNode && outputNode)
+      graph.connect(causticsNode.id, 'caustic', outputNode.id, 'emission');
 
     return {
       id: 'caustics',

@@ -226,7 +226,9 @@ function shouldReset(limit: QuotaLimit): boolean {
       return diffMs >= 7 * 24 * 60 * 60 * 1000;
     }
     case 'monthly':
-      return now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear();
+      return (
+        now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()
+      );
     case 'yearly':
       return now.getFullYear() !== lastReset.getFullYear();
     default:
@@ -289,7 +291,10 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
     ];
 
     for (const [resource, limit, resetPeriod] of resourceConfigs) {
-      state.limits.set(resource, createQuotaLimit(resource, limit, config.defaultEnforcement, resetPeriod));
+      state.limits.set(
+        resource,
+        createQuotaLimit(resource, limit, config.defaultEnforcement, resetPeriod)
+      );
       state.notificationsSent.set(resource, new Set());
     }
 
@@ -649,9 +654,10 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
             tenantId: config.tenantId,
             resource,
             ...limit,
-            usagePercent: limit.hardLimit > 0
-              ? Math.round((limit.currentUsage / limit.hardLimit) * 10000) / 100
-              : 0,
+            usagePercent:
+              limit.hardLimit > 0
+                ? Math.round((limit.currentUsage / limit.hardLimit) * 10000) / 100
+                : 0,
           });
         }
       } else {
@@ -660,9 +666,8 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
         for (const [r, l] of state.limits) {
           allLimits[r] = {
             ...l,
-            usagePercent: l.hardLimit > 0
-              ? Math.round((l.currentUsage / l.hardLimit) * 10000) / 100
-              : 0,
+            usagePercent:
+              l.hardLimit > 0 ? Math.round((l.currentUsage / l.hardLimit) * 10000) / 100 : 0,
           };
         }
         context.emit('quota_info', {

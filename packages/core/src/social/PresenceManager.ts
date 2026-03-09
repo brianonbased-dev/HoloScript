@@ -18,30 +18,30 @@ export class PresenceManager {
     private graph: SocialGraph,
     private transport?: WebRTCTransport
   ) {
-      if (this.transport) {
-          this.transport.onSocialMessage(this.onNetworkMessage.bind(this));
-      }
+    if (this.transport) {
+      this.transport.onSocialMessage(this.onNetworkMessage.bind(this));
+    }
   }
 
   private onNetworkMessage(packet: any) {
-      if (packet.type === 'SOCIAL_STATUS') {
-          const { userId, status, activity } = packet.payload;
-          this.handlePresenceUpdate(userId, status, activity);
-      }
+    if (packet.type === 'SOCIAL_STATUS') {
+      const { userId, status, activity } = packet.payload;
+      this.handlePresenceUpdate(userId, status, activity);
+    }
   }
 
   setLocalStatus(status: UserStatus, activity?: string): void {
     this.localStatus = status;
-    
+
     if (this.transport) {
-        this.transport.sendSocialMessage({
-            type: 'SOCIAL_STATUS',
-            payload: { 
-                userId: this.graph['localUserId'], // Accessing private prop via index for now, should expose getter
-                status, 
-                activity 
-            }
-        });
+      this.transport.sendSocialMessage({
+        type: 'SOCIAL_STATUS',
+        payload: {
+          userId: this.graph['localUserId'], // Accessing private prop via index for now, should expose getter
+          status,
+          activity,
+        },
+      });
     }
   }
 
@@ -58,7 +58,7 @@ export class PresenceManager {
       user.status = status;
       user.lastSeen = Date.now();
       if (activity) user.currentActivity = activity;
-      
+
       this.graph.updateUser(user);
     }
   }

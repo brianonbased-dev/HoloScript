@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createPatrolBehavior, createIdleBehavior, createInteractBehavior, createFollowBehavior, createAlertBehavior } from '../behavior/BehaviorPresets';
+import {
+  createPatrolBehavior,
+  createIdleBehavior,
+  createInteractBehavior,
+  createFollowBehavior,
+  createAlertBehavior,
+} from '../behavior/BehaviorPresets';
 
 describe('BehaviorPresets', () => {
   it('createPatrolBehavior returns repeater node', () => {

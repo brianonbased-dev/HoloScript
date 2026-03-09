@@ -21,13 +21,18 @@ export interface HarvestToolOutput {
 
 export const TOOL_DEFINITION = {
   name: 'holo_harvest_training_data',
-  description: 'Harvest training data from HoloScript improvement cycles. Captures (instruction, output, test_result, quality_score) tuples as JSONL.',
+  description:
+    'Harvest training data from HoloScript improvement cycles. Captures (instruction, output, test_result, quality_score) tuples as JSONL.',
   inputSchema: {
     type: 'object' as const,
     properties: {
       instruction: { type: 'string', description: 'The instruction/prompt that was given' },
       output: { type: 'string', description: 'The generated output' },
-      testResult: { type: 'string', enum: ['pass', 'fail', 'skip', 'error'], description: 'Test result status' },
+      testResult: {
+        type: 'string',
+        enum: ['pass', 'fail', 'skip', 'error'],
+        description: 'Test result status',
+      },
       qualityScore: { type: 'number', minimum: 0, maximum: 1, description: 'Quality score (0-1)' },
       metadata: { type: 'object', description: 'Optional metadata' },
     },
@@ -46,7 +51,11 @@ export class HoloHarvestTrainingDataHandler {
 
     try {
       this.harvester.harvestFromCycle(
-        input.instruction, input.output, input.testResult, input.qualityScore, input.metadata
+        input.instruction,
+        input.output,
+        input.testResult,
+        input.qualityScore,
+        input.metadata
       );
       const stats = this.harvester.getStats();
       return {

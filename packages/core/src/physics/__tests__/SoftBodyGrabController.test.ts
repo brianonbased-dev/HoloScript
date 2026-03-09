@@ -6,7 +6,7 @@ function mockSolver(vertexCount = 9) {
   const positions = new Float32Array(vertexCount * 3);
   // Place vertices in a ~0.1 radius grid around origin
   for (let i = 0; i < vertexCount; i++) {
-    positions[i * 3]     = (i % 3) * 0.05;
+    positions[i * 3] = (i % 3) * 0.05;
     positions[i * 3 + 1] = Math.floor(i / 3) * 0.05;
     positions[i * 3 + 2] = 0;
   }
@@ -20,7 +20,9 @@ function mockSolver(vertexCount = 9) {
 
 describe('SoftBodyGrabController', () => {
   let ctrl: SoftBodyGrabController;
-  beforeEach(() => { ctrl = new SoftBodyGrabController(); });
+  beforeEach(() => {
+    ctrl = new SoftBodyGrabController();
+  });
 
   it('isGrabbing returns false initially', () => {
     expect(ctrl.isGrabbing('leftHand')).toBe(false);

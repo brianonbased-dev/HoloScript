@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Search, X, Zap } from 'lucide-react';
-import { useEditorStore, useSceneGraphStore } from '@/lib/store';
+import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 
 // ─── Trait catalog ─────────────────────────────────────────────────────────────
 // A representative sample of HoloScript traits organized by category.
@@ -17,61 +17,166 @@ const TRAIT_CATALOG: Array<{
     category: 'Physics',
     color: 'text-blue-400',
     traits: [
-      { name: 'physics', description: 'Rigid body physics simulation', defaultProps: { mass: 1.0, gravity: 9.8, friction: 0.5, restitution: 0.3 } },
-      { name: 'collider', description: 'Collision detection shape', defaultProps: { shape: 'box', trigger: false } },
-      { name: 'buoyancy', description: 'Float on fluid surfaces', defaultProps: { fluid_density: 1000, damping: 0.5 } },
-      { name: 'wind_reactive', description: 'Responds to wind forces', defaultProps: { drag: 0.1, turbulence: 0.05 } },
+      {
+        name: 'physics',
+        description: 'Rigid body physics simulation',
+        defaultProps: { mass: 1.0, gravity: 9.8, friction: 0.5, restitution: 0.3 },
+      },
+      {
+        name: 'collider',
+        description: 'Collision detection shape',
+        defaultProps: { shape: 'box', trigger: false },
+      },
+      {
+        name: 'buoyancy',
+        description: 'Float on fluid surfaces',
+        defaultProps: { fluid_density: 1000, damping: 0.5 },
+      },
+      {
+        name: 'wind_reactive',
+        description: 'Responds to wind forces',
+        defaultProps: { drag: 0.1, turbulence: 0.05 },
+      },
     ],
   },
   {
     category: 'AI & NPCs',
     color: 'text-green-400',
     traits: [
-      { name: 'ai_npc', description: 'Autonomous NPC behavior', defaultProps: { behavior: 'idle', patrol: false, detection_range: 10 } },
-      { name: 'llm_agent', description: 'LLM-powered AI agent', defaultProps: { model: 'gpt-4', system_prompt: '', bounded_autonomy: true, max_actions_per_turn: 3 } },
-      { name: 'pathfinding', description: 'A* navigation mesh pathfinding', defaultProps: { speed: 3.5, stop_distance: 0.5 } },
-      { name: 'flocking', description: 'Boid-style group movement', defaultProps: { cohesion: 1.0, separation: 1.5, alignment: 1.0 } },
-      { name: 'dialogue', description: 'Branching conversation trees', defaultProps: { trigger_range: 3, auto_trigger: false } },
+      {
+        name: 'ai_npc',
+        description: 'Autonomous NPC behavior',
+        defaultProps: { behavior: 'idle', patrol: false, detection_range: 10 },
+      },
+      {
+        name: 'llm_agent',
+        description: 'LLM-powered AI agent',
+        defaultProps: {
+          model: 'gpt-4',
+          system_prompt: '',
+          bounded_autonomy: true,
+          max_actions_per_turn: 3,
+        },
+      },
+      {
+        name: 'pathfinding',
+        description: 'A* navigation mesh pathfinding',
+        defaultProps: { speed: 3.5, stop_distance: 0.5 },
+      },
+      {
+        name: 'flocking',
+        description: 'Boid-style group movement',
+        defaultProps: { cohesion: 1.0, separation: 1.5, alignment: 1.0 },
+      },
+      {
+        name: 'dialogue',
+        description: 'Branching conversation trees',
+        defaultProps: { trigger_range: 3, auto_trigger: false },
+      },
     ],
   },
   {
     category: 'Visual',
     color: 'text-purple-400',
     traits: [
-      { name: 'gaussian_splat', description: '3D Gaussian Splatting renderer', defaultProps: { source: '', quality: 'medium', sh_degree: 3, sort_mode: 'distance' } },
-      { name: 'particle_system', description: 'GPU particle emitter', defaultProps: { emit_rate: 100, lifetime: 2.0, spread: 30 } },
-      { name: 'trail', description: 'Motion trail renderer', defaultProps: { length: 50, width: 0.1, color: '#ffffff' } },
-      { name: 'outline', description: 'Silhouette outline effect', defaultProps: { thickness: 2, color: '#ff6600' } },
-      { name: 'glow', description: 'Bloom / glow emissive effect', defaultProps: { intensity: 1.5, color: '#ffffff', radius: 0.4 } },
-      { name: 'holographic', description: 'Holographic scanline shader', defaultProps: { scan_speed: 2.0, opacity: 0.8, color: '#00ffff' } },
+      {
+        name: 'gaussian_splat',
+        description: '3D Gaussian Splatting renderer',
+        defaultProps: { source: '', quality: 'medium', sh_degree: 3, sort_mode: 'distance' },
+      },
+      {
+        name: 'particle_system',
+        description: 'GPU particle emitter',
+        defaultProps: { emit_rate: 100, lifetime: 2.0, spread: 30 },
+      },
+      {
+        name: 'trail',
+        description: 'Motion trail renderer',
+        defaultProps: { length: 50, width: 0.1, color: '#ffffff' },
+      },
+      {
+        name: 'outline',
+        description: 'Silhouette outline effect',
+        defaultProps: { thickness: 2, color: '#ff6600' },
+      },
+      {
+        name: 'glow',
+        description: 'Bloom / glow emissive effect',
+        defaultProps: { intensity: 1.5, color: '#ffffff', radius: 0.4 },
+      },
+      {
+        name: 'holographic',
+        description: 'Holographic scanline shader',
+        defaultProps: { scan_speed: 2.0, opacity: 0.8, color: '#00ffff' },
+      },
     ],
   },
   {
     category: 'Audio',
     color: 'text-pink-400',
     traits: [
-      { name: 'audio_source', description: 'Spatial 3D audio emitter', defaultProps: { src: '', volume: 1.0, loop: false, spatial: true, max_distance: 20 } },
-      { name: 'audio_reactive', description: 'React to audio amplitude', defaultProps: { sensitivity: 1.0, property: 'scale' } },
-      { name: 'footstep_sounds', description: 'Surface-aware footstep audio', defaultProps: { volume: 0.7, surface_detection: true } },
+      {
+        name: 'audio_source',
+        description: 'Spatial 3D audio emitter',
+        defaultProps: { src: '', volume: 1.0, loop: false, spatial: true, max_distance: 20 },
+      },
+      {
+        name: 'audio_reactive',
+        description: 'React to audio amplitude',
+        defaultProps: { sensitivity: 1.0, property: 'scale' },
+      },
+      {
+        name: 'footstep_sounds',
+        description: 'Surface-aware footstep audio',
+        defaultProps: { volume: 0.7, surface_detection: true },
+      },
     ],
   },
   {
     category: 'Interaction',
     color: 'text-yellow-400',
     traits: [
-      { name: 'grabbable', description: 'Can be grabbed in VR/AR', defaultProps: { two_handed: false, throw_enabled: true } },
-      { name: 'interactable', description: 'Generic interaction trigger', defaultProps: { range: 2.0, highlight: true } },
-      { name: 'clickable', description: 'Click/tap interaction', defaultProps: { cursor_change: true } },
-      { name: 'hoverable', description: 'Hover detection and events', defaultProps: { scale_on_hover: 1.05, highlight_color: '#ffffff' } },
+      {
+        name: 'grabbable',
+        description: 'Can be grabbed in VR/AR',
+        defaultProps: { two_handed: false, throw_enabled: true },
+      },
+      {
+        name: 'interactable',
+        description: 'Generic interaction trigger',
+        defaultProps: { range: 2.0, highlight: true },
+      },
+      {
+        name: 'clickable',
+        description: 'Click/tap interaction',
+        defaultProps: { cursor_change: true },
+      },
+      {
+        name: 'hoverable',
+        description: 'Hover detection and events',
+        defaultProps: { scale_on_hover: 1.05, highlight_color: '#ffffff' },
+      },
     ],
   },
   {
     category: 'VR / XR',
     color: 'text-cyan-400',
     traits: [
-      { name: 'vr_teleport_target', description: 'VR locomotion landing point', defaultProps: { enabled: true, indicator_color: '#00ff88' } },
-      { name: 'hand_tracked', description: 'Hand tracking input binding', defaultProps: { hand: 'both', gesture: 'pinch' } },
-      { name: 'spatial_anchor', description: 'World-locked anchor point', defaultProps: { persist: false } },
+      {
+        name: 'vr_teleport_target',
+        description: 'VR locomotion landing point',
+        defaultProps: { enabled: true, indicator_color: '#00ff88' },
+      },
+      {
+        name: 'hand_tracked',
+        description: 'Hand tracking input binding',
+        defaultProps: { hand: 'both', gesture: 'pinch' },
+      },
+      {
+        name: 'spatial_anchor',
+        description: 'World-locked anchor point',
+        defaultProps: { persist: false },
+      },
       { name: 'passthrough', description: 'AR passthrough layer', defaultProps: { opacity: 1.0 } },
     ],
   },
@@ -79,29 +184,73 @@ const TRAIT_CATALOG: Array<{
     category: 'Navigation',
     color: 'text-orange-400',
     traits: [
-      { name: 'navmesh', description: 'Navigation mesh surface', defaultProps: { agent_height: 2.0, agent_radius: 0.4, walkable: true } },
-      { name: 'waypoint', description: 'Waypoint on a patrol route', defaultProps: { wait_time: 1.0, order: 0 } },
-      { name: 'vehicle', description: 'Drivable ground vehicle', defaultProps: { max_speed: 15, acceleration: 5, steering: 45 } },
-      { name: 'hover_vehicle', description: 'Anti-gravity hover drive', defaultProps: { hover_height: 0.8, thrust: 10, drift_factor: 0.2 } },
+      {
+        name: 'navmesh',
+        description: 'Navigation mesh surface',
+        defaultProps: { agent_height: 2.0, agent_radius: 0.4, walkable: true },
+      },
+      {
+        name: 'waypoint',
+        description: 'Waypoint on a patrol route',
+        defaultProps: { wait_time: 1.0, order: 0 },
+      },
+      {
+        name: 'vehicle',
+        description: 'Drivable ground vehicle',
+        defaultProps: { max_speed: 15, acceleration: 5, steering: 45 },
+      },
+      {
+        name: 'hover_vehicle',
+        description: 'Anti-gravity hover drive',
+        defaultProps: { hover_height: 0.8, thrust: 10, drift_factor: 0.2 },
+      },
     ],
   },
   {
     category: 'Combat',
     color: 'text-red-400',
     traits: [
-      { name: 'health', description: 'Health points + damage system', defaultProps: { max_hp: 100, current_hp: 100, invincible: false } },
-      { name: 'weapon', description: 'Weapon damage dealer', defaultProps: { damage: 25, fire_rate: 1.0, ammo: 30 } },
-      { name: 'armor', description: 'Damage absorption layer', defaultProps: { defense: 10, absorb_percent: 0.2 } },
-      { name: 'hitbox', description: 'Damage receiver region', defaultProps: { multiplier: 1.0, critical: false } },
+      {
+        name: 'health',
+        description: 'Health points + damage system',
+        defaultProps: { max_hp: 100, current_hp: 100, invincible: false },
+      },
+      {
+        name: 'weapon',
+        description: 'Weapon damage dealer',
+        defaultProps: { damage: 25, fire_rate: 1.0, ammo: 30 },
+      },
+      {
+        name: 'armor',
+        description: 'Damage absorption layer',
+        defaultProps: { defense: 10, absorb_percent: 0.2 },
+      },
+      {
+        name: 'hitbox',
+        description: 'Damage receiver region',
+        defaultProps: { multiplier: 1.0, critical: false },
+      },
     ],
   },
   {
     category: 'Animation',
     color: 'text-teal-400',
     traits: [
-      { name: 'animator', description: 'State machine animation controller', defaultProps: { default_clip: 'idle', auto_play: true } },
-      { name: 'rotate', description: 'Continuous rotation', defaultProps: { speed_x: 0, speed_y: 45, speed_z: 0 } },
-      { name: 'bob', description: 'Sine-wave bobbing motion', defaultProps: { amplitude: 0.2, frequency: 1.0, axis: 'y' } },
+      {
+        name: 'animator',
+        description: 'State machine animation controller',
+        defaultProps: { default_clip: 'idle', auto_play: true },
+      },
+      {
+        name: 'rotate',
+        description: 'Continuous rotation',
+        defaultProps: { speed_x: 0, speed_y: 45, speed_z: 0 },
+      },
+      {
+        name: 'bob',
+        description: 'Sine-wave bobbing motion',
+        defaultProps: { amplitude: 0.2, frequency: 1.0, axis: 'y' },
+      },
       { name: 'billboard', description: 'Always faces camera', defaultProps: { lock_y: true } },
     ],
   },
@@ -109,10 +258,26 @@ const TRAIT_CATALOG: Array<{
     category: 'Environment',
     color: 'text-lime-400',
     traits: [
-      { name: 'water', description: 'Fluid surface with waves', defaultProps: { wave_height: 0.3, wave_speed: 1.0, color: '#006994' } },
-      { name: 'wind_zone', description: 'Wind force field', defaultProps: { strength: 5.0, turbulence: 0.2, direction_x: 1.0 } },
-      { name: 'foliage', description: 'Animated foliage shader', defaultProps: { sway_amount: 0.1, sway_speed: 1.0 } },
-      { name: 'weather', description: 'Dynamic weather system', defaultProps: { type: 'clear', intensity: 0.5 } },
+      {
+        name: 'water',
+        description: 'Fluid surface with waves',
+        defaultProps: { wave_height: 0.3, wave_speed: 1.0, color: '#006994' },
+      },
+      {
+        name: 'wind_zone',
+        description: 'Wind force field',
+        defaultProps: { strength: 5.0, turbulence: 0.2, direction_x: 1.0 },
+      },
+      {
+        name: 'foliage',
+        description: 'Animated foliage shader',
+        defaultProps: { sway_amount: 0.1, sway_speed: 1.0 },
+      },
+      {
+        name: 'weather',
+        description: 'Dynamic weather system',
+        defaultProps: { type: 'clear', intensity: 0.5 },
+      },
     ],
   },
 ];
@@ -174,9 +339,7 @@ export function TraitPalette({ open, onClose }: TraitPaletteProps) {
         <div className="flex shrink-0 items-center gap-3 border-b border-studio-border px-4 py-3">
           <Zap className="h-5 w-5 text-studio-accent" />
           <span className="font-semibold text-studio-text">Add Trait</span>
-          {selectedNode && (
-            <span className="text-sm text-studio-muted">→ {selectedNode.name}</span>
-          )}
+          {selectedNode && <span className="text-sm text-studio-muted">→ {selectedNode.name}</span>}
           <div className="relative ml-auto flex-1 max-w-[280px]">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-studio-muted" />
             <input
@@ -202,7 +365,9 @@ export function TraitPalette({ open, onClose }: TraitPaletteProps) {
             <button
               onClick={() => setActiveCategory(null)}
               className={`w-full px-3 py-1.5 text-left text-xs transition ${
-                !activeCategory ? 'bg-studio-accent/10 text-studio-accent' : 'text-studio-muted hover:text-studio-text hover:bg-studio-surface'
+                !activeCategory
+                  ? 'bg-studio-accent/10 text-studio-accent'
+                  : 'text-studio-muted hover:text-studio-text hover:bg-studio-surface'
               }`}
             >
               All Categories
@@ -210,7 +375,9 @@ export function TraitPalette({ open, onClose }: TraitPaletteProps) {
             {TRAIT_CATALOG.map((cat) => (
               <button
                 key={cat.category}
-                onClick={() => setActiveCategory(cat.category === activeCategory ? null : cat.category)}
+                onClick={() =>
+                  setActiveCategory(cat.category === activeCategory ? null : cat.category)
+                }
                 className={`w-full px-3 py-1.5 text-left text-xs transition ${
                   activeCategory === cat.category
                     ? 'bg-studio-accent/10 text-studio-accent'
@@ -231,7 +398,9 @@ export function TraitPalette({ open, onClose }: TraitPaletteProps) {
             ) : (
               filteredCatalog.map((cat) => (
                 <div key={cat.category} className="mb-4">
-                  <div className={`mb-2 text-[10px] font-semibold uppercase tracking-widest ${cat.color}`}>
+                  <div
+                    className={`mb-2 text-[10px] font-semibold uppercase tracking-widest ${cat.color}`}
+                  >
                     {cat.category}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -249,7 +418,9 @@ export function TraitPalette({ open, onClose }: TraitPaletteProps) {
                           }`}
                         >
                           <div className="flex w-full items-center justify-between">
-                            <span className={`text-xs font-semibold ${cat.color}`}>@{trait.name}</span>
+                            <span className={`text-xs font-semibold ${cat.color}`}>
+                              @{trait.name}
+                            </span>
                             {alreadyAdded && (
                               <span className="text-[10px] text-studio-muted">Added</span>
                             )}

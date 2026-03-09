@@ -21,7 +21,14 @@ export interface CurveKeyframe {
   tangentMode: TangentMode;
 }
 
-export type CurvePreset = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'constant' | 'bounce' | 'spring';
+export type CurvePreset =
+  | 'linear'
+  | 'ease-in'
+  | 'ease-out'
+  | 'ease-in-out'
+  | 'constant'
+  | 'bounce'
+  | 'spring';
 
 // =============================================================================
 // CURVE EDITOR
@@ -63,8 +70,12 @@ export class CurveEditor {
     this.keyframes[index].tangentMode = 'free';
   }
 
-  getKeyframes(): CurveKeyframe[] { return [...this.keyframes]; }
-  getKeyCount(): number { return this.keyframes.length; }
+  getKeyframes(): CurveKeyframe[] {
+    return [...this.keyframes];
+  }
+  getKeyCount(): number {
+    return this.keyframes.length;
+  }
 
   // ---------------------------------------------------------------------------
   // Evaluation
@@ -83,9 +94,9 @@ export class CurveEditor {
 
     let t = time;
     if (this.wrapMode === 'loop' && duration > 0) {
-      t = first + ((t - first) % duration + duration) % duration;
+      t = first + ((((t - first) % duration) + duration) % duration);
     } else if (this.wrapMode === 'ping-pong' && duration > 0) {
-      const cycle = ((t - first) / duration);
+      const cycle = (t - first) / duration;
       const phase = cycle % 2;
       t = phase < 1 ? first + phase * duration : first + (2 - phase) * duration;
     }
@@ -116,7 +127,9 @@ export class CurveEditor {
   private hermite(p0: number, m0: number, p1: number, m1: number, t: number): number {
     const t2 = t * t;
     const t3 = t2 * t;
-    return (2 * t3 - 3 * t2 + 1) * p0 + (t3 - 2 * t2 + t) * m0 + (-2 * t3 + 3 * t2) * p1 + (t3 - t2) * m1;
+    return (
+      (2 * t3 - 3 * t2 + 1) * p0 + (t3 - 2 * t2 + t) * m0 + (-2 * t3 + 3 * t2) * p1 + (t3 - t2) * m1
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -148,7 +161,10 @@ export class CurveEditor {
         key.outTangent = 0;
       }
 
-      if (key.tangentMode === 'flat') { key.inTangent = 0; key.outTangent = 0; }
+      if (key.tangentMode === 'flat') {
+        key.inTangent = 0;
+        key.outTangent = 0;
+      }
     }
   }
 
@@ -160,29 +176,44 @@ export class CurveEditor {
     this.keyframes = [];
     switch (preset) {
       case 'linear':
-        this.addKey(0, 0, 'linear'); this.addKey(1, 1, 'linear');
-        this.keyframes[0].outTangent = 1; this.keyframes[1].inTangent = 1;
+        this.addKey(0, 0, 'linear');
+        this.addKey(1, 1, 'linear');
+        this.keyframes[0].outTangent = 1;
+        this.keyframes[1].inTangent = 1;
         break;
       case 'ease-in':
-        this.addKey(0, 0, 'free'); this.addKey(1, 1, 'free');
-        this.keyframes[0].outTangent = 0; this.keyframes[1].inTangent = 2;
+        this.addKey(0, 0, 'free');
+        this.addKey(1, 1, 'free');
+        this.keyframes[0].outTangent = 0;
+        this.keyframes[1].inTangent = 2;
         break;
       case 'ease-out':
-        this.addKey(0, 0, 'free'); this.addKey(1, 1, 'free');
-        this.keyframes[0].outTangent = 2; this.keyframes[1].inTangent = 0;
+        this.addKey(0, 0, 'free');
+        this.addKey(1, 1, 'free');
+        this.keyframes[0].outTangent = 2;
+        this.keyframes[1].inTangent = 0;
         break;
       case 'ease-in-out':
-        this.addKey(0, 0, 'free'); this.addKey(1, 1, 'free');
-        this.keyframes[0].outTangent = 0; this.keyframes[1].inTangent = 0;
+        this.addKey(0, 0, 'free');
+        this.addKey(1, 1, 'free');
+        this.keyframes[0].outTangent = 0;
+        this.keyframes[1].inTangent = 0;
         break;
       case 'constant':
-        this.addKey(0, 1, 'stepped'); this.addKey(1, 1, 'stepped');
+        this.addKey(0, 1, 'stepped');
+        this.addKey(1, 1, 'stepped');
         break;
       case 'bounce':
-        this.addKey(0, 0, 'auto'); this.addKey(0.5, 1, 'auto'); this.addKey(0.75, 0.5, 'auto'); this.addKey(1, 1, 'auto');
+        this.addKey(0, 0, 'auto');
+        this.addKey(0.5, 1, 'auto');
+        this.addKey(0.75, 0.5, 'auto');
+        this.addKey(1, 1, 'auto');
         break;
       case 'spring':
-        this.addKey(0, 0, 'auto'); this.addKey(0.3, 1.2, 'auto'); this.addKey(0.6, 0.9, 'auto'); this.addKey(1, 1, 'auto');
+        this.addKey(0, 0, 'auto');
+        this.addKey(0.3, 1.2, 'auto');
+        this.addKey(0.6, 0.9, 'auto');
+        this.addKey(1, 1, 'auto');
         break;
     }
   }
@@ -191,8 +222,12 @@ export class CurveEditor {
   // Wrap Mode
   // ---------------------------------------------------------------------------
 
-  setWrapMode(mode: 'clamp' | 'loop' | 'ping-pong'): void { this.wrapMode = mode; }
-  getWrapMode(): string { return this.wrapMode; }
+  setWrapMode(mode: 'clamp' | 'loop' | 'ping-pong'): void {
+    this.wrapMode = mode;
+  }
+  getWrapMode(): string {
+    return this.wrapMode;
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
@@ -200,7 +235,8 @@ export class CurveEditor {
 
   getValueRange(): { min: number; max: number } {
     if (this.keyframes.length === 0) return { min: 0, max: 0 };
-    let min = Infinity, max = -Infinity;
+    let min = Infinity,
+      max = -Infinity;
     for (const k of this.keyframes) {
       if (k.value < min) min = k.value;
       if (k.value > max) max = k.value;

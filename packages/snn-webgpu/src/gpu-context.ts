@@ -54,9 +54,7 @@ export class GPUContext {
   /** The active GPUDevice. Throws if not initialized. */
   get device(): GPUDevice {
     if (!this._device || this._destroyed) {
-      throw new Error(
-        'GPUContext not initialized. Call initialize() first.',
-      );
+      throw new Error('GPUContext not initialized. Call initialize() first.');
     }
     return this._device;
   }
@@ -64,9 +62,7 @@ export class GPUContext {
   /** The active GPUAdapter. Throws if not initialized. */
   get adapter(): GPUAdapter {
     if (!this._adapter || this._destroyed) {
-      throw new Error(
-        'GPUContext not initialized. Call initialize() first.',
-      );
+      throw new Error('GPUContext not initialized. Call initialize() first.');
     }
     return this._adapter;
   }
@@ -74,9 +70,7 @@ export class GPUContext {
   /** GPU capabilities detected during initialization. */
   get capabilities(): GPUCapabilities {
     if (!this._capabilities) {
-      throw new Error(
-        'GPUContext not initialized. Call initialize() first.',
-      );
+      throw new Error('GPUContext not initialized. Call initialize() first.');
     }
     return this._capabilities;
   }
@@ -103,7 +97,7 @@ export class GPUContext {
     if (typeof navigator === 'undefined' || !navigator.gpu) {
       throw new Error(
         'WebGPU is not supported in this environment. ' +
-        'Ensure you are running in a WebGPU-capable browser or Node.js with WebGPU bindings.',
+          'Ensure you are running in a WebGPU-capable browser or Node.js with WebGPU bindings.'
       );
     }
 
@@ -117,7 +111,7 @@ export class GPUContext {
     if (!adapter) {
       throw new Error(
         'Failed to obtain a WebGPU adapter. ' +
-        'Check that your GPU drivers are up to date and WebGPU is enabled.',
+          'Check that your GPU drivers are up to date and WebGPU is enabled.'
       );
     }
 
@@ -130,13 +124,10 @@ export class GPUContext {
     const maxStorageBufferBindingSize = options.maxStorageBufferBindingSize ?? 128 * 1024 * 1024;
 
     // Request limits up to what the adapter supports
-    requiredLimits.maxBufferSize = Math.min(
-      maxBufferSize,
-      adapter.limits.maxBufferSize,
-    );
+    requiredLimits.maxBufferSize = Math.min(maxBufferSize, adapter.limits.maxBufferSize);
     requiredLimits.maxStorageBufferBindingSize = Math.min(
       maxStorageBufferBindingSize,
-      adapter.limits.maxStorageBufferBindingSize,
+      adapter.limits.maxStorageBufferBindingSize
     );
 
     // Determine features
@@ -202,7 +193,7 @@ export class GPUContext {
     module: GPUShaderModule,
     entryPoint: string,
     layout: GPUPipelineLayout | 'auto' = 'auto',
-    label?: string,
+    label?: string
   ): GPUComputePipeline {
     return this.device.createComputePipeline({
       label: label ?? `compute-pipeline-${entryPoint}`,
@@ -234,7 +225,7 @@ export class GPUContext {
     if (requestedCount > maxNeurons) {
       console.warn(
         `[snn-webgpu] Requested ${requestedCount} neurons exceeds GPU limit of ${maxNeurons}. ` +
-        `Clamping to ${maxNeurons}.`,
+          `Clamping to ${maxNeurons}.`
       );
       return maxNeurons;
     }

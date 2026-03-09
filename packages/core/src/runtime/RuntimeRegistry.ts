@@ -215,9 +215,7 @@ class RuntimeRegistryClass {
     const compatibleRuntimes = this.findByType(composition.type || 'scene');
 
     if (compatibleRuntimes.length === 0) {
-      console.error(
-        `[RuntimeRegistry] No runtime found for composition type: ${composition.type}`
-      );
+      console.error(`[RuntimeRegistry] No runtime found for composition type: ${composition.type}`);
       return null;
     }
 

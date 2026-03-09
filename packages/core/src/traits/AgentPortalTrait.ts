@@ -170,7 +170,7 @@ function createPortalMessage(
   config: PortalConfig,
   to: FederatedAgentId | null,
   type: string,
-  payload: unknown,
+  payload: unknown
 ): PortalMessage {
   return {
     id: generateMessageId(state),
@@ -384,7 +384,10 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
 
         // Auto-reconnect
         if (config.auto_reconnect) {
-          if (config.max_reconnect_attempts === 0 || state.reconnectAttempts < config.max_reconnect_attempts) {
+          if (
+            config.max_reconnect_attempts === 0 ||
+            state.reconnectAttempts < config.max_reconnect_attempts
+          ) {
             state.reconnectAttempts++;
             context.emit?.('portal:reconnecting', {
               attempt: state.reconnectAttempts,
@@ -398,10 +401,11 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
       // ─── Outbound messaging ──────────────────────────────────────────
       case 'portal:send': {
         const msg = createPortalMessage(
-          state, config,
+          state,
+          config,
           payload.to ?? null,
           payload.messageType ?? 'data',
-          payload.data,
+          payload.data
         );
         if (payload.correlationId) msg.correlationId = payload.correlationId;
 
@@ -423,10 +427,11 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
 
       case 'portal:broadcast': {
         const msg = createPortalMessage(
-          state, config,
+          state,
+          config,
           null, // broadcast
           payload.messageType ?? 'broadcast',
-          payload.data,
+          payload.data
         );
 
         if (state.connected) {
@@ -493,7 +498,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
 
       // ─── Agent registry update from relay ─────────────────────────────
       case 'portal:remote_agents': {
-        const agents = payload?.agents as RemoteAgent[] ?? [];
+        const agents = (payload?.agents as RemoteAgent[]) ?? [];
         for (const agent of agents) {
           const key = `${agent.sceneId}:${agent.agentId}`;
           state.remoteAgents.set(key, agent);
@@ -523,10 +528,11 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
 
         // Send migration packet through relay
         const migrationMsg = createPortalMessage(
-          state, config,
+          state,
+          config,
           { sceneId: payload.targetScene, agentId: '__portal__' },
           'agent_migration',
-          packet,
+          packet
         );
 
         if (state.connected) {

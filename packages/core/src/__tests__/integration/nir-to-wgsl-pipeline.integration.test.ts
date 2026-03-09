@@ -16,10 +16,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NIRCompiler } from '../../compiler/NIRCompiler';
 import { NIRToWGSLCompiler } from '../../compiler/NIRToWGSLCompiler';
-import {
-  validateNIRGraph,
-  type NIRGraph,
-} from '../../compiler/NIRTraitMap';
+import { validateNIRGraph, type NIRGraph } from '../../compiler/NIRTraitMap';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
 // Mock RBAC for tests (W.013 pattern)
@@ -43,11 +40,7 @@ function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposit
   } as HoloComposition;
 }
 
-function makeNeuronObject(
-  name: string,
-  traitName: string,
-  config: Record<string, unknown> = {},
-) {
+function makeNeuronObject(name: string, traitName: string, config: Record<string, unknown> = {}) {
   return {
     name,
     properties: [] as Array<{ key: string; value: unknown }>,
@@ -115,14 +108,14 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
       const wgslResult = wgslCompiler.compileNIRGraph(nirJson);
 
       // Find the LIF shader
-      const lifShader = wgslResult.shaders.find(s => s.nodeType === 'LIF');
+      const lifShader = wgslResult.shaders.find((s) => s.nodeType === 'LIF');
       expect(lifShader).toBeDefined();
       expect(lifShader!.wgsl).toContain('@compute @workgroup_size');
       expect(lifShader!.wgsl).toContain('voltage');
       expect(lifShader!.wgsl).toContain('spikes');
 
       // Verify buffer layout includes input, params, state, and output
-      const bufferRoles = lifShader!.buffers.map(b => b.role);
+      const bufferRoles = lifShader!.buffers.map((b) => b.role);
       expect(bufferRoles).toContain('input');
       expect(bufferRoles).toContain('params');
       expect(bufferRoles).toContain('state');
@@ -185,7 +178,9 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
       // disconnected nodes (those whose edge source/target IDs don't match node keys)
       // may be excluded, so we check >= 1 rather than exact equality
       expect(wgslResult.executionOrder.length).toBeGreaterThanOrEqual(1);
-      expect(wgslResult.executionOrder.length).toBeLessThanOrEqual(Object.keys(nirGraph.nodes).length);
+      expect(wgslResult.executionOrder.length).toBeLessThanOrEqual(
+        Object.keys(nirGraph.nodes).length
+      );
 
       // If Input/Output boundary nodes exist, they should be at extremes
       const hasInput = wgslResult.executionOrder.includes('input');
@@ -198,7 +193,7 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
       }
 
       // Shaders should not include Input/Output boundary nodes
-      const shaderNodeIds = wgslResult.shaders.map(s => s.nodeId);
+      const shaderNodeIds = wgslResult.shaders.map((s) => s.nodeId);
       expect(shaderNodeIds).not.toContain('input');
       expect(shaderNodeIds).not.toContain('output');
     });
@@ -209,11 +204,10 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
       const wgslResult = wgslCompiler.compileNIRGraph(nirJson);
 
       // Every non-boundary edge in NIR should map to a buffer connection
-      const nonBoundaryEdges = nirGraph.edges.filter(e => {
+      const nonBoundaryEdges = nirGraph.edges.filter((e) => {
         const srcNode = nirGraph.nodes[e.source];
         const tgtNode = nirGraph.nodes[e.target];
-        return srcNode && tgtNode &&
-               srcNode.type !== 'Input' && tgtNode.type !== 'Output';
+        return srcNode && tgtNode && srcNode.type !== 'Input' && tgtNode.type !== 'Output';
       });
 
       expect(wgslResult.connections.length).toBe(nonBoundaryEdges.length);
@@ -232,9 +226,7 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
       // Each shader should have a corresponding bind group layout
       for (const shader of wgslResult.shaders) {
         expect(wgslResult.bindGroupLayouts[shader.nodeId]).toBeDefined();
-        expect(wgslResult.bindGroupLayouts[shader.nodeId].length).toBe(
-          shader.buffers.length,
-        );
+        expect(wgslResult.bindGroupLayouts[shader.nodeId].length).toBe(shader.buffers.length);
       }
     });
 
@@ -259,9 +251,7 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
 
   describe('Euler vs RK4 integration methods through pipeline', () => {
     const composition = makeComposition({
-      objects: [
-        makeNeuronObject('lif_layer', 'lif_neuron', { num_neurons: 16, tau: 20.0 }),
-      ] as any,
+      objects: [makeNeuronObject('lif_layer', 'lif_neuron', { num_neurons: 16, tau: 20.0 })] as any,
     });
 
     it('produces different WGSL for Euler vs RK4 from same NIR', () => {
@@ -273,8 +263,8 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
       const eulerResult = eulerCompiler.compileNIRGraph(nirJson);
       const rk4Result = rk4Compiler.compileNIRGraph(nirJson);
 
-      const eulerLIF = eulerResult.shaders.find(s => s.nodeType === 'LIF');
-      const rk4LIF = rk4Result.shaders.find(s => s.nodeType === 'LIF');
+      const eulerLIF = eulerResult.shaders.find((s) => s.nodeType === 'LIF');
+      const rk4LIF = rk4Result.shaders.find((s) => s.nodeType === 'LIF');
 
       expect(eulerLIF).toBeDefined();
       expect(rk4LIF).toBeDefined();
@@ -316,12 +306,10 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
 
       // spike_encoder is a composite trait that maps to multiple NIR nodes
       // The NIR graph should contain nodes from the spike_encoder expansion
-      const nodeTypes = Object.values(nirGraph.nodes).map(n => n.type);
+      const nodeTypes = Object.values(nirGraph.nodes).map((n) => n.type);
 
       // spike_encoder should produce Affine and/or Threshold nodes in the NIR graph
-      const hasEncoderNodes = nodeTypes.some(t =>
-        t === 'Affine' || t === 'Threshold',
-      );
+      const hasEncoderNodes = nodeTypes.some((t) => t === 'Affine' || t === 'Threshold');
       expect(hasEncoderNodes).toBe(true);
 
       // If the WGSL compiler generates shaders for these nodes, check they're valid
@@ -355,8 +343,8 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
       // Validate the graph as an intermediate checkpoint
       const validation = validateNIRGraph(nirGraph);
       // Should have Input and Output nodes
-      const hasInput = Object.values(nirGraph.nodes).some(n => n.type === 'Input');
-      const hasOutput = Object.values(nirGraph.nodes).some(n => n.type === 'Output');
+      const hasInput = Object.values(nirGraph.nodes).some((n) => n.type === 'Input');
+      const hasOutput = Object.values(nirGraph.nodes).some((n) => n.type === 'Output');
       expect(hasInput).toBe(true);
       expect(hasOutput).toBe(true);
 
@@ -385,7 +373,7 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
       const nirJson = nirCompiler.compile(composition, 'test-token');
       const wgslResult = wgslCompiler.compileNIRGraph(nirJson);
 
-      const cubaShader = wgslResult.shaders.find(s => s.nodeType === 'CubaLIF');
+      const cubaShader = wgslResult.shaders.find((s) => s.nodeType === 'CubaLIF');
       expect(cubaShader).toBeDefined();
 
       // CubaLIF should have more buffers than LIF (extra tau_syn, w_in, i_syn)
@@ -406,9 +394,7 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
     it('WGSL result metadata traces back to original composition', () => {
       const composition = makeComposition({
         name: 'TraceableNetwork',
-        objects: [
-          makeNeuronObject('n1', 'lif_neuron', { num_neurons: 8 }),
-        ] as any,
+        objects: [makeNeuronObject('n1', 'lif_neuron', { num_neurons: 8 })] as any,
       });
 
       const nirJson = nirCompiler.compile(composition, 'test-token');
@@ -444,7 +430,7 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
       const nirJson = nirCompiler.compile(composition, 'test-token');
       const wgslResult = wgslCompiler.compileNIRGraph(nirJson);
 
-      const convShader = wgslResult.shaders.find(s => s.nodeType === 'Conv2d');
+      const convShader = wgslResult.shaders.find((s) => s.nodeType === 'Conv2d');
       expect(convShader).toBeDefined();
 
       // WGSL should contain convolution loop structure
@@ -472,8 +458,8 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
       const wgslResult = wgslCompiler.compileNIRGraph(nirJson);
 
       // All neuron model shaders should include the SimParams struct
-      const neuronShaders = wgslResult.shaders.filter(
-        s => ['LIF', 'CubaLIF', 'IF', 'LI', 'Integrator'].includes(s.nodeType),
+      const neuronShaders = wgslResult.shaders.filter((s) =>
+        ['LIF', 'CubaLIF', 'IF', 'LI', 'Integrator'].includes(s.nodeType)
       );
 
       for (const shader of neuronShaders) {
@@ -484,7 +470,7 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
 
       // All should have a simulation_params uniform buffer at binding 0
       for (const shader of neuronShaders) {
-        const simBuf = shader.buffers.find(b => b.name === 'simulation_params');
+        const simBuf = shader.buffers.find((b) => b.name === 'simulation_params');
         expect(simBuf).toBeDefined();
         expect(simBuf!.binding).toBe(0);
         expect(simBuf!.type).toBe('uniform');

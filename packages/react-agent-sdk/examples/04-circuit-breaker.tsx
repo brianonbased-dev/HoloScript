@@ -5,11 +5,7 @@
  */
 
 import React from 'react';
-import {
-  useAgent,
-  useTask,
-  CircuitBreakerStatus,
-} from '@hololand/react-agent-sdk';
+import { useAgent, useTask, CircuitBreakerStatus } from '@hololand/react-agent-sdk';
 
 export function CircuitBreakerExample() {
   const { agent } = useAgent('brittney', {

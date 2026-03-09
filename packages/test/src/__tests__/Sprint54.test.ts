@@ -181,7 +181,9 @@ describe('fn()', () => {
     const mock = fn(() => {
       throw new Error('intentional');
     });
-    try { mock(); } catch {}
+    try {
+      mock();
+    } catch {}
     expect(mock.mock.results[0]).toMatchObject({ type: 'throw' });
   });
 

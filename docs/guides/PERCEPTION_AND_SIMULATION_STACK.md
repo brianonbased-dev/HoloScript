@@ -41,6 +41,7 @@ HoloScript's Perception & Simulation Stack provides **scene-level domain blocks*
 - `ResourceBudgetAnalyzer` enforces per-platform resource limits at compile time
 
 **Source files:**
+
 - Compiler: `packages/core/src/compiler/DomainBlockCompilerMixin.ts`
 - Grammar: `packages/tree-sitter-holoscript/grammar.js` (domain block rules)
 - Trait handlers: `packages/core/src/traits/*Trait.ts`
@@ -52,7 +53,9 @@ HoloScript's Perception & Simulation Stack provides **scene-level domain blocks*
 HoloScript offers **two approaches** to defining perception/simulation:
 
 ### Scene-Level Blocks (This Guide)
+
 **When to use:**
+
 - ✅ Reusable assets across multiple scenes (materials, audio presets, post-processing pipelines)
 - ✅ Complex configurations with nested sub-blocks (particle modules, articulation joints, post-FX effects)
 - ✅ Named assets that need to be referenced by name from objects
@@ -60,6 +63,7 @@ HoloScript offers **two approaches** to defining perception/simulation:
 - ✅ Multi-platform compilation (Unity, Unreal, Godot, R3F, WebGPU, USD)
 
 **Examples:**
+
 ```holoscript
 // Top-level material (reusable)
 pbr_material "BrushedSteel" @pbr {
@@ -77,13 +81,16 @@ particles "CampfireSmoke" @looping {
 ```
 
 ### Trait-Level (Alternative)
+
 **When to use:**
+
 - ✅ Runtime-controlled effects (GPU compute particles with millions of instances)
 - ✅ Procedural generation (runtime material synthesis, dynamic audio DSP)
 - ✅ Per-frame optimization (custom update loops, spatial hashing)
 - ✅ Advanced features not exposed in declarative blocks (authenticated CRDTs, VR eye tracking)
 
 **Examples:**
+
 ```typescript
 // Runtime GPU particle trait (millions of particles)
 import { GPUParticleTrait } from '@holoscript/core/traits/GPUParticleTrait';
@@ -93,21 +100,21 @@ const config = {
   emission_rate: 50000,
   forces: [
     { type: 'gravity', strength: [0, -9.81, 0] },
-    { type: 'vortex', center: [0, 5, 0], strength: 10 }
-  ]
+    { type: 'vortex', center: [0, 5, 0], strength: 10 },
+  ],
 };
 ```
 
 **Decision matrix:**
 
-| Feature | Scene-Level Block | Trait-Level |
-|---------|-------------------|-------------|
-| Artist-friendly | ✅ Declarative syntax | ❌ Requires coding |
-| Multi-platform export | ✅ Unity, Unreal, Godot, R3F, USD | ⚠️ Manual platform handling |
-| Complex nested config | ✅ Sub-blocks + properties | ⚠️ Nested objects |
-| Runtime control | ⚠️ Fixed at compile time | ✅ Full runtime API |
-| Performance | ⚠️ Standard budgets | ✅ GPU compute, custom optimizations |
-| Reusability | ✅ Named, top-level | ⚠️ Code sharing |
+| Feature               | Scene-Level Block                 | Trait-Level                          |
+| --------------------- | --------------------------------- | ------------------------------------ |
+| Artist-friendly       | ✅ Declarative syntax             | ❌ Requires coding                   |
+| Multi-platform export | ✅ Unity, Unreal, Godot, R3F, USD | ⚠️ Manual platform handling          |
+| Complex nested config | ✅ Sub-blocks + properties        | ⚠️ Nested objects                    |
+| Runtime control       | ⚠️ Fixed at compile time          | ✅ Full runtime API                  |
+| Performance           | ⚠️ Standard budgets               | ✅ GPU compute, custom optimizations |
+| Reusability           | ✅ Named, top-level               | ⚠️ Code sharing                      |
 
 **Recommendation:** Start with scene-level blocks for 80% of use cases. Use trait-level for the 20% requiring runtime control or GPU acceleration.
 
@@ -126,12 +133,14 @@ Physically-based rendering materials with metalness-roughness workflow. Compatib
 ### When to Use vs Trait-Level
 
 **Use scene-level `pbr_material` blocks when:**
+
 - Material configuration is **static** (doesn't change at runtime)
 - Need to **reference by name** from multiple objects
 - Targeting **multiple platforms** (Unity, Unreal, R3F, USD)
 - Artists need to **author without code**
 
 **Use trait-level (`MaterialTrait`) when:**
+
 - Need **runtime material synthesis** (procedural textures, shader hot-swapping)
 - Implementing **custom shaders** with compute passes
 - Require **per-frame property updates** (animated roughness, emissive pulsing)
@@ -142,40 +151,41 @@ Physically-based rendering materials with metalness-roughness workflow. Compatib
 
 **Properties:**
 
-| Property | Type | Default | Range | Description |
-|----------|------|---------|-------|-------------|
-| `baseColor` | `string` (hex) | `#ffffff` | - | Surface albedo color (sRGB) |
-| `roughness` | `number` | `0.5` | `0.0` - `1.0` | Surface roughness (0 = mirror, 1 = diffuse) |
-| `metallic` | `number` | `0.0` | `0.0` - `1.0` | Metalness (0 = dielectric, 1 = metal) |
-| `opacity` | `number` | `1.0` | `0.0` - `1.0` | Surface opacity (< 1.0 enables transparency) |
-| `IOR` | `number` | `1.5` | `1.0` - `2.5` | Index of refraction (water = 1.33, glass = 1.5) |
-| `emissive_color` | `string` (hex) | `#000000` | - | Self-illumination color |
-| `emissive_intensity` | `number` | `1.0` | `0.0` - `∞` | Emission brightness multiplier |
-| `albedo_map` | `string` or block | - | - | Diffuse/albedo texture path |
-| `normal_map` | `string` or block | - | - | Normal map texture path |
-| `roughness_map` | `string` | - | - | Roughness texture path (R channel) |
-| `metallic_map` | `string` | - | - | Metalness texture path (R channel) |
-| `ao_map` | `string` or block | - | - | Ambient occlusion texture path |
-| `emission_map` | `string` | - | - | Emission texture path |
-| `height_map` | `string` or block | - | - | Parallax/height map texture path |
+| Property             | Type              | Default   | Range         | Description                                     |
+| -------------------- | ----------------- | --------- | ------------- | ----------------------------------------------- |
+| `baseColor`          | `string` (hex)    | `#ffffff` | -             | Surface albedo color (sRGB)                     |
+| `roughness`          | `number`          | `0.5`     | `0.0` - `1.0` | Surface roughness (0 = mirror, 1 = diffuse)     |
+| `metallic`           | `number`          | `0.0`     | `0.0` - `1.0` | Metalness (0 = dielectric, 1 = metal)           |
+| `opacity`            | `number`          | `1.0`     | `0.0` - `1.0` | Surface opacity (< 1.0 enables transparency)    |
+| `IOR`                | `number`          | `1.5`     | `1.0` - `2.5` | Index of refraction (water = 1.33, glass = 1.5) |
+| `emissive_color`     | `string` (hex)    | `#000000` | -             | Self-illumination color                         |
+| `emissive_intensity` | `number`          | `1.0`     | `0.0` - `∞`   | Emission brightness multiplier                  |
+| `albedo_map`         | `string` or block | -         | -             | Diffuse/albedo texture path                     |
+| `normal_map`         | `string` or block | -         | -             | Normal map texture path                         |
+| `roughness_map`      | `string`          | -         | -             | Roughness texture path (R channel)              |
+| `metallic_map`       | `string`          | -         | -             | Metalness texture path (R channel)              |
+| `ao_map`             | `string` or block | -         | -             | Ambient occlusion texture path                  |
+| `emission_map`       | `string`          | -         | -             | Emission texture path                           |
+| `height_map`         | `string` or block | -         | -             | Parallax/height map texture path                |
 
 **Texture map sub-block properties** (when using structured form):
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `source` | `string` | - | Texture file path (relative to composition) |
-| `tiling` | `[number, number]` | `[1, 1]` | UV tiling multiplier (X, Y) |
-| `offset` | `[number, number]` | `[0, 0]` | UV offset (X, Y) |
-| `filtering` | `string` | `"bilinear"` | `"bilinear"`, `"trilinear"`, `"anisotropic"` |
-| `strength` | `number` | `1.0` | Effect intensity (normal maps, 0.0 - 2.0) |
-| `format` | `string` | `"directx"` | Normal map format: `"opengl"` or `"directx"` |
-| `intensity` | `number` | `1.0` | Effect intensity (AO maps, 0.0 - 2.0) |
-| `scale` | `number` | `0.05` | Displacement scale (height maps, scene units) |
-| `channel` | `string` | `"r"` | Source channel: `"r"`, `"g"`, `"b"`, `"a"` |
+| Property    | Type               | Default      | Description                                   |
+| ----------- | ------------------ | ------------ | --------------------------------------------- |
+| `source`    | `string`           | -            | Texture file path (relative to composition)   |
+| `tiling`    | `[number, number]` | `[1, 1]`     | UV tiling multiplier (X, Y)                   |
+| `offset`    | `[number, number]` | `[0, 0]`     | UV offset (X, Y)                              |
+| `filtering` | `string`           | `"bilinear"` | `"bilinear"`, `"trilinear"`, `"anisotropic"`  |
+| `strength`  | `number`           | `1.0`        | Effect intensity (normal maps, 0.0 - 2.0)     |
+| `format`    | `string`           | `"directx"`  | Normal map format: `"opengl"` or `"directx"`  |
+| `intensity` | `number`           | `1.0`        | Effect intensity (AO maps, 0.0 - 2.0)         |
+| `scale`     | `number`           | `0.05`       | Displacement scale (height maps, scene units) |
+| `channel`   | `string`           | `"r"`        | Source channel: `"r"`, `"g"`, `"b"`, `"a"`    |
 
 ### Integration Patterns
 
 #### Pattern 1: Inline String Paths
+
 **When to use:** Simple materials with basic texture maps.
 
 ```holoscript
@@ -190,6 +200,7 @@ pbr_material "HardwoodFloor" {
 ```
 
 **Compiles to Unity:**
+
 ```csharp
 Material hardwoodFloorMat = new Material(Shader.Find("Standard"));
 hardwoodFloorMat.SetTexture("_MainTex", LoadTexture("textures/hardwood_albedo.png"));
@@ -199,6 +210,7 @@ hardwoodFloorMat.SetFloat("_Metallic", 0.0f);
 ```
 
 **Compiles to Unreal C++:**
+
 ```cpp
 UMaterialInstanceDynamic* HardwoodFloorMat = UMaterialInstanceDynamic::Create(BaseMaterial, this);
 HardwoodFloorMat->SetTextureParameterValue("AlbedoMap", LoadTexture("textures/hardwood_albedo.png"));
@@ -208,6 +220,7 @@ HardwoodFloorMat->SetScalarParameterValue("Metallic", 0.0f);
 ```
 
 #### Pattern 2: Structured Texture Blocks
+
 **When to use:** Advanced texture control (tiling, filtering, format, strength).
 
 ```holoscript
@@ -238,6 +251,7 @@ pbr_material "WeatheredBrick" @pbr {
 ```
 
 #### Pattern 3: Emissive Materials (Neon, Holograms)
+
 **When to use:** Self-illuminating surfaces (UI panels, neon signs, glowing lava).
 
 ```holoscript
@@ -252,11 +266,13 @@ pbr_material "NeonSign" {
 ```
 
 **Unity compilation notes:**
+
 - `emissive_intensity` > 1.0 enables HDR emission (Bloom-compatible)
 - `emission_map` multiplies `emissive_color`
 - Requires URP/HDRP for HDR bloom
 
 #### Pattern 4: Transparent Materials
+
 **When to use:** Glass, water, holographic overlays.
 
 ```holoscript
@@ -275,6 +291,7 @@ pbr_material "HologramOverlay" @transparent {
 ### Performance Optimization
 
 #### Quest 3 (Mobile VR)
+
 - **Texture budget**: 512×512 for tiling textures, 1024×1024 for hero assets
 - **Avoid**: Anisotropic filtering (use `"trilinear"` instead)
 - **Normal map format**: Use `"directx"` (default) — 10% faster than OpenGL on Quest
@@ -290,6 +307,7 @@ pbr_material "OptimizedQuestMaterial" {
 ```
 
 #### Desktop VR (SteamVR, PCVR)
+
 - **Texture budget**: 2048×2048 for tiling, 4096×4096 for hero assets
 - **Anisotropic filtering**: Use `16x` for floor/terrain materials
 - **Height maps**: Enable parallax occlusion mapping for depth
@@ -313,6 +331,7 @@ pbr_material "PCVRTerrain" {
 ```
 
 #### WebGPU / Mobile AR
+
 - **Texture budget**: 1024×1024 max
 - **Avoid**: Height maps (parallax too expensive on mobile)
 - **Compression**: Use ASTC (Android) or PVRTC (iOS) — handled by compiler
@@ -320,6 +339,7 @@ pbr_material "PCVRTerrain" {
 ### AAA-Quality Examples
 
 #### Example 1: Photorealistic Wood Floor
+
 ```holoscript
 pbr_material "OakHardwood" @pbr {
   albedo_map {
@@ -348,12 +368,14 @@ pbr_material "OakHardwood" @pbr {
 ```
 
 **Realistic parameters:**
+
 - `roughness: 0.6` — Wood has visible grain, not mirror-smooth
 - `metallic: 0.0` — Wood is non-metallic (dielectric)
 - `normal strength: 1.0` — Subtle grain without over-exaggeration
 - `height scale: 0.02` — Minimal parallax (wood is relatively flat)
 
 #### Example 2: Brushed Aluminum (Hero Asset)
+
 ```holoscript
 pbr_material "BrushedAluminum" @pbr {
   baseColor: #cccccc
@@ -372,11 +394,13 @@ pbr_material "BrushedAluminum" @pbr {
 ```
 
 **Realistic parameters:**
+
 - `roughness: 0.3` — Brushed finish has directional micro-scratches
 - `metallic: 1.0` — Aluminum is fully metallic
 - `normal strength: 0.8` — Visible brush strokes without overpowering reflections
 
 #### Example 3: Worn Leather (Character Asset)
+
 ```holoscript
 pbr_material "WornLeather" @pbr {
   baseColor: #5a3a2a
@@ -400,6 +424,7 @@ pbr_material "WornLeather" @pbr {
 ```
 
 **Realistic parameters:**
+
 - `roughness: 0.7` (average) — Roughness map provides per-pixel variation
 - `ao intensity: 1.5` — Leather has deep pores and crevices (strong AO)
 - `normal strength: 1.2` — Visible creases and texture
@@ -419,11 +444,13 @@ Materials with subsurface scattering (SSS) for skin, wax, marble, jade, and tran
 ### When to Use vs Trait-Level
 
 **Use scene-level `subsurface_material` blocks when:**
+
 - Material is **organic** (skin, wax, fruit, leaves)
 - Targeting **Unity HDRP, Unreal**, or **R3F** (SSS support)
 - Need **artist-controlled** scatter radius and thickness
 
 **Use trait-level when:**
+
 - Implementing **custom SSS algorithms** (screen-space SSS, diffusion profiles)
 - Need **runtime scatter radius** adjustment (e.g., skin flushing)
 
@@ -431,16 +458,17 @@ Materials with subsurface scattering (SSS) for skin, wax, marble, jade, and tran
 
 **Additional properties** (beyond PBR):
 
-| Property | Type | Default | Range | Description |
-|----------|------|---------|-------|-------------|
-| `subsurface_color` | `string` (hex) | `#ffffff` | - | Color of light transmitted through material |
-| `subsurface_radius` | `[number, number, number]` | `[1.0, 0.2, 0.1]` | `0.0` - `∞` | RGB scatter radius in scene units |
-| `subsurface_map` | `string` | - | - | Subsurface intensity map (R channel) |
-| `thickness_map` | `string` | - | - | Surface thickness map (R channel, thin = white) |
+| Property            | Type                       | Default           | Range       | Description                                     |
+| ------------------- | -------------------------- | ----------------- | ----------- | ----------------------------------------------- |
+| `subsurface_color`  | `string` (hex)             | `#ffffff`         | -           | Color of light transmitted through material     |
+| `subsurface_radius` | `[number, number, number]` | `[1.0, 0.2, 0.1]` | `0.0` - `∞` | RGB scatter radius in scene units               |
+| `subsurface_map`    | `string`                   | -                 | -           | Subsurface intensity map (R channel)            |
+| `thickness_map`     | `string`                   | -                 | -           | Surface thickness map (R channel, thin = white) |
 
 ### Integration Patterns
 
 #### Pattern 1: Realistic Human Skin
+
 **When to use:** Character faces, hands, arms.
 
 ```holoscript
@@ -466,12 +494,14 @@ subsurface_material "HumanSkin" @sss {
 ```
 
 **Realistic parameters:**
+
 - `subsurface_radius: [1.0, 0.2, 0.1]` — Red light scatters 5x more than blue (Christensen et al. 2015)
 - `subsurface_color: #cc4422` — Blood-like red tint (hemoglobin absorption)
 - `roughness: 0.4` — Skin has micro-oils reducing roughness
 - `normal strength: 0.8` — Subtle pores without exaggeration
 
 **Unity compilation:**
+
 ```csharp
 Material skinMat = new Material(Shader.Find("HDRP/Lit"));
 skinMat.SetFloat("_MaterialID", 0);  // SSS material
@@ -481,6 +511,7 @@ skinMat.SetVector("_DiffusionProfileAsset", skinProfile);
 ```
 
 #### Pattern 2: Wax Candle
+
 **When to use:** Candles, soap, translucent plastics.
 
 ```holoscript
@@ -500,10 +531,12 @@ subsurface_material "BeeswaxCandle" @sss {
 ```
 
 **Realistic parameters:**
+
 - `subsurface_radius: [0.8, 0.6, 0.4]` — Even RGB scatter (wax has no chromophores)
 - `roughness: 0.3` — Wax has smooth finish but not mirror-like
 
 #### Pattern 3: Jade Stone
+
 **When to use:** Gemstones, translucent minerals.
 
 ```holoscript
@@ -525,6 +558,7 @@ subsurface_material "Jade" @sss {
 ### Performance Optimization
 
 #### Quest 3 (Mobile VR)
+
 - ⚠️ **SSS is expensive** — Limit to **1-2 hero characters** maximum
 - Use **screen-space SSS** (cheaper than full volumetric)
 - Reduce `subsurface_radius` by 50% for mobile
@@ -538,16 +572,19 @@ subsurface_material "MobileSkin" @sss {
 ```
 
 #### Desktop VR / PCVR
+
 - Use **diffusion profiles** (Unity HDRP, Unreal) for accurate multi-layer SSS
 - Enable **transmission** for thin surfaces (ears, fingers)
 
 #### WebGPU
+
 - ⚠️ **No native SSS support** — Falls back to standard PBR
 - Alternative: Fake SSS with `emissive_map` + `opacity < 1.0`
 
 ### AAA-Quality Examples
 
 #### Example 1: Photorealistic Skin (AAA Character)
+
 ```holoscript
 subsurface_material "AAASkin_Fair" @sss {
   // Base PBR
@@ -578,10 +615,12 @@ subsurface_material "AAASkin_Fair" @sss {
 ```
 
 **References:**
+
 - Christensen et al. (2015): "An Approximate Reflectance Profile for Efficient Subsurface Scattering"
 - Scatter radii based on real skin measurements
 
 #### Example 2: Translucent Leaves
+
 ```holoscript
 subsurface_material "Leaves" @sss {
   baseColor: #55aa33
@@ -620,12 +659,14 @@ GPU-accelerated particle systems with modular configuration. Supports emission, 
 ### When to Use vs Trait-Level
 
 **Use scene-level `particles` blocks when:**
+
 - Particle count < **10,000** (standard CPU/GPU hybrid)
 - Need **artist-friendly modules** (emission, color curves, noise)
 - Targeting **multiple platforms** (Unity, Unreal, Godot, R3F)
 - Configuration is **static** (fixed at compile time)
 
 **Use trait-level (`GPUParticleTrait`) when:**
+
 - Particle count > **100,000** (full GPU compute)
 - Need **custom forces** (vortex, attractor, turbulence with octaves)
 - Require **spatial hashing** for collision optimization
@@ -633,31 +674,32 @@ GPU-accelerated particle systems with modular configuration. Supports emission, 
 
 **Decision matrix:**
 
-| Feature | Scene-Level Block | Trait-Level (GPU) |
-|---------|-------------------|-------------------|
-| Max particles (Quest) | 5,000 | 100,000 |
-| Max particles (Desktop) | 50,000 | 1,000,000+ |
-| Artist-friendly | ✅ 15 modules | ❌ Code config |
-| Collision | ⚠️ World only | ✅ Spatial hash |
-| Forces | ⚠️ Basic | ✅ Vortex, attractor, turbulence |
-| Sub-emitters | ✅ Yes | ❌ Manual |
+| Feature                 | Scene-Level Block | Trait-Level (GPU)                |
+| ----------------------- | ----------------- | -------------------------------- |
+| Max particles (Quest)   | 5,000             | 100,000                          |
+| Max particles (Desktop) | 50,000            | 1,000,000+                       |
+| Artist-friendly         | ✅ 15 modules     | ❌ Code config                   |
+| Collision               | ⚠️ World only     | ✅ Spatial hash                  |
+| Forces                  | ⚠️ Basic          | ✅ Vortex, attractor, turbulence |
+| Sub-emitters            | ✅ Yes            | ❌ Manual                        |
 
 ### Full Syntax Reference
 
 **Top-level properties:**
 
-| Property | Type | Default | Range | Description |
-|----------|------|---------|-------|-------------|
-| `rate` | `number` | - | `0` - `∞` | Emission rate (particles/second) |
-| `max_particles` | `number` | `1000` | `1` - platform budget | Maximum active particle count |
-| `start_lifetime` | `number` or `[min, max]` | `2.0` | `0.1` - `∞` | Particle lifetime in seconds |
-| `start_speed` | `number` or `[min, max]` | `1.0` | `0` - `∞` | Initial velocity magnitude (units/sec) |
-| `start_size` | `number` or `[min, max]` | `0.1` | `0.001` - `∞` | Initial particle size (scene units) |
-| `start_color` | `string` (hex) | `#ffffff` | - | Initial particle color (sRGB) |
-| `gravity_modifier` | `number` | `0.0` | `-∞` - `∞` | Gravity scale (-1 = rise, 0 = float, 1 = fall) |
-| `simulation_space` | `string` | `"local"` | `"local"`, `"world"` | Coordinate space (local = attached to emitter) |
+| Property           | Type                     | Default   | Range                 | Description                                    |
+| ------------------ | ------------------------ | --------- | --------------------- | ---------------------------------------------- |
+| `rate`             | `number`                 | -         | `0` - `∞`             | Emission rate (particles/second)               |
+| `max_particles`    | `number`                 | `1000`    | `1` - platform budget | Maximum active particle count                  |
+| `start_lifetime`   | `number` or `[min, max]` | `2.0`     | `0.1` - `∞`           | Particle lifetime in seconds                   |
+| `start_speed`      | `number` or `[min, max]` | `1.0`     | `0` - `∞`             | Initial velocity magnitude (units/sec)         |
+| `start_size`       | `number` or `[min, max]` | `0.1`     | `0.001` - `∞`         | Initial particle size (scene units)            |
+| `start_color`      | `string` (hex)           | `#ffffff` | -                     | Initial particle color (sRGB)                  |
+| `gravity_modifier` | `number`                 | `0.0`     | `-∞` - `∞`            | Gravity scale (-1 = rise, 0 = float, 1 = fall) |
+| `simulation_space` | `string`                 | `"local"` | `"local"`, `"world"`  | Coordinate space (local = attached to emitter) |
 
 **Trait decorators:**
+
 - `@looping` — Continuous emission (never stops)
 - `@burst` — One-shot burst (emits once, then stops)
 - `@oneshot` — Alias for `@burst`
@@ -666,116 +708,130 @@ GPU-accelerated particle systems with modular configuration. Supports emission, 
 ### Particle Module Sub-Blocks
 
 #### `emission` — Emission Control
-| Property | Type | Description |
-|----------|------|-------------|
+
+| Property         | Type     | Description                          |
+| ---------------- | -------- | ------------------------------------ |
 | `rate_over_time` | `number` | Steady emission rate (particles/sec) |
-| `burst_count` | `number` | Particles per burst |
-| `burst_interval` | `number` | Seconds between bursts |
+| `burst_count`    | `number` | Particles per burst                  |
+| `burst_interval` | `number` | Seconds between bursts               |
 
 #### `velocity` — Initial Velocity
-| Property | Type | Description |
-|----------|------|-------------|
-| `direction` | `[x, y, z]` | Normalized emission direction |
-| `speed` | `number` | Velocity magnitude (units/sec) |
-| `spread` | `number` | Cone angle in degrees (0 = laser, 180 = hemisphere) |
-| `randomize` | `boolean` | Add per-particle velocity randomization |
+
+| Property    | Type        | Description                                         |
+| ----------- | ----------- | --------------------------------------------------- |
+| `direction` | `[x, y, z]` | Normalized emission direction                       |
+| `speed`     | `number`    | Velocity magnitude (units/sec)                      |
+| `spread`    | `number`    | Cone angle in degrees (0 = laser, 180 = hemisphere) |
+| `randomize` | `boolean`   | Add per-particle velocity randomization             |
 
 #### `force` — Continuous Forces
-| Property | Type | Description |
-|----------|------|-------------|
-| `gravity` | `[x, y, z]` | Gravity force vector (units/sec²) |
-| `wind` | `[x, y, z]` | Wind force vector |
-| `turbulence` | `number` | Turbulence intensity (0 - 1) |
-| `drag` | `number` | Velocity damping (0 - 1) |
+
+| Property     | Type        | Description                       |
+| ------------ | ----------- | --------------------------------- |
+| `gravity`    | `[x, y, z]` | Gravity force vector (units/sec²) |
+| `wind`       | `[x, y, z]` | Wind force vector                 |
+| `turbulence` | `number`    | Turbulence intensity (0 - 1)      |
+| `drag`       | `number`    | Velocity damping (0 - 1)          |
 
 #### `color_over_life` — Color Gradient
-| Property | Type | Description |
-|----------|------|-------------|
+
+| Property   | Type       | Description                                                       |
+| ---------- | ---------- | ----------------------------------------------------------------- |
 | `gradient` | `string[]` | Array of hex colors across lifetime (supports alpha: `#rrggbbaa`) |
-| `mode` | `string` | `"blend"` (smooth), `"random"` (pick random from gradient) |
+| `mode`     | `string`   | `"blend"` (smooth), `"random"` (pick random from gradient)        |
 
 #### `size_over_life` — Size Curve
-| Property | Type | Description |
-|----------|------|-------------|
-| `curve` | `number[]` | Size multiplier values across lifetime (4+ values for bezier) |
-| `mode` | `string` | `"linear"`, `"bezier"` |
+
+| Property | Type       | Description                                                   |
+| -------- | ---------- | ------------------------------------------------------------- |
+| `curve`  | `number[]` | Size multiplier values across lifetime (4+ values for bezier) |
+| `mode`   | `string`   | `"linear"`, `"bezier"`                                        |
 
 #### `rotation_over_life` — Rotation
-| Property | Type | Description |
-|----------|------|-------------|
+
+| Property           | Type        | Description                  |
+| ------------------ | ----------- | ---------------------------- |
 | `angular_velocity` | `[x, y, z]` | Rotation speed (degrees/sec) |
-| `randomize` | `boolean` | Randomize initial rotation |
+| `randomize`        | `boolean`   | Randomize initial rotation   |
 
 #### `noise` — Turbulence Noise
-| Property | Type | Description |
-|----------|------|-------------|
-| `strength` | `number` | Noise displacement strength (scene units) |
-| `frequency` | `number` | Noise spatial frequency (higher = smaller features) |
-| `scroll_speed` | `number` | Noise animation speed (units/sec) |
-| `octaves` | `number` | Noise complexity layers (1 - 4) |
-| `quality` | `string` | `"low"`, `"medium"`, `"high"` |
+
+| Property       | Type     | Description                                         |
+| -------------- | -------- | --------------------------------------------------- |
+| `strength`     | `number` | Noise displacement strength (scene units)           |
+| `frequency`    | `number` | Noise spatial frequency (higher = smaller features) |
+| `scroll_speed` | `number` | Noise animation speed (units/sec)                   |
+| `octaves`      | `number` | Noise complexity layers (1 - 4)                     |
+| `quality`      | `string` | `"low"`, `"medium"`, `"high"`                       |
 
 #### `collision` — World Collision
-| Property | Type | Description |
-|----------|------|-------------|
-| `enabled` | `boolean` | Enable particle-world collision |
-| `bounce` | `number` | Bounciness factor (0 = stick, 1 = perfect bounce) |
-| `lifetime_loss` | `number` | Lifetime reduction on collision (0 - 1, 1 = die instantly) |
-| `dampen` | `number` | Velocity damping on collision (0 - 1) |
-| `type` | `string` | `"world"`, `"planes"` |
+
+| Property        | Type      | Description                                                |
+| --------------- | --------- | ---------------------------------------------------------- |
+| `enabled`       | `boolean` | Enable particle-world collision                            |
+| `bounce`        | `number`  | Bounciness factor (0 = stick, 1 = perfect bounce)          |
+| `lifetime_loss` | `number`  | Lifetime reduction on collision (0 - 1, 1 = die instantly) |
+| `dampen`        | `number`  | Velocity damping on collision (0 - 1)                      |
+| `type`          | `string`  | `"world"`, `"planes"`                                      |
 
 #### `sub_emitter` — Spawn Child Particles
-| Property | Type | Description |
-|----------|------|-------------|
-| `trigger` | `string` | `"collision"`, `"death"`, `"birth"` |
-| `inherit_color` | `boolean` | Child inherits parent color |
-| `inherit_size` | `number` | Size inheritance factor (0 - 1) |
-| `emit_count` | `number` | Particles spawned per trigger |
-| `system` | `string` | Name of sub-emitter particle system |
+
+| Property        | Type      | Description                         |
+| --------------- | --------- | ----------------------------------- |
+| `trigger`       | `string`  | `"collision"`, `"death"`, `"birth"` |
+| `inherit_color` | `boolean` | Child inherits parent color         |
+| `inherit_size`  | `number`  | Size inheritance factor (0 - 1)     |
+| `emit_count`    | `number`  | Particles spawned per trigger       |
+| `system`        | `string`  | Name of sub-emitter particle system |
 
 #### `shape` — Emission Shape
-| Property | Type | Description |
-|----------|------|-------------|
-| `type` | `string` | `"cone"`, `"sphere"`, `"box"`, `"edge"`, `"mesh"` |
-| `angle` | `number` | Cone angle (degrees) |
-| `radius` | `number` | Shape radius (scene units) |
-| `scale` | `[x, y, z]` | Box dimensions |
-| `emit_from` | `string` | `"base"`, `"surface"`, `"volume"` |
+
+| Property    | Type        | Description                                       |
+| ----------- | ----------- | ------------------------------------------------- |
+| `type`      | `string`    | `"cone"`, `"sphere"`, `"box"`, `"edge"`, `"mesh"` |
+| `angle`     | `number`    | Cone angle (degrees)                              |
+| `radius`    | `number`    | Shape radius (scene units)                        |
+| `scale`     | `[x, y, z]` | Box dimensions                                    |
+| `emit_from` | `string`    | `"base"`, `"surface"`, `"volume"`                 |
 
 #### `renderer` — Rendering Settings
-| Property | Type | Description |
-|----------|------|-------------|
-| `material` | `string` | Particle material path |
-| `render_mode` | `string` | `"billboard"`, `"stretched_billboard"`, `"mesh"` |
-| `sort_mode` | `string` | `"distance"`, `"age"`, `"none"` |
-| `max_size` | `number` | Maximum rendered size (screen pixels or scene units) |
-| `alignment` | `string` | Billboard alignment: `"view"`, `"velocity"` |
-| `length_scale` | `number` | Stretch factor for velocity billboards |
-| `speed_scale` | `number` | Speed-dependent stretch |
+
+| Property       | Type     | Description                                          |
+| -------------- | -------- | ---------------------------------------------------- |
+| `material`     | `string` | Particle material path                               |
+| `render_mode`  | `string` | `"billboard"`, `"stretched_billboard"`, `"mesh"`     |
+| `sort_mode`    | `string` | `"distance"`, `"age"`, `"none"`                      |
+| `max_size`     | `number` | Maximum rendered size (screen pixels or scene units) |
+| `alignment`    | `string` | Billboard alignment: `"view"`, `"velocity"`          |
+| `length_scale` | `number` | Stretch factor for velocity billboards               |
+| `speed_scale`  | `number` | Speed-dependent stretch                              |
 
 #### `trails` — Particle Trails
-| Property | Type | Description |
-|----------|------|-------------|
-| `enabled` | `boolean` | Enable trail rendering |
-| `width` | `number` | Trail width (scene units) |
-| `lifetime` | `number` | Trail segment lifetime (seconds) |
-| `color_over_trail` | `string[]` | Color gradient along trail |
-| `min_vertex_distance` | `number` | Minimum distance between trail vertices |
-| `world_space` | `boolean` | Trails in world space (vs local) |
+
+| Property              | Type       | Description                             |
+| --------------------- | ---------- | --------------------------------------- |
+| `enabled`             | `boolean`  | Enable trail rendering                  |
+| `width`               | `number`   | Trail width (scene units)               |
+| `lifetime`            | `number`   | Trail segment lifetime (seconds)        |
+| `color_over_trail`    | `string[]` | Color gradient along trail              |
+| `min_vertex_distance` | `number`   | Minimum distance between trail vertices |
+| `world_space`         | `boolean`  | Trails in world space (vs local)        |
 
 #### `texture_sheet` — Sprite Sheet Animation
-| Property | Type | Description |
-|----------|------|-------------|
-| `tiles_x` | `number` | Horizontal tiles in sprite sheet |
-| `tiles_y` | `number` | Vertical tiles in sprite sheet |
-| `animation` | `string` | `"whole_sheet"`, `"single_row"` |
-| `frame_rate` | `number` | Frames per second |
-| `start_frame` | `number` | First frame index (0-based) |
-| `cycles` | `number` | Animation loop count |
+
+| Property      | Type     | Description                      |
+| ------------- | -------- | -------------------------------- |
+| `tiles_x`     | `number` | Horizontal tiles in sprite sheet |
+| `tiles_y`     | `number` | Vertical tiles in sprite sheet   |
+| `animation`   | `string` | `"whole_sheet"`, `"single_row"`  |
+| `frame_rate`  | `number` | Frames per second                |
+| `start_frame` | `number` | First frame index (0-based)      |
+| `cycles`      | `number` | Animation loop count             |
 
 ### Integration Patterns
 
 #### Pattern 1: Simple Fire Embers (Looping)
+
 **When to use:** Campfires, torches, forge fires.
 
 ```holoscript
@@ -833,6 +889,7 @@ particles "CampfireEmbers" @looping {
 ```
 
 **Unity compilation:**
+
 ```csharp
 ParticleSystem emberSystem = gameObject.AddComponent<ParticleSystem>();
 var main = emberSystem.main;
@@ -862,6 +919,7 @@ trails.lifetime = 0.2f;
 ```
 
 #### Pattern 2: Explosion (One-Shot Burst)
+
 **When to use:** Explosions, impacts, magical effects.
 
 ```holoscript
@@ -921,12 +979,14 @@ vfx "Explosion" @oneshot {
 ```
 
 **Key features:**
+
 - `@oneshot` — Emits once, then stops
 - `spread: 180` — Full hemisphere explosion
 - `sub_emitter` — Spawns smoke puffs on particle collision
 - `texture_sheet` — 8×8 sprite sheet animation (64 frames)
 
 #### Pattern 3: Rain System
+
 **When to use:** Weather effects (rain, snow, hail).
 
 ```holoscript
@@ -979,6 +1039,7 @@ particle_system "RainDrops" @looping {
 ```
 
 **Key features:**
+
 - `shape: box` — Rain falls from large area above player
 - `gravity_modifier: 1.5` — Rain falls faster than normal gravity
 - `sub_emitter: death` — Spawns splash particles when raindrops hit ground
@@ -987,6 +1048,7 @@ particle_system "RainDrops" @looping {
 ### Performance Optimization
 
 #### Quest 3 (Mobile VR)
+
 - **Max particles:** 5,000 total (all systems combined)
 - **Avoid:** Collision, sub-emitters, trails (expensive)
 - **Texture size:** 128×128 for particle sprites
@@ -1008,11 +1070,13 @@ particles "MobileEmbers" @looping {
 ```
 
 #### Desktop VR / PCVR
+
 - **Max particles:** 50,000 total
 - **Use:** GPU compute for high particle counts (see `GPUParticleTrait`)
 - **Sorting:** `"distance"` for correct transparency
 
 #### WebGPU
+
 - **Max particles:** 20,000
 - **Avoid:** Mesh rendering mode (billboards only)
 - **Compression:** Use WebP for sprite sheets
@@ -1020,6 +1084,7 @@ particles "MobileEmbers" @looping {
 ### AAA-Quality Examples
 
 #### Example 1: Photorealistic Smoke
+
 ```holoscript
 emitter "ForgeSmoke" @looping {
   rate: 80
@@ -1072,11 +1137,13 @@ emitter "ForgeSmoke" @looping {
 ```
 
 **Realistic parameters:**
+
 - `size_over_life: [0.5, 1.0, 1.5, 2.0]` — Smoke expands as it rises (realistic fluid dynamics)
 - `color gradient` — Starts dark (dense), fades to light (diluted)
 - `gravity_modifier: -0.05` — Slight buoyancy (hot smoke rises)
 
 #### Example 2: Magical Sparkles (Fantasy Effect)
+
 ```holoscript
 particles "MagicSparkles" @looping {
   rate: 100
@@ -1132,6 +1199,7 @@ particles "MagicSparkles" @looping {
 ```
 
 **Fantasy effect techniques:**
+
 - `color_over_life` with multiple hue shifts (yellow → blue → magenta)
 - `rotation_over_life` for spinning particles
 - `additive` blend mode for glowing effect
@@ -1152,11 +1220,13 @@ Screen-space post-processing effects for cinematic look, atmospheric effects, an
 ### When to Use vs Trait-Level
 
 **Use scene-level `post_processing` blocks when:**
+
 - Effect configuration is **static** (fixed at compile time)
 - Targeting **multiple platforms** (Unity URP/HDRP, Unreal, R3F)
 - Need **artist-friendly** named effect presets
 
 **Use trait-level when:**
+
 - Need **runtime effect control** (dynamic DoF focus, bloom threshold)
 - Implementing **custom post-processing shaders**
 - Require **per-frame property updates**
@@ -1164,6 +1234,7 @@ Screen-space post-processing effects for cinematic look, atmospheric effects, an
 ### Full Syntax Reference
 
 **Keywords:**
+
 - `post_processing` — Standard post-processing pipeline
 - `post_fx` — Shorthand for post effects
 - `render_pipeline` — Full render pipeline configuration
@@ -1171,104 +1242,116 @@ Screen-space post-processing effects for cinematic look, atmospheric effects, an
 **Effect Sub-Blocks:**
 
 #### `bloom` — Bright Light Glow
-| Property | Type | Default | Range | Description |
-|----------|------|---------|-------|-------------|
-| `intensity` | `number` | `0.5` | `0.0` - `∞` | Bloom strength |
-| `threshold` | `number` | `1.0` | `0.0` - `∞` | Brightness threshold for bloom (HDR) |
-| `scatter` | `number` | `0.7` | `0.0` - `1.0` | Bloom spread/diffusion |
-| `tint` | `string` (hex) | `#ffffff` | - | Bloom color tint |
-| `clamp` | `number` | `65000` | `0` - `65535` | Maximum bloom brightness |
-| `high_quality` | `boolean` | `false` | - | Enable high-quality bloom (slower) |
+
+| Property       | Type           | Default   | Range         | Description                          |
+| -------------- | -------------- | --------- | ------------- | ------------------------------------ |
+| `intensity`    | `number`       | `0.5`     | `0.0` - `∞`   | Bloom strength                       |
+| `threshold`    | `number`       | `1.0`     | `0.0` - `∞`   | Brightness threshold for bloom (HDR) |
+| `scatter`      | `number`       | `0.7`     | `0.0` - `1.0` | Bloom spread/diffusion               |
+| `tint`         | `string` (hex) | `#ffffff` | -             | Bloom color tint                     |
+| `clamp`        | `number`       | `65000`   | `0` - `65535` | Maximum bloom brightness             |
+| `high_quality` | `boolean`      | `false`   | -             | Enable high-quality bloom (slower)   |
 
 #### `depth_of_field` — Camera Bokeh
-| Property | Type | Default | Range | Description |
-|----------|------|---------|-------|-------------|
-| `aperture` | `number` | `5.6` | `1.0` - `22.0` | f-stop aperture (lower = more blur) |
-| `focal_length` | `number` | `50` | `10` - `300` | Lens focal length (mm) |
-| `focus_distance` | `number` | `10` | `0.1` - `∞` | Distance to focus plane (meters) |
-| `bokeh_shape` | `string` | `"circle"` | - | Bokeh shape: `"circle"`, `"hexagon"`, `"octagon"` |
-| `near_blur` | `number` | `0.5` | `0.0` - `1.0` | Near field blur intensity |
-| `far_blur` | `number` | `1.0` | `0.0` - `1.0` | Far field blur intensity |
+
+| Property         | Type     | Default    | Range          | Description                                       |
+| ---------------- | -------- | ---------- | -------------- | ------------------------------------------------- |
+| `aperture`       | `number` | `5.6`      | `1.0` - `22.0` | f-stop aperture (lower = more blur)               |
+| `focal_length`   | `number` | `50`       | `10` - `300`   | Lens focal length (mm)                            |
+| `focus_distance` | `number` | `10`       | `0.1` - `∞`    | Distance to focus plane (meters)                  |
+| `bokeh_shape`    | `string` | `"circle"` | -              | Bokeh shape: `"circle"`, `"hexagon"`, `"octagon"` |
+| `near_blur`      | `number` | `0.5`      | `0.0` - `1.0`  | Near field blur intensity                         |
+| `far_blur`       | `number` | `1.0`      | `0.0` - `1.0`  | Far field blur intensity                          |
 
 #### `color_grading` — Color Correction
-| Property | Type | Default | Range | Description |
-|----------|------|---------|-------|-------------|
-| `temperature` | `number` | `6500` | `1000` - `20000` | Color temperature (Kelvin, 6500 = daylight) |
-| `tint_offset` | `number` | `0` | `-100` - `100` | Green-magenta tint shift |
-| `contrast` | `number` | `1.0` | `0.0` - `2.0` | Contrast multiplier |
-| `saturation` | `number` | `1.0` | `0.0` - `2.0` | Color saturation multiplier |
-| `lift` | `[r, g, b]` | `[0,0,0]` | `-1.0` - `1.0` | Shadow color adjustment |
-| `gamma` | `[r, g, b]` | `[1,1,1]` | `0.1` - `5.0` | Midtone color adjustment |
-| `gain` | `[r, g, b]` | `[1,1,1]` | `0.0` - `5.0` | Highlight color adjustment |
-| `hue_shift` | `number` | `0` | `-180` - `180` | Global hue rotation (degrees) |
-| `posterize_steps` | `number` | - | `2` - `256` | Posterization band count (stylized) |
+
+| Property          | Type        | Default   | Range            | Description                                 |
+| ----------------- | ----------- | --------- | ---------------- | ------------------------------------------- |
+| `temperature`     | `number`    | `6500`    | `1000` - `20000` | Color temperature (Kelvin, 6500 = daylight) |
+| `tint_offset`     | `number`    | `0`       | `-100` - `100`   | Green-magenta tint shift                    |
+| `contrast`        | `number`    | `1.0`     | `0.0` - `2.0`    | Contrast multiplier                         |
+| `saturation`      | `number`    | `1.0`     | `0.0` - `2.0`    | Color saturation multiplier                 |
+| `lift`            | `[r, g, b]` | `[0,0,0]` | `-1.0` - `1.0`   | Shadow color adjustment                     |
+| `gamma`           | `[r, g, b]` | `[1,1,1]` | `0.1` - `5.0`    | Midtone color adjustment                    |
+| `gain`            | `[r, g, b]` | `[1,1,1]` | `0.0` - `5.0`    | Highlight color adjustment                  |
+| `hue_shift`       | `number`    | `0`       | `-180` - `180`   | Global hue rotation (degrees)               |
+| `posterize_steps` | `number`    | -         | `2` - `256`      | Posterization band count (stylized)         |
 
 #### `tone_mapping` — HDR to LDR
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `mode` | `string` | `"ACES"` | Algorithm: `"ACES"`, `"Neutral"`, `"Filmic"`, `"Reinhard"` |
-| `exposure` | `number` | `1.0` | Exposure compensation (EV) |
-| `white_point` | `number` | `6500` | White point temperature (Kelvin) |
+
+| Property      | Type     | Default  | Description                                                |
+| ------------- | -------- | -------- | ---------------------------------------------------------- |
+| `mode`        | `string` | `"ACES"` | Algorithm: `"ACES"`, `"Neutral"`, `"Filmic"`, `"Reinhard"` |
+| `exposure`    | `number` | `1.0`    | Exposure compensation (EV)                                 |
+| `white_point` | `number` | `6500`   | White point temperature (Kelvin)                           |
 
 #### `vignette` — Edge Darkening
-| Property | Type | Default | Range | Description |
-|----------|------|---------|-------|-------------|
-| `intensity` | `number` | `0.3` | `0.0` - `1.0` | Darkening intensity |
-| `smoothness` | `number` | `0.5` | `0.0` - `1.0` | Edge softness |
-| `roundness` | `number` | `1.0` | `0.0` - `1.0` | Shape roundness (0 = rect, 1 = circle) |
-| `color` | `string` (hex) | `#000000` | - | Vignette color |
+
+| Property     | Type           | Default   | Range         | Description                            |
+| ------------ | -------------- | --------- | ------------- | -------------------------------------- |
+| `intensity`  | `number`       | `0.3`     | `0.0` - `1.0` | Darkening intensity                    |
+| `smoothness` | `number`       | `0.5`     | `0.0` - `1.0` | Edge softness                          |
+| `roundness`  | `number`       | `1.0`     | `0.0` - `1.0` | Shape roundness (0 = rect, 1 = circle) |
+| `color`      | `string` (hex) | `#000000` | -             | Vignette color                         |
 
 #### `ambient_occlusion` / `ssao` — Contact Shadows
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `intensity` | `number` | `1.0` | AO darkening strength |
-| `radius` | `number` | `0.5` | Sample radius (scene units) |
-| `quality` | `string` | `"medium"` | `"low"`, `"medium"`, `"high"`, `"ultra"` |
-| `sample_count` | `number` | `8` | Ray sample count (higher = better quality) |
-| `thickness` | `number` | `0.5` | Contact shadow thickness |
+
+| Property       | Type     | Default    | Description                                |
+| -------------- | -------- | ---------- | ------------------------------------------ |
+| `intensity`    | `number` | `1.0`      | AO darkening strength                      |
+| `radius`       | `number` | `0.5`      | Sample radius (scene units)                |
+| `quality`      | `string` | `"medium"` | `"low"`, `"medium"`, `"high"`, `"ultra"`   |
+| `sample_count` | `number` | `8`        | Ray sample count (higher = better quality) |
+| `thickness`    | `number` | `0.5`      | Contact shadow thickness                   |
 
 #### `screen_space_reflections` / `ssr` — Reflections
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `max_distance` | `number` | `100` | Max ray trace distance |
-| `thickness` | `number` | `0.1` | Ray thickness (scene units) |
-| `quality` | `string` | `"medium"` | Quality preset |
-| `step_count` | `number` | `64` | Ray march step count |
-| `resolution` | `string` | `"full"` | `"full"`, `"half"`, `"quarter"` |
-| `fade_distance` | `number` | `10` | Reflection fade distance |
+
+| Property        | Type     | Default    | Description                     |
+| --------------- | -------- | ---------- | ------------------------------- |
+| `max_distance`  | `number` | `100`      | Max ray trace distance          |
+| `thickness`     | `number` | `0.1`      | Ray thickness (scene units)     |
+| `quality`       | `string` | `"medium"` | Quality preset                  |
+| `step_count`    | `number` | `64`       | Ray march step count            |
+| `resolution`    | `string` | `"full"`   | `"full"`, `"half"`, `"quarter"` |
+| `fade_distance` | `number` | `10`       | Reflection fade distance        |
 
 #### `motion_blur` — Camera Motion Blur
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `intensity` | `number` | `0.5` | Blur strength |
-| `sample_count` | `number` | `10` | Motion samples (higher = smoother) |
-| `max_velocity` | `number` | `20` | Maximum velocity contribution |
+
+| Property       | Type     | Default | Description                        |
+| -------------- | -------- | ------- | ---------------------------------- |
+| `intensity`    | `number` | `0.5`   | Blur strength                      |
+| `sample_count` | `number` | `10`    | Motion samples (higher = smoother) |
+| `max_velocity` | `number` | `20`    | Maximum velocity contribution      |
 
 #### `chromatic_aberration` — Lens Aberration
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `intensity` | `number` | `0.05` | Aberration strength (0.0 - 1.0) |
-| `max_samples` | `number` | `8` | Quality samples |
+
+| Property      | Type     | Default | Description                     |
+| ------------- | -------- | ------- | ------------------------------- |
+| `intensity`   | `number` | `0.05`  | Aberration strength (0.0 - 1.0) |
+| `max_samples` | `number` | `8`     | Quality samples                 |
 
 #### `volumetric_fog` — Atmospheric Fog
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `density` | `number` | `0.02` | Fog density |
-| `height_falloff` | `number` | `0.5` | Height-based falloff |
-| `color` | `string` (hex) | `#aabbcc` | Fog color |
-| `max_distance` | `number` | `500` | Maximum render distance |
-| `anisotropy` | `number` | `0.6` | Scattering directionality (-1 to 1) |
+
+| Property         | Type           | Default   | Description                         |
+| ---------------- | -------------- | --------- | ----------------------------------- |
+| `density`        | `number`       | `0.02`    | Fog density                         |
+| `height_falloff` | `number`       | `0.5`     | Height-based falloff                |
+| `color`          | `string` (hex) | `#aabbcc` | Fog color                           |
+| `max_distance`   | `number`       | `500`     | Maximum render distance             |
+| `anisotropy`     | `number`       | `0.6`     | Scattering directionality (-1 to 1) |
 
 #### `anti_aliasing` / `fxaa` / `smaa` / `taa` — Anti-Aliasing
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `mode` | `string` | `"TAA"` | AA algorithm: `"TAA"`, `"FXAA"`, `"SMAA"` |
-| `quality` | `string` | `"medium"` | Quality level |
-| `sharpness` | `number` | `0.5` | Output sharpening (TAA) |
+
+| Property    | Type     | Default    | Description                               |
+| ----------- | -------- | ---------- | ----------------------------------------- |
+| `mode`      | `string` | `"TAA"`    | AA algorithm: `"TAA"`, `"FXAA"`, `"SMAA"` |
+| `quality`   | `string` | `"medium"` | Quality level                             |
+| `sharpness` | `number` | `0.5`      | Output sharpening (TAA)                   |
 
 ### Integration Patterns
 
 #### Pattern 1: Cinematic Film Look
+
 **When to use:** Narrative experiences, cutscenes, story-driven games.
 
 ```holoscript
@@ -1313,6 +1396,7 @@ post_processing "CinematicLook" {
 ```
 
 **Unity compilation:**
+
 ```csharp
 // Unity URP Volume Profile
 var profile = ScriptableObject.CreateInstance<VolumeProfile>();
@@ -1337,6 +1421,7 @@ tonemapping.mode.value = TonemappingMode.ACES;
 ```
 
 #### Pattern 2: Atmospheric Environment
+
 **When to use:** Outdoor scenes, weather effects, mood lighting.
 
 ```holoscript
@@ -1382,6 +1467,7 @@ post_fx "Atmospheric" {
 ```
 
 #### Pattern 3: Stylized Toon Look
+
 **When to use:** Cartoon games, cel-shaded art style, anime-inspired visuals.
 
 ```holoscript
@@ -1416,6 +1502,7 @@ render_pipeline "ToonShading" {
 ```
 
 **Key stylization techniques:**
+
 - `outline` — Edge detection outlines (Sobel filter)
 - `posterize_steps: 6` — Reduce color bands (cel-shading)
 - `saturation: 1.5` + `contrast: 1.3` — Bold, vibrant look
@@ -1423,6 +1510,7 @@ render_pipeline "ToonShading" {
 ### Performance Optimization
 
 #### Quest 3 (Mobile VR)
+
 - **Max effects:** Bloom + AA only (2 effects maximum)
 - **Avoid:** SSR, volumetric fog, motion blur (too expensive)
 - **AA mode:** Use `"FXAA"` (cheapest, ~2ms) instead of TAA
@@ -1450,12 +1538,14 @@ post_processing "QuestOptimized" {
 ```
 
 **Performance budget:**
+
 - Bloom (low quality): ~3ms
 - FXAA (low quality): ~2ms
 - Vignette: ~0.5ms
 - **Total:** ~5.5ms (within 11.1ms frame budget at 90Hz)
 
 #### Desktop VR / PCVR
+
 - **Max effects:** Full stack (bloom, DoF, SSAO, SSR, color grading, TAA)
 - **AA mode:** Use `"TAA"` for best quality
 - **Resolution:** Full resolution for all effects
@@ -1510,6 +1600,7 @@ post_processing "DesktopVR" {
 ```
 
 **Performance budget (90Hz VR):**
+
 - Bloom (high): ~4ms
 - DoF: ~3ms
 - SSAO (ultra): ~4ms
@@ -1519,12 +1610,14 @@ post_processing "DesktopVR" {
 - **Total:** ~19ms (acceptable for desktop VR with GPU headroom)
 
 #### WebGPU
+
 - **Max effects:** Bloom, color grading, FXAA
 - **Avoid:** SSR, volumetric fog (no compute shader support in WebGPU 1.0)
 
 ### AAA-Quality Examples
 
 #### Example 1: AAA Cinematic Cutscene
+
 ```holoscript
 post_processing "AAACutscene" {
   bloom {
@@ -1587,6 +1680,7 @@ post_processing "AAACutscene" {
 ```
 
 **Cinematic techniques:**
+
 - `aperture: 1.8` — Shallow depth of field (subject isolation)
 - `lift/gamma/gain` — Three-way color grading (Hollywood-style)
 - `film_grain` — Analog film texture
@@ -1608,11 +1702,13 @@ Spatial or global audio emitters with distance attenuation, doppler effect, and 
 ### When to Use vs Trait-Level
 
 **Use scene-level `audio_source` blocks when:**
+
 - Audio configuration is **static** (fixed at compile time)
 - Need **3D spatial audio** with distance attenuation
 - Targeting **multiple platforms** (Unity, Unreal, R3F)
 
 **Use trait-level (`AudioTrait`) when:**
+
 - Need **runtime audio control** (dynamic volume, pitch, playback)
 - Implementing **custom audio DSP** (filters, effects)
 - Require **procedural audio synthesis**
@@ -1621,22 +1717,23 @@ Spatial or global audio emitters with distance attenuation, doppler effect, and 
 
 **Properties:**
 
-| Property | Type | Default | Range | Description |
-|----------|------|---------|-------|-------------|
-| `clip` | `string` | - | - | Audio file path (WAV, OGG, MP3) |
-| `volume` | `number` | `1.0` | `0.0` - `1.0` | Playback volume |
-| `pitch` | `number` | `1.0` | `0.1` - `3.0` | Playback pitch multiplier |
-| `spatial_blend` | `number` | `0.0` | `0.0` - `1.0` | 2D-3D blend (0 = stereo, 1 = fully spatial) |
-| `min_distance` | `number` | `1` | `0.01` - `∞` | Distance at full volume (meters) |
-| `max_distance` | `number` | `50` | `0.01` - `∞` | Distance at zero volume (meters) |
-| `rolloff_mode` | `string` | `"logarithmic"` | - | `"logarithmic"`, `"linear"`, `"custom"` |
-| `loop` | `boolean` | `false` | - | Loop playback |
-| `play_on_awake` | `boolean` | `false` | - | Auto-play on scene load |
-| `doppler_level` | `number` | `0.0` | `0.0` - `5.0` | Doppler effect strength |
-| `spread` | `number` | `0` | `0` - `360` | Spatial spread angle (degrees) |
-| `priority` | `number` | `128` | `0` - `255` | Audio priority (0 = highest, 255 = lowest) |
+| Property        | Type      | Default         | Range         | Description                                 |
+| --------------- | --------- | --------------- | ------------- | ------------------------------------------- |
+| `clip`          | `string`  | -               | -             | Audio file path (WAV, OGG, MP3)             |
+| `volume`        | `number`  | `1.0`           | `0.0` - `1.0` | Playback volume                             |
+| `pitch`         | `number`  | `1.0`           | `0.1` - `3.0` | Playback pitch multiplier                   |
+| `spatial_blend` | `number`  | `0.0`           | `0.0` - `1.0` | 2D-3D blend (0 = stereo, 1 = fully spatial) |
+| `min_distance`  | `number`  | `1`             | `0.01` - `∞`  | Distance at full volume (meters)            |
+| `max_distance`  | `number`  | `50`            | `0.01` - `∞`  | Distance at zero volume (meters)            |
+| `rolloff_mode`  | `string`  | `"logarithmic"` | -             | `"logarithmic"`, `"linear"`, `"custom"`     |
+| `loop`          | `boolean` | `false`         | -             | Loop playback                               |
+| `play_on_awake` | `boolean` | `false`         | -             | Auto-play on scene load                     |
+| `doppler_level` | `number`  | `0.0`           | `0.0` - `5.0` | Doppler effect strength                     |
+| `spread`        | `number`  | `0`             | `0` - `360`   | Spatial spread angle (degrees)              |
+| `priority`      | `number`  | `128`           | `0` - `255`   | Audio priority (0 = highest, 255 = lowest)  |
 
 **Trait decorators:**
+
 - `@spatial` — Enable 3D positional audio
 - `@hrtf` — Enable head-related transfer function (VR)
 - `@3d` — Alias for `@spatial`
@@ -1646,6 +1743,7 @@ Spatial or global audio emitters with distance attenuation, doppler effect, and 
 ### Integration Patterns
 
 #### Pattern 1: 3D Spatial Audio (HRTF)
+
 **When to use:** VR experiences, 3D environments, positional sounds.
 
 ```holoscript
@@ -1666,6 +1764,7 @@ audio_source "Waterfall" @spatial @hrtf {
 ```
 
 **Unity compilation:**
+
 ```csharp
 AudioSource waterfallSource = gameObject.AddComponent<AudioSource>();
 waterfallSource.clip = Resources.Load<AudioClip>("sounds/waterfall_loop");
@@ -1683,12 +1782,14 @@ waterfallSource.Play();
 ```
 
 **Realistic parameters:**
+
 - `rolloff_mode: "logarithmic"` — Realistic inverse-square law attenuation
 - `min_distance: 1` — Full volume within 1 meter
 - `max_distance: 50` — Audible up to 50 meters (large waterfall)
 - `spread: 60` — Wide spatial spread (waterfall is large source)
 
 #### Pattern 2: Non-Spatial Background Music
+
 **When to use:** Menu music, background ambience, UI sounds.
 
 ```holoscript
@@ -1704,6 +1805,7 @@ audio_source "BackgroundMusic" {
 ```
 
 #### Pattern 3: One-Shot Sound Effect
+
 **When to use:** Triggered sounds (footsteps, gunshots, impacts).
 
 ```holoscript
@@ -1723,6 +1825,7 @@ sound_emitter "FootstepEmitter" @spatial {
 ```
 
 **Key features:**
+
 - `randomize_pitch: true` — Avoids repetition (footsteps sound unique)
 - `pitch_range: [0.9, 1.1]` — 10% pitch variation
 - `loop: false` — One-shot sound
@@ -1730,6 +1833,7 @@ sound_emitter "FootstepEmitter" @spatial {
 ### Performance Optimization
 
 #### Quest 3 (Mobile VR)
+
 - **Max audio sources:** 16 total (8 spatial + 8 stereo)
 - **HRTF:** Use built-in Oculus Spatializer (free, optimized)
 - **Avoid:** High `spread` values (expensive spatialization)
@@ -1749,12 +1853,14 @@ audio_source "MobileWaterfall" @spatial {
 ```
 
 **Performance tips:**
+
 - Use **mono audio** for spatial sources (stereo is non-spatial)
 - Use `rolloff_mode: "linear"` (cheaper than logarithmic)
 - Reduce `max_distance` (fewer audio samples computed)
 - Set `spread: 0` (point source, cheapest)
 
 #### Desktop VR / PCVR
+
 - **Max audio sources:** 64 total
 - **HRTF:** Use Steam Audio or Oculus Spatializer
 - **Rolloff:** Use `"logarithmic"` for realism
@@ -1762,6 +1868,7 @@ audio_source "MobileWaterfall" @spatial {
 ### AAA-Quality Examples
 
 #### Example 1: Realistic River Flow
+
 ```holoscript
 audio_source "RiverFlow" @spatial @hrtf {
   clip: "sounds/river_gentle.ogg"
@@ -1779,6 +1886,7 @@ audio_source "RiverFlow" @spatial @hrtf {
 ```
 
 **Realistic parameters:**
+
 - `min_distance: 2` — Rivers are loud up close
 - `spread: 90` — Wide spatial spread (river is extended source, not point)
 - `rolloff_mode: "logarithmic"` — Realistic outdoor sound propagation
@@ -1798,11 +1906,13 @@ Spatial volumes that apply room acoustics simulation (reverberation, early refle
 ### When to Use vs Trait-Level
 
 **Use scene-level `reverb_zone` blocks when:**
+
 - Room acoustics are **static** (fixed architecture)
 - Need **preset-based reverb** (cave, cathedral, room)
 - Targeting **multiple platforms**
 
 **Use trait-level (`ReverbZoneTrait`) when:**
+
 - Need **runtime reverb control** (dynamic IR switching)
 - Implementing **custom convolution reverb**
 - Require **real-time DSP adjustments**
@@ -1811,25 +1921,26 @@ Spatial volumes that apply room acoustics simulation (reverberation, early refle
 
 **Properties:**
 
-| Property | Type | Default | Range | Description |
-|----------|------|---------|-------|-------------|
-| `preset` | `string` | `"room"` | - | Preset: `"room"`, `"hall"`, `"cathedral"`, `"cave"`, `"outdoor"`, `"bathroom"`, `"studio"`, `"custom"` |
-| `min_distance` | `number` | - | `0.1` - `∞` | Inner zone radius (full effect) |
-| `max_distance` | `number` | - | `0.1` - `∞` | Outer zone radius (fade out) |
-| `size` | `number` | `10` | `1` - `100` | Zone size (meters) |
-| `decay_time` | `number` | `1.5` | `0.1` - `20.0` | Reverb tail length (seconds) |
-| `damping` | `number` | `0.5` | `0.0` - `1.0` | High-frequency damping |
-| `diffusion` | `number` | `0.7` | `0.0` - `1.0` | Reverb diffusion (0-100) |
-| `pre_delay` | `number` | `20` | `0` - `100` | Pre-delay in milliseconds |
-| `wet_level` | `number` | `0.3` | `0.0` - `1.0` | Reverb mix level |
-| `dry_level` | `number` | `1.0` | `0.0` - `1.0` | Dry signal level |
-| `shape` | `string` | `"box"` | - | Zone shape: `"box"`, `"sphere"`, `"convex"` |
-| `priority` | `number` | `0` | `0` - `100` | Priority when zones overlap |
-| `blend_distance` | `number` | `2` | `0.1` - `∞` | Smooth transition distance |
+| Property         | Type     | Default  | Range          | Description                                                                                            |
+| ---------------- | -------- | -------- | -------------- | ------------------------------------------------------------------------------------------------------ |
+| `preset`         | `string` | `"room"` | -              | Preset: `"room"`, `"hall"`, `"cathedral"`, `"cave"`, `"outdoor"`, `"bathroom"`, `"studio"`, `"custom"` |
+| `min_distance`   | `number` | -        | `0.1` - `∞`    | Inner zone radius (full effect)                                                                        |
+| `max_distance`   | `number` | -        | `0.1` - `∞`    | Outer zone radius (fade out)                                                                           |
+| `size`           | `number` | `10`     | `1` - `100`    | Zone size (meters)                                                                                     |
+| `decay_time`     | `number` | `1.5`    | `0.1` - `20.0` | Reverb tail length (seconds)                                                                           |
+| `damping`        | `number` | `0.5`    | `0.0` - `1.0`  | High-frequency damping                                                                                 |
+| `diffusion`      | `number` | `0.7`    | `0.0` - `1.0`  | Reverb diffusion (0-100)                                                                               |
+| `pre_delay`      | `number` | `20`     | `0` - `100`    | Pre-delay in milliseconds                                                                              |
+| `wet_level`      | `number` | `0.3`    | `0.0` - `1.0`  | Reverb mix level                                                                                       |
+| `dry_level`      | `number` | `1.0`    | `0.0` - `1.0`  | Dry signal level                                                                                       |
+| `shape`          | `string` | `"box"`  | -              | Zone shape: `"box"`, `"sphere"`, `"convex"`                                                            |
+| `priority`       | `number` | `0`      | `0` - `100`    | Priority when zones overlap                                                                            |
+| `blend_distance` | `number` | `2`      | `0.1` - `∞`    | Smooth transition distance                                                                             |
 
 ### Integration Patterns
 
 #### Pattern 1: Cave Reverb
+
 **When to use:** Caves, underground tunnels, enclosed stone spaces.
 
 ```holoscript
@@ -1850,6 +1961,7 @@ reverb_zone "CaveReverb" {
 ```
 
 **Unity compilation:**
+
 ```csharp
 AudioReverbZone caveReverb = gameObject.AddComponent<AudioReverbZone>();
 caveReverb.reverbPreset = AudioReverbPreset.Cave;
@@ -1867,11 +1979,13 @@ caveReverb.density = 100f;
 ```
 
 **Realistic parameters:**
+
 - `decay_time: 3.0` — Long reverb tail (stone reflections)
 - `diffusion: 100` — Scattered reflections (rough stone surfaces)
 - `room_hf: -500` — Damped high frequencies (stone absorbs highs)
 
 #### Pattern 2: Cathedral Reverb
+
 **When to use:** Large churches, cathedrals, concert halls.
 
 ```holoscript
@@ -1891,10 +2005,12 @@ reverb_zone "CathedralReverb" {
 ### Performance Optimization
 
 #### Quest 3 (Mobile VR)
+
 - **Max reverb zones:** 2 total (overlapping zones blend)
 - **Use presets:** Avoid custom IR convolution (expensive)
 
 #### Desktop VR / PCVR
+
 - **Max reverb zones:** 8 total
 - **Custom IR:** Enable impulse response convolution for realism
 
@@ -1914,23 +2030,24 @@ Directional wind with turbulence, gusting, and per-object force application.
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `direction` | `[x, y, z]` | `[1, 0, 0]` | Normalized wind direction |
-| `strength` | `number` | `5` | Base wind strength (m/s) |
-| `turbulence` | `number` | `0.3` | Turbulence intensity (0-1) |
-| `turbulence_frequency` | `number` | `1.0` | How fast turbulence changes |
-| `pulse` | `boolean` | `false` | Whether wind pulses on/off |
-| `pulse_frequency` | `number` | `0.5` | Pulses per second |
-| `falloff` | `string` | `"none"` | Distance falloff mode |
-| `radius` | `number` | `100` | Effective radius |
-| `affects` | `string[]` | `[]` | Tags of objects to affect (empty = all) |
-| `gust_chance` | `number` | `0.01` | Random gust probability per frame |
-| `gust_multiplier` | `number` | `2.0` | Gust strength multiplier |
+| Property               | Type        | Default     | Description                             |
+| ---------------------- | ----------- | ----------- | --------------------------------------- |
+| `direction`            | `[x, y, z]` | `[1, 0, 0]` | Normalized wind direction               |
+| `strength`             | `number`    | `5`         | Base wind strength (m/s)                |
+| `turbulence`           | `number`    | `0.3`       | Turbulence intensity (0-1)              |
+| `turbulence_frequency` | `number`    | `1.0`       | How fast turbulence changes             |
+| `pulse`                | `boolean`   | `false`     | Whether wind pulses on/off              |
+| `pulse_frequency`      | `number`    | `0.5`       | Pulses per second                       |
+| `falloff`              | `string`    | `"none"`    | Distance falloff mode                   |
+| `radius`               | `number`    | `100`       | Effective radius                        |
+| `affects`              | `string[]`  | `[]`        | Tags of objects to affect (empty = all) |
+| `gust_chance`          | `number`    | `0.01`      | Random gust probability per frame       |
+| `gust_multiplier`      | `number`    | `2.0`       | Gust strength multiplier                |
 
 ### Integration Patterns
 
 #### Pattern 1: Desert Wind
+
 **When to use:** Outdoor environments, sandstorms, deserts.
 
 ```holoscript
@@ -1958,16 +2075,17 @@ Regions with altered gravity (stronger, weaker, reversed, or directional).
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `strength` | `number` | `9.81` | Gravity strength (negative = reverse) |
-| `shape` | `string` | `"sphere"` | Zone shape (`"sphere"`, `"box"`) |
-| `radius` | `number` | `10` | Zone extent |
-| `falloff` | `string` | `"none"` | Strength falloff (`"none"`, `"linear"`, `"inverse_square"`) |
+| Property   | Type     | Default    | Description                                                 |
+| ---------- | -------- | ---------- | ----------------------------------------------------------- |
+| `strength` | `number` | `9.81`     | Gravity strength (negative = reverse)                       |
+| `shape`    | `string` | `"sphere"` | Zone shape (`"sphere"`, `"box"`)                            |
+| `radius`   | `number` | `10`       | Zone extent                                                 |
+| `falloff`  | `string` | `"none"`   | Strength falloff (`"none"`, `"linear"`, `"inverse_square"`) |
 
 ### Integration Patterns
 
 #### Pattern 1: Heavy Gravity Pit
+
 **When to use:** Trap zones, hazard areas, black hole effects.
 
 ```holoscript
@@ -1994,12 +2112,13 @@ Multi-body physics chains (robot arms, cranes, mechanisms) with various joint ty
 
 **Articulation properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `solver_iterations` | `number` | `10` | Physics solver iteration count |
-| `immovable_base` | `boolean` | `false` | Whether the base link is fixed in space |
+| Property            | Type      | Default | Description                             |
+| ------------------- | --------- | ------- | --------------------------------------- |
+| `solver_iterations` | `number`  | `10`    | Physics solver iteration count          |
+| `immovable_base`    | `boolean` | `false` | Whether the base link is fixed in space |
 
 **Joint types:**
+
 - `hinge` — Revolute joint (1 rotational DOF)
 - `slider` / `prismatic` — Prismatic joint (1 linear DOF)
 - `ball_socket` — Spherical joint (3 rotational DOF)
@@ -2010,6 +2129,7 @@ Multi-body physics chains (robot arms, cranes, mechanisms) with various joint ty
 ### Integration Patterns
 
 #### Pattern 1: Industrial Robot Arm
+
 **When to use:** Robot arms, mechanical assemblies, cranes.
 
 ```holoscript
@@ -2053,6 +2173,7 @@ articulation "IndustrialRobotArm" @kinematic {
 ```
 
 **URDF export:**
+
 ```xml
 <robot name="IndustrialRobotArm">
   <joint name="Shoulder" type="revolute">
@@ -2069,6 +2190,7 @@ articulation "IndustrialRobotArm" @kinematic {
 ## Integration Patterns
 
 ### Pattern 1: Object Combining Multiple Blocks
+
 **When to use:** Interactive objects with physics, audio, and particles.
 
 ```holoscript
@@ -2120,6 +2242,7 @@ object "InteractiveBarrel" @grabbable @throwable @breakable {
 ```
 
 ### Pattern 2: Template with Reusable Blocks
+
 **When to use:** Consistent object types (crates, props, pickups).
 
 ```holoscript
@@ -2159,14 +2282,14 @@ object "Crate1" using "PhysicsCrate" {
 
 ### Material Compilation
 
-| Target | Function | Output |
-|--------|----------|--------|
-| Unity C# | `materialToUnity()` | `Material` + `Shader.Find()` + property setup |
-| Unreal C++ | `materialToUnreal()` | `UMaterialInstanceDynamic` setup |
-| Godot GDScript | `materialToGodot()` | `StandardMaterial3D` setup |
-| R3F/Three.js | `materialToR3F()` | `<meshStandardMaterial>` JSX |
-| USD | `materialToUSD()` | `UsdPreviewSurface` shader prim |
-| glTF | `materialToGLTF()` | `pbrMetallicRoughness` JSON |
+| Target         | Function             | Output                                        |
+| -------------- | -------------------- | --------------------------------------------- |
+| Unity C#       | `materialToUnity()`  | `Material` + `Shader.Find()` + property setup |
+| Unreal C++     | `materialToUnreal()` | `UMaterialInstanceDynamic` setup              |
+| Godot GDScript | `materialToGodot()`  | `StandardMaterial3D` setup                    |
+| R3F/Three.js   | `materialToR3F()`    | `<meshStandardMaterial>` JSX                  |
+| USD            | `materialToUSD()`    | `UsdPreviewSurface` shader prim               |
+| glTF           | `materialToGLTF()`   | `pbrMetallicRoughness` JSON                   |
 
 ---
 
@@ -2176,15 +2299,15 @@ object "Crate1" using "PhysicsCrate" {
 
 From `packages/core/src/compiler/safety/ResourceBudgetAnalyzer.ts`:
 
-| Resource | Quest 3 | Desktop VR | WebGPU | Mobile AR |
-|----------|---------|-----------|--------|-----------|
-| Particles | 5,000 | 50,000 | 20,000 | 2,000 |
-| Physics Bodies | 200 | 2,000 | 500 | 50 |
-| Audio Sources | 16 | 64 | 32 | 8 |
-| Mesh Instances | 500 | 5,000 | 2,000 | 200 |
-| Shader Passes | 4 | 16 | 8 | 2 |
-| Draw Calls | 200 | 2,000 | 500 | 100 |
-| Memory (MB) | 512 | 4,096 | 1,024 | 256 |
+| Resource       | Quest 3 | Desktop VR | WebGPU | Mobile AR |
+| -------------- | ------- | ---------- | ------ | --------- |
+| Particles      | 5,000   | 50,000     | 20,000 | 2,000     |
+| Physics Bodies | 200     | 2,000      | 500    | 50        |
+| Audio Sources  | 16      | 64         | 32     | 8         |
+| Mesh Instances | 500     | 5,000      | 2,000  | 200       |
+| Shader Passes  | 4       | 16         | 8      | 2         |
+| Draw Calls     | 200     | 2,000      | 500    | 100       |
+| Memory (MB)    | 512     | 4,096      | 1,024  | 256       |
 
 ---
 
@@ -2584,6 +2707,7 @@ composition "Blacksmith Forge Workshop" {
 ```
 
 **Scene features:**
+
 - **4 materials** — PBR steel, SSS glowing metal, glass, stone
 - **2 force fields** — Wind (chimney draft), gravity (hammer drop zone)
 - **1 articulation** — Bellows mechanism (hinge + spring joint)
@@ -2592,6 +2716,7 @@ composition "Blacksmith Forge Workshop" {
 - **5 audio elements** — Spatial fire crackle, anvil SFX, ambient soundscape, reverb zone, mixer
 
 **Platform targets:**
+
 - Unity (URP/HDRP)
 - Unreal Engine 5
 - Godot 4
@@ -2616,5 +2741,5 @@ composition "Blacksmith Forge Workshop" {
 
 **END OF GUIDE**
 
-*HoloScript v4.2 — Production-Quality Perception & Simulation Stack*
-*© 2026 HoloScript Contributors — MIT License*
+_HoloScript v4.2 — Production-Quality Perception & Simulation Stack_
+_© 2026 HoloScript Contributors — MIT License_

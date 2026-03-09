@@ -203,7 +203,11 @@ export class VRRCompiler extends CompilerBase {
     this.options = options;
   }
 
-  compile(composition: HoloComposition, agentToken: string, outputPath?: string): VRRCompilationResult {
+  compile(
+    composition: HoloComposition,
+    agentToken: string,
+    outputPath?: string
+  ): VRRCompilationResult {
     this.validateCompilerAccess(agentToken, outputPath);
     this.errors = [];
     this.warnings = [];
@@ -217,24 +221,45 @@ export class VRRCompiler extends CompilerBase {
 
     const twinNodes = this.extractNodesWithTrait(composition, '@vrr_twin');
     if (twinNodes.length === 0) {
-      this.warnings.push('No @vrr_twin traits found. Compiling as standard 3D instead of reality mirror.');
+      this.warnings.push(
+        'No @vrr_twin traits found. Compiling as standard 3D instead of reality mirror.'
+      );
     }
 
     this.generateImports();
     this.generateSceneSetup();
     this.generateAPIHooks(twinNodes);
-    
+
     // v4.2: Domain Blocks
     const domainBlocks = (composition as any).domainBlocks ?? [];
     if (domainBlocks.length > 0) {
       this.generatedCode.push('\n// === v4.2 Domain Blocks ===');
-      const compiled = compileDomainBlocks(domainBlocks, {
-        material: (block) => { const m = compileMaterialBlock(block); return `// VRR Material: "${m.name}" type=${m.type} baseColor=${m.baseColor || 'none'}`; },
-        physics: (block) => { const p = compilePhysicsBlock(block); return `// VRR Physics: ${p.keyword} "${p.name || ''}" colliders=${p.colliders?.length || 0}`; },
-        vfx: (block) => { const ps = compileParticleBlock(block); return `// VRR Particles: "${ps.name}" rate=${ps.properties.rate || 'default'}`; },
-        audio: (block) => { const a = compileAudioSourceBlock(block); return `// VRR Audio: "${a.name}" clip=${a.properties.clip || 'none'}`; },
-        weather: (block) => { const w = compileWeatherBlock(block); return `// VRR Weather: ${w.keyword} layers=[${w.layers.map(l => l.type).join(', ')}]`; },
-      }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+      const compiled = compileDomainBlocks(
+        domainBlocks,
+        {
+          material: (block) => {
+            const m = compileMaterialBlock(block);
+            return `// VRR Material: "${m.name}" type=${m.type} baseColor=${m.baseColor || 'none'}`;
+          },
+          physics: (block) => {
+            const p = compilePhysicsBlock(block);
+            return `// VRR Physics: ${p.keyword} "${p.name || ''}" colliders=${p.colliders?.length || 0}`;
+          },
+          vfx: (block) => {
+            const ps = compileParticleBlock(block);
+            return `// VRR Particles: "${ps.name}" rate=${ps.properties.rate || 'default'}`;
+          },
+          audio: (block) => {
+            const a = compileAudioSourceBlock(block);
+            return `// VRR Audio: "${a.name}" clip=${a.properties.clip || 'none'}`;
+          },
+          weather: (block) => {
+            const w = compileWeatherBlock(block);
+            return `// VRR Weather: ${w.keyword} layers=[${w.layers.map((l) => l.type).join(', ')}]`;
+          },
+        },
+        (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`
+      );
       for (const line of compiled) {
         this.generatedCode.push(line);
       }
@@ -273,7 +298,9 @@ export class VRRCompiler extends CompilerBase {
   private generateSceneSetup() {
     this.generatedCode.push(`\n// Initialize Scene`);
     this.generatedCode.push(`const scene = new THREE.Scene();`);
-    this.generatedCode.push(`const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);`);
+    this.generatedCode.push(
+      `const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);`
+    );
     this.generatedCode.push(`const renderer = new THREE.WebGLRenderer({ antialias: true });`);
     this.generatedCode.push(`renderer.setSize(window.innerWidth, window.innerHeight);`);
     this.generatedCode.push(`document.body.appendChild(renderer.domElement);`);
@@ -284,14 +311,18 @@ export class VRRCompiler extends CompilerBase {
     this.generatedCode.push(`\n// Engine Initialization via @vrr_twin`);
     this.generatedCode.push(`const vrr = new VRRRuntime({`);
     this.generatedCode.push(`  twin_id: 'auto_gen_twin_${Date.now()}',`);
-    this.generatedCode.push(`  geo_center: { lat: 33.4484, lng: -112.0740 }, // Extracted from AST`);
+    this.generatedCode.push(
+      `  geo_center: { lat: 33.4484, lng: -112.0740 }, // Extracted from AST`
+    );
     this.generatedCode.push(`  apis: ${JSON.stringify(this.options.api_integrations, null, 2)},`);
     this.generatedCode.push(`  multiplayer: { enabled: true, max_players: 1000, tick_rate: 20 },`);
-    this.generatedCode.push(`  state_persistence: { client: 'indexeddb', server: 'https://supabase.hololand.io' }`);
+    this.generatedCode.push(
+      `  state_persistence: { client: 'indexeddb', server: 'https://supabase.hololand.io' }`
+    );
     this.generatedCode.push(`});`);
 
     this.generatedCode.push(`\nconst phoenix_downtown = new THREE.Group();`);
-    
+
     // Weather hooks
     if (this.options.api_integrations.weather) {
       this.generatedCode.push(`\n// Extracted @weather_sync hook`);
@@ -316,7 +347,7 @@ export class VRRCompiler extends CompilerBase {
       assets: [],
       api_endpoints: [],
       warnings: this.warnings,
-      errors: this.errors
+      errors: this.errors,
     };
   }
 }

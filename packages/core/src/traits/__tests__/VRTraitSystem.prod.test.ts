@@ -45,7 +45,6 @@ function makeContext(overrides: any = {}): any {
 // =============================================================================
 
 describe('VRTraitSystem — Production', () => {
-
   // ======== SINGLETON ========
 
   describe('singleton registry', () => {

@@ -11,7 +11,9 @@ import { PostProcessingStack } from '../PostProcessing';
 describe('PostProcessingStack', () => {
   let stack: PostProcessingStack;
 
-  beforeEach(() => { stack = new PostProcessingStack(); });
+  beforeEach(() => {
+    stack = new PostProcessingStack();
+  });
 
   describe('initial state', () => {
     it('has a default profile', () => {
@@ -142,40 +144,45 @@ describe('PostProcessingStack', () => {
 
     it('t=0 returns from profile values', () => {
       const from = stack.createProfile('from', 'From');
-      const to   = stack.createProfile('to', 'To');
-      from.exposure = 1; to.exposure = 3;
+      const to = stack.createProfile('to', 'To');
+      from.exposure = 1;
+      to.exposure = 3;
       const blended = stack.blendProfiles('from', 'to', 0);
       expect(blended!.exposure).toBeCloseTo(1, 5);
     });
 
     it('t=1 returns to profile values', () => {
       const from = stack.createProfile('from', 'From');
-      const to   = stack.createProfile('to', 'To');
-      from.exposure = 1; to.exposure = 3;
+      const to = stack.createProfile('to', 'To');
+      from.exposure = 1;
+      to.exposure = 3;
       const blended = stack.blendProfiles('from', 'to', 1);
       expect(blended!.exposure).toBeCloseTo(3, 5);
     });
 
     it('t=0.5 interpolates exposure midpoint', () => {
       const from = stack.createProfile('from', 'From');
-      const to   = stack.createProfile('to', 'To');
-      from.exposure = 1; to.exposure = 3;
+      const to = stack.createProfile('to', 'To');
+      from.exposure = 1;
+      to.exposure = 3;
       const blended = stack.blendProfiles('from', 'to', 0.5);
       expect(blended!.exposure).toBeCloseTo(2, 5);
     });
 
     it('bloom.enabled follows t>0.5 rule', () => {
       const from = stack.createProfile('from', 'From');
-      const to   = stack.createProfile('to', 'To');
-      from.bloom.enabled = false; to.bloom.enabled = true;
+      const to = stack.createProfile('to', 'To');
+      from.bloom.enabled = false;
+      to.bloom.enabled = true;
       expect(stack.blendProfiles('from', 'to', 0.4)!.bloom.enabled).toBe(false);
       expect(stack.blendProfiles('from', 'to', 0.6)!.bloom.enabled).toBe(true);
     });
 
     it('ssao.samples interpolated and rounded', () => {
       const from = stack.createProfile('from', 'From');
-      const to   = stack.createProfile('to', 'To');
-      from.ssao.samples = 16; to.ssao.samples = 32;
+      const to = stack.createProfile('to', 'To');
+      from.ssao.samples = 16;
+      to.ssao.samples = 32;
       const blended = stack.blendProfiles('from', 'to', 0.5);
       expect(blended!.ssao.samples).toBe(24);
     });

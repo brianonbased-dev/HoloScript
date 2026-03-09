@@ -34,19 +34,60 @@ export function useTimeline(): UseTimelineReturn {
     setDuration(tl.current.getDuration());
   }, []);
 
-  const play = useCallback(() => { tl.current.play(); setIsPlaying(true); sync(); }, [sync]);
-  const pause = useCallback(() => { tl.current.pause(); setIsPlaying(false); }, []);
-  const resume = useCallback(() => { tl.current.resume(); setIsPlaying(true); }, []);
-  const stop = useCallback(() => { tl.current.stop(); setIsPlaying(false); sync(); }, [sync]);
-  const tick = useCallback((dt = 0.1) => { tl.current.update(dt); sync(); }, [sync]);
+  const play = useCallback(() => {
+    tl.current.play();
+    setIsPlaying(true);
+    sync();
+  }, [sync]);
+  const pause = useCallback(() => {
+    tl.current.pause();
+    setIsPlaying(false);
+  }, []);
+  const resume = useCallback(() => {
+    tl.current.resume();
+    setIsPlaying(true);
+  }, []);
+  const stop = useCallback(() => {
+    tl.current.stop();
+    setIsPlaying(false);
+    sync();
+  }, [sync]);
+  const tick = useCallback(
+    (dt = 0.1) => {
+      tl.current.update(dt);
+      sync();
+    },
+    [sync]
+  );
 
   const buildDemo = useCallback(() => {
     tl.current = new Timeline({ mode: 'sequential', loop: true, loopCount: -1 });
     const clips = [
-      { id: 'fade-in', property: 'opacity', from: 0, to: 1, duration: 500, easing: Easing.easeInOut },
+      {
+        id: 'fade-in',
+        property: 'opacity',
+        from: 0,
+        to: 1,
+        duration: 500,
+        easing: Easing.easeInOut,
+      },
       { id: 'slide-x', property: 'x', from: 0, to: 100, duration: 800, easing: Easing.easeOut },
-      { id: 'scale-up', property: 'scale', from: 0.5, to: 1.5, duration: 600, easing: Easing.easeInOut },
-      { id: 'color-shift', property: 'hue', from: 0, to: 360, duration: 1000, easing: Easing.linear },
+      {
+        id: 'scale-up',
+        property: 'scale',
+        from: 0.5,
+        to: 1.5,
+        duration: 600,
+        easing: Easing.easeInOut,
+      },
+      {
+        id: 'color-shift',
+        property: 'hue',
+        from: 0,
+        to: 360,
+        duration: 1000,
+        easing: Easing.linear,
+      },
     ];
     for (const clip of clips) {
       tl.current.add(clip, () => {});
@@ -55,7 +96,25 @@ export function useTimeline(): UseTimelineReturn {
     sync();
   }, [sync]);
 
-  const reset = useCallback(() => { tl.current = new Timeline({ mode: 'sequential' }); setEntries(0); setIsPlaying(false); sync(); }, [sync]);
+  const reset = useCallback(() => {
+    tl.current = new Timeline({ mode: 'sequential' });
+    setEntries(0);
+    setIsPlaying(false);
+    sync();
+  }, [sync]);
 
-  return { progress, elapsed, duration, isPlaying, entries, play, pause, resume, stop, tick, buildDemo, reset };
+  return {
+    progress,
+    elapsed,
+    duration,
+    isPlaying,
+    entries,
+    play,
+    pause,
+    resume,
+    stop,
+    tick,
+    buildDemo,
+    reset,
+  };
 }

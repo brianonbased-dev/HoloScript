@@ -49,10 +49,12 @@ describe('Scenario: Node Graph Store', () => {
   });
 
   it('setNodes accepts a function updater', () => {
-    useNodeGraphStore.getState().setNodes((prev) => [
-      ...prev,
-      makeNode('extra', { type: 'constant', label: 'X', value: 42 }),
-    ]);
+    useNodeGraphStore
+      .getState()
+      .setNodes((prev) => [
+        ...prev,
+        makeNode('extra', { type: 'constant', label: 'X', value: 42 }),
+      ]);
     expect(useNodeGraphStore.getState().nodes.length).toBe(5);
   });
 

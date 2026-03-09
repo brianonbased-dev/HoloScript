@@ -7,7 +7,9 @@ import { GarbageCollector } from '../debug/GarbageCollector';
 
 describe('GarbageCollector', () => {
   let gc: GarbageCollector;
-  beforeEach(() => { gc = new GarbageCollector(); });
+  beforeEach(() => {
+    gc = new GarbageCollector();
+  });
 
   it('allocate assigns unique IDs', () => {
     const a = gc.allocate(64);

@@ -85,7 +85,7 @@ export class CircuitBreakerMetrics {
     const circuitStats = this.client.getCircuitStats();
     const systemHealth = this.client.getSystemHealth();
 
-    const circuits: CircuitMetricsReport[] = circuitStats.map(stat => {
+    const circuits: CircuitMetricsReport[] = circuitStats.map((stat) => {
       const circuitManager = (this.client as any).circuitManager;
       const circuit = circuitManager.getCircuit(stat.operationName);
       const metrics = circuit.getMetrics();
@@ -100,9 +100,9 @@ export class CircuitBreakerMetrics {
           totalSuccesses: metrics.totalSuccesses,
           consecutiveTimeouts: metrics.consecutiveTimeouts,
           cacheHits: stat.cacheHits,
-          lastStateChange: metrics.lastStateChange
+          lastStateChange: metrics.lastStateChange,
         },
-        retryHistogram: metrics.retryHistogram
+        retryHistogram: metrics.retryHistogram,
       };
     });
 
@@ -113,7 +113,7 @@ export class CircuitBreakerMetrics {
       timestamp: new Date(),
       circuits,
       aggregate,
-      health
+      health,
     };
 
     // Store snapshot
@@ -150,9 +150,8 @@ export class CircuitBreakerMetrics {
 
     allDelays.sort((a, b) => a - b);
 
-    const averageRetryDelay = allDelays.length > 0
-      ? allDelays.reduce((sum, d) => sum + d, 0) / allDelays.length
-      : 0;
+    const averageRetryDelay =
+      allDelays.length > 0 ? allDelays.reduce((sum, d) => sum + d, 0) / allDelays.length : 0;
 
     const p50RetryDelay = this.percentile(allDelays, 0.5);
     const p95RetryDelay = this.percentile(allDelays, 0.95);
@@ -167,7 +166,7 @@ export class CircuitBreakerMetrics {
       averageRetryDelay,
       p50RetryDelay,
       p95RetryDelay,
-      p99RetryDelay
+      p99RetryDelay,
     };
   }
 
@@ -176,25 +175,27 @@ export class CircuitBreakerMetrics {
    */
   private calculateHealthScore(aggregate: AggregateMetrics): HealthScore {
     // Circuit health: weighted by state
-    const circuitHealthScore = aggregate.totalCircuits > 0
-      ? ((aggregate.circuitsByState.closed * 1.0 +
-          aggregate.circuitsByState.halfOpen * 0.5 +
-          aggregate.circuitsByState.open * 0.0) / aggregate.totalCircuits) * 100
-      : 100;
+    const circuitHealthScore =
+      aggregate.totalCircuits > 0
+        ? ((aggregate.circuitsByState.closed * 1.0 +
+            aggregate.circuitsByState.halfOpen * 0.5 +
+            aggregate.circuitsByState.open * 0.0) /
+            aggregate.totalCircuits) *
+          100
+        : 100;
 
     // Failure rate health: inverse of failure rate
     const failureRateScore = (1 - aggregate.overallFailureRate) * 100;
 
     // Cache effectiveness: cache hits vs open circuits
-    const cacheEffectivenessScore = aggregate.circuitsByState.open > 0
-      ? (aggregate.totalCacheHits / (aggregate.circuitsByState.open * 10)) * 100
-      : 100;
+    const cacheEffectivenessScore =
+      aggregate.circuitsByState.open > 0
+        ? (aggregate.totalCacheHits / (aggregate.circuitsByState.open * 10)) * 100
+        : 100;
 
     // Overall score: weighted average
     const score = Math.round(
-      circuitHealthScore * 0.5 +
-      failureRateScore * 0.3 +
-      cacheEffectivenessScore * 0.2
+      circuitHealthScore * 0.5 + failureRateScore * 0.3 + cacheEffectivenessScore * 0.2
     );
 
     let status: 'healthy' | 'degraded' | 'critical';
@@ -212,8 +213,8 @@ export class CircuitBreakerMetrics {
       factors: {
         circuitHealth: Math.round(circuitHealthScore),
         failureRate: Math.round(failureRateScore),
-        cacheEffectiveness: Math.round(cacheEffectivenessScore)
-      }
+        cacheEffectiveness: Math.round(cacheEffectivenessScore),
+      },
     };
   }
 
@@ -232,7 +233,7 @@ export class CircuitBreakerMetrics {
    */
   getMetricsInRange(start: Date, end: Date): MetricsSnapshot[] {
     return this.snapshots.filter(
-      snapshot => snapshot.timestamp >= start && snapshot.timestamp <= end
+      (snapshot) => snapshot.timestamp >= start && snapshot.timestamp <= end
     );
   }
 
@@ -240,9 +241,7 @@ export class CircuitBreakerMetrics {
    * Get latest snapshot
    */
   getLatestSnapshot(): MetricsSnapshot | null {
-    return this.snapshots.length > 0
-      ? this.snapshots[this.snapshots.length - 1]
-      : null;
+    return this.snapshots.length > 0 ? this.snapshots[this.snapshots.length - 1] : null;
   }
 
   /**
@@ -250,7 +249,7 @@ export class CircuitBreakerMetrics {
    */
   getOperationMetrics(operationName: string): CircuitMetricsReport[] {
     return this.snapshots
-      .map(snapshot => snapshot.circuits.find(c => c.operationName === operationName))
+      .map((snapshot) => snapshot.circuits.find((c) => c.operationName === operationName))
       .filter((c): c is CircuitMetricsReport => c !== undefined);
   }
 
@@ -283,19 +282,23 @@ export class CircuitBreakerMetrics {
       ? snapshot
       : {
           ...snapshot,
-          circuits: snapshot.circuits.map(c => ({
+          circuits: snapshot.circuits.map((c) => ({
             ...c,
-            retryHistogram: undefined
-          }))
+            retryHistogram: undefined,
+          })),
         };
 
-    return JSON.stringify(data, (key, value) => {
-      // Convert Map to object for JSON serialization
-      if (value instanceof Map) {
-        return Object.fromEntries(value);
-      }
-      return value;
-    }, 2);
+    return JSON.stringify(
+      data,
+      (key, value) => {
+        // Convert Map to object for JSON serialization
+        if (value instanceof Map) {
+          return Object.fromEntries(value);
+        }
+        return value;
+      },
+      2
+    );
   }
 
   /**
@@ -305,12 +308,16 @@ export class CircuitBreakerMetrics {
     let output = '';
 
     // Circuit state gauge
-    output += '# HELP circuit_breaker_state Circuit breaker state (0=closed, 1=half-open, 2=open)\n';
+    output +=
+      '# HELP circuit_breaker_state Circuit breaker state (0=closed, 1=half-open, 2=open)\n';
     output += '# TYPE circuit_breaker_state gauge\n';
     for (const circuit of snapshot.circuits) {
-      const stateValue = circuit.state === CircuitState.CLOSED ? 0
-        : circuit.state === CircuitState.HALF_OPEN ? 1
-        : 2;
+      const stateValue =
+        circuit.state === CircuitState.CLOSED
+          ? 0
+          : circuit.state === CircuitState.HALF_OPEN
+            ? 1
+            : 2;
       output += `circuit_breaker_state{operation="${circuit.operationName}"} ${stateValue}\n`;
     }
 
@@ -356,10 +363,10 @@ export class CircuitBreakerMetrics {
       'Total Failures',
       'Total Successes',
       'Cache Hits',
-      'Consecutive Timeouts'
+      'Consecutive Timeouts',
     ];
 
-    const rows = snapshot.circuits.map(circuit => [
+    const rows = snapshot.circuits.map((circuit) => [
       snapshot.timestamp.toISOString(),
       circuit.operationName,
       circuit.state,
@@ -368,13 +375,10 @@ export class CircuitBreakerMetrics {
       circuit.metrics.totalFailures.toString(),
       circuit.metrics.totalSuccesses.toString(),
       circuit.metrics.cacheHits.toString(),
-      circuit.metrics.consecutiveTimeouts.toString()
+      circuit.metrics.consecutiveTimeouts.toString(),
     ]);
 
-    return [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
+    return [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
   }
 
   /**
@@ -412,14 +416,18 @@ Cache Effectiveness:   ${snapshot.health.factors.cacheEffectiveness}/100
   P99:                 ${snapshot.aggregate.p99RetryDelay.toFixed(2)}s
 
 🔍 Per-Circuit Details:
-${snapshot.circuits.map(c => `
+${snapshot.circuits
+  .map(
+    (c) => `
   ${c.operationName}:
     State: ${c.state}
     Failure Rate: ${(c.metrics.failureRate * 100).toFixed(2)}%
     Requests: ${c.metrics.totalRequests} (${c.metrics.totalSuccesses} ✓ / ${c.metrics.totalFailures} ✗)
     Cache Hits: ${c.metrics.cacheHits}
     Timeouts: ${c.metrics.consecutiveTimeouts}
-`).join('')}
+`
+  )
+  .join('')}
 
 Generated: ${snapshot.timestamp.toISOString()}
     `.trim();

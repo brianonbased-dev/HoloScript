@@ -48,13 +48,13 @@ composition "Unity Demo" {
 
 ## Trait Support
 
-| Trait | Unity Component |
-|-------|----------------|
-| `@physics` | Rigidbody |
-| `@collidable` | Collider |
-| `@grabbable` | XR Grab Interactable |
-| `@networked` | Unity Netcode |
-| `@animation` | Animator |
+| Trait         | Unity Component      |
+| ------------- | -------------------- |
+| `@physics`    | Rigidbody            |
+| `@collidable` | Collider             |
+| `@grabbable`  | XR Grab Interactable |
+| `@networked`  | Unity Netcode        |
+| `@animation`  | Animator             |
 
 ## See Also
 

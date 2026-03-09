@@ -44,7 +44,10 @@ describe('SlidableTrait.onAttach', () => {
     const node = makeNode();
     const ctx = makeCtx();
     trait.onAttach(node, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('physics_add_constraint', expect.objectContaining({ type: 'prismatic' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'physics_add_constraint',
+      expect.objectContaining({ type: 'prismatic' })
+    );
   });
 
   it('nodeId matches node.id', () => {
@@ -133,7 +136,10 @@ describe('SlidableTrait.onUpdate — initialPos capture', () => {
     ctx.emit.mockClear();
     trait.onUpdate(node, ctx as any, 0.016);
     // delta=0, length=0.1 → value=(0+0.05)/0.1=0.5; lastValue=0 → diff=0.5>0.01 → emits
-    expect(ctx.emit).toHaveBeenCalledWith('ui_value_change', expect.objectContaining({ value: 0.5 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'ui_value_change',
+      expect.objectContaining({ value: 0.5 })
+    );
   });
 });
 
@@ -202,7 +208,11 @@ describe('SlidableTrait.onUpdate — value normalisation (axis=x, length=0.1)', 
     trait.onUpdate(node, ctx as any, 0.016); // emits value=0.5
     ctx.emit.mockClear();
     // Move body by 0.0005 → Δvalue = 0.005 < 0.01 → no emit
-    (ctx.physics.getBodyPosition as ReturnType<typeof vi.fn>).mockReturnValue({ x: 0.0005, y: 0, z: 0 });
+    (ctx.physics.getBodyPosition as ReturnType<typeof vi.fn>).mockReturnValue({
+      x: 0.0005,
+      y: 0,
+      z: 0,
+    });
     trait.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('ui_value_change', expect.anything());
   });
@@ -265,7 +275,11 @@ describe('SlidableTrait.onUpdate — haptic ticks', () => {
     ctx.emit.mockClear();
     (ctx.haptics.rumble as ReturnType<typeof vi.fn>).mockClear();
     // Move to 0.55 — same bucket (floor(0.55*10)=5, floor(0.52*10)=5)
-    (ctx.physics.getBodyPosition as ReturnType<typeof vi.fn>).mockReturnValue({ x: 0.05, y: 0, z: 0 });
+    (ctx.physics.getBodyPosition as ReturnType<typeof vi.fn>).mockReturnValue({
+      x: 0.05,
+      y: 0,
+      z: 0,
+    });
     trait.onUpdate(node, ctx as any, 0.016);
     expect(ctx.haptics.rumble).not.toHaveBeenCalled();
   });

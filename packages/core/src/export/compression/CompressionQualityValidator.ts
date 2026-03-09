@@ -73,7 +73,7 @@ export const EXPORT_TARGET_PROFILES: Record<string, ExportTargetProfile> = {
     gaussianHandling: { maxCount: 2000000, compressionFormat: 'none', isLossy: false },
     supportsLossless: true,
   },
-  'webxr': {
+  webxr: {
     name: 'WebXR (Progressive)',
     textureCompression: { format: 'ktx2-etc1s', quality: 70, isLossy: true },
     meshCompression: { enabled: true, positionBits: 12, normalBits: 8 },
@@ -81,7 +81,7 @@ export const EXPORT_TARGET_PROFILES: Record<string, ExportTargetProfile> = {
     gaussianHandling: { maxCount: 500000, compressionFormat: 'spz', isLossy: true },
     supportsLossless: false,
   },
-  'quest3': {
+  quest3: {
     name: 'Meta Quest 3 (APK)',
     textureCompression: { format: 'astc-4x4', quality: 75, isLossy: true },
     meshCompression: { enabled: true, positionBits: 14, normalBits: 10 },
@@ -89,7 +89,7 @@ export const EXPORT_TARGET_PROFILES: Record<string, ExportTargetProfile> = {
     gaussianHandling: { maxCount: 180000, compressionFormat: 'spz', isLossy: true },
     supportsLossless: false,
   },
-  'visionos': {
+  visionos: {
     name: 'Apple Vision Pro (USDZ)',
     textureCompression: { format: 'astc-6x6', quality: 80, isLossy: true },
     meshCompression: { enabled: true, positionBits: 16, normalBits: 12 },
@@ -137,7 +137,7 @@ export const EXPORT_TARGET_PROFILES: Record<string, ExportTargetProfile> = {
     gaussianHandling: { maxCount: 5000000, compressionFormat: 'none', isLossy: false },
     supportsLossless: true,
   },
-  'unity': {
+  unity: {
     name: 'Unity (FBX/USD)',
     textureCompression: { format: 'none', quality: 100, isLossy: false },
     meshCompression: { enabled: false, positionBits: 32, normalBits: 32 },
@@ -177,7 +177,7 @@ export const EXPORT_TARGET_PROFILES: Record<string, ExportTargetProfile> = {
     gaussianHandling: { maxCount: 500000, compressionFormat: 'none', isLossy: false },
     supportsLossless: true,
   },
-  'usd': {
+  usd: {
     name: 'Universal Scene Description (USD)',
     textureCompression: { format: 'none', quality: 100, isLossy: false },
     meshCompression: { enabled: false, positionBits: 32, normalBits: 32 },
@@ -193,7 +193,7 @@ export const EXPORT_TARGET_PROFILES: Record<string, ExportTargetProfile> = {
     gaussianHandling: { maxCount: 2000000, compressionFormat: 'spz', isLossy: true },
     supportsLossless: false,
   },
-  'marketplace': {
+  marketplace: {
     name: 'HoloScript Marketplace',
     textureCompression: { format: 'ktx2-uastc', quality: 80, isLossy: true },
     meshCompression: { enabled: true, positionBits: 14, normalBits: 10 },
@@ -201,7 +201,7 @@ export const EXPORT_TARGET_PROFILES: Record<string, ExportTargetProfile> = {
     gaussianHandling: { maxCount: 500000, compressionFormat: 'spz', isLossy: true },
     supportsLossless: false,
   },
-  'wasm': {
+  wasm: {
     name: 'WASM Module',
     textureCompression: { format: 'none', quality: 100, isLossy: false },
     meshCompression: { enabled: false, positionBits: 0, normalBits: 0 },
@@ -263,43 +263,48 @@ export class CompressionQualityValidator {
     stages.push(this.evaluateGaussianCompression(profile));
 
     // Compute overall score
-    const activeStages = stages.filter(s => s.qualityScore > 0 || s.isLossy);
-    const overallScore = activeStages.length > 0
-      ? activeStages.reduce((sum, s) => sum + s.qualityScore, 0) / activeStages.length
-      : 1.0;
+    const activeStages = stages.filter((s) => s.qualityScore > 0 || s.isLossy);
+    const overallScore =
+      activeStages.length > 0
+        ? activeStages.reduce((sum, s) => sum + s.qualityScore, 0) / activeStages.length
+        : 1.0;
 
     // Determine overall level
     const overallLevel = this.scoreToLevel(overallScore);
 
     // Generate warnings
     if (this.config.warnOnLossy) {
-      const lossyStages = stages.filter(s => s.isLossy);
+      const lossyStages = stages.filter((s) => s.isLossy);
       if (lossyStages.length > 0) {
         warnings.push(
-          `${lossyStages.length} lossy compression stage(s): ${lossyStages.map(s => s.name).join(', ')}`
+          `${lossyStages.length} lossy compression stage(s): ${lossyStages.map((s) => s.name).join(', ')}`
         );
       }
     }
 
     if (this.config.warnOnDestructive) {
-      const destructiveStages = stages.filter(s => s.qualityLevel === 'destructive');
+      const destructiveStages = stages.filter((s) => s.qualityLevel === 'destructive');
       if (destructiveStages.length > 0) {
         warnings.push(
-          `DESTRUCTIVE compression detected in: ${destructiveStages.map(s => s.name).join(', ')}. Visual artifacts likely.`
+          `DESTRUCTIVE compression detected in: ${destructiveStages.map((s) => s.name).join(', ')}. Visual artifacts likely.`
         );
       }
     }
 
     // Check quality floor violations
-    const textureStage = stages.find(s => s.type === 'texture');
+    const textureStage = stages.find((s) => s.type === 'texture');
     if (textureStage && profile.textureCompression.quality < this.config.textureQualityFloor) {
       warnings.push(
         `Texture quality (${profile.textureCompression.quality}) below floor (${this.config.textureQualityFloor})`
       );
     }
 
-    const meshStage = stages.find(s => s.type === 'mesh');
-    if (meshStage && profile.meshCompression.enabled && profile.meshCompression.positionBits < this.config.meshQuantizationFloor) {
+    const meshStage = stages.find((s) => s.type === 'mesh');
+    if (
+      meshStage &&
+      profile.meshCompression.enabled &&
+      profile.meshCompression.positionBits < this.config.meshQuantizationFloor
+    ) {
       warnings.push(
         `Mesh position quantization (${profile.meshCompression.positionBits} bits) below floor (${this.config.meshQuantizationFloor} bits)`
       );
@@ -319,7 +324,7 @@ export class CompressionQualityValidator {
    * Validate all known export targets.
    */
   validateAllTargets(): TargetQualityReport[] {
-    return Object.keys(EXPORT_TARGET_PROFILES).map(name => this.validateTarget(name));
+    return Object.keys(EXPORT_TARGET_PROFILES).map((name) => this.validateTarget(name));
   }
 
   /**
@@ -337,12 +342,14 @@ export class CompressionQualityValidator {
     const reports = this.validateAllTargets();
     return {
       totalTargets: reports.length,
-      lossless: reports.filter(r => r.overallLevel === 'lossless').map(r => r.targetName),
-      nearLossless: reports.filter(r => r.overallLevel === 'near-lossless').map(r => r.targetName),
-      lossy: reports.filter(r => r.overallLevel === 'lossy').map(r => r.targetName),
-      destructive: reports.filter(r => r.overallLevel === 'destructive').map(r => r.targetName),
-      acceptable: reports.filter(r => r.isAcceptable).length,
-      unacceptable: reports.filter(r => !r.isAcceptable).length,
+      lossless: reports.filter((r) => r.overallLevel === 'lossless').map((r) => r.targetName),
+      nearLossless: reports
+        .filter((r) => r.overallLevel === 'near-lossless')
+        .map((r) => r.targetName),
+      lossy: reports.filter((r) => r.overallLevel === 'lossy').map((r) => r.targetName),
+      destructive: reports.filter((r) => r.overallLevel === 'destructive').map((r) => r.targetName),
+      acceptable: reports.filter((r) => r.isAcceptable).length,
+      unacceptable: reports.filter((r) => !r.isAcceptable).length,
     };
   }
 
@@ -350,7 +357,7 @@ export class CompressionQualityValidator {
 
   private evaluateTextureCompression(
     profile: ExportTargetProfile,
-    overrides?: Partial<CompressionOptions>,
+    overrides?: Partial<CompressionOptions>
   ): CompressionStage {
     const quality = overrides?.textureQuality ?? profile.textureCompression.quality;
     const format = profile.textureCompression.format;
@@ -388,7 +395,7 @@ export class CompressionQualityValidator {
 
   private evaluateMeshCompression(
     profile: ExportTargetProfile,
-    overrides?: Partial<CompressionOptions>,
+    overrides?: Partial<CompressionOptions>
   ): CompressionStage {
     if (!profile.meshCompression.enabled) {
       return {
@@ -407,7 +414,7 @@ export class CompressionQualityValidator {
     // Score based on quantization bit depth (32 bits = lossless, 8 bits = destructive)
     const posScore = Math.min(1.0, posBits / 16);
     const normScore = Math.min(1.0, normBits / 12);
-    const score = (posScore * 0.6 + normScore * 0.4); // position matters more
+    const score = posScore * 0.6 + normScore * 0.4; // position matters more
 
     const level = this.scoreToLevel(score);
 
@@ -468,16 +475,20 @@ export class CompressionQualityValidator {
   }
 
   private evaluateGaussianCompression(profile: ExportTargetProfile): CompressionStage {
-    if (profile.gaussianHandling.compressionFormat === 'none' || profile.gaussianHandling.maxCount === 0) {
+    if (
+      profile.gaussianHandling.compressionFormat === 'none' ||
+      profile.gaussianHandling.maxCount === 0
+    ) {
       return {
         name: 'Gaussian Splat Compression',
         type: 'gaussian',
         qualityLevel: profile.gaussianHandling.maxCount === 0 ? 'lossless' : 'lossless',
         qualityScore: 1.0,
         isLossy: false,
-        details: profile.gaussianHandling.maxCount === 0
-          ? 'No Gaussian data in this target'
-          : `Uncompressed, max ${this.formatCount(profile.gaussianHandling.maxCount)} Gaussians`,
+        details:
+          profile.gaussianHandling.maxCount === 0
+            ? 'No Gaussian data in this target'
+            : `Uncompressed, max ${this.formatCount(profile.gaussianHandling.maxCount)} Gaussians`,
       };
     }
 

@@ -5,11 +5,7 @@
  * Prevents cascading failures in agent communication
  */
 
-import type {
-  CircuitState,
-  CircuitBreakerStatus,
-  CircuitBreakerConfig,
-} from '../types';
+import type { CircuitState, CircuitBreakerStatus, CircuitBreakerConfig } from '../types';
 
 /**
  * Request result for circuit breaker tracking
@@ -51,9 +47,7 @@ export class CircuitBreaker {
       const now = Date.now();
       if (this.nextRetryTime && now < this.nextRetryTime) {
         throw new Error(
-          `Circuit breaker is open. Retry in ${Math.ceil(
-            (this.nextRetryTime - now) / 1000
-          )}s`
+          `Circuit breaker is open. Retry in ${Math.ceil((this.nextRetryTime - now) / 1000)}s`
         );
       }
       // Transition to half-open
@@ -163,8 +157,7 @@ export class CircuitBreaker {
   getStatus(): CircuitBreakerStatus {
     const recentRequests = this.getRecentRequests();
     const failures = recentRequests.filter((r) => !r.success).length;
-    const failureRate =
-      recentRequests.length > 0 ? failures / recentRequests.length : 0;
+    const failureRate = recentRequests.length > 0 ? failures / recentRequests.length : 0;
 
     const now = Date.now();
     const timeUntilClose =
@@ -223,11 +216,7 @@ export class ExponentialBackoff {
   private readonly maxDelay: number;
   private readonly maxAttempts: number;
 
-  constructor(
-    baseDelay = 1000,
-    maxDelay = 60000,
-    maxAttempts = 5
-  ) {
+  constructor(baseDelay = 1000, maxDelay = 60000, maxAttempts = 5) {
     this.baseDelay = baseDelay;
     this.maxDelay = maxDelay;
     this.maxAttempts = maxAttempts;
@@ -241,10 +230,7 @@ export class ExponentialBackoff {
       throw new Error('Max retry attempts reached');
     }
 
-    const delay = Math.min(
-      this.baseDelay * Math.pow(2, this.attempt),
-      this.maxDelay
-    );
+    const delay = Math.min(this.baseDelay * Math.pow(2, this.attempt), this.maxDelay);
 
     // Add jitter (±25%)
     const jitter = delay * 0.25 * (Math.random() * 2 - 1);

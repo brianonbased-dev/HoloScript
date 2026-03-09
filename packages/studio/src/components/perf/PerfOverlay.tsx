@@ -14,7 +14,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useEditorStore } from '@/lib/store';
+import { useEditorStore } from '@/lib/stores';
 
 // ── Manual FPS Counter (no extra dependency needed) ───────────────────────────
 
@@ -65,10 +65,7 @@ function usePerfStats() {
 function PerfDisplay() {
   const stats = usePerfStats();
 
-  const fpsColor =
-    stats.fps >= 55 ? '#4ade80' :
-    stats.fps >= 30 ? '#fbbf24' :
-    '#f87171';
+  const fpsColor = stats.fps >= 55 ? '#4ade80' : stats.fps >= 30 ? '#fbbf24' : '#f87171';
 
   return (
     <div
@@ -93,17 +90,14 @@ function PerfDisplay() {
         {stats.fps} <span style={{ fontSize: 10, fontWeight: 400, color: '#9ca3af' }}>FPS</span>
       </div>
       <div style={{ color: '#9ca3af' }}>
-        <span style={{ color: '#d1d5db' }}>Calls</span>
-        {' '}{stats.calls}
+        <span style={{ color: '#d1d5db' }}>Calls</span> {stats.calls}
       </div>
       <div style={{ color: '#9ca3af' }}>
-        <span style={{ color: '#d1d5db' }}>Tris</span>
-        {' '}{Math.round(stats.triangles / 1000)}k
+        <span style={{ color: '#d1d5db' }}>Tris</span> {Math.round(stats.triangles / 1000)}k
       </div>
       {stats.memory !== null && (
         <div style={{ color: '#9ca3af' }}>
-          <span style={{ color: '#d1d5db' }}>Mem</span>
-          {' '}{stats.memory}MB
+          <span style={{ color: '#d1d5db' }}>Mem</span> {stats.memory}MB
         </div>
       )}
     </div>

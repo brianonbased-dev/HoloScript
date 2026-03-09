@@ -33,7 +33,10 @@ describe('ThemeEngine', () => {
     te.registerTheme({
       name: 'ocean',
       mode: 'dark',
-      tokens: { ...BuiltInThemes.dark.tokens, colors: { ...BuiltInThemes.dark.tokens.colors, primary: '#00AAFF' } },
+      tokens: {
+        ...BuiltInThemes.dark.tokens,
+        colors: { ...BuiltInThemes.dark.tokens.colors, primary: '#00AAFF' },
+      },
     });
     expect(te.listThemes()).toContain('ocean');
     te.setTheme('ocean');

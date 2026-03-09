@@ -31,7 +31,8 @@ describe('poiHandler.defaultConfig', () => {
   it('name = empty string', () => expect(poiHandler.defaultConfig!.name).toBe(''));
   it('trigger_radius = 10', () => expect(poiHandler.defaultConfig!.trigger_radius).toBe(10));
   it('visible_radius = 100', () => expect(poiHandler.defaultConfig!.visible_radius).toBe(100));
-  it('navigation_target = false', () => expect(poiHandler.defaultConfig!.navigation_target).toBe(false));
+  it('navigation_target = false', () =>
+    expect(poiHandler.defaultConfig!.navigation_target).toBe(false));
   it('show_distance = true', () => expect(poiHandler.defaultConfig!.show_distance).toBe(true));
   it('show_label = true', () => expect(poiHandler.defaultConfig!.show_label).toBe(true));
   it('trigger_once = false', () => expect(poiHandler.defaultConfig!.trigger_once).toBe(false));
@@ -69,9 +70,17 @@ describe('poiHandler.onAttach', () => {
   it('emits poi_register when navigation_target=true', () => {
     const node = makeNode();
     const ctx = makeContext();
-    const cfg = { ...poiHandler.defaultConfig!, navigation_target: true, name: 'Lab', category: 'science' };
+    const cfg = {
+      ...poiHandler.defaultConfig!,
+      navigation_target: true,
+      name: 'Lab',
+      category: 'science',
+    };
     poiHandler.onAttach!(node, cfg, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('poi_register', expect.objectContaining({ name: 'Lab', category: 'science' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'poi_register',
+      expect.objectContaining({ name: 'Lab', category: 'science' })
+    );
   });
   it('does NOT emit poi_register when navigation_target=false', () => {
     const { ctx } = attachNode({ navigation_target: false });
@@ -80,7 +89,10 @@ describe('poiHandler.onAttach', () => {
   });
   it('emits poi_create_label when show_label=true', () => {
     const { ctx } = attachNode({ show_label: true, name: 'Museum' });
-    expect(ctx.emit).toHaveBeenCalledWith('poi_create_label', expect.objectContaining({ name: 'Museum' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'poi_create_label',
+      expect.objectContaining({ name: 'Museum' })
+    );
   });
   it('does NOT emit poi_create_label when show_label=false', () => {
     const { ctx } = attachNode({ show_label: false });
@@ -142,12 +154,20 @@ describe('poiHandler.onUpdate', () => {
     poiHandler.onAttach!(node, cfg, ctx);
     ctx.emit.mockClear();
     poiHandler.onUpdate!(node, cfg, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('poi_visibility_change', expect.objectContaining({ visible: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'poi_visibility_change',
+      expect.objectContaining({ visible: true })
+    );
   });
   it('fires on_poi_proximity when entering trigger zone', () => {
     const node = makeNode({ x: 0, y: 0, z: 0 });
     const ctx = makeContext({ x: 2, y: 0, z: 0 }); // distance = 2 < trigger_radius = 5
-    const cfg = { ...poiHandler.defaultConfig!, trigger_radius: 5, visible_radius: 100, cooldown: 0 };
+    const cfg = {
+      ...poiHandler.defaultConfig!,
+      trigger_radius: 5,
+      visible_radius: 100,
+      cooldown: 0,
+    };
     poiHandler.onAttach!(node, cfg, ctx);
     ctx.emit.mockClear();
     poiHandler.onUpdate!(node, cfg, ctx, 0.016);
@@ -156,7 +176,13 @@ describe('poiHandler.onUpdate', () => {
   it('does NOT re-fire on_poi_proximity when trigger_once=true and already triggered', () => {
     const node = makeNode({ x: 0, y: 0, z: 0 });
     const ctx = makeContext({ x: 2, y: 0, z: 0 });
-    const cfg = { ...poiHandler.defaultConfig!, trigger_radius: 5, visible_radius: 100, trigger_once: true, cooldown: 0 };
+    const cfg = {
+      ...poiHandler.defaultConfig!,
+      trigger_radius: 5,
+      visible_radius: 100,
+      trigger_once: true,
+      cooldown: 0,
+    };
     poiHandler.onAttach!(node, cfg, ctx);
     (node as any).__poiState.wasTriggered = true; // already triggered
     (node as any).__poiState.lastTriggerTime = 0;
@@ -192,7 +218,10 @@ describe('poiHandler.onEvent', () => {
     poiHandler.onAttach!(node, cfg, ctx);
     ctx.emit.mockClear();
     poiHandler.onEvent!(node, cfg, ctx, { type: 'poi_navigate_to' });
-    expect(ctx.emit).toHaveBeenCalledWith('navigation_set_destination', expect.objectContaining({ name: 'Library' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'navigation_set_destination',
+      expect.objectContaining({ name: 'Library' })
+    );
   });
   it('poi_navigate_to ignored when navigation_target=false', () => {
     const { node, cfg, ctx } = attachNode({ navigation_target: false });
@@ -210,14 +239,25 @@ describe('poiHandler.onEvent', () => {
   });
   it('poi_set_metadata stores key/value in config.metadata', () => {
     const { node, cfg, ctx } = attachNode();
-    poiHandler.onEvent!(node, cfg, ctx, { type: 'poi_set_metadata', key: 'hours', value: '9am–5pm' });
+    poiHandler.onEvent!(node, cfg, ctx, {
+      type: 'poi_set_metadata',
+      key: 'hours',
+      value: '9am–5pm',
+    });
     expect(cfg.metadata['hours']).toBe('9am–5pm');
   });
   it('poi_highlight emits poi_show_highlight with color and duration', () => {
     const { node, cfg, ctx } = attachNode();
     ctx.emit.mockClear();
-    poiHandler.onEvent!(node, cfg, ctx, { type: 'poi_highlight', duration: 3000, color: '#FF0000' });
-    expect(ctx.emit).toHaveBeenCalledWith('poi_show_highlight', expect.objectContaining({ duration: 3000, color: '#FF0000' }));
+    poiHandler.onEvent!(node, cfg, ctx, {
+      type: 'poi_highlight',
+      duration: 3000,
+      color: '#FF0000',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'poi_show_highlight',
+      expect.objectContaining({ duration: 3000, color: '#FF0000' })
+    );
   });
   it('poi_highlight uses default color #ffff00 and duration 2000 when not specified', () => {
     const { node, cfg, ctx } = attachNode();
@@ -228,10 +268,17 @@ describe('poiHandler.onEvent', () => {
     expect(call?.[1].duration).toBe(2000);
   });
   it('poi_show_info emits poi_display_info with name, description, category, metadata, distance', () => {
-    const { node, cfg, ctx } = attachNode({ name: 'Castle', description: 'Historic', category: 'landmark' });
+    const { node, cfg, ctx } = attachNode({
+      name: 'Castle',
+      description: 'Historic',
+      category: 'landmark',
+    });
     ctx.emit.mockClear();
     poiHandler.onEvent!(node, cfg, ctx, { type: 'poi_show_info' });
-    expect(ctx.emit).toHaveBeenCalledWith('poi_display_info', expect.objectContaining({ name: 'Castle', description: 'Historic', category: 'landmark' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'poi_display_info',
+      expect.objectContaining({ name: 'Castle', description: 'Historic', category: 'landmark' })
+    );
   });
   it('poi_query emits poi_info with current state fields', () => {
     const { node, cfg, ctx } = attachNode({ name: 'Tower' });
@@ -240,6 +287,11 @@ describe('poiHandler.onEvent', () => {
     ctx.emit.mockClear();
     poiHandler.onEvent!(node, cfg, ctx, { type: 'poi_query', queryId: 'q1' });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'poi_info');
-    expect(call?.[1]).toMatchObject({ queryId: 'q1', name: 'Tower', isVisible: true, isInRange: false });
+    expect(call?.[1]).toMatchObject({
+      queryId: 'q1',
+      name: 'Tower',
+      isVisible: true,
+      isInRange: false,
+    });
   });
 });

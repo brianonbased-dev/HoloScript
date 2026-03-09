@@ -6,11 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  createSandbox,
-  execute,
-  destroy,
-} from '../SandboxExecutor';
+import { createSandbox, execute, destroy } from '../SandboxExecutor';
 import { createDefaultPolicy, createStrictPolicy } from '../SecurityPolicy';
 import type { SecurityPolicy } from '../SecurityPolicy';
 
@@ -25,7 +21,6 @@ function makePolicy(overrides: Partial<SecurityPolicy['sandbox']> = {}): Securit
 // ─── Suite ───────────────────────────────────────────────────────────────────
 
 describe('SandboxExecutor: production', () => {
-
   // ─── Creation ────────────────────────────────────────────────────────────
   describe('createSandbox', () => {
     it('creates a sandbox with id', () => {

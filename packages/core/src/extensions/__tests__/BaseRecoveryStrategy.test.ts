@@ -29,24 +29,35 @@ describe('RecoveryStrategies', () => {
     });
 
     it('execute succeeds on first try', async () => {
-      const strategy = new RetryRecoveryStrategy('r', ['network-timeout'], async () => true, { maxAttempts: 1, backoffMs: 0 });
+      const strategy = new RetryRecoveryStrategy('r', ['network-timeout'], async () => true, {
+        maxAttempts: 1,
+        backoffMs: 0,
+      });
       const result = await strategy.execute(makeFailure());
       expect(result.success).toBe(true);
     });
 
     it('execute retries on failure', async () => {
       let calls = 0;
-      const strategy = new RetryRecoveryStrategy('r', ['network-timeout'], async () => {
-        calls++;
-        return calls >= 2;
-      }, { maxAttempts: 3, backoffMs: 0 });
+      const strategy = new RetryRecoveryStrategy(
+        'r',
+        ['network-timeout'],
+        async () => {
+          calls++;
+          return calls >= 2;
+        },
+        { maxAttempts: 3, backoffMs: 0 }
+      );
       const result = await strategy.execute(makeFailure());
       expect(result.success).toBe(true);
       expect(calls).toBe(2);
     });
 
     it('execute fails after max attempts', async () => {
-      const strategy = new RetryRecoveryStrategy('r', ['network-timeout'], async () => false, { maxAttempts: 2, backoffMs: 0 });
+      const strategy = new RetryRecoveryStrategy('r', ['network-timeout'], async () => false, {
+        maxAttempts: 2,
+        backoffMs: 0,
+      });
       const result = await strategy.execute(makeFailure());
       expect(result.success).toBe(false);
       expect(result.message).toContain('2 attempts');

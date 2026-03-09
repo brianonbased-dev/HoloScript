@@ -5,8 +5,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { patrolHandler } from '../PatrolTrait';
 
 const WP = (x: number, y = 0, z = 0, extra: any = {}) => ({ x, y, z, ...extra });
-function makeNode(pos = { x: 0, y: 0, z: 0 }) { return { id: 'p_node', position: { ...pos } }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode(pos = { x: 0, y: 0, z: 0 }) {
+  return { id: 'p_node', position: { ...pos } };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}, pos = { x: 0, y: 0, z: 0 }) {
   const node = makeNode(pos);
   const ctx = makeCtx();
@@ -37,7 +41,10 @@ describe('patrolHandler.onAttach', () => {
   it('completed=false', () => expect(attach().node.__patrolState.completed).toBe(false));
   it('emits patrol_started when waypoints provided', () => {
     const { ctx } = attach({ waypoints: [WP(1), WP(2)] });
-    expect(ctx.emit).toHaveBeenCalledWith('patrol_started', expect.objectContaining({ waypoints: 2 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'patrol_started',
+      expect.objectContaining({ waypoints: 2 })
+    );
   });
   it('no patrol_started when no waypoints', () => {
     const { ctx } = attach({ waypoints: [] });
@@ -55,7 +62,11 @@ describe('patrolHandler.onDetach', () => {
 
 describe('patrolHandler.onUpdate — movement', () => {
   it('emits set_position when moving toward waypoint', () => {
-    const { node, config, ctx } = attach({ waypoints: [WP(10, 0, 0)], speed: 2, look_ahead: false });
+    const { node, config, ctx } = attach({
+      waypoints: [WP(10, 0, 0)],
+      speed: 2,
+      look_ahead: false,
+    });
     ctx.emit.mockClear();
     patrolHandler.onUpdate!(node, config, ctx, 0.1);
     expect(ctx.emit).toHaveBeenCalledWith('set_position', expect.anything());
@@ -65,7 +76,10 @@ describe('patrolHandler.onUpdate — movement', () => {
     const { node, config, ctx } = attach({ waypoints: [WP(0.1, 0, 0)], speed: 10, wait_time: 0 });
     ctx.emit.mockClear();
     patrolHandler.onUpdate!(node, config, ctx, 1);
-    expect(ctx.emit).toHaveBeenCalledWith('patrol_waypoint_reached', expect.objectContaining({ waypointIndex: 0 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'patrol_waypoint_reached',
+      expect.objectContaining({ waypointIndex: 0 })
+    );
   });
 
   it('no-op when paused', () => {
@@ -92,7 +106,11 @@ describe('patrolHandler.onUpdate — movement', () => {
   });
 
   it('emits set_rotation when look_ahead=true and moving', () => {
-    const { node, config, ctx } = attach({ waypoints: [WP(10, 0, 10)], speed: 0.1, look_ahead: true });
+    const { node, config, ctx } = attach({
+      waypoints: [WP(10, 0, 10)],
+      speed: 0.1,
+      look_ahead: true,
+    });
     ctx.emit.mockClear();
     patrolHandler.onUpdate!(node, config, ctx, 0.01);
     expect(ctx.emit).toHaveBeenCalledWith('set_rotation', expect.anything());
@@ -118,7 +136,11 @@ describe('patrolHandler.onUpdate — alert', () => {
   });
 
   it('pauses after alert when resume_after_alert=false', () => {
-    const { node, config, ctx } = attach({ waypoints: [WP(10)], alert_wait_time: 1, resume_after_alert: false });
+    const { node, config, ctx } = attach({
+      waypoints: [WP(10)],
+      alert_wait_time: 1,
+      resume_after_alert: false,
+    });
     node.__patrolState.isAlerted = true;
     node.__patrolState.waitTimer = 0;
     patrolHandler.onUpdate!(node, config, ctx, 2);
@@ -126,7 +148,11 @@ describe('patrolHandler.onUpdate — alert', () => {
   });
 
   it('continues patrol when resume_after_alert=true', () => {
-    const { node, config, ctx } = attach({ waypoints: [WP(10)], alert_wait_time: 1, resume_after_alert: true });
+    const { node, config, ctx } = attach({
+      waypoints: [WP(10)],
+      alert_wait_time: 1,
+      resume_after_alert: true,
+    });
     node.__patrolState.isAlerted = true;
     node.__patrolState.waitTimer = 0;
     patrolHandler.onUpdate!(node, config, ctx, 2);
@@ -137,7 +163,12 @@ describe('patrolHandler.onUpdate — alert', () => {
 describe('patrolHandler — once mode', () => {
   it('marks completed after reaching last waypoint', () => {
     const wps = [WP(0.01), WP(5)];
-    const { node, config, ctx } = attach({ waypoints: wps, mode: 'once', speed: 100, wait_time: 0 });
+    const { node, config, ctx } = attach({
+      waypoints: wps,
+      mode: 'once',
+      speed: 100,
+      wait_time: 0,
+    });
     node.__patrolState.currentIndex = 1;
     patrolHandler.onUpdate!(node, config, ctx, 1); // reach it
     patrolHandler.onUpdate!(node, config, ctx, 0.001); // finish wait
@@ -168,7 +199,10 @@ describe('patrolHandler.onEvent — patrol_alert', () => {
   it('sets isAlerted=true and emits patrol_alerted', () => {
     const { node, config, ctx } = attach({ alert_on_detection: true });
     ctx.emit.mockClear();
-    patrolHandler.onEvent!(node, config, ctx, { type: 'patrol_alert', position: { x: 5, y: 0, z: 5 } });
+    patrolHandler.onEvent!(node, config, ctx, {
+      type: 'patrol_alert',
+      position: { x: 5, y: 0, z: 5 },
+    });
     expect(node.__patrolState.isAlerted).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith('patrol_alerted', expect.anything());
   });
@@ -176,7 +210,10 @@ describe('patrolHandler.onEvent — patrol_alert', () => {
   it('no-op when alert_on_detection=false', () => {
     const { node, config, ctx } = attach({ alert_on_detection: false });
     ctx.emit.mockClear();
-    patrolHandler.onEvent!(node, config, ctx, { type: 'patrol_alert', position: { x: 5, y: 0, z: 5 } });
+    patrolHandler.onEvent!(node, config, ctx, {
+      type: 'patrol_alert',
+      position: { x: 5, y: 0, z: 5 },
+    });
     expect(node.__patrolState.isAlerted).toBe(false);
   });
 });

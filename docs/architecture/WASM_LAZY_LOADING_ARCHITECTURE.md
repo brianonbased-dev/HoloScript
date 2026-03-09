@@ -9,6 +9,7 @@
 This document defines the architecture for decomposing HoloScript's 24+ export targets into independently loadable WASM components that are fetched on-demand rather than bundled monolithically. The design leverages the WASM Component Model (WIT interfaces), Rust crate splitting, and a TypeScript-side `ComponentLoader` that orchestrates lazy instantiation.
 
 **Key Outcomes:**
+
 - Initial bundle drops from ~20MB to ~2MB (core parser + validator + spatial engine)
 - Each platform compiler loads as a separate 50KB-300KB WASM binary
 - Zero-cost when a target is never used (not downloaded, not instantiated)
@@ -35,15 +36,16 @@ This document defines the architecture for decomposing HoloScript's 24+ export t
 
 ### 1.2 Existing WASM Components
 
-| Package | Purpose | Size | Technology |
-|---------|---------|------|------------|
-| `compiler-wasm` | Parser (Rust) | ~200KB | wasm-bindgen |
-| `spatial-engine-wasm` | Noise, collision, A* | ~50KB | wasm-bindgen |
-| `holoscript-component` | Full runtime (Rust) | ~459KB | WIT/Component Model |
+| Package                | Purpose               | Size   | Technology          |
+| ---------------------- | --------------------- | ------ | ------------------- |
+| `compiler-wasm`        | Parser (Rust)         | ~200KB | wasm-bindgen        |
+| `spatial-engine-wasm`  | Noise, collision, A\* | ~50KB  | wasm-bindgen        |
+| `holoscript-component` | Full runtime (Rust)   | ~459KB | WIT/Component Model |
 
 ### 1.3 Existing WIT Interface
 
 The `holoscript.wit` file already defines:
+
 - **Engine-core targets**: `compile-target` enum (threejs, babylonjs, aframe, gltf, glb, json-ast)
 - **Platform-plugin targets**: `platform-target` enum (unity, godot, unreal, vrchat, openxr, visionos, android, webgpu, r3f, playcanvas, urdf, sdf, usd)
 - **Plugin boundary**: `platform-compiler` interface with `compile-for-platform` function
@@ -235,13 +237,13 @@ world holoscript-xr-plugins {
 
 Plugins can be loaded individually OR as logical groups for users who need related targets:
 
-| Group | Plugins | Combined Size | Use Case |
-|-------|---------|--------------|----------|
-| **Game Engines** | unity, unreal, godot | ~300KB | Game developers |
-| **Web Platforms** | r3f, babylon, playcanvas, webgpu | ~315KB | Web XR developers |
-| **Mobile/XR** | ios, android, visionos, openxr, vrchat | ~445KB | XR deployment |
-| **Robotics** | urdf, sdf, usd | ~215KB | Robotics/simulation |
-| **Specialized** | dtdl, vrr, ar, wasm | ~265KB | Domain-specific |
+| Group             | Plugins                                | Combined Size | Use Case            |
+| ----------------- | -------------------------------------- | ------------- | ------------------- |
+| **Game Engines**  | unity, unreal, godot                   | ~300KB        | Game developers     |
+| **Web Platforms** | r3f, babylon, playcanvas, webgpu       | ~315KB        | Web XR developers   |
+| **Mobile/XR**     | ios, android, visionos, openxr, vrchat | ~445KB        | XR deployment       |
+| **Robotics**      | urdf, sdf, usd                         | ~215KB        | Robotics/simulation |
+| **Specialized**   | dtdl, vrr, ar, wasm                    | ~265KB        | Domain-specific     |
 
 ---
 
@@ -450,10 +452,24 @@ export interface LoadedComponent {
 }
 
 export type PlatformTarget =
-  | 'unity' | 'unreal' | 'godot' | 'vrchat' | 'openxr'
-  | 'visionos' | 'android' | 'ios' | 'webgpu' | 'r3f'
-  | 'playcanvas' | 'urdf' | 'sdf' | 'usd' | 'dtdl'
-  | 'wasm' | 'ar' | 'vrr';
+  | 'unity'
+  | 'unreal'
+  | 'godot'
+  | 'vrchat'
+  | 'openxr'
+  | 'visionos'
+  | 'android'
+  | 'ios'
+  | 'webgpu'
+  | 'r3f'
+  | 'playcanvas'
+  | 'urdf'
+  | 'sdf'
+  | 'usd'
+  | 'dtdl'
+  | 'wasm'
+  | 'ar'
+  | 'vrr';
 
 export class ComponentLoader {
   private config: ComponentLoaderConfig;
@@ -576,9 +592,7 @@ export class ComponentLoader {
     let module = this.compiledModules.get(target);
     if (!module) {
       const response = await this.fetchWithTimeout(url);
-      const binarySize = parseInt(
-        response.headers.get('content-length') ?? '0'
-      );
+      const binarySize = parseInt(response.headers.get('content-length') ?? '0');
 
       module = this.config.useStreaming
         ? await WebAssembly.compileStreaming(response.clone())
@@ -626,10 +640,7 @@ export class ComponentLoader {
 
   private async fetchWithTimeout(url: string): Promise<Response> {
     const controller = new AbortController();
-    const timeout = setTimeout(
-      () => controller.abort(),
-      this.config.fetchTimeout
-    );
+    const timeout = setTimeout(() => controller.abort(), this.config.fetchTimeout);
 
     try {
       const fetchFn = this.config.customFetch ?? fetch;
@@ -653,17 +664,13 @@ export class ComponentLoader {
     };
   }
 
-  private wrapPlatformCompiler(
-    _instance: WebAssembly.Instance
-  ): PlatformCompilerInterface {
+  private wrapPlatformCompiler(_instance: WebAssembly.Instance): PlatformCompilerInterface {
     // Wraps raw WASM exports in typed TypeScript interface
     // Implementation depends on jco-generated bindings
     throw new Error('TODO: Implement jco binding wrapper');
   }
 
-  private wrapPluginManifest(
-    _instance: WebAssembly.Instance
-  ): PluginManifest {
+  private wrapPluginManifest(_instance: WebAssembly.Instance): PluginManifest {
     throw new Error('TODO: Implement jco binding wrapper');
   }
 
@@ -747,9 +754,7 @@ const TARGET_TO_PLUGIN: Partial<Record<ExportTarget, PlatformTarget>> = {
 };
 
 // Targets handled by core WASM component (not separate plugins)
-const CORE_TARGETS: ExportTarget[] = [
-  'multi-layer', 'incremental', 'state', 'trait-composition',
-];
+const CORE_TARGETS: ExportTarget[] = ['multi-layer', 'incremental', 'state', 'trait-composition'];
 
 export interface LazyCompilerFactoryConfig {
   /** Enable WASM components (default: true) */
@@ -804,7 +809,8 @@ export class LazyCompilerFactory {
         } catch (err) {
           console.warn(
             `[LazyCompilerFactory] WASM load failed for ${target}, ` +
-            `falling back to TypeScript:`, err
+              `falling back to TypeScript:`,
+            err
           );
         }
       }
@@ -841,31 +847,54 @@ export class LazyCompilerFactory {
   private async dynamicImportCompiler(target: ExportTarget): Promise<any> {
     // Each target maps to a separate chunk thanks to tsup code splitting
     switch (target) {
-      case 'unity': return import('../UnityCompiler');
-      case 'unreal': return import('../UnrealCompiler');
-      case 'godot': return import('../GodotCompiler');
-      case 'vrchat': return import('../VRChatCompiler');
-      case 'openxr': return import('../OpenXRCompiler');
-      case 'visionos': return import('../VisionOSCompiler');
+      case 'unity':
+        return import('../UnityCompiler');
+      case 'unreal':
+        return import('../UnrealCompiler');
+      case 'godot':
+        return import('../GodotCompiler');
+      case 'vrchat':
+        return import('../VRChatCompiler');
+      case 'openxr':
+        return import('../OpenXRCompiler');
+      case 'visionos':
+        return import('../VisionOSCompiler');
       case 'android':
-      case 'android-xr': return import('../AndroidCompiler');
-      case 'ios': return import('../IOSCompiler');
-      case 'webgpu': return import('../WebGPUCompiler');
-      case 'r3f': return import('../R3FCompiler');
-      case 'babylon': return import('../BabylonCompiler');
-      case 'playcanvas': return import('../PlayCanvasCompiler');
-      case 'urdf': return import('../URDFCompiler');
-      case 'sdf': return import('../SDFCompiler');
+      case 'android-xr':
+        return import('../AndroidCompiler');
+      case 'ios':
+        return import('../IOSCompiler');
+      case 'webgpu':
+        return import('../WebGPUCompiler');
+      case 'r3f':
+        return import('../R3FCompiler');
+      case 'babylon':
+        return import('../BabylonCompiler');
+      case 'playcanvas':
+        return import('../PlayCanvasCompiler');
+      case 'urdf':
+        return import('../URDFCompiler');
+      case 'sdf':
+        return import('../SDFCompiler');
       case 'usd':
-      case 'usdz': return import('../USDPhysicsCompiler');
-      case 'dtdl': return import('../DTDLCompiler');
-      case 'wasm': return import('../WASMCompiler');
-      case 'ar': return import('../ARCompiler');
-      case 'vrr': return import('../VRRCompiler');
-      case 'multi-layer': return import('../MultiLayerCompiler');
-      case 'incremental': return import('../IncrementalCompiler');
-      case 'state': return import('../StateCompiler');
-      case 'trait-composition': return import('../TraitCompositionCompiler');
+      case 'usdz':
+        return import('../USDPhysicsCompiler');
+      case 'dtdl':
+        return import('../DTDLCompiler');
+      case 'wasm':
+        return import('../WASMCompiler');
+      case 'ar':
+        return import('../ARCompiler');
+      case 'vrr':
+        return import('../VRRCompiler');
+      case 'multi-layer':
+        return import('../MultiLayerCompiler');
+      case 'incremental':
+        return import('../IncrementalCompiler');
+      case 'state':
+        return import('../StateCompiler');
+      case 'trait-composition':
+        return import('../TraitCompositionCompiler');
       default:
         throw new Error(`Unknown export target: ${target}`);
     }
@@ -926,10 +955,7 @@ class WASMCompilerAdapter {
 
   compile(composition: HoloComposition, _agentToken?: string): string {
     const ast = this.serializeToWIT(composition);
-    const result = this.component.compiler.compileForPlatform(
-      ast,
-      this.target
-    );
+    const result = this.component.compiler.compileForPlatform(ast, this.target);
     return this.deserializeResult(result);
   }
 
@@ -943,17 +969,18 @@ class WASMCompilerAdapter {
     if (result.tag === 'text') return result.val;
     if (result.tag === 'binary') return Buffer.from(result.val).toString();
     if (result.tag === 'error') {
-      throw new Error(
-        result.val.map((d: any) => d.message).join('\n')
-      );
+      throw new Error(result.val.map((d: any) => d.message).join('\n'));
     }
     throw new Error('Unknown compile result type');
   }
 }
 
 interface ICompiler {
-  compile(composition: HoloComposition, agentToken?: string, outputPath?: string):
-    string | Record<string, string>;
+  compile(
+    composition: HoloComposition,
+    agentToken?: string,
+    outputPath?: string
+  ): string | Record<string, string>;
 }
 ```
 
@@ -1035,6 +1062,7 @@ ls -lh "$OUT_DIR/"
 ### 6.2 CDN Deployment
 
 WASM binaries are deployed to CDN with:
+
 - Content-Type: `application/wasm`
 - Cache-Control: `public, max-age=31536000, immutable` (versioned URLs)
 - Content hashing for cache busting: `holoscript-plugin-unity.a1b2c3.wasm`
@@ -1044,10 +1072,7 @@ WASM binaries are deployed to CDN with:
 ```json
 {
   "name": "@holoscript/core",
-  "files": [
-    "dist",
-    "dist/wasm/*.wasm"
-  ],
+  "files": ["dist", "dist/wasm/*.wasm"],
   "exports": {
     "./wasm/*": {
       "default": "./dist/wasm/*"
@@ -1062,36 +1087,37 @@ WASM binaries are deployed to CDN with:
 
 ### 7.1 Loading Timeline
 
-| Phase | Duration | Description |
-|-------|----------|-------------|
-| Initial load | 50-200ms | Core parser+validator (~800KB compressed) |
-| First export | 100-500ms | Fetch + compile + instantiate plugin |
-| Cached export | <5ms | Instantiate from cached module |
-| Preloaded export | 20-50ms | Instantiate from pre-compiled module |
+| Phase            | Duration  | Description                               |
+| ---------------- | --------- | ----------------------------------------- |
+| Initial load     | 50-200ms  | Core parser+validator (~800KB compressed) |
+| First export     | 100-500ms | Fetch + compile + instantiate plugin      |
+| Cached export    | <5ms      | Instantiate from cached module            |
+| Preloaded export | 20-50ms   | Instantiate from pre-compiled module      |
 
 ### 7.2 Memory Profile
 
-| Component | Heap Usage | Notes |
-|-----------|-----------|-------|
-| Core WASM | 2-4 MB | Parser, validator, core compilers |
-| Each plugin | 0.5-2 MB | Only when loaded |
-| WeakRef cache | ~0 | GC reclaims unused plugins |
-| Module cache | 50-300KB per | Compiled module (reusable) |
+| Component     | Heap Usage   | Notes                             |
+| ------------- | ------------ | --------------------------------- |
+| Core WASM     | 2-4 MB       | Parser, validator, core compilers |
+| Each plugin   | 0.5-2 MB     | Only when loaded                  |
+| WeakRef cache | ~0           | GC reclaims unused plugins        |
+| Module cache  | 50-300KB per | Compiled module (reusable)        |
 
 ### 7.3 Bundle Size Comparison
 
-| Scenario | Before (TS monolith) | After (lazy WASM) | Savings |
-|----------|---------------------|-------------------|---------|
-| Import @holoscript/core | ~20 MB | ~2 MB | **90%** |
-| Use 1 compiler | ~20 MB | ~2.1 MB | **89%** |
-| Use 3 compilers | ~20 MB | ~2.3 MB | **88%** |
-| Use all compilers | ~20 MB | ~4.5 MB | **77%** |
+| Scenario                | Before (TS monolith) | After (lazy WASM) | Savings |
+| ----------------------- | -------------------- | ----------------- | ------- |
+| Import @holoscript/core | ~20 MB               | ~2 MB             | **90%** |
+| Use 1 compiler          | ~20 MB               | ~2.1 MB           | **89%** |
+| Use 3 compilers         | ~20 MB               | ~2.3 MB           | **88%** |
+| Use all compilers       | ~20 MB               | ~4.5 MB           | **77%** |
 
 ---
 
 ## 8. Migration Path
 
 ### Phase 1: Foundation (2 weeks)
+
 1. Create `holoscript-plugin-shared` crate with shared codegen utilities
 2. Create `ComponentLoader` TypeScript class
 3. Create `LazyCompilerFactory` TypeScript class
@@ -1099,6 +1125,7 @@ WASM binaries are deployed to CDN with:
 5. All changes backward compatible (TS fallback always available)
 
 ### Phase 2: First Plugins (2 weeks)
+
 1. Port `URDFCompiler` to Rust WASM plugin (smallest, most self-contained)
 2. Port `SDFCompiler` to Rust WASM plugin
 3. Port `DTDLCompiler` to Rust WASM plugin
@@ -1106,17 +1133,20 @@ WASM binaries are deployed to CDN with:
 5. Benchmark: load time, compile time, output correctness
 
 ### Phase 3: Game Engine Plugins (3 weeks)
+
 1. Port `UnityCompiler` to Rust WASM plugin
 2. Port `UnrealCompiler` to Rust WASM plugin
 3. Port `GodotCompiler` to Rust WASM plugin
 4. Test plugin group loading (all game engines at once)
 
 ### Phase 4: Remaining Plugins (3 weeks)
+
 1. Port XR targets: VRChat, OpenXR, VisionOS, Android, iOS
 2. Port web targets: WebGPU, R3F, PlayCanvas, Babylon
 3. Port specialized: WASM, AR, VRR, USD/USDZ
 
 ### Phase 5: Optimization (1 week)
+
 1. Binary size optimization (`wasm-opt -Oz`)
 2. Preload hint tuning based on usage analytics
 3. Service Worker caching strategy
@@ -1127,6 +1157,7 @@ WASM binaries are deployed to CDN with:
 ## 9. Testing Strategy
 
 ### 9.1 Parity Tests
+
 Every WASM plugin must produce byte-identical output compared to its TypeScript counterpart for a suite of test compositions.
 
 ```typescript
@@ -1136,7 +1167,8 @@ describe('UnityPlugin WASM parity', () => {
       const tsOutput = new UnityCompiler().compile(fixture.composition);
       const wasmPlugin = await componentLoader.load('unity');
       const wasmOutput = wasmPlugin.compiler.compileForPlatform(
-        fixture.composition, 'unity-csharp'
+        fixture.composition,
+        'unity-csharp'
       );
       expect(wasmOutput).toEqual(tsOutput);
     });
@@ -1145,6 +1177,7 @@ describe('UnityPlugin WASM parity', () => {
 ```
 
 ### 9.2 Lazy Loading Tests
+
 ```typescript
 describe('ComponentLoader', () => {
   it('loads plugin on first request', async () => {
@@ -1160,10 +1193,7 @@ describe('ComponentLoader', () => {
   });
 
   it('deduplicates concurrent loads', async () => {
-    const [a, b] = await Promise.all([
-      loader.load('unity'),
-      loader.load('unity'),
-    ]);
+    const [a, b] = await Promise.all([loader.load('unity'), loader.load('unity')]);
     expect(a).toBe(b);
   });
 
@@ -1183,49 +1213,49 @@ describe('ComponentLoader', () => {
 
 ## 10. Risk Assessment
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| WASM Component Model browser support | Medium | High | Always fall back to TS compilers |
-| Plugin binary size too large | Low | Medium | `wasm-opt -Oz`, measure per-plugin |
-| AST serialization overhead | Medium | Medium | Benchmark; consider shared memory |
-| Plugin version incompatibility | Low | High | Version check in plugin-manifest |
-| CDN availability | Low | Medium | NPM bundle fallback, Service Worker cache |
-| jco binding generation breaks | Medium | Medium | Pin jco version, integration tests |
+| Risk                                 | Probability | Impact | Mitigation                                |
+| ------------------------------------ | ----------- | ------ | ----------------------------------------- |
+| WASM Component Model browser support | Medium      | High   | Always fall back to TS compilers          |
+| Plugin binary size too large         | Low         | Medium | `wasm-opt -Oz`, measure per-plugin        |
+| AST serialization overhead           | Medium      | Medium | Benchmark; consider shared memory         |
+| Plugin version incompatibility       | Low         | High   | Version check in plugin-manifest          |
+| CDN availability                     | Low         | Medium | NPM bundle fallback, Service Worker cache |
+| jco binding generation breaks        | Medium      | Medium | Pin jco version, integration tests        |
 
 ---
 
 ## 11. Appendix: Full Target Mapping
 
-| ExportTarget | WASM Plugin | WIT platform-target | Plugin Group |
-|-------------|-------------|---------------------|-------------|
-| `unity` | `plugin-unity` | `unity-csharp` | Game Engines |
-| `unreal` | `plugin-unreal` | `unreal-cpp` | Game Engines |
-| `godot` | `plugin-godot` | `godot-gdscript` | Game Engines |
-| `vrchat` | `plugin-vrchat` | `vrchat-udon` | Mobile/XR |
-| `openxr` | `plugin-openxr` | `openxr` | Mobile/XR |
-| `android` | `plugin-android` | `android-arcore` | Mobile/XR |
-| `android-xr` | `plugin-android` | `android-arcore` | Mobile/XR |
-| `ios` | `plugin-ios` | (new: `ios-arkit`) | Mobile/XR |
-| `visionos` | `plugin-visionos` | `visionos-swift` | Mobile/XR |
-| `ar` | `plugin-ar` | (new: `generic-ar`) | Mobile/XR |
-| `babylon` | `plugin-babylon` | (core: `babylonjs`) | Web Platforms |
-| `webgpu` | `plugin-webgpu` | `webgpu-wgsl` | Web Platforms |
-| `r3f` | `plugin-r3f` | `react-three-fiber` | Web Platforms |
-| `playcanvas` | `plugin-playcanvas` | `playcanvas` | Web Platforms |
-| `urdf` | `plugin-urdf` | `urdf` | Robotics |
-| `sdf` | `plugin-sdf` | `sdf` | Robotics |
-| `usd` | `plugin-usd` | `usd` | Robotics |
-| `usdz` | `plugin-usd` | `usd` | Robotics |
-| `dtdl` | `plugin-dtdl` | (new: `dtdl`) | Specialized |
-| `wasm` | `plugin-wasm` | (new: `wasm-wat`) | Specialized |
-| `vrr` | `plugin-vrr` | (new: `vrr`) | Specialized |
-| `multi-layer` | (core TS) | N/A | Core |
-| `incremental` | (core TS) | N/A | Core |
-| `state` | (core TS) | N/A | Core |
-| `trait-composition` | (core TS) | N/A | Core |
+| ExportTarget        | WASM Plugin         | WIT platform-target | Plugin Group  |
+| ------------------- | ------------------- | ------------------- | ------------- |
+| `unity`             | `plugin-unity`      | `unity-csharp`      | Game Engines  |
+| `unreal`            | `plugin-unreal`     | `unreal-cpp`        | Game Engines  |
+| `godot`             | `plugin-godot`      | `godot-gdscript`    | Game Engines  |
+| `vrchat`            | `plugin-vrchat`     | `vrchat-udon`       | Mobile/XR     |
+| `openxr`            | `plugin-openxr`     | `openxr`            | Mobile/XR     |
+| `android`           | `plugin-android`    | `android-arcore`    | Mobile/XR     |
+| `android-xr`        | `plugin-android`    | `android-arcore`    | Mobile/XR     |
+| `ios`               | `plugin-ios`        | (new: `ios-arkit`)  | Mobile/XR     |
+| `visionos`          | `plugin-visionos`   | `visionos-swift`    | Mobile/XR     |
+| `ar`                | `plugin-ar`         | (new: `generic-ar`) | Mobile/XR     |
+| `babylon`           | `plugin-babylon`    | (core: `babylonjs`) | Web Platforms |
+| `webgpu`            | `plugin-webgpu`     | `webgpu-wgsl`       | Web Platforms |
+| `r3f`               | `plugin-r3f`        | `react-three-fiber` | Web Platforms |
+| `playcanvas`        | `plugin-playcanvas` | `playcanvas`        | Web Platforms |
+| `urdf`              | `plugin-urdf`       | `urdf`              | Robotics      |
+| `sdf`               | `plugin-sdf`        | `sdf`               | Robotics      |
+| `usd`               | `plugin-usd`        | `usd`               | Robotics      |
+| `usdz`              | `plugin-usd`        | `usd`               | Robotics      |
+| `dtdl`              | `plugin-dtdl`       | (new: `dtdl`)       | Specialized   |
+| `wasm`              | `plugin-wasm`       | (new: `wasm-wat`)   | Specialized   |
+| `vrr`               | `plugin-vrr`        | (new: `vrr`)        | Specialized   |
+| `multi-layer`       | (core TS)           | N/A                 | Core          |
+| `incremental`       | (core TS)           | N/A                 | Core          |
+| `state`             | (core TS)           | N/A                 | Core          |
+| `trait-composition` | (core TS)           | N/A                 | Core          |
 
 ---
 
-*Architecture designed for HoloScript v3.43.0+*
-*Author: HoloScript Autonomous Administrator*
-*Date: 2026-02-28*
+_Architecture designed for HoloScript v3.43.0+_
+_Author: HoloScript Autonomous Administrator_
+_Date: 2026-02-28_

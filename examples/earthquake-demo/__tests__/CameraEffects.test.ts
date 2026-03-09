@@ -287,8 +287,8 @@ describe('CameraController', () => {
       const startCamera = controller.getCamera();
       const startOffset = Math.sqrt(
         (startCamera.position[0] - 30) ** 2 +
-        (startCamera.position[1] - 20) ** 2 +
-        (startCamera.position[2] - 30) ** 2
+          (startCamera.position[1] - 20) ** 2 +
+          (startCamera.position[2] - 30) ** 2
       );
 
       // Shake near end (weak)
@@ -296,8 +296,8 @@ describe('CameraController', () => {
       const endCamera = controller.getCamera();
       const endOffset = Math.sqrt(
         (endCamera.position[0] - 30) ** 2 +
-        (endCamera.position[1] - 20) ** 2 +
-        (endCamera.position[2] - 30) ** 2
+          (endCamera.position[1] - 20) ** 2 +
+          (endCamera.position[2] - 30) ** 2
       );
 
       // End offset should be less than start (linear falloff)
@@ -320,8 +320,8 @@ describe('CameraController', () => {
       const startCamera = controller.getCamera();
       const startOffset = Math.sqrt(
         (startCamera.position[0] - 30) ** 2 +
-        (startCamera.position[1] - 20) ** 2 +
-        (startCamera.position[2] - 30) ** 2
+          (startCamera.position[1] - 20) ** 2 +
+          (startCamera.position[2] - 30) ** 2
       );
 
       // Shake should exist
@@ -406,13 +406,13 @@ describe('CameraController', () => {
       const target = after.target;
       const beforeDist = Math.sqrt(
         (beforePos[0] - target[0]) ** 2 +
-        (beforePos[1] - target[1]) ** 2 +
-        (beforePos[2] - target[2]) ** 2
+          (beforePos[1] - target[1]) ** 2 +
+          (beforePos[2] - target[2]) ** 2
       );
       const afterDist = Math.sqrt(
         (after.position[0] - target[0]) ** 2 +
-        (after.position[1] - target[1]) ** 2 +
-        (after.position[2] - target[2]) ** 2
+          (after.position[1] - target[1]) ** 2 +
+          (after.position[2] - target[2]) ** 2
       );
 
       expect(afterDist).toBeCloseTo(beforeDist, 1);
@@ -443,8 +443,8 @@ describe('CameraController', () => {
       const before = controller.getCamera();
       const beforeDist = Math.sqrt(
         (before.position[0] - before.target[0]) ** 2 +
-        (before.position[1] - before.target[1]) ** 2 +
-        (before.position[2] - before.target[2]) ** 2
+          (before.position[1] - before.target[1]) ** 2 +
+          (before.position[2] - before.target[2]) ** 2
       );
 
       controller.zoom(-5, false);
@@ -452,8 +452,8 @@ describe('CameraController', () => {
       const after = controller.getCamera();
       const afterDist = Math.sqrt(
         (after.position[0] - after.target[0]) ** 2 +
-        (after.position[1] - after.target[1]) ** 2 +
-        (after.position[2] - after.target[2]) ** 2
+          (after.position[1] - after.target[1]) ** 2 +
+          (after.position[2] - after.target[2]) ** 2
       );
 
       expect(afterDist).not.toBeCloseTo(beforeDist);
@@ -480,8 +480,8 @@ describe('CameraController', () => {
       const camera1 = controller.getCamera();
       const dist1 = Math.sqrt(
         (camera1.position[0] - camera1.target[0]) ** 2 +
-        (camera1.position[1] - camera1.target[1]) ** 2 +
-        (camera1.position[2] - camera1.target[2]) ** 2
+          (camera1.position[1] - camera1.target[1]) ** 2 +
+          (camera1.position[2] - camera1.target[2]) ** 2
       );
       expect(dist1).toBeGreaterThanOrEqual(4.9);
 
@@ -491,8 +491,8 @@ describe('CameraController', () => {
       const camera2 = controller.getCamera();
       const dist2 = Math.sqrt(
         (camera2.position[0] - camera2.target[0]) ** 2 +
-        (camera2.position[1] - camera2.target[1]) ** 2 +
-        (camera2.position[2] - camera2.target[2]) ** 2
+          (camera2.position[1] - camera2.target[1]) ** 2 +
+          (camera2.position[2] - camera2.target[2]) ** 2
       );
       expect(dist2).toBeLessThanOrEqual(100.1);
     });

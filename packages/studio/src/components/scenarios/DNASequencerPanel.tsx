@@ -8,16 +8,28 @@
 
 import React, { useState, useMemo } from 'react';
 import {
-  complement, complementStrand, transcribe, reverseComplement,
-  translateCodon, translateMRNA, gcContent, sequenceLength,
-  findMotif, detectMutations, crisprOnTargetScore,
-  type CRISPRTarget, type Nucleotide,
+  complement,
+  complementStrand,
+  transcribe,
+  reverseComplement,
+  translateCodon,
+  translateMRNA,
+  gcContent,
+  sequenceLength,
+  findMotif,
+  detectMutations,
+  crisprOnTargetScore,
+  type CRISPRTarget,
+  type Nucleotide,
 } from '@/lib/dnaSequencing';
 
 // ─── Styles ──────────────────────────────────────────────────────
 
 const BASE_COLORS: Record<string, string> = {
-  A: '#ff6b6b', T: '#4ecdc4', G: '#ffe66d', C: '#7b68ee',
+  A: '#ff6b6b',
+  T: '#4ecdc4',
+  G: '#ffe66d',
+  C: '#7b68ee',
   U: '#ff9f43',
 };
 
@@ -83,33 +95,35 @@ const styles = {
     fontSize: '16px',
     fontWeight: 700,
   } as React.CSSProperties,
-  base: (color: string) => ({
-    display: 'inline-flex',
-    width: '22px',
-    height: '28px',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: `${color}22`,
-    borderBottom: `3px solid ${color}`,
-    borderRadius: '3px 3px 0 0',
-    color,
-    fontSize: '14px',
-    fontWeight: 700,
-    transition: 'transform 0.15s, background 0.15s',
-  }) as React.CSSProperties,
-  complementBase: (color: string) => ({
-    display: 'inline-flex',
-    width: '22px',
-    height: '28px',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: `${color}15`,
-    borderTop: `3px solid ${color}`,
-    borderRadius: '0 0 3px 3px',
-    color: `${color}99`,
-    fontSize: '14px',
-    fontWeight: 500,
-  }) as React.CSSProperties,
+  base: (color: string) =>
+    ({
+      display: 'inline-flex',
+      width: '22px',
+      height: '28px',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: `${color}22`,
+      borderBottom: `3px solid ${color}`,
+      borderRadius: '3px 3px 0 0',
+      color,
+      fontSize: '14px',
+      fontWeight: 700,
+      transition: 'transform 0.15s, background 0.15s',
+    }) as React.CSSProperties,
+  complementBase: (color: string) =>
+    ({
+      display: 'inline-flex',
+      width: '22px',
+      height: '28px',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: `${color}15`,
+      borderTop: `3px solid ${color}`,
+      borderRadius: '0 0 3px 3px',
+      color: `${color}99`,
+      fontSize: '14px',
+      fontWeight: 500,
+    }) as React.CSSProperties,
   gcBar: {
     height: '10px',
     background: 'rgba(255, 255, 255, 0.06)',
@@ -117,13 +131,17 @@ const styles = {
     overflow: 'hidden',
     marginTop: '6px',
   } as React.CSSProperties,
-  gcFill: (gc: number) => ({
-    height: '100%',
-    width: `${gc * 100}%`,
-    background: gc > 0.6 ? 'linear-gradient(90deg, #ffe66d, #ff6b6b)' : 'linear-gradient(90deg, #4ecdc4, #7b68ee)',
-    borderRadius: '5px',
-    transition: 'width 0.3s ease',
-  }) as React.CSSProperties,
+  gcFill: (gc: number) =>
+    ({
+      height: '100%',
+      width: `${gc * 100}%`,
+      background:
+        gc > 0.6
+          ? 'linear-gradient(90deg, #ffe66d, #ff6b6b)'
+          : 'linear-gradient(90deg, #4ecdc4, #7b68ee)',
+      borderRadius: '5px',
+      transition: 'width 0.3s ease',
+    }) as React.CSSProperties,
   proteinChain: {
     display: 'flex',
     gap: '4px',
@@ -145,13 +163,14 @@ const styles = {
     gap: '10px',
     marginTop: '10px',
   } as React.CSSProperties,
-  statCard: (color: string) => ({
-    padding: '10px',
-    background: `${color}10`,
-    border: `1px solid ${color}30`,
-    borderRadius: '6px',
-    textAlign: 'center' as const,
-  }) as React.CSSProperties,
+  statCard: (color: string) =>
+    ({
+      padding: '10px',
+      background: `${color}10`,
+      border: `1px solid ${color}30`,
+      borderRadius: '6px',
+      textAlign: 'center' as const,
+    }) as React.CSSProperties,
   statValue: {
     fontSize: '20px',
     fontWeight: 700,
@@ -174,19 +193,30 @@ const styles = {
     marginRight: '4px',
     marginBottom: '4px',
   } as React.CSSProperties,
-  crisprScore: (score: string) => ({
-    display: 'inline-block',
-    padding: '3px 10px',
-    borderRadius: '10px',
-    fontSize: '12px',
-    fontWeight: 700,
-    background: score === 'excellent' ? 'rgba(78, 205, 196, 0.2)' :
-                score === 'good' ? 'rgba(255, 230, 109, 0.2)' :
-                score === 'fair' ? 'rgba(255, 159, 67, 0.2)' : 'rgba(255, 107, 107, 0.2)',
-    color: score === 'excellent' ? '#4ecdc4' :
-           score === 'good' ? '#ffe66d' :
-           score === 'fair' ? '#ff9f43' : '#ff6b6b',
-  }) as React.CSSProperties,
+  crisprScore: (score: string) =>
+    ({
+      display: 'inline-block',
+      padding: '3px 10px',
+      borderRadius: '10px',
+      fontSize: '12px',
+      fontWeight: 700,
+      background:
+        score === 'excellent'
+          ? 'rgba(78, 205, 196, 0.2)'
+          : score === 'good'
+            ? 'rgba(255, 230, 109, 0.2)'
+            : score === 'fair'
+              ? 'rgba(255, 159, 67, 0.2)'
+              : 'rgba(255, 107, 107, 0.2)',
+      color:
+        score === 'excellent'
+          ? '#4ecdc4'
+          : score === 'good'
+            ? '#ffe66d'
+            : score === 'fair'
+              ? '#ff9f43'
+              : '#ff6b6b',
+    }) as React.CSSProperties,
   button: {
     padding: '6px 14px',
     background: 'linear-gradient(135deg, #4ecdc4, #7b68ee)',
@@ -213,8 +243,14 @@ export function DNASequencerPanel() {
   const revComp = useMemo(() => reverseComplement(validDna), [validDna]);
   const protein = useMemo(() => translateMRNA(mrna), [mrna]);
   const gc = useMemo(() => gcContent(validDna), [validDna]);
-  const motifPositions = useMemo(() => findMotif(validDna, motifSearch.toUpperCase()), [validDna, motifSearch]);
-  const mutations = useMemo(() => detectMutations(validDna, mutatedDna.toUpperCase()), [validDna, mutatedDna]);
+  const motifPositions = useMemo(
+    () => findMotif(validDna, motifSearch.toUpperCase()),
+    [validDna, motifSearch]
+  );
+  const mutations = useMemo(
+    () => detectMutations(validDna, mutatedDna.toUpperCase()),
+    [validDna, mutatedDna]
+  );
 
   const crisprTarget: CRISPRTarget = {
     guideRNA: validDna.substring(0, 20).replace(/T/g, 'U'),
@@ -231,9 +267,7 @@ export function DNASequencerPanel() {
       {/* Header */}
       <div style={styles.header}>
         <span style={styles.title}>🧬 DNA Sequencing Lab</span>
-        <span style={{ fontSize: '12px', color: '#4ecdc4' }}>
-          {sequenceLength(validDna)} bp
-        </span>
+        <span style={{ fontSize: '12px', color: '#4ecdc4' }}>{sequenceLength(validDna)} bp</span>
       </div>
 
       {/* DNA Input */}
@@ -243,7 +277,7 @@ export function DNASequencerPanel() {
           style={styles.sequenceInput}
           rows={2}
           value={dna}
-          onChange={e => {
+          onChange={(e) => {
             setDna(e.target.value);
             setMutatedDna(e.target.value);
           }}
@@ -254,18 +288,26 @@ export function DNASequencerPanel() {
       {/* Double Helix Visualization */}
       <div style={styles.section}>
         <div style={styles.sectionTitle}>🔬 Double Helix</div>
-        <div style={{ fontSize: '10px', color: '#8899aa', marginBottom: '4px' }}>5' Sense Strand</div>
+        <div style={{ fontSize: '10px', color: '#8899aa', marginBottom: '4px' }}>
+          5' Sense Strand
+        </div>
         <div style={styles.strandRow}>
           {validDna.split('').map((b, i) => (
-            <div key={`s-${i}`} style={styles.base(BASE_COLORS[b] || '#999')}>{b}</div>
+            <div key={`s-${i}`} style={styles.base(BASE_COLORS[b] || '#999')}>
+              {b}
+            </div>
           ))}
         </div>
         <div style={styles.strandRow}>
           {comp.split('').map((b, i) => (
-            <div key={`c-${i}`} style={styles.complementBase(BASE_COLORS[b] || '#999')}>{b}</div>
+            <div key={`c-${i}`} style={styles.complementBase(BASE_COLORS[b] || '#999')}>
+              {b}
+            </div>
           ))}
         </div>
-        <div style={{ fontSize: '10px', color: '#8899aa', marginTop: '2px' }}>3' Complement Strand</div>
+        <div style={{ fontSize: '10px', color: '#8899aa', marginTop: '2px' }}>
+          3' Complement Strand
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -297,16 +339,23 @@ export function DNASequencerPanel() {
       <div style={styles.section}>
         <div style={styles.sectionTitle}>🧫 Protein Synthesis</div>
         <div style={{ fontSize: '11px', color: '#8899aa', marginBottom: '4px' }}>
-          mRNA: <span style={{ color: '#ff9f43', fontFamily: 'monospace' }}>{mrna.substring(0, 40)}{mrna.length > 40 ? '...' : ''}</span>
+          mRNA:{' '}
+          <span style={{ color: '#ff9f43', fontFamily: 'monospace' }}>
+            {mrna.substring(0, 40)}
+            {mrna.length > 40 ? '...' : ''}
+          </span>
         </div>
         <div style={styles.proteinChain}>
           {protein.map((aa, i) => (
             <div key={i} style={styles.aminoAcid}>
-              {i === 0 ? '▶ ' : ''}{aa}
+              {i === 0 ? '▶ ' : ''}
+              {aa}
             </div>
           ))}
           {protein.length === 0 && (
-            <span style={{ fontSize: '12px', color: '#667' }}>No ORF found (needs AUG start codon)</span>
+            <span style={{ fontSize: '12px', color: '#667' }}>
+              No ORF found (needs AUG start codon)
+            </span>
           )}
         </div>
       </div>
@@ -318,7 +367,7 @@ export function DNASequencerPanel() {
           <input
             style={{ ...styles.sequenceInput, width: '120px', fontSize: '13px' }}
             value={motifSearch}
-            onChange={e => setMotifSearch(e.target.value)}
+            onChange={(e) => setMotifSearch(e.target.value)}
             placeholder="ATG"
           />
           <span style={{ fontSize: '12px', color: '#4ecdc4', alignSelf: 'center' }}>
@@ -326,8 +375,10 @@ export function DNASequencerPanel() {
           </span>
         </div>
         <div>
-          {motifPositions.map(pos => (
-            <span key={pos} style={styles.motifTag}>pos {pos}</span>
+          {motifPositions.map((pos) => (
+            <span key={pos} style={styles.motifTag}>
+              pos {pos}
+            </span>
           ))}
         </div>
       </div>
@@ -338,17 +389,21 @@ export function DNASequencerPanel() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '12px', color: '#8899aa' }}>
-              Guide: <span style={{ color: '#ff9f43', fontFamily: 'monospace' }}>{crisprTarget.guideRNA.substring(0, 20)}</span>
+              Guide:{' '}
+              <span style={{ color: '#ff9f43', fontFamily: 'monospace' }}>
+                {crisprTarget.guideRNA.substring(0, 20)}
+              </span>
             </div>
             <div style={{ fontSize: '12px', color: '#8899aa', marginTop: '4px' }}>
-              PAM: <span style={{ color: '#ffe66d' }}>{crisprTarget.pamSite}</span> | Cut: pos {crisprTarget.cutPosition}
+              PAM: <span style={{ color: '#ffe66d' }}>{crisprTarget.pamSite}</span> | Cut: pos{' '}
+              {crisprTarget.cutPosition}
             </div>
           </div>
           <div>
-            <div style={styles.crisprScore(crisprResult)}>
-              {crisprResult.toUpperCase()}
-            </div>
-            <div style={{ fontSize: '10px', color: '#8899aa', textAlign: 'center', marginTop: '4px' }}>
+            <div style={styles.crisprScore(crisprResult)}>{crisprResult.toUpperCase()}</div>
+            <div
+              style={{ fontSize: '10px', color: '#8899aa', textAlign: 'center', marginTop: '4px' }}
+            >
               Eff: {crisprTarget.efficiency}% | Off: {crisprTarget.offTargetScore}
             </div>
           </div>

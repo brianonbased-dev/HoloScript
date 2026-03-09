@@ -198,7 +198,10 @@ describe('Integration Tests', () => {
 
     it('should handle concurrent encoders and decoders', async () => {
       const encoder1 = new SpikeEncoder(ctx, { dataCount: 50 });
-      const encoder2 = new SpikeEncoder(ctx, { dataCount: 100, encodingMode: EncodingMode.Temporal });
+      const encoder2 = new SpikeEncoder(ctx, {
+        dataCount: 100,
+        encodingMode: EncodingMode.Temporal,
+      });
 
       await encoder1.initialize();
       await encoder2.initialize();

@@ -57,10 +57,7 @@ describe('Fracturable', () => {
     it('should apply impact to object', () => {
       const object = new Fracturable(config);
 
-      const fractured = object.applyImpact(
-        { x: 1000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      const fractured = object.applyImpact({ x: 1000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       expect(fractured).toBe(false);
       expect(object.getHealth()).toBeLessThan(MATERIALS.CONCRETE.fractureThreshold);
@@ -69,10 +66,7 @@ describe('Fracturable', () => {
     it('should fracture when health depleted', () => {
       const object = new Fracturable(config);
 
-      const fractured = object.applyImpact(
-        { x: 10000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      const fractured = object.applyImpact({ x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       expect(fractured).toBe(true);
       expect(object.isFractured()).toBe(true);
@@ -93,10 +87,7 @@ describe('Fracturable', () => {
 
       object.applyImpact({ x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
-      const fracturedAgain = object.applyImpact(
-        { x: 10000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      const fracturedAgain = object.applyImpact({ x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       expect(fracturedAgain).toBe(false);
     });
@@ -137,10 +128,7 @@ describe('Fracturable', () => {
         material: { ...MATERIALS.GLASS, fractureThreshold: 100 },
       });
 
-      const fractured = weakObject.applyImpact(
-        { x: 150, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      const fractured = weakObject.applyImpact({ x: 150, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       expect(fractured).toBe(true);
     });
@@ -279,7 +267,9 @@ describe('Fracturable', () => {
 
     it('should have metal preset', () => {
       expect(MATERIALS.METAL).toBeDefined();
-      expect(MATERIALS.METAL.fractureThreshold).toBeGreaterThan(MATERIALS.CONCRETE.fractureThreshold);
+      expect(MATERIALS.METAL.fractureThreshold).toBeGreaterThan(
+        MATERIALS.CONCRETE.fractureThreshold
+      );
     });
 
     it('should have stone preset', () => {

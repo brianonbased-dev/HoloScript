@@ -27,11 +27,12 @@ function minimalFiles(overrides: Partial<PackageFiles> = {}): PackageFiles {
     readme: '# Widget\n\nA useful package.\n\n```ts\nconst x = 1;\n```\n'.padEnd(250, ' '),
     changelog: '## 1.2.3\n- Initial release\n',
     license: 'MIT License\n\nCopyright (c) 2025\n',
-    sourceFiles: [
-      { path: 'src/index.ts', content: 'export const hello = () => "world";' },
-    ],
+    sourceFiles: [{ path: 'src/index.ts', content: 'export const hello = () => "world";' }],
     testFiles: [
-      { path: 'src/__tests__/index.test.ts', content: 'test("hello", () => expect(hello()).toBe("world"));' },
+      {
+        path: 'src/__tests__/index.test.ts',
+        content: 'test("hello", () => expect(hello()).toBe("world"));',
+      },
     ],
     ...overrides,
   };
@@ -68,7 +69,9 @@ describe('CertificationChecker — construction', () => {
 
 describe('CertificationChecker — certify: result structure', () => {
   let checker: CertificationChecker;
-  beforeEach(() => { checker = new CertificationChecker(); });
+  beforeEach(() => {
+    checker = new CertificationChecker();
+  });
 
   it('returns packageName from manifest', async () => {
     const r = await checker.certify(minimalFiles());
@@ -106,7 +109,9 @@ describe('CertificationChecker — certify: result structure', () => {
 
 describe('CertificationChecker — certify: certified package', () => {
   let checker: CertificationChecker;
-  beforeEach(() => { checker = new CertificationChecker(); });
+  beforeEach(() => {
+    checker = new CertificationChecker();
+  });
 
   it('certified=true for excellent package', async () => {
     const r = await checker.certify(excellentFiles());
@@ -130,7 +135,9 @@ describe('CertificationChecker — certify: certified package', () => {
 
 describe('CertificationChecker — certify: uncertified package', () => {
   let checker: CertificationChecker;
-  beforeEach(() => { checker = new CertificationChecker(); });
+  beforeEach(() => {
+    checker = new CertificationChecker();
+  });
 
   it('no-readme → certified=false', async () => {
     const r = await checker.certify(minimalFiles({ readme: undefined }));
@@ -139,37 +146,52 @@ describe('CertificationChecker — certify: uncertified package', () => {
     expect(r.expiresAt).toBeUndefined();
   });
   it('no-license file → fails required license check → certified=false', async () => {
-    const r = await checker.certify(minimalFiles({ license: undefined, manifest: {
-      name: '@test/w', version: '1.0.0', license: undefined,
-    }}));
+    const r = await checker.certify(
+      minimalFiles({
+        license: undefined,
+        manifest: {
+          name: '@test/w',
+          version: '1.0.0',
+          license: undefined,
+        },
+      })
+    );
     expect(r.certified).toBe(false);
   });
   it('invalid semver → certified=false', async () => {
-    const r = await checker.certify(minimalFiles({
-      manifest: { ...minimalFiles().manifest, version: 'not-semver' },
-    }));
+    const r = await checker.certify(
+      minimalFiles({
+        manifest: { ...minimalFiles().manifest, version: 'not-semver' },
+      })
+    );
     expect(r.certified).toBe(false);
   });
   it('JS-only source files → warning on typed check', async () => {
-    const r = await checker.certify(minimalFiles({
-      sourceFiles: [{ path: 'src/index.js', content: 'module.exports = 1;' }],
-    }));
-    const typedCheck = r.checks.find(c => c.id === 'code_typed')!;
+    const r = await checker.certify(
+      minimalFiles({
+        sourceFiles: [{ path: 'src/index.js', content: 'module.exports = 1;' }],
+      })
+    );
+    const typedCheck = r.checks.find((c) => c.id === 'code_typed')!;
     expect(['failed', 'warning']).toContain(typedCheck.status);
   });
   it('eval() in source → dangerous patterns → certified=false', async () => {
-    const r = await checker.certify(minimalFiles({
-      sourceFiles: [{ path: 'src/bad.ts', content: 'eval("dangerous")' }],
-    }));
-    const patternCheck = r.checks.find(c => c.id === 'security_patterns')!;
+    const r = await checker.certify(
+      minimalFiles({
+        sourceFiles: [{ path: 'src/bad.ts', content: 'eval("dangerous")' }],
+      })
+    );
+    const patternCheck = r.checks.find((c) => c.id === 'security_patterns')!;
     expect(patternCheck.status).toBe('failed');
     expect(r.certified).toBe(false);
   });
   it('`var` usage → linting failure', async () => {
-    const r = await checker.certify(minimalFiles({
-      sourceFiles: [{ path: 'src/old.ts', content: 'var x = 5;' }],
-    }));
-    const lintCheck = r.checks.find(c => c.id === 'code_linting')!;
+    const r = await checker.certify(
+      minimalFiles({
+        sourceFiles: [{ path: 'src/old.ts', content: 'var x = 5;' }],
+      })
+    );
+    const lintCheck = r.checks.find((c) => c.id === 'code_linting')!;
     expect(lintCheck.status).toBe('failed');
   });
 });
@@ -178,40 +200,44 @@ describe('CertificationChecker — certify: uncertified package', () => {
 
 describe('CertificationChecker — checks: documentation', () => {
   let checker: CertificationChecker;
-  beforeEach(() => { checker = new CertificationChecker(); });
+  beforeEach(() => {
+    checker = new CertificationChecker();
+  });
 
   it('short readme (< 200 chars) → doc_readme = warning', async () => {
     const r = await checker.certify(minimalFiles({ readme: '# Short' }));
-    const rc = r.checks.find(c => c.id === 'doc_readme')!;
+    const rc = r.checks.find((c) => c.id === 'doc_readme')!;
     expect(rc.status).toBe('warning');
   });
   it('no readme → doc_readme = failed', async () => {
     const r = await checker.certify(minimalFiles({ readme: undefined }));
-    expect(r.checks.find(c => c.id === 'doc_readme')!.status).toBe('failed');
+    expect(r.checks.find((c) => c.id === 'doc_readme')!.status).toBe('failed');
   });
   it('readme with code block → doc_examples = passed', async () => {
     const r = await checker.certify(minimalFiles());
-    expect(r.checks.find(c => c.id === 'doc_examples')!.status).toBe('passed');
+    expect(r.checks.find((c) => c.id === 'doc_examples')!.status).toBe('passed');
   });
   it('changelog not required → doc_changelog = skipped when no changelog', async () => {
     const checker2 = new CertificationChecker({ requireChangelog: false });
     const r = await checker2.certify(minimalFiles({ changelog: undefined }));
-    expect(r.checks.find(c => c.id === 'doc_changelog')!.status).toBe('skipped');
+    expect(r.checks.find((c) => c.id === 'doc_changelog')!.status).toBe('skipped');
   });
   it('MIT license → doc_license = passed', async () => {
     const r = await checker.certify(minimalFiles());
-    expect(r.checks.find(c => c.id === 'doc_license')!.status).toBe('passed');
+    expect(r.checks.find((c) => c.id === 'doc_license')!.status).toBe('passed');
   });
   it('GPL license (not in allowed list) → doc_license = warning', async () => {
-    const r = await checker.certify(minimalFiles({
-      license: 'GPL License text',
-      manifest: { ...minimalFiles().manifest, license: 'GPL-3.0' },
-    }));
-    expect(r.checks.find(c => c.id === 'doc_license')!.status).toBe('warning');
+    const r = await checker.certify(
+      minimalFiles({
+        license: 'GPL License text',
+        manifest: { ...minimalFiles().manifest, license: 'GPL-3.0' },
+      })
+    );
+    expect(r.checks.find((c) => c.id === 'doc_license')!.status).toBe('warning');
   });
   it('description ≥ 20 chars → doc_description = passed', async () => {
     const r = await checker.certify(minimalFiles());
-    expect(r.checks.find(c => c.id === 'doc_description')!.status).toBe('passed');
+    expect(r.checks.find((c) => c.id === 'doc_description')!.status).toBe('passed');
   });
 });
 
@@ -219,35 +245,45 @@ describe('CertificationChecker — checks: documentation', () => {
 
 describe('CertificationChecker — checks: security', () => {
   let checker: CertificationChecker;
-  beforeEach(() => { checker = new CertificationChecker(); });
+  beforeEach(() => {
+    checker = new CertificationChecker();
+  });
 
   it('no suspicious patterns → security_network = passed', async () => {
     const r = await checker.certify(minimalFiles());
-    expect(r.checks.find(c => c.id === 'security_network')!.status).toBe('passed');
+    expect(r.checks.find((c) => c.id === 'security_network')!.status).toBe('passed');
   });
   it('fetch("http://...") → security_network = warning', async () => {
-    const r = await checker.certify(minimalFiles({
-      sourceFiles: [{ path: 'src/x.ts', content: `fetch('http://evil.com/data')` }],
-    }));
-    expect(r.checks.find(c => c.id === 'security_network')!.status).toBe('warning');
+    const r = await checker.certify(
+      minimalFiles({
+        sourceFiles: [{ path: 'src/x.ts', content: `fetch('http://evil.com/data')` }],
+      })
+    );
+    expect(r.checks.find((c) => c.id === 'security_network')!.status).toBe('warning');
   });
   it('innerHTML= → security_patterns = failed', async () => {
-    const r = await checker.certify(minimalFiles({
-      sourceFiles: [{ path: 'src/x.ts', content: `document.getElementById('x').innerHTML = userInput;` }],
-    }));
-    expect(r.checks.find(c => c.id === 'security_patterns')!.status).toBe('failed');
+    const r = await checker.certify(
+      minimalFiles({
+        sourceFiles: [
+          { path: 'src/x.ts', content: `document.getElementById('x').innerHTML = userInput;` },
+        ],
+      })
+    );
+    expect(r.checks.find((c) => c.id === 'security_patterns')!.status).toBe('failed');
   });
   it('≤50 deps → security_deps = passed', async () => {
     const r = await checker.certify(minimalFiles());
-    expect(r.checks.find(c => c.id === 'security_deps')!.status).toBe('passed');
+    expect(r.checks.find((c) => c.id === 'security_deps')!.status).toBe('passed');
   });
   it('>50 deps → security_deps = warning', async () => {
     const deps: Record<string, string> = {};
     for (let i = 0; i < 55; i++) deps[`pkg-${i}`] = '1.0.0';
-    const r = await checker.certify(minimalFiles({
-      manifest: { ...minimalFiles().manifest, dependencies: deps },
-    }));
-    expect(r.checks.find(c => c.id === 'security_deps')!.status).toBe('warning');
+    const r = await checker.certify(
+      minimalFiles({
+        manifest: { ...minimalFiles().manifest, dependencies: deps },
+      })
+    );
+    expect(r.checks.find((c) => c.id === 'security_deps')!.status).toBe('warning');
   });
 });
 
@@ -255,35 +291,45 @@ describe('CertificationChecker — checks: security', () => {
 
 describe('CertificationChecker — checks: maintenance', () => {
   let checker: CertificationChecker;
-  beforeEach(() => { checker = new CertificationChecker(); });
+  beforeEach(() => {
+    checker = new CertificationChecker();
+  });
 
   it('valid semver → maint_semver = passed', async () => {
     const r = await checker.certify(minimalFiles());
-    expect(r.checks.find(c => c.id === 'maint_semver')!.status).toBe('passed');
+    expect(r.checks.find((c) => c.id === 'maint_semver')!.status).toBe('passed');
   });
   it('prerelease semver 1.0.0-beta.1 → maint_semver = passed', async () => {
-    const r = await checker.certify(minimalFiles({
-      manifest: { ...minimalFiles().manifest, version: '1.0.0-beta.1' },
-    }));
-    expect(r.checks.find(c => c.id === 'maint_semver')!.status).toBe('passed');
+    const r = await checker.certify(
+      minimalFiles({
+        manifest: { ...minimalFiles().manifest, version: '1.0.0-beta.1' },
+      })
+    );
+    expect(r.checks.find((c) => c.id === 'maint_semver')!.status).toBe('passed');
   });
   it('no repository → maint_repository = warning', async () => {
-    const r = await checker.certify(minimalFiles({
-      manifest: { ...minimalFiles().manifest, repository: undefined },
-    }));
-    expect(r.checks.find(c => c.id === 'maint_repository')!.status).toBe('warning');
+    const r = await checker.certify(
+      minimalFiles({
+        manifest: { ...minimalFiles().manifest, repository: undefined },
+      })
+    );
+    expect(r.checks.find((c) => c.id === 'maint_repository')!.status).toBe('warning');
   });
   it('author = string → maint_author = passed', async () => {
-    const r = await checker.certify(minimalFiles({
-      manifest: { ...minimalFiles().manifest, author: 'Bob' },
-    }));
-    expect(r.checks.find(c => c.id === 'maint_author')!.status).toBe('passed');
+    const r = await checker.certify(
+      minimalFiles({
+        manifest: { ...minimalFiles().manifest, author: 'Bob' },
+      })
+    );
+    expect(r.checks.find((c) => c.id === 'maint_author')!.status).toBe('passed');
   });
   it('no author → maint_author = warning', async () => {
-    const r = await checker.certify(minimalFiles({
-      manifest: { ...minimalFiles().manifest, author: undefined },
-    }));
-    expect(r.checks.find(c => c.id === 'maint_author')!.status).toBe('warning');
+    const r = await checker.certify(
+      minimalFiles({
+        manifest: { ...minimalFiles().manifest, author: undefined },
+      })
+    );
+    expect(r.checks.find((c) => c.id === 'maint_author')!.status).toBe('warning');
   });
 });
 
@@ -299,17 +345,21 @@ describe('CertificationChecker — score and grade', () => {
     const checker = new CertificationChecker();
     const r = await checker.certify({
       manifest: { name: 'b', version: 'bad', license: 'GPL-3.0' },
-      sourceFiles: [{ path: 'src/a.js', content: 'var x = eval("a"); console.log(x); innerHTML = x;' }],
+      sourceFiles: [
+        { path: 'src/a.js', content: 'var x = eval("a"); console.log(x); innerHTML = x;' },
+      ],
       testFiles: [],
     });
     expect(['C', 'D', 'F']).toContain(r.grade);
   });
   it('console.log in source → code_no_console = warning (not required)', async () => {
     const checker = new CertificationChecker();
-    const r = await checker.certify(minimalFiles({
-      sourceFiles: [{ path: 'src/x.ts', content: 'console.log("hi")' }],
-    }));
-    const check = r.checks.find(c => c.id === 'code_no_console')!;
+    const r = await checker.certify(
+      minimalFiles({
+        sourceFiles: [{ path: 'src/x.ts', content: 'console.log("hi")' }],
+      })
+    );
+    const check = r.checks.find((c) => c.id === 'code_no_console')!;
     expect(check.status).toBe('warning');
     expect(check.required).toBe(false);
   });

@@ -4,7 +4,9 @@ import { AudioDynamics } from '../AudioDynamics';
 describe('AudioDynamics', () => {
   let dyn: AudioDynamics;
 
-  beforeEach(() => { dyn = new AudioDynamics(); });
+  beforeEach(() => {
+    dyn = new AudioDynamics();
+  });
 
   // ---------------------------------------------------------------------------
   // Compressor

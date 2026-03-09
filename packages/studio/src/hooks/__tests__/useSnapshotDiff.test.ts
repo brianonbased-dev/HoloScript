@@ -4,13 +4,13 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useSnapshotDiff } from '../useSnapshotDiff';
 import { useTemporalStore } from '@/lib/historyStore';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 vi.mock('@/lib/historyStore', () => ({
   useTemporalStore: vi.fn(),
 }));
 
-vi.mock('@/lib/store', () => ({
+vi.mock('@/lib/stores', () => ({
   useSceneStore: vi.fn(),
 }));
 
@@ -41,9 +41,7 @@ describe('useSnapshotDiff', () => {
       const { result } = renderHook(() => useSnapshotDiff());
 
       // Empty code strings result in one 'same' line with empty text
-      expect(result.current.diff).toEqual([
-        { type: 'same', text: '', lineA: 1, lineB: 1 },
-      ]);
+      expect(result.current.diff).toEqual([{ type: 'same', text: '', lineA: 1, lineB: 1 }]);
     });
 
     it('should initialize with indexA = 0 and indexB = 0 when no past states', () => {
@@ -210,9 +208,9 @@ describe('useSnapshotDiff', () => {
 
       const diff = result.current.diff;
       expect(diff[0]).toEqual({ type: 'same', text: 'line1', lineA: 1, lineB: 1 });
-      expect(diff.some(d => d.type === 'removed' && d.text === 'line2')).toBe(true);
-      expect(diff.some(d => d.type === 'added' && d.text === 'line4')).toBe(true);
-      expect(diff.some(d => d.type === 'same' && d.text === 'line3')).toBe(true);
+      expect(diff.some((d) => d.type === 'removed' && d.text === 'line2')).toBe(true);
+      expect(diff.some((d) => d.type === 'added' && d.text === 'line4')).toBe(true);
+      expect(diff.some((d) => d.type === 'same' && d.text === 'line3')).toBe(true);
     });
 
     it('should handle complete replacement', () => {
@@ -371,9 +369,7 @@ describe('useSnapshotDiff', () => {
 
       const { result } = renderHook(() => useSnapshotDiff());
 
-      expect(result.current.diff).toEqual([
-        { type: 'same', text: '', lineA: 1, lineB: 1 },
-      ]);
+      expect(result.current.diff).toEqual([{ type: 'same', text: '', lineA: 1, lineB: 1 }]);
     });
 
     it('should handle single line code', () => {
@@ -486,9 +482,7 @@ describe('useSnapshotDiff', () => {
         result.current.setIndexB(0);
       });
 
-      expect(result.current.diff).toEqual([
-        { type: 'same', text: 'same', lineA: 1, lineB: 1 },
-      ]);
+      expect(result.current.diff).toEqual([{ type: 'same', text: 'same', lineA: 1, lineB: 1 }]);
       expect(result.current.stats).toEqual({
         added: 0,
         removed: 0,
@@ -496,11 +490,7 @@ describe('useSnapshotDiff', () => {
     });
 
     it('should handle rapid index changes', () => {
-      mockTemporal.pastStates = [
-        { code: 'v0' },
-        { code: 'v1' },
-        { code: 'v2' },
-      ];
+      mockTemporal.pastStates = [{ code: 'v0' }, { code: 'v1' }, { code: 'v2' }];
       mockCurrentCode = 'v3';
 
       const { result } = renderHook(() => useSnapshotDiff());
@@ -537,8 +527,8 @@ describe('useSnapshotDiff', () => {
         result.current.setIndexB(1);
       });
 
-      const sameLines = result.current.diff.filter(d => d.type === 'same');
-      expect(sameLines.map(d => d.text)).toEqual(['a', 'c']);
+      const sameLines = result.current.diff.filter((d) => d.type === 'same');
+      expect(sameLines.map((d) => d.text)).toEqual(['a', 'c']);
     });
 
     it('should handle no common lines', () => {
@@ -552,7 +542,7 @@ describe('useSnapshotDiff', () => {
         result.current.setIndexB(1);
       });
 
-      const sameLines = result.current.diff.filter(d => d.type === 'same');
+      const sameLines = result.current.diff.filter((d) => d.type === 'same');
       expect(sameLines).toHaveLength(0);
       expect(result.current.stats.removed).toBe(2);
       expect(result.current.stats.added).toBe(2);
@@ -569,7 +559,7 @@ describe('useSnapshotDiff', () => {
         result.current.setIndexB(1);
       });
 
-      const sameLines = result.current.diff.filter(d => d.type === 'same');
+      const sameLines = result.current.diff.filter((d) => d.type === 'same');
       expect(sameLines).toHaveLength(3);
       expect(result.current.stats.removed).toBe(0);
       expect(result.current.stats.added).toBe(0);

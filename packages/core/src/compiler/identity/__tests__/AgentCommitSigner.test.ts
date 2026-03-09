@@ -48,8 +48,9 @@ describe('AgentCommitSigner', () => {
         { filePath: 'src/a.ts', changeType: 'modify', content: 'const x = 1;' },
       ];
 
-      expect(signer.calculateChangeSetDigest(changes1))
-        .toBe(signer.calculateChangeSetDigest(changes2));
+      expect(signer.calculateChangeSetDigest(changes1)).toBe(
+        signer.calculateChangeSetDigest(changes2)
+      );
     });
 
     it('should produce different digest for different content', () => {
@@ -61,8 +62,9 @@ describe('AgentCommitSigner', () => {
         { filePath: 'src/a.ts', changeType: 'modify', content: 'version 2' },
       ];
 
-      expect(signer.calculateChangeSetDigest(changes1))
-        .not.toBe(signer.calculateChangeSetDigest(changes2));
+      expect(signer.calculateChangeSetDigest(changes1)).not.toBe(
+        signer.calculateChangeSetDigest(changes2)
+      );
     });
 
     it('should handle delete operations (null content)', () => {
@@ -205,11 +207,11 @@ describe('AgentCommitSigner', () => {
       });
 
       // Sign with Ed25519
-      const signature = crypto.sign(
-        null,
-        Buffer.from(signingPayload, 'utf-8'),
-        { key: privateKey, format: 'pem', type: 'pkcs8' }
-      );
+      const signature = crypto.sign(null, Buffer.from(signingPayload, 'utf-8'), {
+        key: privateKey,
+        format: 'pem',
+        type: 'pkcs8',
+      });
       metadata.signature = signature.toString('base64');
 
       // Format commit message
@@ -253,11 +255,11 @@ describe('AgentCommitSigner', () => {
         timestamp: metadata.signedAt,
       });
 
-      const signature = crypto.sign(
-        null,
-        Buffer.from(signingPayload, 'utf-8'),
-        { key: privateKey, format: 'pem', type: 'pkcs8' }
-      );
+      const signature = crypto.sign(null, Buffer.from(signingPayload, 'utf-8'), {
+        key: privateKey,
+        format: 'pem',
+        type: 'pkcs8',
+      });
       metadata.signature = signature.toString('base64');
 
       // Tamper with the digest AFTER signing
@@ -308,11 +310,11 @@ describe('AgentCommitSigner', () => {
         timestamp: metadata.signedAt,
       });
 
-      const signature = crypto.sign(
-        null,
-        Buffer.from(signingPayload, 'utf-8'),
-        { key: privateKey, format: 'pem', type: 'pkcs8' }
-      );
+      const signature = crypto.sign(null, Buffer.from(signingPayload, 'utf-8'), {
+        key: privateKey,
+        format: 'pem',
+        type: 'pkcs8',
+      });
       metadata.signature = signature.toString('base64');
 
       const commitMessage = signer.formatCommitMessage('refactor: optimize AST', metadata);

@@ -4,8 +4,8 @@
  * Tests for LODStreamer and LODTransition.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { LODStreamer }    from '../lod/LODStreamer';
-import { LODTransition }  from '../lod/LODTransition';
+import { LODStreamer } from '../lod/LODStreamer';
+import { LODTransition } from '../lod/LODTransition';
 
 // =============================================================================
 // LODStreamer
@@ -13,7 +13,9 @@ import { LODTransition }  from '../lod/LODTransition';
 describe('LODStreamer', () => {
   let streamer: LODStreamer;
 
-  beforeEach(() => { streamer = new LODStreamer(512); });
+  beforeEach(() => {
+    streamer = new LODStreamer(512);
+  });
 
   it('initializes with budget', () => {
     expect(streamer.getMemoryBudget()).toBe(512);
@@ -22,14 +24,22 @@ describe('LODStreamer', () => {
 
   it('registers assets', () => {
     streamer.registerAsset({
-      id: 'tree', lodLevels: [50, 100, 200], currentLOD: -1, priority: 1, memoryCost: [100, 50, 20],
+      id: 'tree',
+      lodLevels: [50, 100, 200],
+      currentLOD: -1,
+      priority: 1,
+      memoryCost: [100, 50, 20],
     });
     expect(streamer.getCurrentLOD('tree')).toBe(-1);
   });
 
   it('evaluates distance-based LOD selection', () => {
     streamer.registerAsset({
-      id: 'house', lodLevels: [30, 60, 120], currentLOD: -1, priority: 1, memoryCost: [200, 100, 40],
+      id: 'house',
+      lodLevels: [30, 60, 120],
+      currentLOD: -1,
+      priority: 1,
+      memoryCost: [200, 100, 40],
     });
     const lod = streamer.evaluateDistance('house', 25);
     expect(lod).toBe(0); // closest LOD
@@ -41,17 +51,25 @@ describe('LODStreamer', () => {
 
   it('selects higher LOD at farther distance', () => {
     streamer.registerAsset({
-      id: 'rock', lodLevels: [20, 50, 100], currentLOD: -1, priority: 1, memoryCost: [80, 40, 10],
+      id: 'rock',
+      lodLevels: [20, 50, 100],
+      currentLOD: -1,
+      priority: 1,
+      memoryCost: [80, 40, 10],
     });
     const near = streamer.evaluateDistance('rock', 5);
-    const far  = streamer.evaluateDistance('rock', 45);
+    const far = streamer.evaluateDistance('rock', 45);
     expect(near).toBe(0);
     expect(far).toBe(1);
   });
 
   it('processQueue respects memory budget', () => {
     streamer.registerAsset({
-      id: 'big', lodLevels: [100], currentLOD: -1, priority: 2, memoryCost: [600],
+      id: 'big',
+      lodLevels: [100],
+      currentLOD: -1,
+      priority: 2,
+      memoryCost: [600],
     });
     streamer.update(0, 0, 0);
     const processed = streamer.processQueue();
@@ -61,7 +79,11 @@ describe('LODStreamer', () => {
 
   it('processQueue loads within budget', () => {
     streamer.registerAsset({
-      id: 'small', lodLevels: [100], currentLOD: -1, priority: 1, memoryCost: [100],
+      id: 'small',
+      lodLevels: [100],
+      currentLOD: -1,
+      priority: 1,
+      memoryCost: [100],
     });
     streamer.update(0, 0, 0);
     const processed = streamer.processQueue();
@@ -70,10 +92,18 @@ describe('LODStreamer', () => {
 
   it('priority ordering in load queue', () => {
     streamer.registerAsset({
-      id: 'low', lodLevels: [100], currentLOD: -1, priority: 1, memoryCost: [50],
+      id: 'low',
+      lodLevels: [100],
+      currentLOD: -1,
+      priority: 1,
+      memoryCost: [50],
     });
     streamer.registerAsset({
-      id: 'high', lodLevels: [100], currentLOD: -1, priority: 10, memoryCost: [50],
+      id: 'high',
+      lodLevels: [100],
+      currentLOD: -1,
+      priority: 10,
+      memoryCost: [50],
     });
     streamer.update(0, 0, 0);
     // High priority should be processed first — just make sure no crash
@@ -88,7 +118,9 @@ describe('LODStreamer', () => {
 describe('LODTransition', () => {
   let trans: LODTransition;
 
-  beforeEach(() => { trans = new LODTransition(); });
+  beforeEach(() => {
+    trans = new LODTransition();
+  });
 
   it('defaults to crossfade mode', () => {
     expect(trans.getMode()).toBe('crossfade');
@@ -135,7 +167,7 @@ describe('LODTransition', () => {
     const trans2 = new LODTransition({ hysteresisBand: 10 });
     // Moving to higher LOD requires exceeding threshold + band
     expect(trans2.shouldTransition(55, 50, 0, 1)).toBe(false); // 55 < 50+10
-    expect(trans2.shouldTransition(65, 50, 0, 1)).toBe(true);  // 65 > 50+10
+    expect(trans2.shouldTransition(65, 50, 0, 1)).toBe(true); // 65 > 50+10
   });
 
   it('morph uses smoothstep blending', () => {

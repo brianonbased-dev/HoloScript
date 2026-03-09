@@ -66,11 +66,7 @@ import {
 class TestDualModeCompiler extends CompilerBase {
   protected readonly compilerName = 'TestDualModeCompiler';
 
-  compile(
-    _composition: HoloComposition,
-    agentToken: string,
-    outputPath?: string,
-  ): string {
+  compile(_composition: HoloComposition, agentToken: string, outputPath?: string): string {
     this.validateCompilerAccess(agentToken, outputPath);
     return '// compiled';
   }
@@ -82,7 +78,7 @@ class TestDualModeCompiler extends CompilerBase {
 
   public exposeValidateCapabilityAccess(
     credential: CapabilityTokenCredential,
-    outputPath?: string,
+    outputPath?: string
   ): void {
     this.validateCapabilityAccess(credential, outputPath);
   }
@@ -96,11 +92,7 @@ class TestDualModeCompiler extends CompilerBase {
 class TestUnityCompiler extends CompilerBase {
   protected readonly compilerName = 'UnityCompiler';
 
-  compile(
-    _composition: HoloComposition,
-    agentToken: string,
-    outputPath?: string,
-  ): string {
+  compile(_composition: HoloComposition, agentToken: string, outputPath?: string): string {
     this.validateCompilerAccess(agentToken, outputPath);
     return '// unity compiled';
   }
@@ -114,10 +106,7 @@ class TestUnityCompiler extends CompilerBase {
 class TestCustomCapabilityCompiler extends CompilerBase {
   protected readonly compilerName = 'CustomCompiler';
 
-  compile(
-    _composition: HoloComposition,
-    agentToken: string,
-  ): string {
+  compile(_composition: HoloComposition, agentToken: string): string {
     this.validateCompilerAccess(agentToken);
     return '// custom compiled';
   }
@@ -189,7 +178,8 @@ function makeFakeCapabilityToken(): CapabilityToken {
 function makeFakeCredential(): CapabilityTokenCredential {
   return {
     capabilityToken: makeFakeCapabilityToken(),
-    issuerPublicKey: '-----BEGIN PUBLIC KEY-----\nfake-ed25519-public-key\n-----END PUBLIC KEY-----',
+    issuerPublicKey:
+      '-----BEGIN PUBLIC KEY-----\nfake-ed25519-public-key\n-----END PUBLIC KEY-----',
   };
 }
 
@@ -277,7 +267,7 @@ describe('CompilerBase Dual-Mode (P3 Migration Bridge)', () => {
       mockJwtCheckAccess.mockReturnValue(makeDeniedJwt('No access'));
 
       expect(() => compiler.exposeValidateCompilerAccess(FAKE_JWT_TOKEN)).toThrow(
-        UnauthorizedCompilerAccessError,
+        UnauthorizedCompilerAccessError
       );
 
       expect(mockJwtCheckAccess).toHaveBeenCalledTimes(1);
@@ -366,7 +356,7 @@ describe('CompilerBase Dual-Mode (P3 Migration Bridge)', () => {
       const credential = makeFakeCredential();
 
       expect(() => compiler.exposeValidateCompilerAccess(credential)).toThrow(
-        UnauthorizedCompilerAccessError,
+        UnauthorizedCompilerAccessError
       );
 
       try {
@@ -380,13 +370,13 @@ describe('CompilerBase Dual-Mode (P3 Migration Bridge)', () => {
 
     it('throws UnauthorizedCompilerAccessError when CODE capability denied', () => {
       mockCapCheckAccess
-        .mockReturnValueOnce(makeAllowedCap())  // AST passes
-        .mockReturnValueOnce(makeDeniedCap('No code capability'));  // CODE fails
+        .mockReturnValueOnce(makeAllowedCap()) // AST passes
+        .mockReturnValueOnce(makeDeniedCap('No code capability')); // CODE fails
 
       const credential = makeFakeCredential();
 
       expect(() => compiler.exposeValidateCompilerAccess(credential)).toThrow(
-        UnauthorizedCompilerAccessError,
+        UnauthorizedCompilerAccessError
       );
 
       // Should stop after second call (CODE denied)
@@ -409,15 +399,15 @@ describe('CompilerBase Dual-Mode (P3 Migration Bridge)', () => {
 
     it('throws UnauthorizedCompilerAccessError when OUTPUT capability denied', () => {
       mockCapCheckAccess
-        .mockReturnValueOnce(makeAllowedCap())  // AST passes
-        .mockReturnValueOnce(makeAllowedCap())  // CODE passes
-        .mockReturnValueOnce(makeDeniedCap('No output capability'));  // OUTPUT fails
+        .mockReturnValueOnce(makeAllowedCap()) // AST passes
+        .mockReturnValueOnce(makeAllowedCap()) // CODE passes
+        .mockReturnValueOnce(makeDeniedCap('No output capability')); // OUTPUT fails
 
       const credential = makeFakeCredential();
 
-      expect(() =>
-        compiler.exposeValidateCompilerAccess(credential, '/restricted/out.cs'),
-      ).toThrow(UnauthorizedCompilerAccessError);
+      expect(() => compiler.exposeValidateCompilerAccess(credential, '/restricted/out.cs')).toThrow(
+        UnauthorizedCompilerAccessError
+      );
 
       expect(mockCapCheckAccess).toHaveBeenCalledTimes(3);
     });
@@ -503,9 +493,7 @@ describe('CompilerBase Dual-Mode (P3 Migration Bridge)', () => {
       mockCapCheckAccess.mockReturnValue(makeAllowedCap());
       const credential = makeFakeCredential();
 
-      expect(() =>
-        compiler.exposeValidateCapabilityAccess(credential),
-      ).not.toThrow();
+      expect(() => compiler.exposeValidateCapabilityAccess(credential)).not.toThrow();
     });
 
     it('succeeds with output path when all capability checks pass', () => {
@@ -513,7 +501,7 @@ describe('CompilerBase Dual-Mode (P3 Migration Bridge)', () => {
       const credential = makeFakeCredential();
 
       expect(() =>
-        compiler.exposeValidateCapabilityAccess(credential, '/out/scene.cs'),
+        compiler.exposeValidateCapabilityAccess(credential, '/out/scene.cs')
       ).not.toThrow();
 
       expect(mockCapCheckAccess).toHaveBeenCalledTimes(3);

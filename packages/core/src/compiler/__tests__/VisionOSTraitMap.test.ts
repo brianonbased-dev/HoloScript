@@ -61,18 +61,18 @@ describe('VisionOSTraitMap', () => {
   it('generates Swift code for physics trait', () => {
     const code = generateTraitCode('physics', 'myEntity', { mode: 'dynamic' });
     expect(code.length).toBeGreaterThan(0);
-    expect(code.some(l => l.includes('myEntity'))).toBe(true);
-    expect(code.some(l => l.includes('PhysicsBodyComponent'))).toBe(true);
+    expect(code.some((l) => l.includes('myEntity'))).toBe(true);
+    expect(code.some((l) => l.includes('PhysicsBodyComponent'))).toBe(true);
   });
 
   it('generates Swift code for collidable trait', () => {
     const code = generateTraitCode('collidable', 'ball', {});
-    expect(code.some(l => l.includes('CollisionComponent'))).toBe(true);
+    expect(code.some((l) => l.includes('CollisionComponent'))).toBe(true);
   });
 
   it('generates Swift code for grabbable trait', () => {
     const code = generateTraitCode('grabbable', 'cube', {});
-    expect(code.some(l => l.includes('cube'))).toBe(true);
+    expect(code.some((l) => l.includes('cube'))).toBe(true);
   });
 
   it('generates fallback comment for unknown trait', () => {
@@ -83,18 +83,18 @@ describe('VisionOSTraitMap', () => {
 
   it('generates portal code', () => {
     const code = generateTraitCode('portal', 'gate', { target_world: 'myWorld' });
-    expect(code.some(l => l.includes('PortalComponent'))).toBe(true);
+    expect(code.some((l) => l.includes('PortalComponent'))).toBe(true);
   });
 
   it('generates spatial_audio code', () => {
     const code = generateTraitCode('spatial_audio', 'speaker', {});
-    expect(code.some(l => l.includes('speaker'))).toBe(true);
-    expect(code.some(l => l.includes('SpatialAudioComponent'))).toBe(true);
+    expect(code.some((l) => l.includes('speaker'))).toBe(true);
+    expect(code.some((l) => l.includes('SpatialAudioComponent'))).toBe(true);
   });
 
   it('generates hover effect code', () => {
     const code = generateTraitCode('hoverable', 'btn', {});
-    expect(code.some(l => l.includes('HoverEffectComponent'))).toBe(true);
+    expect(code.some((l) => l.includes('HoverEffectComponent'))).toBe(true);
   });
 
   // =========== getRequiredImports ===========
@@ -107,7 +107,7 @@ describe('VisionOSTraitMap', () => {
   it('deduplicates imports', () => {
     // Both audio and ambisonics should not produce duplicates
     const imports = getRequiredImports(['audio', 'audio']);
-    const avCount = imports.filter(i => i === 'AVFoundation').length;
+    const avCount = imports.filter((i) => i === 'AVFoundation').length;
     expect(avCount).toBe(1);
   });
 

@@ -54,9 +54,7 @@ export function encodeCBOR(obj: unknown, options: CBOROptions = {}): CBORResult 
 
   // Check size limit
   if (options.maxBufferSize && cborSize > options.maxBufferSize) {
-    throw new Error(
-      `CBOR encoding exceeds maximum size: ${cborSize} > ${options.maxBufferSize}`
-    );
+    throw new Error(`CBOR encoding exceeds maximum size: ${cborSize} > ${options.maxBufferSize}`);
   }
 
   return {

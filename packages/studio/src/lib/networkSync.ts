@@ -10,7 +10,11 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
-export interface Vec3 { x: number; y: number; z: number }
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 export interface EntityState {
   id: string;
@@ -18,7 +22,7 @@ export interface EntityState {
   rotation: Vec3;
   velocity: Vec3;
   health?: number;
-  owner: string;        // Player ID who owns this entity
+  owner: string; // Player ID who owns this entity
   timestamp: number;
 }
 
@@ -58,7 +62,7 @@ export interface BandwidthMetrics {
 
 export interface InterpolationFrame {
   entity: EntityState;
-  progress: number;     // 0..1 between from and to
+  progress: number; // 0..1 between from and to
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -68,17 +72,17 @@ export interface InterpolationFrame {
 const EPSILON = 0.001;
 
 function vec3Equal(a: Vec3, b: Vec3): boolean {
-  return Math.abs(a.x - b.x) < EPSILON
-    && Math.abs(a.y - b.y) < EPSILON
-    && Math.abs(a.z - b.z) < EPSILON;
+  return (
+    Math.abs(a.x - b.x) < EPSILON && Math.abs(a.y - b.y) < EPSILON && Math.abs(a.z - b.z) < EPSILON
+  );
 }
 
 /**
  * Compute delta between two snapshots. Only changed fields are included.
  */
 export function deltaCompress(prev: Snapshot, curr: Snapshot): DeltaPatch {
-  const prevMap = new Map(prev.entities.map(e => [e.id, e]));
-  const currMap = new Map(curr.entities.map(e => [e.id, e]));
+  const prevMap = new Map(prev.entities.map((e) => [e.id, e]));
+  const currMap = new Map(curr.entities.map((e) => [e.id, e]));
 
   const changes: EntityDelta[] = [];
   const addedEntities: EntityState[] = [];
@@ -131,9 +135,9 @@ export function deltaCompress(prev: Snapshot, curr: Snapshot): DeltaPatch {
  */
 export function deltaApply(base: Snapshot, patch: DeltaPatch): Snapshot {
   const entities = base.entities
-    .filter(e => !patch.removedIds.includes(e.id))
-    .map(e => {
-      const delta = patch.changes.find(d => d.id === e.id);
+    .filter((e) => !patch.removedIds.includes(e.id))
+    .map((e) => {
+      const delta = patch.changes.find((d) => d.id === e.id);
       if (!delta) return e;
       return {
         ...e,
@@ -228,23 +232,26 @@ export function conflictResolve(
 /**
  * Compute full diff between two snapshots for debugging/inspection.
  */
-export function snapshotDiff(a: Snapshot, b: Snapshot): {
+export function snapshotDiff(
+  a: Snapshot,
+  b: Snapshot
+): {
   added: string[];
   removed: string[];
   changed: string[];
   unchanged: string[];
 } {
   const delta = deltaCompress(a, b);
-  const aIds = new Set(a.entities.map(e => e.id));
-  const bIds = new Set(b.entities.map(e => e.id));
+  const aIds = new Set(a.entities.map((e) => e.id));
+  const bIds = new Set(b.entities.map((e) => e.id));
   const unchanged = a.entities
-    .filter(e => bIds.has(e.id) && !delta.changes.some(d => d.id === e.id))
-    .map(e => e.id);
+    .filter((e) => bIds.has(e.id) && !delta.changes.some((d) => d.id === e.id))
+    .map((e) => e.id);
 
   return {
-    added: delta.addedEntities.map(e => e.id),
+    added: delta.addedEntities.map((e) => e.id),
     removed: delta.removedIds,
-    changed: delta.changes.map(d => d.id),
+    changed: delta.changes.map((d) => d.id),
     unchanged,
   };
 }
@@ -278,7 +285,9 @@ export function bandwidthEstimate(
 /**
  * Classify network quality from round-trip time.
  */
-export function networkQuality(rttMs: number): 'excellent' | 'good' | 'fair' | 'poor' | 'disconnected' {
+export function networkQuality(
+  rttMs: number
+): 'excellent' | 'good' | 'fair' | 'poor' | 'disconnected' {
   if (rttMs < 30) return 'excellent';
   if (rttMs < 80) return 'good';
   if (rttMs < 150) return 'fair';

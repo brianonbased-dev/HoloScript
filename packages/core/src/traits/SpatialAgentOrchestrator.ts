@@ -194,7 +194,8 @@ function blueprintToDSL(bp: SceneBlueprint, target: string): string {
     lines.push(`    rotation: [${obj.rotation.join(', ')}]`);
     lines.push(`    scale: [${obj.scale.join(', ')}]`);
     lines.push(`    material: ${obj.material}`);
-    if (obj.traits.length > 0) lines.push(`    traits: [${obj.traits.map(t => `"${t}"`).join(', ')}]`);
+    if (obj.traits.length > 0)
+      lines.push(`    traits: [${obj.traits.map((t) => `"${t}"`).join(', ')}]`);
     lines.push(`  }`);
     lines.push(``);
   }
@@ -205,7 +206,7 @@ function blueprintToDSL(bp: SceneBlueprint, target: string): string {
     lines.push(`    name: "${agent.name}"`);
     lines.push(`    role: "${agent.role}"`);
     lines.push(`    position: [${agent.position.join(', ')}]`);
-    lines.push(`    traits: [${agent.traits.map(t => `"${t}"`).join(', ')}]`);
+    lines.push(`    traits: [${agent.traits.map((t) => `"${t}"`).join(', ')}]`);
     lines.push(`  }`);
     lines.push(``);
   }
@@ -228,13 +229,19 @@ async function callLLM(
   const body = isOllama
     ? {
         model: config.model,
-        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
         stream: false,
         options: { temperature: config.temperature },
       }
     : {
         model: config.model,
-        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
         stream: false,
         temperature: config.temperature,
       };
@@ -242,7 +249,12 @@ async function callLLM(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (config.llm_api_key) headers['Authorization'] = `Bearer ${config.llm_api_key}`;
 
-  const res = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body), signal });
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+    signal,
+  });
   if (!res.ok) throw new Error(`LLM ${res.status}: ${res.statusText}`);
   const data = await res.json();
   return isOllama ? (data.message?.content ?? '') : (data.choices?.[0]?.message?.content ?? '');
@@ -250,7 +262,10 @@ async function callLLM(
 
 function parseBlueprint(json: string): SceneBlueprint {
   // Strip markdown code blocks if LLM wrapped them
-  const cleaned = json.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  const cleaned = json
+    .replace(/```json\n?/g, '')
+    .replace(/```\n?/g, '')
+    .trim();
   return JSON.parse(cleaned);
 }
 
@@ -299,24 +314,45 @@ export const spatialAgentHandler = {
     }
   },
 
-  onUpdate(_node: any, _config: SpatialAgentConfig, _ctx: any, _dt: number): void { /* async */ },
+  onUpdate(_node: any, _config: SpatialAgentConfig, _ctx: any, _dt: number): void {
+    /* async */
+  },
 
-  _generate(state: SpatialAgentState, node: any, config: SpatialAgentConfig, ctx: any, payload: any): void {
+  _generate(
+    state: SpatialAgentState,
+    node: any,
+    config: SpatialAgentConfig,
+    ctx: any,
+    payload: any
+  ): void {
     if (!payload?.prompt) return;
     const requestId = payload.requestId ?? generateRequestId();
-    state.activeGenerations.set(requestId, { prompt: payload.prompt, step: 'blueprint', startedAt: Date.now() });
+    state.activeGenerations.set(requestId, {
+      prompt: payload.prompt,
+      step: 'blueprint',
+      startedAt: Date.now(),
+    });
     ctx.emit('scene_generation_started', { node, requestId, prompt: payload.prompt });
     ctx.emit('scene_generation_progress', { node, requestId, step: 'blueprint', pct: 5 });
 
     this._runGeneration(state, node, config, ctx, requestId, payload.prompt).catch((err: Error) => {
       state.activeGenerations.delete(requestId);
-      ctx.emit('scene_generation_failed', { node, requestId, error: err.message, step: state.activeGenerations.get(requestId)?.step ?? 'unknown' });
+      ctx.emit('scene_generation_failed', {
+        node,
+        requestId,
+        error: err.message,
+        step: state.activeGenerations.get(requestId)?.step ?? 'unknown',
+      });
     });
   },
 
   async _runGeneration(
-    state: SpatialAgentState, node: any, config: SpatialAgentConfig, ctx: any,
-    requestId: string, prompt: string
+    state: SpatialAgentState,
+    node: any,
+    config: SpatialAgentConfig,
+    ctx: any,
+    requestId: string,
+    prompt: string
   ): Promise<void> {
     // Step 1: Generate blueprint
     ctx.emit('scene_generation_progress', { node, requestId, step: 'blueprint', pct: 10 });
@@ -380,7 +416,13 @@ export const spatialAgentHandler = {
     }
   },
 
-  _fromBlueprint(state: SpatialAgentState, node: any, config: SpatialAgentConfig, ctx: any, payload: any): void {
+  _fromBlueprint(
+    state: SpatialAgentState,
+    node: any,
+    config: SpatialAgentConfig,
+    ctx: any,
+    payload: any
+  ): void {
     if (!payload?.blueprint) return;
     const requestId = payload.requestId ?? generateRequestId();
     // Clone and cap to config limits
@@ -392,14 +434,26 @@ export const spatialAgentHandler = {
     const dsl = blueprintToDSL(blueprint, config.compile_target);
 
     ctx.emit('scene_dsl_ready', { node, requestId, dsl });
-    const scene = { requestId, title: blueprint.title, description: blueprint.description, dsl, blueprint, target: config.compile_target, generatedAt: Date.now() };
+    const scene = {
+      requestId,
+      title: blueprint.title,
+      description: blueprint.description,
+      dsl,
+      blueprint,
+      target: config.compile_target,
+      generatedAt: Date.now(),
+    };
     state.totalGenerated++;
     ctx.emit('scene_compiled', { node, requestId, scene });
 
     // Auto-render if configured
     if (config.auto_render) {
       state.totalRendered++;
-      ctx.emit('render_submit', { scene: { id: requestId, data: dsl }, quality: config.render_quality, frames: { start: 0, end: 0 } });
+      ctx.emit('render_submit', {
+        scene: { id: requestId, data: dsl },
+        quality: config.render_quality,
+        frames: { start: 0, end: 0 },
+      });
       ctx.emit('scene_render_queued', { node, requestId });
     }
   },

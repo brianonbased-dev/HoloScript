@@ -81,7 +81,7 @@ describe('ReachabilityAnalyzer', () => {
     graph.buildFromAST(ast, 'test.holo');
     const analyzer = new ReachabilityAnalyzer(graph, { ignorePatterns: [/^_/] });
     const result = analyzer.analyze();
-    const internal = result.deadCode.find(d => d.symbol.name === '_internal');
+    const internal = result.deadCode.find((d) => d.symbol.name === '_internal');
     expect(internal).toBeUndefined();
   });
 
@@ -89,7 +89,9 @@ describe('ReachabilityAnalyzer', () => {
     graph.addDefinition({ name: 'Main', type: 'orb', filePath: 'a.holo', line: 1, column: 0 });
     const ast = makeAST([orbNode('Main')]);
     graph.buildFromAST(ast, 'a.holo');
-    const analyzer = new ReachabilityAnalyzer(graph, { additionalEntryPoints: ['orb:Main:a.holo:1'] });
+    const analyzer = new ReachabilityAnalyzer(graph, {
+      additionalEntryPoints: ['orb:Main:a.holo:1'],
+    });
     const result = analyzer.analyze();
     expect(result.reachable.length).toBeGreaterThanOrEqual(1);
   });

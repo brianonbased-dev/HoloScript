@@ -18,17 +18,17 @@ import type { ProjectScene } from '../projectStore';
 export function duplicateNode(
   node: SceneNode,
   newId: string,
-  newParentId?: string | null,
+  newParentId?: string | null
 ): SceneNode {
   return {
     ...node,
     id: newId,
     name: `${node.name} Copy`,
     parentId: newParentId !== undefined ? newParentId : node.parentId,
-    traits: node.traits.map(t => ({ ...t, properties: { ...t.properties } })),
+    traits: node.traits.map((t) => ({ ...t, properties: { ...t.properties } })),
     position: [...node.position] as [number, number, number],
     rotation: [...node.rotation] as [number, number, number],
-    scale:    [...node.scale]    as [number, number, number],
+    scale: [...node.scale] as [number, number, number],
   };
 }
 
@@ -42,7 +42,7 @@ export function groupNodes(
   nodes: SceneNode[],
   groupId: string,
   groupName = 'Group',
-  parentId: string | null = null,
+  parentId: string | null = null
 ): { group: SceneNode; updatedChildren: SceneNode[] } {
   const group: SceneNode = {
     id: groupId,
@@ -54,7 +54,7 @@ export function groupNodes(
     rotation: [0, 0, 0],
     scale: [1, 1, 1],
   };
-  const updatedChildren = nodes.map(n => ({ ...n, parentId: groupId }));
+  const updatedChildren = nodes.map((n) => ({ ...n, parentId: groupId }));
   return { group, updatedChildren };
 }
 
@@ -62,10 +62,8 @@ export function groupNodes(
  * Flatten a scene graph into a display list ordered by depth-first traversal.
  * Returns nodes with a `depth` field for indentation.
  */
-export function flattenSceneGraph(
-  nodes: SceneNode[],
-): Array<SceneNode & { depth: number }> {
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+export function flattenSceneGraph(nodes: SceneNode[]): Array<SceneNode & { depth: number }> {
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
   const children = new Map<string | null, SceneNode[]>();
   for (const n of nodes) {
     const key = n.parentId ?? null;
@@ -89,7 +87,7 @@ export function flattenSceneGraph(
  */
 export function getDescendants(nodes: SceneNode[], nodeId: string): SceneNode[] {
   const result: SceneNode[] = [];
-  const children = nodes.filter(n => n.parentId === nodeId);
+  const children = nodes.filter((n) => n.parentId === nodeId);
   for (const child of children) {
     result.push(child, ...getDescendants(nodes, child.id));
   }
@@ -100,8 +98,8 @@ export function getDescendants(nodes: SceneNode[], nodeId: string): SceneNode[] 
  * Remove a node and all its descendants from the scene graph.
  */
 export function removeNodeWithDescendants(nodes: SceneNode[], nodeId: string): SceneNode[] {
-  const toRemove = new Set([nodeId, ...getDescendants(nodes, nodeId).map(n => n.id)]);
-  return nodes.filter(n => !toRemove.has(n.id));
+  const toRemove = new Set([nodeId, ...getDescendants(nodes, nodeId).map((n) => n.id)]);
+  return nodes.filter((n) => !toRemove.has(n.id));
 }
 
 // ── Project Scene Utilities ──────────────────────────────────────────────────
@@ -110,7 +108,11 @@ export function removeNodeWithDescendants(nodes: SceneNode[], nodeId: string): S
  * Reorder a scenes array by moving the item at `fromIdx` to `toIdx`.
  * Returns a new array without mutating the original.
  */
-export function reorderScenes(scenes: ProjectScene[], fromIdx: number, toIdx: number): ProjectScene[] {
+export function reorderScenes(
+  scenes: ProjectScene[],
+  fromIdx: number,
+  toIdx: number
+): ProjectScene[] {
   if (fromIdx === toIdx) return scenes;
   const copy = [...scenes];
   const [item] = copy.splice(fromIdx, 1);
@@ -143,20 +145,29 @@ export function sortScenesAlpha(scenes: ProjectScene[]): ProjectScene[] {
 
 /** Compute the world-space bounding box of a set of node positions. */
 export function computeBounds(nodes: SceneNode[]): {
-  min: [number,number,number]; max: [number,number,number]; center: [number,number,number];
+  min: [number, number, number];
+  max: [number, number, number];
+  center: [number, number, number];
 } {
-  if (nodes.length === 0) return { min:[0,0,0], max:[0,0,0], center:[0,0,0] };
-  let minX=Infinity, minY=Infinity, minZ=Infinity;
-  let maxX=-Infinity, maxY=-Infinity, maxZ=-Infinity;
+  if (nodes.length === 0) return { min: [0, 0, 0], max: [0, 0, 0], center: [0, 0, 0] };
+  let minX = Infinity,
+    minY = Infinity,
+    minZ = Infinity;
+  let maxX = -Infinity,
+    maxY = -Infinity,
+    maxZ = -Infinity;
   for (const n of nodes) {
-    const [x,y,z] = n.position;
-    if (x < minX) minX=x;  if (x > maxX) maxX=x;
-    if (y < minY) minY=y;  if (y > maxY) maxY=y;
-    if (z < minZ) minZ=z;  if (z > maxZ) maxZ=z;
+    const [x, y, z] = n.position;
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+    if (z < minZ) minZ = z;
+    if (z > maxZ) maxZ = z;
   }
   return {
     min: [minX, minY, minZ],
     max: [maxX, maxY, maxZ],
-    center: [(minX+maxX)/2, (minY+maxY)/2, (minZ+maxZ)/2],
+    center: [(minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2],
   };
 }

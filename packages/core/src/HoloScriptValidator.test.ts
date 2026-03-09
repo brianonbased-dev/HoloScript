@@ -24,7 +24,7 @@ describe('HoloScriptValidator', () => {
   }
 }`;
       const errors = validator.validate(code);
-      expect(errors.filter(e => e.severity === 'error')).toEqual([]);
+      expect(errors.filter((e) => e.severity === 'error')).toEqual([]);
     });
 
     it('returns empty errors for empty code', () => {
@@ -43,13 +43,13 @@ describe('HoloScriptValidator', () => {
 @on_enter
 @lifecycle`;
       const errors = validator.validate(code);
-      expect(errors.filter(e => e.severity === 'error')).toEqual([]);
+      expect(errors.filter((e) => e.severity === 'error')).toEqual([]);
     });
 
     it('warns on unknown directives', () => {
       const code = '@foobar';
       const errors = validator.validate(code);
-      const warnings = errors.filter(e => e.severity === 'warning');
+      const warnings = errors.filter((e) => e.severity === 'warning');
       expect(warnings.length).toBeGreaterThan(0);
       expect(warnings[0].message).toContain('foobar');
     });
@@ -58,7 +58,7 @@ describe('HoloScriptValidator', () => {
       const code = `@unknown1
 @unknown2`;
       const errors = validator.validate(code);
-      const warnings = errors.filter(e => e.severity === 'warning');
+      const warnings = errors.filter((e) => e.severity === 'warning');
       expect(warnings.length).toBe(2);
     });
 
@@ -67,7 +67,7 @@ describe('HoloScriptValidator', () => {
 // comment 2
 @invalid_directive`;
       const errors = validator.validate(code);
-      const warnings = errors.filter(e => e.severity === 'warning');
+      const warnings = errors.filter((e) => e.severity === 'warning');
       expect(warnings[0]?.line).toBe(3);
     });
   });

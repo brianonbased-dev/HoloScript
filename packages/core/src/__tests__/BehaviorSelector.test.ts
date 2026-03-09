@@ -11,7 +11,9 @@ function behavior(id: string, priority: number, weight: number, lockoutMs = 0): 
 
 describe('BehaviorSelector', () => {
   let sel: BehaviorSelector;
-  beforeEach(() => { sel = new BehaviorSelector('priority'); });
+  beforeEach(() => {
+    sel = new BehaviorSelector('priority');
+  });
 
   it('addBehavior and getBehaviorCount', () => {
     sel.addBehavior(behavior('a', 1, 1));

@@ -14,11 +14,16 @@ import { Clock, X, RotateCcw, RotateCw, ChevronRight } from 'lucide-react';
 import { useUndoHistory, type HistoryEntry } from '@/hooks/useUndoHistory';
 import { useTemporalStore } from '@/lib/historyStore';
 
-interface UndoHistorySidebarProps { onClose: () => void; }
+interface UndoHistorySidebarProps {
+  onClose: () => void;
+}
 
 export function UndoHistorySidebar({ onClose }: UndoHistorySidebarProps) {
   const { entries, currentIndex, jumpTo } = useUndoHistory();
-  const { undo, redo } = useTemporalStore((s) => s) as unknown as { undo: () => void; redo: () => void };
+  const { undo, redo } = useTemporalStore((s) => s) as unknown as {
+    undo: () => void;
+    redo: () => void;
+  };
 
   return (
     <div className="flex h-full flex-col bg-studio-panel text-studio-text">
@@ -27,13 +32,24 @@ export function UndoHistorySidebar({ onClose }: UndoHistorySidebarProps) {
         <Clock className="h-4 w-4 text-studio-accent" />
         <span className="text-[12px] font-semibold">Undo History</span>
         <div className="ml-auto flex gap-1">
-          <button onClick={undo} title="Undo (Ctrl+Z)" className="rounded p-1 text-studio-muted hover:text-studio-text">
+          <button
+            onClick={undo}
+            title="Undo (Ctrl+Z)"
+            className="rounded p-1 text-studio-muted hover:text-studio-text"
+          >
             <RotateCcw className="h-3.5 w-3.5" />
           </button>
-          <button onClick={redo} title="Redo (Ctrl+Y)" className="rounded p-1 text-studio-muted hover:text-studio-text">
+          <button
+            onClick={redo}
+            title="Redo (Ctrl+Y)"
+            className="rounded p-1 text-studio-muted hover:text-studio-text"
+          >
             <RotateCw className="h-3.5 w-3.5" />
           </button>
-          <button onClick={onClose} className="rounded p-1 text-studio-muted hover:text-studio-text">
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-studio-muted hover:text-studio-text"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -49,7 +65,9 @@ export function UndoHistorySidebar({ onClose }: UndoHistorySidebarProps) {
       {/* Entry list — newest first */}
       <div className="flex-1 overflow-y-auto">
         {entries.length <= 1 && (
-          <p className="py-8 text-center text-[10px] text-studio-muted">No history yet. Make some edits to the scene.</p>
+          <p className="py-8 text-center text-[10px] text-studio-muted">
+            No history yet. Make some edits to the scene.
+          </p>
         )}
         {[...entries].reverse().map((entry: HistoryEntry) => {
           const isFuture = entry.index > currentIndex;
@@ -61,27 +79,37 @@ export function UndoHistorySidebar({ onClose }: UndoHistorySidebarProps) {
             >
               {/* Timeline pip */}
               <div className="mt-1 flex flex-col items-center shrink-0">
-                <div className={`h-2.5 w-2.5 rounded-full border-2 ${entry.isCurrent ? 'border-studio-accent bg-studio-accent' : isFuture ? 'border-studio-muted/40 bg-transparent' : 'border-studio-muted/60 bg-studio-surface'}`} />
+                <div
+                  className={`h-2.5 w-2.5 rounded-full border-2 ${entry.isCurrent ? 'border-studio-accent bg-studio-accent' : isFuture ? 'border-studio-muted/40 bg-transparent' : 'border-studio-muted/60 bg-studio-surface'}`}
+                />
                 {entry.index !== 0 && <div className="mt-0.5 h-4 w-px bg-studio-border/40" />}
               </div>
 
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
-                  <span className={`text-[10px] font-semibold ${entry.isCurrent ? 'text-studio-accent' : isFuture ? 'text-studio-muted/60' : 'text-studio-text'}`}>
+                  <span
+                    className={`text-[10px] font-semibold ${entry.isCurrent ? 'text-studio-accent' : isFuture ? 'text-studio-muted/60' : 'text-studio-text'}`}
+                  >
                     {entry.label}
                   </span>
                   {entry.isCurrent && (
-                    <span className="rounded-full bg-studio-accent/20 px-1.5 py-0.5 text-[7px] font-bold text-studio-accent">NOW</span>
+                    <span className="rounded-full bg-studio-accent/20 px-1.5 py-0.5 text-[7px] font-bold text-studio-accent">
+                      NOW
+                    </span>
                   )}
                   {isFuture && <RotateCw className="h-2.5 w-2.5 text-studio-muted/40" />}
                 </div>
                 {entry.preview && (
-                  <p className="mt-0.5 truncate font-mono text-[8px] text-studio-muted/70">{entry.preview}…</p>
+                  <p className="mt-0.5 truncate font-mono text-[8px] text-studio-muted/70">
+                    {entry.preview}…
+                  </p>
                 )}
               </div>
 
-              {!entry.isCurrent && <ChevronRight className="h-3 w-3 shrink-0 self-center text-studio-muted/40" />}
+              {!entry.isCurrent && (
+                <ChevronRight className="h-3 w-3 shrink-0 self-center text-studio-muted/40" />
+              )}
             </button>
           );
         })}

@@ -49,17 +49,26 @@ interface GltfDocument {
   scenes: Array<{ name: string; nodes: number[] }>;
   nodes: GltfNode[];
   meshes?: GltfMesh[];
-  cameras?: Array<{ type: 'perspective'; perspective: { yfov: number; znear: number; zfar: number; aspectRatio: number } }>;
-  materials?: Array<{ name: string; pbrMetallicRoughness: { baseColorFactor: [number, number, number, number] } }>;
+  cameras?: Array<{
+    type: 'perspective';
+    perspective: { yfov: number; znear: number; zfar: number; aspectRatio: number };
+  }>;
+  materials?: Array<{
+    name: string;
+    pbrMetallicRoughness: { baseColorFactor: [number, number, number, number] };
+  }>;
   extensionsUsed?: string[];
   extensions?: Record<string, unknown>;
 }
 
 /** Convert euler [rx, ry, rz] (radians) to quaternion [x, y, z, w] */
 function eulerToQuat(rx: number, ry: number, rz: number): [number, number, number, number] {
-  const cx = Math.cos(rx / 2), sx = Math.sin(rx / 2);
-  const cy = Math.cos(ry / 2), sy = Math.sin(ry / 2);
-  const cz = Math.cos(rz / 2), sz = Math.sin(rz / 2);
+  const cx = Math.cos(rx / 2),
+    sx = Math.sin(rx / 2);
+  const cy = Math.cos(ry / 2),
+    sy = Math.sin(ry / 2);
+  const cz = Math.cos(rz / 2),
+    sz = Math.sin(rz / 2);
   return [
     sx * cy * cz + cx * sy * sz,
     cx * sy * cz - sx * cy * sz,
@@ -100,11 +109,16 @@ function buildGltf(scene: HoloScene): GltfDocument {
     } else if (node.type === 'camera') {
       gltf.cameras = gltf.cameras ?? [];
       gNode.camera = gltf.cameras.length;
-      gltf.cameras.push({ type: 'perspective', perspective: { yfov: 1.047, znear: 0.01, zfar: 1000, aspectRatio: 1.78 } });
+      gltf.cameras.push({
+        type: 'perspective',
+        perspective: { yfov: 1.047, znear: 0.01, zfar: 1000, aspectRatio: 1.78 },
+      });
     } else if (node.type === 'light') {
       gltf.extensionsUsed = ['KHR_lights_punctual'];
       gltf.extensions = gltf.extensions ?? {};
-      const lightsExt = (gltf.extensions['KHR_lights_punctual'] as { lights: unknown[] } | undefined) ?? { lights: [] };
+      const lightsExt = (gltf.extensions['KHR_lights_punctual'] as
+        | { lights: unknown[] }
+        | undefined) ?? { lights: [] };
       const lightIndex = (lightsExt.lights as unknown[]).length;
       lights.push({ type: 'point', color: [1, 1, 1], intensity: 1 });
       (lightsExt.lights as unknown[]).push({ type: 'point', color: [1, 1, 1], intensity: 1 });
@@ -143,12 +157,16 @@ function encodeGLB(json: object): Uint8Array {
   const jsonStr = JSON.stringify(json);
   const jsonBytes = new TextEncoder().encode(jsonStr);
   // Pad to 4-byte alignment
-  const jsonPadded = jsonBytes.length % 4 === 0
-    ? jsonBytes
-    : new Uint8Array([
-        ...jsonBytes,
-        ...' '.repeat(4 - (jsonBytes.length % 4)).split('').map((c) => c.charCodeAt(0)),
-      ]);
+  const jsonPadded =
+    jsonBytes.length % 4 === 0
+      ? jsonBytes
+      : new Uint8Array([
+          ...jsonBytes,
+          ...' '
+            .repeat(4 - (jsonBytes.length % 4))
+            .split('')
+            .map((c) => c.charCodeAt(0)),
+        ]);
 
   const totalLength = 12 + 8 + jsonPadded.length; // header + chunk header + json
   const buf = new ArrayBuffer(totalLength);
@@ -156,12 +174,12 @@ function encodeGLB(json: object): Uint8Array {
 
   // GLB header
   view.setUint32(0, 0x46546c67, true); // magic 'glTF'
-  view.setUint32(4, 2, true);          // version 2
+  view.setUint32(4, 2, true); // version 2
   view.setUint32(8, totalLength, true); // total length
 
   // JSON chunk
   view.setUint32(12, jsonPadded.length, true); // chunk length
-  view.setUint32(16, 0x4e4f534a, true);        // chunk type 'JSON'
+  view.setUint32(16, 0x4e4f534a, true); // chunk type 'JSON'
   new Uint8Array(buf, 20).set(jsonPadded);
 
   return new Uint8Array(buf);
@@ -171,7 +189,7 @@ function encodeGLB(json: object): Uint8Array {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json() as HoloScene;
+    const body = (await req.json()) as HoloScene;
 
     if (!body || body.v !== 2) {
       return NextResponse.json({ error: 'Invalid HoloScene payload' }, { status: 400 });

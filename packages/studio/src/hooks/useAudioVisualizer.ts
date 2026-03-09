@@ -81,7 +81,8 @@ export function useAudioVisualizer(): AudioVisualizerState {
       ctx.stroke();
     } else {
       // radial
-      const cx = width / 2, cy = height / 2;
+      const cx = width / 2,
+        cy = height / 2;
       const r = Math.min(cx, cy) * 0.5;
       for (let i = 0; i < freqArr.length; i++) {
         const angle = (i / freqArr.length) * Math.PI * 2;
@@ -93,7 +94,10 @@ export function useAudioVisualizer(): AudioVisualizerState {
         const hue = (i / freqArr.length) * 360;
         ctx.strokeStyle = `hsla(${hue}, 80%, 65%, 0.8)`;
         ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
       }
     }
 
@@ -101,7 +105,9 @@ export function useAudioVisualizer(): AudioVisualizerState {
   }, [mode]);
 
   const play = useCallback(() => {
-    if (contextRef.current) { contextRef.current.close(); }
+    if (contextRef.current) {
+      contextRef.current.close();
+    }
     const ctx = new AudioContext();
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 256;
@@ -114,9 +120,12 @@ export function useAudioVisualizer(): AudioVisualizerState {
     const osc2 = ctx.createOscillator();
     osc2.type = 'sine';
     osc2.frequency.value = 440;
-    osc.connect(gain); osc2.connect(gain);
-    gain.connect(analyser); analyser.connect(ctx.destination);
-    osc.start(); osc2.start();
+    osc.connect(gain);
+    osc2.connect(gain);
+    gain.connect(analyser);
+    analyser.connect(ctx.destination);
+    osc.start();
+    osc2.start();
     contextRef.current = ctx;
     analyserRef.current = analyser;
     gainRef.current = gain;
@@ -137,12 +146,25 @@ export function useAudioVisualizer(): AudioVisualizerState {
     if (gainRef.current) gainRef.current.gain.value = g;
   }, []);
 
-  useEffect(() => () => { cancelAnimationFrame(rafRef.current); contextRef.current?.close(); }, []);
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(rafRef.current);
+      contextRef.current?.close();
+    },
+    []
+  );
 
   return {
-    isPlaying, mode, gain, fftSize: 256,
-    frequencyData, waveformData,
-    canvasRef, play, stop,
-    setMode, setGain,
+    isPlaying,
+    mode,
+    gain,
+    fftSize: 256,
+    frequencyData,
+    waveformData,
+    canvasRef,
+    play,
+    stop,
+    setMode,
+    setGain,
   };
 }

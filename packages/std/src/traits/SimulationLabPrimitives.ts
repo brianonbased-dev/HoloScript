@@ -159,12 +159,10 @@ export function expandSweep(sweep: ParameterSweep): number[] {
  * Generate all parameter combinations from multiple sweeps.
  * Returns an array of parameter maps.
  */
-export function generateSweepCombinations(
-  sweeps: ParameterSweep[]
-): Record<string, number>[] {
+export function generateSweepCombinations(sweeps: ParameterSweep[]): Record<string, number>[] {
   if (sweeps.length === 0) return [{}];
 
-  const expanded = sweeps.map(s => ({
+  const expanded = sweeps.map((s) => ({
     name: s.name,
     values: expandSweep(s),
   }));
@@ -519,9 +517,7 @@ export function chiSquaredTest(
 
   // Cramér's V effect size
   const k = observed.length;
-  const effectSize = totalObserved > 0
-    ? Math.sqrt(chiSq / (totalObserved * (k - 1)))
-    : 0;
+  const effectSize = totalObserved > 0 ? Math.sqrt(chiSq / (totalObserved * (k - 1))) : 0;
 
   return {
     statistic: chiSq,
@@ -541,13 +537,8 @@ export function chiSquaredTest(
 /**
  * Extract a named metric from an array of simulation results.
  */
-export function extractMetric(
-  results: SimulationMetrics[],
-  metricName: string
-): number[] {
-  return results
-    .filter(r => metricName in r.values)
-    .map(r => r.values[metricName]);
+export function extractMetric(results: SimulationMetrics[], metricName: string): number[] {
+  return results.filter((r) => metricName in r.values).map((r) => r.values[metricName]);
 }
 
 /**
@@ -609,7 +600,7 @@ function normalCDF(x: number): number {
   const sign = x < 0 ? -1 : 1;
   const absX = Math.abs(x);
   const t = 1.0 / (1.0 + p * absX);
-  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-absX * absX / 2);
+  const y = 1.0 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp((-absX * absX) / 2);
 
   return 0.5 * (1.0 + sign * y);
 }
@@ -621,7 +612,7 @@ function normalCDF(x: number): number {
 function tDistPValue(absT: number, df: number): number {
   if (df <= 0) return 1;
   // Convert t to approximately normal z for large df
-  const z = absT * (1 - 1 / (4 * df)) / Math.sqrt(1 + absT * absT / (2 * df));
+  const z = (absT * (1 - 1 / (4 * df))) / Math.sqrt(1 + (absT * absT) / (2 * df));
   return 2 * (1 - normalCDF(z));
 }
 
@@ -634,8 +625,9 @@ function tDistCritical(alpha: number, df: number): number {
   // Rational approximation of the normal quantile (Beasley-Springer-Moro)
   const a = p - 0.5;
   const r = a * a;
-  let z = a * (2.50662823884 + r * (-18.61500062529 + r * (41.39119773534 + r * -25.44106049637))) /
-    (1 + r * (-8.47351093090 + r * (23.08336743743 + r * (-21.06224101826 + r * 3.13082909833))));
+  let z =
+    (a * (2.50662823884 + r * (-18.61500062529 + r * (41.39119773534 + r * -25.44106049637)))) /
+    (1 + r * (-8.4735109309 + r * (23.08336743743 + r * (-21.06224101826 + r * 3.13082909833))));
 
   // Cornish-Fisher expansion for t-distribution
   const g1 = (z ** 3 + z) / (4 * df);

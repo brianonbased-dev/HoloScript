@@ -174,10 +174,7 @@ describe('SpatialNavigationTrait', () => {
       spatialNavigationHandler.onEvent!(node as any, defaultConfig, ctx as any, {
         type: 'navigation:start',
         payload: {
-          waypoints: [
-            { position: [0, 0, 0] },
-            { position: [10, 0, 10] },
-          ],
+          waypoints: [{ position: [0, 0, 0] }, { position: [10, 0, 10] }],
         },
       });
 

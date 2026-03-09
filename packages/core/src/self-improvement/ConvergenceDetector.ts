@@ -131,9 +131,7 @@ export class ConvergenceDetector {
     const firstScore = n > 0 ? this.scores[0] : 0;
 
     const window = this.getWindow();
-    const windowAvg = window.length > 0
-      ? window.reduce((a, b) => a + b, 0) / window.length
-      : 0;
+    const windowAvg = window.length > 0 ? window.reduce((a, b) => a + b, 0) / window.length : 0;
     const windowSlope = this.computeSlope(window);
 
     let converged = false;

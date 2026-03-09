@@ -13,11 +13,11 @@
 
 export interface ShakeLayer {
   id: string;
-  trauma: number;         // 0-1
-  decay: number;          // Per second
-  frequency: number;       // Noise sample rate
-  amplitude: number;       // Max displacement
-  rotationAmount: number;  // Max rotation (radians)
+  trauma: number; // 0-1
+  decay: number; // Per second
+  frequency: number; // Noise sample rate
+  amplitude: number; // Max displacement
+  rotationAmount: number; // Max rotation (radians)
 }
 
 export interface ShakeOutput {
@@ -40,12 +40,19 @@ export class CameraShake {
 
   addLayer(id: string, config?: Partial<ShakeLayer>): void {
     this.layers.set(id, {
-      id, trauma: 0, decay: 1, frequency: 15,
-      amplitude: 10, rotationAmount: 0.05, ...config,
+      id,
+      trauma: 0,
+      decay: 1,
+      frequency: 15,
+      amplitude: 10,
+      rotationAmount: 0.05,
+      ...config,
     });
   }
 
-  removeLayer(id: string): void { this.layers.delete(id); }
+  removeLayer(id: string): void {
+    this.layers.delete(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Trauma
@@ -67,7 +74,9 @@ export class CameraShake {
 
   update(dt: number): ShakeOutput {
     this.time += dt;
-    let totalX = 0, totalY = 0, totalRot = 0;
+    let totalX = 0,
+      totalY = 0,
+      totalRot = 0;
 
     for (const layer of this.layers.values()) {
       if (layer.trauma <= 0) continue;
@@ -100,6 +109,10 @@ export class CameraShake {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getTrauma(layerId: string): number { return this.layers.get(layerId)?.trauma ?? 0; }
-  isShaking(): boolean { return [...this.layers.values()].some(l => l.trauma > 0); }
+  getTrauma(layerId: string): number {
+    return this.layers.get(layerId)?.trauma ?? 0;
+  }
+  isShaking(): boolean {
+    return [...this.layers.values()].some((l) => l.trauma > 0);
+  }
 }

@@ -116,9 +116,13 @@ class WASMSandbox {
         env: {
           memory: this.memory,
           ${config.permissions.network === 'none' ? '// Network access disabled' : ''}
-          ${config.api_restrictions ? `
+          ${
+            config.api_restrictions
+              ? `
           // Restricted APIs: ${config.api_restrictions.join(', ')}
-          ` : ''}
+          `
+              : ''
+          }
           ...imports
         }
       });
@@ -182,23 +186,35 @@ class VMSandbox {
         log: (...args) => console.log('[SANDBOX]', ...args),
         error: (...args) => console.error('[SANDBOX]', ...args)
       },
-      ${config.permissions.filesystem === 'none' ? '// Filesystem access disabled' : `
+      ${
+        config.permissions.filesystem === 'none'
+          ? '// Filesystem access disabled'
+          : `
       // Limited filesystem access
       fs: require('fs').promises,
-      `}
-      ${config.permissions.network === 'none' ? '// Network access disabled' : `
+      `
+      }
+      ${
+        config.permissions.network === 'none'
+          ? '// Network access disabled'
+          : `
       // Limited network access
       fetch: require('node-fetch'),
-      `}
+      `
+      }
       // Expose only safe globals
       setTimeout,
       setInterval,
       clearTimeout,
       clearInterval,
       Buffer,
-      ${config.allow_native_modules ? `
+      ${
+        config.allow_native_modules
+          ? `
       require: require, // WARNING: Native modules allowed
-      ` : '// Native modules disabled'}
+      `
+          : '// Native modules disabled'
+      }
     };
 
     return vm.createContext(context);
@@ -217,11 +233,15 @@ class VMSandbox {
       const result = script.runInContext(this.context, {
         timeout,
         breakOnSigint: true,
-        ${config.max_memory_mb ? `
+        ${
+          config.max_memory_mb
+            ? `
         // Memory limit enforcement
         maxOldGenerationSizeMb: ${config.max_memory_mb},
         maxYoungGenerationSizeMb: Math.floor(${config.max_memory_mb} / 4),
-        ` : ''}
+        `
+            : ''
+        }
       });
 
       const executionTime = performance.now() - startTime;
@@ -258,7 +278,9 @@ class VMSandbox {
     if (error.message.includes('memory')) {
       violations.push('Memory limit exceeded');
     }
-    ${config.api_restrictions ? `
+    ${
+      config.api_restrictions
+        ? `
     // Check for restricted API usage
     const restricted = ${JSON.stringify(config.api_restrictions)};
     for (const api of restricted) {
@@ -266,7 +288,9 @@ class VMSandbox {
         violations.push(\`Restricted API access: \${api}\`);
       }
     }
-    ` : ''}
+    `
+        : ''
+    }
     return violations;
   }
 }
@@ -294,10 +318,14 @@ class WorkerSandbox {
       const blob = new Blob([code], { type: 'application/javascript' });
       const workerUrl = URL.createObjectURL(blob);
       this.worker = new Worker(workerUrl, {
-        ${config.permissions.network === 'none' ? `
+        ${
+          config.permissions.network === 'none'
+            ? `
         // Network access restricted
         credentials: 'omit',
-        ` : ''}
+        `
+            : ''
+        }
       });
 
       // Set execution timeout
@@ -365,13 +393,21 @@ class IframeSandbox {
   buildSandboxPermissions() {
     const permissions = [];
 
-    ${config.permissions.filesystem !== 'none' ? `
+    ${
+      config.permissions.filesystem !== 'none'
+        ? `
     permissions.push('allow-downloads');
-    ` : ''}
+    `
+        : ''
+    }
 
-    ${config.permissions.network !== 'none' ? `
+    ${
+      config.permissions.network !== 'none'
+        ? `
     permissions.push('allow-same-origin');
-    ` : ''}
+    `
+        : ''
+    }
 
     permissions.push('allow-scripts');
 
@@ -427,7 +463,7 @@ export default IframeSandbox;`;
 
   compileGeneric(config: SandboxExecutionConfig): string {
     return JSON.stringify(config, null, 2);
-  }
+  },
 };
 
 export default SandboxExecutionTrait;

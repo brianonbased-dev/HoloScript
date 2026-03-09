@@ -4,7 +4,9 @@ import { MusicGenerator } from '../MusicGenerator';
 describe('MusicGenerator', () => {
   let gen: MusicGenerator;
 
-  beforeEach(() => { gen = new MusicGenerator(42); });
+  beforeEach(() => {
+    gen = new MusicGenerator(42);
+  });
 
   // ---------------------------------------------------------------------------
   // Configuration
@@ -38,8 +40,8 @@ describe('MusicGenerator', () => {
   });
 
   it('isInScale validates note membership', () => {
-    expect(gen.isInScale(60)).toBe(true);  // C (root)
-    expect(gen.isInScale(62)).toBe(true);  // D
+    expect(gen.isInScale(60)).toBe(true); // C (root)
+    expect(gen.isInScale(62)).toBe(true); // D
     expect(gen.isInScale(61)).toBe(false); // C# not in C major
   });
 
@@ -63,7 +65,7 @@ describe('MusicGenerator', () => {
   it('generateProgression returns array of chords', () => {
     const prog = gen.generateProgression([1, 4, 5, 1]);
     expect(prog).toHaveLength(4);
-    prog.forEach(chord => {
+    prog.forEach((chord) => {
       expect(chord.notes.length).toBeGreaterThanOrEqual(3);
     });
   });
@@ -96,7 +98,7 @@ describe('MusicGenerator', () => {
   it('generateMelody returns notes within time range', () => {
     const melody = gen.generateMelody(2, 0.8);
     expect(melody.length).toBeGreaterThan(0);
-    melody.forEach(note => {
+    melody.forEach((note) => {
       expect(note.pitch).toBeGreaterThanOrEqual(0);
       expect(note.velocity).toBeGreaterThanOrEqual(0);
       expect(note.velocity).toBeLessThanOrEqual(1);
@@ -106,7 +108,7 @@ describe('MusicGenerator', () => {
 
   it('melody notes are in the current scale', () => {
     const melody = gen.generateMelody(1);
-    melody.forEach(note => {
+    melody.forEach((note) => {
       expect(gen.isInScale(note.pitch)).toBe(true);
     });
   });

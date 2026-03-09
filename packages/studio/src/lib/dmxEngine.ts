@@ -117,14 +117,11 @@ export function createFixture(
   type: FixtureType,
   dmxStart: number
 ): LightFixture {
-  const channels: DMXChannel[] = Array.from(
-    { length: FIXTURE_CHANNEL_COUNTS[type] },
-    (_, i) => ({
-      address: dmxStart + i,
-      value: 0,
-      label: `ch-${i + 1}`,
-    })
-  );
+  const channels: DMXChannel[] = Array.from({ length: FIXTURE_CHANNEL_COUNTS[type] }, (_, i) => ({
+    address: dmxStart + i,
+    value: 0,
+    label: `ch-${i + 1}`,
+  }));
   return {
     id,
     name,
@@ -153,10 +150,7 @@ export function setFixtureColor(
   };
 }
 
-export function setFixtureIntensity(
-  fixture: LightFixture,
-  intensity: number
-): LightFixture {
+export function setFixtureIntensity(fixture: LightFixture, intensity: number): LightFixture {
   return { ...fixture, intensity: Math.min(1, Math.max(0, intensity)) };
 }
 
@@ -164,11 +158,7 @@ export function setFixtureIntensity(
 // Color Utilities
 // ═══════════════════════════════════════════════════════════════════
 
-export function mixColors(
-  a: RGBColor,
-  b: RGBColor,
-  weight = 0.5
-): RGBColor {
+export function mixColors(a: RGBColor, b: RGBColor, weight = 0.5): RGBColor {
   return {
     r: Math.round(a.r * (1 - weight) + b.r * weight),
     g: Math.round(a.g * (1 - weight) + b.g * weight),
@@ -199,21 +189,11 @@ export function bpmToBeatIntervalMs(bpm: number): number {
   return 60_000 / bpm;
 }
 
-export function createChasePattern(
-  fixtureCount: number,
-  stepIndex: number
-): number[] {
-  return Array.from(
-    { length: fixtureCount },
-    (_, i) => (i === stepIndex % fixtureCount ? 1 : 0)
-  );
+export function createChasePattern(fixtureCount: number, stepIndex: number): number[] {
+  return Array.from({ length: fixtureCount }, (_, i) => (i === stepIndex % fixtureCount ? 1 : 0));
 }
 
-export function createStrobePattern(
-  bpm: number,
-  subdivisions: number,
-  time: number
-): boolean {
+export function createStrobePattern(bpm: number, subdivisions: number, time: number): boolean {
   const intervalMs = bpmToBeatIntervalMs(bpm) / subdivisions;
   const phase = (time % intervalMs) / intervalMs;
   return phase < 0.3; // 30% duty cycle
@@ -224,16 +204,10 @@ export function createStrobePattern(
 // ═══════════════════════════════════════════════════════════════════
 
 export function dmxAddressValid(address: number): boolean {
-  return (
-    Number.isInteger(address) &&
-    address >= DMX_MIN_ADDRESS &&
-    address <= DMX_MAX_ADDRESS
-  );
+  return Number.isInteger(address) && address >= DMX_MIN_ADDRESS && address <= DMX_MAX_ADDRESS;
 }
 
-export function detectDmxCollision(
-  fixtures: LightFixture[]
-): Array<[string, string, number]> {
+export function detectDmxCollision(fixtures: LightFixture[]): Array<[string, string, number]> {
   const collisions: Array<[string, string, number]> = [];
   for (let i = 0; i < fixtures.length; i++) {
     for (let j = i + 1; j < fixtures.length; j++) {
@@ -273,10 +247,7 @@ export function parseSMPTE(tc: string): SMPTETimecode {
   return { hours: h, minutes: m, seconds: s, frames: f };
 }
 
-export function isLaserEyeSafe(
-  zone: LaserSafetyZone,
-  height: number
-): boolean {
+export function isLaserEyeSafe(zone: LaserSafetyZone, height: number): boolean {
   if (zone === 'audience') return height > 2.5;
   return true; // backstage and above-head are safe
 }

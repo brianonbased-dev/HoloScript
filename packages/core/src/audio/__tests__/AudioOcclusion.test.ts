@@ -4,7 +4,9 @@ import type { OcclusionHit, RaycastProvider } from '../AudioOcclusion';
 
 describe('AudioOcclusionSystem', () => {
   let system: AudioOcclusionSystem;
-  beforeEach(() => { system = new AudioOcclusionSystem(); });
+  beforeEach(() => {
+    system = new AudioOcclusionSystem();
+  });
 
   // --- Default materials ---
   it('loads default material presets', () => {
@@ -22,7 +24,12 @@ describe('AudioOcclusionSystem', () => {
 
   // --- Custom materials ---
   it('registerMaterial adds custom material', () => {
-    system.registerMaterial({ id: 'custom', name: 'Custom', absorptionCoefficient: 0.5, transmissionLoss: 15 });
+    system.registerMaterial({
+      id: 'custom',
+      name: 'Custom',
+      absorptionCoefficient: 0.5,
+      transmissionLoss: 15,
+    });
     expect(system.getMaterial('custom')!.transmissionLoss).toBe(15);
   });
 
@@ -80,18 +87,14 @@ describe('AudioOcclusionSystem', () => {
 
   // --- computeFromHits ---
   it('computeFromHits works without raycast provider', () => {
-    const hits: OcclusionHit[] = [
-      { distance: 5, materialId: 'glass', thickness: 0.1 },
-    ];
+    const hits: OcclusionHit[] = [{ distance: 5, materialId: 'glass', thickness: 0.1 }];
     const result = system.computeFromHits('src1', hits);
     expect(result.occluded).toBe(true);
     expect(result.totalTransmissionLoss).toBe(6);
   });
 
   it('computeFromHits ignores unknown materials', () => {
-    const hits: OcclusionHit[] = [
-      { distance: 5, materialId: 'unknown', thickness: 0.1 },
-    ];
+    const hits: OcclusionHit[] = [{ distance: 5, materialId: 'unknown', thickness: 0.1 }];
     const result = system.computeFromHits('src1', hits);
     expect(result.totalTransmissionLoss).toBe(0);
     expect(result.occluded).toBe(false);
@@ -115,9 +118,7 @@ describe('AudioOcclusionSystem', () => {
 
   // --- Cache ---
   it('computeOcclusion caches results', () => {
-    const provider: RaycastProvider = () => [
-      { distance: 5, materialId: 'glass', thickness: 0.1 },
-    ];
+    const provider: RaycastProvider = () => [{ distance: 5, materialId: 'glass', thickness: 0.1 }];
     system.setRaycastProvider(provider);
     system.computeOcclusion({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
     const cached = system.getCachedResult('src1');
@@ -147,7 +148,16 @@ describe('AudioOcclusionSystem', () => {
     });
 
     it('all material presets have frequency absorption curves', () => {
-      const materials = ['glass', 'wood', 'drywall', 'brick', 'concrete', 'metal', 'fabric', 'water'];
+      const materials = [
+        'glass',
+        'wood',
+        'drywall',
+        'brick',
+        'concrete',
+        'metal',
+        'fabric',
+        'water',
+      ];
       for (const matId of materials) {
         const mat = system.getMaterial(matId);
         expect(mat).toBeDefined();
@@ -162,7 +172,9 @@ describe('AudioOcclusionSystem', () => {
       const concrete = system.getMaterial('concrete')!;
 
       // Glass should absorb more highs, concrete more uniform
-      expect(glass.frequencyAbsorption!['125']).toBeGreaterThan(concrete.frequencyAbsorption!['125']);
+      expect(glass.frequencyAbsorption!['125']).toBeGreaterThan(
+        concrete.frequencyAbsorption!['125']
+      );
     });
 
     it('computeOcclusion includes low-pass cutoff when occluded', () => {
@@ -194,8 +206,13 @@ describe('AudioOcclusionSystem', () => {
       expect(result.frequencyAttenuation).toBeDefined();
       expect(Object.keys(result.frequencyAttenuation).length).toBeGreaterThan(0);
       // Lower frequencies should have lower attenuation (concrete absorbs highs more)
-      if (result.frequencyAttenuation['125'] !== undefined && result.frequencyAttenuation['8000'] !== undefined) {
-        expect(result.frequencyAttenuation['8000']).toBeGreaterThanOrEqual(result.frequencyAttenuation['125']);
+      if (
+        result.frequencyAttenuation['125'] !== undefined &&
+        result.frequencyAttenuation['8000'] !== undefined
+      ) {
+        expect(result.frequencyAttenuation['8000']).toBeGreaterThanOrEqual(
+          result.frequencyAttenuation['125']
+        );
       }
     });
 
@@ -328,7 +345,9 @@ describe('AudioOcclusionSystem', () => {
       const fabric = system.getMaterial('fabric')!;
 
       // Fabric should absorb highs much more than lows
-      expect(fabric.frequencyAbsorption!['8000']).toBeGreaterThan(fabric.frequencyAbsorption!['125']);
+      expect(fabric.frequencyAbsorption!['8000']).toBeGreaterThan(
+        fabric.frequencyAbsorption!['125']
+      );
       expect(fabric.frequencyAbsorption!['8000']).toBeGreaterThan(0.5);
     });
 
@@ -337,7 +356,9 @@ describe('AudioOcclusionSystem', () => {
 
       // Metal should have low absorption across the spectrum
       for (const freq of [125, 250, 500, 1000, 2000, 4000, 8000]) {
-        expect(metal.frequencyAbsorption![freq as keyof typeof metal.frequencyAbsorption]).toBeLessThan(0.05);
+        expect(
+          metal.frequencyAbsorption![freq as keyof typeof metal.frequencyAbsorption]
+        ).toBeLessThan(0.05);
       }
     });
 

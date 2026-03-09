@@ -14,9 +14,9 @@
 export interface NoiseConfig {
   seed: number;
   octaves: number;
-  lacunarity: number;     // Frequency multiplier per octave (default: 2.0)
-  gain: number;           // Amplitude multiplier per octave (default: 0.5)
-  scale: number;          // Base frequency scale
+  lacunarity: number; // Frequency multiplier per octave (default: 2.0)
+  gain: number; // Amplitude multiplier per octave (default: 0.5)
+  scale: number; // Base frequency scale
 }
 
 export type NoiseType = 'value' | 'perlin' | 'ridged' | 'warped' | 'worley';
@@ -63,11 +63,7 @@ export class NoiseGenerator {
     const n01 = this.hash2D(ix, iy + 1);
     const n11 = this.hash2D(ix + 1, iy + 1);
 
-    return this.lerp(
-      this.lerp(n00, n10, sx),
-      this.lerp(n01, n11, sx),
-      sy
-    );
+    return this.lerp(this.lerp(n00, n10, sx), this.lerp(n01, n11, sx), sy);
   }
 
   /**
@@ -87,11 +83,7 @@ export class NoiseGenerator {
     const g01 = this.grad2D(this.permAt(ix, iy + 1), fx, fy - 1);
     const g11 = this.grad2D(this.permAt(ix + 1, iy + 1), fx - 1, fy - 1);
 
-    return this.lerp(
-      this.lerp(g00, g10, u),
-      this.lerp(g01, g11, u),
-      v
-    ) * 0.5 + 0.5; // Normalize to [0, 1]
+    return this.lerp(this.lerp(g00, g10, u), this.lerp(g01, g11, u), v) * 0.5 + 0.5; // Normalize to [0, 1]
   }
 
   /**
@@ -138,7 +130,7 @@ export class NoiseGenerator {
         const cx = ix + dx;
         const cy = iy + dy;
         // Deterministic point from cell
-        const hash = this.perm[((cx & 255) + this.perm[(cy & 255)]) & 511];
+        const hash = this.perm[((cx & 255) + this.perm[cy & 255]) & 511];
         const px = cx + (hash / 255) * density;
         const py = cy + (this.perm[(hash + 1) & 511] / 255) * density;
         const dist = Math.sqrt((x - px) ** 2 + (y - py) ** 2);
@@ -163,9 +155,10 @@ export class NoiseGenerator {
     let maxValue = 0;
 
     for (let i = 0; i < octaves; i++) {
-      const n = type === 'perlin'
-        ? this.perlin2D(x * frequency, y * frequency)
-        : this.value2D(x * frequency, y * frequency);
+      const n =
+        type === 'perlin'
+          ? this.perlin2D(x * frequency, y * frequency)
+          : this.value2D(x * frequency, y * frequency);
       value += n * amplitude;
       maxValue += amplitude;
       amplitude *= gain;
@@ -210,10 +203,7 @@ export class NoiseGenerator {
     const qy = this.fbm2D(x + 5.2, y + 1.3);
 
     // Second pass: warp the coordinates
-    return this.fbm2D(
-      x + qx * warpStrength / scale,
-      y + qy * warpStrength / scale
-    );
+    return this.fbm2D(x + (qx * warpStrength) / scale, y + (qy * warpStrength) / scale);
   }
 
   // ---------------------------------------------------------------------------
@@ -225,11 +215,16 @@ export class NoiseGenerator {
    */
   sample2D(x: number, y: number, type: NoiseType = 'value'): number {
     switch (type) {
-      case 'value': return this.fbm2D(x, y, 'value');
-      case 'perlin': return this.fbm2D(x, y, 'perlin');
-      case 'ridged': return this.ridged2D(x, y);
-      case 'warped': return this.warped2D(x, y);
-      case 'worley': return this.worley2D(x, y);
+      case 'value':
+        return this.fbm2D(x, y, 'value');
+      case 'perlin':
+        return this.fbm2D(x, y, 'perlin');
+      case 'ridged':
+        return this.ridged2D(x, y);
+      case 'warped':
+        return this.warped2D(x, y);
+      case 'worley':
+        return this.worley2D(x, y);
     }
   }
 
@@ -279,27 +274,32 @@ export class NoiseGenerator {
   }
 
   private hash2D(x: number, y: number): number {
-    const idx = (this.perm[(x & 255)] + y) & 255;
+    const idx = (this.perm[x & 255] + y) & 255;
     return this.perm[idx] / 255;
   }
 
   private hash3D(x: number, y: number, z: number): number {
-    const idx = (this.perm[(this.perm[(x & 255)] + y) & 255] + z) & 255;
+    const idx = (this.perm[(this.perm[x & 255] + y) & 255] + z) & 255;
     return this.perm[idx] / 255;
   }
 
   private permAt(x: number, y: number): number {
-    return this.perm[(this.perm[(x & 255)] + y) & 255];
+    return this.perm[(this.perm[x & 255] + y) & 255];
   }
 
   private grad2D(hash: number, x: number, y: number): number {
     const h = hash & 3;
     switch (h) {
-      case 0: return x + y;
-      case 1: return -x + y;
-      case 2: return x - y;
-      case 3: return -x - y;
-      default: return 0;
+      case 0:
+        return x + y;
+      case 1:
+        return -x + y;
+      case 2:
+        return x - y;
+      case 3:
+        return -x - y;
+      default:
+        return 0;
     }
   }
 

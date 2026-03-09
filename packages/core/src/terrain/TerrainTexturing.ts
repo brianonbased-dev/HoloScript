@@ -24,11 +24,11 @@ export interface TerrainLayer {
 export interface SplatmapData {
   width: number;
   height: number;
-  channels: Float32Array[];  // Up to 4 channels (RGBA), each is width*height
+  channels: Float32Array[]; // Up to 4 channels (RGBA), each is width*height
 }
 
 export interface TriplanarConfig {
-  sharpness: number;        // Blend sharpness for normals (1-8)
+  sharpness: number; // Blend sharpness for normals (1-8)
   tiling: number;
   enabled: boolean;
 }
@@ -52,9 +52,15 @@ export class TerrainTexturing {
     this.layers.push(layer);
   }
 
-  getLayer(index: number): TerrainLayer | undefined { return this.layers[index]; }
-  getLayerCount(): number { return this.layers.length; }
-  removeLayer(id: string): void { this.layers = this.layers.filter(l => l.id !== id); }
+  getLayer(index: number): TerrainLayer | undefined {
+    return this.layers[index];
+  }
+  getLayerCount(): number {
+    return this.layers.length;
+  }
+  removeLayer(id: string): void {
+    this.layers = this.layers.filter((l) => l.id !== id);
+  }
 
   // ---------------------------------------------------------------------------
   // Splatmap
@@ -71,16 +77,26 @@ export class TerrainTexturing {
     return this.splatmap;
   }
 
-  paintSplatmap(channel: number, x: number, z: number, radius: number, strength: number, heightMap?: Float32Array): void {
+  paintSplatmap(
+    channel: number,
+    x: number,
+    z: number,
+    radius: number,
+    strength: number,
+    heightMap?: Float32Array
+  ): void {
     if (!this.splatmap || channel >= this.splatmap.channels.length) return;
 
-    const w = this.splatmap.width, h = this.splatmap.height;
-    const px = Math.floor(x * w), pz = Math.floor(z * h);
+    const w = this.splatmap.width,
+      h = this.splatmap.height;
+    const px = Math.floor(x * w),
+      pz = Math.floor(z * h);
     const r = Math.floor(radius * Math.min(w, h));
 
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) {
-        const sx = px + dx, sz = pz + dy;
+        const sx = px + dx,
+          sz = pz + dy;
         if (sx < 0 || sx >= w || sz < 0 || sz >= h) continue;
 
         const dist = Math.sqrt(dx * dx + dy * dy) / r;
@@ -90,7 +106,10 @@ export class TerrainTexturing {
         const idx = sz * w + sx;
 
         // Add to target channel
-        this.splatmap.channels[channel][idx] = Math.min(1, this.splatmap.channels[channel][idx] + strength * falloff);
+        this.splatmap.channels[channel][idx] = Math.min(
+          1,
+          this.splatmap.channels[channel][idx] + strength * falloff
+        );
 
         // Normalize across all channels
         this.normalizeSplatAt(idx);
@@ -109,21 +128,30 @@ export class TerrainTexturing {
 
   getSplatWeights(x: number, z: number): number[] {
     if (!this.splatmap) return [1, 0, 0, 0];
-    const w = this.splatmap.width, h = this.splatmap.height;
+    const w = this.splatmap.width,
+      h = this.splatmap.height;
     const px = Math.min(w - 1, Math.max(0, Math.floor(x * w)));
     const pz = Math.min(h - 1, Math.max(0, Math.floor(z * h)));
     const idx = pz * w + px;
-    return this.splatmap.channels.map(ch => ch[idx]);
+    return this.splatmap.channels.map((ch) => ch[idx]);
   }
 
   // ---------------------------------------------------------------------------
   // Triplanar
   // ---------------------------------------------------------------------------
 
-  setTriplanar(config: Partial<TriplanarConfig>): void { Object.assign(this.triplanar, config); }
-  getTriplanar(): TriplanarConfig { return { ...this.triplanar }; }
+  setTriplanar(config: Partial<TriplanarConfig>): void {
+    Object.assign(this.triplanar, config);
+  }
+  getTriplanar(): TriplanarConfig {
+    return { ...this.triplanar };
+  }
 
-  computeTriplanarWeights(normal: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
+  computeTriplanarWeights(normal: { x: number; y: number; z: number }): {
+    x: number;
+    y: number;
+    z: number;
+  } {
     const s = this.triplanar.sharpness;
     const ax = Math.pow(Math.abs(normal.x), s);
     const ay = Math.pow(Math.abs(normal.y), s);
@@ -140,5 +168,7 @@ export class TerrainTexturing {
     this.detailLayers.push({ layerIndex, distance, tiling });
   }
 
-  getDetailLayers(): typeof this.detailLayers { return [...this.detailLayers]; }
+  getDetailLayers(): typeof this.detailLayers {
+    return [...this.detailLayers];
+  }
 }

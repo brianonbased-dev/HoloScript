@@ -1,8 +1,32 @@
 import { describe, it, expect } from 'vitest';
-import { gravity, wind, turbulence, drag, attractor, vortex, floorBounce, sizeOscillate } from '../particles/ParticleAffectors';
+import {
+  gravity,
+  wind,
+  turbulence,
+  drag,
+  attractor,
+  vortex,
+  floorBounce,
+  sizeOscillate,
+} from '../particles/ParticleAffectors';
 
 function particle(overrides: Record<string, number> = {}) {
-  return { x: 0, y: 5, z: 0, vx: 1, vy: 0, vz: 0, ax: 0, ay: 0, az: 0, size: 1, age: 0, life: 5, color: { r: 1, g: 1, b: 1, a: 1 }, ...overrides };
+  return {
+    x: 0,
+    y: 5,
+    z: 0,
+    vx: 1,
+    vy: 0,
+    vz: 0,
+    ax: 0,
+    ay: 0,
+    az: 0,
+    size: 1,
+    age: 0,
+    life: 5,
+    color: { r: 1, g: 1, b: 1, a: 1 },
+    ...overrides,
+  };
 }
 
 describe('ParticleAffectors', () => {

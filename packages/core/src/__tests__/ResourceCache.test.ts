@@ -4,7 +4,9 @@ import { ResourceCache } from '../assets/ResourceCache';
 describe('ResourceCache', () => {
   let cache: ResourceCache<string>;
 
-  beforeEach(() => { cache = new ResourceCache<string>(1000); });
+  beforeEach(() => {
+    cache = new ResourceCache<string>(1000);
+  });
 
   it('put and get item', () => {
     cache.put('a', 'hello', 100);

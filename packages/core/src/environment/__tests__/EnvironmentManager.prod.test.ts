@@ -37,12 +37,12 @@ describe('EnvironmentPresets constants', () => {
   });
 
   it('PRESET_NIGHT has low ambient intensity', () => {
-    const ambient = PRESET_NIGHT.lights.find(l => l.type === 'ambient');
+    const ambient = PRESET_NIGHT.lights.find((l) => l.type === 'ambient');
     expect(ambient?.intensity).toBeLessThan(0.2);
   });
 
   it('PRESET_SCIFI has point light', () => {
-    expect(PRESET_SCIFI.lights.some(l => l.type === 'point')).toBe(true);
+    expect(PRESET_SCIFI.lights.some((l) => l.type === 'point')).toBe(true);
   });
 
   it('PRESET_OVERCAST atmosphere.bloom is false', () => {
@@ -53,7 +53,9 @@ describe('EnvironmentPresets constants', () => {
 describe('EnvironmentManager', () => {
   let em: EnvironmentManager;
 
-  beforeEach(() => { em = new EnvironmentManager(); });
+  beforeEach(() => {
+    em = new EnvironmentManager();
+  });
 
   // -------------------------------------------------------------------------
   // Constructor / getEnvironment

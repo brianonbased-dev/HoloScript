@@ -1,4 +1,5 @@
 # HoloScript Frontend Deployment Plan
+
 ## GitHub Pages (Docs) + Railway (Web Apps)
 
 **Status**: Production Ready
@@ -10,10 +11,12 @@
 ## 📊 Executive Summary
 
 HoloScript uses a **dual deployment strategy**:
+
 1. **GitHub Pages** → Static documentation site (VitePress)
 2. **Railway** → Dynamic web applications (Studio, Marketplace, Services)
 
 **Current Status**:
+
 - ✅ GitHub Pages: **LIVE** at [www.holoscript.net](https://www.holoscript.net)
 - ✅ Railway: **DEPLOYED & LIVE** (via Railway CLI)
 
@@ -35,6 +38,7 @@ HoloScript uses a **dual deployment strategy**:
 **GitHub Actions Workflow**: `.github/workflows/deploy-docs.yml`
 
 **Trigger Conditions**:
+
 - Push to `main` branch with changes to:
   - `docs/**`
   - `packages/*/src/**/*.ts` (for TypeDoc API docs)
@@ -43,6 +47,7 @@ HoloScript uses a **dual deployment strategy**:
 - Manual trigger via GitHub Actions UI
 
 **Build Process**:
+
 ```yaml
 1. Checkout repository
 2. Setup Node.js 20 + pnpm
@@ -79,6 +84,7 @@ docs/
 ### Maintenance Tasks
 
 #### Update Documentation Content
+
 ```bash
 # 1. Edit markdown files in docs/
 cd docs/
@@ -96,6 +102,7 @@ git push origin main
 ```
 
 #### Update API Reference (TypeDoc)
+
 ```bash
 # API docs are auto-generated from TypeScript source comments
 # 1. Update JSDoc comments in packages/*/src/**/*.ts
@@ -107,6 +114,7 @@ git push origin main
 **Current Domain**: www.holoscript.net (CNAME configured)
 
 To update custom domain:
+
 ```bash
 # 1. GitHub repo → Settings → Pages
 # 2. Custom domain field → enter new domain
@@ -117,14 +125,17 @@ To update custom domain:
 ### Troubleshooting
 
 **Issue**: Documentation not updating after push
+
 - **Check**: GitHub Actions workflow status (Actions tab)
 - **Fix**: Re-run failed workflow or check build logs
 
 **Issue**: Broken links in deployed site
+
 - **Check**: VitePress build warnings (`npm run build`)
 - **Fix**: Update broken markdown links or excluded files in `config.ts`
 
 **Issue**: TypeDoc API reference missing/outdated
+
 - **Check**: Build logs for `pnpm docs:api` step
 - **Fix**: Ensure `@holoscript/core` builds successfully
 
@@ -140,6 +151,7 @@ To update custom domain:
 **Status**: ✅ **DEPLOYED & LIVE** (via Railway CLI)
 
 > **📘 Maintenance**: Since services are already deployed, see [RAILWAY_MAINTENANCE_GUIDE.md](RAILWAY_MAINTENANCE_GUIDE.md) for:
+>
 > - Updating existing deployments
 > - Managing environment variables
 > - Viewing logs and metrics
@@ -147,19 +159,20 @@ To update custom domain:
 
 ### Deployed Services
 
-| Service | Package Path | Port | Purpose | Dependencies |
-|---------|-------------|------|---------|--------------|
-| **HoloScript Studio** | `packages/studio` | 3000 | AI-powered 3D scene builder | React, Three.js, AI SDKs |
-| **Marketplace Web** | `packages/marketplace-web` | 3000 | Plugin marketplace frontend | Next.js |
-| **Marketplace API** | `packages/marketplace-api` | 4000 | Plugin marketplace backend | Express, PostgreSQL |
-| **Render Service** | `services/render-service` | 5000 | Scene rendering service | WebGPU, WASM |
-| **LLM Service** | `services/llm-service` | 6000 | AI/LLM integration | Anthropic SDK, OpenAI SDK |
+| Service               | Package Path               | Port | Purpose                     | Dependencies              |
+| --------------------- | -------------------------- | ---- | --------------------------- | ------------------------- |
+| **HoloScript Studio** | `packages/studio`          | 3000 | AI-powered 3D scene builder | React, Three.js, AI SDKs  |
+| **Marketplace Web**   | `packages/marketplace-web` | 3000 | Plugin marketplace frontend | Next.js                   |
+| **Marketplace API**   | `packages/marketplace-api` | 4000 | Plugin marketplace backend  | Express, PostgreSQL       |
+| **Render Service**    | `services/render-service`  | 5000 | Scene rendering service     | WebGPU, WASM              |
+| **LLM Service**       | `services/llm-service`     | 6000 | AI/LLM integration          | Anthropic SDK, OpenAI SDK |
 
 ### Railway Configuration Files
 
 Each service has a `railway.toml` file defining build/deploy settings:
 
 **Example**: `packages/studio/railway.toml`
+
 ```toml
 [build]
 dockerfilePath = "packages/studio/Dockerfile"
@@ -360,6 +373,7 @@ railway run --service marketplace-api npm run migrate
 ```
 
 **Migrations** (if using Prisma/TypeORM):
+
 ```bash
 # Add migration script to package.json:
 "migrate": "prisma migrate deploy"  # or
@@ -414,6 +428,7 @@ jobs:
 ```
 
 **Setup**:
+
 1. Railway Dashboard → Project Settings → Tokens → Create Token
 2. GitHub repo → Settings → Secrets → New Secret
    - Name: `RAILWAY_TOKEN`
@@ -437,7 +452,7 @@ export async function GET() {
   return Response.json({
     status: 'healthy',
     version: process.env.npm_package_version,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }
 ```
@@ -459,14 +474,17 @@ railway rollback
 ### Cost Estimation
 
 **Railway Pricing** (as of 2026):
+
 - **Hobby Plan**: $5/month + $0.000231/GB-hr RAM + $0.000463/vCPU-hr
 - **Pro Plan**: $20/month + usage
 
 **Estimated Monthly Cost** (5 services):
+
 - ~$25-50/month for development/staging
 - ~$100-200/month for production (depending on traffic)
 
 **Optimization Tips**:
+
 - Use Railway's **sleep mode** for dev services (auto-sleep after inactivity)
 - Enable **autoscaling** for production (scales to zero during low traffic)
 - Use **shared databases** (one PostgreSQL instance for multiple services)
@@ -542,26 +560,31 @@ railway run --service marketplace-api pnpm prisma migrate deploy
 ## 🛡️ Security Checklist
 
 ### Environment Variables
+
 - [ ] Never commit `.env` files to git
 - [ ] Use Railway's **Variables** tab for secrets
 - [ ] Rotate API keys quarterly
 - [ ] Use different keys for dev/staging/production
 
 ### CORS Configuration
+
 - [ ] Restrict `ALLOWED_ORIGINS` to known domains
 - [ ] Don't use wildcard `*` in production
 
 ### Database Access
+
 - [ ] Use Railway's internal network for DB connections
 - [ ] Don't expose database ports publicly
 - [ ] Enable SSL for database connections
 
 ### SSL/TLS
+
 - [ ] Verify SSL certificates are active (Railway auto-provisions)
 - [ ] Enforce HTTPS redirects
 - [ ] Set HSTS headers
 
 ### Rate Limiting
+
 - [ ] Implement rate limiting on API endpoints
 - [ ] Use Redis for distributed rate limiting (if multiple instances)
 
@@ -585,6 +608,7 @@ railway run --service marketplace-api pnpm prisma migrate deploy
 ```
 
 **Slack Integration**:
+
 1. Railway → Integrations → Slack
 2. Select channel for deployment notifications
 3. Configure alert thresholds
@@ -596,6 +620,7 @@ railway run --service marketplace-api pnpm prisma migrate deploy
 ### Issue: Railway build fails
 
 **Check**:
+
 ```bash
 # View build logs
 railway logs --service holoscript-studio
@@ -607,6 +632,7 @@ railway logs --service holoscript-studio
 ```
 
 **Fix**:
+
 ```bash
 # Increase build memory (Railway Dashboard):
 # Service → Settings → Resources → Build Memory → 8GB
@@ -615,6 +641,7 @@ railway logs --service holoscript-studio
 ### Issue: Service crashes after deploy
 
 **Check**:
+
 ```bash
 # View runtime logs
 railway logs --service holoscript-studio --tail
@@ -626,15 +653,17 @@ railway logs --service holoscript-studio --tail
 ```
 
 **Fix**:
+
 ```typescript
 // Ensure app binds to correct port:
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0');  // Important: bind to 0.0.0.0
+app.listen(PORT, '0.0.0.0'); // Important: bind to 0.0.0.0
 ```
 
 ### Issue: Inter-service communication fails
 
 **Check**:
+
 ```bash
 # Use Railway private domains:
 # Service A → ${{SERVICE_B.RAILWAY_PRIVATE_DOMAIN}}
@@ -642,6 +671,7 @@ app.listen(PORT, '0.0.0.0');  // Important: bind to 0.0.0.0
 ```
 
 **Fix**:
+
 ```env
 # In Marketplace Web:
 MARKETPLACE_API_URL=${{MARKETPLACE_API.RAILWAY_PRIVATE_DOMAIN}}
@@ -651,12 +681,14 @@ MARKETPLACE_API_URL=${{MARKETPLACE_API.RAILWAY_PRIVATE_DOMAIN}}
 ### Issue: Database migrations not applied
 
 **Check**:
+
 ```bash
 # Verify DATABASE_URL is set
 railway variables --service marketplace-api
 ```
 
 **Fix**:
+
 ```bash
 # Manually run migrations
 railway run --service marketplace-api pnpm prisma migrate deploy
@@ -707,15 +739,18 @@ railway run --service marketplace-api pnpm prisma migrate deploy
 ## 📞 Support & Resources
 
 ### Documentation
+
 - **VitePress**: https://vitepress.dev
 - **Railway**: https://docs.railway.app
 - **GitHub Pages**: https://docs.github.com/pages
 
 ### Community
+
 - **HoloScript Discord**: https://discord.gg/holoscript
 - **Railway Discord**: https://discord.gg/railway
 
 ### Emergency Contacts
+
 - **Deployment Issues**: [Your team contact]
 - **Infrastructure**: [Your DevOps contact]
 

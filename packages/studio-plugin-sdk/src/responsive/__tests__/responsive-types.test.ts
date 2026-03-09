@@ -6,11 +6,7 @@
  * functions produce valid configurations.
  */
 import { describe, it, expect } from 'vitest';
-import {
-  createPlugin,
-  createPanel,
-  validatePlugin,
-} from '../../helpers.js';
+import { createPlugin, createPanel, validatePlugin } from '../../helpers.js';
 import type {
   HoloScriptPlugin,
   CustomPanel,
@@ -29,18 +25,14 @@ import type {
 
 describe('ResponsiveBreakpoint type', () => {
   it('should accept all valid breakpoint values', () => {
-    const breakpoints: ResponsiveBreakpoint[] = [
-      'mobile', 'tablet', 'desktop', 'wide',
-    ];
+    const breakpoints: ResponsiveBreakpoint[] = ['mobile', 'tablet', 'desktop', 'wide'];
     expect(breakpoints).toHaveLength(4);
   });
 });
 
 describe('PanelLayoutMode type', () => {
   it('should accept all valid layout modes', () => {
-    const modes: PanelLayoutMode[] = [
-      'docked', 'floating', 'drawer', 'fullscreen', 'collapsed',
-    ];
+    const modes: PanelLayoutMode[] = ['docked', 'floating', 'drawer', 'fullscreen', 'collapsed'];
     expect(modes).toHaveLength(5);
   });
 });
@@ -48,7 +40,10 @@ describe('PanelLayoutMode type', () => {
 describe('ToolbarLayoutMode type', () => {
   it('should accept all valid toolbar layout modes', () => {
     const modes: ToolbarLayoutMode[] = [
-      'horizontal', 'vertical', 'floating-action-bar', 'contextual',
+      'horizontal',
+      'vertical',
+      'floating-action-bar',
+      'contextual',
     ];
     expect(modes).toHaveLength(4);
   });
@@ -57,8 +52,14 @@ describe('ToolbarLayoutMode type', () => {
 describe('TouchGestureType type', () => {
   it('should accept all valid gesture types', () => {
     const gestures: TouchGestureType[] = [
-      'swipe-left', 'swipe-right', 'swipe-up', 'swipe-down',
-      'pinch-in', 'pinch-out', 'long-press', 'double-tap',
+      'swipe-left',
+      'swipe-right',
+      'swipe-up',
+      'swipe-down',
+      'pinch-in',
+      'pinch-out',
+      'long-press',
+      'double-tap',
     ];
     expect(gestures).toHaveLength(8);
   });
@@ -165,7 +166,9 @@ describe('CustomPanel with responsive configuration', () => {
   });
 
   it('should create a panel with custom gesture handler', () => {
-    const customHandler = () => { /* custom logic */ };
+    const customHandler = () => {
+      /* custom logic */
+    };
 
     const panel: CustomPanel = createPanel({
       id: 'custom-gesture',
@@ -237,9 +240,7 @@ describe('CustomToolbarButton with responsive features', () => {
       },
     ];
 
-    const sorted = [...buttons].sort(
-      (a, b) => (b.priority ?? 0) - (a.priority ?? 0),
-    );
+    const sorted = [...buttons].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
 
     expect(sorted[0].id).toBe('high-priority');
     expect(sorted[1].id).toBe('low-priority');
@@ -297,9 +298,7 @@ describe('HoloScriptPlugin with responsive configuration', () => {
               layoutMode: 'fullscreen',
             },
           },
-          touchGestures: [
-            { gesture: 'swipe-right', action: 'dismiss' },
-          ],
+          touchGestures: [{ gesture: 'swipe-right', action: 'dismiss' }],
         },
       ],
     });
@@ -390,7 +389,11 @@ describe('ResponsivePanelConfig resolution', () => {
 
   it('should support all position values', () => {
     const positions: Array<ResponsivePanelConfig['position']> = [
-      'left', 'right', 'bottom', 'modal', 'top',
+      'left',
+      'right',
+      'bottom',
+      'modal',
+      'top',
     ];
     positions.forEach((pos) => {
       const config: ResponsivePanelConfig = {
@@ -431,7 +434,10 @@ describe('ResponsiveToolbarConfig resolution', () => {
 
   it('should support all toolbar positions', () => {
     const positions: Array<ResponsiveToolbarConfig['position']> = [
-      'top', 'bottom', 'left', 'right',
+      'top',
+      'bottom',
+      'left',
+      'right',
     ];
     positions.forEach((pos) => {
       const config: ResponsiveToolbarConfig = {
@@ -464,7 +470,7 @@ describe('TouchGestureAction configuration', () => {
     const gesture: TouchGestureAction = {
       gesture: 'swipe-right',
       action: 'dismiss',
-      threshold: 100,  // 100px swipe distance
+      threshold: 100, // 100px swipe distance
     };
 
     expect(gesture.threshold).toBe(100);

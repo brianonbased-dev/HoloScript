@@ -22,7 +22,12 @@ import {
 // ── Scene Hierarchy (Actor / Camera / Light only) ────────────────────────────
 
 const SCENE_ITEMS = [
-  { id: 'cam-main', type: 'camera', label: 'Main Camera', icon: <Camera className="h-3.5 w-3.5" /> },
+  {
+    id: 'cam-main',
+    type: 'camera',
+    label: 'Main Camera',
+    icon: <Camera className="h-3.5 w-3.5" />,
+  },
   { id: 'cam-dly', type: 'camera', label: 'Dolly Cam', icon: <Camera className="h-3.5 w-3.5" /> },
   { id: 'light-key', type: 'light', label: 'Key Light', icon: <Sun className="h-3.5 w-3.5" /> },
   { id: 'light-fill', type: 'light', label: 'Fill Light', icon: <Sun className="h-3.5 w-3.5" /> },
@@ -100,10 +105,10 @@ function CameraInspector() {
   const [activeLook, setActiveLook] = useState('Natural');
 
   const SHOT_CONFIGS: Record<string, number> = {
-    'Wide': 75,
-    'Medium': 50,
+    Wide: 75,
+    Medium: 50,
     'Close-Up': 28,
-    'POV': 15,
+    POV: 15,
   };
 
   const applyShot = (shot: string) => {
@@ -123,7 +128,9 @@ function CameraInspector() {
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {/* Shot type */}
         <div>
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-studio-muted">Shot Type</p>
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-studio-muted">
+            Shot Type
+          </p>
           <div className="grid grid-cols-2 gap-1">
             {['Wide', 'Medium', 'Close-Up', 'POV'].map((s) => (
               <button
@@ -143,7 +150,9 @@ function CameraInspector() {
 
         {/* Rig */}
         <div>
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-studio-muted">Camera Rig</p>
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-studio-muted">
+            Camera Rig
+          </p>
           <div className="grid grid-cols-2 gap-1">
             {['Dolly', 'Orbit', 'Drone', 'Handheld', 'Steadicam', 'Static'].map((r) => (
               <button
@@ -164,30 +173,40 @@ function CameraInspector() {
         {/* FOV */}
         <div>
           <div className="mb-1 flex justify-between">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-studio-muted">Field of View</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-studio-muted">
+              Field of View
+            </p>
             <span className="text-[10px] text-amber-400">{fov}°</span>
           </div>
           <input
-            type="range" min={10} max={120} value={fov}
+            type="range"
+            min={10}
+            max={120}
+            value={fov}
             onChange={(e) => setFov(Number(e.target.value))}
             className="w-full accent-amber-400"
           />
           <div className="mt-0.5 flex justify-between text-[9px] text-studio-muted">
-            <span>Telephoto</span><span>Fisheye</span>
+            <span>Telephoto</span>
+            <span>Fisheye</span>
           </div>
         </div>
 
         {/* DOF */}
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-studio-muted">Depth of Field</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-studio-muted">
+              Depth of Field
+            </p>
             <button
               onClick={() => setDof((v) => !v)}
               className={`h-5 w-9 rounded-full border transition-all ${
                 dof ? 'border-amber-500/60 bg-amber-500/30' : 'border-studio-border bg-black/20'
               }`}
             >
-              <div className={`h-3.5 w-3.5 rounded-full bg-white/80 transition-all mx-0.5 ${dof ? 'translate-x-4' : 'translate-x-0'}`} />
+              <div
+                className={`h-3.5 w-3.5 rounded-full bg-white/80 transition-all mx-0.5 ${dof ? 'translate-x-4' : 'translate-x-0'}`}
+              />
             </button>
           </div>
           {dof && (
@@ -197,7 +216,11 @@ function CameraInspector() {
                 <span className="text-[10px] text-amber-400">f/{aperture.toFixed(1)}</span>
               </div>
               <input
-                type="range" min={1.2} max={22} step={0.1} value={aperture}
+                type="range"
+                min={1.2}
+                max={22}
+                step={0.1}
+                value={aperture}
                 onChange={(e) => setAperture(Number(e.target.value))}
                 className="w-full accent-amber-400"
               />
@@ -207,21 +230,25 @@ function CameraInspector() {
 
         {/* Post-FX */}
         <div>
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-studio-muted">Film Look</p>
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-studio-muted">
+            Film Look
+          </p>
           <div className="grid grid-cols-2 gap-1">
-            {['Natural', 'Cinematic', 'Vintage', 'Neon Noir', 'Documentary', 'Bleach'].map((look) => (
-              <button
-                key={look}
-                onClick={() => setActiveLook(look)}
-                className={`rounded-md border py-1 text-[11px] transition ${
-                  activeLook === look
-                    ? 'border-amber-500/60 bg-amber-500/15 text-amber-400'
-                    : 'border-studio-border bg-black/20 text-studio-muted hover:border-amber-500/40 hover:bg-amber-500/10 hover:text-amber-400'
-                }`}
-              >
-                {look}
-              </button>
-            ))}
+            {['Natural', 'Cinematic', 'Vintage', 'Neon Noir', 'Documentary', 'Bleach'].map(
+              (look) => (
+                <button
+                  key={look}
+                  onClick={() => setActiveLook(look)}
+                  className={`rounded-md border py-1 text-[11px] transition ${
+                    activeLook === look
+                      ? 'border-amber-500/60 bg-amber-500/15 text-amber-400'
+                      : 'border-studio-border bg-black/20 text-studio-muted hover:border-amber-500/40 hover:bg-amber-500/10 hover:text-amber-400'
+                  }`}
+                >
+                  {look}
+                </button>
+              )
+            )}
           </div>
         </div>
       </div>
@@ -250,22 +277,30 @@ function CinematicTimeline() {
       {/* Playback controls */}
       <div className="flex items-center gap-3 border-b border-studio-border px-4 py-2">
         <div className="flex items-center gap-1">
-          <button className="rounded p-1 text-studio-muted hover:text-studio-text transition"><SkipBack className="h-3.5 w-3.5" /></button>
+          <button className="rounded p-1 text-studio-muted hover:text-studio-text transition">
+            <SkipBack className="h-3.5 w-3.5" />
+          </button>
           <button
             onClick={() => setPlaying((v) => !v)}
             className="rounded-lg bg-amber-500/20 p-1.5 text-amber-400 transition hover:bg-amber-500/30"
           >
             {playing ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
           </button>
-          <button className="rounded p-1 text-studio-muted hover:text-studio-text transition"><SkipForward className="h-3.5 w-3.5" /></button>
+          <button className="rounded p-1 text-studio-muted hover:text-studio-text transition">
+            <SkipForward className="h-3.5 w-3.5" />
+          </button>
         </div>
 
         <span className="font-mono text-[11px] text-studio-muted">
-          {String(Math.floor(time / 60)).padStart(2, '0')}:{String(time % 60).padStart(2, '0')} / 00:{String(duration).padStart(2, '0')}
+          {String(Math.floor(time / 60)).padStart(2, '0')}:{String(time % 60).padStart(2, '0')} /
+          00:{String(duration).padStart(2, '0')}
         </span>
 
         <input
-          type="range" min={0} max={duration} value={time}
+          type="range"
+          min={0}
+          max={duration}
+          value={time}
           onChange={(e) => setTime(Number(e.target.value))}
           className="flex-1 accent-amber-400"
         />
@@ -321,7 +356,10 @@ function CinematicOverlay() {
       {showGuides && (
         <div className="pointer-events-none absolute inset-0 z-10">
           {/* Rule of thirds lines */}
-          <div className="absolute inset-0 grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr 1fr' }}>
+          <div
+            className="absolute inset-0 grid"
+            style={{ gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr 1fr' }}
+          >
             {Array.from({ length: 9 }).map((_, i) => (
               <div key={i} className="border border-white/10" />
             ))}

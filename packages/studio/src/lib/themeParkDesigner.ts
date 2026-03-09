@@ -5,9 +5,19 @@
  * capacity planning, experience scoring, and park layout.
  */
 
-export interface Vec2 { x: number; y: number }
+export interface Vec2 {
+  x: number;
+  y: number;
+}
 
-export type RideType = 'coaster' | 'flat' | 'dark-ride' | 'water' | 'drop-tower' | 'spinner' | 'simulator';
+export type RideType =
+  | 'coaster'
+  | 'flat'
+  | 'dark-ride'
+  | 'water'
+  | 'drop-tower'
+  | 'spinner'
+  | 'simulator';
 export type ThrillLevel = 'family' | 'moderate' | 'thrill' | 'extreme';
 export type QueueStatus = 'open' | 'closed' | 'delayed' | 'full';
 
@@ -21,7 +31,7 @@ export interface RideProfile {
   maxGForce: number;
   durationSec: number;
   capacityPerHour: number;
-  minHeightCm: number;       // Rider requirement
+  minHeightCm: number; // Rider requirement
   maxHeightCm?: number;
 }
 
@@ -41,14 +51,14 @@ export interface QueueState {
   queueLength: number;
   status: QueueStatus;
   virtualQueueEnabled: boolean;
-  fastPassRatio: number;      // 0-1 (portion reserved for fast pass)
+  fastPassRatio: number; // 0-1 (portion reserved for fast pass)
 }
 
 export interface ParkSection {
   id: string;
   name: string;
   theme: string;
-  rides: string[];            // Ride IDs
+  rides: string[]; // Ride IDs
   restaurants: number;
   restrooms: number;
   capacity: number;
@@ -65,13 +75,13 @@ export function velocityFromDrop(heightM: number): number {
 
 export function gForceInLoop(velocityKmh: number, radiusM: number): number {
   const vMs = velocityKmh / 3.6;
-  return (vMs ** 2) / (radiusM * 9.81) + 1; // +1 for gravity
+  return vMs ** 2 / (radiusM * 9.81) + 1; // +1 for gravity
 }
 
 export function gForceInBank(velocityKmh: number, radiusM: number, bankDeg: number): number {
   const vMs = velocityKmh / 3.6;
-  const bankRad = bankDeg * Math.PI / 180;
-  return (vMs ** 2) / (radiusM * 9.81 * Math.cos(bankRad));
+  const bankRad = (bankDeg * Math.PI) / 180;
+  return vMs ** 2 / (radiusM * 9.81 * Math.cos(bankRad));
 }
 
 export function isSafeGForce(g: number): boolean {
@@ -83,18 +93,22 @@ export function totalRideDuration(segments: RideSegment[]): number {
 }
 
 export function peakGForce(segments: RideSegment[]): number {
-  return Math.max(...segments.map(s => s.gForce));
+  return Math.max(...segments.map((s) => s.gForce));
 }
 
 export function peakSpeed(segments: RideSegment[]): number {
-  return Math.max(...segments.map(s => s.velocityKmh));
+  return Math.max(...segments.map((s) => s.velocityKmh));
 }
 
 // ═══════════════════════════════════════════════════════════════════
 // Queue Management
 // ═══════════════════════════════════════════════════════════════════
 
-export function estimatedWaitMinutes(queueLength: number, capacityPerHour: number, fastPassRatio: number): number {
+export function estimatedWaitMinutes(
+  queueLength: number,
+  capacityPerHour: number,
+  fastPassRatio: number
+): number {
   const effectiveCapacity = capacityPerHour * (1 - fastPassRatio);
   if (effectiveCapacity <= 0) return Infinity;
   return (queueLength / effectiveCapacity) * 60;
@@ -144,7 +158,11 @@ export function crowdFlowSimulation(
   dt: number,
   avoidanceRadius: number
 ): CrowdAgent[] {
-  const result = agents.map(a => ({ ...a, position: { ...a.position }, target: { ...a.target } }));
+  const result = agents.map((a) => ({
+    ...a,
+    position: { ...a.position },
+    target: { ...a.target },
+  }));
 
   for (let s = 0; s < steps; s++) {
     for (const agent of result) {
@@ -154,7 +172,8 @@ export function crowdFlowSimulation(
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < 0.1) continue; // Arrived
 
-      dx /= dist; dy /= dist;
+      dx /= dist;
+      dy /= dist;
 
       // Avoidance: push away from nearby agents
       for (const other of result) {
@@ -186,7 +205,7 @@ export function crowdFlowSimulation(
 export interface VROverlay {
   rideId: string;
   type: 'particle' | 'hologram' | 'portal' | 'character';
-  triggerGForce: number;  // Activate above this G
+  triggerGForce: number; // Activate above this G
   intensityScale: number;
 }
 
@@ -194,7 +213,7 @@ export interface VROverlay {
  * Compute VR overlay immersion score based on ride profile and overlay count.
  */
 export function vrRideOverlayScore(ride: RideProfile, overlays: VROverlay[]): number {
-  const activeOverlays = overlays.filter(o => ride.maxGForce >= o.triggerGForce);
+  const activeOverlays = overlays.filter((o) => ride.maxGForce >= o.triggerGForce);
   const baseScore = activeOverlays.reduce((sum, o) => sum + o.intensityScale * 10, 0);
   const thrillMultiplier = 1 + thrillScore(ride) / 100;
   return Math.round(baseScore * thrillMultiplier);

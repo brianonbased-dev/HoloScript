@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { terrainAnchorHandler } from '../TerrainAnchorTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('TerrainAnchorTrait', () => {
   let node: Record<string, unknown>;
@@ -72,7 +78,10 @@ describe('TerrainAnchorTrait', () => {
   });
 
   it('query emits info', () => {
-    sendEvent(terrainAnchorHandler, node, cfg, ctx, { type: 'terrain_anchor_query', queryId: 'q1' });
+    sendEvent(terrainAnchorHandler, node, cfg, ctx, {
+      type: 'terrain_anchor_query',
+      queryId: 'q1',
+    });
     expect(getEventCount(ctx, 'terrain_anchor_info')).toBe(1);
   });
 

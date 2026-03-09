@@ -15,7 +15,7 @@ export interface AudioPreset {
   type: AudioType;
   tags: string[];
   description: string;
-  url: string;         // placeholder audio URL
+  url: string; // placeholder audio URL
   loop: boolean;
   volume: number;
   spatialRadius?: number;
@@ -77,7 +77,8 @@ const PRESETS: AudioPreset[] = [
     url: '',
     loop: false,
     volume: 0.8,
-    traitSnippet: '@audio(src: "door_creak.ogg", type: "triggered", trigger: "interact", volume: 0.8)',
+    traitSnippet:
+      '@audio(src: "door_creak.ogg", type: "triggered", trigger: "interact", volume: 0.8)',
   },
   {
     id: 'trig-coin',
@@ -99,7 +100,8 @@ const PRESETS: AudioPreset[] = [
     url: '',
     loop: false,
     volume: 1.0,
-    traitSnippet: '@audio(src: "explosion.ogg", type: "triggered", trigger: "destroy", volume: 1.0)',
+    traitSnippet:
+      '@audio(src: "explosion.ogg", type: "triggered", trigger: "destroy", volume: 1.0)',
   },
   {
     id: 'spa-waterfall',
@@ -112,7 +114,8 @@ const PRESETS: AudioPreset[] = [
     volume: 0.7,
     spatialRadius: 8,
     rolloffFactor: 2,
-    traitSnippet: '@audio(src: "waterfall.ogg", type: "spatial", loop: true, volume: 0.7, radius: 8, rolloff: 2)',
+    traitSnippet:
+      '@audio(src: "waterfall.ogg", type: "spatial", loop: true, volume: 0.7, radius: 8, rolloff: 2)',
   },
   {
     id: 'spa-npc-voice',
@@ -125,11 +128,14 @@ const PRESETS: AudioPreset[] = [
     volume: 0.3,
     spatialRadius: 4,
     rolloffFactor: 3,
-    traitSnippet: '@audio(src: "crowd_murmur.ogg", type: "spatial", loop: true, volume: 0.3, radius: 4, rolloff: 3)',
+    traitSnippet:
+      '@audio(src: "crowd_murmur.ogg", type: "spatial", loop: true, volume: 0.3, radius: 4, rolloff: 3)',
   },
 ];
 
-declare global { var __audioPresets__: AudioPreset[] | undefined; }
+declare global {
+  var __audioPresets__: AudioPreset[] | undefined;
+}
 const presets = globalThis.__audioPresets__ ?? (globalThis.__audioPresets__ = [...PRESETS]);
 
 export async function GET(request: NextRequest) {
@@ -139,7 +145,10 @@ export async function GET(request: NextRequest) {
 
   let results = presets;
   if (type) results = results.filter((p) => p.type === type);
-  if (q) results = results.filter((p) => p.name.toLowerCase().includes(q) || p.tags.some((t) => t.includes(q)));
+  if (q)
+    results = results.filter(
+      (p) => p.name.toLowerCase().includes(q) || p.tags.some((t) => t.includes(q))
+    );
 
   return Response.json({ presets: results, total: results.length });
 }

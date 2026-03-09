@@ -1,4 +1,3 @@
-
 import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 export interface UIButtonConfig {
@@ -50,16 +49,16 @@ export function createUIButton(id: string, config: UIButtonConfig): HSPlusNode {
           distance: depth * 0.8, // Press depth
           triggerPoint: 0.5,
           stiffness: 200,
-          damping: 10
+          damping: 10,
         },
         traits: [
-            { 
-                name: 'pressable',
-                properties: {
-                    distance: depth * 0.8
-                }
+          {
+            name: 'pressable',
+            properties: {
+              distance: depth * 0.8,
             },
-            // Optional: Collider/Collision trait if explicit collision needed defined separately
+          },
+          // Optional: Collider/Collision trait if explicit collision needed defined separately
         ],
         children: [
           {
@@ -72,11 +71,11 @@ export function createUIButton(id: string, config: UIButtonConfig): HSPlusNode {
               color: config.textColor || '#FFFFFF',
               fontSize: 0.05,
               anchorX: 'center',
-              anchorY: 'middle'
-            }
-          }
-        ]
-      }
-    ]
+              anchorY: 'middle',
+            },
+          },
+        ],
+      },
+    ],
   };
 }

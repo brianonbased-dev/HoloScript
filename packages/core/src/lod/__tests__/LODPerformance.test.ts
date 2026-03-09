@@ -112,7 +112,7 @@ describe('LOD Performance - SIMD Distance Calculations', () => {
       { pos: [0, 10, 0], cam: [0, 0, 0], expected: 10 },
       { pos: [3, 4, 0], cam: [0, 0, 0], expected: 5 },
       { pos: [6, 8, 0], cam: [0, 0, 0], expected: 10 },
-      { pos: [1, 1, 1], cam: [0, 0, 0], expected: Math.sqrt(3) }
+      { pos: [1, 1, 1], cam: [0, 0, 0], expected: Math.sqrt(3) },
     ];
 
     for (const testCase of testCases) {
@@ -166,7 +166,7 @@ describe('LOD Performance - Memory Pool', () => {
     pool = createLODMemoryPool({
       initialPoolSize: 5,
       maxPoolSize: 20,
-      bufferSizes: [100, 500, 1000, 5000]
+      bufferSizes: [100, 500, 1000, 5000],
     });
   });
 
@@ -321,7 +321,7 @@ describe('LOD Performance - Transition Scheduling', () => {
     const objects = [
       { id: 'far', distance: 100 },
       { id: 'medium', distance: 50 },
-      { id: 'close', distance: 10 }
+      { id: 'close', distance: 10 },
     ];
 
     for (const obj of objects) {
@@ -331,7 +331,10 @@ describe('LOD Performance - Transition Scheduling', () => {
 
     manager.setCameraPosition([0, 0, 0]);
     manager.setMaxTransitionsPerFrame(1);
-    manager.updateBatch(objects.map(o => o.id), 0.016);
+    manager.updateBatch(
+      objects.map((o) => o.id),
+      0.016
+    );
 
     // Closer object should transition first (implementation detail)
     const closeState = manager.getState('close');
@@ -445,13 +448,13 @@ describe('LOD Performance - Metrics Tracking', () => {
     const objectsPerLevel = new Map([
       [0, 5],
       [1, 10],
-      [2, 3]
+      [2, 3],
     ]);
 
     const trianglesPerLevel = new Map([
       [0, 5000],
       [1, 2500],
-      [2, 1000]
+      [2, 1000],
     ]);
 
     metrics.updateHistogram(objectsPerLevel, trianglesPerLevel);
@@ -592,11 +595,7 @@ describe('LOD Performance - Performance Regression', () => {
     for (let i = 0; i < 200; i++) {
       const id = `object_${i}`;
       const config = createStandardLODConfig(id, 3, 10);
-      manager.register(id, config, [
-        Math.random() * 100,
-        Math.random() * 100,
-        Math.random() * 100
-      ]);
+      manager.register(id, config, [Math.random() * 100, Math.random() * 100, Math.random() * 100]);
       objectIds.push(id);
     }
 
@@ -647,7 +646,7 @@ describe('LOD Performance - Performance Regression', () => {
     const pool = createLODMemoryPool({
       initialPoolSize: 10,
       maxPoolSize: 50,
-      bufferSizes: [1000, 5000, 10000]
+      bufferSizes: [1000, 5000, 10000],
     });
 
     // Simulate allocation/deallocation cycles

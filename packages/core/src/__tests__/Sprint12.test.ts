@@ -51,10 +51,7 @@ import {
 // Feature 4: Git integration types (uses `import type` from SDK -- safe in Node)
 // ============================================================================
 
-import {
-  DEFAULT_GIT_CONFIG,
-  DIFF_COLORS,
-} from '../../../vscode-extension/src/git/GitTypes.js';
+import { DEFAULT_GIT_CONFIG, DIFF_COLORS } from '../../../vscode-extension/src/git/GitTypes.js';
 
 // ============================================================================
 // Feature 1A: CDN -- defaultCDNConfig
@@ -136,8 +133,14 @@ describe('Feature 2: CDN HoloSceneRenderer class', () => {
 
   it('RenderOptions target union includes valid targets', () => {
     const validTargets: RenderOptions['target'][] = [
-      'webxr', 'threejs', 'babylon', 'unity', 'godot',
-      'visionos', 'android-xr', 'auto',
+      'webxr',
+      'threejs',
+      'babylon',
+      'unity',
+      'godot',
+      'visionos',
+      'android-xr',
+      'auto',
     ];
     expect(validTargets).toContain('threejs');
     expect(validTargets).toContain('webxr');
@@ -227,9 +230,7 @@ describe('Feature 3C: Collaboration reconnect config & awareness interval', () =
   });
 
   it('maxDelay is greater than baseDelay', () => {
-    expect(DEFAULT_RECONNECT_CONFIG.maxDelay).toBeGreaterThan(
-      DEFAULT_RECONNECT_CONFIG.baseDelay
-    );
+    expect(DEFAULT_RECONNECT_CONFIG.maxDelay).toBeGreaterThan(DEFAULT_RECONNECT_CONFIG.baseDelay);
   });
 
   it('DEFAULT_AWARENESS_INTERVAL is 100 ms', () => {

@@ -4,7 +4,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { accessibleHandler } from '../AccessibleTrait';
 
-function makeNode(extras: any = {}) { return { id: 'acc_node', ...extras }; }
+function makeNode(extras: any = {}) {
+  return { id: 'acc_node', ...extras };
+}
 function makeCtx(accessibilityMock: any = null) {
   return {
     emit: vi.fn(),
@@ -42,9 +44,12 @@ describe('accessibleHandler.onAttach', () => {
   it('creates __accessibleState', () => expect(attach().node.__accessibleState).toBeDefined());
   it('isFocused=false', () => expect(attach().node.__accessibleState.isFocused).toBe(false));
   it('isHovered=false', () => expect(attach().node.__accessibleState.isHovered).toBe(false));
-  it('announceQueue empty', () => expect(attach().node.__accessibleState.announceQueue).toHaveLength(0));
-  it('tabOrder matches tab_index', () => expect(attach({ tab_index: 3 }).node.__accessibleState.tabOrder).toBe(3));
-  it('ariaValue=null for non-slider role', () => expect(attach({ role: 'button' }).node.__accessibleState.ariaValue).toBeNull());
+  it('announceQueue empty', () =>
+    expect(attach().node.__accessibleState.announceQueue).toHaveLength(0));
+  it('tabOrder matches tab_index', () =>
+    expect(attach({ tab_index: 3 }).node.__accessibleState.tabOrder).toBe(3));
+  it('ariaValue=null for non-slider role', () =>
+    expect(attach({ role: 'button' }).node.__accessibleState.ariaValue).toBeNull());
   it('ariaValue=value_now for slider role', () => {
     const { node } = attach({ role: 'slider', value_now: 50 });
     expect(node.__accessibleState.ariaValue).toBe(50);
@@ -55,11 +60,17 @@ describe('accessibleHandler.onAttach', () => {
   });
   it('emits accessibility_register', () => {
     const { ctx } = attach({ role: 'checkbox', label: 'Accept' });
-    expect(ctx.emit).toHaveBeenCalledWith('accessibility_register', expect.objectContaining({ role: 'checkbox', label: 'Accept' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'accessibility_register',
+      expect.objectContaining({ role: 'checkbox', label: 'Accept' })
+    );
   });
   it('accessibility_register includes tabIndex and shortcut', () => {
     const { ctx } = attach({ tab_index: 2, keyboard_shortcut: 'Enter' });
-    expect(ctx.emit).toHaveBeenCalledWith('accessibility_register', expect.objectContaining({ tabIndex: 2, shortcut: 'Enter' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'accessibility_register',
+      expect.objectContaining({ tabIndex: 2, shortcut: 'Enter' })
+    );
   });
   it('calls setAltText when label set', () => {
     const node = makeNode();
@@ -101,7 +112,10 @@ describe('accessibleHandler.onUpdate', () => {
     node.__accessibleState.isFocused = true;
     ctx.emit.mockClear();
     accessibleHandler.onUpdate!(node, config, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('accessibility_focus_ring', expect.objectContaining({ visible: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'accessibility_focus_ring',
+      expect.objectContaining({ visible: true })
+    );
   });
   it('no focus_ring when not focused', () => {
     const { node, config, ctx } = attach();
@@ -170,7 +184,9 @@ describe('accessibleHandler.onEvent — focus / blur', () => {
   it('focus announcement includes description when set', () => {
     const { node, ctx, config } = attach({ label: 'Name', description: 'Enter your name' });
     accessibleHandler.onEvent!(node, config, ctx, { type: 'focus' });
-    expect(ctx.accessibility.announce).toHaveBeenCalledWith(expect.stringContaining('Enter your name'));
+    expect(ctx.accessibility.announce).toHaveBeenCalledWith(
+      expect.stringContaining('Enter your name')
+    );
   });
   it('focus announces keyboard shortcut', () => {
     const { node, ctx, config } = attach({ keyboard_shortcut: 'Space' });
@@ -193,7 +209,10 @@ describe('accessibleHandler.onEvent — focus / blur', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     accessibleHandler.onEvent!(node, config, ctx, { type: 'blur' });
-    expect(ctx.emit).toHaveBeenCalledWith('accessibility_focus_ring', expect.objectContaining({ visible: false }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'accessibility_focus_ring',
+      expect.objectContaining({ visible: false })
+    );
   });
 });
 
@@ -213,40 +232,78 @@ describe('accessibleHandler.onEvent — keydown', () => {
     expect(ctx.emit).not.toHaveBeenCalledWith('accessible_activate', expect.anything());
   });
   it('slider ArrowRight increments ariaValue', () => {
-    const { node, ctx, config } = attach({ role: 'slider', value_min: 0, value_max: 100, value_now: 50 });
+    const { node, ctx, config } = attach({
+      role: 'slider',
+      value_min: 0,
+      value_max: 100,
+      value_now: 50,
+    });
     accessibleHandler.onEvent!(node, config, ctx, { type: 'keydown', key: 'ArrowRight' });
     expect(node.__accessibleState.ariaValue).toBeCloseTo(60); // 50 + 10%
   });
   it('slider ArrowLeft decrements ariaValue', () => {
-    const { node, ctx, config } = attach({ role: 'slider', value_min: 0, value_max: 100, value_now: 50 });
+    const { node, ctx, config } = attach({
+      role: 'slider',
+      value_min: 0,
+      value_max: 100,
+      value_now: 50,
+    });
     accessibleHandler.onEvent!(node, config, ctx, { type: 'keydown', key: 'ArrowLeft' });
     expect(node.__accessibleState.ariaValue).toBeCloseTo(40);
   });
   it('slider ArrowUp increments ariaValue', () => {
-    const { node, ctx, config } = attach({ role: 'slider', value_min: 0, value_max: 100, value_now: 50 });
+    const { node, ctx, config } = attach({
+      role: 'slider',
+      value_min: 0,
+      value_max: 100,
+      value_now: 50,
+    });
     accessibleHandler.onEvent!(node, config, ctx, { type: 'keydown', key: 'ArrowUp' });
     expect(node.__accessibleState.ariaValue).toBeCloseTo(60);
   });
   it('slider ArrowDown decrements ariaValue', () => {
-    const { node, ctx, config } = attach({ role: 'slider', value_min: 0, value_max: 100, value_now: 50 });
+    const { node, ctx, config } = attach({
+      role: 'slider',
+      value_min: 0,
+      value_max: 100,
+      value_now: 50,
+    });
     accessibleHandler.onEvent!(node, config, ctx, { type: 'keydown', key: 'ArrowDown' });
     expect(node.__accessibleState.ariaValue).toBeCloseTo(40);
   });
   it('slider value clamped to value_max', () => {
-    const { node, ctx, config } = attach({ role: 'slider', value_min: 0, value_max: 100, value_now: 95 });
+    const { node, ctx, config } = attach({
+      role: 'slider',
+      value_min: 0,
+      value_max: 100,
+      value_now: 95,
+    });
     accessibleHandler.onEvent!(node, config, ctx, { type: 'keydown', key: 'ArrowRight' });
     expect(node.__accessibleState.ariaValue).toBe(100);
   });
   it('slider value clamped to value_min', () => {
-    const { node, ctx, config } = attach({ role: 'slider', value_min: 0, value_max: 100, value_now: 5 });
+    const { node, ctx, config } = attach({
+      role: 'slider',
+      value_min: 0,
+      value_max: 100,
+      value_now: 5,
+    });
     accessibleHandler.onEvent!(node, config, ctx, { type: 'keydown', key: 'ArrowLeft' });
     expect(node.__accessibleState.ariaValue).toBe(0);
   });
   it('slider emits accessible_value_change on arrow key', () => {
-    const { node, ctx, config } = attach({ role: 'slider', value_min: 0, value_max: 100, value_now: 50 });
+    const { node, ctx, config } = attach({
+      role: 'slider',
+      value_min: 0,
+      value_max: 100,
+      value_now: 50,
+    });
     ctx.emit.mockClear();
     accessibleHandler.onEvent!(node, config, ctx, { type: 'keydown', key: 'ArrowRight' });
-    expect(ctx.emit).toHaveBeenCalledWith('accessible_value_change', expect.objectContaining({ value: expect.any(Number) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'accessible_value_change',
+      expect.objectContaining({ value: expect.any(Number) })
+    );
   });
   it('button role arrow keys do not change ariaValue', () => {
     const { node, ctx, config } = attach({ role: 'button' });
@@ -260,20 +317,35 @@ describe('accessibleHandler.onEvent — keydown', () => {
 describe('accessibleHandler.onEvent — accessible_announce', () => {
   it('polite adds to end of queue', () => {
     const { node, ctx, config } = attach({ live_region: 'polite' });
-    accessibleHandler.onEvent!(node, config, ctx, { type: 'accessible_announce', message: 'First' });
-    accessibleHandler.onEvent!(node, config, ctx, { type: 'accessible_announce', message: 'Second' });
+    accessibleHandler.onEvent!(node, config, ctx, {
+      type: 'accessible_announce',
+      message: 'First',
+    });
+    accessibleHandler.onEvent!(node, config, ctx, {
+      type: 'accessible_announce',
+      message: 'Second',
+    });
     expect(node.__accessibleState.announceQueue[0]).toBe('First');
     expect(node.__accessibleState.announceQueue[1]).toBe('Second');
   });
   it('assertive inserts to front of queue', () => {
     const { node, ctx, config } = attach({ live_region: 'assertive' });
-    accessibleHandler.onEvent!(node, config, ctx, { type: 'accessible_announce', message: 'First' });
-    accessibleHandler.onEvent!(node, config, ctx, { type: 'accessible_announce', message: 'Urgent' });
+    accessibleHandler.onEvent!(node, config, ctx, {
+      type: 'accessible_announce',
+      message: 'First',
+    });
+    accessibleHandler.onEvent!(node, config, ctx, {
+      type: 'accessible_announce',
+      message: 'Urgent',
+    });
     expect(node.__accessibleState.announceQueue[0]).toBe('Urgent');
   });
   it('live_region=off does not queue', () => {
     const { node, ctx, config } = attach({ live_region: 'off' });
-    accessibleHandler.onEvent!(node, config, ctx, { type: 'accessible_announce', message: 'Ignored' });
+    accessibleHandler.onEvent!(node, config, ctx, {
+      type: 'accessible_announce',
+      message: 'Ignored',
+    });
     expect(node.__accessibleState.announceQueue).toHaveLength(0);
   });
 });
@@ -283,25 +355,43 @@ describe('accessibleHandler.onEvent — accessible_announce', () => {
 describe('accessibleHandler.onEvent — aria state setters', () => {
   it('accessible_set_expanded sets ariaExpanded', () => {
     const { node, ctx, config } = attach();
-    accessibleHandler.onEvent!(node, config, ctx, { type: 'accessible_set_expanded', expanded: true });
+    accessibleHandler.onEvent!(node, config, ctx, {
+      type: 'accessible_set_expanded',
+      expanded: true,
+    });
     expect(node.__accessibleState.ariaExpanded).toBe(true);
   });
   it('accessible_set_expanded emits accessibility_update', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    accessibleHandler.onEvent!(node, config, ctx, { type: 'accessible_set_expanded', expanded: false });
-    expect(ctx.emit).toHaveBeenCalledWith('accessibility_update', expect.objectContaining({ property: 'expanded', value: false }));
+    accessibleHandler.onEvent!(node, config, ctx, {
+      type: 'accessible_set_expanded',
+      expanded: false,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'accessibility_update',
+      expect.objectContaining({ property: 'expanded', value: false })
+    );
   });
   it('accessible_set_checked sets ariaChecked', () => {
     const { node, ctx, config } = attach();
-    accessibleHandler.onEvent!(node, config, ctx, { type: 'accessible_set_checked', checked: true });
+    accessibleHandler.onEvent!(node, config, ctx, {
+      type: 'accessible_set_checked',
+      checked: true,
+    });
     expect(node.__accessibleState.ariaChecked).toBe(true);
   });
   it('accessible_set_checked emits accessibility_update', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    accessibleHandler.onEvent!(node, config, ctx, { type: 'accessible_set_checked', checked: true });
-    expect(ctx.emit).toHaveBeenCalledWith('accessibility_update', expect.objectContaining({ property: 'checked', value: true }));
+    accessibleHandler.onEvent!(node, config, ctx, {
+      type: 'accessible_set_checked',
+      checked: true,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'accessibility_update',
+      expect.objectContaining({ property: 'checked', value: true })
+    );
   });
   it('accessible_set_value sets ariaValue', () => {
     const { node, ctx, config } = attach();
@@ -312,6 +402,9 @@ describe('accessibleHandler.onEvent — aria state setters', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     accessibleHandler.onEvent!(node, config, ctx, { type: 'accessible_set_value', value: 42 });
-    expect(ctx.emit).toHaveBeenCalledWith('accessibility_update', expect.objectContaining({ property: 'valuenow', value: 42 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'accessibility_update',
+      expect.objectContaining({ property: 'valuenow', value: 42 })
+    );
   });
 });

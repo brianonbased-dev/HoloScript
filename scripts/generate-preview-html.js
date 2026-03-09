@@ -22,14 +22,38 @@ const path = require('path');
 // ---------------------------------------------------------------------------
 
 const COLOR_MAP = {
-  red: 0xe53935, green: 0x43a047, blue: 0x1e88e5, yellow: 0xfdd835,
-  cyan: 0x00acc1, magenta: 0xd81b60, white: 0xfafafa, black: 0x212121,
-  gray: 0x757575, grey: 0x757575, purple: 0x8e24aa, orange: 0xfb8c00,
-  pink: 0xf06292, gold: 0xffc107, silver: 0xbdbdbd, bronze: 0xcd7f32,
-  copper: 0xb87333, teal: 0x00897b, indigo: 0x5c6bc0, lime: 0xc0ca33,
-  coral: 0xff7043, navy: 0x283593, sky: 0x4fc3f7, forest: 0x2e7d32,
-  rose: 0xec407a, ice: 0xe1f5fe, lava: 0xff5722, neon: 0x39ff14,
-  plasma: 0xff073a, hologram: 0x00fff7, energy: 0xffea00, crystal: 0xb3e5fc,
+  red: 0xe53935,
+  green: 0x43a047,
+  blue: 0x1e88e5,
+  yellow: 0xfdd835,
+  cyan: 0x00acc1,
+  magenta: 0xd81b60,
+  white: 0xfafafa,
+  black: 0x212121,
+  gray: 0x757575,
+  grey: 0x757575,
+  purple: 0x8e24aa,
+  orange: 0xfb8c00,
+  pink: 0xf06292,
+  gold: 0xffc107,
+  silver: 0xbdbdbd,
+  bronze: 0xcd7f32,
+  copper: 0xb87333,
+  teal: 0x00897b,
+  indigo: 0x5c6bc0,
+  lime: 0xc0ca33,
+  coral: 0xff7043,
+  navy: 0x283593,
+  sky: 0x4fc3f7,
+  forest: 0x2e7d32,
+  rose: 0xec407a,
+  ice: 0xe1f5fe,
+  lava: 0xff5722,
+  neon: 0x39ff14,
+  plasma: 0xff073a,
+  hologram: 0x00fff7,
+  energy: 0xffea00,
+  crystal: 0xb3e5fc,
   nebula: 0x7b1fa2,
 };
 const DEFAULT_COLOR = 0x4a9eff;
@@ -52,18 +76,32 @@ function resolveColor(colorStr) {
 }
 
 function extractBraces(str, startIdx) {
-  let depth = 0, start = -1;
+  let depth = 0,
+    start = -1;
   for (let i = startIdx; i < str.length; i++) {
-    if (str[i] === '{') { if (depth === 0) start = i + 1; depth++; }
-    else if (str[i] === '}') { depth--; if (depth === 0 && start !== -1) return str.slice(start, i); }
+    if (str[i] === '{') {
+      if (depth === 0) start = i + 1;
+      depth++;
+    } else if (str[i] === '}') {
+      depth--;
+      if (depth === 0 && start !== -1) return str.slice(start, i);
+    }
   }
   return '';
 }
 
 function parseVec3(props, key, def) {
   const arr = props.match(new RegExp(key + '\\s*:\\s*\\[([^\\]]+)\\]'));
-  const obj = props.match(new RegExp(key + '\\s*:\\s*\\{\\s*x\\s*:\\s*([\\d.-]+)\\s*,\\s*y\\s*:\\s*([\\d.-]+)\\s*,\\s*z\\s*:\\s*([\\d.-]+)\\s*\\}'));
-  if (arr) { const p = arr[1].split(',').map(n => parseFloat(n.trim()) || def[0]); return [p[0]??def[0], p[1]??def[1], p[2]??def[2]]; }
+  const obj = props.match(
+    new RegExp(
+      key +
+        '\\s*:\\s*\\{\\s*x\\s*:\\s*([\\d.-]+)\\s*,\\s*y\\s*:\\s*([\\d.-]+)\\s*,\\s*z\\s*:\\s*([\\d.-]+)\\s*\\}'
+    )
+  );
+  if (arr) {
+    const p = arr[1].split(',').map((n) => parseFloat(n.trim()) || def[0]);
+    return [p[0] ?? def[0], p[1] ?? def[1], p[2] ?? def[2]];
+  }
   if (obj) return [parseFloat(obj[1]), parseFloat(obj[2]), parseFloat(obj[3])];
   return def;
 }
@@ -91,7 +129,8 @@ function parseHoloScript(source) {
   }
 
   // Objects
-  const orbPattern = /(?:orb|object(?:\[\])?|button|slider)\s+["']?([\w_]+)["']?(?:\s+using\s+["']([\w_]+)["'])?(?:\s+@[\w]+)*\s*\{/g;
+  const orbPattern =
+    /(?:orb|object(?:\[\])?|button|slider)\s+["']?([\w_]+)["']?(?:\s+using\s+["']([\w_]+)["'])?(?:\s+@[\w]+)*\s*\{/g;
   let match;
   while ((match = orbPattern.exec(source)) !== null) {
     const name = match[1];
@@ -113,9 +152,13 @@ function parseHoloScript(source) {
 
     objects.push({
       name,
-      geometry: geoMatch ? geoMatch[1].toLowerCase() : (typeMatch ? typeMatch[1].toLowerCase() : 'cube'),
+      geometry: geoMatch
+        ? geoMatch[1].toLowerCase()
+        : typeMatch
+          ? typeMatch[1].toLowerCase()
+          : 'cube',
       position: parseVec3(props, 'position', [0, 0, 0]),
-      rotation: parseVec3(props, 'rotation', [0, 0, 0]).map(r => r * Math.PI / 180),
+      rotation: parseVec3(props, 'rotation', [0, 0, 0]).map((r) => (r * Math.PI) / 180),
       scale: parseVec3(props, 'scale', [1, 1, 1]),
       color: resolveColor(colorMatch?.[1]),
       material: matMatch ? matMatch[1].toLowerCase() : 'standard',
@@ -547,20 +590,25 @@ function generatePreviewHTML(source, fileName, options = {}) {
 // ---------------------------------------------------------------------------
 
 function highlightHoloScript(source) {
-  return source
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    // Comments
-    .replace(/(\/\/[^\n]*)/g, '<span class="comment">$1</span>')
-    // Traits (@keyword)
-    .replace(/(@\w+)/g, '<span class="trait">$1</span>')
-    // Keywords
-    .replace(/\b(composition|environment|template|object|orb|module|function|let|const|export|import|if|else|for|while|return|emit|state|action|using)\b/g, '<span class="kw">$1</span>')
-    // Strings
-    .replace(/(["'][^"']*["'])/g, '<span class="str">$1</span>')
-    // Numbers
-    .replace(/\b(\d+\.?\d*)\b/g, '<span class="num">$1</span>');
+  return (
+    source
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      // Comments
+      .replace(/(\/\/[^\n]*)/g, '<span class="comment">$1</span>')
+      // Traits (@keyword)
+      .replace(/(@\w+)/g, '<span class="trait">$1</span>')
+      // Keywords
+      .replace(
+        /\b(composition|environment|template|object|orb|module|function|let|const|export|import|if|else|for|while|return|emit|state|action|using)\b/g,
+        '<span class="kw">$1</span>'
+      )
+      // Strings
+      .replace(/(["'][^"']*["'])/g, '<span class="str">$1</span>')
+      // Numbers
+      .replace(/\b(\d+\.?\d*)\b/g, '<span class="num">$1</span>')
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -645,10 +693,12 @@ Options:
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
     console.log(`\nManifest: ${manifestPath}`);
     console.log(`Total files: ${manifest.files.length}`);
-
   } else {
     // Single file mode
-    const inputFile = args.find(a => !a.startsWith('--') && (a.endsWith('.hsplus') || a.endsWith('.hs') || a.endsWith('.holo')));
+    const inputFile = args.find(
+      (a) =>
+        !a.startsWith('--') && (a.endsWith('.hsplus') || a.endsWith('.hs') || a.endsWith('.holo'))
+    );
     if (!inputFile) {
       console.error('Error: No input file specified');
       process.exit(1);

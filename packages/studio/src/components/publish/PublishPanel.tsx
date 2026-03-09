@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { X, Globe, Lock, Link, Check, Sparkles, Upload } from 'lucide-react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 interface PublishPanelProps {
   onClose: () => void;
@@ -10,7 +10,18 @@ interface PublishPanelProps {
 
 type Visibility = 'public' | 'private' | 'unlisted';
 
-const TAGS = ['Game', 'Social', 'Art', 'D&D', 'Sci-Fi', 'Medieval', 'Horror', 'Racing', 'Parkour', 'Chill'];
+const TAGS = [
+  'Game',
+  'Social',
+  'Art',
+  'D&D',
+  'Sci-Fi',
+  'Medieval',
+  'Horror',
+  'Racing',
+  'Parkour',
+  'Chill',
+];
 
 export function PublishPanel({ onClose }: PublishPanelProps) {
   const metadata = useSceneStore((s) => s.metadata);
@@ -25,7 +36,8 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) => {
       const next = new Set(prev);
-      if (next.has(tag)) next.delete(tag); else next.add(tag);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
       return next;
     });
   };
@@ -37,7 +49,10 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
     setShareUrl(url);
     setPublished(true);
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(`published-${id}`, JSON.stringify({ title, desc, visibility, tags: [...selectedTags] }));
+      window.localStorage.setItem(
+        `published-${id}`,
+        JSON.stringify({ title, desc, visibility, tags: [...selectedTags] })
+      );
     }
   };
 
@@ -48,10 +63,30 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
     });
   };
 
-  const VISIBILITY_OPTIONS: { id: Visibility; label: string; icon: React.ReactNode; desc: string }[] = [
-    { id: 'public', label: 'Public', icon: <Globe className="h-4 w-4" />, desc: 'Anyone can find and play it' },
-    { id: 'unlisted', label: 'Unlisted', icon: <Link className="h-4 w-4" />, desc: 'Only people with the link' },
-    { id: 'private', label: 'Private', icon: <Lock className="h-4 w-4" />, desc: 'Only you can see it' },
+  const VISIBILITY_OPTIONS: {
+    id: Visibility;
+    label: string;
+    icon: React.ReactNode;
+    desc: string;
+  }[] = [
+    {
+      id: 'public',
+      label: 'Public',
+      icon: <Globe className="h-4 w-4" />,
+      desc: 'Anyone can find and play it',
+    },
+    {
+      id: 'unlisted',
+      label: 'Unlisted',
+      icon: <Link className="h-4 w-4" />,
+      desc: 'Only people with the link',
+    },
+    {
+      id: 'private',
+      label: 'Private',
+      icon: <Lock className="h-4 w-4" />,
+      desc: 'Only you can see it',
+    },
   ];
 
   return (
@@ -65,7 +100,10 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
               {published ? '🎉 Published!' : 'Publish to Hololand'}
             </p>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-studio-muted hover:bg-white/10 transition">
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-studio-muted hover:bg-white/10 transition"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -102,7 +140,9 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
 
               {/* Tags */}
               <div>
-                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-studio-muted">Tags</label>
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-studio-muted">
+                  Tags
+                </label>
                 <div className="flex flex-wrap gap-1.5">
                   {TAGS.map((tag) => (
                     <button
@@ -122,7 +162,9 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
 
               {/* Visibility */}
               <div>
-                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-studio-muted">Visibility</label>
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-studio-muted">
+                  Visibility
+                </label>
                 <div className="flex flex-col gap-1.5">
                   {VISIBILITY_OPTIONS.map((opt) => (
                     <button
@@ -134,12 +176,20 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
                           : 'border-studio-border bg-black/20 hover:bg-white/5'
                       }`}
                     >
-                      <span className={visibility === opt.id ? 'text-studio-accent' : 'text-studio-muted'}>{opt.icon}</span>
+                      <span
+                        className={
+                          visibility === opt.id ? 'text-studio-accent' : 'text-studio-muted'
+                        }
+                      >
+                        {opt.icon}
+                      </span>
                       <div>
                         <p className="text-xs font-medium text-studio-text">{opt.label}</p>
                         <p className="text-[10px] text-studio-muted">{opt.desc}</p>
                       </div>
-                      {visibility === opt.id && <Check className="ml-auto h-4 w-4 text-studio-accent shrink-0" />}
+                      {visibility === opt.id && (
+                        <Check className="ml-auto h-4 w-4 text-studio-accent shrink-0" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -164,7 +214,9 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
               <div>
                 <p className="text-base font-semibold text-studio-text">"{title}" is live!</p>
                 <p className="mt-1 text-xs text-studio-muted">
-                  {visibility === 'public' ? 'Players can discover it on Hololand' : 'Share the link with friends'}
+                  {visibility === 'public'
+                    ? 'Players can discover it on Hololand'
+                    : 'Share the link with friends'}
                 </p>
               </div>
 

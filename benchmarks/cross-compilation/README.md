@@ -5,6 +5,7 @@ Comprehensive benchmark testing HoloScript's ability to compile representative c
 ## Overview
 
 This benchmark suite validates:
+
 - **Compilation Success Rate**: Does the composition compile without errors?
 - **Compilation Performance**: How long does compilation take?
 - **Output Size**: How large is the generated code/data?
@@ -33,11 +34,13 @@ This benchmark suite validates:
 18+ platform targets tested (per vertical applicability):
 
 **Game Engines:**
+
 - Unity (C#)
 - Unreal Engine 5 (C++)
 - Godot 4 (GDScript)
 
 **Web Platforms:**
+
 - WebXR (via R3F)
 - Babylon.js (TypeScript/JavaScript)
 - React Three Fiber (R3F)
@@ -45,21 +48,25 @@ This benchmark suite validates:
 - A-Frame (HTML/JavaScript)
 
 **Mobile AR:**
+
 - iOS / ARKit (Swift)
 - Android / ARCore (Kotlin)
 - AR (Generic AR SDK)
 
 **XR Platforms:**
+
 - OpenXR (C/C++)
 - VisionOS (Swift/SwiftUI)
 - Android XR (Kotlin)
 - VRChat (UdonSharp/C#)
 
 **Compute:**
+
 - WebGPU (WGSL)
 - WASM (WebAssembly)
 
 **Robotics/IoT:**
+
 - URDF (Robot Description Format)
 - SDF (Simulation Description Format)
 - DTDL (Digital Twins Definition Language)
@@ -92,6 +99,7 @@ npm run bench
 ```
 
 This will:
+
 1. Parse all 15 compositions
 2. Compile each to all applicable targets (~100+ compilations)
 3. Measure compilation time, output size, feature parity
@@ -152,6 +160,7 @@ ts-node run-benchmark.ts --target unity       # Single target (all verticals)
 ### Compilation Time
 
 Measured from AST input to code generation output using `performance.now()`. Does **not** include:
+
 - File I/O
 - Source parsing (measured separately)
 - Post-compilation validation
@@ -159,6 +168,7 @@ Measured from AST input to code generation output using `performance.now()`. Doe
 ### Output Size
 
 Total byte count of generated code/data:
+
 - For text output (C#, C++, JavaScript): UTF-8 byte length
 - For JSON output (URDF, DTDL): Serialized JSON byte length
 - For binary output (WASM): Binary size
@@ -172,6 +182,7 @@ Percentage of HoloScript features present in compiled output:
 3. Calculate: `(matched features / total features) × 100`
 
 **Example:**
+
 - Composition uses: `@grabbable`, `@physics`, `environment.skybox`, `audio`, `state`
 - Unity output contains: `@grabbable` (as Rigidbody), `@physics` (as Rigidbody), `environment.skybox` (as Skybox material), `audio` (as AudioSource)
 - Missing: `state` (not yet implemented in Unity compiler)
@@ -196,6 +207,7 @@ Percentage of HoloScript features present in compiled output:
 ### Compilation Failures
 
 Check `results/BENCHMARK_REPORT.md` → **Failure Analysis** section for:
+
 - Missing compiler features
 - Unsupported traits
 - Parser errors

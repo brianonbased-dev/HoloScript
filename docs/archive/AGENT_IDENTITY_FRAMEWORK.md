@@ -12,13 +12,13 @@ A production-ready **cryptographic agent identity framework** for HoloScript's m
 
 ### Key Components Implemented
 
-| Component | File Path | Purpose |
-|-----------|-----------|---------|
-| **AgentIdentity** | `packages/core/src/compiler/identity/AgentIdentity.ts` | Core identity types, agent roles (syntax analyzer, AST optimizer, code generator, exporter), permissions (read/write/execute), workflow steps, checksum calculation |
-| **AgentKeystore** | `packages/core/src/compiler/identity/AgentKeystore.ts` | Secure credential storage with AES-256-GCM encryption, automatic 24-hour key rotation, audit logging |
-| **AgentTokenIssuer** | `packages/core/src/compiler/identity/AgentTokenIssuer.ts` | JWT token issuance/verification with workflow-aware delegation chains, Proof-of-Possession (PoP) binding |
-| **AgentRBAC** | `packages/core/src/compiler/identity/AgentRBAC.ts` | Role-based access control enforcer with file path scopes, operation permissions, workflow step validation |
-| **Tests** | `packages/core/src/compiler/identity/__tests__/*.test.ts` | Comprehensive unit tests for all components |
+| Component            | File Path                                                 | Purpose                                                                                                                                                             |
+| -------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AgentIdentity**    | `packages/core/src/compiler/identity/AgentIdentity.ts`    | Core identity types, agent roles (syntax analyzer, AST optimizer, code generator, exporter), permissions (read/write/execute), workflow steps, checksum calculation |
+| **AgentKeystore**    | `packages/core/src/compiler/identity/AgentKeystore.ts`    | Secure credential storage with AES-256-GCM encryption, automatic 24-hour key rotation, audit logging                                                                |
+| **AgentTokenIssuer** | `packages/core/src/compiler/identity/AgentTokenIssuer.ts` | JWT token issuance/verification with workflow-aware delegation chains, Proof-of-Possession (PoP) binding                                                            |
+| **AgentRBAC**        | `packages/core/src/compiler/identity/AgentRBAC.ts`        | Role-based access control enforcer with file path scopes, operation permissions, workflow step validation                                                           |
+| **Tests**            | `packages/core/src/compiler/identity/__tests__/*.test.ts` | Comprehensive unit tests for all components                                                                                                                         |
 
 ---
 
@@ -54,13 +54,13 @@ A production-ready **cryptographic agent identity framework** for HoloScript's m
 
 ### Permission Matrix
 
-| Agent Role | Read Permissions | Write Permissions | Execute Permissions |
-|------------|-----------------|-------------------|---------------------|
-| **SYNTAX_ANALYZER** | `read:source`, `read:config` | `write:ast` | None |
-| **AST_OPTIMIZER** | `read:ast`, `read:config` | `write:ast`, `transform:ast` | `execute:optimization` |
-| **CODE_GENERATOR** | `read:ast`, `read:ir`, `read:config` | `write:ir`, `write:code`, `transform:ir` | `execute:codegen` |
-| **EXPORTER** | `read:code`, `read:config` | `write:output` | `execute:export` |
-| **ORCHESTRATOR** | All permissions | All permissions | All permissions |
+| Agent Role          | Read Permissions                     | Write Permissions                        | Execute Permissions    |
+| ------------------- | ------------------------------------ | ---------------------------------------- | ---------------------- |
+| **SYNTAX_ANALYZER** | `read:source`, `read:config`         | `write:ast`                              | None                   |
+| **AST_OPTIMIZER**   | `read:ast`, `read:config`            | `write:ast`, `transform:ast`             | `execute:optimization` |
+| **CODE_GENERATOR**  | `read:ast`, `read:ir`, `read:config` | `write:ir`, `write:code`, `transform:ir` | `execute:codegen`      |
+| **EXPORTER**        | `read:code`, `read:config`           | `write:output`                           | `execute:export`       |
+| **ORCHESTRATOR**    | All permissions                      | All permissions                          | All permissions        |
 
 ### Workflow Step Sequence
 
@@ -80,6 +80,7 @@ Each step is enforced via JWT intent tokens, preventing out-of-sequence executio
 ### 1. Agent Checksum (Deterministic Identity)
 
 Agents are identified by SHA-256 checksums of their configuration:
+
 - **Role** and **name**
 - **Version**
 - **Prompt/instructions**
@@ -89,6 +90,7 @@ Agents are identified by SHA-256 checksums of their configuration:
 This ensures configuration drift detection—agents with identical configs receive identical checksums.
 
 **Example**:
+
 ```typescript
 const config: AgentConfig = {
   role: AgentRole.SYNTAX_ANALYZER,
@@ -108,6 +110,7 @@ const checksum = calculateAgentChecksum(config);
 Tokens expire after 24 hours and are automatically rotated by the keystore.
 
 **Token Structure** (Agentic JWT):
+
 ```json
 {
   "iss": "holoscript-orchestrator",
@@ -141,11 +144,13 @@ Tokens expire after 24 hours and are automatically rotated by the keystore.
 ### 3. Proof-of-Possession (Ed25519 Keys)
 
 Each agent generates ephemeral Ed25519 key pairs for request signing:
+
 - **Public key** embedded in token as JWK thumbprint (`cnf.jkt`)
 - **Private key** used to sign HTTP requests (RFC 9440 signature headers)
 - **Prevents token replay** across agent boundaries
 
 **Example**:
+
 ```typescript
 const keyPair = await generateAgentKeyPair(AgentRole.CODE_GENERATOR);
 // keyPair.kid: 'agent:code_generator#2026-02-26T10:00:00Z'
@@ -155,12 +160,14 @@ const keyPair = await generateAgentKeyPair(AgentRole.CODE_GENERATOR);
 ### 4. Encrypted Keystore (AES-256-GCM)
 
 All credentials stored at rest are encrypted:
+
 - **Algorithm**: AES-256-GCM
 - **Key derivation**: PBKDF2 with 100,000 iterations
 - **Authentication**: GCM auth tag validation
 - **Audit logging**: Security events tracked
 
 **Example**:
+
 ```typescript
 const keystore = getKeystore({
   masterKey: Buffer.from(process.env.AGENT_KEYSTORE_MASTER_KEY, 'hex'),
@@ -174,12 +181,14 @@ await keystore.storeCredential(credential);
 ### 5. Role-Based Access Control (RBAC)
 
 Fine-grained access enforcement:
+
 - **Resource types**: `source_file`, `ast`, `ir`, `code`, `output`, `config`
 - **Operations**: `read`, `write`, `execute`, `transform`
 - **Scope validation**: Package path restrictions (e.g., `packages/core`)
 - **Workflow step validation**: Prevent out-of-sequence operations
 
 **Example**:
+
 ```typescript
 const rbac = getRBAC();
 
@@ -354,6 +363,7 @@ console.log('Recent key events:', auditLog.slice(-5));
 Modify existing compilers to use agent identity:
 
 **Before** (No Identity):
+
 ```typescript
 // packages/core/src/compiler/UnityCompiler.ts
 export class UnityCompiler {
@@ -365,6 +375,7 @@ export class UnityCompiler {
 ```
 
 **After** (With Agent Identity):
+
 ```typescript
 import { getRBAC, AgentPermission, ResourceType } from './identity';
 
@@ -481,6 +492,7 @@ pnpm test src/compiler/identity/__tests__
 ```
 
 **Test Coverage**:
+
 - ✅ Agent checksum calculation (determinism, drift detection)
 - ✅ Ed25519 key pair generation (uniqueness, PoP binding)
 - ✅ JWT token issuance (claims, delegation chains)
@@ -565,6 +577,7 @@ This implementation is based on:
 **Mission Accomplished**: HoloScript now has a production-ready cryptographic agent identity framework that resolves the **Identity Bottleneck** preventing Level 3+ autonomous AI deployment.
 
 **Key Achievements**:
+
 - ✅ 4 core modules implemented (1,200+ lines of TypeScript)
 - ✅ Comprehensive test coverage (200+ assertions)
 - ✅ Agentic JWT spec compliance

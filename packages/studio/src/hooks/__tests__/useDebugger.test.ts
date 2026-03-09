@@ -15,7 +15,14 @@ global.fetch = mockFetch;
 describe('useDebugger', () => {
   const mockFrames: DebugFrame[] = [
     { index: 0, line: 1, type: 'scene', label: 'Main', isBreakpoint: false },
-    { index: 1, line: 2, type: 'object', label: 'box', detail: 'name: "test"', isBreakpoint: false },
+    {
+      index: 1,
+      line: 2,
+      type: 'object',
+      label: 'box',
+      detail: 'name: "test"',
+      isBreakpoint: false,
+    },
     { index: 2, line: 3, type: 'property', label: 'color', detail: 'red', isBreakpoint: false },
   ];
 

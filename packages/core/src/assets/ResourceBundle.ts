@@ -44,7 +44,9 @@ export class ResourceBundle {
     this.bundles.set(config.id, { config, entries: [] });
   }
 
-  removeBundle(id: string): void { this.bundles.delete(id); }
+  removeBundle(id: string): void {
+    this.bundles.delete(id);
+  }
 
   addEntry(bundleId: string, entry: BundleEntry): boolean {
     const bundle = this.bundles.get(bundleId);
@@ -65,7 +67,7 @@ export class ResourceBundle {
     const bundle = this.bundles.get(bundleId);
     if (!bundle) return;
 
-    const entries = bundle.entries.filter(e => !e.loaded);
+    const entries = bundle.entries.filter((e) => !e.loaded);
     const totalChunks = Math.ceil(entries.length / chunkSize);
 
     for (let i = 0; i < totalChunks; i++) {
@@ -76,7 +78,9 @@ export class ResourceBundle {
     }
   }
 
-  onStream(callback: StreamCallback): void { this.streamCallbacks.push(callback); }
+  onStream(callback: StreamCallback): void {
+    this.streamCallbacks.push(callback);
+  }
 
   // ---------------------------------------------------------------------------
   // Preloading
@@ -84,14 +88,14 @@ export class ResourceBundle {
 
   async preloadAll(): Promise<string[]> {
     const preloadable = [...this.bundles.values()]
-      .filter(b => b.config.preload)
+      .filter((b) => b.config.preload)
       .sort((a, b) => b.config.priority - a.config.priority);
 
     for (const bundle of preloadable) {
       await this.loadBundle(bundle.config.id);
     }
 
-    return preloadable.map(b => b.config.id);
+    return preloadable.map((b) => b.config.id);
   }
 
   // ---------------------------------------------------------------------------
@@ -105,23 +109,25 @@ export class ResourceBundle {
 
   getLoadedCount(bundleId: string): number {
     const bundle = this.bundles.get(bundleId);
-    return bundle ? bundle.entries.filter(e => e.loaded).length : 0;
+    return bundle ? bundle.entries.filter((e) => e.loaded).length : 0;
   }
 
   getEntryCount(bundleId: string): number {
     return this.bundles.get(bundleId)?.entries.length ?? 0;
   }
 
-  getBundleCount(): number { return this.bundles.size; }
+  getBundleCount(): number {
+    return this.bundles.size;
+  }
 
   isFullyLoaded(bundleId: string): boolean {
     const bundle = this.bundles.get(bundleId);
-    return bundle ? bundle.entries.every(e => e.loaded) : false;
+    return bundle ? bundle.entries.every((e) => e.loaded) : false;
   }
 
   getLoadProgress(bundleId: string): number {
     const bundle = this.bundles.get(bundleId);
     if (!bundle || bundle.entries.length === 0) return 0;
-    return bundle.entries.filter(e => e.loaded).length / bundle.entries.length;
+    return bundle.entries.filter((e) => e.loaded).length / bundle.entries.length;
   }
 }

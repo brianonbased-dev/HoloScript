@@ -101,9 +101,7 @@ export function ContentTypeFilter({ selectedTypes, onChange }: ContentTypeFilter
                         className="h-3 w-3 rounded border-studio-border bg-studio-surface text-studio-accent focus:ring-1 focus:ring-studio-accent"
                       />
                       <IconComponent className="h-3.5 w-3.5 text-studio-accent" />
-                      <span className="text-[11px] text-studio-text flex-1">
-                        {metadata.label}
-                      </span>
+                      <span className="text-[11px] text-studio-text flex-1">{metadata.label}</span>
                       <span className="text-[9px] text-studio-muted font-mono">
                         {metadata.fileExtension}
                       </span>

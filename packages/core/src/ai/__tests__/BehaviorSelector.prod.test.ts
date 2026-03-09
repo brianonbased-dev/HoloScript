@@ -9,7 +9,8 @@ import { BehaviorSelector, type Behavior } from '../BehaviorSelector';
 
 function makeBehavior(id: string, opts: Partial<Behavior> = {}): Behavior {
   return {
-    id, name: opts.name ?? id,
+    id,
+    name: opts.name ?? id,
     weight: opts.weight ?? 1,
     priority: opts.priority ?? 1,
     condition: opts.condition,

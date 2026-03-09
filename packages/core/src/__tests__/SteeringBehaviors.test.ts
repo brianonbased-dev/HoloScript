@@ -2,9 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { SteeringBehaviors, SteeringAgent, FlockConfig } from '../ai/SteeringBehaviors';
 
 function agent(x = 0, y = 0, z = 0, vx = 1, vy = 0, vz = 0): SteeringAgent {
-  return { position: { x, y, z }, velocity: { x: vx, y: vy, z: vz }, maxSpeed: 5, maxForce: 2, mass: 1 };
+  return {
+    position: { x, y, z },
+    velocity: { x: vx, y: vy, z: vz },
+    maxSpeed: 5,
+    maxForce: 2,
+    mass: 1,
+  };
 }
-function len(v: { x: number; y: number; z: number }) { return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z); }
+function len(v: { x: number; y: number; z: number }) {
+  return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+}
 
 describe('SteeringBehaviors', () => {
   it('seek produces force toward target', () => {
@@ -43,7 +51,12 @@ describe('SteeringBehaviors', () => {
 
   it('flock returns zero with no neighbors in range', () => {
     const a = agent(0, 0, 0);
-    const config: FlockConfig = { separationWeight: 1, alignmentWeight: 1, cohesionWeight: 1, neighborRadius: 5 };
+    const config: FlockConfig = {
+      separationWeight: 1,
+      alignmentWeight: 1,
+      cohesionWeight: 1,
+      neighborRadius: 5,
+    };
     const f = SteeringBehaviors.flock(a, [agent(100, 0, 0)], config);
     expect(len(f)).toBeCloseTo(0);
   });
@@ -51,7 +64,12 @@ describe('SteeringBehaviors', () => {
   it('flock separation pushes away from close neighbors', () => {
     const a = agent(0, 0, 0);
     const n = agent(1, 0, 0);
-    const config: FlockConfig = { separationWeight: 10, alignmentWeight: 0, cohesionWeight: 0, neighborRadius: 5 };
+    const config: FlockConfig = {
+      separationWeight: 10,
+      alignmentWeight: 0,
+      cohesionWeight: 0,
+      neighborRadius: 5,
+    };
     const f = SteeringBehaviors.flock(a, [n], config);
     expect(f.x).toBeLessThan(0); // pushed away from neighbor at x=1
   });
@@ -59,7 +77,12 @@ describe('SteeringBehaviors', () => {
   it('flock cohesion pulls toward group center', () => {
     const a = agent(0, 0, 0);
     const n = agent(3, 0, 0, 1, 0, 0);
-    const config: FlockConfig = { separationWeight: 0, alignmentWeight: 0, cohesionWeight: 10, neighborRadius: 10 };
+    const config: FlockConfig = {
+      separationWeight: 0,
+      alignmentWeight: 0,
+      cohesionWeight: 10,
+      neighborRadius: 10,
+    };
     const f = SteeringBehaviors.flock(a, [n], config);
     expect(f.x).toBeGreaterThan(0); // pulled toward neighbor
   });

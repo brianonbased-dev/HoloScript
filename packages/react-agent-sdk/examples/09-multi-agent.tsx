@@ -15,31 +15,19 @@ export function MultiAgentExample() {
   const [step, setStep] = useState(1);
 
   // Step 1: Generate code
-  const codeResult = useTask(
-    codeAgent.agent,
-    'generateComponent',
-    {
-      input: { componentName: 'UserProfile' },
-    }
-  );
+  const codeResult = useTask(codeAgent.agent, 'generateComponent', {
+    input: { componentName: 'UserProfile' },
+  });
 
   // Step 2: Generate tests (only if code is ready)
-  const testResult = useTask(
-    step >= 2 ? testAgent.agent : null,
-    'generateTests',
-    {
-      input: { component: codeResult.data },
-    }
-  );
+  const testResult = useTask(step >= 2 ? testAgent.agent : null, 'generateTests', {
+    input: { component: codeResult.data },
+  });
 
   // Step 3: Deploy (only if tests pass)
-  const deployResult = useTask(
-    step >= 3 ? deployAgent.agent : null,
-    'deploy',
-    {
-      input: { code: codeResult.data, tests: testResult.data },
-    }
-  );
+  const deployResult = useTask(step >= 3 ? deployAgent.agent : null, 'deploy', {
+    input: { code: codeResult.data, tests: testResult.data },
+  });
 
   return (
     <div>
@@ -74,9 +62,7 @@ export function MultiAgentExample() {
           <h2>Step 3: Deploy</h2>
           {deployResult.loading && <div>Deploying...</div>}
           {deployResult.data && (
-            <div style={{ background: '#e8f5e9', padding: '16px' }}>
-              Deployment successful!
-            </div>
+            <div style={{ background: '#e8f5e9', padding: '16px' }}>Deployment successful!</div>
           )}
         </div>
       )}

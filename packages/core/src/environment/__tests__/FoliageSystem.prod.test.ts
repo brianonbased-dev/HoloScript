@@ -66,7 +66,7 @@ describe('FoliageSystem', () => {
 
     it('instances have typeId set correctly', () => {
       const p = fs.scatter('p1', 'grass', BOUNDS, 10);
-      expect(p.instances.every(i => i.typeId === 'grass')).toBe(true);
+      expect(p.instances.every((i) => i.typeId === 'grass')).toBe(true);
     });
 
     it('instances positions within bounds', () => {
@@ -172,7 +172,7 @@ describe('FoliageSystem', () => {
       fs.update(0, { x: 5, z: 5 }); // camera at centre of bounds
       const patch = fs.getPatch('p1')!;
       // At least some instances should be lod 0 (within 20 units)
-      const lod0 = patch.instances.filter(i => i.lodLevel === 0);
+      const lod0 = patch.instances.filter((i) => i.lodLevel === 0);
       expect(lod0.length).toBeGreaterThan(0);
     });
 
@@ -182,7 +182,7 @@ describe('FoliageSystem', () => {
       fs.update(0, { x: 999, z: 999 });
       const patch = fs.getPatch('p1')!;
       // All instances at distance > 100 (last lodDistance) → lodLevel = 3
-      const maxLod = patch.instances.filter(i => i.lodLevel === GRASS_TYPE.lodDistances.length);
+      const maxLod = patch.instances.filter((i) => i.lodLevel === GRASS_TYPE.lodDistances.length);
       expect(maxLod.length).toBeGreaterThan(0);
     });
   });

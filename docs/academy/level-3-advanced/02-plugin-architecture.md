@@ -64,10 +64,10 @@ export const SoftBodyTrait: TraitDefinition = {
   category: 'physics',
 
   properties: {
-    stiffness:   { type: 'float', default: 0.5, min: 0.0, max: 1.0 },
-    damping:     { type: 'float', default: 0.1 },
-    mass:        { type: 'float', default: 1.0 },
-    resolution:  { type: 'integer', default: 8, min: 4, max: 32 },
+    stiffness: { type: 'float', default: 0.5, min: 0.0, max: 1.0 },
+    damping: { type: 'float', default: 0.1 },
+    mass: { type: 'float', default: 1.0 },
+    resolution: { type: 'integer', default: 8, min: 4, max: 32 },
   },
 
   validate(obj, errors) {
@@ -101,7 +101,7 @@ export class PhysicsExporter implements CompilerPlugin {
   readonly version = '1.0.0';
 
   compile(composition: HoloComposition): string {
-    const objects = composition.objects.map(obj => ({
+    const objects = composition.objects.map((obj) => ({
       id: obj.name,
       type: obj.type,
       physics: this.extractPhysicsData(obj),
@@ -114,9 +114,9 @@ export class PhysicsExporter implements CompilerPlugin {
     const traits = obj.traits ?? [];
     return {
       isSoftBody: traits.includes('softbody'),
-      isFluid:    traits.includes('fluid'),
-      mass:       obj.properties?.mass ?? 1.0,
-      stiffness:  obj.properties?.stiffness ?? 0.5,
+      isFluid: traits.includes('fluid'),
+      mass: obj.properties?.mass ?? 1.0,
+      stiffness: obj.properties?.stiffness ?? 0.5,
     };
   }
 }
@@ -226,12 +226,12 @@ holoscript publish --registry holohub
 
 ## Plugin Conventions
 
-| Convention | Example |
-|-----------|---------|
-| Package name | `holoscript-plugin-<name>` or `@scope/holoscript-plugin-<name>` |
-| Trait names | `lowercase_snake_case` |
-| Compiler targets | `platform-format` (e.g., `unity-urp`, `unreal-5`) |
-| Version | Semver, follow core's major version |
+| Convention       | Example                                                         |
+| ---------------- | --------------------------------------------------------------- |
+| Package name     | `holoscript-plugin-<name>` or `@scope/holoscript-plugin-<name>` |
+| Trait names      | `lowercase_snake_case`                                          |
+| Compiler targets | `platform-format` (e.g., `unity-urp`, `unreal-5`)               |
+| Version          | Semver, follow core's major version                             |
 
 ## Security Considerations
 

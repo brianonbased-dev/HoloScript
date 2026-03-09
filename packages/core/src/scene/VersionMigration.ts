@@ -75,20 +75,30 @@ export class VersionMigration {
   /**
    * Migrate data from its current version to the target version.
    */
-  migrate(data: Record<string, unknown>, targetVersion: number = CURRENT_SCHEMA_VERSION): MigrationResult {
+  migrate(
+    data: Record<string, unknown>,
+    targetVersion: number = CURRENT_SCHEMA_VERSION
+  ): MigrationResult {
     const currentVersion = (data.version as number) ?? 0;
     const stepsApplied: string[] = [];
     const warnings: string[] = [];
 
     if (currentVersion >= targetVersion) {
-      return { success: true, fromVersion: currentVersion, toVersion: currentVersion, stepsApplied, warnings, data };
+      return {
+        success: true,
+        fromVersion: currentVersion,
+        toVersion: currentVersion,
+        stepsApplied,
+        warnings,
+        data,
+      };
     }
 
     let workingData = { ...data };
     let version = currentVersion;
 
     while (version < targetVersion) {
-      const step = this.migrations.find(m => m.fromVersion === version);
+      const step = this.migrations.find((m) => m.fromVersion === version);
       if (!step) {
         // No migration step found — try jumping
         warnings.push(`No migration step from v${version}, attempting skip to v${version + 1}`);
@@ -107,7 +117,10 @@ export class VersionMigration {
           fromVersion: currentVersion,
           toVersion: version,
           stepsApplied,
-          warnings: [...warnings, `Migration failed at step "${step.name}": ${(err as Error).message}`],
+          warnings: [
+            ...warnings,
+            `Migration failed at step "${step.name}": ${(err as Error).message}`,
+          ],
           data: workingData,
         };
       }

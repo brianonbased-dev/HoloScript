@@ -11,11 +11,7 @@
  * include documentation snippets showing trait config properties.
  */
 
-import {
-  CompletionItem,
-  CompletionItemKind,
-  MarkupKind,
-} from 'vscode-languageserver/node.js';
+import { CompletionItem, CompletionItemKind, MarkupKind } from 'vscode-languageserver/node.js';
 
 import type { TextDocument } from 'vscode-languageserver-textdocument';
 
@@ -51,10 +47,7 @@ export class TraitRecommendationProvider {
    * @param linePrefix - The text from the start of the line up to the cursor
    * @returns Completion items ranked by vertical relevance
    */
-  public getRecommendations(
-    document: TextDocument,
-    linePrefix: string,
-  ): CompletionItem[] {
+  public getRecommendations(document: TextDocument, linePrefix: string): CompletionItem[] {
     // Only trigger on @ inside an indented context (object block)
     if (!this.shouldProvideRecommendations(linePrefix)) {
       return [];
@@ -155,9 +148,7 @@ export class TraitRecommendationProvider {
 
     // Strategy 3: Infer from world_metadata block
     if (!context.category) {
-      const worldMetaMatch = text.match(
-        /@world_metadata\s*\{[^}]*?category\s*:\s*"([^"]+)"/s,
-      );
+      const worldMetaMatch = text.match(/@world_metadata\s*\{[^}]*?category\s*:\s*"([^"]+)"/s);
       if (worldMetaMatch) {
         context.category = worldMetaMatch[1].toLowerCase().trim();
       }
@@ -165,27 +156,48 @@ export class TraitRecommendationProvider {
 
     // Strategy 4: Infer from composition name if it contains vertical keywords
     if (!context.category && context.tags.length === 0) {
-      const compositionNameMatch = text.match(
-        /composition\s+"([^"]+)"/,
-      );
+      const compositionNameMatch = text.match(/composition\s+"([^"]+)"/);
       if (compositionNameMatch) {
         const name = compositionNameMatch[1].toLowerCase();
         // Check if the composition name contains any vertical-related keywords
         const verticalKeywords: Record<string, string> = {
-          'medical': 'healthcare', 'hospital': 'healthcare', 'clinic': 'healthcare',
-          'school': 'education', 'classroom': 'education', 'lesson': 'education',
-          'store': 'retail', 'shop': 'retail', 'product': 'retail',
-          'game': 'gaming', 'arena': 'gaming', 'battle': 'gaming',
-          'building': 'architecture', 'house': 'architecture', 'room': 'architecture',
-          'factory': 'manufacturing', 'assembly': 'manufacturing',
-          'concert': 'entertainment', 'show': 'entertainment', 'theater': 'entertainment',
-          'tour': 'tourism', 'museum': 'art', 'gallery': 'art',
-          'car': 'automotive', 'vehicle': 'automotive',
-          'flight': 'aerospace', 'cockpit': 'aerospace',
-          'property': 'real-estate', 'apartment': 'real-estate',
-          'gym': 'fitness', 'workout': 'fitness',
-          'social': 'social', 'lounge': 'social', 'meetup': 'social',
-          'robot': 'robotics', 'sensor': 'robotics', 'drone': 'robotics',
+          medical: 'healthcare',
+          hospital: 'healthcare',
+          clinic: 'healthcare',
+          school: 'education',
+          classroom: 'education',
+          lesson: 'education',
+          store: 'retail',
+          shop: 'retail',
+          product: 'retail',
+          game: 'gaming',
+          arena: 'gaming',
+          battle: 'gaming',
+          building: 'architecture',
+          house: 'architecture',
+          room: 'architecture',
+          factory: 'manufacturing',
+          assembly: 'manufacturing',
+          concert: 'entertainment',
+          show: 'entertainment',
+          theater: 'entertainment',
+          tour: 'tourism',
+          museum: 'art',
+          gallery: 'art',
+          car: 'automotive',
+          vehicle: 'automotive',
+          flight: 'aerospace',
+          cockpit: 'aerospace',
+          property: 'real-estate',
+          apartment: 'real-estate',
+          gym: 'fitness',
+          workout: 'fitness',
+          social: 'social',
+          lounge: 'social',
+          meetup: 'social',
+          robot: 'robotics',
+          sensor: 'robotics',
+          drone: 'robotics',
         };
 
         for (const [keyword, vertical] of Object.entries(verticalKeywords)) {
@@ -240,10 +252,7 @@ export class TraitRecommendationProvider {
    * Traits from the primary vertical get the highest sort priority.
    * If a partial match is provided, items are filtered to match.
    */
-  private buildCompletionItems(
-    verticals: VerticalMapping[],
-    partial: string,
-  ): CompletionItem[] {
+  private buildCompletionItems(verticals: VerticalMapping[], partial: string): CompletionItem[] {
     const items: CompletionItem[] = [];
     const seenTraits = new Set<string>();
 
@@ -277,7 +286,7 @@ export class TraitRecommendationProvider {
     rec: TraitRecommendation,
     vertical: VerticalMapping,
     verticalIndex: number,
-    traitIndex: number,
+    traitIndex: number
   ): CompletionItem {
     const traitName = rec.trait.replace(/^@/, '');
     const relevancePercent = Math.round(rec.relevance * 100);
@@ -286,9 +295,7 @@ export class TraitRecommendationProvider {
     const docParts: string[] = [];
 
     // Header with relevance badge
-    docParts.push(
-      `**${rec.trait}** -- ${relevancePercent}% relevant for ${vertical.displayName}`,
-    );
+    docParts.push(`**${rec.trait}** -- ${relevancePercent}% relevant for ${vertical.displayName}`);
     docParts.push('');
 
     // Rationale

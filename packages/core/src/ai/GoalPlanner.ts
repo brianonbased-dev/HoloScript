@@ -47,11 +47,19 @@ export class GoalPlanner {
   // Registration
   // ---------------------------------------------------------------------------
 
-  addAction(action: PlanAction): void { this.actions.push(action); }
-  addGoal(goal: Goal): void { this.goals.push(goal); }
+  addAction(action: PlanAction): void {
+    this.actions.push(action);
+  }
+  addGoal(goal: Goal): void {
+    this.goals.push(goal);
+  }
 
-  removeAction(id: string): void { this.actions = this.actions.filter(a => a.id !== id); }
-  removeGoal(id: string): void { this.goals = this.goals.filter(g => g.id !== id); }
+  removeAction(id: string): void {
+    this.actions = this.actions.filter((a) => a.id !== id);
+  }
+  removeGoal(id: string): void {
+    this.goals = this.goals.filter((g) => g.id !== id);
+  }
 
   // ---------------------------------------------------------------------------
   // Planning (A* backward chaining)
@@ -134,7 +142,10 @@ export class GoalPlanner {
   }
 
   private stateKey(state: WorldState): string {
-    return [...state.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `${k}:${v}`).join('|');
+    return [...state.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([k, v]) => `${k}:${v}`)
+      .join('|');
   }
 
   // ---------------------------------------------------------------------------
@@ -145,6 +156,10 @@ export class GoalPlanner {
     for (const action of plan.actions) action.execute();
   }
 
-  getActionCount(): number { return this.actions.length; }
-  getGoalCount(): number { return this.goals.length; }
+  getActionCount(): number {
+    return this.actions.length;
+  }
+  getGoalCount(): number {
+    return this.goals.length;
+  }
 }

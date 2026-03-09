@@ -146,8 +146,8 @@ export const STUDIO_BUNDLE_BUDGETS: BundleBudget[] = [
   {
     name: 'Initial JS (main)',
     pattern: '.next/static/chunks/main-*.js',
-    maxSizeBytes: 350 * 1024,         // 350 KB
-    maxGzipBytes: 110 * 1024,         // 110 KB gzipped
+    maxSizeBytes: 350 * 1024, // 350 KB
+    maxGzipBytes: 110 * 1024, // 110 KB gzipped
     warningThreshold: 0.85,
     enforced: true,
     category: 'initial',
@@ -155,8 +155,8 @@ export const STUDIO_BUNDLE_BUDGETS: BundleBudget[] = [
   {
     name: 'Initial JS (framework)',
     pattern: '.next/static/chunks/framework-*.js',
-    maxSizeBytes: 200 * 1024,         // 200 KB (React + Next.js)
-    maxGzipBytes: 70 * 1024,          // 70 KB gzipped
+    maxSizeBytes: 200 * 1024, // 200 KB (React + Next.js)
+    maxGzipBytes: 70 * 1024, // 70 KB gzipped
     warningThreshold: 0.85,
     enforced: true,
     category: 'initial',
@@ -164,9 +164,9 @@ export const STUDIO_BUNDLE_BUDGETS: BundleBudget[] = [
   {
     name: 'Initial CSS',
     pattern: '.next/static/css/**/*.css',
-    maxSizeBytes: 80 * 1024,          // 80 KB
-    maxGzipBytes: 20 * 1024,          // 20 KB gzipped
-    warningThreshold: 0.80,
+    maxSizeBytes: 80 * 1024, // 80 KB
+    maxGzipBytes: 20 * 1024, // 20 KB gzipped
+    warningThreshold: 0.8,
     enforced: true,
     category: 'initial',
   },
@@ -177,17 +177,17 @@ export const STUDIO_BUNDLE_BUDGETS: BundleBudget[] = [
   {
     name: 'Three.js + R3F bundle',
     pattern: '.next/static/chunks/*three*.js',
-    maxSizeBytes: 800 * 1024,         // 800 KB (three.js is large)
-    maxGzipBytes: 250 * 1024,         // 250 KB gzipped
-    warningThreshold: 0.90,
+    maxSizeBytes: 800 * 1024, // 800 KB (three.js is large)
+    maxGzipBytes: 250 * 1024, // 250 KB gzipped
+    warningThreshold: 0.9,
     enforced: true,
     category: 'vendor',
   },
   {
     name: 'Monaco Editor',
     pattern: '.next/static/chunks/*monaco*.js',
-    maxSizeBytes: 2 * 1024 * 1024,    // 2 MB (Monaco is very large, must be lazy-loaded)
-    maxGzipBytes: 600 * 1024,         // 600 KB gzipped
+    maxSizeBytes: 2 * 1024 * 1024, // 2 MB (Monaco is very large, must be lazy-loaded)
+    maxGzipBytes: 600 * 1024, // 600 KB gzipped
     warningThreshold: 0.85,
     enforced: true,
     category: 'lazy',
@@ -195,8 +195,8 @@ export const STUDIO_BUNDLE_BUDGETS: BundleBudget[] = [
   {
     name: 'Chart.js',
     pattern: '.next/static/chunks/*chart*.js',
-    maxSizeBytes: 200 * 1024,         // 200 KB
-    maxGzipBytes: 65 * 1024,          // 65 KB gzipped
+    maxSizeBytes: 200 * 1024, // 200 KB
+    maxGzipBytes: 65 * 1024, // 65 KB gzipped
     warningThreshold: 0.85,
     enforced: false,
     category: 'lazy',
@@ -208,8 +208,8 @@ export const STUDIO_BUNDLE_BUDGETS: BundleBudget[] = [
   {
     name: '@holoscript/core',
     pattern: '.next/static/chunks/*holoscript*.js',
-    maxSizeBytes: 500 * 1024,         // 500 KB (includes compiler, traits, export)
-    maxGzipBytes: 150 * 1024,         // 150 KB gzipped
+    maxSizeBytes: 500 * 1024, // 500 KB (includes compiler, traits, export)
+    maxGzipBytes: 150 * 1024, // 150 KB gzipped
     warningThreshold: 0.85,
     enforced: true,
     category: 'shared',
@@ -221,8 +221,8 @@ export const STUDIO_BUNDLE_BUDGETS: BundleBudget[] = [
   {
     name: 'Shared chunks (commons)',
     pattern: '.next/static/chunks/commons-*.js',
-    maxSizeBytes: 300 * 1024,         // 300 KB
-    maxGzipBytes: 100 * 1024,         // 100 KB gzipped
+    maxSizeBytes: 300 * 1024, // 300 KB
+    maxGzipBytes: 100 * 1024, // 100 KB gzipped
     warningThreshold: 0.85,
     enforced: true,
     category: 'shared',
@@ -234,18 +234,18 @@ export const STUDIO_BUNDLE_BUDGETS: BundleBudget[] = [
   {
     name: 'Total JS (all chunks)',
     pattern: '.next/static/chunks/**/*.js',
-    maxSizeBytes: 5 * 1024 * 1024,    // 5 MB total JS
-    maxGzipBytes: 1.5 * 1024 * 1024,  // 1.5 MB gzipped total
-    warningThreshold: 0.80,
+    maxSizeBytes: 5 * 1024 * 1024, // 5 MB total JS
+    maxGzipBytes: 1.5 * 1024 * 1024, // 1.5 MB gzipped total
+    warningThreshold: 0.8,
     enforced: true,
     category: 'total',
   },
   {
     name: 'Total (JS + CSS)',
     pattern: '.next/static/**/*.(js|css)',
-    maxSizeBytes: 5.5 * 1024 * 1024,  // 5.5 MB total
-    maxGzipBytes: 1.7 * 1024 * 1024,  // 1.7 MB gzipped total
-    warningThreshold: 0.80,
+    maxSizeBytes: 5.5 * 1024 * 1024, // 5.5 MB total
+    maxGzipBytes: 1.7 * 1024 * 1024, // 1.7 MB gzipped total
+    warningThreshold: 0.8,
     enforced: true,
     category: 'total',
   },
@@ -271,11 +271,7 @@ export class BundleBudgetChecker {
   /**
    * Check a single file against matching budgets
    */
-  checkFile(
-    fileName: string,
-    sizeBytes: number,
-    gzipBytes: number,
-  ): BudgetCheckResult[] {
+  checkFile(fileName: string, sizeBytes: number, gzipBytes: number): BudgetCheckResult[] {
     const results: BudgetCheckResult[] = [];
 
     for (const budget of this.budgets) {
@@ -293,11 +289,12 @@ export class BundleBudgetChecker {
           status = 'pass';
         }
 
-        const message = status === 'fail'
-          ? `OVER BUDGET: ${fileName} is ${this.formatBytes(sizeBytes)} (limit: ${this.formatBytes(budget.maxSizeBytes)}) [${(usagePercent * 100).toFixed(1)}%]`
-          : status === 'warning'
-            ? `WARNING: ${fileName} approaching budget at ${(usagePercent * 100).toFixed(1)}%`
-            : `OK: ${fileName} is ${this.formatBytes(sizeBytes)} [${(usagePercent * 100).toFixed(1)}% of budget]`;
+        const message =
+          status === 'fail'
+            ? `OVER BUDGET: ${fileName} is ${this.formatBytes(sizeBytes)} (limit: ${this.formatBytes(budget.maxSizeBytes)}) [${(usagePercent * 100).toFixed(1)}%]`
+            : status === 'warning'
+              ? `WARNING: ${fileName} approaching budget at ${(usagePercent * 100).toFixed(1)}%`
+              : `OK: ${fileName} is ${this.formatBytes(sizeBytes)} [${(usagePercent * 100).toFixed(1)}% of budget]`;
 
         results.push({
           name: budget.name,
@@ -321,11 +318,10 @@ export class BundleBudgetChecker {
   generateReport(
     checks: BudgetCheckResult[],
     summary: BundleSummary,
-    commitHash?: string,
+    commitHash?: string
   ): BundleAnalysisResult {
-    const hasFail = checks.some(c =>
-      c.status === 'fail' &&
-      this.budgets.find(b => b.name === c.name)?.enforced
+    const hasFail = checks.some(
+      (c) => c.status === 'fail' && this.budgets.find((b) => b.name === c.name)?.enforced
     );
 
     return {
@@ -353,12 +349,12 @@ export class BundleBudgetChecker {
     // Convert glob to regex (simplified)
     const regex = new RegExp(
       '^' +
-      pattern
-        .replace(/\./g, '\\.')
-        .replace(/\*\*/g, '__GLOBSTAR__')
-        .replace(/\*/g, '[^/]*')
-        .replace(/__GLOBSTAR__/g, '.*') +
-      '$'
+        pattern
+          .replace(/\./g, '\\.')
+          .replace(/\*\*/g, '__GLOBSTAR__')
+          .replace(/\*/g, '[^/]*')
+          .replace(/__GLOBSTAR__/g, '.*') +
+        '$'
     );
     return regex.test(fileName);
   }
@@ -403,8 +399,8 @@ export function getAnalyzerWebpackConfig() {
 export function getPerformanceHints(isCI: boolean) {
   return {
     hints: isCI ? ('error' as const) : ('warning' as const),
-    maxEntrypointSize: 400 * 1024,    // 400 KB for initial entrypoints
-    maxAssetSize: 800 * 1024,         // 800 KB for individual assets
+    maxEntrypointSize: 400 * 1024, // 400 KB for initial entrypoints
+    maxAssetSize: 800 * 1024, // 800 KB for individual assets
     assetFilter: (assetFilename: string) => {
       // Only check JS and CSS assets
       return /\.(js|css)$/.test(assetFilename);
@@ -428,10 +424,13 @@ export interface BundleBaseline {
   commitHash: string;
 
   /** Bundle sizes by file */
-  files: Record<string, {
-    sizeBytes: number;
-    gzipBytes: number;
-  }>;
+  files: Record<
+    string,
+    {
+      sizeBytes: number;
+      gzipBytes: number;
+    }
+  >;
 
   /** Summary at time of baseline */
   summary: BundleSummary;
@@ -442,7 +441,7 @@ export interface BundleBaseline {
  */
 export function compareToBaseline(
   current: BundleSummary,
-  baseline: BundleBaseline,
+  baseline: BundleBaseline
 ): {
   totalDelta: number;
   totalDeltaPercent: number;
@@ -452,19 +451,20 @@ export function compareToBaseline(
   message: string;
 } {
   const totalDelta = current.totalSizeBytes - baseline.summary.totalSizeBytes;
-  const totalDeltaPercent = baseline.summary.totalSizeBytes > 0
-    ? (totalDelta / baseline.summary.totalSizeBytes) * 100
-    : 0;
+  const totalDeltaPercent =
+    baseline.summary.totalSizeBytes > 0 ? (totalDelta / baseline.summary.totalSizeBytes) * 100 : 0;
 
   const initialDelta = current.initialLoadBytes - baseline.summary.initialLoadBytes;
-  const initialDeltaPercent = baseline.summary.initialLoadBytes > 0
-    ? (initialDelta / baseline.summary.initialLoadBytes) * 100
-    : 0;
+  const initialDeltaPercent =
+    baseline.summary.initialLoadBytes > 0
+      ? (initialDelta / baseline.summary.initialLoadBytes) * 100
+      : 0;
 
   const improved = totalDelta < 0;
 
   const direction = totalDelta > 0 ? 'increased' : 'decreased';
-  const message = `Bundle size ${direction} by ${Math.abs(totalDeltaPercent).toFixed(1)}% ` +
+  const message =
+    `Bundle size ${direction} by ${Math.abs(totalDeltaPercent).toFixed(1)}% ` +
     `(${totalDelta > 0 ? '+' : ''}${new BundleBudgetChecker().formatBytes(Math.abs(totalDelta))}) ` +
     `since ${baseline.commitHash.substring(0, 7)}`;
 

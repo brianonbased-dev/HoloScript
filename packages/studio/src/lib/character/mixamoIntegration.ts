@@ -146,9 +146,7 @@ export function getMixamoCharacterById(id: string): MixamoCharacter | undefined 
  */
 export function searchMixamoCharacters(query: string): MixamoCharacter[] {
   const lowerQuery = query.toLowerCase();
-  return MIXAMO_FREE_CHARACTERS.filter((char) =>
-    char.name.toLowerCase().includes(lowerQuery)
-  );
+  return MIXAMO_FREE_CHARACTERS.filter((char) => char.name.toLowerCase().includes(lowerQuery));
 }
 
 // ─── Mixamo Character Download ──────────────────────────────────────────────

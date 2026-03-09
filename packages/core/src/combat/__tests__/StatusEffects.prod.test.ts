@@ -8,7 +8,10 @@
 import { describe, it, expect } from 'vitest';
 import { StatusEffectSystem, type StatusEffect } from '../StatusEffects';
 
-function buff(name: string, opts: Partial<Omit<StatusEffect, 'id' | 'elapsed' | 'lastTick' | 'stacks'>> = {}): Omit<StatusEffect, 'id' | 'elapsed' | 'lastTick' | 'stacks'> & { stacks?: number } {
+function buff(
+  name: string,
+  opts: Partial<Omit<StatusEffect, 'id' | 'elapsed' | 'lastTick' | 'stacks'>> = {}
+): Omit<StatusEffect, 'id' | 'elapsed' | 'lastTick' | 'stacks'> & { stacks?: number } {
   return {
     name,
     type: opts.type ?? 'buff',
@@ -42,7 +45,8 @@ describe('StatusEffects — Production', () => {
 
   it('stack capped at maxStacks', () => {
     const se = new StatusEffectSystem();
-    for (let i = 0; i < 10; i++) se.apply('hero', buff('poison', { stackBehavior: 'stack', maxStacks: 3 }));
+    for (let i = 0; i < 10; i++)
+      se.apply('hero', buff('poison', { stackBehavior: 'stack', maxStacks: 3 }));
     expect(se.getEffects('hero')[0].stacks).toBe(3);
   });
 
@@ -115,7 +119,10 @@ describe('StatusEffects — Production', () => {
   // ─── Tick Damage ──────────────────────────────────────────────────
   it('ticking effect produces tick results', () => {
     const se = new StatusEffectSystem();
-    se.apply('hero', buff('burn', { type: 'debuff', tickInterval: 1, tickDamage: 10, duration: 5 }));
+    se.apply(
+      'hero',
+      buff('burn', { type: 'debuff', tickInterval: 1, tickDamage: 10, duration: 5 })
+    );
     se.update(2);
     const results = se.getTickResults();
     expect(results.length).toBeGreaterThanOrEqual(1);

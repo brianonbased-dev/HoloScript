@@ -300,7 +300,7 @@ export class CRDTRoomTraitHandler {
  * Convenience function that combines parse -> validate -> resolve -> handler.
  */
 export function createCRDTRoomTraitHandler(
-  rawConfig: Record<string, unknown>,
+  rawConfig: Record<string, unknown>
 ): CRDTRoomTraitHandler {
   const parsed = parseCRDTRoomTraitConfig(rawConfig);
   validateCRDTRoomTraitConfig(parsed);

@@ -6,7 +6,7 @@
  * HSPlusAST compile path, options (format, debug, simd, threads, generateBindings),
  * sanitizeName, escapeWATString, and reset().
  */
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { WASMCompiler } from '../WASMCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -17,7 +17,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -161,13 +160,15 @@ describe('WASMCompiler — Production', () => {
   describe('compile() — exports', () => {
     it('exports include init function', () => {
       const result = compiler.compile(makeComp(), 'test-token');
-      const initExport = result.exports.find(e => e.name.includes('init') || e.name.includes('Init'));
+      const initExport = result.exports.find(
+        (e) => e.name.includes('init') || e.name.includes('Init')
+      );
       expect(initExport).toBeDefined();
     });
 
     it('exports include memory', () => {
       const result = compiler.compile(makeComp(), 'test-token');
-      const memExport = result.exports.find(e => e.kind === 'memory');
+      const memExport = result.exports.find((e) => e.kind === 'memory');
       expect(memExport).toBeDefined();
     });
   });
@@ -181,7 +182,7 @@ describe('WASMCompiler — Production', () => {
 
     it('imports include env functions', () => {
       const result = compiler.compile(makeComp(), 'test-token');
-      const envImport = result.imports.find(i => i.module === 'env');
+      const envImport = result.imports.find((i) => i.module === 'env');
       expect(envImport).toBeDefined();
     });
   });
@@ -209,14 +210,17 @@ describe('WASMCompiler — Production', () => {
   // ─── State variables ──────────────────────────────────────────────────────
   describe('compile() — state variables', () => {
     it('compiles scene with state variables', () => {
-      const result = compiler.compile(makeComp({
+      const result = compiler.compile(
+        makeComp({
           state: {
             properties: [
               { key: 'count', value: 0 },
               { key: 'active', value: true },
             ],
           } as any,
-        }), 'test-token');
+        }),
+        'test-token'
+      );
       expect(result.wat).toBeDefined();
     });
   });
@@ -229,7 +233,10 @@ describe('WASMCompiler — Production', () => {
     });
 
     it('compiles with multiple objects', () => {
-      const result = compiler.compile(makeComp({ objects: [makeObj('a'), makeObj('b'), makeObj('c')] }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ objects: [makeObj('a'), makeObj('b'), makeObj('c')] }),
+        'test-token'
+      );
       expect(result.wat.length).toBeGreaterThan(0);
     });
   });

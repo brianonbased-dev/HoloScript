@@ -112,7 +112,7 @@ class TerrainAgent {
       minimal: 1,
     }[stats.qualityLevel];
 
-    await new Promise(resolve => setTimeout(resolve, workAmount));
+    await new Promise((resolve) => setTimeout(resolve, workAmount));
   }
 
   async shutdown(): Promise<void> {
@@ -180,7 +180,7 @@ class AssetAgent {
       minimal: 1,
     }[stats.qualityLevel];
 
-    await new Promise(resolve => setTimeout(resolve, workAmount));
+    await new Promise((resolve) => setTimeout(resolve, workAmount));
   }
 
   async shutdown(): Promise<void> {
@@ -286,7 +286,7 @@ class OrchestratorAgent {
 
     // Wait for terrain to complete before assets
     // (In production, would use dependency system)
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Assign asset task
     const assetTask: TaskSpec = {
@@ -383,7 +383,7 @@ async function main() {
 
     // Wait for completion
     console.log('\n[STEP 3] Waiting for agents to complete...');
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
     // Export world
     console.log('\n[STEP 4] Exporting world...');

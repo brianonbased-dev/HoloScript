@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { HoloLogger } from '../logging/HoloLogger';
-import { LoggerFactory, SimpleFormatter, DetailedFormatter, JsonFormatter } from '../logging/LoggerFactory';
+import {
+  LoggerFactory,
+  SimpleFormatter,
+  DetailedFormatter,
+  JsonFormatter,
+} from '../logging/LoggerFactory';
 import {
   LogMiddlewarePipeline,
   createSampler,
@@ -95,20 +100,35 @@ describe('Logger Migration (Cycle 172)', () => {
 
     it('should format with simple formatter', () => {
       factory.setFormatter(SimpleFormatter);
-      const output = factory.format({ level: 'info', message: 'hello', logger: 'test', timestamp: 0 });
+      const output = factory.format({
+        level: 'info',
+        message: 'hello',
+        logger: 'test',
+        timestamp: 0,
+      });
       expect(output).toBe('[INFO] test: hello');
     });
 
     it('should format with JSON formatter', () => {
       factory.setFormatter(JsonFormatter);
-      const output = factory.format({ level: 'warn', message: 'oops', logger: 'x', timestamp: 123 });
+      const output = factory.format({
+        level: 'warn',
+        message: 'oops',
+        logger: 'x',
+        timestamp: 123,
+      });
       const parsed = JSON.parse(output);
       expect(parsed.level).toBe('warn');
     });
 
     it('should format with detailed formatter', () => {
       factory.setFormatter(DetailedFormatter);
-      const output = factory.format({ level: 'debug', message: 'detail', logger: 'app', timestamp: Date.now() });
+      const output = factory.format({
+        level: 'debug',
+        message: 'detail',
+        logger: 'app',
+        timestamp: Date.now(),
+      });
       expect(output).toContain('[DEBUG]');
       expect(output).toContain('app');
     });
@@ -128,7 +148,13 @@ describe('Logger Migration (Cycle 172)', () => {
 
     it('should enrich context', () => {
       const enricher = createContextEnricher({ env: 'prod', version: '1.0' });
-      const result = enricher({ level: 'info', message: 'x', timestamp: 0, logger: 'l', context: { custom: true } });
+      const result = enricher({
+        level: 'info',
+        message: 'x',
+        timestamp: 0,
+        logger: 'l',
+        context: { custom: true },
+      });
       expect(result?.context?.env).toBe('prod');
       expect(result?.context?.custom).toBe(true);
     });
@@ -163,10 +189,20 @@ describe('Logger Migration (Cycle 172)', () => {
       pipeline.use(createLevelFilter('info'));
       pipeline.use(createContextEnricher({ app: 'holo' }));
 
-      const debugResult = pipeline.process({ level: 'debug', message: 'x', timestamp: 0, logger: 'l' });
+      const debugResult = pipeline.process({
+        level: 'debug',
+        message: 'x',
+        timestamp: 0,
+        logger: 'l',
+      });
       expect(debugResult).toBeNull(); // filtered
 
-      const infoResult = pipeline.process({ level: 'info', message: 'x', timestamp: 0, logger: 'l' });
+      const infoResult = pipeline.process({
+        level: 'info',
+        message: 'x',
+        timestamp: 0,
+        logger: 'l',
+      });
       expect(infoResult?.context?.app).toBe('holo'); // enriched
     });
   });

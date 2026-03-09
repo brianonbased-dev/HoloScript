@@ -29,7 +29,7 @@ describe('RopeSystem — Production', () => {
     rs.createRope('r1', { x: 0, y: 0, z: 0 }, { x: 5, y: 0, z: 0 });
     rs.pinNode('r1', 0);
     const before = { ...rs.getRopeNodes('r1')[0].position };
-    rs.update(1/60);
+    rs.update(1 / 60);
     const after = rs.getRopeNodes('r1')[0].position;
     expect(after.x).toBe(before.x);
     expect(after.y).toBe(before.y);
@@ -40,7 +40,7 @@ describe('RopeSystem — Production', () => {
     rs.createRope('r1', { x: 0, y: 5, z: 0 }, { x: 5, y: 5, z: 0 });
     rs.pinNode('r1', 0);
     rs.unpinNode('r1', 0);
-    rs.update(1/60);
+    rs.update(1 / 60);
     // gravity should pull y down
     expect(rs.getRopeNodes('r1')[0].position.y).toBeLessThan(5);
   });
@@ -57,7 +57,7 @@ describe('RopeSystem — Production', () => {
   it('update applies gravity to unpinned nodes', () => {
     const rs = new RopeSystem();
     rs.createRope('r1', { x: 0, y: 10, z: 0 }, { x: 10, y: 10, z: 0 });
-    rs.update(1/60);
+    rs.update(1 / 60);
     // all nodes should have fallen
     const nodes = rs.getRopeNodes('r1');
     for (const n of nodes) {

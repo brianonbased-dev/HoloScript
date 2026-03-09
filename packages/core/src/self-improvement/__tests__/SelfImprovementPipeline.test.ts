@@ -41,18 +41,22 @@ describe('SelfImprovementPipeline', () => {
   });
 
   it('auto-corrects missing closing braces', () => {
-    const corrected = pipeline.attemptAutoCorrection(makeFailure({
-      generatedCode: 'object "Box" {',
-      errors: ["expected '}'"],
-    }));
+    const corrected = pipeline.attemptAutoCorrection(
+      makeFailure({
+        generatedCode: 'object "Box" {',
+        errors: ["expected '}'"],
+      })
+    );
     expect(corrected).toContain('}');
   });
 
   it('auto-corrects property name typos', () => {
-    const corrected = pipeline.attemptAutoCorrection(makeFailure({
-      generatedCode: 'rotate.y = 45',
-      errors: ['unknown property'],
-    }));
+    const corrected = pipeline.attemptAutoCorrection(
+      makeFailure({
+        generatedCode: 'rotate.y = 45',
+        errors: ['unknown property'],
+      })
+    );
     expect(corrected).toContain('rotation.y');
   });
 
@@ -66,7 +70,7 @@ describe('SelfImprovementPipeline', () => {
   it('toJSONL outputs valid JSONL', () => {
     pipeline.capture(makeFailure());
     const jsonl = pipeline.toJSONL();
-    const lines = jsonl.split('\n').filter(l => l.length > 0);
+    const lines = jsonl.split('\n').filter((l) => l.length > 0);
     expect(lines.length).toBeGreaterThan(0);
     for (const line of lines) {
       expect(() => JSON.parse(line)).not.toThrow();
@@ -85,7 +89,9 @@ describe('SelfImprovementPipeline', () => {
   });
 
   it('provideCorrection adds examples', () => {
-    pipeline.capture(makeFailure({ id: 'f1', errors: ['runtime crash'], category: 'runtime-error' }));
+    pipeline.capture(
+      makeFailure({ id: 'f1', errors: ['runtime crash'], category: 'runtime-error' })
+    );
     const before = pipeline.getTrainingExamples().length;
     pipeline.provideCorrection('f1', 'object "Ball" { geometry: "sphere" }');
     expect(pipeline.getTrainingExamples().length).toBeGreaterThan(before);
@@ -93,7 +99,9 @@ describe('SelfImprovementPipeline', () => {
 
   it('getPendingFailures excludes corrected', () => {
     pipeline.capture(makeFailure()); // auto-corrects
-    pipeline.capture(makeFailure({ id: 'f2', errors: ['runtime crash'], category: 'runtime-error' })); // no auto-correction
+    pipeline.capture(
+      makeFailure({ id: 'f2', errors: ['runtime crash'], category: 'runtime-error' })
+    ); // no auto-correction
     const pending = pipeline.getPendingFailures();
     // The first was auto-corrected, second has no matching pattern → pending
     expect(pending.length).toBe(1);
@@ -108,7 +116,9 @@ describe('SelfImprovementPipeline', () => {
 
   it('buffer flushes at maxBufferSize', () => {
     const smallPipeline = new SelfImprovementPipeline({
-      autoFlushInterval: 0, maxBufferSize: 2, autoCorrect: true,
+      autoFlushInterval: 0,
+      maxBufferSize: 2,
+      autoCorrect: true,
     });
     smallPipeline.capture(makeFailure({ id: 'a' }));
     smallPipeline.capture(makeFailure({ id: 'b' }));

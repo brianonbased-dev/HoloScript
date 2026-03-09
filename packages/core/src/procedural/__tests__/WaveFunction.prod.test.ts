@@ -11,18 +11,24 @@ import { WaveFunction, type WFCTile } from '../WaveFunction';
 // Simple tileset: grass and water, where grass can be next to anything
 // and water can only be next to grass or water.
 const GRASS: WFCTile = {
-  id: 'grass', weight: 2,
+  id: 'grass',
+  weight: 2,
   adjacency: {
-    up: ['grass', 'water'], down: ['grass', 'water'],
-    left: ['grass', 'water'], right: ['grass', 'water'],
+    up: ['grass', 'water'],
+    down: ['grass', 'water'],
+    left: ['grass', 'water'],
+    right: ['grass', 'water'],
   },
 };
 
 const WATER: WFCTile = {
-  id: 'water', weight: 1,
+  id: 'water',
+  weight: 1,
   adjacency: {
-    up: ['grass', 'water'], down: ['grass', 'water'],
-    left: ['grass', 'water'], right: ['grass', 'water'],
+    up: ['grass', 'water'],
+    down: ['grass', 'water'],
+    left: ['grass', 'water'],
+    right: ['grass', 'water'],
   },
 };
 
@@ -87,7 +93,7 @@ describe('WaveFunction Collapse — Production', () => {
       wfc.addTile(GRASS);
       wfc.addTile(WATER);
       wfc.solve();
-      return JSON.stringify(wfc.getGrid().map(row => row.map(c => c.tileId)));
+      return JSON.stringify(wfc.getGrid().map((row) => row.map((c) => c.tileId)));
     };
     expect(solve(42)).toBe(solve(42));
   });

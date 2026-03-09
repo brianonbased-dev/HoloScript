@@ -330,21 +330,21 @@ export function serializePassport(passport: AgentPassport): Buffer {
   }
 
   // ---- HEADER (12 bytes) ----
-  writer.writeBytes(PASSPORT_MAGIC);           // 4 bytes: "HSAP"
-  writer.writeUint8(passport.version);          // 1 byte: version
-  writer.writeUint8(flags);                     // 1 byte: flags
-  writer.writeUint16(sections.length);          // 2 bytes: section count
+  writer.writeBytes(PASSPORT_MAGIC); // 4 bytes: "HSAP"
+  writer.writeUint8(passport.version); // 1 byte: version
+  writer.writeUint8(flags); // 1 byte: flags
+  writer.writeUint16(sections.length); // 2 bytes: section count
   const totalSizeOffset = writer.getOffset();
-  writer.writeUint32(0);                        // 4 bytes: total size (back-patched)
+  writer.writeUint32(0); // 4 bytes: total size (back-patched)
 
   // ---- SECTION TABLE ----
   // Reserve space for section table (8 bytes per section)
   const sectionTableStart = writer.getOffset();
   for (let i = 0; i < sections.length; i++) {
-    writer.writeUint8(0);   // section type
-    writer.writeUint8(0);   // reserved
-    writer.writeUint32(0);  // offset (back-patched)
-    writer.writeUint16(0);  // length (back-patched, only lower 16 bits)
+    writer.writeUint8(0); // section type
+    writer.writeUint8(0); // reserved
+    writer.writeUint32(0); // offset (back-patched)
+    writer.writeUint16(0); // length (back-patched, only lower 16 bits)
   }
 
   // ---- SECTION DATA ----

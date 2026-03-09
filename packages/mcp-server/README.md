@@ -27,18 +27,18 @@ Add to your MCP configuration (Claude Code, Cursor, Copilot, etc.):
 
 ### Compiler Tools (9) - NEW - Export to Any Platform
 
-| Tool                          | Description                                       |
-| ----------------------------- | ------------------------------------------------- |
-| `compile_holoscript`          | Compile to any target (Unity, URDF, WebGPU, etc.) |
-| `compile_to_unity`            | Compile to Unity C# with prefab generation        |
-| `compile_to_unreal`           | Compile to Unreal C++ with Blueprints             |
-| `compile_to_urdf`             | Compile to URDF for ROS 2 / Gazebo                |
-| `compile_to_sdf`              | Compile to SDF for Gazebo simulation              |
-| `compile_to_webgpu`           | Compile to WebGPU with WGSL shaders               |
-| `compile_to_r3f`              | Compile to React Three Fiber JSX                  |
-| `get_compilation_status`      | Track compilation job progress                    |
-| `list_export_targets`         | List all 25+ export targets with categories       |
-| `get_circuit_breaker_status`  | Check circuit breaker health per target           |
+| Tool                         | Description                                       |
+| ---------------------------- | ------------------------------------------------- |
+| `compile_holoscript`         | Compile to any target (Unity, URDF, WebGPU, etc.) |
+| `compile_to_unity`           | Compile to Unity C# with prefab generation        |
+| `compile_to_unreal`          | Compile to Unreal C++ with Blueprints             |
+| `compile_to_urdf`            | Compile to URDF for ROS 2 / Gazebo                |
+| `compile_to_sdf`             | Compile to SDF for Gazebo simulation              |
+| `compile_to_webgpu`          | Compile to WebGPU with WGSL shaders               |
+| `compile_to_r3f`             | Compile to React Three Fiber JSX                  |
+| `get_compilation_status`     | Track compilation job progress                    |
+| `list_export_targets`        | List all 25+ export targets with categories       |
+| `get_circuit_breaker_status` | Check circuit breaker health per target           |
 
 **Supported Export Targets (25+):**
 
@@ -61,7 +61,7 @@ See [COMPILER_TOOLS.md](./COMPILER_TOOLS.md) for detailed documentation.
 | `parse_hs`             | Parse .hs or .hsplus code into AST              |
 | `parse_holo`           | Parse .holo composition files                   |
 | `validate_holoscript`  | Validate syntax with AI-friendly error messages |
-| `list_traits`          | List all 1,800+ VR traits by category            |
+| `list_traits`          | List all 1,800+ VR traits by category           |
 | `explain_trait`        | Get detailed trait documentation                |
 | `suggest_traits`       | Suggest traits from natural language            |
 | `generate_object`      | Generate objects from descriptions              |

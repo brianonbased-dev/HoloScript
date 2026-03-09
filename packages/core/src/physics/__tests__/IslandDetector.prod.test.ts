@@ -73,16 +73,20 @@ describe('IslandDetector — Production', () => {
   it('complex multi-island graph', () => {
     const d = new IslandDetector();
     // Island 1: A-B-C
-    d.addBody('A'); d.addBody('B'); d.addBody('C');
-    d.addConnection('A', 'B'); d.addConnection('B', 'C');
+    d.addBody('A');
+    d.addBody('B');
+    d.addBody('C');
+    d.addConnection('A', 'B');
+    d.addConnection('B', 'C');
     // Island 2: D-E
-    d.addBody('D'); d.addBody('E');
+    d.addBody('D');
+    d.addBody('E');
     d.addConnection('D', 'E');
     // Island 3: F alone
     d.addBody('F');
     const islands = d.detectIslands();
     expect(islands.length).toBe(3);
-    const sizes = islands.map(i => i.length).sort();
+    const sizes = islands.map((i) => i.length).sort();
     expect(sizes).toEqual([1, 2, 3]);
   });
 });

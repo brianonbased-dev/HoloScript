@@ -271,9 +271,7 @@ const startTime = performance.now();
 files.forEach((file) => {
   const chunks = chunker.chunk(file.content, file.path);
   allChunks.push(...chunks);
-  console.log(
-    `\n  ${file.path}: ${chunks.length} chunks (${chunks[0].strategy} strategy)`
-  );
+  console.log(`\n  ${file.path}: ${chunks.length} chunks (${chunks[0].strategy} strategy)`);
 });
 
 const totalTime = performance.now() - startTime;

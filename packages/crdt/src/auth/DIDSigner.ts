@@ -157,7 +157,7 @@ export class DIDSigner {
     // Ensure operation actor matches this signer's DID
     if (operation.actorDid !== this.did) {
       throw new Error(
-        `Operation actor DID (${operation.actorDid}) does not match signer DID (${this.did})`,
+        `Operation actor DID (${operation.actorDid}) does not match signer DID (${this.did})`
       );
     }
 
@@ -170,7 +170,11 @@ export class DIDSigner {
     };
 
     // Sign with ES256K algorithm
-    const jwt = await createJWT(payload, { issuer: this.did, signer: this.signer }, { alg: 'ES256K' });
+    const jwt = await createJWT(
+      payload,
+      { issuer: this.did, signer: this.signer },
+      { alg: 'ES256K' }
+    );
 
     return {
       operation,
@@ -270,7 +274,7 @@ export class DIDSigner {
     type: CRDTOperationType,
     crdtId: string,
     data: unknown,
-    causality?: Record<string, number>,
+    causality?: Record<string, number>
   ): CRDTOperation {
     return {
       id: uuidv4(),

@@ -18,39 +18,39 @@ export type WeatherType = 'clear' | 'rain' | 'storm' | 'snow' | 'fog' | 'wind';
 
 export interface WeatherPreset {
   type: WeatherType;
-  ambientVolume: number;       // 0-1
-  reverbDamping: number;        // 0-1 (higher = more dampening)
+  ambientVolume: number; // 0-1
+  reverbDamping: number; // 0-1 (higher = more dampening)
   airAbsorptionMultiplier: number; // 0-2 (1 = normal, >1 = more absorption)
-  dopplerScale: number;         // 0-2 (1 = normal)
-  windSpeed: number;            // 0-100 (meters/second)
+  dopplerScale: number; // 0-2 (1 = normal)
+  windSpeed: number; // 0-100 (meters/second)
   description: string;
 }
 
 export interface AirAbsorptionCurve {
-  temperature: number;          // Celsius
-  humidity: number;             // 0-100%
+  temperature: number; // Celsius
+  humidity: number; // 0-100%
   // Absorption per meter at different frequencies (dB/m)
   absorption: {
-    500: number;    // 500 Hz
-    1000: number;   // 1 kHz
-    2000: number;   // 2 kHz
-    4000: number;   // 4 kHz
-    8000: number;   // 8 kHz
+    500: number; // 500 Hz
+    1000: number; // 1 kHz
+    2000: number; // 2 kHz
+    4000: number; // 4 kHz
+    8000: number; // 8 kHz
   };
 }
 
 export interface DopplerConfig {
   enabled: boolean;
-  speedOfSound: number;         // m/s (default 343 at 20°C)
-  maxPitchShift: number;        // 0-2 (max pitch multiplier, e.g., 1.5 = 50% higher)
+  speedOfSound: number; // m/s (default 343 at 20°C)
+  maxPitchShift: number; // 0-2 (max pitch multiplier, e.g., 1.5 = 50% higher)
 }
 
 export interface EnvironmentalAudioConfig {
   weather: WeatherType;
   airAbsorption: {
     enabled: boolean;
-    temperature: number;        // Celsius
-    humidity: number;           // 0-100%
+    temperature: number; // Celsius
+    humidity: number; // 0-100%
   };
   doppler: DopplerConfig;
 }
@@ -141,7 +141,7 @@ export function getAirAbsorption(temperature: number, humidity: number): AirAbso
       1000: 0.002 * tempFactor * humidityFactor,
       2000: 0.005 * tempFactor * humidityFactor,
       4000: 0.015 * tempFactor * humidityFactor,
-      8000: 0.050 * tempFactor * humidityFactor,
+      8000: 0.05 * tempFactor * humidityFactor,
     },
   };
 }
@@ -159,8 +159,8 @@ export interface EnvironmentalAudioTrait {
 
   // Air absorption configuration
   air_absorption_enabled: boolean;
-  temperature: number;          // Celsius
-  humidity: number;             // 0-100%
+  temperature: number; // Celsius
+  humidity: number; // 0-100%
 
   // Doppler configuration
   doppler_enabled: boolean;
@@ -267,7 +267,7 @@ export class EnvironmentalAudioSystem {
 
     const absorption = getAirAbsorption(
       this.config.airAbsorption.temperature,
-      this.config.airAbsorption.humidity,
+      this.config.airAbsorption.humidity
     );
 
     const weatherMultiplier = this.currentWeather.airAbsorptionMultiplier;
@@ -289,7 +289,14 @@ export class EnvironmentalAudioSystem {
    */
   getAirAbsorptionMultiplier(distance: number): number {
     const absorption = this.calculateAirAbsorption(distance);
-    return (absorption[500] + absorption[1000] + absorption[2000] + absorption[4000] + absorption[8000]) / 5;
+    return (
+      (absorption[500] +
+        absorption[1000] +
+        absorption[2000] +
+        absorption[4000] +
+        absorption[8000]) /
+      5
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -306,7 +313,7 @@ export class EnvironmentalAudioSystem {
   calculateDopplerShift(
     sourceVelocity: { x: number; y: number; z: number },
     listenerVelocity: { x: number; y: number; z: number },
-    sourceToListener: { x: number; y: number; z: number },
+    sourceToListener: { x: number; y: number; z: number }
   ): number {
     if (!this.config.doppler.enabled) {
       return 1.0;
@@ -314,7 +321,7 @@ export class EnvironmentalAudioSystem {
 
     // Normalize direction vector
     const dist = Math.sqrt(
-      sourceToListener.x ** 2 + sourceToListener.y ** 2 + sourceToListener.z ** 2,
+      sourceToListener.x ** 2 + sourceToListener.y ** 2 + sourceToListener.z ** 2
     );
 
     if (dist === 0) return 1.0;
@@ -326,8 +333,13 @@ export class EnvironmentalAudioSystem {
     };
 
     // Project velocities onto direction vector
-    const sourceSpeed = -(sourceVelocity.x * dir.x + sourceVelocity.y * dir.y + sourceVelocity.z * dir.z);
-    const listenerSpeed = listenerVelocity.x * dir.x + listenerVelocity.y * dir.y + listenerVelocity.z * dir.z;
+    const sourceSpeed = -(
+      sourceVelocity.x * dir.x +
+      sourceVelocity.y * dir.y +
+      sourceVelocity.z * dir.z
+    );
+    const listenerSpeed =
+      listenerVelocity.x * dir.x + listenerVelocity.y * dir.y + listenerVelocity.z * dir.z;
 
     // Apply weather-based Doppler scaling
     const dopplerScale = this.currentWeather.dopplerScale;
@@ -335,7 +347,7 @@ export class EnvironmentalAudioSystem {
 
     // Doppler formula: f' = f * (c + vl) / (c + vs)
     // where vl = listener velocity toward source, vs = source velocity away from listener
-    const pitchShift = ((c + listenerSpeed * dopplerScale) / (c + sourceSpeed * dopplerScale));
+    const pitchShift = (c + listenerSpeed * dopplerScale) / (c + sourceSpeed * dopplerScale);
 
     // Clamp to max pitch shift
     const maxShift = this.config.doppler.maxPitchShift;
@@ -390,7 +402,7 @@ export class EnvironmentalAudioSystem {
     distance: number,
     sourceVelocity?: { x: number; y: number; z: number },
     listenerVelocity?: { x: number; y: number; z: number },
-    sourceToListener?: { x: number; y: number; z: number },
+    sourceToListener?: { x: number; y: number; z: number }
   ): {
     airAbsorption: number;
     dopplerShift: number;

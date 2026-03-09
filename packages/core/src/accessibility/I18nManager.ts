@@ -42,18 +42,24 @@ export class I18nManager {
 
   setLocale(locale: string): void {
     this.currentLocale = locale;
-    this.listeners.forEach(cb => cb(locale));
+    this.listeners.forEach((cb) => cb(locale));
   }
 
-  getLocale(): string { return this.currentLocale; }
-  setFallback(locale: string): void { this.fallbackLocale = locale; }
+  getLocale(): string {
+    return this.currentLocale;
+  }
+  setFallback(locale: string): void {
+    this.fallbackLocale = locale;
+  }
 
   detectLocale(): string {
     // Simulate browser detection
-    return typeof navigator !== 'undefined' ? (navigator as any).language ?? 'en' : 'en';
+    return typeof navigator !== 'undefined' ? ((navigator as any).language ?? 'en') : 'en';
   }
 
-  onLocaleChange(callback: (locale: string) => void): void { this.listeners.push(callback); }
+  onLocaleChange(callback: (locale: string) => void): void {
+    this.listeners.push(callback);
+  }
 
   // ---------------------------------------------------------------------------
   // String Tables
@@ -61,7 +67,10 @@ export class I18nManager {
 
   addTable(locale: string, entries: Record<string, StringEntry>): void {
     let table = this.tables.get(locale);
-    if (!table) { table = { locale, strings: new Map() }; this.tables.set(locale, table); }
+    if (!table) {
+      table = { locale, strings: new Map() };
+      this.tables.set(locale, table);
+    }
     for (const [key, value] of Object.entries(entries)) table.strings.set(key, value);
   }
 
@@ -70,15 +79,16 @@ export class I18nManager {
     return this.tables.get(l)?.strings.has(key) ?? false;
   }
 
-  getAvailableLocales(): string[] { return [...this.tables.keys()]; }
+  getAvailableLocales(): string[] {
+    return [...this.tables.keys()];
+  }
 
   // ---------------------------------------------------------------------------
   // Translation
   // ---------------------------------------------------------------------------
 
   t(key: string, params?: Record<string, string | number>): string {
-    const entry = this.resolve(key, this.currentLocale)
-      ?? this.resolve(key, this.fallbackLocale);
+    const entry = this.resolve(key, this.currentLocale) ?? this.resolve(key, this.fallbackLocale);
 
     if (entry === undefined) return `[${key}]`;
 
@@ -115,7 +125,8 @@ export class I18nManager {
     const ref = this.tables.get(this.fallbackLocale);
     const target = this.tables.get(locale);
     if (!ref || !target) return 0;
-    let total = 0, found = 0;
+    let total = 0,
+      found = 0;
     for (const key of ref.strings.keys()) {
       total++;
       if (target.strings.has(key)) found++;

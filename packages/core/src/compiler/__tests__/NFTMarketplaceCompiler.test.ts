@@ -4,7 +4,7 @@
  * Comprehensive tests for NFT marketplace DSL compilation to Solidity
  */
 
-import { describe, it, expect, vi} from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { NFTMarketplaceCompiler } from '../NFTMarketplaceCompiler';
 import { GasOptimizationAnalyzer, ANALYZER_PRESETS } from '../GasOptimizationAnalyzer';
 import type { NFTMarketplaceAST } from '../../parser/NFTMarketplaceTypes';
@@ -16,7 +16,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 describe('NFTMarketplaceCompiler', () => {
   describe('Basic Compilation', () => {
@@ -204,9 +203,7 @@ describe('NFTMarketplaceCompiler', () => {
             pausable: false,
             upgradeable: false,
             accessControl: {
-              roles: [
-                { name: 'MINTER', permissions: ['mint'] },
-              ],
+              roles: [{ name: 'MINTER', permissions: ['mint'] }],
               defaultAdmin: 'deployer',
             },
             metadata: {
@@ -348,7 +345,7 @@ describe('NFTMarketplaceCompiler', () => {
       const output = compiler.compile(marketplace, 'test-token');
 
       expect(output.contracts).toHaveLength(2);
-      const marketplaceContract = output.contracts.find(c => c.name.includes('Marketplace'));
+      const marketplaceContract = output.contracts.find((c) => c.name.includes('Marketplace'));
       expect(marketplaceContract).toBeDefined();
 
       const solidity = marketplaceContract!.solidity;
@@ -460,7 +457,7 @@ describe('NFTMarketplaceCompiler', () => {
       const output = compiler.compile(marketplace, 'test-token');
 
       expect(output.warnings).toBeDefined();
-      expect(output.warnings?.some(w => w.includes('Gas optimization'))).toBe(true);
+      expect(output.warnings?.some((w) => w.includes('Gas optimization'))).toBe(true);
     });
 
     it('should warn when royalty exceeds 10%', () => {
@@ -495,7 +492,7 @@ describe('NFTMarketplaceCompiler', () => {
       const compiler = new NFTMarketplaceCompiler();
       const output = compiler.compile(marketplace, 'test-token');
 
-      expect(output.warnings?.some(w => w.includes('Royalty exceeds'))).toBe(true);
+      expect(output.warnings?.some((w) => w.includes('Royalty exceeds'))).toBe(true);
     });
   });
 });
@@ -517,7 +514,7 @@ contract Test {
     const report = analyzer.analyze(code, 'Test.sol');
 
     expect(report.totalOptimizations).toBeGreaterThan(0);
-    expect(report.optimizations.some(o => o.category === 'storage')).toBe(true);
+    expect(report.optimizations.some((o) => o.category === 'storage')).toBe(true);
   });
 
   it('should detect unchecked arithmetic opportunities', () => {
@@ -533,7 +530,7 @@ function test() public {
     const analyzer = new GasOptimizationAnalyzer(ANALYZER_PRESETS.development);
     const report = analyzer.analyze(code, 'Test.sol');
 
-    const uncheckedOpts = report.optimizations.filter(o => o.category === 'arithmetic');
+    const uncheckedOpts = report.optimizations.filter((o) => o.category === 'arithmetic');
     expect(uncheckedOpts.length).toBeGreaterThan(0);
   });
 
@@ -546,7 +543,7 @@ function mint() public {
     const analyzer = new GasOptimizationAnalyzer(ANALYZER_PRESETS.development);
     const report = analyzer.analyze(code, 'Test.sol');
 
-    const errorOpts = report.optimizations.filter(o => o.category === 'errors');
+    const errorOpts = report.optimizations.filter((o) => o.category === 'errors');
     expect(errorOpts.length).toBeGreaterThan(0);
     expect(errorOpts[0].suggestion).toContain('custom error');
   });
@@ -563,7 +560,7 @@ function process(uint256[] memory data) external {
     const analyzer = new GasOptimizationAnalyzer(ANALYZER_PRESETS.development);
     const report = analyzer.analyze(code, 'Test.sol');
 
-    const memoryOpts = report.optimizations.filter(o => o.category === 'memory');
+    const memoryOpts = report.optimizations.filter((o) => o.category === 'memory');
     expect(memoryOpts.length).toBeGreaterThan(0);
     expect(memoryOpts[0].suggestion).toContain('calldata');
   });

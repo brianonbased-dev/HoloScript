@@ -176,33 +176,39 @@ export class BabylonCompiler extends CompilerBase {
     this.emit('// === v4.2 Domain Blocks ===');
 
     let blockIdx = 0;
-    const compiled = compileDomainBlocks(domainBlocks, {
-      material: (block) => {
-        const mat = compileMaterialBlock(block);
-        return materialToBabylon(mat, `db${blockIdx++}`);
+    const compiled = compileDomainBlocks(
+      domainBlocks,
+      {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          return materialToBabylon(mat, `db${blockIdx++}`);
+        },
+        physics: (block) => {
+          const phys = compilePhysicsBlock(block);
+          return physicsToBabylon(phys, `db${blockIdx++}`);
+        },
+        vfx: (block) => {
+          const ps = compileParticleBlock(block);
+          return particlesToBabylon(ps, `db${blockIdx++}`);
+        },
+        postfx: (block) => {
+          const pp = compilePostProcessingBlock(block);
+          return postProcessingToBabylon(pp);
+        },
+        audio: (block) => {
+          const audio = compileAudioSourceBlock(block);
+          return audioSourceToBabylon(audio, `db${blockIdx++}`);
+        },
+        weather: (block) => {
+          const weather = compileWeatherBlock(block);
+          const layers = weather.layers
+            .map((l) => `// Layer: ${l.type} — ${JSON.stringify(l.properties)}`)
+            .join('\n');
+          return `// Weather: ${weather.keyword} "${weather.name || ''}" — implement via Babylon.js particle systems\n${layers}`;
+        },
       },
-      physics: (block) => {
-        const phys = compilePhysicsBlock(block);
-        return physicsToBabylon(phys, `db${blockIdx++}`);
-      },
-      vfx: (block) => {
-        const ps = compileParticleBlock(block);
-        return particlesToBabylon(ps, `db${blockIdx++}`);
-      },
-      postfx: (block) => {
-        const pp = compilePostProcessingBlock(block);
-        return postProcessingToBabylon(pp);
-      },
-      audio: (block) => {
-        const audio = compileAudioSourceBlock(block);
-        return audioSourceToBabylon(audio, `db${blockIdx++}`);
-      },
-      weather: (block) => {
-        const weather = compileWeatherBlock(block);
-        const layers = weather.layers.map(l => `// Layer: ${l.type} — ${JSON.stringify(l.properties)}`).join('\n');
-        return `// Weather: ${weather.keyword} "${weather.name || ''}" — implement via Babylon.js particle systems\n${layers}`;
-      },
-    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+      (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`
+    );
 
     for (const line of compiled) {
       for (const l of line.split('\n')) {
@@ -424,7 +430,7 @@ export class BabylonCompiler extends CompilerBase {
         this.emit(
           `${v}.accessibilityTag = { description: "${obj.name}", role: "${trait.config?.role || 'generic'}" };`
         );
-      // V43 AI/XR Traits
+        // V43 AI/XR Traits
       } else if (trait.name === 'object_tracking') {
         this.emit(`// @object_tracking — WebXR hit-test or custom tracker for "${obj.name}"`);
       } else if (trait.name === 'scene_reconstruction') {
@@ -434,13 +440,17 @@ export class BabylonCompiler extends CompilerBase {
       } else if (trait.name === 'eye_hand_fusion') {
         this.emit(`// @eye_hand_fusion — combine WebXR hand + eye tracking`);
       } else if (trait.name === 'controlnet') {
-        this.emit(`// @controlnet(model: "${(trait.config as any)?.model || 'canny'}") — route to inference API`);
+        this.emit(
+          `// @controlnet(model: "${(trait.config as any)?.model || 'canny'}") — route to inference API`
+        );
       } else if (trait.name === 'ai_texture_gen') {
         this.emit(`// @ai_texture_gen — apply generated texture to ${v}.material`);
       } else if (trait.name === 'neural_animation') {
         this.emit(`// @neural_animation — BabylonJS AnimationGroup + neural pose predictor`);
       } else if (trait.name === 'ai_npc_brain') {
-        this.emit(`// @ai_npc_brain(model: "${(trait.config as any)?.model || 'llm'}") — external LLM/NPC API`);
+        this.emit(
+          `// @ai_npc_brain(model: "${(trait.config as any)?.model || 'llm'}") — external LLM/NPC API`
+        );
       } else {
         this.emit(`// @${trait.name}: ${JSON.stringify(trait.config || {})}`);
       }
@@ -457,13 +467,21 @@ export class BabylonCompiler extends CompilerBase {
         // Apply composed visual properties to the material
         const matVar = `${v}ComposedMat`;
         this.emit(`// TraitCompositor: composed ${traitNames.join(' + ')}`);
-        this.emit(`const ${matVar} = ${v}.material as BABYLON.PBRMaterial || new BABYLON.PBRMaterial("${matVar}", this.scene);`);
-        if (composed.color) this.emit(`${matVar}.albedoColor = ${this.toBabylonColor3(composed.color)};`);
-        if (composed.roughness !== undefined) this.emit(`${matVar}.roughness = ${composed.roughness};`);
-        if (composed.metalness !== undefined) this.emit(`${matVar}.metallic = ${composed.metalness};`);
-        if (composed.opacity !== undefined && composed.opacity < 1) this.emit(`${matVar}.alpha = ${composed.opacity};`);
-        if (composed.emissive) this.emit(`${matVar}.emissiveColor = ${this.toBabylonColor3(composed.emissive)};`);
-        if (composed.emissiveIntensity !== undefined) this.emit(`${matVar}.emissiveIntensity = ${composed.emissiveIntensity};`);
+        this.emit(
+          `const ${matVar} = ${v}.material as BABYLON.PBRMaterial || new BABYLON.PBRMaterial("${matVar}", this.scene);`
+        );
+        if (composed.color)
+          this.emit(`${matVar}.albedoColor = ${this.toBabylonColor3(composed.color)};`);
+        if (composed.roughness !== undefined)
+          this.emit(`${matVar}.roughness = ${composed.roughness};`);
+        if (composed.metalness !== undefined)
+          this.emit(`${matVar}.metallic = ${composed.metalness};`);
+        if (composed.opacity !== undefined && composed.opacity < 1)
+          this.emit(`${matVar}.alpha = ${composed.opacity};`);
+        if (composed.emissive)
+          this.emit(`${matVar}.emissiveColor = ${this.toBabylonColor3(composed.emissive)};`);
+        if (composed.emissiveIntensity !== undefined)
+          this.emit(`${matVar}.emissiveIntensity = ${composed.emissiveIntensity};`);
         this.emit(`${v}.material = ${matVar};`);
       }
     }

@@ -309,6 +309,7 @@ template "NetworkedObject" {
 ## Event Object Properties
 
 Most events provide:
+
 - `event.target` - Object that triggered the event
 - `event.timestamp` - Event time
 - Event-specific properties (see examples above)

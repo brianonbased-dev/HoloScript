@@ -80,9 +80,7 @@ export const BUILT_IN_TEMPLATES: SceneTemplate[] = [
     category: 'Art',
     description: 'Single high-poly mesh ready for texture painting',
     tags: ['sculpt', 'paint', 'art'],
-    nodes: [
-      { name: 'Sculpt Mesh', type: 'mesh', traits: ['@paintable'] },
-    ],
+    nodes: [{ name: 'Sculpt Mesh', type: 'mesh', traits: ['@paintable'] }],
   },
   {
     id: 'vr-experience',
@@ -121,22 +119,22 @@ export const BUILT_IN_TEMPLATES: SceneTemplate[] = [
 export function searchTemplates(
   templates: SceneTemplate[],
   query: string,
-  category?: string,
+  category?: string
 ): SceneTemplate[] {
   const q = query.toLowerCase().trim();
   let results = templates;
 
   if (category) {
-    results = results.filter(t => t.category.toLowerCase() === category.toLowerCase());
+    results = results.filter((t) => t.category.toLowerCase() === category.toLowerCase());
   }
 
   if (!q) return results;
 
-  return results.filter(t => {
+  return results.filter((t) => {
     const nameMatch = t.name.toLowerCase().includes(q);
     const descMatch = t.description?.toLowerCase().includes(q) ?? false;
-    const tagMatch  = t.tags?.some(tag => tag.toLowerCase().includes(q)) ?? false;
-    const catMatch  = t.category.toLowerCase().includes(q);
+    const tagMatch = t.tags?.some((tag) => tag.toLowerCase().includes(q)) ?? false;
+    const catMatch = t.category.toLowerCase().includes(q);
     return nameMatch || descMatch || tagMatch || catMatch;
   });
 }
@@ -145,7 +143,7 @@ export function searchTemplates(
  * Get all unique categories from a template list.
  */
 export function getTemplateCategories(templates: SceneTemplate[]): string[] {
-  return [...new Set(templates.map(t => t.category))].sort();
+  return [...new Set(templates.map((t) => t.category))].sort();
 }
 
 /**
@@ -153,22 +151,17 @@ export function getTemplateCategories(templates: SceneTemplate[]): string[] {
  */
 export function findTemplateById(
   templates: SceneTemplate[],
-  id: string,
+  id: string
 ): SceneTemplate | undefined {
-  return templates.find(t => t.id === id);
+  return templates.find((t) => t.id === id);
 }
 
 /**
  * Filter templates that contain a specific trait in their initial nodes.
  */
-export function filterTemplatesByTrait(
-  templates: SceneTemplate[],
-  trait: string,
-): SceneTemplate[] {
+export function filterTemplatesByTrait(templates: SceneTemplate[], trait: string): SceneTemplate[] {
   const t = trait.startsWith('@') ? trait : `@${trait}`;
-  return templates.filter(tmpl =>
-    tmpl.nodes?.some(n => n.traits.includes(t)) ?? false,
-  );
+  return templates.filter((tmpl) => tmpl.nodes?.some((n) => n.traits.includes(t)) ?? false);
 }
 
 /**
@@ -183,9 +176,9 @@ export function sortTemplatesByName(templates: SceneTemplate[]): SceneTemplate[]
  */
 export function getTemplatesByCategory(
   templates: SceneTemplate[],
-  category: string,
+  category: string
 ): SceneTemplate[] {
   return sortTemplatesByName(
-    templates.filter(t => t.category.toLowerCase() === category.toLowerCase()),
+    templates.filter((t) => t.category.toLowerCase() === category.toLowerCase())
   );
 }

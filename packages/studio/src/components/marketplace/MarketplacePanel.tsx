@@ -11,7 +11,16 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { X, Search, Upload, SlidersHorizontal, TrendingUp, Star, Grid3x3, List } from 'lucide-react';
+import {
+  X,
+  Search,
+  Upload,
+  SlidersHorizontal,
+  TrendingUp,
+  Star,
+  Grid3x3,
+  List,
+} from 'lucide-react';
 import { useMarketplace, useFavorites, useDownload } from '@/lib/marketplace/hooks';
 import type { ContentType, MarketplaceItem } from '@/lib/marketplace/types';
 import { ContentCard } from './ContentCard';
@@ -26,7 +35,9 @@ interface MarketplacePanelProps {
 export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTypes, setSelectedTypes] = useState<ContentType[]>([]);
-  const [sortBy, setSortBy] = useState<'popular' | 'recent' | 'rating' | 'downloads' | 'views'>('popular');
+  const [sortBy, setSortBy] = useState<'popular' | 'recent' | 'rating' | 'downloads' | 'views'>(
+    'popular'
+  );
   const [showFilters, setShowFilters] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedItem, setSelectedItem] = useState<MarketplaceItem | null>(null);
@@ -145,7 +156,9 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
           <button
             onClick={() => setViewMode('grid')}
             className={`p-2 ${
-              viewMode === 'grid' ? 'bg-studio-accent text-white' : 'bg-studio-surface text-studio-muted hover:text-studio-text'
+              viewMode === 'grid'
+                ? 'bg-studio-accent text-white'
+                : 'bg-studio-surface text-studio-muted hover:text-studio-text'
             }`}
             title="Grid view"
           >
@@ -154,7 +167,9 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
           <button
             onClick={() => setViewMode('list')}
             className={`p-2 ${
-              viewMode === 'list' ? 'bg-studio-accent text-white' : 'bg-studio-surface text-studio-muted hover:text-studio-text'
+              viewMode === 'list'
+                ? 'bg-studio-accent text-white'
+                : 'bg-studio-surface text-studio-muted hover:text-studio-text'
             }`}
             title="List view"
           >
@@ -176,7 +191,9 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
         <button
           onClick={() => setShowFilters(!showFilters)}
           className={`rounded-lg p-2 ${
-            showFilters ? 'bg-studio-accent text-white' : 'bg-studio-surface text-studio-muted hover:text-studio-text'
+            showFilters
+              ? 'bg-studio-accent text-white'
+              : 'bg-studio-surface text-studio-muted hover:text-studio-text'
           }`}
           title="Toggle filters"
         >
@@ -197,10 +214,7 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
         {/* Sidebar filters */}
         {showFilters && (
           <div className="w-64 shrink-0 overflow-y-auto border-r border-studio-border bg-studio-surface p-4">
-            <ContentTypeFilter
-              selectedTypes={selectedTypes}
-              onChange={setSelectedTypes}
-            />
+            <ContentTypeFilter selectedTypes={selectedTypes} onChange={setSelectedTypes} />
 
             {/* Quick filters */}
             <div className="mt-6 flex flex-col gap-2">
@@ -233,19 +247,14 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
                 <div className="text-sm font-semibold text-studio-text">
                   Favorites ({favorites.length})
                 </div>
-                <div className="text-[10px] text-studio-muted">
-                  View your saved content
-                </div>
+                <div className="text-[10px] text-studio-muted">View your saved content</div>
               </div>
             )}
           </div>
         )}
 
         {/* Main content area */}
-        <div
-          className="flex-1 overflow-y-auto p-4"
-          onScroll={handleScroll}
-        >
+        <div className="flex-1 overflow-y-auto p-4" onScroll={handleScroll}>
           {/* Error */}
           {error && (
             <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
@@ -303,9 +312,7 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
                       <h3 className="text-sm font-semibold text-studio-text truncate">
                         {item.name}
                       </h3>
-                      <p className="text-[10px] text-studio-muted truncate">
-                        {item.description}
-                      </p>
+                      <p className="text-[10px] text-studio-muted truncate">{item.description}</p>
                     </div>
                     <div className="flex items-center gap-2 text-[10px] text-studio-muted">
                       <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
@@ -362,14 +369,18 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
             setRemixItem(null);
             refresh(); // Refresh marketplace after successful upload
           }}
-          remixFrom={remixItem ? {
-            id: remixItem.id,
-            name: remixItem.name,
-            description: remixItem.description,
-            type: remixItem.type,
-            thumbnailUrl: remixItem.thumbnailUrl,
-            author: remixItem.author,
-          } : undefined}
+          remixFrom={
+            remixItem
+              ? {
+                  id: remixItem.id,
+                  name: remixItem.name,
+                  description: remixItem.description,
+                  type: remixItem.type,
+                  thumbnailUrl: remixItem.thumbnailUrl,
+                  author: remixItem.author,
+                }
+              : undefined
+          }
         />
       )}
     </div>

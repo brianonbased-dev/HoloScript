@@ -5,10 +5,7 @@ import { NextResponse } from 'next/server';
  * Note: In-memory scenes live in the POST /api/share route module.
  * This stub proxies to the list endpoint. For production, replace with a DB query.
  */
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   try {

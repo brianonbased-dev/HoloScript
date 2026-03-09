@@ -9,7 +9,11 @@ import { EntityInspector, type InspectedEntity } from '../EntityInspector';
 
 function makeEntity(id: string, name: string, tags: string[] = [], active = true): InspectedEntity {
   return {
-    id, name, tags, active, parentId: null,
+    id,
+    name,
+    tags,
+    active,
+    parentId: null,
     components: new Map([
       ['Transform', { x: 0, y: 0, z: 0 }],
       ['Health', { hp: 100, max: 100 }],

@@ -32,9 +32,9 @@ export interface QuestDef {
   category: string;
   status: QuestStatus;
   objectives: QuestObjective[];
-  prerequisites: string[];    // Quest IDs that must be completed
+  prerequisites: string[]; // Quest IDs that must be completed
   level: number;
-  timeLimit: number;          // 0 = no limit, seconds
+  timeLimit: number; // 0 = no limit, seconds
   elapsed: number;
   repeatable: boolean;
   completionCount: number;
@@ -52,7 +52,9 @@ export class QuestManager {
   // Quest CRUD
   // ---------------------------------------------------------------------------
 
-  addQuest(config: Omit<QuestDef, 'status' | 'elapsed' | 'completionCount'> & { status?: QuestStatus }): QuestDef {
+  addQuest(
+    config: Omit<QuestDef, 'status' | 'elapsed' | 'completionCount'> & { status?: QuestStatus }
+  ): QuestDef {
     const quest: QuestDef = {
       ...config,
       status: config.status ?? 'locked',
@@ -64,8 +66,12 @@ export class QuestManager {
     return quest;
   }
 
-  getQuest(id: string): QuestDef | undefined { return this.quests.get(id); }
-  removeQuest(id: string): boolean { return this.quests.delete(id); }
+  getQuest(id: string): QuestDef | undefined {
+    return this.quests.get(id);
+  }
+  removeQuest(id: string): boolean {
+    return this.quests.delete(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Activation
@@ -84,7 +90,10 @@ export class QuestManager {
     if (!quest || quest.status !== 'active') return false;
     quest.status = 'available';
     // Reset objectives
-    for (const obj of quest.objectives) { obj.current = 0; obj.completed = false; }
+    for (const obj of quest.objectives) {
+      obj.current = 0;
+      obj.completed = false;
+    }
     quest.elapsed = 0;
     this.emit('abandoned', quest);
     return true;
@@ -98,7 +107,7 @@ export class QuestManager {
     const quest = this.quests.get(questId);
     if (!quest || quest.status !== 'active') return false;
 
-    const obj = quest.objectives.find(o => o.id === objectiveId);
+    const obj = quest.objectives.find((o) => o.id === objectiveId);
     if (!obj || obj.completed) return false;
 
     obj.current = Math.min(obj.required, obj.current + progress);
@@ -108,7 +117,7 @@ export class QuestManager {
     }
 
     // Check quest completion
-    const requiredDone = quest.objectives.filter(o => !o.optional).every(o => o.completed);
+    const requiredDone = quest.objectives.filter((o) => !o.optional).every((o) => o.completed);
     if (requiredDone) {
       quest.status = 'completed';
       quest.completionCount++;
@@ -143,7 +152,7 @@ export class QuestManager {
     const quest = this.quests.get(id);
     if (!quest || quest.status !== 'locked') return;
 
-    const allMet = quest.prerequisites.every(pId => {
+    const allMet = quest.prerequisites.every((pId) => {
       const p = this.quests.get(pId);
       return p && p.status === 'completed';
     });
@@ -173,16 +182,26 @@ export class QuestManager {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getByStatus(status: QuestStatus): QuestDef[] { return [...this.quests.values()].filter(q => q.status === status); }
-  getByCategory(category: string): QuestDef[] { return [...this.quests.values()].filter(q => q.category === category); }
-  getQuestCount(): number { return this.quests.size; }
-  getActiveCount(): number { return this.getByStatus('active').length; }
-  getCompletedCount(): number { return this.getByStatus('completed').length; }
+  getByStatus(status: QuestStatus): QuestDef[] {
+    return [...this.quests.values()].filter((q) => q.status === status);
+  }
+  getByCategory(category: string): QuestDef[] {
+    return [...this.quests.values()].filter((q) => q.category === category);
+  }
+  getQuestCount(): number {
+    return this.quests.size;
+  }
+  getActiveCount(): number {
+    return this.getByStatus('active').length;
+  }
+  getCompletedCount(): number {
+    return this.getByStatus('completed').length;
+  }
   getProgress(id: string): number {
     const q = this.quests.get(id);
     if (!q) return 0;
-    const required = q.objectives.filter(o => !o.optional);
+    const required = q.objectives.filter((o) => !o.optional);
     if (required.length === 0) return 1;
-    return required.filter(o => o.completed).length / required.length;
+    return required.filter((o) => o.completed).length / required.length;
   }
 }

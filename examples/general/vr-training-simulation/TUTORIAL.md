@@ -26,12 +26,14 @@ composition "WorkplaceSafetyTraining" {
 ```
 
 **Why compositions?**
+
 - Encapsulate entire experiences
 - Define metadata and settings
 - Enable modular design (combine multiple compositions)
 - Allow cross-platform compilation
 
 **Best practices:**
+
 - Use descriptive names (PascalCase)
 - Group related elements logically
 - Comment your structure for maintainability
@@ -51,6 +53,7 @@ environment#warehouse @indoor @realistic {
 ```
 
 **Breaking it down:**
+
 - `environment#warehouse` - Creates named environment
 - `@indoor @realistic` - Traits that affect rendering (lighting, reverb)
 - `skybox` - 360° background image
@@ -78,6 +81,7 @@ zone#training_area @navigable @safe_zone {
 ```
 
 **Key concepts:**
+
 - `zone` - 3D region with optional boundaries
 - `@navigable` - Players can walk/teleport here
 - `floor` with `@physics` - Provides collision detection
@@ -108,6 +112,7 @@ object#wet_floor @hazard @interactive {
 ```
 
 **Key features:**
+
 - `@interactive` - Makes object clickable/grabbable
 - `on_interact` - Event handler for player interaction
 - `show_popup` - Display feedback to player
@@ -137,6 +142,7 @@ object#box_to_lift @physics @interactive {
 ```
 
 **Physics properties:**
+
 - `@physics` - Enables collision and gravity
 - `mass` - Weight affects physics simulation
 - `on_grab` - Event fired when player grabs object
@@ -167,6 +173,7 @@ object#forklift @static @industrial {
 ```
 
 **Nesting benefits:**
+
 - Hierarchical transforms (children move with parent)
 - Logical grouping
 - Easier scene management
@@ -222,6 +229,7 @@ object#blocked_exit @hazard @interactive {
 ```
 
 **Key pattern:**
+
 - Check conditions before awarding completion
 - Provide hints when conditions not met
 - Use object state (`is_moved`) to track progress
@@ -246,6 +254,7 @@ object#target_shelf @placement_zone {
 ```
 
 **Use cases:**
+
 - Sorting/organization tasks
 - Assembly training
 - Inventory management simulations
@@ -282,6 +291,7 @@ path#training_route @visual_guide {
 ```
 
 **Features:**
+
 - Visual path line connecting waypoints
 - Animated arrows showing direction
 - Waypoint labels for orientation
@@ -332,6 +342,7 @@ object#instructor_avatar @ai_guide @always_visible {
 ```
 
 **Key features:**
+
 - `behavior` block defines movement AI
 - `speech_bubble` for visual text
 - `audio#narration` with voice synthesis
@@ -378,6 +389,7 @@ ui#progress_hud @always_visible @top_left {
 ```
 
 **UI positioning:**
+
 - `@top_left`, `@top_right`, `@bottom_left`, `@bottom_right` - Screen corners
 - Pixel positions for precise layout
 - Dynamic content with `{variable}` syntax
@@ -445,6 +457,7 @@ zone#exit_zone @completion {
 ```
 
 **Certificate features:**
+
 - Dynamic text with player data
 - Conditional display (only if passed)
 - PDF export for records
@@ -560,38 +573,42 @@ Now that you understand the core concepts, try:
 
 ## Key Concepts
 
-| Concept | Description |
-|---|---|
-| `composition` | Top-level container for an entire HoloScript experience |
-| `metadata` | Declares name, author, version, platforms, and tags |
-| `object` | A 3D entity with geometry, material, position, and behaviors |
-| `behavior` | A named script block attached to an object or system |
-| `system` | A global controller that manages scene-wide logic |
-| `@interactive` | Trait making an object respond to player input |
-| `@physics` | Trait enabling gravity, collision, and rigid-body dynamics |
-| `on_interact` | Event handler fired when player interacts with an object |
-| `mark_complete` | Flags a task as finished for progress tracking |
+| Concept         | Description                                                  |
+| --------------- | ------------------------------------------------------------ |
+| `composition`   | Top-level container for an entire HoloScript experience      |
+| `metadata`      | Declares name, author, version, platforms, and tags          |
+| `object`        | A 3D entity with geometry, material, position, and behaviors |
+| `behavior`      | A named script block attached to an object or system         |
+| `system`        | A global controller that manages scene-wide logic            |
+| `@interactive`  | Trait making an object respond to player input               |
+| `@physics`      | Trait enabling gravity, collision, and rigid-body dynamics   |
+| `on_interact`   | Event handler fired when player interacts with an object     |
+| `mark_complete` | Flags a task as finished for progress tracking               |
 
 ---
 
 ## Best Practices
 
 ### Code Organization
+
 - Group related objects inside named `zone` blocks for clarity
 - Use descriptive IDs (`hazard_station`, `lifting_area`) not generic ones (`zone1`)
 - Comment your `.holo` files — future maintainers will thank you
 
 ### Performance
+
 - Keep texture resolutions at or below 2K for mobile VR
 - Use LOD distances for objects farther than 15 metres
 - Limit physics-enabled objects to under 50 simultaneously active
 
 ### Reusability
+
 - Extract shared behaviors into named templates
 - Store localized strings in a `settings` block, not inline
 - Version your `.holo` files using `metadata { version: '...' }`
 
 ### Multiplayer Safety
+
 - Validate all completion logic server-side when possible
 - Use `syncToHost: true` for score-critical behaviors
 - Test with two simultaneous players before releasing

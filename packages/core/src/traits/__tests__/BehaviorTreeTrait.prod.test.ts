@@ -4,8 +4,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { behaviorTreeHandler } from '../BehaviorTreeTrait';
 
-function makeNode(props: any = {}) { return { id: 'bt_node', ...props }; }
-function makeCtx(extras: any = {}) { return { emit: vi.fn(), ...extras }; }
+function makeNode(props: any = {}) {
+  return { id: 'bt_node', ...props };
+}
+function makeCtx(extras: any = {}) {
+  return { emit: vi.fn(), ...extras };
+}
 function attach(cfg: any = {}, nodeProps: any = {}) {
   const node = makeNode(nodeProps);
   const ctx = makeCtx();
@@ -114,7 +118,12 @@ describe('behaviorTreeHandler.onUpdate — sequence', () => {
 
   it('sequence fails on first failing child', () => {
     let callCount = 0;
-    const ctx = makeCtx({ executeAction: () => { callCount++; return false; } });
+    const ctx = makeCtx({
+      executeAction: () => {
+        callCount++;
+        return false;
+      },
+    });
     const node = makeNode();
     const root = {
       type: 'sequence' as const,
@@ -215,7 +224,10 @@ describe('behaviorTreeHandler.onUpdate — condition', () => {
     const { node, config, ctx } = attach({ root, tick_rate: 1, blackboard: { hasTarget: true } });
     ctx.emit.mockClear();
     behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
-    expect(ctx.emit).toHaveBeenCalledWith('bt_complete', expect.objectContaining({ status: 'success' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'bt_complete',
+      expect.objectContaining({ status: 'success' })
+    );
   });
 
   it('falsy blackboard key → failure', () => {
@@ -223,7 +235,10 @@ describe('behaviorTreeHandler.onUpdate — condition', () => {
     const { node, config, ctx } = attach({ root, tick_rate: 1, blackboard: { hasTarget: false } });
     ctx.emit.mockClear();
     behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
-    expect(ctx.emit).toHaveBeenCalledWith('bt_complete', expect.objectContaining({ status: 'failure' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'bt_complete',
+      expect.objectContaining({ status: 'failure' })
+    );
   });
 
   it('negation with ! prefix', () => {
@@ -231,7 +246,10 @@ describe('behaviorTreeHandler.onUpdate — condition', () => {
     const { node, config, ctx } = attach({ root, tick_rate: 1, blackboard: { isEnemy: false } });
     ctx.emit.mockClear();
     behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
-    expect(ctx.emit).toHaveBeenCalledWith('bt_complete', expect.objectContaining({ status: 'success' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'bt_complete',
+      expect.objectContaining({ status: 'success' })
+    );
   });
 
   it('greater-than expression: hp>50 with hp=80 → success', () => {
@@ -239,7 +257,10 @@ describe('behaviorTreeHandler.onUpdate — condition', () => {
     const { node, config, ctx } = attach({ root, tick_rate: 1, blackboard: { hp: 80 } });
     ctx.emit.mockClear();
     behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
-    expect(ctx.emit).toHaveBeenCalledWith('bt_complete', expect.objectContaining({ status: 'success' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'bt_complete',
+      expect.objectContaining({ status: 'success' })
+    );
   });
 
   it('greater-than expression: hp>50 with hp=30 → failure', () => {
@@ -247,7 +268,10 @@ describe('behaviorTreeHandler.onUpdate — condition', () => {
     const { node, config, ctx } = attach({ root, tick_rate: 1, blackboard: { hp: 30 } });
     ctx.emit.mockClear();
     behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
-    expect(ctx.emit).toHaveBeenCalledWith('bt_complete', expect.objectContaining({ status: 'failure' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'bt_complete',
+      expect.objectContaining({ status: 'failure' })
+    );
   });
 });
 
@@ -332,7 +356,11 @@ describe('behaviorTreeHandler.onUpdate — parallel', () => {
 
   it('parallel succeeds with successThreshold=1 when one succeeds', () => {
     let n = 0;
-    const ctx = makeCtx({ executeAction: () => { return n++ === 0; } });
+    const ctx = makeCtx({
+      executeAction: () => {
+        return n++ === 0;
+      },
+    });
     const node = makeNode();
     const root = {
       type: 'parallel' as const,
@@ -356,7 +384,10 @@ describe('behaviorTreeHandler.onUpdate — parallel', () => {
 describe('behaviorTreeHandler.onEvent — bt_set_blackboard', () => {
   it('merges values into blackboard', () => {
     const { node, config, ctx } = attach({ blackboard: { hp: 100 } });
-    behaviorTreeHandler.onEvent!(node, config, ctx, { type: 'bt_set_blackboard', values: { hp: 50, mana: 30 } });
+    behaviorTreeHandler.onEvent!(node, config, ctx, {
+      type: 'bt_set_blackboard',
+      values: { hp: 50, mana: 30 },
+    });
     expect(node.__behaviorTreeState.blackboard.hp).toBe(50);
     expect(node.__behaviorTreeState.blackboard.mana).toBe(30);
   });

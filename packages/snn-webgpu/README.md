@@ -7,14 +7,21 @@ Leaky Integrate-and-Fire (LIF) neuron simulation targeting 10K+ neurons per fram
 ## Quick Start
 
 ```ts
-import { SNNNetwork, LIFSimulator, SpikeEncoder, SpikeDecoder, EncodingMode, DecodingMode } from '@holoscript/snn-webgpu';
+import {
+  SNNNetwork,
+  LIFSimulator,
+  SpikeEncoder,
+  SpikeDecoder,
+  EncodingMode,
+  DecodingMode,
+} from '@holoscript/snn-webgpu';
 
 // 1. Create a 3-layer spiking neural network
 const network = new SNNNetwork({
   layers: [
-    { id: 'input', neuronCount: 784 },       // 28x28 image
+    { id: 'input', neuronCount: 784 }, // 28x28 image
     { id: 'hidden', neuronCount: 128 },
-    { id: 'output', neuronCount: 10 },       // 10 classes
+    { id: 'output', neuronCount: 10 }, // 10 classes
   ],
   connections: [
     { from: 'input', to: 'hidden', weight: 0.5, delay: 1 },
@@ -56,9 +63,9 @@ const simulator = new LIFSimulator({
   neuronCount: 1024,
   lifParams: {
     ...DEFAULT_LIF_PARAMS,
-    tau: 20.0,        // Membrane time constant (ms)
+    tau: 20.0, // Membrane time constant (ms)
     threshold: -55.0, // Spike threshold (mV)
-    reset: -70.0,     // Reset voltage (mV)
+    reset: -70.0, // Reset voltage (mV)
     refractoryMs: 2.0,
   },
 });
@@ -83,13 +90,13 @@ import { EncodingMode, DEFAULT_ENCODE_PARAMS } from '@holoscript/snn-webgpu';
 
 // POISSON: Stochastic spike generation proportional to input intensity
 const poissonEncoder = new SpikeEncoder(EncodingMode.POISSON, {
-  rateScale: 100,  // Max firing rate (Hz)
+  rateScale: 100, // Max firing rate (Hz)
 });
 
 // RATE: Deterministic rate-based encoding
 const rateEncoder = new SpikeEncoder(EncodingMode.RATE, {
   rateScale: 50,
-  timeWindow: 10,  // Sliding window (timesteps)
+  timeWindow: 10, // Sliding window (timesteps)
 });
 ```
 

@@ -106,7 +106,7 @@ describe('BundleSplitter — Production', () => {
     expect(manifest.length).toBe(3);
     expect(manifest[0].id).toBe('main');
     expect(manifest[0].isDynamic).toBe(false);
-    expect(manifest.filter(c => c.isDynamic).length).toBe(2);
+    expect(manifest.filter((c) => c.isDynamic).length).toBe(2);
   });
 
   it('dedups same module into single chunk', () => {
@@ -125,7 +125,7 @@ describe('BundleSplitter — Production', () => {
     splitter.analyze(makeProgram(logicNode));
     const manifest = splitter.generateManifest();
     // main + 1 dynamic (deduped)
-    expect(manifest.filter(c => c.isDynamic).length).toBe(1);
+    expect(manifest.filter((c) => c.isDynamic).length).toBe(1);
   });
 
   // ─── Clear ─────────────────────────────────────────────────────────

@@ -5,12 +5,7 @@
  * for distributed agent state synchronization.
  */
 
-import {
-  LWWRegister,
-  ORSet,
-  DIDSigner,
-  createTestSigner,
-} from '@holoscript/crdt';
+import { LWWRegister, ORSet, DIDSigner, createTestSigner } from '@holoscript/crdt';
 
 import type {
   DecisionHistory,
@@ -70,9 +65,7 @@ async function exampleDecisionHistory() {
   const compressed = compressMVCFull(history);
   console.log(`Original size: ${compressed.originalSize}B`);
   console.log(`Compressed size: ${compressed.finalSize}B`);
-  console.log(
-    `Compression ratio: ${(compressed.totalCompressionRatio * 100).toFixed(1)}%`
-  );
+  console.log(`Compression ratio: ${(compressed.totalCompressionRatio * 100).toFixed(1)}%`);
 
   // Decompress and verify
   const restored = decompressMVCFull<DecisionHistory>(compressed.compressed);
@@ -153,11 +146,7 @@ async function exampleUserPreferences() {
   const signer = createTestSigner('agent-3');
 
   // Create LWW-Register for each preference field
-  const movementSpeedReg = new LWWRegister<number>(
-    'pref-movement-speed',
-    signer,
-    2.5
-  );
+  const movementSpeedReg = new LWWRegister<number>('pref-movement-speed', signer, 2.5);
 
   // Update preference
   await movementSpeedReg.set(3.0);

@@ -57,36 +57,42 @@ Successfully implemented a production-ready IPFS service for uploading NFT asset
 ## Features Implemented
 
 ### ✅ Multi-Provider Support
+
 - **Pinata**: Primary provider with 1GB free tier
 - **NFT.Storage**: Free 100GB for NFTs
 - **Infura**: Enterprise-grade with 5GB free tier
 - Seamless provider switching via configuration
 
 ### ✅ Automatic Fallback
+
 - Primary provider fails → try fallback providers
 - Each provider retried up to 3 times (configurable)
 - Exponential backoff: 1s, 2s, 4s delays
 - Success rate >99% with multi-provider setup
 
 ### ✅ Chunked Uploads
+
 - Automatic chunking for files >5MB (configurable)
 - Progress tracking per chunk
 - Efficient handling of large GLB files (50MB+)
 - Tested with 100MB file limit
 
 ### ✅ CDN Integration
+
 - Cloudflare IPFS gateway for global CDN
 - Sub-100ms latency worldwide
 - Configurable gateway URLs
 - IPFS URI generation (`ipfs://...`)
 
 ### ✅ Progress Tracking
+
 - Real-time upload progress callbacks
 - Percentage, bytes uploaded, total size
 - Current file being uploaded
 - Works for both chunked and non-chunked uploads
 
 ### ✅ Pin Management
+
 - Pin existing CIDs
 - Unpin content
 - List all pins with metadata
@@ -94,6 +100,7 @@ Successfully implemented a production-ready IPFS service for uploading NFT asset
 - CID verification
 
 ### ✅ Error Handling
+
 - Custom error classes for different failure modes
 - Detailed error messages with provider context
 - Original error preservation for debugging
@@ -164,7 +171,7 @@ import { CreatorMonetization } from '@holoscript/core/web3';
 const ipfs = new IPFSService({
   provider: 'nft.storage',
   apiKey: process.env.NFT_STORAGE_KEY,
-  enableCDN: true
+  enableCDN: true,
 });
 
 // Upload VRR twin assets
@@ -173,22 +180,22 @@ const uploadResult = await ipfs.upload({
   files: [
     { path: 'scene.glb', content: glbBuffer },
     { path: 'thumbnail.png', content: pngBuffer },
-    { path: 'metadata.json', content: JSON.stringify(metadata) }
+    { path: 'metadata.json', content: JSON.stringify(metadata) },
   ],
-  onProgress: (p) => console.log(`${p.percentage}%`)
+  onProgress: (p) => console.log(`${p.percentage}%`),
 });
 
 // Mint NFT with IPFS metadata
 const monetization = new CreatorMonetization({
   chain: 'zora-sepolia',
-  privateKey: process.env.CREATOR_PRIVATE_KEY
+  privateKey: process.env.CREATOR_PRIVATE_KEY,
 });
 
 const nftResult = await monetization.mintNFT({
   name: 'Phoenix VRR Twin',
   metadataUri: uploadResult.uri,
   maxSupply: 100n,
-  royaltyBps: 1000 // 10%
+  royaltyBps: 1000, // 10%
 });
 
 console.log(`NFT minted: ${nftResult.tokenId}`);
@@ -265,23 +272,29 @@ export {
 For production use, set these environment variables:
 
 ### Pinata (Recommended Primary)
+
 ```bash
 PINATA_API_KEY=your_api_key
 PINATA_API_SECRET=your_api_secret
 ```
+
 Get keys: https://pinata.cloud/keys
 
 ### NFT.Storage (Recommended Fallback)
+
 ```bash
 NFT_STORAGE_KEY=your_api_key
 ```
+
 Get key: https://nft.storage/manage/
 
 ### Infura (Optional Fallback)
+
 ```bash
 INFURA_PROJECT_ID=your_project_id
 INFURA_SECRET=your_project_secret
 ```
+
 Get keys: https://infura.io/dashboard
 
 ## Usage Examples

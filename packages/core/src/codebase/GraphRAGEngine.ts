@@ -28,9 +28,9 @@ export interface GraphRAGOptions {
   maxDepth?: number;
   /** Scoring weights */
   weights?: {
-    semantic?: number;      // default: 0.6
-    connections?: number;   // default: 0.2
-    impact?: number;        // default: 0.2
+    semantic?: number; // default: 0.6
+    connections?: number; // default: 0.2
+    impact?: number; // default: 0.2
   };
   /** Filter results to specific language */
   language?: string;
@@ -100,7 +100,7 @@ export class GraphRAGEngine {
   constructor(
     graph: CodebaseGraph,
     index: EmbeddingIndex,
-    options?: Pick<GraphRAGOptions, 'ollamaUrl' | 'llmModel'>,
+    options?: Pick<GraphRAGOptions, 'ollamaUrl' | 'llmModel'>
   ) {
     this.graph = graph;
     this.index = index;
@@ -135,7 +135,12 @@ export class GraphRAGEngine {
     let maxImpact = 1;
 
     // First pass: compute raw metrics
-    const rawMetrics: Array<{ callers: CallEdge[]; callees: CallEdge[]; impact: number; community?: string }> = [];
+    const rawMetrics: Array<{
+      callers: CallEdge[];
+      callees: CallEdge[];
+      impact: number;
+      community?: string;
+    }> = [];
 
     for (const sr of semanticResults) {
       const sym = sr.symbol;
@@ -159,7 +164,8 @@ export class GraphRAGEngine {
 
       const connectionScore = metrics.callers.length / maxCallers;
       const impactScore = metrics.impact / maxImpact;
-      const combinedScore = wSemantic * sr.score + wConnections * connectionScore + wImpact * impactScore;
+      const combinedScore =
+        wSemantic * sr.score + wConnections * connectionScore + wImpact * impactScore;
 
       enriched.push({
         symbol: sr.symbol,
@@ -171,7 +177,7 @@ export class GraphRAGEngine {
         community: metrics.community,
         callers: metrics.callers.map((c) => c.callerId),
         callees: metrics.callees.map((c) =>
-          c.calleeOwner ? `${c.calleeOwner}.${c.calleeName}` : c.calleeName,
+          c.calleeOwner ? `${c.calleeOwner}.${c.calleeName}` : c.calleeName
         ),
         impactRadius: metrics.impact,
       });
@@ -247,7 +253,7 @@ export class GraphRAGEngine {
   async traceWithContext(
     fromSymbol: string,
     toSymbol: string,
-    maxDepth = 10,
+    maxDepth = 10
   ): Promise<{ chain: CallChain | null; context: EnrichedResult[] }> {
     const chain = this.graph.traceCallChain(fromSymbol, toSymbol, maxDepth);
 
@@ -276,7 +282,7 @@ export class GraphRAGEngine {
           community: this.graph.getCommunityForFile(sym.filePath),
           callers: callers.map((c) => c.callerId),
           callees: callees.map((c) =>
-            c.calleeOwner ? `${c.calleeOwner}.${c.calleeName}` : c.calleeName,
+            c.calleeOwner ? `${c.calleeOwner}.${c.calleeName}` : c.calleeName
           ),
           impactRadius: impact,
         });

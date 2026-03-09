@@ -893,7 +893,13 @@ export interface PortableTrait extends BaseTrait {
 }
 
 export interface ZKPrivateTrait extends BaseTrait {
-  predicate?: 'proximity' | 'in_region' | 'has_attribute' | 'is_inside_zone' | 'owns_asset' | 'has_permission';
+  predicate?:
+    | 'proximity'
+    | 'in_region'
+    | 'has_attribute'
+    | 'is_inside_zone'
+    | 'owns_asset'
+    | 'has_permission';
   radius?: number;
   bounds?: [number, number, number];
   fallback?: 'hidden' | 'transparent' | 'dummy_model';

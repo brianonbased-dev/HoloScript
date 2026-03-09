@@ -27,7 +27,9 @@ function clearRegistry() {
 }
 
 describe('AIAdapter Registry', () => {
-  beforeEach(() => { clearRegistry(); });
+  beforeEach(() => {
+    clearRegistry();
+  });
 
   it('registerAIAdapter stores adapter', () => {
     registerAIAdapter(mockAdapter('test'));
@@ -65,7 +67,7 @@ describe('AIAdapter Registry', () => {
     registerAIAdapter(mockAdapter('b', 'Beta'));
     const list = listAIAdapters();
     expect(list).toHaveLength(2);
-    expect(list.map(l => l.id)).toContain('a');
+    expect(list.map((l) => l.id)).toContain('a');
   });
 
   it('unregisterAIAdapter removes adapter', () => {

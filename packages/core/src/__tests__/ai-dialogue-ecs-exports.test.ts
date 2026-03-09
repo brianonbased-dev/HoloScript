@@ -4,22 +4,29 @@
 import { describe, it, expect } from 'vitest';
 import {
   // AI
-  BehaviorTree, Blackboard,
-  SequenceNode, SelectorNode, ParallelNode,
-  InverterNode, RepeaterNode, GuardNode,
-  ActionNode, ConditionNode, WaitNode,
+  BehaviorTree,
+  Blackboard,
+  SequenceNode,
+  SelectorNode,
+  ParallelNode,
+  InverterNode,
+  RepeaterNode,
+  GuardNode,
+  ActionNode,
+  ConditionNode,
+  WaitNode,
   // Dialogue
-  DialogueGraph, DialogueRunner,
+  DialogueGraph,
+  DialogueRunner,
   // ECS
-  ECSWorld, ComponentType,
+  ECSWorld,
+  ComponentType,
 } from '../index';
 
 describe('AI: Behavior Tree exports', () => {
   it('BehaviorTree creates and ticks trees', () => {
     const bt = new BehaviorTree();
-    const root = new SequenceNode('root', [
-      new ActionNode('act', () => 'success'),
-    ]);
+    const root = new SequenceNode('root', [new ActionNode('act', () => 'success')]);
     const tree = bt.createTree('test', root, 'npc');
     expect(tree.id).toBe('test');
     expect(tree.status).toBe('ready');
@@ -196,7 +203,9 @@ describe('ECS exports', () => {
   it('ECSWorld tick runs systems and reports stats', () => {
     const world = new ECSWorld();
     let ran = false;
-    world.addSystem(() => { ran = true; });
+    world.addSystem(() => {
+      ran = true;
+    });
     world.tick(0.016);
     expect(ran).toBe(true);
     expect(world.getStats().totalFrames).toBe(1);

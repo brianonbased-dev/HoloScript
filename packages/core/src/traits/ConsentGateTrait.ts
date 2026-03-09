@@ -16,7 +16,13 @@ import type { TraitHandler } from './TraitTypes';
 // TYPES
 // =============================================================================
 
-export type ConsentScope = 'camera' | 'microphone' | 'location' | 'biometric' | 'deepfake_detect' | 'eye_tracking';
+export type ConsentScope =
+  | 'camera'
+  | 'microphone'
+  | 'location'
+  | 'biometric'
+  | 'deepfake_detect'
+  | 'eye_tracking';
 export type ConsentStatus = 'pending' | 'granted' | 'denied' | 'expired' | 'revoked';
 
 export interface ConsentAuditEntry {
@@ -118,22 +124,40 @@ export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
         state.expiresAt = config.expiry_ms > 0 ? state.grantedAt + config.expiry_ms : null;
 
         if (config.audit_log) {
-          state.auditLog.push({ timestamp: state.grantedAt, action: 'granted', scope: config.scope });
+          state.auditLog.push({
+            timestamp: state.grantedAt,
+            action: 'granted',
+            scope: config.scope,
+          });
         }
-        context.emit?.('consent_granted', { node, scope: config.scope, expiresAt: state.expiresAt });
+        context.emit?.('consent_granted', {
+          node,
+          scope: config.scope,
+          expiresAt: state.expiresAt,
+        });
       }
     } else if (event.type === 'consent_deny') {
       state.status = 'denied';
       const reason = event.reason as string | undefined;
       if (config.audit_log) {
-        state.auditLog.push({ timestamp: Date.now(), action: 'denied', scope: config.scope, reason });
+        state.auditLog.push({
+          timestamp: Date.now(),
+          action: 'denied',
+          scope: config.scope,
+          reason,
+        });
       }
       context.emit?.('consent_denied', { node, scope: config.scope, reason });
     } else if (event.type === 'consent_revoke') {
       state.status = 'revoked';
       const reason = event.reason as string | undefined;
       if (config.audit_log) {
-        state.auditLog.push({ timestamp: Date.now(), action: 'revoked', scope: config.scope, reason });
+        state.auditLog.push({
+          timestamp: Date.now(),
+          action: 'revoked',
+          scope: config.scope,
+          reason,
+        });
       }
       context.emit?.('consent_revoked', { node, scope: config.scope, reason });
     } else if (event.type === 'consent_expire') {
@@ -151,7 +175,10 @@ export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
           state.auditLog.push({ timestamp: Date.now(), action: 'requested', scope: config.scope });
         }
         context.emit?.('consent_requested', {
-          node, scope: config.scope, purpose: config.purpose, requireExplicit: config.require_explicit,
+          node,
+          scope: config.scope,
+          purpose: config.purpose,
+          requireExplicit: config.require_explicit,
         });
       }
     } else if (event.type === 'consent_query') {

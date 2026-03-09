@@ -7,11 +7,13 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { MaterialSystem } from '../rendering/MaterialSystem';
-import { ShaderGraph }     from '../shader/graph/ShaderGraph';
+import { ShaderGraph } from '../shader/graph/ShaderGraph';
 
 describe('MaterialSystem', () => {
   let ms: MaterialSystem;
-  beforeEach(() => { ms = new MaterialSystem(); });
+  beforeEach(() => {
+    ms = new MaterialSystem();
+  });
 
   it('registers and retrieves shaders', () => {
     ms.registerShader('s1', 'vert code', 'frag code');
@@ -95,7 +97,9 @@ describe('MaterialSystem', () => {
 
 describe('ShaderGraph', () => {
   let sg: ShaderGraph;
-  beforeEach(() => { sg = new ShaderGraph('Test Graph'); });
+  beforeEach(() => {
+    sg = new ShaderGraph('Test Graph');
+  });
 
   it('creates with name and id', () => {
     expect(sg.name).toBe('Test Graph');
@@ -147,8 +151,8 @@ describe('ShaderGraph', () => {
     const b = sg.createNode('math_add')!;
     sg.connect(a.id, 'value', b.id, 'a');
     const order = sg.getTopologicalOrder();
-    const idxA = order.findIndex(n => n.id === a.id);
-    const idxB = order.findIndex(n => n.id === b.id);
+    const idxA = order.findIndex((n) => n.id === a.id);
+    const idxB = order.findIndex((n) => n.id === b.id);
     expect(idxA).toBeLessThan(idxB);
   });
 

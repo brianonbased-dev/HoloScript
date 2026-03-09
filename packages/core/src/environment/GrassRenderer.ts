@@ -28,10 +28,10 @@ export interface GrassConfig {
   widthVariation: number;
   baseColor: { r: number; g: number; b: number };
   tipColor: { r: number; g: number; b: number };
-  colorVariation: number;     // 0-1
-  billboardDistance: number;   // Distance at which blades become billboards
+  colorVariation: number; // 0-1
+  billboardDistance: number; // Distance at which blades become billboards
   cullDistance: number;
-  bendRange: number;          // Max bend factor
+  bendRange: number; // Max bend factor
   bladesPerUnit: number;
 }
 
@@ -70,14 +70,20 @@ export class GrassRenderer {
     const count = Math.floor(area * this.config.bladesPerUnit);
 
     let rng = seed;
-    const rand = () => { rng = (rng * 1103515245 + 12345) & 0x7FFFFFFF; return rng / 0x7FFFFFFF; };
+    const rand = () => {
+      rng = (rng * 1103515245 + 12345) & 0x7fffffff;
+      return rng / 0x7fffffff;
+    };
 
     for (let i = 0; i < count; i++) {
       const x = bounds.x + rand() * bounds.w;
       const z = bounds.z + rand() * bounds.h;
 
       const heightMul = 1 - this.config.heightVariation + rand() * this.config.heightVariation * 2;
-      const widthMul = 1 - this.config.widthVariation / this.config.baseWidth + rand() * (this.config.widthVariation / this.config.baseWidth) * 2;
+      const widthMul =
+        1 -
+        this.config.widthVariation / this.config.baseWidth +
+        rand() * (this.config.widthVariation / this.config.baseWidth) * 2;
 
       const colorVar = (rand() - 0.5) * 2 * this.config.colorVariation;
 
@@ -127,17 +133,21 @@ export class GrassRenderer {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getBladeCount(): number { return this.blades.length; }
+  getBladeCount(): number {
+    return this.blades.length;
+  }
 
   getVisibleBlades(): GrassBlade[] {
-    return this.blades.filter(b => b.lodLevel >= 0);
+    return this.blades.filter((b) => b.lodLevel >= 0);
   }
 
   getBillboardCount(): number {
-    return this.blades.filter(b => b.isBillboard).length;
+    return this.blades.filter((b) => b.isBillboard).length;
   }
 
-  getConfig(): GrassConfig { return { ...this.config }; }
+  getConfig(): GrassConfig {
+    return { ...this.config };
+  }
 
   setConfig(config: Partial<GrassConfig>): void {
     Object.assign(this.config, config);

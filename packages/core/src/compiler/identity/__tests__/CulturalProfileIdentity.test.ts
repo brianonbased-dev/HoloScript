@@ -35,8 +35,14 @@ describe('CulturalProfileMetadata', () => {
 
   it('supports all cultural family values', () => {
     const families = [
-      'cooperative', 'competitive', 'hierarchical', 'egalitarian',
-      'isolationist', 'mercantile', 'exploratory', 'ritualistic',
+      'cooperative',
+      'competitive',
+      'hierarchical',
+      'egalitarian',
+      'isolationist',
+      'mercantile',
+      'exploratory',
+      'ritualistic',
     ] as const;
 
     for (const family of families) {
@@ -51,7 +57,12 @@ describe('CulturalProfileMetadata', () => {
 
   it('supports all prompt dialect values', () => {
     const dialects = [
-      'directive', 'socratic', 'narrative', 'structured', 'consensus', 'reactive',
+      'directive',
+      'socratic',
+      'narrative',
+      'structured',
+      'consensus',
+      'reactive',
     ] as const;
 
     for (const dialect of dialects) {

@@ -7,8 +7,8 @@ import { HandTracker, type JointPosition } from '../HandTracker';
 
 function makeJoints(overrides: Record<string, JointPosition> = {}): Record<string, JointPosition> {
   return {
-    thumb_tip:  { x: 0.0, y: 0.0, z: 0.0 },
-    index_tip:  { x: 0.05, y: 0.0, z: 0.0 },
+    thumb_tip: { x: 0.0, y: 0.0, z: 0.0 },
+    index_tip: { x: 0.05, y: 0.0, z: 0.0 },
     middle_tip: { x: 0.05, y: 0.0, z: 0.0 },
     ...overrides,
   };
@@ -99,8 +99,8 @@ describe('HandTracker', () => {
       // gripStrength < 0.3
       tracker.updateStrength('right', 0, 0.1);
       tracker.updateJoints('right', {
-        thumb_tip:  { x: 0, y: 0, z: 0 },
-        index_tip:  { x: 0.15, y: 0, z: 0 },
+        thumb_tip: { x: 0, y: 0, z: 0 },
+        index_tip: { x: 0.15, y: 0, z: 0 },
         middle_tip: { x: 0, y: 0, z: 0 },
       });
       expect(tracker.getGesture('right')).toBe('point');

@@ -53,11 +53,14 @@ export type NodeEvaluator = (
 // BUILT-IN NODE TYPES
 // =============================================================================
 
-export const BUILT_IN_NODE_TYPES: Record<string, {
-  inputs: PortDefinition[];
-  outputs: PortDefinition[];
-  evaluate: NodeEvaluator;
-}> = {
+export const BUILT_IN_NODE_TYPES: Record<
+  string,
+  {
+    inputs: PortDefinition[];
+    outputs: PortDefinition[];
+    evaluate: NodeEvaluator;
+  }
+> = {
   // --- Math ---
   MathAdd: {
     inputs: [
@@ -250,13 +253,17 @@ export class NodeGraph {
   // Node Management
   // ---------------------------------------------------------------------------
 
-  addNode(type: string, position: { x: number; y: number } = { x: 0, y: 0 }, data: Record<string, unknown> = {}): LogicNode {
+  addNode(
+    type: string,
+    position: { x: number; y: number } = { x: 0, y: 0 },
+    data: Record<string, unknown> = {}
+  ): LogicNode {
     const builtIn = BUILT_IN_NODE_TYPES[type];
     const node: LogicNode = {
       id: `node_${_nextNodeId++}`,
       type,
-      inputs: builtIn ? [...builtIn.inputs.map(p => ({ ...p }))] : [],
-      outputs: builtIn ? [...builtIn.outputs.map(p => ({ ...p }))] : [],
+      inputs: builtIn ? [...builtIn.inputs.map((p) => ({ ...p }))] : [],
+      outputs: builtIn ? [...builtIn.outputs.map((p) => ({ ...p }))] : [],
       position: { ...position },
       data: { ...data },
     };
@@ -268,9 +275,7 @@ export class NodeGraph {
   removeNode(nodeId: string): boolean {
     if (!this.nodes.has(nodeId)) return false;
     this.nodes.delete(nodeId);
-    this.connections = this.connections.filter(
-      c => c.fromNode !== nodeId && c.toNode !== nodeId
-    );
+    this.connections = this.connections.filter((c) => c.fromNode !== nodeId && c.toNode !== nodeId);
     this._sortedOrder = null;
     return true;
   }
@@ -287,15 +292,20 @@ export class NodeGraph {
   // Connection Management
   // ---------------------------------------------------------------------------
 
-  connect(fromNode: string, fromPort: string, toNode: string, toPort: string): LogicConnection | null {
+  connect(
+    fromNode: string,
+    fromPort: string,
+    toNode: string,
+    toPort: string
+  ): LogicConnection | null {
     // Validate nodes exist
     const source = this.nodes.get(fromNode);
     const target = this.nodes.get(toNode);
     if (!source || !target) return null;
 
     // Validate ports exist
-    const outPort = source.outputs.find(p => p.name === fromPort);
-    const inPort = target.inputs.find(p => p.name === toPort);
+    const outPort = source.outputs.find((p) => p.name === fromPort);
+    const inPort = target.inputs.find((p) => p.name === toPort);
     if (!outPort || !inPort) return null;
 
     // Type compatibility check (any matches everything)
@@ -308,7 +318,7 @@ export class NodeGraph {
 
     // Prevent duplicate connections to the same input port
     const existingIdx = this.connections.findIndex(
-      c => c.toNode === toNode && c.toPort === toPort
+      (c) => c.toNode === toNode && c.toPort === toPort
     );
     if (existingIdx >= 0) {
       this.connections.splice(existingIdx, 1);
@@ -327,7 +337,7 @@ export class NodeGraph {
   }
 
   disconnect(connectionId: string): boolean {
-    const idx = this.connections.findIndex(c => c.id === connectionId);
+    const idx = this.connections.findIndex((c) => c.id === connectionId);
     if (idx < 0) return false;
     this.connections.splice(idx, 1);
     this._sortedOrder = null;
@@ -339,11 +349,11 @@ export class NodeGraph {
   }
 
   getConnectionsFrom(nodeId: string): LogicConnection[] {
-    return this.connections.filter(c => c.fromNode === nodeId);
+    return this.connections.filter((c) => c.fromNode === nodeId);
   }
 
   getConnectionsTo(nodeId: string): LogicConnection[] {
-    return this.connections.filter(c => c.toNode === nodeId);
+    return this.connections.filter((c) => c.toNode === nodeId);
   }
 
   // ---------------------------------------------------------------------------
@@ -466,7 +476,11 @@ export class NodeGraph {
     };
   }
 
-  static fromJSON(json: { id: string; nodes: LogicNode[]; connections: LogicConnection[] }): NodeGraph {
+  static fromJSON(json: {
+    id: string;
+    nodes: LogicNode[];
+    connections: LogicConnection[];
+  }): NodeGraph {
     const graph = new NodeGraph(json.id);
     for (const node of json.nodes) {
       graph.nodes.set(node.id, node);

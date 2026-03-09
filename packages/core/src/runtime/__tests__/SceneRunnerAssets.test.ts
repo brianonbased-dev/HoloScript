@@ -40,12 +40,13 @@ function makeSceneRunner(pipeline?: AssetPipeline) {
 // ── tests ────────────────────────────────────────────────────────────────────
 
 describe('SceneRunner + AssetPipeline integration', () => {
-
   // ── Backward compatibility ─────────────────────────────────────────────────
 
   it('works without an AssetPipeline (no-op preload)', async () => {
     const { runner } = makeSceneRunner(); // no pipeline
-    await expect(runner.preloadAssets([{ type: 'texture', path: 'a.png' }])).resolves.toBeUndefined();
+    await expect(
+      runner.preloadAssets([{ type: 'texture', path: 'a.png' }])
+    ).resolves.toBeUndefined();
   });
 
   it('run() still works without a pipeline', () => {
@@ -73,7 +74,10 @@ describe('SceneRunner + AssetPipeline integration', () => {
   it('preloadAssets loads all manifest entries', async () => {
     const pipeline = new AssetPipeline();
     const loaded: string[] = [];
-    pipeline.registerLoader('tex', async (path) => { loaded.push(path); return path; });
+    pipeline.registerLoader('tex', async (path) => {
+      loaded.push(path);
+      return path;
+    });
 
     const { runner } = makeSceneRunner(pipeline);
     const manifest: AssetManifestEntry[] = [
@@ -101,7 +105,10 @@ describe('SceneRunner + AssetPipeline integration', () => {
   it('preloadAssets caches — second call does not re-invoke loader', async () => {
     const pipeline = new AssetPipeline();
     let callCount = 0;
-    pipeline.registerLoader('tex', async () => { callCount++; return 'img'; });
+    pipeline.registerLoader('tex', async () => {
+      callCount++;
+      return 'img';
+    });
 
     const { runner } = makeSceneRunner(pipeline);
     await runner.preloadAssets([{ type: 'tex', path: 'logo.png' }]);
@@ -111,7 +118,9 @@ describe('SceneRunner + AssetPipeline integration', () => {
 
   it('preloadAssets rejects if a loader throws', async () => {
     const pipeline = new AssetPipeline();
-    pipeline.registerLoader('bad', async () => { throw new Error('load failed'); });
+    pipeline.registerLoader('bad', async () => {
+      throw new Error('load failed');
+    });
 
     const { runner } = makeSceneRunner(pipeline);
     await expect(runner.preloadAssets([{ type: 'bad', path: 'x' }])).rejects.toThrow('load failed');

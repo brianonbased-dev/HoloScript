@@ -4,8 +4,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { visionHandler } from '../VisionTrait';
 
-function makeNode() { return { id: 'vision_node' }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'vision_node' };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}) {
   const node = makeNode();
   const ctx = makeCtx();
@@ -24,8 +28,10 @@ describe('visionHandler.defaultConfig', () => {
 
 describe('visionHandler.onAttach', () => {
   it('creates __visionState', () => expect(attach().node.__visionState).toBeDefined());
-  it('isScanning=false when auto_scan=false', () => expect(attach({ auto_scan: false }).node.__visionState.isScanning).toBe(false));
-  it('isScanning=true when auto_scan=true', () => expect(attach({ auto_scan: true }).node.__visionState.isScanning).toBe(true));
+  it('isScanning=false when auto_scan=false', () =>
+    expect(attach({ auto_scan: false }).node.__visionState.isScanning).toBe(false));
+  it('isScanning=true when auto_scan=true', () =>
+    expect(attach({ auto_scan: true }).node.__visionState.isScanning).toBe(true));
   it('lastScan=0', () => expect(attach().node.__visionState.lastScan).toBe(0));
   it('emits vision_system_online', () => {
     const { ctx } = attach();
@@ -116,7 +122,10 @@ describe('visionHandler.onUpdate — scanning', () => {
     const { node, config, ctx } = attach({ auto_scan: true, scan_interval: 100 });
     visionHandler.onUpdate!(node, config, ctx, 0.2);
     const scan = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'vision_scan_complete')![1];
-    scan.detected.forEach((d: any) => expect(d.confidence).toBeGreaterThan(0) && expect(d.confidence).toBeLessThanOrEqual(1));
+    scan.detected.forEach(
+      (d: any) =>
+        expect(d.confidence).toBeGreaterThan(0) && expect(d.confidence).toBeLessThanOrEqual(1)
+    );
   });
 });
 

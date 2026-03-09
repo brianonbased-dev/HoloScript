@@ -50,10 +50,12 @@ function makeGranularSystem() {
       });
       return id;
     },
-    getParticle: (id: number) => particles.find(p => p.id === id),
+    getParticle: (id: number) => particles.find((p) => p.id === id),
     getParticles: () => particles,
     getConfig: () => config,
-    updateConfig: (c: any) => { config.material = { ...config.material, ...c.material }; },
+    updateConfig: (c: any) => {
+      config.material = { ...config.material, ...c.material };
+    },
     _particles: particles,
   };
 }
@@ -79,7 +81,6 @@ function makeClothSystem() {
 // ── DestructionToGranularConverter ────────────────────────────────────────────
 
 describe('DestructionToGranularConverter — constructor / defaults', () => {
-
   it('creates converter with default config', () => {
     const c = new DestructionToGranularConverter();
     const cfg = c.getConfig();
@@ -106,7 +107,6 @@ describe('DestructionToGranularConverter — constructor / defaults', () => {
 });
 
 describe('DestructionToGranularConverter — convertDestroyedFragments', () => {
-
   it('returns empty stats when enableDestructionToGranular=false', () => {
     const c = new DestructionToGranularConverter({ enableDestructionToGranular: false });
     const fracture = makeFractureSystem([makeFragment(1, false, 0.5)]);
@@ -189,16 +189,12 @@ describe('DestructionToGranularConverter — convertDestroyedFragments', () => {
 });
 
 describe('DestructionToGranularConverter — convertWithVelocity', () => {
-
   it('converts destroyed fragments with outward velocity', () => {
     const c = new DestructionToGranularConverter();
     const frag = makeFragment(1, false, 0.5, { x: 5, y: 0, z: 0 });
     const fracture = makeFractureSystem([frag]);
     const granular = makeGranularSystem();
-    const stats = c.convertWithVelocity(
-      fracture as any, granular as any,
-      { x: 0, y: 0, z: 0 }, 10
-    );
+    const stats = c.convertWithVelocity(fracture as any, granular as any, { x: 0, y: 0, z: 0 }, 10);
     expect(stats.particlesCreated).toBe(1);
     const p = granular._particles[0];
     expect(p.velocity.x).not.toBe(0); // should have outward velocity
@@ -214,7 +210,6 @@ describe('DestructionToGranularConverter — convertWithVelocity', () => {
 });
 
 describe('DestructionToGranularConverter — resetStats / updateConfig / getConfig', () => {
-
   it('resetStats clears all counters', () => {
     const c = new DestructionToGranularConverter();
     const fracture = makeFractureSystem([makeFragment(1, false, 0.5)]);
@@ -244,7 +239,6 @@ describe('DestructionToGranularConverter — resetStats / updateConfig / getConf
 // ── GranularToDestructionStress ───────────────────────────────────────────────
 
 describe('GranularToDestructionStress — applyPileStress', () => {
-
   it('does not throw with empty systems', () => {
     const gs = new GranularToDestructionStress();
     const granular = makeGranularSystem();
@@ -296,7 +290,6 @@ describe('GranularToDestructionStress — applyPileStress', () => {
 // ── FluidGranularInteraction ──────────────────────────────────────────────────
 
 describe('FluidGranularInteraction — applyFluidForces', () => {
-
   it('does not throw with empty particles', () => {
     const fi = new FluidGranularInteraction();
     expect(() =>
@@ -322,7 +315,6 @@ describe('FluidGranularInteraction — applyFluidForces', () => {
 });
 
 describe('FluidGranularInteraction — applyWetness', () => {
-
   it('increases cohesion when fluid density > 0.5', () => {
     const fi = new FluidGranularInteraction();
     const granular = makeGranularSystem();
@@ -345,7 +337,6 @@ describe('FluidGranularInteraction — applyWetness', () => {
 // ── ClothFluidInteraction ─────────────────────────────────────────────────────
 
 describe('ClothFluidInteraction — applyFluidDrag', () => {
-
   it('does not throw with no particles', () => {
     const ci = new ClothFluidInteraction();
     const cloth = { getParticles: () => [] };
@@ -364,7 +355,6 @@ describe('ClothFluidInteraction — applyFluidDrag', () => {
 });
 
 describe('ClothFluidInteraction — applyWetWeight', () => {
-
   it('decreases y-force (adds downward gravity) in wet zones', () => {
     const ci = new ClothFluidInteraction();
     const cloth = makeClothSystem();
@@ -383,7 +373,6 @@ describe('ClothFluidInteraction — applyWetWeight', () => {
 // ── PhysicsIntegrationManager ─────────────────────────────────────────────────
 
 describe('PhysicsIntegrationManager', () => {
-
   it('instantiates with all sub-integrations', () => {
     const m = new PhysicsIntegrationManager();
     expect(m.destructionToGranular).toBeInstanceOf(DestructionToGranularConverter);

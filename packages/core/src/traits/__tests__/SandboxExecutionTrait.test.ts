@@ -82,9 +82,7 @@ describe('SandboxExecutionTrait', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       SandboxExecutionTrait.validate(config);
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('No execution timeout set')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No execution timeout set'));
       consoleSpy.mockRestore();
     });
 

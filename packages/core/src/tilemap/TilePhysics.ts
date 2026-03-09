@@ -23,8 +23,10 @@ export interface TileCollisionResult {
 }
 
 export interface AABB2D {
-  x: number; y: number;
-  w: number; h: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 // =============================================================================
@@ -34,7 +36,9 @@ export interface AABB2D {
 export class TilePhysics {
   private map: TileMap;
 
-  constructor(map: TileMap) { this.map = map; }
+  constructor(map: TileMap) {
+    this.map = map;
+  }
 
   // ---------------------------------------------------------------------------
   // AABB vs Tilemap
@@ -67,10 +71,11 @@ export class TilePhysics {
         const aabbCX = aabb.x + aabb.w / 2;
         const aabbCY = aabb.y + aabb.h / 2;
 
-        const overlapX = (aabb.w / 2 + tileSize / 2) - Math.abs(aabbCX - tileCX);
-        const overlapY = (aabb.h / 2 + tileSize / 2) - Math.abs(aabbCY - tileCY);
+        const overlapX = aabb.w / 2 + tileSize / 2 - Math.abs(aabbCX - tileCX);
+        const overlapY = aabb.h / 2 + tileSize / 2 - Math.abs(aabbCY - tileCY);
 
-        let pushX = 0, pushY = 0;
+        let pushX = 0,
+          pushY = 0;
         if (isOneWay) {
           // One-way: only push upward
           pushY = -overlapY;
@@ -91,9 +96,16 @@ export class TilePhysics {
   // Query Helpers
   // ---------------------------------------------------------------------------
 
-  isTileSolid(tx: number, ty: number): boolean { return this.map.isSolid(tx, ty); }
+  isTileSolid(tx: number, ty: number): boolean {
+    return this.map.isSolid(tx, ty);
+  }
 
-  getTilesInRange(x: number, y: number, rangeX: number, rangeY: number): Array<{ tx: number; ty: number }> {
+  getTilesInRange(
+    x: number,
+    y: number,
+    rangeX: number,
+    rangeY: number
+  ): Array<{ tx: number; ty: number }> {
     const ts = this.map.getTileSize();
     const res: Array<{ tx: number; ty: number }> = [];
     const minTX = Math.floor((x - rangeX) / ts);

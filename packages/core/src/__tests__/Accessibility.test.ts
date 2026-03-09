@@ -11,11 +11,11 @@ describe('Cycle 145: Localization & Accessibility', () => {
   it('should translate with interpolation and fallback', () => {
     const i18n = new I18nManager();
     i18n.addTable('en', {
-      'greeting': 'Hello, {{name}}!',
-      'farewell': 'Goodbye!',
+      greeting: 'Hello, {{name}}!',
+      farewell: 'Goodbye!',
     });
     i18n.addTable('es', {
-      'greeting': '¡Hola, {{name}}!',
+      greeting: '¡Hola, {{name}}!',
     });
 
     i18n.setLocale('es');
@@ -31,7 +31,7 @@ describe('Cycle 145: Localization & Accessibility', () => {
   it('should handle pluralization', () => {
     const i18n = new I18nManager();
     i18n.addTable('en', {
-      'items': { zero: 'No items', one: '1 item', other: '{{count}} items' },
+      items: { zero: 'No items', one: '1 item', other: '{{count}} items' },
     });
 
     expect(i18n.t('items', { count: 0 })).toBe('No items');

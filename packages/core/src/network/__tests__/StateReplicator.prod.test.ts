@@ -182,7 +182,9 @@ describe('StateReplicator: production', () => {
       // Bump version by setting property
       rep.setProperty('e1', 'hp', 100); // version becomes 1
       const delta = {
-        entityId: 'e1', fromTick: 0, toTick: 1,
+        entityId: 'e1',
+        fromTick: 0,
+        toTick: 1,
         changes: [{ key: 'hp', value: 999, version: 0 }], // stale
       };
       rep.applyDelta(delta);

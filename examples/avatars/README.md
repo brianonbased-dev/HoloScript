@@ -9,6 +9,7 @@ Comprehensive avatar system examples demonstrating HoloScript's avatar capabilit
 Full Ready Player Me integration with VRM 1.0 export support.
 
 **Features:**
+
 - Humanoid skeleton with full bone mapping
 - 52 VRM-standard blend shapes (eyes, mouth, expressions)
 - Auto-blink and lip sync systems
@@ -18,6 +19,7 @@ Full Ready Player Me integration with VRM 1.0 export support.
 - VRM 1.0 metadata (licensing, first-person view, look-at)
 
 **Traits Used:**
+
 - `@skeleton` - Humanoid rig with animation blend trees
 - `@morph` - Blend shapes for facial animation
 - `@ik` - Inverse kinematics for arm chains
@@ -25,12 +27,14 @@ Full Ready Player Me integration with VRM 1.0 export support.
 - `@body_tracking` - Full-body skeleton tracking
 
 **Usage:**
+
 ```bash
 holoscript compile readyplayerme-avatar.holo --target vrm
 holoscript compile readyplayerme-avatar.holo --target quest
 ```
 
 **Performance:**
+
 - **Triangles:** ~10,000 (Quest 3 budget)
 - **Textures:** 1K (1024x1024)
 - **Bone Influences:** 4
@@ -44,6 +48,7 @@ holoscript compile readyplayerme-avatar.holo --target quest
 VRChat SDK3-compatible avatar with performance ranking system.
 
 **Features:**
+
 - VRChat standard humanoid rig
 - 15 viseme blend shapes (VRChat lip sync)
 - Clothing toggle system (hat, glasses, jacket, shoes)
@@ -53,12 +58,14 @@ VRChat SDK3-compatible avatar with performance ranking system.
 - Performance rank: "Good" for Quest
 
 **Traits Used:**
+
 - `@skeleton` - VRChat animation layers and parameters
 - `@morph` - VRChat viseme blend shapes
 - `@clothing` - Toggleable clothing meshes with physics
 - `@vrc_station` - VRChat sitting station
 
 **VRChat Parameters:**
+
 - `VelocityX`, `VelocityZ` - Movement direction
 - `Grounded`, `Seated`, `AFK` - State tracking
 - `Viseme` (0-14) - Lip sync index
@@ -66,6 +73,7 @@ VRChat SDK3-compatible avatar with performance ranking system.
 - `VRMode`, `TrackingType` - Platform detection
 
 **Performance Ranking (Quest "Good"):**
+
 - **Triangles:** 7,500 / 10,000
 - **Materials:** 1 / 1
 - **Meshes:** 1 / 1
@@ -75,6 +83,7 @@ VRChat SDK3-compatible avatar with performance ranking system.
 - **Download Size:** 10 MB / 10 MB
 
 **Usage:**
+
 ```bash
 holoscript compile vrchat-avatar.holo --target vrchat
 ```
@@ -86,6 +95,7 @@ holoscript compile vrchat-avatar.holo --target vrchat
 Comprehensive locomotion examples with physics integration.
 
 **Features:**
+
 - **Walk/Run/Sprint** - Multi-speed locomotion with blend trees
 - **Jump** - Variable-height jumping with air time
 - **Crouch** - Crouching with reduced height and speed
@@ -97,6 +107,7 @@ Comprehensive locomotion examples with physics integration.
 - **Jump Buffering** - Pre-input jump queuing
 
 **Traits Used:**
+
 - `@skeleton` - Animation blend trees for all movement modes
 - `@character` - Full character controller with physics
 - `@ik` - Foot IK for ground adaptation
@@ -105,6 +116,7 @@ Comprehensive locomotion examples with physics integration.
 - `@climbable` - Climbable surfaces
 
 **Character Controller Config:**
+
 - Walk Speed: 3.0 m/s
 - Run Speed: 5.0 m/s
 - Sprint Speed: 8.0 m/s
@@ -115,12 +127,14 @@ Comprehensive locomotion examples with physics integration.
 - Jump Buffer: 0.1s
 
 **Animation Blend Trees:**
+
 - `GroundMovement` - 2D freeform (idle, walk, run, sprint, strafe)
 - `CrouchMovement` - 1D (idle, walk)
 - `ClimbMovement` - 2D simple (up, down, left, right)
 - `SwimMovement` - 1D (idle, forward)
 
 **Usage:**
+
 ```bash
 holoscript compile locomotion-systems.holo --target unity
 holoscript compile locomotion-systems.holo --target unreal
@@ -133,6 +147,7 @@ holoscript compile locomotion-systems.holo --target unreal
 Runtime avatar customization system with modular components.
 
 **Features:**
+
 - **Body Morphs** - Height, build, muscle mass, proportions
 - **Face Morphs** - 10+ facial feature sliders
 - **Skin Tones** - 4 presets + custom color picker
@@ -145,6 +160,7 @@ Runtime avatar customization system with modular components.
 - **Randomization** - One-click random character generation
 
 **Traits Used:**
+
 - `@skeleton` - Humanoid base rig
 - `@morph` - 30+ blend shapes for body/face customization
 - `@customizable` - Customization category system
@@ -152,6 +168,7 @@ Runtime avatar customization system with modular components.
 - `@mirror` - Real-time preview mirror
 
 **Customization Categories:**
+
 1. **Body Type** - Athletic, Slim, Heavy, Tall, Short
 2. **Skin Tone** - Fair, Medium, Tan, Dark, Custom
 3. **Hair Style** - Short, Medium, Long, Bald, Ponytail, Braids
@@ -161,6 +178,7 @@ Runtime avatar customization system with modular components.
 7. **Clothing Set** - Casual, Formal, Athletic, Fantasy, SciFi
 
 **Body Sliders:**
+
 - Body Height (0-1)
 - Body Build (0=thin, 1=muscular)
 - Muscle Mass (0-1)
@@ -168,38 +186,42 @@ Runtime avatar customization system with modular components.
 - Hip Width (0-1)
 
 **Face Sliders:**
+
 - Face Width, Jaw Width, Nose Size, Eye Size, Mouth Size
 
 **Material Presets:**
+
 - **Skin:** PBR with subsurface scattering (4 tone presets)
 - **Hair:** Anisotropic shader (5 color presets)
 - **Eyes:** Eye shader with iris/pupil control (5 color presets)
 
 **Usage:**
+
 ```bash
 holoscript compile avatar-customization.holo --target babylon
 holoscript run avatar-customization.holo --dev
 ```
 
 **API Example:**
+
 ```javascript
 // Apply preset customization
-avatar.applyBodyType("Athletic")
-avatar.applySkinTone("Medium")
-avatar.applyHairStyle("Ponytail")
-avatar.applyHairColor("Brown")
-avatar.applyEyeColor("Blue")
+avatar.applyBodyType('Athletic');
+avatar.applySkinTone('Medium');
+avatar.applyHairStyle('Ponytail');
+avatar.applyHairColor('Brown');
+avatar.applyEyeColor('Blue');
 
 // Use sliders
-avatar.setBodyHeight(0.7)  // Tall
-avatar.setBodyBuild(0.6)   // Muscular
-avatar.setMuscleMass(0.5)
+avatar.setBodyHeight(0.7); // Tall
+avatar.setBodyBuild(0.6); // Muscular
+avatar.setMuscleMass(0.5);
 
 // Export to VRM
-avatar.emit("exportAvatar")
+avatar.emit('exportAvatar');
 
 // Randomize
-avatar.emit("randomize")
+avatar.emit('randomize');
 ```
 
 ---
@@ -209,9 +231,11 @@ avatar.emit("randomize")
 All examples use these core HoloScript traits:
 
 ### `@skeleton`
+
 Bone-based skeletal animation with blend trees and IK support.
 
 **Config:**
+
 - `rigType: "humanoid"` - VRM/Unity humanoid mapping
 - `humanoidMap` - Bone name mapping
 - `clips` - Animation clips (idle, walk, run, etc.)
@@ -221,9 +245,11 @@ Bone-based skeletal animation with blend trees and IK support.
 - `rootMotion` - Enable root motion for movement
 
 ### `@morph`
+
 Blend shapes for facial animation and body morphing.
 
 **Features:**
+
 - Morph targets with weight ranges
 - Presets for quick expression changes
 - Auto-blink with randomization
@@ -231,14 +257,17 @@ Blend shapes for facial animation and body morphing.
 - Animation clips for morph sequences
 
 ### `@ik`
+
 Inverse kinematics for procedural animation.
 
 **Solvers:**
+
 - `fabrik` - Forward And Backward Reaching IK
 - `ccd` - Cyclic Coordinate Descent
 - `two-bone` - Optimized for arms/legs
 
 **Config:**
+
 - `chain` - Bone chain definition
 - `target` - IK target position
 - `poleTarget` - Elbow/knee hint
@@ -246,9 +275,11 @@ Inverse kinematics for procedural animation.
 - `tolerance` - Distance threshold (0.001-0.01)
 
 ### `@character`
+
 Full character controller with physics.
 
 **Features:**
+
 - Walk, run, sprint, crouch speeds
 - Jumping with coyote time and buffering
 - Ground detection and slope handling
@@ -257,9 +288,11 @@ Full character controller with physics.
 - Physics interactions
 
 ### `@avatar_embodiment`
+
 Full AI/user avatar pipeline.
 
 **Pipeline Stages:**
+
 1. `idle` - Waiting for input
 2. `listening` - STT active (user speaking)
 3. `processing` - LLM generating response
@@ -267,6 +300,7 @@ Full AI/user avatar pipeline.
 5. `transitioning` - Between states
 
 **Features:**
+
 - Lip sync integration
 - Emotion directives
 - Mirror expressions
@@ -278,11 +312,13 @@ Full AI/user avatar pipeline.
 ## Export Targets
 
 ### VRM 1.0
+
 ```bash
 holoscript compile [file].holo --target vrm
 ```
 
 **Outputs:**
+
 - `.vrm` file (VRM 1.0 spec)
 - Humanoid bone mapping
 - Blend shape mappings
@@ -291,11 +327,13 @@ holoscript compile [file].holo --target vrm
 - Metadata (license, author, usage rights)
 
 ### VRChat (Unity SDK3)
+
 ```bash
 holoscript compile [file].holo --target vrchat
 ```
 
 **Outputs:**
+
 - Unity prefab with Animator
 - VRChat Avatar Descriptor
 - Expression Parameters asset
@@ -304,22 +342,26 @@ holoscript compile [file].holo --target vrchat
 - Performance ranking metadata
 
 ### Ready Player Me
+
 ```bash
 holoscript compile [file].holo --target rpm
 ```
 
 **Outputs:**
+
 - `.glb` file with RPM structure
 - Ready Player Me JSON metadata
 - Texture atlases (1K for mobile)
 - Optimized mesh (10K tris)
 
 ### Quest 3
+
 ```bash
 holoscript compile [file].holo --target quest
 ```
 
 **Optimizations:**
+
 - Triangle budget: 10K
 - Texture size: 1K (1024x1024)
 - Material slots: 1-3
@@ -331,37 +373,41 @@ holoscript compile [file].holo --target quest
 
 ## Performance Budgets
 
-| Platform | Triangles | Materials | Textures | Bones | Draw Calls |
-|----------|-----------|-----------|----------|-------|------------|
-| **Quest 3** | 10,000 | 1-3 | 1K-2K | 75 | 1-2 |
-| **VRChat Quest** | 7,500 | 1 | 512 | 75 | 1 |
-| **PC VR** | 70,000 | 8 | 2K-4K | 256 | 4-8 |
-| **Ready Player Me** | 10,000 | 3 | 1K | 75 | 1 |
-| **VRM 1.0** | Flexible | Flexible | Flexible | Flexible | Flexible |
+| Platform            | Triangles | Materials | Textures | Bones    | Draw Calls |
+| ------------------- | --------- | --------- | -------- | -------- | ---------- |
+| **Quest 3**         | 10,000    | 1-3       | 1K-2K    | 75       | 1-2        |
+| **VRChat Quest**    | 7,500     | 1         | 512      | 75       | 1          |
+| **PC VR**           | 70,000    | 8         | 2K-4K    | 256      | 4-8        |
+| **Ready Player Me** | 10,000    | 3         | 1K       | 75       | 1          |
+| **VRM 1.0**         | Flexible  | Flexible  | Flexible | Flexible | Flexible   |
 
 ---
 
 ## Best Practices
 
 ### 1. Skeleton Setup
+
 - Use consistent bone naming (VRM standard recommended)
 - Keep bone count under 75 for mobile VR
 - Enable root motion for realistic movement
 - Use blend trees for smooth locomotion transitions
 
 ### 2. Blend Shapes
+
 - Limit to 50-100 morph targets for performance
 - Use categories to organize (eyes, mouth, body, expression)
 - Enable auto-blink for realism (3-5s interval)
 - Map visemes for lip sync (VRM or VRChat standard)
 
 ### 3. IK Optimization
+
 - Use 2-bone IK for arms/legs (faster than FABRIK)
 - Limit iterations to 5-10
 - Disable IK during climbing/swimming if not needed
 - Blend IK weight based on grounded state
 
 ### 4. Performance
+
 - Combine meshes where possible (body + outfit)
 - Atlas textures to reduce material slots
 - Use GPU skinning for mobile VR
@@ -369,12 +415,14 @@ holoscript compile [file].holo --target quest
 - Compress textures (ASTC for Quest, BC7 for PC)
 
 ### 5. VRM Compatibility
+
 - Follow VRM 1.0 spec for blend shape naming
 - Set proper metadata (license, usage rights)
 - Define first-person view annotations
 - Configure look-at system for eye movement
 
 ### 6. VRChat Optimization
+
 - Target "Good" rank for Quest (7.5K tris)
 - Use 1 material slot maximum
 - Limit PhysBones to 8

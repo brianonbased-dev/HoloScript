@@ -51,11 +51,7 @@ import {
 const signer = createTestSigner('my-agent');
 
 // Create LWW-Register for dialogue state
-const dialogueState = new LWWRegister<string>(
-  'dialogue:npc-1',
-  signer,
-  'Hello, traveler!'
-);
+const dialogueState = new LWWRegister<string>('dialogue:npc-1', signer, 'Hello, traveler!');
 
 // Update value (generates signed operation)
 const signedOp = await dialogueState.set('How can I help you?');
@@ -132,16 +128,19 @@ const current = dialogueState.get(); // "How can I help you?"
 ### Data Flow
 
 1. **Local Operation**
+
    ```
    Application → CRDT.set(value) → DIDSigner.sign(op) → SignedOperation
    ```
 
 2. **Broadcast**
+
    ```
    SignedOperation → WebRTCSync.broadcast() → All connected peers
    ```
 
 3. **Remote Application**
+
    ```
    Receive SignedOp → OperationLog.verify() → RBACConflictResolver.resolve() → CRDT.applyRemote()
    ```
@@ -157,15 +156,15 @@ const current = dialogueState.get(); // "How can I help you?"
 
 This CRDT implementation is designed to defend against:
 
-| Threat | Mitigation | Severity |
-|--------|------------|----------|
-| **Unauthorized state modification** | DID-based operation signing | CRITICAL |
-| **Replay attacks** | Operation ID tracking in log | HIGH |
-| **Man-in-the-middle** | Cryptographic signature verification | HIGH |
-| **Privilege escalation** | AgentRBAC permission enforcement | HIGH |
-| **Causal inconsistency** | Vector clock validation | MEDIUM |
-| **Data corruption** | Tamper-proof operation logs | MEDIUM |
-| **Denial of service** | Rate limiting (application-layer) | MEDIUM |
+| Threat                              | Mitigation                           | Severity |
+| ----------------------------------- | ------------------------------------ | -------- |
+| **Unauthorized state modification** | DID-based operation signing          | CRITICAL |
+| **Replay attacks**                  | Operation ID tracking in log         | HIGH     |
+| **Man-in-the-middle**               | Cryptographic signature verification | HIGH     |
+| **Privilege escalation**            | AgentRBAC permission enforcement     | HIGH     |
+| **Causal inconsistency**            | Vector clock validation              | MEDIUM   |
+| **Data corruption**                 | Tamper-proof operation logs          | MEDIUM   |
+| **Denial of service**               | Rate limiting (application-layer)    | MEDIUM   |
 
 ### Authentication Chain
 
@@ -253,9 +252,11 @@ This CRDT implementation is designed to defend against:
 ### Attack Vectors
 
 #### 1. Unauthorized Modification
+
 **Attack**: Malicious actor forges operation without valid DID signature.
 
 **Defense**:
+
 - All operations must be signed with valid DID
 - Signature verification before applying any operation
 - Operations from unknown/untrusted DIDs rejected
@@ -263,9 +264,11 @@ This CRDT implementation is designed to defend against:
 **Residual Risk**: LOW (requires compromising agent's private key)
 
 #### 2. Replay Attacks
+
 **Attack**: Attacker intercepts and re-sends valid signed operation.
 
 **Defense**:
+
 - Operation log tracks all seen operation IDs
 - Duplicate operation IDs rejected immediately
 - Logged as security event for monitoring
@@ -273,9 +276,11 @@ This CRDT implementation is designed to defend against:
 **Residual Risk**: VERY LOW (replay detected before state change)
 
 #### 3. Privilege Escalation
+
 **Attack**: Regular agent tries to perform admin-only operation.
 
 **Defense**:
+
 - AgentRBAC enforces permission checks before conflict resolution
 - Operations filtered by permission level
 - Admin override only applies to verified admin DIDs
@@ -283,9 +288,11 @@ This CRDT implementation is designed to defend against:
 **Residual Risk**: LOW (requires permission system misconfiguration)
 
 #### 4. Byzantine Behavior
+
 **Attack**: Compromised agent sends conflicting operations to split network.
 
 **Defense**:
+
 - CRDTs guarantee eventual consistency despite Byzantine actors
 - Conflict resolution deterministic (same inputs → same output)
 - Operation log provides audit trail for forensics
@@ -293,9 +300,11 @@ This CRDT implementation is designed to defend against:
 **Residual Risk**: MEDIUM (Byzantine agent can cause temporary inconsistency)
 
 #### 5. Denial of Service
+
 **Attack**: Flood network with high-frequency operations.
 
 **Defense**:
+
 - Application-layer rate limiting (not implemented in CRDT core)
 - Garbage collection of old log entries
 - WebRTC backpressure mechanisms
@@ -303,9 +312,11 @@ This CRDT implementation is designed to defend against:
 **Residual Risk**: MEDIUM (requires application-layer throttling)
 
 #### 6. Causal Violations
+
 **Attack**: Send operation that depends on unseen operations.
 
 **Defense**:
+
 - Optional strict causal ordering mode
 - Vector clock validation
 - Rejected operations logged for manual review
@@ -428,8 +439,8 @@ class OperationLog {
   append(signedOp: SignedOperation): Promise<LogEntry>;
   getEntries(): LogEntry[];
   getVerifiedOperations(): CRDTOperation[];
-  getRejectedOperations(): Array<{ operation, reason }>;
-  getStats(): { total, verified, applied, rejected, uniqueActors };
+  getRejectedOperations(): Array<{ operation; reason }>;
+  getStats(): { total; verified; applied; rejected; uniqueActors };
   serialize(): string;
   static deserialize(config, serialized): OperationLog;
 }
@@ -455,6 +466,7 @@ enum ConflictStrategy {
 ## Examples
 
 See `examples/agents/distributed-npc-state.holo` for a complete example demonstrating:
+
 - Multi-NPC quest scenario
 - Dialogue state synchronization
 - Inventory management with OR-Set
@@ -468,14 +480,14 @@ See `examples/agents/distributed-npc-state.holo` for a complete example demonstr
 
 Measured on M1 MacBook Pro (2021):
 
-| Operation | Latency | Throughput |
-|-----------|---------|------------|
-| LWW-Register set | ~1.2ms | 833 ops/sec |
-| OR-Set add | ~1.5ms | 666 ops/sec |
-| G-Counter increment | ~0.8ms | 1250 ops/sec |
-| Operation signing | ~0.9ms | 1111 ops/sec |
-| Signature verification | ~1.1ms | 909 ops/sec |
-| WebRTC broadcast (3 peers) | ~2.5ms | 400 msgs/sec |
+| Operation                  | Latency | Throughput   |
+| -------------------------- | ------- | ------------ |
+| LWW-Register set           | ~1.2ms  | 833 ops/sec  |
+| OR-Set add                 | ~1.5ms  | 666 ops/sec  |
+| G-Counter increment        | ~0.8ms  | 1250 ops/sec |
+| Operation signing          | ~0.9ms  | 1111 ops/sec |
+| Signature verification     | ~1.1ms  | 909 ops/sec  |
+| WebRTC broadcast (3 peers) | ~2.5ms  | 400 msgs/sec |
 
 ### Scalability
 

@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { faceTrackingHandler } from '../FaceTrackingTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('FaceTrackingTrait', () => {
   let node: Record<string, unknown>;
@@ -37,8 +44,14 @@ describe('FaceTrackingTrait', () => {
   });
 
   it('blend shapes are smoothed', () => {
-    sendEvent(faceTrackingHandler, node, cfg, ctx, { type: 'face_data_update', blendShapes: { jawOpen: 1.0 } });
-    sendEvent(faceTrackingHandler, node, cfg, ctx, { type: 'face_data_update', blendShapes: { jawOpen: 0.0 } });
+    sendEvent(faceTrackingHandler, node, cfg, ctx, {
+      type: 'face_data_update',
+      blendShapes: { jawOpen: 1.0 },
+    });
+    sendEvent(faceTrackingHandler, node, cfg, ctx, {
+      type: 'face_data_update',
+      blendShapes: { jawOpen: 0.0 },
+    });
     const s = (node as any).__faceTrackingState;
     const smoothed = s.smoothedShapes.get('jawOpen');
     expect(smoothed).toBeGreaterThan(0);
@@ -46,7 +59,10 @@ describe('FaceTrackingTrait', () => {
   });
 
   it('lip sync detects phoneme AA for high jawOpen', () => {
-    sendEvent(faceTrackingHandler, node, cfg, ctx, { type: 'face_data_update', blendShapes: { jawOpen: 0.9 } });
+    sendEvent(faceTrackingHandler, node, cfg, ctx, {
+      type: 'face_data_update',
+      blendShapes: { jawOpen: 0.9 },
+    });
     expect(getEventCount(ctx, 'lip_sync_phoneme')).toBe(1);
   });
 
@@ -74,13 +90,19 @@ describe('FaceTrackingTrait', () => {
   });
 
   it('update emits avatar_blend_shapes when tracking', () => {
-    sendEvent(faceTrackingHandler, node, cfg, ctx, { type: 'face_data_update', blendShapes: { jawOpen: 0.5 } });
+    sendEvent(faceTrackingHandler, node, cfg, ctx, {
+      type: 'face_data_update',
+      blendShapes: { jawOpen: 0.5 },
+    });
     updateTrait(faceTrackingHandler, node, cfg, ctx, 0.016);
     expect(getEventCount(ctx, 'avatar_blend_shapes')).toBe(1);
   });
 
   it('face_tracking_lost deactivates tracking', () => {
-    sendEvent(faceTrackingHandler, node, cfg, ctx, { type: 'face_data_update', blendShapes: { jawOpen: 0.5 } });
+    sendEvent(faceTrackingHandler, node, cfg, ctx, {
+      type: 'face_data_update',
+      blendShapes: { jawOpen: 0.5 },
+    });
     sendEvent(faceTrackingHandler, node, cfg, ctx, { type: 'face_tracking_lost' });
     expect((node as any).__faceTrackingState.isTracking).toBe(false);
     expect(getEventCount(ctx, 'face_tracking_lost')).toBe(1);

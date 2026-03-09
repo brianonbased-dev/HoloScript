@@ -1,9 +1,18 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { BehaviorSelector, type Behavior } from '../BehaviorSelector';
 
-function beh(id: string, priority: number, weight = 1, lockoutMs = 0, condition?: () => boolean): Behavior {
+function beh(
+  id: string,
+  priority: number,
+  weight = 1,
+  lockoutMs = 0,
+  condition?: () => boolean
+): Behavior {
   return {
-    id, name: id, weight, priority,
+    id,
+    name: id,
+    weight,
+    priority,
     condition,
     action: () => {},
     lockoutMs,
@@ -14,7 +23,9 @@ function beh(id: string, priority: number, weight = 1, lockoutMs = 0, condition?
 describe('BehaviorSelector', () => {
   let bs: BehaviorSelector;
 
-  beforeEach(() => { bs = new BehaviorSelector('priority'); });
+  beforeEach(() => {
+    bs = new BehaviorSelector('priority');
+  });
 
   // Management
   it('addBehavior increases count', () => {
@@ -97,7 +108,12 @@ describe('BehaviorSelector', () => {
   // Execute
   it('execute runs action and returns id', () => {
     let ran = false;
-    bs.addBehavior({ ...beh('a', 1), action: () => { ran = true; } });
+    bs.addBehavior({
+      ...beh('a', 1),
+      action: () => {
+        ran = true;
+      },
+    });
     const id = bs.execute();
     expect(id).toBe('a');
     expect(ran).toBe(true);

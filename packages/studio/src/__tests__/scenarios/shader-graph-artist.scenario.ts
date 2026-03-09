@@ -14,10 +14,17 @@ import { useNodeGraphStore } from '@/lib/nodeGraphStore';
 import { compileNodeGraph } from '@/lib/nodeGraphCompiler';
 import type { GNode, GEdge } from '@/lib/nodeGraphStore';
 import {
-  glslToWgsl, glslToHlsl,
-  hasGlslMain, hasFragColor, extractUniforms, extractVaryings, extractSamplers,
-  hasWgslFragment, isValidWgslTypes,
-  hasHlslPixelOutput, isValidHlslTypes,
+  glslToWgsl,
+  glslToHlsl,
+  hasGlslMain,
+  hasFragColor,
+  extractUniforms,
+  extractVaryings,
+  extractSamplers,
+  hasWgslFragment,
+  isValidWgslTypes,
+  hasHlslPixelOutput,
+  isValidHlslTypes,
 } from '@/lib/shaderCompilerUtils';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -45,7 +52,7 @@ void main() {
 
 describe('Scenario: Shader Graph Artist — Node Catalogue', () => {
   it('input category has UV, Time, Position, Normal nodes', () => {
-    const types = NODE_TEMPLATES.input.map(t => t.type);
+    const types = NODE_TEMPLATES.input.map((t) => t.type);
     expect(types).toContain('UVInput');
     expect(types).toContain('TimeInput');
     expect(types).toContain('PositionInput');
@@ -53,7 +60,7 @@ describe('Scenario: Shader Graph Artist — Node Catalogue', () => {
   });
 
   it('math category has Add, Multiply, Sine, Power nodes', () => {
-    const types = NODE_TEMPLATES.math.map(t => t.type);
+    const types = NODE_TEMPLATES.math.map((t) => t.type);
     expect(types).toContain('AddNode');
     expect(types).toContain('MultiplyNode');
     expect(types).toContain('SinNode');
@@ -61,35 +68,35 @@ describe('Scenario: Shader Graph Artist — Node Catalogue', () => {
   });
 
   it('output category has FragOutput and VertOutput', () => {
-    const types = NODE_TEMPLATES.output.map(t => t.type);
+    const types = NODE_TEMPLATES.output.map((t) => t.type);
     expect(types).toContain('FragOutput');
     expect(types).toContain('VertOutput');
   });
 
   it('procedural category has NoiseNode, VoronoiNode, GradientNode', () => {
     expect(NODE_TEMPLATES.procedural).toBeDefined();
-    const types = NODE_TEMPLATES.procedural.map(t => t.type);
+    const types = NODE_TEMPLATES.procedural.map((t) => t.type);
     expect(types).toContain('NoiseNode');
     expect(types).toContain('VoronoiNode');
     expect(types).toContain('GradientNode');
   });
 
   it('NoiseNode has uv + scale inputs and noise output', () => {
-    const noise = NODE_TEMPLATES.procedural.find(t => t.type === 'NoiseNode')!;
-    expect(noise.inputs.map(i => i.name)).toContain('uv');
-    expect(noise.inputs.map(i => i.name)).toContain('scale');
+    const noise = NODE_TEMPLATES.procedural.find((t) => t.type === 'NoiseNode')!;
+    expect(noise.inputs.map((i) => i.name)).toContain('uv');
+    expect(noise.inputs.map((i) => i.name)).toContain('scale');
     expect(noise.outputs[0]!.name).toBe('noise');
   });
 
   it('VoronoiNode has uv + scale inputs and distance output', () => {
-    const voronoi = NODE_TEMPLATES.procedural.find(t => t.type === 'VoronoiNode')!;
-    expect(voronoi.inputs.map(i => i.name)).toContain('uv');
+    const voronoi = NODE_TEMPLATES.procedural.find((t) => t.type === 'VoronoiNode')!;
+    expect(voronoi.inputs.map((i) => i.name)).toContain('uv');
     expect(voronoi.outputs[0]!.name).toBe('distance');
   });
 
   it('GradientNode has uv, colorA, colorB inputs and color output', () => {
-    const gradient = NODE_TEMPLATES.procedural.find(t => t.type === 'GradientNode')!;
-    const inputNames = gradient.inputs.map(i => i.name);
+    const gradient = NODE_TEMPLATES.procedural.find((t) => t.type === 'GradientNode')!;
+    const inputNames = gradient.inputs.map((i) => i.name);
     expect(inputNames).toContain('uv');
     expect(inputNames).toContain('colorA');
     expect(inputNames).toContain('colorB');
@@ -97,12 +104,12 @@ describe('Scenario: Shader Graph Artist — Node Catalogue', () => {
   });
 
   it('material category has PBROutput node', () => {
-    const types = NODE_TEMPLATES.material.map(t => t.type);
+    const types = NODE_TEMPLATES.material.map((t) => t.type);
     expect(types).toContain('PBROutput');
   });
 
   it('color category has HsvToRgb', () => {
-    expect(NODE_TEMPLATES.color.map(t => t.type)).toContain('HsvToRgb');
+    expect(NODE_TEMPLATES.color.map((t) => t.type)).toContain('HsvToRgb');
   });
 
   it('every template has non-empty type, name, and category', () => {
@@ -129,13 +136,13 @@ describe('Scenario: Shader Graph Artist — Node Graph Store', () => {
   });
 
   it('setNodes() replaces nodes array', () => {
-    const newNodes = [n('u', 'uvNode', { type:'uv', label:'UV', channel:0 })];
+    const newNodes = [n('u', 'uvNode', { type: 'uv', label: 'UV', channel: 0 })];
     useNodeGraphStore.getState().setNodes(newNodes);
     expect(useNodeGraphStore.getState().nodes).toHaveLength(1);
   });
 
   it('setEdges() replaces edge array', () => {
-    useNodeGraphStore.getState().setEdges([e('e1','a','b')]);
+    useNodeGraphStore.getState().setEdges([e('e1', 'a', 'b')]);
     expect(useNodeGraphStore.getState().edges).toHaveLength(1);
   });
 
@@ -152,24 +159,35 @@ describe('Scenario: Shader Graph Artist — Node Graph Store', () => {
 describe('Scenario: Shader Graph Artist — Graph Compilation', () => {
   it('UV → Time → Output compiles to ok:true', () => {
     const result = compileNodeGraph(
-      [n('uv','uvNode',{type:'uv',label:'UV',channel:0}), n('t','timeNode',{type:'time',label:'Time'}), n('o','outputNode',{type:'output',label:'Output',outputType:'fragColor'})],
-      [e('e1','uv','t','out','a'), e('e2','t','o','out','rgb')]
+      [
+        n('uv', 'uvNode', { type: 'uv', label: 'UV', channel: 0 }),
+        n('t', 'timeNode', { type: 'time', label: 'Time' }),
+        n('o', 'outputNode', { type: 'output', label: 'Output', outputType: 'fragColor' }),
+      ],
+      [e('e1', 'uv', 't', 'out', 'a'), e('e2', 't', 'o', 'out', 'rgb')]
     );
     expect(result.ok).toBe(true);
   });
 
   it('single UV node → Output compiles', () => {
     const result = compileNodeGraph(
-      [n('uv','uvNode',{type:'uv',label:'UV',channel:0}), n('o','outputNode',{type:'output',label:'Output',outputType:'fragColor'})],
-      [e('e1','uv','o','out','rgb')]
+      [
+        n('uv', 'uvNode', { type: 'uv', label: 'UV', channel: 0 }),
+        n('o', 'outputNode', { type: 'output', label: 'Output', outputType: 'fragColor' }),
+      ],
+      [e('e1', 'uv', 'o', 'out', 'rgb')]
     );
     expect(result.ok).toBe(true);
   });
 
   it('constant → math → Output compiles', () => {
     const result = compileNodeGraph(
-      [n('c','constantNode',{type:'constant',label:'0.5',value:0.5}), n('m','mathNode',{type:'math',label:'Sin',op:'sin'}), n('o','outputNode',{type:'output',label:'Output',outputType:'fragColor'})],
-      [e('e1','c','m','out','a'), e('e2','m','o','out','rgb')]
+      [
+        n('c', 'constantNode', { type: 'constant', label: '0.5', value: 0.5 }),
+        n('m', 'mathNode', { type: 'math', label: 'Sin', op: 'sin' }),
+        n('o', 'outputNode', { type: 'output', label: 'Output', outputType: 'fragColor' }),
+      ],
+      [e('e1', 'c', 'm', 'out', 'a'), e('e2', 'm', 'o', 'out', 'rgb')]
     );
     expect(result.ok).toBe(true);
   });
@@ -180,7 +198,10 @@ describe('Scenario: Shader Graph Artist — Graph Compilation', () => {
   });
 
   it('graph with only Input node (no output) returns ok:false', () => {
-    const result = compileNodeGraph([n('uv','uvNode',{type:'uv',label:'UV',channel:0})], []);
+    const result = compileNodeGraph(
+      [n('uv', 'uvNode', { type: 'uv', label: 'UV', channel: 0 })],
+      []
+    );
     expect(result.ok).toBe(false);
   });
 });
@@ -297,21 +318,30 @@ describe('Scenario: Shader Graph Artist — GLSL → HLSL Export', () => {
 
   it('download GLSL button triggers file save as shader.glsl', () => {
     const mockSave = { filename: '', content: '' };
-    const triggerDownload = (ext: string) => { mockSave.filename = 'shader.' + ext; mockSave.content = 'source'; };
+    const triggerDownload = (ext: string) => {
+      mockSave.filename = 'shader.' + ext;
+      mockSave.content = 'source';
+    };
     triggerDownload('glsl');
     expect(mockSave.filename).toBe('shader.glsl');
   });
 
   it('download WGSL button triggers file save as shader.wgsl', () => {
     const mockSave = { filename: '', content: '' };
-    const triggerDownload = (ext: string) => { mockSave.filename = 'shader.' + ext; mockSave.content = 'source'; };
+    const triggerDownload = (ext: string) => {
+      mockSave.filename = 'shader.' + ext;
+      mockSave.content = 'source';
+    };
     triggerDownload('wgsl');
     expect(mockSave.filename).toBe('shader.wgsl');
   });
 
   it('download HLSL button triggers file save as shader.hlsl', () => {
     const mockSave = { filename: '', content: '' };
-    const triggerDownload = (ext: string) => { mockSave.filename = 'shader.' + ext; mockSave.content = 'source'; };
+    const triggerDownload = (ext: string) => {
+      mockSave.filename = 'shader.' + ext;
+      mockSave.content = 'source';
+    };
     triggerDownload('hlsl');
     expect(mockSave.filename).toBe('shader.hlsl');
   });
@@ -319,10 +349,12 @@ describe('Scenario: Shader Graph Artist — GLSL → HLSL Export', () => {
   it('live preview — graph edit → GLSL update < 200ms (debounced)', async () => {
     // Mock debounce test
     let updated = false;
-    const updatePreview = () => { updated = true; };
+    const updatePreview = () => {
+      updated = true;
+    };
     setTimeout(updatePreview, 100);
-    
-    await new Promise(r => setTimeout(r, 150));
+
+    await new Promise((r) => setTimeout(r, 150));
     expect(updated).toBe(true);
   });
 
@@ -382,8 +414,8 @@ describe('Scenario: Shader Graph Artist — ShaderGraph Class', () => {
   it('connect() links two nodes and returns connection', () => {
     const a = graph.createNode('UVInput', { x: 0, y: 0 });
     const b = graph.createNode('FragOutput', { x: 200, y: 0 });
-    const outPort = a!.outputs[0]?.id ?? a!.ports.find(p => p.direction === 'out')?.id;
-    const inPort = b!.inputs[0]?.id ?? b!.ports.find(p => p.direction === 'in')?.id;
+    const outPort = a!.outputs[0]?.id ?? a!.ports.find((p) => p.direction === 'out')?.id;
+    const inPort = b!.inputs[0]?.id ?? b!.ports.find((p) => p.direction === 'in')?.id;
     if (outPort && inPort) {
       const conn = graph.connect(a!.id, outPort, b!.id, inPort);
       expect(conn).not.toBeNull();
@@ -393,8 +425,8 @@ describe('Scenario: Shader Graph Artist — ShaderGraph Class', () => {
 
   it('connect() rejects self-loop', () => {
     const a = graph.createNode('AddNode', { x: 0, y: 0 });
-    const outPort = a!.outputs[0]?.id ?? a!.ports.find(p => p.direction === 'out')?.id;
-    const inPort = a!.inputs[0]?.id ?? a!.ports.find(p => p.direction === 'in')?.id;
+    const outPort = a!.outputs[0]?.id ?? a!.ports.find((p) => p.direction === 'out')?.id;
+    const inPort = a!.inputs[0]?.id ?? a!.ports.find((p) => p.direction === 'in')?.id;
     if (outPort && inPort) {
       const conn = graph.connect(a!.id, outPort, a!.id, inPort);
       expect(conn).toBeNull();
@@ -404,8 +436,8 @@ describe('Scenario: Shader Graph Artist — ShaderGraph Class', () => {
   it('disconnectPort() removes connection by port id', () => {
     const a = graph.createNode('UVInput', { x: 0, y: 0 });
     const b = graph.createNode('FragOutput', { x: 200, y: 0 });
-    const outPort = a!.outputs[0]?.id ?? a!.ports.find(p => p.direction === 'out')?.id;
-    const inPort = b!.inputs[0]?.id ?? b!.ports.find(p => p.direction === 'in')?.id;
+    const outPort = a!.outputs[0]?.id ?? a!.ports.find((p) => p.direction === 'out')?.id;
+    const inPort = b!.inputs[0]?.id ?? b!.ports.find((p) => p.direction === 'in')?.id;
     if (outPort && inPort) {
       graph.connect(a!.id, outPort, b!.id, inPort);
       expect(graph.connections.length).toBe(1);
@@ -444,8 +476,8 @@ describe('Scenario: Shader Graph Artist — ShaderGraph Class', () => {
   it('removeNode() also removes associated connections', () => {
     const a = graph.createNode('UVInput', { x: 0, y: 0 });
     const b = graph.createNode('FragOutput', { x: 200, y: 0 });
-    const aOut = a!.outputs[0]?.id ?? a!.ports.find(p => p.direction === 'out')?.id;
-    const bIn = b!.inputs[0]?.id ?? b!.ports.find(p => p.direction === 'in')?.id;
+    const aOut = a!.outputs[0]?.id ?? a!.ports.find((p) => p.direction === 'out')?.id;
+    const bIn = b!.inputs[0]?.id ?? b!.ports.find((p) => p.direction === 'in')?.id;
     if (aOut && bIn) graph.connect(a!.id, aOut, b!.id, bIn);
     graph.removeNode(a!.id);
     expect(graph.connections.length).toBe(0);

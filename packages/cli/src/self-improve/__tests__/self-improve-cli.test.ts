@@ -66,11 +66,13 @@ describe('parseArgs — self-improve command', () => {
   it('parses self-improve with all flags combined', () => {
     const opts = parseArgs([
       'self-improve',
-      '--cycles', '20',
+      '--cycles',
+      '20',
       '--harvest',
       '--commit',
       '--daemon',
-      '--max-failures', '7',
+      '--max-failures',
+      '7',
       '--verbose',
     ]);
     expect(opts.command).toBe('self-improve');

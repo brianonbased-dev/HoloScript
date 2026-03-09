@@ -6,14 +6,14 @@
  */
 
 import { useMemo, useState, useCallback } from 'react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 export interface SceneSearchResult {
   name: string;
   type: 'object' | 'light' | 'scene';
   traits: string[];
-  line: number;          // 1-indexed line in source where this item begins
-  snippet: string;       // first 60 chars of the block
+  line: number; // 1-indexed line in source where this item begins
+  snippet: string; // first 60 chars of the block
 }
 
 function parseSceneObjects(code: string): SceneSearchResult[] {
@@ -23,7 +23,13 @@ function parseSceneObjects(code: string): SceneSearchResult[] {
   lines.forEach((line, idx) => {
     const sceneM = line.match(/^scene\s+"([^"]+)"/);
     if (sceneM) {
-      results.push({ name: sceneM[1]!, type: 'scene', traits: [], line: idx + 1, snippet: line.trim().slice(0, 60) });
+      results.push({
+        name: sceneM[1]!,
+        type: 'scene',
+        traits: [],
+        line: idx + 1,
+        snippet: line.trim().slice(0, 60),
+      });
     }
 
     const objM = line.match(/^object\s+"([^"]+)"/);
@@ -36,7 +42,9 @@ function parseSceneObjects(code: string): SceneSearchResult[] {
         if (tm) traits.push(tm[1]!);
         j++;
       }
-      const isLight = traits.some((t) => ['pointLight', 'directionalLight', 'spotLight'].includes(t));
+      const isLight = traits.some((t) =>
+        ['pointLight', 'directionalLight', 'spotLight'].includes(t)
+      );
       results.push({
         name: objM[1]!,
         type: isLight ? 'light' : 'object',
@@ -73,7 +81,10 @@ export function useSceneSearch() {
   );
 
   const open = useCallback(() => setIsOpen(true), []);
-  const close = useCallback(() => { setIsOpen(false); setQuery(''); }, []);
+  const close = useCallback(() => {
+    setIsOpen(false);
+    setQuery('');
+  }, []);
 
   return { query, setQuery, results, isOpen, open, close, totalObjects: allObjects.length };
 }

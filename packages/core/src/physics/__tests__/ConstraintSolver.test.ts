@@ -1,9 +1,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ConstraintSolver } from '../ConstraintSolver';
-import type { Constraint, IRigidBodyState, IVector3, IDistanceConstraint, IFixedConstraint } from '../PhysicsTypes';
+import type {
+  Constraint,
+  IRigidBodyState,
+  IVector3,
+  IDistanceConstraint,
+  IFixedConstraint,
+} from '../PhysicsTypes';
 
-function v3(x = 0, y = 0, z = 0): IVector3 { return { x, y, z }; }
-function q() { return { x: 0, y: 0, z: 0, w: 1 }; }
+function v3(x = 0, y = 0, z = 0): IVector3 {
+  return { x, y, z };
+}
+function q() {
+  return { x: 0, y: 0, z: 0, w: 1 };
+}
 
 function body(id: string, pos: IVector3 = v3()): IRigidBodyState {
   return {
@@ -45,7 +55,9 @@ function fixedConstraint(id: string): IFixedConstraint {
 
 describe('ConstraintSolver', () => {
   let solver: ConstraintSolver;
-  beforeEach(() => { solver = new ConstraintSolver({ iterations: 5 }); });
+  beforeEach(() => {
+    solver = new ConstraintSolver({ iterations: 5 });
+  });
 
   // --- CRUD ---
   it('addConstraint stores constraint', () => {

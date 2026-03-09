@@ -20,7 +20,7 @@
 export type ReloadWatcher<TContent = unknown, TState = unknown> = (
   content: TContent,
   prevState: TState | undefined,
-  meta: { key: string; version: number },
+  meta: { key: string; version: number }
 ) => void;
 
 export interface HotReloadManagerOptions {
@@ -77,7 +77,7 @@ export class HotReloadManager {
   triggerReload<TContent = unknown, TState = unknown>(
     key: string,
     content: TContent,
-    oldState?: TState,
+    oldState?: TState
   ): void {
     // Increment version even if no watchers
     const version = (this.versions.get(key) ?? 0) + 1;
@@ -114,10 +114,7 @@ export class HotReloadManager {
    *
    * If `oldState` is null/undefined, returns `newState` unchanged.
    */
-  migrateState<T extends Record<string, unknown>>(
-    oldState: T | null | undefined,
-    newState: T,
-  ): T {
+  migrateState<T extends Record<string, unknown>>(oldState: T | null | undefined, newState: T): T {
     if (!oldState) return { ...newState };
 
     const result = { ...newState };

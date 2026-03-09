@@ -143,7 +143,13 @@ export interface JsonSchema {
 /**
  * Content mode (MIME type based)
  */
-export type ContentMode = 'text' | 'image' | 'audio' | 'video' | 'application/json' | 'application/holoscript';
+export type ContentMode =
+  | 'text'
+  | 'image'
+  | 'audio'
+  | 'video'
+  | 'application/json'
+  | 'application/holoscript';
 
 /**
  * Agent capabilities
@@ -220,7 +226,8 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
     traitName: 'grabbable',
     skillId: 'vr-grab',
     skillName: 'VR Object Grab',
-    description: 'Enable hand-based grabbing of 3D objects in VR space with configurable grab points and physics response.',
+    description:
+      'Enable hand-based grabbing of 3D objects in VR space with configurable grab points and physics response.',
     tags: ['vr', 'interaction', 'hand-tracking', 'grab'],
     inputSchema: {
       type: 'object',
@@ -236,20 +243,26 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       properties: {
         grabbed: { type: 'boolean', description: 'Whether grab succeeded' },
         objectId: { type: 'string' },
-        grabPoint: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } } },
+        grabPoint: {
+          type: 'object',
+          properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
+        },
       },
     },
-    examples: [{
-      name: 'Grab a cube',
-      input: { objectId: 'cube_1', hand: 'right', snapToHand: true },
-      output: { grabbed: true, objectId: 'cube_1', grabPoint: { x: 0, y: 1.2, z: -0.3 } },
-    }],
+    examples: [
+      {
+        name: 'Grab a cube',
+        input: { objectId: 'cube_1', hand: 'right', snapToHand: true },
+        output: { grabbed: true, objectId: 'cube_1', grabPoint: { x: 0, y: 1.2, z: -0.3 } },
+      },
+    ],
   },
   {
     traitName: 'throwable',
     skillId: 'vr-throw',
     skillName: 'VR Object Throw',
-    description: 'Release grabbed objects with physics-based throwing using hand velocity tracking.',
+    description:
+      'Release grabbed objects with physics-based throwing using hand velocity tracking.',
     tags: ['vr', 'interaction', 'physics', 'throw'],
     inputSchema: {
       type: 'object',
@@ -263,20 +276,26 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       type: 'object',
       properties: {
         thrown: { type: 'boolean' },
-        velocity: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } } },
+        velocity: {
+          type: 'object',
+          properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
+        },
       },
     },
-    examples: [{
-      name: 'Throw a ball',
-      input: { objectId: 'ball_1', velocityMultiplier: 1.5 },
-      output: { thrown: true, velocity: { x: 2.1, y: 3.0, z: -1.5 } },
-    }],
+    examples: [
+      {
+        name: 'Throw a ball',
+        input: { objectId: 'ball_1', velocityMultiplier: 1.5 },
+        output: { thrown: true, velocity: { x: 2.1, y: 3.0, z: -1.5 } },
+      },
+    ],
   },
   {
     traitName: 'collidable',
     skillId: 'collision-detect',
     skillName: 'Collision Detection',
-    description: 'Configure collision boundaries and respond to collision events between scene objects.',
+    description:
+      'Configure collision boundaries and respond to collision events between scene objects.',
     tags: ['physics', 'collision', 'boundaries'],
     inputSchema: {
       type: 'object',
@@ -294,10 +313,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
         colliderBounds: { type: 'object' },
       },
     },
-    examples: [{
-      name: 'Add box collider',
-      input: { objectId: 'wall_1', colliderType: 'box', isTrigger: false },
-    }],
+    examples: [
+      {
+        name: 'Add box collider',
+        input: { objectId: 'wall_1', colliderType: 'box', isTrigger: false },
+      },
+    ],
   },
   {
     traitName: 'physics',
@@ -322,10 +343,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
         bodyId: { type: 'string' },
       },
     },
-    examples: [{
-      name: 'Add physics to crate',
-      input: { objectId: 'crate_1', mass: 5.0, useGravity: true },
-    }],
+    examples: [
+      {
+        name: 'Add physics to crate',
+        input: { objectId: 'crate_1', mass: 5.0, useGravity: true },
+      },
+    ],
   },
   {
     traitName: 'audio',
@@ -350,16 +373,19 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
         duration: { type: 'number' },
       },
     },
-    examples: [{
-      name: 'Play ambient sound',
-      input: { objectId: 'speaker_1', source: 'ambient_forest.ogg', volume: 0.7, loop: true },
-    }],
+    examples: [
+      {
+        name: 'Play ambient sound',
+        input: { objectId: 'speaker_1', source: 'ambient_forest.ogg', volume: 0.7, loop: true },
+      },
+    ],
   },
   {
     traitName: 'spatial_audio',
     skillId: 'spatial-audio',
     skillName: 'Spatial Audio',
-    description: 'Enable 3D positional audio with HRTF, occlusion, and reverb for immersive soundscapes.',
+    description:
+      'Enable 3D positional audio with HRTF, occlusion, and reverb for immersive soundscapes.',
     tags: ['audio', 'spatial', 'hrtf', '3d-sound'],
     inputSchema: {
       type: 'object',
@@ -376,10 +402,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       type: 'object',
       properties: { configured: { type: 'boolean' }, sourceId: { type: 'string' } },
     },
-    examples: [{
-      name: 'Spatial bird sounds',
-      input: { objectId: 'bird_nest', source: 'birds.ogg', maxDistance: 20, hrtfEnabled: true },
-    }],
+    examples: [
+      {
+        name: 'Spatial bird sounds',
+        input: { objectId: 'bird_nest', source: 'birds.ogg', maxDistance: 20, hrtfEnabled: true },
+      },
+    ],
   },
   {
     traitName: 'networked',
@@ -401,10 +429,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       type: 'object',
       properties: { synced: { type: 'boolean' }, networkId: { type: 'string' } },
     },
-    examples: [{
-      name: 'Network a shared whiteboard',
-      input: { objectId: 'whiteboard_1', syncTransform: true, ownership: 'shared' },
-    }],
+    examples: [
+      {
+        name: 'Network a shared whiteboard',
+        input: { objectId: 'whiteboard_1', syncTransform: true, ownership: 'shared' },
+      },
+    ],
   },
   {
     traitName: 'visible',
@@ -425,10 +455,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       type: 'object',
       properties: { visible: { type: 'boolean' } },
     },
-    examples: [{
-      name: 'Fade out door',
-      input: { objectId: 'door_1', visible: false, fadeTime: 0.5 },
-    }],
+    examples: [
+      {
+        name: 'Fade out door',
+        input: { objectId: 'door_1', visible: false, fadeTime: 0.5 },
+      },
+    ],
   },
   {
     traitName: 'draggable',
@@ -449,10 +481,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       type: 'object',
       properties: { dragging: { type: 'boolean' }, position: { type: 'object' } },
     },
-    examples: [{
-      name: 'Drag slider on X axis',
-      input: { objectId: 'slider_handle', axes: 'x' },
-    }],
+    examples: [
+      {
+        name: 'Drag slider on X axis',
+        input: { objectId: 'slider_handle', axes: 'x' },
+      },
+    ],
   },
   {
     traitName: 'hoverable',
@@ -474,10 +508,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       type: 'object',
       properties: { hovering: { type: 'boolean' } },
     },
-    examples: [{
-      name: 'Highlight button on hover',
-      input: { objectId: 'btn_start', highlightColor: '#00ff00', scaleOnHover: 1.1 },
-    }],
+    examples: [
+      {
+        name: 'Highlight button on hover',
+        input: { objectId: 'btn_start', highlightColor: '#00ff00', scaleOnHover: 1.1 },
+      },
+    ],
   },
   {
     traitName: 'scalable',
@@ -499,10 +535,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       type: 'object',
       properties: { scale: { type: 'object' } },
     },
-    examples: [{
-      name: 'Scalable 3D model',
-      input: { objectId: 'model_house', minScale: 0.5, maxScale: 3.0 },
-    }],
+    examples: [
+      {
+        name: 'Scalable 3D model',
+        input: { objectId: 'model_house', minScale: 0.5, maxScale: 3.0 },
+      },
+    ],
   },
   {
     traitName: 'pointable',
@@ -523,10 +561,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       type: 'object',
       properties: { pointed: { type: 'boolean' }, hitPoint: { type: 'object' } },
     },
-    examples: [{
-      name: 'Point at distant target',
-      input: { objectId: 'target_board', maxDistance: 50, showRay: true },
-    }],
+    examples: [
+      {
+        name: 'Point at distant target',
+        input: { objectId: 'target_board', maxDistance: 50, showRay: true },
+      },
+    ],
   },
   {
     traitName: 'climbable',
@@ -547,10 +587,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       type: 'object',
       properties: { climbing: { type: 'boolean' }, height: { type: 'number' } },
     },
-    examples: [{
-      name: 'Climbable wall',
-      input: { objectId: 'rock_wall', gripStrength: 0.8, climbSpeed: 0.7 },
-    }],
+    examples: [
+      {
+        name: 'Climbable wall',
+        input: { objectId: 'rock_wall', gripStrength: 0.8, climbSpeed: 0.7 },
+      },
+    ],
   },
   {
     traitName: 'rideable',
@@ -562,7 +604,10 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       type: 'object',
       properties: {
         objectId: { type: 'string' },
-        seatOffset: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } } },
+        seatOffset: {
+          type: 'object',
+          properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
+        },
         speed: { type: 'number', default: 5.0 },
       },
       required: ['objectId'],
@@ -571,10 +616,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       type: 'object',
       properties: { mounted: { type: 'boolean' } },
     },
-    examples: [{
-      name: 'Mount a horse',
-      input: { objectId: 'horse_1', seatOffset: { x: 0, y: 1.5, z: 0 }, speed: 8.0 },
-    }],
+    examples: [
+      {
+        name: 'Mount a horse',
+        input: { objectId: 'horse_1', seatOffset: { x: 0, y: 1.5, z: 0 }, speed: 8.0 },
+      },
+    ],
   },
   {
     traitName: 'equippable',
@@ -595,10 +642,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       type: 'object',
       properties: { equipped: { type: 'boolean' }, slot: { type: 'string' } },
     },
-    examples: [{
-      name: 'Equip sword to hand',
-      input: { objectId: 'sword_1', slot: 'right_hand' },
-    }],
+    examples: [
+      {
+        name: 'Equip sword to hand',
+        input: { objectId: 'sword_1', slot: 'right_hand' },
+      },
+    ],
   },
   {
     traitName: 'inventory',
@@ -621,13 +670,18 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       properties: {
         success: { type: 'boolean' },
         items: { type: 'array', items: { type: 'object' } },
-        capacity: { type: 'object', properties: { used: { type: 'number' }, max: { type: 'number' } } },
+        capacity: {
+          type: 'object',
+          properties: { used: { type: 'number' }, max: { type: 'number' } },
+        },
       },
     },
-    examples: [{
-      name: 'Add potion to inventory',
-      input: { objectId: 'player_1', action: 'add', itemId: 'health_potion', quantity: 3 },
-    }],
+    examples: [
+      {
+        name: 'Add potion to inventory',
+        input: { objectId: 'player_1', action: 'add', itemId: 'health_potion', quantity: 3 },
+      },
+    ],
   },
   {
     traitName: 'health',
@@ -654,10 +708,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
         alive: { type: 'boolean' },
       },
     },
-    examples: [{
-      name: 'Set up boss health',
-      input: { objectId: 'boss_dragon', maxHealth: 5000, armor: 50 },
-    }],
+    examples: [
+      {
+        name: 'Set up boss health',
+        input: { objectId: 'boss_dragon', maxHealth: 5000, armor: 50 },
+      },
+    ],
   },
   {
     traitName: 'damage',
@@ -679,10 +735,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       type: 'object',
       properties: { damageDealt: { type: 'number' }, targetId: { type: 'string' } },
     },
-    examples: [{
-      name: 'Fire sword damage',
-      input: { objectId: 'fire_sword', baseDamage: 25, damageType: 'fire' },
-    }],
+    examples: [
+      {
+        name: 'Fire sword damage',
+        input: { objectId: 'fire_sword', baseDamage: 25, damageType: 'fire' },
+      },
+    ],
   },
   {
     traitName: 'respawnable',
@@ -695,7 +753,10 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       properties: {
         objectId: { type: 'string' },
         respawnDelay: { type: 'number', default: 5.0, description: 'Delay in seconds' },
-        respawnPoint: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } } },
+        respawnPoint: {
+          type: 'object',
+          properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
+        },
         maxRespawns: { type: 'number', default: -1, description: '-1 for unlimited' },
       },
       required: ['objectId'],
@@ -707,10 +768,12 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
         nextRespawnAt: { type: 'number' },
       },
     },
-    examples: [{
-      name: 'Player respawn',
-      input: { objectId: 'player_1', respawnDelay: 3.0, respawnPoint: { x: 0, y: 1, z: 0 } },
-    }],
+    examples: [
+      {
+        name: 'Player respawn',
+        input: { objectId: 'player_1', respawnDelay: 3.0, respawnPoint: { x: 0, y: 1, z: 0 } },
+      },
+    ],
   },
   {
     traitName: 'teleportable',
@@ -725,7 +788,11 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
         maxDistance: { type: 'number', default: 20 },
         showArc: { type: 'boolean', default: true },
         fadeTime: { type: 'number', default: 0.2, description: 'Transition fade time in seconds' },
-        validSurfaces: { type: 'array', items: { type: 'string' }, description: 'Surface tags that allow teleport' },
+        validSurfaces: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Surface tags that allow teleport',
+        },
       },
       required: ['objectId'],
     },
@@ -733,13 +800,23 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       type: 'object',
       properties: {
         teleported: { type: 'boolean' },
-        destination: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } } },
+        destination: {
+          type: 'object',
+          properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
+        },
       },
     },
-    examples: [{
-      name: 'Teleport to platform',
-      input: { objectId: 'player_1', maxDistance: 15, showArc: true, validSurfaces: ['floor', 'platform'] },
-    }],
+    examples: [
+      {
+        name: 'Teleport to platform',
+        input: {
+          objectId: 'player_1',
+          maxDistance: 15,
+          showArc: true,
+          validSurfaces: ['floor', 'platform'],
+        },
+      },
+    ],
   },
 ];
 
@@ -747,7 +824,7 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
  * Lookup map for quick trait-to-skill resolution
  */
 const TRAIT_SKILL_MAP = new Map<string, TraitSkillMapping>(
-  TRAIT_SKILL_MAPPINGS.map(m => [m.traitName, m])
+  TRAIT_SKILL_MAPPINGS.map((m) => [m.traitName, m])
 );
 
 // =============================================================================
@@ -841,9 +918,10 @@ export class AgentCardExporter {
     const detectedTraits = this.detectTraits(composition);
 
     // Step 2: Apply trait filter if specified
-    const filteredTraits = this.options.traitFilter.length > 0
-      ? detectedTraits.filter(t => this.options.traitFilter.includes(t))
-      : detectedTraits;
+    const filteredTraits =
+      this.options.traitFilter.length > 0
+        ? detectedTraits.filter((t) => this.options.traitFilter.includes(t))
+        : detectedTraits;
 
     // Step 3: Map traits to skills
     const skills: AgentSkill[] = [];
@@ -883,7 +961,8 @@ export class AgentCardExporter {
     // Step 5: Build the Agent Card
     const compositionName = composition.name || 'untitled';
     const agentId = `holoscript-agent-${compositionName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
-    const objectCount = (composition.objects?.length ?? 0) + (composition.spatialGroups?.length ?? 0);
+    const objectCount =
+      (composition.objects?.length ?? 0) + (composition.spatialGroups?.length ?? 0);
 
     const card: AgentCard = {
       id: agentId,
@@ -931,7 +1010,7 @@ export class AgentCardExporter {
    * Get list of supported (mapped) trait names
    */
   getSupportedTraits(): string[] {
-    return TRAIT_SKILL_MAPPINGS.map(m => m.traitName);
+    return TRAIT_SKILL_MAPPINGS.map((m) => m.traitName);
   }
 
   /**
@@ -996,9 +1075,7 @@ export class AgentCardExporter {
    * Generate a generic skill entry for unmapped traits
    */
   private generateGenericSkill(traitName: string): AgentSkill {
-    const displayName = traitName
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, c => c.toUpperCase());
+    const displayName = traitName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
     return {
       id: `holoscript-${traitName.replace(/_/g, '-')}`,

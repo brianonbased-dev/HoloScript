@@ -95,12 +95,12 @@ Input: { "code": "<your scene code>" }
 
 ## Tool Reference
 
-| Tool | Purpose | When to Use |
-|------|---------|-------------|
-| `suggest_traits` | Get VR trait recommendations | Before creating objects |
-| `generate_object` | NL → single object | Creating individual objects |
-| `generate_scene` | NL → full scene | Creating complete environments |
-| `validate_holoscript` | Check syntax | Before saving/running code |
-| `parse_hs` | Get AST | Programmatic analysis |
-| `explain_trait` | Trait documentation | Learning about traits |
-| `list_traits` | All available traits | Discovering capabilities |
+| Tool                  | Purpose                      | When to Use                    |
+| --------------------- | ---------------------------- | ------------------------------ |
+| `suggest_traits`      | Get VR trait recommendations | Before creating objects        |
+| `generate_object`     | NL → single object           | Creating individual objects    |
+| `generate_scene`      | NL → full scene              | Creating complete environments |
+| `validate_holoscript` | Check syntax                 | Before saving/running code     |
+| `parse_hs`            | Get AST                      | Programmatic analysis          |
+| `explain_trait`       | Trait documentation          | Learning about traits          |
+| `list_traits`         | All available traits         | Discovering capabilities       |

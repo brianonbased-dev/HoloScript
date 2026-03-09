@@ -126,16 +126,27 @@ export class ErosionBrush {
   }
 
   private getNeighborHeights(x: number, z: number): number[] {
-    const offsets = [[-1,0],[1,0],[0,-1],[0,1]];
+    const offsets = [
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+      [0, 1],
+    ];
     const result: number[] = [];
     for (const [dx, dz] of offsets) {
-      const h = this.heightmap.get(`${x+dx},${z+dz}`);
+      const h = this.heightmap.get(`${x + dx},${z + dz}`);
       if (h !== undefined) result.push(h);
     }
     return result;
   }
 
-  getConfig(): ErosionConfig { return { ...this.config }; }
-  setConfig(cfg: Partial<ErosionConfig>): void { Object.assign(this.config, cfg); }
-  getGridSize(): number { return this.gridSize; }
+  getConfig(): ErosionConfig {
+    return { ...this.config };
+  }
+  setConfig(cfg: Partial<ErosionConfig>): void {
+    Object.assign(this.config, cfg);
+  }
+  getGridSize(): number {
+    return this.gridSize;
+  }
 }

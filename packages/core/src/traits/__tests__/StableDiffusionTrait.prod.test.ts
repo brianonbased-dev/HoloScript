@@ -18,8 +18,12 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode() { return { id: 'sd_test' } as any; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'sd_test' } as any;
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 
 function attach(node: any, overrides: Record<string, unknown> = {}) {
   const cfg = { ...stableDiffusionHandler.defaultConfig!, ...overrides } as any;
@@ -28,7 +32,9 @@ function attach(node: any, overrides: Record<string, unknown> = {}) {
   return { cfg, ctx };
 }
 
-function st(node: any) { return node.__stableDiffusionState as any; }
+function st(node: any) {
+  return node.__stableDiffusionState as any;
+}
 
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
   stableDiffusionHandler.onEvent!(node, cfg, ctx as any, evt as any);
@@ -94,20 +100,34 @@ describe('StableDiffusionTrait — onAttach', () => {
   it('always emits stable_diffusion_init with model and resolution', () => {
     const node = makeNode();
     const { ctx } = attach(node, { diffusion_model: 'sd15', resolution: 512 });
-    expect(ctx.emit).toHaveBeenCalledWith('stable_diffusion_init', expect.objectContaining({
-      model: 'sd15', resolution: 512,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'stable_diffusion_init',
+      expect.objectContaining({
+        model: 'sd15',
+        resolution: 512,
+      })
+    );
   });
 
   it('auto-generate when prompt is provided: emits stable_diffusion_generate, sets is_generating', () => {
     const node = makeNode();
     const { ctx } = attach(node, {
-      prompt: 'cyberpunk city', negative_prompt: 'blur',
-      steps: 20, cfg_scale: 8, seed: 42,
+      prompt: 'cyberpunk city',
+      negative_prompt: 'blur',
+      steps: 20,
+      cfg_scale: 8,
+      seed: 42,
     });
-    expect(ctx.emit).toHaveBeenCalledWith('stable_diffusion_generate', expect.objectContaining({
-      prompt: 'cyberpunk city', negativePrompt: 'blur', steps: 20, cfgScale: 8, seed: 42,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'stable_diffusion_generate',
+      expect.objectContaining({
+        prompt: 'cyberpunk city',
+        negativePrompt: 'blur',
+        steps: 20,
+        cfgScale: 8,
+        seed: 42,
+      })
+    );
     expect(st(node).is_generating).toBe(true);
   });
 
@@ -184,13 +204,23 @@ describe('StableDiffusionTrait — onUpdate', () => {
 
   it('realtime=true + streaming=true + generating: emits stable_diffusion_progress', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { prompt: 'ocean', realtime: true, streaming: true, steps: 20 });
+    const { cfg, ctx } = attach(node, {
+      prompt: 'ocean',
+      realtime: true,
+      streaming: true,
+      steps: 20,
+    });
     st(node).current_step = 5;
     ctx.emit.mockClear();
     stableDiffusionHandler.onUpdate!(node, cfg, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('stable_diffusion_progress', expect.objectContaining({
-      step: 5, totalSteps: 20, progress: 5 / 20,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'stable_diffusion_progress',
+      expect.objectContaining({
+        step: 5,
+        totalSteps: 20,
+        progress: 5 / 20,
+      })
+    );
   });
 
   it('realtime=true + streaming=true: accumulates generation_time', () => {
@@ -221,7 +251,10 @@ describe('StableDiffusionTrait — onEvent: stable_diffusion_result', () => {
     expect(s.is_generating).toBe(false);
     expect(s.output_texture).toBe('blob:tex-data');
     expect(s.current_step).toBe(10); // = config.steps
-    expect(ctx.emit).toHaveBeenCalledWith('on_texture_generated', expect.objectContaining({ texture: 'blob:tex-data', prompt: 'sun' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_texture_generated',
+      expect.objectContaining({ texture: 'blob:tex-data', prompt: 'sun' })
+    );
   });
 
   it('caches result under prompt_seed key, accessible later', () => {
@@ -263,6 +296,9 @@ describe('StableDiffusionTrait — onEvent: stable_diffusion_error', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'stable_diffusion_error', error: 'VRAM exceeded' });
     expect(st(node).is_generating).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('on_generation_error', expect.objectContaining({ error: 'VRAM exceeded' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_generation_error',
+      expect.objectContaining({ error: 'VRAM exceeded' })
+    );
   });
 });

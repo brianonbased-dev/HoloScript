@@ -15,7 +15,12 @@
  * @version 1.0.0
  */
 
-import { CulturalMemory, EpisodicMemory, StigmergicTrace, SemanticSOP } from '../agents/CulturalMemory';
+import {
+  CulturalMemory,
+  EpisodicMemory,
+  StigmergicTrace,
+  SemanticSOP,
+} from '../agents/CulturalMemory';
 import { NormEngine, NormViolation, NormProposal } from '../agents/NormEngine';
 import { CulturalNorm, NormEnforcement, BUILTIN_NORMS } from '../traits/CultureTraits';
 import { VREffect } from '../types/effects';
@@ -26,7 +31,13 @@ import { VREffect } from '../types/effects';
 
 /** A culture event emitted by the runtime */
 export interface CultureEvent {
-  type: 'violation' | 'norm_adopted' | 'norm_proposed' | 'sop_formed' | 'cultural_shift' | 'trace_reinforced';
+  type:
+    | 'violation'
+    | 'norm_adopted'
+    | 'norm_proposed'
+    | 'sop_formed'
+    | 'cultural_shift'
+    | 'trace_reinforced';
   agentId: string;
   normId?: string;
   details: string;
@@ -87,8 +98,11 @@ export class CultureRuntime {
     const normsToAdopt = adoptNorms || this.config.defaultNorms;
     this.norms.registerAgent(agentId, normsToAdopt);
     this.emit({
-      type: 'norm_adopted', agentId, details: `Agent joined, adopted ${normsToAdopt.length} norms`,
-      timestamp: this.tickCount, severity: 'info',
+      type: 'norm_adopted',
+      agentId,
+      details: `Agent joined, adopted ${normsToAdopt.length} norms`,
+      timestamp: this.tickCount,
+      severity: 'info',
     });
   }
 
@@ -125,9 +139,12 @@ export class CultureRuntime {
         const sops = this.memory.consolidate(agentId);
         for (const sop of sops) {
           const event: CultureEvent = {
-            type: 'sop_formed', agentId, normId: sop.normId,
+            type: 'sop_formed',
+            agentId,
+            normId: sop.normId,
             details: `Formed SOP: ${sop.description}`,
-            timestamp: this.tickCount, severity: 'info',
+            timestamp: this.tickCount,
+            severity: 'info',
           };
           tickEvents.push(event);
           this.emit(event);
@@ -137,11 +154,16 @@ export class CultureRuntime {
 
     // 4. Cultural health monitoring
     const health = this.norms.culturalHealth();
-    if (health < this.config.healthWarningThreshold && this.lastHealthScore >= this.config.healthWarningThreshold) {
+    if (
+      health < this.config.healthWarningThreshold &&
+      this.lastHealthScore >= this.config.healthWarningThreshold
+    ) {
       const event: CultureEvent = {
-        type: 'cultural_shift', agentId: 'system',
+        type: 'cultural_shift',
+        agentId: 'system',
         details: `Cultural health dropped below ${this.config.healthWarningThreshold} (current: ${health.toFixed(2)})`,
-        timestamp: this.tickCount, severity: 'warning',
+        timestamp: this.tickCount,
+        severity: 'warning',
       };
       tickEvents.push(event);
       this.emit(event);
@@ -159,7 +181,11 @@ export class CultureRuntime {
    *
    * @returns Whether the action is allowed (true) or blocked (false)
    */
-  evaluateAction(agentId: string, effects: VREffect[], zoneId?: string): {
+  evaluateAction(
+    agentId: string,
+    effects: VREffect[],
+    zoneId?: string
+  ): {
     allowed: boolean;
     violations: NormViolation[];
     blocked: VREffect[];
@@ -170,18 +196,24 @@ export class CultureRuntime {
     for (const v of violations) {
       this.norms.recordViolation(v);
       this.memory.record(agentId, `Violated norm '${v.normId}' via effect '${v.effect}'`, {
-        normId: v.normId, valence: -0.8, importance: 0.9, tags: ['violation'],
+        normId: v.normId,
+        valence: -0.8,
+        importance: 0.9,
+        tags: ['violation'],
       });
       this.emit({
-        type: 'violation', agentId, normId: v.normId,
+        type: 'violation',
+        agentId,
+        normId: v.normId,
         details: `Violated '${v.normId}' with effect '${v.effect}'`,
-        timestamp: this.tickCount, severity: v.severity === 'hard' ? 'critical' : 'warning',
+        timestamp: this.tickCount,
+        severity: v.severity === 'hard' ? 'critical' : 'warning',
       });
     }
 
     // Determine if action is blocked (hard enforcement)
-    const hardViolations = violations.filter(v => v.severity === 'hard');
-    const blocked = this.config.autoEnforce ? hardViolations.map(v => v.effect) : [];
+    const hardViolations = violations.filter((v) => v.severity === 'hard');
+    const blocked = this.config.autoEnforce ? hardViolations.map((v) => v.effect) : [];
     const allowed = this.config.autoEnforce ? hardViolations.length === 0 : true;
 
     // Record compliance for non-violated norms
@@ -199,17 +231,29 @@ export class CultureRuntime {
   /**
    * Record an experience for an agent.
    */
-  recordExperience(agentId: string, event: string, opts: {
-    normId?: string; valence?: number; importance?: number;
-    participants?: string[]; tags?: string[];
-  } = {}): EpisodicMemory {
+  recordExperience(
+    agentId: string,
+    event: string,
+    opts: {
+      normId?: string;
+      valence?: number;
+      importance?: number;
+      participants?: string[];
+      tags?: string[];
+    } = {}
+  ): EpisodicMemory {
     return this.memory.record(agentId, event, opts);
   }
 
   /**
    * Leave a trace in the world.
    */
-  leaveTrace(agentId: string, zoneId: string, label: string, position: { x: number; y: number; z: number }): StigmergicTrace {
+  leaveTrace(
+    agentId: string,
+    zoneId: string,
+    label: string,
+    position: { x: number; y: number; z: number }
+  ): StigmergicTrace {
     return this.memory.leaveTrace(agentId, zoneId, label, position);
   }
 
@@ -228,9 +272,12 @@ export class CultureRuntime {
   proposeNorm(agentId: string, norm: CulturalNorm): NormProposal {
     const proposal = this.norms.proposeNorm(agentId, norm);
     this.emit({
-      type: 'norm_proposed', agentId, normId: norm.id,
+      type: 'norm_proposed',
+      agentId,
+      normId: norm.id,
       details: `Proposed norm '${norm.name}'`,
-      timestamp: this.tickCount, severity: 'info',
+      timestamp: this.tickCount,
+      severity: 'info',
     });
     return proposal;
   }
@@ -263,8 +310,8 @@ export class CultureRuntime {
    */
   getEvents(filter?: { type?: CultureEvent['type']; agentId?: string }): CultureEvent[] {
     let events = this.events;
-    if (filter?.type) events = events.filter(e => e.type === filter.type);
-    if (filter?.agentId) events = events.filter(e => e.agentId === filter.agentId);
+    if (filter?.type) events = events.filter((e) => e.type === filter.type);
+    if (filter?.agentId) events = events.filter((e) => e.agentId === filter.agentId);
     return events;
   }
 

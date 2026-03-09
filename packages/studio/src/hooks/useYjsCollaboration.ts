@@ -101,17 +101,14 @@ export function useYjsCollaboration({
     }
   }, []);
 
-  const updateCursor = useCallback(
-    (x: number, y: number, nodeId?: string) => {
-      try {
-        const client = getCollaborationClient();
-        client.updateCursor(x, y, nodeId);
-      } catch (err) {
-        console.error('Update cursor error:', err);
-      }
-    },
-    []
-  );
+  const updateCursor = useCallback((x: number, y: number, nodeId?: string) => {
+    try {
+      const client = getCollaborationClient();
+      client.updateCursor(x, y, nodeId);
+    } catch (err) {
+      console.error('Update cursor error:', err);
+    }
+  }, []);
 
   const updateSelection = useCallback((nodeIds: string[]) => {
     try {

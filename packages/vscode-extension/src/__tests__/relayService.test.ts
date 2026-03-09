@@ -79,8 +79,7 @@ function createMockDocument(text: string) {
       const firstNonWhitespace = lineText.search(/\S/);
       return {
         text: lineText,
-        firstNonWhitespaceCharacterIndex:
-          firstNonWhitespace === -1 ? 0 : firstNonWhitespace,
+        firstNonWhitespaceCharacterIndex: firstNonWhitespace === -1 ? 0 : firstNonWhitespace,
       };
     }),
   };
@@ -114,9 +113,7 @@ describe('RelayService', () => {
 
   describe('handleMessage', () => {
     it('should route "transform" messages to handleTransformUpdate', async () => {
-      const doc = createMockDocument(
-        'orb TestObj {\n  position: [0, 0, 0]\n}'
-      );
+      const doc = createMockDocument('orb TestObj {\n  position: [0, 0, 0]\n}');
 
       await relay.handleMessage(
         {
@@ -135,10 +132,7 @@ describe('RelayService', () => {
       const vscode = await import('vscode');
       const doc = createMockDocument('orb Test {}');
 
-      await relay.handleMessage(
-        { type: 'voice_command', text: 'create a sphere' },
-        doc as any
-      );
+      await relay.handleMessage({ type: 'voice_command', text: 'create a sphere' }, doc as any);
 
       expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
         expect.stringContaining('create a sphere')
@@ -161,10 +155,7 @@ describe('RelayService', () => {
       const doc = createMockDocument('test');
 
       // Should not throw
-      await relay.handleMessage(
-        { type: 'unknown_type', data: {} },
-        doc as any
-      );
+      await relay.handleMessage({ type: 'unknown_type', data: {} }, doc as any);
     });
   });
 
@@ -172,9 +163,7 @@ describe('RelayService', () => {
 
   describe('transform updates', () => {
     it('should update position in an existing object block', async () => {
-      const doc = createMockDocument(
-        'orb TestCube {\n  position: [0, 0, 0]\n  color: "red"\n}'
-      );
+      const doc = createMockDocument('orb TestCube {\n  position: [0, 0, 0]\n  color: "red"\n}');
 
       await relay.handleMessage(
         {
@@ -193,9 +182,7 @@ describe('RelayService', () => {
     });
 
     it('should update rotation when provided', async () => {
-      const doc = createMockDocument(
-        'orb TestCube {\n  rotation: [0, 0, 0]\n}'
-      );
+      const doc = createMockDocument('orb TestCube {\n  rotation: [0, 0, 0]\n}');
 
       await relay.handleMessage(
         {
@@ -212,9 +199,7 @@ describe('RelayService', () => {
     });
 
     it('should update scale when provided', async () => {
-      const doc = createMockDocument(
-        'orb TestCube {\n  scale: [1, 1, 1]\n}'
-      );
+      const doc = createMockDocument('orb TestCube {\n  scale: [1, 1, 1]\n}');
 
       await relay.handleMessage(
         {
@@ -231,9 +216,7 @@ describe('RelayService', () => {
     });
 
     it('should insert property when it does not exist', async () => {
-      const doc = createMockDocument(
-        'orb TestCube {\n  color: "red"\n}'
-      );
+      const doc = createMockDocument('orb TestCube {\n  color: "red"\n}');
 
       await relay.handleMessage(
         {
@@ -267,9 +250,7 @@ describe('RelayService', () => {
     });
 
     it('should handle object keyword as well as orb', async () => {
-      const doc = createMockDocument(
-        'object "MyObj" {\n  position: [0, 0, 0]\n}'
-      );
+      const doc = createMockDocument('object "MyObj" {\n  position: [0, 0, 0]\n}');
 
       await relay.handleMessage(
         {
@@ -284,9 +265,7 @@ describe('RelayService', () => {
     });
 
     it('should format numbers to 3 decimal places', async () => {
-      const doc = createMockDocument(
-        'orb Box {\n  position: [0, 0, 0]\n}'
-      );
+      const doc = createMockDocument('orb Box {\n  position: [0, 0, 0]\n}');
 
       await relay.handleMessage(
         {

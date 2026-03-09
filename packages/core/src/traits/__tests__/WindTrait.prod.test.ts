@@ -4,8 +4,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { windHandler } from '../WindTrait';
 
-function makeNode(props: any = {}) { return { id: 'wind_node', ...props }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode(props: any = {}) {
+  return { id: 'wind_node', ...props };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}) {
   const node = makeNode();
   const ctx = makeCtx();
@@ -36,12 +40,16 @@ describe('windHandler.defaultConfig', () => {
 describe('windHandler.onAttach', () => {
   it('creates __windState', () => expect(attach().node.__windState).toBeDefined());
   it('isActive=true', () => expect(attach().node.__windState.isActive).toBe(true));
-  it('currentStrength = config.strength', () => expect(attach({ strength: 10 }).node.__windState.currentStrength).toBe(10));
+  it('currentStrength = config.strength', () =>
+    expect(attach({ strength: 10 }).node.__windState.currentStrength).toBe(10));
   it('gustTimer=0', () => expect(attach().node.__windState.gustTimer).toBe(0));
   it('time=0', () => expect(attach().node.__windState.time).toBe(0));
   it('emits register_wind_zone', () => {
     const { ctx } = attach({ radius: 50 });
-    expect(ctx.emit).toHaveBeenCalledWith('register_wind_zone', expect.objectContaining({ radius: 50 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'register_wind_zone',
+      expect.objectContaining({ radius: 50 })
+    );
   });
 });
 
@@ -52,7 +60,10 @@ describe('windHandler.onDetach', () => {
     const { node, config, ctx } = attach();
     ctx.emit.mockClear();
     windHandler.onDetach!(node, config, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('unregister_wind_zone', expect.objectContaining({ node }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'unregister_wind_zone',
+      expect.objectContaining({ node })
+    );
   });
   it('removes __windState', () => {
     const { node, config, ctx } = attach();
@@ -73,11 +84,14 @@ describe('windHandler.onUpdate — basic', () => {
     const { node, config, ctx } = attach();
     ctx.emit.mockClear();
     windHandler.onUpdate!(node, config, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('wind_zone_update', expect.objectContaining({
-      radius: config.radius,
-      direction: config.direction,
-      falloff: config.falloff,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'wind_zone_update',
+      expect.objectContaining({
+        radius: config.radius,
+        direction: config.direction,
+        falloff: config.falloff,
+      })
+    );
   });
   it('wind_zone_update strength = base * 1 when no pulse/gust', () => {
     const { node, config, ctx } = attach({ strength: 5, gust_chance: 0, pulse: false });
@@ -102,7 +116,12 @@ describe('windHandler.onUpdate — basic', () => {
     expect(typeof offset.z).toBe('number');
   });
   it('pulse modulator reduces strength to ~0 at sin trough', () => {
-    const { node, config, ctx } = attach({ strength: 10, pulse: true, pulse_frequency: 0, gust_chance: 0 });
+    const { node, config, ctx } = attach({
+      strength: 10,
+      pulse: true,
+      pulse_frequency: 0,
+      gust_chance: 0,
+    });
     // When pulse_frequency=0, pulsePhase=0, sin(0)=0, pulseMultiplier=(0+1)/2=0.5
     // currentStrength = 10 * 0.5 * 1 = 5
     ctx.emit.mockClear();
@@ -116,7 +135,12 @@ describe('windHandler.onUpdate — basic', () => {
 
 describe('windHandler.onUpdate — existing gust', () => {
   it('applies gust_multiplier when gustTimer > 0', () => {
-    const { node, config, ctx } = attach({ strength: 5, gust_multiplier: 3, gust_chance: 0, pulse: false });
+    const { node, config, ctx } = attach({
+      strength: 5,
+      gust_multiplier: 3,
+      gust_chance: 0,
+      pulse: false,
+    });
     node.__windState.gustTimer = 1.0; // active gust
     ctx.emit.mockClear();
     windHandler.onUpdate!(node, config, ctx, 0.016);
@@ -139,12 +163,20 @@ describe('windHandler.onUpdate — existing gust', () => {
 
 describe('windHandler.onUpdate — on_wind_change', () => {
   it('emits on_wind_change when gustMultiplier creates >0.5 strength delta', () => {
-    const { node, config, ctx } = attach({ strength: 5, gust_multiplier: 2, gust_chance: 0, pulse: false });
+    const { node, config, ctx } = attach({
+      strength: 5,
+      gust_multiplier: 2,
+      gust_chance: 0,
+      pulse: false,
+    });
     node.__windState.gustTimer = 1.0; // gust active → strength=5*2=10
     ctx.emit.mockClear();
     windHandler.onUpdate!(node, config, ctx, 0.016);
     // |10 - 5| = 5 > 0.5 → should emit on_wind_change
-    expect(ctx.emit).toHaveBeenCalledWith('on_wind_change', expect.objectContaining({ strength: 10 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_wind_change',
+      expect.objectContaining({ strength: 10 })
+    );
   });
   it('does NOT emit on_wind_change when delta is small', () => {
     const { node, config, ctx } = attach({ strength: 5, gust_chance: 0, pulse: false });

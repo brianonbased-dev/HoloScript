@@ -15,7 +15,7 @@ function createMockTransport() {
     sendSocialMessage: vi.fn(),
     // Simulate receiving a packet
     _receive(packet: any) {
-      handlers.forEach(h => h(packet));
+      handlers.forEach((h) => h(packet));
     },
   };
 }
@@ -164,15 +164,21 @@ describe('ConversationManager', () => {
       payload: { senderId: 'alice', text: 'msg2', id: 'r2', timestamp: 200 },
     });
 
-    expect(convo.getHistory('alice').every(m => !m.read)).toBe(true);
+    expect(convo.getHistory('alice').every((m) => !m.read)).toBe(true);
     convo.markAsRead('alice');
-    expect(convo.getHistory('alice').every(m => m.read)).toBe(true);
+    expect(convo.getHistory('alice').every((m) => m.read)).toBe(true);
     expect(events.some(([e]) => e === 'conversation_read')).toBe(true);
   });
 
   it('orders messages by timestamp', () => {
-    transport._receive({ type: 'SOCIAL_MESSAGE', payload: { senderId: 'alice', text: 'second', id: 'a', timestamp: 200 } });
-    transport._receive({ type: 'SOCIAL_MESSAGE', payload: { senderId: 'alice', text: 'first', id: 'b', timestamp: 100 } });
+    transport._receive({
+      type: 'SOCIAL_MESSAGE',
+      payload: { senderId: 'alice', text: 'second', id: 'a', timestamp: 200 },
+    });
+    transport._receive({
+      type: 'SOCIAL_MESSAGE',
+      payload: { senderId: 'alice', text: 'first', id: 'b', timestamp: 100 },
+    });
 
     const history = convo.getHistory('alice');
     expect(history[0].text).toBe('first');

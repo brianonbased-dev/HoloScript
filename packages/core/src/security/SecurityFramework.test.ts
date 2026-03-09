@@ -185,9 +185,9 @@ describe('SecurityFramework', () => {
       const permissions = [Permission.MANAGE_SYSTEM, Permission.CREATE_SCENE];
 
       expect(hasAnyPermission('user', permissions)).toBe(true);
-      expect(hasAnyPermission('user', [Permission.MANAGE_SYSTEM, Permission.MANAGE_PERMISSIONS])).toBe(
-        false
-      );
+      expect(
+        hasAnyPermission('user', [Permission.MANAGE_SYSTEM, Permission.MANAGE_PERMISSIONS])
+      ).toBe(false);
     });
   });
 

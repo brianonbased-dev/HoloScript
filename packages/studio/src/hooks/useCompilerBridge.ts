@@ -36,14 +36,8 @@ import {
   type Diagnostic,
   type TraitDef,
 } from '@/lib/wasm-compiler-bridge';
-import {
-  detectPlatform,
-  type PlatformCapabilities,
-} from '@/lib/platform-detect';
-import {
-  getPluginLoader,
-  type PlatformPluginLoader,
-} from '@/lib/platform-plugin-loader';
+import { detectPlatform, type PlatformCapabilities } from '@/lib/platform-detect';
+import { getPluginLoader, type PlatformPluginLoader } from '@/lib/platform-plugin-loader';
 
 // ═══════════════════════════════════════════════════════════════════
 // Hook Return Type
@@ -142,7 +136,7 @@ export function useCompilerBridge(): UseCompilerBridgeReturn {
 
       // 3. Initialize with recommended world
       const wasmUrl = caps.isTauri
-        ? '/wasm/holoscript.component.wasm'  // Tauri bundles it
+        ? '/wasm/holoscript.component.wasm' // Tauri bundles it
         : '/wasm/holoscript.component.wasm'; // Browser fetches from public/
 
       const bridgeStatus = await bridge.init(wasmUrl, caps.recommendedWorld);
@@ -206,7 +200,9 @@ export function useCompilerBridge(): UseCompilerBridgeReturn {
     if (!parseResult.ast) {
       return {
         type: 'error' as const,
-        diagnostics: (parseResult.errors ?? [{ severity: 'error' as const, message: 'Parse failed' }]),
+        diagnostics: parseResult.errors ?? [
+          { severity: 'error' as const, message: 'Parse failed' },
+        ],
       };
     }
 

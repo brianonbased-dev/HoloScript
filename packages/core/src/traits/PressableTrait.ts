@@ -17,7 +17,7 @@ import { TraitContext } from './VRTraitSystem';
 export class PressableTrait implements Trait {
   name = 'pressable';
   private isPressed: boolean = false;
-  private initialPos: { x: number, y: number, z: number } | null = null; // Local offset?
+  private initialPos: { x: number; y: number; z: number } | null = null; // Local offset?
 
   onAttach(node: any, context: TraitContext): void {
     const distance = node.properties.distance || 0.01;
@@ -27,35 +27,37 @@ export class PressableTrait implements Trait {
     // Request Physics Constraint: Prismatic (Slider) along local Z
     // The anchor is the parent or world. If parent is null, it's anchored to world start pos.
     context.emit('physics_add_constraint', {
-        type: 'prismatic',
-        nodeId: node.id,
-        axis: { x: 0, y: 0, z: 1 }, // Local Z
-        min: 0,
-        max: distance,
-        spring: { stiffness, damping, restLength: 0 } // Spring pulls back to 0
+      type: 'prismatic',
+      nodeId: node.id,
+      axis: { x: 0, y: 0, z: 1 }, // Local Z
+      min: 0,
+      max: distance,
+      spring: { stiffness, damping, restLength: 0 }, // Spring pulls back to 0
     });
   }
 
   onUpdate(node: any, context: TraitContext, _delta: number): void {
     if (!this.initialPos) {
-       // Capture initial position on first update (assuming simulation settled or static start)
-       // Better: capture onAttach, but onAttach might be before physics/layout settle.
-       // Let's rely on node.properties.position for initial reference if not set.
-       this.initialPos = node.properties.position ? { ...node.properties.position } : { x: 0, y: 0, z: 0 };
+      // Capture initial position on first update (assuming simulation settled or static start)
+      // Better: capture onAttach, but onAttach might be before physics/layout settle.
+      // Let's rely on node.properties.position for initial reference if not set.
+      this.initialPos = node.properties.position
+        ? { ...node.properties.position }
+        : { x: 0, y: 0, z: 0 };
     }
 
     const currentPos = context.physics.getBodyPosition(node.id);
     if (!currentPos || !this.initialPos) return;
 
     // Calculate depression along Z axis (local)
-    // Assumptions: Button moves along Positive Z or Negative Z? 
+    // Assumptions: Button moves along Positive Z or Negative Z?
     // Prismatic setup was local Z (0,0,1).
-    // Depression = difference in Z. 
+    // Depression = difference in Z.
     // TODO: Handle rotation! For now assume world-aligned or use local transform logic.
     // If we assume the button only moves along Z, we can check distance.
-    
+
     const dist = Math.abs(currentPos.z - this.initialPos.z);
-    
+
     // Config
     const maxDist = node.properties.distance || 0.01;
     const triggerPoint = node.properties.triggerPoint || 0.5; // 50% max distance
@@ -65,15 +67,15 @@ export class PressableTrait implements Trait {
 
     // Check State
     if (!this.isPressed && depression > triggerPoint) {
-       this.isPressed = true;
-       context.emit('ui_press_start', { nodeId: node.id });
-       context.haptics.pulse('left', 0.5, 20); // TODO: Which hand pressed? We don't know from physics alone.
-       context.haptics.pulse('right', 0.5, 20); // Pulse both for now or track collision contacts.
+      this.isPressed = true;
+      context.emit('ui_press_start', { nodeId: node.id });
+      context.haptics.pulse('left', 0.5, 20); // TODO: Which hand pressed? We don't know from physics alone.
+      context.haptics.pulse('right', 0.5, 20); // Pulse both for now or track collision contacts.
     } else if (this.isPressed && depression < releasePoint) {
-       this.isPressed = false;
-       context.emit('ui_press_end', { nodeId: node.id });
-       context.haptics.pulse('left', 0.3, 10);
-       context.haptics.pulse('right', 0.3, 10);
+      this.isPressed = false;
+      context.emit('ui_press_end', { nodeId: node.id });
+      context.haptics.pulse('left', 0.3, 10);
+      context.haptics.pulse('right', 0.3, 10);
     }
   }
 }

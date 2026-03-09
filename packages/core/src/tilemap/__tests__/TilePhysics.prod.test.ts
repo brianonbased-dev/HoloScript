@@ -8,7 +8,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { TilePhysics } from '../TilePhysics';
 
 // Minimal TileMap mock
-function makeTileMap(solidTiles: Set<string> = new Set(), tileSize = 16, oneWayTiles: Set<string> = new Set()) {
+function makeTileMap(
+  solidTiles: Set<string> = new Set(),
+  tileSize = 16,
+  oneWayTiles: Set<string> = new Set()
+) {
   return {
     getTileSize: () => tileSize,
     isSolid: (tx: number, ty: number) => solidTiles.has(`${tx},${ty}`),

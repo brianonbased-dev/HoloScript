@@ -11,27 +11,27 @@
 
 export interface Atom {
   id: string;
-  element: string;       // 'C', 'N', 'O', 'H', 'S', 'P', etc.
+  element: string; // 'C', 'N', 'O', 'H', 'S', 'P', etc.
   position: { x: number; y: number; z: number };
-  charge: number;         // partial charge
-  radius: number;         // van der Waals radius (Å)
+  charge: number; // partial charge
+  radius: number; // van der Waals radius (Å)
 }
 
 export interface Bond {
   atomA: string;
   atomB: string;
-  order: 1 | 2 | 3;      // single, double, triple
+  order: 1 | 2 | 3; // single, double, triple
   rotatable: boolean;
 }
 
 export interface Molecule {
   id: string;
   name: string;
-  formula: string;        // e.g., 'C20H25N3O'
+  formula: string; // e.g., 'C20H25N3O'
   atoms: Atom[];
   bonds: Bond[];
   molecularWeight: number;
-  logP: number;           // partition coefficient (lipophilicity)
+  logP: number; // partition coefficient (lipophilicity)
   hBondDonors: number;
   hBondAcceptors: number;
   rotatableBonds: number;
@@ -39,10 +39,26 @@ export interface Molecule {
 }
 
 export type AminoAcid =
-  | 'ALA' | 'ARG' | 'ASN' | 'ASP' | 'CYS'
-  | 'GLU' | 'GLN' | 'GLY' | 'HIS' | 'ILE'
-  | 'LEU' | 'LYS' | 'MET' | 'PHE' | 'PRO'
-  | 'SER' | 'THR' | 'TRP' | 'TYR' | 'VAL';
+  | 'ALA'
+  | 'ARG'
+  | 'ASN'
+  | 'ASP'
+  | 'CYS'
+  | 'GLU'
+  | 'GLN'
+  | 'GLY'
+  | 'HIS'
+  | 'ILE'
+  | 'LEU'
+  | 'LYS'
+  | 'MET'
+  | 'PHE'
+  | 'PRO'
+  | 'SER'
+  | 'THR'
+  | 'TRP'
+  | 'TYR'
+  | 'VAL';
 
 export interface ProteinResidue {
   id: number;
@@ -56,16 +72,20 @@ export interface BindingSite {
   name: string;
   residues: ProteinResidue[];
   center: { x: number; y: number; z: number };
-  volume: number;         // Å³
+  volume: number; // Å³
 }
 
 export interface DockingResult {
   ligandId: string;
   siteId: string;
-  bindingEnergy: number;  // kcal/mol (negative = favorable)
+  bindingEnergy: number; // kcal/mol (negative = favorable)
   pose: { x: number; y: number; z: number; rotX: number; rotY: number; rotZ: number };
-  contacts: Array<{ residueId: number; type: 'hydrogen' | 'hydrophobic' | 'ionic' | 'pi-stack'; distance: number }>;
-  rmsd: number;           // Root-mean-square deviation
+  contacts: Array<{
+    residueId: number;
+    type: 'hydrogen' | 'hydrophobic' | 'ionic' | 'pi-stack';
+    distance: number;
+  }>;
+  rmsd: number; // Root-mean-square deviation
 }
 
 export interface LipinskiResult {
@@ -82,19 +102,52 @@ export interface LipinskiResult {
 // ═══════════════════════════════════════════════════════════════════
 
 export const VDW_RADII: Record<string, number> = {
-  H: 1.20, C: 1.70, N: 1.55, O: 1.52, S: 1.80, P: 1.80, F: 1.47, Cl: 1.75, Br: 1.85, I: 1.98,
+  H: 1.2,
+  C: 1.7,
+  N: 1.55,
+  O: 1.52,
+  S: 1.8,
+  P: 1.8,
+  F: 1.47,
+  Cl: 1.75,
+  Br: 1.85,
+  I: 1.98,
 };
 
 export const ELEMENT_COLORS: Record<string, string> = {
-  H: '#ffffff', C: '#909090', N: '#3050f8', O: '#ff0d0d', S: '#ffff30',
-  P: '#ff8000', F: '#90e050', Cl: '#1ff01f', Br: '#a62929', I: '#940094',
+  H: '#ffffff',
+  C: '#909090',
+  N: '#3050f8',
+  O: '#ff0d0d',
+  S: '#ffff30',
+  P: '#ff8000',
+  F: '#90e050',
+  Cl: '#1ff01f',
+  Br: '#a62929',
+  I: '#940094',
 };
 
 export const AMINO_ACID_CODES: Record<AminoAcid, string> = {
-  ALA: 'A', ARG: 'R', ASN: 'N', ASP: 'D', CYS: 'C',
-  GLU: 'E', GLN: 'Q', GLY: 'G', HIS: 'H', ILE: 'I',
-  LEU: 'L', LYS: 'K', MET: 'M', PHE: 'F', PRO: 'P',
-  SER: 'S', THR: 'T', TRP: 'W', TYR: 'Y', VAL: 'V',
+  ALA: 'A',
+  ARG: 'R',
+  ASN: 'N',
+  ASP: 'D',
+  CYS: 'C',
+  GLU: 'E',
+  GLN: 'Q',
+  GLY: 'G',
+  HIS: 'H',
+  ILE: 'I',
+  LEU: 'L',
+  LYS: 'K',
+  MET: 'M',
+  PHE: 'F',
+  PRO: 'P',
+  SER: 'S',
+  THR: 'T',
+  TRP: 'W',
+  TYR: 'Y',
+  VAL: 'V',
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -104,8 +157,8 @@ export const AMINO_ACID_CODES: Record<AminoAcid, string> = {
 export function atomDistance(a: Atom, b: Atom): number {
   return Math.sqrt(
     (a.position.x - b.position.x) ** 2 +
-    (a.position.y - b.position.y) ** 2 +
-    (a.position.z - b.position.z) ** 2
+      (a.position.y - b.position.y) ** 2 +
+      (a.position.z - b.position.z) ** 2
   );
 }
 
@@ -120,7 +173,7 @@ export function molecularFormula(atoms: Atom[]): string {
     if (b === 'H') return 1;
     return a.localeCompare(b);
   });
-  return order.map(el => `${el}${counts[el] > 1 ? counts[el] : ''}`).join('');
+  return order.map((el) => `${el}${counts[el] > 1 ? counts[el] : ''}`).join('');
 }
 
 export function totalCharge(atoms: Atom[]): number {
@@ -168,12 +221,10 @@ export function drugLikenessScore(mol: Molecule): number {
 // Protein-Ligand Docking
 // ═══════════════════════════════════════════════════════════════════
 
-export function estimateBindingEnergy(
-  contacts: DockingResult['contacts']
-): number {
+export function estimateBindingEnergy(contacts: DockingResult['contacts']): number {
   let energy = 0;
   for (const c of contacts) {
-    if (c.type === 'hydrogen') energy -= 2.5;      // kcal/mol
+    if (c.type === 'hydrogen') energy -= 2.5; // kcal/mol
     if (c.type === 'hydrophobic') energy -= 0.7;
     if (c.type === 'ionic') energy -= 5.0;
     if (c.type === 'pi-stack') energy -= 1.5;
@@ -186,13 +237,19 @@ export function estimateBindingEnergy(
 export function bindingSiteVolume(residues: ProteinResidue[]): number {
   // Approximate as convex hull bounding box
   if (residues.length === 0) return 0;
-  let minX = Infinity, maxX = -Infinity;
-  let minY = Infinity, maxY = -Infinity;
-  let minZ = Infinity, maxZ = -Infinity;
+  let minX = Infinity,
+    maxX = -Infinity;
+  let minY = Infinity,
+    maxY = -Infinity;
+  let minZ = Infinity,
+    maxZ = -Infinity;
   for (const r of residues) {
-    minX = Math.min(minX, r.position.x); maxX = Math.max(maxX, r.position.x);
-    minY = Math.min(minY, r.position.y); maxY = Math.max(maxY, r.position.y);
-    minZ = Math.min(minZ, r.position.z); maxZ = Math.max(maxZ, r.position.z);
+    minX = Math.min(minX, r.position.x);
+    maxX = Math.max(maxX, r.position.x);
+    minY = Math.min(minY, r.position.y);
+    maxY = Math.max(maxY, r.position.y);
+    minZ = Math.min(minZ, r.position.z);
+    maxZ = Math.max(maxZ, r.position.z);
   }
   return (maxX - minX) * (maxY - minY) * (maxZ - minZ);
 }
@@ -225,10 +282,26 @@ export function parsePDB(pdbText: string): ProteinResidue[] {
   const residues: ProteinResidue[] = [];
   const seen = new Set<string>();
   const AA_MAP: Record<string, AminoAcid> = {
-    ALA: 'ALA', ARG: 'ARG', ASN: 'ASN', ASP: 'ASP', CYS: 'CYS',
-    GLU: 'GLU', GLN: 'GLN', GLY: 'GLY', HIS: 'HIS', ILE: 'ILE',
-    LEU: 'LEU', LYS: 'LYS', MET: 'MET', PHE: 'PHE', PRO: 'PRO',
-    SER: 'SER', THR: 'THR', TRP: 'TRP', TYR: 'TYR', VAL: 'VAL',
+    ALA: 'ALA',
+    ARG: 'ARG',
+    ASN: 'ASN',
+    ASP: 'ASP',
+    CYS: 'CYS',
+    GLU: 'GLU',
+    GLN: 'GLN',
+    GLY: 'GLY',
+    HIS: 'HIS',
+    ILE: 'ILE',
+    LEU: 'LEU',
+    LYS: 'LYS',
+    MET: 'MET',
+    PHE: 'PHE',
+    PRO: 'PRO',
+    SER: 'SER',
+    THR: 'THR',
+    TRP: 'TRP',
+    TYR: 'TYR',
+    VAL: 'VAL',
   };
 
   for (const line of pdbText.split('\n')) {
@@ -271,7 +344,7 @@ export function solventAccessibleSurface(atoms: Atom[], probeRadius: number = 1.
     for (const other of atoms) {
       if (other.id === atom.id) continue;
       const d = atomDistance(atom, other);
-      if (d < (r + (other.radius || 1.5) + 2 * probeRadius)) neighborCount++;
+      if (d < r + (other.radius || 1.5) + 2 * probeRadius) neighborCount++;
     }
     // Exposure fraction decreases with neighbors (simplified)
     const expFraction = Math.max(0, 1 - neighborCount * 0.08);
@@ -284,7 +357,13 @@ export function solventAccessibleSurface(atoms: Atom[], probeRadius: number = 1.
 // Pharmacophore Model
 // ═══════════════════════════════════════════════════════════════════
 
-export type PharmacophoreType = 'h-bond-donor' | 'h-bond-acceptor' | 'hydrophobic' | 'positive' | 'negative' | 'aromatic';
+export type PharmacophoreType =
+  | 'h-bond-donor'
+  | 'h-bond-acceptor'
+  | 'hydrophobic'
+  | 'positive'
+  | 'negative'
+  | 'aromatic';
 
 export interface PharmacophoreFeature {
   type: PharmacophoreType;
@@ -303,9 +382,19 @@ export function pharmacophoreFeatures(mol: Molecule): PharmacophoreFeature[] {
     // Hydrogen bond donors (N-H, O-H)
     if (atom.element === 'N' || atom.element === 'O') {
       if (atom.charge >= 0) {
-        features.push({ type: 'h-bond-donor', position: atom.position, radius: 1.0, atomIds: [atom.id] });
+        features.push({
+          type: 'h-bond-donor',
+          position: atom.position,
+          radius: 1.0,
+          atomIds: [atom.id],
+        });
       }
-      features.push({ type: 'h-bond-acceptor', position: atom.position, radius: 1.0, atomIds: [atom.id] });
+      features.push({
+        type: 'h-bond-acceptor',
+        position: atom.position,
+        radius: 1.0,
+        atomIds: [atom.id],
+      });
     }
 
     // Charged groups
@@ -317,7 +406,12 @@ export function pharmacophoreFeatures(mol: Molecule): PharmacophoreFeature[] {
 
     // Hydrophobic (C atoms with no polar neighbors)
     if (atom.element === 'C') {
-      features.push({ type: 'hydrophobic', position: atom.position, radius: 1.5, atomIds: [atom.id] });
+      features.push({
+        type: 'hydrophobic',
+        position: atom.position,
+        radius: 1.5,
+        atomIds: [atom.id],
+      });
     }
   }
 

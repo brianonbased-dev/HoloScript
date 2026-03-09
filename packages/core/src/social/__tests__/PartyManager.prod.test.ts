@@ -45,7 +45,9 @@ describe('PartyManager — Production', () => {
 
   it('createParty event data has id and members', () => {
     let partyData: any;
-    manager.onEvent((ev, data) => { if (ev === 'party_created') partyData = data; });
+    manager.onEvent((ev, data) => {
+      if (ev === 'party_created') partyData = data;
+    });
     manager.createParty();
     expect(partyData).toBeDefined();
     expect(partyData.id).toBeDefined();
@@ -54,7 +56,9 @@ describe('PartyManager — Production', () => {
 
   it('createParty creates party with local user as leader', () => {
     let partyData: any;
-    manager.onEvent((ev, data) => { if (ev === 'party_created') partyData = data; });
+    manager.onEvent((ev, data) => {
+      if (ev === 'party_created') partyData = data;
+    });
     manager.createParty();
     const leader = partyData.members.find((m: any) => m.isLeader);
     expect(leader).toBeDefined();
@@ -63,7 +67,9 @@ describe('PartyManager — Production', () => {
 
   it('createParty sets maxSize to 4 by default', () => {
     let partyData: any;
-    manager.onEvent((ev, data) => { if (ev === 'party_created') partyData = data; });
+    manager.onEvent((ev, data) => {
+      if (ev === 'party_created') partyData = data;
+    });
     manager.createParty();
     expect(partyData.maxSize).toBe(4);
   });
@@ -124,7 +130,9 @@ describe('PartyManager — Production', () => {
 
   it('leaveParty clears current party', () => {
     let leftEventFired = false;
-    manager.onEvent((ev) => { if (ev === 'party_left') leftEventFired = true; });
+    manager.onEvent((ev) => {
+      if (ev === 'party_left') leftEventFired = true;
+    });
     manager.createParty();
     manager.leaveParty();
     // Trying to leave again should still not throw and not fire PARTY_LEAVE again
@@ -148,7 +156,9 @@ describe('PartyManager — Production', () => {
     manager.createParty();
     // Get the party id from the created event
     let partyId: string;
-    manager.onEvent((ev, data) => { if (ev === 'party_created') partyId = data.id; });
+    manager.onEvent((ev, data) => {
+      if (ev === 'party_created') partyId = data.id;
+    });
     manager.createParty(); // re-create to capture id
     transport._deliver({
       type: 'PARTY_UPDATE',

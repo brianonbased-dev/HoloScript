@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useEditorStore } from '@/lib/store';
+import { useEditorStore } from '@/lib/stores';
 
 interface RemoteCommand {
   type: 'orbit' | 'zoom' | 'pan' | 'reset' | 'select';
@@ -39,23 +39,26 @@ export function useMobileRemote() {
     // Future: useEditorStore.getState().applyRemoteCommand(cmd)
   }, []);
 
-  const startPolling = useCallback((tok: string) => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/remote?t=${tok}`);
-        if (res.status === 404) {
-          setStatus('expired');
-          clearInterval(pollRef.current!);
-          return;
+  const startPolling = useCallback(
+    (tok: string) => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/remote?t=${tok}`);
+          if (res.status === 404) {
+            setStatus('expired');
+            clearInterval(pollRef.current!);
+            return;
+          }
+          const data = (await res.json()) as { commands: RemoteCommand[] };
+          data.commands.forEach(applyCommand);
+        } catch {
+          // network hiccup — keep polling
         }
-        const data = (await res.json()) as { commands: RemoteCommand[] };
-        data.commands.forEach(applyCommand);
-      } catch {
-        // network hiccup — keep polling
-      }
-    }, 500); // poll every 500ms
-  }, [applyCommand]);
+      }, 500); // poll every 500ms
+    },
+    [applyCommand]
+  );
 
   const createSession = useCallback(async () => {
     try {
@@ -82,7 +85,12 @@ export function useMobileRemote() {
     setCommandCount(0);
   }, [token]);
 
-  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    },
+    []
+  );
 
   return { token, remoteUrl, status, commandCount, createSession, endSession };
 }

@@ -55,7 +55,6 @@ object ${name} {
 // =============================================================================
 
 describe('HoloCompositionParser — import statement parsing', () => {
-
   it('parses named import: import { X, Y } from "./module"', () => {
     const src = `
 composition Test {
@@ -120,7 +119,9 @@ composition Multi {
 describe('ImportResolver — named imports', () => {
   let ir: ImportResolver;
 
-  beforeEach(() => { ir = new ImportResolver(); });
+  beforeEach(() => {
+    ir = new ImportResolver();
+  });
 
   it('resolves a single named import and injects it into scope', async () => {
     const files: Record<string, string> = {
@@ -193,7 +194,9 @@ object Sphere {
 
     // At minimum, no named_not_exported errors for names that are parsed
     // (exact export detection depends on HoloScriptPlusParser @export directives)
-    expect(result.errors.filter((e: ImportResolutionError) => e.code === 'parse_error')).toHaveLength(0);
+    expect(
+      result.errors.filter((e: ImportResolutionError) => e.code === 'parse_error')
+    ).toHaveLength(0);
   });
 });
 
@@ -204,7 +207,9 @@ object Sphere {
 describe('ImportResolver — wildcard imports', () => {
   let ir: ImportResolver;
 
-  beforeEach(() => { ir = new ImportResolver(); });
+  beforeEach(() => {
+    ir = new ImportResolver();
+  });
 
   it('wildcard import injects all exports under namespace alias', async () => {
     const files = {
@@ -236,7 +241,9 @@ describe('ImportResolver — wildcard imports', () => {
 describe('ImportResolver — cycle detection', () => {
   let ir: ImportResolver;
 
-  beforeEach(() => { ir = new ImportResolver(); });
+  beforeEach(() => {
+    ir = new ImportResolver();
+  });
 
   it('detects A → B → A circular import and reports cycle error', async () => {
     let callCount = 0;
@@ -269,7 +276,6 @@ describe('ImportResolver — cycle detection', () => {
     expect(typeof result.errors).toBe('object');
     expect(typeof result.modules).toBe('object');
   });
-
 });
 
 // =============================================================================
@@ -282,9 +288,7 @@ describe('ImportResolver — max depth guard', () => {
 
     // Build a 5-level deep chain: 0→1→2→3→4→5, maxDepth=2
     const makeModule = (depth: number) =>
-      depth < 5
-        ? `import "./${depth + 1}.hs"\nobject D${depth} {}`
-        : `object D5 {}`;
+      depth < 5 ? `import "./${depth + 1}.hs"\nobject D${depth} {}` : `object D5 {}`;
 
     const readFile = vi.fn(async (path: string) => {
       const match = path.match(/\/(\d+)\.hs$/);
@@ -310,7 +314,9 @@ describe('ImportResolver — max depth guard', () => {
     expect(readFile.mock.calls.length).toBeLessThanOrEqual(10);
     // If errors present, they should be known error code types
     if (codes.length > 0) {
-      expect(codes.every(c => ['max_depth', 'cycle', 'parse_error', 'not_found'].includes(c))).toBe(true);
+      expect(
+        codes.every((c) => ['max_depth', 'cycle', 'parse_error', 'not_found'].includes(c))
+      ).toBe(true);
     }
   });
 });
@@ -339,7 +345,7 @@ describe('ImportResolver — transitive dependencies', () => {
 
     // No parse/not_found errors on this clean chain
     const hardErrors = result.errors.filter(
-      e => e.code === 'not_found' || e.code === 'parse_error'
+      (e) => e.code === 'not_found' || e.code === 'parse_error'
     );
     expect(hardErrors).toHaveLength(0);
     expect(result.modules.size).toBeGreaterThanOrEqual(1);
@@ -432,7 +438,7 @@ describe('ImportResolver — error recovery', () => {
     });
 
     // Empty file resolves cleanly (tolerant parser), exports = {}
-    expect(result.errors.filter(e => e.code === 'parse_error')).toHaveLength(0);
+    expect(result.errors.filter((e) => e.code === 'parse_error')).toHaveLength(0);
   });
 });
 
@@ -441,7 +447,6 @@ describe('ImportResolver — error recovery', () => {
 // =============================================================================
 
 describe('resolveImportPath — edge cases', () => {
-
   it('handles path with no extension', () => {
     expect(resolveImportPath('./components/Button', '/src')).toBe('/src/components/Button');
   });

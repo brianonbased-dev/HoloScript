@@ -9,11 +9,21 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  basicReproductionNumber, effectiveR, herdImmunityThreshold,
-  infectionRate, caseRiskLevel, caseFatalityRate,
-  stepSEIR, quarantineEffectiveness, vaccinationCoverage,
-  daysToHerdImmunity, contactTracingGraph, icuCapacityProjection,
-  type PopulationZone, type QuarantineZone, type SEIRState,
+  basicReproductionNumber,
+  effectiveR,
+  herdImmunityThreshold,
+  infectionRate,
+  caseRiskLevel,
+  caseFatalityRate,
+  stepSEIR,
+  quarantineEffectiveness,
+  vaccinationCoverage,
+  daysToHerdImmunity,
+  contactTracingGraph,
+  icuCapacityProjection,
+  type PopulationZone,
+  type QuarantineZone,
+  type SEIRState,
 } from '@/lib/epidemicHeatmap';
 
 describe('Scenario: Epidemic Heatmap — R0 & Risk', () => {
@@ -36,14 +46,25 @@ describe('Scenario: Epidemic Heatmap — R0 & Risk', () => {
   });
 
   it('infectionRate() = infected / population', () => {
-    const zone: PopulationZone = { id: 'z1', name: 'Downtown', center: { lat: 0, lon: 0 }, radiusKm: 5, population: 10000, density: 5000, infected: 500, recovered: 200, deceased: 10, vaccinated: 3000 };
+    const zone: PopulationZone = {
+      id: 'z1',
+      name: 'Downtown',
+      center: { lat: 0, lon: 0 },
+      radiusKm: 5,
+      population: 10000,
+      density: 5000,
+      infected: 500,
+      recovered: 200,
+      deceased: 10,
+      vaccinated: 3000,
+    };
     expect(infectionRate(zone)).toBe(0.05);
   });
 
   it('caseRiskLevel() classifies infection rates', () => {
     expect(caseRiskLevel(0.005)).toBe('low');
     expect(caseRiskLevel(0.03)).toBe('moderate');
-    expect(caseRiskLevel(0.10)).toBe('high');
+    expect(caseRiskLevel(0.1)).toBe('high');
     expect(caseRiskLevel(0.25)).toBe('critical');
   });
 
@@ -53,7 +74,13 @@ describe('Scenario: Epidemic Heatmap — R0 & Risk', () => {
 });
 
 describe('Scenario: Epidemic Heatmap — SEIR Model', () => {
-  const initial: SEIRState = { susceptible: 9900, exposed: 50, infected: 50, recovered: 0, total: 10000 };
+  const initial: SEIRState = {
+    susceptible: 9900,
+    exposed: 50,
+    infected: 50,
+    recovered: 0,
+    total: 10000,
+  };
 
   it('SEIR step reduces susceptible as infected grow', () => {
     const next = stepSEIR(initial, 0.3, 0.2, 0.1);
@@ -79,8 +106,24 @@ describe('Scenario: Epidemic Heatmap — SEIR Model', () => {
 
 describe('Scenario: Epidemic Heatmap — Interventions', () => {
   it('quarantineEffectiveness() depends on compliance and level', () => {
-    const enforced: QuarantineZone = { id: 'q1', boundary: [], restrictionLevel: 'enforced', startDate: 0, endDate: 14 * 86400000, population: 5000, complianceRate: 0.9 };
-    const advisory: QuarantineZone = { id: 'q2', boundary: [], restrictionLevel: 'advisory', startDate: 0, endDate: 14 * 86400000, population: 5000, complianceRate: 0.5 };
+    const enforced: QuarantineZone = {
+      id: 'q1',
+      boundary: [],
+      restrictionLevel: 'enforced',
+      startDate: 0,
+      endDate: 14 * 86400000,
+      population: 5000,
+      complianceRate: 0.9,
+    };
+    const advisory: QuarantineZone = {
+      id: 'q2',
+      boundary: [],
+      restrictionLevel: 'advisory',
+      startDate: 0,
+      endDate: 14 * 86400000,
+      population: 5000,
+      complianceRate: 0.5,
+    };
     expect(quarantineEffectiveness(enforced)).toBeGreaterThan(quarantineEffectiveness(advisory));
   });
 
@@ -105,9 +148,33 @@ describe('Scenario: Epidemic Heatmap — Interventions', () => {
 
   it('contactTracingGraph — builds infection chain and finds super-spreaders', () => {
     const events = [
-      { id: '1', patientId: 'P1', location: { lat: 40, lon: -74 }, timestamp: 1000, status: 'infected' as const, contactCount: 8, isolated: false },
-      { id: '2', patientId: 'P2', location: { lat: 40, lon: -74 }, timestamp: 2000, status: 'infected' as const, contactCount: 2, isolated: true },
-      { id: '3', patientId: 'P3', location: { lat: 41, lon: -73 }, timestamp: 3000, status: 'infected' as const, contactCount: 1, isolated: false },
+      {
+        id: '1',
+        patientId: 'P1',
+        location: { lat: 40, lon: -74 },
+        timestamp: 1000,
+        status: 'infected' as const,
+        contactCount: 8,
+        isolated: false,
+      },
+      {
+        id: '2',
+        patientId: 'P2',
+        location: { lat: 40, lon: -74 },
+        timestamp: 2000,
+        status: 'infected' as const,
+        contactCount: 2,
+        isolated: true,
+      },
+      {
+        id: '3',
+        patientId: 'P3',
+        location: { lat: 41, lon: -73 },
+        timestamp: 3000,
+        status: 'infected' as const,
+        contactCount: 1,
+        isolated: false,
+      },
     ];
     const graph = contactTracingGraph(events, 5);
     expect(graph.nodes).toContain('P1');

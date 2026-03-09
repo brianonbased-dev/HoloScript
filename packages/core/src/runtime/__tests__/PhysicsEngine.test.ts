@@ -9,11 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  physicsEngineRegistry,
-  registerPhysicsEngine,
-  getPhysicsEngine,
-} from '../PhysicsEngine';
+import { physicsEngineRegistry, registerPhysicsEngine, getPhysicsEngine } from '../PhysicsEngine';
 import type { PhysicsEngine, PhysicsConfig, BodyProps, BodyState } from '../PhysicsEngine';
 
 // ---------------------------------------------------------------------------
@@ -227,11 +223,7 @@ describe('PhysicsEngine — forces', () => {
   it('applyForce with force vector and application point', () => {
     const engine = createMockPhysicsEngine();
     engine.applyForce('body-1', [0, 100, 0], [0, 1, 0]);
-    expect(engine.applyForce).toHaveBeenCalledWith(
-      'body-1',
-      [0, 100, 0],
-      [0, 1, 0],
-    );
+    expect(engine.applyForce).toHaveBeenCalledWith('body-1', [0, 100, 0], [0, 1, 0]);
   });
 });
 

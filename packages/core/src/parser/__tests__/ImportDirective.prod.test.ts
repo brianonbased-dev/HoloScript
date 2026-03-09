@@ -124,11 +124,9 @@ describe('@import — named imports', () => {
 
 describe('@import — multiple in one file', () => {
   it('collects all imports in order', () => {
-    const src = [
-      '@import "./a.hs"',
-      '@import "./b.hs" as B',
-      '@import { C } from "./c.hs"',
-    ].join('\n') + '\n';
+    const src =
+      ['@import "./a.hs"', '@import "./b.hs" as B', '@import { C } from "./c.hs"'].join('\n') +
+      '\n';
 
     const result = parse(src);
     const imps = importDirectives(result);
@@ -157,9 +155,7 @@ describe('@import — disabled mode', () => {
     // @import is silently ignored in non-strict mode
     expect(result.ast.imports ?? []).toHaveLength(0);
     expect(result.warnings.length).toBeGreaterThan(0);
-    expect(
-      result.warnings.some((w: any) => w.message?.includes('@import is disabled'))
-    ).toBe(true);
+    expect(result.warnings.some((w: any) => w.message?.includes('@import is disabled'))).toBe(true);
   });
 });
 
@@ -212,11 +208,8 @@ describe('@export', () => {
 
 describe('@import + @export coexistence', () => {
   it('can have both import and export directives in one file', () => {
-    const src = [
-      '@import "./base.hs"',
-      '@export template "DerivedOrb"',
-      'orb derived { }',
-    ].join('\n') + '\n';
+    const src =
+      ['@import "./base.hs"', '@export template "DerivedOrb"', 'orb derived { }'].join('\n') + '\n';
 
     const result = parse(src);
     expect(importDirectives(result)).toHaveLength(1);

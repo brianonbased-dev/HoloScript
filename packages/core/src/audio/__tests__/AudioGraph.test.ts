@@ -4,7 +4,9 @@ import { AudioGraph } from '../AudioGraph';
 describe('AudioGraph', () => {
   let graph: AudioGraph;
 
-  beforeEach(() => { graph = new AudioGraph(); });
+  beforeEach(() => {
+    graph = new AudioGraph();
+  });
 
   // ---------------------------------------------------------------------------
   // Node Management

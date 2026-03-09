@@ -22,7 +22,7 @@ export interface JointDef {
   anchorB: { x: number; y: number; z: number };
   axis?: { x: number; y: number; z: number };
   limits?: { min: number; max: number };
-  breakForce: number;    // Infinity = unbreakable
+  breakForce: number; // Infinity = unbreakable
   stiffness: number;
   damping: number;
   motorSpeed: number;
@@ -55,7 +55,10 @@ export class JointSystem {
   createJoint(type: JointType, bodyA: string, bodyB: string, config?: Partial<JointDef>): JointDef {
     const id = config?.id ?? `joint_${_jointId++}`;
     const joint: JointDef = {
-      id, type, bodyA, bodyB,
+      id,
+      type,
+      bodyA,
+      bodyB,
       anchorA: config?.anchorA ?? { x: 0, y: 0, z: 0 },
       anchorB: config?.anchorB ?? { x: 0, y: 0, z: 0 },
       axis: config?.axis ?? { x: 0, y: 1, z: 0 },
@@ -102,8 +105,9 @@ export class JointSystem {
       switch (joint.type) {
         case 'spring': {
           const restLength = this.distance3D(joint.anchorA, joint.anchorB);
-          const force = joint.stiffness * (state.currentDistance - restLength)
-                      + joint.damping * state.currentForce;
+          const force =
+            joint.stiffness * (state.currentDistance - restLength) +
+            joint.damping * state.currentForce;
           state.currentForce = force;
           break;
         }
@@ -115,7 +119,10 @@ export class JointSystem {
         }
         case 'hinge': {
           if (joint.limits) {
-            state.currentAngle = Math.max(joint.limits.min, Math.min(joint.limits.max, state.currentAngle));
+            state.currentAngle = Math.max(
+              joint.limits.min,
+              Math.min(joint.limits.max, state.currentAngle)
+            );
           }
           if (joint.motorForce > 0) {
             state.currentAngle += joint.motorSpeed * dt;
@@ -125,7 +132,10 @@ export class JointSystem {
         }
         case 'slider': {
           if (joint.limits) {
-            state.currentDistance = Math.max(joint.limits.min, Math.min(joint.limits.max, state.currentDistance));
+            state.currentDistance = Math.max(
+              joint.limits.min,
+              Math.min(joint.limits.max, state.currentDistance)
+            );
           }
           state.currentForce = joint.stiffness * Math.abs(state.currentDistance);
           break;
@@ -148,7 +158,10 @@ export class JointSystem {
 
   setMotor(id: string, speed: number, force: number): void {
     const joint = this.joints.get(id);
-    if (joint) { joint.motorSpeed = speed; joint.motorForce = force; }
+    if (joint) {
+      joint.motorSpeed = speed;
+      joint.motorForce = force;
+    }
   }
 
   setEnabled(id: string, enabled: boolean): void {
@@ -170,23 +183,36 @@ export class JointSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getJoint(id: string): JointDef | undefined { return this.joints.get(id); }
-  getState(id: string): JointState | undefined { return this.states.get(id); }
-  getJointCount(): number { return this.joints.size; }
-  getBrokenJoints(): JointDef[] { return [...this.joints.values()].filter(j => j.broken); }
+  getJoint(id: string): JointDef | undefined {
+    return this.joints.get(id);
+  }
+  getState(id: string): JointState | undefined {
+    return this.states.get(id);
+  }
+  getJointCount(): number {
+    return this.joints.size;
+  }
+  getBrokenJoints(): JointDef[] {
+    return [...this.joints.values()].filter((j) => j.broken);
+  }
 
   getJointsForBody(bodyId: string): JointDef[] {
     const ids = this.bodyJoints.get(bodyId);
     if (!ids) return [];
-    return [...ids].map(id => this.joints.get(id)!).filter(Boolean);
+    return [...ids].map((id) => this.joints.get(id)!).filter(Boolean);
   }
 
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private distance3D(a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }): number {
-    const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+  private distance3D(
+    a: { x: number; y: number; z: number },
+    b: { x: number; y: number; z: number }
+  ): number {
+    const dx = b.x - a.x,
+      dy = b.y - a.y,
+      dz = b.z - a.z;
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 }

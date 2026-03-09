@@ -4,7 +4,9 @@ import { ErosionBrush } from '../ErosionBrush';
 describe('ErosionBrush', () => {
   let eb: ErosionBrush;
 
-  beforeEach(() => { eb = new ErosionBrush(16); });
+  beforeEach(() => {
+    eb = new ErosionBrush(16);
+  });
 
   it('constructs with defaults', () => {
     expect(eb.getGridSize()).toBe(16);

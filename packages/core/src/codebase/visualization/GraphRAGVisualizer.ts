@@ -39,10 +39,7 @@ export class GraphRAGVisualizer {
    * Higher-scoring nodes get stronger glow and scale-up.
    * Non-matching nodes are dimmed.
    */
-  highlightSearchResults(
-    scene: SceneComposition,
-    results: RAGSearchResult[],
-  ): SceneComposition {
+  highlightSearchResults(scene: SceneComposition, results: RAGSearchResult[]): SceneComposition {
     if (results.length === 0) return scene;
 
     const scoreMap = new Map(results.map((r) => [r.nodeId, r.score]));
@@ -84,10 +81,7 @@ export class GraphRAGVisualizer {
    * Visualize a call chain path through the graph.
    * Nodes and edges along the chain are highlighted with a pulse-ready style.
    */
-  visualizeCallChain(
-    scene: SceneComposition,
-    chain: CallChain,
-  ): SceneComposition {
+  visualizeCallChain(scene: SceneComposition, chain: CallChain): SceneComposition {
     if (chain.path.length === 0) return scene;
 
     const pathSet = new Set(chain.path);
@@ -144,7 +138,7 @@ export class GraphRAGVisualizer {
   visualizeImpactSet(
     scene: SceneComposition,
     impactedFiles: string[],
-    maxDistance = 3,
+    maxDistance = 3
   ): SceneComposition {
     // Build file-to-nodeId mapping (assume properties.file exists)
     const fileDistanceMap = new Map<string, number>();
@@ -183,8 +177,8 @@ export class GraphRAGVisualizer {
         const toObj = scene.objects.find((o) => o.name === edge.to);
         const fromFile = fromObj?.properties.file as string | undefined;
         const toFile = toObj?.properties.file as string | undefined;
-        const bothImpacted = fromFile && toFile &&
-          fileDistanceMap.has(fromFile) && fileDistanceMap.has(toFile);
+        const bothImpacted =
+          fromFile && toFile && fileDistanceMap.has(fromFile) && fileDistanceMap.has(toFile);
 
         if (bothImpacted) {
           return { ...edge, color: '#ff8800', opacity: 0.7, width: edge.width + 1 };

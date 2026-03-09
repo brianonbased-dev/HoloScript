@@ -20,10 +20,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import {
-  WebSocketTransport,
-  createWebSocketTransport,
-} from '../WebSocketTransport';
+import { WebSocketTransport, createWebSocketTransport } from '../WebSocketTransport';
 import type { WebSocketTransportConfig } from '../WebSocketTransport';
 
 // ---------------------------------------------------------------------------

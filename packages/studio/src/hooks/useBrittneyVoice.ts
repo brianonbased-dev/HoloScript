@@ -58,13 +58,13 @@ export interface UseBrittneyVoiceReturn {
 export function useBrittneyVoice(): UseBrittneyVoiceReturn {
   const SpeechRecognition =
     typeof window !== 'undefined'
-      ? window.SpeechRecognition ?? window.webkitSpeechRecognition
+      ? (window.SpeechRecognition ?? window.webkitSpeechRecognition)
       : undefined;
 
   const isSupported = !!SpeechRecognition;
 
-  const [isListening, setIsListening]         = useState(false);
-  const [transcript, setTranscript]           = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
 
@@ -126,5 +126,13 @@ export function useBrittneyVoice(): UseBrittneyVoiceReturn {
     setInterimTranscript('');
   }, []);
 
-  return { isListening, isSupported, transcript, interimTranscript, startListening, stopListening, clearTranscript };
+  return {
+    isListening,
+    isSupported,
+    transcript,
+    interimTranscript,
+    startListening,
+    stopListening,
+    clearTranscript,
+  };
 }

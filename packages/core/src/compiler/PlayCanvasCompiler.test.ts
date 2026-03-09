@@ -1,7 +1,20 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PlayCanvasCompiler } from './PlayCanvasCompiler';
 import { registerAllPresets } from '../traits/visual';
-import type { HoloComposition, HoloObjectDecl, HoloLight, HoloCamera, HoloSpatialGroup, HoloTimeline, HoloAudio, HoloZone, HoloUI, HoloEffects, HoloTransition, HoloEnvironment } from '../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloLight,
+  HoloCamera,
+  HoloSpatialGroup,
+  HoloTimeline,
+  HoloAudio,
+  HoloZone,
+  HoloUI,
+  HoloEffects,
+  HoloTransition,
+  HoloEnvironment,
+} from '../parser/HoloCompositionTypes';
 
 // Ensure TraitVisualRegistry is populated for TraitCompositor integration tests
 registerAllPresets();
@@ -40,7 +53,10 @@ function prop(key: string, value: any): { key: string; value: any } {
   return { key, value };
 }
 
-function trait(name: string, config?: Record<string, any>): { name: string; config: Record<string, any> } {
+function trait(
+  name: string,
+  config?: Record<string, any>
+): { name: string; config: Record<string, any> } {
   return { name, config: config || {} };
 }
 
@@ -48,10 +64,7 @@ function createLight(overrides: Partial<HoloLight> & { lightType?: string } = {}
   return {
     name: 'TestLight',
     lightType: overrides.lightType || 'point',
-    properties: overrides.properties || [
-      prop('position', [0, 5, 0]),
-      prop('intensity', 1.0),
-    ],
+    properties: overrides.properties || [prop('position', [0, 5, 0]), prop('intensity', 1.0)],
     ...overrides,
   } as HoloLight;
 }
@@ -183,216 +196,304 @@ describe('PlayCanvasCompiler', () => {
 
   describe('objects', () => {
     it('should emit entity for basic object', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('MyCube')],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [createObject('MyCube')],
+        })
+      );
       expect(output).toContain('new pc.Entity("MyCube")');
     });
 
     it('should emit render component for geometry', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('MySphere', {
-          properties: [prop('geometry', 'sphere')],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('MySphere', {
+              properties: [prop('geometry', 'sphere')],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('"sphere"');
       expect(output).toContain('"render"');
     });
 
     it('should map cube to box primitive', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('MyCube', {
-          properties: [prop('geometry', 'cube')],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('MyCube', {
+              properties: [prop('geometry', 'cube')],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('"box"');
     });
 
     it('should emit position', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', {
-          properties: [prop('position', [1, 2, 3])],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', {
+              properties: [prop('position', [1, 2, 3])],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('setPosition(1, 2, 3)');
     });
 
     it('should emit rotation', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', {
-          properties: [prop('rotation', [45, 90, 0])],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', {
+              properties: [prop('rotation', [45, 90, 0])],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('setEulerAngles(45, 90, 0)');
     });
 
     it('should emit uniform scale', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', {
-          properties: [prop('scale', 2)],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', {
+              properties: [prop('scale', 2)],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('setLocalScale(2, 2, 2)');
     });
 
     it('should emit array scale', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', {
-          properties: [prop('scale', [1, 2, 3])],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', {
+              properties: [prop('scale', [1, 2, 3])],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('setLocalScale(1, 2, 3)');
     });
 
     it('should emit material with color', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', {
-          properties: [prop('color', '#ff0000')],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', {
+              properties: [prop('color', '#ff0000')],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('StandardMaterial');
       expect(output).toContain('diffuse');
     });
 
     it('should emit material with roughness', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', {
-          properties: [prop('roughness', 0.5)],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', {
+              properties: [prop('roughness', 0.5)],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('shininess');
     });
 
     it('should emit material with opacity', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', {
-          properties: [prop('opacity', 0.5)],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', {
+              properties: [prop('opacity', 0.5)],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('opacity');
       expect(output).toContain('BLEND_NORMAL');
     });
 
     it('should emit material with metalness', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', {
-          properties: [prop('metalness', 0.8)],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', {
+              properties: [prop('metalness', 0.8)],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('metalness');
     });
 
     it('should emit material with emissive', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', {
-          properties: [prop('emissive', '#00ff00')],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', {
+              properties: [prop('emissive', '#00ff00')],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('emissive');
     });
 
     it('should emit text element for text object', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Label', {
-          properties: [prop('text', 'Hello World')],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Label', {
+              properties: [prop('text', 'Hello World')],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('"element"');
       expect(output).toContain('"text"');
       expect(output).toContain('Hello World');
     });
 
     it('should emit model loading comment for src', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Model', {
-          properties: [prop('src', 'model.glb')],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Model', {
+              properties: [prop('src', 'model.glb')],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('Model: model.glb');
       expect(output).toContain('"asset"');
     });
 
     it('should add entity to app root', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj')],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [createObject('Obj')],
+        })
+      );
       expect(output).toContain('this.app.root.addChild');
     });
 
     it('should emit grabbable trait as button component', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Grab', {
-          traits: [trait('grabbable')],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Grab', {
+              traits: [trait('grabbable')],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('"button"');
       expect(output).toContain('click');
     });
 
     it('should emit physics/collidable trait as rigidbody', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Phys', {
-          traits: [trait('physics')],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Phys', {
+              traits: [trait('physics')],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('"rigidbody"');
       expect(output).toContain('"collision"');
     });
 
     it('should emit static physics', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Wall', {
-          traits: [trait('physics', { type: 'static' })],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Wall', {
+              traits: [trait('physics', { type: 'static' })],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('"static"');
     });
 
     it('should emit physics mass', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Heavy', {
-          traits: [trait('physics', { mass: 10 })],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Heavy', {
+              traits: [trait('physics', { mass: 10 })],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('mass: 10');
     });
 
     it('should emit shadow trait', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', {
-          traits: [trait('shadow')],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', {
+              traits: [trait('shadow')],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('castShadows');
       expect(output).toContain('receiveShadows');
     });
 
     it('should emit hoverable trait', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', {
-          traits: [trait('hoverable')],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', {
+              traits: [trait('hoverable')],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('mouseenter');
       expect(output).toContain('mouseleave');
     });
 
     it('should emit accessible trait comment', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', {
-          traits: [trait('accessible', { role: 'button' })],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', {
+              traits: [trait('accessible', { role: 'button' })],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('@accessible');
       expect(output).toContain('button');
     });
 
     it('should emit unknown trait as comment', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', {
-          traits: [trait('custom_trait', { foo: 'bar' })],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', {
+              traits: [trait('custom_trait', { foo: 'bar' })],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('@custom_trait');
     });
 
@@ -403,9 +504,11 @@ describe('PlayCanvasCompiler', () => {
       const parent = createObject('Parent', {
         children: [child],
       } as any);
-      const output = compiler.compile(createComposition({
-        objects: [parent],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [parent],
+        })
+      );
       expect(output).toContain('Child');
       expect(output).toContain('Parent');
     });
@@ -413,19 +516,25 @@ describe('PlayCanvasCompiler', () => {
     it('should handle all geometry types', () => {
       const geos = ['sphere', 'cube', 'cylinder', 'cone', 'plane', 'torus', 'capsule'];
       for (const g of geos) {
-        const output = compiler.compile(createComposition({
-          objects: [createObject(`Obj_${g}`, { properties: [prop('geometry', g)] } as any)],
-        }));
+        const output = compiler.compile(
+          createComposition({
+            objects: [createObject(`Obj_${g}`, { properties: [prop('geometry', g)] } as any)],
+          })
+        );
         expect(output).toContain('addComponent("render"');
       }
     });
 
     it('should handle material object property', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', {
-          properties: [prop('material', { roughness: 0.3, metalness: 0.9 })],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', {
+              properties: [prop('material', { roughness: 0.3, metalness: 0.9 })],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('shininess');
       expect(output).toContain('metalness');
     });
@@ -437,74 +546,100 @@ describe('PlayCanvasCompiler', () => {
 
   describe('spatial groups', () => {
     it('should emit entity for group', () => {
-      const output = compiler.compile(createComposition({
-        spatialGroups: [{
-          name: 'MyGroup',
-          objects: [],
-          properties: [],
-        }] as any,
-      }));
+      const output = compiler.compile(
+        createComposition({
+          spatialGroups: [
+            {
+              name: 'MyGroup',
+              objects: [],
+              properties: [],
+            },
+          ] as any,
+        })
+      );
       expect(output).toContain('new pc.Entity("MyGroup")');
     });
 
     it('should emit group with position', () => {
-      const output = compiler.compile(createComposition({
-        spatialGroups: [{
-          name: 'G1',
-          objects: [],
-          properties: [prop('position', [1, 2, 3])],
-        }] as any,
-      }));
+      const output = compiler.compile(
+        createComposition({
+          spatialGroups: [
+            {
+              name: 'G1',
+              objects: [],
+              properties: [prop('position', [1, 2, 3])],
+            },
+          ] as any,
+        })
+      );
       expect(output).toContain('setPosition(1, 2, 3)');
     });
 
     it('should emit group with rotation', () => {
-      const output = compiler.compile(createComposition({
-        spatialGroups: [{
-          name: 'G1',
-          objects: [],
-          properties: [prop('rotation', [0, 45, 0])],
-        }] as any,
-      }));
+      const output = compiler.compile(
+        createComposition({
+          spatialGroups: [
+            {
+              name: 'G1',
+              objects: [],
+              properties: [prop('rotation', [0, 45, 0])],
+            },
+          ] as any,
+        })
+      );
       expect(output).toContain('setEulerAngles(0, 45, 0)');
     });
 
     it('should emit group with scale', () => {
-      const output = compiler.compile(createComposition({
-        spatialGroups: [{
-          name: 'G1',
-          objects: [],
-          properties: [prop('scale', 2)],
-        }] as any,
-      }));
+      const output = compiler.compile(
+        createComposition({
+          spatialGroups: [
+            {
+              name: 'G1',
+              objects: [],
+              properties: [prop('scale', 2)],
+            },
+          ] as any,
+        })
+      );
       expect(output).toContain('setLocalScale(2, 2, 2)');
     });
 
     it('should add children objects to group', () => {
-      const output = compiler.compile(createComposition({
-        spatialGroups: [{
-          name: 'Arena',
-          objects: [createObject('Fighter')],
-          properties: [],
-        }] as any,
-      }));
+      const output = compiler.compile(
+        createComposition({
+          spatialGroups: [
+            {
+              name: 'Arena',
+              objects: [createObject('Fighter')],
+              properties: [],
+            },
+          ] as any,
+        })
+      );
       expect(output).toContain('Arena');
       expect(output).toContain('Fighter');
     });
 
     it('should support nested groups', () => {
-      const output = compiler.compile(createComposition({
-        spatialGroups: [{
-          name: 'Outer',
-          objects: [],
-          properties: [],
-          groups: [{
-            name: 'Inner',
-            objects: [createObject('DeepObj')],
-            properties: [],
-          }],
-        }] as any,
-      }));
+      const output = compiler.compile(
+        createComposition({
+          spatialGroups: [
+            {
+              name: 'Outer',
+              objects: [],
+              properties: [],
+              groups: [
+                {
+                  name: 'Inner',
+                  objects: [createObject('DeepObj')],
+                  properties: [],
+                },
+              ],
+            },
+          ] as any,
+        })
+      );
       expect(output).toContain('Outer');
       expect(output).toContain('Inner');
       expect(output).toContain('DeepObj');
@@ -517,67 +652,98 @@ describe('PlayCanvasCompiler', () => {
 
   describe('lights', () => {
     it('should emit point light', () => {
-      const output = compiler.compile(createComposition({
-        lights: [createLight({ lightType: 'point' })],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          lights: [createLight({ lightType: 'point' })],
+        })
+      );
       expect(output).toContain('"point"');
       expect(output).toContain('"light"');
     });
 
     it('should emit directional light', () => {
-      const output = compiler.compile(createComposition({
-        lights: [createLight({ lightType: 'directional' })],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          lights: [createLight({ lightType: 'directional' })],
+        })
+      );
       expect(output).toContain('"directional"');
     });
 
     it('should emit spot light', () => {
-      const output = compiler.compile(createComposition({
-        lights: [createLight({ lightType: 'spot', properties: [prop('position', [0, 5, 0]), prop('angle', Math.PI / 4)] })],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          lights: [
+            createLight({
+              lightType: 'spot',
+              properties: [prop('position', [0, 5, 0]), prop('angle', Math.PI / 4)],
+            }),
+          ],
+        })
+      );
       expect(output).toContain('"spot"');
       expect(output).toContain('outerConeAngle');
     });
 
     it('should emit hemisphere as directional', () => {
-      const output = compiler.compile(createComposition({
-        lights: [createLight({ lightType: 'hemisphere' })],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          lights: [createLight({ lightType: 'hemisphere' })],
+        })
+      );
       expect(output).toContain('"directional"');
     });
 
     it('should emit light color', () => {
-      const output = compiler.compile(createComposition({
-        lights: [createLight({ properties: [prop('color', '#ff0000'), prop('position', [0, 5, 0])] })],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          lights: [
+            createLight({ properties: [prop('color', '#ff0000'), prop('position', [0, 5, 0])] }),
+          ],
+        })
+      );
       expect(output).toContain('pc.Color');
     });
 
     it('should emit light intensity', () => {
-      const output = compiler.compile(createComposition({
-        lights: [createLight({ properties: [prop('intensity', 2.0), prop('position', [0, 5, 0])] })],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          lights: [
+            createLight({ properties: [prop('intensity', 2.0), prop('position', [0, 5, 0])] }),
+          ],
+        })
+      );
       expect(output).toContain('intensity: 2');
     });
 
     it('should emit cast shadows', () => {
-      const output = compiler.compile(createComposition({
-        lights: [createLight({ properties: [prop('cast_shadow', true), prop('position', [0, 5, 0])] })],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          lights: [
+            createLight({ properties: [prop('cast_shadow', true), prop('position', [0, 5, 0])] }),
+          ],
+        })
+      );
       expect(output).toContain('castShadows: true');
     });
 
     it('should emit light range', () => {
-      const output = compiler.compile(createComposition({
-        lights: [createLight({ properties: [prop('distance', 50), prop('position', [0, 5, 0])] })],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          lights: [
+            createLight({ properties: [prop('distance', 50), prop('position', [0, 5, 0])] }),
+          ],
+        })
+      );
       expect(output).toContain('range: 50');
     });
 
     it('should add light to root', () => {
-      const output = compiler.compile(createComposition({
-        lights: [createLight()],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          lights: [createLight()],
+        })
+      );
       expect(output).toContain('this.app.root.addChild');
     });
   });
@@ -728,7 +894,10 @@ describe('PlayCanvasCompiler', () => {
       const zone: HoloZone = {
         name: 'Trigger',
         properties: [],
-        handlers: [{ event: 'on_enter', body: {} }, { event: 'on_exit', body: {} }],
+        handlers: [
+          { event: 'on_enter', body: {} },
+          { event: 'on_exit', body: {} },
+        ],
       } as any;
       const output = compiler.compile(createComposition({ zones: [zone] }));
       expect(output).toContain('triggerenter');
@@ -919,23 +1088,31 @@ describe('PlayCanvasCompiler', () => {
 
   describe('color conversion', () => {
     it('should convert hex to pc.Color', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', { properties: [prop('color', '#ff0000')] } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [createObject('Obj', { properties: [prop('color', '#ff0000')] } as any)],
+        })
+      );
       expect(output).toContain('new pc.Color(1.000, 0.000, 0.000)');
     });
 
     it('should handle white color', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', { properties: [prop('color', '#ffffff')] } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [createObject('Obj', { properties: [prop('color', '#ffffff')] } as any)],
+        })
+      );
       expect(output).toContain('new pc.Color(1.000, 1.000, 1.000)');
     });
 
     it('should handle object color format', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('Obj', { properties: [prop('color', { r: 255, g: 128, b: 0 })] } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Obj', { properties: [prop('color', { r: 255, g: 128, b: 0 })] } as any),
+          ],
+        })
+      );
       expect(output).toContain('pc.Color');
     });
   });
@@ -949,7 +1126,10 @@ describe('PlayCanvasCompiler', () => {
       const tl: HoloTimeline = {
         name: 'Intro',
         entries: [
-          { time: 0, action: { kind: 'animate', target: 'cube', properties: { position: [0, 1, 0] } } },
+          {
+            time: 0,
+            action: { kind: 'animate', target: 'cube', properties: { position: [0, 1, 0] } },
+          },
           { time: 1, action: { kind: 'emit', event: 'start' } },
           { time: 2, action: { kind: 'call', method: 'doSomething' } },
         ],
@@ -968,20 +1148,28 @@ describe('PlayCanvasCompiler', () => {
 
   describe('trait compositor', () => {
     it('should apply TraitCompositor for multi-trait objects', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('MultiTrait', {
-          traits: [trait('glowing'), trait('emissive')],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('MultiTrait', {
+              traits: [trait('glowing'), trait('emissive')],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('TraitCompositor');
     });
 
     it('should compose material when compositor returns properties', () => {
-      const output = compiler.compile(createComposition({
-        objects: [createObject('GlowObj', {
-          traits: [trait('glowing'), trait('transparent')],
-        } as any)],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('GlowObj', {
+              traits: [trait('glowing'), trait('transparent')],
+            } as any),
+          ],
+        })
+      );
       // Should have composition comment and material creation
       expect(output).toContain('composed');
       expect(output).toContain('StandardMaterial');
@@ -994,24 +1182,38 @@ describe('PlayCanvasCompiler', () => {
 
   describe('complex compositions', () => {
     it('should compile full scene with multiple components', () => {
-      const output = compiler.compile(createComposition({
-        name: 'FullScene',
-        environment: { properties: [prop('ambient_light', 0.5)] } as any,
-        lights: [
-          createLight({ name: 'Sun', lightType: 'directional' }),
-          createLight({ name: 'Fill', lightType: 'point' }),
-        ],
-        camera: { cameraType: 'perspective', properties: [prop('position', [0, 5, -10])] } as any,
-        objects: [
-          createObject('Floor', { properties: [prop('geometry', 'plane'), prop('scale', 10)] } as any),
-          createObject('Cube', { properties: [prop('geometry', 'cube'), prop('position', [0, 1, 0]), prop('color', '#00ff00')] } as any),
-        ],
-        spatialGroups: [{
-          name: 'Props',
-          objects: [createObject('Sphere', { properties: [prop('geometry', 'sphere')] } as any)],
-          properties: [prop('position', [5, 0, 0])],
-        }] as any,
-      }));
+      const output = compiler.compile(
+        createComposition({
+          name: 'FullScene',
+          environment: { properties: [prop('ambient_light', 0.5)] } as any,
+          lights: [
+            createLight({ name: 'Sun', lightType: 'directional' }),
+            createLight({ name: 'Fill', lightType: 'point' }),
+          ],
+          camera: { cameraType: 'perspective', properties: [prop('position', [0, 5, -10])] } as any,
+          objects: [
+            createObject('Floor', {
+              properties: [prop('geometry', 'plane'), prop('scale', 10)],
+            } as any),
+            createObject('Cube', {
+              properties: [
+                prop('geometry', 'cube'),
+                prop('position', [0, 1, 0]),
+                prop('color', '#00ff00'),
+              ],
+            } as any),
+          ],
+          spatialGroups: [
+            {
+              name: 'Props',
+              objects: [
+                createObject('Sphere', { properties: [prop('geometry', 'sphere')] } as any),
+              ],
+              properties: [prop('position', [5, 0, 0])],
+            },
+          ] as any,
+        })
+      );
       expect(output).toContain('FullScene');
       expect(output).toContain('Sun');
       expect(output).toContain('Fill');
@@ -1022,14 +1224,16 @@ describe('PlayCanvasCompiler', () => {
     });
 
     it('should compile scene with physics objects', () => {
-      const output = compiler.compile(createComposition({
-        objects: [
-          createObject('Ball', {
-            properties: [prop('geometry', 'sphere'), prop('position', [0, 5, 0])],
-            traits: [trait('physics', { mass: 2, restitution: 0.8 }), trait('grabbable')],
-          } as any),
-        ],
-      }));
+      const output = compiler.compile(
+        createComposition({
+          objects: [
+            createObject('Ball', {
+              properties: [prop('geometry', 'sphere'), prop('position', [0, 5, 0])],
+              traits: [trait('physics', { mass: 2, restitution: 0.8 }), trait('grabbable')],
+            } as any),
+          ],
+        })
+      );
       expect(output).toContain('rigidbody');
       expect(output).toContain('mass: 2');
       expect(output).toContain('restitution: 0.8');

@@ -4,7 +4,9 @@ import { MaterialSystem } from '../MaterialSystem';
 describe('MaterialSystem', () => {
   let ms: MaterialSystem;
 
-  beforeEach(() => { ms = new MaterialSystem(); });
+  beforeEach(() => {
+    ms = new MaterialSystem();
+  });
 
   // Shader management
   it('registerShader and getShader', () => {
@@ -78,9 +80,11 @@ describe('MaterialSystem', () => {
   // Sorting
   it('getSortedMaterials opaque first, then transparent', () => {
     const a = ms.createMaterial('m1', 'A', 's');
-    a.blendMode = 'alpha'; a.renderOrder = 1;
+    a.blendMode = 'alpha';
+    a.renderOrder = 1;
     const b = ms.createMaterial('m2', 'B', 's');
-    b.blendMode = 'opaque'; b.renderOrder = 0;
+    b.blendMode = 'opaque';
+    b.renderOrder = 0;
 
     const sorted = ms.getSortedMaterials();
     expect(sorted[0].id).toBe('m2');

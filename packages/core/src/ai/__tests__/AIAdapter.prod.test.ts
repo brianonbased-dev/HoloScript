@@ -29,7 +29,9 @@ import {
 } from '../AIAdapter';
 
 let _counter = 0;
-function uniqueId(): string { return `test-adapter-${_counter++}`; }
+function uniqueId(): string {
+  return `test-adapter-${_counter++}`;
+}
 
 function makeAdapter(overrides: Partial<AIAdapter> = {}): AIAdapter {
   const id = uniqueId();
@@ -37,19 +39,22 @@ function makeAdapter(overrides: Partial<AIAdapter> = {}): AIAdapter {
     id,
     name: `Test Adapter ${id}`,
     isReady: () => true,
-    generateHoloScript: async (prompt: string) => ({
-      holoScript: `object "Test" { // ${prompt} }`,
-      confidence: 0.9,
-    } as GenerateResult),
-    explainHoloScript: async () => ({ explanation: 'This creates a cube.' } as ExplainResult),
-    optimizeHoloScript: async (code: string) => ({
-      holoScript: code + ' // optimized',
-      improvements: ['removed redundant calls'],
-    } as OptimizeResult),
-    fixHoloScript: async (code: string, errors: string[]) => ({
-      holoScript: code,
-      fixes: errors.map(e => ({ line: 0, issue: e, fix: 'auto-fixed' })),
-    } as FixResult),
+    generateHoloScript: async (prompt: string) =>
+      ({
+        holoScript: `object "Test" { // ${prompt} }`,
+        confidence: 0.9,
+      }) as GenerateResult,
+    explainHoloScript: async () => ({ explanation: 'This creates a cube.' }) as ExplainResult,
+    optimizeHoloScript: async (code: string) =>
+      ({
+        holoScript: code + ' // optimized',
+        improvements: ['removed redundant calls'],
+      }) as OptimizeResult,
+    fixHoloScript: async (code: string, errors: string[]) =>
+      ({
+        holoScript: code,
+        fixes: errors.map((e) => ({ line: 0, issue: e, fix: 'auto-fixed' })),
+      }) as FixResult,
     ...overrides,
   };
 }
@@ -132,7 +137,7 @@ describe('unregisterAIAdapter', () => {
     const a = makeAdapter();
     registerAIAdapter(a, false);
     unregisterAIAdapter(a.id);
-    const ids = listAIAdapters().map(x => x.id);
+    const ids = listAIAdapters().map((x) => x.id);
     expect(ids).not.toContain(a.id);
   });
 
@@ -154,7 +159,7 @@ describe('listAIAdapters', () => {
     const a = makeAdapter();
     registerAIAdapter(a, false);
     const list = listAIAdapters();
-    const entry = list.find(x => x.id === a.id);
+    const entry = list.find((x) => x.id === a.id);
     expect(entry).toBeDefined();
     expect(entry!.name).toBe(a.name);
   });
@@ -163,7 +168,7 @@ describe('listAIAdapters', () => {
     const a = makeAdapter();
     registerAIAdapter(a, false);
     const list = listAIAdapters();
-    const entry = list.find(x => x.id === a.id)!;
+    const entry = list.find((x) => x.id === a.id)!;
     expect(Object.keys(entry)).toEqual(['id', 'name']);
   });
 });
@@ -199,7 +204,9 @@ describe('explainHoloScript (convenience)', () => {
   it('throws when adapter does not support explain', async () => {
     const noExplain = makeAdapter({ explainHoloScript: undefined });
     registerAIAdapter(noExplain, true);
-    await expect(explainHoloScript('object "X" {}')).rejects.toThrow(/does not support explainHoloScript/);
+    await expect(explainHoloScript('object "X" {}')).rejects.toThrow(
+      /does not support explainHoloScript/
+    );
   });
 });
 
@@ -215,7 +222,9 @@ describe('optimizeHoloScript (convenience)', () => {
   it('throws when adapter does not support optimize', async () => {
     const noOpt = makeAdapter({ optimizeHoloScript: undefined });
     registerAIAdapter(noOpt, true);
-    await expect(optimizeHoloScript('code', 'vr')).rejects.toThrow(/does not support optimizeHoloScript/);
+    await expect(optimizeHoloScript('code', 'vr')).rejects.toThrow(
+      /does not support optimizeHoloScript/
+    );
   });
 });
 

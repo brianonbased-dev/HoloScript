@@ -5,8 +5,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { planeDetectionHandler } from '../PlaneDetectionTrait';
 
-function makeNode() { return { id: 'pd_test' } as any; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'pd_test' } as any;
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 
 function attach(node: any, overrides: Record<string, unknown> = {}) {
   const cfg = { ...planeDetectionHandler.defaultConfig!, ...overrides } as any;
@@ -15,13 +19,24 @@ function attach(node: any, overrides: Record<string, unknown> = {}) {
   return { cfg, ctx };
 }
 
-function st(node: any) { return node.__planeDetectionState as any; }
+function st(node: any) {
+  return node.__planeDetectionState as any;
+}
 
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
   planeDetectionHandler.onEvent!(node, cfg, ctx as any, evt as any);
 }
 
-function makePlane(id: string, opts: { area?: number; normalX?: number; normalY?: number; normalZ?: number; centerY?: number } = {}) {
+function makePlane(
+  id: string,
+  opts: {
+    area?: number;
+    normalX?: number;
+    normalY?: number;
+    normalZ?: number;
+    centerY?: number;
+  } = {}
+) {
   return {
     id,
     classification: 'floor',
@@ -64,9 +79,13 @@ describe('PlaneDetectionTrait — onAttach', () => {
   it('emits plane_detection_start with mode+classification', () => {
     const node = makeNode();
     const { ctx, cfg } = attach(node, { mode: 'horizontal', classification: true });
-    expect(ctx.emit).toHaveBeenCalledWith('plane_detection_start', expect.objectContaining({
-      mode: 'horizontal', classification: true,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'plane_detection_start',
+      expect.objectContaining({
+        mode: 'horizontal',
+        classification: true,
+      })
+    );
   });
 });
 
@@ -123,19 +142,32 @@ describe('PlaneDetectionTrait — onUpdate', () => {
     ctx.emit.mockClear();
     planeDetectionHandler.onUpdate!(node, cfg, ctx as any, 0.016);
     expect(st(node).planes.has('old')).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('plane_lost', expect.objectContaining({ planeId: 'old' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'plane_lost',
+      expect.objectContaining({ planeId: 'old' })
+    );
   });
 
   it('emits plane_mesh_remove for stale + plane_mesh_update for fresh when visual_mesh=true', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { update_interval: 0, plane_timeout: 1000, visual_mesh: true });
+    const { cfg, ctx } = attach(node, {
+      update_interval: 0,
+      plane_timeout: 1000,
+      visual_mesh: true,
+    });
     st(node).planes.set('stale', { ...makePlane('stale'), lastUpdated: Date.now() - 2000 });
     st(node).planes.set('fresh', { ...makePlane('fresh'), lastUpdated: Date.now() });
     st(node).lastUpdateTime = 0;
     ctx.emit.mockClear();
     planeDetectionHandler.onUpdate!(node, cfg, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('plane_mesh_remove', expect.objectContaining({ planeId: 'stale' }));
-    expect(ctx.emit).toHaveBeenCalledWith('plane_mesh_update', expect.objectContaining({ planeId: 'fresh' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'plane_mesh_remove',
+      expect.objectContaining({ planeId: 'stale' })
+    );
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'plane_mesh_update',
+      expect.objectContaining({ planeId: 'fresh' })
+    );
   });
 });
 
@@ -145,7 +177,10 @@ describe('PlaneDetectionTrait — onEvent: plane_detected', () => {
     const { cfg, ctx } = attach(node, { mode: 'all', min_area: 0.1 });
     fire(node, cfg, ctx, { type: 'plane_detected', plane: makePlane('f1', { area: 2.0 }) });
     expect(st(node).planes.has('f1')).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('plane_found', expect.objectContaining({ planeId: 'f1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'plane_found',
+      expect.objectContaining({ planeId: 'f1' })
+    );
   });
 
   it('updates existing plane and emits plane_updated', () => {
@@ -154,14 +189,20 @@ describe('PlaneDetectionTrait — onEvent: plane_detected', () => {
     st(node).planes.set('f1', makePlane('f1'));
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'plane_detected', plane: { ...makePlane('f1'), area: 3.0 } });
-    expect(ctx.emit).toHaveBeenCalledWith('plane_updated', expect.objectContaining({ planeId: 'f1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'plane_updated',
+      expect.objectContaining({ planeId: 'f1' })
+    );
     expect(ctx.emit).not.toHaveBeenCalledWith('plane_found', expect.any(Object));
   });
 
   it('filters non-horizontal in mode=horizontal (normalY < 0.8)', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { mode: 'horizontal', min_area: 0.0 });
-    fire(node, cfg, ctx, { type: 'plane_detected', plane: makePlane('wall', { normalX: 1, normalY: 0.1, normalZ: 0 }) });
+    fire(node, cfg, ctx, {
+      type: 'plane_detected',
+      plane: makePlane('wall', { normalX: 1, normalY: 0.1, normalZ: 0 }),
+    });
     expect(st(node).planes.has('wall')).toBe(false);
   });
 
@@ -182,7 +223,10 @@ describe('PlaneDetectionTrait — onEvent: plane_detected', () => {
   it('passes vertical planes in mode=vertical (normalY <= 0.2)', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { mode: 'vertical', min_area: 0.0 });
-    fire(node, cfg, ctx, { type: 'plane_detected', plane: makePlane('wall', { normalX: 1, normalY: 0.1 }) });
+    fire(node, cfg, ctx, {
+      type: 'plane_detected',
+      plane: makePlane('wall', { normalX: 1, normalY: 0.1 }),
+    });
     expect(st(node).planes.has('wall')).toBe(true);
   });
 
@@ -201,7 +245,10 @@ describe('PlaneDetectionTrait — onEvent: plane_detected', () => {
     fire(node, cfg, ctx, { type: 'plane_detected', plane: makePlane('big', { area: 2.0 }) });
     expect(st(node).planes.has('big')).toBe(true);
     expect(st(node).planes.has('small')).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('plane_lost', expect.objectContaining({ planeId: 'small' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'plane_lost',
+      expect.objectContaining({ planeId: 'small' })
+    );
   });
 
   it('max_planes: does NOT add plane smaller than existing', () => {
@@ -217,7 +264,10 @@ describe('PlaneDetectionTrait — onEvent: plane_detected', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { visual_mesh: true, min_area: 0.0 });
     fire(node, cfg, ctx, { type: 'plane_detected', plane: makePlane('vis1') });
-    expect(ctx.emit).toHaveBeenCalledWith('plane_mesh_create', expect.objectContaining({ planeId: 'vis1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'plane_mesh_create',
+      expect.objectContaining({ planeId: 'vis1' })
+    );
   });
 });
 
@@ -227,10 +277,13 @@ describe('PlaneDetectionTrait — onEvent: plane_hit_test', () => {
     const { cfg, ctx } = attach(node, { min_area: 0.0 });
     st(node).planes.set('floor', { ...makePlane('floor'), center: { x: 0, y: 0, z: 0 } });
     fire(node, cfg, ctx, {
-      type: 'plane_hit_test', queryId: 'ht1',
+      type: 'plane_hit_test',
+      queryId: 'ht1',
       ray: { origin: { x: 0, y: 5, z: 0 }, direction: { x: 0, y: -1, z: 0 } },
     });
-    const call = (ctx.emit as any).mock.calls.find((c: any[]) => c[0] === 'plane_hit_test_result')?.[1];
+    const call = (ctx.emit as any).mock.calls.find(
+      (c: any[]) => c[0] === 'plane_hit_test_result'
+    )?.[1];
     expect(call).toBeDefined();
     expect(call.queryId).toBe('ht1');
     expect(call.results[0].planeId).toBe('floor');
@@ -242,10 +295,13 @@ describe('PlaneDetectionTrait — onEvent: plane_hit_test', () => {
     const { cfg, ctx } = attach(node, { min_area: 0.0 });
     st(node).planes.set('floor', { ...makePlane('floor'), center: { x: 0, y: 0, z: 0 } });
     fire(node, cfg, ctx, {
-      type: 'plane_hit_test', queryId: 'ht2',
+      type: 'plane_hit_test',
+      queryId: 'ht2',
       ray: { origin: { x: 0, y: 1, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
     });
-    const call = (ctx.emit as any).mock.calls.find((c: any[]) => c[0] === 'plane_hit_test_result')?.[1];
+    const call = (ctx.emit as any).mock.calls.find(
+      (c: any[]) => c[0] === 'plane_hit_test_result'
+    )?.[1];
     expect(call.results).toHaveLength(0);
   });
 
@@ -253,12 +309,15 @@ describe('PlaneDetectionTrait — onEvent: plane_hit_test', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { min_area: 0.0 });
     st(node).planes.set('near', { ...makePlane('near'), center: { x: 0, y: 5, z: 0 } });
-    st(node).planes.set('far',  { ...makePlane('far'),  center: { x: 0, y: 2, z: 0 } });
+    st(node).planes.set('far', { ...makePlane('far'), center: { x: 0, y: 2, z: 0 } });
     fire(node, cfg, ctx, {
-      type: 'plane_hit_test', queryId: 'ht3',
+      type: 'plane_hit_test',
+      queryId: 'ht3',
       ray: { origin: { x: 0, y: 10, z: 0 }, direction: { x: 0, y: -1, z: 0 } },
     });
-    const call = (ctx.emit as any).mock.calls.find((c: any[]) => c[0] === 'plane_hit_test_result')?.[1];
+    const call = (ctx.emit as any).mock.calls.find(
+      (c: any[]) => c[0] === 'plane_hit_test_result'
+    )?.[1];
     expect(call.results[0].planeId).toBe('near');
     expect(call.results[1].planeId).toBe('far');
   });

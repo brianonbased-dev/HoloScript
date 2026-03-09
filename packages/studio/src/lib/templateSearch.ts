@@ -11,7 +11,7 @@ import { SCENE_TEMPLATES, type SceneTemplate, type TemplateCategory } from './sc
 
 export interface SearchResult {
   template: SceneTemplate;
-  score: number;           // 0..1 relevance score
+  score: number; // 0..1 relevance score
   matchedFields: string[];
 }
 
@@ -33,16 +33,19 @@ export function fuzzySearch(query: string, filters?: SearchFilters): SearchResul
   let candidates = SCENE_TEMPLATES;
 
   // Apply filters
-  if (filters?.category) candidates = candidates.filter(t => t.category === filters.category);
-  if (filters?.difficulty) candidates = candidates.filter(t => t.difficulty === filters.difficulty);
-  if (filters?.minObjects) candidates = candidates.filter(t => t.estimatedObjects >= filters.minObjects!);
-  if (filters?.maxObjects) candidates = candidates.filter(t => t.estimatedObjects <= filters.maxObjects!);
+  if (filters?.category) candidates = candidates.filter((t) => t.category === filters.category);
+  if (filters?.difficulty)
+    candidates = candidates.filter((t) => t.difficulty === filters.difficulty);
+  if (filters?.minObjects)
+    candidates = candidates.filter((t) => t.estimatedObjects >= filters.minObjects!);
+  if (filters?.maxObjects)
+    candidates = candidates.filter((t) => t.estimatedObjects <= filters.maxObjects!);
   if (filters?.tags?.length) {
-    candidates = candidates.filter(t => filters.tags!.some(ft => t.tags.includes(ft)));
+    candidates = candidates.filter((t) => filters.tags!.some((ft) => t.tags.includes(ft)));
   }
 
   if (words.length === 0) {
-    return candidates.map(t => ({ template: t, score: 1, matchedFields: [] }));
+    return candidates.map((t) => ({ template: t, score: 1, matchedFields: [] }));
   }
 
   const results: SearchResult[] = [];
@@ -52,11 +55,26 @@ export function fuzzySearch(query: string, filters?: SearchFilters): SearchResul
     const matched: string[] = [];
 
     for (const word of words) {
-      if (template.name.toLowerCase().includes(word)) { score += 0.4; matched.push('name'); }
-      if (template.description.toLowerCase().includes(word)) { score += 0.2; matched.push('description'); }
-      if (template.category.includes(word)) { score += 0.15; matched.push('category'); }
-      if (template.tags.some(t => t.includes(word))) { score += 0.15; matched.push('tags'); }
-      if (template.holoScript.toLowerCase().includes(word)) { score += 0.1; matched.push('code'); }
+      if (template.name.toLowerCase().includes(word)) {
+        score += 0.4;
+        matched.push('name');
+      }
+      if (template.description.toLowerCase().includes(word)) {
+        score += 0.2;
+        matched.push('description');
+      }
+      if (template.category.includes(word)) {
+        score += 0.15;
+        matched.push('category');
+      }
+      if (template.tags.some((t) => t.includes(word))) {
+        score += 0.15;
+        matched.push('tags');
+      }
+      if (template.holoScript.toLowerCase().includes(word)) {
+        score += 0.1;
+        matched.push('code');
+      }
     }
 
     // Normalize by word count

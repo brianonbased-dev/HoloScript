@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { sharedWorldHandler } from '../SharedWorldTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('SharedWorldTrait', () => {
   let node: Record<string, unknown>;
@@ -64,10 +70,12 @@ describe('SharedWorldTrait', () => {
 
   it('shared_world_peer_left removes peer', () => {
     sendEvent(sharedWorldHandler, node, cfg, ctx, {
-      type: 'shared_world_peer_joined', peerId: 'peer1',
+      type: 'shared_world_peer_joined',
+      peerId: 'peer1',
     });
     sendEvent(sharedWorldHandler, node, cfg, ctx, {
-      type: 'shared_world_peer_left', peerId: 'peer1',
+      type: 'shared_world_peer_left',
+      peerId: 'peer1',
     });
     expect((node as any).__sharedWorldState.connectedPeers.has('peer1')).toBe(false);
   });

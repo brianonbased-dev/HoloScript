@@ -23,7 +23,6 @@ function getBus() {
 // ── singleton ─────────────────────────────────────────────────────────────────
 
 describe('GlobalEventBus — singleton', () => {
-
   it('getInstance always returns the same object', () => {
     const a = GlobalEventBus.getInstance();
     const b = GlobalEventBus.getInstance();
@@ -34,7 +33,6 @@ describe('GlobalEventBus — singleton', () => {
 // ── on / off ──────────────────────────────────────────────────────────────────
 
 describe('GlobalEventBus — on / off', () => {
-
   it('on registers a handler that receives emit data', async () => {
     const bus = getBus();
     const fn = vi.fn();
@@ -54,7 +52,8 @@ describe('GlobalEventBus — on / off', () => {
 
   it('multiple handlers on same event all get called', async () => {
     const bus = getBus();
-    const fn1 = vi.fn(); const fn2 = vi.fn();
+    const fn1 = vi.fn();
+    const fn2 = vi.fn();
     bus.on('move', fn1);
     bus.on('move', fn2);
     await bus.emit('move');
@@ -81,7 +80,8 @@ describe('GlobalEventBus — on / off', () => {
 
   it('handlers for different events stay independent', async () => {
     const bus = getBus();
-    const fn1 = vi.fn(); const fn2 = vi.fn();
+    const fn1 = vi.fn();
+    const fn2 = vi.fn();
     bus.on('eventA', fn1);
     bus.on('eventB', fn2);
     await bus.emit('eventA');
@@ -93,7 +93,6 @@ describe('GlobalEventBus — on / off', () => {
 // ── emit ──────────────────────────────────────────────────────────────────────
 
 describe('GlobalEventBus — emit', () => {
-
   it('emit with no listeners does not throw', async () => {
     const bus = getBus();
     await expect(bus.emit('noListeners')).resolves.not.toThrow();
@@ -102,7 +101,9 @@ describe('GlobalEventBus — emit', () => {
   it('emit passes data to handler', async () => {
     const bus = getBus();
     const received: any[] = [];
-    bus.on('data', (d) => { received.push(d); });
+    bus.on('data', (d) => {
+      received.push(d);
+    });
     await bus.emit('data', { x: 42 } as any);
     expect(received[0]).toEqual({ x: 42 });
   });
@@ -111,7 +112,7 @@ describe('GlobalEventBus — emit', () => {
     const bus = getBus();
     const log: string[] = [];
     bus.on('tick', async () => {
-      await new Promise<void>(r => setTimeout(r, 10));
+      await new Promise<void>((r) => setTimeout(r, 10));
       log.push('done');
     });
     await bus.emit('tick');
@@ -121,7 +122,9 @@ describe('GlobalEventBus — emit', () => {
   it('throwing handler does not prevent other handlers from running', async () => {
     const bus = getBus();
     const fn2 = vi.fn();
-    bus.on('crash', () => { throw new Error('boom'); });
+    bus.on('crash', () => {
+      throw new Error('boom');
+    });
     bus.on('crash', fn2);
     await expect(bus.emit('crash')).resolves.not.toThrow();
     expect(fn2).toHaveBeenCalled();
@@ -131,10 +134,10 @@ describe('GlobalEventBus — emit', () => {
 // ── getEvents / clear ─────────────────────────────────────────────────────────
 
 describe('GlobalEventBus — getEvents / clear', () => {
-
   it('getEvents returns array of registered event names', () => {
     const bus = getBus();
-    bus.on('a', vi.fn()); bus.on('b', vi.fn());
+    bus.on('a', vi.fn());
+    bus.on('b', vi.fn());
     const events = bus.getEvents();
     expect(events).toContain('a');
     expect(events).toContain('b');

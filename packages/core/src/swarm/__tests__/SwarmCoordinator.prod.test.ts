@@ -75,7 +75,7 @@ describe('SwarmCoordinator — optimize (pso)', () => {
     const agents = mkAgents(3);
     const coord = mkCoord({ algorithm: 'pso', populationSize: 5, maxIterations: 5 });
     const result = await coord.optimize(agents, mkTasks(5));
-    result.bestSolution.forEach(agentIdx => {
+    result.bestSolution.forEach((agentIdx) => {
       expect(agentIdx).toBeGreaterThanOrEqual(0);
       expect(agentIdx).toBeLessThan(agents.length);
     });
@@ -138,7 +138,12 @@ describe('SwarmCoordinator — adaptiveSizing', () => {
     await expect(coord.optimize(mkAgents(5), mkTasks(5))).resolves.toBeDefined();
   });
   it('adaptiveSizing=false uses configured populationSize', async () => {
-    const coord = mkCoord({ adaptiveSizing: false, populationSize: 5, maxIterations: 5, algorithm: 'pso' });
+    const coord = mkCoord({
+      adaptiveSizing: false,
+      populationSize: 5,
+      maxIterations: 5,
+      algorithm: 'pso',
+    });
     await expect(coord.optimize(mkAgents(2), mkTasks(2))).resolves.toBeDefined();
   });
 });

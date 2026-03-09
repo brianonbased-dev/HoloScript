@@ -10,9 +10,9 @@ import { MCPClient } from '@modelcontextprotocol/sdk/client';
 const client = new MCPClient({
   serverUrl: 'http://localhost:8100',
   headers: {
-    'Authorization': 'Bearer YOUR_JWT_TOKEN',
-    'X-Agent-ID': 'typescript-example-agent'
-  }
+    Authorization: 'Bearer YOUR_JWT_TOKEN',
+    'X-Agent-ID': 'typescript-example-agent',
+  },
 });
 
 // Example 1: Compile to Unity
@@ -44,8 +44,8 @@ async function compileToUnity() {
     code: holoCode,
     options: {
       namespace: 'MyVRGame',
-      generatePrefabs: true
-    }
+      generatePrefabs: true,
+    },
   });
 
   console.log('Unity Compilation Result:');
@@ -87,8 +87,8 @@ async function compileToURDF() {
     code: holoCode,
     options: {
       robotName: 'my_robot',
-      includeInertial: true
-    }
+      includeInertial: true,
+    },
   });
 
   console.log('URDF Compilation Result:');
@@ -126,8 +126,8 @@ async function compileToR3F() {
     code: holoCode,
     options: {
       typescript: true,
-      environmentPreset: 'sunset'
-    }
+      environmentPreset: 'sunset',
+    },
   });
 
   console.log('R3F Compilation Result:');
@@ -143,7 +143,7 @@ async function compileWithTracking() {
   const compilePromise = client.callTool('compile_holoscript', {
     code: `composition "LargeScene" { /* ... large scene ... */ }`,
     target: 'webgpu',
-    stream: false
+    stream: false,
   });
 
   // Poll for status (in real app, use WebSocket streaming)
@@ -231,7 +231,6 @@ async function main() {
     // Example 6: Circuit Breaker
     console.log('\n--- Example 6: Check Circuit Breaker ---');
     await checkCircuitBreaker('unity');
-
   } catch (error) {
     console.error('Error:', error);
   }
@@ -248,5 +247,5 @@ export {
   compileToR3F,
   compileWithTracking,
   listTargets,
-  checkCircuitBreaker
+  checkCircuitBreaker,
 };

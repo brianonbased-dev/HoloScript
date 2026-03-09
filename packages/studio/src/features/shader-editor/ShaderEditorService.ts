@@ -148,11 +148,7 @@ export class ShaderEditorService {
   /**
    * Create a new shader graph
    */
-  async create(
-    name: string,
-    description?: string,
-    tags: string[] = []
-  ): Promise<ShaderGraph> {
+  async create(name: string, description?: string, tags: string[] = []): Promise<ShaderGraph> {
     await this.ensureDB();
 
     const graph = new ShaderGraph(name);
@@ -237,20 +233,14 @@ export class ShaderEditorService {
   async delete(id: string): Promise<boolean> {
     await this.ensureDB();
 
-    const tx = this.db!.transaction(
-      [STORES.graphs, STORES.metadata, STORES.versions],
-      'readwrite'
-    );
+    const tx = this.db!.transaction([STORES.graphs, STORES.metadata, STORES.versions], 'readwrite');
 
     const graphStore = tx.objectStore(STORES.graphs);
     const metaStore = tx.objectStore(STORES.metadata);
     const versionStore = tx.objectStore(STORES.versions);
 
     // Delete graph and metadata
-    await Promise.all([
-      graphStore.delete(id),
-      metaStore.delete(id),
-    ]);
+    await Promise.all([graphStore.delete(id), metaStore.delete(id)]);
 
     // Delete all versions
     const versionIndex = versionStore.index('graphId');
@@ -283,10 +273,10 @@ export class ShaderEditorService {
 
     if (options?.tags && options.tags.length > 0) {
       // Filter by tags
-      const tagIndex = this.db!.transaction(STORES.metadata).objectStore(STORES.metadata).index('tags');
-      const results = await Promise.all(
-        options.tags.map((tag) => tagIndex.getAll(tag))
-      );
+      const tagIndex = this.db!.transaction(STORES.metadata)
+        .objectStore(STORES.metadata)
+        .index('tags');
+      const results = await Promise.all(options.tags.map((tag) => tagIndex.getAll(tag)));
       // Flatten and deduplicate
       const seen = new Set<string>();
       metadata = results.flat().filter((m) => {
@@ -394,10 +384,14 @@ export class ShaderEditorService {
    * @param message - Commit message for this version
    * @param preloadedGraph - Optional preloaded graph to avoid a DB read (used internally in create())
    */
-  async createVersion(graphId: string, message: string, preloadedGraph?: ShaderGraph): Promise<ShaderGraphVersion> {
+  async createVersion(
+    graphId: string,
+    message: string,
+    preloadedGraph?: ShaderGraph
+  ): Promise<ShaderGraphVersion> {
     await this.ensureDB();
 
-    const graph = preloadedGraph ?? await this.read(graphId);
+    const graph = preloadedGraph ?? (await this.read(graphId));
     if (!graph) {
       throw new Error(`Graph not found: ${graphId}`);
     }
@@ -430,7 +424,9 @@ export class ShaderEditorService {
   async getVersions(graphId: string): Promise<ShaderGraphVersion[]> {
     await this.ensureDB();
 
-    const versionIndex = this.db!.transaction(STORES.versions).objectStore(STORES.versions).index('graphId');
+    const versionIndex = this.db!.transaction(STORES.versions)
+      .objectStore(STORES.versions)
+      .index('graphId');
     const versions = await versionIndex.getAll(graphId);
 
     return versions.sort((a, b) => a.version - b.version);

@@ -56,12 +56,23 @@ describe('Plugin & Modding System (Cycle 168)', () => {
 
     it('should run full lifecycle (init → start → stop → destroy)', async () => {
       const log: string[] = [];
-      loader.register({ id: 'test', name: 'Test', version: '1.0.0' }, {
-        onInit: () => { log.push('init'); },
-        onStart: () => { log.push('start'); },
-        onStop: () => { log.push('stop'); },
-        onDestroy: () => { log.push('destroy'); },
-      });
+      loader.register(
+        { id: 'test', name: 'Test', version: '1.0.0' },
+        {
+          onInit: () => {
+            log.push('init');
+          },
+          onStart: () => {
+            log.push('start');
+          },
+          onStop: () => {
+            log.push('stop');
+          },
+          onDestroy: () => {
+            log.push('destroy');
+          },
+        }
+      );
 
       loader.resolveDependencies();
       await loader.initializeAll();
@@ -79,9 +90,14 @@ describe('Plugin & Modding System (Cycle 168)', () => {
 
     it('should update started plugins', () => {
       let ticks = 0;
-      loader.register({ id: 'ticker', name: 'Ticker', version: '1.0.0' }, {
-        onUpdate: () => { ticks++; },
-      });
+      loader.register(
+        { id: 'ticker', name: 'Ticker', version: '1.0.0' },
+        {
+          onUpdate: () => {
+            ticks++;
+          },
+        }
+      );
 
       // Only STARTED plugins get updated
       loader.update(0.016);
@@ -145,13 +161,19 @@ describe('Plugin & Modding System (Cycle 168)', () => {
 
     it('should manage events', () => {
       let received: unknown = null;
-      api.on('test:event', (payload) => { received = payload; });
+      api.on('test:event', (payload) => {
+        received = payload;
+      });
       api.emit('test:event', { data: 42 });
       expect(received).toEqual({ data: 42 });
     });
 
     it('should register and execute commands', () => {
-      api.registerCommand({ id: 'greet', name: 'Greet', handler: (name: unknown) => `Hello, ${name}!` });
+      api.registerCommand({
+        id: 'greet',
+        name: 'Greet',
+        handler: (name: unknown) => `Hello, ${name}!`,
+      });
       expect(api.executeCommand('greet', 'World')).toBe('Hello, World!');
     });
 

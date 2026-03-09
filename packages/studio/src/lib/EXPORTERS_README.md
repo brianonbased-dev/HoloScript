@@ -11,13 +11,16 @@ The `exporters.ts` module provides comprehensive export functionality for HoloSc
 ## Supported Export Formats
 
 ### 1. Workflow Export
+
 - **JSON Format** - Standard JSON for data interchange
 - **TypeScript Format** - Typed TypeScript module for code integration
 
 ### 2. Behavior Tree Export
+
 - **JSON Format** - Complete behavior tree structure
 
 ### 3. Event Log Export
+
 - **CSV Format** - Spreadsheet-compatible format for analysis
 - **JSON Format** - Structured data format
 
@@ -26,24 +29,29 @@ The `exporters.ts` module provides comprehensive export functionality for HoloSc
 ### Core Export Functions
 
 #### `exportWorkflow(workflow: AgentWorkflow): string`
+
 Exports a workflow as formatted JSON string.
 
 **Example:**
+
 ```typescript
 const workflowJSON = exportWorkflow(myWorkflow);
 console.log(workflowJSON);
 ```
 
 #### `exportWorkflowAsTS(workflow: AgentWorkflow): string`
+
 Exports a workflow as a TypeScript module with proper type annotations.
 
 **Example:**
+
 ```typescript
 const workflowModule = exportWorkflowAsTS(myWorkflow);
 // Save to file or copy to clipboard
 ```
 
 **Output:**
+
 ```typescript
 import { AgentWorkflow } from '@/lib/orchestrationStore';
 
@@ -53,31 +61,38 @@ export const myWorkflowWorkflow: AgentWorkflow = {
 ```
 
 #### `exportBehaviorTree(tree: BTNode[]): string`
+
 Exports behavior tree nodes as formatted JSON string.
 
 **Example:**
+
 ```typescript
 const btJSON = exportBehaviorTree(behaviorTreeNodes);
 ```
 
 #### `exportEventsAsCSV(events: AgentEvent[]): string`
+
 Exports events as CSV format with proper escaping for Excel/spreadsheet compatibility.
 
 **CSV Format:**
+
 ```csv
 timestamp,topic,senderId,receivedBy,payload
 1772271967567,"scene.created","art-director","animator;physics","{""sceneId"":""scene_001""}"
 ```
 
 **Example:**
+
 ```typescript
 const eventsCSV = exportEventsAsCSV(eventLog);
 ```
 
 #### `exportEventsAsJSON(events: AgentEvent[]): string`
+
 Exports events as formatted JSON array.
 
 **Example:**
+
 ```typescript
 const eventsJSON = exportEventsAsJSON(eventLog);
 ```
@@ -85,14 +100,17 @@ const eventsJSON = exportEventsAsJSON(eventLog);
 ### Download Helper Functions
 
 #### `downloadFile(content: string, filename: string, mimeType?: string): void`
+
 Low-level function to trigger browser file download.
 
 **Parameters:**
+
 - `content` - String content to download
 - `filename` - Desired filename
 - `mimeType` - MIME type (default: `application/json`)
 
 **Example:**
+
 ```typescript
 downloadFile(jsonContent, 'data.json', 'application/json');
 ```
@@ -100,9 +118,11 @@ downloadFile(jsonContent, 'data.json', 'application/json');
 ### Convenience Wrapper Functions
 
 #### `downloadWorkflowJSON(workflow: AgentWorkflow, filename?: string): void`
+
 Exports and downloads workflow as JSON file.
 
 **Example:**
+
 ```typescript
 // Auto-generated filename: "Scene Pipeline-workflow_123.json"
 downloadWorkflowJSON(workflow);
@@ -112,36 +132,44 @@ downloadWorkflowJSON(workflow, 'my-custom-workflow.json');
 ```
 
 #### `downloadWorkflowTS(workflow: AgentWorkflow, filename?: string): void`
+
 Exports and downloads workflow as TypeScript module.
 
 **Example:**
+
 ```typescript
 // Auto-generated filename: "Scene Pipeline-workflow_123.ts"
 downloadWorkflowTS(workflow);
 ```
 
 #### `downloadBehaviorTreeJSON(tree: BTNode[], treeId: string, filename?: string): void`
+
 Exports and downloads behavior tree as JSON file.
 
 **Example:**
+
 ```typescript
 downloadBehaviorTreeJSON(btNodes, 'main-tree');
 // Downloads: "behavior-tree-main-tree.json"
 ```
 
 #### `downloadEventsCSV(events: AgentEvent[], filename?: string): void`
+
 Exports and downloads events as CSV file with timestamp.
 
 **Example:**
+
 ```typescript
 downloadEventsCSV(eventLog);
 // Downloads: "agent-events-2026-02-28T12-30-45-000Z.csv"
 ```
 
 #### `downloadEventsJSON(events: AgentEvent[], filename?: string): void`
+
 Exports and downloads events as JSON file with timestamp.
 
 **Example:**
+
 ```typescript
 downloadEventsJSON(eventLog);
 // Downloads: "agent-events-2026-02-28T12-30-45-000Z.json"
@@ -222,6 +250,7 @@ function BehaviorTreeExportButton() {
 ### Recommended UI Patterns
 
 1. **Export Dropdown Menu**
+
 ```typescript
 <DropdownMenu>
   <DropdownMenuTrigger>Export</DropdownMenuTrigger>
@@ -237,6 +266,7 @@ function BehaviorTreeExportButton() {
 ```
 
 2. **Export Dialog with Format Selection**
+
 ```typescript
 const [format, setFormat] = useState<'json' | 'ts'>('json');
 
@@ -282,11 +312,13 @@ downloadEventsCSV(events, 'qa-session-events.csv');
 ## CSV Format Specification
 
 ### Header Row
+
 ```
 timestamp,topic,senderId,receivedBy,payload
 ```
 
 ### Data Row Format
+
 - **timestamp** - Unix timestamp (milliseconds)
 - **topic** - Event topic string (quoted)
 - **senderId** - Sender agent ID (quoted)
@@ -294,6 +326,7 @@ timestamp,topic,senderId,receivedBy,payload
 - **payload** - JSON string with escaped quotes (quoted)
 
 ### Excel Compatibility
+
 - All fields are properly quoted
 - JSON payloads have double-escaped quotes (`""`)
 - Receiver arrays use semicolon separator (Excel-friendly)
@@ -301,12 +334,14 @@ timestamp,topic,senderId,receivedBy,payload
 ## TypeScript Module Format
 
 Exported TypeScript modules include:
+
 1. Proper type import from orchestrationStore
 2. Named export with workflow ID prefix
 3. Full type annotation for IntelliSense support
 4. Pretty-printed JSON for readability
 
 **Example Output:**
+
 ```typescript
 import { AgentWorkflow } from '@/lib/orchestrationStore';
 
@@ -326,6 +361,7 @@ export const workflow_1234567890_abc123Workflow: AgentWorkflow = {
 Test file with sample data and usage examples: `exporters.test.ts`
 
 Run tests:
+
 ```bash
 npx tsx src/lib/exporters.test.ts
 ```
@@ -333,6 +369,7 @@ npx tsx src/lib/exporters.test.ts
 ## Type Definitions
 
 All types are imported from `orchestrationStore.ts`:
+
 - `AgentWorkflow` - Complete workflow structure
 - `BTNode` - Behavior tree node
 - `AgentEvent` - Event bus event
@@ -340,6 +377,7 @@ All types are imported from `orchestrationStore.ts`:
 ## Browser Compatibility
 
 Download functionality uses standard browser APIs:
+
 - `Blob` - All modern browsers
 - `URL.createObjectURL` - All modern browsers
 - `document.createElement('a')` - Universal support
@@ -349,6 +387,7 @@ No external dependencies required for export functionality.
 ## Future Enhancements
 
 Potential additions for Phase 2:
+
 1. **Import Functions** - Parse and validate imported workflows
 2. **XML/YAML Formats** - Additional export formats
 3. **Batch Export** - Export multiple workflows at once
@@ -366,6 +405,7 @@ Potential additions for Phase 2:
 ## Questions or Issues
 
 For questions or issues with export functionality, refer to:
+
 1. This README
 2. Test examples in `exporters.test.ts`
 3. Type definitions in `orchestrationStore.ts`

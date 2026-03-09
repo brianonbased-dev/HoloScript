@@ -7,7 +7,9 @@ import { JointSystem } from '../physics/JointSystem';
 
 describe('JointSystem', () => {
   let js: JointSystem;
-  beforeEach(() => { js = new JointSystem(); });
+  beforeEach(() => {
+    js = new JointSystem();
+  });
 
   it('creates a joint between two bodies', () => {
     const j = js.createJoint('hinge', 'bodyA', 'bodyB');
@@ -29,8 +31,10 @@ describe('JointSystem', () => {
 
   it('spring joint computes force', () => {
     const j = js.createJoint('spring', 'a', 'b', {
-      stiffness: 10, damping: 0.1,
-      anchorA: { x: 0, y: 0, z: 0 }, anchorB: { x: 5, y: 0, z: 0 },
+      stiffness: 10,
+      damping: 0.1,
+      anchorA: { x: 0, y: 0, z: 0 },
+      anchorB: { x: 5, y: 0, z: 0 },
     });
     js.setDistance(j.id, 8); // stretched
     js.solve(0.016);
@@ -55,8 +59,10 @@ describe('JointSystem', () => {
 
   it('joint breaks when force exceeds breakForce', () => {
     const j = js.createJoint('spring', 'a', 'b', {
-      stiffness: 1000, breakForce: 5,
-      anchorA: { x: 0, y: 0, z: 0 }, anchorB: { x: 1, y: 0, z: 0 },
+      stiffness: 1000,
+      breakForce: 5,
+      anchorA: { x: 0, y: 0, z: 0 },
+      anchorB: { x: 1, y: 0, z: 0 },
     });
     js.setDistance(j.id, 100); // extreme stretch
     js.solve(0.016);

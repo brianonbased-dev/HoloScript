@@ -5,7 +5,12 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { CutsceneTimeline, CutsceneBuilder, CutsceneDefinition, TimelineEvent } from '../CutsceneTimeline';
+import {
+  CutsceneTimeline,
+  CutsceneBuilder,
+  CutsceneDefinition,
+  TimelineEvent,
+} from '../CutsceneTimeline';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -23,8 +28,8 @@ function makeSimpleDef(id: string, duration: number, loop = false): CutsceneDefi
         name: 'Main',
         events: [
           { id: 'ev0', type: 'animation', startTime: 0, duration: 1, data: {} },
-          { id: 'ev1', type: 'camera',    startTime: 1, duration: 2, data: {} },
-          { id: 'ev2', type: 'dialogue',  startTime: 3, duration: 1, data: {} },
+          { id: 'ev1', type: 'camera', startTime: 1, duration: 2, data: {} },
+          { id: 'ev2', type: 'dialogue', startTime: 3, duration: 1, data: {} },
         ],
         muted: false,
       },
@@ -185,15 +190,17 @@ describe('CutsceneTimeline', () => {
         name: 'Multi',
         duration: 5,
         loop: false,
-        tracks: [{
-          id: 'track0',
-          name: 'T',
-          events: [
-            { id: 'a', type: 'animation', startTime: 0, duration: 3, data: {} },
-            { id: 'b', type: 'audio',     startTime: 0, duration: 3, data: {} },
-          ],
-          muted: false,
-        }],
+        tracks: [
+          {
+            id: 'track0',
+            name: 'T',
+            events: [
+              { id: 'a', type: 'animation', startTime: 0, duration: 3, data: {} },
+              { id: 'b', type: 'audio', startTime: 0, duration: 3, data: {} },
+            ],
+            muted: false,
+          },
+        ],
       };
       tl.load(def);
       tl.play('multi');
@@ -209,12 +216,14 @@ describe('CutsceneTimeline', () => {
         name: 'Muted',
         duration: 5,
         loop: false,
-        tracks: [{
-          id: 'track0',
-          name: 'Muted',
-          events: [{ id: 'ev', type: 'audio', startTime: 0, duration: 3, data: {} }],
-          muted: true,
-        }],
+        tracks: [
+          {
+            id: 'track0',
+            name: 'Muted',
+            events: [{ id: 'ev', type: 'audio', startTime: 0, duration: 3, data: {} }],
+            muted: true,
+          },
+        ],
       };
       tl.load(def);
       tl.play('muted');
@@ -230,18 +239,30 @@ describe('CutsceneTimeline', () => {
   describe('registerCallback() / callback events', () => {
     it('callback fires when callback event activates', () => {
       let fired = false;
-      tl.registerCallback('greet', () => { fired = true; });
+      tl.registerCallback('greet', () => {
+        fired = true;
+      });
       const def: CutsceneDefinition = {
         id: 'cb',
         name: 'CB',
         duration: 5,
         loop: false,
-        tracks: [{
-          id: 't0',
-          name: 'T',
-          events: [{ id: 'cbe', type: 'callback', startTime: 0, duration: 1, data: { callbackId: 'greet' } }],
-          muted: false,
-        }],
+        tracks: [
+          {
+            id: 't0',
+            name: 'T',
+            events: [
+              {
+                id: 'cbe',
+                type: 'callback',
+                startTime: 0,
+                duration: 1,
+                data: { callbackId: 'greet' },
+              },
+            ],
+            muted: false,
+          },
+        ],
       };
       tl.load(def);
       tl.play('cb');
@@ -257,12 +278,22 @@ describe('CutsceneTimeline', () => {
         name: 'Once',
         duration: 5,
         loop: false,
-        tracks: [{
-          id: 't0',
-          name: 'T',
-          events: [{ id: 'e', type: 'callback', startTime: 0, duration: 2, data: { callbackId: 'tick' } }],
-          muted: false,
-        }],
+        tracks: [
+          {
+            id: 't0',
+            name: 'T',
+            events: [
+              {
+                id: 'e',
+                type: 'callback',
+                startTime: 0,
+                duration: 2,
+                data: { callbackId: 'tick' },
+              },
+            ],
+            muted: false,
+          },
+        ],
       };
       tl.load(def);
       tl.play('once');
@@ -280,12 +311,16 @@ describe('CutsceneTimeline', () => {
         name: 'UR',
         duration: 5,
         loop: false,
-        tracks: [{
-          id: 't0',
-          name: 'T',
-          events: [{ id: 'e', type: 'callback', startTime: 0, duration: 1, data: { callbackId: 'x' } }],
-          muted: false,
-        }],
+        tracks: [
+          {
+            id: 't0',
+            name: 'T',
+            events: [
+              { id: 'e', type: 'callback', startTime: 0, duration: 1, data: { callbackId: 'x' } },
+            ],
+            muted: false,
+          },
+        ],
       };
       tl.load(def);
       tl.play('ur');
@@ -439,7 +474,7 @@ describe('CutsceneBuilder', () => {
     const def = new CutsceneBuilder('cs', 'CS')
       .addTrack('T')
       .addEvent(0, 'animation', 0, 3)
-      .addEvent(0, 'camera',    2, 5)  // ends at 7
+      .addEvent(0, 'camera', 2, 5) // ends at 7
       .build();
     expect(def.duration).toBe(7);
   });
@@ -464,7 +499,7 @@ describe('CutsceneBuilder', () => {
       .addEvent(0, 'audio', 1, 1)
       .addEvent(0, 'audio', 2, 1)
       .build();
-    const ids = def.tracks[0].events.map(e => e.id);
+    const ids = def.tracks[0].events.map((e) => e.id);
     const unique = new Set(ids);
     expect(unique.size).toBe(ids.length);
   });
@@ -478,7 +513,7 @@ describe('CutsceneBuilder', () => {
     const def = new CutsceneBuilder('cinematic', 'Big Scene')
       .addTrack('Hero', 'hero-entity')
       .addEvent(0, 'animation', 0, 5, { clip: 'enter' })
-      .addEvent(0, 'dialogue',  2, 3, { text: 'Hello' })
+      .addEvent(0, 'dialogue', 2, 3, { text: 'Hello' })
       .addTrack('Camera')
       .addEvent(1, 'camera', 0, 5, { fov: 60 })
       .addTrack('Audio')

@@ -273,50 +273,50 @@ export type ANSCapabilityPathValue = (typeof ANSCapabilityPath)[keyof typeof ANS
  */
 export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>> = {
   // gamedev
-  'unity': ANSDomain.GAMEDEV,
-  'unreal': ANSDomain.GAMEDEV,
-  'godot': ANSDomain.GAMEDEV,
+  unity: ANSDomain.GAMEDEV,
+  unreal: ANSDomain.GAMEDEV,
+  godot: ANSDomain.GAMEDEV,
   // social-vr
-  'vrchat': ANSDomain.SOCIAL_VR,
+  vrchat: ANSDomain.SOCIAL_VR,
   // xr
-  'openxr': ANSDomain.XR,
+  openxr: ANSDomain.XR,
   'openxr-spatial-entities': ANSDomain.XR,
-  'visionos': ANSDomain.XR,
-  'ar': ANSDomain.XR,
+  visionos: ANSDomain.XR,
+  ar: ANSDomain.XR,
   'android-xr': ANSDomain.XR,
   'ai-glasses': ANSDomain.XR,
   // mobile
-  'android': ANSDomain.MOBILE,
-  'ios': ANSDomain.MOBILE,
+  android: ANSDomain.MOBILE,
+  ios: ANSDomain.MOBILE,
   // web3d
-  'babylon': ANSDomain.WEB3D,
-  'webgpu': ANSDomain.WEB3D,
-  'r3f': ANSDomain.WEB3D,
-  'playcanvas': ANSDomain.WEB3D,
+  babylon: ANSDomain.WEB3D,
+  webgpu: ANSDomain.WEB3D,
+  r3f: ANSDomain.WEB3D,
+  playcanvas: ANSDomain.WEB3D,
   // runtime
-  'wasm': ANSDomain.RUNTIME,
+  wasm: ANSDomain.RUNTIME,
   // shader
-  'tsl': ANSDomain.SHADER,
+  tsl: ANSDomain.SHADER,
   // robotics
-  'urdf': ANSDomain.ROBOTICS,
-  'sdf': ANSDomain.ROBOTICS,
+  urdf: ANSDomain.ROBOTICS,
+  sdf: ANSDomain.ROBOTICS,
   // interchange
-  'usd': ANSDomain.INTERCHANGE,
-  'gltf': ANSDomain.INTERCHANGE,
+  usd: ANSDomain.INTERCHANGE,
+  gltf: ANSDomain.INTERCHANGE,
   // iot
-  'dtdl': ANSDomain.IOT,
+  dtdl: ANSDomain.IOT,
   // web3
   'nft-marketplace': ANSDomain.WEB3,
   // ai
-  'scm': ANSDomain.AI,
-  'vrr': ANSDomain.AI,
+  scm: ANSDomain.AI,
+  vrr: ANSDomain.AI,
   'a2a-agent-card': ANSDomain.AI,
   // neuromorphic
-  'nir': ANSDomain.NEUROMORPHIC,
+  nir: ANSDomain.NEUROMORPHIC,
   // meta
   'multi-layer': ANSDomain.META,
-  'incremental': ANSDomain.META,
-  'state': ANSDomain.META,
+  incremental: ANSDomain.META,
+  state: ANSDomain.META,
   'trait-composition': ANSDomain.META,
   // mixin
   'domain-block': ANSDomain.MIXIN,
@@ -330,37 +330,37 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
  * Maps each compiler name to its ANS capability path.
  */
 export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathValue>> = {
-  'unity': ANSCapabilityPath.UNITY,
-  'unreal': ANSCapabilityPath.UNREAL,
-  'godot': ANSCapabilityPath.GODOT,
-  'vrchat': ANSCapabilityPath.VRCHAT,
-  'openxr': ANSCapabilityPath.OPENXR,
+  unity: ANSCapabilityPath.UNITY,
+  unreal: ANSCapabilityPath.UNREAL,
+  godot: ANSCapabilityPath.GODOT,
+  vrchat: ANSCapabilityPath.VRCHAT,
+  openxr: ANSCapabilityPath.OPENXR,
   'openxr-spatial-entities': ANSCapabilityPath.OPENXR_SPATIAL_ENTITIES,
-  'visionos': ANSCapabilityPath.VISIONOS,
-  'ar': ANSCapabilityPath.AR,
+  visionos: ANSCapabilityPath.VISIONOS,
+  ar: ANSCapabilityPath.AR,
   'android-xr': ANSCapabilityPath.ANDROID_XR,
   'ai-glasses': ANSCapabilityPath.AI_GLASSES,
-  'android': ANSCapabilityPath.ANDROID,
-  'ios': ANSCapabilityPath.IOS,
-  'babylon': ANSCapabilityPath.BABYLON,
-  'webgpu': ANSCapabilityPath.WEBGPU,
-  'r3f': ANSCapabilityPath.R3F,
-  'playcanvas': ANSCapabilityPath.PLAYCANVAS,
-  'wasm': ANSCapabilityPath.WASM,
-  'tsl': ANSCapabilityPath.TSL,
-  'urdf': ANSCapabilityPath.URDF,
-  'sdf': ANSCapabilityPath.SDF,
-  'usd': ANSCapabilityPath.USD,
-  'gltf': ANSCapabilityPath.GLTF,
-  'dtdl': ANSCapabilityPath.DTDL,
+  android: ANSCapabilityPath.ANDROID,
+  ios: ANSCapabilityPath.IOS,
+  babylon: ANSCapabilityPath.BABYLON,
+  webgpu: ANSCapabilityPath.WEBGPU,
+  r3f: ANSCapabilityPath.R3F,
+  playcanvas: ANSCapabilityPath.PLAYCANVAS,
+  wasm: ANSCapabilityPath.WASM,
+  tsl: ANSCapabilityPath.TSL,
+  urdf: ANSCapabilityPath.URDF,
+  sdf: ANSCapabilityPath.SDF,
+  usd: ANSCapabilityPath.USD,
+  gltf: ANSCapabilityPath.GLTF,
+  dtdl: ANSCapabilityPath.DTDL,
   'nft-marketplace': ANSCapabilityPath.NFT_MARKETPLACE,
-  'scm': ANSCapabilityPath.SCM,
-  'vrr': ANSCapabilityPath.VRR,
+  scm: ANSCapabilityPath.SCM,
+  vrr: ANSCapabilityPath.VRR,
   'a2a-agent-card': ANSCapabilityPath.A2A_AGENT_CARD,
-  'nir': ANSCapabilityPath.NIR,
+  nir: ANSCapabilityPath.NIR,
   'multi-layer': ANSCapabilityPath.MULTI_LAYER,
-  'incremental': ANSCapabilityPath.INCREMENTAL,
-  'state': ANSCapabilityPath.STATE,
+  incremental: ANSCapabilityPath.INCREMENTAL,
+  state: ANSCapabilityPath.STATE,
   'trait-composition': ANSCapabilityPath.TRAIT_COMPOSITION,
   'domain-block': ANSCapabilityPath.DOMAIN_BLOCK,
 } as const;
@@ -463,9 +463,7 @@ export function getRiskTierForCompiler(compiler: CompilerName): RiskTierValue {
  * ```
  */
 export function getAllCompilersInDomain(domain: ANSDomainValue): CompilerName[] {
-  return ALL_COMPILER_NAMES.filter(
-    (compiler) => COMPILER_DOMAIN_MAP[compiler] === domain
-  );
+  return ALL_COMPILER_NAMES.filter((compiler) => COMPILER_DOMAIN_MAP[compiler] === domain);
 }
 
 /**
@@ -481,9 +479,7 @@ export function getAllCompilersInDomain(domain: ANSDomainValue): CompilerName[] 
  * ```
  */
 export function getAllCompilersWithRiskTier(tier: RiskTierValue): CompilerName[] {
-  return ALL_COMPILER_NAMES.filter(
-    (compiler) => getRiskTierForCompiler(compiler) === tier
-  );
+  return ALL_COMPILER_NAMES.filter((compiler) => getRiskTierForCompiler(compiler) === tier);
 }
 
 /**

@@ -56,7 +56,7 @@ beforeEach(() => {
     config: {
       defaultTimeout: 60000,
       defaultRetries: 2,
-      autoEscalate: false,  // off so failTask tests are predictable
+      autoEscalate: false, // off so failTask tests are predictable
       maxDepth: 5,
       healthCheckInterval: 10000,
       allowDecomposition: true,
@@ -181,7 +181,7 @@ describe('DelegationEngine', () => {
 
     it('throws when hierarchyId is invalid', async () => {
       await expect(
-        engine.delegate({ hierarchyId: 'nope', taskType: 'render', payload: {} }),
+        engine.delegate({ hierarchyId: 'nope', taskType: 'render', payload: {} })
       ).rejects.toThrow(/not found/i);
     });
   });
@@ -357,7 +357,11 @@ describe('DelegationEngine', () => {
         payload: {},
       });
       engine.startTask(task.id);
-      const result = engine.failTask(task.id, { code: 'FATAL', message: 'fatal', recoverable: false });
+      const result = engine.failTask(task.id, {
+        code: 'FATAL',
+        message: 'fatal',
+        recoverable: false,
+      });
       expect(result.status).toBe('failed');
       expect(result.retryCount).toBe(0);
     });
@@ -510,15 +514,35 @@ describe('DelegationEngine', () => {
     });
 
     it('getTasksByHierarchy returns all tasks for hierarchy', async () => {
-      await engine.delegate({ hierarchyId: HIERARCHY_ID, taskType: 'render', assigneeId: SUB_A_ID, payload: {} });
-      await engine.delegate({ hierarchyId: HIERARCHY_ID, taskType: 'animation', assigneeId: SUB_B_ID, payload: {} });
+      await engine.delegate({
+        hierarchyId: HIERARCHY_ID,
+        taskType: 'render',
+        assigneeId: SUB_A_ID,
+        payload: {},
+      });
+      await engine.delegate({
+        hierarchyId: HIERARCHY_ID,
+        taskType: 'animation',
+        assigneeId: SUB_B_ID,
+        payload: {},
+      });
 
       expect(engine.getTasksByHierarchy(HIERARCHY_ID)).toHaveLength(2);
     });
 
     it('getActiveTasks returns only active tasks', async () => {
-      const t1 = await engine.delegate({ hierarchyId: HIERARCHY_ID, taskType: 'render', assigneeId: SUB_A_ID, payload: {} });
-      await engine.delegate({ hierarchyId: HIERARCHY_ID, taskType: 'animation', assigneeId: SUB_B_ID, payload: {} });
+      const t1 = await engine.delegate({
+        hierarchyId: HIERARCHY_ID,
+        taskType: 'render',
+        assigneeId: SUB_A_ID,
+        payload: {},
+      });
+      await engine.delegate({
+        hierarchyId: HIERARCHY_ID,
+        taskType: 'animation',
+        assigneeId: SUB_B_ID,
+        payload: {},
+      });
 
       engine.startTask(t1.id);
       // t2 stays pending (active too)
@@ -536,8 +560,18 @@ describe('DelegationEngine', () => {
   describe('load balancing', () => {
     it('assigns to least-loaded subordinate', async () => {
       // Give sub-a 2 tasks
-      await engine.delegate({ hierarchyId: HIERARCHY_ID, taskType: 'render', assigneeId: SUB_A_ID, payload: {} });
-      await engine.delegate({ hierarchyId: HIERARCHY_ID, taskType: 'render', assigneeId: SUB_A_ID, payload: {} });
+      await engine.delegate({
+        hierarchyId: HIERARCHY_ID,
+        taskType: 'render',
+        assigneeId: SUB_A_ID,
+        payload: {},
+      });
+      await engine.delegate({
+        hierarchyId: HIERARCHY_ID,
+        taskType: 'render',
+        assigneeId: SUB_A_ID,
+        payload: {},
+      });
 
       // Next auto-assigned task should go to sub-b (0 tasks)
       const task = await engine.delegate({
@@ -574,7 +608,7 @@ describe('DelegationEngine', () => {
 
     it('throws when parent task is unknown', async () => {
       await expect(
-        engine.createSubtask('nonexistent', { taskType: 'render', payload: {} }),
+        engine.createSubtask('nonexistent', { taskType: 'render', payload: {} })
       ).rejects.toThrow(/not found/i);
     });
   });

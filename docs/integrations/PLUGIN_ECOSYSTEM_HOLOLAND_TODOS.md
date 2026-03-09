@@ -9,12 +9,15 @@
 ## 📋 Plugin Inventory
 
 ### 1. Core Plugin System
+
 **Location**: `packages/core/src/plugins/`
+
 - ✅ **PluginAPI.ts** - Sandboxed plugin API with permissions
 - ✅ **PluginLoader.ts** - Dynamic plugin loading
 - ✅ **ModRegistry.ts** - Mod/extension registry
 
 **Current Capabilities**:
+
 - Event system (on/off/emit)
 - Asset registration (mesh, texture, audio, script, shader, data)
 - Command registration
@@ -26,12 +29,15 @@
 ---
 
 ### 2. Core Extension System
+
 **Location**: `packages/core/src/extensions/`
+
 - ✅ **ExtensionRegistry.ts** - Extension loading/unloading
 - ✅ **ExtensionInterface.ts** - Extension interface definition
 - ✅ **AgentExtensionTypes.ts** - AI agent extension types
 
 **Current Capabilities**:
+
 - Trait registration
 - Function registration
 - Extension lifecycle (onLoad/onUnload)
@@ -41,7 +47,9 @@
 ---
 
 ### 3. VS Code Extension
+
 **Location**: `packages/vscode-extension/`
+
 - ✅ **extension.ts** - Main extension entry point
 - ✅ **services/** - Language services, LSP client
 - ✅ **collaboration/** - Real-time collaboration
@@ -51,6 +59,7 @@
 - ✅ **agentApi.ts** - AI agent commands
 
 **Current Capabilities**:
+
 - MCP orchestrator integration
 - AI auto-suggestions
 - Live 3D preview
@@ -63,7 +72,9 @@
 ---
 
 ### 4. IntelliJ Plugin
+
 **Location**: `packages/intellij/`
+
 - ✅ **build.gradle.kts** - Gradle build configuration
 - ✅ **src/** - IntelliJ plugin source (Java/Kotlin)
 
@@ -74,7 +85,9 @@
 ---
 
 ### 5. Neovim Plugin
+
 **Location**: `packages/neovim/plugin/`
+
 - ✅ **holoscript.vim** - Neovim plugin
 
 **Current Capabilities**: Syntax highlighting, basic Vim integration
@@ -90,14 +103,21 @@
 **File**: `packages/core/src/plugins/PluginAPI.ts`
 
 **Add New Asset Types**:
+
 ```typescript
 export interface PluginAsset {
   id: string;
-  type: 'mesh' | 'texture' | 'audio' | 'script' | 'shader' | 'data'
-      | 'vrr_twin'      // NEW: VRR twin asset
-      | 'ar_marker'     // NEW: AR QR code/marker
-      | 'quest_pack'    // NEW: Business quest bundle
-      | 'nft_metadata'; // NEW: Zora NFT metadata
+  type:
+    | 'mesh'
+    | 'texture'
+    | 'audio'
+    | 'script'
+    | 'shader'
+    | 'data'
+    | 'vrr_twin' // NEW: VRR twin asset
+    | 'ar_marker' // NEW: AR QR code/marker
+    | 'quest_pack' // NEW: Business quest bundle
+    | 'nft_metadata'; // NEW: Zora NFT metadata
   path: string;
   pluginId: string;
   metadata?: Record<string, unknown>;
@@ -105,6 +125,7 @@ export interface PluginAsset {
 ```
 
 **Add New Events**:
+
 ```typescript
 // VRR Real-Time Sync Events
 on('vrr:weather_update', (data: WeatherData) => void);
@@ -138,6 +159,7 @@ on('quest:reward_claimed', (reward: QuestReward) => void);
 ```
 
 **Add New Permissions**:
+
 ```typescript
 export type PluginPermission =
   | 'filesystem:read'
@@ -146,17 +168,18 @@ export type PluginPermission =
   | 'scene:write'
   | 'network'
   // NEW: Hololand-specific permissions
-  | 'vrr:sync'           // Access VRR real-time sync APIs
-  | 'x402:payment'       // Trigger x402 payments
-  | 'ar:camera'          // Access device camera for AR
-  | 'agentkit:wallet'    // Access AI agent wallet
-  | 'zora:nft_mint'      // Mint NFTs via Zora
-  | 'storyweaver:ai'      // Access StoryWeaver AI services
-  | 'quest:create'       // Create business quests
-  | 'quest:manage';      // Manage quest state
+  | 'vrr:sync' // Access VRR real-time sync APIs
+  | 'x402:payment' // Trigger x402 payments
+  | 'ar:camera' // Access device camera for AR
+  | 'agentkit:wallet' // Access AI agent wallet
+  | 'zora:nft_mint' // Mint NFTs via Zora
+  | 'storyweaver:ai' // Access StoryWeaver AI services
+  | 'quest:create' // Create business quests
+  | 'quest:manage'; // Manage quest state
 ```
 
 **Add Hololand API Methods**:
+
 ```typescript
 // VRR Sync
 syncVRRWeather(callback: (weather: WeatherData) => void): void;
@@ -193,6 +216,7 @@ completeQuest(questId: string, playerId: string): Promise<QuestReward>;
 **File**: `packages/vscode-extension/src/extension.ts`
 
 **New Commands**:
+
 ```typescript
 // VRR Twin Commands
 'holoscript.vrr.createTwin' - Create new VRR twin from HoloScript
@@ -230,6 +254,7 @@ completeQuest(questId: string, playerId: string): Promise<QuestReward>;
 ```
 
 **New Configuration** (package.json):
+
 ```json
 "holoscript.vrr.weatherProvider": {
   "type": "string",
@@ -267,6 +292,7 @@ completeQuest(questId: string, playerId: string): Promise<QuestReward>;
 ```
 
 **New Views** (package.json contributes.views):
+
 ```json
 {
   "id": "holoscript.vrrTwins",
@@ -291,6 +317,7 @@ completeQuest(questId: string, playerId: string): Promise<QuestReward>;
 ```
 
 **New Services**:
+
 ```
 services/
 ├── VRRSyncService.ts        // Real-time VRR synchronization
@@ -309,6 +336,7 @@ services/
 **File**: `packages/core/src/extensions/ExtensionRegistry.ts`
 
 **New Extension Types**:
+
 ```typescript
 export interface HololandExtension extends HoloExtension {
   // VRR Compiler Extension
@@ -332,6 +360,7 @@ export interface HololandExtension extends HoloExtension {
 ```
 
 **Example Extension** (VRR Weather Sync):
+
 ```typescript
 // packages/core/src/extensions/VRRWeatherExtension.ts
 export const VRRWeatherExtension: HololandExtension = {
@@ -372,7 +401,7 @@ export const VRRWeatherExtension: HololandExtension = {
 
   onUnload(context) {
     context.logger.info('VRR Weather Sync Extension unloaded');
-  }
+  },
 };
 ```
 
@@ -431,12 +460,14 @@ export const VRRWeatherExtension: HololandExtension = {
 ### Phase 5: IntelliJ & Neovim Parity (Week 5-6)
 
 **IntelliJ Plugin** (`packages/intellij/src/`):
+
 - Port VS Code extension features to IntelliJ IDEA
 - Implement webview equivalents using Swing/JavaFX
 - Add Kotlin-based LSP client for Hololand features
 - Integrate with IntelliJ's HTTP Client for x402 simulation
 
 **Neovim Plugin** (`packages/neovim/plugin/holoscript.vim`):
+
 - Implement LSP client for Hololand features
 - Add terminal-based quest builder (ncurses/TUI)
 - VRR preview via terminal graphics (Kitty/iTerm2)
@@ -448,6 +479,7 @@ export const VRRWeatherExtension: HololandExtension = {
 ## 🧪 Testing Requirements
 
 ### Unit Tests
+
 - [ ] Core Plugin API new events
 - [ ] Core Plugin API new permissions
 - [ ] Core Plugin API Hololand methods
@@ -456,6 +488,7 @@ export const VRRWeatherExtension: HololandExtension = {
 - [ ] Webview component rendering
 
 ### Integration Tests
+
 - [ ] VRR twin preview with live weather sync
 - [ ] AR QR scanner simulation
 - [ ] x402 payment flow end-to-end
@@ -464,6 +497,7 @@ export const VRRWeatherExtension: HololandExtension = {
 - [ ] StoryWeaver AI → quest generation
 
 ### E2E Tests
+
 - [ ] Business owner creates VRR twin with quest
 - [ ] AI agent mints VRR twin as NFT
 - [ ] Player scans QR → AR → VRR → VR funnel
@@ -474,16 +508,19 @@ export const VRRWeatherExtension: HololandExtension = {
 ## 📊 Success Metrics
 
 **Developer Experience**:
+
 - Time to create VRR twin: <5 minutes (vs 30 minutes manual)
 - Quest creation time: <10 minutes (no-code builder vs 2 hours coding)
 - NFT minting friction: 1-click vs multi-step process
 
 **Business Impact**:
+
 - AR entry points: 10x increase in VRR engagement
 - Quest creation: 50+ businesses create quests (vs 0 today)
 - Creator NFTs: 100+ VRR twins/VR worlds minted in first month
 
 **Technical Metrics**:
+
 - Plugin install rate: 80%+ of HoloScript developers
 - VRR preview usage: 90%+ of VRR twin projects use live preview
 - Quest builder adoption: 70%+ of business owners use no-code builder
@@ -493,6 +530,7 @@ export const VRRWeatherExtension: HololandExtension = {
 ## 🚀 Implementation Priorities
 
 **Critical Path** (blocks other features):
+
 1. ✅ Core Plugin API event system (Week 1)
 2. ✅ Core Plugin API permission system (Week 1)
 3. ⏳ VS Code VRR preview panel (Week 2)
@@ -500,18 +538,21 @@ export const VRRWeatherExtension: HololandExtension = {
 5. ⏳ Extension system VRR compiler hooks (Week 3)
 
 **High Priority** (business value):
+
 - Business quest builder UI (no-code)
 - VRR twin live preview with sync
 - AR entry point simulator
 - Creator NFT studio
 
 **Medium Priority** (nice-to-have):
+
 - StoryWeaver AI composer
 - Agent wallet dashboard
 - IntelliJ plugin parity
 - Neovim TUI features
 
 **Low Priority** (future):
+
 - Advanced quest analytics
 - Multi-language i18n for plugins
 - Plugin marketplace
@@ -521,11 +562,13 @@ export const VRRWeatherExtension: HololandExtension = {
 ## 🔗 Integration with Other TODOs
 
 **HoloScript Compiler TODOs** (HOLOLAND_INTEGRATION_TODOS.md):
+
 - VRRCompiler.ts → VS Code VRR preview service
 - ARCompiler.ts → VS Code AR simulator service
 - x402PaymentService.ts → VS Code payment simulation
 
 **TrainingMonkey TODOs** (HOLOLAND_TRAINING_DATA_TODOS.md):
+
 - Generate training data for plugin development
 - Quest builder prompt templates
 - VRR twin configuration examples
@@ -535,6 +578,7 @@ export const VRRWeatherExtension: HololandExtension = {
 ## 📝 Definition of Done
 
 **Per Plugin**:
+
 - [ ] Hololand events/permissions implemented
 - [ ] Hololand API methods functional
 - [ ] UI/webview panels complete
@@ -543,6 +587,7 @@ export const VRRWeatherExtension: HololandExtension = {
 - [ ] Documentation updated
 
 **Overall**:
+
 - [ ] All 5 plugins support Hololand features
 - [ ] Feature parity across VS Code, IntelliJ, Neovim
 - [ ] E2E user journey tests pass
@@ -555,5 +600,6 @@ export const VRRWeatherExtension: HololandExtension = {
 **Last Updated**: 2026-02-20
 **Author**: Claude Sonnet 4.5 (AI Agent)
 **Related Documents**:
+
 - HOLOLAND_INTEGRATION_TODOS.md (HoloScript compilers/runtime)
 - HOLOLAND_TRAINING_DATA_TODOS.md (TrainingMonkey data generation)

@@ -8,7 +8,7 @@ class MockRTCPeerConnection {
   ondatachannel: any;
   ontrack: any;
   connectionState = 'new';
-  
+
   addTrack = vi.fn();
   addTransceiver = vi.fn();
   createOffer = vi.fn().mockResolvedValue({ type: 'offer', sdp: 'mock-sdp' });
@@ -17,7 +17,7 @@ class MockRTCPeerConnection {
   createAnswer = vi.fn().mockResolvedValue({ type: 'answer', sdp: 'mock-answer-sdp' });
   addIceCandidate = vi.fn().mockResolvedValue(undefined);
   close = vi.fn();
-  
+
   constructor(config: any) {}
 }
 
@@ -33,8 +33,14 @@ class MockWebSocket {
 
 // Assign to global
 vi.stubGlobal('RTCPeerConnection', MockRTCPeerConnection);
-vi.stubGlobal('RTCSessionDescription', vi.fn().mockImplementation((init) => init));
-vi.stubGlobal('RTCIceCandidate', vi.fn().mockImplementation((init) => init));
+vi.stubGlobal(
+  'RTCSessionDescription',
+  vi.fn().mockImplementation((init) => init)
+);
+vi.stubGlobal(
+  'RTCIceCandidate',
+  vi.fn().mockImplementation((init) => init)
+);
 vi.stubGlobal('WebSocket', MockWebSocket);
 
 describe('WebRTCTransport - Voice Chat', () => {
@@ -46,24 +52,24 @@ describe('WebRTCTransport - Voice Chat', () => {
     transport = new WebRTCTransport({
       signalingServerUrl: 'ws://localhost:8080',
       roomId: 'test-room',
-      peerId: 'local-peer'
+      peerId: 'local-peer',
     });
 
     mockTrack = { kind: 'audio', id: 'track-1' };
     mockStream = {
       getTracks: () => [mockTrack],
       getAudioTracks: () => [mockTrack],
-      id: 'stream-1'
+      id: 'stream-1',
     };
   });
 
   it('should add stream tracks to existing peers', async () => {
     // Simulate a connected peer
     await transport.connectToPeer('remote-peer');
-    
+
     // Add stream
     transport.addStream(mockStream);
-    
+
     // Check if track was added to peer connection
     // access private peers map via any cast or if we expose a getter
     const peer = (transport as any).peers.get('remote-peer');
@@ -73,10 +79,10 @@ describe('WebRTCTransport - Voice Chat', () => {
   it('should store local stream and add to new peers', async () => {
     // Add stream first
     transport.addStream(mockStream);
-    
+
     // Then connect peer
     await transport.connectToPeer('remote-peer-2');
-    
+
     const peer = (transport as any).peers.get('remote-peer-2');
     expect(peer.connection.addTrack).toHaveBeenCalledWith(mockTrack, mockStream);
   });
@@ -87,27 +93,27 @@ describe('WebRTCTransport - Voice Chat', () => {
 
     // Use public API to connect
     await transport.connectToPeer('remote-peer');
-    
+
     // Get the properly initialized peer
     const peer = (transport as any).peers.get('remote-peer');
     expect(peer).toBeDefined();
-    
+
     const mockEvent = {
-        streams: [mockStream],
-        track: mockTrack
+      streams: [mockStream],
+      track: mockTrack,
     };
-    
+
     // Trigger the handler
     if (peer.connection.ontrack) {
-        peer.connection.ontrack(mockEvent);
+      peer.connection.ontrack(mockEvent);
     } else {
-        throw new Error('ontrack handler was not attached by connectToPeer');
+      throw new Error('ontrack handler was not attached by connectToPeer');
     }
-    
+
     expect(onStreamAdded).toHaveBeenCalledWith({
-        peerId: 'remote-peer',
-        stream: mockStream,
-        track: mockTrack
+      peerId: 'remote-peer',
+      stream: mockStream,
+      track: mockTrack,
     });
   });
 });

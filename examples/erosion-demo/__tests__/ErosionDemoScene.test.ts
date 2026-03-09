@@ -416,7 +416,16 @@ describe('ErosionDemoScene', () => {
   });
 
   describe('Preset Loading', () => {
-    const presets = ['canyon', 'mountain', 'valley', 'plateau', 'hills', 'flat', 'island', 'ridge'] as const;
+    const presets = [
+      'canyon',
+      'mountain',
+      'valley',
+      'plateau',
+      'hills',
+      'flat',
+      'island',
+      'ridge',
+    ] as const;
 
     presets.forEach((preset) => {
       it(`should load ${preset} preset`, () => {

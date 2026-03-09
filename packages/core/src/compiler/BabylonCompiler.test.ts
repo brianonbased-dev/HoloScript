@@ -2,7 +2,20 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { BabylonCompiler } from './BabylonCompiler';
 import { registerAllPresets } from '../traits/visual';
 import { createTestCompilerToken } from './CompilerBase';
-import type { HoloComposition, HoloObjectDecl, HoloLight, HoloCamera, HoloSpatialGroup, HoloTimeline, HoloAudio, HoloZone, HoloUI, HoloEffects, HoloTransition, HoloEnvironment } from '../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloLight,
+  HoloCamera,
+  HoloSpatialGroup,
+  HoloTimeline,
+  HoloAudio,
+  HoloZone,
+  HoloUI,
+  HoloEffects,
+  HoloTransition,
+  HoloEnvironment,
+} from '../parser/HoloCompositionTypes';
 
 // Ensure TraitVisualRegistry is populated for TraitCompositor integration tests
 registerAllPresets();
@@ -51,7 +64,10 @@ function prop(key: string, value: any): { key: string; value: any } {
   return { key, value };
 }
 
-function trait(name: string, config?: Record<string, any>): { name: string; config: Record<string, any> } {
+function trait(
+  name: string,
+  config?: Record<string, any>
+): { name: string; config: Record<string, any> } {
   return { name, config: config || {} };
 }
 
@@ -59,10 +75,7 @@ function createLight(overrides: Partial<HoloLight> & { lightType?: string } = {}
   return {
     name: 'TestLight',
     lightType: overrides.lightType || 'point',
-    properties: overrides.properties || [
-      prop('position', [0, 5, 0]),
-      prop('intensity', 1.0),
-    ],
+    properties: overrides.properties || [prop('position', [0, 5, 0]), prop('intensity', 1.0)],
     ...overrides,
   } as HoloLight;
 }
@@ -180,9 +193,16 @@ describe('BabylonCompiler', () => {
     });
 
     it('should include GUI import when UI is present', () => {
-      const output = compiler.compile(createComposition({
-        ui: { elements: [{ name: 'Btn1', properties: [prop('type', 'button'), prop('text', 'Click')] }] } as any,
-      }), testToken);
+      const output = compiler.compile(
+        createComposition({
+          ui: {
+            elements: [
+              { name: 'Btn1', properties: [prop('type', 'button'), prop('text', 'Click')] },
+            ],
+          } as any,
+        }),
+        testToken
+      );
       expect(output).toContain('import * as GUI from "@babylonjs/gui"');
     });
 
@@ -212,9 +232,7 @@ describe('BabylonCompiler', () => {
   describe('objects', () => {
     it('should emit sphere mesh', () => {
       const obj = createObject('MySphere', {
-        properties: [
-          { key: 'geometry', value: 'sphere' },
-        ],
+        properties: [{ key: 'geometry', value: 'sphere' }],
       } as any);
       const output = compiler.compile(createComposition({ objects: [obj] }), testToken);
       expect(output).toContain('CreateSphere');
@@ -223,9 +241,7 @@ describe('BabylonCompiler', () => {
 
     it('should emit cube mesh', () => {
       const obj = createObject('MyCube', {
-        properties: [
-          { key: 'geometry', value: 'cube' },
-        ],
+        properties: [{ key: 'geometry', value: 'cube' }],
       } as any);
       const output = compiler.compile(createComposition({ objects: [obj] }), testToken);
       expect(output).toContain('CreateBox');
@@ -233,9 +249,7 @@ describe('BabylonCompiler', () => {
 
     it('should emit cylinder mesh', () => {
       const obj = createObject('MyCylinder', {
-        properties: [
-          { key: 'geometry', value: 'cylinder' },
-        ],
+        properties: [{ key: 'geometry', value: 'cylinder' }],
       } as any);
       const output = compiler.compile(createComposition({ objects: [obj] }), testToken);
       expect(output).toContain('CreateCylinder');
@@ -243,9 +257,7 @@ describe('BabylonCompiler', () => {
 
     it('should emit torus mesh', () => {
       const obj = createObject('MyTorus', {
-        properties: [
-          { key: 'geometry', value: 'torus' },
-        ],
+        properties: [{ key: 'geometry', value: 'torus' }],
       } as any);
       const output = compiler.compile(createComposition({ objects: [obj] }), testToken);
       expect(output).toContain('CreateTorus');
@@ -253,9 +265,7 @@ describe('BabylonCompiler', () => {
 
     it('should emit capsule mesh', () => {
       const obj = createObject('MyCapsule', {
-        properties: [
-          { key: 'geometry', value: 'capsule' },
-        ],
+        properties: [{ key: 'geometry', value: 'capsule' }],
       } as any);
       const output = compiler.compile(createComposition({ objects: [obj] }), testToken);
       expect(output).toContain('CreateCapsule');
@@ -263,9 +273,7 @@ describe('BabylonCompiler', () => {
 
     it('should emit plane/ground mesh', () => {
       const obj = createObject('MyGround', {
-        properties: [
-          { key: 'geometry', value: 'plane' },
-        ],
+        properties: [{ key: 'geometry', value: 'plane' }],
       } as any);
       const output = compiler.compile(createComposition({ objects: [obj] }), testToken);
       expect(output).toContain('CreateGround');
@@ -273,9 +281,7 @@ describe('BabylonCompiler', () => {
 
     it('should emit disc mesh', () => {
       const obj = createObject('MyDisc', {
-        properties: [
-          { key: 'geometry', value: 'disc' },
-        ],
+        properties: [{ key: 'geometry', value: 'disc' }],
       } as any);
       const output = compiler.compile(createComposition({ objects: [obj] }), testToken);
       expect(output).toContain('CreateDisc');
@@ -339,9 +345,7 @@ describe('BabylonCompiler', () => {
 
     it('should handle model geometry type', () => {
       const obj = createObject('Model', {
-        properties: [
-          { key: 'model', value: 'character.glb' },
-        ],
+        properties: [{ key: 'model', value: 'character.glb' }],
       } as any);
       const output = compiler.compile(createComposition({ objects: [obj] }), testToken);
       expect(output).toContain('SceneLoader');
@@ -502,13 +506,17 @@ describe('BabylonCompiler', () => {
     });
 
     it('should set light intensity', () => {
-      const light = createLight({ properties: [prop('position', [0, 5, 0]), prop('intensity', 2.5)] });
+      const light = createLight({
+        properties: [prop('position', [0, 5, 0]), prop('intensity', 2.5)],
+      });
       const output = compiler.compile(createComposition({ lights: [light] }), testToken);
       expect(output).toContain('intensity = 2.5');
     });
 
     it('should set light color', () => {
-      const light = createLight({ properties: [prop('position', [0, 5, 0]), prop('intensity', 1.0), prop('color', '#ffcc00')] });
+      const light = createLight({
+        properties: [prop('position', [0, 5, 0]), prop('intensity', 1.0), prop('color', '#ffcc00')],
+      });
       const output = compiler.compile(createComposition({ lights: [light] }), testToken);
       expect(output).toContain('diffuse');
     });
@@ -536,13 +544,19 @@ describe('BabylonCompiler', () => {
 
   describe('camera', () => {
     it('should emit perspective camera as ArcRotateCamera', () => {
-      const camera = { cameraType: 'perspective', properties: [prop('position', [0, 5, -10])] } as any;
+      const camera = {
+        cameraType: 'perspective',
+        properties: [prop('position', [0, 5, -10])],
+      } as any;
       const output = compiler.compile(createComposition({ camera }), testToken);
       expect(output).toContain('ArcRotateCamera');
     });
 
     it('should emit orthographic camera', () => {
-      const camera = { cameraType: 'orthographic', properties: [prop('position', [0, 10, 0])] } as any;
+      const camera = {
+        cameraType: 'orthographic',
+        properties: [prop('position', [0, 10, 0])],
+      } as any;
       const output = compiler.compile(createComposition({ camera }), testToken);
       expect(output).toContain('ORTHOGRAPHIC');
     });
@@ -599,7 +613,9 @@ describe('BabylonCompiler', () => {
       const group: HoloSpatialGroup = {
         name: 'TestGroup',
         properties: [],
-        objects: [createObject('Child1', { properties: [{ key: 'geometry', value: 'cube' }] } as any)],
+        objects: [
+          createObject('Child1', { properties: [{ key: 'geometry', value: 'cube' }] } as any),
+        ],
       } as any;
       const output = compiler.compile(createComposition({ spatialGroups: [group] }), testToken);
       expect(output).toContain('TestGroup');
@@ -628,7 +644,10 @@ describe('BabylonCompiler', () => {
       const timeline: HoloTimeline = {
         name: 'BounceAnim',
         entries: [
-          { time: 0.5, action: { kind: 'animate', target: 'Ball', properties: { 'position.y': 2 } } },
+          {
+            time: 0.5,
+            action: { kind: 'animate', target: 'Ball', properties: { 'position.y': 2 } },
+          },
         ],
       } as any;
       const output = compiler.compile(createComposition({ timelines: [timeline] }), testToken);
@@ -644,10 +663,7 @@ describe('BabylonCompiler', () => {
     it('should emit audio/sound code', () => {
       const audio: HoloAudio = {
         name: 'BGMusic',
-        properties: [
-          prop('src', 'music.mp3'),
-          prop('loop', true),
-        ],
+        properties: [prop('src', 'music.mp3'), prop('loop', true)],
       } as any;
       const output = compiler.compile(createComposition({ audio: [audio] }), testToken);
       expect(output).toContain('Sound');
@@ -662,11 +678,7 @@ describe('BabylonCompiler', () => {
     it('should emit zone trigger', () => {
       const zone: HoloZone = {
         name: 'DangerZone',
-        properties: [
-          prop('shape', 'box'),
-          prop('position', [0, 0, 0]),
-          prop('size', [10, 5, 10]),
-        ],
+        properties: [prop('shape', 'box'), prop('position', [0, 0, 0]), prop('size', [10, 5, 10])],
       } as any;
       const output = compiler.compile(createComposition({ zones: [zone] }), testToken);
       expect(output).toContain('DangerZone');
@@ -688,7 +700,9 @@ describe('BabylonCompiler', () => {
 
     it('should emit button element', () => {
       const ui: HoloUI = {
-        elements: [{ name: 'StartBtn', properties: [prop('type', 'button'), prop('text', 'Start')] }],
+        elements: [
+          { name: 'StartBtn', properties: [prop('type', 'button'), prop('text', 'Start')] },
+        ],
       } as any;
       const output = compiler.compile(createComposition({ ui }), testToken);
       expect(output).toContain('Button');
@@ -696,7 +710,9 @@ describe('BabylonCompiler', () => {
 
     it('should emit text element', () => {
       const ui: HoloUI = {
-        elements: [{ name: 'ScoreText', properties: [prop('type', 'text'), prop('text', 'Score: 0')] }],
+        elements: [
+          { name: 'ScoreText', properties: [prop('type', 'text'), prop('text', 'Score: 0')] },
+        ],
       } as any;
       const output = compiler.compile(createComposition({ ui }), testToken);
       expect(output).toContain('TextBlock');
@@ -704,7 +720,9 @@ describe('BabylonCompiler', () => {
 
     it('should emit progress bar', () => {
       const ui: HoloUI = {
-        elements: [{ name: 'HealthBar', properties: [prop('type', 'progress'), prop('value', 75)] }],
+        elements: [
+          { name: 'HealthBar', properties: [prop('type', 'progress'), prop('value', 75)] },
+        ],
       } as any;
       const output = compiler.compile(createComposition({ ui }), testToken);
       expect(output).toContain('StackPanel');
@@ -773,10 +791,7 @@ describe('BabylonCompiler', () => {
     it('should emit transition code', () => {
       const transition: HoloTransition = {
         name: 'FadeOut',
-        properties: [
-          prop('effect', 'fade'),
-          prop('duration', 1000),
-        ],
+        properties: [prop('effect', 'fade'), prop('duration', 1000)],
       } as any;
       const output = compiler.compile(createComposition({ transitions: [transition] }), testToken);
       expect(output).toContain('FadeOut');
@@ -856,18 +871,23 @@ describe('BabylonCompiler', () => {
     });
 
     it('should compile a full scene with lights, camera, objects, and effects', () => {
-      const output = compiler.compile(createComposition({
-        name: 'FullScene',
-        environment: { properties: [prop('skybox', 'sunset'), prop('ambient_light', 0.3)] } as any,
-        lights: [createLight({ lightType: 'directional', name: 'Sun' })],
-        camera: { cameraType: 'perspective', properties: [] } as any,
-        objects: [
-          createObject('Ground', {
-            properties: [{ key: 'geometry', value: 'ground' }],
-          } as any),
-        ],
-        effects: { effects: [{ effectType: 'bloom', properties: { intensity: 0.5 } }] } as any,
-      }), testToken);
+      const output = compiler.compile(
+        createComposition({
+          name: 'FullScene',
+          environment: {
+            properties: [prop('skybox', 'sunset'), prop('ambient_light', 0.3)],
+          } as any,
+          lights: [createLight({ lightType: 'directional', name: 'Sun' })],
+          camera: { cameraType: 'perspective', properties: [] } as any,
+          objects: [
+            createObject('Ground', {
+              properties: [{ key: 'geometry', value: 'ground' }],
+            } as any),
+          ],
+          effects: { effects: [{ effectType: 'bloom', properties: { intensity: 0.5 } }] } as any,
+        }),
+        testToken
+      );
 
       expect(output).toContain('FullScene');
       expect(output).toContain('DirectionalLight');
@@ -877,11 +897,14 @@ describe('BabylonCompiler', () => {
     });
 
     it('should handle empty composition', () => {
-      const output = compiler.compile(createComposition({
-        name: 'Empty',
-        objects: [],
-        lights: [],
-      }), testToken);
+      const output = compiler.compile(
+        createComposition({
+          name: 'Empty',
+          objects: [],
+          lights: [],
+        }),
+        testToken
+      );
       expect(output).toContain('Empty');
       expect(output).toContain('HemisphericLight'); // default light
       expect(output).toContain('ArcRotateCamera'); // default camera
@@ -895,7 +918,9 @@ describe('BabylonCompiler', () => {
   describe('re-compilation', () => {
     it('should produce consistent output for same input', () => {
       const composition = createComposition({
-        objects: [createObject('Obj', { properties: [{ key: 'geometry', value: 'sphere' }] } as any)],
+        objects: [
+          createObject('Obj', { properties: [{ key: 'geometry', value: 'sphere' }] } as any),
+        ],
       });
       const output1 = compiler.compile(composition, testToken);
       const output2 = compiler.compile(composition, testToken);

@@ -64,7 +64,13 @@ describe('ProjectManager', () => {
 
     it('should clean asset references when removing scene', () => {
       pm.addScene({ id: 's1', name: 'A', path: '/a', isStartScene: false });
-      pm.addAsset({ id: 'a1', type: 'texture', path: '/t.png', usedByScenes: ['s1'], sizeBytes: 1024 });
+      pm.addAsset({
+        id: 'a1',
+        type: 'texture',
+        path: '/t.png',
+        usedByScenes: ['s1'],
+        sizeBytes: 1024,
+      });
       pm.removeScene('s1');
       expect(pm.getAsset('a1')!.usedByScenes).not.toContain('s1');
     });
@@ -84,7 +90,13 @@ describe('ProjectManager', () => {
     });
 
     it('should find unused assets', () => {
-      pm.addAsset({ id: 'a1', type: 'texture', path: '/t.png', usedByScenes: ['s1'], sizeBytes: 1024 });
+      pm.addAsset({
+        id: 'a1',
+        type: 'texture',
+        path: '/t.png',
+        usedByScenes: ['s1'],
+        sizeBytes: 1024,
+      });
       pm.addAsset({ id: 'a2', type: 'audio', path: '/s.wav', usedByScenes: [], sizeBytes: 4096 });
       const unused = pm.findUnusedAssets();
       expect(unused.length).toBe(1);

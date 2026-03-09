@@ -220,7 +220,7 @@ export class CreatorMonetization {
           minterAddress,
           tokenId,
           quantity,
-          ('0x' as Hex), // minterArguments (empty)
+          '0x' as Hex, // minterArguments (empty)
           mintReferral,
         ] as any,
         value: gasEstimate.mintFee,
@@ -235,13 +235,7 @@ export class CreatorMonetization {
         address: contractAddress,
         abi: zoraCreator1155ImplABI,
         functionName: 'mint' as any,
-        args: [
-          minterAddress,
-          tokenId,
-          quantity,
-          ('0x' as Hex),
-          mintReferral,
-        ] as any,
+        args: [minterAddress, tokenId, quantity, '0x' as Hex, mintReferral] as any,
         value: gasEstimate.mintFee,
         gas: gasEstimate.gasLimit,
         maxFeePerGas: gasEstimate.maxFeePerGas,
@@ -266,7 +260,9 @@ export class CreatorMonetization {
       let mintedTokenId = '0';
       const mintLog = receipt.logs.find((log) => {
         // Zora Minted event signature
-        return log.topics[0] === '0x30385c845b448a36257a6a1716e6ad2e1bc2cbe333cde1e69fe849ad6511adfe';
+        return (
+          log.topics[0] === '0x30385c845b448a36257a6a1716e6ad2e1bc2cbe333cde1e69fe849ad6511adfe'
+        );
       });
 
       if (mintLog && mintLog.topics[2]) {
@@ -293,11 +289,9 @@ export class CreatorMonetization {
         throw error;
       }
 
-      throw new CreatorMonetizationError(
-        `Failed to mint NFT: ${error.message}`,
-        'MINT_FAILED',
-        { originalError: error }
-      );
+      throw new CreatorMonetizationError(`Failed to mint NFT: ${error.message}`, 'MINT_FAILED', {
+        originalError: error,
+      });
     }
   }
 
@@ -326,11 +320,7 @@ export class CreatorMonetization {
    * );
    * ```
    */
-  async createCollection(
-    name: string,
-    symbol: string,
-    description?: string
-  ): Promise<Collection> {
+  async createCollection(name: string, symbol: string, description?: string): Promise<Collection> {
     this.ensureInitialized();
 
     // TODO: Implement auto-deployment via Zora SDK
@@ -605,10 +595,7 @@ export class CreatorMonetization {
 
       return stats;
     } catch (error: any) {
-      throw new ZoraAPIError(
-        `Failed to fetch creator stats: ${error.message}`,
-        error.status
-      );
+      throw new ZoraAPIError(`Failed to fetch creator stats: ${error.message}`, error.status);
     }
   }
 
@@ -636,14 +623,10 @@ export class CreatorMonetization {
     // TODO: Implement withdrawal via Zora Protocol
     // This requires querying the creator's earnings and executing withdrawal
 
-    throw new CreatorMonetizationError(
-      'Withdrawal not yet implemented',
-      'NOT_IMPLEMENTED',
-      {
-        message: 'Use Zora dashboard to withdraw earnings',
-        dashboardUrl: 'https://zora.co/dashboard',
-      }
-    );
+    throw new CreatorMonetizationError('Withdrawal not yet implemented', 'NOT_IMPLEMENTED', {
+      message: 'Use Zora dashboard to withdraw earnings',
+      dashboardUrl: 'https://zora.co/dashboard',
+    });
 
     // Future implementation:
     /*
@@ -844,7 +827,7 @@ export class CreatorMonetization {
     const response = await fetch(url, { headers });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({})) as any;
+      const errorData = (await response.json().catch(() => ({}))) as any;
       throw new ZoraAPIError(
         errorData.message || `Zora API request failed: ${response.status}`,
         response.status

@@ -101,15 +101,18 @@ const nonceCache = new Map<string, number>();
 /**
  * Clean expired nonces every 5 minutes
  */
-setInterval(() => {
-  const now = Math.floor(Date.now() / 1000);
-  const entries = Array.from(nonceCache.entries());
-  for (const [nonce, timestamp] of entries) {
-    if (now - timestamp > MAX_REQUEST_AGE_SECONDS) {
-      nonceCache.delete(nonce);
+setInterval(
+  () => {
+    const now = Math.floor(Date.now() / 1000);
+    const entries = Array.from(nonceCache.entries());
+    for (const [nonce, timestamp] of entries) {
+      if (now - timestamp > MAX_REQUEST_AGE_SECONDS) {
+        nonceCache.delete(nonce);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  },
+  5 * 60 * 1000
+);
 
 /**
  * Generate nonce for request signature
@@ -246,7 +249,9 @@ export function signRequest(
   return {
     signature: signature.toString('base64url'),
     metadata,
-    components: Object.keys(enrichedComponents).filter((k) => enrichedComponents[k as keyof SignatureComponents] !== undefined),
+    components: Object.keys(enrichedComponents).filter(
+      (k) => enrichedComponents[k as keyof SignatureComponents] !== undefined
+    ),
   };
 }
 

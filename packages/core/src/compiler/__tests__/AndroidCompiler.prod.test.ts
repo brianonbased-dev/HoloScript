@@ -5,7 +5,7 @@
  * nodeFactoryFile, manifestFile, buildGradle), Kotlin/ARCore output,
  * objects, lights, audio, options, and compileToAndroid convenience fn.
  */
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AndroidCompiler, compileToAndroid } from '../AndroidCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
@@ -16,7 +16,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
@@ -51,7 +50,11 @@ describe('AndroidCompiler — Production', () => {
   });
 
   it('constructs with custom options', () => {
-    const c = new AndroidCompiler({ packageName: 'com.example.ar', className: 'ARActivity', useJetpackCompose: true });
+    const c = new AndroidCompiler({
+      packageName: 'com.example.ar',
+      className: 'ARActivity',
+      useJetpackCompose: true,
+    });
     expect(c).toBeDefined();
   });
 
@@ -129,9 +132,12 @@ describe('AndroidCompiler — Production', () => {
 
   // ─── Lights ──────────────────────────────────────────────────────────
   it('compiles a point light', () => {
-    const { activityFile } = compiler.compile(makeComp({
-      lights: [{ name: 'Key', type: 'point', intensity: 500, color: '#ffffff' }],
-    }), 'test-token');
+    const { activityFile } = compiler.compile(
+      makeComp({
+        lights: [{ name: 'Key', type: 'point', intensity: 500, color: '#ffffff' }],
+      }),
+      'test-token'
+    );
     expect(activityFile).toBeDefined();
   });
 

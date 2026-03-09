@@ -36,18 +36,25 @@ function nextMessage(ws: WebSocket, timeoutMs = 2000): Promise<Record<string, un
 /** HTTP GET helper */
 function httpGet(port: number, path: string): Promise<{ status: number; body: string }> {
   return new Promise((resolve, reject) => {
-    http.get(`http://localhost:${port}${path}`, (res) => {
-      let body = '';
-      res.on('data', (chunk: Buffer) => { body += chunk.toString(); });
-      res.on('end', () => resolve({ status: res.statusCode!, body }));
-    }).on('error', reject);
+    http
+      .get(`http://localhost:${port}${path}`, (res) => {
+        let body = '';
+        res.on('data', (chunk: Buffer) => {
+          body += chunk.toString();
+        });
+        res.on('end', () => resolve({ status: res.statusCode!, body }));
+      })
+      .on('error', reject);
   });
 }
 
 /** Close a WebSocket and wait for it to fully disconnect */
 function closeClient(ws: WebSocket): Promise<void> {
   return new Promise((resolve) => {
-    if (ws.readyState === WebSocket.CLOSED) { resolve(); return; }
+    if (ws.readyState === WebSocket.CLOSED) {
+      resolve();
+      return;
+    }
     ws.on('close', () => resolve());
     ws.close();
   });
@@ -60,7 +67,9 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // Use a dynamic port range to avoid conflicts between parallel tests
 let portCounter = 15_000;
-function nextPort() { return portCounter++; }
+function nextPort() {
+  return portCounter++;
+}
 
 describe('createCollabServer', () => {
   const servers: ReturnType<typeof createCollabServer>[] = [];
@@ -74,17 +83,21 @@ describe('createCollabServer', () => {
     // Then close all servers
     await Promise.all(
       servers.map(
-        (s) => new Promise<void>((resolve) => {
-          s.wss.close(() => {
-            s.httpServer.close(() => resolve());
-          });
-        })
+        (s) =>
+          new Promise<void>((resolve) => {
+            s.wss.close(() => {
+              s.httpServer.close(() => resolve());
+            });
+          })
       )
     );
     servers.length = 0;
   });
 
-  function track<T extends WebSocket>(ws: T): T { clients.push(ws); return ws; }
+  function track<T extends WebSocket>(ws: T): T {
+    clients.push(ws);
+    return ws;
+  }
 
   function createServer(opts: Parameters<typeof createCollabServer>[0] = {}) {
     const port = opts.port ?? nextPort();

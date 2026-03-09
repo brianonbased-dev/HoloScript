@@ -30,10 +30,7 @@ import {
   type SpatialTrainingExample,
 } from '../training/SpatialTrainingDataGenerator';
 import type { SpatialGeneratorConfig } from '../training/SpatialTrainingDataTypes';
-import {
-  SparsityMonitor,
-  type LayerActivityInput,
-} from '../training/SparsityMonitor';
+import { SparsityMonitor, type LayerActivityInput } from '../training/SparsityMonitor';
 import type { SparsityMonitorConfig, SparsityMonitorStats } from '../training/SparsityMonitorTypes';
 
 // =============================================================================
@@ -83,10 +80,19 @@ export const HOLOSCRIPT_MCP_TOOLS: MCPToolDefinition[] = [
               description:
                 'Target neuromorphic platforms: loihi2, spinnaker2, synsense_speck, synsense_xylo, brainscales2',
             },
-            includeMetadata: { type: 'boolean', description: 'Include metadata in output (default: true)' },
-            validateGraph: { type: 'boolean', description: 'Validate graph structure (default: true)' },
+            includeMetadata: {
+              type: 'boolean',
+              description: 'Include metadata in output (default: true)',
+            },
+            validateGraph: {
+              type: 'boolean',
+              description: 'Validate graph structure (default: true)',
+            },
             prettyPrint: { type: 'boolean', description: 'Pretty-print JSON (default: true)' },
-            defaultNeuronSize: { type: 'number', description: 'Default neuron layer size (default: 128)' },
+            defaultNeuronSize: {
+              type: 'number',
+              description: 'Default neuron layer size (default: 128)',
+            },
           },
         },
         agentToken: {
@@ -121,7 +127,10 @@ export const HOLOSCRIPT_MCP_TOOLS: MCPToolDefinition[] = [
             },
             dt: { type: 'number', description: 'Simulation timestep in ms (default: 1.0)' },
             workgroupSize: { type: 'number', description: 'Compute workgroup size (default: 64)' },
-            includeComments: { type: 'boolean', description: 'Include debug comments (default: true)' },
+            includeComments: {
+              type: 'boolean',
+              description: 'Include debug comments (default: true)',
+            },
             resetVoltage: { type: 'number', description: 'Spike reset voltage (default: 0.0)' },
           },
         },
@@ -149,7 +158,10 @@ export const HOLOSCRIPT_MCP_TOOLS: MCPToolDefinition[] = [
         },
         relationshipTypes: {
           type: 'array',
-          items: { type: 'string', enum: ['spatial_adjacent', 'spatial_contains', 'spatial_reachable'] },
+          items: {
+            type: 'string',
+            enum: ['spatial_adjacent', 'spatial_contains', 'spatial_reachable'],
+          },
           description: 'Which spatial relationship types to generate (default: all three)',
         },
         difficultyLevels: {
@@ -168,7 +180,8 @@ export const HOLOSCRIPT_MCP_TOOLS: MCPToolDefinition[] = [
         format: {
           type: 'string',
           enum: ['examples', 'jsonl'],
-          description: 'Output format: "examples" (structured objects) or "jsonl" (newline-delimited JSON strings). Default: examples',
+          description:
+            'Output format: "examples" (structured objects) or "jsonl" (newline-delimited JSON strings). Default: examples',
         },
       },
     },
@@ -193,7 +206,10 @@ export const HOLOSCRIPT_MCP_TOOLS: MCPToolDefinition[] = [
               neuronCount: { type: 'number', description: 'Total neurons in the layer' },
               spikeCount: { type: 'number', description: 'Number of neurons that spiked' },
               timestep: { type: 'number', description: 'Simulation timestep index' },
-              avgMembranePotential: { type: 'number', description: 'Optional average membrane potential' },
+              avgMembranePotential: {
+                type: 'number',
+                description: 'Optional average membrane potential',
+              },
             },
             required: ['layerId', 'neuronCount', 'spikeCount', 'timestep'],
           },
@@ -202,10 +218,19 @@ export const HOLOSCRIPT_MCP_TOOLS: MCPToolDefinition[] = [
           type: 'object',
           description: 'Optional sparsity monitor configuration',
           properties: {
-            sparsityThreshold: { type: 'number', description: 'Minimum activation sparsity (default: 0.93)' },
+            sparsityThreshold: {
+              type: 'number',
+              description: 'Minimum activation sparsity (default: 0.93)',
+            },
             windowSize: { type: 'number', description: 'Rolling window size (default: 50)' },
-            energyMetricsEnabled: { type: 'boolean', description: 'Enable energy metrics (default: true)' },
-            criticalThreshold: { type: 'number', description: 'Critical violation threshold (default: 0.85)' },
+            energyMetricsEnabled: {
+              type: 'boolean',
+              description: 'Enable energy metrics (default: true)',
+            },
+            criticalThreshold: {
+              type: 'number',
+              description: 'Critical violation threshold (default: 0.85)',
+            },
           },
         },
         cycle: {
@@ -309,9 +334,7 @@ export async function handleCompileNIR(args: Record<string, unknown>): Promise<M
         metadata: {
           compiler: 'NIRCompiler',
           version: '1.0.0',
-          nodeCount: JSON.parse(nirJson).nodes
-            ? Object.keys(JSON.parse(nirJson).nodes).length
-            : 0,
+          nodeCount: JSON.parse(nirJson).nodes ? Object.keys(JSON.parse(nirJson).nodes).length : 0,
         },
       },
     };
@@ -363,7 +386,7 @@ export async function handleCompileWGSL(args: Record<string, unknown>): Promise<
  * Handle holo_generate_spatial_training: generate spatial reasoning training data.
  */
 export async function handleGenerateSpatialTraining(
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<MCPToolResult> {
   try {
     const config: SpatialGeneratorConfig = {};
@@ -372,7 +395,8 @@ export async function handleGenerateSpatialTraining(
       config.examplesPerCategory = args.examplesPerCategory;
     }
     if (Array.isArray(args.relationshipTypes)) {
-      config.relationshipTypes = args.relationshipTypes as SpatialGeneratorConfig['relationshipTypes'];
+      config.relationshipTypes =
+        args.relationshipTypes as SpatialGeneratorConfig['relationshipTypes'];
     }
     if (Array.isArray(args.difficultyLevels)) {
       config.difficultyLevels = args.difficultyLevels as SpatialGeneratorConfig['difficultyLevels'];
@@ -400,7 +424,7 @@ export async function handleGenerateSpatialTraining(
               difficulty: ex.difficulty,
               isPositive: ex.isPositive,
             },
-          }),
+          })
         )
         .join('\n');
 
@@ -421,7 +445,11 @@ export async function handleGenerateSpatialTraining(
         examples,
         exampleCount: examples.length,
         stats: {
-          relationshipTypes: config.relationshipTypes ?? ['spatial_adjacent', 'spatial_contains', 'spatial_reachable'],
+          relationshipTypes: config.relationshipTypes ?? [
+            'spatial_adjacent',
+            'spatial_contains',
+            'spatial_reachable',
+          ],
           difficultyLevels: config.difficultyLevels ?? ['basic', 'intermediate', 'advanced'],
           examplesPerCategory: config.examplesPerCategory ?? 10,
         },
@@ -524,8 +552,11 @@ export async function handleAgentCreate(args: Record<string, unknown>): Promise<
       };
     }
 
-    const capabilities = (args.capabilities as Array<{ id: string; name: string; description: string }>) ?? [];
-    const auth = (args.auth as { type: 'none' | 'api-key' | 'oauth2' | 'bearer' }) ?? { type: 'none' as const };
+    const capabilities =
+      (args.capabilities as Array<{ id: string; name: string; description: string }>) ?? [];
+    const auth = (args.auth as { type: 'none' | 'api-key' | 'oauth2' | 'bearer' }) ?? {
+      type: 'none' as const,
+    };
 
     // Build the Agent Card
     const agentCard = {
@@ -543,7 +574,8 @@ export async function handleAgentCreate(args: Record<string, unknown>): Promise<
     // Validate
     const errors: string[] = [];
     if (typeof agentCard.name !== 'string' || !agentCard.name) errors.push('name is required');
-    if (typeof agentCard.version !== 'string' || !agentCard.version) errors.push('version is required');
+    if (typeof agentCard.version !== 'string' || !agentCard.version)
+      errors.push('version is required');
     if (typeof agentCard.url !== 'string' || !agentCard.url) errors.push('url is required');
     if (!Array.isArray(agentCard.skills)) errors.push('skills must be an array');
 
@@ -593,7 +625,7 @@ export const TOOL_HANDLERS: Record<string, MCPToolHandler> = {
  */
 export async function handleHoloScriptTool(
   toolName: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<MCPToolResult | null> {
   const handler = TOOL_HANDLERS[toolName];
   if (!handler) return null;

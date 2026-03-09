@@ -880,14 +880,14 @@ export class LODManager {
       const end = Math.min(start + chunkSize, objectIds.length);
       const chunk = objectIds.slice(start, end);
 
-      const objects = chunk.map(id => ({
+      const objects = chunk.map((id) => ({
         objectId: id,
-        position: this.getObjectPosition(id)
+        position: this.getObjectPosition(id),
       }));
 
       this.workerPool[i].postMessage({
         objects,
-        cameraPos: this.cameraPosition
+        cameraPos: this.cameraPosition,
       });
     }
 

@@ -52,7 +52,7 @@ function makeHandler(defaultConfig: Record<string, unknown> = {}, conflicts: str
 
 function makeTraitHandler(
   defaultConfig: Record<string, unknown> = {},
-  callbacks: Record<string, (...args: unknown[]) => void> = {},
+  callbacks: Record<string, (...args: unknown[]) => void> = {}
 ) {
   return {
     name: 'test' as any,
@@ -60,7 +60,7 @@ function makeTraitHandler(
     onAttach: callbacks.onAttach ?? vi.fn(),
     onDetach: callbacks.onDetach ?? vi.fn(),
     onUpdate: callbacks.onUpdate ?? vi.fn(),
-    onEvent:  callbacks.onEvent  ?? vi.fn(),
+    onEvent: callbacks.onEvent ?? vi.fn(),
   };
 }
 
@@ -74,12 +74,12 @@ describe('TraitCompositionCompiler — basic compile', () => {
   it('compiles a single declaration with two components', () => {
     const registry: Record<string, ReturnType<typeof makeHandler>> = {
       physics: makeHandler({ gravity: 9.8, bounce: 0.2 }),
-      combat:  makeHandler({ damage: 10, range: 5 }),
+      combat: makeHandler({ damage: 10, range: 5 }),
     };
 
     const result = compiler.compile(
       [{ name: 'Warrior', components: ['physics', 'combat'] }],
-      (n) => registry[n],
+      (n) => registry[n]
     );
 
     expect(result).toHaveLength(1);
@@ -101,7 +101,7 @@ describe('TraitCompositionCompiler — basic compile', () => {
         { name: 'AB', components: ['a', 'b'] },
         { name: 'ABC', components: ['a', 'b', 'c'] },
       ],
-      (n) => (registry as Record<string, any>)[n],
+      (n) => (registry as Record<string, any>)[n]
     );
 
     expect(results).toHaveLength(2);
@@ -124,16 +124,16 @@ describe('TraitCompositionCompiler — config merge (left-to-right, later wins)'
 
   it('later component value wins for shared key', () => {
     const registry = {
-      base:    makeHandler({ speed: 1, color: 'red' }),
-      upgrade: makeHandler({ speed: 5 }),          // speed override
+      base: makeHandler({ speed: 1, color: 'red' }),
+      upgrade: makeHandler({ speed: 5 }), // speed override
     };
 
     const [result] = compiler.compile(
       [{ name: 'Fast', components: ['base', 'upgrade'] }],
-      (n) => (registry as Record<string, any>)[n],
+      (n) => (registry as Record<string, any>)[n]
     );
 
-    expect(result.defaultConfig.speed).toBe(5);  // upgrade wins
+    expect(result.defaultConfig.speed).toBe(5); // upgrade wins
     expect(result.defaultConfig.color).toBe('red'); // inherited from base
   });
 
@@ -144,12 +144,14 @@ describe('TraitCompositionCompiler — config merge (left-to-right, later wins)'
     };
 
     const [result] = compiler.compile(
-      [{
-        name: 'MoonWalker',
-        components: ['physics', 'movement'],
-        overrides: { gravity: 1.6, speed: 2 },   // moon values
-      }],
-      (n) => (registry as Record<string, any>)[n],
+      [
+        {
+          name: 'MoonWalker',
+          components: ['physics', 'movement'],
+          overrides: { gravity: 1.6, speed: 2 }, // moon values
+        },
+      ],
+      (n) => (registry as Record<string, any>)[n]
     );
 
     expect(result.defaultConfig.gravity).toBe(1.6);
@@ -164,17 +166,14 @@ describe('TraitCompositionCompiler — config merge (left-to-right, later wins)'
 
     const [result] = compiler.compile(
       [{ name: 'Mixed', components: ['noConfig', 'withConfig'] }],
-      (n) => (registry as Record<string, any>)[n],
+      (n) => (registry as Record<string, any>)[n]
     );
 
     expect(result.defaultConfig.hp).toBe(100);
   });
 
   it('empty components array → empty defaultConfig (no override)', () => {
-    const [result] = compiler.compile(
-      [{ name: 'Empty', components: [] }],
-      () => undefined,
-    );
+    const [result] = compiler.compile([{ name: 'Empty', components: [] }], () => undefined);
 
     expect(result.defaultConfig).toEqual({});
     expect(result.components).toHaveLength(0);
@@ -183,7 +182,7 @@ describe('TraitCompositionCompiler — config merge (left-to-right, later wins)'
   it('empty components with overrides → override wins as sole config', () => {
     const [result] = compiler.compile(
       [{ name: 'Overridden', components: [], overrides: { x: 42 } }],
-      () => undefined,
+      () => undefined
     );
 
     expect(result.defaultConfig.x).toBe(42);
@@ -199,19 +198,13 @@ describe('TraitCompositionCompiler — error cases', () => {
 
   it('throws MissingComponentError when handler not in registry', () => {
     expect(() =>
-      compiler.compile(
-        [{ name: 'Broken', components: ['nonexistent'] }],
-        () => undefined,
-      )
+      compiler.compile([{ name: 'Broken', components: ['nonexistent'] }], () => undefined)
     ).toThrow(MissingComponentError);
   });
 
   it('MissingComponentError carries composedName and missingComponent', () => {
     try {
-      compiler.compile(
-        [{ name: 'Hero', components: ['missing_trait'] }],
-        () => undefined,
-      );
+      compiler.compile([{ name: 'Hero', components: ['missing_trait'] }], () => undefined);
     } catch (err: any) {
       expect(err.composedName).toBe('Hero');
       expect(err.missingComponent).toBe('missing_trait');
@@ -220,14 +213,14 @@ describe('TraitCompositionCompiler — error cases', () => {
 
   it('throws CompositionConflictError when component A conflicts with B', () => {
     const registry = {
-      fire:  makeHandler({}, ['water']),   // fire conflicts with water
+      fire: makeHandler({}, ['water']), // fire conflicts with water
       water: makeHandler({}, ['fire']),
     };
 
     expect(() =>
       compiler.compile(
         [{ name: 'FW', components: ['fire', 'water'] }],
-        (n) => (registry as Record<string, any>)[n],
+        (n) => (registry as Record<string, any>)[n]
       )
     ).toThrow(CompositionConflictError);
   });
@@ -235,13 +228,13 @@ describe('TraitCompositionCompiler — error cases', () => {
   it('ConflictError carries traitA and traitB names', () => {
     const registry = {
       berserker: makeHandler({}, ['paladin']),
-      paladin:   makeHandler({}, []),
+      paladin: makeHandler({}, []),
     };
 
     try {
       compiler.compile(
         [{ name: 'HybridFail', components: ['berserker', 'paladin'] }],
-        (n) => (registry as Record<string, any>)[n],
+        (n) => (registry as Record<string, any>)[n]
       );
     } catch (err: any) {
       expect([err.traitA, err.traitB]).toContain('berserker');
@@ -251,14 +244,14 @@ describe('TraitCompositionCompiler — error cases', () => {
 
   it('non-conflicting equal-key components compile without error', () => {
     const registry = {
-      a: makeHandler({ speed: 5 }, []),     // a does NOT conflict with b
+      a: makeHandler({ speed: 5 }, []), // a does NOT conflict with b
       b: makeHandler({ speed: 10 }, []),
     };
 
     expect(() =>
       compiler.compile(
         [{ name: 'SpeedBike', components: ['a', 'b'] }],
-        (n) => (registry as Record<string, any>)[n],
+        (n) => (registry as Record<string, any>)[n]
       )
     ).not.toThrow();
   });
@@ -281,7 +274,7 @@ describe('TraitCompositionCompiler — TraitDependencyGraph registration', () =>
     compiler.compile(
       [{ name: 'Hovercraft', components: ['physics', 'navmesh'] }],
       (n) => (registry as Record<string, any>)[n],
-      graph,
+      graph
     );
 
     // The composed trait should now be in the graph
@@ -296,7 +289,7 @@ describe('TraitCompositionCompiler — TraitDependencyGraph registration', () =>
     expect(() =>
       compiler.compile(
         [{ name: 'Solo', components: ['a'] }],
-        (n) => (registry as Record<string, any>)[n],
+        (n) => (registry as Record<string, any>)[n]
         // No graph — optional
       )
     ).not.toThrow();
@@ -308,7 +301,6 @@ describe('TraitCompositionCompiler — TraitDependencyGraph registration', () =>
 // =============================================================================
 
 describe('TraitComposer — lifecycle dispatch', () => {
-
   it('onAttach called for each component in forward order', () => {
     const order: string[] = [];
     const handlerA = makeTraitHandler({}, { onAttach: () => order.push('A') });
@@ -318,8 +310,12 @@ describe('TraitComposer — lifecycle dispatch', () => {
     const composer = new TraitComposer();
     const result = composer.compose(
       'ABC',
-      new Map([['a', handlerA], ['b', handlerB], ['c', handlerC]]),
-      ['a', 'b', 'c'],
+      new Map([
+        ['a', handlerA],
+        ['b', handlerB],
+        ['c', handlerC],
+      ]),
+      ['a', 'b', 'c']
     );
 
     result.handler.onAttach?.({} as any, {}, {} as any);
@@ -335,12 +331,16 @@ describe('TraitComposer — lifecycle dispatch', () => {
     const composer = new TraitComposer();
     const result = composer.compose(
       'ABC',
-      new Map([['a', handlerA], ['b', handlerB], ['c', handlerC]]),
-      ['a', 'b', 'c'],
+      new Map([
+        ['a', handlerA],
+        ['b', handlerB],
+        ['c', handlerC],
+      ]),
+      ['a', 'b', 'c']
     );
 
     result.handler.onDetach?.({} as any, {}, {} as any);
-    expect(order).toEqual(['C', 'B', 'A']);   // reverse order
+    expect(order).toEqual(['C', 'B', 'A']); // reverse order
   });
 
   it('onUpdate called in forward order', () => {
@@ -351,8 +351,11 @@ describe('TraitComposer — lifecycle dispatch', () => {
     const composer = new TraitComposer();
     const result = composer.compose(
       'AB',
-      new Map([['a', handlerA], ['b', handlerB]]),
-      ['a', 'b'],
+      new Map([
+        ['a', handlerA],
+        ['b', handlerB],
+      ]),
+      ['a', 'b']
     );
 
     result.handler.onUpdate?.({} as any, {}, {} as any, 16);
@@ -367,8 +370,11 @@ describe('TraitComposer — lifecycle dispatch', () => {
     const composer = new TraitComposer();
     const result = composer.compose(
       'AB',
-      new Map([['a', handlerA], ['b', handlerB]]),
-      ['a', 'b'],
+      new Map([
+        ['a', handlerA],
+        ['b', handlerB],
+      ]),
+      ['a', 'b']
     );
 
     result.handler.onEvent?.({} as any, {}, {} as any, { type: 'hit' } as any);
@@ -381,16 +387,18 @@ describe('TraitComposer — lifecycle dispatch', () => {
 // =============================================================================
 
 describe('TraitComposer — defaultConfig merge (right wins)', () => {
-
   it('right-side handler overwrites left-side config for shared keys', () => {
     const handlerA = makeTraitHandler({ speed: 1, color: 'blue' });
-    const handlerB = makeTraitHandler({ speed: 5 });   // right wins
+    const handlerB = makeTraitHandler({ speed: 5 }); // right wins
 
     const composer = new TraitComposer();
     const result = composer.compose(
       'AB',
-      new Map([['a', handlerA], ['b', handlerB]]),
-      ['a', 'b'],
+      new Map([
+        ['a', handlerA],
+        ['b', handlerB],
+      ]),
+      ['a', 'b']
     );
 
     expect(result.handler.defaultConfig?.speed).toBe(5);
@@ -403,11 +411,11 @@ describe('TraitComposer — defaultConfig merge (right wins)', () => {
     const composer = new TraitComposer();
     const result = composer.compose(
       'AX',
-      new Map([['a', handlerA]]),   // 'x' is in traitNames but not in map
-      ['a', 'x'],
+      new Map([['a', handlerA]]), // 'x' is in traitNames but not in map
+      ['a', 'x']
     );
 
-    expect(result.warnings.some(w => w.includes('x'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('x'))).toBe(true);
     expect(result.handler.defaultConfig?.x).toBe(1);
   });
 });
@@ -417,21 +425,20 @@ describe('TraitComposer — defaultConfig merge (right wins)', () => {
 // =============================================================================
 
 describe('TraitComposer — conflict detection', () => {
-
   it('detects conflict via graph.traitConflicts', () => {
     const graph = new TraitDependencyGraph();
     // Register two conflicting traits via registerTrait (the actual API)
-    graph.registerTrait({ name: 'fire',  requires: [], conflicts: ['water'] });
+    graph.registerTrait({ name: 'fire', requires: [], conflicts: ['water'] });
     graph.registerTrait({ name: 'water', requires: [], conflicts: ['fire'] });
 
     const composer = new TraitComposer(graph);
     const result = composer.compose(
       'FireWater',
       new Map([
-        ['fire',  makeTraitHandler()],
+        ['fire', makeTraitHandler()],
         ['water', makeTraitHandler()],
       ]),
-      ['fire', 'water'],
+      ['fire', 'water']
     );
 
     expect(result.conflicts.length).toBeGreaterThan(0);
@@ -446,7 +453,7 @@ describe('TraitComposer — conflict detection', () => {
         ['a', makeTraitHandler()],
         ['b', makeTraitHandler()],
       ]),
-      ['a', 'b'],
+      ['a', 'b']
     );
 
     expect(result.conflicts).toHaveLength(0);
@@ -454,11 +461,7 @@ describe('TraitComposer — conflict detection', () => {
 
   it('result name matches input name', () => {
     const composer = new TraitComposer();
-    const result = composer.compose(
-      'MyComposed',
-      new Map([['t', makeTraitHandler()]]),
-      ['t'],
-    );
+    const result = composer.compose('MyComposed', new Map([['t', makeTraitHandler()]]), ['t']);
     expect(result.name).toBe('MyComposed');
     expect(result.sources).toEqual(['t']);
   });
@@ -469,7 +472,6 @@ describe('TraitComposer — conflict detection', () => {
 // =============================================================================
 
 describe('TraitComposer — graph registration', () => {
-
   it('registers composed trait in graph after compose()', () => {
     const graph = new TraitDependencyGraph();
     const composer = new TraitComposer(graph);
@@ -478,9 +480,9 @@ describe('TraitComposer — graph registration', () => {
       'SuperTrait',
       new Map([
         ['physics', makeTraitHandler()],
-        ['ai',      makeTraitHandler()],
+        ['ai', makeTraitHandler()],
       ]),
-      ['physics', 'ai'],
+      ['physics', 'ai']
     );
 
     const stats = graph.getStats();
@@ -493,7 +495,6 @@ describe('TraitComposer — graph registration', () => {
 // =============================================================================
 
 describe('TraitComposer.parseCompositionLine', () => {
-
   it('parses "@turret = @physics + @targeting"', () => {
     const result = TraitComposer.parseCompositionLine('@turret = @physics + @targeting');
     expect(result).not.toBeNull();
@@ -516,7 +517,7 @@ describe('TraitComposer.parseCompositionLine', () => {
 
   it('strips @ prefix from all source names', () => {
     const result = TraitComposer.parseCompositionLine('@out = @in1 + @in2');
-    expect(result!.sources.every(s => !s.startsWith('@'))).toBe(true);
+    expect(result!.sources.every((s) => !s.startsWith('@'))).toBe(true);
   });
 
   it('handles single-component "composition"', () => {

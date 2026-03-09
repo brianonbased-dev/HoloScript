@@ -28,7 +28,10 @@ function parseHoloScript(code: string): TraceEntry[] {
   let step = 0;
   let t = 0;
 
-  const inc = () => { t += Math.floor(Math.random() * 3) + 1; return t; };
+  const inc = () => {
+    t += Math.floor(Math.random() * 3) + 1;
+    return t;
+  };
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -41,13 +44,19 @@ function parseHoloScript(code: string): TraceEntry[] {
 
     if (sceneMatch) {
       entries.push({
-        step: ++step, type: 'scene', name: sceneMatch[1],
-        message: `Scene "${sceneMatch[1]}" initialized`, timeMs: inc(),
+        step: ++step,
+        type: 'scene',
+        name: sceneMatch[1],
+        message: `Scene "${sceneMatch[1]}" initialized`,
+        timeMs: inc(),
       });
     } else if (objectMatch) {
       entries.push({
-        step: ++step, type: 'object', name: objectMatch[1],
-        message: `Object "${objectMatch[1]}" created`, timeMs: inc(),
+        step: ++step,
+        type: 'object',
+        name: objectMatch[1],
+        message: `Object "${objectMatch[1]}" created`,
+        timeMs: inc(),
       });
     } else if (traitMatch) {
       // Parse key=value pairs
@@ -59,20 +68,32 @@ function parseHoloScript(code: string): TraceEntry[] {
       });
 
       entries.push({
-        step: ++step, type: 'trait', trait: traitMatch[1], props,
-        message: `@${traitMatch[1]}(${Object.entries(props).map(([k, v]) => `${k}: ${v}`).join(', ')}) applied`,
+        step: ++step,
+        type: 'trait',
+        trait: traitMatch[1],
+        props,
+        message: `@${traitMatch[1]}(${Object.entries(props)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(', ')}) applied`,
         timeMs: inc(),
       });
     } else if (varMatch) {
       entries.push({
-        step: ++step, type: 'info',
-        message: `Binding ${varMatch[1]} "${varMatch[2]}" = ${varMatch[3].trim()}`, timeMs: inc(),
+        step: ++step,
+        type: 'info',
+        message: `Binding ${varMatch[1]} "${varMatch[2]}" = ${varMatch[3].trim()}`,
+        timeMs: inc(),
       });
     }
   }
 
   if (entries.length === 0) {
-    entries.push({ step: 1, type: 'info', message: 'No declarations found — type some HoloScript code', timeMs: 0 });
+    entries.push({
+      step: 1,
+      type: 'info',
+      message: 'No declarations found — type some HoloScript code',
+      timeMs: 0,
+    });
   }
 
   return entries;

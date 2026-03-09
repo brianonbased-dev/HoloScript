@@ -12,7 +12,7 @@ function makeCtx() {
   return {
     emit: (type: string, payload: unknown) => events.push({ type, payload }),
     events,
-    of: (type: string) => events.filter(e => e.type === type),
+    of: (type: string) => events.filter((e) => e.type === type),
     last: () => events[events.length - 1],
   };
 }
@@ -54,7 +54,12 @@ describe('CronTrait — register', () => {
     const { node, ctx, config } = await attach();
     cronHandler.onEvent(node, config, ctx, {
       type: 'cron_register',
-      payload: { name: 'hourly_render', expression: '0 * * * *', targetEvent: 'render_scene', targetPayload: { quality: 'hd' } },
+      payload: {
+        name: 'hourly_render',
+        expression: '0 * * * *',
+        targetEvent: 'render_scene',
+        targetPayload: { quality: 'hd' },
+      },
     });
     expect(ctx.of('cron_registered').length).toBe(1);
     const job = (ctx.of('cron_registered')[0].payload as any).job;
@@ -87,7 +92,10 @@ describe('CronTrait — register', () => {
 
   it('requires name, expression, and targetEvent', async () => {
     const { ctx, config, node } = await attach();
-    cronHandler.onEvent(node, config, ctx, { type: 'cron_register', payload: { expression: '* * * * *' } });
+    cronHandler.onEvent(node, config, ctx, {
+      type: 'cron_register',
+      payload: { expression: '* * * * *' },
+    });
     expect(ctx.of('cron_registered').length).toBe(0);
   });
 
@@ -128,7 +136,10 @@ describe('CronTrait — cancel', () => {
 describe('CronTrait — enable / disable', () => {
   it('disables a job', async () => {
     const { node, ctx, config } = await attach();
-    cronHandler.onEvent(node, config, ctx, { type: 'cron_register', payload: { name: 'j', expression: '* * * * *', targetEvent: 'x' } });
+    cronHandler.onEvent(node, config, ctx, {
+      type: 'cron_register',
+      payload: { name: 'j', expression: '* * * * *', targetEvent: 'x' },
+    });
     const jobId = (ctx.of('cron_registered')[0].payload as any).job.id;
     cronHandler.onEvent(node, config, ctx, { type: 'cron_disable', payload: { jobId } });
     expect(node.__cronState.jobs.get(jobId)?.enabled).toBe(false);
@@ -136,7 +147,10 @@ describe('CronTrait — enable / disable', () => {
 
   it('re-enables a disabled job', async () => {
     const { node, ctx, config } = await attach();
-    cronHandler.onEvent(node, config, ctx, { type: 'cron_register', payload: { name: 'j', expression: '* * * * *', targetEvent: 'x' } });
+    cronHandler.onEvent(node, config, ctx, {
+      type: 'cron_register',
+      payload: { name: 'j', expression: '* * * * *', targetEvent: 'x' },
+    });
     const jobId = (ctx.of('cron_registered')[0].payload as any).job.id;
     cronHandler.onEvent(node, config, ctx, { type: 'cron_disable', payload: { jobId } });
     cronHandler.onEvent(node, config, ctx, { type: 'cron_enable', payload: { jobId } });
@@ -149,7 +163,10 @@ describe('CronTrait — enable / disable', () => {
 describe('CronTrait — run_now', () => {
   it('triggers a job immediately', async () => {
     const { node, ctx, config } = await attach();
-    cronHandler.onEvent(node, config, ctx, { type: 'cron_register', payload: { name: 'j', expression: '0 3 * * *', targetEvent: 'morning_scene' } });
+    cronHandler.onEvent(node, config, ctx, {
+      type: 'cron_register',
+      payload: { name: 'j', expression: '0 3 * * *', targetEvent: 'morning_scene' },
+    });
     const jobId = (ctx.of('cron_registered')[0].payload as any).job.id;
     cronHandler.onEvent(node, config, ctx, { type: 'cron_run_now', payload: { jobId } });
     expect(ctx.of('cron_triggered').length).toBe(1);
@@ -158,7 +175,15 @@ describe('CronTrait — run_now', () => {
 
   it('re-emits target event with _cronTriggered flag', async () => {
     const { node, ctx, config } = await attach();
-    cronHandler.onEvent(node, config, ctx, { type: 'cron_register', payload: { name: 'j', expression: '0 0 * * *', targetEvent: 'do_thing', targetPayload: { foo: 'bar' } } });
+    cronHandler.onEvent(node, config, ctx, {
+      type: 'cron_register',
+      payload: {
+        name: 'j',
+        expression: '0 0 * * *',
+        targetEvent: 'do_thing',
+        targetPayload: { foo: 'bar' },
+      },
+    });
     const jobId = (ctx.of('cron_registered')[0].payload as any).job.id;
     cronHandler.onEvent(node, config, ctx, { type: 'cron_run_now', payload: { jobId } });
     const emitted = ctx.of('do_thing')[0].payload as any;
@@ -190,8 +215,14 @@ describe('CronTrait — max_runs', () => {
 describe('CronTrait — list', () => {
   it('lists all jobs', async () => {
     const { node, ctx, config } = await attach();
-    cronHandler.onEvent(node, config, ctx, { type: 'cron_register', payload: { name: 'a', expression: '* * * * *', targetEvent: 'x' } });
-    cronHandler.onEvent(node, config, ctx, { type: 'cron_register', payload: { name: 'b', expression: '0 * * * *', targetEvent: 'y' } });
+    cronHandler.onEvent(node, config, ctx, {
+      type: 'cron_register',
+      payload: { name: 'a', expression: '* * * * *', targetEvent: 'x' },
+    });
+    cronHandler.onEvent(node, config, ctx, {
+      type: 'cron_register',
+      payload: { name: 'b', expression: '0 * * * *', targetEvent: 'y' },
+    });
     cronHandler.onEvent(node, config, ctx, { type: 'cron_list' });
     const jobs = (ctx.of('cron_list')[0].payload as any).jobs;
     expect(jobs.length).toBe(2);

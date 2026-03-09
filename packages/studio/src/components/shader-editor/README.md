@@ -179,11 +179,13 @@ function MyComponent() {
 ## Node Types
 
 ### Input Nodes (10)
+
 - World Position, World Normal, UV Coordinates
 - Time, Camera Position, View Direction
 - Float, Vector2, Vector3, Color constants
 
 ### Math Nodes (20)
+
 - Basic: Add, Subtract, Multiply, Divide, Power, Sqrt
 - Comparison: Min, Max, Clamp, Saturate
 - Interpolation: Lerp, Smoothstep, Step
@@ -191,36 +193,44 @@ function MyComponent() {
 - Utility: Abs, Negate, Fract, Floor, Ceil, Round, Mod
 
 ### Vector Nodes (12)
+
 - Make/Split: Vec2, Vec3, Vec4
 - Operations: Normalize, Length, Distance, Dot, Cross
 - Advanced: Reflect, Refract
 
 ### Color Nodes (7)
+
 - Blend, Hue Shift, Saturation, Brightness, Contrast
 - Invert, Grayscale
 
 ### Texture Nodes (3)
+
 - Sample Texture, Sample Texture Level
 - Tiling and Offset
 
 ### Utility Nodes (7)
+
 - Fresnel, Simple Noise, Gradient Noise, Voronoi
 - Remap, Branch, Compare
 
 ### Advanced Material Nodes (7)
+
 - Blackbody Radiation, Sparkle/Glitter, Animated Pattern
 - Weathering, Dual Layer Blend, Fluorescence, Retroreflection
 
 ### Volumetric Nodes (7)
+
 - Volume Density, 3D FBM Noise, Curl Noise
 - Volume Scattering, Volume Emission, Height Fog, Fire Density
 
 ### Screen-Space Nodes (8)
+
 - Caustics, Displacement Map, Parallax Occlusion
 - Screen Space Reflection, Screen Space GI
 - Water Surface, Refractive Caustics, Enhanced Displacement
 
 ### Output Nodes (4)
+
 - Surface Output (PBR + exotic optics)
 - Unlit Output, Vertex Offset, Volume Output
 
@@ -282,9 +292,7 @@ Shader graphs are saved as JSON:
       "position": { "x": 100, "y": 100 },
       "properties": { "r": 1, "g": 0.5, "b": 0.5, "a": 1 },
       "inputs": [],
-      "outputs": [
-        { "id": "color", "name": "Color", "type": "vec4", "direction": "output" }
-      ]
+      "outputs": [{ "id": "color", "name": "Color", "type": "vec4", "direction": "output" }]
     }
   ],
   "connections": [

@@ -14,10 +14,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  useShaderPreview,
-  type BenchmarkResult,
-} from './useShaderPreview';
+import { useShaderPreview, type BenchmarkResult } from './useShaderPreview';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -124,14 +121,17 @@ export function NativeShaderPreview({
 
   if (!state.isTauri) {
     return (
-      <div className={`native-shader-preview bg-gray-900 border border-gray-700 rounded-lg p-6 flex flex-col items-center justify-center ${className}`}>
+      <div
+        className={`native-shader-preview bg-gray-900 border border-gray-700 rounded-lg p-6 flex flex-col items-center justify-center ${className}`}
+      >
         <div className="text-gray-400 text-sm text-center">
           <div className="text-lg font-medium mb-2">Native GPU Preview</div>
           <div className="text-gray-500 mb-4">
             Requires HoloScript Studio Desktop (Tauri) for native wgpu rendering.
           </div>
           <div className="text-xs text-gray-600">
-            The native preview renders shaders directly on your GPU via wgpu,<br />
+            The native preview renders shaders directly on your GPU via wgpu,
+            <br />
             bypassing WebGL for maximum performance and WGSL compatibility.
           </div>
         </div>
@@ -143,10 +143,10 @@ export function NativeShaderPreview({
 
   if (state.initializing) {
     return (
-      <div className={`native-shader-preview bg-gray-900 border border-gray-700 rounded-lg flex items-center justify-center ${className}`}>
-        <div className="text-gray-400 text-sm">
-          Initializing wgpu pipeline...
-        </div>
+      <div
+        className={`native-shader-preview bg-gray-900 border border-gray-700 rounded-lg flex items-center justify-center ${className}`}
+      >
+        <div className="text-gray-400 text-sm">Initializing wgpu pipeline...</div>
       </div>
     );
   }
@@ -167,7 +167,9 @@ export function NativeShaderPreview({
             {width}x{height} @ {state.fps} fps
           </span>
           {state.frameTiming && (
-            <span className={`text-xs ${state.frameTiming.within_budget ? 'text-green-400' : 'text-red-400'}`}>
+            <span
+              className={`text-xs ${state.frameTiming.within_budget ? 'text-green-400' : 'text-red-400'}`}
+            >
               {state.frameTiming.frame_time_ms.toFixed(1)}ms
             </span>
           )}
@@ -230,20 +232,20 @@ export function NativeShaderPreview({
           {/* Init timings */}
           {state.initTimings && (
             <div className="mt-1 pt-1 border-t border-gray-700/50">
-              Init: {state.initTimings.total_init_ms.toFixed(0)}ms
-              (device: {state.initTimings.init_device_ms.toFixed(0)}ms,
-              pipeline: {state.initTimings.create_pipeline_ms.toFixed(0)}ms)
+              Init: {state.initTimings.total_init_ms.toFixed(0)}ms (device:{' '}
+              {state.initTimings.init_device_ms.toFixed(0)}ms, pipeline:{' '}
+              {state.initTimings.create_pipeline_ms.toFixed(0)}ms)
             </div>
           )}
 
           {/* Benchmark results */}
           {benchmarkResult && (
             <div className="mt-1 pt-1 border-t border-gray-700/50 text-yellow-400">
-              Benchmark ({benchmarkResult.frame_count} frames):
-              avg={benchmarkResult.avg_frame_ms.toFixed(2)}ms
-              p95={benchmarkResult.p95_frame_ms.toFixed(2)}ms
-              fps={benchmarkResult.effective_fps.toFixed(1)}
-              budget={((benchmarkResult.budget_hit_rate * 100).toFixed(1))}%
+              Benchmark ({benchmarkResult.frame_count} frames): avg=
+              {benchmarkResult.avg_frame_ms.toFixed(2)}ms p95=
+              {benchmarkResult.p95_frame_ms.toFixed(2)}ms fps=
+              {benchmarkResult.effective_fps.toFixed(1)}
+              budget={(benchmarkResult.budget_hit_rate * 100).toFixed(1)}%
               {benchmarkResult.budget_hit_rate >= 0.95 ? ' PASS' : ' FAIL'}
             </div>
           )}

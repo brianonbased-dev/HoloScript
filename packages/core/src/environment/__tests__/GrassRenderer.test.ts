@@ -39,7 +39,7 @@ describe('GrassRenderer', () => {
     gr.generate({ x: 0, z: 0, w: 1, h: 1 });
     gr.updateLOD({ x: 0, z: 0 });
     const visible = gr.getVisibleBlades();
-    expect(visible.every(b => b.lodLevel === 0)).toBe(true);
+    expect(visible.every((b) => b.lodLevel === 0)).toBe(true);
   });
 
   it('setConfig updates configuration', () => {
@@ -55,9 +55,9 @@ describe('GrassRenderer', () => {
 
   it('generate is deterministic with same seed', () => {
     gr.generate({ x: 0, z: 0, w: 2, h: 2 }, 42);
-    const blades1 = gr.getVisibleBlades().map(b => b.position);
+    const blades1 = gr.getVisibleBlades().map((b) => b.position);
     gr.generate({ x: 0, z: 0, w: 2, h: 2 }, 42);
-    const blades2 = gr.getVisibleBlades().map(b => b.position);
+    const blades2 = gr.getVisibleBlades().map((b) => b.position);
     expect(blades1).toEqual(blades2);
   });
 });

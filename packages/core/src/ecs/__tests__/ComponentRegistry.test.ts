@@ -4,7 +4,9 @@ import { ComponentRegistry, registerBuiltInComponents } from '../ComponentRegist
 describe('ComponentRegistry', () => {
   let registry: ComponentRegistry;
 
-  beforeEach(() => { registry = new ComponentRegistry(); });
+  beforeEach(() => {
+    registry = new ComponentRegistry();
+  });
 
   // ---------------------------------------------------------------------------
   // Registration

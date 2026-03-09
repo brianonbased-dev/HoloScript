@@ -12,8 +12,12 @@ import { tokenGatedHandler } from '../TokenGatedTrait';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode() { return { id: 'tg_test' } as any; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'tg_test' } as any;
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 
 function attach(node: any, overrides: Record<string, unknown> = {}) {
   const cfg = { ...tokenGatedHandler.defaultConfig!, ...overrides } as any;
@@ -22,7 +26,9 @@ function attach(node: any, overrides: Record<string, unknown> = {}) {
   return { cfg, ctx };
 }
 
-function st(node: any) { return node.__tokenGatedState as any; }
+function st(node: any) {
+  return node.__tokenGatedState as any;
+}
 
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
   tokenGatedHandler.onEvent!(node, cfg, ctx as any, evt as any);
@@ -70,7 +76,10 @@ describe('TokenGatedTrait — onAttach', () => {
   it('fallback_behavior=blur: emits token_gate_blur with amount=10', () => {
     const node = makeNode();
     const { ctx } = attach(node, { fallback_behavior: 'blur' });
-    expect(ctx.emit).toHaveBeenCalledWith('token_gate_blur', expect.objectContaining({ amount: 10 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'token_gate_blur',
+      expect.objectContaining({ amount: 10 })
+    );
   });
 
   it('fallback_behavior=lock: emits token_gate_lock', () => {
@@ -82,13 +91,22 @@ describe('TokenGatedTrait — onAttach', () => {
   it('fallback_behavior=message: emits token_gate_show_message with gate_message', () => {
     const node = makeNode();
     const { ctx } = attach(node, { fallback_behavior: 'message', gate_message: 'NFT required' });
-    expect(ctx.emit).toHaveBeenCalledWith('token_gate_show_message', expect.objectContaining({ message: 'NFT required' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'token_gate_show_message',
+      expect.objectContaining({ message: 'NFT required' })
+    );
   });
 
   it('fallback_behavior=redirect: emits token_gate_redirect with redirect_url', () => {
     const node = makeNode();
-    const { ctx } = attach(node, { fallback_behavior: 'redirect', redirect_url: 'https://mint.example.com' });
-    expect(ctx.emit).toHaveBeenCalledWith('token_gate_redirect', expect.objectContaining({ url: 'https://mint.example.com' }));
+    const { ctx } = attach(node, {
+      fallback_behavior: 'redirect',
+      redirect_url: 'https://mint.example.com',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'token_gate_redirect',
+      expect.objectContaining({ url: 'https://mint.example.com' })
+    );
   });
 
   it('fallback_behavior=redirect with empty redirect_url: no redirect emit', () => {
@@ -138,7 +156,10 @@ describe('TokenGatedTrait — onUpdate', () => {
     st(node).lastVerifyTime = Date.now() - 6000; // expired
     ctx.emit.mockClear();
     tokenGatedHandler.onUpdate!(node, cfg, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('token_gate_reverify', expect.objectContaining({ address: '0xabc' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'token_gate_reverify',
+      expect.objectContaining({ address: '0xabc' })
+    );
   });
 
   it('does NOT re-verify when interval not yet elapsed', () => {
@@ -162,7 +183,10 @@ describe('TokenGatedTrait — onEvent: token_gate_verify', () => {
     fire(node, cfg, ctx, { type: 'token_gate_verify', address: '0xdead' });
     expect(st(node).hasAccess).toBe(false);
     expect(st(node).isVerified).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('on_token_denied', expect.objectContaining({ reason: 'blocked' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_token_denied',
+      expect.objectContaining({ reason: 'blocked' })
+    );
     expect(ctx.emit).not.toHaveBeenCalledWith('token_gate_check_balance', expect.any(Object));
   });
 
@@ -178,12 +202,24 @@ describe('TokenGatedTrait — onEvent: token_gate_verify', () => {
 
   it('unrecognized address → emits token_gate_check_balance', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { chain: 'polygon', contract_address: '0xNFT', token_type: 'erc1155', token_id: '42' });
+    const { cfg, ctx } = attach(node, {
+      chain: 'polygon',
+      contract_address: '0xNFT',
+      token_type: 'erc1155',
+      token_id: '42',
+    });
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'token_gate_verify', address: '0xunknown' });
-    expect(ctx.emit).toHaveBeenCalledWith('token_gate_check_balance', expect.objectContaining({
-      chain: 'polygon', contractAddress: '0xNFT', tokenType: 'erc1155', tokenId: '42', address: '0xunknown',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'token_gate_check_balance',
+      expect.objectContaining({
+        chain: 'polygon',
+        contractAddress: '0xNFT',
+        tokenType: 'erc1155',
+        tokenId: '42',
+        address: '0xunknown',
+      })
+    );
   });
 
   it('increments verifyAttempts on each verify', () => {
@@ -206,7 +242,10 @@ describe('TokenGatedTrait — onEvent: token_gate_balance_result', () => {
     expect(st(node).hasAccess).toBe(true);
     expect(st(node).tokenBalance).toBe(3);
     expect(ctx.emit).toHaveBeenCalledWith('token_gate_reveal', expect.any(Object));
-    expect(ctx.emit).toHaveBeenCalledWith('on_token_verified', expect.objectContaining({ balance: 3 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_token_verified',
+      expect.objectContaining({ balance: 3 })
+    );
   });
 
   it('balance < min_balance → denies access + reason=insufficient_balance', () => {
@@ -215,9 +254,14 @@ describe('TokenGatedTrait — onEvent: token_gate_balance_result', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'token_gate_balance_result', address: '0xpoor', balance: 2 });
     expect(st(node).hasAccess).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('on_token_denied', expect.objectContaining({
-      reason: 'insufficient_balance', balance: 2, required: 5,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_token_denied',
+      expect.objectContaining({
+        reason: 'insufficient_balance',
+        balance: 2,
+        required: 5,
+      })
+    );
     expect(ctx.emit).toHaveBeenCalledWith('token_gate_hide', expect.any(Object));
   });
 });
@@ -253,7 +297,10 @@ describe('TokenGatedTrait — onEvent: token_gate_refresh', () => {
     st(node).verifiedAddress = '0xold';
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'token_gate_refresh' });
-    expect(ctx.emit).toHaveBeenCalledWith('token_gate_verify', expect.objectContaining({ address: '0xold' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'token_gate_verify',
+      expect.objectContaining({ address: '0xold' })
+    );
   });
 
   it('no-op when no verifiedAddress', () => {
@@ -270,22 +317,30 @@ describe('TokenGatedTrait — onEvent: token_gate_refresh', () => {
 describe('TokenGatedTrait — onEvent: token_gate_query', () => {
   it('emits token_gate_info with full snapshot', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { chain: 'polygon', contract_address: '0xABC', token_type: 'erc1155', min_balance: 3 });
+    const { cfg, ctx } = attach(node, {
+      chain: 'polygon',
+      contract_address: '0xABC',
+      token_type: 'erc1155',
+      min_balance: 3,
+    });
     st(node).isVerified = true;
     st(node).hasAccess = true;
     st(node).verifiedAddress = '0xowner';
     st(node).tokenBalance = 5;
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'token_gate_query', queryId: 'q7' });
-    expect(ctx.emit).toHaveBeenCalledWith('token_gate_info', expect.objectContaining({
-      queryId: 'q7',
-      isVerified: true,
-      hasAccess: true,
-      verifiedAddress: '0xowner',
-      tokenBalance: 5,
-      chain: 'polygon',
-      tokenType: 'erc1155',
-      minBalance: 3,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'token_gate_info',
+      expect.objectContaining({
+        queryId: 'q7',
+        isVerified: true,
+        hasAccess: true,
+        verifiedAddress: '0xowner',
+        tokenBalance: 5,
+        chain: 'polygon',
+        tokenType: 'erc1155',
+        minBalance: 3,
+      })
+    );
   });
 });

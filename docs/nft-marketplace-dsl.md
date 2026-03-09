@@ -93,7 +93,7 @@ import { NFTMarketplaceCompiler } from '@holoscript/core';
 
 const compiler = new NFTMarketplaceCompiler({
   solcVersion: '0.8.20',
-  optimizer: { enabled: true, runs: 200 }
+  optimizer: { enabled: true, runs: 200 },
 });
 
 const output = compiler.compile(marketplaceAST);
@@ -111,18 +111,18 @@ Generated deployment script (Hardhat):
 
 ```typescript
 // deploy/01-deploy-marketplace.ts
-import { ethers } from "hardhat";
+import { ethers } from 'hardhat';
 
 async function main() {
-  const ArtNFT = await ethers.getContractFactory("ArtNFT");
+  const ArtNFT = await ethers.getContractFactory('ArtNFT');
   const artNFT = await ArtNFT.deploy(
-    "ipfs://QmYourHash/",           // baseURI
-    "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",  // royalty receiver
-    500                              // 5% royalty
+    'ipfs://QmYourHash/', // baseURI
+    '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0', // royalty receiver
+    500 // 5% royalty
   );
 
   await artNFT.waitForDeployment();
-  console.log("ArtNFT deployed to:", await artNFT.getAddress());
+  console.log('ArtNFT deployed to:', await artNFT.getAddress());
 }
 ```
 
@@ -176,6 +176,7 @@ chains: [
 ```
 
 **Supported Networks:**
+
 - `base` (Chain ID: 8453)
 - `polygon` (Chain ID: 137)
 - `ethereum` (Chain ID: 1)
@@ -249,6 +250,7 @@ royalties: {
 ```
 
 **Basis Points (BPS):**
+
 - 100 bps = 1%
 - 250 bps = 2.5%
 - 500 bps = 5%

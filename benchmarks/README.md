@@ -18,11 +18,13 @@ cat results/$(date +%Y-%m-%d)/01-basic-scene.json
 ## Current Status
 
 ### Phase 1: Compilation Benchmarks ✅ COMPLETE
+
 - ✅ Scenario 1 - Basic VR Scene (25 LOC HoloScript)
 - ✅ Benchmark runner (5 targets: Unity, Unreal, Godot, Three.js, VRChat)
 - ✅ Results reporting (JSON + formatted tables)
 
 ### Phase 2: Runtime Profiling & Baselines ✅ COMPLETE
+
 - ✅ Unity hand-written baseline (106 LOC C#)
 - ✅ Unreal hand-written baseline (216 LOC C++)
 - ✅ GitHub Actions workflow for CI/CD
@@ -30,6 +32,7 @@ cat results/$(date +%Y-%m-%d)/01-basic-scene.json
 - ✅ Quest 3 deployment & profiling scripts
 
 ### Pending (Phase 3):
+
 - [ ] **Implement** runtime profiling (currently documented)
 - [ ] **Test** Quest 3 automation with real device
 - [ ] Scenario 2: High-Complexity Scene
@@ -43,6 +46,7 @@ cat results/$(date +%Y-%m-%d)/01-basic-scene.json
 **Status**: Implemented (compile-time benchmarks only)
 
 **What it tests**: Core compilation overhead across 5 targets
+
 - Unity C#
 - Unreal C++
 - Godot GDScript
@@ -50,6 +54,7 @@ cat results/$(date +%Y-%m-%d)/01-basic-scene.json
 - VRChat Udon#
 
 **Metrics collected**:
+
 - ✅ Compilation time (ms)
 - ✅ Lines of code generated
 - ✅ Output file size (bytes)
@@ -64,6 +69,7 @@ cat results/$(date +%Y-%m-%d)/01-basic-scene.json
 **Status**: Not yet implemented
 
 **Planned features**:
+
 - 10,000 dynamic physics objects
 - 5 light sources with shadows
 - PBR materials
@@ -74,6 +80,7 @@ cat results/$(date +%Y-%m-%d)/01-basic-scene.json
 **Status**: Not yet implemented
 
 **Planned features**:
+
 - 6-DOF robot arm (URDF export)
 - Forward/inverse kinematics
 - Real-time physics
@@ -83,6 +90,7 @@ cat results/$(date +%Y-%m-%d)/01-basic-scene.json
 **Status**: Not yet implemented
 
 **Planned features**:
+
 - 50 networked players
 - Voice chat
 - CRDT state synchronization
@@ -139,28 +147,33 @@ benchmarks/
 ## Next Steps
 
 ### Phase 1: Compilation Benchmarks ✅
+
 - [x] Directory structure
 - [x] Scenario 1: Basic Scene
 - [x] Benchmark runner (compile-time metrics)
 - [x] Results reporting
 
 ### Phase 2: Runtime Benchmarks ⏳
+
 - [ ] Unity profiler integration
 - [ ] Unreal profiler integration
 - [ ] ThreeJS performance.now() metrics
 - [ ] Quest 3 deployment automation
 
 ### Phase 3: Baselines ⏳
+
 - [ ] Hand-written Unity version (Scenario 1)
 - [ ] Hand-written Unreal version (Scenario 1)
 - [ ] Overhead calculation (<10% target)
 
 ### Phase 4: Advanced Scenarios ⏳
+
 - [ ] Scenario 2: High-Complexity
 - [ ] Scenario 3: Robotics
 - [ ] Scenario 4: Multiplayer
 
 ### Phase 5: Public Dashboard ⏳
+
 - [ ] benchmarks.holoscript.net
 - [ ] Historical trends
 - [ ] Community submissions

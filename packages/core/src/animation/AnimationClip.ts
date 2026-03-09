@@ -22,9 +22,9 @@ export interface ClipKeyframe {
 
 export interface ClipTrack {
   id: string;
-  targetPath: string;         // e.g. "root/spine/head"
-  property: string;           // e.g. "position", "rotation", "scale"
-  component?: string;         // e.g. "x", "y", "z" or null for full vector
+  targetPath: string; // e.g. "root/spine/head"
+  property: string; // e.g. "position", "rotation", "scale"
+  component?: string; // e.g. "x", "y", "z" or null for full vector
   interpolation: InterpolationMode;
   keyframes: ClipKeyframe[];
 }
@@ -59,13 +59,28 @@ export class AnimClip {
   // Configuration
   // ---------------------------------------------------------------------------
 
-  setLoop(loop: boolean): void { this.loop = loop; this.wrapMode = loop ? 'loop' : 'once'; }
-  isLooping(): boolean { return this.loop; }
-  setSpeed(speed: number): void { this.speed = Math.max(0.01, speed); }
-  getSpeed(): number { return this.speed; }
-  setWrapMode(mode: typeof this.wrapMode): void { this.wrapMode = mode; }
-  getWrapMode(): string { return this.wrapMode; }
-  getDuration(): number { return this._duration; }
+  setLoop(loop: boolean): void {
+    this.loop = loop;
+    this.wrapMode = loop ? 'loop' : 'once';
+  }
+  isLooping(): boolean {
+    return this.loop;
+  }
+  setSpeed(speed: number): void {
+    this.speed = Math.max(0.01, speed);
+  }
+  getSpeed(): number {
+    return this.speed;
+  }
+  setWrapMode(mode: typeof this.wrapMode): void {
+    this.wrapMode = mode;
+  }
+  getWrapMode(): string {
+    return this.wrapMode;
+  }
+  getDuration(): number {
+    return this._duration;
+  }
 
   // ---------------------------------------------------------------------------
   // Tracks
@@ -79,9 +94,15 @@ export class AnimClip {
     }
   }
 
-  getTrack(id: string): ClipTrack | undefined { return this.tracks.find(t => t.id === id); }
-  getTracks(): ClipTrack[] { return [...this.tracks]; }
-  getTrackCount(): number { return this.tracks.length; }
+  getTrack(id: string): ClipTrack | undefined {
+    return this.tracks.find((t) => t.id === id);
+  }
+  getTracks(): ClipTrack[] {
+    return [...this.tracks];
+  }
+  getTrackCount(): number {
+    return this.tracks.length;
+  }
 
   // ---------------------------------------------------------------------------
   // Events
@@ -93,10 +114,12 @@ export class AnimClip {
   }
 
   getEventsInRange(fromTime: number, toTime: number): ClipEvent[] {
-    return this.events.filter(e => e.time >= fromTime && e.time < toTime);
+    return this.events.filter((e) => e.time >= fromTime && e.time < toTime);
   }
 
-  getEvents(): ClipEvent[] { return [...this.events]; }
+  getEvents(): ClipEvent[] {
+    return [...this.events];
+  }
 
   // ---------------------------------------------------------------------------
   // Sampling
@@ -108,7 +131,9 @@ export class AnimClip {
 
     for (const track of this.tracks) {
       const value = this.sampleTrack(track, wrapped);
-      const key = track.component ? `${track.targetPath}.${track.property}.${track.component}` : `${track.targetPath}.${track.property}`;
+      const key = track.component
+        ? `${track.targetPath}.${track.property}.${track.component}`
+        : `${track.targetPath}.${track.property}`;
       result.set(key, value);
     }
 
@@ -136,16 +161,25 @@ export class AnimClip {
     const v1 = typeof k1.value === 'number' ? k1.value : 0;
 
     switch (track.interpolation) {
-      case 'step': return v0;
-      case 'linear': return v0 + (v1 - v0) * t;
+      case 'step':
+        return v0;
+      case 'linear':
+        return v0 + (v1 - v0) * t;
       case 'cubic': {
         // Hermite
         const m0 = k0.outTangent ?? 0;
         const m1 = k1.inTangent ?? 0;
-        const t2 = t * t, t3 = t2 * t;
-        return (2 * t3 - 3 * t2 + 1) * v0 + (t3 - 2 * t2 + t) * m0 * dt + (-2 * t3 + 3 * t2) * v1 + (t3 - t2) * m1 * dt;
+        const t2 = t * t,
+          t3 = t2 * t;
+        return (
+          (2 * t3 - 3 * t2 + 1) * v0 +
+          (t3 - 2 * t2 + t) * m0 * dt +
+          (-2 * t3 + 3 * t2) * v1 +
+          (t3 - t2) * m1 * dt
+        );
       }
-      default: return v0 + (v1 - v0) * t;
+      default:
+        return v0 + (v1 - v0) * t;
     }
   }
 
@@ -154,15 +188,19 @@ export class AnimClip {
     const t = time * this.speed;
 
     switch (this.wrapMode) {
-      case 'once': return Math.min(t, this._duration);
-      case 'clamp': return Math.max(0, Math.min(t, this._duration));
-      case 'loop': return ((t % this._duration) + this._duration) % this._duration;
+      case 'once':
+        return Math.min(t, this._duration);
+      case 'clamp':
+        return Math.max(0, Math.min(t, this._duration));
+      case 'loop':
+        return ((t % this._duration) + this._duration) % this._duration;
       case 'ping-pong': {
         const cycle = t / this._duration;
         const phase = cycle % 2;
         return phase < 1 ? phase * this._duration : (2 - phase) * this._duration;
       }
-      default: return t;
+      default:
+        return t;
     }
   }
 
@@ -170,7 +208,11 @@ export class AnimClip {
   // Blending
   // ---------------------------------------------------------------------------
 
-  static blend(a: Map<string, number>, b: Map<string, number>, weight: number): Map<string, number> {
+  static blend(
+    a: Map<string, number>,
+    b: Map<string, number>,
+    weight: number
+  ): Map<string, number> {
     const result = new Map<string, number>();
     const allKeys = new Set([...a.keys(), ...b.keys()]);
 

@@ -1,5 +1,5 @@
 // ─── Barrel Export ──────────────────────────────────────────────────────────
-// Re-exports all domain stores so existing `from '@/lib/store'` imports keep working.
+// Re-exports all domain stores so existing `from '@/lib/stores'` imports keep working.
 
 export { useSceneStore } from './sceneStore';
 export { useAIStore } from './aiStore';

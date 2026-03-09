@@ -325,10 +325,9 @@ describe('useCollaboration', () => {
 
   describe('Room Changes', () => {
     it('should reconnect when room ID changes', async () => {
-      const { rerender } = renderHook(
-        ({ roomId }) => useCollaboration(roomId),
-        { initialProps: { roomId: 'room-1' } }
-      );
+      const { rerender } = renderHook(({ roomId }) => useCollaboration(roomId), {
+        initialProps: { roomId: 'room-1' },
+      });
 
       // Let the connection complete
       await act(async () => {

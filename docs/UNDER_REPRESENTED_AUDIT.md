@@ -19,11 +19,13 @@ HoloScript v5.0.0 shipped with **51 commits** and **25,000+ lines** of productio
 ### 1. Autonomous Ecosystems (0/3 examples)
 
 **Implemented:**
+
 - ✅ [AgentPortalTrait.ts](../packages/core/src/traits/AgentPortalTrait.ts) — Cross-scene messaging, migration, federation (26 tests)
 - ✅ [EconomyPrimitivesTrait.ts](../packages/core/src/traits/EconomyPrimitivesTrait.ts) — Compute credits, bounties, escrow
 - ✅ [FeedbackLoopTrait.ts](../packages/core/src/traits/FeedbackLoopTrait.ts) — Quality metrics, trend detection, auto-optimization
 
 **Missing Examples:**
+
 - ❌ `examples/autonomous-ecosystems/01-agent-portal-messaging.holo`
   - Cross-scene agent discovery and messaging
   - Agent migration between scenes
@@ -49,6 +51,7 @@ HoloScript v5.0.0 shipped with **51 commits** and **25,000+ lines** of productio
 ### 2. Enterprise Multi-Tenancy (0/7 examples)
 
 **Implemented (2,100+ tests):**
+
 - ✅ TenantTrait — Namespace isolation, resource limits
 - ✅ RBACTrait — Role-based access control, capability tokens
 - ✅ SSOTrait — SAML 2.0, OAuth 2.0, OpenID Connect
@@ -58,6 +61,7 @@ HoloScript v5.0.0 shipped with **51 commits** and **25,000+ lines** of productio
 - ✅ ABTestTrait — Multi-variate testing, statistical significance
 
 **Missing Examples:**
+
 - ❌ `examples/enterprise/01-tenant-isolation.holo`
 - ❌ `examples/enterprise/02-rbac-permissions.holo`
 - ❌ `examples/enterprise/03-sso-integration.holo`
@@ -73,11 +77,13 @@ HoloScript v5.0.0 shipped with **51 commits** and **25,000+ lines** of productio
 ### 3. Post-Quantum Cryptography (0/3 examples)
 
 **Implemented (1,900+ lines, 1,100+ test assertions):**
+
 - ✅ HybridCryptoProvider — Classical + Post-Quantum dual-mode
 - ✅ Capability-Based Access Control (CBAC) — ML-DSA-65 signatures
 - ✅ AgentTokenIssuer — Secure token generation/validation
 
 **Missing Examples:**
+
 - ❌ `examples/cryptography/01-hybrid-crypto-signing.holo`
   - Ed25519 + ML-DSA-65 dual signatures
   - ML-KEM-768 key encapsulation
@@ -102,10 +108,12 @@ HoloScript v5.0.0 shipped with **51 commits** and **25,000+ lines** of productio
 ### 4. Neuromorphic Computing (0/3 examples)
 
 **Implemented:**
+
 - ✅ [@holoscript/snn-webgpu](../packages/snn-webgpu/) — WebGPU LIF neuron simulation (README ✅)
 - ✅ NIR Export Target (#19) — Intel Loihi 2 compilation
 
 **Missing Examples:**
+
 - ❌ `examples/neuromorphic/01-lif-neuron-simulation.holo`
   - 10K+ neurons @ 60Hz on WebGPU
   - Poisson spike encoding
@@ -127,10 +135,12 @@ HoloScript v5.0.0 shipped with **51 commits** and **25,000+ lines** of productio
 ### 5. Cross-Reality Agent Continuity (1/5 examples)
 
 **Implemented:**
+
 - ✅ CrossRealityTraitRegistry — Geospatial anchoring, MVC pattern
 - ✅ `examples/perception-tests/07-cross-reality-agent-continuity.holo` (exists!)
 
 **Missing Examples:**
+
 - ❌ `examples/cross-reality/01-geospatial-anchoring.holo` — Universal lat/lon/alt anchors
 - ❌ `examples/cross-reality/02-mvc-state-sync.holo` — Minimal Viable Context (5 objects <10KB)
 - ❌ `examples/cross-reality/03-authenticated-crdt.holo` — Conflict-free sync with auth
@@ -154,13 +164,13 @@ HoloScript v5.0.0 shipped with **51 commits** and **25,000+ lines** of productio
 
 ## 📊 Gap Analysis
 
-| Category | Implemented | Tests | Examples | Coverage Gap |
-|---|---|---|---|---|
-| **Autonomous Ecosystems** | ✅ 3 traits | ✅ 26 tests | ❌ 0 examples | **100% gap** |
-| **Enterprise Multi-Tenancy** | ✅ 7 traits | ✅ 2,100 tests | ❌ 0 examples | **100% gap** |
-| **Post-Quantum Crypto** | ✅ 1,900 lines | ✅ 1,100 assertions | ❌ 0 examples | **100% gap** |
-| **Neuromorphic Computing** | ✅ SNN package | ✅ Unit tests | ❌ 0 examples | **100% gap** |
-| **Cross-Reality** | ✅ Registry | ✅ Tests | ⚠️ 1 example | **80% gap** |
+| Category                     | Implemented    | Tests               | Examples      | Coverage Gap |
+| ---------------------------- | -------------- | ------------------- | ------------- | ------------ |
+| **Autonomous Ecosystems**    | ✅ 3 traits    | ✅ 26 tests         | ❌ 0 examples | **100% gap** |
+| **Enterprise Multi-Tenancy** | ✅ 7 traits    | ✅ 2,100 tests      | ❌ 0 examples | **100% gap** |
+| **Post-Quantum Crypto**      | ✅ 1,900 lines | ✅ 1,100 assertions | ❌ 0 examples | **100% gap** |
+| **Neuromorphic Computing**   | ✅ SNN package | ✅ Unit tests       | ❌ 0 examples | **100% gap** |
+| **Cross-Reality**            | ✅ Registry    | ✅ Tests            | ⚠️ 1 example  | **80% gap**  |
 
 **Total Examples Needed:** 22 example files across 5 v5.0 feature categories
 
@@ -169,15 +179,19 @@ HoloScript v5.0.0 shipped with **51 commits** and **25,000+ lines** of productio
 ## 🎯 Recommended Priority
 
 ### Sprint 1: Autonomous Ecosystems (3 examples)
+
 **Timeline:** 1 day
 **Files:**
+
 - `examples/autonomous-ecosystems/01-agent-portal-messaging.holo` (200 lines)
 - `examples/autonomous-ecosystems/02-economy-primitives.holo` (180 lines)
 - `examples/autonomous-ecosystems/03-feedback-loop-optimization.holo` (150 lines)
 
 ### Sprint 2: Enterprise Multi-Tenancy (7 examples)
+
 **Timeline:** 2 days
 **Files:**
+
 - `examples/enterprise/01-tenant-isolation.holo` (120 lines)
 - `examples/enterprise/02-rbac-permissions.holo` (150 lines)
 - `examples/enterprise/03-sso-integration.holo` (180 lines)
@@ -187,15 +201,19 @@ HoloScript v5.0.0 shipped with **51 commits** and **25,000+ lines** of productio
 - `examples/enterprise/07-ab-testing.holo` (130 lines)
 
 ### Sprint 3: Post-Quantum Crypto (3 examples)
+
 **Timeline:** 1 day
 **Files:**
+
 - `examples/cryptography/01-hybrid-crypto-signing.holo` (170 lines)
 - `examples/cryptography/02-cbac-permissions.holo` (140 lines)
 - `examples/cryptography/03-agent-token-auth.holo` (160 lines)
 
 ### Sprint 4: Neuromorphic + Cross-Reality (6 examples)
+
 **Timeline:** 1.5 days
 **Files:**
+
 - `examples/neuromorphic/01-lif-neuron-simulation.holo` (200 lines)
 - `examples/neuromorphic/02-snn-network.holo` (250 lines)
 - `examples/neuromorphic/03-nir-export.holo` (100 lines)
@@ -236,12 +254,14 @@ find examples -name "*.holo" | wc -l
 **Current State:** Developers can read tests (2,100+ assertions) but **cannot run real-world scenarios**.
 
 **Without Examples:**
+
 - ❌ No quick-start path for v5.0 adoption
 - ❌ Enterprise customers lack SaaS multi-tenancy reference
 - ❌ Neuromorphic researchers cannot onboard
 - ❌ Post-quantum migration path unclear
 
 **With Examples:**
+
 - ✅ Copy-paste ready production code
 - ✅ Visual demonstrations in HoloScript Playground IDE
 - ✅ Training data for Brittney v6 (autonomous ecosystem generation)
@@ -252,6 +272,7 @@ find examples -name "*.holo" | wc -l
 ## 📝 Next Steps
 
 1. **Create examples directories:**
+
    ```bash
    mkdir -p examples/{autonomous-ecosystems,enterprise,cryptography,neuromorphic,cross-reality}
    ```

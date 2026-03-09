@@ -22,11 +22,7 @@ import type {
   Vec3,
 } from '@holoscript/holo-vm';
 
-import type {
-  UAALVirtualMachine,
-  UAALOperand,
-  VMProxy,
-} from '@holoscript/uaal';
+import type { UAALVirtualMachine, UAALOperand, VMProxy } from '@holoscript/uaal';
 
 import { UAALOpCode, UAALCompiler } from '@holoscript/uaal';
 
@@ -113,7 +109,8 @@ export function applyActions(world: ECSWorld, actions: AgentAction[]): number[] 
       case 'spawn': {
         const id = world.spawn(action.name);
         if (action.position) {
-          world.setComponent(id, 0x01, { // ComponentType.Transform
+          world.setComponent(id, 0x01, {
+            // ComponentType.Transform
             position: action.position,
             rotation: { x: 0, y: 0, z: 0, w: 1 },
             scale: { x: 1, y: 1, z: 1 },
@@ -196,11 +193,7 @@ export class SpatialCognitiveAgent {
   private lastSnapshot: SceneSnapshot | null = null;
   private tickCount: number = 0;
 
-  constructor(
-    world: ECSWorld,
-    cognitiveVM: UAALVirtualMachine,
-    config: BridgeConfig = {},
-  ) {
+  constructor(world: ECSWorld, cognitiveVM: UAALVirtualMachine, config: BridgeConfig = {}) {
     this.world = world;
     this.cognitiveVM = cognitiveVM;
     this.compiler = new UAALCompiler();
@@ -221,7 +214,11 @@ export class SpatialCognitiveAgent {
     this.cognitiveVM.registerHandler(UAALOpCode.EXECUTE, async (proxy) => {
       const actions = this.pendingActions.splice(0, this.config.maxActionsPerTick);
       const spawned = this.mutate(actions);
-      proxy.push({ executed: true, actionsApplied: actions.length, spawnedIds: spawned } as unknown as UAALOperand);
+      proxy.push({
+        executed: true,
+        actionsApplied: actions.length,
+        spawnedIds: spawned,
+      } as unknown as UAALOperand);
     });
 
     // Register HoloScript integration opcodes
@@ -229,41 +226,58 @@ export class SpatialCognitiveAgent {
       proxy.push(this.perceive() as unknown as UAALOperand);
     });
 
-    this.cognitiveVM.registerHandler(UAALOpCode.OP_SPATIAL_ANCHOR, async (proxy: VMProxy, operands?: UAALOperand[]) => {
-      const name = (operands[0] as string) ?? 'anchor';
-      const x = (operands[1] as number) ?? 0;
-      const y = (operands[2] as number) ?? 0;
-      const z = (operands[3] as number) ?? 0;
-      const id = this.world.spawn(name);
-      this.world.setComponent(id, 0x01, { // ComponentType.Transform
-        position: { x, y, z },
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
-      });
-      proxy.push(id);
-    });
+    this.cognitiveVM.registerHandler(
+      UAALOpCode.OP_SPATIAL_ANCHOR,
+      async (proxy: VMProxy, operands?: UAALOperand[]) => {
+        const name = (operands[0] as string) ?? 'anchor';
+        const x = (operands[1] as number) ?? 0;
+        const y = (operands[2] as number) ?? 0;
+        const z = (operands[3] as number) ?? 0;
+        const id = this.world.spawn(name);
+        this.world.setComponent(id, 0x01, {
+          // ComponentType.Transform
+          position: { x, y, z },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          scale: { x: 1, y: 1, z: 1 },
+        });
+        proxy.push(id);
+      }
+    );
 
-    this.cognitiveVM.registerHandler(UAALOpCode.OP_RENDER_HOLOGRAM, async (proxy: VMProxy, operands?: UAALOperand[]) => {
-      const entityId = (operands?.[0] as number) ?? 0;
-      const geoType = (operands?.[1] as number) ?? 0;
-      const color = (operands?.[2] as number) ?? 0x00ffff;
-      this.world.setComponent(entityId, 0x02, { type: geoType, params: {} }); // ComponentType.Geometry
-      this.world.setComponent(entityId, 0x03, { color, metalness: 0.3, roughness: 0.4, emissive: 0, opacity: 0.8 }); // ComponentType.Material
-      proxy.push({ rendered: true, entityId });
-    });
+    this.cognitiveVM.registerHandler(
+      UAALOpCode.OP_RENDER_HOLOGRAM,
+      async (proxy: VMProxy, operands?: UAALOperand[]) => {
+        const entityId = (operands?.[0] as number) ?? 0;
+        const geoType = (operands?.[1] as number) ?? 0;
+        const color = (operands?.[2] as number) ?? 0x00ffff;
+        this.world.setComponent(entityId, 0x02, { type: geoType, params: {} }); // ComponentType.Geometry
+        this.world.setComponent(entityId, 0x03, {
+          color,
+          metalness: 0.3,
+          roughness: 0.4,
+          emissive: 0,
+          opacity: 0.8,
+        }); // ComponentType.Material
+        proxy.push({ rendered: true, entityId });
+      }
+    );
 
-    this.cognitiveVM.registerHandler(UAALOpCode.OP_VR_TELEPORT, async (proxy: VMProxy, operands?: UAALOperand[]) => {
-      const entityId = (operands?.[0] as number) ?? 0;
-      const x = (operands?.[1] as number) ?? 0;
-      const y = (operands?.[2] as number) ?? 0;
-      const z = (operands?.[3] as number) ?? 0;
-      this.world.setComponent(entityId, 0x01, { // ComponentType.Transform
-        position: { x, y, z },
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
-      });
-      proxy.push({ teleported: true, entityId, position: { x, y, z } });
-    });
+    this.cognitiveVM.registerHandler(
+      UAALOpCode.OP_VR_TELEPORT,
+      async (proxy: VMProxy, operands?: UAALOperand[]) => {
+        const entityId = (operands?.[0] as number) ?? 0;
+        const x = (operands?.[1] as number) ?? 0;
+        const y = (operands?.[2] as number) ?? 0;
+        const z = (operands?.[3] as number) ?? 0;
+        this.world.setComponent(entityId, 0x01, {
+          // ComponentType.Transform
+          position: { x, y, z },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          scale: { x: 1, y: 1, z: 1 },
+        });
+        proxy.push({ teleported: true, entityId, position: { x, y, z } });
+      }
+    );
 
     if (this.config.enableLogging) {
       console.log(`[vm-bridge] Agent initialized (cognitive: ${this.config.cognitiveHz}Hz)`);
@@ -349,7 +363,13 @@ export class SpatialCognitiveAgent {
 
   // ── Accessors ─────────────────────────────────────────────────────────────
 
-  getLastSnapshot(): SceneSnapshot | null { return this.lastSnapshot; }
-  getPendingActionCount(): number { return this.pendingActions.length; }
-  getTickCount(): number { return this.tickCount; }
+  getLastSnapshot(): SceneSnapshot | null {
+    return this.lastSnapshot;
+  }
+  getPendingActionCount(): number {
+    return this.pendingActions.length;
+  }
+  getTickCount(): number {
+    return this.tickCount;
+  }
 }

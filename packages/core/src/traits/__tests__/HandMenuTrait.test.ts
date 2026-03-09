@@ -5,7 +5,9 @@ import { createMockNode, createMockContext, attachTrait, updateTrait } from './t
 vi.mock('../../animation/SpringAnimator', () => ({
   SpringAnimator: class MockSpringAnimator {
     value = 0;
-    constructor(initial: number = 0) { this.value = initial; }
+    constructor(initial: number = 0) {
+      this.value = initial;
+    }
     setTarget = vi.fn();
     update = vi.fn().mockReturnValue(0.5);
   },

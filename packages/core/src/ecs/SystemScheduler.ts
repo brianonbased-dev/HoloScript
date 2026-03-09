@@ -18,9 +18,9 @@ export interface SystemDef {
   phase: SystemPhase;
   execute: (dt: number) => void;
   enabled: boolean;
-  priority: number;          // Lower = runs first
-  dependencies: string[];    // System names that must run before this
-  group: string;             // Parallel execution group
+  priority: number; // Lower = runs first
+  dependencies: string[]; // System names that must run before this
+  group: string; // Parallel execution group
   lastExecutionTime: number;
   executionCount: number;
 }
@@ -50,11 +50,24 @@ export class SystemScheduler {
   // System Registration
   // ---------------------------------------------------------------------------
 
-  register(name: string, execute: (dt: number) => void, phase: SystemPhase = 'update',
-           priority = 0, dependencies: string[] = [], group = 'default'): void {
+  register(
+    name: string,
+    execute: (dt: number) => void,
+    phase: SystemPhase = 'update',
+    priority = 0,
+    dependencies: string[] = [],
+    group = 'default'
+  ): void {
     this.systems.set(name, {
-      name, phase, execute, enabled: true, priority,
-      dependencies, group, lastExecutionTime: 0, executionCount: 0,
+      name,
+      phase,
+      execute,
+      enabled: true,
+      priority,
+      dependencies,
+      group,
+      lastExecutionTime: 0,
+      executionCount: 0,
     });
     this.dirty = true;
   }
@@ -116,7 +129,8 @@ export class SystemScheduler {
     for (const phase of PHASE_ORDER) {
       const phaseSystems = byPhase.get(phase) ?? [];
       phaseSystems.sort((a, b) => {
-        const sa = this.systems.get(a)!, sb = this.systems.get(b)!;
+        const sa = this.systems.get(a)!,
+          sb = this.systems.get(b)!;
         return sa.priority - sb.priority;
       });
       for (const name of phaseSystems) visit(name);
@@ -174,16 +188,31 @@ export class SystemScheduler {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getSystem(name: string): SystemDef | undefined { return this.systems.get(name); }
-  getSystemCount(): number { return this.systems.size; }
-  get systemCount(): number { return this.systems.size; }
-  getExecutionOrder(): string[] { this.resolveExecutionOrder(); return [...this.executionOrder]; }
-  getPhaseStats(): Map<SystemPhase, PhaseStats> { return new Map(this.phaseStats); }
-
-  getSystemsByPhase(phase: SystemPhase): SystemDef[] {
-    return [...this.systems.values()].filter(s => s.phase === phase);
+  getSystem(name: string): SystemDef | undefined {
+    return this.systems.get(name);
+  }
+  getSystemCount(): number {
+    return this.systems.size;
+  }
+  get systemCount(): number {
+    return this.systems.size;
+  }
+  getExecutionOrder(): string[] {
+    this.resolveExecutionOrder();
+    return [...this.executionOrder];
+  }
+  getPhaseStats(): Map<SystemPhase, PhaseStats> {
+    return new Map(this.phaseStats);
   }
 
-  setFixedTimeStep(dt: number): void { this.fixedTimeStep = dt; }
-  getFixedTimeStep(): number { return this.fixedTimeStep; }
+  getSystemsByPhase(phase: SystemPhase): SystemDef[] {
+    return [...this.systems.values()].filter((s) => s.phase === phase);
+  }
+
+  setFixedTimeStep(dt: number): void {
+    this.fixedTimeStep = dt;
+  }
+  getFixedTimeStep(): number {
+    return this.fixedTimeStep;
+  }
 }

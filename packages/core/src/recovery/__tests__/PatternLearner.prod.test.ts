@@ -24,7 +24,11 @@ describe('PatternLearner — Production Tests', () => {
 
   describe('recordFailure()', () => {
     it('stores failures up to windowSize', () => {
-      const tiny = new PatternLearner({ windowSize: 3, frequencyThreshold: 1, timeWindowMs: 3600000 });
+      const tiny = new PatternLearner({
+        windowSize: 3,
+        frequencyThreshold: 1,
+        timeWindowMs: 3600000,
+      });
       for (let i = 0; i < 5; i++) tiny.recordFailure(makeFailure());
       // internal history trimmed — detectPatterns still works
       expect(() => tiny.detectPatterns()).not.toThrow();
@@ -59,8 +63,8 @@ describe('PatternLearner — Production Tests', () => {
       for (let i = 0; i < 3; i++) pl.recordFailure(makeFailure({ errorType: 'api-rate-limit' }));
       const patterns = pl.detectPatterns();
       expect(patterns.length).toBe(2);
-      expect(patterns.map(p => p.errorType)).toContain('network-timeout');
-      expect(patterns.map(p => p.errorType)).toContain('api-rate-limit');
+      expect(patterns.map((p) => p.errorType)).toContain('network-timeout');
+      expect(patterns.map((p) => p.errorType)).toContain('api-rate-limit');
     });
 
     it('sorts by frequency descending', () => {
@@ -125,7 +129,7 @@ describe('PatternLearner — Production Tests', () => {
     it('generates suggested actions for high-frequency patterns', () => {
       for (let i = 0; i < 6; i++) pl.recordFailure(makeFailure({ errorType: 'network-timeout' }));
       const analysis = pl.analyze();
-      expect(analysis.suggestedActions.some(a => a.includes('network-timeout'))).toBe(true);
+      expect(analysis.suggestedActions.some((a) => a.includes('network-timeout'))).toBe(true);
     });
   });
 

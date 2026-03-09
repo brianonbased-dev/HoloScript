@@ -13,10 +13,14 @@ import { HoloScriptPreview } from '../src/components/HoloScriptPreview';
 // Mock Three.js -- jsdom does not support WebGL
 vi.mock('three', () => {
   const Color = vi.fn().mockImplementation(function (this: any, _c?: number) {
-    this.r = 0; this.g = 0; this.b = 0;
+    this.r = 0;
+    this.g = 0;
+    this.b = 0;
   });
   const Vec3 = vi.fn().mockImplementation(function (this: any) {
-    this.x = 0; this.y = 0; this.z = 0;
+    this.x = 0;
+    this.y = 0;
+    this.z = 0;
     this.set = vi.fn().mockReturnThis();
   });
   const GeometryMock = vi.fn().mockImplementation(function (this: any) {
@@ -168,11 +172,7 @@ describe('HoloScriptPreview', () => {
   it('should render the container with data-testid', async () => {
     const THREE = await import('three');
     render(
-      <HoloScriptPreview
-        code={sampleCode}
-        threeModule={THREE}
-        orbitControls={MockOrbitControls}
-      />
+      <HoloScriptPreview code={sampleCode} threeModule={THREE} orbitControls={MockOrbitControls} />
     );
 
     const container = screen.getByTestId('holoscript-preview');
@@ -199,11 +199,7 @@ describe('HoloScriptPreview', () => {
   it('should show toolbar buttons by default', async () => {
     const THREE = await import('three');
     render(
-      <HoloScriptPreview
-        code={sampleCode}
-        threeModule={THREE}
-        orbitControls={MockOrbitControls}
-      />
+      <HoloScriptPreview code={sampleCode} threeModule={THREE} orbitControls={MockOrbitControls} />
     );
 
     expect(screen.getByLabelText('Reset camera')).toBeTruthy();
@@ -333,11 +329,7 @@ describe('HoloScriptPreview', () => {
   it('should have proper ARIA attributes', async () => {
     const THREE = await import('three');
     render(
-      <HoloScriptPreview
-        code={sampleCode}
-        threeModule={THREE}
-        orbitControls={MockOrbitControls}
-      />
+      <HoloScriptPreview code={sampleCode} threeModule={THREE} orbitControls={MockOrbitControls} />
     );
 
     const container = screen.getByTestId('holoscript-preview');

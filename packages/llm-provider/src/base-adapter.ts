@@ -77,10 +77,7 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
 
   protected abstract getDefaultModel(): string;
 
-  abstract complete(
-    request: LLMCompletionRequest,
-    model?: string
-  ): Promise<LLMCompletionResponse>;
+  abstract complete(request: LLMCompletionRequest, model?: string): Promise<LLMCompletionResponse>;
 
   /**
    * Generate HoloScript code from a natural language description.
@@ -106,10 +103,7 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
     let lastError: Error | undefined;
     for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
       try {
-        const response = await this.complete(
-          completionRequest,
-          this.defaultHoloScriptModel
-        );
+        const response = await this.complete(completionRequest, this.defaultHoloScriptModel);
 
         const code = this.extractHoloScriptCode(response.content);
         const validation = this.validateHoloScriptOutput(code);
@@ -141,7 +135,10 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
       }
     }
 
-    throw lastError ?? new Error(`Failed to generate HoloScript after ${this.config.maxRetries} attempts`);
+    throw (
+      lastError ??
+      new Error(`Failed to generate HoloScript after ${this.config.maxRetries} attempts`)
+    );
   }
 
   /**
@@ -219,7 +216,9 @@ Return ONLY the HoloScript code, no explanations or markdown.`;
     }
 
     // Check for at least one object
-    const objectMatch = code.match(/\b(cube|sphere|plane|cylinder|cone|torus|mesh|text|light|camera|scene)\s*\{/);
+    const objectMatch = code.match(
+      /\b(cube|sphere|plane|cylinder|cone|torus|mesh|text|light|camera|scene)\s*\{/
+    );
     if (!objectMatch) {
       errors.push('No recognized HoloScript object types found');
     }

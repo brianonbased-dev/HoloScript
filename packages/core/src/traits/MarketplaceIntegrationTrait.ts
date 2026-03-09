@@ -24,7 +24,14 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 type PublishStatus = 'draft' | 'pending_review' | 'published' | 'rejected' | 'unpublished';
-type TraitCategory = 'interaction' | 'visual' | 'audio' | 'physics' | 'ai' | 'networking' | 'utility';
+type TraitCategory =
+  | 'interaction'
+  | 'visual'
+  | 'audio'
+  | 'physics'
+  | 'ai'
+  | 'networking'
+  | 'utility';
 type PricingModel = 'free' | 'one_time' | 'subscription' | 'pay_what_you_want';
 
 interface TraitPackage {
@@ -170,7 +177,9 @@ export const marketplaceIntegrationHandler: TraitHandler<MarketplaceIntegrationC
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__marketplaceIntegrationState as MarketplaceIntegrationState | undefined;
+    const state = (node as any).__marketplaceIntegrationState as
+      | MarketplaceIntegrationState
+      | undefined;
     if (!state) return;
 
     // Check for auto-updates on installed traits
@@ -184,7 +193,9 @@ export const marketplaceIntegrationHandler: TraitHandler<MarketplaceIntegrationC
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__marketplaceIntegrationState as MarketplaceIntegrationState | undefined;
+    const state = (node as any).__marketplaceIntegrationState as
+      | MarketplaceIntegrationState
+      | undefined;
     if (!state) return;
 
     // -------------------------------------------------------------------------

@@ -181,7 +181,9 @@ export class AIGlassesCompiler extends CompilerBase {
     this.emit('import androidx.xr.projected.ExperimentalProjectedApi');
     this.emit('import androidx.xr.projected.ProjectedContext');
     this.emit('import androidx.xr.projected.ProjectedDeviceController');
-    this.emit('import androidx.xr.projected.ProjectedDeviceController.Companion.CAPABILITY_VISUAL_UI');
+    this.emit(
+      'import androidx.xr.projected.ProjectedDeviceController.Companion.CAPABILITY_VISUAL_UI'
+    );
     this.emit('import androidx.xr.projected.ProjectedDisplayController');
     this.emit('');
 
@@ -270,7 +272,9 @@ export class AIGlassesCompiler extends CompilerBase {
     this.emit('lifecycleScope.launch {');
     this.indent();
     this.emit(`val projectedDeviceController = ProjectedDeviceController.create(this@${actName})`);
-    this.emit('isVisualUiSupported = projectedDeviceController.capabilities.contains(CAPABILITY_VISUAL_UI)');
+    this.emit(
+      'isVisualUiSupported = projectedDeviceController.capabilities.contains(CAPABILITY_VISUAL_UI)'
+    );
     this.emit('');
     this.emit(`val controller = ProjectedDisplayController.create(this@${actName})`);
     this.emit('displayController = controller');
@@ -285,7 +289,9 @@ export class AIGlassesCompiler extends CompilerBase {
       this.emit('.setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)');
       this.emit('.setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()');
       this.dedent();
-      this.emit('soundPool = SoundPool.Builder().setMaxStreams(8).setAudioAttributes(audioAttrs).build()');
+      this.emit(
+        'soundPool = SoundPool.Builder().setMaxStreams(8).setAudioAttributes(audioAttrs).build()'
+      );
       this.emit('');
     }
 
@@ -335,7 +341,9 @@ export class AIGlassesCompiler extends CompilerBase {
     this.emit('speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)');
     this.emit('val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {');
     this.indent();
-    this.emit('putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)');
+    this.emit(
+      'putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)'
+    );
     this.emit('putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)');
     this.dedent();
     this.emit('}');
@@ -542,7 +550,9 @@ export class AIGlassesCompiler extends CompilerBase {
 
     if (text) {
       const color = this.findProp(obj, 'color');
-      this.emit(`Text("${text}"${color ? `, color = ${this.toKotlinColor(color as string)}` : ''})`);
+      this.emit(
+        `Text("${text}"${color ? `, color = ${this.toKotlinColor(color as string)}` : ''})`
+      );
     } else if (modelSrc) {
       this.emit('Card(');
       this.indent();
@@ -582,9 +592,10 @@ export class AIGlassesCompiler extends CompilerBase {
     }
   }
 
-  private emitGlimmerUIElement(
-    el: { name: string; properties: Array<{ key: string; value: any }> }
-  ): void {
+  private emitGlimmerUIElement(el: {
+    name: string;
+    properties: Array<{ key: string; value: any }>;
+  }): void {
     const vn = this.sanitizeName(el.name);
     const text = el.properties.find((p) => p.key === 'text')?.value;
     const label = el.properties.find((p) => p.key === 'label')?.value;
@@ -594,7 +605,9 @@ export class AIGlassesCompiler extends CompilerBase {
       this.emit(`Button(onClick = { /* ${vn} */ }) { Text("${label}") }`);
     } else if (text) {
       const color = el.properties.find((p) => p.key === 'color')?.value;
-      this.emit(`Text("${text}"${color ? `, color = ${this.toKotlinColor(color as string)}` : ''})`);
+      this.emit(
+        `Text("${text}"${color ? `, color = ${this.toKotlinColor(color as string)}` : ''})`
+      );
     } else {
       this.emit(`Card(title = { Text("${el.name}") }) {`);
       this.indent();
@@ -862,10 +875,13 @@ ${cameraDeps}
     if (composition.logic) return true;
     // Check objects for event traits
     for (const obj of composition.objects ?? []) {
-      if (obj.traits?.some((t) => {
-        const name = typeof t === 'string' ? t : t.name;
-        return name === 'glasses_voice' || name === 'clickable';
-      })) return true;
+      if (
+        obj.traits?.some((t) => {
+          const name = typeof t === 'string' ? t : t.name;
+          return name === 'glasses_voice' || name === 'clickable';
+        })
+      )
+        return true;
     }
     return false;
   }

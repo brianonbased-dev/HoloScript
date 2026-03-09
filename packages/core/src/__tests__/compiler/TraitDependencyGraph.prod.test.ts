@@ -8,9 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  TraitDependencyGraph,
-} from '../../compiler/TraitDependencyGraph';
+import { TraitDependencyGraph } from '../../compiler/TraitDependencyGraph';
 
 // ── Fixture helpers ──────────────────────────────────────────────────────────
 
@@ -22,27 +20,40 @@ function objInfo(objectName: string, sourceId: string, traitNames: string[]) {
   return {
     objectName,
     sourceId,
-    traits: traitNames.map(name => ({ name, config: {}, configHash: 'h' + name })),
+    traits: traitNames.map((name) => ({ name, config: {}, configHash: 'h' + name })),
   };
 }
 
 // ── hashConfig (via registerObject — indirect) ────────────────────────────────
 
 describe('TraitDependencyGraph — hashConfig', () => {
-
   it('same config produces same hash', () => {
     const g = makeTG();
-    g.registerObject({ objectName: 'A', sourceId: 's1', traits: [{ name: 'grabbable', config: { force: 1 }, configHash: '' }] });
-    g.registerObject({ objectName: 'B', sourceId: 's1', traits: [{ name: 'grabbable', config: { force: 1 }, configHash: '' }] });
+    g.registerObject({
+      objectName: 'A',
+      sourceId: 's1',
+      traits: [{ name: 'grabbable', config: { force: 1 }, configHash: '' }],
+    });
+    g.registerObject({
+      objectName: 'B',
+      sourceId: 's1',
+      traits: [{ name: 'grabbable', config: { force: 1 }, configHash: '' }],
+    });
     // Both objects A and B registered — no throw means hashConfig ran
     expect(g.getObjectsUsingTrait('grabbable').size).toBe(2);
   });
 
   it('different configs produce different hashes when used in detectTraitChanges', () => {
     const g = makeTG();
-    g.registerObject({ objectName: 'Box', sourceId: 's', traits: [{ name: 'physics', config: { mass: 1 }, configHash: '' }] });
+    g.registerObject({
+      objectName: 'Box',
+      sourceId: 's',
+      traits: [{ name: 'physics', config: { mass: 1 }, configHash: '' }],
+    });
     g.saveSnapshot();
-    const changes = g.detectTraitChanges('Box', [{ name: 'physics', config: { mass: 99 }, configHash: '' }]);
+    const changes = g.detectTraitChanges('Box', [
+      { name: 'physics', config: { mass: 99 }, configHash: '' },
+    ]);
     expect(changes.length).toBeGreaterThan(0);
     expect(changes[0].changeType).toBe('config_changed');
   });
@@ -51,7 +62,6 @@ describe('TraitDependencyGraph — hashConfig', () => {
 // ── registerTrait ─────────────────────────────────────────────────────────────
 
 describe('TraitDependencyGraph — registerTrait', () => {
-
   it('registers a trait with no dependencies', () => {
     const g = makeTG();
     g.registerTrait({ name: 'glowing', requires: [], conflicts: [] });
@@ -88,7 +98,6 @@ describe('TraitDependencyGraph — registerTrait', () => {
 // ── registerBuiltinTraits ─────────────────────────────────────────────────────
 
 describe('TraitDependencyGraph — registerBuiltinTraits', () => {
-
   it('registerBuiltinTraits does not throw', () => {
     const g = makeTG();
     expect(() => g.registerBuiltinTraits()).not.toThrow();
@@ -105,7 +114,6 @@ describe('TraitDependencyGraph — registerBuiltinTraits', () => {
 // ── registerObject + getObjectsUsingTrait ─────────────────────────────────────
 
 describe('TraitDependencyGraph — registerObject', () => {
-
   it('adds object to the trait→objects index', () => {
     const g = makeTG();
     g.registerObject(objInfo('Cube', 'scene.hs', ['physics', 'grabbable']));
@@ -139,7 +147,6 @@ describe('TraitDependencyGraph — registerObject', () => {
 // ── unregisterObject ──────────────────────────────────────────────────────────
 
 describe('TraitDependencyGraph — unregisterObject', () => {
-
   it('removes object from trait index', () => {
     const g = makeTG();
     g.registerObject(objInfo('TempObj', 's', ['physics']));
@@ -156,7 +163,6 @@ describe('TraitDependencyGraph — unregisterObject', () => {
 // ── import edges ──────────────────────────────────────────────────────────────
 
 describe('TraitDependencyGraph — import edges', () => {
-
   it('registerImport creates a forward import edge', () => {
     const g = makeTG();
     g.registerImport('a.hs', 'b.hs');
@@ -205,7 +211,6 @@ describe('TraitDependencyGraph — import edges', () => {
 // ── getFilesAffectedByChange (BFS transitive) ─────────────────────────────────
 
 describe('TraitDependencyGraph — getFilesAffectedByChange', () => {
-
   it('includes the changed file itself', () => {
     const g = makeTG();
     const affected = g.getFilesAffectedByChange(['a.hs']);
@@ -261,12 +266,13 @@ describe('TraitDependencyGraph — getFilesAffectedByChange', () => {
 // ── saveSnapshot + detectTraitChanges ─────────────────────────────────────────
 
 describe('TraitDependencyGraph — detectTraitChanges', () => {
-
   it('detecting when no snapshot exists returns all new traits as added', () => {
     // When no snapshot exists, oldInfo is undefined so all provided traits appear as 'added'
     const g = makeTG();
-    const changes = g.detectTraitChanges('Box', [{ name: 'physics', config: {}, configHash: 'h1' }]);
-    const added = changes.filter(c => c.changeType === 'added');
+    const changes = g.detectTraitChanges('Box', [
+      { name: 'physics', config: {}, configHash: 'h1' },
+    ]);
+    const added = changes.filter((c) => c.changeType === 'added');
     expect(added.length).toBe(1);
     expect(added[0].traitName).toBe('physics');
   });
@@ -279,7 +285,7 @@ describe('TraitDependencyGraph — detectTraitChanges', () => {
       { name: 'physics', config: {}, configHash: '' },
       { name: 'grabbable', config: {}, configHash: '' },
     ]);
-    const added = changes.filter(c => c.changeType === 'added');
+    const added = changes.filter((c) => c.changeType === 'added');
     expect(added.length).toBe(1);
     expect(added[0].traitName).toBe('grabbable');
   });
@@ -289,24 +295,29 @@ describe('TraitDependencyGraph — detectTraitChanges', () => {
     g.registerObject(objInfo('Box', 's', ['physics', 'grabbable']));
     g.saveSnapshot();
     const changes = g.detectTraitChanges('Box', [{ name: 'physics', config: {}, configHash: '' }]);
-    const removed = changes.filter(c => c.changeType === 'removed');
+    const removed = changes.filter((c) => c.changeType === 'removed');
     expect(removed.length).toBe(1);
     expect(removed[0].traitName).toBe('grabbable');
   });
 
   it('detects no change when traits are identical', () => {
     const g = makeTG();
-    g.registerObject({ objectName: 'Box', sourceId: 's', traits: [{ name: 'physics', config: { mass: 1 }, configHash: 'x' }] });
+    g.registerObject({
+      objectName: 'Box',
+      sourceId: 's',
+      traits: [{ name: 'physics', config: { mass: 1 }, configHash: 'x' }],
+    });
     g.saveSnapshot();
-    const changes = g.detectTraitChanges('Box', [{ name: 'physics', config: { mass: 1 }, configHash: 'x' }]);
-    expect(changes.filter(c => c.changeType !== 'config_changed')).toHaveLength(0);
+    const changes = g.detectTraitChanges('Box', [
+      { name: 'physics', config: { mass: 1 }, configHash: 'x' },
+    ]);
+    expect(changes.filter((c) => c.changeType !== 'config_changed')).toHaveLength(0);
   });
 });
 
 // ── calculateAffectedSet ──────────────────────────────────────────────────────
 
 describe('TraitDependencyGraph — calculateAffectedSet', () => {
-
   it('added trait affects objects using it', () => {
     const g = makeTG();
     g.registerObject(objInfo('Cube', 's', ['physics']));
@@ -328,7 +339,6 @@ describe('TraitDependencyGraph — calculateAffectedSet', () => {
 // ── conflict detection via registerTrait ─────────────────────────────────────
 
 describe('TraitDependencyGraph — conflict registration', () => {
-
   it('registering conflicting traits still registers both (stats reflect both)', () => {
     const g = makeTG();
     g.registerTrait({ name: 'static', requires: [], conflicts: ['physics'] });
@@ -349,7 +359,6 @@ describe('TraitDependencyGraph — conflict registration', () => {
 // ── getStats ──────────────────────────────────────────────────────────────────
 
 describe('TraitDependencyGraph — getStats', () => {
-
   it('initial stats are all zeros', () => {
     const g = makeTG();
     const s = g.getStats();
@@ -378,7 +387,6 @@ describe('TraitDependencyGraph — getStats', () => {
 // ── clear ─────────────────────────────────────────────────────────────────────
 
 describe('TraitDependencyGraph — clear', () => {
-
   it('clear resets all internal state', () => {
     const g = makeTG();
     g.registerObject(objInfo('Cube', 's', ['physics']));

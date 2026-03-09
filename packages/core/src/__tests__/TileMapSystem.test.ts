@@ -44,7 +44,8 @@ describe('TileMap', () => {
   it('getLayerCount tracks layers', () => {
     const tm = new TileMap(10, 10, 16);
     expect(tm.getLayerCount()).toBe(0);
-    tm.addLayer('a'); tm.addLayer('b');
+    tm.addLayer('a');
+    tm.addLayer('b');
     expect(tm.getLayerCount()).toBe(2);
   });
 
@@ -143,7 +144,7 @@ describe('TileMap', () => {
     }
 
     // Rule: center tile (1,1) with all 8 neighbors = 0xFF → becomes tile 99
-    tm.addAutoTileRule({ tileId: 1, neighbors: 0xFF, resultId: 99 });
+    tm.addAutoTileRule({ tileId: 1, neighbors: 0xff, resultId: 99 });
     const count = tm.applyAutoTile('ground');
     expect(count).toBeGreaterThanOrEqual(1);
     // The center tile should have been replaced

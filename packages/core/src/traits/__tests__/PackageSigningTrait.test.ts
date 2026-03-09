@@ -60,7 +60,9 @@ describe('PackageSigningTrait', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       PackageSigningTrait.validate(config);
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Timestamps recommended to prevent replay attacks'));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Timestamps recommended to prevent replay attacks')
+      );
       consoleSpy.mockRestore();
     });
 
@@ -72,7 +74,9 @@ describe('PackageSigningTrait', () => {
         // Missing code_signing_certificate
       };
 
-      expect(() => PackageSigningTrait.validate(config)).toThrow('Chain of trust requires code signing certificate');
+      expect(() => PackageSigningTrait.validate(config)).toThrow(
+        'Chain of trust requires code signing certificate'
+      );
     });
   });
 

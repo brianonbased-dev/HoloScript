@@ -99,7 +99,7 @@ class MockCommandEncoder {
     sourceOffset: number,
     destination: MockGPUBuffer,
     destOffset: number,
-    size: number,
+    size: number
   ): void {
     const srcData = new Uint8Array(source._getData());
     const copied = srcData.slice(sourceOffset, sourceOffset + size);

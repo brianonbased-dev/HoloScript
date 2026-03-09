@@ -7,13 +7,15 @@ import { VehicleSystem, createDefaultCar, createTruck } from '../physics/Vehicle
 
 describe('VehicleSystem', () => {
   let sys: VehicleSystem;
-  beforeEach(() => { sys = new VehicleSystem(); });
+  beforeEach(() => {
+    sys = new VehicleSystem();
+  });
 
   it('createDefaultCar makes 4-wheel RWD', () => {
     const def = createDefaultCar('car1');
     expect(def.wheels).toHaveLength(4);
-    expect(def.wheels.filter(w => w.isDriving)).toHaveLength(2);
-    expect(def.wheels.filter(w => w.isSteering)).toHaveLength(2);
+    expect(def.wheels.filter((w) => w.isDriving)).toHaveLength(2);
+    expect(def.wheels.filter((w) => w.isSteering)).toHaveLength(2);
   });
 
   it('createTruck makes 6-wheel', () => {
@@ -65,7 +67,9 @@ describe('VehicleSystem', () => {
   it('setSteering clamps to max angle', () => {
     sys.createVehicle(createDefaultCar('car1'), { x: 0, y: 1, z: 0 });
     sys.setSteering('car1', 5.0); // way past max
-    expect(sys.getVehicle('car1')!.steerAngle).toBeLessThanOrEqual(createDefaultCar('x').maxSteerAngle);
+    expect(sys.getVehicle('car1')!.steerAngle).toBeLessThanOrEqual(
+      createDefaultCar('x').maxSteerAngle
+    );
   });
 
   it('vehicle falls under gravity when airborne', () => {
@@ -79,7 +83,7 @@ describe('VehicleSystem', () => {
     sys.setThrottle('car1', 1.0);
     for (let i = 0; i < 30; i++) sys.update('car1', 1 / 60);
     const wheels = sys.getVehicle('car1')!.wheels;
-    expect(wheels.some(w => w.rotation > 0)).toBe(true);
+    expect(wheels.some((w) => w.rotation > 0)).toBe(true);
   });
 
   it('update returns null for unknown vehicle', () => {

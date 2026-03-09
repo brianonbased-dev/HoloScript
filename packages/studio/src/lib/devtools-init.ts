@@ -1,6 +1,6 @@
 /**
  * Browser DevTools Initialization
- * 
+ *
  * Exposes development utilities to window for browser testing
  */
 
@@ -11,26 +11,28 @@ export function initializeDevTools() {
   const tools = {
     checkStatus: () => {
       console.log('🔍 HoloScript Studio Status Check\n');
-      
+
       // Check for CompilerBridge
       const hasBridge = !!(window as any).CompilerBridge;
       console.log(`  CompilerBridge available: ${hasBridge ? '✅' : '❌'}`);
-      
+
       // Check for @holoscript packages
       const hasCore = !!(window as any).__HOLOSCRIPT_CORE__;
       console.log(`  @holoscript/core available: ${hasCore ? '✅' : '❌'}`);
-      
+
       // Check for other tools
-      const hasTools = Object.keys(window as any).filter(k => k.includes('compiler') || k.includes('holoscript')).length > 0;
+      const hasTools =
+        Object.keys(window as any).filter((k) => k.includes('compiler') || k.includes('holoscript'))
+          .length > 0;
       console.log(`  Other HoloScript tools: ${hasTools ? '✅' : '⚠️'}`);
-      
+
       return { hasBridge, hasCore, hasTools };
     },
 
     // Test if we can access any compiler
     testCompile: async (code: string = 'composition "T" { object "O" { geometry: "sphere" } }') => {
       console.log('🧪 Testing compilation...\n');
-      
+
       // Try CompilerBridge
       if ((window as any).CompilerBridge) {
         try {
@@ -44,7 +46,7 @@ export function initializeDevTools() {
           console.error(`  ❌ CompilerBridge failed:`, (e as any).message);
         }
       }
-      
+
       console.log('  ℹ️  No compiler available - try loading Studio components first');
       return { success: false, backend: 'none' };
     },
@@ -54,10 +56,12 @@ export function initializeDevTools() {
       const commands = [
         'window.holoscriptTools.checkStatus()',
         'window.holoscriptTools.testCompile()',
-        'window.holoscriptTools.help()'
+        'window.holoscriptTools.help()',
       ];
-      console.log('📚 HoloScript DevTools Commands:\n' + commands.map(c => `  • ${c}`).join('\n') + '\n');
-    }
+      console.log(
+        '📚 HoloScript DevTools Commands:\n' + commands.map((c) => `  • ${c}`).join('\n') + '\n'
+      );
+    },
   };
 
   // Attach to window

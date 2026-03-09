@@ -11,7 +11,7 @@ function makeCtx() {
   return {
     emit: (type: string, payload: unknown) => events.push({ type, payload }),
     events,
-    of: (type: string) => events.filter(e => e.type === type),
+    of: (type: string) => events.filter((e) => e.type === type),
   };
 }
 
@@ -69,7 +69,9 @@ describe('SkillRegistryTrait — install', () => {
     skillRegistryHandler.onEvent(node, config, ctx, {
       type: 'skill_install',
       payload: {
-        id: 'custom_greet', name: 'Greeter', description: 'Says hello',
+        id: 'custom_greet',
+        name: 'Greeter',
+        description: 'Says hello',
         inputs: [{ name: 'name', type: 'string', required: true, description: 'Name' }],
         outputs: [],
         execute: async (inputs: any) => ({ greeting: `Hello, ${inputs.name}!` }),
@@ -99,7 +101,9 @@ describe('SkillRegistryTrait — install', () => {
       });
     }
     expect(node.__skillRegistryState.skills.size).toBeLessThanOrEqual(3);
-    expect(ctx.of('skill_failed').some((e: any) => e.payload.error?.includes('max_skills'))).toBe(true);
+    expect(ctx.of('skill_failed').some((e: any) => e.payload.error?.includes('max_skills'))).toBe(
+      true
+    );
   });
 });
 
@@ -112,14 +116,20 @@ describe('SkillRegistryTrait — uninstall', () => {
       type: 'skill_install',
       payload: { id: 'rm_me', name: 'Remove Me', execute: async () => ({}) },
     });
-    skillRegistryHandler.onEvent(node, config, ctx, { type: 'skill_uninstall', payload: { skillId: 'rm_me' } });
+    skillRegistryHandler.onEvent(node, config, ctx, {
+      type: 'skill_uninstall',
+      payload: { skillId: 'rm_me' },
+    });
     expect(node.__skillRegistryState.skills.has('rm_me')).toBe(false);
     expect(ctx.of('skill_uninstalled').length).toBe(1);
   });
 
   it('ignores uninstall for unknown skill', () => {
     const { node, ctx, config } = attach();
-    skillRegistryHandler.onEvent(node, config, ctx, { type: 'skill_uninstall', payload: { skillId: 'ghost' } });
+    skillRegistryHandler.onEvent(node, config, ctx, {
+      type: 'skill_uninstall',
+      payload: { skillId: 'ghost' },
+    });
     expect(ctx.of('skill_uninstalled').length).toBe(0);
   });
 });
@@ -131,7 +141,11 @@ describe('SkillRegistryTrait — invoke', () => {
     const { node, ctx, config } = attach();
     skillRegistryHandler.onEvent(node, config, ctx, {
       type: 'skill_invoke',
-      payload: { skillId: 'json_transform', inputs: { json: '{"name":"Alice"}', path: 'name' }, invocationId: 'inv1' },
+      payload: {
+        skillId: 'json_transform',
+        inputs: { json: '{"name":"Alice"}', path: 'name' },
+        invocationId: 'inv1',
+      },
     });
     await vi.waitUntil(() => ctx.of('skill_result').length > 0);
     const result = (ctx.of('skill_result')[0].payload as any).result;
@@ -162,7 +176,10 @@ describe('SkillRegistryTrait — invoke', () => {
 
   it('emits skill_failed for unknown skill', async () => {
     const { node, ctx, config } = attach();
-    skillRegistryHandler.onEvent(node, config, ctx, { type: 'skill_invoke', payload: { skillId: 'ghost', inputs: {} } });
+    skillRegistryHandler.onEvent(node, config, ctx, {
+      type: 'skill_invoke',
+      payload: { skillId: 'ghost', inputs: {} },
+    });
     await vi.waitUntil(() => ctx.of('skill_failed').length > 0);
     expect((ctx.of('skill_failed')[0].payload as any).error).toContain('Unknown skill');
   });
@@ -170,7 +187,10 @@ describe('SkillRegistryTrait — invoke', () => {
   it('validates required inputs', async () => {
     const { node, ctx, config } = attach();
     // json_transform requires `json` input
-    skillRegistryHandler.onEvent(node, config, ctx, { type: 'skill_invoke', payload: { skillId: 'json_transform', inputs: {} } });
+    skillRegistryHandler.onEvent(node, config, ctx, {
+      type: 'skill_invoke',
+      payload: { skillId: 'json_transform', inputs: {} },
+    });
     await vi.waitUntil(() => ctx.of('skill_failed').length > 0);
     expect((ctx.of('skill_failed')[0].payload as any).error).toContain('Missing required input');
   });
@@ -179,7 +199,13 @@ describe('SkillRegistryTrait — invoke', () => {
     const { node, ctx, config } = attach();
     skillRegistryHandler.onEvent(node, config, ctx, {
       type: 'skill_install',
-      payload: { id: 'add', name: 'Add', inputs: [], outputs: [], execute: async (inp: any) => ({ sum: inp.a + inp.b }) },
+      payload: {
+        id: 'add',
+        name: 'Add',
+        inputs: [],
+        outputs: [],
+        execute: async (inp: any) => ({ sum: inp.a + inp.b }),
+      },
     });
     skillRegistryHandler.onEvent(node, config, ctx, {
       type: 'skill_invoke',
@@ -204,7 +230,7 @@ describe('SkillRegistryTrait — list & stats', () => {
   it('returns skill stats', () => {
     const { node, ctx, config } = attach();
     skillRegistryHandler.onEvent(node, config, ctx, { type: 'skill_stats' });
-    const stats = (ctx.of('skill_stats')[0].payload as any);
+    const stats = ctx.of('skill_stats')[0].payload as any;
     expect(typeof stats.total).toBe('number');
     expect(stats.totalInvocations).toBe(0);
   });

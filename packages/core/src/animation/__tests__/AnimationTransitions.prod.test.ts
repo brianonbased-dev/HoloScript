@@ -183,7 +183,11 @@ describe('AnimationTransitionSystem', () => {
     const curves = ['linear', 'ease_in', 'ease_out', 'ease_in_out'] as const;
     for (const curve of curves) {
       it(`${curve}: produces valid blended positions`, () => {
-        const curvedSys = new AnimationTransitionSystem({ duration: 1, curve, settleThreshold: 0.1 });
+        const curvedSys = new AnimationTransitionSystem({
+          duration: 1,
+          curve,
+          settleThreshold: 0.1,
+        });
         curvedSys.startAnimToRagdoll('p', [makePose('Spine', 0)]);
         const ragdoll = makePoseMap('p', [makePose('Spine', 10)]);
         const result = curvedSys.update(0.5, ragdoll, new Map());
@@ -195,8 +199,16 @@ describe('AnimationTransitionSystem', () => {
 
     it('ease_in is slower than linear at t=0.5', () => {
       // ease_in(0.5) = 0.25, linear(0.5) = 0.5 → ease_in gives smaller x
-      const linear = new AnimationTransitionSystem({ duration: 1, curve: 'linear', settleThreshold: 0.1 });
-      const easeIn = new AnimationTransitionSystem({ duration: 1, curve: 'ease_in', settleThreshold: 0.1 });
+      const linear = new AnimationTransitionSystem({
+        duration: 1,
+        curve: 'linear',
+        settleThreshold: 0.1,
+      });
+      const easeIn = new AnimationTransitionSystem({
+        duration: 1,
+        curve: 'ease_in',
+        settleThreshold: 0.1,
+      });
       const ragdoll = makePoseMap('p', [makePose('Spine', 100, 0, 0)]);
       const anim = makePoseMap('p', [makePose('Spine', 0, 0, 0)]);
 

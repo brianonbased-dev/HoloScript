@@ -68,9 +68,9 @@ describe('MockAdapter', () => {
 
   it('complete() throws when failOnNextCall is true', async () => {
     mock.failOnNextCall = true;
-    await expect(
-      mock.complete({ messages: [{ role: 'user', content: 'test' }] })
-    ).rejects.toThrow('Mock forced failure');
+    await expect(mock.complete({ messages: [{ role: 'user', content: 'test' }] })).rejects.toThrow(
+      'Mock forced failure'
+    );
     expect(mock.failOnNextCall).toBe(false);
   });
 
@@ -235,7 +235,9 @@ describe('AnthropicAdapter (metadata)', () => {
 
   it('includes Claude 4 family models', () => {
     const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
-    const hasClaude4 = adapter.models.some((m) => m.includes('claude-') && (m.includes('-4-') || m.includes('opus-4')));
+    const hasClaude4 = adapter.models.some(
+      (m) => m.includes('claude-') && (m.includes('-4-') || m.includes('opus-4'))
+    );
     expect(hasClaude4).toBe(true);
   });
 

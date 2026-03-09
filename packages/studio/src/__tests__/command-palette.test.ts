@@ -77,9 +77,24 @@ describe('CommandRegistry', () => {
   describe('search', () => {
     beforeEach(() => {
       commandRegistry.registerAll([
-        makeCommand({ id: 'nav.home', label: 'Go Home', category: 'navigation', keywords: ['start', 'landing'] }),
-        makeCommand({ id: 'panel.chat', label: 'Open Chat Panel', category: 'panel', keywords: ['ai', 'conversation'] }),
-        makeCommand({ id: 'scene.save', label: 'Save Scene', category: 'scene', description: 'Save the current scene to disk' }),
+        makeCommand({
+          id: 'nav.home',
+          label: 'Go Home',
+          category: 'navigation',
+          keywords: ['start', 'landing'],
+        }),
+        makeCommand({
+          id: 'panel.chat',
+          label: 'Open Chat Panel',
+          category: 'panel',
+          keywords: ['ai', 'conversation'],
+        }),
+        makeCommand({
+          id: 'scene.save',
+          label: 'Save Scene',
+          category: 'scene',
+          description: 'Save the current scene to disk',
+        }),
         makeCommand({ id: 'shader.new', label: 'New Shader', category: 'shader' }),
       ]);
     });

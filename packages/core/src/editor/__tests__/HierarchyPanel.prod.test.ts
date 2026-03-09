@@ -40,7 +40,7 @@ describe('HierarchyPanel — Production Tests', () => {
       hp.addNode(makeNode({ id: 'parent', childIds: [] }));
       hp.addNode(makeNode({ id: 'child', parentId: 'parent', childIds: [] }));
       hp.addNode(makeNode({ id: 'child', parentId: 'parent', childIds: [] })); // re-add
-      expect(hp.getNode('parent')!.childIds.filter(c => c === 'child').length).toBe(1);
+      expect(hp.getNode('parent')!.childIds.filter((c) => c === 'child').length).toBe(1);
     });
   });
 
@@ -198,9 +198,13 @@ describe('HierarchyPanel — Production Tests', () => {
 
   describe('filter()', () => {
     beforeEach(() => {
-      hp.addNode(makeNode({ id: 'a', name: 'Alpha', type: 'entity', visible: true, locked: false }));
+      hp.addNode(
+        makeNode({ id: 'a', name: 'Alpha', type: 'entity', visible: true, locked: false })
+      );
       hp.addNode(makeNode({ id: 'b', name: 'Beta', type: 'light', visible: false, locked: false }));
-      hp.addNode(makeNode({ id: 'c', name: 'Camera Main', type: 'camera', visible: true, locked: true }));
+      hp.addNode(
+        makeNode({ id: 'c', name: 'Camera Main', type: 'camera', visible: true, locked: true })
+      );
     });
 
     it('filters by name query (case-insensitive)', () => {
@@ -216,12 +220,12 @@ describe('HierarchyPanel — Production Tests', () => {
 
     it('filters visible only', () => {
       const results = hp.filter({ visibleOnly: true });
-      expect(results.every(n => n.visible)).toBe(true);
+      expect(results.every((n) => n.visible)).toBe(true);
     });
 
     it('filters unlocked only', () => {
       const results = hp.filter({ unlockedOnly: true });
-      expect(results.every(n => !n.locked)).toBe(true);
+      expect(results.every((n) => !n.locked)).toBe(true);
     });
 
     it('returns all nodes with empty filter', () => {
@@ -255,7 +259,7 @@ describe('HierarchyPanel — Production Tests', () => {
       hp.addNode(makeNode({ id: 'c', parentId: 'r', expanded: false, childIds: [] }));
       hp.addNode(makeNode({ id: 'gc', parentId: 'c', childIds: [] }));
       const flat = hp.getFlatTree();
-      expect(flat.map(n => n.id)).toEqual(['r', 'c']); // gc not visible (c collapsed)
+      expect(flat.map((n) => n.id)).toEqual(['r', 'c']); // gc not visible (c collapsed)
     });
   });
 

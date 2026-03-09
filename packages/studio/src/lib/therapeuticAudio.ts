@@ -198,10 +198,8 @@ export function isFrequencySolfeggio(hz: number): boolean {
 
 export function validateVolumeSafety(volumeDBA: number): VolumeSafetyResult {
   if (volumeDBA <= 60) return { safe: true };
-  if (volumeDBA <= 70)
-    return { safe: true, warning: 'Moderate volume — monitor patient comfort' };
-  if (volumeDBA <= 85)
-    return { safe: false, warning: 'Exceeds safe therapy threshold (70 dBA)' };
+  if (volumeDBA <= 70) return { safe: true, warning: 'Moderate volume — monitor patient comfort' };
+  if (volumeDBA <= 85) return { safe: false, warning: 'Exceeds safe therapy threshold (70 dBA)' };
   return { safe: false, warning: 'DANGEROUS: Risk of hearing damage above 85 dBA' };
 }
 
@@ -211,12 +209,8 @@ export function validateSessionSafety(session: TherapySession): string[] {
     warnings.push('Volume exceeds safe therapy limit (70 dBA)');
   if (session.durationMinutes > MAX_SESSION_MINUTES)
     warnings.push('Session exceeds recommended 90-minute maximum');
-  if (session.layers.length === 0)
-    warnings.push('No audio layers configured');
-  if (
-    session.type === 'exposure' &&
-    !session.notes.toLowerCase().includes('consent')
-  ) {
+  if (session.layers.length === 0) warnings.push('No audio layers configured');
+  if (session.type === 'exposure' && !session.notes.toLowerCase().includes('consent')) {
     warnings.push('Exposure therapy requires documented patient consent');
   }
   return warnings;

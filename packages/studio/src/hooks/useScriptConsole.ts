@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 export type LogLevel = 'log' | 'warn' | 'error' | 'info' | 'result';
 
@@ -35,9 +35,13 @@ function safeStringify(val: unknown, depth = 0): string {
   }
   try {
     const keys = Object.keys(val as object).slice(0, 6);
-    const pairs = keys.map((k) => `${k}: ${safeStringify((val as Record<string, unknown>)[k], depth + 1)}`);
+    const pairs = keys.map(
+      (k) => `${k}: ${safeStringify((val as Record<string, unknown>)[k], depth + 1)}`
+    );
     return `{ ${pairs.join(', ')}${Object.keys(val as object).length > 6 ? ' …' : ''} }`;
-  } catch { return String(val); }
+  } catch {
+    return String(val);
+  }
 }
 
 export function useScriptConsole() {
@@ -52,40 +56,53 @@ export function useScriptConsole() {
 
   const push = pushRef.current;
 
-  const evaluate = useCallback((expr: string) => {
-    if (!expr.trim()) return;
-    push(mkEntry('log', `> ${expr}`));
-    setHistory((h) => [expr, ...h.slice(0, 49)]);
-    setHistIdx(-1);
+  const evaluate = useCallback(
+    (expr: string) => {
+      if (!expr.trim()) return;
+      push(mkEntry('log', `> ${expr}`));
+      setHistory((h) => [expr, ...h.slice(0, 49)]);
+      setHistIdx(-1);
 
-    // Build a safe scene proxy so expressions can read scene metadata
-    const sceneProxy = {
-      code,
-      lineCount: code.split('\n').length,
-      objects: [...(code.matchAll(/^object\s+"([^"]+)"/gm))].map((m) => m[1]),
-      help: () => 'scene.code, scene.lineCount, scene.objects',
-    };
+      // Build a safe scene proxy so expressions can read scene metadata
+      const sceneProxy = {
+        code,
+        lineCount: code.split('\n').length,
+        objects: [...code.matchAll(/^object\s+"([^"]+)"/gm)].map((m) => m[1]),
+        help: () => 'scene.code, scene.lineCount, scene.objects',
+      };
 
-    // Intercept console methods inside eval
-    const captured: ConsoleEntry[] = [];
-    const fakeConsole = {
-      log: (...args: unknown[]) => captured.push(mkEntry('log', args.map(safeStringify).join(' '))),
-      warn: (...args: unknown[]) => captured.push(mkEntry('warn', args.map(safeStringify).join(' '))),
-      error: (...args: unknown[]) => captured.push(mkEntry('error', args.map(safeStringify).join(' '))),
-      info: (...args: unknown[]) => captured.push(mkEntry('info', args.map(safeStringify).join(' '))),
-    };
+      // Intercept console methods inside eval
+      const captured: ConsoleEntry[] = [];
+      const fakeConsole = {
+        log: (...args: unknown[]) =>
+          captured.push(mkEntry('log', args.map(safeStringify).join(' '))),
+        warn: (...args: unknown[]) =>
+          captured.push(mkEntry('warn', args.map(safeStringify).join(' '))),
+        error: (...args: unknown[]) =>
+          captured.push(mkEntry('error', args.map(safeStringify).join(' '))),
+        info: (...args: unknown[]) =>
+          captured.push(mkEntry('info', args.map(safeStringify).join(' '))),
+      };
 
-    try {
-      // eslint-disable-next-line no-new-func
-      const fn = new Function('scene', 'console', 'Math', 'JSON', `"use strict"; return (${expr})`);
-      const result = fn(sceneProxy, fakeConsole, Math, JSON);
-      captured.push(mkEntry('result', safeStringify(result)));
-    } catch (err) {
-      captured.push(mkEntry('error', err instanceof Error ? err.message : String(err)));
-    }
+      try {
+        // eslint-disable-next-line no-new-func
+        const fn = new Function(
+          'scene',
+          'console',
+          'Math',
+          'JSON',
+          `"use strict"; return (${expr})`
+        );
+        const result = fn(sceneProxy, fakeConsole, Math, JSON);
+        captured.push(mkEntry('result', safeStringify(result)));
+      } catch (err) {
+        captured.push(mkEntry('error', err instanceof Error ? err.message : String(err)));
+      }
 
-    setEntries((prev) => [...prev.slice(-(200 - captured.length)), ...captured]);
-  }, [code, push]);
+      setEntries((prev) => [...prev.slice(-(200 - captured.length)), ...captured]);
+    },
+    [code, push]
+  );
 
   const clear = useCallback(() => {
     setEntries([mkEntry('info', 'Console cleared.')]);

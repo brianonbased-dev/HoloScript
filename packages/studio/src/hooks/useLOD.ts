@@ -29,7 +29,7 @@ export function useLOD(): UseLODReturn {
 
   const sync = useCallback(() => {
     const ids = mgrRef.current.getRegisteredObjects();
-    const states: LODObjectState[] = ids.map(id => ({
+    const states: LODObjectState[] = ids.map((id) => ({
       id,
       level: mgrRef.current.getCurrentLevel(id),
       distance: 0,
@@ -38,12 +38,15 @@ export function useLOD(): UseLODReturn {
     setObjects(states);
   }, []);
 
-  const setCameraPos = useCallback((pos: [number, number, number]) => {
-    mgrRef.current.setCameraPosition(pos);
-    setCameraPosState(pos);
-    mgrRef.current.update(0.016);
-    sync();
-  }, [sync]);
+  const setCameraPos = useCallback(
+    (pos: [number, number, number]) => {
+      mgrRef.current.setCameraPosition(pos);
+      setCameraPosState(pos);
+      mgrRef.current.update(0.016);
+      sync();
+    },
+    [sync]
+  );
 
   const buildDemo = useCallback(() => {
     mgrRef.current = new LODManager({ autoUpdate: false, collectMetrics: true });
@@ -55,22 +58,32 @@ export function useLOD(): UseLODReturn {
       { id: 'vehicle-01', pos: [100, 0, 0] as [number, number, number] },
     ];
     for (const obj of demoObjects) {
-      mgrRef.current.register(obj.id, {
-        levels: [
-          { distance: 0, triangleCount: 10000 },
-          { distance: 20, triangleCount: 5000 },
-          { distance: 50, triangleCount: 1000 },
-          { distance: 100, triangleCount: 200 },
-        ],
-      }, obj.pos);
+      mgrRef.current.register(
+        obj.id,
+        {
+          levels: [
+            { distance: 0, triangleCount: 10000 },
+            { distance: 20, triangleCount: 5000 },
+            { distance: 50, triangleCount: 1000 },
+            { distance: 100, triangleCount: 200 },
+          ],
+        },
+        obj.pos
+      );
     }
     mgrRef.current.setCameraPosition([0, 0, 0]);
     mgrRef.current.update(0.016);
     sync();
   }, [sync]);
 
-  const update = useCallback(() => { mgrRef.current.update(0.016); sync(); }, [sync]);
-  const reset = useCallback(() => { mgrRef.current = new LODManager({ autoUpdate: false, collectMetrics: true }); sync(); }, [sync]);
+  const update = useCallback(() => {
+    mgrRef.current.update(0.016);
+    sync();
+  }, [sync]);
+  const reset = useCallback(() => {
+    mgrRef.current = new LODManager({ autoUpdate: false, collectMetrics: true });
+    sync();
+  }, [sync]);
 
   return { manager: mgrRef.current, objects, cameraPos, setCameraPos, buildDemo, update, reset };
 }

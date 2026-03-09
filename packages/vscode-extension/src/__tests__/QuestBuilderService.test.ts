@@ -11,7 +11,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { QuestBuilderService } from '../services/QuestBuilderService';
 import { StoryWeaverAIService } from '../services/StoryWeaverAIService';
-import type { QuestConfig, QuestObjective, QuestReward } from '../../../core/src/plugins/HololandTypes';
+import type {
+  QuestConfig,
+  QuestObjective,
+  QuestReward,
+} from '../../../core/src/plugins/HololandTypes';
 
 // Mock vscode module
 vi.mock('vscode', async () => {
@@ -145,17 +149,57 @@ describe('QuestBuilderService', () => {
     });
 
     it('should get all quests', async () => {
-      await service.createQuest({ businessId: 'b1', title: 'Q1', description: 'D1', objectives: sampleObjectives, rewards: sampleRewards, layer: 'ar', difficulty: 'easy' });
-      await service.createQuest({ businessId: 'b2', title: 'Q2', description: 'D2', objectives: sampleObjectives, rewards: sampleRewards, layer: 'vrr', difficulty: 'medium' });
+      await service.createQuest({
+        businessId: 'b1',
+        title: 'Q1',
+        description: 'D1',
+        objectives: sampleObjectives,
+        rewards: sampleRewards,
+        layer: 'ar',
+        difficulty: 'easy',
+      });
+      await service.createQuest({
+        businessId: 'b2',
+        title: 'Q2',
+        description: 'D2',
+        objectives: sampleObjectives,
+        rewards: sampleRewards,
+        layer: 'vrr',
+        difficulty: 'medium',
+      });
 
       const quests = service.getAllQuests();
       expect(quests.length).toBe(2);
     });
 
     it('should get quests by business ID', async () => {
-      await service.createQuest({ businessId: 'cafe-001', title: 'Q1', description: 'D', objectives: sampleObjectives, rewards: sampleRewards, layer: 'ar', difficulty: 'easy' });
-      await service.createQuest({ businessId: 'cafe-001', title: 'Q2', description: 'D', objectives: sampleObjectives, rewards: sampleRewards, layer: 'ar', difficulty: 'easy' });
-      await service.createQuest({ businessId: 'shop-002', title: 'Q3', description: 'D', objectives: sampleObjectives, rewards: sampleRewards, layer: 'ar', difficulty: 'easy' });
+      await service.createQuest({
+        businessId: 'cafe-001',
+        title: 'Q1',
+        description: 'D',
+        objectives: sampleObjectives,
+        rewards: sampleRewards,
+        layer: 'ar',
+        difficulty: 'easy',
+      });
+      await service.createQuest({
+        businessId: 'cafe-001',
+        title: 'Q2',
+        description: 'D',
+        objectives: sampleObjectives,
+        rewards: sampleRewards,
+        layer: 'ar',
+        difficulty: 'easy',
+      });
+      await service.createQuest({
+        businessId: 'shop-002',
+        title: 'Q3',
+        description: 'D',
+        objectives: sampleObjectives,
+        rewards: sampleRewards,
+        layer: 'ar',
+        difficulty: 'easy',
+      });
 
       const cafeQuests = service.getQuestsByBusiness('cafe-001');
       expect(cafeQuests.length).toBe(2);
@@ -220,9 +264,7 @@ describe('QuestBuilderService', () => {
     });
 
     it('should throw error for non-existent quest', async () => {
-      await expect(
-        service.completeQuest('fake-id', 'player-1')
-      ).rejects.toThrow('Quest not found');
+      await expect(service.completeQuest('fake-id', 'player-1')).rejects.toThrow('Quest not found');
     });
   });
 
@@ -262,7 +304,15 @@ describe('QuestBuilderService', () => {
     });
 
     it('should export quests as JSON', async () => {
-      await service.createQuest({ businessId: 'b1', title: 'Q1', description: 'D', objectives: sampleObjectives, rewards: sampleRewards, layer: 'ar', difficulty: 'easy' });
+      await service.createQuest({
+        businessId: 'b1',
+        title: 'Q1',
+        description: 'D',
+        objectives: sampleObjectives,
+        rewards: sampleRewards,
+        layer: 'ar',
+        difficulty: 'easy',
+      });
 
       const exported = service.exportQuests();
       const parsed = JSON.parse(exported);
@@ -273,20 +323,22 @@ describe('QuestBuilderService', () => {
     });
 
     it('should import quests from JSON', async () => {
-      const questData = [{
-        id: 'imported-quest-1',
-        businessId: 'cafe-001',
-        title: 'Imported Quest',
-        description: 'Imported from JSON',
-        objectives: sampleObjectives,
-        rewards: sampleRewards,
-        layer: 'ar',
-        difficulty: 'easy',
-        estimatedDuration: 10,
-        active: true,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      }];
+      const questData = [
+        {
+          id: 'imported-quest-1',
+          businessId: 'cafe-001',
+          title: 'Imported Quest',
+          description: 'Imported from JSON',
+          objectives: sampleObjectives,
+          rewards: sampleRewards,
+          layer: 'ar',
+          difficulty: 'easy',
+          estimatedDuration: 10,
+          active: true,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        },
+      ];
 
       const imported = service.importQuests(JSON.stringify(questData));
       expect(imported).toBe(1);
@@ -305,7 +357,15 @@ describe('QuestBuilderService', () => {
   describe('Disposal', () => {
     it('should clear quests on dispose', async () => {
       service = new QuestBuilderService();
-      await service.createQuest({ businessId: 'b1', title: 'Q1', description: 'D', objectives: sampleObjectives, rewards: sampleRewards, layer: 'ar', difficulty: 'easy' });
+      await service.createQuest({
+        businessId: 'b1',
+        title: 'Q1',
+        description: 'D',
+        objectives: sampleObjectives,
+        rewards: sampleRewards,
+        layer: 'ar',
+        difficulty: 'easy',
+      });
 
       expect(service.getAllQuests().length).toBe(1);
 

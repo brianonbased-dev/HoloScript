@@ -11,7 +11,13 @@
 // TYPES
 // =============================================================================
 
-export type AttachmentFormat = 'rgba8' | 'rgba16f' | 'rgba32f' | 'depth24' | 'depth32f' | 'stencil8';
+export type AttachmentFormat =
+  | 'rgba8'
+  | 'rgba16f'
+  | 'rgba32f'
+  | 'depth24'
+  | 'depth32f'
+  | 'stencil8';
 export type ClearOp = 'clear' | 'load' | 'discard';
 
 export interface FramebufferAttachment {
@@ -28,9 +34,9 @@ export interface RenderPassConfig {
   name: string;
   order: number;
   enabled: boolean;
-  dependencies: string[];      // IDs of passes that must run before
+  dependencies: string[]; // IDs of passes that must run before
   attachments: FramebufferAttachment[];
-  inputs: string[];            // Attachment names from other passes
+  inputs: string[]; // Attachment names from other passes
   viewport?: { x: number; y: number; w: number; h: number };
 }
 
@@ -56,7 +62,9 @@ export class RenderPass {
     this.rebuildOrder();
   }
 
-  getPass(id: string): RenderPassConfig | undefined { return this.passes.get(id); }
+  getPass(id: string): RenderPassConfig | undefined {
+    return this.passes.get(id);
+  }
 
   enablePass(id: string, enabled: boolean): void {
     const p = this.passes.get(id);
@@ -88,9 +96,7 @@ export class RenderPass {
   }
 
   getExecutionOrder(): RenderPassConfig[] {
-    return this.sortedOrder
-      .map(id => this.passes.get(id)!)
-      .filter(p => p && p.enabled);
+    return this.sortedOrder.map((id) => this.passes.get(id)!).filter((p) => p && p.enabled);
   }
 
   // ---------------------------------------------------------------------------
@@ -102,16 +108,21 @@ export class RenderPass {
 
     for (const pass of this.passes.values()) {
       for (const dep of pass.dependencies) {
-        if (!this.passes.has(dep)) errors.push(`Pass "${pass.id}" depends on unknown pass "${dep}"`);
+        if (!this.passes.has(dep))
+          errors.push(`Pass "${pass.id}" depends on unknown pass "${dep}"`);
       }
       for (const input of pass.inputs) {
         // Check input attachment exists in some preceding pass
         let found = false;
         for (const dep of pass.dependencies) {
           const depPass = this.passes.get(dep);
-          if (depPass?.attachments.some(a => a.name === input)) { found = true; break; }
+          if (depPass?.attachments.some((a) => a.name === input)) {
+            found = true;
+            break;
+          }
         }
-        if (!found) errors.push(`Pass "${pass.id}" requires input "${input}" not produced by dependencies`);
+        if (!found)
+          errors.push(`Pass "${pass.id}" requires input "${input}" not produced by dependencies`);
       }
     }
 
@@ -149,6 +160,10 @@ export class RenderPass {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getPassCount(): number { return this.passes.size; }
-  getAllPasses(): RenderPassConfig[] { return [...this.passes.values()]; }
+  getPassCount(): number {
+    return this.passes.size;
+  }
+  getAllPasses(): RenderPassConfig[] {
+    return [...this.passes.values()];
+  }
 }

@@ -18,9 +18,9 @@ export interface GCObject {
   generation: Generation;
   size: number;
   marked: boolean;
-  roots: number[];        // IDs of objects this references
+  roots: number[]; // IDs of objects this references
   onFinalize?: () => void;
-  age: number;            // Survive count
+  age: number; // Survive count
 }
 
 export interface GCStats {
@@ -37,10 +37,10 @@ export interface GCStats {
 
 export class GarbageCollector {
   private objects: Map<number, GCObject> = new Map();
-  private rootSet: Set<number> = new Set();  // Root references (not collected)
+  private rootSet: Set<number> = new Set(); // Root references (not collected)
   private nextId = 1;
   private stats: GCStats[] = [];
-  private promotionThreshold = 3;  // Ages before promotion to 'old'
+  private promotionThreshold = 3; // Ages before promotion to 'old'
 
   // ---------------------------------------------------------------------------
   // Object Management
@@ -59,11 +59,15 @@ export class GarbageCollector {
 
   removeReference(fromId: number, toId: number): void {
     const obj = this.objects.get(fromId);
-    if (obj) obj.roots = obj.roots.filter(r => r !== toId);
+    if (obj) obj.roots = obj.roots.filter((r) => r !== toId);
   }
 
-  addRoot(id: number): void { this.rootSet.add(id); }
-  removeRoot(id: number): void { this.rootSet.delete(id); }
+  addRoot(id: number): void {
+    this.rootSet.add(id);
+  }
+  removeRoot(id: number): void {
+    this.rootSet.delete(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Mark Phase
@@ -90,7 +94,10 @@ export class GarbageCollector {
 
   private sweep(generation?: Generation): GCStats {
     const start = performance.now();
-    let collected = 0, survived = 0, promoted = 0, totalFreed = 0;
+    let collected = 0,
+      survived = 0,
+      promoted = 0,
+      totalFreed = 0;
 
     for (const [id, obj] of this.objects) {
       if (generation && obj.generation !== generation) continue;
@@ -115,7 +122,13 @@ export class GarbageCollector {
       }
     }
 
-    const stat: GCStats = { collected, survived, promoted, totalFreed, cycleTime: performance.now() - start };
+    const stat: GCStats = {
+      collected,
+      survived,
+      promoted,
+      totalFreed,
+      cycleTime: performance.now() - start,
+    };
     this.stats.push(stat);
     return stat;
   }
@@ -139,7 +152,8 @@ export class GarbageCollector {
   // ---------------------------------------------------------------------------
 
   defragment(): { movedCount: number; bytesMoved: number } {
-    let movedCount = 0, bytesMoved = 0;
+    let movedCount = 0,
+      bytesMoved = 0;
 
     // Compact by sorting objects by ID (simulate contiguous memory)
     const sorted = [...this.objects.values()].sort((a, b) => a.id - b.id);
@@ -157,8 +171,12 @@ export class GarbageCollector {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getObjectCount(): number { return this.objects.size; }
-  getObject(id: number): GCObject | undefined { return this.objects.get(id); }
+  getObjectCount(): number {
+    return this.objects.size;
+  }
+  getObject(id: number): GCObject | undefined {
+    return this.objects.get(id);
+  }
   getTotalSize(): number {
     let total = 0;
     for (const obj of this.objects.values()) total += obj.size;
@@ -169,6 +187,10 @@ export class GarbageCollector {
     for (const obj of this.objects.values()) if (obj.generation === gen) count++;
     return count;
   }
-  getStats(): GCStats[] { return [...this.stats]; }
-  getRootCount(): number { return this.rootSet.size; }
+  getStats(): GCStats[] {
+    return [...this.stats];
+  }
+  getRootCount(): number {
+    return this.rootSet.size;
+  }
 }

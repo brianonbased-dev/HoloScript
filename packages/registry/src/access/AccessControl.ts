@@ -154,7 +154,13 @@ export class AccessControl {
       existing.access = access;
       return existing;
     }
-    const perm: PackagePermission = { packageName, userId, access, grantedAt: new Date(), grantedBy };
+    const perm: PackagePermission = {
+      packageName,
+      userId,
+      access,
+      grantedAt: new Date(),
+      grantedBy,
+    };
     perms.push(perm);
     this.packagePermissions.set(packageName, perms);
     return perm;

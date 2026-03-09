@@ -19,8 +19,12 @@ export interface TurbulenceConfig {
 }
 
 interface TurbParticle {
-  x: number; y: number; z: number;
-  vx: number; vy: number; vz: number;
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
 }
 
 // =============================================================================
@@ -38,10 +42,18 @@ export class ParticleTurbulence {
   // Configuration
   // ---------------------------------------------------------------------------
 
-  setStrength(s: number): void { this.config.strength = s; }
-  setFrequency(f: number): void { this.config.frequency = f; }
-  setTime(t: number): void { this.config.time = t; }
-  getConfig(): TurbulenceConfig { return { ...this.config }; }
+  setStrength(s: number): void {
+    this.config.strength = s;
+  }
+  setFrequency(f: number): void {
+    this.config.frequency = f;
+  }
+  setTime(t: number): void {
+    this.config.time = t;
+  }
+  getConfig(): TurbulenceConfig {
+    return { ...this.config };
+  }
 
   // ---------------------------------------------------------------------------
   // Curl Noise Approximation
@@ -50,7 +62,9 @@ export class ParticleTurbulence {
   sampleCurl(x: number, y: number, z: number): { fx: number; fy: number; fz: number } {
     const f = this.config.frequency;
     const t = this.config.time;
-    let fx = 0, fy = 0, fz = 0;
+    let fx = 0,
+      fy = 0,
+      fz = 0;
 
     for (let o = 0; o < this.config.octaves; o++) {
       const scale = Math.pow(2, o);
@@ -86,5 +100,7 @@ export class ParticleTurbulence {
   // Advance Time
   // ---------------------------------------------------------------------------
 
-  tick(dt: number): void { this.config.time += dt; }
+  tick(dt: number): void {
+    this.config.time += dt;
+  }
 }

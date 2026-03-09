@@ -12,7 +12,9 @@ import { aiInpaintingHandler } from '../AiInpaintingTrait';
 // HELPERS
 // =============================================================================
 
-function makeNode(id = 'inp-node') { return { id } as any; }
+function makeNode(id = 'inp-node') {
+  return { id } as any;
+}
 
 function makeConfig(overrides: any = {}) {
   return { ...aiInpaintingHandler.defaultConfig, ...overrides };
@@ -157,11 +159,14 @@ describe('AiInpaintingTrait — Production', () => {
       expect(s.isProcessing).toBe(true);
       expect(s.regions.has('r1')).toBe(true);
       expect(s.regions.get('r1').prompt).toBe('add clouds');
-      expect(ctx.emit).toHaveBeenCalledWith('inpainting:started', expect.objectContaining({
-        regionId: 'r1',
-        prompt: 'add clouds',
-        model: 'sd-inpaint',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'inpainting:started',
+        expect.objectContaining({
+          regionId: 'r1',
+          prompt: 'add clouds',
+          model: 'sd-inpaint',
+        })
+      );
     });
 
     it('completes and stores result in region', () => {
@@ -185,22 +190,40 @@ describe('AiInpaintingTrait — Production', () => {
       expect(s.totalInpaints).toBe(1);
       expect(s.lastResultUrl).toBe('https://cdn/result.png');
       expect(s.regions.get('r1').resultUrl).toBe('https://cdn/result.png');
-      expect(ctx.emit).toHaveBeenCalledWith('inpainting:result', expect.objectContaining({
-        regionId: 'r1',
-        blend_mode: 'seamless',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'inpainting:result',
+        expect.objectContaining({
+          regionId: 'r1',
+          blend_mode: 'seamless',
+        })
+      );
     });
 
     it('calculates rolling average time', () => {
-      aiInpaintingHandler.onEvent!(node, config, ctx, { type: 'inpainting:set_mask', payload: { maskData: 'm' } });
+      aiInpaintingHandler.onEvent!(node, config, ctx, {
+        type: 'inpainting:set_mask',
+        payload: { maskData: 'm' },
+      });
 
       // Process 1: 100ms
-      aiInpaintingHandler.onEvent!(node, config, ctx, { type: 'inpainting:process', payload: { regionId: 'a' } });
-      aiInpaintingHandler.onEvent!(node, config, ctx, { type: 'inpainting:complete', payload: { regionId: 'a', elapsedMs: 100 } });
+      aiInpaintingHandler.onEvent!(node, config, ctx, {
+        type: 'inpainting:process',
+        payload: { regionId: 'a' },
+      });
+      aiInpaintingHandler.onEvent!(node, config, ctx, {
+        type: 'inpainting:complete',
+        payload: { regionId: 'a', elapsedMs: 100 },
+      });
 
       // Process 2: 300ms → avg = 200
-      aiInpaintingHandler.onEvent!(node, config, ctx, { type: 'inpainting:process', payload: { regionId: 'b' } });
-      aiInpaintingHandler.onEvent!(node, config, ctx, { type: 'inpainting:complete', payload: { regionId: 'b', elapsedMs: 300 } });
+      aiInpaintingHandler.onEvent!(node, config, ctx, {
+        type: 'inpainting:process',
+        payload: { regionId: 'b' },
+      });
+      aiInpaintingHandler.onEvent!(node, config, ctx, {
+        type: 'inpainting:complete',
+        payload: { regionId: 'b', elapsedMs: 300 },
+      });
 
       expect(getState(ctx).avgProcessTimeMs).toBe(200);
     });
@@ -210,7 +233,10 @@ describe('AiInpaintingTrait — Production', () => {
 
   describe('error handling', () => {
     it('clears processing on error', () => {
-      aiInpaintingHandler.onEvent!(node, config, ctx, { type: 'inpainting:set_mask', payload: { maskData: 'm' } });
+      aiInpaintingHandler.onEvent!(node, config, ctx, {
+        type: 'inpainting:set_mask',
+        payload: { maskData: 'm' },
+      });
       aiInpaintingHandler.onEvent!(node, config, ctx, { type: 'inpainting:process', payload: {} });
       ctx.emit.mockClear();
 
@@ -228,7 +254,10 @@ describe('AiInpaintingTrait — Production', () => {
 
   describe('detach', () => {
     it('emits cancelled when processing', () => {
-      aiInpaintingHandler.onEvent!(node, config, ctx, { type: 'inpainting:set_mask', payload: { maskData: 'm' } });
+      aiInpaintingHandler.onEvent!(node, config, ctx, {
+        type: 'inpainting:set_mask',
+        payload: { maskData: 'm' },
+      });
       aiInpaintingHandler.onEvent!(node, config, ctx, { type: 'inpainting:process', payload: {} });
       ctx.emit.mockClear();
 
@@ -248,7 +277,10 @@ describe('AiInpaintingTrait — Production', () => {
   describe('edge cases', () => {
     it('event with no state is a no-op', () => {
       const noCtx = { emit: vi.fn(), setState: vi.fn(), getState: () => ({}) };
-      aiInpaintingHandler.onEvent!(node, config, noCtx, { type: 'inpainting:process', payload: {} });
+      aiInpaintingHandler.onEvent!(node, config, noCtx, {
+        type: 'inpainting:process',
+        payload: {},
+      });
       expect(noCtx.emit).not.toHaveBeenCalled();
     });
   });

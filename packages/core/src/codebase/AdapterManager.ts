@@ -68,7 +68,7 @@ export class AdapterManager {
       languages.map(async (lang) => {
         const available = await this.isAvailable(lang);
         results.set(lang, available);
-      }),
+      })
     );
     return results;
   }
@@ -81,14 +81,24 @@ export class AdapterManager {
 
     // HoloScript handled by the existing TreeSitterManager in packages/lsp
     if (language === 'holoscript') {
-      const state: LanguageState = { parser: null, language: null, backend: 'none', error: 'Use TreeSitterManager for HoloScript' };
+      const state: LanguageState = {
+        parser: null,
+        language: null,
+        backend: 'none',
+        error: 'Use TreeSitterManager for HoloScript',
+      };
       this.languages.set(language, state);
       return state;
     }
 
     // Try native, then WASM
-    const state = await this.loadNative(language) || await this.loadWasm(language);
-    const result = state ?? { parser: null, language: null, backend: 'none' as const, error: `No grammar available for ${language}` };
+    const state = (await this.loadNative(language)) || (await this.loadWasm(language));
+    const result = state ?? {
+      parser: null,
+      language: null,
+      backend: 'none' as const,
+      error: `No grammar available for ${language}`,
+    };
     this.languages.set(language, result);
     return result;
   }
@@ -113,7 +123,10 @@ export class AdapterManager {
     }
   }
 
-  private async importNativeGrammar(packageName: string, language: SupportedLanguage): Promise<unknown> {
+  private async importNativeGrammar(
+    packageName: string,
+    language: SupportedLanguage
+  ): Promise<unknown> {
     try {
       // tree-sitter-typescript exports { typescript, tsx }
       if (language === 'typescript') {

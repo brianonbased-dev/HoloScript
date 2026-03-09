@@ -7,7 +7,9 @@ import { EntityRegistry } from '../ecs/EntityRegistry';
 
 describe('EntityRegistry', () => {
   let reg: EntityRegistry;
-  beforeEach(() => { reg = new EntityRegistry(); });
+  beforeEach(() => {
+    reg = new EntityRegistry();
+  });
 
   it('creates entities with unique IDs', () => {
     const a = reg.create('a');

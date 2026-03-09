@@ -27,8 +27,12 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode() { return { id: 'usd_test' } as any; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'usd_test' } as any;
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 
 function attach(node: any, overrides: Record<string, unknown> = {}) {
   const cfg = { ...usdHandler.defaultConfig!, ...overrides } as any;
@@ -37,7 +41,9 @@ function attach(node: any, overrides: Record<string, unknown> = {}) {
   return { cfg, ctx };
 }
 
-function st(node: any) { return node.__usdState as any; }
+function st(node: any) {
+  return node.__usdState as any;
+}
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
   usdHandler.onEvent!(node, cfg, ctx as any, evt as any);
 }
@@ -105,8 +111,8 @@ describe('USDTrait — applyUSDAxisConversion', () => {
   it('swaps y/z and negates original y when up_axis=z', () => {
     const pos = [1, 2, 3] as any;
     const result = applyUSDAxisConversion('z', pos) as any;
-    expect(result[0]).toBe(1);  // x unchanged
-    expect(result[1]).toBe(3);  // y ← original z
+    expect(result[0]).toBe(1); // x unchanged
+    expect(result[1]).toBe(3); // y ← original z
     expect(result[2]).toBe(-2); // z ← -original y
   });
 });
@@ -167,7 +173,10 @@ describe('USDTrait — onAttach', () => {
     const { ctx } = attach(node, { source: 'scene.usda' });
     // Async load started — state reflects isLoading immediately in loadUSDAsset
     // (We just check that emit was called with usd:loading_start)
-    expect(ctx.emit).toHaveBeenCalledWith('usd:loading_start', expect.objectContaining({ source: 'scene.usda' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'usd:loading_start',
+      expect.objectContaining({ source: 'scene.usda' })
+    );
   });
 
   it('does NOT call loadUSDAsset (no emit) when source is empty', () => {
@@ -188,7 +197,10 @@ describe('USDTrait — onDetach', () => {
     ctx.emit.mockClear();
     usdHandler.onDetach!(node, cfg, ctx as any);
     expect(st(node)?.isPlaying).toBeFalsy(); // stopped (state deleted right after)
-    expect(ctx.emit).toHaveBeenCalledWith('usd:unloaded', expect.objectContaining({ source: cfg.source }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'usd:unloaded',
+      expect.objectContaining({ source: cfg.source })
+    );
   });
 
   it('does NOT emit usd:unloaded when stageRoot is null', () => {
@@ -237,7 +249,10 @@ describe('USDTrait — onUpdate: animation', () => {
     ctx.emit.mockClear();
     update(node, cfg, ctx, 0.016);
     expect(st(node).currentTimeCode).toBeGreaterThan(before);
-    expect(ctx.emit).toHaveBeenCalledWith('usd:time_code_changed', expect.objectContaining({ timeCode: expect.any(Number) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'usd:time_code_changed',
+      expect.objectContaining({ timeCode: expect.any(Number) })
+    );
   });
 
   it('loops when past endTimeCode and loop_animation=true', () => {
@@ -273,9 +288,12 @@ describe('USDTrait — onUpdate: animation', () => {
     st(node).blendWeights.set('smile', 0.5);
     ctx.emit.mockClear();
     update(node, cfg, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('usd:blend_shapes_updated', expect.objectContaining({
-      weights: { smile: 0.5 },
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'usd:blend_shapes_updated',
+      expect.objectContaining({
+        weights: { smile: 0.5 },
+      })
+    );
   });
 });
 
@@ -382,9 +400,13 @@ describe('USDTrait — onEvent: usd:set_variant', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'usd:set_variant', variantSet: 'LOD', variant: 'medium' });
     expect(st(node).activeVariants.get('LOD')).toBe('medium');
-    expect(ctx.emit).toHaveBeenCalledWith('usd:variant_changed', expect.objectContaining({
-      variantSet: 'LOD', variant: 'medium',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'usd:variant_changed',
+      expect.objectContaining({
+        variantSet: 'LOD',
+        variant: 'medium',
+      })
+    );
   });
 
   it('no-op for unknown variantSet', () => {
@@ -446,23 +468,46 @@ describe('USDTrait — onEvent: usd:load_payload', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { source: '' });
     primeLoaded(node);
-    st(node).hierarchy = [{
-      path: '/Root', name: 'Root', typeName: 'Xform', purpose: 'default',
-      visibility: 'inherited', active: true, hasPayload: true, variantSets: [], attributes: {}, children: [],
-    }];
+    st(node).hierarchy = [
+      {
+        path: '/Root',
+        name: 'Root',
+        typeName: 'Xform',
+        purpose: 'default',
+        visibility: 'inherited',
+        active: true,
+        hasPayload: true,
+        variantSets: [],
+        attributes: {},
+        children: [],
+      },
+    ];
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'usd:load_payload', primPath: '/Root' });
-    expect(ctx.emit).toHaveBeenCalledWith('usd:payload_loaded', expect.objectContaining({ primPath: '/Root' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'usd:payload_loaded',
+      expect.objectContaining({ primPath: '/Root' })
+    );
   });
 
   it('no-op for prim with hasPayload=false', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { source: '' });
     primeLoaded(node);
-    st(node).hierarchy = [{
-      path: '/Root', name: 'Root', typeName: 'Xform', purpose: 'default',
-      visibility: 'inherited', active: true, hasPayload: false, variantSets: [], attributes: {}, children: [],
-    }];
+    st(node).hierarchy = [
+      {
+        path: '/Root',
+        name: 'Root',
+        typeName: 'Xform',
+        purpose: 'default',
+        visibility: 'inherited',
+        active: true,
+        hasPayload: false,
+        variantSets: [],
+        attributes: {},
+        children: [],
+      },
+    ];
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'usd:load_payload', primPath: '/Root' });
     expect(ctx.emit).not.toHaveBeenCalledWith('usd:payload_loaded', expect.any(Object));
@@ -474,13 +519,26 @@ describe('USDTrait — onEvent: usd:unload_payload', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { source: '' });
     primeLoaded(node);
-    st(node).hierarchy = [{
-      path: '/Body', name: 'Body', typeName: 'Mesh', purpose: 'render',
-      visibility: 'inherited', active: true, hasPayload: true, variantSets: [], attributes: {}, children: [],
-    }];
+    st(node).hierarchy = [
+      {
+        path: '/Body',
+        name: 'Body',
+        typeName: 'Mesh',
+        purpose: 'render',
+        visibility: 'inherited',
+        active: true,
+        hasPayload: true,
+        variantSets: [],
+        attributes: {},
+        children: [],
+      },
+    ];
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'usd:unload_payload', primPath: '/Body' });
-    expect(ctx.emit).toHaveBeenCalledWith('usd:payload_unloaded', expect.objectContaining({ primPath: '/Body' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'usd:payload_unloaded',
+      expect.objectContaining({ primPath: '/Body' })
+    );
   });
 });
 
@@ -506,9 +564,13 @@ describe('USDTrait — onEvent: usd:export', () => {
     primeLoaded(node);
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'usd:export', format: 'usdz', options: {} });
-    expect(ctx.emit).toHaveBeenCalledWith('usd:export_complete', expect.objectContaining({
-      format: 'usdz', success: true,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'usd:export_complete',
+      expect.objectContaining({
+        format: 'usdz',
+        success: true,
+      })
+    );
   });
 });
 

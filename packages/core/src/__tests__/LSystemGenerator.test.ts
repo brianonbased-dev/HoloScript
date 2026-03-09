@@ -12,8 +12,14 @@ describe('LSystemGenerator', () => {
     const gen = new LSystemGenerator();
     const config = {
       axiom: 'A',
-      rules: [{ symbol: 'A', replacement: 'AB' }, { symbol: 'B', replacement: 'A' }],
-      angle: 25, length: 1, lengthScale: 1, iterations: 1,
+      rules: [
+        { symbol: 'A', replacement: 'AB' },
+        { symbol: 'B', replacement: 'A' },
+      ],
+      angle: 25,
+      length: 1,
+      lengthScale: 1,
+      iterations: 1,
     };
     const result = gen.expand(config);
     expect(result).toBe('AB');
@@ -23,8 +29,14 @@ describe('LSystemGenerator', () => {
     const gen = new LSystemGenerator();
     const config = {
       axiom: 'A',
-      rules: [{ symbol: 'A', replacement: 'AB' }, { symbol: 'B', replacement: 'A' }],
-      angle: 25, length: 1, lengthScale: 1, iterations: 3,
+      rules: [
+        { symbol: 'A', replacement: 'AB' },
+        { symbol: 'B', replacement: 'A' },
+      ],
+      angle: 25,
+      length: 1,
+      lengthScale: 1,
+      iterations: 3,
     };
     const result = gen.expand(config);
     // Iter 1: AB, Iter 2: ABA, Iter 3: ABAAB
@@ -36,7 +48,10 @@ describe('LSystemGenerator', () => {
     const config = {
       axiom: 'FXF',
       rules: [{ symbol: 'X', replacement: 'YZ' }],
-      angle: 25, length: 1, lengthScale: 1, iterations: 1,
+      angle: 25,
+      length: 1,
+      lengthScale: 1,
+      iterations: 1,
     };
     expect(gen.expand(config)).toBe('FYZF');
   });
@@ -48,7 +63,10 @@ describe('LSystemGenerator', () => {
         { symbol: 'F', replacement: 'FF', probability: 0.5 },
         { symbol: 'F', replacement: 'F[+F]', probability: 0.5 },
       ],
-      angle: 25, length: 1, lengthScale: 1, iterations: 3,
+      angle: 25,
+      length: 1,
+      lengthScale: 1,
+      iterations: 3,
     };
     const gen1 = new LSystemGenerator(1);
     const gen2 = new LSystemGenerator(999);
@@ -62,26 +80,54 @@ describe('LSystemGenerator', () => {
 
   it('interpret produces segments for F commands', () => {
     const gen = new LSystemGenerator();
-    const result = gen.interpret('FFF', { axiom: '', rules: [], angle: 25, length: 1, lengthScale: 1, iterations: 0 });
+    const result = gen.interpret('FFF', {
+      axiom: '',
+      rules: [],
+      angle: 25,
+      length: 1,
+      lengthScale: 1,
+      iterations: 0,
+    });
     expect(result.segments.length).toBe(3);
   });
 
   it('interpret handles branching [ and ]', () => {
     const gen = new LSystemGenerator();
-    const result = gen.interpret('F[+F]F', { axiom: '', rules: [], angle: 90, length: 1, lengthScale: 1, iterations: 0 });
+    const result = gen.interpret('F[+F]F', {
+      axiom: '',
+      rules: [],
+      angle: 90,
+      length: 1,
+      lengthScale: 1,
+      iterations: 0,
+    });
     expect(result.segments.length).toBe(3);
   });
 
   it('interpret records leaves at branch end (])', () => {
     const gen = new LSystemGenerator();
-    const result = gen.interpret('F[+F]', { axiom: '', rules: [], angle: 25, length: 1, lengthScale: 1, iterations: 0 });
+    const result = gen.interpret('F[+F]', {
+      axiom: '',
+      rules: [],
+      angle: 25,
+      length: 1,
+      lengthScale: 1,
+      iterations: 0,
+    });
     // Leaf is generated when ] is encountered
     expect(result.leaves.length).toBeGreaterThanOrEqual(1);
   });
 
   it('interpret computes bounding box', () => {
     const gen = new LSystemGenerator();
-    const result = gen.interpret('F+F+F+F', { axiom: '', rules: [], angle: 90, length: 1, lengthScale: 1, iterations: 0 });
+    const result = gen.interpret('F+F+F+F', {
+      axiom: '',
+      rules: [],
+      angle: 90,
+      length: 1,
+      lengthScale: 1,
+      iterations: 0,
+    });
     expect(result.boundingBox.min).toBeDefined();
     expect(result.boundingBox.max).toBeDefined();
     const dx = result.boundingBox.max.x - result.boundingBox.min.x;
@@ -119,7 +165,7 @@ describe('LSystemGenerator', () => {
   it('segment depth increases in branches', () => {
     const gen = new LSystemGenerator();
     const result = gen.generate(TREE_SIMPLE);
-    const maxDepth = Math.max(...result.segments.map(s => s.depth));
+    const maxDepth = Math.max(...result.segments.map((s) => s.depth));
     expect(maxDepth).toBeGreaterThanOrEqual(1);
   });
 });

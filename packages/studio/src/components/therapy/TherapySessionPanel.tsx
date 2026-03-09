@@ -182,10 +182,7 @@ export function TherapySessionPanel() {
     [targetState]
   );
 
-  const beatFreq = useMemo(
-    () => (selectedBand.minHz + selectedBand.maxHz) / 2,
-    [selectedBand]
-  );
+  const beatFreq = useMemo(() => (selectedBand.minHz + selectedBand.maxHz) / 2, [selectedBand]);
 
   const binauralConfig = useMemo(
     () => createBinauralBeat(baseFreq, beatFreq, targetState, sessionDuration),
@@ -213,9 +210,33 @@ export function TherapySessionPanel() {
 
   const layers: AudioLayer[] = useMemo(
     () => [
-      { id: 'binaural', name: 'Binaural Tone', type: 'binaural', volume: 0.5, panLR: 0, fadeInSec: 5, fadeOutSec: 5 },
-      { id: 'nature', name: 'Rain Ambience', type: 'nature', volume: 0.3, panLR: 0, fadeInSec: 10, fadeOutSec: 10 },
-      { id: 'guide', name: 'Voice Guide', type: 'voice', volume: 0.8, panLR: 0, fadeInSec: 2, fadeOutSec: 2 },
+      {
+        id: 'binaural',
+        name: 'Binaural Tone',
+        type: 'binaural',
+        volume: 0.5,
+        panLR: 0,
+        fadeInSec: 5,
+        fadeOutSec: 5,
+      },
+      {
+        id: 'nature',
+        name: 'Rain Ambience',
+        type: 'nature',
+        volume: 0.3,
+        panLR: 0,
+        fadeInSec: 10,
+        fadeOutSec: 10,
+      },
+      {
+        id: 'guide',
+        name: 'Voice Guide',
+        type: 'voice',
+        volume: 0.8,
+        panLR: 0,
+        fadeInSec: 2,
+        fadeOutSec: 2,
+      },
     ],
     []
   );
@@ -251,15 +272,35 @@ export function TherapySessionPanel() {
       </div>
 
       {/* Session Info */}
-      <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: '#5ac8fa', marginBottom: '16px' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: '16px',
+          fontSize: '12px',
+          color: '#5ac8fa',
+          marginBottom: '16px',
+        }}
+      >
         <span>⏱️ {getSessionDurationFormatted(sessionDuration)}</span>
         <span>🎧 {binauralConfig.beatFrequencyHz.toFixed(1)} Hz beat</span>
-        <span>🔊 L: {binauralConfig.leftEarHz} Hz / R: {binauralConfig.rightEarHz.toFixed(1)} Hz</span>
+        <span>
+          🔊 L: {binauralConfig.leftEarHz} Hz / R: {binauralConfig.rightEarHz.toFixed(1)} Hz
+        </span>
         <span>🆔 {redactPatientPII(session.patientId)}</span>
       </div>
 
       {sessionWarnings.length > 0 && (
-        <div style={{ background: 'rgba(255, 180, 50, 0.1)', border: '1px solid rgba(255, 180, 50, 0.3)', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', color: '#ffb432', marginBottom: '12px' }}>
+        <div
+          style={{
+            background: 'rgba(255, 180, 50, 0.1)',
+            border: '1px solid rgba(255, 180, 50, 0.3)',
+            borderRadius: '6px',
+            padding: '8px 12px',
+            fontSize: '12px',
+            color: '#ffb432',
+            marginBottom: '12px',
+          }}
+        >
           ⚠️ {sessionWarnings.join(' • ')}
         </div>
       )}
@@ -279,7 +320,9 @@ export function TherapySessionPanel() {
                 >
                   <div style={{ fontSize: '16px' }}>{BRAINWAVE_EMOJIS[band.name]}</div>
                   <div style={{ fontWeight: 600, textTransform: 'capitalize' }}>{band.name}</div>
-                  <div style={{ fontSize: '10px', opacity: 0.7 }}>{band.minHz}–{band.maxHz} Hz</div>
+                  <div style={{ fontSize: '10px', opacity: 0.7 }}>
+                    {band.minHz}–{band.maxHz} Hz
+                  </div>
                 </button>
               ))}
             </div>
@@ -329,9 +372,8 @@ export function TherapySessionPanel() {
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Audio Layers</div>
             {layers.map((layer) => {
-              const duckedVolume = layer.type === 'music'
-                ? calculateAutoDucking(layer.volume, true)
-                : layer.volume;
+              const duckedVolume =
+                layer.type === 'music' ? calculateAutoDucking(layer.volume, true) : layer.volume;
               return (
                 <div key={layer.id} style={styles.layerRow}>
                   <span style={{ fontSize: '14px' }}>
@@ -349,7 +391,14 @@ export function TherapySessionPanel() {
                       }}
                     />
                   </div>
-                  <span style={{ fontSize: '11px', fontFamily: 'monospace', color: '#5ac8fa', width: '36px' }}>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontFamily: 'monospace',
+                      color: '#5ac8fa',
+                      width: '36px',
+                    }}
+                  >
                     {Math.round(duckedVolume * 100)}%
                   </span>
                 </div>
@@ -377,7 +426,8 @@ export function TherapySessionPanel() {
               />
             </div>
             <div style={{ marginTop: '6px', fontSize: '11px', color: '#667788' }}>
-              Elapsed: {exposureElapsed}m / {exposureConfig.rampDurationMin}m — Safe word: "{exposureConfig.safeWord}"
+              Elapsed: {exposureElapsed}m / {exposureConfig.rampDurationMin}m — Safe word: "
+              {exposureConfig.safeWord}"
             </div>
           </div>
 
@@ -386,10 +436,24 @@ export function TherapySessionPanel() {
             <div style={styles.sectionTitle}>Session Controls</div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button style={styles.button}>▶ Start Session</button>
-              <button style={{ ...styles.button, background: 'rgba(255, 80, 80, 0.2)', color: '#ff5050', border: '1px solid rgba(255, 80, 80, 0.3)' }}>
+              <button
+                style={{
+                  ...styles.button,
+                  background: 'rgba(255, 80, 80, 0.2)',
+                  color: '#ff5050',
+                  border: '1px solid rgba(255, 80, 80, 0.3)',
+                }}
+              >
                 ⏹ Stop
               </button>
-              <button style={{ ...styles.button, background: 'rgba(255, 255, 255, 0.06)', color: '#5ac8fa', border: '1px solid rgba(100, 200, 255, 0.2)' }}>
+              <button
+                style={{
+                  ...styles.button,
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  color: '#5ac8fa',
+                  border: '1px solid rgba(100, 200, 255, 0.2)',
+                }}
+              >
                 📋 Export HIPAA Log
               </button>
             </div>

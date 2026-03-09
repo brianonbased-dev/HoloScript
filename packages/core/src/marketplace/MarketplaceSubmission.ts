@@ -13,7 +13,11 @@
  * @version 1.0.0
  */
 
-import { runSafetyPass, SafetyPassResult, EffectASTNode } from '../compiler/safety/CompilerSafetyPass';
+import {
+  runSafetyPass,
+  SafetyPassResult,
+  EffectASTNode,
+} from '../compiler/safety/CompilerSafetyPass';
 import { SafetyReport, SafetyVerdict } from '../compiler/safety/SafetyReport';
 import { PlatformTarget } from '../compiler/platform/PlatformConditional';
 
@@ -23,15 +27,15 @@ import { PlatformTarget } from '../compiler/platform/PlatformConditional';
 
 /** Categories of marketplace content */
 export type ContentCategory =
-  | 'world'       // Full world/scene
-  | 'object'      // Single object/prefab
-  | 'agent'       // AI agent
-  | 'trait'       // Custom trait
-  | 'shader'      // Shader/material
-  | 'vfx'         // Visual effect
-  | 'audio'       // Audio pack
-  | 'template'    // Project template
-  | 'plugin';     // Editor plugin
+  | 'world' // Full world/scene
+  | 'object' // Single object/prefab
+  | 'agent' // AI agent
+  | 'trait' // Custom trait
+  | 'shader' // Shader/material
+  | 'vfx' // Visual effect
+  | 'audio' // Audio pack
+  | 'template' // Project template
+  | 'plugin'; // Editor plugin
 
 /** Version following semver */
 export interface SemanticVersion {
@@ -93,7 +97,13 @@ export interface MarketplacePackage {
 // =============================================================================
 
 /** Submission status */
-export type SubmissionStatus = 'draft' | 'verifying' | 'verified' | 'rejected' | 'published' | 'delisted';
+export type SubmissionStatus =
+  | 'draft'
+  | 'verifying'
+  | 'verified'
+  | 'rejected'
+  | 'published'
+  | 'delisted';
 
 /** A marketplace submission */
 export interface MarketplaceSubmission {
@@ -154,7 +164,7 @@ export function createSubmission(pkg: MarketplacePackage): MarketplaceSubmission
  */
 export function verifySubmission(
   submission: MarketplaceSubmission,
-  config: Partial<SubmissionConfig> = {},
+  config: Partial<SubmissionConfig> = {}
 ): MarketplaceSubmission {
   const cfg = { ...DEFAULT_CONFIG, ...config };
   submission.status = 'verifying';
@@ -162,7 +172,9 @@ export function verifySubmission(
   // Pre-checks
   const preRejections: string[] = [];
   if (submission.package.bundleSizeBytes > cfg.maxBundleSize) {
-    preRejections.push(`Bundle too large: ${(submission.package.bundleSizeBytes / 1024 / 1024).toFixed(1)}MB > ${cfg.maxBundleSize / 1024 / 1024}MB limit`);
+    preRejections.push(
+      `Bundle too large: ${(submission.package.bundleSizeBytes / 1024 / 1024).toFixed(1)}MB > ${cfg.maxBundleSize / 1024 / 1024}MB limit`
+    );
   }
   if (!submission.package.metadata.name) {
     preRejections.push('Missing package name');
@@ -192,9 +204,13 @@ export function verifySubmission(
   if (safetyResult.report.verdict === 'unsafe') {
     submission.status = 'rejected';
     submission.rejectionReasons = [
-      ...safetyResult.report.effects.violations.filter(v => v.severity === 'error').map(v => v.message),
-      ...safetyResult.report.budget.diagnostics.filter(d => d.severity === 'error').map(d => d.message),
-      ...safetyResult.report.capabilities.missing.map(m => `Missing capability: ${m.scope}`),
+      ...safetyResult.report.effects.violations
+        .filter((v) => v.severity === 'error')
+        .map((v) => v.message),
+      ...safetyResult.report.budget.diagnostics
+        .filter((d) => d.severity === 'error')
+        .map((d) => d.message),
+      ...safetyResult.report.capabilities.missing.map((m) => `Missing capability: ${m.scope}`),
     ];
   } else if (safetyResult.report.verdict === 'warnings' && !cfg.allowWarnings) {
     submission.status = 'rejected';
@@ -212,7 +228,7 @@ export function verifySubmission(
  */
 export function publishSubmission(
   submission: MarketplaceSubmission,
-  config: Partial<SubmissionConfig> = {},
+  config: Partial<SubmissionConfig> = {}
 ): MarketplaceSubmission {
   const cfg = { ...DEFAULT_CONFIG, ...config };
 
@@ -240,14 +256,22 @@ export function publishSubmission(
  */
 export function submissionSummary(submission: MarketplaceSubmission): string {
   const lines: string[] = [];
-  lines.push(`📦 ${submission.package.metadata.name} v${formatVersion(submission.package.metadata.version)}`);
-  lines.push(`   Publisher: ${submission.package.metadata.publisher.name} (${submission.package.metadata.publisher.trustLevel})`);
+  lines.push(
+    `📦 ${submission.package.metadata.name} v${formatVersion(submission.package.metadata.version)}`
+  );
+  lines.push(
+    `   Publisher: ${submission.package.metadata.publisher.name} (${submission.package.metadata.publisher.trustLevel})`
+  );
   lines.push(`   Category: ${submission.package.metadata.category}`);
   lines.push(`   Status: ${statusIcon(submission.status)} ${submission.status.toUpperCase()}`);
 
   if (submission.safetyReport) {
-    lines.push(`   Safety: ${submission.safetyReport.verdict} (danger: ${submission.safetyReport.dangerScore}/10)`);
-    lines.push(`   Effects: ${submission.safetyReport.effects.totalEffects} across [${submission.safetyReport.effects.categories.join(', ')}]`);
+    lines.push(
+      `   Safety: ${submission.safetyReport.verdict} (danger: ${submission.safetyReport.dangerScore}/10)`
+    );
+    lines.push(
+      `   Effects: ${submission.safetyReport.effects.totalEffects} across [${submission.safetyReport.effects.categories.join(', ')}]`
+    );
   }
 
   if (submission.rejectionReasons?.length) {
@@ -258,7 +282,18 @@ export function submissionSummary(submission: MarketplaceSubmission): string {
   return lines.join('\n');
 }
 
-function formatVersion(v: SemanticVersion): string { return `${v.major}.${v.minor}.${v.patch}`; }
+function formatVersion(v: SemanticVersion): string {
+  return `${v.major}.${v.minor}.${v.patch}`;
+}
 function statusIcon(s: SubmissionStatus): string {
-  return { draft: '📝', verifying: '🔍', verified: '✅', rejected: '❌', published: '🚀', delisted: '🚫' }[s] || '❓';
+  return (
+    {
+      draft: '📝',
+      verifying: '🔍',
+      verified: '✅',
+      rejected: '❌',
+      published: '🚀',
+      delisted: '🚫',
+    }[s] || '❓'
+  );
 }

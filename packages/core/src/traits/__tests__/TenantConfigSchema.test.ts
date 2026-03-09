@@ -170,7 +170,9 @@ describe('TenantConfigSchema', () => {
       const errors = validateTenantConfig({
         tenant: { tenantId: 'invalid@id!', organizationName: 'Test' } as any,
       });
-      expect(errors.some((e) => e.field === 'tenant.tenantId' && e.message.includes('alphanumeric'))).toBe(true);
+      expect(
+        errors.some((e) => e.field === 'tenant.tenantId' && e.message.includes('alphanumeric'))
+      ).toBe(true);
     });
 
     it('catches missing organization name', () => {
@@ -200,7 +202,9 @@ describe('TenantConfigSchema', () => {
         tenant: { tenantId: 'test', organizationName: 'Test' } as any,
         sso: { enabled: false, enforceSso: true } as any,
       });
-      expect(errors.some((e) => e.field === 'sso.enforceSso' && e.severity === 'warning')).toBe(true);
+      expect(errors.some((e) => e.field === 'sso.enforceSso' && e.severity === 'warning')).toBe(
+        true
+      );
     });
 
     it('catches missing SSO endpoints when enabled', () => {

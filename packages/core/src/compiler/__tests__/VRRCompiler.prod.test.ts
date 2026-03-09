@@ -32,9 +32,16 @@ describe('VRRCompiler — documented design contract (specification tests)', () 
 
   it('VRR-specific traits are defined in spec', () => {
     const VRR_TRAITS = [
-      '@vrr_twin', '@reality_mirror', '@geo_anchor', '@geo_sync',
-      '@weather_sync', '@event_sync', '@inventory_sync', '@quest_hub',
-      '@layer_shift', '@x402_paywall',
+      '@vrr_twin',
+      '@reality_mirror',
+      '@geo_anchor',
+      '@geo_sync',
+      '@weather_sync',
+      '@event_sync',
+      '@inventory_sync',
+      '@quest_hub',
+      '@layer_shift',
+      '@x402_paywall',
     ];
     expect(VRR_TRAITS).toContain('@vrr_twin');
     expect(VRR_TRAITS).toContain('@reality_mirror');

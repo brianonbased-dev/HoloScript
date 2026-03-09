@@ -7,7 +7,9 @@ describe('Procedural Generation v2 (Cycle 185)', () => {
   describe('NoiseGenerator', () => {
     let noise: NoiseGenerator;
 
-    beforeEach(() => { noise = new NoiseGenerator({ seed: 42 }); });
+    beforeEach(() => {
+      noise = new NoiseGenerator({ seed: 42 });
+    });
 
     it('should produce deterministic output from same seed', () => {
       const a = noise.perlin2D(1.5, 2.5);
@@ -49,7 +51,9 @@ describe('Procedural Generation v2 (Cycle 185)', () => {
   describe('DungeonGenerator', () => {
     let dungeon: DungeonGenerator;
 
-    beforeEach(() => { dungeon = new DungeonGenerator({ seed: 42, maxRooms: 8 }); });
+    beforeEach(() => {
+      dungeon = new DungeonGenerator({ seed: 42, maxRooms: 8 });
+    });
 
     it('should generate rooms', () => {
       dungeon.generate();
@@ -96,8 +100,26 @@ describe('Procedural Generation v2 (Cycle 185)', () => {
 
     beforeEach(() => {
       wfc = new WaveFunction(4, 4, 42);
-      wfc.addTile({ id: 'grass', weight: 3, adjacency: { up: ['grass', 'water'], down: ['grass', 'water'], left: ['grass', 'water'], right: ['grass', 'water'] } });
-      wfc.addTile({ id: 'water', weight: 1, adjacency: { up: ['grass', 'water'], down: ['grass', 'water'], left: ['grass', 'water'], right: ['grass', 'water'] } });
+      wfc.addTile({
+        id: 'grass',
+        weight: 3,
+        adjacency: {
+          up: ['grass', 'water'],
+          down: ['grass', 'water'],
+          left: ['grass', 'water'],
+          right: ['grass', 'water'],
+        },
+      });
+      wfc.addTile({
+        id: 'water',
+        weight: 1,
+        adjacency: {
+          up: ['grass', 'water'],
+          down: ['grass', 'water'],
+          left: ['grass', 'water'],
+          right: ['grass', 'water'],
+        },
+      });
     });
 
     it('should initialize grid with all options', () => {
@@ -128,8 +150,26 @@ describe('Procedural Generation v2 (Cycle 185)', () => {
       const grid1 = wfc.getGrid();
 
       const wfc2 = new WaveFunction(4, 4, 42);
-      wfc2.addTile({ id: 'grass', weight: 3, adjacency: { up: ['grass', 'water'], down: ['grass', 'water'], left: ['grass', 'water'], right: ['grass', 'water'] } });
-      wfc2.addTile({ id: 'water', weight: 1, adjacency: { up: ['grass', 'water'], down: ['grass', 'water'], left: ['grass', 'water'], right: ['grass', 'water'] } });
+      wfc2.addTile({
+        id: 'grass',
+        weight: 3,
+        adjacency: {
+          up: ['grass', 'water'],
+          down: ['grass', 'water'],
+          left: ['grass', 'water'],
+          right: ['grass', 'water'],
+        },
+      });
+      wfc2.addTile({
+        id: 'water',
+        weight: 1,
+        adjacency: {
+          up: ['grass', 'water'],
+          down: ['grass', 'water'],
+          left: ['grass', 'water'],
+          right: ['grass', 'water'],
+        },
+      });
       wfc2.solve();
       const grid2 = wfc2.getGrid();
 

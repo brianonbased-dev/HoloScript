@@ -19,7 +19,7 @@ export interface StateConfig {
   onEnter?: StateAction;
   onExit?: StateAction;
   onUpdate?: StateAction;
-  parent?: string;         // Parent state ID for hierarchy
+  parent?: string; // Parent state ID for hierarchy
 }
 
 export interface TransitionConfig {
@@ -46,8 +46,12 @@ export class StateMachine {
   // State Management
   // ---------------------------------------------------------------------------
 
-  addState(config: StateConfig): void { this.states.set(config.id, config); }
-  removeState(id: string): void { this.states.delete(id); }
+  addState(config: StateConfig): void {
+    this.states.set(config.id, config);
+  }
+  removeState(id: string): void {
+    this.states.delete(id);
+  }
 
   setInitialState(id: string): void {
     this.currentStateId = id;
@@ -56,13 +60,17 @@ export class StateMachine {
     this.history.push(id);
   }
 
-  getCurrentState(): string | null { return this.currentStateId; }
+  getCurrentState(): string | null {
+    return this.currentStateId;
+  }
 
   // ---------------------------------------------------------------------------
   // Transitions
   // ---------------------------------------------------------------------------
 
-  addTransition(config: TransitionConfig): void { this.transitions.push(config); }
+  addTransition(config: TransitionConfig): void {
+    this.transitions.push(config);
+  }
 
   send(event: string): boolean {
     if (!this.currentStateId) return false;
@@ -96,7 +104,7 @@ export class StateMachine {
     const result: TransitionConfig[] = [];
 
     // Direct transitions
-    result.push(...this.transitions.filter(t => t.from === stateId && t.event === event));
+    result.push(...this.transitions.filter((t) => t.from === stateId && t.event === event));
 
     // Check parent state transitions (hierarchy)
     const state = this.states.get(stateId);
@@ -146,16 +154,26 @@ export class StateMachine {
   // Context
   // ---------------------------------------------------------------------------
 
-  setContext(key: string, value: unknown): void { this.context[key] = value; }
-  getContext(key: string): unknown { return this.context[key]; }
+  setContext(key: string, value: unknown): void {
+    this.context[key] = value;
+  }
+  getContext(key: string): unknown {
+    return this.context[key];
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getStateCount(): number { return this.states.size; }
-  getHistory(): string[] { return [...this.history]; }
-  isInState(id: string): boolean { return this.currentStateId === id; }
+  getStateCount(): number {
+    return this.states.size;
+  }
+  getHistory(): string[] {
+    return [...this.history];
+  }
+  isInState(id: string): boolean {
+    return this.currentStateId === id;
+  }
 
   getChildStates(parentId: string): string[] {
     const children: string[] = [];

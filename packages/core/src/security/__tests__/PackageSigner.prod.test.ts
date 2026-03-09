@@ -175,7 +175,7 @@ describe('canonicalizeManifest', () => {
 
   it('serialize → sign → verify full round trip', async () => {
     const kp = generateKeyPair();
-    const m  = await createPackageManifest('my-pkg', '1.0.0', ['index.ts', 'utils.ts']);
+    const m = await createPackageManifest('my-pkg', '1.0.0', ['index.ts', 'utils.ts']);
     const canonical = canonicalizeManifest(m);
     const sig = signPackage(canonical, kp.privateKey);
     expect(verifySignature(canonical, sig, kp.publicKey)).toBe(true);

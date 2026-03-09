@@ -15,7 +15,7 @@
  */
 
 import { useState } from 'react';
-import { useCharacterStore, type WardrobeSlot, type WardrobeItem } from '@/lib/store';
+import { useCharacterStore, type WardrobeSlot, type WardrobeItem } from '@/lib/stores';
 import { Download, FileJson, Package } from 'lucide-react';
 
 // ── Character Card export ───────────────────────────────────────────────────
@@ -87,22 +87,24 @@ export function CharacterExportPanel() {
           code: '',
           format: 'json',
           sceneName: 'Character',
-          nodes: [{
-            id: 'character_root',
-            name: 'Character',
-            type: 'avatar',
-            traits: [
-              { name: '@morph', properties: morphTargets },
-              { name: '@skin', properties: { color: skinColor } },
-              ...Object.entries(equippedItems).map(([slot, item]) => ({
-                name: '@equipped',
-                properties: { slot, itemId: item?.id, itemName: item?.name },
-              })),
-            ],
-            position: [0, 0, 0],
-            rotation: [0, 0, 0],
-            scale: [1, 1, 1],
-          }],
+          nodes: [
+            {
+              id: 'character_root',
+              name: 'Character',
+              type: 'avatar',
+              traits: [
+                { name: '@morph', properties: morphTargets },
+                { name: '@skin', properties: { color: skinColor } },
+                ...Object.entries(equippedItems).map(([slot, item]) => ({
+                  name: '@equipped',
+                  properties: { slot, itemId: item?.id, itemName: item?.name },
+                })),
+              ],
+              position: [0, 0, 0],
+              rotation: [0, 0, 0],
+              scale: [1, 1, 1],
+            },
+          ],
         }),
       });
 

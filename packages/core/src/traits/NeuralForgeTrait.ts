@@ -63,7 +63,7 @@ export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
       lastSynthesis: Date.now(),
     };
     (node as any).__neuralState = state;
-    
+
     context.emit?.('neural_forge_connected', { node });
   },
 
@@ -82,7 +82,7 @@ export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
       // Auto-Synthesis Check
       if (config.auto_synthesize && state.experienceLog.length >= config.synthesis_threshold) {
         context.emit?.('neural_synthesis_request', { node });
-        
+
         // Mock Synthesis (Real would call LLM)
         const shard: NeuralShard = {
           id: `shard_${Date.now()}`,
@@ -92,29 +92,29 @@ export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
           data: { summary: `Experienced ${state.experienceLog.length} interactions.` },
           weight: 0.1,
         };
-        
+
         // Self-Absorb
         state.shards.push(shard);
         state.experienceLog = []; // Clear log after synthesis
         state.lastSynthesis = Date.now();
-        
+
         context.emit?.('neural_shard_created', { node, shard });
         context.emit?.('neural_cognition_evolved', { node, currentWeights: state.weights });
       }
     } else if (event.type === 'neural_absorb_shard') {
       const shard = (event as any).shard as NeuralShard;
       state.shards.push(shard);
-      
+
       // Simple personality modulation based on shard type (mock logic)
       if (shard.type === 'personality') {
         const modifiers = shard.data.modifiers as Record<string, number>;
         for (const [key, mod] of Object.entries(modifiers)) {
           if (state.weights[key] !== undefined) {
-             state.weights[key] = Math.max(0, Math.min(1, state.weights[key] + mod * shard.weight));
+            state.weights[key] = Math.max(0, Math.min(1, state.weights[key] + mod * shard.weight));
           }
         }
       }
-      
+
       context.emit?.('neural_cognition_evolved', { node, currentWeights: state.weights });
     }
   },

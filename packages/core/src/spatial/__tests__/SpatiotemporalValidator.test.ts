@@ -173,9 +173,11 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
 
       const result = validator.validate(decls);
       expect(result.valid).toBe(true); // warnings don't invalidate
-      expect(result.diagnostics.some((d) =>
-        d.severity === 'warning' && d.message.includes('gracePeriod')
-      )).toBe(true);
+      expect(
+        result.diagnostics.some(
+          (d) => d.severity === 'warning' && d.message.includes('gracePeriod')
+        )
+      ).toBe(true);
     });
 
     it('should emit info when positions are unknown at compile time', () => {
@@ -203,9 +205,9 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
 
       const result = validator.validate(decls);
       expect(result.valid).toBe(true);
-      expect(result.diagnostics.some((d) =>
-        d.severity === 'info' && d.message.includes('runtime')
-      )).toBe(true);
+      expect(
+        result.diagnostics.some((d) => d.severity === 'info' && d.message.includes('runtime'))
+      ).toBe(true);
     });
 
     it('should respect axis filter', () => {
@@ -323,9 +325,11 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
       const result = validator.validate(decls);
       expect(result.valid).toBe(false);
       expect(result.diagnostics.some((d) => d.code === 'HSP037')).toBe(true);
-      expect(result.diagnostics.some((d) =>
-        d.code === 'HSP037' && d.severity === 'error' && d.message.includes('exceeding')
-      )).toBe(true);
+      expect(
+        result.diagnostics.some(
+          (d) => d.code === 'HSP037' && d.severity === 'error' && d.message.includes('exceeding')
+        )
+      ).toBe(true);
     });
 
     it('should error on invalid predictionHorizon', () => {
@@ -410,9 +414,11 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
 
       const result = validator.validate(decls);
       expect(result.valid).toBe(true);
-      expect(result.diagnostics.some((d) =>
-        d.severity === 'warning' && d.message.includes('no moving or static obstacles')
-      )).toBe(true);
+      expect(
+        result.diagnostics.some(
+          (d) => d.severity === 'warning' && d.message.includes('no moving or static obstacles')
+        )
+      ).toBe(true);
     });
 
     it('should emit info when positions are unknown', () => {
@@ -440,9 +446,9 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
 
       const result = validator.validate(decls);
       expect(result.valid).toBe(true);
-      expect(result.diagnostics.some((d) =>
-        d.severity === 'info' && d.message.includes('runtime')
-      )).toBe(true);
+      expect(
+        result.diagnostics.some((d) => d.severity === 'info' && d.message.includes('runtime'))
+      ).toBe(true);
     });
   });
 
@@ -619,9 +625,11 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
 
       const result = validator.validate(decls);
       expect(result.valid).toBe(true);
-      expect(result.diagnostics.some((d) =>
-        d.severity === 'warning' && d.message.includes('no declared bounds')
-      )).toBe(true);
+      expect(
+        result.diagnostics.some(
+          (d) => d.severity === 'warning' && d.message.includes('no declared bounds')
+        )
+      ).toBe(true);
     });
 
     it('should pass when keep_in region exists with bounds', () => {
@@ -676,7 +684,9 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
 
       const result = validator.validate(decls);
       expect(result.valid).toBe(false);
-      expect(result.diagnostics[0].message).toContain('referencePath must contain at least 2 points');
+      expect(result.diagnostics[0].message).toContain(
+        'referencePath must contain at least 2 points'
+      );
     });
 
     it('should error when follow mode has only one reference point', () => {
@@ -753,9 +763,9 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
 
       const result = validator.validate(decls);
       expect(result.valid).toBe(true); // warning, not error
-      expect(result.diagnostics.some((d) =>
-        d.severity === 'warning' && d.message.includes('starts')
-      )).toBe(true);
+      expect(
+        result.diagnostics.some((d) => d.severity === 'warning' && d.message.includes('starts'))
+      ).toBe(true);
     });
 
     it('should pass when follow mode is properly configured', () => {
@@ -821,9 +831,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
               sourceId: 'a',
               mode: 'waypoint',
               horizon: 5,
-              waypoints: [
-                { position: { x: 5, y: 0, z: 0 }, radius: 0, label: 'wp1' },
-              ],
+              waypoints: [{ position: { x: 5, y: 0, z: 0 }, radius: 0, label: 'wp1' }],
             },
           ],
         },
@@ -933,7 +941,13 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
           position: { x: 0, y: 0, z: 0 },
           constraints: [
             { kind: 'spatial_adjacent', sourceId: 'a', targetId: 'b', maxDistance: 10 },
-            { kind: 'spatial_temporal_adjacent', sourceId: 'a', targetId: 'b', maxDistance: 10, minDuration: 5 },
+            {
+              kind: 'spatial_temporal_adjacent',
+              sourceId: 'a',
+              targetId: 'b',
+              maxDistance: 10,
+              minDuration: 5,
+            },
           ],
         },
         {
@@ -942,7 +956,13 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
           position: { x: 1, y: 0, z: 0 },
           constraints: [
             { kind: 'spatial_reachable', sourceId: 'b', targetId: 'c' },
-            { kind: 'spatial_temporal_reachable', sourceId: 'b', targetId: 'c', predictionHorizon: 3, movingObstacles: ['car'] },
+            {
+              kind: 'spatial_temporal_reachable',
+              sourceId: 'b',
+              targetId: 'c',
+              predictionHorizon: 3,
+              movingObstacles: ['car'],
+            },
           ],
         },
         {

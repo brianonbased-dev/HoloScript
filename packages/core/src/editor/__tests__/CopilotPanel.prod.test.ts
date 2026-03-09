@@ -58,38 +58,40 @@ describe('CopilotPanel — Construction', () => {
 describe('CopilotPanel — generateUI (empty messages)', () => {
   let panel: CopilotPanel;
 
-  beforeEach(() => { panel = new CopilotPanel(makeCopilot()); });
+  beforeEach(() => {
+    panel = new CopilotPanel(makeCopilot());
+  });
 
   it('returns at least a background panel entity', () => {
     const entities = panel.generateUI();
-    const bg = entities.find(e => e.id === 'copilot_bg');
+    const bg = entities.find((e) => e.id === 'copilot_bg');
     expect(bg).toBeDefined();
     expect(bg!.type).toBe('panel');
   });
 
   it('returns a title label', () => {
     const entities = panel.generateUI();
-    const title = entities.find(e => e.id === 'copilot_title');
+    const title = entities.find((e) => e.id === 'copilot_title');
     expect(title).toBeDefined();
     expect(title!.type).toBe('label');
   });
 
   it('returns an input field', () => {
     const entities = panel.generateUI();
-    const input = entities.find(e => e.id === 'copilot_input');
+    const input = entities.find((e) => e.id === 'copilot_input');
     expect(input).toBeDefined();
     expect(input!.type).toBe('input');
   });
 
   it('returns 3 action buttons', () => {
     const entities = panel.generateUI();
-    const buttons = entities.filter(e => e.type === 'button');
+    const buttons = entities.filter((e) => e.type === 'button');
     expect(buttons).toHaveLength(3);
   });
 
   it('input field shows placeholder text when inputText is empty', () => {
     const entities = panel.generateUI();
-    const input = entities.find(e => e.id === 'copilot_input');
+    const input = entities.find((e) => e.id === 'copilot_input');
     expect(input!.text).toBe('Type a prompt...');
   });
 });
@@ -103,7 +105,7 @@ describe('CopilotPanel — generateUI (with messages)', () => {
     const panel = new CopilotPanel(makeCopilot('reply'));
     await panel.sendMessage('hello');
     const entities = panel.generateUI();
-    const messages = entities.filter(e => e.type === 'message');
+    const messages = entities.filter((e) => e.type === 'message');
     // 1 user + 1 assistant = 2 messages
     expect(messages.length).toBeGreaterThanOrEqual(2);
   });
@@ -112,8 +114,8 @@ describe('CopilotPanel — generateUI (with messages)', () => {
     const panel = new CopilotPanel(makeCopilot());
     await panel.sendMessage('test query');
     const entities = panel.generateUI();
-    const userMsg = entities.find(e =>
-      e.type === 'message' && e.text?.includes('👤') && e.text?.includes('test query')
+    const userMsg = entities.find(
+      (e) => e.type === 'message' && e.text?.includes('👤') && e.text?.includes('test query')
     );
     expect(userMsg).toBeDefined();
   });
@@ -122,9 +124,7 @@ describe('CopilotPanel — generateUI (with messages)', () => {
     const panel = new CopilotPanel(makeCopilot('bot reply'));
     await panel.sendMessage('q');
     const entities = panel.generateUI();
-    const botMsg = entities.find(e =>
-      e.type === 'message' && e.text?.includes('🤖')
-    );
+    const botMsg = entities.find((e) => e.type === 'message' && e.text?.includes('🤖'));
     expect(botMsg).toBeDefined();
   });
 });
@@ -138,7 +138,7 @@ describe('CopilotPanel — setInputText', () => {
     const panel = new CopilotPanel(makeCopilot());
     panel.setInputText('make a dragon');
     const entities = panel.generateUI();
-    const input = entities.find(e => e.id === 'copilot_input');
+    const input = entities.find((e) => e.id === 'copilot_input');
     expect(input!.text).toBe('make a dragon');
   });
 
@@ -147,7 +147,7 @@ describe('CopilotPanel — setInputText', () => {
     panel.setInputText('some prompt');
     await panel.sendMessage('some prompt');
     const entities = panel.generateUI();
-    const input = entities.find(e => e.id === 'copilot_input');
+    const input = entities.find((e) => e.id === 'copilot_input');
     expect(input!.text).toBe('Type a prompt...');
   });
 });
@@ -161,8 +161,8 @@ describe('CopilotPanel — sendMessage', () => {
     const panel = new CopilotPanel(makeCopilot('hi'));
     await panel.sendMessage('hello');
     const msgs = panel.getMessages();
-    expect(msgs.some(m => m.role === 'user')).toBe(true);
-    expect(msgs.some(m => m.role === 'assistant')).toBe(true);
+    expect(msgs.some((m) => m.role === 'user')).toBe(true);
+    expect(msgs.some((m) => m.role === 'assistant')).toBe(true);
   });
 
   it('returns the CopilotResponse from generateFromPrompt', async () => {
@@ -192,7 +192,7 @@ describe('CopilotPanel — requestSuggestion', () => {
     const panel = new CopilotPanel(makeCopilot());
     await panel.requestSuggestion();
     const msgs = panel.getMessages();
-    expect(msgs.some(m => m.role === 'assistant')).toBe(true);
+    expect(msgs.some((m) => m.role === 'assistant')).toBe(true);
   });
 
   it('returns the CopilotResponse', async () => {
@@ -212,7 +212,7 @@ describe('CopilotPanel — getMessages / clearMessages', () => {
     await panel.sendMessage('hello');
     const msgs = panel.getMessages();
     msgs.push({ role: 'user', text: 'injected' });
-    expect(panel.getMessages().some(m => m.text === 'injected')).toBe(false);
+    expect(panel.getMessages().some((m) => m.text === 'injected')).toBe(false);
   });
 
   it('clearMessages empties the list', async () => {
@@ -227,6 +227,6 @@ describe('CopilotPanel — getMessages / clearMessages', () => {
     await panel.sendMessage('hello');
     panel.clearMessages();
     const entities = panel.generateUI();
-    expect(entities.filter(e => e.type === 'message')).toHaveLength(0);
+    expect(entities.filter((e) => e.type === 'message')).toHaveLength(0);
   });
 });

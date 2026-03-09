@@ -4,7 +4,9 @@ import { PostProcessingStack, PP_PRESETS } from '../PostProcessing';
 describe('PostProcessingStack', () => {
   let stack: PostProcessingStack;
 
-  beforeEach(() => { stack = new PostProcessingStack(); });
+  beforeEach(() => {
+    stack = new PostProcessingStack();
+  });
 
   it('starts with default profile', () => {
     expect(stack.getProfileCount()).toBe(1);
@@ -67,7 +69,8 @@ describe('PostProcessingStack', () => {
     stack.createProfile('b', 'B');
     const a = stack.getProfile('a')!;
     const b = stack.getProfile('b')!;
-    a.exposure = 1; b.exposure = 3;
+    a.exposure = 1;
+    b.exposure = 3;
     const blended = stack.blendProfiles('a', 'b', 0.5);
     expect(blended).not.toBeNull();
     expect(blended!.exposure).toBeCloseTo(2, 1);

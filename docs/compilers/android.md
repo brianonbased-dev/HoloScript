@@ -60,8 +60,9 @@ composition "Android AR Demo" {
   }
 }
 ```
+
 ## See Also
+
 - [Platform Overview](/compilers/)
 - [Android XR Compiler](/compilers/android-xr)
 - [AR/Spatial Traits](/traits/spatial)
-

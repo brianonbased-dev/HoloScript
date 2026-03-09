@@ -39,7 +39,11 @@ describe('Cycle 110: Edge Case Tests', () => {
   it('should handle terrain height query outside bounds', () => {
     const terrain = new TerrainSystem();
     terrain.createTerrain({
-      id: 't', width: 10, depth: 10, resolution: 5, maxHeight: 5,
+      id: 't',
+      width: 10,
+      depth: 10,
+      resolution: 5,
+      maxHeight: 5,
       position: { x: 0, y: 0, z: 0 },
     });
 
@@ -165,9 +169,12 @@ describe('Cycle 110: Edge Case Tests', () => {
   it('should generate 1-floor building', () => {
     const gen = new BuildingGenerator();
     const result = gen.generate({
-      id: 'shed', floors: 1, floorHeight: 2.5,
+      id: 'shed',
+      floors: 1,
+      floorHeight: 2.5,
       footprint: { width: 4, depth: 3 },
-      style: 'warehouse', seed: 1,
+      style: 'warehouse',
+      seed: 1,
     });
 
     expect(result.floorPlans).toHaveLength(1);

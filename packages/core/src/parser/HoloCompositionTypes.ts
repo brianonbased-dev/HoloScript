@@ -750,7 +750,6 @@ export interface ExportDirective extends HoloNode {
   exportName?: string;
 }
 
-
 // =============================================================================
 // PARSER RESULT
 // =============================================================================
@@ -1204,33 +1203,33 @@ export interface HoloTerrainBlock extends HoloNode {
 // =============================================================================
 
 export type HoloDomainType =
-  | 'iot'      // sensor, device, binding, telemetry_stream, digital_twin
+  | 'iot' // sensor, device, binding, telemetry_stream, digital_twin
   | 'robotics' // joint, actuator, controller, end_effector
-  | 'dataviz'  // dashboard, chart, data_source, widget, metric
-  | 'education'// lesson, quiz, curriculum
+  | 'dataviz' // dashboard, chart, data_source, widget, metric
+  | 'education' // lesson, quiz, curriculum
   | 'healthcare' // procedure, patient_model, vital_monitor
-  | 'music'    // instrument, track, sequence, effect_chain
+  | 'music' // instrument, track, sequence, effect_chain
   | 'architecture' // floor_plan, room, building, hvac_system
-  | 'web3'     // contract, token, wallet, marketplace, governance
+  | 'web3' // contract, token, wallet, marketplace, governance
   // Perception & simulation layer (v4.2)
-  | 'material'    // material, pbr_material, unlit_material, shader
-  | 'physics'     // collider (box/sphere/capsule/mesh/convex), rigidbody, force_field (gravity_zone/wind_zone/buoyancy_zone), articulation with joint sub-blocks
-  | 'vfx'         // particles, emitter, vfx
-  | 'postfx'      // post_processing, post_fx
-  | 'audio'       // audio_source, reverb_zone, ambience
-  | 'weather'     // weather, atmosphere, sky, climate
-  | 'procedural'  // procedural, generate, scatter, distribute
-  | 'rendering'   // lod, render
-  | 'navigation'  // navmesh, nav_agent, behavior_tree
-  | 'input'       // input, interaction, gesture_profile
-  | 'codebase'  // codebase absorption: codebase, module_map, dependency_graph, call_graph
+  | 'material' // material, pbr_material, unlit_material, shader
+  | 'physics' // collider (box/sphere/capsule/mesh/convex), rigidbody, force_field (gravity_zone/wind_zone/buoyancy_zone), articulation with joint sub-blocks
+  | 'vfx' // particles, emitter, vfx
+  | 'postfx' // post_processing, post_fx
+  | 'audio' // audio_source, reverb_zone, ambience
+  | 'weather' // weather, atmosphere, sky, climate
+  | 'procedural' // procedural, generate, scatter, distribute
+  | 'rendering' // lod, render
+  | 'navigation' // navmesh, nav_agent, behavior_tree
+  | 'input' // input, interaction, gesture_profile
+  | 'codebase' // codebase absorption: codebase, module_map, dependency_graph, call_graph
   // Narrative / StoryWeaver Protocol (v4.6)
-  | 'narrative'  // narrative, chapter, dialogue_tree, choice, cutscene_sequence
+  | 'narrative' // narrative, chapter, dialogue_tree, choice, cutscene_sequence
   // x402 Payment Protocol (v4.6)
-  | 'payment'   // paywall, payment_gate, subscription, tip_jar
+  | 'payment' // paywall, payment_gate, subscription, tip_jar
   // Norm lifecycle / cultural engineering (v4.5)
-  | 'norms'     // norm, metanorm, norm_proposal, norm_voting, norm_adoption, norm_violation, norm_sanction
-  | 'custom';  // any user-defined block keyword
+  | 'norms' // norm, metanorm, norm_proposal, norm_voting, norm_adoption, norm_violation, norm_sanction
+  | 'custom'; // any user-defined block keyword
 
 export interface HoloDomainBlock extends HoloNode {
   type: 'DomainBlock';
@@ -1339,62 +1338,62 @@ export type NormLifecyclePhase =
  * Status of a norm within its lifecycle
  */
 export type NormStatus =
-  | 'draft'         // Proposed but not yet active
-  | 'proposed'      // Formally proposed, awaiting votes
-  | 'voting'        // Under active voting
-  | 'adopted'       // Accepted and enforceable
-  | 'suspended'     // Temporarily not enforced
-  | 'deprecated'    // Being phased out
-  | 'revoked'       // Permanently removed
-  | 'contested';    // Under challenge / re-evaluation
+  | 'draft' // Proposed but not yet active
+  | 'proposed' // Formally proposed, awaiting votes
+  | 'voting' // Under active voting
+  | 'adopted' // Accepted and enforceable
+  | 'suspended' // Temporarily not enforced
+  | 'deprecated' // Being phased out
+  | 'revoked' // Permanently removed
+  | 'contested'; // Under challenge / re-evaluation
 
 /**
  * Voting mechanism for norm proposals
  */
 export type NormVotingMechanism =
-  | 'majority'        // Simple majority (>50%)
-  | 'supermajority'   // 2/3 majority required
-  | 'consensus'       // Unanimous agreement
-  | 'weighted'        // Weight by trust/reputation
+  | 'majority' // Simple majority (>50%)
+  | 'supermajority' // 2/3 majority required
+  | 'consensus' // Unanimous agreement
+  | 'weighted' // Weight by trust/reputation
   | 'liquid_democracy' // Delegated voting
-  | 'quadratic'       // Quadratic voting (cost increases with conviction)
-  | 'ranked_choice'   // Instant-runoff ranked voting
+  | 'quadratic' // Quadratic voting (cost increases with conviction)
+  | 'ranked_choice' // Instant-runoff ranked voting
   | 'lazy_consensus'; // Accepted unless objected within deadline
 
 /**
  * Norm violation severity level
  */
 export type NormViolationSeverity =
-  | 'info'       // Informational, no action
-  | 'warning'    // Warning issued
-  | 'minor'      // Minor infraction
-  | 'moderate'   // Moderate infraction
-  | 'major'      // Major violation
-  | 'critical';  // Critical violation, immediate action
+  | 'info' // Informational, no action
+  | 'warning' // Warning issued
+  | 'minor' // Minor infraction
+  | 'moderate' // Moderate infraction
+  | 'major' // Major violation
+  | 'critical'; // Critical violation, immediate action
 
 /**
  * Sanction type applied for norm violations
  */
 export type NormSanctionType =
-  | 'warn'          // Issue warning
-  | 'restrict'      // Restrict capabilities
-  | 'penalize'      // Apply penalty (reputation, resources)
-  | 'suspend'       // Temporary suspension
-  | 'ban'           // Permanent ban
-  | 'quarantine'    // Isolate from community
-  | 'escalate'      // Escalate to metanorm authority
-  | 'custom';       // User-defined sanction
+  | 'warn' // Issue warning
+  | 'restrict' // Restrict capabilities
+  | 'penalize' // Apply penalty (reputation, resources)
+  | 'suspend' // Temporary suspension
+  | 'ban' // Permanent ban
+  | 'quarantine' // Isolate from community
+  | 'escalate' // Escalate to metanorm authority
+  | 'custom'; // User-defined sanction
 
 /**
  * How a norm spreads through the agent population
  */
 export type NormSpreadingMechanism =
-  | 'broadcast'     // Announced to all agents
-  | 'observation'   // Learned through observing behavior
+  | 'broadcast' // Announced to all agents
+  | 'observation' // Learned through observing behavior
   | 'communication' // Shared through direct communication
-  | 'imitation'     // Adopted by imitating successful agents
-  | 'enforcement'   // Learned via sanction application
-  | 'passive';      // Available but not actively promoted
+  | 'imitation' // Adopted by imitating successful agents
+  | 'enforcement' // Learned via sanction application
+  | 'passive'; // Available but not actively promoted
 
 // ---------------------------------------------------------------------------
 // NORM BLOCK — First-class norm declaration

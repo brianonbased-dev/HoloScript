@@ -67,19 +67,19 @@ export function hasFragColor(glsl: string): boolean {
 /** Returns all uniform names declared in a GLSL string. */
 export function extractUniforms(glsl: string): string[] {
   const matches = glsl.matchAll(/uniform\s+\w+\s+(\w+)\s*;/g);
-  return [...matches].map(m => m[1]!);
+  return [...matches].map((m) => m[1]!);
 }
 
 /** Returns all varying names declared in a GLSL string. */
 export function extractVaryings(glsl: string): string[] {
   const matches = glsl.matchAll(/varying\s+\w+\s+(\w+)\s*;/g);
-  return [...matches].map(m => m[1]!);
+  return [...matches].map((m) => m[1]!);
 }
 
 /** Returns all sampler2D uniform names in a GLSL string. */
 export function extractSamplers(glsl: string): string[] {
   const matches = glsl.matchAll(/uniform\s+sampler2D\s+(\w+)\s*;/g);
-  return [...matches].map(m => m[1]!);
+  return [...matches].map((m) => m[1]!);
 }
 
 // ── WGSL validation ───────────────────────────────────────────────────────────

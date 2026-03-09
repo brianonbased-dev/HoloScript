@@ -7,6 +7,7 @@ A comprehensive IoT digital twin example demonstrating Azure Digital Twins (DTDL
 This example shows how to model a smart factory with multiple IoT devices that stream telemetry, respond to commands, and integrate with cloud platforms like Azure Digital Twins.
 
 **Use Cases:**
+
 - Industrial IoT monitoring and analytics
 - Predictive maintenance systems
 - Real-time factory visualization
@@ -16,12 +17,14 @@ This example shows how to model a smart factory with multiple IoT devices that s
 ## Features
 
 ### IoT Devices
+
 - **Conveyor Belt**: Speed monitoring, vibration detection, start/stop control
 - **Welding Robot**: Temperature sensing, weld counting, position tracking
 - **Environmental Sensors**: Temperature, humidity, air quality monitoring
 - **Quality Control Camera**: Defect detection, image capture
 
 ### Telemetry Streaming
+
 ```holoscript
 telemetry {
   speed: { type: "double", unit: "metresPerSecond" }
@@ -31,6 +34,7 @@ telemetry {
 ```
 
 ### Device Commands
+
 ```holoscript
 commands {
   start: {
@@ -51,6 +55,7 @@ commands {
 ```
 
 ### Predictive Maintenance
+
 ```holoscript
 maintenance_rule#vibration_monitor {
   condition: conveyor_1.vibration > 2.5
@@ -79,6 +84,7 @@ holoscript compile smart-factory-twin.holo --target dtdl --output ./build/dtdl/
 ```
 
 **Output:**
+
 ```
 build/dtdl/
 ├── conveyor.dtdl.json
@@ -105,19 +111,21 @@ az dt twin create --dt-name smart-factory-dt --dtmi "dtmi:factory:robot;1" --twi
 ### 3. Stream Telemetry
 
 **Option A: IoT Hub Integration**
+
 ```javascript
 const { IoTHubClient } = require('@azure/iot-hub');
 
 const telemetry = {
   speed: 1.2,
   vibration: 0.8,
-  temperature: 45.5
+  temperature: 45.5,
 };
 
 await iotClient.sendTelemetry('conveyor-1', telemetry);
 ```
 
 **Option B: Direct Azure DT API**
+
 ```bash
 # Update telemetry via REST API
 curl -X PATCH https://smart-factory-dt.api.wus2.digitaltwins.azure.net/digitaltwins/conveyor-1 \
@@ -182,6 +190,7 @@ device#conveyor_1 {
 ```
 
 Compiles to:
+
 ```bash
 az dt twin relationship create \
   --dt-name smart-factory-dt \
@@ -217,17 +226,20 @@ Issue resolved, telemetry returns to normal
 ## Cloud Platform Support
 
 ### Azure Digital Twins
+
 - ✅ Full DTDL v2/v3 support
 - ✅ IoT Hub integration
 - ✅ Time Series Insights
 - ✅ ADX for analytics
 
 ### AWS IoT TwinMaker
+
 - ✅ Compatible via DTDL → TwinMaker conversion
 - ✅ S3 data storage
 - ✅ Grafana dashboards
 
 ### Google Cloud IoT
+
 - ✅ Cloud IoT Core integration
 - ✅ BigQuery analytics
 - ✅ Looker visualization
@@ -237,6 +249,7 @@ Issue resolved, telemetry returns to normal
 The same HoloScript file compiles to Unity/Unreal for 3D visualization:
 
 **Features:**
+
 - Live telemetry display on 3D factory model
 - Color-coded device status (green/yellow/red)
 - Historical trend charts
@@ -246,12 +259,14 @@ The same HoloScript file compiles to Unity/Unreal for 3D visualization:
 ## Performance & Scalability
 
 ### Telemetry Rates
+
 - **Conveyor Belt**: 1 Hz (1 message/sec)
 - **Welding Robot**: 10 Hz (10 messages/sec)
 - **Environmental Sensors**: 0.1 Hz (1 message/10 sec)
 - **Quality Camera**: Event-driven (on defect detection)
 
 ### Scaling
+
 - Single factory: 10-50 devices
 - Multi-factory: 1,000+ devices
 - Enterprise: 100,000+ devices (Azure DT supports millions)
@@ -259,16 +274,19 @@ The same HoloScript file compiles to Unity/Unreal for 3D visualization:
 ## Troubleshooting
 
 ### DTDL Compilation Errors
+
 - Ensure device IDs are unique
 - Check telemetry schema types match DTDL v2 spec
 - Verify unit names are DTDL-compliant (e.g., `degreeCelsius`, not `celsius`)
 
 ### Azure DT Connection Issues
+
 - Verify Azure credentials: `az login`
 - Check Azure DT instance exists: `az dt show --name smart-factory-dt`
 - Ensure models uploaded: `az dt model list --dt-name smart-factory-dt`
 
 ### Telemetry Not Updating
+
 - Check IoT Hub connection string
 - Verify device twin exists in Azure DT
 - Monitor Azure DT diagnostics logs

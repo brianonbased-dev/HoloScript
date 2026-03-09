@@ -72,7 +72,10 @@ describe('ComputedProperty', () => {
   it('should cache until dirty', () => {
     let callCount = 0;
     const a = new ReactiveProperty(1);
-    const computed = new ComputedProperty(() => { callCount++; return a.value; }, [a as any]);
+    const computed = new ComputedProperty(() => {
+      callCount++;
+      return a.value;
+    }, [a as any]);
 
     const v1 = computed.value; // may or may not recompute (depends on dirty)
     const initialCalls = callCount;

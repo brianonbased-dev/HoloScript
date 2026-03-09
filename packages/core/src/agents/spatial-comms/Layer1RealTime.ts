@@ -83,35 +83,53 @@ export function encodeRealTimeMessage(message: RealTimeMessage): Buffer {
     let offset = 0;
 
     // Header
-    buffer.writeUInt8(typeCode, offset); offset += 1;
-    buffer.writeUInt8(agentIdLen, offset); offset += 1;
-    buffer.writeBigInt64BE(BigInt(msg.timestamp), offset); offset += 8;
-    buffer.writeUInt16BE(0, offset); offset += 2; // Reserved
+    buffer.writeUInt8(typeCode, offset);
+    offset += 1;
+    buffer.writeUInt8(agentIdLen, offset);
+    offset += 1;
+    buffer.writeBigInt64BE(BigInt(msg.timestamp), offset);
+    offset += 8;
+    buffer.writeUInt16BE(0, offset);
+    offset += 2; // Reserved
 
     // Agent ID
-    agentIdBytes.copy(buffer, offset); offset += agentIdLen;
+    agentIdBytes.copy(buffer, offset);
+    offset += agentIdLen;
 
     // Position (3 floats = 12 bytes)
-    buffer.writeFloatBE(msg.position[0], offset); offset += 4;
-    buffer.writeFloatBE(msg.position[1], offset); offset += 4;
-    buffer.writeFloatBE(msg.position[2], offset); offset += 4;
+    buffer.writeFloatBE(msg.position[0], offset);
+    offset += 4;
+    buffer.writeFloatBE(msg.position[1], offset);
+    offset += 4;
+    buffer.writeFloatBE(msg.position[2], offset);
+    offset += 4;
 
     // Rotation (4 floats = 16 bytes)
-    buffer.writeFloatBE(msg.rotation[0], offset); offset += 4;
-    buffer.writeFloatBE(msg.rotation[1], offset); offset += 4;
-    buffer.writeFloatBE(msg.rotation[2], offset); offset += 4;
-    buffer.writeFloatBE(msg.rotation[3], offset); offset += 4;
+    buffer.writeFloatBE(msg.rotation[0], offset);
+    offset += 4;
+    buffer.writeFloatBE(msg.rotation[1], offset);
+    offset += 4;
+    buffer.writeFloatBE(msg.rotation[2], offset);
+    offset += 4;
+    buffer.writeFloatBE(msg.rotation[3], offset);
+    offset += 4;
 
     // Scale (3 floats = 12 bytes)
-    buffer.writeFloatBE(msg.scale[0], offset); offset += 4;
-    buffer.writeFloatBE(msg.scale[1], offset); offset += 4;
-    buffer.writeFloatBE(msg.scale[2], offset); offset += 4;
+    buffer.writeFloatBE(msg.scale[0], offset);
+    offset += 4;
+    buffer.writeFloatBE(msg.scale[1], offset);
+    offset += 4;
+    buffer.writeFloatBE(msg.scale[2], offset);
+    offset += 4;
 
     // Velocity (optional, 3 floats = 12 bytes)
     if (msg.velocity) {
-      buffer.writeFloatBE(msg.velocity[0], offset); offset += 4;
-      buffer.writeFloatBE(msg.velocity[1], offset); offset += 4;
-      buffer.writeFloatBE(msg.velocity[2], offset); offset += 4;
+      buffer.writeFloatBE(msg.velocity[0], offset);
+      offset += 4;
+      buffer.writeFloatBE(msg.velocity[1], offset);
+      offset += 4;
+      buffer.writeFloatBE(msg.velocity[2], offset);
+      offset += 4;
     }
 
     return buffer;
@@ -123,23 +141,33 @@ export function encodeRealTimeMessage(message: RealTimeMessage): Buffer {
     let offset = 0;
 
     // Header
-    buffer.writeUInt8(typeCode, offset); offset += 1;
-    buffer.writeUInt8(agentIdLen, offset); offset += 1;
-    buffer.writeBigInt64BE(BigInt(msg.timestamp), offset); offset += 8;
-    buffer.writeUInt16BE(0, offset); offset += 2;
+    buffer.writeUInt8(typeCode, offset);
+    offset += 1;
+    buffer.writeUInt8(agentIdLen, offset);
+    offset += 1;
+    buffer.writeBigInt64BE(BigInt(msg.timestamp), offset);
+    offset += 8;
+    buffer.writeUInt16BE(0, offset);
+    offset += 2;
 
     // Agent ID
-    agentIdBytes.copy(buffer, offset); offset += agentIdLen;
+    agentIdBytes.copy(buffer, offset);
+    offset += agentIdLen;
 
     // Frame budget data
-    buffer.writeFloatBE(msg.frame_time_ms, offset); offset += 4;
-    buffer.writeFloatBE(msg.budget_remaining_ms, offset); offset += 4;
-    buffer.writeFloatBE(msg.target_fps, offset); offset += 4;
-    buffer.writeFloatBE(msg.actual_fps, offset); offset += 4;
+    buffer.writeFloatBE(msg.frame_time_ms, offset);
+    offset += 4;
+    buffer.writeFloatBE(msg.budget_remaining_ms, offset);
+    offset += 4;
+    buffer.writeFloatBE(msg.target_fps, offset);
+    offset += 4;
+    buffer.writeFloatBE(msg.actual_fps, offset);
+    offset += 4;
 
     // Quality level (1 byte)
     const qualityCode = { high: 0, medium: 1, low: 2, minimal: 3 }[msg.quality_level];
-    buffer.writeUInt8(qualityCode, offset); offset += 1;
+    buffer.writeUInt8(qualityCode, offset);
+    offset += 1;
 
     return buffer;
   } else {
@@ -151,13 +179,18 @@ export function encodeRealTimeMessage(message: RealTimeMessage): Buffer {
     let offset = 0;
 
     // Header
-    buffer.writeUInt8(typeCode, offset); offset += 1;
-    buffer.writeUInt8(agentIdLen, offset); offset += 1;
-    buffer.writeBigInt64BE(BigInt(message.timestamp), offset); offset += 8;
-    buffer.writeUInt16BE(0, offset); offset += 2;
+    buffer.writeUInt8(typeCode, offset);
+    offset += 1;
+    buffer.writeUInt8(agentIdLen, offset);
+    offset += 1;
+    buffer.writeBigInt64BE(BigInt(message.timestamp), offset);
+    offset += 8;
+    buffer.writeUInt16BE(0, offset);
+    offset += 2;
 
     // Agent ID
-    agentIdBytes.copy(buffer, offset); offset += agentIdLen;
+    agentIdBytes.copy(buffer, offset);
+    offset += agentIdLen;
 
     // JSON payload
     jsonBytes.copy(buffer, offset);
@@ -173,9 +206,12 @@ export function decodeRealTimeMessage(buffer: Buffer): RealTimeMessage {
   let offset = 0;
 
   // Read header
-  const typeCode = buffer.readUInt8(offset); offset += 1;
-  const agentIdLen = buffer.readUInt8(offset); offset += 1;
-  const timestamp = Number(buffer.readBigInt64BE(offset)); offset += 8;
+  const typeCode = buffer.readUInt8(offset);
+  offset += 1;
+  const agentIdLen = buffer.readUInt8(offset);
+  offset += 1;
+  const timestamp = Number(buffer.readBigInt64BE(offset));
+  offset += 8;
   offset += 2; // Skip reserved
 
   // Read agent ID
@@ -185,30 +221,43 @@ export function decodeRealTimeMessage(buffer: Buffer): RealTimeMessage {
   // Decode based on type
   if (typeCode === MessageTypeCode.POSITION_SYNC) {
     const position: [number, number, number] = [
-      buffer.readFloatBE(offset), offset += 4,
-      buffer.readFloatBE(offset), offset += 4,
-      buffer.readFloatBE(offset), offset += 4,
+      buffer.readFloatBE(offset),
+      (offset += 4),
+      buffer.readFloatBE(offset),
+      (offset += 4),
+      buffer.readFloatBE(offset),
+      (offset += 4),
     ] as any;
 
     const rotation: [number, number, number, number] = [
-      buffer.readFloatBE(offset), offset += 4,
-      buffer.readFloatBE(offset), offset += 4,
-      buffer.readFloatBE(offset), offset += 4,
-      buffer.readFloatBE(offset), offset += 4,
+      buffer.readFloatBE(offset),
+      (offset += 4),
+      buffer.readFloatBE(offset),
+      (offset += 4),
+      buffer.readFloatBE(offset),
+      (offset += 4),
+      buffer.readFloatBE(offset),
+      (offset += 4),
     ] as any;
 
     const scale: [number, number, number] = [
-      buffer.readFloatBE(offset), offset += 4,
-      buffer.readFloatBE(offset), offset += 4,
-      buffer.readFloatBE(offset), offset += 4,
+      buffer.readFloatBE(offset),
+      (offset += 4),
+      buffer.readFloatBE(offset),
+      (offset += 4),
+      buffer.readFloatBE(offset),
+      (offset += 4),
     ] as any;
 
     let velocity: [number, number, number] | undefined;
     if (offset < buffer.length) {
       velocity = [
-        buffer.readFloatBE(offset), offset += 4,
-        buffer.readFloatBE(offset), offset += 4,
-        buffer.readFloatBE(offset), offset += 4,
+        buffer.readFloatBE(offset),
+        (offset += 4),
+        buffer.readFloatBE(offset),
+        (offset += 4),
+        buffer.readFloatBE(offset),
+        (offset += 4),
       ] as any;
     }
 
@@ -222,11 +271,16 @@ export function decodeRealTimeMessage(buffer: Buffer): RealTimeMessage {
       velocity,
     };
   } else if (typeCode === MessageTypeCode.FRAME_BUDGET) {
-    const frame_time_ms = buffer.readFloatBE(offset); offset += 4;
-    const budget_remaining_ms = buffer.readFloatBE(offset); offset += 4;
-    const target_fps = buffer.readFloatBE(offset); offset += 4;
-    const actual_fps = buffer.readFloatBE(offset); offset += 4;
-    const qualityCode = buffer.readUInt8(offset); offset += 1;
+    const frame_time_ms = buffer.readFloatBE(offset);
+    offset += 4;
+    const budget_remaining_ms = buffer.readFloatBE(offset);
+    offset += 4;
+    const target_fps = buffer.readFloatBE(offset);
+    offset += 4;
+    const actual_fps = buffer.readFloatBE(offset);
+    offset += 4;
+    const qualityCode = buffer.readUInt8(offset);
+    offset += 1;
     const quality_level = ['high', 'medium', 'low', 'minimal'][qualityCode] as any;
 
     return {
@@ -451,7 +505,10 @@ export class Layer1RealTimeClient extends EventEmitter {
   /**
    * Send real-time message
    */
-  async send(message: Omit<RealTimeMessage, 'agent_id' | 'timestamp'>, targetAgent?: string): Promise<void> {
+  async send(
+    message: Omit<RealTimeMessage, 'agent_id' | 'timestamp'>,
+    targetAgent?: string
+  ): Promise<void> {
     if (!this.transport) throw new Error('Transport not initialized');
 
     // Add agent ID and timestamp
@@ -539,7 +596,7 @@ export class Layer1RealTimeClient extends EventEmitter {
     try {
       const message = this.config.binary
         ? decodeRealTimeMessage(buffer)
-        : JSON.parse(buffer.toString('utf-8')) as RealTimeMessage;
+        : (JSON.parse(buffer.toString('utf-8')) as RealTimeMessage);
 
       // Emit typed events
       this.emit('message', message);
@@ -567,7 +624,7 @@ export class Layer1RealTimeClient extends EventEmitter {
 
     if (timeSinceLastMessage < minInterval) {
       const delay = minInterval - timeSinceLastMessage;
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 

@@ -58,7 +58,7 @@ jobs:
       url: ${{ github.event.inputs.environment == 'testpypi' && 'https://test.pypi.org/p/holoscript' || 'https://pypi.org/p/holoscript' }}
 
     permissions:
-      id-token: write  # Required for trusted publishing (OIDC)
+      id-token: write # Required for trusted publishing (OIDC)
       contents: read
 
     steps:

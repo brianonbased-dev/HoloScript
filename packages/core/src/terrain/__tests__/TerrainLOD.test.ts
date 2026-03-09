@@ -7,7 +7,12 @@ describe('TerrainLOD', () => {
   let lod: TerrainLOD;
 
   beforeEach(() => {
-    lod = new TerrainLOD({ totalSize: 128, maxLOD: 3, baseResolution: 16, lodDistances: [50, 100, 200] });
+    lod = new TerrainLOD({
+      totalSize: 128,
+      maxLOD: 3,
+      baseResolution: 16,
+      lodDistances: [50, 100, 200],
+    });
   });
 
   it('generateQuadtree creates chunks', () => {

@@ -7,7 +7,9 @@ import { VolumetricLight } from '../rendering/VolumetricLight';
 
 describe('VolumetricLight', () => {
   let vol: VolumetricLight;
-  beforeEach(() => { vol = new VolumetricLight(); });
+  beforeEach(() => {
+    vol = new VolumetricLight();
+  });
 
   it('addLight creates a light with defaults', () => {
     const l = vol.addLight({ id: 'sun' });

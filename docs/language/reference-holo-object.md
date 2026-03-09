@@ -241,17 +241,18 @@ composition VRPlayground {
 
 ## Entity vs Object Pattern
 
-| Aspect | Entity Pattern | Object Pattern |
-|--------|----------------|----------------|
-| Reusability | Low | High |
-| Clarity | High | Medium |
-| Best for | Unique objects | Similar objects |
-| Templates | No | Yes |
-| Verbosity | Higher | Lower |
+| Aspect      | Entity Pattern | Object Pattern  |
+| ----------- | -------------- | --------------- |
+| Reusability | Low            | High            |
+| Clarity     | High           | Medium          |
+| Best for    | Unique objects | Similar objects |
+| Templates   | No             | Yes             |
+| Verbosity   | Higher         | Lower           |
 
 ## When to Use Object Pattern
 
 Use object+template pattern when:
+
 - Many similar objects exist
 - Template reusability is needed
 - Migrating from `.hsplus` format

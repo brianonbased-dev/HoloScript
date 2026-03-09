@@ -4,8 +4,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { goalOrientedHandler } from '../GoalOrientedTrait';
 
-function makeNode() { return { id: 'goap_node' }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'goap_node' };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}) {
   const node = makeNode();
   const ctx = makeCtx();
@@ -43,15 +47,20 @@ describe('goalOrientedHandler.onAttach', () => {
     const { ctx } = attach({
       initial_state: { hasWeapon: false },
       goals: [{ name: 'arm', priority: 1, desiredState: { hasWeapon: true } }],
-      actions: [{
-        name: 'pickupWeapon',
-        cost: 1,
-        preconditions: {},
-        effects: { hasWeapon: true },
-        duration: 1,
-      }],
+      actions: [
+        {
+          name: 'pickupWeapon',
+          cost: 1,
+          preconditions: {},
+          effects: { hasWeapon: true },
+          duration: 1,
+        },
+      ],
     });
-    expect(ctx.emit).toHaveBeenCalledWith('goap_plan_created', expect.objectContaining({ goal: 'arm' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'goap_plan_created',
+      expect.objectContaining({ goal: 'arm' })
+    );
   });
   it('emits goap_plan_failed when no action can reach goal', () => {
     const { ctx } = attach({
@@ -59,7 +68,10 @@ describe('goalOrientedHandler.onAttach', () => {
       goals: [{ name: 'arm', priority: 1, desiredState: { hasWeapon: true } }],
       actions: [], // no actions available
     });
-    expect(ctx.emit).toHaveBeenCalledWith('goap_plan_failed', expect.objectContaining({ goal: 'arm' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'goap_plan_failed',
+      expect.objectContaining({ goal: 'arm' })
+    );
   });
   it('skips goal already satisfied by initial_state', () => {
     const { node, ctx } = attach({
@@ -107,7 +119,13 @@ describe('goalOrientedHandler.onUpdate — action execution', () => {
       initial_state: { hasWeapon: false, atEnemy: false },
       goals: [{ name: 'kill', priority: 1, desiredState: { atEnemy: false, hasWeapon: true } }],
       actions: [
-        { name: 'pickupWeapon', cost: 1, preconditions: {}, effects: { hasWeapon: true }, duration: 1 },
+        {
+          name: 'pickupWeapon',
+          cost: 1,
+          preconditions: {},
+          effects: { hasWeapon: true },
+          duration: 1,
+        },
       ],
     };
     return attach(cfg);
@@ -122,7 +140,8 @@ describe('goalOrientedHandler.onUpdate — action execution', () => {
     const { node, config, ctx } = setupExecuting();
     // pickupWeapon has duration=1
     goalOrientedHandler.onUpdate!(node, config, ctx, 1);
-    expect(ctx.emit).toHaveBeenCalledWith('goap_action_complete',
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'goap_action_complete',
       expect.objectContaining({ action: 'pickupWeapon' })
     );
   });
@@ -130,7 +149,8 @@ describe('goalOrientedHandler.onUpdate — action execution', () => {
   it('emits goap_goal_complete after all actions done', () => {
     const { node, config, ctx } = setupExecuting();
     goalOrientedHandler.onUpdate!(node, config, ctx, 2);
-    expect(ctx.emit).toHaveBeenCalledWith('goap_goal_complete',
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'goap_goal_complete',
       expect.objectContaining({ goal: 'kill' })
     );
   });
@@ -158,7 +178,13 @@ describe('goalOrientedHandler — A* multi-step plan', () => {
       goals: [{ name: 'escape', priority: 1, desiredState: { doorOpen: true } }],
       actions: [
         { name: 'getKey', cost: 1, preconditions: {}, effects: { hasKey: true }, duration: 0.5 },
-        { name: 'openDoor', cost: 1, preconditions: { hasKey: true }, effects: { doorOpen: true }, duration: 0.5 },
+        {
+          name: 'openDoor',
+          cost: 1,
+          preconditions: { hasKey: true },
+          effects: { doorOpen: true },
+          duration: 0.5,
+        },
       ],
     };
     const { node, config, ctx } = attach(cfg);
@@ -166,7 +192,10 @@ describe('goalOrientedHandler — A* multi-step plan', () => {
     expect(node.__goalOrientedState.plan[0].name).toBe('getKey');
     ctx.emit.mockClear();
     goalOrientedHandler.onUpdate!(node, config, ctx, 0.5);
-    expect(ctx.emit).toHaveBeenCalledWith('goap_action_complete', expect.objectContaining({ action: 'getKey' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'goap_action_complete',
+      expect.objectContaining({ action: 'getKey' })
+    );
   });
 
   it('executes second action after first completes', () => {
@@ -175,14 +204,23 @@ describe('goalOrientedHandler — A* multi-step plan', () => {
       goals: [{ name: 'escape', priority: 1, desiredState: { doorOpen: true } }],
       actions: [
         { name: 'getKey', cost: 1, preconditions: {}, effects: { hasKey: true }, duration: 0.5 },
-        { name: 'openDoor', cost: 1, preconditions: { hasKey: true }, effects: { doorOpen: true }, duration: 0.5 },
+        {
+          name: 'openDoor',
+          cost: 1,
+          preconditions: { hasKey: true },
+          effects: { doorOpen: true },
+          duration: 0.5,
+        },
       ],
     };
     const { node, config, ctx } = attach(cfg);
     goalOrientedHandler.onUpdate!(node, config, ctx, 0.5); // getKey completes
     ctx.emit.mockClear();
     goalOrientedHandler.onUpdate!(node, config, ctx, 0.5); // openDoor completes
-    expect(ctx.emit).toHaveBeenCalledWith('goap_action_complete', expect.objectContaining({ action: 'openDoor' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'goap_action_complete',
+      expect.objectContaining({ action: 'openDoor' })
+    );
   });
 
   it('chooses lower-cost action when two preconditions are met', () => {
@@ -204,7 +242,10 @@ describe('goalOrientedHandler — A* multi-step plan', () => {
 describe('goalOrientedHandler.onEvent — goap_set_state', () => {
   it('merges new state into worldState', () => {
     const { node, config, ctx } = attach({ initial_state: { hp: 50 } });
-    goalOrientedHandler.onEvent!(node, config, ctx, { type: 'goap_set_state', state: { hp: 80, shield: true } });
+    goalOrientedHandler.onEvent!(node, config, ctx, {
+      type: 'goap_set_state',
+      state: { hp: 80, shield: true },
+    });
     expect(node.__goalOrientedState.worldState.hp).toBe(80);
     expect(node.__goalOrientedState.worldState.shield).toBe(true);
   });
@@ -213,15 +254,23 @@ describe('goalOrientedHandler.onEvent — goap_set_state', () => {
     const cfg = {
       initial_state: { hasWeapon: false },
       goals: [{ name: 'arm', priority: 1, desiredState: { hasWeapon: true } }],
-      actions: [{ name: 'pickup', cost: 1, preconditions: {}, effects: { hasWeapon: true }, duration: 1 }],
+      actions: [
+        { name: 'pickup', cost: 1, preconditions: {}, effects: { hasWeapon: true }, duration: 1 },
+      ],
     };
     const { node, config, ctx } = attach(cfg);
     // Manually corrupt state so we can see replan
     node.__goalOrientedState.worldState.hasWeapon = true; // satisfy goal
     ctx.emit.mockClear();
-    goalOrientedHandler.onEvent!(node, config, ctx, { type: 'goap_set_state', state: { hasWeapon: false } });
+    goalOrientedHandler.onEvent!(node, config, ctx, {
+      type: 'goap_set_state',
+      state: { hasWeapon: false },
+    });
     // Replan should re-select goal and create plan
-    expect(ctx.emit).toHaveBeenCalledWith('goap_plan_created', expect.objectContaining({ goal: 'arm' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'goap_plan_created',
+      expect.objectContaining({ goal: 'arm' })
+    );
   });
 });
 
@@ -238,7 +287,10 @@ describe('goalOrientedHandler.onEvent — goap_add_goal', () => {
       type: 'goap_add_goal',
       goal: { name: 'beSafe', priority: 5, desiredState: { safe: true } },
     });
-    expect(ctx.emit).toHaveBeenCalledWith('goap_plan_created', expect.objectContaining({ goal: 'beSafe' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'goap_plan_created',
+      expect.objectContaining({ goal: 'beSafe' })
+    );
   });
 });
 

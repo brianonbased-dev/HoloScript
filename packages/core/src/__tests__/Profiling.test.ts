@@ -40,8 +40,8 @@ describe('Profiler', () => {
     p.endSpan(); // outer
     const result = p.stop();
     expect(result.samples.length).toBe(2);
-    const inner = result.samples.find(s => s.name === 'inner');
-    const outer = result.samples.find(s => s.name === 'outer');
+    const inner = result.samples.find((s) => s.name === 'inner');
+    const outer = result.samples.find((s) => s.name === 'outer');
     expect(inner!.depth).toBeGreaterThan(outer!.depth);
   });
 
@@ -50,7 +50,7 @@ describe('Profiler', () => {
     p.start();
     p.recordSpan('manual', 42, 'compile');
     const result = p.stop();
-    const sample = result.samples.find(s => s.name === 'manual');
+    const sample = result.samples.find((s) => s.name === 'manual');
     expect(sample).toBeDefined();
     expect(sample!.duration).toBe(42);
     expect(sample!.category).toBe('compile');
@@ -124,7 +124,7 @@ describe('Profiler', () => {
     // Should contain metadata events + sample events + memory events
     expect(trace.traceEvents.length).toBeGreaterThanOrEqual(3);
     // Find our sample event among all trace events
-    const sampleEvents = trace.traceEvents.filter(e => e.ph === 'X');
+    const sampleEvents = trace.traceEvents.filter((e) => e.ph === 'X');
     expect(sampleEvents.length).toBeGreaterThanOrEqual(1);
     expect(sampleEvents[0].ts).toBeGreaterThanOrEqual(0);
   });

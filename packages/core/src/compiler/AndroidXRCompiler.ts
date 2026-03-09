@@ -137,7 +137,11 @@ export class AndroidXRCompiler extends CompilerBase {
     return this.options.formFactor === 'glasses';
   }
 
-  compile(composition: HoloComposition, agentToken: string, outputPath?: string): AndroidXRCompileResult {
+  compile(
+    composition: HoloComposition,
+    agentToken: string,
+    outputPath?: string
+  ): AndroidXRCompileResult {
     this.validateCompilerAccess(agentToken, outputPath);
 
     if (this.isGlassesMode) {
@@ -223,7 +227,9 @@ export class AndroidXRCompiler extends CompilerBase {
     this.emit('val spatialCapabilities: LiveData<Set<String>> get() = _spatialCapabilities');
     this.emit('');
 
-    this.emit('private val _activeEntities = MutableLiveData<MutableMap<String, Any>>(mutableMapOf())');
+    this.emit(
+      'private val _activeEntities = MutableLiveData<MutableMap<String, Any>>(mutableMapOf())'
+    );
     this.emit('val activeEntities: LiveData<MutableMap<String, Any>> get() = _activeEntities');
     this.emit('');
 
@@ -333,7 +339,9 @@ export class AndroidXRCompiler extends CompilerBase {
         this.emit('parent = session.scene.activitySpace');
         const pos = this.findProp(firstObj, 'position');
         if (pos && Array.isArray(pos)) {
-          this.emit(`setPose(Pose(${this.toKotlinFloat3(pos as number[])}, Quaternion.identity()))`);
+          this.emit(
+            `setPose(Pose(${this.toKotlinFloat3(pos as number[])}, Quaternion.identity()))`
+          );
         }
         this.dedent();
         this.emit('}');
@@ -342,7 +350,9 @@ export class AndroidXRCompiler extends CompilerBase {
         this.emit('entity.parent = session.scene.activitySpace');
         const pos = this.findProp(firstObj, 'position');
         if (pos && Array.isArray(pos)) {
-          this.emit(`entity.setPose(Pose(${this.toKotlinFloat3(pos as number[])}, Quaternion.identity()))`);
+          this.emit(
+            `entity.setPose(Pose(${this.toKotlinFloat3(pos as number[])}, Quaternion.identity()))`
+          );
         }
         this.emit('return entity');
       }
@@ -411,7 +421,9 @@ export class AndroidXRCompiler extends CompilerBase {
       if (scale && Array.isArray(scale)) {
         this.emit(`setScale(${this.toKotlinFloat3(scale as number[])})`);
       } else if (typeof scale === 'number') {
-        this.emit(`setScale(com.google.android.filament.utils.Float3(${scale}f, ${scale}f, ${scale}f))`);
+        this.emit(
+          `setScale(com.google.android.filament.utils.Float3(${scale}f, ${scale}f, ${scale}f))`
+        );
       }
       this.dedent();
       this.emit('}');
@@ -420,13 +432,17 @@ export class AndroidXRCompiler extends CompilerBase {
       this.emit('entity.parent = session.scene.activitySpace');
       const pos = this.findProp(obj, 'position');
       if (pos && Array.isArray(pos)) {
-        this.emit(`entity.setPose(Pose(${this.toKotlinFloat3(pos as number[])}, Quaternion.identity()))`);
+        this.emit(
+          `entity.setPose(Pose(${this.toKotlinFloat3(pos as number[])}, Quaternion.identity()))`
+        );
       }
       const scale = this.findProp(obj, 'scale');
       if (scale && Array.isArray(scale)) {
         this.emit(`entity.setScale(${this.toKotlinFloat3(scale as number[])})`);
       } else if (typeof scale === 'number') {
-        this.emit(`entity.setScale(com.google.android.filament.utils.Float3(${scale}f, ${scale}f, ${scale}f))`);
+        this.emit(
+          `entity.setScale(com.google.android.filament.utils.Float3(${scale}f, ${scale}f, ${scale}f))`
+        );
       }
       this.emit('return entity');
     }
@@ -474,7 +490,9 @@ export class AndroidXRCompiler extends CompilerBase {
       xrPermissions.push('    <uses-permission android:name="android.permission.EYE_TRACKING" />');
     }
     if (hasPlaneDetection) {
-      xrPermissions.push('    <uses-permission android:name="android.permission.SCENE_UNDERSTANDING_COARSE" />');
+      xrPermissions.push(
+        '    <uses-permission android:name="android.permission.SCENE_UNDERSTANDING_COARSE" />'
+      );
     }
 
     return `<?xml version="1.0" encoding="utf-8"?>
@@ -592,12 +610,16 @@ dependencies {
     implementation("com.google.android.filament:filament-android:1.51.0")
     implementation("com.google.android.filament:filament-utils-android:1.51.0")
     implementation("com.google.android.filament:gltfio-android:1.51.0")
-${hasDrmVideo ? `
+${
+  hasDrmVideo
+    ? `
     // Media3 ExoPlayer (DRM Video Playback)
     implementation("androidx.media3:media3-exoplayer:1.3.1")
     implementation("androidx.media3:media3-common:1.3.1")
     implementation("androidx.media3:media3-exoplayer-dash:1.3.1")
-` : ''}
+`
+    : ''
+}
     // ARCore
     implementation("com.google.ar:core:1.43.0")
 }`;
@@ -1146,17 +1168,27 @@ ${hasDrmVideo ? `
         this.emit(`val ${varName}_${this.sanitizeName(bs)} = faceState.blendShapes[${bsConst}]`);
       }
     } else {
-      this.emit('// Access blendshapes: faceState.blendShapes[FaceBlendShapeType.FACE_BLEND_SHAPE_TYPE_*]');
-      this.emit('// 68 blendshapes available: BROW_LOWERER_L/R, EYES_CLOSED_L/R, JAW_DROP, LIPS_TOWARD, etc.');
+      this.emit(
+        '// Access blendshapes: faceState.blendShapes[FaceBlendShapeType.FACE_BLEND_SHAPE_TYPE_*]'
+      );
+      this.emit(
+        '// 68 blendshapes available: BROW_LOWERER_L/R, EYES_CLOSED_L/R, JAW_DROP, LIPS_TOWARD, etc.'
+      );
     }
-    this.emit(`val ${varName}Confidence = faceState.getConfidence(FaceConfidenceRegion.FACE_CONFIDENCE_REGION_LOWER)`);
+    this.emit(
+      `val ${varName}Confidence = faceState.getConfidence(FaceConfidenceRegion.FACE_CONFIDENCE_REGION_LOWER)`
+    );
     this.dedent();
     this.emit('}');
   }
 
   // ─── DP3: Head-Following UI via UserSubspace ──────────────────────
 
-  private emitHeadFollowUI(varName: string, obj: HoloObjectDecl, config: Record<string, unknown>): void {
+  private emitHeadFollowUI(
+    varName: string,
+    obj: HoloObjectDecl,
+    config: Record<string, unknown>
+  ): void {
     const distance = config.distance ?? config.follow_distance ?? 1.5;
     const w = this.findProp(obj, 'width') ?? config.width ?? 400;
     const h = this.findProp(obj, 'height') ?? config.height ?? 300;
@@ -1258,34 +1290,40 @@ ${hasDrmVideo ? `
     this.emit('// === v4.2 Domain Blocks ===');
 
     let blockIdx = 0;
-    const compiled = compileDomainBlocks(domainBlocks, {
-      material: (block) => {
-        const mat = compileMaterialBlock(block);
-        return materialToAndroidXR(mat, `db${blockIdx++}`);
+    const compiled = compileDomainBlocks(
+      domainBlocks,
+      {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          return materialToAndroidXR(mat, `db${blockIdx++}`);
+        },
+        physics: (block) => {
+          const phys = compilePhysicsBlock(block);
+          return physicsToAndroidXR(phys, `db${blockIdx++}`);
+        },
+        vfx: (block) => {
+          const ps = compileParticleBlock(block);
+          return particlesToAndroidXR(ps, `db${blockIdx++}`);
+        },
+        postfx: (block) => {
+          const pp = compilePostProcessingBlock(block);
+          const postfx = pp as CompiledPostProcessing;
+          const effects = postfx.effects
+            .map((e) => `// Effect: ${e.type} — ${JSON.stringify(e.properties)}`)
+            .join('\n');
+          return `// Post-Processing: ${postfx.keyword} — configure via Filament Renderer post-processing\n${effects}`;
+        },
+        audio: (block) => {
+          const audio = compileAudioSourceBlock(block);
+          return audioSourceToAndroidXR(audio, `db${blockIdx++}`);
+        },
+        weather: (block) => {
+          const weather = compileWeatherBlock(block);
+          return weatherToAndroidXR(weather);
+        },
       },
-      physics: (block) => {
-        const phys = compilePhysicsBlock(block);
-        return physicsToAndroidXR(phys, `db${blockIdx++}`);
-      },
-      vfx: (block) => {
-        const ps = compileParticleBlock(block);
-        return particlesToAndroidXR(ps, `db${blockIdx++}`);
-      },
-      postfx: (block) => {
-        const pp = compilePostProcessingBlock(block);
-        const postfx = pp as CompiledPostProcessing;
-        const effects = postfx.effects.map(e => `// Effect: ${e.type} — ${JSON.stringify(e.properties)}`).join('\n');
-        return `// Post-Processing: ${postfx.keyword} — configure via Filament Renderer post-processing\n${effects}`;
-      },
-      audio: (block) => {
-        const audio = compileAudioSourceBlock(block);
-        return audioSourceToAndroidXR(audio, `db${blockIdx++}`);
-      },
-      weather: (block) => {
-        const weather = compileWeatherBlock(block);
-        return weatherToAndroidXR(weather);
-      },
-    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+      (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`
+    );
 
     for (const line of compiled) {
       for (const l of line.split('\n')) {
@@ -1457,7 +1495,9 @@ ${hasDrmVideo ? `
     // Jetpack Projected API
     this.emit('import androidx.xr.projected.ProjectedContext');
     this.emit('import androidx.xr.projected.ProjectedDeviceController');
-    this.emit('import androidx.xr.projected.ProjectedDeviceController.Companion.CAPABILITY_VISUAL_UI');
+    this.emit(
+      'import androidx.xr.projected.ProjectedDeviceController.Companion.CAPABILITY_VISUAL_UI'
+    );
     this.emit('import androidx.xr.projected.ProjectedDisplayController');
     this.emit('');
 
@@ -1502,8 +1542,14 @@ ${hasDrmVideo ? `
     this.emit('// Detect glasses display capability via Projected API');
     this.emit('lifecycleScope.launch {');
     this.indent();
-    this.emit('val projectedDeviceController = ProjectedDeviceController.create(this@' + this.options.activityName + ')');
-    this.emit('isVisualUiSupported = projectedDeviceController.capabilities.contains(CAPABILITY_VISUAL_UI)');
+    this.emit(
+      'val projectedDeviceController = ProjectedDeviceController.create(this@' +
+        this.options.activityName +
+        ')'
+    );
+    this.emit(
+      'isVisualUiSupported = projectedDeviceController.capabilities.contains(CAPABILITY_VISUAL_UI)'
+    );
     this.dedent();
     this.emit('}');
     this.emit('');
@@ -1514,7 +1560,9 @@ ${hasDrmVideo ? `
       this.emit('.setUsage(AudioAttributes.USAGE_GAME)');
       this.emit('.setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()');
       this.dedent();
-      this.emit('soundPool = SoundPool.Builder().setMaxStreams(8).setAudioAttributes(audioAttrs).build()');
+      this.emit(
+        'soundPool = SoundPool.Builder().setMaxStreams(8).setAudioAttributes(audioAttrs).build()'
+      );
       this.emit('');
     }
 
@@ -1670,7 +1718,9 @@ ${hasDrmVideo ? `
     if (text) {
       // Text objects become plain Text composables
       const color = this.findProp(obj, 'color');
-      this.emit(`Text("${text}"${color ? `, color = ${this.toKotlinColor(color as string)}` : ''})`);
+      this.emit(
+        `Text("${text}"${color ? `, color = ${this.toKotlinColor(color as string)}` : ''})`
+      );
     } else if (modelSrc) {
       // 3D model objects become Card with model info
       this.emit(`Card(`);
@@ -1715,7 +1765,10 @@ ${hasDrmVideo ? `
   /**
    * Converts a HoloUI element into appropriate Glimmer composable.
    */
-  private emitGlimmerUIElement(el: { name: string; properties: Array<{ key: string; value: any }> }): void {
+  private emitGlimmerUIElement(el: {
+    name: string;
+    properties: Array<{ key: string; value: any }>;
+  }): void {
     const vn = this.sanitizeName(el.name);
     const text = el.properties.find((p) => p.key === 'text')?.value;
     const label = el.properties.find((p) => p.key === 'label')?.value;
@@ -1725,7 +1778,9 @@ ${hasDrmVideo ? `
       this.emit(`Button(onClick = { /* ${vn} */ }) { Text("${label}") }`);
     } else if (text) {
       const color = el.properties.find((p) => p.key === 'color')?.value;
-      this.emit(`Text("${text}"${color ? `, color = ${this.toKotlinColor(color as string)}` : ''})`);
+      this.emit(
+        `Text("${text}"${color ? `, color = ${this.toKotlinColor(color as string)}` : ''})`
+      );
     } else {
       this.emit(`Card(title = { Text("${el.name}") }) {`);
       this.indent();
@@ -2038,9 +2093,13 @@ dependencies {
     // ProjectedCameraPreview helper
     this.emit('/**');
     this.emit(' * Accesses the AI glasses camera via ProjectedContext.');
-    this.emit(' * Uses CameraX with projected device context for the glasses\' outward-facing camera.');
+    this.emit(
+      " * Uses CameraX with projected device context for the glasses' outward-facing camera."
+    );
     this.emit(' */');
-    this.emit('fun getGlassesCameraContext(hostContext: android.content.Context): android.content.Context? {');
+    this.emit(
+      'fun getGlassesCameraContext(hostContext: android.content.Context): android.content.Context? {'
+    );
     this.indent();
     this.emit('return try {');
     this.indent();
@@ -2062,12 +2121,16 @@ dependencies {
     this.emit(' * Returns a Flow<Boolean> tracking whether glasses are connected.');
     this.emit(' */');
     this.emit('@Composable');
-    this.emit('fun rememberGlassesConnectionState(context: android.content.Context): State<Boolean> {');
+    this.emit(
+      'fun rememberGlassesConnectionState(context: android.content.Context): State<Boolean> {'
+    );
     this.indent();
     this.emit('val isConnected = remember { mutableStateOf(false) }');
     this.emit('LaunchedEffect(Unit) {');
     this.indent();
-    this.emit('ProjectedContext.isProjectedDeviceConnected(context, coroutineContext).collect { connected ->');
+    this.emit(
+      'ProjectedContext.isProjectedDeviceConnected(context, coroutineContext).collect { connected ->'
+    );
     this.indent();
     this.emit('isConnected.value = connected');
     this.dedent();

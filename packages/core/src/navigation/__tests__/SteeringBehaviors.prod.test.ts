@@ -104,7 +104,9 @@ describe('SteeringBehaviors — Production', () => {
       const agent = makeAgent();
       agent.maxSpeed = 2;
       sb.applyForce(agent, { x: 100, y: 0, z: 0 }, 1.0);
-      const speed = Math.sqrt(agent.velocity.x ** 2 + agent.velocity.y ** 2 + agent.velocity.z ** 2);
+      const speed = Math.sqrt(
+        agent.velocity.x ** 2 + agent.velocity.y ** 2 + agent.velocity.z ** 2
+      );
       expect(speed).toBeLessThanOrEqual(2.01);
     });
   });

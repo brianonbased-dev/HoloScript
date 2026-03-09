@@ -92,11 +92,16 @@ function ParseTreeNode({ node, depth = 0 }: { node: ParseNode; depth?: number })
     <div style={{ paddingLeft: indent }}>
       <div className="flex items-center gap-1.5 py-0.5">
         <span className="text-[11px]">{icons[node.type] ?? '·'}</span>
-        <span className={`text-[11px] font-mono ${
-          node.type === 'scene' ? 'text-studio-accent font-semibold' :
-          node.type === 'object' ? 'text-blue-400' : 'text-green-400'
-        }`}>
-          {node.type === 'trait' ? `@${node.trait}` : node.name ?? node.type}
+        <span
+          className={`text-[11px] font-mono ${
+            node.type === 'scene'
+              ? 'text-studio-accent font-semibold'
+              : node.type === 'object'
+                ? 'text-blue-400'
+                : 'text-green-400'
+          }`}
+        >
+          {node.type === 'trait' ? `@${node.trait}` : (node.name ?? node.type)}
         </span>
         <span className="text-[9px] text-studio-muted">{node.type}</span>
       </div>
@@ -112,7 +117,11 @@ export default function PlaygroundPage() {
   const [code, setCode] = useState(() => {
     const enc = searchParams.get('code');
     if (enc) {
-      try { return atob(enc); } catch { return STARTER; }
+      try {
+        return atob(enc);
+      } catch {
+        return STARTER;
+      }
     }
     return STARTER;
   });
@@ -145,7 +154,10 @@ export default function PlaygroundPage() {
     <div className="flex h-screen flex-col bg-[#0a0a12] text-studio-text">
       {/* Top bar */}
       <header className="flex shrink-0 items-center gap-2 sm:gap-3 border-b border-studio-border bg-studio-panel/80 px-2 sm:px-4 py-2.5 backdrop-blur">
-        <Link href="/" className="flex items-center gap-1.5 text-studio-muted hover:text-studio-text transition">
+        <Link
+          href="/"
+          className="flex items-center gap-1.5 text-studio-muted hover:text-studio-text transition"
+        >
           <Globe className="h-4 w-4 text-studio-accent" />
           <span className="text-xs font-bold hidden sm:inline">HoloScript</span>
         </Link>
@@ -164,7 +176,11 @@ export default function PlaygroundPage() {
             title="Copy shareable link"
             className="studio-header-btn flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1.5 text-[11px] text-studio-muted transition hover:text-studio-text"
           >
-            {copied ? <CheckCircle className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? (
+              <CheckCircle className="h-3.5 w-3.5 text-green-400" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
             {copied ? 'Copied!' : 'Share'}
           </button>
           <Link
@@ -205,7 +221,9 @@ export default function PlaygroundPage() {
           <div className="flex items-center gap-2 border-b border-studio-border px-3 py-2">
             <Play className="h-3.5 w-3.5 text-studio-accent" />
             <span className="text-[11px] font-semibold">Parse Tree</span>
-            <div className={`ml-auto h-2 w-2 rounded-full ${parseResult.ok ? 'bg-green-400' : 'bg-red-400'}`} />
+            <div
+              className={`ml-auto h-2 w-2 rounded-full ${parseResult.ok ? 'bg-green-400' : 'bg-red-400'}`}
+            />
           </div>
 
           <div className="flex-1 overflow-y-auto p-3">

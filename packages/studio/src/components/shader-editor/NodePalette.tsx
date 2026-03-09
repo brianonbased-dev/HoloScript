@@ -53,8 +53,7 @@ export function NodePalette() {
     const query = searchQuery.toLowerCase();
     const filtered = ALL_NODE_TEMPLATES.filter(
       (template) =>
-        template.name.toLowerCase().includes(query) ||
-        template.type.toLowerCase().includes(query)
+        template.name.toLowerCase().includes(query) || template.type.toLowerCase().includes(query)
     );
 
     const categorized: Partial<Record<NodeCategory, INodeTemplate[]>> = {};
@@ -122,10 +121,13 @@ export function NodePalette() {
   };
 
   const handleDragStart = (e: React.DragEvent, template: INodeTemplate) => {
-    e.dataTransfer.setData('application/reactflow', JSON.stringify({
-      type: template.type,
-      name: template.name,
-    }));
+    e.dataTransfer.setData(
+      'application/reactflow',
+      JSON.stringify({
+        type: template.type,
+        name: template.name,
+      })
+    );
     e.dataTransfer.effectAllowed = 'move';
   };
 
@@ -268,7 +270,11 @@ function NodeSection({
                 >
                   <Star
                     size={14}
-                    className={favorites.has(template.type) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}
+                    className={
+                      favorites.has(template.type)
+                        ? 'text-yellow-500 fill-yellow-500'
+                        : 'text-gray-400'
+                    }
                   />
                 </button>
               </div>

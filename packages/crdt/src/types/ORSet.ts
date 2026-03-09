@@ -105,14 +105,10 @@ export class ORSet<T> {
     // Collect all current add tags (observed adds)
     const observedTags = Array.from(element.addTags);
 
-    const operation = this.signer.createOperation(
-      CRDTOperationType.OR_SET_REMOVE,
-      this.crdtId,
-      {
-        value,
-        observedTags,
-      },
-    );
+    const operation = this.signer.createOperation(CRDTOperationType.OR_SET_REMOVE, this.crdtId, {
+      value,
+      observedTags,
+    });
 
     // Apply locally
     this.applyRemove(value, observedTags);
@@ -181,7 +177,7 @@ export class ORSet<T> {
     tag: string,
     timestamp: number,
     actorDid: string,
-    operationId: string,
+    operationId: string
   ): void {
     this.applyAdd(value, tag, timestamp, actorDid, operationId);
   }
@@ -201,7 +197,7 @@ export class ORSet<T> {
     tag: string,
     timestamp: number,
     actorDid: string,
-    operationId: string,
+    operationId: string
   ): void {
     const key = this.keyForValue(value);
     let element = this.elements.get(key);

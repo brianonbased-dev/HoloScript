@@ -152,7 +152,8 @@ describe('NetworkedTrait — property management', () => {
 
   it('getState returns all properties as plain object', () => {
     const t = makeOwnerTrait();
-    t.setProperty('a', 1); t.setProperty('b', 'hello');
+    t.setProperty('a', 1);
+    t.setProperty('b', 'hello');
     expect(t.getState()).toEqual({ a: 1, b: 'hello' });
   });
 
@@ -253,11 +254,15 @@ describe('NetworkedTrait — ownership', () => {
   });
 
   it('requestOwnership returns false when non-transferable and not owner', async () => {
-    expect(await makeSharedTrait({ authority: { transferable: false } }).requestOwnership()).toBe(false);
+    expect(await makeSharedTrait({ authority: { transferable: false } }).requestOwnership()).toBe(
+      false
+    );
   });
 
   it('requestOwnership grants locally when transferable + no syncProtocol', async () => {
-    expect(await makeSharedTrait({ authority: { transferable: true } }).requestOwnership()).toBe(true);
+    expect(await makeSharedTrait({ authority: { transferable: true } }).requestOwnership()).toBe(
+      true
+    );
   });
 
   it('releaseOwnership emits ownershipChanged', () => {
@@ -319,7 +324,9 @@ describe('NetworkedTrait — event listeners', () => {
   it('listener registered via on() receives event payload', () => {
     const t = makeOwnerTrait();
     let received: any = null;
-    t.on('propertyChanged', (ev) => { received = ev; });
+    t.on('propertyChanged', (ev) => {
+      received = ev;
+    });
     t.setProperty('z', 77);
     expect(received).not.toBeNull();
     expect(received.property).toBe('z');
@@ -328,7 +335,8 @@ describe('NetworkedTrait — event listeners', () => {
 
   it('multiple listeners both receive same event', () => {
     const t = makeOwnerTrait();
-    const h1 = vi.fn(); const h2 = vi.fn();
+    const h1 = vi.fn();
+    const h2 = vi.fn();
     t.on('propertyChanged', h1);
     t.on('propertyChanged', h2);
     t.setProperty('y', 99);

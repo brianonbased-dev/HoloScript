@@ -15,7 +15,7 @@ export type CurveType = 'linear' | 'quadratic' | 'logistic' | 'step';
 
 export interface Consideration {
   name: string;
-  input: () => number;        // 0-1 normalized input
+  input: () => number; // 0-1 normalized input
   curve: CurveType;
   weight: number;
   invert: boolean;
@@ -25,9 +25,9 @@ export interface UtilityAction {
   id: string;
   name: string;
   considerations: Consideration[];
-  cooldown: number;          // Seconds
+  cooldown: number; // Seconds
   lastExecuted: number;
-  bonus: number;             // Flat score bonus
+  bonus: number; // Flat score bonus
   execute: () => void;
 }
 
@@ -45,8 +45,12 @@ export class UtilityAI {
   // Action Management
   // ---------------------------------------------------------------------------
 
-  addAction(action: UtilityAction): void { this.actions.set(action.id, action); }
-  removeAction(id: string): void { this.actions.delete(id); }
+  addAction(action: UtilityAction): void {
+    this.actions.set(action.id, action);
+  }
+  removeAction(id: string): void {
+    this.actions.delete(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Scoring
@@ -62,10 +66,18 @@ export class UtilityAI {
 
       let value: number;
       switch (c.curve) {
-        case 'linear': value = input; break;
-        case 'quadratic': value = input * input; break;
-        case 'logistic': value = 1 / (1 + Math.exp(-10 * (input - 0.5))); break;
-        case 'step': value = input >= 0.5 ? 1 : 0; break;
+        case 'linear':
+          value = input;
+          break;
+        case 'quadratic':
+          value = input * input;
+          break;
+        case 'logistic':
+          value = 1 / (1 + Math.exp(-10 * (input - 0.5)));
+          break;
+        case 'step':
+          value = input >= 0.5 ? 1 : 0;
+          break;
       }
 
       score *= value * c.weight;
@@ -92,7 +104,10 @@ export class UtilityAI {
 
     for (const action of this.actions.values()) {
       const score = this.scoreAction(action);
-      if (score > bestScore) { bestScore = score; bestAction = action; }
+      if (score > bestScore) {
+        bestScore = score;
+        bestAction = action;
+      }
     }
 
     return bestAction;
@@ -104,7 +119,11 @@ export class UtilityAI {
 
     action.execute();
     action.lastExecuted = this.currentTime;
-    this.history.push({ actionId: action.id, score: this.scoreAction(action), timestamp: this.currentTime });
+    this.history.push({
+      actionId: action.id,
+      score: this.scoreAction(action),
+      timestamp: this.currentTime,
+    });
     if (this.history.length > this.maxHistory) this.history.shift();
 
     return action.id;
@@ -114,7 +133,13 @@ export class UtilityAI {
   // Time
   // ---------------------------------------------------------------------------
 
-  setTime(time: number): void { this.currentTime = time; }
-  getHistory() { return [...this.history]; }
-  getActionCount(): number { return this.actions.size; }
+  setTime(time: number): void {
+    this.currentTime = time;
+  }
+  getHistory() {
+    return [...this.history];
+  }
+  getActionCount(): number {
+    return this.actions.size;
+  }
 }

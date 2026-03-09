@@ -17,11 +17,11 @@ export type BrushMode = 'raise' | 'lower' | 'flatten' | 'smooth' | 'paint';
 
 export interface BrushConfig {
   mode: BrushMode;
-  radius: number;           // Brush radius in grid cells
-  strength: number;         // Brush intensity (0-1)
-  falloff: number;          // Edge falloff (0 = hard, 1 = soft)
-  flattenHeight?: number;   // Target height for flatten mode (0-1)
-  paintLayerId?: string;    // Layer to paint for paint mode
+  radius: number; // Brush radius in grid cells
+  strength: number; // Brush intensity (0-1)
+  falloff: number; // Edge falloff (0 = hard, 1 = soft)
+  flattenHeight?: number; // Target height for flatten mode (0-1)
+  paintLayerId?: string; // Layer to paint for paint mode
 }
 
 export interface BrushStroke {
@@ -208,6 +208,10 @@ export class TerrainBrush {
     return stroke;
   }
 
-  getUndoCount(): number { return this.undoStack.length; }
-  getRedoCount(): number { return this.redoStack.length; }
+  getUndoCount(): number {
+    return this.undoStack.length;
+  }
+  getRedoCount(): number {
+    return this.redoStack.length;
+  }
 }

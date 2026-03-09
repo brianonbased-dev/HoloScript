@@ -470,7 +470,8 @@ describe('ABTestTrait', () => {
       const treatmentStats = statsMap.get('treatment')!;
       treatmentStats.participantCount = treatmentTotal;
       treatmentStats.conversionCounts.click = treatmentConversions;
-      treatmentStats.conversionRates.click = treatmentTotal > 0 ? treatmentConversions / treatmentTotal : 0;
+      treatmentStats.conversionRates.click =
+        treatmentTotal > 0 ? treatmentConversions / treatmentTotal : 0;
     }
 
     it('should calculate z-test significance with clear difference', () => {

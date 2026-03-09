@@ -21,11 +21,17 @@ const lumenConfig: GlobalIlluminationConfig = {
 
 const ddgiConfig: GlobalIlluminationConfig = {
   mode: 'ddgi',
-  ddgi: { probeCount: 64, raysPerProbe: 144, irradianceTexSize: 8, visibilityTexSize: 16, normalBias: 0.02, hysteresis: 0.95 },
+  ddgi: {
+    probeCount: 64,
+    raysPerProbe: 144,
+    irradianceTexSize: 8,
+    visibilityTexSize: 16,
+    normalBias: 0.02,
+    hysteresis: 0.95,
+  },
 };
 
 describe('GlobalIlluminationTrait — Production Tests', () => {
-
   describe('validate()', () => {
     it('accepts sh_probes mode with sh config', () => {
       expect(GlobalIlluminationTrait.validate(shProbeConfig)).toBe(true);
@@ -57,17 +63,25 @@ describe('GlobalIlluminationTrait — Production Tests', () => {
     });
 
     it('throws when ddgi.hysteresis out of range', () => {
-      const bad: GlobalIlluminationConfig = { ...ddgiConfig, ddgi: { ...ddgiConfig.ddgi!, hysteresis: 1.5 } };
+      const bad: GlobalIlluminationConfig = {
+        ...ddgiConfig,
+        ddgi: { ...ddgiConfig.ddgi!, hysteresis: 1.5 },
+      };
       expect(() => GlobalIlluminationTrait.validate(bad)).toThrow('hysteresis');
     });
 
     it('throws when ddgi.raysPerProbe < 1', () => {
-      const bad: GlobalIlluminationConfig = { ...ddgiConfig, ddgi: { ...ddgiConfig.ddgi!, raysPerProbe: 0 } };
+      const bad: GlobalIlluminationConfig = {
+        ...ddgiConfig,
+        ddgi: { ...ddgiConfig.ddgi!, raysPerProbe: 0 },
+      };
       expect(() => GlobalIlluminationTrait.validate(bad)).toThrow('raysPerProbe');
     });
 
     it('throws on negative skyIntensity', () => {
-      expect(() => GlobalIlluminationTrait.validate({ mode: 'lumen', skyIntensity: -1 })).toThrow('skyIntensity');
+      expect(() => GlobalIlluminationTrait.validate({ mode: 'lumen', skyIntensity: -1 })).toThrow(
+        'skyIntensity'
+      );
     });
   });
 

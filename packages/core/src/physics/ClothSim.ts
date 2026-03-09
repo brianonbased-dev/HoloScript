@@ -12,8 +12,12 @@
 // =============================================================================
 
 export interface ClothParticle {
-  x: number; y: number; z: number;
-  prevX: number; prevY: number; prevZ: number;
+  x: number;
+  y: number;
+  z: number;
+  prevX: number;
+  prevY: number;
+  prevZ: number;
   mass: number;
   pinned: boolean;
 }
@@ -44,7 +48,13 @@ export class ClothSim {
   private height = 0;
 
   constructor(config?: Partial<ClothConfig>) {
-    this.config = { gravity: -9.81, damping: 0.99, iterations: 5, wind: { x: 0, y: 0, z: 0 }, ...config };
+    this.config = {
+      gravity: -9.81,
+      damping: 0.99,
+      iterations: 5,
+      wind: { x: 0, y: 0, z: 0 },
+      ...config,
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -61,8 +71,12 @@ export class ClothSim {
     for (let row = 0; row < height; row++) {
       for (let col = 0; col < width; col++) {
         this.particles.push({
-          x: col * spacing, y: 0, z: row * spacing,
-          prevX: col * spacing, prevY: 0, prevZ: row * spacing,
+          x: col * spacing,
+          y: 0,
+          z: row * spacing,
+          prevX: col * spacing,
+          prevY: 0,
+          prevZ: row * spacing,
           mass: 1,
           pinned: false,
         });
@@ -97,8 +111,12 @@ export class ClothSim {
   // Pinning
   // ---------------------------------------------------------------------------
 
-  pin(index: number): void { if (this.particles[index]) this.particles[index].pinned = true; }
-  unpin(index: number): void { if (this.particles[index]) this.particles[index].pinned = false; }
+  pin(index: number): void {
+    if (this.particles[index]) this.particles[index].pinned = true;
+  }
+  unpin(index: number): void {
+    if (this.particles[index]) this.particles[index].pinned = false;
+  }
 
   pinTopRow(): void {
     for (let col = 0; col < this.width; col++) this.pin(col);
@@ -121,9 +139,9 @@ export class ClothSim {
       p.prevY = p.y;
       p.prevZ = p.z;
 
-      p.x += vx + this.config.wind.x * dt * dt / p.mass;
+      p.x += vx + (this.config.wind.x * dt * dt) / p.mass;
       p.y += vy + this.config.gravity * dt * dt;
-      p.z += vz + this.config.wind.z * dt * dt / p.mass;
+      p.z += vz + (this.config.wind.z * dt * dt) / p.mass;
     }
 
     // Constraint solving
@@ -139,13 +157,21 @@ export class ClothSim {
 
         if (dist === 0) continue;
 
-        const diff = (c.restLength - dist) / dist * c.stiffness * 0.5;
+        const diff = ((c.restLength - dist) / dist) * c.stiffness * 0.5;
         const ox = dx * diff;
         const oy = dy * diff;
         const oz = dz * diff;
 
-        if (!a.pinned) { a.x -= ox; a.y -= oy; a.z -= oz; }
-        if (!b.pinned) { b.x += ox; b.y += oy; b.z += oz; }
+        if (!a.pinned) {
+          a.x -= ox;
+          a.y -= oy;
+          a.z -= oz;
+        }
+        if (!b.pinned) {
+          b.x += ox;
+          b.y += oy;
+          b.z += oz;
+        }
       }
     }
   }
@@ -154,23 +180,44 @@ export class ClothSim {
   // Wind
   // ---------------------------------------------------------------------------
 
-  setWind(x: number, y: number, z: number): void { this.config.wind = { x, y, z }; }
+  setWind(x: number, y: number, z: number): void {
+    this.config.wind = { x, y, z };
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getParticle(index: number): ClothParticle | undefined { return this.particles[index]; }
-  getParticleCount(): number { return this.particles.length; }
-  getConstraintCount(): number { return this.constraints.length; }
-  getGridSize(): { width: number; height: number } { return { width: this.width, height: this.height }; }
+  getParticle(index: number): ClothParticle | undefined {
+    return this.particles[index];
+  }
+  getParticleCount(): number {
+    return this.particles.length;
+  }
+  getConstraintCount(): number {
+    return this.constraints.length;
+  }
+  getGridSize(): { width: number; height: number } {
+    return { width: this.width, height: this.height };
+  }
 
-  getAABB(): { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } } {
-    let minX = Infinity, minY = Infinity, minZ = Infinity;
-    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  getAABB(): {
+    min: { x: number; y: number; z: number };
+    max: { x: number; y: number; z: number };
+  } {
+    let minX = Infinity,
+      minY = Infinity,
+      minZ = Infinity;
+    let maxX = -Infinity,
+      maxY = -Infinity,
+      maxZ = -Infinity;
     for (const p of this.particles) {
-      minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); minZ = Math.min(minZ, p.z);
-      maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); maxZ = Math.max(maxZ, p.z);
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+      minZ = Math.min(minZ, p.z);
+      maxX = Math.max(maxX, p.x);
+      maxY = Math.max(maxY, p.y);
+      maxZ = Math.max(maxZ, p.z);
     }
     return { min: { x: minX, y: minY, z: minZ }, max: { x: maxX, y: maxY, z: maxZ } };
   }

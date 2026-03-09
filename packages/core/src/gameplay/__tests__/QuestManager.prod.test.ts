@@ -45,7 +45,6 @@ function addAvailableQuest(qm: QuestManager, id = 'q1') {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('QuestManager', () => {
-
   // ── Construction ──────────────────────────────────────────────────────────
   describe('construction', () => {
     it('starts empty', () => {

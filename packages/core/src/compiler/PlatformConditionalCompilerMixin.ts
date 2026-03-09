@@ -89,9 +89,7 @@ function expandPlatformNames(names: string[]): string[] {
   const expanded: string[] = [];
   for (const rawName of names) {
     // Resolve alias first (e.g., phone -> mobile, car -> automotive)
-    const name = rawName in PLATFORM_ALIASES
-      ? PLATFORM_ALIASES[rawName]
-      : rawName;
+    const name = rawName in PLATFORM_ALIASES ? PLATFORM_ALIASES[rawName] : rawName;
 
     if (name in PLATFORM_CATEGORIES) {
       expanded.push(...PLATFORM_CATEGORIES[name as PlatformCategory]);
@@ -113,7 +111,7 @@ function expandPlatformNames(names: string[]): string[] {
  */
 export function matchesPlatformConstraint(
   constraint: PlatformConstraint | undefined,
-  target: CompilePlatformTarget,
+  target: CompilePlatformTarget
 ): boolean {
   if (!constraint) return true;
 
@@ -159,19 +157,14 @@ export class PlatformConditionalCompilerMixin {
    *
    * Blocks without a `@platform()` constraint are always included.
    */
-  filterForPlatform(
-    composition: HoloComposition,
-    target: CompilePlatformTarget,
-  ): HoloComposition {
+  filterForPlatform(composition: HoloComposition, target: CompilePlatformTarget): HoloComposition {
     return {
       ...composition,
       objects: this.filterBlocks(composition.objects, target),
       templates: this.filterBlocks(composition.templates, target),
       spatialGroups: this.filterBlocks(composition.spatialGroups, target),
       lights: this.filterBlocks(composition.lights, target),
-      norms: composition.norms
-        ? this.filterBlocks(composition.norms, target)
-        : undefined,
+      norms: composition.norms ? this.filterBlocks(composition.norms, target) : undefined,
     };
   }
 
@@ -180,7 +173,7 @@ export class PlatformConditionalCompilerMixin {
    */
   matchesPlatform(
     constraint: PlatformConstraint | undefined,
-    target: CompilePlatformTarget,
+    target: CompilePlatformTarget
   ): boolean {
     return matchesPlatformConstraint(constraint, target);
   }
@@ -190,10 +183,8 @@ export class PlatformConditionalCompilerMixin {
    */
   private filterBlocks<T extends { platformConstraint?: PlatformConstraint }>(
     blocks: T[],
-    target: CompilePlatformTarget,
+    target: CompilePlatformTarget
   ): T[] {
-    return blocks.filter(block =>
-      matchesPlatformConstraint(block.platformConstraint, target),
-    );
+    return blocks.filter((block) => matchesPlatformConstraint(block.platformConstraint, target));
   }
 }

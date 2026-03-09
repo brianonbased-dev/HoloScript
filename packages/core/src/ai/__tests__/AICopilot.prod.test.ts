@@ -159,7 +159,10 @@ describe('AICopilot', () => {
       const adapter = makeGenerateAdapter();
       copilot.setAdapter(adapter);
       await copilot.generateFromPrompt('hello', { complexity: 'high' } as any);
-      expect(adapter.generateHoloScript).toHaveBeenCalledWith('hello', expect.objectContaining({ complexity: 'high' }));
+      expect(adapter.generateHoloScript).toHaveBeenCalledWith(
+        'hello',
+        expect.objectContaining({ complexity: 'high' })
+      );
     });
 
     it('includes warnings in response text', async () => {
@@ -208,7 +211,9 @@ describe('AICopilot', () => {
 
     it('returns modify suggestion for selected entity', async () => {
       copilot.setAdapter(makeGenerateAdapter());
-      copilot.updateContext({ selectedEntity: { id: 'hero', type: 'player', properties: { hp: 100 } } });
+      copilot.updateContext({
+        selectedEntity: { id: 'hero', type: 'player', properties: { hp: 100 } },
+      });
       const r = await copilot.suggestFromSelection();
       expect(r.suggestions[0].type).toBe('modify');
       expect(r.text).toContain('player');

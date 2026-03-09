@@ -29,13 +29,19 @@ function makeItem(overrides: Partial<ItemDef> = {}): ItemDef {
 }
 
 function makeStackable(overrides: Partial<ItemDef> = {}): ItemDef {
-  return makeItem({ id: 'arrow', name: 'Arrow', category: 'misc', weight: 0.05, maxStack: 100, ...overrides });
+  return makeItem({
+    id: 'arrow',
+    name: 'Arrow',
+    category: 'misc',
+    weight: 0.05,
+    maxStack: 100,
+    ...overrides,
+  });
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('InventorySystem', () => {
-
   // ── Construction ──────────────────────────────────────────────────────────
   describe('construction', () => {
     it('starts empty with defaults', () => {
@@ -77,7 +83,7 @@ describe('InventorySystem', () => {
       const inv = new InventorySystem(10, 1000);
       const arrow = makeStackable({ maxStack: 10 });
       inv.addItem(arrow, 10); // fills slot 0
-      inv.addItem(arrow, 5);  // opens slot 1
+      inv.addItem(arrow, 5); // opens slot 1
       expect(inv.getSlotCount()).toBe(2);
       expect(inv.getItemCount('arrow')).toBe(15);
     });
@@ -200,7 +206,7 @@ describe('InventorySystem', () => {
       inv.addItem(makeItem({ id: 'z', name: 'Zephyr Blade' }));
       inv.addItem(makeItem({ id: 'a', name: 'Ancient Scroll', category: 'misc' }));
       inv.sort('name');
-      const names = inv.getAllItems().map(s => s.item.name);
+      const names = inv.getAllItems().map((s) => s.item.name);
       expect(names[0]).toBe('Ancient Scroll');
     });
 

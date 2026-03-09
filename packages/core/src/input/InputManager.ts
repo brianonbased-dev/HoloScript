@@ -17,7 +17,7 @@ export interface KeyState {
   pressed: boolean;
   justPressed: boolean;
   justReleased: boolean;
-  heldDuration: number;     // Seconds held
+  heldDuration: number; // Seconds held
 }
 
 export interface MouseState {
@@ -30,7 +30,7 @@ export interface MouseState {
 }
 
 export interface GamepadAxis {
-  value: number;             // -1 to 1
+  value: number; // -1 to 1
   deadZone: number;
 }
 
@@ -43,7 +43,7 @@ export interface GamepadState {
 
 export interface InputAction {
   name: string;
-  value: number;             // 0 or 1 for digital, -1 to 1 for analog
+  value: number; // 0 or 1 for digital, -1 to 1 for analog
   pressed: boolean;
   justPressed: boolean;
   justReleased: boolean;
@@ -66,15 +66,19 @@ export class InputManager {
   private prevKeys: Set<string> = new Set();
   private mouse: MouseState;
   private gamepads: Map<number, GamepadState> = new Map();
-  private actionMappings: Map<string, string[]> = new Map();  // action -> [key bindings]
+  private actionMappings: Map<string, string[]> = new Map(); // action -> [key bindings]
   private actions: Map<string, InputAction> = new Map();
   private defaultDeadZone = 0.15;
   private inputBuffer: Array<{ action: string; timestamp: number }> = [];
-  private bufferDuration = 200;  // ms
+  private bufferDuration = 200; // ms
 
   constructor() {
     this.mouse = {
-      x: 0, y: 0, deltaX: 0, deltaY: 0, scrollDelta: 0,
+      x: 0,
+      y: 0,
+      deltaX: 0,
+      deltaY: 0,
+      scrollDelta: 0,
       buttons: new Map(),
     };
   }
@@ -86,7 +90,12 @@ export class InputManager {
   keyDown(key: string): void {
     const existing = this.keys.get(key);
     if (!existing || !existing.pressed) {
-      this.keys.set(key, { pressed: true, justPressed: true, justReleased: false, heldDuration: 0 });
+      this.keys.set(key, {
+        pressed: true,
+        justPressed: true,
+        justReleased: false,
+        heldDuration: 0,
+      });
     }
   }
 
@@ -96,7 +105,12 @@ export class InputManager {
       existing.pressed = false;
       existing.justReleased = true;
     } else {
-      this.keys.set(key, { pressed: false, justPressed: false, justReleased: true, heldDuration: 0 });
+      this.keys.set(key, {
+        pressed: false,
+        justPressed: false,
+        justReleased: true,
+        heldDuration: 0,
+      });
     }
   }
 
@@ -128,7 +142,12 @@ export class InputManager {
   }
 
   mouseButtonDown(button: number): void {
-    this.mouse.buttons.set(button, { pressed: true, justPressed: true, justReleased: false, heldDuration: 0 });
+    this.mouse.buttons.set(button, {
+      pressed: true,
+      justPressed: true,
+      justReleased: false,
+      heldDuration: 0,
+    });
   }
 
   mouseButtonUp(button: number): void {
@@ -188,7 +207,12 @@ export class InputManager {
   gamepadButtonDown(padIndex: number, button: number): void {
     const gp = this.gamepads.get(padIndex);
     if (!gp) return;
-    gp.buttons.set(button, { pressed: true, justPressed: true, justReleased: false, heldDuration: 0 });
+    gp.buttons.set(button, {
+      pressed: true,
+      justPressed: true,
+      justReleased: false,
+      heldDuration: 0,
+    });
   }
 
   setDeadZone(value: number): void {
@@ -203,7 +227,11 @@ export class InputManager {
     this.actionMappings.set(actionName, keys);
     if (!this.actions.has(actionName)) {
       this.actions.set(actionName, {
-        name: actionName, value: 0, pressed: false, justPressed: false, justReleased: false,
+        name: actionName,
+        value: 0,
+        pressed: false,
+        justPressed: false,
+        justReleased: false,
       });
     }
   }
@@ -231,7 +259,7 @@ export class InputManager {
 
   getBufferedAction(actionName: string, withinMs?: number): boolean {
     const cutoff = Date.now() - (withinMs ?? this.bufferDuration);
-    return this.inputBuffer.some(e => e.action === actionName && e.timestamp >= cutoff);
+    return this.inputBuffer.some((e) => e.action === actionName && e.timestamp >= cutoff);
   }
 
   setBufferDuration(ms: number): void {
@@ -298,7 +326,7 @@ export class InputManager {
 
     // Prune old buffer entries
     const cutoff = now - this.bufferDuration * 2;
-    this.inputBuffer = this.inputBuffer.filter(e => e.timestamp > cutoff);
+    this.inputBuffer = this.inputBuffer.filter((e) => e.timestamp > cutoff);
   }
 
   // ---------------------------------------------------------------------------

@@ -57,7 +57,13 @@ describe('LocalRegistry — publish', () => {
   });
 
   it('stores description and author', () => {
-    const m = reg.publish({ name: 'pkg', version: '1.0.0', content: 'c', description: 'A test package', author: 'Alice' });
+    const m = reg.publish({
+      name: 'pkg',
+      version: '1.0.0',
+      content: 'c',
+      description: 'A test package',
+      author: 'Alice',
+    });
     expect(m.description).toBe('A test package');
     expect(m.author).toBe('Alice');
   });
@@ -114,7 +120,13 @@ describe('LocalRegistry — list / search', () => {
 
   beforeEach(() => {
     reg = new LocalRegistry();
-    reg.publish({ name: 'physics-engine', version: '1.0.0', content: 'c', tags: ['physics'], description: 'Physics engine' });
+    reg.publish({
+      name: 'physics-engine',
+      version: '1.0.0',
+      content: 'c',
+      tags: ['physics'],
+      description: 'Physics engine',
+    });
     reg.publish({ name: 'audio-fx', version: '2.0.0', content: 'c', tags: ['audio'] });
     reg.publish({ name: 'xr-toolkit', version: '1.5.0', content: 'c', tags: ['xr', 'vr'] });
   });

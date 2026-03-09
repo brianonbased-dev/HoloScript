@@ -34,8 +34,14 @@ import { EmotionSystem } from '../dialogue/EmotionSystem.js';
 describe('Feature 1: InventorySystem', () => {
   function makeItem(id: string) {
     return {
-      id, name: id, category: 'misc' as const, rarity: 'common' as const,
-      weight: 1, maxStack: 10, value: 5, properties: {},
+      id,
+      name: id,
+      category: 'misc' as const,
+      rarity: 'common' as const,
+      weight: 1,
+      maxStack: 10,
+      value: 5,
+      properties: {},
     };
   }
 
@@ -112,7 +118,14 @@ describe('Feature 1: InventorySystem', () => {
 // =============================================================================
 describe('Feature 2: LootTable', () => {
   function makeEntry(itemId: string, weight = 100) {
-    return { itemId, weight, rarity: 'common' as const, minQuantity: 1, maxQuantity: 1, guaranteed: false };
+    return {
+      itemId,
+      weight,
+      rarity: 'common' as const,
+      minQuantity: 1,
+      maxQuantity: 1,
+      guaranteed: false,
+    };
   }
 
   it('getTableCount is 0 initially', () => {
@@ -155,11 +168,14 @@ describe('Feature 2: LootTable', () => {
 describe('Feature 3: CraftingSystem', () => {
   function makeRecipe(id: string) {
     return {
-      id, name: id,
+      id,
+      name: id,
       ingredients: [{ itemId: 'wood', quantity: 2 }],
       output: { itemId: 'plank', quantity: 1 },
-      workbenchType: null, craftTime: 1.0,
-      discovered: true, level: 1,
+      workbenchType: null,
+      craftTime: 1.0,
+      discovered: true,
+      level: 1,
     };
   }
 
@@ -220,9 +236,26 @@ describe('Feature 3: CraftingSystem', () => {
 describe('Feature 4: QuestManager', () => {
   function makeQuest(id: string) {
     return {
-      id, name: id, description: 'desc', category: 'main',
-      objectives: [{ id: 'obj1', type: 'kill' as const, description: 'kill goblins', target: 'goblin', required: 5, current: 0, completed: false, optional: false }],
-      prerequisites: [], level: 1, timeLimit: 0, repeatable: false,
+      id,
+      name: id,
+      description: 'desc',
+      category: 'main',
+      objectives: [
+        {
+          id: 'obj1',
+          type: 'kill' as const,
+          description: 'kill goblins',
+          target: 'goblin',
+          required: 5,
+          current: 0,
+          completed: false,
+          optional: false,
+        },
+      ],
+      prerequisites: [],
+      level: 1,
+      timeLimit: 0,
+      repeatable: false,
     };
   }
 
@@ -277,9 +310,14 @@ describe('Feature 4: QuestManager', () => {
 describe('Feature 5: AchievementSystem', () => {
   function makeAch(id: string) {
     return {
-      id, name: id, description: 'desc', icon: '🏆',
-      rarity: 'bronze' as const, maxProgress: 5,
-      hidden: false, category: 'combat',
+      id,
+      name: id,
+      description: 'desc',
+      icon: '🏆',
+      rarity: 'bronze' as const,
+      maxProgress: 5,
+      hidden: false,
+      category: 'combat',
     };
   }
 
@@ -399,10 +437,25 @@ describe('Feature 6: DamageSystem', () => {
 // =============================================================================
 describe('Feature 7: CombatManager', () => {
   function makeHitBox(id: string, ownerId: string) {
-    return { id, ownerId, position: { x: 0, y: 0, z: 0 }, size: { x: 1, y: 1, z: 1 }, active: true, damage: 20, damageType: 'physical', knockback: 1 };
+    return {
+      id,
+      ownerId,
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 1, y: 1, z: 1 },
+      active: true,
+      damage: 20,
+      damageType: 'physical',
+      knockback: 1,
+    };
   }
   function makeHurtBox(id: string, ownerId: string) {
-    return { id, ownerId, position: { x: 0, y: 0, z: 0 }, size: { x: 1, y: 1, z: 1 }, active: true };
+    return {
+      id,
+      ownerId,
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 1, y: 1, z: 1 },
+      active: true,
+    };
   }
 
   it('getHitBoxCount starts at 0', () => {
@@ -515,19 +568,19 @@ describe('Feature 9: NavMesh', () => {
 
   it('addPolygon increments getPolygonCount', () => {
     const nm = new NavMesh();
-    nm.addPolygon([v(0,0), v(1,0), v(0,1)]);
+    nm.addPolygon([v(0, 0), v(1, 0), v(0, 1)]);
     expect(nm.getPolygonCount()).toBe(1);
   });
 
   it('addPolygon returns a polygon with id', () => {
-    const poly = new NavMesh().addPolygon([v(0,0), v(2,0), v(0,2)]);
+    const poly = new NavMesh().addPolygon([v(0, 0), v(2, 0), v(0, 2)]);
     expect(poly.id).toBeDefined();
   });
 
   it('connectPolygons does not throw', () => {
     const nm = new NavMesh();
-    const p1 = nm.addPolygon([v(0,0), v(1,0), v(0,1)]);
-    const p2 = nm.addPolygon([v(1,0), v(2,0), v(1,1)]);
+    const p1 = nm.addPolygon([v(0, 0), v(1, 0), v(0, 1)]);
+    const p2 = nm.addPolygon([v(1, 0), v(2, 0), v(1, 1)]);
     expect(() => nm.connectPolygons(p1.id, p2.id)).not.toThrow();
   });
 
@@ -536,19 +589,19 @@ describe('Feature 9: NavMesh', () => {
   });
 
   it('findNearestPolygon returns null for empty mesh', () => {
-    expect(new NavMesh().findNearestPolygon(v(0,0))).toBeNull();
+    expect(new NavMesh().findNearestPolygon(v(0, 0))).toBeNull();
   });
 
   it('findNearestPolygon returns polygon after adding one', () => {
     const nm = new NavMesh();
-    nm.addPolygon([v(0,0), v(1,0), v(0.5,1)]);
+    nm.addPolygon([v(0, 0), v(1, 0), v(0.5, 1)]);
     const result = nm.findNearestPolygon(v(0.5, 0.3));
     expect(result).not.toBeNull();
   });
 
   it('export returns mesh data with polygons array', () => {
     const nm = new NavMesh();
-    nm.addPolygon([v(0,0), v(1,0), v(0,1)]);
+    nm.addPolygon([v(0, 0), v(1, 0), v(0, 1)]);
     const data = nm.export();
     expect(data.polygons).toHaveLength(1);
   });

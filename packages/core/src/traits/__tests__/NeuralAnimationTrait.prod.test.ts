@@ -22,21 +22,34 @@ import { neuralAnimationHandler } from '../NeuralAnimationTrait';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 let _nodeId = 0;
-function makeNode() { return { id: `nanim_${++_nodeId}` }; }
-function makeCtx() { return { emit: vi.fn() }; }
-function makeConfig(o: any = {}) { return { ...neuralAnimationHandler.defaultConfig!, ...o }; }
+function makeNode() {
+  return { id: `nanim_${++_nodeId}` };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
+function makeConfig(o: any = {}) {
+  return { ...neuralAnimationHandler.defaultConfig!, ...o };
+}
 function attach(o: any = {}) {
-  const node = makeNode(); const ctx = makeCtx(); const config = makeConfig(o);
+  const node = makeNode();
+  const ctx = makeCtx();
+  const config = makeConfig(o);
   neuralAnimationHandler.onAttach!(node as any, config, ctx as any);
   return { node, ctx, config };
 }
-function getState(node: any) { return (node as any).__neuralAnimationState; }
+function getState(node: any) {
+  return (node as any).__neuralAnimationState;
+}
 
 function makePose(val: number = 0) {
   return {
     timestamp: Date.now(),
     joints: {
-      hip: { position: [val, val, val] as [number, number, number], rotation: [val, val, val, 1] as [number, number, number, number] },
+      hip: {
+        position: [val, val, val] as [number, number, number],
+        rotation: [val, val, val, 1] as [number, number, number, number],
+      },
     },
   };
 }
@@ -81,9 +94,13 @@ describe('neuralAnimationHandler.onAttach', () => {
   });
   it('emits neural_animation_init with model + retargeting', () => {
     const { ctx } = attach({ animation_model: 'diffusion', retargeting: true });
-    expect(ctx.emit).toHaveBeenCalledWith('neural_animation_init', expect.objectContaining({
-      model: 'diffusion', retargeting: true,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'neural_animation_init',
+      expect.objectContaining({
+        model: 'diffusion',
+        retargeting: true,
+      })
+    );
   });
 });
 
@@ -113,7 +130,9 @@ describe('neuralAnimationHandler.onUpdate', () => {
   it('no-op when state is missing', () => {
     const { node, ctx, config } = attach();
     delete (node as any).__neuralAnimationState;
-    expect(() => neuralAnimationHandler.onUpdate!(node as any, config, ctx as any, 0.016)).not.toThrow();
+    expect(() =>
+      neuralAnimationHandler.onUpdate!(node as any, config, ctx as any, 0.016)
+    ).not.toThrow();
   });
 
   it('no-op when current_pose is null (target_pose set but no start)', () => {
@@ -133,7 +152,10 @@ describe('neuralAnimationHandler.onUpdate', () => {
     state.target_pose = makePose(10);
     ctx.emit.mockClear();
     neuralAnimationHandler.onUpdate!(node as any, config, ctx as any, 0.5); // t = 0.5 * (1/1.0) = 0.5
-    expect(ctx.emit).toHaveBeenCalledWith('neural_animation_frame', expect.objectContaining({ pose: expect.any(Object) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'neural_animation_frame',
+      expect.objectContaining({ pose: expect.any(Object) })
+    );
   });
 
   it('clears target_pose when accumulator reaches 1.0', () => {
@@ -149,8 +171,14 @@ describe('neuralAnimationHandler.onUpdate', () => {
   it('lerped position is between from and to values', () => {
     const { node, ctx, config } = attach({ smoothing: 1.0, blend_weight: 1.0 });
     const state = getState(node);
-    state.current_pose = { timestamp: 0, joints: { hip: { position: [0, 0, 0], rotation: [0, 0, 0, 1] } } };
-    state.target_pose = { timestamp: 0, joints: { hip: { position: [10, 10, 10], rotation: [0, 0, 0, 1] } } };
+    state.current_pose = {
+      timestamp: 0,
+      joints: { hip: { position: [0, 0, 0], rotation: [0, 0, 0, 1] } },
+    };
+    state.target_pose = {
+      timestamp: 0,
+      joints: { hip: { position: [10, 10, 10], rotation: [0, 0, 0, 1] } },
+    };
     neuralAnimationHandler.onUpdate!(node as any, config, ctx as any, 0.5); // t=0.5
     const blendedPos = state.current_pose.joints.hip.position;
     // Lerped 0 → 10 at t=0.5 = ~5
@@ -165,7 +193,10 @@ describe("onEvent 'neural_animation_synthesize'", () => {
     const state = getState(node);
     state.blend_accumulator = 0.5; // simulate partial progress
     const pose = makePose(3);
-    neuralAnimationHandler.onEvent!(node as any, config, ctx as any, { type: 'neural_animation_synthesize', target_pose: pose });
+    neuralAnimationHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'neural_animation_synthesize',
+      target_pose: pose,
+    });
     expect(state.target_pose).toBe(pose);
     expect(state.blend_accumulator).toBe(0);
     expect(state.is_generating).toBe(true);
@@ -175,8 +206,14 @@ describe("onEvent 'neural_animation_synthesize'", () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     const pose = makePose(1);
-    neuralAnimationHandler.onEvent!(node as any, config, ctx as any, { type: 'neural_animation_synthesize', target_pose: pose });
-    expect(ctx.emit).toHaveBeenCalledWith('on_animation_synthesis_start', expect.objectContaining({ targetPose: pose }));
+    neuralAnimationHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'neural_animation_synthesize',
+      target_pose: pose,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_animation_synthesis_start',
+      expect.objectContaining({ targetPose: pose })
+    );
   });
 });
 
@@ -186,22 +223,33 @@ describe("onEvent 'neural_animation_retarget'", () => {
     const { node, ctx, config } = attach({ target_skeleton: 'robot' });
     ctx.emit.mockClear();
     neuralAnimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'neural_animation_retarget', source_skeleton: 'human', target_skeleton: 'ignored_override',
+      type: 'neural_animation_retarget',
+      source_skeleton: 'human',
+      target_skeleton: 'ignored_override',
     });
-    expect(ctx.emit).toHaveBeenCalledWith('neural_animation_request_retarget', expect.objectContaining({
-      sourceSkeleton: 'human', targetSkeleton: 'robot', // config.target_skeleton wins
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'neural_animation_request_retarget',
+      expect.objectContaining({
+        sourceSkeleton: 'human',
+        targetSkeleton: 'robot', // config.target_skeleton wins
+      })
+    );
   });
 
   it('falls back to event.target_skeleton when config.target_skeleton not set', () => {
     const { node, ctx, config } = attach({ target_skeleton: undefined });
     ctx.emit.mockClear();
     neuralAnimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'neural_animation_retarget', source_skeleton: 'human', target_skeleton: 'gnome',
+      type: 'neural_animation_retarget',
+      source_skeleton: 'human',
+      target_skeleton: 'gnome',
     });
-    expect(ctx.emit).toHaveBeenCalledWith('neural_animation_request_retarget', expect.objectContaining({
-      targetSkeleton: 'gnome',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'neural_animation_request_retarget',
+      expect.objectContaining({
+        targetSkeleton: 'gnome',
+      })
+    );
   });
 
   it('includes currentPose in request', () => {
@@ -210,11 +258,16 @@ describe("onEvent 'neural_animation_retarget'", () => {
     state.current_pose = makePose(2);
     ctx.emit.mockClear();
     neuralAnimationHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'neural_animation_retarget', source_skeleton: 's', target_skeleton: 't',
+      type: 'neural_animation_retarget',
+      source_skeleton: 's',
+      target_skeleton: 't',
     });
-    expect(ctx.emit).toHaveBeenCalledWith('neural_animation_request_retarget', expect.objectContaining({
-      currentPose: state.current_pose,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'neural_animation_request_retarget',
+      expect.objectContaining({
+        currentPose: state.current_pose,
+      })
+    );
   });
 });
 
@@ -223,7 +276,10 @@ describe("onEvent 'neural_animation_retarget_result'", () => {
   it('sets retargeted pose as target_pose', () => {
     const { node, ctx, config } = attach();
     const pose = makePose(7);
-    neuralAnimationHandler.onEvent!(node as any, config, ctx as any, { type: 'neural_animation_retarget_result', pose });
+    neuralAnimationHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'neural_animation_retarget_result',
+      pose,
+    });
     expect(getState(node).target_pose).toBe(pose);
     expect(getState(node).blend_accumulator).toBe(0);
   });
@@ -232,7 +288,13 @@ describe("onEvent 'neural_animation_retarget_result'", () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     const pose = makePose(7);
-    neuralAnimationHandler.onEvent!(node as any, config, ctx as any, { type: 'neural_animation_retarget_result', pose });
-    expect(ctx.emit).toHaveBeenCalledWith('on_retargeting_complete', expect.objectContaining({ pose }));
+    neuralAnimationHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'neural_animation_retarget_result',
+      pose,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_retargeting_complete',
+      expect.objectContaining({ pose })
+    );
   });
 });

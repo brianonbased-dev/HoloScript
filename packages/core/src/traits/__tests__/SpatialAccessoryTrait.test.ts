@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { spatialAccessoryHandler } from '../SpatialAccessoryTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('SpatialAccessoryTrait', () => {
   let node: Record<string, unknown>;
@@ -30,7 +37,11 @@ describe('SpatialAccessoryTrait', () => {
   });
 
   it('connected sets state and emits', () => {
-    sendEvent(spatialAccessoryHandler, node, cfg, ctx, { type: 'accessory_connected', hapticMotors: 2, batteryLevel: 0.9 });
+    sendEvent(spatialAccessoryHandler, node, cfg, ctx, {
+      type: 'accessory_connected',
+      hapticMotors: 2,
+      batteryLevel: 0.9,
+    });
     const s = (node as any).__spatialAccessoryState;
     expect(s.isConnected).toBe(true);
     expect(s.hapticMotors).toBe(2);
@@ -41,12 +52,20 @@ describe('SpatialAccessoryTrait', () => {
     const n = createMockNode('ac2');
     const c = createMockContext();
     attachTrait(spatialAccessoryHandler, n, { ...cfg, led_enabled: true }, c);
-    sendEvent(spatialAccessoryHandler, n, { ...cfg, led_enabled: true }, c, { type: 'accessory_connected', hapticMotors: 0, batteryLevel: 1 });
+    sendEvent(spatialAccessoryHandler, n, { ...cfg, led_enabled: true }, c, {
+      type: 'accessory_connected',
+      hapticMotors: 0,
+      batteryLevel: 1,
+    });
     expect(getEventCount(c, 'accessory_set_led')).toBe(1);
   });
 
   it('disconnected updates state', () => {
-    sendEvent(spatialAccessoryHandler, node, cfg, ctx, { type: 'accessory_connected', hapticMotors: 0, batteryLevel: 1 });
+    sendEvent(spatialAccessoryHandler, node, cfg, ctx, {
+      type: 'accessory_connected',
+      hapticMotors: 0,
+      batteryLevel: 1,
+    });
     sendEvent(spatialAccessoryHandler, node, cfg, ctx, { type: 'accessory_disconnected' });
     expect((node as any).__spatialAccessoryState.isConnected).toBe(false);
   });
@@ -60,20 +79,36 @@ describe('SpatialAccessoryTrait', () => {
   });
 
   it('input with mapping emits action', () => {
-    sendEvent(spatialAccessoryHandler, node, cfg, ctx, { type: 'accessory_input', button: 'tip', value: 0.8 });
+    sendEvent(spatialAccessoryHandler, node, cfg, ctx, {
+      type: 'accessory_input',
+      button: 'tip',
+      value: 0.8,
+    });
     expect(getEventCount(ctx, 'on_accessory_input')).toBe(1);
     const ev = getLastEvent(ctx, 'on_accessory_input') as any;
     expect(ev.action).toBe('draw');
   });
 
   it('pressure sensitivity emits pressure change', () => {
-    sendEvent(spatialAccessoryHandler, node, cfg, ctx, { type: 'accessory_input', button: 'tip', value: 0.5 });
+    sendEvent(spatialAccessoryHandler, node, cfg, ctx, {
+      type: 'accessory_input',
+      button: 'tip',
+      value: 0.5,
+    });
     expect(getEventCount(ctx, 'on_pressure_change')).toBe(1);
   });
 
   it('haptic plays when feedback enabled and motors available', () => {
-    sendEvent(spatialAccessoryHandler, node, cfg, ctx, { type: 'accessory_connected', hapticMotors: 2, batteryLevel: 1 });
-    sendEvent(spatialAccessoryHandler, node, cfg, ctx, { type: 'accessory_haptic', intensity: 0.7, duration: 200 });
+    sendEvent(spatialAccessoryHandler, node, cfg, ctx, {
+      type: 'accessory_connected',
+      hapticMotors: 2,
+      batteryLevel: 1,
+    });
+    sendEvent(spatialAccessoryHandler, node, cfg, ctx, {
+      type: 'accessory_haptic',
+      intensity: 0.7,
+      duration: 200,
+    });
     expect(getEventCount(ctx, 'accessory_play_haptic')).toBe(1);
   });
 
@@ -85,7 +120,10 @@ describe('SpatialAccessoryTrait', () => {
   });
 
   it('low battery emits warning', () => {
-    sendEvent(spatialAccessoryHandler, node, cfg, ctx, { type: 'accessory_battery_update', level: 0.1 });
+    sendEvent(spatialAccessoryHandler, node, cfg, ctx, {
+      type: 'accessory_battery_update',
+      level: 0.1,
+    });
     expect(getEventCount(ctx, 'on_accessory_low_battery')).toBe(1);
   });
 
@@ -95,7 +133,11 @@ describe('SpatialAccessoryTrait', () => {
   });
 
   it('detach disconnects when connected', () => {
-    sendEvent(spatialAccessoryHandler, node, cfg, ctx, { type: 'accessory_connected', hapticMotors: 0, batteryLevel: 1 });
+    sendEvent(spatialAccessoryHandler, node, cfg, ctx, {
+      type: 'accessory_connected',
+      hapticMotors: 0,
+      batteryLevel: 1,
+    });
     spatialAccessoryHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect(getEventCount(ctx, 'accessory_disconnect')).toBe(1);
     expect((node as any).__spatialAccessoryState).toBeUndefined();

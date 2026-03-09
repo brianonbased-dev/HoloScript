@@ -7,6 +7,7 @@
 The Spatial Agent Communication Stack enables multiple specialized agents (terrain, assets, physics, lighting, audio) to collaborate in real-time VR world creation while maintaining sustained 90fps performance. The system uses three distinct communication layers, each optimized for different types of coordination:
 
 ### Layer 1: Real-Time Layer (UDP/WebRTC)
+
 - **Purpose**: Ultra-low latency position synchronization and frame budget coordination
 - **Protocol**: Binary protocol over UDP or WebRTC DataChannels
 - **Latency**: <1ms target
@@ -14,12 +15,14 @@ The Spatial Agent Communication Stack enables multiple specialized agents (terra
 - **Use Cases**: Position sync, frame budget status, spatial conflict alerts
 
 ### Layer 2: Coordination Layer (A2A over HTTP/2)
+
 - **Purpose**: Agent-to-agent task coordination and resource management
 - **Protocol**: JSON-RPC over HTTP/2
 - **Features**: Request/response with acknowledgments, retry with exponential backoff
 - **Use Cases**: Task assignment, spatial claims, conflict resolution, resource requests
 
 ### Layer 3: Metadata Layer (MCP)
+
 - **Purpose**: High-level world management and tool access
 - **Protocol**: Model Context Protocol
 - **Use Cases**: World creation, agent registry queries, performance metrics, exports
@@ -43,9 +46,9 @@ await client.init();
 
 // Layer 1: Sync position at 90fps
 await client.syncPosition(
-  [x, y, z],        // position
+  [x, y, z], // position
   [qx, qy, qz, qw], // rotation (quaternion)
-  [sx, sy, sz]      // scale
+  [sx, sy, sz] // scale
 );
 
 // Layer 2: Assign task to another agent
@@ -56,8 +59,8 @@ await client.assignTask('terrain-agent', {
   frame_budget_ms: 8, // 8ms per frame
   spatial_region: {
     center: [0, 0, 0],
-    size: [1000, 100, 1000]
-  }
+    size: [1000, 100, 1000],
+  },
 });
 
 // Layer 3: Create world
@@ -65,7 +68,7 @@ const { world_id } = await client.createWorld({
   name: 'My VR World',
   dimensions: { width: 1000, height: 500, depth: 1000 },
   target_fps: 90,
-  max_agents: 10
+  max_agents: 10,
 });
 ```
 
@@ -118,16 +121,18 @@ Position Sync Body (40 bytes):
 ### Message Types
 
 #### Position Sync
+
 ```typescript
 await client.syncPosition(
-  [x, y, z],        // Position
+  [x, y, z], // Position
   [qx, qy, qz, qw], // Rotation (quaternion)
-  [sx, sy, sz],     // Scale
-  [vx, vy, vz]      // Velocity (optional for prediction)
+  [sx, sy, sz], // Scale
+  [vx, vy, vz] // Velocity (optional for prediction)
 );
 ```
 
 #### Frame Budget
+
 ```typescript
 // Automatically sent by recordFrameTime()
 client.recordFrameTime(frameTimeMs);
@@ -137,6 +142,7 @@ await client.sendFrameBudget();
 ```
 
 #### Spatial Conflict Alert
+
 ```typescript
 // Automatically emitted when conflicts detected
 client.on('layer1:message', (msg) => {
@@ -150,12 +156,12 @@ client.on('layer1:message', (msg) => {
 
 ### Performance Characteristics
 
-| Metric | Target | Typical |
-|--------|--------|---------|
-| Latency | <1ms | 0.5-0.8ms |
-| Message Rate | 90 msg/s | 90 msg/s |
-| Message Size | <512 bytes | 52-72 bytes |
-| Bandwidth | ~4.5 KB/s per agent | ~6 KB/s per agent |
+| Metric       | Target              | Typical           |
+| ------------ | ------------------- | ----------------- |
+| Latency      | <1ms                | 0.5-0.8ms         |
+| Message Rate | 90 msg/s            | 90 msg/s          |
+| Message Size | <512 bytes          | 52-72 bytes       |
+| Bandwidth    | ~4.5 KB/s per agent | ~6 KB/s per agent |
 
 ## Layer 2: A2A Coordination
 
@@ -168,15 +174,15 @@ const task: TaskSpec = {
   priority: 'high',
   parameters: {
     algorithm: 'perlin_noise',
-    resolution: 'high'
+    resolution: 'high',
   },
   spatial_region: {
     center: [0, 0, 0],
-    size: [1000, 100, 1000]
+    size: [1000, 100, 1000],
   },
   frame_budget_ms: 8, // 8ms per frame
   dependencies: ['prep-001'], // Wait for prep task
-  deadline: Date.now() + 60000 // 1 minute deadline
+  deadline: Date.now() + 60000, // 1 minute deadline
 };
 
 await client.assignTask('terrain-agent', task);
@@ -187,14 +193,14 @@ await client.assignTask('terrain-agent', task);
 ```typescript
 // Claim spatial region
 await client.claimSpatialRegion(
-  'claim-001',          // Claim ID
+  'claim-001', // Claim ID
   {
     min: [-100, -10, -100],
-    max: [100, 10, 100]
+    max: [100, 10, 100],
   },
-  'high',              // Priority
-  30000,               // Duration (30 seconds)
-  true                 // Exclusive
+  'high', // Priority
+  30000, // Duration (30 seconds)
+  true // Exclusive
 );
 
 // Check for conflicts
@@ -205,7 +211,7 @@ client.on('layer2:spatial_conflict', ({ claim, conflicts }) => {
   await client.resolveConflict(
     'conflict-001',
     ['agent-001', 'agent-002'],
-    'priority_based'   // Resolution strategy
+    'priority_based' // Resolution strategy
   );
 });
 ```
@@ -217,8 +223,8 @@ client.on('layer2:spatial_conflict', ({ claim, conflicts }) => {
 await client.requestResource(
   'mesh-library',
   'mesh',
-  undefined,  // Amount (optional)
-  'high'      // Priority
+  undefined, // Amount (optional)
+  'high' // Priority
 );
 
 // Use resource...
@@ -234,13 +240,13 @@ Layer 2 automatically retries failed requests with exponential backoff:
 ```typescript
 const config = {
   layer2: {
-    maxRetries: 3,              // Retry 3 times
-    retryBackoffBase: 100,      // 100ms, 200ms, 400ms
-    timeout: 5000,              // 5 second timeout
-    requireAck: true,           // Require acknowledgments
-    enableBatching: true,       // Batch requests
-    batchSize: 10               // Batch up to 10 requests
-  }
+    maxRetries: 3, // Retry 3 times
+    retryBackoffBase: 100, // 100ms, 200ms, 400ms
+    timeout: 5000, // 5 second timeout
+    requireAck: true, // Require acknowledgments
+    enableBatching: true, // Batch requests
+    batchSize: 10, // Batch up to 10 requests
+  },
 };
 
 const client = new SpatialCommClient('agent-001', config);
@@ -257,7 +263,7 @@ const worldSpec: WorldSpec = {
   dimensions: {
     width: 1000,
     height: 500,
-    depth: 1000
+    depth: 1000,
   },
   target_fps: 90,
   max_agents: 10,
@@ -266,7 +272,7 @@ const worldSpec: WorldSpec = {
     physics: true,
     lighting: true,
     audio: true,
-    networking: true
+    networking: true,
   },
   agent_roles: [
     {
@@ -274,18 +280,18 @@ const worldSpec: WorldSpec = {
       agent_type: 'terrain-generator',
       spatial_region: {
         center: [0, 0, 0],
-        size: [1000, 100, 1000]
-      }
+        size: [1000, 100, 1000],
+      },
     },
     {
       role: 'assets',
       agent_type: 'asset-placer',
       spatial_region: {
         center: [0, 50, 0],
-        size: [1000, 100, 1000]
-      }
-    }
-  ]
+        size: [1000, 100, 1000],
+      },
+    },
+  ],
 };
 
 const { world_id, status } = await client.createWorld(worldSpec);
@@ -309,7 +315,7 @@ console.log('CPU:', status.resource_utilization.cpu_percent);
 ```typescript
 const metrics = await client.getPerformanceMetrics({
   world_id: 'world-001',
-  agent_id: 'agent-001' // Optional: filter by agent
+  agent_id: 'agent-001', // Optional: filter by agent
 });
 
 // System metrics
@@ -370,12 +376,12 @@ console.log('Within budget:', stats.withinBudget);
 
 The system uses four quality levels that adjust automatically:
 
-| Quality Level | Frame Time Threshold | Adjustments |
-|---------------|----------------------|-------------|
-| **High** | ≤ 11.1ms (90fps) | Full detail |
-| **Medium** | 11.1-13.3ms (75-90fps) | Reduced detail |
-| **Low** | 13.3-16.7ms (60-75fps) | Minimal detail |
-| **Minimal** | >16.7ms (<60fps) | Bare essentials |
+| Quality Level | Frame Time Threshold   | Adjustments     |
+| ------------- | ---------------------- | --------------- |
+| **High**      | ≤ 11.1ms (90fps)       | Full detail     |
+| **Medium**    | 11.1-13.3ms (75-90fps) | Reduced detail  |
+| **Low**       | 13.3-16.7ms (60-75fps) | Minimal detail  |
+| **Minimal**   | >16.7ms (<60fps)       | Bare essentials |
 
 ### Budget-Aware Work
 
@@ -389,7 +395,7 @@ async function generateTerrain() {
     high: 100,
     medium: 50,
     low: 25,
-    minimal: 10
+    minimal: 10,
   }[stats.qualityLevel];
 
   for (let i = 0; i < chunkSize; i++) {
@@ -444,6 +450,7 @@ client.on('shutdown', () => console.log('Client shutdown'));
 ## Complete Example
 
 See `examples/multi-agent-world-creation.ts` for a complete example showing:
+
 - Orchestrator agent coordinating world creation
 - Terrain agent generating terrain with budget awareness
 - Asset agent placing objects with resource management
@@ -453,15 +460,15 @@ See `examples/multi-agent-world-creation.ts` for a complete example showing:
 
 Expected performance characteristics with 5 agents:
 
-| Metric | Target | Measured |
-|--------|--------|----------|
-| System FPS | 90 | 88-92 |
-| Frame Time (avg) | 11.1ms | 10.5-11.8ms |
-| Frame Time (max) | 13.3ms | 12-14ms |
-| L1 Latency | <1ms | 0.5-0.8ms |
-| L2 Response Time | <100ms | 50-150ms |
-| L3 Response Time | <1s | 200-800ms |
-| Total Bandwidth | ~30 KB/s | 25-35 KB/s |
+| Metric           | Target   | Measured    |
+| ---------------- | -------- | ----------- |
+| System FPS       | 90       | 88-92       |
+| Frame Time (avg) | 11.1ms   | 10.5-11.8ms |
+| Frame Time (max) | 13.3ms   | 12-14ms     |
+| L1 Latency       | <1ms     | 0.5-0.8ms   |
+| L2 Response Time | <100ms   | 50-150ms    |
+| L3 Response Time | <1s      | 200-800ms   |
+| Total Bandwidth  | ~30 KB/s | 25-35 KB/s  |
 
 ## Configuration
 
@@ -477,10 +484,8 @@ const client = new SpatialCommClient('agent-001', {
     compression: false,
     udpPort: 9001,
     webrtc: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' }
-      ]
-    }
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+    },
   },
   layer2: {
     endpoint: 'http://localhost:3002/a2a',
@@ -489,13 +494,13 @@ const client = new SpatialCommClient('agent-001', {
     retryBackoffBase: 100,
     requireAck: true,
     enableBatching: true,
-    batchSize: 10
+    batchSize: 10,
   },
   layer3: {
     endpoint: 'http://localhost:5567',
     apiKey: process.env.MCP_API_KEY,
-    timeout: 30000
-  }
+    timeout: 30000,
+  },
 });
 ```
 

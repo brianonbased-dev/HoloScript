@@ -95,9 +95,9 @@ describe('AnalyticsTrait', () => {
       // Good frame
       updateTrait(analyticsHandler, node, defaultOverrides, ctx, 0.016);
       // Jank frame
-      updateTrait(analyticsHandler, node, defaultOverrides, ctx, 0.020);
+      updateTrait(analyticsHandler, node, defaultOverrides, ctx, 0.02);
       // Stutter frame
-      updateTrait(analyticsHandler, node, defaultOverrides, ctx, 0.040);
+      updateTrait(analyticsHandler, node, defaultOverrides, ctx, 0.04);
 
       const state = (node as any).__analyticsState;
       expect(state.frameCount).toBe(3);
@@ -164,7 +164,13 @@ describe('AnalyticsTrait', () => {
       attachTrait(analyticsHandler, node, { ...defaultOverrides, sampling_strategy: 'all' }, ctx);
 
       for (let i = 0; i < 10; i++) {
-        updateTrait(analyticsHandler, node, { ...defaultOverrides, sampling_strategy: 'all' }, ctx, 0.016);
+        updateTrait(
+          analyticsHandler,
+          node,
+          { ...defaultOverrides, sampling_strategy: 'all' },
+          ctx,
+          0.016
+        );
       }
 
       const state = (node as any).__analyticsState;
@@ -172,7 +178,11 @@ describe('AnalyticsTrait', () => {
     });
 
     it('should respect fixed_rate sampling', () => {
-      const config = { ...defaultOverrides, sampling_strategy: 'fixed_rate' as const, sampling_rate: 0.5 };
+      const config = {
+        ...defaultOverrides,
+        sampling_strategy: 'fixed_rate' as const,
+        sampling_rate: 0.5,
+      };
       attachTrait(analyticsHandler, node, config, ctx);
 
       // Mock Math.random for predictability

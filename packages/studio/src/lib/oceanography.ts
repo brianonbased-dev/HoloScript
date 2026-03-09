@@ -5,11 +5,23 @@
  * water property profiling, and underwater acoustics.
  */
 
-export interface GeoPoint { lat: number; lon: number }
-export interface Vec3 { x: number; y: number; z: number }
+export interface GeoPoint {
+  lat: number;
+  lon: number;
+}
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 export type CurrentType = 'surface' | 'deep' | 'thermohaline' | 'tidal' | 'wind-driven';
-export type MarineZone = 'epipelagic' | 'mesopelagic' | 'bathypelagic' | 'abyssopelagic' | 'hadopelagic';
+export type MarineZone =
+  | 'epipelagic'
+  | 'mesopelagic'
+  | 'bathypelagic'
+  | 'abyssopelagic'
+  | 'hadopelagic';
 export type TidePhase = 'high' | 'low' | 'rising' | 'falling';
 
 export interface OceanCurrent {
@@ -17,18 +29,18 @@ export interface OceanCurrent {
   name: string;
   type: CurrentType;
   velocityMs: number;
-  direction: number;          // degrees, 0 = north
-  temperature: number;        // °C
-  depth: number;              // meters
+  direction: number; // degrees, 0 = north
+  temperature: number; // °C
+  depth: number; // meters
 }
 
 export interface WaterColumn {
   depth: number;
   temperatureC: number;
-  salinityPSU: number;        // Practical Salinity Units
-  dissolvedO2: number;        // mg/L
-  pressure: number;           // bar
-  lightPercent: number;       // % of surface light remaining
+  salinityPSU: number; // Practical Salinity Units
+  dissolvedO2: number; // mg/L
+  pressure: number; // bar
+  lightPercent: number; // % of surface light remaining
 }
 
 export interface MarineSpecies {
@@ -71,8 +83,13 @@ export function depthZone(depthM: number): MarineZone {
 
 export function soundSpeedMs(temperatureC: number, salinityPSU: number, depthM: number): number {
   // Simplified Mackenzie equation
-  return 1448.96 + 4.591 * temperatureC - 0.05304 * temperatureC ** 2
-    + 1.340 * (salinityPSU - 35) + 0.01630 * depthM;
+  return (
+    1448.96 +
+    4.591 * temperatureC -
+    0.05304 * temperatureC ** 2 +
+    1.34 * (salinityPSU - 35) +
+    0.0163 * depthM
+  );
 }
 
 export function waterDensity(temperatureC: number, salinityPSU: number): number {
@@ -84,7 +101,11 @@ export function waterDensity(temperatureC: number, salinityPSU: number): number 
 // Tidal Prediction
 // ═══════════════════════════════════════════════════════════════════
 
-export function simpleTide(hoursSinceHighTide: number, amplitude: number, period: number = 12.42): number {
+export function simpleTide(
+  hoursSinceHighTide: number,
+  amplitude: number,
+  period: number = 12.42
+): number {
   return amplitude * Math.cos((2 * Math.PI * hoursSinceHighTide) / period);
 }
 
@@ -101,7 +122,7 @@ export function tidePhase(hoursSinceHighTide: number, period: number = 12.42): T
 // ═══════════════════════════════════════════════════════════════════
 
 export function speciesInZone(species: MarineSpecies[], zone: MarineZone): MarineSpecies[] {
-  return species.filter(s => s.zone === zone);
+  return species.filter((s) => s.zone === zone);
 }
 
 export function canSurviveAtDepth(species: MarineSpecies, depth: number): boolean {
@@ -113,7 +134,7 @@ export function canSurviveTemperature(species: MarineSpecies, tempC: number): bo
 }
 
 export function endangeredSpecies(species: MarineSpecies[]): MarineSpecies[] {
-  return species.filter(s => s.endangered);
+  return species.filter((s) => s.endangered);
 }
 
 export function totalPopulation(species: MarineSpecies[]): number {
@@ -150,7 +171,12 @@ export function adcpCurrentProfile(
     const dir = (surfaceDirectionDeg + 45 * fraction) % 360;
     // Backscatter increases then drops
     const bs = 40 + 20 * Math.exp(-fraction * 3) + 5 * Math.random();
-    bins.push({ depthM: d, currentSpeedMs: Math.max(0, speed), directionDeg: dir, backscatterDb: bs });
+    bins.push({
+      depthM: d,
+      currentSpeedMs: Math.max(0, speed),
+      directionDeg: dir,
+      backscatterDb: bs,
+    });
   }
   return bins;
 }
@@ -160,7 +186,7 @@ export function adcpCurrentProfile(
 // ═══════════════════════════════════════════════════════════════════
 
 export interface BleachingAssessment {
-  degreeHeatingWeeks: number;   // DHW — accumulated thermal stress
+  degreeHeatingWeeks: number; // DHW — accumulated thermal stress
   bleachingRisk: 'none' | 'watch' | 'warning' | 'alert-1' | 'alert-2';
   recoveryTimeDays: number;
 }

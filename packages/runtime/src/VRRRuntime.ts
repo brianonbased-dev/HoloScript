@@ -246,7 +246,11 @@ export interface VRRRuntimeOptions {
   apis: {
     weather?: { provider: 'weather.gov' | 'openweathermap'; refresh: number };
     events?: { provider: 'eventbrite' | 'ticketmaster'; refresh: number; api_key?: string };
-    inventory?: { provider: 'square' | 'shopify' | 'woocommerce'; websocket?: boolean; api_key?: string };
+    inventory?: {
+      provider: 'square' | 'shopify' | 'woocommerce';
+      websocket?: boolean;
+      api_key?: string;
+    };
     traffic?: { provider: 'google_maps'; refresh: number; api_key?: string };
     iot?: { provider: 'mqtt' | 'http'; endpoint: string; api_key?: string };
   };
@@ -330,7 +334,9 @@ export class VRRRuntime {
     if (!this.options.apis.weather) return;
 
     try {
-      const response = await fetch(`https://api.weather.gov/points/${this.options.geo_center.lat},${this.options.geo_center.lng}`);
+      const response = await fetch(
+        `https://api.weather.gov/points/${this.options.geo_center.lat},${this.options.geo_center.lng}`
+      );
       const data = await response.json();
 
       const forecastUrl = data.properties?.forecast;
@@ -346,7 +352,7 @@ export class VRRRuntime {
           precipitation: currentWeather.probabilityOfPrecipitation?.value || 0,
           visibility: 10000, // Default 10km if not provided by this endpoint
           wind_speed: currentWeather.windSpeed,
-          short_forecast: currentWeather.shortForecast
+          short_forecast: currentWeather.shortForecast,
         };
         callback(weather);
       }
@@ -360,7 +366,7 @@ export class VRRRuntime {
   // Real-time event synchronization
   async syncEvents(callback: (events: any[]) => void): Promise<void> {
     if (!this.options.apis.events) return;
-    
+
     // Stub Eventbrite fetch implementation
     callback([]);
     setTimeout(() => this.syncEvents(callback), this.options.apis.events.refresh || 300000);
@@ -381,7 +387,7 @@ export class VRRRuntime {
         const parsed = JSON.parse(event.data);
         const inventory: InventoryData = {
           ...parsed,
-          has: (name: string) => parsed.items?.some((i: any) => i.name === name && i.stock > 0)
+          has: (name: string) => parsed.items?.some((i: any) => i.name === name && i.stock > 0),
         };
         callback(inventory);
       } catch (e) {
@@ -412,9 +418,11 @@ export class VRRRuntime {
     setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) {
         // Broadcast local state conceptually
-        ws.send(JSON.stringify({
-          action: 'ping'
-        }));
+        ws.send(
+          JSON.stringify({
+            action: 'ping',
+          })
+        );
       }
     }, 1000 / this.options.multiplayer.tick_rate);
   }
@@ -424,10 +432,11 @@ export class VRRRuntime {
     // Basic Equirectangular map projection assuming a flat center point mappings
     const center = this.options.geo_center;
     const earthRadius = 6371000; // meters
-    
-    const x = earthRadius * Math.cos(center.lat * Math.PI / 180) * (lng - center.lng) * Math.PI / 180;
-    const z = earthRadius * (lat - center.lat) * Math.PI / 180;
-    
+
+    const x =
+      (earthRadius * Math.cos((center.lat * Math.PI) / 180) * (lng - center.lng) * Math.PI) / 180;
+    const z = (earthRadius * (lat - center.lat) * Math.PI) / 180;
+
     return { x, y: 0, z: -z };
   }
 
@@ -441,7 +450,7 @@ export class VRRRuntime {
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
       });
-      
+
       const tx = db.transaction('states', 'readwrite');
       tx.objectStore('states').put(value, key);
     } catch (e) {
@@ -467,12 +476,15 @@ export class VRRRuntime {
       // HTTP Polling Fallback
       setInterval(async () => {
         try {
-          const res = await fetch(`https://${this.options.apis.iot!.endpoint}/telemetry/${sensor_id}`, {
-            headers: { 'Authorization': `Bearer ${this.options.apis.iot!.api_key}` }
-          });
+          const res = await fetch(
+            `https://${this.options.apis.iot!.endpoint}/telemetry/${sensor_id}`,
+            {
+              headers: { Authorization: `Bearer ${this.options.apis.iot!.api_key}` },
+            }
+          );
           const telemetry = await res.json();
           callback(telemetry);
-        } catch(e) {
+        } catch (e) {
           console.error(`IoT Polling failed for ${sensor_id}`, e);
         }
       }, 100); // Default to 10Hz
@@ -488,9 +500,9 @@ export class VRRRuntime {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.options.apis.iot.api_key}`
+          Authorization: `Bearer ${this.options.apis.iot.api_key}`,
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       return res.ok;
     } catch (e) {
@@ -506,7 +518,7 @@ export class VRRRuntime {
       await fetch(this.options.state_persistence.server + '/rest/v1/vrr_sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
     } catch (e) {
       console.error('Failed to sync to server', e);

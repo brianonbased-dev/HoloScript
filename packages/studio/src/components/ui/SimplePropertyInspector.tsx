@@ -9,9 +9,18 @@ interface SimplePropertyInspectorProps {
 }
 
 const PRESET_COLORS = [
-  '#ef4444', '#f97316', '#eab308', '#22c55e',
-  '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff',
-  '#94a3b8', '#78716c', '#1e293b', '#0f172a',
+  '#ef4444',
+  '#f97316',
+  '#eab308',
+  '#22c55e',
+  '#3b82f6',
+  '#8b5cf6',
+  '#ec4899',
+  '#ffffff',
+  '#94a3b8',
+  '#78716c',
+  '#1e293b',
+  '#0f172a',
 ];
 
 export function SimplePropertyInspector({ objectName, onClose }: SimplePropertyInspectorProps) {
@@ -24,7 +33,9 @@ export function SimplePropertyInspector({ objectName, onClose }: SimplePropertyI
     <div className="flex flex-col gap-0 overflow-auto border-l border-studio-border bg-studio-panel w-56 shrink-0">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-studio-border px-3 py-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-studio-muted">Properties</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-studio-muted">
+          Properties
+        </span>
         {onClose && (
           <button onClick={onClose} className="text-studio-muted hover:text-studio-text transition">
             <X className="h-3.5 w-3.5" />
@@ -56,7 +67,10 @@ export function SimplePropertyInspector({ objectName, onClose }: SimplePropertyI
             onClick={() => setShowColorPicker((v) => !v)}
             className="flex items-center gap-2 rounded-lg border border-studio-border bg-black/20 px-2.5 py-1.5 text-sm text-studio-text transition hover:border-studio-accent/40 w-full"
           >
-            <span className="h-4 w-4 rounded-full border border-white/20 shrink-0" style={{ background: color }} />
+            <span
+              className="h-4 w-4 rounded-full border border-white/20 shrink-0"
+              style={{ background: color }}
+            />
             <span className="font-mono text-xs text-studio-muted">{color.toUpperCase()}</span>
           </button>
           {showColorPicker && (
@@ -64,7 +78,10 @@ export function SimplePropertyInspector({ objectName, onClose }: SimplePropertyI
               {PRESET_COLORS.map((c) => (
                 <button
                   key={c}
-                  onClick={() => { setColor(c); setShowColorPicker(false); }}
+                  onClick={() => {
+                    setColor(c);
+                    setShowColorPicker(false);
+                  }}
                   title={c}
                   className={`h-6 w-6 rounded-full border-2 transition hover:scale-110 ${color === c ? 'border-white' : 'border-transparent'}`}
                   style={{ background: c }}
@@ -100,7 +117,9 @@ export function SimplePropertyInspector({ objectName, onClose }: SimplePropertyI
             className="w-full accent-studio-accent"
           />
           <div className="mt-1 flex justify-between text-[10px] text-studio-muted">
-            <span>Tiny</span><span>Normal</span><span>Huge</span>
+            <span>Tiny</span>
+            <span>Normal</span>
+            <span>Huge</span>
           </div>
         </div>
 

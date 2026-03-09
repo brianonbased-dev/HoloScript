@@ -7,7 +7,9 @@ const pos = { x: 0, y: 0, z: 0 };
 describe('DecalSystem', () => {
   let ds: DecalSystem;
 
-  beforeEach(() => { ds = new DecalSystem(); });
+  beforeEach(() => {
+    ds = new DecalSystem();
+  });
 
   // Spawning
   it('spawn creates decal', () => {
@@ -47,7 +49,14 @@ describe('DecalSystem', () => {
   });
 
   it('expired decals are removed', () => {
-    ds.spawn({ textureId: 'a', position: pos, normal, lifetime: 1, fadeInDuration: 0, fadeOutDuration: 0 });
+    ds.spawn({
+      textureId: 'a',
+      position: pos,
+      normal,
+      lifetime: 1,
+      fadeInDuration: 0,
+      fadeOutDuration: 0,
+    });
     ds.update(2);
     expect(ds.getActiveCount()).toBe(0);
   });
@@ -75,7 +84,7 @@ describe('DecalSystem', () => {
   it('getVisible applies frustum test', () => {
     ds.spawn({ textureId: 'a', position: { x: 100, y: 0, z: 0 }, normal, fadeInDuration: 0 });
     ds.update(0.01);
-    expect(ds.getVisible(p => p.x < 50).length).toBe(0);
+    expect(ds.getVisible((p) => p.x < 50).length).toBe(0);
   });
 
   it('getVisible sorts by sortOrder', () => {

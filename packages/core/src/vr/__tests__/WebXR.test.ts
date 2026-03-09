@@ -19,7 +19,7 @@ function createMockSession() {
     }),
     end: vi.fn(async () => {
       // Trigger 'end' listeners
-      (listeners['end'] || []).forEach(cb => cb());
+      (listeners['end'] || []).forEach((cb) => cb());
     }),
     _listeners: listeners,
   };

@@ -8,7 +8,12 @@
  * @version 1.0.0
  */
 
-import type { SymbolType, SymbolDefinition, SymbolReference, ReferenceContext } from '../analysis/ReferenceGraph';
+import type {
+  SymbolType,
+  SymbolDefinition,
+  SymbolReference,
+  ReferenceContext,
+} from '../analysis/ReferenceGraph';
 
 // =============================================================================
 // SUPPORTED LANGUAGES

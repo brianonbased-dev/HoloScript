@@ -12,10 +12,18 @@
 
 import { useEffect, useState } from 'react';
 import {
-  History, Save, RotateCcw, Trash2, X, GitCompare, Loader2, RefreshCw, Clock,
+  History,
+  Save,
+  RotateCcw,
+  Trash2,
+  X,
+  GitCompare,
+  Loader2,
+  RefreshCw,
+  Clock,
 } from 'lucide-react';
 import { useSceneVersions, type SceneVersion } from '@/hooks/useSceneVersions';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 import dynamic from 'next/dynamic';
 
 const SceneDiffPanel = dynamic(
@@ -46,7 +54,9 @@ export function SceneVersionPanel({ sceneId, onClose }: SceneVersionPanelProps) 
   const [savingLabel, setSavingLabel] = useState(false);
   const [diffTarget, setDiffTarget] = useState<SceneVersion | null>(null);
 
-  useEffect(() => { loadVersions(); }, [loadVersions]);
+  useEffect(() => {
+    loadVersions();
+  }, [loadVersions]);
 
   const handleSave = async () => {
     const label = labelInput.trim() || undefined;
@@ -86,7 +96,10 @@ export function SceneVersionPanel({ sceneId, onClose }: SceneVersionPanelProps) 
           >
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
-          <button onClick={onClose} className="rounded p-1 text-studio-muted hover:text-studio-text">
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-studio-muted hover:text-studio-text"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -100,7 +113,10 @@ export function SceneVersionPanel({ sceneId, onClose }: SceneVersionPanelProps) 
               autoFocus
               value={labelInput}
               onChange={(e) => setLabelInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setSavingLabel(false); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSave();
+                if (e.key === 'Escape') setSavingLabel(false);
+              }}
               placeholder="Snapshot label (optional)"
               className="flex-1 rounded-lg border border-studio-border bg-studio-surface px-2 py-1.5 text-[11px] text-studio-text outline-none focus:border-studio-accent"
             />
@@ -124,7 +140,9 @@ export function SceneVersionPanel({ sceneId, onClose }: SceneVersionPanelProps) 
 
       {/* Error */}
       {error && (
-        <div className="mx-3 mt-2 rounded-lg bg-red-500/10 p-2 text-[11px] text-red-400">{error}</div>
+        <div className="mx-3 mt-2 rounded-lg bg-red-500/10 p-2 text-[11px] text-red-400">
+          {error}
+        </div>
       )}
 
       {/* Version list */}

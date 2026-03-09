@@ -84,12 +84,12 @@ describe('NodeLibrary: production', () => {
   describe('search', () => {
     it('finds nodes by label substring', () => {
       const results = lib.search('add');
-      expect(results.some(d => d.type === 'math.add')).toBe(true);
+      expect(results.some((d) => d.type === 'math.add')).toBe(true);
     });
 
     it('finds nodes by description substring (case-insensitive)', () => {
       const results = lib.search('clamp');
-      expect(results.some(d => d.type === 'math.clamp')).toBe(true);
+      expect(results.some((d) => d.type === 'math.clamp')).toBe(true);
     });
 
     it('returns empty for no match', () => {
@@ -141,9 +141,21 @@ describe('NodeLibrary: production', () => {
 
     it('logic.compare returns equal/greater/less', () => {
       const def = lib.get('logic.compare')!;
-      expect(def.evaluate!({ a: 5, b: 5 })).toMatchObject({ equal: true, greater: false, less: false });
-      expect(def.evaluate!({ a: 6, b: 3 })).toMatchObject({ equal: false, greater: true, less: false });
-      expect(def.evaluate!({ a: 1, b: 9 })).toMatchObject({ equal: false, greater: false, less: true });
+      expect(def.evaluate!({ a: 5, b: 5 })).toMatchObject({
+        equal: true,
+        greater: false,
+        less: false,
+      });
+      expect(def.evaluate!({ a: 6, b: 3 })).toMatchObject({
+        equal: false,
+        greater: true,
+        less: false,
+      });
+      expect(def.evaluate!({ a: 1, b: 9 })).toMatchObject({
+        equal: false,
+        greater: false,
+        less: true,
+      });
     });
   });
 
@@ -158,7 +170,7 @@ describe('NodeLibrary: production', () => {
 
     it('created node has correct ports', () => {
       const node = lib.createNode('math.add', 'n1');
-      const portIds = node!.ports.map(p => p.id);
+      const portIds = node!.ports.map((p) => p.id);
       expect(portIds).toContain('a');
       expect(portIds).toContain('b');
       expect(portIds).toContain('result');
@@ -183,7 +195,9 @@ describe('NodeLibrary: production', () => {
   describe('register custom node', () => {
     it('custom node is retrievable after registration', () => {
       lib.register({
-        type: 'custom.double', label: 'Double', category: 'custom',
+        type: 'custom.double',
+        label: 'Double',
+        category: 'custom',
         description: 'Doubles a number',
         ports: [
           { id: 'n', name: 'N', type: 'number', direction: 'input', defaultValue: 0 },

@@ -26,11 +26,22 @@ export class NavMesh {
   /**
    * Add a navigation polygon
    */
-  addPolygon(vertices: { x: number; z: number }[], walkable: boolean = true, cost: number = 1): number {
+  addPolygon(
+    vertices: { x: number; z: number }[],
+    walkable: boolean = true,
+    cost: number = 1
+  ): number {
     const id = this.nextId++;
     const cx = vertices.reduce((s, v) => s + v.x, 0) / vertices.length;
     const cz = vertices.reduce((s, v) => s + v.z, 0) / vertices.length;
-    this.polygons.set(id, { id, vertices, neighbors: [], center: { x: cx, z: cz }, walkable, cost });
+    this.polygons.set(id, {
+      id,
+      vertices,
+      neighbors: [],
+      center: { x: cx, z: cz },
+      walkable,
+      cost,
+    });
     return id;
   }
 
@@ -68,7 +79,10 @@ export class NavMesh {
       let lowestF = Infinity;
       for (const id of openSet) {
         const f = fScore.get(id) ?? Infinity;
-        if (f < lowestF) { lowestF = f; current = id; }
+        if (f < lowestF) {
+          lowestF = f;
+          current = id;
+        }
       }
 
       if (current === endPoly) {
@@ -82,7 +96,8 @@ export class NavMesh {
         const neighbor = this.polygons.get(neighborId);
         if (!neighbor || !neighbor.walkable) continue;
 
-        const tentativeG = (gScore.get(current) ?? Infinity) +
+        const tentativeG =
+          (gScore.get(current) ?? Infinity) +
           this.heuristic(currentPoly.center, neighbor.center) * neighbor.cost;
 
         if (tentativeG < (gScore.get(neighborId) ?? Infinity)) {
@@ -122,13 +137,17 @@ export class NavMesh {
     return { waypoints: smoothed, totalCost: path.totalCost, polygonIds: path.polygonIds };
   }
 
-  private reconstructPath(cameFrom: Map<number, number>, current: number, totalCost: number): NavPath {
+  private reconstructPath(
+    cameFrom: Map<number, number>,
+    current: number,
+    totalCost: number
+  ): NavPath {
     const polygonIds: number[] = [current];
     while (cameFrom.has(current)) {
       current = cameFrom.get(current)!;
       polygonIds.unshift(current);
     }
-    const waypoints = polygonIds.map(id => this.polygons.get(id)!.center);
+    const waypoints = polygonIds.map((id) => this.polygons.get(id)!.center);
     return { waypoints, totalCost, polygonIds };
   }
 
@@ -136,7 +155,14 @@ export class NavMesh {
     return Math.sqrt((a.x - b.x) ** 2 + (a.z - b.z) ** 2);
   }
 
-  getPolygon(id: number): NavPolygon | undefined { return this.polygons.get(id); }
-  getPolygonCount(): number { return this.polygons.size; }
-  setWalkable(id: number, walkable: boolean): void { const p = this.polygons.get(id); if (p) p.walkable = walkable; }
+  getPolygon(id: number): NavPolygon | undefined {
+    return this.polygons.get(id);
+  }
+  getPolygonCount(): number {
+    return this.polygons.size;
+  }
+  setWalkable(id: number, walkable: boolean): void {
+    const p = this.polygons.get(id);
+    if (p) p.walkable = walkable;
+  }
 }

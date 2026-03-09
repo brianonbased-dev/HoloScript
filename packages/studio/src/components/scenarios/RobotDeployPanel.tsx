@@ -17,13 +17,26 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import {
-  Bot, Upload, Download, Sliders, Play, Radio,
-  ChevronDown, ChevronRight, RotateCcw, Wifi, WifiOff,
+  Bot,
+  Upload,
+  Download,
+  Sliders,
+  Play,
+  Radio,
+  ChevronDown,
+  ChevronRight,
+  RotateCcw,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import {
-  parseRobotDefinition, setJointAngle, forwardKinematics,
-  workspaceBounds, jointToTrait,
-  type RobotDefinition, type Joint,
+  parseRobotDefinition,
+  setJointAngle,
+  forwardKinematics,
+  workspaceBounds,
+  jointToTrait,
+  type RobotDefinition,
+  type Joint,
 } from '@/lib/robotHelpers';
 
 type ViewMode = 'joints' | 'kinematics' | 'export' | 'deploy';
@@ -81,7 +94,9 @@ export function RobotDeployPanel() {
       const parsed = parseRobotDefinition(text);
       setRobot(parsed);
       const angles: Record<string, number> = {};
-      parsed.joints.forEach(j => { angles[j.name] = 0; });
+      parsed.joints.forEach((j) => {
+        angles[j.name] = 0;
+      });
       setJointAngles(angles);
     };
     reader.readAsText(file);
@@ -92,19 +107,23 @@ export function RobotDeployPanel() {
     setRobot(parsed);
     setFilename('demo_arm.urdf');
     const angles: Record<string, number> = {};
-    parsed.joints.forEach(j => { angles[j.name] = 0; });
+    parsed.joints.forEach((j) => {
+      angles[j.name] = 0;
+    });
     setJointAngles(angles);
   }, []);
 
   const handleJointChange = useCallback((joint: Joint, angle: number) => {
     const clamped = setJointAngle(joint, angle);
-    setJointAngles(prev => ({ ...prev, [joint.name]: clamped }));
+    setJointAngles((prev) => ({ ...prev, [joint.name]: clamped }));
   }, []);
 
   const handleReset = useCallback(() => {
     if (!robot) return;
     const angles: Record<string, number> = {};
-    robot.joints.forEach(j => { angles[j.name] = 0; });
+    robot.joints.forEach((j) => {
+      angles[j.name] = 0;
+    });
     setJointAngles(angles);
   }, [robot]);
 
@@ -112,8 +131,8 @@ export function RobotDeployPanel() {
   const endEffectorPos = useMemo(() => {
     if (!robot) return [0, 0, 0] as [number, number, number];
     const chain = robot.joints
-      .filter(j => j.type !== 'fixed')
-      .map(j => ({
+      .filter((j) => j.type !== 'fixed')
+      .map((j) => ({
         joint: j,
         angle: jointAngles[j.name] ?? 0,
         linkLength: Math.sqrt(j.origin.x ** 2 + j.origin.y ** 2 + j.origin.z ** 2) || 1,
@@ -124,8 +143,8 @@ export function RobotDeployPanel() {
   const workspace = useMemo(() => {
     if (!robot) return null;
     const chain = robot.joints
-      .filter(j => j.type !== 'fixed')
-      .map(j => ({
+      .filter((j) => j.type !== 'fixed')
+      .map((j) => ({
         joint: j,
         linkLength: Math.sqrt(j.origin.x ** 2 + j.origin.y ** 2 + j.origin.z ** 2) || 1,
       }));
@@ -135,10 +154,10 @@ export function RobotDeployPanel() {
   // Generate HoloScript traits
   const holoTraits = useMemo(() => {
     if (!robot) return '';
-    return robot.joints.map(j => jointToTrait(j)).join('\n');
+    return robot.joints.map((j) => jointToTrait(j)).join('\n');
   }, [robot]);
 
-  const activeJoints = robot?.joints.filter(j => j.type !== 'fixed') ?? [];
+  const activeJoints = robot?.joints.filter((j) => j.type !== 'fixed') ?? [];
 
   return (
     <div className="flex flex-col gap-3 p-4">
@@ -153,7 +172,12 @@ export function RobotDeployPanel() {
         <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-studio-border bg-studio-panel/50 px-3 py-2 text-xs text-studio-muted transition hover:border-orange-500/40 hover:text-studio-text">
           <Upload className="h-3.5 w-3.5" />
           {filename || 'Upload URDF'}
-          <input type="file" accept=".urdf,.xml,.xacro" className="hidden" onChange={handleUrdfUpload} />
+          <input
+            type="file"
+            accept=".urdf,.xml,.xacro"
+            className="hidden"
+            onChange={handleUrdfUpload}
+          />
         </label>
         <button
           onClick={handleLoadDemo}
@@ -168,19 +192,21 @@ export function RobotDeployPanel() {
       {robot && (
         <div className="flex items-center justify-between rounded-lg border border-studio-border bg-studio-panel/30 px-3 py-2 text-xs">
           <span className="font-semibold text-studio-text">{robot.name}</span>
-          <span className="text-studio-muted">{robot.links.length} links · {robot.joints.length} joints</span>
+          <span className="text-studio-muted">
+            {robot.links.length} links · {robot.joints.length} joints
+          </span>
         </div>
       )}
 
       {/* View Mode Tabs */}
       {robot && (
         <div className="flex gap-1 rounded-lg bg-studio-panel/50 p-1">
-          {([
+          {[
             { mode: 'joints' as ViewMode, label: 'Joints', icon: Sliders },
             { mode: 'kinematics' as ViewMode, label: 'FK', icon: Play },
             { mode: 'export' as ViewMode, label: 'Export', icon: Download },
             { mode: 'deploy' as ViewMode, label: 'Deploy', icon: Radio },
-          ]).map(({ mode, label, icon: Icon }) => (
+          ].map(({ mode, label, icon: Icon }) => (
             <button
               key={mode}
               onClick={() => setViewMode(mode)}
@@ -211,12 +237,15 @@ export function RobotDeployPanel() {
               <RotateCcw className="h-3 w-3" /> Reset
             </button>
           </div>
-          {activeJoints.map(joint => (
-            <div key={joint.name} className="rounded-lg border border-studio-border bg-studio-panel/30 p-2">
+          {activeJoints.map((joint) => (
+            <div
+              key={joint.name}
+              className="rounded-lg border border-studio-border bg-studio-panel/30 p-2"
+            >
               <div className="flex items-center justify-between text-xs">
                 <span className="text-studio-text">{joint.name}</span>
                 <span className="font-mono text-[10px] text-studio-muted">
-                  {((jointAngles[joint.name] ?? 0) * 180 / Math.PI).toFixed(1)}°
+                  {(((jointAngles[joint.name] ?? 0) * 180) / Math.PI).toFixed(1)}°
                 </span>
               </div>
               <input
@@ -228,9 +257,9 @@ export function RobotDeployPanel() {
                 className="mt-1 w-full accent-orange-500"
               />
               <div className="flex justify-between text-[9px] text-studio-muted">
-                <span>{(joint.limits.min * 180 / Math.PI).toFixed(0)}°</span>
+                <span>{((joint.limits.min * 180) / Math.PI).toFixed(0)}°</span>
                 <span className="text-orange-400/60">{joint.type}</span>
-                <span>{(joint.limits.max * 180 / Math.PI).toFixed(0)}°</span>
+                <span>{((joint.limits.max * 180) / Math.PI).toFixed(0)}°</span>
               </div>
             </div>
           ))}
@@ -240,7 +269,9 @@ export function RobotDeployPanel() {
       {/* Forward Kinematics */}
       {robot && viewMode === 'kinematics' && (
         <div className="flex flex-col gap-2 rounded-lg border border-studio-border bg-studio-panel/30 p-3 text-xs">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-studio-muted">End Effector Position</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-studio-muted">
+            End Effector Position
+          </div>
           <div className="grid grid-cols-3 gap-2">
             {['X', 'Y', 'Z'].map((axis, i) => (
               <div key={axis} className="text-center">
@@ -253,9 +284,12 @@ export function RobotDeployPanel() {
           </div>
           {workspace && (
             <div className="mt-2 border-t border-studio-border pt-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-studio-muted">Workspace</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-studio-muted">
+                Workspace
+              </div>
               <div className="text-studio-text mt-1">
-                Reach: <span className="font-mono text-orange-400">{workspace.radius.toFixed(2)}m</span>
+                Reach:{' '}
+                <span className="font-mono text-orange-400">{workspace.radius.toFixed(2)}m</span>
               </div>
             </div>
           )}
@@ -309,10 +343,18 @@ export function RobotDeployPanel() {
           <div className="rounded-lg border border-studio-border bg-studio-panel/30 p-3 text-[11px] text-studio-muted">
             <p>Send joint commands to a real robot via ROSBridge:</p>
             <ol className="mt-1 ml-4 list-decimal space-y-0.5">
-              <li>Start <code className="text-orange-400">roslaunch rosbridge_server rosbridge_websocket_launch.xml</code></li>
+              <li>
+                Start{' '}
+                <code className="text-orange-400">
+                  roslaunch rosbridge_server rosbridge_websocket_launch.xml
+                </code>
+              </li>
               <li>Enter the WebSocket URL above</li>
               <li>Click Connect</li>
-              <li>Adjust joints — commands publish to <code className="text-orange-400">/joint_states</code></li>
+              <li>
+                Adjust joints — commands publish to{' '}
+                <code className="text-orange-400">/joint_states</code>
+              </li>
             </ol>
           </div>
         </div>

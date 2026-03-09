@@ -12,7 +12,13 @@ describe('TerrainBrush — Production', () => {
   let brush: TerrainBrush;
 
   beforeEach(() => {
-    brush = new TerrainBrush(16, { mode: 'raise', radius: 2, strength: 1, falloff: 'flat', opacity: 1 });
+    brush = new TerrainBrush(16, {
+      mode: 'raise',
+      radius: 2,
+      strength: 1,
+      falloff: 'flat',
+      opacity: 1,
+    });
   });
 
   // ─── Construction ──────────────────────────────────────────────────

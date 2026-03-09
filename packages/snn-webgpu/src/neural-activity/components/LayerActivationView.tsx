@@ -35,7 +35,7 @@ function buildViewProjection(
   rotationX: number,
   rotationY: number,
   distance: number,
-  aspect: number,
+  aspect: number
 ): Float32Array {
   const fov = Math.PI / 4;
   const near = 0.1;
@@ -46,10 +46,22 @@ function buildViewProjection(
   const rangeInv = 1 / (near - far);
 
   const proj = [
-    f / aspect, 0, 0, 0,
-    0, f, 0, 0,
-    0, 0, (near + far) * rangeInv, -1,
-    0, 0, near * far * rangeInv * 2, 0,
+    f / aspect,
+    0,
+    0,
+    0,
+    0,
+    f,
+    0,
+    0,
+    0,
+    0,
+    (near + far) * rangeInv,
+    -1,
+    0,
+    0,
+    near * far * rangeInv * 2,
+    0,
   ];
 
   // Rotation
@@ -58,26 +70,11 @@ function buildViewProjection(
   const cy = Math.cos(rotationY);
   const sy = Math.sin(rotationY);
 
-  const rotX = [
-    1, 0, 0, 0,
-    0, cx, sx, 0,
-    0, -sx, cx, 0,
-    0, 0, 0, 1,
-  ];
+  const rotX = [1, 0, 0, 0, 0, cx, sx, 0, 0, -sx, cx, 0, 0, 0, 0, 1];
 
-  const rotY = [
-    cy, 0, -sy, 0,
-    0, 1, 0, 0,
-    sy, 0, cy, 0,
-    0, 0, 0, 1,
-  ];
+  const rotY = [cy, 0, -sy, 0, 0, 1, 0, 0, sy, 0, cy, 0, 0, 0, 0, 1];
 
-  const translate = [
-    1, 0, 0, 0,
-    0, 1, 0, 0,
-    0, 0, 1, 0,
-    0, 0, -distance, 1,
-  ];
+  const translate = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, -distance, 1];
 
   // Multiply: proj * translate * rotX * rotY
   const result = mat4Multiply(mat4Multiply(mat4Multiply(proj, translate), rotX), rotY);
@@ -124,7 +121,7 @@ export const LayerActivationView: React.FC<LayerActivationViewProps> = ({
   // Build the view-projection matrix
   const viewProjection = useMemo(
     () => buildViewProjection(rotationX, rotationY, distance, aspect),
-    [rotationX, rotationY, distance, aspect],
+    [rotationX, rotationY, distance, aspect]
   );
 
   // Initialize pipeline (once)
@@ -149,7 +146,7 @@ export const LayerActivationView: React.FC<LayerActivationViewProps> = ({
       80,
       GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       undefined,
-      'layer3d-uniforms',
+      'layer3d-uniforms'
     );
     uniformBufferRef.current = uniformBuffer;
 
@@ -163,13 +160,15 @@ export const LayerActivationView: React.FC<LayerActivationViewProps> = ({
       fragment: {
         module: fragModule,
         entryPoint: 'main',
-        targets: [{
-          format,
-          blend: {
-            color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
-            alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+        targets: [
+          {
+            format,
+            blend: {
+              color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+              alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+            },
           },
-        }],
+        ],
       },
       primitive: { topology: 'triangle-list' },
     });
@@ -178,7 +177,8 @@ export const LayerActivationView: React.FC<LayerActivationViewProps> = ({
 
   // WebGPU render: draw each layer as a separate draw call
   const renderWebGPU = useCallback(() => {
-    if (!gpuContext || !pipelineRef.current || !bindGroupLayoutRef.current || layers.length === 0) return;
+    if (!gpuContext || !pipelineRef.current || !bindGroupLayoutRef.current || layers.length === 0)
+      return;
 
     const { device, context } = gpuContext;
     const commandEncoder = device.createCommandEncoder();
@@ -216,7 +216,7 @@ export const LayerActivationView: React.FC<LayerActivationViewProps> = ({
         Math.max(layer.activations.byteLength, 16),
         GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         layer.activations,
-        `layer3d-act-${layerIdx}`,
+        `layer3d-act-${layerIdx}`
       );
 
       const bindGroup = device.createBindGroup({
@@ -301,21 +301,18 @@ export const LayerActivationView: React.FC<LayerActivationViewProps> = ({
       isDraggingRef.current = true;
       lastMouseRef.current = { x: e.clientX, y: e.clientY };
     },
-    [enableRotation],
+    [enableRotation]
   );
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!isDraggingRef.current) return;
-      const dx = e.clientX - lastMouseRef.current.x;
-      const dy = e.clientY - lastMouseRef.current.y;
-      lastMouseRef.current = { x: e.clientX, y: e.clientY };
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDraggingRef.current) return;
+    const dx = e.clientX - lastMouseRef.current.x;
+    const dy = e.clientY - lastMouseRef.current.y;
+    lastMouseRef.current = { x: e.clientX, y: e.clientY };
 
-      setRotationY((prev) => prev + dx * 0.005);
-      setRotationX((prev) => Math.max(-Math.PI / 2, Math.min(Math.PI / 2, prev + dy * 0.005)));
-    },
-    [],
-  );
+    setRotationY((prev) => prev + dx * 0.005);
+    setRotationX((prev) => Math.max(-Math.PI / 2, Math.min(Math.PI / 2, prev + dy * 0.005)));
+  }, []);
 
   const handleMouseUp = useCallback(() => {
     isDraggingRef.current = false;
@@ -332,7 +329,7 @@ export const LayerActivationView: React.FC<LayerActivationViewProps> = ({
         onLayerSelect(layerIdx);
       }
     },
-    [onLayerSelect, layers, height],
+    [onLayerSelect, layers, height]
   );
 
   if (isLoading) {
@@ -341,7 +338,14 @@ export const LayerActivationView: React.FC<LayerActivationViewProps> = ({
         className={className}
         role="status"
         aria-label="Loading 3D layer view"
-        style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a1e' }}
+        style={{
+          width,
+          height,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#0a0a1e',
+        }}
       >
         <span style={{ color: '#ccc' }}>Initializing WebGPU...</span>
       </div>

@@ -75,9 +75,16 @@ describe('Feature 1A: LocalRegistry -- instantiation', () => {
 
 describe('Feature 1B: LocalRegistry -- publish & retrieve', () => {
   let reg: InstanceType<typeof LocalRegistry>;
-  beforeEach(() => { reg = new LocalRegistry(); });
+  beforeEach(() => {
+    reg = new LocalRegistry();
+  });
 
-  const PKG = { name: '@test/hello', version: '1.0.0', description: 'A test pkg', content: 'export default {}' };
+  const PKG = {
+    name: '@test/hello',
+    version: '1.0.0',
+    description: 'A test pkg',
+    content: 'export default {}',
+  };
 
   it('publish returns a manifest object', () => {
     const manifest = reg.publish(PKG);
@@ -138,9 +145,24 @@ describe('Feature 1C: LocalRegistry -- search', () => {
   let reg: InstanceType<typeof LocalRegistry>;
   beforeEach(() => {
     reg = new LocalRegistry();
-    reg.publish({ name: '@holoscript/ui', version: '1.0.0', description: 'UI components for HoloScript', content: 'export default {}' });
-    reg.publish({ name: '@holoscript/physics', version: '2.0.0', description: 'Physics engine integration', content: 'export default {}' });
-    reg.publish({ name: '@other/tool', version: '1.0.0', description: 'An unrelated tool', content: 'export default {}' });
+    reg.publish({
+      name: '@holoscript/ui',
+      version: '1.0.0',
+      description: 'UI components for HoloScript',
+      content: 'export default {}',
+    });
+    reg.publish({
+      name: '@holoscript/physics',
+      version: '2.0.0',
+      description: 'Physics engine integration',
+      content: 'export default {}',
+    });
+    reg.publish({
+      name: '@other/tool',
+      version: '1.0.0',
+      description: 'An unrelated tool',
+      content: 'export default {}',
+    });
   });
 
   it('search returns an array', () => {
@@ -176,7 +198,12 @@ describe('Feature 1C: LocalRegistry -- search', () => {
 describe('Feature 1D: LocalRegistry -- clear', () => {
   it('clear() removes all packages', () => {
     const reg = new LocalRegistry();
-    reg.publish({ name: '@test/pkg', version: '1.0.0', description: 'pkg', content: 'export default {}' });
+    reg.publish({
+      name: '@test/pkg',
+      version: '1.0.0',
+      description: 'pkg',
+      content: 'export default {}',
+    });
     expect(reg.size).toBe(1);
     reg.clear();
     expect(reg.size).toBe(0);
@@ -184,7 +211,12 @@ describe('Feature 1D: LocalRegistry -- clear', () => {
 
   it('getPackage returns undefined after clear', () => {
     const reg = new LocalRegistry();
-    reg.publish({ name: '@test/pkg', version: '1.0.0', description: 'pkg', content: 'export default {}' });
+    reg.publish({
+      name: '@test/pkg',
+      version: '1.0.0',
+      description: 'pkg',
+      content: 'export default {}',
+    });
     reg.clear();
     expect(reg.getPackage('@test/pkg')).toBeUndefined();
   });
@@ -227,7 +259,9 @@ describe('Feature 2A: PackageResolver -- instantiation', () => {
 
 describe('Feature 2B: PackageResolver -- satisfies()', () => {
   let resolver: InstanceType<typeof PackageResolver>;
-  beforeEach(() => { resolver = new PackageResolver(new LocalRegistry()); });
+  beforeEach(() => {
+    resolver = new PackageResolver(new LocalRegistry());
+  });
 
   it('exact match satisfies', () => {
     expect(resolver.satisfies('1.2.3', '1.2.3')).toBe(true);
@@ -270,9 +304,24 @@ describe('Feature 2C: PackageResolver -- getMatchingVersions()', () => {
 
   beforeEach(() => {
     reg = new LocalRegistry();
-    reg.publish({ name: '@holoscript/core', version: '1.0.0', description: 'core', content: 'export default {}' });
-    reg.publish({ name: '@holoscript/core', version: '1.1.0', description: 'core', content: 'export default {}' });
-    reg.publish({ name: '@holoscript/core', version: '2.0.0', description: 'core', content: 'export default {}' });
+    reg.publish({
+      name: '@holoscript/core',
+      version: '1.0.0',
+      description: 'core',
+      content: 'export default {}',
+    });
+    reg.publish({
+      name: '@holoscript/core',
+      version: '1.1.0',
+      description: 'core',
+      content: 'export default {}',
+    });
+    reg.publish({
+      name: '@holoscript/core',
+      version: '2.0.0',
+      description: 'core',
+      content: 'export default {}',
+    });
     resolver = new PackageResolver(reg);
   });
 

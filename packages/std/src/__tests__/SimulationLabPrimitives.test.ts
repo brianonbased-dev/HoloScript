@@ -141,9 +141,7 @@ describe('Parameter Sweep', () => {
       expect(generateSweepCombinations([])).toEqual([{}]);
     });
     it('should generate all values for single sweep', () => {
-      const combos = generateSweepCombinations([
-        { name: 'x', values: [1, 2, 3] },
-      ]);
+      const combos = generateSweepCombinations([{ name: 'x', values: [1, 2, 3] }]);
       expect(combos).toEqual([{ x: 1 }, { x: 2 }, { x: 3 }]);
     });
     it('should generate Cartesian product for two sweeps', () => {

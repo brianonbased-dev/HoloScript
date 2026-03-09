@@ -11,19 +11,25 @@
 
 // ── Intent types ────────────────────────────────────────────────────────────
 
-export type CharacterIntentType = 'set_morph' | 'equip_item' | 'unequip_item' | 'set_skin_color' | 'reset' | 'unknown';
+export type CharacterIntentType =
+  | 'set_morph'
+  | 'equip_item'
+  | 'unequip_item'
+  | 'set_skin_color'
+  | 'reset'
+  | 'unknown';
 
 export interface MorphIntent {
   type: 'set_morph';
-  target: string;  // morph target ID, e.g. 'body_height'
+  target: string; // morph target ID, e.g. 'body_height'
   direction: 'increase' | 'decrease' | 'set';
-  value?: number;  // absolute value if 'set', otherwise undefined
+  value?: number; // absolute value if 'set', otherwise undefined
 }
 
 export interface EquipIntent {
   type: 'equip_item';
   slot?: string;
-  itemQuery: string;  // fuzzy search term for item name
+  itemQuery: string; // fuzzy search term for item name
 }
 
 export interface UnequipIntent {
@@ -47,40 +53,89 @@ export interface UnknownIntent {
   raw: string;
 }
 
-export type CharacterIntent = MorphIntent | EquipIntent | UnequipIntent | SkinColorIntent | ResetIntent | UnknownIntent;
+export type CharacterIntent =
+  | MorphIntent
+  | EquipIntent
+  | UnequipIntent
+  | SkinColorIntent
+  | ResetIntent
+  | UnknownIntent;
 
 // ── Synonym maps ────────────────────────────────────────────────────────────
 
 /** Maps natural language keywords → morph target IDs */
 const MORPH_KEYWORDS: Record<string, string[]> = {
-  body_height:      ['height', 'tall', 'taller', 'short', 'shorter', 'stature'],
-  body_build:       ['build', 'muscular', 'muscle', 'buff', 'slim', 'thin', 'skinny', 'bulky', 'stocky', 'athletic'],
-  body_shoulders:   ['shoulder', 'shoulders', 'broad'],
-  body_chest:       ['chest', 'bust', 'torso'],
-  body_waist:       ['waist', 'belly', 'stomach', 'tummy', 'core'],
-  body_hips:        ['hip', 'hips'],
-  body_arms:        ['arm', 'arms', 'arm length'],
-  body_legs:        ['leg', 'legs', 'leg length'],
-  face_eye_size:    ['eye', 'eyes', 'eye size'],
+  body_height: ['height', 'tall', 'taller', 'short', 'shorter', 'stature'],
+  body_build: [
+    'build',
+    'muscular',
+    'muscle',
+    'buff',
+    'slim',
+    'thin',
+    'skinny',
+    'bulky',
+    'stocky',
+    'athletic',
+  ],
+  body_shoulders: ['shoulder', 'shoulders', 'broad'],
+  body_chest: ['chest', 'bust', 'torso'],
+  body_waist: ['waist', 'belly', 'stomach', 'tummy', 'core'],
+  body_hips: ['hip', 'hips'],
+  body_arms: ['arm', 'arms', 'arm length'],
+  body_legs: ['leg', 'legs', 'leg length'],
+  face_eye_size: ['eye', 'eyes', 'eye size'],
   face_eye_spacing: ['eye spacing', 'eye distance', 'eyes apart', 'eyes closer'],
-  face_nose_width:  ['nose width', 'nose', 'nostrils'],
+  face_nose_width: ['nose width', 'nose', 'nostrils'],
   face_nose_length: ['nose length', 'nose long', 'nose short'],
   face_mouth_width: ['mouth', 'lips', 'lip width'],
-  face_jaw_width:   ['jaw', 'jawline', 'chin'],
-  face_cheek:       ['cheek', 'cheeks', 'cheekbone'],
-  face_brow:        ['brow', 'eyebrow', 'eyebrows', 'forehead'],
+  face_jaw_width: ['jaw', 'jawline', 'chin'],
+  face_cheek: ['cheek', 'cheeks', 'cheekbone'],
+  face_brow: ['brow', 'eyebrow', 'eyebrows', 'forehead'],
 };
 
 /** Keywords indicating increase vs decrease */
-const INCREASE_WORDS = ['bigger', 'larger', 'more', 'wider', 'taller', 'broader', 'thicker', 'higher', 'increase', 'up', 'max', 'full', 'muscular', 'buff', 'bulky', 'athletic', 'broad'];
-const DECREASE_WORDS = ['smaller', 'less', 'narrower', 'shorter', 'thinner', 'lower', 'decrease', 'down', 'min', 'slim', 'thin', 'skinny', 'petite'];
+const INCREASE_WORDS = [
+  'bigger',
+  'larger',
+  'more',
+  'wider',
+  'taller',
+  'broader',
+  'thicker',
+  'higher',
+  'increase',
+  'up',
+  'max',
+  'full',
+  'muscular',
+  'buff',
+  'bulky',
+  'athletic',
+  'broad',
+];
+const DECREASE_WORDS = [
+  'smaller',
+  'less',
+  'narrower',
+  'shorter',
+  'thinner',
+  'lower',
+  'decrease',
+  'down',
+  'min',
+  'slim',
+  'thin',
+  'skinny',
+  'petite',
+];
 
 /** Wardrobe slot keywords */
 const SLOT_KEYWORDS: Record<string, string[]> = {
-  hair:        ['hair', 'hairstyle', 'haircut'],
-  top:         ['top', 'shirt', 'tshirt', 't-shirt', 'hoodie', 'jacket', 'blazer', 'armor', 'chest piece'],
-  bottom:      ['bottom', 'pants', 'jeans', 'shorts', 'skirt', 'trousers'],
-  shoes:       ['shoes', 'boots', 'sneakers', 'heels', 'footwear'],
+  hair: ['hair', 'hairstyle', 'haircut'],
+  top: ['top', 'shirt', 'tshirt', 't-shirt', 'hoodie', 'jacket', 'blazer', 'armor', 'chest piece'],
+  bottom: ['bottom', 'pants', 'jeans', 'shorts', 'skirt', 'trousers'],
+  shoes: ['shoes', 'boots', 'sneakers', 'heels', 'footwear'],
   accessory_1: ['glasses', 'hat', 'cap', 'headwear', 'accessory'],
   accessory_2: ['backpack', 'wings', 'cape', 'bag'],
 };
@@ -199,7 +254,13 @@ export interface CharacterStoreActions {
   setMorphTarget: (name: string, value: number) => void;
   resetMorphTargets: () => void;
   setSkinColor: (color: string) => void;
-  equipItem: (item: { id: string; name: string; slot: string; thumbnail: string; category: string }) => void;
+  equipItem: (item: {
+    id: string;
+    name: string;
+    slot: string;
+    thumbnail: string;
+    category: string;
+  }) => void;
   unequipSlot: (slot: string) => void;
   clearWardrobe: () => void;
   morphTargets: Record<string, number>;
@@ -213,7 +274,10 @@ const STEP_SIZE = 15;
  * Execute a parsed intent against the character store.
  * Returns a human-readable response string.
  */
-export function executeCharacterIntent(intent: CharacterIntent, store: CharacterStoreActions): string {
+export function executeCharacterIntent(
+  intent: CharacterIntent,
+  store: CharacterStoreActions
+): string {
   switch (intent.type) {
     case 'set_morph': {
       const current = store.morphTargets[intent.target] ?? 50;

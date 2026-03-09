@@ -10,9 +10,9 @@
  */
 
 export enum CircuitState {
-  CLOSED = 'CLOSED',    // Normal operation
-  OPEN = 'OPEN',        // Failing fast
-  HALF_OPEN = 'HALF_OPEN' // Testing recovery
+  CLOSED = 'CLOSED', // Normal operation
+  OPEN = 'OPEN', // Failing fast
+  HALF_OPEN = 'HALF_OPEN', // Testing recovery
 }
 
 export interface CircuitBreakerConfig {
@@ -89,7 +89,7 @@ export class CircuitBreaker {
       totalSuccesses: this.successCount,
       cacheHits: 0, // Tracked externally
       lastStateChange: this.lastStateChange,
-      retryHistogram: new Map(this.retryHistogram)
+      retryHistogram: new Map(this.retryHistogram),
     };
   }
 
@@ -161,8 +161,7 @@ export class CircuitBreaker {
     }
 
     // Check failure rate threshold
-    if (this.state === CircuitState.CLOSED &&
-        this.requestCount >= this.config.minimumRequests) {
+    if (this.state === CircuitState.CLOSED && this.requestCount >= this.config.minimumRequests) {
       const failureRate = this.calculateFailureRate();
       if (failureRate >= this.config.failureRateThreshold) {
         this.transitionToOpen('failure rate threshold exceeded');
@@ -216,7 +215,7 @@ export class CircuitBreaker {
       return 0;
     }
 
-    const failures = this.requestResults.filter(success => !success).length;
+    const failures = this.requestResults.filter((success) => !success).length;
     return failures / this.requestResults.length;
   }
 
@@ -267,7 +266,7 @@ export class CircuitBreaker {
       return;
     }
 
-    const successCount = this.healthCheckResults.filter(result => result).length;
+    const successCount = this.healthCheckResults.filter((result) => result).length;
 
     if (successCount >= this.config.successThreshold) {
       this.transitionToClosed();
@@ -302,15 +301,15 @@ export class CircuitBreakerManager {
 
   constructor(config?: Partial<CircuitBreakerConfig>) {
     this.defaultConfig = {
-      failureRateThreshold: 0.5,        // 50% failure rate
-      minimumRequests: 10,               // Over 10 requests
-      consecutiveTimeoutThreshold: 5,    // OR 5 consecutive timeouts
-      openStateTimeout: 30000,           // 30 seconds before half-open
-      healthCheckCount: 5,               // 5 health check queries
-      successThreshold: 3,               // 3 must succeed
-      maxRetryDelay: 30000,              // 30 second max delay
-      baseRetryDelay: 1000,              // 1 second base delay
-      ...config
+      failureRateThreshold: 0.5, // 50% failure rate
+      minimumRequests: 10, // Over 10 requests
+      consecutiveTimeoutThreshold: 5, // OR 5 consecutive timeouts
+      openStateTimeout: 30000, // 30 seconds before half-open
+      healthCheckCount: 5, // 5 health check queries
+      successThreshold: 3, // 3 must succeed
+      maxRetryDelay: 30000, // 30 second max delay
+      baseRetryDelay: 1000, // 1 second base delay
+      ...config,
     };
   }
 
@@ -319,10 +318,7 @@ export class CircuitBreakerManager {
    */
   public getCircuit(operationName: string): CircuitBreaker {
     if (!this.circuits.has(operationName)) {
-      this.circuits.set(
-        operationName,
-        new CircuitBreaker(operationName, this.defaultConfig)
-      );
+      this.circuits.set(operationName, new CircuitBreaker(operationName, this.defaultConfig));
     }
 
     return this.circuits.get(operationName)!;
@@ -369,11 +365,11 @@ export class CircuitBreakerManager {
       byState: {
         closed: 0,
         open: 0,
-        halfOpen: 0
+        halfOpen: 0,
       },
       totalRequests: 0,
       totalFailures: 0,
-      overallFailureRate: 0
+      overallFailureRate: 0,
     };
 
     for (const circuit of this.circuits.values()) {

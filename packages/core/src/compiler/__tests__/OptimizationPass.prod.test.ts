@@ -60,9 +60,7 @@ describe('OptimizationPass — Production', () => {
   it('gatherStats returns totalNodes', () => {
     const tree = node('group', {}, [
       node('mesh', { id: 'a' }),
-      node('group', { id: 'g' }, [
-        node('mesh', { id: 'b' }),
-      ]),
+      node('group', { id: 'g' }, [node('mesh', { id: 'b' })]),
     ]);
     const stats = pass.gatherStats(tree);
     expect(stats.totalNodes).toBeGreaterThanOrEqual(3);
@@ -87,7 +85,7 @@ describe('OptimizationPass — Production', () => {
     }
     const tree = node('group', {}, lights);
     const report = pass.analyze(tree);
-    const lightHints = report.hints.filter(h => h.message.toLowerCase().includes('light'));
+    const lightHints = report.hints.filter((h) => h.message.toLowerCase().includes('light'));
     expect(lightHints.length).toBeGreaterThan(0);
   });
 
@@ -98,7 +96,7 @@ describe('OptimizationPass — Production', () => {
     }
     const tree = node('group', {}, meshes);
     const report = pass.analyze(tree);
-    const shadowHints = report.hints.filter(h => h.category === 'shadows');
+    const shadowHints = report.hints.filter((h) => h.category === 'shadows');
     expect(shadowHints.length).toBeGreaterThanOrEqual(0); // may or may not trigger depending on budget
   });
 
@@ -134,10 +132,7 @@ describe('OptimizationPass — Production', () => {
   });
 
   it('simple scene gets high score', () => {
-    const tree = node('group', {}, [
-      node('mesh', { id: 'm1' }),
-      node('pointLight', { id: 'l1' }),
-    ]);
+    const tree = node('group', {}, [node('mesh', { id: 'm1' }), node('pointLight', { id: 'l1' })]);
     const report = pass.analyze(tree);
     expect(report.score).toBeGreaterThanOrEqual(50);
   });
@@ -147,9 +142,7 @@ describe('OptimizationPass — Production', () => {
   it('walkTree visits all nodes', () => {
     const tree = node('group', {}, [
       node('mesh', { id: 'a' }),
-      node('group', { id: 'b' }, [
-        node('mesh', { id: 'c' }),
-      ]),
+      node('group', { id: 'b' }, [node('mesh', { id: 'c' })]),
     ]);
     const visited: string[] = [];
     pass.walkTree(tree, (n) => visited.push(n.props.id || n.type));

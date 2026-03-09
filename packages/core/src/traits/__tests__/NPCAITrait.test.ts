@@ -41,7 +41,7 @@ describe('NPCAITrait', () => {
   });
 
   it('emits npc_ai_initialized on attach', () => {
-    expect(ctx.emittedEvents.some(e => e.event === 'npc_ai_initialized')).toBe(true);
+    expect(ctx.emittedEvents.some((e) => e.event === 'npc_ai_initialized')).toBe(true);
   });
 
   it('cleans up on detach', () => {
@@ -93,7 +93,7 @@ describe('NPCAITrait', () => {
       type: 'npc_ai_response',
       text: 'Sure! <action type="wave" speed="fast" />',
     });
-    const actionEvents = ctx.emittedEvents.filter(e => e.event === 'npc_action');
+    const actionEvents = ctx.emittedEvents.filter((e) => e.event === 'npc_action');
     expect(actionEvents.length).toBe(1);
     expect((actionEvents[0].data as any).type).toBe('wave');
   });

@@ -13,15 +13,26 @@ import { Puzzle, X, Search, Star, Download, CheckCircle2, RefreshCw, Shield } fr
 import { usePluginHost } from '@/hooks/usePluginHost';
 import type { HoloPlugin } from '@/app/api/plugins/route';
 
-interface PluginMarketplacePanelProps { onClose: () => void; }
+interface PluginMarketplacePanelProps {
+  onClose: () => void;
+}
 
 const CATEGORY_EMOJI: Record<string, string> = {
-  rendering: '🌟', physics: '⚡', audio: '🎵', ai: '🤖', tools: '🔧', export: '📤',
+  rendering: '🌟',
+  physics: '⚡',
+  audio: '🎵',
+  ai: '🤖',
+  tools: '🔧',
+  export: '📤',
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  rendering: 'Rendering', physics: 'Physics', audio: 'Audio',
-  ai: 'AI', tools: 'Tools', export: 'Export',
+  rendering: 'Rendering',
+  physics: 'Physics',
+  audio: 'Audio',
+  ai: 'AI',
+  tools: 'Tools',
+  export: 'Export',
 };
 
 /**
@@ -57,7 +68,7 @@ export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps)
       if (q) params.set('q', q);
       if (cat) params.set('category', cat);
       const r = await fetch(`/api/plugins?${params}`);
-      const d = await r.json() as { plugins: HoloPlugin[]; categories: string[] };
+      const d = (await r.json()) as { plugins: HoloPlugin[]; categories: string[] };
       setPlugins(d.plugins ?? []);
       setCategories(d.categories ?? []);
     } catch {
@@ -67,7 +78,9 @@ export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps)
     }
   };
 
-  useEffect(() => { fetchPlugins('', ''); }, []);
+  useEffect(() => {
+    fetchPlugins('', '');
+  }, []);
 
   // Debounce search
   useEffect(() => {
@@ -75,44 +88,50 @@ export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps)
     return () => clearTimeout(t);
   }, [query, category]);
 
-  const handleInstall = useCallback(async (plugin: HoloPlugin) => {
-    if (!hostReady) return;
+  const handleInstall = useCallback(
+    async (plugin: HoloPlugin) => {
+      if (!hostReady) return;
 
-    setInstalling(plugin.id);
-    setInstallError(null);
+      setInstalling(plugin.id);
+      setInstallError(null);
 
-    try {
-      const permissions = CATEGORY_PERMISSIONS[plugin.category] ?? ['scene:read', 'ui:panel'];
+      try {
+        const permissions = CATEGORY_PERMISSIONS[plugin.category] ?? ['scene:read', 'ui:panel'];
 
-      await loadPlugin({
-        pluginId: plugin.id,
-        // In production, this URL would come from the marketplace CDN.
-        // For now, we use a convention-based path that the Studio dev server can serve.
-        pluginUrl: `/plugins/${plugin.id}/index.js`,
-        manifest: {
-          permissions: permissions as any,
-          trustLevel: 'sandboxed',
-          memoryBudget: 64,
-        },
-        hasUI: true,
-        // No container specified -- the SandboxedPluginsPanel provides the container
-        // when the plugin is actually rendered. For headless plugins, this is fine.
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to install plugin';
-      setInstallError(`${plugin.name}: ${message}`);
-    } finally {
-      setInstalling(null);
-    }
-  }, [hostReady, loadPlugin]);
+        await loadPlugin({
+          pluginId: plugin.id,
+          // In production, this URL would come from the marketplace CDN.
+          // For now, we use a convention-based path that the Studio dev server can serve.
+          pluginUrl: `/plugins/${plugin.id}/index.js`,
+          manifest: {
+            permissions: permissions as any,
+            trustLevel: 'sandboxed',
+            memoryBudget: 64,
+          },
+          hasUI: true,
+          // No container specified -- the SandboxedPluginsPanel provides the container
+          // when the plugin is actually rendered. For headless plugins, this is fine.
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to install plugin';
+        setInstallError(`${plugin.name}: ${message}`);
+      } finally {
+        setInstalling(null);
+      }
+    },
+    [hostReady, loadPlugin]
+  );
 
-  const handleUninstall = useCallback(async (pluginId: string) => {
-    try {
-      await unloadPlugin(pluginId);
-    } catch (err) {
-      console.warn(`[Marketplace] Error uninstalling ${pluginId}:`, err);
-    }
-  }, [unloadPlugin]);
+  const handleUninstall = useCallback(
+    async (pluginId: string) => {
+      try {
+        await unloadPlugin(pluginId);
+      } catch (err) {
+        console.warn(`[Marketplace] Error uninstalling ${pluginId}:`, err);
+      }
+    },
+    [unloadPlugin]
+  );
 
   const featured = plugins.filter((p) => p.featured);
   const regular = plugins.filter((p) => !p.featured);
@@ -126,8 +145,11 @@ export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps)
         <span className="ml-1 rounded-full bg-studio-accent/15 px-1.5 py-0.5 text-[9px] text-studio-accent">
           {plugins.length} plugins
         </span>
-        <button onClick={() => fetchPlugins(query, category)}
-          className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text" title="Refresh">
+        <button
+          onClick={() => fetchPlugins(query, category)}
+          className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text"
+          title="Refresh"
+        >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
         </button>
         <button onClick={onClose} className="rounded p-1 text-studio-muted hover:text-studio-text">
@@ -149,8 +171,10 @@ export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps)
       {installError && (
         <div className="flex shrink-0 items-center gap-2 border-b border-red-500/20 bg-red-500/10 px-3 py-2">
           <span className="text-[9px] text-red-400">{installError}</span>
-          <button onClick={() => setInstallError(null)}
-            className="ml-auto text-red-400/60 hover:text-red-400">
+          <button
+            onClick={() => setInstallError(null)}
+            className="ml-auto text-red-400/60 hover:text-red-400"
+          >
             <X className="h-3 w-3" />
           </button>
         </div>
@@ -160,19 +184,27 @@ export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps)
       <div className="shrink-0 border-b border-studio-border p-3 space-y-2">
         <div className="flex items-center gap-2 rounded-xl border border-studio-border bg-studio-surface px-2 py-1.5">
           <Search className="h-3.5 w-3.5 text-studio-muted" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)}
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder="Search plugins..."
-            className="flex-1 bg-transparent text-[10px] text-studio-text placeholder:text-studio-muted/60 outline-none" />
+            className="flex-1 bg-transparent text-[10px] text-studio-text placeholder:text-studio-muted/60 outline-none"
+          />
         </div>
         {/* Category pills */}
         <div className="flex flex-wrap gap-1.5">
-          <button onClick={() => setCategory('')}
-            className={`rounded-full px-2 py-0.5 text-[8px] font-semibold transition ${!category ? 'bg-studio-accent text-white' : 'bg-studio-surface text-studio-muted hover:text-studio-text'}`}>
+          <button
+            onClick={() => setCategory('')}
+            className={`rounded-full px-2 py-0.5 text-[8px] font-semibold transition ${!category ? 'bg-studio-accent text-white' : 'bg-studio-surface text-studio-muted hover:text-studio-text'}`}
+          >
             All
           </button>
           {categories.map((c) => (
-            <button key={c} onClick={() => setCategory(c === category ? '' : c)}
-              className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[8px] font-semibold transition ${category === c ? 'bg-studio-accent text-white' : 'bg-studio-surface text-studio-muted hover:text-studio-text'}`}>
+            <button
+              key={c}
+              onClick={() => setCategory(c === category ? '' : c)}
+              className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[8px] font-semibold transition ${category === c ? 'bg-studio-accent text-white' : 'bg-studio-surface text-studio-muted hover:text-studio-text'}`}
+            >
               {CATEGORY_EMOJI[c]} {CATEGORY_LABELS[c] ?? c}
             </button>
           ))}
@@ -191,21 +223,43 @@ export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps)
         {featured.length > 0 && !query && !category && (
           <>
             <p className="text-[9px] uppercase tracking-widest text-studio-muted mb-1">Featured</p>
-            {featured.map((p) => <PluginCard key={p.id} plugin={p} installed={installed.has(p.id)}
-              installing={installing === p.id} onInstall={() => handleInstall(p)} onUninstall={() => handleUninstall(p.id)} />)}
-            {regular.length > 0 && <p className="text-[9px] uppercase tracking-widest text-studio-muted mb-1 pt-1">All Plugins</p>}
+            {featured.map((p) => (
+              <PluginCard
+                key={p.id}
+                plugin={p}
+                installed={installed.has(p.id)}
+                installing={installing === p.id}
+                onInstall={() => handleInstall(p)}
+                onUninstall={() => handleUninstall(p.id)}
+              />
+            ))}
+            {regular.length > 0 && (
+              <p className="text-[9px] uppercase tracking-widest text-studio-muted mb-1 pt-1">
+                All Plugins
+              </p>
+            )}
           </>
         )}
 
         {/* Regular / all */}
         {plugins.map((p) => {
           if (featured.includes(p) && !query && !category) return null;
-          return <PluginCard key={p.id} plugin={p} installed={installed.has(p.id)}
-            installing={installing === p.id} onInstall={() => handleInstall(p)} onUninstall={() => handleUninstall(p.id)} />;
+          return (
+            <PluginCard
+              key={p.id}
+              plugin={p}
+              installed={installed.has(p.id)}
+              installing={installing === p.id}
+              onInstall={() => handleInstall(p)}
+              onUninstall={() => handleUninstall(p.id)}
+            />
+          );
         })}
 
         {!loading && plugins.length === 0 && (
-          <p className="py-8 text-center text-[10px] text-studio-muted">No plugins match &quot;{query}&quot;</p>
+          <p className="py-8 text-center text-[10px] text-studio-muted">
+            No plugins match &quot;{query}&quot;
+          </p>
         )}
       </div>
 
@@ -220,7 +274,13 @@ export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps)
   );
 }
 
-function PluginCard({ plugin: p, installed, installing, onInstall, onUninstall }: {
+function PluginCard({
+  plugin: p,
+  installed,
+  installing,
+  onInstall,
+  onUninstall,
+}: {
   plugin: HoloPlugin;
   installed: boolean;
   installing: boolean;
@@ -237,7 +297,9 @@ function PluginCard({ plugin: p, installed, installing, onInstall, onUninstall }
             <span className="text-[10px] font-semibold truncate">{p.name}</span>
             <span className="text-[7px] text-studio-muted/70 shrink-0">v{p.version}</span>
           </div>
-          <p className="text-[7px] text-studio-muted">by {p.author} · {p.size}</p>
+          <p className="text-[7px] text-studio-muted">
+            by {p.author} · {p.size}
+          </p>
         </div>
         <div className="flex items-center gap-1">
           {CATEGORY_EMOJI[p.category] && (
@@ -254,7 +316,12 @@ function PluginCard({ plugin: p, installed, installing, onInstall, onUninstall }
       {/* Tags */}
       <div className="flex flex-wrap gap-1">
         {p.tags.map((t) => (
-          <span key={t} className="rounded bg-studio-panel px-1.5 py-0.5 text-[7px] text-studio-muted/70">#{t}</span>
+          <span
+            key={t}
+            className="rounded bg-studio-panel px-1.5 py-0.5 text-[7px] text-studio-muted/70"
+          >
+            #{t}
+          </span>
         ))}
       </div>
 
@@ -268,18 +335,33 @@ function PluginCard({ plugin: p, installed, installing, onInstall, onUninstall }
 
       {/* Stats + install */}
       <div className="flex items-center gap-3 text-[8px] text-studio-muted">
-        <span className="flex items-center gap-0.5"><Star className="h-2.5 w-2.5 text-yellow-400" />{p.stars.toLocaleString()}</span>
-        <span className="flex items-center gap-0.5"><Download className="h-2.5 w-2.5" />{p.downloads.toLocaleString()}</span>
+        <span className="flex items-center gap-0.5">
+          <Star className="h-2.5 w-2.5 text-yellow-400" />
+          {p.stars.toLocaleString()}
+        </span>
+        <span className="flex items-center gap-0.5">
+          <Download className="h-2.5 w-2.5" />
+          {p.downloads.toLocaleString()}
+        </span>
         <div className="ml-auto">
           {installed ? (
-            <button onClick={onUninstall}
-              className="flex items-center gap-1 rounded-lg border border-green-700/40 bg-green-900/20 px-2.5 py-1 text-[8px] font-semibold text-green-400 hover:bg-red-900/20 hover:text-red-400 hover:border-red-700/40 transition">
+            <button
+              onClick={onUninstall}
+              className="flex items-center gap-1 rounded-lg border border-green-700/40 bg-green-900/20 px-2.5 py-1 text-[8px] font-semibold text-green-400 hover:bg-red-900/20 hover:text-red-400 hover:border-red-700/40 transition"
+            >
               <CheckCircle2 className="h-3 w-3" /> Running
             </button>
           ) : (
-            <button onClick={onInstall} disabled={installing}
-              className="flex items-center gap-1 rounded-lg bg-studio-accent px-2.5 py-1 text-[8px] font-semibold text-white hover:brightness-110 disabled:opacity-60 transition">
-              {installing ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+            <button
+              onClick={onInstall}
+              disabled={installing}
+              className="flex items-center gap-1 rounded-lg bg-studio-accent px-2.5 py-1 text-[8px] font-semibold text-white hover:brightness-110 disabled:opacity-60 transition"
+            >
+              {installing ? (
+                <RefreshCw className="h-3 w-3 animate-spin" />
+              ) : (
+                <Download className="h-3 w-3" />
+              )}
               {installing ? 'Loading...' : 'Install & Run'}
             </button>
           )}

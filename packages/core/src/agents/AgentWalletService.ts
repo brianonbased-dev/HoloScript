@@ -1,17 +1,17 @@
-import { 
-  AgentKit, 
+import {
+  AgentKit,
   wethActionProvider,
   walletActionProvider,
   cdpApiActionProvider,
-  ActionProvider
+  ActionProvider,
 } from '@coinbase/agentkit';
 
 /**
  * AgentWalletService
- * 
+ *
  * Provides financial sovereignty to HoloScript AI Instances by granting them
  * a native Base L2 wallet leveraging Coinbase's AgentKit SDK.
- * 
+ *
  * Agents can use this service to:
  * - Hold and receive funds (ETH, USDC)
  * - Pay HTTP 402 "Payment Required" M2M Marketplace endpoints
@@ -23,7 +23,7 @@ export class AgentWalletService {
   private walletProvider: any = null;
   public walletAddress: string | null = null;
 
-  constructor(private networkId: string = "base-sepolia") {}
+  constructor(private networkId: string = 'base-sepolia') {}
 
   /**
    * Initializes the autonomous wallet.
@@ -35,9 +35,9 @@ export class AgentWalletService {
 
       // 1. Provision the CDP Wallet Node
       const config = {
-        apiKeyName: process.env.CDP_API_KEY_NAME || "cdp_test",
-        apiKeyPrivateKey: process.env.CDP_API_KEY_PRIVATE_KEY || "cdp_test_key",
-        cdpWalletData: process.env.CDP_WALLET_DATA || "empty",
+        apiKeyName: process.env.CDP_API_KEY_NAME || 'cdp_test',
+        apiKeyPrivateKey: process.env.CDP_API_KEY_PRIVATE_KEY || 'cdp_test_key',
+        cdpWalletData: process.env.CDP_WALLET_DATA || 'empty',
         networkId: this.networkId,
       };
 
@@ -46,11 +46,13 @@ export class AgentWalletService {
 
       // Mock for HoloScript IDE/Testing
       this.walletProvider = {
-        getAddress: () => "0x" + Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join(''),
-        signMessage: async (msg: string) => "0xabcsignature123",
+        getAddress: () =>
+          '0x' +
+          Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
+        signMessage: async (msg: string) => '0xabcsignature123',
         // @ts-ignore
-        getName: () => "CdpWalletProvider",
-        getNetwork: () => ({ networkId: this.networkId })
+        getName: () => 'CdpWalletProvider',
+        getNetwork: () => ({ networkId: this.networkId }),
       };
 
       this.walletAddress = this.walletProvider.getAddress();
@@ -62,15 +64,14 @@ export class AgentWalletService {
         actionProviders: [
           wethActionProvider(),
           walletActionProvider(),
-          cdpApiActionProvider({}) // args removed for AgentKit SDK compatibility
-        ] as ActionProvider<any>[]
+          cdpApiActionProvider({}), // args removed for AgentKit SDK compatibility
+        ] as ActionProvider<any>[],
       });
 
       console.log(`[AgentWalletService] Autonomous Wallet Live: ${this.walletAddress}`);
       return this.walletAddress as string;
-
     } catch (e) {
-      console.error("[AgentWalletService] Initialization failed!", e);
+      console.error('[AgentWalletService] Initialization failed!', e);
       throw e;
     }
   }
@@ -80,10 +81,12 @@ export class AgentWalletService {
    */
   async processPaymentChallenge(challengeObj: any): Promise<any> {
     if (!this.walletProvider || !this.agentKit) {
-      throw new Error("Wallet not initialized");
+      throw new Error('Wallet not initialized');
     }
 
-    console.log(`[AgentWalletService] Processing 402 M2M Challenge for ${challengeObj.cost} ${challengeObj.currency}...`);
+    console.log(
+      `[AgentWalletService] Processing 402 M2M Challenge for ${challengeObj.cost} ${challengeObj.currency}...`
+    );
 
     // 1. Sign the authorization intent (EIP-712 equivalent)
     const authMessage = `Authorized payment of ${challengeObj.cost} wei for ${challengeObj.memo}`;
@@ -91,9 +94,9 @@ export class AgentWalletService {
 
     // 2. Package the X-Payment-Receipt
     const receipt = {
-      txHash: "0xsimulatedtransactionhash0000abc123", // Real version executes a transfer here
+      txHash: '0xsimulatedtransactionhash0000abc123', // Real version executes a transfer here
       signature: signature,
-      agentWallet: this.walletAddress
+      agentWallet: this.walletAddress,
     };
 
     return receipt;

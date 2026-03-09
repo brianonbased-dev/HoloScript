@@ -4,7 +4,9 @@ import { GenerationCache, cachedGenerate } from '../GenerationCache';
 describe('GenerationCache', () => {
   let cache: GenerationCache;
 
-  beforeEach(() => { cache = new GenerationCache({ maxSize: 5, ttlMs: 60_000 }); });
+  beforeEach(() => {
+    cache = new GenerationCache({ maxSize: 5, ttlMs: 60_000 });
+  });
 
   // ---------------------------------------------------------------------------
   // Basic Set / Get
@@ -149,7 +151,8 @@ describe('GenerationCache', () => {
   it('cachedGenerate returns cached result on hit', async () => {
     cache.set('prompt', 'cached_code', 0.95, 'adapter');
     const result = await cachedGenerate('prompt', 'adapter', cache, async () => ({
-      holoScript: 'fresh_code', aiConfidence: 0.5,
+      holoScript: 'fresh_code',
+      aiConfidence: 0.5,
     }));
     expect(result.fromCache).toBe(true);
     expect(result.code).toBe('cached_code');
@@ -157,7 +160,8 @@ describe('GenerationCache', () => {
 
   it('cachedGenerate calls generator on miss', async () => {
     const result = await cachedGenerate('new_prompt', 'adapter', cache, async () => ({
-      holoScript: 'generated', aiConfidence: 0.9,
+      holoScript: 'generated',
+      aiConfidence: 0.9,
     }));
     expect(result.fromCache).toBe(false);
     expect(result.code).toBe('generated');

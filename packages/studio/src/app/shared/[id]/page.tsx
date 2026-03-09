@@ -50,11 +50,7 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-export default async function SharedScenePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function SharedScenePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const scene = await fetchScene(id);
 

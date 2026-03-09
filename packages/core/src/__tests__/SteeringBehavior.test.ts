@@ -106,18 +106,22 @@ describe('SteeringBehavior', () => {
   // --- Blend ---
 
   it('blend combines forces by weight', () => {
-    const result = SteeringBehavior.blend([
-      { force: { x: 10, z: 0 }, type: 'seek', weight: 0.5 },
-      { force: { x: 0, z: 10 }, type: 'flee', weight: 0.5 },
-    ], 100);
+    const result = SteeringBehavior.blend(
+      [
+        { force: { x: 10, z: 0 }, type: 'seek', weight: 0.5 },
+        { force: { x: 0, z: 10 }, type: 'flee', weight: 0.5 },
+      ],
+      100
+    );
     expect(result.x).toBeCloseTo(5);
     expect(result.z).toBeCloseTo(5);
   });
 
   it('blend clamps to maxForce', () => {
-    const result = SteeringBehavior.blend([
-      { force: { x: 100, z: 0 }, type: 'seek', weight: 1 },
-    ], 5);
+    const result = SteeringBehavior.blend(
+      [{ force: { x: 100, z: 0 }, type: 'seek', weight: 1 }],
+      5
+    );
     expect(mag(result)).toBeCloseTo(5, 1);
   });
 

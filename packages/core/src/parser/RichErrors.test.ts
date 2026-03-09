@@ -531,7 +531,7 @@ describe('getErrorCodeDocumentation', () => {
 
   it('categorizes HSP001-099 as "Syntax"', () => {
     const docs = getErrorCodeDocumentation();
-    const syntax = docs.filter(d => d.category === 'Syntax');
+    const syntax = docs.filter((d) => d.category === 'Syntax');
     expect(syntax.length).toBeGreaterThan(0);
     for (const doc of syntax) {
       const num = parseInt(doc.code.replace('HSP', ''), 10);
@@ -541,7 +541,7 @@ describe('getErrorCodeDocumentation', () => {
 
   it('categorizes HSP100-199 as "Structure"', () => {
     const docs = getErrorCodeDocumentation();
-    const structure = docs.filter(d => d.category === 'Structure');
+    const structure = docs.filter((d) => d.category === 'Structure');
     expect(structure.length).toBeGreaterThan(0);
     for (const doc of structure) {
       const num = parseInt(doc.code.replace('HSP', ''), 10);
@@ -552,25 +552,25 @@ describe('getErrorCodeDocumentation', () => {
 
   it('categorizes HSP200-299 as "Traits"', () => {
     const docs = getErrorCodeDocumentation();
-    const traits = docs.filter(d => d.category === 'Traits');
+    const traits = docs.filter((d) => d.category === 'Traits');
     expect(traits.length).toBeGreaterThan(0);
   });
 
   it('categorizes HSP300-399 as "Expressions"', () => {
     const docs = getErrorCodeDocumentation();
-    const expr = docs.filter(d => d.category === 'Expressions');
+    const expr = docs.filter((d) => d.category === 'Expressions');
     expect(expr.length).toBeGreaterThan(0);
   });
 
   it('categorizes HSP400-499 as "Imports"', () => {
     const docs = getErrorCodeDocumentation();
-    const imports = docs.filter(d => d.category === 'Imports');
+    const imports = docs.filter((d) => d.category === 'Imports');
     expect(imports.length).toBeGreaterThan(0);
   });
 
   it('categorizes HSP900+ as "Limits"', () => {
     const docs = getErrorCodeDocumentation();
-    const limits = docs.filter(d => d.category === 'Limits');
+    const limits = docs.filter((d) => d.category === 'Limits');
     expect(limits.length).toBeGreaterThan(0);
   });
 });

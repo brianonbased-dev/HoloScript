@@ -122,7 +122,7 @@ describe('WorldStreamer — Production', () => {
     ws.loadChunk(2, 2);
     const loaded = ws.getLoadedChunks();
     expect(loaded.length).toBe(2);
-    expect(loaded.every(c => c.state === 'loaded')).toBe(true);
+    expect(loaded.every((c) => c.state === 'loaded')).toBe(true);
   });
 
   it('getLoadedCount matches manual loads', () => {

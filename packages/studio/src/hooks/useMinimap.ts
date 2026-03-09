@@ -6,14 +6,14 @@
  */
 
 import { useMemo } from 'react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 export interface MinimapObject {
   name: string;
-  x: number;   // world X
-  z: number;   // world Z (depth)
-  w: number;   // scale X
-  h: number;   // scale Z
+  x: number; // world X
+  z: number; // world Z (depth)
+  w: number; // scale X
+  h: number; // scale Z
   color: string;
   type: 'scene' | 'object' | 'light';
 }

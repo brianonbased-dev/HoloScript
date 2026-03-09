@@ -109,17 +109,17 @@ Successfully implemented full USDZ export capability for HoloScript, enabling Ap
 
 ```typescript
 interface IUSDZExportOptions {
-  lookAtCamera?: boolean;                          // ✅
-  placementMode?: 'floor' | 'wall' | 'table' | 'any';  // ✅
+  lookAtCamera?: boolean; // ✅
+  placementMode?: 'floor' | 'wall' | 'table' | 'any'; // ✅
   materialQuality?: 'draft' | 'standard' | 'high'; // ✅
-  includeAnimations?: boolean;                     // 🚧 Planned
-  includeAudio?: boolean;                          // 🚧 Planned
-  realityComposerMode?: boolean;                   // ✅
-  metersPerUnit?: number;                          // ✅
-  upAxis?: 'Y' | 'Z';                              // ✅
-  enableOcclusion?: boolean;                       // ✅
-  allowContentScaling?: boolean;                   // ✅
-  canonicalCameraDistance?: number;                // ✅
+  includeAnimations?: boolean; // 🚧 Planned
+  includeAudio?: boolean; // 🚧 Planned
+  realityComposerMode?: boolean; // ✅
+  metersPerUnit?: number; // ✅
+  upAxis?: 'Y' | 'Z'; // ✅
+  enableOcclusion?: boolean; // ✅
+  allowContentScaling?: boolean; // ✅
+  canonicalCameraDistance?: number; // ✅
 }
 ```
 
@@ -184,12 +184,12 @@ interface IUSDZExportOptions {
 
 ## Performance Benchmarks
 
-| Scene Complexity | Export Time | File Size | Prims |
-|-----------------|-------------|-----------|-------|
-| Empty scene | < 10ms | ~800 bytes | 1 |
-| Simple (10 materials) | < 50ms | ~5 KB | 12 |
-| Medium (50 materials) | < 100ms | ~20 KB | 52 |
-| Complex (100 nodes) | < 200ms | ~50 KB | 100+ |
+| Scene Complexity      | Export Time | File Size  | Prims |
+| --------------------- | ----------- | ---------- | ----- |
+| Empty scene           | < 10ms      | ~800 bytes | 1     |
+| Simple (10 materials) | < 50ms      | ~5 KB      | 12    |
+| Medium (50 materials) | < 100ms     | ~20 KB     | 52    |
+| Complex (100 nodes)   | < 200ms     | ~50 KB     | 100+  |
 
 ## API Usage
 
@@ -287,6 +287,7 @@ All requirements met:
 ## Dependencies
 
 No additional dependencies required! The implementation uses:
+
 - Native TypeScript/JavaScript
 - Existing HoloScript scene graph types
 - Browser-compatible APIs only
@@ -294,6 +295,7 @@ No additional dependencies required! The implementation uses:
 ## Validation
 
 USDZ files validated with:
+
 - ✅ Apple's usdchecker (command-line tool)
 - ✅ Reality Converter (macOS app)
 - ✅ AR Quick Look (iOS Safari)

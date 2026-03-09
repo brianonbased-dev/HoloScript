@@ -8,7 +8,9 @@ function mkZC(cfg?: ConstructorParameters<typeof ZoneClaiming>[0]) {
   return new ZoneClaiming(cfg);
 }
 
-function v(x: number, y = 0, z = 0) { return new Vector3(x, y, z); }
+function v(x: number, y = 0, z = 0) {
+  return new Vector3(x, y, z);
+}
 
 function makeZone(zc: ZoneClaiming, id = 'z1', center = v(0), radius = 10) {
   return zc.createZone(id, center, radius);
@@ -61,7 +63,8 @@ describe('ZoneClaiming — zone CRUD', () => {
   });
   it('getAllZones returns all', () => {
     const zc = mkZC();
-    zc.createZone('a', v(0), 5); zc.createZone('b', v(10), 5);
+    zc.createZone('a', v(0), 5);
+    zc.createZone('b', v(10), 5);
     expect(zc.getAllZones()).toHaveLength(2);
   });
 });
@@ -128,7 +131,8 @@ describe('ZoneClaiming — claimZone', () => {
   });
   it('getAgentClaims returns zones agent has claims in', () => {
     const zc = mkZC();
-    zc.createZone('z1', v(0), 5); zc.createZone('z2', v(10), 5);
+    zc.createZone('z1', v(0), 5);
+    zc.createZone('z2', v(10), 5);
     zc.claimZone('ag', 'z1', { strength: 0.5 });
     zc.claimZone('ag', 'z2', { strength: 0.5 });
     expect(zc.getAgentClaims('ag')).toHaveLength(2);
@@ -147,7 +151,8 @@ describe('ZoneClaiming — releaseClaim', () => {
     expect(mkZC().releaseClaim('a', 'nope')).toBe(false);
   });
   it('release on missing claim returns false', () => {
-    const zc = mkZC(); makeZone(zc);
+    const zc = mkZC();
+    makeZone(zc);
     expect(zc.releaseClaim('nobody', 'z1')).toBe(false);
   });
   it('release by owner emits abandoned event', () => {
@@ -155,9 +160,9 @@ describe('ZoneClaiming — releaseClaim', () => {
     makeZone(zc);
     zc.claimZone('owner', 'z1', { strength: 0.9 });
     const events: any[] = [];
-    zc.onEvent(e => events.push(e));
+    zc.onEvent((e) => events.push(e));
     zc.releaseClaim('owner', 'z1');
-    expect(events.some(e => e.type === 'abandoned')).toBe(true);
+    expect(events.some((e) => e.type === 'abandoned')).toBe(true);
   });
 });
 
@@ -166,15 +171,15 @@ describe('ZoneClaiming — events', () => {
     const zc = mkZC({ captureThreshold: 0.5 });
     makeZone(zc);
     const events: any[] = [];
-    zc.onEvent(e => events.push(e));
+    zc.onEvent((e) => events.push(e));
     zc.claimZone('agent', 'z1', { strength: 0.9 });
-    expect(events.some(e => e.type === 'claimed')).toBe(true);
+    expect(events.some((e) => e.type === 'claimed')).toBe(true);
   });
   it('onEvent unsubscribe stops receiving events', () => {
     const zc = mkZC({ captureThreshold: 0.5 });
     makeZone(zc);
     const events: any[] = [];
-    const unsub = zc.onEvent(e => events.push(e));
+    const unsub = zc.onEvent((e) => events.push(e));
     unsub();
     zc.claimZone('agent', 'z1', { strength: 0.9 });
     expect(events).toHaveLength(0);
@@ -201,7 +206,8 @@ describe('ZoneClaiming — applyDecay', () => {
 describe('ZoneClaiming — statistics', () => {
   it('getStatistics returns total count', () => {
     const zc = mkZC();
-    zc.createZone('z1', v(0), 5); zc.createZone('z2', v(10), 5);
+    zc.createZone('z1', v(0), 5);
+    zc.createZone('z2', v(10), 5);
     expect(zc.getStatistics().total).toBe(2);
   });
   it('getStatistics counts unclaimed', () => {
@@ -231,7 +237,8 @@ describe('ZoneClaiming — statistics', () => {
   });
   it('getZonesByState filters by state', () => {
     const zc = mkZC({ captureThreshold: 0.5 });
-    zc.createZone('z1', v(0), 5); zc.createZone('z2', v(10), 5);
+    zc.createZone('z1', v(0), 5);
+    zc.createZone('z2', v(10), 5);
     zc.claimZone('a', 'z1', { strength: 0.9 });
     expect(zc.getZonesByState('claimed')).toHaveLength(1);
     expect(zc.getZonesByState('unclaimed')).toHaveLength(1);

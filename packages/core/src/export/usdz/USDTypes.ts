@@ -85,16 +85,16 @@ export interface IUSDPrim {
  * USD Prim types
  */
 export type USDPrimType =
-  | 'Xform'           // Transform node
-  | 'Mesh'            // Mesh geometry
-  | 'Material'        // Material definition
-  | 'Shader'          // Shader node
-  | 'Scope'           // Organization scope
-  | 'Camera'          // Camera
-  | 'SkelRoot'        // Skeleton root
-  | 'Skeleton'        // Skeleton definition
-  | 'SkelAnimation'   // Skeleton animation
-  | 'GeomSubset';     // Geometry subset
+  | 'Xform' // Transform node
+  | 'Mesh' // Mesh geometry
+  | 'Material' // Material definition
+  | 'Shader' // Shader node
+  | 'Scope' // Organization scope
+  | 'Camera' // Camera
+  | 'SkelRoot' // Skeleton root
+  | 'Skeleton' // Skeleton definition
+  | 'SkelAnimation' // Skeleton animation
+  | 'GeomSubset'; // Geometry subset
 
 /**
  * USD Attribute
@@ -150,13 +150,7 @@ export type USDAttributeType =
 /**
  * USD Attribute value (union type)
  */
-export type USDAttributeValue =
-  | boolean
-  | number
-  | string
-  | number[]
-  | string[]
-  | IUSDAssetPath;
+export type USDAttributeValue = boolean | number | string | number[] | string[] | IUSDAssetPath;
 
 /**
  * USD Asset Path
@@ -665,9 +659,7 @@ export function quaternionToEuler(quat: number[]): number[] {
 
   // Pitch (y-axis rotation)
   const sinp = 2 * (w * y - z * x);
-  const pitch = Math.abs(sinp) >= 1
-    ? Math.sign(sinp) * Math.PI / 2
-    : Math.asin(sinp);
+  const pitch = Math.abs(sinp) >= 1 ? (Math.sign(sinp) * Math.PI) / 2 : Math.asin(sinp);
 
   // Yaw (z-axis rotation)
   const siny_cosp = 2 * (w * z + x * y);
@@ -675,11 +667,7 @@ export function quaternionToEuler(quat: number[]): number[] {
   const yaw = Math.atan2(siny_cosp, cosy_cosp);
 
   // Convert to degrees
-  return [
-    roll * 180 / Math.PI,
-    pitch * 180 / Math.PI,
-    yaw * 180 / Math.PI,
-  ];
+  return [(roll * 180) / Math.PI, (pitch * 180) / Math.PI, (yaw * 180) / Math.PI];
 }
 
 /**

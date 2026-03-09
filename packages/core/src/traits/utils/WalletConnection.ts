@@ -8,7 +8,16 @@
  * @milestone v3.2 (June 2026)
  */
 
-import { createPublicClient, createWalletClient, http, type PublicClient, type WalletClient, type Chain, type Address, type Transport } from 'viem';
+import {
+  createPublicClient,
+  createWalletClient,
+  http,
+  type PublicClient,
+  type WalletClient,
+  type Chain,
+  type Address,
+  type Transport,
+} from 'viem';
 import { base, baseGoerli } from 'viem/chains';
 
 /**
@@ -44,7 +53,7 @@ export class WalletConnection {
     // Create public client (read-only access)
     this.publicClient = createPublicClient({
       chain: this.chain,
-      transport: http(config.rpcUrl || this.getDefaultRpcUrl(config.chain || 'base'))
+      transport: http(config.rpcUrl || this.getDefaultRpcUrl(config.chain || 'base')),
     });
 
     // Create wallet client if account provided
@@ -52,7 +61,7 @@ export class WalletConnection {
       this.walletClient = createWalletClient({
         account: config.account,
         chain: this.chain,
-        transport: http(config.rpcUrl || this.getDefaultRpcUrl(config.chain || 'base'))
+        transport: http(config.rpcUrl || this.getDefaultRpcUrl(config.chain || 'base')),
       });
     }
   }
@@ -70,9 +79,7 @@ export class WalletConnection {
     }
 
     // Fallback to public RPCs
-    return chain === 'base-testnet'
-      ? 'https://goerli.base.org'
-      : 'https://mainnet.base.org';
+    return chain === 'base-testnet' ? 'https://goerli.base.org' : 'https://mainnet.base.org';
   }
 
   /**
@@ -83,7 +90,7 @@ export class WalletConnection {
     this.walletClient = createWalletClient({
       account,
       chain: this.chain,
-      transport: http()
+      transport: http(),
     });
   }
 

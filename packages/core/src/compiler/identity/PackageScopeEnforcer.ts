@@ -143,10 +143,7 @@ export class PackageScopeEnforcer {
     // Step 1: Verify token and extract role
     const tokenResult = this.tokenIssuer.verifyToken(token);
     if (!tokenResult.valid || !tokenResult.payload) {
-      return this.makeDenied(
-        `Token verification failed: ${tokenResult.error}`,
-        filePath
-      );
+      return this.makeDenied(`Token verification failed: ${tokenResult.error}`, filePath);
     }
 
     const agentRole = tokenResult.payload.agent_role;
@@ -203,7 +200,8 @@ export class PackageScopeEnforcer {
     if (!pkg.writeRoles.includes(agentRole)) {
       const decision: ScopeDecision = {
         allowed: false,
-        reason: `Role '${agentRole}' cannot write to ${pkg.tier}-tier package '${pkg.name}'. ` +
+        reason:
+          `Role '${agentRole}' cannot write to ${pkg.tier}-tier package '${pkg.name}'. ` +
           `Allowed write roles: [${pkg.writeRoles.join(', ')}]`,
         packageName: pkg.name,
         packageTier: pkg.tier,
@@ -252,10 +250,7 @@ export class PackageScopeEnforcer {
     // Step 1: Verify token
     const tokenResult = this.tokenIssuer.verifyToken(token);
     if (!tokenResult.valid || !tokenResult.payload) {
-      return this.makeDenied(
-        `Token verification failed: ${tokenResult.error}`,
-        filePath
-      );
+      return this.makeDenied(`Token verification failed: ${tokenResult.error}`, filePath);
     }
 
     const agentRole = tokenResult.payload.agent_role;
@@ -310,7 +305,8 @@ export class PackageScopeEnforcer {
     if (filter) {
       if (filter.agentRole) entries = entries.filter((e) => e.agentRole === filter.agentRole);
       if (filter.operation) entries = entries.filter((e) => e.operation === filter.operation);
-      if (filter.allowed !== undefined) entries = entries.filter((e) => e.allowed === filter.allowed);
+      if (filter.allowed !== undefined)
+        entries = entries.filter((e) => e.allowed === filter.allowed);
       if (filter.packageName) entries = entries.filter((e) => e.packageName === filter.packageName);
       if (filter.since) entries = entries.filter((e) => e.timestamp >= filter.since);
     }
@@ -389,11 +385,7 @@ export class PackageScopeEnforcer {
   // Private helpers
   // =========================================================================
 
-  private makeDenied(
-    reason: string,
-    filePath: string,
-    agentRole?: AgentRole
-  ): ScopeDecision {
+  private makeDenied(reason: string, filePath: string, agentRole?: AgentRole): ScopeDecision {
     return {
       allowed: false,
       reason,

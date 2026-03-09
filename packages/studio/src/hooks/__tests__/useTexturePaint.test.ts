@@ -600,13 +600,7 @@ describe('useTexturePaint', () => {
 
       expect(blendModeWasScreen).toBe(true);
       expect(opacityWas06).toBe(true);
-      expect(mockCanvasContext.arc).toHaveBeenCalledWith(
-        256,
-        256,
-        40,
-        0,
-        Math.PI * 2
-      );
+      expect(mockCanvasContext.arc).toHaveBeenCalledWith(256, 256, 40, 0, Math.PI * 2);
     });
   });
 

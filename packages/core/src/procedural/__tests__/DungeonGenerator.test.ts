@@ -34,7 +34,7 @@ describe('DungeonGenerator', () => {
   it('rooms have unique IDs', () => {
     const gen = new DungeonGenerator({ seed: 42 });
     const { rooms } = gen.generate();
-    const ids = rooms.map(r => r.id);
+    const ids = rooms.map((r) => r.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
@@ -81,7 +81,8 @@ describe('DungeonGenerator', () => {
     const b = new DungeonGenerator({ seed: 2 });
     const ra = a.generate();
     const rb = b.generate();
-    const sameLayout = ra.rooms.length === rb.rooms.length &&
+    const sameLayout =
+      ra.rooms.length === rb.rooms.length &&
       ra.rooms.every((r, i) => r.x === rb.rooms[i]?.x && r.y === rb.rooms[i]?.y);
     expect(sameLayout).toBe(false);
   });
@@ -106,10 +107,13 @@ describe('DungeonGenerator', () => {
     const { rooms } = gen.generate();
     for (let i = 0; i < rooms.length; i++) {
       for (let j = i + 1; j < rooms.length; j++) {
-        const a = rooms[i], b = rooms[j];
+        const a = rooms[i],
+          b = rooms[j];
         const overlaps =
-          a.x < b.x + b.width && a.x + a.width > b.x &&
-          a.y < b.y + b.height && a.y + a.height > b.y;
+          a.x < b.x + b.width &&
+          a.x + a.width > b.x &&
+          a.y < b.y + b.height &&
+          a.y + a.height > b.y;
         expect(overlaps).toBe(false);
       }
     }

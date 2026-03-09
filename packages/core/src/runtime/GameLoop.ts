@@ -31,8 +31,8 @@ export interface GameLoopOptions {
 
 export class GameLoop {
   private _isRunning = false;
-  private _isPaused  = false;
-  private _frame     = 0;
+  private _isPaused = false;
+  private _frame = 0;
   private _handle: ReturnType<typeof setInterval> | null = null;
   private _lastTime: number = 0;
 
@@ -75,7 +75,7 @@ export class GameLoop {
   start(): void {
     if (this._isRunning) return;
     this._isRunning = true;
-    this._lastTime  = Date.now();
+    this._lastTime = Date.now();
     this._handle = setInterval(() => this._tick(), this.intervalMs);
   }
 
@@ -89,7 +89,7 @@ export class GameLoop {
       this._handle = null;
     }
     this._isRunning = false;
-    this._isPaused  = false;
+    this._isPaused = false;
   }
 
   /**
@@ -105,8 +105,8 @@ export class GameLoop {
    * resumed tick doesn't produce an artificially large delta.
    */
   resume(): void {
-    this._isPaused  = false;
-    this._lastTime  = Date.now();
+    this._isPaused = false;
+    this._lastTime = Date.now();
   }
 
   // ---------------------------------------------------------------------------
@@ -116,7 +116,7 @@ export class GameLoop {
   private _tick(): void {
     if (this._isPaused) return;
 
-    const now   = Date.now();
+    const now = Date.now();
     const delta = now - this._lastTime;
     this._lastTime = now;
     this._frame++;

@@ -48,7 +48,11 @@ export class ARCompiler extends CompilerBase {
     this.options = options;
   }
 
-  compile(composition: HoloComposition, agentToken: string, outputPath?: string): ARCompilationResult {
+  compile(
+    composition: HoloComposition,
+    agentToken: string,
+    outputPath?: string
+  ): ARCompilationResult {
     this.validateCompilerAccess(agentToken, outputPath);
     this.errors = [];
     this.warnings = [];
@@ -68,7 +72,7 @@ export class ARCompiler extends CompilerBase {
 
     this.generateImports();
     this.generateSceneSetup();
-    console.log("VITEST COMPILER arNodes:", arNodes.length, "overlayNodes:", overlayNodes.length);
+    console.log('VITEST COMPILER arNodes:', arNodes.length, 'overlayNodes:', overlayNodes.length);
     this.generateARHooks(arNodes, overlayNodes);
 
     return this.buildResult();
@@ -104,8 +108,12 @@ export class ARCompiler extends CompilerBase {
   private generateSceneSetup() {
     this.generatedCode.push(`\n// Initialize AR Scene`);
     this.generatedCode.push(`const scene = new THREE.Scene();`);
-    this.generatedCode.push(`const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);`);
-    this.generatedCode.push(`const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });`);
+    this.generatedCode.push(
+      `const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);`
+    );
+    this.generatedCode.push(
+      `const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });`
+    );
     this.generatedCode.push(`renderer.setPixelRatio(window.devicePixelRatio);`);
     this.generatedCode.push(`renderer.setSize(window.innerWidth, window.innerHeight);`);
     if (this.options.target === 'webxr') {
@@ -116,7 +124,7 @@ export class ARCompiler extends CompilerBase {
 
   private generateARHooks(arNodes: any[], overlayNodes: any[]) {
     this.generatedCode.push(`\n// Engine Initialization via AR Traits`);
-    
+
     if (this.options.target === 'webxr') {
       this.generatedCode.push(`const arRuntime = new ARRuntime({`);
       this.generatedCode.push(`  scene_id: 'auto_gen_ar_${Date.now()}',`);
@@ -142,7 +150,7 @@ export class ARCompiler extends CompilerBase {
       code: this.generatedCode.join('\n'),
       assets: [],
       warnings: this.warnings,
-      errors: this.errors
+      errors: this.errors,
     };
   }
 }

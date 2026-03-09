@@ -21,7 +21,7 @@ import { devtools } from 'zustand/middleware';
 import { temporal } from 'zundo';
 import type { TemporalState } from 'zundo';
 import { useStore } from 'zustand';
-import type { TraitConfig, SceneNode } from '@/lib/store';
+import type { TraitConfig, SceneNode } from '@/lib/stores';
 
 // ─── Re-declare the slice type ────────────────────────────────────────────────
 
@@ -110,9 +110,7 @@ export const useHistoryStore = create<HistorySceneState>()(
           setNextHistoryLabel(`Remove trait @${traitName}`);
           set((s) => ({
             nodes: s.nodes.map((n) =>
-              n.id === nodeId
-                ? { ...n, traits: n.traits.filter((t) => t.name !== traitName) }
-                : n
+              n.id === nodeId ? { ...n, traits: n.traits.filter((t) => t.name !== traitName) } : n
             ),
           }));
         },
@@ -154,9 +152,4 @@ type TemporalStore = TemporalState<Pick<HistorySceneState, 'nodes'>>;
 export const useTemporalStore = <T>(
   selector: (state: TemporalStore) => T,
   equality?: (a: T, b: T) => boolean
-): T =>
-  useStore(
-    useHistoryStore.temporal,
-    selector as (state: TemporalStore) => T,
-    equality
-  );
+): T => useStore(useHistoryStore.temporal, selector as (state: TemporalStore) => T, equality);

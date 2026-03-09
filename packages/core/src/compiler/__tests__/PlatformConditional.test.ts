@@ -29,9 +29,7 @@ function parse(source: string): HoloComposition {
   const parser = new HoloCompositionParser();
   const result = parser.parse(source);
   if (!result.success || !result.ast) {
-    throw new Error(
-      `Parse failed: ${result.errors.map(e => e.message).join('; ')}`,
-    );
+    throw new Error(`Parse failed: ${result.errors.map((e) => e.message).join('; ')}`);
   }
   return result.ast;
 }
@@ -260,9 +258,9 @@ describe('PlatformConditionalCompilerMixin', () => {
       const filtered = mixin.filterForPlatform(ast, createPlatformTarget('quest3'));
 
       expect(filtered.objects).toHaveLength(2);
-      expect(filtered.objects.map(o => o.name)).toContain('VRPanel');
-      expect(filtered.objects.map(o => o.name)).toContain('SharedWidget');
-      expect(filtered.objects.map(o => o.name)).not.toContain('PhoneUI');
+      expect(filtered.objects.map((o) => o.name)).toContain('VRPanel');
+      expect(filtered.objects.map((o) => o.name)).toContain('SharedWidget');
+      expect(filtered.objects.map((o) => o.name)).not.toContain('PhoneUI');
     });
 
     it('filters composition for ios target', () => {
@@ -283,9 +281,9 @@ describe('PlatformConditionalCompilerMixin', () => {
       const filtered = mixin.filterForPlatform(ast, createPlatformTarget('ios'));
 
       expect(filtered.objects).toHaveLength(2);
-      expect(filtered.objects.map(o => o.name)).toContain('MobileUI');
-      expect(filtered.objects.map(o => o.name)).toContain('SharedWidget');
-      expect(filtered.objects.map(o => o.name)).not.toContain('VRPanel');
+      expect(filtered.objects.map((o) => o.name)).toContain('MobileUI');
+      expect(filtered.objects.map((o) => o.name)).toContain('SharedWidget');
+      expect(filtered.objects.map((o) => o.name)).not.toContain('VRPanel');
     });
 
     it('blocks without @platform() pass all filters', () => {
@@ -324,9 +322,9 @@ describe('PlatformConditionalCompilerMixin', () => {
       const forQuest = mixin.filterForPlatform(ast, createPlatformTarget('quest3'));
 
       expect(forQuest.templates).toHaveLength(2);
-      expect(forQuest.templates.map(t => t.name)).toContain('ImmersiveTemplate');
-      expect(forQuest.templates.map(t => t.name)).toContain('CommonTemplate');
-      expect(forQuest.templates.map(t => t.name)).not.toContain('FlatTemplate');
+      expect(forQuest.templates.map((t) => t.name)).toContain('ImmersiveTemplate');
+      expect(forQuest.templates.map((t) => t.name)).toContain('CommonTemplate');
+      expect(forQuest.templates.map((t) => t.name)).not.toContain('FlatTemplate');
     });
 
     it('filters with exclusion constraints', () => {
@@ -432,25 +430,25 @@ describe('Round-trip: parse -> filter -> verify', () => {
 
     // quest3 should see: VRControlPanel, DetailedMap, StatusBar
     expect(quest3.objects).toHaveLength(3);
-    expect(quest3.objects.map(o => o.name)).toContain('VRControlPanel');
-    expect(quest3.objects.map(o => o.name)).toContain('DetailedMap');
-    expect(quest3.objects.map(o => o.name)).toContain('StatusBar');
-    expect(quest3.objects.map(o => o.name)).not.toContain('MobileMenu');
+    expect(quest3.objects.map((o) => o.name)).toContain('VRControlPanel');
+    expect(quest3.objects.map((o) => o.name)).toContain('DetailedMap');
+    expect(quest3.objects.map((o) => o.name)).toContain('StatusBar');
+    expect(quest3.objects.map((o) => o.name)).not.toContain('MobileMenu');
 
     // quest3 should see: HandGrabTemplate, BaseTemplate
     expect(quest3.templates).toHaveLength(2);
-    expect(quest3.templates.map(t => t.name)).toContain('HandGrabTemplate');
-    expect(quest3.templates.map(t => t.name)).toContain('BaseTemplate');
-    expect(quest3.templates.map(t => t.name)).not.toContain('MouseTemplate');
+    expect(quest3.templates.map((t) => t.name)).toContain('HandGrabTemplate');
+    expect(quest3.templates.map((t) => t.name)).toContain('BaseTemplate');
+    expect(quest3.templates.map((t) => t.name)).not.toContain('MouseTemplate');
 
     // Filter for ios
     const ios = mixin.filterForPlatform(ast, createPlatformTarget('ios'));
 
     // ios should see: MobileMenu, DetailedMap, StatusBar
     expect(ios.objects).toHaveLength(3);
-    expect(ios.objects.map(o => o.name)).toContain('MobileMenu');
-    expect(ios.objects.map(o => o.name)).toContain('DetailedMap');
-    expect(ios.objects.map(o => o.name)).toContain('StatusBar');
+    expect(ios.objects.map((o) => o.name)).toContain('MobileMenu');
+    expect(ios.objects.map((o) => o.name)).toContain('DetailedMap');
+    expect(ios.objects.map((o) => o.name)).toContain('StatusBar');
 
     // ios should see: BaseTemplate only
     expect(ios.templates).toHaveLength(1);
@@ -487,7 +485,7 @@ describe('Round-trip: parse -> filter -> verify', () => {
     expect(obj.name).toBe('VRObj');
     expect(obj.properties).toHaveLength(3);
 
-    const propMap = Object.fromEntries(obj.properties.map(p => [p.key, p.value]));
+    const propMap = Object.fromEntries(obj.properties.map((p) => [p.key, p.value]));
     expect(propMap.width).toBe(100);
     expect(propMap.height).toBe(200);
     expect(propMap.color).toBe('blue');

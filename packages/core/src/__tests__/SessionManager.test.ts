@@ -7,7 +7,9 @@ import { SessionManager } from '../network/SessionManager';
 
 describe('SessionManager', () => {
   let sm: SessionManager;
-  beforeEach(() => { sm = new SessionManager({ maxReconnectAttempts: 3, reconnectWindowMs: 30000 }); });
+  beforeEach(() => {
+    sm = new SessionManager({ maxReconnectAttempts: 3, reconnectWindowMs: 30000 });
+  });
 
   it('creates a session and transitions to connecting', () => {
     sm.createSession('game-1');
@@ -90,7 +92,7 @@ describe('SessionManager', () => {
     sm.endSession();
     const history = sm.getStateHistory();
     expect(history.length).toBe(3);
-    expect(history.map(h => h.state)).toEqual(['connecting', 'connected', 'ended']);
+    expect(history.map((h) => h.state)).toEqual(['connecting', 'connected', 'ended']);
   });
 
   it('heartbeat updates lastSeenAt', () => {

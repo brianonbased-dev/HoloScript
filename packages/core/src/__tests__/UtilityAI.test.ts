@@ -23,7 +23,10 @@ function makeAction(id: string, inputVal = 1, opts: Partial<UtilityAction> = {})
 
 describe('UtilityAI', () => {
   let ai: UtilityAI;
-  beforeEach(() => { ai = new UtilityAI(); ai.setTime(0); });
+  beforeEach(() => {
+    ai = new UtilityAI();
+    ai.setTime(0);
+  });
 
   it('addAction and getActionCount', () => {
     ai.addAction(makeAction('eat'));

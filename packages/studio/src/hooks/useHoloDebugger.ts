@@ -6,7 +6,7 @@
  */
 
 import { useMemo } from 'react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 export type DiagnosticSeverity = 'error' | 'warning' | 'info';
 
@@ -17,7 +17,7 @@ export interface Diagnostic {
   col: number;
   message: string;
   source: 'syntax' | 'trait' | 'semantic';
-  quickFix?: string;   // suggested replacement text
+  quickFix?: string; // suggested replacement text
 }
 
 // ─── Known trait param types ────────────────────────────────────────────────
@@ -57,8 +57,13 @@ function analyseSyntax(lines: string[]): Diagnostic[] {
     const lineNum = i + 1;
 
     for (const ch of line) {
-      if (ch === '{') { braceDepth++; openBraceLine = lineNum; }
-      if (ch === '}') { braceDepth--; }
+      if (ch === '{') {
+        braceDepth++;
+        openBraceLine = lineNum;
+      }
+      if (ch === '}') {
+        braceDepth--;
+      }
     }
 
     // Detect @trait without braces on the same line AND no block follows
@@ -70,11 +75,17 @@ function analyseSyntax(lines: string[]): Diagnostic[] {
     // Detect property assignments with no colon (potential typo)
     // Match: property "value", property value, property [1, 2, 3], property { ... }
     const propLike = line.match(/^\s+(\w+)\s+(".*?"|\[.*?\]|\{.*?\}|[^:{\s]\S*)\s*$/);
-    if (propLike && !line.trim().startsWith('@') && !line.trim().startsWith('//') && braceDepth > 0) {
+    if (
+      propLike &&
+      !line.trim().startsWith('@') &&
+      !line.trim().startsWith('//') &&
+      braceDepth > 0
+    ) {
       diags.push({
         id: `syn-${i}-nocolon`,
         severity: 'warning',
-        line: lineNum, col: 1,
+        line: lineNum,
+        col: 1,
         message: `"${propLike[1]}" looks like a property assignment but is missing a colon (:)`,
         source: 'syntax',
         quickFix: `${propLike[1]}: ${propLike[2]}`,
@@ -85,7 +96,9 @@ function analyseSyntax(lines: string[]): Diagnostic[] {
   if (braceDepth > 0) {
     diags.push({
       id: 'syn-unclosed',
-      severity: 'error', line: openBraceLine, col: 1,
+      severity: 'error',
+      line: openBraceLine,
+      col: 1,
       message: `Unclosed brace — opened at line ${openBraceLine}`,
       source: 'syntax',
     });
@@ -93,7 +106,9 @@ function analyseSyntax(lines: string[]): Diagnostic[] {
   if (braceDepth < 0) {
     diags.push({
       id: 'syn-extra-brace',
-      severity: 'error', line: lines.length, col: 1,
+      severity: 'error',
+      line: lines.length,
+      col: 1,
       message: 'Extra closing brace "}" with no matching opener',
       source: 'syntax',
     });
@@ -105,7 +120,7 @@ function analyseTraits(lines: string[]): Diagnostic[] {
   const diags: Diagnostic[] = [];
   let currentTrait: string | null = null;
   let traitLine = -1;
-  const seenTraits: Map<string, number> = new Map();     // for duplicate detection
+  const seenTraits: Map<string, number> = new Map(); // for duplicate detection
   const seenTraitsInObj: string[] = [];
 
   let inObject = false;
@@ -119,7 +134,11 @@ function analyseTraits(lines: string[]): Diagnostic[] {
 
     // Track object/scene block boundaries
     // Match any HoloScript object type: scene, object, group, box, sphere, light, camera, etc.
-    if (/^(object|scene|group|box|sphere|cylinder|plane|cone|torus|capsule|mesh|light|camera|audio|text|model|particles|terrain|water|sky|fog|portal|trigger|zone|path|waypoint|spawn|checkpoint|enemy|player|npc|item|collectible|weapon|projectile|vehicle|building|prop|decor|effect|emitter|force|field|constraint|joint|sensor|actuator|controller|manager|system|component|entity)\s+(".+?"|[\w\-\.]+)\s*\{/.test(trimmed)) {
+    if (
+      /^(object|scene|group|box|sphere|cylinder|plane|cone|torus|capsule|mesh|light|camera|audio|text|model|particles|terrain|water|sky|fog|portal|trigger|zone|path|waypoint|spawn|checkpoint|enemy|player|npc|item|collectible|weapon|projectile|vehicle|building|prop|decor|effect|emitter|force|field|constraint|joint|sensor|actuator|controller|manager|system|component|entity)\s+(".+?"|[\w\-\.]+)\s*\{/.test(
+        trimmed
+      )
+    ) {
       inObject = true;
       baseDepth = (line.match(/\{/g) ?? []).length - (line.match(/\}/g) ?? []).length;
       seenTraitsInObj.length = 0;
@@ -136,7 +155,9 @@ function analyseTraits(lines: string[]): Diagnostic[] {
         if (seenTraitsInObj.includes(currentTrait)) {
           diags.push({
             id: `trait-dup-${i}`,
-            severity: 'warning', line: lineNum, col: 1,
+            severity: 'warning',
+            line: lineNum,
+            col: 1,
             message: `Duplicate @${currentTrait} trait in this object — only the last one will apply`,
             source: 'trait',
           });
@@ -151,7 +172,9 @@ function analyseTraits(lines: string[]): Diagnostic[] {
         const close = known.find((k) => k.startsWith(currentTrait!.slice(0, 3)));
         diags.push({
           id: `trait-unknown-${i}`,
-          severity: close ? 'warning' : 'info', line: lineNum, col: 1,
+          severity: close ? 'warning' : 'info',
+          line: lineNum,
+          col: 1,
           message: `Unknown trait @${currentTrait}${close ? ` — did you mean @${close}?` : ''}`,
           source: 'trait',
           quickFix: close ? `@${close}` : undefined,
@@ -164,7 +187,10 @@ function analyseTraits(lines: string[]): Diagnostic[] {
       if (inlineMatch && currentTrait in TRAIT_VALID_ENUM) {
         const inlineContent = inlineMatch[1];
         // Split by comma or newline to get individual parameters
-        const params = inlineContent.split(/[,\n]/).map((p) => p.trim()).filter((p) => p);
+        const params = inlineContent
+          .split(/[,\n]/)
+          .map((p) => p.trim())
+          .filter((p) => p);
         for (const param of params) {
           const paramMatch = param.match(/^(\w+)\s*:\s*(.+)$/);
           if (paramMatch) {
@@ -174,7 +200,9 @@ function analyseTraits(lines: string[]): Diagnostic[] {
             if (enumDef && enumDef.length > 0 && !enumDef.includes(val)) {
               diags.push({
                 id: `trait-invalid-${i}`,
-                severity: 'error', line: lineNum, col: 1,
+                severity: 'error',
+                line: lineNum,
+                col: 1,
                 message: `Invalid value "${val}" for @${currentTrait}.${key} — valid: ${enumDef.map((v) => `"${v}"`).join(', ')}`,
                 source: 'trait',
               });
@@ -185,7 +213,14 @@ function analyseTraits(lines: string[]): Diagnostic[] {
     }
 
     // Inside a trait block — check param values
-    if (currentTrait && trimmed !== '' && !trimmed.startsWith('@') && !trimmed.startsWith('//') && trimmed !== '{' && trimmed !== '}') {
+    if (
+      currentTrait &&
+      trimmed !== '' &&
+      !trimmed.startsWith('@') &&
+      !trimmed.startsWith('//') &&
+      trimmed !== '{' &&
+      trimmed !== '}'
+    ) {
       const paramMatch = trimmed.match(/^(\w+)\s*:\s*(.+)$/);
       if (paramMatch && currentTrait in TRAIT_VALID_ENUM) {
         const [, key, rawVal] = paramMatch;
@@ -194,7 +229,9 @@ function analyseTraits(lines: string[]): Diagnostic[] {
         if (enumDef && enumDef.length > 0 && !enumDef.includes(val)) {
           diags.push({
             id: `trait-invalid-${i}`,
-            severity: 'error', line: lineNum, col: 1,
+            severity: 'error',
+            line: lineNum,
+            col: 1,
             message: `Invalid value "${val}" for @${currentTrait}.${key} — valid: ${enumDef.map((v) => `"${v}"`).join(', ')}`,
             source: 'trait',
           });
@@ -213,7 +250,9 @@ function analyseTraits(lines: string[]): Diagnostic[] {
           if (!new RegExp(`\\b${req}\\s*:`).test(traitBody)) {
             diags.push({
               id: `trait-missing-${i}-${req}`,
-              severity: 'error', line: traitLine, col: 1,
+              severity: 'error',
+              line: traitLine,
+              col: 1,
               message: `@${currentTrait} is missing required param "${req}"`,
               source: 'trait',
             });
@@ -242,10 +281,9 @@ export function useHoloDebugger(): DebuggerResult {
 
   return useMemo<DebuggerResult>(() => {
     const lines = code.split('\n');
-    const diagnostics: Diagnostic[] = [
-      ...analyseSyntax(lines),
-      ...analyseTraits(lines),
-    ].sort((a, b) => a.line - b.line || a.severity.localeCompare(b.severity));
+    const diagnostics: Diagnostic[] = [...analyseSyntax(lines), ...analyseTraits(lines)].sort(
+      (a, b) => a.line - b.line || a.severity.localeCompare(b.severity)
+    );
 
     return {
       diagnostics,

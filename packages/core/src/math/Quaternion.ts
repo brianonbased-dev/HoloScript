@@ -33,9 +33,12 @@ export function identity(): Quat {
  * Applies in intrinsic YXZ order (standard for first-person cameras).
  */
 export function fromEuler(pitch: number, yaw: number, roll: number): Quat {
-  const cp = Math.cos(pitch * 0.5), sp = Math.sin(pitch * 0.5);
-  const cy = Math.cos(yaw * 0.5),   sy = Math.sin(yaw * 0.5);
-  const cr = Math.cos(roll * 0.5),  sr = Math.sin(roll * 0.5);
+  const cp = Math.cos(pitch * 0.5),
+    sp = Math.sin(pitch * 0.5);
+  const cy = Math.cos(yaw * 0.5),
+    sy = Math.sin(yaw * 0.5);
+  const cr = Math.cos(roll * 0.5),
+    sr = Math.sin(roll * 0.5);
 
   return {
     x: sp * cy * cr + cp * sy * sr,
@@ -92,10 +95,16 @@ export function slerp(a: Quat, b: Quat, t: number): Quat {
   let d = dot(a, b);
 
   // Ensure shortest path
-  let bx = b.x, by = b.y, bz = b.z, bw = b.w;
+  let bx = b.x,
+    by = b.y,
+    bz = b.z,
+    bw = b.w;
   if (d < 0) {
     d = -d;
-    bx = -bx; by = -by; bz = -bz; bw = -bw;
+    bx = -bx;
+    by = -by;
+    bz = -bz;
+    bw = -bw;
   }
 
   // If very close, fall back to linear interpolation
@@ -113,7 +122,7 @@ export function slerp(a: Quat, b: Quat, t: number): Quat {
   const sinTheta = Math.sin(theta);
   const sinTheta0 = Math.sin(theta0);
 
-  const s0 = Math.cos(theta) - d * sinTheta / sinTheta0;
+  const s0 = Math.cos(theta) - (d * sinTheta) / sinTheta0;
   const s1 = sinTheta / sinTheta0;
 
   return {
@@ -125,7 +134,12 @@ export function slerp(a: Quat, b: Quat, t: number): Quat {
 }
 
 /** Rotate a 3D vector by a unit quaternion. */
-export function rotateVec3(q: Quat, vx: number, vy: number, vz: number): { x: number; y: number; z: number } {
+export function rotateVec3(
+  q: Quat,
+  vx: number,
+  vy: number,
+  vz: number
+): { x: number; y: number; z: number } {
   // q * v * q⁻¹  (optimized)
   const ix = q.w * vx + q.y * vz - q.z * vy;
   const iy = q.w * vy + q.z * vx - q.x * vz;
@@ -146,15 +160,35 @@ export function rotateVec3(q: Quat, vx: number, vy: number, vz: number): { x: nu
 /** Convert unit quaternion to a 4×4 column-major rotation matrix (Float64Array[16]). */
 export function toMatrix4(q: Quat): Float64Array {
   const m = new Float64Array(16);
-  const x2 = q.x + q.x, y2 = q.y + q.y, z2 = q.z + q.z;
-  const xx = q.x * x2, xy = q.x * y2, xz = q.x * z2;
-  const yy = q.y * y2, yz = q.y * z2, zz = q.z * z2;
-  const wx = q.w * x2, wy = q.w * y2, wz = q.w * z2;
+  const x2 = q.x + q.x,
+    y2 = q.y + q.y,
+    z2 = q.z + q.z;
+  const xx = q.x * x2,
+    xy = q.x * y2,
+    xz = q.x * z2;
+  const yy = q.y * y2,
+    yz = q.y * z2,
+    zz = q.z * z2;
+  const wx = q.w * x2,
+    wy = q.w * y2,
+    wz = q.w * z2;
 
-  m[0]  = 1 - (yy + zz); m[1]  = xy + wz;       m[2]  = xz - wy;       m[3]  = 0;
-  m[4]  = xy - wz;       m[5]  = 1 - (xx + zz); m[6]  = yz + wx;       m[7]  = 0;
-  m[8]  = xz + wy;       m[9]  = yz - wx;       m[10] = 1 - (xx + yy); m[11] = 0;
-  m[12] = 0;              m[13] = 0;              m[14] = 0;              m[15] = 1;
+  m[0] = 1 - (yy + zz);
+  m[1] = xy + wz;
+  m[2] = xz - wy;
+  m[3] = 0;
+  m[4] = xy - wz;
+  m[5] = 1 - (xx + zz);
+  m[6] = yz + wx;
+  m[7] = 0;
+  m[8] = xz + wy;
+  m[9] = yz - wx;
+  m[10] = 1 - (xx + yy);
+  m[11] = 0;
+  m[12] = 0;
+  m[13] = 0;
+  m[14] = 0;
+  m[15] = 1;
 
   return m;
 }
@@ -166,7 +200,7 @@ export function toEuler(q: Quat): { pitch: number; yaw: number; roll: number } {
   const pitch = Math.atan2(sinr_cosp, cosr_cosp);
 
   const sinp = 2 * (q.w * q.y - q.z * q.x);
-  const yaw = Math.abs(sinp) >= 1 ? Math.sign(sinp) * Math.PI / 2 : Math.asin(sinp);
+  const yaw = Math.abs(sinp) >= 1 ? (Math.sign(sinp) * Math.PI) / 2 : Math.asin(sinp);
 
   const siny_cosp = 2 * (q.w * q.z + q.x * q.y);
   const cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);

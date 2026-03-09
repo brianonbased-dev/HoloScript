@@ -1,16 +1,32 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSceneStore, useCharacterStore } from '@/lib/store';
+import { useSceneStore, useCharacterStore } from '@/lib/stores';
 import { SCENE_TEMPLATES, TEMPLATE_CATEGORIES } from '@/data/sceneTemplates';
 import { QuickStartWizard } from '@/components/wizard/QuickStartWizard';
-import { CharacterCreationModal, type CharacterMetadata } from '@/components/character/creation/CharacterCreationModal';
+import {
+  CharacterCreationModal,
+  type CharacterMetadata,
+} from '@/components/character/creation/CharacterCreationModal';
 import { PlaytestBar } from '@/components/playtest/PlaytestBar';
 import { ContextMenu } from '@/components/ui/ContextMenu';
 import { SimplePropertyInspector } from '@/components/ui/SimplePropertyInspector';
 import {
-  Box, Lamp, User2, LayoutTemplate, Sticker, Search, Sparkles, Mic,
-  MicOff, Plus, UndoIcon, RedoIcon, Wand2, Store, HelpCircle,
+  Box,
+  Lamp,
+  User2,
+  LayoutTemplate,
+  Sticker,
+  Search,
+  Sparkles,
+  Mic,
+  MicOff,
+  Plus,
+  UndoIcon,
+  RedoIcon,
+  Wand2,
+  Store,
+  HelpCircle,
 } from 'lucide-react';
 
 // ── Asset Library ─────────────────────────────────────────────────────────────
@@ -28,29 +44,46 @@ const CATEGORY_ICONS: Record<AssetCategory, React.ReactNode> = {
 
 const SAMPLE_ASSETS: Record<string, { label: string; emoji: string }[]> = {
   Objects: [
-    { label: 'Cube', emoji: '🟫' }, { label: 'Sphere', emoji: '🔵' },
-    { label: 'Tree', emoji: '🌲' }, { label: 'Rock', emoji: '🪨' },
-    { label: 'Chest', emoji: '📦' }, { label: 'Table', emoji: '🪵' },
-    { label: 'Chair', emoji: '🪑' }, { label: 'Door', emoji: '🚪' },
-    { label: 'Lamp', emoji: '💡' }, { label: 'Sign', emoji: '🪧' },
-    { label: 'Barrel', emoji: '🛢️' }, { label: 'Fountain', emoji: '⛲' },
+    { label: 'Cube', emoji: '🟫' },
+    { label: 'Sphere', emoji: '🔵' },
+    { label: 'Tree', emoji: '🌲' },
+    { label: 'Rock', emoji: '🪨' },
+    { label: 'Chest', emoji: '📦' },
+    { label: 'Table', emoji: '🪵' },
+    { label: 'Chair', emoji: '🪑' },
+    { label: 'Door', emoji: '🚪' },
+    { label: 'Lamp', emoji: '💡' },
+    { label: 'Sign', emoji: '🪧' },
+    { label: 'Barrel', emoji: '🛢️' },
+    { label: 'Fountain', emoji: '⛲' },
   ],
   Rooms: [
-    { label: 'Dungeon Cell', emoji: '🏚️' }, { label: 'Tavern', emoji: '🍺' },
-    { label: 'Tower Top', emoji: '🗼' }, { label: 'Forest Clearing', emoji: '🌿' },
-    { label: 'Courtyard', emoji: '🏰' }, { label: 'Cave', emoji: '🕳️' },
-    { label: 'Hangar', emoji: '🛸' }, { label: 'Bridge', emoji: '🌉' },
+    { label: 'Dungeon Cell', emoji: '🏚️' },
+    { label: 'Tavern', emoji: '🍺' },
+    { label: 'Tower Top', emoji: '🗼' },
+    { label: 'Forest Clearing', emoji: '🌿' },
+    { label: 'Courtyard', emoji: '🏰' },
+    { label: 'Cave', emoji: '🕳️' },
+    { label: 'Hangar', emoji: '🛸' },
+    { label: 'Bridge', emoji: '🌉' },
   ],
   NPCs: [
-    { label: 'Merchant', emoji: '🧙' }, { label: 'Guard', emoji: '⚔️' },
-    { label: 'Companion', emoji: '🐾' }, { label: 'Quest Giver', emoji: '📜' },
-    { label: 'Villager', emoji: '👨‍🌾' }, { label: 'Enemy', emoji: '👹' },
-    { label: 'Boss', emoji: '💀' }, { label: 'Ally', emoji: '🦸' },
+    { label: 'Merchant', emoji: '🧙' },
+    { label: 'Guard', emoji: '⚔️' },
+    { label: 'Companion', emoji: '🐾' },
+    { label: 'Quest Giver', emoji: '📜' },
+    { label: 'Villager', emoji: '👨‍🌾' },
+    { label: 'Enemy', emoji: '👹' },
+    { label: 'Boss', emoji: '💀' },
+    { label: 'Ally', emoji: '🦸' },
   ],
   Lights: [
-    { label: 'Sunlight', emoji: '☀️' }, { label: 'Torch', emoji: '🔦' },
-    { label: 'Candle', emoji: '🕯️' }, { label: 'Moonlight', emoji: '🌙' },
-    { label: 'Spotlight', emoji: '🔆' }, { label: 'Neon', emoji: '💜' },
+    { label: 'Sunlight', emoji: '☀️' },
+    { label: 'Torch', emoji: '🔦' },
+    { label: 'Candle', emoji: '🕯️' },
+    { label: 'Moonlight', emoji: '🌙' },
+    { label: 'Spotlight', emoji: '🔆' },
+    { label: 'Neon', emoji: '💜' },
   ],
 };
 
@@ -73,8 +106,10 @@ function SimpleAssetLibrary({ onLoadTemplate, onShowWizard }: SimpleAssetLibrary
   const [templateCategory, setTemplateCategory] = useState<string>('all');
 
   const filteredTemplates = SCENE_TEMPLATES.filter(
-    (t) => (templateCategory === 'all' || t.category === templateCategory)
-      && (t.name.toLowerCase().includes(search.toLowerCase()) || t.tags.some((tag) => tag.toLowerCase().includes(search.toLowerCase())))
+    (t) =>
+      (templateCategory === 'all' || t.category === templateCategory) &&
+      (t.name.toLowerCase().includes(search.toLowerCase()) ||
+        t.tags.some((tag) => tag.toLowerCase().includes(search.toLowerCase())))
   );
 
   const assets = (SAMPLE_ASSETS[activeCategory] ?? []).filter((a) =>
@@ -156,11 +191,18 @@ function SimpleAssetLibrary({ onLoadTemplate, onShowWizard }: SimpleAssetLibrary
               >
                 <span className="text-xl shrink-0">{t.emoji}</span>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-studio-text group-hover:text-studio-accent">{t.name}</p>
+                  <p className="text-xs font-semibold text-studio-text group-hover:text-studio-accent">
+                    {t.name}
+                  </p>
                   <p className="text-[10px] text-studio-muted leading-snug">{t.desc}</p>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {t.tags.slice(0, 3).map((tag) => (
-                      <span key={tag} className="rounded-full bg-white/5 px-1.5 py-0.5 text-[9px] text-studio-muted">{tag}</span>
+                      <span
+                        key={tag}
+                        className="rounded-full bg-white/5 px-1.5 py-0.5 text-[9px] text-studio-muted"
+                      >
+                        {tag}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -180,7 +222,9 @@ function SimpleAssetLibrary({ onLoadTemplate, onShowWizard }: SimpleAssetLibrary
                   <p className="text-xs font-semibold text-studio-text">{pack.name}</p>
                   <p className="text-[10px] text-studio-muted">{pack.items} items</p>
                 </div>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${pack.free ? 'bg-emerald-500/20 text-emerald-400' : 'bg-studio-accent/20 text-studio-accent'}`}>
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${pack.free ? 'bg-emerald-500/20 text-emerald-400' : 'bg-studio-accent/20 text-studio-accent'}`}
+                >
                   {pack.free ? 'Free' : 'Pro'}
                 </span>
               </button>
@@ -249,8 +293,11 @@ function BrittneyPromptBar() {
   }, []);
 
   const suggestions = [
-    'Add a treasure chest', 'Create a boss fight room',
-    'Add 3 skeleton guards', 'Make it foggy', 'Add ambient torch lighting',
+    'Add a treasure chest',
+    'Create a boss fight room',
+    'Add 3 skeleton guards',
+    'Make it foggy',
+    'Add ambient torch lighting',
   ];
 
   return (
@@ -270,7 +317,9 @@ function BrittneyPromptBar() {
         </div>
 
         {/* Input row */}
-        <div className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 transition-all ${listening ? 'border-red-500/60 bg-red-500/5' : 'border-studio-border bg-black/20'}`}>
+        <div
+          className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 transition-all ${listening ? 'border-red-500/60 bg-red-500/5' : 'border-studio-border bg-black/20'}`}
+        >
           <Sparkles className="h-4 w-4 shrink-0 text-emerald-400" />
           <input
             className="flex-1 bg-transparent text-sm text-studio-text placeholder:text-studio-muted outline-none"
@@ -332,7 +381,9 @@ export function CreatorLayout({ viewportSlot }: CreatorLayoutProps) {
   const [playtesting, setPlaytesting] = useState(false);
 
   // Context menu
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; target: string } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; target: string } | null>(
+    null
+  );
 
   // Property inspector
   const [selectedObject, setSelectedObject] = useState<string | null>(null);
@@ -361,14 +412,22 @@ export function CreatorLayout({ viewportSlot }: CreatorLayoutProps) {
     <div className="flex h-full flex-col overflow-hidden">
       {/* Top toolbar: undo/redo + hints */}
       <div className="flex shrink-0 items-center gap-2 border-b border-studio-border bg-studio-panel px-3 py-1.5">
-        <button title="Undo (Ctrl+Z)" className="rounded-md p-1 text-studio-muted transition hover:bg-white/10 hover:text-studio-text">
+        <button
+          title="Undo (Ctrl+Z)"
+          className="rounded-md p-1 text-studio-muted transition hover:bg-white/10 hover:text-studio-text"
+        >
           <UndoIcon className="h-3.5 w-3.5" />
         </button>
-        <button title="Redo (Ctrl+Y)" className="rounded-md p-1 text-studio-muted transition hover:bg-white/10 hover:text-studio-text">
+        <button
+          title="Redo (Ctrl+Y)"
+          className="rounded-md p-1 text-studio-muted transition hover:bg-white/10 hover:text-studio-text"
+        >
           <RedoIcon className="h-3.5 w-3.5" />
         </button>
         <div className="h-4 w-px bg-studio-border" />
-        <span className="text-[11px] text-studio-muted">Click objects to edit · Right-click for options · Drag from library to add</span>
+        <span className="text-[11px] text-studio-muted">
+          Click objects to edit · Right-click for options · Drag from library to add
+        </span>
         <button
           onClick={() => setWizardOpen(true)}
           className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-emerald-400 transition hover:bg-emerald-500/10"
@@ -392,7 +451,10 @@ export function CreatorLayout({ viewportSlot }: CreatorLayoutProps) {
         <div
           className="relative flex-1 overflow-hidden"
           onContextMenu={handleViewportContextMenu}
-          onClick={() => { setSelectedObject(null); setContextMenu(null); }}
+          onClick={() => {
+            setSelectedObject(null);
+            setContextMenu(null);
+          }}
         >
           {viewportSlot}
 
@@ -423,11 +485,36 @@ export function CreatorLayout({ viewportSlot }: CreatorLayoutProps) {
             </div>
             <div className="flex flex-col gap-2 p-3">
               {[
-                { label: 'Add Room', emoji: '🏠', hint: 'Drop a pre-built room into the scene', onClick: () => {} },
-                { label: 'Add NPC', emoji: '🧙', hint: 'Place a character with AI behavior', onClick: () => setCharacterModalOpen(true) },
-                { label: 'Add Object', emoji: '📦', hint: 'Drag a prop into the world', onClick: () => {} },
-                { label: 'Add Light', emoji: '💡', hint: 'Illuminate your scene', onClick: () => {} },
-                { label: 'Add Effect', emoji: '✨', hint: 'Fire, smoke, magic particles', onClick: () => {} },
+                {
+                  label: 'Add Room',
+                  emoji: '🏠',
+                  hint: 'Drop a pre-built room into the scene',
+                  onClick: () => {},
+                },
+                {
+                  label: 'Add NPC',
+                  emoji: '🧙',
+                  hint: 'Place a character with AI behavior',
+                  onClick: () => setCharacterModalOpen(true),
+                },
+                {
+                  label: 'Add Object',
+                  emoji: '📦',
+                  hint: 'Drag a prop into the world',
+                  onClick: () => {},
+                },
+                {
+                  label: 'Add Light',
+                  emoji: '💡',
+                  hint: 'Illuminate your scene',
+                  onClick: () => {},
+                },
+                {
+                  label: 'Add Effect',
+                  emoji: '✨',
+                  hint: 'Fire, smoke, magic particles',
+                  onClick: () => {},
+                },
               ].map((item) => (
                 <button
                   key={item.label}
@@ -467,7 +554,8 @@ export function CreatorLayout({ viewportSlot }: CreatorLayoutProps) {
         <QuickStartWizard
           onClose={() => {
             setWizardOpen(false);
-            if (typeof window !== 'undefined') window.localStorage.setItem('studio-wizard-seen', '1');
+            if (typeof window !== 'undefined')
+              window.localStorage.setItem('studio-wizard-seen', '1');
           }}
         />
       )}

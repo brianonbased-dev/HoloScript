@@ -15,7 +15,9 @@ import { scrollableHandler } from '../ScrollableTrait';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode(id = 'scroll_test') { return { id } as any; }
+function makeNode(id = 'scroll_test') {
+  return { id } as any;
+}
 
 /**
  * Create a context with a mock content node at `${nodeId}_content`.
@@ -25,7 +27,7 @@ function makeCtx(nodeId: string) {
   const contentNode = { properties: { position: { x: 0, y: 0, z: 0 } } };
   return {
     emit: vi.fn(),
-    getNode: vi.fn((id: string) => id === `${nodeId}_content` ? contentNode : undefined),
+    getNode: vi.fn((id: string) => (id === `${nodeId}_content` ? contentNode : undefined)),
     _contentNode: contentNode,
   };
 }
@@ -154,7 +156,10 @@ describe('ScrollableTrait — onEvent: ui_drag', () => {
     expect(ctx._contentNode.properties.position.y).toBeCloseTo(0.1);
     fire(node, cfg, ctx, { type: 'ui_drag', position: { y: 0.15 } });
     expect(ctx._contentNode.properties.position.y).toBeCloseTo(0.15);
-    expect(ctx.emit).toHaveBeenCalledWith('property_changed', expect.objectContaining({ nodeId: `${node.id}_content` }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'property_changed',
+      expect.objectContaining({ nodeId: `${node.id}_content` })
+    );
   });
 
   it('sets velocity = dy / 0.016', () => {
@@ -168,7 +173,7 @@ describe('ScrollableTrait — onEvent: ui_drag', () => {
     fire(node, cfg, ctx, { type: 'ui_press_end' });
     update(node, cfg, ctx, 0.016);
     const y1 = ctx._contentNode.properties.position.y;
-    expect(y1).toBeCloseTo(y0 + (-1.0) * 0.016, 3); // offset += velocity * delta
+    expect(y1).toBeCloseTo(y0 + -1.0 * 0.016, 3); // offset += velocity * delta
   });
 
   it('no-op when isDragging=false', () => {
@@ -208,7 +213,12 @@ describe('ScrollableTrait — onUpdate: inertia + hard-clamp', () => {
   it('hard-clamps offset to 0 when overscrolled top (useSpringBounce=false)', () => {
     const node = makeNode('hc');
     const ctx = makeCtx('hc');
-    const cfg = { ...scrollableHandler.defaultConfig!, useSpringBounce: false, contentHeight: 2.0, viewportHeight: 0.5 } as any;
+    const cfg = {
+      ...scrollableHandler.defaultConfig!,
+      useSpringBounce: false,
+      contentHeight: 2.0,
+      viewportHeight: 0.5,
+    } as any;
     scrollableHandler.onAttach!(node, cfg, ctx as any);
     // Drag upward way too far (positive offset = top overscroll)
     fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0 } });
@@ -222,7 +232,12 @@ describe('ScrollableTrait — onUpdate: inertia + hard-clamp', () => {
   it('hard-clamps offset to -maxScroll when overscrolled bottom', () => {
     const node = makeNode('hc2');
     const ctx = makeCtx('hc2');
-    const cfg = { ...scrollableHandler.defaultConfig!, useSpringBounce: false, contentHeight: 2.0, viewportHeight: 0.5 } as any;
+    const cfg = {
+      ...scrollableHandler.defaultConfig!,
+      useSpringBounce: false,
+      contentHeight: 2.0,
+      viewportHeight: 0.5,
+    } as any;
     // maxScroll = 2.0 - 0.5 = 1.5
     scrollableHandler.onAttach!(node, cfg, ctx as any);
     fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0 } });
@@ -252,8 +267,12 @@ describe('ScrollableTrait — onUpdate: inertia + hard-clamp', () => {
     fire(node, cfg, ctx, { type: 'ui_press_end' });
     ctx.emit.mockClear();
     update(node, cfg, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('property_changed', expect.objectContaining({
-      nodeId: `${node.id}_content`, property: 'position',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'property_changed',
+      expect.objectContaining({
+        nodeId: `${node.id}_content`,
+        property: 'position',
+      })
+    );
   });
 });

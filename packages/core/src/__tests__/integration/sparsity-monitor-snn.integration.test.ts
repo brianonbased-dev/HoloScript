@@ -21,10 +21,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  SparsityMonitor,
-  createSparsityMonitor,
-} from '../../training/SparsityMonitor';
+import { SparsityMonitor, createSparsityMonitor } from '../../training/SparsityMonitor';
 import type { LayerActivityInput } from '../../training/SparsityMonitor';
 import type {
   SparsityQualityHistoryEntry,
@@ -99,7 +96,7 @@ function createMNISTNetworkConfig(): SimLayerConfig[] {
 function simulateLayerActivity(
   layer: SimLayerConfig,
   timestep: number,
-  spikeRateFraction: number = 0.05,
+  spikeRateFraction: number = 0.05
 ): LayerActivityInput {
   const spikeCount = Math.round(layer.neuronCount * spikeRateFraction);
   // Simulate average membrane potential near resting potential
@@ -120,7 +117,7 @@ function simulateLayerActivity(
 function simulateStats(
   layers: SimLayerConfig[],
   timestep: number,
-  spikeRates: Record<string, number>,
+  spikeRates: Record<string, number>
 ): SimStats {
   const layerSpikes = new Map<string, number>();
   const layerAvgVoltage = new Map<string, number>();
@@ -153,7 +150,7 @@ function feedStatsToMonitor(
   monitor: SparsityMonitor,
   stats: SimStats,
   layers: SimLayerConfig[],
-  timestep: number,
+  timestep: number
 ): void {
   for (const layer of layers) {
     const spikeCount = stats.layerSpikes.get(layer.name) ?? 0;
@@ -224,7 +221,7 @@ describe('Integration: SparsityMonitor with Simulated SNN Data (snn-webgpu types
         input_encoder: 0.03,
         hidden_1: 0.05,
         hidden_2: 0.04,
-        output: 0.10,
+        output: 0.1,
       };
 
       for (let t = 0; t < 5; t++) {
@@ -236,11 +233,11 @@ describe('Integration: SparsityMonitor with Simulated SNN Data (snn-webgpu types
       expect(snapshot).not.toBeNull();
 
       // Verify layer-level metrics match expected neuron counts
-      const inputLayer = snapshot!.layers.find(l => l.layerId === 'input_encoder');
+      const inputLayer = snapshot!.layers.find((l) => l.layerId === 'input_encoder');
       expect(inputLayer).toBeDefined();
       expect(inputLayer!.neuronCount).toBe(784);
 
-      const outputLayer = snapshot!.layers.find(l => l.layerId === 'output');
+      const outputLayer = snapshot!.layers.find((l) => l.layerId === 'output');
       expect(outputLayer).toBeDefined();
       expect(outputLayer!.neuronCount).toBe(10);
     });
@@ -380,9 +377,9 @@ describe('Integration: SparsityMonitor with Simulated SNN Data (snn-webgpu types
       // Record deterministic activity for all layers
       const spikeRates: Record<string, number> = {
         input_encoder: 0.03, // 3% spike rate
-        hidden_1: 0.05,      // 5% spike rate
-        hidden_2: 0.04,      // 4% spike rate
-        output: 0.10,         // 10% spike rate
+        hidden_1: 0.05, // 5% spike rate
+        hidden_2: 0.04, // 4% spike rate
+        output: 0.1, // 10% spike rate
       };
 
       for (const layer of layers) {
@@ -430,7 +427,7 @@ describe('Integration: SparsityMonitor with Simulated SNN Data (snn-webgpu types
       expect(metrics).toHaveLength(4);
 
       // Each metric should have correct layer info
-      const layerNames = new Set(metrics.map(m => m.layerId));
+      const layerNames = new Set(metrics.map((m) => m.layerId));
       expect(layerNames.has('input_encoder')).toBe(true);
       expect(layerNames.has('hidden_1')).toBe(true);
       expect(layerNames.has('hidden_2')).toBe(true);
@@ -487,7 +484,7 @@ describe('Integration: SparsityMonitor with Simulated SNN Data (snn-webgpu types
 
       // Simulate 20 timesteps with varying spike rates
       for (let t = 0; t < 20; t++) {
-        const spikeRate = 0.03 + (t * 0.002); // Gradually increasing spike rate
+        const spikeRate = 0.03 + t * 0.002; // Gradually increasing spike rate
         monitor.recordLayerActivity('test_layer', {
           neuronCount: 500,
           spikeCount: Math.round(500 * spikeRate),
@@ -626,7 +623,7 @@ describe('Integration: SparsityMonitor with Simulated SNN Data (snn-webgpu types
           neuronCount: 100,
           spikeCount: -1,
           timestep: 0,
-        }),
+        })
       ).toThrow('non-negative');
     });
 
@@ -637,7 +634,7 @@ describe('Integration: SparsityMonitor with Simulated SNN Data (snn-webgpu types
           neuronCount: 0,
           spikeCount: 0,
           timestep: 0,
-        }),
+        })
       ).toThrow('positive');
     });
 
@@ -648,7 +645,7 @@ describe('Integration: SparsityMonitor with Simulated SNN Data (snn-webgpu types
           neuronCount: 100,
           spikeCount: 101,
           timestep: 0,
-        }),
+        })
       ).toThrow('cannot exceed');
     });
   });
@@ -681,7 +678,7 @@ describe('Integration: SparsityMonitor with Simulated SNN Data (snn-webgpu types
     });
 
     it('createSparsityMonitor factory produces working instance', () => {
-      const monitor = createSparsityMonitor({ sparsityThreshold: 0.90 });
+      const monitor = createSparsityMonitor({ sparsityThreshold: 0.9 });
 
       monitor.recordLayerActivity('test', {
         neuronCount: 200,
@@ -691,7 +688,7 @@ describe('Integration: SparsityMonitor with Simulated SNN Data (snn-webgpu types
 
       const snapshot = monitor.takeSnapshot();
       expect(snapshot).not.toBeNull();
-      expect(monitor.getConfig().sparsityThreshold).toBe(0.90);
+      expect(monitor.getConfig().sparsityThreshold).toBe(0.9);
     });
   });
 

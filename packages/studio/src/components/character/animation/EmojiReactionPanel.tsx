@@ -56,9 +56,7 @@ export function EmojiReactionPanel({
           <span className="text-2xl">✨</span>
           <div>
             <h3 className="text-sm font-bold text-white">Emoji Reactions</h3>
-            <p className="text-xs text-studio-muted">
-              Viral particle effects
-            </p>
+            <p className="text-xs text-studio-muted">Viral particle effects</p>
           </div>
         </div>
 
@@ -103,9 +101,7 @@ export function EmojiReactionPanel({
               className="group relative flex aspect-square flex-col items-center justify-center rounded-lg border border-studio-border bg-black/20 transition-all hover:scale-105 hover:border-purple-500/40 hover:bg-purple-500/10"
               title={label}
             >
-              <span className="text-2xl transition-transform group-hover:scale-110">
-                {emoji}
-              </span>
+              <span className="text-2xl transition-transform group-hover:scale-110">{emoji}</span>
               <span className="mt-1 text-[9px] text-studio-muted">{label}</span>
             </button>
           ))}
@@ -126,9 +122,7 @@ export function EmojiReactionPanel({
             onChange={(e) => setBurstCount(Number(e.target.value))}
             className="flex-1"
           />
-          <span className="w-8 text-center text-sm font-bold text-purple-400">
-            {burstCount}
-          </span>
+          <span className="w-8 text-center text-sm font-bold text-purple-400">{burstCount}</span>
           <button
             onClick={() => onBurst(burstCount)}
             className="rounded-lg border border-purple-500/40 bg-purple-500/20 px-4 py-2 text-xs font-semibold text-purple-300 transition-all hover:bg-purple-500/30 active:scale-95"
@@ -161,7 +155,8 @@ export function EmojiReactionPanel({
       <div className="rounded-lg border border-studio-border bg-black/10 p-2">
         <p className="text-[10px] text-studio-muted">
           <span className="font-semibold text-studio-text">Hotkeys:</span> Press{' '}
-          <kbd className="rounded bg-black/40 px-1 py-0.5 font-mono text-[9px]">E</kbd> for quick emoji
+          <kbd className="rounded bg-black/40 px-1 py-0.5 font-mono text-[9px]">E</kbd> for quick
+          emoji
         </p>
       </div>
     </div>

@@ -1,4 +1,3 @@
-
 import { browserTools } from './browser/browser-tools.js';
 import { browserPool } from './browser/BrowserPool.js';
 import path from 'path';
@@ -20,7 +19,7 @@ async function run() {
     holoscriptFile: examplePath,
     headless: true, // Keep it headless for CI/test environment unless debugging
     width: 1280,
-    height: 720
+    height: 720,
   });
 
   if (launchResult.isError) {
@@ -37,19 +36,19 @@ async function run() {
   // 2. Execute
   console.log('2. Executing script...');
   // Wait a bit for scene to load
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  await new Promise((resolve) => setTimeout(resolve, 3000));
 
   const execResult = await browserTools.browser_execute.handler({
     sessionId,
     script: 'JSON.stringify({ title: document.title, url: window.location.href })',
-    captureConsole: true
+    captureConsole: true,
   });
 
   const execData = JSON.parse(execResult.content[0].text);
   console.log('Execute result:', execData);
 
   if (!execData.result) {
-      console.error('Execution failed or returned empty');
+    console.error('Execution failed or returned empty');
   }
 
   // 3. Screenshot
@@ -57,18 +56,18 @@ async function run() {
   const screenPath = path.resolve('test-screenshot.png');
   const screenResult = await browserTools.browser_screenshot.handler({
     sessionId,
-    outputPath: screenPath
+    outputPath: screenPath,
   });
 
   const screenData = JSON.parse(screenResult.content[0].text);
   console.log('Screenshot saved to:', screenData.outputPath);
 
   if (fs.existsSync(screenPath)) {
-      console.log('Screenshot file verified.');
-      // Clean up screenshot
-      fs.unlinkSync(screenPath);
+    console.log('Screenshot file verified.');
+    // Clean up screenshot
+    fs.unlinkSync(screenPath);
   } else {
-      console.error('Screenshot file missing!');
+    console.error('Screenshot file missing!');
   }
 
   // Cleanup
@@ -78,7 +77,7 @@ async function run() {
   process.exit(0);
 }
 
-run().catch(err => {
-    console.error('Unhandled error:', err);
-    process.exit(1);
+run().catch((err) => {
+  console.error('Unhandled error:', err);
+  process.exit(1);
 });

@@ -7,8 +7,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { vectorDBHandler } from '../VectorDBTrait';
 
-function makeNode() { return { id: 'vdb_node' }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'vdb_node' };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}) {
   const node = makeNode();
   const ctx = makeCtx();
@@ -17,15 +21,28 @@ function attach(cfg: any = {}) {
   return { node: node as any, ctx, config };
 }
 
-function insert(node: any, ctx: any, config: any, id: string, embedding: number[], metadata: any = {}) {
-  vectorDBHandler.onEvent!(node, config, ctx, { type: 'vector_db_insert', id, embedding, metadata });
+function insert(
+  node: any,
+  ctx: any,
+  config: any,
+  id: string,
+  embedding: number[],
+  metadata: any = {}
+) {
+  vectorDBHandler.onEvent!(node, config, ctx, {
+    type: 'vector_db_insert',
+    id,
+    embedding,
+    metadata,
+  });
 }
 
 // ─── defaultConfig ─────────────────────────────────────────────────────────────
 
 describe('vectorDBHandler.defaultConfig', () => {
   const d = vectorDBHandler.defaultConfig!;
-  it('embedding_model=sentence-transformers', () => expect(d.embedding_model).toBe('sentence-transformers'));
+  it('embedding_model=sentence-transformers', () =>
+    expect(d.embedding_model).toBe('sentence-transformers'));
   it('dimension=384', () => expect(d.dimension).toBe(384));
   it('similarity_metric=cosine', () => expect(d.similarity_metric).toBe('cosine'));
   it('max_entries=10000', () => expect(d.max_entries).toBe(10000));
@@ -43,14 +60,20 @@ describe('vectorDBHandler.onAttach', () => {
   it('last_search_time=0', () => expect(attach().node.__vectorDBState.last_search_time).toBe(0));
   it('emits vector_db_init with model and dimension', () => {
     const { ctx } = attach({ embedding_model: 'clip', dimension: 512 });
-    expect(ctx.emit).toHaveBeenCalledWith('vector_db_init', expect.objectContaining({
-      embeddingModel: 'clip',
-      dimension: 512,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'vector_db_init',
+      expect.objectContaining({
+        embeddingModel: 'clip',
+        dimension: 512,
+      })
+    );
   });
   it('vector_db_init includes maxEntries', () => {
     const { ctx } = attach({ max_entries: 500 });
-    expect(ctx.emit).toHaveBeenCalledWith('vector_db_init', expect.objectContaining({ maxEntries: 500 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'vector_db_init',
+      expect.objectContaining({ maxEntries: 500 })
+    );
   });
 });
 
@@ -67,7 +90,10 @@ describe('vectorDBHandler.onDetach', () => {
     insert(node, ctx, config, 'e1', [1, 0]);
     ctx.emit.mockClear();
     vectorDBHandler.onDetach!(node, config, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('vector_db_persist', expect.objectContaining({ entryCount: 1 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'vector_db_persist',
+      expect.objectContaining({ entryCount: 1 })
+    );
   });
 });
 
@@ -93,7 +119,10 @@ describe('vectorDBHandler.onEvent — vector_db_insert', () => {
     const { node, ctx, config } = attach({ dimension: 3 });
     ctx.emit.mockClear();
     insert(node, ctx, config, 'v1', [1, 0, 0]);
-    expect(ctx.emit).toHaveBeenCalledWith('on_vector_inserted', expect.objectContaining({ id: 'v1', entryCount: 1 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_vector_inserted',
+      expect.objectContaining({ id: 'v1', entryCount: 1 })
+    );
   });
   it('stores metadata', () => {
     const { node, ctx, config } = attach({ dimension: 2 });
@@ -104,7 +133,10 @@ describe('vectorDBHandler.onEvent — vector_db_insert', () => {
     const { node, ctx, config } = attach({ dimension: 3 });
     ctx.emit.mockClear();
     insert(node, ctx, config, 'v1', [1, 0]); // only 2 elements
-    expect(ctx.emit).toHaveBeenCalledWith('vector_db_error', expect.objectContaining({ error: expect.stringContaining('mismatch') }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'vector_db_error',
+      expect.objectContaining({ error: expect.stringContaining('mismatch') })
+    );
   });
   it('does not insert on dimension mismatch', () => {
     const { node, ctx, config } = attach({ dimension: 3 });
@@ -116,7 +148,10 @@ describe('vectorDBHandler.onEvent — vector_db_insert', () => {
     insert(node, ctx, config, 'v1', [1, 0]);
     ctx.emit.mockClear();
     insert(node, ctx, config, 'v2', [0, 1]);
-    expect(ctx.emit).toHaveBeenCalledWith('vector_db_error', expect.objectContaining({ error: expect.stringContaining('Max entries') }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'vector_db_error',
+      expect.objectContaining({ error: expect.stringContaining('Max entries') })
+    );
   });
   it('supports multiple inserts', () => {
     const { node, ctx, config } = attach({ dimension: 2 });
@@ -135,14 +170,25 @@ describe('vectorDBHandler.onEvent — vector_db_search (cosine)', () => {
     insert(node, ctx, config, 'a', [1, 0]);
     insert(node, ctx, config, 'b', [0, 1]);
     ctx.emit.mockClear();
-    vectorDBHandler.onEvent!(node, config, ctx, { type: 'vector_db_search', embedding: [1, 0], k: 2 });
-    expect(ctx.emit).toHaveBeenCalledWith('on_vector_search_complete', expect.objectContaining({ results: expect.any(Array), k: 2 }));
+    vectorDBHandler.onEvent!(node, config, ctx, {
+      type: 'vector_db_search',
+      embedding: [1, 0],
+      k: 2,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_vector_search_complete',
+      expect.objectContaining({ results: expect.any(Array), k: 2 })
+    );
   });
   it('returns best matching result first (identical vector → similarity≈1)', () => {
     const { node, ctx, config } = attach({ dimension: 2, similarity_metric: 'cosine' });
     insert(node, ctx, config, 'exact', [1, 0]);
     insert(node, ctx, config, 'ortho', [0, 1]);
-    vectorDBHandler.onEvent!(node, config, ctx, { type: 'vector_db_search', embedding: [1, 0], k: 2 });
+    vectorDBHandler.onEvent!(node, config, ctx, {
+      type: 'vector_db_search',
+      embedding: [1, 0],
+      k: 2,
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'on_vector_search_complete')!;
     expect(call[1].results[0].id).toBe('exact');
     expect(call[1].results[0].similarity).toBeCloseTo(1.0);
@@ -158,7 +204,11 @@ describe('vectorDBHandler.onEvent — vector_db_search (cosine)', () => {
     insert(node, ctx, config, 'a', [1, 0]);
     insert(node, ctx, config, 'b', [0.9, 0.1]);
     insert(node, ctx, config, 'c', [0.8, 0.2]);
-    vectorDBHandler.onEvent!(node, config, ctx, { type: 'vector_db_search', embedding: [1, 0], k: 2 });
+    vectorDBHandler.onEvent!(node, config, ctx, {
+      type: 'vector_db_search',
+      embedding: [1, 0],
+      k: 2,
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'on_vector_search_complete')!;
     expect(call[1].results.length).toBeLessThanOrEqual(2);
   });
@@ -171,7 +221,11 @@ describe('vectorDBHandler.onEvent — vector_db_search (cosine)', () => {
   it('updates last_search_time', () => {
     const { node, ctx, config } = attach({ dimension: 2, similarity_metric: 'cosine' });
     insert(node, ctx, config, 'a', [1, 0]);
-    vectorDBHandler.onEvent!(node, config, ctx, { type: 'vector_db_search', embedding: [1, 0], k: 1 });
+    vectorDBHandler.onEvent!(node, config, ctx, {
+      type: 'vector_db_search',
+      embedding: [1, 0],
+      k: 1,
+    });
     expect(node.__vectorDBState.last_search_time).toBeGreaterThanOrEqual(0);
   });
 });
@@ -183,7 +237,11 @@ describe('vectorDBHandler.onEvent — vector_db_search (euclidean)', () => {
     const { node, ctx, config } = attach({ dimension: 2, similarity_metric: 'euclidean' });
     insert(node, ctx, config, 'near', [1, 0]);
     insert(node, ctx, config, 'far', [0, 10]);
-    vectorDBHandler.onEvent!(node, config, ctx, { type: 'vector_db_search', embedding: [1, 0], k: 2 });
+    vectorDBHandler.onEvent!(node, config, ctx, {
+      type: 'vector_db_search',
+      embedding: [1, 0],
+      k: 2,
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'on_vector_search_complete')!;
     expect(call[1].results[0].id).toBe('near');
   });
@@ -192,9 +250,13 @@ describe('vectorDBHandler.onEvent — vector_db_search (euclidean)', () => {
 describe('vectorDBHandler.onEvent — vector_db_search (dot_product)', () => {
   it('rank by dot product (higher magnitude → higher score)', () => {
     const { node, ctx, config } = attach({ dimension: 2, similarity_metric: 'dot_product' });
-    insert(node, ctx, config, 'big', [3, 4]);   // dot with [1,1] = 7
-    insert(node, ctx, config, 'small', [1, 1]);  // dot with [1,1] = 2
-    vectorDBHandler.onEvent!(node, config, ctx, { type: 'vector_db_search', embedding: [1, 1], k: 2 });
+    insert(node, ctx, config, 'big', [3, 4]); // dot with [1,1] = 7
+    insert(node, ctx, config, 'small', [1, 1]); // dot with [1,1] = 2
+    vectorDBHandler.onEvent!(node, config, ctx, {
+      type: 'vector_db_search',
+      embedding: [1, 1],
+      k: 2,
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'on_vector_search_complete')!;
     expect(call[1].results[0].id).toBe('big');
   });
@@ -231,7 +293,10 @@ describe('vectorDBHandler.onEvent — vector_db_delete', () => {
     insert(node, ctx, config, 'v1', [1, 0]);
     ctx.emit.mockClear();
     vectorDBHandler.onEvent!(node, config, ctx, { type: 'vector_db_delete', id: 'v1' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_vector_deleted', expect.objectContaining({ id: 'v1', entryCount: 0 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_vector_deleted',
+      expect.objectContaining({ id: 'v1', entryCount: 0 })
+    );
   });
   it('no effect when deleting non-existent id', () => {
     const { node, ctx, config } = attach({ dimension: 2 });

@@ -34,7 +34,9 @@ import { CommandSystem, type Command } from '../events/CommandSystem.js';
 describe('Feature 1A: World — entity lifecycle', () => {
   let world: World;
 
-  beforeEach(() => { world = new World(); });
+  beforeEach(() => {
+    world = new World();
+  });
 
   it('createEntity() returns a number', () => {
     expect(typeof world.createEntity()).toBe('number');
@@ -80,7 +82,9 @@ describe('Feature 1A: World — entity lifecycle', () => {
 describe('Feature 1B: World — component management', () => {
   let world: World;
 
-  beforeEach(() => { world = new World(); });
+  beforeEach(() => {
+    world = new World();
+  });
 
   it('addComponent() + hasComponent() is true', () => {
     const e = world.createEntity();
@@ -129,7 +133,9 @@ describe('Feature 1B: World — component management', () => {
 describe('Feature 1C: World — tags and queries', () => {
   let world: World;
 
-  beforeEach(() => { world = new World(); });
+  beforeEach(() => {
+    world = new World();
+  });
 
   it('addTag() + hasTag() is true', () => {
     const e = world.createEntity();
@@ -176,7 +182,9 @@ describe('Feature 1C: World — tags and queries', () => {
 describe('Feature 1D: World — undo/redo', () => {
   let world: World;
 
-  beforeEach(() => { world = new World(); });
+  beforeEach(() => {
+    world = new World();
+  });
 
   it('undo() after createEntity removes the entity', () => {
     const e = world.createEntity();
@@ -211,7 +219,9 @@ describe('Feature 1D: World — undo/redo', () => {
 describe('Feature 2A: EntityRegistry — create/destroy', () => {
   let reg: EntityRegistry;
 
-  beforeEach(() => { reg = new EntityRegistry(); });
+  beforeEach(() => {
+    reg = new EntityRegistry();
+  });
 
   it('create() returns an entity with id', () => {
     const e = reg.create('hero');
@@ -243,7 +253,8 @@ describe('Feature 2A: EntityRegistry — create/destroy', () => {
   });
 
   it('getTotalCount() tracks correctly', () => {
-    reg.create(); reg.create();
+    reg.create();
+    reg.create();
     expect(reg.getTotalCount()).toBe(2);
   });
 });
@@ -255,12 +266,14 @@ describe('Feature 2A: EntityRegistry — create/destroy', () => {
 describe('Feature 2B: EntityRegistry — queries and tags', () => {
   let reg: EntityRegistry;
 
-  beforeEach(() => { reg = new EntityRegistry(); });
+  beforeEach(() => {
+    reg = new EntityRegistry();
+  });
 
   it('getByTag() returns entities with tag', () => {
     const e = reg.create('goblin', ['enemy']);
     const results = reg.getByTag('enemy');
-    expect(results.some(r => r.id === e.id)).toBe(true);
+    expect(results.some((r) => r.id === e.id)).toBe(true);
   });
 
   it('addTag() / hasTag() work after creation', () => {
@@ -295,7 +308,9 @@ describe('Feature 2B: EntityRegistry — queries and tags', () => {
 describe('Feature 2C: EntityRegistry — hierarchy', () => {
   let reg: EntityRegistry;
 
-  beforeEach(() => { reg = new EntityRegistry(); });
+  beforeEach(() => {
+    reg = new EntityRegistry();
+  });
 
   it('setParent() links parent/child', () => {
     const parent = reg.create('parent');
@@ -309,7 +324,7 @@ describe('Feature 2C: EntityRegistry — hierarchy', () => {
     const c = reg.create('c');
     reg.setParent(c.id, p.id);
     const children = reg.getChildren(p.id);
-    expect(children.some(ch => ch.id === c.id)).toBe(true);
+    expect(children.some((ch) => ch.id === c.id)).toBe(true);
   });
 
   it('destroy(parent) also destroys children', () => {
@@ -332,7 +347,9 @@ describe('Feature 2C: EntityRegistry — hierarchy', () => {
 describe('Feature 2D: EntityRegistry — component bookkeeping', () => {
   let reg: EntityRegistry;
 
-  beforeEach(() => { reg = new EntityRegistry(); });
+  beforeEach(() => {
+    reg = new EntityRegistry();
+  });
 
   it('registerComponent() + hasComponent() is true', () => {
     const e = reg.create();
@@ -354,8 +371,8 @@ describe('Feature 2D: EntityRegistry — component bookkeeping', () => {
     reg.registerComponent(e2.id, 'physics');
     reg.registerComponent(e1.id, 'render');
     const results = reg.getByComponents('physics', 'render');
-    expect(results.some(r => r.id === e1.id)).toBe(true);
-    expect(results.some(r => r.id === e2.id)).toBe(false);
+    expect(results.some((r) => r.id === e1.id)).toBe(true);
+    expect(results.some((r) => r.id === e2.id)).toBe(false);
   });
 });
 
@@ -366,7 +383,9 @@ describe('Feature 2D: EntityRegistry — component bookkeeping', () => {
 describe('Feature 3A: ComponentStore — pool management', () => {
   let store: ComponentStore;
 
-  beforeEach(() => { store = new ComponentStore(); });
+  beforeEach(() => {
+    store = new ComponentStore();
+  });
 
   it('registerPool() creates a pool', () => {
     store.registerPool('transform');
@@ -397,7 +416,9 @@ describe('Feature 3A: ComponentStore — pool management', () => {
 describe('Feature 3B: ComponentStore — CRUD', () => {
   let store: ComponentStore;
 
-  beforeEach(() => { store = new ComponentStore(); });
+  beforeEach(() => {
+    store = new ComponentStore();
+  });
 
   it('add() returns true on first add', () => {
     expect(store.add('pos', 1, { x: 0, y: 0 })).toBe(true);
@@ -439,7 +460,9 @@ describe('Feature 3B: ComponentStore — CRUD', () => {
 describe('Feature 3C: ComponentStore — bulk ops', () => {
   let store: ComponentStore;
 
-  beforeEach(() => { store = new ComponentStore(); });
+  beforeEach(() => {
+    store = new ComponentStore();
+  });
 
   it('getEntitiesWithComponent() returns entity IDs', () => {
     store.add('pos', 10, { x: 0 });
@@ -489,7 +512,9 @@ describe('Feature 3C: ComponentStore — bulk ops', () => {
 describe('Feature 4A: ComponentRegistry — schemas', () => {
   let reg: ComponentRegistry;
 
-  beforeEach(() => { reg = new ComponentRegistry(); });
+  beforeEach(() => {
+    reg = new ComponentRegistry();
+  });
 
   it('register() + has() is true', () => {
     reg.register({ type: 'health', defaultData: () => ({ value: 100 }) });
@@ -561,7 +586,9 @@ describe('Feature 4B: ComponentRegistry — built-in components', () => {
 describe('Feature 5A: SystemScheduler — registration', () => {
   let sched: SystemScheduler;
 
-  beforeEach(() => { sched = new SystemScheduler(); });
+  beforeEach(() => {
+    sched = new SystemScheduler();
+  });
 
   it('register() increments systemCount', () => {
     sched.register('moveSystem', () => {});
@@ -589,14 +616,18 @@ describe('Feature 5A: SystemScheduler — registration', () => {
 
   it('update() calls registered systems', () => {
     let called = false;
-    sched.register('test', () => { called = true; });
+    sched.register('test', () => {
+      called = true;
+    });
     sched.update(0.016);
     expect(called).toBe(true);
   });
 
   it('update() skips disabled systems', () => {
     let called = false;
-    sched.register('test', () => { called = true; });
+    sched.register('test', () => {
+      called = true;
+    });
     sched.disable('test');
     sched.update(0.016);
     expect(called).toBe(false);
@@ -610,7 +641,9 @@ describe('Feature 5A: SystemScheduler — registration', () => {
 describe('Feature 5B: SystemScheduler — phases', () => {
   let sched: SystemScheduler;
 
-  beforeEach(() => { sched = new SystemScheduler(); });
+  beforeEach(() => {
+    sched = new SystemScheduler();
+  });
 
   it('getExecutionOrder() respects phase ordering', () => {
     sched.register('render', () => {}, 'render');
@@ -625,7 +658,7 @@ describe('Feature 5B: SystemScheduler — phases', () => {
     sched.register('s1', () => {}, 'update');
     sched.register('s2', () => {}, 'render');
     const updateSystems = sched.getSystemsByPhase('update');
-    expect(updateSystems.every(s => s.phase === 'update')).toBe(true);
+    expect(updateSystems.every((s) => s.phase === 'update')).toBe(true);
   });
 
   it('priority ordering: lower runs first', () => {
@@ -654,11 +687,15 @@ describe('Feature 5B: SystemScheduler — phases', () => {
 describe('Feature 6A: EventBus — subscribe/emit', () => {
   let bus: EventBus;
 
-  beforeEach(() => { bus = new EventBus(); });
+  beforeEach(() => {
+    bus = new EventBus();
+  });
 
   it('on() + emit() calls callback', () => {
     let got: any;
-    bus.on('test', (d) => { got = d; });
+    bus.on('test', (d) => {
+      got = d;
+    });
     bus.emit('test', 42);
     expect(got).toBe(42);
   });
@@ -699,7 +736,9 @@ describe('Feature 6A: EventBus — subscribe/emit', () => {
 describe('Feature 6B: EventBus — once/priority/wildcard', () => {
   let bus: EventBus;
 
-  beforeEach(() => { bus = new EventBus(); });
+  beforeEach(() => {
+    bus = new EventBus();
+  });
 
   it('once() fires only one time', () => {
     let count = 0;
@@ -728,7 +767,9 @@ describe('Feature 6B: EventBus — once/priority/wildcard', () => {
 
   it('setPaused(true) suppresses emit', () => {
     let called = false;
-    bus.on('ev', () => { called = true; });
+    bus.on('ev', () => {
+      called = true;
+    });
     bus.setPaused(true);
     bus.emit('ev');
     expect(called).toBe(false);
@@ -771,7 +812,9 @@ describe('Feature 7A: EventChannel — subscribe/emit/filter', () => {
   it('subscribe() + emit() fires callback', () => {
     const ch = new EventChannel<number>();
     let got: number | undefined;
-    ch.subscribe((d) => { got = d; });
+    ch.subscribe((d) => {
+      got = d;
+    });
     ch.emit(7);
     expect(got).toBe(7);
   });
@@ -792,8 +835,11 @@ describe('Feature 7A: EventChannel — subscribe/emit/filter', () => {
   it('filter function excludes non-matching data', () => {
     const ch = new EventChannel<number>();
     let count = 0;
-    ch.subscribe(() => count++, (d) => d > 5);
-    ch.emit(3);  // filtered out
+    ch.subscribe(
+      () => count++,
+      (d) => d > 5
+    );
+    ch.emit(3); // filtered out
     ch.emit(10); // passes
     expect(count).toBe(1);
   });
@@ -833,7 +879,9 @@ describe('Feature 7B: EventChannel — replay buffer', () => {
 
   it('buffer respects max size', () => {
     const ch = new EventChannel<number>({ replayBufferSize: 2 });
-    ch.emit(1); ch.emit(2); ch.emit(3);
+    ch.emit(1);
+    ch.emit(2);
+    ch.emit(3);
     expect(ch.getBuffer().length).toBe(2);
     expect(ch.getBuffer()).not.toContain(1);
   });
@@ -853,7 +901,9 @@ describe('Feature 7B: EventChannel — replay buffer', () => {
 describe('Feature 8A: ChannelManager — channels and bridging', () => {
   let mgr: ChannelManager;
 
-  beforeEach(() => { mgr = new ChannelManager(); });
+  beforeEach(() => {
+    mgr = new ChannelManager();
+  });
 
   it('createChannel() + getChannel() works', () => {
     mgr.createChannel('input');
@@ -905,44 +955,92 @@ function makeCmd(name: string, doFn: () => void, undoFn: () => void): Command {
 describe('Feature 9A: CommandSystem — execute/undo/redo', () => {
   let sys: CommandSystem;
 
-  beforeEach(() => { sys = new CommandSystem(); });
+  beforeEach(() => {
+    sys = new CommandSystem();
+  });
 
   it('execute() runs the command', () => {
     let ran = false;
-    sys.execute(makeCmd('a', () => { ran = true; }, () => {}));
+    sys.execute(
+      makeCmd(
+        'a',
+        () => {
+          ran = true;
+        },
+        () => {}
+      )
+    );
     expect(ran).toBe(true);
   });
 
   it('canUndo() is true after execute', () => {
-    sys.execute(makeCmd('a', () => {}, () => {}));
+    sys.execute(
+      makeCmd(
+        'a',
+        () => {},
+        () => {}
+      )
+    );
     expect(sys.canUndo()).toBe(true);
   });
 
   it('undo() calls undo function', () => {
     let undone = false;
-    sys.execute(makeCmd('a', () => {}, () => { undone = true; }));
+    sys.execute(
+      makeCmd(
+        'a',
+        () => {},
+        () => {
+          undone = true;
+        }
+      )
+    );
     sys.undo();
     expect(undone).toBe(true);
   });
 
   it('redo() re-executes after undo', () => {
     let count = 0;
-    sys.execute(makeCmd('a', () => count++, () => count--));
+    sys.execute(
+      makeCmd(
+        'a',
+        () => count++,
+        () => count--
+      )
+    );
     sys.undo();
     sys.redo();
     expect(count).toBe(1);
   });
 
   it('canRedo() is true after undo', () => {
-    sys.execute(makeCmd('a', () => {}, () => {}));
+    sys.execute(
+      makeCmd(
+        'a',
+        () => {},
+        () => {}
+      )
+    );
     sys.undo();
     expect(sys.canRedo()).toBe(true);
   });
 
   it('new execute() clears redo stack', () => {
-    sys.execute(makeCmd('a', () => {}, () => {}));
+    sys.execute(
+      makeCmd(
+        'a',
+        () => {},
+        () => {}
+      )
+    );
     sys.undo();
-    sys.execute(makeCmd('b', () => {}, () => {}));
+    sys.execute(
+      makeCmd(
+        'b',
+        () => {},
+        () => {}
+      )
+    );
     expect(sys.canRedo()).toBe(false);
   });
 });
@@ -954,12 +1052,26 @@ describe('Feature 9A: CommandSystem — execute/undo/redo', () => {
 describe('Feature 9B: CommandSystem — batching', () => {
   let sys: CommandSystem;
 
-  beforeEach(() => { sys = new CommandSystem(); });
+  beforeEach(() => {
+    sys = new CommandSystem();
+  });
 
   it('beginBatch/endBatch creates single undo entry', () => {
     sys.beginBatch();
-    sys.execute(makeCmd('a', () => {}, () => {}));
-    sys.execute(makeCmd('b', () => {}, () => {}));
+    sys.execute(
+      makeCmd(
+        'a',
+        () => {},
+        () => {}
+      )
+    );
+    sys.execute(
+      makeCmd(
+        'b',
+        () => {},
+        () => {}
+      )
+    );
     sys.endBatch('myBatch');
     expect(sys.getUndoStackSize()).toBe(1);
   });
@@ -967,8 +1079,20 @@ describe('Feature 9B: CommandSystem — batching', () => {
   it('batch undo reverts all commands in reverse', () => {
     const log: string[] = [];
     sys.beginBatch();
-    sys.execute(makeCmd('a', () => log.push('doA'), () => log.push('undoA')));
-    sys.execute(makeCmd('b', () => log.push('doB'), () => log.push('undoB')));
+    sys.execute(
+      makeCmd(
+        'a',
+        () => log.push('doA'),
+        () => log.push('undoA')
+      )
+    );
+    sys.execute(
+      makeCmd(
+        'b',
+        () => log.push('doB'),
+        () => log.push('undoB')
+      )
+    );
     sys.endBatch('group');
     sys.undo();
     expect(log).toContain('undoB');
@@ -976,7 +1100,13 @@ describe('Feature 9B: CommandSystem — batching', () => {
   });
 
   it('clearHistory() empties stacks', () => {
-    sys.execute(makeCmd('x', () => {}, () => {}));
+    sys.execute(
+      makeCmd(
+        'x',
+        () => {},
+        () => {}
+      )
+    );
     sys.clearHistory();
     expect(sys.canUndo()).toBe(false);
   });
@@ -989,11 +1119,19 @@ describe('Feature 9B: CommandSystem — batching', () => {
 describe('Feature 9C: CommandSystem — macros', () => {
   let sys: CommandSystem;
 
-  beforeEach(() => { sys = new CommandSystem(); });
+  beforeEach(() => {
+    sys = new CommandSystem();
+  });
 
   it('startRecording/stopRecording saves macro', () => {
     sys.startRecording();
-    sys.execute(makeCmd('a', () => {}, () => {}));
+    sys.execute(
+      makeCmd(
+        'a',
+        () => {},
+        () => {}
+      )
+    );
     sys.stopRecording('myMacro');
     expect(sys.getMacroNames()).toContain('myMacro');
   });
@@ -1001,7 +1139,13 @@ describe('Feature 9C: CommandSystem — macros', () => {
   it('playMacro() re-executes commands', () => {
     let count = 0;
     sys.startRecording();
-    sys.execute(makeCmd('inc', () => count++, () => count--));
+    sys.execute(
+      makeCmd(
+        'inc',
+        () => count++,
+        () => count--
+      )
+    );
     sys.stopRecording('inc3');
 
     const before = count;
@@ -1014,7 +1158,13 @@ describe('Feature 9C: CommandSystem — macros', () => {
   });
 
   it('getHistory() returns executed commands', () => {
-    sys.execute(makeCmd('z', () => {}, () => {}));
+    sys.execute(
+      makeCmd(
+        'z',
+        () => {},
+        () => {}
+      )
+    );
     expect(sys.getHistory().length).toBeGreaterThan(0);
   });
 });

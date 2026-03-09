@@ -142,16 +142,19 @@
 ## Testing Strategy
 
 ### Phase 11 Focus: Simple & Fast
+
 - Utility hooks with minimal dependencies
 - Straightforward state management
 - Focus on API mocking and basic logic
 
 ### Phase 12 Focus: State & Integration
+
 - Hooks with complex state
 - Multiple API integrations
 - History and versioning patterns
 
 ### Phase 13 Focus: Complex & Real-time
+
 - WebSocket and real-time features
 - Multi-user scenarios
 - Advanced integration patterns
@@ -161,6 +164,7 @@
 ## Patterns to Apply
 
 ### From Phase 10
+
 1. ✅ Simplified interval testing (avoid infinite loops)
 2. ✅ Error format awareness (String(e) prefix)
 3. ✅ Mock reset in beforeEach()
@@ -168,6 +172,7 @@
 5. ✅ Rerender with mock updates
 
 ### New Patterns Needed
+
 1. 🔄 WebSocket mocking (from useCollaboration)
 2. 🔄 Complex state machine testing
 3. 🔄 Multi-step workflow testing
@@ -179,18 +184,21 @@
 ## Success Criteria Per Phase
 
 ### Phase 11
+
 - [ ] 5-6 hooks tested with 95%+ coverage each
 - [ ] ~120-150 new tests passing
 - [ ] Coverage reaches ~37%
 - [ ] All patterns documented
 
 ### Phase 12
+
 - [ ] 5-6 hooks tested with 95%+ coverage each
 - [ ] ~130-160 new tests passing
 - [ ] Coverage reaches ~46%
 - [ ] Integration patterns documented
 
 ### Phase 13
+
 - [ ] 5-6 hooks tested with 95%+ coverage each
 - [ ] ~140-170 new tests passing
 - [ ] **Coverage reaches 55%+ 🎯**
@@ -201,11 +209,13 @@
 ## Risk Mitigation
 
 ### Potential Blockers
+
 1. **Complex WebSocket hooks** - May need more time
 2. **Tightly coupled hooks** - May require additional mocking
 3. **Browser API dependencies** - May need to skip some features
 
 ### Mitigation Strategy
+
 - Keep bonus hooks in each phase for flexibility
 - Can substitute difficult hooks with simpler alternatives
 - Focus on achieving 55% overall, not perfection per hook
@@ -225,6 +235,7 @@
 ## Checkpoint Questions
 
 After each phase, verify:
+
 1. ✅ Are all tests passing?
 2. ✅ Did we reach the coverage target?
 3. ✅ Are patterns documented?

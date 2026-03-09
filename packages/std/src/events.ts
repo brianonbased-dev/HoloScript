@@ -39,7 +39,10 @@ export class EventBus {
   off(event: string, handler: EventHandler): void {
     const list = this.listeners.get(event);
     if (!list) return;
-    this.listeners.set(event, list.filter(l => l.handler !== handler));
+    this.listeners.set(
+      event,
+      list.filter((l) => l.handler !== handler)
+    );
   }
 
   /** Emit an event to all registered listeners. */
@@ -64,7 +67,9 @@ export class EventBus {
   onAny(handler: EventHandler<{ event: string; data: any }>): () => void {
     const listener: Listener = { handler, once: false };
     this.wildcardListeners.push(listener);
-    return () => { this.wildcardListeners = this.wildcardListeners.filter(l => l !== listener); };
+    return () => {
+      this.wildcardListeners = this.wildcardListeners.filter((l) => l !== listener);
+    };
   }
 
   /** Remove all listeners. */

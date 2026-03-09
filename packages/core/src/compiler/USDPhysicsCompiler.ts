@@ -451,7 +451,9 @@ export class USDPhysicsCompiler extends CompilerBase {
     }
 
     // Root prim for articulation (if robot)
-    const isRobot = this.prims.some((p) => p.apis.some((a) => a.type === 'PhysicsArticulationRootAPI'));
+    const isRobot = this.prims.some((p) =>
+      p.apis.some((a) => a.type === 'PhysicsArticulationRootAPI')
+    );
     if (isRobot && this.options.enableArticulation) {
       this.emitArticulationRoot();
     } else {
@@ -474,34 +476,43 @@ export class USDPhysicsCompiler extends CompilerBase {
       this.emitBlank();
       this.emit(`# === v4.2 Domain Blocks ===`);
 
-      const compiled = compileDomainBlocks(domainBlocks, {
-        material: (block) => {
-          const mat = compileMaterialBlock(block);
-          return materialToUSD(mat);
+      const compiled = compileDomainBlocks(
+        domainBlocks,
+        {
+          material: (block) => {
+            const mat = compileMaterialBlock(block);
+            return materialToUSD(mat);
+          },
+          physics: (block) => {
+            const phys = compilePhysicsBlock(block);
+            const urdf = physicsToURDF(phys);
+            return (
+              `# Physics: ${phys.keyword} "${phys.name || ''}"\n` +
+              urdf
+                .split('\n')
+                .map((l) => `# URDF: ${l}`)
+                .join('\n')
+            );
+          },
+          vfx: (block) => {
+            const ps = compileParticleBlock(block);
+            return particlesToUSD(ps);
+          },
+          postfx: (block) => {
+            const pp = compilePostProcessingBlock(block);
+            return postProcessingToUSD(pp);
+          },
+          audio: (block) => {
+            const audio = compileAudioSourceBlock(block);
+            return audioSourceToUSD(audio);
+          },
+          weather: (block) => {
+            const weather = compileWeatherBlock(block);
+            return weatherToUSD(weather);
+          },
         },
-        physics: (block) => {
-          const phys = compilePhysicsBlock(block);
-          const urdf = physicsToURDF(phys);
-          return `# Physics: ${phys.keyword} "${phys.name || ''}"\n` +
-            urdf.split('\n').map(l => `# URDF: ${l}`).join('\n');
-        },
-        vfx: (block) => {
-          const ps = compileParticleBlock(block);
-          return particlesToUSD(ps);
-        },
-        postfx: (block) => {
-          const pp = compilePostProcessingBlock(block);
-          return postProcessingToUSD(pp);
-        },
-        audio: (block) => {
-          const audio = compileAudioSourceBlock(block);
-          return audioSourceToUSD(audio);
-        },
-        weather: (block) => {
-          const weather = compileWeatherBlock(block);
-          return weatherToUSD(weather);
-        },
-      }, (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+        (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`
+      );
 
       for (const output of compiled) {
         this.emitBlank();
@@ -547,9 +558,7 @@ export class USDPhysicsCompiler extends CompilerBase {
 
   private emitPhysicsScene(): void {
     const gravityMag = Math.sqrt(
-      this.options.gravity[0] ** 2 +
-        this.options.gravity[1] ** 2 +
-        this.options.gravity[2] ** 2
+      this.options.gravity[0] ** 2 + this.options.gravity[1] ** 2 + this.options.gravity[2] ** 2
     );
 
     // Normalize gravity direction
@@ -565,7 +574,9 @@ export class USDPhysicsCompiler extends CompilerBase {
     this.emit(`def PhysicsScene "PhysicsScene"`);
     this.emit(`{`);
     this.indentLevel++;
-    this.emit(`float3 physics:gravityDirection = (${gravityDir[0]}, ${gravityDir[1]}, ${gravityDir[2]})`);
+    this.emit(
+      `float3 physics:gravityDirection = (${gravityDir[0]}, ${gravityDir[1]}, ${gravityDir[2]})`
+    );
     this.emit(`float physics:gravityMagnitude = ${gravityMag}`);
     this.emit(`# Isaac Sim GPU dynamics`);
     this.emit(`bool physxScene:enableGPUDynamics = ${this.options.enableGPUDynamics}`);
@@ -716,11 +727,18 @@ export class USDPhysicsCompiler extends CompilerBase {
   }
 
   private isIdentityQuaternion(q: [number, number, number, number]): boolean {
-    return Math.abs(q[0]) < 0.0001 && Math.abs(q[1]) < 0.0001 && Math.abs(q[2]) < 0.0001 && Math.abs(q[3] - 1) < 0.0001;
+    return (
+      Math.abs(q[0]) < 0.0001 &&
+      Math.abs(q[1]) < 0.0001 &&
+      Math.abs(q[2]) < 0.0001 &&
+      Math.abs(q[3] - 1) < 0.0001
+    );
   }
 
   private isUniformScale(s: [number, number, number]): boolean {
-    return Math.abs(s[0] - 1) < 0.0001 && Math.abs(s[1] - 1) < 0.0001 && Math.abs(s[2] - 1) < 0.0001;
+    return (
+      Math.abs(s[0] - 1) < 0.0001 && Math.abs(s[1] - 1) < 0.0001 && Math.abs(s[2] - 1) < 0.0001
+    );
   }
 
   private emitAPIAttributes(api: USDPhysicsAPI): void {

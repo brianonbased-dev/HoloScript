@@ -10,7 +10,9 @@ import { PressableTrait } from '../PressableTrait';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeTrait() { return new PressableTrait(); }
+function makeTrait() {
+  return new PressableTrait();
+}
 
 function makeNode(overrides: any = {}) {
   return {
@@ -43,7 +45,10 @@ describe('PressableTrait.onAttach', () => {
     const node = makeNode();
     const ctx = makeCtx();
     t.onAttach(node, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('physics_add_constraint', expect.objectContaining({ type: 'prismatic' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'physics_add_constraint',
+      expect.objectContaining({ type: 'prismatic' })
+    );
   });
 
   it('constraint nodeId matches node.id', () => {
@@ -51,7 +56,10 @@ describe('PressableTrait.onAttach', () => {
     const node = makeNode();
     const ctx = makeCtx();
     t.onAttach(node, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('physics_add_constraint', expect.objectContaining({ nodeId: 'press_node' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'physics_add_constraint',
+      expect.objectContaining({ nodeId: 'press_node' })
+    );
   });
 
   it('axis is local Z (0,0,1)', () => {
@@ -106,7 +114,11 @@ describe('PressableTrait.onUpdate — initialPos capture', () => {
   it('no-ops gracefully when physics returns null (no crash)', () => {
     const t = makeTrait();
     const node = makeNode();
-    const ctx = { emit: vi.fn(), physics: { getBodyPosition: vi.fn().mockReturnValue(null) }, haptics: { pulse: vi.fn() } };
+    const ctx = {
+      emit: vi.fn(),
+      physics: { getBodyPosition: vi.fn().mockReturnValue(null) },
+      haptics: { pulse: vi.fn() },
+    };
     expect(() => t.onUpdate(node, ctx as any, 0.016)).not.toThrow();
   });
 
@@ -134,7 +146,10 @@ describe('PressableTrait.onUpdate — press state machine', () => {
     t.onUpdate(node, ctx as any, 0.016); // capture initial
     // second call with body displaced
     t.onUpdate(node, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('ui_press_start', expect.objectContaining({ nodeId: 'press_node' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'ui_press_start',
+      expect.objectContaining({ nodeId: 'press_node' })
+    );
   });
 
   it('pulses both haptics on press', () => {
@@ -172,7 +187,10 @@ describe('PressableTrait.onUpdate — press state machine', () => {
     ctxPress.emit.mockClear();
     ctxPress.physics.getBodyPosition = vi.fn().mockReturnValue({ x: 0, y: 0, z: 0.001 });
     t.onUpdate(node, ctxPress as any, 0.016);
-    expect(ctxPress.emit).toHaveBeenCalledWith('ui_press_end', expect.objectContaining({ nodeId: 'press_node' }));
+    expect(ctxPress.emit).toHaveBeenCalledWith(
+      'ui_press_end',
+      expect.objectContaining({ nodeId: 'press_node' })
+    );
   });
 
   it('pulses haptics on release', () => {

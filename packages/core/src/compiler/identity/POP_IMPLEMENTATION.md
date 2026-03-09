@@ -107,6 +107,7 @@ This implementation adds **Proof-of-Possession (PoP)** to the HoloScript Agent I
 ### Modified Files
 
 #### AgentIdentity.ts
+
 ```typescript
 // Added publicKey to token payload
 export interface IntentTokenPayload {
@@ -116,6 +117,7 @@ export interface IntentTokenPayload {
 ```
 
 #### AgentTokenIssuer.ts
+
 ```typescript
 // Include public key in token claims
 const payload: IntentTokenPayload = {
@@ -125,6 +127,7 @@ const payload: IntentTokenPayload = {
 ```
 
 #### index.ts
+
 ```typescript
 // Export PoP modules
 export {
@@ -165,9 +168,9 @@ const headers = formatSignatureHeaders(httpSignature);
 // Use headers in HTTP request
 fetch(url, {
   headers: {
-    'Signature': headers.Signature,
+    Signature: headers.Signature,
     'Signature-Input': headers['Signature-Input'],
-  }
+  },
 });
 ```
 
@@ -177,10 +180,12 @@ fetch(url, {
 // Apply middleware
 import { createPopMiddleware } from '@holoscript/core/compiler/identity';
 
-app.use(createPopMiddleware({
-  allowLegacy: false,        // Require signatures
-  excludePaths: ['/health'], // Public endpoints
-}));
+app.use(
+  createPopMiddleware({
+    allowLegacy: false, // Require signatures
+    excludePaths: ['/health'], // Public endpoints
+  })
+);
 ```
 
 ---
@@ -189,22 +194,22 @@ app.use(createPopMiddleware({
 
 ### Middleware Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `allowLegacy` | `boolean` | `true` | Allow requests without signatures (backward compatibility) |
-| `excludePaths` | `string[]` | `[]` | Paths exempt from PoP verification |
-| `tokenIssuer` | `AgentTokenIssuer` | `getTokenIssuer()` | Custom token issuer instance |
-| `onError` | `function` | `undefined` | Custom error handler |
+| Option         | Type               | Default            | Description                                                |
+| -------------- | ------------------ | ------------------ | ---------------------------------------------------------- |
+| `allowLegacy`  | `boolean`          | `true`             | Allow requests without signatures (backward compatibility) |
+| `excludePaths` | `string[]`         | `[]`               | Paths exempt from PoP verification                         |
+| `tokenIssuer`  | `AgentTokenIssuer` | `getTokenIssuer()` | Custom token issuer instance                               |
+| `onError`      | `function`         | `undefined`        | Custom error handler                                       |
 
 ### Security Parameters
 
-| Parameter | Value | RFC Reference |
-|-----------|-------|---------------|
-| Max Request Age | 600 seconds (10 minutes) | RFC 9440 Section 3.2 |
-| Max Clock Skew | 300 seconds (5 minutes) | RFC 9440 Section 3.2 |
-| Nonce Length | 16 bytes (128 bits) | RFC 9440 Section 2.3 |
-| Signature Algorithm | Ed25519 | RFC 8032 |
-| Hash Algorithm | SHA-256 | RFC 6234 |
+| Parameter           | Value                    | RFC Reference        |
+| ------------------- | ------------------------ | -------------------- |
+| Max Request Age     | 600 seconds (10 minutes) | RFC 9440 Section 3.2 |
+| Max Clock Skew      | 300 seconds (5 minutes)  | RFC 9440 Section 3.2 |
+| Nonce Length        | 16 bytes (128 bits)      | RFC 9440 Section 2.3 |
+| Signature Algorithm | Ed25519                  | RFC 8032             |
+| Hash Algorithm      | SHA-256                  | RFC 6234             |
 
 ---
 
@@ -276,28 +281,34 @@ npm test -- AgentPoP.test.ts
 ### Phase 1: Enable Legacy Mode (Backward Compatible)
 
 ```typescript
-app.use(createPopMiddleware({
-  allowLegacy: true, // Allow unsigned requests
-}));
+app.use(
+  createPopMiddleware({
+    allowLegacy: true, // Allow unsigned requests
+  })
+);
 ```
 
 ### Phase 2: Monitor Adoption
 
 ```typescript
-app.use(createPopMiddleware({
-  allowLegacy: true,
-  onError: (error, req, res) => {
-    console.warn(`Legacy agent: ${req.headers.authorization}`);
-  },
-}));
+app.use(
+  createPopMiddleware({
+    allowLegacy: true,
+    onError: (error, req, res) => {
+      console.warn(`Legacy agent: ${req.headers.authorization}`);
+    },
+  })
+);
 ```
 
 ### Phase 3: Enforce PoP (Breaking Change)
 
 ```typescript
-app.use(createPopMiddleware({
-  allowLegacy: false, // Require signatures
-}));
+app.use(
+  createPopMiddleware({
+    allowLegacy: false, // Require signatures
+  })
+);
 ```
 
 ---

@@ -234,34 +234,40 @@ export class VisionOSCompiler extends CompilerBase {
     this.emit('// === v4.2 Domain Blocks ===');
 
     let blockIdx = 0;
-    const compiled = compileDomainBlocks(domainBlocks, {
-      material: (block) => {
-        const mat = compileMaterialBlock(block);
-        return materialToVisionOS(mat, `db${blockIdx++}`);
+    const compiled = compileDomainBlocks(
+      domainBlocks,
+      {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          return materialToVisionOS(mat, `db${blockIdx++}`);
+        },
+        physics: (block) => {
+          const phys = compilePhysicsBlock(block);
+          return physicsToVisionOS(phys, `db${blockIdx++}`);
+        },
+        vfx: (block) => {
+          const ps = compileParticleBlock(block);
+          return particlesToVisionOS(ps, `db${blockIdx++}`);
+        },
+        postfx: (block) => {
+          const pp = compilePostProcessingBlock(block);
+          return `// Post-Processing: ${(pp as CompiledPostProcessing).keyword} — configure via RealityKit RenderCallbacks`;
+        },
+        audio: (block) => {
+          const audio = compileAudioSourceBlock(block);
+          return audioSourceToVisionOS(audio, `db${blockIdx++}`);
+        },
+        weather: (block) => {
+          const weather = compileWeatherBlock(block);
+          const w = weather as CompiledWeather;
+          const layers = w.layers
+            .map((l) => `// Layer: ${l.type} — ${JSON.stringify(l.properties)}`)
+            .join('\n');
+          return `// Weather: ${w.keyword} "${w.name || ''}" — implement via custom RealityKit particles\n${layers}`;
+        },
       },
-      physics: (block) => {
-        const phys = compilePhysicsBlock(block);
-        return physicsToVisionOS(phys, `db${blockIdx++}`);
-      },
-      vfx: (block) => {
-        const ps = compileParticleBlock(block);
-        return particlesToVisionOS(ps, `db${blockIdx++}`);
-      },
-      postfx: (block) => {
-        const pp = compilePostProcessingBlock(block);
-        return `// Post-Processing: ${(pp as CompiledPostProcessing).keyword} — configure via RealityKit RenderCallbacks`;
-      },
-      audio: (block) => {
-        const audio = compileAudioSourceBlock(block);
-        return audioSourceToVisionOS(audio, `db${blockIdx++}`);
-      },
-      weather: (block) => {
-        const weather = compileWeatherBlock(block);
-        const w = weather as CompiledWeather;
-        const layers = w.layers.map(l => `// Layer: ${l.type} — ${JSON.stringify(l.properties)}`).join('\n');
-        return `// Weather: ${w.keyword} "${w.name || ''}" — implement via custom RealityKit particles\n${layers}`;
-      },
-    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+      (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`
+    );
 
     for (const line of compiled) {
       for (const l of line.split('\n')) {

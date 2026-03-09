@@ -4,13 +4,15 @@ import { PromptTemplateSystem, QuickPrompts } from '../PromptTemplates';
 describe('PromptTemplateSystem', () => {
   let sys: PromptTemplateSystem;
 
-  beforeEach(() => { sys = new PromptTemplateSystem(); });
+  beforeEach(() => {
+    sys = new PromptTemplateSystem();
+  });
 
   // Built-in templates
   it('getAvailableTemplates returns built-ins', () => {
     const templates = sys.getAvailableTemplates();
     expect(templates.length).toBeGreaterThan(0);
-    expect(templates.some(t => t.id === 'basic-object')).toBe(true);
+    expect(templates.some((t) => t.id === 'basic-object')).toBe(true);
   });
 
   it('getTemplate returns specific template', () => {
@@ -27,7 +29,7 @@ describe('PromptTemplateSystem', () => {
   it('getTemplatesByCategory filters', () => {
     const basic = sys.getTemplatesByCategory('basic');
     expect(basic.length).toBeGreaterThan(0);
-    expect(basic.every(t => t.category === 'basic')).toBe(true);
+    expect(basic.every((t) => t.category === 'basic')).toBe(true);
   });
 
   it('getCategories returns unique categories', () => {
@@ -39,7 +41,9 @@ describe('PromptTemplateSystem', () => {
   // Prompt creation
   it('createPrompt interpolates variables', () => {
     const prompt = sys.createPrompt('basic-object', {
-      color: 'blue', geometry: 'sphere', position: '[0,1,0]',
+      color: 'blue',
+      geometry: 'sphere',
+      position: '[0,1,0]',
     });
     expect(prompt).toContain('blue');
     expect(prompt).toContain('sphere');
@@ -70,9 +74,14 @@ describe('PromptTemplateSystem', () => {
   // Custom templates
   it('registerTemplate adds custom template', () => {
     sys.registerTemplate({
-      id: 'custom', name: 'Custom', description: 'Test',
-      category: 'custom', template: 'Hello {{name}}',
-      variables: ['name'], examples: [], bestFor: 'test',
+      id: 'custom',
+      name: 'Custom',
+      description: 'Test',
+      category: 'custom',
+      template: 'Hello {{name}}',
+      variables: ['name'],
+      examples: [],
+      bestFor: 'test',
     });
     expect(sys.getTemplate('custom')).not.toBeNull();
   });
@@ -85,14 +94,20 @@ describe('PromptTemplateSystem', () => {
 
   it('suggestTemplates with query filters by name/description', () => {
     const suggestions = sys.suggestTemplates('character', 'enemy');
-    expect(suggestions.some(t => t.name.toLowerCase().includes('enemy'))).toBe(true);
+    expect(suggestions.some((t) => t.name.toLowerCase().includes('enemy'))).toBe(true);
   });
 
   // Batch
   it('createBatch creates multiple prompts', () => {
     const prompts = sys.createBatch([
-      { templateId: 'basic-object', context: { color: 'red', geometry: 'cube', interaction: 'grab', purpose: 'demo' } },
-      { templateId: 'basic-object', context: { color: 'blue', geometry: 'sphere', interaction: 'touch', purpose: 'ui' } },
+      {
+        templateId: 'basic-object',
+        context: { color: 'red', geometry: 'cube', interaction: 'grab', purpose: 'demo' },
+      },
+      {
+        templateId: 'basic-object',
+        context: { color: 'blue', geometry: 'sphere', interaction: 'touch', purpose: 'ui' },
+      },
     ]);
     expect(prompts.length).toBe(2);
     expect(prompts[0]).toContain('red');

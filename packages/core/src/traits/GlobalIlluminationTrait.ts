@@ -16,9 +16,9 @@ import type { TraitHandler } from './TraitTypes';
 export type GIMode = 'sh_probes' | 'ddgi' | 'lightmap' | 'irradiance_volume' | 'lumen';
 
 export interface SHProbeConfig {
-  gridResolution: [number, number, number];  // X Y Z probe counts
-  cellSize: number;                          // World units between probes
-  order: 2 | 3;                             // SH order (L1=2, L2=3)
+  gridResolution: [number, number, number]; // X Y Z probe counts
+  cellSize: number; // World units between probes
+  order: 2 | 3; // SH order (L1=2, L2=3)
 }
 
 export interface DDGIConfig {
@@ -27,11 +27,11 @@ export interface DDGIConfig {
   irradianceTexSize: number;
   visibilityTexSize: number;
   normalBias: number;
-  hysteresis: number;    // 0–1 history blend
+  hysteresis: number; // 0–1 history blend
 }
 
 export interface LightmapConfig {
-  resolution: number;    // Texels per world unit
+  resolution: number; // Texels per world unit
   samples: number;
   denoise: boolean;
   bounces: number;
@@ -98,13 +98,18 @@ export const GlobalIlluminationTrait: TraitHandler<GlobalIlluminationConfig> = {
 
   compile(config: GlobalIlluminationConfig, target: string): string {
     switch (target) {
-      case 'unity': return this.compileUnity(config);
-      case 'unreal': return this.compileUnreal(config);
+      case 'unity':
+        return this.compileUnity(config);
+      case 'unreal':
+        return this.compileUnreal(config);
       case 'web':
       case 'react-three-fiber':
-      case 'babylon': return this.compileWeb(config);
-      case 'webgpu': return this.compileWebGPU(config);
-      default: return this.compileGeneric(config);
+      case 'babylon':
+        return this.compileWeb(config);
+      case 'webgpu':
+        return this.compileWebGPU(config);
+      default:
+        return this.compileGeneric(config);
     }
   },
 
@@ -235,7 +240,9 @@ async function setupGlobalIllumination(renderer, scene) {
     const pmremGenerator = new PMREMGenerator(renderer);
     pmremGenerator.compileEquirectangularShader();
 
-    ${config.mode === 'lightmap' ? `
+    ${
+      config.mode === 'lightmap'
+        ? `
     // Lightmap — bake offline, apply per mesh
     const lightmapLoader = new THREE.TextureLoader();
     scene.traverse((obj) => {
@@ -245,7 +252,8 @@ async function setupGlobalIllumination(renderer, scene) {
             obj.material.lightMapIntensity = ${config.skyIntensity ?? 1.0};
         }
     });
-    ` : `
+    `
+        : `
     // Environment map as SH GI approximation
     const rgbeLoader = new RGBELoader();
     const hdrTexture = await rgbeLoader.loadAsync('environment.hdr');
@@ -253,15 +261,20 @@ async function setupGlobalIllumination(renderer, scene) {
     scene.environment = envMap;
     scene.background = envMap;
     renderer.toneMappingExposure = ${config.skyIntensity ?? 1.0};
-    `}
+    `
+    }
 
-    ${config.supportDynamicObjects ? `
+    ${
+      config.supportDynamicObjects
+        ? `
     // LightProbe for dynamic objects
     import { LightProbeGenerator } from 'three/examples/jsm/lights/LightProbeGenerator';
     const lightProbe = LightProbeGenerator.fromCubeRenderTarget(renderer, cubeRenderTarget);
     lightProbe.intensity = ${config.skyIntensity ?? 1.0};
     scene.add(lightProbe);
-    ` : ''}
+    `
+        : ''
+    }
 }
 `;
   },

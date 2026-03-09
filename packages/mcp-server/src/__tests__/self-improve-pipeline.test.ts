@@ -130,10 +130,10 @@ describe('Graph Persistence', () => {
         return `${Math.round(ageMs / 3600000)}h ago`;
       };
 
-      expect(formatAge(1800000)).toBe('30m ago');    // 30 minutes
-      expect(formatAge(7200000)).toBe('2h ago');     // 2 hours
-      expect(formatAge(43200000)).toBe('12h ago');   // 12 hours
-      expect(formatAge(300000)).toBe('5m ago');      // 5 minutes
+      expect(formatAge(1800000)).toBe('30m ago'); // 30 minutes
+      expect(formatAge(7200000)).toBe('2h ago'); // 2 hours
+      expect(formatAge(43200000)).toBe('12h ago'); // 12 hours
+      expect(formatAge(300000)).toBe('5m ago'); // 5 minutes
     });
   });
 });
@@ -175,10 +175,10 @@ describe('Self-Improve Tools', () => {
 
     it('holo_self_diagnose should return error when GraphRAG not ready', async () => {
       const { handleSelfImproveTool } = await import('../self-improve-tools.js');
-      const result = await handleSelfImproveTool('holo_self_diagnose', {
+      const result = (await handleSelfImproveTool('holo_self_diagnose', {
         focus: 'coverage',
         maxResults: 3,
-      }) as any;
+      })) as any;
       // GraphRAG won't be initialized in test environment → should get helpful error
       expect(result).toBeDefined();
       expect(result.error || result.candidates).toBeDefined();
@@ -187,23 +187,32 @@ describe('Self-Improve Tools', () => {
 
   describe('quality score formula', () => {
     it('should produce A grade for perfect scores', () => {
-      const composite = 1.0 * 0.55 + 1.0 * 0.20 + 1.0 * 0.10 + 0.15;
+      const composite = 1.0 * 0.55 + 1.0 * 0.2 + 1.0 * 0.1 + 0.15;
       expect(composite).toBe(1.0);
       const grade = composite >= 0.9 ? 'A' : composite >= 0.8 ? 'B' : 'C';
       expect(grade).toBe('A');
     });
 
     it('should produce D grade for mostly failing', () => {
-      const composite = 0.3 * 0.55 + 0.5 * 0.20 + 0.8 * 0.10 + 0;
+      const composite = 0.3 * 0.55 + 0.5 * 0.2 + 0.8 * 0.1 + 0;
       // = 0.165 + 0.10 + 0.08 = 0.345
       expect(composite).toBeCloseTo(0.345, 2);
-      const grade = composite >= 0.9 ? 'A' : composite >= 0.8 ? 'B' : composite >= 0.7 ? 'C' : composite >= 0.5 ? 'D' : 'F';
+      const grade =
+        composite >= 0.9
+          ? 'A'
+          : composite >= 0.8
+            ? 'B'
+            : composite >= 0.7
+              ? 'C'
+              : composite >= 0.5
+                ? 'D'
+                : 'F';
       expect(grade).toBe('F');
     });
 
     it('should include circuit breaker bonus when types pass', () => {
-      const withBonus = 0.8 * 0.55 + 1.0 * 0.20 + 0.9 * 0.10 + 0.15;
-      const withoutBonus = 0.8 * 0.55 + 0.5 * 0.20 + 0.9 * 0.10 + 0;
+      const withBonus = 0.8 * 0.55 + 1.0 * 0.2 + 0.9 * 0.1 + 0.15;
+      const withoutBonus = 0.8 * 0.55 + 0.5 * 0.2 + 0.9 * 0.1 + 0;
       expect(withBonus).toBeGreaterThan(withoutBonus);
       expect(withBonus - withoutBonus).toBeCloseTo(0.25, 1); // typeCheck diff + bonus
     });

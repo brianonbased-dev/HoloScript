@@ -9,10 +9,20 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { BloomEffect } from '../BloomEffect';
 
 /** Create a 2×2 RGBA pixel buffer with a single luminance-uniform colour. */
-function makePixels(width: number, height: number, r: number, g: number, b: number, a = 1): Float32Array {
+function makePixels(
+  width: number,
+  height: number,
+  r: number,
+  g: number,
+  b: number,
+  a = 1
+): Float32Array {
   const buf = new Float32Array(width * height * 4);
   for (let i = 0; i < width * height; i++) {
-    buf[i * 4] = r; buf[i * 4 + 1] = g; buf[i * 4 + 2] = b; buf[i * 4 + 3] = a;
+    buf[i * 4] = r;
+    buf[i * 4 + 1] = g;
+    buf[i * 4 + 2] = b;
+    buf[i * 4 + 3] = a;
   }
   return buf;
 }
@@ -45,20 +55,25 @@ describe('BloomEffect', () => {
     });
 
     it('setSoftKnee clamps to [0,1]', () => {
-      bloom.setSoftKnee(5); expect(bloom.getConfig().softKnee).toBe(1);
-      bloom.setSoftKnee(-1); expect(bloom.getConfig().softKnee).toBe(0);
+      bloom.setSoftKnee(5);
+      expect(bloom.getConfig().softKnee).toBe(1);
+      bloom.setSoftKnee(-1);
+      expect(bloom.getConfig().softKnee).toBe(0);
     });
 
     it('setIntensity clamps negative to 0', () => {
-      bloom.setIntensity(-2); expect(bloom.getConfig().intensity).toBe(0);
+      bloom.setIntensity(-2);
+      expect(bloom.getConfig().intensity).toBe(0);
     });
 
     it('setRadius minimum is 1', () => {
-      bloom.setRadius(0); expect(bloom.getConfig().radius).toBe(1);
+      bloom.setRadius(0);
+      expect(bloom.getConfig().radius).toBe(1);
     });
 
     it('setPasses minimum is 1', () => {
-      bloom.setPasses(0); expect(bloom.getConfig().passes).toBe(1);
+      bloom.setPasses(0);
+      expect(bloom.getConfig().passes).toBe(1);
     });
 
     it('setEnabled toggles enabled flag', () => {
@@ -133,9 +148,13 @@ describe('BloomEffect', () => {
     it('multiple passes reduces peak of a spike', () => {
       bloom.setPasses(3);
       // Spike: only center pixel bright
-      const w = 5, h = 1;
+      const w = 5,
+        h = 1;
       const center = new Float32Array(w * h * 4);
-      center[8] = 1; center[9] = 0; center[10] = 0; center[11] = 1; // pixel 2
+      center[8] = 1;
+      center[9] = 0;
+      center[10] = 0;
+      center[11] = 1; // pixel 2
       const out = bloom.blur(center, w, h);
       // Peak should be lower than original 1.0
       expect(out[8]).toBeLessThan(1);

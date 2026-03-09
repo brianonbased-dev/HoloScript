@@ -32,10 +32,9 @@ describe('useAgent', () => {
     const wrapper = ({ children }: { children: React.ReactNode }) =>
       React.createElement(AgentProvider, null, children);
 
-    const { result } = renderHook(
-      () => useAgent('nonexistent', { enableCircuitBreaker: true }),
-      { wrapper }
-    );
+    const { result } = renderHook(() => useAgent('nonexistent', { enableCircuitBreaker: true }), {
+      wrapper,
+    });
 
     expect(result.current.status).toBe('connecting');
   });

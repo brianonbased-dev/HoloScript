@@ -7,7 +7,9 @@ import { UIWidget } from '../ui/UIWidget';
 
 describe('UIWidget', () => {
   let ui: UIWidget;
-  beforeEach(() => { ui = new UIWidget(); });
+  beforeEach(() => {
+    ui = new UIWidget();
+  });
 
   it('createWidget returns widget with defaults', () => {
     const w = ui.createWidget('btn1', 'button');

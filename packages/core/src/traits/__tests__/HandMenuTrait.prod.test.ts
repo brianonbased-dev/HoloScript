@@ -43,16 +43,19 @@ let _nodeId = 0;
 function makeNode(withProps = true) {
   return {
     id: `hand_node_${++_nodeId}`,
-    properties: withProps ? { position: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } } : undefined,
+    properties: withProps
+      ? { position: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } }
+      : undefined,
   };
 }
 
 function makeCtx(handData?: { left?: { position: { x: number; y: number; z: number } } }) {
   return {
     emit: vi.fn(),
-    vr: handData !== undefined
-      ? { headset: { position: { x: 0, y: 0, z: 0 } }, hands: handData }
-      : undefined,
+    vr:
+      handData !== undefined
+        ? { headset: { position: { x: 0, y: 0, z: 0 } }, hands: handData }
+        : undefined,
   };
 }
 

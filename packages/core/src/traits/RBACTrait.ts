@@ -19,10 +19,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
-import type {
-  Capability,
-  CapabilityTokenPayload,
-} from '../compiler/identity/CapabilityToken';
+import type { Capability, CapabilityTokenPayload } from '../compiler/identity/CapabilityToken';
 
 // =============================================================================
 // TYPES
@@ -1290,9 +1287,7 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
         toDID,
         capability: delegatedCapability,
         tenantId,
-        constraints: constraints
-          ? { ...constraints, currentUses: 0 }
-          : undefined,
+        constraints: constraints ? { ...constraints, currentUses: 0 } : undefined,
         delegatedAt: new Date().toISOString(),
         expiresAt,
         active: true,

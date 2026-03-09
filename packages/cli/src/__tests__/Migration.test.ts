@@ -51,7 +51,9 @@ describe('MigrationRunner', () => {
       const files = new Map([['a.hs', '@clickable myBtn { }']]);
       const results = runner.dryRun(files, '2.1.0', '2.5.0');
       expect(results[0].modifiedFiles).toBe(1);
-      expect(results[0].changes[0].changeDescriptions).toContain('Rename @clickable trait to @interactive');
+      expect(results[0].changes[0].changeDescriptions).toContain(
+        'Rename @clickable trait to @interactive'
+      );
     });
 
     it('does not modify original content', () => {
@@ -64,7 +66,10 @@ describe('MigrationRunner', () => {
 
     it('returns correct totalFiles count', () => {
       const runner = new MigrationRunner(allMigrations);
-      const files = new Map([['a.hs','@clickable btn {}'],['b.hs','no change here']]);
+      const files = new Map([
+        ['a.hs', '@clickable btn {}'],
+        ['b.hs', 'no change here'],
+      ]);
       const results = runner.dryRun(files, '2.1.0', '2.5.0');
       expect(results[0].totalFiles).toBe(2);
       expect(results[0].modifiedFiles).toBe(1);
@@ -82,7 +87,10 @@ describe('MigrationRunner', () => {
 
     it('preserves unchanged files in output map', () => {
       const runner = new MigrationRunner(allMigrations);
-      const files = new Map([['a.hs','@clickable btn {}'],['b.hs','no match here']]);
+      const files = new Map([
+        ['a.hs', '@clickable btn {}'],
+        ['b.hs', 'no match here'],
+      ]);
       const result = runner.apply(files, '2.1.0', '2.5.0');
       expect(result.get('b.hs')).toBe('no match here');
     });
@@ -167,9 +175,9 @@ describe('MigrationRunner', () => {
 
     it('updates scene keyword to composition', () => {
       const runner = new MigrationRunner([migration_v2_5_to_v3_0]);
-      const files = new Map([["a.hs", "scene \"myScene\" { }"]]);
-      const result = runner.apply(files, "2.5.0", "3.0.0");
-      expect(result.get("a.hs")).toBe("composition \"myScene\" { }");
+      const files = new Map([['a.hs', 'scene "myScene" { }']]);
+      const result = runner.apply(files, '2.5.0', '3.0.0');
+      expect(result.get('a.hs')).toBe('composition "myScene" { }');
     });
   });
 

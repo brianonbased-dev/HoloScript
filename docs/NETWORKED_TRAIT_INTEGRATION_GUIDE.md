@@ -11,12 +11,14 @@
 WebSocketTransport is now integrated into NetworkedTrait as the primary multiplayer transport:
 
 ### Before (Local-Only)
+
 ```typescript
 const trait = createNetworkedTrait({ mode: 'owner' });
 await trait.connect('local'); // Only worked locally
 ```
 
 ### Now (Real Multiplayer)
+
 ```typescript
 const trait = createNetworkedTrait({ mode: 'owner' });
 await trait.connectWebSocket('ws://localhost:8080'); // Real multiplayer!
@@ -74,6 +76,7 @@ console.log('WebSocket server listening on ws://localhost:8080');
 ```
 
 **Run it**:
+
 ```bash
 npx tsx websocket-server.ts
 ```
@@ -186,30 +189,36 @@ console.log(trait.getActiveTransport()); // 'websocket' or 'local'
 ## Sync Modes
 
 ### Owner-Authoritative (Default for Games)
+
 ```typescript
 createNetworkedTrait({
   mode: 'owner', // Only owner can modify
-  authority: { transferable: true }
-})
+  authority: { transferable: true },
+});
 ```
+
 **Use**: Player-controlled objects (your avatar, objects you grabbed)  
 **Latency**: ~50-100ms (network RTT)
 
 ### Shared (Collaborative)
+
 ```typescript
 createNetworkedTrait({
   mode: 'shared', // Anyone can modify
-})
+});
 ```
+
 **Use**: Collaborative drawings, shared UI state  
 **Latency**: ~20-50ms (faster, less validation)
 
 ### Server-Authoritative (MMO Standard)
+
 ```typescript
 createNetworkedTrait({
   mode: 'server', // Server owns all state
-})
+});
 ```
+
 **Use**: Competitive games, anti-cheat needed  
 **Latency**: ~50-150ms (server must validate)
 
@@ -221,19 +230,20 @@ createNetworkedTrait({
 // Define what to sync
 createNetworkedTrait({
   syncProperties: [
-    'position',           // [x, y, z]
-    'rotation',           // [qx, qy, qz, qw]
-    'health',             // number
-    'animationState',     // string
-    {                     // Advanced: with options
+    'position', // [x, y, z]
+    'rotation', // [qx, qy, qz, qw]
+    'health', // number
+    'animationState', // string
+    {
+      // Advanced: with options
       name: 'velocity',
-      priority: 2,        // Higher = synced more often
+      priority: 2, // Higher = synced more often
       deltaCompression: true,
       quantizationBits: 16, // Reduce bandwidth
-    }
+    },
   ],
   syncRate: 20, // Hz (20 updates per second)
-})
+});
 
 // Update properties
 trait.setProperty('position', [1, 2, 3]); // Queued
@@ -250,7 +260,7 @@ Remote players' movements are interpolated for smooth visuals:
 // Read interpolated state for rendering
 const frame = () => {
   const interpState = trait.getInterpolatedState(100); // 100ms buffer
-  
+
   if (interpState) {
     renderPlayer({
       position: interpState.position,
@@ -266,6 +276,7 @@ frame();
 ```
 
 **Latency Tuning**:
+
 - `100ms` buffer: Smooth but plays catch-up
 - `200ms` buffer: Smoother but more delayed
 - `50ms` buffer: Responsive but jankier
@@ -313,18 +324,20 @@ trait.on('latencyUpdate', (event) => {
 ## Performance Tips
 
 ### 1. Reduce Sync Rate for Less Critical Objects
+
 ```typescript
 // Player: 20Hz (frequent updates)
-createNetworkedTrait({ syncRate: 20, mode: 'owner' })
+createNetworkedTrait({ syncRate: 20, mode: 'owner' });
 
 // Static decoration: 1Hz (rare updates)
-createNetworkedTrait({ syncRate: 1, mode: 'shared' })
+createNetworkedTrait({ syncRate: 1, mode: 'shared' });
 
 // One-time setup: 0Hz (no sync)
-createNetworkedTrait({ syncRate: 0, mode: 'server' })
+createNetworkedTrait({ syncRate: 0, mode: 'server' });
 ```
 
 ### 2. Use Quantization for Floats
+
 ```typescript
 {
   name: 'position',
@@ -334,6 +347,7 @@ createNetworkedTrait({ syncRate: 0, mode: 'server' })
 ```
 
 ### 3. Delta Compression (Only Changed Properties)
+
 ```typescript
 {
   name: 'velocity',
@@ -343,15 +357,16 @@ createNetworkedTrait({ syncRate: 0, mode: 'server' })
 ```
 
 ### 4. Adjust Buffer for Latency
+
 ```typescript
 // Low latency (LAN): 50ms buffer
-getInterpolatedState(50)
+getInterpolatedState(50);
 
 // Medium latency (Wifi): 100ms buffer
-getInterpolatedState(100)
+getInterpolatedState(100);
 
 // High latency (Internet): 200ms buffer
-getInterpolatedState(200)
+getInterpolatedState(200);
 ```
 
 ---
@@ -359,18 +374,20 @@ getInterpolatedState(200)
 ## Troubleshooting
 
 ### Connection Fails
+
 ```typescript
 try {
   await trait.connectWebSocket('ws://localhost:8080');
 } catch (error) {
   console.error('Connection failed:', error);
-  
+
   // Fallback to local
   await trait.connect('local');
 }
 ```
 
 ### State Not Syncing
+
 ```typescript
 // Make sure to call syncToNetwork() after updates
 trait.setProperty('position', [0, 1, 0]);
@@ -383,6 +400,7 @@ setInterval(() => {
 ```
 
 ### Latency Too High
+
 ```typescript
 // Check active transport
 const transport = trait.getActiveTransport();
@@ -395,6 +413,7 @@ trait.on('latencyUpdate', (event) => {
 ```
 
 ### Other Players Not Visible
+
 ```typescript
 // Check if ownership model makes sense
 const isOwner = trait.isLocalOwner();
@@ -434,12 +453,12 @@ console.log(`Interpolation enabled: ${config.enabled}`);
 
 ## Files Modified
 
-| File | Change | Impact |
-|------|--------|--------|
-| `NetworkedTrait.ts` | Added WebSocket/WebRTC integration | Real multiplayer now possible |
-| `ConnectionWebSocket.ts` | Already available | Primary transport |
-| `WebRTCTransport.ts` | Already available | P2P fallback |
-| `NetworkedTrait.integration.test.ts` | New test file | Validates integration |
+| File                                 | Change                             | Impact                        |
+| ------------------------------------ | ---------------------------------- | ----------------------------- |
+| `NetworkedTrait.ts`                  | Added WebSocket/WebRTC integration | Real multiplayer now possible |
+| `ConnectionWebSocket.ts`             | Already available                  | Primary transport             |
+| `WebRTCTransport.ts`                 | Already available                  | P2P fallback                  |
+| `NetworkedTrait.integration.test.ts` | New test file                      | Validates integration         |
 
 ---
 
@@ -447,12 +466,12 @@ console.log(`Interpolation enabled: ${config.enabled}`);
 
 Tested on typical hardware (see benchmarks in repo):
 
-| Scenario | Bandwidth | Latency | CPU |
-|----------|-----------|---------|-----|
-| 1 player local | — | <5ms | <1% |
-| 4 players LAN | 12 KB/s | 5-10ms | 2-3% |
-| 4 players Internet | 18 KB/s | 50-100ms | 2-3% |
-| 16 players Internet | 72 KB/s | 50-150ms | 5-7% |
+| Scenario            | Bandwidth | Latency  | CPU  |
+| ------------------- | --------- | -------- | ---- |
+| 1 player local      | —         | <5ms     | <1%  |
+| 4 players LAN       | 12 KB/s   | 5-10ms   | 2-3% |
+| 4 players Internet  | 18 KB/s   | 50-100ms | 2-3% |
+| 16 players Internet | 72 KB/s   | 50-150ms | 5-7% |
 
 ---
 

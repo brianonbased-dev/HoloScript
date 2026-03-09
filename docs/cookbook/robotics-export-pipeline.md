@@ -85,14 +85,14 @@ holoscript export robot_arm.hsplus --format usd --output robot_arm.usda
 
 ## Export Mapping
 
-| HoloScript | URDF | SDF | MJCF |
-|------------|------|-----|------|
-| `object` | `<link>` | `<link>` | `<body>` |
-| `@joint` | `<joint>` | `<joint>` | `<joint>` |
-| `@physics.mass` | `<inertial>` | `<inertial>` | `<inertial>` |
-| `@physics.collider` | `<collision>` | `<collision>` | `<geom>` |
-| `geometry` | `<visual>` | `<visual>` | `<geom>` |
-| `material` | `<material>` | `<material>` | `<material>` |
+| HoloScript          | URDF          | SDF           | MJCF         |
+| ------------------- | ------------- | ------------- | ------------ |
+| `object`            | `<link>`      | `<link>`      | `<body>`     |
+| `@joint`            | `<joint>`     | `<joint>`     | `<joint>`    |
+| `@physics.mass`     | `<inertial>`  | `<inertial>`  | `<inertial>` |
+| `@physics.collider` | `<collision>` | `<collision>` | `<geom>`     |
+| `geometry`          | `<visual>`    | `<visual>`    | `<geom>`     |
+| `material`          | `<material>`  | `<material>`  | `<material>` |
 
 ## ROS Integration
 

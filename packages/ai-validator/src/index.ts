@@ -76,13 +76,25 @@ export interface ValidatorConfig {
  */
 const HALLUCINATION_PATTERNS = [
   // Non-existent traits
-  { pattern: /@(ai_powered|smart_|auto_|magic_)/, score: 30, message: 'Non-existent AI-like trait' },
+  {
+    pattern: /@(ai_powered|smart_|auto_|magic_)/,
+    score: 30,
+    message: 'Non-existent AI-like trait',
+  },
   // Invalid syntax patterns
   { pattern: /\{{{|}}}/, score: 50, message: 'Triple brace syntax (invalid)' },
   // Programming constructs that don\'t exist in HoloScript
-  { pattern: /\b(class|extends|implements|interface)\b/, score: 40, message: 'OOP syntax not valid in HoloScript' },
+  {
+    pattern: /\b(class|extends|implements|interface)\b/,
+    score: 40,
+    message: 'OOP syntax not valid in HoloScript',
+  },
   // Common LLM placeholders
-  { pattern: /\[.*?(placeholder|example|your_\w+|todo).*?\]/i, score: 60, message: 'Placeholder text detected' },
+  {
+    pattern: /\[.*?(placeholder|example|your_\w+|todo).*?\]/i,
+    score: 60,
+    message: 'Placeholder text detected',
+  },
   { pattern: /\/\/\s*(TODO|FIXME|NOTE|EXAMPLE)/i, score: 20, message: 'Incomplete code detected' },
   // Mixing languages
   { pattern: /<\w+>.*?<\/\w+>/, score: 35, message: 'HTML/XML syntax in HoloScript' },
@@ -98,28 +110,77 @@ const HALLUCINATION_PATTERNS = [
  */
 const DEFAULT_KNOWN_TRAITS = [
   // Interaction
-  '@grabbable', '@throwable', '@holdable', '@clickable', '@hoverable',
-  '@draggable', '@pointable', '@scalable', '@rotatable', '@snappable',
+  '@grabbable',
+  '@throwable',
+  '@holdable',
+  '@clickable',
+  '@hoverable',
+  '@draggable',
+  '@pointable',
+  '@scalable',
+  '@rotatable',
+  '@snappable',
   // Physics
-  '@collidable', '@physics', '@rigid', '@kinematic', '@trigger', '@gravity',
+  '@collidable',
+  '@physics',
+  '@rigid',
+  '@kinematic',
+  '@trigger',
+  '@gravity',
   // Visual
-  '@glowing', '@emissive', '@transparent', '@reflective', '@animated',
-  '@billboard', '@color', '@material', '@texture',
+  '@glowing',
+  '@emissive',
+  '@transparent',
+  '@reflective',
+  '@animated',
+  '@billboard',
+  '@color',
+  '@material',
+  '@texture',
   // Networking
-  '@networked', '@synced', '@persistent', '@owned', '@host_only',
+  '@networked',
+  '@synced',
+  '@persistent',
+  '@owned',
+  '@host_only',
   // Behavior
-  '@stackable', '@attachable', '@equippable', '@consumable', '@destructible',
-  '@breakable', '@character',
+  '@stackable',
+  '@attachable',
+  '@equippable',
+  '@consumable',
+  '@destructible',
+  '@breakable',
+  '@character',
   // Spatial
-  '@anchor', '@tracked', '@world_locked', '@hand_tracked', '@eye_tracked',
-  '@position', '@rotation', '@scale',
+  '@anchor',
+  '@tracked',
+  '@world_locked',
+  '@hand_tracked',
+  '@eye_tracked',
+  '@position',
+  '@rotation',
+  '@scale',
   // Audio
-  '@spatial_audio', '@ambient', '@voice_activated', '@sound',
+  '@spatial_audio',
+  '@ambient',
+  '@voice_activated',
+  '@sound',
   // State
-  '@state', '@reactive', '@observable', '@computed',
+  '@state',
+  '@reactive',
+  '@observable',
+  '@computed',
   // Advanced
-  '@teleport', '@ui_panel', '@particle_system', '@weather', '@day_night',
-  '@lod', '@hand_tracking', '@haptic', '@portal', '@mirror',
+  '@teleport',
+  '@ui_panel',
+  '@particle_system',
+  '@weather',
+  '@day_night',
+  '@lod',
+  '@hand_tracking',
+  '@haptic',
+  '@portal',
+  '@mirror',
 ];
 
 /**

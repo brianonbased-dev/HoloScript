@@ -44,7 +44,12 @@ vi.mock('../../spatial/SpatialContextProvider', () => {
   return { SpatialContextProvider: MockProvider };
 });
 
-import { SpatialAwarenessTrait, createSpatialAwarenessTrait, createSharedSpatialProvider, DEFAULT_TRAIT_CONFIG } from '../SpatialAwarenessTrait';
+import {
+  SpatialAwarenessTrait,
+  createSpatialAwarenessTrait,
+  createSharedSpatialProvider,
+  DEFAULT_TRAIT_CONFIG,
+} from '../SpatialAwarenessTrait';
 import { SpatialContextProvider } from '../../spatial/SpatialContextProvider';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -99,7 +104,11 @@ describe('SpatialAwarenessTrait constructor', () => {
   it('autoStart=true calls start() immediately', () => {
     // create with autoStart true (default) and spy on registerAgent
     const t = new SpatialAwarenessTrait('auto-agent', { autoStart: true });
-    expect(getProvider(t).registerAgent).toHaveBeenCalledWith('auto-agent', expect.any(Object), expect.any(Object));
+    expect(getProvider(t).registerAgent).toHaveBeenCalledWith(
+      'auto-agent',
+      expect.any(Object),
+      expect.any(Object)
+    );
   });
 });
 
@@ -109,7 +118,11 @@ describe('SpatialAwarenessTrait start/stop', () => {
   it('start() registers agent and sets isActive=true', () => {
     const t = makeTrait('a1');
     t.start();
-    expect(getProvider(t).registerAgent).toHaveBeenCalledWith('a1', expect.any(Object), expect.any(Object));
+    expect(getProvider(t).registerAgent).toHaveBeenCalledWith(
+      'a1',
+      expect.any(Object),
+      expect.any(Object)
+    );
     expect((t as any).isActive).toBe(true);
   });
 
@@ -188,7 +201,11 @@ describe('SpatialAwarenessTrait position & velocity', () => {
     const t = makeTrait('a');
     t.start();
     t.setPosition({ x: 1, y: 2, z: 3 });
-    expect(getProvider(t).updateAgentPosition).toHaveBeenCalledWith('a', { x: 1, y: 2, z: 3 }, expect.any(Object));
+    expect(getProvider(t).updateAgentPosition).toHaveBeenCalledWith(
+      'a',
+      { x: 1, y: 2, z: 3 },
+      expect.any(Object)
+    );
   });
 
   it('setPosition silent when not active', () => {
@@ -399,7 +416,11 @@ describe('SpatialAwarenessTrait event forwarding', () => {
     const cb = vi.fn();
     t.on('entity:entered', cb);
     const provider = getProvider(t);
-    provider.emit('entity:entered', 'other-agent', { type: 'entity_entered', entity: {}, distance: 1 });
+    provider.emit('entity:entered', 'other-agent', {
+      type: 'entity_entered',
+      entity: {},
+      distance: 1,
+    });
     expect(cb).not.toHaveBeenCalled();
   });
 
@@ -419,7 +440,11 @@ describe('SpatialAwarenessTrait event forwarding', () => {
     const cb = vi.fn();
     t.on('visibility:changed', cb);
     const provider = getProvider(t);
-    provider.emit('visibility:changed', 'a', { type: 'visibility_changed', entityId: 'e1', visible: true });
+    provider.emit('visibility:changed', 'a', {
+      type: 'visibility_changed',
+      entityId: 'e1',
+      visible: true,
+    });
     expect(cb).toHaveBeenCalledWith('e1', true);
     expect(t.isEntityVisible('e1')).toBe(true);
   });

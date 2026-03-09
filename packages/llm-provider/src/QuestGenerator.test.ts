@@ -47,7 +47,8 @@ describe('QuestGenerator', () => {
     });
 
     it('extracts JSON from markdown code block', async () => {
-      const markdown = '```json\n{"title":"Wrapped Quest","description":"In a block","npc_greeting":"Hi","success_message":"Done"}\n```';
+      const markdown =
+        '```json\n{"title":"Wrapped Quest","description":"In a block","npc_greeting":"Hi","success_message":"Done"}\n```';
       const gen = new QuestGenerator(createMockManager(markdown));
       const result = await gen.generateQuestNarrative(testRequest);
 

@@ -6,13 +6,18 @@
 
 import { useEffect, useState } from 'react';
 import { Smartphone, X, Copy, CheckCircle2, Wifi, WifiOff, RefreshCw, QrCode } from 'lucide-react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 import type { RemoteSession, ConnectedDevice } from '@/app/api/remote-session/route';
 
-interface RemotePreviewPanelProps { onClose: () => void; }
+interface RemotePreviewPanelProps {
+  onClose: () => void;
+}
 
 const PLATFORM_EMOJI: Record<string, string> = {
-  mobile: '📱', vr: '🥽', desktop: '🖥️', unknown: '❓',
+  mobile: '📱',
+  vr: '🥽',
+  desktop: '🖥️',
+  unknown: '❓',
 };
 
 /** Minimal QR-code-like visual using a grid of colored blocks (ASCII art approach). */
@@ -56,7 +61,9 @@ export function RemotePreviewPanel({ onClose }: RemotePreviewPanelProps) {
     }
   };
 
-  useEffect(() => { fetchSession(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    fetchSession();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const copyLink = async () => {
     if (!session) return;
@@ -74,12 +81,20 @@ export function RemotePreviewPanel({ onClose }: RemotePreviewPanelProps) {
         <Smartphone className="h-4 w-4 text-studio-accent" />
         <span className="text-[12px] font-semibold">Remote Preview</span>
         {session && (
-          <span className={`flex items-center gap-1 ml-1 rounded-full px-1.5 py-0.5 text-[7px] ${isConnected ? 'bg-green-900/30 text-green-400' : 'bg-studio-surface text-studio-muted'}`}>
+          <span
+            className={`flex items-center gap-1 ml-1 rounded-full px-1.5 py-0.5 text-[7px] ${isConnected ? 'bg-green-900/30 text-green-400' : 'bg-studio-surface text-studio-muted'}`}
+          >
             {isConnected ? <Wifi className="h-2.5 w-2.5" /> : <WifiOff className="h-2.5 w-2.5" />}
-            {isConnected ? `${session.devices.length} device${session.devices.length !== 1 ? 's' : ''}` : 'No devices'}
+            {isConnected
+              ? `${session.devices.length} device${session.devices.length !== 1 ? 's' : ''}`
+              : 'No devices'}
           </span>
         )}
-        <button onClick={fetchSession} className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text" title="Refresh session">
+        <button
+          onClick={fetchSession}
+          className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text"
+          title="Refresh session"
+        >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
         </button>
         <button onClick={onClose} className="rounded p-1 text-studio-muted hover:text-studio-text">
@@ -131,17 +146,23 @@ export function RemotePreviewPanel({ onClose }: RemotePreviewPanelProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-studio-muted">Expires</span>
-                <span className="text-studio-text">{new Date(session.expiresAt).toLocaleTimeString()}</span>
+                <span className="text-studio-text">
+                  {new Date(session.expiresAt).toLocaleTimeString()}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-studio-muted">WebSocket</span>
-                <span className="font-mono text-[7px] text-studio-muted/70 max-w-[120px] truncate">{session.wsUrl}</span>
+                <span className="font-mono text-[7px] text-studio-muted/70 max-w-[120px] truncate">
+                  {session.wsUrl}
+                </span>
               </div>
             </div>
 
             {/* Connected Devices */}
             <div>
-              <p className="mb-2 text-[9px] uppercase tracking-widest text-studio-muted">Connected Devices</p>
+              <p className="mb-2 text-[9px] uppercase tracking-widest text-studio-muted">
+                Connected Devices
+              </p>
               {session.devices.length === 0 ? (
                 <div className="rounded-xl border border-studio-border bg-studio-surface/40 p-4 text-center text-[9px] text-studio-muted">
                   <Smartphone className="mx-auto mb-2 h-6 w-6 text-studio-muted/20" />
@@ -150,7 +171,10 @@ export function RemotePreviewPanel({ onClose }: RemotePreviewPanelProps) {
               ) : (
                 <div className="space-y-1.5">
                   {session.devices.map((d: ConnectedDevice) => (
-                    <div key={d.id} className="flex items-center gap-2 rounded-xl border border-studio-border bg-studio-surface p-2.5">
+                    <div
+                      key={d.id}
+                      className="flex items-center gap-2 rounded-xl border border-studio-border bg-studio-surface p-2.5"
+                    >
                       <span>{PLATFORM_EMOJI[d.platform]}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-[9px] font-semibold truncate">{d.label}</p>

@@ -332,7 +332,10 @@ export class GranularMaterialSystem {
    * Get center of mass of all particles.
    */
   getCenterOfMass(): Vec3 {
-    let cx = 0, cy = 0, cz = 0, totalMass = 0;
+    let cx = 0,
+      cy = 0,
+      cz = 0,
+      totalMass = 0;
     for (const p of this.particles.values()) {
       if (!p.active) continue;
       cx += p.position.x * p.mass;

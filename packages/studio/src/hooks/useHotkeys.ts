@@ -96,12 +96,7 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         const target = event.target as HTMLElement;
         const tagName = target.tagName.toLowerCase();
         const isEditable = target.isContentEditable;
-        if (
-          tagName === 'input' ||
-          tagName === 'textarea' ||
-          tagName === 'select' ||
-          isEditable
-        ) {
+        if (tagName === 'input' || tagName === 'textarea' || tagName === 'select' || isEditable) {
           return true;
         }
       }
@@ -300,14 +295,7 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [
-    enabled,
-    coreHotkeys,
-    customHotkeys,
-    shouldPreventHotkey,
-    getHotkeyString,
-    onHotkeyPress,
-  ]);
+  }, [enabled, coreHotkeys, customHotkeys, shouldPreventHotkey, getHotkeyString, onHotkeyPress]);
 
   return {
     /**

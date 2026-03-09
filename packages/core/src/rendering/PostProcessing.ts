@@ -15,40 +15,40 @@ export type ToneMapper = 'linear' | 'reinhard' | 'aces' | 'filmic';
 
 export interface BloomSettings {
   enabled: boolean;
-  threshold: number;       // Luminance threshold (0-1)
-  intensity: number;       // Bloom strength
-  radius: number;          // Blur radius
-  softKnee: number;        // Soft threshold knee
+  threshold: number; // Luminance threshold (0-1)
+  intensity: number; // Bloom strength
+  radius: number; // Blur radius
+  softKnee: number; // Soft threshold knee
 }
 
 export interface SSAOSettings {
   enabled: boolean;
-  radius: number;          // Sample radius in world units
-  intensity: number;       // AO strength
-  bias: number;            // Depth bias to prevent self-occlusion
-  samples: number;         // Number of samples per pixel
+  radius: number; // Sample radius in world units
+  intensity: number; // AO strength
+  bias: number; // Depth bias to prevent self-occlusion
+  samples: number; // Number of samples per pixel
 }
 
 export interface ColorGradingSettings {
   enabled: boolean;
-  temperature: number;     // -100 to 100 (cool to warm)
-  tint: number;            // -100 to 100 (green to magenta)
-  saturation: number;      // 0-2 (0 = greyscale, 1 = normal)
-  contrast: number;        // 0-2
-  brightness: number;      // -1 to 1
-  gamma: number;           // 0.1-3
+  temperature: number; // -100 to 100 (cool to warm)
+  tint: number; // -100 to 100 (green to magenta)
+  saturation: number; // 0-2 (0 = greyscale, 1 = normal)
+  contrast: number; // 0-2
+  brightness: number; // -1 to 1
+  gamma: number; // 0.1-3
 }
 
 export interface VignetteSettings {
   enabled: boolean;
-  intensity: number;       // 0-1
-  smoothness: number;      // 0-1
-  roundness: number;       // 0-1
+  intensity: number; // 0-1
+  smoothness: number; // 0-1
+  roundness: number; // 0-1
 }
 
 export interface ChromaticAberrationSettings {
   enabled: boolean;
-  intensity: number;       // 0-1
+  intensity: number; // 0-1
 }
 
 export interface PostProcessProfile {
@@ -70,10 +70,19 @@ export interface PostProcessProfile {
 
 function createDefaultProfile(id: string, name: string): PostProcessProfile {
   return {
-    id, name,
+    id,
+    name,
     bloom: { enabled: false, threshold: 0.8, intensity: 0.5, radius: 4, softKnee: 0.5 },
     ssao: { enabled: false, radius: 0.5, intensity: 1, bias: 0.025, samples: 16 },
-    colorGrading: { enabled: false, temperature: 0, tint: 0, saturation: 1, contrast: 1, brightness: 0, gamma: 1 },
+    colorGrading: {
+      enabled: false,
+      temperature: 0,
+      tint: 0,
+      saturation: 1,
+      contrast: 1,
+      brightness: 0,
+      gamma: 1,
+    },
     vignette: { enabled: false, intensity: 0.3, smoothness: 0.5, roundness: 1 },
     chromaticAberration: { enabled: false, intensity: 0.1 },
     toneMapping: 'aces',
@@ -90,13 +99,29 @@ export const PP_PRESETS: Record<string, Partial<PostProcessProfile>> = {
   cinematic: {
     name: 'Cinematic',
     bloom: { enabled: true, threshold: 0.7, intensity: 0.6, radius: 5, softKnee: 0.5 },
-    colorGrading: { enabled: true, temperature: 10, tint: -5, saturation: 1.1, contrast: 1.15, brightness: -0.05, gamma: 0.95 },
+    colorGrading: {
+      enabled: true,
+      temperature: 10,
+      tint: -5,
+      saturation: 1.1,
+      contrast: 1.15,
+      brightness: -0.05,
+      gamma: 0.95,
+    },
     vignette: { enabled: true, intensity: 0.35, smoothness: 0.6, roundness: 1 },
     toneMapping: 'filmic',
   },
   retro: {
     name: 'Retro',
-    colorGrading: { enabled: true, temperature: 30, tint: 10, saturation: 0.7, contrast: 1.3, brightness: -0.1, gamma: 1.1 },
+    colorGrading: {
+      enabled: true,
+      temperature: 30,
+      tint: 10,
+      saturation: 0.7,
+      contrast: 1.3,
+      brightness: -0.1,
+      gamma: 1.1,
+    },
     chromaticAberration: { enabled: true, intensity: 0.3 },
     vignette: { enabled: true, intensity: 0.5, smoothness: 0.4, roundness: 0.8 },
     toneMapping: 'reinhard',
@@ -105,7 +130,15 @@ export const PP_PRESETS: Record<string, Partial<PostProcessProfile>> = {
     name: 'Sci-Fi',
     bloom: { enabled: true, threshold: 0.5, intensity: 1.0, radius: 8, softKnee: 0.3 },
     ssao: { enabled: true, radius: 0.3, intensity: 1.5, bias: 0.02, samples: 32 },
-    colorGrading: { enabled: true, temperature: -20, tint: 0, saturation: 0.9, contrast: 1.2, brightness: 0, gamma: 0.9 },
+    colorGrading: {
+      enabled: true,
+      temperature: -20,
+      tint: 0,
+      saturation: 0.9,
+      contrast: 1.2,
+      brightness: 0,
+      gamma: 0.9,
+    },
     toneMapping: 'aces',
   },
 };
@@ -177,7 +210,11 @@ export class PostProcessingStack {
   // Effect Toggle
   // ---------------------------------------------------------------------------
 
-  setEffectEnabled(profileId: string, effect: 'bloom' | 'ssao' | 'colorGrading' | 'vignette' | 'chromaticAberration', enabled: boolean): boolean {
+  setEffectEnabled(
+    profileId: string,
+    effect: 'bloom' | 'ssao' | 'colorGrading' | 'vignette' | 'chromaticAberration',
+    enabled: boolean
+  ): boolean {
     const profile = this.profiles.get(profileId);
     if (!profile) return false;
     profile[effect].enabled = enabled;

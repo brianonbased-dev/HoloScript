@@ -15,14 +15,14 @@ export type EmotionType = 'joy' | 'anger' | 'sadness' | 'fear' | 'trust' | 'surp
 
 export interface EmotionState {
   type: EmotionType;
-  intensity: number;       // 0-1
-  decayRate: number;        // Per second
+  intensity: number; // 0-1
+  decayRate: number; // Per second
 }
 
 export interface Relationship {
   entityA: string;
   entityB: string;
-  affinity: number;         // -1 to 1
+  affinity: number; // -1 to 1
 }
 
 export type EmotionTrigger = (entityId: string, emotion: EmotionType, intensity: number) => void;
@@ -59,7 +59,10 @@ export class EmotionSystem {
     let best: EmotionType | null = null;
     let bestIntensity = 0;
     for (const [type, state] of emotions) {
-      if (state.intensity > bestIntensity) { bestIntensity = state.intensity; best = type; }
+      if (state.intensity > bestIntensity) {
+        bestIntensity = state.intensity;
+        best = type;
+      }
     }
     return best;
   }
@@ -83,7 +86,11 @@ export class EmotionSystem {
 
   setRelationship(entityA: string, entityB: string, affinity: number): void {
     const key = `${entityA}:${entityB}`;
-    this.relationships.set(key, { entityA, entityB, affinity: Math.max(-1, Math.min(1, affinity)) });
+    this.relationships.set(key, {
+      entityA,
+      entityB,
+      affinity: Math.max(-1, Math.min(1, affinity)),
+    });
   }
 
   getRelationship(entityA: string, entityB: string): number {
@@ -99,7 +106,9 @@ export class EmotionSystem {
   // Triggers
   // ---------------------------------------------------------------------------
 
-  onEmotionChange(trigger: EmotionTrigger): void { this.triggers.push(trigger); }
+  onEmotionChange(trigger: EmotionTrigger): void {
+    this.triggers.push(trigger);
+  }
 
   // ---------------------------------------------------------------------------
   // Queries

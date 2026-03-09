@@ -55,12 +55,7 @@ import {
   DateTime,
 } from '../time.js';
 
-import {
-  HoloMap,
-  HoloSet,
-  PriorityQueue,
-  List,
-} from '../collections.js';
+import { HoloMap, HoloSet, PriorityQueue, List } from '../collections.js';
 
 // ═══════════════════════════════════════════════
 // String — formatting
@@ -445,34 +440,51 @@ describe('measure', () => {
 describe('retry', () => {
   it('returns immediately on first success', async () => {
     let calls = 0;
-    const result = await retry(async () => { calls++; return 42; }, { maxAttempts: 3, initialDelay: 0 });
+    const result = await retry(
+      async () => {
+        calls++;
+        return 42;
+      },
+      { maxAttempts: 3, initialDelay: 0 }
+    );
     expect(result).toBe(42);
     expect(calls).toBe(1);
   });
 
   it('retries on failure and eventually succeeds', async () => {
     let calls = 0;
-    const result = await retry(async () => {
-      calls++;
-      if (calls < 3) throw new Error('fail');
-      return 'ok';
-    }, { maxAttempts: 5, initialDelay: 0 });
+    const result = await retry(
+      async () => {
+        calls++;
+        if (calls < 3) throw new Error('fail');
+        return 'ok';
+      },
+      { maxAttempts: 5, initialDelay: 0 }
+    );
     expect(result).toBe('ok');
     expect(calls).toBe(3);
   });
 
   it('throws after maxAttempts exhausted', async () => {
     await expect(
-      retry(async () => { throw new Error('always fail'); }, { maxAttempts: 2, initialDelay: 0 })
+      retry(
+        async () => {
+          throw new Error('always fail');
+        },
+        { maxAttempts: 2, initialDelay: 0 }
+      )
     ).rejects.toThrow('always fail');
   });
 
   it('calls onRetry callback', async () => {
     const onRetry = vi.fn();
-    await retry(async () => {
-      if (onRetry.mock.calls.length === 0) throw new Error('fail');
-      return 'ok';
-    }, { maxAttempts: 3, initialDelay: 0, onRetry }).catch(() => {});
+    await retry(
+      async () => {
+        if (onRetry.mock.calls.length === 0) throw new Error('fail');
+        return 'ok';
+      },
+      { maxAttempts: 3, initialDelay: 0, onRetry }
+    ).catch(() => {});
     // onRetry may or may not have been called depending on timing; just verify it's a function
     expect(typeof onRetry).toBe('function');
   });
@@ -576,7 +588,7 @@ describe('Stopwatch', () => {
   it('elapsed is positive after start', async () => {
     const sw = new Stopwatch();
     sw.start();
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
     expect(sw.elapsed).toBeGreaterThan(0);
     sw.stop();
   });
@@ -584,10 +596,10 @@ describe('Stopwatch', () => {
   it('stop pauses elapsed time', async () => {
     const sw = new Stopwatch();
     sw.start();
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
     sw.stop();
     const elapsed = sw.elapsed;
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
     expect(sw.elapsed).toBeCloseTo(elapsed, 0);
   });
 
@@ -602,7 +614,7 @@ describe('Stopwatch', () => {
   it('restart resets and starts again', async () => {
     const sw = new Stopwatch();
     sw.start();
-    await new Promise(r => setTimeout(r, 20));
+    await new Promise((r) => setTimeout(r, 20));
     sw.restart();
     expect(sw.isRunning).toBe(true);
     expect(sw.elapsed).toBeLessThan(15);
@@ -612,7 +624,7 @@ describe('Stopwatch', () => {
   it('lap returns elapsed time and restarts', async () => {
     const sw = new Stopwatch();
     sw.start();
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
     const lapTime = sw.lap();
     expect(typeof lapTime).toBe('number');
     expect(lapTime).toBeGreaterThan(0);
@@ -667,7 +679,7 @@ describe('CountdownTimer', () => {
     const onComplete = vi.fn();
     const ct = new CountdownTimer(50, { onComplete });
     ct.start();
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 100));
     expect(onComplete).toHaveBeenCalledOnce();
   });
 });
@@ -699,7 +711,7 @@ describe('IntervalTimer', () => {
     const fn = vi.fn();
     const timer = new IntervalTimer(fn, 30);
     timer.start();
-    await new Promise(r => setTimeout(r, 80));
+    await new Promise((r) => setTimeout(r, 80));
     timer.stop();
     expect(fn.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
@@ -721,7 +733,7 @@ describe('schedule', () => {
   it('fires callback after delay', async () => {
     const fn = vi.fn();
     schedule(fn, 20);
-    await new Promise(r => setTimeout(r, 30));
+    await new Promise((r) => setTimeout(r, 30));
     expect(fn).toHaveBeenCalledOnce();
   });
 
@@ -729,7 +741,7 @@ describe('schedule', () => {
     const fn = vi.fn();
     const cancel = schedule(fn, 50);
     cancel();
-    await new Promise(r => setTimeout(r, 60));
+    await new Promise((r) => setTimeout(r, 60));
     expect(fn).not.toHaveBeenCalled();
   });
 });
@@ -811,7 +823,10 @@ describe('HoloMap', () => {
   });
 
   it('from creates from entries', () => {
-    const m = HoloMap.from([['a', 1], ['b', 2]]);
+    const m = HoloMap.from([
+      ['a', 1],
+      ['b', 2],
+    ]);
     expect(m.size).toBe(2);
     expect(m.get('b')).toBe(2);
   });
@@ -826,26 +841,39 @@ describe('HoloMap', () => {
   });
 
   it('map transforms values', () => {
-    const m = HoloMap.from([['a', 1], ['b', 2]]).map((v) => v * 10);
+    const m = HoloMap.from([
+      ['a', 1],
+      ['b', 2],
+    ]).map((v) => v * 10);
     expect(m.get('a')).toBe(10);
     expect(m.get('b')).toBe(20);
   });
 
   it('filter keeps matching entries', () => {
-    const m = HoloMap.from([['a', 1], ['b', 2], ['c', 3]]).filter((v) => v > 1);
+    const m = HoloMap.from([
+      ['a', 1],
+      ['b', 2],
+      ['c', 3],
+    ]).filter((v) => v > 1);
     expect(m.size).toBe(2);
     expect(m.has('a')).toBe(false);
   });
 
   it('keys, values, entries iteration', () => {
-    const m = HoloMap.from([['x', 1], ['y', 2]]);
+    const m = HoloMap.from([
+      ['x', 1],
+      ['y', 2],
+    ]);
     expect([...m.keys()].sort()).toEqual(['x', 'y']);
     expect([...m.values()].sort()).toEqual([1, 2]);
     expect([...m.entries()].length).toBe(2);
   });
 
   it('toObject converts to plain object', () => {
-    const m = HoloMap.from([['a', 1], ['b', 2]]);
+    const m = HoloMap.from([
+      ['a', 1],
+      ['b', 2],
+    ]);
     const obj = (m as HoloMap<string, number>).toObject();
     expect(obj).toEqual({ a: 1, b: 2 });
   });
@@ -991,14 +1019,14 @@ describe('List (extended)', () => {
 
   it('groupBy groups elements', () => {
     const l = List.of(1, 2, 3, 4);
-    const grouped = l.groupBy(n => n % 2 === 0 ? 'even' : 'odd');
+    const grouped = l.groupBy((n) => (n % 2 === 0 ? 'even' : 'odd'));
     expect(grouped.get('even')?.toArray().sort()).toEqual([2, 4]);
     expect(grouped.get('odd')?.toArray().sort()).toEqual([1, 3]);
   });
 
   it('partition splits by predicate', () => {
     const l = List.of(1, 2, 3, 4, 5);
-    const [evens, odds] = l.partition(n => n % 2 === 0);
+    const [evens, odds] = l.partition((n) => n % 2 === 0);
     expect(evens.toArray()).toEqual([2, 4]);
     expect(odds.toArray()).toEqual([1, 3, 5]);
   });
@@ -1007,7 +1035,11 @@ describe('List (extended)', () => {
     const a = List.of(1, 2, 3);
     const b = List.of('a', 'b', 'c');
     const zipped = a.zip(b);
-    expect(zipped.toArray()).toEqual([[1, 'a'], [2, 'b'], [3, 'c']]);
+    expect(zipped.toArray()).toEqual([
+      [1, 'a'],
+      [2, 'b'],
+      [3, 'c'],
+    ]);
   });
 
   it('unique removes duplicates', () => {
@@ -1032,7 +1064,7 @@ describe('List (extended)', () => {
 
   it('none returns true when predicate never satisfied', () => {
     const l = List.of(1, 2, 3);
-    expect(l.none(n => n > 10)).toBe(true);
-    expect(l.none(n => n > 1)).toBe(false);
+    expect(l.none((n) => n > 10)).toBe(true);
+    expect(l.none((n) => n > 1)).toBe(false);
   });
 });

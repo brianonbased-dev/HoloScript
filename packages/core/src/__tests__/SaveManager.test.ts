@@ -4,7 +4,9 @@ import { SaveManager } from '../persistence/SaveManager';
 describe('SaveManager', () => {
   let sm: SaveManager;
 
-  beforeEach(() => { sm = new SaveManager({ maxSlots: 3, autosaveInterval: 10, version: 2 }); });
+  beforeEach(() => {
+    sm = new SaveManager({ maxSlots: 3, autosaveInterval: 10, version: 2 });
+  });
 
   it('save creates a slot and load retrieves data', () => {
     sm.save('s1', 'Slot 1', { level: 5, hp: 100 });
@@ -67,9 +69,10 @@ describe('SaveManager', () => {
   });
 
   it('listeners are called on save and load', () => {
-    const saves: string[] = [], loads: string[] = [];
-    sm.onSave(slot => saves.push(slot.id));
-    sm.onLoad(slot => loads.push(slot.id));
+    const saves: string[] = [],
+      loads: string[] = [];
+    sm.onSave((slot) => saves.push(slot.id));
+    sm.onLoad((slot) => loads.push(slot.id));
     sm.save('s1', 'A', { a: 1 });
     sm.load('s1');
     expect(saves).toEqual(['s1']);

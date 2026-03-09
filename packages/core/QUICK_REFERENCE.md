@@ -23,7 +23,7 @@ const adapter = new OpenAIAdapter({ apiKey: 'sk-...' });
 const session = generator.createSession(adapter);
 
 const result = await generator.generate('Create a blue sphere');
-console.log(result.holoScript);  // Generated code
+console.log(result.holoScript); // Generated code
 ```
 
 ### 2. Generate Batch
@@ -41,7 +41,7 @@ const results = await generateBatch(
 
 ```typescript
 const fixed = await generator.fix(brokenCode);
-console.log(fixed.holoScript);  // Auto-fixed
+console.log(fixed.holoScript); // Auto-fixed
 ```
 
 ### 4. Optimize for Platform
@@ -58,28 +58,28 @@ const optimized = await generator.optimize(code, 'mobile');
 
 ```typescript
 // OpenAI
-new OpenAIAdapter({ apiKey: 'sk-...' })
+new OpenAIAdapter({ apiKey: 'sk-...' });
 
 // Anthropic (Claude)
-new AnthropicAdapter({ apiKey: 'ant-...' })
+new AnthropicAdapter({ apiKey: 'ant-...' });
 
 // Google Gemini
-new GeminiAdapter({ apiKey: 'AIza...' })
+new GeminiAdapter({ apiKey: 'AIza...' });
 
 // XAI (Grok)
-new XAIAdapter({ apiKey: 'xai-...' })
+new XAIAdapter({ apiKey: 'xai-...' });
 
 // Local Ollama
-new OllamaAdapter({ baseURL: 'http://localhost:11434' })
+new OllamaAdapter({ baseURL: 'http://localhost:11434' });
 
 // Together.ai
-new TogetherAdapter({ apiKey: 'together_...' })
+new TogetherAdapter({ apiKey: 'together_...' });
 
 // Fireworks.ai
-new FireworksAdapter({ apiKey: 'fw_...' })
+new FireworksAdapter({ apiKey: 'fw_...' });
 
 // NVIDIA
-new NVIDIAAdapter({ apiKey: 'nvapi_...' })
+new NVIDIAAdapter({ apiKey: 'nvapi_...' });
 ```
 
 ---
@@ -88,10 +88,10 @@ new NVIDIAAdapter({ apiKey: 'nvapi_...' })
 
 ```typescript
 const session = generator.createSession(adapter, {
-  maxAttempts: 5,          // Retry logic (default: 3)
-  minConfidence: 0.85,     // Quality bar (default: 0.7)
-  autoFix: true,           // Fix broken code (default: true)
-  targetPlatform: 'vr'     // Target: mobile|desktop|vr|ar (default: vr)
+  maxAttempts: 5, // Retry logic (default: 3)
+  minConfidence: 0.85, // Quality bar (default: 0.7)
+  autoFix: true, // Fix broken code (default: true)
+  targetPlatform: 'vr', // Target: mobile|desktop|vr|ar (default: vr)
 });
 ```
 
@@ -102,7 +102,7 @@ const session = generator.createSession(adapter, {
 ```typescript
 try {
   const result = await generator.generate(prompt, session);
-  
+
   if (result.parseResult.success) {
     console.log('✅ Success');
   } else {
@@ -120,7 +120,7 @@ try {
 ```typescript
 // Get history
 const history = generator.getHistory(session);
-history.forEach(entry => {
+history.forEach((entry) => {
   console.log(entry.prompt);
   console.log(entry.generated.holoScript);
 });
@@ -156,7 +156,7 @@ import { validateBatch } from '@holoscript/core';
 
 // Validate multiple codes
 const validation = validateBatch(codes);
-console.log('Valid:', validation.filter(v => v.valid).length);
+console.log('Valid:', validation.filter((v) => v.valid).length);
 ```
 
 ---
@@ -164,12 +164,7 @@ console.log('Valid:', validation.filter(v => v.valid).length);
 ## Complete Example
 
 ```typescript
-import {
-  HoloScriptGenerator,
-  OpenAIAdapter,
-  generateBatch,
-  validateBatch
-} from '@holoscript/core';
+import { HoloScriptGenerator, OpenAIAdapter, generateBatch, validateBatch } from '@holoscript/core';
 
 // Setup
 const generator = new HoloScriptGenerator();
@@ -177,20 +172,20 @@ const adapter = new OpenAIAdapter({ apiKey: process.env.OPENAI_API_KEY });
 const session = generator.createSession(adapter, {
   maxAttempts: 5,
   minConfidence: 0.85,
-  targetPlatform: 'vr'
+  targetPlatform: 'vr',
 });
 
 // Generate multiple
 const prompts = [
   'Create an interactive player controller',
   'Create a rotating cube',
-  'Create a button'
+  'Create a button',
 ];
 
 const results = await generateBatch(prompts, adapter);
 
 // Validate
-const validation = validateBatch(results.map(r => r.holoScript));
+const validation = validateBatch(results.map((r) => r.holoScript));
 
 // Print results
 results.forEach((result, i) => {
@@ -216,9 +211,9 @@ console.log('  Avg Confidence:', stats.avgConfidence.toFixed(2));
 
 ```typescript
 const session = generator.createSession(adapter, {
-  minConfidence: 0.95,  // Very strict
-  maxAttempts: 10,      // Many retries
-  autoFix: true
+  minConfidence: 0.95, // Very strict
+  maxAttempts: 10, // Many retries
+  autoFix: true,
 });
 ```
 
@@ -226,9 +221,9 @@ const session = generator.createSession(adapter, {
 
 ```typescript
 const session = generator.createSession(adapter, {
-  minConfidence: 0.6,   // Exploratory
-  maxAttempts: 3,       // Quick
-  autoFix: true
+  minConfidence: 0.6, // Exploratory
+  maxAttempts: 3, // Quick
+  autoFix: true,
 });
 ```
 
@@ -238,7 +233,7 @@ const session = generator.createSession(adapter, {
 const session = generator.createSession(adapter, {
   targetPlatform: 'mobile',
   minConfidence: 0.8,
-  autoFix: true
+  autoFix: true,
 });
 ```
 
@@ -272,7 +267,7 @@ class MockAdapter implements AIAdapter {
   async generateHoloScript(prompt: string) {
     return {
       holoScript: `orb #test { }`,
-      aiConfidence: 0.95
+      aiConfidence: 0.95,
     };
   }
   // ... other methods
@@ -292,13 +287,13 @@ describe('MyCode', () => {
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| Low confidence scores | ↑ Try better prompts or manual refinement |
-| Parse errors | ✅ Auto-fix enabled (default: true) |
-| Wrong output | ↓ Decrease minConfidence or increase maxAttempts |
-| API rate limits | ⏸️ Add delays between generations or reduce batch size |
-| Type errors | 🔍 Check AIAdapter interface compliance |
+| Issue                 | Solution                                               |
+| --------------------- | ------------------------------------------------------ |
+| Low confidence scores | ↑ Try better prompts or manual refinement              |
+| Parse errors          | ✅ Auto-fix enabled (default: true)                    |
+| Wrong output          | ↓ Decrease minConfidence or increase maxAttempts       |
+| API rate limits       | ⏸️ Add delays between generations or reduce batch size |
+| Type errors           | 🔍 Check AIAdapter interface compliance                |
 
 ---
 

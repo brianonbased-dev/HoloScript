@@ -30,9 +30,9 @@ export interface VRMModel {
   textureCount: number;
   fileSizeBytes: number;
   vrmVersion: '0.x' | '1.0';
-  hasSpringBones: boolean;     // Hair/clothing physics
-  hasExpressions: boolean;     // Facial blendshapes
-  hasLookAt: boolean;          // Eye tracking
+  hasSpringBones: boolean; // Hair/clothing physics
+  hasExpressions: boolean; // Facial blendshapes
+  hasLookAt: boolean; // Eye tracking
 }
 
 export interface VRMValidation {
@@ -67,7 +67,9 @@ export function validateVRM(json: Record<string, unknown>): VRMValidation {
   if (!json['nodes']) errors.push('Missing nodes');
 
   // Check for humanoid bones
-  const vrmExt = (extensions?.['VRM'] ?? extensions?.['VRMC_vrm']) as Record<string, unknown> | undefined;
+  const vrmExt = (extensions?.['VRM'] ?? extensions?.['VRMC_vrm']) as
+    | Record<string, unknown>
+    | undefined;
   if (vrmExt && !vrmExt['humanoid']) {
     warnings.push('Missing humanoid bone mapping — avatar may not animate correctly');
   }
@@ -117,7 +119,11 @@ export function isPubliclyRedistributable(metadata: VRMMetadata): boolean {
 /**
  * Estimate VRAM usage for a VRM model.
  */
-export function estimateVRAM(model: VRMModel): { meshMB: number; textureMB: number; totalMB: number } {
+export function estimateVRAM(model: VRMModel): {
+  meshMB: number;
+  textureMB: number;
+  totalMB: number;
+} {
   // Rough estimates: ~100KB per mesh, ~1MB per texture on average
   const meshMB = (model.meshCount * 100_000) / (1024 * 1024);
   const textureMB = (model.textureCount * 1_000_000) / (1024 * 1024);

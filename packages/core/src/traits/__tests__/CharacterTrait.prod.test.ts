@@ -410,7 +410,9 @@ describe('CharacterTrait — collision', () => {
   it('onCollision event has correct point and normal', () => {
     const c = mkChar();
     let col: any;
-    c.on('collision', (e) => { col = e.collision; });
+    c.on('collision', (e) => {
+      col = e.collision;
+    });
     c.onCollision({ x: 2, y: 1, z: 0 }, { x: 0, y: 1, z: 0 }, 'wall');
     expect(col.point).toEqual({ x: 2, y: 1, z: 0 });
     expect(col.normal).toEqual({ x: 0, y: 1, z: 0 });

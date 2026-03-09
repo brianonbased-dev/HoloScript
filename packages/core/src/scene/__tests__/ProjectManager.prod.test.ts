@@ -154,8 +154,8 @@ describe('ProjectManager: production', () => {
       pm.addAsset(makeAsset('unused', []));
       pm.addAsset(makeAsset('used', ['s1']));
       const unused = pm.findUnusedAssets();
-      expect(unused.map(a => a.id)).toContain('unused');
-      expect(unused.map(a => a.id)).not.toContain('used');
+      expect(unused.map((a) => a.id)).toContain('unused');
+      expect(unused.map((a) => a.id)).not.toContain('used');
     });
 
     it('returns empty when all assets are used', () => {
@@ -208,7 +208,7 @@ describe('ProjectManager: production', () => {
 
     it('can store complex values', () => {
       pm.setSetting('config', { debug: true });
-      expect((pm.getSetting<any>('config')).debug).toBe(true);
+      expect(pm.getSetting<any>('config').debug).toBe(true);
     });
   });
 

@@ -28,7 +28,7 @@ function makeClip(id: string, duration: number): AnimationClip {
 }
 
 function makePose(boneIds: string[], y: number): BonePose[] {
-  return boneIds.map(id => ({
+  return boneIds.map((id) => ({
     boneId: id,
     position: { x: 0, y, z: 0 },
     rotation: { x: 0, y: 0, z: 0, w: 1 },

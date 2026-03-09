@@ -35,72 +35,72 @@
 
 The `URDFCompiler` (`packages/core/src/compiler/URDFCompiler.ts`) generates URDF XML v2.0 with the following features:
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| XML declaration and comments | Supported | Includes composition source metadata |
-| `base_link` creation | Supported | Always created as root |
-| Link visual geometry | Supported | box, sphere, cylinder, mesh (.stl) |
-| Link collision geometry | Supported | Requires `@collidable`, `@physics`, or `@rigid` trait |
-| Link inertial properties | Supported | Computes inertia tensor from geometry and mass |
-| Fixed joints | Supported | Default joint type |
-| Revolute joints | Supported | Via `@joint` trait with `hinge`/`revolute` |
-| Prismatic joints | Supported | Via `@joint` trait with `slider`/`prismatic` |
-| Continuous joints | Supported | Via `@joint` trait |
-| Floating/planar joints | Supported | Via `@joint` trait |
-| Joint limits | Supported | Degrees-to-radians conversion for revolute |
-| Joint dynamics | Supported | Damping and friction |
-| Joint mimic | Supported | Reference joint, multiplier, offset |
-| Safety controller | Supported | Soft limits, k_position, k_velocity |
-| Materials (color) | Supported | Named colors and hex codes |
-| Gazebo `<gazebo>` plugins | Supported | Behind `includeGazeboPlugins` flag |
-| Gazebo material mapping | Supported | Maps to `Gazebo/Red`, `Gazebo/Blue`, etc. |
-| Gazebo friction (mu1, mu2, kp, kd) | Supported | Configurable defaults |
-| Sensor plugins (camera, lidar, IMU, etc.) | Supported | Via `@sensor` trait |
-| ros2_control hardware interface | Supported | Behind `includeROS2Control` flag |
-| Transmissions | Supported | Via `@actuator` trait |
-| ROS 2 launch file generation | Supported | `generateROS2LaunchFile()` |
-| Controllers YAML generation | Supported | `generateControllersYaml()` |
-| Domain block compilation | Supported | v4.2 material/physics/audio/weather blocks |
-| Spatial group hierarchy | Supported | Groups become parent links with fixed joints |
+| Feature                                   | Status    | Notes                                                 |
+| ----------------------------------------- | --------- | ----------------------------------------------------- |
+| XML declaration and comments              | Supported | Includes composition source metadata                  |
+| `base_link` creation                      | Supported | Always created as root                                |
+| Link visual geometry                      | Supported | box, sphere, cylinder, mesh (.stl)                    |
+| Link collision geometry                   | Supported | Requires `@collidable`, `@physics`, or `@rigid` trait |
+| Link inertial properties                  | Supported | Computes inertia tensor from geometry and mass        |
+| Fixed joints                              | Supported | Default joint type                                    |
+| Revolute joints                           | Supported | Via `@joint` trait with `hinge`/`revolute`            |
+| Prismatic joints                          | Supported | Via `@joint` trait with `slider`/`prismatic`          |
+| Continuous joints                         | Supported | Via `@joint` trait                                    |
+| Floating/planar joints                    | Supported | Via `@joint` trait                                    |
+| Joint limits                              | Supported | Degrees-to-radians conversion for revolute            |
+| Joint dynamics                            | Supported | Damping and friction                                  |
+| Joint mimic                               | Supported | Reference joint, multiplier, offset                   |
+| Safety controller                         | Supported | Soft limits, k_position, k_velocity                   |
+| Materials (color)                         | Supported | Named colors and hex codes                            |
+| Gazebo `<gazebo>` plugins                 | Supported | Behind `includeGazeboPlugins` flag                    |
+| Gazebo material mapping                   | Supported | Maps to `Gazebo/Red`, `Gazebo/Blue`, etc.             |
+| Gazebo friction (mu1, mu2, kp, kd)        | Supported | Configurable defaults                                 |
+| Sensor plugins (camera, lidar, IMU, etc.) | Supported | Via `@sensor` trait                                   |
+| ros2_control hardware interface           | Supported | Behind `includeROS2Control` flag                      |
+| Transmissions                             | Supported | Via `@actuator` trait                                 |
+| ROS 2 launch file generation              | Supported | `generateROS2LaunchFile()`                            |
+| Controllers YAML generation               | Supported | `generateControllersYaml()`                           |
+| Domain block compilation                  | Supported | v4.2 material/physics/audio/weather blocks            |
+| Spatial group hierarchy                   | Supported | Groups become parent links with fixed joints          |
 
 ### 1.2 SDFCompiler Current Output
 
 The `SDFCompiler` (`packages/core/src/compiler/SDFCompiler.ts`) generates SDF XML v1.8 with:
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| World wrapper | Supported | Configurable world name |
-| Physics engine config | Supported | ODE with solver/constraints |
-| Scene (ambient, background, shadows) | Supported | Skybox-to-background mapping |
-| Ground plane | Supported | 100x100 plane with collision |
-| Sun directional light | Supported | Default diffuse/specular |
+| Feature                                  | Status    | Notes                                      |
+| ---------------------------------------- | --------- | ------------------------------------------ |
+| World wrapper                            | Supported | Configurable world name                    |
+| Physics engine config                    | Supported | ODE with solver/constraints                |
+| Scene (ambient, background, shadows)     | Supported | Skybox-to-background mapping               |
+| Ground plane                             | Supported | 100x100 plane with collision               |
+| Sun directional light                    | Supported | Default diffuse/specular                   |
 | Custom lights (point, directional, spot) | Supported | Color, intensity, attenuation, spot angles |
-| Model creation per object | Supported | Static/dynamic detection |
-| Inertial properties | Supported | For dynamic objects only |
-| Collision geometry | Supported | For collidable/physics/rigid traits |
-| Visual geometry + material | Supported | Ambient, diffuse, specular, emissive |
-| Capsule geometry | Supported | SDF-native (unlike URDF) |
-| Mesh references | Supported | `model://` prefix |
-| Spatial group comments | Supported | Flat model output |
-| Domain blocks | Supported | Material/physics/audio/weather |
+| Model creation per object                | Supported | Static/dynamic detection                   |
+| Inertial properties                      | Supported | For dynamic objects only                   |
+| Collision geometry                       | Supported | For collidable/physics/rigid traits        |
+| Visual geometry + material               | Supported | Ambient, diffuse, specular, emissive       |
+| Capsule geometry                         | Supported | SDF-native (unlike URDF)                   |
+| Mesh references                          | Supported | `model://` prefix                          |
+| Spatial group comments                   | Supported | Flat model output                          |
+| Domain blocks                            | Supported | Material/physics/audio/weather             |
 
 ### 1.3 Gaps vs. Isaac Sim Requirements
 
 #### Critical Gaps
 
-| Gap | Impact | Severity |
-|-----|--------|----------|
-| **No `sensor.isaac_sim_config` attribute** | Isaac Sim cannot attach RTX LiDAR sensors or reference preconfigured sensor templates | High |
-| **No `<loop_joint>` support** | Closed kinematic chains (quadrupeds, parallel robots) cannot be described | High |
-| **No `<fixed_frame>` support** | Sensor mounting points and end-effector offsets require extra dummy links | Medium |
-| **No PhysX material properties** | Isaac Sim defaults may not match intended friction/restitution behavior | Medium |
-| **Gazebo Classic plugins, not gz-sim** | `libgazebo_ros_camera.so` and similar are Gazebo Classic; Gazebo Harmonic uses `gz-sim-*-system` plugins | High |
-| **No Isaac Sim drive configuration hints** | No way to suggest natural frequency vs stiffness method, or acceleration vs force drive type | Medium |
-| **SDF lacks joint articulation** | SDFCompiler produces per-object models but does not emit `<joint>` elements within or between models | High |
-| **SDF inertia is simplified** | Uses `mass * 0.1` for all inertia terms instead of geometry-derived tensor | Medium |
-| **No SDF `<plugin>` for ros_gz** | SDF output lacks `ros_gz_bridge` or `gz-sim-*-system` plugin tags | Medium |
-| **Material name collision** | Isaac Sim URDF import merges materials with identical names regardless of properties | Low |
-| **Special character handling** | Current sanitizer replaces to `_` but does not handle leading-underscore prefix with `a` | Low |
+| Gap                                        | Impact                                                                                                   | Severity |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------- | -------- |
+| **No `sensor.isaac_sim_config` attribute** | Isaac Sim cannot attach RTX LiDAR sensors or reference preconfigured sensor templates                    | High     |
+| **No `<loop_joint>` support**              | Closed kinematic chains (quadrupeds, parallel robots) cannot be described                                | High     |
+| **No `<fixed_frame>` support**             | Sensor mounting points and end-effector offsets require extra dummy links                                | Medium   |
+| **No PhysX material properties**           | Isaac Sim defaults may not match intended friction/restitution behavior                                  | Medium   |
+| **Gazebo Classic plugins, not gz-sim**     | `libgazebo_ros_camera.so` and similar are Gazebo Classic; Gazebo Harmonic uses `gz-sim-*-system` plugins | High     |
+| **No Isaac Sim drive configuration hints** | No way to suggest natural frequency vs stiffness method, or acceleration vs force drive type             | Medium   |
+| **SDF lacks joint articulation**           | SDFCompiler produces per-object models but does not emit `<joint>` elements within or between models     | High     |
+| **SDF inertia is simplified**              | Uses `mass * 0.1` for all inertia terms instead of geometry-derived tensor                               | Medium   |
+| **No SDF `<plugin>` for ros_gz**           | SDF output lacks `ros_gz_bridge` or `gz-sim-*-system` plugin tags                                        | Medium   |
+| **Material name collision**                | Isaac Sim URDF import merges materials with identical names regardless of properties                     | Low      |
+| **Special character handling**             | Current sanitizer replaces to `_` but does not handle leading-underscore prefix with `a`                 | Low      |
 
 #### Minor Gaps
 
@@ -134,6 +134,7 @@ Attaches an RTX sensor (typically LiDAR) to a link with Isaac Sim-native configu
 ```
 
 **Supported preconfigured LiDAR sensors:**
+
 - `Velodyne_VLS128`
 - `Ouster_OS1_64`
 - `HESAI_PandarXT_32`
@@ -153,6 +154,7 @@ Defines a spherical joint that closes a kinematic chain loop, critical for paral
 ```
 
 **Key considerations:**
+
 - Only `spherical` type is currently supported by Isaac Sim
 - Both `<link1>` elements define the attachment points on each link
 - Pose (rpy/xyz) is relative to the respective link frame
@@ -175,6 +177,7 @@ Creates a named reference frame attached to a link without requiring a separate 
 ```
 
 **Constraints:**
+
 - Each `(name, parent link)` pair must be unique
 - Replaces the common pattern of creating dummy links with zero mass/inertia
 
@@ -198,15 +201,15 @@ Isaac Sim's URDF importer has a known behavior where **materials with the same n
 
 Isaac Sim uses NVIDIA PhysX for physics simulation. While URDF does not natively support PhysX-specific parameters, Isaac Sim applies defaults during import:
 
-| Property | Isaac Sim Default | Best Practice |
-|----------|------------------|---------------|
-| Static friction | 0.5 | Set via `<gazebo>` `<mu1>` (mapped at import) |
-| Dynamic friction | 0.5 | Set via `<gazebo>` `<mu2>` |
-| Restitution | 0.0 | Not directly settable in URDF |
-| Collision type | Convex Hull | Configurable in importer UI |
-| Self-collision | Disabled | Not recommended unless verified |
-| Solver position iterations | 4 | Increase to 8-16 for articulated robots |
-| Solver velocity iterations | 1 | Increase to 2-4 for stability |
+| Property                   | Isaac Sim Default | Best Practice                                 |
+| -------------------------- | ----------------- | --------------------------------------------- |
+| Static friction            | 0.5               | Set via `<gazebo>` `<mu1>` (mapped at import) |
+| Dynamic friction           | 0.5               | Set via `<gazebo>` `<mu2>`                    |
+| Restitution                | 0.0               | Not directly settable in URDF                 |
+| Collision type             | Convex Hull       | Configurable in importer UI                   |
+| Self-collision             | Disabled          | Not recommended unless verified               |
+| Solver position iterations | 4                 | Increase to 8-16 for articulated robots       |
+| Solver velocity iterations | 1                 | Increase to 2-4 for stability                 |
 
 **PhysX solver tuning** cannot be specified in URDF directly but can be annotated as HoloScript extension comments for post-import configuration scripts.
 
@@ -215,15 +218,18 @@ Isaac Sim uses NVIDIA PhysX for physics simulation. While URDF does not natively
 Isaac Sim provides two methods for configuring joint drives:
 
 **Stiffness Method:**
+
 - Directly set stiffness (Kp) and damping (Kd)
 - Equivalent to spring-damper system
 
 **Natural Frequency Method:**
+
 - Computes from mass (m), natural frequency (f), and damping ratio (zeta):
   - `Kp = m * f^2`
   - `Kd = 2 * m * zeta * f`
 
 **Drive types:**
+
 - **Acceleration:** Normalizes inertia before applying effort (recommended for most cases)
 - **Force:** Applies effort directly
 
@@ -348,14 +354,14 @@ private sanitizeName(name: string): string {
 
 Replace Gazebo Classic plugin filenames with Gazebo Harmonic (gz-sim) equivalents:
 
-| Current (Classic) | Replacement (Harmonic) |
-|-------------------|----------------------|
-| `libgazebo_ros_camera.so` | `gz-sim-sensors-system` |
-| `libgazebo_ros_ray_sensor.so` | `gz-sim-sensors-system` |
-| `libgazebo_ros_imu_sensor.so` | `gz-sim-imu-system` |
-| `libgazebo_ros_bumper.so` | `gz-sim-contact-system` |
-| `libgazebo_ros_gps_sensor.so` | `gz-sim-navsat-system` |
-| `gz_ros2_control-system` | `gz_ros2_control::GazeboSimROS2ControlPlugin` |
+| Current (Classic)             | Replacement (Harmonic)                        |
+| ----------------------------- | --------------------------------------------- |
+| `libgazebo_ros_camera.so`     | `gz-sim-sensors-system`                       |
+| `libgazebo_ros_ray_sensor.so` | `gz-sim-sensors-system`                       |
+| `libgazebo_ros_imu_sensor.so` | `gz-sim-imu-system`                           |
+| `libgazebo_ros_bumper.so`     | `gz-sim-contact-system`                       |
+| `libgazebo_ros_gps_sensor.so` | `gz-sim-navsat-system`                        |
+| `gz_ros2_control-system`      | `gz_ros2_control::GazeboSimROS2ControlPlugin` |
 
 Add option:
 
@@ -461,10 +467,10 @@ Generate a companion `bridge.yaml` for topic bridging between ROS 2 and Gazebo:
 
 ```yaml
 # Auto-generated by HoloScript SDFCompiler
-- ros_topic_name: "/joint_states"
-  gz_topic_name: "/world/{world_name}/model/{model_name}/joint_state"
-  ros_type_name: "sensor_msgs/msg/JointState"
-  gz_type_name: "gz.msgs.Model"
+- ros_topic_name: '/joint_states'
+  gz_topic_name: '/world/{world_name}/model/{model_name}/joint_state'
+  ros_type_name: 'sensor_msgs/msg/JointState'
+  gz_type_name: 'gz.msgs.Model'
   direction: GZ_TO_ROS
 ```
 
@@ -531,6 +537,7 @@ Isaac Sim does **not** natively import SDF world files. Instead, the workflow is
 3. **SDF for Gazebo co-simulation** -- When running Gazebo alongside Isaac Sim
 
 For Isaac Sim workflows, the SDFCompiler output serves as:
+
 - A Gazebo simulation companion (digital twin in Gazebo while training in Isaac Sim)
 - A bridge format for `sdformat_urdf` (ROS 2 package that converts SDF to URDF C++ DOM)
 
@@ -579,24 +586,24 @@ export interface SDFCompilerOptions {
 
 When a HoloScript composition is compiled to URDF/SDF, the following ROS 2 topics are implicitly defined:
 
-| HoloScript Element | ROS 2 Topic | Message Type | Direction |
-|---------------------|-------------|--------------|-----------|
-| `@joint` trait (any movable) | `/joint_states` | `sensor_msgs/msg/JointState` | Sub (for RSP) |
-| `@joint` trait (any movable) | `/tf` | `tf2_msgs/msg/TFMessage` | Pub (from RSP) |
-| Fixed joints / spatial groups | `/tf_static` | `tf2_msgs/msg/TFMessage` | Pub (latched) |
-| Composition URDF | `/robot_description` | `std_msgs/msg/String` | Pub (latched) |
-| `@sensor(type: camera)` | `/{sensor_name}/image_raw` | `sensor_msgs/msg/Image` | Pub |
-| `@sensor(type: camera)` | `/{sensor_name}/camera_info` | `sensor_msgs/msg/CameraInfo` | Pub |
-| `@sensor(type: depth_camera)` | `/{sensor_name}/depth/image_raw` | `sensor_msgs/msg/Image` | Pub |
-| `@sensor(type: depth_camera)` | `/{sensor_name}/points` | `sensor_msgs/msg/PointCloud2` | Pub |
-| `@sensor(type: lidar)` | `/scan` or custom topic | `sensor_msgs/msg/LaserScan` | Pub |
-| `@sensor(type: imu)` | `/imu/data` or custom topic | `sensor_msgs/msg/Imu` | Pub |
-| `@sensor(type: gps)` | `/gps/fix` or custom topic | `sensor_msgs/msg/NavSatFix` | Pub |
-| `@sensor(type: force_torque)` | `/{sensor_name}/wrench` | `geometry_msgs/msg/WrenchStamped` | Pub |
-| `@sensor(type: contact)` | `/bumper` or custom topic | `gazebo_msgs/msg/ContactsState` | Pub |
-| `@actuator` trait | `/{controller}/command` | Various | Sub |
-| ros2_control (joint trajectory) | `/joint_trajectory_controller/joint_trajectory` | `trajectory_msgs/msg/JointTrajectory` | Sub |
-| ros2_control (state broadcaster) | `/joint_states` | `sensor_msgs/msg/JointState` | Pub |
+| HoloScript Element               | ROS 2 Topic                                     | Message Type                          | Direction      |
+| -------------------------------- | ----------------------------------------------- | ------------------------------------- | -------------- |
+| `@joint` trait (any movable)     | `/joint_states`                                 | `sensor_msgs/msg/JointState`          | Sub (for RSP)  |
+| `@joint` trait (any movable)     | `/tf`                                           | `tf2_msgs/msg/TFMessage`              | Pub (from RSP) |
+| Fixed joints / spatial groups    | `/tf_static`                                    | `tf2_msgs/msg/TFMessage`              | Pub (latched)  |
+| Composition URDF                 | `/robot_description`                            | `std_msgs/msg/String`                 | Pub (latched)  |
+| `@sensor(type: camera)`          | `/{sensor_name}/image_raw`                      | `sensor_msgs/msg/Image`               | Pub            |
+| `@sensor(type: camera)`          | `/{sensor_name}/camera_info`                    | `sensor_msgs/msg/CameraInfo`          | Pub            |
+| `@sensor(type: depth_camera)`    | `/{sensor_name}/depth/image_raw`                | `sensor_msgs/msg/Image`               | Pub            |
+| `@sensor(type: depth_camera)`    | `/{sensor_name}/points`                         | `sensor_msgs/msg/PointCloud2`         | Pub            |
+| `@sensor(type: lidar)`           | `/scan` or custom topic                         | `sensor_msgs/msg/LaserScan`           | Pub            |
+| `@sensor(type: imu)`             | `/imu/data` or custom topic                     | `sensor_msgs/msg/Imu`                 | Pub            |
+| `@sensor(type: gps)`             | `/gps/fix` or custom topic                      | `sensor_msgs/msg/NavSatFix`           | Pub            |
+| `@sensor(type: force_torque)`    | `/{sensor_name}/wrench`                         | `geometry_msgs/msg/WrenchStamped`     | Pub            |
+| `@sensor(type: contact)`         | `/bumper` or custom topic                       | `gazebo_msgs/msg/ContactsState`       | Pub            |
+| `@actuator` trait                | `/{controller}/command`                         | Various                               | Sub            |
+| ros2_control (joint trajectory)  | `/joint_trajectory_controller/joint_trajectory` | `trajectory_msgs/msg/JointTrajectory` | Sub            |
+| ros2_control (state broadcaster) | `/joint_states`                                 | `sensor_msgs/msg/JointState`          | Pub            |
 
 ### 5.2 HoloScript `@ros_node` Trait Mapping
 
@@ -611,13 +618,13 @@ From the robotics example (`packages/plugins/robotics-plugin/examples/robot-arm-
 
 ### 5.3 HoloScript System Block to ROS 2 Service Mapping
 
-| HoloScript Block | ROS 2 Service | Service Type |
-|------------------|---------------|--------------|
-| `twin_sync.sensors[type: joint_states]` | `/joint_states` subscription | `sensor_msgs/msg/JointState` |
-| `twin_sync.sensors[type: tf]` | `/tf` subscription | `tf2_msgs/msg/TFMessage` |
-| `drive_controller.type: diff_drive` | `/cmd_vel` subscription | `geometry_msgs/msg/Twist` |
-| `vr_control.inverse_kinematics` | `/compute_ik` service | `moveit_msgs/srv/GetPositionIK` |
-| `export.urdf` | `/robot_description` parameter | `std_msgs/msg/String` |
+| HoloScript Block                        | ROS 2 Service                  | Service Type                    |
+| --------------------------------------- | ------------------------------ | ------------------------------- |
+| `twin_sync.sensors[type: joint_states]` | `/joint_states` subscription   | `sensor_msgs/msg/JointState`    |
+| `twin_sync.sensors[type: tf]`           | `/tf` subscription             | `tf2_msgs/msg/TFMessage`        |
+| `drive_controller.type: diff_drive`     | `/cmd_vel` subscription        | `geometry_msgs/msg/Twist`       |
+| `vr_control.inverse_kinematics`         | `/compute_ik` service          | `moveit_msgs/srv/GetPositionIK` |
+| `export.urdf`                           | `/robot_description` parameter | `std_msgs/msg/String`           |
 
 ### 5.4 Generated Launch File Topic Wiring
 
@@ -634,28 +641,28 @@ For Gazebo Harmonic, topics use the `gz.msgs` namespace and need bridging via `r
 
 ```yaml
 # bridge.yaml (generated alongside SDF world)
-- ros_topic_name: "/joint_states"
-  gz_topic_name: "/world/holoscript_world/model/robot/joint_state"
-  ros_type_name: "sensor_msgs/msg/JointState"
-  gz_type_name: "gz.msgs.Model"
+- ros_topic_name: '/joint_states'
+  gz_topic_name: '/world/holoscript_world/model/robot/joint_state'
+  ros_type_name: 'sensor_msgs/msg/JointState'
+  gz_type_name: 'gz.msgs.Model'
   direction: GZ_TO_ROS
 
-- ros_topic_name: "/cmd_vel"
-  gz_topic_name: "/model/robot/cmd_vel"
-  ros_type_name: "geometry_msgs/msg/Twist"
-  gz_type_name: "gz.msgs.Twist"
+- ros_topic_name: '/cmd_vel'
+  gz_topic_name: '/model/robot/cmd_vel'
+  ros_type_name: 'geometry_msgs/msg/Twist'
+  gz_type_name: 'gz.msgs.Twist'
   direction: ROS_TO_GZ
 
-- ros_topic_name: "/scan"
-  gz_topic_name: "/world/holoscript_world/model/robot/link/lidar_link/sensor/lidar/scan"
-  ros_type_name: "sensor_msgs/msg/LaserScan"
-  gz_type_name: "gz.msgs.LaserScan"
+- ros_topic_name: '/scan'
+  gz_topic_name: '/world/holoscript_world/model/robot/link/lidar_link/sensor/lidar/scan'
+  ros_type_name: 'sensor_msgs/msg/LaserScan'
+  gz_type_name: 'gz.msgs.LaserScan'
   direction: GZ_TO_ROS
 
-- ros_topic_name: "/camera/image_raw"
-  gz_topic_name: "/world/holoscript_world/model/robot/link/camera_link/sensor/camera/image"
-  ros_type_name: "sensor_msgs/msg/Image"
-  gz_type_name: "gz.msgs.Image"
+- ros_topic_name: '/camera/image_raw'
+  gz_topic_name: '/world/holoscript_world/model/robot/link/camera_link/sensor/camera/image'
+  ros_type_name: 'sensor_msgs/msg/Image'
+  gz_type_name: 'gz.msgs.Image'
   direction: GZ_TO_ROS
 ```
 
@@ -1488,16 +1495,16 @@ joint_trajectory_controller:
 
 ## Appendix: Implementation Priority Matrix
 
-| Change | Effort | Impact | Priority |
-|--------|--------|--------|----------|
-| Isaac Sim extension tags (sensor, loop_joint, fixed_frame) | Medium | High | P1 |
-| Gazebo Harmonic plugin migration | Low | High | P1 |
-| `compileForIsaacSim()` convenience function | Low | High | P1 |
-| Unique material names | Low | Medium | P2 |
-| Isaac Sim name sanitization (leading underscore) | Low | Low | P2 |
-| SDF joint articulation support | High | High | P2 |
-| SDF proper inertia calculation | Medium | Medium | P3 |
-| SDF gz-sim system plugins | Low | Medium | P3 |
-| ros_gz_bridge YAML generation | Medium | Medium | P3 |
-| PhysX solver tuning annotations | Low | Low | P4 |
-| Isaac Sim drive config hints | Low | Low | P4 |
+| Change                                                     | Effort | Impact | Priority |
+| ---------------------------------------------------------- | ------ | ------ | -------- |
+| Isaac Sim extension tags (sensor, loop_joint, fixed_frame) | Medium | High   | P1       |
+| Gazebo Harmonic plugin migration                           | Low    | High   | P1       |
+| `compileForIsaacSim()` convenience function                | Low    | High   | P1       |
+| Unique material names                                      | Low    | Medium | P2       |
+| Isaac Sim name sanitization (leading underscore)           | Low    | Low    | P2       |
+| SDF joint articulation support                             | High   | High   | P2       |
+| SDF proper inertia calculation                             | Medium | Medium | P3       |
+| SDF gz-sim system plugins                                  | Low    | Medium | P3       |
+| ros_gz_bridge YAML generation                              | Medium | Medium | P3       |
+| PhysX solver tuning annotations                            | Low    | Low    | P4       |
+| Isaac Sim drive config hints                               | Low    | Low    | P4       |

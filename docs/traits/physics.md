@@ -172,8 +172,8 @@ object Vase @destruction(fracture_count: 8, break_threshold: 50) {
 
 ---
 
-
 ## See Also
+
 - [Interaction Traits](/traits/interaction)
 - [Visual Traits](/traits/visual)
 - [API Reference](/api/)

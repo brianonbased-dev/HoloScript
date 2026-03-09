@@ -18,8 +18,20 @@ describe('Social System', () => {
   let presence: PresenceManager;
   let mockTransport: any;
 
-  const userA: SocialUser = { id: 'u1', username: 'alice', displayName: 'Alice', status: 'online', lastSeen: 0 };
-  const userB: SocialUser = { id: 'u2', username: 'bob', displayName: 'Bob', status: 'offline', lastSeen: 0 };
+  const userA: SocialUser = {
+    id: 'u1',
+    username: 'alice',
+    displayName: 'Alice',
+    status: 'online',
+    lastSeen: 0,
+  };
+  const userB: SocialUser = {
+    id: 'u2',
+    username: 'bob',
+    displayName: 'Bob',
+    status: 'offline',
+    lastSeen: 0,
+  };
 
   beforeEach(() => {
     graph = new SocialGraph('local-user');
@@ -87,9 +99,9 @@ describe('Social System', () => {
 
     it('should update friend status', () => {
       graph.updateUser(userA); // Add user first
-      
+
       presence.handlePresenceUpdate('u1', 'busy', 'Coding');
-      
+
       const updatedUser = graph.getUser('u1');
       expect(updatedUser?.status).toBe('busy');
       expect(updatedUser?.currentActivity).toBe('Coding');

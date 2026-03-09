@@ -29,10 +29,7 @@ import {
 } from './AgentIdentity';
 import { getKeystore } from './AgentKeystore';
 
-import type {
-  Capability,
-  CapabilityToken,
-} from './CapabilityToken';
+import type { Capability, CapabilityToken } from './CapabilityToken';
 
 import {
   PERMISSION_TO_ACTION,
@@ -40,10 +37,7 @@ import {
   HOLOSCRIPT_RESOURCE_SCHEME,
 } from './CapabilityToken';
 
-import {
-  CapabilityTokenIssuer,
-  getCapabilityTokenIssuer,
-} from './CapabilityTokenIssuer';
+import { CapabilityTokenIssuer, getCapabilityTokenIssuer } from './CapabilityTokenIssuer';
 
 /**
  * Token issuer configuration
@@ -249,9 +243,10 @@ export class AgentTokenIssuer {
       iss: this.issuer,
       sub: `agent:${agentConfig.role}:${agentConfig.name}`,
       aud: 'holoscript-compiler',
-      exp: typeof this.tokenExpiration === 'string'
-        ? now + this.parseExpiration(this.tokenExpiration)
-        : now + this.tokenExpiration,
+      exp:
+        typeof this.tokenExpiration === 'string'
+          ? now + this.parseExpiration(this.tokenExpiration)
+          : now + this.tokenExpiration,
       iat: now,
       jti: crypto.randomUUID(),
 
@@ -439,9 +434,7 @@ export class AgentTokenIssuer {
     const permissions = getDefaultPermissions(agentConfig.role);
     const capabilities: Capability[] = permissions.map((perm) => {
       const action = PERMISSION_TO_ACTION[perm] || perm;
-      const resource = scope
-        ? `${HOLOSCRIPT_RESOURCE_SCHEME}${scope}`
-        : HOLOSCRIPT_RESOURCE_ALL;
+      const resource = scope ? `${HOLOSCRIPT_RESOURCE_SCHEME}${scope}` : HOLOSCRIPT_RESOURCE_ALL;
       return { with: resource, can: action };
     });
 
@@ -509,9 +502,7 @@ export class AgentTokenIssuer {
     const scope = capabilityOptions?.scope ?? request.agentConfig.scope;
     const capabilities: Capability[] = permissions.map((perm) => {
       const action = PERMISSION_TO_ACTION[perm] || perm;
-      const resource = scope
-        ? `${HOLOSCRIPT_RESOURCE_SCHEME}${scope}`
-        : HOLOSCRIPT_RESOURCE_ALL;
+      const resource = scope ? `${HOLOSCRIPT_RESOURCE_SCHEME}${scope}` : HOLOSCRIPT_RESOURCE_ALL;
       return { with: resource, can: action };
     });
 
@@ -559,7 +550,7 @@ export class AgentTokenIssuer {
     if (!keyPair) {
       throw new Error(
         'A key pair is required to sign the delegated capability token. ' +
-        'Pass the delegator\'s AgentKeyPair.'
+          "Pass the delegator's AgentKeyPair."
       );
     }
 

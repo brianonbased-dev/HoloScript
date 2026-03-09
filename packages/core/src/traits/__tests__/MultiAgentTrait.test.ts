@@ -8,11 +8,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { multiAgentHandler } from '../MultiAgentTrait';
-import type {
-  MultiAgentConfig,
-  MultiAgentState,
-  AgentMessage,
-} from '../MultiAgentTrait';
+import type { MultiAgentConfig, MultiAgentState, AgentMessage } from '../MultiAgentTrait';
 
 // =============================================================================
 // Mock Factories

@@ -43,12 +43,16 @@ export class MultiLayerCompiler extends CompilerBase {
     this.options = options;
   }
 
-  compile(composition: HoloComposition, agentToken: string, outputPath?: string): MultiLayerCompilationResult {
+  compile(
+    composition: HoloComposition,
+    agentToken: string,
+    outputPath?: string
+  ): MultiLayerCompilationResult {
     this.validateCompilerAccess(agentToken, outputPath);
     const result: MultiLayerCompilationResult = {
       success: true,
       warnings: [],
-      errors: []
+      errors: [],
     };
 
     if (this.options.targets.includes('ar')) {
@@ -56,7 +60,7 @@ export class MultiLayerCompiler extends CompilerBase {
         target: 'webxr',
         minify: this.options.minify,
         source_maps: this.options.source_maps,
-        features: { hit_test: true, image_tracking: true }
+        features: { hit_test: true, image_tracking: true },
       });
       const arResult = arCompiler.compile(composition);
       result.ar = arResult;
@@ -69,7 +73,7 @@ export class MultiLayerCompiler extends CompilerBase {
         minify: this.options.minify,
         source_maps: this.options.source_maps,
         performance: { target_fps: 60, max_players: 1000, lazy_loading: true },
-        api_integrations: {} // Configured upstream based on @reality_mirror traits
+        api_integrations: {}, // Configured upstream based on @reality_mirror traits
       });
       const vrrResult = vrrCompiler.compile(composition);
       result.vrr = vrrResult;
@@ -78,9 +82,9 @@ export class MultiLayerCompiler extends CompilerBase {
 
     if (this.options.targets.includes('vr')) {
       const vrCompiler = new BabylonCompiler({
-        minify: this.options.minify
+        minify: this.options.minify,
       });
-      // The BabylonCompiler handles standard VR. 
+      // The BabylonCompiler handles standard VR.
       // In a real scenario, we might pre-filter the AST to remove pure AR/VRR nodes
       // but standard traits are mostly ignored if unsupported by the backend.
       try {

@@ -17,7 +17,9 @@ export interface HistoryState {
 }
 
 export interface HitQuery {
-  originX: number; originY: number; originZ: number;
+  originX: number;
+  originY: number;
+  originZ: number;
   targetId: string;
   clientTimestamp: number;
   clientLatency: number;
@@ -65,7 +67,10 @@ export class LagCompensation {
 
     for (const state of this.history) {
       const diff = Math.abs(state.timestamp - timestamp);
-      if (diff < closestDiff) { closestDiff = diff; closest = state; }
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closest = state;
+      }
     }
 
     return closest;
@@ -107,12 +112,18 @@ export class LagCompensation {
     this.latencyEstimates.set(playerId, existing * 0.8 + rttMs * 0.2);
   }
 
-  getLatency(playerId: string): number { return this.latencyEstimates.get(playerId) ?? 0; }
+  getLatency(playerId: string): number {
+    return this.latencyEstimates.get(playerId) ?? 0;
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getHistoryLength(): number { return this.history.length; }
-  getMaxRewindMs(): number { return this.maxRewindMs; }
+  getHistoryLength(): number {
+    return this.history.length;
+  }
+  getMaxRewindMs(): number {
+    return this.maxRewindMs;
+  }
 }

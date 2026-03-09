@@ -53,18 +53,23 @@ export function useBrittneyHistory(projectId: string) {
     setHistory(readFromStorage(projectId));
   }, [projectId]);
 
-  const addMessage = useCallback((msg: ChatMessage) => {
-    setHistory((prev) => {
-      const next = [...prev, { ...msg, timestamp: msg.timestamp ?? Date.now() }];
-      writeToStorage(projectId, next);
-      return next;
-    });
-  }, [projectId]);
+  const addMessage = useCallback(
+    (msg: ChatMessage) => {
+      setHistory((prev) => {
+        const next = [...prev, { ...msg, timestamp: msg.timestamp ?? Date.now() }];
+        writeToStorage(projectId, next);
+        return next;
+      });
+    },
+    [projectId]
+  );
 
   const clearHistory = useCallback(() => {
     try {
       localStorage.removeItem(storageKey(projectId));
-    } catch { /**/ }
+    } catch {
+      /**/
+    }
     setHistory([]);
   }, [projectId]);
 

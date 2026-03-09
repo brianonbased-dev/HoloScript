@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { CrossRealityValidator } from '../CrossRealityValidator';
-import type { HoloComposition, HoloObjectDecl, HoloObjectTrait } from '../../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloObjectTrait,
+} from '../../parser/HoloCompositionTypes';
 
 // =============================================================================
 // HELPERS
@@ -38,7 +42,7 @@ function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposit
 function makeObject(
   name: string,
   traits: HoloObjectTrait[] = [],
-  overrides: Partial<HoloObjectDecl> = {},
+  overrides: Partial<HoloObjectDecl> = {}
 ): HoloObjectDecl {
   return {
     type: 'Object',
@@ -81,7 +85,7 @@ describe('CrossRealityValidator', () => {
       const result = validator.validate(composition);
 
       expect(result.valid).toBe(true);
-      const errors = result.issues.filter(i => i.severity === 'error');
+      const errors = result.issues.filter((i) => i.severity === 'error');
       expect(errors).toHaveLength(0);
     });
 
@@ -94,14 +98,16 @@ describe('CrossRealityValidator', () => {
           ]),
           // Universal fallback
           makeObject('mobileMenu', [
-            makeTrait('platform', { include: ['mobile', 'desktop', 'ar', 'automotive', 'wearable'] }),
+            makeTrait('platform', {
+              include: ['mobile', 'desktop', 'ar', 'automotive', 'wearable'],
+            }),
           ]),
         ],
       });
 
       const result = validator.validate(composition);
 
-      const cr001 = result.issues.filter(i => i.code === 'CR001');
+      const cr001 = result.issues.filter((i) => i.code === 'CR001');
       expect(cr001).toHaveLength(0);
     });
   });
@@ -113,14 +119,12 @@ describe('CrossRealityValidator', () => {
   describe('CR001: VR-only traits without @platform() constraint', () => {
     it('flags hand_tracking without @platform()', () => {
       const composition = makeComposition({
-        objects: [
-          makeObject('handMenu', [makeTrait('hand_tracking', { mode: 'full' })]),
-        ],
+        objects: [makeObject('handMenu', [makeTrait('hand_tracking', { mode: 'full' })])],
       });
 
       const result = validator.validate(composition);
 
-      const cr001 = result.issues.filter(i => i.code === 'CR001');
+      const cr001 = result.issues.filter((i) => i.code === 'CR001');
       expect(cr001).toHaveLength(1);
       expect(cr001[0].severity).toBe('error');
       expect(cr001[0].blockName).toBe('handMenu');
@@ -130,14 +134,12 @@ describe('CrossRealityValidator', () => {
 
     it('flags spatial_audio_3d without @platform()', () => {
       const composition = makeComposition({
-        objects: [
-          makeObject('audioSource', [makeTrait('spatial_audio_3d', { mode: 'hrtf' })]),
-        ],
+        objects: [makeObject('audioSource', [makeTrait('spatial_audio_3d', { mode: 'hrtf' })])],
       });
 
       const result = validator.validate(composition);
 
-      const cr001 = result.issues.filter(i => i.code === 'CR001');
+      const cr001 = result.issues.filter((i) => i.code === 'CR001');
       expect(cr001).toHaveLength(1);
       expect(cr001[0].blockName).toBe('audioSource');
     });
@@ -155,7 +157,7 @@ describe('CrossRealityValidator', () => {
 
       const result = validator.validate(composition);
 
-      const cr001 = result.issues.filter(i => i.code === 'CR001');
+      const cr001 = result.issues.filter((i) => i.code === 'CR001');
       expect(cr001).toHaveLength(3);
     });
 
@@ -171,7 +173,7 @@ describe('CrossRealityValidator', () => {
 
       const result = validator.validate(composition);
 
-      const cr001 = result.issues.filter(i => i.code === 'CR001');
+      const cr001 = result.issues.filter((i) => i.code === 'CR001');
       expect(cr001).toHaveLength(0);
     });
 
@@ -188,7 +190,7 @@ describe('CrossRealityValidator', () => {
 
       const result = validator.validate(composition);
 
-      const cr001 = result.issues.filter(i => i.code === 'CR001');
+      const cr001 = result.issues.filter((i) => i.code === 'CR001');
       expect(cr001).toHaveLength(0);
     });
   });
@@ -200,16 +202,12 @@ describe('CrossRealityValidator', () => {
   describe('CR002: No fallback for excluded platforms', () => {
     it('warns when VR-constrained object has no fallback', () => {
       const composition = makeComposition({
-        objects: [
-          makeObject('vrOnlyWidget', [
-            makeTrait('platform', { include: ['vr'] }),
-          ]),
-        ],
+        objects: [makeObject('vrOnlyWidget', [makeTrait('platform', { include: ['vr'] })])],
       });
 
       const result = validator.validate(composition);
 
-      const cr002 = result.issues.filter(i => i.code === 'CR002');
+      const cr002 = result.issues.filter((i) => i.code === 'CR002');
       expect(cr002).toHaveLength(1);
       expect(cr002[0].severity).toBe('warning');
       expect(cr002[0].blockName).toBe('vrOnlyWidget');
@@ -218,9 +216,7 @@ describe('CrossRealityValidator', () => {
     it('does not warn when a fallback exists', () => {
       const composition = makeComposition({
         objects: [
-          makeObject('vrWidget', [
-            makeTrait('platform', { include: ['vr'] }),
-          ]),
+          makeObject('vrWidget', [makeTrait('platform', { include: ['vr'] })]),
           // This unconstrained object serves as a universal fallback
           makeObject('fallbackWidget', [makeTrait('hoverable')]),
         ],
@@ -228,7 +224,7 @@ describe('CrossRealityValidator', () => {
 
       const result = validator.validate(composition);
 
-      const cr002 = result.issues.filter(i => i.code === 'CR002');
+      const cr002 = result.issues.filter((i) => i.code === 'CR002');
       expect(cr002).toHaveLength(0);
     });
   });
@@ -253,7 +249,7 @@ describe('CrossRealityValidator', () => {
 
       const result = validator.validate(composition);
 
-      const cr003 = result.issues.filter(i => i.code === 'CR003');
+      const cr003 = result.issues.filter((i) => i.code === 'CR003');
       expect(cr003).toHaveLength(1);
       expect(cr003[0].severity).toBe('error');
       expect(cr003[0].message).toContain('lobby');
@@ -281,7 +277,7 @@ describe('CrossRealityValidator', () => {
 
       const result = validator.validate(composition);
 
-      const cr003 = result.issues.filter(i => i.code === 'CR003');
+      const cr003 = result.issues.filter((i) => i.code === 'CR003');
       expect(cr003).toHaveLength(0);
     });
 
@@ -304,7 +300,7 @@ describe('CrossRealityValidator', () => {
 
       const result = validator.validate(composition);
 
-      const cr003 = result.issues.filter(i => i.code === 'CR003');
+      const cr003 = result.issues.filter((i) => i.code === 'CR003');
       expect(cr003).toHaveLength(1);
       expect(cr003[0].message).toContain('library');
     });
@@ -317,20 +313,16 @@ describe('CrossRealityValidator', () => {
   describe('CR004: Platform with zero objects', () => {
     it('warns about platforms with no content when all objects are VR-constrained', () => {
       const composition = makeComposition({
-        objects: [
-          makeObject('vrOnlyObj', [
-            makeTrait('platform', { include: ['vr'] }),
-          ]),
-        ],
+        objects: [makeObject('vrOnlyObj', [makeTrait('platform', { include: ['vr'] })])],
       });
 
       const result = validator.validate(composition);
 
-      const cr004 = result.issues.filter(i => i.code === 'CR004');
+      const cr004 = result.issues.filter((i) => i.code === 'CR004');
       // Should warn about ar, mobile, desktop, automotive, wearable (5 categories with 0 objects)
       expect(cr004.length).toBeGreaterThanOrEqual(1);
 
-      const warningCategories = cr004.map(i => {
+      const warningCategories = cr004.map((i) => {
         const match = i.message.match(/category "(\w+)"/);
         return match ? match[1] : '';
       });
@@ -348,7 +340,7 @@ describe('CrossRealityValidator', () => {
 
       const result = validator.validate(composition);
 
-      const cr004 = result.issues.filter(i => i.code === 'CR004');
+      const cr004 = result.issues.filter((i) => i.code === 'CR004');
       expect(cr004).toHaveLength(0);
     });
 
@@ -366,7 +358,7 @@ describe('CrossRealityValidator', () => {
 
       const result = validator.validate(composition);
 
-      const cr004 = result.issues.filter(i => i.code === 'CR004');
+      const cr004 = result.issues.filter((i) => i.code === 'CR004');
       expect(cr004).toHaveLength(0);
     });
   });
@@ -381,7 +373,7 @@ describe('CrossRealityValidator', () => {
       const result = validator.validate(composition);
 
       const cr005 = result.issues.filter(
-        i => i.code === 'CR005' && i.blockName === 'vr-headset->wearable',
+        (i) => i.code === 'CR005' && i.blockName === 'vr-headset->wearable'
       );
       expect(cr005.length).toBeGreaterThanOrEqual(1);
       expect(cr005[0].severity).toBe('info');
@@ -393,7 +385,7 @@ describe('CrossRealityValidator', () => {
       const result = validator.validate(composition);
 
       const carToVr = result.issues.filter(
-        i => i.code === 'CR005' && i.blockName === 'car->vr-headset',
+        (i) => i.code === 'CR005' && i.blockName === 'car->vr-headset'
       );
       expect(carToVr.length).toBeGreaterThanOrEqual(1);
       expect(carToVr[0].message).toContain('Safety');
@@ -404,7 +396,7 @@ describe('CrossRealityValidator', () => {
       const result = validator.validate(composition);
 
       const vrToCar = result.issues.filter(
-        i => i.code === 'CR005' && i.blockName === 'vr-headset->car',
+        (i) => i.code === 'CR005' && i.blockName === 'vr-headset->car'
       );
       expect(vrToCar.length).toBeGreaterThanOrEqual(1);
       expect(vrToCar[0].message).toContain('Safety');
@@ -421,15 +413,13 @@ describe('CrossRealityValidator', () => {
       const composition = makeComposition({
         state: {
           type: 'State',
-          properties: [
-            { type: 'StateProperty', key: 'bigData', value: largeString },
-          ],
+          properties: [{ type: 'StateProperty', key: 'bigData', value: largeString }],
         },
       });
 
       const result = validator.validate(composition);
 
-      const cr006 = result.issues.filter(i => i.code === 'CR006');
+      const cr006 = result.issues.filter((i) => i.code === 'CR006');
       expect(cr006).toHaveLength(1);
       expect(cr006[0].severity).toBe('warning');
       expect(cr006[0].message).toContain('10KB');
@@ -448,7 +438,7 @@ describe('CrossRealityValidator', () => {
 
       const result = validator.validate(composition);
 
-      const cr006 = result.issues.filter(i => i.code === 'CR006');
+      const cr006 = result.issues.filter((i) => i.code === 'CR006');
       expect(cr006).toHaveLength(0);
     });
   });
@@ -461,18 +451,14 @@ describe('CrossRealityValidator', () => {
     it('detects circular handoff between two objects', () => {
       const composition = makeComposition({
         objects: [
-          makeObject('deviceA', [
-            makeTrait('handoff', { target: 'deviceB' }),
-          ]),
-          makeObject('deviceB', [
-            makeTrait('handoff', { target: 'deviceA' }),
-          ]),
+          makeObject('deviceA', [makeTrait('handoff', { target: 'deviceB' })]),
+          makeObject('deviceB', [makeTrait('handoff', { target: 'deviceA' })]),
         ],
       });
 
       const result = validator.validate(composition);
 
-      const cr007 = result.issues.filter(i => i.code === 'CR007');
+      const cr007 = result.issues.filter((i) => i.code === 'CR007');
       expect(cr007).toHaveLength(1);
       expect(cr007[0].severity).toBe('error');
       expect(cr007[0].message).toContain('Circular');
@@ -489,7 +475,7 @@ describe('CrossRealityValidator', () => {
 
       const result = validator.validate(composition);
 
-      const cr007 = result.issues.filter(i => i.code === 'CR007');
+      const cr007 = result.issues.filter((i) => i.code === 'CR007');
       expect(cr007).toHaveLength(1);
       expect(cr007[0].message).toContain('Circular');
     });
@@ -505,7 +491,7 @@ describe('CrossRealityValidator', () => {
 
       const result = validator.validate(composition);
 
-      const cr007 = result.issues.filter(i => i.code === 'CR007');
+      const cr007 = result.issues.filter((i) => i.code === 'CR007');
       expect(cr007).toHaveLength(0);
     });
   });
@@ -540,7 +526,7 @@ describe('CrossRealityValidator', () => {
       const composition = makeComposition();
       const paths = validator.analyzeHandoffPaths(composition);
 
-      const pairSet = new Set(paths.map(p => `${p.from}->${p.to}`));
+      const pairSet = new Set(paths.map((p) => `${p.from}->${p.to}`));
       for (const from of FORM_FACTORS) {
         for (const to of FORM_FACTORS) {
           if (from === to) continue;
@@ -553,8 +539,8 @@ describe('CrossRealityValidator', () => {
       const composition = makeComposition();
       const paths = validator.analyzeHandoffPaths(composition);
 
-      const carToVr = paths.find(p => p.from === 'car' && p.to === 'vr-headset');
-      const vrToCar = paths.find(p => p.from === 'vr-headset' && p.to === 'car');
+      const carToVr = paths.find((p) => p.from === 'car' && p.to === 'vr-headset');
+      const vrToCar = paths.find((p) => p.from === 'vr-headset' && p.to === 'car');
 
       expect(carToVr?.feasible).toBe(false);
       expect(vrToCar?.feasible).toBe(false);
@@ -566,7 +552,7 @@ describe('CrossRealityValidator', () => {
       const composition = makeComposition();
       const paths = validator.analyzeHandoffPaths(composition);
 
-      const phoneToVr = paths.find(p => p.from === 'phone' && p.to === 'vr-headset');
+      const phoneToVr = paths.find((p) => p.from === 'phone' && p.to === 'vr-headset');
       expect(phoneToVr?.feasible).toBe(true);
     });
 
@@ -574,7 +560,7 @@ describe('CrossRealityValidator', () => {
       const composition = makeComposition();
       const paths = validator.analyzeHandoffPaths(composition);
 
-      const wearableToVr = paths.find(p => p.from === 'wearable' && p.to === 'vr-headset');
+      const wearableToVr = paths.find((p) => p.from === 'wearable' && p.to === 'vr-headset');
       expect(wearableToVr?.feasible).toBe(true);
     });
 
@@ -582,7 +568,7 @@ describe('CrossRealityValidator', () => {
       const composition = makeComposition();
       const paths = validator.analyzeHandoffPaths(composition);
 
-      const vrToPhone = paths.find(p => p.from === 'vr-headset' && p.to === 'phone');
+      const vrToPhone = paths.find((p) => p.from === 'vr-headset' && p.to === 'phone');
       expect(vrToPhone?.adaptations).toContain('embodiment: Avatar3D -> UI2D');
     });
 
@@ -590,7 +576,7 @@ describe('CrossRealityValidator', () => {
       const composition = makeComposition();
       const paths = validator.analyzeHandoffPaths(composition);
 
-      const vrToDesktop = paths.find(p => p.from === 'vr-headset' && p.to === 'desktop');
+      const vrToDesktop = paths.find((p) => p.from === 'vr-headset' && p.to === 'desktop');
       expect(vrToDesktop?.adaptations).toContain('spatial_context: 3D -> 2D projection');
     });
 
@@ -598,8 +584,8 @@ describe('CrossRealityValidator', () => {
       const composition = makeComposition();
       const paths = validator.analyzeHandoffPaths(composition);
 
-      const vrToDesktop = paths.find(p => p.from === 'vr-headset' && p.to === 'desktop');
-      const inputAdaptation = vrToDesktop?.adaptations.find(a => a.startsWith('input:'));
+      const vrToDesktop = paths.find((p) => p.from === 'vr-headset' && p.to === 'desktop');
+      const inputAdaptation = vrToDesktop?.adaptations.find((a) => a.startsWith('input:'));
       expect(inputAdaptation).toBeDefined();
       expect(inputAdaptation).toContain('hand/controller');
       expect(inputAdaptation).toContain('mouse/keyboard');
@@ -626,10 +612,7 @@ describe('CrossRealityValidator', () => {
 
     it('counts unconstrained objects for all platforms', () => {
       const composition = makeComposition({
-        objects: [
-          makeObject('universal1'),
-          makeObject('universal2'),
-        ],
+        objects: [makeObject('universal1'), makeObject('universal2')],
       });
 
       const coverage = validator.analyzePlatformCoverage(composition);
@@ -681,9 +664,7 @@ describe('CrossRealityValidator', () => {
           // CR001: VR-only trait without platform constraint
           makeObject('unguardedVR', [makeTrait('hand_tracking')]),
           // CR004 + CR002: Only VR-constrained, no fallback
-          makeObject('vrWidget', [
-            makeTrait('platform', { include: ['vr'] }),
-          ]),
+          makeObject('vrWidget', [makeTrait('platform', { include: ['vr'] })]),
           // CR007: Circular handoff
           makeObject('hubA', [makeTrait('handoff', { target: 'hubB' })]),
           makeObject('hubB', [makeTrait('handoff', { target: 'hubA' })]),
@@ -711,7 +692,7 @@ describe('CrossRealityValidator', () => {
 
       expect(result.valid).toBe(false); // Has errors (CR001, CR003, CR007)
 
-      const codes = new Set(result.issues.map(i => i.code));
+      const codes = new Set(result.issues.map((i) => i.code));
       expect(codes.has('CR001')).toBe(true);
       expect(codes.has('CR003')).toBe(true);
       expect(codes.has('CR006')).toBe(true);
@@ -735,11 +716,11 @@ describe('CrossRealityValidator', () => {
       // CR004 will fire (some platforms empty)
       // CR002 will fire (no fallback)
       // These are all warnings, not errors
-      const errors = result.issues.filter(i => i.severity === 'error');
+      const errors = result.issues.filter((i) => i.severity === 'error');
       expect(errors).toHaveLength(0);
       expect(result.valid).toBe(true);
 
-      const warnings = result.issues.filter(i => i.severity === 'warning');
+      const warnings = result.issues.filter((i) => i.severity === 'warning');
       expect(warnings.length).toBeGreaterThan(0);
     });
   });
@@ -756,16 +737,14 @@ describe('CrossRealityValidator', () => {
             type: 'SpatialGroup',
             name: 'mainGroup',
             properties: [],
-            objects: [
-              makeObject('nestedVR', [makeTrait('hand_tracking')]),
-            ],
+            objects: [makeObject('nestedVR', [makeTrait('hand_tracking')])],
           },
         ],
       });
 
       const result = validator.validate(composition);
 
-      const cr001 = result.issues.filter(i => i.code === 'CR001');
+      const cr001 = result.issues.filter((i) => i.code === 'CR001');
       expect(cr001).toHaveLength(1);
       expect(cr001[0].blockName).toBe('nestedVR');
     });
@@ -776,16 +755,14 @@ describe('CrossRealityValidator', () => {
           {
             type: 'ConditionalBlock',
             condition: 'state.isVR',
-            objects: [
-              makeObject('conditionalVR', [makeTrait('eye_tracking')]),
-            ],
+            objects: [makeObject('conditionalVR', [makeTrait('eye_tracking')])],
           },
         ],
       });
 
       const result = validator.validate(composition);
 
-      const cr001 = result.issues.filter(i => i.code === 'CR001');
+      const cr001 = result.issues.filter((i) => i.code === 'CR001');
       expect(cr001).toHaveLength(1);
       expect(cr001[0].blockName).toBe('conditionalVR');
     });
@@ -797,16 +774,14 @@ describe('CrossRealityValidator', () => {
             type: 'ForEachBlock',
             variable: 'item',
             iterable: 'items',
-            objects: [
-              makeObject('iteratedVR', [makeTrait('spatial_audio_3d')]),
-            ],
+            objects: [makeObject('iteratedVR', [makeTrait('spatial_audio_3d')])],
           },
         ],
       });
 
       const result = validator.validate(composition);
 
-      const cr001 = result.issues.filter(i => i.code === 'CR001');
+      const cr001 = result.issues.filter((i) => i.code === 'CR001');
       expect(cr001).toHaveLength(1);
       expect(cr001[0].blockName).toBe('iteratedVR');
     });

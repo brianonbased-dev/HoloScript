@@ -11,7 +11,15 @@
 // TYPES
 // =============================================================================
 
-export type PropertyType = 'string' | 'number' | 'boolean' | 'color' | 'vector3' | 'enum' | 'asset' | 'object';
+export type PropertyType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'color'
+  | 'vector3'
+  | 'enum'
+  | 'asset'
+  | 'object';
 
 export interface PropertyDescriptor {
   key: string;
@@ -201,12 +209,19 @@ export class PropertyGrid {
         return { valid: true };
       }
       case 'string':
-        return typeof value === 'string' ? { valid: true } : { valid: false, error: 'Expected string' };
+        return typeof value === 'string'
+          ? { valid: true }
+          : { valid: false, error: 'Expected string' };
       case 'boolean':
-        return typeof value === 'boolean' ? { valid: true } : { valid: false, error: 'Expected boolean' };
+        return typeof value === 'boolean'
+          ? { valid: true }
+          : { valid: false, error: 'Expected boolean' };
       case 'enum':
         if (descriptor.enumValues && !descriptor.enumValues.includes(value as string))
-          return { valid: false, error: `Value must be one of: ${descriptor.enumValues.join(', ')}` };
+          return {
+            valid: false,
+            error: `Value must be one of: ${descriptor.enumValues.join(', ')}`,
+          };
         return { valid: true };
       default:
         return { valid: true };

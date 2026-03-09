@@ -4,7 +4,10 @@ import { BloomEffect } from '../BloomEffect';
 function makePixels(w: number, h: number, fill = 0.5): Float32Array {
   const px = new Float32Array(w * h * 4);
   for (let i = 0; i < px.length; i += 4) {
-    px[i] = fill; px[i + 1] = fill; px[i + 2] = fill; px[i + 3] = 1;
+    px[i] = fill;
+    px[i + 1] = fill;
+    px[i + 2] = fill;
+    px[i + 3] = 1;
   }
   return px;
 }
@@ -12,7 +15,9 @@ function makePixels(w: number, h: number, fill = 0.5): Float32Array {
 describe('BloomEffect', () => {
   let bloom: BloomEffect;
 
-  beforeEach(() => { bloom = new BloomEffect(); });
+  beforeEach(() => {
+    bloom = new BloomEffect();
+  });
 
   it('default config', () => {
     const c = bloom.getConfig();

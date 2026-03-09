@@ -43,7 +43,9 @@ vi.mock('../../../choreography/ChoreographyEngine', () => {
 
 vi.mock('../../../choreography/ChoreographyPlanner', () => {
   const MockPlanner = vi.fn().mockImplementation(() => ({
-    createPlan: vi.fn().mockReturnValue({ id: 'plan-1', goal: 'test', status: 'pending', steps: [] }),
+    createPlan: vi
+      .fn()
+      .mockReturnValue({ id: 'plan-1', goal: 'test', status: 'pending', steps: [] }),
   }));
   const mockPlanBuilder = { step: vi.fn().mockReturnThis(), build: vi.fn() };
   return {
@@ -238,7 +240,10 @@ describe('getActivePlans', () => {
 
   it('returns plan IDs from activePlans map', () => {
     const { node } = attach({ mode: 'participant' });
-    (node as any).__choreography_state.activePlans.set('plan-42', { id: 'plan-42', status: 'running' });
+    (node as any).__choreography_state.activePlans.set('plan-42', {
+      id: 'plan-42',
+      status: 'running',
+    });
     expect(getActivePlans(node as any)).toContain('plan-42');
   });
 });
@@ -291,7 +296,9 @@ describe('getEventHistory', () => {
 describe('utility function error cases', () => {
   it('registerAction throws when trait not attached', () => {
     const node = makeNode();
-    expect(() => registerAction(node as any, 'act', async () => ({}))).toThrow('Choreography trait not attached');
+    expect(() => registerAction(node as any, 'act', async () => ({}))).toThrow(
+      'Choreography trait not attached'
+    );
   });
 
   it('getActivePlans throws when trait not attached', () => {

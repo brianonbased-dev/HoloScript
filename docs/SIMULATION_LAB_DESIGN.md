@@ -20,6 +20,7 @@ Results are exportable and sellable on the marketplace as verified simulation da
 ## Use Cases
 
 ### Economy Stress Testing
+
 ```holoscript
 scene "Economy Stress Test" {
   @simulation_lab(
@@ -35,6 +36,7 @@ scene "Economy Stress Test" {
 ```
 
 ### Fibonacci in Nature
+
 ```holoscript
 scene "Fibonacci vs Random Growth" {
   @simulation_lab(
@@ -51,6 +53,7 @@ scene "Fibonacci vs Random Growth" {
 ```
 
 ### Younger Dryas Flooding
+
 ```holoscript
 scene "Coastline Submersion Model" {
   @simulation_lab(
@@ -65,6 +68,7 @@ scene "Coastline Submersion Model" {
 ```
 
 ### Agent Culture Emergence
+
 ```holoscript
 scene "Emergent Social Norms" {
   @simulation_lab(
@@ -103,17 +107,18 @@ scene "Emergent Social Norms" {
 
 ### Trait Composition
 
-| Composes With | What It Enables |
-|---|---|
-| `@pid_controlled` | Test economic stability under stress |
-| `@bonding_curved` | Test price discovery convergence |
-| `@taxable_wealth` | Test Gini reduction effectiveness |
-| `@depreciating` | Test sink mechanics over time |
-| `@tradeable` | Test marketplace dynamics with N agents |
+| Composes With     | What It Enables                         |
+| ----------------- | --------------------------------------- |
+| `@pid_controlled` | Test economic stability under stress    |
+| `@bonding_curved` | Test price discovery convergence        |
+| `@taxable_wealth` | Test Gini reduction effectiveness       |
+| `@depreciating`   | Test sink mechanics over time           |
+| `@tradeable`      | Test marketplace dynamics with N agents |
 
 ### Compiler Integration
 
 The HoloScript compiler detects `@simulation_lab` and:
+
 1. Generates a batch runner (worker thread pool)
 2. Expands parameter sweeps into job queue
 3. Collects metrics via instrumented scene tick
@@ -125,6 +130,7 @@ The HoloScript compiler detects `@simulation_lab` and:
 ## Marketplace Integration
 
 Simulation results are a new marketplace content type:
+
 - **Verified results** — hash of composition + parameters + outcomes
 - **Reproducible** — anyone can re-run with the same seed
 - **Sellable** — researchers sell proven hypotheses
@@ -132,4 +138,4 @@ Simulation results are a new marketplace content type:
 
 ---
 
-*Part of HoloScript Standard Library v4.3+*
+_Part of HoloScript Standard Library v4.3+_

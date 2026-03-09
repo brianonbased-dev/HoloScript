@@ -4,8 +4,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { anchorHandler } from '../AnchorTrait';
 
-function makeNode() { return { id: 'anchor_node' }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'anchor_node' };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}) {
   const node = makeNode();
   const ctx = makeCtx();
@@ -38,18 +42,22 @@ describe('anchorHandler.onAttach', () => {
   it('creates __anchorState', () => expect(attach().node.__anchorState).toBeDefined());
   it('isAnchored=false', () => expect(attach().node.__anchorState.isAnchored).toBe(false));
   it('anchorId=null', () => expect(attach().node.__anchorState.anchorId).toBeNull());
-  it('trackingState=initializing', () => expect(attach().node.__anchorState.trackingState).toBe('initializing'));
+  it('trackingState=initializing', () =>
+    expect(attach().node.__anchorState.trackingState).toBe('initializing'));
   it('pose=null', () => expect(attach().node.__anchorState.pose).toBeNull());
   it('lastValidPose=null', () => expect(attach().node.__anchorState.lastValidPose).toBeNull());
   it('lostTime=0', () => expect(attach().node.__anchorState.lostTime).toBe(0));
   it('updateCount=0', () => expect(attach().node.__anchorState.updateCount).toBe(0));
   it('emits anchor_request with type and quality', () => {
     const { ctx } = attach({ anchor_type: 'image', tracking_quality: 'medium', persist: true });
-    expect(ctx.emit).toHaveBeenCalledWith('anchor_request', expect.objectContaining({
-      type: 'image',
-      quality: 'medium',
-      persist: true,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'anchor_request',
+      expect.objectContaining({
+        type: 'image',
+        quality: 'medium',
+        persist: true,
+      })
+    );
   });
 });
 
@@ -66,7 +74,10 @@ describe('anchorHandler.onDetach', () => {
     node.__anchorState.anchorId = 'anc-x';
     ctx.emit.mockClear();
     anchorHandler.onDetach!(node, config, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('anchor_release', expect.objectContaining({ anchorId: 'anc-x', persist: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'anchor_release',
+      expect.objectContaining({ anchorId: 'anc-x', persist: true })
+    );
   });
   it('no anchor_release when anchorId is null', () => {
     const { node, config, ctx } = attach();
@@ -96,43 +107,70 @@ describe('anchorHandler.onEvent — anchor_created', () => {
   });
   it('stores persistenceId when provided', () => {
     const { node, ctx, config } = attach();
-    anchorHandler.onEvent!(node, config, ctx, { type: 'anchor_created', anchorId: 'a1', persistenceId: 'persist-99' });
+    anchorHandler.onEvent!(node, config, ctx, {
+      type: 'anchor_created',
+      anchorId: 'a1',
+      persistenceId: 'persist-99',
+    });
     expect(node.__anchorState.persistenceId).toBe('persist-99');
   });
   it('emits anchor_ready', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     createAnchor(node, ctx, config, 'anc-2');
-    expect(ctx.emit).toHaveBeenCalledWith('anchor_ready', expect.objectContaining({ anchorId: 'anc-2' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'anchor_ready',
+      expect.objectContaining({ anchorId: 'anc-2' })
+    );
   });
 });
 
 // ─── onEvent — anchor_pose_update ─────────────────────────────────────────────
 
 describe('anchorHandler.onEvent — anchor_pose_update', () => {
-  const pose = { position: { x: 1, y: 2, z: 3 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: 0.95 };
+  const pose = {
+    position: { x: 1, y: 2, z: 3 },
+    rotation: { x: 0, y: 0, z: 0, w: 1 },
+    confidence: 0.95,
+  };
   it('updates pose', () => {
     const { node, ctx, config } = attach();
     createAnchor(node, ctx, config, 'anc-1');
-    anchorHandler.onEvent!(node, config, ctx, { type: 'anchor_pose_update', anchorId: 'anc-1', pose });
+    anchorHandler.onEvent!(node, config, ctx, {
+      type: 'anchor_pose_update',
+      anchorId: 'anc-1',
+      pose,
+    });
     expect(node.__anchorState.pose).toBe(pose);
   });
   it('updates lastValidPose', () => {
     const { node, ctx, config } = attach();
     createAnchor(node, ctx, config, 'anc-1');
-    anchorHandler.onEvent!(node, config, ctx, { type: 'anchor_pose_update', anchorId: 'anc-1', pose });
+    anchorHandler.onEvent!(node, config, ctx, {
+      type: 'anchor_pose_update',
+      anchorId: 'anc-1',
+      pose,
+    });
     expect(node.__anchorState.lastValidPose).toBe(pose);
   });
   it('increments updateCount', () => {
     const { node, ctx, config } = attach();
     createAnchor(node, ctx, config, 'anc-1');
-    anchorHandler.onEvent!(node, config, ctx, { type: 'anchor_pose_update', anchorId: 'anc-1', pose });
+    anchorHandler.onEvent!(node, config, ctx, {
+      type: 'anchor_pose_update',
+      anchorId: 'anc-1',
+      pose,
+    });
     expect(node.__anchorState.updateCount).toBe(1);
   });
   it('ignored when anchorId does not match', () => {
     const { node, ctx, config } = attach();
     createAnchor(node, ctx, config, 'anc-1');
-    anchorHandler.onEvent!(node, config, ctx, { type: 'anchor_pose_update', anchorId: 'wrong', pose });
+    anchorHandler.onEvent!(node, config, ctx, {
+      type: 'anchor_pose_update',
+      anchorId: 'wrong',
+      pose,
+    });
     expect(node.__anchorState.pose).toBeNull();
   });
   it('recovers tracking and emits anchor_recovered when was lost', () => {
@@ -140,11 +178,18 @@ describe('anchorHandler.onEvent — anchor_pose_update', () => {
     createAnchor(node, ctx, config, 'anc-1');
     node.__anchorState.trackingState = 'lost';
     ctx.emit.mockClear();
-    anchorHandler.onEvent!(node, config, ctx, { type: 'anchor_pose_update', anchorId: 'anc-1', pose });
+    anchorHandler.onEvent!(node, config, ctx, {
+      type: 'anchor_pose_update',
+      anchorId: 'anc-1',
+      pose,
+    });
     expect(node.__anchorState.trackingState).toBe('tracking');
     expect(node.__anchorState.lostTime).toBe(0);
     expect(ctx.emit).toHaveBeenCalledWith('anchor_recovered', expect.anything());
-    expect(ctx.emit).toHaveBeenCalledWith('set_visible', expect.objectContaining({ visible: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'set_visible',
+      expect.objectContaining({ visible: true })
+    );
   });
 });
 
@@ -169,7 +214,10 @@ describe('anchorHandler.onEvent — anchor_tracking_lost', () => {
     createAnchor(node, ctx, config, 'anc-1');
     ctx.emit.mockClear();
     anchorHandler.onEvent!(node, config, ctx, { type: 'anchor_tracking_lost', anchorId: 'anc-1' });
-    expect(ctx.emit).toHaveBeenCalledWith('anchor_lost', expect.objectContaining({ anchorId: 'anc-1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'anchor_lost',
+      expect.objectContaining({ anchorId: 'anc-1' })
+    );
   });
   it('ignored when anchorId does not match', () => {
     const { node, ctx, config } = attach();
@@ -194,7 +242,10 @@ describe('anchorHandler.onEvent — anchor_restore', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     anchorHandler.onEvent!(node, config, ctx, { type: 'anchor_restore', persistenceId: 'p-123' });
-    expect(ctx.emit).toHaveBeenCalledWith('anchor_restore_request', expect.objectContaining({ persistenceId: 'p-123' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'anchor_restore_request',
+      expect.objectContaining({ persistenceId: 'p-123' })
+    );
   });
 });
 
@@ -207,7 +258,10 @@ describe('anchorHandler.onUpdate — fallback: hide', () => {
     node.__anchorState.trackingState = 'lost';
     ctx.emit.mockClear();
     anchorHandler.onUpdate!(node, config, ctx, 0.1);
-    expect(ctx.emit).toHaveBeenCalledWith('set_visible', expect.objectContaining({ visible: false }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'set_visible',
+      expect.objectContaining({ visible: false })
+    );
   });
 });
 
@@ -240,10 +294,17 @@ describe('anchorHandler.onUpdate — fallback: interpolate', () => {
     const { node, ctx, config } = attach({ fallback_behavior: 'interpolate' });
     createAnchor(node, ctx, config);
     node.__anchorState.trackingState = 'lost';
-    node.__anchorState.lastValidPose = { position: { x: 5, y: 1, z: 2 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: 1 };
+    node.__anchorState.lastValidPose = {
+      position: { x: 5, y: 1, z: 2 },
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      confidence: 1,
+    };
     ctx.emit.mockClear();
     anchorHandler.onUpdate!(node, config, ctx, 0.1);
-    expect(ctx.emit).toHaveBeenCalledWith('set_position', expect.objectContaining({ position: { x: 5, y: 1, z: 2 } }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'set_position',
+      expect.objectContaining({ position: { x: 5, y: 1, z: 2 } })
+    );
   });
 });
 
@@ -251,13 +312,17 @@ describe('anchorHandler.onUpdate — offset application', () => {
   it('emits set_position with offset applied when tracking', () => {
     const { node, ctx, config } = attach({ offset: [1, 0.5, 0] });
     createAnchor(node, ctx, config);
-    node.__anchorState.pose = { position: { x: 2, y: 1, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: 1 };
+    node.__anchorState.pose = {
+      position: { x: 2, y: 1, z: 0 },
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      confidence: 1,
+    };
     ctx.emit.mockClear();
     anchorHandler.onUpdate!(node, config, ctx, 0.1);
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'set_position')!;
-    expect(call[1].position.x).toBeCloseTo(3);   // 2 + 1
-    expect(call[1].position.y).toBeCloseTo(1.5);  // 1 + 0.5
-    expect(call[1].position.z).toBeCloseTo(0);    // 0 + 0
+    expect(call[1].position.x).toBeCloseTo(3); // 2 + 1
+    expect(call[1].position.y).toBeCloseTo(1.5); // 1 + 0.5
+    expect(call[1].position.z).toBeCloseTo(0); // 0 + 0
   });
   it('emits set_rotation when tracking', () => {
     const { node, ctx, config } = attach();
@@ -266,7 +331,10 @@ describe('anchorHandler.onUpdate — offset application', () => {
     node.__anchorState.pose = { position: { x: 0, y: 0, z: 0 }, rotation: rot, confidence: 1 };
     ctx.emit.mockClear();
     anchorHandler.onUpdate!(node, config, ctx, 0.1);
-    expect(ctx.emit).toHaveBeenCalledWith('set_rotation', expect.objectContaining({ rotation: rot }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'set_rotation',
+      expect.objectContaining({ rotation: rot })
+    );
   });
   it('no position/rotation emit when pose is null', () => {
     const { node, ctx, config } = attach();

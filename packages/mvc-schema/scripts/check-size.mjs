@@ -22,7 +22,9 @@ try {
 }
 
 // Import from built dist (use file:// URL for Windows compatibility)
-const { compressMVCBatch } = await import(`file:///${join(distPath, 'compression', 'index.js').replace(/\\/g, '/')}`);
+const { compressMVCBatch } = await import(
+  `file:///${join(distPath, 'compression', 'index.js').replace(/\\/g, '/')}`
+);
 
 // Sample MVC objects
 const sampleObjects = [
@@ -239,9 +241,7 @@ console.log('━━━━━━━━━━━━━━━━━━━━━━�
 console.log('TOTALS:\n');
 console.log(`Total Original:    ${result.totalOriginalSize.toLocaleString()}B`);
 console.log(`Total Compressed:  ${result.totalFinalSize.toLocaleString()}B`);
-console.log(
-  `Avg Compression:   ${(result.averageCompressionRatio * 100).toFixed(1)}%`
-);
+console.log(`Avg Compression:   ${(result.averageCompressionRatio * 100).toFixed(1)}%`);
 console.log(`Target:            ${result.totalSizeTarget.toLocaleString()}B`);
 console.log('');
 

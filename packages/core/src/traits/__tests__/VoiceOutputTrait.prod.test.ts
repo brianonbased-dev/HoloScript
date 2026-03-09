@@ -16,12 +16,16 @@ const onendCallbacks: Array<() => void> = [];
 
 const MockUtterance = class {
   text: string;
-  pitch = 1; rate = 1; volume = 1;
+  pitch = 1;
+  rate = 1;
+  volume = 1;
   voice: any = null;
   onend: (() => void) | null = null;
   onerror: ((e: any) => void) | null = null;
   onboundary: ((e: any) => void) | null = null;
-  constructor(t: string) { this.text = t; }
+  constructor(t: string) {
+    this.text = t;
+  }
 };
 
 const mockSynth = {
@@ -55,10 +59,13 @@ describe('VoiceOutputTrait — constructor defaults', () => {
   it('rate defaults to 1.0', () => expect(new VoiceOutputTrait().getConfig().rate).toBe(1.0));
   it('volume defaults to 1.0', () => expect(new VoiceOutputTrait().getConfig().volume).toBe(1.0));
   it('ssml defaults to false', () => expect(new VoiceOutputTrait().getConfig().ssml).toBe(false));
-  it('maxQueueSize defaults to 50', () => expect(new VoiceOutputTrait().getConfig().maxQueueSize).toBe(50));
-  it('interrupt defaults to false', () => expect(new VoiceOutputTrait().getConfig().interrupt).toBe(false));
+  it('maxQueueSize defaults to 50', () =>
+    expect(new VoiceOutputTrait().getConfig().maxQueueSize).toBe(50));
+  it('interrupt defaults to false', () =>
+    expect(new VoiceOutputTrait().getConfig().interrupt).toBe(false));
   it('initial state = idle', () => expect(new VoiceOutputTrait().getState()).toBe('idle'));
-  it('isSpeaking() = false initially', () => expect(new VoiceOutputTrait().isSpeaking()).toBe(false));
+  it('isSpeaking() = false initially', () =>
+    expect(new VoiceOutputTrait().isSpeaking()).toBe(false));
   it('isPaused() = false initially', () => expect(new VoiceOutputTrait().isPaused()).toBe(false));
   it('createVoiceOutputTrait factory returns VoiceOutputTrait instance', () => {
     expect(createVoiceOutputTrait()).toBeInstanceOf(VoiceOutputTrait);
@@ -82,7 +89,10 @@ describe('VoiceOutputTrait — constructor defaults', () => {
 
 describe('VoiceOutputTrait — voice management', () => {
   const sampleVoice: VoiceDefinition = {
-    id: 'v1', name: 'Alice', language: 'en-US', gender: 'female',
+    id: 'v1',
+    name: 'Alice',
+    language: 'en-US',
+    gender: 'female',
   };
 
   it('addVoice stores voice by id', () => {
@@ -185,9 +195,9 @@ describe('VoiceOutputTrait — speak / queue / priority', () => {
   });
   it('removeFromQueue removes specific item by id', () => {
     const t = new VoiceOutputTrait();
-    t.speak('a');         // starts speaking, state=speaking
+    t.speak('a'); // starts speaking, state=speaking
     const id = t.speak('b'); // queued [0]
-    t.speak('c');         // queued [1]
+    t.speak('c'); // queued [1]
     // b and c are in the queue, a is being "spoken"
     expect(t.removeFromQueue(id)).toBe(true);
     expect(t.getQueueLength()).toBe(1);
@@ -206,7 +216,8 @@ describe('VoiceOutputTrait — speak / queue / priority', () => {
   });
   it('stopAll empties queue and resets state to idle', () => {
     const t = new VoiceOutputTrait();
-    t.speak('a'); t.speak('b');
+    t.speak('a');
+    t.speak('b');
     t.stopAll();
     expect(t.getQueueLength()).toBe(0);
     expect(t.getState()).toBe('idle');

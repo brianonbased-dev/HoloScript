@@ -226,7 +226,9 @@ describe('DuplicateFinder', () => {
 describe('TreemapGenerator', () => {
   const gen = new TreemapGenerator();
 
-  function makeNodes(entries: Array<{ name: string; size: number; category?: string }>): TreemapNode[] {
+  function makeNodes(
+    entries: Array<{ name: string; size: number; category?: string }>
+  ): TreemapNode[] {
     return entries.map(({ name, size, category }) => ({ name, size, category }));
   }
 

@@ -15,7 +15,17 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Server, RefreshCw, X, Play, Check, AlertCircle, ChevronRight, Search, Settings } from 'lucide-react';
+import {
+  Server,
+  RefreshCw,
+  X,
+  Play,
+  Check,
+  AlertCircle,
+  ChevronRight,
+  Search,
+  Settings,
+} from 'lucide-react';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
 import { MCPClient, createMCPClient, type MCPToolCallRequest } from '@/lib/mcpClient';
 import type { MCPServerConfig, ServerStatus, MCPTool } from '@/lib/orchestrationStore';
@@ -115,7 +125,10 @@ function ServerCard({ server, status, isSelected, onClick, onToggleEnabled }: Se
     >
       <div className="flex items-center gap-2">
         {/* Status Indicator */}
-        <div className={`h-2 w-2 rounded-full ${statusColor}`} title={status?.isHealthy ? 'Online' : 'Offline'} />
+        <div
+          className={`h-2 w-2 rounded-full ${statusColor}`}
+          title={status?.isHealthy ? 'Online' : 'Offline'}
+        />
 
         {/* Server Name */}
         <div className="flex-1 min-w-0">
@@ -125,9 +138,7 @@ function ServerCard({ server, status, isSelected, onClick, onToggleEnabled }: Se
 
         {/* Tool Count */}
         {status && (
-          <div className="text-[9px] text-studio-muted">
-            {status.availableTools} tools
-          </div>
+          <div className="text-[9px] text-studio-muted">{status.availableTools} tools</div>
         )}
 
         {/* Enabled Toggle */}
@@ -149,9 +160,7 @@ function ServerCard({ server, status, isSelected, onClick, onToggleEnabled }: Se
 
       {/* Response Time */}
       {status && status.isHealthy && (
-        <div className="mt-1 text-[9px] text-studio-muted">
-          {status.responseTime.toFixed(0)}ms
-        </div>
+        <div className="mt-1 text-[9px] text-studio-muted">{status.responseTime.toFixed(0)}ms</div>
       )}
     </div>
   );
@@ -201,8 +210,7 @@ function ToolBrowser({ server, onTestTool }: ToolBrowserProps) {
     const query = debouncedSearchQuery.toLowerCase();
     return tools.filter(
       (tool) =>
-        tool.name.toLowerCase().includes(query) ||
-        tool.description.toLowerCase().includes(query)
+        tool.name.toLowerCase().includes(query) || tool.description.toLowerCase().includes(query)
     );
   }, [tools, debouncedSearchQuery]);
 
@@ -243,9 +251,7 @@ function ToolBrowser({ server, onTestTool }: ToolBrowserProps) {
       {/* Tool List */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {filteredTools.length === 0 && (
-          <div className="text-center text-studio-muted text-[10px] py-6">
-            No tools found
-          </div>
+          <div className="text-center text-studio-muted text-[10px] py-6">No tools found</div>
         )}
 
         {filteredTools.map((tool) => (
@@ -255,13 +261,18 @@ function ToolBrowser({ server, onTestTool }: ToolBrowserProps) {
             onClick={() => onTestTool(tool)}
           >
             <div className="flex items-center justify-between">
-              <div className="font-mono text-[10px] font-semibold text-studio-accent">{tool.name}</div>
+              <div className="font-mono text-[10px] font-semibold text-studio-accent">
+                {tool.name}
+              </div>
               <Play className="h-3 w-3 text-studio-muted" />
             </div>
             <div className="mt-1 text-[9px] text-studio-muted line-clamp-2">{tool.description}</div>
             <div className="mt-1.5 flex flex-wrap gap-1">
               {Object.keys(tool.parameters).map((param) => (
-                <span key={param} className="text-[8px] bg-studio-surface px-1.5 py-0.5 rounded text-studio-muted">
+                <span
+                  key={param}
+                  className="text-[8px] bg-studio-surface px-1.5 py-0.5 rounded text-studio-muted"
+                >
                   {param}
                 </span>
               ))}
@@ -281,7 +292,9 @@ interface ToolTesterProps {
 
 function ToolTester({ tool, server, onClose }: ToolTesterProps) {
   const [args, setArgs] = useState<Record<string, unknown>>({});
-  const [result, setResult] = useState<{ success: boolean; data?: unknown; error?: string } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; data?: unknown; error?: string } | null>(
+    null
+  );
   const [testing, setTesting] = useState(false);
 
   const handleTest = async () => {
@@ -319,7 +332,10 @@ function ToolTester({ tool, server, onClose }: ToolTesterProps) {
       <div className="flex items-center gap-2 border-b border-studio-border px-3 py-2.5">
         <Play className="h-4 w-4 text-studio-accent" />
         <span className="text-[12px] font-semibold">Test Tool: {tool.name}</span>
-        <button onClick={onClose} className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text">
+        <button
+          onClick={onClose}
+          className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -414,11 +430,11 @@ export function MCPServerConfigPanel({ onClose }: MCPServerConfigPanelProps) {
   const [showAddServer, setShowAddServer] = useState(false);
 
   const selectedServer = useMemo(() => {
-    return selectedServerName ? mcpServers.get(selectedServerName) ?? null : null;
+    return selectedServerName ? (mcpServers.get(selectedServerName) ?? null) : null;
   }, [selectedServerName, mcpServers]);
 
   const selectedStatus = useMemo(() => {
-    return selectedServerName ? serverStatuses.get(selectedServerName) ?? null : null;
+    return selectedServerName ? (serverStatuses.get(selectedServerName) ?? null) : null;
   }, [selectedServerName, serverStatuses]);
 
   useMCPServerHealth(selectedServer);

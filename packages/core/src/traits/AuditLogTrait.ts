@@ -346,7 +346,10 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
       }
 
       // Check if this is a read operation
-      if (!config.logReads && (action.includes('.read') || action.includes('.view') || action.includes('.query'))) {
+      if (
+        !config.logReads &&
+        (action.includes('.read') || action.includes('.view') || action.includes('.query'))
+      ) {
         return;
       }
 
@@ -394,7 +397,7 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
         });
       }
     } else if (event.type === 'audit_query') {
-      const query = (event as any) as AuditLogQuery & { queryId?: string };
+      const query = event as any as AuditLogQuery & { queryId?: string };
 
       let results = [...state.entries];
 

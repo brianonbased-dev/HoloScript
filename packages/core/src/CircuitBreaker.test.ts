@@ -15,7 +15,7 @@ import {
   CircuitBreaker,
   CircuitBreakerManager,
   CircuitState,
-  CircuitBreakerConfig
+  CircuitBreakerConfig,
 } from './CircuitBreaker';
 
 describe('CircuitBreaker', () => {
@@ -31,7 +31,7 @@ describe('CircuitBreaker', () => {
       healthCheckCount: 5,
       successThreshold: 3,
       maxRetryDelay: 30000,
-      baseRetryDelay: 1000
+      baseRetryDelay: 1000,
     };
 
     circuit = new CircuitBreaker('testOperation', config);
@@ -174,7 +174,7 @@ describe('CircuitBreaker', () => {
 
     it('should transition to HALF_OPEN after timeout', async () => {
       // Wait for open state timeout
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      await new Promise((resolve) => setTimeout(resolve, 1100));
 
       expect(circuit.canExecute()).toBe(true);
 
@@ -191,7 +191,7 @@ describe('CircuitBreaker', () => {
       }
 
       // Wait for half-open
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      await new Promise((resolve) => setTimeout(resolve, 1100));
       circuit.canExecute(); // Trigger transition
     });
 
@@ -305,7 +305,7 @@ describe('CircuitBreaker', () => {
       const initialTime = initialMetrics.lastStateChange.getTime();
 
       // Wait a bit
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Trigger state change
       for (let i = 0; i < 5; i++) {
@@ -430,7 +430,7 @@ describe('CircuitBreakerManager', () => {
     it('should use custom config for all circuits', () => {
       const customManager = new CircuitBreakerManager({
         failureRateThreshold: 0.75,
-        minimumRequests: 20
+        minimumRequests: 20,
       });
 
       const circuit = customManager.getCircuit('testOp');
@@ -452,7 +452,7 @@ describe('Edge Cases', () => {
       healthCheckCount: 5,
       successThreshold: 3,
       maxRetryDelay: 30000,
-      baseRetryDelay: 1000
+      baseRetryDelay: 1000,
     });
 
     const metrics = circuit.getMetrics();
@@ -468,7 +468,7 @@ describe('Edge Cases', () => {
       healthCheckCount: 5,
       successThreshold: 3,
       maxRetryDelay: 30000,
-      baseRetryDelay: 1000
+      baseRetryDelay: 1000,
     });
 
     // Open circuit
@@ -477,7 +477,7 @@ describe('Edge Cases', () => {
     }
 
     // Wait for half-open
-    await new Promise(resolve => setTimeout(resolve, 150));
+    await new Promise((resolve) => setTimeout(resolve, 150));
     circuit.canExecute();
 
     // Close circuit
@@ -498,14 +498,14 @@ describe('Edge Cases', () => {
       healthCheckCount: 5,
       successThreshold: 3,
       maxRetryDelay: 30000,
-      baseRetryDelay: 1000
+      baseRetryDelay: 1000,
     });
 
     // Simulate concurrent operations
     const promises = [];
     for (let i = 0; i < 100; i++) {
       promises.push(
-        new Promise(resolve => {
+        new Promise((resolve) => {
           if (Math.random() > 0.5) {
             circuit.recordSuccess();
           } else {

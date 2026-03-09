@@ -277,12 +277,42 @@ export class VoronoiFractureSystem {
 
     // Cube triangle indices (12 triangles, 2 per face)
     const indices = [
-      0, 1, 2, 0, 2, 3, // Front
-      4, 6, 5, 4, 7, 6, // Back
-      0, 4, 5, 0, 5, 1, // Bottom
-      2, 6, 7, 2, 7, 3, // Top
-      0, 3, 7, 0, 7, 4, // Left
-      1, 5, 6, 1, 6, 2, // Right
+      0,
+      1,
+      2,
+      0,
+      2,
+      3, // Front
+      4,
+      6,
+      5,
+      4,
+      7,
+      6, // Back
+      0,
+      4,
+      5,
+      0,
+      5,
+      1, // Bottom
+      2,
+      6,
+      7,
+      2,
+      7,
+      3, // Top
+      0,
+      3,
+      7,
+      0,
+      7,
+      4, // Left
+      1,
+      5,
+      6,
+      1,
+      6,
+      2, // Right
     ];
 
     const bounds = computeBoundingBox(vertices);
@@ -351,7 +381,10 @@ export class VoronoiFractureSystem {
           fragment.active = false;
 
           // Pool fragment for reuse
-          if (this.config.enablePooling && this.fragmentPool.length < this.config.maxPooledFragments) {
+          if (
+            this.config.enablePooling &&
+            this.fragmentPool.length < this.config.maxPooledFragments
+          ) {
             this.fragmentPool.push(fragment);
           }
         }
@@ -390,7 +423,10 @@ export class VoronoiFractureSystem {
         if (neighborFrag.health / this.config.maxHealth < this.config.destructionThreshold) {
           neighborFrag.active = false;
 
-          if (this.config.enablePooling && this.fragmentPool.length < this.config.maxPooledFragments) {
+          if (
+            this.config.enablePooling &&
+            this.fragmentPool.length < this.config.maxPooledFragments
+          ) {
             this.fragmentPool.push(neighborFrag);
           }
         }
@@ -507,9 +543,7 @@ export class VoronoiFractureSystem {
   }
 
   getDestroyedVolume(): number {
-    return this.fragments
-      .filter((f) => !f.active)
-      .reduce((sum, f) => sum + f.volume, 0);
+    return this.fragments.filter((f) => !f.active).reduce((sum, f) => sum + f.volume, 0);
   }
 
   getDestructionProgress(): number {

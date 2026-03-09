@@ -13,12 +13,14 @@ HoloScript provides three file formats, each designed for different use cases:
 ## Quick Format Selection
 
 ### Use `.hs` when:
+
 - Learning HoloScript basics
 - Creating simple static scenes
 - Prototyping quickly
 - No interactivity needed
 
 ### Use `.hsplus` when:
+
 - Need templates/reusability
 - State management required
 - Event-driven interactions
@@ -26,6 +28,7 @@ HoloScript provides three file formats, each designed for different use cases:
 - Modular code organization
 
 ### Use `.holo` when:
+
 - Advanced trait-based configuration
 - Complex spatial computing features
 - VR/AR/XR experiences
@@ -58,17 +61,17 @@ See the same functionality implemented in all three formats:
 
 ## Feature Matrix
 
-| Feature | `.hs` | `.hsplus` | `.holo` (entity) | `.holo` (object) |
-|---------|-------|-----------|------------------|------------------|
-| Basic objects | ✓ | ✓ | ✓ | ✓ |
-| Templates | ✗ | ✓ | ✗ | ✓ |
-| Decorators (@) | ✗ | ✓ | ✗ | ✓ |
-| State blocks | ✗ | ✓ | ✗ | ✓ |
-| Actions | ✗ | ✓ | ✗ | ✓ |
-| Event handlers | ✗ | ✓ | ✓ | ✓ |
-| Trait configs | ✗ | ✗ | ✓ | ✗ |
-| Modules | ✗ | ✓ | ✗ | ✗ |
-| Panels/UI | ✗ | ✓ | ✓ | ✓ |
+| Feature        | `.hs` | `.hsplus` | `.holo` (entity) | `.holo` (object) |
+| -------------- | ----- | --------- | ---------------- | ---------------- |
+| Basic objects  | ✓     | ✓         | ✓                | ✓                |
+| Templates      | ✗     | ✓         | ✗                | ✓                |
+| Decorators (@) | ✗     | ✓         | ✗                | ✓                |
+| State blocks   | ✗     | ✓         | ✗                | ✓                |
+| Actions        | ✗     | ✓         | ✗                | ✓                |
+| Event handlers | ✗     | ✓         | ✓                | ✓                |
+| Trait configs  | ✗     | ✗         | ✓                | ✗                |
+| Modules        | ✗     | ✓         | ✗                | ✗                |
+| Panels/UI      | ✗     | ✓         | ✓                | ✓                |
 
 ## For AI Agents
 

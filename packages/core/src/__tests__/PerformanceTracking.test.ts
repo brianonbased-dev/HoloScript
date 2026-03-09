@@ -44,7 +44,7 @@ describe('PerformanceTracker', () => {
     tracker.clearMetrics();
     tracker.recordMetric('parse', 5.1, 196); // ~2% worse
     const comparisons = tracker.compare();
-    const parseComp = comparisons.find(c => c.name === 'parse');
+    const parseComp = comparisons.find((c) => c.name === 'parse');
     expect(parseComp?.status).toBe('OK');
   });
 
@@ -54,7 +54,7 @@ describe('PerformanceTracker', () => {
     tracker.clearMetrics();
     tracker.recordMetric('parse', 6.0, 166); // 20% worse
     const comparisons = tracker.compare();
-    const parseComp = comparisons.find(c => c.name === 'parse');
+    const parseComp = comparisons.find((c) => c.name === 'parse');
     expect(['WARN', 'FAIL']).toContain(parseComp?.status);
   });
 

@@ -7,10 +7,16 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  getStarById, starsByConstellation, brightestStar,
-  magnitudeToRadius, isVisibleToNakedEye, angularDistance,
-  spectralClassToTemperature, isCircumpolar,
-  planetariumPath, mythologyOverlays,
+  getStarById,
+  starsByConstellation,
+  brightestStar,
+  magnitudeToRadius,
+  isVisibleToNakedEye,
+  angularDistance,
+  spectralClassToTemperature,
+  isCircumpolar,
+  planetariumPath,
+  mythologyOverlays,
   STAR_DATABASE,
   type ConstellationDef,
 } from '@/lib/constellationStory';
@@ -41,7 +47,7 @@ describe('Scenario: Constellation Storyteller — Star Data', () => {
   it('starsByConstellation(orion) returns Betelgeuse and Rigel', () => {
     const orion = starsByConstellation('orion');
     expect(orion).toHaveLength(2);
-    expect(orion.map(s => s.name).sort()).toEqual(['Betelgeuse', 'Rigel']);
+    expect(orion.map((s) => s.name).sort()).toEqual(['Betelgeuse', 'Rigel']);
   });
 });
 
@@ -102,14 +108,23 @@ describe('Scenario: Constellation Storyteller — Sky Navigation', () => {
   });
 
   it('mythology overlay — show Greek/Chinese/Aboriginal constellation art', () => {
-    const orionDef: ConstellationDef = { id: 'orion', name: 'Orion', abbreviation: 'Ori', mythology: 'The Hunter', culture: 'greek', stars: ['betelgeuse', 'rigel'], lines: [['betelgeuse', 'rigel']], bestMonth: 1 };
+    const orionDef: ConstellationDef = {
+      id: 'orion',
+      name: 'Orion',
+      abbreviation: 'Ori',
+      mythology: 'The Hunter',
+      culture: 'greek',
+      stars: ['betelgeuse', 'rigel'],
+      lines: [['betelgeuse', 'rigel']],
+      bestMonth: 1,
+    };
     const overlays = mythologyOverlays(orionDef);
     expect(overlays.length).toBe(5); // 5 cultures
     // Greek should have full opacity (matching culture)
-    const greek = overlays.find(o => o.culture === 'greek')!;
+    const greek = overlays.find((o) => o.culture === 'greek')!;
     expect(greek.opacity).toBe(1.0);
     // Others should have 0.5 opacity
-    const chinese = overlays.find(o => o.culture === 'chinese')!;
+    const chinese = overlays.find((o) => o.culture === 'chinese')!;
     expect(chinese.opacity).toBe(0.5);
     expect(greek.artUrl).toContain('orion_greek');
   });

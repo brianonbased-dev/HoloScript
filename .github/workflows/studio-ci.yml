@@ -50,7 +50,7 @@ jobs:
 
       - name: Lint (studio)
         run: pnpm --filter @holoscript/studio exec next lint --max-warnings 0
-        continue-on-error: true  # lint warnings are advisory
+        continue-on-error: true # lint warnings are advisory
 
   # ─── Unit tests ──────────────────────────────────────────────────────────────
   unit-tests:

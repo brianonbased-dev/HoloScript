@@ -411,9 +411,7 @@ function createMockGLTFDocument(): IGLTFDocument {
   ];
 
   // Add mock textures
-  doc.textures = [
-    { name: 'TestTexture', source: 0, sampler: 0 },
-  ];
+  doc.textures = [{ name: 'TestTexture', source: 0, sampler: 0 }];
 
   // Add mock buffers
   doc.buffers = [

@@ -113,7 +113,9 @@ Set the skybox to {{skybox}} and lighting to {{lighting_level}}`,
 - Obstacles: {{obstacles}}
 - Number of enemies: {{enemy_count}}`,
     variables: ['level_type', 'difficulty', 'start_pos', 'goal_pos', 'obstacles', 'enemy_count'],
-    examples: ['Design a platformer level with: difficulty hard, player start [0,0,0], goal [10,5,0], obstacles spikes, 5 enemies'],
+    examples: [
+      'Design a platformer level with: difficulty hard, player start [0,0,0], goal [10,5,0], obstacles spikes, 5 enemies',
+    ],
     bestFor: 'Level layout and progression',
   },
 
@@ -198,7 +200,8 @@ Position it {{position}} with {{styling}}`,
     name: 'Visual Effect',
     description: 'Create a visual effect',
     category: 'effect',
-    template: 'Create a {{effect_type}} effect with {{color}} color at {{position}} that {{behavior}}',
+    template:
+      'Create a {{effect_type}} effect with {{color}} color at {{position}} that {{behavior}}',
     variables: ['effect_type', 'color', 'position', 'behavior'],
     examples: [
       'Create a particle effect with blue color at [0,2,0] that explodes on impact',
@@ -316,7 +319,10 @@ export class PromptTemplateSystem {
   /**
    * Validate context against template
    */
-  validateContext(templateId: string, context: TemplateContext): { valid: boolean; missing: string[] } {
+  validateContext(
+    templateId: string,
+    context: TemplateContext
+  ): { valid: boolean; missing: string[] } {
     const template = this.getTemplate(templateId);
     if (!template) {
       return { valid: false, missing: ['Template not found'] };
@@ -368,9 +374,7 @@ export class PromptTemplateSystem {
   /**
    * Create a batch of prompts from templates
    */
-  createBatch(
-    templates: Array<{ templateId: string; context: TemplateContext }>
-  ): string[] {
+  createBatch(templates: Array<{ templateId: string; context: TemplateContext }>): string[] {
     return templates.map((t) => this.createPrompt(t.templateId, t.context));
   }
 }

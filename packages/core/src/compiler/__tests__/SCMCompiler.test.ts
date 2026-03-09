@@ -1,4 +1,4 @@
-import { describe, it, expect, vi} from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { SCMCompiler } from '../SCMCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../../parser/HoloCompositionTypes';
 
@@ -10,7 +10,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   };
 });
 
-
 describe('SCMCompiler (Structural Causal Model)', () => {
   it('should compile HoloScript objects into a valid SCM-DAG format', () => {
     const composition: HoloComposition = {
@@ -18,24 +17,22 @@ describe('SCMCompiler (Structural Causal Model)', () => {
       environment: {
         skybox: 'day',
         lighting: 'bright',
-        properties: []
+        properties: [],
       },
       objects: [
         {
           name: 'Agent_1',
           traits: [{ name: 'ai_agent' }],
-          properties: [
-            { key: 'health', value: 100 }
-          ]
+          properties: [{ key: 'health', value: 100 }],
         },
         {
           name: 'Potion_Heal',
           traits: [{ name: 'grabbable' }],
           properties: [
             { key: 'power', value: 50 },
-            { key: 'color', value: 'red' }
-          ]
-        }
+            { key: 'color', value: 'red' },
+          ],
+        },
       ],
       spatialGroups: [
         {
@@ -45,14 +42,12 @@ describe('SCMCompiler (Structural Causal Model)', () => {
             {
               name: 'Chest',
               traits: [{ name: 'interactive' }, { name: 'causal' }],
-              properties: [
-                { key: 'locked', value: true }
-              ]
-            }
-          ]
-        }
+              properties: [{ key: 'locked', value: true }],
+            },
+          ],
+        },
       ],
-      templates: []
+      templates: [],
     } as unknown as HoloComposition;
 
     const compiler = new SCMCompiler();

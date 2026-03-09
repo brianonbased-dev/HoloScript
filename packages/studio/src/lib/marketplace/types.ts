@@ -7,39 +7,39 @@
  */
 export type ContentType =
   // AI Orchestration
-  | 'workflow'           // Agent workflows
-  | 'behavior_tree'      // Behavior trees
+  | 'workflow' // Agent workflows
+  | 'behavior_tree' // Behavior trees
   // AI Skills & Configs
-  | 'skill'              // Claude/Gemini AI skills (.md + config)
-  | 'agent_config'       // Agent identity configs & RBAC policies
-  | 'mcp_bundle'         // MCP tool bundles
-  | 'rbac_policy'        // RBAC role & permission configs
+  | 'skill' // Claude/Gemini AI skills (.md + config)
+  | 'agent_config' // Agent identity configs & RBAC policies
+  | 'mcp_bundle' // MCP tool bundles
+  | 'rbac_policy' // RBAC role & permission configs
   // Training Data
-  | 'training_data'      // Curated AI training datasets (via DataForge)
+  | 'training_data' // Curated AI training datasets (via DataForge)
   // 3D Content
-  | 'scene'              // Complete 3D scenes (.hsplus)
-  | 'composition'        // Compositions (.holo)
-  | 'character'          // VRM characters
-  | 'model'              // 3D models (GLTF/GLB)
-  | 'template'           // Project templates & starters
+  | 'scene' // Complete 3D scenes (.hsplus)
+  | 'composition' // Compositions (.holo)
+  | 'character' // VRM characters
+  | 'model' // 3D models (GLTF/GLB)
+  | 'template' // Project templates & starters
   // Visual Programming
-  | 'shader_graph'       // Shader node graphs
-  | 'material'           // Materials/shaders
-  | 'node_graph'         // Generic node graphs
+  | 'shader_graph' // Shader node graphs
+  | 'material' // Materials/shaders
+  | 'node_graph' // Generic node graphs
   // Animation & Physics
-  | 'animation'          // Animation sequences
-  | 'physics_preset'     // Physics configurations
-  | 'particle_effect'    // Particle systems & VFX
+  | 'animation' // Animation sequences
+  | 'physics_preset' // Physics configurations
+  | 'particle_effect' // Particle systems & VFX
   // Audio
-  | 'audio'              // Sound effects
-  | 'music'              // Music tracks
+  | 'audio' // Sound effects
+  | 'music' // Music tracks
   // VR/AR
-  | 'vr_environment'     // Complete VR experiences
-  | 'ar_marker'          // AR markers/targets
+  | 'vr_environment' // Complete VR experiences
+  | 'ar_marker' // AR markers/targets
   // Utilities
-  | 'plugin'             // Studio plugins
-  | 'script'             // Custom scripts
-  | 'preset';            // General presets
+  | 'plugin' // Studio plugins
+  | 'script' // Custom scripts
+  | 'preset'; // General presets
 
 export interface MarketplaceItem {
   id: string;

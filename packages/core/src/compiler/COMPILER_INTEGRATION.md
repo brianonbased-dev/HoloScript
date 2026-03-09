@@ -77,11 +77,11 @@ compiler.compile(
 
 ### Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `composition` | `HoloComposition` | Yes | HoloScript AST to compile |
-| `agentToken` | `string` | Yes | JWT token proving agent identity |
-| `outputPath` | `string` | No | Output file path for scope validation |
+| Parameter     | Type              | Required | Description                           |
+| ------------- | ----------------- | -------- | ------------------------------------- |
+| `composition` | `HoloComposition` | Yes      | HoloScript AST to compile             |
+| `agentToken`  | `string`          | Yes      | JWT token proving agent identity      |
+| `outputPath`  | `string`          | No       | Output file path for scope validation |
 
 ### Return Value
 
@@ -95,17 +95,20 @@ compiler.compile(
 All 26 HoloScript compilers now require agent tokens:
 
 ### Game Engines
+
 - **UnityCompiler** - C# MonoBehaviour scripts
 - **UnrealCompiler** - C++ AActor classes + Blueprint JSON
 - **GodotCompiler** - GDScript scene files
 
 ### Web Renderers
+
 - **BabylonCompiler** - Babylon.js TypeScript
 - **WebGPUCompiler** - WebGPU + WGSL shaders
 - **R3FCompiler** - React Three Fiber JSX
 - **PlayCanvasCompiler** - PlayCanvas JS
 
 ### Mobile/AR
+
 - **AndroidCompiler** - Android OpenGL ES
 - **IOSCompiler** - iOS Metal
 - **VisionOSCompiler** - visionOS RealityKit
@@ -114,10 +117,12 @@ All 26 HoloScript compilers now require agent tokens:
 - **ARCompiler** - WebXR AR
 
 ### VR/Social
+
 - **VRChatCompiler** - VRChat UDON
 - **VRRCompiler** - VR Rhythm game format
 
 ### Data Formats
+
 - **SDFCompiler** - Signed Distance Fields
 - **URDFCompiler** - Unified Robot Description Format
 - **DTDLCompiler** - Digital Twins Definition Language
@@ -125,6 +130,7 @@ All 26 HoloScript compilers now require agent tokens:
 - **SCMCompiler** - Supply Chain Management
 
 ### Compilation Infrastructure
+
 - **WASMCompiler** - WebAssembly compilation
 - **IncrementalCompiler** - Incremental compilation
 - **MultiLayerCompiler** - Multi-layer scene compilation
@@ -191,12 +197,14 @@ compiler.compile(
 ### Step 1: Update Compiler Calls
 
 **Old Code**:
+
 ```typescript
 const compiler = new BabylonCompiler();
 const jsCode = compiler.compile(composition);
 ```
 
 **New Code**:
+
 ```typescript
 import { createTestCompilerToken } from '@holoscript/core/compiler/CompilerBase';
 
@@ -208,11 +216,13 @@ const jsCode = compiler.compile(composition, token);
 ### Step 2: Replace Test Tokens with Production Tokens
 
 **Development**:
+
 ```typescript
 const token = createTestCompilerToken();
 ```
 
 **Production**:
+
 ```typescript
 import { getTokenIssuer, AgentRole, WorkflowStep } from '@holoscript/core/compiler/identity';
 
@@ -228,6 +238,7 @@ const token = issuer.issueToken({
 ### Step 3: Update Tests
 
 **Before**:
+
 ```typescript
 it('should compile to Unity C#', () => {
   const compiler = new UnityCompiler();
@@ -237,6 +248,7 @@ it('should compile to Unity C#', () => {
 ```
 
 **After**:
+
 ```typescript
 import { createTestCompilerToken } from '@holoscript/core/compiler/CompilerBase';
 
@@ -265,10 +277,7 @@ import { getRBAC } from '@holoscript/core/compiler/identity';
 const rbac = getRBAC();
 
 // Restrict code generator to specific package
-rbac.setScopeRestriction(
-  AgentRole.CODE_GENERATOR,
-  ['packages/core', 'packages/std']
-);
+rbac.setScopeRestriction(AgentRole.CODE_GENERATOR, ['packages/core', 'packages/std']);
 ```
 
 ### Manual Permission Checks
@@ -324,12 +333,14 @@ export class CustomCompiler extends CompilerBase {
 ### 1. Never Hardcode Tokens
 
 Bad:
+
 ```typescript
 const token = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...';
 compiler.compile(composition, token);
 ```
 
 Good:
+
 ```typescript
 const token = process.env.HOLOSCRIPT_AGENT_TOKEN || createTestCompilerToken();
 compiler.compile(composition, token);
@@ -378,7 +389,9 @@ try {
   if (error instanceof UnauthorizedCompilerAccessError) {
     if (error.decision.reason?.includes('expired')) {
       // Refresh token
-      const newToken = issuer.issueToken({ /* ... */ });
+      const newToken = issuer.issueToken({
+        /* ... */
+      });
       return compiler.compile(composition, newToken, outputPath);
     }
   }
@@ -486,11 +499,13 @@ holoscript compile --token "$(cat .agent-token)" scene.holo
 ### v1.0.0 (2026-02-27)
 
 **BREAKING CHANGES**:
+
 - All compilers now require `agentToken` parameter
 - `compile()` signature changed from `compile(composition)` to `compile(composition, agentToken, outputPath?)`
 - Unauthorized access throws `UnauthorizedCompilerAccessError`
 
 **Migrated Compilers** (5 core + 21 additional):
+
 - UnityCompiler
 - UnrealCompiler
 - GodotCompiler
@@ -499,12 +514,14 @@ holoscript compile --token "$(cat .agent-token)" scene.holo
 - (+ 21 more)
 
 **New Features**:
+
 - `CompilerBase` abstract class for consistent RBAC enforcement
 - `createTestCompilerToken()` utility for testing
 - `UnauthorizedCompilerAccessError` with clear error messages
 - Scope validation for output paths
 
 **Documentation**:
+
 - COMPILER_INTEGRATION.md (this file)
 - Updated AUTONOMOUS_TODOS.md (marked TODO-002 complete)
 

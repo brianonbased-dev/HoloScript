@@ -87,14 +87,50 @@ export interface PanelVisibilityState extends PanelOpenFields, PanelSetFields, P
 // ─── Default Values ─────────────────────────────────────────────────────────
 
 const PANEL_KEYS: PanelKey[] = [
-  'palette', 'chat', 'history', 'profiler', 'shaderEditor', 'timeline',
-  'templatePicker', 'aiMaterial', 'share', 'critique', 'assetPack', 'versions',
-  'repl', 'registry', 'remote', 'export', 'generator', 'multiplayer',
-  'debugger', 'snapshots', 'assetLib', 'templateGallery', 'minimap', 'audio',
-  'exportV2', 'nodeGraph', 'keyframes', 'sceneSearch', 'particles', 'lod',
-  'console', 'undoHistory', 'outliner', 'material', 'physics', 'snapshotDiff',
-  'audioVisualizer', 'multiTransform', 'environment', 'inspector', 'hotkey',
-  'plugins', 'sandboxedPlugins', 'splatWizard',
+  'palette',
+  'chat',
+  'history',
+  'profiler',
+  'shaderEditor',
+  'timeline',
+  'templatePicker',
+  'aiMaterial',
+  'share',
+  'critique',
+  'assetPack',
+  'versions',
+  'repl',
+  'registry',
+  'remote',
+  'export',
+  'generator',
+  'multiplayer',
+  'debugger',
+  'snapshots',
+  'assetLib',
+  'templateGallery',
+  'minimap',
+  'audio',
+  'exportV2',
+  'nodeGraph',
+  'keyframes',
+  'sceneSearch',
+  'particles',
+  'lod',
+  'console',
+  'undoHistory',
+  'outliner',
+  'material',
+  'physics',
+  'snapshotDiff',
+  'audioVisualizer',
+  'multiTransform',
+  'environment',
+  'inspector',
+  'hotkey',
+  'plugins',
+  'sandboxedPlugins',
+  'splatWizard',
 ];
 
 /** Panels that default to *open*. */
@@ -132,7 +168,10 @@ export const usePanelVisibilityStore = create<PanelVisibilityState>()(
 
         setters[setterName] = (v: boolean) => set({ [field]: v } as Partial<PanelVisibilityState>);
         togglers[togglerName] = () =>
-          set((s) => ({ [field]: !(s as Record<string, boolean>)[field] } as Partial<PanelVisibilityState>));
+          set(
+            (s) =>
+              ({ [field]: !(s as Record<string, boolean>)[field] }) as Partial<PanelVisibilityState>
+          );
       }
 
       return {

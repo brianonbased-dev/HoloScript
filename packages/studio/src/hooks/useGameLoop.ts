@@ -27,18 +27,21 @@ export function useGameLoop(callbacks?: GameLoopCallbacks) {
   const callbacksRef = useRef(callbacks);
   callbacksRef.current = callbacks;
 
-  const loop = useCallback((time: number) => {
-    const dt = lastTimeRef.current ? (time - lastTimeRef.current) / 1000 : 1 / 60;
-    lastTimeRef.current = time;
+  const loop = useCallback(
+    (time: number) => {
+      const dt = lastTimeRef.current ? (time - lastTimeRef.current) / 1000 : 1 / 60;
+      lastTimeRef.current = time;
 
-    // Clamp dt to avoid huge jumps (e.g., tab unfocus)
-    const clampedDt = Math.min(dt, 0.1);
+      // Clamp dt to avoid huge jumps (e.g., tab unfocus)
+      const clampedDt = Math.min(dt, 0.1);
 
-    tick(clampedDt);
-    callbacksRef.current?.onTick?.(clampedDt);
+      tick(clampedDt);
+      callbacksRef.current?.onTick?.(clampedDt);
 
-    rafRef.current = requestAnimationFrame(loop);
-  }, [tick]);
+      rafRef.current = requestAnimationFrame(loop);
+    },
+    [tick]
+  );
 
   useEffect(() => {
     if (playState === 'playing') {

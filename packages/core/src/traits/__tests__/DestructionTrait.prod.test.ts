@@ -5,9 +5,16 @@ import { describe, it, expect, vi } from 'vitest';
 import { destructionHandler } from '../DestructionTrait';
 
 function makeNode(overrides: any = {}) {
-  return { id: 'dest_node', position: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 }, ...overrides };
+  return {
+    id: 'dest_node',
+    position: { x: 0, y: 0, z: 0 },
+    scale: { x: 1, y: 1, z: 1 },
+    ...overrides,
+  };
 }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}, nodeOverrides: any = {}) {
   const node = makeNode(nodeOverrides);
   const ctx = makeCtx();
@@ -40,8 +47,10 @@ describe('destructionHandler.onAttach', () => {
   it('maxHealth=100', () => expect(attach().node.__destructionState.maxHealth).toBe(100));
   it('isDestroyed=false', () => expect(attach().node.__destructionState.isDestroyed).toBe(false));
   it('fragments=[]', () => expect(attach().node.__destructionState.fragments).toHaveLength(0));
-  it('accumulatedDamage=0', () => expect(attach().node.__destructionState.accumulatedDamage).toBe(0));
-  it('chainReactionTriggered=false', () => expect(attach().node.__destructionState.chainReactionTriggered).toBe(false));
+  it('accumulatedDamage=0', () =>
+    expect(attach().node.__destructionState.accumulatedDamage).toBe(0));
+  it('chainReactionTriggered=false', () =>
+    expect(attach().node.__destructionState.chainReactionTriggered).toBe(false));
   it('emits subscribe_collision', () => {
     const { ctx } = attach();
     expect(ctx.emit).toHaveBeenCalledWith('subscribe_collision', expect.anything());
@@ -69,7 +78,10 @@ describe('destructionHandler.onDetach', () => {
     node.__destructionState.fragments = [frag];
     ctx.emit.mockClear();
     destructionHandler.onDetach!(node, config, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('remove_object', expect.objectContaining({ node: frag.mesh }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'remove_object',
+      expect.objectContaining({ node: frag.mesh })
+    );
   });
 });
 
@@ -104,7 +116,9 @@ describe('destructionHandler.onEvent — damage', () => {
     destructionHandler.onEvent!(node, config, ctx, { type: 'damage', amount: 100 });
     const callCount = ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'on_destruction').length;
     destructionHandler.onEvent!(node, config, ctx, { type: 'damage', amount: 100 });
-    expect(ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'on_destruction').length).toBe(callCount);
+    expect(ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'on_destruction').length).toBe(
+      callCount
+    );
   });
   it('does not destroy when health above threshold', () => {
     const { node, ctx, config } = attach({ damage_threshold: 0 });
@@ -135,7 +149,10 @@ describe('destructionHandler.onEvent — destroy', () => {
     const { node, ctx, config } = attach({ fragment_count: 4 });
     ctx.emit.mockClear();
     destructionHandler.onEvent!(node, config, ctx, { type: 'destroy' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_destruction', expect.objectContaining({ fragments: 4 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_destruction',
+      expect.objectContaining({ fragments: 4 })
+    );
   });
   it('does not destroy if already destroyed', () => {
     const { node, ctx, config } = attach({ fragment_count: 2 });
@@ -191,7 +208,10 @@ describe('destructionHandler.onEvent — repair', () => {
     destructionHandler.onEvent!(node, config, ctx, { type: 'destroy' });
     ctx.emit.mockClear();
     destructionHandler.onEvent!(node, config, ctx, { type: 'repair' });
-    expect(ctx.emit).toHaveBeenCalledWith('set_visible', expect.objectContaining({ visible: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'set_visible',
+      expect.objectContaining({ visible: true })
+    );
   });
   it('repair without prior destruction just resets health', () => {
     const { node, ctx, config } = attach();
@@ -217,7 +237,10 @@ describe('destructionHandler.onUpdate — fragment physics', () => {
     const frag = node.__destructionState.fragments[0];
     const prevLifetime = frag.lifetime;
     destructionHandler.onUpdate!(node, config, ctx, 0.5);
-    expect(node.__destructionState.fragments[0]?.lifetime ?? (prevLifetime - 0.5)).toBeCloseTo(prevLifetime - 0.5, 1);
+    expect(node.__destructionState.fragments[0]?.lifetime ?? prevLifetime - 0.5).toBeCloseTo(
+      prevLifetime - 0.5,
+      1
+    );
   });
   it('applies gravity to fragment y-velocity', () => {
     const { node, ctx, config } = attach({ fragment_count: 1 });

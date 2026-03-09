@@ -29,7 +29,7 @@ interface DemoCycle {
 }
 
 function createDemoCycle(task: string): DemoCycle {
-  const phases = PHASES.map(p => ({
+  const phases = PHASES.map((p) => ({
     name: p.name,
     status: 'success' as const,
     durationMs: Math.floor(Math.random() * 200 + 50),
@@ -51,7 +51,7 @@ export function AgentCyclePanel() {
 
   const runCycle = useCallback((task: string) => {
     const cycle = createDemoCycle(task);
-    setCycles(prev => [cycle, ...prev].slice(0, 20));
+    setCycles((prev) => [cycle, ...prev].slice(0, 20));
     setActiveCycle(cycle);
   }, []);
 
@@ -72,9 +72,12 @@ export function AgentCyclePanel() {
 
       {/* Quick run buttons */}
       <div className="flex gap-1 flex-wrap">
-        {demoTasks.map(task => (
-          <button key={task} onClick={() => runCycle(task)}
-            className="px-2 py-1 bg-studio-panel/40 text-studio-muted rounded hover:bg-studio-accent/20 hover:text-studio-accent transition text-[10px]">
+        {demoTasks.map((task) => (
+          <button
+            key={task}
+            onClick={() => runCycle(task)}
+            className="px-2 py-1 bg-studio-panel/40 text-studio-muted rounded hover:bg-studio-accent/20 hover:text-studio-accent transition text-[10px]"
+          >
             {task}
           </button>
         ))}
@@ -85,7 +88,9 @@ export function AgentCyclePanel() {
         <div className="bg-studio-panel/30 rounded-lg p-2 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-studio-text font-medium text-[10px]">{activeCycle.task}</span>
-            <span className={`text-[10px] px-1.5 rounded ${activeCycle.status === 'complete' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+            <span
+              className={`text-[10px] px-1.5 rounded ${activeCycle.status === 'complete' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}
+            >
               {activeCycle.status}
             </span>
           </div>
@@ -112,18 +117,24 @@ export function AgentCyclePanel() {
           </div>
 
           <div className="text-[10px] text-studio-muted text-center">
-            Total: {activeCycle.totalMs}ms · {new Date(activeCycle.timestamp).toLocaleTimeString('en', { hour12: false })}
+            Total: {activeCycle.totalMs}ms ·{' '}
+            {new Date(activeCycle.timestamp).toLocaleTimeString('en', { hour12: false })}
           </div>
         </div>
       )}
 
       {/* Cycle history */}
       <div className="space-y-0.5 max-h-[120px] overflow-y-auto">
-        {cycles.length === 0 && <p className="text-studio-muted text-center py-3">Run a cycle to see history.</p>}
-        {cycles.map(c => (
-          <button key={c.id} onClick={() => setActiveCycle(c)}
+        {cycles.length === 0 && (
+          <p className="text-studio-muted text-center py-3">Run a cycle to see history.</p>
+        )}
+        {cycles.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setActiveCycle(c)}
             className={`w-full flex items-center justify-between px-2 py-1 rounded text-[10px] transition
-              ${activeCycle?.id === c.id ? 'bg-studio-accent/15 text-studio-accent' : 'bg-studio-panel/20 text-studio-muted hover:text-studio-text'}`}>
+              ${activeCycle?.id === c.id ? 'bg-studio-accent/15 text-studio-accent' : 'bg-studio-panel/20 text-studio-muted hover:text-studio-text'}`}
+          >
             <span className="truncate">{c.task}</span>
             <span className="flex-shrink-0 ml-2">{c.totalMs}ms</span>
           </button>

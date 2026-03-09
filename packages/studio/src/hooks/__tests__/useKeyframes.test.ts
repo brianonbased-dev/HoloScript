@@ -142,10 +142,12 @@ describe('useKeyframes', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          tracks: [{
-            ...mockTracks[0],
-            keyframes: [{ id: 'kf-1', track: 'track-1', time: 1, value: 0, easing: 'linear' }],
-          }],
+          tracks: [
+            {
+              ...mockTracks[0],
+              keyframes: [{ id: 'kf-1', track: 'track-1', time: 1, value: 0, easing: 'linear' }],
+            },
+          ],
         }),
       });
 
@@ -172,11 +174,18 @@ describe('useKeyframes', () => {
     });
 
     it('should set loading state during load', async () => {
-      mockFetch.mockImplementationOnce(() =>
-        new Promise(resolve => setTimeout(() => resolve({
-          ok: true,
-          json: async () => ({ tracks: [] }),
-        }), 100))
+      mockFetch.mockImplementationOnce(
+        () =>
+          new Promise((resolve) =>
+            setTimeout(
+              () =>
+                resolve({
+                  ok: true,
+                  json: async () => ({ tracks: [] }),
+                }),
+              100
+            )
+          )
       );
 
       const { result } = renderHook(() => useKeyframes());
@@ -413,7 +422,10 @@ describe('useKeyframes', () => {
 
       const newTrack: AnimTrack = {
         ...mockTracks[0],
-        keyframes: [...mockTracks[0].keyframes, { id: 'kf-4', track: 'track-1', time: 5, value: 15, easing: 'linear' }],
+        keyframes: [
+          ...mockTracks[0].keyframes,
+          { id: 'kf-4', track: 'track-1', time: 5, value: 15, easing: 'linear' },
+        ],
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -428,7 +440,13 @@ describe('useKeyframes', () => {
       expect(mockFetch).toHaveBeenCalledWith('/api/keyframes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sceneId: 'scene-1', objectName: 'box', property: 'position.x', time: 5, value: 15 }),
+        body: JSON.stringify({
+          sceneId: 'scene-1',
+          objectName: 'box',
+          property: 'position.x',
+          time: 5,
+          value: 15,
+        }),
       });
 
       expect(result.current.tracks[0].keyframes).toHaveLength(4);
@@ -448,7 +466,10 @@ describe('useKeyframes', () => {
 
       const updatedTrack: AnimTrack = {
         ...mockTracks[0],
-        keyframes: [...mockTracks[0].keyframes, { id: 'kf-new', track: 'track-1', time: 6, value: 20, easing: 'ease-in' }],
+        keyframes: [
+          ...mockTracks[0].keyframes,
+          { id: 'kf-new', track: 'track-1', time: 6, value: 20, easing: 'ease-in' },
+        ],
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -461,7 +482,7 @@ describe('useKeyframes', () => {
       });
 
       // Should update the existing track
-      const track = result.current.tracks.find(t => t.id === 'track-1');
+      const track = result.current.tracks.find((t) => t.id === 'track-1');
       expect(track?.keyframes).toHaveLength(4);
     });
 
@@ -527,8 +548,8 @@ describe('useKeyframes', () => {
       });
 
       // Should remove keyframe from track
-      const track = result.current.tracks.find(t => t.id === 'track-1');
-      expect(track?.keyframes.find(k => k.id === 'kf-2')).toBeUndefined();
+      const track = result.current.tracks.find((t) => t.id === 'track-1');
+      expect(track?.keyframes.find((k) => k.id === 'kf-2')).toBeUndefined();
     });
 
     it('should preserve other keyframes when deleting', async () => {
@@ -552,7 +573,7 @@ describe('useKeyframes', () => {
       });
 
       expect(result.current.tracks[0].keyframes.length).toBe(initialCount - 1);
-      expect(result.current.tracks[0].keyframes.find(k => k.id === 'kf-3')).toBeDefined();
+      expect(result.current.tracks[0].keyframes.find((k) => k.id === 'kf-3')).toBeDefined();
     });
   });
 

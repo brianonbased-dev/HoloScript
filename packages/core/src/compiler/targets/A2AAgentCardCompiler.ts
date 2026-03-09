@@ -102,13 +102,41 @@ export interface A2AAgentCardConfig {
 // ── Trait-to-Skill Mapping ─────────────────────────────────────────────────
 
 const TRAIT_SKILL_MAP: Record<string, Partial<A2ASkill>> = {
-  'Grabbable':     { name: 'Manipulate Object',   description: 'Grab and manipulate spatial objects',    tags: ['interaction', 'spatial'] },
-  'Tradeable':     { name: 'Trade Asset',          description: 'Execute trades of virtual assets',       tags: ['economy', 'trade'] },
-  'NPC':           { name: 'NPC Dialogue',         description: 'Engage in dialogue with NPC character', tags: ['ai', 'dialogue'] },
-  'Navigation':    { name: 'Navigate Space',       description: 'Navigate spatial environments',          tags: ['navigation', 'spatial'] },
-  'Analytics':     { name: 'Report Analytics',     description: 'Generate analytics reports',            tags: ['analytics', 'data'] },
-  'ComputerUse':   { name: 'Computer Use',         description: 'Interact with computer interfaces',    tags: ['computer-use', 'automation'] },
-  'AgentDiscovery': { name: 'Discover Agents',     description: 'Find and connect with other agents',   tags: ['discovery', 'a2a'] },
+  Grabbable: {
+    name: 'Manipulate Object',
+    description: 'Grab and manipulate spatial objects',
+    tags: ['interaction', 'spatial'],
+  },
+  Tradeable: {
+    name: 'Trade Asset',
+    description: 'Execute trades of virtual assets',
+    tags: ['economy', 'trade'],
+  },
+  NPC: {
+    name: 'NPC Dialogue',
+    description: 'Engage in dialogue with NPC character',
+    tags: ['ai', 'dialogue'],
+  },
+  Navigation: {
+    name: 'Navigate Space',
+    description: 'Navigate spatial environments',
+    tags: ['navigation', 'spatial'],
+  },
+  Analytics: {
+    name: 'Report Analytics',
+    description: 'Generate analytics reports',
+    tags: ['analytics', 'data'],
+  },
+  ComputerUse: {
+    name: 'Computer Use',
+    description: 'Interact with computer interfaces',
+    tags: ['computer-use', 'automation'],
+  },
+  AgentDiscovery: {
+    name: 'Discover Agents',
+    description: 'Find and connect with other agents',
+    tags: ['discovery', 'a2a'],
+  },
 };
 
 // ── Compiler ───────────────────────────────────────────────────────────────
@@ -216,7 +244,9 @@ export class A2AAgentCardCompiler {
     const agentCard: A2AAgentCard = {
       version: '1.0',
       name: composition.name,
-      description: composition.description ?? `HoloScript agent compiled from composition '${composition.name}'`,
+      description:
+        composition.description ??
+        `HoloScript agent compiled from composition '${composition.name}'`,
       url: `${this.config.baseUrl}/a2a`,
       provider: {
         organization: this.config.organization,

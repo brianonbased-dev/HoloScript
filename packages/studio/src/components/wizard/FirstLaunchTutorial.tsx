@@ -14,7 +14,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, ChevronRight, ChevronLeft, Sparkles, Keyboard } from 'lucide-react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 const SAMPLE_SCENE = `composition "My First Scene" {
   environment {
@@ -53,10 +53,14 @@ function WelcomeVisual() {
   return (
     <div className="relative w-full h-48 rounded-xl bg-gradient-to-br from-indigo-950/80 to-purple-950/80 border border-indigo-500/20 overflow-hidden">
       {/* Animated grid */}
-      <div className="absolute inset-0 opacity-10" style={{
-        backgroundImage: 'linear-gradient(rgba(99,102,241,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.3) 1px, transparent 1px)',
-        backgroundSize: '20px 20px',
-      }} />
+      <div
+        className="absolute inset-0 opacity-10"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(99,102,241,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.3) 1px, transparent 1px)',
+          backgroundSize: '20px 20px',
+        }}
+      />
 
       {/* Studio layout mockup */}
       <div className="absolute inset-3 flex gap-2">
@@ -88,12 +92,29 @@ function WelcomeVisual() {
                 <rect x="35" y="15" width="30" height="30" rx="1" opacity="0.4" />
               </g>
               {/* Ground line */}
-              <line x1="10" y1="62" x2="70" y2="62" stroke="#4f46e5" strokeWidth="0.5" opacity="0.5" />
+              <line
+                x1="10"
+                y1="62"
+                x2="70"
+                y2="62"
+                stroke="#4f46e5"
+                strokeWidth="0.5"
+                opacity="0.5"
+              />
             </svg>
             {/* Floating particles */}
-            <div className="absolute w-1 h-1 rounded-full bg-indigo-400/60 top-4 left-8 animate-ping" style={{ animationDuration: '3s' }} />
-            <div className="absolute w-1 h-1 rounded-full bg-purple-400/60 bottom-6 right-6 animate-ping" style={{ animationDuration: '4s' }} />
-            <div className="absolute w-0.5 h-0.5 rounded-full bg-cyan-400/60 top-8 right-12 animate-ping" style={{ animationDuration: '5s' }} />
+            <div
+              className="absolute w-1 h-1 rounded-full bg-indigo-400/60 top-4 left-8 animate-ping"
+              style={{ animationDuration: '3s' }}
+            />
+            <div
+              className="absolute w-1 h-1 rounded-full bg-purple-400/60 bottom-6 right-6 animate-ping"
+              style={{ animationDuration: '4s' }}
+            />
+            <div
+              className="absolute w-0.5 h-0.5 rounded-full bg-cyan-400/60 top-8 right-12 animate-ping"
+              style={{ animationDuration: '5s' }}
+            />
           </div>
           <div className="text-[7px] text-indigo-300/60 text-center mt-1">3D PREVIEW</div>
         </div>
@@ -112,17 +133,49 @@ function EditorVisual() {
     <div className="relative w-full h-48 rounded-xl bg-gradient-to-br from-slate-950 to-indigo-950/80 border border-indigo-500/20 overflow-hidden p-3">
       {/* Code editor mockup with syntax highlighting */}
       <div className="rounded-lg bg-black/40 border border-white/5 p-3 font-mono text-[9px] leading-relaxed h-full overflow-hidden">
-        <div><span className="text-purple-400">composition</span> <span className="text-amber-300">&quot;My Scene&quot;</span> <span className="text-white/40">{'{'}</span></div>
-        <div className="ml-3"><span className="text-blue-400">object</span> <span className="text-amber-300">&quot;Cube&quot;</span> <span className="text-white/40">{'{'}</span></div>
-        <div className="ml-6"><span className="text-cyan-400">geometry</span><span className="text-white/30">:</span> <span className="text-amber-300">&quot;cube&quot;</span></div>
-        <div className="ml-6"><span className="text-cyan-400">position</span><span className="text-white/30">:</span> <span className="text-white/40">[</span><span className="text-green-400">0</span><span className="text-white/30">,</span> <span className="text-green-400">1</span><span className="text-white/30">,</span> <span className="text-green-400">0</span><span className="text-white/40">]</span></div>
-        <div className="ml-6"><span className="text-cyan-400">color</span><span className="text-white/30">:</span> <span className="text-amber-300">&quot;#6366f1&quot;</span></div>
-        <div className="ml-6">
-          <span className="text-cyan-400">emissive</span><span className="text-white/30">:</span> <span className="text-amber-300">&quot;#818cf8&quot;</span>
-          <span className="ml-2 inline-block w-2 h-2 rounded-sm" style={{ background: '#818cf8' }} />
+        <div>
+          <span className="text-purple-400">composition</span>{' '}
+          <span className="text-amber-300">&quot;My Scene&quot;</span>{' '}
+          <span className="text-white/40">{'{'}</span>
         </div>
-        <div className="ml-3"><span className="text-white/40">{'}'}</span></div>
-        <div><span className="text-white/40">{'}'}</span></div>
+        <div className="ml-3">
+          <span className="text-blue-400">object</span>{' '}
+          <span className="text-amber-300">&quot;Cube&quot;</span>{' '}
+          <span className="text-white/40">{'{'}</span>
+        </div>
+        <div className="ml-6">
+          <span className="text-cyan-400">geometry</span>
+          <span className="text-white/30">:</span>{' '}
+          <span className="text-amber-300">&quot;cube&quot;</span>
+        </div>
+        <div className="ml-6">
+          <span className="text-cyan-400">position</span>
+          <span className="text-white/30">:</span> <span className="text-white/40">[</span>
+          <span className="text-green-400">0</span>
+          <span className="text-white/30">,</span> <span className="text-green-400">1</span>
+          <span className="text-white/30">,</span> <span className="text-green-400">0</span>
+          <span className="text-white/40">]</span>
+        </div>
+        <div className="ml-6">
+          <span className="text-cyan-400">color</span>
+          <span className="text-white/30">:</span>{' '}
+          <span className="text-amber-300">&quot;#6366f1&quot;</span>
+        </div>
+        <div className="ml-6">
+          <span className="text-cyan-400">emissive</span>
+          <span className="text-white/30">:</span>{' '}
+          <span className="text-amber-300">&quot;#818cf8&quot;</span>
+          <span
+            className="ml-2 inline-block w-2 h-2 rounded-sm"
+            style={{ background: '#818cf8' }}
+          />
+        </div>
+        <div className="ml-3">
+          <span className="text-white/40">{'}'}</span>
+        </div>
+        <div>
+          <span className="text-white/40">{'}'}</span>
+        </div>
       </div>
 
       {/* Callout arrows */}
@@ -156,7 +209,13 @@ function PreviewVisual() {
           <rect width="200" height="140" fill="url(#sky)" />
 
           {/* Ground plane */}
-          <polygon points="0,100 200,100 180,85 20,85" fill="#1e1b4b" stroke="#4f46e5" strokeWidth="0.3" opacity="0.6" />
+          <polygon
+            points="0,100 200,100 180,85 20,85"
+            fill="#1e1b4b"
+            stroke="#4f46e5"
+            strokeWidth="0.3"
+            opacity="0.6"
+          />
           {/* Grid lines */}
           <g stroke="#4f46e5" strokeWidth="0.2" opacity="0.3">
             <line x1="40" y1="85" x2="20" y2="100" />
@@ -169,15 +228,43 @@ function PreviewVisual() {
           <g transform="translate(85, 45)">
             <circle r="25" fill="url(#glow)" />
             {/* Front face */}
-            <rect x="-12" y="-12" width="24" height="24" fill="#6366f1" stroke="#818cf8" strokeWidth="0.5" rx="1" />
+            <rect
+              x="-12"
+              y="-12"
+              width="24"
+              height="24"
+              fill="#6366f1"
+              stroke="#818cf8"
+              strokeWidth="0.5"
+              rx="1"
+            />
             {/* Top face */}
-            <polygon points="-12,-12 -4,-20 20,-20 12,-12" fill="#7c7ff7" stroke="#818cf8" strokeWidth="0.5" />
+            <polygon
+              points="-12,-12 -4,-20 20,-20 12,-12"
+              fill="#7c7ff7"
+              stroke="#818cf8"
+              strokeWidth="0.5"
+            />
             {/* Right face */}
-            <polygon points="12,-12 20,-20 20,4 12,12" fill="#4f46e5" stroke="#818cf8" strokeWidth="0.5" />
+            <polygon
+              points="12,-12 20,-20 20,4 12,12"
+              fill="#4f46e5"
+              stroke="#818cf8"
+              strokeWidth="0.5"
+            />
           </g>
 
           {/* Light ray */}
-          <line x1="160" y1="15" x2="97" y2="40" stroke="#fef3c7" strokeWidth="0.3" opacity="0.5" strokeDasharray="3 3" />
+          <line
+            x1="160"
+            y1="15"
+            x2="97"
+            y2="40"
+            stroke="#fef3c7"
+            strokeWidth="0.3"
+            opacity="0.5"
+            strokeDasharray="3 3"
+          />
           <circle cx="160" cy="15" r="4" fill="#fef3c7" opacity="0.4" />
         </svg>
       </div>
@@ -231,8 +318,13 @@ function BuilderVisual() {
       {/* Hotbar */}
       <div className="flex gap-1.5">
         {slots.map((s, i) => (
-          <div key={i} className={`w-10 h-10 rounded-lg border flex flex-col items-center justify-center gap-0.5 transition ${i === 0 ? 'border-indigo-400 bg-indigo-500/20 shadow-lg shadow-indigo-500/20' : 'border-white/10 bg-white/5'}`}>
-            <span className="text-sm" style={{ color: s.color }}>{s.geo}</span>
+          <div
+            key={i}
+            className={`w-10 h-10 rounded-lg border flex flex-col items-center justify-center gap-0.5 transition ${i === 0 ? 'border-indigo-400 bg-indigo-500/20 shadow-lg shadow-indigo-500/20' : 'border-white/10 bg-white/5'}`}
+          >
+            <span className="text-sm" style={{ color: s.color }}>
+              {s.geo}
+            </span>
             <span className="text-[6px] text-white/50">{s.label}</span>
           </div>
         ))}
@@ -241,13 +333,19 @@ function BuilderVisual() {
       {/* Key hints */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1 text-[9px] text-white/50">
-          <kbd className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[8px] font-mono text-white/70">1</kbd>
+          <kbd className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[8px] font-mono text-white/70">
+            1
+          </kbd>
           -
-          <kbd className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[8px] font-mono text-white/70">8</kbd>
+          <kbd className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[8px] font-mono text-white/70">
+            8
+          </kbd>
           <span className="ml-1">Select shape</span>
         </div>
         <div className="flex items-center gap-1 text-[9px] text-white/50">
-          <kbd className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[8px] font-mono text-white/70">G</kbd>
+          <kbd className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[8px] font-mono text-white/70">
+            G
+          </kbd>
           <span className="ml-1">Grid snap</span>
         </div>
       </div>
@@ -277,7 +375,10 @@ function ShortcutsVisual() {
           <div key={i} className="flex items-center gap-2">
             <div className="flex gap-0.5">
               {s.keys.map((k, j) => (
-                <kbd key={j} className="px-1.5 py-0.5 rounded bg-white/10 border border-white/15 text-[9px] font-mono text-white/80 min-w-[22px] text-center">
+                <kbd
+                  key={j}
+                  className="px-1.5 py-0.5 rounded bg-white/10 border border-white/15 text-[9px] font-mono text-white/80 min-w-[22px] text-center"
+                >
                   {k}
                 </kbd>
               ))}
@@ -302,28 +403,33 @@ interface Step {
 const STEPS: Step[] = [
   {
     title: 'Welcome to HoloScript Studio',
-    subtitle: 'A split-view IDE for building 3D worlds. Code on the left, see it live on the right — everything updates in real-time.',
+    subtitle:
+      'A split-view IDE for building 3D worlds. Code on the left, see it live on the right — everything updates in real-time.',
     visual: <WelcomeVisual />,
   },
   {
     title: 'Write HoloScript Code',
-    subtitle: 'Simple property: value syntax. Define objects with geometry, position, color, and materials. We\'ll load a sample scene for you.',
+    subtitle:
+      "Simple property: value syntax. Define objects with geometry, position, color, and materials. We'll load a sample scene for you.",
     visual: <EditorVisual />,
     action: 'paste_sample',
   },
   {
     title: 'Explore in 3D',
-    subtitle: 'Orbit, pan, and zoom the viewport. Click on any object to select it, then drag the gizmo handles to transform it.',
+    subtitle:
+      'Orbit, pan, and zoom the viewport. Click on any object to select it, then drag the gizmo handles to transform it.',
     visual: <PreviewVisual />,
   },
   {
     title: 'Build with the Hotbar',
-    subtitle: 'Place, break, or select objects using the Minecraft-style toolbar. Pick shapes with keys 1-8 and click to build.',
+    subtitle:
+      'Place, break, or select objects using the Minecraft-style toolbar. Pick shapes with keys 1-8 and click to build.',
     visual: <BuilderVisual />,
   },
   {
-    title: 'You\'re Ready! 🚀',
-    subtitle: 'Here are the shortcuts you\'ll use most. Re-open this tour anytime from the Help (?) button.',
+    title: "You're Ready! 🚀",
+    subtitle:
+      "Here are the shortcuts you'll use most. Re-open this tour anytime from the Help (?) button.",
     visual: <ShortcutsVisual />,
   },
 ];
@@ -395,11 +501,11 @@ export function FirstLaunchTutorial({ onClose }: FirstLaunchTutorialProps) {
         </button>
 
         {/* Content */}
-        <div className={`p-5 transition-opacity duration-200 ${animating ? 'opacity-0' : 'opacity-100'}`}>
+        <div
+          className={`p-5 transition-opacity duration-200 ${animating ? 'opacity-0' : 'opacity-100'}`}
+        >
           {/* Visual illustration */}
-          <div className="mb-4">
-            {current.visual}
-          </div>
+          <div className="mb-4">{current.visual}</div>
 
           {/* Step badge */}
           <span className="inline-block mb-2 px-2 py-0.5 rounded-full bg-studio-accent/15 text-[9px] font-semibold text-studio-accent uppercase tracking-widest">
@@ -419,7 +525,11 @@ export function FirstLaunchTutorial({ onClose }: FirstLaunchTutorialProps) {
                 key={i}
                 onClick={() => transition(i)}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
-                  i === step ? 'w-7 bg-studio-accent' : i < step ? 'w-2 bg-studio-accent/50' : 'w-2 bg-studio-border'
+                  i === step
+                    ? 'w-7 bg-studio-accent'
+                    : i < step
+                      ? 'w-2 bg-studio-accent/50'
+                      : 'w-2 bg-studio-border'
                 }`}
               />
             ))}

@@ -239,7 +239,7 @@ export class CodebaseSceneCompiler {
     // Call edges (simplified: use first symbol per file)
     // Full call resolution would require cross-referencing symbol IDs
     const positionMap = new Map(
-      allObjects.map((o) => [o.name, { x: o.position[0], y: o.position[1], z: o.position[2] }]),
+      allObjects.map((o) => [o.name, { x: o.position[0], y: o.position[1], z: o.position[2] }])
     );
 
     const renderedEdges = edgeRenderer.render(edgeInputs, positionMap);
@@ -259,7 +259,7 @@ export class CodebaseSceneCompiler {
       ([n, files]: [string, string[]]) => ({
         name: n,
         fileCount: files.length,
-      }),
+      })
     );
 
     const composition: SceneComposition = {
@@ -302,7 +302,7 @@ export class CodebaseSceneCompiler {
    */
   private applyRAGHighlights(
     composition: SceneComposition,
-    highlights: { nodeIds: string[]; type: 'search' | 'impact' | 'trace' },
+    highlights: { nodeIds: string[]; type: 'search' | 'impact' | 'trace' }
   ): SceneComposition {
     const highlightSet = new Set(highlights.nodeIds);
     const highlightColors = {
@@ -346,7 +346,7 @@ export class CodebaseSceneCompiler {
 
   private buildLayoutGraph(
     graph: CodebaseGraph,
-    communitySymbols: Map<string, ExternalSymbolDefinition[]>,
+    communitySymbols: Map<string, ExternalSymbolDefinition[]>
   ): { layoutNodes: LayoutNode[]; layoutEdges: LayoutEdge[] } {
     const layoutNodes: LayoutNode[] = [];
     const nodeIds = new Set<string>();

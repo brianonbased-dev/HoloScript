@@ -71,9 +71,7 @@ export const useProjectStore = create<ProjectState>()(
 
       updateSceneCode: (id, code) => {
         set((s) => ({
-          scenes: s.scenes.map((sc) =>
-            sc.id === id ? { ...sc, code, isDirty: true } : sc
-          ),
+          scenes: s.scenes.map((sc) => (sc.id === id ? { ...sc, code, isDirty: true } : sc)),
         }));
       },
 
@@ -87,9 +85,7 @@ export const useProjectStore = create<ProjectState>()(
 
       markSceneClean: (id) => {
         set((s) => ({
-          scenes: s.scenes.map((sc) =>
-            sc.id === id ? { ...sc, isDirty: false } : sc
-          ),
+          scenes: s.scenes.map((sc) => (sc.id === id ? { ...sc, isDirty: false } : sc)),
         }));
       },
 

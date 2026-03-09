@@ -10,8 +10,13 @@ import { marketplaceHandler } from '../MarketplaceTrait';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function makeNode(): any { return {}; }
-function makeCtx() { const emit = vi.fn(); return { emit }; }
+function makeNode(): any {
+  return {};
+}
+function makeCtx() {
+  const emit = vi.fn();
+  return { emit };
+}
 
 function makeConfig(overrides: Record<string, unknown> = {}) {
   return {
@@ -36,7 +41,9 @@ function attach(overrides: Record<string, unknown> = {}) {
   return { node, ctx, cfg };
 }
 
-function st(node: any) { return (node as any).__marketplaceState; }
+function st(node: any) {
+  return (node as any).__marketplaceState;
+}
 
 function fire(node: any, cfg: any, ctx: any, event: Record<string, unknown>) {
   marketplaceHandler.onEvent!(node, cfg, ctx as any, event);
@@ -45,7 +52,6 @@ function fire(node: any, cfg: any, ctx: any, event: Record<string, unknown>) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('MarketplaceTrait — Production', () => {
-
   beforeEach(() => vi.clearAllMocks());
 
   // ─── defaultConfig ──────────────────────────────────────────────────
@@ -87,9 +93,12 @@ describe('MarketplaceTrait — Production', () => {
 
   it('emits marketplace_connect on attach', () => {
     const { ctx } = attach();
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_connect', expect.objectContaining({
-      platform: 'opensea',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_connect',
+      expect.objectContaining({
+        platform: 'opensea',
+      })
+    );
   });
 
   // ─── onDetach ───────────────────────────────────────────────────────
@@ -97,7 +106,10 @@ describe('MarketplaceTrait — Production', () => {
   it('emits marketplace_disconnect and removes state on detach', () => {
     const { node, ctx, cfg } = attach();
     marketplaceHandler.onDetach!(node, cfg as any, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_disconnect', expect.objectContaining({ node }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_disconnect',
+      expect.objectContaining({ node })
+    );
     expect(st(node)).toBeUndefined();
   });
 
@@ -111,9 +123,12 @@ describe('MarketplaceTrait — Production', () => {
     s.highestBid = 5;
     s.bidCount = 3;
     marketplaceHandler.onUpdate!(node, cfg as any, ctx as any, 0);
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_auction_ended', expect.objectContaining({
-      winningBid: 5,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_auction_ended',
+      expect.objectContaining({
+        winningBid: 5,
+      })
+    );
     expect(s.status).toBe('auction_ended');
   });
 
@@ -134,19 +149,25 @@ describe('MarketplaceTrait — Production', () => {
     fire(node, cfg, ctx, { type: 'marketplace_list', price: 1.5 });
     expect(st(node).currentPrice).toBe(1.5);
     expect(st(node).status).toBe('listed');
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_create_listing', expect.objectContaining({
-      price: 1.5,
-      royaltyPercentage: 2.5,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_create_listing',
+      expect.objectContaining({
+        price: 1.5,
+        royaltyPercentage: 2.5,
+      })
+    );
   });
 
   it('marketplace_list rejects price below min_price', () => {
     const { node, ctx, cfg } = attach({ min_price: 5 });
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'marketplace_list', price: 1 });
-    expect(ctx.emit).toHaveBeenCalledWith('on_marketplace_error', expect.objectContaining({
-      error: expect.stringContaining('minimum'),
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_marketplace_error',
+      expect.objectContaining({
+        error: expect.stringContaining('minimum'),
+      })
+    );
     expect(st(node).status).toBe('unlisted');
   });
 
@@ -165,9 +186,12 @@ describe('MarketplaceTrait — Production', () => {
     fire(node, cfg, ctx, { type: 'marketplace_listing_created', listingId: 'L123' });
     expect(st(node).listingId).toBe('L123');
     expect(st(node).isListed).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('on_listed', expect.objectContaining({
-      listingId: 'L123',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_listed',
+      expect.objectContaining({
+        listingId: 'L123',
+      })
+    );
   });
 
   // ─── onEvent: unlist ────────────────────────────────────────────────
@@ -191,10 +215,17 @@ describe('MarketplaceTrait — Production', () => {
     fire(node, cfg, ctx, { type: 'marketplace_list', price: 3 });
     fire(node, cfg, ctx, { type: 'marketplace_listing_created', listingId: 'L2' });
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'marketplace_buy', buyerAddress: '0xBUYER', paymentProof: 'proof' });
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_execute_purchase', expect.objectContaining({
+    fire(node, cfg, ctx, {
+      type: 'marketplace_buy',
       buyerAddress: '0xBUYER',
-    }));
+      paymentProof: 'proof',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_execute_purchase',
+      expect.objectContaining({
+        buyerAddress: '0xBUYER',
+      })
+    );
   });
 
   it('marketplace_buy ignored when not listed', () => {
@@ -220,9 +251,12 @@ describe('MarketplaceTrait — Production', () => {
     fire(node, cfg, ctx, { type: 'marketplace_purchase_complete', buyerAddress: '0xNEW' });
     expect(st(node).status).toBe('sold');
     expect(st(node).ownerAddress).toBe('0xNEW');
-    expect(ctx.emit).toHaveBeenCalledWith('on_purchase_complete', expect.objectContaining({
-      buyer: '0xNEW',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_purchase_complete',
+      expect.objectContaining({
+        buyer: '0xNEW',
+      })
+    );
   });
 
   // ─── onEvent: auction ────────────────────────────────────────────────
@@ -230,7 +264,11 @@ describe('MarketplaceTrait — Production', () => {
   it('marketplace_start_auction sets auction state when auction_support=true', () => {
     const { node, ctx, cfg } = attach({ auction_support: true });
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'marketplace_start_auction', startingPrice: 0.5, duration: 3600000 });
+    fire(node, cfg, ctx, {
+      type: 'marketplace_start_auction',
+      startingPrice: 0.5,
+      duration: 3600000,
+    });
     const s = st(node);
     expect(s.status).toBe('auction_active');
     expect(s.currentPrice).toBe(0.5);
@@ -253,10 +291,13 @@ describe('MarketplaceTrait — Production', () => {
     const s = st(node);
     expect(s.highestBid).toBe(2);
     expect(s.bidCount).toBe(1);
-    expect(ctx.emit).toHaveBeenCalledWith('on_bid_received', expect.objectContaining({
-      amount: 2,
-      bidCount: 1,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_bid_received',
+      expect.objectContaining({
+        amount: 2,
+        bidCount: 1,
+      })
+    );
   });
 
   it('marketplace_place_bid ignored for lower-or-equal bid', () => {
@@ -274,11 +315,14 @@ describe('MarketplaceTrait — Production', () => {
     const { node, ctx, cfg } = attach();
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'marketplace_query', queryId: 'Q1' });
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_info', expect.objectContaining({
-      queryId: 'Q1',
-      isListed: false,
-      status: 'unlisted',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_info',
+      expect.objectContaining({
+        queryId: 'Q1',
+        isListed: false,
+        status: 'unlisted',
+      })
+    );
   });
 
   // ─── onEvent: update_price ──────────────────────────────────────────
@@ -295,9 +339,12 @@ describe('MarketplaceTrait — Production', () => {
     fire(node, cfg, ctx, { type: 'marketplace_listing_created', listingId: 'L3' });
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'marketplace_update_price', price: 7 });
-    expect(ctx.emit).toHaveBeenCalledWith('marketplace_update_listing', expect.objectContaining({
-      price: 7,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'marketplace_update_listing',
+      expect.objectContaining({
+        price: 7,
+      })
+    );
   });
 
   // ─── Unknown event ───────────────────────────────────────────────────

@@ -3,18 +3,18 @@
  */
 
 export type HoloSceneTarget =
-  | "webxr"
-  | "threejs"
-  | "babylon"
-  | "unity"
-  | "godot"
-  | "visionos"
-  | "android-xr"
-  | "auto";
+  | 'webxr'
+  | 'threejs'
+  | 'babylon'
+  | 'unity'
+  | 'godot'
+  | 'visionos'
+  | 'android-xr'
+  | 'auto';
 
-export type HoloSceneFallback = "threejs" | "canvas2d" | "static-image" | "none";
+export type HoloSceneFallback = 'threejs' | 'canvas2d' | 'static-image' | 'none';
 
-export type HoloSceneLoadingState = "idle" | "loading" | "compiling" | "rendering" | "error";
+export type HoloSceneLoadingState = 'idle' | 'loading' | 'compiling' | 'rendering' | 'error';
 
 export interface HoloSceneAttributes {
   src?: string;
@@ -31,14 +31,14 @@ export interface HoloSceneAttributes {
 }
 
 export interface HoloSceneLoadEvent {
-  type: "holo-load";
+  type: 'holo-load';
   source: string;
   target: HoloSceneTarget;
   compileTimeMs: number;
 }
 
 export interface HoloSceneErrorEvent {
-  type: "holo-error";
+  type: 'holo-error';
   message: string;
   source?: string;
 }

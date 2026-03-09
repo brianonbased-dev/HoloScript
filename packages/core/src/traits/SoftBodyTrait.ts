@@ -52,9 +52,12 @@ interface SoftBodyConfig {
 /**
  * Automatically creates PBD particles and constraints from mesh data
  */
-function autoPopulateFromMesh(node: any, config: SoftBodyConfig): { particles: Particle[], constraints: DistanceConstraint[] } {
+function autoPopulateFromMesh(
+  node: any,
+  config: SoftBodyConfig
+): { particles: Particle[]; constraints: DistanceConstraint[] } {
   const meshData = node.properties?.meshData;
-  
+
   if (!meshData || !meshData.positions || !meshData.indices) {
     // Fallback to simple line segment for entities without mesh data
     return {
@@ -62,9 +65,7 @@ function autoPopulateFromMesh(node: any, config: SoftBodyConfig): { particles: P
         { position: [0, 0, 0], previousPosition: [0, 0, 0], velocity: [0, 0, 0], invMass: 1.0 },
         { position: [0, 1, 0], previousPosition: [0, 1, 0], velocity: [0, 0, 0], invMass: 1.0 },
       ],
-      constraints: [
-        { p1: 0, p2: 1, restLength: 1.0, stiffness: config.stiffness }
-      ]
+      constraints: [{ p1: 0, p2: 1, restLength: 1.0, stiffness: config.stiffness }],
     };
   }
 
@@ -76,31 +77,33 @@ function autoPopulateFromMesh(node: any, config: SoftBodyConfig): { particles: P
   // Create particles from vertices
   for (let i = 0; i < positions.length; i += 3) {
     particles.push({
-      position: [positions[i], positions[i+1], positions[i+2]],
-      previousPosition: [positions[i], positions[i+1], positions[i+2]],
+      position: [positions[i], positions[i + 1], positions[i + 2]],
+      previousPosition: [positions[i], positions[i + 1], positions[i + 2]],
       velocity: [0, 0, 0],
-      invMass: config.mass > 0 ? 1.0 / (config.mass / (positions.length / 3)) : 0
+      invMass: config.mass > 0 ? 1.0 / (config.mass / (positions.length / 3)) : 0,
     });
   }
 
   // Create distance constraints from triangle edges
   const edgeSet = new Set<string>();
   for (let i = 0; i + 2 < indices.length; i += 3) {
-    const triangle = [indices[i], indices[i+1], indices[i+2]];
-    const edges = [[triangle[0], triangle[1]], [triangle[1], triangle[2]], [triangle[2], triangle[0]]];
-    
+    const triangle = [indices[i], indices[i + 1], indices[i + 2]];
+    const edges = [
+      [triangle[0], triangle[1]],
+      [triangle[1], triangle[2]],
+      [triangle[2], triangle[0]],
+    ];
+
     for (const [a, b] of edges) {
       if (a === undefined || b === undefined || !particles[a] || !particles[b]) continue;
-      
+
       const key = a < b ? `${a}-${b}` : `${b}-${a}`;
       if (!edgeSet.has(key)) {
         edgeSet.add(key);
         const pA = particles[a].position;
         const pB = particles[b].position;
         const dist = Math.sqrt(
-          Math.pow(pA[0] - pB[0], 2) + 
-          Math.pow(pA[1] - pB[1], 2) + 
-          Math.pow(pA[2] - pB[2], 2)
+          Math.pow(pA[0] - pB[0], 2) + Math.pow(pA[1] - pB[1], 2) + Math.pow(pA[2] - pB[2], 2)
         );
         constraints.push({ p1: a, p2: b, restLength: dist, stiffness: config.stiffness });
       }
@@ -147,7 +150,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
     const { particles, constraints } = autoPopulateFromMesh(node, config);
     state.solver = new SoftBodySolver(particles, constraints);
     state.isSimulating = true;
-    
+
     // Set rest volume if available
     state.restVolume = (node.properties?.meshData as any)?.volume || 1.0;
   },
@@ -168,13 +171,17 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
     if (state.solver) {
       state.solver.step(delta);
       const particles = state.solver.getParticles();
-      
+
       // Sync back to internal vertex state
-      state.vertices = particles.map(p => ({
+      state.vertices = particles.map((p) => ({
         position: { x: p.position[0], y: p.position[1], z: p.position[2] },
-        restPosition: { x: p.previousPosition[0], y: p.previousPosition[1], z: p.previousPosition[2] },
+        restPosition: {
+          x: p.previousPosition[0],
+          y: p.previousPosition[1],
+          z: p.previousPosition[2],
+        },
         velocity: { x: p.velocity[0], y: p.velocity[1], z: p.velocity[2] },
-        normal: { x: 0, y: 1, z: 0 }
+        normal: { x: 0, y: 1, z: 0 },
       }));
     }
 

@@ -3,9 +3,9 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useSceneSearch } from '../useSceneSearch';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
-vi.mock('@/lib/store', () => ({
+vi.mock('@/lib/stores', () => ({
   useSceneStore: vi.fn(),
 }));
 
@@ -101,11 +101,7 @@ describe('useSceneSearch', () => {
 
       const { result } = renderHook(() => useSceneSearch());
 
-      expect(result.current.results[0].traits).toEqual([
-        'transform',
-        'material',
-        'physics',
-      ]);
+      expect(result.current.results[0].traits).toEqual(['transform', 'material', 'physics']);
     });
 
     it('should parse multiple objects', () => {

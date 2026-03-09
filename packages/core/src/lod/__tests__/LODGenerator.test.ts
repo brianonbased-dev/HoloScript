@@ -5,14 +5,8 @@ import type { MeshData } from '../LODGenerator';
 /** Build a simple 2-triangle quad mesh */
 function makeQuadMesh(): MeshData {
   return {
-    positions: new Float32Array([
-      0, 0, 0,  1, 0, 0,  1, 1, 0,
-      0, 0, 0,  1, 1, 0,  0, 1, 0,
-    ]),
-    normals: new Float32Array([
-      0, 0, 1,  0, 0, 1,  0, 0, 1,
-      0, 0, 1,  0, 0, 1,  0, 0, 1,
-    ]),
+    positions: new Float32Array([0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0]),
+    normals: new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]),
     indices: new Uint32Array([0, 1, 2, 3, 4, 5]),
   };
 }

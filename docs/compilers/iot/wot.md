@@ -14,13 +14,13 @@ holo compile --target wot scene.holo --out thing-description.jsonld
 
 ## HoloScript IoT → WoT Mapping
 
-| HoloScript | WoT |
-|------------|-----|
-| `@iot_sensor` | WoT Property (read-only) |
-| `@actuator` | WoT Action |
-| `@digital_twin` | WoT Thing with shadow |
-| `@telemetry` | WoT Event |
-| `@mqtt_bridge` | WoT Form (MQTT binding) |
+| HoloScript      | WoT                      |
+| --------------- | ------------------------ |
+| `@iot_sensor`   | WoT Property (read-only) |
+| `@actuator`     | WoT Action               |
+| `@digital_twin` | WoT Thing with shadow    |
+| `@telemetry`    | WoT Event                |
+| `@mqtt_bridge`  | WoT Form (MQTT binding)  |
 
 ## Example
 

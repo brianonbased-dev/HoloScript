@@ -68,7 +68,9 @@ function main() {
     console.log(`  ✓ interfaces/ (${interfaceFiles.length} type definitions)`);
   }
 
-  console.log(`\n✅ Copied ${copied} files (${(totalBytes / 1024).toFixed(1)} KB total) → public/wasm/`);
+  console.log(
+    `\n✅ Copied ${copied} files (${(totalBytes / 1024).toFixed(1)} KB total) → public/wasm/`
+  );
 }
 
 main();

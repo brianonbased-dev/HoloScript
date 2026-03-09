@@ -71,14 +71,23 @@ describe('animationTraitHandler.onAttach — autoPlay false', () => {
     const engine = getSharedAnimationEngine();
     const spy = vi.spyOn(engine, 'play');
     const node = makeNode('nodeA');
-    animationTraitHandler.onAttach(node, makeConfig({
-      autoPlay: false,
-      clips: [{
-        property: 'opacity',
-        keyframes: [{ time: 0, value: 0 }, { time: 1, value: 1 }],
-        duration: 1,
-      }],
-    }), {});
+    animationTraitHandler.onAttach(
+      node,
+      makeConfig({
+        autoPlay: false,
+        clips: [
+          {
+            property: 'opacity',
+            keyframes: [
+              { time: 0, value: 0 },
+              { time: 1, value: 1 },
+            ],
+            duration: 1,
+          },
+        ],
+      }),
+      {}
+    );
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();
   });
@@ -94,20 +103,30 @@ describe('animationTraitHandler.onAttach — autoPlay true', () => {
     });
 
     const node = makeNode('nodeB');
-    animationTraitHandler.onAttach(node, makeConfig({
-      clips: [
-        {
-          property: 'opacity',
-          keyframes: [{ time: 0, value: 0 }, { time: 1, value: 1 }],
-          duration: 1,
-        },
-        {
-          property: 'scale',
-          keyframes: [{ time: 0, value: 1 }, { time: 2, value: 2 }],
-          duration: 2,
-        },
-      ],
-    }), {});
+    animationTraitHandler.onAttach(
+      node,
+      makeConfig({
+        clips: [
+          {
+            property: 'opacity',
+            keyframes: [
+              { time: 0, value: 0 },
+              { time: 1, value: 1 },
+            ],
+            duration: 1,
+          },
+          {
+            property: 'scale',
+            keyframes: [
+              { time: 0, value: 1 },
+              { time: 2, value: 2 },
+            ],
+            duration: 2,
+          },
+        ],
+      }),
+      {}
+    );
 
     expect(playCalls).toHaveLength(2);
     expect(playCalls[0]).toBe('nodeB_opacity');
@@ -118,11 +137,17 @@ describe('animationTraitHandler.onAttach — autoPlay true', () => {
   it('clip ID uses node id prefix', () => {
     const engine = getSharedAnimationEngine();
     const ids: string[] = [];
-    const spy = vi.spyOn(engine, 'play').mockImplementation((clip: any) => { ids.push(clip.id); });
+    const spy = vi.spyOn(engine, 'play').mockImplementation((clip: any) => {
+      ids.push(clip.id);
+    });
 
-    animationTraitHandler.onAttach(makeNode('myNode'), makeConfig({
-      clips: [{ property: 'x', keyframes: [{ time: 0, value: 0 }], duration: 1 }],
-    }), {});
+    animationTraitHandler.onAttach(
+      makeNode('myNode'),
+      makeConfig({
+        clips: [{ property: 'x', keyframes: [{ time: 0, value: 0 }], duration: 1 }],
+      }),
+      {}
+    );
     expect(ids[0]).toMatch(/^myNode_/);
     spy.mockRestore();
   });
@@ -130,11 +155,17 @@ describe('animationTraitHandler.onAttach — autoPlay true', () => {
   it('clip loop and pingPong default to false', () => {
     const engine = getSharedAnimationEngine();
     let capturedClip: any;
-    const spy = vi.spyOn(engine, 'play').mockImplementation((clip: any) => { capturedClip = clip; });
+    const spy = vi.spyOn(engine, 'play').mockImplementation((clip: any) => {
+      capturedClip = clip;
+    });
 
-    animationTraitHandler.onAttach(makeNode('nodeLoop'), makeConfig({
-      clips: [{ property: 'y', keyframes: [{ time: 0, value: 0 }], duration: 1 }],
-    }), {});
+    animationTraitHandler.onAttach(
+      makeNode('nodeLoop'),
+      makeConfig({
+        clips: [{ property: 'y', keyframes: [{ time: 0, value: 0 }], duration: 1 }],
+      }),
+      {}
+    );
 
     expect(capturedClip.loop).toBe(false);
     expect(capturedClip.pingPong).toBe(false);
@@ -144,14 +175,25 @@ describe('animationTraitHandler.onAttach — autoPlay true', () => {
   it('respects loop=true and pingPong=true', () => {
     const engine = getSharedAnimationEngine();
     let capturedClip: any;
-    const spy = vi.spyOn(engine, 'play').mockImplementation((c: any) => { capturedClip = c; });
+    const spy = vi.spyOn(engine, 'play').mockImplementation((c: any) => {
+      capturedClip = c;
+    });
 
-    animationTraitHandler.onAttach(makeNode('loopNode'), makeConfig({
-      clips: [{
-        property: 'y', keyframes: [{ time: 0, value: 0 }], duration: 1,
-        loop: true, pingPong: true,
-      }],
-    }), {});
+    animationTraitHandler.onAttach(
+      makeNode('loopNode'),
+      makeConfig({
+        clips: [
+          {
+            property: 'y',
+            keyframes: [{ time: 0, value: 0 }],
+            duration: 1,
+            loop: true,
+            pingPong: true,
+          },
+        ],
+      }),
+      {}
+    );
 
     expect(capturedClip.loop).toBe(true);
     expect(capturedClip.pingPong).toBe(true);
@@ -166,9 +208,13 @@ describe('animationTraitHandler.onAttach — autoPlay true', () => {
     });
 
     const node = makeNode('propNode');
-    animationTraitHandler.onAttach(node, makeConfig({
-      clips: [{ property: 'opacity', keyframes: [{ time: 0, value: 0 }], duration: 1 }],
-    }), {});
+    animationTraitHandler.onAttach(
+      node,
+      makeConfig({
+        clips: [{ property: 'opacity', keyframes: [{ time: 0, value: 0 }], duration: 1 }],
+      }),
+      {}
+    );
 
     // Call the callback and verify property is written
     savedCallback!(0.75);
@@ -184,9 +230,13 @@ describe('animationTraitHandler.onAttach — autoPlay true', () => {
     });
 
     const node = makeNode('nested', { color: {} });
-    animationTraitHandler.onAttach(node, makeConfig({
-      clips: [{ property: 'color.r', keyframes: [{ time: 0, value: 0 }], duration: 1 }],
-    }), {});
+    animationTraitHandler.onAttach(
+      node,
+      makeConfig({
+        clips: [{ property: 'color.r', keyframes: [{ time: 0, value: 0 }], duration: 1 }],
+      }),
+      {}
+    );
 
     savedCallback!(0.8);
     expect((node.properties as any).color.r).toBeCloseTo(0.8);
@@ -199,10 +249,14 @@ describe('animationTraitHandler.onAttach — springs', () => {
   it('does not throw when springs array is non-empty', () => {
     const node = makeNode('springNode', { x: 0 });
     expect(() => {
-      animationTraitHandler.onAttach(node, makeConfig({
-        clips: [],
-        springs: [{ property: 'x', target: 10, preset: 'default' }],
-      }), {});
+      animationTraitHandler.onAttach(
+        node,
+        makeConfig({
+          clips: [],
+          springs: [{ property: 'x', target: 10, preset: 'default' }],
+        }),
+        {}
+      );
     }).not.toThrow();
   });
 
@@ -210,9 +264,13 @@ describe('animationTraitHandler.onAttach — springs', () => {
     const node = makeNode('springInit', { speed: 5 });
     // Should not throw even if initial value is read
     expect(() => {
-      animationTraitHandler.onAttach(node, makeConfig({
-        springs: [{ property: 'speed', target: 20 }],
-      }), {});
+      animationTraitHandler.onAttach(
+        node,
+        makeConfig({
+          springs: [{ property: 'speed', target: 20 }],
+        }),
+        {}
+      );
     }).not.toThrow();
   });
 });
@@ -257,10 +315,14 @@ describe('animationTraitHandler.onUpdate', () => {
 
   it('does not throw for a node with springs after attach', () => {
     const node = makeNode('springUpdateNode', { y: 0 });
-    animationTraitHandler.onAttach(node, makeConfig({
-      clips: [],
-      springs: [{ property: 'y', target: 5 }],
-    }), {});
+    animationTraitHandler.onAttach(
+      node,
+      makeConfig({
+        clips: [],
+        springs: [{ property: 'y', target: 5 }],
+      }),
+      {}
+    );
 
     expect(() => {
       animationTraitHandler.onUpdate(node, makeConfig(), {}, 0.016);
@@ -276,36 +338,56 @@ describe('resolveEasing (via clip callback timing)', () => {
     const spy = vi.spyOn(engine, 'play').mockImplementation(() => {});
 
     expect(() => {
-      animationTraitHandler.onAttach(makeNode('easingNode'), makeConfig({
-        clips: [{
-          property: 'x',
-          keyframes: [{ time: 0, value: 0, easing: 'nonexistent-easing' }],
-          duration: 1,
-        }],
-      }), {});
+      animationTraitHandler.onAttach(
+        makeNode('easingNode'),
+        makeConfig({
+          clips: [
+            {
+              property: 'x',
+              keyframes: [{ time: 0, value: 0, easing: 'nonexistent-easing' }],
+              duration: 1,
+            },
+          ],
+        }),
+        {}
+      );
     }).not.toThrow();
     spy.mockRestore();
   });
 
   it('all known easing strings do not throw', () => {
     const easings = [
-      'linear', 'ease-in', 'ease-out', 'ease-in-out',
-      'ease-in-cubic', 'ease-out-cubic', 'ease-in-out-cubic',
-      'ease-out-back', 'ease-out-elastic', 'ease-out-bounce',
-      'ease-in-expo', 'ease-out-expo',
+      'linear',
+      'ease-in',
+      'ease-out',
+      'ease-in-out',
+      'ease-in-cubic',
+      'ease-out-cubic',
+      'ease-in-out-cubic',
+      'ease-out-back',
+      'ease-out-elastic',
+      'ease-out-bounce',
+      'ease-in-expo',
+      'ease-out-expo',
     ];
     const engine = getSharedAnimationEngine();
     const spy = vi.spyOn(engine, 'play').mockImplementation(() => {});
 
     for (const easing of easings) {
       expect(() => {
-        animationTraitHandler.onAttach(makeNode(`e_${easing}`), makeConfig({
-          clips: [{
-            property: 'x',
-            keyframes: [{ time: 0, value: 0, easing }],
-            duration: 1,
-          }],
-        }), {});
+        animationTraitHandler.onAttach(
+          makeNode(`e_${easing}`),
+          makeConfig({
+            clips: [
+              {
+                property: 'x',
+                keyframes: [{ time: 0, value: 0, easing }],
+                duration: 1,
+              },
+            ],
+          }),
+          {}
+        );
       }).not.toThrow();
     }
     spy.mockRestore();

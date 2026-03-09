@@ -75,32 +75,42 @@ function generateFormatHeader(
   switch (format) {
     case 'gltf':
     case 'glb':
-      return JSON.stringify({
-        asset: { version: '2.0', generator: 'HoloScript Studio v0.1.0' },
-        scene: 0,
-        scenes: [{ name: 'HoloScene', nodes: nodes.map((_, i) => i) }],
-        nodes: nodes.map(n => ({
-          name: n.name,
-          translation: [n.position.x, n.position.y, n.position.z],
-          rotation: [0, 0, 0, 1],
-          scale: [n.scale.x, n.scale.y, n.scale.z],
-        })),
-      }, null, opts.quality === 'draft' ? 0 : 2);
+      return JSON.stringify(
+        {
+          asset: { version: '2.0', generator: 'HoloScript Studio v0.1.0' },
+          scene: 0,
+          scenes: [{ name: 'HoloScene', nodes: nodes.map((_, i) => i) }],
+          nodes: nodes.map((n) => ({
+            name: n.name,
+            translation: [n.position.x, n.position.y, n.position.z],
+            rotation: [0, 0, 0, 1],
+            scale: [n.scale.x, n.scale.y, n.scale.z],
+          })),
+        },
+        null,
+        opts.quality === 'draft' ? 0 : 2
+      );
 
     case 'obj':
-      return nodes.map(n =>
-        `# ${n.name}\ng ${n.name}\nv ${n.position.x} ${n.position.y} ${n.position.z}`
-      ).join('\n\n');
+      return nodes
+        .map((n) => `# ${n.name}\ng ${n.name}\nv ${n.position.x} ${n.position.y} ${n.position.z}`)
+        .join('\n\n');
 
     case 'usd':
-      return `#usda 1.0\n(\n  defaultPrim = "HoloScene"\n)\n\ndef Xform "HoloScene" {\n${
-        nodes.map(n => `  def Mesh "${n.name}" {\n    double3 xformOp:translate = (${n.position.x}, ${n.position.y}, ${n.position.z})\n  }`).join('\n')
-      }\n}`;
+      return `#usda 1.0\n(\n  defaultPrim = "HoloScene"\n)\n\ndef Xform "HoloScene" {\n${nodes
+        .map(
+          (n) =>
+            `  def Mesh "${n.name}" {\n    double3 xformOp:translate = (${n.position.x}, ${n.position.y}, ${n.position.z})\n  }`
+        )
+        .join('\n')}\n}`;
 
     case 'holoscript':
-      return nodes.map(n =>
-        `${n.type} "${n.name}" {\n  position: ${n.position.x} ${n.position.y} ${n.position.z}\n  traits: [${n.traits.join(', ')}]\n}`
-      ).join('\n\n');
+      return nodes
+        .map(
+          (n) =>
+            `${n.type} "${n.name}" {\n  position: ${n.position.x} ${n.position.y} ${n.position.z}\n  traits: [${n.traits.join(', ')}]\n}`
+        )
+        .join('\n\n');
 
     default:
       return JSON.stringify({ nodes: nodes.length, format });
@@ -110,7 +120,11 @@ function generateFormatHeader(
 /**
  * Get supported export formats with metadata.
  */
-export function supportedFormats(): Array<{ format: ExportFormat; label: string; extension: string }> {
+export function supportedFormats(): Array<{
+  format: ExportFormat;
+  label: string;
+  extension: string;
+}> {
   return [
     { format: 'glb', label: 'glTF Binary', extension: '.glb' },
     { format: 'gltf', label: 'glTF JSON', extension: '.gltf' },
@@ -125,7 +139,12 @@ export function supportedFormats(): Array<{ format: ExportFormat; label: string;
  */
 export function estimateExportSize(nodeCount: number, format: ExportFormat): number {
   const basePerNode: Record<ExportFormat, number> = {
-    glb: 512, gltf: 768, obj: 256, fbx: 1024, usd: 640, holoscript: 128,
+    glb: 512,
+    gltf: 768,
+    obj: 256,
+    fbx: 1024,
+    usd: 640,
+    holoscript: 128,
   };
   return nodeCount * (basePerNode[format] || 512);
 }

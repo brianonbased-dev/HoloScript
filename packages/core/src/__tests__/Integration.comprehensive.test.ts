@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 /**
  * Integration Tests - Parser → Compiler Pipeline
- * 
+ *
  * Tests end-to-end workflows combining parser and compiler modules.
  * Validates data flow, type conversions, and pipeline integrity.
  */
@@ -16,7 +16,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
           position: [0, 0, 0]
         }
       }`;
-      
+
       expect(source).toBeDefined();
       expect(source).toContain('composition');
       expect(source).toContain('object');
@@ -29,7 +29,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         object "obj2" { position: [1, 1, 1] }
         object "obj3" { position: [2, 2, 2] }
       }`;
-      
+
       expect(source).toBeDefined();
       const objectCount = (source.match(/object "/g) || []).length;
       expect(objectCount).toBe(3);
@@ -41,12 +41,12 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         author: 'test-user',
         timestamp: Date.now(),
       };
-      
+
       const composition = {
         source: 'composition "meta" { }',
         metadata,
       };
-      
+
       expect(composition.metadata).toBeDefined();
       expect(composition.metadata.version).toBe('1.0');
       expect(composition.metadata.author).toBe('test-user');
@@ -56,13 +56,13 @@ describe('Integration Tests - End-to-End Pipeline', () => {
       const source = `composition "tracked" {
         object "tracked_obj" { position: [0, 0, 0] }
       }`;
-      
+
       const locations = {
         composition: { line: 1, column: 1 },
         object: { line: 2, column: 3 },
         property: { line: 3, column: 5 },
       };
-      
+
       expect(locations.composition.line).toBe(1);
       expect(locations.object.line).toBe(2);
       expect(locations.property.line).toBe(3);
@@ -77,8 +77,8 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         negative: -1.5,
         scientific: 1.23e-4,
       };
-      
-      Object.values(types).forEach(value => {
+
+      Object.values(types).forEach((value) => {
         expect(typeof value).toBe('number');
       });
     });
@@ -90,8 +90,8 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         escaped: 'line\\nbreak',
         unicode: '🎉emoji',
       };
-      
-      Object.values(types).forEach(value => {
+
+      Object.values(types).forEach((value) => {
         expect(typeof value).toBe('string');
       });
     });
@@ -100,11 +100,14 @@ describe('Integration Tests - End-to-End Pipeline', () => {
       const types = {
         position: [1, 2, 3],
         color: [255, 128, 64],
-        nested: [[1, 2], [3, 4]],
+        nested: [
+          [1, 2],
+          [3, 4],
+        ],
         mixed: [1, 'two', true],
       };
-      
-      Object.values(types).forEach(value => {
+
+      Object.values(types).forEach((value) => {
         expect(Array.isArray(value)).toBe(true);
       });
     });
@@ -115,7 +118,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         nested: { outer: { inner: 'value' } },
         array: { items: [1, 2, 3] },
       };
-      
+
       expect(types.simple.x).toBe(1);
       expect(types.nested.outer.inner).toBe('value');
       expect(types.array.items).toEqual([1, 2, 3]);
@@ -128,7 +131,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         position_array: [0, 1, 2],
         position_props: { x: 0, y: 1, z: 2 },
       };
-      
+
       expect(attributes.position_array).toHaveLength(3);
       expect(attributes.position_props.x).toBe(0);
     });
@@ -139,7 +142,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         rgb: { r: 255, g: 0, b: 0 },
         rgba: { r: 255, g: 0, b: 0, a: 1 },
       };
-      
+
       expect(colors.hex).toContain('#');
       expect(colors.rgb.r).toBe(255);
       expect(colors.rgba.a).toBe(1);
@@ -151,7 +154,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         vector: [1, 2, 1],
         identity: [1, 1, 1],
       };
-      
+
       expect(scales.uniform).toBeGreaterThan(0);
       expect(scales.vector).toHaveLength(3);
     });
@@ -162,7 +165,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         quaternion: { x: 0, y: 0.707, z: 0, w: 0.707 },
         axis_angle: { axis: [0, 1, 0], angle: 90 },
       };
-      
+
       expect(rotations.euler.y).toBe(90);
       expect(rotations.quaternion.y).toBeCloseTo(0.707, 2);
     });
@@ -175,7 +178,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         active: true,
         values: [1, 2, 3],
       };
-      
+
       expect(state.counter).toBe(0);
       expect(state.active).toBe(true);
       expect(state.values).toEqual([1, 2, 3]);
@@ -186,10 +189,10 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         { id: 1, state: { value: 100 } },
         { id: 2, state: { value: 200 } },
       ];
-      
+
       // Simulate state update
       objects[0].state.value = 150;
-      
+
       expect(objects[0].state.value).toBe(150);
       expect(objects[1].state.value).toBe(200);
     });
@@ -207,7 +210,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
           nested: { deep: { value: 'found' } },
         },
       };
-      
+
       expect(complexState.primitives.num).toBe(42);
       expect(complexState.collections.nested.deep.value).toBe('found');
     });
@@ -219,8 +222,8 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         { from: 'loading', to: 'idle', valid: true },
         { from: 'idle', to: 'error', valid: false },
       ];
-      
-      const validTransitions = stateTransitions.filter(t => t.valid);
+
+      const validTransitions = stateTransitions.filter((t) => t.valid);
       expect(validTransitions).toHaveLength(3);
     });
   });
@@ -232,7 +235,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         hoverable: { highlight: true },
         collidable: { physics: 'dynamic' },
       };
-      
+
       expect(traits.grabbable.snap_to_hand).toBe(true);
       expect(traits.hoverable.highlight).toBe(true);
     });
@@ -243,7 +246,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         networked: ['grabbable'],
         physics: ['collidable'],
       };
-      
+
       expect(dependencies.grabbable).toHaveLength(0);
       expect(dependencies.networked).toContain('grabbable');
     });
@@ -254,18 +257,18 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         static_dynamic: false,
         networked_local: false,
       };
-      
+
       expect(compatibilityMatrix.grabbable_collidable).toBe(true);
       expect(compatibilityMatrix.static_dynamic).toBe(false);
     });
 
     it('should apply trait configuration through pipeline', () => {
       const traitConfig = {
-        'grabbable': { snap_to_hand: true, grip_style: 'sphere' },
-        'collidable': { physics: 'dynamic', mass: 1.0 },
-        'networked': { sync_rate: '20Hz', authority: 'owner' },
+        grabbable: { snap_to_hand: true, grip_style: 'sphere' },
+        collidable: { physics: 'dynamic', mass: 1.0 },
+        networked: { sync_rate: '20Hz', authority: 'owner' },
       };
-      
+
       expect(traitConfig['grabbable'].snap_to_hand).toBe(true);
       expect(traitConfig['collidable'].mass).toBe(1.0);
     });
@@ -277,9 +280,9 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         { line: 2, column: 5, message: 'unexpected token' },
         { line: 5, column: 10, message: 'missing closing brace' },
       ];
-      
+
       expect(parseErrors).toHaveLength(2);
-      parseErrors.forEach(err => {
+      parseErrors.forEach((err) => {
         expect(err.line).toBeGreaterThan(0);
         expect(err.column).toBeGreaterThan(0);
       });
@@ -290,19 +293,19 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         { phase: 'parse', type: 'syntax', recoverable: true },
         { phase: 'compile', type: 'type_mismatch', recoverable: false },
       ];
-      
+
       expect(typeErrors[0].recoverable).toBe(true);
       expect(typeErrors[1].recoverable).toBe(false);
     });
 
     it('should accumulate errors through pipeline', () => {
       const errorBucket = [];
-      
+
       // Simulate error accumulation
       errorBucket.push({ stage: 'parse', code: 'E001' });
       errorBucket.push({ stage: 'type_check', code: 'E002' });
       errorBucket.push({ stage: 'compile', code: 'E003' });
-      
+
       expect(errorBucket).toHaveLength(3);
       expect(errorBucket[0].stage).toBe('parse');
     });
@@ -320,7 +323,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
           continueWith: 'next_object',
         },
       };
-      
+
       expect(recovery.parseError.recovered).toBe(true);
       expect(recovery.compileError.continueWith).toBe('next_object');
     });
@@ -329,54 +332,54 @@ describe('Integration Tests - End-to-End Pipeline', () => {
   describe('Performance Through Pipeline', () => {
     it('should parse and prepare quickly for small compositions', () => {
       const start = Date.now();
-      
+
       const composition = generateComposition(10);
-      
+
       const end = Date.now();
       expect(end - start).toBeLessThan(100);
     });
 
     it('should handle medium compositions efficiently', () => {
       const start = Date.now();
-      
+
       const composition = generateComposition(100);
-      
+
       const end = Date.now();
       expect(end - start).toBeLessThan(500);
     });
 
     it('should handle large compositions with acceptable delay', () => {
       const start = Date.now();
-      
+
       const composition = generateComposition(500);
-      
+
       const end = Date.now();
       expect(end - start).toBeLessThan(2000);
     });
 
     it('should process objects at consistent rate', () => {
-      const measurements = [10, 50, 100, 200].map(count => {
+      const measurements = [10, 50, 100, 200].map((count) => {
         const start = Date.now();
         generateComposition(count);
         return { count, time: Date.now() - start };
       });
-      
+
       // Verify all completed
       expect(measurements).toHaveLength(4);
-      measurements.forEach(m => {
+      measurements.forEach((m) => {
         expect(m.time).toBeGreaterThanOrEqual(0);
       });
     });
 
     it('should optimize repeated compilations', () => {
       const times = [];
-      
+
       for (let i = 0; i < 5; i++) {
         const start = Date.now();
         generateComposition(50);
         times.push(Date.now() - start);
       }
-      
+
       // Later runs might be faster due to optimization
       expect(times).toHaveLength(5);
       expect(times[times.length - 1]).toBeLessThanOrEqual(times[0] + 10);
@@ -390,13 +393,13 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         properties: 20,
         traits: 15,
       };
-      
+
       const processed = {
         objects: original.objects,
         properties: original.properties,
         traits: original.traits,
       };
-      
+
       expect(processed).toEqual(original);
     });
 
@@ -407,7 +410,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         validated: { valid: true, errors: [] },
         compiled: { target: 'javascript', code: 'generated' },
       };
-      
+
       expect(stages.input).toContain('composition');
       expect(stages.parsed.type).toBe('composition');
       expect(stages.validated.valid).toBe(true);
@@ -416,14 +419,14 @@ describe('Integration Tests - End-to-End Pipeline', () => {
 
     it('should handle branching in pipeline', () => {
       const composition = generateComposition(5);
-      
+
       const branches = {
         python: { target: 'python', result: 'python code' },
         javascript: { target: 'javascript', result: 'js code' },
         go: { target: 'go', result: 'go code' },
       };
-      
-      Object.values(branches).forEach(branch => {
+
+      Object.values(branches).forEach((branch) => {
         expect(branch.result).toBeDefined();
       });
     });
@@ -434,7 +437,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         javascript: 'function Scene() {}',
         go: 'func Scene() {}',
       };
-      
+
       const merged = Object.values(outputs).join('\n---\n');
       expect(merged).toContain('Scene');
       expect(merged.split('---')).toHaveLength(3);
@@ -451,7 +454,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
           { id: 'obj2', type: 'sphere', position: [1, 1, 1] },
         ],
       };
-      
+
       expect(ast.type).toBe('composition');
       expect(ast.objects).toHaveLength(2);
     });
@@ -461,10 +464,10 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         parser: { count: 0, messages: [] },
         compiler: { count: 0, messages: [] },
       };
-      
+
       errors.parser.count = 1;
       errors.parser.messages.push('malformed input');
-      
+
       expect(errors.parser.count).toBe(1);
       expect(errors.parser.messages).toHaveLength(1);
     });
@@ -480,7 +483,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
           { optimization: 'remove_unused', savings: '8%' },
         ],
       };
-      
+
       expect(hints.parserToCompiler).toHaveLength(2);
       expect(hints.compilerToOptimizer).toHaveLength(2);
     });
@@ -493,7 +496,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         astNodes: 42,
         compiledLines: 156,
       };
-      
+
       expect(debugInfo.parseTime + debugInfo.compileTime).toBe(debugInfo.totalTime);
       expect(debugInfo.astNodes).toBeGreaterThan(0);
     });
@@ -507,7 +510,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         compiled: { success: true, lines: 50 },
         output: 'generated code',
       };
-      
+
       expect(workflow.input).toBeDefined();
       expect(workflow.parsed.success).toBe(true);
       expect(workflow.compiled.success).toBe(true);
@@ -515,16 +518,16 @@ describe('Integration Tests - End-to-End Pipeline', () => {
 
     it('should complete complex multi-target workflow', () => {
       const source = generateComposition(20);
-      
+
       const targets = ['python', 'javascript', 'go', 'rust'];
-      const results = targets.map(target => ({
+      const results = targets.map((target) => ({
         target,
         success: true,
         size: Math.floor(Math.random() * 1000) + 100,
       }));
-      
+
       expect(results).toHaveLength(4);
-      results.forEach(r => expect(r.success).toBe(true));
+      results.forEach((r) => expect(r.success).toBe(true));
     });
 
     it('should handle workflow errors gracefully', () => {
@@ -533,10 +536,10 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         errors: [],
         completed: false,
       };
-      
+
       // Simulate error at compile stage
       workflow.errors.push({ stage: 'compile', message: 'invalid trait' });
-      
+
       expect(workflow.errors).toHaveLength(1);
       expect(workflow.completed).toBe(false);
     });
@@ -550,8 +553,10 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         objectsProcessed: 125,
         traitsProcessed: 89,
       };
-      
-      expect(stats.parseTime + stats.compileTime + stats.optimizeTime).toBeLessThanOrEqual(stats.totalTime);
+
+      expect(stats.parseTime + stats.compileTime + stats.optimizeTime).toBeLessThanOrEqual(
+        stats.totalTime
+      );
       expect(stats.objectsProcessed).toBeGreaterThan(stats.traitsProcessed);
     });
   });
@@ -562,7 +567,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
  */
 function generateComposition(objectCount: number): string {
   let comp = 'composition "integration_test" {\n';
-  
+
   for (let i = 0; i < objectCount; i++) {
     comp += `  object "obj_${i}" {\n`;
     comp += `    geometry: "${['cube', 'sphere', 'cylinder'][i % 3]}"\n`;
@@ -570,7 +575,7 @@ function generateComposition(objectCount: number): string {
     comp += `    state { value: ${i} }\n`;
     comp += `  }\n`;
   }
-  
+
   comp += '}\n';
   return comp;
 }

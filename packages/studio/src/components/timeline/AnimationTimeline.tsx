@@ -16,19 +16,19 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Play, Pause, RotateCcw, Plus, Trash2, ChevronDown } from 'lucide-react';
-import { useEditorStore, useSceneGraphStore } from '@/lib/store';
+import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface Keyframe {
   id: string;
-  time: number;    // 0..duration (ms)
+  time: number; // 0..duration (ms)
   value: number;
 }
 
 export interface AnimationTrack {
   id: string;
-  property: string;  // e.g. "position.x", "rotation.y", "material.emissiveIntensity"
+  property: string; // e.g. "position.x", "rotation.y", "material.emissiveIntensity"
   keyframes: Keyframe[];
   easing: 'linear' | 'easeIn' | 'easeOut' | 'easeInOut';
   loop: boolean;
@@ -36,21 +36,33 @@ export interface AnimationTrack {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const DEFAULT_DURATION = 3000;   // ms
-const PX_PER_MS = 0.08;          // pixels per ms at scale 1
+const DEFAULT_DURATION = 3000; // ms
+const PX_PER_MS = 0.08; // pixels per ms at scale 1
 const TRACK_HEIGHT = 40;
 
 const PROPERTY_PRESETS = [
-  'position.x', 'position.y', 'position.z',
-  'rotation.x', 'rotation.y', 'rotation.z',
-  'scale.x', 'scale.y', 'scale.z', 'scale',
-  'material.emissiveIntensity', 'material.opacity',
+  'position.x',
+  'position.y',
+  'position.z',
+  'rotation.x',
+  'rotation.y',
+  'rotation.z',
+  'scale.x',
+  'scale.y',
+  'scale.z',
+  'scale',
+  'material.emissiveIntensity',
+  'material.opacity',
 ];
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
 
-function kfId() { return Math.random().toString(36).slice(2, 10); }
-function trackId() { return Math.random().toString(36).slice(2, 10); }
+function kfId() {
+  return Math.random().toString(36).slice(2, 10);
+}
+function trackId() {
+  return Math.random().toString(36).slice(2, 10);
+}
 
 function timeToX(time: number, duration: number, width: number) {
   return (time / duration) * width;
@@ -75,8 +87,15 @@ interface TrackRowProps {
 }
 
 function TrackRow({
-  track, duration, width, playheadTime,
-  selectedKf, onSelectKf, onAddKeyframe, onDeleteTrack, onUpdateValue,
+  track,
+  duration,
+  width,
+  playheadTime,
+  selectedKf,
+  onSelectKf,
+  onAddKeyframe,
+  onDeleteTrack,
+  onUpdateValue,
 }: TrackRowProps) {
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -120,7 +139,10 @@ function TrackRow({
           return (
             <button
               key={kf.id}
-              onClick={(e) => { e.stopPropagation(); onSelectKf(kf.id); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectKf(kf.id);
+              }}
               className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 h-3 w-3 rotate-45 border transition ${
                 selected
                   ? 'border-white bg-studio-accent scale-125'
@@ -204,7 +226,9 @@ export function AnimationTimeline({ onClose }: AnimationTimelineProps) {
     } else {
       if (playRef.current) clearInterval(playRef.current);
     }
-    return () => { if (playRef.current) clearInterval(playRef.current); };
+    return () => {
+      if (playRef.current) clearInterval(playRef.current);
+    };
   }, [playing, duration]);
 
   // ── Track operations ──────────────────────────────────────────────────────
@@ -265,9 +289,7 @@ export function AnimationTimeline({ onClose }: AnimationTimelineProps) {
       <div className="flex shrink-0 items-center gap-2 border-b border-studio-border px-3 py-2">
         <span className="text-[11px] font-semibold text-studio-text">
           Animation Timeline
-          {selectedNode && (
-            <span className="ml-1 text-studio-muted">— {selectedNode.name}</span>
-          )}
+          {selectedNode && <span className="ml-1 text-studio-muted">— {selectedNode.name}</span>}
         </span>
 
         <div className="ml-auto flex items-center gap-2">
@@ -288,7 +310,10 @@ export function AnimationTimeline({ onClose }: AnimationTimelineProps) {
 
           {/* Reset */}
           <button
-            onClick={() => { setPlayheadTime(0); setPlaying(false); }}
+            onClick={() => {
+              setPlayheadTime(0);
+              setPlaying(false);
+            }}
             className="rounded p-1 text-studio-muted hover:text-studio-text"
             title="Reset"
           >
@@ -341,7 +366,9 @@ export function AnimationTimeline({ onClose }: AnimationTimelineProps) {
             >
               <option value="">Pick property…</option>
               {PROPERTY_PRESETS.map((p) => (
-                <option key={p} value={p}>{p}</option>
+                <option key={p} value={p}>
+                  {p}
+                </option>
               ))}
             </select>
             <input

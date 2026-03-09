@@ -31,7 +31,7 @@ describe('UAALOpCode', () => {
   });
 
   it('should have HALT at 0xFF', () => {
-    expect(UAALOpCode.HALT).toBe(0xFF);
+    expect(UAALOpCode.HALT).toBe(0xff);
   });
 
   it('should identify cognitive opcodes', () => {
@@ -70,26 +70,26 @@ describe('UAALCompiler', () => {
   it('should compile INTAKE intent', () => {
     const bytecode = compiler.compileIntent('INTAKE new data from sensors');
     expect(bytecode.version).toBe(1);
-    const opcodes = bytecode.instructions.map(i => i.opCode);
+    const opcodes = bytecode.instructions.map((i) => i.opCode);
     expect(opcodes).toContain(UAALOpCode.INTAKE);
     expect(opcodes[opcodes.length - 1]).toBe(UAALOpCode.HALT);
   });
 
   it('should compile REFLECT intent', () => {
     const bytecode = compiler.compileIntent('THINK about this problem');
-    const opcodes = bytecode.instructions.map(i => i.opCode);
+    const opcodes = bytecode.instructions.map((i) => i.opCode);
     expect(opcodes).toContain(UAALOpCode.REFLECT);
   });
 
   it('should compile COMPRESS intent', () => {
     const bytecode = compiler.compileIntent('STORE the results');
-    const opcodes = bytecode.instructions.map(i => i.opCode);
+    const opcodes = bytecode.instructions.map((i) => i.opCode);
     expect(opcodes).toContain(UAALOpCode.COMPRESS);
   });
 
   it('should compile multi-phase intent', () => {
     const bytecode = compiler.compileIntent('INTAKE context THINK deeply STORE insights');
-    const opcodes = bytecode.instructions.map(i => i.opCode);
+    const opcodes = bytecode.instructions.map((i) => i.opCode);
     expect(opcodes).toContain(UAALOpCode.INTAKE);
     expect(opcodes).toContain(UAALOpCode.REFLECT);
     expect(opcodes).toContain(UAALOpCode.COMPRESS);
@@ -99,7 +99,7 @@ describe('UAALCompiler', () => {
     const bytecode = compiler.buildFullCycle('Analyze market data');
     expect(bytecode.instructions).toHaveLength(9); // PUSH + 7 phases + HALT
 
-    const opcodes = bytecode.instructions.map(i => i.opCode);
+    const opcodes = bytecode.instructions.map((i) => i.opCode);
     expect(opcodes[0]).toBe(UAALOpCode.PUSH);
     expect(opcodes[1]).toBe(UAALOpCode.INTAKE);
     expect(opcodes[2]).toBe(UAALOpCode.REFLECT);
@@ -136,10 +136,7 @@ describe('UAALVirtualMachine', () => {
     it('should execute PUSH and HALT', async () => {
       const bytecode: UAALBytecode = {
         version: 1,
-        instructions: [
-          { opCode: UAALOpCode.PUSH, operands: [42] },
-          { opCode: UAALOpCode.HALT },
-        ],
+        instructions: [{ opCode: UAALOpCode.PUSH, operands: [42] }, { opCode: UAALOpCode.HALT }],
       };
       const result = await vm.execute(bytecode);
       expect(result.taskStatus).toBe('HALTED');
@@ -163,10 +160,7 @@ describe('UAALVirtualMachine', () => {
     it('should push null for empty operands', async () => {
       const bytecode: UAALBytecode = {
         version: 1,
-        instructions: [
-          { opCode: UAALOpCode.PUSH },
-          { opCode: UAALOpCode.HALT },
-        ],
+        instructions: [{ opCode: UAALOpCode.PUSH }, { opCode: UAALOpCode.HALT }],
       };
       const result = await vm.execute(bytecode);
       expect(result.stackTop).toBeNull();
@@ -177,10 +171,7 @@ describe('UAALVirtualMachine', () => {
     it('should execute INTAKE and produce phase data', async () => {
       const bytecode: UAALBytecode = {
         version: 1,
-        instructions: [
-          { opCode: UAALOpCode.INTAKE },
-          { opCode: UAALOpCode.HALT },
-        ],
+        instructions: [{ opCode: UAALOpCode.INTAKE }, { opCode: UAALOpCode.HALT }],
       };
       const result = await vm.execute(bytecode);
       expect(result.stackTop).toHaveProperty('phase', 'INTAKE');
@@ -232,11 +223,11 @@ describe('UAALVirtualMachine', () => {
       const bytecode: UAALBytecode = {
         version: 1,
         instructions: [
-          { opCode: UAALOpCode.PUSH, operands: [1] },   // 0
-          { opCode: UAALOpCode.JUMP, operands: [3] },    // 1 → jump to 3
-          { opCode: UAALOpCode.PUSH, operands: [999] },  // 2 → skipped
-          { opCode: UAALOpCode.PUSH, operands: [2] },    // 3 → lands here
-          { opCode: UAALOpCode.HALT },                    // 4
+          { opCode: UAALOpCode.PUSH, operands: [1] }, // 0
+          { opCode: UAALOpCode.JUMP, operands: [3] }, // 1 → jump to 3
+          { opCode: UAALOpCode.PUSH, operands: [999] }, // 2 → skipped
+          { opCode: UAALOpCode.PUSH, operands: [2] }, // 3 → lands here
+          { opCode: UAALOpCode.HALT }, // 4
         ],
       };
       const result = await vm.execute(bytecode);
@@ -247,10 +238,10 @@ describe('UAALVirtualMachine', () => {
       const bytecode: UAALBytecode = {
         version: 1,
         instructions: [
-          { opCode: UAALOpCode.PUSH, operands: [1] },    // truthy
-          { opCode: UAALOpCode.JUMP_IF, operands: [3] },  // should jump
-          { opCode: UAALOpCode.PUSH, operands: [100] },   // skipped
-          { opCode: UAALOpCode.PUSH, operands: [42] },    // lands here
+          { opCode: UAALOpCode.PUSH, operands: [1] }, // truthy
+          { opCode: UAALOpCode.JUMP_IF, operands: [3] }, // should jump
+          { opCode: UAALOpCode.PUSH, operands: [100] }, // skipped
+          { opCode: UAALOpCode.PUSH, operands: [42] }, // lands here
           { opCode: UAALOpCode.HALT },
         ],
       };
@@ -262,9 +253,9 @@ describe('UAALVirtualMachine', () => {
       const bytecode: UAALBytecode = {
         version: 1,
         instructions: [
-          { opCode: UAALOpCode.PUSH, operands: [0] },     // falsy
-          { opCode: UAALOpCode.JUMP_IF, operands: [4] },   // should not jump
-          { opCode: UAALOpCode.PUSH, operands: [100] },    // should execute
+          { opCode: UAALOpCode.PUSH, operands: [0] }, // falsy
+          { opCode: UAALOpCode.JUMP_IF, operands: [4] }, // should not jump
+          { opCode: UAALOpCode.PUSH, operands: [100] }, // should execute
           { opCode: UAALOpCode.HALT },
         ],
       };
@@ -317,10 +308,7 @@ describe('UAALVirtualMachine', () => {
       const before = Date.now();
       const bytecode: UAALBytecode = {
         version: 1,
-        instructions: [
-          { opCode: UAALOpCode.OP_TIMESTAMP },
-          { opCode: UAALOpCode.HALT },
-        ],
+        instructions: [{ opCode: UAALOpCode.OP_TIMESTAMP }, { opCode: UAALOpCode.HALT }],
       };
       const result = await vm.execute(bytecode);
       const after = Date.now();
@@ -347,9 +335,7 @@ describe('UAALVirtualMachine', () => {
     it('should throw on OP_ERROR', async () => {
       const bytecode: UAALBytecode = {
         version: 1,
-        instructions: [
-          { opCode: UAALOpCode.OP_ERROR, operands: ['test error'] },
-        ],
+        instructions: [{ opCode: UAALOpCode.OP_ERROR, operands: ['test error'] }],
       };
       const result = await vm.execute(bytecode);
       expect(result.taskStatus).toBe('ERROR');
@@ -408,10 +394,7 @@ describe('UAALVirtualMachine', () => {
 
       const bytecode: UAALBytecode = {
         version: 1,
-        instructions: [
-          { opCode: UAALOpCode.INTAKE },
-          { opCode: UAALOpCode.HALT },
-        ],
+        instructions: [{ opCode: UAALOpCode.INTAKE }, { opCode: UAALOpCode.HALT }],
       };
       const result = await vm.execute(bytecode);
       expect(result.stackTop).toHaveProperty('custom', true);
@@ -444,10 +427,7 @@ describe('UAALVirtualMachine', () => {
       // First execution
       const bytecode: UAALBytecode = {
         version: 1,
-        instructions: [
-          { opCode: UAALOpCode.PUSH, operands: [42] },
-          { opCode: UAALOpCode.HALT },
-        ],
+        instructions: [{ opCode: UAALOpCode.PUSH, operands: [42] }, { opCode: UAALOpCode.HALT }],
       };
       await vm.execute(bytecode);
 

@@ -202,12 +202,7 @@ export class TraitCompositionAnalyzer {
       const diamonds = this.detectDiamondInheritance(comp.sources, traitMap);
       allDiamondWarnings.push(...diamonds);
 
-      const compNode = this.buildCompositionNode(
-        comp,
-        nodeMap,
-        traitMap,
-        diamonds,
-      );
+      const compNode = this.buildCompositionNode(comp, nodeMap, traitMap, diamonds);
       compositionNodes.push(compNode);
     }
 
@@ -269,7 +264,7 @@ export class TraitCompositionAnalyzer {
   private buildTraitNode(
     parsed: ParsedTrait,
     traitMap: Map<string, ParsedTrait>,
-    _filePath: string,
+    _filePath: string
   ): TraitTreeNode {
     const ancestors = this.getAncestors(parsed.name, traitMap);
     const resolvedProperties = this.resolveProperties(parsed, traitMap, ancestors);
@@ -366,7 +361,7 @@ export class TraitCompositionAnalyzer {
     comp: ParsedComposition,
     nodeMap: Map<string, TraitTreeNode>,
     traitMap: Map<string, ParsedTrait>,
-    diamonds: DiamondWarning[],
+    diamonds: DiamondWarning[]
   ): TraitTreeNode {
     const children: TraitTreeNode[] = [];
 
@@ -479,7 +474,7 @@ export class TraitCompositionAnalyzer {
   private getAncestors(
     name: string,
     traitMap: Map<string, ParsedTrait>,
-    visited?: Set<string>,
+    visited?: Set<string>
   ): string[] {
     const seen = visited || new Set<string>();
     const def = traitMap.get(name);
@@ -498,7 +493,7 @@ export class TraitCompositionAnalyzer {
   private resolveProperties(
     parsed: ParsedTrait,
     traitMap: Map<string, ParsedTrait>,
-    ancestors: string[],
+    ancestors: string[]
   ): TraitProperty[] {
     // Start from the root ancestor and work forward
     const propertyMap = new Map<string, TraitProperty>();
@@ -546,7 +541,7 @@ export class TraitCompositionAnalyzer {
    */
   private buildMergedProperties(
     sources: string[],
-    traitMap: Map<string, ParsedTrait>,
+    traitMap: Map<string, ParsedTrait>
   ): TraitProperty[] {
     const propertyMap = new Map<string, TraitProperty>();
 
@@ -584,7 +579,7 @@ export class TraitCompositionAnalyzer {
    */
   private detectDiamondInheritance(
     sources: string[],
-    traitMap: Map<string, ParsedTrait>,
+    traitMap: Map<string, ParsedTrait>
   ): DiamondWarning[] {
     const warnings: DiamondWarning[] = [];
 
@@ -644,7 +639,7 @@ export class TraitCompositionAnalyzer {
   private collectAllAncestors(
     name: string,
     traitMap: Map<string, ParsedTrait>,
-    ancestors: Set<string>,
+    ancestors: Set<string>
   ): void {
     const def = traitMap.get(name);
     if (!def?.base) return;
@@ -660,7 +655,7 @@ export class TraitCompositionAnalyzer {
   private getPathToAncestor(
     name: string,
     ancestor: string,
-    traitMap: Map<string, ParsedTrait>,
+    traitMap: Map<string, ParsedTrait>
   ): string[] {
     const path: string[] = [name];
     let current = name;
@@ -701,7 +696,7 @@ export class TraitCompositionAnalyzer {
   private attachChildTraits(
     parentNode: TraitTreeNode,
     allTraits: ParsedTrait[],
-    nodeMap: Map<string, TraitTreeNode>,
+    nodeMap: Map<string, TraitTreeNode>
   ): void {
     const childTraits = allTraits.filter((t) => t.base === parentNode.label);
 
@@ -721,7 +716,7 @@ export class TraitCompositionAnalyzer {
   private buildTraitTooltip(
     parsed: ParsedTrait,
     ancestors: string[],
-    properties: TraitProperty[],
+    properties: TraitProperty[]
   ): string {
     const lines: string[] = [];
 
@@ -735,9 +730,7 @@ export class TraitCompositionAnalyzer {
 
     const own = properties.filter((p) => p.origin === parsed.name);
     const overrides = properties.filter((p) => p.isOverride);
-    const inherited = properties.filter(
-      (p) => p.origin !== parsed.name && !p.isOverride,
-    );
+    const inherited = properties.filter((p) => p.origin !== parsed.name && !p.isOverride);
 
     lines.push('');
     lines.push(`Own properties: ${own.length}`);

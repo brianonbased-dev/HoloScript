@@ -11,8 +11,12 @@ import { materialXHandler } from '../MaterialXTrait';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode() { return { id: 'mx_test' } as any; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'mx_test' } as any;
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 
 function attach(node: any, overrides: Record<string, unknown> = {}) {
   const cfg = { ...materialXHandler.defaultConfig!, ...overrides } as any;
@@ -21,7 +25,9 @@ function attach(node: any, overrides: Record<string, unknown> = {}) {
   return { cfg, ctx };
 }
 
-function st(node: any) { return node.__materialXState as any; }
+function st(node: any) {
+  return node.__materialXState as any;
+}
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
   materialXHandler.onEvent!(node, cfg, ctx as any, evt as any);
 }
@@ -67,15 +73,18 @@ describe('MaterialXTrait — onAttach', () => {
       texture_path: '/textures/',
       compile_to_glsl: true,
     });
-    expect(ctx.emit).toHaveBeenCalledWith('materialx_load', expect.objectContaining({
-      source: 'pbr.mtlx',
-      materialName: 'SteelMat',
-      nodeGraph: 'GraphA',
-      colorSpace: 'linear',
-      shadingModel: 'gltf_pbr',
-      texturePath: '/textures/',
-      compileToGlsl: true,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'materialx_load',
+      expect.objectContaining({
+        source: 'pbr.mtlx',
+        materialName: 'SteelMat',
+        nodeGraph: 'GraphA',
+        colorSpace: 'linear',
+        shadingModel: 'gltf_pbr',
+        texturePath: '/textures/',
+        compileToGlsl: true,
+      })
+    );
     expect(st(node).isLoading).toBe(true);
   });
 
@@ -122,12 +131,22 @@ describe('MaterialXTrait — onEvent: materialx_loaded', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node);
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'materialx_loaded', materialId: 'mat1', shader: { code: 'glsl...' } });
+    fire(node, cfg, ctx, {
+      type: 'materialx_loaded',
+      materialId: 'mat1',
+      shader: { code: 'glsl...' },
+    });
     expect(st(node).isLoaded).toBe(true);
     expect(st(node).isLoading).toBe(false);
     expect(st(node).materialId).toBe('mat1');
-    expect(ctx.emit).toHaveBeenCalledWith('materialx_apply', expect.objectContaining({ materialId: 'mat1' }));
-    expect(ctx.emit).toHaveBeenCalledWith('on_format_converted', expect.objectContaining({ materialId: 'mat1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'materialx_apply',
+      expect.objectContaining({ materialId: 'mat1' })
+    );
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_format_converted',
+      expect.objectContaining({ materialId: 'mat1' })
+    );
   });
 });
 
@@ -141,7 +160,10 @@ describe('MaterialXTrait — onEvent: materialx_error', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'materialx_error', error: 'PARSE_FAILED' });
     expect(st(node).isLoading).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('on_materialx_error', expect.objectContaining({ error: 'PARSE_FAILED' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_materialx_error',
+      expect.objectContaining({ error: 'PARSE_FAILED' })
+    );
   });
 });
 
@@ -155,9 +177,13 @@ describe('MaterialXTrait — onEvent: materialx_set_input', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'materialx_set_input', name: 'roughness', value: 0.4 });
     expect(st(node).inputs.get('roughness')).toBe(0.4);
-    expect(ctx.emit).toHaveBeenCalledWith('materialx_update_input', expect.objectContaining({
-      inputName: 'roughness', value: 0.4,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'materialx_update_input',
+      expect.objectContaining({
+        inputName: 'roughness',
+        value: 0.4,
+      })
+    );
   });
 
   it('overwrites existing input value', () => {
@@ -179,9 +205,12 @@ describe('MaterialXTrait — onEvent: materialx_get_inputs', () => {
     st(node).inputs.set('m', 0.7);
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'materialx_get_inputs' });
-    expect(ctx.emit).toHaveBeenCalledWith('materialx_inputs', expect.objectContaining({
-      inputs: { r: 0.3, m: 0.7 },
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'materialx_inputs',
+      expect.objectContaining({
+        inputs: { r: 0.3, m: 0.7 },
+      })
+    );
   });
 });
 
@@ -193,7 +222,10 @@ describe('MaterialXTrait — onEvent: materialx_reload', () => {
     const { cfg, ctx } = attach(node, { source: 'water.mtlx' });
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'materialx_reload' });
-    expect(ctx.emit).toHaveBeenCalledWith('materialx_load', expect.objectContaining({ source: 'water.mtlx' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'materialx_load',
+      expect.objectContaining({ source: 'water.mtlx' })
+    );
   });
 
   it('no-op when source is empty', () => {
@@ -218,7 +250,10 @@ describe('MaterialXTrait — onEvent: materialx_set_source', () => {
     expect(ctx.emit).toHaveBeenCalledWith('materialx_destroy', expect.any(Object));
     expect(st(node).materialId).toBeNull();
     expect(st(node).isLoaded).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('materialx_load', expect.objectContaining({ source: 'new.mtlx' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'materialx_load',
+      expect.objectContaining({ source: 'new.mtlx' })
+    );
   });
 
   it('does NOT emit materialx_destroy when no materialId', () => {
@@ -227,7 +262,10 @@ describe('MaterialXTrait — onEvent: materialx_set_source', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'materialx_set_source', source: 'new.mtlx' });
     expect(ctx.emit).not.toHaveBeenCalledWith('materialx_destroy', expect.any(Object));
-    expect(ctx.emit).toHaveBeenCalledWith('materialx_load', expect.objectContaining({ source: 'new.mtlx' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'materialx_load',
+      expect.objectContaining({ source: 'new.mtlx' })
+    );
   });
 });
 
@@ -243,8 +281,15 @@ describe('MaterialXTrait — onEvent: materialx_query', () => {
     st(node).nodeGraph.set('n1', {});
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'materialx_query', queryId: 'mq1' });
-    expect(ctx.emit).toHaveBeenCalledWith('materialx_info', expect.objectContaining({
-      queryId: 'mq1', isLoaded: true, materialId: 'mat1', inputCount: 1, nodeGraphSize: 1,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'materialx_info',
+      expect.objectContaining({
+        queryId: 'mq1',
+        isLoaded: true,
+        materialId: 'mat1',
+        inputCount: 1,
+        nodeGraphSize: 1,
+      })
+    );
   });
 });

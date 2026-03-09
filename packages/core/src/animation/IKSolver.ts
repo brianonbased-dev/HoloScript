@@ -16,8 +16,8 @@ export interface IKBone {
   position: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number; w: number };
   length: number;
-  minAngle?: number;    // radians
-  maxAngle?: number;    // radians
+  minAngle?: number; // radians
+  maxAngle?: number; // radians
 }
 
 export interface IKChain {
@@ -25,7 +25,7 @@ export interface IKChain {
   bones: IKBone[];
   target: { x: number; y: number; z: number };
   poleTarget?: { x: number; y: number; z: number };
-  weight: number;       // 0-1 blend with original pose
+  weight: number; // 0-1 blend with original pose
   iterations: number;
 }
 
@@ -44,7 +44,11 @@ export interface FootPlacementConfig {
 export class IKSolver {
   private chains: Map<string, IKChain> = new Map();
   private footConfig: FootPlacementConfig = {
-    rayHeight: 1, rayLength: 2, footOffset: 0.05, blendSpeed: 10, enabled: false,
+    rayHeight: 1,
+    rayLength: 2,
+    footOffset: 0.05,
+    blendSpeed: 10,
+    enabled: false,
   };
   private footPositions: Map<string, { x: number; y: number; z: number }> = new Map();
 
@@ -52,10 +56,18 @@ export class IKSolver {
   // Chain Management
   // ---------------------------------------------------------------------------
 
-  addChain(chain: IKChain): void { this.chains.set(chain.id, chain); }
-  removeChain(id: string): boolean { return this.chains.delete(id); }
-  getChain(id: string): IKChain | undefined { return this.chains.get(id); }
-  getChainCount(): number { return this.chains.size; }
+  addChain(chain: IKChain): void {
+    this.chains.set(chain.id, chain);
+  }
+  removeChain(id: string): boolean {
+    return this.chains.delete(id);
+  }
+  getChain(id: string): IKChain | undefined {
+    return this.chains.get(id);
+  }
+  getChainCount(): number {
+    return this.chains.size;
+  }
 
   setTarget(chainId: string, x: number, y: number, z: number): void {
     const chain = this.chains.get(chainId);
@@ -85,7 +97,7 @@ export class IKSolver {
     const end = chain.bones.length > 2 ? chain.bones[2] : null;
 
     const a = root.length; // upper arm
-    const b = mid.length;  // forearm
+    const b = mid.length; // forearm
 
     const target = chain.target;
     const dx = target.x - root.position.x;
@@ -173,7 +185,8 @@ export class IKSolver {
         }
 
         // Rotate all downstream bones
-        const cosA = Math.cos(angle), sinA = Math.sin(angle);
+        const cosA = Math.cos(angle),
+          sinA = Math.sin(angle);
         for (let j = i + 1; j < bones.length; j++) {
           const child = bones[j];
           const rx = child.position.x - bone.position.x;
@@ -205,9 +218,15 @@ export class IKSolver {
     Object.assign(this.footConfig, config);
   }
 
-  getFootPlacement(): FootPlacementConfig { return { ...this.footConfig }; }
+  getFootPlacement(): FootPlacementConfig {
+    return { ...this.footConfig };
+  }
 
-  updateFootPlacement(footId: string, groundHeight: number, dt: number): { x: number; y: number; z: number } {
+  updateFootPlacement(
+    footId: string,
+    groundHeight: number,
+    dt: number
+  ): { x: number; y: number; z: number } {
     const current = this.footPositions.get(footId) ?? { x: 0, y: 0, z: 0 };
     const targetY = groundHeight + this.footConfig.footOffset;
     const blend = Math.min(1, this.footConfig.blendSpeed * dt);

@@ -337,7 +337,8 @@ describe('HoloScriptDebugSession', () => {
   describe('BreakpointLocations', () => {
     it('should return breakpoint locations for source lines', () => {
       // Set source content first
-      (session as any)._sourceContent = 'orb test {\n  position: [0, 0, 0]\n  \n  scale: [1, 1, 1]\n}';
+      (session as any)._sourceContent =
+        'orb test {\n  position: [0, 0, 0]\n  \n  scale: [1, 1, 1]\n}';
 
       const response = createResponse('breakpointLocations');
       const args: DebugProtocol.BreakpointLocationsArguments = {
@@ -823,7 +824,10 @@ describe('HoloScriptDebugSession', () => {
     });
 
     it('should create variable with correct type for Map', () => {
-      const map = new Map([['a', 1], ['b', 2]]);
+      const map = new Map([
+        ['a', 1],
+        ['b', 2],
+      ]);
       const v = (session as any)._createVariable('data', map);
       expect(v.type).toBe('Map(2)');
       expect(v.namedVariables).toBe(2);

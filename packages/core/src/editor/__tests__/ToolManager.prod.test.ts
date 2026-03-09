@@ -10,7 +10,14 @@ function makeTool(overrides: Partial<EditorTool> = {}): EditorTool {
   };
 }
 
-const mockPointerEvent: PointerEvent3D = { x: 1, y: 2, z: 0, button: 0, shiftKey: false, ctrlKey: false };
+const mockPointerEvent: PointerEvent3D = {
+  x: 1,
+  y: 2,
+  z: 0,
+  button: 0,
+  shiftKey: false,
+  ctrlKey: false,
+};
 
 describe('ToolManager — Production Tests', () => {
   let tm: ToolManager;
@@ -35,7 +42,7 @@ describe('ToolManager — Production Tests', () => {
     it('tool with shortcut registers shortcut binding', () => {
       tm.registerTool(makeTool({ id: 'move', shortcut: 'g' }));
       const shortcuts = tm.getShortcuts();
-      expect(shortcuts.some(s => s.key === 'g' && s.toolId === 'move')).toBe(true);
+      expect(shortcuts.some((s) => s.key === 'g' && s.toolId === 'move')).toBe(true);
     });
   });
 
@@ -58,12 +65,11 @@ describe('ToolManager — Production Tests', () => {
       expect(tm.getActiveTool()).toBeNull();
     });
 
-
     it('removes shortcut bindings when tool unregistered', () => {
       tm.registerTool(makeTool({ id: 'move', shortcut: 'g' }));
       tm.unregisterTool('move');
       const shortcuts = tm.getShortcuts();
-      expect(shortcuts.some(s => s.toolId === 'move')).toBe(false);
+      expect(shortcuts.some((s) => s.toolId === 'move')).toBe(false);
     });
   });
 
@@ -100,7 +106,7 @@ describe('ToolManager — Production Tests', () => {
       tm.registerTool(makeTool({ id: 'b' }));
       tm.activateTool('a');
       tm.activateTool('b');
-      const toolA = tm.getTools().find(t => t.id === 'a')!;
+      const toolA = tm.getTools().find((t) => t.id === 'a')!;
       expect(toolA.isActive).toBe(false);
     });
 
@@ -147,7 +153,7 @@ describe('ToolManager — Production Tests', () => {
       tm.registerTool(makeTool({ id: 'rotate', category: 'transform' }));
       const transforms = tm.getToolsByCategory('transform');
       expect(transforms.length).toBe(2);
-      expect(transforms.every(t => t.category === 'transform')).toBe(true);
+      expect(transforms.every((t) => t.category === 'transform')).toBe(true);
     });
   });
 

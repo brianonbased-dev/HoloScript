@@ -111,7 +111,7 @@ Add to Claude Desktop config (`~/.claude/settings.json`):
 | `suggest_traits`      | Get trait recommendations        |
 | `explain_code`        | Get plain English explanation    |
 | `compile_scene`       | Compile to any of 18+ targets    |
-| `list_traits`         | Browse all 1,800+ traits          |
+| `list_traits`         | Browse all 1,800+ traits         |
 | `query_scene_graph`   | Inspect scene structure          |
 | `parse_holoscript`    | Parse to AST                     |
 

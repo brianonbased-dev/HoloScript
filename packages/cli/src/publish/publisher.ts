@@ -258,7 +258,10 @@ export class PackagePublisher {
     const readmeCandidates = ['README.md', 'readme.md', 'README.txt'];
     for (const f of readmeCandidates) {
       const p = join(this.cwd, f);
-      if (existsSync(p)) { readme = readFileSync(p, 'utf-8'); break; }
+      if (existsSync(p)) {
+        readme = readFileSync(p, 'utf-8');
+        break;
+      }
     }
 
     // Build JSON payload for marketplace-api POST /api/v1/traits
@@ -274,9 +277,8 @@ export class PackagePublisher {
       readme,
       dependencies: pkgJson.holoscriptDependencies,
       peerDependencies: pkgJson.peerDependencies,
-      repository: typeof pkgJson.repository === 'string'
-        ? pkgJson.repository
-        : pkgJson.repository?.url,
+      repository:
+        typeof pkgJson.repository === 'string' ? pkgJson.repository : pkgJson.repository?.url,
       homepage: pkgJson.homepage,
     };
 
@@ -305,7 +307,7 @@ export class PackagePublisher {
         return { success: false, error: errorMessage };
       }
 
-      const result = await response.json() as { id?: string; message?: string };
+      const result = (await response.json()) as { id?: string; message?: string };
       return {
         success: true,
         message: result.message,
@@ -337,9 +339,11 @@ export class PackagePublisher {
     // 3. Scan for any .holo file in src/ or root
     for (const dir of [join(this.cwd, 'src'), this.cwd]) {
       try {
-        const files = readdirSync(dir).filter(f => extname(f) === '.holo');
+        const files = readdirSync(dir).filter((f) => extname(f) === '.holo');
         if (files.length > 0) return readFileSync(join(dir, files[0]), 'utf-8');
-      } catch { /* skip */ }
+      } catch {
+        /* skip */
+      }
     }
 
     // 4. Fallback: return empty

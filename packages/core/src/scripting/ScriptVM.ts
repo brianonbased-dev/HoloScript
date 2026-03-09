@@ -12,32 +12,32 @@
 // =============================================================================
 
 export enum OpCode {
-  NOP       = 0x00,
-  PUSH      = 0x01,
-  POP       = 0x02,
-  ADD       = 0x10,
-  SUB       = 0x11,
-  MUL       = 0x12,
-  DIV       = 0x13,
-  MOD       = 0x14,
-  NEG       = 0x15,
-  EQ        = 0x20,
-  NEQ       = 0x21,
-  LT        = 0x22,
-  GT        = 0x23,
-  LTE       = 0x24,
-  GTE       = 0x25,
-  AND       = 0x26,
-  OR        = 0x27,
-  NOT       = 0x28,
-  LOAD      = 0x30,
-  STORE     = 0x31,
-  JMP       = 0x40,
-  JMP_IF    = 0x41,
-  JMP_NOT   = 0x42,
-  CALL      = 0x50,
-  RET       = 0x51,
-  HALT      = 0xFF,
+  NOP = 0x00,
+  PUSH = 0x01,
+  POP = 0x02,
+  ADD = 0x10,
+  SUB = 0x11,
+  MUL = 0x12,
+  DIV = 0x13,
+  MOD = 0x14,
+  NEG = 0x15,
+  EQ = 0x20,
+  NEQ = 0x21,
+  LT = 0x22,
+  GT = 0x23,
+  LTE = 0x24,
+  GTE = 0x25,
+  AND = 0x26,
+  OR = 0x27,
+  NOT = 0x28,
+  LOAD = 0x30,
+  STORE = 0x31,
+  JMP = 0x40,
+  JMP_IF = 0x41,
+  JMP_NOT = 0x42,
+  CALL = 0x50,
+  RET = 0x51,
+  HALT = 0xff,
 }
 
 export interface Instruction {
@@ -143,33 +143,105 @@ export class ScriptVM {
 
   private execute(instr: Instruction): void {
     switch (instr.op) {
-      case OpCode.NOP: break;
-      case OpCode.HALT: this.running = false; break;
+      case OpCode.NOP:
+        break;
+      case OpCode.HALT:
+        this.running = false;
+        break;
 
-      case OpCode.PUSH: this.push(instr.operand as number); break;
-      case OpCode.POP: this.pop(); break;
+      case OpCode.PUSH:
+        this.push(instr.operand as number);
+        break;
+      case OpCode.POP:
+        this.pop();
+        break;
 
-      case OpCode.ADD: { const b = this.pop(), a = this.pop(); this.push(a + b); break; }
-      case OpCode.SUB: { const b = this.pop(), a = this.pop(); this.push(a - b); break; }
-      case OpCode.MUL: { const b = this.pop(), a = this.pop(); this.push(a * b); break; }
+      case OpCode.ADD: {
+        const b = this.pop(),
+          a = this.pop();
+        this.push(a + b);
+        break;
+      }
+      case OpCode.SUB: {
+        const b = this.pop(),
+          a = this.pop();
+        this.push(a - b);
+        break;
+      }
+      case OpCode.MUL: {
+        const b = this.pop(),
+          a = this.pop();
+        this.push(a * b);
+        break;
+      }
       case OpCode.DIV: {
-        const b = this.pop(), a = this.pop();
+        const b = this.pop(),
+          a = this.pop();
         if (b === 0) throw new Error('Division by zero');
         this.push(a / b);
         break;
       }
-      case OpCode.MOD: { const b = this.pop(), a = this.pop(); this.push(a % b); break; }
-      case OpCode.NEG: this.push(-this.pop()); break;
+      case OpCode.MOD: {
+        const b = this.pop(),
+          a = this.pop();
+        this.push(a % b);
+        break;
+      }
+      case OpCode.NEG:
+        this.push(-this.pop());
+        break;
 
-      case OpCode.EQ:  { const b = this.pop(), a = this.pop(); this.push(a === b ? 1 : 0); break; }
-      case OpCode.NEQ: { const b = this.pop(), a = this.pop(); this.push(a !== b ? 1 : 0); break; }
-      case OpCode.LT:  { const b = this.pop(), a = this.pop(); this.push(a < b ? 1 : 0); break; }
-      case OpCode.GT:  { const b = this.pop(), a = this.pop(); this.push(a > b ? 1 : 0); break; }
-      case OpCode.LTE: { const b = this.pop(), a = this.pop(); this.push(a <= b ? 1 : 0); break; }
-      case OpCode.GTE: { const b = this.pop(), a = this.pop(); this.push(a >= b ? 1 : 0); break; }
-      case OpCode.AND: { const b = this.pop(), a = this.pop(); this.push((a && b) ? 1 : 0); break; }
-      case OpCode.OR:  { const b = this.pop(), a = this.pop(); this.push((a || b) ? 1 : 0); break; }
-      case OpCode.NOT: this.push(this.pop() ? 0 : 1); break;
+      case OpCode.EQ: {
+        const b = this.pop(),
+          a = this.pop();
+        this.push(a === b ? 1 : 0);
+        break;
+      }
+      case OpCode.NEQ: {
+        const b = this.pop(),
+          a = this.pop();
+        this.push(a !== b ? 1 : 0);
+        break;
+      }
+      case OpCode.LT: {
+        const b = this.pop(),
+          a = this.pop();
+        this.push(a < b ? 1 : 0);
+        break;
+      }
+      case OpCode.GT: {
+        const b = this.pop(),
+          a = this.pop();
+        this.push(a > b ? 1 : 0);
+        break;
+      }
+      case OpCode.LTE: {
+        const b = this.pop(),
+          a = this.pop();
+        this.push(a <= b ? 1 : 0);
+        break;
+      }
+      case OpCode.GTE: {
+        const b = this.pop(),
+          a = this.pop();
+        this.push(a >= b ? 1 : 0);
+        break;
+      }
+      case OpCode.AND: {
+        const b = this.pop(),
+          a = this.pop();
+        this.push(a && b ? 1 : 0);
+        break;
+      }
+      case OpCode.OR: {
+        const b = this.pop(),
+          a = this.pop();
+        this.push(a || b ? 1 : 0);
+        break;
+      }
+      case OpCode.NOT:
+        this.push(this.pop() ? 0 : 1);
+        break;
 
       case OpCode.LOAD:
         this.push(this.registers.get(instr.operand as string) ?? 0);
@@ -178,9 +250,19 @@ export class ScriptVM {
         this.registers.set(instr.operand as string, this.pop());
         break;
 
-      case OpCode.JMP: this.pc = instr.operand as number; break;
-      case OpCode.JMP_IF: { const v = this.pop(); if (v) this.pc = instr.operand as number; break; }
-      case OpCode.JMP_NOT: { const v = this.pop(); if (!v) this.pc = instr.operand as number; break; }
+      case OpCode.JMP:
+        this.pc = instr.operand as number;
+        break;
+      case OpCode.JMP_IF: {
+        const v = this.pop();
+        if (v) this.pc = instr.operand as number;
+        break;
+      }
+      case OpCode.JMP_NOT: {
+        const v = this.pop();
+        if (!v) this.pc = instr.operand as number;
+        break;
+      }
 
       case OpCode.CALL: {
         const name = instr.operand as string;
@@ -216,15 +298,23 @@ export class ScriptVM {
     return this.stack.pop()!;
   }
 
-  peek(): number | undefined { return this.stack[this.stack.length - 1]; }
-  getStackSize(): number { return this.stack.length; }
+  peek(): number | undefined {
+    return this.stack[this.stack.length - 1];
+  }
+  getStackSize(): number {
+    return this.stack.length;
+  }
 
   // ---------------------------------------------------------------------------
   // Registers & State
   // ---------------------------------------------------------------------------
 
-  setRegister(name: string, value: number): void { this.registers.set(name, value); }
-  getRegister(name: string): number { return this.registers.get(name) ?? 0; }
+  setRegister(name: string, value: number): void {
+    this.registers.set(name, value);
+  }
+  getRegister(name: string): number {
+    return this.registers.get(name) ?? 0;
+  }
 
   registerFunction(name: string, fn: (...args: number[]) => number): void {
     this.nativeFunctions.set(name, fn);

@@ -5,7 +5,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { UIWidgetFactory, type SliderWidget, type ToggleWidget, type TextInputWidget, type DropdownWidget, type ProgressBarWidget } from '../UIWidgets';
+import {
+  UIWidgetFactory,
+  type SliderWidget,
+  type ToggleWidget,
+  type TextInputWidget,
+  type DropdownWidget,
+  type ProgressBarWidget,
+} from '../UIWidgets';
 
 describe('UIWidgetFactory — Production', () => {
   let factory: UIWidgetFactory;
@@ -96,7 +103,10 @@ describe('UIWidgetFactory — Production', () => {
 
   describe('createDropdown', () => {
     it('creates with options', () => {
-      const opts = [{ label: 'A', value: 'a' }, { label: 'B', value: 'b' }];
+      const opts = [
+        { label: 'A', value: 'a' },
+        { label: 'B', value: 'b' },
+      ];
       const dd = factory.createDropdown('Pick', opts);
       expect(dd.type).toBe('dropdown');
       expect(dd.options).toHaveLength(2);
@@ -104,7 +114,10 @@ describe('UIWidgetFactory — Production', () => {
     });
 
     it('selectDropdownOption updates', () => {
-      const opts = [{ label: 'A', value: 'a' }, { label: 'B', value: 'b' }];
+      const opts = [
+        { label: 'A', value: 'a' },
+        { label: 'B', value: 'b' },
+      ];
       const dd = factory.createDropdown('Pick', opts);
       expect(factory.selectDropdownOption(dd.id, 1)).toBe(true);
       expect(factory.getWidget<DropdownWidget>(dd.id)!.selectedIndex).toBe(1);

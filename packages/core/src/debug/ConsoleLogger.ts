@@ -14,11 +14,11 @@
 export enum LogLevel {
   TRACE = 0,
   DEBUG = 1,
-  INFO  = 2,
-  WARN  = 3,
+  INFO = 2,
+  WARN = 3,
   ERROR = 4,
   FATAL = 5,
-  NONE  = 99,
+  NONE = 99,
 }
 
 export interface LogEntry {
@@ -43,11 +43,11 @@ export interface LogFilter {
 const LEVEL_NAMES: Record<LogLevel, string> = {
   [LogLevel.TRACE]: 'TRACE',
   [LogLevel.DEBUG]: 'DEBUG',
-  [LogLevel.INFO]:  'INFO ',
-  [LogLevel.WARN]:  'WARN ',
+  [LogLevel.INFO]: 'INFO ',
+  [LogLevel.WARN]: 'WARN ',
   [LogLevel.ERROR]: 'ERROR',
   [LogLevel.FATAL]: 'FATAL',
-  [LogLevel.NONE]:  'NONE ',
+  [LogLevel.NONE]: 'NONE ',
 };
 
 // =============================================================================
@@ -60,7 +60,7 @@ export class ConsoleLogger {
   private history: LogEntry[] = [];
   private maxHistory = 1000;
   private minLevel: LogLevel = LogLevel.DEBUG;
-  private enabledTags: Set<string> | null = null;  // null = all tags
+  private enabledTags: Set<string> | null = null; // null = all tags
   private disabledTags: Set<string> = new Set();
   private listeners: Array<(entry: LogEntry) => void> = [];
 
@@ -118,8 +118,12 @@ export class ConsoleLogger {
   // Filtering
   // ---------------------------------------------------------------------------
 
-  setMinLevel(level: LogLevel): void { this.minLevel = level; }
-  getMinLevel(): LogLevel { return this.minLevel; }
+  setMinLevel(level: LogLevel): void {
+    this.minLevel = level;
+  }
+  getMinLevel(): LogLevel {
+    return this.minLevel;
+  }
 
   enableTag(tag: string): void {
     if (!this.enabledTags) this.enabledTags = new Set();
@@ -145,14 +149,14 @@ export class ConsoleLogger {
     let entries = [...this.history];
     if (filter) {
       if (filter.minLevel !== undefined) {
-        entries = entries.filter(e => e.level >= filter.minLevel!);
+        entries = entries.filter((e) => e.level >= filter.minLevel!);
       }
       if (filter.tags && filter.tags.length > 0) {
-        entries = entries.filter(e => filter.tags!.includes(e.tag));
+        entries = entries.filter((e) => filter.tags!.includes(e.tag));
       }
       if (filter.search) {
         const s = filter.search.toLowerCase();
-        entries = entries.filter(e => e.message.toLowerCase().includes(s));
+        entries = entries.filter((e) => e.message.toLowerCase().includes(s));
       }
     }
     return entries;
@@ -162,7 +166,9 @@ export class ConsoleLogger {
     return this.history.slice(-count);
   }
 
-  getEntryCount(): number { return this.history.length; }
+  getEntryCount(): number {
+    return this.history.length;
+  }
 
   getCountByLevel(): Record<string, number> {
     const counts: Record<string, number> = {};
@@ -201,6 +207,10 @@ export class ConsoleLogger {
   // Control
   // ---------------------------------------------------------------------------
 
-  clear(): void { this.history = []; }
-  setMaxHistory(max: number): void { this.maxHistory = max; }
+  clear(): void {
+    this.history = [];
+  }
+  setMaxHistory(max: number): void {
+    this.maxHistory = max;
+  }
 }

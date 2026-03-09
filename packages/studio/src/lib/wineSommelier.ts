@@ -6,9 +6,44 @@
  */
 
 export type WineColor = 'red' | 'white' | 'rosé' | 'sparkling' | 'dessert' | 'fortified';
-export type GrapeVarietal = 'cabernet-sauvignon' | 'merlot' | 'pinot-noir' | 'chardonnay' | 'sauvignon-blanc' | 'riesling' | 'syrah' | 'tempranillo' | 'nebbiolo' | 'sangiovese';
-export type TastingNote = 'cherry' | 'blackberry' | 'plum' | 'citrus' | 'apple' | 'peach' | 'vanilla' | 'oak' | 'pepper' | 'earth' | 'mineral' | 'floral' | 'honey' | 'tobacco' | 'leather';
-export type FoodCategory = 'beef' | 'poultry' | 'fish' | 'pasta' | 'cheese' | 'dessert' | 'salad' | 'pork' | 'lamb' | 'shellfish';
+export type GrapeVarietal =
+  | 'cabernet-sauvignon'
+  | 'merlot'
+  | 'pinot-noir'
+  | 'chardonnay'
+  | 'sauvignon-blanc'
+  | 'riesling'
+  | 'syrah'
+  | 'tempranillo'
+  | 'nebbiolo'
+  | 'sangiovese';
+export type TastingNote =
+  | 'cherry'
+  | 'blackberry'
+  | 'plum'
+  | 'citrus'
+  | 'apple'
+  | 'peach'
+  | 'vanilla'
+  | 'oak'
+  | 'pepper'
+  | 'earth'
+  | 'mineral'
+  | 'floral'
+  | 'honey'
+  | 'tobacco'
+  | 'leather';
+export type FoodCategory =
+  | 'beef'
+  | 'poultry'
+  | 'fish'
+  | 'pasta'
+  | 'cheese'
+  | 'dessert'
+  | 'salad'
+  | 'pork'
+  | 'lamb'
+  | 'shellfish';
 
 export interface WineProfile {
   id: string;
@@ -17,13 +52,13 @@ export interface WineProfile {
   varietal: GrapeVarietal;
   region: string;
   vintage: number;
-  abv: number;                // Alcohol by volume %
+  abv: number; // Alcohol by volume %
   tastingNotes: TastingNote[];
-  acidity: number;            // 1-5 (low to high)
-  tannins: number;            // 1-5
-  body: number;               // 1-5 (light to full)
-  sweetness: number;          // 1-5 (dry to sweet)
-  score: number;              // 0-100 (critic score)
+  acidity: number; // 1-5 (low to high)
+  tannins: number; // 1-5
+  body: number; // 1-5 (light to full)
+  sweetness: number; // 1-5 (dry to sweet)
+  score: number; // 0-100 (critic score)
   priceUSD: number;
 }
 
@@ -32,14 +67,14 @@ export interface CellarEntry {
   quantity: number;
   purchaseDate: number;
   drinkByYear: number;
-  location: string;           // e.g., 'Rack A, Row 3'
+  location: string; // e.g., 'Rack A, Row 3'
   peakYear: number;
 }
 
 export interface PairingResult {
   food: FoodCategory;
   wine: WineProfile;
-  compatibility: number;      // 0-100
+  compatibility: number; // 0-100
   reason: string;
 }
 
@@ -47,17 +82,32 @@ export interface PairingResult {
 // Pairing Rules
 // ═══════════════════════════════════════════════════════════════════
 
-const PAIRING_MATRIX: Record<FoodCategory, { preferColors: WineColor[]; preferBody: [number, number]; preferTannins: [number, number] }> = {
-  beef:      { preferColors: ['red'], preferBody: [4, 5], preferTannins: [3, 5] },
-  lamb:      { preferColors: ['red'], preferBody: [3, 5], preferTannins: [3, 5] },
-  pork:      { preferColors: ['red', 'white', 'rosé'], preferBody: [2, 4], preferTannins: [1, 3] },
-  poultry:   { preferColors: ['white', 'rosé', 'red'], preferBody: [2, 4], preferTannins: [1, 3] },
-  fish:      { preferColors: ['white', 'rosé'], preferBody: [1, 3], preferTannins: [1, 2] },
+const PAIRING_MATRIX: Record<
+  FoodCategory,
+  { preferColors: WineColor[]; preferBody: [number, number]; preferTannins: [number, number] }
+> = {
+  beef: { preferColors: ['red'], preferBody: [4, 5], preferTannins: [3, 5] },
+  lamb: { preferColors: ['red'], preferBody: [3, 5], preferTannins: [3, 5] },
+  pork: { preferColors: ['red', 'white', 'rosé'], preferBody: [2, 4], preferTannins: [1, 3] },
+  poultry: { preferColors: ['white', 'rosé', 'red'], preferBody: [2, 4], preferTannins: [1, 3] },
+  fish: { preferColors: ['white', 'rosé'], preferBody: [1, 3], preferTannins: [1, 2] },
   shellfish: { preferColors: ['white', 'sparkling'], preferBody: [1, 3], preferTannins: [1, 2] },
-  pasta:     { preferColors: ['red', 'white'], preferBody: [2, 4], preferTannins: [1, 4] },
-  cheese:    { preferColors: ['red', 'white', 'dessert', 'fortified'], preferBody: [2, 5], preferTannins: [1, 4] },
-  salad:     { preferColors: ['white', 'rosé', 'sparkling'], preferBody: [1, 3], preferTannins: [1, 2] },
-  dessert:   { preferColors: ['dessert', 'sparkling', 'fortified'], preferBody: [2, 5], preferTannins: [1, 3] },
+  pasta: { preferColors: ['red', 'white'], preferBody: [2, 4], preferTannins: [1, 4] },
+  cheese: {
+    preferColors: ['red', 'white', 'dessert', 'fortified'],
+    preferBody: [2, 5],
+    preferTannins: [1, 4],
+  },
+  salad: {
+    preferColors: ['white', 'rosé', 'sparkling'],
+    preferBody: [1, 3],
+    preferTannins: [1, 2],
+  },
+  dessert: {
+    preferColors: ['dessert', 'sparkling', 'fortified'],
+    preferBody: [2, 5],
+    preferTannins: [1, 3],
+  },
 };
 
 export function pairingScore(food: FoodCategory, wine: WineProfile): number {
@@ -71,7 +121,7 @@ export function pairingScore(food: FoodCategory, wine: WineProfile): number {
 
 export function bestPairing(food: FoodCategory, wines: WineProfile[]): WineProfile | null {
   if (wines.length === 0) return null;
-  return wines.reduce((best, w) => pairingScore(food, w) > pairingScore(food, best) ? w : best);
+  return wines.reduce((best, w) => (pairingScore(food, w) > pairingScore(food, best) ? w : best));
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -87,11 +137,11 @@ export function cellarTotalBottles(entries: CellarEntry[]): number {
 }
 
 export function winesAtPeak(entries: CellarEntry[], currentYear: number): CellarEntry[] {
-  return entries.filter(e => currentYear >= e.peakYear && currentYear <= e.drinkByYear);
+  return entries.filter((e) => currentYear >= e.peakYear && currentYear <= e.drinkByYear);
 }
 
 export function winesPastPrime(entries: CellarEntry[], currentYear: number): CellarEntry[] {
-  return entries.filter(e => currentYear > e.drinkByYear);
+  return entries.filter((e) => currentYear > e.drinkByYear);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -105,8 +155,12 @@ export function agingPotential(wine: WineProfile): number {
 
 export function servingTemperatureC(color: WineColor): { min: number; max: number } {
   const temps: Record<WineColor, { min: number; max: number }> = {
-    red: { min: 16, max: 18 }, white: { min: 8, max: 12 }, rosé: { min: 8, max: 10 },
-    sparkling: { min: 6, max: 8 }, dessert: { min: 10, max: 14 }, fortified: { min: 14, max: 18 },
+    red: { min: 16, max: 18 },
+    white: { min: 8, max: 12 },
+    rosé: { min: 8, max: 10 },
+    sparkling: { min: 6, max: 8 },
+    dessert: { min: 10, max: 14 },
+    fortified: { min: 14, max: 18 },
   };
   return temps[color];
 }
@@ -132,15 +186,15 @@ export interface BlindTastingResult {
 
 const VARIETAL_SIGNATURES: Record<GrapeVarietal, TastingNote[]> = {
   'cabernet-sauvignon': ['blackberry', 'pepper', 'oak', 'tobacco', 'leather'],
-  'merlot': ['plum', 'cherry', 'vanilla', 'earth'],
+  merlot: ['plum', 'cherry', 'vanilla', 'earth'],
   'pinot-noir': ['cherry', 'earth', 'floral', 'leather'],
-  'chardonnay': ['apple', 'citrus', 'vanilla', 'oak'],
+  chardonnay: ['apple', 'citrus', 'vanilla', 'oak'],
   'sauvignon-blanc': ['citrus', 'mineral', 'floral'],
-  'riesling': ['citrus', 'peach', 'honey', 'mineral'],
-  'syrah': ['blackberry', 'pepper', 'leather', 'earth'],
-  'tempranillo': ['cherry', 'vanilla', 'tobacco', 'leather'],
-  'nebbiolo': ['cherry', 'earth', 'tobacco', 'floral'],
-  'sangiovese': ['cherry', 'plum', 'earth', 'pepper'],
+  riesling: ['citrus', 'peach', 'honey', 'mineral'],
+  syrah: ['blackberry', 'pepper', 'leather', 'earth'],
+  tempranillo: ['cherry', 'vanilla', 'tobacco', 'leather'],
+  nebbiolo: ['cherry', 'earth', 'tobacco', 'floral'],
+  sangiovese: ['cherry', 'plum', 'earth', 'pepper'],
 };
 
 /**
@@ -152,8 +206,11 @@ export function blindTastingScore(observedNotes: TastingNote[]): BlindTastingRes
   let bestCount = 0;
   let bestMatches: TastingNote[] = [];
 
-  for (const [varietal, sig] of Object.entries(VARIETAL_SIGNATURES) as [GrapeVarietal, TastingNote[]][]) {
-    const matching = observedNotes.filter(n => sig.includes(n));
+  for (const [varietal, sig] of Object.entries(VARIETAL_SIGNATURES) as [
+    GrapeVarietal,
+    TastingNote[],
+  ][]) {
+    const matching = observedNotes.filter((n) => sig.includes(n));
     if (matching.length > bestCount) {
       bestCount = matching.length;
       bestVarietal = varietal;
@@ -162,7 +219,15 @@ export function blindTastingScore(observedNotes: TastingNote[]): BlindTastingRes
   }
 
   const confidence = observedNotes.length > 0 ? (bestCount / observedNotes.length) * 100 : 0;
-  const isRed = ['cabernet-sauvignon', 'merlot', 'pinot-noir', 'syrah', 'tempranillo', 'nebbiolo', 'sangiovese'].includes(bestVarietal);
+  const isRed = [
+    'cabernet-sauvignon',
+    'merlot',
+    'pinot-noir',
+    'syrah',
+    'tempranillo',
+    'nebbiolo',
+    'sangiovese',
+  ].includes(bestVarietal);
 
   return {
     predictedColor: isRed ? 'red' : 'white',
@@ -181,16 +246,17 @@ export function blindTastingScore(observedNotes: TastingNote[]): BlindTastingRes
  * Higher = more favorable for wine production.
  */
 export function terroirIndex(
-  soilDrainage: number,       // 1-10 (well-drained is higher)
-  altitudeM: number,          // meters above sea level
-  avgSunshineHrsDay: number,  // hours of sun per day
-  annualRainfallMm: number    // mm per year
+  soilDrainage: number, // 1-10 (well-drained is higher)
+  altitudeM: number, // meters above sea level
+  avgSunshineHrsDay: number, // hours of sun per day
+  annualRainfallMm: number // mm per year
 ): number {
   // Optimal: well-drained soil, moderate altitude (200-600m),
   // good sun (6-10h), moderate rain (400-800mm)
   let score = 0;
   score += soilDrainage * 10; // max 100
-  score += altitudeM >= 200 && altitudeM <= 600 ? 25 : altitudeM >= 100 && altitudeM <= 800 ? 15 : 5;
+  score +=
+    altitudeM >= 200 && altitudeM <= 600 ? 25 : altitudeM >= 100 && altitudeM <= 800 ? 15 : 5;
   score += avgSunshineHrsDay >= 6 && avgSunshineHrsDay <= 10 ? 25 : 10;
   score += annualRainfallMm >= 400 && annualRainfallMm <= 800 ? 25 : 10;
   return Math.min(100, Math.round(score / 1.75));

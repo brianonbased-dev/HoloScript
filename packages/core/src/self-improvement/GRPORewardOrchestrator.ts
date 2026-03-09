@@ -25,10 +25,7 @@ import type {
   RewardFunctionOptions,
   RewardToolRunner,
 } from './GRPORewardFunctions';
-import {
-  createGRPORewardFunctions,
-  GRPO_REWARD_WEIGHTS,
-} from './GRPORewardFunctions';
+import { createGRPORewardFunctions, GRPO_REWARD_WEIGHTS } from './GRPORewardFunctions';
 
 // =============================================================================
 // TYPES
@@ -164,20 +161,25 @@ export class GRPORewardOrchestrator {
       typeCheckReward: this.config.weights.typeCheckReward ?? GRPO_REWARD_WEIGHTS.typeCheckReward,
       lintReward: this.config.weights.lintReward ?? GRPO_REWARD_WEIGHTS.lintReward,
       coverageReward: this.config.weights.coverageReward ?? GRPO_REWARD_WEIGHTS.coverageReward,
-      circuitBreakerReward: this.config.weights.circuitBreakerReward ?? GRPO_REWARD_WEIGHTS.circuitBreakerReward,
+      circuitBreakerReward:
+        this.config.weights.circuitBreakerReward ?? GRPO_REWARD_WEIGHTS.circuitBreakerReward,
     };
 
     const weightSum = Object.values(this.resolvedWeights).reduce((a, b) => a + b, 0);
     if (Math.abs(weightSum - 1.0) > 1e-6) {
-      throw new Error(
-        `Orchestrator weights must sum to 1.0 but got ${weightSum}`,
-      );
+      throw new Error(`Orchestrator weights must sum to 1.0 but got ${weightSum}`);
     }
 
     this.rewardFns = createGRPORewardFunctions(runner);
 
     // Initialize statistics for each function
-    const fnNames = ['testPassReward', 'typeCheckReward', 'lintReward', 'coverageReward', 'circuitBreakerReward'];
+    const fnNames = [
+      'testPassReward',
+      'typeCheckReward',
+      'lintReward',
+      'coverageReward',
+      'circuitBreakerReward',
+    ];
     for (const name of fnNames) {
       this.stats.set(name, createEmptyStats());
     }
@@ -196,7 +198,7 @@ export class GRPORewardOrchestrator {
    */
   async evaluate(
     completions: string[],
-    kwargs?: RewardFunctionOptions,
+    kwargs?: RewardFunctionOptions
   ): Promise<OrchestratorResult> {
     const batchStart = Date.now();
     this.totalBatches++;
@@ -235,11 +237,31 @@ export class GRPORewardOrchestrator {
       fn: GRPORewardFunction;
       weight: number;
     }> = [
-      { name: 'testPassReward', fn: this.rewardFns.testPassReward, weight: this.resolvedWeights.testPassReward },
-      { name: 'typeCheckReward', fn: this.rewardFns.typeCheckReward, weight: this.resolvedWeights.typeCheckReward },
-      { name: 'lintReward', fn: this.rewardFns.lintReward, weight: this.resolvedWeights.lintReward },
-      { name: 'coverageReward', fn: this.rewardFns.coverageReward, weight: this.resolvedWeights.coverageReward },
-      { name: 'circuitBreakerReward', fn: this.rewardFns.circuitBreakerReward, weight: this.resolvedWeights.circuitBreakerReward },
+      {
+        name: 'testPassReward',
+        fn: this.rewardFns.testPassReward,
+        weight: this.resolvedWeights.testPassReward,
+      },
+      {
+        name: 'typeCheckReward',
+        fn: this.rewardFns.typeCheckReward,
+        weight: this.resolvedWeights.typeCheckReward,
+      },
+      {
+        name: 'lintReward',
+        fn: this.rewardFns.lintReward,
+        weight: this.resolvedWeights.lintReward,
+      },
+      {
+        name: 'coverageReward',
+        fn: this.rewardFns.coverageReward,
+        weight: this.resolvedWeights.coverageReward,
+      },
+      {
+        name: 'circuitBreakerReward',
+        fn: this.rewardFns.circuitBreakerReward,
+        weight: this.resolvedWeights.circuitBreakerReward,
+      },
     ];
 
     // Execute reward functions on uncached completions
@@ -272,14 +294,14 @@ export class GRPORewardOrchestrator {
                   durationMs: Date.now() - fnStart,
                 };
               }
-            }),
+            })
           ),
           // Batch-level timeout
           new Promise<RewardFunctionResult[]>((_, reject) =>
             setTimeout(
               () => reject(new Error('Batch evaluation timed out')),
-              this.config.batchTimeout,
-            ),
+              this.config.batchTimeout
+            )
           ),
         ]);
         functionResults.push(...results);
@@ -444,10 +466,7 @@ export class GRPORewardOrchestrator {
     this.cache.set(completion, reward);
   }
 
-  private updateStats(
-    functionResults: RewardFunctionResult[],
-    compositeRewards: number[],
-  ): void {
+  private updateStats(functionResults: RewardFunctionResult[], compositeRewards: number[]): void {
     // Update per-function statistics
     for (const fr of functionResults) {
       const stat = this.stats.get(fr.name);
@@ -493,7 +512,7 @@ function updateRunningStats(stats: RewardStatistics, value: number): void {
   stats.mean = stats.sum / stats.count;
 
   if (stats.count > 1) {
-    const variance = (stats.sumSquared - stats.sum * stats.sum / stats.count) / (stats.count - 1);
+    const variance = (stats.sumSquared - (stats.sum * stats.sum) / stats.count) / (stats.count - 1);
     stats.std = Math.sqrt(Math.max(0, variance));
   } else {
     stats.std = 0;

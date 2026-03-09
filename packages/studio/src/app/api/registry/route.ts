@@ -25,53 +25,55 @@ declare global {
   var __registryStore__: RegistryPack[] | undefined;
 }
 
-const registry: RegistryPack[] = globalThis.__registryStore__ ?? (globalThis.__registryStore__ = [
-  // Seed with example packs
-  {
-    packId: 'pack_medieval_001',
-    name: 'Medieval Castle Kit',
-    description: 'Stone walls, towers, portcullis, and interior props for fantasy scenes.',
-    author: 'HoloStudio',
-    version: '1.2.0',
-    tags: ['fantasy', 'architecture', 'medieval'],
-    files: [
-      { name: 'castle_walls.glb', size: 2_400_000, type: 'model/gltf-binary' },
-      { name: 'stone_texture.png', size: 512_000, type: 'image/png' },
-    ],
-    downloads: 1_432,
-    publishedAt: new Date(Date.now() - 86400_000 * 14).toISOString(),
-    previewCode: `scene "Castle" {\n  object "Main Tower" {\n    @mesh(src: "castle_walls.glb")\n    @transform(scale: [2,2,2])\n  }\n}`,
-  },
-  {
-    packId: 'pack_sci_fi_002',
-    name: 'Sci-Fi Interior Pack',
-    description: 'Modular corridors, consoles, and ambient lighting for space stations.',
-    author: 'NeonForge',
-    version: '0.9.1',
-    tags: ['sci-fi', 'interior', 'modular'],
-    files: [
-      { name: 'corridor_a.glb', size: 1_800_000, type: 'model/gltf-binary' },
-      { name: 'console_01.glb', size: 900_000, type: 'model/gltf-binary' },
-    ],
-    downloads: 876,
-    publishedAt: new Date(Date.now() - 86400_000 * 5).toISOString(),
-    previewCode: `scene "Space Station" {\n  object "Corridor A" {\n    @mesh(src: "corridor_a.glb")\n  }\n}`,
-  },
-  {
-    packId: 'pack_vegetation_003',
-    name: 'Procedural Vegetation',
-    description: 'Trees, bushes, grass patches, and flowers with LOD support.',
-    author: 'GreenPixel',
-    version: '2.0.0',
-    tags: ['nature', 'vegetation', 'outdoor'],
-    files: [
-      { name: 'oak_tree.glb', size: 3_200_000, type: 'model/gltf-binary' },
-      { name: 'grass_patch.glb', size: 400_000, type: 'model/gltf-binary' },
-    ],
-    downloads: 2_901,
-    publishedAt: new Date(Date.now() - 86400_000 * 30).toISOString(),
-  },
-]);
+const registry: RegistryPack[] =
+  globalThis.__registryStore__ ??
+  (globalThis.__registryStore__ = [
+    // Seed with example packs
+    {
+      packId: 'pack_medieval_001',
+      name: 'Medieval Castle Kit',
+      description: 'Stone walls, towers, portcullis, and interior props for fantasy scenes.',
+      author: 'HoloStudio',
+      version: '1.2.0',
+      tags: ['fantasy', 'architecture', 'medieval'],
+      files: [
+        { name: 'castle_walls.glb', size: 2_400_000, type: 'model/gltf-binary' },
+        { name: 'stone_texture.png', size: 512_000, type: 'image/png' },
+      ],
+      downloads: 1_432,
+      publishedAt: new Date(Date.now() - 86400_000 * 14).toISOString(),
+      previewCode: `scene "Castle" {\n  object "Main Tower" {\n    @mesh(src: "castle_walls.glb")\n    @transform(scale: [2,2,2])\n  }\n}`,
+    },
+    {
+      packId: 'pack_sci_fi_002',
+      name: 'Sci-Fi Interior Pack',
+      description: 'Modular corridors, consoles, and ambient lighting for space stations.',
+      author: 'NeonForge',
+      version: '0.9.1',
+      tags: ['sci-fi', 'interior', 'modular'],
+      files: [
+        { name: 'corridor_a.glb', size: 1_800_000, type: 'model/gltf-binary' },
+        { name: 'console_01.glb', size: 900_000, type: 'model/gltf-binary' },
+      ],
+      downloads: 876,
+      publishedAt: new Date(Date.now() - 86400_000 * 5).toISOString(),
+      previewCode: `scene "Space Station" {\n  object "Corridor A" {\n    @mesh(src: "corridor_a.glb")\n  }\n}`,
+    },
+    {
+      packId: 'pack_vegetation_003',
+      name: 'Procedural Vegetation',
+      description: 'Trees, bushes, grass patches, and flowers with LOD support.',
+      author: 'GreenPixel',
+      version: '2.0.0',
+      tags: ['nature', 'vegetation', 'outdoor'],
+      files: [
+        { name: 'oak_tree.glb', size: 3_200_000, type: 'model/gltf-binary' },
+        { name: 'grass_patch.glb', size: 400_000, type: 'model/gltf-binary' },
+      ],
+      downloads: 2_901,
+      publishedAt: new Date(Date.now() - 86400_000 * 30).toISOString(),
+    },
+  ]);
 
 function makePackId() {
   return `pack_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;

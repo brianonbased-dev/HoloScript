@@ -158,7 +158,10 @@ export class ReactionTriggerTrait {
    */
   stop(): void {
     this.isListening = false;
-    window.removeEventListener('discord-reaction-trigger', this.handleReactionEvent as EventListener);
+    window.removeEventListener(
+      'discord-reaction-trigger',
+      this.handleReactionEvent as EventListener
+    );
     console.log('[ReactionTriggerTrait] Stopped listening');
   }
 

@@ -102,26 +102,30 @@ describe('PlatformPluginLoader', () => {
     it('should add new plugins', () => {
       const loader = new PlatformPluginLoader();
       const initialTargets = loader.getSupportedTargets().length;
-      loader.registerPlugins([{
-        name: 'holoscript-plugin-custom',
-        version: '0.1.0',
-        targets: ['react-three-fiber'],
-        wasmUrl: 'plugins/custom.wasm',
-        sizeKB: 100,
-      }]);
+      loader.registerPlugins([
+        {
+          name: 'holoscript-plugin-custom',
+          version: '0.1.0',
+          targets: ['react-three-fiber'],
+          wasmUrl: 'plugins/custom.wasm',
+          sizeKB: 100,
+        },
+      ]);
       // getSupportedTargets uses flatMap (no dedup), so duplicate targets are counted
       expect(loader.getSupportedTargets().length).toBe(initialTargets + 1);
     });
 
     it('should replace existing plugins by name', () => {
       const loader = new PlatformPluginLoader();
-      loader.registerPlugins([{
-        name: 'holoscript-plugin-unity',
-        version: '0.2.0',
-        targets: ['unity-csharp'],
-        wasmUrl: 'plugins/unity-v2.wasm',
-        sizeKB: 300,
-      }]);
+      loader.registerPlugins([
+        {
+          name: 'holoscript-plugin-unity',
+          version: '0.2.0',
+          targets: ['unity-csharp'],
+          wasmUrl: 'plugins/unity-v2.wasm',
+          sizeKB: 300,
+        },
+      ]);
       const manifest = loader.findPluginForTarget('unity-csharp');
       expect(manifest!.version).toBe('0.2.0');
       expect(manifest!.wasmUrl).toBe('plugins/unity-v2.wasm');

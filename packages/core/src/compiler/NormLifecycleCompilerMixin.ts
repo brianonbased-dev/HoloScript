@@ -218,7 +218,9 @@ export interface CompiledMetanorm {
  */
 export function compileNormBlock(block: HoloNormBlock): CompiledNorm {
   const creation = block.creation ? compileNormCreation(block.creation) : undefined;
-  const representation = block.representation ? compileNormRepresentation(block.representation) : undefined;
+  const representation = block.representation
+    ? compileNormRepresentation(block.representation)
+    : undefined;
   const spreading = block.spreading ? compileNormSpreading(block.spreading) : undefined;
   const evaluation = block.evaluation ? compileNormEvaluation(block.evaluation) : undefined;
   const compliance = block.compliance ? compileNormCompliance(block.compliance) : undefined;
@@ -257,7 +259,9 @@ export function compileNormCreation(phase: HoloNormCreation): CompiledNormCreati
 /**
  * Compile a representation phase sub-block.
  */
-export function compileNormRepresentation(phase: HoloNormRepresentation): CompiledNormRepresentation {
+export function compileNormRepresentation(
+  phase: HoloNormRepresentation
+): CompiledNormRepresentation {
   const p = phase.properties || {};
   return {
     condition: p.condition as string | undefined,
@@ -380,23 +384,40 @@ export function validateCompiledNorm(norm: CompiledNorm): string[] {
 
   // Evaluation phase: check voting config consistency
   if (norm.evaluation) {
-    if (norm.evaluation.quorum !== undefined && (norm.evaluation.quorum < 0 || norm.evaluation.quorum > 1)) {
-      issues.push(`Norm "${norm.name}": evaluation quorum must be between 0 and 1, got ${norm.evaluation.quorum}`);
+    if (
+      norm.evaluation.quorum !== undefined &&
+      (norm.evaluation.quorum < 0 || norm.evaluation.quorum > 1)
+    ) {
+      issues.push(
+        `Norm "${norm.name}": evaluation quorum must be between 0 and 1, got ${norm.evaluation.quorum}`
+      );
     }
-    if (norm.evaluation.approvalThreshold !== undefined &&
-        (norm.evaluation.approvalThreshold < 0 || norm.evaluation.approvalThreshold > 1)) {
+    if (
+      norm.evaluation.approvalThreshold !== undefined &&
+      (norm.evaluation.approvalThreshold < 0 || norm.evaluation.approvalThreshold > 1)
+    ) {
       issues.push(`Norm "${norm.name}": approval_threshold must be between 0 and 1`);
     }
   }
 
   // Compliance phase: sanctions should be ordered by severity
   if (norm.compliance?.sanctions && norm.compliance.sanctions.length > 0) {
-    const severityOrder: NormSanctionType[] = ['warn', 'restrict', 'penalize', 'suspend', 'quarantine', 'ban', 'escalate'];
+    const severityOrder: NormSanctionType[] = [
+      'warn',
+      'restrict',
+      'penalize',
+      'suspend',
+      'quarantine',
+      'ban',
+      'escalate',
+    ];
     let lastIdx = -1;
     for (const sanction of norm.compliance.sanctions) {
       const idx = severityOrder.indexOf(sanction);
       if (idx !== -1 && idx < lastIdx) {
-        issues.push(`Norm "${norm.name}": sanctions should be ordered by severity (${sanction} appears after a more severe sanction)`);
+        issues.push(
+          `Norm "${norm.name}": sanctions should be ordered by severity (${sanction} appears after a more severe sanction)`
+        );
         break;
       }
       if (idx !== -1) lastIdx = idx;
@@ -422,18 +443,25 @@ export function validateCompiledMetanorm(metanorm: CompiledMetanorm): string[] {
   }
 
   if (metanorm.rules) {
-    if (metanorm.rules.amendmentQuorum !== undefined &&
-        (metanorm.rules.amendmentQuorum < 0 || metanorm.rules.amendmentQuorum > 1)) {
+    if (
+      metanorm.rules.amendmentQuorum !== undefined &&
+      (metanorm.rules.amendmentQuorum < 0 || metanorm.rules.amendmentQuorum > 1)
+    ) {
       issues.push(`Metanorm "${metanorm.name}": amendment_quorum must be between 0 and 1`);
     }
-    if (metanorm.rules.maxAmendmentsPerCycle !== undefined && metanorm.rules.maxAmendmentsPerCycle < 1) {
+    if (
+      metanorm.rules.maxAmendmentsPerCycle !== undefined &&
+      metanorm.rules.maxAmendmentsPerCycle < 1
+    ) {
       issues.push(`Metanorm "${metanorm.name}": max_amendments_per_cycle must be at least 1`);
     }
   }
 
   if (metanorm.escalation) {
-    if (metanorm.escalation.overrideThreshold !== undefined &&
-        (metanorm.escalation.overrideThreshold < 0 || metanorm.escalation.overrideThreshold > 1)) {
+    if (
+      metanorm.escalation.overrideThreshold !== undefined &&
+      (metanorm.escalation.overrideThreshold < 0 || metanorm.escalation.overrideThreshold > 1)
+    ) {
       issues.push(`Metanorm "${metanorm.name}": override_threshold must be between 0 and 1`);
     }
   }
@@ -475,7 +503,8 @@ export function generateNormEnforcementCode(norm: CompiledNorm): string {
     lines.push(`  evaluation: {`);
     if (norm.evaluation.voting) lines.push(`    voting: "${norm.evaluation.voting}",`);
     if (norm.evaluation.quorum !== undefined) lines.push(`    quorum: ${norm.evaluation.quorum},`);
-    if (norm.evaluation.approvalThreshold !== undefined) lines.push(`    approvalThreshold: ${norm.evaluation.approvalThreshold},`);
+    if (norm.evaluation.approvalThreshold !== undefined)
+      lines.push(`    approvalThreshold: ${norm.evaluation.approvalThreshold},`);
     lines.push(`  },`);
   }
 
@@ -483,13 +512,16 @@ export function generateNormEnforcementCode(norm: CompiledNorm): string {
   if (norm.compliance) {
     lines.push(`  compliance: {`);
     if (norm.compliance.monitoring) lines.push(`    monitoring: "${norm.compliance.monitoring}",`);
-    if (norm.compliance.violationThreshold !== undefined) lines.push(`    violationThreshold: ${norm.compliance.violationThreshold},`);
+    if (norm.compliance.violationThreshold !== undefined)
+      lines.push(`    violationThreshold: ${norm.compliance.violationThreshold},`);
     if (norm.compliance.severity) lines.push(`    severity: "${norm.compliance.severity}",`);
     if (norm.compliance.sanctions) {
-      lines.push(`    sanctions: [${norm.compliance.sanctions.map(s => `"${s}"`).join(', ')}],`);
+      lines.push(`    sanctions: [${norm.compliance.sanctions.map((s) => `"${s}"`).join(', ')}],`);
     }
-    if (norm.compliance.appealAllowed !== undefined) lines.push(`    appealAllowed: ${norm.compliance.appealAllowed},`);
-    if (norm.compliance.gracePeriod !== undefined) lines.push(`    gracePeriod: ${norm.compliance.gracePeriod},`);
+    if (norm.compliance.appealAllowed !== undefined)
+      lines.push(`    appealAllowed: ${norm.compliance.appealAllowed},`);
+    if (norm.compliance.gracePeriod !== undefined)
+      lines.push(`    gracePeriod: ${norm.compliance.gracePeriod},`);
     lines.push(`  },`);
   }
 
@@ -513,19 +545,27 @@ export function generateMetanormGovernanceCode(metanorm: CompiledMetanorm): stri
 
   if (metanorm.rules) {
     lines.push(`  rules: {`);
-    if (metanorm.rules.amendmentQuorum !== undefined) lines.push(`    amendmentQuorum: ${metanorm.rules.amendmentQuorum},`);
-    if (metanorm.rules.amendmentVoting) lines.push(`    amendmentVoting: "${metanorm.rules.amendmentVoting}",`);
-    if (metanorm.rules.cooldownPeriod !== undefined) lines.push(`    cooldownPeriod: ${metanorm.rules.cooldownPeriod},`);
-    if (metanorm.rules.maxAmendmentsPerCycle !== undefined) lines.push(`    maxAmendmentsPerCycle: ${metanorm.rules.maxAmendmentsPerCycle},`);
-    if (metanorm.rules.retroactiveAllowed !== undefined) lines.push(`    retroactiveAllowed: ${metanorm.rules.retroactiveAllowed},`);
+    if (metanorm.rules.amendmentQuorum !== undefined)
+      lines.push(`    amendmentQuorum: ${metanorm.rules.amendmentQuorum},`);
+    if (metanorm.rules.amendmentVoting)
+      lines.push(`    amendmentVoting: "${metanorm.rules.amendmentVoting}",`);
+    if (metanorm.rules.cooldownPeriod !== undefined)
+      lines.push(`    cooldownPeriod: ${metanorm.rules.cooldownPeriod},`);
+    if (metanorm.rules.maxAmendmentsPerCycle !== undefined)
+      lines.push(`    maxAmendmentsPerCycle: ${metanorm.rules.maxAmendmentsPerCycle},`);
+    if (metanorm.rules.retroactiveAllowed !== undefined)
+      lines.push(`    retroactiveAllowed: ${metanorm.rules.retroactiveAllowed},`);
     lines.push(`  },`);
   }
 
   if (metanorm.escalation) {
     lines.push(`  escalation: {`);
-    if (metanorm.escalation.authority) lines.push(`    authority: "${metanorm.escalation.authority}",`);
-    if (metanorm.escalation.overrideThreshold !== undefined) lines.push(`    overrideThreshold: ${metanorm.escalation.overrideThreshold},`);
-    if (metanorm.escalation.appealLevels !== undefined) lines.push(`    appealLevels: ${metanorm.escalation.appealLevels},`);
+    if (metanorm.escalation.authority)
+      lines.push(`    authority: "${metanorm.escalation.authority}",`);
+    if (metanorm.escalation.overrideThreshold !== undefined)
+      lines.push(`    overrideThreshold: ${metanorm.escalation.overrideThreshold},`);
+    if (metanorm.escalation.appealLevels !== undefined)
+      lines.push(`    appealLevels: ${metanorm.escalation.appealLevels},`);
     lines.push(`  },`);
   }
 

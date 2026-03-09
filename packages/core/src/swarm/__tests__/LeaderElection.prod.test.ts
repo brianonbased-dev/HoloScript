@@ -12,7 +12,9 @@ import { LeaderElection } from '../LeaderElection';
 describe('LeaderElection', () => {
   let le: LeaderElection;
 
-  afterEach(() => { le?.stop(); });
+  afterEach(() => {
+    le?.stop();
+  });
 
   // -------------------------------------------------------------------------
   // Single-node election
@@ -52,7 +54,7 @@ describe('LeaderElection', () => {
       // Manually trigger candidate state
       const electionPromise = le.startElection(); // triggers becomeCandidate
       // Give it a tick to set candidate state
-      await new Promise(r => setTimeout(r, 20));
+      await new Promise((r) => setTimeout(r, 20));
       le.receiveVote('node-2');
       le.receiveVote('node-3');
       const leader = await electionPromise;
@@ -69,7 +71,7 @@ describe('LeaderElection', () => {
       // Block local simulation by providing a no-op messageHandler
       le.setMessageHandler(() => {}); // messages go nowhere → no auto-votes
       le.startElection(); // triggers becomeCandidate (starts election timer, sends vote requests to handler)
-      await new Promise(r => setTimeout(r, 20));
+      await new Promise((r) => setTimeout(r, 20));
       // Self vote is counted, only 1 more vote → still needs 2 more for quorum=4
       le.receiveVote('node-2'); // only 2 votes total (self + node-2) < quorum of 4
       expect(le.getRole()).toBe('candidate');
@@ -149,7 +151,7 @@ describe('LeaderElection', () => {
       le.setMessageHandler((to, msg) => sent.push({ to, msg }));
       // Term 1 vote request from node-1
       le.handleMessage('node-1', { type: 'request-vote', term: 1, candidateId: 'node-1' });
-      const grant = sent.find(s => s.msg.type === 'vote-response');
+      const grant = sent.find((s) => s.msg.type === 'vote-response');
       expect(grant).toBeDefined();
       expect(grant.msg.voteGranted).toBe(true);
       le.stop();
@@ -185,7 +187,10 @@ describe('LeaderElection', () => {
     it('can be called multiple times without error', async () => {
       le = new LeaderElection('n', []);
       await le.startElection();
-      expect(() => { le.stop(); le.stop(); }).not.toThrow();
+      expect(() => {
+        le.stop();
+        le.stop();
+      }).not.toThrow();
     });
   });
 });

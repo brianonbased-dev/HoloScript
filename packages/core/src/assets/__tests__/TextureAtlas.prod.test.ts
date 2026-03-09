@@ -27,7 +27,9 @@ describe('TextureAtlas — construction', () => {
 
 describe('TextureAtlas — pack', () => {
   let atlas: TextureAtlas;
-  beforeEach(() => { atlas = new TextureAtlas(makeConfig()); });
+  beforeEach(() => {
+    atlas = new TextureAtlas(makeConfig());
+  });
 
   it('returns an AtlasEntry for fitting texture', () => {
     const entry = atlas.pack('tex1', 64, 64);
@@ -107,7 +109,9 @@ describe('TextureAtlas — pack', () => {
 
 describe('TextureAtlas — getEntry / getAllEntries', () => {
   let atlas: TextureAtlas;
-  beforeEach(() => { atlas = new TextureAtlas(makeConfig()); });
+  beforeEach(() => {
+    atlas = new TextureAtlas(makeConfig());
+  });
 
   it('getEntry returns packed entry by id', () => {
     atlas.pack('tex', 64, 64);
@@ -124,8 +128,8 @@ describe('TextureAtlas — getEntry / getAllEntries', () => {
     atlas.pack('b', 32, 32);
     const all = atlas.getAllEntries();
     expect(all).toHaveLength(2);
-    expect(all.map(e => e.id)).toContain('a');
-    expect(all.map(e => e.id)).toContain('b');
+    expect(all.map((e) => e.id)).toContain('a');
+    expect(all.map((e) => e.id)).toContain('b');
   });
 });
 

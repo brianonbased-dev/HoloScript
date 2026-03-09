@@ -8,11 +8,7 @@
  */
 
 import { BaseLLMAdapter } from '../base-adapter';
-import type {
-  LLMCompletionRequest,
-  LLMCompletionResponse,
-  OpenAIProviderConfig,
-} from '../types';
+import type { LLMCompletionRequest, LLMCompletionResponse, OpenAIProviderConfig } from '../types';
 import {
   LLMAuthenticationError,
   LLMRateLimitError,
@@ -75,10 +71,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       const module = await import('openai');
       OpenAI = module.default;
     } catch {
-      throw new LLMProviderError(
-        'openai package not installed. Run: npm install openai',
-        'openai'
-      );
+      throw new LLMProviderError('openai package not installed. Run: npm install openai', 'openai');
     }
 
     const client = new OpenAI({
@@ -128,10 +121,14 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     reason: string | null | undefined
   ): LLMCompletionResponse['finishReason'] {
     switch (reason) {
-      case 'stop': return 'stop';
-      case 'length': return 'length';
-      case 'content_filter': return 'content_filter';
-      default: return 'stop';
+      case 'stop':
+        return 'stop';
+      case 'length':
+        return 'length';
+      case 'content_filter':
+        return 'content_filter';
+      default:
+        return 'stop';
     }
   }
 
@@ -142,8 +139,13 @@ export class OpenAIAdapter extends BaseLLMAdapter {
         return new LLMAuthenticationError('openai');
       }
       if (status === 429) {
-        const retryAfter = (err as { headers?: { 'retry-after'?: string } }).headers?.['retry-after'];
-        return new LLMRateLimitError('openai', retryAfter ? parseInt(retryAfter) * 1000 : undefined);
+        const retryAfter = (err as { headers?: { 'retry-after'?: string } }).headers?.[
+          'retry-after'
+        ];
+        return new LLMRateLimitError(
+          'openai',
+          retryAfter ? parseInt(retryAfter) * 1000 : undefined
+        );
       }
       if (status === 400 && err.message.includes('context_length')) {
         return new LLMContextLengthError('openai', 0);

@@ -102,12 +102,16 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('// === v4.2 Domain Blocks ===');
 
     let blockIdx = 0;
-    const compiled = compileDomainBlocks(domainBlocks, {
-      material: (block) => {
-        const mat = compileMaterialBlock(block);
-        return materialToWebGPU(mat, `db${blockIdx++}`);
+    const compiled = compileDomainBlocks(
+      domainBlocks,
+      {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          return materialToWebGPU(mat, `db${blockIdx++}`);
+        },
       },
-    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+      (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`
+    );
 
     for (const line of compiled) {
       for (const l of line.split('\n')) {
@@ -292,7 +296,9 @@ export class WebGPUCompiler extends CompilerBase {
     if (sorted) {
       // Wait-free hierarchical radix sort pipeline (W.035)
       // Uses GaussianSplatSorter: compress -> 4x 8-bit Blelloch scan -> scatter -> render
-      this.emit(`// === Wait-Free Radix Sort Pipeline (4x 8-bit Blelloch scan, no global atomics) ===`);
+      this.emit(
+        `// === Wait-Free Radix Sort Pipeline (4x 8-bit Blelloch scan, no global atomics) ===`
+      );
       this.emit(`import { GaussianSplatSorter } from '@holoscript/core/gpu/GaussianSplatSorter';`);
       this.emit(`const ${v}Sorter = new GaussianSplatSorter(device, {`);
       this.indent();

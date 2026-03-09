@@ -60,7 +60,12 @@ export class TerrainModifier {
   /**
    * Flatten terrain to target height with brush
    */
-  public flatten(centerX: number, centerZ: number, targetHeight: number, config: BrushConfig): void {
+  public flatten(
+    centerX: number,
+    centerZ: number,
+    targetHeight: number,
+    config: BrushConfig
+  ): void {
     this.applyBrush(centerX, centerZ, config, (height, strength) => {
       return height + (targetHeight - height) * strength;
     });
@@ -162,7 +167,7 @@ export class TerrainModifier {
       const distZ = Math.abs(z);
       const dist = Math.max(distX, distZ);
       const { width } = this.terrain.config;
-      return Math.max(0, height * (1 - (dist / (width / 2))));
+      return Math.max(0, height * (1 - dist / (width / 2)));
     });
   }
 
@@ -173,7 +178,7 @@ export class TerrainModifier {
     this.generate((x, z) => {
       const dist = Math.sqrt(x * x + z * z);
       const { width } = this.terrain.config;
-      return Math.max(0, height * (1 - (dist / (width / 2))));
+      return Math.max(0, height * (1 - dist / (width / 2)));
     });
   }
 
@@ -194,7 +199,7 @@ export class TerrainModifier {
   public createRidge(height: number, width: number): void {
     this.generate((x, z) => {
       const distX = Math.abs(x);
-      const t = Math.max(0, 1 - (distX / (width / 2)));
+      const t = Math.max(0, 1 - distX / (width / 2));
       return height * t;
     });
   }
@@ -318,7 +323,11 @@ export class TerrainModifier {
   /**
    * Calculate brush falloff
    */
-  private calculateFalloff(distance: number, radius: number, type: 'linear' | 'smooth' | 'sharp'): number {
+  private calculateFalloff(
+    distance: number,
+    radius: number,
+    type: 'linear' | 'smooth' | 'sharp'
+  ): number {
     if (distance >= radius) return 0;
 
     const t = 1 - distance / radius;
@@ -378,7 +387,11 @@ export class TerrainModifier {
     return this.lerp(
       v,
       this.lerp(u, this.grad(this.hash(a), xf, zf), this.grad(this.hash(b), xf - 1, zf)),
-      this.lerp(u, this.grad(this.hash(a + 1), xf, zf - 1), this.grad(this.hash(b + 1), xf - 1, zf - 1))
+      this.lerp(
+        u,
+        this.grad(this.hash(a + 1), xf, zf - 1),
+        this.grad(this.hash(b + 1), xf - 1, zf - 1)
+      )
     );
   }
 

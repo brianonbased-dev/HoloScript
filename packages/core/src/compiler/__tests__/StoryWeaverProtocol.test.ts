@@ -147,9 +147,7 @@ describe('StoryWeaver Protocol', () => {
   it('detects linear type when no choices are present', () => {
     const block = makeNarrativeBlock({
       children: [
-        makeChapterChild('Start', { on_complete: 'End' }, [
-          makeDialogueLine('Hello.'),
-        ]),
+        makeChapterChild('Start', { on_complete: 'End' }, [makeDialogueLine('Hello.')]),
         makeChapterChild('End'),
       ] as any,
     });
@@ -159,9 +157,7 @@ describe('StoryWeaver Protocol', () => {
 
   it('preserves trigger expressions', () => {
     const block = makeNarrativeBlock({
-      children: [
-        makeChapterChild('Boss', { trigger: 'health_below(0.5)' }),
-      ] as any,
+      children: [makeChapterChild('Boss', { trigger: 'health_below(0.5)' })] as any,
     });
     const compiled = compileNarrativeBlock(block);
     expect(compiled.chapters[0].trigger).toBe('health_below(0.5)');
@@ -196,18 +192,17 @@ describe('StoryWeaver Protocol', () => {
 
   it('handles dialogue_tree keyword as virtual chapter', () => {
     const block = makeNarrativeBlock({
-      children: [{
-        type: 'DomainBlock',
-        domain: 'narrative',
-        keyword: 'dialogue_tree',
-        name: 'greeting',
-        traits: [],
-        properties: {},
-        children: [
-          makeDialogueLine('Hi there!', 'NPC'),
-          makeChoice('Tell me more', 'Details'),
-        ],
-      }] as any,
+      children: [
+        {
+          type: 'DomainBlock',
+          domain: 'narrative',
+          keyword: 'dialogue_tree',
+          name: 'greeting',
+          traits: [],
+          properties: {},
+          children: [makeDialogueLine('Hi there!', 'NPC'), makeChoice('Tell me more', 'Details')],
+        },
+      ] as any,
     });
     const compiled = compileNarrativeBlock(block);
     expect(compiled.chapters).toHaveLength(1);
@@ -220,13 +215,15 @@ describe('StoryWeaver Protocol', () => {
   // =========== narrativeToUnity ===========
 
   it('generates C# ScriptableObject code', () => {
-    const compiled = compileNarrativeBlock(makeNarrativeBlock({
-      children: [
-        makeChapterChild('Arrival', { trigger: 'player_enters("spawn")' }, [
-          makeDialogueLine('Welcome!', 'Guide', 'friendly'),
-        ]),
-      ] as any,
-    }));
+    const compiled = compileNarrativeBlock(
+      makeNarrativeBlock({
+        children: [
+          makeChapterChild('Arrival', { trigger: 'player_enters("spawn")' }, [
+            makeDialogueLine('Welcome!', 'Guide', 'friendly'),
+          ]),
+        ] as any,
+      })
+    );
     const code = narrativeToUnity(compiled);
     expect(code).toContain('CreateAssetMenu');
     expect(code).toContain('ScriptableObject');
@@ -239,13 +236,15 @@ describe('StoryWeaver Protocol', () => {
   // =========== narrativeToGodot ===========
 
   it('generates GDScript with signal-based flow', () => {
-    const compiled = compileNarrativeBlock(makeNarrativeBlock({
-      children: [
-        makeChapterChild('Arrival', { on_complete: 'Exploration' }, [
-          makeDialogueLine('Welcome!', 'Guide'),
-        ]),
-      ] as any,
-    }));
+    const compiled = compileNarrativeBlock(
+      makeNarrativeBlock({
+        children: [
+          makeChapterChild('Arrival', { on_complete: 'Exploration' }, [
+            makeDialogueLine('Welcome!', 'Guide'),
+          ]),
+        ] as any,
+      })
+    );
     const code = narrativeToGodot(compiled);
     expect(code).toContain('extends Node');
     expect(code).toContain('signal chapter_complete');
@@ -258,14 +257,14 @@ describe('StoryWeaver Protocol', () => {
   // =========== narrativeToVRChat ===========
 
   it('generates UdonSharp with synced chapter state', () => {
-    const compiled = compileNarrativeBlock(makeNarrativeBlock({
-      children: [
-        makeChapterChild('Arrival', {}, [
-          makeDialogueLine('Welcome!', 'NPC'),
-        ]),
-        makeChapterChild('Battle'),
-      ] as any,
-    }));
+    const compiled = compileNarrativeBlock(
+      makeNarrativeBlock({
+        children: [
+          makeChapterChild('Arrival', {}, [makeDialogueLine('Welcome!', 'NPC')]),
+          makeChapterChild('Battle'),
+        ] as any,
+      })
+    );
     const code = narrativeToVRChat(compiled);
     expect(code).toContain('UdonSharpBehaviour');
     expect(code).toContain('[UdonSynced]');
@@ -279,14 +278,14 @@ describe('StoryWeaver Protocol', () => {
   // =========== narrativeToR3F ===========
 
   it('generates React-compatible narrative state', () => {
-    const compiled = compileNarrativeBlock(makeNarrativeBlock({
-      properties: { start_chapter: 'Arrival' },
-      children: [
-        makeChapterChild('Arrival', { on_complete: 'End' }, [
-          makeDialogueLine('Hello!', 'Bot'),
-        ]),
-      ] as any,
-    }));
+    const compiled = compileNarrativeBlock(
+      makeNarrativeBlock({
+        properties: { start_chapter: 'Arrival' },
+        children: [
+          makeChapterChild('Arrival', { on_complete: 'End' }, [makeDialogueLine('Hello!', 'Bot')]),
+        ] as any,
+      })
+    );
     const code = narrativeToR3F(compiled);
     expect(code).toContain('export const TutorialNarrativeData');
     expect(code).toContain('startChapter: "Arrival"');
@@ -298,14 +297,16 @@ describe('StoryWeaver Protocol', () => {
   // =========== narrativeToUSDA ===========
 
   it('generates USD customData annotations', () => {
-    const compiled = compileNarrativeBlock(makeNarrativeBlock({
-      children: [
-        makeChapterChild('Arrival', { trigger: 'proximity(5)' }, [
-          makeDialogueLine('Welcome!', 'Guide'),
-          makeChoice('Continue', 'Next'),
-        ]),
-      ] as any,
-    }));
+    const compiled = compileNarrativeBlock(
+      makeNarrativeBlock({
+        children: [
+          makeChapterChild('Arrival', { trigger: 'proximity(5)' }, [
+            makeDialogueLine('Welcome!', 'Guide'),
+            makeChoice('Continue', 'Next'),
+          ]),
+        ] as any,
+      })
+    );
     const usda = narrativeToUSDA(compiled);
     expect(usda).toContain('def Scope "Narrative_Tutorial"');
     expect(usda).toContain('holoscript:narrativeType');

@@ -17,7 +17,14 @@
  * @version 1.0.0
  */
 
-import { PlatformTarget, PlatformCapabilities, PLATFORM_CAPABILITIES, embodimentFor, EmbodimentType, platformCategory } from '../compiler/platform/PlatformConditional';
+import {
+  PlatformTarget,
+  PlatformCapabilities,
+  PLATFORM_CAPABILITIES,
+  embodimentFor,
+  EmbodimentType,
+  platformCategory,
+} from '../compiler/platform/PlatformConditional';
 
 // =============================================================================
 // MVC PAYLOAD — The 5 Typed Objects
@@ -170,14 +177,25 @@ export interface HandoffNegotiation {
 /**
  * Negotiate a handoff between two devices.
  */
-export function negotiateHandoff(source: DeviceCapabilities, target: DeviceCapabilities): HandoffNegotiation {
+export function negotiateHandoff(
+  source: DeviceCapabilities,
+  target: DeviceCapabilities
+): HandoffNegotiation {
   const gained: string[] = [];
   const lost: string[] = [];
 
   // Compare capabilities
   const boolCaps: (keyof PlatformCapabilities)[] = [
-    'spatialTracking', 'handTracking', 'eyeTracking', 'haptics',
-    'spatialAudio', 'gpu3D', 'arCamera', 'gps', 'npu', 'webxrSupport',
+    'spatialTracking',
+    'handTracking',
+    'eyeTracking',
+    'haptics',
+    'spatialAudio',
+    'gpu3D',
+    'arCamera',
+    'gps',
+    'npu',
+    'webxrSupport',
   ];
 
   for (const cap of boolCaps) {
@@ -215,13 +233,17 @@ export function createMVCPayload(
   agentDID: string,
   sessionId: string,
   source: { deviceId: string; platform: PlatformTarget },
-  data: { decisions: DecisionEntry[]; task: TaskState; preferences: UserPreferences; spatial: SpatialContext; evidence: EvidenceEntry[] },
+  data: {
+    decisions: DecisionEntry[];
+    task: TaskState;
+    preferences: UserPreferences;
+    spatial: SpatialContext;
+    evidence: EvidenceEntry[];
+  }
 ): MVCPayload {
   // Trim to stay within budget
   const trimmedDecisions = data.decisions.slice(-10); // Last 10
-  const trimmedEvidence = data.evidence
-    .sort((a, b) => b.relevance - a.relevance)
-    .slice(0, 15); // Top 15 by relevance
+  const trimmedEvidence = data.evidence.sort((a, b) => b.relevance - a.relevance).slice(0, 15); // Top 15 by relevance
 
   return {
     version: '1.0',
@@ -251,7 +273,11 @@ export function estimatePayloadSize(payload: MVCPayload): number {
 /**
  * Validate that an MVC payload is within the 10KB budget.
  */
-export function validatePayloadBudget(payload: MVCPayload): { valid: boolean; sizeBytes: number; budgetBytes: number } {
+export function validatePayloadBudget(payload: MVCPayload): {
+  valid: boolean;
+  sizeBytes: number;
+  budgetBytes: number;
+} {
   const BUDGET = 10 * 1024; // 10KB
   const size = estimatePayloadSize(payload);
   return { valid: size <= BUDGET, sizeBytes: size, budgetBytes: BUDGET };

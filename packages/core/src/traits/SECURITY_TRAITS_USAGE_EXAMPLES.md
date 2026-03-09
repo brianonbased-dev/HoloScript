@@ -299,11 +299,7 @@ const dockerfile = SandboxExecutionTrait.compile(containerConfig, 'docker');
 import { VulnerabilityScannerTrait } from '@holoscript/core/traits/VulnerabilityScannerTrait';
 
 const scanConfig = {
-  scan_types: [
-    'static_analysis',
-    'dependency_check',
-    'composition_validation',
-  ],
+  scan_types: ['static_analysis', 'dependency_check', 'composition_validation'],
   severity_threshold: 'medium',
   fail_on_critical: true,
   enable_auto_fix: true,
@@ -354,54 +350,75 @@ import {
 } from '@holoscript/core/traits';
 
 // 1. Transport Security (TLS 1.3)
-const tls = EncryptionTrait.compile({
-  protocol: 'tls_1_3',
-  cipher_suite: 'aes_256_gcm',
-  key_exchange: 'ecdhe_x25519',
-  perfect_forward_secrecy: true,
-}, 'web');
+const tls = EncryptionTrait.compile(
+  {
+    protocol: 'tls_1_3',
+    cipher_suite: 'aes_256_gcm',
+    key_exchange: 'ecdhe_x25519',
+    perfect_forward_secrecy: true,
+  },
+  'web'
+);
 
 // 2. Data Encryption (Hybrid RSA+AES)
-const encryption = RSAEncryptionTrait.compile({
-  key_size: 2048,
-  padding_scheme: 'oaep',
-  hash_algorithm: 'sha256',
-  hybrid_encryption: true,
-}, 'web');
+const encryption = RSAEncryptionTrait.compile(
+  {
+    key_size: 2048,
+    padding_scheme: 'oaep',
+    hash_algorithm: 'sha256',
+    hybrid_encryption: true,
+  },
+  'web'
+);
 
 // 3. Code Signing (Ed25519)
-const signing = PackageSigningTrait.compile({
-  signature_algorithm: 'ed25519',
-  digest_algorithm: 'sha256',
-  include_timestamp: true,
-}, 'web');
+const signing = PackageSigningTrait.compile(
+  {
+    signature_algorithm: 'ed25519',
+    digest_algorithm: 'sha256',
+    include_timestamp: true,
+  },
+  'web'
+);
 
 // 4. Privacy (zk-SNARKs)
-const privacy = ZeroKnowledgeProofTrait.compile({
-  proof_system: 'groth16',
-  curve: 'bn254',
-}, 'web');
+const privacy = ZeroKnowledgeProofTrait.compile(
+  {
+    proof_system: 'groth16',
+    curve: 'bn254',
+  },
+  'web'
+);
 
 // 5. Key Management (AWS CloudHSM)
-const keyManagement = HSMIntegrationTrait.compile({
-  provider: 'aws_cloudhsm',
-  key_type: 'aes_256',
-  fips_compliance: 'fips_140_2_level_3',
-  auto_rotation: true,
-}, 'node');
+const keyManagement = HSMIntegrationTrait.compile(
+  {
+    provider: 'aws_cloudhsm',
+    key_type: 'aes_256',
+    fips_compliance: 'fips_140_2_level_3',
+    auto_rotation: true,
+  },
+  'node'
+);
 
 // 6. Code Isolation (WASM Sandbox)
-const sandbox = SandboxExecutionTrait.compile({
-  sandbox_type: 'wasm',
-  max_memory_mb: 128,
-  permissions: { filesystem: 'none', network: 'none' },
-}, 'web');
+const sandbox = SandboxExecutionTrait.compile(
+  {
+    sandbox_type: 'wasm',
+    max_memory_mb: 128,
+    permissions: { filesystem: 'none', network: 'none' },
+  },
+  'web'
+);
 
 // 7. Security Validation (Comprehensive Scan)
-const scanner = VulnerabilityScannerTrait.compile({
-  scan_types: ['static_analysis', 'dependency_check', 'composition_validation'],
-  fail_on_critical: true,
-}, 'node');
+const scanner = VulnerabilityScannerTrait.compile(
+  {
+    scan_types: ['static_analysis', 'dependency_check', 'composition_validation'],
+    fail_on_critical: true,
+  },
+  'node'
+);
 
 console.log('✅ Complete secure VR application stack generated!');
 ```

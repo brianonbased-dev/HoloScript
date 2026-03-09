@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { computeHandler } from '../ComputeTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('ComputeTrait', () => {
   let node: Record<string, unknown>;
@@ -27,13 +35,21 @@ describe('ComputeTrait', () => {
   });
 
   it('compute_initialized marks ready', () => {
-    sendEvent(computeHandler, node, cfg, ctx, { type: 'compute_initialized', shaderModule: 'sm', pipeline: 'pl' });
+    sendEvent(computeHandler, node, cfg, ctx, {
+      type: 'compute_initialized',
+      shaderModule: 'sm',
+      pipeline: 'pl',
+    });
     expect((node as any).__computeState.isReady).toBe(true);
     expect(getEventCount(ctx, 'on_compute_ready')).toBe(1);
   });
 
   it('compute_dispatch emits execute when ready', () => {
-    sendEvent(computeHandler, node, cfg, ctx, { type: 'compute_initialized', shaderModule: 'sm', pipeline: 'pl' });
+    sendEvent(computeHandler, node, cfg, ctx, {
+      type: 'compute_initialized',
+      shaderModule: 'sm',
+      pipeline: 'pl',
+    });
     sendEvent(computeHandler, node, cfg, ctx, { type: 'compute_dispatch' });
     expect(getEventCount(ctx, 'compute_execute')).toBe(1);
   });
@@ -48,7 +64,11 @@ describe('ComputeTrait', () => {
     const n2 = createMockNode('au');
     const c2 = createMockContext();
     attachTrait(computeHandler, n2, autoCfg, c2);
-    sendEvent(computeHandler, n2, autoCfg, c2, { type: 'compute_initialized', shaderModule: 'sm', pipeline: 'pl' });
+    sendEvent(computeHandler, n2, autoCfg, c2, {
+      type: 'compute_initialized',
+      shaderModule: 'sm',
+      pipeline: 'pl',
+    });
     updateTrait(computeHandler, n2, autoCfg, c2, 0.016);
     expect(getEventCount(c2, 'compute_execute')).toBe(1);
   });
@@ -56,16 +76,32 @@ describe('ComputeTrait', () => {
   it('buffer create and write flow', () => {
     sendEvent(computeHandler, node, cfg, ctx, {
       type: 'compute_create_buffer',
-      binding: { name: 'data', group: 0, binding: 0, usage: 'read_write', dataType: 'f32', size: 256 },
+      binding: {
+        name: 'data',
+        group: 0,
+        binding: 0,
+        usage: 'read_write',
+        dataType: 'f32',
+        size: 256,
+      },
     });
     expect(getEventCount(ctx, 'compute_allocate_buffer')).toBe(1);
 
-    sendEvent(computeHandler, node, cfg, ctx, { type: 'compute_buffer_created', name: 'data', handle: 'h1', group: 0 });
+    sendEvent(computeHandler, node, cfg, ctx, {
+      type: 'compute_buffer_created',
+      name: 'data',
+      handle: 'h1',
+      group: 0,
+    });
     expect((node as any).__computeState.buffers.size).toBe(1);
   });
 
   it('write_buffer with missing buffer errors', () => {
-    sendEvent(computeHandler, node, cfg, ctx, { type: 'compute_write_buffer', buffer: 'nope', data: 'x' });
+    sendEvent(computeHandler, node, cfg, ctx, {
+      type: 'compute_write_buffer',
+      buffer: 'nope',
+      data: 'x',
+    });
     expect(getEventCount(ctx, 'on_compute_error')).toBe(1);
   });
 
@@ -83,7 +119,11 @@ describe('ComputeTrait', () => {
   });
 
   it('detach emits destroy when ready', () => {
-    sendEvent(computeHandler, node, cfg, ctx, { type: 'compute_initialized', shaderModule: 'sm', pipeline: 'pl' });
+    sendEvent(computeHandler, node, cfg, ctx, {
+      type: 'compute_initialized',
+      shaderModule: 'sm',
+      pipeline: 'pl',
+    });
     computeHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect((node as any).__computeState).toBeUndefined();
     expect(getEventCount(ctx, 'compute_destroy')).toBe(1);

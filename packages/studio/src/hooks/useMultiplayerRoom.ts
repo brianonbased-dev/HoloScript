@@ -67,45 +67,80 @@ export function useMultiplayerRoom({
     es.onmessage = (e) => {
       try {
         const evt = JSON.parse(e.data as string) as {
-          type?: RoomEventType; user?: string; color?: string;
+          type?: RoomEventType;
+          user?: string;
+          color?: string;
           payload?: { x?: number; y?: number; objectId?: string; text?: string };
           ts?: number;
         };
         if (!evt.type || !evt.user || evt.user === userName) return;
 
         if (evt.type === 'leave') {
-          setPeers((p) => { const n = new Map(p); n.delete(evt.user!); return n; });
+          setPeers((p) => {
+            const n = new Map(p);
+            n.delete(evt.user!);
+            return n;
+          });
           return;
         }
         if (evt.type === 'chat' && evt.payload?.text) {
-          setChat((c) => [...c.slice(-99), { user: evt.user!, color: evt.color ?? '#aaa', text: evt.payload!.text!, ts: evt.ts ?? Date.now() }]);
+          setChat((c) => [
+            ...c.slice(-99),
+            {
+              user: evt.user!,
+              color: evt.color ?? '#aaa',
+              text: evt.payload!.text!,
+              ts: evt.ts ?? Date.now(),
+            },
+          ]);
         }
         setPeers((prev) => {
           const next = new Map(prev);
-          const cur = next.get(evt.user!) ?? { user: evt.user!, color: evt.color ?? '#aaa', lastSeen: Date.now() };
-          if (evt.type === 'cursor') cur.cursor = { x: evt.payload?.x ?? 0, y: evt.payload?.y ?? 0 };
+          const cur = next.get(evt.user!) ?? {
+            user: evt.user!,
+            color: evt.color ?? '#aaa',
+            lastSeen: Date.now(),
+          };
+          if (evt.type === 'cursor')
+            cur.cursor = { x: evt.payload?.x ?? 0, y: evt.payload?.y ?? 0 };
           if (evt.type === 'select') cur.selectedObject = evt.payload?.objectId;
           cur.lastSeen = Date.now();
           next.set(evt.user!, cur);
           return next;
         });
-      } catch { /* ignore malformed */ }
+      } catch {
+        /* ignore malformed */
+      }
     };
 
     const evictTimer = setInterval(evict, 10_000);
-    return () => { es.close(); esRef.current = null; setConnected(false); clearInterval(evictTimer); };
+    return () => {
+      es.close();
+      esRef.current = null;
+      setConnected(false);
+      clearInterval(evictTimer);
+    };
   }, [enabled, roomId, userName, userColor, evict]);
 
-  const broadcast = useCallback(async (type: RoomEventType, payload?: unknown) => {
-    await fetch('/api/rooms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ room: roomId, user: userName, color: userColor, type, payload }),
-    });
-  }, [roomId, userName, userColor]);
+  const broadcast = useCallback(
+    async (type: RoomEventType, payload?: unknown) => {
+      await fetch('/api/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room: roomId, user: userName, color: userColor, type, payload }),
+      });
+    },
+    [roomId, userName, userColor]
+  );
 
-  const sendCursor = useCallback((x: number, y: number) => broadcast('cursor', { x, y }), [broadcast]);
-  const sendSelect = useCallback((objectId: string) => broadcast('select', { objectId }), [broadcast]);
+  const sendCursor = useCallback(
+    (x: number, y: number) => broadcast('cursor', { x, y }),
+    [broadcast]
+  );
+  const sendSelect = useCallback(
+    (objectId: string) => broadcast('select', { objectId }),
+    [broadcast]
+  );
   const sendChat = useCallback((text: string) => broadcast('chat', { text }), [broadcast]);
 
   return { connected, peers: [...peers.values()], chat, sendCursor, sendSelect, sendChat };

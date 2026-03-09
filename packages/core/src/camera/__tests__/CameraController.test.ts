@@ -4,7 +4,9 @@ import { CameraController } from '../CameraController';
 describe('CameraController', () => {
   let cam: CameraController;
 
-  beforeEach(() => { cam = new CameraController(); });
+  beforeEach(() => {
+    cam = new CameraController();
+  });
 
   // ---------------------------------------------------------------------------
   // Construction & Defaults

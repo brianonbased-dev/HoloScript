@@ -13,23 +13,23 @@
 
 export interface TerrainChunk {
   id: string;
-  level: number;          // LOD level (0 = highest detail)
-  x: number;              // Grid position
+  level: number; // LOD level (0 = highest detail)
+  x: number; // Grid position
   z: number;
-  size: number;           // World space size
-  resolution: number;     // Vertices per side at this LOD
+  size: number; // World space size
+  resolution: number; // Vertices per side at this LOD
   heightData: Float32Array;
-  morphFactor: number;    // 0-1, blending between LOD levels
+  morphFactor: number; // 0-1, blending between LOD levels
   active: boolean;
-  children: string[];     // Child chunk IDs (quadtree)
+  children: string[]; // Child chunk IDs (quadtree)
 }
 
 export interface TerrainLODConfig {
   totalSize: number;
-  maxLOD: number;         // Number of LOD levels
+  maxLOD: number; // Number of LOD levels
   baseResolution: number; // Vertices per side at LOD 0
   lodDistances: number[]; // Distance thresholds per level
-  morphRange: number;     // Transition zone as fraction of distance
+  morphRange: number; // Transition zone as fraction of distance
 }
 
 // =============================================================================
@@ -64,7 +64,13 @@ export class TerrainLOD {
     this.subdivide(0, 0, this.config.totalSize, 0, heightSampler);
   }
 
-  private subdivide(x: number, z: number, size: number, level: number, sampler: (x: number, z: number) => number): string {
+  private subdivide(
+    x: number,
+    z: number,
+    size: number,
+    level: number,
+    sampler: (x: number, z: number) => number
+  ): string {
     const resolution = Math.max(4, this.config.baseResolution >> level);
     const heightData = new Float32Array(resolution * resolution);
 
@@ -78,9 +84,15 @@ export class TerrainLOD {
 
     const chunk: TerrainChunk = {
       id: `chunk_${_chunkId++}`,
-      level, x, z, size, resolution,
-      heightData, morphFactor: 0,
-      active: true, children: [],
+      level,
+      x,
+      z,
+      size,
+      resolution,
+      heightData,
+      morphFactor: 0,
+      active: true,
+      children: [],
     };
 
     this.chunks.set(chunk.id, chunk);
@@ -131,7 +143,12 @@ export class TerrainLOD {
   // Stitching
   // ---------------------------------------------------------------------------
 
-  getStitchEdges(chunkId: string): { north: boolean; south: boolean; east: boolean; west: boolean } {
+  getStitchEdges(chunkId: string): {
+    north: boolean;
+    south: boolean;
+    east: boolean;
+    west: boolean;
+  } {
     const chunk = this.chunks.get(chunkId);
     if (!chunk) return { north: false, south: false, east: false, west: false };
 
@@ -141,10 +158,14 @@ export class TerrainLOD {
       if (other.id === chunkId || !other.active || other.level === chunk.level) continue;
 
       // Check adjacency
-      if (Math.abs(other.z + other.size - chunk.z) < 0.1 && this.overlapsX(chunk, other)) result.north = true;
-      if (Math.abs(chunk.z + chunk.size - other.z) < 0.1 && this.overlapsX(chunk, other)) result.south = true;
-      if (Math.abs(other.x + other.size - chunk.x) < 0.1 && this.overlapsZ(chunk, other)) result.west = true;
-      if (Math.abs(chunk.x + chunk.size - other.x) < 0.1 && this.overlapsZ(chunk, other)) result.east = true;
+      if (Math.abs(other.z + other.size - chunk.z) < 0.1 && this.overlapsX(chunk, other))
+        result.north = true;
+      if (Math.abs(chunk.z + chunk.size - other.z) < 0.1 && this.overlapsX(chunk, other))
+        result.south = true;
+      if (Math.abs(other.x + other.size - chunk.x) < 0.1 && this.overlapsZ(chunk, other))
+        result.west = true;
+      if (Math.abs(chunk.x + chunk.size - other.x) < 0.1 && this.overlapsZ(chunk, other))
+        result.east = true;
     }
 
     return result;
@@ -162,10 +183,18 @@ export class TerrainLOD {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getChunk(id: string): TerrainChunk | undefined { return this.chunks.get(id); }
-  getActiveChunks(): TerrainChunk[] { return [...this.chunks.values()].filter(c => c.active); }
-  getActiveChunkCount(): number { return this.activeChunks.size; }
-  getTotalChunkCount(): number { return this.chunks.size; }
+  getChunk(id: string): TerrainChunk | undefined {
+    return this.chunks.get(id);
+  }
+  getActiveChunks(): TerrainChunk[] {
+    return [...this.chunks.values()].filter((c) => c.active);
+  }
+  getActiveChunkCount(): number {
+    return this.activeChunks.size;
+  }
+  getTotalChunkCount(): number {
+    return this.chunks.size;
+  }
 
   sampleHeight(x: number, z: number): number {
     for (const chunk of this.chunks.values()) {

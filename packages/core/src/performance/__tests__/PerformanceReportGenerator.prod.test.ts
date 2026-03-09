@@ -41,7 +41,7 @@ describe('PerformanceReportGenerator: production', () => {
 
     it('recommendations has all-clear message when no issues', () => {
       const report = generator.generateReport();
-      expect(report.recommendations.some(r => r.includes('✅'))).toBe(true);
+      expect(report.recommendations.some((r) => r.includes('✅'))).toBe(true);
     });
   });
 
@@ -115,28 +115,34 @@ describe('PerformanceReportGenerator: production', () => {
     it('warns when Parser avg > 15ms', () => {
       tracker.recordMetric('ParseTime', 20, 10); // above 15ms threshold
       const report = generator.generateReport();
-      expect(report.recommendations.some(r => r.includes('Parser'))).toBe(true);
+      expect(report.recommendations.some((r) => r.includes('Parser'))).toBe(true);
     });
 
     it('warns when Compiler avg > 10ms', () => {
       tracker.recordMetric('CompileStep', 15, 5); // above 10ms threshold
       const report = generator.generateReport();
-      expect(report.recommendations.some(r => r.includes('Compiler'))).toBe(true);
+      expect(report.recommendations.some((r) => r.includes('Compiler'))).toBe(true);
     });
 
     it('warns when Memory metric > 50', () => {
       tracker.recordMetric('MemoryUsage', 75, 1);
       const report = generator.generateReport();
-      expect(report.recommendations.some(r => r.includes('Memory') || r.includes('memory'))).toBe(true);
+      expect(report.recommendations.some((r) => r.includes('Memory') || r.includes('memory'))).toBe(
+        true
+      );
     });
 
     it('no performance warning when metrics are within thresholds', () => {
-      tracker.recordMetric('ParseTime', 5, 200);   // under 15ms
+      tracker.recordMetric('ParseTime', 5, 200); // under 15ms
       tracker.recordMetric('CompileStep', 3, 400); // under 10ms
       const report = generator.generateReport();
       // Should only have the all-clear message or none of the warning kinds
-      const hasParserWarn = report.recommendations.some(r => r.includes('Parser performance is above'));
-      const hasCompilerWarn = report.recommendations.some(r => r.includes('Compiler performance is above'));
+      const hasParserWarn = report.recommendations.some((r) =>
+        r.includes('Parser performance is above')
+      );
+      const hasCompilerWarn = report.recommendations.some((r) =>
+        r.includes('Compiler performance is above')
+      );
       expect(hasParserWarn).toBe(false);
       expect(hasCompilerWarn).toBe(false);
     });

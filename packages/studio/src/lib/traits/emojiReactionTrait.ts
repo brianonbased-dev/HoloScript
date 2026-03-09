@@ -198,9 +198,7 @@ export class EmojiReactionTrait {
       }
 
       // Update position
-      particle.mesh.position.add(
-        particle.velocity.clone().multiplyScalar(deltaTime)
-      );
+      particle.mesh.position.add(particle.velocity.clone().multiplyScalar(deltaTime));
 
       // Apply physics
       if (this.config.enablePhysics) {

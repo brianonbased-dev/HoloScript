@@ -4,7 +4,9 @@ import { StyleResolver } from '../StyleResolver';
 describe('StyleResolver', () => {
   let resolver: StyleResolver;
 
-  beforeEach(() => { resolver = new StyleResolver(); });
+  beforeEach(() => {
+    resolver = new StyleResolver();
+  });
 
   it('addRule and ruleCount', () => {
     resolver.addRule('button', { bg: 'blue' });
@@ -78,7 +80,18 @@ describe('StyleResolver', () => {
   // fromTokens static factory
   it('fromTokens creates resolver with default rules', () => {
     const tokens = {
-      colors: { primary: '#0a0', secondary: '#00a', background: '#fff', surface: '#eee', text: '#000', border: '#ccc', error: '#f00', success: '#0f0', warning: '#ff0', info: '#0ff' },
+      colors: {
+        primary: '#0a0',
+        secondary: '#00a',
+        background: '#fff',
+        surface: '#eee',
+        text: '#000',
+        border: '#ccc',
+        error: '#f00',
+        success: '#0f0',
+        warning: '#ff0',
+        info: '#0ff',
+      },
       spacing: { xs: 2, sm: 4, md: 8, lg: 16, xl: 24 },
       fontSize: { xs: 10, sm: 12, md: 14, lg: 18, xl: 24 },
       borderRadius: { sm: 2, md: 4, lg: 8, full: 9999 },

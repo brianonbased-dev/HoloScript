@@ -9,10 +9,17 @@ describe('Cycle 157: Multiplayer Prediction', () => {
   // -------------------------------------------------------------------------
 
   it('should predict movement and reconcile with server', () => {
-    const predictor = (state: PredictedState, input: { actions: Record<string, number>; deltaTime: number }) => ({
+    const predictor = (
+      state: PredictedState,
+      input: { actions: Record<string, number>; deltaTime: number }
+    ) => ({
       ...state,
       x: state.x + (input.actions['moveX'] ?? 0) * input.deltaTime,
-      y: state.y, z: state.z, vx: state.vx, vy: state.vy, vz: state.vz,
+      y: state.y,
+      z: state.z,
+      vx: state.vx,
+      vy: state.vy,
+      vz: state.vz,
     });
 
     const cp = new ClientPrediction({ x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 }, predictor);
@@ -47,7 +54,7 @@ describe('Cycle 157: Multiplayer Prediction', () => {
 
     // Render at currentTime=200, renderDelay=50 → renderTime=150 → halfway
     const result = si.interpolate(200);
-    const player = result.find(e => e.id === 'player')!;
+    const player = result.find((e) => e.id === 'player')!;
     expect(player.x).toBe(5); // lerp(0, 10, 0.5)
     expect(player.interpolated).toBe(true);
   });
@@ -62,7 +69,7 @@ describe('Cycle 157: Multiplayer Prediction', () => {
 
     // currentTime=500, no bracket
     const result = si.interpolate(500);
-    const obj = result.find(e => e.id === 'obj')!;
+    const obj = result.find((e) => e.id === 'obj')!;
     expect(obj.x).toBe(42);
     expect(obj.interpolated).toBe(false);
   });
@@ -84,7 +91,14 @@ describe('Cycle 157: Multiplayer Prediction', () => {
     });
 
     // Client fires at timestamp=200 with 100ms latency → rewind to 100
-    const hit = lc.verifyHit({ originX: 10, originY: 0, originZ: 0, targetId: 'enemy', clientTimestamp: 200, clientLatency: 100 });
+    const hit = lc.verifyHit({
+      originX: 10,
+      originY: 0,
+      originZ: 0,
+      targetId: 'enemy',
+      clientTimestamp: 200,
+      clientLatency: 100,
+    });
     expect(hit.hit).toBe(true);
     expect(hit.distance).toBe(0); // Point blank at t=100
   });

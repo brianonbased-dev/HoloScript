@@ -10,14 +10,14 @@
 
 ### Overall Metrics
 
-| Metric | Baseline | Phase 1 | Change | Status |
-|--------|----------|---------|--------|--------|
-| **Test Files** | 22 | 24 | **+2** ✅ | +9.09% |
-| **Total Tests** | 766 | 810 | **+44** ✅ | +5.74% |
-| **Lines Coverage** | 18.13% | 18.34% | **+0.21%** | Improved |
-| **Function Coverage** | 70.66% | 71.62% | **+0.96%** | Improved |
-| **Branch Coverage** | 70.60% | 71.35% | **+0.75%** | Improved |
-| **Hooks Coverage** | 12.98% | 15.86% | **+2.88%** ✅ | +22.19% |
+| Metric                | Baseline | Phase 1 | Change        | Status   |
+| --------------------- | -------- | ------- | ------------- | -------- |
+| **Test Files**        | 22       | 24      | **+2** ✅     | +9.09%   |
+| **Total Tests**       | 766      | 810     | **+44** ✅    | +5.74%   |
+| **Lines Coverage**    | 18.13%   | 18.34%  | **+0.21%**    | Improved |
+| **Function Coverage** | 70.66%   | 71.62%  | **+0.96%**    | Improved |
+| **Branch Coverage**   | 70.60%   | 71.35%  | **+0.75%**    | Improved |
+| **Hooks Coverage**    | 12.98%   | 15.86%  | **+2.88%** ✅ | +22.19%  |
 
 ---
 
@@ -117,11 +117,11 @@ Tests covering snapshot management:
 
 ### Hooks Directory Coverage
 
-| Category | Before | After | Change |
-|----------|--------|-------|--------|
-| **Lines** | 12.98% | 15.86% | **+2.88%** |
+| Category      | Before | After  | Change     |
+| ------------- | ------ | ------ | ---------- |
+| **Lines**     | 12.98% | 15.86% | **+2.88%** |
 | **Functions** | 63.75% | 71.35% | **+7.60%** |
-| **Branches** | 42.85% | 45.05% | **+2.20%** |
+| **Branches**  | 42.85% | 45.05% | **+2.20%** |
 
 ### Test Distribution
 

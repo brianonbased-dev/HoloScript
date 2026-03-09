@@ -8,20 +8,28 @@ export interface MixamoAnimation {
   id: string;
   name: string;
   category: MixamoCategory;
-  duration: number;        // seconds
+  duration: number; // seconds
   frameCount: number;
-  inPlace: boolean;        // Root motion removed
+  inPlace: boolean; // Root motion removed
   thumbnailUrl: string;
   downloadUrl?: string;
 }
 
 export type MixamoCategory =
-  | 'idle' | 'walk' | 'run' | 'jump' | 'dance'
-  | 'combat' | 'emote' | 'interact' | 'sit' | 'climb';
+  | 'idle'
+  | 'walk'
+  | 'run'
+  | 'jump'
+  | 'dance'
+  | 'combat'
+  | 'emote'
+  | 'interact'
+  | 'sit'
+  | 'climb';
 
 export interface BoneMapping {
-  source: string;          // Mixamo bone name
-  target: string;          // HoloScript skeleton bone name
+  source: string; // Mixamo bone name
+  target: string; // HoloScript skeleton bone name
 }
 
 export interface RetargetConfig {
@@ -78,9 +86,17 @@ export function createRetargetConfig(
  * Validate that all required bones are mapped.
  */
 export function validateMapping(config: RetargetConfig): { valid: boolean; missing: string[] } {
-  const required = ['hips', 'spine', 'head', 'upper_arm.L', 'upper_arm.R', 'upper_leg.L', 'upper_leg.R'];
-  const mapped = new Set(config.mappings.map(m => m.target));
-  const missing = required.filter(r => !mapped.has(r));
+  const required = [
+    'hips',
+    'spine',
+    'head',
+    'upper_arm.L',
+    'upper_arm.R',
+    'upper_leg.L',
+    'upper_leg.R',
+  ];
+  const mapped = new Set(config.mappings.map((m) => m.target));
+  const missing = required.filter((r) => !mapped.has(r));
   return { valid: missing.length === 0, missing };
 }
 
@@ -98,19 +114,83 @@ export function retargetQuality(config: RetargetConfig): 'high' | 'medium' | 'lo
  * Common Mixamo animation catalog (sample entries).
  */
 export const MIXAMO_CATALOG: MixamoAnimation[] = [
-  { id: 'idle', name: 'Idle', category: 'idle', duration: 3.0, frameCount: 90, inPlace: true, thumbnailUrl: '/anims/idle.png' },
-  { id: 'walk', name: 'Walking', category: 'walk', duration: 1.0, frameCount: 30, inPlace: true, thumbnailUrl: '/anims/walk.png' },
-  { id: 'run', name: 'Running', category: 'run', duration: 0.8, frameCount: 24, inPlace: true, thumbnailUrl: '/anims/run.png' },
-  { id: 'jump', name: 'Jump', category: 'jump', duration: 1.5, frameCount: 45, inPlace: false, thumbnailUrl: '/anims/jump.png' },
-  { id: 'dance-hip-hop', name: 'Hip Hop Dance', category: 'dance', duration: 4.0, frameCount: 120, inPlace: true, thumbnailUrl: '/anims/dance.png' },
-  { id: 'punch', name: 'Punch', category: 'combat', duration: 0.6, frameCount: 18, inPlace: true, thumbnailUrl: '/anims/punch.png' },
-  { id: 'wave', name: 'Wave', category: 'emote', duration: 2.0, frameCount: 60, inPlace: true, thumbnailUrl: '/anims/wave.png' },
-  { id: 'sit', name: 'Sitting Down', category: 'sit', duration: 2.5, frameCount: 75, inPlace: false, thumbnailUrl: '/anims/sit.png' },
+  {
+    id: 'idle',
+    name: 'Idle',
+    category: 'idle',
+    duration: 3.0,
+    frameCount: 90,
+    inPlace: true,
+    thumbnailUrl: '/anims/idle.png',
+  },
+  {
+    id: 'walk',
+    name: 'Walking',
+    category: 'walk',
+    duration: 1.0,
+    frameCount: 30,
+    inPlace: true,
+    thumbnailUrl: '/anims/walk.png',
+  },
+  {
+    id: 'run',
+    name: 'Running',
+    category: 'run',
+    duration: 0.8,
+    frameCount: 24,
+    inPlace: true,
+    thumbnailUrl: '/anims/run.png',
+  },
+  {
+    id: 'jump',
+    name: 'Jump',
+    category: 'jump',
+    duration: 1.5,
+    frameCount: 45,
+    inPlace: false,
+    thumbnailUrl: '/anims/jump.png',
+  },
+  {
+    id: 'dance-hip-hop',
+    name: 'Hip Hop Dance',
+    category: 'dance',
+    duration: 4.0,
+    frameCount: 120,
+    inPlace: true,
+    thumbnailUrl: '/anims/dance.png',
+  },
+  {
+    id: 'punch',
+    name: 'Punch',
+    category: 'combat',
+    duration: 0.6,
+    frameCount: 18,
+    inPlace: true,
+    thumbnailUrl: '/anims/punch.png',
+  },
+  {
+    id: 'wave',
+    name: 'Wave',
+    category: 'emote',
+    duration: 2.0,
+    frameCount: 60,
+    inPlace: true,
+    thumbnailUrl: '/anims/wave.png',
+  },
+  {
+    id: 'sit',
+    name: 'Sitting Down',
+    category: 'sit',
+    duration: 2.5,
+    frameCount: 75,
+    inPlace: false,
+    thumbnailUrl: '/anims/sit.png',
+  },
 ];
 
 /**
  * Search Mixamo catalog by category.
  */
 export function animationsByCategory(category: MixamoCategory): MixamoAnimation[] {
-  return MIXAMO_CATALOG.filter(a => a.category === category);
+  return MIXAMO_CATALOG.filter((a) => a.category === category);
 }

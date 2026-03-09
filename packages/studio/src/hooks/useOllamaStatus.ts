@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useAIStore } from '@/lib/store';
+import { useAIStore } from '@/lib/stores';
 import { checkOllamaHealth } from '@/lib/api';
 
 /**

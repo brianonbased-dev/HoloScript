@@ -68,11 +68,21 @@ The Perception & Simulation Stack is HoloScript's v4.2 layer for declaring scene
 ```typescript
 export const handler: TraitHandler<Config> = {
   name: 'trait_name',
-  defaultConfig: { /* ... */ },
-  onAttach(node, config, context) { /* initialization */ },
-  onDetach(node, config, context) { /* cleanup */ },
-  onUpdate(node, config, context, delta) { /* per-frame */ },
-  onEvent(node, config, context, event) { /* event response */ },
+  defaultConfig: {
+    /* ... */
+  },
+  onAttach(node, config, context) {
+    /* initialization */
+  },
+  onDetach(node, config, context) {
+    /* cleanup */
+  },
+  onUpdate(node, config, context, delta) {
+    /* per-frame */
+  },
+  onEvent(node, config, context, event) {
+    /* event response */
+  },
 };
 ```
 
@@ -92,35 +102,35 @@ Physically-based rendering material with roughness-metallic workflow.
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `baseColor` | `string` (hex) | - | Surface albedo color |
-| `roughness` | `number` | `0.5` | Surface roughness (0 = mirror, 1 = diffuse) |
-| `metallic` | `number` | `0.0` | Metalness (0 = dielectric, 1 = metal) |
-| `opacity` | `number` | `1.0` | Surface opacity (< 1.0 enables transparency) |
-| `IOR` | `number` | `1.5` | Index of refraction |
-| `emissive_color` | `string` (hex) | - | Self-illumination color |
-| `emissive_intensity` | `number` | `1.0` | Emission brightness multiplier |
-| `albedo_map` | `string` or block | - | Diffuse/albedo texture path |
-| `normal_map` | `string` or block | - | Normal map texture path |
-| `roughness_map` | `string` | - | Roughness texture path |
-| `metallic_map` | `string` | - | Metalness texture path |
-| `ao_map` | `string` or block | - | Ambient occlusion texture path |
-| `emission_map` | `string` | - | Emission texture path |
-| `height_map` | `string` or block | - | Parallax/height map texture path |
+| Property             | Type              | Default | Description                                  |
+| -------------------- | ----------------- | ------- | -------------------------------------------- |
+| `baseColor`          | `string` (hex)    | -       | Surface albedo color                         |
+| `roughness`          | `number`          | `0.5`   | Surface roughness (0 = mirror, 1 = diffuse)  |
+| `metallic`           | `number`          | `0.0`   | Metalness (0 = dielectric, 1 = metal)        |
+| `opacity`            | `number`          | `1.0`   | Surface opacity (< 1.0 enables transparency) |
+| `IOR`                | `number`          | `1.5`   | Index of refraction                          |
+| `emissive_color`     | `string` (hex)    | -       | Self-illumination color                      |
+| `emissive_intensity` | `number`          | `1.0`   | Emission brightness multiplier               |
+| `albedo_map`         | `string` or block | -       | Diffuse/albedo texture path                  |
+| `normal_map`         | `string` or block | -       | Normal map texture path                      |
+| `roughness_map`      | `string`          | -       | Roughness texture path                       |
+| `metallic_map`       | `string`          | -       | Metalness texture path                       |
+| `ao_map`             | `string` or block | -       | Ambient occlusion texture path               |
+| `emission_map`       | `string`          | -       | Emission texture path                        |
+| `height_map`         | `string` or block | -       | Parallax/height map texture path             |
 
 **Texture map sub-block properties** (when using structured form):
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `source` | `string` | - | Texture file path |
-| `tiling` | `[number, number]` | `[1, 1]` | UV tiling multiplier |
-| `filtering` | `string` | `"bilinear"` | `"bilinear"`, `"trilinear"`, `"anisotropic"` |
-| `strength` | `number` | `1.0` | Effect intensity (normal maps) |
-| `format` | `string` | `"directx"` | Normal map format (`"opengl"` or `"directx"`) |
-| `intensity` | `number` | `1.0` | Effect intensity (AO maps) |
-| `scale` | `number` | `0.05` | Displacement scale (height maps) |
-| `channel` | `string` | `"r"` | Source channel (`"r"`, `"g"`, `"b"`, `"a"`) |
+| Property    | Type               | Default      | Description                                   |
+| ----------- | ------------------ | ------------ | --------------------------------------------- |
+| `source`    | `string`           | -            | Texture file path                             |
+| `tiling`    | `[number, number]` | `[1, 1]`     | UV tiling multiplier                          |
+| `filtering` | `string`           | `"bilinear"` | `"bilinear"`, `"trilinear"`, `"anisotropic"`  |
+| `strength`  | `number`           | `1.0`        | Effect intensity (normal maps)                |
+| `format`    | `string`           | `"directx"`  | Normal map format (`"opengl"` or `"directx"`) |
+| `intensity` | `number`           | `1.0`        | Effect intensity (AO maps)                    |
+| `scale`     | `number`           | `0.05`       | Displacement scale (height maps)              |
+| `channel`   | `string`           | `"r"`        | Source channel (`"r"`, `"g"`, `"b"`, `"a"`)   |
 
 **Example:**
 
@@ -146,12 +156,12 @@ Material with subsurface scattering (SSS) for skin, wax, marble, and similar tra
 
 **Additional properties** (beyond PBR):
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `subsurface_color` | `string` (hex) | - | Color of light transmitted through material |
-| `subsurface_radius` | `[number, number, number]` | `[1.0, 0.2, 0.1]` | RGB scatter radius in scene units |
-| `subsurface_map` | `string` | - | Subsurface intensity map |
-| `thickness_map` | `string` | - | Surface thickness map |
+| Property            | Type                       | Default           | Description                                 |
+| ------------------- | -------------------------- | ----------------- | ------------------------------------------- |
+| `subsurface_color`  | `string` (hex)             | -                 | Color of light transmitted through material |
+| `subsurface_radius` | `[number, number, number]` | `[1.0, 0.2, 0.1]` | RGB scatter radius in scene units           |
+| `subsurface_map`    | `string`                   | -                 | Subsurface intensity map                    |
+| `thickness_map`     | `string`                   | -                 | Surface thickness map                       |
 
 **Example:**
 
@@ -177,12 +187,12 @@ Material that ignores scene lighting. Used for HUDs, holographic overlays, and U
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `baseColor` | `string` (hex) | - | Surface color |
-| `opacity` | `number` | `1.0` | Transparency |
-| `emission_map` | `string` | - | Self-illumination texture |
-| `double_sided` | `boolean` | `false` | Render both faces |
+| Property       | Type           | Default | Description               |
+| -------------- | -------------- | ------- | ------------------------- |
+| `baseColor`    | `string` (hex) | -       | Surface color             |
+| `opacity`      | `number`       | `1.0`   | Transparency              |
+| `emission_map` | `string`       | -       | Self-illumination texture |
+| `double_sided` | `boolean`      | `false` | Render both faces         |
 
 **Example:**
 
@@ -201,12 +211,12 @@ Transparent material with physically accurate transmission and refraction.
 
 **Additional properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `IOR` | `number` | `1.5` | Index of refraction |
-| `transmission` | `number` | `0.95` | Light transmission factor (0-1) |
-| `thickness` | `number` | `0.01` | Glass panel thickness (meters) |
-| `attenuation_color` | `string` (hex) | - | Color tint for transmitted light |
+| Property            | Type           | Default | Description                      |
+| ------------------- | -------------- | ------- | -------------------------------- |
+| `IOR`               | `number`       | `1.5`   | Index of refraction              |
+| `transmission`      | `number`       | `0.95`  | Light transmission factor (0-1)  |
+| `thickness`         | `number`       | `0.01`  | Glass panel thickness (meters)   |
+| `attenuation_color` | `string` (hex) | -       | Color tint for transmitted light |
 
 **Example:**
 
@@ -228,15 +238,15 @@ Cel-shaded material with outline and stepped shading.
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `baseColor` | `string` (hex) | - | Surface color |
-| `outline_width` | `number` | `0.02` | Outline thickness |
-| `outline_color` | `string` (hex) | `#000000` | Outline color |
-| `shade_steps` | `number` | `3` | Number of discrete shading bands |
-| `specular_size` | `number` | `0.2` | Size of specular highlight |
-| `rim_light` | `number` | `0.4` | Rim lighting intensity |
-| `rim_color` | `string` (hex) | `#ffffff` | Rim light color |
+| Property        | Type           | Default   | Description                      |
+| --------------- | -------------- | --------- | -------------------------------- |
+| `baseColor`     | `string` (hex) | -         | Surface color                    |
+| `outline_width` | `number`       | `0.02`    | Outline thickness                |
+| `outline_color` | `string` (hex) | `#000000` | Outline color                    |
+| `shade_steps`   | `number`       | `3`       | Number of discrete shading bands |
+| `specular_size` | `number`       | `0.2`     | Size of specular highlight       |
+| `rim_light`     | `number`       | `0.4`     | Rim lighting intensity           |
+| `rim_color`     | `string` (hex) | `#ffffff` | Rim light color                  |
 
 **Example:**
 
@@ -301,21 +311,21 @@ Collision shape for physics interaction. Can be used standalone on an object or 
 
 **Properties (by shape):**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `size` | `[number, number, number]` | `[1,1,1]` | Box dimensions |
-| `radius` | `number` | `0.5` | Sphere/capsule radius |
-| `height` | `number` | `1.0` | Capsule/cylinder height |
-| `direction` | `string` | `"y"` | Capsule axis direction |
-| `is_trigger` | `boolean` | `false` | Trigger volume (no physical collision) |
-| `offset` | `[number, number, number]` | `[0,0,0]` | Center offset from object origin |
-| `convex` | `boolean` | `false` | Use convex hull (mesh colliders) |
-| `vertex_limit` | `number` | `64` | Max vertices for convex hull |
-| `skin_width` | `number` | `0.01` | Contact skin thickness |
-| `cooking_options` | `string` | `"default"` | Mesh cook options |
-| `resolution` | `[number, number]` | - | Heightfield grid resolution |
-| `height_scale` | `number` | - | Heightfield vertical scale |
-| `source` | `string` | - | Heightfield data source path |
+| Property          | Type                       | Default     | Description                            |
+| ----------------- | -------------------------- | ----------- | -------------------------------------- |
+| `size`            | `[number, number, number]` | `[1,1,1]`   | Box dimensions                         |
+| `radius`          | `number`                   | `0.5`       | Sphere/capsule radius                  |
+| `height`          | `number`                   | `1.0`       | Capsule/cylinder height                |
+| `direction`       | `string`                   | `"y"`       | Capsule axis direction                 |
+| `is_trigger`      | `boolean`                  | `false`     | Trigger volume (no physical collision) |
+| `offset`          | `[number, number, number]` | `[0,0,0]`   | Center offset from object origin       |
+| `convex`          | `boolean`                  | `false`     | Use convex hull (mesh colliders)       |
+| `vertex_limit`    | `number`                   | `64`        | Max vertices for convex hull           |
+| `skin_width`      | `number`                   | `0.01`      | Contact skin thickness                 |
+| `cooking_options` | `string`                   | `"default"` | Mesh cook options                      |
+| `resolution`      | `[number, number]`         | -           | Heightfield grid resolution            |
+| `height_scale`    | `number`                   | -           | Heightfield vertical scale             |
+| `source`          | `string`                   | -           | Heightfield data source path           |
 
 **Example (standalone on object):**
 
@@ -338,17 +348,17 @@ Dynamic physics body with mass and damping.
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `mass` | `number` | `1.0` | Body mass in kg |
-| `drag` | `number` | `0.0` | Linear drag coefficient |
-| `angular_damping` | `number` | `0.05` | Rotational drag |
-| `use_gravity` | `boolean` | `true` | Affected by gravity |
-| `is_kinematic` | `boolean` | `false` | Script-controlled (not simulated) |
-| `freeze_rotation_x` | `boolean` | `false` | Lock X-axis rotation |
-| `freeze_rotation_y` | `boolean` | `false` | Lock Y-axis rotation |
-| `freeze_rotation_z` | `boolean` | `false` | Lock Z-axis rotation |
-| `inertia` | `[number, number, number]` | auto | Inertia tensor diagonal |
+| Property            | Type                       | Default | Description                       |
+| ------------------- | -------------------------- | ------- | --------------------------------- |
+| `mass`              | `number`                   | `1.0`   | Body mass in kg                   |
+| `drag`              | `number`                   | `0.0`   | Linear drag coefficient           |
+| `angular_damping`   | `number`                   | `0.05`  | Rotational drag                   |
+| `use_gravity`       | `boolean`                  | `true`  | Affected by gravity               |
+| `is_kinematic`      | `boolean`                  | `false` | Script-controlled (not simulated) |
+| `freeze_rotation_x` | `boolean`                  | `false` | Lock X-axis rotation              |
+| `freeze_rotation_y` | `boolean`                  | `false` | Lock Y-axis rotation              |
+| `freeze_rotation_z` | `boolean`                  | `false` | Lock Z-axis rotation              |
+| `inertia`           | `[number, number, number]` | auto    | Inertia tensor diagonal           |
 
 **Example:**
 
@@ -371,10 +381,10 @@ Container block that wraps collider(s), rigidbody, force fields, and flat physic
 
 **Flat properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `friction` | `number` | `0.5` | Surface friction coefficient |
-| `restitution` | `number` | `0.0` | Bounciness (0 = no bounce, 1 = perfect bounce) |
+| Property      | Type     | Default | Description                                    |
+| ------------- | -------- | ------- | ---------------------------------------------- |
+| `friction`    | `number` | `0.5`   | Surface friction coefficient                   |
+| `restitution` | `number` | `0.0`   | Bounciness (0 = no bounce, 1 = perfect bounce) |
 
 **Example (full physics block):**
 
@@ -420,12 +430,12 @@ Region with altered gravity.
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `strength` | `number` | `9.81` | Gravity strength (negative = reverse) |
-| `shape` | `string` | `"sphere"` | Zone shape (`"sphere"`, `"box"`) |
-| `radius` | `number` | `10` | Zone extent |
-| `falloff` | `string` | `"none"` | Strength falloff (`"none"`, `"linear"`, `"inverse_square"`) |
+| Property   | Type     | Default    | Description                                                 |
+| ---------- | -------- | ---------- | ----------------------------------------------------------- |
+| `strength` | `number` | `9.81`     | Gravity strength (negative = reverse)                       |
+| `shape`    | `string` | `"sphere"` | Zone shape (`"sphere"`, `"box"`)                            |
+| `radius`   | `number` | `10`       | Zone extent                                                 |
+| `falloff`  | `string` | `"none"`   | Strength falloff (`"none"`, `"linear"`, `"inverse_square"`) |
 
 **Example:**
 
@@ -444,19 +454,19 @@ Directional wind with turbulence and gusting.
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `direction` | `[number, number, number]` | `[1, 0, 0]` | Normalized wind direction |
-| `strength` | `number` | `5` | Base wind strength (m/s) |
-| `turbulence` | `number` | `0.3` | Turbulence intensity (0-1) |
-| `turbulence_frequency` | `number` | `1.0` | How fast turbulence changes |
-| `pulse` | `boolean` | `false` | Whether wind pulses on/off |
-| `pulse_frequency` | `number` | `0.5` | Pulses per second |
-| `falloff` | `string` | `"none"` | Distance falloff mode |
-| `radius` | `number` | `100` | Effective radius |
-| `affects` | `string[]` | `[]` | Tags of objects to affect (empty = all) |
-| `gust_chance` | `number` | `0.01` | Random gust probability per frame |
-| `gust_multiplier` | `number` | `2.0` | Gust strength multiplier |
+| Property               | Type                       | Default     | Description                             |
+| ---------------------- | -------------------------- | ----------- | --------------------------------------- |
+| `direction`            | `[number, number, number]` | `[1, 0, 0]` | Normalized wind direction               |
+| `strength`             | `number`                   | `5`         | Base wind strength (m/s)                |
+| `turbulence`           | `number`                   | `0.3`       | Turbulence intensity (0-1)              |
+| `turbulence_frequency` | `number`                   | `1.0`       | How fast turbulence changes             |
+| `pulse`                | `boolean`                  | `false`     | Whether wind pulses on/off              |
+| `pulse_frequency`      | `number`                   | `0.5`       | Pulses per second                       |
+| `falloff`              | `string`                   | `"none"`    | Distance falloff mode                   |
+| `radius`               | `number`                   | `100`       | Effective radius                        |
+| `affects`              | `string[]`                 | `[]`        | Tags of objects to affect (empty = all) |
+| `gust_chance`          | `number`                   | `0.01`      | Random gust probability per frame       |
+| `gust_multiplier`      | `number`                   | `2.0`       | Gust strength multiplier                |
 
 **Handler**: `packages/core/src/traits/WindTrait.ts`
 **Runtime behavior**: Uses Perlin-like noise for turbulence, smooth pulsing via sine wave, random gusts with configurable duration. Emits `wind_zone_update`, `on_gust_start`, `on_wind_change` events.
@@ -479,12 +489,12 @@ Fluid volume that applies buoyancy forces to submerged objects.
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `density` | `number` | `1025` | Fluid density (kg/m^3, water = 1000, saltwater = 1025) |
-| `surface_height` | `number` | `0` | Y-level of the fluid surface |
-| `flow_direction` | `[number, number, number]` | `[0,0,0]` | Current direction and strength |
-| `damping` | `number` | `0.8` | Velocity damping for submerged objects |
+| Property         | Type                       | Default   | Description                                            |
+| ---------------- | -------------------------- | --------- | ------------------------------------------------------ |
+| `density`        | `number`                   | `1025`    | Fluid density (kg/m^3, water = 1000, saltwater = 1025) |
+| `surface_height` | `number`                   | `0`       | Y-level of the fluid surface                           |
+| `flow_direction` | `[number, number, number]` | `[0,0,0]` | Current direction and strength                         |
+| `damping`        | `number`                   | `0.8`     | Velocity damping for submerged objects                 |
 
 **Example:**
 
@@ -503,12 +513,12 @@ Attracts or repels physics bodies along an axis.
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `strength` | `number` | - | Field strength |
-| `polarity` | `string` | `"attract"` | `"attract"` or `"repel"` |
-| `axis` | `[number, number, number]` | `[0,1,0]` | Field alignment axis |
-| `range` | `number` | - | Effective range |
+| Property   | Type                       | Default     | Description              |
+| ---------- | -------------------------- | ----------- | ------------------------ |
+| `strength` | `number`                   | -           | Field strength           |
+| `polarity` | `string`                   | `"attract"` | `"attract"` or `"repel"` |
+| `axis`     | `[number, number, number]` | `[0,1,0]`   | Field alignment axis     |
+| `range`    | `number`                   | -           | Effective range          |
 
 **Example:**
 
@@ -527,12 +537,12 @@ Region that applies linear and angular drag to objects passing through.
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `linear_drag` | `number` | - | Linear velocity damping |
-| `angular_drag` | `number` | - | Angular velocity damping |
-| `shape` | `string` | `"box"` | Zone shape |
-| `size` | `[number, number, number]` | - | Zone dimensions |
+| Property       | Type                       | Default | Description              |
+| -------------- | -------------------------- | ------- | ------------------------ |
+| `linear_drag`  | `number`                   | -       | Linear velocity damping  |
+| `angular_drag` | `number`                   | -       | Angular velocity damping |
+| `shape`        | `string`                   | `"box"` | Zone shape               |
+| `size`         | `[number, number, number]` | -       | Zone dimensions          |
 
 **Example:**
 
@@ -560,10 +570,10 @@ Top-level container for a chain of joints.
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `solver_iterations` | `number` | `10` | Physics solver iteration count |
-| `immovable_base` | `boolean` | `false` | Whether the base link is fixed in space |
+| Property            | Type      | Default | Description                             |
+| ------------------- | --------- | ------- | --------------------------------------- |
+| `solver_iterations` | `number`  | `10`    | Physics solver iteration count          |
+| `immovable_base`    | `boolean` | `false` | Whether the base link is fixed in space |
 
 ### Joint Sub-Blocks
 
@@ -573,70 +583,70 @@ Each joint type is declared as a named sub-block inside `articulation`:
 
 Revolute joint -- rotates around a single axis.
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `axis` | `[number, number, number]` | `[0,0,1]` | Rotation axis |
-| `limits` | `[number, number]` | - | Min/max angle in degrees |
-| `damping` | `number` | `0.0` | Joint damping |
-| `stiffness` | `number` | `0.0` | Joint stiffness |
-| `motor_force` | `number` | `0.0` | Motor drive force |
+| Property      | Type                       | Default   | Description              |
+| ------------- | -------------------------- | --------- | ------------------------ |
+| `axis`        | `[number, number, number]` | `[0,0,1]` | Rotation axis            |
+| `limits`      | `[number, number]`         | -         | Min/max angle in degrees |
+| `damping`     | `number`                   | `0.0`     | Joint damping            |
+| `stiffness`   | `number`                   | `0.0`     | Joint stiffness          |
+| `motor_force` | `number`                   | `0.0`     | Motor drive force        |
 
 #### slider
 
 Prismatic joint -- slides along a single axis.
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `axis` | `[number, number, number]` | `[0,0,1]` | Slide axis |
-| `limits` | `[number, number]` | - | Min/max travel distance |
-| `damping` | `number` | `0.0` | Joint damping |
-| `spring_force` | `number` | `0.0` | Return spring force |
-| `motor_speed` | `number` | `0.0` | Motor speed |
-| `motor_force` | `number` | `0.0` | Motor drive force |
+| Property       | Type                       | Default   | Description             |
+| -------------- | -------------------------- | --------- | ----------------------- |
+| `axis`         | `[number, number, number]` | `[0,0,1]` | Slide axis              |
+| `limits`       | `[number, number]`         | -         | Min/max travel distance |
+| `damping`      | `number`                   | `0.0`     | Joint damping           |
+| `spring_force` | `number`                   | `0.0`     | Return spring force     |
+| `motor_speed`  | `number`                   | `0.0`     | Motor speed             |
+| `motor_force`  | `number`                   | `0.0`     | Motor drive force       |
 
 #### ball_socket
 
 Spherical joint -- 3 rotational degrees of freedom.
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `swing_limit` | `number` | - | Max swing angle (degrees) |
-| `twist_limit` | `number` | - | Max twist angle (degrees) |
-| `damping` | `number` | `0.0` | Joint damping |
+| Property      | Type     | Default | Description               |
+| ------------- | -------- | ------- | ------------------------- |
+| `swing_limit` | `number` | -       | Max swing angle (degrees) |
+| `twist_limit` | `number` | -       | Max twist angle (degrees) |
+| `damping`     | `number` | `0.0`   | Joint damping             |
 
 #### fixed_joint
 
 Rigid connection that can break under force.
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `break_force` | `number` | `inf` | Force threshold to break |
-| `break_torque` | `number` | `inf` | Torque threshold to break |
+| Property       | Type     | Default | Description               |
+| -------------- | -------- | ------- | ------------------------- |
+| `break_force`  | `number` | `inf`   | Force threshold to break  |
+| `break_torque` | `number` | `inf`   | Torque threshold to break |
 
 #### d6_joint
 
 Configurable 6-degree-of-freedom joint.
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `x_motion` | `string` | `"locked"` | `"locked"`, `"limited"`, `"free"` |
-| `y_motion` | `string` | `"locked"` | `"locked"`, `"limited"`, `"free"` |
-| `z_motion` | `string` | `"locked"` | `"locked"`, `"limited"`, `"free"` |
-| `swing1_limit` | `number` | - | Swing limit around Y axis (degrees) |
-| `swing2_limit` | `number` | - | Swing limit around Z axis (degrees) |
-| `twist_limit` | `number` | - | Twist limit (degrees) |
+| Property       | Type     | Default    | Description                         |
+| -------------- | -------- | ---------- | ----------------------------------- |
+| `x_motion`     | `string` | `"locked"` | `"locked"`, `"limited"`, `"free"`   |
+| `y_motion`     | `string` | `"locked"` | `"locked"`, `"limited"`, `"free"`   |
+| `z_motion`     | `string` | `"locked"` | `"locked"`, `"limited"`, `"free"`   |
+| `swing1_limit` | `number` | -          | Swing limit around Y axis (degrees) |
+| `swing2_limit` | `number` | -          | Swing limit around Z axis (degrees) |
+| `twist_limit`  | `number` | -          | Twist limit (degrees)               |
 
 #### spring_joint
 
 Joint connected by a spring with configurable elasticity.
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `spring_force` | `number` | - | Spring constant |
-| `damper_force` | `number` | - | Damper coefficient |
-| `min_distance` | `number` | - | Minimum spring distance |
-| `max_distance` | `number` | - | Maximum spring distance |
-| `tolerance` | `number` | `0.01` | Distance tolerance |
+| Property       | Type     | Default | Description             |
+| -------------- | -------- | ------- | ----------------------- |
+| `spring_force` | `number` | -       | Spring constant         |
+| `damper_force` | `number` | -       | Damper coefficient      |
+| `min_distance` | `number` | -       | Minimum spring distance |
+| `max_distance` | `number` | -       | Maximum spring distance |
+| `tolerance`    | `number` | `0.01`  | Distance tolerance      |
 
 #### prismatic
 
@@ -699,25 +709,25 @@ articulation "IndustrialRobotArm" @kinematic {
 
 Four interchangeable keywords create particle systems:
 
-| Keyword | Typical Use |
-|---------|-------------|
-| `particles` | General-purpose particle system |
-| `emitter` | Point or shaped emitter |
-| `vfx` | Visual effects (explosions, impacts) |
-| `particle_system` | Explicit system declaration |
+| Keyword           | Typical Use                          |
+| ----------------- | ------------------------------------ |
+| `particles`       | General-purpose particle system      |
+| `emitter`         | Point or shaped emitter              |
+| `vfx`             | Visual effects (explosions, impacts) |
+| `particle_system` | Explicit system declaration          |
 
 **Top-level properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `rate` | `number` | - | Emission rate (particles/second) |
-| `max_particles` | `number` | `1000` | Maximum active particle count |
-| `start_lifetime` | `number` or `[min, max]` | `2.0` | Particle lifetime in seconds |
-| `start_speed` | `number` or `[min, max]` | `1.0` | Initial velocity magnitude |
-| `start_size` | `number` or `[min, max]` | `0.1` | Initial particle size |
-| `start_color` | `string` (hex) | `#ffffff` | Initial particle color |
-| `gravity_modifier` | `number` | `0.0` | Gravity scale (-1 = rise, 0 = float, 1 = fall) |
-| `simulation_space` | `string` | `"local"` | `"local"` or `"world"` |
+| Property           | Type                     | Default   | Description                                    |
+| ------------------ | ------------------------ | --------- | ---------------------------------------------- |
+| `rate`             | `number`                 | -         | Emission rate (particles/second)               |
+| `max_particles`    | `number`                 | `1000`    | Maximum active particle count                  |
+| `start_lifetime`   | `number` or `[min, max]` | `2.0`     | Particle lifetime in seconds                   |
+| `start_speed`      | `number` or `[min, max]` | `1.0`     | Initial velocity magnitude                     |
+| `start_size`       | `number` or `[min, max]` | `0.1`     | Initial particle size                          |
+| `start_color`      | `string` (hex)           | `#ffffff` | Initial particle color                         |
+| `gravity_modifier` | `number`                 | `0.0`     | Gravity scale (-1 = rise, 0 = float, 1 = fall) |
+| `simulation_space` | `string`                 | `"local"` | `"local"` or `"world"`                         |
 
 **Trait decorators:** `@looping` (continuous emission), `@burst` (one-shot burst), `@oneshot` (play once), `@gpu` (GPU compute).
 
@@ -727,138 +737,138 @@ Modules are named sub-blocks that configure specific aspects of particle behavio
 
 #### emission
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `rate_over_time` | `number` | Steady emission rate |
-| `burst_count` | `number` | Particles per burst |
+| Property         | Type     | Description            |
+| ---------------- | -------- | ---------------------- |
+| `rate_over_time` | `number` | Steady emission rate   |
+| `burst_count`    | `number` | Particles per burst    |
 | `burst_interval` | `number` | Seconds between bursts |
 
 #### lifetime
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `min` | `number` | Minimum lifetime |
-| `max` | `number` | Maximum lifetime |
-| `curve` | `string` | Easing curve (`"ease_out"`, `"linear"`, etc.) |
+| Property | Type     | Description                                   |
+| -------- | -------- | --------------------------------------------- |
+| `min`    | `number` | Minimum lifetime                              |
+| `max`    | `number` | Maximum lifetime                              |
+| `curve`  | `string` | Easing curve (`"ease_out"`, `"linear"`, etc.) |
 
 #### velocity
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `direction` | `[number, number, number]` | Emission direction |
-| `speed` | `number` | Velocity magnitude |
-| `spread` | `number` | Cone angle in degrees |
-| `randomize` | `boolean` | Add velocity randomization |
+| Property    | Type                       | Description                |
+| ----------- | -------------------------- | -------------------------- |
+| `direction` | `[number, number, number]` | Emission direction         |
+| `speed`     | `number`                   | Velocity magnitude         |
+| `spread`    | `number`                   | Cone angle in degrees      |
+| `randomize` | `boolean`                  | Add velocity randomization |
 
 #### force
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `gravity` | `[number, number, number]` | Gravity force vector |
-| `wind` | `[number, number, number]` | Wind force vector |
-| `turbulence` | `number` | Turbulence intensity |
-| `drag` | `number` | Velocity damping |
+| Property     | Type                       | Description          |
+| ------------ | -------------------------- | -------------------- |
+| `gravity`    | `[number, number, number]` | Gravity force vector |
+| `wind`       | `[number, number, number]` | Wind force vector    |
+| `turbulence` | `number`                   | Turbulence intensity |
+| `drag`       | `number`                   | Velocity damping     |
 
 #### color_over_life
 
-| Property | Type | Description |
-|----------|------|-------------|
+| Property   | Type       | Description                         |
+| ---------- | ---------- | ----------------------------------- |
 | `gradient` | `string[]` | Array of hex colors across lifetime |
-| `mode` | `string` | `"blend"`, `"random"` |
+| `mode`     | `string`   | `"blend"`, `"random"`               |
 
 #### size_over_life
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `curve` | `number[]` | Size multiplier values across lifetime |
-| `mode` | `string` | `"linear"`, `"bezier"` |
+| Property | Type       | Description                            |
+| -------- | ---------- | -------------------------------------- |
+| `curve`  | `number[]` | Size multiplier values across lifetime |
+| `mode`   | `string`   | `"linear"`, `"bezier"`                 |
 
 #### rotation_over_life
 
-| Property | Type | Description |
-|----------|------|-------------|
+| Property           | Type                       | Description                  |
+| ------------------ | -------------------------- | ---------------------------- |
 | `angular_velocity` | `[number, number, number]` | Rotation speed (degrees/sec) |
-| `randomize` | `boolean` | Randomize rotation |
+| `randomize`        | `boolean`                  | Randomize rotation           |
 
 #### noise
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `strength` | `number` | Noise displacement strength |
-| `frequency` | `number` | Noise spatial frequency |
-| `scroll_speed` | `number` | Noise animation speed |
-| `octaves` | `number` | Noise complexity layers |
-| `quality` | `string` | `"low"`, `"medium"`, `"high"` |
+| Property       | Type     | Description                   |
+| -------------- | -------- | ----------------------------- |
+| `strength`     | `number` | Noise displacement strength   |
+| `frequency`    | `number` | Noise spatial frequency       |
+| `scroll_speed` | `number` | Noise animation speed         |
+| `octaves`      | `number` | Noise complexity layers       |
+| `quality`      | `string` | `"low"`, `"medium"`, `"high"` |
 
 #### collision
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `enabled` | `boolean` | Enable particle-world collision |
-| `bounce` | `number` | Bounciness factor |
-| `lifetime_loss` | `number` | Lifetime reduction on collision (0-1) |
-| `dampen` | `number` | Velocity damping on collision |
-| `type` | `string` | `"world"`, `"planes"` |
+| Property        | Type      | Description                           |
+| --------------- | --------- | ------------------------------------- |
+| `enabled`       | `boolean` | Enable particle-world collision       |
+| `bounce`        | `number`  | Bounciness factor                     |
+| `lifetime_loss` | `number`  | Lifetime reduction on collision (0-1) |
+| `dampen`        | `number`  | Velocity damping on collision         |
+| `type`          | `string`  | `"world"`, `"planes"`                 |
 
 #### sub_emitter
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `trigger` | `string` | `"collision"`, `"death"`, `"birth"` |
-| `inherit_color` | `boolean` | Child inherits parent color |
-| `inherit_size` | `number` | Size inheritance factor |
-| `emit_count` | `number` | Particles spawned per trigger |
-| `system` | `string` | Name of sub-emitter particle system |
+| Property        | Type      | Description                         |
+| --------------- | --------- | ----------------------------------- |
+| `trigger`       | `string`  | `"collision"`, `"death"`, `"birth"` |
+| `inherit_color` | `boolean` | Child inherits parent color         |
+| `inherit_size`  | `number`  | Size inheritance factor             |
+| `emit_count`    | `number`  | Particles spawned per trigger       |
+| `system`        | `string`  | Name of sub-emitter particle system |
 
 #### shape
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `type` | `string` | `"cone"`, `"sphere"`, `"box"`, `"edge"`, `"mesh"` |
-| `angle` | `number` | Cone angle (degrees) |
-| `radius` | `number` | Shape radius |
-| `scale` | `[number, number, number]` | Box dimensions |
-| `emit_from` | `string` | `"base"`, `"surface"`, `"volume"` |
+| Property    | Type                       | Description                                       |
+| ----------- | -------------------------- | ------------------------------------------------- |
+| `type`      | `string`                   | `"cone"`, `"sphere"`, `"box"`, `"edge"`, `"mesh"` |
+| `angle`     | `number`                   | Cone angle (degrees)                              |
+| `radius`    | `number`                   | Shape radius                                      |
+| `scale`     | `[number, number, number]` | Box dimensions                                    |
+| `emit_from` | `string`                   | `"base"`, `"surface"`, `"volume"`                 |
 
 #### renderer
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `material` | `string` | Particle material path |
-| `render_mode` | `string` | `"billboard"`, `"stretched_billboard"`, `"mesh"` |
-| `sort_mode` | `string` | `"distance"`, `"age"`, `"none"` |
-| `max_size` | `number` | Maximum rendered size |
-| `alignment` | `string` | Billboard alignment (`"view"`, `"velocity"`) |
-| `length_scale` | `number` | Stretch factor for velocity billboards |
-| `speed_scale` | `number` | Speed-dependent stretch |
+| Property       | Type     | Description                                      |
+| -------------- | -------- | ------------------------------------------------ |
+| `material`     | `string` | Particle material path                           |
+| `render_mode`  | `string` | `"billboard"`, `"stretched_billboard"`, `"mesh"` |
+| `sort_mode`    | `string` | `"distance"`, `"age"`, `"none"`                  |
+| `max_size`     | `number` | Maximum rendered size                            |
+| `alignment`    | `string` | Billboard alignment (`"view"`, `"velocity"`)     |
+| `length_scale` | `number` | Stretch factor for velocity billboards           |
+| `speed_scale`  | `number` | Speed-dependent stretch                          |
 
 #### trails
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `enabled` | `boolean` | Enable trail rendering |
-| `width` | `number` | Trail width |
-| `lifetime` | `number` | Trail segment lifetime |
-| `color_over_trail` | `string[]` | Color gradient along trail |
-| `min_vertex_distance` | `number` | Minimum distance between trail vertices |
-| `world_space` | `boolean` | Trails in world space |
+| Property              | Type       | Description                             |
+| --------------------- | ---------- | --------------------------------------- |
+| `enabled`             | `boolean`  | Enable trail rendering                  |
+| `width`               | `number`   | Trail width                             |
+| `lifetime`            | `number`   | Trail segment lifetime                  |
+| `color_over_trail`    | `string[]` | Color gradient along trail              |
+| `min_vertex_distance` | `number`   | Minimum distance between trail vertices |
+| `world_space`         | `boolean`  | Trails in world space                   |
 
 #### texture_sheet
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `tiles_x` | `number` | Horizontal tiles in sprite sheet |
-| `tiles_y` | `number` | Vertical tiles in sprite sheet |
-| `animation` | `string` | `"whole_sheet"`, `"single_row"` |
-| `frame_rate` | `number` | Frames per second |
-| `start_frame` | `number` | First frame index |
-| `cycles` | `number` | Animation loop count |
+| Property      | Type     | Description                      |
+| ------------- | -------- | -------------------------------- |
+| `tiles_x`     | `number` | Horizontal tiles in sprite sheet |
+| `tiles_y`     | `number` | Vertical tiles in sprite sheet   |
+| `animation`   | `string` | `"whole_sheet"`, `"single_row"`  |
+| `frame_rate`  | `number` | Frames per second                |
+| `start_frame` | `number` | First frame index                |
+| `cycles`      | `number` | Animation loop count             |
 
 #### inherit_velocity
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `mode` | `string` | `"current"`, `"initial"` |
+| Property     | Type     | Description                 |
+| ------------ | -------- | --------------------------- |
+| `mode`       | `string` | `"current"`, `"initial"`    |
 | `multiplier` | `number` | Velocity inheritance factor |
 
 **Full particle system example:**
@@ -932,10 +942,10 @@ particles "CampfireSmoke" @looping {
 
 Three interchangeable keywords:
 
-| Keyword | Typical Use |
-|---------|-------------|
-| `post_processing` | Standard post-processing pipeline |
-| `post_fx` | Shorthand for post effects |
+| Keyword           | Typical Use                        |
+| ----------------- | ---------------------------------- |
+| `post_processing` | Standard post-processing pipeline  |
+| `post_fx`         | Shorthand for post effects         |
 | `render_pipeline` | Full render pipeline configuration |
 
 Post-processing blocks can be **named** or **unnamed** and placed at the top level or inside compositions.
@@ -944,173 +954,173 @@ Post-processing blocks can be **named** or **unnamed** and placed at the top lev
 
 #### bloom
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `intensity` | `number` | `0.5` | Bloom strength |
-| `threshold` | `number` | `1.0` | Brightness threshold for bloom |
-| `scatter` | `number` | `0.7` | Bloom spread |
-| `tint` | `string` (hex) | `#ffffff` | Bloom color tint |
-| `clamp` | `number` | `65000` | Maximum bloom brightness |
-| `high_quality` | `boolean` | `false` | Enable high-quality bloom |
+| Property       | Type           | Default   | Description                    |
+| -------------- | -------------- | --------- | ------------------------------ |
+| `intensity`    | `number`       | `0.5`     | Bloom strength                 |
+| `threshold`    | `number`       | `1.0`     | Brightness threshold for bloom |
+| `scatter`      | `number`       | `0.7`     | Bloom spread                   |
+| `tint`         | `string` (hex) | `#ffffff` | Bloom color tint               |
+| `clamp`        | `number`       | `65000`   | Maximum bloom brightness       |
+| `high_quality` | `boolean`      | `false`   | Enable high-quality bloom      |
 
 #### depth_of_field
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `aperture` | `number` | `5.6` | f-stop aperture (lower = more blur) |
-| `focal_length` | `number` | `50` | Lens focal length (mm) |
-| `focus_distance` | `number` | `10` | Distance to focus plane (meters) |
-| `bokeh_shape` | `string` | `"circle"` | Bokeh shape |
-| `near_blur` | `number` | `0.5` | Near field blur intensity |
-| `far_blur` | `number` | `1.0` | Far field blur intensity |
+| Property         | Type     | Default    | Description                         |
+| ---------------- | -------- | ---------- | ----------------------------------- |
+| `aperture`       | `number` | `5.6`      | f-stop aperture (lower = more blur) |
+| `focal_length`   | `number` | `50`       | Lens focal length (mm)              |
+| `focus_distance` | `number` | `10`       | Distance to focus plane (meters)    |
+| `bokeh_shape`    | `string` | `"circle"` | Bokeh shape                         |
+| `near_blur`      | `number` | `0.5`      | Near field blur intensity           |
+| `far_blur`       | `number` | `1.0`      | Far field blur intensity            |
 
 #### color_grading
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `temperature` | `number` | `6500` | Color temperature (Kelvin) |
-| `tint_offset` | `number` | `0` | Green-magenta tint shift |
-| `contrast` | `number` | `1.0` | Contrast multiplier |
-| `saturation` | `number` | `1.0` | Color saturation multiplier |
-| `lift` | `[number, number, number]` | `[0,0,0]` | Shadow color adjustment (RGB) |
-| `gamma` | `[number, number, number]` | `[1,1,1]` | Midtone color adjustment (RGB) |
-| `gain` | `[number, number, number]` | `[1,1,1]` | Highlight color adjustment (RGB) |
-| `hue_shift` | `number` | `0` | Global hue rotation (degrees) |
-| `posterize_steps` | `number` | - | Posterization band count |
+| Property          | Type                       | Default   | Description                      |
+| ----------------- | -------------------------- | --------- | -------------------------------- |
+| `temperature`     | `number`                   | `6500`    | Color temperature (Kelvin)       |
+| `tint_offset`     | `number`                   | `0`       | Green-magenta tint shift         |
+| `contrast`        | `number`                   | `1.0`     | Contrast multiplier              |
+| `saturation`      | `number`                   | `1.0`     | Color saturation multiplier      |
+| `lift`            | `[number, number, number]` | `[0,0,0]` | Shadow color adjustment (RGB)    |
+| `gamma`           | `[number, number, number]` | `[1,1,1]` | Midtone color adjustment (RGB)   |
+| `gain`            | `[number, number, number]` | `[1,1,1]` | Highlight color adjustment (RGB) |
+| `hue_shift`       | `number`                   | `0`       | Global hue rotation (degrees)    |
+| `posterize_steps` | `number`                   | -         | Posterization band count         |
 
 #### tone_mapping
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `mode` | `string` | `"ACES"` | Algorithm: `"ACES"`, `"Neutral"`, `"Filmic"`, `"Reinhard"` |
-| `exposure` | `number` | `1.0` | Exposure compensation |
-| `white_point` | `number` | `6500` | White point temperature |
+| Property      | Type     | Default  | Description                                                |
+| ------------- | -------- | -------- | ---------------------------------------------------------- |
+| `mode`        | `string` | `"ACES"` | Algorithm: `"ACES"`, `"Neutral"`, `"Filmic"`, `"Reinhard"` |
+| `exposure`    | `number` | `1.0`    | Exposure compensation                                      |
+| `white_point` | `number` | `6500`   | White point temperature                                    |
 
 #### vignette
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `intensity` | `number` | `0.3` | Darkening intensity |
-| `smoothness` | `number` | `0.5` | Edge softness |
-| `roundness` | `number` | `1.0` | Shape roundness |
-| `color` | `string` (hex) | `#000000` | Vignette color |
+| Property     | Type           | Default   | Description         |
+| ------------ | -------------- | --------- | ------------------- |
+| `intensity`  | `number`       | `0.3`     | Darkening intensity |
+| `smoothness` | `number`       | `0.5`     | Edge softness       |
+| `roundness`  | `number`       | `1.0`     | Shape roundness     |
+| `color`      | `string` (hex) | `#000000` | Vignette color      |
 
 #### ambient_occlusion / ssao
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `intensity` | `number` | `1.0` | AO darkening strength |
-| `radius` | `number` | `0.5` | Sample radius |
-| `quality` | `string` | `"medium"` | `"low"`, `"medium"`, `"high"`, `"ultra"` |
-| `thickness_modifier` | `number` | `1.0` | Thickness heuristic |
-| `sample_count` | `number` | `8` | Ray sample count |
-| `direct_lighting_strength` | `number` | `0.0` | AO influence on direct lighting |
-| `thickness` | `number` | `0.5` | Contact shadow thickness |
+| Property                   | Type     | Default    | Description                              |
+| -------------------------- | -------- | ---------- | ---------------------------------------- |
+| `intensity`                | `number` | `1.0`      | AO darkening strength                    |
+| `radius`                   | `number` | `0.5`      | Sample radius                            |
+| `quality`                  | `string` | `"medium"` | `"low"`, `"medium"`, `"high"`, `"ultra"` |
+| `thickness_modifier`       | `number` | `1.0`      | Thickness heuristic                      |
+| `sample_count`             | `number` | `8`        | Ray sample count                         |
+| `direct_lighting_strength` | `number` | `0.0`      | AO influence on direct lighting          |
+| `thickness`                | `number` | `0.5`      | Contact shadow thickness                 |
 
 #### screen_space_reflections / ssr
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `max_distance` | `number` | `100` | Max trace distance |
-| `thickness` | `number` | `0.1` | Ray thickness |
-| `quality` | `string` | `"medium"` | Quality preset |
-| `step_count` | `number` | `64` | Ray march step count |
-| `max_steps` | `number` | `128` | Maximum ray steps |
-| `resolution` | `string` | `"full"` | `"full"`, `"half"`, `"quarter"` |
-| `fade_distance` | `number` | `10` | Reflection fade distance |
+| Property        | Type     | Default    | Description                     |
+| --------------- | -------- | ---------- | ------------------------------- |
+| `max_distance`  | `number` | `100`      | Max trace distance              |
+| `thickness`     | `number` | `0.1`      | Ray thickness                   |
+| `quality`       | `string` | `"medium"` | Quality preset                  |
+| `step_count`    | `number` | `64`       | Ray march step count            |
+| `max_steps`     | `number` | `128`      | Maximum ray steps               |
+| `resolution`    | `string` | `"full"`   | `"full"`, `"half"`, `"quarter"` |
+| `fade_distance` | `number` | `10`       | Reflection fade distance        |
 
 #### motion_blur
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `intensity` | `number` | `0.5` | Blur strength |
-| `sample_count` | `number` | `10` | Motion samples |
-| `max_velocity` | `number` | `20` | Maximum velocity contribution |
+| Property       | Type     | Default | Description                   |
+| -------------- | -------- | ------- | ----------------------------- |
+| `intensity`    | `number` | `0.5`   | Blur strength                 |
+| `sample_count` | `number` | `10`    | Motion samples                |
+| `max_velocity` | `number` | `20`    | Maximum velocity contribution |
 
 #### chromatic_aberration
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `intensity` | `number` | `0.05` | Aberration strength |
-| `max_samples` | `number` | `8` | Quality samples |
+| Property      | Type     | Default | Description         |
+| ------------- | -------- | ------- | ------------------- |
+| `intensity`   | `number` | `0.05`  | Aberration strength |
+| `max_samples` | `number` | `8`     | Quality samples     |
 
 #### volumetric_fog
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `density` | `number` | `0.02` | Fog density |
-| `height_falloff` | `number` | `0.5` | Height-based falloff |
-| `color` | `string` (hex) | `#aabbcc` | Fog color |
-| `max_distance` | `number` | `500` | Maximum render distance |
-| `anisotropy` | `number` | `0.6` | Scattering directionality |
+| Property         | Type           | Default   | Description               |
+| ---------------- | -------------- | --------- | ------------------------- |
+| `density`        | `number`       | `0.02`    | Fog density               |
+| `height_falloff` | `number`       | `0.5`     | Height-based falloff      |
+| `color`          | `string` (hex) | `#aabbcc` | Fog color                 |
+| `max_distance`   | `number`       | `500`     | Maximum render distance   |
+| `anisotropy`     | `number`       | `0.6`     | Scattering directionality |
 
 #### fog
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `color` | `string` (hex) | - | Fog color |
-| `density` | `number` | `0.01` | Density coefficient |
-| `mode` | `string` | `"linear"` | `"linear"`, `"exponential"`, `"exponential_squared"` |
-| `start` | `number` | `10` | Near fog distance (linear mode) |
-| `end` | `number` | `200` | Far fog distance (linear mode) |
+| Property  | Type           | Default    | Description                                          |
+| --------- | -------------- | ---------- | ---------------------------------------------------- |
+| `color`   | `string` (hex) | -          | Fog color                                            |
+| `density` | `number`       | `0.01`     | Density coefficient                                  |
+| `mode`    | `string`       | `"linear"` | `"linear"`, `"exponential"`, `"exponential_squared"` |
+| `start`   | `number`       | `10`       | Near fog distance (linear mode)                      |
+| `end`     | `number`       | `200`      | Far fog distance (linear mode)                       |
 
 #### god_rays
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `intensity` | `number` | `0.5` | Ray intensity |
-| `weight` | `number` | `0.6` | Sample weight |
-| `density` | `number` | `0.3` | Ray density |
-| `decay` | `number` | `0.95` | Light decay rate |
-| `exposure_control` | `boolean` | `true` | Exposure adaptation |
-| `sample_count` | `number` | `64` | Quality samples |
+| Property           | Type      | Default | Description         |
+| ------------------ | --------- | ------- | ------------------- |
+| `intensity`        | `number`  | `0.5`   | Ray intensity       |
+| `weight`           | `number`  | `0.6`   | Sample weight       |
+| `density`          | `number`  | `0.3`   | Ray density         |
+| `decay`            | `number`  | `0.95`  | Light decay rate    |
+| `exposure_control` | `boolean` | `true`  | Exposure adaptation |
+| `sample_count`     | `number`  | `64`    | Quality samples     |
 
 #### anti_aliasing / fxaa / smaa / taa
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `mode` | `string` | `"TAA"` | AA algorithm (`"TAA"`, `"FXAA"`, `"SMAA"`) |
-| `quality` | `string` | `"medium"` | Quality level |
-| `sharpness` | `number` | `0.5` | Output sharpening |
-| `jitter_spread` | `number` | `0.75` | TAA jitter spread |
-| `subpixel_quality` | `number` | `0.75` | FXAA subpixel quality |
-| `edge_threshold` | `number` | `0.166` | FXAA edge detection threshold |
+| Property           | Type     | Default    | Description                                |
+| ------------------ | -------- | ---------- | ------------------------------------------ |
+| `mode`             | `string` | `"TAA"`    | AA algorithm (`"TAA"`, `"FXAA"`, `"SMAA"`) |
+| `quality`          | `string` | `"medium"` | Quality level                              |
+| `sharpness`        | `number` | `0.5`      | Output sharpening                          |
+| `jitter_spread`    | `number` | `0.75`     | TAA jitter spread                          |
+| `subpixel_quality` | `number` | `0.75`     | FXAA subpixel quality                      |
+| `edge_threshold`   | `number` | `0.166`    | FXAA edge detection threshold              |
 
 #### film_grain
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `intensity` | `number` | `0.1` | Grain strength |
-| `response` | `number` | `0.8` | Luminance response |
-| `size` | `number` | `1.0` | Grain size |
-| `luminance_contribution` | `number` | `0.5` | Luminance-dependent grain |
+| Property                 | Type     | Default | Description               |
+| ------------------------ | -------- | ------- | ------------------------- |
+| `intensity`              | `number` | `0.1`   | Grain strength            |
+| `response`               | `number` | `0.8`   | Luminance response        |
+| `size`                   | `number` | `1.0`   | Grain size                |
+| `luminance_contribution` | `number` | `0.5`   | Luminance-dependent grain |
 
 #### lens_flare
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `intensity` | `number` | `0.5` | Flare intensity |
-| `starburst` | `boolean` | `false` | Enable starburst pattern |
-| `ghost_count` | `number` | `4` | Number of ghost images |
-| `ghost_spacing` | `number` | `0.3` | Spacing between ghosts |
-| `halo_radius` | `number` | `0.5` | Halo ring radius |
+| Property        | Type      | Default | Description              |
+| --------------- | --------- | ------- | ------------------------ |
+| `intensity`     | `number`  | `0.5`   | Flare intensity          |
+| `starburst`     | `boolean` | `false` | Enable starburst pattern |
+| `ghost_count`   | `number`  | `4`     | Number of ghost images   |
+| `ghost_spacing` | `number`  | `0.3`   | Spacing between ghosts   |
+| `halo_radius`   | `number`  | `0.5`   | Halo ring radius         |
 
 #### outline
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `width` | `number` | `2.0` | Outline width (pixels) |
-| `color` | `string` (hex) | `#000000` | Outline color |
-| `depth_threshold` | `number` | `0.1` | Depth edge sensitivity |
-| `normal_threshold` | `number` | `0.5` | Normal edge sensitivity |
-| `mode` | `string` | `"depth_normal"` | Detection mode |
+| Property           | Type           | Default          | Description             |
+| ------------------ | -------------- | ---------------- | ----------------------- |
+| `width`            | `number`       | `2.0`            | Outline width (pixels)  |
+| `color`            | `string` (hex) | `#000000`        | Outline color           |
+| `depth_threshold`  | `number`       | `0.1`            | Depth edge sensitivity  |
+| `normal_threshold` | `number`       | `0.5`            | Normal edge sensitivity |
+| `mode`             | `string`       | `"depth_normal"` | Detection mode          |
 
 #### pixelate
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `resolution` | `[number, number]` | - | Target resolution |
-| `pixel_size` | `number` | `4` | Pixel block size |
+| Property     | Type               | Default | Description       |
+| ------------ | ------------------ | ------- | ----------------- |
+| `resolution` | `[number, number]` | -       | Target resolution |
+| `pixel_size` | `number`           | `4`     | Pixel block size  |
 
 **Example:**
 
@@ -1166,20 +1176,20 @@ Spatial or global audio emitter.
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `clip` | `string` | - | Audio file path |
-| `volume` | `number` | `1.0` | Playback volume (0-1) |
-| `pitch` | `number` | `1.0` | Playback pitch multiplier |
-| `spatial_blend` | `number` | `0.0` | 2D-3D blend (0 = stereo, 1 = fully spatial) |
-| `min_distance` | `number` | `1` | Distance at full volume |
-| `max_distance` | `number` | `50` | Distance at zero volume |
-| `rolloff_mode` | `string` | `"logarithmic"` | `"logarithmic"`, `"linear"`, `"custom"` |
-| `loop` | `boolean` | `false` | Loop playback |
-| `play_on_awake` | `boolean` | `false` | Auto-play on scene load |
-| `doppler_level` | `number` | `0.0` | Doppler effect strength |
-| `spread` | `number` | `0` | Spatial spread angle (degrees, 0-360) |
-| `priority` | `number` | `128` | Audio priority (0 = highest) |
+| Property        | Type      | Default         | Description                                 |
+| --------------- | --------- | --------------- | ------------------------------------------- |
+| `clip`          | `string`  | -               | Audio file path                             |
+| `volume`        | `number`  | `1.0`           | Playback volume (0-1)                       |
+| `pitch`         | `number`  | `1.0`           | Playback pitch multiplier                   |
+| `spatial_blend` | `number`  | `0.0`           | 2D-3D blend (0 = stereo, 1 = fully spatial) |
+| `min_distance`  | `number`  | `1`             | Distance at full volume                     |
+| `max_distance`  | `number`  | `50`            | Distance at zero volume                     |
+| `rolloff_mode`  | `string`  | `"logarithmic"` | `"logarithmic"`, `"linear"`, `"custom"`     |
+| `loop`          | `boolean` | `false`         | Loop playback                               |
+| `play_on_awake` | `boolean` | `false`         | Auto-play on scene load                     |
+| `doppler_level` | `number`  | `0.0`           | Doppler effect strength                     |
+| `spread`        | `number`  | `0`             | Spatial spread angle (degrees, 0-360)       |
+| `priority`      | `number`  | `128`           | Audio priority (0 = highest)                |
 
 **Trait decorators:** `@spatial` (3D positional), `@hrtf` (head-related transfer function), `@3d`, `@stereo`, `@spatialized`.
 
@@ -1208,13 +1218,13 @@ Camera/player ear position for spatial audio.
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `position` | `[number, number, number]` | `[0,0,0]` | Listener world position |
-| `hrtf_profile` | `string` | `"default"` | HRTF profile name |
-| `global_volume` | `number` | `1.0` | Master volume |
-| `speed_of_sound` | `number` | `343` | Speed of sound (m/s) |
-| `distance_model` | `string` | `"inverse"` | Attenuation model |
+| Property         | Type                       | Default     | Description             |
+| ---------------- | -------------------------- | ----------- | ----------------------- |
+| `position`       | `[number, number, number]` | `[0,0,0]`   | Listener world position |
+| `hrtf_profile`   | `string`                   | `"default"` | HRTF profile name       |
+| `global_volume`  | `number`                   | `1.0`       | Master volume           |
+| `speed_of_sound` | `number`                   | `343`       | Speed of sound (m/s)    |
+| `distance_model` | `string`                   | `"inverse"` | Attenuation model       |
 
 **Example:**
 
@@ -1236,29 +1246,29 @@ Spatial volume that applies room acoustics simulation.
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `preset` | `string` | `"room"` | Preset: `"room"`, `"hall"`, `"cathedral"`, `"cave"`, `"outdoor"`, `"bathroom"`, `"studio"`, `"custom"` |
-| `min_distance` | `number` | - | Inner zone radius (full effect) |
-| `max_distance` | `number` | - | Outer zone radius (fade out) |
-| `size` | `number` | `10` | Zone size |
-| `decay_time` | `number` | `1.5` | Reverb tail length (seconds) |
-| `damping` | `number` | `0.5` | High-frequency damping |
-| `diffusion` | `number` | `0.7` | Reverb diffusion (0-100) |
-| `pre_delay` | `number` | `20` | Pre-delay in ms |
-| `wet_level` | `number` | `0.3` | Reverb mix level |
-| `dry_level` | `number` | `1.0` | Dry signal level |
-| `shape` | `string` | `"box"` | Zone shape: `"box"`, `"sphere"`, `"convex"` |
-| `priority` | `number` | `0` | Priority when zones overlap |
-| `blend_distance` | `number` | `2` | Smooth transition distance |
-| `impulse_response_url` | `string` | `""` | Custom IR convolution URL |
-| `room` | `number` | - | Room filter level (dB) |
-| `room_hf` | `number` | - | High-frequency room filter |
-| `reflections` | `number` | - | Early reflections level (dB) |
-| `reflections_delay` | `number` | - | Reflections delay (seconds) |
-| `reverb_level` | `number` | - | Late reverb level (dB) |
-| `reverb_delay` | `number` | - | Late reverb delay (seconds) |
-| `density` | `number` | - | Echo density (0-100) |
+| Property               | Type     | Default  | Description                                                                                            |
+| ---------------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| `preset`               | `string` | `"room"` | Preset: `"room"`, `"hall"`, `"cathedral"`, `"cave"`, `"outdoor"`, `"bathroom"`, `"studio"`, `"custom"` |
+| `min_distance`         | `number` | -        | Inner zone radius (full effect)                                                                        |
+| `max_distance`         | `number` | -        | Outer zone radius (fade out)                                                                           |
+| `size`                 | `number` | `10`     | Zone size                                                                                              |
+| `decay_time`           | `number` | `1.5`    | Reverb tail length (seconds)                                                                           |
+| `damping`              | `number` | `0.5`    | High-frequency damping                                                                                 |
+| `diffusion`            | `number` | `0.7`    | Reverb diffusion (0-100)                                                                               |
+| `pre_delay`            | `number` | `20`     | Pre-delay in ms                                                                                        |
+| `wet_level`            | `number` | `0.3`    | Reverb mix level                                                                                       |
+| `dry_level`            | `number` | `1.0`    | Dry signal level                                                                                       |
+| `shape`                | `string` | `"box"`  | Zone shape: `"box"`, `"sphere"`, `"convex"`                                                            |
+| `priority`             | `number` | `0`      | Priority when zones overlap                                                                            |
+| `blend_distance`       | `number` | `2`      | Smooth transition distance                                                                             |
+| `impulse_response_url` | `string` | `""`     | Custom IR convolution URL                                                                              |
+| `room`                 | `number` | -        | Room filter level (dB)                                                                                 |
+| `room_hf`              | `number` | -        | High-frequency room filter                                                                             |
+| `reflections`          | `number` | -        | Early reflections level (dB)                                                                           |
+| `reflections_delay`    | `number` | -        | Reflections delay (seconds)                                                                            |
+| `reverb_level`         | `number` | -        | Late reverb level (dB)                                                                                 |
+| `reverb_delay`         | `number` | -        | Late reverb delay (seconds)                                                                            |
+| `density`              | `number` | -        | Echo density (0-100)                                                                                   |
 
 **Runtime behavior**: Smooth blend between zones using `blend_distance`, per-listener zone tracking, convolver IR loading. Emits `reverb_zone_register`, `reverb_zone_enter`, `reverb_zone_exit`, `reverb_update_mix` events.
 
@@ -1287,18 +1297,18 @@ Channel mixing and volume control for audio groups.
 
 **Properties:**
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `master_volume` | `number` | `1.0` | Master bus volume |
-| `music_volume` | `number` | `1.0` | Music bus volume |
-| `sfx_volume` | `number` | `1.0` | Sound effects bus volume |
-| `ambient_volume` | `number` | `1.0` | Ambient bus volume |
-| `voice_volume` | `number` | `1.0` | Voice/dialogue bus volume |
-| `ducking_enabled` | `boolean` | `false` | Enable audio ducking |
-| `ducking_threshold` | `number` | `0.8` | Ducking trigger threshold |
-| `ducking_ratio` | `number` | `0.3` | Ducking reduction ratio |
-| `low_pass_frequency` | `number` | `22000` | Low-pass filter cutoff |
-| `high_pass_frequency` | `number` | `20` | High-pass filter cutoff |
+| Property              | Type      | Default | Description               |
+| --------------------- | --------- | ------- | ------------------------- |
+| `master_volume`       | `number`  | `1.0`   | Master bus volume         |
+| `music_volume`        | `number`  | `1.0`   | Music bus volume          |
+| `sfx_volume`          | `number`  | `1.0`   | Sound effects bus volume  |
+| `ambient_volume`      | `number`  | `1.0`   | Ambient bus volume        |
+| `voice_volume`        | `number`  | `1.0`   | Voice/dialogue bus volume |
+| `ducking_enabled`     | `boolean` | `false` | Enable audio ducking      |
+| `ducking_threshold`   | `number`  | `0.8`   | Ducking trigger threshold |
+| `ducking_ratio`       | `number`  | `0.3`   | Ducking reduction ratio   |
+| `low_pass_frequency`  | `number`  | `22000` | Low-pass filter cutoff    |
+| `high_pass_frequency` | `number`  | `20`    | High-pass filter cutoff   |
 
 **Example:**
 
@@ -1343,10 +1353,10 @@ Point emitter for triggered sound effects (footsteps, UI, impacts).
 
 Same property set as `audio_source` plus:
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `randomize_pitch` | `boolean` | `false` | Enable pitch randomization |
-| `pitch_range` | `[number, number]` | `[1.0, 1.0]` | Min/max pitch range |
+| Property          | Type               | Default      | Description                |
+| ----------------- | ------------------ | ------------ | -------------------------- |
+| `randomize_pitch` | `boolean`          | `false`      | Enable pitch randomization |
+| `pitch_range`     | `[number, number]` | `[1.0, 1.0]` | Min/max pitch range        |
 
 **Example:**
 
@@ -1482,49 +1492,49 @@ The following trait categories are registered as constants:
 
 ### Material Compilation
 
-| Target | Function | Output |
-|--------|----------|--------|
-| R3F/Three.js | `materialToR3F()` | `<meshStandardMaterial>` / `<meshBasicMaterial>` JSX |
-| Unity C# | `materialToUnity()` | `Material` + `Shader.Find()` + property setup |
-| Unreal C++ | `materialToUnreal()` | `UMaterialInstanceDynamic` setup |
-| Godot GDScript | `materialToGodot()` | `StandardMaterial3D` setup |
-| USD | `materialToUSD()` | `UsdPreviewSurface` shader prim |
-| glTF | `materialToGLTF()` | `pbrMetallicRoughness` JSON object |
+| Target         | Function             | Output                                               |
+| -------------- | -------------------- | ---------------------------------------------------- |
+| R3F/Three.js   | `materialToR3F()`    | `<meshStandardMaterial>` / `<meshBasicMaterial>` JSX |
+| Unity C#       | `materialToUnity()`  | `Material` + `Shader.Find()` + property setup        |
+| Unreal C++     | `materialToUnreal()` | `UMaterialInstanceDynamic` setup                     |
+| Godot GDScript | `materialToGodot()`  | `StandardMaterial3D` setup                           |
+| USD            | `materialToUSD()`    | `UsdPreviewSurface` shader prim                      |
+| glTF           | `materialToGLTF()`   | `pbrMetallicRoughness` JSON object                   |
 
 ### Physics Compilation
 
-| Target | Function | Output |
-|--------|----------|--------|
-| Unity C# | `physicsToUnity()` | `Rigidbody`, `Collider`, `WindZone` components |
-| Unreal C++ | `physicsToUnreal()` | `UStaticMeshComponent`, `UPhysicsConstraintComponent` |
-| Godot GDScript | `physicsToGodot()` | `RigidBody3D`, `CollisionShape3D`, joint nodes |
-| URDF | `physicsToURDF()` | `<joint>`, `<collision>`, `<inertial>` XML elements |
+| Target         | Function            | Output                                                |
+| -------------- | ------------------- | ----------------------------------------------------- |
+| Unity C#       | `physicsToUnity()`  | `Rigidbody`, `Collider`, `WindZone` components        |
+| Unreal C++     | `physicsToUnreal()` | `UStaticMeshComponent`, `UPhysicsConstraintComponent` |
+| Godot GDScript | `physicsToGodot()`  | `RigidBody3D`, `CollisionShape3D`, joint nodes        |
+| URDF           | `physicsToURDF()`   | `<joint>`, `<collision>`, `<inertial>` XML elements   |
 
 ### Particle Compilation
 
-| Target | Function | Output |
-|--------|----------|--------|
-| R3F/Three.js | `particlesToR3F()` | `<ParticleSystem>` JSX with module children |
-| Unity C# | `particlesToUnity()` | `ParticleSystem` component + `main` module |
-| Unreal C++ | `particlesToUnreal()` | `UNiagaraComponent` setup |
-| Godot GDScript | `particlesToGodot()` | `GPUParticles3D` node |
+| Target         | Function              | Output                                      |
+| -------------- | --------------------- | ------------------------------------------- |
+| R3F/Three.js   | `particlesToR3F()`    | `<ParticleSystem>` JSX with module children |
+| Unity C#       | `particlesToUnity()`  | `ParticleSystem` component + `main` module  |
+| Unreal C++     | `particlesToUnreal()` | `UNiagaraComponent` setup                   |
+| Godot GDScript | `particlesToGodot()`  | `GPUParticles3D` node                       |
 
 ### Post-Processing Compilation
 
-| Target | Function | Output |
-|--------|----------|--------|
-| R3F/Three.js | `postProcessingToR3F()` | `<EffectComposer>` with child effect components |
-| Unity C# | `postProcessingToUnity()` | URP Volume Profile comments |
-| Unreal C++ | `postProcessingToUnreal()` | `UPostProcessComponent` settings |
-| Godot GDScript | `postProcessingToGodot()` | `WorldEnvironment` + `Environment` |
+| Target         | Function                   | Output                                          |
+| -------------- | -------------------------- | ----------------------------------------------- |
+| R3F/Three.js   | `postProcessingToR3F()`    | `<EffectComposer>` with child effect components |
+| Unity C#       | `postProcessingToUnity()`  | URP Volume Profile comments                     |
+| Unreal C++     | `postProcessingToUnreal()` | `UPostProcessComponent` settings                |
+| Godot GDScript | `postProcessingToGodot()`  | `WorldEnvironment` + `Environment`              |
 
 ### Audio Compilation
 
-| Target | Function | Output |
-|--------|----------|--------|
-| R3F/Three.js | `audioSourceToR3F()` | `<PositionalAudio>` or `<Audio>` JSX |
-| Unity C# | `audioSourceToUnity()` | `AudioSource` / `AudioReverbZone` components |
-| Unreal C++ | `audioSourceToUnreal()` | `UAudioComponent` with attenuation |
+| Target       | Function                | Output                                       |
+| ------------ | ----------------------- | -------------------------------------------- |
+| R3F/Three.js | `audioSourceToR3F()`    | `<PositionalAudio>` or `<Audio>` JSX         |
+| Unity C#     | `audioSourceToUnity()`  | `AudioSource` / `AudioReverbZone` components |
+| Unreal C++   | `audioSourceToUnreal()` | `UAudioComponent` with attenuation           |
 
 ---
 
@@ -1534,28 +1544,28 @@ The following trait categories are registered as constants:
 
 From `packages/core/src/compiler/safety/ResourceBudgetAnalyzer.ts`:
 
-| Resource | Quest 3 | Desktop VR | WebGPU | Mobile AR |
-|----------|---------|-----------|--------|-----------|
-| Particles | 5,000 | 50,000 | 20,000 | 2,000 |
-| Physics Bodies | 200 | 2,000 | 500 | 50 |
-| Audio Sources | 16 | 64 | 32 | 8 |
-| Mesh Instances | 500 | 5,000 | 2,000 | 200 |
-| Shader Passes | 4 | 16 | 8 | 2 |
-| Draw Calls | 200 | 2,000 | 500 | 100 |
-| Memory (MB) | 512 | 4,096 | 1,024 | 256 |
+| Resource       | Quest 3 | Desktop VR | WebGPU | Mobile AR |
+| -------------- | ------- | ---------- | ------ | --------- |
+| Particles      | 5,000   | 50,000     | 20,000 | 2,000     |
+| Physics Bodies | 200     | 2,000      | 500    | 50        |
+| Audio Sources  | 16      | 64         | 32     | 8         |
+| Mesh Instances | 500     | 5,000      | 2,000  | 200       |
+| Shader Passes  | 4       | 16         | 8      | 2         |
+| Draw Calls     | 200     | 2,000      | 500    | 100       |
+| Memory (MB)    | 512     | 4,096      | 1,024  | 256       |
 
 ### Trait Resource Costs
 
 Each trait/block adds known resource costs:
 
-| Trait | Particles | Physics | Audio | Draw Calls | Memory |
-|-------|-----------|---------|-------|-----------|--------|
-| `@particle` | +100 | - | - | +1 | +2 MB |
-| `@physics` | - | +1 | - | - | - |
-| `@audio` | - | - | +1 | - | - |
-| `@vfx` | +200 | - | - | +2 | - |
-| `@shader` | - | - | - | +1 | - |
-| `@gaussian` | - | - | - | - | +10 MB |
+| Trait       | Particles | Physics | Audio | Draw Calls | Memory |
+| ----------- | --------- | ------- | ----- | ---------- | ------ |
+| `@particle` | +100      | -       | -     | +1         | +2 MB  |
+| `@physics`  | -         | +1      | -     | -          | -      |
+| `@audio`    | -         | -       | +1    | -          | -      |
+| `@vfx`      | +200      | -       | -     | +2         | -      |
+| `@shader`   | -         | -       | -     | +1         | -      |
+| `@gaussian` | -         | -       | -     | -          | +10 MB |
 
 ### Optimization Guidelines
 

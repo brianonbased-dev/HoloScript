@@ -7,7 +7,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 export interface SceneVersion {
   versionId: string;
@@ -102,5 +102,14 @@ export function useSceneVersions(sceneId: string) {
     [sceneId]
   );
 
-  return { versions, status, error, clearError, loadVersions, saveVersion, restoreVersion, deleteVersion };
+  return {
+    versions,
+    status,
+    error,
+    clearError,
+    loadVersions,
+    saveVersion,
+    restoreVersion,
+    deleteVersion,
+  };
 }

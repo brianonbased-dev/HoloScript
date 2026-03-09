@@ -197,23 +197,89 @@ const FIXTURE_ICONS: Record<FixtureType, string> = {
 
 export function LightDesignerPanel() {
   const [fixtures, setFixtures] = useState<LightFixture[]>(() => [
-    { ...createFixture('par-L1', 'PAR Left 1', 'par', 1), color: { r: 255, g: 0, b: 128 }, intensity: 0.8 },
-    { ...createFixture('par-R1', 'PAR Right 1', 'par', 5), color: { r: 0, g: 100, b: 255 }, intensity: 0.7 },
-    { ...createFixture('mh-1', 'Moving Head C', 'moving-head', 20), color: { r: 255, g: 255, b: 255 }, intensity: 1.0 },
-    { ...createFixture('strobe-1', 'Strobe Front', 'strobe', 40), color: { r: 255, g: 255, b: 255 }, intensity: 0 },
-    { ...createFixture('laser-1', 'Laser Green', 'laser', 50), color: { r: 0, g: 255, b: 0 }, intensity: 0.5 },
-    { ...createFixture('fog-1', 'Hazer', 'fog', 80), color: { r: 200, g: 200, b: 200 }, intensity: 0.3 },
+    {
+      ...createFixture('par-L1', 'PAR Left 1', 'par', 1),
+      color: { r: 255, g: 0, b: 128 },
+      intensity: 0.8,
+    },
+    {
+      ...createFixture('par-R1', 'PAR Right 1', 'par', 5),
+      color: { r: 0, g: 100, b: 255 },
+      intensity: 0.7,
+    },
+    {
+      ...createFixture('mh-1', 'Moving Head C', 'moving-head', 20),
+      color: { r: 255, g: 255, b: 255 },
+      intensity: 1.0,
+    },
+    {
+      ...createFixture('strobe-1', 'Strobe Front', 'strobe', 40),
+      color: { r: 255, g: 255, b: 255 },
+      intensity: 0,
+    },
+    {
+      ...createFixture('laser-1', 'Laser Green', 'laser', 50),
+      color: { r: 0, g: 255, b: 0 },
+      intensity: 0.5,
+    },
+    {
+      ...createFixture('fog-1', 'Hazer', 'fog', 80),
+      color: { r: 200, g: 200, b: 200 },
+      intensity: 0.3,
+    },
   ]);
 
   const [bpm, setBpm] = useState(128);
   const [cueSheet] = useState<CueSheet>({
-    id: 'show-1', name: 'Main Stage Set', bpm: 128,
+    id: 'show-1',
+    name: 'Main Stage Set',
+    bpm: 128,
     cues: [
-      { id: 'c1', name: 'Intro — Ambient Wash', fixtures: new Map(), fadeInMs: 4000, fadeOutMs: 2000, holdMs: 16000, beatSync: false },
-      { id: 'c2', name: 'Build Up', fixtures: new Map(), fadeInMs: 8000, fadeOutMs: 200, holdMs: 0, beatSync: true },
-      { id: 'c3', name: 'DROP — Full Strobe', fixtures: new Map(), fadeInMs: 0, fadeOutMs: 0, holdMs: 4000, beatSync: true },
-      { id: 'c4', name: 'Breakdown — Laser Only', fixtures: new Map(), fadeInMs: 2000, fadeOutMs: 2000, holdMs: 8000, beatSync: false },
-      { id: 'c5', name: 'Outro — Fade All', fixtures: new Map(), fadeInMs: 0, fadeOutMs: 8000, holdMs: 0, beatSync: false },
+      {
+        id: 'c1',
+        name: 'Intro — Ambient Wash',
+        fixtures: new Map(),
+        fadeInMs: 4000,
+        fadeOutMs: 2000,
+        holdMs: 16000,
+        beatSync: false,
+      },
+      {
+        id: 'c2',
+        name: 'Build Up',
+        fixtures: new Map(),
+        fadeInMs: 8000,
+        fadeOutMs: 200,
+        holdMs: 0,
+        beatSync: true,
+      },
+      {
+        id: 'c3',
+        name: 'DROP — Full Strobe',
+        fixtures: new Map(),
+        fadeInMs: 0,
+        fadeOutMs: 0,
+        holdMs: 4000,
+        beatSync: true,
+      },
+      {
+        id: 'c4',
+        name: 'Breakdown — Laser Only',
+        fixtures: new Map(),
+        fadeInMs: 2000,
+        fadeOutMs: 2000,
+        holdMs: 8000,
+        beatSync: false,
+      },
+      {
+        id: 'c5',
+        name: 'Outro — Fade All',
+        fixtures: new Map(),
+        fadeInMs: 0,
+        fadeOutMs: 8000,
+        holdMs: 0,
+        beatSync: false,
+      },
     ],
     looping: true,
   });
@@ -234,13 +300,19 @@ export function LightDesignerPanel() {
         <h2 style={styles.title}>EDM Light Designer</h2>
         <div style={{ flex: 1 }} />
         <div style={styles.bpmDisplay}>{bpm}</div>
-        <span style={{ fontSize: '12px', color: '#8a8aff', alignSelf: 'flex-end', marginBottom: '4px' }}>BPM</span>
+        <span
+          style={{ fontSize: '12px', color: '#8a8aff', alignSelf: 'flex-end', marginBottom: '4px' }}
+        >
+          BPM
+        </span>
       </div>
 
       {/* Stats Bar */}
       <div style={styles.statsRow}>
         <span>🔌 {fixtures.length} fixtures</span>
-        <span>📡 {totalChannels}/{512} DMX channels</span>
+        <span>
+          📡 {totalChannels}/{512} DMX channels
+        </span>
         <span>⏱️ {beatIntervalMs.toFixed(1)}ms/beat</span>
         <span>🎬 {cueSheet.cues.length} cues</span>
       </div>
@@ -251,7 +323,8 @@ export function LightDesignerPanel() {
           {/* DMX Collision Warning */}
           {collisions.length > 0 && (
             <div style={styles.warningBanner}>
-              ⚠️ DMX address collision: {collisions.map(([a, b, addr]) => `${a}↔${b} @ch${addr}`).join(', ')}
+              ⚠️ DMX address collision:{' '}
+              {collisions.map(([a, b, addr]) => `${a}↔${b} @ch${addr}`).join(', ')}
             </div>
           )}
 
@@ -273,7 +346,9 @@ export function LightDesignerPanel() {
                     }}
                   />
                 </div>
-                <span style={styles.dmxBadge}>DMX {f.dmxStart}–{f.dmxStart + f.channels.length - 1}</span>
+                <span style={styles.dmxBadge}>
+                  DMX {f.dmxStart}–{f.dmxStart + f.channels.length - 1}
+                </span>
               </div>
             ))}
             <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
@@ -296,8 +371,12 @@ export function LightDesignerPanel() {
                 }}
               />
               <div style={{ flex: 1, fontSize: '12px' }}>
-                <div>Mix: {colorToHex(mixColors({ r: 255, g: 0, b: 128 }, { r: 0, g: 100, b: 255 }))}</div>
-                <div style={{ color: '#8a8aff', marginTop: '4px' }}>50/50 blend of selected fixtures</div>
+                <div>
+                  Mix: {colorToHex(mixColors({ r: 255, g: 0, b: 128 }, { r: 0, g: 100, b: 255 }))}
+                </div>
+                <div style={{ color: '#8a8aff', marginTop: '4px' }}>
+                  50/50 blend of selected fixtures
+                </div>
               </div>
             </div>
           </div>
@@ -312,7 +391,15 @@ export function LightDesignerPanel() {
                 <span style={{ fontSize: '11px', color: '#8a8aff', width: '16px' }}>{i + 1}</span>
                 <span style={{ flex: 1, fontSize: '13px' }}>{cue.name}</span>
                 {cue.beatSync && (
-                  <span style={{ fontSize: '10px', background: 'rgba(255, 110, 199, 0.2)', color: '#ff6ec7', padding: '1px 6px', borderRadius: '3px' }}>
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      background: 'rgba(255, 110, 199, 0.2)',
+                      color: '#ff6ec7',
+                      padding: '1px 6px',
+                      borderRadius: '3px',
+                    }}
+                  >
                     SYNC
                   </span>
                 )}
@@ -370,7 +457,10 @@ export function LightDesignerPanel() {
             <div style={{ fontSize: '12px', display: 'flex', gap: '16px' }}>
               <span>🟢 Backstage: {isLaserEyeSafe('backstage', 0) ? 'Safe' : 'Unsafe'}</span>
               <span>🟢 Above-head: {isLaserEyeSafe('above-head', 3) ? 'Safe' : 'Unsafe'}</span>
-              <span>{isLaserEyeSafe('audience', 1.5) ? '🟢' : '🔴'} Audience @1.5m: {isLaserEyeSafe('audience', 1.5) ? 'Safe' : 'BLOCKED'}</span>
+              <span>
+                {isLaserEyeSafe('audience', 1.5) ? '🟢' : '🔴'} Audience @1.5m:{' '}
+                {isLaserEyeSafe('audience', 1.5) ? 'Safe' : 'BLOCKED'}
+              </span>
             </div>
           </div>
         </div>

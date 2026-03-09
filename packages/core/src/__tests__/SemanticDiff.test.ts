@@ -11,8 +11,16 @@ import type { ASTNode } from '../diff/SemanticDiff';
 // C223 — Semantic Diff Engine
 // =============================================================================
 
-const makeNode = (type: string, name?: string, children?: ASTNode[], props?: Record<string, unknown>): ASTNode => ({
-  type, name, children, properties: props,
+const makeNode = (
+  type: string,
+  name?: string,
+  children?: ASTNode[],
+  props?: Record<string, unknown>
+): ASTNode => ({
+  type,
+  name,
+  children,
+  properties: props,
 });
 
 describe('SemanticDiffEngine', () => {
@@ -30,7 +38,7 @@ describe('SemanticDiffEngine', () => {
     const result = semanticDiff(oldTree, newTree);
     expect(result.equivalent).toBe(false);
     expect(result.changeCount).toBeGreaterThan(0);
-    const addChange = result.changes.find(c => c.type === 'added');
+    const addChange = result.changes.find((c) => c.type === 'added');
     expect(addChange).toBeDefined();
   });
 
@@ -39,7 +47,7 @@ describe('SemanticDiffEngine', () => {
     const newTree = makeNode('root', 'r', [makeNode('orb', 'A')]);
     const result = semanticDiff(oldTree, newTree);
     expect(result.equivalent).toBe(false);
-    const removeChange = result.changes.find(c => c.type === 'removed');
+    const removeChange = result.changes.find((c) => c.type === 'removed');
     expect(removeChange).toBeDefined();
   });
 
@@ -48,7 +56,7 @@ describe('SemanticDiffEngine', () => {
     const newTree = makeNode('root', 'r', [makeNode('orb', 'A', undefined, { health: 200 })]);
     const result = semanticDiff(oldTree, newTree);
     expect(result.equivalent).toBe(false);
-    const modChange = result.changes.find(c => c.type === 'modified');
+    const modChange = result.changes.find((c) => c.type === 'modified');
     expect(modChange).toBeDefined();
   });
 
@@ -57,7 +65,7 @@ describe('SemanticDiffEngine', () => {
     const newTree = makeNode('root', 'r', [makeNode('orb', 'NewName', undefined, { x: 1 })]);
     const result = semanticDiff(oldTree, newTree, { detectRenames: true });
     expect(result.equivalent).toBe(false);
-    const renameChange = result.changes.find(c => c.type === 'renamed');
+    const renameChange = result.changes.find((c) => c.type === 'renamed');
     if (renameChange) {
       expect(renameChange.oldName).toBe('OldName');
       expect(renameChange.newName).toBe('NewName');
@@ -72,8 +80,12 @@ describe('SemanticDiffEngine', () => {
   });
 
   it('respects ignoreComments option', () => {
-    const oldTree = makeNode('root', 'r', [makeNode('comment', undefined, undefined, { text: 'old comment' })]);
-    const newTree = makeNode('root', 'r', [makeNode('comment', undefined, undefined, { text: 'new comment' })]);
+    const oldTree = makeNode('root', 'r', [
+      makeNode('comment', undefined, undefined, { text: 'old comment' }),
+    ]);
+    const newTree = makeNode('root', 'r', [
+      makeNode('comment', undefined, undefined, { text: 'new comment' }),
+    ]);
     const withIgnore = semanticDiff(oldTree, newTree, { ignoreComments: true });
     const withoutIgnore = semanticDiff(oldTree, newTree, { ignoreComments: false });
     // With ignoreComments, comments should be stripped so trees are equivalent

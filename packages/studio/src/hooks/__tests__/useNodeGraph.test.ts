@@ -18,9 +18,7 @@ describe('useNodeGraph', () => {
       { id: 'in1', label: 'A', type: 'float' },
       { id: 'in2', label: 'B', type: 'float' },
     ],
-    outputs: [
-      { id: 'out1', label: 'Result', type: 'float' },
-    ],
+    outputs: [{ id: 'out1', label: 'Result', type: 'float' }],
   };
 
   const mockNodeDef2: NodeDef = {
@@ -32,9 +30,7 @@ describe('useNodeGraph', () => {
       { id: 'in1', label: 'A', type: 'float' },
       { id: 'in2', label: 'B', type: 'float' },
     ],
-    outputs: [
-      { id: 'out1', label: 'Result', type: 'float' },
-    ],
+    outputs: [{ id: 'out1', label: 'Result', type: 'float' }],
   };
 
   describe('Initial State', () => {
@@ -575,7 +571,7 @@ describe('useNodeGraph', () => {
       expect(result.current.nodes).toHaveLength(10);
 
       // All nodes should have unique IDs
-      const ids = result.current.nodes.map(n => n.id);
+      const ids = result.current.nodes.map((n) => n.id);
       const uniqueIds = new Set(ids);
       expect(uniqueIds.size).toBe(10);
     });

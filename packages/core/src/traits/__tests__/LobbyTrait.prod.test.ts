@@ -45,12 +45,15 @@ afterEach(() => {
 
 // ─── constructor ──────────────────────────────────────────────────────────────
 describe('LobbyTrait constructor', () => {
-  it('default visibility=public', () => expect(new LobbyTrait().getConfig().visibility).toBe('public'));
+  it('default visibility=public', () =>
+    expect(new LobbyTrait().getConfig().visibility).toBe('public'));
   it('default maxPlayers=8', () => expect(new LobbyTrait().getConfig().maxPlayers).toBe(8));
   it('default minPlayers=2', () => expect(new LobbyTrait().getConfig().minPlayers).toBe(2));
   it('default autoStart=false', () => expect(new LobbyTrait().getConfig().autoStart).toBe(false));
-  it('default hostMigration=true', () => expect(new LobbyTrait().getConfig().hostMigration).toBe(true));
-  it('default matchmaking.mode=random', () => expect(new LobbyTrait().getConfig().matchmaking?.mode).toBe('random'));
+  it('default hostMigration=true', () =>
+    expect(new LobbyTrait().getConfig().hostMigration).toBe(true));
+  it('default matchmaking.mode=random', () =>
+    expect(new LobbyTrait().getConfig().matchmaking?.mode).toBe('random'));
   it('initial state=waiting', () => expect(new LobbyTrait().getState()).toBe('waiting'));
 });
 
@@ -74,7 +77,9 @@ describe('LobbyTrait.addPlayer', () => {
     const cb = vi.fn();
     lobby.on('player-joined', cb);
     lobby.addPlayer(makePlayer('p1'));
-    expect(cb).toHaveBeenCalledWith(expect.objectContaining({ type: 'player-joined', playerId: 'p1' }));
+    expect(cb).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'player-joined', playerId: 'p1' })
+    );
   });
 
   it('returns false when lobby is full', () => {
@@ -325,11 +330,16 @@ describe('LobbyTrait teams', () => {
     lobby.setTeam('p1', 'red');
     lobby.setTeam('p2', 'blue');
     lobby.setTeam('p3', 'red');
-    expect(lobby.getTeamPlayers('red').map(p => p.id)).toEqual(['p1', 'p3']);
+    expect(lobby.getTeamPlayers('red').map((p) => p.id)).toEqual(['p1', 'p3']);
   });
 
   it('autoBalanceTeams distributes players across teams', () => {
-    const lobby = new LobbyTrait({ teams: [{ id: 'red', name: 'Red', maxPlayers: 4 }, { id: 'blue', name: 'Blue', maxPlayers: 4 }] });
+    const lobby = new LobbyTrait({
+      teams: [
+        { id: 'red', name: 'Red', maxPlayers: 4 },
+        { id: 'blue', name: 'Blue', maxPlayers: 4 },
+      ],
+    });
     lobby.addPlayer(makePlayer('p1'));
     lobby.addPlayer(makePlayer('p2'));
     lobby.addPlayer(makePlayer('p3'));
@@ -391,9 +401,11 @@ describe('LobbyTrait game flow', () => {
     lobby.on('game-starting', cb);
     lobby.startGame();
     expect(lobby.getState()).toBe('in-progress');
-    expect(cb).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ gameMode: 'deathmatch', map: 'map_01' }),
-    }));
+    expect(cb).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ gameMode: 'deathmatch', map: 'map_01' }),
+      })
+    );
   });
 
   it('endGame: sets state=finished + emits game-ended', () => {
@@ -403,7 +415,9 @@ describe('LobbyTrait game flow', () => {
     lobby.on('game-ended', cb);
     lobby.endGame({ winner: 'p1' });
     expect(lobby.getState()).toBe('finished');
-    expect(cb).toHaveBeenCalledWith(expect.objectContaining({ data: { results: { winner: 'p1' } } }));
+    expect(cb).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { results: { winner: 'p1' } } })
+    );
   });
 
   it('close: state=closed + players cleared', () => {

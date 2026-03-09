@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Core Hooks
+
 - `useAgent` - Initialize agent with identity/RBAC from Phase 1
 - `useTask` - Execute agent tasks with automatic retry and cancellation
 - `useTaskStatus` - Monitor long-running task progress with real-time updates
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `useDegradedMode` - Global degraded mode status monitoring
 
 #### Components
+
 - `<AgentProvider>` - Context provider for agent configuration
 - `<TaskMonitor>` - Visual task progress indicator with logs and phase info
 - `<CircuitBreakerStatus>` - Circuit state visualization with metrics
@@ -26,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `<SuspenseTask>` - React Suspense integration for async tasks
 
 #### Features
+
 - **Circuit Breaker** - Automatic failure detection and recovery
   - Configurable threshold, timeout, and window size
   - Three states: closed, open, half-open
@@ -52,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Task logs
 
 #### Documentation
+
 - Comprehensive README with examples
 - API documentation for all hooks and components
 - Migration guide from imperative to declarative
@@ -69,12 +73,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   11. Next.js SSR compatibility
 
 #### Testing
+
 - Vitest test suite
 - Circuit breaker unit tests
 - Hook tests with React Testing Library
 - Test setup and utilities
 
 #### Storybook
+
 - Component stories for visual testing
 - Interactive documentation
 - TaskMonitor stories

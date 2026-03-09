@@ -13,7 +13,7 @@
 
 export interface ReplayFrame {
   frameIndex: number;
-  timestamp: number;      // ms since recording start
+  timestamp: number; // ms since recording start
   inputs: Record<string, number | boolean>;
   state: Record<string, number>;
 }
@@ -76,15 +76,25 @@ export class ReplayRecorder {
     return this.export();
   }
 
-  pause(): void { this.paused = true; }
-  resume(): void { this.paused = false; }
-  isRecording(): boolean { return this.recording && !this.paused; }
+  pause(): void {
+    this.paused = true;
+  }
+  resume(): void {
+    this.paused = false;
+  }
+  isRecording(): boolean {
+    return this.recording && !this.paused;
+  }
 
   // ---------------------------------------------------------------------------
   // Capture
   // ---------------------------------------------------------------------------
 
-  captureFrame(dt: number, inputs: Record<string, number | boolean>, state: Record<string, number>): boolean {
+  captureFrame(
+    dt: number,
+    inputs: Record<string, number | boolean>,
+    state: Record<string, number>
+  ): boolean {
     if (!this.recording || this.paused) return false;
 
     this.currentTime += dt * 1000;
@@ -163,7 +173,13 @@ export class ReplayRecorder {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getFrameCount(): number { return this.frames.length; }
-  getDuration(): number { return this.currentTime; }
-  setMetadata(key: string, value: unknown): void { this.metadata[key] = value; }
+  getFrameCount(): number {
+    return this.frames.length;
+  }
+  getDuration(): number {
+    return this.currentTime;
+  }
+  setMetadata(key: string, value: unknown): void {
+    this.metadata[key] = value;
+  }
 }

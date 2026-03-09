@@ -33,10 +33,7 @@ export {
 } from './Layer3MCP';
 
 // Unified Client
-export {
-  SpatialCommClient,
-  FrameBudgetTracker,
-} from './SpatialCommClient';
+export { SpatialCommClient, FrameBudgetTracker } from './SpatialCommClient';
 
 // Re-export key types for convenience
 export type {

@@ -22,7 +22,6 @@ import {
 // ─── Suite ───────────────────────────────────────────────────────────────────
 
 describe('SecurityFramework: production', () => {
-
   // ─── Token Hashing ──────────────────────────────────────────────────────
   describe('secureHashToken', () => {
     it('returns a hash and salt', () => {
@@ -150,7 +149,9 @@ describe('SecurityFramework: production', () => {
 
   describe('hasAllPermissions', () => {
     it('returns true when role has all listed permissions', () => {
-      expect(hasAllPermissions('moderator', [Permission.VIEW_SCENE, Permission.EDIT_SCENE])).toBe(true);
+      expect(hasAllPermissions('moderator', [Permission.VIEW_SCENE, Permission.EDIT_SCENE])).toBe(
+        true
+      );
     });
 
     it('returns false when role is missing any permission', () => {

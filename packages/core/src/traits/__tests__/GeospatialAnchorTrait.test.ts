@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { geospatialAnchorHandler } from '../GeospatialAnchorTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('GeospatialAnchorTrait', () => {
   let node: Record<string, unknown>;
@@ -100,7 +107,7 @@ describe('GeospatialAnchorTrait', () => {
     });
     sendEvent(geospatialAnchorHandler, node, cfg, ctx, {
       type: 'geospatial_query_distance',
-      latitude: 37.7750,
+      latitude: 37.775,
       longitude: -122.4194,
       queryId: 'q1',
     });

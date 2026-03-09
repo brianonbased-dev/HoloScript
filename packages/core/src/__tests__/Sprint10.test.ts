@@ -57,21 +57,55 @@ import { RATE_LIMITS } from '../../../marketplace-api/src/types.js';
 
 import {
   // types
-  vec2, vec3, quat, transform, rgb, rgba,
-  vec3ToArray, arrayToVec3, colorToHex, parseColor,
+  vec2,
+  vec3,
+  quat,
+  transform,
+  rgb,
+  rgba,
+  vec3ToArray,
+  arrayToVec3,
+  colorToHex,
+  parseColor,
   // math
-  clamp, lerp, smoothstep, degToRad, radToDeg, mod, fract,
-  vec3Math, quatMath, random as hsRandom,
+  clamp,
+  lerp,
+  smoothstep,
+  degToRad,
+  radToDeg,
+  mod,
+  fract,
+  vec3Math,
+  quatMath,
+  random as hsRandom,
   // string
-  capitalize, camelCase, snakeCase, kebabCase, titleCase,
-  truncate, slugify, levenshtein, similarity, formatBytes,
-  escapeHtml, isBlank, isNotBlank,
+  capitalize,
+  camelCase,
+  snakeCase,
+  kebabCase,
+  titleCase,
+  truncate,
+  slugify,
+  levenshtein,
+  similarity,
+  formatBytes,
+  escapeHtml,
+  isBlank,
+  isNotBlank,
   // collections
-  List, HoloMap, HoloSet,
+  List,
+  HoloMap,
+  HoloSet,
   // time
-  now as hsNow, sleep, Stopwatch, debounce,
+  now as hsNow,
+  sleep,
+  Stopwatch,
+  debounce,
   // utilities
-  assert, clone, equals, identity,
+  assert,
+  clone,
+  equals,
+  identity,
 } from '../../../std/src/index.js';
 
 // ============================================================================
@@ -215,7 +249,9 @@ describe('Feature 1A: LSP traitDocs', () => {
 
 describe('Feature 1B: LSP PromptBuilder', () => {
   let builder: PromptBuilder;
-  beforeEach(() => { builder = new PromptBuilder(); });
+  beforeEach(() => {
+    builder = new PromptBuilder();
+  });
 
   it('can be instantiated', () => {
     expect(builder).toBeInstanceOf(PromptBuilder);
@@ -270,7 +306,9 @@ describe('Feature 1B: LSP PromptBuilder', () => {
 
 describe('Feature 2A: InMemoryTraitDatabase', () => {
   let db: InMemoryTraitDatabase;
-  beforeEach(() => { db = new InMemoryTraitDatabase(); });
+  beforeEach(() => {
+    db = new InMemoryTraitDatabase();
+  });
 
   it('can be instantiated', () => {
     expect(db).toBeDefined();
@@ -295,7 +333,9 @@ describe('Feature 2A: InMemoryTraitDatabase', () => {
 
 describe('Feature 2A: TraitRegistry', () => {
   let registry: TraitRegistry;
-  beforeEach(() => { registry = new TraitRegistry(new InMemoryTraitDatabase()); });
+  beforeEach(() => {
+    registry = new TraitRegistry(new InMemoryTraitDatabase());
+  });
 
   it('publish() creates a new trait entry', async () => {
     const req = makePublishRequest();
@@ -345,9 +385,7 @@ describe('Feature 2A: TraitRegistry', () => {
   it('recordDownload() does not throw', async () => {
     const req = makePublishRequest();
     const pub = await registry.publish(req, { name: 'alice', verified: true });
-    await expect(
-      registry.recordDownload(pub.traitId, '1.0.0')
-    ).resolves.toBeUndefined();
+    await expect(registry.recordDownload(pub.traitId, '1.0.0')).resolves.toBeUndefined();
   });
 
   it('getPopular() returns results after publish', async () => {
@@ -426,7 +464,9 @@ describe('Feature 2B: DependencyResolver utilities', () => {
 
 describe('Feature 2C: VerificationService', () => {
   let svc: VerificationService;
-  beforeEach(() => { svc = new VerificationService(); });
+  beforeEach(() => {
+    svc = new VerificationService();
+  });
 
   it('VERIFICATION_REQUIREMENTS has entries for all levels', () => {
     expect(VERIFICATION_REQUIREMENTS.none).toBeDefined();
@@ -526,7 +566,9 @@ describe('Feature 2C: RateLimiter', () => {
 
 describe('Feature 2C: SpamDetector', () => {
   let detector: SpamDetector;
-  beforeEach(() => { detector = new SpamDetector(); });
+  beforeEach(() => {
+    detector = new SpamDetector();
+  });
 
   it('isSpam() returns false for legitimate content', () => {
     const result = detector.isSpam('user1', 'A great physics trait for VR');
@@ -933,7 +975,9 @@ describe('Feature 3E: Std time & utilities', () => {
   it('debounce() delays function call', async () => {
     const calls: number[] = [];
     const fn = debounce(() => calls.push(Date.now()), 30);
-    fn(); fn(); fn();
+    fn();
+    fn();
+    fn();
     expect(calls).toHaveLength(0);
     await sleep(50);
     expect(calls).toHaveLength(1);
@@ -1092,7 +1136,10 @@ describe('Feature 4B: MCP training-generators', () => {
   it('datasetToJsonl() returns multi-line JSONL', () => {
     const examples = ALL_TRAINING_EXAMPLES.slice(0, 3);
     const jsonl = datasetToJsonl(examples);
-    const lines = jsonl.trim().split('\n').filter((l) => l.length > 0);
+    const lines = jsonl
+      .trim()
+      .split('\n')
+      .filter((l) => l.length > 0);
     expect(lines.length).toBe(3);
     for (const line of lines) {
       expect(() => JSON.parse(line)).not.toThrow();

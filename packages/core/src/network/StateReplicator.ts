@@ -18,7 +18,7 @@ export interface ReplicatedProperty {
   value: unknown;
   lastUpdated: number;
   version: number;
-  authority: string;         // Owner peer ID
+  authority: string; // Owner peer ID
 }
 
 export interface StateSnapshot {
@@ -71,11 +71,18 @@ export class StateReplicator {
     const properties = new Map<string, ReplicatedProperty>();
     for (const [key, value] of Object.entries(initialProps)) {
       properties.set(key, {
-        key, value, lastUpdated: Date.now(), version: 0, authority: this.localPeerId,
+        key,
+        value,
+        lastUpdated: Date.now(),
+        version: 0,
+        authority: this.localPeerId,
       });
     }
     this.entities.set(entityId, {
-      entityId, tick: this.currentTick, timestamp: Date.now(), properties,
+      entityId,
+      tick: this.currentTick,
+      timestamp: Date.now(),
+      properties,
     });
     this.snapshotHistory.set(entityId, []);
   }
@@ -104,7 +111,11 @@ export class StateReplicator {
       prop.lastUpdated = Date.now();
     } else {
       snapshot.properties.set(key, {
-        key, value, lastUpdated: Date.now(), version: 0, authority,
+        key,
+        value,
+        lastUpdated: Date.now(),
+        version: 0,
+        authority,
       });
     }
 
@@ -145,7 +156,7 @@ export class StateReplicator {
     if (!current) return null;
 
     const history = this.snapshotHistory.get(entityId) ?? [];
-    const fromSnapshot = history.find(s => s.tick === fromTick);
+    const fromSnapshot = history.find((s) => s.tick === fromTick);
 
     const changes: StateDelta['changes'] = [];
 
@@ -177,8 +188,11 @@ export class StateReplicator {
         }
       } else {
         snapshot.properties.set(change.key, {
-          key: change.key, value: change.value, lastUpdated: Date.now(),
-          version: change.version, authority: this.localPeerId,
+          key: change.key,
+          value: change.value,
+          lastUpdated: Date.now(),
+          version: change.version,
+          authority: this.localPeerId,
         });
       }
     }
@@ -191,9 +205,18 @@ export class StateReplicator {
   // Interpolation
   // ---------------------------------------------------------------------------
 
-  addInterpolation(entityId: string, property: string, from: number, to: number, duration?: number): void {
+  addInterpolation(
+    entityId: string,
+    property: string,
+    from: number,
+    to: number,
+    duration?: number
+  ): void {
     this.interpolations.push({
-      entityId, property, from, to,
+      entityId,
+      property,
+      from,
+      to,
       startTime: Date.now(),
       duration: duration ?? this.interpolationDelay,
     });
@@ -201,7 +224,7 @@ export class StateReplicator {
 
   updateInterpolations(): void {
     const now = Date.now();
-    this.interpolations = this.interpolations.filter(interp => {
+    this.interpolations = this.interpolations.filter((interp) => {
       const elapsed = now - interp.startTime;
       const t = Math.min(elapsed / interp.duration, 1);
       const value = interp.from + (interp.to - interp.from) * t;
@@ -214,11 +237,25 @@ export class StateReplicator {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getEntityCount(): number { return this.entities.size; }
-  getSnapshot(entityId: string): StateSnapshot | undefined { return this.entities.get(entityId); }
-  getSnapshotHistory(entityId: string): StateSnapshot[] { return [...(this.snapshotHistory.get(entityId) ?? [])]; }
-  getCurrentTick(): number { return this.currentTick; }
-  getAuthorityMode(): AuthorityMode { return this.authorityMode; }
-  setAuthorityMode(mode: AuthorityMode): void { this.authorityMode = mode; }
-  getInterpolationCount(): number { return this.interpolations.length; }
+  getEntityCount(): number {
+    return this.entities.size;
+  }
+  getSnapshot(entityId: string): StateSnapshot | undefined {
+    return this.entities.get(entityId);
+  }
+  getSnapshotHistory(entityId: string): StateSnapshot[] {
+    return [...(this.snapshotHistory.get(entityId) ?? [])];
+  }
+  getCurrentTick(): number {
+    return this.currentTick;
+  }
+  getAuthorityMode(): AuthorityMode {
+    return this.authorityMode;
+  }
+  setAuthorityMode(mode: AuthorityMode): void {
+    this.authorityMode = mode;
+  }
+  getInterpolationCount(): number {
+    return this.interpolations.length;
+  }
 }

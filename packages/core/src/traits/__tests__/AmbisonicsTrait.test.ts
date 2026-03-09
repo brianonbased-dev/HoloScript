@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ambisonicsHandler } from '../AmbisonicsTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('AmbisonicsTrait', () => {
   let node: Record<string, unknown>;
@@ -53,7 +60,8 @@ describe('AmbisonicsTrait', () => {
 
   it('stop stops playback', () => {
     const s = (node as any).__ambisonicsState;
-    s.sourceLoaded = true; s.decoderReady = true;
+    s.sourceLoaded = true;
+    s.decoderReady = true;
     sendEvent(ambisonicsHandler, node, cfg, ctx, { type: 'ambisonics_play' });
     sendEvent(ambisonicsHandler, node, cfg, ctx, { type: 'ambisonics_stop' });
     expect(s.isPlaying).toBe(false);
@@ -71,7 +79,10 @@ describe('AmbisonicsTrait', () => {
   });
 
   it('listener_rotation_update updates rotation', () => {
-    sendEvent(ambisonicsHandler, node, cfg, ctx, { type: 'listener_rotation_update', rotation: { x: 1, y: 0, z: 0, w: 0 } });
+    sendEvent(ambisonicsHandler, node, cfg, ctx, {
+      type: 'listener_rotation_update',
+      rotation: { x: 1, y: 0, z: 0, w: 0 },
+    });
     expect((node as any).__ambisonicsState.rotation.x).toBe(1);
   });
 

@@ -45,7 +45,7 @@ describe('TypoDetector — Production', () => {
     const candidates = ['ab', 'abc', 'abcd', 'xyz'];
     const matches = TypoDetector.findAllMatches('abc', candidates);
     expect(matches[0].distance).toBeLessThanOrEqual(matches[matches.length - 1].distance);
-    expect(matches.some(m => m.match === 'abc')).toBe(true); // exact match
+    expect(matches.some((m) => m.match === 'abc')).toBe(true); // exact match
   });
 
   it('isLikelyTypo detects close strings', () => {
@@ -113,7 +113,7 @@ environment {
 }`;
     const chunks = ChunkDetector.detect(source);
     expect(chunks.length).toBe(3);
-    expect(chunks.map(c => c.type)).toEqual(['orb', 'orb', 'environment']);
+    expect(chunks.map((c) => c.type)).toEqual(['orb', 'orb', 'environment']);
   });
 
   it('detects single-line directives', () => {

@@ -48,11 +48,11 @@ export interface Wall {
 
 export interface Opening {
   type: 'door' | 'window';
-  wall: number;           // Wall index
-  position: number;       // 0-1 along the wall
+  wall: number; // Wall index
+  position: number; // 0-1 along the wall
   width: number;
   height: number;
-  sillHeight?: number;    // For windows
+  sillHeight?: number; // For windows
 }
 
 export interface BuildingResult {
@@ -69,18 +69,51 @@ export interface BuildingResult {
 // STYLE PRESETS
 // =============================================================================
 
-const STYLE_PARAMS: Record<BuildingStyle, {
-  roomCountRange: [number, number];
-  windowDensity: number;
-  hasLobby: boolean;
-  roofType: 'flat' | 'pitched' | 'dome';
-  wallThickness: number;
-}> = {
-  residential: { roomCountRange: [3, 6], windowDensity: 0.6, hasLobby: false, roofType: 'pitched', wallThickness: 0.2 },
-  commercial: { roomCountRange: [4, 10], windowDensity: 0.8, hasLobby: true, roofType: 'flat', wallThickness: 0.15 },
-  industrial: { roomCountRange: [1, 3], windowDensity: 0.2, hasLobby: false, roofType: 'flat', wallThickness: 0.3 },
-  tower: { roomCountRange: [2, 4], windowDensity: 0.9, hasLobby: true, roofType: 'flat', wallThickness: 0.2 },
-  warehouse: { roomCountRange: [1, 2], windowDensity: 0.1, hasLobby: false, roofType: 'pitched', wallThickness: 0.25 },
+const STYLE_PARAMS: Record<
+  BuildingStyle,
+  {
+    roomCountRange: [number, number];
+    windowDensity: number;
+    hasLobby: boolean;
+    roofType: 'flat' | 'pitched' | 'dome';
+    wallThickness: number;
+  }
+> = {
+  residential: {
+    roomCountRange: [3, 6],
+    windowDensity: 0.6,
+    hasLobby: false,
+    roofType: 'pitched',
+    wallThickness: 0.2,
+  },
+  commercial: {
+    roomCountRange: [4, 10],
+    windowDensity: 0.8,
+    hasLobby: true,
+    roofType: 'flat',
+    wallThickness: 0.15,
+  },
+  industrial: {
+    roomCountRange: [1, 3],
+    windowDensity: 0.2,
+    hasLobby: false,
+    roofType: 'flat',
+    wallThickness: 0.3,
+  },
+  tower: {
+    roomCountRange: [2, 4],
+    windowDensity: 0.9,
+    hasLobby: true,
+    roofType: 'flat',
+    wallThickness: 0.2,
+  },
+  warehouse: {
+    roomCountRange: [1, 2],
+    windowDensity: 0.1,
+    hasLobby: false,
+    roofType: 'pitched',
+    wallThickness: 0.25,
+  },
 };
 
 // =============================================================================
@@ -131,7 +164,7 @@ export class BuildingGenerator {
   private generateFloor(
     config: BuildingConfig,
     floorIndex: number,
-    style: typeof STYLE_PARAMS['residential']
+    style: (typeof STYLE_PARAMS)['residential']
   ): FloorPlan {
     const rooms: Room[] = [];
     const walls: Wall[] = [];
@@ -152,7 +185,8 @@ export class BuildingGenerator {
     }
 
     // Generate rooms via grid subdivision
-    const roomCount = style.roomCountRange[0] +
+    const roomCount =
+      style.roomCountRange[0] +
       Math.floor(this.rng() * (style.roomCountRange[1] - style.roomCountRange[0] + 1));
 
     const cols = Math.ceil(Math.sqrt(roomCount));
@@ -194,13 +228,37 @@ export class BuildingGenerator {
     const baseY = floorIndex * h;
 
     // North wall
-    walls.push({ start: { x: 0, z: 0 }, end: { x: w, z: 0 }, height: h, thickness: wallThick, isExterior: true });
+    walls.push({
+      start: { x: 0, z: 0 },
+      end: { x: w, z: 0 },
+      height: h,
+      thickness: wallThick,
+      isExterior: true,
+    });
     // South wall
-    walls.push({ start: { x: 0, z: d }, end: { x: w, z: d }, height: h, thickness: wallThick, isExterior: true });
+    walls.push({
+      start: { x: 0, z: d },
+      end: { x: w, z: d },
+      height: h,
+      thickness: wallThick,
+      isExterior: true,
+    });
     // West wall
-    walls.push({ start: { x: 0, z: 0 }, end: { x: 0, z: d }, height: h, thickness: wallThick, isExterior: true });
+    walls.push({
+      start: { x: 0, z: 0 },
+      end: { x: 0, z: d },
+      height: h,
+      thickness: wallThick,
+      isExterior: true,
+    });
     // East wall
-    walls.push({ start: { x: w, z: 0 }, end: { x: w, z: d }, height: h, thickness: wallThick, isExterior: true });
+    walls.push({
+      start: { x: w, z: 0 },
+      end: { x: w, z: d },
+      height: h,
+      thickness: wallThick,
+      isExterior: true,
+    });
 
     // Windows on exterior walls
     for (let wi = 0; wi < walls.length; wi++) {
@@ -208,8 +266,7 @@ export class BuildingGenerator {
       if (!wall.isExterior) continue;
 
       const wallLen = Math.sqrt(
-        Math.pow(wall.end.x - wall.start.x, 2) +
-        Math.pow(wall.end.z - wall.start.z, 2)
+        Math.pow(wall.end.x - wall.start.x, 2) + Math.pow(wall.end.z - wall.start.z, 2)
       );
 
       const windowCount = Math.floor(wallLen * style.windowDensity);
@@ -259,29 +316,29 @@ export class BuildingGenerator {
     // 8 corners of the building box
     const base = vertices.length;
     vertices.push(
-      { x: -hw, y: 0, z: -hd },  // 0: bottom-front-left
-      { x: hw, y: 0, z: -hd },   // 1: bottom-front-right
-      { x: hw, y: 0, z: hd },    // 2: bottom-back-right
-      { x: -hw, y: 0, z: hd },   // 3: bottom-back-left
-      { x: -hw, y: h, z: -hd },  // 4: top-front-left
-      { x: hw, y: h, z: -hd },   // 5: top-front-right
-      { x: hw, y: h, z: hd },    // 6: top-back-right
-      { x: -hw, y: h, z: hd },   // 7: top-back-left
+      { x: -hw, y: 0, z: -hd }, // 0: bottom-front-left
+      { x: hw, y: 0, z: -hd }, // 1: bottom-front-right
+      { x: hw, y: 0, z: hd }, // 2: bottom-back-right
+      { x: -hw, y: 0, z: hd }, // 3: bottom-back-left
+      { x: -hw, y: h, z: -hd }, // 4: top-front-left
+      { x: hw, y: h, z: -hd }, // 5: top-front-right
+      { x: hw, y: h, z: hd }, // 6: top-back-right
+      { x: -hw, y: h, z: hd } // 7: top-back-left
     );
 
     // 6 faces (2 triangles each)
     // Front
-    faces.push(base+0, base+1, base+5, base+0, base+5, base+4);
+    faces.push(base + 0, base + 1, base + 5, base + 0, base + 5, base + 4);
     // Back
-    faces.push(base+2, base+3, base+7, base+2, base+7, base+6);
+    faces.push(base + 2, base + 3, base + 7, base + 2, base + 7, base + 6);
     // Left
-    faces.push(base+3, base+0, base+4, base+3, base+4, base+7);
+    faces.push(base + 3, base + 0, base + 4, base + 3, base + 4, base + 7);
     // Right
-    faces.push(base+1, base+2, base+6, base+1, base+6, base+5);
+    faces.push(base + 1, base + 2, base + 6, base + 1, base + 6, base + 5);
     // Top
-    faces.push(base+4, base+5, base+6, base+4, base+6, base+7);
+    faces.push(base + 4, base + 5, base + 6, base + 4, base + 6, base + 7);
     // Bottom
-    faces.push(base+0, base+3, base+2, base+0, base+2, base+1);
+    faces.push(base + 0, base + 3, base + 2, base + 0, base + 2, base + 1);
 
     return { vertices, faces };
   }

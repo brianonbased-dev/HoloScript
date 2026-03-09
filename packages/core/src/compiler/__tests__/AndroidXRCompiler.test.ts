@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AndroidXRCompiler } from '../AndroidXRCompiler';
 import type { AndroidXRCompileResult } from '../AndroidXRCompiler';
 
@@ -9,7 +9,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function minimalComposition(overrides: any = {}) {
   return {
@@ -88,7 +87,17 @@ describe('AndroidXRCompiler', () => {
 
   it('compiles object with position', () => {
     const comp = minimalComposition({
-      objects: [{ name: 'myBox', properties: [{ key: 'position', value: [1, 2, 3] }, { key: 'mesh', value: 'box' }], traits: [], children: [] }],
+      objects: [
+        {
+          name: 'myBox',
+          properties: [
+            { key: 'position', value: [1, 2, 3] },
+            { key: 'mesh', value: 'box' },
+          ],
+          traits: [],
+          children: [],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain('Float3(1f, 2f, 3f)');
@@ -97,7 +106,9 @@ describe('AndroidXRCompiler', () => {
 
   it('compiles light with type and intensity', () => {
     const comp = minimalComposition({
-      lights: [{ name: 'sun', lightType: 'directional', properties: [{ key: 'intensity', value: 1.5 }] }],
+      lights: [
+        { name: 'sun', lightType: 'directional', properties: [{ key: 'intensity', value: 1.5 }] },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain('LightManager.Type.DIRECTIONAL');
@@ -106,7 +117,15 @@ describe('AndroidXRCompiler', () => {
 
   it('compiles audio with SoundPool', () => {
     const comp = minimalComposition({
-      audio: [{ name: 'bgMusic', properties: [{ key: 'src', value: 'bgm' }, { key: 'loop', value: true }] }],
+      audio: [
+        {
+          name: 'bgMusic',
+          properties: [
+            { key: 'src', value: 'bgm' },
+            { key: 'loop', value: true },
+          ],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain('SoundPool');
@@ -115,7 +134,14 @@ describe('AndroidXRCompiler', () => {
 
   it('sanitizes names with special characters', () => {
     const comp = minimalComposition({
-      objects: [{ name: 'my-special.box!', properties: [{ key: 'mesh', value: 'box' }], traits: [], children: [] }],
+      objects: [
+        {
+          name: 'my-special.box!',
+          properties: [{ key: 'mesh', value: 'box' }],
+          traits: [],
+          children: [],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain('my_special_box_');
@@ -123,7 +149,12 @@ describe('AndroidXRCompiler', () => {
 
   it('compiles state with mutableStateOf', () => {
     const comp = minimalComposition({
-      state: { properties: [{ key: 'count', value: 0 }, { key: 'label', value: 'hello' }] },
+      state: {
+        properties: [
+          { key: 'count', value: 0 },
+          { key: 'label', value: 'hello' },
+        ],
+      },
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain('mutableStateOf(0)');
@@ -132,7 +163,9 @@ describe('AndroidXRCompiler', () => {
 
   it('compiles hand tracking trait imports', () => {
     const comp = minimalComposition({
-      objects: [{ name: 'hand', properties: [], traits: [{ name: 'hand_tracking' }], children: [] }],
+      objects: [
+        { name: 'hand', properties: [], traits: [{ name: 'hand_tracking' }], children: [] },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain('InputEvent');
@@ -142,18 +175,22 @@ describe('AndroidXRCompiler', () => {
 
   it('compiles model object with URI-based GltfModel (DP3)', () => {
     const comp = minimalComposition({
-      objects: [{
-        name: 'myModel',
-        properties: [
-          { key: 'model', value: 'models/robot.glb' },
-          { key: 'position', value: [0, 1, -2] },
-        ],
-        traits: [],
-        children: [],
-      }],
+      objects: [
+        {
+          name: 'myModel',
+          properties: [
+            { key: 'model', value: 'models/robot.glb' },
+            { key: 'position', value: [0, 1, -2] },
+          ],
+          traits: [],
+          children: [],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
-    expect(result.activityFile).toContain('GltfModel.create(xrSession, Uri.parse("models/robot.glb"))');
+    expect(result.activityFile).toContain(
+      'GltfModel.create(xrSession, Uri.parse("models/robot.glb"))'
+    );
     expect(result.activityFile).toContain('GltfModelEntity.create(xrSession');
     expect(result.activityFile).not.toContain('ArModelNode');
   });
@@ -162,12 +199,14 @@ describe('AndroidXRCompiler', () => {
 
   it('emits face tracking imports when face_tracking trait is present (DP3)', () => {
     const comp = minimalComposition({
-      objects: [{
-        name: 'avatar',
-        properties: [],
-        traits: [{ name: 'face_tracking', config: {} }],
-        children: [],
-      }],
+      objects: [
+        {
+          name: 'avatar',
+          properties: [],
+          traits: [{ name: 'face_tracking', config: {} }],
+          children: [],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain('FaceBlendShapeType');
@@ -177,12 +216,16 @@ describe('AndroidXRCompiler', () => {
 
   it('emits specific blendshape reads when configured (DP3)', () => {
     const comp = minimalComposition({
-      objects: [{
-        name: 'avatar',
-        properties: [],
-        traits: [{ name: 'face_tracking', config: { blendshapes: ['JAW_DROP', 'EYES_CLOSED_L'] } }],
-        children: [],
-      }],
+      objects: [
+        {
+          name: 'avatar',
+          properties: [],
+          traits: [
+            { name: 'face_tracking', config: { blendshapes: ['JAW_DROP', 'EYES_CLOSED_L'] } },
+          ],
+          children: [],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain('FACE_BLEND_SHAPE_TYPE_JAW_DROP');
@@ -193,12 +236,17 @@ describe('AndroidXRCompiler', () => {
 
   it('emits UserSubspace import for follows_head trait (DP3)', () => {
     const comp = minimalComposition({
-      objects: [{
-        name: 'hud',
-        properties: [{ key: 'width', value: 500 }, { key: 'height', value: 300 }],
-        traits: [{ name: 'follows_head', config: { distance: 2.0 } }],
-        children: [],
-      }],
+      objects: [
+        {
+          name: 'hud',
+          properties: [
+            { key: 'width', value: 500 },
+            { key: 'height', value: 300 },
+          ],
+          traits: [{ name: 'follows_head', config: { distance: 2.0 } }],
+          children: [],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain('UserSubspace');
@@ -206,12 +254,14 @@ describe('AndroidXRCompiler', () => {
 
   it('wraps head-following objects in UserSubspace composable (DP3)', () => {
     const comp = minimalComposition({
-      objects: [{
-        name: 'menu',
-        properties: [],
-        traits: [{ name: 'follows_head', config: {} }],
-        children: [],
-      }],
+      objects: [
+        {
+          name: 'menu',
+          properties: [],
+          traits: [{ name: 'follows_head', config: {} }],
+          children: [],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain('UserSubspace {');
@@ -222,20 +272,24 @@ describe('AndroidXRCompiler', () => {
 
   it('emits DRM video with SurfaceEntity.SurfaceProtection.PROTECTED (DP3)', () => {
     const comp = minimalComposition({
-      objects: [{
-        name: 'moviePlayer',
-        properties: [],
-        traits: [{
-          name: 'drm_video',
-          config: {
-            uri: 'https://example.com/movie.mpd',
-            license_uri: 'https://license.example.com/widevine',
-            stereo_mode: 'SIDE_BY_SIDE',
-            shape: 'quad',
-          },
-        }],
-        children: [],
-      }],
+      objects: [
+        {
+          name: 'moviePlayer',
+          properties: [],
+          traits: [
+            {
+              name: 'drm_video',
+              config: {
+                uri: 'https://example.com/movie.mpd',
+                license_uri: 'https://license.example.com/widevine',
+                stereo_mode: 'SIDE_BY_SIDE',
+                shape: 'quad',
+              },
+            },
+          ],
+          children: [],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain('SurfaceEntity.SurfaceProtection.PROTECTED');
@@ -245,15 +299,19 @@ describe('AndroidXRCompiler', () => {
 
   it('emits sphere shape for 360 DRM video (DP3)', () => {
     const comp = minimalComposition({
-      objects: [{
-        name: 'video360',
-        properties: [],
-        traits: [{
-          name: 'drm_video',
-          config: { shape: 'sphere', radius: 10 },
-        }],
-        children: [],
-      }],
+      objects: [
+        {
+          name: 'video360',
+          properties: [],
+          traits: [
+            {
+              name: 'drm_video',
+              config: { shape: 'sphere', radius: 10 },
+            },
+          ],
+          children: [],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain('SurfaceEntity.Shape.Sphere(10f)');
@@ -271,7 +329,13 @@ describe('AndroidXRCompiler', () => {
 
   it('compiles timeline with animation', () => {
     const comp = minimalComposition({
-      timelines: [{ name: 'intro', loop: true, entries: [{ time: 0, action: { kind: 'animate', properties: { opacity: 1 } } }] }],
+      timelines: [
+        {
+          name: 'intro',
+          loop: true,
+          entries: [{ time: 0, action: { kind: 'animate', properties: { opacity: 1 } } }],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain('playTimeline_intro');
@@ -280,7 +344,15 @@ describe('AndroidXRCompiler', () => {
 
   it('compiles transition', () => {
     const comp = minimalComposition({
-      transitions: [{ name: 'fadeOut', properties: [{ key: 'target', value: 'scene2' }, { key: 'duration', value: 1.0 }] }],
+      transitions: [
+        {
+          name: 'fadeOut',
+          properties: [
+            { key: 'target', value: 'scene2' },
+            { key: 'duration', value: 1.0 },
+          ],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain('transition_fadeOut');
@@ -297,7 +369,12 @@ describe('AndroidXRCompiler', () => {
 
   it('generates state file with state properties', () => {
     const comp = minimalComposition({
-      state: { properties: [{ key: 'score', value: 0 }, { key: 'active', value: true }] },
+      state: {
+        properties: [
+          { key: 'score', value: 0 },
+          { key: 'active', value: true },
+        ],
+      },
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.stateFile).toContain('score');
@@ -334,12 +411,14 @@ describe('AndroidXRCompiler', () => {
 
   it('generates node factory methods for objects', () => {
     const comp = minimalComposition({
-      objects: [{
-        name: 'Robot',
-        properties: [{ key: 'model', value: 'models/robot.glb' }],
-        traits: [],
-        children: [],
-      }],
+      objects: [
+        {
+          name: 'Robot',
+          properties: [{ key: 'model', value: 'models/robot.glb' }],
+          traits: [],
+          children: [],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.nodeFactoryFile).toContain('createRobot');
@@ -367,7 +446,9 @@ describe('AndroidXRCompiler', () => {
 
   it('adds hand tracking permission when hand_tracking trait is used', () => {
     const comp = minimalComposition({
-      objects: [{ name: 'hand', properties: [], traits: [{ name: 'hand_tracking' }], children: [] }],
+      objects: [
+        { name: 'hand', properties: [], traits: [{ name: 'hand_tracking' }], children: [] },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.manifestFile).toContain('android.permission.HAND_TRACKING');
@@ -375,7 +456,14 @@ describe('AndroidXRCompiler', () => {
 
   it('adds face tracking permission when face_tracking trait is used', () => {
     const comp = minimalComposition({
-      objects: [{ name: 'avatar', properties: [], traits: [{ name: 'face_tracking', config: {} }], children: [] }],
+      objects: [
+        {
+          name: 'avatar',
+          properties: [],
+          traits: [{ name: 'face_tracking', config: {} }],
+          children: [],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.manifestFile).toContain('android.permission.FACE_TRACKING');
@@ -403,12 +491,14 @@ describe('AndroidXRCompiler', () => {
 
   it('includes Media3 dependencies when DRM video traits are used', () => {
     const comp = minimalComposition({
-      objects: [{
-        name: 'player',
-        properties: [],
-        traits: [{ name: 'drm_video', config: { uri: 'test.mpd' } }],
-        children: [],
-      }],
+      objects: [
+        {
+          name: 'player',
+          properties: [],
+          traits: [{ name: 'drm_video', config: { uri: 'test.mpd' } }],
+          children: [],
+        },
+      ],
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.buildGradle).toContain('media3-exoplayer');

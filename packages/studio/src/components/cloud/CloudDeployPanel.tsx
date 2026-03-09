@@ -7,7 +7,17 @@
  */
 
 import { useState } from 'react';
-import { X, Cloud, Plus, RefreshCw, Trash2, ExternalLink, Activity, DollarSign, AlertCircle } from 'lucide-react';
+import {
+  X,
+  Cloud,
+  Plus,
+  RefreshCw,
+  Trash2,
+  ExternalLink,
+  Activity,
+  DollarSign,
+  AlertCircle,
+} from 'lucide-react';
 import { useDeployments, useDeploy, useDeployment, useCloudHealth } from '@/lib/cloud/hooks';
 import type { Deployment, CloudProvider } from '@/lib/cloud/types';
 import { DeploymentCard } from './DeploymentCard';
@@ -35,18 +45,16 @@ export function CloudDeployPanel({ onClose }: CloudDeployPanelProps) {
           <div>
             <h2 className="text-lg font-bold text-studio-text">Cloud Deployments</h2>
             <div className="flex items-center gap-2">
-              <p className="text-[10px] text-studio-muted">
-                {deployments.length} deployments
-              </p>
+              <p className="text-[10px] text-studio-muted">{deployments.length} deployments</p>
               <span
                 className={`h-2 w-2 rounded-full ${
                   cloudStatus === 'healthy'
                     ? 'bg-emerald-500'
                     : cloudStatus === 'degraded'
-                    ? 'bg-yellow-500'
-                    : cloudStatus === 'down'
-                    ? 'bg-red-500'
-                    : 'bg-gray-500'
+                      ? 'bg-yellow-500'
+                      : cloudStatus === 'down'
+                        ? 'bg-red-500'
+                        : 'bg-gray-500'
                 }`}
                 title={`Cloud status: ${cloudStatus}`}
               />

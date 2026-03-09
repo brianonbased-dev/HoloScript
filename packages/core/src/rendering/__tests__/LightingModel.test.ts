@@ -4,7 +4,9 @@ import { LightingModel } from '../LightingModel';
 describe('LightingModel', () => {
   let lm: LightingModel;
 
-  beforeEach(() => { lm = new LightingModel(); });
+  beforeEach(() => {
+    lm = new LightingModel();
+  });
 
   // Light management
   it('addLight creates light with defaults', () => {
@@ -51,20 +53,38 @@ describe('LightingModel', () => {
   });
 
   it('sampleGI blends probes by distance', () => {
-    lm.addGIProbe({ id: 'p1', position: { x: 0, y: 0, z: 0 }, radius: 10, irradiance: [1, 0, 0], weight: 1 });
+    lm.addGIProbe({
+      id: 'p1',
+      position: { x: 0, y: 0, z: 0 },
+      radius: 10,
+      irradiance: [1, 0, 0],
+      weight: 1,
+    });
     const [r, g, b] = lm.sampleGI({ x: 0, y: 0, z: 0 });
     expect(r).toBeCloseTo(1);
     expect(g).toBeCloseTo(0);
   });
 
   it('sampleGI falls back to ambient when out of range', () => {
-    lm.addGIProbe({ id: 'p1', position: { x: 0, y: 0, z: 0 }, radius: 5, irradiance: [1, 0, 0], weight: 1 });
+    lm.addGIProbe({
+      id: 'p1',
+      position: { x: 0, y: 0, z: 0 },
+      radius: 5,
+      irradiance: [1, 0, 0],
+      weight: 1,
+    });
     const [r] = lm.sampleGI({ x: 100, y: 100, z: 100 });
     expect(r).toBeCloseTo(0.03); // ambient fallback
   });
 
   it('removeGIProbe removes probe', () => {
-    lm.addGIProbe({ id: 'p1', position: { x: 0, y: 0, z: 0 }, radius: 10, irradiance: [1, 0, 0], weight: 1 });
+    lm.addGIProbe({
+      id: 'p1',
+      position: { x: 0, y: 0, z: 0 },
+      radius: 10,
+      irradiance: [1, 0, 0],
+      weight: 1,
+    });
     lm.removeGIProbe('p1');
     const [r] = lm.sampleGI({ x: 0, y: 0, z: 0 });
     expect(r).toBeCloseTo(0.03);

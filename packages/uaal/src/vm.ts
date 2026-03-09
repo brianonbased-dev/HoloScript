@@ -12,7 +12,13 @@
  *   - Handlers: pluggable opcode implementations
  */
 
-import { UAALOpCode, UAALBytecode, UAALInstruction, UAALOperand, getUAALOpcodeName } from './opcodes';
+import {
+  UAALOpCode,
+  UAALBytecode,
+  UAALInstruction,
+  UAALOperand,
+  getUAALOpcodeName,
+} from './opcodes';
 
 // =============================================================================
 // VM STATE
@@ -105,11 +111,16 @@ export class UAALVirtualMachine {
   /**
    * Execute a bytecode program
    */
-  async execute(bytecode: UAALBytecode, initialContext: Record<string, UAALOperand> = {}): Promise<VMResult> {
+  async execute(
+    bytecode: UAALBytecode,
+    initialContext: Record<string, UAALOperand> = {}
+  ): Promise<VMResult> {
     this.state = this.createInitialState(initialContext);
 
     if (this.enableLogging) {
-      this.log(`Executing bytecode v${bytecode.version} (${bytecode.instructions.length} instructions)`);
+      this.log(
+        `Executing bytecode v${bytecode.version} (${bytecode.instructions.length} instructions)`
+      );
     }
 
     let instructionCount = 0;
@@ -179,7 +190,9 @@ export class UAALVirtualMachine {
     const operands = instr.operands ?? [];
 
     if (this.enableLogging) {
-      this.log(`[PC=${this.state.pc}] ${getUAALOpcodeName(instr.opCode)} ${operands.length > 0 ? JSON.stringify(operands) : ''}`);
+      this.log(
+        `[PC=${this.state.pc}] ${getUAALOpcodeName(instr.opCode)} ${operands.length > 0 ? JSON.stringify(operands) : ''}`
+      );
     }
 
     // Check for custom handler first
@@ -276,7 +289,7 @@ export class UAALVirtualMachine {
       case UAALOpCode.OP_DELAY: {
         const delayMs = operands[0] as number;
         if (typeof delayMs === 'number' && delayMs > 0) {
-          await new Promise(resolve => setTimeout(resolve, Math.min(delayMs, 5000)));
+          await new Promise((resolve) => setTimeout(resolve, Math.min(delayMs, 5000)));
         }
         return false;
       }

@@ -14,7 +14,8 @@ declare global {
   // eslint-disable-next-line no-var
   var __previewBus__: EventTarget | undefined;
 }
-const bus: EventTarget = globalThis.__previewBus__ ?? (globalThis.__previewBus__ = new EventTarget());
+const bus: EventTarget =
+  globalThis.__previewBus__ ?? (globalThis.__previewBus__ = new EventTarget());
 
 export async function POST(request: Request) {
   let body: { code?: string; sceneId?: string };

@@ -375,7 +375,12 @@ describe('Feature 4A: SoundPool', () => {
   let pool: SoundPool;
 
   const makeSound = (id: string, cat = 'sfx'): SoundDefinition => ({
-    id, name: `Sound ${id}`, duration: 1.0, category: cat, volume: 1.0, loop: false,
+    id,
+    name: `Sound ${id}`,
+    duration: 1.0,
+    category: cat,
+    volume: 1.0,
+    loop: false,
   });
 
   beforeEach(() => {
@@ -507,7 +512,7 @@ describe('Feature 5A: ParticleSystem', () => {
     sys.burst(5);
     sys.update(0.5);
     const particles = sys.getAliveParticles();
-    expect(particles.every(p => p.age > 0)).toBe(true);
+    expect(particles.every((p) => p.age > 0)).toBe(true);
   });
 });
 
@@ -635,8 +640,12 @@ describe('Feature 8A: TerrainPaintLayer', () => {
   let painter: TerrainPaintLayer;
 
   const makeLayer = (id: string): PaintLayer => ({
-    id, name: `Layer ${id}`, textureId: `tex_${id}`,
-    tiling: 1, metallic: 0, roughness: 0.8,
+    id,
+    name: `Layer ${id}`,
+    textureId: `tex_${id}`,
+    tiling: 1,
+    metallic: 0,
+    roughness: 0.8,
   });
 
   beforeEach(() => {

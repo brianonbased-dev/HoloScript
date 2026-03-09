@@ -10,7 +10,13 @@
  * - Maintain generation history
  */
 
-import type { AIAdapter, GenerateResult, ExplainResult, OptimizeResult, FixResult } from './AIAdapter';
+import type {
+  AIAdapter,
+  GenerateResult,
+  ExplainResult,
+  OptimizeResult,
+  FixResult,
+} from './AIAdapter';
 import { HoloScriptPlusParser } from '../parser/HoloScriptPlusParser';
 import type { HSPlusCompileResult } from '../types/AdvancedTypeSystem';
 import { GenerationCache } from './GenerationCache';
@@ -124,7 +130,7 @@ export class HoloScriptGenerator {
       const cachedEntry = this.cache.get(prompt, s.adapter.name);
       if (cachedEntry) {
         console.log(`✓ Cache hit for prompt (${cachedEntry.code.length} chars)`);
-        
+
         // Record cache hit in analytics
         this.analytics.recordMetric({
           promptLength: prompt.length,
@@ -188,10 +194,8 @@ export class HoloScriptGenerator {
 
         // Check confidence threshold
         if (result.aiConfidence < s.config.minConfidence) {
-          console.warn(
-            `Generated code has low confidence (${result.aiConfidence}). Retrying...`
-          );
-          
+          console.warn(`Generated code has low confidence (${result.aiConfidence}). Retrying...`);
+
           this.analytics.recordMetric({
             promptLength: prompt.length,
             codeLength: result.holoScript.length,
@@ -204,7 +208,7 @@ export class HoloScriptGenerator {
             adapterName: s.adapter.name,
             timestamp: new Date(),
           });
-          
+
           continue;
         }
 
@@ -227,7 +231,10 @@ export class HoloScriptGenerator {
           const fixedParseResult = this.parser.parse(fixResult.holoScript);
 
           // If fixed version is better, use it
-          if (fixedParseResult.success || fixedParseResult.errors.length < parseResult.errors.length) {
+          if (
+            fixedParseResult.success ||
+            fixedParseResult.errors.length < parseResult.errors.length
+          ) {
             holoScript = fixResult.holoScript;
             wasFixed = true;
             // Re-parse with fixed code
@@ -239,12 +246,12 @@ export class HoloScriptGenerator {
               wasFixed,
               attempts,
             };
-            
+
             // Cache successful result
             if (this.cacheEnabled && reparseResult.success) {
               this.cache.set(prompt, holoScript, result.aiConfidence, s.adapter.name);
             }
-            
+
             break;
           }
         }
@@ -285,7 +292,7 @@ export class HoloScriptGenerator {
         lastError = new Error(`Parse failed: ${parseResult.errors[0]?.message || 'Unknown error'}`);
       } catch (e) {
         lastError = e instanceof Error ? e : new Error(String(e));
-        
+
         this.analytics.recordMetric({
           promptLength: prompt.length,
           codeLength: 0,
@@ -302,7 +309,9 @@ export class HoloScriptGenerator {
     }
 
     if (!generated) {
-      throw lastError || new Error(`Failed to generate valid HoloScript after ${attempts} attempts`);
+      throw (
+        lastError || new Error(`Failed to generate valid HoloScript after ${attempts} attempts`)
+      );
     }
 
     // Get explanation
@@ -471,9 +480,13 @@ export class HoloScriptGenerator {
     const successCount = history.filter((h) => h.generated.parseResult.success).length;
     const fixedCount = history.filter((h) => h.generated.wasFixed).length;
     const avgAttempts =
-      history.length > 0 ? history.reduce((sum, h) => sum + h.generated.attempts, 0) / history.length : 0;
+      history.length > 0
+        ? history.reduce((sum, h) => sum + h.generated.attempts, 0) / history.length
+        : 0;
     const avgConfidence =
-      history.length > 0 ? history.reduce((sum, h) => sum + h.generated.aiConfidence, 0) / history.length : 0;
+      history.length > 0
+        ? history.reduce((sum, h) => sum + h.generated.aiConfidence, 0) / history.length
+        : 0;
 
     return {
       totalGenerations: history.length,
@@ -553,7 +566,9 @@ export async function generateBatch(
 /**
  * Validate batch of generated code
  */
-export function validateBatch(codes: string[]): Array<{ code: string; valid: boolean; errors: number }> {
+export function validateBatch(
+  codes: string[]
+): Array<{ code: string; valid: boolean; errors: number }> {
   const parser = new HoloScriptPlusParser({ strict: false });
 
   return codes.map((code) => {

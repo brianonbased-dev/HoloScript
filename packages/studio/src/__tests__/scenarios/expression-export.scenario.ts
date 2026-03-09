@@ -119,7 +119,10 @@ describe('Scenario: Expression Presets — applyPresetWeights', () => {
 
   it('clamps values to 0-100 range', () => {
     const extreme: ExpressionPreset = {
-      id: 'test', name: 'Test', emoji: '🧪', category: 'custom',
+      id: 'test',
+      name: 'Test',
+      emoji: '🧪',
+      category: 'custom',
       weights: { face_eye_size: 200 },
     };
     const s = useCharacterStore.getState();
@@ -155,11 +158,17 @@ describe('Scenario: Expression Presets — lerpPresets', () => {
 
   it('includes keys from both presets', () => {
     const from: ExpressionPreset = {
-      id: 'a', name: 'A', emoji: '🧪', category: 'custom',
+      id: 'a',
+      name: 'A',
+      emoji: '🧪',
+      category: 'custom',
       weights: { face_eye_size: 80 },
     };
     const to: ExpressionPreset = {
-      id: 'b', name: 'B', emoji: '🧪', category: 'custom',
+      id: 'b',
+      name: 'B',
+      emoji: '🧪',
+      category: 'custom',
       weights: { face_jaw_width: 60 },
     };
     const result = lerpPresets(from, to, 0.5);
@@ -193,7 +202,13 @@ describe('Scenario: Character Card Export', () => {
       morphTargets: {},
       skinColor: '#e8beac',
       equippedItems: {
-        hair: { id: 'hair_short', name: 'Short Cut', slot: 'hair', thumbnail: '💇', category: 'hair' },
+        hair: {
+          id: 'hair_short',
+          name: 'Short Cut',
+          slot: 'hair',
+          thumbnail: '💇',
+          category: 'hair',
+        },
       },
     });
     expect(card.character.equippedItems.hair?.id).toBe('hair_short');
@@ -201,7 +216,11 @@ describe('Scenario: Character Card Export', () => {
 
   it('morphTargets are a deep copy', () => {
     const original = { body_height: 75 };
-    const card = buildCharacterCard({ morphTargets: original, skinColor: '#000', equippedItems: {} });
+    const card = buildCharacterCard({
+      morphTargets: original,
+      skinColor: '#000',
+      equippedItems: {},
+    });
     card.character.morphTargets.body_height = 100;
     expect(original.body_height).toBe(75); // original unchanged
   });

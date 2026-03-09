@@ -21,15 +21,15 @@ export interface WorldChunk {
   data: Record<string, unknown> | null;
   priority: number;
   lastAccessTime: number;
-  size: number;              // bytes
+  size: number; // bytes
 }
 
 export interface StreamingConfig {
-  chunkSize: number;          // world units
-  loadRadius: number;         // in chunks
-  unloadRadius: number;       // in chunks (> loadRadius)
+  chunkSize: number; // world units
+  loadRadius: number; // in chunks
+  unloadRadius: number; // in chunks (> loadRadius)
   maxConcurrentLoads: number;
-  memoryBudget: number;       // bytes
+  memoryBudget: number; // bytes
 }
 
 // =============================================================================
@@ -121,13 +121,20 @@ export class WorldStreamer {
     if (this.chunks.has(id)) return;
 
     const chunk: WorldChunk = {
-      id, x, z, state: 'loading', data: null,
-      priority, lastAccessTime: Date.now(), size: 0,
+      id,
+      x,
+      z,
+      state: 'loading',
+      data: null,
+      priority,
+      lastAccessTime: Date.now(),
+      size: 0,
     };
     this.chunks.set(id, chunk);
     this.loadQueue.push(id);
     this.loadQueue.sort((a, b) => {
-      const ca = this.chunks.get(a)!, cb = this.chunks.get(b)!;
+      const ca = this.chunks.get(a)!,
+        cb = this.chunks.get(b)!;
       return cb.priority - ca.priority;
     });
   }
@@ -187,7 +194,7 @@ export class WorldStreamer {
   }
 
   getLoadedChunks(): WorldChunk[] {
-    return [...this.chunks.values()].filter(c => c.state === 'loaded');
+    return [...this.chunks.values()].filter((c) => c.state === 'loaded');
   }
 
   getLoadedCount(): number {
@@ -196,7 +203,13 @@ export class WorldStreamer {
     return count;
   }
 
-  getTotalMemory(): number { return this.totalMemory; }
-  isOverBudget(): boolean { return this.totalMemory > this.config.memoryBudget; }
-  getChunkSize(): number { return this.config.chunkSize; }
+  getTotalMemory(): number {
+    return this.totalMemory;
+  }
+  isOverBudget(): boolean {
+    return this.totalMemory > this.config.memoryBudget;
+  }
+  getChunkSize(): number {
+    return this.config.chunkSize;
+  }
 }

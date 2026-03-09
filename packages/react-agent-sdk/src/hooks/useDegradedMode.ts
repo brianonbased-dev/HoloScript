@@ -33,9 +33,7 @@ import { useAgentContext } from '../context/AgentContext';
  * }
  * ```
  */
-export function useDegradedMode(
-  pollInterval = 5000
-): UseDegradedModeReturn {
+export function useDegradedMode(pollInterval = 5000): UseDegradedModeReturn {
   const context = useAgentContext();
   const [isDegraded, setIsDegraded] = useState(false);
   const [affectedServices, setAffectedServices] = useState<string[]>([]);
@@ -61,15 +59,12 @@ export function useDegradedMode(
     }
 
     try {
-      const response = await fetch(
-        `${context.apiUrl}/api/system/degraded-mode`,
-        {
-          headers: {
-            ...context.headers,
-            ...(context.token && { Authorization: `Bearer ${context.token}` }),
-          },
-        }
-      );
+      const response = await fetch(`${context.apiUrl}/api/system/degraded-mode`, {
+        headers: {
+          ...context.headers,
+          ...(context.token && { Authorization: `Bearer ${context.token}` }),
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch degraded mode status: ${response.statusText}`);

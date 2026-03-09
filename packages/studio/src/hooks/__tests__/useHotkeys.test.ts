@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useHotkeys, formatHotkeyDisplay, type HotkeyConfig } from '../useHotkeys';
-import { useCharacterStore } from '@/lib/store';
+import { useCharacterStore } from '@/lib/stores';
 
 describe('useHotkeys', () => {
   let mockCharacterStore: any;

@@ -35,10 +35,10 @@ const session = generator.createSession(adapter);
 // Generate code from prompt
 const result = await generator.generate('Create a blue sphere at origin');
 
-console.log(result.holoScript);        // Generated HoloScript code
-console.log(result.aiConfidence);      // Confidence score (0-1)
+console.log(result.holoScript); // Generated HoloScript code
+console.log(result.aiConfidence); // Confidence score (0-1)
 console.log(result.parseResult.success); // Parse succeeded?
-console.log(result.wasFixed);          // Auto-fixed?
+console.log(result.wasFixed); // Auto-fixed?
 ```
 
 ### Using Helper Functions
@@ -54,19 +54,15 @@ const code = await generateHoloScript(
   { maxAttempts: 3, targetPlatform: 'vr' }
 );
 
-// Batch generation  
+// Batch generation
 const results = await generateBatch(
-  [
-    'Create a player',
-    'Create an enemy',
-    'Create a button'
-  ],
+  ['Create a player', 'Create an enemy', 'Create a button'],
   new OpenAIAdapter({ apiKey: 'sk-...' })
 );
 
 // Validate batch
-const validation = validateBatch(results.map(r => r.holoScript));
-console.log(`Valid: ${validation.filter(v => v.valid).length}/${validation.length}`);
+const validation = validateBatch(results.map((r) => r.holoScript));
+console.log(`Valid: ${validation.filter((v) => v.valid).length}/${validation.length}`);
 ```
 
 ---
@@ -97,13 +93,13 @@ Natural Language Prompt
 
 ### Key Components
 
-| Component | Purpose | Status |
-|-----------|---------|--------|
-| **AIAdapter** | Interface for AI providers | ✅ 8 implementations |
-| **HoloScriptGenerator** | High-level generation API | ✅ Complete |
-| **HoloScriptPlusParser** | Parse & validate generated code | ✅ Working |
-| **ErrorRecovery** | Auto-fix broken code | ✅ Integrated |
-| **Sessions** | Track generation history | ✅ Implemented |
+| Component                | Purpose                         | Status               |
+| ------------------------ | ------------------------------- | -------------------- |
+| **AIAdapter**            | Interface for AI providers      | ✅ 8 implementations |
+| **HoloScriptGenerator**  | High-level generation API       | ✅ Complete          |
+| **HoloScriptPlusParser** | Parse & validate generated code | ✅ Working           |
+| **ErrorRecovery**        | Auto-fix broken code            | ✅ Integrated        |
+| **Sessions**             | Track generation history        | ✅ Implemented       |
 
 ---
 
@@ -116,7 +112,7 @@ Main class for AI-guided code generation.
 #### Constructor
 
 ```typescript
-constructor()
+constructor();
 ```
 
 Creates a new generator instance with a built-in parser.
@@ -129,17 +125,17 @@ Create a new generation session.
 
 ```typescript
 interface GenerationConfig {
-  maxAttempts: number;           // Default: 3
-  targetPlatform: 'mobile' | 'desktop' | 'vr' | 'ar';  // Default: 'vr'
-  autoFix: boolean;              // Default: true
-  minConfidence: number;         // Default: 0.7 (0-1)
+  maxAttempts: number; // Default: 3
+  targetPlatform: 'mobile' | 'desktop' | 'vr' | 'ar'; // Default: 'vr'
+  autoFix: boolean; // Default: true
+  minConfidence: number; // Default: 0.7 (0-1)
 }
 
 const session = generator.createSession(adapter, {
   maxAttempts: 5,
   targetPlatform: 'vr',
   autoFix: true,
-  minConfidence: 0.8
+  minConfidence: 0.8,
 });
 ```
 
@@ -149,12 +145,12 @@ Generate HoloScript from a natural language prompt.
 
 ```typescript
 interface GeneratedCode {
-  holoScript: string;           // The generated code
-  aiConfidence: number;         // AI confidence (0-1)
-  parseResult: ParseResult;     // Parser result
-  wasFixed: boolean;            // Auto-fixed?
-  attempts: number;             // Number of attempts
-  explanation?: string;         // Optional explanation
+  holoScript: string; // The generated code
+  aiConfidence: number; // AI confidence (0-1)
+  parseResult: ParseResult; // Parser result
+  wasFixed: boolean; // Auto-fixed?
+  attempts: number; // Number of attempts
+  explanation?: string; // Optional explanation
 }
 
 const result = await generator.generate(
@@ -164,6 +160,7 @@ const result = await generator.generate(
 ```
 
 **Behavior**:
+
 - Generates code up to `maxAttempts` times
 - Checks confidence against `minConfidence` threshold
 - Auto-fixes if enabled and first attempt has errors
@@ -176,11 +173,7 @@ const result = await generator.generate(
 Optimize code for a specific platform.
 
 ```typescript
-const optimized = await generator.optimize(
-  generatedCode.holoScript,
-  'mobile',
-  session
-);
+const optimized = await generator.optimize(generatedCode.holoScript, 'mobile', session);
 ```
 
 **Platforms**: `mobile`, `desktop`, `vr`, `ar`
@@ -204,7 +197,7 @@ Get a text explanation of what code does.
 
 ```typescript
 const explanation = await generator.explain(code, session);
-console.log(explanation);  // "This code creates a..."
+console.log(explanation); // "This code creates a..."
 ```
 
 ##### `chat(message, session?, history?)`
@@ -214,14 +207,10 @@ Multi-turn conversation for iterative development.
 ```typescript
 const history = [
   { role: 'user', content: 'Create a player' },
-  { role: 'assistant', content: 'I will create...' }
+  { role: 'assistant', content: 'I will create...' },
 ];
 
-const response = await generator.chat(
-  'Now add physics',
-  session,
-  history
-);
+const response = await generator.chat('Now add physics', session, history);
 ```
 
 ##### `getHistory(session?)`
@@ -270,16 +259,16 @@ generator.clearHistory(session);
 
 ### Available Adapters
 
-| Provider | Class | Status | Auth |
-|----------|-------|--------|------|
-| OpenAI | `OpenAIAdapter` | ✅ | API Key |
-| Anthropic | `AnthropicAdapter` | ✅ | API Key |
-| Ollama (Local) | `OllamaAdapter` | ✅ | URL |
-| Google (Gemini) | `GeminiAdapter` | ✅ | API Key |
-| XAI (Grok) | `XAIAdapter` | ✅ | API Key |
-| Together.ai | `TogetherAdapter` | ✅ | API Key |
-| Fireworks.ai | `FireworksAdapter` | ✅ | API Key |
-| NVIDIA | `NVIDIAAdapter` | ✅ | API Key |
+| Provider        | Class              | Status | Auth    |
+| --------------- | ------------------ | ------ | ------- |
+| OpenAI          | `OpenAIAdapter`    | ✅     | API Key |
+| Anthropic       | `AnthropicAdapter` | ✅     | API Key |
+| Ollama (Local)  | `OllamaAdapter`    | ✅     | URL     |
+| Google (Gemini) | `GeminiAdapter`    | ✅     | API Key |
+| XAI (Grok)      | `XAIAdapter`       | ✅     | API Key |
+| Together.ai     | `TogetherAdapter`  | ✅     | API Key |
+| Fireworks.ai    | `FireworksAdapter` | ✅     | API Key |
+| NVIDIA          | `NVIDIAAdapter`    | ✅     | API Key |
 
 ### Adapter Interface
 
@@ -289,22 +278,22 @@ All adapters implement `AIAdapter`:
 interface AIAdapter {
   // Generate HoloScript from prompt
   generateHoloScript(prompt: string): Promise<GenerateResult>;
-  
+
   // Explain existing code
   explainHoloScript(code: string): Promise<ExplainResult>;
-  
+
   // Optimize for platform
   optimizeHoloScript(code: string, platform: string): Promise<OptimizeResult>;
-  
+
   // Fix broken code
   fixHoloScript(code: string, errors: string[]): Promise<FixResult>;
-  
+
   // Multi-turn conversation
   chat(message: string, systemPrompt: string, history?: Message[]): Promise<string>;
-  
+
   // Generate embeddings
   getEmbeddings(texts: string[]): Promise<number[][]>;
-  
+
   // Get adapter name
   getName(): string;
 }
@@ -318,36 +307,36 @@ import { OpenAIAdapter, AnthropicAdapter, GeminiAdapter } from '@holoscript/core
 // OpenAI (GPT-4)
 const openai = new OpenAIAdapter({
   apiKey: process.env.OPENAI_API_KEY,
-  model: 'gpt-4-turbo',  // or 'gpt-4', 'gpt-3.5-turbo'
-  temperature: 0.7
+  model: 'gpt-4-turbo', // or 'gpt-4', 'gpt-3.5-turbo'
+  temperature: 0.7,
 });
 
 // Anthropic (Claude)
 const anthropic = new AnthropicAdapter({
   apiKey: process.env.ANTHROPIC_API_KEY,
-  model: 'claude-3-opus',  // or 'claude-3-sonnet'
-  temperature: 0.7
+  model: 'claude-3-opus', // or 'claude-3-sonnet'
+  temperature: 0.7,
 });
 
 // Google Gemini
 const gemini = new GeminiAdapter({
   apiKey: process.env.GEMINI_API_KEY,
   model: 'gemini-pro',
-  temperature: 0.7
+  temperature: 0.7,
 });
 
 // Local Ollama
 const ollama = new OllamaAdapter({
   baseURL: 'http://localhost:11434',
   model: 'mistral',
-  temperature: 0.7
+  temperature: 0.7,
 });
 
 // Generate with different adapters
 const results = await Promise.all([
   generateHoloScript(prompt, openai),
   generateHoloScript(prompt, anthropic),
-  generateHoloScript(prompt, gemini)
+  generateHoloScript(prompt, gemini),
 ]);
 ```
 
@@ -365,7 +354,7 @@ const session = generator.createSession(adapter, {
   maxAttempts: 5,
   targetPlatform: 'vr',
   autoFix: true,
-  minConfidence: 0.8
+  minConfidence: 0.8,
 });
 
 // All operations use this session by default
@@ -380,16 +369,16 @@ const current = generator.getCurrentSession();
 ```typescript
 const session = generator.createSession(adapter, {
   // Retry configuration
-  maxAttempts: 5,  // Increase attempts for complex prompts
-  
+  maxAttempts: 5, // Increase attempts for complex prompts
+
   // Confidence threshold
-  minConfidence: 0.85,  // Stricter validation
-  
+  minConfidence: 0.85, // Stricter validation
+
   // Auto-fix
-  autoFix: true,  // Try to fix broken code automatically
-  
+  autoFix: true, // Try to fix broken code automatically
+
   // Target platform
-  targetPlatform: 'mobile'  // Optimize for mobile
+  targetPlatform: 'mobile', // Optimize for mobile
 });
 ```
 
@@ -403,7 +392,7 @@ await generator.generate('Create enemy', session);
 
 const history = generator.getHistory(session);
 
-history.forEach(entry => {
+history.forEach((entry) => {
   console.log('Prompt:', entry.prompt);
   console.log('Code:', entry.generated.holoScript);
   console.log('Success:', entry.generated.parseResult.success);
@@ -435,6 +424,7 @@ console.log('Auto-fixed:', result.wasFixed);
 ```
 
 **Expected Output**:
+
 ```holoscript
 orb #throwableSphere
   @grabbable(snap_to_hand: true)
@@ -457,17 +447,16 @@ orb #throwableSphere
 const prompts = [
   'Create a red cube that flashes when clicked',
   'Create a green cylinder that rotates slowly',
-  'Create a yellow torus that glows in the dark'
+  'Create a yellow torus that glows in the dark',
 ];
 
-const results = await generateBatch(
-  prompts,
-  new OpenAIAdapter({ apiKey: 'sk-...' }),
-  { maxAttempts: 3, autoFix: true }
-);
+const results = await generateBatch(prompts, new OpenAIAdapter({ apiKey: 'sk-...' }), {
+  maxAttempts: 3,
+  autoFix: true,
+});
 
 // Validate all results
-const validation = validateBatch(results.map(r => r.holoScript));
+const validation = validateBatch(results.map((r) => r.holoScript));
 console.log(`\nValidation Results:`);
 validation.forEach((v, i) => {
   console.log(`[${i}] Valid: ${v.valid}, Errors: ${v.errors}`);
@@ -490,11 +479,7 @@ const fixed = await generator.fix(code.holoScript, session);
 console.log('v2:', fixed.holoScript);
 
 // Optimize for mobile
-const optimized = await generator.optimize(
-  fixed.holoScript,
-  'mobile',
-  session
-);
+const optimized = await generator.optimize(fixed.holoScript, 'mobile', session);
 console.log('v3:', optimized.holoScript);
 
 // Get explanation
@@ -545,7 +530,7 @@ const code2 = await generator.generate('prompt 2', session);
 
 // ❌ Avoid: Creating new session for each generation
 for (let i = 0; i < 10; i++) {
-  const s = generator.createSession(adapter);  // Don't do this
+  const s = generator.createSession(adapter); // Don't do this
   await generator.generate(`prompt ${i}`, s);
 }
 ```
@@ -555,13 +540,13 @@ for (let i = 0; i < 10; i++) {
 ```typescript
 // ✅ Good: Adjust based on use case
 const criticalCode = generator.createSession(adapter, {
-  minConfidence: 0.95,  // High bar for critical code
-  maxAttempts: 10
+  minConfidence: 0.95, // High bar for critical code
+  maxAttempts: 10,
 });
 
 const experimentalCode = generator.createSession(adapter, {
-  minConfidence: 0.7,   // Lower bar for exploration
-  maxAttempts: 3
+  minConfidence: 0.7, // Lower bar for exploration
+  maxAttempts: 3,
 });
 ```
 
@@ -587,27 +572,21 @@ try {
 ```typescript
 // ✅ Good: Optimize upfront
 const session = generator.createSession(adapter, {
-  targetPlatform: 'mobile'  // Optimize for target
+  targetPlatform: 'mobile', // Optimize for target
 });
 
 // Or optimize after generation
-const optimized = await generator.optimize(
-  generatedCode.holoScript,
-  'mobile',
-  session
-);
+const optimized = await generator.optimize(generatedCode.holoScript, 'mobile', session);
 ```
 
 ### 5. Batch Operations
 
 ```typescript
 // ✅ Good: Generate in parallel
-const results = await Promise.all(
-  prompts.map(p => generateHoloScript(p, adapter))
-);
+const results = await Promise.all(prompts.map((p) => generateHoloScript(p, adapter)));
 
 // Then validate
-const validation = validateBatch(results.map(r => r.holoScript));
+const validation = validateBatch(results.map((r) => r.holoScript));
 ```
 
 ---
@@ -629,11 +608,11 @@ pnpm --filter=@holoscript/core test -- HoloScriptGenerator.test.ts
 
 ### Test Coverage
 
-| Module | Tests | Status |
-|--------|-------|--------|
-| AIIntegration | 30 | ✅ Passing |
-| HoloScriptGenerator | 35 | ✅ Passing |
-| **Total** | **65** | ✅ **Passing** |
+| Module              | Tests  | Status         |
+| ------------------- | ------ | -------------- |
+| AIIntegration       | 30     | ✅ Passing     |
+| HoloScriptGenerator | 35     | ✅ Passing     |
+| **Total**           | **65** | ✅ **Passing** |
 
 ### Mock Adapter for Testing
 
@@ -645,10 +624,10 @@ class MockAdapter implements AIAdapter {
   async generateHoloScript(prompt: string) {
     return {
       holoScript: `orb #test { }`,
-      aiConfidence: 0.95
+      aiConfidence: 0.95,
     };
   }
-  
+
   // ... other methods
 }
 
@@ -657,7 +636,7 @@ describe('GenerationLogic', () => {
     const generator = new HoloScriptGenerator();
     const session = generator.createSession(new MockAdapter());
     const result = await generator.generate('test', session);
-    
+
     expect(result.holoScript).toBeDefined();
     expect(result.aiConfidence).toBe(0.95);
   });

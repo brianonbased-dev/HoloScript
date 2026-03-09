@@ -26,21 +26,24 @@ function makeGradientTex(w: number, h: number): Texture2D {
     for (let x = 0; x < w; x++) {
       const v = x / (w - 1);
       const pi = (y * w + x) * 4;
-      pixels[pi] = v; pixels[pi + 1] = v; pixels[pi + 2] = v; pixels[pi + 3] = 1;
+      pixels[pi] = v;
+      pixels[pi + 1] = v;
+      pixels[pi + 2] = v;
+      pixels[pi + 3] = 1;
     }
   }
   return { width: w, height: h, pixels };
 }
 
 describe('AdvancedTexturing — Production Tests', () => {
-
   // ---------------------------------------------------------------------------
   // Texture Utilities
   // ---------------------------------------------------------------------------
   describe('createSolidTexture', () => {
     it('creates correct dimensions', () => {
       const tex = createSolidTexture(8, 8, 0.5, 0.3, 0.1);
-      expect(tex.width).toBe(8); expect(tex.height).toBe(8);
+      expect(tex.width).toBe(8);
+      expect(tex.height).toBe(8);
       expect(tex.pixels.length).toBe(8 * 8 * 4);
     });
 
@@ -93,7 +96,10 @@ describe('AdvancedTexturing — Production Tests', () => {
       const heightMap = createSolidTexture(4, 4, 0.5);
       const pos: Vec3 = { x: 0, y: 0, z: 0 };
       const norm: Vec3 = { x: 0, y: 1, z: 0 };
-      const result = computeDisplacedPosition(pos, norm, heightMap, 0.5, 0.5, { scale: 1, bias: 0.5 });
+      const result = computeDisplacedPosition(pos, norm, heightMap, 0.5, 0.5, {
+        scale: 1,
+        bias: 0.5,
+      });
       expect(result.y).toBeCloseTo(0, 5);
     });
 
@@ -101,7 +107,10 @@ describe('AdvancedTexturing — Production Tests', () => {
       const heightMap = createSolidTexture(4, 4, 1);
       const pos: Vec3 = { x: 0, y: 0, z: 0 };
       const norm: Vec3 = { x: 0, y: 1, z: 0 };
-      const result = computeDisplacedPosition(pos, norm, heightMap, 0.5, 0.5, { scale: 0.5, bias: 0.5 });
+      const result = computeDisplacedPosition(pos, norm, heightMap, 0.5, 0.5, {
+        scale: 0.5,
+        bias: 0.5,
+      });
       expect(result.y).toBeGreaterThan(0);
     });
 
@@ -109,7 +118,10 @@ describe('AdvancedTexturing — Production Tests', () => {
       const heightMap = createSolidTexture(4, 4, 0);
       const pos: Vec3 = { x: 0, y: 0, z: 0 };
       const norm: Vec3 = { x: 0, y: 1, z: 0 };
-      const result = computeDisplacedPosition(pos, norm, heightMap, 0.5, 0.5, { scale: 0.5, bias: 0.5 });
+      const result = computeDisplacedPosition(pos, norm, heightMap, 0.5, 0.5, {
+        scale: 0.5,
+        bias: 0.5,
+      });
       expect(result.y).toBeLessThan(0);
     });
   });
@@ -133,12 +145,13 @@ describe('AdvancedTexturing — Production Tests', () => {
 
     it('slope changes normals X component', () => {
       // Heights increase from left to right
-      const W = 4, H = 4;
+      const W = 4,
+        H = 4;
       const heights = new Float32Array(W * H);
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) heights[y * W + x] = x * 0.25;
       const normals = computeDisplacementNormalsFromHeightMap(heights, W, H, 1, 1);
       // Interior normals should have negative X (slope going up in +x)
-      const interior = normals[H * W / 2 + W / 2]; // roughly center
+      const interior = normals[(H * W) / 2 + W / 2]; // roughly center
       expect(interior.x).toBeLessThan(0);
     });
   });
@@ -164,12 +177,11 @@ describe('AdvancedTexturing — Production Tests', () => {
 
     it('non-zero view angle produces offset UVs', () => {
       const heightMap = makeGradientTex(32, 32);
-      const result = computePOM(
-        { x: 0.5, y: 0.5 },
-        { x: 0.5, y: 0.1, z: 0.7 },
-        heightMap,
-        { heightScale: 0.15, minLayers: 8, maxLayers: 16 }
-      );
+      const result = computePOM({ x: 0.5, y: 0.5 }, { x: 0.5, y: 0.1, z: 0.7 }, heightMap, {
+        heightScale: 0.15,
+        minLayers: 8,
+        maxLayers: 16,
+      });
       // Result should be a valid number
       expect(isFinite(result.x)).toBe(true);
       expect(isFinite(result.y)).toBe(true);
@@ -254,8 +266,14 @@ describe('AdvancedTexturing — Production Tests', () => {
 
     it('result is always a unit vector', () => {
       const cases: Array<[Vec3, Vec3]> = [
-        [{ x: 0.1, y: -0.1, z: 1 }, { x: 0.2, y: 0.3, z: 1 }],
-        [{ x: 0, y: 0, z: 1 }, { x: 0.5, y: 0, z: 1 }],
+        [
+          { x: 0.1, y: -0.1, z: 1 },
+          { x: 0.2, y: 0.3, z: 1 },
+        ],
+        [
+          { x: 0, y: 0, z: 1 },
+          { x: 0.5, y: 0, z: 1 },
+        ],
       ];
       for (const [base, detail] of cases) {
         // Normalise inputs
@@ -305,7 +323,7 @@ describe('AdvancedTexturing — Production Tests', () => {
         rects.push(r!);
       }
       // Check all IDs unique
-      const ids = new Set(rects.map(r => r.id));
+      const ids = new Set(rects.map((r) => r.id));
       expect(ids.size).toBe(8);
     });
 

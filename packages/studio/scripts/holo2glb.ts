@@ -48,7 +48,7 @@ const printStats = args.includes('--stats');
 const outputJson = args.includes('--json');
 
 // Determine output path
-const cleanArgs = args.filter(a => !a.startsWith('--'));
+const cleanArgs = args.filter((a) => !a.startsWith('--'));
 let outputPath: string;
 if (cleanArgs.length >= 2) {
   outputPath = path.resolve(cleanArgs[1]);
@@ -69,7 +69,9 @@ const inputName = path.basename(inputPath);
 const lineCount = source.split('\n').length;
 
 console.log(`\n🔮 holo2glb — HoloScript Asset Pipeline`);
-console.log(`   Input:  ${inputName} (${lineCount} lines, ${(source.length / 1024).toFixed(1)} KB)`);
+console.log(
+  `   Input:  ${inputName} (${lineCount} lines, ${(source.length / 1024).toFixed(1)} KB)`
+);
 
 // ─── Parse ──────────────────────────────────────────────────────────────────
 
@@ -95,7 +97,9 @@ const ast = result.ast;
 const objectCount = countObjects(ast);
 const parseStatus = result.errors.length === 0 ? '✅' : '⚠️';
 
-console.log(`   Parse:  ${parseStatus} ${parseTime.toFixed(0)}ms — "${ast.name}" (${objectCount} objects, ${result.errors.length} parse warnings)`);
+console.log(
+  `   Parse:  ${parseStatus} ${parseTime.toFixed(0)}ms — "${ast.name}" (${objectCount} objects, ${result.errors.length} parse warnings)`
+);
 
 if (result.errors.length > 0 && printStats) {
   for (const e of result.errors.slice(0, 5)) {
@@ -141,8 +145,12 @@ const stats = compileResult.stats;
 
 console.log(`   Compile: ✅ ${compileTime.toFixed(0)}ms`);
 console.log(`   Output: ${outputName} (${(outputSize / 1024).toFixed(1)} KB)`);
-console.log(`\n   📊 ${stats.meshCount} meshes · ${stats.materialCount} materials · ${stats.totalVertices.toLocaleString()} verts · ${stats.totalTriangles.toLocaleString()} tris`);
-console.log(`   ⏱️  Total: ${(parseTime + compileTime).toFixed(0)}ms (parse ${parseTime.toFixed(0)}ms + compile ${compileTime.toFixed(0)}ms)\n`);
+console.log(
+  `\n   📊 ${stats.meshCount} meshes · ${stats.materialCount} materials · ${stats.totalVertices.toLocaleString()} verts · ${stats.totalTriangles.toLocaleString()} tris`
+);
+console.log(
+  `   ⏱️  Total: ${(parseTime + compileTime).toFixed(0)}ms (parse ${parseTime.toFixed(0)}ms + compile ${compileTime.toFixed(0)}ms)\n`
+);
 
 if (printStats) {
   console.log('─── Detailed Stats ────────────────────────────────');

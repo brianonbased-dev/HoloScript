@@ -55,9 +55,12 @@ export function exportBehaviorTree(tree: BTNode[]): string {
  */
 export function exportEventsAsCSV(events: AgentEvent[]): string {
   const header = 'timestamp,topic,senderId,receivedBy,payload\n';
-  const rows = events.map(e =>
-    `${e.timestamp},"${e.topic}","${e.senderId}","${e.receivedBy.join(';')}","${JSON.stringify(e.payload).replace(/"/g, '""')}"`
-  ).join('\n');
+  const rows = events
+    .map(
+      (e) =>
+        `${e.timestamp},"${e.topic}","${e.senderId}","${e.receivedBy.join(';')}","${JSON.stringify(e.payload).replace(/"/g, '""')}"`
+    )
+    .join('\n');
   return header + rows;
 }
 

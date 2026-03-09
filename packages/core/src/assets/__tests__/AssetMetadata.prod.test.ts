@@ -14,7 +14,6 @@ import {
 } from '../AssetMetadata';
 
 describe('AssetMetadata — Production', () => {
-
   describe('createAssetMetadata', () => {
     it('creates metadata with required fields and defaults', () => {
       const meta = createAssetMetadata({
@@ -55,7 +54,11 @@ describe('AssetMetadata — Production', () => {
 
     it('sets createdAt and modifiedAt timestamps', () => {
       const meta = createAssetMetadata({
-        id: 'a', name: 'a', format: 'png', assetType: 'texture', sourcePath: '/a.png',
+        id: 'a',
+        name: 'a',
+        format: 'png',
+        assetType: 'texture',
+        sourcePath: '/a.png',
       });
 
       expect(meta.createdAt).toBeDefined();

@@ -36,8 +36,18 @@ describe('AvatarController', () => {
     solver.addChain({
       id: 'leftArm',
       bones: [
-        { id: 'lShoulder', position: { x: -0.2, y: 1.4, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 0.3 },
-        { id: 'lElbow', position: { x: -0.5, y: 1.4, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 0.25 },
+        {
+          id: 'lShoulder',
+          position: { x: -0.2, y: 1.4, z: 0 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          length: 0.3,
+        },
+        {
+          id: 'lElbow',
+          position: { x: -0.5, y: 1.4, z: 0 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          length: 0.25,
+        },
       ],
       target: { x: -0.3, y: 1, z: 0.3 },
       weight: 1,
@@ -46,8 +56,18 @@ describe('AvatarController', () => {
     solver.addChain({
       id: 'rightArm',
       bones: [
-        { id: 'rShoulder', position: { x: 0.2, y: 1.4, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 0.3 },
-        { id: 'rElbow', position: { x: 0.5, y: 1.4, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 0.25 },
+        {
+          id: 'rShoulder',
+          position: { x: 0.2, y: 1.4, z: 0 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          length: 0.3,
+        },
+        {
+          id: 'rElbow',
+          position: { x: 0.5, y: 1.4, z: 0 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          length: 0.25,
+        },
       ],
       target: { x: 0.3, y: 1, z: 0.3 },
       weight: 1,

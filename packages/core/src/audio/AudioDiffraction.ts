@@ -24,27 +24,27 @@ export interface DiffractionEdge {
 export interface DiffractionPath {
   edgeId: string;
   diffractionPoint: { x: number; y: number; z: number };
-  totalDistance: number;           // Source -> edge -> listener
-  directDistance: number;           // Direct source -> listener
-  pathDifference: number;           // Extra distance via edge
-  diffractionCoefficient: number;   // 0-1 (Fresnel-based attenuation)
-  angle: number;                    // Diffraction angle in radians
+  totalDistance: number; // Source -> edge -> listener
+  directDistance: number; // Direct source -> listener
+  pathDifference: number; // Extra distance via edge
+  diffractionCoefficient: number; // 0-1 (Fresnel-based attenuation)
+  angle: number; // Diffraction angle in radians
 }
 
 export interface DiffractionResult {
   sourceId: string;
   hasDiffraction: boolean;
-  paths: DiffractionPath[];         // All valid diffraction paths
-  combinedCoefficient: number;      // Combined diffraction effect (0-1)
-  volumeMultiplier: number;         // Final volume multiplier
+  paths: DiffractionPath[]; // All valid diffraction paths
+  combinedCoefficient: number; // Combined diffraction effect (0-1)
+  volumeMultiplier: number; // Final volume multiplier
 }
 
 export interface DiffractionConfig {
   enabled: boolean;
-  maxPaths: number;                 // Max diffraction paths to compute (1-3)
-  minDiffractionGain: number;       // Min coefficient to consider (e.g., 0.01)
-  frequency: number;                // Reference frequency for Fresnel calc (Hz)
-  speedOfSound: number;             // m/s (default 343)
+  maxPaths: number; // Max diffraction paths to compute (1-3)
+  minDiffractionGain: number; // Min coefficient to consider (e.g., 0.01)
+  frequency: number; // Reference frequency for Fresnel calc (Hz)
+  speedOfSound: number; // m/s (default 343)
 }
 
 // =============================================================================
@@ -57,7 +57,7 @@ export interface DiffractionConfig {
  */
 export type EdgeDetectionProvider = (
   sourcePos: { x: number; y: number; z: number },
-  listenerPos: { x: number; y: number; z: number },
+  listenerPos: { x: number; y: number; z: number }
 ) => DiffractionEdge[];
 
 /**
@@ -66,7 +66,7 @@ export type EdgeDetectionProvider = (
  */
 export type LineOfSightProvider = (
   point1: { x: number; y: number; z: number },
-  point2: { x: number; y: number; z: number },
+  point2: { x: number; y: number; z: number }
 ) => boolean;
 
 // =============================================================================
@@ -76,10 +76,10 @@ export type LineOfSightProvider = (
 export class AudioDiffractionSystem {
   private config: DiffractionConfig = {
     enabled: true,
-    maxPaths: 2,              // Compute up to 2 diffraction paths
+    maxPaths: 2, // Compute up to 2 diffraction paths
     minDiffractionGain: 0.01, // Ignore paths with <1% contribution
-    frequency: 1000,          // 1kHz reference frequency
-    speedOfSound: 343,        // m/s at 20°C
+    frequency: 1000, // 1kHz reference frequency
+    speedOfSound: 343, // m/s at 20°C
   };
 
   private edgeProvider: EdgeDetectionProvider | null = null;
@@ -117,7 +117,7 @@ export class AudioDiffractionSystem {
   computeDiffraction(
     sourcePos: { x: number; y: number; z: number },
     listenerPos: { x: number; y: number; z: number },
-    sourceId: string,
+    sourceId: string
   ): DiffractionResult {
     if (!this.config.enabled || !this.edgeProvider || !this.losProvider) {
       return {
@@ -185,7 +185,7 @@ export class AudioDiffractionSystem {
   private computeEdgeDiffraction(
     edge: DiffractionEdge,
     sourcePos: { x: number; y: number; z: number },
-    listenerPos: { x: number; y: number; z: number },
+    listenerPos: { x: number; y: number; z: number }
   ): DiffractionPath | null {
     if (!this.losProvider) return null;
 
@@ -231,7 +231,7 @@ export class AudioDiffractionSystem {
   private findDiffractionPoint(
     edge: DiffractionEdge,
     sourcePos: { x: number; y: number; z: number },
-    listenerPos: { x: number; y: number; z: number },
+    listenerPos: { x: number; y: number; z: number }
   ): { x: number; y: number; z: number } {
     // Simplified: use midpoint of source and listener projected onto edge
     const midpoint = {
@@ -250,7 +250,7 @@ export class AudioDiffractionSystem {
   private calculateDiffractionAngle(
     sourcePos: { x: number; y: number; z: number },
     edgePoint: { x: number; y: number; z: number },
-    listenerPos: { x: number; y: number; z: number },
+    listenerPos: { x: number; y: number; z: number }
   ): number {
     // Vector from edge to source
     const v1 = {
@@ -346,7 +346,7 @@ export class AudioDiffractionSystem {
 
   private distance3D(
     p1: { x: number; y: number; z: number },
-    p2: { x: number; y: number; z: number },
+    p2: { x: number; y: number; z: number }
   ): number {
     const dx = p2.x - p1.x;
     const dy = p2.y - p1.y;
@@ -360,7 +360,7 @@ export class AudioDiffractionSystem {
   private closestPointOnSegment(
     a: { x: number; y: number; z: number },
     b: { x: number; y: number; z: number },
-    p: { x: number; y: number; z: number },
+    p: { x: number; y: number; z: number }
   ): { x: number; y: number; z: number } {
     const ab = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
     const ap = { x: p.x - a.x, y: p.y - a.y, z: p.z - a.z };

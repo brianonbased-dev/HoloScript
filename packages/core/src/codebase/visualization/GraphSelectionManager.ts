@@ -178,7 +178,12 @@ export class GraphSelectionManager {
 
       const callers = this.graph.getCallersOf(sym.name, sym.owner);
       if (callers.length > 0) {
-        lines.push(`  Called by: ${callers.slice(0, 5).map((c) => c.callerId).join(', ')}`);
+        lines.push(
+          `  Called by: ${callers
+            .slice(0, 5)
+            .map((c) => c.callerId)
+            .join(', ')}`
+        );
       }
     }
 

@@ -81,7 +81,7 @@ export const visionHandler: TraitHandler<VisionConfig> = {
   performScan(node: any, config: VisionConfig, context: any) {
     // In a real engine, this would access the Scene Graph and perform frustum culling / raycasting.
     // Here, we mock detection of "nearby" entities.
-    
+
     // Mock detected objects
     const detected: DetectedObject[] = [
       {
@@ -89,28 +89,28 @@ export const visionHandler: TraitHandler<VisionConfig> = {
         label: 'chair',
         confidence: 0.95,
         bbox: [100, 100, 50, 80],
-        distance: 2.5
+        distance: 2.5,
       },
       {
         id: 'obj_table_1',
         label: 'table',
         confidence: 0.88,
         bbox: [200, 150, 100, 50],
-        distance: 3.0
-      }
+        distance: 3.0,
+      },
     ];
 
-    context.emit?.('vision_scan_complete', { 
-      node, 
+    context.emit?.('vision_scan_complete', {
+      node,
       detected,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // Also emit individual detection events for reactive AI
-    detected.forEach(obj => {
+    detected.forEach((obj) => {
       context.emit?.('vision_object_detected', { node, object: obj });
     });
-  }
+  },
 };
 
 export default visionHandler;

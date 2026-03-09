@@ -123,9 +123,15 @@ describe('AnimClip — Production', () => {
   // ─── sample — step ────────────────────────────────────────────────
   it('sample with step interpolation returns previous keyframe', () => {
     clip.addTrack({
-      id: 't1', targetPath: 'root', property: 'vis', component: 'x',
+      id: 't1',
+      targetPath: 'root',
+      property: 'vis',
+      component: 'x',
       interpolation: 'step',
-      keyframes: [{ time: 0, value: 0 }, { time: 1, value: 1 }],
+      keyframes: [
+        { time: 0, value: 0 },
+        { time: 1, value: 1 },
+      ],
     });
     const result = clip.sample(0.5);
     expect(result.get('root.vis.x')).toBe(0); // step holds previous
@@ -134,8 +140,12 @@ describe('AnimClip — Production', () => {
   // ─── sample — empty track ─────────────────────────────────────────
   it('sample with empty keyframes returns 0', () => {
     clip.addTrack({
-      id: 'empty', targetPath: 'root', property: 'pos', component: 'y',
-      interpolation: 'linear', keyframes: [],
+      id: 'empty',
+      targetPath: 'root',
+      property: 'pos',
+      component: 'y',
+      interpolation: 'linear',
+      keyframes: [],
     });
     expect(clip.sample(0).get('root.pos.y')).toBe(0);
   });
@@ -180,8 +190,14 @@ describe('AnimClip — Production', () => {
 
   // ─── Static blend ────────────────────────────────────────────────
   it('AnimClip.blend interpolates between two maps', () => {
-    const a = new Map([['x', 0], ['y', 100]]);
-    const b = new Map([['x', 100], ['y', 0]]);
+    const a = new Map([
+      ['x', 0],
+      ['y', 100],
+    ]);
+    const b = new Map([
+      ['x', 100],
+      ['y', 0],
+    ]);
     const result = AnimClip.blend(a, b, 0.5);
     expect(result.get('x')).toBeCloseTo(50);
     expect(result.get('y')).toBeCloseTo(50);

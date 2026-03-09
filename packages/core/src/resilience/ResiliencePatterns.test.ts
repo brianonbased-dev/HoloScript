@@ -111,10 +111,7 @@ describe('Resilience Patterns', () => {
     });
 
     it('should retry on failure', async () => {
-      const fn = vi
-        .fn()
-        .mockRejectedValueOnce(new Error('fail'))
-        .mockResolvedValueOnce('success');
+      const fn = vi.fn().mockRejectedValueOnce(new Error('fail')).mockResolvedValueOnce('success');
 
       const result = await retryWithBackoff(fn, { maxAttempts: 3, initialBackoffMs: 10 });
 
@@ -171,10 +168,7 @@ describe('Resilience Patterns', () => {
         return 'ok';
       });
 
-      const results = await Promise.all([
-        bulkhead.execute(fn),
-        bulkhead.execute(fn),
-      ]);
+      const results = await Promise.all([bulkhead.execute(fn), bulkhead.execute(fn)]);
 
       expect(results).toHaveLength(2);
       expect(fn).toHaveBeenCalledTimes(2);

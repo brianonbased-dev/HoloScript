@@ -111,7 +111,7 @@ export class WebGPUContext {
 
       // Validate required features
       const missingFeatures = this.options.requiredFeatures!.filter(
-        feature => !this.features.has(feature)
+        (feature) => !this.features.has(feature)
       );
 
       if (missingFeatures.length > 0) {
@@ -275,7 +275,7 @@ export class WebGPUContext {
 
     // Attempt to reinitialize
     this.initialized = false;
-    this.initialize().catch(error => {
+    this.initialize().catch((error) => {
       console.error('Failed to reinitialize WebGPU device:', error);
 
       if (this.options.fallbackToCPU) {

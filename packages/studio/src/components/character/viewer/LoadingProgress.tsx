@@ -29,22 +29,22 @@ export function LoadingProgress({ progress, loadTime }: LoadingProgressProps) {
 
   const stageLabels: Record<LoadProgress['stage'], string> = {
     'cache-check': 'Checking cache...',
-    'downloading': 'Downloading model...',
-    'parsing': 'Parsing GLB...',
-    'skeleton': 'Extracting skeleton...',
-    'mesh': 'Optimizing meshes...',
-    'textures': 'Loading textures...',
-    'complete': 'Ready!',
+    downloading: 'Downloading model...',
+    parsing: 'Parsing GLB...',
+    skeleton: 'Extracting skeleton...',
+    mesh: 'Optimizing meshes...',
+    textures: 'Loading textures...',
+    complete: 'Ready!',
   };
 
   const stageEmoji: Record<LoadProgress['stage'], string> = {
     'cache-check': '🔍',
-    'downloading': '⬇️',
-    'parsing': '⚙️',
-    'skeleton': '🦴',
-    'mesh': '🎨',
-    'textures': '🖼️',
-    'complete': '✅',
+    downloading: '⬇️',
+    parsing: '⚙️',
+    skeleton: '🦴',
+    mesh: '🎨',
+    textures: '🖼️',
+    complete: '✅',
   };
 
   const isComplete = progress.stage === 'complete';
@@ -56,9 +56,7 @@ export function LoadingProgress({ progress, loadTime }: LoadingProgressProps) {
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-2xl">{stageEmoji[progress.stage]}</span>
-          <span className="text-sm font-semibold text-white">
-            {stageLabels[progress.stage]}
-          </span>
+          <span className="text-sm font-semibold text-white">{stageLabels[progress.stage]}</span>
         </div>
         {isComplete && isFast && (
           <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-xs font-bold text-green-400">
@@ -86,7 +84,8 @@ export function LoadingProgress({ progress, loadTime }: LoadingProgressProps) {
       {/* Download progress (if downloading) */}
       {progress.stage === 'downloading' && progress.bytesLoaded && progress.bytesTotal && (
         <div className="mt-2 text-xs text-gray-500">
-          {(progress.bytesLoaded / 1024).toFixed(0)} KB / {(progress.bytesTotal / 1024).toFixed(0)} KB
+          {(progress.bytesLoaded / 1024).toFixed(0)} KB / {(progress.bytesTotal / 1024).toFixed(0)}{' '}
+          KB
         </div>
       )}
 

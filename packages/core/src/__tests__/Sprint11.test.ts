@@ -71,15 +71,9 @@ import {
 // Feature 4 & 5: Runtime
 // ============================================================================
 
-import {
-  EventBus,
-  eventBus,
-} from '../../../runtime/src/events.js';
+import { EventBus, eventBus } from '../../../runtime/src/events.js';
 
-import {
-  createMemoryStorage,
-  StorageAdapter,
-} from '../../../runtime/src/storage.js';
+import { createMemoryStorage, StorageAdapter } from '../../../runtime/src/storage.js';
 
 // Feature 6 (Comparative Benchmarks) omitted — tinybench is not a dependency
 // of @holoscript/core; that package has its own test suite.
@@ -90,8 +84,7 @@ import {
 
 const TEMP_DIR = os.tmpdir();
 const uid = () => Math.random().toString(36).slice(2, 8);
-const tmpPath = (name: string) =>
-  pathJoin(TEMP_DIR, `sprint11-${name}-${uid()}`);
+const tmpPath = (name: string) => pathJoin(TEMP_DIR, `sprint11-${name}-${uid()}`);
 
 // ============================================================================
 // Feature 1A: Formatter — DEFAULT_CONFIG & construction
@@ -282,7 +275,11 @@ describe('Feature 3A: FS file read/write', () => {
   const cleanups: Array<() => Promise<void>> = [];
   afterEach(async () => {
     for (const fn of cleanups.splice(0)) {
-      try { await fn(); } catch { /* ignore */ }
+      try {
+        await fn();
+      } catch {
+        /* ignore */
+      }
     }
   });
 
@@ -365,7 +362,11 @@ describe('Feature 3B: FS directory operations', () => {
   const cleanups: Array<() => Promise<void>> = [];
   afterEach(async () => {
     for (const fn of cleanups.splice(0)) {
-      try { await fn(); } catch { /* ignore */ }
+      try {
+        await fn();
+      } catch {
+        /* ignore */
+      }
     }
   });
 
@@ -401,7 +402,10 @@ describe('Feature 3B: FS directory operations', () => {
   it('copy() duplicates a file', async () => {
     const src = tmpPath('cpsrc');
     const dst = tmpPath('cpdst');
-    cleanups.push(() => remove(src), () => remove(dst));
+    cleanups.push(
+      () => remove(src),
+      () => remove(dst)
+    );
     await writeText(src, 'copy-me');
     await copy(src, dst);
     expect(await readText(dst)).toBe('copy-me');
@@ -446,7 +450,9 @@ describe('Feature 3C: FS formatSize()', () => {
 
 describe('Feature 4: Runtime EventBus', () => {
   let bus: EventBus;
-  beforeEach(() => { bus = new EventBus(); });
+  beforeEach(() => {
+    bus = new EventBus();
+  });
 
   it('on() + emit() calls the listener with data', () => {
     const received: number[] = [];
@@ -534,7 +540,9 @@ describe('Feature 4: Runtime EventBus', () => {
 
   it('error in handler does not prevent other handlers from running', () => {
     const log: string[] = [];
-    bus.on('e', () => { throw new Error('boom'); });
+    bus.on('e', () => {
+      throw new Error('boom');
+    });
     bus.on('e', () => log.push('ok'));
     bus.emit('e');
     expect(log).toContain('ok');
@@ -542,7 +550,9 @@ describe('Feature 4: Runtime EventBus', () => {
 
   it('emit() with no data calls listeners with undefined', () => {
     let received: unknown = 'sentinel';
-    bus.on('e', (d) => { received = d; });
+    bus.on('e', (d) => {
+      received = d;
+    });
     bus.emit('e');
     expect(received).toBeUndefined();
   });
@@ -558,7 +568,9 @@ describe('Feature 4: Runtime EventBus', () => {
 
 describe('Feature 5: Runtime MemoryStorageAdapter', () => {
   let store: StorageAdapter;
-  beforeEach(() => { store = createMemoryStorage(); });
+  beforeEach(() => {
+    store = createMemoryStorage();
+  });
 
   it('get() returns null for missing key', async () => {
     const val = await store.get('missing');

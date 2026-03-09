@@ -7,7 +7,11 @@
  * @module social
  */
 
-import type { AvatarPersonality, AvatarTrackingSource, AvatarIKMode } from '../traits/AvatarEmbodimentTrait';
+import type {
+  AvatarPersonality,
+  AvatarTrackingSource,
+  AvatarIKMode,
+} from '../traits/AvatarEmbodimentTrait';
 
 // =============================================================================
 // TYPES

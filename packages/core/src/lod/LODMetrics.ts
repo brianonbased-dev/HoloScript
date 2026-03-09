@@ -79,7 +79,10 @@ export class LODPerformanceMetrics {
   /**
    * Update LOD level histogram
    */
-  updateHistogram(objectsPerLevel: Map<number, number>, trianglesPerLevel: Map<number, number>): void {
+  updateHistogram(
+    objectsPerLevel: Map<number, number>,
+    trianglesPerLevel: Map<number, number>
+  ): void {
     if (!this.enabled) return;
 
     this.histogram.clear();
@@ -98,7 +101,7 @@ export class LODPerformanceMetrics {
         objectCount: count,
         triangleCount: triangles,
         memoryBytes: 0, // Would be calculated from actual geometry
-        percentage
+        percentage,
       });
     }
   }
@@ -140,7 +143,7 @@ export class LODPerformanceMetrics {
       fromLevel,
       toLevel,
       costMs,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     this.transitionCosts.push(analysis);
@@ -167,7 +170,7 @@ export class LODPerformanceMetrics {
       return { average: 0, min: 0, max: 0, total: 0, count: 0 };
     }
 
-    const costs = this.transitionCosts.map(t => t.costMs);
+    const costs = this.transitionCosts.map((t) => t.costMs);
     const total = costs.reduce((sum, cost) => sum + cost, 0);
     const average = total / costs.length;
     const min = Math.min(...costs);
@@ -178,7 +181,7 @@ export class LODPerformanceMetrics {
       min,
       max,
       total,
-      count: costs.length
+      count: costs.length,
     };
   }
 
@@ -215,7 +218,7 @@ export class LODPerformanceMetrics {
       totalObjects,
       activeTransitions,
       memoryUsageMB,
-      averageLODLevel
+      averageLODLevel,
     };
 
     this.snapshots.push(snapshot);
@@ -270,7 +273,7 @@ export class LODPerformanceMetrics {
       frameTimeMs: avgFrameTime,
       lodSelectionTimeMs: totalSelectionTime / count,
       transitionTimeMs: totalTransitionTime / count,
-      fps: avgFrameTime > 0 ? 1000 / avgFrameTime : 0
+      fps: avgFrameTime > 0 ? 1000 / avgFrameTime : 0,
     };
   }
 
@@ -303,7 +306,7 @@ export class LODPerformanceMetrics {
         callCount: 0,
         averageMs: 0,
         minMs: duration,
-        maxMs: duration
+        maxMs: duration,
       };
       this.profilingData.set(name, data);
     }
@@ -362,8 +365,8 @@ export class LODPerformanceMetrics {
       counters: {
         totalTransitions: this.totalTransitions,
         totalSelections: this.totalSelections,
-        totalFrames: this.totalFrames
-      }
+        totalFrames: this.totalFrames,
+      },
     };
   }
 
@@ -403,9 +406,9 @@ Transition Costs:
 ${this.getFormattedHistogram()}
 
 Profiling Data:
-${this.getProfilingData().map(p =>
-  `  ${p.name}: ${p.averageMs.toFixed(2)} ms avg (${p.callCount} calls)`
-).join('\n')}
+${this.getProfilingData()
+  .map((p) => `  ${p.name}: ${p.averageMs.toFixed(2)} ms avg (${p.callCount} calls)`)
+  .join('\n')}
     `.trim();
   }
 

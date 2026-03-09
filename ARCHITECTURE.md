@@ -123,13 +123,13 @@ But HoloScript works without Hololand.
 
 ### Core Language
 
-| Package               | Purpose                                     | Version |
-| --------------------- | ------------------------------------------- | ------- |
+| Package               | Purpose                                                   | Version |
+| --------------------- | --------------------------------------------------------- | ------- |
 | `@holoscript/core`    | Parser, AST, validator, 18 compilers, 50+ runtime modules | v3.4.0  |
-| `@holoscript/runtime` | Browser runtime, 1,800+ traits, physics     | v3.4.0  |
-| `@holoscript/std`     | Standard library (types, math, collections) | v3.0.0  |
-| `@holoscript/fs`      | Filesystem utilities & file watching        | v3.0.0  |
-| `@holoscript/cli`     | Command-line tools (32+ commands)           | v3.0.0  |
+| `@holoscript/runtime` | Browser runtime, 1,800+ traits, physics                   | v3.4.0  |
+| `@holoscript/std`     | Standard library (types, math, collections)               | v3.0.0  |
+| `@holoscript/fs`      | Filesystem utilities & file watching                      | v3.0.0  |
+| `@holoscript/cli`     | Command-line tools (32+ commands)                         | v3.0.0  |
 
 ### Developer Tools
 
@@ -164,10 +164,10 @@ But HoloScript works without Hololand.
 
 ### Companion Repositories
 
-| Repository | Purpose | Version |
-| --- | --- | --- |
-| `holoscript-compiler` | Standalone `.hsplus` → USD compiler for robotics simulation (NVIDIA Isaac Sim). Lexer, parser, AST, USD code generator, CLI, and structured robot templates. | v0.1.0 |
-| `@holoscript/narupa-plugin` | Scientific plugin for VR drug discovery: Narupa process manager, multi-agent orchestrator, Unity VR target, database fetcher, Python bridge. | v1.2.0 |
+| Repository                  | Purpose                                                                                                                                                      | Version |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| `holoscript-compiler`       | Standalone `.hsplus` → USD compiler for robotics simulation (NVIDIA Isaac Sim). Lexer, parser, AST, USD code generator, CLI, and structured robot templates. | v0.1.0  |
+| `@holoscript/narupa-plugin` | Scientific plugin for VR drug discovery: Narupa process manager, multi-agent orchestrator, Unity VR target, database fetcher, Python bridge.                 | v1.2.0  |
 
 ## Data Flow
 

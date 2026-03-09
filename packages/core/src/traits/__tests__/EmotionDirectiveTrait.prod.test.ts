@@ -27,7 +27,11 @@ import {
   DEFAULT_EXPRESSION_PRESETS,
   DEFAULT_ANIMATION_MAP,
 } from '../EmotionDirectiveTrait';
-import type { ConditionalDirective, TriggeringDirective, EmotionTaggedResponse } from '../EmotionDirectiveTrait';
+import type {
+  ConditionalDirective,
+  TriggeringDirective,
+  EmotionTaggedResponse,
+} from '../EmotionDirectiveTrait';
 
 // ─── DEFAULT_EXPRESSION_PRESETS ───────────────────────────────────────────────
 
@@ -67,7 +71,21 @@ describe('DEFAULT_EXPRESSION_PRESETS', () => {
     }
   });
   it('includes neutral, happy, sad, angry, surprised, thinking, excited, empathetic, skeptical, amused, confused', () => {
-    const expected = ['neutral', 'happy', 'sad', 'angry', 'surprised', 'thinking', 'excited', 'empathetic', 'skeptical', 'amused', 'confused', 'disgusted', 'fearful'];
+    const expected = [
+      'neutral',
+      'happy',
+      'sad',
+      'angry',
+      'surprised',
+      'thinking',
+      'excited',
+      'empathetic',
+      'skeptical',
+      'amused',
+      'confused',
+      'disgusted',
+      'fearful',
+    ];
     for (const name of expected) {
       expect(DEFAULT_EXPRESSION_PRESETS).toHaveProperty(name);
     }
@@ -213,7 +231,9 @@ describe('EmotionDirectiveTrait — setConditionalState', () => {
   it('state-change event includes state name', () => {
     const t = new EmotionDirectiveTrait();
     let evtState: string | undefined;
-    t.on('state-change', e => { evtState = e.state; });
+    t.on('state-change', (e) => {
+      evtState = e.state;
+    });
     t.setConditionalState({ type: 'conditional', state: 'listening' });
     expect(evtState).toBe('listening');
   });
@@ -338,7 +358,9 @@ describe('EmotionDirectiveTrait — fireTrigger / consumeTrigger', () => {
   it('trigger-fire event includes action name', () => {
     const t = new EmotionDirectiveTrait();
     let evtTrigger: string | undefined;
-    t.on('trigger-fire', e => { evtTrigger = e.trigger; });
+    t.on('trigger-fire', (e) => {
+      evtTrigger = e.trigger;
+    });
     t.fireTrigger({ type: 'triggering', action: 'wave' });
     expect(evtTrigger).toBe('wave');
   });
@@ -458,7 +480,7 @@ describe('EmotionDirectiveTrait — processResponse / advanceSegment', () => {
     const t = new EmotionDirectiveTrait();
     t.processResponse({
       segments: [
-        { text: 'first', gestures: [] },              // no gestures in seg 0
+        { text: 'first', gestures: [] }, // no gestures in seg 0
         { text: 'second', gestures: ['nod', 'wave'] }, // 2 gestures in seg 1
       ],
     });
@@ -502,7 +524,9 @@ describe('EmotionDirectiveTrait — setMood / getMood', () => {
   it('mood-shift event includes mood name', () => {
     const t = new EmotionDirectiveTrait();
     let evtMood: string | undefined;
-    t.on('mood-shift', e => { evtMood = e.mood; });
+    t.on('mood-shift', (e) => {
+      evtMood = e.mood;
+    });
     t.setMood('excited');
     expect(evtMood).toBe('excited');
   });
@@ -621,7 +645,8 @@ describe('EmotionDirectiveTrait — on/off events', () => {
   });
   it('multiple listeners on same event all fire', () => {
     const t = new EmotionDirectiveTrait();
-    const cb1 = vi.fn(); const cb2 = vi.fn();
+    const cb1 = vi.fn();
+    const cb2 = vi.fn();
     t.on('expression-change', cb1);
     t.on('expression-change', cb2);
     t.setExpression('happy');
@@ -630,7 +655,9 @@ describe('EmotionDirectiveTrait — on/off events', () => {
   });
   it('listener error is caught and does not stop other listeners', () => {
     const t = new EmotionDirectiveTrait();
-    const bad = vi.fn(() => { throw new Error('boom'); });
+    const bad = vi.fn(() => {
+      throw new Error('boom');
+    });
     const good = vi.fn();
     t.on('expression-change', bad);
     t.on('expression-change', good);

@@ -37,6 +37,7 @@ npm run dev
 ## 📁 Directory Structure
 
 ### General Examples (`general/`)
+
 **Universal VR/AR examples showcasing HoloScript's broad applicability:**
 
 - **[vr-training-simulation/](general/vr-training-simulation/)** - Corporate training scenario
@@ -56,7 +57,9 @@ npm run dev
   - Use case: Gaming, entertainment
 
 ### Platform-Specific (`platforms/`)
+
 **Examples targeting specific platforms:**
+
 - Unity integration examples
 - Unreal Engine examples
 - Godot examples
@@ -64,6 +67,7 @@ npm run dev
 - VRChat world examples
 
 ### Specialized Domains (`specialized/`)
+
 **Advanced examples for specific industries and platforms:**
 
 - **[robotics/](specialized/robotics/)** - Industrial robot simulation (UR5)
@@ -89,6 +93,7 @@ npm run dev
 ## 🚀 Quick Start
 
 ### 1. Choose an Example
+
 Pick an example based on your use case:
 
 ```bash
@@ -119,6 +124,7 @@ holoscript compile example.holo --target unreal --output output/
 ```
 
 ### 3. Run the Output
+
 Each example includes platform-specific instructions in its README.
 
 ## 📚 Learning Path
@@ -135,21 +141,25 @@ Each example includes platform-specific instructions in its README.
 ## 🎯 Examples by Use Case
 
 ### Corporate/Enterprise
+
 - ✅ VR Training Simulation - Employee onboarding, safety training
 - ✅ Virtual Meeting Room - Remote collaboration
 - ✅ Product Visualization - Design reviews, prototyping
 
 ### E-Commerce/Retail
+
 - ✅ AR Furniture Preview - "Try before you buy"
 - ✅ Virtual Showroom - Product browsing in VR
 - ✅ AR Product Viewer - Scan packaging for 3D preview
 
 ### Education/Culture
+
 - ✅ Virtual Art Gallery - Museum experiences
 - ✅ Historical Reconstruction - Educational VR
 - ✅ Science Visualization - Interactive learning
 
 ### Entertainment/Gaming
+
 - ✅ VR Game Demo - Basic game mechanics
 - ✅ Multiplayer Arena - Networked gameplay
 - ✅ Social VR World - VRChat/Rec Room integration
@@ -215,6 +225,7 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for details.
 ## 🌐 Community Examples
 
 Find more examples from the community:
+
 - [HoloScript Gallery](https://holoscript.net/gallery)
 - [Community Showcase](https://github.com/holoscript/awesome-holoscript)
 - [Discord Examples Channel](https://discord.gg/holoscript)

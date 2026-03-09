@@ -248,7 +248,7 @@ describe('URDFToUSDZConverter', () => {
 
     it('should parse joint types correctly', () => {
       const model = converter.parseURDF(MULTI_JOINT_URDF);
-      const types = model.joints.map(j => j.type);
+      const types = model.joints.map((j) => j.type);
       expect(types).toContain('revolute');
       expect(types).toContain('continuous');
       expect(types).toContain('fixed');
@@ -256,7 +256,7 @@ describe('URDFToUSDZConverter', () => {
 
     it('should parse joint parent-child relationships', () => {
       const model = converter.parseURDF(MULTI_JOINT_URDF);
-      const shoulderJoint = model.joints.find(j => j.name === 'shoulder_joint');
+      const shoulderJoint = model.joints.find((j) => j.name === 'shoulder_joint');
       expect(shoulderJoint).toBeDefined();
       expect(shoulderJoint!.parent).toBe('base_link');
       expect(shoulderJoint!.child).toBe('shoulder_link');
@@ -264,7 +264,7 @@ describe('URDFToUSDZConverter', () => {
 
     it('should parse joint origin (xyz + rpy)', () => {
       const model = converter.parseURDF(MULTI_JOINT_URDF);
-      const shoulderJoint = model.joints.find(j => j.name === 'shoulder_joint');
+      const shoulderJoint = model.joints.find((j) => j.name === 'shoulder_joint');
       expect(shoulderJoint!.origin).toBeDefined();
       expect(shoulderJoint!.origin!.xyz).toEqual([0, 0, 0.05]);
       expect(shoulderJoint!.origin!.rpy).toEqual([0, 0, 0]);
@@ -272,13 +272,13 @@ describe('URDFToUSDZConverter', () => {
 
     it('should parse joint axis', () => {
       const model = converter.parseURDF(MULTI_JOINT_URDF);
-      const shoulderJoint = model.joints.find(j => j.name === 'shoulder_joint');
+      const shoulderJoint = model.joints.find((j) => j.name === 'shoulder_joint');
       expect(shoulderJoint!.axis).toEqual([0, 1, 0]);
     });
 
     it('should parse joint limits', () => {
       const model = converter.parseURDF(MULTI_JOINT_URDF);
-      const shoulderJoint = model.joints.find(j => j.name === 'shoulder_joint');
+      const shoulderJoint = model.joints.find((j) => j.name === 'shoulder_joint');
       expect(shoulderJoint!.limits).toBeDefined();
       expect(shoulderJoint!.limits!.lower).toBe(-1.57);
       expect(shoulderJoint!.limits!.upper).toBe(1.57);
@@ -288,7 +288,7 @@ describe('URDFToUSDZConverter', () => {
 
     it('should parse joint dynamics (damping + friction)', () => {
       const model = converter.parseURDF(MULTI_JOINT_URDF);
-      const shoulderJoint = model.joints.find(j => j.name === 'shoulder_joint');
+      const shoulderJoint = model.joints.find((j) => j.name === 'shoulder_joint');
       expect(shoulderJoint!.dynamics).toBeDefined();
       expect(shoulderJoint!.dynamics!.damping).toBe(0.5);
       expect(shoulderJoint!.dynamics!.friction).toBe(0.1);
@@ -296,7 +296,7 @@ describe('URDFToUSDZConverter', () => {
 
     it('should parse collision geometry', () => {
       const model = converter.parseURDF(MULTI_JOINT_URDF);
-      const baseLink = model.links.find(l => l.name === 'base_link');
+      const baseLink = model.links.find((l) => l.name === 'base_link');
       expect(baseLink!.collision).toBeDefined();
       expect(baseLink!.collision!.geometry.type).toBe('box');
       expect(baseLink!.collision!.geometry.size).toEqual([0.4, 0.4, 0.1]);
@@ -304,7 +304,7 @@ describe('URDFToUSDZConverter', () => {
 
     it('should parse inertial properties', () => {
       const model = converter.parseURDF(MULTI_JOINT_URDF);
-      const baseLink = model.links.find(l => l.name === 'base_link');
+      const baseLink = model.links.find((l) => l.name === 'base_link');
       expect(baseLink!.inertial).toBeDefined();
       expect(baseLink!.inertial!.mass).toBe(5.0);
       expect(baseLink!.inertial!.inertia.ixx).toBe(0.01);
@@ -314,14 +314,14 @@ describe('URDFToUSDZConverter', () => {
 
     it('should parse sphere geometry', () => {
       const model = converter.parseURDF(MULTI_JOINT_URDF);
-      const elbowLink = model.links.find(l => l.name === 'elbow_link');
+      const elbowLink = model.links.find((l) => l.name === 'elbow_link');
       expect(elbowLink!.visual!.geometry.type).toBe('sphere');
       expect(elbowLink!.visual!.geometry.radius).toBe(0.04);
     });
 
     it('should parse cylinder geometry', () => {
       const model = converter.parseURDF(MULTI_JOINT_URDF);
-      const shoulderLink = model.links.find(l => l.name === 'shoulder_link');
+      const shoulderLink = model.links.find((l) => l.name === 'shoulder_link');
       expect(shoulderLink!.visual!.geometry.type).toBe('cylinder');
       expect(shoulderLink!.visual!.geometry.radius).toBe(0.05);
       expect(shoulderLink!.visual!.geometry.length).toBe(0.3);
@@ -329,21 +329,21 @@ describe('URDFToUSDZConverter', () => {
 
     it('should parse visual origin transforms', () => {
       const model = converter.parseURDF(MULTI_JOINT_URDF);
-      const shoulderLink = model.links.find(l => l.name === 'shoulder_link');
+      const shoulderLink = model.links.find((l) => l.name === 'shoulder_link');
       expect(shoulderLink!.visual!.origin).toBeDefined();
       expect(shoulderLink!.visual!.origin!.xyz).toEqual([0, 0, 0.1]);
     });
 
     it('should parse empty/self-closing links', () => {
       const model = converter.parseURDF(MULTI_JOINT_URDF);
-      const gripperLink = model.links.find(l => l.name === 'gripper_link');
+      const gripperLink = model.links.find((l) => l.name === 'gripper_link');
       expect(gripperLink).toBeDefined();
       expect(gripperLink!.visual).toBeUndefined();
     });
 
     it('should parse mesh geometry with filename and scale', () => {
       const model = converter.parseURDF(MESH_URDF);
-      const baseLink = model.links.find(l => l.name === 'base_link');
+      const baseLink = model.links.find((l) => l.name === 'base_link');
       expect(baseLink!.visual!.geometry.type).toBe('mesh');
       expect(baseLink!.visual!.geometry.filename).toContain('base.stl');
       expect(baseLink!.visual!.geometry.scale).toEqual([0.001, 0.001, 0.001]);
@@ -351,7 +351,7 @@ describe('URDFToUSDZConverter', () => {
 
     it('should parse mesh geometry without scale', () => {
       const model = converter.parseURDF(MESH_URDF);
-      const armLink = model.links.find(l => l.name === 'arm_link');
+      const armLink = model.links.find((l) => l.name === 'arm_link');
       expect(armLink!.visual!.geometry.type).toBe('mesh');
       expect(armLink!.visual!.geometry.filename).toContain('arm.dae');
       expect(armLink!.visual!.geometry.scale).toBeUndefined();
@@ -359,7 +359,7 @@ describe('URDFToUSDZConverter', () => {
 
     it('should parse prismatic joints', () => {
       const model = converter.parseURDF(MESH_URDF);
-      const joint = model.joints.find(j => j.name === 'base_to_arm');
+      const joint = model.joints.find((j) => j.name === 'base_to_arm');
       expect(joint).toBeDefined();
       expect(joint!.type).toBe('prismatic');
       expect(joint!.limits).toBeDefined();
@@ -398,7 +398,7 @@ describe('URDFToUSDZConverter', () => {
 
     it('should parse inline material definitions in visual elements', () => {
       const model = converter.parseURDF(INLINE_MATERIAL_URDF);
-      const baseLink = model.links.find(l => l.name === 'base_link');
+      const baseLink = model.links.find((l) => l.name === 'base_link');
       expect(baseLink!.visual!.material).toBeDefined();
       expect(baseLink!.visual!.material!.name).toBe('custom_green');
       expect(baseLink!.visual!.material!.color!.g).toBe(0.8);
@@ -406,7 +406,7 @@ describe('URDFToUSDZConverter', () => {
 
     it('should resolve material references to global definitions', () => {
       const model = converter.parseURDF(URDF_WITH_MATERIALS);
-      const baseLink = model.links.find(l => l.name === 'base_link');
+      const baseLink = model.links.find((l) => l.name === 'base_link');
       expect(baseLink!.visual!.material).toBeDefined();
       expect(baseLink!.visual!.material!.name).toBe('red_material');
       // Should carry the color from the global definition
@@ -422,7 +422,7 @@ describe('URDFToUSDZConverter', () => {
 
     it('should parse inline material with color from visual element', () => {
       const model = converter.parseURDF(MESH_URDF);
-      const baseLink = model.links.find(l => l.name === 'base_link');
+      const baseLink = model.links.find((l) => l.name === 'base_link');
       expect(baseLink!.visual!.material).toBeDefined();
       expect(baseLink!.visual!.material!.name).toBe('steel');
       expect(baseLink!.visual!.material!.color!.r).toBeCloseTo(0.7, 1);
@@ -607,8 +607,8 @@ describe('URDFToUSDZConverter', () => {
     it('should identify root link (not child of any joint)', () => {
       const model = converter.parseURDF(MULTI_JOINT_URDF);
       // base_link is the root (not a child of any joint)
-      const childNames = new Set(model.joints.map(j => j.child));
-      const rootLinks = model.links.filter(l => !childNames.has(l.name));
+      const childNames = new Set(model.joints.map((j) => j.child));
+      const rootLinks = model.links.filter((l) => !childNames.has(l.name));
       expect(rootLinks.length).toBe(1);
       expect(rootLinks[0].name).toBe('base_link');
     });
@@ -758,9 +758,7 @@ describe('URDFToUSDZConverter', () => {
     });
 
     it('should throw on XML without <robot> element', () => {
-      expect(() => converter.compile('<html><body>Not URDF</body></html>')).toThrow(
-        '<robot>'
-      );
+      expect(() => converter.compile('<html><body>Not URDF</body></html>')).toThrow('<robot>');
     });
 
     it('should handle URDF with no links gracefully', () => {
@@ -992,7 +990,9 @@ describe('URDFRobotTrait', () => {
       const trait = new URDFRobotTrait();
       let receivedEvent: any = null;
 
-      trait.on('urdf_loaded', (e) => { receivedEvent = e; });
+      trait.on('urdf_loaded', (e) => {
+        receivedEvent = e;
+      });
       trait.setLoadedState('Robot', 3, 2, ['j1']);
 
       expect(receivedEvent).toBeDefined();
@@ -1007,7 +1007,9 @@ describe('URDFRobotTrait', () => {
       trait.setLoadedState('Robot', 2, 1, ['j1']);
       let receivedEvent: any = null;
 
-      trait.on('joint_change', (e) => { receivedEvent = e; });
+      trait.on('joint_change', (e) => {
+        receivedEvent = e;
+      });
       trait.setJointPosition('j1', 0.5);
 
       expect(receivedEvent).toBeDefined();
@@ -1020,7 +1022,9 @@ describe('URDFRobotTrait', () => {
       const trait = new URDFRobotTrait();
       let receivedEvent: any = null;
 
-      trait.on('urdf_error', (e) => { receivedEvent = e; });
+      trait.on('urdf_error', (e) => {
+        receivedEvent = e;
+      });
       trait.setError('Parse failure');
 
       expect(receivedEvent).toBeDefined();
@@ -1032,7 +1036,9 @@ describe('URDFRobotTrait', () => {
       const trait = new URDFRobotTrait();
       let receivedEvent: any = null;
 
-      trait.on('usdz_generated', (e) => { receivedEvent = e; });
+      trait.on('usdz_generated', (e) => {
+        receivedEvent = e;
+      });
       trait.setCachedUSDA('test content');
 
       expect(receivedEvent).toBeDefined();
@@ -1044,7 +1050,9 @@ describe('URDFRobotTrait', () => {
       const trait = new URDFRobotTrait();
       const events: string[] = [];
 
-      trait.on('*', (e) => { events.push(e.type); });
+      trait.on('*', (e) => {
+        events.push(e.type);
+      });
       trait.setLoadedState('Robot', 1, 0, []);
       trait.setCachedUSDA('usda');
 
@@ -1056,7 +1064,9 @@ describe('URDFRobotTrait', () => {
       const trait = new URDFRobotTrait();
       let callCount = 0;
 
-      const handler = () => { callCount++; };
+      const handler = () => {
+        callCount++;
+      };
       trait.on('urdf_loaded', handler);
       trait.setLoadedState('Robot', 1, 0, []);
       expect(callCount).toBe(1);

@@ -175,7 +175,7 @@ export class BrainServerClient {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: this.config.model,
-          requests: batch.map(req => ({
+          requests: batch.map((req) => ({
             agent_id: req.agentId,
             context: req.context,
           })),
@@ -189,7 +189,9 @@ export class BrainServerClient {
         throw new Error(`Brain Server returned ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json() as { results?: Array<{ agent_id: string; output: Record<string, unknown> }> };
+      const data = (await response.json()) as {
+        results?: Array<{ agent_id: string; output: Record<string, unknown> }>;
+      };
 
       return (data.results ?? []).map((result, idx) => ({
         agentId: result.agent_id ?? batch[idx]?.agentId ?? 'unknown',

@@ -19,14 +19,29 @@ export interface ConstantNodeData {
 export interface MathNodeData {
   type: 'math';
   label: string;
-  op: 'add' | 'sub' | 'mul' | 'div' | 'pow' | 'sin' | 'cos' | 'max' | 'min' | 'mix' | 'dot' | 'length'
-    | 'voronoi' | 'gradient' | 'fract' | 'smoothstep';
+  op:
+    | 'add'
+    | 'sub'
+    | 'mul'
+    | 'div'
+    | 'pow'
+    | 'sin'
+    | 'cos'
+    | 'max'
+    | 'min'
+    | 'mix'
+    | 'dot'
+    | 'length'
+    | 'voronoi'
+    | 'gradient'
+    | 'fract'
+    | 'smoothstep';
 }
 
 export interface TextureNodeData {
   type: 'texture';
   label: string;
-  uniformName: string;  // e.g. uTexture0
+  uniformName: string; // e.g. uTexture0
 }
 
 export interface UVNodeData {
@@ -88,7 +103,7 @@ const DEFAULT_NODES: GNode[] = [
 
 const DEFAULT_EDGES: GEdge[] = [
   { id: 'e-time-sin', source: 'time', target: 'sin', sourceHandle: 'out', targetHandle: 'a' },
-  { id: 'e-sin-out',  source: 'sin',  target: 'out',  sourceHandle: 'out', targetHandle: 'rgb' },
+  { id: 'e-sin-out', source: 'sin', target: 'out', sourceHandle: 'out', targetHandle: 'rgb' },
 ];
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -120,6 +135,5 @@ export const useNodeGraphStore = create<NodeGraphState>((set) => ({
 
   setCompiledGLSL: (compiledGLSL) => set({ compiledGLSL }),
 
-  reset: () =>
-    set({ nodes: DEFAULT_NODES, edges: DEFAULT_EDGES, compiledGLSL: '' }),
+  reset: () => set({ nodes: DEFAULT_NODES, edges: DEFAULT_EDGES, compiledGLSL: '' }),
 }));

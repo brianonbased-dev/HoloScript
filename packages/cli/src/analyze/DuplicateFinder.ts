@@ -64,7 +64,9 @@ export class DuplicateFinder {
     const lines: string[] = [`Found ${groups.length} duplicate group(s):`];
     for (const g of groups) {
       lines.push(`  Files: ${g.paths.join(', ')}`);
-      lines.push(`  Wasted: ${g.wastedBytes} bytes (${g.sizePerCopy} bytes × ${g.paths.length - 1} extra)`);
+      lines.push(
+        `  Wasted: ${g.wastedBytes} bytes (${g.sizePerCopy} bytes × ${g.paths.length - 1} extra)`
+      );
     }
     return lines.join('\n');
   }

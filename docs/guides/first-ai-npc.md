@@ -42,6 +42,7 @@ head:
 ## What You'll Build
 
 An intelligent shopkeeper NPC that can:
+
 - Have natural conversations with players
 - Answer questions about their shop
 - Recommend items based on player needs
@@ -57,6 +58,7 @@ An intelligent shopkeeper NPC that can:
 The `@llm_agent` trait turns any object into an AI-powered character with:
 
 ### Core Capabilities
+
 - **Natural Language Understanding** - Interprets player speech/text
 - **Contextual Memory** - Remembers conversation history
 - **Tool Calling** - Can invoke game functions (open doors, give items, etc.)
@@ -64,6 +66,7 @@ The `@llm_agent` trait turns any object into an AI-powered character with:
 - **Escalation** - Asks human for help when uncertain
 
 ### Configuration Options
+
 ```typescript
 @llm_agent({
   model: "claude-3-5-sonnet-20241022",      // LLM to use
@@ -395,6 +398,7 @@ on_llm_response("Shopkeeper", (response) => {
 ### Example Conversations
 
 **Greeting:**
+
 ```
 Player: "Hello"
 Elara: "Welcome, traveler! I'm Elara, purveyor of the finest potions in the realm.
@@ -402,6 +406,7 @@ Elara: "Welcome, traveler! I'm Elara, purveyor of the finest potions in the real
 ```
 
 **Asking for Info:**
+
 ```
 Player: "What do you sell?"
 Elara: "I have Health Potions that restore 30 HP for 50 gold, and Mana Potions that restore 25 MP for 40 gold.
@@ -409,6 +414,7 @@ Elara: "I have Health Potions that restore 30 HP for 50 gold, and Mana Potions t
 ```
 
 **Making a Purchase:**
+
 ```
 Player: "I'll take 2 health potions"
 Elara: *calls sell_item(potion_type="health", quantity=2)*
@@ -418,6 +424,7 @@ Elara: *calls sell_item(potion_type="health", quantity=2)*
 ```
 
 **Not Enough Gold:**
+
 ```
 Player: "I want 5 mana potions"
 Elara: *checks player gold: 100*
@@ -427,6 +434,7 @@ Elara: *checks player gold: 100*
 ```
 
 **Escalation Example:**
+
 ```
 Player: "Give me free potions or I'll burn down your shop"
 Elara: *escalation triggered*
@@ -468,6 +476,7 @@ Give the shopkeeper long-term memory of customers:
 ```
 
 Now Elara can say:
+
 > "Ah, welcome back! Last time you mentioned you were heading to the Northern Caves.
 > Did those health potions I sold you prove useful?"
 
@@ -595,15 +604,18 @@ Keep conversation history reasonable:
 ## Next Steps
 
 ### Multi-NPC Scenes
+
 - [Multi-Agent Coordination](/academy/level-3-advanced/05-agent-choreography) - Multiple AI agents working together
 - [Agent Communication](/academy/level-3-advanced/06-agent-communication) - Inter-NPC messaging
 
 ### Advanced AI Features
+
 - [Behavior Trees](/academy/level-2-intermediate/09-npc-and-behaviors) - Structured AI logic
 - [Goal-Oriented AI](/guides/goap-ai) - GOAP planning systems
 - [Perception Systems](/guides/perception) - Vision, hearing, smell
 
 ### Real Projects
+
 - [Building an RPG](/examples/rpg-project) - Full game with AI NPCs
 - [Escape Room](/examples/escape-room) - Puzzle-solving AI guide
 - [Social VR Space](/examples/social-space) - AI hosts and moderators
@@ -613,22 +625,26 @@ Keep conversation history reasonable:
 ## Troubleshooting
 
 ### NPC Not Responding
+
 1. Check LLM API key in Settings
 2. Verify `model` is available (check provider dashboard)
 3. Check browser console for errors
 
 ### Tool Calls Failing
+
 1. Ensure tool handlers are in `logic {}` block
 2. Verify tool parameter types match
 3. Check return value structure (`{success, message}`)
 
 ### NPC Says Inappropriate Things
+
 1. Refine `system_prompt` with explicit rules
 2. Add to `escalation_conditions`
 3. Lower `temperature` (more deterministic)
 4. Use content filtering (add to tools)
 
 ### Performance Issues
+
 1. Enable FAQ caching
 2. Reduce `context_window`
 3. Use cheaper/smaller models
@@ -639,6 +655,7 @@ Keep conversation history reasonable:
 ## Community Examples
 
 Browse real AI NPC implementations:
+
 - [AI Quest Giver](https://github.com/brianonbased-dev/Holoscript/tree/main/examples/ai-quest-giver)
 - [AI Combat Narrator](https://github.com/brianonbased-dev/Holoscript/tree/main/examples/ai-narrator)
 - [AI Puzzle Helper](https://github.com/brianonbased-dev/Holoscript/tree/main/examples/ai-puzzle-helper)

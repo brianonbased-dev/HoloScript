@@ -79,15 +79,23 @@ describe('MCPMeBillingBridge', () => {
   describe('getCatalog', () => {
     it('returns cached data on subsequent calls', async () => {
       const mockResponse = {
-        services: [{ id: 'svc-1', name: 'Test', description: 'test', tier: 'free', tools: [], computeMultiplier: 1 }],
+        services: [
+          {
+            id: 'svc-1',
+            name: 'Test',
+            description: 'test',
+            tier: 'free',
+            tools: [],
+            computeMultiplier: 1,
+          },
+        ],
         plans: [{ tier: 'free', name: 'Free', price: 0, features: ['basic'] }],
       };
 
-      const fetchSpy = vi.spyOn(globalThis, 'fetch')
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => mockResponse,
-        } as Response);
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
 
       const result1 = await bridge.getCatalog();
       const result2 = await bridge.getCatalog();
@@ -109,11 +117,10 @@ describe('MCPMeBillingBridge', () => {
 
   describe('searchAgents', () => {
     it('calls correct endpoint with query params', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch')
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ templates: [], total: 0 }),
-        } as Response);
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ templates: [], total: 0 }),
+      } as Response);
 
       await bridge.searchAgents({ query: 'guard', category: 'security', sort: 'popular' });
 
@@ -128,14 +135,13 @@ describe('MCPMeBillingBridge', () => {
 
   describe('installAgent', () => {
     it('blocks install if user tier is below required', async () => {
-      vi.spyOn(globalThis, 'fetch')
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            template: { id: 'a1', name: 'Pro Agent', tier: 'pro' },
-            reviews: [],
-          }),
-        } as Response);
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          template: { id: 'a1', name: 'Pro Agent', tier: 'pro' },
+          reviews: [],
+        }),
+      } as Response);
 
       const result = await bridge.installAgent('a1', 'free');
 

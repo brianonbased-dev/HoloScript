@@ -57,7 +57,10 @@ describe('GrabbableTrait.onUpdate — single-hand grab', () => {
     const hand = makeHand(0.95, { x: 0.05, y: 0, z: 0 }); // dist < 0.1
     const ctx = makeCtx(null, hand);
     t.onUpdate(node, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('physics_grab', expect.objectContaining({ nodeId: 'grab_node', hand: 'right' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'physics_grab',
+      expect.objectContaining({ nodeId: 'grab_node', hand: 'right' })
+    );
   });
 
   it('emits physics_grab when left hand is within range and pinching', () => {
@@ -66,7 +69,10 @@ describe('GrabbableTrait.onUpdate — single-hand grab', () => {
     const hand = makeHand(0.95, { x: 0.02, y: 0, z: 0 });
     const ctx = makeCtx(hand, null);
     t.onUpdate(node, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('physics_grab', expect.objectContaining({ hand: 'left' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'physics_grab',
+      expect.objectContaining({ hand: 'left' })
+    );
   });
 
   it('does NOT grab when hand is too far (dist >= 0.1)', () => {
@@ -95,7 +101,10 @@ describe('GrabbableTrait.onUpdate — single-hand grab', () => {
     t.onUpdate(node, ctx as any, 0.016); // first grab
     ctx.emit.mockClear();
     t.onUpdate(node, ctx as any, 0.016); // should not re-emit
-    expect(ctx.emit).not.toHaveBeenCalledWith('physics_grab', expect.objectContaining({ hand: 'right' }));
+    expect(ctx.emit).not.toHaveBeenCalledWith(
+      'physics_grab',
+      expect.objectContaining({ hand: 'right' })
+    );
   });
 });
 
@@ -115,7 +124,10 @@ describe('GrabbableTrait.onUpdate — release', () => {
     hand.pinchStrength = 0.3;
     const ctxRelease = makeCtx(null, hand);
     t.onUpdate(node, ctxRelease as any, 0.016);
-    expect(ctxRelease.emit).toHaveBeenCalledWith('physics_release', expect.objectContaining({ nodeId: 'grab_node' }));
+    expect(ctxRelease.emit).toHaveBeenCalledWith(
+      'physics_release',
+      expect.objectContaining({ nodeId: 'grab_node' })
+    );
   });
 
   it('includes velocity in physics_release payload', () => {
@@ -149,7 +161,7 @@ describe('GrabbableTrait.onUpdate — release', () => {
     t.onUpdate(node, ctxR as any, 0.016);
     const releaseCall = ctxR.emit.mock.calls.find((c: any[]) => c[0] === 'physics_release');
     const vel = releaseCall[1].velocity as number[];
-    vel.forEach(v => {
+    vel.forEach((v) => {
       expect(Math.abs(v)).toBeLessThanOrEqual(20);
     });
   });
@@ -172,7 +184,10 @@ describe('GrabbableTrait.onUpdate — two-hand grab', () => {
     const ctx2 = makeCtx(leftHand, rightHand);
     ctx2.emit.mockClear();
     t.onUpdate(node, ctx2 as any, 0.016);
-    expect(ctx2.emit).toHaveBeenCalledWith('physics_release', expect.objectContaining({ nodeId: 'grab_node' }));
+    expect(ctx2.emit).toHaveBeenCalledWith(
+      'physics_release',
+      expect.objectContaining({ nodeId: 'grab_node' })
+    );
   });
 
   it('scales object proportionally as hands move apart', () => {
@@ -231,7 +246,10 @@ describe('GrabbableTrait.onDetach', () => {
 
     const ctxDetach = makeCtx();
     t.onDetach(node, ctxDetach as any);
-    expect(ctxDetach.emit).toHaveBeenCalledWith('physics_release', expect.objectContaining({ nodeId: 'grab_node' }));
+    expect(ctxDetach.emit).toHaveBeenCalledWith(
+      'physics_release',
+      expect.objectContaining({ nodeId: 'grab_node' })
+    );
   });
 
   it('does NOT emit physics_release when nothing is grabbed', () => {

@@ -26,7 +26,7 @@ function makeTrackedCmd(name: string) {
   const cmd = makeCmd(
     name,
     () => log.push('exec'),
-    () => log.push('undo'),
+    () => log.push('undo')
   );
   return { cmd, log };
 }
@@ -106,7 +106,7 @@ describe('CommandBuffer: production', () => {
       buffer.execute(cmd);
       buffer.undo();
       buffer.redo();
-      expect(log.filter(l => l === 'exec').length).toBe(2);
+      expect(log.filter((l) => l === 'exec').length).toBe(2);
     });
 
     it('moves command back to undo stack', () => {
@@ -144,10 +144,7 @@ describe('CommandBuffer: production', () => {
   describe('executeBatch', () => {
     it('executes all commands in the batch', () => {
       const logs: string[] = [];
-      buffer.executeBatch([
-        makeCmd('a', () => logs.push('a')),
-        makeCmd('b', () => logs.push('b')),
-      ]);
+      buffer.executeBatch([makeCmd('a', () => logs.push('a')), makeCmd('b', () => logs.push('b'))]);
       expect(logs).toEqual(['a', 'b']);
     });
 

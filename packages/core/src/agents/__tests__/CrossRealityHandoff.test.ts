@@ -4,12 +4,29 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  negotiateHandoff, createMVCPayload, validatePayloadBudget, estimatePayloadSize,
-  DeviceCapabilities, DecisionEntry, TaskState, UserPreferences, SpatialContext, EvidenceEntry,
+  negotiateHandoff,
+  createMVCPayload,
+  validatePayloadBudget,
+  estimatePayloadSize,
+  DeviceCapabilities,
+  DecisionEntry,
+  TaskState,
+  UserPreferences,
+  SpatialContext,
+  EvidenceEntry,
 } from '../CrossRealityHandoff';
 import {
-  signOperation, verifyOperation, LWWRegister, GCounter, ORSet,
-  createAgentState, setRegister, getRegister, incrementCounter, getCounter, mergeStates,
+  signOperation,
+  verifyOperation,
+  LWWRegister,
+  GCounter,
+  ORSet,
+  createAgentState,
+  setRegister,
+  getRegister,
+  incrementCounter,
+  getCounter,
+  mergeStates,
   DID,
 } from '../AuthenticatedCRDT';
 import { PLATFORM_CAPABILITIES } from '../../compiler/platform/PlatformConditional';
@@ -17,52 +34,73 @@ import { PLATFORM_CAPABILITIES } from '../../compiler/platform/PlatformCondition
 // ── Test Fixtures ──────────────────────────────────────────────────────────
 
 const questDevice: DeviceCapabilities = {
-  deviceId: 'quest-001', platform: 'quest3',
+  deviceId: 'quest-001',
+  platform: 'quest3',
   capabilities: PLATFORM_CAPABILITIES['quest3'],
-  embodiment: 'Avatar3D', available: true,
+  embodiment: 'Avatar3D',
+  available: true,
 };
 
 const phoneDevice: DeviceCapabilities = {
-  deviceId: 'phone-001', platform: 'android',
+  deviceId: 'phone-001',
+  platform: 'android',
   capabilities: PLATFORM_CAPABILITIES['android'],
-  embodiment: 'UI2D', available: true,
+  embodiment: 'UI2D',
+  available: true,
 };
 
 const carDevice: DeviceCapabilities = {
-  deviceId: 'car-001', platform: 'android-auto',
+  deviceId: 'car-001',
+  platform: 'android-auto',
   capabilities: PLATFORM_CAPABILITIES['android-auto'],
-  embodiment: 'VoiceHUD', available: true,
+  embodiment: 'VoiceHUD',
+  available: true,
 };
 
 const testDID: DID = {
-  id: 'did:key:z6MkTest', deviceId: 'device-001',
-  scope: ['*'], revoked: false,
+  id: 'did:key:z6MkTest',
+  deviceId: 'device-001',
+  scope: ['*'],
+  revoked: false,
 };
 
 const revokedDID: DID = {
-  id: 'did:key:z6MkRevoked', deviceId: 'device-002',
-  scope: ['*'], revoked: true,
+  id: 'did:key:z6MkRevoked',
+  deviceId: 'device-002',
+  scope: ['*'],
+  revoked: true,
 };
 
 const scopedDID: DID = {
-  id: 'did:key:z6MkScoped', deviceId: 'device-003',
-  scope: ['state:task', 'state:preferences'], revoked: false,
+  id: 'did:key:z6MkScoped',
+  deviceId: 'device-003',
+  scope: ['state:task', 'state:preferences'],
+  revoked: false,
 };
 
 const testTask: TaskState = {
-  taskId: 'task-001', description: 'Navigate to meeting',
-  progress: 0.6, subtasks: [{ id: 's1', label: 'Get directions', done: true }],
+  taskId: 'task-001',
+  description: 'Navigate to meeting',
+  progress: 0.6,
+  subtasks: [{ id: 's1', label: 'Get directions', done: true }],
   priority: 'high',
 };
 
 const testPrefs: UserPreferences = {
-  personality: 'professional', modality: 'voice', language: 'en',
-  accessibility: {}, custom: {},
+  personality: 'professional',
+  modality: 'voice',
+  language: 'en',
+  accessibility: {},
+  custom: {},
 };
 
 const testSpatial: SpatialContext = {
-  latitude: 37.7749, longitude: -122.4194, altitude: 50,
-  heading: 90, accuracy: 5, fixTimestamp: '2026-03-06T12:00:00Z',
+  latitude: 37.7749,
+  longitude: -122.4194,
+  altitude: 50,
+  heading: 90,
+  accuracy: 5,
+  fixTimestamp: '2026-03-06T12:00:00Z',
 };
 
 // =============================================================================
@@ -96,7 +134,9 @@ describe('CrossRealityHandoff', () => {
 
     it('same-category handoff is faster', () => {
       const quest2: DeviceCapabilities = {
-        ...questDevice, deviceId: 'quest-002', platform: 'pcvr',
+        ...questDevice,
+        deviceId: 'quest-002',
+        platform: 'pcvr',
         capabilities: PLATFORM_CAPABILITIES['pcvr'],
       };
       const same = negotiateHandoff(questDevice, quest2);
@@ -108,15 +148,32 @@ describe('CrossRealityHandoff', () => {
   describe('MVC Payload', () => {
     it('creates valid payload with 5 typed objects', () => {
       const payload = createMVCPayload(
-        'did:key:z6MkAgent', 'session-001',
+        'did:key:z6MkAgent',
+        'session-001',
         { deviceId: 'quest-001', platform: 'quest3' },
         {
-          decisions: [{ id: 'd1', action: 'navigate', reasoning: 'shortest path', timestamp: '2026-03-06T12:00:00Z', confidence: 0.9 }],
+          decisions: [
+            {
+              id: 'd1',
+              action: 'navigate',
+              reasoning: 'shortest path',
+              timestamp: '2026-03-06T12:00:00Z',
+              confidence: 0.9,
+            },
+          ],
           task: testTask,
           preferences: testPrefs,
           spatial: testSpatial,
-          evidence: [{ type: 'observation', summary: 'Saw landmark', timestamp: '2026-03-06T12:00:00Z', source: 'camera', relevance: 0.8 }],
-        },
+          evidence: [
+            {
+              type: 'observation',
+              summary: 'Saw landmark',
+              timestamp: '2026-03-06T12:00:00Z',
+              source: 'camera',
+              relevance: 0.8,
+            },
+          ],
+        }
       );
       expect(payload.version).toBe('1.0');
       expect(payload.decisions).toHaveLength(1);
@@ -128,19 +185,28 @@ describe('CrossRealityHandoff', () => {
 
     it('stays within 10KB budget', () => {
       const payload = createMVCPayload(
-        'did:key:z6MkAgent', 'session-001',
+        'did:key:z6MkAgent',
+        'session-001',
         { deviceId: 'quest-001', platform: 'quest3' },
         {
           decisions: Array.from({ length: 20 }, (_, i) => ({
-            id: `d${i}`, action: `action_${i}`, reasoning: 'test',
-            timestamp: '2026-03-06T12:00:00Z', confidence: 0.9,
+            id: `d${i}`,
+            action: `action_${i}`,
+            reasoning: 'test',
+            timestamp: '2026-03-06T12:00:00Z',
+            confidence: 0.9,
           })),
-          task: testTask, preferences: testPrefs, spatial: testSpatial,
+          task: testTask,
+          preferences: testPrefs,
+          spatial: testSpatial,
           evidence: Array.from({ length: 30 }, (_, i) => ({
-            type: 'observation' as const, summary: `Evidence ${i}`,
-            timestamp: '2026-03-06T12:00:00Z', source: 'test', relevance: i / 30,
+            type: 'observation' as const,
+            summary: `Evidence ${i}`,
+            timestamp: '2026-03-06T12:00:00Z',
+            source: 'test',
+            relevance: i / 30,
           })),
-        },
+        }
       );
       const validation = validatePayloadBudget(payload);
       expect(validation.valid).toBe(true);

@@ -101,7 +101,7 @@ describe('Cycle 103: Visual Logic Editor', () => {
 
     const setState = graph.addNode('SetState');
     setState.inputs[0].defaultValue = 'score'; // key
-    setState.inputs[1].defaultValue = 42;       // value
+    setState.inputs[1].defaultValue = 42; // value
 
     const getState = graph.addNode('GetState');
     getState.inputs[0].defaultValue = 'score';
@@ -164,10 +164,10 @@ describe('Cycle 103: Visual Logic Editor', () => {
     // Should have: background + 2 node bodies + 2 titles + input/output ports
     expect(entities.length).toBeGreaterThan(5);
 
-    const background = entities.find(e => e.data?.role === 'background');
+    const background = entities.find((e) => e.data?.role === 'background');
     expect(background).toBeDefined();
 
-    const nodeBodies = entities.filter(e => e.data?.role === 'node');
+    const nodeBodies = entities.filter((e) => e.data?.role === 'node');
     expect(nodeBodies).toHaveLength(2);
   });
 

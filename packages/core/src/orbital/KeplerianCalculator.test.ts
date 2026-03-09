@@ -22,19 +22,19 @@ import {
 
 // Earth's approximate orbital elements
 const earthElements: OrbitalElements = {
-  semiMajorAxis: 1.0,       // 1 AU
-  eccentricity: 0.0167,     // Nearly circular
-  inclination: 0.0,         // Reference plane
+  semiMajorAxis: 1.0, // 1 AU
+  eccentricity: 0.0167, // Nearly circular
+  inclination: 0.0, // Reference plane
   longitudeAscending: 0.0,
   argumentPeriapsis: 102.9,
   meanAnomalyEpoch: 357.5,
-  orbitalPeriod: 365.25,    // Days
+  orbitalPeriod: 365.25, // Days
 };
 
 // Mercury's approximate orbital elements
 const mercuryElements: OrbitalElements = {
   semiMajorAxis: 0.387,
-  eccentricity: 0.205,      // More eccentric
+  eccentricity: 0.205, // More eccentric
   inclination: 7.0,
   longitudeAscending: 48.3,
   argumentPeriapsis: 29.1,

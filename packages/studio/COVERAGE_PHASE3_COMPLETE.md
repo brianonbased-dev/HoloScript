@@ -10,22 +10,22 @@
 
 ### Overall Metrics
 
-| Metric | Phase 2 | Phase 3 | Change | Status |
-|--------|---------|---------|--------|--------|
-| **Test Files** | 26 | 27 | **+1** ✅ | +3.85% |
-| **Total Tests** | 858 | 896 | **+38** ✅ | +4.43% |
-| **Lines Coverage** | 18.32% | 18.17% | -0.15% | Stable |
-| **Function Coverage** | 72.43% | 72.43% | 0.00% | Stable |
-| **Branch Coverage** | 76.15% | 79.45% | **+3.30%** ✅ | Improved |
-| **Hooks Coverage** | 18.58% | 22.58% | **+4.00%** ✅ | +21.53% |
+| Metric                | Phase 2 | Phase 3 | Change        | Status   |
+| --------------------- | ------- | ------- | ------------- | -------- |
+| **Test Files**        | 26      | 27      | **+1** ✅     | +3.85%   |
+| **Total Tests**       | 858     | 896     | **+38** ✅    | +4.43%   |
+| **Lines Coverage**    | 18.32%  | 18.17%  | -0.15%        | Stable   |
+| **Function Coverage** | 72.43%  | 72.43%  | 0.00%         | Stable   |
+| **Branch Coverage**   | 76.15%  | 79.45%  | **+3.30%** ✅ | Improved |
+| **Hooks Coverage**    | 18.58%  | 22.58%  | **+4.00%** ✅ | +21.53%  |
 
 ### Cumulative Progress (Baseline → Phase 3)
 
-| Metric | Baseline | Phase 3 | Total Change |
-|--------|----------|---------|--------------|
-| **Test Files** | 22 | 27 | **+5** (+22.73%) |
-| **Total Tests** | 766 | 896 | **+130** (+16.97%) |
-| **Hooks Coverage** | 12.98% | 22.58% | **+9.60%** (+73.96%) |
+| Metric             | Baseline | Phase 3 | Total Change         |
+| ------------------ | -------- | ------- | -------------------- |
+| **Test Files**     | 22       | 27      | **+5** (+22.73%)     |
+| **Total Tests**    | 766      | 896     | **+130** (+16.97%)   |
+| **Hooks Coverage** | 12.98%   | 22.58%  | **+9.60%** (+73.96%) |
 
 ---
 
@@ -119,11 +119,11 @@ Tests covering keyboard shortcut management for character studio:
 
 ### Hooks Directory Progress
 
-| Metric | Baseline | Phase 1 | Phase 2 | Phase 3 | Total Change |
-|--------|----------|---------|---------|---------|--------------|
-| **Lines** | 12.98% | 15.86% | 18.58% | 22.58% | **+9.60%** |
-| **Functions** | 63.75% | 71.35% | 76.15% | 79.45% | **+15.70%** |
-| **Branches** | 42.85% | 45.05% | 48.38% | 50.11% | **+7.26%** |
+| Metric        | Baseline | Phase 1 | Phase 2 | Phase 3 | Total Change |
+| ------------- | -------- | ------- | ------- | ------- | ------------ |
+| **Lines**     | 12.98%   | 15.86%  | 18.58%  | 22.58%  | **+9.60%**   |
+| **Functions** | 63.75%   | 71.35%  | 76.15%  | 79.45%  | **+15.70%**  |
+| **Branches**  | 42.85%   | 45.05%  | 48.38%  | 50.11%  | **+7.26%**   |
 
 ### Test Distribution
 

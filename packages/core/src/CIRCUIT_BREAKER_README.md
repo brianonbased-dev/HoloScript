@@ -29,7 +29,7 @@ import { GraphQLCircuitBreakerClient } from '@holoscript/circuit-breaker';
 const client = new GraphQLCircuitBreakerClient({
   endpoint: 'https://api.example.com/graphql',
   enableCacheFallback: true,
-  maxRetries: 3
+  maxRetries: 3,
 });
 
 // Execute query
@@ -44,7 +44,7 @@ const result = await client.query({
     }
   `,
   variables: { id: '123' },
-  operationName: 'GetUser'
+  operationName: 'GetUser',
 });
 
 if (result.success) {
@@ -66,7 +66,7 @@ import { DegradedModeBanner, useDegradedMode } from '@holoscript/circuit-breaker
 
 const client = new GraphQLCircuitBreakerClient({
   endpoint: 'https://api.example.com/graphql',
-  enableCacheFallback: true
+  enableCacheFallback: true,
 });
 
 function App() {
@@ -77,9 +77,7 @@ function App() {
       <DegradedModeBanner client={client} position="top" />
 
       {isDegraded && (
-        <div className="warning">
-          System in degraded mode: {openCircuits.join(', ')}
-        </div>
+        <div className="warning">System in degraded mode: {openCircuits.join(', ')}</div>
       )}
 
       {/* Your app content */}
@@ -96,7 +94,7 @@ function App() {
 const client = new GraphQLCircuitBreakerClient({
   endpoint: 'https://api.example.com/graphql',
   timeout: 10000, // Request timeout (ms)
-  maxRetries: 3,  // Maximum retry attempts
+  maxRetries: 3, // Maximum retry attempts
   enableCacheFallback: true,
 
   circuitBreakerConfig: {
@@ -118,8 +116,8 @@ const client = new GraphQLCircuitBreakerClient({
 
     // Retry delays: 1s, 2s, 4s, 8s, max 30s
     baseRetryDelay: 1000,
-    maxRetryDelay: 30000
-  }
+    maxRetryDelay: 30000,
+  },
 });
 ```
 
@@ -133,15 +131,15 @@ import { FallbackDataProvider } from '@holoscript/circuit-breaker';
 // Register fallback for specific operation
 FallbackDataProvider.register('GetUsers', {
   data: {
-    users: [] // Empty array for degraded mode
-  }
+    users: [], // Empty array for degraded mode
+  },
 });
 
 FallbackDataProvider.register('GetDashboard', {
   data: {
     widgets: [],
-    metrics: { loading: true }
-  }
+    metrics: { loading: true },
+  },
 });
 ```
 
@@ -213,12 +211,12 @@ const csv = metrics.export({ format: 'csv' });
 // Get all circuit stats
 const stats = client.getCircuitStats();
 
-stats.forEach(stat => {
+stats.forEach((stat) => {
   console.log(`${stat.operationName}:`, {
     state: stat.state,
     failureRate: (stat.failureRate * 100).toFixed(2) + '%',
     requests: stat.totalRequests,
-    cacheHits: stat.cacheHits
+    cacheHits: stat.cacheHits,
   });
 });
 
@@ -239,11 +237,11 @@ import { DegradedModeBanner } from '@holoscript/circuit-breaker/ui';
 
 <DegradedModeBanner
   client={client}
-  position="top"          // or "bottom"
-  refreshInterval={5000}  // Check every 5 seconds
-  autoDismiss={true}      // Auto-dismiss when recovered
+  position="top" // or "bottom"
+  refreshInterval={5000} // Check every 5 seconds
+  autoDismiss={true} // Auto-dismiss when recovered
   className="custom-banner"
-/>
+/>;
 ```
 
 ### Vanilla JavaScript Indicator
@@ -263,30 +261,32 @@ import { GraphQLCircuitBreakerClient } from '@holoscript/circuit-breaker';
 
 const circuitClient = new GraphQLCircuitBreakerClient({
   endpoint: 'https://api.example.com/graphql',
-  enableCacheFallback: true
+  enableCacheFallback: true,
 });
 
 // Custom link that uses circuit breaker
 const circuitBreakerLink = new ApolloLink((operation, forward) => {
-  return new Observable(observer => {
-    circuitClient.query({
-      query: operation.query.loc?.source.body || '',
-      variables: operation.variables,
-      operationName: operation.operationName
-    }).then(result => {
-      if (result.success) {
-        observer.next({ data: result.data });
-        observer.complete();
-      } else {
-        observer.error(result.error);
-      }
-    });
+  return new Observable((observer) => {
+    circuitClient
+      .query({
+        query: operation.query.loc?.source.body || '',
+        variables: operation.variables,
+        operationName: operation.operationName,
+      })
+      .then((result) => {
+        if (result.success) {
+          observer.next({ data: result.data });
+          observer.complete();
+        } else {
+          observer.error(result.error);
+        }
+      });
   });
 });
 
 const apolloClient = new ApolloClient({
   link: circuitBreakerLink,
-  cache: new InMemoryCache()
+  cache: new InMemoryCache(),
 });
 ```
 
@@ -298,32 +298,36 @@ import { GraphQLCircuitBreakerClient } from '@holoscript/circuit-breaker';
 
 const circuitClient = new GraphQLCircuitBreakerClient({
   endpoint: 'https://api.example.com/graphql',
-  enableCacheFallback: true
+  enableCacheFallback: true,
 });
 
 // Custom exchange that uses circuit breaker
-const circuitBreakerExchange = ({ forward }) => ops$ => {
-  return pipe(
-    ops$,
-    mergeMap(operation => {
-      return fromPromise(
-        circuitClient.query({
-          query: operation.query.loc?.source.body || '',
-          variables: operation.variables,
-          operationName: operation.operationName
-        }).then(result => ({
-          operation,
-          data: result.data,
-          error: result.error
-        }))
-      );
-    })
-  );
-};
+const circuitBreakerExchange =
+  ({ forward }) =>
+  (ops$) => {
+    return pipe(
+      ops$,
+      mergeMap((operation) => {
+        return fromPromise(
+          circuitClient
+            .query({
+              query: operation.query.loc?.source.body || '',
+              variables: operation.variables,
+              operationName: operation.operationName,
+            })
+            .then((result) => ({
+              operation,
+              data: result.data,
+              error: result.error,
+            }))
+        );
+      })
+    );
+  };
 
 const urqlClient = createClient({
   url: 'https://api.example.com/graphql',
-  exchanges: [circuitBreakerExchange, fetchExchange]
+  exchanges: [circuitBreakerExchange, fetchExchange],
 });
 ```
 
@@ -339,16 +343,16 @@ const client = new GraphQLCircuitBreakerClient({
   headers: {
     'X-Agent-ID': process.env.AGENT_ID,
     'X-Agent-Role': 'testing-agent',
-    Authorization: `Bearer ${process.env.AGENT_TOKEN}`
+    Authorization: `Bearer ${process.env.AGENT_TOKEN}`,
   },
-  enableCacheFallback: true
+  enableCacheFallback: true,
 });
 
 // Testing agent uses circuit breaker during test execution
 async function runTests() {
   const result = await client.query({
     query: `query HealthCheck { ping }`,
-    operationName: 'HealthCheck'
+    operationName: 'HealthCheck',
   });
 
   if (result.success) {
@@ -368,7 +372,7 @@ async function runTests() {
 class CustomCircuitBreakerClient extends GraphQLCircuitBreakerClient {
   protected isRetriableError(errors: any[]): boolean {
     // Custom retry logic
-    return errors.some(error => {
+    return errors.some((error) => {
       const code = error.extensions?.code;
       return ['CUSTOM_RETRY_CODE', 'ANOTHER_RETRY_CODE'].includes(code);
     });
@@ -383,7 +387,7 @@ class CustomCircuitBreakerClient extends GraphQLCircuitBreakerClient {
 setInterval(() => {
   const stats = client.getCircuitStats();
 
-  stats.forEach(stat => {
+  stats.forEach((stat) => {
     if (stat.state === CircuitState.OPEN) {
       // Alert on circuit open
       sendAlert(`Circuit ${stat.operationName} is open!`);
@@ -403,8 +407,8 @@ const client = new GraphQLCircuitBreakerClient({
   circuitBreakerConfig: {
     failureRateThreshold: isDuringPeakHours ? 0.3 : 0.5, // Stricter during peak
     consecutiveTimeoutThreshold: isDuringPeakHours ? 3 : 5,
-    baseRetryDelay: isDuringPeakHours ? 2000 : 1000
-  }
+    baseRetryDelay: isDuringPeakHours ? 2000 : 1000,
+  },
 });
 ```
 

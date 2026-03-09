@@ -25,6 +25,7 @@ Week 3 implementation successfully delivered all production real-time features i
 **Implementation**: WebSocket server with graphql-ws protocol
 
 **Key Components**:
+
 ```typescript
 // PubSub service for event publishing
 export const pubsub = new PubSub();
@@ -53,6 +54,7 @@ const serverCleanup = useServer(
 ```
 
 **Benefits**:
+
 - **Real-time Updates**: Instant feedback without polling
 - **Efficient Protocol**: WebSocket reduces overhead by 90% vs HTTP polling
 - **GraphQL-WS**: Industry-standard protocol with broad client support
@@ -63,13 +65,14 @@ const serverCleanup = useServer(
 **Implementation**: Real-time progress events during batch compilation
 
 **Subscription Definition**:
+
 ```graphql
 subscription CompilationProgress($requestId: String) {
   compilationProgress(requestId: $requestId) {
     requestId
     target
-    progress      # 0-100
-    stage         # parsing | compiling | optimizing | complete | error
+    progress # 0-100
+    stage # parsing | compiling | optimizing | complete | error
     message
     timestamp
   }
@@ -77,6 +80,7 @@ subscription CompilationProgress($requestId: String) {
 ```
 
 **Progress Stages**:
+
 1. **Parsing** (0-33%): HoloScript code parsing
 2. **Compiling** (33-66%): Target-specific compilation
 3. **Optimizing** (66-100%): Output optimization (future)
@@ -84,6 +88,7 @@ subscription CompilationProgress($requestId: String) {
 5. **Error** (0%): Compilation failure
 
 **Example Usage**:
+
 ```typescript
 // Client receives progress events:
 { requestId: "abc-123", target: "UNITY", progress: 0, stage: "parsing", message: "Starting..." }
@@ -96,10 +101,11 @@ subscription CompilationProgress($requestId: String) {
 **Implementation**: Real-time code validation with error/warning feedback
 
 **Subscription Definition**:
+
 ```graphql
 subscription LiveValidation {
   validationResults {
-    codeHash      # SHA-256 hash for deduplication
+    codeHash # SHA-256 hash for deduplication
     isValid
     errors {
       message
@@ -119,13 +125,26 @@ mutation ValidateCode($input: ValidationInput!) {
   validateCode(input: $input) {
     success
     ast
-    errors { message location { line column } }
-    warnings { message location { line column } }
+    errors {
+      message
+      location {
+        line
+        column
+      }
+    }
+    warnings {
+      message
+      location {
+        line
+        column
+      }
+    }
   }
 }
 ```
 
 **Use Cases**:
+
 - **IDE Integration**: As-you-type validation feedback
 - **Live Linting**: Real-time error highlighting
 - **Multi-User Collab**: Shared validation state
@@ -136,6 +155,7 @@ mutation ValidateCode($input: ValidationInput!) {
 **Implementation**: Protection against expensive queries
 
 **Complexity Scoring**:
+
 ```typescript
 // Complexity points per operation:
 - Simple fields: 1 point
@@ -152,21 +172,24 @@ mutation ValidateCode($input: ValidationInput!) {
 ```
 
 **Configuration**:
+
 ```typescript
 createComplexityPlugin({
   maximumComplexity: 2000, // Max 2000 complexity points
   includeComplexityInExtensions: true, // Debug info
-  createError: (max, actual) => `Query too complex: ${actual}/${max}`
-})
+  createError: (max, actual) => `Query too complex: ${actual}/${max}`,
+});
 ```
 
 **Benefits**:
+
 - **DoS Protection**: Prevents expensive queries from overwhelming server
 - **Fair Usage**: Ensures all clients get equal resources
 - **Performance**: Warns at 50% threshold (1000 points)
 - **Debugging**: Complexity scores in response extensions
 
 **Example Response**:
+
 ```json
 {
   "data": { ... },
@@ -182,21 +205,24 @@ createComplexityPlugin({
 **Implementation**: In-memory LRU cache with 5-minute TTL
 
 **Cached Operations**:
+
 - `listTargets`: Static list of compiler targets
 - `getTargetInfo`: Target metadata (rarely changes)
 - `parseHoloScript`: Parse results for identical code
 
 **Configuration**:
+
 ```typescript
 createCachePlugin({
-  ttl: 5 * 60 * 1000,     // 5 minutes
-  maxSize: 1000,           // 1000 entries
+  ttl: 5 * 60 * 1000, // 5 minutes
+  maxSize: 1000, // 1000 entries
   cacheableOperations: ['listTargets', 'getTargetInfo', 'parseHoloScript'],
-  includeCacheStatusInExtensions: true
-})
+  includeCacheStatusInExtensions: true,
+});
 ```
 
 **Cache Response**:
+
 ```json
 {
   "data": { ... },
@@ -217,6 +243,7 @@ createCachePlugin({
 | getTargetInfo | ~2ms | ~0.3ms | **85% faster** |
 
 **Cache Stats** (logged every 5 minutes):
+
 ```javascript
 {
   size: 847,              // Current cache entries
@@ -228,6 +255,7 @@ createCachePlugin({
 ### 6. Server Architecture Updates ✅
 
 **Before Week 3**:
+
 ```
 Client → HTTP → Apollo Server → GraphQL Resolvers
          ↓
@@ -236,6 +264,7 @@ Client → HTTP → Apollo Server → GraphQL Resolvers
 ```
 
 **After Week 3**:
+
 ```
 Client → HTTP → Express → Apollo Server → Resolvers
          ↓                       ↓
@@ -259,12 +288,12 @@ Client → WebSocket → GraphQL-WS → Subscriptions
 
 **Scenario**: IDE with live validation
 
-| Metric | HTTP Polling (1s) | WebSocket Subscription | Improvement |
-|--------|------------------|------------------------|-------------|
-| Latency | ~500-1000ms | ~10-50ms | **95% faster** |
-| Network Overhead | 2KB per poll | 200 bytes per event | **90% reduction** |
-| Server Load | 100 req/sec | 10 events/sec | **90% reduction** |
-| Battery Impact | High (constant polling) | Low (event-driven) | **~70% savings** |
+| Metric           | HTTP Polling (1s)       | WebSocket Subscription | Improvement       |
+| ---------------- | ----------------------- | ---------------------- | ----------------- |
+| Latency          | ~500-1000ms             | ~10-50ms               | **95% faster**    |
+| Network Overhead | 2KB per poll            | 200 bytes per event    | **90% reduction** |
+| Server Load      | 100 req/sec             | 10 events/sec          | **90% reduction** |
+| Battery Impact   | High (constant polling) | Low (event-driven)     | **~70% savings**  |
 
 ### Query Complexity Protection
 
@@ -282,16 +311,19 @@ mutation ExpensiveOperation {
 ```
 
 **Result**:
+
 ```json
 {
-  "errors": [{
-    "message": "Query is too complex: 10000 exceeds maximum complexity of 2000",
-    "extensions": {
-      "code": "QUERY_TOO_COMPLEX",
-      "complexity": 10000,
-      "maxComplexity": 2000
+  "errors": [
+    {
+      "message": "Query is too complex: 10000 exceeds maximum complexity of 2000",
+      "extensions": {
+        "code": "QUERY_TOO_COMPLEX",
+        "complexity": 10000,
+        "maxComplexity": 2000
+      }
     }
-  }]
+  ]
 }
 ```
 
@@ -301,22 +333,24 @@ mutation ExpensiveOperation {
 
 **Test Scenario**: 1000 requests to `listTargets` query
 
-| Metric | Without Cache | With Cache | Improvement |
-|--------|--------------|-----------|-------------|
-| Total Time | ~5000ms | ~500ms | **90% faster** |
-| Server CPU | 100% | ~5% | **95% reduction** |
-| Memory | 50MB | 52MB | +2MB (cache overhead) |
-| Cache Hit Rate | N/A | 99.9% | - |
+| Metric         | Without Cache | With Cache | Improvement           |
+| -------------- | ------------- | ---------- | --------------------- |
+| Total Time     | ~5000ms       | ~500ms     | **90% faster**        |
+| Server CPU     | 100%          | ~5%        | **95% reduction**     |
+| Memory         | 50MB          | 52MB       | +2MB (cache overhead) |
+| Cache Hit Rate | N/A           | 99.9%      | -                     |
 
 ## Code Statistics
 
 **New Files**:
+
 - `src/services/pubsub.ts` (95 lines) - PubSub service
 - `src/resolvers/SubscriptionResolver.ts` (130 lines) - Subscription resolver
 - `src/plugins/complexityPlugin.ts` (141 lines) - Query complexity
 - `src/plugins/cachePlugin.ts` (189 lines) - Response caching
 
 **Modified Files**:
+
 - `src/server.ts` (+80 lines) - WebSocket server setup
 - `src/resolvers/BatchCompilerResolver.ts` (+25 lines) - Progress events
 - `src/types/GraphQLTypes.ts` (+75 lines) - Subscription types
@@ -327,6 +361,7 @@ mutation ExpensiveOperation {
 **Dependencies Added**: 7 packages
 
 **New Dependencies**:
+
 ```json
 {
   "graphql-subscriptions": "^3.0.0",
@@ -412,6 +447,7 @@ Available Features:
 ## Next Steps (Week 4+)
 
 **Week 4 Priorities** (Production Hardening):
+
 - [ ] Rate limiting (per-client, per-operation)
 - [ ] Authentication/Authorization (JWT + GraphQL Shield)
 - [ ] Redis PubSub for horizontal scaling
@@ -420,6 +456,7 @@ Available Features:
 - [ ] Monitoring & alerting (Prometheus/Grafana)
 
 **Week 5-6 Priorities** (Advanced Features):
+
 - [ ] GraphQL Federation (microservices)
 - [ ] Persisted queries
 - [ ] APQ (Automatic Persisted Queries)
@@ -433,6 +470,7 @@ Available Features:
 **Current Status**: ✅ Ready for development/staging with real-time features
 
 **Production Checklist**:
+
 - ✅ Schema validation
 - ✅ Error handling
 - ✅ Batch optimization (Week 2)
@@ -448,15 +486,15 @@ Available Features:
 
 **Week 3 Goals vs Achieved**:
 
-| Goal | Target | Achieved | Status |
-|------|--------|----------|--------|
-| WebSocket Subscriptions | Yes | ✅ | Complete |
-| Compilation Progress | Yes | ✅ | Complete |
-| Live Validation | Yes | ✅ | Complete |
-| Query Complexity Limits | Yes | ✅ | Complete |
-| Response Caching | Yes | ✅ | Complete |
-| Performance Improvement | 20% | ~90% | **Exceeded** |
-| Real-time Latency | <100ms | <50ms | **Exceeded** |
+| Goal                    | Target | Achieved | Status       |
+| ----------------------- | ------ | -------- | ------------ |
+| WebSocket Subscriptions | Yes    | ✅       | Complete     |
+| Compilation Progress    | Yes    | ✅       | Complete     |
+| Live Validation         | Yes    | ✅       | Complete     |
+| Query Complexity Limits | Yes    | ✅       | Complete     |
+| Response Caching        | Yes    | ✅       | Complete     |
+| Performance Improvement | 20%    | ~90%     | **Exceeded** |
+| Real-time Latency       | <100ms | <50ms    | **Exceeded** |
 
 **Overall**: 🎉 **EXCEEDED ALL TARGETS**
 
@@ -465,12 +503,14 @@ Available Features:
 **For a typical IDE integration** (1000 users, each validating code 100x/day):
 
 ### HTTP Polling Approach:
+
 - Requests: 1000 users × 100 validations × 10 polls each = 1,000,000 requests/day
 - Bandwidth: 1M × 2KB = 2GB/day
 - Server Load: Constant polling = ~70% average CPU
 - Cost: ~$500/month (EC2 + bandwidth)
 
 ### WebSocket Subscription Approach:
+
 - Connections: 1000 concurrent WebSocket connections
 - Events: 1000 users × 100 validations = 100,000 events/day
 - Bandwidth: 100K × 200 bytes = 20MB/day
@@ -480,6 +520,7 @@ Available Features:
 **Savings**: **$450/month** (90% reduction)
 
 ### Cache Savings:
+
 - Cached Query: `listTargets` (static data)
 - Requests: 1000 users × 10 times/day = 10,000 requests/day
 - Without Cache: 10K × 5ms = 50 seconds server time
@@ -489,6 +530,7 @@ Available Features:
 ## Conclusion
 
 Week 3 implementation successfully delivered all planned real-time features and exceeded performance targets. The GraphQL API now supports:
+
 - Real-time compilation progress tracking
 - Live code validation with WebSocket subscriptions
 - Query complexity protection (2000 point limit)
@@ -496,6 +538,7 @@ Week 3 implementation successfully delivered all planned real-time features and 
 - Production-ready WebSocket server with proper shutdown
 
 **Performance Achievements**:
+
 - 95% faster real-time updates (vs HTTP polling)
 - 90% reduction in network overhead
 - 90% faster cached queries

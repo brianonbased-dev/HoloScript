@@ -16,16 +16,63 @@
 // Core biome types and rules (preserved from v1)
 // ===========================================================================
 
-export type BiomeType = 'forest'|'desert'|'ocean'|'arctic'|'urban'|'cave'|'mountain'|'grassland'|'volcanic'|'swamp'|'sky'|'underwater';
-export interface BiomeRule { biome: BiomeType; requiredTraits: string[]; conflictingTraits: string[]; maxEntities: number; }
-export interface EcologicalRule { traitA: string; traitB: string; relationship: 'symbiotic'|'predator-prey'|'competitive'|'neutral'; minDistance: number; maxDistance: number; }
-export interface ZoneConstraintResult { valid: boolean; violations: string[]; warnings: string[]; }
+export type BiomeType =
+  | 'forest'
+  | 'desert'
+  | 'ocean'
+  | 'arctic'
+  | 'urban'
+  | 'cave'
+  | 'mountain'
+  | 'grassland'
+  | 'volcanic'
+  | 'swamp'
+  | 'sky'
+  | 'underwater';
+export interface BiomeRule {
+  biome: BiomeType;
+  requiredTraits: string[];
+  conflictingTraits: string[];
+  maxEntities: number;
+}
+export interface EcologicalRule {
+  traitA: string;
+  traitB: string;
+  relationship: 'symbiotic' | 'predator-prey' | 'competitive' | 'neutral';
+  minDistance: number;
+  maxDistance: number;
+}
+export interface ZoneConstraintResult {
+  valid: boolean;
+  violations: string[];
+  warnings: string[];
+}
 
 export const DEFAULT_BIOME_RULES: BiomeRule[] = [
-  { biome: 'ocean', requiredTraits: ['Buoyancy','WaterInteraction'], conflictingTraits: ['FireEffect','VolcanicTerrain'], maxEntities: 500 },
-  { biome: 'arctic', requiredTraits: ['ColdResistance'], conflictingTraits: ['TropicalVegetation','DesertTerrain'], maxEntities: 200 },
-  { biome: 'volcanic', requiredTraits: ['HeatResistance'], conflictingTraits: ['IceFormation','SnowCover'], maxEntities: 100 },
-  { biome: 'forest', requiredTraits: [], conflictingTraits: ['DesertTerrain','LavaFlow'], maxEntities: 1000 },
+  {
+    biome: 'ocean',
+    requiredTraits: ['Buoyancy', 'WaterInteraction'],
+    conflictingTraits: ['FireEffect', 'VolcanicTerrain'],
+    maxEntities: 500,
+  },
+  {
+    biome: 'arctic',
+    requiredTraits: ['ColdResistance'],
+    conflictingTraits: ['TropicalVegetation', 'DesertTerrain'],
+    maxEntities: 200,
+  },
+  {
+    biome: 'volcanic',
+    requiredTraits: ['HeatResistance'],
+    conflictingTraits: ['IceFormation', 'SnowCover'],
+    maxEntities: 100,
+  },
+  {
+    biome: 'forest',
+    requiredTraits: [],
+    conflictingTraits: ['DesertTerrain', 'LavaFlow'],
+    maxEntities: 1000,
+  },
   { biome: 'urban', requiredTraits: [], conflictingTraits: ['WildGrowth'], maxEntities: 2000 },
 ];
 
@@ -172,17 +219,17 @@ export function evaluateConstraint(c: Constraint): { pass: boolean; failures: st
     return { pass: ok, failures: ok ? [] : [c.description] };
   }
 
-  const childResults = c.children.map(ch => evaluateConstraint(ch));
+  const childResults = c.children.map((ch) => evaluateConstraint(ch));
 
   if (c.type === 'and') {
-    const allPass = childResults.every(r => r.pass);
-    const failures = childResults.flatMap(r => r.failures);
+    const allPass = childResults.every((r) => r.pass);
+    const failures = childResults.flatMap((r) => r.failures);
     return { pass: allPass, failures: allPass ? [] : failures };
   }
 
   // 'or'
-  const anyPass = childResults.some(r => r.pass);
-  const failures = anyPass ? [] : childResults.flatMap(r => r.failures);
+  const anyPass = childResults.some((r) => r.pass);
+  const failures = anyPass ? [] : childResults.flatMap((r) => r.failures);
   return { pass: anyPass, failures };
 }
 
@@ -209,10 +256,7 @@ export class ZoneConstraintValidator {
   private seasonalRules: SeasonalRule[] = [];
   private currentSeason: Season = 'spring';
 
-  constructor(
-    customRules?: BiomeRule[],
-    ecoRules?: EcologicalRule[],
-  ) {
+  constructor(customRules?: BiomeRule[], ecoRules?: EcologicalRule[]) {
     for (const r of customRules ?? DEFAULT_BIOME_RULES) this.biomeRules.set(r.biome, r);
     this.ecologicalRules = ecoRules ?? [];
   }
@@ -221,8 +265,12 @@ export class ZoneConstraintValidator {
   // Biome rules (preserved from v1)
   // -----------------------------------------------------------------------
 
-  addBiomeRule(rule: BiomeRule): void { this.biomeRules.set(rule.biome, rule); }
-  addEcologicalRule(rule: EcologicalRule): void { this.ecologicalRules.push(rule); }
+  addBiomeRule(rule: BiomeRule): void {
+    this.biomeRules.set(rule.biome, rule);
+  }
+  addEcologicalRule(rule: EcologicalRule): void {
+    this.ecologicalRules.push(rule);
+  }
 
   // -----------------------------------------------------------------------
   // Narrative constraints
@@ -233,7 +281,7 @@ export class ZoneConstraintValidator {
   }
 
   removeNarrativeConstraint(label: string): boolean {
-    const idx = this.narrativeConstraints.findIndex(nc => nc.label === label);
+    const idx = this.narrativeConstraints.findIndex((nc) => nc.label === label);
     if (idx === -1) return false;
     this.narrativeConstraints.splice(idx, 1);
     return true;
@@ -252,7 +300,7 @@ export class ZoneConstraintValidator {
   }
 
   removeTerrainCompatibility(target: string): boolean {
-    const idx = this.terrainCompatibilities.findIndex(tc => tc.target === target);
+    const idx = this.terrainCompatibilities.findIndex((tc) => tc.target === target);
     if (idx === -1) return false;
     this.terrainCompatibilities.splice(idx, 1);
     return true;
@@ -267,7 +315,7 @@ export class ZoneConstraintValidator {
   }
 
   removeSeasonalRule(label: string): boolean {
-    const idx = this.seasonalRules.findIndex(sr => sr.label === label);
+    const idx = this.seasonalRules.findIndex((sr) => sr.label === label);
     if (idx === -1) return false;
     this.seasonalRules.splice(idx, 1);
     return true;
@@ -285,18 +333,34 @@ export class ZoneConstraintValidator {
   // Zone validation (v1, preserved)
   // -----------------------------------------------------------------------
 
-  validateZone(biome: BiomeType, entities: Array<{ name: string; traits: string[] }>): ZoneConstraintResult {
-    const violations: string[] = []; const warnings: string[] = [];
+  validateZone(
+    biome: BiomeType,
+    entities: Array<{ name: string; traits: string[] }>
+  ): ZoneConstraintResult {
+    const violations: string[] = [];
+    const warnings: string[] = [];
     const rule = this.biomeRules.get(biome);
-    if (!rule) { warnings.push(`No rules defined for biome '${biome}'`); return { valid: true, violations, warnings }; }
-    if (entities.length > rule.maxEntities) violations.push(`Zone '${biome}' has ${entities.length} entities, max is ${rule.maxEntities}`);
+    if (!rule) {
+      warnings.push(`No rules defined for biome '${biome}'`);
+      return { valid: true, violations, warnings };
+    }
+    if (entities.length > rule.maxEntities)
+      violations.push(
+        `Zone '${biome}' has ${entities.length} entities, max is ${rule.maxEntities}`
+      );
     for (const entity of entities) {
       for (const conflict of rule.conflictingTraits) {
-        if (entity.traits.includes(conflict)) violations.push(`Entity '${entity.name}' has conflicting trait '${conflict}' for biome '${biome}'`);
+        if (entity.traits.includes(conflict))
+          violations.push(
+            `Entity '${entity.name}' has conflicting trait '${conflict}' for biome '${biome}'`
+          );
       }
       if (rule.requiredTraits.length > 0) {
-        const hasRequired = rule.requiredTraits.some(t => entity.traits.includes(t));
-        if (!hasRequired) warnings.push(`Entity '${entity.name}' in '${biome}' lacks required traits: ${rule.requiredTraits.join(', ')}`);
+        const hasRequired = rule.requiredTraits.some((t) => entity.traits.includes(t));
+        if (!hasRequired)
+          warnings.push(
+            `Entity '${entity.name}' in '${biome}' lacks required traits: ${rule.requiredTraits.join(', ')}`
+          );
       }
     }
     return { valid: violations.length === 0, violations, warnings };
@@ -306,16 +370,30 @@ export class ZoneConstraintValidator {
   // Ecological coherence (v1, preserved)
   // -----------------------------------------------------------------------
 
-  validateEcologicalCoherence(entities: Array<{ name: string; traits: string[]; position: [number,number,number] }>): ZoneConstraintResult {
-    const violations: string[] = []; const warnings: string[] = [];
+  validateEcologicalCoherence(
+    entities: Array<{ name: string; traits: string[]; position: [number, number, number] }>
+  ): ZoneConstraintResult {
+    const violations: string[] = [];
+    const warnings: string[] = [];
     for (const rule of this.ecologicalRules) {
-      const groupA = entities.filter(e => e.traits.includes(rule.traitA));
-      const groupB = entities.filter(e => e.traits.includes(rule.traitB));
-      for (const a of groupA) for (const b of groupB) {
-        const d = Math.sqrt((a.position[0]-b.position[0])**2+(a.position[1]-b.position[1])**2+(a.position[2]-b.position[2])**2);
-        if (d < rule.minDistance) violations.push(`'${a.name}' (${rule.traitA}) too close to '${b.name}' (${rule.traitB}): ${d.toFixed(1)}m < ${rule.minDistance}m`);
-        if (d > rule.maxDistance && rule.relationship === 'symbiotic') warnings.push(`Symbiotic pair '${a.name}'/'${b.name}' too far apart: ${d.toFixed(1)}m > ${rule.maxDistance}m`);
-      }
+      const groupA = entities.filter((e) => e.traits.includes(rule.traitA));
+      const groupB = entities.filter((e) => e.traits.includes(rule.traitB));
+      for (const a of groupA)
+        for (const b of groupB) {
+          const d = Math.sqrt(
+            (a.position[0] - b.position[0]) ** 2 +
+              (a.position[1] - b.position[1]) ** 2 +
+              (a.position[2] - b.position[2]) ** 2
+          );
+          if (d < rule.minDistance)
+            violations.push(
+              `'${a.name}' (${rule.traitA}) too close to '${b.name}' (${rule.traitB}): ${d.toFixed(1)}m < ${rule.minDistance}m`
+            );
+          if (d > rule.maxDistance && rule.relationship === 'symbiotic')
+            warnings.push(
+              `Symbiotic pair '${a.name}'/'${b.name}' too far apart: ${d.toFixed(1)}m > ${rule.maxDistance}m`
+            );
+        }
     }
     return { valid: violations.length === 0, violations, warnings };
   }
@@ -333,10 +411,12 @@ export class ZoneConstraintValidator {
    * - `narrative_conflicts`: If any entity has traitA, no entity in the
    *   zone may have traitB.
    */
-  validateNarrativeCoherence(entities: Array<{ name: string; traits: string[] }>): ZoneConstraintResult {
+  validateNarrativeCoherence(
+    entities: Array<{ name: string; traits: string[] }>
+  ): ZoneConstraintResult {
     const violations: string[] = [];
     const warnings: string[] = [];
-    const allTraits = new Set(entities.flatMap(e => e.traits));
+    const allTraits = new Set(entities.flatMap((e) => e.traits));
 
     for (const nc of this.narrativeConstraints) {
       const hasA = allTraits.has(nc.traitA);
@@ -409,12 +489,15 @@ export class ZoneConstraintValidator {
    * Seasonal rules act like temporary biome rules: they add required or
    * conflicting traits that only apply during specific seasons.
    */
-  validateSeasonalRules(biome: BiomeType, entities: Array<{ name: string; traits: string[] }>): ZoneConstraintResult {
+  validateSeasonalRules(
+    biome: BiomeType,
+    entities: Array<{ name: string; traits: string[] }>
+  ): ZoneConstraintResult {
     const violations: string[] = [];
     const warnings: string[] = [];
 
     const activeRules = this.seasonalRules.filter(
-      sr => sr.biome === biome && sr.activeSeasons.includes(this.currentSeason),
+      (sr) => sr.biome === biome && sr.activeSeasons.includes(this.currentSeason)
     );
 
     for (const sr of activeRules) {
@@ -426,7 +509,7 @@ export class ZoneConstraintValidator {
           }
         }
         if (sr.requiredTraits.length > 0) {
-          const hasRequired = sr.requiredTraits.some(t => entity.traits.includes(t));
+          const hasRequired = sr.requiredTraits.some((t) => entity.traits.includes(t));
           if (!hasRequired) {
             const msg = `[${sr.label}] Entity '${entity.name}' in '${biome}' lacks seasonal required traits [${sr.requiredTraits.join(', ')}] during ${this.currentSeason}`;
             this.pushByStrength(sr.strength, msg, violations, warnings);
@@ -469,10 +552,7 @@ export class ZoneConstraintValidator {
    * Run ALL constraint checks (biome, ecological, narrative, terrain,
    * seasonal) and merge the results into a single ZoneConstraintResult.
    */
-  validateAll(
-    biome: BiomeType,
-    entities: ZoneEntity[],
-  ): ZoneConstraintResult {
+  validateAll(biome: BiomeType, entities: ZoneEntity[]): ZoneConstraintResult {
     const results: ZoneConstraintResult[] = [];
 
     results.push(this.validateZone(biome, entities));
@@ -493,7 +573,7 @@ export class ZoneConstraintValidator {
     strength: ConstraintStrength,
     msg: string,
     violations: string[],
-    warnings: string[],
+    warnings: string[]
   ): void {
     if (strength === 'hard') {
       violations.push(msg);
@@ -506,8 +586,8 @@ export class ZoneConstraintValidator {
 
   /** Merge multiple ZoneConstraintResults into one. */
   private mergeResults(results: ZoneConstraintResult[]): ZoneConstraintResult {
-    const violations = results.flatMap(r => r.violations);
-    const warnings = results.flatMap(r => r.warnings);
+    const violations = results.flatMap((r) => r.violations);
+    const warnings = results.flatMap((r) => r.warnings);
     return { valid: violations.length === 0, violations, warnings };
   }
 }

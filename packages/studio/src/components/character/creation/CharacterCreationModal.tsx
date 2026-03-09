@@ -18,18 +18,7 @@
  */
 
 import { useState } from 'react';
-import {
-  X,
-  Sparkles,
-  Upload,
-  Library,
-  Search,
-  Cpu,
-  User,
-  Zap,
-  Settings,
-  Key,
-} from 'lucide-react';
+import { X, Sparkles, Upload, Library, Search, Cpu, User, Zap, Settings, Key } from 'lucide-react';
 import APIKeysPanel, { hasAPIKey } from '@/components/settings/APIKeysPanel';
 
 interface CharacterCreationModalProps {
@@ -130,7 +119,8 @@ export function CharacterCreationModal({
           <div>
             <h2 className="text-2xl font-bold text-white">Create Character</h2>
             <p className="mt-1 text-sm text-studio-muted">
-              <span className="text-purple-400">HoloScript Studio</span> — Build with Brittney (free) or upgrade for AI vision model (Pro)
+              <span className="text-purple-400">HoloScript Studio</span> — Build with Brittney
+              (free) or upgrade for AI vision model (Pro)
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -181,16 +171,16 @@ export function CharacterCreationModal({
                             ? 'bg-green-500 text-white'
                             : 'bg-green-500/20 text-green-400 group-hover:bg-green-500/30'
                           : tab.badgeType === 'key'
-                          ? isActive
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-blue-500/20 text-blue-400 group-hover:bg-blue-500/30'
-                          : tab.badgeType === 'guide'
-                          ? isActive
-                            ? 'bg-orange-500 text-white'
-                            : 'bg-orange-500/20 text-orange-400 group-hover:bg-orange-500/30'
-                          : isActive
-                          ? 'bg-purple-500 text-white'
-                          : 'bg-studio-border text-studio-muted group-hover:bg-purple-500/30'
+                            ? isActive
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-blue-500/20 text-blue-400 group-hover:bg-blue-500/30'
+                            : tab.badgeType === 'guide'
+                              ? isActive
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-orange-500/20 text-orange-400 group-hover:bg-orange-500/30'
+                              : isActive
+                                ? 'bg-purple-500 text-white'
+                                : 'bg-studio-border text-studio-muted group-hover:bg-purple-500/30'
                       }`}
                     >
                       {tab.badge}
@@ -370,9 +360,7 @@ function PresetModelsTab({ onCharacterCreated, isLoading, setIsLoading }: TabPro
           >
             {/* Thumbnail */}
             <div className="relative flex-1 overflow-hidden bg-gradient-to-br from-purple-500/10 to-blue-500/10">
-              <div className="flex h-full items-center justify-center text-6xl">
-                {model.emoji}
-              </div>
+              <div className="flex h-full items-center justify-center text-6xl">{model.emoji}</div>
 
               {/* Popularity Badge */}
               <div className="absolute right-2 top-2 flex gap-0.5">
@@ -384,9 +372,7 @@ function PresetModelsTab({ onCharacterCreated, isLoading, setIsLoading }: TabPro
 
             {/* Info */}
             <div className="border-t border-studio-border bg-black/40 p-3">
-              <p className="font-semibold text-white group-hover:text-purple-300">
-                {model.name}
-              </p>
+              <p className="font-semibold text-white group-hover:text-purple-300">{model.name}</p>
               <p className="mt-0.5 text-xs text-studio-muted">{model.description}</p>
 
               {/* Stats */}
@@ -418,7 +404,12 @@ function PresetModelsTab({ onCharacterCreated, isLoading, setIsLoading }: TabPro
 /**
  * AI Generation Tab - Meshy/Rodin integration
  */
-function AIGenerationTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSettings }: TabProps) {
+function AIGenerationTab({
+  onCharacterCreated,
+  isLoading,
+  setIsLoading,
+  onOpenSettings,
+}: TabProps) {
   const [prompt, setPrompt] = useState('');
   const [provider, setProvider] = useState<'meshy' | 'rodin'>('meshy');
   const [style, setStyle] = useState<'realistic' | 'stylized' | 'anime' | 'cartoon'>('stylized');
@@ -434,7 +425,12 @@ function AIGenerationTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSe
 
   // Poll generation status
   useState(() => {
-    if (!taskId || !generationStatus || generationStatus.status === 'completed' || generationStatus.status === 'failed') {
+    if (
+      !taskId ||
+      !generationStatus ||
+      generationStatus.status === 'completed' ||
+      generationStatus.status === 'failed'
+    ) {
       return;
     }
 
@@ -465,7 +461,8 @@ function AIGenerationTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSe
     setGenerationStatus({ status: 'pending', progress: 0 });
 
     try {
-      const { startGeneration, imageToDataUrl, validatePrompt } = await import('@/lib/aiCharacterGeneration');
+      const { startGeneration, imageToDataUrl, validatePrompt } =
+        await import('@/lib/aiCharacterGeneration');
 
       // Validate prompt
       const validation = validatePrompt(prompt);
@@ -584,7 +581,9 @@ function AIGenerationTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSe
           <div>
             <div className="mb-2 flex items-center justify-between text-sm">
               <span className="text-studio-muted">Progress</span>
-              <span className="font-semibold text-purple-300">{generationStatus.progress || 0}%</span>
+              <span className="font-semibold text-purple-300">
+                {generationStatus.progress || 0}%
+              </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-studio-border">
               <div
@@ -638,15 +637,38 @@ function AIGenerationTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSe
             <div className="flex-1">
               <h4 className="text-lg font-bold text-white">🔑 API Key Required</h4>
               <p className="mt-2 text-sm text-studio-muted leading-relaxed">
-                <span className="text-purple-400 font-semibold">HoloScript Cloud</span> — AI generation requires a Pro subscription.
-                Pro unlocks the vision model for characters, creatures, scenes, and more.
+                <span className="text-purple-400 font-semibold">HoloScript Cloud</span> — AI
+                generation requires a Pro subscription. Pro unlocks the vision model for characters,
+                creatures, scenes, and more.
               </p>
               <p className="mt-3 text-sm text-white">
                 <strong>Supported providers:</strong>
               </p>
               <ul className="mt-2 space-y-1 text-sm text-studio-muted">
-                <li>• <a href="https://www.meshy.ai" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Meshy AI</a> — Text/image to 3D generation</li>
-                <li>• <a href="https://hyperhuman.deemos.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Rodin AI</a> — Alternative AI generation provider</li>
+                <li>
+                  •{' '}
+                  <a
+                    href="https://www.meshy.ai"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:underline"
+                  >
+                    Meshy AI
+                  </a>{' '}
+                  — Text/image to 3D generation
+                </li>
+                <li>
+                  •{' '}
+                  <a
+                    href="https://hyperhuman.deemos.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:underline"
+                  >
+                    Rodin AI
+                  </a>{' '}
+                  — Alternative AI generation provider
+                </li>
               </ul>
               <button
                 onClick={onOpenSettings}
@@ -707,7 +729,8 @@ function AIGenerationTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSe
         {/* Image Upload (Optional) */}
         <div>
           <label className="mb-2 block text-sm font-semibold text-white">
-            Reference Image <span className="text-xs font-normal text-studio-muted">(optional)</span>
+            Reference Image{' '}
+            <span className="text-xs font-normal text-studio-muted">(optional)</span>
           </label>
           <div className="rounded-lg border-2 border-dashed border-studio-border bg-black/20 p-4 text-center">
             <input
@@ -820,9 +843,8 @@ function MixamoTab({ onCharacterCreated, isLoading, setIsLoading }: TabProps) {
     });
   });
 
-  const filteredCharacters = typeFilter === 'all'
-    ? characters
-    : characters.filter((c) => c.type === typeFilter);
+  const filteredCharacters =
+    typeFilter === 'all' ? characters : characters.filter((c) => c.type === typeFilter);
 
   const handleSelectCharacter = (character: any) => {
     setSelectedCharacter(character);
@@ -1224,8 +1246,8 @@ function VRoidTab({ onCharacterCreated, isLoading, setIsLoading }: TabProps) {
           <div className="rounded-lg border border-studio-border bg-black/20 p-4">
             <h4 className="text-sm font-semibold text-white">📦 What is VRM?</h4>
             <p className="mt-2 text-xs text-studio-muted">
-              VRM is a 3D avatar file format designed for VR/AR applications. It includes
-              avatar data, blend shapes, and license metadata.
+              VRM is a 3D avatar file format designed for VR/AR applications. It includes avatar
+              data, blend shapes, and license metadata.
             </p>
           </div>
 
@@ -1419,7 +1441,9 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
               </span>
               <span>❤️ {selectedModel.likeCount.toLocaleString()}</span>
               <span>👁️ {selectedModel.viewCount.toLocaleString()}</span>
-              {selectedModel.animationCount > 0 && <span>🎬 {selectedModel.animationCount} anims</span>}
+              {selectedModel.animationCount > 0 && (
+                <span>🎬 {selectedModel.animationCount} anims</span>
+              )}
             </div>
 
             {/* License */}
@@ -1497,11 +1521,13 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
             <div className="flex-1">
               <h4 className="text-lg font-bold text-white">🔑 Optional: Configure API Key</h4>
               <p className="mt-2 text-sm text-studio-muted leading-relaxed">
-                <span className="text-purple-400 font-semibold">Sketchfab Integration</span> — You can search Sketchfab without an API key,
-                but downloads require authentication. Configure your Sketchfab API key for automatic downloads.
+                <span className="text-purple-400 font-semibold">Sketchfab Integration</span> — You
+                can search Sketchfab without an API key, but downloads require authentication.
+                Configure your Sketchfab API key for automatic downloads.
               </p>
               <p className="mt-3 text-sm text-white">
-                <strong>Without API key:</strong> Search works, manual download instructions provided
+                <strong>Without API key:</strong> Search works, manual download instructions
+                provided
               </p>
               <p className="mt-1 text-sm text-white">
                 <strong>With API key:</strong> Search + automatic downloads
@@ -1532,7 +1558,9 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
         <h3 className="text-lg font-bold text-white">Sketchfab Search</h3>
         <p className="mt-1 text-sm text-studio-muted">
           Search and import from 3M+ models on Sketchfab
-          {!hasSketchfabKey && <span className="text-blue-400"> • Searches work, downloads require API key</span>}
+          {!hasSketchfabKey && (
+            <span className="text-blue-400"> • Searches work, downloads require API key</span>
+          )}
         </p>
       </div>
 
@@ -1612,7 +1640,12 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
                   {/* Stats Overlay */}
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
                     <div className="flex justify-between text-xs text-white">
-                      <span>❤️ {model.likeCount > 1000 ? `${(model.likeCount / 1000).toFixed(1)}K` : model.likeCount}</span>
+                      <span>
+                        ❤️{' '}
+                        {model.likeCount > 1000
+                          ? `${(model.likeCount / 1000).toFixed(1)}K`
+                          : model.likeCount}
+                      </span>
                       <span>
                         {(() => {
                           const { formatPolyCount } = require('@/lib/sketchfabIntegration');
@@ -1649,18 +1682,20 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
           <div>
             <p className="mb-2 text-xs font-semibold text-white">Popular searches:</p>
             <div className="flex flex-wrap justify-center gap-2">
-              {['anime character', 'robot', 'monster', 'fantasy warrior', 'cute animal'].map((term) => (
-                <button
-                  key={term}
-                  onClick={() => {
-                    setSearchQuery(term);
-                    setTimeout(() => handleSearch(), 100);
-                  }}
-                  className="rounded-lg border border-studio-border bg-black/20 px-3 py-1.5 text-xs text-studio-muted transition-all hover:border-purple-500/40 hover:text-white"
-                >
-                  {term}
-                </button>
-              ))}
+              {['anime character', 'robot', 'monster', 'fantasy warrior', 'cute animal'].map(
+                (term) => (
+                  <button
+                    key={term}
+                    onClick={() => {
+                      setSearchQuery(term);
+                      setTimeout(() => handleSearch(), 100);
+                    }}
+                    className="rounded-lg border border-studio-border bg-black/20 px-3 py-1.5 text-xs text-studio-muted transition-all hover:border-purple-500/40 hover:text-white"
+                  >
+                    {term}
+                  </button>
+                )
+              )}
             </div>
           </div>
         </div>
@@ -1696,9 +1731,7 @@ function UploadTab({ onCharacterCreated, isLoading, setIsLoading }: TabProps) {
     <div>
       <div className="mb-6">
         <h3 className="text-lg font-bold text-white">Upload Character File</h3>
-        <p className="mt-1 text-sm text-studio-muted">
-          Drag & drop your GLB, GLTF, or VRM file
-        </p>
+        <p className="mt-1 text-sm text-studio-muted">Drag & drop your GLB, GLTF, or VRM file</p>
       </div>
 
       <div

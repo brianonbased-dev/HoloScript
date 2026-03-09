@@ -20,9 +20,9 @@ export interface SpectrumData {
 }
 
 export interface BeatDetectionConfig {
-  sensitivity: number;      // 0-1 (higher = more sensitive)
-  minInterval: number;      // Minimum ms between beats
-  energyThreshold: number;  // Minimum energy to trigger
+  sensitivity: number; // 0-1 (higher = more sensitive)
+  minInterval: number; // Minimum ms between beats
+  energyThreshold: number; // Minimum energy to trigger
   frequencyRange: { low: number; high: number }; // Hz range to analyze
 }
 
@@ -30,20 +30,20 @@ export interface BeatEvent {
   timestamp: number;
   energy: number;
   bpm: number;
-  strength: number;   // 0-1, how strong the beat is
+  strength: number; // 0-1, how strong the beat is
 }
 
 export interface LoudnessMetrics {
-  rms: number;              // Root mean square (0-1)
-  peak: number;             // Peak amplitude (0-1)
-  lufs: number;             // Loudness Units Full Scale (dB)
-  dynamicRange: number;     // Difference between peak and average (dB)
+  rms: number; // Root mean square (0-1)
+  peak: number; // Peak amplitude (0-1)
+  lufs: number; // Loudness Units Full Scale (dB)
+  dynamicRange: number; // Difference between peak and average (dB)
 }
 
 export interface AudioBand {
   name: string;
-  low: number;   // Hz
-  high: number;  // Hz
+  low: number; // Hz
+  high: number; // Hz
   energy: number; // 0-1
 }
 
@@ -74,13 +74,13 @@ function simpleDFT(samples: Float32Array, binCount: number): Float32Array {
 // =============================================================================
 
 export const DEFAULT_BANDS: AudioBand[] = [
-  { name: 'sub',       low: 20,    high: 60,    energy: 0 },
-  { name: 'bass',      low: 60,    high: 250,   energy: 0 },
-  { name: 'lowMid',    low: 250,   high: 500,   energy: 0 },
-  { name: 'mid',       low: 500,   high: 2000,  energy: 0 },
-  { name: 'highMid',   low: 2000,  high: 4000,  energy: 0 },
-  { name: 'presence',  low: 4000,  high: 6000,  energy: 0 },
-  { name: 'brilliance',low: 6000,  high: 20000, energy: 0 },
+  { name: 'sub', low: 20, high: 60, energy: 0 },
+  { name: 'bass', low: 60, high: 250, energy: 0 },
+  { name: 'lowMid', low: 250, high: 500, energy: 0 },
+  { name: 'mid', low: 500, high: 2000, energy: 0 },
+  { name: 'highMid', low: 2000, high: 4000, energy: 0 },
+  { name: 'presence', low: 4000, high: 6000, energy: 0 },
+  { name: 'brilliance', low: 6000, high: 20000, energy: 0 },
 ];
 
 export class AudioAnalyzer {
@@ -98,11 +98,11 @@ export class AudioAnalyzer {
   constructor(
     fftSize: number = 256,
     sampleRate: number = 44100,
-    beatConfig?: Partial<BeatDetectionConfig>,
+    beatConfig?: Partial<BeatDetectionConfig>
   ) {
     this.fftSize = fftSize;
     this.sampleRate = sampleRate;
-    this.bands = DEFAULT_BANDS.map(b => ({ ...b }));
+    this.bands = DEFAULT_BANDS.map((b) => ({ ...b }));
     this.beatConfig = {
       sensitivity: 0.5,
       minInterval: 200,
@@ -205,7 +205,8 @@ export class AudioAnalyzer {
     this.smoothedEnergy = this.smoothedEnergy * 0.8 + bassEnergy * 0.2;
 
     // Beat threshold: current energy exceeds average by sensitivity factor
-    const threshold = avgEnergy * (1 + this.beatConfig.sensitivity * 2) + this.beatConfig.energyThreshold;
+    const threshold =
+      avgEnergy * (1 + this.beatConfig.sensitivity * 2) + this.beatConfig.energyThreshold;
     const timeSinceLastBeat = currentTimeMs - this.lastBeatTime;
 
     if (bassEnergy > threshold && timeSinceLastBeat > this.beatConfig.minInterval) {
@@ -247,11 +248,11 @@ export class AudioAnalyzer {
   }
 
   getBands(): AudioBand[] {
-    return this.bands.map(b => ({ ...b }));
+    return this.bands.map((b) => ({ ...b }));
   }
 
   getBandEnergy(bandName: string): number {
-    return this.bands.find(b => b.name === bandName)?.energy ?? 0;
+    return this.bands.find((b) => b.name === bandName)?.energy ?? 0;
   }
 
   getLoudness(): LoudnessMetrics {
@@ -287,7 +288,7 @@ export class AudioAnalyzer {
 
   reset(): void {
     this.currentSpectrum = null;
-    this.bands = DEFAULT_BANDS.map(b => ({ ...b }));
+    this.bands = DEFAULT_BANDS.map((b) => ({ ...b }));
     this.beatHistory = [];
     this.energyHistory = [];
     this.smoothedEnergy = 0;

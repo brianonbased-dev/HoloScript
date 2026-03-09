@@ -222,7 +222,7 @@ export class Ed25519CryptoProvider implements ICryptoProvider {
         key: privateKey,
         format: 'pem',
         type: 'pkcs8',
-      },
+      }
     );
     return signature.toString('base64');
   }
@@ -240,7 +240,7 @@ export class Ed25519CryptoProvider implements ICryptoProvider {
           format: 'pem',
           type: 'spki',
         },
-        Buffer.from(signature, 'base64'),
+        Buffer.from(signature, 'base64')
       );
     } catch {
       return false;
@@ -285,7 +285,7 @@ export class MLDSACryptoProvider implements ICryptoProvider {
     if (!noble) {
       throw new Error(
         'ML-DSA-65 requires @noble/post-quantum. ' +
-        'Install it with: npm install @noble/post-quantum',
+          'Install it with: npm install @noble/post-quantum'
       );
     }
 
@@ -399,14 +399,10 @@ export class HybridCryptoProvider implements ICryptoProvider {
    */
   constructor(classical: ICryptoProvider, pq?: ICryptoProvider) {
     if (classical.getAlgorithm() !== 'ed25519') {
-      throw new Error(
-        `Classical provider must be ed25519, got: ${classical.getAlgorithm()}`,
-      );
+      throw new Error(`Classical provider must be ed25519, got: ${classical.getAlgorithm()}`);
     }
     if (pq && pq.getAlgorithm() !== 'ml-dsa-65') {
-      throw new Error(
-        `Post-quantum provider must be ml-dsa-65, got: ${pq.getAlgorithm()}`,
-      );
+      throw new Error(`Post-quantum provider must be ml-dsa-65, got: ${pq.getAlgorithm()}`);
     }
 
     this.classical = classical;
@@ -473,12 +469,12 @@ export class HybridCryptoProvider implements ICryptoProvider {
    */
   async signComposite(
     message: Uint8Array,
-    hybridKeyPair: HybridKeyPair,
+    hybridKeyPair: HybridKeyPair
   ): Promise<CompositeSignature> {
     // Always sign with classical
     const classicalSignature = await this.classical.sign(
       message,
-      hybridKeyPair.classicalKey.privateKey,
+      hybridKeyPair.classicalKey.privateKey
     );
 
     // Sign with PQ if available
@@ -502,11 +498,7 @@ export class HybridCryptoProvider implements ICryptoProvider {
    * For composite verification, use verifyComposite() instead.
    * This method exists for ICryptoProvider interface compatibility.
    */
-  async verify(
-    message: Uint8Array,
-    signature: string,
-    publicKey: string,
-  ): Promise<boolean> {
+  async verify(message: Uint8Array, signature: string, publicKey: string): Promise<boolean> {
     return this.classical.verify(message, signature, publicKey);
   }
 
@@ -526,31 +518,27 @@ export class HybridCryptoProvider implements ICryptoProvider {
   async verifyComposite(
     message: Uint8Array,
     compositeSignature: CompositeSignature,
-    hybridKeyPair: HybridKeyPair,
+    hybridKeyPair: HybridKeyPair
   ): Promise<CompositeVerificationResult> {
     // Verify classical signature
     const classicalValid = await this.classical.verify(
       message,
       compositeSignature.classicalSignature,
-      hybridKeyPair.classicalKey.publicKey,
+      hybridKeyPair.classicalKey.publicKey
     );
 
     // Verify PQ signature if present
     let pqValid: boolean | null = null;
-    if (
-      this.pq &&
-      compositeSignature.pqSignature &&
-      hybridKeyPair.pqKey
-    ) {
+    if (this.pq && compositeSignature.pqSignature && hybridKeyPair.pqKey) {
       pqValid = await this.pq.verify(
         message,
         compositeSignature.pqSignature,
-        hybridKeyPair.pqKey.publicKey,
+        hybridKeyPair.pqKey.publicKey
       );
     }
 
     // Defense in depth: valid if EITHER verifies
-    const eitherValid = classicalValid || (pqValid === true);
+    const eitherValid = classicalValid || pqValid === true;
 
     const result: CompositeVerificationResult = {
       valid: eitherValid,
@@ -560,7 +548,8 @@ export class HybridCryptoProvider implements ICryptoProvider {
     };
 
     if (!eitherValid) {
-      result.error = 'Both classical (Ed25519) and post-quantum (ML-DSA-65) signature verification failed';
+      result.error =
+        'Both classical (Ed25519) and post-quantum (ML-DSA-65) signature verification failed';
     }
 
     return result;
@@ -597,7 +586,7 @@ export class HybridCryptoProvider implements ICryptoProvider {
  */
 export function createCryptoProvider(
   algorithm: SignatureAlgorithm,
-  pqProvider?: ICryptoProvider,
+  pqProvider?: ICryptoProvider
 ): ICryptoProvider {
   switch (algorithm) {
     case 'ed25519':
@@ -609,7 +598,7 @@ export function createCryptoProvider(
     case 'hybrid-ed25519-ml-dsa-65':
       return new HybridCryptoProvider(
         new Ed25519CryptoProvider(),
-        pqProvider ?? new MLDSACryptoProvider(),
+        pqProvider ?? new MLDSACryptoProvider()
       );
 
     default: {

@@ -116,7 +116,11 @@ describe('NegotiationProtocol', () => {
 
     it('sets proposal status to submitted', async () => {
       const session = await setupSession(protocol);
-      const p = await protocol.propose(session.id, { proposerId: 'alice', title: 'x', content: {} });
+      const p = await protocol.propose(session.id, {
+        proposerId: 'alice',
+        title: 'x',
+        content: {},
+      });
       expect(p.status).toBe('submitted');
     });
   });
@@ -128,7 +132,11 @@ describe('NegotiationProtocol', () => {
   describe('vote', () => {
     it('casts a valid vote', async () => {
       const session = await setupSession(protocol);
-      const p = await protocol.propose(session.id, { proposerId: 'alice', title: 'p1', content: {} });
+      const p = await protocol.propose(session.id, {
+        proposerId: 'alice',
+        title: 'p1',
+        content: {},
+      });
 
       const vote = await protocol.vote(session.id, {
         agentId: 'alice',
@@ -140,7 +148,11 @@ describe('NegotiationProtocol', () => {
 
     it('throws when voting twice', async () => {
       const session = await setupSession(protocol);
-      const p = await protocol.propose(session.id, { proposerId: 'alice', title: 'p1', content: {} });
+      const p = await protocol.propose(session.id, {
+        proposerId: 'alice',
+        title: 'p1',
+        content: {},
+      });
       await protocol.vote(session.id, { agentId: 'alice', ranking: [p.id] });
       await expect(
         protocol.vote(session.id, { agentId: 'alice', ranking: [p.id] })
@@ -149,10 +161,14 @@ describe('NegotiationProtocol', () => {
 
     it('throws for non-participant voter', async () => {
       const session = await setupSession(protocol);
-      const p = await protocol.propose(session.id, { proposerId: 'alice', title: 'p1', content: {} });
-      await expect(
-        protocol.vote(session.id, { agentId: 'eve', ranking: [p.id] })
-      ).rejects.toThrow('not a participant');
+      const p = await protocol.propose(session.id, {
+        proposerId: 'alice',
+        title: 'p1',
+        content: {},
+      });
+      await expect(protocol.vote(session.id, { agentId: 'eve', ranking: [p.id] })).rejects.toThrow(
+        'not a participant'
+      );
     });
 
     it('allows abstain vote with no ranking', async () => {
@@ -165,7 +181,11 @@ describe('NegotiationProtocol', () => {
       const handler = vi.fn();
       protocol.on('voteReceived', handler);
       const session = await setupSession(protocol);
-      const p = await protocol.propose(session.id, { proposerId: 'alice', title: 'p1', content: {} });
+      const p = await protocol.propose(session.id, {
+        proposerId: 'alice',
+        title: 'p1',
+        content: {},
+      });
       await protocol.vote(session.id, { agentId: 'alice', ranking: [p.id] });
       expect(handler).toHaveBeenCalledOnce();
     });
@@ -184,7 +204,11 @@ describe('NegotiationProtocol', () => {
 
     it('resolves after all votes cast with a winner', async () => {
       const session = await setupSession(protocol, ['alice', 'bob']);
-      const p = await protocol.propose(session.id, { proposerId: 'alice', title: 'plan-a', content: {} });
+      const p = await protocol.propose(session.id, {
+        proposerId: 'alice',
+        title: 'plan-a',
+        content: {},
+      });
       await protocol.vote(session.id, { agentId: 'alice', ranking: [p.id] });
       // After bob votes, auto-resolve triggers inside vote()
       await protocol.vote(session.id, { agentId: 'bob', ranking: [p.id] });
@@ -199,7 +223,11 @@ describe('NegotiationProtocol', () => {
 
     it('force-resolves bypassing quorum check', async () => {
       const session = await setupSession(protocol);
-      const p = await protocol.propose(session.id, { proposerId: 'alice', title: 'p1', content: {} });
+      const p = await protocol.propose(session.id, {
+        proposerId: 'alice',
+        title: 'p1',
+        content: {},
+      });
       await protocol.vote(session.id, { agentId: 'alice', ranking: [p.id] });
 
       const resolution = await protocol.resolve(session.id, true);
@@ -218,16 +246,26 @@ describe('NegotiationProtocol', () => {
 
     it('marks session as resolved', async () => {
       const session = await setupSession(protocol, ['alice', 'bob']);
-      const p = await protocol.propose(session.id, { proposerId: 'alice', title: 'p1', content: {} });
+      const p = await protocol.propose(session.id, {
+        proposerId: 'alice',
+        title: 'p1',
+        content: {},
+      });
       await protocol.vote(session.id, { agentId: 'alice', ranking: [p.id] });
       await protocol.vote(session.id, { agentId: 'bob', ranking: [p.id] });
       // triggers auto-resolve since all voted
-      expect(['resolved', 'open', 'voting'].includes(protocol.getSession(session.id).status)).toBe(true);
+      expect(['resolved', 'open', 'voting'].includes(protocol.getSession(session.id).status)).toBe(
+        true
+      );
     });
 
     it('returns existing resolution for already-resolved session', async () => {
       const session = await setupSession(protocol, ['alice', 'bob']);
-      const p = await protocol.propose(session.id, { proposerId: 'alice', title: 'p1', content: {} });
+      const p = await protocol.propose(session.id, {
+        proposerId: 'alice',
+        title: 'p1',
+        content: {},
+      });
       await protocol.vote(session.id, { agentId: 'alice', ranking: [p.id] });
       await protocol.vote(session.id, { agentId: 'bob', ranking: [p.id] });
       const first = await protocol.resolve(session.id);
@@ -288,7 +326,9 @@ describe('NegotiationProtocol', () => {
     it('does not duplicate existing participant', async () => {
       const session = await setupSession(protocol, ['alice']);
       protocol.addParticipant(session.id, 'alice');
-      const count = protocol.getSession(session.id).participants.filter((p) => p === 'alice').length;
+      const count = protocol
+        .getSession(session.id)
+        .participants.filter((p) => p === 'alice').length;
       expect(count).toBe(1);
     });
   });

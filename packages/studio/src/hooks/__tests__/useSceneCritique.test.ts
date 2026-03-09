@@ -3,10 +3,10 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useSceneCritique } from '../useSceneCritique';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 import type { CritiqueResult } from '@/app/api/critique/route';
 
-vi.mock('@/lib/store', () => ({
+vi.mock('@/lib/stores', () => ({
   useSceneStore: vi.fn(),
 }));
 

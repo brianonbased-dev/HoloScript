@@ -1,12 +1,6 @@
-import React from "react";
-import {
-  AbsoluteFill,
-  interpolate,
-  useCurrentFrame,
-  useVideoConfig,
-  Easing,
-} from "remotion";
-import { theme } from "../utils/theme";
+import React from 'react';
+import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig, Easing } from 'remotion';
+import { theme } from '../utils/theme';
 
 interface TitleCardProps {
   title: string;
@@ -15,27 +9,22 @@ interface TitleCardProps {
   compilerTarget?: string;
 }
 
-export const TitleCard: React.FC<TitleCardProps> = ({
-  title,
-  subtitle,
-  tag,
-  compilerTarget,
-}) => {
+export const TitleCard: React.FC<TitleCardProps> = ({ title, subtitle, tag, compilerTarget }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
   const opacity = interpolate(frame, [0, fps * 0.5], [0, 1], {
-    extrapolateRight: "clamp",
+    extrapolateRight: 'clamp',
     easing: Easing.out(Easing.ease),
   });
 
   const titleY = interpolate(frame, [0, fps * 0.5], [40, 0], {
-    extrapolateRight: "clamp",
+    extrapolateRight: 'clamp',
     easing: Easing.out(Easing.back(1.2)),
   });
 
   const subtitleOpacity = interpolate(frame, [fps * 0.4, fps * 0.9], [0, 1], {
-    extrapolateRight: "clamp",
+    extrapolateRight: 'clamp',
     easing: Easing.out(Easing.ease),
   });
 
@@ -43,10 +32,10 @@ export const TitleCard: React.FC<TitleCardProps> = ({
     <AbsoluteFill
       style={{
         background: `radial-gradient(ellipse at 50% 60%, ${theme.accentDim} 0%, ${theme.bg} 70%)`,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
         gap: 24,
         fontFamily: theme.titleFont,
       }}
@@ -54,13 +43,13 @@ export const TitleCard: React.FC<TitleCardProps> = ({
       {/* Animated grid background */}
       <div
         style={{
-          position: "absolute",
+          position: 'absolute',
           inset: 0,
           backgroundImage: `
             linear-gradient(${theme.accentDim} 1px, transparent 1px),
             linear-gradient(90deg, ${theme.accentDim} 1px, transparent 1px)
           `,
-          backgroundSize: "60px 60px",
+          backgroundSize: '60px 60px',
           opacity: 0.4,
         }}
       />
@@ -69,8 +58,8 @@ export const TitleCard: React.FC<TitleCardProps> = ({
       <div
         style={{
           opacity,
-          display: "flex",
-          alignItems: "center",
+          display: 'flex',
+          alignItems: 'center',
           gap: 12,
           marginBottom: 8,
         }}
@@ -79,7 +68,7 @@ export const TitleCard: React.FC<TitleCardProps> = ({
           style={{
             width: 12,
             height: 12,
-            borderRadius: "50%",
+            borderRadius: '50%',
             background: theme.accent,
             boxShadow: `0 0 16px ${theme.accent}`,
           }}
@@ -88,8 +77,8 @@ export const TitleCard: React.FC<TitleCardProps> = ({
           style={{
             color: theme.textMuted,
             fontSize: 18,
-            letterSpacing: "0.15em",
-            textTransform: "uppercase",
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
           }}
         >
           HoloScript
@@ -102,7 +91,7 @@ export const TitleCard: React.FC<TitleCardProps> = ({
                 color: theme.accent,
                 fontSize: 14,
                 background: theme.accentDim,
-                padding: "2px 10px",
+                padding: '2px 10px',
                 borderRadius: 100,
                 border: `1px solid ${theme.accentGlow}44`,
               }}
@@ -119,20 +108,19 @@ export const TitleCard: React.FC<TitleCardProps> = ({
           color: theme.text,
           fontSize: 72,
           fontWeight: 700,
-          textAlign: "center",
-          letterSpacing: "-0.02em",
+          textAlign: 'center',
+          letterSpacing: '-0.02em',
           lineHeight: 1.1,
           margin: 0,
           opacity,
           transform: `translateY(${titleY}px)`,
           maxWidth: 1400,
-          padding: "0 80px",
+          padding: '0 80px',
         }}
       >
         {compilerTarget ? (
           <>
-            {title}{" "}
-            <span style={{ color: theme.accent }}>{compilerTarget}</span>
+            {title} <span style={{ color: theme.accent }}>{compilerTarget}</span>
           </>
         ) : (
           title
@@ -145,7 +133,7 @@ export const TitleCard: React.FC<TitleCardProps> = ({
           style={{
             color: theme.textMuted,
             fontSize: 28,
-            textAlign: "center",
+            textAlign: 'center',
             margin: 0,
             opacity: subtitleOpacity,
             maxWidth: 900,
@@ -158,11 +146,11 @@ export const TitleCard: React.FC<TitleCardProps> = ({
       {/* Bottom line */}
       <div
         style={{
-          position: "absolute",
+          position: 'absolute',
           bottom: 48,
           opacity: subtitleOpacity,
-          display: "flex",
-          alignItems: "center",
+          display: 'flex',
+          alignItems: 'center',
           gap: 8,
           color: theme.textFaint,
           fontSize: 16,

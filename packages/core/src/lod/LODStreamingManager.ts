@@ -335,9 +335,7 @@ export class LODStreamingManager {
     this.updateMetrics();
 
     // Clean up old bandwidth samples
-    this.bandwidthWindow = this.bandwidthWindow.filter(
-      (sample) => now - sample.timestamp < 1000
-    );
+    this.bandwidthWindow = this.bandwidthWindow.filter((sample) => now - sample.timestamp < 1000);
   }
 
   /**
@@ -345,10 +343,7 @@ export class LODStreamingManager {
    */
   private async processQueue(): Promise<void> {
     // Check concurrent load limit
-    while (
-      this.activeLoads.size < this.options.maxConcurrentLoads &&
-      this.requestQueue.size > 0
-    ) {
+    while (this.activeLoads.size < this.options.maxConcurrentLoads && this.requestQueue.size > 0) {
       const request = this.requestQueue.peek();
       if (!request) break;
 
@@ -550,9 +545,7 @@ export class LODStreamingManager {
 
     // Calculate velocity component toward/away from object
     const velocityMagnitude = Math.sqrt(
-      this.cameraVelocity[0] ** 2 +
-        this.cameraVelocity[1] ** 2 +
-        this.cameraVelocity[2] ** 2
+      this.cameraVelocity[0] ** 2 + this.cameraVelocity[1] ** 2 + this.cameraVelocity[2] ** 2
     );
 
     // Simple approximation: if moving, distance changes

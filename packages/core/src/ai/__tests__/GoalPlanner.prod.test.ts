@@ -8,9 +8,16 @@ import { describe, it, expect, vi } from 'vitest';
 import { GoalPlanner, type PlanAction, type Goal, type WorldState } from '../GoalPlanner';
 
 // ─── Helpers ────────────────────────────────────────────────────────
-function makeAction(id: string, cost: number, preconditions: [string, boolean][], effects: [string, boolean][]): PlanAction {
+function makeAction(
+  id: string,
+  cost: number,
+  preconditions: [string, boolean][],
+  effects: [string, boolean][]
+): PlanAction {
   return {
-    id, name: id, cost,
+    id,
+    name: id,
+    cost,
     preconditions: new Map(preconditions),
     effects: new Map(effects),
     execute: vi.fn(),
@@ -69,7 +76,10 @@ describe('GoalPlanner — Production', () => {
     planner.addAction(makeAction('chop', 2, [['hasAxe', true]], [['hasWood', true]]));
     planner.addGoal(makeGoal('getWood', 1, [['hasWood', true]]));
 
-    const state: WorldState = new Map([['hasAxe', false], ['hasWood', false]]);
+    const state: WorldState = new Map([
+      ['hasAxe', false],
+      ['hasWood', false],
+    ]);
     const plan = planner.plan(state);
     expect(plan).not.toBeNull();
     expect(plan!.actions.length).toBe(2);
@@ -117,7 +127,10 @@ describe('GoalPlanner — Production', () => {
     planner.addGoal(makeGoal('eat', 5, [['hasFood', true]]));
     planner.addGoal(makeGoal('drink', 10, [['hasWater', true]]));
 
-    const state: WorldState = new Map([['hasFood', false], ['hasWater', false]]);
+    const state: WorldState = new Map([
+      ['hasFood', false],
+      ['hasWater', false],
+    ]);
     const plan = planner.plan(state);
     expect(plan!.goalId).toBe('drink'); // higher priority
   });
@@ -125,11 +138,24 @@ describe('GoalPlanner — Production', () => {
   // ─── Preconditions ────────────────────────────────────────────────
   it('respects preconditions', () => {
     const planner = new GoalPlanner();
-    planner.addAction(makeAction('build', 5, [['hasWood', true], ['hasNails', true]], [['hasHouse', true]]));
+    planner.addAction(
+      makeAction(
+        'build',
+        5,
+        [
+          ['hasWood', true],
+          ['hasNails', true],
+        ],
+        [['hasHouse', true]]
+      )
+    );
     planner.addGoal(makeGoal('shelter', 1, [['hasHouse', true]]));
 
     // Missing preconditions, no other actions to get them
-    const state: WorldState = new Map([['hasWood', false], ['hasNails', false]]);
+    const state: WorldState = new Map([
+      ['hasWood', false],
+      ['hasNails', false],
+    ]);
     expect(planner.plan(state)).toBeNull();
   });
 
@@ -142,7 +168,10 @@ describe('GoalPlanner — Production', () => {
     planner.addAction(a2);
     planner.addGoal(makeGoal('g', 1, [['y', true]]));
 
-    const state: WorldState = new Map([['x', false], ['y', false]]);
+    const state: WorldState = new Map([
+      ['x', false],
+      ['y', false],
+    ]);
     const plan = planner.plan(state);
     expect(plan).not.toBeNull();
     planner.executePlan(plan!);

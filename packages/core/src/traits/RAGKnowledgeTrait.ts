@@ -151,7 +151,8 @@ export const ragKnowledgeHandler: TraitHandler<RAGConfig> = {
 
       if (doc) {
         doc.indexed = true;
-        state.is_indexing = state.is_indexing && Array.from(state.indexed_documents.values()).some((d) => !d.indexed);
+        state.is_indexing =
+          state.is_indexing && Array.from(state.indexed_documents.values()).some((d) => !d.indexed);
 
         context.emit?.('on_document_indexed', {
           node,

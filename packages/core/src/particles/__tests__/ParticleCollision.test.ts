@@ -1,23 +1,42 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ParticleCollisionSystem, type CollidableParticle, type CollisionPlane, type CollisionSphere } from '../ParticleCollision';
+import {
+  ParticleCollisionSystem,
+  type CollidableParticle,
+  type CollisionPlane,
+  type CollisionSphere,
+} from '../ParticleCollision';
 
 function makeParticle(x = 0, y = 0, z = 0, vx = 0, vy = 0, vz = 0): CollidableParticle {
   return { x, y, z, vx, vy, vz, lifetime: 10, alive: true };
 }
 
 const groundPlane: CollisionPlane = {
-  id: 'ground', nx: 0, ny: 1, nz: 0, d: 0,
-  bounce: 0.8, friction: 0.1, lifetimeLoss: 0.5,
+  id: 'ground',
+  nx: 0,
+  ny: 1,
+  nz: 0,
+  d: 0,
+  bounce: 0.8,
+  friction: 0.1,
+  lifetimeLoss: 0.5,
 };
 
 const sphere: CollisionSphere = {
-  id: 's1', cx: 0, cy: 0, cz: 0, radius: 2, bounce: 0.5, friction: 0,
+  id: 's1',
+  cx: 0,
+  cy: 0,
+  cz: 0,
+  radius: 2,
+  bounce: 0.5,
+  friction: 0,
 };
 
 describe('ParticleCollisionSystem', () => {
   let sys: ParticleCollisionSystem;
 
-  beforeEach(() => { sys = new ParticleCollisionSystem(); });
+  beforeEach(() => {
+    sys = new ParticleCollisionSystem();
+  });
 
   it('addPlane and resolve detects collision', () => {
     sys.addPlane(groundPlane);
@@ -25,7 +44,7 @@ describe('ParticleCollisionSystem', () => {
     sys.resolve([p]);
     expect(sys.getCollisionCount()).toBe(1);
     expect(p.y).toBeGreaterThanOrEqual(0); // pushed out
-    expect(p.vy).toBeGreaterThan(0);       // reflected up
+    expect(p.vy).toBeGreaterThan(0); // reflected up
   });
 
   it('lifetime loss on plane collision', () => {

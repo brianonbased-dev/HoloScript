@@ -1461,7 +1461,7 @@ export class HoloScriptCodeParser {
   /**
    * Parse memory primitive block
    * memory <Name> { semantic: SemanticMemory { ... }, episodic: EpisodicMemory { ... }, procedural: ProceduralMemory { ... } }
-   * 
+   *
    * Defers to the modular HoloScriptPersistenceParser
    */
   private parseMemory(): MemoryNode | null {

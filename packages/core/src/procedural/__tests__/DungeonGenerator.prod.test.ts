@@ -32,9 +32,13 @@ describe('DungeonGenerator — Production', () => {
     const { rooms } = dg.generate();
     for (let i = 0; i < rooms.length; i++) {
       for (let j = i + 1; j < rooms.length; j++) {
-        const a = rooms[i], b = rooms[j];
-        const overlap = a.x < b.x + b.width && a.x + a.width > b.x &&
-                        a.y < b.y + b.height && a.y + a.height > b.y;
+        const a = rooms[i],
+          b = rooms[j];
+        const overlap =
+          a.x < b.x + b.width &&
+          a.x + a.width > b.x &&
+          a.y < b.y + b.height &&
+          a.y + a.height > b.y;
         expect(overlap).toBe(false);
       }
     }

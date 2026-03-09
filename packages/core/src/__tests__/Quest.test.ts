@@ -11,12 +11,36 @@ describe('Cycle 131: Quest & Objectives', () => {
   it('should manage quest lifecycle and objectives', () => {
     const mgr = new QuestManager();
     mgr.addQuest({
-      id: 'q1', name: 'Slay the Dragon', description: 'Kill the dragon', category: 'main',
+      id: 'q1',
+      name: 'Slay the Dragon',
+      description: 'Kill the dragon',
+      category: 'main',
       objectives: [
-        { id: 'o1', type: 'kill', description: 'Kill dragon', target: 'dragon', required: 1, current: 0, completed: false, optional: false },
-        { id: 'o2', type: 'collect', description: 'Collect scales', target: 'scale', required: 3, current: 0, completed: false, optional: true },
+        {
+          id: 'o1',
+          type: 'kill',
+          description: 'Kill dragon',
+          target: 'dragon',
+          required: 1,
+          current: 0,
+          completed: false,
+          optional: false,
+        },
+        {
+          id: 'o2',
+          type: 'collect',
+          description: 'Collect scales',
+          target: 'scale',
+          required: 3,
+          current: 0,
+          completed: false,
+          optional: true,
+        },
       ],
-      prerequisites: [], level: 5, timeLimit: 0, repeatable: false,
+      prerequisites: [],
+      level: 5,
+      timeLimit: 0,
+      repeatable: false,
     });
 
     expect(mgr.getQuest('q1')!.status).toBe('available');
@@ -29,12 +53,50 @@ describe('Cycle 131: Quest & Objectives', () => {
 
   it('should enforce prerequisites', () => {
     const mgr = new QuestManager();
-    mgr.addQuest({ id: 'intro', name: 'Intro', description: '', category: 'main',
-      objectives: [{ id: 'o', type: 'custom', description: '', target: '', required: 1, current: 0, completed: false, optional: false }],
-      prerequisites: [], level: 1, timeLimit: 0, repeatable: false });
-    mgr.addQuest({ id: 'sequel', name: 'Sequel', description: '', category: 'main',
-      objectives: [{ id: 'o', type: 'custom', description: '', target: '', required: 1, current: 0, completed: false, optional: false }],
-      prerequisites: ['intro'], level: 1, timeLimit: 0, repeatable: false });
+    mgr.addQuest({
+      id: 'intro',
+      name: 'Intro',
+      description: '',
+      category: 'main',
+      objectives: [
+        {
+          id: 'o',
+          type: 'custom',
+          description: '',
+          target: '',
+          required: 1,
+          current: 0,
+          completed: false,
+          optional: false,
+        },
+      ],
+      prerequisites: [],
+      level: 1,
+      timeLimit: 0,
+      repeatable: false,
+    });
+    mgr.addQuest({
+      id: 'sequel',
+      name: 'Sequel',
+      description: '',
+      category: 'main',
+      objectives: [
+        {
+          id: 'o',
+          type: 'custom',
+          description: '',
+          target: '',
+          required: 1,
+          current: 0,
+          completed: false,
+          optional: false,
+        },
+      ],
+      prerequisites: ['intro'],
+      level: 1,
+      timeLimit: 0,
+      repeatable: false,
+    });
 
     expect(mgr.getQuest('sequel')!.status).toBe('locked');
     mgr.activate('intro');
@@ -45,9 +107,28 @@ describe('Cycle 131: Quest & Objectives', () => {
 
   it('should fail timed quests', () => {
     const mgr = new QuestManager();
-    mgr.addQuest({ id: 'timed', name: 'Rush', description: '', category: 'side',
-      objectives: [{ id: 'o', type: 'reach', description: '', target: '', required: 1, current: 0, completed: false, optional: false }],
-      prerequisites: [], level: 1, timeLimit: 10, repeatable: false });
+    mgr.addQuest({
+      id: 'timed',
+      name: 'Rush',
+      description: '',
+      category: 'side',
+      objectives: [
+        {
+          id: 'o',
+          type: 'reach',
+          description: '',
+          target: '',
+          required: 1,
+          current: 0,
+          completed: false,
+          optional: false,
+        },
+      ],
+      prerequisites: [],
+      level: 1,
+      timeLimit: 10,
+      repeatable: false,
+    });
     mgr.activate('timed');
     mgr.update(11);
     expect(mgr.getQuest('timed')!.status).toBe('failed');

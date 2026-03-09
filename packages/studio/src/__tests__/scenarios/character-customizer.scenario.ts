@@ -99,8 +99,14 @@ describe('Scenario: Character Customizer — Body Sliders', () => {
   beforeEach(resetStore);
 
   const BODY_IDS = [
-    'body_height', 'body_build', 'body_shoulders', 'body_chest',
-    'body_waist', 'body_hips', 'body_arms', 'body_legs',
+    'body_height',
+    'body_build',
+    'body_shoulders',
+    'body_chest',
+    'body_waist',
+    'body_hips',
+    'body_arms',
+    'body_legs',
   ];
 
   it('has 8 body slider IDs', () => {
@@ -132,8 +138,14 @@ describe('Scenario: Character Customizer — Face Sliders', () => {
   beforeEach(resetStore);
 
   const FACE_IDS = [
-    'face_eye_size', 'face_eye_spacing', 'face_nose_width', 'face_nose_length',
-    'face_mouth_width', 'face_jaw_width', 'face_cheek', 'face_brow',
+    'face_eye_size',
+    'face_eye_spacing',
+    'face_nose_width',
+    'face_nose_length',
+    'face_mouth_width',
+    'face_jaw_width',
+    'face_cheek',
+    'face_brow',
   ];
 
   it('has 8 face slider IDs', () => {
@@ -157,22 +169,22 @@ describe('Scenario: Character Customizer — Face Sliders', () => {
 
 describe('Scenario: Character Customizer — Morph Name Mapping', () => {
   const MORPH_NAME_MAP: Record<string, string[]> = {
-    body_height:      ['Height', 'height', 'Body_Height'],
-    body_build:       ['Build', 'build', 'Body_Build', 'Muscle', 'muscular'],
-    body_shoulders:   ['Shoulders', 'shoulders', 'Shoulder_Width'],
-    body_chest:       ['Chest', 'chest', 'Bust'],
-    body_waist:       ['Waist', 'waist', 'Waist_Size'],
-    body_hips:        ['Hips', 'hips', 'Hip_Width'],
-    body_arms:        ['ArmLength', 'arm_length', 'Arms'],
-    body_legs:        ['LegLength', 'leg_length', 'Legs'],
-    face_eye_size:    ['EyeSize', 'eye_size', 'eyeWide', 'A_EyeOpen'],
+    body_height: ['Height', 'height', 'Body_Height'],
+    body_build: ['Build', 'build', 'Body_Build', 'Muscle', 'muscular'],
+    body_shoulders: ['Shoulders', 'shoulders', 'Shoulder_Width'],
+    body_chest: ['Chest', 'chest', 'Bust'],
+    body_waist: ['Waist', 'waist', 'Waist_Size'],
+    body_hips: ['Hips', 'hips', 'Hip_Width'],
+    body_arms: ['ArmLength', 'arm_length', 'Arms'],
+    body_legs: ['LegLength', 'leg_length', 'Legs'],
+    face_eye_size: ['EyeSize', 'eye_size', 'eyeWide', 'A_EyeOpen'],
     face_eye_spacing: ['EyeSpacing', 'eye_spacing', 'EyeWide'],
-    face_nose_width:  ['NoseWidth', 'nose_width', 'Nose_Width'],
+    face_nose_width: ['NoseWidth', 'nose_width', 'Nose_Width'],
     face_nose_length: ['NoseLength', 'nose_length', 'Nose_Length'],
     face_mouth_width: ['MouthWidth', 'mouth_width', 'Mouth_Wide', 'mouthWide'],
-    face_jaw_width:   ['JawWidth', 'jaw_width', 'Jaw_Width', 'jawOpen'],
-    face_cheek:       ['Cheek', 'cheek', 'cheekPuff', 'CheekPuff'],
-    face_brow:        ['BrowHeight', 'brow_height', 'browInnerUp', 'BrowUp'],
+    face_jaw_width: ['JawWidth', 'jaw_width', 'Jaw_Width', 'jawOpen'],
+    face_cheek: ['Cheek', 'cheek', 'cheekPuff', 'CheekPuff'],
+    face_brow: ['BrowHeight', 'brow_height', 'browInnerUp', 'BrowUp'],
   };
 
   it('all 16 sliders have morph name mappings', () => {

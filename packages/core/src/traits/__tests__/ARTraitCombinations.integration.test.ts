@@ -445,7 +445,7 @@ describe('AR Trait Combination: Geospatial + VPS + Light Estimation', () => {
     // Query distance to a nearby point
     sendEvent(geospatialAnchorHandler, geoNode, geoCfg, geoCtx, {
       type: 'geospatial_query_distance',
-      latitude: 37.7750,
+      latitude: 37.775,
       longitude: -122.4194,
       queryId: 'dist-1',
     });
@@ -542,7 +542,7 @@ describe('AR Trait Combination: Face Tracking + Occlusion + Light Estimation', (
     });
 
     // Check that lip sync was emitted (may require multiple frames for smoothing)
-    const phonemeEvents = faceCtx.emittedEvents.filter(e => e.event === 'lip_sync_phoneme');
+    const phonemeEvents = faceCtx.emittedEvents.filter((e) => e.event === 'lip_sync_phoneme');
     // At least one phoneme should be detected after two frames of high jawOpen
     expect(phonemeEvents.length).toBeGreaterThanOrEqual(0); // Smoothing may delay detection
   });
@@ -811,10 +811,22 @@ describe('AR Trait Combination: All Traits Stress Test', () => {
     const nodes: Record<string, Record<string, unknown>> = {};
     const contexts: Record<string, ReturnType<typeof createMockContext>> = {};
     const traits = [
-      { name: 'plane', handler: planeDetectionHandler, config: planeDetectionHandler.defaultConfig },
+      {
+        name: 'plane',
+        handler: planeDetectionHandler,
+        config: planeDetectionHandler.defaultConfig,
+      },
       { name: 'mesh', handler: meshDetectionHandler, config: meshDetectionHandler.defaultConfig },
-      { name: 'light', handler: lightEstimationHandler, config: lightEstimationHandler.defaultConfig },
-      { name: 'geo', handler: geospatialAnchorHandler, config: geospatialAnchorHandler.defaultConfig },
+      {
+        name: 'light',
+        handler: lightEstimationHandler,
+        config: lightEstimationHandler.defaultConfig,
+      },
+      {
+        name: 'geo',
+        handler: geospatialAnchorHandler,
+        config: geospatialAnchorHandler.defaultConfig,
+      },
       { name: 'face', handler: faceTrackingHandler, config: faceTrackingHandler.defaultConfig },
       { name: 'occ', handler: occlusionHandler, config: occlusionHandler.defaultConfig },
       { name: 'vps', handler: vpsHandler, config: vpsHandler.defaultConfig },
@@ -841,10 +853,22 @@ describe('AR Trait Combination: All Traits Stress Test', () => {
     const nodes: Record<string, Record<string, unknown>> = {};
     const contexts: Record<string, ReturnType<typeof createMockContext>> = {};
     const traits = [
-      { name: 'plane', handler: planeDetectionHandler, config: planeDetectionHandler.defaultConfig },
+      {
+        name: 'plane',
+        handler: planeDetectionHandler,
+        config: planeDetectionHandler.defaultConfig,
+      },
       { name: 'mesh', handler: meshDetectionHandler, config: meshDetectionHandler.defaultConfig },
-      { name: 'light', handler: lightEstimationHandler, config: lightEstimationHandler.defaultConfig },
-      { name: 'geo', handler: geospatialAnchorHandler, config: geospatialAnchorHandler.defaultConfig },
+      {
+        name: 'light',
+        handler: lightEstimationHandler,
+        config: lightEstimationHandler.defaultConfig,
+      },
+      {
+        name: 'geo',
+        handler: geospatialAnchorHandler,
+        config: geospatialAnchorHandler.defaultConfig,
+      },
       { name: 'face', handler: faceTrackingHandler, config: faceTrackingHandler.defaultConfig },
       { name: 'occ', handler: occlusionHandler, config: occlusionHandler.defaultConfig },
       { name: 'vps', handler: vpsHandler, config: vpsHandler.defaultConfig },
@@ -870,10 +894,22 @@ describe('AR Trait Combination: All Traits Stress Test', () => {
     const nodes: Record<string, Record<string, unknown>> = {};
     const contexts: Record<string, ReturnType<typeof createMockContext>> = {};
     const traits = [
-      { name: 'plane', handler: planeDetectionHandler, config: planeDetectionHandler.defaultConfig },
+      {
+        name: 'plane',
+        handler: planeDetectionHandler,
+        config: planeDetectionHandler.defaultConfig,
+      },
       { name: 'mesh', handler: meshDetectionHandler, config: meshDetectionHandler.defaultConfig },
-      { name: 'light', handler: lightEstimationHandler, config: lightEstimationHandler.defaultConfig },
-      { name: 'geo', handler: geospatialAnchorHandler, config: geospatialAnchorHandler.defaultConfig },
+      {
+        name: 'light',
+        handler: lightEstimationHandler,
+        config: lightEstimationHandler.defaultConfig,
+      },
+      {
+        name: 'geo',
+        handler: geospatialAnchorHandler,
+        config: geospatialAnchorHandler.defaultConfig,
+      },
       { name: 'face', handler: faceTrackingHandler, config: faceTrackingHandler.defaultConfig },
       { name: 'occ', handler: occlusionHandler, config: occlusionHandler.defaultConfig },
       { name: 'vps', handler: vpsHandler, config: vpsHandler.defaultConfig },
@@ -927,7 +963,12 @@ describe('AR Traits: Cross-Platform Configuration Validation', () => {
 
     it('light estimation supports environmental HDR', () => {
       const cfg = { ...lightEstimationHandler.defaultConfig };
-      expect(['ambient_intensity', 'ambient_spherical', 'directional', 'environmental_hdr']).toContain(cfg.mode);
+      expect([
+        'ambient_intensity',
+        'ambient_spherical',
+        'directional',
+        'environmental_hdr',
+      ]).toContain(cfg.mode);
     });
   });
 

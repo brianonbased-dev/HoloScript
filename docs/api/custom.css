@@ -13,12 +13,12 @@
 
 /* Header branding */
 .tsd-page-title h1::before {
-  content: "⬡ ";
+  content: '⬡ ';
   color: var(--color-accent);
 }
 
 /* Trait badges */
-.tsd-signature .tsd-kind-type-alias[data-kind="trait"] {
+.tsd-signature .tsd-kind-type-alias[data-kind='trait'] {
   background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
   color: white;
   padding: 2px 8px;
@@ -54,10 +54,22 @@ code {
   margin-right: 4px;
 }
 
-.lifecycle-attach { background: #3fb950; color: #0d1117; }
-.lifecycle-detach { background: #f85149; color: white; }
-.lifecycle-update { background: #58a6ff; color: #0d1117; }
-.lifecycle-event { background: #d29922; color: #0d1117; }
+.lifecycle-attach {
+  background: #3fb950;
+  color: #0d1117;
+}
+.lifecycle-detach {
+  background: #f85149;
+  color: white;
+}
+.lifecycle-update {
+  background: #58a6ff;
+  color: #0d1117;
+}
+.lifecycle-event {
+  background: #d29922;
+  color: #0d1117;
+}
 
 /* Performance badges */
 .perf-badge {
@@ -102,8 +114,12 @@ tr:hover td {
 }
 
 /* Member visibility indicators */
-.tsd-is-protected { opacity: 0.7; }
-.tsd-is-inherited { font-style: italic; }
+.tsd-is-protected {
+  opacity: 0.7;
+}
+.tsd-is-inherited {
+  font-style: italic;
+}
 
 /* Search improvements */
 #tsd-search-input {

@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { subtitleHandler } from '../SubtitleTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('SubtitleTrait', () => {
   let node: Record<string, unknown>;
@@ -31,7 +38,11 @@ describe('SubtitleTrait', () => {
   });
 
   it('subtitle_text adds line and displays', () => {
-    sendEvent(subtitleHandler, node, cfg, ctx, { type: 'subtitle_text', text: 'Hello', speaker: 'Alice' });
+    sendEvent(subtitleHandler, node, cfg, ctx, {
+      type: 'subtitle_text',
+      text: 'Hello',
+      speaker: 'Alice',
+    });
     const s = (node as any).__subtitleState;
     expect(s.isDisplaying).toBe(true);
     expect(s.lines.length).toBe(1);
@@ -42,7 +53,11 @@ describe('SubtitleTrait', () => {
 
   it('trims lines beyond max_lines', () => {
     for (let i = 0; i < 5; i++) {
-      sendEvent(subtitleHandler, node, cfg, ctx, { type: 'subtitle_text', text: `Line ${i}`, speaker: 'A' });
+      sendEvent(subtitleHandler, node, cfg, ctx, {
+        type: 'subtitle_text',
+        text: `Line ${i}`,
+        speaker: 'A',
+      });
     }
     expect((node as any).__subtitleState.lines.length).toBe(3);
   });
@@ -52,17 +67,31 @@ describe('SubtitleTrait', () => {
     const n2 = createMockNode('tran');
     const c2 = createMockContext();
     attachTrait(subtitleHandler, n2, transCfg, c2);
-    sendEvent(subtitleHandler, n2, transCfg, c2, { type: 'subtitle_text', text: 'Hello', speaker: 'A', language: 'en' });
+    sendEvent(subtitleHandler, n2, transCfg, c2, {
+      type: 'subtitle_text',
+      text: 'Hello',
+      speaker: 'A',
+      language: 'en',
+    });
     expect(getEventCount(c2, 'subtitle_translate')).toBe(2);
   });
 
   it('translation_complete emits ready', () => {
-    sendEvent(subtitleHandler, node, cfg, ctx, { type: 'subtitle_translation_complete', translatedText: 'Hola', targetLang: 'es' });
+    sendEvent(subtitleHandler, node, cfg, ctx, {
+      type: 'subtitle_translation_complete',
+      translatedText: 'Hola',
+      targetLang: 'es',
+    });
     expect(getEventCount(ctx, 'subtitle_translation_ready')).toBe(1);
   });
 
   it('speech_recognition final adds line', () => {
-    sendEvent(subtitleHandler, node, cfg, ctx, { type: 'speech_recognition_result', text: 'Hey', isFinal: true, speaker: 'Bob' });
+    sendEvent(subtitleHandler, node, cfg, ctx, {
+      type: 'speech_recognition_result',
+      text: 'Hey',
+      isFinal: true,
+      speaker: 'Bob',
+    });
     expect((node as any).__subtitleState.lines.length).toBe(1);
   });
 

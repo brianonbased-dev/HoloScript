@@ -114,7 +114,7 @@ describe('ScenarioReplayService', () => {
   describe('Listeners', () => {
     it('should notify listeners on record', () => {
       const events: string[] = [];
-      svc.addListener(e => events.push(e.type));
+      svc.addListener((e) => events.push(e.type));
       svc.startSession('ocean');
       svc.record({ type: 'slider_change', target: 'depth', value: 500 });
       // scenario_open + slider_change
@@ -123,7 +123,7 @@ describe('ScenarioReplayService', () => {
 
     it('should support unsubscribe', () => {
       const events: string[] = [];
-      const unsub = svc.addListener(e => events.push(e.type));
+      const unsub = svc.addListener((e) => events.push(e.type));
       svc.startSession('farm');
       unsub();
       svc.record({ type: 'toggle', target: 'sensor', value: true });

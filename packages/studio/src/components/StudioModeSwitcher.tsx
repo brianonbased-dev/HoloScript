@@ -1,9 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Blocks, Paintbrush, Clapperboard, Settings2, Bone, FlaskConical, ChevronDown } from 'lucide-react';
-import { useEditorStore } from '@/lib/store';
-import type { StudioMode } from '@/lib/store';
+import {
+  Blocks,
+  Paintbrush,
+  Clapperboard,
+  Settings2,
+  Bone,
+  FlaskConical,
+  ChevronDown,
+} from 'lucide-react';
+import { useEditorStore } from '@/lib/stores';
+import type { StudioMode } from '@/lib/stores';
 
 interface ModeInfo {
   id: StudioMode;
@@ -124,25 +132,37 @@ export function StudioModeSwitcher() {
               return (
                 <button
                   key={mode.id}
-                  onClick={() => { setStudioMode(mode.id); setExpanded(false); }}
+                  onClick={() => {
+                    setStudioMode(mode.id);
+                    setExpanded(false);
+                  }}
                   className={`flex w-full items-start gap-2.5 rounded-lg p-2 text-left transition ${
                     active
                       ? 'bg-studio-accent/10 border border-studio-accent/30'
                       : 'hover:bg-studio-surface border border-transparent'
                   }`}
                 >
-                  <span className={`mt-0.5 ${active ? mode.color : 'text-studio-muted'}`}>{mode.icon}</span>
+                  <span className={`mt-0.5 ${active ? mode.color : 'text-studio-muted'}`}>
+                    {mode.icon}
+                  </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className={`text-[11px] font-semibold ${active ? 'text-studio-text' : 'text-studio-text/80'}`}>
+                      <span
+                        className={`text-[11px] font-semibold ${active ? 'text-studio-text' : 'text-studio-text/80'}`}
+                      >
                         {mode.label}
                       </span>
-                      <span className="text-[8px] text-studio-muted">{LEVEL_LABEL[mode.level]}</span>
+                      <span className="text-[8px] text-studio-muted">
+                        {LEVEL_LABEL[mode.level]}
+                      </span>
                     </div>
                     <p className="text-[9px] text-studio-muted mt-0.5">{mode.description}</p>
                     <div className="mt-1 flex flex-wrap gap-1">
                       {mode.features.map((f) => (
-                        <span key={f} className="rounded bg-studio-border/60 px-1 py-0.5 text-[7px] text-studio-muted">
+                        <span
+                          key={f}
+                          className="rounded bg-studio-border/60 px-1 py-0.5 text-[7px] text-studio-muted"
+                        >
                           {f}
                         </span>
                       ))}

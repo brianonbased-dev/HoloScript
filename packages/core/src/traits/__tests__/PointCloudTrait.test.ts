@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { pointCloudHandler } from '../PointCloudTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('PointCloudTrait', () => {
   let node: Record<string, unknown>;
@@ -47,18 +54,29 @@ describe('PointCloudTrait', () => {
   });
 
   it('load_progress emits progress event', () => {
-    sendEvent(pointCloudHandler, node, cfg, ctx, { type: 'point_cloud_load_progress', loadedPoints: 500, totalPoints: 1000, progress: 0.5 });
+    sendEvent(pointCloudHandler, node, cfg, ctx, {
+      type: 'point_cloud_load_progress',
+      loadedPoints: 500,
+      totalPoints: 1000,
+      progress: 0.5,
+    });
     expect(getEventCount(ctx, 'on_point_cloud_progress')).toBe(1);
   });
 
   it('load_error clears loading flag', () => {
-    sendEvent(pointCloudHandler, node, cfg, ctx, { type: 'point_cloud_load_error', error: 'File not found' });
+    sendEvent(pointCloudHandler, node, cfg, ctx, {
+      type: 'point_cloud_load_error',
+      error: 'File not found',
+    });
     expect((node as any).__pointCloudState.isLoading).toBe(false);
     expect(getEventCount(ctx, 'on_point_cloud_error')).toBe(1);
   });
 
   it('visibility_update tracks visible points', () => {
-    sendEvent(pointCloudHandler, node, cfg, ctx, { type: 'point_cloud_visibility_update', visibleCount: 500000 });
+    sendEvent(pointCloudHandler, node, cfg, ctx, {
+      type: 'point_cloud_visibility_update',
+      visibleCount: 500000,
+    });
     expect((node as any).__pointCloudState.visiblePoints).toBe(500000);
   });
 
@@ -68,12 +86,18 @@ describe('PointCloudTrait', () => {
   });
 
   it('set_color_mode emits update', () => {
-    sendEvent(pointCloudHandler, node, cfg, ctx, { type: 'point_cloud_set_color_mode', mode: 'height' });
+    sendEvent(pointCloudHandler, node, cfg, ctx, {
+      type: 'point_cloud_set_color_mode',
+      mode: 'height',
+    });
     expect(getEventCount(ctx, 'point_cloud_update_color')).toBe(1);
   });
 
   it('filter and clear_filter emit events', () => {
-    sendEvent(pointCloudHandler, node, cfg, ctx, { type: 'point_cloud_filter', filter: { heightRange: [10, 50] } });
+    sendEvent(pointCloudHandler, node, cfg, ctx, {
+      type: 'point_cloud_filter',
+      filter: { heightRange: [10, 50] },
+    });
     expect(getEventCount(ctx, 'point_cloud_apply_filter')).toBe(1);
     sendEvent(pointCloudHandler, node, cfg, ctx, { type: 'point_cloud_clear_filter' });
     expect(getEventCount(ctx, 'point_cloud_reset_filter')).toBe(1);

@@ -8,8 +8,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { realityKitMeshHandler } from '../RealityKitMeshTrait';
 
-function makeNode(id = 'rk-node') { return { id } as any; }
-function makeConfig(o: any = {}) { return { ...realityKitMeshHandler.defaultConfig, ...o }; }
+function makeNode(id = 'rk-node') {
+  return { id } as any;
+}
+function makeConfig(o: any = {}) {
+  return { ...realityKitMeshHandler.defaultConfig, ...o };
+}
 function makeContext() {
   const store: Record<string, any> = {};
   return {
@@ -18,7 +22,9 @@ function makeContext() {
     getState: () => store,
   };
 }
-function getState(ctx: ReturnType<typeof makeContext>) { return ctx.getState().realityKitMesh; }
+function getState(ctx: ReturnType<typeof makeContext>) {
+  return ctx.getState().realityKitMesh;
+}
 
 describe('RealityKitMeshTrait — Production', () => {
   let node: any, config: any, ctx: ReturnType<typeof makeContext>;
@@ -56,7 +62,13 @@ describe('RealityKitMeshTrait — Production', () => {
       ctx.emit.mockClear();
       realityKitMeshHandler.onEvent!(node, config, ctx, {
         type: 'rkMesh:anchor_added',
-        payload: { id: 'a1', classification: 'floor', vertexCount: 100, faceCount: 50, boundingBox: { min: [0,0,0], max: [1,1,1] } },
+        payload: {
+          id: 'a1',
+          classification: 'floor',
+          vertexCount: 100,
+          faceCount: 50,
+          boundingBox: { min: [0, 0, 0], max: [1, 1, 1] },
+        },
       });
 
       const s = getState(ctx);
@@ -64,13 +76,22 @@ describe('RealityKitMeshTrait — Production', () => {
       expect(s.totalVertices).toBe(100);
       expect(s.totalFaces).toBe(50);
       expect(s.classificationCounts.floor).toBe(1);
-      expect(ctx.emit).toHaveBeenCalledWith('rkMesh:anchor_added', { id: 'a1', classification: 'floor' });
+      expect(ctx.emit).toHaveBeenCalledWith('rkMesh:anchor_added', {
+        id: 'a1',
+        classification: 'floor',
+      });
     });
 
     it('removes anchor and decrements counts', () => {
       realityKitMeshHandler.onEvent!(node, config, ctx, {
         type: 'rkMesh:anchor_added',
-        payload: { id: 'a1', classification: 'wall', vertexCount: 200, faceCount: 100, boundingBox: { min: [0,0,0], max: [2,2,2] } },
+        payload: {
+          id: 'a1',
+          classification: 'wall',
+          vertexCount: 200,
+          faceCount: 100,
+          boundingBox: { min: [0, 0, 0], max: [2, 2, 2] },
+        },
       });
 
       realityKitMeshHandler.onEvent!(node, config, ctx, {
@@ -99,7 +120,13 @@ describe('RealityKitMeshTrait — Production', () => {
 
       realityKitMeshHandler.onEvent!(node, cfg, c, {
         type: 'rkMesh:anchor_added',
-        payload: { id: 'a1', classification: 'table', vertexCount: 50, faceCount: 25, boundingBox: { min: [0,0,0], max: [1,1,1] } },
+        payload: {
+          id: 'a1',
+          classification: 'table',
+          vertexCount: 50,
+          faceCount: 25,
+          boundingBox: { min: [0, 0, 0], max: [1, 1, 1] },
+        },
       });
 
       expect(getState(c).classificationCounts.table).toBeUndefined();
@@ -128,7 +155,13 @@ describe('RealityKitMeshTrait — Production', () => {
     it('clears anchors and emits cleanup', () => {
       realityKitMeshHandler.onEvent!(node, config, ctx, {
         type: 'rkMesh:anchor_added',
-        payload: { id: 'a1', classification: 'none', vertexCount: 10, faceCount: 5, boundingBox: { min: [0,0,0], max: [1,1,1] } },
+        payload: {
+          id: 'a1',
+          classification: 'none',
+          vertexCount: 10,
+          faceCount: 5,
+          boundingBox: { min: [0, 0, 0], max: [1, 1, 1] },
+        },
       });
       ctx.emit.mockClear();
 

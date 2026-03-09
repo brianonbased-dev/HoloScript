@@ -13,10 +13,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  runSafetyPass,
-  type SafetyPassResult,
-} from '@holoscript/core';
+import { runSafetyPass, type SafetyPassResult } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
 
@@ -30,9 +27,9 @@ interface SafetyStatusBarProps {
 }
 
 const VERDICT_STYLES: Record<string, { bg: string; text: string; icon: string; label: string }> = {
-  safe:    { bg: 'bg-emerald-500/15', text: 'text-emerald-400', icon: '🛡️', label: 'Safe' },
-  caution: { bg: 'bg-amber-500/15',   text: 'text-amber-400',   icon: '⚠️', label: 'Caution' },
-  unsafe:  { bg: 'bg-red-500/15',     text: 'text-red-400',     icon: '🚫', label: 'Unsafe' },
+  safe: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', icon: '🛡️', label: 'Safe' },
+  caution: { bg: 'bg-amber-500/15', text: 'text-amber-400', icon: '⚠️', label: 'Caution' },
+  unsafe: { bg: 'bg-red-500/15', text: 'text-red-400', icon: '🚫', label: 'Unsafe' },
 };
 
 /**
@@ -69,7 +66,7 @@ function codeToNodes(code: string) {
   }
 
   // Simple: all traits belong to last object (good enough for live analysis)
-  return objects.map(obj => ({
+  return objects.map((obj) => ({
     type: 'object' as const,
     name: obj.name,
     traits,
@@ -108,7 +105,9 @@ export function SafetyStatusBar({ code, debounceMs = 500, onOpenPanel }: SafetyS
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => analyze(code), debounceMs);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [code, debounceMs, analyze]);
 
   // No code or no result yet
@@ -144,7 +143,9 @@ export function SafetyStatusBar({ code, debounceMs = 500, onOpenPanel }: SafetyS
       <span>{style.icon}</span>
       <span className="font-semibold">{style.label}</span>
       <span className="opacity-60">·</span>
-      <span className="opacity-80">Danger: {typeof danger === 'number' ? danger.toFixed(1) : danger}</span>
+      <span className="opacity-80">
+        Danger: {typeof danger === 'number' ? danger.toFixed(1) : danger}
+      </span>
       <span className="opacity-60">·</span>
       <span className="opacity-80">{effectCount} effects</span>
     </button>

@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { neuralAnimationHandler } from '../NeuralAnimationTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('NeuralAnimationTrait', () => {
   let node: Record<string, unknown>;
@@ -15,7 +22,10 @@ describe('NeuralAnimationTrait', () => {
 
   const makePose = (x = 0) => ({
     joints: {
-      hip: { position: [x, 1, 0] as [number, number, number], rotation: [0, 0, 0, 1] as [number, number, number, number] },
+      hip: {
+        position: [x, 1, 0] as [number, number, number],
+        rotation: [0, 0, 0, 1] as [number, number, number, number],
+      },
     },
     timestamp: Date.now(),
   });

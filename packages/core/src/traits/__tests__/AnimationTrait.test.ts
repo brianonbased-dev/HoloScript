@@ -16,7 +16,12 @@ describe('AnimationTrait', () => {
         { name: 'airborne', clip: 'jump' },
       ],
       transitions: [
-        { from: 'locomotion', to: 'airborne', conditions: [{ parameter: 'isGrounded', operator: '==', value: false }], duration: 0.1 },
+        {
+          from: 'locomotion',
+          to: 'airborne',
+          conditions: [{ parameter: 'isGrounded', operator: '==', value: false }],
+          duration: 0.1,
+        },
       ],
       parameters: [
         { name: 'speed', type: 'float', value: 0 },

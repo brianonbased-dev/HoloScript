@@ -1,14 +1,22 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { RenderPass, type RenderPassConfig } from '../RenderPass';
 
-function pass(id: string, order: number, deps: string[] = [], inputs: string[] = [], attachments: any[] = []): RenderPassConfig {
+function pass(
+  id: string,
+  order: number,
+  deps: string[] = [],
+  inputs: string[] = [],
+  attachments: any[] = []
+): RenderPassConfig {
   return { id, name: id, order, enabled: true, dependencies: deps, attachments, inputs };
 }
 
 describe('RenderPass', () => {
   let rp: RenderPass;
 
-  beforeEach(() => { rp = new RenderPass(); });
+  beforeEach(() => {
+    rp = new RenderPass();
+  });
 
   // CRUD
   it('addPass and getPass', () => {
@@ -42,8 +50,8 @@ describe('RenderPass', () => {
     rp.addPass(pass('lighting', 1, ['geo']));
     rp.addPass(pass('geo', 0));
     const order = rp.getExecutionOrder();
-    const geoIdx = order.findIndex(p => p.id === 'geo');
-    const lightIdx = order.findIndex(p => p.id === 'lighting');
+    const geoIdx = order.findIndex((p) => p.id === 'geo');
+    const lightIdx = order.findIndex((p) => p.id === 'lighting');
     expect(geoIdx).toBeLessThan(lightIdx);
   });
 
@@ -58,20 +66,22 @@ describe('RenderPass', () => {
   it('validate reports missing dependency', () => {
     rp.addPass(pass('a', 0, ['nonexistent']));
     const errors = rp.validate();
-    expect(errors.some(e => e.includes('unknown pass'))).toBe(true);
+    expect(errors.some((e) => e.includes('unknown pass'))).toBe(true);
   });
 
   it('validate reports missing input attachment', () => {
     rp.addPass(pass('a', 0));
     rp.addPass(pass('b', 1, ['a'], ['colorBuffer']));
     const errors = rp.validate();
-    expect(errors.some(e => e.includes('input'))).toBe(true);
+    expect(errors.some((e) => e.includes('input'))).toBe(true);
   });
 
   it('validate clean for valid graph', () => {
     rp.addPass({
       ...pass('geo', 0),
-      attachments: [{ name: 'color', format: 'rgba8', width: 1920, height: 1080, clearOp: 'clear' }],
+      attachments: [
+        { name: 'color', format: 'rgba8', width: 1920, height: 1080, clearOp: 'clear' },
+      ],
     });
     rp.addPass(pass('post', 1, ['geo'], ['color']));
     const errors = rp.validate();
@@ -83,7 +93,7 @@ describe('RenderPass', () => {
     rp.addPass(pass('a', 0, ['b']));
     rp.addPass(pass('b', 1, ['a']));
     const errors = rp.validate();
-    expect(errors.some(e => e.includes('cycle'))).toBe(true);
+    expect(errors.some((e) => e.includes('cycle'))).toBe(true);
   });
 
   // getAllPasses

@@ -93,7 +93,9 @@ describe('UIEventRouter', () => {
 
     it('handler can stop propagation (later handlers not called)', () => {
       const cb2 = vi.fn();
-      router.on('btn', 'click', (e) => { e.propagationStopped = true; });
+      router.on('btn', 'click', (e) => {
+        e.propagationStopped = true;
+      });
       router.on('btn', 'click', cb2);
       router.emit('btn', 'click');
       expect(cb2).not.toHaveBeenCalled();
@@ -212,7 +214,11 @@ describe('UIEventRouter', () => {
       router.on('btn', 'pointerUp', (e) => coords.push([e.x, e.y]));
       router.on('btn', 'click', (e) => coords.push([e.x, e.y]));
       router.click('btn', 5, 10);
-      expect(coords).toEqual([[5, 10], [5, 10], [5, 10]]);
+      expect(coords).toEqual([
+        [5, 10],
+        [5, 10],
+        [5, 10],
+      ]);
     });
   });
 
@@ -252,7 +258,7 @@ describe('UIEventRouter', () => {
     it('log entries contain correct event types', () => {
       router.emit('a', 'click');
       router.emit('b', 'hover');
-      const types = router.getEventLog().map(e => e.type);
+      const types = router.getEventLog().map((e) => e.type);
       expect(types).toContain('click');
       expect(types).toContain('hover');
     });

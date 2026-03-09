@@ -60,7 +60,9 @@ describe('AsyncFunctionHandler', () => {
   });
 
   it('wrapAsyncFunction normalizes thrown string', async () => {
-    const fn = handler.wrapAsyncFunction(async () => { throw 'oops'; });
+    const fn = handler.wrapAsyncFunction(async () => {
+      throw 'oops';
+    });
     await expect(fn()).rejects.toThrow('oops');
   });
 
@@ -76,9 +78,9 @@ describe('AsyncFunctionHandler', () => {
   });
 
   it('callbackToPromise rejects on error', async () => {
-    await expect(
-      handler.callbackToPromise((cb) => cb(new Error('fail'), null)),
-    ).rejects.toThrow('fail');
+    await expect(handler.callbackToPromise((cb) => cb(new Error('fail'), null))).rejects.toThrow(
+      'fail'
+    );
   });
 });
 
@@ -89,7 +91,9 @@ describe('ErrorBoundary', () => {
   it('wrap catches sync errors', () => {
     const onErr = vi.fn();
     const eb = new ErrorBoundary(onErr);
-    const fn = eb.wrap(() => { throw new Error('boom'); });
+    const fn = eb.wrap(() => {
+      throw new Error('boom');
+    });
     expect(() => fn()).toThrow('boom');
     expect(onErr).toHaveBeenCalledTimes(1);
     expect(eb.getErrors().length).toBe(1);
@@ -97,33 +101,49 @@ describe('ErrorBoundary', () => {
 
   it('wrap catches async errors', async () => {
     const eb = new ErrorBoundary();
-    const fn = eb.wrap(async () => { throw new Error('async boom'); });
+    const fn = eb.wrap(async () => {
+      throw new Error('async boom');
+    });
     await expect(fn()).rejects.toThrow('async boom');
     expect(eb.getErrors().length).toBe(1);
   });
 
   it('wrapAsync catches errors', async () => {
     const eb = new ErrorBoundary();
-    const fn = eb.wrapAsync(async () => { throw 'str error'; });
+    const fn = eb.wrapAsync(async () => {
+      throw 'str error';
+    });
     await expect(fn()).rejects.toThrow('str error');
     expect(eb.getErrors()[0].message).toBe('str error');
   });
 
   it('execute catches sync', () => {
     const eb = new ErrorBoundary();
-    expect(() => eb.execute(() => { throw { msg: 'obj' }; })).toThrow();
+    expect(() =>
+      eb.execute(() => {
+        throw { msg: 'obj' };
+      })
+    ).toThrow();
     expect(eb.getErrors()[0].message).toContain('msg');
   });
 
   it('executeAsync catches async', async () => {
     const eb = new ErrorBoundary();
-    await expect(eb.executeAsync(async () => { throw new Error('fail'); })).rejects.toThrow('fail');
+    await expect(
+      eb.executeAsync(async () => {
+        throw new Error('fail');
+      })
+    ).rejects.toThrow('fail');
     expect(eb.getErrors().length).toBe(1);
   });
 
   it('clearErrors resets', () => {
     const eb = new ErrorBoundary();
-    try { eb.execute(() => { throw new Error('x'); }); } catch {}
+    try {
+      eb.execute(() => {
+        throw new Error('x');
+      });
+    } catch {}
     eb.clearErrors();
     expect(eb.getErrors().length).toBe(0);
   });

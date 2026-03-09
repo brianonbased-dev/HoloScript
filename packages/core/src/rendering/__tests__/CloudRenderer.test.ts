@@ -4,7 +4,9 @@ import { CloudRenderer } from '../CloudRenderer';
 describe('CloudRenderer', () => {
   let cr: CloudRenderer;
 
-  beforeEach(() => { cr = new CloudRenderer(); });
+  beforeEach(() => {
+    cr = new CloudRenderer();
+  });
 
   // Defaults
   it('has default config', () => {

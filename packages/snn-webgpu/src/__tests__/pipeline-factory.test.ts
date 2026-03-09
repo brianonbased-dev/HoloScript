@@ -4,7 +4,11 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GPUContext } from '../gpu-context.js';
-import { PipelineFactory, type ShaderEntryPoint, type ShaderCategory } from '../pipeline-factory.js';
+import {
+  PipelineFactory,
+  type ShaderEntryPoint,
+  type ShaderCategory,
+} from '../pipeline-factory.js';
 
 describe('PipelineFactory', () => {
   let ctx: GPUContext;

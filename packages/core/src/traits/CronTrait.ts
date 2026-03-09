@@ -24,16 +24,16 @@
 export interface CronJob {
   id: string;
   name: string;
-  expression: string;           // 5-field cron
-  targetEvent: string;          // Event type to emit when triggered
-  targetPayload: unknown;       // Payload for the target event
+  expression: string; // 5-field cron
+  targetEvent: string; // Event type to emit when triggered
+  targetPayload: unknown; // Payload for the target event
   timezone: string;
   enabled: boolean;
   createdAt: number;
   lastRun: number | null;
   nextRun: number;
   runCount: number;
-  maxRuns: number | null;       // null = unlimited
+  maxRuns: number | null; // null = unlimited
   missedJobStrategy: 'run_once' | 'skip' | 'run_all';
 }
 
@@ -108,10 +108,10 @@ function parseCron(expression: string): ParsedCron | null {
   if (parts.length !== 5) return null;
   try {
     return {
-      minutes:    parseField(parts[0], 0, 59),
-      hours:      parseField(parts[1], 0, 23),
-      daysOfMonth:parseField(parts[2], 1, 31),
-      months:     parseField(parts[3], 1, 12),
+      minutes: parseField(parts[0], 0, 59),
+      hours: parseField(parts[1], 0, 23),
+      daysOfMonth: parseField(parts[2], 1, 31),
+      months: parseField(parts[3], 1, 12),
       daysOfWeek: parseField(parts[4], 0, 6),
     };
   } catch {
@@ -131,7 +131,7 @@ function getNextRun(expression: string, after = Date.now()): number {
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const min = t.getUTCMinutes();
-    const hr  = t.getUTCHours();
+    const hr = t.getUTCHours();
     const dom = t.getUTCDate();
     const mon = t.getUTCMonth() + 1;
     const dow = t.getUTCDay();
@@ -142,7 +142,8 @@ function getNextRun(expression: string, after = Date.now()): number {
       parsed.daysOfWeek.includes(dow) &&
       parsed.hours.includes(hr) &&
       parsed.minutes.includes(min)
-    ) return t.getTime();
+    )
+      return t.getTime();
 
     t = new Date(t.getTime() + 60_000);
   }
@@ -245,10 +246,21 @@ export const cronHandler = {
 
     switch (event.type) {
       case 'cron_register': {
-        const { name, expression, targetEvent, targetPayload = {}, maxRuns = null, missedJobStrategy } = event.payload ?? {};
+        const {
+          name,
+          expression,
+          targetEvent,
+          targetPayload = {},
+          maxRuns = null,
+          missedJobStrategy,
+        } = event.payload ?? {};
         if (!name || !expression || !targetEvent) return;
         if (!isValidCron(expression)) {
-          ctx.emit('cron_error', { node, jobId: null, error: `Invalid cron expression: "${expression}"` });
+          ctx.emit('cron_error', {
+            node,
+            jobId: null,
+            error: `Invalid cron expression: "${expression}"`,
+          });
           return;
         }
         if (state.jobs.size >= config.max_jobs) {
@@ -289,13 +301,19 @@ export const cronHandler = {
 
       case 'cron_enable': {
         const job = state.jobs.get(event.payload?.jobId);
-        if (job) { job.enabled = true; if (config.persist) persistJob(state.db, job); }
+        if (job) {
+          job.enabled = true;
+          if (config.persist) persistJob(state.db, job);
+        }
         break;
       }
 
       case 'cron_disable': {
         const job = state.jobs.get(event.payload?.jobId);
-        if (job) { job.enabled = false; if (config.persist) persistJob(state.db, job); }
+        if (job) {
+          job.enabled = false;
+          if (config.persist) persistJob(state.db, job);
+        }
         break;
       }
 
@@ -353,7 +371,11 @@ export const cronHandler = {
 
     ctx.emit('cron_triggered', { node, job, at: now });
     // Re-emit the target event
-    ctx.emit(job.targetEvent, { ...(job.targetPayload as object ?? {}), _cronTriggered: true, _cronJobId: job.id });
+    ctx.emit(job.targetEvent, {
+      ...((job.targetPayload as object) ?? {}),
+      _cronTriggered: true,
+      _cronJobId: job.id,
+    });
 
     if (job.maxRuns !== null && job.runCount >= job.maxRuns) {
       job.enabled = false;

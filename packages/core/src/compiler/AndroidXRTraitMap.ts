@@ -40,8 +40,8 @@ export type AndroidXRComponent =
   | 'SoundFieldAttributes'
   | 'SpatialEnvironment'
   | 'HandTrackingProvider'
-  | 'FaceTrackingProvider'     // DP3: Face tracking with 68 blendshapes
-  | 'UserSubspaceComponent'    // DP3: Head-following UI via UserSubspace
+  | 'FaceTrackingProvider' // DP3: Face tracking with 68 blendshapes
+  | 'UserSubspaceComponent' // DP3: Head-following UI via UserSubspace
   | 'SceneCoreEntityComponent' // DP3: SceneCoreEntity composable
   | 'PlaneTrackable'
   | 'CollisionComponent'
@@ -52,10 +52,10 @@ export type AndroidXRComponent =
   | 'AccessibilityDelegate';
 
 export type TraitImplementationLevel =
-  | 'full'          // Generates complete Kotlin/Android XR code
-  | 'partial'       // Generates some code with TODOs
-  | 'comment'       // Only generates documentation comment
-  | 'unsupported';  // Not available in Android XR
+  | 'full' // Generates complete Kotlin/Android XR code
+  | 'partial' // Generates some code with TODOs
+  | 'comment' // Only generates documentation comment
+  | 'unsupported'; // Not available in Android XR
 
 export interface AndroidXRTraitMapping {
   /** HoloScript trait name */
@@ -99,10 +99,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'physics',
     components: ['CollisionComponent', 'PhysicsComponent'],
     level: 'partial',
-    imports: [
-      'androidx.xr.scenecore.Entity',
-      'com.google.android.filament.utils.Float3',
-    ],
+    imports: ['androidx.xr.scenecore.Entity', 'com.google.android.filament.utils.Float3'],
     generate: (varName, config) => {
       const mass = config.mass ?? 1.0;
       const mode = config.kinematic ? 'kinematic' : 'dynamic';
@@ -230,10 +227,7 @@ export const INTERACTION_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'hoverable',
     components: ['InteractableComponent'],
     level: 'full',
-    imports: [
-      'androidx.xr.scenecore.InteractableComponent',
-      'androidx.xr.scenecore.InputEvent',
-    ],
+    imports: ['androidx.xr.scenecore.InteractableComponent', 'androidx.xr.scenecore.InputEvent'],
     generate: (varName, config) => {
       const highlightColor = config.highlight_color || '#ffffff';
       return [
@@ -253,10 +247,7 @@ export const INTERACTION_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'clickable',
     components: ['InteractableComponent'],
     level: 'full',
-    imports: [
-      'androidx.xr.scenecore.InteractableComponent',
-      'androidx.xr.scenecore.InputEvent',
-    ],
+    imports: ['androidx.xr.scenecore.InteractableComponent', 'androidx.xr.scenecore.InputEvent'],
     generate: (varName) => [
       `// @clickable -- tap/click handling via InteractableComponent`,
       `val ${varName}Interactable = InteractableComponent.create(session, executor) { event ->`,
@@ -272,9 +263,7 @@ export const INTERACTION_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'draggable',
     components: ['MovableComponent', 'InteractableComponent'],
     level: 'full',
-    imports: [
-      'androidx.xr.scenecore.MovableComponent',
-    ],
+    imports: ['androidx.xr.scenecore.MovableComponent'],
     generate: (varName, config) => {
       const axis = config.constrain_axis;
       const lines = [
@@ -318,10 +307,7 @@ export const INTERACTION_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'pointable',
     components: ['InteractableComponent'],
     level: 'full',
-    imports: [
-      'androidx.xr.scenecore.InteractableComponent',
-      'androidx.xr.scenecore.InputEvent',
-    ],
+    imports: ['androidx.xr.scenecore.InteractableComponent', 'androidx.xr.scenecore.InputEvent'],
     generate: (varName) => [
       `// @pointable -- responds to both hand and controller pointing`,
       `val ${varName}Interactable = InteractableComponent.create(session, executor) { event ->`,
@@ -336,10 +322,7 @@ export const INTERACTION_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'scalable',
     components: ['ResizableComponent'],
     level: 'full',
-    imports: [
-      'androidx.xr.scenecore.ResizableComponent',
-      'androidx.xr.scenecore.ResizeEvent',
-    ],
+    imports: ['androidx.xr.scenecore.ResizableComponent', 'androidx.xr.scenecore.ResizeEvent'],
     generate: (varName, config) => {
       const minScale = config.min_scale ?? 0.1;
       const maxScale = config.max_scale ?? 3.0;
@@ -361,10 +344,7 @@ export const INTERACTION_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'rotatable',
     components: ['InteractableComponent'],
     level: 'partial',
-    imports: [
-      'androidx.xr.scenecore.InteractableComponent',
-      'androidx.xr.runtime.math.Quaternion',
-    ],
+    imports: ['androidx.xr.scenecore.InteractableComponent', 'androidx.xr.runtime.math.Quaternion'],
     generate: (varName, config) => {
       const axis = String(config.axis || 'y');
       return [
@@ -391,10 +371,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'audio',
     components: ['SpatialSoundPool'],
     level: 'full',
-    imports: [
-      'android.media.AudioAttributes',
-      'android.media.SoundPool',
-    ],
+    imports: ['android.media.AudioAttributes', 'android.media.SoundPool'],
     generate: (varName, config) => {
       const src = config.src || config.source || '';
       const loop = config.loop ?? false;
@@ -531,15 +508,10 @@ export const AR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'anchor',
     components: ['AnchorEntity'],
     level: 'full',
-    imports: [
-      'androidx.xr.scenecore.AnchorEntity',
-      'androidx.xr.arcore.Anchor',
-    ],
+    imports: ['androidx.xr.scenecore.AnchorEntity', 'androidx.xr.arcore.Anchor'],
     generate: (varName, config) => {
       const target = String(config.anchor_type || 'plane');
-      const lines = [
-        `// @anchor -- AnchorEntity for world-locked placement (type: ${target})`,
-      ];
+      const lines = [`// @anchor -- AnchorEntity for world-locked placement (type: ${target})`];
       if (target === 'plane') {
         lines.push(
           `val ${varName}AnchorPlacement = AnchorPlacement.createForPlanes(`,
@@ -547,7 +519,7 @@ export const AR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
           `    anchorablePlaneSemanticTypes = setOf(PlaneSemanticType.FLOOR, PlaneSemanticType.TABLE)`,
           `)`,
           `val ${varName}Movable = MovableComponent.createAnchorable(session, setOf(${varName}AnchorPlacement))`,
-          `${varName}.addComponent(${varName}Movable)`,
+          `${varName}.addComponent(${varName}Movable)`
         );
       } else if (target === 'vertical') {
         lines.push(
@@ -555,7 +527,7 @@ export const AR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
           `    anchorablePlaneOrientations = setOf(PlaneOrientation.VERTICAL)`,
           `)`,
           `val ${varName}Movable = MovableComponent.createAnchorable(session, setOf(${varName}AnchorPlacement))`,
-          `${varName}.addComponent(${varName}Movable)`,
+          `${varName}.addComponent(${varName}Movable)`
         );
       } else {
         lines.push(
@@ -567,7 +539,7 @@ export const AR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
           `            addChild(${varName})`,
           `        }`,
           `    }`,
-          `}`,
+          `}`
         );
       }
       return lines;
@@ -607,9 +579,7 @@ export const AR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'mesh_detection',
     components: [],
     level: 'partial',
-    imports: [
-      'com.google.ar.core.Config',
-    ],
+    imports: ['com.google.ar.core.Config'],
     generate: (varName) => [
       `// @mesh_detection -- ARCore scene mesh reconstruction`,
       `// android.permission.SCENE_UNDERSTANDING_COARSE required`,
@@ -651,10 +621,7 @@ export const AR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'eye_tracking',
     components: ['InteractableComponent'],
     level: 'partial',
-    imports: [
-      'androidx.xr.scenecore.InteractableComponent',
-      'androidx.xr.scenecore.InputEvent',
-    ],
+    imports: ['androidx.xr.scenecore.InteractableComponent', 'androidx.xr.scenecore.InputEvent'],
     generate: (varName) => [
       `// @eye_tracking -- Android XR eye tracking via gaze input events`,
       `// Eye gaze data surfaces through InputEvent hover actions`,
@@ -672,9 +639,7 @@ export const AR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'occlusion',
     components: [],
     level: 'partial',
-    imports: [
-      'com.google.ar.core.Config',
-    ],
+    imports: ['com.google.ar.core.Config'],
     generate: (_varName) => [
       `// @occlusion -- ARCore depth-based occlusion`,
       `xrSession.scene.configure { config ->`,
@@ -688,10 +653,7 @@ export const AR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'light_estimation',
     components: ['LightManager'],
     level: 'full',
-    imports: [
-      'com.google.ar.core.Config',
-      'com.google.android.filament.LightManager',
-    ],
+    imports: ['com.google.ar.core.Config', 'com.google.android.filament.LightManager'],
     generate: (varName) => [
       `// @light_estimation -- ARCore environmental HDR light estimation`,
       `xrSession.scene.configure { config ->`,
@@ -725,13 +687,10 @@ export const AR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
         lines.push(
           `        // Persist anchor for cross-session retrieval`,
           `        val ${varName}Uuid = ${varName}AnchorResult.anchor.persist()`,
-          `        // Retrieve later: Anchor.load(session, ${varName}Uuid)`,
+          `        // Retrieve later: Anchor.load(session, ${varName}Uuid)`
         );
       }
-      lines.push(
-        `    }`,
-        `}`,
-      );
+      lines.push(`    }`, `}`);
       return lines;
     },
   },
@@ -740,10 +699,7 @@ export const AR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'geospatial',
     components: ['AnchorEntity'],
     level: 'partial',
-    imports: [
-      'com.google.ar.core.GeospatialPose',
-      'com.google.ar.core.Earth',
-    ],
+    imports: ['com.google.ar.core.GeospatialPose', 'com.google.ar.core.Earth'],
     generate: (varName, config) => {
       const lat = config.latitude ?? 0;
       const lng = config.longitude ?? 0;
@@ -787,9 +743,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'billboard',
     components: ['BillboardNode'],
     level: 'partial',
-    imports: [
-      'androidx.xr.runtime.math.Quaternion',
-    ],
+    imports: ['androidx.xr.runtime.math.Quaternion'],
     generate: (varName) => [
       `// @billboard -- face entity toward camera each frame`,
       `// Android XR: no built-in BillboardComponent; update rotation in frame callback`,
@@ -823,10 +777,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'animated',
     components: ['GltfModelEntity'],
     level: 'full',
-    imports: [
-      'androidx.xr.scenecore.GltfModelEntity',
-      'androidx.xr.scenecore.GltfModel',
-    ],
+    imports: ['androidx.xr.scenecore.GltfModelEntity', 'androidx.xr.scenecore.GltfModel'],
     generate: (varName, config) => {
       const clip = config.clip || '';
       const loop = config.loop ?? true;
@@ -868,9 +819,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'shadow_caster',
     components: ['LightManager'],
     level: 'partial',
-    imports: [
-      'com.google.android.filament.LightManager',
-    ],
+    imports: ['com.google.android.filament.LightManager'],
     generate: (varName) => [
       `// @shadow_caster -- enable shadow casting via Filament`,
       `// Filament: castShadows = true on the renderable for ${varName}`,
@@ -882,9 +831,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'shadow_receiver',
     components: ['LightManager'],
     level: 'partial',
-    imports: [
-      'com.google.android.filament.LightManager',
-    ],
+    imports: ['com.google.android.filament.LightManager'],
     generate: (varName) => [
       `// @shadow_receiver -- enable shadow receiving via Filament`,
       `// Filament: receiveShadows = true on the renderable for ${varName}`,
@@ -902,9 +849,7 @@ export const ACCESSIBILITY_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'accessible',
     components: ['AccessibilityDelegate'],
     level: 'full',
-    imports: [
-      'android.view.accessibility.AccessibilityNodeInfo',
-    ],
+    imports: ['android.view.accessibility.AccessibilityNodeInfo'],
     generate: (varName, config) => {
       const label = config.label || '';
       const hint = config.hint || '';
@@ -913,7 +858,9 @@ export const ACCESSIBILITY_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
         `// @accessible -- Android accessibility support for ${varName}`,
         `${varName}.contentDescription = "${label}"`,
         ...(hint ? [`// Hint: ${hint}`] : []),
-        ...(isButton ? [`// Role: Button -- set accessibilityClassName = "android.widget.Button"`] : []),
+        ...(isButton
+          ? [`// Role: Button -- set accessibilityClassName = "android.widget.Button"`]
+          : []),
         `${varName}.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES`,
       ];
     },
@@ -998,10 +945,7 @@ export const UI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'ui_anchored',
     components: ['PanelEntity', 'AnchorEntity'],
     level: 'full',
-    imports: [
-      'androidx.xr.compose.spatial.SpatialPanel',
-      'androidx.xr.scenecore.AnchorEntity',
-    ],
+    imports: ['androidx.xr.compose.spatial.SpatialPanel', 'androidx.xr.scenecore.AnchorEntity'],
     generate: (varName, config) => {
       const to = String(config.to || 'world');
       return [
@@ -1009,13 +953,13 @@ export const UI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
         `SpatialPanel(SubspaceModifier.width(400f).height(300f)) {`,
         `    // ${varName} anchored UI content`,
         `}`,
-        ...(to === 'world' ? [
-          `// Anchor to world via AnchorEntity`,
-          `val ${varName}Anchor = Anchor.create(session, Pose())`,
-        ] : []),
-        ...(to.includes('hand') ? [
-          `// Anchor to hand -- track via Hand.left/right(session)`,
-        ] : []),
+        ...(to === 'world'
+          ? [
+              `// Anchor to world via AnchorEntity`,
+              `val ${varName}Anchor = Anchor.create(session, Pose())`,
+            ]
+          : []),
+        ...(to.includes('hand') ? [`// Anchor to hand -- track via Hand.left/right(session)`] : []),
       ];
     },
   },
@@ -1064,10 +1008,7 @@ export const UI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'ui_docked',
     components: ['PanelEntity'],
     level: 'full',
-    imports: [
-      'androidx.xr.compose.spatial.Orbiter',
-      'androidx.xr.compose.spatial.OrbiterEdge',
-    ],
+    imports: ['androidx.xr.compose.spatial.Orbiter', 'androidx.xr.compose.spatial.OrbiterEdge'],
     generate: (varName, config) => {
       const position = String(config.position || 'bottom');
       const edgeMap: Record<string, string> = {
@@ -1110,9 +1051,7 @@ export const ENVIRONMENT_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'volume',
     components: ['SpatialEnvironment'],
     level: 'full',
-    imports: [
-      'androidx.xr.compose.spatial.Subspace',
-    ],
+    imports: ['androidx.xr.compose.spatial.Subspace'],
     generate: (varName, config) => {
       const size = config.size || [0.6, 0.4, 0.4];
       const s = size as number[];
@@ -1138,26 +1077,24 @@ export const ENVIRONMENT_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     ],
     generate: (varName, config) => {
       const style = String(config.style || 'mixed');
-      const lines = [
-        `// @immersive -- SpatialEnvironment configuration (style: ${style})`,
-      ];
+      const lines = [`// @immersive -- SpatialEnvironment configuration (style: ${style})`];
       if (style === 'full') {
         lines.push(
           `val ${varName}Geometry = GltfModel.create(session, Paths.get("environment.glb"))`,
           `val ${varName}Skybox = ExrImage.createFromZip(session, Paths.get("skybox.zip"))`,
           `session.scene.spatialEnvironment.preferredSpatialEnvironment =`,
           `    SpatialEnvironment.SpatialEnvironmentPreference(${varName}Skybox, ${varName}Geometry)`,
-          `session.scene.spatialEnvironment.setPassthroughOpacityPreference(0.0f)`,
+          `session.scene.spatialEnvironment.setPassthroughOpacityPreference(0.0f)`
         );
       } else if (style === 'mixed') {
         lines.push(
           `// Mixed mode: passthrough with virtual overlay`,
-          `session.scene.spatialEnvironment.setPassthroughOpacityPreference(0.5f)`,
+          `session.scene.spatialEnvironment.setPassthroughOpacityPreference(0.5f)`
         );
       } else {
         lines.push(
           `// Passthrough mode`,
-          `session.scene.spatialEnvironment.setPassthroughOpacityPreference(1.0f)`,
+          `session.scene.spatialEnvironment.setPassthroughOpacityPreference(1.0f)`
         );
       }
       return lines;
@@ -1215,7 +1152,7 @@ export const DP3_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
           `    //   LOWER_LIP_DEPRESSOR_L/R, MOUTH_LEFT/RIGHT, NOSE_WRINKLER_L/R,`,
           `    //   UPPER_LIP_RAISER_L/R, TONGUE_OUT/LEFT/RIGHT/UP/DOWN`,
           `    val jawDrop = faceState.blendShapes[FaceBlendShapeType.FACE_BLEND_SHAPE_TYPE_JAW_DROP]`,
-          `    val confidence = faceState.getConfidence(FaceConfidenceRegion.FACE_CONFIDENCE_REGION_LOWER)`,
+          `    val confidence = faceState.getConfidence(FaceConfidenceRegion.FACE_CONFIDENCE_REGION_LOWER)`
         );
       }
       lines.push(`}`);
@@ -1333,7 +1270,7 @@ export const DP3_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
         lines.push(
           ``,
           `val ${varName}MediaItem = MediaItem.Builder()`,
-          `    .setUri("${videoUri}")`,
+          `    .setUri("${videoUri}")`
         );
         if (licenseUri) {
           lines.push(
@@ -1341,7 +1278,7 @@ export const DP3_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
             `        MediaItem.DrmConfiguration.Builder(C.WIDEVINE_UUID)`,
             `            .setLicenseUri("${licenseUri}")`,
             `            .build()`,
-            `    )`,
+            `    )`
           );
         }
         lines.push(
@@ -1351,7 +1288,7 @@ export const DP3_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
           `${varName}Player.setVideoSurface(${varName}Surface.getSurface())`,
           `${varName}Player.setMediaItem(${varName}MediaItem)`,
           `${varName}Player.prepare()`,
-          `${varName}Player.play()`,
+          `${varName}Player.play()`
         );
       }
 
@@ -1396,13 +1333,15 @@ export const DP3_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
         `    shape = ${shapeCode},`,
         `    surfaceProtection = SurfaceEntity.SurfaceProtection.PROTECTED`,
         `)`,
-        ...(videoUri ? [
-          `val ${varName}Player = ExoPlayer.Builder(context).build()`,
-          `${varName}Player.setVideoSurface(${varName}Surface.getSurface())`,
-          `${varName}Player.setMediaItem(MediaItem.fromUri("${videoUri}"))`,
-          `${varName}Player.prepare()`,
-          `${varName}Player.play()`,
-        ] : []),
+        ...(videoUri
+          ? [
+              `val ${varName}Player = ExoPlayer.Builder(context).build()`,
+              `${varName}Player.setVideoSurface(${varName}Surface.getSurface())`,
+              `${varName}Player.setMediaItem(MediaItem.fromUri("${videoUri}"))`,
+              `${varName}Player.prepare()`,
+              `${varName}Player.play()`,
+            ]
+          : []),
       ];
     },
   },
@@ -1473,9 +1412,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'object_tracking',
     components: [],
     level: 'comment',
-    imports: [
-      'com.google.ar.core.Config',
-    ],
+    imports: ['com.google.ar.core.Config'],
     generate: (varName, config) => {
       const referenceObject = String(config.reference_object || 'MyObject');
       return [
@@ -1489,9 +1426,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'scene_reconstruction',
     components: [],
     level: 'partial',
-    imports: [
-      'com.google.ar.core.Config',
-    ],
+    imports: ['com.google.ar.core.Config'],
     generate: (varName, config) => {
       const mode = String(config.mode || 'mesh');
       return [
@@ -1542,10 +1477,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'eye_tracked',
     components: ['InteractableComponent'],
     level: 'partial',
-    imports: [
-      'androidx.xr.scenecore.InteractableComponent',
-      'androidx.xr.scenecore.InputEvent',
-    ],
+    imports: ['androidx.xr.scenecore.InteractableComponent', 'androidx.xr.scenecore.InputEvent'],
     generate: (varName) => [
       `// @eye_tracked -- gaze-driven interaction via hover events`,
       `val ${varName}Interactable = InteractableComponent.create(session, executor) { event ->`,
@@ -1562,10 +1494,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'realitykit_mesh',
     components: ['GltfModelEntity'],
     level: 'full',
-    imports: [
-      'androidx.xr.scenecore.GltfModelEntity',
-      'androidx.xr.scenecore.GltfModel',
-    ],
+    imports: ['androidx.xr.scenecore.GltfModelEntity', 'androidx.xr.scenecore.GltfModel'],
     generate: (varName, config) => {
       const shape = String(config.shape || 'box');
       return [
@@ -1714,9 +1643,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'spatial_awareness',
     components: [],
     level: 'partial',
-    imports: [
-      'com.google.ar.core.Config',
-    ],
+    imports: ['com.google.ar.core.Config'],
     generate: () => [
       `// @spatial_awareness -- spatial scene understanding`,
       `// TODO: combine plane detection + depth mode for scene understanding`,
@@ -1758,11 +1685,7 @@ export const GLASSES_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'glimmer_card',
     components: ['PanelEntity'],
     level: 'full',
-    imports: [
-      'androidx.xr.glimmer.Card',
-      'androidx.xr.glimmer.Text',
-      'androidx.xr.glimmer.Button',
-    ],
+    imports: ['androidx.xr.glimmer.Card', 'androidx.xr.glimmer.Text', 'androidx.xr.glimmer.Button'],
     generate: (varName, config) => {
       const title = String(config.title || varName);
       const subtitle = String(config.subtitle || '');
@@ -1787,16 +1710,10 @@ export const GLASSES_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'glimmer_list',
     components: ['PanelEntity'],
     level: 'full',
-    imports: [
-      'androidx.xr.glimmer.ListItem',
-      'androidx.xr.glimmer.Text',
-    ],
+    imports: ['androidx.xr.glimmer.ListItem', 'androidx.xr.glimmer.Text'],
     generate: (varName, config) => {
       const items = (config.items as string[]) ?? [];
-      const lines = [
-        `// @glimmer_list -- AI Glasses Glimmer List composable`,
-        `Column {`,
-      ];
+      const lines = [`// @glimmer_list -- AI Glasses Glimmer List composable`, `Column {`];
       if (items.length > 0) {
         for (const item of items) {
           lines.push(`    ListItem(headlineContent = { Text("${item}") })`);
@@ -1813,9 +1730,7 @@ export const GLASSES_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'glimmer_title_chip',
     components: ['PanelEntity'],
     level: 'full',
-    imports: [
-      'androidx.xr.glimmer.TitleChip',
-    ],
+    imports: ['androidx.xr.glimmer.TitleChip'],
     generate: (varName, config) => {
       const title = String(config.title || varName);
       return [
@@ -1859,9 +1774,7 @@ export const GLASSES_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'projected_audio',
     components: [],
     level: 'full',
-    imports: [
-      'androidx.xr.projected.ProjectedContext',
-    ],
+    imports: ['androidx.xr.projected.ProjectedContext'],
     generate: (varName) => [
       `// @projected_audio -- AI Glasses audio via Bluetooth A2DP/HFP`,
       `// Glasses connect as standard Bluetooth audio device`,
@@ -1902,9 +1815,7 @@ export const GLASSES_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'glasses_touchpad',
     components: ['InteractableComponent'],
     level: 'full',
-    imports: [
-      'androidx.xr.glimmer.surface',
-    ],
+    imports: ['androidx.xr.glimmer.surface'],
     generate: (varName) => [
       `// @glasses_touchpad -- AI Glasses touchpad input handling`,
       `// Touchpad gestures: tap, swipe, long-press`,
@@ -2048,12 +1959,9 @@ export function generateCoverageReport(visionOSTraits: string[]): TraitCoverageR
   const unsupported = listTraitsByLevel('unsupported');
 
   const total = androidXRTraits.length;
-  const coveragePercent = total > 0
-    ? Math.round(((full.length + partial.length) / total) * 100 * 10) / 10
-    : 0;
-  const fullCoveragePercent = total > 0
-    ? Math.round((full.length / total) * 100 * 10) / 10
-    : 0;
+  const coveragePercent =
+    total > 0 ? Math.round(((full.length + partial.length) / total) * 100 * 10) / 10 : 0;
+  const fullCoveragePercent = total > 0 ? Math.round((full.length / total) * 100 * 10) / 10 : 0;
 
   const androidXRSet = new Set(androidXRTraits);
   const visionOSSet = new Set(visionOSTraits);

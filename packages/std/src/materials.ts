@@ -14,13 +14,13 @@
 
 export interface PBRMaterial {
   name: string;
-  baseColor: string;      // hex color
-  roughness: number;       // 0.0 - 1.0
-  metallic: number;        // 0.0 - 1.0
+  baseColor: string; // hex color
+  roughness: number; // 0.0 - 1.0
+  metallic: number; // 0.0 - 1.0
   emissiveColor?: string;
   emissiveIntensity?: number;
-  opacity?: number;        // 0.0 - 1.0
-  ior?: number;            // Index of refraction (glass ~1.5, water ~1.33)
+  opacity?: number; // 0.0 - 1.0
+  ior?: number; // Index of refraction (glass ~1.5, water ~1.33)
   subsurface?: number;
   clearcoat?: number;
   clearcoatRoughness?: number;
@@ -67,7 +67,11 @@ export const MATERIAL_PRESETS: Record<string, Partial<PBRMaterial>> = {
   ice: { roughness: 0.1, metallic: 0.0, opacity: 0.8, ior: 1.31 },
 };
 
-export function createPBRMaterial(name: string, preset?: keyof typeof MATERIAL_PRESETS, overrides?: Partial<PBRMaterial>): PBRMaterial {
+export function createPBRMaterial(
+  name: string,
+  preset?: keyof typeof MATERIAL_PRESETS,
+  overrides?: Partial<PBRMaterial>
+): PBRMaterial {
   const base = preset ? MATERIAL_PRESETS[preset] : {};
   return {
     name,

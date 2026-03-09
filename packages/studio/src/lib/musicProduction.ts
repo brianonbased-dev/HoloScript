@@ -7,15 +7,22 @@
 
 export type NoteValue = 'C' | 'C#' | 'D' | 'D#' | 'E' | 'F' | 'F#' | 'G' | 'G#' | 'A' | 'A#' | 'B';
 export type WaveShape = 'sine' | 'square' | 'sawtooth' | 'triangle' | 'noise';
-export type EffectType = 'eq' | 'compressor' | 'reverb' | 'delay' | 'chorus' | 'distortion' | 'limiter';
+export type EffectType =
+  | 'eq'
+  | 'compressor'
+  | 'reverb'
+  | 'delay'
+  | 'chorus'
+  | 'distortion'
+  | 'limiter';
 
 export interface MidiNote {
   note: NoteValue;
-  octave: number;          // 0-8
-  velocity: number;        // 0-127
+  octave: number; // 0-8
+  velocity: number; // 0-127
   startBeat: number;
   durationBeats: number;
-  channel: number;         // 0-15
+  channel: number; // 0-15
 }
 
 export interface MidiTrack {
@@ -25,18 +32,18 @@ export interface MidiTrack {
   notes: MidiNote[];
   muted: boolean;
   solo: boolean;
-  volume: number;          // 0-1
-  pan: number;             // -1 (L) to 1 (R)
+  volume: number; // 0-1
+  pan: number; // -1 (L) to 1 (R)
 }
 
 export interface ChannelStrip {
   trackId: string;
-  gain: number;            // dB (-inf to +12)
+  gain: number; // dB (-inf to +12)
   pan: number;
   mute: boolean;
   solo: boolean;
   effects: EffectInstance[];
-  peakLevel: number;       // 0-1, most recent peak
+  peakLevel: number; // 0-1, most recent peak
 }
 
 export interface EffectInstance {
@@ -48,7 +55,7 @@ export interface EffectInstance {
 
 export interface TimeSignature {
   beatsPerMeasure: number;
-  beatValue: number;       // 4 = quarter, 8 = eighth
+  beatValue: number; // 4 = quarter, 8 = eighth
 }
 
 export interface Session {
@@ -118,12 +125,12 @@ export function isClipping(peakLevel: number): boolean {
 
 export function trackDuration(track: MidiTrack): number {
   if (track.notes.length === 0) return 0;
-  return Math.max(...track.notes.map(n => n.startBeat + n.durationBeats));
+  return Math.max(...track.notes.map((n) => n.startBeat + n.durationBeats));
 }
 
 export function soloedTracks(tracks: MidiTrack[]): MidiTrack[] {
-  const soloed = tracks.filter(t => t.solo);
-  return soloed.length > 0 ? soloed : tracks.filter(t => !t.muted);
+  const soloed = tracks.filter((t) => t.solo);
+  return soloed.length > 0 ? soloed : tracks.filter((t) => !t.muted);
 }
 
 // ═══════════════════════════════════════════════════════════════════

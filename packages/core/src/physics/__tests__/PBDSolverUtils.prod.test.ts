@@ -21,21 +21,35 @@ import {
 // Two triangles sharing the edge (1,2): [0,1,2] and [1,3,2]
 const QUAD_INDICES = new Uint32Array([0, 1, 2, 1, 3, 2]);
 const QUAD_POSITIONS = new Float32Array([
-  0, 0, 0,   // v0
-  1, 0, 0,   // v1
-  1, 1, 0,   // v2
-  0, 1, 0,   // v3 (used in second triangle as 1,3,2)
+  0,
+  0,
+  0, // v0
+  1,
+  0,
+  0, // v1
+  1,
+  1,
+  0, // v2
+  0,
+  1,
+  0, // v3 (used in second triangle as 1,3,2)
 ]);
 
 describe('colorConstraints()', () => {
   it('returns numColors >= 1 for non-empty constraints', () => {
-    const cs = [{ vertexA: 0, vertexB: 1 }, { vertexA: 2, vertexB: 3 }];
+    const cs = [
+      { vertexA: 0, vertexB: 1 },
+      { vertexA: 2, vertexB: 3 },
+    ];
     const result = colorConstraints(cs, 4);
     expect(result.numColors).toBeGreaterThanOrEqual(1);
   });
 
   it('two constraints sharing no vertex can have the same color', () => {
-    const cs = [{ vertexA: 0, vertexB: 1 }, { vertexA: 2, vertexB: 3 }];
+    const cs = [
+      { vertexA: 0, vertexB: 1 },
+      { vertexA: 2, vertexB: 3 },
+    ];
     const result = colorConstraints(cs, 4);
     // Non-adjacent constraints can safely share a color
     expect(result.numColors).toBeGreaterThanOrEqual(1);
@@ -110,9 +124,15 @@ describe('computeRestLengths()', () => {
   it('rest lengths have correct length (one per edge)', () => {
     const edges = new Uint32Array([0, 1, 1, 2]); // 2 edges
     const positions = new Float32Array([
-      0, 0, 0,  // v0
-      1, 0, 0,  // v1 — dist from v0 = 1
-      1, 1, 0,  // v2 — dist from v1 = 1
+      0,
+      0,
+      0, // v0
+      1,
+      0,
+      0, // v1 — dist from v0 = 1
+      1,
+      1,
+      0, // v2 — dist from v1 = 1
     ]);
     const rl = computeRestLengths(positions, edges);
     expect(rl.length).toBe(2);

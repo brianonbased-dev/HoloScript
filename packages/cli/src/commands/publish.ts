@@ -82,7 +82,12 @@ export class PublishCommand {
       const packager = new PackagePackager(this.cwd, { dryRun: true, verbose: this.opts.verbose });
       const packResult = await packager.pack();
       if (!packResult.success) {
-        return { success: false, dryRun: true, errors: [packResult.error ?? 'pack failed'], warnings };
+        return {
+          success: false,
+          dryRun: true,
+          errors: [packResult.error ?? 'pack failed'],
+          warnings,
+        };
       }
       return {
         success: true,

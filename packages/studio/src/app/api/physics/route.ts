@@ -5,7 +5,15 @@ import { NextRequest } from 'next/server';
  * Returns physics body type presets with @physics traitSnippets.
  */
 
-export type PhysicsBodyType = 'rigid' | 'soft' | 'kinematic' | 'static' | 'trigger' | 'cloth' | 'vehicle' | 'character';
+export type PhysicsBodyType =
+  | 'rigid'
+  | 'soft'
+  | 'kinematic'
+  | 'static'
+  | 'trigger'
+  | 'cloth'
+  | 'vehicle'
+  | 'character';
 
 export interface PhysicsPreset {
   id: string;
@@ -27,9 +35,20 @@ export interface PhysicsPreset {
 
 const PRESETS: PhysicsPreset[] = [
   {
-    id: 'rigid-body', name: 'Rigid Body', type: 'rigid', emoji: '🧱',
+    id: 'rigid-body',
+    name: 'Rigid Body',
+    type: 'rigid',
+    emoji: '🧱',
     description: 'Standard dynamic solid object — falls, collides, tumbles with realistic physics',
-    defaults: { mass: 1.0, friction: 0.5, restitution: 0.3, linearDamping: 0.01, angularDamping: 0.05, gravityScale: 1.0, collisionShape: 'box' },
+    defaults: {
+      mass: 1.0,
+      friction: 0.5,
+      restitution: 0.3,
+      linearDamping: 0.01,
+      angularDamping: 0.05,
+      gravityScale: 1.0,
+      collisionShape: 'box',
+    },
     traitSnippet: `  @physics {
     type: "rigid"
     mass: 1.0
@@ -40,9 +59,20 @@ const PRESETS: PhysicsPreset[] = [
   }`,
   },
   {
-    id: 'static-body', name: 'Static Body', type: 'static', emoji: '🏔️',
+    id: 'static-body',
+    name: 'Static Body',
+    type: 'static',
+    emoji: '🏔️',
     description: 'Immovable solid — perfect for floors, walls, and terrain',
-    defaults: { mass: 0, friction: 0.8, restitution: 0.1, linearDamping: 0, angularDamping: 0, gravityScale: 0, collisionShape: 'mesh' },
+    defaults: {
+      mass: 0,
+      friction: 0.8,
+      restitution: 0.1,
+      linearDamping: 0,
+      angularDamping: 0,
+      gravityScale: 0,
+      collisionShape: 'mesh',
+    },
     traitSnippet: `  @physics {
     type: "static"
     friction: 0.8
@@ -51,9 +81,20 @@ const PRESETS: PhysicsPreset[] = [
   }`,
   },
   {
-    id: 'kinematic', name: 'Kinematic', type: 'kinematic', emoji: '🎯',
+    id: 'kinematic',
+    name: 'Kinematic',
+    type: 'kinematic',
+    emoji: '🎯',
     description: 'Animated body that affects rigid bodies but is not affected by forces',
-    defaults: { mass: 1.0, friction: 0.5, restitution: 0.0, linearDamping: 0, angularDamping: 0, gravityScale: 0, collisionShape: 'capsule' },
+    defaults: {
+      mass: 1.0,
+      friction: 0.5,
+      restitution: 0.0,
+      linearDamping: 0,
+      angularDamping: 0,
+      gravityScale: 0,
+      collisionShape: 'capsule',
+    },
     traitSnippet: `  @physics {
     type: "kinematic"
     friction: 0.5
@@ -61,9 +102,20 @@ const PRESETS: PhysicsPreset[] = [
   }`,
   },
   {
-    id: 'trigger', name: 'Trigger Zone', type: 'trigger', emoji: '🔘',
+    id: 'trigger',
+    name: 'Trigger Zone',
+    type: 'trigger',
+    emoji: '🔘',
     description: 'Non-collidable sensor zone — fires events when objects overlap',
-    defaults: { mass: 0, friction: 0, restitution: 0, linearDamping: 0, angularDamping: 0, gravityScale: 0, collisionShape: 'sphere' },
+    defaults: {
+      mass: 0,
+      friction: 0,
+      restitution: 0,
+      linearDamping: 0,
+      angularDamping: 0,
+      gravityScale: 0,
+      collisionShape: 'sphere',
+    },
     traitSnippet: `  @physics {
     type: "trigger"
     collisionShape: "sphere"
@@ -71,9 +123,20 @@ const PRESETS: PhysicsPreset[] = [
   }`,
   },
   {
-    id: 'soft-body', name: 'Soft Body', type: 'soft', emoji: '🫀',
+    id: 'soft-body',
+    name: 'Soft Body',
+    type: 'soft',
+    emoji: '🫀',
     description: 'Deformable elastic object — jelly, foam, organs',
-    defaults: { mass: 0.5, friction: 0.6, restitution: 0.8, linearDamping: 0.1, angularDamping: 0.1, gravityScale: 1.0, collisionShape: 'convex' },
+    defaults: {
+      mass: 0.5,
+      friction: 0.6,
+      restitution: 0.8,
+      linearDamping: 0.1,
+      angularDamping: 0.1,
+      gravityScale: 1.0,
+      collisionShape: 'convex',
+    },
     traitSnippet: `  @physics {
     type: "soft"
     mass: 0.5
@@ -83,9 +146,20 @@ const PRESETS: PhysicsPreset[] = [
   }`,
   },
   {
-    id: 'cloth', name: 'Cloth / Fabric', type: 'cloth', emoji: '🧣',
+    id: 'cloth',
+    name: 'Cloth / Fabric',
+    type: 'cloth',
+    emoji: '🧣',
     description: 'Simulated cloth sheet with pinned corners and wind response',
-    defaults: { mass: 0.1, friction: 0.4, restitution: 0.0, linearDamping: 0.2, angularDamping: 0.1, gravityScale: 1.0, collisionShape: 'plane' },
+    defaults: {
+      mass: 0.1,
+      friction: 0.4,
+      restitution: 0.0,
+      linearDamping: 0.2,
+      angularDamping: 0.1,
+      gravityScale: 1.0,
+      collisionShape: 'plane',
+    },
     traitSnippet: `  @physics {
     type: "cloth"
     mass: 0.1
@@ -95,9 +169,20 @@ const PRESETS: PhysicsPreset[] = [
   }`,
   },
   {
-    id: 'vehicle', name: 'Vehicle', type: 'vehicle', emoji: '🚗',
+    id: 'vehicle',
+    name: 'Vehicle',
+    type: 'vehicle',
+    emoji: '🚗',
     description: 'Wheeled vehicle body with suspension and drive configs',
-    defaults: { mass: 1500, friction: 0.7, restitution: 0.1, linearDamping: 0.05, angularDamping: 0.1, gravityScale: 1.0, collisionShape: 'box' },
+    defaults: {
+      mass: 1500,
+      friction: 0.7,
+      restitution: 0.1,
+      linearDamping: 0.05,
+      angularDamping: 0.1,
+      gravityScale: 1.0,
+      collisionShape: 'box',
+    },
     traitSnippet: `  @physics {
     type: "vehicle"
     mass: 1500
@@ -108,9 +193,20 @@ const PRESETS: PhysicsPreset[] = [
   }`,
   },
   {
-    id: 'character', name: 'Character Controller', type: 'character', emoji: '🧍',
+    id: 'character',
+    name: 'Character Controller',
+    type: 'character',
+    emoji: '🧍',
     description: 'CCD character controller with step-up and slope limit',
-    defaults: { mass: 70, friction: 0.0, restitution: 0.0, linearDamping: 0, angularDamping: 0, gravityScale: 1.0, collisionShape: 'capsule' },
+    defaults: {
+      mass: 70,
+      friction: 0.0,
+      restitution: 0.0,
+      linearDamping: 0,
+      angularDamping: 0,
+      gravityScale: 1.0,
+      collisionShape: 'capsule',
+    },
     traitSnippet: `  @physics {
     type: "character"
     height: 1.8
@@ -122,7 +218,9 @@ const PRESETS: PhysicsPreset[] = [
   },
 ];
 
-declare global { var __physicsPresets__: PhysicsPreset[] | undefined; }
+declare global {
+  var __physicsPresets__: PhysicsPreset[] | undefined;
+}
 const store = globalThis.__physicsPresets__ ?? (globalThis.__physicsPresets__ = [...PRESETS]);
 
 export async function GET(request: NextRequest) {
@@ -130,7 +228,10 @@ export async function GET(request: NextRequest) {
   const type = request.nextUrl.searchParams.get('type') as PhysicsBodyType | null;
   let results = store;
   if (type) results = results.filter((p) => p.type === type);
-  if (q) results = results.filter((p) => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
+  if (q)
+    results = results.filter(
+      (p) => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
+    );
   const types = [...new Set(store.map((p) => p.type))];
   return Response.json({ presets: results, total: results.length, types });
 }

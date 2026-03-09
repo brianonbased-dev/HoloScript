@@ -33,7 +33,7 @@ export function bboxIntersectionArea(a: BBox, b: BBox): number {
  * Calculate the margin of a bounding box (perimeter)
  */
 export function bboxMargin(bbox: BBox): number {
-  return (bbox.maxLat - bbox.minLat) + (bbox.maxLon - bbox.minLon);
+  return bbox.maxLat - bbox.minLat + (bbox.maxLon - bbox.minLon);
 }
 
 /**

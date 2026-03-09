@@ -286,7 +286,7 @@ describe('StateReplicator: comprehensive edge cases', () => {
       const snap = rep.takeSnapshot('e1')!;
       rep.setProperty('e1', 'newProp', 42);
       const delta = rep.computeDelta('e1', snap.tick)!;
-      const newPropChange = delta.changes.find(c => c.key === 'newProp');
+      const newPropChange = delta.changes.find((c) => c.key === 'newProp');
       expect(newPropChange).toBeDefined();
       expect(newPropChange!.value).toBe(42);
     });
@@ -379,9 +379,9 @@ describe('StateReplicator: comprehensive edge cases', () => {
         fromTick: 0,
         toTick: 3,
         changes: [
-          { key: 'a', value: 10, version: 1 },  // valid (1 > 0)
-          { key: 'b', value: 20, version: 0 },   // stale (0 not > 0)
-          { key: 'c', value: 30, version: 0 },   // new key
+          { key: 'a', value: 10, version: 1 }, // valid (1 > 0)
+          { key: 'b', value: 20, version: 0 }, // stale (0 not > 0)
+          { key: 'c', value: 30, version: 0 }, // new key
         ],
       };
       rep.applyDelta(delta);

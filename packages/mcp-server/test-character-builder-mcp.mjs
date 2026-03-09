@@ -22,11 +22,14 @@ class MCPClient {
     console.log('🚀 Starting MCP server...\n');
     this.server = spawn('node', ['dist/index.js'], {
       cwd: __dirname,
-      stdio: ['pipe', 'pipe', 'inherit']
+      stdio: ['pipe', 'pipe', 'inherit'],
     });
 
     this.server.stdout.on('data', (data) => {
-      const lines = data.toString().split('\n').filter(l => l.trim());
+      const lines = data
+        .toString()
+        .split('\n')
+        .filter((l) => l.trim());
       for (const line of lines) {
         try {
           const msg = JSON.parse(line);
@@ -44,7 +47,11 @@ class MCPClient {
     const initResult = await this.send({
       jsonrpc: '2.0',
       method: 'initialize',
-      params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'test-client', version: '1.0.0' } }
+      params: {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'test-client', version: '1.0.0' },
+      },
     });
     console.log('✅ Server initialized\n');
     return initResult;
@@ -71,7 +78,7 @@ class MCPClient {
 }
 
 async function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function main() {
@@ -89,21 +96,21 @@ async function main() {
           holoscriptFile: 'http://localhost:3100/create', // We misuse holoscriptFile parameter to open specific URL
           width: 1920,
           height: 1080,
-          headless: false
-        }
-      }
+          headless: false,
+        },
+      },
     });
-    
+
     // Check if it's an error. The API might wrap the URL in file:// accidentally based on BROWSER_CONTROL.md.
     let sessionId = null;
     let launchStr = launchResult.result.content[0].text;
     console.log('Launch reply:', launchStr);
-    
+
     if (launchStr.includes('success')) {
       const data = JSON.parse(launchStr);
       sessionId = data.sessionId;
     } else {
-      throw new Error("Failed to launch browser session");
+      throw new Error('Failed to launch browser session');
     }
 
     // Wait 15 seconds for Next.js to compile and React to mount
@@ -116,8 +123,13 @@ async function main() {
       method: 'tools/call',
       params: {
         name: 'browser_screenshot',
-        arguments: { sessionId, outputPath: join(__dirname, 'screenshots', 'character-1-landing.png'), type: 'png', fullPage: false }
-      }
+        arguments: {
+          sessionId,
+          outputPath: join(__dirname, 'screenshots', 'character-1-landing.png'),
+          type: 'png',
+          fullPage: false,
+        },
+      },
     });
 
     console.log('🖱️ Clicking Character Editor/Wizard modes...');
@@ -141,9 +153,9 @@ async function main() {
                   bodyText: document.body.innerText.substring(0, 1000)
               };
             })();
-          `
-        }
-      }
+          `,
+        },
+      },
     });
 
     console.log('Execute Result (Character Mode):', clickResult.result.content[0].text);
@@ -154,43 +166,64 @@ async function main() {
       method: 'tools/call',
       params: {
         name: 'browser_screenshot',
-        arguments: { sessionId, outputPath: join(__dirname, 'screenshots', 'character-2-modal-open.png'), type: 'png', fullPage: false }
-      }
+        arguments: {
+          sessionId,
+          outputPath: join(__dirname, 'screenshots', 'character-2-modal-open.png'),
+          type: 'png',
+          fullPage: false,
+        },
+      },
     });
 
     console.log('🖱️ Iterating through Character Modal Tabs...');
-    const tabs = ['AI Generate', 'Mixamo', 'VRoid Import', 'Sketchfab', 'Upload File', 'Meme Templates'];
+    const tabs = [
+      'AI Generate',
+      'Mixamo',
+      'VRoid Import',
+      'Sketchfab',
+      'Upload File',
+      'Meme Templates',
+    ];
 
     for (let i = 0; i < tabs.length; i++) {
-        const tabName = tabs[i];
-        const tabResult = await client.send({
-            jsonrpc: '2.0',
-            method: 'tools/call',
-            params: {
-            name: 'browser_execute',
-            arguments: {
-                sessionId,
-                script: `
+      const tabName = tabs[i];
+      const tabResult = await client.send({
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        params: {
+          name: 'browser_execute',
+          arguments: {
+            sessionId,
+            script: `
                 (() => {
                   const buttons = Array.from(document.querySelectorAll('button'));
                   const tabBtn = buttons.find(b => b.innerText.includes('${tabName}') || b.textContent.includes('${tabName}'));
                   if(tabBtn) tabBtn.click();
                   return { tab: '${tabName}', found: !!tabBtn };
                 })();
-                `
-            }
-            }
-        });
-        console.log('Execute Result (Tab ' + tabName + '):', tabResult.result.content[0].text);
-        await sleep(1000);
-        await client.send({
-            jsonrpc: '2.0',
-            method: 'tools/call',
-            params: {
-              name: 'browser_screenshot',
-              arguments: { sessionId, outputPath: join(__dirname, 'screenshots', 'character-3-tab-' + tabName.replace(' ', '') + '.png'), type: 'png', fullPage: false }
-            }
-        });
+                `,
+          },
+        },
+      });
+      console.log('Execute Result (Tab ' + tabName + '):', tabResult.result.content[0].text);
+      await sleep(1000);
+      await client.send({
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        params: {
+          name: 'browser_screenshot',
+          arguments: {
+            sessionId,
+            outputPath: join(
+              __dirname,
+              'screenshots',
+              'character-3-tab-' + tabName.replace(' ', '') + '.png'
+            ),
+            type: 'png',
+            fullPage: false,
+          },
+        },
+      });
     }
 
     console.log('🖱️ Finding Brittney features...');
@@ -208,24 +241,28 @@ async function main() {
               if(brittneyBtn) brittneyBtn.click();
               return { found: !!brittneyBtn, text: brittneyBtn?.innerText || brittneyBtn?.title };
             })();
-          `
-        }
-      }
+          `,
+        },
+      },
     });
     console.log('Execute Result (Brittney):', brittneyResult.result.content[0].text);
     await sleep(2000);
 
     await client.send({
-        jsonrpc: '2.0',
-        method: 'tools/call',
-        params: {
-          name: 'browser_screenshot',
-          arguments: { sessionId, outputPath: join(__dirname, 'screenshots', 'character-4-brittney-panel.png'), type: 'png', fullPage: false }
-        }
+      jsonrpc: '2.0',
+      method: 'tools/call',
+      params: {
+        name: 'browser_screenshot',
+        arguments: {
+          sessionId,
+          outputPath: join(__dirname, 'screenshots', 'character-4-brittney-panel.png'),
+          type: 'png',
+          fullPage: false,
+        },
+      },
     });
 
     console.log('✅ Testing complete. Screenshots saved to packages/mcp-server/screenshots/');
-
   } catch (error) {
     console.error('\n❌ Test failed:', error.message);
   } finally {

@@ -45,7 +45,7 @@ describe('ComplianceReporter — Production', () => {
       const reporter = new ComplianceReporter(makeMockLogger([]));
       const report = reporter.generateSOC2Report('t1', dateRange);
       expect(report.sections).toHaveLength(3);
-      expect(report.sections.map(s => s.title)).toEqual([
+      expect(report.sections.map((s) => s.title)).toEqual([
         'Access Events',
         'Configuration Changes',
         'Security Events',
@@ -99,7 +99,7 @@ describe('ComplianceReporter — Production', () => {
       const reporter = new ComplianceReporter(makeMockLogger([]));
       const report = reporter.generateGDPRReport('t1', dateRange);
       expect(report.sections).toHaveLength(3);
-      expect(report.sections.map(s => s.title)).toEqual([
+      expect(report.sections.map((s) => s.title)).toEqual([
         'Data Access Log',
         'Consent Records',
         'Deletion Requests',

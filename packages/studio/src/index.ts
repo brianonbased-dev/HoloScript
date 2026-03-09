@@ -16,11 +16,7 @@
 // Compiler Bridge — WASM/TS compiler with Worker-based architecture
 // ═══════════════════════════════════════════════════════════════════
 
-export {
-  CompilerBridge,
-  getCompilerBridge,
-  resetCompilerBridge,
-} from './lib/wasm-compiler-bridge';
+export { CompilerBridge, getCompilerBridge, resetCompilerBridge } from './lib/wasm-compiler-bridge';
 
 export type {
   CompilerBridgeStatus,
@@ -47,10 +43,7 @@ export type { WebXRViewerProps, XRSessionMode } from './embed/WebXRViewer';
 // Performance Benchmarking — WASM vs TS comparison harness
 // ═══════════════════════════════════════════════════════════════════
 
-export {
-  runBenchmark,
-  quickBenchmark,
-} from './lib/benchmark-harness';
+export { runBenchmark, quickBenchmark } from './lib/benchmark-harness';
 
 export type {
   BenchmarkResult,
@@ -63,16 +56,9 @@ export type {
 // Platform Detection — Runtime capability detection
 // ═══════════════════════════════════════════════════════════════════
 
-export {
-  detectPlatform,
-  checkBudget,
-  PLATFORM_BUDGETS,
-} from './lib/platform-detect';
+export { detectPlatform, checkBudget, PLATFORM_BUDGETS } from './lib/platform-detect';
 
-export type {
-  PlatformCapabilities,
-  PerformanceBudget,
-} from './lib/platform-detect';
+export type { PlatformCapabilities, PerformanceBudget } from './lib/platform-detect';
 
 // ═══════════════════════════════════════════════════════════════════
 // Tauri Desktop Bridge — Native feature gates and file operations
@@ -89,11 +75,7 @@ export {
   listProjectsNative,
 } from './lib/tauri-bridge';
 
-export type {
-  TauriFeatureGates,
-  TauriGpuInfo,
-  TauriProjectMeta,
-} from './lib/tauri-bridge';
+export type { TauriFeatureGates, TauriGpuInfo, TauriProjectMeta } from './lib/tauri-bridge';
 
 // ═══════════════════════════════════════════════════════════════════
 // React Hooks — For use within React component trees

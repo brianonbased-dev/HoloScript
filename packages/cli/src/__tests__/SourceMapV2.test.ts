@@ -102,22 +102,13 @@ describe('SourceMapV2', () => {
   describe('mappings', () => {
     it('adds mappings', () => {
       const src = map.addSource('a.hsplus');
-      map.addMapping(
-        { line: 1, column: 0 },
-        { line: 5, column: 10 },
-        src
-      );
+      map.addMapping({ line: 1, column: 0 }, { line: 5, column: 10 }, src);
       expect(map.mappingCount).toBe(1);
     });
 
     it('adds mapping with name', () => {
       const src = map.addSource('a.hsplus');
-      map.addMapping(
-        { line: 1, column: 0 },
-        { line: 3, column: 5 },
-        src,
-        'position'
-      );
+      map.addMapping({ line: 1, column: 0 }, { line: 3, column: 5 }, src, 'position');
       expect(map.nameCount).toBe(1);
       expect(map.mappingCount).toBe(1);
     });
@@ -194,14 +185,19 @@ describe('SourceMapV2', () => {
 
     it('toInlineComment contains base64 data URL', () => {
       const comment = map.toInlineComment();
-      expect(comment).toMatch(/^\/\/# sourceMappingURL=data:application\/json;charset=utf-8;base64,/);
+      expect(comment).toMatch(
+        /^\/\/# sourceMappingURL=data:application\/json;charset=utf-8;base64,/
+      );
     });
 
     it('toInlineComment is decodable', () => {
       const src = map.addSource('test.hsplus');
       map.addMapping({ line: 1, column: 0 }, { line: 1, column: 0 }, src);
       const comment = map.toInlineComment();
-      const base64 = comment.replace('//# sourceMappingURL=data:application/json;charset=utf-8;base64,', '');
+      const base64 = comment.replace(
+        '//# sourceMappingURL=data:application/json;charset=utf-8;base64,',
+        ''
+      );
       const decoded = Buffer.from(base64, 'base64').toString('utf8');
       const parsed = JSON.parse(decoded);
       expect(parsed.version).toBe(3);

@@ -105,12 +105,12 @@ describe('Scenario: Industrial Plant Designer — Grid Snap', () => {
   it('gridSnap() integrates with drag-and-drop in the 3D viewport', () => {
     expect(gridSnap({ x: 1.15, y: 0, z: 2.3 }, 0.5).x).toBe(1.0);
   });
-  
+
   it('gridSnap visual overlay — grid lines shown when dragging equipment', () => {
     const isOverlayActive = true;
     expect(isOverlayActive).toBe(true);
   });
-  
+
   it('grid increment configurable per-scene via scene settings panel', () => {
     const increment = 2.0;
     expect(gridSnap({ x: 3.5, y: 0, z: 0 }, increment).x).toBe(4.0);
@@ -143,10 +143,7 @@ describe('Scenario: Industrial Plant Designer — Distance Measurement', () => {
 
   it('measureFloorDistance works for standard aisle check', () => {
     // Aisle between two equipment rows
-    const d = measureFloorDistance(
-      { x: 0, y: 0, z: -2 },
-      { x: 0, y: 0, z: 2 }
-    );
+    const d = measureFloorDistance({ x: 0, y: 0, z: -2 }, { x: 0, y: 0, z: 2 });
     expect(d).toBeCloseTo(4, 5); // 4m aisle
   });
 
@@ -154,12 +151,12 @@ describe('Scenario: Industrial Plant Designer — Distance Measurement', () => {
     const label = `${measureDistance({ x: 0, y: 0, z: 0 }, { x: 5, y: 0, z: 0 })}m`;
     expect(label).toBe('5m');
   });
-  
+
   it('minimum aisle width validation — alert if two equipment footprints < 1.5m apart', () => {
-    const dist = measureFloorDistance({ x:0, y:0, z:0 }, { x:1.2, y:0, z:0 });
+    const dist = measureFloorDistance({ x: 0, y: 0, z: 0 }, { x: 1.2, y: 0, z: 0 });
     expect(dist < 1.5).toBe(true);
   });
-  
+
   it('measurement annotations export to floor plan PDF', () => {
     const annotations = [{ type: 'distance', value: 5.0 }];
     expect(annotations.length).toBe(1);
@@ -215,20 +212,20 @@ describe('Scenario: Industrial Plant Designer — Safety Zones', () => {
     const rendered = [{ type: 'cylinder', opacity: 0.3, color: '#ff0000' }];
     expect(rendered[0].opacity).toBe(0.3);
   });
-  
+
   it('@emergency_stop(zone_radius) trait — pauses all nearby equipment on trigger', () => {
     const code = `@emergency_stop(5.0)`;
     expect(code).toContain('5.0');
   });
-  
+
   it('safety zone violation alerts fire in real-time during simulation', () => {
     let triggered = false;
-    const worker_pos = {x: 0, y:0, z:0};
-    const zone = safetyZone({id: 'z1', position: worker_pos}, 1.0);
+    const worker_pos = { x: 0, y: 0, z: 0 };
+    const zone = safetyZone({ id: 'z1', position: worker_pos }, 1.0);
     if (isInsideSafetyZone(worker_pos, zone)) triggered = true;
     expect(triggered).toBe(true);
   });
-  
+
   it('ISO 10218 compliance check — validates zone sizes meet robotics safety standard', () => {
     const radius = 2.0;
     expect(radius).toBeGreaterThanOrEqual(1.5);
@@ -243,7 +240,7 @@ describe('Scenario: Industrial Plant Designer — Equipment Collision Detection'
   it('equipmentBounds() returns correct AABB for conveyor', () => {
     const bounds = equipmentBounds(CONVEYOR);
     expect(bounds.min.x).toBeCloseTo(-2.5, 5); // 0 - 5/2
-    expect(bounds.max.x).toBeCloseTo(2.5, 5);  // 0 + 5/2
+    expect(bounds.max.x).toBeCloseTo(2.5, 5); // 0 + 5/2
     expect(bounds.min.z).toBeCloseTo(-0.5, 5);
     expect(bounds.max.z).toBeCloseTo(0.5, 5);
   });
@@ -269,8 +266,18 @@ describe('Scenario: Industrial Plant Designer — Equipment Collision Detection'
   });
 
   it('findCollisions() detects overlapping equipment', () => {
-    const nodeA: EquipmentNode = { ...CONVEYOR, id: 'a', position: { x: 0, y: 0, z: 0 }, dimensions: { x: 4, y: 1, z: 4 } };
-    const nodeB: EquipmentNode = { ...ARM_ROBOT, id: 'b', position: { x: 1, y: 0, z: 0 }, dimensions: { x: 2, y: 1, z: 2 } };
+    const nodeA: EquipmentNode = {
+      ...CONVEYOR,
+      id: 'a',
+      position: { x: 0, y: 0, z: 0 },
+      dimensions: { x: 4, y: 1, z: 4 },
+    };
+    const nodeB: EquipmentNode = {
+      ...ARM_ROBOT,
+      id: 'b',
+      position: { x: 1, y: 0, z: 0 },
+      dimensions: { x: 2, y: 1, z: 2 },
+    };
     const collisions = findCollisions([nodeA, nodeB]);
     expect(collisions).toHaveLength(1);
     expect(collisions[0][0].id).toBe('a');
@@ -278,8 +285,18 @@ describe('Scenario: Industrial Plant Designer — Equipment Collision Detection'
   });
 
   it('findCollisions() returns empty for well-separated equipment', () => {
-    const nodeA: EquipmentNode = { ...CONVEYOR, id: 'a', position: { x: 0, y: 0, z: 0 }, dimensions: { x: 1, y: 1, z: 1 } };
-    const nodeB: EquipmentNode = { ...ARM_ROBOT, id: 'b', position: { x: 10, y: 0, z: 0 }, dimensions: { x: 1, y: 1, z: 1 } };
+    const nodeA: EquipmentNode = {
+      ...CONVEYOR,
+      id: 'a',
+      position: { x: 0, y: 0, z: 0 },
+      dimensions: { x: 1, y: 1, z: 1 },
+    };
+    const nodeB: EquipmentNode = {
+      ...ARM_ROBOT,
+      id: 'b',
+      position: { x: 10, y: 0, z: 0 },
+      dimensions: { x: 1, y: 1, z: 1 },
+    };
     expect(findCollisions([nodeA, nodeB])).toHaveLength(0);
   });
 
@@ -287,12 +304,12 @@ describe('Scenario: Industrial Plant Designer — Equipment Collision Detection'
     const collisions = findCollisions([CONVEYOR, CONVEYOR]);
     expect(collisions.length).toBeGreaterThan(0);
   });
-  
+
   it('collision detection runs continuously during drag operations', () => {
     let dragged = true;
     expect(findCollisions([CONVEYOR, CONVEYOR]).length).toBeGreaterThan(0);
   });
-  
+
   it('1000 equipment nodes collision check < 50ms (performance gate)', () => {
     const nodes = new Array(1000).fill(CONVEYOR);
     const start = performance.now();
@@ -346,25 +363,33 @@ describe('Scenario: Industrial Plant Designer — Throughput Simulation', () => 
   });
 
   it('multi-station pipeline simulation — chain of stations with throughput propagation', () => {
-    const res = simulateThroughput({ itemsPerMinuteInput: 20, processingTimeSeconds: 5, bufferCapacity: 50 });
+    const res = simulateThroughput({
+      itemsPerMinuteInput: 20,
+      processingTimeSeconds: 5,
+      bufferCapacity: 50,
+    });
     expect(res.itemsProcessedPerMinute).toBe(12);
   });
-  
+
   it('simulation results shown as heatmap on factory floor (green=ok, red=bottleneck)', () => {
-    const hasBottleneck = simulateThroughput({ itemsPerMinuteInput: 30, processingTimeSeconds: 10, bufferCapacity: 100 }).bottlenecked;
+    const hasBottleneck = simulateThroughput({
+      itemsPerMinuteInput: 30,
+      processingTimeSeconds: 10,
+      bufferCapacity: 100,
+    }).bottlenecked;
     expect(hasBottleneck).toBe(true);
   });
-  
+
   it('simulation runs at 10x speed for faster validation', () => {
     let speed = 10;
     expect(speed).toBe(10);
   });
-  
+
   it('conveyor physics — items transported at belt speed in 3D simulation', () => {
     const trait = conveyorBeltTrait(0.8, 'z');
     expect(trait).toContain('0.8');
   });
-  
+
   it('item counter trait — counts items passing a point per minute', () => {
     const code = `@sensor(type: "counter")`;
     expect(code).toContain('counter');
@@ -413,17 +438,17 @@ describe('Scenario: Industrial Plant Designer — HoloScript Trait Generators', 
     const trait = conveyorBeltTrait(1.2, 'y');
     expect(trait).toContain('direction: "y"');
   });
-  
+
   it('@robot_arm trait compiled to joint hierarchy in scene graph', () => {
     const trait = robotArmTrait(5, 2.0);
     expect(trait).toContain('dof: 5');
   });
-  
+
   it('@emergency_stop(zone_radius) trait pauses all equipment in zone', () => {
     const trait = `@emergency_stop(radius: 2)`;
     expect(trait).toContain('2');
   });
-  
+
   it('@process_time(seconds) trait on work stations for throughput sim', () => {
     const trait = `@process_time(10)`;
     expect(trait).toContain('10');
@@ -445,7 +470,7 @@ describe('Scenario: Industrial Plant Designer — Digital Twin Export (DTDL)', (
 
   it('DTDL interface includes position properties', () => {
     const dtdl = equipmentToDTDL(ARM_ROBOT);
-    const propNames = dtdl.contents.map(p => p.name);
+    const propNames = dtdl.contents.map((p) => p.name);
     expect(propNames).toContain('position_x');
     expect(propNames).toContain('position_y');
     expect(propNames).toContain('position_z');
@@ -453,13 +478,13 @@ describe('Scenario: Industrial Plant Designer — Digital Twin Export (DTDL)', (
 
   it('DTDL interface includes sensor telemetry for @sensor trait', () => {
     const dtdl = equipmentToDTDL(ARM_ROBOT); // has @sensor(type: "proximity") trait
-    const hasTelemetry = dtdl.contents.some(c => c['@type'] === 'Telemetry');
+    const hasTelemetry = dtdl.contents.some((c) => c['@type'] === 'Telemetry');
     expect(hasTelemetry).toBe(true);
   });
 
   it('DTDL interface includes belt_speed telemetry for @conveyor_belt trait', () => {
     const dtdl = equipmentToDTDL(CONVEYOR);
-    const hasBeltSpeed = dtdl.contents.some(c => c.name === 'belt_speed');
+    const hasBeltSpeed = dtdl.contents.some((c) => c.name === 'belt_speed');
     expect(hasBeltSpeed).toBe(true);
   });
 
@@ -468,27 +493,27 @@ describe('Scenario: Industrial Plant Designer — Digital Twin Export (DTDL)', (
     const json = JSON.stringify(dtdl);
     expect(json).toContain('dtmi:holoscript:robot_arm_1');
   });
-  
+
   it('DTDL JSON validates against Azure Digital Twins schema', () => {
     const dtdl = equipmentToDTDL(CONVEYOR);
     expect(dtdl['@context']).toBe('dtmi:dtdl:context;2');
   });
-  
+
   it('twin includes live sensor data streams from simulation', () => {
     const telemetry = { name: 'proximity_sensor', '@type': 'Telemetry' };
     expect(telemetry['@type']).toBe('Telemetry');
   });
-  
+
   it('twin syncs to Azure Digital Twins API endpoint', () => {
     const endpoint = 'https://api.azure.com/dtdl';
     expect(endpoint).toContain('azure');
   });
-  
+
   it('bidirectional sync — Azure property changes reflected in Studio scene', () => {
     let synced = true;
     expect(synced).toBe(true);
   });
-  
+
   it('export to OPC UA companion spec (industrial IoT standard)', () => {
     const spec = 'OPC UA';
     expect(spec).toBe('OPC UA');
@@ -504,37 +529,37 @@ describe('Scenario: Industrial Plant Designer — Operator Training Mode', () =>
     const trainingMode = true;
     expect(trainingMode).toBe(true);
   });
-  
+
   it('step-through walkthrough — ordered instruction set displayed in VR HUD', () => {
     const steps = ['Step 1', 'Step 2'];
     expect(steps.length).toBe(2);
   });
-  
+
   it('interactive quiz node — shows question, validates operator answer', () => {
     const answer = '42';
     expect(answer).toBe('42');
   });
-  
+
   it('training completion triggers certificate JSON export', () => {
     const cert = { user: 'Priya', passed: true };
     expect(cert.passed).toBe(true);
   });
-  
+
   it('@checkpoint(label) trait marks required interaction points', () => {
     const code = `@checkpoint("door_1")`;
     expect(code).toContain('door_1');
   });
-  
+
   it('timer — tracks time-to-complete for training analytics', () => {
     const t0 = performance.now();
     expect(performance.now() - t0).toBeGreaterThanOrEqual(0);
   });
-  
+
   it('VR mode — operator views factory floor at 1:1 scale in headset', () => {
     const scale = 1.0;
     expect(scale).toBe(1.0);
   });
-  
+
   it('mistake detection — alerts when operator performs wrong action sequence', () => {
     let mistake = false;
     mistake = true;
@@ -561,35 +586,35 @@ describe('Scenario: Industrial Plant Designer — Templates', () => {
   });
 
   it('"factory-floor" in DATA_TEMPLATES', () => {
-    const tmpl = DATA_TEMPLATES.find(t => t.id === 'factory-floor');
+    const tmpl = DATA_TEMPLATES.find((t) => t.id === 'factory-floor');
     if (tmpl) expect(tmpl.id).toBe('factory-floor');
   });
-  
+
   it('"factory-floor" includes @conveyor_belt and @robot_arm traits', () => {
-    const tmpl = DATA_TEMPLATES.find(t => t.id === 'factory-floor');
+    const tmpl = DATA_TEMPLATES.find((t) => t.id === 'factory-floor');
     if (tmpl) expect(tmpl.code).toContain('@conveyor_belt');
   });
-  
+
   it('"factory-floor" includes @sensor and @safety_fence traits', () => {
-    const tmpl = DATA_TEMPLATES.find(t => t.id === 'factory-floor');
+    const tmpl = DATA_TEMPLATES.find((t) => t.id === 'factory-floor');
     if (tmpl) expect(tmpl.code).toContain('@safety_fence');
   });
-  
+
   it('"clean-room-lab" template', () => {
-    const tmpl = DATA_TEMPLATES.find(t => t.id === 'clean-room-lab');
+    const tmpl = DATA_TEMPLATES.find((t) => t.id === 'clean-room-lab');
     if (tmpl) expect(tmpl.id).toBe('clean-room-lab');
   });
-  
+
   it('"warehouse-layout" template', () => {
-    const tmpl = DATA_TEMPLATES.find(t => t.id === 'warehouse-layout');
+    const tmpl = DATA_TEMPLATES.find((t) => t.id === 'warehouse-layout');
     if (tmpl) expect(tmpl.id).toBe('warehouse-layout');
   });
-  
+
   it('"oil-refinery-sim" template', () => {
-    const tmpl = DATA_TEMPLATES.find(t => t.id === 'oil-refinery-sim');
+    const tmpl = DATA_TEMPLATES.find((t) => t.id === 'oil-refinery-sim');
     if (tmpl) expect(tmpl.id).toBe('oil-refinery-sim');
   });
-  
+
   it('"hospital-simulation" template — OR, ICU, supply chain (@holoscript/core+)', () => {
     expect(true).toBe(true);
   });

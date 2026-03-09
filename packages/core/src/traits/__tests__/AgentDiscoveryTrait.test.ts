@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createMockNode, createMockContext, attachTrait, updateTrait, sendEvent } from './traitTestHelpers';
+import {
+  createMockNode,
+  createMockContext,
+  attachTrait,
+  updateTrait,
+  sendEvent,
+} from './traitTestHelpers';
 
 // Mock AgentRegistry
 const mockRegister = vi.fn().mockResolvedValue(undefined);
@@ -65,7 +71,7 @@ describe('AgentDiscoveryTrait', () => {
   });
 
   it('emits agent_discovery_initialized on attach', () => {
-    expect(ctx.emittedEvents.some(e => e.event === 'agent_discovery_initialized')).toBe(true);
+    expect(ctx.emittedEvents.some((e) => e.event === 'agent_discovery_initialized')).toBe(true);
   });
 
   it('cleans up on detach', () => {
@@ -106,12 +112,12 @@ describe('AgentDiscoveryTrait', () => {
 
   it('handles agent_get_status event', () => {
     sendEvent(agentDiscoveryHandler, node, cfg, ctx, { type: 'agent_get_status' });
-    expect(ctx.emittedEvents.some(e => e.event === 'discovery_status')).toBe(true);
+    expect(ctx.emittedEvents.some((e) => e.event === 'discovery_status')).toBe(true);
   });
 
   it('handles agent_get_discovered event', () => {
     sendEvent(agentDiscoveryHandler, node, cfg, ctx, { type: 'agent_get_discovered' });
-    expect(ctx.emittedEvents.some(e => e.event === 'discovered_agents')).toBe(true);
+    expect(ctx.emittedEvents.some((e) => e.event === 'discovered_agents')).toBe(true);
   });
 
   it('has correct handler name', () => {

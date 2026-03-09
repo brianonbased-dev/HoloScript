@@ -101,7 +101,9 @@ export function compileHandTrackingBlock(block: HoloDomainBlock): CompiledHandTr
   };
 }
 
-export function compileGazeTransientPointerBlock(block: HoloDomainBlock): CompiledGazeTransientPointer {
+export function compileGazeTransientPointerBlock(
+  block: HoloDomainBlock
+): CompiledGazeTransientPointer {
   const props = block.properties || {};
   return {
     name: block.name || 'gaze_pointer',
@@ -116,7 +118,9 @@ export function compileGazeTransientPointerBlock(block: HoloDomainBlock): Compil
   };
 }
 
-export function compileSharedSpatialAnchorBlock(block: HoloDomainBlock): CompiledSharedSpatialAnchor {
+export function compileSharedSpatialAnchorBlock(
+  block: HoloDomainBlock
+): CompiledSharedSpatialAnchor {
   const props = block.properties || {};
   return {
     name: block.name || 'shared_anchor',
@@ -206,7 +210,7 @@ export function handTrackingToARCore(ht: CompiledHandTracking, varPrefix = ''): 
       `        // Haptic feedback on gesture`,
       `        if (pinchStrength >= ${ht.pinchThreshold}f) {`,
       `            vibrateController(Hand.LEFT, 0.25f, 40L)`,
-      `        }`,
+      `        }`
     );
   }
 
@@ -216,26 +220,26 @@ export function handTrackingToARCore(ht: CompiledHandTracking, varPrefix = ''): 
     `    rightHand?.let { hand ->`,
     `        val joints = hand.joints.filter { it.confidence >= ${ht.confidenceThreshold}f }`,
     `        val pinchStrength = hand.pinchStrength`,
-    `        val gripStrength = hand.gripStrength`,
+    `        val gripStrength = hand.gripStrength`
   );
 
   if (ht.hapticOnGesture) {
     lines.push(
       `        if (pinchStrength >= ${ht.pinchThreshold}f) {`,
       `            vibrateController(Hand.RIGHT, 0.25f, 40L)`,
-      `        }`,
+      `        }`
     );
   }
 
-  lines.push(
-    `    }`,
-    `}`,
-  );
+  lines.push(`    }`, `}`);
 
   return lines.join('\n');
 }
 
-export function gazeTransientPointerToARCore(gaze: CompiledGazeTransientPointer, varPrefix = ''): string {
+export function gazeTransientPointerToARCore(
+  gaze: CompiledGazeTransientPointer,
+  varPrefix = ''
+): string {
   const v = varPrefix ? `${varPrefix}_` : '';
   const lines: string[] = [
     `// Gaze Transient Pointer: ${gaze.name} (privacy-first)`,
@@ -259,14 +263,11 @@ export function gazeTransientPointerToARCore(gaze: CompiledGazeTransientPointer,
   if (gaze.hapticOnCommit) {
     lines.push(
       `    // Haptic feedback on commit`,
-      `    vibrateController(Hand.RIGHT, ${gaze.hapticIntensity}f, 60L)`,
+      `    vibrateController(Hand.RIGHT, ${gaze.hapticIntensity}f, 60L)`
     );
   }
 
-  lines.push(
-    `    onGazeCommit(hitPoint, hitNormal, targetEntity)`,
-    `}`,
-  );
+  lines.push(`    onGazeCommit(hitPoint, hitNormal, targetEntity)`, `}`);
 
   if (gaze.dwellEnabled) {
     lines.push(
@@ -274,7 +275,7 @@ export function gazeTransientPointerToARCore(gaze: CompiledGazeTransientPointer,
       `// Dwell progress (does not reveal gaze direction)`,
       `${v}gazePointer.setOnDwellProgressListener { progress ->`,
       `    onDwellProgress(progress) // [0..1]`,
-      `}`,
+      `}`
     );
   }
 
@@ -312,13 +313,13 @@ export function sharedAnchorToARCore(anchor: CompiledSharedSpatialAnchor, varPre
     ``,
     `${v}cloudAnchorFuture.addOnSuccessListener { cloudAnchor ->`,
     `    val cloudAnchorId = cloudAnchor.cloudAnchorId`,
-    `    shareAnchorToRoom(cloudAnchorId, "${anchor.roomId}")`,
+    `    shareAnchorToRoom(cloudAnchorId, "${anchor.roomId}")`
   );
 
   if (anchor.syncTransforms) {
     lines.push(
       `    // Enable transform synchronization across peers`,
-      `    enableTransformSync(cloudAnchor)`,
+      `    enableTransformSync(cloudAnchor)`
     );
   }
 
@@ -328,7 +329,7 @@ export function sharedAnchorToARCore(anchor: CompiledSharedSpatialAnchor, varPre
     `${v}cloudAnchorFuture.addOnFailureListener { error ->`,
     `    Log.e("SharedAnchor", "Failed to host: \${error.message}")`,
     `    retryHostAnchor(${anchor.maxRetries}, ${anchor.retryDelayMs}L)`,
-    `}`,
+    `}`
   );
 
   return lines.join('\n');
@@ -364,15 +365,11 @@ export function controllerInputToARCore(ctrl: CompiledControllerInput, varPrefix
       `    // Haptic on button press`,
       `    buttons.filter { it.justPressed }.forEach { button ->`,
       `        vibrateController(hand, ${ctrl.hapticIntensity}f, 30L)`,
-      `    }`,
+      `    }`
     );
   }
 
-  lines.push(
-    ``,
-    `    onControllerInput(hand, buttons, Vec2(adjustedX, adjustedY))`,
-    `}`,
-  );
+  lines.push(``, `    onControllerInput(hand, buttons, Vec2(adjustedX, adjustedY))`, `}`);
 
   return lines.join('\n');
 }
@@ -427,21 +424,19 @@ export function handTrackingToARKit(ht: CompiledHandTracking, varPrefix = ''): s
       ``,
       `        if pinchStrength >= ${ht.pinchThreshold} {`,
       `            CHHapticEngine.shared?.playTransient(intensity: 0.25, sharpness: 0.5)`,
-      `        }`,
+      `        }`
     );
   }
 
-  lines.push(
-    ``,
-    `        onHandUpdate(anchor.chirality, jointPoses, pinchStrength)`,
-    `    }`,
-    `}`,
-  );
+  lines.push(``, `        onHandUpdate(anchor.chirality, jointPoses, pinchStrength)`, `    }`, `}`);
 
   return lines.join('\n');
 }
 
-export function gazeTransientPointerToARKit(gaze: CompiledGazeTransientPointer, varPrefix = ''): string {
+export function gazeTransientPointerToARKit(
+  gaze: CompiledGazeTransientPointer,
+  varPrefix = ''
+): string {
   const v = varPrefix ? `${varPrefix}_` : '';
   const lines: string[] = [
     `// Gaze Transient Pointer: ${gaze.name} (visionOS privacy-first model)`,
@@ -465,14 +460,11 @@ export function gazeTransientPointerToARKit(gaze: CompiledGazeTransientPointer, 
   if (gaze.hapticOnCommit) {
     lines.push(
       `    // Haptic on commit`,
-      `    CHHapticEngine.shared?.playTransient(intensity: ${gaze.hapticIntensity}, sharpness: 0.6)`,
+      `    CHHapticEngine.shared?.playTransient(intensity: ${gaze.hapticIntensity}, sharpness: 0.6)`
     );
   }
 
-  lines.push(
-    `    onGazeCommit(commitPoint, targetEntity)`,
-    `}`,
-  );
+  lines.push(`    onGazeCommit(commitPoint, targetEntity)`, `}`);
 
   if (gaze.dwellEnabled) {
     lines.push(
@@ -480,7 +472,7 @@ export function gazeTransientPointerToARKit(gaze: CompiledGazeTransientPointer, 
       `// Dwell accessibility support (system-managed, no gaze direction exposed)`,
       `.accessibilityAction(.activate) {`,
       `    onGazeCommit(${v}gazeEntity.position, ${v}gazeEntity)`,
-      `}`,
+      `}`
     );
   }
 
@@ -508,7 +500,7 @@ export function sharedAnchorToARKit(anchor: CompiledSharedSpatialAnchor, varPref
   if (anchor.roomId) {
     lines.push(
       `    let roomId = "${anchor.roomId}"`,
-      `    shareAnchorData(anchorData, toRoom: roomId)`,
+      `    shareAnchorData(anchorData, toRoom: roomId)`
     );
   }
 
@@ -516,7 +508,7 @@ export function sharedAnchorToARKit(anchor: CompiledSharedSpatialAnchor, varPref
     lines.push(
       ``,
       `    // Enable transform synchronization`,
-      `    GroupSessionManager.shared.syncAnchor(worldAnchor)`,
+      `    GroupSessionManager.shared.syncAnchor(worldAnchor)`
     );
   }
 
@@ -524,7 +516,7 @@ export function sharedAnchorToARKit(anchor: CompiledSharedSpatialAnchor, varPref
     lines.push(
       ``,
       `    // Persist across sessions`,
-      `    ${v}worldTrackingProvider.persistAnchor(worldAnchor)`,
+      `    ${v}worldTrackingProvider.persistAnchor(worldAnchor)`
     );
   }
 
@@ -536,7 +528,7 @@ export function sharedAnchorToARKit(anchor: CompiledSharedSpatialAnchor, varPref
     `    let worldAnchor = try WorldAnchor.deserialize(data)`,
     `    try await ${v}worldTrackingProvider.addAnchor(worldAnchor)`,
     `    onAnchorResolved(worldAnchor)`,
-    `}`,
+    `}`
   );
 
   return lines.join('\n');
@@ -564,7 +556,7 @@ export function controllerInputToARKit(ctrl: CompiledControllerInput, varPrefix 
       `            controller.haptics?.createEngine(withLocality: .default)?.playTransient(`,
       `                intensity: ${ctrl.hapticIntensity}, sharpness: 0.5`,
       `            )`,
-      `        }`,
+      `        }`
     );
   }
 
@@ -584,7 +576,7 @@ export function controllerInputToARKit(ctrl: CompiledControllerInput, varPrefix 
     `        let isActive = value >= ${ctrl.triggerThreshold}`,
     `        onTriggerChanged(.left, value: Float(value), active: isActive)`,
     `    }`,
-    `}`,
+    `}`
   );
 
   return lines.join('\n');
@@ -662,7 +654,10 @@ export function handTrackingToOpenXR(ht: CompiledHandTracking, varPrefix = ''): 
   return lines.join('\n');
 }
 
-export function gazeTransientPointerToOpenXR(gaze: CompiledGazeTransientPointer, varPrefix = ''): string {
+export function gazeTransientPointerToOpenXR(
+  gaze: CompiledGazeTransientPointer,
+  varPrefix = ''
+): string {
   const v = varPrefix ? `${varPrefix}_` : '';
   const lines: string[] = [
     `// Gaze Transient Pointer: ${gaze.name} (privacy-first)`,
@@ -711,7 +706,7 @@ export function gazeTransientPointerToOpenXR(gaze: CompiledGazeTransientPointer,
       `            vibration.amplitude = ${gaze.hapticIntensity}f;`,
       `            vibration.duration = XR_MIN_HAPTIC_DURATION;`,
       `            vibration.frequency = XR_FREQUENCY_UNSPECIFIED;`,
-      `            xrApplyHapticFeedback(session, &hapticInfo, (XrHapticBaseHeader*)&vibration);`,
+      `            xrApplyHapticFeedback(session, &hapticInfo, (XrHapticBaseHeader*)&vibration);`
     );
   }
 
@@ -719,7 +714,7 @@ export function gazeTransientPointerToOpenXR(gaze: CompiledGazeTransientPointer,
     `        }`,
     `    }`,
     `    // NOTE: gaze pose is NOT stored — privacy invariant maintained`,
-    `}`,
+    `}`
   );
 
   return lines.join('\n');
@@ -774,7 +769,7 @@ export function sharedAnchorToOpenXR(anchor: CompiledSharedSpatialAnchor, varPre
     lines.push(
       ``,
       `    // Enable transform synchronization`,
-      `    enableTransformSync(${v}anchorSpace);`,
+      `    enableTransformSync(${v}anchorSpace);`
     );
   }
 
@@ -845,7 +840,7 @@ export function controllerInputToOpenXR(ctrl: CompiledControllerInput, varPrefix
       `            vibration.duration = 30000000; // 30ms in nanoseconds`,
       `            vibration.frequency = XR_FREQUENCY_UNSPECIFIED;`,
       `            xrApplyHapticFeedback(session, &hapticInfo, (XrHapticBaseHeader*)&vibration);`,
-      `        }`,
+      `        }`
     );
   }
 
@@ -860,7 +855,7 @@ export function controllerInputToOpenXR(ctrl: CompiledControllerInput, varPrefix
     `    if (thumbstickState.isActive) {`,
     `        float x = applyDeadzone(thumbstickState.currentState.x, ${ctrl.deadzone}f);`,
     `        float y = applyDeadzone(thumbstickState.currentState.y, ${ctrl.deadzone}f);`,
-    `        onThumbstickChanged(x, y);`,
+    `        onThumbstickChanged(x, y);`
   );
 
   if (ctrl.thumbstickAsDpad) {
@@ -872,14 +867,11 @@ export function controllerInputToOpenXR(ctrl: CompiledControllerInput, varPrefix
       `        }`,
       `        if (fabsf(y) > ${ctrl.dpadThreshold}f) {`,
       `            onDpadEvent(y > 0 ? DPAD_UP : DPAD_DOWN, fabsf(y));`,
-      `        }`,
+      `        }`
     );
   }
 
-  lines.push(
-    `    }`,
-    `}`,
-  );
+  lines.push(`    }`, `}`);
 
   return lines.join('\n');
 }
@@ -964,7 +956,7 @@ export function handTrackingToWebXR(ht: CompiledHandTracking, varPrefix = ''): s
       `        // Haptic pulse via gamepad haptic actuators`,
       `        if (inputSource.gamepad?.hapticActuators?.length) {`,
       `          inputSource.gamepad.hapticActuators[0].pulse(0.25, 40);`,
-      `        }`,
+      `        }`
     );
   }
 
@@ -974,13 +966,16 @@ export function handTrackingToWebXR(ht: CompiledHandTracking, varPrefix = ''): s
     ``,
     `    onHandTrackingUpdate(handedness, jointPoses);`,
     `  }`,
-    `}`,
+    `}`
   );
 
   return lines.join('\n');
 }
 
-export function gazeTransientPointerToWebXR(gaze: CompiledGazeTransientPointer, varPrefix = ''): string {
+export function gazeTransientPointerToWebXR(
+  gaze: CompiledGazeTransientPointer,
+  varPrefix = ''
+): string {
   const v = varPrefix ? `${varPrefix}_` : '';
   const lines: string[] = [
     `// Gaze Transient Pointer: ${gaze.name} (privacy-first)`,
@@ -1031,7 +1026,7 @@ export function gazeTransientPointerToWebXR(gaze: CompiledGazeTransientPointer, 
       `      // Haptic feedback`,
       `      if (source.gamepad?.hapticActuators?.length) {`,
       `        source.gamepad.hapticActuators[0].pulse(${gaze.hapticIntensity}, 60);`,
-      `      }`,
+      `      }`
     );
   }
 
@@ -1042,7 +1037,7 @@ export function gazeTransientPointerToWebXR(gaze: CompiledGazeTransientPointer, 
     `  session.addEventListener('selectend', () => {`,
     `    onGazeRelease();`,
     `  });`,
-    `}`,
+    `}`
   );
 
   return lines.join('\n');
@@ -1090,18 +1085,14 @@ export function sharedAnchorToWebXR(anchor: CompiledSharedSpatialAnchor, varPref
   ];
 
   if (anchor.autoShare) {
-    lines.push(
-      ``,
-      `    // Auto-share to room`,
-      `    await shareAnchorToRoom(anchorData);`,
-    );
+    lines.push(``, `    // Auto-share to room`, `    await shareAnchorToRoom(anchorData);`);
   }
 
   if (anchor.syncTransforms) {
     lines.push(
       ``,
       `    // Enable transform sync across peers`,
-      `    enableTransformSync(anchorId);`,
+      `    enableTransformSync(anchorId);`
     );
   }
 
@@ -1129,7 +1120,7 @@ export function sharedAnchorToWebXR(anchor: CompiledSharedSpatialAnchor, varPref
     `    anchorData.pose.orientation`,
     `  );`,
     `  return frame.createAnchor(pose, refSpace);`,
-    `}`,
+    `}`
   );
 
   return lines.join('\n');
@@ -1192,7 +1183,7 @@ export function controllerInputToWebXR(ctrl: CompiledControllerInput, varPrefix 
       `        // Haptic feedback`,
       `        if (gp.hapticActuators?.length) {`,
       `          gp.hapticActuators[0].pulse(${ctrl.hapticIntensity}, 30);`,
-      `        }`,
+      `        }`
     );
   }
 
@@ -1211,7 +1202,7 @@ export function controllerInputToWebXR(ctrl: CompiledControllerInput, varPrefix 
     `    };`,
     ``,
     `    const triggerValue = gp.buttons[0]?.value ?? 0;`,
-    `    const gripValue = gp.buttons[1]?.value ?? 0;`,
+    `    const gripValue = gp.buttons[1]?.value ?? 0;`
   );
 
   if (ctrl.thumbstickAsDpad) {
@@ -1223,7 +1214,7 @@ export function controllerInputToWebXR(ctrl: CompiledControllerInput, varPrefix 
       `    }`,
       `    if (Math.abs(thumbstick.y) > ${ctrl.dpadThreshold}) {`,
       `      onSpatialDpad(hand, thumbstick.y > 0 ? 'up' : 'down', Math.abs(thumbstick.y));`,
-      `    }`,
+      `    }`
     );
   }
 
@@ -1237,7 +1228,7 @@ export function controllerInputToWebXR(ctrl: CompiledControllerInput, varPrefix 
     `      gripValue,`,
     `    });`,
     `  }`,
-    `}`,
+    `}`
   );
 
   return lines.join('\n');
@@ -1262,7 +1253,10 @@ export function spatialInputToTarget(
   target: SpatialInputTarget,
   varPrefix = ''
 ): string {
-  const generators: Record<SpatialInputTarget, Record<CompiledSpatialInput['kind'], (data: any, prefix: string) => string>> = {
+  const generators: Record<
+    SpatialInputTarget,
+    Record<CompiledSpatialInput['kind'], (data: any, prefix: string) => string>
+  > = {
     arcore: {
       hand_tracking: handTrackingToARCore,
       gaze_transient_pointer: gazeTransientPointerToARCore,

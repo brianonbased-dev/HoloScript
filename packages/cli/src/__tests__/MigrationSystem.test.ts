@@ -37,9 +37,7 @@ describe('MigrationRunner — Production', () => {
   });
 
   it('apply migrates files through chain', () => {
-    const files = new Map([
-      ['scene.holo', 'orb "player" { @clickable @physics(gravity: 9.8) }'],
-    ]);
+    const files = new Map([['scene.holo', 'orb "player" { @clickable @physics(gravity: 9.8) }']]);
     const result = runner.apply(files, '2.1.0', '3.0.0');
     const migrated = result.get('scene.holo')!;
     // v2.1→v2.5: clickable→interactive, gravity scalar→vector, orb→object
@@ -64,11 +62,7 @@ describe('MigrationRunner — Production', () => {
   });
 
   it('formatReport produces readable output', () => {
-    const results = runner.dryRun(
-      new Map([['test.holo', '@clickable']]),
-      '2.1.0',
-      '2.5.0',
-    );
+    const results = runner.dryRun(new Map([['test.holo', '@clickable']]), '2.1.0', '2.5.0');
     const report = runner.formatReport(results);
     expect(report).toContain('Migration: 2.1.0 => 2.5.0');
     expect(report).toContain('test.holo');
@@ -86,18 +80,18 @@ describe('Migration v2.1→v2.5 Transforms', () => {
   const transforms = migration_v2_1_to_v2_5.transforms;
 
   it('renames @clickable to @interactive', () => {
-    const t = transforms.find(t => t.name === 'rename-clickable-to-interactive')!;
+    const t = transforms.find((t) => t.name === 'rename-clickable-to-interactive')!;
     expect(t.transform('@clickable(mode: tap)', '')).toBe('@interactive(mode: tap)');
   });
 
   it('updates @physics gravity from scalar to vector', () => {
-    const t = transforms.find(t => t.name === 'update-physics-gravity')!;
+    const t = transforms.find((t) => t.name === 'update-physics-gravity')!;
     const result = t.transform('@physics(gravity: 9.8)', '');
     expect(result).toBe('@physics(gravity: [0, -9.8, 0])');
   });
 
   it('renames orb to object', () => {
-    const t = transforms.find(t => t.name === 'rename-orb-to-object')!;
+    const t = transforms.find((t) => t.name === 'rename-orb-to-object')!;
     expect(t.transform('orb "player" { }', '')).toBe('object "player" { }');
   });
 
@@ -114,17 +108,17 @@ describe('Migration v2.5→v3.0 Transforms', () => {
   const transforms = migration_v2_5_to_v3_0.transforms;
 
   it('renames @interactive to @interactable', () => {
-    const t = transforms.find(t => t.name === 'rename-interactive-to-interactable')!;
+    const t = transforms.find((t) => t.name === 'rename-interactive-to-interactable')!;
     expect(t.transform('@interactive', '')).toBe('@interactable');
   });
 
   it('updates scene to composition', () => {
-    const t = transforms.find(t => t.name === 'update-composition-syntax')!;
+    const t = transforms.find((t) => t.name === 'update-composition-syntax')!;
     expect(t.transform('scene "MyScene" {', '')).toBe('composition "MyScene" {');
   });
 
   it('handles multiple occurrences', () => {
-    const t = transforms.find(t => t.name === 'rename-interactive-to-interactable')!;
+    const t = transforms.find((t) => t.name === 'rename-interactive-to-interactable')!;
     const result = t.transform('@interactive @interactive', '');
     expect(result).toBe('@interactable @interactable');
   });

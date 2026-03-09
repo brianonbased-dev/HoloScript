@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { accessibleHandler } from '../AccessibleTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('AccessibleTrait', () => {
   let node: Record<string, unknown>;
@@ -58,7 +66,10 @@ describe('AccessibleTrait', () => {
   });
 
   it('set_expanded updates aria state', () => {
-    sendEvent(accessibleHandler, node, cfg, ctx, { type: 'accessible_set_expanded', expanded: true });
+    sendEvent(accessibleHandler, node, cfg, ctx, {
+      type: 'accessible_set_expanded',
+      expanded: true,
+    });
     expect((node as any).__accessibleState.ariaExpanded).toBe(true);
     expect(getEventCount(ctx, 'accessibility_update')).toBe(1);
   });
@@ -80,7 +91,10 @@ describe('AccessibleTrait', () => {
 
   it('assertive announce goes to front of queue', () => {
     const assertCfg = { ...cfg, live_region: 'assertive' as const };
-    sendEvent(accessibleHandler, node, assertCfg, ctx, { type: 'accessible_announce', message: 'Alert!' });
+    sendEvent(accessibleHandler, node, assertCfg, ctx, {
+      type: 'accessible_announce',
+      message: 'Alert!',
+    });
     expect((node as any).__accessibleState.announceQueue[0]).toBe('Alert!');
   });
 

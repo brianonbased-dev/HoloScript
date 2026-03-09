@@ -11,8 +11,13 @@ import terrainAnchorHandler from '../TerrainAnchorTrait';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function makeNode(): any { return {}; }
-function makeCtx() { const emit = vi.fn(); return { emit }; }
+function makeNode(): any {
+  return {};
+}
+function makeCtx() {
+  const emit = vi.fn();
+  return { emit };
+}
 
 function makeConfig(overrides: Record<string, unknown> = {}) {
   return {
@@ -35,7 +40,9 @@ function attach(overrides: Record<string, unknown> = {}) {
   return { node, ctx, cfg };
 }
 
-function st(node: any) { return (node as any).__terrainAnchorState; }
+function st(node: any) {
+  return (node as any).__terrainAnchorState;
+}
 
 function fire(node: any, cfg: any, ctx: any, event: Record<string, unknown>) {
   terrainAnchorHandler.onEvent!(node, cfg, ctx as any, event);
@@ -44,7 +51,6 @@ function fire(node: any, cfg: any, ctx: any, event: Record<string, unknown>) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('TerrainAnchorTrait — Production', () => {
-
   beforeEach(() => vi.clearAllMocks());
 
   // ─── defaultConfig ──────────────────────────────────────────────────
@@ -85,10 +91,13 @@ describe('TerrainAnchorTrait — Production', () => {
 
   it('auto_resolve=true emits terrain_anchor_request', () => {
     const { ctx } = attach({ auto_resolve: true, latitude: 48.8, longitude: 2.35 });
-    expect(ctx.emit).toHaveBeenCalledWith('terrain_anchor_request', expect.objectContaining({
-      latitude: 48.8,
-      longitude: 2.35,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'terrain_anchor_request',
+      expect.objectContaining({
+        latitude: 48.8,
+        longitude: 2.35,
+      })
+    );
   });
 
   it('auto_resolve=true transitions state to resolving', () => {
@@ -116,10 +125,19 @@ describe('TerrainAnchorTrait — Production', () => {
 
   it('emits terrain_anchor_release when anchorHandle is set', () => {
     const { node, ctx, cfg } = attach();
-    fire(node, cfg, ctx, { type: 'terrain_anchor_resolved', handle: 'TH1', terrainHeight: 100, confidence: 1.0, position: { x: 0, y: 0, z: 0 } });
+    fire(node, cfg, ctx, {
+      type: 'terrain_anchor_resolved',
+      handle: 'TH1',
+      terrainHeight: 100,
+      confidence: 1.0,
+      position: { x: 0, y: 0, z: 0 },
+    });
     ctx.emit.mockClear();
     terrainAnchorHandler.onDetach!(node, cfg as any, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('terrain_anchor_release', expect.objectContaining({ handle: 'TH1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'terrain_anchor_release',
+      expect.objectContaining({ handle: 'TH1' })
+    );
   });
 
   it('detach without anchorHandle does not emit release', () => {
@@ -148,10 +166,13 @@ describe('TerrainAnchorTrait — Production', () => {
     expect(s.terrainHeight).toBe(250);
     expect(s.confidence).toBe(0.95);
     expect(s.anchorHandle).toBe('TH2');
-    expect(ctx.emit).toHaveBeenCalledWith('on_terrain_resolved', expect.objectContaining({
-      terrainHeight: 250,
-      confidence: 0.95,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_terrain_resolved',
+      expect.objectContaining({
+        terrainHeight: 250,
+        confidence: 0.95,
+      })
+    );
   });
 
   it('resolved defaults confidence to 1.0 when not provided', () => {
@@ -229,9 +250,12 @@ describe('TerrainAnchorTrait — Production', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'terrain_anchor_unavailable', reason: 'No elevation data' });
     expect(st(node).state).toBe('unavailable');
-    expect(ctx.emit).toHaveBeenCalledWith('on_terrain_unavailable', expect.objectContaining({
-      reason: 'No elevation data',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_terrain_unavailable',
+      expect.objectContaining({
+        reason: 'No elevation data',
+      })
+    );
   });
 
   // ─── onEvent: manual resolve ─────────────────────────────────────────
@@ -250,11 +274,14 @@ describe('TerrainAnchorTrait — Production', () => {
     const { node, ctx, cfg } = attach({ latitude: 35.68, longitude: 139.69 });
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'terrain_anchor_query', queryId: 'Q99' });
-    expect(ctx.emit).toHaveBeenCalledWith('terrain_anchor_info', expect.objectContaining({
-      queryId: 'Q99',
-      latitude: 35.68,
-      longitude: 139.69,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'terrain_anchor_info',
+      expect.objectContaining({
+        queryId: 'Q99',
+        latitude: 35.68,
+        longitude: 139.69,
+      })
+    );
   });
 
   // ─── onUpdate: smooth position application ───────────────────────────
@@ -276,7 +303,13 @@ describe('TerrainAnchorTrait — Production', () => {
 
   it('onUpdate does not throw when node lacks position', () => {
     const { node, ctx, cfg } = attach();
-    fire(node, cfg, ctx, { type: 'terrain_anchor_resolved', handle: 'H', terrainHeight: 0, confidence: 1, position: { x: 0, y: 0, z: 0 } });
+    fire(node, cfg, ctx, {
+      type: 'terrain_anchor_resolved',
+      handle: 'H',
+      terrainHeight: 0,
+      confidence: 1,
+      position: { x: 0, y: 0, z: 0 },
+    });
     expect(() => terrainAnchorHandler.onUpdate!(node, cfg as any, ctx as any, 0)).not.toThrow();
   });
 

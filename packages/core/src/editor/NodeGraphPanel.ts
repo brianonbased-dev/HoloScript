@@ -156,9 +156,15 @@ export class NodeGraphPanel {
     const toNode = this.graph.getNode(conn.toNode);
     if (!fromNode || !toNode) return;
 
-    const fromX = this.config.position.x + fromNode.position.x * this.config.gridSpacing + this.config.nodeWidth * 0.45;
+    const fromX =
+      this.config.position.x +
+      fromNode.position.x * this.config.gridSpacing +
+      this.config.nodeWidth * 0.45;
     const fromY = this.config.position.y - fromNode.position.y * this.config.gridSpacing;
-    const toX = this.config.position.x + toNode.position.x * this.config.gridSpacing - this.config.nodeWidth * 0.45;
+    const toX =
+      this.config.position.x +
+      toNode.position.x * this.config.gridSpacing -
+      this.config.nodeWidth * 0.45;
     const toY = this.config.position.y - toNode.position.y * this.config.gridSpacing;
     const z = this.config.position.z + 0.003;
 

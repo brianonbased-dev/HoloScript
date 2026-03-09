@@ -9,24 +9,28 @@ This example showcases HoloScript's AR capabilities for creating "try before you
 ### Key Features
 
 ✓ **Real-World Placement**
+
 - Markerless AR plane detection
 - Horizontal surface tracking (floors, tables)
 - Environmental lighting matching
 - Realistic shadows on real surfaces
 
 ✓ **Product Configuration**
+
 - Multiple color/material variants
 - Real-time scaling and rotation
 - Accurate dimension measurements
 - Interactive product catalog
 
 ✓ **E-Commerce Integration**
+
 - Shopping cart functionality
 - Price calculations with material modifiers
 - Save and share room layouts
 - Checkout flow integration
 
 ✓ **Mobile-First Design**
+
 - Touch gestures (tap, drag, pinch, swipe)
 - Haptic feedback
 - Optimized for iOS Safari and Android Chrome
@@ -69,6 +73,7 @@ holoscript compile furniture-catalog.holo --target arcore --output ./output/andr
 5. Tap to place furniture
 
 **Platform Support:**
+
 - **iOS**: Safari 15+, iOS 15+
 - **Android**: Chrome 90+, Android 9+
 
@@ -80,6 +85,7 @@ holoscript compile furniture-catalog.holo --target arcore --output ./output/andr
 4. Deploy via Xcode or TestFlight
 
 **Requirements:**
+
 - **iPhone**: iPhone 6s or newer with iOS 13+
 - **iPad**: iPad Pro, iPad (5th gen+) with iOS 13+
 
@@ -91,6 +97,7 @@ holoscript compile furniture-catalog.holo --target arcore --output ./output/andr
 4. Build APK and deploy to ARCore-compatible device
 
 **Requirements:**
+
 - **Android**: ARCore-compatible device (see Google's list)
 - **OS**: Android 7.0 (Nougat) or newer
 
@@ -242,18 +249,21 @@ Matches virtual furniture lighting to real-world environment.
 ## 🎓 Use Cases
 
 ### E-Commerce Retailers
+
 - Furniture stores (IKEA, Wayfair, West Elm)
 - Home decor and appliances
 - Outdoor furniture and patio sets
 - Office furniture suppliers
 
 ### Interior Design
+
 - Design consultations
 - Space planning
 - Client presentations
 - Virtual staging for real estate
 
 ### B2B Applications
+
 - Trade show demos
 - Sales presentations
 - Showroom alternatives
@@ -280,6 +290,7 @@ product#new_item @furniture @interactive {
 ### Changing UI Branding
 
 Update UI colors and fonts (lines 302-356):
+
 ```holoscript
 ui#catalog_panel @bottom_sheet {
   background: #ffffff  // Your brand color
@@ -294,6 +305,7 @@ ui#catalog_panel @bottom_sheet {
 ### Customizing Gestures
 
 Modify gesture handlers (lines 239-298):
+
 ```holoscript
 on_pinch_gesture {
   scale_furniture: {
@@ -325,6 +337,7 @@ button#add_to_cart {
 ## 📊 Analytics & Tracking
 
 Track user behavior:
+
 - Products viewed in AR
 - Placement attempts vs. completions
 - Time spent configuring each product
@@ -348,11 +361,13 @@ on_furniture_placed {
 ## 🔧 Technical Details
 
 ### Performance Targets
+
 - **WebXR AR**: 30 FPS on iPhone 12/13, 60 FPS on iPhone 14+
 - **ARKit**: 60 FPS on iPhone SE (2nd gen) or newer
 - **ARCore**: 30-60 FPS on mid-range Android phones
 
 ### Model Optimization
+
 - **Polygon Count**: <10,000 triangles per furniture item
 - **Textures**: 1K-2K resolution (compress with Basis Universal)
 - **File Size**: <5 MB per .glb model
@@ -361,11 +376,13 @@ on_furniture_placed {
 ### Browser Requirements
 
 **iOS (Safari/Chrome)**
+
 - iOS 15.0+ for WebXR AR support
 - HTTPS required (camera permissions)
 - No installation needed
 
 **Android (Chrome)**
+
 - Chrome 90+ with WebXR support
 - ARCore-compatible device
 - HTTPS required
@@ -373,18 +390,21 @@ on_furniture_placed {
 ### Platform-Specific Features
 
 **WebXR AR**
+
 - ✅ Works in browser (no app install)
 - ✅ Cross-platform (iOS + Android)
 - ⚠️ Limited to horizontal plane detection
 - ⚠️ No people occlusion
 
 **ARKit (iOS)**
+
 - ✅ People occlusion (iPhone 12+)
 - ✅ LiDAR depth scanning (iPhone Pro models)
 - ✅ Better plane detection
 - ❌ Requires native app
 
 **ARCore (Android)**
+
 - ✅ Environmental HDR lighting
 - ✅ Depth API (on supported devices)
 - ✅ Cloud Anchors for persistent placement
@@ -429,6 +449,7 @@ settings {
 ## 🤝 Contributing
 
 Improvements welcome! Ideas:
+
 - Multi-user AR (see furniture placed by friends)
 - Room scanning and measurement
 - AI-powered furniture recommendations

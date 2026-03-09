@@ -14,8 +14,8 @@
 export type ChannelCallback<T = unknown> = (data: T) => void;
 
 export interface ChannelOptions {
-  replayBufferSize: number;    // 0 = no replay
-  throttleMs: number;          // 0 = no throttle
+  replayBufferSize: number; // 0 = no replay
+  throttleMs: number; // 0 = no throttle
 }
 
 interface Subscriber<T> {
@@ -59,8 +59,11 @@ export class EventChannel<T = unknown> {
   }
 
   unsubscribe(id: number): boolean {
-    const idx = this.subscribers.findIndex(s => s.id === id);
-    if (idx !== -1) { this.subscribers.splice(idx, 1); return true; }
+    const idx = this.subscribers.findIndex((s) => s.id === id);
+    if (idx !== -1) {
+      this.subscribers.splice(idx, 1);
+      return true;
+    }
     return false;
   }
 
@@ -96,10 +99,19 @@ export class EventChannel<T = unknown> {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getSubscriberCount(): number { return this.subscribers.length; }
-  getEmitCount(): number { return this.emitCount; }
-  getBuffer(): T[] { return [...this.buffer]; }
-  clear(): void { this.subscribers = []; this.buffer = []; }
+  getSubscriberCount(): number {
+    return this.subscribers.length;
+  }
+  getEmitCount(): number {
+    return this.emitCount;
+  }
+  getBuffer(): T[] {
+    return [...this.buffer];
+  }
+  clear(): void {
+    this.subscribers = [];
+    this.buffer = [];
+  }
 }
 
 // =============================================================================
@@ -119,10 +131,18 @@ export class ChannelManager {
     return this.channels.get(name) as EventChannel<T> | undefined;
   }
 
-  removeChannel(name: string): void { this.channels.delete(name); }
-  getChannelNames(): string[] { return [...this.channels.keys()]; }
+  removeChannel(name: string): void {
+    this.channels.delete(name);
+  }
+  getChannelNames(): string[] {
+    return [...this.channels.keys()];
+  }
 
-  bridge(sourceChannel: string, targetChannel: string, transform?: (data: unknown) => unknown): number {
+  bridge(
+    sourceChannel: string,
+    targetChannel: string,
+    transform?: (data: unknown) => unknown
+  ): number {
     const src = this.channels.get(sourceChannel);
     const tgt = this.channels.get(targetChannel);
     if (!src || !tgt) return -1;

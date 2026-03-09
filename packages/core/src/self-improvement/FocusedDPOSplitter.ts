@@ -31,11 +31,7 @@
  */
 
 import { HoloCompositionParser } from '../parser/HoloCompositionParser';
-import type {
-  HoloComposition,
-  HoloParseResult,
-  SourceRange,
-} from '../parser/HoloCompositionTypes';
+import type { HoloComposition, HoloParseResult, SourceRange } from '../parser/HoloCompositionTypes';
 
 // =============================================================================
 // TYPES
@@ -203,10 +199,7 @@ export class FocusedDPOSplitter {
    * @param sourceFile - Optional filename for metadata
    * @returns Object with pairs array and stats
    */
-  process(
-    source: string,
-    sourceFile?: string,
-  ): { pairs: DPOPair[]; stats: SplitterStats } {
+  process(source: string, sourceFile?: string): { pairs: DPOPair[]; stats: SplitterStats } {
     const file = sourceFile ?? this.config.sourceFile;
 
     // Step 1: Parse
@@ -252,8 +245,7 @@ export class FocusedDPOSplitter {
     if (stats.validPairs > 0) {
       stats.avgQualityScore /= stats.validPairs;
     }
-    stats.amplificationRatio =
-      segments.length > 0 ? stats.validPairs / segments.length : 0;
+    stats.amplificationRatio = segments.length > 0 ? stats.validPairs / segments.length : 0;
 
     return { pairs: allPairs, stats };
   }
@@ -261,9 +253,10 @@ export class FocusedDPOSplitter {
   /**
    * Process multiple .holo files and combine results.
    */
-  processMultiple(
-    files: Array<{ source: string; filename: string }>,
-  ): { pairs: DPOPair[]; stats: SplitterStats } {
+  processMultiple(files: Array<{ source: string; filename: string }>): {
+    pairs: DPOPair[];
+    stats: SplitterStats;
+  } {
     const allPairs: DPOPair[] = [];
     const combinedStats: SplitterStats = {
       segmentsExtracted: 0,
@@ -290,8 +283,7 @@ export class FocusedDPOSplitter {
       }
       for (const [strat, count] of Object.entries(result.stats.byStrategy)) {
         const s = strat as DegradationStrategy;
-        combinedStats.byStrategy[s] =
-          (combinedStats.byStrategy[s] ?? 0) + (count ?? 0);
+        combinedStats.byStrategy[s] = (combinedStats.byStrategy[s] ?? 0) + (count ?? 0);
       }
     }
 
@@ -321,7 +313,7 @@ export class FocusedDPOSplitter {
           prompt: pair.prompt,
           chosen: pair.chosen,
           rejected: pair.rejected,
-        }),
+        })
       )
       .join('\n');
   }
@@ -455,20 +447,13 @@ export class FocusedDPOSplitter {
   /**
    * Generate DPO pairs for a single segment by applying degradation strategies.
    */
-  generatePairsForSegment(
-    segment: ASTSegment,
-    fullSource: string,
-    sourceFile?: string,
-  ): DPOPair[] {
+  generatePairsForSegment(segment: ASTSegment, fullSource: string, sourceFile?: string): DPOPair[] {
     const strategies = this.selectStrategies(segment);
     const pairs: DPOPair[] = [];
     const timestamp = new Date().toISOString();
 
     // Limit to configured range
-    const selectedStrategies = strategies.slice(
-      0,
-      this.config.maxPairsPerSegment,
-    );
+    const selectedStrategies = strategies.slice(0, this.config.maxPairsPerSegment);
 
     for (const strategy of selectedStrategies) {
       const rejected = this.applyDegradation(segment.source, strategy, segment.kind);
@@ -512,10 +497,7 @@ export class FocusedDPOSplitter {
 
     // Ensure we meet minimum pairs if we have at least one
     // by applying additional strategies if needed
-    if (
-      pairs.length < this.config.minPairsPerSegment &&
-      pairs.length > 0
-    ) {
+    if (pairs.length < this.config.minPairsPerSegment && pairs.length > 0) {
       // Try remaining strategies
       for (const strategy of strategies.slice(selectedStrategies.length)) {
         if (pairs.length >= this.config.minPairsPerSegment) break;
@@ -576,11 +558,7 @@ export class FocusedDPOSplitter {
       composition: ['remove_closing_brace', 'duplicate_block_name'],
       environment: ['corrupt_property_value', 'remove_colon_separator'],
       state: ['corrupt_property_value', 'remove_colon_separator'],
-      template: [
-        'remove_closing_brace',
-        'invalid_trait_name',
-        'remove_trait_arguments',
-      ],
+      template: ['remove_closing_brace', 'invalid_trait_name', 'remove_trait_arguments'],
       object: [
         'remove_closing_brace',
         'invalid_trait_name',
@@ -594,60 +572,24 @@ export class FocusedDPOSplitter {
         'remove_colon_separator',
         'remove_closing_brace',
       ],
-      trait: [
-        'invalid_trait_name',
-        'remove_trait_arguments',
-        'remove_closing_brace',
-      ],
+      trait: ['invalid_trait_name', 'remove_trait_arguments', 'remove_closing_brace'],
       animation: ['break_animation_syntax', 'corrupt_property_value'],
-      logic: [
-        'remove_closing_brace',
-        'invalid_nesting',
-        'corrupt_property_value',
-      ],
+      logic: ['remove_closing_brace', 'invalid_nesting', 'corrupt_property_value'],
       light: ['corrupt_property_value', 'remove_colon_separator'],
       effects: ['corrupt_property_value', 'remove_closing_brace'],
       camera: ['corrupt_property_value', 'remove_colon_separator'],
-      timeline: [
-        'break_animation_syntax',
-        'corrupt_property_value',
-        'remove_closing_brace',
-      ],
+      timeline: ['break_animation_syntax', 'corrupt_property_value', 'remove_closing_brace'],
       audio: ['corrupt_property_value', 'remove_colon_separator'],
       zone: ['corrupt_property_value', 'remove_closing_brace'],
       ui: ['remove_closing_brace', 'corrupt_property_value'],
-      npc: [
-        'remove_closing_brace',
-        'invalid_trait_name',
-        'corrupt_property_value',
-      ],
+      npc: ['remove_closing_brace', 'invalid_trait_name', 'corrupt_property_value'],
       quest: ['remove_closing_brace', 'corrupt_property_value', 'remove_required_property'],
-      ability: [
-        'corrupt_property_value',
-        'remove_closing_brace',
-        'remove_required_property',
-      ],
+      ability: ['corrupt_property_value', 'remove_closing_brace', 'remove_required_property'],
       dialogue: ['break_string_literal', 'remove_closing_brace'],
-      state_machine: [
-        'remove_closing_brace',
-        'invalid_nesting',
-        'corrupt_property_value',
-      ],
-      spatial_group: [
-        'remove_closing_brace',
-        'invalid_nesting',
-        'remove_required_property',
-      ],
-      domain_block: [
-        'remove_closing_brace',
-        'corrupt_property_value',
-        'invalid_trait_name',
-      ],
-      data_source: [
-        'corrupt_property_value',
-        'remove_colon_separator',
-        'remove_closing_brace',
-      ],
+      state_machine: ['remove_closing_brace', 'invalid_nesting', 'corrupt_property_value'],
+      spatial_group: ['remove_closing_brace', 'invalid_nesting', 'remove_required_property'],
+      domain_block: ['remove_closing_brace', 'corrupt_property_value', 'invalid_trait_name'],
+      data_source: ['corrupt_property_value', 'remove_colon_separator', 'remove_closing_brace'],
       import: ['break_string_literal', 'corrupt_property_value'],
     };
 
@@ -662,11 +604,7 @@ export class FocusedDPOSplitter {
    * Returns the degraded source, or the original if the strategy
    * doesn't apply (caller should skip these).
    */
-  applyDegradation(
-    source: string,
-    strategy: DegradationStrategy,
-    _kind: SegmentKind,
-  ): string {
+  applyDegradation(source: string, strategy: DegradationStrategy, _kind: SegmentKind): string {
     switch (strategy) {
       case 'remove_closing_brace':
         return this.degradeRemoveClosingBrace(source);
@@ -850,10 +788,7 @@ export class FocusedDPOSplitter {
     for (let i = 0; i < lines.length; i++) {
       if (/animate|animation|keyframe|duration|delay/i.test(lines[i])) {
         // Replace numeric values with invalid text
-        lines[i] = lines[i].replace(
-          /:\s*(\d+(?:\.\d+)?)/,
-          ': not_a_number',
-        );
+        lines[i] = lines[i].replace(/:\s*(\d+(?:\.\d+)?)/, ': not_a_number');
         if (lines[i] !== source.split('\n')[i]) {
           modified = true;
           break;
@@ -937,7 +872,10 @@ export class FocusedDPOSplitter {
     const lines = source.split('\n');
     // Find the first property-like line (key: value) and remove it
     for (let i = 0; i < lines.length; i++) {
-      if (/^\s+\w+:\s*.+$/.test(lines[i]) && !/^\s*(composition|object|template|environment|state)/.test(lines[i])) {
+      if (
+        /^\s+\w+:\s*.+$/.test(lines[i]) &&
+        !/^\s*(composition|object|template|environment|state)/.test(lines[i])
+      ) {
         lines.splice(i, 1);
         return lines.join('\n');
       }
@@ -967,11 +905,7 @@ export class FocusedDPOSplitter {
     if (found) {
       const idx = source.indexOf(found[0]);
       // Remove the closing quote
-      const broken =
-        source.slice(0, idx) +
-        '"' +
-        found[1] +
-        source.slice(idx + found[0].length);
+      const broken = source.slice(0, idx) + '"' + found[1] + source.slice(idx + found[0].length);
       return broken;
     }
     return source;
@@ -1021,7 +955,7 @@ export class FocusedDPOSplitter {
   private validatePair(
     chosen: string,
     rejected: string,
-    _fullSource: string,
+    _fullSource: string
   ): { chosenValid: boolean; rejectedInvalid: boolean; qualityScore: number } {
     // Wrap in minimal composition if not already a composition
     const wrapInComposition = (code: string): string => {
@@ -1045,8 +979,7 @@ export class FocusedDPOSplitter {
     try {
       const rejectedResult = this.parser.parse(rejectedWrapped);
       // We WANT the rejected to fail (have errors)
-      rejectedInvalid =
-        !rejectedResult.success || rejectedResult.errors.length > 0;
+      rejectedInvalid = !rejectedResult.success || rejectedResult.errors.length > 0;
     } catch {
       // Parse threw an exception = definitely invalid, which is good
       rejectedInvalid = true;

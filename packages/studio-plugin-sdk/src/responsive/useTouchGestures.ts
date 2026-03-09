@@ -17,11 +17,7 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
-import type {
-  TouchGestureType,
-  TouchGestureAction,
-  TouchGestureEvent,
-} from '../types.js';
+import type { TouchGestureType, TouchGestureAction, TouchGestureEvent } from '../types.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,12 +49,12 @@ interface TouchPoint {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const DEFAULT_SWIPE_THRESHOLD = 50;    // pixels
+const DEFAULT_SWIPE_THRESHOLD = 50; // pixels
 const DEFAULT_LONG_PRESS_DURATION = 500; // ms
-const DOUBLE_TAP_INTERVAL = 300;       // ms
-const DOUBLE_TAP_DISTANCE = 30;        // pixels
-const LONG_PRESS_MOVE_TOLERANCE = 10;  // pixels
-const SWIPE_ANGLE_TOLERANCE = 30;      // degrees
+const DOUBLE_TAP_INTERVAL = 300; // ms
+const DOUBLE_TAP_DISTANCE = 30; // pixels
+const LONG_PRESS_MOVE_TOLERANCE = 10; // pixels
+const SWIPE_ANGLE_TOLERANCE = 30; // degrees
 
 // ── Helper: Calculate Distance ───────────────────────────────────────────────
 
@@ -84,7 +80,8 @@ function getSwipeDirection(deg: number): TouchGestureType | null {
   if (absDeg <= SWIPE_ANGLE_TOLERANCE) return 'swipe-right';
   if (absDeg >= 180 - SWIPE_ANGLE_TOLERANCE) return 'swipe-left';
   if (deg >= 90 - SWIPE_ANGLE_TOLERANCE && deg <= 90 + SWIPE_ANGLE_TOLERANCE) return 'swipe-down';
-  if (deg >= -(90 + SWIPE_ANGLE_TOLERANCE) && deg <= -(90 - SWIPE_ANGLE_TOLERANCE)) return 'swipe-up';
+  if (deg >= -(90 + SWIPE_ANGLE_TOLERANCE) && deg <= -(90 - SWIPE_ANGLE_TOLERANCE))
+    return 'swipe-up';
 
   return null;
 }
@@ -93,7 +90,7 @@ function getSwipeDirection(deg: number): TouchGestureType | null {
 
 function getPinchScale(
   startTouches: [TouchPoint, TouchPoint],
-  currentTouches: [TouchPoint, TouchPoint],
+  currentTouches: [TouchPoint, TouchPoint]
 ): number {
   const startDistance = distance(startTouches[0], startTouches[1]);
   const currentDistance = distance(currentTouches[0], currentTouches[1]);
@@ -109,7 +106,7 @@ function createGestureEvent(
   start: TouchPoint,
   end: TouchPoint,
   originalEvent: TouchEvent,
-  scale?: number,
+  scale?: number
 ): TouchGestureEvent {
   const dist = distance(start, end);
   const dur = end.timestamp - start.timestamp;
@@ -154,7 +151,7 @@ export function useTouchGestures(options: UseTouchGesturesOptions): TouchGesture
     (type: TouchGestureType): TouchGestureAction | undefined => {
       return gestures.find((g) => g.gesture === type);
     },
-    [gestures],
+    [gestures]
   );
 
   // Execute a gesture action
@@ -167,7 +164,7 @@ export function useTouchGestures(options: UseTouchGesturesOptions): TouchGesture
       // by the consuming component (ResponsivePanel / ResponsiveToolbar).
       // This hook just fires the event; the component decides what to do.
     },
-    [],
+    []
   );
 
   // Clear long press timer
@@ -220,7 +217,7 @@ export function useTouchGestures(options: UseTouchGesturesOptions): TouchGesture
             'double-tap',
             lastTapRef.current.point,
             touchStartRef.current,
-            e,
+            e
           );
           executeGesture(doubleTapGesture, event);
           lastTapRef.current = null;
@@ -240,7 +237,7 @@ export function useTouchGestures(options: UseTouchGesturesOptions): TouchGesture
               'long-press',
               touchStartRef.current,
               touchStartRef.current,
-              e,
+              e
             );
             executeGesture(longPressGesture, event);
 
@@ -303,7 +300,10 @@ export function useTouchGestures(options: UseTouchGesturesOptions): TouchGesture
 
         // Approximate final scale from remaining touch data
         if (touchStartRef.current) {
-          const startDist = distance(touchStartTouchesRef.current[0], touchStartTouchesRef.current[1]);
+          const startDist = distance(
+            touchStartTouchesRef.current[0],
+            touchStartTouchesRef.current[1]
+          );
           // We can only approximate here since one finger has lifted
           const scale = startDist > 0 ? distance(touchStartRef.current, endPoint) / startDist : 1;
           const gestureType: TouchGestureType = scale < 1 ? 'pinch-in' : 'pinch-out';
@@ -315,7 +315,7 @@ export function useTouchGestures(options: UseTouchGesturesOptions): TouchGesture
               touchStartTouchesRef.current[0],
               endPoint,
               e,
-              scale,
+              scale
             );
             executeGesture(gesture, event);
           }
@@ -339,7 +339,10 @@ export function useTouchGestures(options: UseTouchGesturesOptions): TouchGesture
         const dist = distance(touchStartRef.current, endPoint);
         const swipeThreshold = gestures
           .filter((g) => g.gesture.startsWith('swipe-'))
-          .reduce((min, g) => Math.min(min, g.threshold ?? DEFAULT_SWIPE_THRESHOLD), DEFAULT_SWIPE_THRESHOLD);
+          .reduce(
+            (min, g) => Math.min(min, g.threshold ?? DEFAULT_SWIPE_THRESHOLD),
+            DEFAULT_SWIPE_THRESHOLD
+          );
 
         if (dist >= swipeThreshold) {
           const deg = angle(touchStartRef.current, endPoint);
@@ -350,12 +353,7 @@ export function useTouchGestures(options: UseTouchGesturesOptions): TouchGesture
             if (gesture) {
               if (preventDefault) e.preventDefault();
 
-              const event = createGestureEvent(
-                direction,
-                touchStartRef.current,
-                endPoint,
-                e,
-              );
+              const event = createGestureEvent(direction, touchStartRef.current, endPoint, e);
               executeGesture(gesture, event);
             }
           }

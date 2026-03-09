@@ -15,9 +15,21 @@ import { describe, it, expect } from 'vitest';
 // We test the pure logic by re-implementing the stack operations
 // since the hook uses React state (useState) which needs renderHook.
 
-interface GNode { id: string; type?: string; position: { x: number; y: number }; data: unknown; }
-interface GEdge { id: string; source: string; target: string; }
-interface GraphSnapshot { nodes: GNode[]; edges: GEdge[]; }
+interface GNode {
+  id: string;
+  type?: string;
+  position: { x: number; y: number };
+  data: unknown;
+}
+interface GEdge {
+  id: string;
+  source: string;
+  target: string;
+}
+interface GraphSnapshot {
+  nodes: GNode[];
+  edges: GEdge[];
+}
 
 const MAX_HISTORY = 50;
 
@@ -27,8 +39,12 @@ class UndoRedoStack {
   past: GraphSnapshot[] = [];
   future: GraphSnapshot[] = [];
 
-  get canUndo() { return this.past.length > 0; }
-  get canRedo() { return this.future.length > 0; }
+  get canUndo() {
+    return this.past.length > 0;
+  }
+  get canRedo() {
+    return this.future.length > 0;
+  }
 
   record(snapshot: GraphSnapshot) {
     this.past.push(snapshot);
@@ -50,11 +66,16 @@ class UndoRedoStack {
     return next;
   }
 
-  clear() { this.past = []; this.future = []; }
+  clear() {
+    this.past = [];
+    this.future = [];
+  }
 
   get historyList() {
     return this.past.map((s, i) => ({
-      index: i, nodeCount: s.nodes.length, edgeCount: s.edges.length,
+      index: i,
+      nodeCount: s.nodes.length,
+      edgeCount: s.edges.length,
     }));
   }
 }
@@ -64,10 +85,14 @@ class UndoRedoStack {
 function snap(nodeCount: number, edgeCount: number): GraphSnapshot {
   return {
     nodes: Array.from({ length: nodeCount }, (_, i) => ({
-      id: `n${i}`, position: { x: 0, y: 0 }, data: {},
+      id: `n${i}`,
+      position: { x: 0, y: 0 },
+      data: {},
     })),
     edges: Array.from({ length: edgeCount }, (_, i) => ({
-      id: `e${i}`, source: `n${i}`, target: `n${i + 1}`,
+      id: `e${i}`,
+      source: `n${i}`,
+      target: `n${i + 1}`,
     })),
   };
 }

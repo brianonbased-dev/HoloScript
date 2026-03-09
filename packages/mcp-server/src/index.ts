@@ -44,7 +44,15 @@ const server = new Server(
 // List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
-    tools: [...tools, ...compilerTools, ...networkingTools, ...snapshotTools, ...monitoringTools, ...selfImproveTools, ...PluginManager.getTools()],
+    tools: [
+      ...tools,
+      ...compilerTools,
+      ...networkingTools,
+      ...snapshotTools,
+      ...monitoringTools,
+      ...selfImproveTools,
+      ...PluginManager.getTools(),
+    ],
   };
 });
 

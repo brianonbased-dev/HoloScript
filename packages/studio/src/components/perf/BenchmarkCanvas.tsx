@@ -31,7 +31,7 @@ function InstancedObjects({ count, geometry, animated }: InstancedObjectsProps) 
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      arr[i * 3    ] = (Math.random() - 0.5) * SPREAD;
+      arr[i * 3] = (Math.random() - 0.5) * SPREAD;
       arr[i * 3 + 1] = (Math.random() - 0.5) * SPREAD;
       arr[i * 3 + 2] = (Math.random() - 0.5) * SPREAD;
     }
@@ -69,9 +69,12 @@ function InstancedObjects({ count, geometry, animated }: InstancedObjectsProps) 
 
   const geo = useMemo(() => {
     switch (geometry) {
-      case 'sphere': return new THREE.SphereGeometry(0.5, 8, 6);
-      case 'torus':  return new THREE.TorusGeometry(0.4, 0.15, 8, 16);
-      default:       return new THREE.BoxGeometry(0.8, 0.8, 0.8);
+      case 'sphere':
+        return new THREE.SphereGeometry(0.5, 8, 6);
+      case 'torus':
+        return new THREE.TorusGeometry(0.4, 0.15, 8, 16);
+      default:
+        return new THREE.BoxGeometry(0.8, 0.8, 0.8);
     }
   }, [geometry]);
 
@@ -119,7 +122,12 @@ interface BenchmarkCanvasProps {
   onFpsUpdate: (fps: number) => void;
 }
 
-export default function BenchmarkCanvas({ objectCount, geometry, animated, onFpsUpdate }: BenchmarkCanvasProps) {
+export default function BenchmarkCanvas({
+  objectCount,
+  geometry,
+  animated,
+  onFpsUpdate,
+}: BenchmarkCanvasProps) {
   return (
     <Canvas
       gl={{ antialias: true, powerPreference: 'high-performance' }}

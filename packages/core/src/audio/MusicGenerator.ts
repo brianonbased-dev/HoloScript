@@ -15,24 +15,24 @@ export type ScaleType = 'major' | 'minor' | 'pentatonic' | 'blues' | 'dorian' | 
 export type ChordQuality = 'major' | 'minor' | 'dim' | 'aug' | 'sus2' | 'sus4' | '7th';
 
 export interface ChordDef {
-  root: number;        // MIDI note
+  root: number; // MIDI note
   quality: ChordQuality;
   notes: number[];
-  duration: number;    // beats
+  duration: number; // beats
 }
 
 export interface RhythmPattern {
   name: string;
-  beats: boolean[];    // true = hit
+  beats: boolean[]; // true = hit
   subdivision: number; // hits per beat
-  swing: number;       // 0-1
+  swing: number; // 0-1
 }
 
 export interface MelodyNote {
-  pitch: number;       // MIDI note
-  duration: number;    // beats
-  velocity: number;    // 0-1
-  time: number;        // beat position
+  pitch: number; // MIDI note
+  duration: number; // beats
+  velocity: number; // 0-1
+  time: number; // beat position
 }
 
 // =============================================================================
@@ -78,11 +78,21 @@ export class MusicGenerator {
   // Configuration
   // ---------------------------------------------------------------------------
 
-  setScale(scale: ScaleType): void { this.scale = scale; }
-  setRoot(note: number): void { this.rootNote = note; }
-  setBPM(bpm: number): void { this.bpm = bpm; }
-  getScale(): ScaleType { return this.scale; }
-  getBPM(): number { return this.bpm; }
+  setScale(scale: ScaleType): void {
+    this.scale = scale;
+  }
+  setRoot(note: number): void {
+    this.rootNote = note;
+  }
+  setBPM(bpm: number): void {
+    this.bpm = bpm;
+  }
+  getScale(): ScaleType {
+    return this.scale;
+  }
+  getBPM(): number {
+    return this.bpm;
+  }
 
   // ---------------------------------------------------------------------------
   // Scale Helpers
@@ -100,7 +110,7 @@ export class MusicGenerator {
   }
 
   isInScale(note: number): boolean {
-    const relative = ((note - this.rootNote) % 12 + 12) % 12;
+    const relative = (((note - this.rootNote) % 12) + 12) % 12;
     return SCALES[this.scale].includes(relative);
   }
 
@@ -113,7 +123,7 @@ export class MusicGenerator {
     const rootOffset = intervals[(scaleDegree - 1) % intervals.length];
     const root = this.rootNote + rootOffset;
     const chordIntervals = CHORD_INTERVALS[quality];
-    const notes = chordIntervals.map(i => root + i);
+    const notes = chordIntervals.map((i) => root + i);
 
     return { root, quality, notes, duration };
   }
@@ -158,9 +168,12 @@ export class MusicGenerator {
     while (currentTime < totalBeats) {
       if (this.rng() < noteDensity) {
         // Step motion with occasional leaps
-        const step = this.rng() < 0.7
-          ? (this.rng() < 0.5 ? -1 : 1)       // Step
-          : Math.floor(this.rng() * 5) - 2;     // Leap
+        const step =
+          this.rng() < 0.7
+            ? this.rng() < 0.5
+              ? -1
+              : 1 // Step
+            : Math.floor(this.rng() * 5) - 2; // Leap
 
         lastNoteIndex = Math.max(0, Math.min(scaleNotes.length - 1, lastNoteIndex + step));
 

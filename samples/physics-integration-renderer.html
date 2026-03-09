@@ -1,818 +1,830 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HoloScript Physics Integration - Live Demo</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #1a1a2e;
-      color: #eee;
-      overflow: hidden;
-    }
-
-    #canvas-container {
-      width: 100vw;
-      height: 100vh;
-      position: relative;
-    }
-
-    #stats-panel {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 20px;
-      border-radius: 10px;
-      border: 2px solid #00ff88;
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
-      line-height: 1.6;
-      min-width: 300px;
-      box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
-    }
-
-    #stats-panel h2 {
-      color: #00ff88;
-      margin-bottom: 10px;
-      font-size: 18px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
-
-    #stats-panel .stat-row {
-      display: flex;
-      justify-content: space-between;
-      margin: 5px 0;
-      padding: 5px 0;
-      border-bottom: 1px solid #333;
-    }
-
-    #stats-panel .stat-label {
-      color: #888;
-    }
-
-    #stats-panel .stat-value {
-      color: #00ff88;
-      font-weight: bold;
-    }
-
-    #controls-panel {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 15px;
-      border-radius: 10px;
-      border: 2px solid #00ff88;
-      box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
-    }
-
-    #controls-panel button {
-      background: #00ff88;
-      color: #1a1a2e;
-      border: none;
-      padding: 10px 20px;
-      margin: 5px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 14px;
-      transition: all 0.3s;
-    }
-
-    #controls-panel button:hover {
-      background: #00cc6a;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 10px rgba(0, 255, 136, 0.5);
-    }
-
-    #controls-panel button:active {
-      transform: translateY(0);
-    }
-
-    #controls-panel button.danger {
-      background: #ff4444;
-      color: white;
-    }
-
-    #controls-panel button.danger:hover {
-      background: #cc0000;
-    }
-
-    .loading {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 24px;
-      color: #00ff88;
-      text-align: center;
-    }
-
-    .loading::after {
-      content: '...';
-      animation: dots 1.5s infinite;
-    }
-
-    @keyframes dots {
-      0%, 20% { content: '.'; }
-      40% { content: '..'; }
-      60%, 100% { content: '...'; }
-    }
-  </style>
-</head>
-<body>
-  <div id="canvas-container">
-    <div class="loading" id="loading">Initializing Physics Simulation</div>
-  </div>
-
-  <div id="stats-panel" style="display: none;">
-    <h2>⚙️ Physics Stats</h2>
-    <div class="stat-row">
-      <span class="stat-label">Simulation Time:</span>
-      <span class="stat-value" id="sim-time">0.00s</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Frame:</span>
-      <span class="stat-value" id="frame-count">0</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">FPS:</span>
-      <span class="stat-value" id="fps">0</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Active Fragments:</span>
-      <span class="stat-value" id="active-fragments">0</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Destroyed:</span>
-      <span class="stat-value" id="destroyed-fragments">0</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Particles:</span>
-      <span class="stat-value" id="particle-count">0</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Destruction:</span>
-      <span class="stat-value" id="destruction-progress">0%</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Kinetic Energy:</span>
-      <span class="stat-value" id="kinetic-energy">0 J</span>
-    </div>
-  </div>
-
-  <div id="controls-panel" style="display: none;">
-    <button id="play-pause-btn">⏸️ Pause</button>
-    <button id="restart-btn">🔄 Restart</button>
-    <button id="reset-camera-btn">📷 Reset Camera</button>
-    <button id="toggle-wireframe-btn">🔲 Wireframe</button>
-  </div>
-
-  <!-- Three.js from CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
-
-  <script type="module">
-    // Import physics systems (this would be bundled in production)
-    // For now, we'll create a standalone simulation
-
-    // =========================================================================
-    // Physics Simulation (Simplified inline version)
-    // =========================================================================
-
-    class SimplifiedPhysicsDemo {
-      constructor() {
-        this.config = {
-          duration: 10.0,
-          timeStep: 0.016, // 60 FPS
-          wallFragments: 30,
-          ballRadius: 0.8,
-          ballMass: 500,
-          ballVelocity: 8,
-        };
-
-        this.simulationTime = 0;
-        this.frameCount = 0;
-        this.isPlaying = true;
-
-        // Wrecking ball state
-        this.ballPosition = { x: -5, y: 2, z: 0 };
-        this.ballVelocity = { x: 0, y: 0, z: 0 };
-        this.ballImpacted = false;
-
-        // Fragment state
-        this.fragments = [];
-        this.particles = [];
-
-        this.initializeFragments();
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HoloScript Physics Integration - Live Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
 
-      initializeFragments() {
-        // Create wall fragments in a grid pattern
-        const cols = 6;
-        const rows = 5;
-        const spacing = 0.6;
-        const offsetX = -1.5;
-        const offsetY = 0.3;
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #1a1a2e;
+        color: #eee;
+        overflow: hidden;
+      }
 
-        for (let row = 0; row < rows; row++) {
-          for (let col = 0; col < cols; col++) {
-            this.fragments.push({
-              id: this.fragments.length,
-              position: {
-                x: offsetX + col * spacing,
-                y: offsetY + row * spacing,
-                z: 0,
-              },
-              velocity: { x: 0, y: 0, z: 0 },
-              rotation: { x: 0, y: 0, z: 0 },
-              angularVelocity: { x: 0, y: 0, z: 0 },
-              active: true,
-              damage: 0,
-              health: 100,
-              mass: 10,
-            });
+      #canvas-container {
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+      }
+
+      #stats-panel {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 20px;
+        border-radius: 10px;
+        border: 2px solid #00ff88;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        min-width: 300px;
+        box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+      }
+
+      #stats-panel h2 {
+        color: #00ff88;
+        margin-bottom: 10px;
+        font-size: 18px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      #stats-panel .stat-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 5px 0;
+        padding: 5px 0;
+        border-bottom: 1px solid #333;
+      }
+
+      #stats-panel .stat-label {
+        color: #888;
+      }
+
+      #stats-panel .stat-value {
+        color: #00ff88;
+        font-weight: bold;
+      }
+
+      #controls-panel {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 15px;
+        border-radius: 10px;
+        border: 2px solid #00ff88;
+        box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+      }
+
+      #controls-panel button {
+        background: #00ff88;
+        color: #1a1a2e;
+        border: none;
+        padding: 10px 20px;
+        margin: 5px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 14px;
+        transition: all 0.3s;
+      }
+
+      #controls-panel button:hover {
+        background: #00cc6a;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 255, 136, 0.5);
+      }
+
+      #controls-panel button:active {
+        transform: translateY(0);
+      }
+
+      #controls-panel button.danger {
+        background: #ff4444;
+        color: white;
+      }
+
+      #controls-panel button.danger:hover {
+        background: #cc0000;
+      }
+
+      .loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 24px;
+        color: #00ff88;
+        text-align: center;
+      }
+
+      .loading::after {
+        content: '...';
+        animation: dots 1.5s infinite;
+      }
+
+      @keyframes dots {
+        0%,
+        20% {
+          content: '.';
+        }
+        40% {
+          content: '..';
+        }
+        60%,
+        100% {
+          content: '...';
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvas-container">
+      <div class="loading" id="loading">Initializing Physics Simulation</div>
+    </div>
+
+    <div id="stats-panel" style="display: none">
+      <h2>⚙️ Physics Stats</h2>
+      <div class="stat-row">
+        <span class="stat-label">Simulation Time:</span>
+        <span class="stat-value" id="sim-time">0.00s</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Frame:</span>
+        <span class="stat-value" id="frame-count">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">FPS:</span>
+        <span class="stat-value" id="fps">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Active Fragments:</span>
+        <span class="stat-value" id="active-fragments">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Destroyed:</span>
+        <span class="stat-value" id="destroyed-fragments">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Particles:</span>
+        <span class="stat-value" id="particle-count">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Destruction:</span>
+        <span class="stat-value" id="destruction-progress">0%</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Kinetic Energy:</span>
+        <span class="stat-value" id="kinetic-energy">0 J</span>
+      </div>
+    </div>
+
+    <div id="controls-panel" style="display: none">
+      <button id="play-pause-btn">⏸️ Pause</button>
+      <button id="restart-btn">🔄 Restart</button>
+      <button id="reset-camera-btn">📷 Reset Camera</button>
+      <button id="toggle-wireframe-btn">🔲 Wireframe</button>
+    </div>
+
+    <!-- Three.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script type="module">
+      // Import physics systems (this would be bundled in production)
+      // For now, we'll create a standalone simulation
+
+      // =========================================================================
+      // Physics Simulation (Simplified inline version)
+      // =========================================================================
+
+      class SimplifiedPhysicsDemo {
+        constructor() {
+          this.config = {
+            duration: 10.0,
+            timeStep: 0.016, // 60 FPS
+            wallFragments: 30,
+            ballRadius: 0.8,
+            ballMass: 500,
+            ballVelocity: 8,
+          };
+
+          this.simulationTime = 0;
+          this.frameCount = 0;
+          this.isPlaying = true;
+
+          // Wrecking ball state
+          this.ballPosition = { x: -5, y: 2, z: 0 };
+          this.ballVelocity = { x: 0, y: 0, z: 0 };
+          this.ballImpacted = false;
+
+          // Fragment state
+          this.fragments = [];
+          this.particles = [];
+
+          this.initializeFragments();
+        }
+
+        initializeFragments() {
+          // Create wall fragments in a grid pattern
+          const cols = 6;
+          const rows = 5;
+          const spacing = 0.6;
+          const offsetX = -1.5;
+          const offsetY = 0.3;
+
+          for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+              this.fragments.push({
+                id: this.fragments.length,
+                position: {
+                  x: offsetX + col * spacing,
+                  y: offsetY + row * spacing,
+                  z: 0,
+                },
+                velocity: { x: 0, y: 0, z: 0 },
+                rotation: { x: 0, y: 0, z: 0 },
+                angularVelocity: { x: 0, y: 0, z: 0 },
+                active: true,
+                damage: 0,
+                health: 100,
+                mass: 10,
+              });
+            }
           }
         }
-      }
 
-      update(dt) {
-        if (!this.isPlaying) return;
+        update(dt) {
+          if (!this.isPlaying) return;
 
-        this.simulationTime += dt;
-        this.frameCount++;
+          this.simulationTime += dt;
+          this.frameCount++;
 
-        // Update wrecking ball
-        this.updateWreckingBall(dt);
+          // Update wrecking ball
+          this.updateWreckingBall(dt);
 
-        // Check for impacts
-        this.checkWreckingBallImpact();
+          // Check for impacts
+          this.checkWreckingBallImpact();
 
-        // Update fragments
-        this.updateFragments(dt);
+          // Update fragments
+          this.updateFragments(dt);
 
-        // Update particles
-        this.updateParticles(dt);
+          // Update particles
+          this.updateParticles(dt);
 
-        // Convert destroyed fragments to particles
-        this.convertDestroyedFragments();
-      }
-
-      updateWreckingBall(dt) {
-        if (this.simulationTime < 0.1) {
-          this.ballVelocity.x = this.config.ballVelocity;
+          // Convert destroyed fragments to particles
+          this.convertDestroyedFragments();
         }
 
-        // Apply gravity
-        this.ballVelocity.y -= 9.81 * dt;
+        updateWreckingBall(dt) {
+          if (this.simulationTime < 0.1) {
+            this.ballVelocity.x = this.config.ballVelocity;
+          }
 
-        // Update position
-        this.ballPosition.x += this.ballVelocity.x * dt;
-        this.ballPosition.y += this.ballVelocity.y * dt;
-        this.ballPosition.z += this.ballVelocity.z * dt;
+          // Apply gravity
+          this.ballVelocity.y -= 9.81 * dt;
 
-        // Ground collision
-        if (this.ballPosition.y < this.config.ballRadius) {
-          this.ballPosition.y = this.config.ballRadius;
-          this.ballVelocity.y *= -0.5;
+          // Update position
+          this.ballPosition.x += this.ballVelocity.x * dt;
+          this.ballPosition.y += this.ballVelocity.y * dt;
+          this.ballPosition.z += this.ballVelocity.z * dt;
+
+          // Ground collision
+          if (this.ballPosition.y < this.config.ballRadius) {
+            this.ballPosition.y = this.config.ballRadius;
+            this.ballVelocity.y *= -0.5;
+          }
+
+          // Damping
+          this.ballVelocity.x *= 0.99;
+          this.ballVelocity.z *= 0.99;
         }
 
-        // Damping
-        this.ballVelocity.x *= 0.99;
-        this.ballVelocity.z *= 0.99;
-      }
+        checkWreckingBallImpact() {
+          if (this.ballImpacted) return;
 
-      checkWreckingBallImpact() {
-        if (this.ballImpacted) return;
+          const wallCenter = { x: 0, y: 2, z: 0 };
+          const distance = Math.sqrt(
+            Math.pow(this.ballPosition.x - wallCenter.x, 2) +
+              Math.pow(this.ballPosition.y - wallCenter.y, 2) +
+              Math.pow(this.ballPosition.z - wallCenter.z, 2)
+          );
 
-        const wallCenter = { x: 0, y: 2, z: 0 };
-        const distance = Math.sqrt(
-          Math.pow(this.ballPosition.x - wallCenter.x, 2) +
-          Math.pow(this.ballPosition.y - wallCenter.y, 2) +
-          Math.pow(this.ballPosition.z - wallCenter.z, 2)
-        );
+          if (distance < 2.5 && this.ballVelocity.x > 0) {
+            this.ballImpacted = true;
 
-        if (distance < 2.5 && this.ballVelocity.x > 0) {
-          this.ballImpacted = true;
+            // Apply damage to nearby fragments
+            this.fragments.forEach((fragment) => {
+              if (!fragment.active) return;
 
-          // Apply damage to nearby fragments
-          this.fragments.forEach(fragment => {
-            if (!fragment.active) return;
+              const fragDist = Math.sqrt(
+                Math.pow(fragment.position.x - this.ballPosition.x, 2) +
+                  Math.pow(fragment.position.y - this.ballPosition.y, 2) +
+                  Math.pow(fragment.position.z - this.ballPosition.z, 2)
+              );
 
-            const fragDist = Math.sqrt(
-              Math.pow(fragment.position.x - this.ballPosition.x, 2) +
-              Math.pow(fragment.position.y - this.ballPosition.y, 2) +
-              Math.pow(fragment.position.z - this.ballPosition.z, 2)
-            );
+              if (fragDist < 2.0) {
+                const damage = 150 * Math.pow(1 - fragDist / 2.0, 2);
+                fragment.damage += damage;
 
-            if (fragDist < 2.0) {
-              const damage = 150 * Math.pow(1 - fragDist / 2.0, 2);
-              fragment.damage += damage;
+                if (fragment.damage >= fragment.health) {
+                  fragment.active = false;
 
-              if (fragment.damage >= fragment.health) {
-                fragment.active = false;
+                  // Give it some velocity from impact
+                  const dirX = fragment.position.x - this.ballPosition.x;
+                  const dirY = fragment.position.y - this.ballPosition.y;
+                  const dirZ = fragment.position.z - this.ballPosition.z;
+                  const dirLen = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ) || 1;
 
-                // Give it some velocity from impact
-                const dirX = fragment.position.x - this.ballPosition.x;
-                const dirY = fragment.position.y - this.ballPosition.y;
-                const dirZ = fragment.position.z - this.ballPosition.z;
-                const dirLen = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ) || 1;
+                  fragment.velocity.x = (dirX / dirLen) * 5;
+                  fragment.velocity.y = (dirY / dirLen) * 5 + 2;
+                  fragment.velocity.z = (dirZ / dirLen) * 5;
 
-                fragment.velocity.x = (dirX / dirLen) * 5;
-                fragment.velocity.y = (dirY / dirLen) * 5 + 2;
-                fragment.velocity.z = (dirZ / dirLen) * 5;
+                  fragment.angularVelocity.x = (Math.random() - 0.5) * 10;
+                  fragment.angularVelocity.y = (Math.random() - 0.5) * 10;
+                  fragment.angularVelocity.z = (Math.random() - 0.5) * 10;
+                }
+              }
+            });
 
-                fragment.angularVelocity.x = (Math.random() - 0.5) * 10;
-                fragment.angularVelocity.y = (Math.random() - 0.5) * 10;
-                fragment.angularVelocity.z = (Math.random() - 0.5) * 10;
+            // Slow down ball
+            this.ballVelocity.x *= 0.3;
+            this.ballVelocity.y += 2;
+          }
+        }
+
+        updateFragments(dt) {
+          this.fragments.forEach((fragment) => {
+            if (fragment.active) return; // Only update destroyed fragments
+
+            // Apply gravity
+            fragment.velocity.y -= 9.81 * dt;
+
+            // Update position
+            fragment.position.x += fragment.velocity.x * dt;
+            fragment.position.y += fragment.velocity.y * dt;
+            fragment.position.z += fragment.velocity.z * dt;
+
+            // Update rotation
+            fragment.rotation.x += fragment.angularVelocity.x * dt;
+            fragment.rotation.y += fragment.angularVelocity.y * dt;
+            fragment.rotation.z += fragment.angularVelocity.z * dt;
+
+            // Ground collision
+            if (fragment.position.y < 0.15) {
+              fragment.position.y = 0.15;
+              fragment.velocity.y *= -0.3;
+              fragment.velocity.x *= 0.7;
+              fragment.velocity.z *= 0.7;
+              fragment.angularVelocity.x *= 0.5;
+              fragment.angularVelocity.y *= 0.5;
+              fragment.angularVelocity.z *= 0.5;
+            }
+
+            // Damping
+            fragment.velocity.x *= 0.98;
+            fragment.velocity.z *= 0.98;
+          });
+        }
+
+        convertDestroyedFragments() {
+          const destroyedFragments = this.fragments.filter((f) => !f.active && f.health > -100);
+
+          destroyedFragments.forEach((fragment) => {
+            // Mark as converted
+            fragment.health = -100;
+
+            // Create 2-4 particles from each fragment
+            const particleCount = 2 + Math.floor(Math.random() * 3);
+            for (let i = 0; i < particleCount; i++) {
+              this.particles.push({
+                position: {
+                  x: fragment.position.x + (Math.random() - 0.5) * 0.2,
+                  y: fragment.position.y + (Math.random() - 0.5) * 0.2,
+                  z: fragment.position.z + (Math.random() - 0.5) * 0.2,
+                },
+                velocity: {
+                  x: fragment.velocity.x * 0.5 + (Math.random() - 0.5) * 2,
+                  y: fragment.velocity.y * 0.5 + (Math.random() - 0.5) * 2,
+                  z: fragment.velocity.z * 0.5 + (Math.random() - 0.5) * 2,
+                },
+                radius: 0.05 + Math.random() * 0.05,
+                sleeping: false,
+              });
+            }
+          });
+        }
+
+        updateParticles(dt) {
+          this.particles.forEach((particle) => {
+            if (particle.sleeping) return;
+
+            // Apply gravity
+            particle.velocity.y -= 9.81 * dt;
+
+            // Update position
+            particle.position.x += particle.velocity.x * dt;
+            particle.position.y += particle.velocity.y * dt;
+            particle.position.z += particle.velocity.z * dt;
+
+            // Ground collision
+            if (particle.position.y < particle.radius) {
+              particle.position.y = particle.radius;
+              particle.velocity.y *= -0.3;
+              particle.velocity.x *= 0.7;
+              particle.velocity.z *= 0.7;
+
+              // Put to sleep if moving slowly
+              const speed = Math.sqrt(
+                particle.velocity.x ** 2 + particle.velocity.y ** 2 + particle.velocity.z ** 2
+              );
+              if (speed < 0.1) {
+                particle.sleeping = true;
+                particle.velocity = { x: 0, y: 0, z: 0 };
               }
             }
-          });
 
-          // Slow down ball
-          this.ballVelocity.x *= 0.3;
-          this.ballVelocity.y += 2;
+            // Damping
+            particle.velocity.x *= 0.98;
+            particle.velocity.z *= 0.98;
+          });
+        }
+
+        getStats() {
+          const activeFragments = this.fragments.filter((f) => f.active).length;
+          const destroyedFragments = this.fragments.filter((f) => !f.active).length;
+          const destructionProgress = (destroyedFragments / this.fragments.length) * 100;
+
+          const kineticEnergy = this.particles.reduce((sum, p) => {
+            if (p.sleeping) return sum;
+            const speed = Math.sqrt(p.velocity.x ** 2 + p.velocity.y ** 2 + p.velocity.z ** 2);
+            const mass = (4 / 3) * Math.PI * p.radius ** 3 * 2400; // Concrete density
+            return sum + 0.5 * mass * speed ** 2;
+          }, 0);
+
+          return {
+            simulationTime: this.simulationTime,
+            frameCount: this.frameCount,
+            activeFragments,
+            destroyedFragments,
+            particleCount: this.particles.length,
+            destructionProgress,
+            kineticEnergy,
+          };
+        }
+
+        restart() {
+          this.simulationTime = 0;
+          this.frameCount = 0;
+          this.ballPosition = { x: -5, y: 2, z: 0 };
+          this.ballVelocity = { x: 0, y: 0, z: 0 };
+          this.ballImpacted = false;
+          this.fragments = [];
+          this.particles = [];
+          this.initializeFragments();
         }
       }
 
-      updateFragments(dt) {
-        this.fragments.forEach(fragment => {
-          if (fragment.active) return; // Only update destroyed fragments
+      // =========================================================================
+      // Three.js Renderer
+      // =========================================================================
 
-          // Apply gravity
-          fragment.velocity.y -= 9.81 * dt;
+      class PhysicsRenderer {
+        constructor() {
+          this.scene = new THREE.Scene();
+          this.camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+          );
+          this.renderer = new THREE.WebGLRenderer({ antialias: true });
+          this.controls = null;
 
-          // Update position
-          fragment.position.x += fragment.velocity.x * dt;
-          fragment.position.y += fragment.velocity.y * dt;
-          fragment.position.z += fragment.velocity.z * dt;
+          this.fragmentMeshes = [];
+          this.particleMeshes = [];
+          this.ballMesh = null;
 
-          // Update rotation
-          fragment.rotation.x += fragment.angularVelocity.x * dt;
-          fragment.rotation.y += fragment.angularVelocity.y * dt;
-          fragment.rotation.z += fragment.angularVelocity.z * dt;
+          this.wireframeMode = false;
 
-          // Ground collision
-          if (fragment.position.y < 0.15) {
-            fragment.position.y = 0.15;
-            fragment.velocity.y *= -0.3;
-            fragment.velocity.x *= 0.7;
-            fragment.velocity.z *= 0.7;
-            fragment.angularVelocity.x *= 0.5;
-            fragment.angularVelocity.y *= 0.5;
-            fragment.angularVelocity.z *= 0.5;
+          this.init();
+        }
+
+        init() {
+          // Setup renderer
+          this.renderer.setSize(window.innerWidth, window.innerHeight);
+          this.renderer.shadowMap.enabled = true;
+          this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+          document.getElementById('canvas-container').appendChild(this.renderer.domElement);
+
+          // Setup camera
+          this.camera.position.set(-8, 4, 8);
+          this.camera.lookAt(0, 2, 0);
+
+          // Setup controls
+          this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+          this.controls.target.set(0, 2, 0);
+          this.controls.enableDamping = true;
+          this.controls.dampingFactor = 0.05;
+
+          // Setup scene
+          this.scene.background = new THREE.Color(0x1a1a2e);
+          this.scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
+
+          // Lighting
+          const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+          this.scene.add(ambientLight);
+
+          const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+          directionalLight.position.set(10, 20, 10);
+          directionalLight.castShadow = true;
+          directionalLight.shadow.camera.left = -10;
+          directionalLight.shadow.camera.right = 10;
+          directionalLight.shadow.camera.top = 10;
+          directionalLight.shadow.camera.bottom = -10;
+          directionalLight.shadow.mapSize.width = 2048;
+          directionalLight.shadow.mapSize.height = 2048;
+          this.scene.add(directionalLight);
+
+          // Ground
+          const groundGeometry = new THREE.PlaneGeometry(20, 20);
+          const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x2a2a3e,
+            roughness: 0.8,
+            metalness: 0.2,
+          });
+          const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+          ground.rotation.x = -Math.PI / 2;
+          ground.receiveShadow = true;
+          this.scene.add(ground);
+
+          // Grid
+          const gridHelper = new THREE.GridHelper(20, 20, 0x00ff88, 0x444444);
+          this.scene.add(gridHelper);
+
+          // Window resize
+          window.addEventListener('resize', () => this.onWindowResize(), false);
+        }
+
+        createFragmentMeshes(fragments) {
+          // Clear existing
+          this.fragmentMeshes.forEach((mesh) => this.scene.remove(mesh));
+          this.fragmentMeshes = [];
+
+          // Create new
+          const geometry = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+          const material = new THREE.MeshStandardMaterial({
+            color: 0xff6b35,
+            roughness: 0.7,
+            metalness: 0.3,
+          });
+
+          fragments.forEach((fragment, index) => {
+            const mesh = new THREE.Mesh(geometry, material.clone());
+            mesh.position.set(fragment.position.x, fragment.position.y, fragment.position.z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.userData.fragmentId = fragment.id;
+            this.fragmentMeshes.push(mesh);
+            this.scene.add(mesh);
+          });
+        }
+
+        createBallMesh(ballPosition, ballRadius) {
+          if (this.ballMesh) {
+            this.scene.remove(this.ballMesh);
           }
 
-          // Damping
-          fragment.velocity.x *= 0.98;
-          fragment.velocity.z *= 0.98;
-        });
-      }
+          const geometry = new THREE.SphereGeometry(ballRadius, 32, 32);
+          const material = new THREE.MeshStandardMaterial({
+            color: 0x888888,
+            roughness: 0.4,
+            metalness: 0.8,
+          });
 
-      convertDestroyedFragments() {
-        const destroyedFragments = this.fragments.filter(f => !f.active && f.health > -100);
+          this.ballMesh = new THREE.Mesh(geometry, material);
+          this.ballMesh.castShadow = true;
+          this.ballMesh.position.set(ballPosition.x, ballPosition.y, ballPosition.z);
+          this.scene.add(this.ballMesh);
 
-        destroyedFragments.forEach(fragment => {
-          // Mark as converted
-          fragment.health = -100;
+          // Add chain visualization (simple cylinder)
+          const chainGeometry = new THREE.CylinderGeometry(0.05, 0.05, 5, 8);
+          const chainMaterial = new THREE.MeshStandardMaterial({
+            color: 0x444444,
+            roughness: 0.7,
+            metalness: 0.6,
+          });
+          const chain = new THREE.Mesh(chainGeometry, chainMaterial);
+          chain.position.set(ballPosition.x, ballPosition.y + 2.5 + ballRadius, ballPosition.z);
+          this.scene.add(chain);
+          this.ballMesh.userData.chain = chain;
+        }
 
-          // Create 2-4 particles from each fragment
-          const particleCount = 2 + Math.floor(Math.random() * 3);
-          for (let i = 0; i < particleCount; i++) {
-            this.particles.push({
-              position: {
-                x: fragment.position.x + (Math.random() - 0.5) * 0.2,
-                y: fragment.position.y + (Math.random() - 0.5) * 0.2,
-                z: fragment.position.z + (Math.random() - 0.5) * 0.2,
-              },
-              velocity: {
-                x: fragment.velocity.x * 0.5 + (Math.random() - 0.5) * 2,
-                y: fragment.velocity.y * 0.5 + (Math.random() - 0.5) * 2,
-                z: fragment.velocity.z * 0.5 + (Math.random() - 0.5) * 2,
-              },
-              radius: 0.05 + Math.random() * 0.05,
-              sleeping: false,
-            });
-          }
-        });
-      }
+        updateFragments(fragments) {
+          fragments.forEach((fragment, index) => {
+            const mesh = this.fragmentMeshes[index];
+            if (!mesh) return;
 
-      updateParticles(dt) {
-        this.particles.forEach(particle => {
-          if (particle.sleeping) return;
+            mesh.position.set(fragment.position.x, fragment.position.y, fragment.position.z);
+            mesh.rotation.set(fragment.rotation.x, fragment.rotation.y, fragment.rotation.z);
+            mesh.visible = fragment.health > -100; // Hide converted fragments
 
-          // Apply gravity
-          particle.velocity.y -= 9.81 * dt;
+            // Change color based on damage
+            if (fragment.active) {
+              const damageRatio = fragment.damage / fragment.health;
+              mesh.material.color.setHex(damageRatio > 0.5 ? 0xcc4422 : 0xff6b35);
+            } else {
+              mesh.material.color.setHex(0x884422);
+            }
+          });
+        }
 
-          // Update position
-          particle.position.x += particle.velocity.x * dt;
-          particle.position.y += particle.velocity.y * dt;
-          particle.position.z += particle.velocity.z * dt;
+        updateBall(ballPosition) {
+          if (this.ballMesh) {
+            this.ballMesh.position.set(ballPosition.x, ballPosition.y, ballPosition.z);
 
-          // Ground collision
-          if (particle.position.y < particle.radius) {
-            particle.position.y = particle.radius;
-            particle.velocity.y *= -0.3;
-            particle.velocity.x *= 0.7;
-            particle.velocity.z *= 0.7;
-
-            // Put to sleep if moving slowly
-            const speed = Math.sqrt(
-              particle.velocity.x ** 2 +
-              particle.velocity.y ** 2 +
-              particle.velocity.z ** 2
-            );
-            if (speed < 0.1) {
-              particle.sleeping = true;
-              particle.velocity = { x: 0, y: 0, z: 0 };
+            if (this.ballMesh.userData.chain) {
+              this.ballMesh.userData.chain.position.set(
+                ballPosition.x,
+                ballPosition.y + 2.5 + 0.8,
+                ballPosition.z
+              );
             }
           }
-
-          // Damping
-          particle.velocity.x *= 0.98;
-          particle.velocity.z *= 0.98;
-        });
-      }
-
-      getStats() {
-        const activeFragments = this.fragments.filter(f => f.active).length;
-        const destroyedFragments = this.fragments.filter(f => !f.active).length;
-        const destructionProgress = (destroyedFragments / this.fragments.length) * 100;
-
-        const kineticEnergy = this.particles.reduce((sum, p) => {
-          if (p.sleeping) return sum;
-          const speed = Math.sqrt(p.velocity.x ** 2 + p.velocity.y ** 2 + p.velocity.z ** 2);
-          const mass = (4/3) * Math.PI * p.radius ** 3 * 2400; // Concrete density
-          return sum + 0.5 * mass * speed ** 2;
-        }, 0);
-
-        return {
-          simulationTime: this.simulationTime,
-          frameCount: this.frameCount,
-          activeFragments,
-          destroyedFragments,
-          particleCount: this.particles.length,
-          destructionProgress,
-          kineticEnergy,
-        };
-      }
-
-      restart() {
-        this.simulationTime = 0;
-        this.frameCount = 0;
-        this.ballPosition = { x: -5, y: 2, z: 0 };
-        this.ballVelocity = { x: 0, y: 0, z: 0 };
-        this.ballImpacted = false;
-        this.fragments = [];
-        this.particles = [];
-        this.initializeFragments();
-      }
-    }
-
-    // =========================================================================
-    // Three.js Renderer
-    // =========================================================================
-
-    class PhysicsRenderer {
-      constructor() {
-        this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(
-          60,
-          window.innerWidth / window.innerHeight,
-          0.1,
-          1000
-        );
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
-        this.controls = null;
-
-        this.fragmentMeshes = [];
-        this.particleMeshes = [];
-        this.ballMesh = null;
-
-        this.wireframeMode = false;
-
-        this.init();
-      }
-
-      init() {
-        // Setup renderer
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        document.getElementById('canvas-container').appendChild(this.renderer.domElement);
-
-        // Setup camera
-        this.camera.position.set(-8, 4, 8);
-        this.camera.lookAt(0, 2, 0);
-
-        // Setup controls
-        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-        this.controls.target.set(0, 2, 0);
-        this.controls.enableDamping = true;
-        this.controls.dampingFactor = 0.05;
-
-        // Setup scene
-        this.scene.background = new THREE.Color(0x1a1a2e);
-        this.scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
-
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-        this.scene.add(ambientLight);
-
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(10, 20, 10);
-        directionalLight.castShadow = true;
-        directionalLight.shadow.camera.left = -10;
-        directionalLight.shadow.camera.right = 10;
-        directionalLight.shadow.camera.top = 10;
-        directionalLight.shadow.camera.bottom = -10;
-        directionalLight.shadow.mapSize.width = 2048;
-        directionalLight.shadow.mapSize.height = 2048;
-        this.scene.add(directionalLight);
-
-        // Ground
-        const groundGeometry = new THREE.PlaneGeometry(20, 20);
-        const groundMaterial = new THREE.MeshStandardMaterial({
-          color: 0x2a2a3e,
-          roughness: 0.8,
-          metalness: 0.2,
-        });
-        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.rotation.x = -Math.PI / 2;
-        ground.receiveShadow = true;
-        this.scene.add(ground);
-
-        // Grid
-        const gridHelper = new THREE.GridHelper(20, 20, 0x00ff88, 0x444444);
-        this.scene.add(gridHelper);
-
-        // Window resize
-        window.addEventListener('resize', () => this.onWindowResize(), false);
-      }
-
-      createFragmentMeshes(fragments) {
-        // Clear existing
-        this.fragmentMeshes.forEach(mesh => this.scene.remove(mesh));
-        this.fragmentMeshes = [];
-
-        // Create new
-        const geometry = new THREE.BoxGeometry(0.4, 0.4, 0.4);
-        const material = new THREE.MeshStandardMaterial({
-          color: 0xff6b35,
-          roughness: 0.7,
-          metalness: 0.3,
-        });
-
-        fragments.forEach((fragment, index) => {
-          const mesh = new THREE.Mesh(geometry, material.clone());
-          mesh.position.set(fragment.position.x, fragment.position.y, fragment.position.z);
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
-          mesh.userData.fragmentId = fragment.id;
-          this.fragmentMeshes.push(mesh);
-          this.scene.add(mesh);
-        });
-      }
-
-      createBallMesh(ballPosition, ballRadius) {
-        if (this.ballMesh) {
-          this.scene.remove(this.ballMesh);
         }
 
-        const geometry = new THREE.SphereGeometry(ballRadius, 32, 32);
-        const material = new THREE.MeshStandardMaterial({
-          color: 0x888888,
-          roughness: 0.4,
-          metalness: 0.8,
-        });
-
-        this.ballMesh = new THREE.Mesh(geometry, material);
-        this.ballMesh.castShadow = true;
-        this.ballMesh.position.set(ballPosition.x, ballPosition.y, ballPosition.z);
-        this.scene.add(this.ballMesh);
-
-        // Add chain visualization (simple cylinder)
-        const chainGeometry = new THREE.CylinderGeometry(0.05, 0.05, 5, 8);
-        const chainMaterial = new THREE.MeshStandardMaterial({
-          color: 0x444444,
-          roughness: 0.7,
-          metalness: 0.6,
-        });
-        const chain = new THREE.Mesh(chainGeometry, chainMaterial);
-        chain.position.set(ballPosition.x, ballPosition.y + 2.5 + ballRadius, ballPosition.z);
-        this.scene.add(chain);
-        this.ballMesh.userData.chain = chain;
-      }
-
-      updateFragments(fragments) {
-        fragments.forEach((fragment, index) => {
-          const mesh = this.fragmentMeshes[index];
-          if (!mesh) return;
-
-          mesh.position.set(fragment.position.x, fragment.position.y, fragment.position.z);
-          mesh.rotation.set(fragment.rotation.x, fragment.rotation.y, fragment.rotation.z);
-          mesh.visible = fragment.health > -100; // Hide converted fragments
-
-          // Change color based on damage
-          if (fragment.active) {
-            const damageRatio = fragment.damage / fragment.health;
-            mesh.material.color.setHex(
-              damageRatio > 0.5 ? 0xcc4422 : 0xff6b35
-            );
-          } else {
-            mesh.material.color.setHex(0x884422);
+        updateParticles(particles) {
+          // Remove excess particle meshes
+          while (this.particleMeshes.length > particles.length) {
+            const mesh = this.particleMeshes.pop();
+            this.scene.remove(mesh);
           }
-        });
-      }
 
-      updateBall(ballPosition) {
-        if (this.ballMesh) {
-          this.ballMesh.position.set(ballPosition.x, ballPosition.y, ballPosition.z);
-
-          if (this.ballMesh.userData.chain) {
-            this.ballMesh.userData.chain.position.set(
-              ballPosition.x,
-              ballPosition.y + 2.5 + 0.8,
-              ballPosition.z
-            );
+          // Add new particle meshes
+          while (this.particleMeshes.length < particles.length) {
+            const geometry = new THREE.SphereGeometry(1, 8, 8); // Will scale
+            const material = new THREE.MeshStandardMaterial({
+              color: 0xaa5533,
+              roughness: 0.9,
+              metalness: 0.1,
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.castShadow = true;
+            this.particleMeshes.push(mesh);
+            this.scene.add(mesh);
           }
-        }
-      }
 
-      updateParticles(particles) {
-        // Remove excess particle meshes
-        while (this.particleMeshes.length > particles.length) {
-          const mesh = this.particleMeshes.pop();
-          this.scene.remove(mesh);
-        }
-
-        // Add new particle meshes
-        while (this.particleMeshes.length < particles.length) {
-          const geometry = new THREE.SphereGeometry(1, 8, 8); // Will scale
-          const material = new THREE.MeshStandardMaterial({
-            color: 0xaa5533,
-            roughness: 0.9,
-            metalness: 0.1,
+          // Update positions
+          particles.forEach((particle, index) => {
+            const mesh = this.particleMeshes[index];
+            mesh.position.set(particle.position.x, particle.position.y, particle.position.z);
+            mesh.scale.setScalar(particle.radius);
+            mesh.material.color.setHex(particle.sleeping ? 0x664422 : 0xaa5533);
           });
-          const mesh = new THREE.Mesh(geometry, material);
-          mesh.castShadow = true;
-          this.particleMeshes.push(mesh);
-          this.scene.add(mesh);
         }
 
-        // Update positions
-        particles.forEach((particle, index) => {
-          const mesh = this.particleMeshes[index];
-          mesh.position.set(particle.position.x, particle.position.y, particle.position.z);
-          mesh.scale.setScalar(particle.radius);
-          mesh.material.color.setHex(particle.sleeping ? 0x664422 : 0xaa5533);
-        });
-      }
+        toggleWireframe() {
+          this.wireframeMode = !this.wireframeMode;
+          this.fragmentMeshes.forEach((mesh) => {
+            mesh.material.wireframe = this.wireframeMode;
+          });
+          this.particleMeshes.forEach((mesh) => {
+            mesh.material.wireframe = this.wireframeMode;
+          });
+          if (this.ballMesh) {
+            this.ballMesh.material.wireframe = this.wireframeMode;
+          }
+        }
 
-      toggleWireframe() {
-        this.wireframeMode = !this.wireframeMode;
-        this.fragmentMeshes.forEach(mesh => {
-          mesh.material.wireframe = this.wireframeMode;
-        });
-        this.particleMeshes.forEach(mesh => {
-          mesh.material.wireframe = this.wireframeMode;
-        });
-        if (this.ballMesh) {
-          this.ballMesh.material.wireframe = this.wireframeMode;
+        resetCamera() {
+          this.camera.position.set(-8, 4, 8);
+          this.controls.target.set(0, 2, 0);
+          this.controls.update();
+        }
+
+        onWindowResize() {
+          this.camera.aspect = window.innerWidth / window.innerHeight;
+          this.camera.updateProjectionMatrix();
+          this.renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        render() {
+          this.controls.update();
+          this.renderer.render(this.scene, this.camera);
         }
       }
 
-      resetCamera() {
-        this.camera.position.set(-8, 4, 8);
-        this.controls.target.set(0, 2, 0);
-        this.controls.update();
-      }
+      // =========================================================================
+      // Main Application
+      // =========================================================================
 
-      onWindowResize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-      }
+      class PhysicsVisualizationApp {
+        constructor() {
+          this.simulation = new SimplifiedPhysicsDemo();
+          this.renderer = new PhysicsRenderer();
 
-      render() {
-        this.controls.update();
-        this.renderer.render(this.scene, this.camera);
-      }
-    }
-
-    // =========================================================================
-    // Main Application
-    // =========================================================================
-
-    class PhysicsVisualizationApp {
-      constructor() {
-        this.simulation = new SimplifiedPhysicsDemo();
-        this.renderer = new PhysicsRenderer();
-
-        this.lastTime = performance.now();
-        this.fpsCounter = 0;
-        this.fpsTime = 0;
-        this.currentFPS = 0;
-
-        this.init();
-      }
-
-      init() {
-        // Create initial meshes
-        this.renderer.createFragmentMeshes(this.simulation.fragments);
-        this.renderer.createBallMesh(
-          this.simulation.ballPosition,
-          this.simulation.config.ballRadius
-        );
-
-        // Setup UI
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('stats-panel').style.display = 'block';
-        document.getElementById('controls-panel').style.display = 'block';
-
-        // Setup controls
-        document.getElementById('play-pause-btn').addEventListener('click', () => this.togglePlayPause());
-        document.getElementById('restart-btn').addEventListener('click', () => this.restart());
-        document.getElementById('reset-camera-btn').addEventListener('click', () => this.renderer.resetCamera());
-        document.getElementById('toggle-wireframe-btn').addEventListener('click', () => this.renderer.toggleWireframe());
-
-        // Start animation loop
-        this.animate();
-      }
-
-      togglePlayPause() {
-        this.simulation.isPlaying = !this.simulation.isPlaying;
-        const btn = document.getElementById('play-pause-btn');
-        btn.textContent = this.simulation.isPlaying ? '⏸️ Pause' : '▶️ Play';
-      }
-
-      restart() {
-        this.simulation.restart();
-        this.renderer.createFragmentMeshes(this.simulation.fragments);
-        this.renderer.createBallMesh(
-          this.simulation.ballPosition,
-          this.simulation.config.ballRadius
-        );
-        const btn = document.getElementById('play-pause-btn');
-        btn.textContent = '⏸️ Pause';
-      }
-
-      updateStats() {
-        const stats = this.simulation.getStats();
-
-        document.getElementById('sim-time').textContent = stats.simulationTime.toFixed(2) + 's';
-        document.getElementById('frame-count').textContent = stats.frameCount;
-        document.getElementById('fps').textContent = this.currentFPS;
-        document.getElementById('active-fragments').textContent = stats.activeFragments;
-        document.getElementById('destroyed-fragments').textContent = stats.destroyedFragments;
-        document.getElementById('particle-count').textContent = stats.particleCount;
-        document.getElementById('destruction-progress').textContent = stats.destructionProgress.toFixed(1) + '%';
-        document.getElementById('kinetic-energy').textContent = stats.kineticEnergy.toFixed(2) + ' J';
-      }
-
-      animate() {
-        requestAnimationFrame(() => this.animate());
-
-        const currentTime = performance.now();
-        const deltaTime = (currentTime - this.lastTime) / 1000;
-        this.lastTime = currentTime;
-
-        // Update FPS counter
-        this.fpsCounter++;
-        this.fpsTime += deltaTime;
-        if (this.fpsTime >= 1.0) {
-          this.currentFPS = Math.round(this.fpsCounter / this.fpsTime);
+          this.lastTime = performance.now();
           this.fpsCounter = 0;
           this.fpsTime = 0;
+          this.currentFPS = 0;
+
+          this.init();
         }
 
-        // Update simulation
-        this.simulation.update(deltaTime);
+        init() {
+          // Create initial meshes
+          this.renderer.createFragmentMeshes(this.simulation.fragments);
+          this.renderer.createBallMesh(
+            this.simulation.ballPosition,
+            this.simulation.config.ballRadius
+          );
 
-        // Update rendering
-        this.renderer.updateFragments(this.simulation.fragments);
-        this.renderer.updateBall(this.simulation.ballPosition);
-        this.renderer.updateParticles(this.simulation.particles);
+          // Setup UI
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('stats-panel').style.display = 'block';
+          document.getElementById('controls-panel').style.display = 'block';
 
-        // Update stats
-        this.updateStats();
+          // Setup controls
+          document
+            .getElementById('play-pause-btn')
+            .addEventListener('click', () => this.togglePlayPause());
+          document.getElementById('restart-btn').addEventListener('click', () => this.restart());
+          document
+            .getElementById('reset-camera-btn')
+            .addEventListener('click', () => this.renderer.resetCamera());
+          document
+            .getElementById('toggle-wireframe-btn')
+            .addEventListener('click', () => this.renderer.toggleWireframe());
 
-        // Render scene
-        this.renderer.render();
+          // Start animation loop
+          this.animate();
+        }
+
+        togglePlayPause() {
+          this.simulation.isPlaying = !this.simulation.isPlaying;
+          const btn = document.getElementById('play-pause-btn');
+          btn.textContent = this.simulation.isPlaying ? '⏸️ Pause' : '▶️ Play';
+        }
+
+        restart() {
+          this.simulation.restart();
+          this.renderer.createFragmentMeshes(this.simulation.fragments);
+          this.renderer.createBallMesh(
+            this.simulation.ballPosition,
+            this.simulation.config.ballRadius
+          );
+          const btn = document.getElementById('play-pause-btn');
+          btn.textContent = '⏸️ Pause';
+        }
+
+        updateStats() {
+          const stats = this.simulation.getStats();
+
+          document.getElementById('sim-time').textContent = stats.simulationTime.toFixed(2) + 's';
+          document.getElementById('frame-count').textContent = stats.frameCount;
+          document.getElementById('fps').textContent = this.currentFPS;
+          document.getElementById('active-fragments').textContent = stats.activeFragments;
+          document.getElementById('destroyed-fragments').textContent = stats.destroyedFragments;
+          document.getElementById('particle-count').textContent = stats.particleCount;
+          document.getElementById('destruction-progress').textContent =
+            stats.destructionProgress.toFixed(1) + '%';
+          document.getElementById('kinetic-energy').textContent =
+            stats.kineticEnergy.toFixed(2) + ' J';
+        }
+
+        animate() {
+          requestAnimationFrame(() => this.animate());
+
+          const currentTime = performance.now();
+          const deltaTime = (currentTime - this.lastTime) / 1000;
+          this.lastTime = currentTime;
+
+          // Update FPS counter
+          this.fpsCounter++;
+          this.fpsTime += deltaTime;
+          if (this.fpsTime >= 1.0) {
+            this.currentFPS = Math.round(this.fpsCounter / this.fpsTime);
+            this.fpsCounter = 0;
+            this.fpsTime = 0;
+          }
+
+          // Update simulation
+          this.simulation.update(deltaTime);
+
+          // Update rendering
+          this.renderer.updateFragments(this.simulation.fragments);
+          this.renderer.updateBall(this.simulation.ballPosition);
+          this.renderer.updateParticles(this.simulation.particles);
+
+          // Update stats
+          this.updateStats();
+
+          // Render scene
+          this.renderer.render();
+        }
       }
-    }
 
-    // Start the application
-    const app = new PhysicsVisualizationApp();
-  </script>
-</body>
+      // Start the application
+      const app = new PhysicsVisualizationApp();
+    </script>
+  </body>
 </html>

@@ -37,7 +37,6 @@ const compile = (obj: HoloObjectDecl) => `/* compiled:${obj.name} */`;
 // ── diff — null → new AST ─────────────────────────────────────────────────────
 
 describe('IncrementalCompiler — diff (null → new)', () => {
-
   it('null old AST marks all objects as added', () => {
     const c = new IncrementalCompiler();
     const ast = makeAST([makeObj('Cube'), makeObj('Sphere')]);
@@ -59,7 +58,6 @@ describe('IncrementalCompiler — diff (null → new)', () => {
 // ── diff — added / removed / modified / unchanged ─────────────────────────────
 
 describe('IncrementalCompiler — diff (old → new)', () => {
-
   it('detects an added object', () => {
     const c = new IncrementalCompiler();
     const old = makeAST([makeObj('Cube')]);
@@ -106,7 +104,6 @@ describe('IncrementalCompiler — diff (old → new)', () => {
 // ── compile — basic ───────────────────────────────────────────────────────────
 
 describe('IncrementalCompiler — compile', () => {
-
   it('first compile processes all objects', async () => {
     const c = new IncrementalCompiler();
     const ast = makeAST([makeObj('A'), makeObj('B')]);
@@ -159,7 +156,6 @@ describe('IncrementalCompiler — compile', () => {
 // ── getCached / setCached ─────────────────────────────────────────────────────
 
 describe('IncrementalCompiler — getCached / setCached', () => {
-
   it('getCached returns null for unknown entry', () => {
     const c = new IncrementalCompiler();
     expect(c.getCached('unknown', 'hash1')).toBeNull();
@@ -182,7 +178,6 @@ describe('IncrementalCompiler — getCached / setCached', () => {
 // ── saveState / restoreState / clearState ─────────────────────────────────────
 
 describe('IncrementalCompiler — state snapshot', () => {
-
   it('restoreState returns null before first save', () => {
     const c = new IncrementalCompiler();
     expect(c.restoreState()).toBeNull();
@@ -216,7 +211,6 @@ describe('IncrementalCompiler — state snapshot', () => {
 // ── updateDependencies / getDependents ────────────────────────────────────────
 
 describe('IncrementalCompiler — dependency graph', () => {
-
   it('getDependents returns empty array for unknown object', () => {
     const c = new IncrementalCompiler();
     expect(c.getDependents('nothing')).toEqual([]);
@@ -240,7 +234,6 @@ describe('IncrementalCompiler — dependency graph', () => {
 // ── getRecompilationSet (transitive) ──────────────────────────────────────────
 
 describe('IncrementalCompiler — getRecompilationSet', () => {
-
   it('changed object itself is always in set', () => {
     const c = new IncrementalCompiler();
     const set = c.getRecompilationSet(['Cube']);
@@ -274,7 +267,6 @@ describe('IncrementalCompiler — getRecompilationSet', () => {
 // ── getTraitGraph / getTraitChanges ───────────────────────────────────────────
 
 describe('IncrementalCompiler — trait graph integration', () => {
-
   it('getTraitGraph returns a TraitDependencyGraph', () => {
     const c = new IncrementalCompiler();
     expect(typeof c.getTraitGraph()).toBe('object');
@@ -295,7 +287,6 @@ describe('IncrementalCompiler — trait graph integration', () => {
 // ── getStats ──────────────────────────────────────────────────────────────────
 
 describe('IncrementalCompiler — getStats', () => {
-
   it('initial stats have cacheSize=0', async () => {
     const c = new IncrementalCompiler();
     expect((await c.getStats()).cacheSize).toBe(0);
@@ -324,7 +315,6 @@ describe('IncrementalCompiler — getStats', () => {
 // ── reset ─────────────────────────────────────────────────────────────────────
 
 describe('IncrementalCompiler — reset', () => {
-
   it('reset clears cache', async () => {
     const c = new IncrementalCompiler();
     c.setCached('X', 'h', '/* X */', []);
@@ -350,7 +340,6 @@ describe('IncrementalCompiler — reset', () => {
 // ── serialize / deserialize round-trip ───────────────────────────────────────
 
 describe('IncrementalCompiler — serialize / deserialize', () => {
-
   it('serializes to a JSON string', () => {
     const c = new IncrementalCompiler();
     const json = c.serialize();
@@ -376,7 +365,13 @@ describe('IncrementalCompiler — serialize / deserialize', () => {
   });
 
   it('deserialize throws on unsupported version', () => {
-    const badJson = JSON.stringify({ version: 99, entries: [], dependencies: [], traitGraph: '{}', timestamp: 0 });
+    const badJson = JSON.stringify({
+      version: 99,
+      entries: [],
+      dependencies: [],
+      traitGraph: '{}',
+      timestamp: 0,
+    });
     expect(() => IncrementalCompiler.deserialize(badJson)).toThrow();
   });
 });
@@ -384,7 +379,6 @@ describe('IncrementalCompiler — serialize / deserialize', () => {
 // ── createIncrementalCompiler factory ────────────────────────────────────────
 
 describe('createIncrementalCompiler', () => {
-
   it('creates a fresh IncrementalCompiler', async () => {
     const c = createIncrementalCompiler();
     expect(c).toBeInstanceOf(IncrementalCompiler);

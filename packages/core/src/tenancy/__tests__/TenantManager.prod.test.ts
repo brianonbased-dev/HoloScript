@@ -14,7 +14,9 @@ import {
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-function mgr() { return new TenantManager(); }
+function mgr() {
+  return new TenantManager();
+}
 
 function create(tm: TenantManager, overrides: Partial<CreateTenantConfig> = {}): Tenant {
   return tm.createTenant({ name: 'Acme Corp', ...overrides });
@@ -119,7 +121,7 @@ describe('TenantManager — createTenant validation', () => {
   it('throws on duplicate custom id', () => {
     const tm = mgr();
     create(tm, { id: 'dup' });
-    expect(() => create(tm, { id: 'dup' })).toThrow("already exists");
+    expect(() => create(tm, { id: 'dup' })).toThrow('already exists');
   });
   it('auto-generated ids are unique across two tenants', () => {
     const tm = mgr();
@@ -230,7 +232,7 @@ describe('TenantManager — deleteTenant', () => {
     const tm = mgr();
     create(tm, { id: 'del' });
     tm.deleteTenant('del');
-    expect(tm.listTenants().map(t => t.id)).not.toContain('del');
+    expect(tm.listTenants().map((t) => t.id)).not.toContain('del');
   });
   it('throws on missing tenant', () => {
     expect(() => mgr().deleteTenant('ghost')).toThrow("ghost' not found");
@@ -242,7 +244,9 @@ describe('TenantManager — deleteTenant', () => {
 describe('TenantManager — listTenants', () => {
   it('returns all tenants when no filter', () => {
     const tm = mgr();
-    create(tm, { name: 'A' }); create(tm, { name: 'B' }); create(tm, { name: 'C' });
+    create(tm, { name: 'A' });
+    create(tm, { name: 'B' });
+    create(tm, { name: 'C' });
     expect(tm.listTenants()).toHaveLength(3);
   });
   it('filters by plan = free', () => {
@@ -289,7 +293,12 @@ describe('TenantManager — custom store', () => {
       id: 'pre',
       name: 'Pre-existing',
       plan: 'pro',
-      quotas: { maxCompilationsPerHour: 0, maxStorageBytes: 0, maxProjectsPerTenant: 0, maxDeploymentsPerDay: 0 },
+      quotas: {
+        maxCompilationsPerHour: 0,
+        maxStorageBytes: 0,
+        maxProjectsPerTenant: 0,
+        maxDeploymentsPerDay: 0,
+      },
       settings: { maxUsers: 0, maxProjects: 0, maxStorageBytes: 0, allowedFeatures: [] },
       createdAt: new Date(),
       metadata: {},

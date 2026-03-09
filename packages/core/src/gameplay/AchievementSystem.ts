@@ -23,7 +23,7 @@ export interface AchievementDef {
   currentProgress: number;
   unlocked: boolean;
   unlockedAt: number | null;
-  hidden: boolean;           // Don't show until unlocked
+  hidden: boolean; // Don't show until unlocked
   category: string;
 }
 
@@ -37,16 +37,25 @@ export class AchievementSystem {
   private totalPoints = 0;
 
   private static readonly RARITY_POINTS: Record<AchievementRarity, number> = {
-    bronze: 5, silver: 10, gold: 25, platinum: 50, diamond: 100,
+    bronze: 5,
+    silver: 10,
+    gold: 25,
+    platinum: 50,
+    diamond: 100,
   };
 
   // ---------------------------------------------------------------------------
   // Registration
   // ---------------------------------------------------------------------------
 
-  register(config: Omit<AchievementDef, 'currentProgress' | 'unlocked' | 'unlockedAt'>): AchievementDef {
+  register(
+    config: Omit<AchievementDef, 'currentProgress' | 'unlocked' | 'unlockedAt'>
+  ): AchievementDef {
     const achievement: AchievementDef = {
-      ...config, currentProgress: 0, unlocked: false, unlockedAt: null,
+      ...config,
+      currentProgress: 0,
+      unlocked: false,
+      unlockedAt: null,
     };
     this.achievements.set(config.id, achievement);
     return achievement;
@@ -95,15 +104,33 @@ export class AchievementSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  get(id: string): AchievementDef | undefined { return this.achievements.get(id); }
-  getAll(): AchievementDef[] { return [...this.achievements.values()]; }
-  getUnlocked(): AchievementDef[] { return this.getAll().filter(a => a.unlocked); }
-  getLocked(): AchievementDef[] { return this.getAll().filter(a => !a.unlocked); }
-  getByCategory(cat: string): AchievementDef[] { return this.getAll().filter(a => a.category === cat); }
-  getByRarity(rarity: AchievementRarity): AchievementDef[] { return this.getAll().filter(a => a.rarity === rarity); }
-  getCount(): number { return this.achievements.size; }
-  getUnlockedCount(): number { return this.getUnlocked().length; }
-  getTotalPoints(): number { return this.totalPoints; }
+  get(id: string): AchievementDef | undefined {
+    return this.achievements.get(id);
+  }
+  getAll(): AchievementDef[] {
+    return [...this.achievements.values()];
+  }
+  getUnlocked(): AchievementDef[] {
+    return this.getAll().filter((a) => a.unlocked);
+  }
+  getLocked(): AchievementDef[] {
+    return this.getAll().filter((a) => !a.unlocked);
+  }
+  getByCategory(cat: string): AchievementDef[] {
+    return this.getAll().filter((a) => a.category === cat);
+  }
+  getByRarity(rarity: AchievementRarity): AchievementDef[] {
+    return this.getAll().filter((a) => a.rarity === rarity);
+  }
+  getCount(): number {
+    return this.achievements.size;
+  }
+  getUnlockedCount(): number {
+    return this.getUnlocked().length;
+  }
+  getTotalPoints(): number {
+    return this.totalPoints;
+  }
   getCompletionPercent(): number {
     if (this.achievements.size === 0) return 0;
     return (this.getUnlockedCount() / this.achievements.size) * 100;

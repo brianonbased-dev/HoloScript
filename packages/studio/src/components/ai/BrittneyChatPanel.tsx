@@ -2,13 +2,9 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Send, Loader2, Zap, CheckCircle2, XCircle, Mic, MicOff, Trash2 } from 'lucide-react';
-import {
-  streamBrittney,
-  buildRichContext,
-  executeTool,
-} from '@/lib/brittney';
+import { streamBrittney, buildRichContext, executeTool } from '@/lib/brittney';
 import type { BrittneyMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
-import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/store';
+import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/stores';
 import { useBrittneyVoice } from '@/hooks/useBrittneyVoice';
 import { useBrittneyHistory } from '@/hooks/useBrittneyHistory';
 
@@ -37,9 +33,7 @@ function ToolBadge({ result }: { result: ToolResult }) {
   return (
     <div
       className={`flex items-start gap-2 rounded-lg px-2.5 py-1.5 text-[11px] ${
-        result.success
-          ? 'bg-green-500/10 text-green-400'
-          : 'bg-red-500/10 text-red-400'
+        result.success ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
       }`}
     >
       {result.success ? (
@@ -65,7 +59,11 @@ export function BrittneyChatPanel() {
   const addNode = useSceneGraphStore((s) => s.addNode);
 
   // Persistent history
-  const { history: savedHistory, addMessage: persistMessage, clearHistory: clearPersistedHistory } = useBrittneyHistory('default');
+  const {
+    history: savedHistory,
+    addMessage: persistMessage,
+    clearHistory: clearPersistedHistory,
+  } = useBrittneyHistory('default');
 
   const GREETING: ChatMessage = {
     id: '0',
@@ -89,17 +87,33 @@ export function BrittneyChatPanel() {
         GREETING,
         ...savedHistory.map((m, i) => ({
           id: `h-${i}`,
-          role: m.role === 'user' ? 'user' : 'brittney' as ChatMessage['role'],
+          role: m.role === 'user' ? 'user' : ('brittney' as ChatMessage['role']),
           text: m.content,
         })),
       ]);
-      setLlmHistory(savedHistory.map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }) as BrittneyMessage));
+      setLlmHistory(
+        savedHistory.map(
+          (m) =>
+            ({
+              role: m.role === 'user' ? 'user' : 'assistant',
+              content: m.content,
+            }) as BrittneyMessage
+        )
+      );
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedHistory]);
 
   // Voice input
-  const { isListening, isSupported: voiceSupported, transcript, interimTranscript, startListening, stopListening, clearTranscript } = useBrittneyVoice();
+  const {
+    isListening,
+    isSupported: voiceSupported,
+    transcript,
+    interimTranscript,
+    startListening,
+    stopListening,
+    clearTranscript,
+  } = useBrittneyVoice();
   // Append confirmed voice transcript to input
   useEffect(() => {
     if (transcript) {
@@ -134,10 +148,7 @@ export function BrittneyChatPanel() {
     persistMessage({ role: 'user', content: text });
 
     // Build updated LLM history
-    const updatedHistory: BrittneyMessage[] = [
-      ...llmHistory,
-      { role: 'user', content: text },
-    ];
+    const updatedHistory: BrittneyMessage[] = [...llmHistory, { role: 'user', content: text }];
     setLlmHistory(updatedHistory);
     setIsThinking(true);
 
@@ -157,15 +168,21 @@ export function BrittneyChatPanel() {
     try {
       const setCodeFn = useSceneStore.getState().setCode;
       const getCodeFn = () => useSceneStore.getState().code ?? '';
-      const storeActions = { nodes, addTrait, removeTrait, setTraitProperty, addNode, getCode: getCodeFn, setCode: setCodeFn };
+      const storeActions = {
+        nodes,
+        addTrait,
+        removeTrait,
+        setTraitProperty,
+        addNode,
+        getCode: getCodeFn,
+        setCode: setCodeFn,
+      };
 
       for await (const event of streamBrittney(updatedHistory, sceneContext)) {
         if (event.type === 'text') {
           accumulatedText += event.payload as string;
           setChatMessages((m) =>
-            m.map((msg) =>
-              msg.id === brittMsgId ? { ...msg, text: accumulatedText } : msg
-            )
+            m.map((msg) => (msg.id === brittMsgId ? { ...msg, text: accumulatedText } : msg))
           );
         } else if (event.type === 'tool_call') {
           const tc = event.payload as ToolCallPayload;
@@ -201,23 +218,28 @@ export function BrittneyChatPanel() {
     );
 
     // Update LLM history with Brittney's response
-    setLlmHistory((h) => [
-      ...h,
-      { role: 'assistant', content: accumulatedText },
-    ]);
+    setLlmHistory((h) => [...h, { role: 'assistant', content: accumulatedText }]);
     persistMessage({ role: 'assistant', content: accumulatedText });
 
     setIsThinking(false);
   }, [
-    input, isThinking, llmHistory, nodes, selectedId,
-    addTrait, removeTrait, setTraitProperty, addNode, persistMessage,
+    input,
+    isThinking,
+    llmHistory,
+    nodes,
+    selectedId,
+    addTrait,
+    removeTrait,
+    setTraitProperty,
+    addNode,
+    persistMessage,
   ]);
 
   const handleClearHistory = useCallback(() => {
     clearPersistedHistory();
     setChatMessages([GREETING]);
     setLlmHistory([]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clearPersistedHistory]);
 
   const handleKey = (e: React.KeyboardEvent) => {
@@ -227,8 +249,7 @@ export function BrittneyChatPanel() {
     }
   };
 
-  const showSuggestions =
-    chatMessages.filter((m) => m.role === 'user').length === 0;
+  const showSuggestions = chatMessages.filter((m) => m.role === 'user').length === 0;
 
   return (
     <div className="flex h-full flex-col bg-studio-panel">
@@ -272,7 +293,10 @@ export function BrittneyChatPanel() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-3 p-4">
         {chatMessages.map((msg) => (
-          <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+          <div
+            key={msg.id}
+            className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+          >
             <div
               className={`max-w-[88%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
                 msg.role === 'user'
@@ -280,12 +304,13 @@ export function BrittneyChatPanel() {
                   : 'bg-studio-surface text-studio-text border border-studio-border/50'
               }`}
             >
-              {msg.text || (msg.isStreaming ? (
-                <span className="flex items-center gap-1.5 text-studio-muted">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  thinking…
-                </span>
-              ) : null)}
+              {msg.text ||
+                (msg.isStreaming ? (
+                  <span className="flex items-center gap-1.5 text-studio-muted">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    thinking…
+                  </span>
+                ) : null)}
               {msg.isStreaming && msg.text && (
                 <span className="ml-0.5 inline-block h-3 w-0.5 animate-pulse bg-studio-accent/70" />
               )}
@@ -332,8 +357,8 @@ export function BrittneyChatPanel() {
               nodes.length === 0
                 ? 'Create an object first, then ask Brittney to modify it…'
                 : selectedId
-                ? 'Tell Brittney what to do with the selected object…'
-                : 'Ask Brittney to build or modify your scene…'
+                  ? 'Tell Brittney what to do with the selected object…'
+                  : 'Ask Brittney to build or modify your scene…'
             }
             disabled={isThinking}
             rows={2}

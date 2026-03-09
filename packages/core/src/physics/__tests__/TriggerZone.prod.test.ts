@@ -9,14 +9,18 @@ import { TriggerZoneSystem, type TriggerZoneConfig } from '../TriggerZone';
 
 function sphereZone(): TriggerZoneConfig {
   return {
-    id: 'z1', enabled: true, tags: ['test'],
+    id: 'z1',
+    enabled: true,
+    tags: ['test'],
     shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 5 },
   };
 }
 
 function boxZone(): TriggerZoneConfig {
   return {
-    id: 'z2', enabled: true, tags: ['box'],
+    id: 'z2',
+    enabled: true,
+    tags: ['box'],
     shape: { type: 'box', position: { x: 0, y: 0, z: 0 }, halfExtents: { x: 5, y: 5, z: 5 } },
   };
 }

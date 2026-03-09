@@ -50,9 +50,30 @@ describe('Cycle 141: Damage & Combat', () => {
 
   it('should detect hitbox/hurtbox collisions', () => {
     const cm = new CombatManager();
-    cm.addHitBox({ id: 'hb1', ownerId: 'player', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true, damage: 50, damageType: 'physical', knockback: 5 });
-    cm.addHurtBox({ id: 'hr1', ownerId: 'enemy', position: { x: 1, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true });
-    cm.addHurtBox({ id: 'hr2', ownerId: 'player', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true }); // Self — should NOT hit
+    cm.addHitBox({
+      id: 'hb1',
+      ownerId: 'player',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+      damage: 50,
+      damageType: 'physical',
+      knockback: 5,
+    });
+    cm.addHurtBox({
+      id: 'hr1',
+      ownerId: 'enemy',
+      position: { x: 1, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+    });
+    cm.addHurtBox({
+      id: 'hr2',
+      ownerId: 'player',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+    }); // Self — should NOT hit
 
     const hits = cm.checkCollisions();
     expect(hits.length).toBe(1);
@@ -113,14 +134,24 @@ describe('Cycle 141: Damage & Combat', () => {
   it('should apply stacking buffs and stat modifiers', () => {
     const se = new StatusEffectSystem();
     se.apply('hero', {
-      name: 'strength', type: 'buff', duration: 10, maxStacks: 5,
-      stackBehavior: 'stack', modifiers: [{ stat: 'attack', flat: 5, percent: 1 }],
-      tickInterval: 0, tickDamage: 0,
+      name: 'strength',
+      type: 'buff',
+      duration: 10,
+      maxStacks: 5,
+      stackBehavior: 'stack',
+      modifiers: [{ stat: 'attack', flat: 5, percent: 1 }],
+      tickInterval: 0,
+      tickDamage: 0,
     });
     se.apply('hero', {
-      name: 'strength', type: 'buff', duration: 10, maxStacks: 5,
-      stackBehavior: 'stack', modifiers: [{ stat: 'attack', flat: 5, percent: 1 }],
-      tickInterval: 0, tickDamage: 0,
+      name: 'strength',
+      type: 'buff',
+      duration: 10,
+      maxStacks: 5,
+      stackBehavior: 'stack',
+      modifiers: [{ stat: 'attack', flat: 5, percent: 1 }],
+      tickInterval: 0,
+      tickDamage: 0,
     });
 
     const modified = se.applyStatModifiers('hero', 'attack', 100);
@@ -132,14 +163,26 @@ describe('Cycle 141: Damage & Combat', () => {
     se.addImmunity('hero', 'stun');
 
     const result = se.apply('hero', {
-      name: 'stun', type: 'debuff', duration: 3, maxStacks: 1,
-      stackBehavior: 'replace', modifiers: [], tickInterval: 0, tickDamage: 0,
+      name: 'stun',
+      type: 'debuff',
+      duration: 3,
+      maxStacks: 1,
+      stackBehavior: 'replace',
+      modifiers: [],
+      tickInterval: 0,
+      tickDamage: 0,
     });
     expect(result).toBeNull(); // Immune
 
     se.apply('hero', {
-      name: 'poison', type: 'debuff', duration: 5, maxStacks: 1,
-      stackBehavior: 'replace', modifiers: [], tickInterval: 1, tickDamage: 5,
+      name: 'poison',
+      type: 'debuff',
+      duration: 5,
+      maxStacks: 1,
+      stackBehavior: 'replace',
+      modifiers: [],
+      tickInterval: 1,
+      tickDamage: 5,
     });
     expect(se.hasEffect('hero', 'poison')).toBe(true);
 

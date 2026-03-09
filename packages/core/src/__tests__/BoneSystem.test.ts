@@ -7,14 +7,16 @@ import { BoneSystem } from '../animation/BoneSystem';
 
 describe('BoneSystem', () => {
   let sys: BoneSystem;
-  beforeEach(() => { sys = new BoneSystem(); });
+  beforeEach(() => {
+    sys = new BoneSystem();
+  });
 
   it('addBone creates bone with defaults', () => {
     sys.addBone('root', 'Root', null);
     const b = sys.getBone('root');
     expect(b).toBeDefined();
-    expect(b!.local.rw).toBe(1);  // identity quaternion
-    expect(b!.local.sx).toBe(1);  // unit scale
+    expect(b!.local.rw).toBe(1); // identity quaternion
+    expect(b!.local.sx).toBe(1); // unit scale
   });
 
   it('getBoneCount tracks additions', () => {
@@ -83,6 +85,6 @@ describe('BoneSystem', () => {
     sys.addBone('root', 'Root', null, { sx: 2, sy: 2, sz: 2 });
     sys.addBone('child', 'Child', 'root', { tx: 5 });
     sys.updateWorldTransforms();
-    expect(sys.getBone('child')!.world.tx).toBe(10);  // 5 * 2
+    expect(sys.getBone('child')!.world.tx).toBe(10); // 5 * 2
   });
 });

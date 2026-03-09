@@ -23,12 +23,7 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 /** Tenant lifecycle states */
-export type TenantStatus =
-  | 'active'
-  | 'suspended'
-  | 'archived'
-  | 'provisioning'
-  | 'decommissioning';
+export type TenantStatus = 'active' | 'suspended' | 'archived' | 'provisioning' | 'decommissioning';
 
 /** Tenant tier determines feature availability and default quotas */
 export type TenantTier = 'free' | 'starter' | 'professional' | 'enterprise' | 'unlimited';

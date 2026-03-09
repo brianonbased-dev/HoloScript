@@ -145,7 +145,10 @@ describe('IncrementalParser: production', () => {
       const result = parser.applyChange(
         'file:///a.hs',
         {
-          range: { start: { line: lastLine, character: lastChar }, end: { line: lastLine, character: lastChar } },
+          range: {
+            start: { line: lastLine, character: lastChar },
+            end: { line: lastLine, character: lastChar },
+          },
           text: '\norb NewOrb { position: [5, 0, 0] }',
         },
         2
@@ -250,22 +253,26 @@ describe('IncrementalParser: production', () => {
     });
 
     it('very large source parses without throw', () => {
-      const big = Array.from({ length: 50 }, (_, i) =>
-        `orb Orb${i} { position: [${i}, 0, 0] }`
+      const big = Array.from(
+        { length: 50 },
+        (_, i) => `orb Orb${i} { position: [${i}, 0, 0] }`
       ).join('\n');
       expect(() => parser.parse('file:///big.hs', big, 1)).not.toThrow();
     });
 
     it('large source result has ast array', () => {
-      const big = Array.from({ length: 50 }, (_, i) =>
-        `orb Orb${i} { position: [${i}, 0, 0] }`
+      const big = Array.from(
+        { length: 50 },
+        (_, i) => `orb Orb${i} { position: [${i}, 0, 0] }`
       ).join('\n');
       const r = parser.parse('file:///big.hs', big, 1);
       expect(Array.isArray(r.ast)).toBe(true);
     });
 
     it('syntax error source returns errors array (no throw)', () => {
-      expect(() => parser.parse('file:///bad.hs', 'orb { this is totally broken !!!', 1)).not.toThrow();
+      expect(() =>
+        parser.parse('file:///bad.hs', 'orb { this is totally broken !!!', 1)
+      ).not.toThrow();
     });
 
     it('syntax error source errors is an array', () => {

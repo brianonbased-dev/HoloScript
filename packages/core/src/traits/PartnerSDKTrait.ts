@@ -96,11 +96,7 @@ interface PartnerDefinition {
 
 const partnerRateLimits: Map<string, { count: number; windowStart: number }> = new Map();
 
-function checkPartnerRateLimit(
-  partnerId: string,
-  maxRequests: number,
-  windowMs: number
-): boolean {
+function checkPartnerRateLimit(partnerId: string, maxRequests: number, windowMs: number): boolean {
   const now = Date.now();
   let entry = partnerRateLimits.get(partnerId);
 

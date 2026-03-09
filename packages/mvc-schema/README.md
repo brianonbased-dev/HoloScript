@@ -246,14 +246,14 @@ const evidence: EvidenceTrail = {
 
 ### Size Targets
 
-| Object | Uncompressed | Target | Typical Compressed |
-|--------|--------------|--------|-------------------|
-| DecisionHistory | 800B-2KB | <2KB | 400B-1KB |
-| ActiveTaskState | 600B-1.5KB | <2KB | 300B-800B |
-| UserPreferences | 400B-1KB | <2KB | 200B-500B |
-| SpatialContextSummary | 500B-1.2KB | <2KB | 250B-600B |
-| EvidenceTrail | 1KB-3KB | <2KB | 500B-1.5KB |
-| **Total** | 3.3KB-8.7KB | **<10KB** | **1.65KB-4.4KB** |
+| Object                | Uncompressed | Target    | Typical Compressed |
+| --------------------- | ------------ | --------- | ------------------ |
+| DecisionHistory       | 800B-2KB     | <2KB      | 400B-1KB           |
+| ActiveTaskState       | 600B-1.5KB   | <2KB      | 300B-800B          |
+| UserPreferences       | 400B-1KB     | <2KB      | 200B-500B          |
+| SpatialContextSummary | 500B-1.2KB   | <2KB      | 250B-600B          |
+| EvidenceTrail         | 1KB-3KB      | <2KB      | 500B-1.5KB         |
+| **Total**             | 3.3KB-8.7KB  | **<10KB** | **1.65KB-4.4KB**   |
 
 ## API Reference
 

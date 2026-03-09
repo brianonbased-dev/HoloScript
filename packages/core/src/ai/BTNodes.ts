@@ -28,9 +28,14 @@ export abstract class BTNode {
   status: BTStatus = 'ready';
   children: BTNode[] = [];
 
-  constructor(name: string) { this.name = name; }
+  constructor(name: string) {
+    this.name = name;
+  }
   abstract tick(ctx: BTContext): BTStatus;
-  reset(): void { this.status = 'ready'; for (const c of this.children) c.reset(); }
+  reset(): void {
+    this.status = 'ready';
+    for (const c of this.children) c.reset();
+  }
 }
 
 // =============================================================================
@@ -49,14 +54,20 @@ export class SequenceNode extends BTNode {
     while (this.currentIndex < this.children.length) {
       const status = this.children[this.currentIndex].tick(ctx);
       if (status === 'running') return (this.status = 'running');
-      if (status === 'failure') { this.currentIndex = 0; return (this.status = 'failure'); }
+      if (status === 'failure') {
+        this.currentIndex = 0;
+        return (this.status = 'failure');
+      }
       this.currentIndex++;
     }
     this.currentIndex = 0;
     return (this.status = 'success');
   }
 
-  reset(): void { this.currentIndex = 0; super.reset(); }
+  reset(): void {
+    this.currentIndex = 0;
+    super.reset();
+  }
 }
 
 export class SelectorNode extends BTNode {
@@ -71,14 +82,20 @@ export class SelectorNode extends BTNode {
     while (this.currentIndex < this.children.length) {
       const status = this.children[this.currentIndex].tick(ctx);
       if (status === 'running') return (this.status = 'running');
-      if (status === 'success') { this.currentIndex = 0; return (this.status = 'success'); }
+      if (status === 'success') {
+        this.currentIndex = 0;
+        return (this.status = 'success');
+      }
       this.currentIndex++;
     }
     this.currentIndex = 0;
     return (this.status = 'failure');
   }
 
-  reset(): void { this.currentIndex = 0; super.reset(); }
+  reset(): void {
+    this.currentIndex = 0;
+    super.reset();
+  }
 }
 
 export class ParallelNode extends BTNode {
@@ -146,7 +163,10 @@ export class RepeaterNode extends BTNode {
     return (this.status = 'running');
   }
 
-  reset(): void { this.count = 0; super.reset(); }
+  reset(): void {
+    this.count = 0;
+    super.reset();
+  }
 }
 
 export class GuardNode extends BTNode {
@@ -212,5 +232,8 @@ export class WaitNode extends BTNode {
     return (this.status = 'running');
   }
 
-  reset(): void { this.elapsed = 0; super.reset(); }
+  reset(): void {
+    this.elapsed = 0;
+    super.reset();
+  }
 }

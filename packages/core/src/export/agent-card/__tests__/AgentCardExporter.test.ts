@@ -33,10 +33,7 @@ function createTestComposition(overrides: Partial<HoloComposition> = {}): HoloCo
         type: 'ObjectDeclaration',
         name: 'speaker_1',
         properties: [],
-        traits: [
-          trait('audio'),
-          trait('spatial_audio'),
-        ],
+        traits: [trait('audio'), trait('spatial_audio')],
       } as any,
     ],
     spatialGroups: [],
@@ -86,7 +83,7 @@ describe('AgentCardExporter', () => {
     const composition = createTestComposition();
     const result = exporter.export(composition);
 
-    const skillIds = result.card.skills.map(s => s.id);
+    const skillIds = result.card.skills.map((s) => s.id);
     expect(skillIds).toContain('vr-grab');
     expect(skillIds).toContain('vr-throw');
     expect(skillIds).toContain('physics-sim');
@@ -100,7 +97,7 @@ describe('AgentCardExporter', () => {
     const composition = createTestComposition();
     const result = exporter.export(composition);
 
-    const grabSkill = result.card.skills.find(s => s.id === 'vr-grab');
+    const grabSkill = result.card.skills.find((s) => s.id === 'vr-grab');
     expect(grabSkill).toBeDefined();
     expect(grabSkill!.inputSchema).toBeDefined();
     expect(grabSkill!.inputSchema!.type).toBe('object');
@@ -114,7 +111,7 @@ describe('AgentCardExporter', () => {
     const composition = createTestComposition();
     const result = exporter.export(composition);
 
-    const grabSkill = result.card.skills.find(s => s.id === 'vr-grab');
+    const grabSkill = result.card.skills.find((s) => s.id === 'vr-grab');
     expect(grabSkill!.examples).toBeDefined();
     expect(grabSkill!.examples!.length).toBeGreaterThan(0);
     expect(grabSkill!.examples![0].name).toBe('Grab a cube');
@@ -126,7 +123,7 @@ describe('AgentCardExporter', () => {
     const result = exporter.export(composition);
 
     expect(result.card.skills.length).toBe(2);
-    const ids = result.card.skills.map(s => s.id);
+    const ids = result.card.skills.map((s) => s.id);
     expect(ids).toContain('vr-grab');
     expect(ids).toContain('physics-sim');
   });
@@ -180,16 +177,14 @@ describe('AgentCardExporter', () => {
           type: 'ObjectDeclaration',
           name: 'custom_obj',
           properties: [],
-          traits: [
-            trait('custom_unknown_trait'),
-          ],
+          traits: [trait('custom_unknown_trait')],
         } as any,
       ],
     });
     const result = exporter.export(composition);
 
     expect(result.stats.unmappedTraits).toContain('custom_unknown_trait');
-    const genericSkill = result.card.skills.find(s => s.id === 'holoscript-custom-unknown-trait');
+    const genericSkill = result.card.skills.find((s) => s.id === 'holoscript-custom-unknown-trait');
     expect(genericSkill).toBeDefined();
     expect(genericSkill!.tags).toContain('holoscript');
   });

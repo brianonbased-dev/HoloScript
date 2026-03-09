@@ -5,9 +5,12 @@ import type { TransportFallbackConfig } from '../../network/TransportFallback';
 // A minimal mock transport
 function makeMockTransport(connectOk = true, latency = 10) {
   return {
-    connect: vi.fn().mockResolvedValue(undefined).mockImplementation(() =>
-      connectOk ? Promise.resolve() : Promise.reject(new Error('conn failed'))
-    ),
+    connect: vi
+      .fn()
+      .mockResolvedValue(undefined)
+      .mockImplementation(() =>
+        connectOk ? Promise.resolve() : Promise.reject(new Error('conn failed'))
+      ),
     disconnect: vi.fn(),
     send: vi.fn(),
     onMessage: vi.fn(),
@@ -20,7 +23,6 @@ function makeMockTransport(connectOk = true, latency = 10) {
 }
 
 describe('TransportFallbackManager — Production Tests', () => {
-
   describe('constructor', () => {
     it('creates with required config', () => {
       const m = new TransportFallbackManager({ roomId: 'room-1', enableLocal: true });
@@ -94,7 +96,16 @@ describe('TransportFallbackManager — Production Tests', () => {
   describe('send() — no active transport', () => {
     it('does not throw when no active transport', () => {
       const m = new TransportFallbackManager({ roomId: 'r', enableLocal: true });
-      expect(() => m.send({ type: 'state', peerId: 'p', roomId: 'r', version: 1, states: new Map(), timestamp: Date.now() })).not.toThrow();
+      expect(() =>
+        m.send({
+          type: 'state',
+          peerId: 'p',
+          roomId: 'r',
+          version: 1,
+          states: new Map(),
+          timestamp: Date.now(),
+        })
+      ).not.toThrow();
     });
   });
 

@@ -227,11 +227,10 @@ describe('CRDTDocument', () => {
 
     test('should sync between two documents', () => {
       const doc1 = makeDocument('test.hsplus', 'hello');
-      const doc2 = new CRDTDocument(
-        makeDocId('test.hsplus'),
-        'peer-2',
-        { displayName: 'User 2', color: '#ff0000' },
-      );
+      const doc2 = new CRDTDocument(makeDocId('test.hsplus'), 'peer-2', {
+        displayName: 'User 2',
+        color: '#ff0000',
+      });
 
       // Sync doc1 -> doc2
       const state = doc1.getEncodedState();
@@ -545,9 +544,14 @@ describe('CollaborationTransport', () => {
 
     test('should handle all message types', () => {
       const types: SyncMessage['type'][] = [
-        'doc-update', 'doc-state-vector', 'doc-state-request',
-        'awareness', 'peer-joined', 'peer-left',
-        'heartbeat', 'heartbeat-ack',
+        'doc-update',
+        'doc-state-vector',
+        'doc-state-request',
+        'awareness',
+        'peer-joined',
+        'peer-left',
+        'heartbeat',
+        'heartbeat-ack',
       ];
 
       for (const type of types) {

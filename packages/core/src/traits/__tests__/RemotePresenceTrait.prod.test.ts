@@ -63,7 +63,7 @@ describe('RemotePresenceTrait — defaultConfig', () => {
 describe('RemotePresenceTrait — onAttach', () => {
   it('initialises state with correct defaults', () => {
     const node = makeNode();
-    const { } = attach(node);
+    const {} = attach(node);
     const s = state(node);
     expect(s.state).toBe('disconnected');
     expect(s.isConnected).toBe(false);
@@ -80,12 +80,15 @@ describe('RemotePresenceTrait — onAttach', () => {
   it('emits remote_presence_init with config fields', () => {
     const node = makeNode();
     const { ctx, cfg } = attach(node);
-    expect(ctx.emit).toHaveBeenCalledWith('remote_presence_init', expect.objectContaining({
-      avatarType: cfg.avatar_type,
-      voiceEnabled: cfg.voice_enabled,
-      videoEnabled: cfg.video_enabled,
-      syncRate: cfg.sync_rate,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'remote_presence_init',
+      expect.objectContaining({
+        avatarType: cfg.avatar_type,
+        voiceEnabled: cfg.voice_enabled,
+        videoEnabled: cfg.video_enabled,
+        syncRate: cfg.sync_rate,
+      })
+    );
   });
 
   it('picks up voice_enabled=false from config', () => {
@@ -148,7 +151,10 @@ describe('RemotePresenceTrait — onUpdate', () => {
     peerJoin(node, cfg, ctx, 'p1');
     ctx.emit.mockClear();
     remotePresenceHandler.onUpdate!(node, cfg, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('remote_presence_update_avatar', expect.objectContaining({ peerId: 'p1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'remote_presence_update_avatar',
+      expect.objectContaining({ peerId: 'p1' })
+    );
   });
 
   it('skips stale peers (lastUpdate > 5000ms ago)', () => {
@@ -171,9 +177,12 @@ describe('RemotePresenceTrait — onUpdate', () => {
     peerJoin(node, cfg, ctx, 'p2');
     ctx.emit.mockClear();
     remotePresenceHandler.onUpdate!(node, cfg, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('remote_presence_update_avatar', expect.objectContaining({
-      interpolate: false,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'remote_presence_update_avatar',
+      expect.objectContaining({
+        interpolate: false,
+      })
+    );
   });
 
   it('lowers qualityLevel when bandwidth is over 90% of limit', () => {
@@ -232,7 +241,10 @@ describe('RemotePresenceTrait — onEvent: connection', () => {
     expect(s.state).toBe('connected');
     expect(s.isConnected).toBe(true);
     expect(s.localPeerId).toBe('local_p');
-    expect(ctx.emit).toHaveBeenCalledWith('on_presence_connected', expect.objectContaining({ peerId: 'local_p' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_presence_connected',
+      expect.objectContaining({ peerId: 'local_p' })
+    );
   });
 
   it('remote_presence_disconnected clears peers + emits on_presence_disconnected', () => {
@@ -245,7 +257,10 @@ describe('RemotePresenceTrait — onEvent: connection', () => {
     expect(s.state).toBe('disconnected');
     expect(s.isConnected).toBe(false);
     expect(s.peers.size).toBe(0);
-    expect(ctx.emit).toHaveBeenCalledWith('on_presence_disconnected', expect.objectContaining({ reason: 'timeout' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_presence_disconnected',
+      expect.objectContaining({ reason: 'timeout' })
+    );
   });
 
   it('remote_presence_connect sets state=connecting + emits connect_request', () => {
@@ -253,9 +268,12 @@ describe('RemotePresenceTrait — onEvent: connection', () => {
     const { cfg, ctx } = attach(node);
     fireEvent(node, cfg, ctx, { type: 'remote_presence_connect' });
     expect(state(node).state).toBe('connecting');
-    expect(ctx.emit).toHaveBeenCalledWith('remote_presence_connect_request', expect.objectContaining({
-      avatarType: cfg.avatar_type,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'remote_presence_connect_request',
+      expect.objectContaining({
+        avatarType: cfg.avatar_type,
+      })
+    );
   });
 });
 
@@ -275,8 +293,14 @@ describe('RemotePresenceTrait — onEvent: peer lifecycle', () => {
     expect(peer.isVoiceActive).toBe(false);
     expect(peer.isVideoActive).toBe(false);
     expect(peer.pose.head.position).toMatchObject({ x: 0, y: 1.6, z: 0 });
-    expect(ctx.emit).toHaveBeenCalledWith('remote_presence_spawn_avatar', expect.objectContaining({ peerId: 'p1' }));
-    expect(ctx.emit).toHaveBeenCalledWith('on_peer_joined', expect.objectContaining({ peerId: 'p1', peerCount: 1 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'remote_presence_spawn_avatar',
+      expect.objectContaining({ peerId: 'p1' })
+    );
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_peer_joined',
+      expect.objectContaining({ peerId: 'p1', peerCount: 1 })
+    );
   });
 
   it('peerCount increments with each join', () => {
@@ -284,7 +308,10 @@ describe('RemotePresenceTrait — onEvent: peer lifecycle', () => {
     const { cfg, ctx } = attach(node);
     peerJoin(node, cfg, ctx, 'p1');
     peerJoin(node, cfg, ctx, 'p2');
-    expect(ctx.emit).toHaveBeenCalledWith('on_peer_joined', expect.objectContaining({ peerCount: 2 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_peer_joined',
+      expect.objectContaining({ peerCount: 2 })
+    );
   });
 
   it('missing avatarType defaults to head_hands', () => {
@@ -300,8 +327,14 @@ describe('RemotePresenceTrait — onEvent: peer lifecycle', () => {
     peerJoin(node, cfg, ctx, 'p1');
     fireEvent(node, cfg, ctx, { type: 'remote_presence_peer_left', peerId: 'p1' });
     expect(state(node).peers.size).toBe(0);
-    expect(ctx.emit).toHaveBeenCalledWith('on_peer_left', expect.objectContaining({ peerId: 'p1', peerCount: 0 }));
-    expect(ctx.emit).toHaveBeenCalledWith('remote_presence_remove_avatar', expect.objectContaining({ peerId: 'p1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_peer_left',
+      expect.objectContaining({ peerId: 'p1', peerCount: 0 })
+    );
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'remote_presence_remove_avatar',
+      expect.objectContaining({ peerId: 'p1' })
+    );
   });
 });
 
@@ -315,7 +348,12 @@ describe('RemotePresenceTrait — onEvent: pose, voice, video', () => {
     const newPose = {
       head: { position: { x: 1, y: 1.8, z: -1 }, rotation: { x: 0, y: 0.7, z: 0, w: 0.7 } },
     };
-    fireEvent(node, cfg, ctx, { type: 'remote_presence_pose_update', peerId: 'p1', pose: newPose, latency: 42 });
+    fireEvent(node, cfg, ctx, {
+      type: 'remote_presence_pose_update',
+      peerId: 'p1',
+      pose: newPose,
+      latency: 42,
+    });
     const peer = state(node).peers.get('p1');
     expect(peer.pose).toBe(newPose);
     expect(peer.latency).toBe(42);
@@ -324,7 +362,9 @@ describe('RemotePresenceTrait — onEvent: pose, voice, video', () => {
   it('remote_presence_pose_update on unknown peer is no-op', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node);
-    expect(() => fireEvent(node, cfg, ctx, { type: 'remote_presence_pose_update', peerId: 'ghost', pose: {} })).not.toThrow();
+    expect(() =>
+      fireEvent(node, cfg, ctx, { type: 'remote_presence_pose_update', peerId: 'ghost', pose: {} })
+    ).not.toThrow();
   });
 
   it('remote_presence_voice_state updates isVoiceActive + emits voice_indicator', () => {
@@ -332,9 +372,16 @@ describe('RemotePresenceTrait — onEvent: pose, voice, video', () => {
     const { cfg, ctx } = attach(node);
     peerJoin(node, cfg, ctx, 'p1');
     ctx.emit.mockClear();
-    fireEvent(node, cfg, ctx, { type: 'remote_presence_voice_state', peerId: 'p1', isActive: true });
+    fireEvent(node, cfg, ctx, {
+      type: 'remote_presence_voice_state',
+      peerId: 'p1',
+      isActive: true,
+    });
     expect(state(node).peers.get('p1').isVoiceActive).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('remote_presence_voice_indicator', expect.objectContaining({ peerId: 'p1', isActive: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'remote_presence_voice_indicator',
+      expect.objectContaining({ peerId: 'p1', isActive: true })
+    );
   });
 
   it('remote_presence_enable_voice sets voiceEnabled + emits voice_start', () => {
@@ -400,13 +447,16 @@ describe('RemotePresenceTrait — onEvent: query', () => {
     ctx.emit.mockClear();
 
     fireEvent(node, cfg, ctx, { type: 'remote_presence_query', queryId: 'q42' });
-    expect(ctx.emit).toHaveBeenCalledWith('remote_presence_info', expect.objectContaining({
-      queryId: 'q42',
-      state: 'connected',
-      isConnected: true,
-      localPeerId: 'me',
-      peerCount: 2,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'remote_presence_info',
+      expect.objectContaining({
+        queryId: 'q42',
+        state: 'connected',
+        isConnected: true,
+        localPeerId: 'me',
+        peerCount: 2,
+      })
+    );
     const call = (ctx.emit as any).mock.calls.find((c: any[]) => c[0] === 'remote_presence_info');
     expect(call[1].peers).toHaveLength(2);
   });
@@ -418,9 +468,12 @@ describe('RemotePresenceTrait — onEvent: query', () => {
     s.latency = 55;
     s.qualityLevel = 0.8;
     fireEvent(node, cfg, ctx, { type: 'remote_presence_query', queryId: 'q1' });
-    expect(ctx.emit).toHaveBeenCalledWith('remote_presence_info', expect.objectContaining({
-      latency: 55,
-      qualityLevel: 0.8,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'remote_presence_info',
+      expect.objectContaining({
+        latency: 55,
+        qualityLevel: 0.8,
+      })
+    );
   });
 });

@@ -18,11 +18,7 @@ describe('FluidSim', () => {
   });
 
   it('addBlock creates grid of particles', () => {
-    const count = sim.addBlock(
-      { x: 0, y: 0, z: 0 },
-      { x: 1, y: 1, z: 0 },
-      1,
-    );
+    const count = sim.addBlock({ x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 0 }, 1);
     expect(count).toBe(4); // 2x2x1
     expect(sim.getParticleCount()).toBe(4);
   });

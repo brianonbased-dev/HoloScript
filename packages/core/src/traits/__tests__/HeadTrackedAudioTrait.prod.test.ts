@@ -26,7 +26,10 @@ function makeCtx() {
   return { emit: vi.fn() };
 }
 
-function attach(cfg: Partial<typeof headTrackedAudioHandler.defaultConfig> = {}, pos?: { x: number; y: number; z: number }) {
+function attach(
+  cfg: Partial<typeof headTrackedAudioHandler.defaultConfig> = {},
+  pos?: { x: number; y: number; z: number }
+) {
   const node = makeNode(pos);
   const ctx = makeCtx();
   const config = { ...headTrackedAudioHandler.defaultConfig!, ...cfg };
@@ -40,7 +43,8 @@ describe('headTrackedAudioHandler.defaultConfig', () => {
   const d = headTrackedAudioHandler.defaultConfig!;
   it('source=""', () => expect(d.source).toBe(''));
   it('anchor_mode=world', () => expect(d.anchor_mode).toBe('world'));
-  it('tracking_latency_compensation=true', () => expect(d.tracking_latency_compensation).toBe(true));
+  it('tracking_latency_compensation=true', () =>
+    expect(d.tracking_latency_compensation).toBe(true));
   it('stabilization=0.5', () => expect(d.stabilization).toBe(0.5));
   it('bypass_spatialization=false', () => expect(d.bypass_spatialization).toBe(false));
   it('volume=1.0', () => expect(d.volume).toBe(1.0));
@@ -72,7 +76,12 @@ describe('headTrackedAudioHandler.onAttach', () => {
   });
 
   it('emits audio_load_source when source is provided', () => {
-    const { ctx } = attach({ source: 'audio/bg.ogg', bypass_spatialization: false, loop: true, volume: 0.8 });
+    const { ctx } = attach({
+      source: 'audio/bg.ogg',
+      bypass_spatialization: false,
+      loop: true,
+      volume: 0.8,
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'audio_load_source');
     expect(call).toBeDefined();
     expect(call![1].url).toBe('audio/bg.ogg');
@@ -145,7 +154,10 @@ describe('headTrackedAudioHandler.onUpdate — anchor_mode=world', () => {
     state.isPlaying = true;
     ctx.emit.mockClear();
     headTrackedAudioHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('audio_set_position', expect.objectContaining({ position: expect.any(Object) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'audio_set_position',
+      expect.objectContaining({ position: expect.any(Object) })
+    );
   });
 
   it('stabilization=0 → stabilizedPosition converges to compensated immediately', () => {
@@ -216,7 +228,12 @@ describe('headTrackedAudioHandler.onEvent', () => {
       type: 'head_rotation_update',
       rotation: { x: 0.1, y: 0.2, z: 0.3, w: 0.9 },
     });
-    expect((node as any).__headTrackedAudioState.headRotation).toEqual({ x: 0.1, y: 0.2, z: 0.3, w: 0.9 });
+    expect((node as any).__headTrackedAudioState.headRotation).toEqual({
+      x: 0.1,
+      y: 0.2,
+      z: 0.3,
+      w: 0.9,
+    });
   });
 
   it('audio_source_loaded stores sourceId', () => {
@@ -244,7 +261,10 @@ describe('headTrackedAudioHandler.onEvent', () => {
     ctx.emit.mockClear();
     headTrackedAudioHandler.onEvent!(node as any, config, ctx as any, { type: 'audio_play' });
     expect((node as any).__headTrackedAudioState.isPlaying).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('audio_start', expect.objectContaining({ loop: false, volume: 0.6 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'audio_start',
+      expect.objectContaining({ loop: false, volume: 0.6 })
+    );
   });
 
   it('audio_stop sets isPlaying=false and emits audio_stop', () => {

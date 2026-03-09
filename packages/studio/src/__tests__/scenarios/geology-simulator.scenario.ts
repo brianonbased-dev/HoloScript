@@ -7,11 +7,21 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  getMineralByHardness, canScratch, classifyRock, rocksByType,
-  pWaveSpeed, sWaveSpeed, seismicArrivalTime,
-  plateDisplacementOverTime, earthquakeMagnitudeEnergy,
-  periodByAge, periodsByEra, layerAtDepth,
-  MOHS_SCALE, GEOLOGICAL_TIMELINE, EARTH_LAYERS,
+  getMineralByHardness,
+  canScratch,
+  classifyRock,
+  rocksByType,
+  pWaveSpeed,
+  sWaveSpeed,
+  seismicArrivalTime,
+  plateDisplacementOverTime,
+  earthquakeMagnitudeEnergy,
+  periodByAge,
+  periodsByEra,
+  layerAtDepth,
+  MOHS_SCALE,
+  GEOLOGICAL_TIMELINE,
+  EARTH_LAYERS,
   type RockSample,
 } from '@/lib/geologySimulator';
 
@@ -56,9 +66,39 @@ describe('Scenario: Geology — Rock Classification', () => {
 
   it('rocksByType filters correctly', () => {
     const samples: RockSample[] = [
-      { id: 'r1', name: 'Granite', type: 'igneous', formation: 'intrusive', minerals: [], grainSize: 'coarse', texture: 'phaneritic', age: 300, location: '' },
-      { id: 'r2', name: 'Sandstone', type: 'sedimentary', formation: 'clastic', minerals: [], grainSize: 'medium', texture: 'clastic', age: 100, location: '' },
-      { id: 'r3', name: 'Marble', type: 'metamorphic', formation: 'non-foliated', minerals: [], grainSize: 'medium', texture: 'crystalline', age: 500, location: '' },
+      {
+        id: 'r1',
+        name: 'Granite',
+        type: 'igneous',
+        formation: 'intrusive',
+        minerals: [],
+        grainSize: 'coarse',
+        texture: 'phaneritic',
+        age: 300,
+        location: '',
+      },
+      {
+        id: 'r2',
+        name: 'Sandstone',
+        type: 'sedimentary',
+        formation: 'clastic',
+        minerals: [],
+        grainSize: 'medium',
+        texture: 'clastic',
+        age: 100,
+        location: '',
+      },
+      {
+        id: 'r3',
+        name: 'Marble',
+        type: 'metamorphic',
+        formation: 'non-foliated',
+        minerals: [],
+        grainSize: 'medium',
+        texture: 'crystalline',
+        age: 500,
+        location: '',
+      },
     ];
     expect(rocksByType(samples, 'igneous')).toHaveLength(1);
     expect(rocksByType(samples, 'sedimentary')[0].name).toBe('Sandstone');

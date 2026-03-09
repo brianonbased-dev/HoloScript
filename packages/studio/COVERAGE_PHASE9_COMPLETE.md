@@ -10,22 +10,22 @@
 
 ### Overall Metrics
 
-| Metric | Phase 8 | Phase 9 | Change | Status |
-|--------|---------|---------|--------|--------|
-| **Test Files** | 32 | 34 | **+2** ✅ | +6.25% |
-| **Total Tests** | 1027 | 1086 | **+59** ✅ | +5.74% |
-| **Lines Coverage** | 18.65% | 18.89% | **+0.24%** ✅ | Improved |
-| **Function Coverage** | 73.35% | 73.35% | 0.00% | Stable |
-| **Branch Coverage** | 80.30% | 80.30% | 0.00% | Stable |
-| **Hooks Coverage** | 40.34% | 44.83% | **+4.49%** ✅ | +11.13% |
+| Metric                | Phase 8 | Phase 9 | Change        | Status   |
+| --------------------- | ------- | ------- | ------------- | -------- |
+| **Test Files**        | 32      | 34      | **+2** ✅     | +6.25%   |
+| **Total Tests**       | 1027    | 1086    | **+59** ✅    | +5.74%   |
+| **Lines Coverage**    | 18.65%  | 18.89%  | **+0.24%** ✅ | Improved |
+| **Function Coverage** | 73.35%  | 73.35%  | 0.00%         | Stable   |
+| **Branch Coverage**   | 80.30%  | 80.30%  | 0.00%         | Stable   |
+| **Hooks Coverage**    | 40.34%  | 44.83%  | **+4.49%** ✅ | +11.13%  |
 
 ### Cumulative Progress (Baseline → Phase 9)
 
-| Metric | Baseline | Phase 9 | Total Change |
-|--------|----------|---------|--------------|
-| **Test Files** | 22 | 34 | **+12** (+54.55%) |
-| **Total Tests** | 766 | 1086 | **+320** (+41.78%) |
-| **Hooks Coverage** | 12.98% | 44.83% | **+31.85%** (+245.38%) |
+| Metric             | Baseline | Phase 9 | Total Change           |
+| ------------------ | -------- | ------- | ---------------------- |
+| **Test Files**     | 22       | 34      | **+12** (+54.55%)      |
+| **Total Tests**    | 766      | 1086    | **+320** (+41.78%)     |
+| **Hooks Coverage** | 12.98%   | 44.83%  | **+31.85%** (+245.38%) |
 
 ---
 
@@ -49,6 +49,7 @@ Tests covering performance profiling with requestAnimationFrame:
 - Edge Cases (7 tests)
 
 **Key Features Tested:**
+
 - RAF-based frame timing measurement
 - FPS, frame time, average, p95 calculations
 - Dropped frame detection (>33ms)
@@ -74,6 +75,7 @@ Tests covering animation keyframe playback and editing:
 - Edge Cases (1 test)
 
 **Key Features Tested:**
+
 - API integration for loading/saving keyframes
 - RAF-based playback with delta timing
 - Timeline scrubbing and controls
@@ -111,11 +113,11 @@ Tests covering animation keyframe playback and editing:
 
 ### Hooks Directory Progress
 
-| Metric | Baseline | P1 | P2 | P3 | P4 | P5 | P6 | P7 | P8 | P9 | Total |
-|--------|----------|----|----|----|----|----|----|----|----|----|----|
-| **Lines** | 12.98% | 15.86% | 18.58% | 22.58% | 27.17% | 31.03% | 34.48% | 37.93% | 40.34% | **44.83%** | **+31.85%** |
-| **Functions** | 63.75% | 71.35% | 76.15% | 79.45% | 80.30% | 83.35% | 86.67% | 90.00% | 92.50% | **95.00%** | **+31.25%** |
-| **Branches** | 42.85% | 45.05% | 48.38% | 50.11% | 52.45% | 55.30% | 58.82% | 62.50% | 65.00% | **67.86%** | **+25.01%** |
+| Metric        | Baseline | P1     | P2     | P3     | P4     | P5     | P6     | P7     | P8     | P9         | Total       |
+| ------------- | -------- | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ---------- | ----------- |
+| **Lines**     | 12.98%   | 15.86% | 18.58% | 22.58% | 27.17% | 31.03% | 34.48% | 37.93% | 40.34% | **44.83%** | **+31.85%** |
+| **Functions** | 63.75%   | 71.35% | 76.15% | 79.45% | 80.30% | 83.35% | 86.67% | 90.00% | 92.50% | **95.00%** | **+31.25%** |
+| **Branches**  | 42.85%   | 45.05% | 48.38% | 50.11% | 52.45% | 55.30% | 58.82% | 62.50% | 65.00% | **67.86%** | **+25.01%** |
 
 ### Test Distribution
 
@@ -266,16 +268,19 @@ it('should maintain history up to 120 frames', () => {
 ## 🎯 Path to 80% Coverage
 
 ### Current Status
+
 - **Hooks Coverage**: 44.83%
 - **Gap to 80%**: 35.17%
 - **Hooks at 100%**: 13 of ~50 total hooks
 
 ### Estimated Remaining Work
+
 - **Additional Hooks Needed**: ~15-18 more (to reach ~28-31 total)
 - **Additional Tests**: ~450-540 tests
 - **Estimated Time**: 4-5 more hours at current pace
 
 ### Priority Hooks for Next Phases
+
 1. **useOllamaStatus** (30 lines) - Simple status hook
 2. **useREPL** (58 lines) - REPL state management
 3. **useSceneCritique** (41 lines) - Scene critique API

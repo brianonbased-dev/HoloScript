@@ -49,11 +49,9 @@ export const useSketchStore = create<SketchState>()(
       brushMaterial: 'neon',
       activeStroke: null,
 
-      addStroke: (stroke) =>
-        set((s) => ({ strokes: [...s.strokes, stroke] })),
+      addStroke: (stroke) => set((s) => ({ strokes: [...s.strokes, stroke] })),
 
-      removeStroke: (id) =>
-        set((s) => ({ strokes: s.strokes.filter((st) => st.id !== id) })),
+      removeStroke: (id) => set((s) => ({ strokes: s.strokes.filter((st) => st.id !== id) })),
 
       clearStrokes: () => set({ strokes: [], activeStroke: null }),
 
@@ -64,7 +62,13 @@ export const useSketchStore = create<SketchState>()(
       beginStroke: () => {
         const { brushColor, brushSize, brushMaterial } = get();
         const id = `stroke_${Date.now()}`;
-        const stroke: Stroke = { id, points: [], color: brushColor, size: brushSize, material: brushMaterial };
+        const stroke: Stroke = {
+          id,
+          points: [],
+          color: brushColor,
+          size: brushSize,
+          material: brushMaterial,
+        };
         set({ activeStroke: stroke });
         return id;
       },

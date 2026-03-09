@@ -24,13 +24,18 @@ export class NoDeadCodeRule {
       const identMs = [...source.matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*[(.\[]/g)];
       for (const m of identMs) allRefs.add(m[1]);
     }
-    return allDefs.filter(d => allRefs.has(d.name) === false).map(d => ({
-      kind: d.kind,
-      name: d.name,
-      filePath: d.filePath,
-      line: d.line,
-      message: d.kind === 'template' ? 'Template ' + d.name + ' is defined but never used' : 'Function ' + d.name + ' is never called',
-    }));
+    return allDefs
+      .filter((d) => allRefs.has(d.name) === false)
+      .map((d) => ({
+        kind: d.kind,
+        name: d.name,
+        filePath: d.filePath,
+        line: d.line,
+        message:
+          d.kind === 'template'
+            ? 'Template ' + d.name + ' is defined but never used'
+            : 'Function ' + d.name + ' is never called',
+      }));
   }
   formatReport(diagnostics: DeadCodeDiagnostic[]): string {
     if (diagnostics.length === 0) return 'No dead code found. 0 issues.';

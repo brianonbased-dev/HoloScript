@@ -9,24 +9,35 @@ import {
   inferPermissions,
   createPlugin,
 } from '../../helpers.js';
-import type {
-  PluginSandboxManifest,
-  SandboxPermission,
-} from '../types.js';
+import type { PluginSandboxManifest, SandboxPermission } from '../types.js';
 import type { HoloScriptPlugin } from '../../types.js';
 
 describe('SandboxPermission type validation', () => {
   it('should accept all valid permission strings', () => {
     const validPermissions: SandboxPermission[] = [
-      'scene:read', 'scene:write', 'scene:subscribe',
-      'editor:selection', 'editor:viewport', 'editor:undo',
-      'ui:panel', 'ui:toolbar', 'ui:menu', 'ui:modal', 'ui:notification', 'ui:theme',
-      'storage:local', 'storage:project',
-      'network:fetch', 'network:websocket',
-      'clipboard:read', 'clipboard:write',
-      'fs:import', 'fs:export',
+      'scene:read',
+      'scene:write',
+      'scene:subscribe',
+      'editor:selection',
+      'editor:viewport',
+      'editor:undo',
+      'ui:panel',
+      'ui:toolbar',
+      'ui:menu',
+      'ui:modal',
+      'ui:notification',
+      'ui:theme',
+      'storage:local',
+      'storage:project',
+      'network:fetch',
+      'network:websocket',
+      'clipboard:read',
+      'clipboard:write',
+      'fs:import',
+      'fs:export',
       'user:read',
-      'nodes:workflow', 'nodes:behaviortree',
+      'nodes:workflow',
+      'nodes:behaviortree',
       'keyboard:shortcuts',
     ];
 
@@ -146,12 +157,8 @@ describe('validateSandboxManifest', () => {
         description: 'Test',
         author: { name: 'Test' },
       },
-      panels: [
-        { id: 'p1', label: 'Panel', component: () => null },
-      ],
-      toolbarButtons: [
-        { id: 'b1', label: 'Button', onClick: () => {} },
-      ],
+      panels: [{ id: 'p1', label: 'Panel', component: () => null }],
+      toolbarButtons: [{ id: 'b1', label: 'Button', onClick: () => {} }],
     };
 
     const result = validateSandboxManifest(manifest, plugin);

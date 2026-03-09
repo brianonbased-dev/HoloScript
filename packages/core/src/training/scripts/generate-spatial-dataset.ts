@@ -58,7 +58,11 @@ const CONFIG = {
  * Generates n-grams from text for near-duplicate detection.
  */
 function getNgrams(text: string, n: number = 3): Set<string> {
-  const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(Boolean);
   const ngrams = new Set<string>();
   for (let i = 0; i <= words.length - n; i++) {
     ngrams.add(words.slice(i, i + n).join(' '));
@@ -149,11 +153,15 @@ function deduplicateExamples(
     unique.push(...catUnique);
   }
 
-  console.log(`  Phase 2 (Near-dup): ${nearDupes} near-duplicates removed (threshold: ${threshold})`);
+  console.log(
+    `  Phase 2 (Near-dup): ${nearDupes} near-duplicates removed (threshold: ${threshold})`
+  );
 
   const totalDupes = exactDupes + nearDupes;
   const rate = totalDupes / examples.length;
-  console.log(`  Total: ${totalDupes} duplicates removed (${(rate * 100).toFixed(1)}% duplication rate)`);
+  console.log(
+    `  Total: ${totalDupes} duplicates removed (${(rate * 100).toFixed(1)}% duplication rate)`
+  );
   console.log(`  Remaining: ${unique.length} unique examples`);
 
   return { unique, duplicateCount: totalDupes, duplicateRate: rate };
@@ -180,22 +188,42 @@ function scoreQuality(ex: SpatialTrainingExample): QualityScores {
   // Helpfulness: Does the instruction ask a clear, answerable question?
   let helpfulness = 0;
   if (ex.instruction.length > 20) helpfulness += 0.3;
-  if (ex.instruction.includes('?') || ex.instruction.toLowerCase().includes('evaluate') ||
-      ex.instruction.toLowerCase().includes('check') || ex.instruction.toLowerCase().includes('analyze') ||
-      ex.instruction.toLowerCase().includes('verify')) helpfulness += 0.3;
+  if (
+    ex.instruction.includes('?') ||
+    ex.instruction.toLowerCase().includes('evaluate') ||
+    ex.instruction.toLowerCase().includes('check') ||
+    ex.instruction.toLowerCase().includes('analyze') ||
+    ex.instruction.toLowerCase().includes('verify')
+  )
+    helpfulness += 0.3;
   if (ex.instruction.includes('"')) helpfulness += 0.2; // References specific objects
   if (ex.response.length > 20) helpfulness += 0.2;
 
   // Correctness: Does the response contain concrete spatial data (distances, positions)?
   let correctness = 0;
   if (ex.response.match(/\d+\.\d+m/)) correctness += 0.4; // Contains distance measurement
-  if (ex.response.includes('Yes') || ex.response.includes('No') ||
-      ex.response.includes('constraint') || ex.response.includes('satisf') ||
-      ex.response.includes('violat') || ex.response.includes('pass') ||
-      ex.response.includes('fail')) correctness += 0.3; // Contains a definitive answer
-  if (ex.tags.includes('positive') && (ex.response.includes('Yes') || ex.response.includes('pass') || ex.response.includes('satisf'))) {
+  if (
+    ex.response.includes('Yes') ||
+    ex.response.includes('No') ||
+    ex.response.includes('constraint') ||
+    ex.response.includes('satisf') ||
+    ex.response.includes('violat') ||
+    ex.response.includes('pass') ||
+    ex.response.includes('fail')
+  )
+    correctness += 0.3; // Contains a definitive answer
+  if (
+    ex.tags.includes('positive') &&
+    (ex.response.includes('Yes') || ex.response.includes('pass') || ex.response.includes('satisf'))
+  ) {
     correctness += 0.3; // Positive label matches positive response
-  } else if (ex.tags.includes('negative') && (ex.response.includes('No') || ex.response.includes('fail') || ex.response.includes('violat') || ex.response.includes('block'))) {
+  } else if (
+    ex.tags.includes('negative') &&
+    (ex.response.includes('No') ||
+      ex.response.includes('fail') ||
+      ex.response.includes('violat') ||
+      ex.response.includes('block'))
+  ) {
     correctness += 0.3; // Negative label matches negative response
   }
 
@@ -206,7 +234,7 @@ function scoreQuality(ex: SpatialTrainingExample): QualityScores {
   const responseObjects = ex.response.match(/"([^"]+)"/g) || [];
   if (instructionObjects.length > 0 && responseObjects.length > 0) {
     const instrSet = new Set(instructionObjects);
-    const overlap = responseObjects.filter(o => instrSet.has(o));
+    const overlap = responseObjects.filter((o) => instrSet.has(o));
     coherence += Math.min(1.0, overlap.length / instructionObjects.length);
   } else {
     coherence += 0.5; // Partial credit if no quoted objects
@@ -214,7 +242,11 @@ function scoreQuality(ex: SpatialTrainingExample): QualityScores {
 
   // Complexity: Is the example sufficiently complex for training value?
   let complexity = 0;
-  const difficultyScore: Record<SpatialDifficulty, number> = { basic: 0.3, intermediate: 0.6, advanced: 1.0 };
+  const difficultyScore: Record<SpatialDifficulty, number> = {
+    basic: 0.3,
+    intermediate: 0.6,
+    advanced: 1.0,
+  };
   complexity = difficultyScore[ex.difficulty];
 
   // Verbosity: Is the response appropriately verbose (not too short, not excessive)?
@@ -295,11 +327,15 @@ function validateQuality(
   console.log(`\n  Quality Distribution:`);
   for (const [band, count] of Object.entries(distribution)) {
     const pct = ((count / examples.length) * 100).toFixed(1);
-    const bar = '#'.repeat(Math.round(count / examples.length * 50));
+    const bar = '#'.repeat(Math.round((count / examples.length) * 50));
     console.log(`    ${band.padEnd(22)} ${String(count).padStart(6)} (${pct.padStart(5)}%) ${bar}`);
   }
-  console.log(`\n  Passed:   ${passed.length} (${((passed.length / examples.length) * 100).toFixed(1)}%)`);
-  console.log(`  Rejected: ${rejected.length} (${((rejected.length / examples.length) * 100).toFixed(1)}%)`);
+  console.log(
+    `\n  Passed:   ${passed.length} (${((passed.length / examples.length) * 100).toFixed(1)}%)`
+  );
+  console.log(
+    `  Rejected: ${rejected.length} (${((rejected.length / examples.length) * 100).toFixed(1)}%)`
+  );
 
   return { passed, rejected, avgScores, distribution };
 }
@@ -326,7 +362,9 @@ function reportStatistics(
   console.log(`  Target Examples:     ${CONFIG.targetExamples}`);
   console.log(`  Generated:           ${originalCount}`);
   console.log(`  After Dedup:         ${examples.length}`);
-  console.log(`  Dedup Removed:       ${dedupStats.duplicateCount} (${(dedupStats.duplicateRate * 100).toFixed(1)}%)`);
+  console.log(
+    `  Dedup Removed:       ${dedupStats.duplicateCount} (${(dedupStats.duplicateRate * 100).toFixed(1)}%)`
+  );
   console.log(`  Positive Ratio:      ${CONFIG.positiveRatio} (target: 60/40)`);
 
   console.log('\n--- Examples by Relationship Type ---');
@@ -341,12 +379,18 @@ function reportStatistics(
 
   console.log('\n--- Positive/Negative Balance ---');
   const actualPositiveRatio = stats.positiveCount / stats.totalExamples;
-  console.log(`  Positive:            ${stats.positiveCount} (${(actualPositiveRatio * 100).toFixed(1)}%)`);
-  console.log(`  Negative:            ${stats.negativeCount} (${((1 - actualPositiveRatio) * 100).toFixed(1)}%)`);
+  console.log(
+    `  Positive:            ${stats.positiveCount} (${(actualPositiveRatio * 100).toFixed(1)}%)`
+  );
+  console.log(
+    `  Negative:            ${stats.negativeCount} (${((1 - actualPositiveRatio) * 100).toFixed(1)}%)`
+  );
 
   console.log('\n--- Template Diversity (G.002 Compliance) ---');
   console.log(`  Unique Templates:    ${stats.uniqueTemplatesUsed}`);
-  console.log(`  G.002 Mandate:       ${stats.uniqueTemplatesUsed >= 10 ? 'PASS (>=10)' : 'FAIL (<10)'}`);
+  console.log(
+    `  G.002 Mandate:       ${stats.uniqueTemplatesUsed >= 10 ? 'PASS (>=10)' : 'FAIL (<10)'}`
+  );
 
   // Detailed template usage per relationship type
   const templatesByType: Record<string, Set<string>> = {
@@ -355,7 +399,7 @@ function reportStatistics(
     spatial_reachable: new Set(),
   };
   for (const ex of examples) {
-    const tplTag = ex.tags.find(t => t.startsWith('template:'));
+    const tplTag = ex.tags.find((t) => t.startsWith('template:'));
     if (tplTag) {
       templatesByType[ex.relationshipType].add(tplTag);
     }
@@ -380,9 +424,17 @@ function reportStatistics(
     if (!crossTab[key]) crossTab[key] = { basic: 0, intermediate: 0, advanced: 0 };
     crossTab[key][ex.difficulty]++;
   }
-  console.log('  ' + 'Type'.padEnd(25) + 'Basic'.padStart(8) + 'Intermediate'.padStart(15) + 'Advanced'.padStart(12));
+  console.log(
+    '  ' +
+      'Type'.padEnd(25) +
+      'Basic'.padStart(8) +
+      'Intermediate'.padStart(15) +
+      'Advanced'.padStart(12)
+  );
   for (const [type, diffs] of Object.entries(crossTab)) {
-    console.log(`  ${type.padEnd(25)}${String(diffs.basic).padStart(8)}${String(diffs.intermediate).padStart(15)}${String(diffs.advanced).padStart(12)}`);
+    console.log(
+      `  ${type.padEnd(25)}${String(diffs.basic).padStart(8)}${String(diffs.intermediate).padStart(15)}${String(diffs.advanced).padStart(12)}`
+    );
   }
 
   console.log('\n--- Output ---');
@@ -423,14 +475,12 @@ async function main(): Promise<void> {
 
   // Step 2: Deduplication (W.004)
   const dedupStart = Date.now();
-  const { unique: dedupExamples, duplicateCount, duplicateRate } =
-    deduplicateExamples(rawExamples);
+  const { unique: dedupExamples, duplicateCount, duplicateRate } = deduplicateExamples(rawExamples);
   console.log(`  Dedup time: ${((Date.now() - dedupStart) / 1000).toFixed(1)}s`);
 
   // Step 3: Quality Validation (W.010)
   const qualStart = Date.now();
-  const { passed: qualityExamples, avgScores, distribution } =
-    validateQuality(dedupExamples);
+  const { passed: qualityExamples, avgScores, distribution } = validateQuality(dedupExamples);
   console.log(`  Quality validation time: ${((Date.now() - qualStart) / 1000).toFixed(1)}s`);
 
   // Step 4: Export to JSONL

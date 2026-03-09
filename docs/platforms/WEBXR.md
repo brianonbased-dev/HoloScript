@@ -15,6 +15,7 @@ holoscript compile my-experience.holo --target babylonjs --output ./build/babylo
 ```
 
 **Output structure:**
+
 ```
 build/webxr/
 ├── index.html
@@ -40,6 +41,7 @@ npm run dev
 ```
 
 **Production build:**
+
 ```bash
 npm run build
 # Deploy dist/ folder to hosting
@@ -48,36 +50,41 @@ npm run build
 ## Platform Support
 
 ### Desktop VR
+
 - ✅ Meta Quest Browser (Link/Air Link)
 - ✅ SteamVR (Chrome, Firefox)
 - ✅ Windows Mixed Reality
 
 ### Mobile AR
+
 - ✅ iOS Safari 15+ (WebXR AR)
 - ✅ Android Chrome 90+ (AR Module)
 
 ### Desktop Fallback
+
 - Mouse + keyboard controls
 - No VR headset required
 - Full functionality
 
 ## Three.js vs. Babylon.js
 
-| Feature | Three.js | Babylon.js |
-|---------|----------|------------|
-| **File Size** | ~600KB | ~2MB |
-| **Performance** | Faster (mobile) | Slower (more features) |
-| **Graphics Quality** | Good | Excellent |
-| **VR Support** | WebXR Device API | Full XR support |
-| **Physics** | Cannon.js/Ammo.js | Havok/Cannon.js |
-| **Best For** | Mobile AR, Quick demos | High-quality VR |
+| Feature              | Three.js               | Babylon.js             |
+| -------------------- | ---------------------- | ---------------------- |
+| **File Size**        | ~600KB                 | ~2MB                   |
+| **Performance**      | Faster (mobile)        | Slower (more features) |
+| **Graphics Quality** | Good                   | Excellent              |
+| **VR Support**       | WebXR Device API       | Full XR support        |
+| **Physics**          | Cannon.js/Ammo.js      | Havok/Cannon.js        |
+| **Best For**         | Mobile AR, Quick demos | High-quality VR        |
 
 ### When to Use Three.js
+
 - Mobile AR experiences
 - Lightweight WebXR demos
 - Fast loading required
 
 ### When to Use Babylon.js
+
 - Desktop VR with high graphics
 - Complex physics simulations
 - Advanced lighting/shadows
@@ -85,6 +92,7 @@ npm run build
 ## Example: WebXR Scene
 
 **HoloScript:**
+
 ```holoscript
 composition "WebVRDemo" {
   environment {
@@ -109,6 +117,7 @@ composition "WebVRDemo" {
 ```
 
 **Generated Three.js:**
+
 ```javascript
 import * as THREE from 'three';
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
@@ -142,6 +151,7 @@ renderer.setAnimationLoop(() => {
 ```
 
 **Generated Babylon.js:**
+
 ```javascript
 import * as BABYLON from '@babylonjs/core';
 
@@ -165,10 +175,9 @@ cube.material = material;
 // Interaction
 cube.actionManager = new BABYLON.ActionManager(scene);
 cube.actionManager.registerAction(
-  new BABYLON.ExecuteCodeAction(
-    BABYLON.ActionManager.OnPickTrigger,
-    () => { material.diffuseColor = BABYLON.Color3.Green(); }
-  )
+  new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, () => {
+    material.diffuseColor = BABYLON.Color3.Green();
+  })
 );
 
 engine.runRenderLoop(() => {
@@ -195,13 +204,14 @@ ar_session#furniture_ar {
 ```
 
 **Generated WebXR AR:**
+
 ```javascript
 const xrSession = await navigator.xr.requestSession('immersive-ar', {
-  requiredFeatures: ['hit-test']
+  requiredFeatures: ['hit-test'],
 });
 
 const hitTestSource = await xrSession.requestHitTestSource({
-  space: viewerSpace
+  space: viewerSpace,
 });
 
 // Place object on tap
@@ -219,18 +229,21 @@ canvas.addEventListener('click', (event) => {
 ### Static Hosting
 
 **Vercel:**
+
 ```bash
 npm install -g vercel
 vercel deploy
 ```
 
 **Netlify:**
+
 ```bash
 npm install -g netlify-cli
 netlify deploy --prod
 ```
 
 **GitHub Pages:**
+
 ```bash
 npm run build
 git add dist/
@@ -239,18 +252,22 @@ git subtree push --prefix dist origin gh-pages
 ```
 
 ### HTTPS Required
+
 WebXR requires HTTPS (except localhost):
+
 - Use free SSL from Let's Encrypt
 - Or hosting with built-in SSL (Vercel, Netlify)
 
 ## Performance Optimization
 
 ### Target Frame Rates
+
 - **Desktop VR**: 60-90 FPS
 - **Mobile AR**: 30-60 FPS
 - **Desktop Fallback**: 60 FPS
 
 ### Optimization Checklist
+
 - [ ] Compress textures (Basis Universal)
 - [ ] Use GLTF/GLB models (not OBJ/FBX)
 - [ ] Limit polygons to <10k per object
@@ -260,6 +277,7 @@ WebXR requires HTTPS (except localhost):
 - [ ] Compress JavaScript with Vite/Webpack
 
 ### Asset Loading
+
 ```javascript
 // Lazy load models
 const loader = new THREE.GLTFLoader();
@@ -270,18 +288,20 @@ loader.load('model.glb', (gltf) => {
 // Show loading screen
 const loadingManager = new THREE.LoadingManager();
 loadingManager.onProgress = (url, loaded, total) => {
-  console.log(`Loading: ${(loaded / total * 100)}%`);
+  console.log(`Loading: ${(loaded / total) * 100}%`);
 };
 ```
 
 ## Troubleshooting
 
 ### "WebXR not supported"
+
 - Use HTTPS (not HTTP)
 - Update browser to latest version
 - Check device compatibility
 
 ### VR button not appearing
+
 ```javascript
 // Check WebXR support
 if ('xr' in navigator) {
@@ -292,11 +312,13 @@ if ('xr' in navigator) {
 ```
 
 ### AR not working on iOS
+
 - iOS 15+ required
 - Use Safari (not Chrome)
 - Enable "Motion & Orientation Access"
 
 ### Poor mobile performance
+
 - Reduce texture sizes to 512x512 or 1024x1024
 - Limit active lights to 2-3
 - Disable shadows on mobile
@@ -305,9 +327,10 @@ if ('xr' in navigator) {
 ## Advanced Features
 
 ### Hand Tracking
+
 ```javascript
 const xrSession = await navigator.xr.requestSession('immersive-vr', {
-  requiredFeatures: ['hand-tracking']
+  requiredFeatures: ['hand-tracking'],
 });
 
 xrSession.addEventListener('inputsourceschange', (event) => {
@@ -320,6 +343,7 @@ xrSession.addEventListener('inputsourceschange', (event) => {
 ```
 
 ### Controllers
+
 ```javascript
 // Three.js
 const controller = renderer.xr.getController(0);
@@ -335,6 +359,7 @@ leftController.onTriggerStateChangedObservable.add((trigger) => {
 ```
 
 ### Spatial Audio
+
 ```javascript
 const listener = new THREE.AudioListener();
 camera.add(listener);
@@ -349,13 +374,13 @@ cube.add(sound);
 
 ## Browser Compatibility
 
-| Browser | Desktop VR | Mobile AR | Controllers | Hand Tracking |
-|---------|------------|-----------|-------------|---------------|
-| Chrome | ✅ | ✅ (Android) | ✅ | ✅ |
-| Firefox | ✅ | ❌ | ✅ | ❌ |
-| Safari | ❌ | ✅ (iOS 15+) | ❌ | ❌ |
-| Edge | ✅ | ❌ | ✅ | ✅ |
-| Quest Browser | ✅ | ✅ | ✅ | ✅ |
+| Browser       | Desktop VR | Mobile AR    | Controllers | Hand Tracking |
+| ------------- | ---------- | ------------ | ----------- | ------------- |
+| Chrome        | ✅         | ✅ (Android) | ✅          | ✅            |
+| Firefox       | ✅         | ❌           | ✅          | ❌            |
+| Safari        | ❌         | ✅ (iOS 15+) | ❌          | ❌            |
+| Edge          | ✅         | ❌           | ✅          | ✅            |
+| Quest Browser | ✅         | ✅           | ✅          | ✅            |
 
 ## Resources
 

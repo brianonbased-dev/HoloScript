@@ -31,6 +31,7 @@ See [RESULTS.md](./RESULTS.md) for comprehensive benchmark results, analysis, an
 ### 1. Operation Latency (`operations.bench.ts`)
 
 Measures average time per CRDT operation:
+
 - Register/text set operations
 - Counter increment operations
 - Set add operations
@@ -41,6 +42,7 @@ Measures average time per CRDT operation:
 ### 2. Memory Footprint (`memory.bench.ts`)
 
 Measures heap memory consumption:
+
 - 1,000 operations
 - 10,000 operations
 - 50,000 operations (if supported)
@@ -48,6 +50,7 @@ Measures heap memory consumption:
 **Metrics:** heap used, heap total, external memory, bytes per operation
 
 ⚠️ **Run with `--expose-gc` for accurate measurements:**
+
 ```bash
 node --expose-gc dist/suites/memory.bench.js
 ```
@@ -55,6 +58,7 @@ node --expose-gc dist/suites/memory.bench.js
 ### 3. Serialization Size (`serialization.bench.ts`)
 
 Measures wire format efficiency:
+
 - Serialized size after N operations
 - Serialization time
 - Deserialization time
@@ -64,6 +68,7 @@ Measures wire format efficiency:
 ### 4. Concurrent Merge Performance (`merge.bench.ts`)
 
 Measures merge performance for concurrent edits:
+
 - 2 actors × 50 edits
 - 5 actors × 20 edits
 - 10 actors × 10 edits
@@ -73,6 +78,7 @@ Measures merge performance for concurrent edits:
 ### 5. DID Signing Overhead (`signing.bench.ts`)
 
 Measures authentication overhead (@holoscript/crdt only):
+
 - Signature creation time
 - Signature verification time
 - Overhead vs unsigned operations
@@ -86,6 +92,7 @@ Measures authentication overhead (@holoscript/crdt only):
 Custom authenticated CRDTs with DID-based signing.
 
 **Strengths:**
+
 - Built-in DID authentication
 - AgentRBAC integration
 - Tamper-proof operation logs
@@ -97,6 +104,7 @@ Custom authenticated CRDTs with DID-based signing.
 Industry-standard CRDT library optimized for collaborative editing.
 
 **Strengths:**
+
 - Excellent performance (18,905 ops/sec)
 - Minimal memory footprint
 - Large ecosystem
@@ -108,6 +116,7 @@ Industry-standard CRDT library optimized for collaborative editing.
 JSON-like CRDT with WASM acceleration.
 
 **Strengths:**
+
 - Familiar document model
 - Cross-language support
 - Built-in history tracking
@@ -141,6 +150,7 @@ benchmarks/crdt-performance/
 ## Methodology
 
 ### Environment
+
 - **Runtime:** Node.js v22+
 - **Platform:** Windows/Linux/macOS
 - **Timing:** High-resolution `performance.now()`
@@ -149,11 +159,13 @@ benchmarks/crdt-performance/
 - **Warmup:** Automatic warmup phase
 
 ### Data Types Tested
+
 1. **LWW-Register** - Last-Write-Wins register
 2. **G-Counter** - Grow-only counter
 3. **OR-Set** - Observed-Remove set
 
 ### Metrics Collected
+
 - Operation latency (ms)
 - Memory footprint (MB)
 - Serialization size (KB)
@@ -174,12 +186,14 @@ From [RESULTS.md](./RESULTS.md):
 ### For MVC Schema
 
 Use **@holoscript/crdt** for:
+
 - Agent-owned state (<10KB)
 - Identity-critical operations
 - Audit trails and provenance
 - Byzantine fault tolerance
 
 Use **Yjs** for:
+
 - Real-time collaborative editing
 - High-frequency updates (1000s/sec)
 - Ephemeral shared state

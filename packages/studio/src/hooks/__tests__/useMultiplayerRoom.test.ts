@@ -93,9 +93,7 @@ describe('useMultiplayerRoom', () => {
     });
 
     it('should encode special characters in parameters', () => {
-      renderHook(() =>
-        useMultiplayerRoom({ roomId: 'room with spaces', userName: 'Bob & Alice' })
-      );
+      renderHook(() => useMultiplayerRoom({ roomId: 'room with spaces', userName: 'Bob & Alice' }));
 
       expect(global.EventSource).toHaveBeenCalledWith(
         expect.stringContaining('room=room%20with%20spaces')

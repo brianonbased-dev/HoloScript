@@ -33,9 +33,9 @@ import {
 
 export interface ConstraintSolverConfig {
   iterations: number;
-  baumgarte: number;       // Baumgarte stabilization factor (0.1 - 0.3 typical)
+  baumgarte: number; // Baumgarte stabilization factor (0.1 - 0.3 typical)
   warmStarting: boolean;
-  slop: number;            // Penetration slop to prevent jitter
+  slop: number; // Penetration slop to prevent jitter
 }
 
 interface SolvedConstraint {
@@ -51,20 +51,34 @@ interface SolvedConstraint {
 // VECTOR MATH HELPERS
 // =============================================================================
 
-function v3(x: number, y: number, z: number): IVector3 { return { x, y, z }; }
-function v3Add(a: IVector3, b: IVector3): IVector3 { return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }; }
-function v3Sub(a: IVector3, b: IVector3): IVector3 { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
-function v3Scale(v: IVector3, s: number): IVector3 { return { x: v.x * s, y: v.y * s, z: v.z * s }; }
-function v3Dot(a: IVector3, b: IVector3): number { return a.x * b.x + a.y * b.y + a.z * b.z; }
+function v3(x: number, y: number, z: number): IVector3 {
+  return { x, y, z };
+}
+function v3Add(a: IVector3, b: IVector3): IVector3 {
+  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+}
+function v3Sub(a: IVector3, b: IVector3): IVector3 {
+  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+}
+function v3Scale(v: IVector3, s: number): IVector3 {
+  return { x: v.x * s, y: v.y * s, z: v.z * s };
+}
+function v3Dot(a: IVector3, b: IVector3): number {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}
 function v3Cross(a: IVector3, b: IVector3): IVector3 {
   return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
 }
-function v3Length(v: IVector3): number { return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z); }
+function v3Length(v: IVector3): number {
+  return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+}
 function v3Normalize(v: IVector3): IVector3 {
   const len = v3Length(v);
   return len > 1e-10 ? v3Scale(v, 1 / len) : v3(0, 0, 0);
 }
-function v3Zero(): IVector3 { return { x: 0, y: 0, z: 0 }; }
+function v3Zero(): IVector3 {
+  return { x: 0, y: 0, z: 0 };
+}
 
 // =============================================================================
 // CONSTRAINT SOLVER
@@ -111,7 +125,7 @@ export class ConstraintSolver {
    * Remove a constraint by ID.
    */
   removeConstraint(constraintId: string): boolean {
-    const idx = this.solved.findIndex(s => s.constraint.id === constraintId);
+    const idx = this.solved.findIndex((s) => s.constraint.id === constraintId);
     if (idx < 0) return false;
     this.solved.splice(idx, 1);
     return true;
@@ -121,7 +135,7 @@ export class ConstraintSolver {
    * Get all active constraints.
    */
   getConstraints(): Constraint[] {
-    return this.solved.filter(s => !s.broken).map(s => s.constraint);
+    return this.solved.filter((s) => !s.broken).map((s) => s.constraint);
   }
 
   /**
@@ -166,7 +180,7 @@ export class ConstraintSolver {
    * Get broken constraint IDs.
    */
   getBrokenConstraints(): string[] {
-    return this.solved.filter(s => s.broken).map(s => s.constraint.id);
+    return this.solved.filter((s) => s.broken).map((s) => s.constraint.id);
   }
 
   /**
@@ -190,10 +204,18 @@ export class ConstraintSolver {
         this.solveFixed(sc, dt, corrections);
         break;
       case 'distance':
-        this.solveDistance(sc as SolvedConstraint & { constraint: IDistanceConstraint }, dt, corrections);
+        this.solveDistance(
+          sc as SolvedConstraint & { constraint: IDistanceConstraint },
+          dt,
+          corrections
+        );
         break;
       case 'spring':
-        this.solveSpring(sc as SolvedConstraint & { constraint: ISpringConstraint }, dt, corrections);
+        this.solveSpring(
+          sc as SolvedConstraint & { constraint: ISpringConstraint },
+          dt,
+          corrections
+        );
         break;
       case 'hinge':
         this.solveHinge(sc as SolvedConstraint & { constraint: IHingeConstraint }, dt, corrections);
@@ -202,13 +224,21 @@ export class ConstraintSolver {
         this.solveBall(sc, dt, corrections);
         break;
       case 'slider':
-        this.solveSlider(sc as SolvedConstraint & { constraint: ISliderConstraint }, dt, corrections);
+        this.solveSlider(
+          sc as SolvedConstraint & { constraint: ISliderConstraint },
+          dt,
+          corrections
+        );
         break;
       case 'cone':
         this.solveCone(sc as SolvedConstraint & { constraint: IConeConstraint }, dt, corrections);
         break;
       case 'generic6dof':
-        this.solveGeneric6DOF(sc as SolvedConstraint & { constraint: IGeneric6DOFConstraint }, dt, corrections);
+        this.solveGeneric6DOF(
+          sc as SolvedConstraint & { constraint: IGeneric6DOFConstraint },
+          dt,
+          corrections
+        );
         break;
     }
   }
@@ -224,9 +254,7 @@ export class ConstraintSolver {
   ): void {
     const c = sc.constraint as IFixedConstraint;
     const pivotWorld = v3Add(sc.bodyA.position, c.pivotA);
-    const targetWorld = sc.bodyB
-      ? v3Add(sc.bodyB.position, c.pivotB || v3Zero())
-      : pivotWorld;
+    const targetWorld = sc.bodyB ? v3Add(sc.bodyB.position, c.pivotB || v3Zero()) : pivotWorld;
 
     const error = v3Sub(targetWorld, pivotWorld);
     const correction = v3Scale(error, this.config.baumgarte / Math.max(dt, 1e-6));
@@ -260,7 +288,7 @@ export class ConstraintSolver {
 
     const stiffness = c.stiffness ?? 1.0;
     const baumgarte = this.config.baumgarte * stiffness;
-    const impulse = v3Scale(dir, penetration * baumgarte / Math.max(dt, 1e-6));
+    const impulse = v3Scale(dir, (penetration * baumgarte) / Math.max(dt, 1e-6));
 
     this.accumulateCorrection(corrections, sc.bodyA.id, impulse, v3Zero());
     if (sc.bodyB) {
@@ -316,9 +344,7 @@ export class ConstraintSolver {
 
     // Position constraint (ball joint part)
     const pivotWorld = v3Add(sc.bodyA.position, c.pivotA);
-    const targetWorld = sc.bodyB
-      ? v3Add(sc.bodyB.position, c.pivotB || v3Zero())
-      : pivotWorld;
+    const targetWorld = sc.bodyB ? v3Add(sc.bodyB.position, c.pivotB || v3Zero()) : pivotWorld;
 
     const posError = v3Sub(targetWorld, pivotWorld);
     const posCorrection = v3Scale(posError, this.config.baumgarte / Math.max(dt, 1e-6));
@@ -333,7 +359,8 @@ export class ConstraintSolver {
       const axis = v3Normalize(c.axisA);
       const currentAngVel = v3Dot(sc.bodyA.angularVelocity, axis);
       const velError = c.motor.targetVelocity - currentAngVel;
-      const motorImpulse = Math.min(Math.abs(velError * dt), c.motor.maxForce * dt) * Math.sign(velError);
+      const motorImpulse =
+        Math.min(Math.abs(velError * dt), c.motor.maxForce * dt) * Math.sign(velError);
       const angImpulse = v3Scale(axis, motorImpulse);
 
       this.accumulateCorrection(corrections, sc.bodyA.id, v3Zero(), angImpulse);
@@ -349,9 +376,7 @@ export class ConstraintSolver {
   ): void {
     const c = sc.constraint as IBallConstraint;
     const pivotWorld = v3Add(sc.bodyA.position, c.pivotA);
-    const targetWorld = sc.bodyB
-      ? v3Add(sc.bodyB.position, c.pivotB || v3Zero())
-      : pivotWorld;
+    const targetWorld = sc.bodyB ? v3Add(sc.bodyB.position, c.pivotB || v3Zero()) : pivotWorld;
 
     const error = v3Sub(targetWorld, pivotWorld);
     const correction = v3Scale(error, this.config.baumgarte / Math.max(dt, 1e-6));
@@ -372,9 +397,7 @@ export class ConstraintSolver {
     const c = sc.constraint;
     const axis = v3Normalize(c.axisA);
     const pivotWorld = v3Add(sc.bodyA.position, c.pivotA);
-    const targetWorld = sc.bodyB
-      ? v3Add(sc.bodyB.position, c.pivotB || v3Zero())
-      : pivotWorld;
+    const targetWorld = sc.bodyB ? v3Add(sc.bodyB.position, c.pivotB || v3Zero()) : pivotWorld;
 
     const delta = v3Sub(targetWorld, pivotWorld);
 
@@ -391,10 +414,16 @@ export class ConstraintSolver {
     // Limit enforcement
     if (c.limits) {
       if (onAxis < c.limits.low) {
-        const limitImpulse = v3Scale(axis, (c.limits.low - onAxis) * this.config.baumgarte / Math.max(dt, 1e-6));
+        const limitImpulse = v3Scale(
+          axis,
+          ((c.limits.low - onAxis) * this.config.baumgarte) / Math.max(dt, 1e-6)
+        );
         this.accumulateCorrection(corrections, sc.bodyA.id, limitImpulse, v3Zero());
       } else if (onAxis > c.limits.high) {
-        const limitImpulse = v3Scale(axis, (c.limits.high - onAxis) * this.config.baumgarte / Math.max(dt, 1e-6));
+        const limitImpulse = v3Scale(
+          axis,
+          ((c.limits.high - onAxis) * this.config.baumgarte) / Math.max(dt, 1e-6)
+        );
         this.accumulateCorrection(corrections, sc.bodyA.id, limitImpulse, v3Zero());
       }
     }
@@ -411,9 +440,7 @@ export class ConstraintSolver {
 
     // Position constraint
     const pivotWorld = v3Add(sc.bodyA.position, c.pivotA);
-    const targetWorld = sc.bodyB
-      ? v3Add(sc.bodyB.position, c.pivotB || v3Zero())
-      : pivotWorld;
+    const targetWorld = sc.bodyB ? v3Add(sc.bodyB.position, c.pivotB || v3Zero()) : pivotWorld;
 
     const posError = v3Sub(targetWorld, pivotWorld);
     const posCorrection = v3Scale(posError, this.config.baumgarte / Math.max(dt, 1e-6));
@@ -445,12 +472,24 @@ export class ConstraintSolver {
     const pos = sc.bodyA.position;
     const linCorrection = v3Zero();
 
-    if (pos.x < c.linearLowerLimit.x) linCorrection.x = (c.linearLowerLimit.x - pos.x) * this.config.baumgarte / Math.max(dt, 1e-6);
-    if (pos.x > c.linearUpperLimit.x) linCorrection.x = (c.linearUpperLimit.x - pos.x) * this.config.baumgarte / Math.max(dt, 1e-6);
-    if (pos.y < c.linearLowerLimit.y) linCorrection.y = (c.linearLowerLimit.y - pos.y) * this.config.baumgarte / Math.max(dt, 1e-6);
-    if (pos.y > c.linearUpperLimit.y) linCorrection.y = (c.linearUpperLimit.y - pos.y) * this.config.baumgarte / Math.max(dt, 1e-6);
-    if (pos.z < c.linearLowerLimit.z) linCorrection.z = (c.linearLowerLimit.z - pos.z) * this.config.baumgarte / Math.max(dt, 1e-6);
-    if (pos.z > c.linearUpperLimit.z) linCorrection.z = (c.linearUpperLimit.z - pos.z) * this.config.baumgarte / Math.max(dt, 1e-6);
+    if (pos.x < c.linearLowerLimit.x)
+      linCorrection.x =
+        ((c.linearLowerLimit.x - pos.x) * this.config.baumgarte) / Math.max(dt, 1e-6);
+    if (pos.x > c.linearUpperLimit.x)
+      linCorrection.x =
+        ((c.linearUpperLimit.x - pos.x) * this.config.baumgarte) / Math.max(dt, 1e-6);
+    if (pos.y < c.linearLowerLimit.y)
+      linCorrection.y =
+        ((c.linearLowerLimit.y - pos.y) * this.config.baumgarte) / Math.max(dt, 1e-6);
+    if (pos.y > c.linearUpperLimit.y)
+      linCorrection.y =
+        ((c.linearUpperLimit.y - pos.y) * this.config.baumgarte) / Math.max(dt, 1e-6);
+    if (pos.z < c.linearLowerLimit.z)
+      linCorrection.z =
+        ((c.linearLowerLimit.z - pos.z) * this.config.baumgarte) / Math.max(dt, 1e-6);
+    if (pos.z > c.linearUpperLimit.z)
+      linCorrection.z =
+        ((c.linearUpperLimit.z - pos.z) * this.config.baumgarte) / Math.max(dt, 1e-6);
 
     this.accumulateCorrection(corrections, sc.bodyA.id, linCorrection, v3Zero());
 

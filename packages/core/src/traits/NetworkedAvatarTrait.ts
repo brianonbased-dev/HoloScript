@@ -45,23 +45,43 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
     solver.addChain({
       id: 'leftArm',
       bones: [
-        { id: 'LeftArm', length: 0.3, position: {x:0, y:0, z:0}, rotation: {x:0, y:0, z:0, w:1} }, // Placeholder
-        { id: 'LeftForeArm', length: 0.3, position: {x:0, y:0, z:0}, rotation: {x:0, y:0, z:0, w:1} }
+        {
+          id: 'LeftArm',
+          length: 0.3,
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+        }, // Placeholder
+        {
+          id: 'LeftForeArm',
+          length: 0.3,
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+        },
       ],
       target: { x: -0.5, y: 1.0, z: 0.3 },
       weight: 1.0,
-      iterations: 3
+      iterations: 3,
     });
 
     solver.addChain({
       id: 'rightArm',
       bones: [
-        { id: 'RightArm', length: 0.3, position: {x:0, y:0, z:0}, rotation: {x:0, y:0, z:0, w:1} },
-        { id: 'RightForeArm', length: 0.3, position: {x:0, y:0, z:0}, rotation: {x:0, y:0, z:0, w:1} }
+        {
+          id: 'RightArm',
+          length: 0.3,
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+        },
+        {
+          id: 'RightForeArm',
+          length: 0.3,
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+        },
       ],
       target: { x: 0.5, y: 1.0, z: 0.3 },
       weight: 1.0,
-      iterations: 3
+      iterations: 3,
     });
 
     const state = {
@@ -90,7 +110,7 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
         head: { position: { x: 0, y: 1.7, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
         leftHand: { position: { x: -0.3, y: 1.2, z: 0.4 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
         rightHand: { position: { x: 0.3, y: 1.2, z: 0.4 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
-        height: 1.7
+        height: 1.7,
       };
 
       // 2. Update Controller
@@ -101,33 +121,34 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
       const now = Date.now();
       if (now - state.lastUpdate > state.updateInterval) {
         state.lastUpdate = now;
-        
+
         // Collect Bone Transforms
         const transforms: Record<string, BoneTransform> = {};
-        state.bones.getChain('LeftForeArm').forEach((id: string) => { // Just syncing arms for demo
-             const bone = state.bones.getBone(id);
-             if (bone) transforms[id] = bone.local;
+        state.bones.getChain('LeftForeArm').forEach((id: string) => {
+          // Just syncing arms for demo
+          const bone = state.bones.getBone(id);
+          if (bone) transforms[id] = bone.local;
         });
-        
+
         // Emit event to network layer
         context.emit('avatar_pose_update', {
           node,
-          pose: transforms
+          pose: transforms,
         });
       }
     }
   },
-  
+
   onEvent(node, config, context, event) {
-      if (!config.isLocal && event.type === 'network_pose_received') {
-          const state = (node as any).__avatarState;
-          if (state && event.pose) {
-              // Apply received pose
-              Object.entries(event.pose).forEach(([boneId, transform]) => {
-                  state.bones.setLocalTransform(boneId, transform as Partial<BoneTransform>);
-              });
-              state.bones.updateWorldTransforms();
-          }
+    if (!config.isLocal && event.type === 'network_pose_received') {
+      const state = (node as any).__avatarState;
+      if (state && event.pose) {
+        // Apply received pose
+        Object.entries(event.pose).forEach(([boneId, transform]) => {
+          state.bones.setLocalTransform(boneId, transform as Partial<BoneTransform>);
+        });
+        state.bones.updateWorldTransforms();
       }
-  }
+    }
+  },
 };

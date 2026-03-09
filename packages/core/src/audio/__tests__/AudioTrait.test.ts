@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  audioTraitHandler,
-  setSharedAudioEngine,
-  getSharedAudioEngine,
-} from '../AudioTrait';
+import { audioTraitHandler, setSharedAudioEngine, getSharedAudioEngine } from '../AudioTrait';
 import type { AudioTraitConfig } from '../AudioTrait';
 
 // Mock AudioEngine
@@ -60,10 +56,13 @@ describe('AudioTrait', () => {
       autoPlay: true,
     };
     audioTraitHandler.onAttach(node as any, config, {});
-    expect(engine.play).toHaveBeenCalledWith('click.mp3', expect.objectContaining({
-      volume: 1,
-      spatialize: true,
-    }));
+    expect(engine.play).toHaveBeenCalledWith(
+      'click.mp3',
+      expect.objectContaining({
+        volume: 1,
+        spatialize: true,
+      })
+    );
   });
 
   it('onAttach does nothing without soundId', () => {

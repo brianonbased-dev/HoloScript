@@ -5,7 +5,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { InstancedMeshManager, type InstancedObjectData, type InstanceBatchConfig } from '../InstancedMeshManager';
+import {
+  InstancedMeshManager,
+  type InstancedObjectData,
+  type InstanceBatchConfig,
+} from '../InstancedMeshManager';
 import * as THREE from 'three';
 
 describe('InstancedMeshManager', () => {
@@ -218,11 +222,7 @@ describe('InstancedMeshManager', () => {
         manager.addInstance(
           {
             id: `fragment_${i}`,
-            position: [
-              (i % 100) * 2,
-              Math.floor(i / 100) * 2,
-              0
-            ],
+            position: [(i % 100) * 2, Math.floor(i / 100) * 2, 0],
             rotation: [0, 0, 0],
             scale: [1, 1, 1],
           },

@@ -139,7 +139,7 @@ describe('SteeringBehavior.wander', () => {
   it('multiple calls produce varied results (randomness)', () => {
     const agent = makeAgent({ velocity: { x: 1, z: 0 } });
     const forces = Array.from({ length: 10 }, () => SteeringBehavior.wander(agent));
-    const unique = new Set(forces.map(f => `${f.x.toFixed(5)},${f.z.toFixed(5)}`));
+    const unique = new Set(forces.map((f) => `${f.x.toFixed(5)},${f.z.toFixed(5)}`));
     // extremely unlikely all 10 are identical
     expect(unique.size).toBeGreaterThan(1);
   });
@@ -179,10 +179,14 @@ describe('SteeringBehavior.avoid', () => {
   it('combines forces from multiple obstacles', () => {
     const agent = makeAgent({ position: { x: 0, z: 0 }, maxForce: 10 });
     const oneObs = SteeringBehavior.avoid(agent, [{ position: { x: 2, z: 0 }, radius: 1 }], 5);
-    const twoObs = SteeringBehavior.avoid(agent, [
-      { position: { x: 2, z: 0 }, radius: 1 },
-      { position: { x: -2, z: 0 }, radius: 1 },
-    ], 5);
+    const twoObs = SteeringBehavior.avoid(
+      agent,
+      [
+        { position: { x: 2, z: 0 }, radius: 1 },
+        { position: { x: -2, z: 0 }, radius: 1 },
+      ],
+      5
+    );
     // x-components partially cancel, but total force changes
     expect(Math.abs(twoObs.x)).toBeLessThan(Math.abs(oneObs.x));
   });

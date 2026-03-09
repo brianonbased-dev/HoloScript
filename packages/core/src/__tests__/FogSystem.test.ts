@@ -55,8 +55,11 @@ describe('FogSystem', () => {
 
   it('height fog reduces factor at high altitude', () => {
     const fog = new FogSystem({
-      mode: 'exponential', density: 0.1,
-      heightFog: true, heightStart: 0, heightEnd: 50,
+      mode: 'exponential',
+      density: 0.1,
+      heightFog: true,
+      heightStart: 0,
+      heightEnd: 50,
     });
     const ground = fog.computeFogFactor(30, 0);
     const sky = fog.computeFogFactor(30, 50);

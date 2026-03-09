@@ -9,13 +9,15 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  deltaCompress, deltaApply,
+  deltaCompress,
+  deltaApply,
   entityInterpolate,
   conflictResolve,
   snapshotDiff,
   bandwidthEstimate,
   networkQuality,
-  type Snapshot, type EntityState,
+  type Snapshot,
+  type EntityState,
 } from '@/lib/networkSync';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -50,14 +52,22 @@ describe('Scenario: Multiplayer — Delta Compression', () => {
 
   it('deltaCompress() detects added entities', () => {
     const prev: Snapshot = { tick: 0, timestamp: 0, entities: [makeEntity('e1', 0, 0, 0)] };
-    const curr: Snapshot = { tick: 1, timestamp: 100, entities: [makeEntity('e1', 0, 0, 0), makeEntity('e2', 10, 0, 0)] };
+    const curr: Snapshot = {
+      tick: 1,
+      timestamp: 100,
+      entities: [makeEntity('e1', 0, 0, 0), makeEntity('e2', 10, 0, 0)],
+    };
     const delta = deltaCompress(prev, curr);
     expect(delta.addedEntities).toHaveLength(1);
     expect(delta.addedEntities[0].id).toBe('e2');
   });
 
   it('deltaCompress() detects removed entities', () => {
-    const prev: Snapshot = { tick: 0, timestamp: 0, entities: [makeEntity('e1', 0, 0, 0), makeEntity('e2', 5, 0, 0)] };
+    const prev: Snapshot = {
+      tick: 0,
+      timestamp: 0,
+      entities: [makeEntity('e1', 0, 0, 0), makeEntity('e2', 5, 0, 0)],
+    };
     const curr: Snapshot = { tick: 1, timestamp: 100, entities: [makeEntity('e1', 0, 0, 0)] };
     const delta = deltaCompress(prev, curr);
     expect(delta.removedIds).toContain('e2');
@@ -72,8 +82,18 @@ describe('Scenario: Multiplayer — Delta Compression', () => {
   });
 
   it('deltaCompress() sizeBytes is smaller than full snapshot', () => {
-    const prev: Snapshot = { tick: 0, timestamp: 0, entities: Array.from({ length: 100 }, (_, i) => makeEntity(`e${i}`, i, 0, 0)) };
-    const curr: Snapshot = { tick: 1, timestamp: 100, entities: prev.entities.map((e, i) => i < 5 ? { ...e, position: { x: e.position.x + 1, y: 0, z: 0 } } : e) };
+    const prev: Snapshot = {
+      tick: 0,
+      timestamp: 0,
+      entities: Array.from({ length: 100 }, (_, i) => makeEntity(`e${i}`, i, 0, 0)),
+    };
+    const curr: Snapshot = {
+      tick: 1,
+      timestamp: 100,
+      entities: prev.entities.map((e, i) =>
+        i < 5 ? { ...e, position: { x: e.position.x + 1, y: 0, z: 0 } } : e
+      ),
+    };
     const delta = deltaCompress(prev, curr);
     expect(delta.changes).toHaveLength(5); // Only 5 changed
     expect(delta.sizeBytes).toBeLessThan(100 * 96); // Much less than full snapshot
@@ -97,14 +117,22 @@ describe('Scenario: Multiplayer — Delta Application', () => {
 
   it('deltaApply() adds new entities', () => {
     const base: Snapshot = { tick: 0, timestamp: 0, entities: [makeEntity('e1', 0, 0, 0)] };
-    const curr: Snapshot = { tick: 1, timestamp: 100, entities: [makeEntity('e1', 0, 0, 0), makeEntity('e2', 5, 5, 5)] };
+    const curr: Snapshot = {
+      tick: 1,
+      timestamp: 100,
+      entities: [makeEntity('e1', 0, 0, 0), makeEntity('e2', 5, 5, 5)],
+    };
     const delta = deltaCompress(base, curr);
     const result = deltaApply(base, delta);
     expect(result.entities).toHaveLength(2);
   });
 
   it('deltaApply() removes deleted entities', () => {
-    const base: Snapshot = { tick: 0, timestamp: 0, entities: [makeEntity('e1', 0, 0, 0), makeEntity('e2', 5, 0, 0)] };
+    const base: Snapshot = {
+      tick: 0,
+      timestamp: 0,
+      entities: [makeEntity('e1', 0, 0, 0), makeEntity('e2', 5, 0, 0)],
+    };
     const curr: Snapshot = { tick: 1, timestamp: 100, entities: [makeEntity('e1', 0, 0, 0)] };
     const delta = deltaCompress(base, curr);
     const result = deltaApply(base, delta);
@@ -167,13 +195,9 @@ describe('Scenario: Multiplayer — Conflict Resolution', () => {
   });
 
   it('merge blends position from client, health from server', () => {
-    const result = conflictResolve(
-      { ...server, health: 50 },
-      { ...client, health: 80 },
-      'merge'
-    );
+    const result = conflictResolve({ ...server, health: 50 }, { ...client, health: 80 }, 'merge');
     expect(result.resolved.position.x).toBe(15); // Client position
-    expect(result.resolved.health).toBe(50);       // Server health
+    expect(result.resolved.health).toBe(50); // Server health
   });
 
   it('latest-timestamp picks newer state', () => {
@@ -190,8 +214,16 @@ describe('Scenario: Multiplayer — Conflict Resolution', () => {
 
 describe('Scenario: Multiplayer — Snapshot Diff & Bandwidth', () => {
   it('snapshotDiff() categorizes entity changes', () => {
-    const a: Snapshot = { tick: 0, timestamp: 0, entities: [makeEntity('e1', 0, 0, 0), makeEntity('e2', 5, 0, 0)] };
-    const b: Snapshot = { tick: 1, timestamp: 100, entities: [makeEntity('e1', 1, 0, 0), makeEntity('e3', 10, 0, 0)] };
+    const a: Snapshot = {
+      tick: 0,
+      timestamp: 0,
+      entities: [makeEntity('e1', 0, 0, 0), makeEntity('e2', 5, 0, 0)],
+    };
+    const b: Snapshot = {
+      tick: 1,
+      timestamp: 100,
+      entities: [makeEntity('e1', 1, 0, 0), makeEntity('e3', 10, 0, 0)],
+    };
     const diff = snapshotDiff(a, b);
     expect(diff.changed).toContain('e1');
     expect(diff.removed).toContain('e2');

@@ -64,10 +64,7 @@ export interface IWeatherProvider {
    * @param callback - Called when weather data updates
    * @returns Unsubscribe function
    */
-  subscribeToWeather(
-    location: string,
-    callback: (weather: WeatherData) => void
-  ): () => void;
+  subscribeToWeather(location: string, callback: (weather: WeatherData) => void): () => void;
 
   /**
    * Cleanup provider resources
@@ -110,10 +107,7 @@ export interface IEventsProvider {
    * @param callback - Called when events update
    * @returns Unsubscribe function
    */
-  subscribeToEvents(
-    location: string,
-    callback: (events: EventData[]) => void
-  ): () => void;
+  subscribeToEvents(location: string, callback: (events: EventData[]) => void): () => void;
 
   /**
    * Cleanup provider resources
@@ -225,11 +219,7 @@ export interface IAIProvider {
    * @param context - Conversation context
    * @returns Generated dialogue lines
    */
-  generateDialogue(
-    characterName: string,
-    personality: string,
-    context: string
-  ): Promise<string[]>;
+  generateDialogue(characterName: string, personality: string, context: string): Promise<string[]>;
 
   /**
    * Check if the provider is available (API key valid, service reachable)
@@ -433,10 +423,7 @@ export abstract class BaseWeatherProvider implements IWeatherProvider {
 
   abstract fetchWeather(location: string): Promise<WeatherData>;
 
-  subscribeToWeather(
-    location: string,
-    callback: (weather: WeatherData) => void
-  ): () => void {
+  subscribeToWeather(location: string, callback: (weather: WeatherData) => void): () => void {
     if (!this.subscriptions.has(location)) {
       this.subscriptions.set(location, new Set());
     }
@@ -546,9 +533,7 @@ export abstract class BasePaymentProcessor implements IPaymentProcessor {
   }
 
   getTotalProcessed(): string {
-    return this.paymentHistory
-      .reduce((sum, r) => sum + BigInt(r.amount), BigInt(0))
-      .toString();
+    return this.paymentHistory.reduce((sum, r) => sum + BigInt(r.amount), BigInt(0)).toString();
   }
 
   protected recordPayment(receipt: PaymentReceipt): void {

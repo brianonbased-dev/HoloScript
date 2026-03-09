@@ -3,9 +3,9 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useSceneProfiler } from '../useSceneProfiler';
-import { useSceneStore, useSceneGraphStore } from '@/lib/store';
+import { useSceneStore, useSceneGraphStore } from '@/lib/stores';
 
-vi.mock('@/lib/store', () => ({
+vi.mock('@/lib/stores', () => ({
   useSceneStore: vi.fn(),
   useSceneGraphStore: vi.fn(),
 }));
@@ -88,9 +88,7 @@ describe('useSceneProfiler', () => {
     });
 
     it('should count audio nodes', () => {
-      mockNodes = [
-        { type: 'audio', traits: [] },
-      ];
+      mockNodes = [{ type: 'audio', traits: [] }];
 
       const { result } = renderHook(() => useSceneProfiler());
 
@@ -131,10 +129,7 @@ describe('useSceneProfiler', () => {
     });
 
     it('should handle nodes without traits array', () => {
-      mockNodes = [
-        { type: 'mesh' },
-        { type: 'mesh', traits: [] },
-      ];
+      mockNodes = [{ type: 'mesh' }, { type: 'mesh', traits: [] }];
 
       const { result } = renderHook(() => useSceneProfiler());
 
@@ -155,9 +150,7 @@ describe('useSceneProfiler', () => {
     });
 
     it('should apply higher weight for splats', () => {
-      mockNodes = [
-        { type: 'splat', traits: [] },
-      ];
+      mockNodes = [{ type: 'splat', traits: [] }];
 
       const { result } = renderHook(() => useSceneProfiler());
 

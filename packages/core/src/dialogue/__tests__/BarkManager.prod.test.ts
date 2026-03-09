@@ -8,15 +8,21 @@ import { describe, it, expect } from 'vitest';
 import { BarkManager, type BarkDefinition } from '../BarkManager';
 
 const COMBAT_BARK: BarkDefinition = {
-  id: 'combat_taunt', context: 'combat_start',
+  id: 'combat_taunt',
+  context: 'combat_start',
   lines: ['Fight!', 'En garde!', 'Have at thee!'],
-  priority: 5, cooldown: 2, maxRange: 0,
+  priority: 5,
+  cooldown: 2,
+  maxRange: 0,
 };
 
 const IDLE_BARK: BarkDefinition = {
-  id: 'idle_mutter', context: 'idle',
+  id: 'idle_mutter',
+  context: 'idle',
   lines: ['Nice weather...', 'Hmm...'],
-  priority: 1, cooldown: 5, maxRange: 0,
+  priority: 1,
+  cooldown: 5,
+  maxRange: 0,
 };
 
 describe('BarkManager — Production', () => {
@@ -76,8 +82,22 @@ describe('BarkManager — Production', () => {
   // ─── Priority Selection ───────────────────────────────────────────
   it('higher priority bark is chosen', () => {
     const bm = new BarkManager();
-    const low: BarkDefinition = { id: 'low', context: 'test', lines: ['low'], priority: 1, cooldown: 0, maxRange: 0 };
-    const high: BarkDefinition = { id: 'high', context: 'test', lines: ['high'], priority: 10, cooldown: 0, maxRange: 0 };
+    const low: BarkDefinition = {
+      id: 'low',
+      context: 'test',
+      lines: ['low'],
+      priority: 1,
+      cooldown: 0,
+      maxRange: 0,
+    };
+    const high: BarkDefinition = {
+      id: 'high',
+      context: 'test',
+      lines: ['high'],
+      priority: 10,
+      cooldown: 0,
+      maxRange: 0,
+    };
     bm.registerBark(low);
     bm.registerBark(high);
     const bark = bm.trigger('test', 'npc');
@@ -87,7 +107,14 @@ describe('BarkManager — Production', () => {
   // ─── Queue ────────────────────────────────────────────────────────
   it('queue builds up and caps at maxQueue', () => {
     const bm = new BarkManager();
-    const def: BarkDefinition = { id: 'q', context: 'q', lines: ['a'], priority: 1, cooldown: 0, maxRange: 0 };
+    const def: BarkDefinition = {
+      id: 'q',
+      context: 'q',
+      lines: ['a'],
+      priority: 1,
+      cooldown: 0,
+      maxRange: 0,
+    };
     bm.registerBark(def);
     for (let i = 0; i < 5; i++) bm.trigger('q', 'npc');
     expect(bm.getQueueLength()).toBe(3); // maxQueue=3

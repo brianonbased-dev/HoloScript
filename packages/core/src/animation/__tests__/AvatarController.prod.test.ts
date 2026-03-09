@@ -124,7 +124,9 @@ describe('AvatarController.update — after calibration', () => {
     const controller = new AvatarController(solver, makeMockBoneSystem());
     controller.calibrate(1.7);
 
-    const input = makeInput({ leftHand: { position: { x: -0.5, y: 1.0, z: 0.2 }, rotation: { x: 0, y: 0, z: 0, w: 1 } } });
+    const input = makeInput({
+      leftHand: { position: { x: -0.5, y: 1.0, z: 0.2 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+    });
     controller.update(input);
 
     expect(solver.setTarget).toHaveBeenCalledWith('leftArm', -0.5, 1.0, 0.2);
@@ -135,7 +137,9 @@ describe('AvatarController.update — after calibration', () => {
     const controller = new AvatarController(solver, makeMockBoneSystem());
     controller.calibrate(1.7);
 
-    const input = makeInput({ rightHand: { position: { x: 0.4, y: 0.9, z: -0.1 }, rotation: { x: 0, y: 0, z: 0, w: 1 } } });
+    const input = makeInput({
+      rightHand: { position: { x: 0.4, y: 0.9, z: -0.1 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+    });
     controller.update(input);
 
     expect(solver.setTarget).toHaveBeenCalledWith('rightArm', 0.4, 0.9, -0.1);
@@ -194,8 +198,12 @@ describe('AvatarController.update — after calibration', () => {
     const controller = new AvatarController(solver, makeMockBoneSystem());
     controller.calibrate(1.7);
 
-    const input1 = makeInput({ leftHand: { position: { x: -0.1, y: 1.0, z: -0.3 }, rotation: { x: 0, y: 0, z: 0, w: 1 } } });
-    const input2 = makeInput({ leftHand: { position: { x: -0.9, y: 0.5, z: 0.1 }, rotation: { x: 0, y: 0, z: 0, w: 1 } } });
+    const input1 = makeInput({
+      leftHand: { position: { x: -0.1, y: 1.0, z: -0.3 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+    });
+    const input2 = makeInput({
+      leftHand: { position: { x: -0.9, y: 0.5, z: 0.1 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+    });
 
     controller.update(input1);
     controller.update(input2);

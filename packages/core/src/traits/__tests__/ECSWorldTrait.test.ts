@@ -20,7 +20,9 @@ import {
 
 describe('ECSWorld — entity lifecycle', () => {
   let world: ECSWorld;
-  beforeEach(() => { world = new ECSWorld(); });
+  beforeEach(() => {
+    world = new ECSWorld();
+  });
 
   it('creates entities with incrementing IDs', () => {
     const a = world.createEntity();
@@ -40,7 +42,8 @@ describe('ECSWorld — entity lifecycle', () => {
   });
 
   it('resets world to zero entities', () => {
-    world.createEntity(); world.createEntity();
+    world.createEntity();
+    world.createEntity();
     world.reset();
     expect(world.entityCount()).toBe(0);
   });
@@ -48,7 +51,9 @@ describe('ECSWorld — entity lifecycle', () => {
 
 describe('ECSWorld — component add/get/query', () => {
   let world: ECSWorld;
-  beforeEach(() => { world = new ECSWorld(); });
+  beforeEach(() => {
+    world = new ECSWorld();
+  });
 
   it('adds and retrieves Transform component', () => {
     const id = world.createEntity();
@@ -71,7 +76,14 @@ describe('ECSWorld — component add/get/query', () => {
 
   it('adds Agent component', () => {
     const id = world.createEntity();
-    world.addAgent(id, { state: 'idle', targetX: 10, targetY: 0, targetZ: 10, speed: 5, traitMask: 0 });
+    world.addAgent(id, {
+      state: 'idle',
+      targetX: 10,
+      targetY: 0,
+      targetZ: 10,
+      speed: 5,
+      traitMask: 0,
+    });
     expect(world.getAgent(id)?.state).toBe('idle');
   });
 
@@ -127,7 +139,14 @@ describe('ECSWorld — agentMovementSystem', () => {
     const world = new ECSWorld();
     const id = world.createEntity();
     world.addTransform(id, { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1, sz: 1 });
-    world.addAgent(id, { state: 'moving', targetX: 10, targetY: 0, targetZ: 0, speed: 5, traitMask: 0 });
+    world.addAgent(id, {
+      state: 'moving',
+      targetX: 10,
+      targetY: 0,
+      targetZ: 0,
+      speed: 5,
+      traitMask: 0,
+    });
     agentMovementSystem(world, 0.1);
     expect(world.getTransform(id)!.x).toBeGreaterThan(0);
   });
@@ -136,7 +155,14 @@ describe('ECSWorld — agentMovementSystem', () => {
     const world = new ECSWorld();
     const id = world.createEntity();
     world.addTransform(id, { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1, sz: 1 });
-    world.addAgent(id, { state: 'moving', targetX: 0.001, targetY: 0, targetZ: 0, speed: 5, traitMask: 0 });
+    world.addAgent(id, {
+      state: 'moving',
+      targetX: 0.001,
+      targetY: 0,
+      targetZ: 0,
+      speed: 5,
+      traitMask: 0,
+    });
     agentMovementSystem(world, 1.0);
     expect(world.getAgent(id)!.state).toBe('idle');
   });
@@ -145,7 +171,14 @@ describe('ECSWorld — agentMovementSystem', () => {
     const world = new ECSWorld();
     const id = world.createEntity();
     world.addTransform(id, { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1, sz: 1 });
-    world.addAgent(id, { state: 'idle', targetX: 100, targetY: 0, targetZ: 100, speed: 5, traitMask: 0 });
+    world.addAgent(id, {
+      state: 'idle',
+      targetX: 100,
+      targetY: 0,
+      targetZ: 100,
+      speed: 5,
+      traitMask: 0,
+    });
     agentMovementSystem(world, 0.016);
     expect(world.getTransform(id)!.x).toBe(0);
   });
@@ -203,14 +236,26 @@ describe('ECS Benchmark — 1K entities @ 60fps', () => {
 describe('ECSWorldTrait — wasmBridgeHandler', () => {
   it('emits ecs_ready on attach', () => {
     const node = {} as any;
-    const ctx = { emit: (t: string, p: unknown) => { ctx.events.push({ type: t, payload: p }); }, events: [] as any[], of: (t: string) => ctx.events.filter((e: any) => e.type === t) };
+    const ctx = {
+      emit: (t: string, p: unknown) => {
+        ctx.events.push({ type: t, payload: p });
+      },
+      events: [] as any[],
+      of: (t: string) => ctx.events.filter((e: any) => e.type === t),
+    };
     wasmBridgeHandler.onAttach(node, wasmBridgeHandler.defaultConfig, ctx);
     expect(ctx.of('ecs_ready').length).toBe(1);
   });
 
   it('emits ecs_entity_spawned on ecs_spawn_entity', () => {
     const node = {} as any;
-    const ctx = { emit: (t: string, p: unknown) => { ctx.events.push({ type: t, payload: p }); }, events: [] as any[], of: (t: string) => ctx.events.filter((e: any) => e.type === t) };
+    const ctx = {
+      emit: (t: string, p: unknown) => {
+        ctx.events.push({ type: t, payload: p });
+      },
+      events: [] as any[],
+      of: (t: string) => ctx.events.filter((e: any) => e.type === t),
+    };
     wasmBridgeHandler.onAttach(node, wasmBridgeHandler.defaultConfig, ctx);
     wasmBridgeHandler.onEvent(node, wasmBridgeHandler.defaultConfig, ctx, {
       type: 'ecs_spawn_entity',
@@ -221,7 +266,13 @@ describe('ECSWorldTrait — wasmBridgeHandler', () => {
 
   it('runs benchmark via ecs_benchmark event', () => {
     const node = {} as any;
-    const ctx = { emit: (t: string, p: unknown) => { ctx.events.push({ type: t, payload: p }); }, events: [] as any[], of: (t: string) => ctx.events.filter((e: any) => e.type === t) };
+    const ctx = {
+      emit: (t: string, p: unknown) => {
+        ctx.events.push({ type: t, payload: p });
+      },
+      events: [] as any[],
+      of: (t: string) => ctx.events.filter((e: any) => e.type === t),
+    };
     wasmBridgeHandler.onAttach(node, wasmBridgeHandler.defaultConfig, ctx);
     wasmBridgeHandler.onEvent(node, wasmBridgeHandler.defaultConfig, ctx, {
       type: 'ecs_benchmark',
@@ -234,7 +285,13 @@ describe('ECSWorldTrait — wasmBridgeHandler', () => {
 
   it('emits ecs_stopped and cleans state on detach', () => {
     const node = {} as any;
-    const ctx = { emit: (t: string, p: unknown) => { ctx.events.push({ type: t, payload: p }); }, events: [] as any[], of: (t: string) => ctx.events.filter((e: any) => e.type === t) };
+    const ctx = {
+      emit: (t: string, p: unknown) => {
+        ctx.events.push({ type: t, payload: p });
+      },
+      events: [] as any[],
+      of: (t: string) => ctx.events.filter((e: any) => e.type === t),
+    };
     wasmBridgeHandler.onAttach(node, wasmBridgeHandler.defaultConfig, ctx);
     wasmBridgeHandler.onDetach(node, wasmBridgeHandler.defaultConfig, ctx);
     expect(ctx.of('ecs_stopped').length).toBe(1);
@@ -243,9 +300,18 @@ describe('ECSWorldTrait — wasmBridgeHandler', () => {
 
   it('ticks world via ecs_tick event', () => {
     const node = {} as any;
-    const ctx = { emit: (t: string, p: unknown) => { ctx.events.push({ type: t, payload: p }); }, events: [] as any[], of: (t: string) => ctx.events.filter((e: any) => e.type === t) };
+    const ctx = {
+      emit: (t: string, p: unknown) => {
+        ctx.events.push({ type: t, payload: p });
+      },
+      events: [] as any[],
+      of: (t: string) => ctx.events.filter((e: any) => e.type === t),
+    };
     wasmBridgeHandler.onAttach(node, wasmBridgeHandler.defaultConfig, ctx);
-    wasmBridgeHandler.onEvent(node, wasmBridgeHandler.defaultConfig, ctx, { type: 'ecs_tick', payload: { dt: 0.016 } });
+    wasmBridgeHandler.onEvent(node, wasmBridgeHandler.defaultConfig, ctx, {
+      type: 'ecs_tick',
+      payload: { dt: 0.016 },
+    });
     expect(ctx.of('ecs_ticked').length).toBe(1);
     expect((ctx.of('ecs_ticked')[0].payload as any).stats.totalFrames).toBe(1);
   });

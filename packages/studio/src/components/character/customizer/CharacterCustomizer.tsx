@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useCharacterStore } from '@/lib/store';
+import { useCharacterStore } from '@/lib/stores';
 import { RotateCcw, User, Smile } from 'lucide-react';
 
 // ── Slider definitions ──────────────────────────────────────────────────────
@@ -23,25 +23,25 @@ interface SliderDef {
 }
 
 const BODY_SLIDERS: SliderDef[] = [
-  { id: 'body_height',     label: 'Height',     emoji: '📏' },
-  { id: 'body_build',      label: 'Build',      emoji: '💪' },
-  { id: 'body_shoulders',  label: 'Shoulders',  emoji: '🔲' },
-  { id: 'body_chest',      label: 'Chest',      emoji: '🫁' },
-  { id: 'body_waist',      label: 'Waist',      emoji: '⏳' },
-  { id: 'body_hips',       label: 'Hips',       emoji: '🦴' },
-  { id: 'body_arms',       label: 'Arm Length',  emoji: '🤲' },
-  { id: 'body_legs',       label: 'Leg Length',  emoji: '🦵' },
+  { id: 'body_height', label: 'Height', emoji: '📏' },
+  { id: 'body_build', label: 'Build', emoji: '💪' },
+  { id: 'body_shoulders', label: 'Shoulders', emoji: '🔲' },
+  { id: 'body_chest', label: 'Chest', emoji: '🫁' },
+  { id: 'body_waist', label: 'Waist', emoji: '⏳' },
+  { id: 'body_hips', label: 'Hips', emoji: '🦴' },
+  { id: 'body_arms', label: 'Arm Length', emoji: '🤲' },
+  { id: 'body_legs', label: 'Leg Length', emoji: '🦵' },
 ];
 
 const FACE_SLIDERS: SliderDef[] = [
-  { id: 'face_eye_size',     label: 'Eye Size',     emoji: '👁️' },
-  { id: 'face_eye_spacing',  label: 'Eye Spacing',  emoji: '↔️' },
-  { id: 'face_nose_width',   label: 'Nose Width',   emoji: '👃' },
-  { id: 'face_nose_length',  label: 'Nose Length',   emoji: '📐' },
-  { id: 'face_mouth_width',  label: 'Mouth Width',  emoji: '👄' },
-  { id: 'face_jaw_width',    label: 'Jaw Width',    emoji: '🦷' },
-  { id: 'face_cheek',        label: 'Cheek',        emoji: '😊' },
-  { id: 'face_brow',         label: 'Brow Height',  emoji: '🤨' },
+  { id: 'face_eye_size', label: 'Eye Size', emoji: '👁️' },
+  { id: 'face_eye_spacing', label: 'Eye Spacing', emoji: '↔️' },
+  { id: 'face_nose_width', label: 'Nose Width', emoji: '👃' },
+  { id: 'face_nose_length', label: 'Nose Length', emoji: '📐' },
+  { id: 'face_mouth_width', label: 'Mouth Width', emoji: '👄' },
+  { id: 'face_jaw_width', label: 'Jaw Width', emoji: '🦷' },
+  { id: 'face_cheek', label: 'Cheek', emoji: '😊' },
+  { id: 'face_brow', label: 'Brow Height', emoji: '🤨' },
 ];
 
 // ── Morph Slider Component ──────────────────────────────────────────────────
@@ -89,7 +89,9 @@ export function CharacterCustomizer() {
     const sliders = tab === 'body' ? BODY_SLIDERS : FACE_SLIDERS;
     const store = useCharacterStore.getState();
     const updated = { ...store.morphTargets };
-    sliders.forEach((s) => { updated[s.id] = 50; });
+    sliders.forEach((s) => {
+      updated[s.id] = 50;
+    });
     useCharacterStore.setState({ morphTargets: updated });
   }, [tab]);
 

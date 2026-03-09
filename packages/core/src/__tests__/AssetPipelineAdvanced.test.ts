@@ -10,13 +10,37 @@ describe('Cycle 113: Asset Pipeline', () => {
 
   it('should bundle assets with dependency resolution', () => {
     const bundler = new AssetBundler();
-    bundler.registerAsset({ id: 'tex1', type: 'texture', path: '/t1.png', sizeBytes: 1024, hash: 'a1', dependencies: [] });
-    bundler.registerAsset({ id: 'mat1', type: 'shader', path: '/m1.glsl', sizeBytes: 512, hash: 'b1', dependencies: ['tex1'] });
-    bundler.registerAsset({ id: 'model1', type: 'model', path: '/m1.glb', sizeBytes: 4096, hash: 'c1', dependencies: ['mat1'] });
+    bundler.registerAsset({
+      id: 'tex1',
+      type: 'texture',
+      path: '/t1.png',
+      sizeBytes: 1024,
+      hash: 'a1',
+      dependencies: [],
+    });
+    bundler.registerAsset({
+      id: 'mat1',
+      type: 'shader',
+      path: '/m1.glsl',
+      sizeBytes: 512,
+      hash: 'b1',
+      dependencies: ['tex1'],
+    });
+    bundler.registerAsset({
+      id: 'model1',
+      type: 'model',
+      path: '/m1.glb',
+      sizeBytes: 4096,
+      hash: 'c1',
+      dependencies: ['mat1'],
+    });
 
     const bundle = bundler.buildBundle({
-      id: 'level1', name: 'Level 1', entries: ['model1'],
-      compress: false, priority: 1,
+      id: 'level1',
+      name: 'Level 1',
+      entries: ['model1'],
+      compress: false,
+      priority: 1,
     });
 
     expect(bundle.assets).toHaveLength(3); // model1 + mat1 + tex1
@@ -28,12 +52,23 @@ describe('Cycle 113: Asset Pipeline', () => {
   it('should split bundles by max size', () => {
     const bundler = new AssetBundler();
     for (let i = 0; i < 5; i++) {
-      bundler.registerAsset({ id: `a${i}`, type: 'texture', path: `/${i}.png`, sizeBytes: 1000, hash: `h${i}`, dependencies: [] });
+      bundler.registerAsset({
+        id: `a${i}`,
+        type: 'texture',
+        path: `/${i}.png`,
+        sizeBytes: 1000,
+        hash: `h${i}`,
+        dependencies: [],
+      });
     }
 
     const splits = bundler.splitBundle({
-      id: 'big', name: 'Big', entries: ['a0', 'a1', 'a2', 'a3', 'a4'],
-      compress: false, priority: 1, maxSizeBytes: 2500,
+      id: 'big',
+      name: 'Big',
+      entries: ['a0', 'a1', 'a2', 'a3', 'a4'],
+      compress: false,
+      priority: 1,
+      maxSizeBytes: 2500,
     });
 
     expect(splits.length).toBeGreaterThan(1);
@@ -43,14 +78,28 @@ describe('Cycle 113: Asset Pipeline', () => {
 
   it('should generate manifest and compute diffs', () => {
     const bundler = new AssetBundler();
-    bundler.registerAsset({ id: 'x', type: 'data', path: '/x.json', sizeBytes: 100, hash: 'h1', dependencies: [] });
+    bundler.registerAsset({
+      id: 'x',
+      type: 'data',
+      path: '/x.json',
+      sizeBytes: 100,
+      hash: 'h1',
+      dependencies: [],
+    });
     bundler.buildBundle({ id: 'b1', name: 'B1', entries: ['x'], compress: false, priority: 1 });
 
     const manifest1 = bundler.generateManifest();
     expect(manifest1.bundles).toHaveLength(1);
 
     // Add a new bundle
-    bundler.registerAsset({ id: 'y', type: 'data', path: '/y.json', sizeBytes: 200, hash: 'h2', dependencies: [] });
+    bundler.registerAsset({
+      id: 'y',
+      type: 'data',
+      path: '/y.json',
+      sizeBytes: 200,
+      hash: 'h2',
+      dependencies: [],
+    });
     bundler.buildBundle({ id: 'b2', name: 'B2', entries: ['y'], compress: false, priority: 2 });
 
     const diff = bundler.computeDiff(manifest1);
@@ -115,8 +164,12 @@ describe('Cycle 113: Asset Pipeline', () => {
 
   it('should pack textures and generate UVs', () => {
     const atlas = new TextureAtlas({
-      id: 'sprites', maxWidth: 1024, maxHeight: 1024,
-      padding: 1, allowRotation: false, powerOfTwo: true,
+      id: 'sprites',
+      maxWidth: 1024,
+      maxHeight: 1024,
+      padding: 1,
+      allowRotation: false,
+      powerOfTwo: true,
     });
 
     const e1 = atlas.pack('icon_sword', 32, 32);
@@ -135,8 +188,12 @@ describe('Cycle 113: Asset Pipeline', () => {
 
   it('should reject textures that exceed atlas size', () => {
     const atlas = new TextureAtlas({
-      id: 'tiny', maxWidth: 64, maxHeight: 64,
-      padding: 0, allowRotation: false, powerOfTwo: false,
+      id: 'tiny',
+      maxWidth: 64,
+      maxHeight: 64,
+      padding: 0,
+      allowRotation: false,
+      powerOfTwo: false,
     });
 
     const e1 = atlas.pack('big', 128, 128);
@@ -145,8 +202,12 @@ describe('Cycle 113: Asset Pipeline', () => {
 
   it('should compute occupancy', () => {
     const atlas = new TextureAtlas({
-      id: 'occ', maxWidth: 256, maxHeight: 256,
-      padding: 0, allowRotation: false, powerOfTwo: false,
+      id: 'occ',
+      maxWidth: 256,
+      maxHeight: 256,
+      padding: 0,
+      allowRotation: false,
+      powerOfTwo: false,
     });
 
     atlas.pack('a', 100, 100);

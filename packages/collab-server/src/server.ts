@@ -56,9 +56,7 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   const room = getOrCreateRoom(roomId);
   room.add(ws);
 
-  console.log(
-    `[collab-server] Client joined room "${roomId}" (${room.size} peers)`
-  );
+  console.log(`[collab-server] Client joined room "${roomId}" (${room.size} peers)`);
 
   ws.on('message', (data) => {
     let msg: Record<string, unknown>;

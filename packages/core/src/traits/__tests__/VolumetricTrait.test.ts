@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createMockNode, createMockContext, attachTrait, updateTrait, sendEvent } from './traitTestHelpers';
+import {
+  createMockNode,
+  createMockContext,
+  attachTrait,
+  updateTrait,
+  sendEvent,
+} from './traitTestHelpers';
 
 // Mock SplatProcessingService
 vi.mock('../../services/SplatProcessingService', () => ({
@@ -42,7 +48,7 @@ describe('VolumetricTrait', () => {
   });
 
   it('emits load start event when src is provided', () => {
-    const loadEvents = ctx.emittedEvents.filter(e => e.event === 'volumetric_load_start');
+    const loadEvents = ctx.emittedEvents.filter((e) => e.event === 'volumetric_load_start');
     expect(loadEvents.length).toBe(1);
     expect((loadEvents[0].data as any).src).toBe('model.splat');
   });
@@ -51,13 +57,13 @@ describe('VolumetricTrait', () => {
     const node2 = createMockNode('vol2');
     const ctx2 = createMockContext();
     attachTrait(volumetricHandler, node2, { ...cfg, src: '' }, ctx2);
-    expect(ctx2.emittedEvents.find(e => e.event === 'volumetric_load_start')).toBeUndefined();
+    expect(ctx2.emittedEvents.find((e) => e.event === 'volumetric_load_start')).toBeUndefined();
   });
 
   it('cleans up on detach and emits unload', () => {
     (node as any).__volumetricState.isLoaded = true;
     volumetricHandler.onDetach?.(node as any, cfg as any, ctx as any);
-    expect(ctx.emittedEvents.some(e => e.event === 'volumetric_unload')).toBe(true);
+    expect(ctx.emittedEvents.some((e) => e.event === 'volumetric_unload')).toBe(true);
     expect((node as any).__volumetricState).toBeUndefined();
   });
 
@@ -76,7 +82,7 @@ describe('VolumetricTrait', () => {
   });
 
   it('resets clip bounds on volumetric_reset_clip event', () => {
-    (node as any).__volumetricState.clipBounds = { min: [0,0,0], max: [1,1,1] };
+    (node as any).__volumetricState.clipBounds = { min: [0, 0, 0], max: [1, 1, 1] };
     sendEvent(volumetricHandler, node, cfg, ctx, { type: 'volumetric_reset_clip' });
     expect((node as any).__volumetricState.clipBounds).toBeNull();
   });
@@ -84,7 +90,7 @@ describe('VolumetricTrait', () => {
   it('does not render update when not loaded', () => {
     ctx.clearEvents();
     updateTrait(volumetricHandler, node, cfg, ctx, 0.016);
-    expect(ctx.emittedEvents.find(e => e.event === 'volumetric_render_update')).toBeUndefined();
+    expect(ctx.emittedEvents.find((e) => e.event === 'volumetric_render_update')).toBeUndefined();
   });
 
   it('has correct handler name', () => {

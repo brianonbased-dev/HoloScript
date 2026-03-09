@@ -318,10 +318,7 @@ describe('DebrisParticleSystem', () => {
         count: 10,
       });
 
-      const results = system.queryBox(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 10, z: 10 }
-      );
+      const results = system.queryBox({ x: 0, y: 0, z: 0 }, { x: 10, y: 10, z: 10 });
 
       expect(results.length).toBeGreaterThan(0);
     });
@@ -375,12 +372,7 @@ describe('DebrisParticleSystem', () => {
         velocitySpread: 0,
       });
 
-      system.applyForceInRadius(
-        { x: 0, y: 10, z: 0 },
-        50,
-        { x: 100, y: 0, z: 0 },
-        1.0
-      );
+      system.applyForceInRadius({ x: 0, y: 10, z: 0 }, 50, { x: 100, y: 0, z: 0 }, 1.0);
 
       const particles = system.getActiveParticles();
       const nearParticle = particles.find((p) => Math.abs(p.position.x - 0) < 1);

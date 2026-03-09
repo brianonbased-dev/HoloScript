@@ -1,4 +1,3 @@
-
 import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 export interface UISliderConfig {
@@ -50,25 +49,25 @@ export function createUISlider(id: string, config: UISliderConfig): HSPlusNode {
           physics: { type: 'dynamic', mass: 0.1 },
           axis: axis,
           length: length,
-          value: config.initialValue || 0.5
+          value: config.initialValue || 0.5,
         },
         traits: [
-            {
-                name: 'slidable',
-                properties: {
-                    axis: axis,
-                    length: length
-                }
+          {
+            name: 'slidable',
+            properties: {
+              axis: axis,
+              length: length,
             },
-            {
-                name: 'grabbable', // Handle must be grabbable to move it!
-                properties: {
-                    snap_to_hand: true,
-                    // Constraint will limit movement
-                }
-            }
-        ]
-      }
-    ]
+          },
+          {
+            name: 'grabbable', // Handle must be grabbable to move it!
+            properties: {
+              snap_to_hand: true,
+              // Constraint will limit movement
+            },
+          },
+        ],
+      },
+    ],
   };
 }

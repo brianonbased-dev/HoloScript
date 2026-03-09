@@ -62,7 +62,7 @@ export function findNodes(nodes: SceneNode[], predicate: (n: SceneNode) => boole
  * Find nodes with a specific trait.
  */
 export function nodesWithTrait(nodes: SceneNode[], trait: string): SceneNode[] {
-  return findNodes(nodes, n => n.traits.includes(trait));
+  return findNodes(nodes, (n) => n.traits.includes(trait));
 }
 
 /**
@@ -115,12 +115,12 @@ export function sceneStats(nodes: SceneNode[]): {
 
   for (const n of flat) {
     byType[n.type] = (byType[n.type] || 0) + 1;
-    n.traits.forEach(t => traits.add(t));
+    n.traits.forEach((t) => traits.add(t));
   }
 
   function depth(list: SceneNode[], d: number): number {
     if (list.length === 0) return d;
-    return Math.max(...list.map(n => depth(n.children, d + 1)));
+    return Math.max(...list.map((n) => depth(n.children, d + 1)));
   }
 
   return {
@@ -135,7 +135,7 @@ export function sceneStats(nodes: SceneNode[]): {
  * Rename a node by ID (returns new tree).
  */
 export function renameNode(nodes: SceneNode[], id: string, newName: string): SceneNode[] {
-  return nodes.map(n => {
+  return nodes.map((n) => {
     if (n.id === id) return { ...n, name: newName };
     return { ...n, children: renameNode(n.children, id, newName) };
   });
@@ -146,8 +146,8 @@ export function renameNode(nodes: SceneNode[], id: string, newName: string): Sce
  */
 export function removeNode(nodes: SceneNode[], id: string): SceneNode[] {
   return nodes
-    .filter(n => n.id !== id)
-    .map(n => ({ ...n, children: removeNode(n.children, id) }));
+    .filter((n) => n.id !== id)
+    .map((n) => ({ ...n, children: removeNode(n.children, id) }));
 }
 
 // duplicateNode is re-exported from ./scene/sceneUtils (flat parentId version)

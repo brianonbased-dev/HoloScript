@@ -5,7 +5,13 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { AgentResponse, UseAgentConfig, UseAgentReturn, TaskParams, TaskResult } from '../types';
+import type {
+  AgentResponse,
+  UseAgentConfig,
+  UseAgentReturn,
+  TaskParams,
+  TaskResult,
+} from '../types';
 import { useAgentContext } from '../context/AgentContext';
 import { CircuitBreaker, ExponentialBackoff } from '../utils';
 
@@ -21,7 +27,12 @@ class AgentInstance {
   constructor(
     public agentName: string,
     config: UseAgentConfig,
-    circuitBreakerConfig?: { threshold: number; timeout: number; windowSize: number; minimumRequests: number }
+    circuitBreakerConfig?: {
+      threshold: number;
+      timeout: number;
+      windowSize: number;
+      minimumRequests: number;
+    }
   ) {
     this.config = config;
     this.circuitBreaker = new CircuitBreaker(circuitBreakerConfig);
@@ -55,10 +66,7 @@ class AgentInstance {
   /**
    * Execute task
    */
-  async executeTask<T = unknown>(
-    taskName: string,
-    params?: TaskParams
-  ): Promise<TaskResult<T>> {
+  async executeTask<T = unknown>(taskName: string, params?: TaskParams): Promise<TaskResult<T>> {
     const taskId = `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const startedAt = Date.now();
 
@@ -154,10 +162,7 @@ class AgentInstance {
  * const response = await agent.sendMessage('analyze', { data: [...] });
  * ```
  */
-export function useAgent(
-  agentName: string,
-  config: UseAgentConfig = {}
-): UseAgentReturn {
+export function useAgent(agentName: string, config: UseAgentConfig = {}): UseAgentReturn {
   const context = useAgentContext();
   const [status, setStatus] = useState<UseAgentReturn['status']>('connecting');
   const [error, setError] = useState<Error>();

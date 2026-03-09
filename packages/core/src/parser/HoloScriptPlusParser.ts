@@ -1074,7 +1074,12 @@ export class HoloScriptPlusParser {
           const directive = this.parseDirective();
           if (directive) {
             const type = (directive as any).type;
-            if (type === 'version' || type === 'migrate' || type === 'import' || type === 'export') {
+            if (
+              type === 'version' ||
+              type === 'migrate' ||
+              type === 'import' ||
+              type === 'export'
+            ) {
               globalDirectives.push(directive);
               // @export also goes to currentDirectives so it's attached to the following node
               if (type === 'export') {
@@ -1284,7 +1289,20 @@ export class HoloScriptPlusParser {
     // =========================================================================
     // Special handling for code blocks (module, script, struct, enum, action, function, on)
     // =========================================================================
-    if (['module', 'script', 'struct', 'enum', 'class', 'interface', 'action', 'function', 'async', 'on'].includes(type)) {
+    if (
+      [
+        'module',
+        'script',
+        'struct',
+        'enum',
+        'class',
+        'interface',
+        'action',
+        'function',
+        'async',
+        'on',
+      ].includes(type)
+    ) {
       let name = 'anonymous';
       // Parse name locally since 'id' variable is not yet initialized/parsed
       if (this.check('IDENTIFIER')) {
@@ -1823,7 +1841,6 @@ export class HoloScriptPlusParser {
         this.warn('@import is disabled');
         return null;
       }
-
 
       let namedImports: string[] | undefined;
       let isWildcard = false;

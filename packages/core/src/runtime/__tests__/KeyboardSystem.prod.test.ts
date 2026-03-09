@@ -31,7 +31,13 @@ function makeInput(id: string, text = '') {
     node: { id, type: 'input', properties: { text, tag: undefined } },
     children: [
       { node: { id: `${id}_text`, type: 'text', properties: { text } } },
-      { node: { id: `${id}_cursor`, type: 'box', properties: { tag: 'cursor', visible: false, position: { x: 0, y: 0, z: 0 } } } },
+      {
+        node: {
+          id: `${id}_cursor`,
+          type: 'box',
+          properties: { tag: 'cursor', visible: false, position: { x: 0, y: 0, z: 0 } },
+        },
+      },
     ],
   };
 }
@@ -58,9 +64,7 @@ describe('KeyboardSystem — Production', () => {
       kb.handleEvent('ui_press_end', { nodeId: 'my_input' });
 
       // Cursor should be visible
-      expect(runtime.updateNodeProperty).toHaveBeenCalledWith(
-        'my_input_cursor', 'visible', true,
-      );
+      expect(runtime.updateNodeProperty).toHaveBeenCalledWith('my_input_cursor', 'visible', true);
     });
 
     it('no-op when event is not ui_press_end', () => {

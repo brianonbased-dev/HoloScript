@@ -12,8 +12,12 @@ import { vpsHandler } from '../VPSTrait';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode() { return { id: 'vps_test' } as any; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'vps_test' } as any;
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 
 function attach(node: any, overrides: Record<string, unknown> = {}) {
   const cfg = { ...vpsHandler.defaultConfig!, ...overrides } as any;
@@ -22,7 +26,9 @@ function attach(node: any, overrides: Record<string, unknown> = {}) {
   return { cfg, ctx };
 }
 
-function st(node: any) { return node.__vpsState as any; }
+function st(node: any) {
+  return node.__vpsState as any;
+}
 
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
   vpsHandler.onEvent!(node, cfg, ctx as any, evt as any);
@@ -67,8 +73,15 @@ describe('VPSTrait — onAttach', () => {
 
   it('always emits vps_init with provider', () => {
     const node = makeNode();
-    const { ctx } = attach(node, { coverage_check: false, auto_localize: false, provider: 'niantic' });
-    expect(ctx.emit).toHaveBeenCalledWith('vps_init', expect.objectContaining({ provider: 'niantic' }));
+    const { ctx } = attach(node, {
+      coverage_check: false,
+      auto_localize: false,
+      provider: 'niantic',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'vps_init',
+      expect.objectContaining({ provider: 'niantic' })
+    );
   });
 
   it('coverage_check=true: state=checking_coverage + emits vps_check_coverage', () => {
@@ -80,9 +93,16 @@ describe('VPSTrait — onAttach', () => {
 
   it('coverage_check=false + auto_localize=true: state=localizing + emits vps_localize', () => {
     const node = makeNode();
-    const { ctx } = attach(node, { coverage_check: false, auto_localize: true, localization_timeout: 15000 });
+    const { ctx } = attach(node, {
+      coverage_check: false,
+      auto_localize: true,
+      localization_timeout: 15000,
+    });
     expect(st(node).state).toBe('localizing');
-    expect(ctx.emit).toHaveBeenCalledWith('vps_localize', expect.objectContaining({ timeout: 15000 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'vps_localize',
+      expect.objectContaining({ timeout: 15000 })
+    );
   });
 
   it('coverage_check=false + auto_localize=false: state stays idle, no localize emit', () => {
@@ -133,7 +153,11 @@ describe('VPSTrait — onDetach', () => {
 
 describe('VPSTrait — onUpdate', () => {
   it('applies pose to node.position when state=tracking', () => {
-    const node = { ...makeNode(), position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 0 } };
+    const node = {
+      ...makeNode(),
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0, w: 0 },
+    };
     const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false });
     st(node).state = 'tracking';
     st(node).pose = POSE;
@@ -162,7 +186,11 @@ describe('VPSTrait — onUpdate', () => {
   });
 
   it('applies rotation.w when node.rotation.w defined', () => {
-    const node = { ...makeNode(), position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 0 } };
+    const node = {
+      ...makeNode(),
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0, w: 0 },
+    };
     const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false });
     st(node).state = 'tracking';
     st(node).pose = POSE;
@@ -176,11 +204,18 @@ describe('VPSTrait — onUpdate', () => {
 describe('VPSTrait — onEvent: vps_coverage_result', () => {
   it('hasCoverage=true + auto_localize: transitions to localizing + emits vps_localize + on_vps_coverage_available', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { coverage_check: true, auto_localize: true, localization_timeout: 20000 });
+    const { cfg, ctx } = attach(node, {
+      coverage_check: true,
+      auto_localize: true,
+      localization_timeout: 20000,
+    });
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'vps_coverage_result', hasCoverage: true });
     expect(st(node).state).toBe('localizing');
-    expect(ctx.emit).toHaveBeenCalledWith('vps_localize', expect.objectContaining({ timeout: 20000 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'vps_localize',
+      expect.objectContaining({ timeout: 20000 })
+    );
     expect(ctx.emit).toHaveBeenCalledWith('on_vps_coverage_available', expect.any(Object));
   });
 
@@ -200,7 +235,10 @@ describe('VPSTrait — onEvent: vps_coverage_result', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'vps_coverage_result', hasCoverage: false });
     expect(st(node).state).toBe('unavailable');
-    expect(ctx.emit).toHaveBeenCalledWith('on_vps_unavailable', expect.objectContaining({ reason: 'no_coverage' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_vps_unavailable',
+      expect.objectContaining({ reason: 'no_coverage' })
+    );
   });
 });
 
@@ -209,9 +247,20 @@ describe('VPSTrait — onEvent: vps_coverage_result', () => {
 describe('VPSTrait — onEvent: vps_localized', () => {
   it('confidence >= threshold + continuous_tracking: state=tracking + vps_start_tracking + on_vps_localized', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false, quality_threshold: 0.6, continuous_tracking: true });
+    const { cfg, ctx } = attach(node, {
+      coverage_check: false,
+      auto_localize: false,
+      quality_threshold: 0.6,
+      continuous_tracking: true,
+    });
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'vps_localized', confidence: 0.85, accuracy: 0.5, locationId: 'loc1', pose: POSE });
+    fire(node, cfg, ctx, {
+      type: 'vps_localized',
+      confidence: 0.85,
+      accuracy: 0.5,
+      locationId: 'loc1',
+      pose: POSE,
+    });
     const s = st(node);
     expect(s.state).toBe('tracking');
     expect(s.isLocalized).toBe(true);
@@ -220,14 +269,28 @@ describe('VPSTrait — onEvent: vps_localized', () => {
     expect(s.pose).toEqual(POSE);
     expect(s.continuousTrackingActive).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith('vps_start_tracking', expect.any(Object));
-    expect(ctx.emit).toHaveBeenCalledWith('on_vps_localized', expect.objectContaining({ confidence: 0.85, locationId: 'loc1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_vps_localized',
+      expect.objectContaining({ confidence: 0.85, locationId: 'loc1' })
+    );
   });
 
   it('confidence >= threshold + continuous_tracking=false: state=localized, no start_tracking', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false, quality_threshold: 0.6, continuous_tracking: false });
+    const { cfg, ctx } = attach(node, {
+      coverage_check: false,
+      auto_localize: false,
+      quality_threshold: 0.6,
+      continuous_tracking: false,
+    });
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'vps_localized', confidence: 0.8, accuracy: 1, locationId: null, pose: POSE });
+    fire(node, cfg, ctx, {
+      type: 'vps_localized',
+      confidence: 0.8,
+      accuracy: 1,
+      locationId: null,
+      pose: POSE,
+    });
     expect(st(node).state).toBe('localized');
     expect(ctx.emit).not.toHaveBeenCalledWith('vps_start_tracking', expect.any(Object));
     expect(ctx.emit).toHaveBeenCalledWith('on_vps_localized', expect.any(Object));
@@ -235,11 +298,24 @@ describe('VPSTrait — onEvent: vps_localized', () => {
 
   it('confidence < threshold: state=limited + emits on_vps_limited', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false, quality_threshold: 0.7 });
+    const { cfg, ctx } = attach(node, {
+      coverage_check: false,
+      auto_localize: false,
+      quality_threshold: 0.7,
+    });
     ctx.emit.mockClear();
-    fire(node, cfg, ctx, { type: 'vps_localized', confidence: 0.5, accuracy: 2, locationId: null, pose: POSE });
+    fire(node, cfg, ctx, {
+      type: 'vps_localized',
+      confidence: 0.5,
+      accuracy: 2,
+      locationId: null,
+      pose: POSE,
+    });
     expect(st(node).state).toBe('limited');
-    expect(ctx.emit).toHaveBeenCalledWith('on_vps_limited', expect.objectContaining({ requiredConfidence: 0.7 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_vps_limited',
+      expect.objectContaining({ requiredConfidence: 0.7 })
+    );
   });
 });
 
@@ -248,7 +324,11 @@ describe('VPSTrait — onEvent: vps_localized', () => {
 describe('VPSTrait — onEvent: vps_localization_failed', () => {
   it('increments attempts and does NOT emit on_vps_failed below max', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false, max_attempts: 3 });
+    const { cfg, ctx } = attach(node, {
+      coverage_check: false,
+      auto_localize: false,
+      max_attempts: 3,
+    });
     fire(node, cfg, ctx, { type: 'vps_localization_failed', reason: 'timeout' });
     expect(st(node).localizationAttempts).toBe(1);
     expect(ctx.emit).not.toHaveBeenCalledWith('on_vps_failed', expect.any(Object));
@@ -256,11 +336,19 @@ describe('VPSTrait — onEvent: vps_localization_failed', () => {
 
   it('sets unavailable and emits on_vps_failed when max_attempts reached', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false, max_attempts: 2, retry_interval: 1 });
+    const { cfg, ctx } = attach(node, {
+      coverage_check: false,
+      auto_localize: false,
+      max_attempts: 2,
+      retry_interval: 1,
+    });
     fire(node, cfg, ctx, { type: 'vps_localization_failed', reason: 'no_features' });
     fire(node, cfg, ctx, { type: 'vps_localization_failed', reason: 'no_features' });
     expect(st(node).state).toBe('unavailable');
-    expect(ctx.emit).toHaveBeenCalledWith('on_vps_failed', expect.objectContaining({ attempts: 2, reason: 'no_features' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_vps_failed',
+      expect.objectContaining({ attempts: 2, reason: 'no_features' })
+    );
   });
 });
 
@@ -279,23 +367,37 @@ describe('VPSTrait — onEvent: vps_pose_update', () => {
 
   it('tracking→limited when confidence drops below threshold', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false, quality_threshold: 0.7 });
+    const { cfg, ctx } = attach(node, {
+      coverage_check: false,
+      auto_localize: false,
+      quality_threshold: 0.7,
+    });
     st(node).state = 'tracking';
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'vps_pose_update', pose: POSE, confidence: 0.5, accuracy: 3 });
     expect(st(node).state).toBe('limited');
-    expect(ctx.emit).toHaveBeenCalledWith('on_vps_tracking_degraded', expect.objectContaining({ confidence: 0.5 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_vps_tracking_degraded',
+      expect.objectContaining({ confidence: 0.5 })
+    );
   });
 
   it('limited→tracking when confidence recovers above threshold', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false, quality_threshold: 0.7 });
+    const { cfg, ctx } = attach(node, {
+      coverage_check: false,
+      auto_localize: false,
+      quality_threshold: 0.7,
+    });
     st(node).state = 'limited';
     st(node).confidence = 0.5;
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'vps_pose_update', pose: POSE, confidence: 0.85, accuracy: 0.5 });
     expect(st(node).state).toBe('tracking');
-    expect(ctx.emit).toHaveBeenCalledWith('on_vps_tracking_restored', expect.objectContaining({ confidence: 0.85 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_vps_tracking_restored',
+      expect.objectContaining({ confidence: 0.85 })
+    );
   });
 });
 
@@ -304,13 +406,20 @@ describe('VPSTrait — onEvent: vps_pose_update', () => {
 describe('VPSTrait — onEvent: vps_localize', () => {
   it('resets attempts, sets localizing, emits vps_localize', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false, localization_timeout: 15000 });
+    const { cfg, ctx } = attach(node, {
+      coverage_check: false,
+      auto_localize: false,
+      localization_timeout: 15000,
+    });
     st(node).localizationAttempts = 4;
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'vps_localize' });
     expect(st(node).state).toBe('localizing');
     expect(st(node).localizationAttempts).toBe(0);
-    expect(ctx.emit).toHaveBeenCalledWith('vps_localize', expect.objectContaining({ timeout: 15000 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'vps_localize',
+      expect.objectContaining({ timeout: 15000 })
+    );
   });
 });
 
@@ -344,12 +453,15 @@ describe('VPSTrait — onEvent: vps_query', () => {
     st(node).pose = POSE;
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'vps_query', queryId: 'vq1' });
-    expect(ctx.emit).toHaveBeenCalledWith('vps_info', expect.objectContaining({
-      queryId: 'vq1',
-      state: 'tracking',
-      isLocalized: true,
-      confidence: 0.92,
-      locationId: 'locX',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'vps_info',
+      expect.objectContaining({
+        queryId: 'vq1',
+        state: 'tracking',
+        isLocalized: true,
+        confidence: 0.92,
+        locationId: 'locX',
+      })
+    );
   });
 });

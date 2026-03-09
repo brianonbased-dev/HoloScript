@@ -14,9 +14,9 @@
 export interface PostProcessEffect {
   id: string;
   name: string;
-  priority: number;       // Lower = processed first
+  priority: number; // Lower = processed first
   enabled: boolean;
-  weight: number;         // 0-1 blend
+  weight: number; // 0-1 blend
   params: Map<string, number>;
   process: (input: Float32Array, width: number, height: number) => Float32Array;
 }
@@ -45,7 +45,11 @@ export class PostProcessStack {
   ): PostProcessEffect {
     const id = `ppfx_${_effectId++}`;
     const effect: PostProcessEffect = {
-      id, name, priority, enabled: true, weight: 1,
+      id,
+      name,
+      priority,
+      enabled: true,
+      weight: 1,
       params: new Map(Object.entries(params ?? {})),
       process,
     };
@@ -68,8 +72,12 @@ export class PostProcessStack {
     if (effect) effect.enabled = enabled;
   }
 
-  setGlobalEnabled(enabled: boolean): void { this.enabled = enabled; }
-  isGlobalEnabled(): boolean { return this.enabled; }
+  setGlobalEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+  }
+  isGlobalEnabled(): boolean {
+    return this.enabled;
+  }
 
   setWeight(id: string, weight: number): void {
     const effect = this.effects.get(id);
@@ -119,17 +127,28 @@ export class PostProcessStack {
 
   reorder(id: string, newPriority: number): void {
     const effect = this.effects.get(id);
-    if (effect) { effect.priority = newPriority; this.dirty = true; }
+    if (effect) {
+      effect.priority = newPriority;
+      this.dirty = true;
+    }
   }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getEffect(id: string): PostProcessEffect | undefined { return this.effects.get(id); }
-  getEffectCount(): number { return this.effects.size; }
-  getActiveCount(): number { return [...this.effects.values()].filter(e => e.enabled).length; }
-  getEffectNames(): string[] { return this.getSorted().map(e => e.name); }
+  getEffect(id: string): PostProcessEffect | undefined {
+    return this.effects.get(id);
+  }
+  getEffectCount(): number {
+    return this.effects.size;
+  }
+  getActiveCount(): number {
+    return [...this.effects.values()].filter((e) => e.enabled).length;
+  }
+  getEffectNames(): string[] {
+    return this.getSorted().map((e) => e.name);
+  }
 
   setParam(id: string, param: string, value: number): void {
     this.effects.get(id)?.params.set(param, value);

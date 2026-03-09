@@ -10,12 +10,8 @@
 
 import { useState, useMemo } from 'react';
 import { X, Search, Flame, TrendingUp, Star, Sparkles } from 'lucide-react';
-import {
-  MEME_TEMPLATES,
-  searchTemplates,
-  type MemeTemplate,
-} from '@/lib/memeTemplates';
-import { useSceneStore } from '@/lib/store';
+import { MEME_TEMPLATES, searchTemplates, type MemeTemplate } from '@/lib/memeTemplates';
+import { useSceneStore } from '@/lib/stores';
 
 interface MemeTemplateGalleryProps {
   onClose: () => void;
@@ -36,13 +32,7 @@ const POPULARITY_COLOR: Record<string, string> = {
   niche: 'text-purple-400',
 };
 
-function MemeCard({
-  meme,
-  onSelect,
-}: {
-  meme: MemeTemplate;
-  onSelect: (m: MemeTemplate) => void;
-}) {
+function MemeCard({ meme, onSelect }: { meme: MemeTemplate; onSelect: (m: MemeTemplate) => void }) {
   const [imgError, setImgError] = useState(false);
   const PopIcon = POPULARITY_ICONS[meme.popularity] ?? Star;
 
@@ -67,7 +57,9 @@ function MemeCard({
         )}
 
         {/* Popularity badge */}
-        <div className={`absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-medium backdrop-blur ${POPULARITY_COLOR[meme.popularity]}`}>
+        <div
+          className={`absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-medium backdrop-blur ${POPULARITY_COLOR[meme.popularity]}`}
+        >
           <PopIcon className="h-2.5 w-2.5" />
           {meme.popularity}
         </div>
@@ -128,9 +120,7 @@ export function MemeTemplateGallery({ onClose, onApply }: MemeTemplateGalleryPro
         {/* Header */}
         <div className="flex shrink-0 items-center gap-3 border-b border-studio-border px-5 py-4">
           <div className="flex-1">
-            <h2 className="text-sm font-semibold text-studio-text">
-              Meme Character Templates
-            </h2>
+            <h2 className="text-sm font-semibold text-studio-text">Meme Character Templates</h2>
             <p className="text-[11px] text-studio-muted">
               Click to apply character traits, animations & materials
             </p>

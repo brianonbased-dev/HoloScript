@@ -19,22 +19,24 @@ describe('Procedural Generation Systems', () => {
     it('generates different noise outputs for different seeds', () => {
       const noiseA = new NoiseGenerator({ seed: 100 });
       const noiseB = new NoiseGenerator({ seed: 200 });
-      
+
       let differences = 0;
       for (let i = 0; i < 10; i++) {
-          if (Math.abs(noiseA.perlin2D(i + 0.5, i + 0.5) - noiseB.perlin2D(i + 0.5, i + 0.5)) > 0.001) {
-              differences++;
-          }
+        if (
+          Math.abs(noiseA.perlin2D(i + 0.5, i + 0.5) - noiseB.perlin2D(i + 0.5, i + 0.5)) > 0.001
+        ) {
+          differences++;
+        }
       }
-      
+
       expect(differences).toBeGreaterThan(0);
     });
 
     it('fractal brownian motion (fbm2D) aggregates octaves deterministically', () => {
-        const noise = new NoiseGenerator({ seed: 999 });
-        const val1 = noise.fbm2D(0.5, 0.5, 'perlin');
-        const val2 = noise.fbm2D(0.5, 0.5, 'perlin');
-        expect(val1).toBe(val2);
+      const noise = new NoiseGenerator({ seed: 999 });
+      const val1 = noise.fbm2D(0.5, 0.5, 'perlin');
+      const val2 = noise.fbm2D(0.5, 0.5, 'perlin');
+      expect(val1).toBe(val2);
     });
   });
 
@@ -59,10 +61,10 @@ describe('Procedural Generation Systems', () => {
     });
 
     it('ensures fully connected generation', () => {
-        const dungeon = new DungeonGenerator({ width: 40, height: 40, seed: 1024, maxRooms: 8 });
-        dungeon.generate();
-        
-        expect(dungeon.isFullyConnected()).toBe(true);
+      const dungeon = new DungeonGenerator({ width: 40, height: 40, seed: 1024, maxRooms: 8 });
+      dungeon.generate();
+
+      expect(dungeon.isFullyConnected()).toBe(true);
     });
   });
 });

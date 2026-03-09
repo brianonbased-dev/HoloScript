@@ -5,7 +5,7 @@
  * Validates 50-80% compilation time reduction on incremental builds.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { IncrementalCompiler } from '../IncrementalCompiler';
 import { createSemanticCache } from '../SemanticCache';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
@@ -17,7 +17,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 describe('SemanticCache Integration', () => {
   let compiler: IncrementalCompiler;
@@ -251,7 +250,9 @@ describe('SemanticCache Integration', () => {
 
       // Calculate speedup
       const speedup = coldTime / warmTime;
-      console.log(`Cold build: ${coldTime}ms, Warm build: ${warmTime}ms, Speedup: ${speedup.toFixed(2)}x`);
+      console.log(
+        `Cold build: ${coldTime}ms, Warm build: ${warmTime}ms, Speedup: ${speedup.toFixed(2)}x`
+      );
 
       // Should see speedup (at least 1.1x; in CI/parallel runs, speedup may be modest)
       expect(speedup).toBeGreaterThan(1.1);
@@ -310,9 +311,7 @@ describe('SemanticCache Integration', () => {
       const composition2: HoloComposition = {
         ...composition1,
         objects: composition1.objects!.map((obj) =>
-          obj.name === 'Obj3'
-            ? { ...obj, properties: [{ key: 'x', value: 30 }] }
-            : obj
+          obj.name === 'Obj3' ? { ...obj, properties: [{ key: 'x', value: 30 }] } : obj
         ),
       };
 
@@ -387,9 +386,7 @@ describe('SemanticCache Integration', () => {
     it('should gracefully handle compilation errors', async () => {
       const composition: HoloComposition = {
         name: 'TestScene',
-        objects: [
-          { name: 'ValidObject', properties: [], traits: [] },
-        ],
+        objects: [{ name: 'ValidObject', properties: [], traits: [] }],
       };
 
       const compileObject = (obj: HoloObjectDecl) => {
@@ -407,9 +404,7 @@ describe('SemanticCache Integration', () => {
     it('should handle cache corruption gracefully', async () => {
       const composition: HoloComposition = {
         name: 'TestScene',
-        objects: [
-          { name: 'Cube', properties: [], traits: [] },
-        ],
+        objects: [{ name: 'Cube', properties: [], traits: [] }],
       };
 
       const compileObject = (obj: HoloObjectDecl) => `const ${obj.name} = {};`;
@@ -430,9 +425,7 @@ describe('SemanticCache Integration', () => {
     it('should not leak memory with many builds', async () => {
       const composition: HoloComposition = {
         name: 'TestScene',
-        objects: [
-          { name: 'Cube', properties: [], traits: [] },
-        ],
+        objects: [{ name: 'Cube', properties: [], traits: [] }],
       };
 
       const compileObject = (obj: HoloObjectDecl) => `const ${obj.name} = {};`;

@@ -912,7 +912,7 @@ export class HoloScriptPlusParser {
    */
   parseWithModules(
     code: string,
-    fromFile = '<inline>',
+    fromFile = '<inline>'
   ): {
     ast: ASTNode[];
     imports: Array<{ specifiers: string[]; source: string; alias?: string }>;
@@ -929,7 +929,7 @@ export class HoloScriptPlusParser {
    */
   parseModuleHeader(
     code: string,
-    _fromFile = '<inline>',
+    _fromFile = '<inline>'
   ): {
     imports: Array<{ specifiers: string[]; source: string; alias?: string }>;
     exports: string[];
@@ -942,10 +942,16 @@ export class HoloScriptPlusParser {
       if (!line || line.startsWith('//') || line.startsWith('#')) continue;
 
       const imp = this.parseImportDirective(line);
-      if (imp) { imports.push(imp); continue; }
+      if (imp) {
+        imports.push(imp);
+        continue;
+      }
 
       const exp = this.parseExportDirective(line);
-      if (exp) { exports.push(...exp); continue; }
+      if (exp) {
+        exports.push(...exp);
+        continue;
+      }
 
       // First non-import/export/comment line ends the header
       break;
@@ -965,11 +971,9 @@ export class HoloScriptPlusParser {
    * Returns null if the line is not an @import.
    */
   parseImportDirective(
-    line: string,
+    line: string
   ): { specifiers: string[]; source: string; alias?: string } | null {
-    const m = line.match(
-      /^@import\s+([\w@*,\s]+?)(?:\s+as\s+(@\w+))?\s+from\s+["']([^"']+)["']/,
-    );
+    const m = line.match(/^@import\s+([\w@*,\s]+?)(?:\s+as\s+(@\w+))?\s+from\s+["']([^"']+)["']/);
     if (!m) return null;
 
     const specifiersPart = m[1].trim();
@@ -1015,7 +1019,7 @@ export class HoloScriptPlusParser {
    * emitted by callers into the broader AST to register composed traits.
    */
   parseCompositionDirective(
-    line: string,
+    line: string
   ): { type: 'trait_composition'; name: string; sources: string[] } | null {
     // Same regex as TraitComposer.parseCompositionLine — inlined to avoid
     // circular dependency between HoloScriptPlusParser and the compiler folder.
@@ -1037,7 +1041,7 @@ export class HoloScriptPlusParser {
    * @returns     Array of composition definitions ready for TraitBinder registration
    */
   parseCompositionBlock(
-    code: string,
+    code: string
   ): Array<{ type: 'trait_composition'; name: string; sources: string[] }> {
     const results: Array<{ type: 'trait_composition'; name: string; sources: string[] }> = [];
     for (const rawLine of code.split('\n')) {
@@ -1068,9 +1072,7 @@ export class HoloScriptPlusParser {
    *
    * Returns null if no `state {` opener is found in the source.
    */
-  parseStateBlock(
-    code: string,
-  ): Array<{ name: string; value: unknown }> | null {
+  parseStateBlock(code: string): Array<{ name: string; value: unknown }> | null {
     // Find state { ... } — handles both single-line and multi-line forms
     const m = code.match(/\bstate\s*\{([^}]*)\}/s);
     if (!m) return null;
@@ -1089,7 +1091,7 @@ export class HoloScriptPlusParser {
       const [, varName, rawVal] = pair;
       let value: unknown = rawVal.trim();
 
-      if (rawVal === 'true')  value = true;
+      if (rawVal === 'true') value = true;
       else if (rawVal === 'false') value = false;
       else if (!isNaN(Number(rawVal))) value = Number(rawVal);
       else if (/^["'](.*)["']$/.test(rawVal)) value = rawVal.slice(1, -1);
@@ -1111,9 +1113,7 @@ export class HoloScriptPlusParser {
    * The `body` string is the raw block content suitable for ExpressionEvaluator.
    * Returns an empty array if no `on` blocks are found.
    */
-  parseOnBlock(
-    code: string,
-  ): Array<{ event: string; body: string }> {
+  parseOnBlock(code: string): Array<{ event: string; body: string }> {
     const results: Array<{ event: string; body: string }> = [];
     // Match: on <eventName> { ... } — greedy enough to handle multi-line
     const pattern = /\bon\s+(\w+)\s*\{([^}]*)\}/gs;

@@ -7,11 +7,20 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  pressureAtDepth, lightAtDepth, depthZone, soundSpeedMs,
-  waterDensity, simpleTide, tidePhase,
-  speciesInZone, canSurviveAtDepth, canSurviveTemperature,
-  endangeredSpecies, totalPopulation,
-  adcpCurrentProfile, coralBleachingRisk,
+  pressureAtDepth,
+  lightAtDepth,
+  depthZone,
+  soundSpeedMs,
+  waterDensity,
+  simpleTide,
+  tidePhase,
+  speciesInZone,
+  canSurviveAtDepth,
+  canSurviveTemperature,
+  endangeredSpecies,
+  totalPopulation,
+  adcpCurrentProfile,
+  coralBleachingRisk,
   type MarineSpecies,
 } from '@/lib/oceanography';
 
@@ -81,9 +90,33 @@ describe('Scenario: Oceanography — Tides', () => {
 
 describe('Scenario: Oceanography — Marine Ecology', () => {
   const species: MarineSpecies[] = [
-    { id: 'whale', name: 'Blue Whale', zone: 'epipelagic', depthRange: { min: 0, max: 500 }, optimalTempC: { min: 5, max: 20 }, population: 10000, endangered: true },
-    { id: 'anglerfish', name: 'Anglerfish', zone: 'bathypelagic', depthRange: { min: 1000, max: 4000 }, optimalTempC: { min: 1, max: 4 }, population: 100000, endangered: false },
-    { id: 'coral', name: 'Staghorn Coral', zone: 'epipelagic', depthRange: { min: 0, max: 60 }, optimalTempC: { min: 23, max: 29 }, population: 50000, endangered: true },
+    {
+      id: 'whale',
+      name: 'Blue Whale',
+      zone: 'epipelagic',
+      depthRange: { min: 0, max: 500 },
+      optimalTempC: { min: 5, max: 20 },
+      population: 10000,
+      endangered: true,
+    },
+    {
+      id: 'anglerfish',
+      name: 'Anglerfish',
+      zone: 'bathypelagic',
+      depthRange: { min: 1000, max: 4000 },
+      optimalTempC: { min: 1, max: 4 },
+      population: 100000,
+      endangered: false,
+    },
+    {
+      id: 'coral',
+      name: 'Staghorn Coral',
+      zone: 'epipelagic',
+      depthRange: { min: 0, max: 60 },
+      optimalTempC: { min: 23, max: 29 },
+      population: 50000,
+      endangered: true,
+    },
   ];
 
   it('speciesInZone(epipelagic) returns 2 species', () => {
@@ -115,7 +148,9 @@ describe('Scenario: Oceanography — Marine Ecology', () => {
     const profile = adcpCurrentProfile(1.5, 180, 40, 8);
     expect(profile.length).toBeGreaterThan(0);
     // Speed decreases with depth
-    expect(profile[0].currentSpeedMs).toBeGreaterThanOrEqual(profile[profile.length - 1].currentSpeedMs);
+    expect(profile[0].currentSpeedMs).toBeGreaterThanOrEqual(
+      profile[profile.length - 1].currentSpeedMs
+    );
     // Ekman spiral rotates direction
     expect(profile[profile.length - 1].directionDeg).not.toBe(180);
   });

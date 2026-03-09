@@ -17,7 +17,13 @@
  * @version 1.0.0
  */
 
-import type { ResourceType, ResourceAbility, OwnershipState, LinearViolation, LinearCheckResult } from '../../types/linear';
+import type {
+  ResourceType,
+  ResourceAbility,
+  OwnershipState,
+  LinearViolation,
+  LinearCheckResult,
+} from '../../types/linear';
 import type { EffectASTNode } from './EffectChecker';
 
 // =============================================================================
@@ -171,7 +177,7 @@ export class LinearTypeChecker {
       allTracked.set(name, tracked.state);
     }
 
-    const hasErrors = allViolations.some(v => v.severity === 'error');
+    const hasErrors = allViolations.some((v) => v.severity === 'error');
 
     return {
       passed: !hasErrors,
@@ -211,7 +217,7 @@ export class LinearTypeChecker {
     }
 
     return {
-      passed: !violations.some(v => v.severity === 'error'),
+      passed: !violations.some((v) => v.severity === 'error'),
       violations,
       trackedResources: tracked,
     };
@@ -226,7 +232,7 @@ export class LinearTypeChecker {
    */
   private detectResourcesFromTraits(
     node: EffectASTNode,
-    scope: Map<string, TrackedResource>,
+    scope: Map<string, TrackedResource>
   ): void {
     if (!node.traits) return;
 
@@ -260,7 +266,7 @@ export class LinearTypeChecker {
   private processConsumingCalls(
     node: EffectASTNode,
     scope: Map<string, TrackedResource>,
-    violations: LinearViolation[],
+    violations: LinearViolation[]
   ): void {
     if (!node.calls) return;
 
@@ -316,7 +322,7 @@ export class LinearTypeChecker {
   private checkReferencesInNode(
     node: EffectASTNode,
     scope: Map<string, TrackedResource>,
-    violations: LinearViolation[],
+    violations: LinearViolation[]
   ): void {
     const nodeName = node.name || '';
 
@@ -355,10 +361,7 @@ export class LinearTypeChecker {
    * Check for resource leaks at scope exit.
    * Resources without the Drop ability must be explicitly consumed or moved.
    */
-  private checkLeaks(
-    scope: Map<string, TrackedResource>,
-    violations: LinearViolation[],
-  ): void {
+  private checkLeaks(scope: Map<string, TrackedResource>, violations: LinearViolation[]): void {
     for (const [name, tracked] of scope) {
       if (tracked.state === 'owned' && !tracked.type.abilities.has('drop')) {
         violations.push({

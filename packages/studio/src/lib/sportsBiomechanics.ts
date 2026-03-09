@@ -5,11 +5,28 @@
  * power output, fatigue modeling, and injury risk assessment.
  */
 
-export interface Vec3 { x: number; y: number; z: number }
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 export type Joint = 'hip' | 'knee' | 'ankle' | 'shoulder' | 'elbow' | 'wrist' | 'spine';
-export type MotionPhase = 'preparation' | 'acceleration' | 'execution' | 'follow-through' | 'recovery';
-export type Sport = 'running' | 'swimming' | 'cycling' | 'weightlifting' | 'tennis' | 'baseball' | 'basketball' | 'soccer';
+export type MotionPhase =
+  | 'preparation'
+  | 'acceleration'
+  | 'execution'
+  | 'follow-through'
+  | 'recovery';
+export type Sport =
+  | 'running'
+  | 'swimming'
+  | 'cycling'
+  | 'weightlifting'
+  | 'tennis'
+  | 'baseball'
+  | 'basketball'
+  | 'soccer';
 
 export interface JointAngle {
   joint: Joint;
@@ -19,7 +36,7 @@ export interface JointAngle {
 }
 
 export interface ForceData {
-  magnitude: number;          // Newtons
+  magnitude: number; // Newtons
   direction: Vec3;
   applicationPoint: Vec3;
   timestamp: number;
@@ -32,7 +49,7 @@ export interface AthleteProfile {
   massKg: number;
   heightCm: number;
   maxHeartRate: number;
-  vo2Max: number;             // mL/kg/min
+  vo2Max: number; // mL/kg/min
   limbLengths: Record<string, number>; // cm
 }
 
@@ -77,13 +94,13 @@ export function strideFrequency(stepsInInterval: number, intervalSec: number): n
 
 export function groundContactTime(forceData: ForceData[]): number {
   // Duration where GRF > threshold (50N)
-  const contacts = forceData.filter(f => f.magnitude > 50);
+  const contacts = forceData.filter((f) => f.magnitude > 50);
   if (contacts.length < 2) return 0;
   return contacts[contacts.length - 1].timestamp - contacts[0].timestamp;
 }
 
 export function peakForce(forces: ForceData[]): number {
-  return Math.max(...forces.map(f => f.magnitude));
+  return Math.max(...forces.map((f) => f.magnitude));
 }
 
 export function averageForce(forces: ForceData[]): number {
@@ -108,7 +125,7 @@ export function fatigueIndex(peakPower: number, endPower: number): number {
 
 export function injuryRiskScore(
   loadingRateNs: number,
-  jointAsymmetry: number,  // % difference between sides
+  jointAsymmetry: number, // % difference between sides
   trainingLoadRatio: number // acute:chronic workload ratio
 ): number {
   let risk = 0;
@@ -135,10 +152,10 @@ export function caloriesBurned(vo2Ml: number, durationMin: number, massKg: numbe
 // ═══════════════════════════════════════════════════════════════════
 
 export interface GaitMetrics {
-  symmetryIndex: number;        // 0-100% (100 = perfect symmetry)
+  symmetryIndex: number; // 0-100% (100 = perfect symmetry)
   cadenceStepsPerMin: number;
   strideLengthM: number;
-  supinationAngleDeg: number;   // 0 neutral, + supination, - pronation
+  supinationAngleDeg: number; // 0 neutral, + supination, - pronation
   contactTimeAsymmetry: number; // % difference between left/right
 }
 
@@ -155,14 +172,19 @@ export function gaitSymmetryIndex(
   footAngleDeg: number = 0
 ): GaitMetrics {
   const maxContact = Math.max(leftContactTimeMs, rightContactTimeMs);
-  const contactSymmetry = maxContact > 0 ? 100 * (1 - Math.abs(leftContactTimeMs - rightContactTimeMs) / maxContact) : 100;
+  const contactSymmetry =
+    maxContact > 0
+      ? 100 * (1 - Math.abs(leftContactTimeMs - rightContactTimeMs) / maxContact)
+      : 100;
 
   const maxStride = Math.max(leftStrideLengthM, rightStrideLengthM);
-  const strideSymmetry = maxStride > 0 ? 100 * (1 - Math.abs(leftStrideLengthM - rightStrideLengthM) / maxStride) : 100;
+  const strideSymmetry =
+    maxStride > 0 ? 100 * (1 - Math.abs(leftStrideLengthM - rightStrideLengthM) / maxStride) : 100;
 
   const symmetryIndex = (contactSymmetry + strideSymmetry) / 2;
   const avgStride = (leftStrideLengthM + rightStrideLengthM) / 2;
-  const contactAsymmetry = maxContact > 0 ? (Math.abs(leftContactTimeMs - rightContactTimeMs) / maxContact) * 100 : 0;
+  const contactAsymmetry =
+    maxContact > 0 ? (Math.abs(leftContactTimeMs - rightContactTimeMs) / maxContact) * 100 : 0;
 
   return {
     symmetryIndex: Math.round(symmetryIndex * 10) / 10,
@@ -191,15 +213,15 @@ export function motionCaptureReplay(
   frames: MotionFrame[],
   annotationThresholdDeg: number = 120
 ): MocapReplayFrame[] {
-  return frames.map(f => ({
+  return frames.map((f) => ({
     timestamp: f.timestamp,
-    joints: f.joints.map(j => ({
+    joints: f.joints.map((j) => ({
       joint: j.joint,
       position: { x: 0, y: 0, z: 0 }, // Would come from IK solver in real impl
       angleDeg: j.angleDeg,
     })),
     annotations: f.joints
-      .filter(j => Math.abs(j.angleDeg) > annotationThresholdDeg)
-      .map(j => `⚠ ${j.joint}: ${j.angleDeg.toFixed(0)}° (extreme)`),
+      .filter((j) => Math.abs(j.angleDeg) > annotationThresholdDeg)
+      .map((j) => `⚠ ${j.joint}: ${j.angleDeg.toFixed(0)}° (extreme)`),
   }));
 }

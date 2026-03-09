@@ -9,24 +9,28 @@ This example showcases HoloScript's capabilities for creating virtual museum and
 ### Key Features
 
 ✓ **Multiple Exhibition Rooms**
+
 - Entrance hall with language selection
 - Impressionism room (paintings)
 - Modern art room (3D sculptures, digital art)
 - Realistic gallery lighting and ambiance
 
 ✓ **Interactive Audio Guide System**
+
 - Multi-language narration (6 languages)
 - Synchronized subtitles
 - Playback controls
 - Artwork metadata overlays
 
 ✓ **VR Navigation**
+
 - Teleportation (comfort-focused)
 - Smooth locomotion (optional)
 - Minimap for orientation
 - Desktop/mobile fallback modes
 
 ✓ **Accessibility Features**
+
 - Subtitles for audio guides
 - High contrast mode
 - Colorblind-friendly options
@@ -68,6 +72,7 @@ holoscript compile museum-exhibition.holo --target unity --output ./output/unity
 4. Select language to begin tour
 
 **Platform Support:**
+
 - **Desktop**: Chrome, Firefox, Edge (mouse + keyboard)
 - **VR**: Quest Browser, Steam VR Browser
 - **Mobile**: Limited support (use AR version for mobile)
@@ -260,24 +265,28 @@ VR teleportation + smooth movement with desktop/mobile fallback.
 ## 🎓 Use Cases
 
 ### Museums & Galleries
+
 - Virtual exhibitions during closures
 - Preservation of fragile/inaccessible works
 - Remote access for distant audiences
 - Educational tours for students
 
 ### Cultural Institutions
+
 - Heritage site virtual tours
 - Archaeological site preservation
 - Historical reconstruction
 - Archive digitization
 
 ### Educational
+
 - Art history courses
 - Virtual field trips
 - Homeschool curricula
 - Accessibility for students with disabilities
 
 ### Commercial
+
 - Art dealerships and auctions
 - Trade show virtual booths
 - Artist portfolio showcases
@@ -336,6 +345,7 @@ zone#new_room @navigable @exhibition {
 ### Changing Gallery Theme
 
 Update materials and lighting (lines 39-163):
+
 ```holoscript
 environment#gallery @indoor @museum_lighting {
   ambient_light: { intensity: 0.3, color: #ffffff }  // Brighter, cooler
@@ -349,6 +359,7 @@ walls @static {
 ### Multi-Language Content
 
 Update translations in your localization files:
+
 ```holoscript
 // en.json
 {
@@ -366,6 +377,7 @@ Update translations in your localization files:
 ## 📊 Analytics & Engagement
 
 Track visitor behavior:
+
 - Most viewed artworks
 - Average time per artwork
 - Audio guide completion rates
@@ -390,11 +402,13 @@ on_artwork_viewed {
 ## 🔧 Technical Details
 
 ### Performance Targets
+
 - **WebXR**: 60 FPS on desktop, 72 FPS on Quest
 - **Babylon.js**: 60 FPS with high-quality shadows and reflections
 - **Unity**: 90 FPS on PCVR, 72 FPS on Quest 2
 
 ### Asset Optimization
+
 - **Paintings**: 2K textures (1024x1024 to 2048x2048)
 - **3D Models**: <20,000 triangles for sculptures
 - **Audio**: MP3 128kbps for narration, 96kbps for ambient
@@ -403,12 +417,14 @@ on_artwork_viewed {
 ### Lighting Best Practices
 
 **For Paintings:**
+
 - Spot lights at 30° angle
 - Warm white (3000K - 3500K)
 - Intensity: 2.0 - 2.5
 - No colored gels (neutral lighting)
 
 **For Sculptures:**
+
 - Multiple spot lights (3-4 angles)
 - Higher intensity (2.5 - 3.0)
 - Cast shadows enabled
@@ -417,18 +433,21 @@ on_artwork_viewed {
 ### Platform-Specific Features
 
 **WebXR**
+
 - ✅ Works in browser (no install)
 - ✅ Desktop + VR modes
 - ⚠️ Lower graphics quality
 - ⚠️ Limited hand tracking
 
 **Babylon.js**
+
 - ✅ Advanced PBR materials
 - ✅ Real-time reflections
 - ✅ Better shadow quality
 - ❌ Requires WebGL 2.0
 
 **Unity**
+
 - ✅ Highest visual fidelity
 - ✅ Hand tracking on Quest
 - ✅ Best performance
@@ -437,18 +456,21 @@ on_artwork_viewed {
 ## 🎨 Design Best Practices
 
 ### Gallery Layout
+
 1. **Avoid Overcrowding**: 2-3 meters between artworks
 2. **Clear Sightlines**: Unobstructed views from entrance
 3. **Seating Areas**: Benches for contemplation
 4. **Logical Flow**: Guide visitors through chronological/thematic order
 
 ### VR Comfort
+
 - **Teleportation Default**: Less motion sickness than smooth movement
 - **Comfort Vignette**: Reduce peripheral vision during movement
 - **Snap Turning**: 30° increments instead of smooth rotation
 - **Rest Areas**: Benches where users can pause
 
 ### Accessibility
+
 ```holoscript
 settings {
   subtitles_enabled: true
@@ -469,6 +491,7 @@ settings {
 ## 🤝 Contributing
 
 Improvements welcome! Ideas:
+
 - Additional art periods (Renaissance, Baroque, Contemporary)
 - Curator mode (arrange your own exhibitions)
 - Social features (group tours, voice chat)

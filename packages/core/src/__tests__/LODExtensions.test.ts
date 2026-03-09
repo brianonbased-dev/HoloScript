@@ -11,8 +11,11 @@ describe('Cycle 163: LOD Extensions', () => {
   it('should select LOD based on distance', () => {
     const streamer = new LODStreamer(1000);
     streamer.registerAsset({
-      id: 'tree', lodLevels: [50, 150, 500], currentLOD: -1,
-      priority: 5, memoryCost: [100, 50, 10],
+      id: 'tree',
+      lodLevels: [50, 150, 500],
+      currentLOD: -1,
+      priority: 5,
+      memoryCost: [100, 50, 10],
     });
 
     expect(streamer.evaluateDistance('tree', 30)).toBe(0); // LOD 0 (< 50)
@@ -23,10 +26,18 @@ describe('Cycle 163: LOD Extensions', () => {
   it('should enforce memory budget when processing queue', () => {
     const streamer = new LODStreamer(100);
     streamer.registerAsset({
-      id: 'a', lodLevels: [100], currentLOD: -1, priority: 5, memoryCost: [80],
+      id: 'a',
+      lodLevels: [100],
+      currentLOD: -1,
+      priority: 5,
+      memoryCost: [80],
     });
     streamer.registerAsset({
-      id: 'b', lodLevels: [100], currentLOD: -1, priority: 3, memoryCost: [80],
+      id: 'b',
+      lodLevels: [100],
+      currentLOD: -1,
+      priority: 3,
+      memoryCost: [80],
     });
 
     // Manually force both to need loading
@@ -44,8 +55,11 @@ describe('Cycle 163: LOD Extensions', () => {
   it('should select angle-based impostor frame', () => {
     const imp = new ImpostorSystem(8, 8);
     imp.registerImpostor({
-      entityId: 'tree1', angleCount: 8, atlasIndex: 0,
-      switchDistance: 100, size: { width: 2, height: 3 },
+      entityId: 'tree1',
+      angleCount: 8,
+      atlasIndex: 0,
+      switchDistance: 100,
+      size: { width: 2, height: 3 },
     });
 
     const frame = imp.selectAngle('tree1', Math.PI / 4)!; // 45 degrees → angle 1
@@ -56,8 +70,11 @@ describe('Cycle 163: LOD Extensions', () => {
   it('should check switch distance', () => {
     const imp = new ImpostorSystem();
     imp.registerImpostor({
-      entityId: 'obj', angleCount: 4, atlasIndex: 0,
-      switchDistance: 50, size: { width: 1, height: 1 },
+      entityId: 'obj',
+      angleCount: 4,
+      atlasIndex: 0,
+      switchDistance: 50,
+      size: { width: 1, height: 1 },
     });
 
     expect(imp.shouldUseImpostor('obj', 30)).toBe(false);
@@ -87,6 +104,6 @@ describe('Cycle 163: LOD Extensions', () => {
 
     // Upgrading LOD (newLOD > currentLOD) requires distance > threshold + band
     expect(trans.shouldTransition(105, 100, 0, 1)).toBe(false); // 105 < 110
-    expect(trans.shouldTransition(115, 100, 0, 1)).toBe(true);  // 115 > 110
+    expect(trans.shouldTransition(115, 100, 0, 1)).toBe(true); // 115 > 110
   });
 });

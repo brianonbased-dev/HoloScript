@@ -11,19 +11,31 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useProjectStore, type ProjectScene } from '@/lib/projectStore';
 import {
-  searchTemplates, getTemplateCategories, findTemplateById,
-  filterTemplatesByTrait, sortTemplatesByName, getTemplatesByCategory,
+  searchTemplates,
+  getTemplateCategories,
+  findTemplateById,
+  filterTemplatesByTrait,
+  sortTemplatesByName,
+  getTemplatesByCategory,
   BUILT_IN_TEMPLATES,
 } from '@/lib/templateSearch';
 import {
-  serializeScene, serializeToJSON, deserializeScene,
-  type HoloScene, type HoloSceneMetadata,
+  serializeScene,
+  serializeToJSON,
+  deserializeScene,
+  type HoloScene,
+  type HoloSceneMetadata,
 } from '@/lib/serializer';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function makeMeta(name = 'Test Scene'): HoloSceneMetadata {
-  return { id: 'test-1', name, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  return {
+    id: 'test-1',
+    name,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -33,11 +45,15 @@ function makeMeta(name = 'Test Scene'): HoloSceneMetadata {
 describe('Scenario: Game Designer — Multi-Scene Project Management', () => {
   beforeEach(() => {
     useProjectStore.setState({
-      scenes: [{
-        id: 'default', name: 'Scene 1',
-        code: '// New scene\nscene "Untitled" {\n\n}\n',
-        isDirty: false, createdAt: new Date().toISOString(),
-      }],
+      scenes: [
+        {
+          id: 'default',
+          name: 'Scene 1',
+          code: '// New scene\nscene "Untitled" {\n\n}\n',
+          isDirty: false,
+          createdAt: new Date().toISOString(),
+        },
+      ],
       activeSceneId: 'default',
     });
   });
@@ -121,18 +137,18 @@ describe('Scenario: Game Designer — Multi-Scene Project Management', () => {
     const dup = useProjectStore.getState().addScene(`${original.name} (Copy)`);
     // Manually copy code to duplicate
     useProjectStore.getState().updateSceneCode(dup.id, original.code);
-    const dupScene = useProjectStore.getState().scenes.find(s => s.id === dup.id)!;
+    const dupScene = useProjectStore.getState().scenes.find((s) => s.id === dup.id)!;
     expect(dupScene.code).toBe('scene "Original" { @physics }');
     expect(dupScene.id).not.toBe('default');
   });
 
   it('auto-save check — dirty scenes are detectable', () => {
     useProjectStore.getState().updateSceneCode('default', 'changed');
-    const dirtyScenes = useProjectStore.getState().scenes.filter(s => s.isDirty);
+    const dirtyScenes = useProjectStore.getState().scenes.filter((s) => s.isDirty);
     expect(dirtyScenes).toHaveLength(1);
     // After marking clean (simulating save), no dirty scenes
     useProjectStore.getState().markSceneClean('default');
-    const cleanScenes = useProjectStore.getState().scenes.filter(s => s.isDirty);
+    const cleanScenes = useProjectStore.getState().scenes.filter((s) => s.isDirty);
     expect(cleanScenes).toHaveLength(0);
   });
 });
@@ -160,7 +176,7 @@ describe('Scenario: Game Designer — Template Search & Filtering', () => {
   it('searchTemplates() filters by category', () => {
     const results = searchTemplates(BUILT_IN_TEMPLATES, '', 'Engineering');
     expect(results.length).toBeGreaterThanOrEqual(1);
-    expect(results.every(t => t.category === 'Engineering')).toBe(true);
+    expect(results.every((t) => t.category === 'Engineering')).toBe(true);
   });
 
   it('searchTemplates() with empty query returns all (or all in category)', () => {
@@ -201,14 +217,14 @@ describe('Scenario: Game Designer — Template Search & Filtering', () => {
   it('getTemplatesByCategory() returns sorted subset', () => {
     const eng = getTemplatesByCategory(BUILT_IN_TEMPLATES, 'Engineering');
     expect(eng.length).toBeGreaterThanOrEqual(1);
-    expect(eng.every(t => t.category === 'Engineering')).toBe(true);
+    expect(eng.every((t) => t.category === 'Engineering')).toBe(true);
   });
 
   it('fuzzy search — partial name still matches', () => {
     const results = searchTemplates(BUILT_IN_TEMPLATES, 'rob');
     expect(results.length).toBeGreaterThanOrEqual(1);
     // 'rob' should match 'Robot Arm' or similar
-    expect(results.some(t => t.name.toLowerCase().includes('rob'))).toBe(true);
+    expect(results.some((t) => t.name.toLowerCase().includes('rob'))).toBe(true);
   });
 
   it('template has preview-ready metadata (name, category, tags)', () => {
@@ -238,7 +254,9 @@ describe('Scenario: Game Designer — .holo Scene Serialization', () => {
     const before = meta.updatedAt;
     const scene = serializeScene(meta, '', [], []);
     // updatedAt should be at least as recent as creation
-    expect(new Date(scene.metadata.updatedAt).getTime()).toBeGreaterThanOrEqual(new Date(before).getTime());
+    expect(new Date(scene.metadata.updatedAt).getTime()).toBeGreaterThanOrEqual(
+      new Date(before).getTime()
+    );
   });
 
   it('serializeToJSON() produces valid JSON string', () => {
@@ -280,7 +298,12 @@ describe('Scenario: Game Designer — .holo Scene Serialization', () => {
   });
 
   it('.holo metadata preserves id and name', () => {
-    const scene = serializeScene({ id: 'custom-id', name: 'My Game', createdAt: '', updatedAt: '' }, '', [], []);
+    const scene = serializeScene(
+      { id: 'custom-id', name: 'My Game', createdAt: '', updatedAt: '' },
+      '',
+      [],
+      []
+    );
     expect(scene.metadata.id).toBe('custom-id');
     expect(scene.metadata.name).toBe('My Game');
   });

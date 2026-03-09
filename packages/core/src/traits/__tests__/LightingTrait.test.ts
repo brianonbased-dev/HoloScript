@@ -23,7 +23,12 @@ describe('LightingTrait', () => {
   });
 
   it('addLight uses name as id when provided', () => {
-    const id = lighting.addLight({ type: 'spot', name: 'mySpot', color: { r: 1, g: 0, b: 0 }, intensity: 0.5 });
+    const id = lighting.addLight({
+      type: 'spot',
+      name: 'mySpot',
+      color: { r: 1, g: 0, b: 0 },
+      intensity: 0.5,
+    });
     expect(id).toBe('mySpot');
   });
 

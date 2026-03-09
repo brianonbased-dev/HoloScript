@@ -13,14 +13,20 @@
 // =============================================================================
 
 export interface Transform3D {
-  x: number; y: number; z: number;
-  sx: number; sy: number; sz: number;
+  x: number;
+  y: number;
+  z: number;
+  sx: number;
+  sy: number;
+  sz: number;
 }
 
 interface TransformEntry {
   id: string;
   local: Transform3D;
-  worldX: number; worldY: number; worldZ: number;
+  worldX: number;
+  worldY: number;
+  worldZ: number;
   parent: string | null;
   children: string[];
   dirty: boolean;
@@ -41,8 +47,12 @@ export class TransformGraph {
     this.entries.set(id, {
       id,
       local: { x: 0, y: 0, z: 0, sx: 1, sy: 1, sz: 1, ...local },
-      worldX: 0, worldY: 0, worldZ: 0,
-      parent: null, children: [], dirty: true,
+      worldX: 0,
+      worldY: 0,
+      worldZ: 0,
+      parent: null,
+      children: [],
+      dirty: true,
     });
   }
 
@@ -59,7 +69,7 @@ export class TransformGraph {
     // Remove from parent's children
     if (entry.parent) {
       const parent = this.entries.get(entry.parent);
-      if (parent) parent.children = parent.children.filter(c => c !== id);
+      if (parent) parent.children = parent.children.filter((c) => c !== id);
     }
 
     this.entries.delete(id);
@@ -76,7 +86,7 @@ export class TransformGraph {
     // Remove from old parent
     if (child.parent) {
       const oldParent = this.entries.get(child.parent);
-      if (oldParent) oldParent.children = oldParent.children.filter(c => c !== childId);
+      if (oldParent) oldParent.children = oldParent.children.filter((c) => c !== childId);
     }
 
     child.parent = parentId;
@@ -90,8 +100,12 @@ export class TransformGraph {
     this.markDirty(childId);
   }
 
-  getChildren(id: string): string[] { return this.entries.get(id)?.children ?? []; }
-  getParent(id: string): string | null { return this.entries.get(id)?.parent ?? null; }
+  getChildren(id: string): string[] {
+    return this.entries.get(id)?.children ?? [];
+  }
+  getParent(id: string): string | null {
+    return this.entries.get(id)?.parent ?? null;
+  }
 
   // ---------------------------------------------------------------------------
   // Transform Updates
@@ -100,14 +114,18 @@ export class TransformGraph {
   setPosition(id: string, x: number, y: number, z: number): void {
     const e = this.entries.get(id);
     if (!e) return;
-    e.local.x = x; e.local.y = y; e.local.z = z;
+    e.local.x = x;
+    e.local.y = y;
+    e.local.z = z;
     this.markDirty(id);
   }
 
   setScale(id: string, sx: number, sy: number, sz: number): void {
     const e = this.entries.get(id);
     if (!e) return;
-    e.local.sx = sx; e.local.sy = sy; e.local.sz = sz;
+    e.local.sx = sx;
+    e.local.sy = sy;
+    e.local.sz = sz;
     this.markDirty(id);
   }
 
@@ -170,6 +188,10 @@ export class TransformGraph {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getNodeCount(): number { return this.entries.size; }
-  getRoots(): string[] { return [...this.entries.values()].filter(e => !e.parent).map(e => e.id); }
+  getNodeCount(): number {
+    return this.entries.size;
+  }
+  getRoots(): string[] {
+    return [...this.entries.values()].filter((e) => !e.parent).map((e) => e.id);
+  }
 }

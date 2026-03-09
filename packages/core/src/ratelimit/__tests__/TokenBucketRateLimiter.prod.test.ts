@@ -14,7 +14,9 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { TokenBucketRateLimiter } from '../RateLimiter';
 
-function makeLimiter(overrides: Partial<{ tokensPerSecond: number; tokensPerMinute: number; burstSize: number }> = {}) {
+function makeLimiter(
+  overrides: Partial<{ tokensPerSecond: number; tokensPerMinute: number; burstSize: number }> = {}
+) {
   return new TokenBucketRateLimiter({
     tokensPerSecond: 10,
     tokensPerMinute: 100,

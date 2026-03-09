@@ -28,12 +28,7 @@ import { PLATFORM_CATEGORIES, ALL_PLATFORMS, platformCategory } from './Platform
 // TRAIT TYPES
 // ============================================================================
 
-export type CrossRealityTraitCategory =
-  | 'handoff'
-  | 'embodiment'
-  | 'anchor'
-  | 'norm'
-  | 'budget';
+export type CrossRealityTraitCategory = 'handoff' | 'embodiment' | 'anchor' | 'norm' | 'budget';
 
 export interface CrossRealityTrait {
   /** Trait identifier (e.g., 'crossreality.handoff.seamless') */
@@ -59,14 +54,14 @@ export interface CrossRealityTrait {
 // ============================================================================
 
 export type CompileTimeEmbodiment =
-  | 'FullAvatar'      // VR: full-body avatar
-  | 'FloatingAgent'   // AR: floating assistant
-  | 'UI2D'            // Phone/Desktop: 2D interface
-  | 'VoiceOnly'       // Car: voice-only (no visual distractions)
-  | 'UIMinimal'       // Wearable: minimal UI (small screen)
-  | 'VoiceHUD'        // Car: voice + minimal HUD
-  | 'Haptic'          // Watch: haptic-only
-  | 'GlassOverlay';   // Glasses: AR overlay
+  | 'FullAvatar' // VR: full-body avatar
+  | 'FloatingAgent' // AR: floating assistant
+  | 'UI2D' // Phone/Desktop: 2D interface
+  | 'VoiceOnly' // Car: voice-only (no visual distractions)
+  | 'UIMinimal' // Wearable: minimal UI (small screen)
+  | 'VoiceHUD' // Car: voice + minimal HUD
+  | 'Haptic' // Watch: haptic-only
+  | 'GlassOverlay'; // Glasses: AR overlay
 
 /** Maps form factor categories to their default embodiments */
 export const CATEGORY_DEFAULT_EMBODIMENT: Record<PlatformCategory, CompileTimeEmbodiment> = {
@@ -79,15 +74,16 @@ export const CATEGORY_DEFAULT_EMBODIMENT: Record<PlatformCategory, CompileTimeEm
 };
 
 /** Maps specific platforms to embodiment overrides */
-export const PLATFORM_EMBODIMENT_OVERRIDES: Partial<Record<PlatformTarget, CompileTimeEmbodiment>> = {
-  visionos: 'FloatingAgent',      // visionOS uses floating agent, not full avatar
-  'visionos-ar': 'GlassOverlay',  // visionOS AR mode uses overlay
-  'android-xr-ar': 'GlassOverlay', // Android XR AR mode uses overlay
-  'android-auto': 'VoiceOnly',    // Android Auto uses voice-only for safety
-  'carplay': 'VoiceOnly',         // CarPlay uses voice-only for safety
-  'watchos': 'UIMinimal',         // watchOS uses minimal UI for small screen
-  'wearos': 'UIMinimal',          // WearOS uses minimal UI for small screen
-};
+export const PLATFORM_EMBODIMENT_OVERRIDES: Partial<Record<PlatformTarget, CompileTimeEmbodiment>> =
+  {
+    visionos: 'FloatingAgent', // visionOS uses floating agent, not full avatar
+    'visionos-ar': 'GlassOverlay', // visionOS AR mode uses overlay
+    'android-xr-ar': 'GlassOverlay', // Android XR AR mode uses overlay
+    'android-auto': 'VoiceOnly', // Android Auto uses voice-only for safety
+    carplay: 'VoiceOnly', // CarPlay uses voice-only for safety
+    watchos: 'UIMinimal', // watchOS uses minimal UI for small screen
+    wearos: 'UIMinimal', // WearOS uses minimal UI for small screen
+  };
 
 // ============================================================================
 // HANDOFF PATH RULES (Compile-Time)
@@ -114,7 +110,14 @@ export const HANDOFF_PATH_RULES: HandoffPathRule[] = [
   { from: 'vr', to: 'mobile', allowed: true, latencyBudgetMs: 500 },
   { from: 'vr', to: 'desktop', allowed: true, latencyBudgetMs: 300 },
   { from: 'vr', to: 'wearable', allowed: true, latencyBudgetMs: 800 },
-  { from: 'vr', to: 'automotive', allowed: false, reason: 'SAFETY-003: VR↔car requires intermediate step', requiredIntermediate: 'mobile', latencyBudgetMs: 0 },
+  {
+    from: 'vr',
+    to: 'automotive',
+    allowed: false,
+    reason: 'SAFETY-003: VR↔car requires intermediate step',
+    requiredIntermediate: 'mobile',
+    latencyBudgetMs: 0,
+  },
   // Mobile handoffs
   { from: 'mobile', to: 'vr', allowed: true, latencyBudgetMs: 500 },
   { from: 'mobile', to: 'desktop', allowed: true, latencyBudgetMs: 200 },
@@ -128,7 +131,14 @@ export const HANDOFF_PATH_RULES: HandoffPathRule[] = [
   // Automotive handoffs
   { from: 'automotive', to: 'mobile', allowed: true, latencyBudgetMs: 400 },
   { from: 'automotive', to: 'desktop', allowed: true, latencyBudgetMs: 400 },
-  { from: 'automotive', to: 'vr', allowed: false, reason: 'SAFETY-003: car↔VR requires intermediate step', requiredIntermediate: 'mobile', latencyBudgetMs: 0 },
+  {
+    from: 'automotive',
+    to: 'vr',
+    allowed: false,
+    reason: 'SAFETY-003: car↔VR requires intermediate step',
+    requiredIntermediate: 'mobile',
+    latencyBudgetMs: 0,
+  },
   { from: 'automotive', to: 'wearable', allowed: true, latencyBudgetMs: 600 },
   // Wearable handoffs
   { from: 'wearable', to: 'mobile', allowed: true, latencyBudgetMs: 300 },
@@ -179,7 +189,7 @@ export class CrossRealityTraitRegistry {
 
   /** Get all traits in a category */
   getByCategory(category: CrossRealityTraitCategory): CrossRealityTrait[] {
-    return [...this.traits.values()].filter(t => t.category === category);
+    return [...this.traits.values()].filter((t) => t.category === category);
   }
 
   /** Get all registered trait IDs */
@@ -191,7 +201,8 @@ export class CrossRealityTraitRegistry {
   isTraitApplicable(traitId: string, platform: PlatformTarget): boolean {
     const trait = this.traits.get(traitId);
     if (!trait) return false;
-    if (trait.applicablePlatforms.length === 0 && trait.applicableCategories.length === 0) return true;
+    if (trait.applicablePlatforms.length === 0 && trait.applicableCategories.length === 0)
+      return true;
     if (trait.applicablePlatforms.includes(platform)) return true;
     const category = platformCategory(platform);
     return trait.applicableCategories.includes(category);
@@ -207,12 +218,20 @@ export class CrossRealityTraitRegistry {
   }
 
   /** Validate a handoff path at compile time */
-  validateHandoffPath(from: PlatformTarget, to: PlatformTarget): { allowed: boolean; reason?: string; intermediate?: PlatformCategory; latencyBudgetMs: number } {
+  validateHandoffPath(
+    from: PlatformTarget,
+    to: PlatformTarget
+  ): {
+    allowed: boolean;
+    reason?: string;
+    intermediate?: PlatformCategory;
+    latencyBudgetMs: number;
+  } {
     const fromCat = platformCategory(from);
     const toCat = platformCategory(to);
     if (fromCat === toCat) return { allowed: true, latencyBudgetMs: 100 }; // Same category always OK
 
-    const rule = HANDOFF_PATH_RULES.find(r => r.from === fromCat && r.to === toCat);
+    const rule = HANDOFF_PATH_RULES.find((r) => r.from === fromCat && r.to === toCat);
     if (!rule) return { allowed: true, latencyBudgetMs: 500 }; // No rule = allow
 
     return {
@@ -226,11 +245,13 @@ export class CrossRealityTraitRegistry {
   /** Get MVC budget for a target platform */
   getMVCBudget(platform: PlatformTarget): MVCBudgetConstraint {
     const category = platformCategory(platform);
-    return MVC_BUDGET_CONSTRAINTS.find(b => b.category === category) ?? MVC_BUDGET_CONSTRAINTS[0];
+    return MVC_BUDGET_CONSTRAINTS.find((b) => b.category === category) ?? MVC_BUDGET_CONSTRAINTS[0];
   }
 
   /** Get total registered trait count */
-  get size(): number { return this.traits.size; }
+  get size(): number {
+    return this.traits.size;
+  }
 
   // --- Built-in Trait Registration ---
 
@@ -240,24 +261,30 @@ export class CrossRealityTraitRegistry {
       id: 'crossreality.handoff.seamless',
       category: 'handoff',
       description: 'Enable seamless cross-reality handoff for this composition',
-      applicablePlatforms: [], applicableCategories: [],
-      required: false, defaultValue: true,
+      applicablePlatforms: [],
+      applicableCategories: [],
+      required: false,
+      defaultValue: true,
       validate: (v) => ({ valid: typeof v === 'boolean' }),
     });
     this.register({
       id: 'crossreality.handoff.autoDetect',
       category: 'handoff',
       description: 'Automatically detect nearby devices and suggest handoffs',
-      applicablePlatforms: [], applicableCategories: [],
-      required: false, defaultValue: false,
+      applicablePlatforms: [],
+      applicableCategories: [],
+      required: false,
+      defaultValue: false,
       validate: (v) => ({ valid: typeof v === 'boolean' }),
     });
     this.register({
       id: 'crossreality.handoff.maxLatencyMs',
       category: 'handoff',
       description: 'Maximum acceptable handoff latency in milliseconds',
-      applicablePlatforms: [], applicableCategories: [],
-      required: false, defaultValue: 500,
+      applicablePlatforms: [],
+      applicableCategories: [],
+      required: false,
+      defaultValue: 500,
       validate: (v) => ({ valid: typeof v === 'number' && v > 0 && v <= 10000 }),
     });
 
@@ -266,16 +293,33 @@ export class CrossRealityTraitRegistry {
       id: 'crossreality.embodiment.type',
       category: 'embodiment',
       description: 'Override the default embodiment for this platform',
-      applicablePlatforms: [], applicableCategories: [],
-      required: false, defaultValue: null,
-      validate: (v) => ({ valid: v === null || ['FullAvatar', 'FloatingAgent', 'UI2D', 'VoiceOnly', 'UIMinimal', 'VoiceHUD', 'Haptic', 'GlassOverlay'].includes(v as string) }),
+      applicablePlatforms: [],
+      applicableCategories: [],
+      required: false,
+      defaultValue: null,
+      validate: (v) => ({
+        valid:
+          v === null ||
+          [
+            'FullAvatar',
+            'FloatingAgent',
+            'UI2D',
+            'VoiceOnly',
+            'UIMinimal',
+            'VoiceHUD',
+            'Haptic',
+            'GlassOverlay',
+          ].includes(v as string),
+      }),
     });
     this.register({
       id: 'crossreality.embodiment.reducedMotion',
       category: 'embodiment',
       description: 'Support reduced motion transitions',
-      applicablePlatforms: [], applicableCategories: [],
-      required: false, defaultValue: true,
+      applicablePlatforms: [],
+      applicableCategories: [],
+      required: false,
+      defaultValue: true,
       validate: (v) => ({ valid: typeof v === 'boolean' }),
     });
 
@@ -284,16 +328,20 @@ export class CrossRealityTraitRegistry {
       id: 'crossreality.anchor.geospatial',
       category: 'anchor',
       description: 'Require geospatial (WGS84) anchor support',
-      applicablePlatforms: [], applicableCategories: ['vr', 'mobile'],
-      required: false, defaultValue: false,
+      applicablePlatforms: [],
+      applicableCategories: ['vr', 'mobile'],
+      required: false,
+      defaultValue: false,
       validate: (v) => ({ valid: typeof v === 'boolean' }),
     });
     this.register({
       id: 'crossreality.anchor.vendorCloud',
       category: 'anchor',
       description: 'Enable vendor cloud anchor resolution (ARKit/ARCore/Niantic)',
-      applicablePlatforms: [], applicableCategories: ['vr', 'mobile'],
-      required: false, defaultValue: false,
+      applicablePlatforms: [],
+      applicableCategories: ['vr', 'mobile'],
+      required: false,
+      defaultValue: false,
       validate: (v) => ({ valid: typeof v === 'boolean' }),
     });
 
@@ -302,24 +350,33 @@ export class CrossRealityTraitRegistry {
       id: 'crossreality.norm.automotiveSafe',
       category: 'norm',
       description: 'Enforce automotive safety norms (SAFETY-001, SAFETY-002)',
-      applicablePlatforms: [], applicableCategories: ['automotive'],
-      required: true, defaultValue: true,
-      validate: (v) => ({ valid: v === true, error: v !== true ? 'Automotive safety norms cannot be disabled' : undefined }),
+      applicablePlatforms: [],
+      applicableCategories: ['automotive'],
+      required: true,
+      defaultValue: true,
+      validate: (v) => ({
+        valid: v === true,
+        error: v !== true ? 'Automotive safety norms cannot be disabled' : undefined,
+      }),
     });
     this.register({
       id: 'crossreality.norm.privacyAware',
       category: 'norm',
       description: 'Enforce privacy norms (CTX-001 through CTX-003)',
-      applicablePlatforms: [], applicableCategories: [],
-      required: false, defaultValue: true,
+      applicablePlatforms: [],
+      applicableCategories: [],
+      required: false,
+      defaultValue: true,
       validate: (v) => ({ valid: typeof v === 'boolean' }),
     });
     this.register({
       id: 'crossreality.norm.accessible',
       category: 'norm',
       description: 'Enforce accessibility norms (A11Y-001 through A11Y-003)',
-      applicablePlatforms: [], applicableCategories: [],
-      required: false, defaultValue: true,
+      applicablePlatforms: [],
+      applicableCategories: [],
+      required: false,
+      defaultValue: true,
       validate: (v) => ({ valid: typeof v === 'boolean' }),
     });
 
@@ -328,16 +385,20 @@ export class CrossRealityTraitRegistry {
       id: 'crossreality.budget.maxPayloadBytes',
       category: 'budget',
       description: 'Override max MVC payload size in bytes',
-      applicablePlatforms: [], applicableCategories: [],
-      required: false, defaultValue: 10240,
+      applicablePlatforms: [],
+      applicableCategories: [],
+      required: false,
+      defaultValue: 10240,
       validate: (v) => ({ valid: typeof v === 'number' && v > 0 && v <= 65536 }),
     });
     this.register({
       id: 'crossreality.budget.compressionRequired',
       category: 'budget',
       description: 'Force compression for MVC payloads',
-      applicablePlatforms: [], applicableCategories: ['automotive', 'wearable'],
-      required: false, defaultValue: false,
+      applicablePlatforms: [],
+      applicableCategories: ['automotive', 'wearable'],
+      required: false,
+      defaultValue: false,
       validate: (v) => ({ valid: typeof v === 'boolean' }),
     });
   }

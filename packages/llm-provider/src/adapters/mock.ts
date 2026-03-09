@@ -9,11 +9,7 @@
  */
 
 import { BaseLLMAdapter } from '../base-adapter';
-import type {
-  LLMCompletionRequest,
-  LLMCompletionResponse,
-  LLMProviderConfig,
-} from '../types';
+import type { LLMCompletionRequest, LLMCompletionResponse, LLMProviderConfig } from '../types';
 
 const MOCK_SCENES: Record<string, string> = {
   default: `cube {
@@ -117,10 +113,7 @@ export class MockAdapter extends BaseLLMAdapter {
     return 'mock-gpt-4';
   }
 
-  async complete(
-    request: LLMCompletionRequest,
-    _model?: string
-  ): Promise<LLMCompletionResponse> {
+  async complete(request: LLMCompletionRequest, _model?: string): Promise<LLMCompletionResponse> {
     this.callCount++;
 
     if (this.simulatedLatencyMs > 0) {
@@ -132,9 +125,8 @@ export class MockAdapter extends BaseLLMAdapter {
       throw new Error('Mock forced failure');
     }
 
-    const lastUserMessage = [...request.messages]
-      .reverse()
-      .find((m) => m.role === 'user')?.content ?? '';
+    const lastUserMessage =
+      [...request.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
 
     const code = this.generateMockCode(lastUserMessage);
 

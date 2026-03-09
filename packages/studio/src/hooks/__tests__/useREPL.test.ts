@@ -338,7 +338,14 @@ describe('useREPL', () => {
     it('should handle complex trace with multiple entry types', async () => {
       const mockTrace: TraceEntry[] = [
         { step: 1, type: 'scene', name: 'Main', message: 'Scene created', timeMs: 0 },
-        { step: 2, type: 'object', name: 'box', props: { size: '1' }, message: 'Object created', timeMs: 5 },
+        {
+          step: 2,
+          type: 'object',
+          name: 'box',
+          props: { size: '1' },
+          message: 'Object created',
+          timeMs: 5,
+        },
         { step: 3, type: 'trait', trait: 'red', message: 'Trait applied', timeMs: 10 },
         { step: 4, type: 'error', message: 'Warning: deprecated', timeMs: 15 },
         { step: 5, type: 'info', message: 'Compilation complete', timeMs: 20 },

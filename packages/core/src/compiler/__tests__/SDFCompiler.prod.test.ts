@@ -5,7 +5,7 @@
  * geometry types (sphere/cube/cylinder/cone), light mapping, color parsing,
  * XML escaping, name sanitization.
  */
-import { describe, it, expect, vi} from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import SDFCompiler from '../SDFCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -17,14 +17,11 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   };
 });
 
-
 // ─── Helpers ────────────────────────────────────────────────────────
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
     name: 'TestWorld',
-    objects: [
-      { name: 'Box1', traits: [], properties: [{ key: 'type', value: 'cube' }] },
-    ],
+    objects: [{ name: 'Box1', traits: [], properties: [{ key: 'type', value: 'cube' }] }],
     spatialGroups: [],
     ...overrides,
   } as HoloComposition;
@@ -75,7 +72,16 @@ describe('SDFCompiler — Production', () => {
 
   it('generates sphere geometry', () => {
     const comp = makeComposition({
-      objects: [{ name: 'Ball', traits: [], properties: [{ key: 'geometry', value: 'sphere' }, { key: 'radius', value: 2 }] }],
+      objects: [
+        {
+          name: 'Ball',
+          traits: [],
+          properties: [
+            { key: 'geometry', value: 'sphere' },
+            { key: 'radius', value: 2 },
+          ],
+        },
+      ],
     });
     const sdf = new SDFCompiler().compile(comp, 'test-token');
     expect(sdf).toContain('<sphere>');
@@ -84,7 +90,9 @@ describe('SDFCompiler — Production', () => {
 
   it('generates cylinder geometry', () => {
     const comp = makeComposition({
-      objects: [{ name: 'Piston', traits: [], properties: [{ key: 'geometry', value: 'cylinder' }] }],
+      objects: [
+        { name: 'Piston', traits: [], properties: [{ key: 'geometry', value: 'cylinder' }] },
+      ],
     });
     const sdf = new SDFCompiler().compile(comp, 'test-token');
     expect(sdf).toContain('<cylinder>');
@@ -93,7 +101,16 @@ describe('SDFCompiler — Production', () => {
   // ─── Transforms ───────────────────────────────────────────────────
   it('includes position in pose', () => {
     const comp = makeComposition({
-      objects: [{ name: 'A', traits: [], properties: [{ key: 'type', value: 'cube' }, { key: 'position', value: [1, 2, 3] }] }],
+      objects: [
+        {
+          name: 'A',
+          traits: [],
+          properties: [
+            { key: 'type', value: 'cube' },
+            { key: 'position', value: [1, 2, 3] },
+          ],
+        },
+      ],
     });
     const sdf = new SDFCompiler().compile(comp, 'test-token');
     expect(sdf).toContain('<pose>');
@@ -117,7 +134,9 @@ describe('SDFCompiler — Production', () => {
   // ─── Name Sanitization ────────────────────────────────────────────
   it('sanitizes names with special characters', () => {
     const comp = makeComposition({
-      objects: [{ name: 'My-Object!@#', traits: [], properties: [{ key: 'geometry', value: 'cube' }] }],
+      objects: [
+        { name: 'My-Object!@#', traits: [], properties: [{ key: 'geometry', value: 'cube' }] },
+      ],
     });
     const sdf = new SDFCompiler().compile(comp, 'test-token');
     expect(sdf).toContain('my_object___');

@@ -15,12 +15,12 @@ export type WeatherType = 'clear' | 'cloudy' | 'rain' | 'storm' | 'snow' | 'fog'
 
 export interface WeatherState {
   type: WeatherType;
-  intensity: number;        // 0-1
+  intensity: number; // 0-1
   wind: { x: number; y: number; z: number; speed: number };
   temperature: number;
   humidity: number;
-  visibility: number;       // 0-1
-  precipitation: number;    // 0-1
+  visibility: number; // 0-1
+  precipitation: number; // 0-1
 }
 
 export interface WeatherTransition {
@@ -97,7 +97,9 @@ export class WeatherSystem {
     this.current.wind = { x, y, z, speed };
   }
 
-  setTemperature(temp: number): void { this.current.temperature = temp; }
+  setTemperature(temp: number): void {
+    this.current.temperature = temp;
+  }
 
   // ---------------------------------------------------------------------------
   // Update
@@ -114,34 +116,58 @@ export class WeatherSystem {
 
     this.current.intensity = this.lerp(this.current.intensity, this.targetState.intensity, ease);
     this.current.visibility = this.lerp(this.current.visibility, this.targetState.visibility, ease);
-    this.current.precipitation = this.lerp(this.current.precipitation, this.targetState.precipitation, ease);
+    this.current.precipitation = this.lerp(
+      this.current.precipitation,
+      this.targetState.precipitation,
+      ease
+    );
     this.current.humidity = this.lerp(this.current.humidity, this.targetState.humidity, ease);
 
     if (t >= 1) {
       this.current.type = this.transition.to;
-      this.current = { ...this.targetState, wind: this.current.wind, temperature: this.current.temperature };
+      this.current = {
+        ...this.targetState,
+        wind: this.current.wind,
+        temperature: this.current.temperature,
+      };
       this.transition = null;
       this.targetState = null;
       this.notify();
     }
   }
 
-  private lerp(a: number, b: number, t: number): number { return a + (b - a) * t; }
+  private lerp(a: number, b: number, t: number): number {
+    return a + (b - a) * t;
+  }
 
   // ---------------------------------------------------------------------------
   // Events
   // ---------------------------------------------------------------------------
 
-  onChange(listener: (state: WeatherState) => void): void { this.listeners.push(listener); }
-  private notify(): void { for (const l of this.listeners) l(this.getState()); }
+  onChange(listener: (state: WeatherState) => void): void {
+    this.listeners.push(listener);
+  }
+  private notify(): void {
+    for (const l of this.listeners) l(this.getState());
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getState(): WeatherState { return { ...this.current, wind: { ...this.current.wind } }; }
-  getType(): WeatherType { return this.current.type; }
-  isTransitioning(): boolean { return this.transition !== null; }
-  getTransitionProgress(): number { return this.transition ? this.transition.elapsed / this.transition.duration : 0; }
-  getHistory(): typeof this.history { return [...this.history]; }
+  getState(): WeatherState {
+    return { ...this.current, wind: { ...this.current.wind } };
+  }
+  getType(): WeatherType {
+    return this.current.type;
+  }
+  isTransitioning(): boolean {
+    return this.transition !== null;
+  }
+  getTransitionProgress(): number {
+    return this.transition ? this.transition.elapsed / this.transition.duration : 0;
+  }
+  getHistory(): typeof this.history {
+    return [...this.history];
+  }
 }

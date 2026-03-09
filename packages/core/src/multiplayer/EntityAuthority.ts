@@ -15,11 +15,11 @@ export type AuthorityLevel = 'owner' | 'shared' | 'server' | 'none';
 
 export interface AuthorityRecord {
   entityId: string;
-  ownerId: string;           // Player/client who owns this entity
+  ownerId: string; // Player/client who owns this entity
   authorityLevel: AuthorityLevel;
   transferable: boolean;
-  lastTransferTime: number;  // Timestamp
-  lockExpiry: number;        // Lock expiration (0 = no lock)
+  lastTransferTime: number; // Timestamp
+  lockExpiry: number; // Lock expiration (0 = no lock)
 }
 
 export interface TransferRequest {
@@ -50,10 +50,14 @@ export class EntityAuthority {
   // Registration
   // ---------------------------------------------------------------------------
 
-  register(entityId: string, ownerId: string, options: Partial<{
-    authorityLevel: AuthorityLevel;
-    transferable: boolean;
-  }> = {}): AuthorityRecord {
+  register(
+    entityId: string,
+    ownerId: string,
+    options: Partial<{
+      authorityLevel: AuthorityLevel;
+      transferable: boolean;
+    }> = {}
+  ): AuthorityRecord {
     const record: AuthorityRecord = {
       entityId,
       ownerId,
@@ -107,7 +111,10 @@ export class EntityAuthority {
   // Authority Transfer
   // ---------------------------------------------------------------------------
 
-  requestTransfer(entityId: string, reason: TransferRequest['reason'] = 'interaction'): TransferRequest | null {
+  requestTransfer(
+    entityId: string,
+    reason: TransferRequest['reason'] = 'interaction'
+  ): TransferRequest | null {
     const record = this.authorities.get(entityId);
     if (!record) return null;
     if (!record.transferable) return null;
@@ -131,7 +138,7 @@ export class EntityAuthority {
   }
 
   approveTransfer(requestId: string): boolean {
-    const request = this.transferRequests.find(r => r.id === requestId);
+    const request = this.transferRequests.find((r) => r.id === requestId);
     if (!request || request.status !== 'pending') return false;
 
     const record = this.authorities.get(request.entityId);
@@ -144,7 +151,7 @@ export class EntityAuthority {
   }
 
   denyTransfer(requestId: string): boolean {
-    const request = this.transferRequests.find(r => r.id === requestId);
+    const request = this.transferRequests.find((r) => r.id === requestId);
     if (!request || request.status !== 'pending') return false;
     request.status = 'denied';
     return true;
@@ -186,7 +193,7 @@ export class EntityAuthority {
   // ---------------------------------------------------------------------------
 
   getPendingRequests(forPlayerId?: string): TransferRequest[] {
-    return this.transferRequests.filter(r => {
+    return this.transferRequests.filter((r) => {
       if (r.status !== 'pending') return false;
       if (forPlayerId) return r.fromOwnerId === forPlayerId;
       return true;
@@ -194,6 +201,6 @@ export class EntityAuthority {
   }
 
   clearCompletedRequests(): void {
-    this.transferRequests = this.transferRequests.filter(r => r.status === 'pending');
+    this.transferRequests = this.transferRequests.filter((r) => r.status === 'pending');
   }
 }

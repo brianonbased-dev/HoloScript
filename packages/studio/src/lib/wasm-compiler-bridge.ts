@@ -150,7 +150,12 @@ function hydrateChildren(node: Record<string, unknown>): Record<string, unknown>
   if (childrenJson && childrenJson.length > 0) {
     try {
       const parsed = JSON.parse(childrenJson);
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && ('__children' in parsed || '__keyframes' in parsed)) {
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        !Array.isArray(parsed) &&
+        ('__children' in parsed || '__keyframes' in parsed)
+      ) {
         // Combined format: { __children: [...], __keyframes: [...] }
         const rawChildren = parsed.__children;
         node.children = Array.isArray(rawChildren)
@@ -190,7 +195,10 @@ function hydrateChildren(node: Record<string, unknown>): Record<string, unknown>
 export class CompilerBridge {
   private worker: Worker | null = null;
   private requestId = 0;
-  private pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
+  private pending = new Map<
+    number,
+    { resolve: (v: unknown) => void; reject: (e: Error) => void }
+  >();
   private status: CompilerBridgeStatus = {
     backend: 'typescript-fallback',
     wasmLoaded: false,
@@ -211,7 +219,11 @@ export class CompilerBridge {
    */
   async init(
     wasmUrl = '/wasm/holoscript.wasm', // Raw WASM module (fallback) or .js for jco-transpiled
-    world: 'holoscript-runtime' | 'holoscript-parser' | 'holoscript-compiler' | 'holoscript-spatial' = 'holoscript-runtime',
+    world:
+      | 'holoscript-runtime'
+      | 'holoscript-parser'
+      | 'holoscript-compiler'
+      | 'holoscript-spatial' = 'holoscript-runtime'
   ): Promise<CompilerBridgeStatus> {
     if (this.initPromise) {
       await this.initPromise;
@@ -228,10 +240,9 @@ export class CompilerBridge {
 
     try {
       // Create Web Worker
-      this.worker = new Worker(
-        new URL('./wasm-compiler-worker.ts', import.meta.url),
-        { type: 'module' },
-      );
+      this.worker = new Worker(new URL('./wasm-compiler-worker.ts', import.meta.url), {
+        type: 'module',
+      });
 
       // Set up message handling
       this.worker.addEventListener('message', (event: MessageEvent<WorkerResponse>) => {
@@ -291,10 +302,13 @@ export class CompilerBridge {
   }
 
   /** Validate HoloScript source code */
-  async validate(source: string, options?: {
-    checkTraits?: boolean;
-    checkTypes?: boolean;
-  }): Promise<ValidationResult> {
+  async validate(
+    source: string,
+    options?: {
+      checkTraits?: boolean;
+      checkTypes?: boolean;
+    }
+  ): Promise<ValidationResult> {
     if (!this.worker) return this._fallbackValidate(source);
     return this._send('validate', { source, ...options });
   }
@@ -392,8 +406,14 @@ export class CompilerBridge {
       const originalResolve = resolve;
       const originalReject = reject;
       this.pending.set(id, {
-        resolve: (v: unknown) => { clearTimeout(timeout); (originalResolve as (v: unknown) => void)(v); },
-        reject: (e: Error) => { clearTimeout(timeout); originalReject(e); },
+        resolve: (v: unknown) => {
+          clearTimeout(timeout);
+          (originalResolve as (v: unknown) => void)(v);
+        },
+        reject: (e: Error) => {
+          clearTimeout(timeout);
+          originalReject(e);
+        },
       });
 
       this.worker!.postMessage({ id, type, payload } satisfies WorkerRequest);
@@ -407,10 +427,12 @@ export class CompilerBridge {
   private async _fallbackParse(source: string): Promise<{ ast?: unknown; errors?: Diagnostic[] }> {
     try {
       // Dynamic import — compiled exports may vary; cast to access known source exports
-      const core = await import('@holoscript/core') as Record<string, unknown>;
+      const core = (await import('@holoscript/core')) as Record<string, unknown>;
       const parseHolo = core.parseHolo as ((s: string) => unknown) | undefined;
       if (!parseHolo) {
-        return { errors: [{ severity: 'error', message: 'parseHolo not available in @holoscript/core' }] };
+        return {
+          errors: [{ severity: 'error', message: 'parseHolo not available in @holoscript/core' }],
+        };
       }
       const result = parseHolo(source);
       return { ast: result };
@@ -421,10 +443,17 @@ export class CompilerBridge {
 
   private async _fallbackValidate(source: string): Promise<ValidationResult> {
     try {
-      const core = await import('@holoscript/core') as Record<string, unknown>;
-      const ValidatorClass = core.HoloScriptValidator as (new () => { validate(code: string): { message: string }[] }) | undefined;
+      const core = (await import('@holoscript/core')) as Record<string, unknown>;
+      const ValidatorClass = core.HoloScriptValidator as
+        | (new () => { validate(code: string): { message: string }[] })
+        | undefined;
       if (!ValidatorClass) {
-        return { valid: false, diagnostics: [{ severity: 'error', message: 'HoloScriptValidator not available in @holoscript/core' }] };
+        return {
+          valid: false,
+          diagnostics: [
+            { severity: 'error', message: 'HoloScriptValidator not available in @holoscript/core' },
+          ],
+        };
       }
       const validator = new ValidatorClass();
       const errors = validator.validate(source);
@@ -442,28 +471,52 @@ export class CompilerBridge {
 
   private async _fallbackCompile(source: string, target: CompileTarget): Promise<CompileResult> {
     try {
-      const core = await import('@holoscript/core') as Record<string, unknown>;
+      const core = (await import('@holoscript/core')) as Record<string, unknown>;
       const trimmed = source.trimStart();
       const isComposition = trimmed.startsWith('composition');
 
       // Parse first — compilers expect AST, not raw source
       let ast: unknown;
       if (isComposition) {
-        const HoloCompositionParser = core.HoloCompositionParser as (new () => { parse(s: string): { ast?: unknown; errors?: { message: string }[] } }) | undefined;
-        if (!HoloCompositionParser) return { type: 'error', diagnostics: [{ severity: 'error', message: 'HoloCompositionParser not available' }] };
+        const HoloCompositionParser = core.HoloCompositionParser as
+          | (new () => { parse(s: string): { ast?: unknown; errors?: { message: string }[] } })
+          | undefined;
+        if (!HoloCompositionParser)
+          return {
+            type: 'error',
+            diagnostics: [{ severity: 'error', message: 'HoloCompositionParser not available' }],
+          };
         const parser = new HoloCompositionParser();
         const parsed = parser.parse(source);
         if (parsed.errors?.length) {
-          return { type: 'error', diagnostics: parsed.errors.map(e => ({ severity: 'error' as Severity, message: e.message })) };
+          return {
+            type: 'error',
+            diagnostics: parsed.errors.map((e) => ({
+              severity: 'error' as Severity,
+              message: e.message,
+            })),
+          };
         }
         ast = parsed.ast ?? parsed;
       } else {
-        const HoloScriptPlusParser = core.HoloScriptPlusParser as (new () => { parse(s: string): { ast?: unknown; errors?: { message: string }[] } }) | undefined;
-        if (!HoloScriptPlusParser) return { type: 'error', diagnostics: [{ severity: 'error', message: 'HoloScriptPlusParser not available' }] };
+        const HoloScriptPlusParser = core.HoloScriptPlusParser as
+          | (new () => { parse(s: string): { ast?: unknown; errors?: { message: string }[] } })
+          | undefined;
+        if (!HoloScriptPlusParser)
+          return {
+            type: 'error',
+            diagnostics: [{ severity: 'error', message: 'HoloScriptPlusParser not available' }],
+          };
         const parser = new HoloScriptPlusParser();
         const parsed = parser.parse(source);
         if (parsed.errors?.length) {
-          return { type: 'error', diagnostics: parsed.errors.map(e => ({ severity: 'error' as Severity, message: e.message })) };
+          return {
+            type: 'error',
+            diagnostics: parsed.errors.map((e) => ({
+              severity: 'error' as Severity,
+              message: e.message,
+            })),
+          };
         }
         ast = parsed.ast ?? parsed;
       }
@@ -473,24 +526,46 @@ export class CompilerBridge {
         case 'threejs':
         case 'json-ast': {
           const R3FCompiler = core.R3FCompiler as
-            (new () => {
-              compile(ast: unknown): unknown;
-              compileComposition(ast: unknown): unknown;
-            }) | undefined;
-          if (!R3FCompiler) return { type: 'error', diagnostics: [{ severity: 'error', message: 'R3FCompiler not available' }] };
+            | (new () => {
+                compile(ast: unknown): unknown;
+                compileComposition(ast: unknown): unknown;
+              })
+            | undefined;
+          if (!R3FCompiler)
+            return {
+              type: 'error',
+              diagnostics: [{ severity: 'error', message: 'R3FCompiler not available' }],
+            };
           const compiler = new R3FCompiler();
           const result = isComposition ? compiler.compileComposition(ast) : compiler.compile(ast);
-          return { type: 'text', data: typeof result === 'string' ? result : JSON.stringify(result) };
+          return {
+            type: 'text',
+            data: typeof result === 'string' ? result : JSON.stringify(result),
+          };
         }
         case 'babylonjs': {
-          const BabylonCompiler = core.BabylonCompiler as (new () => { compile(ast: unknown): unknown }) | undefined;
-          if (!BabylonCompiler) return { type: 'error', diagnostics: [{ severity: 'error', message: 'BabylonCompiler not available' }] };
+          const BabylonCompiler = core.BabylonCompiler as
+            | (new () => { compile(ast: unknown): unknown })
+            | undefined;
+          if (!BabylonCompiler)
+            return {
+              type: 'error',
+              diagnostics: [{ severity: 'error', message: 'BabylonCompiler not available' }],
+            };
           const compiler = new BabylonCompiler();
           const result = compiler.compile(ast);
-          return { type: 'text', data: typeof result === 'string' ? result : JSON.stringify(result) };
+          return {
+            type: 'text',
+            data: typeof result === 'string' ? result : JSON.stringify(result),
+          };
         }
         default:
-          return { type: 'error', diagnostics: [{ severity: 'error', message: `Target '${target}' not available in TS fallback` }] };
+          return {
+            type: 'error',
+            diagnostics: [
+              { severity: 'error', message: `Target '${target}' not available in TS fallback` },
+            ],
+          };
       }
     } catch (error) {
       return { type: 'error', diagnostics: [{ severity: 'error', message: String(error) }] };
@@ -511,20 +586,44 @@ export class CompilerBridge {
     const traits: TraitDef[] = [];
     const desc = description.toLowerCase();
     if (desc.includes('grab') || desc.includes('pick up') || desc.includes('interact')) {
-      traits.push({ name: 'grabbable', category: 'interaction', description: 'Object can be grabbed by user' });
+      traits.push({
+        name: 'grabbable',
+        category: 'interaction',
+        description: 'Object can be grabbed by user',
+      });
     }
     if (desc.includes('throw') || desc.includes('toss')) {
-      traits.push({ name: 'throwable', category: 'interaction', description: 'Object can be thrown after grabbing' });
+      traits.push({
+        name: 'throwable',
+        category: 'interaction',
+        description: 'Object can be thrown after grabbing',
+      });
     }
     if (desc.includes('physics') || desc.includes('fall') || desc.includes('bounce')) {
-      traits.push({ name: 'physics', category: 'physics', description: 'Object has physics simulation' });
-      traits.push({ name: 'collidable', category: 'physics', description: 'Object participates in collision detection' });
+      traits.push({
+        name: 'physics',
+        category: 'physics',
+        description: 'Object has physics simulation',
+      });
+      traits.push({
+        name: 'collidable',
+        category: 'physics',
+        description: 'Object participates in collision detection',
+      });
     }
     if (desc.includes('glow') || desc.includes('light') || desc.includes('emit')) {
-      traits.push({ name: 'glowing', category: 'visual', description: 'Object emits a glow effect' });
+      traits.push({
+        name: 'glowing',
+        category: 'visual',
+        description: 'Object emits a glow effect',
+      });
     }
     if (desc.includes('network') || desc.includes('multiplayer') || desc.includes('sync')) {
-      traits.push({ name: 'networked', category: 'networking', description: 'Object state synced across network' });
+      traits.push({
+        name: 'networked',
+        category: 'networking',
+        description: 'Object state synced across network',
+      });
     }
     return traits;
   }
@@ -545,7 +644,7 @@ export class CompilerBridge {
 
   private async _fallbackListTraitsByCategory(category: string): Promise<TraitDef[]> {
     const all = await this._fallbackListTraits();
-    return all.filter(t => t.category === category);
+    return all.filter((t) => t.category === category);
   }
 
   private async _fallbackFormat(source: string): Promise<string> {

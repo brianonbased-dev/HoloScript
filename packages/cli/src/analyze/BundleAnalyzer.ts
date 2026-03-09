@@ -75,7 +75,15 @@ export class BundleAnalyzer {
     const totalSize = entries.reduce((s, e) => s + e.size, 0);
     const duplicates = this.duplicateFinder.findExactDuplicates(files);
 
-    return { totalSize, totalGzipped, fileCount: entries.length, entries, duplicates, byCategory, analyzedAt: Date.now() };
+    return {
+      totalSize,
+      totalGzipped,
+      fileCount: entries.length,
+      entries,
+      duplicates,
+      byCategory,
+      analyzedAt: Date.now(),
+    };
   }
 
   formatTerminal(analysis: BundleAnalysis): string {
@@ -85,13 +93,20 @@ export class BundleAnalyzer {
     lines.push(`  Gzipped:  ${formatBytes(analysis.totalGzipped)}`);
     if (analysis.duplicates.length > 0) {
       const wasted = analysis.duplicates.reduce((s, d) => s + d.wastedBytes, 0);
-      lines.push(`  Waste:    ${formatBytes(wasted)} from ${analysis.duplicates.length} duplicate group(s)`);
+      lines.push(
+        `  Waste:    ${formatBytes(wasted)} from ${analysis.duplicates.length} duplicate group(s)`
+      );
     }
     lines.push('');
     lines.push('By category:');
-    for (const [cat, stats] of Object.entries(analysis.byCategory).sort((a, b) => b[1].size - a[1].size)) {
-      const pct = analysis.totalSize > 0 ? ((stats.size / analysis.totalSize) * 100).toFixed(1) : '0.0';
-      lines.push(`  ${cat.padEnd(10)}  ${formatBytes(stats.size).padStart(10)}  (${pct}%)  [${stats.count} files]`);
+    for (const [cat, stats] of Object.entries(analysis.byCategory).sort(
+      (a, b) => b[1].size - a[1].size
+    )) {
+      const pct =
+        analysis.totalSize > 0 ? ((stats.size / analysis.totalSize) * 100).toFixed(1) : '0.0';
+      lines.push(
+        `  ${cat.padEnd(10)}  ${formatBytes(stats.size).padStart(10)}  (${pct}%)  [${stats.count} files]`
+      );
     }
     lines.push('');
     lines.push('Top 10 files:');

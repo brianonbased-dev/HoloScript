@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 /**
  * Compiler Architecture Tests
- * 
+ *
  * Tests the structural design and capabilities of the HoloScript compiler system.
  * Individual target compilers have their own test files (e.g., PythonCompiler.test.ts).
  * This suite focuses on compiler architecture patterns and multi-target capabilities.

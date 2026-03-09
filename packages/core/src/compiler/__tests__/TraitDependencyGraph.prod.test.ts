@@ -82,7 +82,7 @@ describe('TraitDependencyGraph — Production', () => {
       { name: 'physics', config: {}, configHash: h('h1') },
       { name: 'glowing', config: {}, configHash: h('h2') },
     ]);
-    expect(changes.some(c => c.traitName === 'glowing' && c.changeType === 'added')).toBe(true);
+    expect(changes.some((c) => c.traitName === 'glowing' && c.changeType === 'added')).toBe(true);
   });
 
   it('detectTraitChanges finds removed traits', () => {
@@ -99,7 +99,7 @@ describe('TraitDependencyGraph — Production', () => {
     const changes = graph.detectTraitChanges('obj2', [
       { name: 'physics', config: {}, configHash: h('h1') },
     ]);
-    expect(changes.some(c => c.traitName === 'glowing' && c.changeType === 'removed')).toBe(true);
+    expect(changes.some((c) => c.traitName === 'glowing' && c.changeType === 'removed')).toBe(true);
   });
 
   it('detectTraitChanges finds config changes', () => {
@@ -113,7 +113,9 @@ describe('TraitDependencyGraph — Production', () => {
     const changes = graph.detectTraitChanges('obj3', [
       { name: 'physics', config: { gravity: 5.0 }, configHash: h('new') },
     ]);
-    expect(changes.some(c => c.traitName === 'physics' && c.changeType === 'config_changed')).toBe(true);
+    expect(
+      changes.some((c) => c.traitName === 'physics' && c.changeType === 'config_changed')
+    ).toBe(true);
   });
 
   // ─── Affected Set ──────────────────────────────────────────────────
@@ -256,7 +258,7 @@ describe('TraitDependencyGraph — Production', () => {
       graph.registerImport('/d.hs', '/b.hs');
       const affected = graph.getFilesAffectedByChange(['/c.hs']);
       // d should appear once (not twice)
-      expect([...affected].filter(f => f === '/d.hs').length).toBe(1);
+      expect([...affected].filter((f) => f === '/d.hs').length).toBe(1);
       expect(affected.size).toBe(4); // c, a, b, d
     });
 

@@ -23,7 +23,14 @@
 
 export type BuildTarget = 'web' | 'embed' | 'pwa' | 'urdf' | 'gltf' | 'json';
 
-export type BuildStatus = 'idle' | 'parsing' | 'validating' | 'compiling' | 'bundling' | 'done' | 'error';
+export type BuildStatus =
+  | 'idle'
+  | 'parsing'
+  | 'validating'
+  | 'compiling'
+  | 'bundling'
+  | 'done'
+  | 'error';
 
 export interface BuildConfig {
   target: BuildTarget;
@@ -39,11 +46,11 @@ export interface BuildConfig {
 export interface BuildResult {
   success: boolean;
   target: BuildTarget;
-  output: string;           // The compiled output (HTML, JSON, URDF, etc.)
+  output: string; // The compiled output (HTML, JSON, URDF, etc.)
   filename: string;
   mimeType: string;
-  size: number;             // bytes
-  buildTime: number;        // ms
+  size: number; // bytes
+  buildTime: number; // ms
   errors: BuildError[];
   warnings: string[];
 }
@@ -57,12 +64,12 @@ export interface BuildError {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TARGET_META: Record<BuildTarget, { ext: string; mime: string; label: string }> = {
-  web:   { ext: 'html', mime: 'text/html',             label: 'Web App (HTML)' },
-  embed: { ext: 'html', mime: 'text/html',             label: 'Embed Snippet' },
-  pwa:   { ext: 'html', mime: 'text/html',             label: 'Progressive Web App' },
-  urdf:  { ext: 'urdf', mime: 'application/xml',       label: 'Robot (URDF)' },
-  gltf:  { ext: 'gltf', mime: 'model/gltf+json',      label: '3D Scene (glTF)' },
-  json:  { ext: 'json', mime: 'application/json',      label: 'Scene Graph (JSON)' },
+  web: { ext: 'html', mime: 'text/html', label: 'Web App (HTML)' },
+  embed: { ext: 'html', mime: 'text/html', label: 'Embed Snippet' },
+  pwa: { ext: 'html', mime: 'text/html', label: 'Progressive Web App' },
+  urdf: { ext: 'urdf', mime: 'application/xml', label: 'Robot (URDF)' },
+  gltf: { ext: 'gltf', mime: 'model/gltf+json', label: '3D Scene (glTF)' },
+  json: { ext: 'json', mime: 'application/json', label: 'Scene Graph (JSON)' },
 };
 
 const DEFAULT_CONFIG: BuildConfig = {
@@ -97,7 +104,10 @@ export function parseSceneGraph(code: string): {
   objects: Array<{ name: string; traits: Array<{ name: string; props: Record<string, unknown> }> }>;
   metadata: { title?: string; version?: string };
 } {
-  const objects: Array<{ name: string; traits: Array<{ name: string; props: Record<string, unknown> }> }> = [];
+  const objects: Array<{
+    name: string;
+    traits: Array<{ name: string; props: Record<string, unknown> }>;
+  }> = [];
   const metadata: { title?: string; version?: string } = {};
 
   // Extract scene/world title
@@ -134,7 +144,9 @@ export function parseSceneGraph(code: string): {
       let propMatch;
       while ((propMatch = propRe.exec(propsStr)) !== null) {
         const key = propMatch[1];
-        const value = propMatch[2] ?? (propMatch[3] ? parseFloat(propMatch[3]) : propMatch[4] ?? propMatch[5]);
+        const value =
+          propMatch[2] ??
+          (propMatch[3] ? parseFloat(propMatch[3]) : (propMatch[4] ?? propMatch[5]));
         props[key] = value;
       }
 
@@ -222,14 +234,20 @@ export function build(code: string, config: Partial<BuildConfig> = {}): BuildRes
 
 // ─── Target Compilers ─────────────────────────────────────────────────────────
 
-function compileToWeb(sg: ReturnType<typeof parseSceneGraph>, title: string, cfg: BuildConfig): string {
-  const objects = sg.objects.map(obj => {
-    const meshTrait = obj.traits.find(t => t.name === 'mesh');
-    const matTrait = obj.traits.find(t => t.name === 'material');
-    const geometry = (meshTrait?.props.geometry as string) || 'box';
-    const color = (matTrait?.props.color as string) || '#ffffff';
-    return `    createObject('${obj.name}', '${geometry}', '${color}');`;
-  }).join('\n');
+function compileToWeb(
+  sg: ReturnType<typeof parseSceneGraph>,
+  title: string,
+  cfg: BuildConfig
+): string {
+  const objects = sg.objects
+    .map((obj) => {
+      const meshTrait = obj.traits.find((t) => t.name === 'mesh');
+      const matTrait = obj.traits.find((t) => t.name === 'material');
+      const geometry = (meshTrait?.props.geometry as string) || 'box';
+      const color = (matTrait?.props.color as string) || '#ffffff';
+      return `    createObject('${obj.name}', '${geometry}', '${color}');`;
+    })
+    .join('\n');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -339,45 +357,68 @@ function compileToEmbed(sg: ReturnType<typeof parseSceneGraph>, title: string): 
 </p>`;
 }
 
-function compileToPWA(sg: ReturnType<typeof parseSceneGraph>, title: string, cfg: BuildConfig): string {
+function compileToPWA(
+  sg: ReturnType<typeof parseSceneGraph>,
+  title: string,
+  cfg: BuildConfig
+): string {
   const webHtml = compileToWeb(sg, title, cfg);
   // Inject PWA manifest + service worker registration
-  return webHtml.replace('</head>', `
-  <link rel="manifest" href="data:application/json,${encodeURIComponent(JSON.stringify({
-    name: title,
-    short_name: title.substring(0, 12),
-    start_url: '.',
-    display: 'standalone',
-    background_color: '#0a0a12',
-    theme_color: '#6366f1',
-    icons: [{ src: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>', sizes: 'any', type: 'image/svg+xml' }],
-  }))}">
+  return webHtml.replace(
+    '</head>',
+    `
+  <link rel="manifest" href="data:application/json,${encodeURIComponent(
+    JSON.stringify({
+      name: title,
+      short_name: title.substring(0, 12),
+      start_url: '.',
+      display: 'standalone',
+      background_color: '#0a0a12',
+      theme_color: '#6366f1',
+      icons: [
+        {
+          src: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>',
+          sizes: 'any',
+          type: 'image/svg+xml',
+        },
+      ],
+    })
+  )}">
   <meta name="theme-color" content="#6366f1">
-</head>`);
+</head>`
+  );
 }
 
 function compileToURDF(sg: ReturnType<typeof parseSceneGraph>, title: string): string {
-  const links = sg.objects.map((obj, i) => {
-    const mesh = obj.traits.find(t => t.name === 'mesh');
-    const geo = (mesh?.props.geometry as string) || 'box';
-    const geoXml = geo === 'sphere'
-      ? '<sphere radius="0.5"/>'
-      : geo === 'cylinder'
-        ? '<cylinder length="1" radius="0.3"/>'
-        : '<box size="1 1 1"/>';
+  const links = sg.objects
+    .map((obj, i) => {
+      const mesh = obj.traits.find((t) => t.name === 'mesh');
+      const geo = (mesh?.props.geometry as string) || 'box';
+      const geoXml =
+        geo === 'sphere'
+          ? '<sphere radius="0.5"/>'
+          : geo === 'cylinder'
+            ? '<cylinder length="1" radius="0.3"/>'
+            : '<box size="1 1 1"/>';
 
-    return `  <link name="${obj.name}">
+      return `  <link name="${obj.name}">
     <visual><geometry>${geoXml}</geometry></visual>
     <collision><geometry>${geoXml}</geometry></collision>
   </link>`;
-  }).join('\n');
+    })
+    .join('\n');
 
-  const joints = sg.objects.slice(1).map((obj, i) => `  <joint name="${sg.objects[i].name}_to_${obj.name}" type="revolute">
+  const joints = sg.objects
+    .slice(1)
+    .map(
+      (obj, i) => `  <joint name="${sg.objects[i].name}_to_${obj.name}" type="revolute">
     <parent link="${sg.objects[i].name}"/>
     <child link="${obj.name}"/>
     <axis xyz="0 0 1"/>
     <limit lower="-3.14" upper="3.14" effort="100" velocity="1"/>
-  </joint>`).join('\n');
+  </joint>`
+    )
+    .join('\n');
 
   return `<?xml version="1.0"?>
 <robot name="${title}">
@@ -392,18 +433,22 @@ function compileToGLTF(sg: ReturnType<typeof parseSceneGraph>, title: string): s
     mesh: i,
   }));
 
-  const meshes = sg.objects.map(obj => {
-    const meshTrait = obj.traits.find(t => t.name === 'mesh');
+  const meshes = sg.objects.map((obj) => {
+    const meshTrait = obj.traits.find((t) => t.name === 'mesh');
     return { name: obj.name, primitives: [{ attributes: {}, material: 0 }] };
   });
 
-  return JSON.stringify({
-    asset: { version: '2.0', generator: 'HoloScript Studio' },
-    scene: 0,
-    scenes: [{ name: title, nodes: nodes.map((_, i) => i) }],
-    nodes,
-    meshes,
-  }, null, 2);
+  return JSON.stringify(
+    {
+      asset: { version: '2.0', generator: 'HoloScript Studio' },
+      scene: 0,
+      scenes: [{ name: title, nodes: nodes.map((_, i) => i) }],
+      nodes,
+      meshes,
+    },
+    null,
+    2
+  );
 }
 
 // ─── Download Helper ──────────────────────────────────────────────────────────

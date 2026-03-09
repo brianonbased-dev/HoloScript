@@ -240,7 +240,7 @@ describe('rule system', () => {
       check: (_ctx: RuleContext) => [],
     };
     linter.registerRule(customRule);
-    const ruleIds = linter.getRules().map(r => r.id);
+    const ruleIds = linter.getRules().map((r) => r.id);
     expect(ruleIds).toContain('my-unique-rule');
   });
 
@@ -252,17 +252,19 @@ describe('rule system', () => {
       description: 'Emits an error for every lint call',
       category: 'syntax',
       defaultSeverity: 'error',
-      check: (_ctx: RuleContext): LintDiagnostic[] => [{
-        ruleId: 'always-error',
-        message: 'Forced error',
-        severity: 'error',
-        line: 1,
-        column: 0,
-      }],
+      check: (_ctx: RuleContext): LintDiagnostic[] => [
+        {
+          ruleId: 'always-error',
+          message: 'Forced error',
+          severity: 'error',
+          line: 1,
+          column: 0,
+        },
+      ],
     };
     linter.registerRule(alwaysErrorRule);
     const result = linter.lint('any source');
-    expect(result.diagnostics.some(d => d.ruleId === 'always-error')).toBe(true);
+    expect(result.diagnostics.some((d) => d.ruleId === 'always-error')).toBe(true);
   });
 });
 
@@ -344,9 +346,7 @@ describe('rules can be disabled', () => {
 
     // Disable all rules
     const noRulesLinter = new HoloScriptLinter({
-      rules: Object.fromEntries(
-        Object.keys(DEFAULT_CONFIG.rules).map(k => [k, 'off' as const])
-      ),
+      rules: Object.fromEntries(Object.keys(DEFAULT_CONFIG.rules).map((k) => [k, 'off' as const])),
     });
     const result2 = noRulesLinter.lint('entity test_name {}');
 

@@ -38,7 +38,10 @@ describe('SharePlayTrait — Production', () => {
   it('start event activates session', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
-    handler.onEvent!(mockNode, config, ctx, { type: 'shareplay:start', payload: { sessionId: 'sp1' } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'shareplay:start',
+      payload: { sessionId: 'sp1' },
+    });
     expect(ctx.getState().sharePlay.sessionState).toBe('active');
     expect(ctx.getState().sharePlay.isHost).toBe(true);
   });
@@ -46,7 +49,10 @@ describe('SharePlayTrait — Production', () => {
   it('join event joins as non-host', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
-    handler.onEvent!(mockNode, config, ctx, { type: 'shareplay:join', payload: { sessionId: 'sp2' } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'shareplay:join',
+      payload: { sessionId: 'sp2' },
+    });
     expect(ctx.getState().sharePlay.isHost).toBe(false);
     expect(ctx.getState().sharePlay.sessionState).toBe('active');
   });
@@ -70,7 +76,10 @@ describe('SharePlayTrait — Production', () => {
       type: 'shareplay:participant_joined',
       payload: { id: 'p1', displayName: 'A', isHost: false, joinedAt: 1 },
     });
-    handler.onEvent!(mockNode, config, ctx, { type: 'shareplay:participant_left', payload: { id: 'p1' } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'shareplay:participant_left',
+      payload: { id: 'p1' },
+    });
     expect(ctx.getState().sharePlay.participants.size).toBe(0);
   });
 
@@ -121,9 +130,12 @@ describe('VolumetricWindowTrait — Production', () => {
   it('open event opens window', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
-    handler.onEvent!(mockNode, config, ctx, { type: 'vWindow:open', payload: { position: [1,2,3] } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'vWindow:open',
+      payload: { position: [1, 2, 3] },
+    });
     expect(ctx.getState().volumetricWindow.isOpen).toBe(true);
-    expect(ctx.getState().volumetricWindow.placement).toEqual([1,2,3]);
+    expect(ctx.getState().volumetricWindow.placement).toEqual([1, 2, 3]);
   });
 
   it('close event closes', () => {
@@ -137,7 +149,10 @@ describe('VolumetricWindowTrait — Production', () => {
   it('resize updates dimensions', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
-    handler.onEvent!(mockNode, config, ctx, { type: 'vWindow:resize', payload: { width: 1.0, height: 0.8 } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'vWindow:resize',
+      payload: { width: 1.0, height: 0.8 },
+    });
     expect(ctx.getState().volumetricWindow.currentWidth).toBe(1.0);
     expect(ctx.getState().volumetricWindow.currentHeight).toBe(0.8);
   });
@@ -160,10 +175,16 @@ describe('VolumetricWindowTrait — Production', () => {
   it('immersion_change sets progress', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
-    handler.onEvent!(mockNode, config, ctx, { type: 'vWindow:immersion_change', payload: { progress: 0.5 } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'vWindow:immersion_change',
+      payload: { progress: 0.5 },
+    });
     expect(ctx.getState().volumetricWindow.immersionProgress).toBe(0.5);
     expect(ctx.getState().volumetricWindow.isImmersive).toBe(false);
-    handler.onEvent!(mockNode, config, ctx, { type: 'vWindow:immersion_change', payload: { progress: 1.0 } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'vWindow:immersion_change',
+      payload: { progress: 1.0 },
+    });
     expect(ctx.getState().volumetricWindow.isImmersive).toBe(true);
   });
 
@@ -200,7 +221,10 @@ describe('SpatialPersonaTrait — Production', () => {
   it('activate event sets active', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
-    handler.onEvent!(mockNode, config, ctx, { type: 'persona:activate', payload: { personaId: 'p1' } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'persona:activate',
+      payload: { personaId: 'p1' },
+    });
     expect(ctx.getState().spatialPersona.isActive).toBe(true);
     expect(ctx.getState().spatialPersona.personaId).toBe('p1');
   });
@@ -227,7 +251,10 @@ describe('SpatialPersonaTrait — Production', () => {
   it('expression sets isSpeaking for talking', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
-    handler.onEvent!(mockNode, config, ctx, { type: 'persona:expression', payload: { expression: 'talking' } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'persona:expression',
+      payload: { expression: 'talking' },
+    });
     expect(ctx.getState().spatialPersona.isSpeaking).toBe(true);
     expect(ctx.getState().spatialPersona.expressionState).toBe('talking');
   });
@@ -235,9 +262,15 @@ describe('SpatialPersonaTrait — Production', () => {
   it('participant visibility tracking', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
-    handler.onEvent!(mockNode, config, ctx, { type: 'persona:participant_visible', payload: { participantId: 'u1' } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'persona:participant_visible',
+      payload: { participantId: 'u1' },
+    });
     expect(ctx.getState().spatialPersona.visibleTo.has('u1')).toBe(true);
-    handler.onEvent!(mockNode, config, ctx, { type: 'persona:participant_hidden', payload: { participantId: 'u1' } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'persona:participant_hidden',
+      payload: { participantId: 'u1' },
+    });
     expect(ctx.getState().spatialPersona.visibleTo.has('u1')).toBe(false);
   });
 

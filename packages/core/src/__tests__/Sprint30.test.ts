@@ -385,7 +385,7 @@ describe('Feature 8: DayNightCycle', () => {
 
   it('getPeriod returns a valid period', () => {
     const dnc = new DayNightCycle();
-    const valid = ['dawn','morning','noon','afternoon','dusk','evening','night','midnight'];
+    const valid = ['dawn', 'morning', 'noon', 'afternoon', 'dusk', 'evening', 'night', 'midnight'];
     expect(valid).toContain(dnc.getPeriod());
   });
 
@@ -484,7 +484,14 @@ describe('Feature 9: TileMap', () => {
 describe('Feature 10: TerrainBrush', () => {
   function makeTerrain() {
     const ts = new TerrainSystem();
-    ts.createTerrain({ id: 't1', width: 64, depth: 64, resolution: 9, maxHeight: 50, position: { x: 0, y: 0, z: 0 } });
+    ts.createTerrain({
+      id: 't1',
+      width: 64,
+      depth: 64,
+      resolution: 9,
+      maxHeight: 50,
+      position: { x: 0, y: 0, z: 0 },
+    });
     return ts;
   }
 
@@ -494,7 +501,12 @@ describe('Feature 10: TerrainBrush', () => {
   });
 
   it('setMode changes the brush mode', () => {
-    const tb = new TerrainBrush(makeTerrain(), { mode: 'raise', radius: 3, strength: 0.5, falloff: 0.5 });
+    const tb = new TerrainBrush(makeTerrain(), {
+      mode: 'raise',
+      radius: 3,
+      strength: 0.5,
+      falloff: 0.5,
+    });
     tb.setMode('flatten');
     expect(tb.getConfig().mode).toBe('flatten');
   });
@@ -506,20 +518,35 @@ describe('Feature 10: TerrainBrush', () => {
   });
 
   it('apply returns a BrushStroke', () => {
-    const tb = new TerrainBrush(makeTerrain(), { mode: 'raise', radius: 2, strength: 0.3, falloff: 0.5 });
+    const tb = new TerrainBrush(makeTerrain(), {
+      mode: 'raise',
+      radius: 2,
+      strength: 0.3,
+      falloff: 0.5,
+    });
     const stroke = tb.apply('t1', 3, 3);
     expect(stroke).toBeDefined();
     expect(stroke.terrainId).toBe('t1');
   });
 
   it('getUndoCount increments after apply', () => {
-    const tb = new TerrainBrush(makeTerrain(), { mode: 'raise', radius: 2, strength: 0.3, falloff: 0.5 });
+    const tb = new TerrainBrush(makeTerrain(), {
+      mode: 'raise',
+      radius: 2,
+      strength: 0.3,
+      falloff: 0.5,
+    });
     tb.apply('t1', 2, 2);
     expect(tb.getUndoCount()).toBe(1);
   });
 
   it('undo returns the stroke and decrements count', () => {
-    const tb = new TerrainBrush(makeTerrain(), { mode: 'raise', radius: 2, strength: 0.3, falloff: 0.5 });
+    const tb = new TerrainBrush(makeTerrain(), {
+      mode: 'raise',
+      radius: 2,
+      strength: 0.3,
+      falloff: 0.5,
+    });
     tb.apply('t1', 2, 2);
     const undone = tb.undo();
     expect(undone).toBeDefined();
@@ -527,7 +554,12 @@ describe('Feature 10: TerrainBrush', () => {
   });
 
   it('redo after undo restores stroke', () => {
-    const tb = new TerrainBrush(makeTerrain(), { mode: 'raise', radius: 2, strength: 0.3, falloff: 0.5 });
+    const tb = new TerrainBrush(makeTerrain(), {
+      mode: 'raise',
+      radius: 2,
+      strength: 0.3,
+      falloff: 0.5,
+    });
     tb.apply('t1', 2, 2);
     tb.undo();
     expect(tb.getRedoCount()).toBe(1);

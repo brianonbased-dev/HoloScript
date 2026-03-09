@@ -34,7 +34,12 @@
  * 4. createAIDriverTrait factory
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { BehaviorTreeRunner, GOAPPlanner, AIDriverTrait, createAIDriverTrait } from '../AIDriverTrait';
+import {
+  BehaviorTreeRunner,
+  GOAPPlanner,
+  AIDriverTrait,
+  createAIDriverTrait,
+} from '../AIDriverTrait';
 import type { BehaviorNode, NPCContext, NPCGoal } from '../AIDriverTrait';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -54,7 +59,9 @@ function mockCtx(): NPCContext {
 
 function goal(id: string, priority: number, preconds: Array<[string, unknown]> = []): NPCGoal {
   return {
-    id, name: id, priority,
+    id,
+    name: id,
+    priority,
     preconditions: new Map(preconds),
     effects: new Map(),
     cost: 1,
@@ -88,8 +95,11 @@ describe('BehaviorTreeRunner — action node', () => {
 
   it('returns false when action fn throws', async () => {
     const tree: BehaviorNode = {
-      id: 'a', type: 'action',
-      action: async () => { throw new Error('boom'); },
+      id: 'a',
+      type: 'action',
+      action: async () => {
+        throw new Error('boom');
+      },
     };
     expect(await new BehaviorTreeRunner(tree).tick(mockCtx())).toBe(false);
   });
@@ -115,7 +125,8 @@ describe('BehaviorTreeRunner — condition node', () => {
 describe('BehaviorTreeRunner — sequence node', () => {
   it('returns true when all children succeed', async () => {
     const tree: BehaviorNode = {
-      id: 'seq', type: 'sequence',
+      id: 'seq',
+      type: 'sequence',
       children: [
         { id: 'a1', type: 'action', action: async () => true },
         { id: 'a2', type: 'action', action: async () => true },
@@ -127,7 +138,8 @@ describe('BehaviorTreeRunner — sequence node', () => {
   it('short-circuits and returns false on first failure', async () => {
     const secondAction = vi.fn().mockResolvedValue(true);
     const tree: BehaviorNode = {
-      id: 'seq', type: 'sequence',
+      id: 'seq',
+      type: 'sequence',
       children: [
         { id: 'a1', type: 'action', action: async () => false }, // fails
         { id: 'a2', type: 'action', action: secondAction },
@@ -148,7 +160,8 @@ describe('BehaviorTreeRunner — selector node', () => {
   it('returns true on first succeeding child', async () => {
     const secondAction = vi.fn().mockResolvedValue(true);
     const tree: BehaviorNode = {
-      id: 'sel', type: 'selector',
+      id: 'sel',
+      type: 'selector',
       children: [
         { id: 'a1', type: 'action', action: async () => true }, // succeeds
         { id: 'a2', type: 'action', action: secondAction },
@@ -161,7 +174,8 @@ describe('BehaviorTreeRunner — selector node', () => {
 
   it('returns false when all children fail', async () => {
     const tree: BehaviorNode = {
-      id: 'sel', type: 'selector',
+      id: 'sel',
+      type: 'selector',
       children: [
         { id: 'a1', type: 'action', action: async () => false },
         { id: 'a2', type: 'action', action: async () => false },
@@ -174,7 +188,8 @@ describe('BehaviorTreeRunner — selector node', () => {
 describe('BehaviorTreeRunner — parallel node', () => {
   it('returns true when all children succeed', async () => {
     const tree: BehaviorNode = {
-      id: 'par', type: 'parallel',
+      id: 'par',
+      type: 'parallel',
       children: [
         { id: 'a', type: 'action', action: async () => true },
         { id: 'b', type: 'action', action: async () => true },
@@ -185,7 +200,8 @@ describe('BehaviorTreeRunner — parallel node', () => {
 
   it('returns false when any child fails', async () => {
     const tree: BehaviorNode = {
-      id: 'par', type: 'parallel',
+      id: 'par',
+      type: 'parallel',
       children: [
         { id: 'a', type: 'action', action: async () => true },
         { id: 'b', type: 'action', action: async () => false },
@@ -199,9 +215,7 @@ describe('BehaviorTreeRunner — parallel node', () => {
 
 describe('GOAPPlanner', () => {
   it('sorts goals by priority descending', () => {
-    const planner = new GOAPPlanner([
-      goal('low', 0.1), goal('high', 0.9), goal('mid', 0.5),
-    ]);
+    const planner = new GOAPPlanner([goal('low', 0.1), goal('high', 0.9), goal('mid', 0.5)]);
     // Access sorted by calling planGoal against state with no preconditions
     const worldState = new Map<string, unknown>();
     const plan = planner.planGoal(worldState, goal('dummy', 0));
@@ -223,7 +237,7 @@ describe('GOAPPlanner', () => {
     const state = new Map<string, unknown>([['hasKey', false]]);
     const planner = new GOAPPlanner([
       goal('locked', 0.9, [['hasKey', true]]), // precondition fails
-      goal('wander', 0.2),                     // no preconditions → achievable
+      goal('wander', 0.2), // no preconditions → achievable
     ]);
     const plan = planner.planGoal(state, goal('dummy', 0));
     expect(plan[0].id).toBe('wander');
@@ -231,9 +245,7 @@ describe('GOAPPlanner', () => {
 
   it('returns [] when no goal is achievable', () => {
     const state = new Map<string, unknown>();
-    const planner = new GOAPPlanner([
-      goal('needs_energy', 0.9, [['energy', 'high']]),
-    ]);
+    const planner = new GOAPPlanner([goal('needs_energy', 0.9, [['energy', 'high']])]);
     const plan = planner.planGoal(state, goal('dummy', 0));
     expect(plan).toHaveLength(0);
   });
@@ -426,7 +438,9 @@ describe('AIDriverTrait.dispose', () => {
 
 describe('createAIDriverTrait', () => {
   it('returns AIDriverTrait instance', () => {
-    expect(createAIDriverTrait({ npcId: 'npc', decisionMode: 'reactive' })).toBeInstanceOf(AIDriverTrait);
+    expect(createAIDriverTrait({ npcId: 'npc', decisionMode: 'reactive' })).toBeInstanceOf(
+      AIDriverTrait
+    );
   });
 
   it('passes npcId through', () => {

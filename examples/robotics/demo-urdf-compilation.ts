@@ -1,19 +1,25 @@
 /**
  * HoloScript Robotics Pipeline Demonstration
- * 
+ *
  * This script demonstrates:
  * 1. HoloScript → URDF compilation for a 2-DOF robot arm
  * 2. HoloScript → SDF compilation for Gazebo/Isaac Sim
  * 3. HoloScript → USD Physics compilation for NVIDIA Isaac Sim native
  * 4. @joint trait support for articulated robots
- * 
+ *
  * Run with: npx tsx examples/robotics/demo-urdf-compilation.ts
  */
 
 import { URDFCompiler } from '../../packages/core/src/compiler/URDFCompiler';
 import { SDFCompiler } from '../../packages/core/src/compiler/SDFCompiler';
-import { USDPhysicsCompiler, compileForIsaacSim } from '../../packages/core/src/compiler/USDPhysicsCompiler';
-import type { HoloComposition, HoloObjectDecl } from '../../packages/core/src/parser/HoloCompositionTypes';
+import {
+  USDPhysicsCompiler,
+  compileForIsaacSim,
+} from '../../packages/core/src/compiler/USDPhysicsCompiler';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+} from '../../packages/core/src/parser/HoloCompositionTypes';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -163,7 +169,7 @@ async function main() {
     includeInertial: true,
   });
   const urdf = urdfCompiler.compile(composition);
-  
+
   // Save URDF
   const urdfPath = path.join(__dirname, 'output', 'two_dof_arm.urdf');
   fs.mkdirSync(path.dirname(urdfPath), { recursive: true });

@@ -1,7 +1,11 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { SCENARIOS, type ScenarioEntry, type ScenarioCategory } from '@/components/scenarios/ScenarioGallery';
+import {
+  SCENARIOS,
+  type ScenarioEntry,
+  type ScenarioCategory,
+} from '@/components/scenarios/ScenarioGallery';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -125,7 +129,10 @@ export function useScenarioList(options: UseScenarioListOptions = {}): UseScenar
   }, [filtered, sortField, sortDirection]);
 
   const totalTestCount = useMemo(() => SCENARIOS.reduce((sum, s) => sum + s.testCount, 0), []);
-  const filteredTestCount = useMemo(() => sorted.reduce((sum, s) => sum + s.testCount, 0), [sorted]);
+  const filteredTestCount = useMemo(
+    () => sorted.reduce((sum, s) => sum + s.testCount, 0),
+    [sorted]
+  );
 
   const toggleSortDirection = useCallback(() => {
     setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));

@@ -110,7 +110,7 @@ export class PipelineFactory {
       module,
       entryPoint,
       'auto',
-      `snn-pipeline-${entryPoint}`,
+      `snn-pipeline-${entryPoint}`
     );
 
     this.pipelineCache.set(entryPoint, {
@@ -129,7 +129,7 @@ export class PipelineFactory {
   createBindGroup(
     entryPoint: ShaderEntryPoint,
     buffers: GPUBuffer[],
-    label?: string,
+    label?: string
   ): GPUBindGroup {
     const pipeline = this.getPipeline(entryPoint);
 
@@ -154,7 +154,7 @@ export class PipelineFactory {
     bindGroup: GPUBindGroup,
     workgroupCountX: number,
     workgroupCountY: number = 1,
-    workgroupCountZ: number = 1,
+    workgroupCountZ: number = 1
   ): void {
     const pipeline = this.getPipeline(entryPoint);
     const pass = encoder.beginComputePass({

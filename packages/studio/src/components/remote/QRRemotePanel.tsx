@@ -31,10 +31,10 @@ interface QRRemotePanelProps {
 }
 
 const STATUS_CONFIG = {
-  idle:    { color: 'text-studio-muted', icon: WifiOff,  label: 'Not connected' },
-  active:  { color: 'text-green-400',   icon: Wifi,      label: 'Active' },
-  expired: { color: 'text-yellow-400',  icon: WifiOff,   label: 'Session expired' },
-  error:   { color: 'text-red-400',     icon: WifiOff,   label: 'Error' },
+  idle: { color: 'text-studio-muted', icon: WifiOff, label: 'Not connected' },
+  active: { color: 'text-green-400', icon: Wifi, label: 'Active' },
+  expired: { color: 'text-yellow-400', icon: WifiOff, label: 'Session expired' },
+  error: { color: 'text-red-400', icon: WifiOff, label: 'Error' },
 };
 
 export function QRRemotePanel({ onClose }: QRRemotePanelProps) {
@@ -50,7 +50,11 @@ export function QRRemotePanel({ onClose }: QRRemotePanelProps) {
 
   const handleCreate = async () => {
     setLoading(true);
-    try { await createSession(); } finally { setLoading(false); }
+    try {
+      await createSession();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCopyLink = () => {
@@ -70,7 +74,10 @@ export function QRRemotePanel({ onClose }: QRRemotePanelProps) {
       <div className="flex shrink-0 items-center gap-2 border-b border-studio-border px-3 py-2.5">
         <Smartphone className="h-4 w-4 text-studio-accent" />
         <span className="text-[12px] font-semibold">Mobile Remote</span>
-        <button onClick={onClose} className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text">
+        <button
+          onClick={onClose}
+          className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -137,9 +144,7 @@ export function QRRemotePanel({ onClose }: QRRemotePanelProps) {
         </div>
 
         {/* Token display */}
-        {token && (
-          <p className="text-[9px] text-studio-muted/50 font-mono">{token}</p>
-        )}
+        {token && <p className="text-[9px] text-studio-muted/50 font-mono">{token}</p>}
       </div>
     </div>
   );

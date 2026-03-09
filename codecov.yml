@@ -9,7 +9,7 @@ codecov:
 coverage:
   precision: 2
   round: down
-  range: "70...100"
+  range: '70...100'
 
   status:
     project:
@@ -26,7 +26,7 @@ coverage:
         informational: false
 
 comment:
-  layout: "header, diff, files, footer"
+  layout: 'header, diff, files, footer'
   behavior: default
   require_changes: false
   require_base: false
@@ -34,15 +34,15 @@ comment:
 
 # Ignore generated files and test fixtures
 ignore:
-  - "**/*.test.ts"
-  - "**/*.spec.ts"
-  - "**/dist/**"
-  - "**/node_modules/**"
-  - "**/coverage/**"
-  - "**/__tests__/**"
-  - "**/__mocks__/**"
-  - "**/examples/**"
-  - "**/datasets/**"
+  - '**/*.test.ts'
+  - '**/*.spec.ts'
+  - '**/dist/**'
+  - '**/node_modules/**'
+  - '**/coverage/**'
+  - '**/__tests__/**'
+  - '**/__mocks__/**'
+  - '**/examples/**'
+  - '**/datasets/**'
 
 # Flags for different package coverage tracking
 flags:

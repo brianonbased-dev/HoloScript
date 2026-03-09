@@ -1,38 +1,38 @@
-import React from "react";
-import { Composition } from "remotion";
+import React from 'react';
+import { Composition } from 'remotion';
 
 // ── Beginner Series ─────────────────────────────────────────────────────────
-import { SyntaxIntroduction } from "./compositions/SyntaxIntroduction";
-import { TraitsDeepDive } from "./compositions/TraitsDeepDive";
-import { StateAndLogic } from "./compositions/StateAndLogic";
-import { TimelinesAndAnimation } from "./compositions/TimelinesAndAnimation";
-import { NPCsAndDialogue } from "./compositions/NPCsAndDialogue";
-import { TemplatesAndReuse } from "./compositions/TemplatesAndReuse";
+import { SyntaxIntroduction } from './compositions/SyntaxIntroduction';
+import { TraitsDeepDive } from './compositions/TraitsDeepDive';
+import { StateAndLogic } from './compositions/StateAndLogic';
+import { TimelinesAndAnimation } from './compositions/TimelinesAndAnimation';
+import { NPCsAndDialogue } from './compositions/NPCsAndDialogue';
+import { TemplatesAndReuse } from './compositions/TemplatesAndReuse';
 
 // ── Compiler Series ──────────────────────────────────────────────────────────
-import { UnityCompilerWalkthrough } from "./compositions/UnityCompilerWalkthrough";
-import { GodotCompilerWalkthrough } from "./compositions/GodotCompilerWalkthrough";
-import { BabylonCompilerWalkthrough } from "./compositions/BabylonCompilerWalkthrough";
-import { VisionOSCompilerWalkthrough } from "./compositions/VisionOSCompilerWalkthrough";
-import { URDFCompilerWalkthrough } from "./compositions/URDFCompilerWalkthrough";
-import { VRChatCompilerWalkthrough } from "./compositions/VRChatCompilerWalkthrough";
-import { WebGPUCompilerWalkthrough } from "./compositions/WebGPUCompilerWalkthrough";
-import { R3FCompilerWalkthrough } from "./compositions/R3FCompilerWalkthrough";
-import { iOSCompilerWalkthrough } from "./compositions/iOSCompilerWalkthrough";
-import { AndroidCompilerWalkthrough } from "./compositions/AndroidCompilerWalkthrough";
-import { OpenXRCompilerWalkthrough } from "./compositions/OpenXRCompilerWalkthrough";
-import { DTDLCompilerWalkthrough } from "./compositions/DTDLCompilerWalkthrough";
-import { UnrealCompilerWalkthrough } from "./compositions/UnrealCompilerWalkthrough";
-import { WASMCompilerWalkthrough } from "./compositions/WASMCompilerWalkthrough";
-import { USDCompilerWalkthrough } from "./compositions/USDCompilerWalkthrough";
+import { UnityCompilerWalkthrough } from './compositions/UnityCompilerWalkthrough';
+import { GodotCompilerWalkthrough } from './compositions/GodotCompilerWalkthrough';
+import { BabylonCompilerWalkthrough } from './compositions/BabylonCompilerWalkthrough';
+import { VisionOSCompilerWalkthrough } from './compositions/VisionOSCompilerWalkthrough';
+import { URDFCompilerWalkthrough } from './compositions/URDFCompilerWalkthrough';
+import { VRChatCompilerWalkthrough } from './compositions/VRChatCompilerWalkthrough';
+import { WebGPUCompilerWalkthrough } from './compositions/WebGPUCompilerWalkthrough';
+import { R3FCompilerWalkthrough } from './compositions/R3FCompilerWalkthrough';
+import { iOSCompilerWalkthrough } from './compositions/iOSCompilerWalkthrough';
+import { AndroidCompilerWalkthrough } from './compositions/AndroidCompilerWalkthrough';
+import { OpenXRCompilerWalkthrough } from './compositions/OpenXRCompilerWalkthrough';
+import { DTDLCompilerWalkthrough } from './compositions/DTDLCompilerWalkthrough';
+import { UnrealCompilerWalkthrough } from './compositions/UnrealCompilerWalkthrough';
+import { WASMCompilerWalkthrough } from './compositions/WASMCompilerWalkthrough';
+import { USDCompilerWalkthrough } from './compositions/USDCompilerWalkthrough';
 
 // ── Advanced Series ──────────────────────────────────────────────────────────
-import { PythonBindings } from "./compositions/PythonBindings";
-import { MCPServerIntegration } from "./compositions/MCPServerIntegration";
-import { LLMProviderSDK } from "./compositions/LLMProviderSDK";
-import { SecuritySandbox } from "./compositions/SecuritySandbox";
-import { CICDIntegration } from "./compositions/CICDIntegration";
-import { CustomTraitCreation } from "./compositions/CustomTraitCreation";
+import { PythonBindings } from './compositions/PythonBindings';
+import { MCPServerIntegration } from './compositions/MCPServerIntegration';
+import { LLMProviderSDK } from './compositions/LLMProviderSDK';
+import { SecuritySandbox } from './compositions/SecuritySandbox';
+import { CICDIntegration } from './compositions/CICDIntegration';
+import { CustomTraitCreation } from './compositions/CustomTraitCreation';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VIDEO REGISTRY

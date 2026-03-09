@@ -1,9 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GoalPlanner, type PlanAction, type Goal, type WorldState } from '../GoalPlanner';
 
-function action(id: string, cost: number, pre: Record<string, boolean>, eff: Record<string, boolean>): PlanAction {
+function action(
+  id: string,
+  cost: number,
+  pre: Record<string, boolean>,
+  eff: Record<string, boolean>
+): PlanAction {
   return {
-    id, name: id, cost,
+    id,
+    name: id,
+    cost,
     preconditions: new Map(Object.entries(pre)),
     effects: new Map(Object.entries(eff)),
     execute: vi.fn(),
@@ -17,7 +24,9 @@ function goal(id: string, conditions: Record<string, boolean>, priority: number)
 describe('GoalPlanner', () => {
   let planner: GoalPlanner;
 
-  beforeEach(() => { planner = new GoalPlanner(); });
+  beforeEach(() => {
+    planner = new GoalPlanner();
+  });
 
   // ---------------------------------------------------------------------------
   // Registration
@@ -77,7 +86,10 @@ describe('GoalPlanner', () => {
     planner.addAction(action('chop', 1, {}, { hasWood: true }));
     planner.addAction(action('build', 2, { hasWood: true }, { hasShelter: true }));
     planner.addGoal(goal('shelter', { hasShelter: true }, 1));
-    const state: WorldState = new Map([['hasWood', false], ['hasShelter', false]]);
+    const state: WorldState = new Map([
+      ['hasWood', false],
+      ['hasShelter', false],
+    ]);
     const result = planner.plan(state);
     expect(result).not.toBeNull();
     expect(result!.actions.length).toBeGreaterThanOrEqual(2);

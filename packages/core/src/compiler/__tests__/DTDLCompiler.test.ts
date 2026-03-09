@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DTDLCompiler, DTDL_TRAIT_COMPONENTS } from '../DTDLCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -9,7 +9,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 // Helper to build a minimal composition
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
@@ -90,7 +89,10 @@ describe('DTDLCompiler', () => {
     const main = result[result.length - 1]; // last is main interface for minimal
     // Find amongst all interfaces
     const allContents = result.flatMap((i: any) => i.contents || []);
-    const props = allContents.filter((c: any) => c['@type'] === 'Property' || (Array.isArray(c['@type']) && c['@type'].includes('Property')));
+    const props = allContents.filter(
+      (c: any) =>
+        c['@type'] === 'Property' || (Array.isArray(c['@type']) && c['@type'].includes('Property'))
+    );
     expect(props.length).toBeGreaterThanOrEqual(3);
   });
 
@@ -110,7 +112,9 @@ describe('DTDLCompiler', () => {
       state: { properties: [{ key: 'ratio', value: 3.14 }] },
     });
     const result = JSON.parse(compiler.compile(comp, 'test-token'));
-    const props = result.flatMap((i: any) => i.contents || []).filter((c: any) => c.name === 'ratio');
+    const props = result
+      .flatMap((i: any) => i.contents || [])
+      .filter((c: any) => c.name === 'ratio');
     expect(props[0].schema).toBe('double');
   });
 
@@ -119,7 +123,9 @@ describe('DTDLCompiler', () => {
       state: { properties: [{ key: 'flag', value: false }] },
     });
     const result = JSON.parse(compiler.compile(comp, 'test-token'));
-    const props = result.flatMap((i: any) => i.contents || []).filter((c: any) => c.name === 'flag');
+    const props = result
+      .flatMap((i: any) => i.contents || [])
+      .filter((c: any) => c.name === 'flag');
     expect(props[0].schema).toBe('boolean');
   });
 
@@ -128,7 +134,9 @@ describe('DTDLCompiler', () => {
       state: { properties: [{ key: 'items', value: [1, 2, 3] }] },
     });
     const result = JSON.parse(compiler.compile(comp, 'test-token'));
-    const props = result.flatMap((i: any) => i.contents || []).filter((c: any) => c.name === 'items');
+    const props = result
+      .flatMap((i: any) => i.contents || [])
+      .filter((c: any) => c.name === 'items');
     expect(props[0].schema['@type']).toBe('Array');
   });
 
@@ -155,7 +163,9 @@ describe('DTDLCompiler', () => {
       } as any,
     });
     const result = JSON.parse(compiler.compile(comp, 'test-token'));
-    const commands = result.flatMap((i: any) => i.contents || []).filter((c: any) => c['@type'] === 'Command');
+    const commands = result
+      .flatMap((i: any) => i.contents || [])
+      .filter((c: any) => c['@type'] === 'Command');
     expect(commands).toHaveLength(2);
     expect(commands[0].name).toBe('click');
     expect(commands[1].name).toBe('hover');
@@ -170,7 +180,9 @@ describe('DTDLCompiler', () => {
       ] as any,
     });
     const result = JSON.parse(compiler.compile(comp, 'test-token'));
-    const rels = result.flatMap((i: any) => i.contents || []).filter((c: any) => c['@type'] === 'Relationship');
+    const rels = result
+      .flatMap((i: any) => i.contents || [])
+      .filter((c: any) => c['@type'] === 'Relationship');
     expect(rels.length).toBeGreaterThanOrEqual(1);
     expect(rels[0].name).toBe('hasMyCube');
   });
@@ -202,7 +214,11 @@ describe('DTDLCompiler', () => {
   it('compiles templates to interfaces', () => {
     const comp = makeComposition({
       templates: [
-        { name: 'BaseObject', state: { properties: [{ key: 'hp', value: 100 }] }, traits: ['physics'] },
+        {
+          name: 'BaseObject',
+          state: { properties: [{ key: 'hp', value: 100 }] },
+          traits: ['physics'],
+        },
       ],
     } as any);
     const result = JSON.parse(compiler.compile(comp, 'test-token'));
@@ -213,9 +229,7 @@ describe('DTDLCompiler', () => {
 
   it('template with traits adds components', () => {
     const comp = makeComposition({
-      templates: [
-        { name: 'PhysObj', traits: ['physics', 'grabbable'] },
-      ],
+      templates: [{ name: 'PhysObj', traits: ['physics', 'grabbable'] }],
     } as any);
     const result = JSON.parse(compiler.compile(comp, 'test-token'));
     const tmpl = result.find((i: any) => i.displayName === 'PhysObj');
@@ -230,7 +244,9 @@ describe('DTDLCompiler', () => {
       environment: { skybox: 'sunset', ambient_light: 0.7 } as any,
     });
     const result = JSON.parse(compiler.compile(comp, 'test-token'));
-    const props = result.flatMap((i: any) => i.contents || []).filter((c: any) => c.name === 'skybox' || c.name === 'ambientLight');
+    const props = result
+      .flatMap((i: any) => i.contents || [])
+      .filter((c: any) => c.name === 'skybox' || c.name === 'ambientLight');
     expect(props.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -241,7 +257,9 @@ describe('DTDLCompiler', () => {
       spatialGroups: [{ name: 'group1', objects: [] }] as any,
     });
     const result = JSON.parse(compiler.compile(comp, 'test-token'));
-    const rels = result.flatMap((i: any) => i.contents || []).filter((c: any) => c['@type'] === 'Relationship');
+    const rels = result
+      .flatMap((i: any) => i.contents || [])
+      .filter((c: any) => c['@type'] === 'Relationship');
     expect(rels.some((r: any) => r.name === 'group1')).toBe(true);
   });
 

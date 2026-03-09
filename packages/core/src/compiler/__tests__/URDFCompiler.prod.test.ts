@@ -9,7 +9,7 @@
  * - sanitizeName() lowercases names: 'Gripper' → 'gripper'.
  * - Collision geometry is only emitted if object has @collidable or @physics trait.
  */
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { URDFCompiler } from '../URDFCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
@@ -20,7 +20,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
@@ -33,7 +32,11 @@ function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   } as HoloComposition;
 }
 
-function makeObj(name: string, props: Array<{ key: string; value: unknown }> = [], traits: any[] = []): HoloObjectDecl {
+function makeObj(
+  name: string,
+  props: Array<{ key: string; value: unknown }> = [],
+  traits: any[] = []
+): HoloObjectDecl {
   return {
     name,
     properties: props.map(({ key, value }) => ({ key, value })),
@@ -55,7 +58,12 @@ describe('URDFCompiler — Production', () => {
   });
 
   it('constructs with custom options', () => {
-    const c = new URDFCompiler({ robotName: 'MyRobot', includeVisual: true, includeCollision: true, includeInertial: true });
+    const c = new URDFCompiler({
+      robotName: 'MyRobot',
+      includeVisual: true,
+      includeCollision: true,
+      includeInertial: true,
+    });
     expect(c).toBeDefined();
   });
 
@@ -160,7 +168,10 @@ describe('URDFCompiler — Production', () => {
   // ─── Joint from child objects ─────────────────────────────────────────
   it('child object generates a joint', () => {
     const child = makeObj('Forearm', [{ key: 'geometry', value: 'cylinder' }]);
-    const parent = { ...makeObj('UpperArm', [{ key: 'geometry', value: 'box' }]), children: [child] };
+    const parent = {
+      ...makeObj('UpperArm', [{ key: 'geometry', value: 'box' }]),
+      children: [child],
+    };
     const out = compiler.compile(makeComp({ objects: [parent as any] }), 'test-token');
     expect(out).toContain('<joint');
   });
@@ -168,7 +179,11 @@ describe('URDFCompiler — Production', () => {
   // ─── Physics trait ────────────────────────────────────────────────────
   it('physics trait does not throw and adds inertial', () => {
     const c = new URDFCompiler({ includeInertial: true });
-    const obj = makeObj('HeavyPart', [{ key: 'geometry', value: 'box' }], [{ name: 'physics', config: { mass: 5.0 } }]);
+    const obj = makeObj(
+      'HeavyPart',
+      [{ key: 'geometry', value: 'box' }],
+      [{ name: 'physics', config: { mass: 5.0 } }]
+    );
     expect(() => c.compile(makeComp({ objects: [obj] }), 'test-token')).not.toThrow();
   });
 

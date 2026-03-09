@@ -167,7 +167,9 @@ export class Text3DAdapter implements AssetResolverPlugin {
       });
 
       if (!response.ok) {
-        throw new Error(`Text3DAdapter (${this.config.provider}): HTTP ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Text3DAdapter (${this.config.provider}): HTTP ${response.status} ${response.statusText}`
+        );
       }
 
       // Providers return either the model data directly or a task ID to poll.
@@ -191,10 +193,14 @@ export class Text3DAdapter implements AssetResolverPlugin {
 
   private buildRequest(prompt: string, format: string): Record<string, unknown> {
     switch (this.config.provider) {
-      case 'meshy': return buildMeshyRequest(prompt, format);
-      case 'tripo': return buildTripoRequest(prompt, format);
-      case 'rodin': return buildRodinRequest(prompt, format);
-      default:      return { prompt, format };
+      case 'meshy':
+        return buildMeshyRequest(prompt, format);
+      case 'tripo':
+        return buildTripoRequest(prompt, format);
+      case 'rodin':
+        return buildRodinRequest(prompt, format);
+      default:
+        return { prompt, format };
     }
   }
 }

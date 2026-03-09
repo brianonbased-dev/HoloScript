@@ -58,7 +58,7 @@ describe('HandTracker', () => {
     tracker.updateStrength('right', 0, 0.1);
     tracker.updateJoints('right', {
       thumb_tip: { x: 0, y: 0, z: 0 },
-      index_tip: { x: 0.2, y: 0, z: 0 },  // far from thumb
+      index_tip: { x: 0.2, y: 0, z: 0 }, // far from thumb
       middle_tip: { x: 0, y: -0.1, z: 0 },
     });
     expect(tracker.getGesture('right')).toBe('point');

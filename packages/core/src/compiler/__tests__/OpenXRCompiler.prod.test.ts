@@ -4,7 +4,7 @@
  * Covers: C++ output, OpenXR includes, XrInstance init, session init,
  * action sets, environment, objects, lights, camera, hand tracking.
  */
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { OpenXRCompiler } from '../OpenXRCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
@@ -15,7 +15,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
@@ -119,24 +118,58 @@ describe('OpenXRCompiler — Production', () => {
 
   // ─── Lights ──────────────────────────────────────────────────────────
   it('compiles a point light', () => {
-    const out = compiler.compile(makeComp({
-      lights: [{ name: 'Light1', lightType: 'point', properties: [{ key: 'intensity', value: 500 }, { key: 'color', value: '#ffffff' }] }] as any,
-    }), 'test-token');
+    const out = compiler.compile(
+      makeComp({
+        lights: [
+          {
+            name: 'Light1',
+            lightType: 'point',
+            properties: [
+              { key: 'intensity', value: 500 },
+              { key: 'color', value: '#ffffff' },
+            ],
+          },
+        ] as any,
+      }),
+      'test-token'
+    );
     expect(out).toContain('Light1');
   });
 
   it('compiles a directional light', () => {
-    const out = compiler.compile(makeComp({
-      lights: [{ name: 'Sun', lightType: 'directional', properties: [{ key: 'intensity', value: 3 }, { key: 'color', value: '#ffe4b5' }] }] as any,
-    }), 'test-token');
+    const out = compiler.compile(
+      makeComp({
+        lights: [
+          {
+            name: 'Sun',
+            lightType: 'directional',
+            properties: [
+              { key: 'intensity', value: 3 },
+              { key: 'color', value: '#ffe4b5' },
+            ],
+          },
+        ] as any,
+      }),
+      'test-token'
+    );
     expect(out).toBeDefined();
   });
 
   // ─── Camera ───────────────────────────────────────────────────────────
   it('compiles camera', () => {
-    const out = compiler.compile(makeComp({
-      camera: { cameraType: 'perspective', properties: [{ key: 'fov', value: 90 }, { key: 'near', value: 0.01 }, { key: 'far', value: 1000 }] },
-    } as any), 'test-token');
+    const out = compiler.compile(
+      makeComp({
+        camera: {
+          cameraType: 'perspective',
+          properties: [
+            { key: 'fov', value: 90 },
+            { key: 'near', value: 0.01 },
+            { key: 'far', value: 1000 },
+          ],
+        },
+      } as any),
+      'test-token'
+    );
     expect(out).toBeDefined();
   });
 
@@ -155,9 +188,12 @@ describe('OpenXRCompiler — Production', () => {
 
   // ─── Environment ─────────────────────────────────────────────────────
   it('compiles environment settings', () => {
-    const out = compiler.compile(makeComp({
-      environment: { properties: [{ key: 'skybox', value: 'stars' }] },
-    } as any), 'test-token');
+    const out = compiler.compile(
+      makeComp({
+        environment: { properties: [{ key: 'skybox', value: 'stars' }] },
+      } as any),
+      'test-token'
+    );
     expect(out).toBeDefined();
   });
 

@@ -15,11 +15,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type {
-  ResponsiveBreakpoint,
-  ResponsiveBreakpoints,
-  DeviceOrientation,
-} from '../types.js';
+import type { ResponsiveBreakpoint, ResponsiveBreakpoints, DeviceOrientation } from '../types.js';
 
 // ── Default Breakpoints ──────────────────────────────────────────────────────
 
@@ -66,10 +62,7 @@ export interface UseResponsiveLayoutOptions {
 
 // ── Helper: Determine Breakpoint ─────────────────────────────────────────────
 
-function getBreakpoint(
-  width: number,
-  breakpoints: ResponsiveBreakpoints,
-): ResponsiveBreakpoint {
+function getBreakpoint(width: number, breakpoints: ResponsiveBreakpoints): ResponsiveBreakpoint {
   if (width <= breakpoints.mobile) return 'mobile';
   if (width <= breakpoints.tablet) return 'tablet';
   if (width <= breakpoints.desktop) return 'desktop';
@@ -121,13 +114,9 @@ function getOrientation(): DeviceOrientation {
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useResponsiveLayout(
-  options: UseResponsiveLayoutOptions = {},
+  options: UseResponsiveLayoutOptions = {}
 ): ResponsiveLayoutState {
-  const {
-    breakpoints: customBreakpoints,
-    debounceMs = 150,
-    listenOrientation = true,
-  } = options;
+  const { breakpoints: customBreakpoints, debounceMs = 150, listenOrientation = true } = options;
 
   const breakpoints: ResponsiveBreakpoints = {
     ...DEFAULT_BREAKPOINTS,
@@ -226,10 +215,7 @@ export function useResponsiveLayout(
  * ```
  */
 export function getResponsiveClasses(state: ResponsiveLayoutState): string {
-  const classes: string[] = [
-    `studio-${state.breakpoint}`,
-    `studio-${state.orientation}`,
-  ];
+  const classes: string[] = [`studio-${state.breakpoint}`, `studio-${state.orientation}`];
 
   if (state.isTouchDevice) {
     classes.push('studio-touch');

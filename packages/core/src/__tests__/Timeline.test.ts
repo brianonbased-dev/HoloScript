@@ -10,7 +10,10 @@ function clip(id: string, duration: number, delay = 0): AnimationClip {
   return {
     id,
     property: 'value',
-    keyframes: [{ time: 0, value: 0 }, { time: 1, value: 1 }],
+    keyframes: [
+      { time: 0, value: 0 },
+      { time: 1, value: 1 },
+    ],
     duration,
     loop: false,
     pingPong: false,

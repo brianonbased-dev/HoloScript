@@ -74,7 +74,7 @@ describe('SceneNode', () => {
       root.addChild(a);
       root.addChild(b);
       expect(root.getChildCount()).toBe(2);
-      expect(root.getChildren().map(c => c.id)).toEqual(['a', 'b']);
+      expect(root.getChildren().map((c) => c.id)).toEqual(['a', 'b']);
     });
 
     it('should remove children', () => {

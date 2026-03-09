@@ -13,7 +13,9 @@ import { handTrackingHandler } from '../HandTrackingTrait';
 // HELPERS
 // =============================================================================
 
-function makeNode(id = 'ht-node') { return { id } as any; }
+function makeNode(id = 'ht-node') {
+  return { id } as any;
+}
 
 function makeConfig(overrides: any = {}) {
   return { ...handTrackingHandler.defaultConfig, ...overrides };
@@ -128,7 +130,10 @@ describe('HandTrackingTrait — Production', () => {
       handTrackingHandler.onAttach(n, cfg, c);
 
       const joints1 = new Map([
-        ['wrist', { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, radius: 0.01 }],
+        [
+          'wrist',
+          { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, radius: 0.01 },
+        ],
       ]);
 
       // First update to set initial joints
@@ -140,7 +145,10 @@ describe('HandTrackingTrait — Production', () => {
 
       // Second update with different position — smoothing applies
       const joints2 = new Map([
-        ['wrist', { position: { x: 10, y: 10, z: 10 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, radius: 0.01 }],
+        [
+          'wrist',
+          { position: { x: 10, y: 10, z: 10 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, radius: 0.01 },
+        ],
       ]);
 
       handTrackingHandler.onEvent!(n, cfg, c, {
@@ -218,7 +226,11 @@ describe('HandTrackingTrait — Production', () => {
 
       handTrackingHandler.onUpdate!(node, config, ctx, 0.017);
 
-      expect(ctx.emit).toHaveBeenCalledWith('haptic_pulse', { hand: 'right', intensity: 0.3, duration: 50 });
+      expect(ctx.emit).toHaveBeenCalledWith('haptic_pulse', {
+        hand: 'right',
+        intensity: 0.3,
+        duration: 50,
+      });
     });
 
     it('does NOT emit haptic when disabled', () => {
@@ -294,7 +306,10 @@ describe('HandTrackingTrait — Production', () => {
   describe('joint query', () => {
     it('returns joint pose', () => {
       const joints = new Map([
-        ['index_tip', { position: { x: 1, y: 2, z: 3 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, radius: 0.005 }],
+        [
+          'index_tip',
+          { position: { x: 1, y: 2, z: 3 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, radius: 0.005 },
+        ],
       ]);
       handTrackingHandler.onEvent!(node, config, ctx, {
         type: 'hand_data',
@@ -310,12 +325,15 @@ describe('HandTrackingTrait — Production', () => {
         queryId: 'q1',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('hand_joint_result', expect.objectContaining({
-        queryId: 'q1',
-        hand: 'left',
-        joint: 'index_tip',
-        visible: true,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'hand_joint_result',
+        expect.objectContaining({
+          queryId: 'q1',
+          hand: 'left',
+          joint: 'index_tip',
+          visible: true,
+        })
+      );
     });
 
     it('returns null for unknown joint', () => {
@@ -327,10 +345,13 @@ describe('HandTrackingTrait — Production', () => {
         queryId: 'q2',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('hand_joint_result', expect.objectContaining({
-        pose: null,
-        visible: false,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'hand_joint_result',
+        expect.objectContaining({
+          pose: null,
+          visible: false,
+        })
+      );
     });
   });
 
@@ -352,7 +373,11 @@ describe('HandTrackingTrait — Production', () => {
     it('event with no state is a no-op', () => {
       const bare = makeNode('bare');
       const c = makeCtx();
-      handTrackingHandler.onEvent!(bare, config, c, { type: 'hand_data', hand: 'left', data: { visible: true } });
+      handTrackingHandler.onEvent!(bare, config, c, {
+        type: 'hand_data',
+        hand: 'left',
+        data: { visible: true },
+      });
       expect(c.emit).not.toHaveBeenCalled();
     });
 

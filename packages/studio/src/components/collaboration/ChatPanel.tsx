@@ -115,7 +115,9 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2">
                       <span className="text-xs font-medium text-studio-text">{msg.userName}</span>
-                      <span className="text-[10px] text-studio-muted">{formatTime(msg.timestamp)}</span>
+                      <span className="text-[10px] text-studio-muted">
+                        {formatTime(msg.timestamp)}
+                      </span>
                     </div>
                     <p className="text-sm text-studio-text mt-0.5 break-words">{msg.message}</p>
 

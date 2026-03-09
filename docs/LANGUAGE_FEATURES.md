@@ -74,16 +74,16 @@ composition GameScene {
 
 ### Features
 
-| Feature | Support |
-|---|---|
-| Named imports `{ X, Y }` | ✅ |
-| Aliased imports `{ X as Y }` | ✅ |
-| Wildcard imports `* as ns` | ✅ |
-| Bare path import | ✅ |
-| Circular dependency detection | ✅ DFS with cycle chain reporting |
-| Transitive resolution | ✅ up to 32 levels deep (configurable) |
-| Parse caching | ✅ each module parsed once |
-| Browser & Node support | ✅ `readFile` injection |
+| Feature                       | Support                                |
+| ----------------------------- | -------------------------------------- |
+| Named imports `{ X, Y }`      | ✅                                     |
+| Aliased imports `{ X as Y }`  | ✅                                     |
+| Wildcard imports `* as ns`    | ✅                                     |
+| Bare path import              | ✅                                     |
+| Circular dependency detection | ✅ DFS with cycle chain reporting      |
+| Transitive resolution         | ✅ up to 32 levels deep (configurable) |
+| Parse caching                 | ✅ each module parsed once             |
+| Browser & Node support        | ✅ `readFile` injection                |
 
 ### Programmatic API
 
@@ -94,7 +94,7 @@ const resolver = new ImportResolver();
 const result = await resolver.resolve(parseResult, '/src/main.hs', {
   baseDir: '/src',
   readFile: async (path) => fs.readFile(path, 'utf-8'), // or fetch() in browser
-  maxDepth: 32,    // max import chain depth
+  maxDepth: 32, // max import chain depth
   disabled: false, // set true for sandboxed eval / REPL
 });
 

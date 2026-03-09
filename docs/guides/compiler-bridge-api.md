@@ -42,7 +42,7 @@ import { CompilerBridge } from '@holoscript/studio/platform';
 const bridge = new CompilerBridge();
 const status = await bridge.init('/wasm/holoscript.component.wasm');
 
-console.log(`Backend: ${status.backend}`);       // 'wasm-component' or 'typescript-fallback'
+console.log(`Backend: ${status.backend}`); // 'wasm-component' or 'typescript-fallback'
 console.log(`WASM loaded: ${status.wasmLoaded}`); // true
 console.log(`Load time: ${status.loadTimeMs}ms`); // e.g. 150
 
@@ -83,8 +83,14 @@ import { useCompilerBridge } from '@holoscript/studio/platform';
 
 function Editor() {
   const {
-    parse, compile, validate, format,
-    status, isReady, isLoading, error,
+    parse,
+    compile,
+    validate,
+    format,
+    status,
+    isReady,
+    isLoading,
+    error,
     compileForPlatform,
   } = useCompilerBridge();
 
@@ -127,6 +133,7 @@ async init(
 ```
 
 **WIT Worlds:**
+
 - `holoscript-runtime` (default): Full compiler + runtime APIs
 - `holoscript-parser`: Parse-only (smaller binary)
 - `holoscript-compiler`: Parse + compile (no runtime)
@@ -316,7 +323,7 @@ All methods gracefully handle errors and return appropriate error types:
 ```typescript
 const result = await bridge.compile(source, 'threejs');
 if (result.type === 'error') {
-  result.diagnostics.forEach(d => {
+  result.diagnostics.forEach((d) => {
     console.error(`[${d.severity}] ${d.message}`);
     if (d.span) {
       console.error(`  at line ${d.span.start.line}:${d.span.start.column}`);

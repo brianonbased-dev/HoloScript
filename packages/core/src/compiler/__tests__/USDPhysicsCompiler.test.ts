@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { USDPhysicsCompiler } from '../USDPhysicsCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -9,7 +9,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestRobot', objects: [], ...overrides } as HoloComposition;
@@ -132,7 +131,11 @@ describe('USDPhysicsCompiler', () => {
         {
           name: 'robot_arm',
           objects: [
-            { name: 'link1', properties: [{ key: 'geometry', value: 'cylinder' }], traits: ['physics'] },
+            {
+              name: 'link1',
+              properties: [{ key: 'geometry', value: 'cylinder' }],
+              traits: ['physics'],
+            },
           ],
         },
       ] as any,

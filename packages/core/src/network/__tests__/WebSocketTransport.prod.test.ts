@@ -10,7 +10,11 @@
  * - createWebSocketTransport factory
  */
 import { describe, it, expect, vi } from 'vitest';
-import { WebSocketTransport, createWebSocketTransport, type WebSocketTransportConfig } from '../WebSocketTransport';
+import {
+  WebSocketTransport,
+  createWebSocketTransport,
+  type WebSocketTransportConfig,
+} from '../WebSocketTransport';
 
 function makeConfig(overrides: Partial<WebSocketTransportConfig> = {}): WebSocketTransportConfig {
   return {
@@ -58,8 +62,13 @@ describe('WebSocketTransport — sendMessage while disconnected', () => {
   });
   it('does not throw for all message types', () => {
     const t = makeTransport();
-    const types: Array<'state-sync' | 'action' | 'heartbeat' | 'auth' | 'rpc'> =
-      ['state-sync', 'action', 'heartbeat', 'auth', 'rpc'];
+    const types: Array<'state-sync' | 'action' | 'heartbeat' | 'auth' | 'rpc'> = [
+      'state-sync',
+      'action',
+      'heartbeat',
+      'auth',
+      'rpc',
+    ];
     for (const type of types) {
       expect(() => t.sendMessage({ type, payload: {} })).not.toThrow();
     }
@@ -92,8 +101,13 @@ describe('WebSocketTransport — onMessage', () => {
   });
   it('registers handlers for all message types without throwing', () => {
     const t = makeTransport();
-    const types: Array<'state-sync' | 'action' | 'heartbeat' | 'auth' | 'rpc'> =
-      ['state-sync', 'action', 'heartbeat', 'auth', 'rpc'];
+    const types: Array<'state-sync' | 'action' | 'heartbeat' | 'auth' | 'rpc'> = [
+      'state-sync',
+      'action',
+      'heartbeat',
+      'auth',
+      'rpc',
+    ];
     for (const type of types) {
       expect(() => t.onMessage(type, () => {})).not.toThrow();
     }

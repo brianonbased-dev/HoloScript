@@ -16,7 +16,7 @@ export interface Command {
   name: string;
   execute: () => void;
   undo: () => void;
-  mergeable?: boolean;     // Can merge with previous command of same type
+  mergeable?: boolean; // Can merge with previous command of same type
 }
 
 // =============================================================================
@@ -33,7 +33,9 @@ export class CommandSystem {
   private batchStack: Command[][] = [];
   private batching = false;
 
-  constructor(maxHistory = 100) { this.maxHistory = maxHistory; }
+  constructor(maxHistory = 100) {
+    this.maxHistory = maxHistory;
+  }
 
   // ---------------------------------------------------------------------------
   // Execute
@@ -81,8 +83,12 @@ export class CommandSystem {
     return true;
   }
 
-  canUndo(): boolean { return this.undoStack.length > 0; }
-  canRedo(): boolean { return this.redoStack.length > 0; }
+  canUndo(): boolean {
+    return this.undoStack.length > 0;
+  }
+  canRedo(): boolean {
+    return this.redoStack.length > 0;
+  }
 
   // ---------------------------------------------------------------------------
   // Batching
@@ -110,8 +116,8 @@ export class CommandSystem {
     const batchCmd: Command = {
       id: `batch_${Date.now()}`,
       name: batchName,
-      execute: () => commands.forEach(c => c.execute()),
-      undo: () => [...commands].reverse().forEach(c => c.undo()),
+      execute: () => commands.forEach((c) => c.execute()),
+      undo: () => [...commands].reverse().forEach((c) => c.undo()),
     };
 
     this.undoStack.push(batchCmd);
@@ -140,14 +146,25 @@ export class CommandSystem {
     return true;
   }
 
-  getMacroNames(): string[] { return [...this.macros.keys()]; }
+  getMacroNames(): string[] {
+    return [...this.macros.keys()];
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getUndoStackSize(): number { return this.undoStack.length; }
-  getRedoStackSize(): number { return this.redoStack.length; }
-  getHistory(): Command[] { return [...this.undoStack]; }
-  clearHistory(): void { this.undoStack = []; this.redoStack = []; }
+  getUndoStackSize(): number {
+    return this.undoStack.length;
+  }
+  getRedoStackSize(): number {
+    return this.redoStack.length;
+  }
+  getHistory(): Command[] {
+    return [...this.undoStack];
+  }
+  clearHistory(): void {
+    this.undoStack = [];
+    this.redoStack = [];
+  }
 }

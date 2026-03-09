@@ -18,7 +18,7 @@ export type AdvancedLightType = 'area_rect' | 'area_disk' | 'ies' | 'emissive_me
 export interface AreaRectLightConfig {
   width: number;
   height: number;
-  intensity: number;            // Lumens
+  intensity: number; // Lumens
   color: [number, number, number];
   doubleSided?: boolean;
   castShadows?: boolean;
@@ -33,26 +33,26 @@ export interface AreaDiskLightConfig {
 }
 
 export interface IESLightConfig {
-  profilePath: string;          // Path to .ies file
+  profilePath: string; // Path to .ies file
   intensity: number;
   color: [number, number, number];
-  scale?: number;               // Photometric power scale
+  scale?: number; // Photometric power scale
 }
 
 export interface EmissiveMeshLightConfig {
-  meshRef: string;              // Reference to mesh object
+  meshRef: string; // Reference to mesh object
   emissiveColor: [number, number, number];
-  emissiveIntensity: number;    // Multiplier
+  emissiveIntensity: number; // Multiplier
   /** If true, this mesh actually illuminates the scene (baked or RT) */
   contributesToGI?: boolean;
 }
 
 export interface LightCookieConfig {
-  texturePath: string;          // Cookie texture path
+  texturePath: string; // Cookie texture path
   lightType: 'spot' | 'point' | 'directional';
   intensity: number;
-  angle?: number;               // For spot lights (degrees)
-  size?: number;                // For directional cookies (world units)
+  angle?: number; // For spot lights (degrees)
+  size?: number; // For directional cookies (world units)
 }
 
 export interface AdvancedLightingConfig {
@@ -77,13 +77,20 @@ export const AdvancedLightingTrait: TraitHandler<AdvancedLightingConfig> = {
       throw new Error('advanced_lighting requires at least one light entry');
     }
     for (const entry of config.lights) {
-      const validTypes: AdvancedLightType[] = ['area_rect', 'area_disk', 'ies', 'emissive_mesh', 'cookie'];
+      const validTypes: AdvancedLightType[] = [
+        'area_rect',
+        'area_disk',
+        'ies',
+        'emissive_mesh',
+        'cookie',
+      ];
       if (!validTypes.includes(entry.type as AdvancedLightType)) {
         throw new Error(`Unknown light type: ${entry.type}`);
       }
       if (entry.type === 'area_rect') {
         const c = (entry as { type: 'area_rect'; config: AreaRectLightConfig }).config;
-        if (c.width <= 0 || c.height <= 0) throw new Error('area_rect: width and height must be > 0');
+        if (c.width <= 0 || c.height <= 0)
+          throw new Error('area_rect: width and height must be > 0');
         if (c.intensity < 0) throw new Error('area_rect: intensity must be >= 0');
       }
       if (entry.type === 'area_disk') {
@@ -100,13 +107,18 @@ export const AdvancedLightingTrait: TraitHandler<AdvancedLightingConfig> = {
 
   compile(config: AdvancedLightingConfig, target: string): string {
     switch (target) {
-      case 'unity': return this.compileUnity(config);
-      case 'unreal': return this.compileUnreal(config);
+      case 'unity':
+        return this.compileUnity(config);
+      case 'unreal':
+        return this.compileUnreal(config);
       case 'web':
       case 'react-three-fiber':
-      case 'babylon': return this.compileWeb(config);
-      case 'webgpu': return this.compileWebGPU(config);
-      default: return this.compileGeneric(config);
+      case 'babylon':
+        return this.compileWeb(config);
+      case 'webgpu':
+        return this.compileWebGPU(config);
+      default:
+        return this.compileGeneric(config);
     }
   },
 
@@ -237,7 +249,7 @@ ${blocks.join('\n')}
     const cookieTex = new THREE.TextureLoader().load('${c.texturePath}');
     const spotLight = new THREE.SpotLight(0xffffff, ${c.intensity});
     spotLight.map = cookieTex;
-    spotLight.angle = ${(c.angle ?? 45) * Math.PI / 180};
+    spotLight.angle = ${((c.angle ?? 45) * Math.PI) / 180};
     scene.add(spotLight);`);
       } else if (entry.type === 'emissive_mesh') {
         const c = (entry as { type: 'emissive_mesh'; config: EmissiveMeshLightConfig }).config;
@@ -254,7 +266,9 @@ ${blocks.join('\n')}
   },
 
   compileWebGPU(config: AdvancedLightingConfig): string {
-    const areaLights = config.lights.filter(l => l.type === 'area_rect' || l.type === 'area_disk');
+    const areaLights = config.lights.filter(
+      (l) => l.type === 'area_rect' || l.type === 'area_disk'
+    );
     return `
 // WebGPU — Area Light BRDF Integration
 // Linearly Transformed Cosines (LTC) for area lights

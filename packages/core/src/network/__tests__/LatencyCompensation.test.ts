@@ -121,7 +121,7 @@ describe('IntentPredictor', () => {
       { x: 3, y: 0, z: 0 },
       { x: 1, y: 0, z: 0 },
       undefined,
-      2000,
+      2000
     );
 
     if (result) {
@@ -179,8 +179,10 @@ describe('CorrectionBlender', () => {
   it('should return none for invisible error', () => {
     const cb = new CorrectionBlender(DEFAULT_LATENCY_CONFIG);
     const type = cb.queueCorrection(
-      { x: 0, y: 0, z: 0 }, { x: 0.05, y: 0, z: 0 },
-      IDENTITY_QUAT, IDENTITY_QUAT,
+      { x: 0, y: 0, z: 0 },
+      { x: 0.05, y: 0, z: 0 },
+      IDENTITY_QUAT,
+      IDENTITY_QUAT
     );
     expect(type).toBe('none');
   });
@@ -188,8 +190,10 @@ describe('CorrectionBlender', () => {
   it('should return exponential for small error', () => {
     const cb = new CorrectionBlender(DEFAULT_LATENCY_CONFIG);
     const type = cb.queueCorrection(
-      { x: 0, y: 0, z: 0 }, { x: 0.3, y: 0, z: 0 },
-      IDENTITY_QUAT, IDENTITY_QUAT,
+      { x: 0, y: 0, z: 0 },
+      { x: 0.3, y: 0, z: 0 },
+      IDENTITY_QUAT,
+      IDENTITY_QUAT
     );
     expect(type).toBe('exponential');
   });
@@ -197,18 +201,17 @@ describe('CorrectionBlender', () => {
   it('should return snap for large error', () => {
     const cb = new CorrectionBlender(DEFAULT_LATENCY_CONFIG);
     const type = cb.queueCorrection(
-      { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 },
-      IDENTITY_QUAT, IDENTITY_QUAT,
+      { x: 0, y: 0, z: 0 },
+      { x: 10, y: 0, z: 0 },
+      IDENTITY_QUAT,
+      IDENTITY_QUAT
     );
     expect(type).toBe('snap');
   });
 
   it('should blend towards target', () => {
     const cb = new CorrectionBlender(DEFAULT_LATENCY_CONFIG);
-    cb.queueCorrection(
-      { x: 0, y: 0, z: 0 }, { x: 0.3, y: 0, z: 0 },
-      IDENTITY_QUAT, IDENTITY_QUAT,
-    );
+    cb.queueCorrection({ x: 0, y: 0, z: 0 }, { x: 0.3, y: 0, z: 0 }, IDENTITY_QUAT, IDENTITY_QUAT);
     expect(cb.isBlending()).toBe(true);
     const result = cb.update(500, { x: 0, y: 0, z: 0 }, IDENTITY_QUAT);
     expect(result.position.x).toBeCloseTo(0.3, 1);
@@ -217,9 +220,13 @@ describe('CorrectionBlender', () => {
 
 describe('StateHistoryBuffer', () => {
   const makeState = (tick: number) => ({
-    position: ZERO_VEC3, rotation: IDENTITY_QUAT,
-    velocity: ZERO_VEC3, angularVelocity: ZERO_VEC3,
-    timestamp: Date.now(), tick, confidence: 1,
+    position: ZERO_VEC3,
+    rotation: IDENTITY_QUAT,
+    velocity: ZERO_VEC3,
+    angularVelocity: ZERO_VEC3,
+    timestamp: Date.now(),
+    tick,
+    confidence: 1,
   });
 
   it('should push and retrieve by tick', () => {

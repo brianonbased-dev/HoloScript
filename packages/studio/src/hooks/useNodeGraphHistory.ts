@@ -25,7 +25,7 @@ const MAX_HISTORY = 50;
 
 export function useNodeGraphHistory() {
   // past[past.length-1] is the most recent undoable snapshot
-  const [past,   setPast]   = useState<GraphSnapshot[]>([]);
+  const [past, setPast] = useState<GraphSnapshot[]>([]);
   const [future, setFuture] = useState<GraphSnapshot[]>([]);
 
   const canUndo = past.length > 0;
@@ -48,25 +48,31 @@ export function useNodeGraphHistory() {
    * Caller is responsible for applying the returned state to the store.
    * Returns null if nothing to undo.
    */
-  const undo = useCallback((current: GraphSnapshot): GraphSnapshot | null => {
-    if (past.length === 0) return null;
-    const prev = past[past.length - 1]!;
-    setPast((p) => p.slice(0, -1));
-    setFuture((f) => [current, ...f]);
-    return prev;
-  }, [past]);
+  const undo = useCallback(
+    (current: GraphSnapshot): GraphSnapshot | null => {
+      if (past.length === 0) return null;
+      const prev = past[past.length - 1]!;
+      setPast((p) => p.slice(0, -1));
+      setFuture((f) => [current, ...f]);
+      return prev;
+    },
+    [past]
+  );
 
   /**
    * Redo: restores the next snapshot.
    * Returns null if nothing to redo.
    */
-  const redo = useCallback((current: GraphSnapshot): GraphSnapshot | null => {
-    if (future.length === 0) return null;
-    const next = future[0]!;
-    setFuture((f) => f.slice(1));
-    setPast((p) => [...p, current]);
-    return next;
-  }, [future]);
+  const redo = useCallback(
+    (current: GraphSnapshot): GraphSnapshot | null => {
+      if (future.length === 0) return null;
+      const next = future[0]!;
+      setFuture((f) => f.slice(1));
+      setPast((p) => [...p, current]);
+      return next;
+    },
+    [future]
+  );
 
   /** Clears all history */
   const clear = useCallback(() => {

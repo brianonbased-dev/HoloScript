@@ -273,11 +273,7 @@ export class PostProcessingManager {
   /**
    * Initialize post-processing with renderer, scene, and camera
    */
-  initialize(
-    renderer: THREE.WebGLRenderer,
-    scene: THREE.Scene,
-    camera: THREE.Camera
-  ): void {
+  initialize(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera): void {
     // Create composer
     this.composer = new EffectComposer(renderer);
 
@@ -330,12 +326,7 @@ export class PostProcessingManager {
   /**
    * Add SSAO (Screen-Space Ambient Occlusion)
    */
-  private addSSAO(
-    scene: THREE.Scene,
-    camera: THREE.Camera,
-    width: number,
-    height: number
-  ): void {
+  private addSSAO(scene: THREE.Scene, camera: THREE.Camera, width: number, height: number): void {
     const ssaoPass = new SSAOPass(scene, camera, width, height);
     ssaoPass.kernelRadius = this.config.ssao!.radius || 8;
     ssaoPass.minDistance = this.config.ssao!.minDistance || 0.005;
@@ -363,12 +354,7 @@ export class PostProcessingManager {
   /**
    * Add TAA (Temporal Anti-Aliasing)
    */
-  private addTAA(
-    scene: THREE.Scene,
-    camera: THREE.Camera,
-    width: number,
-    height: number
-  ): void {
+  private addTAA(scene: THREE.Scene, camera: THREE.Camera, width: number, height: number): void {
     const taaPass = new TAARenderPass(scene, camera);
     taaPass.sampleLevel = this.config.taa!.sampleLevel || 2;
 
@@ -415,7 +401,8 @@ export class PostProcessingManager {
    */
   private addChromaticAberration(): void {
     const chromaticPass = new ShaderPass(ChromaticAberrationShader);
-    chromaticPass.material.uniforms['offset'].value = this.config.chromaticAberration!.offset || 0.001;
+    chromaticPass.material.uniforms['offset'].value =
+      this.config.chromaticAberration!.offset || 0.001;
 
     this.composer!.addPass(chromaticPass);
     this.passes.set('chromaticAberration', chromaticPass);
@@ -473,7 +460,7 @@ export class PostProcessingManager {
   getStats(): PostProcessingStats {
     return {
       enabled: this.enabled,
-      activeEffects: Array.from(this.passes.values()).filter(p => p.enabled).length,
+      activeEffects: Array.from(this.passes.values()).filter((p) => p.enabled).length,
       renderTime: this.renderTime,
       quality: this.quality,
     };

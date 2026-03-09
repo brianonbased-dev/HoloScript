@@ -147,17 +147,13 @@ describe('useScenePipeline', () => {
 
     it('should return errors from composition parser', () => {
       mockParse.mockReturnValue({
-        errors: [
-          { message: 'Invalid composition', line: 2 },
-        ],
+        errors: [{ message: 'Invalid composition', line: 2 }],
       });
 
       const { result } = renderHook(() => useScenePipeline('composition "Bad" {'));
 
       expect(result.current.r3fTree).toBeNull();
-      expect(result.current.errors).toEqual([
-        { message: 'Invalid composition', line: 2 },
-      ]);
+      expect(result.current.errors).toEqual([{ message: 'Invalid composition', line: 2 }]);
     });
 
     it('should handle composition result without ast field', () => {
@@ -215,9 +211,7 @@ describe('useScenePipeline', () => {
       const { result } = renderHook(() => useScenePipeline('scene Test {}'));
 
       expect(result.current.r3fTree).toBeNull();
-      expect(result.current.errors).toEqual([
-        { message: 'Compilation failed' },
-      ]);
+      expect(result.current.errors).toEqual([{ message: 'Compilation failed' }]);
     });
 
     it('should handle non-Error exceptions', () => {
@@ -228,9 +222,7 @@ describe('useScenePipeline', () => {
 
       const { result } = renderHook(() => useScenePipeline('scene Test {}'));
 
-      expect(result.current.errors).toEqual([
-        { message: 'String error' },
-      ]);
+      expect(result.current.errors).toEqual([{ message: 'String error' }]);
     });
 
     it('should catch composition compiler exceptions', () => {
@@ -242,11 +234,8 @@ describe('useScenePipeline', () => {
       const { result } = renderHook(() => useScenePipeline('composition Test {}'));
 
       expect(result.current.r3fTree).toBeNull();
-      expect(result.current.errors).toEqual([
-        { message: 'Composition compile failed' },
-      ]);
+      expect(result.current.errors).toEqual([{ message: 'Composition compile failed' }]);
     });
-
   });
 
   describe('Memoization', () => {
@@ -255,10 +244,9 @@ describe('useScenePipeline', () => {
       mockCompile.mockReturnValue({ type: 'R3FNode' });
 
       const code = 'scene Main {}';
-      const { result, rerender } = renderHook(
-        ({ codeInput }) => useScenePipeline(codeInput),
-        { initialProps: { codeInput: code } }
-      );
+      const { result, rerender } = renderHook(({ codeInput }) => useScenePipeline(codeInput), {
+        initialProps: { codeInput: code },
+      });
 
       const firstResult = result.current;
       mockParse.mockClear();
@@ -275,10 +263,9 @@ describe('useScenePipeline', () => {
       mockParse.mockReturnValue({ ast: { type: 'Scene' }, errors: [] });
       mockCompile.mockReturnValue({ type: 'R3FNode' });
 
-      const { result, rerender } = renderHook(
-        ({ codeInput }) => useScenePipeline(codeInput),
-        { initialProps: { codeInput: 'scene Main {}' } }
-      );
+      const { result, rerender } = renderHook(({ codeInput }) => useScenePipeline(codeInput), {
+        initialProps: { codeInput: 'scene Main {}' },
+      });
 
       const firstResult = result.current;
       mockParse.mockClear();
@@ -296,10 +283,9 @@ describe('useScenePipeline', () => {
       mockCompile.mockReturnValue({ type: 'R3FNode' });
       mockCompileComposition.mockReturnValue({ type: 'R3FComp' });
 
-      const { result, rerender } = renderHook(
-        ({ codeInput }) => useScenePipeline(codeInput),
-        { initialProps: { codeInput: 'scene Main {}' } }
-      );
+      const { result, rerender } = renderHook(({ codeInput }) => useScenePipeline(codeInput), {
+        initialProps: { codeInput: 'scene Main {}' },
+      });
 
       expect(mockCompile).toHaveBeenCalled();
       expect(mockCompileComposition).not.toHaveBeenCalled();

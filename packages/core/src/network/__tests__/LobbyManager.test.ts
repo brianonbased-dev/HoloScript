@@ -4,7 +4,9 @@ import { LobbyManager } from '../LobbyManager';
 describe('LobbyManager', () => {
   let lm: LobbyManager;
 
-  beforeEach(() => { lm = new LobbyManager(); });
+  beforeEach(() => {
+    lm = new LobbyManager();
+  });
 
   // ---------------------------------------------------------------------------
   // Room Creation

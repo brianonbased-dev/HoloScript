@@ -57,12 +57,9 @@ async function main() {
   }
 
   if (BASE_RPC_URL === 'https://mainnet.base.org') {
-    logTest(
-      'RPC URL',
-      'warn',
-      'Using public RPC. Consider Alchemy/Infura for production.',
-      { url: BASE_RPC_URL }
-    );
+    logTest('RPC URL', 'warn', 'Using public RPC. Consider Alchemy/Infura for production.', {
+      url: BASE_RPC_URL,
+    });
   } else {
     logTest('RPC URL', 'pass', 'Custom RPC configured', { url: BASE_RPC_URL });
   }
@@ -208,9 +205,17 @@ async function main() {
       const totalCostNum = parseFloat(formatted.totalCostETH);
 
       if (totalCostNum < 0.01) {
-        logTest('Mint Cost', 'pass', `Total ${formatted.totalCostETH} ETH (~$${(totalCostNum * 2000).toFixed(2)} @ $2000/ETH)`);
+        logTest(
+          'Mint Cost',
+          'pass',
+          `Total ${formatted.totalCostETH} ETH (~$${(totalCostNum * 2000).toFixed(2)} @ $2000/ETH)`
+        );
       } else {
-        logTest('Mint Cost', 'warn', `Total ${formatted.totalCostETH} ETH (seems high for Base L2)`);
+        logTest(
+          'Mint Cost',
+          'warn',
+          `Total ${formatted.totalCostETH} ETH (seems high for Base L2)`
+        );
       }
     } catch (error: any) {
       logTest('Mint Estimation', 'warn', `Unable to estimate: ${error.message}`);
@@ -231,11 +236,7 @@ async function main() {
       'WALLET_PRIVATE_KEY found in environment! Use secure vault instead.'
     );
   } else {
-    logTest(
-      'Private Key Storage',
-      'pass',
-      'No private keys in environment (use secure vault)'
-    );
+    logTest('Private Key Storage', 'pass', 'No private keys in environment (use secure vault)');
   }
 
   // Check NODE_ENV
@@ -256,9 +257,9 @@ async function main() {
   console.log('SMOKE TEST SUMMARY');
   console.log('='.repeat(60));
 
-  const passed = results.filter(r => r.status === 'pass').length;
-  const failed = results.filter(r => r.status === 'fail').length;
-  const warned = results.filter(r => r.status === 'warn').length;
+  const passed = results.filter((r) => r.status === 'pass').length;
+  const failed = results.filter((r) => r.status === 'fail').length;
+  const warned = results.filter((r) => r.status === 'warn').length;
 
   console.log(`✅ Passed: ${passed}`);
   console.log(`⚠️  Warnings: ${warned}`);
@@ -279,8 +280,8 @@ async function main() {
     console.log('⚠️  Fix these issues before deploying to production:');
 
     results
-      .filter(r => r.status === 'fail')
-      .forEach(r => {
+      .filter((r) => r.status === 'fail')
+      .forEach((r) => {
         console.log(`   - ${r.test}: ${r.message}`);
       });
 

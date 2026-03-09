@@ -19,8 +19,8 @@ export interface SkyboxConfig {
   bottomColor: string;
   horizonColor?: string;
   hdriAsset?: string;
-  turbidity?: number;       // Atmospheric scattering (procedural sky)
-  rayleigh?: number;        // Rayleigh scattering coefficient
+  turbidity?: number; // Atmospheric scattering (procedural sky)
+  rayleigh?: number; // Rayleigh scattering coefficient
   sunPosition?: IVector3;
 }
 
@@ -64,12 +64,12 @@ export interface TimeOfDayConfig {
   sunriseHour: number;
   sunsetHour: number;
   currentHour: number;
-  daySpeed: number;         // Multiplier (1 = real-time, 60 = 1 min = 1 hr)
+  daySpeed: number; // Multiplier (1 = real-time, 60 = 1 min = 1 hr)
 }
 
 export interface WeatherState {
   type: 'clear' | 'cloudy' | 'rain' | 'storm' | 'snow' | 'fog';
-  intensity: number;        // 0-1
+  intensity: number; // 0-1
   windDirection: IVector3;
   windSpeed: number;
   transitionProgress: number; // 0-1 (blending between states)
@@ -90,7 +90,14 @@ export const PRESET_SUNNY_DAY: EnvironmentConfig = {
     sunPosition: { x: 0.5, y: 0.8, z: 0.2 },
   },
   lights: [
-    { type: 'directional', color: '#fff5e6', intensity: 1.2, direction: { x: -0.5, y: -0.8, z: -0.2 }, castShadows: true, shadowMapSize: 2048 },
+    {
+      type: 'directional',
+      color: '#fff5e6',
+      intensity: 1.2,
+      direction: { x: -0.5, y: -0.8, z: -0.2 },
+      castShadows: true,
+      shadowMapSize: 2048,
+    },
     { type: 'ambient', color: '#87ceeb', intensity: 0.4 },
   ],
   fog: { type: 'exponential2', color: '#c8dff5', density: 0.0008 },
@@ -115,7 +122,14 @@ export const PRESET_SUNSET: EnvironmentConfig = {
     sunPosition: { x: 0.9, y: 0.1, z: 0 },
   },
   lights: [
-    { type: 'directional', color: '#ff8c42', intensity: 0.8, direction: { x: -0.9, y: -0.1, z: 0 }, castShadows: true, shadowMapSize: 2048 },
+    {
+      type: 'directional',
+      color: '#ff8c42',
+      intensity: 0.8,
+      direction: { x: -0.9, y: -0.1, z: 0 },
+      castShadows: true,
+      shadowMapSize: 2048,
+    },
     { type: 'ambient', color: '#4a2040', intensity: 0.3 },
   ],
   fog: { type: 'exponential2', color: '#ff8c6b', density: 0.001 },
@@ -140,7 +154,14 @@ export const PRESET_NIGHT: EnvironmentConfig = {
     sunPosition: { x: -0.3, y: 0.6, z: 0.5 }, // Moon position
   },
   lights: [
-    { type: 'directional', color: '#b0c4de', intensity: 0.15, direction: { x: 0.3, y: -0.6, z: -0.5 }, castShadows: true, shadowMapSize: 1024 },
+    {
+      type: 'directional',
+      color: '#b0c4de',
+      intensity: 0.15,
+      direction: { x: 0.3, y: -0.6, z: -0.5 },
+      castShadows: true,
+      shadowMapSize: 1024,
+    },
     { type: 'ambient', color: '#0a0a2e', intensity: 0.1 },
   ],
   fog: { type: 'exponential2', color: '#0a0a1a', density: 0.002 },
@@ -164,7 +185,14 @@ export const PRESET_OVERCAST: EnvironmentConfig = {
     horizonColor: '#b0b8c0',
   },
   lights: [
-    { type: 'directional', color: '#c0c0c0', intensity: 0.5, direction: { x: -0.3, y: -0.8, z: -0.2 }, castShadows: true, shadowMapSize: 1024 },
+    {
+      type: 'directional',
+      color: '#c0c0c0',
+      intensity: 0.5,
+      direction: { x: -0.3, y: -0.8, z: -0.2 },
+      castShadows: true,
+      shadowMapSize: 1024,
+    },
     { type: 'ambient', color: '#909090', intensity: 0.5 },
   ],
   fog: { type: 'exponential2', color: '#a0a8b0', density: 0.0015 },
@@ -188,7 +216,14 @@ export const PRESET_SCIFI: EnvironmentConfig = {
     horizonColor: '#330066',
   },
   lights: [
-    { type: 'directional', color: '#00ffff', intensity: 0.3, direction: { x: 0, y: -1, z: 0 }, castShadows: true, shadowMapSize: 2048 },
+    {
+      type: 'directional',
+      color: '#00ffff',
+      intensity: 0.3,
+      direction: { x: 0, y: -1, z: 0 },
+      castShadows: true,
+      shadowMapSize: 2048,
+    },
     { type: 'ambient', color: '#1a003a', intensity: 0.2 },
     { type: 'point', color: '#ff00ff', intensity: 2.0, position: { x: 0, y: 10, z: 0 } },
   ],
@@ -254,14 +289,14 @@ export class EnvironmentManager {
   }
 
   setPreset(presetId: string): boolean {
-    const preset = ALL_PRESETS.find(p => p.id === presetId);
+    const preset = ALL_PRESETS.find((p) => p.id === presetId);
     if (!preset) return false;
     this.currentEnv = { ...preset };
     return true;
   }
 
   getPresetIds(): string[] {
-    return ALL_PRESETS.map(p => p.id);
+    return ALL_PRESETS.map((p) => p.id);
   }
 
   // ---------------------------------------------------------------------------
@@ -325,14 +360,26 @@ export class EnvironmentManager {
     // Adjust fog based on weather
     switch (type) {
       case 'fog':
-        this.currentEnv.fog = { type: 'exponential2', color: '#c0c0c0', density: 0.005 * intensity };
+        this.currentEnv.fog = {
+          type: 'exponential2',
+          color: '#c0c0c0',
+          density: 0.005 * intensity,
+        };
         break;
       case 'rain':
       case 'storm':
-        this.currentEnv.fog = { type: 'exponential2', color: '#808080', density: 0.002 * intensity };
+        this.currentEnv.fog = {
+          type: 'exponential2',
+          color: '#808080',
+          density: 0.002 * intensity,
+        };
         break;
       case 'snow':
-        this.currentEnv.fog = { type: 'exponential2', color: '#e0e0e0', density: 0.003 * intensity };
+        this.currentEnv.fog = {
+          type: 'exponential2',
+          color: '#e0e0e0',
+          density: 0.003 * intensity,
+        };
         break;
       default:
         break;

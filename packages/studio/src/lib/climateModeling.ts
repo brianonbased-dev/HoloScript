@@ -13,15 +13,15 @@ export interface GHGConcentration {
   gas: GreenhouseGas;
   currentPPM: number;
   preindustrialPPM: number;
-  gwp100: number;            // Global Warming Potential (100yr, CO2=1)
+  gwp100: number; // Global Warming Potential (100yr, CO2=1)
   atmosphericLifetimeYears: number;
 }
 
 export interface TemperatureProjection {
   year: number;
   scenario: EmissionScenario;
-  anomalyC: number;          // °C above pre-industrial
-  uncertainty: number;       // ± °C
+  anomalyC: number; // °C above pre-industrial
+  uncertainty: number; // ± °C
 }
 
 export interface IceSheet {
@@ -35,8 +35,8 @@ export interface IceSheet {
 }
 
 export interface CarbonBudget {
-  targetC: number;            // target warming (e.g. 1.5)
-  remainingGt: number;        // remaining CO2 budget (Gt)
+  targetC: number; // target warming (e.g. 1.5)
+  remainingGt: number; // remaining CO2 budget (Gt)
   annualEmissionsGt: number;
   yearsRemaining: number;
 }
@@ -46,16 +46,58 @@ export interface CarbonBudget {
 // ═══════════════════════════════════════════════════════════════════
 
 export const GHG_DATA: GHGConcentration[] = [
-  { gas: 'CO2',    currentPPM: 421,    preindustrialPPM: 280, gwp100: 1,    atmosphericLifetimeYears: 300 },
-  { gas: 'CH4',    currentPPM: 1.92,   preindustrialPPM: 0.72, gwp100: 28,  atmosphericLifetimeYears: 12 },
-  { gas: 'N2O',    currentPPM: 0.336,  preindustrialPPM: 0.270, gwp100: 265, atmosphericLifetimeYears: 121 },
-  { gas: 'F-gases', currentPPM: 0.001, preindustrialPPM: 0,   gwp100: 23500, atmosphericLifetimeYears: 50000 },
+  { gas: 'CO2', currentPPM: 421, preindustrialPPM: 280, gwp100: 1, atmosphericLifetimeYears: 300 },
+  {
+    gas: 'CH4',
+    currentPPM: 1.92,
+    preindustrialPPM: 0.72,
+    gwp100: 28,
+    atmosphericLifetimeYears: 12,
+  },
+  {
+    gas: 'N2O',
+    currentPPM: 0.336,
+    preindustrialPPM: 0.27,
+    gwp100: 265,
+    atmosphericLifetimeYears: 121,
+  },
+  {
+    gas: 'F-gases',
+    currentPPM: 0.001,
+    preindustrialPPM: 0,
+    gwp100: 23500,
+    atmosphericLifetimeYears: 50000,
+  },
 ];
 
 export const ICE_SHEETS: IceSheet[] = [
-  { id: 'greenland', name: 'Greenland Ice Sheet', areaSqKm: 1710000, volumeKm3: 2850000, massLossGtPerYear: 270, seaLevelContributionMm: 7200, temperatureSensitivity: 3.3 },
-  { id: 'antarctica-west', name: 'West Antarctic Ice Sheet', areaSqKm: 1970000, volumeKm3: 3262000, massLossGtPerYear: 150, seaLevelContributionMm: 3300, temperatureSensitivity: 1.5 },
-  { id: 'antarctica-east', name: 'East Antarctic Ice Sheet', areaSqKm: 10200000, volumeKm3: 21745000, massLossGtPerYear: 5, seaLevelContributionMm: 53300, temperatureSensitivity: 0.1 },
+  {
+    id: 'greenland',
+    name: 'Greenland Ice Sheet',
+    areaSqKm: 1710000,
+    volumeKm3: 2850000,
+    massLossGtPerYear: 270,
+    seaLevelContributionMm: 7200,
+    temperatureSensitivity: 3.3,
+  },
+  {
+    id: 'antarctica-west',
+    name: 'West Antarctic Ice Sheet',
+    areaSqKm: 1970000,
+    volumeKm3: 3262000,
+    massLossGtPerYear: 150,
+    seaLevelContributionMm: 3300,
+    temperatureSensitivity: 1.5,
+  },
+  {
+    id: 'antarctica-east',
+    name: 'East Antarctic Ice Sheet',
+    areaSqKm: 10200000,
+    volumeKm3: 21745000,
+    massLossGtPerYear: 5,
+    seaLevelContributionMm: 53300,
+    temperatureSensitivity: 0.1,
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -67,7 +109,10 @@ export function radiativeForcing(currentPPM: number, preindustrialPPM: number): 
   return 5.35 * Math.log(currentPPM / preindustrialPPM);
 }
 
-export function temperatureFromForcing(forcingWm2: number, climateSensitivity: number = 3.0): number {
+export function temperatureFromForcing(
+  forcingWm2: number,
+  climateSensitivity: number = 3.0
+): number {
   // ΔT = λ × ΔF, where λ = sensitivity / (F_2xCO2 ≈ 3.7)
   return (climateSensitivity / 3.7) * forcingWm2;
 }
@@ -106,14 +151,22 @@ export function carbonBudgetYears(remainingGt: number, annualGt: number): number
   return remainingGt / annualGt;
 }
 
-export function requiredReductionRate(currentGt: number, budgetYears: number, targetGt: number): number {
+export function requiredReductionRate(
+  currentGt: number,
+  budgetYears: number,
+  targetGt: number
+): number {
   // % per year reduction needed
   if (budgetYears <= 0) return 100;
   const ratio = targetGt / currentGt;
   return (1 - Math.pow(ratio, 1 / budgetYears)) * 100;
 }
 
-export function scenarioWarming(scenario: EmissionScenario): { min: number; max: number; label: string } {
+export function scenarioWarming(scenario: EmissionScenario): {
+  min: number;
+  max: number;
+  label: string;
+} {
   const data: Record<EmissionScenario, { min: number; max: number; label: string }> = {
     'SSP1-1.9': { min: 1.0, max: 1.8, label: 'Very low emissions — 1.5°C target' },
     'SSP1-2.6': { min: 1.3, max: 2.4, label: 'Low emissions — 2°C target' },
@@ -133,7 +186,11 @@ export function scenarioWarming(scenario: EmissionScenario): { min: number; max:
  * Pre-industrial ocean pH ≈ 8.18; current ≈ 8.07.
  * Relationship: pH drops ~0.002 per 1 ppm CO₂ increase.
  */
-export function oceanAcidificationPH(co2PPM: number, baselinePH: number = 8.18, baselineCO2: number = 280): number {
+export function oceanAcidificationPH(
+  co2PPM: number,
+  baselinePH: number = 8.18,
+  baselineCO2: number = 280
+): number {
   const deltaCO2 = co2PPM - baselineCO2;
   const deltaPH = deltaCO2 * 0.0008; // empirical fit
   return Math.max(7.0, baselinePH - deltaPH);
@@ -147,13 +204,9 @@ export function oceanAcidificationPH(co2PPM: number, baselinePH: number = 8.18, 
  * Computes latitude-weighted temperature anomaly.
  * Polar amplification: Arctic warms 2-3x faster than equator.
  */
-export function temperatureAnomalyByLatitude(
-  globalAnomalyC: number,
-  latitudeDeg: number
-): number {
+export function temperatureAnomalyByLatitude(globalAnomalyC: number, latitudeDeg: number): number {
   const absLat = Math.abs(latitudeDeg);
   // Amplification factor: 1.0 at equator → 2.5 at poles
   const amplification = 1.0 + (absLat / 90) * 1.5;
   return globalAnomalyC * amplification;
 }
-

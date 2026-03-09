@@ -13,11 +13,11 @@
 
 export interface BarkDefinition {
   id: string;
-  context: string;          // e.g. 'combat_start', 'item_found', 'idle'
-  lines: string[];          // Random selection pool
-  priority: number;         // Higher = more important
-  cooldown: number;         // Seconds before this bark can play again
-  maxRange: number;         // Proximity trigger range (0 = no range check)
+  context: string; // e.g. 'combat_start', 'item_found', 'idle'
+  lines: string[]; // Random selection pool
+  priority: number; // Higher = more important
+  cooldown: number; // Seconds before this bark can play again
+  maxRange: number; // Proximity trigger range (0 = no range check)
 }
 
 export interface ActiveBark {
@@ -42,13 +42,22 @@ export class BarkManager {
   // Registration
   // ---------------------------------------------------------------------------
 
-  registerBark(def: BarkDefinition): void { this.definitions.set(def.id, def); }
+  registerBark(def: BarkDefinition): void {
+    this.definitions.set(def.id, def);
+  }
 
   // ---------------------------------------------------------------------------
   // Triggering
   // ---------------------------------------------------------------------------
 
-  trigger(context: string, speakerId: string, speakerX = 0, speakerY = 0, listenerX = 0, listenerY = 0): ActiveBark | null {
+  trigger(
+    context: string,
+    speakerId: string,
+    speakerX = 0,
+    speakerY = 0,
+    listenerX = 0,
+    listenerY = 0
+  ): ActiveBark | null {
     // Find matching barks
     const candidates: BarkDefinition[] = [];
 
@@ -61,7 +70,8 @@ export class BarkManager {
 
       // Range check
       if (def.maxRange > 0) {
-        const dx = speakerX - listenerX, dy = speakerY - listenerY;
+        const dx = speakerX - listenerX,
+          dy = speakerY - listenerY;
         if (Math.sqrt(dx * dx + dy * dy) > def.maxRange) continue;
       }
 
@@ -78,7 +88,9 @@ export class BarkManager {
     const line = best.lines[Math.floor(Math.random() * best.lines.length)];
 
     const bark: ActiveBark = {
-      definitionId: best.id, line, speakerId,
+      definitionId: best.id,
+      line,
+      speakerId,
       timestamp: this.currentTime,
     };
 
@@ -95,15 +107,23 @@ export class BarkManager {
   // Time
   // ---------------------------------------------------------------------------
 
-  tick(time: number): void { this.currentTime = time; }
+  tick(time: number): void {
+    this.currentTime = time;
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getQueue(): ActiveBark[] { return [...this.queue]; }
-  getQueueLength(): number { return this.queue.length; }
-  clearQueue(): void { this.queue = []; }
+  getQueue(): ActiveBark[] {
+    return [...this.queue];
+  }
+  getQueueLength(): number {
+    return this.queue.length;
+  }
+  clearQueue(): void {
+    this.queue = [];
+  }
   isOnCooldown(defId: string): boolean {
     const def = this.definitions.get(defId);
     if (!def) return false;

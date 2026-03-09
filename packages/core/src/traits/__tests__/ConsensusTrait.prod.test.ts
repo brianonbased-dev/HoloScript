@@ -47,7 +47,12 @@ let _mockRaftInstance: ReturnType<typeof makeMockRaft>;
 function makeMockManager() {
   return {
     propose: vi.fn().mockReturnValue(true),
-    proposeWithResult: vi.fn().mockResolvedValue({ accepted: true, proposalId: 'p1', key: 'k', votes: { for: 1, against: 0, total: 1 } }),
+    proposeWithResult: vi.fn().mockResolvedValue({
+      accepted: true,
+      proposalId: 'p1',
+      key: 'k',
+      votes: { for: 1, against: 0, total: 1 },
+    }),
     get: vi.fn().mockReturnValue(42),
     getState: vi.fn().mockReturnValue(new Map([['x', 99]])),
     isLeader: vi.fn().mockReturnValue(true),
@@ -67,7 +72,12 @@ function makeMockManager() {
 
 function makeMockRaft() {
   return {
-    propose: vi.fn().mockResolvedValue({ accepted: true, proposalId: 'p1', key: 'k', votes: { for: 1, against: 0, total: 1 } }),
+    propose: vi.fn().mockResolvedValue({
+      accepted: true,
+      proposalId: 'p1',
+      key: 'k',
+      votes: { for: 1, against: 0, total: 1 },
+    }),
     get: vi.fn().mockReturnValue('raftval'),
     getState: vi.fn().mockReturnValue(new Map()),
     isLeader: vi.fn().mockReturnValue(false),
@@ -113,7 +123,10 @@ import { ConsensusTrait, createConsensusTrait } from '../ConsensusTrait';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-function makeTrait(entityId = 'entity_1', cfg: ConstructorParameters<typeof ConsensusTrait>[1] = {}) {
+function makeTrait(
+  entityId = 'entity_1',
+  cfg: ConstructorParameters<typeof ConsensusTrait>[1] = {}
+) {
   return new ConsensusTrait(entityId, cfg);
 }
 
@@ -133,7 +146,6 @@ beforeEach(() => {
   _mockManagerInstance = undefined as any;
   _mockRaftInstance = undefined as any;
 });
-
 
 // ─── constructor / getters ────────────────────────────────────────────────────
 

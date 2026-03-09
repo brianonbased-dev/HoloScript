@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { dataBindingHandler } from '../DataBindingTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('DataBindingTrait', () => {
   let node: Record<string, unknown>;
@@ -10,7 +17,12 @@ describe('DataBindingTrait', () => {
     source_type: 'rest' as const,
     bindings: [
       { source_path: 'temperature', target_property: 'temp', transform: 'none' as const },
-      { source_path: 'scale', target_property: 'size', transform: 'scale' as const, transform_params: { factor: 2 } },
+      {
+        source_path: 'scale',
+        target_property: 'size',
+        transform: 'scale' as const,
+        transform_params: { factor: 2 },
+      },
     ],
     refresh_rate: 1000,
     interpolation: true,
@@ -74,7 +86,10 @@ describe('DataBindingTrait', () => {
 
   it('set_source reconnects', () => {
     sendEvent(dataBindingHandler, node, cfg, ctx, { type: 'data_binding_connected', handle: 'h1' });
-    sendEvent(dataBindingHandler, node, cfg, ctx, { type: 'data_binding_set_source', source: 'wss://new' });
+    sendEvent(dataBindingHandler, node, cfg, ctx, {
+      type: 'data_binding_set_source',
+      source: 'wss://new',
+    });
     expect((node as any).__dataBindingState.isConnected).toBe(false);
     expect(getEventCount(ctx, 'data_binding_disconnect')).toBe(1);
     expect(getEventCount(ctx, 'data_binding_connect')).toBe(2); // attach + new connect

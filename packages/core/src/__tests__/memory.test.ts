@@ -38,7 +38,7 @@ describe('HoloScript Memory Parser', () => {
 
     const memoryNode = result.ast[0] as any;
     console.dir({ firstNode: memoryNode }, { depth: null });
-    
+
     expect(memoryNode?.type).toBe('memory');
     expect(memoryNode?.name).toBe('AgentMemory');
 
@@ -47,19 +47,19 @@ describe('HoloScript Memory Parser', () => {
     expect(memoryNode.semantic?.type).toBe('semantic-memory');
     expect(memoryNode.semantic?.properties.capacity).toBe(10000);
     expect(memoryNode.semantic?.properties.shared).toBe(true);
-    expect(memoryNode.semantic?.properties.storage).toBe("postgresql+pgvector");
+    expect(memoryNode.semantic?.properties.storage).toBe('postgresql+pgvector');
 
     // Validate Episodic Memory
     expect(memoryNode.episodic).toBeDefined();
     expect(memoryNode.episodic?.type).toBe('episodic-memory');
-    expect(memoryNode.episodic?.properties.retention).toBe("30 days");
+    expect(memoryNode.episodic?.properties.retention).toBe('30 days');
     expect(memoryNode.episodic?.properties.private).toBe(true);
-    expect(memoryNode.episodic?.properties.storage).toBe("redis_streams");
+    expect(memoryNode.episodic?.properties.storage).toBe('redis_streams');
 
     expect(memoryNode.procedural).toBeDefined();
     expect(memoryNode.procedural?.type).toBe('procedural-memory');
     expect(memoryNode.procedural?.properties.shared).toBe(true);
-    expect(memoryNode.procedural?.properties.storage).toBe("code_repository");
+    expect(memoryNode.procedural?.properties.storage).toBe('code_repository');
   });
 });
 
@@ -80,13 +80,13 @@ describe('HoloScript Runtime - Memory Execution', () => {
       semantic: {
         type: 'semantic-memory',
         properties: { capacity: 10000, storage: 'postgresql+pgvector' },
-        position: { x: 0, y: 0, z: 0 }
+        position: { x: 0, y: 0, z: 0 },
       },
       episodic: {
         type: 'episodic-memory',
         properties: { retention: '30 days', storage: 'redis_streams' },
-        position: { x: 0, y: 0, z: 0 }
-      }
+        position: { x: 0, y: 0, z: 0 },
+      },
     };
 
     const result = await runtime.executeNode(memoryNode);
@@ -100,11 +100,11 @@ describe('HoloScript Runtime - Memory Execution', () => {
     expect((agentMemory as any).type).toBe('agent-memory');
     expect((agentMemory as any).semantic).toEqual({
       type: 'semantic-memory',
-      config: { capacity: 10000, storage: 'postgresql+pgvector' }
+      config: { capacity: 10000, storage: 'postgresql+pgvector' },
     });
     expect((agentMemory as any).episodic).toEqual({
       type: 'episodic-memory',
-      config: { retention: '30 days', storage: 'redis_streams' }
+      config: { retention: '30 days', storage: 'redis_streams' },
     });
   });
 });

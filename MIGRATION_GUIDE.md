@@ -1,4 +1,5 @@
 # Migration Guide: HoloScript v3.42.0+ Code Splitting
+
 ## Breaking Change: Compiler Imports
 
 **Commit**: c64fab0
@@ -19,12 +20,7 @@ HoloScript v3.42.0 introduces **code splitting for 24 compiler targets**, reduci
 
 ```typescript
 // ❌ Old imports (no longer work)
-import {
-  VRRCompiler,
-  ARCompiler,
-  UnityCompiler,
-  UnrealCompiler
-} from '@holoscript/core';
+import { VRRCompiler, ARCompiler, UnityCompiler, UnrealCompiler } from '@holoscript/core';
 ```
 
 **Problem**: Imports entire 20MB core bundle with all 24 compilers.
@@ -51,23 +47,23 @@ import { UnrealCompiler } from '@holoscript/core/compiler/unreal';
 
 Replace all compiler imports with explicit paths:
 
-| Old Import | New Import |
-|------------|------------|
-| `import { VRRCompiler } from '@holoscript/core'` | `import { VRRCompiler } from '@holoscript/core/compiler/vrr'` |
-| `import { ARCompiler } from '@holoscript/core'` | `import { ARCompiler } from '@holoscript/core/compiler/ar'` |
-| `import { UnityCompiler } from '@holoscript/core'` | `import { UnityCompiler } from '@holoscript/core/compiler/unity'` |
-| `import { UnrealCompiler } from '@holoscript/core'` | `import { UnrealCompiler } from '@holoscript/core/compiler/unreal'` |
-| `import { GodotCompiler } from '@holoscript/core'` | `import { GodotCompiler } from '@holoscript/core/compiler/godot'` |
-| `import { BabylonCompiler } from '@holoscript/core'` | `import { BabylonCompiler } from '@holoscript/core/compiler/babylon'` |
-| `import { R3FCompiler } from '@holoscript/core'` | `import { R3FCompiler } from '@holoscript/core/compiler/r3f'` |
+| Old Import                                              | New Import                                                                  |
+| ------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `import { VRRCompiler } from '@holoscript/core'`        | `import { VRRCompiler } from '@holoscript/core/compiler/vrr'`               |
+| `import { ARCompiler } from '@holoscript/core'`         | `import { ARCompiler } from '@holoscript/core/compiler/ar'`                 |
+| `import { UnityCompiler } from '@holoscript/core'`      | `import { UnityCompiler } from '@holoscript/core/compiler/unity'`           |
+| `import { UnrealCompiler } from '@holoscript/core'`     | `import { UnrealCompiler } from '@holoscript/core/compiler/unreal'`         |
+| `import { GodotCompiler } from '@holoscript/core'`      | `import { GodotCompiler } from '@holoscript/core/compiler/godot'`           |
+| `import { BabylonCompiler } from '@holoscript/core'`    | `import { BabylonCompiler } from '@holoscript/core/compiler/babylon'`       |
+| `import { R3FCompiler } from '@holoscript/core'`        | `import { R3FCompiler } from '@holoscript/core/compiler/r3f'`               |
 | `import { PlayCanvasCompiler } from '@holoscript/core'` | `import { PlayCanvasCompiler } from '@holoscript/core/compiler/playcanvas'` |
-| `import { WASMCompiler } from '@holoscript/core'` | `import { WASMCompiler } from '@holoscript/core/compiler/wasm'` |
-| `import { WebGPUCompiler } from '@holoscript/core'` | `import { WebGPUCompiler } from '@holoscript/core/compiler/webgpu'` |
-| `import { AndroidCompiler } from '@holoscript/core'` | `import { AndroidCompiler } from '@holoscript/core/compiler/android'` |
-| `import { IOSCompiler } from '@holoscript/core'` | `import { IOSCompiler } from '@holoscript/core/compiler/ios'` |
-| `import { VisionOSCompiler } from '@holoscript/core'` | `import { VisionOSCompiler } from '@holoscript/core/compiler/visionos'` |
-| `import { OpenXRCompiler } from '@holoscript/core'` | `import { OpenXRCompiler } from '@holoscript/core/compiler/openxr'` |
-| `import { VRChatCompiler } from '@holoscript/core'` | `import { VRChatCompiler } from '@holoscript/core/compiler/vrchat'` |
+| `import { WASMCompiler } from '@holoscript/core'`       | `import { WASMCompiler } from '@holoscript/core/compiler/wasm'`             |
+| `import { WebGPUCompiler } from '@holoscript/core'`     | `import { WebGPUCompiler } from '@holoscript/core/compiler/webgpu'`         |
+| `import { AndroidCompiler } from '@holoscript/core'`    | `import { AndroidCompiler } from '@holoscript/core/compiler/android'`       |
+| `import { IOSCompiler } from '@holoscript/core'`        | `import { IOSCompiler } from '@holoscript/core/compiler/ios'`               |
+| `import { VisionOSCompiler } from '@holoscript/core'`   | `import { VisionOSCompiler } from '@holoscript/core/compiler/visionos'`     |
+| `import { OpenXRCompiler } from '@holoscript/core'`     | `import { OpenXRCompiler } from '@holoscript/core/compiler/openxr'`         |
+| `import { VRChatCompiler } from '@holoscript/core'`     | `import { VRChatCompiler } from '@holoscript/core/compiler/vrchat'`         |
 
 **Full Compiler List**: See [Available Compilers](#available-compilers) section below.
 
@@ -109,17 +105,19 @@ const result = compiler.compile(source);
 If using bundlers (Webpack, Rollup, Vite), ensure they support dynamic imports:
 
 **Vite** (no changes needed):
+
 ```javascript
 // vite.config.js - already supports dynamic imports
 export default {
   build: {
     target: 'esnext',
     modulePreload: true, // Enable module preloading
-  }
+  },
 };
 ```
 
 **Webpack**:
+
 ```javascript
 // webpack.config.js
 module.exports = {
@@ -135,6 +133,7 @@ module.exports = {
 ```
 
 **Rollup**:
+
 ```javascript
 // rollup.config.js
 export default {
@@ -215,6 +214,7 @@ import { ThingDescriptionGenerator } from '@holoscript/core/wot';
 ## Available Compilers
 
 ### VR/AR/XR Compilers
+
 - `@holoscript/core/compiler/vrr` - Virtual Reality Reality (1:1 digital twins)
 - `@holoscript/core/compiler/ar` - Augmented Reality
 - `@holoscript/core/compiler/multi-layer` - Multi-layer (AR → VRR → VR)
@@ -222,6 +222,7 @@ import { ThingDescriptionGenerator } from '@holoscript/core/wot';
 - `@holoscript/core/compiler/vrchat` - VRChat platform
 
 ### Engine-Specific Compilers
+
 - `@holoscript/core/compiler/babylon` - Babylon.js
 - `@holoscript/core/compiler/unity` - Unity Engine
 - `@holoscript/core/compiler/unreal` - Unreal Engine
@@ -230,16 +231,19 @@ import { ThingDescriptionGenerator } from '@holoscript/core/wot';
 - `@holoscript/core/compiler/playcanvas` - PlayCanvas
 
 ### Platform-Specific Compilers
+
 - `@holoscript/core/compiler/android` - Android
 - `@holoscript/core/compiler/android-xr` - Android XR
 - `@holoscript/core/compiler/ios` - iOS
 - `@holoscript/core/compiler/visionos` - Apple Vision Pro
 
 ### Low-Level Compilers
+
 - `@holoscript/core/compiler/wasm` - WebAssembly
 - `@holoscript/core/compiler/webgpu` - WebGPU
 
 ### Specialized Compilers
+
 - `@holoscript/core/compiler/dtdl` - Digital Twins Definition Language
 - `@holoscript/core/compiler/urdf` - Unified Robot Description Format
 - `@holoscript/core/compiler/usd-physics` - USD Physics
@@ -254,29 +258,31 @@ import { ThingDescriptionGenerator } from '@holoscript/core/wot';
 
 ### Bundle Size Reduction
 
-| Scenario | Before | After | Savings |
-|----------|--------|-------|---------|
-| All compilers | 20.02 MB | 20.02 MB | 0% |
-| 1 compiler | 20.02 MB | 8 MB | 60% |
-| 2 compilers | 20.02 MB | 10 MB | 50% |
-| 5 compilers | 20.02 MB | 14 MB | 30% |
+| Scenario      | Before   | After    | Savings |
+| ------------- | -------- | -------- | ------- |
+| All compilers | 20.02 MB | 20.02 MB | 0%      |
+| 1 compiler    | 20.02 MB | 8 MB     | 60%     |
+| 2 compilers   | 20.02 MB | 10 MB    | 50%     |
+| 5 compilers   | 20.02 MB | 14 MB    | 30%     |
 
 ### Load Time Improvement
 
 | Connection | Before | After (1 compiler) | Improvement |
-|------------|--------|-------------------|-------------|
-| Fast 3G | 12s | 5s | 58% |
-| 4G | 5s | 2s | 60% |
-| WiFi | 2s | 1s | 50% |
+| ---------- | ------ | ------------------ | ----------- |
+| Fast 3G    | 12s    | 5s                 | 58%         |
+| 4G         | 5s     | 2s                 | 60%         |
+| WiFi       | 2s     | 1s                 | 50%         |
 
 ### Real-World Impact
 
 **TrainingMonkey** (uses VRR + Unity compilers):
+
 - Before: 20.02 MB initial load
 - After: ~10 MB initial load
 - **Savings**: 50% (10 MB)
 
 **Typical Web App** (uses 1 compiler):
+
 - Before: 20.02 MB initial load
 - After: ~8 MB initial load
 - **Savings**: 60% (12 MB)
@@ -313,6 +319,7 @@ echo "Migration complete! Review changes with 'git diff'"
 ```
 
 Run with:
+
 ```bash
 chmod +x migrate-imports.sh
 ./migrate-imports.sh
@@ -324,7 +331,7 @@ Using [jscodeshift](https://github.com/facebook/jscodeshift):
 
 ```javascript
 // migrate-compiler-imports.js
-module.exports = function(fileInfo, api) {
+module.exports = function (fileInfo, api) {
   const j = api.jscodeshift;
   const root = j(fileInfo.source);
 
@@ -336,42 +343,45 @@ module.exports = function(fileInfo, api) {
     // Add all 24 compilers...
   };
 
-  root.find(j.ImportDeclaration, {
-    source: { value: '@holoscript/core' }
-  }).forEach(path => {
-    const specifiers = path.value.specifiers;
+  root
+    .find(j.ImportDeclaration, {
+      source: { value: '@holoscript/core' },
+    })
+    .forEach((path) => {
+      const specifiers = path.value.specifiers;
 
-    specifiers.forEach(spec => {
-      if (spec.type === 'ImportSpecifier') {
-        const compilerName = spec.imported.name;
-        const compilerPath = compilerMap[compilerName];
+      specifiers.forEach((spec) => {
+        if (spec.type === 'ImportSpecifier') {
+          const compilerName = spec.imported.name;
+          const compilerPath = compilerMap[compilerName];
 
-        if (compilerPath) {
-          // Create new import for this compiler
-          j(path).insertAfter(
-            j.importDeclaration(
-              [j.importSpecifier(j.identifier(compilerName))],
-              j.literal(`@holoscript/core/compiler/${compilerPath}`)
-            )
-          );
+          if (compilerPath) {
+            // Create new import for this compiler
+            j(path).insertAfter(
+              j.importDeclaration(
+                [j.importSpecifier(j.identifier(compilerName))],
+                j.literal(`@holoscript/core/compiler/${compilerPath}`)
+              )
+            );
 
-          // Remove from old import
-          j(spec).remove();
+            // Remove from old import
+            j(spec).remove();
+          }
         }
+      });
+
+      // Remove old import if empty
+      if (path.value.specifiers.length === 0) {
+        j(path).remove();
       }
     });
-
-    // Remove old import if empty
-    if (path.value.specifiers.length === 0) {
-      j(path).remove();
-    }
-  });
 
   return root.toSource();
 };
 ```
 
 Run with:
+
 ```bash
 npx jscodeshift -t migrate-compiler-imports.js src/**/*.ts
 ```
@@ -385,6 +395,7 @@ npx jscodeshift -t migrate-compiler-imports.js src/**/*.ts
 **Cause**: Using HoloScript v3.41.x or earlier.
 
 **Solution**: Update to v3.42.0+:
+
 ```bash
 npm install @holoscript/core@latest
 # or
@@ -400,6 +411,7 @@ pnpm update @holoscript/core
 **Solution**: Update Jest/Vitest config:
 
 **Jest**:
+
 ```javascript
 // jest.config.js
 module.exports = {
@@ -410,6 +422,7 @@ module.exports = {
 ```
 
 **Vitest**:
+
 ```javascript
 // vitest.config.ts
 export default {
@@ -428,12 +441,14 @@ export default {
 **Cause**: Still importing all compilers or not using tree-shaking.
 
 **Checklist**:
+
 1. ✅ All imports updated to explicit paths?
 2. ✅ Using ESM format (not CommonJS)?
 3. ✅ Bundler configured for tree-shaking?
 4. ✅ No wildcard imports (`import * as`)?
 
 **Debug**:
+
 ```bash
 # Analyze bundle
 npx source-map-explorer dist/main.js
@@ -449,6 +464,7 @@ grep -r "VRRCompiler" dist/
 **Cause**: TypeScript can't resolve subpath exports.
 
 **Solution**: Ensure TypeScript 4.7+ and update tsconfig.json:
+
 ```json
 {
   "compilerOptions": {
@@ -482,6 +498,7 @@ npm test
 ## Support
 
 **Questions?** Open an issue:
+
 - GitHub: https://github.com/brianonbased-dev/Holoscript/issues
 - Docs: [AUTONOMOUS_ENHANCEMENTS_2026-02-26.md](AUTONOMOUS_ENHANCEMENTS_2026-02-26.md)
 

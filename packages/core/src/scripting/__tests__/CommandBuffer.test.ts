@@ -6,16 +6,25 @@ function makeCmd(name = 'cmd', mergeable = false): Command {
   const id = `c${counter++}`;
   let state = 0;
   return {
-    id, name, mergeable,
-    execute: () => { state++; },
-    undo: () => { state--; },
+    id,
+    name,
+    mergeable,
+    execute: () => {
+      state++;
+    },
+    undo: () => {
+      state--;
+    },
   };
 }
 
 describe('CommandBuffer', () => {
   let buf: CommandBuffer;
 
-  beforeEach(() => { buf = new CommandBuffer(); counter = 0; });
+  beforeEach(() => {
+    buf = new CommandBuffer();
+    counter = 0;
+  });
 
   it('execute adds to undo stack', () => {
     buf.execute(makeCmd());
@@ -77,7 +86,14 @@ describe('CommandBuffer', () => {
   it('undo batch undoes all commands', () => {
     let val = 0;
     const cmds: Command[] = Array.from({ length: 3 }, (_, i) => ({
-      id: `b${i}`, name: 'inc', execute: () => { val++; }, undo: () => { val--; },
+      id: `b${i}`,
+      name: 'inc',
+      execute: () => {
+        val++;
+      },
+      undo: () => {
+        val--;
+      },
     }));
     buf.executeBatch(cmds);
     expect(val).toBe(3);

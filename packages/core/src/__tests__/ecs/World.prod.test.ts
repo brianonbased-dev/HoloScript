@@ -12,12 +12,13 @@
 import { describe, it, expect } from 'vitest';
 import { World } from '../../ecs/World';
 
-function makeWorld() { return new World(); }
+function makeWorld() {
+  return new World();
+}
 
 // ── createEntity / destroyEntity / hasEntity ──────────────────────────────────
 
 describe('World — entity lifecycle', () => {
-
   it('createEntity returns a unique positive integer', () => {
     const w = makeWorld();
     const e1 = w.createEntity();
@@ -39,7 +40,8 @@ describe('World — entity lifecycle', () => {
 
   it('entityCount increases with each creation', () => {
     const w = makeWorld();
-    w.createEntity(); w.createEntity();
+    w.createEntity();
+    w.createEntity();
     expect(w.entityCount).toBe(2);
   });
 
@@ -52,7 +54,8 @@ describe('World — entity lifecycle', () => {
 
   it('entityCount decreases after destroy', () => {
     const w = makeWorld();
-    const e1 = w.createEntity(); w.createEntity();
+    const e1 = w.createEntity();
+    w.createEntity();
     w.destroyEntity(e1);
     expect(w.entityCount).toBe(1);
   });
@@ -64,7 +67,8 @@ describe('World — entity lifecycle', () => {
 
   it('getAllEntities returns all live entity IDs', () => {
     const w = makeWorld();
-    const e1 = w.createEntity(); const e2 = w.createEntity();
+    const e1 = w.createEntity();
+    const e2 = w.createEntity();
     expect(w.getAllEntities()).toContain(e1);
     expect(w.getAllEntities()).toContain(e2);
   });
@@ -80,7 +84,6 @@ describe('World — entity lifecycle', () => {
 // ── addComponent / getComponent / hasComponent / removeComponent ──────────────
 
 describe('World — component operations', () => {
-
   it('addComponent allows getComponent to retrieve data', () => {
     const w = makeWorld();
     const e = w.createEntity();
@@ -136,7 +139,8 @@ describe('World — component operations', () => {
   it('getComponentTypes returns all component type names for entity', () => {
     const w = makeWorld();
     const e = w.createEntity();
-    w.addComponent(e, 'pos', {}); w.addComponent(e, 'health', {});
+    w.addComponent(e, 'pos', {});
+    w.addComponent(e, 'health', {});
     const types = w.getComponentTypes(e);
     expect(types).toContain('pos');
     expect(types).toContain('health');
@@ -155,7 +159,6 @@ describe('World — component operations', () => {
 // ── tags ──────────────────────────────────────────────────────────────────────
 
 describe('World — tags', () => {
-
   it('addTag / hasTag', () => {
     const w = makeWorld();
     const e = w.createEntity();
@@ -171,8 +174,10 @@ describe('World — tags', () => {
 
   it('queryByTag returns entities with the given tag', () => {
     const w = makeWorld();
-    const e1 = w.createEntity(); const e2 = w.createEntity();
-    w.addTag(e1, 'npc'); w.addTag(e2, 'player');
+    const e1 = w.createEntity();
+    const e2 = w.createEntity();
+    w.addTag(e1, 'npc');
+    w.addTag(e2, 'player');
     expect(w.queryByTag('npc')).toContain(e1);
     expect(w.queryByTag('npc')).not.toContain(e2);
   });
@@ -187,11 +192,13 @@ describe('World — tags', () => {
 // ── query (component-based) ───────────────────────────────────────────────────
 
 describe('World — query', () => {
-
   it('query returns entities with all specified components', () => {
     const w = makeWorld();
-    const e1 = w.createEntity(); w.addComponent(e1, 'pos', {}); w.addComponent(e1, 'vel', {});
-    const e2 = w.createEntity(); w.addComponent(e2, 'pos', {}); // no vel
+    const e1 = w.createEntity();
+    w.addComponent(e1, 'pos', {});
+    w.addComponent(e1, 'vel', {});
+    const e2 = w.createEntity();
+    w.addComponent(e2, 'pos', {}); // no vel
     const results = w.query('pos', 'vel');
     expect(results).toContain(e1);
     expect(results).not.toContain(e2);
@@ -199,7 +206,8 @@ describe('World — query', () => {
 
   it('query with no types returns all entities', () => {
     const w = makeWorld();
-    const e1 = w.createEntity(); const e2 = w.createEntity();
+    const e1 = w.createEntity();
+    const e2 = w.createEntity();
     const results = w.query();
     expect(results).toContain(e1);
     expect(results).toContain(e2);
@@ -223,7 +231,6 @@ describe('World — query', () => {
 // ── undo / redo ───────────────────────────────────────────────────────────────
 
 describe('World — undo / redo', () => {
-
   it('undo createEntity removes entity', () => {
     const w = makeWorld();
     w.createEntity();

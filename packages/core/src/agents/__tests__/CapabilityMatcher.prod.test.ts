@@ -12,7 +12,7 @@ function mkManifest(id: string, caps: Partial<AgentCapability>[]): AgentManifest
     id,
     name: `Agent ${id}`,
     version: '1.0.0',
-    capabilities: caps.map(c => ({ type: 'compute', domain: 'physics', ...c })),
+    capabilities: caps.map((c) => ({ type: 'compute', domain: 'physics', ...c })),
     endpoints: [{ protocol: 'http' as const, address: 'localhost' }],
     trustLevel: 'local',
     status: 'online',
@@ -63,7 +63,7 @@ describe('CapabilityMatcher — Production', () => {
     ];
     const matches = matcher.findMatches(agents, { type: 'compute' });
     expect(matches.length).toBe(2);
-    expect(matches.every(m => m.manifest.id !== 'a2')).toBe(true);
+    expect(matches.every((m) => m.manifest.id !== 'a2')).toBe(true);
   });
 
   it('findMatches respects limit', () => {

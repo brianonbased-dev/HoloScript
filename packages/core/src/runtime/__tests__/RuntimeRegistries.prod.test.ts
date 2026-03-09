@@ -5,37 +5,30 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  physicsEngineRegistry,
-  registerPhysicsEngine,
-  getPhysicsEngine,
-} from '../PhysicsEngine';
+import { physicsEngineRegistry, registerPhysicsEngine, getPhysicsEngine } from '../PhysicsEngine';
 import {
   navigationEngineRegistry,
   registerNavigationEngine,
   getNavigationEngine,
 } from '../NavigationEngine';
-import {
-  assetStreamerRegistry,
-  registerAssetStreamer,
-  getAssetStreamer,
-} from '../AssetStreamer';
+import { assetStreamerRegistry, registerAssetStreamer, getAssetStreamer } from '../AssetStreamer';
 import {
   speechRecognizerRegistry,
   registerSpeechRecognizer,
   getSpeechRecognizer,
 } from '../SpeechRecognizer';
 
-const mockEngine = () => ({
-  initialize: async () => {},
-  addBody: () => {},
-  removeBody: () => {},
-  updateBody: () => {},
-  applyForce: () => {},
-  step: () => {},
-  getStates: () => ({}),
-  dispose: () => {},
-} as any);
+const mockEngine = () =>
+  ({
+    initialize: async () => {},
+    addBody: () => {},
+    removeBody: () => {},
+    updateBody: () => {},
+    applyForce: () => {},
+    step: () => {},
+    getStates: () => ({}),
+    dispose: () => {},
+  }) as any;
 
 describe('Runtime Registries — Production', () => {
   beforeEach(() => {

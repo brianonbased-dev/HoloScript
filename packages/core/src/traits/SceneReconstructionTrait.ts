@@ -14,9 +14,22 @@ import type { TraitHandler } from './TraitTypes';
 // TYPES
 // =============================================================================
 
-export type ReconstructionMode = 'realtime' | 'high_fidelity' | 'room_scan' | 'object_scan' | 'semantic_mesh';
+export type ReconstructionMode =
+  | 'realtime'
+  | 'high_fidelity'
+  | 'room_scan'
+  | 'object_scan'
+  | 'semantic_mesh';
 export type MeshDetail = 'low' | 'medium' | 'high';
-export type SemanticLabel = 'floor' | 'ceiling' | 'wall' | 'table' | 'chair' | 'window' | 'door' | 'unknown';
+export type SemanticLabel =
+  | 'floor'
+  | 'ceiling'
+  | 'wall'
+  | 'table'
+  | 'chair'
+  | 'window'
+  | 'door'
+  | 'unknown';
 
 export interface SceneReconstructionConfig {
   reconstruction_mode: ReconstructionMode;
@@ -34,7 +47,7 @@ interface SceneReconstructionState {
   lastUpdateTime: number;
   semanticLabels: Map<string, SemanticLabel>;
   physicsColliderCount: number;
-  scanProgress: number;    // 0–1
+  scanProgress: number; // 0–1
 }
 
 // =============================================================================

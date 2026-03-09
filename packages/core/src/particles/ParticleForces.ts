@@ -19,12 +19,12 @@ export interface ForceFieldConfig {
   id: string;
   type: ForceType;
   strength: number;
-  position?: IVector3;       // For attractor/vortex
-  direction?: IVector3;      // For gravity/wind
-  radius?: number;           // Falloff radius
+  position?: IVector3; // For attractor/vortex
+  direction?: IVector3; // For gravity/wind
+  radius?: number; // Falloff radius
   falloff?: 'linear' | 'quadratic' | 'none';
-  frequency?: number;        // For turbulence
-  dragCoefficient?: number;  // For drag
+  frequency?: number; // For turbulence
+  dragCoefficient?: number; // For drag
 }
 
 export interface ForceField {
@@ -40,7 +40,11 @@ function vec3Length(v: IVector3): number {
   return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
-function computeFalloff(distance: number, radius: number, type: 'linear' | 'quadratic' | 'none'): number {
+function computeFalloff(
+  distance: number,
+  radius: number,
+  type: 'linear' | 'quadratic' | 'none'
+): number {
   if (type === 'none' || radius <= 0) return 1;
   if (distance >= radius) return 0;
   const t = distance / radius;
@@ -155,7 +159,7 @@ export class ParticleForceSystem {
     const noise = simpleNoise3D(
       p.position.x * freq + this.time,
       p.position.y * freq + this.time * 0.7,
-      p.position.z * freq + this.time * 1.3,
+      p.position.z * freq + this.time * 1.3
     );
     const falloff = this.getPositionalFalloff(p, cfg);
     p.velocity.x += noise.x * cfg.strength * falloff * dt;
@@ -172,7 +176,7 @@ export class ParticleForceSystem {
     if (dist < 0.001) return;
 
     const falloff = this.getPositionalFalloff(p, cfg);
-    const force = cfg.strength * falloff / dist;
+    const force = (cfg.strength * falloff) / dist;
     p.velocity.x += dx * force * dt;
     p.velocity.y += dy * force * dt;
     p.velocity.z += dz * force * dt;
@@ -187,7 +191,7 @@ export class ParticleForceSystem {
 
     const falloff = this.getPositionalFalloff(p, cfg);
     // Tangential force (perpendicular to radius in XZ plane)
-    const force = cfg.strength * falloff / dist;
+    const force = (cfg.strength * falloff) / dist;
     p.velocity.x += -dz * force * dt;
     p.velocity.z += dx * force * dt;
   }

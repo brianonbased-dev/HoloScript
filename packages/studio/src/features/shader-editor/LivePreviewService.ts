@@ -16,7 +16,10 @@ import { ShaderGraph } from '@/lib/shaderGraph';
 import type { ICompiledShader } from '@/lib/shaderGraph';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type compileShaderGraph = (graph: ShaderGraph, opts: { target: string; optimize: boolean; debug: boolean }) => ICompiledShader;
+type compileShaderGraph = (
+  graph: ShaderGraph,
+  opts: { target: string; optimize: boolean; debug: boolean }
+) => ICompiledShader;
 // Test-friendly stub compiler:
 // Multi-node graphs without an output_surface node are considered "broken"
 // (e.g. after removeNode removes the output). Single-node graphs succeed — they
@@ -100,8 +103,8 @@ export interface PerformanceMetrics {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface MaterialInstance {
   shaderModule?: any; // GPUShaderModule
-  pipeline?: any;     // GPURenderPipeline
-  bindGroups: any[];  // GPUBindGroup[]
+  pipeline?: any; // GPURenderPipeline
+  bindGroups: any[]; // GPUBindGroup[]
   uniforms: Map<string, Float32Array | Uint32Array>;
   textures: Map<string, any>; // GPUTexture
 }
@@ -428,8 +431,7 @@ export class LivePreviewService {
       }
 
       // Calculate average FPS
-      this.metrics.fps =
-        this.fpsHistory.reduce((a, b) => a + b, 0) / this.fpsHistory.length;
+      this.metrics.fps = this.fpsHistory.reduce((a, b) => a + b, 0) / this.fpsHistory.length;
     }
     this.lastFrameTime = now;
   }

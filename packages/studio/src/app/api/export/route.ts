@@ -136,9 +136,13 @@ function toUSD(scene: ParsedScene): string {
 function toJSON(scene: ParsedScene, code: string, nodes?: unknown[]): string {
   return JSON.stringify(
     {
-      meta: { generator: 'HoloScript Studio', version: '1.0', exportedAt: new Date().toISOString() },
+      meta: {
+        generator: 'HoloScript Studio',
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+      },
       scene,
-      sceneGraph: nodes ?? [],  // full Zustand SceneNode[] with traits
+      sceneGraph: nodes ?? [], // full Zustand SceneNode[] with traits
       source: code,
     },
     null,
@@ -172,18 +176,18 @@ function buildZip(files: { name: string; data: Uint8Array }[]): Uint8Array {
     const crc = crc32(f.data);
     const header = new DataView(new ArrayBuffer(30 + nameBytes.length));
     header.setUint32(0, 0x04034b50, true); // local file header sig
-    header.setUint16(4, 20, true);          // version needed
-    header.setUint16(6, 0, true);           // flags
-    header.setUint16(8, 0, true);           // compression (STORED)
-    header.setUint16(10, 0, true);          // mod time
-    header.setUint16(12, 0, true);          // mod date
+    header.setUint16(4, 20, true); // version needed
+    header.setUint16(6, 0, true); // flags
+    header.setUint16(8, 0, true); // compression (STORED)
+    header.setUint16(10, 0, true); // mod time
+    header.setUint16(12, 0, true); // mod date
     header.setUint32(14, crc, true);
     header.setUint32(18, f.data.length, true);
     header.setUint32(22, f.data.length, true);
     header.setUint16(26, nameBytes.length, true);
     header.setUint16(28, 0, true);
     const arr = new Uint8Array(header.buffer);
-    nameBytes.forEach((b, i) => arr[30 + i] = b);
+    nameBytes.forEach((b, i) => (arr[30 + i] = b));
     offsets.push(offset);
     localHeaders.push(arr);
     offset += arr.length + f.data.length;
@@ -215,7 +219,7 @@ function buildZip(files: { name: string; data: Uint8Array }[]): Uint8Array {
     cd.setUint32(38, 0, true);
     cd.setUint32(42, offsets[i]!, true);
     const arr = new Uint8Array(cd.buffer);
-    nameBytes.forEach((b, j) => arr[46 + j] = b);
+    nameBytes.forEach((b, j) => (arr[46 + j] = b));
     centralDir.push(arr);
     void lh; // referenced above
   }
@@ -231,16 +235,23 @@ function buildZip(files: { name: string; data: Uint8Array }[]): Uint8Array {
   eocd.setUint32(16, cdOffset, true);
   eocd.setUint16(20, 0, true);
 
-  const totalSize = localHeaders.reduce((s, h, i) => s + h.length + files[i]!.data.length, 0)
-    + centralDir.reduce((s, c) => s + c.length, 0) + 22;
+  const totalSize =
+    localHeaders.reduce((s, h, i) => s + h.length + files[i]!.data.length, 0) +
+    centralDir.reduce((s, c) => s + c.length, 0) +
+    22;
 
   const out = new Uint8Array(totalSize);
   let pos = 0;
   for (let i = 0; i < files.length; i++) {
-    out.set(localHeaders[i]!, pos); pos += localHeaders[i]!.length;
-    out.set(files[i]!.data, pos); pos += files[i]!.data.length;
+    out.set(localHeaders[i]!, pos);
+    pos += localHeaders[i]!.length;
+    out.set(files[i]!.data, pos);
+    pos += files[i]!.data.length;
   }
-  centralDir.forEach((c) => { out.set(c, pos); pos += c.length; });
+  centralDir.forEach((c) => {
+    out.set(c, pos);
+    pos += c.length;
+  });
   out.set(new Uint8Array(eocd.buffer), pos);
   return out;
 }
@@ -272,7 +283,12 @@ export async function POST(request: NextRequest) {
       files = [
         { name: `${slug}.usda`, data: enc.encode(usdContent) },
         { name: 'source.holoscript', data: enc.encode(code) },
-        { name: 'README.txt', data: enc.encode(`HoloScript Studio Export\nScene: ${scene.name}\nFormat: ${format.toUpperCase()}\n`) },
+        {
+          name: 'README.txt',
+          data: enc.encode(
+            `HoloScript Studio Export\nScene: ${scene.name}\nFormat: ${format.toUpperCase()}\n`
+          ),
+        },
       ];
       break;
     }
@@ -283,11 +299,17 @@ export async function POST(request: NextRequest) {
       ];
       break;
     }
-    default: { // gltf
+    default: {
+      // gltf
       files = [
         { name: `${slug}.gltf`, data: enc.encode(toGLTF(scene)) },
         { name: 'source.holoscript', data: enc.encode(code) },
-        { name: 'README.txt', data: enc.encode(`HoloScript Studio Export\nScene: ${scene.name}\nFormat: glTF 2.0\n\nPlace your .glb mesh files alongside this .gltf to complete the asset bundle.\n`) },
+        {
+          name: 'README.txt',
+          data: enc.encode(
+            `HoloScript Studio Export\nScene: ${scene.name}\nFormat: glTF 2.0\n\nPlace your .glb mesh files alongside this .gltf to complete the asset bundle.\n`
+          ),
+        },
       ];
     }
   }

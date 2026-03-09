@@ -104,11 +104,7 @@ vi.mock('../previewPanel', () => ({
 }));
 
 import { HoloScriptAgentAPI, agentAPI } from '../agentApi';
-import type {
-  AgentResponse,
-  GenerateObjectRequest,
-  SceneAnalysis,
-} from '../agentApi';
+import type { AgentResponse, GenerateObjectRequest, SceneAnalysis } from '../agentApi';
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -270,9 +266,7 @@ describe('HoloScriptAgentAPI', () => {
       });
 
       const data = result.data as any;
-      const glowCount = data.suggestedTraits.filter(
-        (t: string) => t === '@glowing'
-      ).length;
+      const glowCount = data.suggestedTraits.filter((t: string) => t === '@glowing').length;
       expect(glowCount).toBe(1);
     });
 
@@ -338,9 +332,7 @@ describe('HoloScriptAgentAPI', () => {
     });
 
     it('should validate balanced braces as valid', async () => {
-      const result = await api.validateSyntax(
-        'orb test {\n  @grabbable\n  position: [0, 1, 0]\n}'
-      );
+      const result = await api.validateSyntax('orb test {\n  @grabbable\n  position: [0, 1, 0]\n}');
 
       expect(result.success).toBe(true);
       const data = result.data as any;
@@ -349,9 +341,7 @@ describe('HoloScriptAgentAPI', () => {
     });
 
     it('should detect unbalanced braces', async () => {
-      const result = await api.validateSyntax(
-        'orb test {\n  @grabbable\n  position: [0, 1, 0]\n'
-      );
+      const result = await api.validateSyntax('orb test {\n  @grabbable\n  position: [0, 1, 0]\n');
 
       expect(result.success).toBe(false);
       const data = result.data as any;
@@ -376,9 +366,7 @@ describe('HoloScriptAgentAPI', () => {
     });
 
     it('should handle strings with braces inside quotes', async () => {
-      const result = await api.validateSyntax(
-        'orb test {\n  name: "hello {world}"\n}'
-      );
+      const result = await api.validateSyntax('orb test {\n  name: "hello {world}"\n}');
 
       expect(result.success).toBe(true);
       const data = result.data as any;

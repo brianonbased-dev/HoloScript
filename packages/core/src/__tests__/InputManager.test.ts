@@ -7,7 +7,9 @@ import { InputManager } from '../input/InputManager';
 
 describe('InputManager', () => {
   let im: InputManager;
-  beforeEach(() => { im = new InputManager(); });
+  beforeEach(() => {
+    im = new InputManager();
+  });
 
   it('tracks key down/up', () => {
     im.keyDown('w');

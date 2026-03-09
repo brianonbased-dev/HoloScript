@@ -4,7 +4,9 @@ import { World } from '../World';
 describe('World', () => {
   let world: World;
 
-  beforeEach(() => { world = new World(); });
+  beforeEach(() => {
+    world = new World();
+  });
 
   // ---------------------------------------------------------------------------
   // Entity Lifecycle
@@ -89,7 +91,8 @@ describe('World', () => {
 
   it('query returns entities with all specified components', () => {
     const a = world.createEntity();
-    world.addComponent(a, 'pos', {}); world.addComponent(a, 'vel', {});
+    world.addComponent(a, 'pos', {});
+    world.addComponent(a, 'vel', {});
     const b = world.createEntity();
     world.addComponent(b, 'pos', {});
     const result = world.query('pos', 'vel');
@@ -107,7 +110,8 @@ describe('World', () => {
   });
 
   it('getAllEntities lists all', () => {
-    world.createEntity(); world.createEntity();
+    world.createEntity();
+    world.createEntity();
     expect(world.getAllEntities()).toHaveLength(2);
   });
 

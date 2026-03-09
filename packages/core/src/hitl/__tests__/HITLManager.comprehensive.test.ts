@@ -202,8 +202,13 @@ describe('HITL Manager - Comprehensive Test Suite', () => {
     });
 
     it('should support custom impact levels', async () => {
-      const impacts: Array<'low' | 'medium' | 'high' | 'critical'> = ['low', 'medium', 'high', 'critical'];
-      
+      const impacts: Array<'low' | 'medium' | 'high' | 'critical'> = [
+        'low',
+        'medium',
+        'high',
+        'critical',
+      ];
+
       for (const impact of impacts) {
         const action: AgentAction = {
           ...testAction,
@@ -227,15 +232,18 @@ describe('HITL Manager - Comprehensive Test Suite', () => {
 
       for (let i = 0; i < 3; i++) {
         const promise = manager.requestApproval(action, ['user_001']);
-        manager.rejectAction(`action_request_${String(i + 1).padStart(3, '0')}`, 'user_001', 'Try again');
+        manager.rejectAction(
+          `action_request_${String(i + 1).padStart(3, '0')}`,
+          'user_001',
+          'Try again'
+        );
         await promise;
       }
 
       // Fourth attempt should escalate
-      const escalatedPromise = manager.requestApproval(
-        { ...action, id: 'fail_action_004' },
-        ['escalation_user_001']
-      );
+      const escalatedPromise = manager.requestApproval({ ...action, id: 'fail_action_004' }, [
+        'escalation_user_001',
+      ]);
       manager.rejectAction('action_request_004', 'escalation_user_001', 'Escalated');
       const escalatedResult = await escalatedPromise;
 
@@ -303,10 +311,9 @@ describe('HITL Manager - Comprehensive Test Suite', () => {
 
       // Simulate multiple rejections for similar actions
       for (let i = 0; i < 3; i++) {
-        const promise = manager.requestApproval(
-          { ...action, id: `learn_action_00${i + 1}` },
-          ['user_001']
-        );
+        const promise = manager.requestApproval({ ...action, id: `learn_action_00${i + 1}` }, [
+          'user_001',
+        ]);
         manager.rejectAction(
           `action_request_${String(i + 1).padStart(3, '0')}`,
           'user_001',
@@ -359,7 +366,7 @@ describe('HITL Manager - Comprehensive Test Suite', () => {
       await promise;
 
       const logs = manager.getAuditLog();
-      const decisionLogs = logs.filter(log => log.type === 'decision');
+      const decisionLogs = logs.filter((log) => log.type === 'decision');
 
       expect(decisionLogs.length).toBeGreaterThan(0);
     });

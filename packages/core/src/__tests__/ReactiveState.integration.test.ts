@@ -41,13 +41,7 @@ describe('HoloScriptPlusParser.parseStateBlock', () => {
   });
 
   it('parses multiple vars from a multi-line block', () => {
-    const code = [
-      'state {',
-      '  hp = 100',
-      '  speed = 5.5',
-      '  alive = true',
-      '}',
-    ].join('\n');
+    const code = ['state {', '  hp = 100', '  speed = 5.5', '  alive = true', '}'].join('\n');
     const result = parser.parseStateBlock(code)!;
     expect(result).toHaveLength(3);
     expect(result[0]).toEqual({ name: 'hp', value: 100 });
@@ -100,12 +94,7 @@ describe('HoloScriptPlusParser.parseOnBlock', () => {
   });
 
   it('handles multi-line on blocks', () => {
-    const code = [
-      'on hit {',
-      '  hp = hp - 5',
-      '  alive = hp > 0',
-      '}',
-    ].join('\n');
+    const code = ['on hit {', '  hp = hp - 5', '  alive = hp > 0', '}'].join('\n');
     const result = parser.parseOnBlock(code);
     expect(result).toHaveLength(1);
     expect(result[0].event).toBe('hit');

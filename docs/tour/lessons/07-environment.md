@@ -22,12 +22,12 @@ environment "DaytimeForest" {
 
 ### Environment properties
 
-| Property           | Type    | Description                      |
-|--------------------|---------|----------------------------------|
-| `skybox`           | string  | HDR panorama path or URL         |
-| `ambientColor`     | color   | Global fill light color          |
-| `ambientIntensity` | number  | Fill light brightness            |
-| `fog`              | object  | Atmospheric depth cueing         |
+| Property           | Type   | Description              |
+| ------------------ | ------ | ------------------------ |
+| `skybox`           | string | HDR panorama path or URL |
+| `ambientColor`     | color  | Global fill light color  |
+| `ambientIntensity` | number | Fill light brightness    |
+| `fog`              | object | Atmospheric depth cueing |
 
 ## Try it:
 

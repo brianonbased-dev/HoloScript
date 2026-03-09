@@ -46,7 +46,8 @@ export class WebSocketReconnectionHandler {
    * Calculate next reconnection delay
    */
   calculateDelay(): number {
-    let delay = this.config.initialDelayMs * Math.pow(this.config.backoffMultiplier, this.reconnectCount);
+    let delay =
+      this.config.initialDelayMs * Math.pow(this.config.backoffMultiplier, this.reconnectCount);
 
     // Cap at max delay
     delay = Math.min(delay, this.config.maxDelayMs);

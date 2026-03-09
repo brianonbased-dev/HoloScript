@@ -37,12 +37,7 @@ function MyApp() {
 
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
-      <WebXRViewer
-        code={holoScript}
-        mode="immersive-vr"
-        showGrid={true}
-        showStars={true}
-      />
+      <WebXRViewer code={holoScript} mode="immersive-vr" showGrid={true} showStars={true} />
     </div>
   );
 }
@@ -50,23 +45,23 @@ function MyApp() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `code` | `string` | (required) | HoloScript source code (`.hsplus` or `.holo`) |
-| `mode` | `XRSessionMode` | `'immersive-vr'` | Preferred XR mode: `'immersive-vr'`, `'immersive-ar'`, or `'inline'` |
-| `className` | `string` | - | CSS className for the container |
-| `style` | `CSSProperties` | - | Inline styles for the container |
-| `showGrid` | `boolean` | `true` | Show ground grid (hidden in AR mode) |
-| `showStars` | `boolean` | `true` | Show background stars (hidden in AR mode) |
-| `showObjectCount` | `boolean` | `true` | Show object count overlay |
-| `backgroundColor` | `string` | `'#0a0a12'` | Background color (non-AR modes) |
-| `selectedObjectId` | `string \| null` | - | Currently selected object ID |
-| `onObjectSelect` | `(id: string \| null) => void` | - | Object selection callback |
-| `onErrors` | `(errors: Array<{ message: string }>) => void` | - | Compile error callback |
-| `onXRSessionStart` | `(mode: XRSessionMode) => void` | - | Called when XR session starts |
-| `onXRSessionEnd` | `() => void` | - | Called when XR session ends |
-| `autoEnterXR` | `boolean` | `false` | Auto-enter XR mode on mount (requires prior user gesture) |
-| `referenceSpace` | `XRReferenceSpaceType` | `'local-floor'` | WebXR reference space type |
+| Prop               | Type                                           | Default          | Description                                                          |
+| ------------------ | ---------------------------------------------- | ---------------- | -------------------------------------------------------------------- |
+| `code`             | `string`                                       | (required)       | HoloScript source code (`.hsplus` or `.holo`)                        |
+| `mode`             | `XRSessionMode`                                | `'immersive-vr'` | Preferred XR mode: `'immersive-vr'`, `'immersive-ar'`, or `'inline'` |
+| `className`        | `string`                                       | -                | CSS className for the container                                      |
+| `style`            | `CSSProperties`                                | -                | Inline styles for the container                                      |
+| `showGrid`         | `boolean`                                      | `true`           | Show ground grid (hidden in AR mode)                                 |
+| `showStars`        | `boolean`                                      | `true`           | Show background stars (hidden in AR mode)                            |
+| `showObjectCount`  | `boolean`                                      | `true`           | Show object count overlay                                            |
+| `backgroundColor`  | `string`                                       | `'#0a0a12'`      | Background color (non-AR modes)                                      |
+| `selectedObjectId` | `string \| null`                               | -                | Currently selected object ID                                         |
+| `onObjectSelect`   | `(id: string \| null) => void`                 | -                | Object selection callback                                            |
+| `onErrors`         | `(errors: Array<{ message: string }>) => void` | -                | Compile error callback                                               |
+| `onXRSessionStart` | `(mode: XRSessionMode) => void`                | -                | Called when XR session starts                                        |
+| `onXRSessionEnd`   | `() => void`                                   | -                | Called when XR session ends                                          |
+| `autoEnterXR`      | `boolean`                                      | `false`          | Auto-enter XR mode on mount (requires prior user gesture)            |
+| `referenceSpace`   | `XRReferenceSpaceType`                         | `'local-floor'`  | WebXR reference space type                                           |
 
 ## XR Session Modes
 
@@ -108,7 +103,7 @@ A capability badge is displayed in the top-left corner showing which modes are a
 <WebXRViewer
   code={code}
   onErrors={(errors) => {
-    errors.forEach(err => console.error(err.message));
+    errors.forEach((err) => console.error(err.message));
   }}
 />
 ```
@@ -124,7 +119,7 @@ const [selectedId, setSelectedId] = useState<string | null>(null);
   code={code}
   selectedObjectId={selectedId}
   onObjectSelect={(id) => setSelectedId(id)}
-/>
+/>;
 ```
 
 Selected objects display a blue wireframe overlay.
@@ -141,8 +136,8 @@ When the viewer enters AR mode:
 <WebXRViewer
   code={code}
   mode="immersive-ar"
-  showGrid={false}     // Redundant but explicit
-  showStars={false}    // Redundant but explicit
+  showGrid={false} // Redundant but explicit
+  showStars={false} // Redundant but explicit
 />
 ```
 
@@ -160,28 +155,28 @@ The compilation status is shown as a "Compiling..." indicator in the top-right c
 
 The viewer renders the following HoloScript geometry types:
 
-| HoloScript Type | Three.js Geometry |
-|-----------------|-------------------|
-| `sphere`, `orb` | `SphereGeometry` |
-| `cube`, `box` | `BoxGeometry` |
-| `cylinder` | `CylinderGeometry` |
-| `pyramid`, `cone` | `ConeGeometry` |
-| `plane` | `PlaneGeometry` |
-| `torus` | `TorusGeometry` |
-| `ring` | `RingGeometry` |
-| `capsule` | `CapsuleGeometry` |
+| HoloScript Type   | Three.js Geometry  |
+| ----------------- | ------------------ |
+| `sphere`, `orb`   | `SphereGeometry`   |
+| `cube`, `box`     | `BoxGeometry`      |
+| `cylinder`        | `CylinderGeometry` |
+| `pyramid`, `cone` | `ConeGeometry`     |
+| `plane`           | `PlaneGeometry`    |
+| `torus`           | `TorusGeometry`    |
+| `ring`            | `RingGeometry`     |
+| `capsule`         | `CapsuleGeometry`  |
 
 ## Comparison with SceneViewer
 
-| Feature | SceneViewer | WebXRViewer |
-|---------|-------------|-------------|
-| 3D Rendering | Yes | Yes |
-| OrbitControls | Yes | Yes |
-| VR Sessions | No | Yes |
-| AR Sessions | No | Yes |
-| Hand Tracking | No | Yes |
-| Ray-Pointer Interaction | No | Yes |
-| XR Reference Space | No | Yes |
+| Feature                 | SceneViewer | WebXRViewer |
+| ----------------------- | ----------- | ----------- |
+| 3D Rendering            | Yes         | Yes         |
+| OrbitControls           | Yes         | Yes         |
+| VR Sessions             | No          | Yes         |
+| AR Sessions             | No          | Yes         |
+| Hand Tracking           | No          | Yes         |
+| Ray-Pointer Interaction | No          | Yes         |
+| XR Reference Space      | No          | Yes         |
 
 `WebXRViewer` is a drop-in replacement for `SceneViewer` when XR support is needed. Both share the same geometry/material mapping and scene content rendering.
 

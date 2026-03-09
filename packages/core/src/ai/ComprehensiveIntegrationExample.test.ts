@@ -19,11 +19,11 @@ import { GenerationCache } from './GenerationCache';
 
 class DemoAdapter implements AIAdapter {
   name = 'DemoAdapter';
-  
+
   async generateHoloScript(prompt: string) {
     // Simulate different code based on keywords
     let code = '';
-    
+
     if (prompt.includes('player')) {
       code = `
         orb #Player @grabbable {
@@ -67,7 +67,7 @@ class DemoAdapter implements AIAdapter {
         }
       `;
     }
-    
+
     return {
       holoScript: code,
       aiConfidence: 0.9,
@@ -94,7 +94,11 @@ class DemoAdapter implements AIAdapter {
     return { holoScript: optimized };
   }
 
-  async chat(message: string, context: string, history?: Array<{ role: 'user' | 'assistant'; content: string }>) {
+  async chat(
+    message: string,
+    context: string,
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>
+  ) {
     return 'This is a chat response.';
   }
 }
@@ -177,7 +181,7 @@ describe('Comprehensive Integration Example', () => {
   describe('Cache System Integration', () => {
     it('should cache and retrieve generated code', async () => {
       const session = generator.createSession(adapter);
-      
+
       // First call - generates and caches
       const result1 = await generator.generate('Create a player controller', session);
       expect(result1.holoScript).toContain('#Player');
@@ -198,12 +202,8 @@ describe('Comprehensive Integration Example', () => {
 
     it('should measure cache performance improvement', async () => {
       const session = generator.createSession(adapter);
-      
-      const prompts = [
-        'Create a player',
-        'Create a button',
-        'Create a physics ball',
-      ];
+
+      const prompts = ['Create a player', 'Create a button', 'Create a physics ball'];
 
       // Generate all prompts
       for (const prompt of prompts) {
@@ -240,7 +240,7 @@ describe('Comprehensive Integration Example', () => {
       }
 
       const failingSession = generator.createSession(new FailingAdapter());
-      
+
       // This should fail but not cache
       try {
         await generator.generate('broken prompt', failingSession);
@@ -270,7 +270,7 @@ describe('Comprehensive Integration Example', () => {
       await freshGen.generate('Create physics sphere', session);
 
       const analytics = freshGen.getAnalytics();
-      
+
       expect(analytics.aggregateMetrics.totalGenerations).toBe(3);
       expect(analytics.aggregateMetrics.successRate).toBeGreaterThan(0);
       expect(analytics.aggregateMetrics.avgConfidence).toBeGreaterThan(0);
@@ -362,10 +362,7 @@ describe('Comprehensive Integration Example', () => {
       expect(result.holoScript).toContain('#Ball');
 
       // Phase 4: Add effects
-      result = await generator.generate(
-        'Create a glowing effect sphere',
-        session
-      );
+      result = await generator.generate('Create a glowing effect sphere', session);
       expect(result.holoScript).toBeDefined();
 
       // Verify workflow completion
@@ -399,7 +396,7 @@ describe('Comprehensive Integration Example', () => {
 
       const cacheStats = generator.getCacheStats();
       expect(cacheStats.entriesCount).toBeGreaterThan(0);
-      
+
       // At least some should be from cache
       expect(cacheStats.totalHits + cacheStats.totalMisses).toBeGreaterThan(cacheStats.totalHits);
     });
@@ -431,7 +428,9 @@ describe('Comprehensive Integration Example', () => {
       const batchSize = 10;
       const prompts = Array(batchSize)
         .fill(null)
-        .map((_, i) => `Generate object ${i % 4}: ${['player', 'button', 'physics', 'effect'][i % 4]}`);
+        .map(
+          (_, i) => `Generate object ${i % 4}: ${['player', 'button', 'physics', 'effect'][i % 4]}`
+        );
 
       for (const prompt of prompts) {
         const result = await generator.generate(prompt, session);
@@ -475,7 +474,7 @@ describe('Comprehensive Integration Example', () => {
       }
 
       const report = generator.generateReport();
-      
+
       // Report should contain analysis
       expect(report.length).toBeGreaterThan(100);
       expect(report).toContain('Success');

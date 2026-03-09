@@ -92,11 +92,7 @@ export class LIFSimulator {
    * @param neuronCount - Number of neurons to simulate
    * @param params - LIF parameters (optional, uses defaults)
    */
-  constructor(
-    ctx: GPUContext,
-    neuronCount: number,
-    params?: Partial<LIFParams>,
-  ) {
+  constructor(ctx: GPUContext, neuronCount: number, params?: Partial<LIFParams>) {
     this.ctx = ctx;
     this.neuronCount = ctx.validateNeuronCapacity(neuronCount);
     this.params = { ...DEFAULT_LIF_PARAMS, ...params };
@@ -125,10 +121,7 @@ export class LIFSimulator {
 
     // Initialize membrane potentials to resting potential
     const initMembrane = new Float32Array(n).fill(this.params.vRest);
-    this.membraneBuffer = this.bufferManager.createStorageBuffer(
-      initMembrane,
-      'membrane-v',
-    );
+    this.membraneBuffer = this.bufferManager.createStorageBuffer(initMembrane, 'membrane-v');
 
     // Synaptic input (zeros initially)
     this.synapticInputBuffer = this.bufferManager.createZeroBuffer(n, 'synaptic-input');
@@ -140,13 +133,17 @@ export class LIFSimulator {
     this.refractoryBuffer = this.bufferManager.createZeroBuffer(n, 'refractory');
 
     // Create bind group
-    this.bindGroup = this.pipelineFactory.createBindGroup('lif_step', [
-      this.paramsBuffer.buffer,
-      this.membraneBuffer.buffer,
-      this.synapticInputBuffer.buffer,
-      this.spikesBuffer.buffer,
-      this.refractoryBuffer.buffer,
-    ], 'lif-bind-group');
+    this.bindGroup = this.pipelineFactory.createBindGroup(
+      'lif_step',
+      [
+        this.paramsBuffer.buffer,
+        this.membraneBuffer.buffer,
+        this.synapticInputBuffer.buffer,
+        this.spikesBuffer.buffer,
+        this.refractoryBuffer.buffer,
+      ],
+      'lif-bind-group'
+    );
 
     this.initialized = true;
   }
@@ -163,12 +160,7 @@ export class LIFSimulator {
       label: `lif-step-${this.stepCount}`,
     });
 
-    this.pipelineFactory.encodeDispatch(
-      encoder,
-      'lif_step',
-      this.bindGroup,
-      workgroups,
-    );
+    this.pipelineFactory.encodeDispatch(encoder, 'lif_step', this.bindGroup, workgroups);
 
     await this.ctx.submitAndWait(encoder.finish());
     this.stepCount++;
@@ -190,7 +182,7 @@ export class LIFSimulator {
     this.ensureInitialized();
     if (currents.length !== this.neuronCount) {
       throw new Error(
-        `Current array length (${currents.length}) must match neuron count (${this.neuronCount})`,
+        `Current array length (${currents.length}) must match neuron count (${this.neuronCount})`
       );
     }
     this.bufferManager.writeBuffer(this.synapticInputBuffer, currents);
@@ -203,10 +195,7 @@ export class LIFSimulator {
     this.ensureInitialized();
     this.params = { ...this.params, ...params };
     const packed = packLIFParams(this.params, this.neuronCount);
-    this.bufferManager.writeBuffer(
-      this.paramsBuffer,
-      new Float32Array(packed),
-    );
+    this.bufferManager.writeBuffer(this.paramsBuffer, new Float32Array(packed));
   }
 
   /**

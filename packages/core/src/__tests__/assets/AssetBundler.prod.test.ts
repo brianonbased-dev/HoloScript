@@ -17,7 +17,14 @@ import type { AssetEntry, BundleConfig } from '../../assets/AssetBundler';
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function makeAsset(id: string, sizeBytes = 1000, deps: string[] = []): AssetEntry {
-  return { id, type: 'texture', path: `/${id}.png`, sizeBytes, hash: id + '_hash', dependencies: deps };
+  return {
+    id,
+    type: 'texture',
+    path: `/${id}.png`,
+    sizeBytes,
+    hash: id + '_hash',
+    dependencies: deps,
+  };
 }
 
 function cfg(id: string, entries: string[], priority = 0, compress = false): BundleConfig {
@@ -27,7 +34,6 @@ function cfg(id: string, entries: string[], priority = 0, compress = false): Bun
 // ── registerAsset / getAsset / unregisterAsset ────────────────────────────────
 
 describe('AssetBundler — registerAsset / getAsset / unregisterAsset', () => {
-
   it('registerAsset stores asset; getAsset retrieves it', () => {
     const ab = new AssetBundler();
     ab.registerAsset(makeAsset('tex1'));
@@ -56,13 +62,12 @@ describe('AssetBundler — registerAsset / getAsset / unregisterAsset', () => {
 // ── buildBundle ───────────────────────────────────────────────────────────────
 
 describe('AssetBundler — buildBundle', () => {
-
   it('bundle contains the directly listed assets', () => {
     const ab = new AssetBundler();
     ab.registerAsset(makeAsset('a', 500));
     ab.registerAsset(makeAsset('b', 300));
     const bundle = ab.buildBundle(cfg('b1', ['a', 'b']));
-    const ids = bundle.assets.map(a => a.id);
+    const ids = bundle.assets.map((a) => a.id);
     expect(ids).toContain('a');
     expect(ids).toContain('b');
   });
@@ -72,7 +77,7 @@ describe('AssetBundler — buildBundle', () => {
     ab.registerAsset(makeAsset('dep', 200));
     ab.registerAsset(makeAsset('parent', 400, ['dep']));
     const bundle = ab.buildBundle(cfg('b1', ['parent']));
-    const ids = bundle.assets.map(a => a.id);
+    const ids = bundle.assets.map((a) => a.id);
     expect(ids).toContain('dep');
     expect(ids).toContain('parent');
     // dep should come before parent
@@ -135,7 +140,6 @@ describe('AssetBundler — buildBundle', () => {
 // ── splitBundle ───────────────────────────────────────────────────────────────
 
 describe('AssetBundler — splitBundle', () => {
-
   it('returns one bundle when total size <= maxSizeBytes', () => {
     const ab = new AssetBundler();
     ab.registerAsset(makeAsset('a', 500));
@@ -158,7 +162,7 @@ describe('AssetBundler — splitBundle', () => {
     ab.registerAsset(makeAsset('a', 600));
     ab.registerAsset(makeAsset('b', 600));
     const bundles = ab.splitBundle({ ...cfg('main', ['a', 'b']), maxSizeBytes: 700 });
-    const hasPrefix = bundles.every(b => b.id.startsWith('main'));
+    const hasPrefix = bundles.every((b) => b.id.startsWith('main'));
     expect(hasPrefix).toBe(true);
   });
 });
@@ -166,7 +170,6 @@ describe('AssetBundler — splitBundle', () => {
 // ── getDependencyChain ────────────────────────────────────────────────────────
 
 describe('AssetBundler — getDependencyChain', () => {
-
   it('returns just the asset itself when no deps', () => {
     const ab = new AssetBundler();
     ab.registerAsset(makeAsset('solo'));
@@ -191,7 +194,6 @@ describe('AssetBundler — getDependencyChain', () => {
 // ── generateManifest ──────────────────────────────────────────────────────────
 
 describe('AssetBundler — generateManifest', () => {
-
   it('manifest contains all built bundles', () => {
     const ab = new AssetBundler();
     ab.registerAsset(makeAsset('a'));
@@ -230,7 +232,6 @@ describe('AssetBundler — generateManifest', () => {
 // ── computeDiff ───────────────────────────────────────────────────────────────
 
 describe('AssetBundler — computeDiff', () => {
-
   it('added contains new bundles not in previous', () => {
     const ab = new AssetBundler();
     ab.registerAsset(makeAsset('a'));
@@ -256,7 +257,6 @@ describe('AssetBundler — computeDiff', () => {
 // ── getBundleCount ────────────────────────────────────────────────────────────
 
 describe('AssetBundler — getBundleCount', () => {
-
   it('getBundleCount is 0 initially', () => {
     expect(new AssetBundler().getBundleCount()).toBe(0);
   });

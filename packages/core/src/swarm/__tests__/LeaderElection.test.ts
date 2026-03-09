@@ -91,7 +91,7 @@ describe('LeaderElection', () => {
     // n1 asks n2 for a vote
     e.handleMessage('n1', { type: 'request-vote', term: 1, candidateId: 'n1' });
     expect(sent.length).toBeGreaterThan(0);
-    const resp = sent.find(s => s.msg.type === 'vote-response');
+    const resp = sent.find((s) => s.msg.type === 'vote-response');
     expect(resp).toBeDefined();
     expect((resp!.msg as any).voteGranted).toBe(true);
     e.stop();
@@ -106,7 +106,7 @@ describe('LeaderElection', () => {
     e.setMessageHandler((to, msg) => sent.push({ to, msg }));
     // Request with old term
     e.handleMessage('n1', { type: 'request-vote', term: 2, candidateId: 'n1' });
-    expect(sent.filter(s => s.msg.type === 'vote-response')).toHaveLength(0);
+    expect(sent.filter((s) => s.msg.type === 'vote-response')).toHaveLength(0);
     e.stop();
   });
 

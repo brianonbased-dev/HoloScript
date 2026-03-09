@@ -61,12 +61,12 @@ export interface DeploymentConfig {
 // ── Deployment Status ─────────────────────────────────────────────────────────
 
 export type DeploymentStatus =
-  | 'pending'      // Queued for deployment
-  | 'building'     // Compiling workflow
-  | 'deploying'    // Uploading to cloud
-  | 'active'       // Successfully deployed and running
-  | 'failed'       // Deployment failed
-  | 'archived';    // Disabled/removed
+  | 'pending' // Queued for deployment
+  | 'building' // Compiling workflow
+  | 'deploying' // Uploading to cloud
+  | 'active' // Successfully deployed and running
+  | 'failed' // Deployment failed
+  | 'archived'; // Disabled/removed
 
 export interface Deployment {
   id: string;

@@ -134,7 +134,12 @@ describe('SharePlayTrait — Production', () => {
         type: 'shareplay:start',
         payload: { sessionId: 'sess_3' },
       });
-      getSharePlayState(ctx).participants.set('p1', { id: 'p1', displayName: 'A', isHost: false, joinedAt: Date.now() });
+      getSharePlayState(ctx).participants.set('p1', {
+        id: 'p1',
+        displayName: 'A',
+        isHost: false,
+        joinedAt: Date.now(),
+      });
       ctx.emit.mockClear();
 
       sharePlayHandler.onEvent!(node, config, ctx, {
@@ -162,11 +167,14 @@ describe('SharePlayTrait — Production', () => {
 
       const s = getSharePlayState(ctx);
       expect(s.participants.size).toBe(1);
-      expect(ctx.emit).toHaveBeenCalledWith('shareplay:participant_joined', expect.objectContaining({
-        participantId: 'user_1',
-        displayName: 'Alice',
-        count: 1,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'shareplay:participant_joined',
+        expect.objectContaining({
+          participantId: 'user_1',
+          displayName: 'Alice',
+          count: 1,
+        })
+      );
     });
 
     it('enforces max_participants', () => {
@@ -206,10 +214,13 @@ describe('SharePlayTrait — Production', () => {
       });
 
       expect(getSharePlayState(ctx).participants.size).toBe(0);
-      expect(ctx.emit).toHaveBeenCalledWith('shareplay:participant_left', expect.objectContaining({
-        participantId: 'u1',
-        count: 0,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'shareplay:participant_left',
+        expect.objectContaining({
+          participantId: 'u1',
+          count: 0,
+        })
+      );
     });
   });
 

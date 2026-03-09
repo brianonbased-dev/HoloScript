@@ -99,10 +99,7 @@ export class MCPClient {
   // HTTP HELPERS
   // ==========================================================================
 
-  private async fetch<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  private async fetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.config.url}${endpoint}`;
 
     // Rate limit check
@@ -237,9 +234,7 @@ export class MCPClient {
   // TOOL EXECUTION
   // ==========================================================================
 
-  async callTool<T = unknown>(
-    request: MCPToolCallRequest
-  ): Promise<MCPToolCallResponse<T>> {
+  async callTool<T = unknown>(request: MCPToolCallRequest): Promise<MCPToolCallResponse<T>> {
     const startTime = performance.now();
 
     try {
@@ -278,7 +273,8 @@ export class MCPClient {
     }
   ): Promise<MCPToolCallResponse<T>> {
     const maxRetries = options?.maxRetries ?? this.config.retryPolicy.maxRetries;
-    const backoffMultiplier = options?.backoffMultiplier ?? this.config.retryPolicy.backoffMultiplier;
+    const backoffMultiplier =
+      options?.backoffMultiplier ?? this.config.retryPolicy.backoffMultiplier;
 
     let lastError: Error | null = null;
 
@@ -320,9 +316,7 @@ export class MCPClient {
   async callToolsBatch<T = unknown>(
     requests: MCPToolCallRequest[]
   ): Promise<MCPToolCallResponse<T>[]> {
-    return Promise.all(
-      requests.map((req) => this.callTool<T>(req))
-    );
+    return Promise.all(requests.map((req) => this.callTool<T>(req)));
   }
 
   // ==========================================================================
@@ -335,10 +329,7 @@ export class MCPClient {
     });
   }
 
-  async readResource<T = unknown>(
-    serverName: string,
-    uri: string
-  ): Promise<T> {
+  async readResource<T = unknown>(serverName: string, uri: string): Promise<T> {
     return await this.fetch<T>(`/servers/${serverName}/resources/read`, {
       method: 'POST',
       body: JSON.stringify({ uri }),

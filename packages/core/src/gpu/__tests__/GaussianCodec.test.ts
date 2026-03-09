@@ -69,17 +69,17 @@ function createTestSplatData(count: number): GaussianSplatData {
     scales[i * 3 + 2] = 0.01;
 
     // Rotations: identity quaternion
-    rotations[i * 4] = 0;     // x
+    rotations[i * 4] = 0; // x
     rotations[i * 4 + 1] = 0; // y
     rotations[i * 4 + 2] = 0; // z
     rotations[i * 4 + 3] = 1; // w
 
     // Colors: gradient red to blue
     const t = i / Math.max(1, count - 1);
-    colors[i * 4] = 1 - t;     // r
-    colors[i * 4 + 1] = 0;     // g
-    colors[i * 4 + 2] = t;     // b
-    colors[i * 4 + 3] = 0.8;   // a
+    colors[i * 4] = 1 - t; // r
+    colors[i * 4 + 1] = 0; // g
+    colors[i * 4 + 2] = t; // b
+    colors[i * 4 + 3] = 0.8; // a
 
     // Opacities
     opacities[i] = 0.8;
@@ -132,7 +132,7 @@ class TestCustomCodec extends AbstractGaussianCodec {
 
   async decode(
     _buffer: ArrayBuffer,
-    options?: GaussianDecodeOptions,
+    options?: GaussianDecodeOptions
   ): Promise<CodecResult<GaussianSplatData>> {
     const count = Math.min(100, options?.maxGaussians ?? 100);
     return {
@@ -148,7 +148,6 @@ class TestCustomCodec extends AbstractGaussianCodec {
 // =============================================================================
 
 describe('Gaussian Codec Abstraction Layer', () => {
-
   // ─── SpzCodec ───────────────────────────────────────────────────────────
 
   describe('SpzCodec', () => {
@@ -399,8 +398,8 @@ describe('Gaussian Codec Abstraction Layer', () => {
 
       const caps = registry.getAllCapabilities();
       expect(caps.length).toBe(2);
-      expect(caps.map(c => c.id)).toContain('khr.spz.v2');
-      expect(caps.map(c => c.id)).toContain('mpeg.gsc.v1');
+      expect(caps.map((c) => c.id)).toContain('khr.spz.v2');
+      expect(caps.map((c) => c.id)).toContain('mpeg.gsc.v1');
     });
 
     it('should unregister codecs', () => {
@@ -646,11 +645,11 @@ describe('Gaussian Codec Abstraction Layer', () => {
     it('should have correct array lengths for given count', () => {
       const data = createTestSplatData(100);
       expect(data.count).toBe(100);
-      expect(data.positions.length).toBe(300);   // 100 * 3
-      expect(data.scales.length).toBe(300);       // 100 * 3
-      expect(data.rotations.length).toBe(400);    // 100 * 4
-      expect(data.colors.length).toBe(400);       // 100 * 4
-      expect(data.opacities.length).toBe(100);    // 100 * 1
+      expect(data.positions.length).toBe(300); // 100 * 3
+      expect(data.scales.length).toBe(300); // 100 * 3
+      expect(data.rotations.length).toBe(400); // 100 * 4
+      expect(data.colors.length).toBe(400); // 100 * 4
+      expect(data.opacities.length).toBe(100); // 100 * 1
     });
 
     it('should have values in expected ranges', () => {
@@ -689,10 +688,14 @@ describe('Gaussian Codec Abstraction Layer', () => {
     /**
      * CPU reference for SPZ v2 quaternion decode.
      */
-    function decodeQuaternionV2(x8: number, y8: number, z8: number): [number, number, number, number] {
-      const x = (x8 / 127.5) - 1;
-      const y = (y8 / 127.5) - 1;
-      const z = (z8 / 127.5) - 1;
+    function decodeQuaternionV2(
+      x8: number,
+      y8: number,
+      z8: number
+    ): [number, number, number, number] {
+      const x = x8 / 127.5 - 1;
+      const y = y8 / 127.5 - 1;
+      const z = z8 / 127.5 - 1;
       const w = Math.sqrt(Math.max(0, 1 - x * x - y * y - z * z));
       return [x, y, z, w];
     }
@@ -713,10 +716,10 @@ describe('Gaussian Codec Abstraction Layer', () => {
       // and are not valid SPZ encodings. Real SPZ files only produce
       // valid combinations through the encoding process.
       const testValues = [
-        [128, 128, 128],  // ~identity: x=0, y=0, z=0, w=1
-        [148, 128, 128],  // small x rotation
-        [128, 128, 148],  // small z rotation
-        [140, 140, 128],  // small xy rotation
+        [128, 128, 128], // ~identity: x=0, y=0, z=0, w=1
+        [148, 128, 128], // small x rotation
+        [128, 128, 148], // small z rotation
+        [140, 140, 128], // small xy rotation
       ];
 
       for (const [x8, y8, z8] of testValues) {
@@ -747,16 +750,20 @@ describe('Gaussian Codec Abstraction Layer', () => {
      * CPU reference for SPZ v3 quaternion encode (smallest-three).
      * This mirrors the encodeQuaternionV3 implementation in SpzCodec.ts
      */
-    function encodeQuaternionV3(
-      x: number, y: number, z: number, w: number,
-    ): number {
+    function encodeQuaternionV3(x: number, y: number, z: number, w: number): number {
       // Normalize
       const len = Math.sqrt(x * x + y * y + z * z + w * w);
       if (len > 0) {
         const invLen = 1.0 / len;
-        x *= invLen; y *= invLen; z *= invLen; w *= invLen;
+        x *= invLen;
+        y *= invLen;
+        z *= invLen;
+        w *= invLen;
       } else {
-        x = 0; y = 0; z = 0; w = 1;
+        x = 0;
+        y = 0;
+        z = 0;
+        w = 1;
       }
 
       const abs = [Math.abs(x), Math.abs(y), Math.abs(z), Math.abs(w)];
@@ -767,8 +774,10 @@ describe('Gaussian Codec Abstraction Layer', () => {
 
       const quat = [x, y, z, w];
       if (quat[iLargest] < 0) {
-        quat[0] = -quat[0]; quat[1] = -quat[1];
-        quat[2] = -quat[2]; quat[3] = -quat[3];
+        quat[0] = -quat[0];
+        quat[1] = -quat[1];
+        quat[2] = -quat[2];
+        quat[3] = -quat[3];
       }
 
       let packed = 0;
@@ -778,11 +787,11 @@ describe('Gaussian Codec Abstraction Layer', () => {
         const value = quat[i];
         const negBit = value < 0 ? 1 : 0;
         const mag = Math.min(MASK_9, Math.round((Math.abs(value) / SQRT1_2) * MASK_9));
-        packed |= (mag << bitPos);
-        packed |= (negBit << (bitPos + 9));
+        packed |= mag << bitPos;
+        packed |= negBit << (bitPos + 9);
         bitPos += 10;
       }
-      packed |= (iLargest << 30);
+      packed |= iLargest << 30;
       return packed >>> 0;
     }
 
@@ -801,7 +810,7 @@ describe('Gaussian Codec Abstraction Layer', () => {
         const mag = (packed >>> bitPos) & MASK_9;
         const negBit = (packed >>> (bitPos + 9)) & 0x1;
         bitPos += 10;
-        let value = SQRT1_2 * mag / MASK_9;
+        let value = (SQRT1_2 * mag) / MASK_9;
         if (negBit === 1) value = -value;
         quat[i] = value;
         sumSquares += value * value;
@@ -817,7 +826,7 @@ describe('Gaussian Codec Abstraction Layer', () => {
 
     function quatDot(
       a: [number, number, number, number],
-      b: [number, number, number, number],
+      b: [number, number, number, number]
     ): number {
       return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
     }
@@ -834,9 +843,9 @@ describe('Gaussian Codec Abstraction Layer', () => {
     it('should round-trip 90-degree rotations around each axis', () => {
       const halfSqrt2 = SQRT1_2;
       const testQuats: [number, number, number, number][] = [
-        [halfSqrt2, 0, 0, halfSqrt2],  // 90 deg around X
-        [0, halfSqrt2, 0, halfSqrt2],  // 90 deg around Y
-        [0, 0, halfSqrt2, halfSqrt2],  // 90 deg around Z
+        [halfSqrt2, 0, 0, halfSqrt2], // 90 deg around X
+        [0, halfSqrt2, 0, halfSqrt2], // 90 deg around Y
+        [0, 0, halfSqrt2, halfSqrt2], // 90 deg around Z
       ];
 
       for (const q of testQuats) {
@@ -851,17 +860,20 @@ describe('Gaussian Codec Abstraction Layer', () => {
 
     it('should round-trip arbitrary quaternions with high fidelity', () => {
       const testQuats: [number, number, number, number][] = [
-        [0.1, 0.2, 0.3, 0.9274],     // small rotation
-        [-0.5, 0.5, -0.5, 0.5],      // 120 deg around (1,1,-1)
+        [0.1, 0.2, 0.3, 0.9274], // small rotation
+        [-0.5, 0.5, -0.5, 0.5], // 120 deg around (1,1,-1)
         [0.3536, 0.3536, 0.1464, 0.8536], // mixed rotation
-        [0.0, 0.0, 0.0, -1.0],       // identity with negative w (should negate to positive)
+        [0.0, 0.0, 0.0, -1.0], // identity with negative w (should negate to positive)
       ];
 
       for (const q of testQuats) {
         // Normalize the input
         const len = quatLength(q);
         const nq: [number, number, number, number] = [
-          q[0] / len, q[1] / len, q[2] / len, q[3] / len,
+          q[0] / len,
+          q[1] / len,
+          q[2] / len,
+          q[3] / len,
         ];
         const packed = encodeQuaternionV3(nq[0], nq[1], nq[2], nq[3]);
         const decoded = decodeQuaternionV3(packed);
@@ -875,9 +887,9 @@ describe('Gaussian Codec Abstraction Layer', () => {
     it('should produce unit quaternions after decode', () => {
       // Test many random-ish quaternions
       const testQuats: [number, number, number, number][] = [
-        [1, 0, 0, 0],    // 180 deg around X
-        [0, 1, 0, 0],    // 180 deg around Y
-        [0, 0, 1, 0],    // 180 deg around Z
+        [1, 0, 0, 0], // 180 deg around X
+        [0, 1, 0, 0], // 180 deg around Y
+        [0, 0, 1, 0], // 180 deg around Z
         [0.5, 0.5, 0.5, 0.5], // 120 deg around (1,1,1)
       ];
 
@@ -925,7 +937,10 @@ describe('Gaussian Codec Abstraction Layer', () => {
       const testQ: [number, number, number, number] = [0.271, 0.653, 0.271, 0.653];
       const len = quatLength(testQ);
       const nq: [number, number, number, number] = [
-        testQ[0] / len, testQ[1] / len, testQ[2] / len, testQ[3] / len,
+        testQ[0] / len,
+        testQ[1] / len,
+        testQ[2] / len,
+        testQ[3] / len,
       ];
 
       const packed = encodeQuaternionV3(nq[0], nq[1], nq[2], nq[3]);
@@ -940,7 +955,10 @@ describe('Gaussian Codec Abstraction Layer', () => {
       const testQ: [number, number, number, number] = [-0.3, -0.4, 0.5, 0.7];
       const len = quatLength(testQ);
       const nq: [number, number, number, number] = [
-        testQ[0] / len, testQ[1] / len, testQ[2] / len, testQ[3] / len,
+        testQ[0] / len,
+        testQ[1] / len,
+        testQ[2] / len,
+        testQ[3] / len,
       ];
 
       const packed = encodeQuaternionV3(nq[0], nq[1], nq[2], nq[3]);
@@ -957,7 +975,7 @@ describe('Gaussian Codec Abstraction Layer', () => {
       version: number,
       numPoints: number,
       shDegree: number,
-      fractionalBits: number,
+      fractionalBits: number
     ): ArrayBuffer {
       const buffer = new ArrayBuffer(16);
       const view = new DataView(buffer);
@@ -997,11 +1015,16 @@ describe('Gaussian Codec Abstraction Layer', () => {
     it('should compute SH dimensions correctly', () => {
       const shDimForDegree = (d: number) => {
         switch (d) {
-          case 0: return 0;
-          case 1: return 3;
-          case 2: return 8;
-          case 3: return 15;
-          default: return 0;
+          case 0:
+            return 0;
+          case 1:
+            return 3;
+          case 2:
+            return 8;
+          case 3:
+            return 15;
+          default:
+            return 0;
         }
       };
 

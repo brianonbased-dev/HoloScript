@@ -32,7 +32,9 @@ vi.mock('../../negotiation/NegotiationProtocol', () => {
   function NegotiationProtocolImpl() {
     return _mockProtocol;
   }
-  function getNegotiationProtocol() { return _mockProtocol; }
+  function getNegotiationProtocol() {
+    return _mockProtocol;
+  }
   return { NegotiationProtocol: NegotiationProtocolImpl, getNegotiationProtocol };
 });
 
@@ -62,9 +64,15 @@ import {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 let _nodeId = 0;
-function makeNode() { return { id: `neg_node_${++_nodeId}` }; }
-function makeCtx() { return { emit: vi.fn() }; }
-function makeConfig(o: any = {}) { return { ...negotiationHandler.defaultConfig!, ...o }; }
+function makeNode() {
+  return { id: `neg_node_${++_nodeId}` };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
+function makeConfig(o: any = {}) {
+  return { ...negotiationHandler.defaultConfig!, ...o };
+}
 
 function buildMockProtocol() {
   const listeners: Record<string, ((...args: any[]) => void)[]> = {};
@@ -73,11 +81,27 @@ function buildMockProtocol() {
       if (!listeners[event]) listeners[event] = [];
       listeners[event].push(cb);
       // return an unsubscribe function
-      return () => { listeners[event] = listeners[event].filter((l) => l !== cb); };
+      return () => {
+        listeners[event] = listeners[event].filter((l) => l !== cb);
+      };
     }),
-    emit: (event: string, data: any) => { listeners[event]?.forEach((cb) => cb(data)); },
-    initiate: vi.fn().mockResolvedValue({ id: 'session_1', topic: 'test', participants: [], proposals: [], status: 'open' }),
-    propose: vi.fn().mockResolvedValue({ id: 'proposal_1', title: 'Proposal A', proposerId: 'agent_x', content: {}, priority: 0 }),
+    emit: (event: string, data: any) => {
+      listeners[event]?.forEach((cb) => cb(data));
+    },
+    initiate: vi.fn().mockResolvedValue({
+      id: 'session_1',
+      topic: 'test',
+      participants: [],
+      proposals: [],
+      status: 'open',
+    }),
+    propose: vi.fn().mockResolvedValue({
+      id: 'proposal_1',
+      title: 'Proposal A',
+      proposerId: 'agent_x',
+      content: {},
+      priority: 0,
+    }),
     vote: vi.fn().mockResolvedValue({ id: 'vote_1', agentId: 'agent_x', ranking: [], weight: 1 }),
     getSession: vi.fn().mockReturnValue({ id: 'session_1', proposals: [], participants: [] }),
     getAuditLog: vi.fn().mockReturnValue([]),
@@ -192,7 +216,9 @@ describe('protocol event: sessionStarted', () => {
       cb({ session: { id: 'sess_B', topic: 'test', participants: ['agent_1'] } })
     );
     const history = getEventHistory(node as any);
-    expect(history.some((e: any) => e.type === 'session_started' && e.sessionId === 'sess_B')).toBe(true);
+    expect(history.some((e: any) => e.type === 'session_started' && e.sessionId === 'sess_B')).toBe(
+      true
+    );
   });
 
   it('does NOT add session when agent is NOT a participant', () => {
@@ -241,7 +267,10 @@ describe('protocol event: sessionResolved', () => {
     );
     // Then resolve
     _mockProtocol._listeners.sessionResolved?.forEach((cb: any) =>
-      cb({ session: { id: 'sess_D', participants: ['agent_1'] }, resolution: { outcome: 'accepted', winnerId: 'p1' } })
+      cb({
+        session: { id: 'sess_D', participants: ['agent_1'] },
+        resolution: { outcome: 'accepted', winnerId: 'p1' },
+      })
     );
     expect(isInSession(node as any, 'sess_D')).toBe(false);
   });
@@ -249,7 +278,10 @@ describe('protocol event: sessionResolved', () => {
   it('adds "session_resolved" event to history', () => {
     const { node } = attach({ agent_id: 'agent_1' });
     _mockProtocol._listeners.sessionResolved?.forEach((cb: any) =>
-      cb({ session: { id: 'sess_E', participants: ['agent_1'] }, resolution: { outcome: 'rejected', winnerId: null } })
+      cb({
+        session: { id: 'sess_E', participants: ['agent_1'] },
+        resolution: { outcome: 'rejected', winnerId: null },
+      })
     );
     const history = getEventHistory(node as any);
     expect(history.some((e: any) => e.type === 'session_resolved')).toBe(true);
@@ -341,13 +373,17 @@ describe('observer role guards', () => {
   it('initiate throws for observer', async () => {
     const node = makeNode();
     withNegotiation(node as any, { role: 'observer' });
-    await expect(initiate(node as any, 'topic', ['a', 'b'])).rejects.toThrow('Observers cannot initiate');
+    await expect(initiate(node as any, 'topic', ['a', 'b'])).rejects.toThrow(
+      'Observers cannot initiate'
+    );
   });
 
   it('propose throws for observer', async () => {
     const node = makeNode();
     withNegotiation(node as any, { role: 'observer' });
-    await expect(propose(node as any, 's1', 'title', {})).rejects.toThrow('Observers cannot submit proposals');
+    await expect(propose(node as any, 's1', 'title', {})).rejects.toThrow(
+      'Observers cannot submit proposals'
+    );
   });
 
   it('vote throws for observer', async () => {
@@ -361,7 +397,11 @@ describe('observer role guards', () => {
 describe('initiate / propose / vote (participant role)', () => {
   it('initiate calls protocol.initiate and returns session', async () => {
     const { node } = attach({ agent_id: 'a1', role: 'initiator' });
-    _mockProtocol.initiate.mockResolvedValue({ id: 'sess_new', topic: 'new topic', participants: ['a1'] });
+    _mockProtocol.initiate.mockResolvedValue({
+      id: 'sess_new',
+      topic: 'new topic',
+      participants: ['a1'],
+    });
     const session = await initiate(node as any, 'new topic', ['a2']);
     expect(_mockProtocol.initiate).toHaveBeenCalled();
     expect(session.id).toBe('sess_new');
@@ -369,7 +409,12 @@ describe('initiate / propose / vote (participant role)', () => {
 
   it('propose calls protocol.propose and stores proposal', async () => {
     const { node } = attach({ agent_id: 'a1' });
-    _mockProtocol.propose.mockResolvedValue({ id: 'prop_new', title: 'Prop X', proposerId: 'a1', content: {} });
+    _mockProtocol.propose.mockResolvedValue({
+      id: 'prop_new',
+      title: 'Prop X',
+      proposerId: 'a1',
+      content: {},
+    });
     const proposal = await propose(node as any, 'sess_1', 'Prop X', { data: 1 });
     expect(_mockProtocol.propose).toHaveBeenCalled();
     expect(proposal.id).toBe('prop_new');
@@ -378,7 +423,12 @@ describe('initiate / propose / vote (participant role)', () => {
 
   it('vote calls protocol.vote and stores vote', async () => {
     const { node } = attach({ agent_id: 'a1' });
-    _mockProtocol.vote.mockResolvedValue({ id: 'vote_new', agentId: 'a1', ranking: ['p1'], weight: 1 });
+    _mockProtocol.vote.mockResolvedValue({
+      id: 'vote_new',
+      agentId: 'a1',
+      ranking: ['p1'],
+      weight: 1,
+    });
     const voteResult = await vote(node as any, 'sess_1', ['p1']);
     expect(_mockProtocol.vote).toHaveBeenCalled();
     expect(voteResult.id).toBe('vote_new');

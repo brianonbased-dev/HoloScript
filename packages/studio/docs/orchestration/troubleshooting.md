@@ -28,6 +28,7 @@ This guide covers common problems you might encounter when working with orchestr
 **Symptom:** Keyboard shortcut or button click doesn't open panel
 
 **Possible Causes:**
+
 1. Error boundary has caught an exception
 2. React component failed to mount
 3. JavaScript error in console
@@ -36,6 +37,7 @@ This guide covers common problems you might encounter when working with orchestr
 **Solutions:**
 
 **Step 1:** Check browser console (F12) for errors
+
 ```javascript
 // Look for errors like:
 Error: Failed to mount component
@@ -43,6 +45,7 @@ ReferenceError: X is not defined
 ```
 
 **Step 2:** Clear localStorage and refresh
+
 ```javascript
 // In browser console:
 localStorage.clear();
@@ -50,6 +53,7 @@ location.reload();
 ```
 
 **Step 3:** Check error boundary state
+
 ```javascript
 // In browser console:
 window.__ORCHESTRATION_STORE__.getState();
@@ -57,6 +61,7 @@ window.__ORCHESTRATION_STORE__.getState();
 ```
 
 **Step 4:** Verify panel is registered
+
 ```typescript
 // Check that useOrchestrationKeyboard is called with callback
 const callbacks = {
@@ -75,6 +80,7 @@ useOrchestrationKeyboard(callbacks);
 **Symptom:** Panel appears but content is empty or white
 
 **Possible Causes:**
+
 1. Component data not loaded
 2. API call failed
 3. Missing required props
@@ -83,14 +89,16 @@ useOrchestrationKeyboard(callbacks);
 **Solutions:**
 
 **Step 1:** Check orchestration store state
+
 ```javascript
 const state = window.__ORCHESTRATION_STORE__.getState();
-console.log(state.workflows);      // Should have workflows
-console.log(state.mcpServers);     // Should have servers
-console.log(state.behaviorTrees);  // Should have trees
+console.log(state.workflows); // Should have workflows
+console.log(state.mcpServers); // Should have servers
+console.log(state.behaviorTrees); // Should have trees
 ```
 
 **Step 2:** Initialize default data
+
 ```javascript
 // For workflows
 const { addWorkflow } = useOrchestrationStore();
@@ -101,16 +109,18 @@ addWorkflow({
   nodes: [],
   edges: [],
   createdAt: new Date(),
-  updatedAt: new Date()
+  updatedAt: new Date(),
 });
 ```
 
 **Step 3:** Check CSS rendering
+
 - Verify Tailwind classes are applied
 - Check for `className` typos
 - Inspect element in DevTools
 
 **Step 4:** Reload with hard refresh
+
 - Windows/Linux: `Ctrl+Shift+R`
 - macOS: `Cmd+Shift+R`
 
@@ -121,6 +131,7 @@ addWorkflow({
 **Symptom:** Panel opens briefly then disappears, error in console
 
 **Possible Causes:**
+
 1. Unhandled exception in render
 2. Invalid data in store
 3. Missing required dependency
@@ -128,6 +139,7 @@ addWorkflow({
 **Solutions:**
 
 **Step 1:** Check error boundary logs
+
 ```javascript
 // Error boundaries log caught errors to console
 // Look for:
@@ -135,6 +147,7 @@ Error caught by ErrorBoundary: [Component Name]
 ```
 
 **Step 2:** Reset panel-specific state
+
 ```javascript
 // For MCP panel
 const { mcpServers } = useOrchestrationStore();
@@ -146,6 +159,7 @@ workflows.clear();
 ```
 
 **Step 3:** Verify prop types
+
 ```typescript
 // Check component expects correct props
 interface MCPServerConfigPanelProps {
@@ -157,6 +171,7 @@ interface MCPServerConfigPanelProps {
 ```
 
 **Step 4:** Isolate issue
+
 - Comment out panel content
 - Add back section by section
 - Identify failing component
@@ -172,6 +187,7 @@ interface MCPServerConfigPanelProps {
 **Diagnosis:**
 
 **Step 1:** Verify orchestrator is running
+
 ```bash
 curl http://localhost:5567/health
 
@@ -184,6 +200,7 @@ curl http://localhost:5567/health
 ```
 
 **Step 2:** Check port not in use
+
 ```bash
 # Windows
 netstat -ano | findstr :5567
@@ -193,6 +210,7 @@ lsof -i :5567
 ```
 
 **Step 3:** Verify firewall settings
+
 - Windows Firewall: Allow port 5567
 - macOS: System Preferences → Security → Firewall → Options
 - Linux: `sudo ufw allow 5567`
@@ -200,19 +218,22 @@ lsof -i :5567
 **Solutions:**
 
 **Start the orchestrator:**
+
 ```bash
 cd C:/Users/josep/.mcp
 npm start  # or your start command
 ```
 
 **Use alternative port:**
+
 ```typescript
 updateMCPServer('mcp-orchestrator', {
-  url: 'http://localhost:5568'  // Different port
+  url: 'http://localhost:5568', // Different port
 });
 ```
 
 **Check orchestrator logs:**
+
 ```bash
 # Look for startup errors
 npm start 2>&1 | tee orchestrator.log
@@ -225,6 +246,7 @@ npm start 2>&1 | tee orchestrator.log
 **Symptom:** Yellow indicator, response time > 500ms
 
 **Diagnosis:**
+
 - Check server load (CPU, memory)
 - Measure network latency
 - Check database connection pool
@@ -232,24 +254,27 @@ npm start 2>&1 | tee orchestrator.log
 **Solutions:**
 
 **Increase timeout:**
+
 ```typescript
 updateMCPServer('slow-server', {
-  timeout: 30000,  // 30 seconds instead of 10
-  healthCheckInterval: 60000  // Check less frequently
+  timeout: 30000, // 30 seconds instead of 10
+  healthCheckInterval: 60000, // Check less frequently
 });
 ```
 
 **Optimize server performance:**
+
 - Add database indexes
 - Implement caching
 - Use connection pooling
 - Scale server resources
 
 **Add retry logic:**
+
 ```typescript
 const retryPolicy = {
-  maxRetries: 5,       // More retries
-  backoffMultiplier: 2 // Exponential backoff
+  maxRetries: 5, // More retries
+  backoffMultiplier: 2, // Exponential backoff
 };
 ```
 
@@ -262,6 +287,7 @@ const retryPolicy = {
 **Diagnosis:**
 
 **Step 1:** Verify API key
+
 ```javascript
 // In browser console
 localStorage.getItem('mcp-api-key');
@@ -269,6 +295,7 @@ localStorage.getItem('mcp-api-key');
 ```
 
 **Step 2:** Check server expects key
+
 ```bash
 curl -H "x-mcp-api-key: dev-key-12345" \
   http://localhost:5567/servers
@@ -280,22 +307,25 @@ curl -H "x-mcp-api-key: dev-key-12345" \
 **Solutions:**
 
 **Update API key:**
+
 ```typescript
 const [apiKey, setApiKey] = useLocalStorage('mcp-api-key', 'your-key-here');
 updateMCPServer('mcp-orchestrator', { apiKey });
 ```
 
 **Reset to default key:**
+
 ```javascript
 localStorage.setItem('mcp-api-key', 'dev-key-12345');
 location.reload();
 ```
 
 **Check orchestrator config:**
+
 ```typescript
 // In orchestrator config file
 {
-  apiKey: process.env.MCP_API_KEY || 'dev-key-12345'
+  apiKey: process.env.MCP_API_KEY || 'dev-key-12345';
 }
 ```
 
@@ -308,6 +338,7 @@ location.reload();
 **Diagnosis:**
 
 **Step 1:** List available tools
+
 ```bash
 curl -H "x-mcp-api-key: dev-key-12345" \
   http://localhost:5567/tools
@@ -316,35 +347,45 @@ curl -H "x-mcp-api-key: dev-key-12345" \
 ```
 
 **Step 2:** Check server is enabled
+
 ```javascript
 const server = mcpServers.get('semantic-search-hub');
-console.log(server.enabled);  // Should be true
+console.log(server.enabled); // Should be true
 ```
 
 **Solutions:**
 
 **Refresh tool list:**
+
 1. Click server in MCP panel
 2. Wait for tool browser to load
 3. Tool should appear in list
 
 **Verify tool registration:**
+
 ```typescript
 // In server code
 server.registerTool({
-  name: 'search_knowledge',  // ← This must match tool call
+  name: 'search_knowledge', // ← This must match tool call
   description: '...',
-  handler: async (args) => { /* ... */ }
+  handler: async (args) => {
+    /* ... */
+  },
 });
 ```
 
 **Check spelling:**
+
 ```typescript
 // Incorrect
-{ tool: 'searchKnowledge' }  // CamelCase
+{
+  tool: 'searchKnowledge';
+} // CamelCase
 
 // Correct
-{ tool: 'search_knowledge' }  // snake_case
+{
+  tool: 'search_knowledge';
+} // snake_case
 ```
 
 ---
@@ -358,6 +399,7 @@ server.registerTool({
 **Diagnosis:**
 
 **Step 1:** Check localStorage quota
+
 ```javascript
 // Test localStorage write
 try {
@@ -370,6 +412,7 @@ try {
 ```
 
 **Step 2:** Verify auto-save hook
+
 ```javascript
 // Check auto-save is enabled
 const { lastSaved } = useOrchestrationStore();
@@ -380,6 +423,7 @@ console.log('Last saved:', lastSaved);
 **Solutions:**
 
 **Clear old data:**
+
 ```javascript
 // Free up space
 localStorage.removeItem('old-data-key');
@@ -390,12 +434,14 @@ console.log(JSON.stringify(localStorage).length / 1024 + 'KB');
 ```
 
 **Increase auto-save interval:**
+
 ```typescript
 // In useOrchestrationAutoSave.ts
-const AUTO_SAVE_INTERVAL = 5000;  // 5 seconds instead of 2
+const AUTO_SAVE_INTERVAL = 5000; // 5 seconds instead of 2
 ```
 
 **Manual save:**
+
 ```typescript
 // Force save immediately
 const { workflows, saveWorkflow } = useOrchestrationStore();
@@ -404,6 +450,7 @@ saveWorkflow(workflow);
 ```
 
 **Use export as backup:**
+
 ```typescript
 // Export to JSON file as failsafe
 import { downloadWorkflowJSON } from '@/lib/exporters';
@@ -419,23 +466,27 @@ downloadWorkflowJSON(workflow);
 **Diagnosis:**
 
 **Browser in private/incognito mode?**
+
 - Incognito mode clears localStorage on close
 - Use normal browser window for persistence
 
 **localStorage disabled?**
+
 ```javascript
 // Check browser settings
-console.log(navigator.cookieEnabled);  // Should be true
+console.log(navigator.cookieEnabled); // Should be true
 ```
 
 **Solutions:**
 
 **Enable localStorage:**
+
 - Chrome: Settings → Privacy → Cookies → "Allow all"
 - Firefox: Preferences → Privacy → Custom → "Remember history"
 - Safari: Preferences → Privacy → Uncheck "Block all cookies"
 
 **Use session backup:**
+
 ```typescript
 // Also save to sessionStorage
 sessionStorage.setItem('orchestration-backup', JSON.stringify(state));
@@ -448,6 +499,7 @@ if (backup && !localStorage.getItem('orchestration-state')) {
 ```
 
 **Regular exports:**
+
 - Export workflows weekly: `Ctrl+Shift+E`
 - Store in Git repository
 - Cloud backup (Dropbox, Google Drive)
@@ -463,10 +515,12 @@ if (backup && !localStorage.getItem('orchestration-state')) {
 **Diagnosis:**
 
 **Step 1:** Check browser download permissions
+
 - Browser may block automatic downloads
 - Check for popup blocker notification
 
 **Step 2:** Check browser console
+
 ```javascript
 // Look for errors like:
 SecurityError: Blocked a frame from accessing a cross-origin frame.
@@ -476,14 +530,17 @@ Failed to create object URL.
 **Solutions:**
 
 **Allow downloads:**
+
 - Chrome: Settings → Downloads → "Ask where to save each file before downloading"
 - Click "Always allow" on popup notification
 
 **Check download location:**
+
 - Verify downloads folder exists and is writable
 - Check disk space available
 
 **Use alternative export:**
+
 ```javascript
 // Copy to clipboard instead
 const json = exportWorkflow(workflow);
@@ -492,6 +549,7 @@ console.log('Copied to clipboard!');
 ```
 
 **Manual download:**
+
 ```javascript
 // Right-click → Save link as
 const json = exportWorkflow(workflow);
@@ -508,13 +566,15 @@ console.log(json);
 **Diagnosis:**
 
 **Step 1:** Check export function
+
 ```javascript
 const workflow = workflows.get('workflow_123');
 const json = exportWorkflow(workflow);
-console.log(json);  // Should be valid JSON string
+console.log(json); // Should be valid JSON string
 ```
 
 **Step 2:** Validate JSON
+
 ```javascript
 try {
   JSON.parse(json);
@@ -527,9 +587,10 @@ try {
 **Solutions:**
 
 **Verify data exists:**
+
 ```javascript
 const workflow = workflows.get('workflow_123');
-console.log(workflow);  // Should have nodes, edges, etc.
+console.log(workflow); // Should have nodes, edges, etc.
 
 if (!workflow) {
   console.error('Workflow not found!');
@@ -537,16 +598,18 @@ if (!workflow) {
 ```
 
 **Check for circular references:**
+
 ```javascript
 // Causes JSON.stringify to fail
 const node = { id: 'node1', parent: null };
-node.parent = node;  // ← Circular reference
+node.parent = node; // ← Circular reference
 
 // Solution: Use structured clone
 const safeData = structuredClone(workflow);
 ```
 
 **Use safe stringify:**
+
 ```javascript
 import safeStringify from 'json-stringify-safe';
 
@@ -562,6 +625,7 @@ const json = safeStringify(workflow, null, 2);
 **Diagnosis:**
 
 **Step 1:** Validate against schema
+
 ```typescript
 import { AgentWorkflow } from '@/lib/orchestrationStore';
 
@@ -575,23 +639,25 @@ const isValid = (data: any): data is AgentWorkflow => {
 };
 
 const parsed = JSON.parse(exportedJSON);
-console.log(isValid(parsed));  // Should be true
+console.log(isValid(parsed)); // Should be true
 ```
 
 **Solutions:**
 
 **Add version to exports:**
+
 ```typescript
 const exportWorkflow = (workflow: AgentWorkflow) => {
   const data = {
-    version: '1.0.0',  // ← For compatibility checks
-    workflow
+    version: '1.0.0', // ← For compatibility checks
+    workflow,
   };
   return JSON.stringify(data, null, 2);
 };
 ```
 
 **Implement import validation:**
+
 ```typescript
 const importWorkflow = (json: string) => {
   const data = JSON.parse(json);
@@ -621,6 +687,7 @@ const importWorkflow = (json: string) => {
 **Diagnosis:**
 
 **Measure render time:**
+
 ```javascript
 console.time('workflow-render');
 // Render workflow
@@ -631,6 +698,7 @@ console.timeEnd('workflow-render');
 **Solutions:**
 
 **Virtualize node list:**
+
 ```typescript
 // Only render visible nodes
 import { Virtuoso } from 'react-virtuoso';
@@ -642,6 +710,7 @@ import { Virtuoso } from 'react-virtuoso';
 ```
 
 **Memoize expensive components:**
+
 ```typescript
 import { memo } from 'react';
 
@@ -651,15 +720,17 @@ const NodeComponent = memo(({ node }) => {
 ```
 
 **Throttle updates:**
+
 ```typescript
 import { throttle } from 'lodash';
 
 const handleNodeDrag = throttle((event) => {
   updateNodePosition(event);
-}, 16);  // 60fps
+}, 16); // 60fps
 ```
 
 **Reduce auto-save frequency:**
+
 ```typescript
 // Save every 5s instead of 2s for large workflows
 const AUTO_SAVE_INTERVAL = 5000;
@@ -674,27 +745,27 @@ const AUTO_SAVE_INTERVAL = 5000;
 **Solutions:**
 
 **Limit displayed events:**
+
 ```typescript
-const filteredEvents = events.slice(-100);  // Last 100 only
+const filteredEvents = events.slice(-100); // Last 100 only
 ```
 
 **Implement pagination:**
+
 ```typescript
 const [page, setPage] = useState(0);
 const EVENTS_PER_PAGE = 50;
 
-const displayedEvents = filteredEvents.slice(
-  page * EVENTS_PER_PAGE,
-  (page + 1) * EVENTS_PER_PAGE
-);
+const displayedEvents = filteredEvents.slice(page * EVENTS_PER_PAGE, (page + 1) * EVENTS_PER_PAGE);
 ```
 
 **Clear old events:**
+
 ```typescript
 // Auto-clear events older than 1 hour
 const clearOldEvents = () => {
   const oneHourAgo = Date.now() - 3600000;
-  const recentEvents = events.filter(e => e.timestamp > oneHourAgo);
+  const recentEvents = events.filter((e) => e.timestamp > oneHourAgo);
   setEvents(recentEvents);
 };
 ```
@@ -708,31 +779,34 @@ const clearOldEvents = () => {
 **Diagnosis:**
 
 **Check tool call history size:**
+
 ```javascript
 const { toolCallHistory } = useOrchestrationStore.getState();
-console.log(toolCallHistory.length);  // Growing unbounded?
+console.log(toolCallHistory.length); // Growing unbounded?
 ```
 
 **Solutions:**
 
 **Limit history size:**
+
 ```typescript
 const MAX_HISTORY = 500;
 
 const addToolCall = (call: ToolCallRecord) => {
   setToolCallHistory((prev) => {
     const updated = [...prev, call];
-    return updated.slice(-MAX_HISTORY);  // Keep last 500
+    return updated.slice(-MAX_HISTORY); // Keep last 500
   });
 };
 ```
 
 **Clear history periodically:**
+
 ```typescript
 useEffect(() => {
   const interval = setInterval(() => {
     clearToolCallHistory();
-  }, 600000);  // Clear every 10 minutes
+  }, 600000); // Clear every 10 minutes
 
   return () => clearInterval(interval);
 }, []);
@@ -749,12 +823,14 @@ useEffect(() => {
 **Diagnosis:**
 
 **Step 1:** Check focus
+
 ```javascript
 // Shortcuts only work when window has focus
-console.log(document.hasFocus());  // Should be true
+console.log(document.hasFocus()); // Should be true
 ```
 
 **Step 2:** Check for conflicts
+
 ```javascript
 // Other libraries may intercept shortcuts
 window.addEventListener('keydown', (e) => {
@@ -767,21 +843,25 @@ window.addEventListener('keydown', (e) => {
 **Solutions:**
 
 **Click inside HoloScript Studio:**
+
 - Shortcuts require focus on the application window
 
 **Check preventDefault:**
+
 ```typescript
 if (e.ctrlKey && e.key === 'm') {
-  e.preventDefault();  // ← Ensures override of browser default
+  e.preventDefault(); // ← Ensures override of browser default
   callbacks.onToggleMCP();
 }
 ```
 
 **Use alternative shortcut:**
+
 - Try clicking UI button instead
 - Use different key combination
 
 **Disable conflicting extensions:**
+
 - Browser extensions may intercept shortcuts
 - Test in incognito mode
 
@@ -794,21 +874,24 @@ if (e.ctrlKey && e.key === 'm') {
 **Solutions:**
 
 **Add stopPropagation:**
+
 ```typescript
 if (e.ctrlKey && e.shiftKey && e.key === 'T') {
   e.preventDefault();
-  e.stopPropagation();  // ← Stop event from reaching browser
+  e.stopPropagation(); // ← Stop event from reaching browser
   callbacks.onToggleToolCallGraph();
 }
 ```
 
 **Use different shortcut:**
+
 ```typescript
 // Change from Ctrl+T to Ctrl+Shift+T
 // Less likely to conflict with browser
 ```
 
 **Check browser version:**
+
 - Update to latest version
 - Older browsers may not respect `preventDefault()`
 
@@ -823,12 +906,14 @@ if (e.ctrlKey && e.shiftKey && e.key === 'T') {
 **Diagnosis:**
 
 **Check console for error:**
+
 ```javascript
 // Error boundaries log to console
 console.error('Error caught:', error);
 ```
 
 **Identify failing component:**
+
 ```
 Error boundary caught error in:
   Component: MCPServerConfigPanel
@@ -838,10 +923,12 @@ Error boundary caught error in:
 **Solutions:**
 
 **Reload component:**
+
 - Close panel (`Esc`)
 - Reopen panel (`Ctrl+M`)
 
 **Clear corrupted state:**
+
 ```javascript
 // Reset specific store section
 const { resetMCPState } = useOrchestrationStore();
@@ -849,6 +936,7 @@ resetMCPState();
 ```
 
 **Report bug:**
+
 ```javascript
 // Copy error details
 console.error('Error:', error);
@@ -865,10 +953,12 @@ console.log('Store state:', window.__ORCHESTRATION_STORE__.getState());
 **Solutions:**
 
 **Hard refresh:**
+
 - `Ctrl+Shift+R` (Windows/Linux)
 - `Cmd+Shift+R` (macOS)
 
 **Clear all state:**
+
 ```javascript
 localStorage.clear();
 sessionStorage.clear();
@@ -876,12 +966,14 @@ location.reload();
 ```
 
 **Check console:**
+
 ```javascript
 // Look for fatal errors
 Uncaught TypeError: Cannot read property 'X' of undefined
 ```
 
 **Rollback changes:**
+
 ```bash
 # If recent code change caused it
 git checkout HEAD~1
@@ -899,13 +991,14 @@ npm run build
 **Diagnosis:**
 
 **Check workflow validation:**
+
 ```typescript
 const isValid = (workflow: AgentWorkflow) => {
   // Must have at least one node
   if (workflow.nodes.length === 0) return false;
 
   // Nodes must be connected
-  const connectedNodes = new Set(workflow.edges.flatMap(e => [e.source, e.target]));
+  const connectedNodes = new Set(workflow.edges.flatMap((e) => [e.source, e.target]));
   if (connectedNodes.size === 0) return false;
 
   return true;
@@ -915,14 +1008,16 @@ const isValid = (workflow: AgentWorkflow) => {
 **Solutions:**
 
 **Ensure workflow has nodes:**
+
 1. Add at least one agent or tool node
 2. Connect nodes with edges
 3. Save workflow
 
 **Check agent configuration:**
+
 ```typescript
 // Agent must have valid config
-const agentNode = nodes.find(n => n.type === 'agent');
+const agentNode = nodes.find((n) => n.type === 'agent');
 console.log(agentNode.data);
 
 // Should have:
@@ -940,10 +1035,12 @@ console.log(agentNode.data);
 **Diagnosis:**
 
 **Check Tool Call Graph (`Ctrl+Shift+T`):**
+
 - Red indicators show failures
 - Expand call to see error message
 
 **Common errors:**
+
 - Missing required parameters
 - Invalid parameter types
 - Server offline
@@ -952,6 +1049,7 @@ console.log(agentNode.data);
 **Solutions:**
 
 **Test tool individually:**
+
 1. Open MCP panel (`Ctrl+M`)
 2. Find the failing tool
 3. Click "▶" to open tester
@@ -959,6 +1057,7 @@ console.log(agentNode.data);
 5. Fix issues then retry workflow
 
 **Check parameter mapping:**
+
 ```typescript
 // Tool node must pass correct args
 {
@@ -985,23 +1084,24 @@ console.log(agentNode.data);
 **Diagnosis:**
 
 **Check root node:**
+
 ```typescript
 // Tree must have exactly one root (no incoming edges)
-const roots = nodes.filter(n =>
-  !edges.some(e => e.target === n.id)
-);
+const roots = nodes.filter((n) => !edges.some((e) => e.target === n.id));
 
-console.log('Root nodes:', roots.length);  // Should be 1
+console.log('Root nodes:', roots.length); // Should be 1
 ```
 
 **Solutions:**
 
 **Ensure single root:**
+
 1. Delete extra root nodes
 2. Connect all nodes to single root
 3. Root should be Sequence or Selector
 
 **Validate tree structure:**
+
 ```typescript
 // No cycles allowed
 const hasCycle = (nodes, edges) => {
@@ -1019,6 +1119,7 @@ const hasCycle = (nodes, edges) => {
 **Diagnosis:**
 
 **Check action registration:**
+
 ```typescript
 // Action IDs must be registered in runtime
 const actions = {
@@ -1039,6 +1140,7 @@ const actions = {
 **Solutions:**
 
 **Implement action handlers:**
+
 ```typescript
 // In behavior tree runtime
 const executeAction = (node: BTNode) => {
@@ -1059,12 +1161,14 @@ const executeAction = (node: BTNode) => {
 **Step 1:** Open browser console (F12)
 
 **Step 2:** Enable verbose logging
+
 ```javascript
 localStorage.setItem('orchestration-debug', 'true');
 location.reload();
 ```
 
 **Step 3:** View debug logs
+
 ```javascript
 // Orchestration store logs all actions
 [OrchestrationStore] addWorkflow: workflow_123
@@ -1135,11 +1239,13 @@ Create GitHub issue with:
 
 ```markdown
 **Environment:**
+
 - Browser: Chrome 120.0.6099.109
 - OS: Windows 11
 - HoloScript Studio version: 1.0.0
 
 **Steps to Reproduce:**
+
 1. Open Workflow Editor (Ctrl+Shift+W)
 2. Add Agent node
 3. Click Save
@@ -1147,9 +1253,11 @@ Create GitHub issue with:
 
 **Error Message:**
 ```
+
 TypeError: Cannot read property 'id' of undefined
-  at AgentOrchestrationGraphEditor.tsx:89
-```
+at AgentOrchestrationGraphEditor.tsx:89
+
+````
 
 **Store State:**
 ```json
@@ -1157,10 +1265,11 @@ TypeError: Cannot read property 'id' of undefined
   "workflows": {},
   "mcpServers": {...}
 }
-```
+````
 
 **Expected:** Workflow saves successfully
 **Actual:** Panel crashes with error
+
 ```
 
 ---
@@ -1170,3 +1279,4 @@ TypeError: Cannot read property 'id' of undefined
 ---
 
 **Happy Debugging!**
+```

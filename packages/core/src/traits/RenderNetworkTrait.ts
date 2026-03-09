@@ -332,9 +332,9 @@ async function callRenderNetworkAPI(
   return fetch(url, {
     method,
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      Accept: 'application/json',
     },
     ...(body != null ? { body: JSON.stringify(body) } : {}),
   });
@@ -574,7 +574,7 @@ async function submitJobToAPI(
       // Check if it's a retryable error
       if (response.status >= 500 || response.status === 429) {
         if (attempt < maxRetries - 1) {
-          await new Promise(resolve => setTimeout(resolve, backoffMs[attempt]));
+          await new Promise((resolve) => setTimeout(resolve, backoffMs[attempt]));
           continue;
         }
       }
@@ -584,7 +584,7 @@ async function submitJobToAPI(
       if (attempt === maxRetries - 1) {
         throw new Error(`Failed after ${maxRetries} retries: ${String(error)}`);
       }
-      await new Promise(resolve => setTimeout(resolve, backoffMs[attempt]));
+      await new Promise((resolve) => setTimeout(resolve, backoffMs[attempt]));
     }
   }
 }
@@ -769,7 +769,7 @@ async function selectOptimalRegion(apiKey: string): Promise<string> {
       const start = Date.now();
       const response = await fetch(`${RENDER_NETWORK_API}/regions/${region}/ping`, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${apiKey}` },
+        headers: { Authorization: `Bearer ${apiKey}` },
       });
       const latency = response.ok ? Date.now() - start : Infinity;
       latencies.push(latency);
@@ -836,7 +836,7 @@ async function uploadSceneAssets(
     const response = await fetch(`${RENDER_NETWORK_API}/uploads/${sessionId}/chunk`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: formData,
     });
@@ -847,7 +847,6 @@ async function uploadSceneAssets(
 
   return sessionId;
 }
-
 
 // =============================================================================
 // EXPORTS

@@ -47,10 +47,10 @@ describe('Cycle 116: Input System', () => {
   it('should apply gamepad dead zones', () => {
     const input = new InputManager();
     input.connectGamepad(0, 'Xbox Controller');
-    input.setGamepadAxis(0, 0, 0.05);  // Below default 0.15 dead zone
+    input.setGamepadAxis(0, 0, 0.05); // Below default 0.15 dead zone
     expect(input.getGamepadAxis(0, 0)).toBe(0);
 
-    input.setGamepadAxis(0, 0, 0.5);   // Above dead zone
+    input.setGamepadAxis(0, 0, 0.5); // Above dead zone
     expect(input.getGamepadAxis(0, 0)).toBe(0.5);
   });
 
@@ -82,7 +82,10 @@ describe('Cycle 116: Input System', () => {
     const bindings = new InputBindings();
     bindings.addCompositeAxis('horizontal', 'KeyD', 'KeyA');
 
-    const keys = new Map<string, boolean>([['KeyD', true], ['KeyA', false]]);
+    const keys = new Map<string, boolean>([
+      ['KeyD', true],
+      ['KeyA', false],
+    ]);
     expect(bindings.resolveComposite('horizontal', keys)).toBe(1);
 
     keys.set('KeyD', false);

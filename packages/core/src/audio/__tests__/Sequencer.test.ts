@@ -68,7 +68,11 @@ describe('Sequencer (createSequencer)', () => {
   describe('sequence management', () => {
     it('should create and retrieve a sequence', () => {
       const config: ISequence = {
-        id: 's1', name: 'Test', bpm: 120, tracks: [], patterns: [],
+        id: 's1',
+        name: 'Test',
+        bpm: 120,
+        tracks: [],
+        patterns: [],
       };
       seq.createSequence(config);
       const retrieved = seq.getSequence('s1');
@@ -92,13 +96,27 @@ describe('Sequencer (createSequencer)', () => {
 
   describe('pattern management', () => {
     it('should create and retrieve a pattern', () => {
-      const pattern: IPattern = { id: 'p1', name: 'Kick', bars: 1, beatsPerBar: 4, subdivision: 4, notes: [] };
+      const pattern: IPattern = {
+        id: 'p1',
+        name: 'Kick',
+        bars: 1,
+        beatsPerBar: 4,
+        subdivision: 4,
+        notes: [],
+      };
       seq.createPattern(pattern);
       expect(seq.getPattern('p1')).toBeDefined();
     });
 
     it('should add notes to a pattern', () => {
-      const pattern: IPattern = { id: 'p1', name: 'Kick', bars: 1, beatsPerBar: 4, subdivision: 4, notes: [] };
+      const pattern: IPattern = {
+        id: 'p1',
+        name: 'Kick',
+        bars: 1,
+        beatsPerBar: 4,
+        subdivision: 4,
+        notes: [],
+      };
       seq.createPattern(pattern);
       seq.addNoteToPattern('p1', { pitch: 60, velocity: 100, start: 0, duration: 0.25 });
       const p = seq.getPattern('p1');
@@ -106,7 +124,14 @@ describe('Sequencer (createSequencer)', () => {
     });
 
     it('should remove notes from a pattern', () => {
-      const pattern: IPattern = { id: 'p1', name: 'Kick', bars: 1, beatsPerBar: 4, subdivision: 4, notes: [{ pitch: 60, velocity: 100, start: 0, duration: 0.25 }] };
+      const pattern: IPattern = {
+        id: 'p1',
+        name: 'Kick',
+        bars: 1,
+        beatsPerBar: 4,
+        subdivision: 4,
+        notes: [{ pitch: 60, velocity: 100, start: 0, duration: 0.25 }],
+      };
       seq.createPattern(pattern);
       seq.removeNoteFromPattern('p1', 0);
       expect(seq.getPattern('p1')!.notes.length).toBe(0);
@@ -115,20 +140,44 @@ describe('Sequencer (createSequencer)', () => {
 
   describe('track management', () => {
     it('should create and retrieve a track', () => {
-      const track: ITrack = { id: 't1', name: 'Drums', volume: 1, pan: 0, muted: false, solo: false, patterns: [] };
+      const track: ITrack = {
+        id: 't1',
+        name: 'Drums',
+        volume: 1,
+        pan: 0,
+        muted: false,
+        solo: false,
+        patterns: [],
+      };
       seq.createTrack(track);
       expect(seq.getTrack('t1')).toBeDefined();
     });
 
     it('should update track properties', () => {
-      const track: ITrack = { id: 't1', name: 'Drums', volume: 1, pan: 0, muted: false, solo: false, patterns: [] };
+      const track: ITrack = {
+        id: 't1',
+        name: 'Drums',
+        volume: 1,
+        pan: 0,
+        muted: false,
+        solo: false,
+        patterns: [],
+      };
       seq.createTrack(track);
       seq.setTrackVolume('t1', 0.5);
       expect(seq.getTrack('t1')!.volume).toBe(0.5);
     });
 
     it('should mute/solo tracks', () => {
-      const track: ITrack = { id: 't1', name: 'Drums', volume: 1, pan: 0, muted: false, solo: false, patterns: [] };
+      const track: ITrack = {
+        id: 't1',
+        name: 'Drums',
+        volume: 1,
+        pan: 0,
+        muted: false,
+        solo: false,
+        patterns: [],
+      };
       seq.createTrack(track);
       seq.setTrackMuted('t1', true);
       expect(seq.getTrack('t1')!.muted).toBe(true);

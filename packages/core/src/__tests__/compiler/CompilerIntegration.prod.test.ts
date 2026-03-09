@@ -32,7 +32,6 @@ const compile = (obj: any) => `/* ${obj.name} output */`;
 // ── Compiler + TraitGraph integration ─────────────────────────────────────────
 
 describe('Compiler + TraitDependencyGraph — shared trait graph', () => {
-
   it('compiler compiles and registers objects in the trait graph', async () => {
     const tg = new TraitDependencyGraph();
     const compiler = new IncrementalCompiler(tg);
@@ -76,7 +75,6 @@ describe('Compiler + TraitDependencyGraph — shared trait graph', () => {
 // ── Import edges flow into compiler ───────────────────────────────────────────
 
 describe('Compiler + TraitDependencyGraph — import edge propagation', () => {
-
   it('registerImport on the trait graph is reachable via compiler.getTraitGraph()', () => {
     const compiler = new IncrementalCompiler();
     const tg = compiler.getTraitGraph();
@@ -111,7 +109,6 @@ describe('Compiler + TraitDependencyGraph — import edge propagation', () => {
 // ── Caching correctness with object changes ───────────────────────────────────
 
 describe('Compiler + TraitDependencyGraph — cache invalidation', () => {
-
   it('object with modified property is not served from cache', async () => {
     const compiler = new IncrementalCompiler();
     const ast1 = makeAST([makeObj('Sphere', [], 1.0)]);
@@ -144,7 +141,6 @@ describe('Compiler + TraitDependencyGraph — cache invalidation', () => {
 // ── Dependency graph drives recompilation ─────────────────────────────────────
 
 describe('Compiler — dependency-driven recompilation', () => {
-
   it('dependent object is recompiled when dependency changes', async () => {
     const compiler = new IncrementalCompiler();
     // B depends on A
@@ -176,7 +172,6 @@ describe('Compiler — dependency-driven recompilation', () => {
 // ── State preservation through re-compile ─────────────────────────────────────
 
 describe('Compiler — state preservation across hot reload', () => {
-
   it('saveState + restoreState round-trips object states', async () => {
     const compiler = new IncrementalCompiler();
     const states = new Map<string, Record<string, unknown>>([
@@ -202,7 +197,6 @@ describe('Compiler — state preservation across hot reload', () => {
 // ── serialization round-trip (compiler + trait graph) ─────────────────────────
 
 describe('Compiler — serialize / deserialize with trait graph', () => {
-
   it('deserializes and retains cache entries', async () => {
     const compiler = new IncrementalCompiler();
     const ast = makeAST([makeObj('Orb', ['glow'])]);
@@ -219,7 +213,13 @@ describe('Compiler — serialize / deserialize with trait graph', () => {
   });
 
   it('deserializing malformed version throws', () => {
-    const bad = JSON.stringify({ version: 0, entries: [], dependencies: [], traitGraph: '{}', timestamp: 0 });
+    const bad = JSON.stringify({
+      version: 0,
+      entries: [],
+      dependencies: [],
+      traitGraph: '{}',
+      timestamp: 0,
+    });
     expect(() => IncrementalCompiler.deserialize(bad)).toThrow();
   });
 });
@@ -227,11 +227,12 @@ describe('Compiler — serialize / deserialize with trait graph', () => {
 // ── Trait changes via getTraitChanges ─────────────────────────────────────────
 
 describe('Compiler — getTraitChanges integration', () => {
-
   it('no snapshot — all provided traits appear as added', () => {
     // detectTraitChanges with no prior snapshot treats all traits as 'added'
     const compiler = new IncrementalCompiler();
-    const changes = compiler.getTraitChanges('Box', [{ name: 'physics', config: {}, configHash: 'h1' }]);
+    const changes = compiler.getTraitChanges('Box', [
+      { name: 'physics', config: {}, configHash: 'h1' },
+    ]);
     expect(changes.length).toBe(1);
     expect(changes[0].changeType).toBe('added');
   });
@@ -247,7 +248,7 @@ describe('Compiler — getTraitChanges integration', () => {
       { name: 'physics', config: {}, configHash: '' },
       { name: 'grabbable', config: {}, configHash: '' },
     ]);
-    const added = changes.filter(c => c.changeType === 'added');
+    const added = changes.filter((c) => c.changeType === 'added');
     expect(added.length).toBe(1);
     expect(added[0].traitName).toBe('grabbable');
   });

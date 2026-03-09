@@ -61,8 +61,10 @@ export function analyzeForOptimization(
   const ratio = Math.min(1, targetTris / Math.max(1, totalTriangles));
   const optimizedTris = Math.round(totalTriangles * ratio);
 
-  if (totalTriangles > 500000) warnings.push('Very high polygon count — consider manual optimization');
-  if (meshes.some(m => m.materials > 10)) warnings.push('Mesh has many materials — consider atlasing');
+  if (totalTriangles > 500000)
+    warnings.push('Very high polygon count — consider manual optimization');
+  if (meshes.some((m) => m.materials > 10))
+    warnings.push('Mesh has many materials — consider atlasing');
 
   // Texture downscaling savings
   const textureSavings = meshes.reduce((s, m) => {
@@ -103,7 +105,10 @@ export function calculateLODLevels(triangles: number, levels: number = 3): numbe
 /**
  * Estimate memory usage for a mesh at runtime (GPU VRAM).
  */
-export function estimateVRAM(triangles: number, textureBytes: number): {
+export function estimateVRAM(
+  triangles: number,
+  textureBytes: number
+): {
   meshMB: number;
   textureMB: number;
   totalMB: number;
@@ -111,5 +116,9 @@ export function estimateVRAM(triangles: number, textureBytes: number): {
   const meshBytes = triangles * 36; // 3 verts × 12 bytes each
   const meshMB = meshBytes / (1024 * 1024);
   const textureMB = textureBytes / (1024 * 1024);
-  return { meshMB: +meshMB.toFixed(2), textureMB: +textureMB.toFixed(2), totalMB: +(meshMB + textureMB).toFixed(2) };
+  return {
+    meshMB: +meshMB.toFixed(2),
+    textureMB: +textureMB.toFixed(2),
+    totalMB: +(meshMB + textureMB).toFixed(2),
+  };
 }

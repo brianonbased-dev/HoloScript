@@ -149,11 +149,7 @@ describe('TrainingMonkeyIntegration', () => {
   describe('readJsonl', () => {
     it('parses valid JSONL with multiple entries', () => {
       const integration = new TrainingMonkeyIntegration();
-      const jsonl = buildJsonl([
-        makeEntry('obj-1'),
-        makeEntry('obj-2'),
-        makeEntry('obj-3'),
-      ]);
+      const jsonl = buildJsonl([makeEntry('obj-1'), makeEntry('obj-2'), makeEntry('obj-3')]);
 
       const entries = integration.readJsonl(jsonl);
       expect(entries).toHaveLength(3);
@@ -199,18 +195,14 @@ describe('TrainingMonkeyIntegration', () => {
       const integration = new TrainingMonkeyIntegration();
       const jsonl = JSON.stringify({ response: 'hello', metadata: {} });
 
-      expect(() => integration.readJsonl(jsonl)).toThrow(
-        'Missing required fields'
-      );
+      expect(() => integration.readJsonl(jsonl)).toThrow('Missing required fields');
     });
 
     it('throws on missing response field', () => {
       const integration = new TrainingMonkeyIntegration();
       const jsonl = JSON.stringify({ instruction: 'hello', metadata: {} });
 
-      expect(() => integration.readJsonl(jsonl)).toThrow(
-        'Missing required fields'
-      );
+      expect(() => integration.readJsonl(jsonl)).toThrow('Missing required fields');
     });
 
     it('handles single-line JSONL', () => {
@@ -272,13 +264,7 @@ describe('TrainingMonkeyIntegration', () => {
 
     it('uses empty input when no scene is present', () => {
       const integration = new TrainingMonkeyIntegration();
-      const jsonl = makeEntry(
-        'no-scene',
-        'spatial_adjacent',
-        'basic',
-        true,
-        false
-      );
+      const jsonl = makeEntry('no-scene', 'spatial_adjacent', 'basic', true, false);
       const entries = integration.readJsonl(jsonl);
 
       const alpaca = integration.convertToAlpaca(entries);
@@ -355,9 +341,7 @@ describe('TrainingMonkeyIntegration', () => {
       // Create entries with very similar template text
       const similarEntries: string[] = [];
       for (let i = 0; i < 20; i++) {
-        similarEntries.push(
-          makeEntry(`similar-${i}`, 'spatial_adjacent', 'basic', true)
-        );
+        similarEntries.push(makeEntry(`similar-${i}`, 'spatial_adjacent', 'basic', true));
       }
       // Add a unique entry
       similarEntries.push(
@@ -383,9 +367,8 @@ describe('TrainingMonkeyIntegration', () => {
 
       // The unique entry should have a higher weight than the template entries
       const uniqueWeight = weighted[weighted.length - 1].sampling_weight;
-      const templateWeights = weighted.slice(0, -1).map(w => w.sampling_weight);
-      const avgTemplateWeight =
-        templateWeights.reduce((a, b) => a + b, 0) / templateWeights.length;
+      const templateWeights = weighted.slice(0, -1).map((w) => w.sampling_weight);
+      const avgTemplateWeight = templateWeights.reduce((a, b) => a + b, 0) / templateWeights.length;
 
       expect(uniqueWeight).toBeGreaterThan(avgTemplateWeight);
     });
@@ -451,14 +434,10 @@ describe('TrainingMonkeyIntegration', () => {
 
       // Check that all relationship types appear in both train and validation
       const trainTypes = new Set(
-        result.split.train
-          .filter(e => e.metadata)
-          .map(e => e.metadata!.relationship_type)
+        result.split.train.filter((e) => e.metadata).map((e) => e.metadata!.relationship_type)
       );
       const valTypes = new Set(
-        result.split.validation
-          .filter(e => e.metadata)
-          .map(e => e.metadata!.relationship_type)
+        result.split.validation.filter((e) => e.metadata).map((e) => e.metadata!.relationship_type)
       );
 
       expect(trainTypes.has('spatial_adjacent')).toBe(true);
@@ -475,14 +454,10 @@ describe('TrainingMonkeyIntegration', () => {
       const result = integration.process(jsonl);
 
       const trainDiffs = new Set(
-        result.split.train
-          .filter(e => e.metadata)
-          .map(e => e.metadata!.difficulty)
+        result.split.train.filter((e) => e.metadata).map((e) => e.metadata!.difficulty)
       );
       const valDiffs = new Set(
-        result.split.validation
-          .filter(e => e.metadata)
-          .map(e => e.metadata!.difficulty)
+        result.split.validation.filter((e) => e.metadata).map((e) => e.metadata!.difficulty)
       );
 
       expect(trainDiffs.has('basic')).toBe(true);
@@ -571,8 +546,7 @@ describe('TrainingMonkeyIntegration', () => {
       expect(config.hyperparameters.gradientAccumulationSteps).toBe(4);
       // Effective batch = 8 * 4 = 32
       const effectiveBatch =
-        config.hyperparameters.microBatchSize *
-        config.hyperparameters.gradientAccumulationSteps;
+        config.hyperparameters.microBatchSize * config.hyperparameters.gradientAccumulationSteps;
       expect(effectiveBatch).toBe(32);
     });
 
@@ -651,12 +625,8 @@ describe('TrainingMonkeyIntegration', () => {
       const jsonl = createBalancedDataset(3);
       const result = integration.process(jsonl);
 
-      expect(result.config.dataset.trainPath).toBe(
-        '/root/training-v44/alpaca-train.jsonl'
-      );
-      expect(result.config.dataset.validationPath).toBe(
-        '/root/training-v44/alpaca-val.jsonl'
-      );
+      expect(result.config.dataset.trainPath).toBe('/root/training-v44/alpaca-train.jsonl');
+      expect(result.config.dataset.validationPath).toBe('/root/training-v44/alpaca-val.jsonl');
     });
   });
 
@@ -670,7 +640,7 @@ describe('TrainingMonkeyIntegration', () => {
       const jsonl = createBalancedDataset(3);
       const result = integration.process(jsonl);
 
-      const trainLines = result.trainJsonl.split('\n').filter(l => l.trim());
+      const trainLines = result.trainJsonl.split('\n').filter((l) => l.trim());
       expect(trainLines).toHaveLength(result.split.stats.trainCount);
 
       // Each line must be parseable JSON
@@ -684,7 +654,7 @@ describe('TrainingMonkeyIntegration', () => {
       const jsonl = createBalancedDataset(3);
       const result = integration.process(jsonl);
 
-      const trainLines = result.trainJsonl.split('\n').filter(l => l.trim());
+      const trainLines = result.trainJsonl.split('\n').filter((l) => l.trim());
       for (const line of trainLines) {
         const parsed = JSON.parse(line);
         expect(parsed).toHaveProperty('instruction');
@@ -699,7 +669,7 @@ describe('TrainingMonkeyIntegration', () => {
       const jsonl = createBalancedDataset(3);
       const result = integration.process(jsonl);
 
-      const trainLines = result.trainJsonl.split('\n').filter(l => l.trim());
+      const trainLines = result.trainJsonl.split('\n').filter((l) => l.trim());
       for (const line of trainLines) {
         const parsed = JSON.parse(line);
         // TrainingMonkey reads: example.get("instruction"), example.get("output")
@@ -758,9 +728,7 @@ describe('TrainingMonkeyIntegration', () => {
     it('handles dataset with only one relationship type', () => {
       const entries: string[] = [];
       for (let i = 0; i < 20; i++) {
-        entries.push(
-          makeEntry(`adj-${i}`, 'spatial_adjacent', 'basic', i % 2 === 0)
-        );
+        entries.push(makeEntry(`adj-${i}`, 'spatial_adjacent', 'basic', i % 2 === 0));
       }
 
       const integration = new TrainingMonkeyIntegration();
@@ -856,18 +824,13 @@ describe('TrainingMonkeyIntegration', () => {
 
     it('config totalSteps is correct for small datasets', () => {
       const integration = new TrainingMonkeyIntegration();
-      const jsonl = buildJsonl([
-        makeEntry('small-1'),
-        makeEntry('small-2'),
-        makeEntry('small-3'),
-      ]);
+      const jsonl = buildJsonl([makeEntry('small-1'), makeEntry('small-2'), makeEntry('small-3')]);
       const result = integration.process(jsonl);
 
       // With 3 entries, ~3 train examples, effective batch 32
       // stepsPerEpoch = ceil(trainCount / 32), totalSteps = stepsPerEpoch * 2
       const effectiveBatch = 8 * 4;
-      const expected =
-        Math.ceil(result.split.stats.trainCount / effectiveBatch) * 2;
+      const expected = Math.ceil(result.split.stats.trainCount / effectiveBatch) * 2;
       expect(result.config.dataset.totalSteps).toBe(expected);
     });
   });
@@ -882,9 +845,8 @@ describe('TrainingMonkeyIntegration', () => {
       const jsonl = createBalancedDataset(15);
       const result = integration.process(jsonl);
 
-      const totalInput = jsonl.split('\n').filter(l => l.trim()).length;
-      const totalOutput =
-        result.split.stats.trainCount + result.split.stats.validationCount;
+      const totalInput = jsonl.split('\n').filter((l) => l.trim()).length;
+      const totalOutput = result.split.stats.trainCount + result.split.stats.validationCount;
 
       expect(totalOutput).toBe(totalInput);
     });
@@ -902,8 +864,8 @@ describe('TrainingMonkeyIntegration', () => {
 
       // Each original entry should be in the output
       const ids = allEntries
-        .filter(e => e.metadata)
-        .map(e => e.metadata!.id)
+        .filter((e) => e.metadata)
+        .map((e) => e.metadata!.id)
         .sort();
       expect(ids).toEqual(['integrity-1', 'integrity-2', 'integrity-3']);
     });
@@ -925,12 +887,8 @@ describe('TrainingMonkeyIntegration', () => {
       const jsonl = createBalancedDataset(10);
       const result = integration.process(jsonl);
 
-      const trainLineCount = result.trainJsonl
-        .split('\n')
-        .filter(l => l.trim()).length;
-      const valLineCount = result.validationJsonl
-        .split('\n')
-        .filter(l => l.trim()).length;
+      const trainLineCount = result.trainJsonl.split('\n').filter((l) => l.trim()).length;
+      const valLineCount = result.validationJsonl.split('\n').filter((l) => l.trim()).length;
 
       expect(trainLineCount).toBe(result.split.stats.trainCount);
       expect(valLineCount).toBe(result.split.stats.validationCount);

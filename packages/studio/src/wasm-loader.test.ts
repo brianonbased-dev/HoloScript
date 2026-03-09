@@ -1,14 +1,14 @@
 /**
  * Tests for WASM Loader (createWasmWrapper, parseWasmResult)
  *
- * Tests the wrapper logic without actual WASM binaries — 
+ * Tests the wrapper logic without actual WASM binaries —
  * uses mock export objects to verify error handling and result normalization.
  */
 
 import { describe, it, expect } from 'vitest';
 
-// We can't import private functions directly, so we test via the module's 
-// exported interface indirectly by testing createWasmWrapper behavior 
+// We can't import private functions directly, so we test via the module's
+// exported interface indirectly by testing createWasmWrapper behavior
 // through dynamic import. Instead, let's test the concepts:
 
 // Replicate parseWasmResult logic for testing
@@ -94,7 +94,9 @@ describe('createWasmWrapper (mock)', () => {
             return exports.format(code) || code;
           }
           return code;
-        } catch { return code; }
+        } catch {
+          return code;
+        }
       },
       isValid(code: string) {
         try {
@@ -103,7 +105,9 @@ describe('createWasmWrapper (mock)', () => {
           }
           const parseResult = this.parse(code);
           return parseResult.success;
-        } catch { return false; }
+        } catch {
+          return false;
+        }
       },
     };
   }

@@ -94,4 +94,8 @@ export type { SelectionSubgraph, SelectionContext } from './visualization/GraphS
 export { GraphRAGVisualizer } from './visualization/GraphRAGVisualizer';
 export type { RAGSearchResult, ImpactNode } from './visualization/GraphRAGVisualizer';
 export { GraphTooltipGenerator } from './visualization/GraphTooltipGenerator';
-export type { TooltipData, TooltipLine, RAGAnnotation } from './visualization/GraphTooltipGenerator';
+export type {
+  TooltipData,
+  TooltipLine,
+  RAGAnnotation,
+} from './visualization/GraphTooltipGenerator';

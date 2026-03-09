@@ -22,16 +22,22 @@ import type { NavPoint } from '../NavMesh';
 function buildLinearMesh() {
   const mesh = new NavMesh();
   const p0 = mesh.addPolygon([
-    { x: 0, y: 0, z: 0 }, { x: 5, y: 0, z: 0 },
-    { x: 5, y: 0, z: 5 }, { x: 0, y: 0, z: 5 },
+    { x: 0, y: 0, z: 0 },
+    { x: 5, y: 0, z: 0 },
+    { x: 5, y: 0, z: 5 },
+    { x: 0, y: 0, z: 5 },
   ]);
   const p1 = mesh.addPolygon([
-    { x: 5, y: 0, z: 0 }, { x: 10, y: 0, z: 0 },
-    { x: 10, y: 0, z: 5 }, { x: 5, y: 0, z: 5 },
+    { x: 5, y: 0, z: 0 },
+    { x: 10, y: 0, z: 0 },
+    { x: 10, y: 0, z: 5 },
+    { x: 5, y: 0, z: 5 },
   ]);
   const p2 = mesh.addPolygon([
-    { x: 10, y: 0, z: 0 }, { x: 15, y: 0, z: 0 },
-    { x: 15, y: 0, z: 5 }, { x: 10, y: 0, z: 5 },
+    { x: 10, y: 0, z: 0 },
+    { x: 15, y: 0, z: 0 },
+    { x: 15, y: 0, z: 5 },
+    { x: 10, y: 0, z: 5 },
   ]);
   mesh.connectPolygons(p0.id, p1.id);
   mesh.connectPolygons(p1.id, p2.id);

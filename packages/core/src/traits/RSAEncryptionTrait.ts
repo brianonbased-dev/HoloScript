@@ -92,7 +92,9 @@ class RSAEncryption {
     return keyPair;
   }
 
-  ${config.hybrid_encryption !== false ? `
+  ${
+    config.hybrid_encryption !== false
+      ? `
   // Hybrid RSA+AES encryption (recommended for large data)
   async encryptHybrid(data, publicKey) {
     // Generate random AES key
@@ -152,7 +154,8 @@ class RSAEncryption {
 
     return new Uint8Array(decryptedData);
   }
-  ` : `
+  `
+      : `
   // Direct RSA encryption (use only for small data)
   async encrypt(data, publicKey) {
     const encrypted = await crypto.subtle.encrypt(
@@ -171,7 +174,8 @@ class RSAEncryption {
     );
     return new Uint8Array(decrypted);
   }
-  `}
+  `
+  }
 
   async exportPublicKey(publicKey) {
     const exported = await crypto.subtle.exportKey('spki', publicKey);
@@ -229,15 +233,21 @@ class RSAEncryption {
       privateKeyEncoding: {
         type: 'pkcs8',
         format: 'pem',
-        ${config.key_derivation ? `
+        ${
+          config.key_derivation
+            ? `
         cipher: 'aes-256-cbc',
         passphrase: process.env.RSA_KEY_PASSPHRASE || 'default-passphrase'
-        ` : ''}
+        `
+            : ''
+        }
       }
     });
   }
 
-  ${config.hybrid_encryption !== false ? `
+  ${
+    config.hybrid_encryption !== false
+      ? `
   // Hybrid RSA+AES encryption
   encryptHybrid(data, publicKey) {
     // Generate random AES key
@@ -291,7 +301,8 @@ class RSAEncryption {
       decipher.final()
     ]);
   }
-  ` : `
+  `
+      : `
   // Direct RSA encryption (use only for small data < ${Math.floor(config.key_size / 8) - 42} bytes)
   encrypt(data, publicKey) {
     return crypto.publicEncrypt(
@@ -314,7 +325,8 @@ class RSAEncryption {
       encryptedData
     );
   }
-  `}
+  `
+  }
 
   sign(data, privateKey) {
     return crypto.sign(this.hashAlgorithm, Buffer.from(data), {
@@ -360,7 +372,9 @@ public class RSAEncryption : MonoBehaviour {
         rsa = new RSACryptoServiceProvider(keySize);
     }
 
-    ${config.hybrid_encryption !== false ? `
+    ${
+      config.hybrid_encryption !== false
+        ? `
     // Hybrid RSA+AES encryption
     public EncryptedPackage EncryptHybrid(byte[] data) {
         // Generate random AES key
@@ -404,7 +418,8 @@ public class RSAEncryption : MonoBehaviour {
             }
         }
     }
-    ` : `
+    `
+        : `
     // Direct RSA encryption
     public byte[] Encrypt(byte[] data) {
         return rsa.Encrypt(data, ${config.padding_scheme === 'oaep' ? 'true' : 'false'});
@@ -413,7 +428,8 @@ public class RSAEncryption : MonoBehaviour {
     public byte[] Decrypt(byte[] encryptedData) {
         return rsa.Decrypt(encryptedData, ${config.padding_scheme === 'oaep' ? 'true' : 'false'});
     }
-    `}
+    `
+    }
 
     public string ExportPublicKey() {
         return rsa.ToXmlString(false);
@@ -435,7 +451,7 @@ public struct EncryptedPackage {
 
   compileGeneric(config: RSAEncryptionConfig): string {
     return JSON.stringify(config, null, 2);
-  }
+  },
 };
 
 export default RSAEncryptionTrait;

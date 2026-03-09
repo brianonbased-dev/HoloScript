@@ -29,7 +29,7 @@ const ipfs = new IPFSService({
   provider: 'pinata',
   apiKey: process.env.PINATA_API_KEY,
   apiSecret: process.env.PINATA_API_SECRET,
-  enableCDN: true
+  enableCDN: true,
 });
 
 // Upload files
@@ -38,11 +38,11 @@ const result = await ipfs.upload({
   files: [
     { path: 'scene.glb', content: glbBuffer },
     { path: 'thumbnail.png', content: pngBuffer },
-    { path: 'metadata.json', content: JSON.stringify(metadata) }
+    { path: 'metadata.json', content: JSON.stringify(metadata) },
   ],
   onProgress: (progress) => {
     console.log(`${progress.percentage}% - ${progress.currentFile}`);
-  }
+  },
 });
 
 console.log(`Uploaded to IPFS: ${result.uri}`);
@@ -58,16 +58,16 @@ const ipfs = new IPFSService({
   fallbackProviders: [
     {
       provider: 'nft.storage',
-      apiKey: process.env.NFT_STORAGE_KEY
+      apiKey: process.env.NFT_STORAGE_KEY,
     },
     {
       provider: 'infura',
       apiKey: process.env.INFURA_PROJECT_ID,
-      apiSecret: process.env.INFURA_SECRET
-    }
+      apiSecret: process.env.INFURA_SECRET,
+    },
   ],
   maxRetries: 3,
-  retryDelay: 1000 // 1 second
+  retryDelay: 1000, // 1 second
 });
 ```
 
@@ -81,7 +81,7 @@ Free tier: 1GB storage, unlimited bandwidth
 const ipfs = new IPFSService({
   provider: 'pinata',
   apiKey: 'YOUR_PINATA_API_KEY',
-  apiSecret: 'YOUR_PINATA_API_SECRET'
+  apiSecret: 'YOUR_PINATA_API_SECRET',
 });
 ```
 
@@ -94,7 +94,7 @@ Free tier: 100GB storage, optimized for NFTs
 ```typescript
 const ipfs = new IPFSService({
   provider: 'nft.storage',
-  apiKey: 'YOUR_NFT_STORAGE_KEY'
+  apiKey: 'YOUR_NFT_STORAGE_KEY',
 });
 ```
 
@@ -108,7 +108,7 @@ Free tier: 5GB storage + IPFS gateway
 const ipfs = new IPFSService({
   provider: 'infura',
   apiKey: 'YOUR_INFURA_PROJECT_ID',
-  apiSecret: 'YOUR_INFURA_SECRET'
+  apiSecret: 'YOUR_INFURA_SECRET',
 });
 ```
 
@@ -125,7 +125,7 @@ const ipfs = new IPFSService({
   provider: 'pinata',
   apiKey: process.env.PINATA_API_KEY,
   chunkSize: 5 * 1024 * 1024, // 5MB chunks
-  maxFileSize: 100 * 1024 * 1024 // 100MB max
+  maxFileSize: 100 * 1024 * 1024, // 100MB max
 });
 
 const largeFile = await fs.readFile('scene.glb'); // 50MB file
@@ -135,7 +135,7 @@ const result = await ipfs.upload({
   files: [{ path: 'scene.glb', content: largeFile }],
   onProgress: (progress) => {
     console.log(`${progress.percentage.toFixed(2)}% uploaded`);
-  }
+  },
 });
 ```
 
@@ -151,7 +151,7 @@ console.log(status); // 'pinned', 'pinning', or 'unpinned'
 
 // List all pins
 const pins = await ipfs.listPins();
-pins.forEach(pin => {
+pins.forEach((pin) => {
   console.log(`${pin.name}: ${pin.cid} (${pin.size} bytes)`);
 });
 
@@ -258,16 +258,12 @@ interface UploadOptions {
 ## Error Handling
 
 ```typescript
-import {
-  IPFSUploadError,
-  IPFSPinError,
-  FileSizeExceededError
-} from '@holoscript/core/storage';
+import { IPFSUploadError, IPFSPinError, FileSizeExceededError } from '@holoscript/core/storage';
 
 try {
   const result = await ipfs.upload({
     name: 'test',
-    files: [{ path: 'test.txt', content: 'Hello' }]
+    files: [{ path: 'test.txt', content: 'Hello' }],
   });
 } catch (error) {
   if (error instanceof FileSizeExceededError) {
@@ -290,13 +286,13 @@ import { CreatorMonetization } from '@holoscript/core/web3';
 const ipfs = new IPFSService({
   provider: 'nft.storage',
   apiKey: process.env.NFT_STORAGE_KEY,
-  enableCDN: true
+  enableCDN: true,
 });
 
 // Initialize Web3
 const monetization = new CreatorMonetization({
   chain: 'zora-sepolia',
-  privateKey: process.env.CREATOR_PRIVATE_KEY
+  privateKey: process.env.CREATOR_PRIVATE_KEY,
 });
 
 // Upload VRR twin assets
@@ -311,10 +307,10 @@ const uploadResult = await ipfs.upload({
         name: 'Phoenix VRR Twin',
         description: 'Digital twin with AI personality',
         image: 'ipfs://[CID]/thumbnail.png',
-        animation_url: 'ipfs://[CID]/scene.glb'
-      })
-    }
-  ]
+        animation_url: 'ipfs://[CID]/scene.glb',
+      }),
+    },
+  ],
 });
 
 // Mint NFT with IPFS metadata
@@ -322,7 +318,7 @@ const nftResult = await monetization.mintNFT({
   name: 'Phoenix VRR Twin',
   metadataUri: uploadResult.uri,
   maxSupply: 100n,
-  royaltyBps: 1000 // 10%
+  royaltyBps: 1000, // 10%
 });
 
 console.log(`NFT minted: ${nftResult.tokenId}`);

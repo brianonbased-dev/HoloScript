@@ -9,12 +9,14 @@ The playground is currently deployed as a **landing page** that directs users to
 ## Why Not Fully Interactive?
 
 The advanced earthquake demo requires:
+
 - TypeScript compilation and bundling
 - Three.js and HoloScript core dependencies
 - WebGL 2.0 support
 - Build tools (Vite/Webpack)
 
 A fully bundled version would add ~2MB to the docs deployment. Instead, we provide:
+
 1. A polished landing page explaining the features
 2. Clear instructions for running locally
 3. Direct links to the source code

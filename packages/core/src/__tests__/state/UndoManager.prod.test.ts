@@ -13,12 +13,13 @@ import { UndoManager } from '../../state/UndoManager';
 
 type Op = { action: string; value?: any };
 
-function makeUM() { return new UndoManager<Op>(); }
+function makeUM() {
+  return new UndoManager<Op>();
+}
 
 // ── push ──────────────────────────────────────────────────────────────────────
 
 describe('UndoManager — push', () => {
-
   it('push increases stack depth', () => {
     const um = makeUM();
     um.push({ action: 'add', value: 1 }, { action: 'remove', value: 1 });
@@ -45,7 +46,6 @@ describe('UndoManager — push', () => {
 // ── undo ──────────────────────────────────────────────────────────────────────
 
 describe('UndoManager — undo', () => {
-
   it('undo returns the most recently pushed step', () => {
     const um = makeUM();
     um.push({ action: 'create' }, { action: 'destroy' });
@@ -87,7 +87,6 @@ describe('UndoManager — undo', () => {
 // ── redo ──────────────────────────────────────────────────────────────────────
 
 describe('UndoManager — redo', () => {
-
   it('redo returns null when nothing undone', () => {
     const um = makeUM();
     um.push({ action: 'a' }, { action: 'b' });
@@ -131,7 +130,6 @@ describe('UndoManager — redo', () => {
 // ── clear ─────────────────────────────────────────────────────────────────────
 
 describe('UndoManager — clear', () => {
-
   it('clear empties undoStack', () => {
     const um = makeUM();
     um.push({ action: 'a' }, { action: 'b' });
@@ -152,7 +150,6 @@ describe('UndoManager — clear', () => {
 // ── getStackDepth ─────────────────────────────────────────────────────────────
 
 describe('UndoManager — getStackDepth', () => {
-
   it('returns 0 initially', () => {
     expect(makeUM().getStackDepth()).toBe(0);
   });

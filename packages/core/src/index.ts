@@ -263,15 +263,9 @@ export {
 } from './state/ReactiveState';
 
 // HoloScript+ State Sync & Networking (NEW - Phase 5)
-export {
-  DeltaCompressor,
-  type StateDelta
-} from './network/DeltaCompressor';
+export { DeltaCompressor, type StateDelta } from './network/DeltaCompressor';
 
-export {
-  StateSynchronizer,
-  type StateSubscriber
-} from './network/StateSynchronizer';
+export { StateSynchronizer, type StateSubscriber } from './network/StateSynchronizer';
 
 // Performance Monitoring (Phase 7 - TODO-020)
 export { telemetry } from './monitoring/telemetry';
@@ -324,7 +318,12 @@ export { VisionOSCompiler, type VisionOSCompilerOptions } from './compiler/Visio
 // HoloScript New Platform Compilers (NEW - Phase 14)
 export { WebGPUCompiler, type WebGPUCompilerOptions } from './compiler/WebGPUCompiler';
 export { BabylonCompiler, type BabylonCompilerOptions } from './compiler/BabylonCompiler';
-export { AndroidXRCompiler, type AndroidXRCompilerOptions, type AndroidXRCompileResult, compileToAndroidXR } from './compiler/AndroidXRCompiler';
+export {
+  AndroidXRCompiler,
+  type AndroidXRCompilerOptions,
+  type AndroidXRCompileResult,
+  compileToAndroidXR,
+} from './compiler/AndroidXRCompiler';
 export { OpenXRCompiler, type OpenXRCompilerOptions } from './compiler/OpenXRCompiler';
 export {
   OpenXRSpatialEntitiesCompiler,
@@ -345,9 +344,21 @@ export {
   type AnchorComponent,
   type GeospatialExtension,
 } from './compiler/OpenXRSpatialEntitiesCompiler';
-export { VRRCompiler, type VRRCompilerOptions, type VRRCompilationResult } from './compiler/VRRCompiler';
-export { ARCompiler, type ARCompilerOptions, type ARCompilationResult } from './compiler/ARCompiler';
-export { MultiLayerCompiler, type MultiLayerCompilerOptions, type MultiLayerCompilationResult } from './compiler/MultiLayerCompiler';
+export {
+  VRRCompiler,
+  type VRRCompilerOptions,
+  type VRRCompilationResult,
+} from './compiler/VRRCompiler';
+export {
+  ARCompiler,
+  type ARCompilerOptions,
+  type ARCompilationResult,
+} from './compiler/ARCompiler';
+export {
+  MultiLayerCompiler,
+  type MultiLayerCompilerOptions,
+  type MultiLayerCompilationResult,
+} from './compiler/MultiLayerCompiler';
 
 // HoloScript TSL Compiler (Trait Shader Language — trait-to-shader code generation)
 export {
@@ -697,10 +708,7 @@ export {
 } from './lsp/ImportResolver';
 
 // LSP Completion Provider (v4.2 — 100+ completions)
-export {
-  CompletionProvider,
-  type CompletionItem,
-} from './lsp/CompletionProvider';
+export { CompletionProvider, type CompletionItem } from './lsp/CompletionProvider';
 
 // LSP Diagnostic Provider (v4.2 — 5 diagnostic rules)
 export {
@@ -907,10 +915,7 @@ export {
 } from './traits/NetworkedTrait';
 
 // HoloScript+ Multi-Agent Coordination (NEW - v3.1 Foundation & Safety)
-export {
-  multiAgentHandler,
-  type MultiAgentConfig,
-} from './traits/MultiAgentTrait';
+export { multiAgentHandler, type MultiAgentConfig } from './traits/MultiAgentTrait';
 
 // HoloScript+ Joint Trait (NEW - Phase 3: Physics)
 export {
@@ -2397,7 +2402,7 @@ export {
   CircuitState as GraphQLCircuitState,
   type CircuitBreakerConfig as GraphQLCircuitBreakerConfig,
   type CircuitMetrics as GraphQLCircuitMetrics,
-  type RequestResult as GraphQLRequestResult
+  type RequestResult as GraphQLRequestResult,
 } from './CircuitBreaker';
 
 export {
@@ -2408,7 +2413,7 @@ export {
   type GraphQLClientOptions,
   type GraphQLRequest,
   type GraphQLResponse,
-  type CircuitBreakerStats as GraphQLCircuitStats
+  type CircuitBreakerStats as GraphQLCircuitStats,
 } from './GraphQLCircuitBreakerClient';
 
 export {
@@ -2418,14 +2423,14 @@ export {
   type CircuitMetricsReport as GraphQLCircuitMetricsReport,
   type AggregateMetrics as GraphQLAggregateMetrics,
   type HealthScore as GraphQLHealthScore,
-  type MetricsExportOptions as GraphQLMetricsExportOptions
+  type MetricsExportOptions as GraphQLMetricsExportOptions,
 } from './CircuitBreakerMetrics';
 
 export {
   DegradedModeBanner,
   useDegradedMode,
   DegradedModeIndicator,
-  type DegradedModeBannerProps
+  type DegradedModeBannerProps,
 } from './DegradedModeBanner';
 
 // =============================================================================
@@ -2491,32 +2496,88 @@ export type {
 // ═══════════════════════════════════════════════════════════════════
 
 export { EffectRow } from './types/effects';
-export type { VREffect, EffectCategory, EffectViolation, EffectViolationSeverity, EffectDeclaration } from './types/effects';
+export type {
+  VREffect,
+  EffectCategory,
+  EffectViolation,
+  EffectViolationSeverity,
+  EffectDeclaration,
+} from './types/effects';
 
-export { TRAIT_EFFECTS, inferFromTraits, inferFromBuiltins, knownTraits, knownBuiltins } from './compiler/safety/EffectInference';
+export {
+  TRAIT_EFFECTS,
+  inferFromTraits,
+  inferFromBuiltins,
+  knownTraits,
+  knownBuiltins,
+} from './compiler/safety/EffectInference';
 export type { InferredEffects } from './compiler/safety/EffectInference';
 
-export { EffectChecker, createEffectChecker, isSafeTraitSet, dangerLevel } from './compiler/safety/EffectChecker';
-export type { EffectCheckerConfig, EffectCheckResult, ModuleEffectCheckResult, EffectASTNode } from './compiler/safety/EffectChecker';
+export {
+  EffectChecker,
+  createEffectChecker,
+  isSafeTraitSet,
+  dangerLevel,
+} from './compiler/safety/EffectChecker';
+export type {
+  EffectCheckerConfig,
+  EffectCheckResult,
+  ModuleEffectCheckResult,
+  EffectASTNode,
+} from './compiler/safety/EffectChecker';
 
-export { ResourceBudgetAnalyzer, PLATFORM_BUDGETS, TRAIT_RESOURCE_COSTS } from './compiler/safety/ResourceBudgetAnalyzer';
-export type { ResourceCategory, BudgetAnalysisResult, BudgetDiagnostic, ResourceUsageNode } from './compiler/safety/ResourceBudgetAnalyzer';
+export {
+  ResourceBudgetAnalyzer,
+  PLATFORM_BUDGETS,
+  TRAIT_RESOURCE_COSTS,
+} from './compiler/safety/ResourceBudgetAnalyzer';
+export type {
+  ResourceCategory,
+  BudgetAnalysisResult,
+  BudgetDiagnostic,
+  ResourceUsageNode,
+} from './compiler/safety/ResourceBudgetAnalyzer';
 
-export { checkCapabilities, expandCapabilities, deriveRequirements, TRUST_LEVEL_CAPABILITIES, EFFECT_TO_CAPABILITY, CAPABILITY_HIERARCHY } from './compiler/safety/CapabilityTypes';
-export type { CapabilityScope, CapabilityRequirement, CapabilityCheckResult } from './compiler/safety/CapabilityTypes';
+export {
+  checkCapabilities,
+  expandCapabilities,
+  deriveRequirements,
+  TRUST_LEVEL_CAPABILITIES,
+  EFFECT_TO_CAPABILITY,
+  CAPABILITY_HIERARCHY,
+} from './compiler/safety/CapabilityTypes';
+export type {
+  CapabilityScope,
+  CapabilityRequirement,
+  CapabilityCheckResult,
+} from './compiler/safety/CapabilityTypes';
 
 export { runSafetyPass, quickSafetyCheck } from './compiler/safety/CompilerSafetyPass';
 export type { SafetyPassResult, SafetyPassConfig } from './compiler/safety/CompilerSafetyPass';
 
-export { buildSafetyReport, formatReport, generateCertificate } from './compiler/safety/SafetyReport';
+export {
+  buildSafetyReport,
+  formatReport,
+  generateCertificate,
+} from './compiler/safety/SafetyReport';
 export type { SafetyReport, SafetyVerdict } from './compiler/safety/SafetyReport';
 
 export type { EffectCertificate, EffectTrustLevel } from './types/effects';
 
 // Linear Resource Types (Layer 6 — Move-inspired ownership)
-export { LinearTypeChecker, BUILTIN_RESOURCES, TRAIT_RESOURCE_MAP } from './compiler/safety/LinearTypeChecker';
+export {
+  LinearTypeChecker,
+  BUILTIN_RESOURCES,
+  TRAIT_RESOURCE_MAP,
+} from './compiler/safety/LinearTypeChecker';
 export type { LinearCheckerConfig } from './compiler/safety/LinearTypeChecker';
-export type { ResourceType, ResourceAbility, OwnershipState, LinearViolation, LinearCheckResult } from './types/linear';
+export type {
+  ResourceType,
+  ResourceAbility,
+  OwnershipState,
+  LinearViolation,
+  LinearCheckResult,
+} from './types/linear';
 
 // ═══════════════════════════════════════════════════════════════════
 // @platform() Conditional Compilation (Cross-Reality)
@@ -2526,8 +2587,13 @@ export {
   PLATFORM_CATEGORIES as XR_PLATFORM_CATEGORIES,
   ALL_PLATFORMS as XR_ALL_PLATFORMS,
   PLATFORM_CAPABILITIES as XR_PLATFORM_CAPABILITIES,
-  platformCategory, embodimentFor, agentBudgetFor, hasCapability,
-  resolvePlatforms, matchesPlatform, selectBlock,
+  platformCategory,
+  embodimentFor,
+  agentBudgetFor,
+  hasCapability,
+  resolvePlatforms,
+  matchesPlatform,
+  selectBlock,
   DEFAULT_EMBODIMENT,
 } from './compiler/platform/PlatformConditional';
 export type {
@@ -2545,9 +2611,7 @@ export {
   matchesPlatformConstraint,
   createPlatformTarget,
 } from './compiler/PlatformConditionalCompilerMixin';
-export type {
-  CompilePlatformTarget,
-} from './compiler/PlatformConditionalCompilerMixin';
+export type { CompilePlatformTarget } from './compiler/PlatformConditionalCompilerMixin';
 
 // @platform() Annotation Compiler (Block-level dead-code elimination)
 export {
@@ -2559,13 +2623,15 @@ export type {
   PlatformConditionalResult,
 } from './compiler/platform/PlatformConditionalCompiler';
 
-
 // ═══════════════════════════════════════════════════════════════════
 // Culture Traits (Emergent Agent Culture)
 // ═══════════════════════════════════════════════════════════════════
 
 export {
-  BUILTIN_NORMS, getBuiltinNorm, normsByCategory, criticalMassForChange,
+  BUILTIN_NORMS,
+  getBuiltinNorm,
+  normsByCategory,
+  criticalMassForChange,
 } from './traits/CultureTraits';
 export type { CulturalNorm, NormCategory, NormEnforcement } from './traits/CultureTraits';
 
@@ -2580,17 +2646,34 @@ export type { NormViolation, NormProposal } from './agents/NormEngine';
 // ═══════════════════════════════════════════════════════════════════
 
 export {
-  negotiateHandoff, createMVCPayload, estimatePayloadSize, validatePayloadBudget,
+  negotiateHandoff,
+  createMVCPayload,
+  estimatePayloadSize,
+  validatePayloadBudget,
 } from './agents/CrossRealityHandoff';
 export type {
-  MVCPayload, DecisionEntry, TaskState as AgentTaskState,
-  UserPreferences, SpatialContext, EvidenceEntry,
-  DeviceCapabilities, HandoffNegotiation,
+  MVCPayload,
+  DecisionEntry,
+  TaskState as AgentTaskState,
+  UserPreferences,
+  SpatialContext,
+  EvidenceEntry,
+  DeviceCapabilities,
+  HandoffNegotiation,
 } from './agents/CrossRealityHandoff';
 
 export {
-  signOperation, verifyOperation, LWWRegister, GCounter, ORSet,
-  createAgentState, setRegister, getRegister, incrementCounter, getCounter, mergeStates,
+  signOperation,
+  verifyOperation,
+  LWWRegister,
+  GCounter,
+  ORSet,
+  createAgentState,
+  setRegister,
+  getRegister,
+  incrementCounter,
+  getCounter,
+  mergeStates,
 } from './agents/AuthenticatedCRDT';
 export type { DID, SignedOperation, AuthenticatedAgentState } from './agents/AuthenticatedCRDT';
 
@@ -2618,18 +2701,28 @@ export type {
 // ═══════════════════════════════════════════════════════════════════
 
 export {
-  createSubmission, verifySubmission, publishSubmission, submissionSummary,
+  createSubmission,
+  verifySubmission,
+  publishSubmission,
+  submissionSummary,
 } from './marketplace/MarketplaceSubmission';
 export type {
-  MarketplacePackage, MarketplaceSubmission as MarketplaceSubmissionType,
-  PackageMetadata as MarketplacePackageMetadata, Publisher, ContentCategory,
-  SemanticVersion, SubmissionStatus, SubmissionConfig,
+  MarketplacePackage,
+  MarketplaceSubmission as MarketplaceSubmissionType,
+  PackageMetadata as MarketplacePackageMetadata,
+  Publisher,
+  ContentCategory,
+  SemanticVersion,
+  SubmissionStatus,
+  SubmissionConfig,
 } from './marketplace/MarketplaceSubmission';
 
 export { MarketplaceRegistry } from './marketplace/MarketplaceRegistry';
 export type {
-  PackageListing, SearchFilters as MarketplaceSearchFilters,
-  SearchResult as MarketplaceSearchResult, InstallManifest,
+  PackageListing,
+  SearchFilters as MarketplaceSearchFilters,
+  SearchResult as MarketplaceSearchResult,
+  InstallManifest,
 } from './marketplace/MarketplaceRegistry';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -2646,9 +2739,16 @@ export type { CultureEvent, CultureRuntimeConfig } from './runtime/CultureRuntim
 export { BehaviorTree } from './ai/BehaviorTree';
 export type { BTContext as BTTreeContext, BTTreeDef } from './ai/BehaviorTree';
 export {
-  BTNode, SequenceNode, SelectorNode, ParallelNode,
-  InverterNode, RepeaterNode, GuardNode,
-  ActionNode, ConditionNode, WaitNode,
+  BTNode,
+  SequenceNode,
+  SelectorNode,
+  ParallelNode,
+  InverterNode,
+  RepeaterNode,
+  GuardNode,
+  ActionNode,
+  ConditionNode,
+  WaitNode,
 } from './ai/BTNodes';
 export type { BTStatus } from './ai/BTNodes';
 export { Blackboard } from './ai/Blackboard';
@@ -2669,18 +2769,32 @@ export type {
 // ── ECS ────────────────────────────────────────────────────────────
 export { ECSWorld } from './traits/ECSWorldTrait';
 export type {
-  TransformComponent, VelocityComponent, ColliderComponent,
-  RenderableComponent, AgentComponent, SystemStats,
+  TransformComponent,
+  VelocityComponent,
+  ColliderComponent,
+  RenderableComponent,
+  AgentComponent,
+  SystemStats,
 } from './traits/ECSWorldTrait';
 export { ComponentType } from './traits/ECSWorldTrait';
 
 // ── Animation Engine ───────────────────────────────────────────────
 export { AnimationEngine, Easing } from './animation/AnimationEngine';
-export type { Keyframe, AnimationClip, ActiveAnimation, EasingFn } from './animation/AnimationEngine';
+export type {
+  Keyframe,
+  AnimationClip,
+  ActiveAnimation,
+  EasingFn,
+} from './animation/AnimationEngine';
 
 // ── Audio Engine ───────────────────────────────────────────────────
 export { AudioEngine } from './audio/AudioEngine';
-export type { AudioSourceConfig, AudioSource, ListenerState, DistanceModel } from './audio/AudioEngine';
+export type {
+  AudioSourceConfig,
+  AudioSource,
+  ListenerState,
+  DistanceModel,
+} from './audio/AudioEngine';
 
 // ── TileMap / Procedural ───────────────────────────────────────────
 export { TileMap, TileFlags } from './tilemap/TileMap';
@@ -2688,7 +2802,14 @@ export type { TileData, TileLayer, AutoTileRule } from './tilemap/TileMap';
 
 // ── Combat ─────────────────────────────────────────────────────────
 export { CombatManager } from './combat/CombatManager';
-export type { HitBox, HurtBox, ComboStep, ComboChain, Cooldown, CombatTarget } from './combat/CombatManager';
+export type {
+  HitBox,
+  HurtBox,
+  ComboStep,
+  ComboChain,
+  Cooldown,
+  CombatTarget,
+} from './combat/CombatManager';
 
 // ── Navigation / Pathfinding ───────────────────────────────────────
 export { AStarPathfinder } from './navigation/AStarPathfinder';
@@ -2698,7 +2819,15 @@ export type { NavPoint, NavPolygon } from './navigation/NavMesh';
 
 // ── Shader Graph (re-export rendering) ─────────────────────────────
 export { ShaderGraph, SHADER_NODES } from './rendering/ShaderGraph';
-export type { ShaderNode, ShaderConnection, ShaderNodeDef, ShaderPort, ShaderDataType, CompiledShader, ShaderUniform } from './rendering/ShaderGraph';
+export type {
+  ShaderNode,
+  ShaderConnection,
+  ShaderNodeDef,
+  ShaderPort,
+  ShaderDataType,
+  CompiledShader,
+  ShaderUniform,
+} from './rendering/ShaderGraph';
 
 // ── Particles (value re-export) ────────────────────────────────────
 export { ParticleSystem } from './particles/ParticleSystem';
@@ -2714,7 +2843,12 @@ export type { ItemDef, ItemCategory, ItemRarity, InventorySlot } from './gamepla
 
 // ── Terrain ────────────────────────────────────────────────────────
 export { TerrainSystem } from './environment/TerrainSystem';
-export type { TerrainConfig, TerrainLayer, TerrainVertex, TerrainChunk } from './environment/TerrainSystem';
+export type {
+  TerrainConfig,
+  TerrainLayer,
+  TerrainVertex,
+  TerrainChunk,
+} from './environment/TerrainSystem';
 
 // ── Lighting ───────────────────────────────────────────────────────
 export { LightingModel } from './rendering/LightingModel';
@@ -2728,10 +2862,19 @@ export { SequenceTrack } from './cinematic/SequenceTrack';
 
 // ── Collaboration ──────────────────────────────────────────────────
 export { CollaborationSession } from './collaboration/CollaborationSession';
-export type { SessionPeer, SessionConfig, SessionStats, SessionState } from './collaboration/CollaborationSession';
+export type {
+  SessionPeer,
+  SessionConfig,
+  SessionStats,
+  SessionState,
+} from './collaboration/CollaborationSession';
 
 // ── Security / Sandbox ─────────────────────────────────────────────
-export { createSandbox, execute as executeSandbox, destroy as destroySandbox } from './security/SandboxExecutor';
+export {
+  createSandbox,
+  execute as executeSandbox,
+  destroy as destroySandbox,
+} from './security/SandboxExecutor';
 export type { Sandbox, SandboxState, SandboxExecutionResult } from './security/SandboxExecutor';
 export type { SecurityPolicy } from './security/SecurityPolicy';
 export { createDefaultPolicy, createStrictPolicy } from './security/SecurityPolicy';
@@ -2754,7 +2897,14 @@ export type { StateConfig, TransitionConfig, StateAction, GuardFn } from './ai/S
 
 // ── Input ──────────────────────────────────────────────────────────
 export { InputManager } from './input/InputManager';
-export type { KeyState, MouseState, GamepadState, InputAction, InputSnapshot, InputDeviceType } from './input/InputManager';
+export type {
+  KeyState,
+  MouseState,
+  GamepadState,
+  InputAction,
+  InputSnapshot,
+  InputDeviceType,
+} from './input/InputManager';
 
 // ── Network ────────────────────────────────────────────────────────
 export { NetworkManager } from './network/NetworkManager';
@@ -2770,4 +2920,9 @@ export type { SavedScene, SceneListEntry } from './scene/SceneManager';
 
 // ── Asset Registry ─────────────────────────────────────────────────
 export { AssetRegistry } from './assets/AssetRegistry';
-export type { AssetEvent, AssetEventType, CacheEntry, RegistryConfig } from './assets/AssetRegistry';
+export type {
+  AssetEvent,
+  AssetEventType,
+  CacheEntry,
+  RegistryConfig,
+} from './assets/AssetRegistry';

@@ -3,10 +3,46 @@ import { InventorySystem } from '../gameplay/InventorySystem';
 import { CraftingSystem } from '../gameplay/CraftingSystem';
 import { LootTable } from '../gameplay/LootTable';
 
-const sword = { id: 'sword', name: 'Iron Sword', category: 'weapon' as const, rarity: 'common' as const, weight: 5, maxStack: 1, value: 50, properties: {} };
-const potion = { id: 'potion', name: 'Health Potion', category: 'consumable' as const, rarity: 'common' as const, weight: 0.5, maxStack: 10, value: 10, properties: {} };
-const ore = { id: 'ore', name: 'Iron Ore', category: 'material' as const, rarity: 'common' as const, weight: 2, maxStack: 20, value: 5, properties: {} };
-const wood = { id: 'wood', name: 'Wood', category: 'material' as const, rarity: 'common' as const, weight: 1, maxStack: 50, value: 2, properties: {} };
+const sword = {
+  id: 'sword',
+  name: 'Iron Sword',
+  category: 'weapon' as const,
+  rarity: 'common' as const,
+  weight: 5,
+  maxStack: 1,
+  value: 50,
+  properties: {},
+};
+const potion = {
+  id: 'potion',
+  name: 'Health Potion',
+  category: 'consumable' as const,
+  rarity: 'common' as const,
+  weight: 0.5,
+  maxStack: 10,
+  value: 10,
+  properties: {},
+};
+const ore = {
+  id: 'ore',
+  name: 'Iron Ore',
+  category: 'material' as const,
+  rarity: 'common' as const,
+  weight: 2,
+  maxStack: 20,
+  value: 5,
+  properties: {},
+};
+const wood = {
+  id: 'wood',
+  name: 'Wood',
+  category: 'material' as const,
+  rarity: 'common' as const,
+  weight: 1,
+  maxStack: 50,
+  value: 2,
+  properties: {},
+};
 
 describe('Cycle 130: Inventory & Crafting', () => {
   // -------------------------------------------------------------------------
@@ -55,14 +91,23 @@ describe('Cycle 130: Inventory & Crafting', () => {
   it('should craft when ingredients available', () => {
     const craft = new CraftingSystem();
     craft.addRecipe({
-      id: 'iron_sword', name: 'Iron Sword',
-      ingredients: [{ itemId: 'ore', quantity: 3 }, { itemId: 'wood', quantity: 2 }],
+      id: 'iron_sword',
+      name: 'Iron Sword',
+      ingredients: [
+        { itemId: 'ore', quantity: 3 },
+        { itemId: 'wood', quantity: 2 },
+      ],
       output: { itemId: 'sword', quantity: 1 },
-      workbenchType: 'forge', craftTime: 0.1,
-      discovered: true, level: 1,
+      workbenchType: 'forge',
+      craftTime: 0.1,
+      discovered: true,
+      level: 1,
     });
 
-    const items = new Map([['ore', 5], ['wood', 3]]);
+    const items = new Map([
+      ['ore', 5],
+      ['wood', 3],
+    ]);
     expect(craft.canCraft('iron_sword', items)).toBe(true);
 
     craft.startCraft('iron_sword', items);
@@ -77,11 +122,17 @@ describe('Cycle 130: Inventory & Crafting', () => {
   it('should discover recipes from held items', () => {
     const craft = new CraftingSystem();
     craft.addRecipe({
-      id: 'basic_potion', name: 'Basic Potion',
-      ingredients: [{ itemId: 'herb', quantity: 1 }, { itemId: 'water', quantity: 1 }],
+      id: 'basic_potion',
+      name: 'Basic Potion',
+      ingredients: [
+        { itemId: 'herb', quantity: 1 },
+        { itemId: 'water', quantity: 1 },
+      ],
       output: { itemId: 'potion', quantity: 1 },
-      workbenchType: null, craftTime: 0.5,
-      discovered: false, level: 1,
+      workbenchType: null,
+      craftTime: 0.5,
+      discovered: false,
+      level: 1,
     });
 
     expect(craft.getDiscoveredCount()).toBe(0);
@@ -96,22 +147,62 @@ describe('Cycle 130: Inventory & Crafting', () => {
 
   it('should roll drops with weighted probabilities', () => {
     const loot = new LootTable(123);
-    loot.addTable('goblin', [
-      { itemId: 'gold', weight: 80, rarity: 'common', minQuantity: 1, maxQuantity: 5, guaranteed: true },
-      { itemId: 'sword', weight: 15, rarity: 'uncommon', minQuantity: 1, maxQuantity: 1, guaranteed: false },
-      { itemId: 'gem', weight: 5, rarity: 'rare', minQuantity: 1, maxQuantity: 1, guaranteed: false },
-    ], 1, 2);
+    loot.addTable(
+      'goblin',
+      [
+        {
+          itemId: 'gold',
+          weight: 80,
+          rarity: 'common',
+          minQuantity: 1,
+          maxQuantity: 5,
+          guaranteed: true,
+        },
+        {
+          itemId: 'sword',
+          weight: 15,
+          rarity: 'uncommon',
+          minQuantity: 1,
+          maxQuantity: 1,
+          guaranteed: false,
+        },
+        {
+          itemId: 'gem',
+          weight: 5,
+          rarity: 'rare',
+          minQuantity: 1,
+          maxQuantity: 1,
+          guaranteed: false,
+        },
+      ],
+      1,
+      2
+    );
 
     const drops = loot.roll('goblin');
     expect(drops.length).toBeGreaterThanOrEqual(1); // At least guaranteed
-    expect(drops.some(d => d.itemId === 'gold')).toBe(true); // Guaranteed
+    expect(drops.some((d) => d.itemId === 'gold')).toBe(true); // Guaranteed
   });
 
   it('should report drop rates', () => {
     const loot = new LootTable();
     loot.addTable('chest', [
-      { itemId: 'common_item', weight: 70, rarity: 'common', minQuantity: 1, maxQuantity: 1, guaranteed: false },
-      { itemId: 'rare_item', weight: 30, rarity: 'rare', minQuantity: 1, maxQuantity: 1, guaranteed: false },
+      {
+        itemId: 'common_item',
+        weight: 70,
+        rarity: 'common',
+        minQuantity: 1,
+        maxQuantity: 1,
+        guaranteed: false,
+      },
+      {
+        itemId: 'rare_item',
+        weight: 30,
+        rarity: 'rare',
+        minQuantity: 1,
+        maxQuantity: 1,
+        guaranteed: false,
+      },
     ]);
 
     const rates = loot.getDropRates('chest');
@@ -121,10 +212,29 @@ describe('Cycle 130: Inventory & Crafting', () => {
 
   it('should track pity counters', () => {
     const loot = new LootTable(42);
-    loot.addTable('boss', [
-      { itemId: 'common_loot', weight: 90, rarity: 'common', minQuantity: 1, maxQuantity: 3, guaranteed: false },
-      { itemId: 'legendary_drop', weight: 10, rarity: 'legendary', minQuantity: 1, maxQuantity: 1, guaranteed: false },
-    ], 1, 1);
+    loot.addTable(
+      'boss',
+      [
+        {
+          itemId: 'common_loot',
+          weight: 90,
+          rarity: 'common',
+          minQuantity: 1,
+          maxQuantity: 3,
+          guaranteed: false,
+        },
+        {
+          itemId: 'legendary_drop',
+          weight: 10,
+          rarity: 'legendary',
+          minQuantity: 1,
+          maxQuantity: 1,
+          guaranteed: false,
+        },
+      ],
+      1,
+      1
+    );
 
     // Roll several times
     for (let i = 0; i < 5; i++) loot.roll('boss');

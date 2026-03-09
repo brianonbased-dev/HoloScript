@@ -71,7 +71,7 @@ describe('PSOEngine — optimize result shape', () => {
     const agentCount = 4;
     const pso = mkPSO({ populationSize: 5, maxIterations: 3 });
     const result = await pso.optimize(agentCount, 6, constantFitness(0));
-    result.bestSolution.forEach(idx => {
+    result.bestSolution.forEach((idx) => {
       expect(idx).toBeGreaterThanOrEqual(0);
       expect(idx).toBeLessThan(agentCount);
     });
@@ -132,7 +132,7 @@ describe('PSOEngine — fitness optimization', () => {
   it('single agent — all tasks must go to agent 0', async () => {
     const pso = mkPSO({ populationSize: 5, maxIterations: 5 });
     const result = await pso.optimize(1, 3, constantFitness(1));
-    result.bestSolution.forEach(idx => expect(idx).toBe(0));
+    result.bestSolution.forEach((idx) => expect(idx).toBe(0));
   });
   it('fitness of bestSolution equals bestFitness', async () => {
     const fitnessMap: Record<string, number> = {};
@@ -144,7 +144,7 @@ describe('PSOEngine — fitness optimization', () => {
     const pso = mkPSO({ populationSize: 10, maxIterations: 10 });
     const result = await pso.optimize(3, 3, fn);
     // The reported bestFitness must be ≥ any fitness seen in history
-    result.fitnessHistory.forEach(f => {
+    result.fitnessHistory.forEach((f) => {
       expect(result.bestFitness).toBeGreaterThanOrEqual(f - 1e-9);
     });
   });

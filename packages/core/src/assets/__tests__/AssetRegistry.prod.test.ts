@@ -12,17 +12,33 @@ import { createAssetMetadata } from '../AssetMetadata';
 
 function makeManifest() {
   const m = new AssetManifest({
-    version: '1.0.0', projectName: 'T', baseUrl: '/',
+    version: '1.0.0',
+    projectName: 'T',
+    baseUrl: '/',
     defaults: { compression: 'none', textureFormat: 'RGBA8', maxTextureSize: '2K', lodLevels: 1 },
   });
-  m.addAsset(createAssetMetadata({
-    id: 'hero', name: 'Hero', format: 'glb', assetType: 'model', sourcePath: '/hero.glb',
-    tags: ['character'], fileSize: 500,
-  }));
-  m.addAsset(createAssetMetadata({
-    id: 'floor', name: 'Floor', format: 'png', assetType: 'texture', sourcePath: '/floor.png',
-    tags: ['env'], fileSize: 200,
-  }));
+  m.addAsset(
+    createAssetMetadata({
+      id: 'hero',
+      name: 'Hero',
+      format: 'glb',
+      assetType: 'model',
+      sourcePath: '/hero.glb',
+      tags: ['character'],
+      fileSize: 500,
+    })
+  );
+  m.addAsset(
+    createAssetMetadata({
+      id: 'floor',
+      name: 'Floor',
+      format: 'png',
+      assetType: 'texture',
+      sourcePath: '/floor.png',
+      tags: ['env'],
+      fileSize: 200,
+    })
+  );
   return m;
 }
 
@@ -100,8 +116,6 @@ describe('AssetRegistry — Production', () => {
       expect(AssetRegistry.getInstance().getCached('missing')).toBeUndefined();
     });
   });
-
-
 
   describe('config', () => {
     it('getConfig returns defaults', () => {

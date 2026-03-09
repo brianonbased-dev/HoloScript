@@ -77,7 +77,9 @@ describe('Scenario: Forensic Scene — Bullet Trajectory', () => {
 
   it('ricochet trajectories have fragmentation', () => {
     const ricochet: BulletTrajectory = {
-      ...trajectory, ricochet: true, fragmentCount: 3,
+      ...trajectory,
+      ricochet: true,
+      fragmentCount: 3,
     };
     expect(ricochet.ricochet).toBe(true);
     expect(ricochet.fragmentCount).toBe(3);
@@ -116,12 +118,26 @@ describe('Scenario: Forensic Scene — Blood Spatter', () => {
 
   it('calculateAreaOfOrigin() triangulates from 2+ patterns', () => {
     const spatters: BloodSpatterPattern[] = [
-      { id: 's1', center: { x: 2, y: 0, z: 3 }, radiusMeters: 0.5, dropletCount: 150,
-        pattern: 'impact', angleOfImpact: 30, directionality: 0,
-        pointOfOrigin: { x: 1, y: 1.5, z: 2 } },
-      { id: 's2', center: { x: 4, y: 0, z: 1 }, radiusMeters: 0.3, dropletCount: 80,
-        pattern: 'impact', angleOfImpact: 45, directionality: 90,
-        pointOfOrigin: { x: 3, y: 1.5, z: 2 } },
+      {
+        id: 's1',
+        center: { x: 2, y: 0, z: 3 },
+        radiusMeters: 0.5,
+        dropletCount: 150,
+        pattern: 'impact',
+        angleOfImpact: 30,
+        directionality: 0,
+        pointOfOrigin: { x: 1, y: 1.5, z: 2 },
+      },
+      {
+        id: 's2',
+        center: { x: 4, y: 0, z: 1 },
+        radiusMeters: 0.3,
+        dropletCount: 80,
+        pattern: 'impact',
+        angleOfImpact: 45,
+        directionality: 90,
+        pointOfOrigin: { x: 3, y: 1.5, z: 2 },
+      },
     ];
     const origin = calculateAreaOfOrigin(spatters);
     expect(origin).not.toBeNull();
@@ -130,11 +146,20 @@ describe('Scenario: Forensic Scene — Blood Spatter', () => {
 
   it('calculateAreaOfOrigin() returns null for <2 patterns', () => {
     expect(calculateAreaOfOrigin([])).toBeNull();
-    expect(calculateAreaOfOrigin([{
-      id: 's', center: { x: 0, y: 0, z: 0 }, radiusMeters: 1, dropletCount: 100,
-      pattern: 'impact', angleOfImpact: 30, directionality: 0,
-      pointOfOrigin: { x: 0, y: 1, z: 0 },
-    }])).toBeNull();
+    expect(
+      calculateAreaOfOrigin([
+        {
+          id: 's',
+          center: { x: 0, y: 0, z: 0 },
+          radiusMeters: 1,
+          dropletCount: 100,
+          pattern: 'impact',
+          angleOfImpact: 30,
+          directionality: 0,
+          pointOfOrigin: { x: 0, y: 1, z: 0 },
+        },
+      ])
+    ).toBeNull();
   });
 
   it('impactAngleFromDropletRatio() uses arcsin formula', () => {
@@ -153,9 +178,16 @@ describe('Scenario: Forensic Scene — Blood Spatter', () => {
 
 describe('Scenario: Forensic Scene — Evidence Management', () => {
   const evidence: EvidenceMarker = {
-    id: 'ev-1', label: 'Shell Casing #1', type: 'physical', severity: 'critical',
-    position: { x: 3, y: 0.01, z: 5 }, timestamp: Date.now(), collectedBy: 'Det. Rivers',
-    chainOfCustody: ['Det. Rivers'], photoUrls: ['photo1.jpg'], notes: '9mm casing',
+    id: 'ev-1',
+    label: 'Shell Casing #1',
+    type: 'physical',
+    severity: 'critical',
+    position: { x: 3, y: 0.01, z: 5 },
+    timestamp: Date.now(),
+    collectedBy: 'Det. Rivers',
+    chainOfCustody: ['Det. Rivers'],
+    photoUrls: ['photo1.jpg'],
+    notes: '9mm casing',
     gps: { lat: 34.0522, lon: -118.2437 },
   };
 
@@ -204,9 +236,13 @@ describe('Scenario: Forensic Scene — Evidence Management', () => {
 
 describe('Scenario: Forensic Scene — Witness & Scene', () => {
   const witness: WitnessViewpoint = {
-    id: 'w1', name: 'Mrs. Chen', position: { x: 20, y: 1.6, z: 10 },
-    lookAt: { x: 5, y: 1, z: 5 }, fovDegrees: 120,
-    timeOfObservation: Date.now(), visibility: 'clear',
+    id: 'w1',
+    name: 'Mrs. Chen',
+    position: { x: 20, y: 1.6, z: 10 },
+    lookAt: { x: 5, y: 1, z: 5 },
+    fovDegrees: 120,
+    timeOfObservation: Date.now(),
+    visibility: 'clear',
     statement: 'Heard two shots, saw a figure running east',
   };
 
@@ -230,17 +266,34 @@ describe('Scenario: Forensic Scene — Witness & Scene', () => {
 
   it('scenePerimeterArea() calculates area from polygon', () => {
     const square = [
-      { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 },
-      { x: 10, y: 0, z: 10 }, { x: 0, y: 0, z: 10 },
+      { x: 0, y: 0, z: 0 },
+      { x: 10, y: 0, z: 0 },
+      { x: 10, y: 0, z: 10 },
+      { x: 0, y: 0, z: 10 },
     ];
     expect(scenePerimeterArea(square)).toBe(100);
   });
 
   it('photogrammetry — reconstruct 3D scene from crime scene photos', () => {
     const captures = [
-      { id: 'p1', position: { x: 10, y: 1.5, z: 0 }, lookAt: { x: 5, y: 1, z: 5 }, focalLengthMm: 50 },
-      { id: 'p2', position: { x: 0, y: 1.5, z: 10 }, lookAt: { x: 5, y: 1, z: 5 }, focalLengthMm: 50 },
-      { id: 'p3', position: { x: -5, y: 1.5, z: 0 }, lookAt: { x: 5, y: 1, z: 5 }, focalLengthMm: 35 },
+      {
+        id: 'p1',
+        position: { x: 10, y: 1.5, z: 0 },
+        lookAt: { x: 5, y: 1, z: 5 },
+        focalLengthMm: 50,
+      },
+      {
+        id: 'p2',
+        position: { x: 0, y: 1.5, z: 10 },
+        lookAt: { x: 5, y: 1, z: 5 },
+        focalLengthMm: 50,
+      },
+      {
+        id: 'p3',
+        position: { x: -5, y: 1.5, z: 0 },
+        lookAt: { x: 5, y: 1, z: 5 },
+        focalLengthMm: 35,
+      },
     ];
     const result = photogrammetryPointCloud(captures);
     expect(result.estimatedPoints).toBeGreaterThan(0);
@@ -250,8 +303,21 @@ describe('Scenario: Forensic Scene — Witness & Scene', () => {
 
   it('timeline playback — animate events based on forensic timeline', () => {
     const events: ForensicEvent[] = [
-      { id: 'e3', timestamp: 3000, type: 'glass-break', description: 'Window shattered', confidence: 0.9 },
-      { id: 'e1', timestamp: 1000, type: 'gunshot', description: 'First shot', position: { x: 5, y: 1, z: 5 }, confidence: 1.0 },
+      {
+        id: 'e3',
+        timestamp: 3000,
+        type: 'glass-break',
+        description: 'Window shattered',
+        confidence: 0.9,
+      },
+      {
+        id: 'e1',
+        timestamp: 1000,
+        type: 'gunshot',
+        description: 'First shot',
+        position: { x: 5, y: 1, z: 5 },
+        confidence: 1.0,
+      },
       { id: 'e2', timestamp: 2000, type: 'scream', description: 'Cry for help', confidence: 0.8 },
     ];
     const timeline = forensicTimeline(events);

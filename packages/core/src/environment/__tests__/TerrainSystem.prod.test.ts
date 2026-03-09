@@ -13,7 +13,7 @@ const BASE_CONFIG: TerrainConfig = {
   id: 'test-terrain',
   width: 100,
   depth: 100,
-  resolution: 33,         // Fast for tests — still power-of-2+1 class
+  resolution: 33, // Fast for tests — still power-of-2+1 class
   maxHeight: 50,
   position: { x: 0, y: 0, z: 0 },
 };
@@ -21,7 +21,9 @@ const BASE_CONFIG: TerrainConfig = {
 describe('TerrainSystem', () => {
   let ts: TerrainSystem;
 
-  beforeEach(() => { ts = new TerrainSystem(); });
+  beforeEach(() => {
+    ts = new TerrainSystem();
+  });
 
   // -------------------------------------------------------------------------
   // createTerrain
@@ -87,7 +89,9 @@ describe('TerrainSystem', () => {
   // getHeightAt
   // -------------------------------------------------------------------------
   describe('getHeightAt()', () => {
-    beforeEach(() => { ts.createTerrain(BASE_CONFIG); });
+    beforeEach(() => {
+      ts.createTerrain(BASE_CONFIG);
+    });
 
     it('returns 0 for unknown terrain', () => {
       expect(ts.getHeightAt('ghost', 0, 0)).toBe(0);
@@ -169,7 +173,17 @@ describe('TerrainSystem', () => {
   describe('setLayers / getLayers', () => {
     it('setLayers replaces defaults', () => {
       ts.createTerrain(BASE_CONFIG);
-      ts.setLayers('test-terrain', [{ id: 'lava', texture: 'lava_tex', tiling: 5, minHeight: 0, maxHeight: 1, minSlope: 0, maxSlope: 1 }]);
+      ts.setLayers('test-terrain', [
+        {
+          id: 'lava',
+          texture: 'lava_tex',
+          tiling: 5,
+          minHeight: 0,
+          maxHeight: 1,
+          minSlope: 0,
+          maxSlope: 1,
+        },
+      ]);
       expect(ts.getLayers('test-terrain')).toHaveLength(1);
     });
 

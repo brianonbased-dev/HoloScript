@@ -91,7 +91,7 @@ export abstract class BaseAgent {
     const runPhase = async (
       phase: ProtocolPhase,
       fn: (input: unknown) => Promise<PhaseResult>,
-      input: unknown,
+      input: unknown
     ): Promise<PhaseResult> => {
       const start = Date.now();
       try {
@@ -115,12 +115,20 @@ export abstract class BaseAgent {
     const intakeResult = await runPhase(ProtocolPhase.INTAKE, this.intake, { task, ...context });
     const reflectResult = await runPhase(ProtocolPhase.REFLECT, this.reflect, intakeResult.data);
     const executeResult = await runPhase(ProtocolPhase.EXECUTE, this.execute, reflectResult.data);
-    const compressResult = await runPhase(ProtocolPhase.COMPRESS, this.compress, executeResult.data);
-    const reintakeResult = await runPhase(ProtocolPhase.REINTAKE, this.reintake, compressResult.data);
+    const compressResult = await runPhase(
+      ProtocolPhase.COMPRESS,
+      this.compress,
+      executeResult.data
+    );
+    const reintakeResult = await runPhase(
+      ProtocolPhase.REINTAKE,
+      this.reintake,
+      compressResult.data
+    );
     const growResult = await runPhase(ProtocolPhase.GROW, this.grow, reintakeResult.data);
     await runPhase(ProtocolPhase.EVOLVE, this.evolve, growResult.data);
 
-    const failed = phases.some(p => p.status === 'failure');
+    const failed = phases.some((p) => p.status === 'failure');
     return {
       cycleId,
       task,
@@ -186,7 +194,7 @@ export class ServiceError extends Error {
     public code: ServiceErrorCode,
     message: string,
     public statusCode: number = 500,
-    public details?: Record<string, unknown>,
+    public details?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'ServiceError';
@@ -200,7 +208,7 @@ export abstract class BaseService {
 
   constructor(
     metadata: Omit<ServiceMetadata, 'lifecycle' | 'initializedAt' | 'readyAt'>,
-    config?: Partial<ServiceConfig>,
+    config?: Partial<ServiceConfig>
   ) {
     this.metadata = { ...metadata, lifecycle: ServiceLifecycle.INITIALIZING };
     this.config = { enabled: true, timeout: 30000, retries: 3, ...config };
@@ -222,9 +230,15 @@ export abstract class BaseService {
     this.metadata.lifecycle = ServiceLifecycle.STOPPED;
   }
 
-  getMetadata(): ServiceMetadata { return { ...this.metadata }; }
-  getMetrics(): ServiceMetrics { return { ...this.metrics }; }
-  isReady(): boolean { return this.metadata.lifecycle === ServiceLifecycle.READY; }
+  getMetadata(): ServiceMetadata {
+    return { ...this.metadata };
+  }
+  getMetrics(): ServiceMetrics {
+    return { ...this.metrics };
+  }
+  isReady(): boolean {
+    return this.metadata.lifecycle === ServiceLifecycle.READY;
+  }
 
   protected recordRequest(latency: number): void {
     this.metrics.requestCount++;
@@ -261,7 +275,7 @@ export abstract class BaseService {
 export type PWGSeverity = 'low' | 'medium' | 'high' | 'critical';
 
 export interface Pattern {
-  id: string;         // P.DOMAIN.NN format
+  id: string; // P.DOMAIN.NN format
   domain: string;
   problem: string;
   solution: string;
@@ -273,7 +287,7 @@ export interface Pattern {
 }
 
 export interface Wisdom {
-  id: string;         // W.DOMAIN.NN format
+  id: string; // W.DOMAIN.NN format
   domain: string;
   insight: string;
   context: string;
@@ -283,7 +297,7 @@ export interface Wisdom {
 }
 
 export interface Gotcha {
-  id: string;         // G.DOMAIN.NN format
+  id: string; // G.DOMAIN.NN format
   domain: string;
   mistake: string;
   fix: string;
@@ -294,9 +308,15 @@ export interface Gotcha {
 
 export type PWGEntry = Pattern | Wisdom | Gotcha;
 
-export function isPattern(entry: PWGEntry): entry is Pattern { return entry.id.startsWith('P.'); }
-export function isWisdom(entry: PWGEntry): entry is Wisdom { return entry.id.startsWith('W.'); }
-export function isGotcha(entry: PWGEntry): entry is Gotcha { return entry.id.startsWith('G.'); }
+export function isPattern(entry: PWGEntry): entry is Pattern {
+  return entry.id.startsWith('P.');
+}
+export function isWisdom(entry: PWGEntry): entry is Wisdom {
+  return entry.id.startsWith('W.');
+}
+export function isGotcha(entry: PWGEntry): entry is Gotcha {
+  return entry.id.startsWith('G.');
+}
 
 // =============================================================================
 // GOAL SYNTHESIZER
@@ -433,7 +453,7 @@ export class MicroPhaseDecomposer {
 
     let totalTime = 0;
     for (const g of groups) {
-      g.estimatedDuration = Math.max(...g.tasks.map(t => t.estimatedDuration));
+      g.estimatedDuration = Math.max(...g.tasks.map((t) => t.estimatedDuration));
       totalTime += g.estimatedDuration;
     }
 
@@ -455,9 +475,17 @@ export class MicroPhaseDecomposer {
             const timeout = task.timeout ?? 30000;
             const result = await Promise.race([
               task.execute(),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Task timeout')), timeout)),
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Task timeout')), timeout)
+              ),
             ]);
-            return { taskId: task.id, status: 'success' as const, duration: Date.now() - start, result, timestamp: Date.now() };
+            return {
+              taskId: task.id,
+              status: 'success' as const,
+              duration: Date.now() - start,
+              result,
+              timestamp: Date.now(),
+            };
           } catch (err) {
             const isTimeout = err instanceof Error && err.message === 'Task timeout';
             return {
@@ -468,7 +496,7 @@ export class MicroPhaseDecomposer {
               timestamp: Date.now(),
             };
           }
-        }),
+        })
       );
       results.push(...groupResults);
     }
@@ -476,7 +504,9 @@ export class MicroPhaseDecomposer {
     return results;
   }
 
-  getHistory(): ExecutionResult[] { return [...this.history]; }
+  getHistory(): ExecutionResult[] {
+    return [...this.history];
+  }
 
   reset(): void {
     this.nodes.clear();

@@ -7,7 +7,9 @@ import { magnifiableHandler } from '../MagnifiableTrait';
 function makeNode(scale?: { x: number; y: number; z: number }) {
   return { id: 'mag_node', scale: scale ?? { x: 1, y: 1, z: 1 } };
 }
-function makeContext() { return { emit: vi.fn() }; }
+function makeContext() {
+  return { emit: vi.fn() };
+}
 function attachNode(config: any = {}, nodeScale?: { x: number; y: number; z: number }) {
   const node = makeNode(nodeScale);
   const ctx = makeContext();
@@ -27,24 +29,33 @@ describe('magnifiableHandler.defaultConfig', () => {
   it('lens_mode = false', () => expect(magnifiableHandler.defaultConfig!.lens_mode).toBe(false));
   it('lens_size = 0.3', () => expect(magnifiableHandler.defaultConfig!.lens_size).toBe(0.3));
   it('lens_border = true', () => expect(magnifiableHandler.defaultConfig!.lens_border).toBe(true));
-  it('preserve_aspect = true', () => expect(magnifiableHandler.defaultConfig!.preserve_aspect).toBe(true));
+  it('preserve_aspect = true', () =>
+    expect(magnifiableHandler.defaultConfig!.preserve_aspect).toBe(true));
 });
 
 // ─── onAttach ────────────────────────────────────────────────────────────────
 
 describe('magnifiableHandler.onAttach', () => {
-  it('creates __magnifiableState', () => expect((attachNode().node as any).__magnifiableState).toBeDefined());
-  it('currentMagnification = 1', () => expect((attachNode().node as any).__magnifiableState.currentMagnification).toBe(1));
-  it('targetMagnification = 1', () => expect((attachNode().node as any).__magnifiableState.targetMagnification).toBe(1));
-  it('isZooming = false', () => expect((attachNode().node as any).__magnifiableState.isZooming).toBe(false));
-  it('lensPosition = null', () => expect((attachNode().node as any).__magnifiableState.lensPosition).toBeNull());
+  it('creates __magnifiableState', () =>
+    expect((attachNode().node as any).__magnifiableState).toBeDefined());
+  it('currentMagnification = 1', () =>
+    expect((attachNode().node as any).__magnifiableState.currentMagnification).toBe(1));
+  it('targetMagnification = 1', () =>
+    expect((attachNode().node as any).__magnifiableState.targetMagnification).toBe(1));
+  it('isZooming = false', () =>
+    expect((attachNode().node as any).__magnifiableState.isZooming).toBe(false));
+  it('lensPosition = null', () =>
+    expect((attachNode().node as any).__magnifiableState.lensPosition).toBeNull());
   it('captures originalScale from node.scale', () => {
     const { node } = attachNode({}, { x: 2, y: 3, z: 4 });
     expect((node as any).__magnifiableState.originalScale).toEqual({ x: 2, y: 3, z: 4 });
   });
   it('emits magnifiable_register with trigger and lensMode', () => {
     const { ctx } = attachNode({ trigger: 'gaze', lens_mode: true });
-    expect(ctx.emit).toHaveBeenCalledWith('magnifiable_register', expect.objectContaining({ trigger: 'gaze', lensMode: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'magnifiable_register',
+      expect.objectContaining({ trigger: 'gaze', lensMode: true })
+    );
   });
 });
 
@@ -59,7 +70,9 @@ describe('magnifiableHandler.onDetach', () => {
   it('restores originalScale on node.scale', () => {
     const { node, cfg, ctx } = attachNode({}, { x: 3, y: 2, z: 1 });
     // Simulate magnification applied by dirtying scale
-    (node as any).scale.x = 9; (node as any).scale.y = 6; (node as any).scale.z = 3;
+    (node as any).scale.x = 9;
+    (node as any).scale.y = 6;
+    (node as any).scale.z = 3;
     magnifiableHandler.onDetach!(node, cfg, ctx);
     expect((node as any).scale.x).toBe(3);
     expect((node as any).scale.y).toBe(2);
@@ -112,7 +125,10 @@ describe('magnifiableHandler.onUpdate — smooth zoom', () => {
     (node as any).__magnifiableState.lensPosition = { x: 0.5, y: 0.5 };
     ctx.emit.mockClear();
     magnifiableHandler.onUpdate!(node, cfg, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('magnifiable_lens_update', expect.objectContaining({ size: 0.4, showBorder: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'magnifiable_lens_update',
+      expect.objectContaining({ size: 0.4, showBorder: true })
+    );
   });
   it('does NOT emit magnifiable_lens_update when lensPosition is null', () => {
     const { node, cfg, ctx } = attachNode({ lens_mode: true });
@@ -132,7 +148,10 @@ describe('magnifiableHandler.onEvent — magnify_start / pinch_start', () => {
   });
   it('magnify_start captures zoomCenter from event.center', () => {
     const { node, cfg, ctx } = attachNode();
-    magnifiableHandler.onEvent!(node, cfg, ctx, { type: 'magnify_start', center: { x: 1, y: 2, z: 3 } });
+    magnifiableHandler.onEvent!(node, cfg, ctx, {
+      type: 'magnify_start',
+      center: { x: 1, y: 2, z: 3 },
+    });
     expect((node as any).__magnifiableState.zoomCenter).toEqual({ x: 1, y: 2, z: 3 });
   });
   it('magnify_start emits on_magnify_start', () => {
@@ -183,7 +202,11 @@ describe('magnifiableHandler.onEvent — magnify_update', () => {
   });
   it('sets lensPosition when lens_mode=true and event.position provided', () => {
     const { node, cfg, ctx } = attachNode({ smooth_zoom: true, lens_mode: true });
-    magnifiableHandler.onEvent!(node, cfg, ctx, { type: 'magnify_update', scale: 1, position: { x: 0.3, y: 0.4 } });
+    magnifiableHandler.onEvent!(node, cfg, ctx, {
+      type: 'magnify_update',
+      scale: 1,
+      position: { x: 0.3, y: 0.4 },
+    });
     expect((node as any).__magnifiableState.lensPosition).toEqual({ x: 0.3, y: 0.4 });
   });
   it('pinch_update is an alias (sets targetMagnification in smooth mode)', () => {
@@ -208,7 +231,10 @@ describe('magnifiableHandler.onEvent — magnify_end / pinch_end', () => {
     (node as any).__magnifiableState.currentMagnification = 2.5;
     ctx.emit.mockClear();
     magnifiableHandler.onEvent!(node, cfg, ctx, { type: 'magnify_end' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_magnify_end', expect.objectContaining({ magnification: 2.5 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_magnify_end',
+      expect.objectContaining({ magnification: 2.5 })
+    );
   });
   it('pinch_end is a valid alias', () => {
     const { node, cfg, ctx } = attachNode();
@@ -258,11 +284,14 @@ describe('magnifiableHandler.onEvent — magnify_set / reset / query', () => {
     (node as any).__magnifiableState.isZooming = true;
     ctx.emit.mockClear();
     magnifiableHandler.onEvent!(node, cfg, ctx, { type: 'magnify_query', queryId: 'q1' });
-    expect(ctx.emit).toHaveBeenCalledWith('magnify_info', expect.objectContaining({
-      queryId: 'q1',
-      currentMagnification: 2,
-      isZooming: true,
-      lensMode: true,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'magnify_info',
+      expect.objectContaining({
+        queryId: 'q1',
+        currentMagnification: 2,
+        isZooming: true,
+        lensMode: true,
+      })
+    );
   });
 });

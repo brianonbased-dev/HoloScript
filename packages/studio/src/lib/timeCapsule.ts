@@ -5,7 +5,11 @@
  * scheduled unlock dates, and capsule sharing.
  */
 
-export interface Vec3 { x: number; y: number; z: number }
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 export type CapsuleStatus = 'draft' | 'sealed' | 'locked' | 'unlocked' | 'expired';
 export type ItemType = '3d-scan' | 'photo' | 'video' | 'audio' | 'text' | 'document';
@@ -24,7 +28,7 @@ export interface CapsuleItem {
 
 export interface VoiceMemo {
   id: string;
-  duration: number;       // seconds
+  duration: number; // seconds
   linkedItemId?: string;
   transcript?: string;
   recordedDate: number;
@@ -60,7 +64,14 @@ export function yearsUntilUnlock(capsule: TimeCapsule, now: number): number {
 }
 
 export function capsuleItemCount(capsule: TimeCapsule): Record<ItemType, number> {
-  const counts: Record<ItemType, number> = { '3d-scan': 0, photo: 0, video: 0, audio: 0, text: 0, document: 0 };
+  const counts: Record<ItemType, number> = {
+    '3d-scan': 0,
+    photo: 0,
+    video: 0,
+    audio: 0,
+    text: 0,
+    document: 0,
+  };
   for (const item of capsule.items) counts[item.type]++;
   return counts;
 }
@@ -102,7 +113,7 @@ export function blockchainTimestampProof(capsule: TimeCapsule): TimestampProof {
   let hash = 0;
   for (let i = 0; i < data.length; i++) {
     const chr = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + chr;
+    hash = (hash << 5) - hash + chr;
     hash |= 0; // Convert to 32-bit int
   }
   const hexHash = Math.abs(hash).toString(16).padStart(8, '0');
@@ -136,7 +147,7 @@ export interface ARRevealPreview {
 export function arReveal(capsule: TimeCapsule): ARRevealPreview {
   return {
     capsuleId: capsule.id,
-    itemPreviews: capsule.items.map(item => ({
+    itemPreviews: capsule.items.map((item) => ({
       id: item.id,
       thumbnailUrl: `${item.fileUrl}.thumb.jpg`,
       position: item.position,

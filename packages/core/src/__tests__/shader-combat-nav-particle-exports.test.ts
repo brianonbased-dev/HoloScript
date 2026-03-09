@@ -3,9 +3,11 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  ShaderGraph, SHADER_NODES,
+  ShaderGraph,
+  SHADER_NODES,
   CombatManager,
-  AStarPathfinder, NavMesh,
+  AStarPathfinder,
+  NavMesh,
   ParticleSystem,
 } from '../index';
 
@@ -63,8 +65,23 @@ describe('ShaderGraph exports', () => {
 describe('CombatManager exports', () => {
   it('CombatManager detects hitbox/hurtbox collisions', () => {
     const cm = new CombatManager();
-    cm.addHitBox({ id: 'hb1', ownerId: 'a', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true, damage: 10, damageType: 'physical', knockback: 1 });
-    cm.addHurtBox({ id: 'hr1', ownerId: 'b', position: { x: 0.5, y: 0, z: 0 }, size: { x: 1, y: 1, z: 1 }, active: true });
+    cm.addHitBox({
+      id: 'hb1',
+      ownerId: 'a',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+      damage: 10,
+      damageType: 'physical',
+      knockback: 1,
+    });
+    cm.addHurtBox({
+      id: 'hr1',
+      ownerId: 'b',
+      position: { x: 0.5, y: 0, z: 0 },
+      size: { x: 1, y: 1, z: 1 },
+      active: true,
+    });
     const hits = cm.checkCollisions();
     expect(hits.length).toBe(1);
     expect(hits[0].hitbox.id).toBe('hb1');
@@ -102,7 +119,7 @@ describe('CombatManager exports', () => {
         { entityId: 'far', position: { x: 10, y: 0, z: 0 } },
         { entityId: 'near', position: { x: 2, y: 0, z: 0 } },
       ],
-      20,
+      20
     );
     expect(targets.length).toBe(2);
     expect(targets[0].entityId).toBe('near');
@@ -110,8 +127,23 @@ describe('CombatManager exports', () => {
 
   it('CombatManager no self-hit', () => {
     const cm = new CombatManager();
-    cm.addHitBox({ id: 'self-hb', ownerId: 'player', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true, damage: 10, damageType: 'physical', knockback: 1 });
-    cm.addHurtBox({ id: 'self-hr', ownerId: 'player', position: { x: 0, y: 0, z: 0 }, size: { x: 1, y: 1, z: 1 }, active: true });
+    cm.addHitBox({
+      id: 'self-hb',
+      ownerId: 'player',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+      damage: 10,
+      damageType: 'physical',
+      knockback: 1,
+    });
+    cm.addHurtBox({
+      id: 'self-hr',
+      ownerId: 'player',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 1, y: 1, z: 1 },
+      active: true,
+    });
     const hits = cm.checkCollisions();
     expect(hits.length).toBe(0);
   });
@@ -121,12 +153,24 @@ describe('AStarPathfinder exports', () => {
   function createSimpleMesh(): NavMesh {
     const mesh = new NavMesh();
     const a = mesh.addPolygon(
-      [{ x: -1, y: 0, z: -1 }, { x: 1, y: 0, z: -1 }, { x: 1, y: 0, z: 1 }, { x: -1, y: 0, z: 1 }],
-      true, 1,
+      [
+        { x: -1, y: 0, z: -1 },
+        { x: 1, y: 0, z: -1 },
+        { x: 1, y: 0, z: 1 },
+        { x: -1, y: 0, z: 1 },
+      ],
+      true,
+      1
     );
     const b = mesh.addPolygon(
-      [{ x: 3, y: 0, z: -1 }, { x: 5, y: 0, z: -1 }, { x: 5, y: 0, z: 1 }, { x: 3, y: 0, z: 1 }],
-      true, 1,
+      [
+        { x: 3, y: 0, z: -1 },
+        { x: 5, y: 0, z: -1 },
+        { x: 5, y: 0, z: 1 },
+        { x: 3, y: 0, z: 1 },
+      ],
+      true,
+      1
     );
     mesh.connectPolygons(a.id, b.id);
     return mesh;
@@ -150,7 +194,12 @@ describe('AStarPathfinder exports', () => {
 
   it('AStarPathfinder smoothPath reduces waypoints', () => {
     const pf = new AStarPathfinder(createSimpleMesh());
-    const points = [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: 2, y: 0, z: 0 }, { x: 3, y: 0, z: 0 }];
+    const points = [
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+      { x: 2, y: 0, z: 0 },
+      { x: 3, y: 0, z: 0 },
+    ];
     const smoothed = pf.smoothPath(points);
     expect(smoothed.length).toBeLessThanOrEqual(points.length);
   });
@@ -159,9 +208,16 @@ describe('AStarPathfinder exports', () => {
 describe('ParticleSystem exports', () => {
   it('ParticleSystem creates and emits particles', () => {
     const ps = new ParticleSystem({
-      shape: 'point', rate: 100, maxParticles: 50, lifetime: [1, 2], speed: [1, 3],
-      size: [0.1, 0.3], sizeEnd: [0, 0], colorStart: { r: 1, g: 1, b: 1, a: 1 },
-      colorEnd: { r: 1, g: 1, b: 1, a: 0 }, position: { x: 0, y: 0, z: 0 },
+      shape: 'point',
+      rate: 100,
+      maxParticles: 50,
+      lifetime: [1, 2],
+      speed: [1, 3],
+      size: [0.1, 0.3],
+      sizeEnd: [0, 0],
+      colorStart: { r: 1, g: 1, b: 1, a: 1 },
+      colorEnd: { r: 1, g: 1, b: 1, a: 0 },
+      position: { x: 0, y: 0, z: 0 },
     });
     ps.update(0.1);
     expect(ps.getActiveCount()).toBeGreaterThan(0);
@@ -169,9 +225,16 @@ describe('ParticleSystem exports', () => {
 
   it('ParticleSystem burst mode integrates with update', () => {
     const ps = new ParticleSystem({
-      shape: 'point', rate: 0, maxParticles: 100, lifetime: [1, 2], speed: [1, 3],
-      size: [0.1, 0.3], sizeEnd: [0, 0], colorStart: { r: 1, g: 1, b: 1, a: 1 },
-      colorEnd: { r: 1, g: 1, b: 1, a: 0 }, position: { x: 0, y: 0, z: 0 },
+      shape: 'point',
+      rate: 0,
+      maxParticles: 100,
+      lifetime: [1, 2],
+      speed: [1, 3],
+      size: [0.1, 0.3],
+      sizeEnd: [0, 0],
+      colorStart: { r: 1, g: 1, b: 1, a: 1 },
+      colorEnd: { r: 1, g: 1, b: 1, a: 0 },
+      position: { x: 0, y: 0, z: 0 },
     });
     ps.burst(20);
     ps.update(0.016); // Tick to process burst
@@ -180,9 +243,16 @@ describe('ParticleSystem exports', () => {
 
   it('ParticleSystem setEmitting controls emission', () => {
     const ps = new ParticleSystem({
-      shape: 'point', rate: 100, maxParticles: 50, lifetime: [1, 2], speed: [1, 3],
-      size: [0.1, 0.3], sizeEnd: [0, 0], colorStart: { r: 1, g: 1, b: 1, a: 1 },
-      colorEnd: { r: 1, g: 1, b: 1, a: 0 }, position: { x: 0, y: 0, z: 0 },
+      shape: 'point',
+      rate: 100,
+      maxParticles: 50,
+      lifetime: [1, 2],
+      speed: [1, 3],
+      size: [0.1, 0.3],
+      sizeEnd: [0, 0],
+      colorStart: { r: 1, g: 1, b: 1, a: 1 },
+      colorEnd: { r: 1, g: 1, b: 1, a: 0 },
+      position: { x: 0, y: 0, z: 0 },
     });
     expect(ps.isEmitting()).toBe(true);
     ps.setEmitting(false);
@@ -191,9 +261,16 @@ describe('ParticleSystem exports', () => {
 
   it('ParticleSystem particles eventually expire', () => {
     const ps = new ParticleSystem({
-      shape: 'point', rate: 100, maxParticles: 50, lifetime: [0.05, 0.05], speed: [1, 1],
-      size: [0.1, 0.1], sizeEnd: [0, 0], colorStart: { r: 1, g: 1, b: 1, a: 1 },
-      colorEnd: { r: 1, g: 1, b: 1, a: 0 }, position: { x: 0, y: 0, z: 0 },
+      shape: 'point',
+      rate: 100,
+      maxParticles: 50,
+      lifetime: [0.05, 0.05],
+      speed: [1, 1],
+      size: [0.1, 0.1],
+      sizeEnd: [0, 0],
+      colorStart: { r: 1, g: 1, b: 1, a: 1 },
+      colorEnd: { r: 1, g: 1, b: 1, a: 0 },
+      position: { x: 0, y: 0, z: 0 },
     });
     ps.update(0.01); // Emit some
     const countBefore = ps.getActiveCount();
@@ -205,9 +282,16 @@ describe('ParticleSystem exports', () => {
 
   it('ParticleSystem setPosition moves emitter', () => {
     const ps = new ParticleSystem({
-      shape: 'point', rate: 10, maxParticles: 50, lifetime: [1, 2], speed: [1, 3],
-      size: [0.1, 0.3], sizeEnd: [0, 0], colorStart: { r: 1, g: 1, b: 1, a: 1 },
-      colorEnd: { r: 1, g: 1, b: 1, a: 0 }, position: { x: 0, y: 0, z: 0 },
+      shape: 'point',
+      rate: 10,
+      maxParticles: 50,
+      lifetime: [1, 2],
+      speed: [1, 3],
+      size: [0.1, 0.3],
+      sizeEnd: [0, 0],
+      colorStart: { r: 1, g: 1, b: 1, a: 1 },
+      colorEnd: { r: 1, g: 1, b: 1, a: 0 },
+      position: { x: 0, y: 0, z: 0 },
     });
     ps.setPosition(5, 10, 3);
     expect(ps.getConfig().position.x).toBe(5);

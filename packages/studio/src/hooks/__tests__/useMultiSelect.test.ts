@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useMultiSelect } from '../useMultiSelect';
-import { useSceneGraphStore } from '@/lib/store';
+import { useSceneGraphStore } from '@/lib/stores';
 
 describe('useMultiSelect', () => {
   beforeEach(() => {
@@ -27,15 +27,17 @@ describe('useMultiSelect', () => {
     it('should select a single node', () => {
       // Setup: Add a node to the scene
       useSceneGraphStore.setState({
-        nodes: [{
-          id: 'node1',
-          name: 'Test Node 1',
-          type: 'empty',
-          position: [0, 0, 0],
-          rotation: [0, 0, 0],
-          scale: [1, 1, 1],
-          traits: [],
-        }],
+        nodes: [
+          {
+            id: 'node1',
+            name: 'Test Node 1',
+            type: 'empty',
+            position: [0, 0, 0],
+            rotation: [0, 0, 0],
+            scale: [1, 1, 1],
+            traits: [],
+          },
+        ],
       });
 
       const { result } = renderHook(() => useMultiSelect());
@@ -125,15 +127,17 @@ describe('useMultiSelect', () => {
 
     it('should toggle selection in additive mode', () => {
       useSceneGraphStore.setState({
-        nodes: [{
-          id: 'node1',
-          name: 'Node 1',
-          type: 'empty',
-          position: [0, 0, 0],
-          rotation: [0, 0, 0],
-          scale: [1, 1, 1],
-          traits: [],
-        }],
+        nodes: [
+          {
+            id: 'node1',
+            name: 'Node 1',
+            type: 'empty',
+            position: [0, 0, 0],
+            rotation: [0, 0, 0],
+            scale: [1, 1, 1],
+            traits: [],
+          },
+        ],
       });
 
       const { result } = renderHook(() => useMultiSelect());
@@ -198,15 +202,17 @@ describe('useMultiSelect', () => {
 
     it('should clear selection', () => {
       useSceneGraphStore.setState({
-        nodes: [{
-          id: 'node1',
-          name: 'Node 1',
-          type: 'empty',
-          position: [0, 0, 0],
-          rotation: [0, 0, 0],
-          scale: [1, 1, 1],
-          traits: [],
-        }],
+        nodes: [
+          {
+            id: 'node1',
+            name: 'Node 1',
+            type: 'empty',
+            position: [0, 0, 0],
+            rotation: [0, 0, 0],
+            scale: [1, 1, 1],
+            traits: [],
+          },
+        ],
       });
 
       const { result } = renderHook(() => useMultiSelect());
@@ -224,15 +230,17 @@ describe('useMultiSelect', () => {
   describe('Transform Operations', () => {
     it('should apply position delta to selected nodes', () => {
       useSceneGraphStore.setState({
-        nodes: [{
-          id: 'node1',
-          name: 'Node 1',
-          type: 'empty',
-          position: [0, 0, 0],
-          rotation: [0, 0, 0],
-          scale: [1, 1, 1],
-          traits: [],
-        }],
+        nodes: [
+          {
+            id: 'node1',
+            name: 'Node 1',
+            type: 'empty',
+            position: [0, 0, 0],
+            rotation: [0, 0, 0],
+            scale: [1, 1, 1],
+            traits: [],
+          },
+        ],
       });
 
       const { result, rerender } = renderHook(() => useMultiSelect());
@@ -252,15 +260,17 @@ describe('useMultiSelect', () => {
 
     it('should apply rotation delta to selected nodes', () => {
       useSceneGraphStore.setState({
-        nodes: [{
-          id: 'node1',
-          name: 'Node 1',
-          type: 'empty',
-          position: [0, 0, 0],
-          rotation: [0, 0, 0],
-          scale: [1, 1, 1],
-          traits: [],
-        }],
+        nodes: [
+          {
+            id: 'node1',
+            name: 'Node 1',
+            type: 'empty',
+            position: [0, 0, 0],
+            rotation: [0, 0, 0],
+            scale: [1, 1, 1],
+            traits: [],
+          },
+        ],
       });
 
       const { result, rerender } = renderHook(() => useMultiSelect());
@@ -280,15 +290,17 @@ describe('useMultiSelect', () => {
 
     it('should apply scale delta to selected nodes', () => {
       useSceneGraphStore.setState({
-        nodes: [{
-          id: 'node1',
-          name: 'Node 1',
-          type: 'empty',
-          position: [0, 0, 0],
-          rotation: [0, 0, 0],
-          scale: [1, 1, 1],
-          traits: [],
-        }],
+        nodes: [
+          {
+            id: 'node1',
+            name: 'Node 1',
+            type: 'empty',
+            position: [0, 0, 0],
+            rotation: [0, 0, 0],
+            scale: [1, 1, 1],
+            traits: [],
+          },
+        ],
       });
 
       const { result, rerender } = renderHook(() => useMultiSelect());
@@ -308,15 +320,17 @@ describe('useMultiSelect', () => {
 
     it('should apply absolute position to selected nodes', () => {
       useSceneGraphStore.setState({
-        nodes: [{
-          id: 'node1',
-          name: 'Node 1',
-          type: 'empty',
-          position: [5, 5, 5],
-          rotation: [0, 0, 0],
-          scale: [1, 1, 1],
-          traits: [],
-        }],
+        nodes: [
+          {
+            id: 'node1',
+            name: 'Node 1',
+            type: 'empty',
+            position: [5, 5, 5],
+            rotation: [0, 0, 0],
+            scale: [1, 1, 1],
+            traits: [],
+          },
+        ],
       });
 
       const { result, rerender } = renderHook(() => useMultiSelect());
@@ -384,15 +398,17 @@ describe('useMultiSelect', () => {
 
     it('should calculate centroid for single node', () => {
       useSceneGraphStore.setState({
-        nodes: [{
-          id: 'node1',
-          name: 'Node 1',
-          type: 'empty',
-          position: [5, 10, 15],
-          rotation: [0, 0, 0],
-          scale: [1, 1, 1],
-          traits: [],
-        }],
+        nodes: [
+          {
+            id: 'node1',
+            name: 'Node 1',
+            type: 'empty',
+            position: [5, 10, 15],
+            rotation: [0, 0, 0],
+            scale: [1, 1, 1],
+            traits: [],
+          },
+        ],
       });
 
       const { result } = renderHook(() => useMultiSelect());

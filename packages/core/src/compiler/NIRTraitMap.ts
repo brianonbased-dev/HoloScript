@@ -71,10 +71,10 @@ export type NIRPrimitiveType =
  * Implementation level for NIR trait mappings.
  */
 export type NIRTraitImplementationLevel =
-  | 'full'        // Generates complete NIR node with all parameters
-  | 'partial'     // Generates NIR node with defaults / TODOs
-  | 'composite'   // Generates multiple connected NIR nodes
-  | 'comment'     // Only generates documentation comment
+  | 'full' // Generates complete NIR node with all parameters
+  | 'partial' // Generates NIR node with defaults / TODOs
+  | 'composite' // Generates multiple connected NIR nodes
+  | 'comment' // Only generates documentation comment
   | 'unsupported'; // Not mappable to NIR
 
 /**
@@ -95,15 +95,15 @@ export type NeuromorphicPlatform =
  * Parameters for an NIR Affine node: y = W*x + b
  */
 export interface NIRAffineParams {
-  weight: number[][];  // Weight matrix W
-  bias: number[];      // Bias vector b
+  weight: number[][]; // Weight matrix W
+  bias: number[]; // Bias vector b
 }
 
 /**
  * Parameters for an NIR Linear node: y = W*x
  */
 export interface NIRLinearParams {
-  weight: number[][];  // Weight matrix W
+  weight: number[][]; // Weight matrix W
 }
 
 /**
@@ -122,7 +122,7 @@ export interface NIRConvParams {
  * Parameters for an NIR Scale node: y = s*x
  */
 export interface NIRScaleParams {
-  scale: number[];  // Scaling factors
+  scale: number[]; // Scaling factors
 }
 
 /**
@@ -138,21 +138,21 @@ export interface NIRFlattenParams {
  * Parameters for an NIR Delay node.
  */
 export interface NIRDelayParams {
-  delay: number[];  // Time delay per channel (tau)
+  delay: number[]; // Time delay per channel (tau)
 }
 
 /**
  * Parameters for an NIR Threshold (spike) node.
  */
 export interface NIRThresholdParams {
-  threshold: number[];  // Spike threshold (theta_thr)
+  threshold: number[]; // Spike threshold (theta_thr)
 }
 
 /**
  * Parameters for an NIR Integrator node: dv/dt = R*i(t)
  */
 export interface NIRIntegratorParams {
-  r: number[];  // Resistance R
+  r: number[]; // Resistance R
 }
 
 /**
@@ -160,8 +160,8 @@ export interface NIRIntegratorParams {
  * Dynamics: tau * dv/dt = (v_leak - v) + R*i(t)
  */
 export interface NIRLIParams {
-  tau: number[];    // Time constant
-  r: number[];      // Resistance
+  tau: number[]; // Time constant
+  r: number[]; // Resistance
   v_leak: number[]; // Leak voltage
 }
 
@@ -170,9 +170,9 @@ export interface NIRLIParams {
  * Composition: Reset + Threshold + LI
  */
 export interface NIRLIFParams {
-  tau: number[];         // Membrane time constant
-  r: number[];           // Membrane resistance
-  v_leak: number[];      // Leak potential
+  tau: number[]; // Membrane time constant
+  r: number[]; // Membrane resistance
+  v_leak: number[]; // Leak potential
   v_threshold: number[]; // Spike threshold
 }
 
@@ -181,12 +181,12 @@ export interface NIRLIFParams {
  * Composition: LI_syn + Linear + LIF_membrane
  */
 export interface NIRCubaLIFParams {
-  tau_syn: number[];     // Synaptic time constant
-  tau_mem: number[];     // Membrane time constant
-  r: number[];           // Membrane resistance
-  v_leak: number[];      // Leak potential
+  tau_syn: number[]; // Synaptic time constant
+  tau_mem: number[]; // Membrane time constant
+  r: number[]; // Membrane resistance
+  v_leak: number[]; // Leak potential
   v_threshold: number[]; // Spike threshold
-  w_in: number[];        // Input weights
+  w_in: number[]; // Input weights
 }
 
 /**
@@ -194,7 +194,7 @@ export interface NIRCubaLIFParams {
  * Composition: Reset + Threshold + Integrator
  */
 export interface NIRIFParams {
-  r: number[];           // Resistance
+  r: number[]; // Resistance
   v_threshold: number[]; // Spike threshold
 }
 
@@ -314,7 +314,8 @@ export const NEURON_TRAIT_MAP: Record<string, NIRTraitMapping> = {
     generatedNodes: ['LIF'],
     level: 'full',
     platforms: ['loihi2', 'spinnaker2', 'synsense_speck', 'synsense_xylo', 'brainscales2'],
-    description: 'Leaky Integrate-and-Fire neuron (tau*dv/dt = (v_leak - v) + R*i(t), spike when v >= theta)',
+    description:
+      'Leaky Integrate-and-Fire neuron (tau*dv/dt = (v_leak - v) + R*i(t), spike when v >= theta)',
     generate: (nodeId, config) => {
       const numNeurons = Number(config.num_neurons ?? config.size ?? 128);
       const tau = Number(config.tau ?? config.time_constant ?? 20.0);
@@ -323,17 +324,19 @@ export const NEURON_TRAIT_MAP: Record<string, NIRTraitMapping> = {
       const vThreshold = Number(config.v_threshold ?? config.threshold ?? 1.0);
 
       return {
-        nodes: [{
-          id: nodeId,
-          type: 'LIF',
-          params: {
-            tau: Array(numNeurons).fill(tau),
-            r: Array(numNeurons).fill(r),
-            v_leak: Array(numNeurons).fill(vLeak),
-            v_threshold: Array(numNeurons).fill(vThreshold),
-          } as NIRLIFParams,
-          metadata: { source_trait: 'lif_neuron', num_neurons: numNeurons },
-        }],
+        nodes: [
+          {
+            id: nodeId,
+            type: 'LIF',
+            params: {
+              tau: Array(numNeurons).fill(tau),
+              r: Array(numNeurons).fill(r),
+              v_leak: Array(numNeurons).fill(vLeak),
+              v_threshold: Array(numNeurons).fill(vThreshold),
+            } as NIRLIFParams,
+            metadata: { source_trait: 'lif_neuron', num_neurons: numNeurons },
+          },
+        ],
         edges: [],
       };
     },
@@ -355,19 +358,21 @@ export const NEURON_TRAIT_MAP: Record<string, NIRTraitMapping> = {
       const vThreshold = Number(config.v_threshold ?? config.threshold ?? 1.0);
 
       return {
-        nodes: [{
-          id: nodeId,
-          type: 'CubaLIF',
-          params: {
-            tau_syn: Array(numNeurons).fill(tauSyn),
-            tau_mem: Array(numNeurons).fill(tauMem),
-            r: Array(numNeurons).fill(r),
-            v_leak: Array(numNeurons).fill(vLeak),
-            v_threshold: Array(numNeurons).fill(vThreshold),
-            w_in: Array(numNeurons).fill(1.0),
-          } as NIRCubaLIFParams,
-          metadata: { source_trait: 'cuba_lif_neuron', num_neurons: numNeurons },
-        }],
+        nodes: [
+          {
+            id: nodeId,
+            type: 'CubaLIF',
+            params: {
+              tau_syn: Array(numNeurons).fill(tauSyn),
+              tau_mem: Array(numNeurons).fill(tauMem),
+              r: Array(numNeurons).fill(r),
+              v_leak: Array(numNeurons).fill(vLeak),
+              v_threshold: Array(numNeurons).fill(vThreshold),
+              w_in: Array(numNeurons).fill(1.0),
+            } as NIRCubaLIFParams,
+            metadata: { source_trait: 'cuba_lif_neuron', num_neurons: numNeurons },
+          },
+        ],
         edges: [],
       };
     },
@@ -386,15 +391,17 @@ export const NEURON_TRAIT_MAP: Record<string, NIRTraitMapping> = {
       const vThreshold = Number(config.v_threshold ?? config.threshold ?? 1.0);
 
       return {
-        nodes: [{
-          id: nodeId,
-          type: 'IF',
-          params: {
-            r: Array(numNeurons).fill(r),
-            v_threshold: Array(numNeurons).fill(vThreshold),
-          } as NIRIFParams,
-          metadata: { source_trait: 'if_neuron', num_neurons: numNeurons },
-        }],
+        nodes: [
+          {
+            id: nodeId,
+            type: 'IF',
+            params: {
+              r: Array(numNeurons).fill(r),
+              v_threshold: Array(numNeurons).fill(vThreshold),
+            } as NIRIFParams,
+            metadata: { source_trait: 'if_neuron', num_neurons: numNeurons },
+          },
+        ],
         edges: [],
       };
     },
@@ -414,16 +421,18 @@ export const NEURON_TRAIT_MAP: Record<string, NIRTraitMapping> = {
       const vLeak = Number(config.v_leak ?? 0.0);
 
       return {
-        nodes: [{
-          id: nodeId,
-          type: 'LI',
-          params: {
-            tau: Array(size).fill(tau),
-            r: Array(size).fill(r),
-            v_leak: Array(size).fill(vLeak),
-          } as NIRLIParams,
-          metadata: { source_trait: 'leaky_integrator', size },
-        }],
+        nodes: [
+          {
+            id: nodeId,
+            type: 'LI',
+            params: {
+              tau: Array(size).fill(tau),
+              r: Array(size).fill(r),
+              v_leak: Array(size).fill(vLeak),
+            } as NIRLIParams,
+            metadata: { source_trait: 'leaky_integrator', size },
+          },
+        ],
         edges: [],
       };
     },
@@ -441,14 +450,16 @@ export const NEURON_TRAIT_MAP: Record<string, NIRTraitMapping> = {
       const r = Number(config.r ?? config.resistance ?? 1.0);
 
       return {
-        nodes: [{
-          id: nodeId,
-          type: 'Integrator',
-          params: {
-            r: Array(size).fill(r),
-          } as NIRIntegratorParams,
-          metadata: { source_trait: 'integrator', size },
-        }],
+        nodes: [
+          {
+            id: nodeId,
+            type: 'Integrator',
+            params: {
+              r: Array(size).fill(r),
+            } as NIRIntegratorParams,
+            metadata: { source_trait: 'integrator', size },
+          },
+        ],
         edges: [],
       };
     },
@@ -486,21 +497,21 @@ export const SYNAPSE_TRAIT_MAP: Record<string, NIRTraitMapping> = {
 
       const bias = useBias ? Array(outputSize).fill(0.0) : undefined;
 
-      const params: NIRAffineParams = bias
-        ? { weight, bias }
-        : { weight, bias: [] };
+      const params: NIRAffineParams = bias ? { weight, bias } : { weight, bias: [] };
 
       return {
-        nodes: [{
-          id: nodeId,
-          type: 'Affine',
-          params,
-          metadata: {
-            source_trait: 'synaptic_connection',
-            input_size: inputSize,
-            output_size: outputSize,
+        nodes: [
+          {
+            id: nodeId,
+            type: 'Affine',
+            params,
+            metadata: {
+              source_trait: 'synaptic_connection',
+              input_size: inputSize,
+              output_size: outputSize,
+            },
           },
-        }],
+        ],
         edges: [],
       };
     },
@@ -528,16 +539,18 @@ export const SYNAPSE_TRAIT_MAP: Record<string, NIRTraitMapping> = {
       }
 
       return {
-        nodes: [{
-          id: nodeId,
-          type: 'Linear',
-          params: { weight } as NIRLinearParams,
-          metadata: {
-            source_trait: 'linear_connection',
-            input_size: inputSize,
-            output_size: outputSize,
+        nodes: [
+          {
+            id: nodeId,
+            type: 'Linear',
+            params: { weight } as NIRLinearParams,
+            metadata: {
+              source_trait: 'linear_connection',
+              input_size: inputSize,
+              output_size: outputSize,
+            },
           },
-        }],
+        ],
         edges: [],
       };
     },
@@ -579,23 +592,25 @@ export const SYNAPSE_TRAIT_MAP: Record<string, NIRTraitMapping> = {
       }
 
       return {
-        nodes: [{
-          id: nodeId,
-          type: 'Conv2d',
-          params: {
-            weight,
-            stride: [stride, stride],
-            padding: [padding, padding],
-            dilation: [dilation, dilation],
-            groups,
-          } as NIRConvParams,
-          metadata: {
-            source_trait: 'conv_connection',
-            in_channels: inChannels,
-            out_channels: outChannels,
-            kernel_size: kernelSize,
+        nodes: [
+          {
+            id: nodeId,
+            type: 'Conv2d',
+            params: {
+              weight,
+              stride: [stride, stride],
+              padding: [padding, padding],
+              dilation: [dilation, dilation],
+              groups,
+            } as NIRConvParams,
+            metadata: {
+              source_trait: 'conv_connection',
+              in_channels: inChannels,
+              out_channels: outChannels,
+              kernel_size: kernelSize,
+            },
           },
-        }],
+        ],
         edges: [],
       };
     },
@@ -647,9 +662,7 @@ export const ENCODING_TRAIT_MAP: Record<string, NIRTraitMapping> = {
             metadata: { source_trait: 'spike_encoder', role: 'spike_generation' },
           },
         ],
-        edges: [
-          { source: `${nodeId}_gain`, target: `${nodeId}_threshold` },
-        ],
+        edges: [{ source: `${nodeId}_gain`, target: `${nodeId}_threshold` }],
       };
     },
   },
@@ -696,9 +709,7 @@ export const ENCODING_TRAIT_MAP: Record<string, NIRTraitMapping> = {
             metadata: { source_trait: 'rate_encoder', role: 'rate_neuron' },
           },
         ],
-        edges: [
-          { source: `${nodeId}_scale`, target: `${nodeId}_lif` },
-        ],
+        edges: [{ source: `${nodeId}_scale`, target: `${nodeId}_lif` }],
       };
     },
   },
@@ -715,16 +726,18 @@ export const ENCODING_TRAIT_MAP: Record<string, NIRTraitMapping> = {
       const tau = Number(config.tau ?? 20.0);
 
       return {
-        nodes: [{
-          id: nodeId,
-          type: 'LI',
-          params: {
-            tau: Array(outputSize).fill(tau),
-            r: Array(outputSize).fill(1.0),
-            v_leak: Array(outputSize).fill(0.0),
-          } as NIRLIParams,
-          metadata: { source_trait: 'spike_decoder', output_size: outputSize },
-        }],
+        nodes: [
+          {
+            id: nodeId,
+            type: 'LI',
+            params: {
+              tau: Array(outputSize).fill(tau),
+              r: Array(outputSize).fill(1.0),
+              v_leak: Array(outputSize).fill(0.0),
+            } as NIRLIParams,
+            metadata: { source_trait: 'spike_decoder', output_size: outputSize },
+          },
+        ],
         edges: [],
       };
     },
@@ -748,14 +761,16 @@ export const TOPOLOGY_TRAIT_MAP: Record<string, NIRTraitMapping> = {
       const delay = Number(config.delay ?? config.tau ?? 1.0);
 
       return {
-        nodes: [{
-          id: nodeId,
-          type: 'Delay',
-          params: {
-            delay: Array(size).fill(delay),
-          } as NIRDelayParams,
-          metadata: { source_trait: 'spike_delay', size },
-        }],
+        nodes: [
+          {
+            id: nodeId,
+            type: 'Delay',
+            params: {
+              delay: Array(size).fill(delay),
+            } as NIRDelayParams,
+            metadata: { source_trait: 'spike_delay', size },
+          },
+        ],
         edges: [],
       };
     },
@@ -772,16 +787,18 @@ export const TOPOLOGY_TRAIT_MAP: Record<string, NIRTraitMapping> = {
       const kernelSize = Number(config.kernel_size ?? 2);
 
       return {
-        nodes: [{
-          id: nodeId,
-          type: 'SumPooling',
-          params: {
-            kernel_size: [kernelSize, kernelSize],
-            stride: [kernelSize, kernelSize],
-            padding: [0, 0],
+        nodes: [
+          {
+            id: nodeId,
+            type: 'SumPooling',
+            params: {
+              kernel_size: [kernelSize, kernelSize],
+              stride: [kernelSize, kernelSize],
+              padding: [0, 0],
+            },
+            metadata: { source_trait: 'spike_pooling', kernel_size: kernelSize },
           },
-          metadata: { source_trait: 'spike_pooling', kernel_size: kernelSize },
-        }],
+        ],
         edges: [],
       };
     },
@@ -800,16 +817,18 @@ export const TOPOLOGY_TRAIT_MAP: Record<string, NIRTraitMapping> = {
       const endDim = Number(config.end_dim ?? -1);
 
       return {
-        nodes: [{
-          id: nodeId,
-          type: 'Flatten',
-          params: {
-            input_type: { shape: inputShape },
-            start_dim: startDim,
-            end_dim: endDim,
-          } as NIRFlattenParams,
-          metadata: { source_trait: 'flatten', input_shape: inputShape },
-        }],
+        nodes: [
+          {
+            id: nodeId,
+            type: 'Flatten',
+            params: {
+              input_type: { shape: inputShape },
+              start_dim: startDim,
+              end_dim: endDim,
+            } as NIRFlattenParams,
+            metadata: { source_trait: 'flatten', input_shape: inputShape },
+          },
+        ],
         edges: [],
       };
     },
@@ -827,14 +846,16 @@ export const TOPOLOGY_TRAIT_MAP: Record<string, NIRTraitMapping> = {
       const scaleFactor = Number(config.scale ?? config.factor ?? 1.0);
 
       return {
-        nodes: [{
-          id: nodeId,
-          type: 'Scale',
-          params: {
-            scale: Array(size).fill(scaleFactor),
-          } as NIRScaleParams,
-          metadata: { source_trait: 'scaling', size, scale_factor: scaleFactor },
-        }],
+        nodes: [
+          {
+            id: nodeId,
+            type: 'Scale',
+            params: {
+              scale: Array(size).fill(scaleFactor),
+            } as NIRScaleParams,
+            metadata: { source_trait: 'scaling', size, scale_factor: scaleFactor },
+          },
+        ],
         edges: [],
       };
     },
@@ -921,7 +942,7 @@ export function validateNIRGraph(graph: NIRGraph): { valid: boolean; errors: str
   const errors: string[] = [];
 
   // Check for Input node
-  const inputNodes = Object.values(graph.nodes).filter(n => n.type === 'Input');
+  const inputNodes = Object.values(graph.nodes).filter((n) => n.type === 'Input');
   if (inputNodes.length === 0) {
     errors.push('NIR graph must have exactly one Input node');
   } else if (inputNodes.length > 1) {
@@ -929,7 +950,7 @@ export function validateNIRGraph(graph: NIRGraph): { valid: boolean; errors: str
   }
 
   // Check for Output node
-  const outputNodes = Object.values(graph.nodes).filter(n => n.type === 'Output');
+  const outputNodes = Object.values(graph.nodes).filter((n) => n.type === 'Output');
   if (outputNodes.length === 0) {
     errors.push('NIR graph must have exactly one Output node');
   } else if (outputNodes.length > 1) {

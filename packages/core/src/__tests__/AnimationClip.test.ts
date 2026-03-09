@@ -4,9 +4,15 @@ import { AnimClip, ClipTrack } from '../animation/AnimationClip';
 describe('AnimClip', () => {
   let clip: AnimClip;
   const track: ClipTrack = {
-    id: 't1', targetPath: 'root', property: 'position', component: 'x',
+    id: 't1',
+    targetPath: 'root',
+    property: 'position',
+    component: 'x',
     interpolation: 'linear',
-    keyframes: [{ time: 0, value: 0 }, { time: 1, value: 10 }],
+    keyframes: [
+      { time: 0, value: 0 },
+      { time: 1, value: 10 },
+    ],
   };
 
   beforeEach(() => {
@@ -35,7 +41,16 @@ describe('AnimClip', () => {
   });
 
   it('step interpolation returns previous keyframe value', () => {
-    clip.addTrack({ id: 't2', targetPath: 'a', property: 'p', interpolation: 'step', keyframes: [{ time: 0, value: 0 }, { time: 1, value: 99 }] });
+    clip.addTrack({
+      id: 't2',
+      targetPath: 'a',
+      property: 'p',
+      interpolation: 'step',
+      keyframes: [
+        { time: 0, value: 0 },
+        { time: 1, value: 99 },
+      ],
+    });
     const s = clip.sample(0.5);
     expect(s.get('a.p')).toBe(0);
   });
@@ -76,7 +91,16 @@ describe('AnimClip', () => {
   });
 
   it('updates duration when track keyframe exceeds initial', () => {
-    clip.addTrack({ id: 't3', targetPath: 'b', property: 'p', interpolation: 'linear', keyframes: [{ time: 0, value: 0 }, { time: 5, value: 1 }] });
+    clip.addTrack({
+      id: 't3',
+      targetPath: 'b',
+      property: 'p',
+      interpolation: 'linear',
+      keyframes: [
+        { time: 0, value: 0 },
+        { time: 5, value: 1 },
+      ],
+    });
     expect(clip.getDuration()).toBe(5);
   });
 });

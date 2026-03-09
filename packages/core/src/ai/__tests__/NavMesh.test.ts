@@ -33,7 +33,11 @@ describe('NavMesh', () => {
     });
 
     it('should compute center from vertices', () => {
-      const id = mesh.addPolygon([{ x: 0, z: 0 }, { x: 6, z: 0 }, { x: 3, z: 6 }]);
+      const id = mesh.addPolygon([
+        { x: 0, z: 0 },
+        { x: 6, z: 0 },
+        { x: 3, z: 6 },
+      ]);
       const poly = mesh.getPolygon(id)!;
       expect(poly.center.x).toBeCloseTo(3);
       expect(poly.center.z).toBeCloseTo(2);

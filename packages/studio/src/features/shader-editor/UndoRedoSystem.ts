@@ -160,12 +160,7 @@ export class ConnectCommand implements ICommand {
       this.previousConnection = existing;
     }
 
-    this.connection = graph.connect(
-      this.fromNodeId,
-      this.fromPortId,
-      this.toNodeId,
-      this.toPortId
-    );
+    this.connection = graph.connect(this.fromNodeId, this.fromPortId, this.toNodeId, this.toPortId);
   }
 
   undo(graph: ShaderGraph): void {
@@ -209,8 +204,9 @@ export class DisconnectCommand implements ICommand {
   execute(graph: ShaderGraph): void {
     // Find and store the connection
     const conn = graph.connections.find(
-      (c) => (c.toNode === this.nodeId && c.toPort === this.portId) ||
-             (c.fromNode === this.nodeId && c.fromPort === this.portId)
+      (c) =>
+        (c.toNode === this.nodeId && c.toPort === this.portId) ||
+        (c.fromNode === this.nodeId && c.fromPort === this.portId)
     );
 
     if (conn) {
@@ -279,9 +275,7 @@ export class SetPropertyCommand implements ICommand {
     // Can merge if same node and property, and within merge window (1 second)
     const timeDiff = Date.now() - this.lastMergeTime;
     return (
-      other.nodeId === this.nodeId &&
-      other.propertyKey === this.propertyKey &&
-      timeDiff < 1000
+      other.nodeId === this.nodeId && other.propertyKey === this.propertyKey && timeDiff < 1000
     );
   }
 

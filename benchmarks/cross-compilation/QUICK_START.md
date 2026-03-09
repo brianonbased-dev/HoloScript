@@ -14,6 +14,7 @@ npx ts-node --esm run-benchmark-mock.ts
 ## What You Get
 
 ### 📊 Benchmark Report (25 KB, 728 lines)
+
 - Executive summary (success rate, averages)
 - Results by vertical (15 tables)
 - Results by target (18+ tables)
@@ -22,11 +23,13 @@ npx ts-node --esm run-benchmark-mock.ts
 - Key findings
 
 ### 📁 15 Test Compositions
+
 - Healthcare, Education, Retail, Gaming, Architecture
 - Manufacturing, Entertainment, Real Estate, Fitness, Social
 - Art, Automotive, Aerospace, Tourism, Robotics
 
 ### 🎯 18+ Compilation Targets
+
 - **Game Engines**: Unity, Unreal, Godot
 - **Web**: WebXR, Babylon.js, R3F, PlayCanvas, A-Frame
 - **Mobile**: iOS, Android, AR
@@ -35,6 +38,7 @@ npx ts-node --esm run-benchmark-mock.ts
 - **Robotics/IoT**: URDF, SDF, DTDL
 
 ### 📈 112 Total Compilations
+
 - 96.4% success rate
 - 47ms average compilation time
 - 14.4 KB average output size
@@ -97,6 +101,7 @@ jq '[.[] | select(.success)] | sort_by(.compilationTimeMs) | .[0:5]' results/ben
 ### Customize Benchmark
 
 Edit `target-mapping.json` to:
+
 - Add new verticals
 - Change target applicability
 - Add new compilation targets

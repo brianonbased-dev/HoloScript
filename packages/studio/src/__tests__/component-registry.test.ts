@@ -26,7 +26,11 @@ describe('COMPONENT_REGISTRY', () => {
   it('deprecated entries reference their canonical replacement', () => {
     for (const [key, entry] of Object.entries(COMPONENT_REGISTRY)) {
       if ('deprecated' in entry && entry.deprecated) {
-        for (const dep of entry.deprecated as readonly { file: string; export: string; reason: string }[]) {
+        for (const dep of entry.deprecated as readonly {
+          file: string;
+          export: string;
+          reason: string;
+        }[]) {
           expect(dep.file, `${key} deprecated file`).toBeTruthy();
           expect(dep.export, `${key} deprecated export`).toBeTruthy();
           expect(dep.reason, `${key} deprecated reason`).toBeTruthy();

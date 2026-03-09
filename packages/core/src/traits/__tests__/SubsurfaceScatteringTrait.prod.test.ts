@@ -27,7 +27,6 @@ const transmissionConfig: SubsurfaceScatteringConfig = {
 };
 
 describe('SubsurfaceScatteringTrait — Production Tests', () => {
-
   describe('validate()', () => {
     it('accepts skin config', () => {
       expect(SubsurfaceScatteringTrait.validate(skinConfig)).toBe(true);
@@ -52,12 +51,18 @@ describe('SubsurfaceScatteringTrait — Production Tests', () => {
     });
 
     it('throws when scatterRadius channel is negative', () => {
-      const bad: SubsurfaceScatteringConfig = { ...skinConfig, scatterRadius: { r: -0.1, g: 0.2, b: 0.1 } };
+      const bad: SubsurfaceScatteringConfig = {
+        ...skinConfig,
+        scatterRadius: { r: -0.1, g: 0.2, b: 0.1 },
+      };
       expect(() => SubsurfaceScatteringTrait.validate(bad)).toThrow('scatterRadius');
     });
 
     it('throws when subsurfaceColor channel is negative', () => {
-      const bad: SubsurfaceScatteringConfig = { ...skinConfig, subsurfaceColor: { r: -0.1, g: 0.5, b: 0.4 } };
+      const bad: SubsurfaceScatteringConfig = {
+        ...skinConfig,
+        subsurfaceColor: { r: -0.1, g: 0.5, b: 0.4 },
+      };
       expect(() => SubsurfaceScatteringTrait.validate(bad)).toThrow('subsurfaceColor');
     });
 

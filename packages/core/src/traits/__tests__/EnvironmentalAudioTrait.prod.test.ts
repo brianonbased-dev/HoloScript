@@ -16,17 +16,21 @@ import {
 
 describe('WEATHER_PRESETS', () => {
   it('has all 6 weather types', () => {
-    expect(Object.keys(WEATHER_PRESETS)).toEqual(expect.arrayContaining(['clear','rain','storm','snow','fog','wind']));
+    expect(Object.keys(WEATHER_PRESETS)).toEqual(
+      expect.arrayContaining(['clear', 'rain', 'storm', 'snow', 'fog', 'wind'])
+    );
   });
   it('storm has highest ambientVolume', () => {
-    const volumes = Object.values(WEATHER_PRESETS).map(p => p.ambientVolume);
+    const volumes = Object.values(WEATHER_PRESETS).map((p) => p.ambientVolume);
     expect(WEATHER_PRESETS.storm.ambientVolume).toBe(Math.max(...volumes));
   });
   it('snow has highest reverbDamping', () => {
-    expect(WEATHER_PRESETS.snow.reverbDamping).toBeGreaterThanOrEqual(WEATHER_PRESETS.storm.reverbDamping);
+    expect(WEATHER_PRESETS.snow.reverbDamping).toBeGreaterThanOrEqual(
+      WEATHER_PRESETS.storm.reverbDamping
+    );
   });
   it('storm has highest airAbsorptionMultiplier', () => {
-    const vals = Object.values(WEATHER_PRESETS).map(p => p.airAbsorptionMultiplier);
+    const vals = Object.values(WEATHER_PRESETS).map((p) => p.airAbsorptionMultiplier);
     expect(WEATHER_PRESETS.storm.airAbsorptionMultiplier).toBe(Math.max(...vals));
   });
   it('each preset has a description string', () => {
@@ -215,7 +219,9 @@ describe('EnvironmentalAudioSystem.calculateDopplerShift', () => {
   it('stationary source and listener → 1.0', () => {
     const sys = new EnvironmentalAudioSystem();
     const pShift = sys.calculateDopplerShift(
-      { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 10 }
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: 10 }
     );
     expect(pShift).toBeCloseTo(1.0, 5);
   });
@@ -227,7 +233,7 @@ describe('EnvironmentalAudioSystem.calculateDopplerShift', () => {
     const pShift = sys.calculateDopplerShift(
       { x: 0, y: 0, z: 30 }, // moving toward listener
       { x: 0, y: 0, z: 0 },
-      { x: 0, y: 0, z: 1 }   // listener is in +z direction from source
+      { x: 0, y: 0, z: 1 } // listener is in +z direction from source
     );
     expect(pShift).toBeGreaterThan(1.0);
   });
@@ -244,7 +250,9 @@ describe('EnvironmentalAudioSystem.calculateDopplerShift', () => {
   it('returns 1.0 if distance is zero', () => {
     const sys = new EnvironmentalAudioSystem();
     const pShift = sys.calculateDopplerShift(
-      { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: 0 }
     );
     expect(pShift).toBe(1.0);
   });
@@ -253,7 +261,9 @@ describe('EnvironmentalAudioSystem.calculateDopplerShift', () => {
     sys.setDoppler(true, 343, 1.2);
     // very fast source moving toward listener (+z at extreme velocity) → above-max pitch gets clamped
     const pShift = sys.calculateDopplerShift(
-      { x: 0, y: 0, z: 9999 }, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 }
+      { x: 0, y: 0, z: 9999 },
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: 1 }
     );
     expect(pShift).toBeLessThanOrEqual(1.2);
   });

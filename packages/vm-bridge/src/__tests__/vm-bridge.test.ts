@@ -1,12 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { HoloVM, ECSWorld, HoloBytecodeBuilder, HoloOpCode, ComponentType } from '@holoscript/holo-vm';
+import {
+  HoloVM,
+  ECSWorld,
+  HoloBytecodeBuilder,
+  HoloOpCode,
+  ComponentType,
+} from '@holoscript/holo-vm';
 import { UAALVirtualMachine, UAALOpCode, UAALCompiler } from '@holoscript/uaal';
 import type { UAALBytecode } from '@holoscript/uaal';
-import {
-  SpatialCognitiveAgent,
-  captureSceneSnapshot,
-  applyActions,
-} from '../index';
+import { SpatialCognitiveAgent, captureSceneSnapshot, applyActions } from '../index';
 import type { AgentAction, SceneSnapshot } from '../index';
 
 // =============================================================================
@@ -42,7 +44,7 @@ describe('captureSceneSnapshot', () => {
 
     const snapshot = captureSceneSnapshot(world);
     expect(snapshot.entityCount).toBe(3);
-    expect(snapshot.entities.map(e => e.name)).toEqual(['Player', 'Enemy', 'Obstacle']);
+    expect(snapshot.entities.map((e) => e.name)).toEqual(['Player', 'Enemy', 'Obstacle']);
   });
 
   it('should capture transform components', () => {
@@ -66,8 +68,8 @@ describe('captureSceneSnapshot', () => {
     world.setParent(child, parent);
 
     const snapshot = captureSceneSnapshot(world);
-    const parentSnap = snapshot.entities.find(e => e.name === 'Parent');
-    const childSnap = snapshot.entities.find(e => e.name === 'Child');
+    const parentSnap = snapshot.entities.find((e) => e.name === 'Parent');
+    const childSnap = snapshot.entities.find((e) => e.name === 'Child');
     expect(parentSnap?.childIds).toContain(child);
     expect(childSnap?.parentId).toBe(parent);
   });
@@ -104,9 +106,7 @@ describe('applyActions', () => {
 
   it('should spawn with geometry', () => {
     const world = createWorld();
-    const ids = applyActions(world, [
-      { type: 'spawn', name: 'Sphere', geometryType: 1 },
-    ]);
+    const ids = applyActions(world, [{ type: 'spawn', name: 'Sphere', geometryType: 1 }]);
 
     const geo = world.getComponent(ids[0], ComponentType.Geometry);
     expect(geo).toBeDefined();
@@ -358,10 +358,7 @@ describe('Spatial opcode handlers', () => {
 
     const bytecode: UAALBytecode = {
       version: 1,
-      instructions: [
-        { opCode: UAALOpCode.OP_EXECUTE_HOLOSCRIPT },
-        { opCode: UAALOpCode.HALT },
-      ],
+      instructions: [{ opCode: UAALOpCode.OP_EXECUTE_HOLOSCRIPT }, { opCode: UAALOpCode.HALT }],
     };
 
     const result = await cognitiveVM.execute(bytecode);

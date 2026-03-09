@@ -82,19 +82,19 @@ export class ProjectManager {
   }
 
   removeScene(sceneId: string): boolean {
-    const idx = this.project.scenes.findIndex(s => s.id === sceneId);
+    const idx = this.project.scenes.findIndex((s) => s.id === sceneId);
     if (idx < 0) return false;
     this.project.scenes.splice(idx, 1);
     // Remove scene from asset references
     for (const asset of this.project.assets) {
-      asset.usedByScenes = asset.usedByScenes.filter(id => id !== sceneId);
+      asset.usedByScenes = asset.usedByScenes.filter((id) => id !== sceneId);
     }
     this.project.modifiedAt = Date.now();
     return true;
   }
 
   getScene(sceneId: string): SceneReference | undefined {
-    return this.project.scenes.find(s => s.id === sceneId);
+    return this.project.scenes.find((s) => s.id === sceneId);
   }
 
   getScenes(): SceneReference[] {
@@ -102,14 +102,14 @@ export class ProjectManager {
   }
 
   getStartScene(): SceneReference | undefined {
-    return this.project.scenes.find(s => s.isStartScene);
+    return this.project.scenes.find((s) => s.isStartScene);
   }
 
   setStartScene(sceneId: string): boolean {
     for (const s of this.project.scenes) {
       s.isStartScene = s.id === sceneId;
     }
-    return this.project.scenes.some(s => s.id === sceneId);
+    return this.project.scenes.some((s) => s.id === sceneId);
   }
 
   // ---------------------------------------------------------------------------
@@ -122,7 +122,7 @@ export class ProjectManager {
   }
 
   removeAsset(assetId: string): boolean {
-    const idx = this.project.assets.findIndex(a => a.id === assetId);
+    const idx = this.project.assets.findIndex((a) => a.id === assetId);
     if (idx < 0) return false;
     this.project.assets.splice(idx, 1);
     this.project.modifiedAt = Date.now();
@@ -130,7 +130,7 @@ export class ProjectManager {
   }
 
   getAsset(assetId: string): ProjectAssetRef | undefined {
-    return this.project.assets.find(a => a.id === assetId);
+    return this.project.assets.find((a) => a.id === assetId);
   }
 
   getAssets(): ProjectAssetRef[] {
@@ -141,7 +141,7 @@ export class ProjectManager {
    * Find unused assets (not referenced by any scene).
    */
   findUnusedAssets(): ProjectAssetRef[] {
-    return this.project.assets.filter(a => a.usedByScenes.length === 0);
+    return this.project.assets.filter((a) => a.usedByScenes.length === 0);
   }
 
   /**

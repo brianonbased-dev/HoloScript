@@ -310,7 +310,7 @@ export class CollaborationSession {
         color: this.config.localPeer.color,
         avatarId: this.config.localPeer.avatarId,
       },
-      this.config.documentConfig,
+      this.config.documentConfig
     );
 
     if (initialContent) {
@@ -474,11 +474,7 @@ export class CollaborationSession {
   // ---------------------------------------------------------------------------
 
   /** Apply a sync message from a remote peer */
-  applyRemoteUpdate(
-    filePath: string,
-    update: Uint8Array,
-    remotePeerId: string,
-  ): void {
+  applyRemoteUpdate(filePath: string, update: Uint8Array, remotePeerId: string): void {
     const key = this.docKey(filePath);
     let doc = this.documents.get(key);
 
@@ -512,11 +508,7 @@ export class CollaborationSession {
   }
 
   /** Apply a remote awareness update */
-  applyRemoteAwareness(
-    filePath: string,
-    peerId: string,
-    awareness: Partial<PeerAwareness>,
-  ): void {
+  applyRemoteAwareness(filePath: string, peerId: string, awareness: Partial<PeerAwareness>): void {
     const doc = this.documents.get(this.docKey(filePath));
     if (doc) {
       doc.applyAwarenessUpdate(peerId, awareness);

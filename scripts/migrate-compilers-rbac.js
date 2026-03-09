@@ -1,6 +1,6 @@
 /**
  * Batch-migrate HoloScript compilers to extend CompilerBase with RBAC enforcement.
- * 
+ *
  * This script modifies each compiler file to:
  * 1. Import CompilerBase
  * 2. Extend CompilerBase
@@ -67,7 +67,8 @@ for (const file of TARGETS) {
       lastImportIndex = match.index + match[0].length;
     }
     if (lastImportIndex > 0) {
-      content = content.slice(0, lastImportIndex) + '\n' + importLine + content.slice(lastImportIndex);
+      content =
+        content.slice(0, lastImportIndex) + '\n' + importLine + content.slice(lastImportIndex);
     }
   }
 
@@ -113,11 +114,15 @@ for (const file of TARGETS) {
 
   // 6. Add validateCompilerAccess after compile signature
   // Look for the new compile signature and add validation right after the opening brace
-  const newCompileRegex = /compile\(composition: HoloComposition, agentToken: string, outputPath\?: string\):[^{]+\{/;
+  const newCompileRegex =
+    /compile\(composition: HoloComposition, agentToken: string, outputPath\?: string\):[^{]+\{/;
   const newCompileMatch = content.match(newCompileRegex);
   if (newCompileMatch && !content.includes('this.validateCompilerAccess(agentToken')) {
     const idx = content.indexOf(newCompileMatch[0]) + newCompileMatch[0].length;
-    content = content.slice(0, idx) + '\n    this.validateCompilerAccess(agentToken, outputPath);' + content.slice(idx);
+    content =
+      content.slice(0, idx) +
+      '\n    this.validateCompilerAccess(agentToken, outputPath);' +
+      content.slice(idx);
   }
 
   fs.writeFileSync(filePath, content, 'utf-8');

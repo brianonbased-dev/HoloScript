@@ -13,9 +13,7 @@ import type { CulturalProfileTrait } from '../../traits/CultureTraits';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function makeCulturalHandler(
-  profile: CulturalProfileTrait,
-): TraitHandler<Record<string, unknown>> {
+function makeCulturalHandler(profile: CulturalProfileTrait): TraitHandler<Record<string, unknown>> {
   return {
     name: 'cultural_profile' as any,
     defaultConfig: profile as unknown as Record<string, unknown>,
@@ -23,7 +21,7 @@ function makeCulturalHandler(
 }
 
 function makeSimpleHandler(
-  config: Record<string, unknown> = {},
+  config: Record<string, unknown> = {}
 ): TraitHandler<Record<string, unknown>> {
   return {
     name: 'test' as any,
@@ -34,7 +32,6 @@ function makeSimpleHandler(
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('CulturalCompatibilityChecker — Production Integration', () => {
-
   // ===========================================================================
   // TRAIT DEPENDENCY GRAPH INTEGRATION
   // ===========================================================================
@@ -49,9 +46,7 @@ describe('CulturalCompatibilityChecker — Production Integration', () => {
       graph.registerObject({
         objectName: 'agent1',
         sourceId: 'test.hs',
-        traits: [
-          { name: 'cultural_profile', config: {}, configHash: 'h1' },
-        ],
+        traits: [{ name: 'cultural_profile', config: {}, configHash: 'h1' }],
       });
 
       const users = graph.getObjectsUsingTrait('cultural_profile');
@@ -87,31 +82,33 @@ describe('CulturalCompatibilityChecker — Production Integration', () => {
       const composer = new TraitComposer(graph);
 
       const handlers = new Map<string, TraitHandler<Record<string, unknown>>>();
-      handlers.set('agent_alpha', makeCulturalHandler({
-        cooperation_index: 0.9,
-        cultural_family: 'cooperative',
-        prompt_dialect: 'directive',
-        norm_set: ['no_griefing'],
-      }));
-      handlers.set('agent_beta', makeCulturalHandler({
-        cooperation_index: 0.1,
-        cultural_family: 'competitive',
-        prompt_dialect: 'socratic',
-        norm_set: ['no_griefing'],
-      }));
-
-      const result = composer.compose(
-        'team_mixed',
-        handlers,
-        ['agent_alpha', 'agent_beta'],
+      handlers.set(
+        'agent_alpha',
+        makeCulturalHandler({
+          cooperation_index: 0.9,
+          cultural_family: 'cooperative',
+          prompt_dialect: 'directive',
+          norm_set: ['no_griefing'],
+        })
       );
+      handlers.set(
+        'agent_beta',
+        makeCulturalHandler({
+          cooperation_index: 0.1,
+          cultural_family: 'competitive',
+          prompt_dialect: 'socratic',
+          norm_set: ['no_griefing'],
+        })
+      );
+
+      const result = composer.compose('team_mixed', handlers, ['agent_alpha', 'agent_beta']);
 
       // Should have cultural compatibility result
       expect(result.culturalCompatibility).toBeDefined();
       expect(result.culturalCompatibility!.compatible).toBe(false);
 
       // Conflicts should include cultural errors
-      const culturalConflicts = result.conflicts.filter(c => c.startsWith('Cultural:'));
+      const culturalConflicts = result.conflicts.filter((c) => c.startsWith('Cultural:'));
       expect(culturalConflicts.length).toBeGreaterThan(0);
     });
 
@@ -121,24 +118,26 @@ describe('CulturalCompatibilityChecker — Production Integration', () => {
       const composer = new TraitComposer(graph);
 
       const handlers = new Map<string, TraitHandler<Record<string, unknown>>>();
-      handlers.set('agent_alpha', makeCulturalHandler({
-        cooperation_index: 0.8,
-        cultural_family: 'cooperative',
-        prompt_dialect: 'consensus',
-        norm_set: ['no_griefing', 'fair_trade'],
-      }));
-      handlers.set('agent_beta', makeCulturalHandler({
-        cooperation_index: 0.7,
-        cultural_family: 'cooperative',
-        prompt_dialect: 'consensus',
-        norm_set: ['no_griefing', 'fair_trade'],
-      }));
-
-      const result = composer.compose(
-        'team_aligned',
-        handlers,
-        ['agent_alpha', 'agent_beta'],
+      handlers.set(
+        'agent_alpha',
+        makeCulturalHandler({
+          cooperation_index: 0.8,
+          cultural_family: 'cooperative',
+          prompt_dialect: 'consensus',
+          norm_set: ['no_griefing', 'fair_trade'],
+        })
       );
+      handlers.set(
+        'agent_beta',
+        makeCulturalHandler({
+          cooperation_index: 0.7,
+          cultural_family: 'cooperative',
+          prompt_dialect: 'consensus',
+          norm_set: ['no_griefing', 'fair_trade'],
+        })
+      );
+
+      const result = composer.compose('team_aligned', handlers, ['agent_alpha', 'agent_beta']);
 
       expect(result.culturalCompatibility).toBeDefined();
       expect(result.culturalCompatibility!.compatible).toBe(true);
@@ -152,11 +151,7 @@ describe('CulturalCompatibilityChecker — Production Integration', () => {
       handlers.set('physics', makeSimpleHandler({ mass: 10 }));
       handlers.set('collidable', makeSimpleHandler({ radius: 1 }));
 
-      const result = composer.compose(
-        'basic_object',
-        handlers,
-        ['physics', 'collidable'],
-      );
+      const result = composer.compose('basic_object', handlers, ['physics', 'collidable']);
 
       // No cultural_profile traits, so no cultural compatibility result
       expect(result.culturalCompatibility).toBeUndefined();
@@ -166,19 +161,18 @@ describe('CulturalCompatibilityChecker — Production Integration', () => {
       const composer = new TraitComposer();
 
       const handlers = new Map<string, TraitHandler<Record<string, unknown>>>();
-      handlers.set('agent_solo', makeCulturalHandler({
-        cooperation_index: 0.5,
-        cultural_family: 'isolationist',
-        prompt_dialect: 'reactive',
-        norm_set: [],
-      }));
+      handlers.set(
+        'agent_solo',
+        makeCulturalHandler({
+          cooperation_index: 0.5,
+          cultural_family: 'isolationist',
+          prompt_dialect: 'reactive',
+          norm_set: [],
+        })
+      );
       handlers.set('physics', makeSimpleHandler({ mass: 10 }));
 
-      const result = composer.compose(
-        'solo_agent',
-        handlers,
-        ['agent_solo', 'physics'],
-      );
+      const result = composer.compose('solo_agent', handlers, ['agent_solo', 'physics']);
 
       // Only one cultural_profile, no pairwise check needed
       expect(result.culturalCompatibility).toBeUndefined();
@@ -189,18 +183,24 @@ describe('CulturalCompatibilityChecker — Production Integration', () => {
       composer.setCulturalCheckerConfig({ cooperationThreshold: 0.1 });
 
       const handlers = new Map<string, TraitHandler<Record<string, unknown>>>();
-      handlers.set('a', makeCulturalHandler({
-        cooperation_index: 0.5,
-        cultural_family: 'cooperative',
-        prompt_dialect: 'directive',
-        norm_set: [],
-      }));
-      handlers.set('b', makeCulturalHandler({
-        cooperation_index: 0.3,
-        cultural_family: 'cooperative',
-        prompt_dialect: 'directive',
-        norm_set: [],
-      }));
+      handlers.set(
+        'a',
+        makeCulturalHandler({
+          cooperation_index: 0.5,
+          cultural_family: 'cooperative',
+          prompt_dialect: 'directive',
+          norm_set: [],
+        })
+      );
+      handlers.set(
+        'b',
+        makeCulturalHandler({
+          cooperation_index: 0.3,
+          cultural_family: 'cooperative',
+          prompt_dialect: 'directive',
+          norm_set: [],
+        })
+      );
 
       const result = composer.compose('strict_team', handlers, ['a', 'b']);
 
@@ -246,22 +246,28 @@ describe('CulturalCompatibilityChecker — Production Integration', () => {
       const composer = new TraitComposer();
 
       const handlers = new Map<string, TraitHandler<Record<string, unknown>>>();
-      handlers.set('a', makeCulturalHandler({
-        cooperation_index: 0.7,
-        cultural_family: 'cooperative',
-        prompt_dialect: 'directive',
-        norm_set: ['no_griefing'],
-      }));
-      handlers.set('b', makeCulturalHandler({
-        cooperation_index: 0.7,
-        cultural_family: 'cooperative',
-        prompt_dialect: 'narrative',
-        norm_set: ['no_griefing'],
-      }));
+      handlers.set(
+        'a',
+        makeCulturalHandler({
+          cooperation_index: 0.7,
+          cultural_family: 'cooperative',
+          prompt_dialect: 'directive',
+          norm_set: ['no_griefing'],
+        })
+      );
+      handlers.set(
+        'b',
+        makeCulturalHandler({
+          cooperation_index: 0.7,
+          cultural_family: 'cooperative',
+          prompt_dialect: 'narrative',
+          norm_set: ['no_griefing'],
+        })
+      );
 
       const result = composer.compose('mixed_dialect', handlers, ['a', 'b']);
 
-      const culturalWarnings = result.warnings.filter(w => w.startsWith('Cultural:'));
+      const culturalWarnings = result.warnings.filter((w) => w.startsWith('Cultural:'));
       expect(culturalWarnings.length).toBeGreaterThan(0);
       expect(culturalWarnings[0]).toContain('dialect');
     });

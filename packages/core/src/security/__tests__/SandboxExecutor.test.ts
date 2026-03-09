@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import {
-  createSandbox,
-  execute,
-  destroy,
-} from '../SandboxExecutor';
+import { createSandbox, execute, destroy } from '../SandboxExecutor';
 import { createDefaultPolicy, createStrictPolicy, mergePolicy } from '../SecurityPolicy';
 
 function defaultSandbox() {

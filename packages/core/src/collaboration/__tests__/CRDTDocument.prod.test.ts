@@ -23,13 +23,13 @@ function makeDocId(fp = 'test.hsplus'): DocumentIdentifier {
 function makeDoc(
   initialContent = '',
   config: Partial<CRDTDocumentConfig> = {},
-  peerId = 'peer-A',
+  peerId = 'peer-A'
 ): CRDTDocument {
   const doc = new CRDTDocument(
     makeDocId(),
     peerId,
     { displayName: 'Tester', color: '#FF0000' },
-    { changeDebounceMs: 0, ...config }, // 0ms debounce so we can test events synchronously
+    { changeDebounceMs: 0, ...config } // 0ms debounce so we can test events synchronously
   );
   if (initialContent) {
     doc.setText(initialContent);
@@ -44,11 +44,7 @@ function makeDoc(
 describe('CRDTDocument', () => {
   describe('constructor', () => {
     it('initializes with empty content when no setText called', () => {
-      const doc = new CRDTDocument(
-        makeDocId(),
-        'peer-A',
-        { displayName: 'A', color: '#f00' },
-      );
+      const doc = new CRDTDocument(makeDocId(), 'peer-A', { displayName: 'A', color: '#f00' });
       expect(doc.getText()).toBe('');
     });
 

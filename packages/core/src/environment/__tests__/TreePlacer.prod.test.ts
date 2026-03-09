@@ -33,7 +33,7 @@ const PINE: TreeTemplate = {
 const TEMPERATE_BIOME: BiomeRule = {
   id: 'temperate',
   name: 'Temperate Forest',
-  density: 0.1,          // 0.1 trees per unit area
+  density: 0.1, // 0.1 trees per unit area
   minSpacing: 2.0,
   heightRange: { min: -Infinity, max: Infinity },
   slopeMax: 90,
@@ -88,7 +88,14 @@ describe('TreePlacer', () => {
     });
 
     it('returns [] when no templates match the biome', () => {
-      tp.addBiome({ id: 'desert', name: 'Desert', density: 0.1, minSpacing: 5, heightRange: { min: -Infinity, max: Infinity }, slopeMax: 30 });
+      tp.addBiome({
+        id: 'desert',
+        name: 'Desert',
+        density: 0.1,
+        minSpacing: 5,
+        heightRange: { min: -Infinity, max: Infinity },
+        slopeMax: 30,
+      });
       // No template has biomes including 'desert'
       expect(tp.placeInRegion('desert', SMALL_BOUNDS)).toHaveLength(0);
     });

@@ -54,9 +54,9 @@ describe('WorkspaceService', () => {
     });
 
     it('should reject long names (> 64 chars)', async () => {
-      await expect(
-        service.createWorkspace({ name: 'x'.repeat(65) }, 'user-1')
-      ).rejects.toThrow(WorkspaceServiceError);
+      await expect(service.createWorkspace({ name: 'x'.repeat(65) }, 'user-1')).rejects.toThrow(
+        WorkspaceServiceError
+      );
     });
 
     it('should reject duplicate names', async () => {
@@ -90,7 +90,7 @@ describe('WorkspaceService', () => {
     it('sets owner as workspace member with owner role', async () => {
       const ws = await service.createWorkspace({ name: uniqueName() }, 'owner-99');
       const members = await service.getMembers(ws.id, 'owner-99');
-      const ownerEntry = members.find(m => m.userId === 'owner-99');
+      const ownerEntry = members.find((m) => m.userId === 'owner-99');
       expect(ownerEntry?.role).toBe('owner');
     });
   });
@@ -192,7 +192,7 @@ describe('WorkspaceService', () => {
       const ws1 = await service.createWorkspace({ name: uniqueName() }, 'multi-user');
       const ws2 = await service.createWorkspace({ name: uniqueName() }, 'multi-user');
       const list = await service.listUserWorkspaces('multi-user');
-      const ids = list.map(w => w.id);
+      const ids = list.map((w) => w.id);
       expect(ids).toContain(ws1.id);
       expect(ids).toContain(ws2.id);
     });
@@ -230,7 +230,7 @@ describe('WorkspaceService', () => {
       await service.inviteMember(ws.id, { userId: 'temp', role: 'viewer' }, 'owner-id');
       await service.removeMember(ws.id, 'temp', 'owner-id');
       const members = await service.getMembers(ws.id, 'owner-id');
-      expect(members.find(m => m.userId === 'temp')).toBeUndefined();
+      expect(members.find((m) => m.userId === 'temp')).toBeUndefined();
     });
 
     it('owner cannot be removed', async () => {
@@ -276,7 +276,11 @@ describe('WorkspaceService', () => {
 
     it('setSecret does not return the value', async () => {
       const ws = await service.createWorkspace({ name: uniqueName() }, 'owner-id');
-      const result = await service.setSecret(ws.id, { name: 'HIDDEN', value: 'top-secret' }, 'owner-id');
+      const result = await service.setSecret(
+        ws.id,
+        { name: 'HIDDEN', value: 'top-secret' },
+        'owner-id'
+      );
       expect((result as Record<string, unknown>).value).toBeUndefined();
     });
 
@@ -285,8 +289,8 @@ describe('WorkspaceService', () => {
       await service.setSecret(ws.id, { name: 'KEY_A', value: 'val' }, 'owner-id');
       await service.setSecret(ws.id, { name: 'KEY_B', value: 'val2' }, 'owner-id');
       const secrets = await service.listSecrets(ws.id, 'owner-id');
-      expect(secrets.map(s => s.name)).toContain('KEY_A');
-      expect(secrets.map(s => s.name)).toContain('KEY_B');
+      expect(secrets.map((s) => s.name)).toContain('KEY_A');
+      expect(secrets.map((s) => s.name)).toContain('KEY_B');
     });
 
     it('deleteSecret removes it from list', async () => {
@@ -294,7 +298,7 @@ describe('WorkspaceService', () => {
       await service.setSecret(ws.id, { name: 'TO_DELETE', value: 'val' }, 'owner-id');
       await service.deleteSecret(ws.id, 'TO_DELETE', 'owner-id');
       const secrets = await service.listSecrets(ws.id, 'owner-id');
-      expect(secrets.find(s => s.name === 'TO_DELETE')).toBeUndefined();
+      expect(secrets.find((s) => s.name === 'TO_DELETE')).toBeUndefined();
     });
 
     it('viewer cannot set secrets', async () => {
@@ -346,9 +350,9 @@ describe('WorkspaceService', () => {
 
     it('non-member cannot see activity', async () => {
       const ws = await service.createWorkspace({ name: uniqueName() }, 'owner-id');
-      await expect(
-        service.getActivityFeed(ws.id, 'outsider', 50, 0)
-      ).rejects.toThrow(WorkspaceServiceError);
+      await expect(service.getActivityFeed(ws.id, 'outsider', 50, 0)).rejects.toThrow(
+        WorkspaceServiceError
+      );
     });
 
     it('respects limit parameter', async () => {

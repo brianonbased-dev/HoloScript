@@ -43,5 +43,4 @@ export const ENTERPRISE_MULTITENANCY_TRAITS = [
   'audit_trail',
 ] as const;
 
-export type EnterpriseMultitenancyTraitName =
-  (typeof ENTERPRISE_MULTITENANCY_TRAITS)[number];
+export type EnterpriseMultitenancyTraitName = (typeof ENTERPRISE_MULTITENANCY_TRAITS)[number];

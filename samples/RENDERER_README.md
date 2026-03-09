@@ -20,6 +20,7 @@ xdg-open samples/physics-integration-renderer.html
 ```
 
 **Features**:
+
 - ✅ No build process required
 - ✅ Runs entirely in the browser
 - ✅ Real-time physics simulation
@@ -48,11 +49,13 @@ Then open: `http://localhost:8080/physics-integration-renderer.html`
 ## 🎮 Controls
 
 ### Mouse Controls
+
 - **Left Click + Drag**: Rotate camera (orbit)
 - **Right Click + Drag**: Pan camera
 - **Scroll Wheel**: Zoom in/out
 
 ### Buttons
+
 - **⏸️ Pause / ▶️ Play**: Toggle simulation
 - **🔄 Restart**: Reset simulation to initial state
 - **📷 Reset Camera**: Return camera to default position
@@ -139,12 +142,14 @@ PhysicsRenderer
 **Target**: 60 FPS on modern hardware
 
 **Optimization Features**:
+
 - Mesh pooling for particles
 - Shadow map optimization (2048×2048)
 - Sleeping particle states
 - Frustum culling (automatic)
 
 **Performance Metrics** (30 fragments, ~90 particles):
+
 - Desktop GPU: 60 FPS ✅
 - Integrated GPU: 45-60 FPS ✅
 - Mobile: 30-45 FPS ⚠️
@@ -156,6 +161,7 @@ PhysicsRenderer
 To use the actual HoloScript physics systems instead of the simplified version:
 
 1. **Build the physics demo**:
+
    ```bash
    pnpm install
    pnpm build
@@ -163,19 +169,21 @@ To use the actual HoloScript physics systems instead of the simplified version:
    ```
 
 2. **Export frame data**:
+
    ```typescript
    const demo = new PhysicsIntegrationDemo({
      duration: 10.0,
-     exportFrames: true,  // Enable frame export
-     exportInterval: 1,   // Export every frame
+     exportFrames: true, // Enable frame export
+     exportInterval: 1, // Export every frame
    });
    demo.run();
    ```
 
 3. **Load frames in renderer**:
+
    ```javascript
    // Fetch frame data
-   const frames = await fetch('/frames/simulation.json').then(r => r.json());
+   const frames = await fetch('/frames/simulation.json').then((r) => r.json());
 
    // Playback in renderer
    renderer.loadFrames(frames);
@@ -239,6 +247,7 @@ scene.add(instancedMesh);
 ### Issue: Low FPS / Laggy
 
 **Solutions**:
+
 1. Reduce particle count (modify `particleCount` in `convertDestroyedFragments`)
 2. Disable shadows: `renderer.shadowMap.enabled = false`
 3. Lower shadow map resolution: `directionalLight.shadow.mapSize.width = 1024`
@@ -247,6 +256,7 @@ scene.add(instancedMesh);
 ### Issue: Particles Fall Through Ground
 
 **Solutions**:
+
 1. Check particle radius vs ground Y position
 2. Increase restitution coefficient (bounciness)
 3. Adjust collision detection threshold
@@ -254,6 +264,7 @@ scene.add(instancedMesh);
 ### Issue: Ball Doesn't Hit Wall
 
 **Solutions**:
+
 1. Increase `ballVelocity` (default: 8 m/s)
 2. Adjust `wallCenter` position
 3. Check impact distance threshold
@@ -267,18 +278,18 @@ scene.add(instancedMesh);
 
 ## 🎉 Demo Features Summary
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Wrecking Ball Physics | ✅ | Realistic ballistic motion |
-| Wall Destruction | ✅ | Damage model with health |
-| Particle Conversion | ✅ | Fragments → granular particles |
-| Real-time Rendering | ✅ | 60 FPS on desktop |
-| Interactive Camera | ✅ | Orbit, pan, zoom controls |
-| Statistics Panel | ✅ | Live physics metrics |
-| Wireframe Mode | ✅ | Debug geometry |
-| Shadow Casting | ✅ | Dynamic shadows |
-| PBR Materials | ✅ | Physically-based rendering |
-| Pause/Restart | ✅ | Simulation control |
+| Feature               | Status | Description                    |
+| --------------------- | ------ | ------------------------------ |
+| Wrecking Ball Physics | ✅     | Realistic ballistic motion     |
+| Wall Destruction      | ✅     | Damage model with health       |
+| Particle Conversion   | ✅     | Fragments → granular particles |
+| Real-time Rendering   | ✅     | 60 FPS on desktop              |
+| Interactive Camera    | ✅     | Orbit, pan, zoom controls      |
+| Statistics Panel      | ✅     | Live physics metrics           |
+| Wireframe Mode        | ✅     | Debug geometry                 |
+| Shadow Casting        | ✅     | Dynamic shadows                |
+| PBR Materials         | ✅     | Physically-based rendering     |
+| Pause/Restart         | ✅     | Simulation control             |
 
 ---
 

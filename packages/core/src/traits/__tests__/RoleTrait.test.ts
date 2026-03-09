@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { roleHandler } from '../RoleTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('RoleTrait', () => {
   let node: Record<string, unknown>;
@@ -68,13 +76,20 @@ describe('RoleTrait', () => {
   });
 
   it('revoke_permission removes permission', () => {
-    sendEvent(roleHandler, node, cfg, ctx, { type: 'role_revoke_permission', permission: 'interact' });
+    sendEvent(roleHandler, node, cfg, ctx, {
+      type: 'role_revoke_permission',
+      permission: 'interact',
+    });
     expect((node as any).__roleState.effectivePermissions.has('interact')).toBe(false);
     expect(getEventCount(ctx, 'on_permission_revoked')).toBe(1);
   });
 
   it('role_can_perform checks required permissions', () => {
-    sendEvent(roleHandler, node, cfg, ctx, { type: 'role_can_perform', action: 'grab', callbackId: 'cb3' });
+    sendEvent(roleHandler, node, cfg, ctx, {
+      type: 'role_can_perform',
+      action: 'grab',
+      callbackId: 'cb3',
+    });
     const ev = getLastEvent(ctx, 'role_action_check_result') as any;
     expect(ev.canPerform).toBe(true);
   });

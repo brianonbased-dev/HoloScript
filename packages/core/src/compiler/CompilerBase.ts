@@ -93,40 +93,40 @@ export function isCapabilityTokenCredential(
  * derive the ANS namespace from the class's `compilerName` property.
  */
 const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
-  'UnityCompiler': 'unity',
-  'UnrealCompiler': 'unreal',
-  'GodotCompiler': 'godot',
-  'VRChatCompiler': 'vrchat',
-  'OpenXRCompiler': 'openxr',
-  'OpenXRSpatialEntitiesCompiler': 'openxr-spatial-entities',
-  'VisionOSCompiler': 'visionos',
-  'ARCompiler': 'ar',
-  'AndroidXRCompiler': 'android-xr',
-  'AIGlassesCompiler': 'ai-glasses',
-  'AndroidCompiler': 'android',
-  'IOSCompiler': 'ios',
-  'BabylonCompiler': 'babylon',
-  'WebGPUCompiler': 'webgpu',
-  'R3FCompiler': 'r3f',
-  'PlayCanvasCompiler': 'playcanvas',
-  'WASMCompiler': 'wasm',
-  'TSLCompiler': 'tsl',
-  'URDFCompiler': 'urdf',
-  'SDFCompiler': 'sdf',
-  'USDPhysicsCompiler': 'usd',
-  'GLTFPipeline': 'gltf',
-  'DTDLCompiler': 'dtdl',
-  'NFTMarketplaceCompiler': 'nft-marketplace',
-  'SCMCompiler': 'scm',
-  'VRRCompiler': 'vrr',
-  'A2AAgentCardCompiler': 'a2a-agent-card',
-  'MultiLayerCompiler': 'multi-layer',
-  'IncrementalCompiler': 'incremental',
-  'StateCompiler': 'state',
-  'TraitCompositionCompiler': 'trait-composition',
-  'DomainBlockCompilerMixin': 'domain-block',
-  'NIRCompiler': 'nir',
-  'URDFToUSDZConverter': 'urdf',
+  UnityCompiler: 'unity',
+  UnrealCompiler: 'unreal',
+  GodotCompiler: 'godot',
+  VRChatCompiler: 'vrchat',
+  OpenXRCompiler: 'openxr',
+  OpenXRSpatialEntitiesCompiler: 'openxr-spatial-entities',
+  VisionOSCompiler: 'visionos',
+  ARCompiler: 'ar',
+  AndroidXRCompiler: 'android-xr',
+  AIGlassesCompiler: 'ai-glasses',
+  AndroidCompiler: 'android',
+  IOSCompiler: 'ios',
+  BabylonCompiler: 'babylon',
+  WebGPUCompiler: 'webgpu',
+  R3FCompiler: 'r3f',
+  PlayCanvasCompiler: 'playcanvas',
+  WASMCompiler: 'wasm',
+  TSLCompiler: 'tsl',
+  URDFCompiler: 'urdf',
+  SDFCompiler: 'sdf',
+  USDPhysicsCompiler: 'usd',
+  GLTFPipeline: 'gltf',
+  DTDLCompiler: 'dtdl',
+  NFTMarketplaceCompiler: 'nft-marketplace',
+  SCMCompiler: 'scm',
+  VRRCompiler: 'vrr',
+  A2AAgentCardCompiler: 'a2a-agent-card',
+  MultiLayerCompiler: 'multi-layer',
+  IncrementalCompiler: 'incremental',
+  StateCompiler: 'state',
+  TraitCompositionCompiler: 'trait-composition',
+  DomainBlockCompilerMixin: 'domain-block',
+  NIRCompiler: 'nir',
+  URDFToUSDZConverter: 'urdf',
 };
 
 /**
@@ -142,7 +142,11 @@ export interface ICompiler {
    * @returns Compiled code (string or multi-file object)
    * @throws UnauthorizedCompilerAccessError if token invalid or lacks permissions
    */
-  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string | Record<string, string> | GLTFExportResult;
+  compile(
+    composition: HoloComposition,
+    agentToken: string,
+    outputPath?: string
+  ): string | Record<string, string> | GLTFExportResult;
 }
 
 /**
@@ -156,8 +160,8 @@ export class UnauthorizedCompilerAccessError extends Error {
   ) {
     super(
       `[${compilerName}] Unauthorized ${operation}: ${decision.reason || 'Access denied'}\n` +
-      `Agent Role: ${decision.agentRole || 'unknown'}\n` +
-      `Required Permission: ${decision.requiredPermission || 'unknown'}`
+        `Agent Role: ${decision.agentRole || 'unknown'}\n` +
+        `Required Permission: ${decision.requiredPermission || 'unknown'}`
     );
     this.name = 'UnauthorizedCompilerAccessError';
   }
@@ -217,7 +221,11 @@ export abstract class CompilerBase implements ICompiler {
    * Compile HoloComposition AST to target platform code
    * MUST be implemented by subclasses
    */
-  abstract compile(composition: HoloComposition, agentToken: string, outputPath?: string): string | Record<string, string> | GLTFExportResult;
+  abstract compile(
+    composition: HoloComposition,
+    agentToken: string,
+    outputPath?: string
+  ): string | Record<string, string> | GLTFExportResult;
 
   // =========================================================================
   // P3 Migration Bridge: Dual-mode token support
@@ -350,7 +358,11 @@ export abstract class CompilerBase implements ICompiler {
     });
 
     if (!decision.allowed) {
-      throw new UnauthorizedCompilerAccessError(decision, `output write to '${outputPath}'`, this.compilerName);
+      throw new UnauthorizedCompilerAccessError(
+        decision,
+        `output write to '${outputPath}'`,
+        this.compilerName
+      );
     }
   }
 
@@ -385,11 +397,7 @@ export abstract class CompilerBase implements ICompiler {
     });
 
     if (!astDecision.allowed) {
-      throw new UnauthorizedCompilerAccessError(
-        astDecision,
-        'AST access',
-        this.compilerName
-      );
+      throw new UnauthorizedCompilerAccessError(astDecision, 'AST access', this.compilerName);
     }
 
     // Check CODE write access
@@ -402,11 +410,7 @@ export abstract class CompilerBase implements ICompiler {
     });
 
     if (!codeDecision.allowed) {
-      throw new UnauthorizedCompilerAccessError(
-        codeDecision,
-        'code generation',
-        this.compilerName
-      );
+      throw new UnauthorizedCompilerAccessError(codeDecision, 'code generation', this.compilerName);
     }
 
     // Check OUTPUT write access (if outputPath provided)
@@ -467,7 +471,7 @@ export abstract class CompilerBase implements ICompiler {
       const decision: SpatialAccessDecision = enforcer.checkZoneAccess(
         agentToken,
         zoneId,
-        SpatialPermission.SPATIAL_READ,
+        SpatialPermission.SPATIAL_READ
       );
 
       if (!decision.allowed) {
@@ -475,8 +479,8 @@ export abstract class CompilerBase implements ICompiler {
         // Zone enforcement is advisory during the rollout phase.
         console.warn(
           `[${this.compilerName}] Spatial zone access warning: ` +
-          `agent ${decision.agentId ?? 'unknown'} denied SPATIAL_READ ` +
-          `in zone "${zoneId}": ${decision.reason}`,
+            `agent ${decision.agentId ?? 'unknown'} denied SPATIAL_READ ` +
+            `in zone "${zoneId}": ${decision.reason}`
         );
       }
     }
@@ -559,7 +563,7 @@ export abstract class CompilerBase implements ICompiler {
    */
   protected validateCulturalCompatibility(
     agentTokens: Map<string, string>,
-    normSets?: Map<string, string[]>,
+    normSets?: Map<string, string[]>
   ): CulturalCompatibilityResult | null {
     return this.rbac.validateCulturalCompatibility(agentTokens, normSets);
   }

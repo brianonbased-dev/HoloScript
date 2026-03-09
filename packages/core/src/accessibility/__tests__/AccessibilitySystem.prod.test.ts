@@ -57,7 +57,14 @@ describe('AccessibilitySystem — Production', () => {
 
   it('getContrastColors handles all modes', () => {
     const a = new AccessibilitySystem();
-    for (const mode of ['normal', 'high', 'inverted', 'deuteranopia', 'protanopia', 'tritanopia'] as const) {
+    for (const mode of [
+      'normal',
+      'high',
+      'inverted',
+      'deuteranopia',
+      'protanopia',
+      'tritanopia',
+    ] as const) {
       a.setContrastMode(mode);
       const c = a.getContrastColors();
       expect(c.bg).toBeTruthy();

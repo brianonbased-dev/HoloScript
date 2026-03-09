@@ -31,7 +31,7 @@ import { TimeManager } from '../orbital/TimeManager.js';
 // Earth's orbital elements (well-known test values)
 // ---------------------------------------------------------------------------
 const EARTH_ELEMENTS: OrbitalElements = {
-  semiMajorAxis: 1.0,         // 1 AU
+  semiMajorAxis: 1.0, // 1 AU
   eccentricity: 0.0167,
   inclination: 0.0,
   longitudeAscending: 174.9,
@@ -423,7 +423,9 @@ describe('Feature 3A: TimeManager — instantiation', () => {
 describe('Feature 3B: TimeManager — date management', () => {
   let tm: TimeManager;
 
-  beforeEach(() => { tm = new TimeManager(); });
+  beforeEach(() => {
+    tm = new TimeManager();
+  });
 
   it('setDate() updates julianDate', () => {
     const before = tm.getJulianDate();
@@ -451,7 +453,9 @@ describe('Feature 3B: TimeManager — date management', () => {
 describe('Feature 3C: TimeManager — pause/play/toggle', () => {
   let tm: TimeManager;
 
-  beforeEach(() => { tm = new TimeManager(); });
+  beforeEach(() => {
+    tm = new TimeManager();
+  });
 
   it('pause() sets isPaused to true', () => {
     tm.pause();
@@ -535,7 +539,9 @@ describe('Feature 3E: TimeManager — onUpdate/offUpdate', () => {
 
   it('onUpdate() callback is called when advance() is called', () => {
     let called = false;
-    const cb = () => { called = true; };
+    const cb = () => {
+      called = true;
+    };
     tm.onUpdate(cb);
     tm.advance(1000);
     expect(called).toBe(true);
@@ -543,21 +549,27 @@ describe('Feature 3E: TimeManager — onUpdate/offUpdate', () => {
 
   it('callback receives julianDate as first arg', () => {
     let receivedJulian: number | undefined;
-    tm.onUpdate((jd) => { receivedJulian = jd; });
+    tm.onUpdate((jd) => {
+      receivedJulian = jd;
+    });
     tm.advance(86400000);
     expect(typeof receivedJulian).toBe('number');
   });
 
   it('callback receives Date as second arg', () => {
     let receivedDate: Date | undefined;
-    tm.onUpdate((_jd, date) => { receivedDate = date; });
+    tm.onUpdate((_jd, date) => {
+      receivedDate = date;
+    });
     tm.advance(1000);
     expect(receivedDate).toBeInstanceOf(Date);
   });
 
   it('offUpdate() stops calling callback', () => {
     let count = 0;
-    const cb = () => { count++; };
+    const cb = () => {
+      count++;
+    };
     tm.onUpdate(cb);
     tm.advance(1000);
     tm.offUpdate(cb);
@@ -567,7 +579,9 @@ describe('Feature 3E: TimeManager — onUpdate/offUpdate', () => {
 
   it('setDate() also fires callbacks', () => {
     let called = false;
-    tm.onUpdate(() => { called = true; });
+    tm.onUpdate(() => {
+      called = true;
+    });
     tm.setDate(new Date('2010-01-01T12:00:00Z'));
     expect(called).toBe(true);
   });

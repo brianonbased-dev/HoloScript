@@ -13,20 +13,20 @@
 
 export interface TileData {
   id: number;
-  flags: number;            // Bitfield: solid, one-way, destructible, etc.
+  flags: number; // Bitfield: solid, one-way, destructible, etc.
   metadata?: Record<string, unknown>;
 }
 
 export interface TileLayer {
   name: string;
-  tiles: Map<string, TileData>;  // "x,y" → TileData
+  tiles: Map<string, TileData>; // "x,y" → TileData
   visible: boolean;
   zOrder: number;
 }
 
 export interface AutoTileRule {
   tileId: number;
-  neighbors: number;       // 8-bit bitmask (N, NE, E, SE, S, SW, W, NW)
+  neighbors: number; // 8-bit bitmask (N, NE, E, SE, S, SW, W, NW)
   resultId: number;
 }
 
@@ -68,15 +68,23 @@ export class TileMap {
     this.layers.set(name, { name, tiles: new Map(), visible: true, zOrder });
   }
 
-  removeLayer(name: string): void { this.layers.delete(name); }
-  getLayer(name: string): TileLayer | undefined { return this.layers.get(name); }
-  getLayerCount(): number { return this.layers.size; }
+  removeLayer(name: string): void {
+    this.layers.delete(name);
+  }
+  getLayer(name: string): TileLayer | undefined {
+    return this.layers.get(name);
+  }
+  getLayerCount(): number {
+    return this.layers.size;
+  }
 
   // ---------------------------------------------------------------------------
   // Tile Access
   // ---------------------------------------------------------------------------
 
-  private key(x: number, y: number): string { return `${x},${y}`; }
+  private key(x: number, y: number): string {
+    return `${x},${y}`;
+  }
 
   setTile(layerName: string, x: number, y: number, tile: TileData): void {
     const layer = this.layers.get(layerName);
@@ -94,7 +102,7 @@ export class TileMap {
   isSolid(x: number, y: number): boolean {
     for (const layer of this.layers.values()) {
       const tile = layer.tiles.get(this.key(x, y));
-      if (tile && (tile.flags & TileFlags.SOLID)) return true;
+      if (tile && tile.flags & TileFlags.SOLID) return true;
     }
     return false;
   }
@@ -103,7 +111,9 @@ export class TileMap {
   // Auto-Tiling
   // ---------------------------------------------------------------------------
 
-  addAutoTileRule(rule: AutoTileRule): void { this.autoTileRules.push(rule); }
+  addAutoTileRule(rule: AutoTileRule): void {
+    this.autoTileRules.push(rule);
+  }
 
   applyAutoTile(layerName: string): number {
     const layer = this.layers.get(layerName);
@@ -130,12 +140,18 @@ export class TileMap {
   private getNeighborMask(layer: TileLayer, x: number, y: number, tileId: number): number {
     let mask = 0;
     const dirs = [
-      [0, -1], [1, -1], [1, 0], [1, 1],
-      [0, 1], [-1, 1], [-1, 0], [-1, -1],
+      [0, -1],
+      [1, -1],
+      [1, 0],
+      [1, 1],
+      [0, 1],
+      [-1, 1],
+      [-1, 0],
+      [-1, -1],
     ];
     for (let i = 0; i < dirs.length; i++) {
       const n = layer.tiles.get(this.key(x + dirs[i][0], y + dirs[i][1]));
-      if (n && n.id === tileId) mask |= (1 << i);
+      if (n && n.id === tileId) mask |= 1 << i;
     }
     return mask;
   }
@@ -152,7 +168,13 @@ export class TileMap {
     return { x: tx * this.tileSize, y: ty * this.tileSize };
   }
 
-  getWidth(): number { return this.width; }
-  getHeight(): number { return this.height; }
-  getTileSize(): number { return this.tileSize; }
+  getWidth(): number {
+    return this.width;
+  }
+  getHeight(): number {
+    return this.height;
+  }
+  getTileSize(): number {
+    return this.tileSize;
+  }
 }

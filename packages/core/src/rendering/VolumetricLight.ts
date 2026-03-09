@@ -17,11 +17,11 @@ export interface VolumetricLightConfig {
   direction: { x: number; y: number; z: number };
   color: [number, number, number];
   intensity: number;
-  scattering: number;      // 0-1
-  decay: number;           // Intensity falloff per step
-  samples: number;         // Ray march samples
+  scattering: number; // 0-1
+  decay: number; // Intensity falloff per step
+  samples: number; // Ray march samples
   maxDistance: number;
-  shadowDensity: number;   // 0-1
+  shadowDensity: number; // 0-1
   enabled: boolean;
 }
 
@@ -44,24 +44,41 @@ export class VolumetricLight {
 
   addLight(config: Partial<VolumetricLightConfig> & { id: string }): VolumetricLightConfig {
     const light: VolumetricLightConfig = {
-      position: { x: 0, y: 50, z: 0 }, direction: { x: 0, y: -1, z: 0 },
-      color: [1, 0.95, 0.8], intensity: 1, scattering: 0.3,
-      decay: 0.96, samples: 32, maxDistance: 100, shadowDensity: 0.5,
-      enabled: true, ...config,
+      position: { x: 0, y: 50, z: 0 },
+      direction: { x: 0, y: -1, z: 0 },
+      color: [1, 0.95, 0.8],
+      intensity: 1,
+      scattering: 0.3,
+      decay: 0.96,
+      samples: 32,
+      maxDistance: 100,
+      shadowDensity: 0.5,
+      enabled: true,
+      ...config,
     };
     this.lights.set(light.id, light);
     return light;
   }
 
-  removeLight(id: string): void { this.lights.delete(id); }
-  getLight(id: string): VolumetricLightConfig | undefined { return this.lights.get(id); }
-  getLightCount(): number { return this.lights.size; }
+  removeLight(id: string): void {
+    this.lights.delete(id);
+  }
+  getLight(id: string): VolumetricLightConfig | undefined {
+    return this.lights.get(id);
+  }
+  getLightCount(): number {
+    return this.lights.size;
+  }
 
   // ---------------------------------------------------------------------------
   // Ray March Simulation
   // ---------------------------------------------------------------------------
 
-  march(lightId: string, viewPos: { x: number; y: number; z: number }, viewDir: { x: number; y: number; z: number }): VolumetricSample[] {
+  march(
+    lightId: string,
+    viewPos: { x: number; y: number; z: number },
+    viewDir: { x: number; y: number; z: number }
+  ): VolumetricSample[] {
     const light = this.lights.get(lightId);
     if (!light || !light.enabled) return [];
 
@@ -115,7 +132,7 @@ export class VolumetricLight {
 
     if (dist > light.maxDistance) return 0;
 
-    const falloff = 1 - (dist / light.maxDistance);
+    const falloff = 1 - dist / light.maxDistance;
     return falloff * light.scattering * light.intensity;
   }
 

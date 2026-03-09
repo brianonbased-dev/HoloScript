@@ -39,13 +39,13 @@ export interface GestureEvent {
 }
 
 export interface GestureConfig {
-  tapMaxDuration: number;        // ms, max hold time for tap
-  tapMaxDistance: number;         // px, max movement for tap
-  doubleTapWindow: number;       // ms, max time between taps
-  longPressMinDuration: number;  // ms, min hold time for long press
-  swipeMinDistance: number;       // px, min swipe distance
-  swipeMinVelocity: number;      // px/ms
-  pinchMinScale: number;         // min scale change to trigger
+  tapMaxDuration: number; // ms, max hold time for tap
+  tapMaxDistance: number; // px, max movement for tap
+  doubleTapWindow: number; // ms, max time between taps
+  longPressMinDuration: number; // ms, min hold time for long press
+  swipeMinDistance: number; // px, min swipe distance
+  swipeMinVelocity: number; // px/ms
+  pinchMinScale: number; // min scale change to trigger
 }
 
 export type GestureCallback = (event: GestureEvent) => void;
@@ -69,7 +69,7 @@ const DEFAULT_CONFIG: GestureConfig = {
 export class GestureRecognizer {
   private config: GestureConfig;
   private activeTouches: Map<number, TouchPoint> = new Map();
-  private touchStarts: Map<number, TouchPoint> = new Map();  // Original positions
+  private touchStarts: Map<number, TouchPoint> = new Map(); // Original positions
   private subscribers: Map<string, { types: GestureType[]; callback: GestureCallback }> = new Map();
   private lastTapTime = 0;
   private lastTapPosition: { x: number; y: number } = { x: 0, y: 0 };
@@ -153,8 +153,10 @@ export class GestureRecognizer {
     // Pinch detection (two fingers)
     if (this.activeTouches.size === 2) {
       // Update this touch position temporarily
-      const oldX = touch.x, oldY = touch.y;
-      touch.x = x; touch.y = y;
+      const oldX = touch.x,
+        oldY = touch.y;
+      touch.x = x;
+      touch.y = y;
       const points = [...this.activeTouches.values()];
       const currentDist = this.distance(points[0], points[1]);
 
@@ -173,7 +175,8 @@ export class GestureRecognizer {
         }
       }
       // Restore for proper end detection
-      touch.x = oldX; touch.y = oldY;
+      touch.x = oldX;
+      touch.y = oldY;
     }
 
     // Update stored position
@@ -220,7 +223,10 @@ export class GestureRecognizer {
         (x - this.lastTapPosition.x) ** 2 + (y - this.lastTapPosition.y) ** 2
       );
 
-      if (timeSinceLastTap <= this.config.doubleTapWindow && distFromLastTap <= this.config.tapMaxDistance * 2) {
+      if (
+        timeSinceLastTap <= this.config.doubleTapWindow &&
+        distFromLastTap <= this.config.tapMaxDistance * 2
+      ) {
         this.emit({ type: 'doubleTap', position: { x, y }, timestamp: now });
         this.lastTapTime = 0;
       } else {
@@ -268,11 +274,23 @@ export class GestureRecognizer {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getActiveTouchCount(): number { return this.activeTouches.size; }
-  getGestureHistory(): GestureEvent[] { return [...this.gestureHistory]; }
-  getRecentGestures(count: number): GestureEvent[] { return this.gestureHistory.slice(-count); }
+  getActiveTouchCount(): number {
+    return this.activeTouches.size;
+  }
+  getGestureHistory(): GestureEvent[] {
+    return [...this.gestureHistory];
+  }
+  getRecentGestures(count: number): GestureEvent[] {
+    return this.gestureHistory.slice(-count);
+  }
 
-  clearHistory(): void { this.gestureHistory = []; }
-  getConfig(): GestureConfig { return { ...this.config }; }
-  setConfig(config: Partial<GestureConfig>): void { Object.assign(this.config, config); }
+  clearHistory(): void {
+    this.gestureHistory = [];
+  }
+  getConfig(): GestureConfig {
+    return { ...this.config };
+  }
+  setConfig(config: Partial<GestureConfig>): void {
+    Object.assign(this.config, config);
+  }
 }

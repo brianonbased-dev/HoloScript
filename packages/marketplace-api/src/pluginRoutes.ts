@@ -27,24 +27,56 @@ const pluginSearchQuerySchema = z.object({
   category: z.string().optional(),
   platform: z.string().optional(),
   author: z.string().optional(),
-  keywords: z.string().optional().transform((v) => v?.split(',').filter(Boolean)),
+  keywords: z
+    .string()
+    .optional()
+    .transform((v) => v?.split(',').filter(Boolean)),
   pricingModel: z.enum(['free', 'paid', 'freemium', 'subscription']).optional(),
-  maxPrice: z.string().optional().transform((v) => (v ? parseInt(v, 10) : undefined)),
-  verified: z.string().optional().transform((v) => (v === 'true' ? true : v === 'false' ? false : undefined)),
-  signed: z.string().optional().transform((v) => (v === 'true' ? true : v === 'false' ? false : undefined)),
+  maxPrice: z
+    .string()
+    .optional()
+    .transform((v) => (v ? parseInt(v, 10) : undefined)),
+  verified: z
+    .string()
+    .optional()
+    .transform((v) => (v === 'true' ? true : v === 'false' ? false : undefined)),
+  signed: z
+    .string()
+    .optional()
+    .transform((v) => (v === 'true' ? true : v === 'false' ? false : undefined)),
   permission: z.string().optional(),
-  excludeDeprecated: z.string().optional().transform((v) => v === 'false' ? false : true),
-  minRating: z.string().optional().transform((v) => (v ? parseFloat(v) : undefined)),
-  minDownloads: z.string().optional().transform((v) => (v ? parseInt(v, 10) : undefined)),
-  sortBy: z.enum(['relevance', 'downloads', 'rating', 'updated', 'created', 'price', 'name']).optional(),
+  excludeDeprecated: z
+    .string()
+    .optional()
+    .transform((v) => (v === 'false' ? false : true)),
+  minRating: z
+    .string()
+    .optional()
+    .transform((v) => (v ? parseFloat(v) : undefined)),
+  minDownloads: z
+    .string()
+    .optional()
+    .transform((v) => (v ? parseInt(v, 10) : undefined)),
+  sortBy: z
+    .enum(['relevance', 'downloads', 'rating', 'updated', 'created', 'price', 'name'])
+    .optional(),
   sortOrder: z.enum(['asc', 'desc']).optional(),
-  page: z.string().optional().transform((v) => (v ? parseInt(v, 10) : 1)),
-  limit: z.string().optional().transform((v) => Math.min(v ? parseInt(v, 10) : 20, 100)),
+  page: z
+    .string()
+    .optional()
+    .transform((v) => (v ? parseInt(v, 10) : 1)),
+  limit: z
+    .string()
+    .optional()
+    .transform((v) => Math.min(v ? parseInt(v, 10) : 20, 100)),
 });
 
 const pluginPublishSchema = z.object({
   manifest: z.object({
-    id: z.string().min(3).regex(/^(@[a-z0-9-]+\/)?[a-z0-9][a-z0-9-_.]*$/),
+    id: z
+      .string()
+      .min(3)
+      .regex(/^(@[a-z0-9-]+\/)?[a-z0-9][a-z0-9-_.]*$/),
     name: z.string().min(2).max(100),
     version: z.string().regex(/^\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$/),
     description: z.string().min(10).max(200),
@@ -66,10 +98,12 @@ const pluginPublishSchema = z.object({
     security: z.object({
       permissions: z.array(z.string()),
       trustLevel: z.enum(['sandboxed', 'trusted']),
-      networkPolicy: z.object({
-        allowedDomains: z.array(z.string()),
-        allowLocalhost: z.boolean().optional(),
-      }).optional(),
+      networkPolicy: z
+        .object({
+          allowedDomains: z.array(z.string()),
+          allowLocalhost: z.boolean().optional(),
+        })
+        .optional(),
       memoryBudget: z.number().min(1).max(256).optional(),
       cpuBudget: z.number().min(1).optional(),
     }),
@@ -82,19 +116,25 @@ const pluginPublishSchema = z.object({
     dependencies: z.record(z.string()).optional(),
     peerDependencies: z.record(z.string()).optional(),
     contributions: z.any().optional(),
-    pricing: z.object({
-      model: z.enum(['free', 'paid', 'freemium', 'subscription']),
-      price: z.number().optional(),
-      monthlyPrice: z.number().optional(),
-      annualPrice: z.number().optional(),
-      trialDays: z.number().optional(),
-    }).optional(),
-    screenshots: z.array(z.object({
-      path: z.string(),
-      alt: z.string(),
-      caption: z.string().optional(),
-      featured: z.boolean().optional(),
-    })).optional(),
+    pricing: z
+      .object({
+        model: z.enum(['free', 'paid', 'freemium', 'subscription']),
+        price: z.number().optional(),
+        monthlyPrice: z.number().optional(),
+        annualPrice: z.number().optional(),
+        trialDays: z.number().optional(),
+      })
+      .optional(),
+    screenshots: z
+      .array(
+        z.object({
+          path: z.string(),
+          alt: z.string(),
+          caption: z.string().optional(),
+          featured: z.boolean().optional(),
+        })
+      )
+      .optional(),
     icon: z.string().optional(),
     readme: z.string().optional(),
     changelog: z.string().optional(),
@@ -104,11 +144,13 @@ const pluginPublishSchema = z.object({
     bugs: z.string().url().optional(),
   }),
   bundle: z.string().min(1),
-  signature: z.object({
-    signature: z.string(),
-    publicKey: z.string(),
-    keyId: z.string().optional(),
-  }).optional(),
+  signature: z
+    .object({
+      signature: z.string(),
+      publicKey: z.string(),
+      keyId: z.string().optional(),
+    })
+    .optional(),
   readme: z.string().optional(),
   changelog: z.string().optional(),
   releaseNotes: z.string().optional(),
@@ -116,10 +158,12 @@ const pluginPublishSchema = z.object({
 
 const pluginRatingSchema = z.object({
   rating: z.number().int().min(1).max(5),
-  review: z.object({
-    title: z.string().max(200).optional(),
-    body: z.string().max(5000).optional(),
-  }).optional(),
+  review: z
+    .object({
+      title: z.string().max(200).optional(),
+      body: z.string().max(5000).optional(),
+    })
+    .optional(),
 });
 
 const registerKeySchema = z.object({
@@ -232,7 +276,7 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
       } catch (err) {
         next(err);
       }
-    },
+    }
   );
 
   /** GET /plugins/home - Marketplace home page data */
@@ -318,7 +362,7 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
       } catch (err) {
         next(err);
       }
-    },
+    }
   );
 
   /** GET /plugins/:id - Get plugin detail */
@@ -354,7 +398,7 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
       } catch (err) {
         next(err);
       }
-    },
+    }
   );
 
   /** POST /plugins/:id/deprecate - Deprecate plugin */
@@ -371,7 +415,7 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
       } catch (err) {
         next(err);
       }
-    },
+    }
   );
 
   // ── Versions ────────────────────────────────────────────────────────────
@@ -397,7 +441,7 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
       const downloadInfo = await marketplace.downloadPlugin(id, version as string | undefined);
 
       // Record download
-      const v = version as string ?? 'latest';
+      const v = (version as string) ?? 'latest';
       await marketplace.recordPluginDownload(id, v);
 
       res.json({ success: true, data: downloadInfo });
@@ -455,7 +499,7 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
       } catch (err) {
         next(err);
       }
-    },
+    }
   );
 
   // ── Dependencies ────────────────────────────────────────────────────────
@@ -487,7 +531,7 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
       } catch (err) {
         next(err);
       }
-    },
+    }
   );
 
   /** DELETE /keys/:keyId - Revoke a signing key */
@@ -503,7 +547,7 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
       } catch (err) {
         next(err);
       }
-    },
+    }
   );
 
   // ── Author Profiles ─────────────────────────────────────────────────────

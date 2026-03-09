@@ -71,7 +71,10 @@ describe('CyclomaticComplexity', () => {
     const names = results.map((r) => r.name);
     expect(names).toContain('Simple');
     expect(names).toContain('Complex');
-    const complex = results.find((r) => r.name === 'Complex') as { name: string; complexity: number };
+    const complex = results.find((r) => r.name === 'Complex') as {
+      name: string;
+      complexity: number;
+    };
     const simple = results.find((r) => r.name === 'Simple') as { name: string; complexity: number };
     expect(complex.complexity).toBeGreaterThan(simple.complexity);
   });
@@ -98,13 +101,7 @@ describe('NestingDepth', () => {
     expect(r.maxDepth).toBe(5);
   });
   it('returns deepestLine when maxDepth > 0', () => {
-    const src = [
-      'line1',
-      'function foo() {',
-      '  if (x) {',
-      '  }',
-      '}',
-    ].join('\n');
+    const src = ['line1', 'function foo() {', '  if (x) {', '  }', '}'].join('\n');
     const r = nd.calculate(src);
     expect(r.maxDepth).toBe(2);
     expect(r.deepestLine).toBeDefined();
@@ -156,11 +153,7 @@ describe('ComplexityAnalyzer', () => {
     expect(report.files[0].filePath).toBe('my/file.ts');
   });
   it('includes lineCount in results', () => {
-    const src = [
-      'line1',
-      'line2',
-      'line3',
-    ].join('\n');
+    const src = ['line1', 'line2', 'line3'].join('\n');
     const files = new Map([['f.ts', src]]);
     const report = analyzer.analyze(files);
     expect(report.files[0].lineCount).toBe(3);
@@ -180,7 +173,10 @@ describe('ComplexityAnalyzer', () => {
     expect(report.files[0].recommendations.some((r) => r.includes('nesting'))).toBe(true);
   });
   it('summary mentions file count', () => {
-    const files = new Map([['a.ts', 'const x=1;'], ['b.ts', 'const y=2;']]);
+    const files = new Map([
+      ['a.ts', 'const x=1;'],
+      ['b.ts', 'const y=2;'],
+    ]);
     const report = analyzer.analyze(files);
     expect(report.summary).toMatch(/\d/);
   });

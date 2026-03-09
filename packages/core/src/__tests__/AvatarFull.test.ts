@@ -14,8 +14,18 @@ function makeSolver(): IKSolver {
   solver.addChain({
     id: 'leftArm',
     bones: [
-      { id: 'LeftShoulder', position: { x: -0.2, y: 1.4, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 0.3 },
-      { id: 'LeftForearm', position: { x: -0.5, y: 1.4, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 0.25 },
+      {
+        id: 'LeftShoulder',
+        position: { x: -0.2, y: 1.4, z: 0 },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        length: 0.3,
+      },
+      {
+        id: 'LeftForearm',
+        position: { x: -0.5, y: 1.4, z: 0 },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        length: 0.25,
+      },
     ],
     target: { x: -0.7, y: 1.0, z: 0.3 },
     weight: 1,
@@ -24,8 +34,18 @@ function makeSolver(): IKSolver {
   solver.addChain({
     id: 'rightArm',
     bones: [
-      { id: 'RightShoulder', position: { x: 0.2, y: 1.4, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 0.3 },
-      { id: 'RightForearm', position: { x: 0.5, y: 1.4, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 0.25 },
+      {
+        id: 'RightShoulder',
+        position: { x: 0.2, y: 1.4, z: 0 },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        length: 0.3,
+      },
+      {
+        id: 'RightForearm',
+        position: { x: 0.5, y: 1.4, z: 0 },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        length: 0.25,
+      },
     ],
     target: { x: 0.7, y: 1.0, z: 0.3 },
     weight: 1,
@@ -94,11 +114,11 @@ describe('AvatarController', () => {
     const solver = makeSolver();
     const spy = vi.spyOn(solver, 'solveAll');
     const setTargetSpy = vi.spyOn(solver, 'setTarget');
-    
+
     const ctrl = new AvatarController(solver, makeBones());
     ctrl.calibrate(1.75);
     ctrl.update(makeInput());
-    
+
     expect(spy).toHaveBeenCalledTimes(1);
     expect(setTargetSpy).toHaveBeenCalledWith('leftArm', -0.4, 1.0, 0.3);
     expect(setTargetSpy).toHaveBeenCalledWith('rightArm', 0.4, 1.0, 0.3);
@@ -183,11 +203,11 @@ describe('AvatarPersistence', () => {
   it('deep copies on save (mutation isolation)', () => {
     const config = makeAvatarConfig();
     persistence.save(config);
-    
+
     // Mutate caller's object
     config.appearance.accessories.push('scarf');
     config.personality.warmth = 0.1;
-    
+
     const loaded = persistence.load('user-1');
     expect(loaded!.appearance.accessories).toEqual(['hat', 'glasses']); // unaffected
     expect(loaded!.personality.warmth).toBe(0.9); // unaffected

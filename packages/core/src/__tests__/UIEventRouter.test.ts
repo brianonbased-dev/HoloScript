@@ -7,7 +7,9 @@ import { UIEventRouter } from '../ui/UIEventRouter';
 
 describe('UIEventRouter', () => {
   let router: UIEventRouter;
-  beforeEach(() => { router = new UIEventRouter(); });
+  beforeEach(() => {
+    router = new UIEventRouter();
+  });
 
   it('on registers handler and emit invokes it', () => {
     const cb = vi.fn();
@@ -33,7 +35,9 @@ describe('UIEventRouter', () => {
   });
 
   it('propagationStopped prevents further handlers', () => {
-    const first = vi.fn((e) => { e.propagationStopped = true; });
+    const first = vi.fn((e) => {
+      e.propagationStopped = true;
+    });
     const second = vi.fn();
     router.on('btn', 'click', first);
     router.on('btn', 'click', second);

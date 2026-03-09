@@ -39,7 +39,16 @@ describe('ARCompiler — documented design contract (specification tests)', () =
   });
 
   it('AR entry traits are defined in spec', () => {
-    const AR_TRAITS = ['@ar_entry', '@qr_scan', '@geo_anchor', '@camera_overlay', '@ar_portal', '@layer_shift', '@x402_paywall', '@business_marker'];
+    const AR_TRAITS = [
+      '@ar_entry',
+      '@qr_scan',
+      '@geo_anchor',
+      '@camera_overlay',
+      '@ar_portal',
+      '@layer_shift',
+      '@x402_paywall',
+      '@business_marker',
+    ];
     expect(AR_TRAITS.length).toBeGreaterThan(0);
     expect(AR_TRAITS).toContain('@qr_scan');
     expect(AR_TRAITS).toContain('@geo_anchor');

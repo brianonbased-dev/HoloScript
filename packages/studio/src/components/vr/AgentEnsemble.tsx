@@ -18,7 +18,7 @@ import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { useEditorStore, useSceneGraphStore } from '@/lib/store';
+import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 
 // ─── Agent configuration ──────────────────────────────────────────────────────
 
@@ -124,8 +124,14 @@ function AgentOrb({ agent, selectedPos }: OrbProps) {
 
       {/* Core orb */}
       <mesh
-        onPointerEnter={() => { setHovered(true); setShowHint(true); }}
-        onPointerLeave={() => { setHovered(false); setTimeout(() => setShowHint(false), 2000); }}
+        onPointerEnter={() => {
+          setHovered(true);
+          setShowHint(true);
+        }}
+        onPointerLeave={() => {
+          setHovered(false);
+          setTimeout(() => setShowHint(false), 2000);
+        }}
       >
         <sphereGeometry args={[0.032, 16, 16]} />
         <meshStandardMaterial
@@ -167,11 +173,25 @@ function AgentOrb({ agent, selectedPos }: OrbProps) {
             maxWidth: 200,
           }}
         >
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', fontFamily: 'Inter, sans-serif' }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#fff',
+              fontFamily: 'Inter, sans-serif',
+            }}
+          >
             {agent.emoji} {agent.label}
           </span>
           {showHint && (
-            <p style={{ margin: '2px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.8)', fontFamily: 'Inter, sans-serif' }}>
+            <p
+              style={{
+                margin: '2px 0 0',
+                fontSize: 9,
+                color: 'rgba(255,255,255,0.8)',
+                fontFamily: 'Inter, sans-serif',
+              }}
+            >
               {agent.hint}
             </p>
           )}

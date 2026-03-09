@@ -160,10 +160,7 @@ describe('utility functions', () => {
     });
 
     it('should compute distance to single-point path', () => {
-      const dist = distanceToPath(
-        { x: 3, y: 4, z: 0 },
-        [{ x: 0, y: 0, z: 0 }]
-      );
+      const dist = distanceToPath({ x: 3, y: 4, z: 0 }, [{ x: 0, y: 0, z: 0 }]);
       expect(dist).toBeCloseTo(5);
     });
 
@@ -232,11 +229,16 @@ describe('spatialTemporalAdjacentHandler', () => {
 
     spatialTemporalAdjacentHandler.onAttach!(node as any, config, context as any);
 
-    spatialTemporalAdjacentHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'other',
-      position: { x: 1, y: 0, z: 0 },
-    } as any);
+    spatialTemporalAdjacentHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'other',
+        position: { x: 1, y: 0, z: 0 },
+      } as any
+    );
 
     const state = context._state.spatialTemporalAdjacent;
     expect(state.targetPosition).toEqual({ x: 1, y: 0, z: 0 });
@@ -255,11 +257,16 @@ describe('spatialTemporalAdjacentHandler', () => {
     spatialTemporalAdjacentHandler.onAttach!(node as any, config, context as any);
 
     // Set target within range
-    spatialTemporalAdjacentHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'other',
-      position: { x: 2, y: 0, z: 0 },
-    } as any);
+    spatialTemporalAdjacentHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'other',
+        position: { x: 2, y: 0, z: 0 },
+      } as any
+    );
 
     // Simulate several update ticks
     for (let i = 0; i < 10; i++) {
@@ -286,11 +293,16 @@ describe('spatialTemporalAdjacentHandler', () => {
     spatialTemporalAdjacentHandler.onAttach!(node as any, config, context as any);
 
     // Start within range
-    spatialTemporalAdjacentHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'other',
-      position: { x: 1, y: 0, z: 0 },
-    } as any);
+    spatialTemporalAdjacentHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'other',
+        position: { x: 1, y: 0, z: 0 },
+      } as any
+    );
 
     // Tick for a bit to establish adjacency
     for (let i = 0; i < 5; i++) {
@@ -298,11 +310,16 @@ describe('spatialTemporalAdjacentHandler', () => {
     }
 
     // Move target out of range
-    spatialTemporalAdjacentHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'other',
-      position: { x: 10, y: 0, z: 0 },
-    } as any);
+    spatialTemporalAdjacentHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'other',
+        position: { x: 10, y: 0, z: 0 },
+      } as any
+    );
 
     // First update after leaving - within grace period, no violation yet
     spatialTemporalAdjacentHandler.onUpdate!(node as any, config, context as any, 0.2);
@@ -338,22 +355,32 @@ describe('spatialTemporalAdjacentHandler', () => {
     spatialTemporalAdjacentHandler.onAttach!(node as any, config, context as any);
 
     // Start out of range (violation immediate since gracePeriod=0)
-    spatialTemporalAdjacentHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'other',
-      position: { x: 10, y: 0, z: 0 },
-    } as any);
+    spatialTemporalAdjacentHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'other',
+        position: { x: 10, y: 0, z: 0 },
+      } as any
+    );
 
     spatialTemporalAdjacentHandler.onUpdate!(node as any, config, context as any, 0.1);
     let state = context._state.spatialTemporalAdjacent;
     expect(state.violated).toBe(true);
 
     // Move back into range
-    spatialTemporalAdjacentHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'other',
-      position: { x: 1, y: 0, z: 0 },
-    } as any);
+    spatialTemporalAdjacentHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'other',
+        position: { x: 1, y: 0, z: 0 },
+      } as any
+    );
 
     // Tick enough to satisfy minDuration
     for (let i = 0; i < 5; i++) {
@@ -387,11 +414,16 @@ describe('spatialTemporalAdjacentHandler', () => {
     spatialTemporalAdjacentHandler.onAttach!(node as any, config, context as any);
 
     // Within range
-    spatialTemporalAdjacentHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'other',
-      position: { x: 1, y: 0, z: 0 },
-    } as any);
+    spatialTemporalAdjacentHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'other',
+        position: { x: 1, y: 0, z: 0 },
+      } as any
+    );
 
     // Accumulate 2 seconds (not enough for 5s threshold)
     for (let i = 0; i < 4; i++) {
@@ -403,11 +435,16 @@ describe('spatialTemporalAdjacentHandler', () => {
     expect(state.durationSatisfied).toBe(false);
 
     // Break adjacency
-    spatialTemporalAdjacentHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'other',
-      position: { x: 10, y: 0, z: 0 },
-    } as any);
+    spatialTemporalAdjacentHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'other',
+        position: { x: 10, y: 0, z: 0 },
+      } as any
+    );
 
     spatialTemporalAdjacentHandler.onUpdate!(node as any, config, context as any, 0.1);
 
@@ -431,11 +468,16 @@ describe('spatialTemporalAdjacentHandler', () => {
     spatialTemporalAdjacentHandler.onAttach!(node as any, config, context as any);
 
     // Out of range
-    spatialTemporalAdjacentHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'other',
-      position: { x: 10, y: 0, z: 0 },
-    } as any);
+    spatialTemporalAdjacentHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'other',
+        position: { x: 10, y: 0, z: 0 },
+      } as any
+    );
 
     spatialTemporalAdjacentHandler.onUpdate!(node as any, config, context as any, 0.016);
 
@@ -458,11 +500,16 @@ describe('spatialTemporalAdjacentHandler', () => {
     spatialTemporalAdjacentHandler.onAttach!(node as any, config, context as any);
 
     // Target too close (within minDistance)
-    spatialTemporalAdjacentHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'other',
-      position: { x: 0.5, y: 0, z: 0 },
-    } as any);
+    spatialTemporalAdjacentHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'other',
+        position: { x: 0.5, y: 0, z: 0 },
+      } as any
+    );
 
     spatialTemporalAdjacentHandler.onUpdate!(node as any, config, context as any, 0.1);
 
@@ -510,11 +557,16 @@ describe('spatialTemporalReachableHandler', () => {
 
     spatialTemporalReachableHandler.onAttach!(node as any, config, context as any);
 
-    spatialTemporalReachableHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'pad',
-      position: { x: 20, y: 0, z: 0 },
-    } as any);
+    spatialTemporalReachableHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'pad',
+        position: { x: 20, y: 0, z: 0 },
+      } as any
+    );
 
     const state = context._state.spatialTemporalReachable;
     expect(state.targetPosition).toEqual({ x: 20, y: 0, z: 0 });
@@ -527,13 +579,18 @@ describe('spatialTemporalReachableHandler', () => {
 
     spatialTemporalReachableHandler.onAttach!(node as any, config, context as any);
 
-    spatialTemporalReachableHandler.onEvent!(node as any, config, context as any, {
-      type: 'moving_obstacle_update',
-      obstacleId: 'car_1',
-      position: { x: 10, y: 0, z: 0 },
-      velocity: { x: -2, y: 0, z: 0 },
-      radius: 1.0,
-    } as any);
+    spatialTemporalReachableHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'moving_obstacle_update',
+        obstacleId: 'car_1',
+        position: { x: 10, y: 0, z: 0 },
+        velocity: { x: -2, y: 0, z: 0 },
+        radius: 1.0,
+      } as any
+    );
 
     const state = context._state.spatialTemporalReachable;
     expect(state.movingObstacles.size).toBe(1);
@@ -548,18 +605,28 @@ describe('spatialTemporalReachableHandler', () => {
 
     spatialTemporalReachableHandler.onAttach!(node as any, config, context as any);
 
-    spatialTemporalReachableHandler.onEvent!(node as any, config, context as any, {
-      type: 'moving_obstacle_update',
-      obstacleId: 'car_1',
-      position: { x: 10, y: 0, z: 0 },
-      velocity: { x: 0, y: 0, z: 0 },
-      radius: 1.0,
-    } as any);
+    spatialTemporalReachableHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'moving_obstacle_update',
+        obstacleId: 'car_1',
+        position: { x: 10, y: 0, z: 0 },
+        velocity: { x: 0, y: 0, z: 0 },
+        radius: 1.0,
+      } as any
+    );
 
-    spatialTemporalReachableHandler.onEvent!(node as any, config, context as any, {
-      type: 'obstacle_removed',
-      obstacleId: 'car_1',
-    } as any);
+    spatialTemporalReachableHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'obstacle_removed',
+        obstacleId: 'car_1',
+      } as any
+    );
 
     const state = context._state.spatialTemporalReachable;
     expect(state.movingObstacles.size).toBe(0);
@@ -576,11 +643,16 @@ describe('spatialTemporalReachableHandler', () => {
 
     spatialTemporalReachableHandler.onAttach!(node as any, config, context as any);
 
-    spatialTemporalReachableHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'pad',
-      position: { x: 20, y: 0, z: 0 },
-    } as any);
+    spatialTemporalReachableHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'pad',
+        position: { x: 20, y: 0, z: 0 },
+      } as any
+    );
 
     // Force immediate check by setting lastCheckTime to 0
     (context._state.spatialTemporalReachable as any).lastCheckTime = 0;
@@ -606,22 +678,32 @@ describe('spatialTemporalReachableHandler', () => {
     spatialTemporalReachableHandler.onAttach!(node as any, config, context as any);
 
     // Set target position
-    spatialTemporalReachableHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'pad',
-      position: { x: 20, y: 0, z: 0 },
-    } as any);
+    spatialTemporalReachableHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'pad',
+        position: { x: 20, y: 0, z: 0 },
+      } as any
+    );
 
     // Add moving obstacle that will cross the path
     // Obstacle starts at (10, 5, 0) moving toward (10, -5, 0) at velocity (0, -2, 0)
     // At t=2.5, it will be at (10, 0, 0) - right on the path
-    spatialTemporalReachableHandler.onEvent!(node as any, config, context as any, {
-      type: 'moving_obstacle_update',
-      obstacleId: 'vehicle_1',
-      position: { x: 10, y: 5, z: 0 },
-      velocity: { x: 0, y: -2, z: 0 },
-      radius: 1.0,
-    } as any);
+    spatialTemporalReachableHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'moving_obstacle_update',
+        obstacleId: 'vehicle_1',
+        position: { x: 10, y: 5, z: 0 },
+        velocity: { x: 0, y: -2, z: 0 },
+        radius: 1.0,
+      } as any
+    );
 
     // Force immediate check
     (context._state.spatialTemporalReachable as any).lastCheckTime = 0;
@@ -655,20 +737,30 @@ describe('spatialTemporalReachableHandler', () => {
 
     spatialTemporalReachableHandler.onAttach!(node as any, config, context as any);
 
-    spatialTemporalReachableHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'pad',
-      position: { x: 20, y: 0, z: 0 },
-    } as any);
+    spatialTemporalReachableHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'pad',
+        position: { x: 20, y: 0, z: 0 },
+      } as any
+    );
 
     // Obstacle moving away from the path (starts near but going away)
-    spatialTemporalReachableHandler.onEvent!(node as any, config, context as any, {
-      type: 'moving_obstacle_update',
-      obstacleId: 'vehicle_1',
-      position: { x: 10, y: 5, z: 0 },
-      velocity: { x: 0, y: 5, z: 0 }, // Moving away from path
-      radius: 0.5,
-    } as any);
+    spatialTemporalReachableHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'moving_obstacle_update',
+        obstacleId: 'vehicle_1',
+        position: { x: 10, y: 5, z: 0 },
+        velocity: { x: 0, y: 5, z: 0 }, // Moving away from path
+        radius: 0.5,
+      } as any
+    );
 
     (context._state.spatialTemporalReachable as any).lastCheckTime = 0;
 
@@ -691,11 +783,16 @@ describe('spatialTemporalReachableHandler', () => {
     spatialTemporalReachableHandler.onAttach!(node as any, config, context as any);
 
     // Initially too far
-    spatialTemporalReachableHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'pad',
-      position: { x: 20, y: 0, z: 0 },
-    } as any);
+    spatialTemporalReachableHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'pad',
+        position: { x: 20, y: 0, z: 0 },
+      } as any
+    );
 
     (context._state.spatialTemporalReachable as any).lastCheckTime = 0;
     spatialTemporalReachableHandler.onUpdate!(node as any, config, context as any, 0.016);
@@ -703,11 +800,16 @@ describe('spatialTemporalReachableHandler', () => {
     expect(context._state.spatialTemporalReachable.violated).toBe(true);
 
     // Move target closer
-    spatialTemporalReachableHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'pad',
-      position: { x: 3, y: 0, z: 0 },
-    } as any);
+    spatialTemporalReachableHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'pad',
+        position: { x: 3, y: 0, z: 0 },
+      } as any
+    );
 
     (context._state.spatialTemporalReachable as any).lastCheckTime = 0;
     spatialTemporalReachableHandler.onUpdate!(node as any, config, context as any, 0.016);
@@ -762,10 +864,15 @@ describe('spatialTrajectoryHandler', () => {
 
     spatialTrajectoryHandler.onAttach!(node as any, config, context as any);
 
-    spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-      type: 'velocity_update',
-      velocity: { x: 5, y: 0, z: 0 },
-    } as any);
+    spatialTrajectoryHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'velocity_update',
+        velocity: { x: 5, y: 0, z: 0 },
+      } as any
+    );
 
     const state = context._state.spatialTrajectory;
     expect(state.velocity).toEqual({ x: 5, y: 0, z: 0 });
@@ -778,11 +885,16 @@ describe('spatialTrajectoryHandler', () => {
 
     spatialTrajectoryHandler.onAttach!(node as any, config, context as any);
 
-    spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-      type: 'velocity_update',
-      velocity: { x: 5, y: 0, z: 0 },
-      acceleration: { x: -1, y: 0, z: 0 },
-    } as any);
+    spatialTrajectoryHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'velocity_update',
+        velocity: { x: 5, y: 0, z: 0 },
+        acceleration: { x: -1, y: 0, z: 0 },
+      } as any
+    );
 
     const state = context._state.spatialTrajectory;
     expect(state.acceleration).toEqual({ x: -1, y: 0, z: 0 });
@@ -795,14 +907,19 @@ describe('spatialTrajectoryHandler', () => {
 
     spatialTrajectoryHandler.onAttach!(node as any, config, context as any);
 
-    spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-      type: 'region_bounds_update',
-      regionId: 'zone1',
-      bounds: {
-        min: { x: -10, y: -10, z: -10 },
-        max: { x: 10, y: 10, z: 10 },
-      },
-    } as any);
+    spatialTrajectoryHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'region_bounds_update',
+        regionId: 'zone1',
+        bounds: {
+          min: { x: -10, y: -10, z: -10 },
+          max: { x: 10, y: 10, z: 10 },
+        },
+      } as any
+    );
 
     const state = context._state.spatialTrajectory;
     expect(state.regionBounds).toBeDefined();
@@ -825,20 +942,30 @@ describe('spatialTrajectoryHandler', () => {
       spatialTrajectoryHandler.onAttach!(node as any, config, context as any);
 
       // Set region bounds
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'region_bounds_update',
-        regionId: 'safe_zone',
-        bounds: {
-          min: { x: -20, y: -20, z: -20 },
-          max: { x: 20, y: 20, z: 20 },
-        },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'region_bounds_update',
+          regionId: 'safe_zone',
+          bounds: {
+            min: { x: -20, y: -20, z: -20 },
+            max: { x: 20, y: 20, z: 20 },
+          },
+        } as any
+      );
 
       // Set velocity (slow, stays inside)
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'velocity_update',
-        velocity: { x: 1, y: 0, z: 0 },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'velocity_update',
+          velocity: { x: 1, y: 0, z: 0 },
+        } as any
+      );
 
       (context._state.spatialTrajectory as any).lastCheckTime = 0;
       spatialTrajectoryHandler.onUpdate!(node as any, config, context as any, 0.016);
@@ -862,20 +989,30 @@ describe('spatialTrajectoryHandler', () => {
       spatialTrajectoryHandler.onAttach!(node as any, config, context as any);
 
       // Small region
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'region_bounds_update',
-        regionId: 'safe_zone',
-        bounds: {
-          min: { x: -3, y: -3, z: -3 },
-          max: { x: 3, y: 3, z: 3 },
-        },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'region_bounds_update',
+          regionId: 'safe_zone',
+          bounds: {
+            min: { x: -3, y: -3, z: -3 },
+            max: { x: 3, y: 3, z: 3 },
+          },
+        } as any
+      );
 
       // Fast velocity that will leave the region
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'velocity_update',
-        velocity: { x: 5, y: 0, z: 0 },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'velocity_update',
+          velocity: { x: 5, y: 0, z: 0 },
+        } as any
+      );
 
       (context._state.spatialTrajectory as any).lastCheckTime = 0;
       spatialTrajectoryHandler.onUpdate!(node as any, config, context as any, 0.016);
@@ -906,20 +1043,30 @@ describe('spatialTrajectoryHandler', () => {
 
       spatialTrajectoryHandler.onAttach!(node as any, config, context as any);
 
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'region_bounds_update',
-        regionId: 'sphere_zone',
-        bounds: {
-          center: { x: 0, y: 0, z: 0 },
-          radius: 5,
-        },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'region_bounds_update',
+          regionId: 'sphere_zone',
+          bounds: {
+            center: { x: 0, y: 0, z: 0 },
+            radius: 5,
+          },
+        } as any
+      );
 
       // Velocity that goes beyond sphere in 3 seconds
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'velocity_update',
-        velocity: { x: 3, y: 0, z: 0 },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'velocity_update',
+          velocity: { x: 3, y: 0, z: 0 },
+        } as any
+      );
 
       (context._state.spatialTrajectory as any).lastCheckTime = 0;
       spatialTrajectoryHandler.onUpdate!(node as any, config, context as any, 0.016);
@@ -946,19 +1093,29 @@ describe('spatialTrajectoryHandler', () => {
       spatialTrajectoryHandler.onAttach!(node as any, config, context as any);
 
       // Danger zone is far away
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'region_bounds_update',
-        regionId: 'danger_zone',
-        bounds: {
-          min: { x: 50, y: -5, z: -5 },
-          max: { x: 60, y: 5, z: 5 },
-        },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'region_bounds_update',
+          regionId: 'danger_zone',
+          bounds: {
+            min: { x: 50, y: -5, z: -5 },
+            max: { x: 60, y: 5, z: 5 },
+          },
+        } as any
+      );
 
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'velocity_update',
-        velocity: { x: 1, y: 0, z: 0 },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'velocity_update',
+          velocity: { x: 1, y: 0, z: 0 },
+        } as any
+      );
 
       (context._state.spatialTrajectory as any).lastCheckTime = 0;
       spatialTrajectoryHandler.onUpdate!(node as any, config, context as any, 0.016);
@@ -980,19 +1137,29 @@ describe('spatialTrajectoryHandler', () => {
       spatialTrajectoryHandler.onAttach!(node as any, config, context as any);
 
       // Danger zone ahead
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'region_bounds_update',
-        regionId: 'danger_zone',
-        bounds: {
-          min: { x: 8, y: -5, z: -5 },
-          max: { x: 15, y: 5, z: 5 },
-        },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'region_bounds_update',
+          regionId: 'danger_zone',
+          bounds: {
+            min: { x: 8, y: -5, z: -5 },
+            max: { x: 15, y: 5, z: 5 },
+          },
+        } as any
+      );
 
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'velocity_update',
-        velocity: { x: 5, y: 0, z: 0 },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'velocity_update',
+          velocity: { x: 5, y: 0, z: 0 },
+        } as any
+      );
 
       (context._state.spatialTrajectory as any).lastCheckTime = 0;
       spatialTrajectoryHandler.onUpdate!(node as any, config, context as any, 0.016);
@@ -1032,10 +1199,15 @@ describe('spatialTrajectoryHandler', () => {
       spatialTrajectoryHandler.onAttach!(node as any, config, context as any);
 
       // Moving along the reference path with slight offset
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'velocity_update',
-        velocity: { x: 3, y: 0.5, z: 0 },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'velocity_update',
+          velocity: { x: 3, y: 0.5, z: 0 },
+        } as any
+      );
 
       (context._state.spatialTrajectory as any).lastCheckTime = 0;
       spatialTrajectoryHandler.onUpdate!(node as any, config, context as any, 0.016);
@@ -1062,10 +1234,15 @@ describe('spatialTrajectoryHandler', () => {
       spatialTrajectoryHandler.onAttach!(node as any, config, context as any);
 
       // Moving perpendicular to reference path
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'velocity_update',
-        velocity: { x: 0, y: 5, z: 0 },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'velocity_update',
+          velocity: { x: 0, y: 5, z: 0 },
+        } as any
+      );
 
       (context._state.spatialTrajectory as any).lastCheckTime = 0;
       spatialTrajectoryHandler.onUpdate!(node as any, config, context as any, 0.016);
@@ -1103,10 +1280,15 @@ describe('spatialTrajectoryHandler', () => {
       spatialTrajectoryHandler.onAttach!(node as any, config, context as any);
 
       // Moving along x-axis, will pass through both waypoints
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'velocity_update',
-        velocity: { x: 2, y: 0, z: 0 },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'velocity_update',
+          velocity: { x: 2, y: 0, z: 0 },
+        } as any
+      );
 
       (context._state.spatialTrajectory as any).lastCheckTime = 0;
       spatialTrajectoryHandler.onUpdate!(node as any, config, context as any, 0.016);
@@ -1134,10 +1316,15 @@ describe('spatialTrajectoryHandler', () => {
       spatialTrajectoryHandler.onAttach!(node as any, config, context as any);
 
       // Moving along x-axis only - will reach first but miss second
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'velocity_update',
-        velocity: { x: 3, y: 0, z: 0 },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'velocity_update',
+          velocity: { x: 3, y: 0, z: 0 },
+        } as any
+      );
 
       (context._state.spatialTrajectory as any).lastCheckTime = 0;
       spatialTrajectoryHandler.onUpdate!(node as any, config, context as any, 0.016);
@@ -1175,21 +1362,31 @@ describe('spatialTrajectoryHandler', () => {
       spatialTrajectoryHandler.onAttach!(node as any, config, context as any);
 
       // Large bounding region
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'region_bounds_update',
-        regionId: 'zone',
-        bounds: {
-          min: { x: -5, y: -5, z: -5 },
-          max: { x: 5, y: 5, z: 5 },
-        },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'region_bounds_update',
+          regionId: 'zone',
+          bounds: {
+            min: { x: -5, y: -5, z: -5 },
+            max: { x: 5, y: 5, z: 5 },
+          },
+        } as any
+      );
 
       // Low velocity but high acceleration will eventually leave
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'velocity_update',
-        velocity: { x: 0, y: 0, z: 0 },
-        acceleration: { x: 5, y: 0, z: 0 },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'velocity_update',
+          velocity: { x: 0, y: 0, z: 0 },
+          acceleration: { x: 5, y: 0, z: 0 },
+        } as any
+      );
 
       (context._state.spatialTrajectory as any).lastCheckTime = 0;
       spatialTrajectoryHandler.onUpdate!(node as any, config, context as any, 0.016);
@@ -1220,30 +1417,45 @@ describe('spatialTrajectoryHandler', () => {
 
       spatialTrajectoryHandler.onAttach!(node as any, config, context as any);
 
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'region_bounds_update',
-        regionId: 'zone',
-        bounds: {
-          min: { x: -3, y: -3, z: -3 },
-          max: { x: 3, y: 3, z: 3 },
-        },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'region_bounds_update',
+          regionId: 'zone',
+          bounds: {
+            min: { x: -3, y: -3, z: -3 },
+            max: { x: 3, y: 3, z: 3 },
+          },
+        } as any
+      );
 
       // Fast velocity -> violation
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'velocity_update',
-        velocity: { x: 10, y: 0, z: 0 },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'velocity_update',
+          velocity: { x: 10, y: 0, z: 0 },
+        } as any
+      );
 
       (context._state.spatialTrajectory as any).lastCheckTime = 0;
       spatialTrajectoryHandler.onUpdate!(node as any, config, context as any, 0.016);
       expect(context._state.spatialTrajectory.violated).toBe(true);
 
       // Slow down -> resolution
-      spatialTrajectoryHandler.onEvent!(node as any, config, context as any, {
-        type: 'velocity_update',
-        velocity: { x: 0.1, y: 0, z: 0 },
-      } as any);
+      spatialTrajectoryHandler.onEvent!(
+        node as any,
+        config,
+        context as any,
+        {
+          type: 'velocity_update',
+          velocity: { x: 0.1, y: 0, z: 0 },
+        } as any
+      );
 
       (context._state.spatialTrajectory as any).lastCheckTime = 0;
       spatialTrajectoryHandler.onUpdate!(node as any, config, context as any, 0.016);

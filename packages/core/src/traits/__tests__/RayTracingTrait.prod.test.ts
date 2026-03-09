@@ -4,14 +4,26 @@ import type { RayTracingConfig } from '../../traits/RayTracingTrait';
 
 const hwConfig: RayTracingConfig = {
   mode: 'hardware',
-  reflections: { enabled: true, maxBounces: 4, samplesPerPixel: 1, maxRoughness: 0.5, fallbackToSSR: true },
+  reflections: {
+    enabled: true,
+    maxBounces: 4,
+    samplesPerPixel: 1,
+    maxRoughness: 0.5,
+    fallbackToSSR: true,
+  },
   shadows: { enabled: true, samplesPerLight: 2, softShadows: true },
   ao: { enabled: true, radius: 0.5, samplesPerPixel: 2 },
 };
 
 const ptConfig: RayTracingConfig = {
   mode: 'software_bvh',
-  pathTracer: { enabled: true, samplesPerPixel: 4, maxBounces: 6, denoiser: 'nlm', russianRouletteDepth: 3 },
+  pathTracer: {
+    enabled: true,
+    samplesPerPixel: 4,
+    maxBounces: 6,
+    denoiser: 'nlm',
+    russianRouletteDepth: 3,
+  },
 };
 
 const hybridConfig: RayTracingConfig = {
@@ -21,7 +33,6 @@ const hybridConfig: RayTracingConfig = {
 };
 
 describe('RayTracingTrait — Production Tests', () => {
-
   describe('validate()', () => {
     it('accepts hardware config', () => {
       expect(RayTracingTrait.validate(hwConfig)).toBe(true);
@@ -40,27 +51,41 @@ describe('RayTracingTrait — Production Tests', () => {
     });
 
     it('throws when reflections.maxBounces > 16', () => {
-      const bad: RayTracingConfig = { ...hwConfig, reflections: { ...hwConfig.reflections!, maxBounces: 20 } };
+      const bad: RayTracingConfig = {
+        ...hwConfig,
+        reflections: { ...hwConfig.reflections!, maxBounces: 20 },
+      };
       expect(() => RayTracingTrait.validate(bad)).toThrow('maxBounces');
     });
 
     it('throws when reflections.maxBounces < 1', () => {
-      const bad: RayTracingConfig = { ...hwConfig, reflections: { ...hwConfig.reflections!, maxBounces: 0 } };
+      const bad: RayTracingConfig = {
+        ...hwConfig,
+        reflections: { ...hwConfig.reflections!, maxBounces: 0 },
+      };
       expect(() => RayTracingTrait.validate(bad)).toThrow('maxBounces');
     });
 
     it('throws when shadows.samplesPerLight < 1', () => {
-      const bad: RayTracingConfig = { ...hwConfig, shadows: { ...hwConfig.shadows!, samplesPerLight: 0 } };
+      const bad: RayTracingConfig = {
+        ...hwConfig,
+        shadows: { ...hwConfig.shadows!, samplesPerLight: 0 },
+      };
       expect(() => RayTracingTrait.validate(bad)).toThrow('samplesPerLight');
     });
 
     it('throws when pathTracer.maxBounces < 1', () => {
-      const bad: RayTracingConfig = { ...ptConfig, pathTracer: { ...ptConfig.pathTracer!, maxBounces: 0 } };
+      const bad: RayTracingConfig = {
+        ...ptConfig,
+        pathTracer: { ...ptConfig.pathTracer!, maxBounces: 0 },
+      };
       expect(() => RayTracingTrait.validate(bad)).toThrow('maxBounces');
     });
 
     it('throws when maxRaysPerFrame <= 0', () => {
-      expect(() => RayTracingTrait.validate({ mode: 'hardware', maxRaysPerFrame: 0 })).toThrow('maxRaysPerFrame');
+      expect(() => RayTracingTrait.validate({ mode: 'hardware', maxRaysPerFrame: 0 })).toThrow(
+        'maxRaysPerFrame'
+      );
     });
   });
 

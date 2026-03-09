@@ -46,10 +46,12 @@ export function usePromptLibrary() {
         setLoading(false);
       }
     },
-    [query, activeCategory],
+    [query, activeCategory]
   );
 
-  useEffect(() => { search(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    search();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { prompts, categories, total, query, activeCategory, loading, search };
 }

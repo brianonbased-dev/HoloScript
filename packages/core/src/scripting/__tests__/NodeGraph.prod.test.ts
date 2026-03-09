@@ -21,7 +21,7 @@ function makeNode(id: string, type = 'generic'): GraphNode {
     data: {},
     ports: [
       { id: 'out', name: 'Out', type: 'number', direction: 'output' },
-      { id: 'in',  name: 'In',  type: 'number', direction: 'input' },
+      { id: 'in', name: 'In', type: 'number', direction: 'input' },
     ],
   };
 }
@@ -58,7 +58,7 @@ describe('NodeGraph: production', () => {
     it('getAllNodes returns all added nodes', () => {
       graph.addNode(makeNode('a'));
       graph.addNode(makeNode('b'));
-      const ids = graph.getAllNodes().map(n => n.id);
+      const ids = graph.getAllNodes().map((n) => n.id);
       expect(ids).toContain('a');
       expect(ids).toContain('b');
     });
@@ -95,11 +95,19 @@ describe('NodeGraph: production', () => {
 
     it('connect returns null for type mismatch', () => {
       const nodeA: GraphNode = {
-        id: 'a', type: 'x', label: 'A', position: { x: 0, y: 0 }, data: {},
+        id: 'a',
+        type: 'x',
+        label: 'A',
+        position: { x: 0, y: 0 },
+        data: {},
         ports: [{ id: 'out', name: 'Out', type: 'string', direction: 'output' }],
       };
       const nodeB: GraphNode = {
-        id: 'b', type: 'y', label: 'B', position: { x: 0, y: 0 }, data: {},
+        id: 'b',
+        type: 'y',
+        label: 'B',
+        position: { x: 0, y: 0 },
+        data: {},
         ports: [{ id: 'in', name: 'In', type: 'number', direction: 'input' }],
       };
       graph.addNode(nodeA);
@@ -109,11 +117,19 @@ describe('NodeGraph: production', () => {
 
     it('connect succeeds for any→number (any type)', () => {
       const nodeA: GraphNode = {
-        id: 'a', type: 'x', label: 'A', position: { x: 0, y: 0 }, data: {},
+        id: 'a',
+        type: 'x',
+        label: 'A',
+        position: { x: 0, y: 0 },
+        data: {},
         ports: [{ id: 'out', name: 'Out', type: 'any', direction: 'output' }],
       };
       const nodeB: GraphNode = {
-        id: 'b', type: 'y', label: 'B', position: { x: 0, y: 0 }, data: {},
+        id: 'b',
+        type: 'y',
+        label: 'B',
+        position: { x: 0, y: 0 },
+        data: {},
         ports: [{ id: 'in', name: 'In', type: 'number', direction: 'input' }],
       };
       graph.addNode(nodeA);
@@ -183,28 +199,44 @@ describe('NodeGraph: production', () => {
     it('produces valid order for diamond DAG (a→b,c→d)', () => {
       // a has two outputs; b and c both connect to d
       const nodeA: GraphNode = {
-        id: 'a', type: 't', label: 'A', position: { x: 0, y: 0 }, data: {},
+        id: 'a',
+        type: 't',
+        label: 'A',
+        position: { x: 0, y: 0 },
+        data: {},
         ports: [
           { id: 'out1', name: 'Out1', type: 'number', direction: 'output' },
           { id: 'out2', name: 'Out2', type: 'number', direction: 'output' },
         ],
       };
       const nodeB: GraphNode = {
-        id: 'b', type: 't', label: 'B', position: { x: 0, y: 0 }, data: {},
+        id: 'b',
+        type: 't',
+        label: 'B',
+        position: { x: 0, y: 0 },
+        data: {},
         ports: [
           { id: 'in', name: 'In', type: 'number', direction: 'input' },
           { id: 'out', name: 'Out', type: 'number', direction: 'output' },
         ],
       };
       const nodeC: GraphNode = {
-        id: 'c', type: 't', label: 'C', position: { x: 0, y: 0 }, data: {},
+        id: 'c',
+        type: 't',
+        label: 'C',
+        position: { x: 0, y: 0 },
+        data: {},
         ports: [
           { id: 'in', name: 'In', type: 'number', direction: 'input' },
           { id: 'out', name: 'Out', type: 'number', direction: 'output' },
         ],
       };
       const nodeD: GraphNode = {
-        id: 'd', type: 't', label: 'D', position: { x: 0, y: 0 }, data: {},
+        id: 'd',
+        type: 't',
+        label: 'D',
+        position: { x: 0, y: 0 },
+        data: {},
         ports: [
           { id: 'in1', name: 'In1', type: 'number', direction: 'input' },
           { id: 'in2', name: 'In2', type: 'number', direction: 'input' },

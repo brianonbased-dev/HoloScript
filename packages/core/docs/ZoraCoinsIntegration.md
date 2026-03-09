@@ -5,6 +5,7 @@
 The **ZoraCoinsTrait** provides full blockchain integration with the [Zora Protocol](https://zora.co/) on Base L2, enabling HoloScript objects to mint NFTs representing collectible "coins" in virtual environments.
 
 **Key Features:**
+
 - ✅ Real blockchain transactions on Base L2 (mainnet and testnet)
 - ✅ Gas estimation and balance validation
 - ✅ ERC-1155 NFT minting via Zora Protocol SDK
@@ -81,7 +82,7 @@ object "MyCoin" @zora_coins {
 ```typescript
 // Emit wallet connection event
 context.emit('wallet_connected', {
-  address: '0xYourWalletAddress'
+  address: '0xYourWalletAddress',
 });
 
 // Trigger mint action
@@ -92,8 +93,8 @@ context.emit('zora_mint', {
     priceETH: '0.001',
     name: 'My Collectible Coin',
     description: 'A rare collectible from my virtual world',
-    tags: ['collectible', 'gaming', 'VR']
-  }
+    tags: ['collectible', 'gaming', 'VR'],
+  },
 });
 ```
 
@@ -116,11 +117,13 @@ The following packages are required (automatically installed):
 ### RPC Endpoints
 
 **Base Mainnet:**
+
 - Public RPC: `https://mainnet.base.org`
 - Alchemy: `https://base-mainnet.g.alchemy.com/v2/YOUR_API_KEY`
 - Infura: `https://base-mainnet.infura.io/v3/YOUR_PROJECT_ID`
 
 **Base Testnet (Goerli):**
+
 - Public RPC: `https://goerli.base.org`
 - Alchemy: `https://base-goerli.g.alchemy.com/v2/YOUR_API_KEY`
 
@@ -157,15 +160,15 @@ ENABLE_TESTNET_TESTS=false
 interface ZoraCoinsConfig {
   // Blockchain Configuration
   default_chain?: 'base' | 'base-testnet';
-  collection_id?: string;          // Zora 1155 contract address
-  creator_wallet?: string;         // Creator's Ethereum address
+  collection_id?: string; // Zora 1155 contract address
+  creator_wallet?: string; // Creator's Ethereum address
 
   // Royalty Configuration
-  royalty_percentage?: number;     // 0-100 (e.g., 10 = 10%)
+  royalty_percentage?: number; // 0-100 (e.g., 10 = 10%)
 
   // Marketplace Configuration
-  enable_marketplace?: boolean;    // Enable secondary sales
-  allow_transfers?: boolean;       // Allow NFT transfers
+  enable_marketplace?: boolean; // Enable secondary sales
+  allow_transfers?: boolean; // Allow NFT transfers
 }
 ```
 
@@ -226,8 +229,8 @@ context.emit('zora_mint', {
     priceETH: '0.01',
     name: 'Limited Edition Gold Coin #1',
     description: 'Only 100 minted. Exclusive collectible.',
-    tags: ['limited', 'exclusive', 'gold']
-  }
+    tags: ['limited', 'exclusive', 'gold'],
+  },
 });
 ```
 
@@ -238,7 +241,7 @@ context.emit('zora_mint', {
 context.emit('zora_mint', {
   mintConfig: {
     initialSupply: 1,
-    maxSupply: 1,  // 1/1 unique
+    maxSupply: 1, // 1/1 unique
     priceETH: '0.1',
     name: 'Legendary Dragon Coin',
     description: 'Forged in the fires of Mount Doom',
@@ -247,10 +250,10 @@ context.emit('zora_mint', {
       attributes: [
         { trait_type: 'Rarity', value: 'Legendary' },
         { trait_type: 'Element', value: 'Fire' },
-        { trait_type: 'Power', value: '9999' }
-      ]
-    }
-  }
+        { trait_type: 'Power', value: '9999' },
+      ],
+    },
+  },
 });
 ```
 
@@ -264,7 +267,7 @@ context.emit('zora_mint', {
 
 ```typescript
 context.emit('wallet_connected', {
-  address: '0xYourWalletAddress'
+  address: '0xYourWalletAddress',
 });
 ```
 
@@ -319,8 +322,8 @@ context.emit('zora_mint', {
     priceETH: '0.001',
     name: 'My Coin',
     description: 'A collectible coin',
-    tags: ['gaming', 'collectible']
-  }
+    tags: ['gaming', 'collectible'],
+  },
 });
 ```
 
@@ -392,24 +395,24 @@ state.pendingMints.forEach((mint) => {
 
 ### Wallet Events
 
-| Event | Data | Description |
-|-------|------|-------------|
-| `wallet_connected` | `{ address: string }` | Wallet successfully connected |
-| `wallet_disconnected` | `{}` | Wallet disconnected |
+| Event                 | Data                  | Description                   |
+| --------------------- | --------------------- | ----------------------------- |
+| `wallet_connected`    | `{ address: string }` | Wallet successfully connected |
+| `wallet_disconnected` | `{}`                  | Wallet disconnected           |
 
 ### Minting Events
 
-| Event | Data | Description |
-|-------|------|-------------|
-| `zora_mint` | `{ mintConfig: MintConfig }` | Trigger new mint |
-| `zora_estimating_gas` | `{ mintId: string, quantity: number }` | Gas estimation started |
-| `zora_gas_estimated` | `{ mintId: string, estimate: FormattedGasEstimate }` | Gas estimated |
-| `zora_transaction_simulated` | `{ mintId: string, success: boolean }` | Transaction simulated |
-| `zora_transaction_sending` | `{ mintId: string }` | Sending transaction to blockchain |
-| `zora_transaction_sent` | `{ mintId: string, txHash: string }` | Transaction sent (pending) |
-| `zora_transaction_confirmed` | `{ mintId: string, txHash: string, blockNumber: number, gasUsed: string }` | Transaction confirmed on-chain |
-| `zora_mint_complete` | `{ mintId: string, txHash: string, contractAddress: string, tokenId: number, blockNumber: number, gasUsed: string }` | Mint completed successfully |
-| `zora_mint_failed` | `{ mintId: string, txHash?: string, error: string }` | Mint failed |
+| Event                        | Data                                                                                                                 | Description                       |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `zora_mint`                  | `{ mintConfig: MintConfig }`                                                                                         | Trigger new mint                  |
+| `zora_estimating_gas`        | `{ mintId: string, quantity: number }`                                                                               | Gas estimation started            |
+| `zora_gas_estimated`         | `{ mintId: string, estimate: FormattedGasEstimate }`                                                                 | Gas estimated                     |
+| `zora_transaction_simulated` | `{ mintId: string, success: boolean }`                                                                               | Transaction simulated             |
+| `zora_transaction_sending`   | `{ mintId: string }`                                                                                                 | Sending transaction to blockchain |
+| `zora_transaction_sent`      | `{ mintId: string, txHash: string }`                                                                                 | Transaction sent (pending)        |
+| `zora_transaction_confirmed` | `{ mintId: string, txHash: string, blockNumber: number, gasUsed: string }`                                           | Transaction confirmed on-chain    |
+| `zora_mint_complete`         | `{ mintId: string, txHash: string, contractAddress: string, tokenId: number, blockNumber: number, gasUsed: string }` | Mint completed successfully       |
+| `zora_mint_failed`           | `{ mintId: string, txHash?: string, error: string }`                                                                 | Mint failed                       |
 
 ---
 
@@ -483,6 +486,7 @@ Error: Wallet not connected. Please connect wallet by emitting wallet_connected 
 ```
 
 **Solution:**
+
 ```typescript
 context.emit('wallet_connected', { address: '0xYourAddress' });
 ```
@@ -549,16 +553,19 @@ context.on('zora_mint_failed', async (data) => {
 ### Running Tests
 
 **All tests:**
+
 ```bash
 pnpm test ZoraCoinsTrait
 ```
 
 **Blockchain integration tests only:**
+
 ```bash
 pnpm test ZoraCoinsTrait.blockchain.test.ts
 ```
 
 **Enable testnet tests:**
+
 ```bash
 ENABLE_TESTNET_TESTS=true pnpm test ZoraCoinsTrait.blockchain.test.ts
 ```
@@ -586,6 +593,7 @@ Current test coverage (60%+ target):
    - Create collection on testnet Zora
 
 3. **Configure testnet:**
+
    ```holoscript
    object "TestCoin" @zora_coins {
      default_chain: "base-testnet",
@@ -595,16 +603,17 @@ Current test coverage (60%+ target):
    ```
 
 4. **Test mint:**
+
    ```typescript
    context.emit('wallet_connected', { address: '0xTestWallet' });
    context.emit('zora_mint', {
      mintConfig: {
        initialSupply: 1,
        maxSupply: 10,
-       priceETH: '0',  // Free mints on testnet
+       priceETH: '0', // Free mints on testnet
        name: 'Test Coin',
-       description: 'Testing Zora integration'
-     }
+       description: 'Testing Zora integration',
+     },
    });
    ```
 
@@ -621,6 +630,7 @@ Current test coverage (60%+ target):
 **Problem:** Cannot connect to Base RPC
 
 **Solutions:**
+
 - Check `BASE_RPC_URL` in `.env`
 - Try public RPC: `https://mainnet.base.org`
 - Use Alchemy/Infura for better reliability
@@ -631,6 +641,7 @@ Current test coverage (60%+ target):
 **Problem:** Gas estimation fails or returns unrealistic values
 
 **Solutions:**
+
 - Check contract address is valid
 - Ensure collection allows minting
 - Verify RPC endpoint is responsive
@@ -641,6 +652,7 @@ Current test coverage (60%+ target):
 **Problem:** Transaction sent but not confirming after 5 minutes
 
 **Solutions:**
+
 - Check Base network status: [https://status.base.org](https://status.base.org)
 - Verify transaction on BaseScan
 - Check gas price wasn't too low
@@ -651,6 +663,7 @@ Current test coverage (60%+ target):
 **Problem:** Pending mint never completes or fails
 
 **Solutions:**
+
 - Check transaction hash on BaseScan
 - Verify wallet has sufficient balance
 - Check for transaction revert reason
@@ -661,6 +674,7 @@ Current test coverage (60%+ target):
 **Problem:** Wallet connection event doesn't work
 
 **Solutions:**
+
 - Ensure address is valid Ethereum address (0x... format)
 - Check wallet has access to Base network
 - Verify address has some ETH for transactions
@@ -675,16 +689,19 @@ Current test coverage (60%+ target):
 For production deployments, use dedicated RPC providers:
 
 **Alchemy:**
+
 ```bash
 BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/YOUR_API_KEY
 ```
 
 **Infura:**
+
 ```bash
 BASE_RPC_URL=https://base-mainnet.infura.io/v3/YOUR_PROJECT_ID
 ```
 
 **Benefits:**
+
 - Higher rate limits
 - Better reliability
 - Analytics dashboard
@@ -697,12 +714,12 @@ Mint multiple NFTs in a single transaction:
 ```typescript
 context.emit('zora_mint', {
   mintConfig: {
-    initialSupply: 100,  // Mint 100 at once
+    initialSupply: 100, // Mint 100 at once
     maxSupply: 1000,
     priceETH: '0.001',
     name: 'Batch Mint Collection',
-    description: 'Efficient batch minting'
-  }
+    description: 'Efficient batch minting',
+  },
 });
 ```
 
@@ -727,14 +744,14 @@ context.emit('zora_mint', {
         { trait_type: 'Rarity', value: 'Epic' },
         { trait_type: 'Damage', value: '999', max_value: 1000 },
         { trait_type: 'Element', value: 'Fire' },
-        { display_type: 'boost_percentage', trait_type: 'Critical Hit', value: 25 }
+        { display_type: 'boost_percentage', trait_type: 'Critical Hit', value: 25 },
       ],
       properties: {
         category: 'weapon',
-        type: 'sword'
-      }
-    }
-  }
+        type: 'sword',
+      },
+    },
+  },
 });
 ```
 
@@ -750,6 +767,7 @@ object "ArtCoin" @zora_coins {
 ```
 
 **Supported Marketplaces:**
+
 - OpenSea (configurable)
 - Zora Marketplace
 - Rarible
@@ -765,7 +783,7 @@ async function waitForMint(mintId: string, maxWaitTime: number = 300000) {
 
   return new Promise((resolve, reject) => {
     const checkStatus = () => {
-      const mint = state.pendingMints.find(m => m.id === mintId);
+      const mint = state.pendingMints.find((m) => m.id === mintId);
 
       if (!mint) {
         reject(new Error('Mint not found'));

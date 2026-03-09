@@ -606,7 +606,10 @@ describe('watchDirs() utility', () => {
 describe('watch module integration scenarios', () => {
   it('FileWatcher can chain start().add().on()', () => {
     const watcher = new FileWatcher('/test');
-    const result = watcher.start().add('/new').on('add', () => {});
+    const result = watcher
+      .start()
+      .add('/new')
+      .on('add', () => {});
     expect(result).toBe(watcher);
   });
 

@@ -8,17 +8,34 @@
 import { describe, it, expect } from 'vitest';
 import {
   // Safety
-  runSafetyPass, quickSafetyCheck, EffectRow, dangerLevel,
-  isSafeTraitSet, TRAIT_EFFECTS, knownTraits, knownBuiltins,
+  runSafetyPass,
+  quickSafetyCheck,
+  EffectRow,
+  dangerLevel,
+  isSafeTraitSet,
+  TRAIT_EFFECTS,
+  knownTraits,
+  knownBuiltins,
   // Platform
-  XR_ALL_PLATFORMS, XR_PLATFORM_CAPABILITIES,
-  platformCategory, embodimentFor, agentBudgetFor, hasCapability,
+  XR_ALL_PLATFORMS,
+  XR_PLATFORM_CAPABILITIES,
+  platformCategory,
+  embodimentFor,
+  agentBudgetFor,
+  hasCapability,
   // Culture
-  BUILTIN_NORMS, normsByCategory, criticalMassForChange,
+  BUILTIN_NORMS,
+  normsByCategory,
+  criticalMassForChange,
   // Marketplace
-  MarketplaceRegistry, createSubmission, verifySubmission, publishSubmission,
+  MarketplaceRegistry,
+  createSubmission,
+  verifySubmission,
+  publishSubmission,
   // Runtime
-  gateCheck, RuntimeMonitor, CultureRuntime,
+  gateCheck,
+  RuntimeMonitor,
+  CultureRuntime,
 } from '../index';
 
 // =============================================================================
@@ -28,11 +45,23 @@ import {
 describe('Barrel Export Verification', () => {
   describe('Safety exports', () => {
     it('runSafetyPass returns report', () => {
-      const result = runSafetyPass([
-        { type: 'object', name: 'TestObj', traits: ['@mesh'], calls: [], declaredEffects: ['render:spawn'] },
-      ], {
-        moduleId: 'barrel-test', targetPlatforms: ['quest3'], trustLevel: 'basic', generateCertificate: false,
-      });
+      const result = runSafetyPass(
+        [
+          {
+            type: 'object',
+            name: 'TestObj',
+            traits: ['@mesh'],
+            calls: [],
+            declaredEffects: ['render:spawn'],
+          },
+        ],
+        {
+          moduleId: 'barrel-test',
+          targetPlatforms: ['quest3'],
+          trustLevel: 'basic',
+          generateCertificate: false,
+        }
+      );
       expect(result.report).toBeDefined();
       expect(result.report.verdict).toBeDefined();
       expect(result.report.dangerScore).toBeGreaterThanOrEqual(0);
@@ -97,14 +126,36 @@ describe('Barrel Export Verification', () => {
       const registry = new MarketplaceRegistry();
       const sub = createSubmission({
         metadata: {
-          id: '@test/barrel-pkg', name: 'Barrel Test', description: 'test',
-          category: 'object', version: { major: 1, minor: 0, patch: 0 },
-          publisher: { id: 'p1', name: 'T', did: 'did:key:z6MkT', verified: true, trustLevel: 'trusted' },
-          tags: ['test'], platforms: ['quest3'], license: 'MIT',
-          dependencies: [], createdAt: '2026-01-01', updatedAt: '2026-01-01',
+          id: '@test/barrel-pkg',
+          name: 'Barrel Test',
+          description: 'test',
+          category: 'object',
+          version: { major: 1, minor: 0, patch: 0 },
+          publisher: {
+            id: 'p1',
+            name: 'T',
+            did: 'did:key:z6MkT',
+            verified: true,
+            trustLevel: 'trusted',
+          },
+          tags: ['test'],
+          platforms: ['quest3'],
+          license: 'MIT',
+          dependencies: [],
+          createdAt: '2026-01-01',
+          updatedAt: '2026-01-01',
         },
-        nodes: [{ type: 'object', name: 'Obj', traits: ['@mesh'], calls: [], declaredEffects: ['render:spawn'] }],
-        assets: [], bundleSizeBytes: 100,
+        nodes: [
+          {
+            type: 'object',
+            name: 'Obj',
+            traits: ['@mesh'],
+            calls: [],
+            declaredEffects: ['render:spawn'],
+          },
+        ],
+        assets: [],
+        bundleSizeBytes: 100,
       });
       verifySubmission(sub);
       expect(sub.status).toBe('verified');
@@ -132,8 +183,21 @@ describe('Barrel Export Verification', () => {
     });
 
     it('gateCheck works', () => {
-      const manifest = { packageId: '@test/gate', version: { major: 1, minor: 0, patch: 0 }, safetyVerdict: 'safe' as const, dangerScore: 2, installedAt: '2026-01-01', targetPlatforms: ['quest3'] };
-      const report = { verdict: 'safe' as const, dangerScore: 2, effects: { categories: [], totalEffects: 0, violations: [] }, budget: { diagnostics: [] }, capabilities: { missing: [] } };
+      const manifest = {
+        packageId: '@test/gate',
+        version: { major: 1, minor: 0, patch: 0 },
+        safetyVerdict: 'safe' as const,
+        dangerScore: 2,
+        installedAt: '2026-01-01',
+        targetPlatforms: ['quest3'],
+      };
+      const report = {
+        verdict: 'safe' as const,
+        dangerScore: 2,
+        effects: { categories: [], totalEffects: 0, violations: [] },
+        budget: { diagnostics: [] },
+        capabilities: { missing: [] },
+      };
       const decision = gateCheck(manifest, report, 0);
       expect(decision.allowed).toBe(true);
     });

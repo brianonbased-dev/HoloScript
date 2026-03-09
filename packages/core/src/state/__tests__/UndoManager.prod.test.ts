@@ -81,9 +81,9 @@ describe('UndoManager — Production', () => {
       mgr.push('u1', 'r1'); // at 10000
       mockTime = 11000;
       mgr.push('u2', 'r2'); // at 11000
-      mockTime = 16000;      // 6s later — u1 should be pruned
+      mockTime = 16000; // 6s later — u1 should be pruned
       mgr.push('u3', 'r3'); // triggers prune
-      
+
       expect(mgr.getStackDepth()).toBe(2); // u1 pruned, u2 + u3 remain
 
       vi.spyOn(Date, 'now').mockRestore();

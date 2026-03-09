@@ -275,7 +275,8 @@ const SPATIAL_PREDICATE_CIRCUITS: ZkCircuit[] = [
   {
     id: 'is_inside_zone',
     name: 'Spatial Zone Inclusion Proof',
-    description: 'Prove an entity is inside a defined spatial zone (AABB) without revealing exact position',
+    description:
+      'Prove an entity is inside a defined spatial zone (AABB) without revealing exact position',
     source: `fn main(
   zone_min_x: pub u64, zone_min_y: pub u64, zone_min_z: pub u64,
   zone_max_x: pub u64, zone_max_y: pub u64, zone_max_z: pub u64,
@@ -313,7 +314,8 @@ const SPATIAL_PREDICATE_CIRCUITS: ZkCircuit[] = [
   {
     id: 'owns_asset',
     name: 'Asset Ownership Proof',
-    description: 'Prove ownership of a spatial asset without revealing wallet address or full token details',
+    description:
+      'Prove ownership of a spatial asset without revealing wallet address or full token details',
     source: `fn main(
   asset_hash: pub Field,
   ownership_root: pub Field,
@@ -347,7 +349,8 @@ const SPATIAL_PREDICATE_CIRCUITS: ZkCircuit[] = [
   {
     id: 'has_permission',
     name: 'Permission Level Proof',
-    description: 'Prove a user has a minimum permission level without revealing identity or exact role',
+    description:
+      'Prove a user has a minimum permission level without revealing identity or exact role',
     source: `fn main(
   required_level: pub u32,
   permission_root: pub Field,
@@ -419,15 +422,25 @@ const DEFAULT_CONFIG: ZkPrivateConfig = {
 
 function mockGenerate(circuit: ZkCircuit, publicInputs: Record<string, unknown>): ZkProof {
   const hash = JSON.stringify({ id: circuit.id, publicInputs })
-    .split('').reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) & 0xFFFFFFFF, 0);
+    .split('')
+    .reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) & 0xffffffff, 0);
   const proof = new Uint8Array(64).fill(0);
-  proof[0] = (hash >>> 24) & 0xFF; proof[1] = (hash >>> 16) & 0xFF;
-  proof[2] = (hash >>> 8) & 0xFF;  proof[3] = hash & 0xFF;
-  return { requestId: '', circuitId: circuit.id, proof, publicInputs, generatedAt: Date.now(), backend: 'mock' };
+  proof[0] = (hash >>> 24) & 0xff;
+  proof[1] = (hash >>> 16) & 0xff;
+  proof[2] = (hash >>> 8) & 0xff;
+  proof[3] = hash & 0xff;
+  return {
+    requestId: '',
+    circuitId: circuit.id,
+    proof,
+    publicInputs,
+    generatedAt: Date.now(),
+    backend: 'mock',
+  };
 }
 
 function mockVerify(proof: ZkProof): boolean {
-  return proof.proof.length > 0 && proof.proof.some(b => b !== 0);
+  return proof.proof.length > 0 && proof.proof.some((b) => b !== 0);
 }
 
 // =============================================================================
@@ -439,7 +452,7 @@ function createSelectiveDisclosure(
   policy: ZkDisclosurePolicy,
   proof: Uint8Array,
   circuitId: string,
-  consentedFields: string[] = [],
+  consentedFields: string[] = []
 ): ZkSelectiveDisclosure {
   const disclosedFields: Record<string, unknown> = {};
   const fieldStatus: Record<string, 'disclosed' | 'proven' | 'hidden'> = {};
@@ -473,13 +486,20 @@ function createSelectiveDisclosure(
 
 function getPredicateCircuitId(predicate: ZkSpatialPredicate): string {
   switch (predicate) {
-    case 'proximity': return 'is_inside_zone';
-    case 'in_region': return 'is_inside_zone';
-    case 'is_inside_zone': return 'is_inside_zone';
-    case 'owns_asset': return 'owns_asset';
-    case 'has_permission': return 'has_permission';
-    case 'has_attribute': return 'has_permission';
-    default: return 'is_inside_zone';
+    case 'proximity':
+      return 'is_inside_zone';
+    case 'in_region':
+      return 'is_inside_zone';
+    case 'is_inside_zone':
+      return 'is_inside_zone';
+    case 'owns_asset':
+      return 'owns_asset';
+    case 'has_permission':
+      return 'has_permission';
+    case 'has_attribute':
+      return 'has_permission';
+    default:
+      return 'is_inside_zone';
   }
 }
 
@@ -512,7 +532,8 @@ function buildPredicateParams(config: ZkPrivateConfig): Record<string, unknown> 
  */
 class BarretenbergBackend {
   private bb: any = null;
-  private compiledCircuits: Map<string, { acir: Uint8Array; verificationKey: Uint8Array }> = new Map();
+  private compiledCircuits: Map<string, { acir: Uint8Array; verificationKey: Uint8Array }> =
+    new Map();
 
   async initialize(wasmPath?: string): Promise<boolean> {
     try {
@@ -539,25 +560,29 @@ class BarretenbergBackend {
     // Real Barretenberg compilation would go here
     // In production: use nargo compile + bb.js ACIR processing
     const sourceBytes = new TextEncoder().encode(circuit.source);
-    this.compiledCircuits.set(circuit.id, { acir: sourceBytes, verificationKey: new Uint8Array(32) });
+    this.compiledCircuits.set(circuit.id, {
+      acir: sourceBytes,
+      verificationKey: new Uint8Array(32),
+    });
     return { acir: sourceBytes, size: sourceBytes.length };
   }
 
   async generateProof(
     circuitId: string,
     publicInputs: Record<string, unknown>,
-    privateInputs: Record<string, unknown>,
+    privateInputs: Record<string, unknown>
   ): Promise<{ proof: Uint8Array; publicInputs: Record<string, unknown> }> {
     if (!this.bb) {
       // Mock proof generation
       const compiled = this.compiledCircuits.get(circuitId);
       const inputHash = JSON.stringify({ circuitId, publicInputs })
-        .split('').reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) & 0xFFFFFFFF, 0);
+        .split('')
+        .reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) & 0xffffffff, 0);
       const proof = new Uint8Array(64);
-      proof[0] = (inputHash >>> 24) & 0xFF;
-      proof[1] = (inputHash >>> 16) & 0xFF;
-      proof[2] = (inputHash >>> 8) & 0xFF;
-      proof[3] = inputHash & 0xFF;
+      proof[0] = (inputHash >>> 24) & 0xff;
+      proof[1] = (inputHash >>> 16) & 0xff;
+      proof[2] = (inputHash >>> 8) & 0xff;
+      proof[3] = inputHash & 0xff;
       if (compiled) {
         proof[4] = compiled.acir[0] ?? 0;
       }
@@ -572,11 +597,11 @@ class BarretenbergBackend {
   async verifyProof(
     circuitId: string,
     proof: Uint8Array,
-    publicInputs: Record<string, unknown>,
+    publicInputs: Record<string, unknown>
   ): Promise<boolean> {
     if (!this.bb) {
       // Mock verification: non-zero proof is valid
-      return proof.length > 0 && proof.some(b => b !== 0);
+      return proof.length > 0 && proof.some((b) => b !== 0);
     }
 
     // Real Barretenberg verification
@@ -652,7 +677,7 @@ export const zkPrivateHandler = {
       node,
       predicate: config.predicate ?? 'proximity',
       backend: state.backend,
-      spatialCircuits: SPATIAL_PREDICATE_CIRCUITS.map(c => c.id),
+      spatialCircuits: SPATIAL_PREDICATE_CIRCUITS.map((c) => c.id),
     });
   },
 
@@ -692,7 +717,7 @@ export const zkPrivateHandler = {
       ctx.emit('proof_generation_started', { node, requestId, circuit: circuitId });
       const t0 = Date.now();
       const timeout = new Promise<never>((_, r) =>
-        setTimeout(() => r(new Error(`Timeout ${config.timeout_ms}ms`)), config.timeout_ms),
+        setTimeout(() => r(new Error(`Timeout ${config.timeout_ms}ms`)), config.timeout_ms)
       );
       Promise.race([Promise.resolve(mockGenerate(circuit, publicInputs)), timeout])
         .then((proof: ZkProof) => {
@@ -712,9 +737,7 @@ export const zkPrivateHandler = {
           s.activeProofs.delete(requestId);
           ctx.emit('zk_error', { node, requestId, error: err.message });
         });
-    }
-
-    else if (event.type === 'proof_verify') {
+    } else if (event.type === 'proof_verify') {
       const { proof: proofBytes, publicInputs = {}, circuitId } = event.payload ?? {};
       if (!proofBytes) return;
       const requestId = event.payload.requestId ?? `verify_${Date.now()}`;
@@ -728,18 +751,20 @@ export const zkPrivateHandler = {
         backend: s.backend,
       });
       s.totalProofsVerified++;
-      ctx.emit('proof_verified', { node, requestId, valid, duration_ms: Date.now() - t0, circuitId });
-    }
-
-    else if (event.type === 'circuit_register') {
+      ctx.emit('proof_verified', {
+        node,
+        requestId,
+        valid,
+        duration_ms: Date.now() - t0,
+        circuitId,
+      });
+    } else if (event.type === 'circuit_register') {
       const c = event.payload as ZkCircuit;
       if (c?.id) {
         s.circuits.set(c.id, c);
         ctx.emit('circuit_registered', { node, circuitId: c.id, name: c.name });
       }
-    }
-
-    else if (event.type === 'circuit_compile') {
+    } else if (event.type === 'circuit_compile') {
       const c = s.circuits.get(event.payload?.circuitId);
       if (c) {
         c.compiledAt = Date.now();
@@ -748,7 +773,7 @@ export const zkPrivateHandler = {
         // Use Barretenberg backend if available
         const bbBackend: BarretenbergBackend | undefined = node.__zkBBBackend;
         if (bbBackend) {
-          bbBackend.compileCircuit(c).then(result => {
+          bbBackend.compileCircuit(c).then((result) => {
             c.acir = result.acir;
             ctx.emit('circuit_compiled', {
               node,
@@ -761,22 +786,18 @@ export const zkPrivateHandler = {
           ctx.emit('circuit_compiled', { node, circuitId: c.id, size_bytes: c.source.length });
         }
       }
-    }
-
-    else if (event.type === 'circuits_list') {
+    } else if (event.type === 'circuits_list') {
       ctx.emit('circuits_listed', {
         node,
-        circuits: [...s.circuits.values()].map(c => ({
+        circuits: [...s.circuits.values()].map((c) => ({
           id: c.id,
           name: c.name,
           description: c.description,
           isCompiled: c.isCompiled ?? false,
-          isSpatialPredicate: SPATIAL_PREDICATE_CIRCUITS.some(sp => sp.id === c.id),
+          isSpatialPredicate: SPATIAL_PREDICATE_CIRCUITS.some((sp) => sp.id === c.id),
         })),
       });
-    }
-
-    else if (event.type === 'zk_stats') {
+    } else if (event.type === 'zk_stats') {
       ctx.emit('zk_stats', {
         node,
         backend: s.backend,
@@ -795,7 +816,6 @@ export const zkPrivateHandler = {
     // =========================================================================
     // v4.3 SPATIAL PREDICATE EVENTS
     // =========================================================================
-
     else if (event.type === 'zk_verify_proximity') {
       const circuitId = getPredicateCircuitId(config.predicate ?? 'proximity');
       const params = buildPredicateParams(config);
@@ -809,9 +829,7 @@ export const zkPrivateHandler = {
         circuitId,
         requestId,
       });
-    }
-
-    else if (event.type === 'zk_verify_zone') {
+    } else if (event.type === 'zk_verify_zone') {
       const { zoneId, zoneBounds, entityPosition } = event.payload ?? {};
       const requestId = `zone_${Date.now()}`;
       s.activeProofId = requestId;
@@ -823,9 +841,7 @@ export const zkPrivateHandler = {
         circuitId: 'is_inside_zone',
         requestId,
       });
-    }
-
-    else if (event.type === 'zk_verify_ownership') {
+    } else if (event.type === 'zk_verify_ownership') {
       const { assetHash, ownershipRoot } = event.payload ?? {};
       const requestId = `ownership_${Date.now()}`;
       s.activeProofId = requestId;
@@ -837,9 +853,7 @@ export const zkPrivateHandler = {
         circuitId: 'owns_asset',
         requestId,
       });
-    }
-
-    else if (event.type === 'zk_verify_permission') {
+    } else if (event.type === 'zk_verify_permission') {
       const { requiredLevel, permissionRoot, contextHash } = event.payload ?? {};
       const requestId = `permission_${Date.now()}`;
       s.activeProofId = requestId;
@@ -851,9 +865,7 @@ export const zkPrivateHandler = {
         circuitId: 'has_permission',
         requestId,
       });
-    }
-
-    else if (event.type === 'zk_proof_submitted') {
+    } else if (event.type === 'zk_proof_submitted') {
       const { proofValid, proofBytes, publicInputs, circuitId } = event.payload ?? {};
       s.lastVerifyTime = Date.now();
 
@@ -863,7 +875,11 @@ export const zkPrivateHandler = {
         ctx.emit('zk_privacy_unlocked', { node });
 
         // Auto-submit to chain if wallet integration enabled
-        if (config.wallet_integration?.enabled && config.wallet_integration.auto_submit && proofBytes) {
+        if (
+          config.wallet_integration?.enabled &&
+          config.wallet_integration.auto_submit &&
+          proofBytes
+        ) {
           const submission: ZkWalletProofSubmission = {
             proof: proofBytes instanceof Uint8Array ? proofBytes : new Uint8Array(proofBytes),
             publicInputs: publicInputs ?? {},
@@ -890,13 +906,8 @@ export const zkPrivateHandler = {
     // =========================================================================
     // v4.3 SELECTIVE DISCLOSURE EVENTS
     // =========================================================================
-
     else if (event.type === 'zk_selective_disclose') {
-      const {
-        fields = {},
-        consentedFields = [],
-        circuitId,
-      } = event.payload ?? {};
+      const { fields = {}, consentedFields = [], circuitId } = event.payload ?? {};
 
       const policy = config.disclosure_policy ?? {
         alwaysDisclose: [],
@@ -921,7 +932,7 @@ export const zkPrivateHandler = {
         policy,
         mockProof.proof,
         circuit.id,
-        consentedFields,
+        consentedFields
       );
 
       s.disclosureHistory.push(disclosure);
@@ -934,12 +945,10 @@ export const zkPrivateHandler = {
         circuitId: disclosure.circuitId,
         timestamp: disclosure.timestamp,
       });
-    }
-
-    else if (event.type === 'zk_disclosure_history') {
+    } else if (event.type === 'zk_disclosure_history') {
       ctx.emit('zk_disclosure_history_result', {
         node,
-        disclosures: s.disclosureHistory.map(d => ({
+        disclosures: s.disclosureHistory.map((d) => ({
           circuitId: d.circuitId,
           timestamp: d.timestamp,
           disclosedFields: Object.keys(d.disclosedFields),
@@ -952,10 +961,16 @@ export const zkPrivateHandler = {
     // =========================================================================
     // v4.3 WALLET INTEGRATION EVENTS
     // =========================================================================
-
     else if (event.type === 'zk_wallet_submit_proof') {
       // Manual proof submission to chain
-      const { proof, publicInputs: pi, circuitId: cid, chain, verifierContract, gasLimit } = event.payload ?? {};
+      const {
+        proof,
+        publicInputs: pi,
+        circuitId: cid,
+        chain,
+        verifierContract,
+        gasLimit,
+      } = event.payload ?? {};
       if (!proof) return;
 
       const submission: ZkWalletProofSubmission = {
@@ -984,9 +999,7 @@ export const zkPrivateHandler = {
         chain: submission.chain,
         verifierContract: submission.verifierContract,
       });
-    }
-
-    else if (event.type === 'zk_wallet_proof_result') {
+    } else if (event.type === 'zk_wallet_proof_result') {
       const { txId, txHash, valid, blockNumber, gasUsed } = event.payload ?? {};
       const pending = s.pendingOnChainProofs.get(txId);
 
@@ -1019,9 +1032,7 @@ export const zkPrivateHandler = {
           });
         }
       }
-    }
-
-    else if (event.type === 'zk_wallet_query') {
+    } else if (event.type === 'zk_wallet_query') {
       ctx.emit('zk_wallet_info', {
         node,
         queryId: event.payload?.queryId ?? event.queryId,
@@ -1037,10 +1048,9 @@ export const zkPrivateHandler = {
     // =========================================================================
     // v4.3 BATCH OPERATIONS
     // =========================================================================
-
     else if (event.type === 'zk_compile_all_spatial') {
       // Compile all spatial predicate circuits
-      const spatialCircuitIds = SPATIAL_PREDICATE_CIRCUITS.map(c => c.id);
+      const spatialCircuitIds = SPATIAL_PREDICATE_CIRCUITS.map((c) => c.id);
       const bbBackend: BarretenbergBackend | undefined = node.__zkBBBackend;
       let compiled = 0;
 
@@ -1052,7 +1062,7 @@ export const zkPrivateHandler = {
           compiled++;
 
           if (bbBackend) {
-            bbBackend.compileCircuit(circuit).then(result => {
+            bbBackend.compileCircuit(circuit).then((result) => {
               circuit.acir = result.acir;
             });
           }
@@ -1065,9 +1075,7 @@ export const zkPrivateHandler = {
         total: spatialCircuitIds.length,
         circuitIds: spatialCircuitIds,
       });
-    }
-
-    else if (event.type === 'zk_get_circuit') {
+    } else if (event.type === 'zk_get_circuit') {
       const circuitId = event.payload?.circuitId;
       const circuit = s.circuits.get(circuitId);
 
@@ -1081,7 +1089,7 @@ export const zkPrivateHandler = {
             publicInputs: circuit.publicInputs,
             privateInputs: circuit.privateInputs,
             isCompiled: circuit.isCompiled ?? false,
-            isSpatialPredicate: SPATIAL_PREDICATE_CIRCUITS.some(sp => sp.id === circuit.id),
+            isSpatialPredicate: SPATIAL_PREDICATE_CIRCUITS.some((sp) => sp.id === circuit.id),
             source: circuit.source,
           },
         });

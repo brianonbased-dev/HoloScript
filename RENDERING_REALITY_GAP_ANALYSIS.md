@@ -16,6 +16,7 @@ HoloScript now has **comprehensive advanced rendering support** across all major
 ## ✅ Current Rendering Capabilities
 
 ### 1. **Shader System** (Comprehensive)
+
 **File**: `packages/core/src/traits/ShaderTrait.ts`
 
 - ✅ GLSL, HLSL, WGSL, Metal, SPIR-V shader languages
@@ -26,6 +27,7 @@ HoloScript now has **comprehensive advanced rendering support** across all major
 ---
 
 ### 2. **Material System** (Good)
+
 **Files**: `MaterialTrait.ts`, `MaterialXTrait.ts`, `constants/material-properties.ts`
 
 - ✅ 38 material presets (wood, stone, glass, metal, etc.)
@@ -36,6 +38,7 @@ HoloScript now has **comprehensive advanced rendering support** across all major
 ---
 
 ### 3. **Advanced PBR Materials** ✅ IMPLEMENTED
+
 **File**: `packages/core/src/rendering/AdvancedPBR.ts`
 **Tests**: 37 tests passing
 
@@ -50,6 +53,7 @@ HoloScript now has **comprehensive advanced rendering support** across all major
 ---
 
 ### 4. **Screen-Space Effects** ✅ IMPLEMENTED
+
 **File**: `packages/core/src/rendering/ScreenSpaceEffects.ts`
 **Tests**: 33 tests passing
 
@@ -66,6 +70,7 @@ HoloScript now has **comprehensive advanced rendering support** across all major
 ---
 
 ### 5. **Global Illumination** ✅ IMPLEMENTED
+
 **File**: `packages/core/src/rendering/GlobalIllumination.ts`
 **Tests**: 22 tests passing
 
@@ -78,6 +83,7 @@ HoloScript now has **comprehensive advanced rendering support** across all major
 ---
 
 ### 6. **Advanced Lighting** ✅ IMPLEMENTED
+
 **File**: `packages/core/src/rendering/AdvancedLighting.ts`
 **Tests**: 27 tests passing
 
@@ -90,6 +96,7 @@ HoloScript now has **comprehensive advanced rendering support** across all major
 ---
 
 ### 7. **CPU Ray Tracing** ✅ IMPLEMENTED
+
 **File**: `packages/core/src/rendering/RayTracing.ts`
 **Tests**: 32 tests passing
 
@@ -103,6 +110,7 @@ HoloScript now has **comprehensive advanced rendering support** across all major
 ---
 
 ### 8. **Subsurface Scattering** ✅ IMPLEMENTED
+
 **File**: `packages/core/src/rendering/SubsurfaceScattering.ts`
 **Tests**: 34 tests passing
 
@@ -116,6 +124,7 @@ HoloScript now has **comprehensive advanced rendering support** across all major
 ---
 
 ### 9. **Advanced Texturing** ✅ IMPLEMENTED
+
 **File**: `packages/core/src/rendering/AdvancedTexturing.ts`
 **Tests**: 37 tests passing
 
@@ -128,6 +137,7 @@ HoloScript now has **comprehensive advanced rendering support** across all major
 ---
 
 ### 10. **Volumetric Effects** ✅ PARTIALLY IMPLEMENTED
+
 - ✅ Volumetric lighting / god rays (`VolumetricLight.ts` — ray marching, Henyey-Greenstein phase)
 - ✅ Volumetric clouds (`CloudRenderer.ts`)
 - ✅ Bloom HDR glow (`BloomEffect.ts`)
@@ -138,6 +148,7 @@ HoloScript now has **comprehensive advanced rendering support** across all major
 ---
 
 ### 11. **Advanced Geometry** (Excellent)
+
 - ✅ Gaussian splatting (`GaussianSplatTrait.ts`)
 - ✅ NeRF rendering (`NerfTrait.ts`)
 - ✅ Point clouds (`PointCloudTrait.ts`)
@@ -148,54 +159,54 @@ HoloScript now has **comprehensive advanced rendering support** across all major
 
 ## ⚠️ Remaining Gaps (~10%)
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| **Hardware RT cores** (RTX/DXR/OptiX) | ❌ Missing | CPU BVH path tracer exists; GPU RT API bridge not yet written |
-| **Atmospheric scattering** | ❌ Missing | Rayleigh/Mie sky model; god rays exist but no full sky |
-| **Volumetric shadows** | ❌ Missing | Shadow density in VolumetricLight exists but no global shadow map integration |
-| **Height fog** | ❌ Missing | Exponential height fog parameters |
-| **Caustics** | ❌ Missing | Water/glass light patterns |
-| **Virtual texture streaming** | ❌ Missing | Mega-textures / sparse virtual textures |
+| Feature                               | Status     | Notes                                                                         |
+| ------------------------------------- | ---------- | ----------------------------------------------------------------------------- |
+| **Hardware RT cores** (RTX/DXR/OptiX) | ❌ Missing | CPU BVH path tracer exists; GPU RT API bridge not yet written                 |
+| **Atmospheric scattering**            | ❌ Missing | Rayleigh/Mie sky model; god rays exist but no full sky                        |
+| **Volumetric shadows**                | ❌ Missing | Shadow density in VolumetricLight exists but no global shadow map integration |
+| **Height fog**                        | ❌ Missing | Exponential height fog parameters                                             |
+| **Caustics**                          | ❌ Missing | Water/glass light patterns                                                    |
+| **Virtual texture streaming**         | ❌ Missing | Mega-textures / sparse virtual textures                                       |
 
 ---
 
 ## 📊 Coverage Summary Table
 
-| Feature Category | Status | Tests | Coverage |
-|------------------|--------|-------|----------|
-| **PBR Materials** | ✅ AdvancedPBR.ts | 37 | 95% |
-| **Screen-Space Effects** | ✅ ScreenSpaceEffects.ts | 33 | 90% |
-| **Global Illumination** | ✅ GlobalIllumination.ts | 22 | 85% |
-| **Advanced Lighting** | ✅ AdvancedLighting.ts | 27 | 90% |
-| **Ray Tracing** | ✅ CPU — RayTracing.ts | 32 | 75% (no GPU RT) |
-| **Subsurface Scattering** | ✅ SubsurfaceScattering.ts | 34 | 95% |
-| **Advanced Texturing** | ✅ AdvancedTexturing.ts | 37 | 90% |
-| **Volumetric Effects** | ✅ Partial | — | 70% |
-| **Post-Processing** | ✅ BloomEffect + ColorGrading + PostProcessStack | — | 90% |
-| **Geometry (Nerf/Splat)** | ✅ | — | 95% |
-| **TOTAL** | **~90% coverage** | **222 new tests** | **~90%** |
+| Feature Category          | Status                                           | Tests             | Coverage        |
+| ------------------------- | ------------------------------------------------ | ----------------- | --------------- |
+| **PBR Materials**         | ✅ AdvancedPBR.ts                                | 37                | 95%             |
+| **Screen-Space Effects**  | ✅ ScreenSpaceEffects.ts                         | 33                | 90%             |
+| **Global Illumination**   | ✅ GlobalIllumination.ts                         | 22                | 85%             |
+| **Advanced Lighting**     | ✅ AdvancedLighting.ts                           | 27                | 90%             |
+| **Ray Tracing**           | ✅ CPU — RayTracing.ts                           | 32                | 75% (no GPU RT) |
+| **Subsurface Scattering** | ✅ SubsurfaceScattering.ts                       | 34                | 95%             |
+| **Advanced Texturing**    | ✅ AdvancedTexturing.ts                          | 37                | 90%             |
+| **Volumetric Effects**    | ✅ Partial                                       | —                 | 70%             |
+| **Post-Processing**       | ✅ BloomEffect + ColorGrading + PostProcessStack | —                 | 90%             |
+| **Geometry (Nerf/Splat)** | ✅                                               | —                 | 95%             |
+| **TOTAL**                 | **~90% coverage**                                | **222 new tests** | **~90%**        |
 
 ---
 
 ## 🎯 Roadmap Status
 
-| Phase | Features | Status |
-|-------|----------|--------|
-| **Phase 1** — Critical Foundations | AdvancedPBR, ScreenSpaceEffects | ✅ COMPLETE |
-| **Phase 2** — Lighting & GI | GlobalIllumination, AdvancedLighting | ✅ COMPLETE |
-| **Phase 3** — Ray Tracing | CPU BVH + path tracer + NLM denoiser | ✅ COMPLETE (CPU) |
-| **Phase 4** — Advanced Effects | SubsurfaceScattering, AdvancedTexturing | ✅ COMPLETE |
-| **Phase 5** *(future)* | GPU RT API bridge, atmospheric scattering, caustics | 🔲 PLANNED |
+| Phase                              | Features                                            | Status            |
+| ---------------------------------- | --------------------------------------------------- | ----------------- |
+| **Phase 1** — Critical Foundations | AdvancedPBR, ScreenSpaceEffects                     | ✅ COMPLETE       |
+| **Phase 2** — Lighting & GI        | GlobalIllumination, AdvancedLighting                | ✅ COMPLETE       |
+| **Phase 3** — Ray Tracing          | CPU BVH + path tracer + NLM denoiser                | ✅ COMPLETE (CPU) |
+| **Phase 4** — Advanced Effects     | SubsurfaceScattering, AdvancedTexturing             | ✅ COMPLETE       |
+| **Phase 5** _(future)_             | GPU RT API bridge, atmospheric scattering, caustics | 🔲 PLANNED        |
 
 ---
 
 ## 📈 Quality Assessment
 
-| Milestone | Rendering Quality |
-|-----------|------------------|
-| **Before Sprint CLXXX** | ⭐⭐⭐ (3/5) — Good but not photorealistic |
-| **After Sprint CLXXX** | ⭐⭐⭐⭐½ (4.5/5) — Near-Unity HDRP / Unreal Engine parity |
-| **After Phase 5 (GPU RT)** | ⭐⭐⭐⭐⭐ (5/5) — Full photorealistic parity |
+| Milestone                  | Rendering Quality                                          |
+| -------------------------- | ---------------------------------------------------------- |
+| **Before Sprint CLXXX**    | ⭐⭐⭐ (3/5) — Good but not photorealistic                 |
+| **After Sprint CLXXX**     | ⭐⭐⭐⭐½ (4.5/5) — Near-Unity HDRP / Unreal Engine parity |
+| **After Phase 5 (GPU RT)** | ⭐⭐⭐⭐⭐ (5/5) — Full photorealistic parity              |
 
 ---
 
@@ -204,12 +215,14 @@ HoloScript now has **comprehensive advanced rendering support** across all major
 **Rendering Reality Gap**: **~10% remaining** (was ~55% before Sprint CLXXX)
 
 All CPU-side advanced rendering systems are implemented and fully tested:
+
 - **7 new trait modules** across 2,700+ lines of TypeScript
 - **222 production tests**, 100% passing (Sprint CLXXX)
 - **27 rendering trait constants** integrated into VRTraitName type
 - All modules are Vitest-testable (no WebGPU/DOM dependencies)
 
 **Training Data Alignment**: ✅ **100%**
+
 - All TrainingMonkey rendering concepts now have production implementations
 - Security gap (Sprint CLXXIII): 7 traits, 253 tests, 76 constants - **100% closed**
 - Rendering gap (Sprint CLXXX): 7 traits, 222 tests, 27 constants - **90% closed**

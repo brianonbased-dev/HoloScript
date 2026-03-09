@@ -28,10 +28,10 @@
 // =============================================================================
 
 export type FailureCategory =
-  | 'parse-error'      // Syntax errors (unexpected token, missing brace)
-  | 'validation-error'  // Semantic errors (unknown trait, invalid property)
-  | 'runtime-error'     // Execution failures (undefined reference, type mismatch)
-  | 'generation-error'  // AI generation quality (wrong pattern, missing traits)
+  | 'parse-error' // Syntax errors (unexpected token, missing brace)
+  | 'validation-error' // Semantic errors (unknown trait, invalid property)
+  | 'runtime-error' // Execution failures (undefined reference, type mismatch)
+  | 'generation-error' // AI generation quality (wrong pattern, missing traits)
   | 'compilation-error'; // Compiler target failures
 
 export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
@@ -134,19 +134,26 @@ const CORRECTION_PATTERNS: Array<{
     pattern: /unknown geometry type|invalid geometry/i,
     fix: (_match, code) => {
       const typoMap: Record<string, string> = {
-        sper: 'sphere', shere: 'sphere', sphr: 'sphere',
-        cub: 'cube', cbe: 'cube',
-        cylnder: 'cylinder', clinder: 'cylinder',
+        sper: 'sphere',
+        shere: 'sphere',
+        sphr: 'sphere',
+        cub: 'cube',
+        cbe: 'cube',
+        cylnder: 'cylinder',
+        clinder: 'cylinder',
         con: 'cone',
-        torus: 'torus', tors: 'torus',
-        capslue: 'capsule', capsle: 'capsule',
-        plne: 'plane', plan: 'plane',
+        torus: 'torus',
+        tors: 'torus',
+        capslue: 'capsule',
+        capsle: 'capsule',
+        plne: 'plane',
+        plan: 'plane',
       };
       let fixed = code;
       for (const [typo, correct] of Object.entries(typoMap)) {
         fixed = fixed.replace(
           new RegExp(`geometry:\\s*["']${typo}["']`, 'gi'),
-          `geometry: "${correct}"`,
+          `geometry: "${correct}"`
         );
       }
       return fixed;
@@ -184,7 +191,7 @@ const CORRECTION_PATTERNS: Array<{
           // Insert trait before first property
           fixed = fixed.replace(
             /(object\s+"[^"]+"\s*(?:using\s+"[^"]+"\s*)?)\{/,
-            `$1{\n    ${trait}`,
+            `$1{\n    ${trait}`
           );
         }
       }
@@ -274,8 +281,7 @@ export class SelfImprovementPipeline {
     this.failures.push(failure);
     this.stats.totalCaptures++;
     this.stats.byCategory[failure.category]++;
-    this.stats.byFileType[failure.fileType] =
-      (this.stats.byFileType[failure.fileType] || 0) + 1;
+    this.stats.byFileType[failure.fileType] = (this.stats.byFileType[failure.fileType] || 0) + 1;
     this.stats.lastCaptureAt = failure.timestamp;
 
     // Auto-correct if enabled
@@ -303,7 +309,7 @@ export class SelfImprovementPipeline {
     prompt: string,
     code: string,
     errors: string[],
-    fileType: '.hs' | '.hsplus' | '.holo' = '.hsplus',
+    fileType: '.hs' | '.hsplus' | '.holo' = '.hsplus'
   ): void {
     this.capture({
       id: `parse-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -321,7 +327,7 @@ export class SelfImprovementPipeline {
     prompt: string,
     code: string,
     errors: string[],
-    fileType: '.hs' | '.hsplus' | '.holo' = '.hsplus',
+    fileType: '.hs' | '.hsplus' | '.holo' = '.hsplus'
   ): void {
     this.capture({
       id: `val-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -471,12 +477,14 @@ export class SelfImprovementPipeline {
   /** Export as JSONL (Alpaca format) for TrainingMonkey */
   toJSONL(): string {
     return this.examples
-      .map((ex) => JSON.stringify({
-        instruction: ex.instruction,
-        input: ex.input,
-        output: ex.output,
-        metadata: ex.metadata,
-      }))
+      .map((ex) =>
+        JSON.stringify({
+          instruction: ex.instruction,
+          input: ex.input,
+          output: ex.output,
+          metadata: ex.metadata,
+        })
+      )
       .join('\n');
   }
 
@@ -523,9 +531,7 @@ export class SelfImprovementPipeline {
 
   private updateConversionRate(): void {
     this.stats.conversionRate =
-      this.stats.totalCaptures > 0
-        ? this.stats.totalExamples / (this.stats.totalCaptures * 3)
-        : 0;
+      this.stats.totalCaptures > 0 ? this.stats.totalExamples / (this.stats.totalCaptures * 3) : 0;
   }
 
   // ---------------------------------------------------------------------------

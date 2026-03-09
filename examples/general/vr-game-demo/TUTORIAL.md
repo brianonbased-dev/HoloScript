@@ -52,6 +52,7 @@ weapon#pistol @firearm {
 ```
 
 **Key features**:
+
 - Stats-driven design (easy balance tweaking)
 - Haptic feedback for immersion
 - Ammo management
@@ -79,6 +80,7 @@ target#moving @enemy {
 ```
 
 **Movement types**:
+
 - `"rail"` - Follow predefined path
 - `"hover"` - Wander within area
 - `"chase"` - Follow player (AI-driven)
@@ -152,6 +154,7 @@ camera#player @vr {
 ```
 
 **Controller mapping**:
+
 - Trigger → Fire
 - Grip → Grab weapon
 - Buttons → Reload, weapon wheel
@@ -161,6 +164,7 @@ camera#player @vr {
 ### Object Pooling
 
 Instead of spawning/destroying:
+
 ```holoscript
 pool#projectiles {
   size: 100

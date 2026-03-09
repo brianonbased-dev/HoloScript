@@ -13,7 +13,9 @@ import { RagdollSystem, HUMANOID_PRESET, QUADRUPED_PRESET } from '../physics/Rag
 
 describe('JointSystem', () => {
   let js: JointSystem;
-  beforeEach(() => { js = new JointSystem(); });
+  beforeEach(() => {
+    js = new JointSystem();
+  });
 
   it('creates joints with defaults', () => {
     const j = js.createJoint('hinge', 'bodyA', 'bodyB');
@@ -26,7 +28,7 @@ describe('JointSystem', () => {
 
   it('creates all joint types', () => {
     const types = ['hinge', 'ball', 'slider', 'spring', 'distance', 'fixed'] as const;
-    types.forEach(t => {
+    types.forEach((t) => {
       const j = js.createJoint(t, 'a', 'b');
       expect(j.type).toBe(t);
     });
@@ -62,7 +64,8 @@ describe('JointSystem', () => {
   it('solves hinge with limits', () => {
     const j = js.createJoint('hinge', 'a', 'b', {
       limits: { min: -1, max: 1 },
-      motorSpeed: 100, motorForce: 10,
+      motorSpeed: 100,
+      motorForce: 10,
     });
     js.setAngle(j.id, 5); // beyond max
     js.solve(0.016);
@@ -74,7 +77,8 @@ describe('JointSystem', () => {
 
   it('breaks joints exceeding breakForce', () => {
     const j = js.createJoint('spring', 'a', 'b', {
-      breakForce: 0.001, stiffness: 1000,
+      breakForce: 0.001,
+      stiffness: 1000,
       anchorA: { x: 0, y: 0, z: 0 },
       anchorB: { x: 100, y: 0, z: 0 },
     });
@@ -108,7 +112,8 @@ describe('JointSystem', () => {
 
   it('spring applies force based on stiffness', () => {
     const j = js.createJoint('spring', 'a', 'b', {
-      stiffness: 10, damping: 0.5,
+      stiffness: 10,
+      damping: 0.5,
       anchorA: { x: 0, y: 0, z: 0 },
       anchorB: { x: 1, y: 0, z: 0 },
     });
@@ -125,7 +130,9 @@ describe('JointSystem', () => {
 
 describe('RagdollSystem', () => {
   let rs: RagdollSystem;
-  beforeEach(() => { rs = new RagdollSystem(); });
+  beforeEach(() => {
+    rs = new RagdollSystem();
+  });
 
   it('creates humanoid ragdoll from preset', () => {
     const rag = rs.createHumanoid('human1', { x: 0, y: 5, z: 0 });
@@ -159,25 +166,43 @@ describe('RagdollSystem', () => {
   });
 
   it('HUMANOID_PRESET has expected bones', () => {
-    const boneIds = HUMANOID_PRESET.map(b => b.id);
+    const boneIds = HUMANOID_PRESET.map((b) => b.id);
     expect(boneIds).toContain('pelvis');
     expect(boneIds).toContain('chest');
     expect(boneIds).toContain('head');
   });
 
   it('QUADRUPED_PRESET has body and legs', () => {
-    const boneIds = QUADRUPED_PRESET.map(b => b.id);
+    const boneIds = QUADRUPED_PRESET.map((b) => b.id);
     expect(boneIds).toContain('body');
     expect(boneIds).toContain('tail');
   });
 
   it('custom ragdoll definition works', () => {
     const rag = rs.createRagdoll(
-      { id: 'custom', bones: [
-        { id: 'root', length: 1, radius: 0.5, mass: 10, localOffset: { x: 0, y: 0, z: 0 }, jointType: 'cone' as const },
-        { id: 'child', parentBone: 'root', length: 0.5, radius: 0.2, mass: 3, localOffset: { x: 0, y: -1, z: 0 }, jointType: 'hinge' as const },
-      ]},
-      { x: 0, y: 0, z: 0 },
+      {
+        id: 'custom',
+        bones: [
+          {
+            id: 'root',
+            length: 1,
+            radius: 0.5,
+            mass: 10,
+            localOffset: { x: 0, y: 0, z: 0 },
+            jointType: 'cone' as const,
+          },
+          {
+            id: 'child',
+            parentBone: 'root',
+            length: 0.5,
+            radius: 0.2,
+            mass: 3,
+            localOffset: { x: 0, y: -1, z: 0 },
+            jointType: 'hinge' as const,
+          },
+        ],
+      },
+      { x: 0, y: 0, z: 0 }
     );
     expect(rag.bodies).toHaveLength(2);
     expect(rag.constraints.length).toBeGreaterThanOrEqual(1);

@@ -421,32 +421,64 @@ export class InstancedRenderer {
   /**
    * Build view matrix (lookAt)
    */
-  private buildViewMatrix(eye: [number, number, number], target: [number, number, number]): Float32Array {
+  private buildViewMatrix(
+    eye: [number, number, number],
+    target: [number, number, number]
+  ): Float32Array {
     // Simplified lookAt implementation
     const zAxis = this.normalize([eye[0] - target[0], eye[1] - target[1], eye[2] - target[2]]);
     const xAxis = this.normalize(this.cross([0, 1, 0], zAxis));
     const yAxis = this.cross(zAxis, xAxis);
 
     return new Float32Array([
-      xAxis[0], yAxis[0], zAxis[0], 0,
-      xAxis[1], yAxis[1], zAxis[1], 0,
-      xAxis[2], yAxis[2], zAxis[2], 0,
-      -this.dot(xAxis, eye), -this.dot(yAxis, eye), -this.dot(zAxis, eye), 1,
+      xAxis[0],
+      yAxis[0],
+      zAxis[0],
+      0,
+      xAxis[1],
+      yAxis[1],
+      zAxis[1],
+      0,
+      xAxis[2],
+      yAxis[2],
+      zAxis[2],
+      0,
+      -this.dot(xAxis, eye),
+      -this.dot(yAxis, eye),
+      -this.dot(zAxis, eye),
+      1,
     ]);
   }
 
   /**
    * Build projection matrix (perspective)
    */
-  private buildProjectionMatrix(fov: number, aspect: number, near: number, far: number): Float32Array {
+  private buildProjectionMatrix(
+    fov: number,
+    aspect: number,
+    near: number,
+    far: number
+  ): Float32Array {
     const f = 1.0 / Math.tan(fov / 2);
     const rangeInv = 1.0 / (near - far);
 
     return new Float32Array([
-      f / aspect, 0, 0, 0,
-      0, f, 0, 0,
-      0, 0, (near + far) * rangeInv, -1,
-      0, 0, near * far * rangeInv * 2, 0,
+      f / aspect,
+      0,
+      0,
+      0,
+      0,
+      f,
+      0,
+      0,
+      0,
+      0,
+      (near + far) * rangeInv,
+      -1,
+      0,
+      0,
+      near * far * rangeInv * 2,
+      0,
     ]);
   }
 
@@ -454,7 +486,14 @@ export class InstancedRenderer {
    * Render particles
    */
   render(positions: Float32Array, particleCount: number, camera: CameraParams): void {
-    if (!this.gpuContext || !this.pipeline || !this.vertexBuffer || !this.indexBuffer || !this.instanceBuffer || !this.uniformBuffer) {
+    if (
+      !this.gpuContext ||
+      !this.pipeline ||
+      !this.vertexBuffer ||
+      !this.indexBuffer ||
+      !this.instanceBuffer ||
+      !this.uniformBuffer
+    ) {
       throw new Error('Renderer not initialized');
     }
 
@@ -474,9 +513,7 @@ export class InstancedRenderer {
     // Create bind group
     const bindGroup = this.device.createBindGroup({
       layout: this.pipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: { buffer: this.uniformBuffer } },
-      ],
+      entries: [{ binding: 0, resource: { buffer: this.uniformBuffer } }],
     });
 
     // Render
@@ -528,11 +565,7 @@ export class InstancedRenderer {
   }
 
   private cross(a: number[], b: number[]): number[] {
-    return [
-      a[1] * b[2] - a[2] * b[1],
-      a[2] * b[0] - a[0] * b[2],
-      a[0] * b[1] - a[1] * b[0],
-    ];
+    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
   }
 
   private dot(a: number[], b: number[]): number {

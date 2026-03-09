@@ -4,8 +4,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { alertHandler } from '../AlertTrait';
 
-function makeNode() { return { id: 'alert_node' }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'alert_node' };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}) {
   const node = makeNode();
   const ctx = makeCtx();
@@ -30,7 +34,8 @@ describe('alertHandler.defaultConfig', () => {
   it('cooldown=5000', () => expect(d.cooldown).toBe(5000));
   it('auto_dismiss=0', () => expect(d.auto_dismiss).toBe(0));
   it('max_active=5', () => expect(d.max_active).toBe(5));
-  it('message_template="Alert triggered"', () => expect(d.message_template).toBe('Alert triggered'));
+  it('message_template="Alert triggered"', () =>
+    expect(d.message_template).toBe('Alert triggered'));
 });
 
 // ─── onAttach ─────────────────────────────────────────────────────────────────
@@ -40,7 +45,8 @@ describe('alertHandler.onAttach', () => {
   it('isTriggered=false', () => expect(attach().node.__alertState.isTriggered).toBe(false));
   it('lastTriggerTime=0', () => expect(attach().node.__alertState.lastTriggerTime).toBe(0));
   it('triggerCount=0', () => expect(attach().node.__alertState.triggerCount).toBe(0));
-  it('activeAlerts map is empty', () => expect(attach().node.__alertState.activeAlerts.size).toBe(0));
+  it('activeAlerts map is empty', () =>
+    expect(attach().node.__alertState.activeAlerts.size).toBe(0));
   it('isOnCooldown=false', () => expect(attach().node.__alertState.isOnCooldown).toBe(false));
 });
 
@@ -128,13 +134,19 @@ describe('alertHandler.onEvent — alert_trigger', () => {
     const { node, ctx, config } = attach({ cooldown: 0 });
     ctx.emit.mockClear();
     trigger(node, ctx, config, { id: 'a1', message: 'Fire!', severity: 'critical' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_alert_triggered', expect.objectContaining({ alertId: 'a1', severity: 'critical', message: 'Fire!' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_alert_triggered',
+      expect.objectContaining({ alertId: 'a1', severity: 'critical', message: 'Fire!' })
+    );
   });
   it('emits alert_visual_effect when visual_effect != none', () => {
     const { node, ctx, config } = attach({ cooldown: 0, visual_effect: 'flash' });
     ctx.emit.mockClear();
     trigger(node, ctx, config);
-    expect(ctx.emit).toHaveBeenCalledWith('alert_visual_effect', expect.objectContaining({ effect: 'flash' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alert_visual_effect',
+      expect.objectContaining({ effect: 'flash' })
+    );
   });
   it('no alert_visual_effect when visual_effect=none', () => {
     const { node, ctx, config } = attach({ cooldown: 0, visual_effect: 'none' });
@@ -146,7 +158,10 @@ describe('alertHandler.onEvent — alert_trigger', () => {
     const { node, ctx, config } = attach({ cooldown: 0, sound: 'alarm.wav' });
     ctx.emit.mockClear();
     trigger(node, ctx, config);
-    expect(ctx.emit).toHaveBeenCalledWith('alert_play_sound', expect.objectContaining({ sound: 'alarm.wav' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alert_play_sound',
+      expect.objectContaining({ sound: 'alarm.wav' })
+    );
   });
   it('no alert_play_sound when sound is empty', () => {
     const { node, ctx, config } = attach({ cooldown: 0, sound: '' });
@@ -158,7 +173,10 @@ describe('alertHandler.onEvent — alert_trigger', () => {
     const { node, ctx, config } = attach({ cooldown: 0, haptic: true });
     ctx.emit.mockClear();
     trigger(node, ctx, config);
-    expect(ctx.emit).toHaveBeenCalledWith('alert_haptic', expect.objectContaining({ intensity: expect.any(Number) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alert_haptic',
+      expect.objectContaining({ intensity: expect.any(Number) })
+    );
   });
   it('no alert_haptic when haptic=false', () => {
     const { node, ctx, config } = attach({ cooldown: 0, haptic: false });
@@ -198,7 +216,10 @@ describe('alertHandler.onEvent — alert_trigger', () => {
     const { node, ctx, config } = attach({ cooldown: 0, notification: true });
     ctx.emit.mockClear();
     trigger(node, ctx, config, { id: 'n1', message: 'Alert!' });
-    expect(ctx.emit).toHaveBeenCalledWith('alert_notification', expect.objectContaining({ alertId: 'n1', message: 'Alert!' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alert_notification',
+      expect.objectContaining({ alertId: 'n1', message: 'Alert!' })
+    );
   });
   it('no alert_notification when notification=false', () => {
     const { node, ctx, config } = attach({ cooldown: 0, notification: false });
@@ -214,7 +235,10 @@ describe('alertHandler.onEvent — alert_trigger', () => {
     node.__alertState.isOnCooldown = false;
     ctx.emit.mockClear();
     trigger(node, ctx, config, { id: 'a3' });
-    expect(ctx.emit).toHaveBeenCalledWith('alert_rejected', expect.objectContaining({ reason: 'max_active_reached' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alert_rejected',
+      expect.objectContaining({ reason: 'max_active_reached' })
+    );
     expect(node.__alertState.activeAlerts.has('a3')).toBe(false);
   });
 });
@@ -233,7 +257,10 @@ describe('alertHandler.onEvent — alert_acknowledge', () => {
     trigger(node, ctx, config, { id: 'a1' });
     ctx.emit.mockClear();
     alertHandler.onEvent!(node, config, ctx, { type: 'alert_acknowledge', alertId: 'a1' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_alert_acknowledged', expect.objectContaining({ alertId: 'a1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_alert_acknowledged',
+      expect.objectContaining({ alertId: 'a1' })
+    );
   });
   it('no-op for unknown alertId', () => {
     const { node, ctx, config } = attach();
@@ -263,8 +290,14 @@ describe('alertHandler.onEvent — alert_dismiss', () => {
     trigger(node, ctx, config, { id: 'a1' });
     ctx.emit.mockClear();
     alertHandler.onEvent!(node, config, ctx, { type: 'alert_dismiss', alertId: 'a1' });
-    expect(ctx.emit).toHaveBeenCalledWith('alert_dismissed', expect.objectContaining({ alertId: 'a1' }));
-    expect(ctx.emit).toHaveBeenCalledWith('on_alert_cleared', expect.objectContaining({ alertId: 'a1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alert_dismissed',
+      expect.objectContaining({ alertId: 'a1' })
+    );
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_alert_cleared',
+      expect.objectContaining({ alertId: 'a1' })
+    );
   });
   it('no-op for unknown alertId', () => {
     const { node, ctx, config } = attach();
@@ -311,13 +344,16 @@ describe('alertHandler.onEvent — alert_query', () => {
     trigger(node, ctx, config, { id: 'a1' });
     ctx.emit.mockClear();
     alertHandler.onEvent!(node, config, ctx, { type: 'alert_query', queryId: 'q1' });
-    expect(ctx.emit).toHaveBeenCalledWith('alert_info', expect.objectContaining({
-      queryId: 'q1',
-      isTriggered: true,
-      activeCount: 1,
-      triggerCount: 1,
-      isOnCooldown: true,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alert_info',
+      expect.objectContaining({
+        queryId: 'q1',
+        isTriggered: true,
+        activeCount: 1,
+        triggerCount: 1,
+        isOnCooldown: true,
+      })
+    );
   });
   it('activeAlerts array in snapshot', () => {
     const { node, ctx, config } = attach({ cooldown: 0 });
@@ -346,7 +382,10 @@ describe('alertHandler.onUpdate', () => {
     ctx.emit.mockClear();
     alertHandler.onUpdate!(node, config, ctx, 0.016);
     expect(node.__alertState.activeAlerts.has('a1')).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('alert_dismissed', expect.objectContaining({ alertId: 'a1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'alert_dismissed',
+      expect.objectContaining({ alertId: 'a1' })
+    );
   });
   it('does not auto-dismiss when auto_dismiss=0', () => {
     const { node, ctx, config } = attach({ cooldown: 0, auto_dismiss: 0 });

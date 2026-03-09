@@ -9,6 +9,7 @@
 **Claim**: "HoloScript's multi-target compilation doesn't sacrifice platform-specific performance."
 
 **Validation**: Comparative benchmarks across identical VR scenes:
+
 1. HoloScript → compiled to Unity C#
 2. HoloScript → compiled to Unreal C++
 3. Hand-written Unity C# (baseline)
@@ -22,6 +23,7 @@
 ## Benchmark Scenarios
 
 ### Scenario 1: Basic VR Scene
+
 **Complexity**: Low
 **Purpose**: Validate core compilation overhead
 
@@ -50,6 +52,7 @@ composition "BasicScene" {
 ```
 
 **Expected Performance**:
+
 - Unity/Unreal: 90 FPS @ Quest 2
 - HoloScript → Unity/Unreal: 85-90 FPS (target: <10% overhead)
 - ThreeJSRenderer: 60 FPS @ desktop (WebXR baseline)
@@ -57,10 +60,12 @@ composition "BasicScene" {
 ---
 
 ### Scenario 2: High-Complexity Scene
+
 **Complexity**: High
 **Purpose**: Stress-test optimization
 
 **Scene**:
+
 - 10,000 dynamic physics objects
 - 5 light sources with shadows
 - PBR materials on all objects
@@ -68,6 +73,7 @@ composition "BasicScene" {
 - Networked state sync (20 players)
 
 **Expected Performance**:
+
 - Unity/Unreal: 72 FPS @ Quest 3
 - HoloScript → Unity/Unreal: 65-72 FPS (target: <10% overhead)
 - ThreeJSRenderer: 45 FPS @ desktop (acceptable for prototyping)
@@ -75,16 +81,19 @@ composition "BasicScene" {
 ---
 
 ### Scenario 3: Robotics Simulation
+
 **Complexity**: Medium
 **Purpose**: Validate URDF/SDF compilation
 
 **Scene**:
+
 - 6-DOF robot arm with 7 joints
 - Forward/inverse kinematics
 - Real-time physics simulation
 - Collision detection
 
 **Expected Performance**:
+
 - Unity + URDF: 60 FPS
 - HoloScript → URDF → Gazebo: 55-60 FPS
 - HoloScript → Unity: 60 FPS
@@ -92,10 +101,12 @@ composition "BasicScene" {
 ---
 
 ### Scenario 4: Multiplayer VR Social
+
 **Complexity**: High
 **Purpose**: Real-world usage pattern
 
 **Scene**:
+
 - 50 networked players (avatars with IK)
 - Voice chat (spatial audio)
 - 100+ interactable objects
@@ -103,6 +114,7 @@ composition "BasicScene" {
 - CRDT state synchronization
 
 **Expected Performance**:
+
 - Unity/Unreal (native): 72 FPS @ Quest 3
 - HoloScript → Unity/Unreal: 65-72 FPS
 - ThreeJSRenderer: 50 FPS @ desktop
@@ -112,30 +124,33 @@ composition "BasicScene" {
 ## Metrics to Collect
 
 ### 1. Runtime Performance
-| Metric | Target | Measurement Tool |
-|--------|--------|------------------|
+
+| Metric                      | Target                           | Measurement Tool                |
+| --------------------------- | -------------------------------- | ------------------------------- |
 | **FPS** (frames per second) | >60 FPS desktop, >72 FPS Quest 3 | Unity Profiler, Unreal Insights |
-| **Frame Time** | <16ms (60 FPS), <14ms (72 FPS) | Built-in profilers |
-| **Memory Usage** | <500MB Quest 2, <1GB Quest 3 | Unity Memory Profiler |
-| **GPU Usage** | <80% (headroom for spikes) | GPU profilers |
-| **CPU Usage** | <70% (1 core) | CPU profilers |
-| **Draw Calls** | <100 Quest 2, <200 Quest 3 | Render stats |
-| **Triangles** | <750K Quest 2, <1.5M Quest 3 | Render stats |
+| **Frame Time**              | <16ms (60 FPS), <14ms (72 FPS)   | Built-in profilers              |
+| **Memory Usage**            | <500MB Quest 2, <1GB Quest 3     | Unity Memory Profiler           |
+| **GPU Usage**               | <80% (headroom for spikes)       | GPU profilers                   |
+| **CPU Usage**               | <70% (1 core)                    | CPU profilers                   |
+| **Draw Calls**              | <100 Quest 2, <200 Quest 3       | Render stats                    |
+| **Triangles**               | <750K Quest 2, <1.5M Quest 3     | Render stats                    |
 
 ### 2. Build Performance
-| Metric | Target | Measurement Tool |
-|--------|--------|------------------|
-| **Compile Time** | <30 seconds (small scene) | `time holoscript compile` |
-| **Binary Size** | <50MB (Quest APK) | File size |
-| **Load Time** | <5 seconds (scene load) | Stopwatch |
-| **Hot Reload** | <2 seconds (iterative dev) | HotReloader.ts |
+
+| Metric           | Target                     | Measurement Tool          |
+| ---------------- | -------------------------- | ------------------------- |
+| **Compile Time** | <30 seconds (small scene)  | `time holoscript compile` |
+| **Binary Size**  | <50MB (Quest APK)          | File size                 |
+| **Load Time**    | <5 seconds (scene load)    | Stopwatch                 |
+| **Hot Reload**   | <2 seconds (iterative dev) | HotReloader.ts            |
 
 ### 3. Code Quality
-| Metric | Target | Measurement Tool |
-|--------|--------|------------------|
-| **Lines of Code** | HoloScript <50% of hand-written | `cloc` tool |
-| **Cyclomatic Complexity** | <10 (generated code) | Static analysis |
-| **Code Duplication** | <5% | Static analysis |
+
+| Metric                    | Target                          | Measurement Tool |
+| ------------------------- | ------------------------------- | ---------------- |
+| **Lines of Code**         | HoloScript <50% of hand-written | `cloc` tool      |
+| **Cyclomatic Complexity** | <10 (generated code)            | Static analysis  |
+| **Code Duplication**      | <5%                             | Static analysis  |
 
 ---
 
@@ -300,6 +315,7 @@ async function profileUnity(code: string, scenario: string): Promise<BenchmarkRe
 ## Performance Optimization Targets
 
 ### Tier 1 Platforms (Priority)
+
 **Target**: <5% overhead vs. hand-written
 
 - **Unity**: Optimize C# code generation (LINQ removal, struct allocation)
@@ -307,6 +323,7 @@ async function profileUnity(code: string, scenario: string): Promise<BenchmarkRe
 - **WebXR**: Optimize ThreeJSRenderer (geometry instancing, LOD)
 
 ### Tier 2 Platforms
+
 **Target**: <10% overhead
 
 - **Godot**: GDScript optimization
@@ -314,6 +331,7 @@ async function profileUnity(code: string, scenario: string): Promise<BenchmarkRe
 - **ARKit/ARCore**: Mobile-specific optimizations
 
 ### Tier 3 Platforms
+
 **Target**: <20% overhead (community-driven)
 
 - **VRChat/Udon**: Udon# optimization
@@ -334,7 +352,7 @@ on:
   pull_request:
     branches: [main, development]
   schedule:
-    - cron: '0 0 * * 0'  # Weekly on Sunday
+    - cron: '0 0 * * 0' # Weekly on Sunday
 
 jobs:
   benchmark:
@@ -364,6 +382,7 @@ jobs:
 ### Performance Regression Alerts
 
 **Alert if**:
+
 - FPS drops >10% vs. baseline
 - Memory usage increases >15%
 - Binary size increases >20%
@@ -378,12 +397,14 @@ jobs:
 **URL**: [benchmarks.holoscript.net](https://benchmarks.holoscript.net)
 
 **Features**:
+
 - Historical performance trends
 - Compare HoloScript versions (v3.4 vs. v3.5)
 - Compare platforms (Unity vs. Unreal)
 - Download raw data (JSON)
 
 **Example**:
+
 ```
 ┌───────────────────────────────────────────────┐
 │  HoloScript Performance Trends (Last 6 Months) │
@@ -410,6 +431,7 @@ jobs:
 Built a platform on HoloScript? Share your performance data:
 
 **Template**:
+
 ```json
 {
   "platform": "MyVRPlatform",
@@ -436,6 +458,7 @@ Built a platform on HoloScript? Share your performance data:
 ### What if HoloScript is slower?
 
 **Answer**: We'll:
+
 1. Identify bottlenecks (profiling)
 2. Optimize compiler backends (code generation)
 3. Document trade-offs (developer velocity vs. raw performance)
@@ -444,6 +467,7 @@ Built a platform on HoloScript? Share your performance data:
 ### Can I run benchmarks locally?
 
 **Yes!**
+
 ```bash
 git clone https://github.com/brianonbased-dev/HoloScript
 cd HoloScript/benchmarks
@@ -482,6 +506,6 @@ npm run benchmarks
 
 ---
 
-*Performance benchmarks validate HoloScript's core promise: write once, deploy everywhere—without sacrificing speed.*
+_Performance benchmarks validate HoloScript's core promise: write once, deploy everywhere—without sacrificing speed._
 
 © 2026 HoloScript Foundation

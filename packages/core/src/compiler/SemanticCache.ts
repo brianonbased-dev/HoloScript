@@ -26,10 +26,10 @@ import type { HoloObjectDecl, HoloComposition } from '../parser/HoloCompositionT
  * Cache entry types
  */
 export type SemanticCacheEntryType =
-  | 'ast-subtree'        // Parsed AST for a module or composition
-  | 'compiled-module'    // Compiled output for a module
-  | 'compiled-object'    // Compiled output for a single HoloObject
-  | 'trait-composition'  // Resolved trait composition
+  | 'ast-subtree' // Parsed AST for a module or composition
+  | 'compiled-module' // Compiled output for a module
+  | 'compiled-object' // Compiled output for a single HoloObject
+  | 'trait-composition' // Resolved trait composition
   | 'import-resolution'; // Resolved import graph
 
 /**
@@ -267,10 +267,7 @@ export class SemanticCache {
   /**
    * Get cache entry
    */
-  async get<T>(
-    contentHash: string,
-    type: SemanticCacheEntryType
-  ): Promise<CacheLookupResult<T>> {
+  async get<T>(contentHash: string, type: SemanticCacheEntryType): Promise<CacheLookupResult<T>> {
     if (!this.initialized) {
       await this.initialize();
     }
@@ -341,12 +338,7 @@ export class SemanticCache {
 
       // Update access stats in cache
       if (this.redis && this.redisConnected) {
-        await this.redis.set(
-          key,
-          JSON.stringify(entry),
-          'EX',
-          this.options.ttl
-        );
+        await this.redis.set(key, JSON.stringify(entry), 'EX', this.options.ttl);
       } else {
         this.memoryCache.set(key, entry);
       }
@@ -404,19 +396,12 @@ export class SemanticCache {
 
     try {
       if (this.redis && this.redisConnected) {
-        await this.redis.set(
-          key,
-          JSON.stringify(entry),
-          'EX',
-          this.options.ttl
-        );
+        await this.redis.set(key, JSON.stringify(entry), 'EX', this.options.ttl);
       } else {
         this.memoryCache.set(key, entry);
       }
 
-      this.log(
-        `Cache SET: ${type} (${contentHash.slice(0, 8)}...) [${entry.size} bytes]`
-      );
+      this.log(`Cache SET: ${type} (${contentHash.slice(0, 8)}...) [${entry.size} bytes]`);
     } catch (error) {
       this.log(`Cache set error: ${error}`);
     }
@@ -517,9 +502,7 @@ export class SemanticCache {
     const totalRequests = this.stats.hits + this.stats.misses;
     const hitRate = totalRequests > 0 ? this.stats.hits / totalRequests : 0;
     const avgLatencyMs =
-      this.stats.lookupCount > 0
-        ? this.stats.totalLatencyMs / this.stats.lookupCount
-        : 0;
+      this.stats.lookupCount > 0 ? this.stats.totalLatencyMs / this.stats.lookupCount : 0;
 
     let totalEntries = 0;
     const entriesByType: Record<SemanticCacheEntryType, number> = {

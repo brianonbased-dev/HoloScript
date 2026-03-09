@@ -44,14 +44,14 @@ describe('SemanticDiffEngine — Production', () => {
     const b = makeAST({ newProp: 'added' });
     const result = engine.diff(a, b);
     expect(result.equivalent).toBe(false);
-    expect(result.changes.some(c => c.type === 'added' && c.path.includes('newProp'))).toBe(true);
+    expect(result.changes.some((c) => c.type === 'added' && c.path.includes('newProp'))).toBe(true);
   });
 
   it('detects added nested object', () => {
     const a = makeAST({ config: {} });
     const b = makeAST({ config: { timeout: 5000 } });
     const result = engine.diff(a, b);
-    expect(result.changes.some(c => c.type === 'added')).toBe(true);
+    expect(result.changes.some((c) => c.type === 'added')).toBe(true);
   });
 
   // ─── Removals ─────────────────────────────────────────────────────────────
@@ -60,14 +60,16 @@ describe('SemanticDiffEngine — Production', () => {
     const a = makeAST({ oldProp: 'gone' });
     const b = makeAST();
     const result = engine.diff(a, b);
-    expect(result.changes.some(c => c.type === 'removed' && c.path.includes('oldProp'))).toBe(true);
+    expect(result.changes.some((c) => c.type === 'removed' && c.path.includes('oldProp'))).toBe(
+      true
+    );
   });
 
   it('detects removed nested key', () => {
     const a = makeAST({ meta: { debug: true, version: 1 } });
     const b = makeAST({ meta: { version: 1 } });
     const result = engine.diff(a, b);
-    expect(result.changes.some(c => c.type === 'removed')).toBe(true);
+    expect(result.changes.some((c) => c.type === 'removed')).toBe(true);
   });
 
   // ─── Modifications ────────────────────────────────────────────────────────
@@ -76,7 +78,7 @@ describe('SemanticDiffEngine — Production', () => {
     const a = makeAST({ value: 10 });
     const b = makeAST({ value: 20 });
     const result = engine.diff(a, b);
-    const change = result.changes.find(c => c.type === 'modified');
+    const change = result.changes.find((c) => c.type === 'modified');
     expect(change).toBeDefined();
     expect(change!.oldValue).toBe(10);
     expect(change!.newValue).toBe(20);
@@ -86,14 +88,14 @@ describe('SemanticDiffEngine — Production', () => {
     const a = makeAST({ name: 'alpha' });
     const b = makeAST({ name: 'beta' });
     const result = engine.diff(a, b);
-    expect(result.changes.some(c => c.type === 'modified')).toBe(true);
+    expect(result.changes.some((c) => c.type === 'modified')).toBe(true);
   });
 
   it('detects type change (number → string)', () => {
     const a = makeAST({ id: 42 });
     const b = makeAST({ id: '42' });
     const result = engine.diff(a, b);
-    expect(result.changes.some(c => c.type === 'modified')).toBe(true);
+    expect(result.changes.some((c) => c.type === 'modified')).toBe(true);
   });
 
   it('detects type change (object → scalar)', () => {
@@ -110,21 +112,21 @@ describe('SemanticDiffEngine — Production', () => {
     const a = makeAST({ items: [1, 2] });
     const b = makeAST({ items: [1, 2, 3] });
     const result = engine.diff(a, b);
-    expect(result.changes.some(c => c.type === 'added' && c.path.includes('[2]'))).toBe(true);
+    expect(result.changes.some((c) => c.type === 'added' && c.path.includes('[2]'))).toBe(true);
   });
 
   it('detects element removed from array', () => {
     const a = makeAST({ items: [1, 2, 3] });
     const b = makeAST({ items: [1, 2] });
     const result = engine.diff(a, b);
-    expect(result.changes.some(c => c.type === 'removed')).toBe(true);
+    expect(result.changes.some((c) => c.type === 'removed')).toBe(true);
   });
 
   it('detects element modified in array', () => {
     const a = makeAST({ items: [1, 2, 3] });
     const b = makeAST({ items: [1, 99, 3] });
     const result = engine.diff(a, b);
-    expect(result.changes.some(c => c.type === 'modified' && c.path.includes('[1]'))).toBe(true);
+    expect(result.changes.some((c) => c.type === 'modified' && c.path.includes('[1]'))).toBe(true);
   });
 
   // ─── Comment Stripping ────────────────────────────────────────────────────
@@ -150,8 +152,10 @@ describe('SemanticDiffEngine — Production', () => {
     const b = makeAST({ bar: { type: 'number', name: 'bar', value: 7 } });
     const result = renameEngine.diff(a, b);
     // With rename detection on, pair should be 'renamed', or at minimum added+removed
-    const hasRename = result.changes.some(c => c.type === 'renamed');
-    const hasBothAddedRemoved = result.changes.some(c => c.type === 'added') && result.changes.some(c => c.type === 'removed');
+    const hasRename = result.changes.some((c) => c.type === 'renamed');
+    const hasBothAddedRemoved =
+      result.changes.some((c) => c.type === 'added') &&
+      result.changes.some((c) => c.type === 'removed');
     expect(hasRename || hasBothAddedRemoved).toBe(true);
   });
 
@@ -159,7 +163,7 @@ describe('SemanticDiffEngine — Production', () => {
     const a = makeAST({ alpha: { type: 'string', value: 'x' } });
     const b = makeAST({ beta: { type: 'string', value: 'x' } });
     const result = engine.diff(a, b, 'old', 'new', { detectRenames: false });
-    expect(result.changes.some(c => c.type === 'renamed')).toBe(false);
+    expect(result.changes.some((c) => c.type === 'renamed')).toBe(false);
   });
 
   it('custom renameThreshold of 0 disables rename detection effectively', () => {
@@ -177,7 +181,7 @@ describe('SemanticDiffEngine — Production', () => {
     const a = makeAST({ section1: { config: 42 }, section2: {} });
     const b = makeAST({ section1: {}, section2: { config: 42 } });
     const result = engine.diff(a, b, 'old', 'new', { detectMoves: true });
-    const hasMove = result.changes.some(c => c.type === 'moved');
+    const hasMove = result.changes.some((c) => c.type === 'moved');
     // Either a move is detected, or added+removed is produced — both valid
     expect(result.changes.length).toBeGreaterThan(0);
     expect(hasMove !== undefined).toBe(true);
@@ -189,7 +193,7 @@ describe('SemanticDiffEngine — Production', () => {
     const a = makeAST({ a: { v: 5 }, b: {} });
     const b = makeAST({ a: {}, b: { v: 5 } });
     const result = noMoveEngine.diff(a, b);
-    expect(result.changes.some(c => c.type === 'moved')).toBe(false);
+    expect(result.changes.some((c) => c.type === 'moved')).toBe(false);
   });
 
   // ─── Summary Tallying ─────────────────────────────────────────────────────
@@ -212,7 +216,7 @@ describe('SemanticDiffEngine — Production', () => {
     const a = makeAST({ name: 'foo', value: 1 });
     const b = makeAST({ name: 'bar', value: 2 });
     const result = engine.diff(a, b);
-    const modifiedInChanges = result.changes.filter(c => c.type === 'modified').length;
+    const modifiedInChanges = result.changes.filter((c) => c.type === 'modified').length;
     expect(result.summary.modified).toBe(modifiedInChanges);
   });
 
@@ -222,8 +226,12 @@ describe('SemanticDiffEngine — Production', () => {
     const a = makeAST({ a: 1, b: 'hello' });
     const b = makeAST({ a: 2, c: 'world' });
     const result = engine.diff(a, b);
-    const summed = result.summary.added + result.summary.removed + result.summary.modified
-      + result.summary.renamed + result.summary.moved;
+    const summed =
+      result.summary.added +
+      result.summary.removed +
+      result.summary.modified +
+      result.summary.renamed +
+      result.summary.moved;
     // changeCount should equal the sum (excluding unchanged which are not in changes[])
     expect(result.changeCount).toBe(summed);
   });

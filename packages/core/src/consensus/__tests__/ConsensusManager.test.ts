@@ -48,7 +48,7 @@ describe('ConsensusManager', () => {
     });
 
     it('getNodes returns node ids', () => {
-      const ids = manager.getNodes().map(n => n.id);
+      const ids = manager.getNodes().map((n) => n.id);
       expect(ids).toContain('node-1');
       expect(ids).toContain('node-2');
       expect(ids).toContain('node-3');

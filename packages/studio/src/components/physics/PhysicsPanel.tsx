@@ -7,18 +7,31 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Atom, X, Search, Copy, Plus, Mountain, Crosshair } from 'lucide-react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 import { useSpatialEngine } from '@/hooks/useSpatialEngine';
 
 interface PhysicsPreset {
-  id: string; name: string; type: string; description: string; emoji: string; traitSnippet: string;
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  emoji: string;
+  traitSnippet: string;
 }
 
-interface PhysicsPanelProps { onClose: () => void; }
+interface PhysicsPanelProps {
+  onClose: () => void;
+}
 
 const TYPE_COLORS: Record<string, string> = {
-  rigid: '#4488ff', static: '#888888', kinematic: '#ff8800', trigger: '#44cc88',
-  soft: '#cc44ff', cloth: '#ffcc44', vehicle: '#ff4466', character: '#00ccff',
+  rigid: '#4488ff',
+  static: '#888888',
+  kinematic: '#ff8800',
+  trigger: '#44cc88',
+  soft: '#cc44ff',
+  cloth: '#ffcc44',
+  vehicle: '#ff4466',
+  character: '#00ccff',
 };
 
 export function PhysicsPanel({ onClose }: PhysicsPanelProps) {
@@ -53,7 +66,8 @@ export function PhysicsPanel({ onClose }: PhysicsPanelProps) {
 
   const copy = async (p: PhysicsPreset) => {
     await navigator.clipboard.writeText(p.traitSnippet);
-    setCopied(true); setTimeout(() => setCopied(false), 1500);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   };
 
   return (
@@ -62,7 +76,10 @@ export function PhysicsPanel({ onClose }: PhysicsPanelProps) {
       <div className="flex shrink-0 items-center gap-2 border-b border-studio-border px-3 py-2.5">
         <Atom className="h-4 w-4 text-studio-accent" />
         <span className="text-[12px] font-semibold">Physics Traits</span>
-        <button onClick={onClose} className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text">
+        <button
+          onClick={onClose}
+          className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -71,18 +88,26 @@ export function PhysicsPanel({ onClose }: PhysicsPanelProps) {
       <div className="shrink-0 border-b border-studio-border p-2.5">
         <div className="flex items-center gap-2 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1.5">
           <Search className="h-3.5 w-3.5 text-studio-muted" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search physics types…"
-            className="flex-1 bg-transparent text-[11px] outline-none placeholder-studio-muted/40" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search physics types…"
+            className="flex-1 bg-transparent text-[11px] outline-none placeholder-studio-muted/40"
+          />
         </div>
       </div>
 
       {/* Preset cards */}
       <div className="flex-1 space-y-2 overflow-y-auto p-2.5">
-        {loading && <p className="py-8 text-center text-[10px] text-studio-muted animate-pulse">Loading…</p>}
+        {loading && (
+          <p className="py-8 text-center text-[10px] text-studio-muted animate-pulse">Loading…</p>
+        )}
         {presets.map((p) => (
-          <div key={p.id}
+          <div
+            key={p.id}
             onClick={() => setSelected(selected?.id === p.id ? null : p)}
-            className={`cursor-pointer overflow-hidden rounded-xl border transition ${selected?.id === p.id ? 'border-studio-accent bg-studio-accent/10' : 'border-studio-border bg-studio-surface hover:border-studio-accent/40'}`}>
+            className={`cursor-pointer overflow-hidden rounded-xl border transition ${selected?.id === p.id ? 'border-studio-accent bg-studio-accent/10' : 'border-studio-border bg-studio-surface hover:border-studio-accent/40'}`}
+          >
             {/* Accent bar */}
             <div className="h-1" style={{ backgroundColor: TYPE_COLORS[p.type] ?? '#6666aa' }} />
             <div className="p-2.5">
@@ -92,8 +117,12 @@ export function PhysicsPanel({ onClose }: PhysicsPanelProps) {
                   <p className="text-[11px] font-semibold">{p.name}</p>
                   <p className="text-[9px] text-studio-muted line-clamp-2">{p.description}</p>
                 </div>
-                <span className="shrink-0 rounded-full border border-studio-border px-1.5 py-0.5 text-[7px] font-mono"
-                  style={{ color: TYPE_COLORS[p.type] ?? '#888' }}>{p.type}</span>
+                <span
+                  className="shrink-0 rounded-full border border-studio-border px-1.5 py-0.5 text-[7px] font-mono"
+                  style={{ color: TYPE_COLORS[p.type] ?? '#888' }}
+                >
+                  {p.type}
+                </span>
               </div>
 
               {/* Expanded snippet */}
@@ -103,12 +132,22 @@ export function PhysicsPanel({ onClose }: PhysicsPanelProps) {
                     {p.traitSnippet.trim()}
                   </pre>
                   <div className="flex gap-1.5">
-                    <button onClick={(e) => { e.stopPropagation(); insert(p); }}
-                      className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-studio-accent py-1.5 text-[10px] font-semibold text-white hover:brightness-110 transition">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        insert(p);
+                      }}
+                      className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-studio-accent py-1.5 text-[10px] font-semibold text-white hover:brightness-110 transition"
+                    >
                       <Plus className="h-3 w-3" /> Insert Object
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); copy(p); }}
-                      className={`flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-[9px] transition ${copied ? 'border-green-500/40 text-green-400' : 'border-studio-border text-studio-muted hover:text-studio-text'}`}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copy(p);
+                      }}
+                      className={`flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-[9px] transition ${copied ? 'border-green-500/40 text-green-400' : 'border-studio-border text-studio-muted hover:text-studio-text'}`}
+                    >
                       <Copy className="h-3 w-3" /> {copied ? 'Copied!' : 'Copy'}
                     </button>
                   </div>
@@ -123,7 +162,9 @@ export function PhysicsPanel({ onClose }: PhysicsPanelProps) {
       <div className="shrink-0 border-t border-studio-border p-2.5 space-y-1.5">
         <div className="flex items-center gap-1.5 text-[9px] text-studio-muted">
           <Crosshair className="h-3 w-3" />
-          <span>Spatial Engine: {engineReady ? (isWasm ? 'WASM' : 'JS Fallback') : 'Loading...'}</span>
+          <span>
+            Spatial Engine: {engineReady ? (isWasm ? 'WASM' : 'JS Fallback') : 'Loading...'}
+          </span>
         </div>
         <button
           onClick={() => {

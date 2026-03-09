@@ -7,7 +7,9 @@ import { AudioFilter } from '../audio/AudioFilter';
 
 describe('AudioFilter', () => {
   let filter: AudioFilter;
-  beforeEach(() => { filter = new AudioFilter(); });
+  beforeEach(() => {
+    filter = new AudioFilter();
+  });
 
   it('addBand creates a band', () => {
     filter.addBand('b1', { type: 'lowpass', frequency: 1000, q: 1, gain: 0 });

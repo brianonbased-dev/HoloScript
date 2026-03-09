@@ -15,7 +15,7 @@ const path = require('path');
 
 function main() {
   const args = process.argv.slice(2);
-  const manifestPath = args.find(a => a.endsWith('.json'));
+  const manifestPath = args.find((a) => a.endsWith('.json'));
 
   if (!manifestPath || !fs.existsSync(manifestPath)) {
     console.error('Error: manifest.json path required');

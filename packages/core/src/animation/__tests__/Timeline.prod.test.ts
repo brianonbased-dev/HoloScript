@@ -14,7 +14,10 @@ function makeClip(id: string, duration: number, delay = 0): AnimationClip {
   return {
     id,
     property: id,
-    keyframes: [{ time: 0, value: 0 }, { time: duration, value: 100 }],
+    keyframes: [
+      { time: 0, value: 0 },
+      { time: duration, value: 100 },
+    ],
     duration,
     loop: false,
     pingPong: false,
@@ -150,7 +153,13 @@ describe('Timeline — Production', () => {
   // ─── onComplete ───────────────────────────────────────────────────
   it('onComplete fires after single play', () => {
     let done = false;
-    const tl = new Timeline({ mode: 'sequential', loop: false, onComplete: () => { done = true; } });
+    const tl = new Timeline({
+      mode: 'sequential',
+      loop: false,
+      onComplete: () => {
+        done = true;
+      },
+    });
     tl.add(makeClip('a', 0.1), () => {});
     tl.play();
     for (let i = 0; i < 20; i++) tl.update(0.1);
@@ -160,12 +169,16 @@ describe('Timeline — Production', () => {
   // ─── loop ─────────────────────────────────────────────────────────
   it('onLoop fires on each loop iteration', () => {
     const loops: number[] = [];
-    const tl = new Timeline({ mode: 'sequential', loop: true, loopCount: -1, onLoop: (n) => loops.push(n) });
+    const tl = new Timeline({
+      mode: 'sequential',
+      loop: true,
+      loopCount: -1,
+      onLoop: (n) => loops.push(n),
+    });
     tl.add(makeClip('a', 0.1), () => {});
     tl.play();
     // 30 steps × 0.1s = 3s, clip is 0.1s → at least 20 loops
     for (let i = 0; i < 30; i++) tl.update(0.1);
     expect(loops.length).toBeGreaterThanOrEqual(2);
   });
-
 });

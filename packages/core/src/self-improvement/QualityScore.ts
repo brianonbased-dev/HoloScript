@@ -72,10 +72,10 @@ export interface QualityReport {
 // =============================================================================
 
 export const QUALITY_WEIGHTS = {
-  testPassRate: 0.30,
+  testPassRate: 0.3,
   coverage: 0.25,
-  typeCheckPass: 0.20,
-  lintScore: 0.10,
+  typeCheckPass: 0.2,
+  lintScore: 0.1,
   circuitBreakerHealth: 0.15,
 } as const;
 
@@ -88,9 +88,7 @@ const _weightSum =
   QUALITY_WEIGHTS.circuitBreakerHealth;
 
 if (Math.abs(_weightSum - 1.0) > 1e-9) {
-  throw new Error(
-    `Quality weights must sum to 1.0 but got ${_weightSum}`,
-  );
+  throw new Error(`Quality weights must sum to 1.0 but got ${_weightSum}`);
 }
 
 // =============================================================================
@@ -111,10 +109,7 @@ if (Math.abs(_weightSum - 1.0) > 1e-9) {
 export function calculateQualityScore(metrics: QualityMetrics): QualityReport {
   // --- Normalise each dimension to [0, 1] ---
 
-  const testPassRate =
-    metrics.testsTotal > 0
-      ? metrics.testsPassed / metrics.testsTotal
-      : 0;
+  const testPassRate = metrics.testsTotal > 0 ? metrics.testsPassed / metrics.testsTotal : 0;
 
   const coverage = clamp(metrics.coveragePercent / 100, 0, 1);
 
@@ -171,7 +166,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function statusFromScore(score: number): QualityReport['status'] {
-  if (score >= 0.90) return 'excellent';
+  if (score >= 0.9) return 'excellent';
   if (score >= 0.75) return 'good';
   if (score >= 0.55) return 'fair';
   if (score >= 0.35) return 'poor';

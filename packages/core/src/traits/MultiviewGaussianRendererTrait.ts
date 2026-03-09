@@ -13,8 +13,8 @@ export interface ViewConfig {
 }
 
 export interface FoveatedBlendConfig {
-  innerRadius: number;  // full quality
-  outerRadius: number;  // reduced quality
+  innerRadius: number; // full quality
+  outerRadius: number; // reduced quality
   innerQuality: number; // 1.0 = full gaussians
   outerQuality: number; // 0.25 = quarter gaussians
   peripheralDecimation: number; // 0-1
@@ -30,8 +30,10 @@ export interface MultiviewRenderResult {
 }
 
 export const DEFAULT_FOVEATED_BLEND: FoveatedBlendConfig = {
-  innerRadius: 0.15, outerRadius: 0.6,
-  innerQuality: 1.0, outerQuality: 0.25,
+  innerRadius: 0.15,
+  outerRadius: 0.6,
+  innerQuality: 1.0,
+  outerQuality: 0.25,
   peripheralDecimation: 0.5,
 };
 
@@ -46,14 +48,20 @@ export class MultiviewGaussianRendererTrait {
     this.blendConfig = { ...DEFAULT_FOVEATED_BLEND, ...blendConfig };
   }
 
-  addView(view: ViewConfig): void { this.views.set(view.userId, view); }
-  removeView(userId: string): void { this.views.delete(userId); }
+  addView(view: ViewConfig): void {
+    this.views.set(view.userId, view);
+  }
+  removeView(userId: string): void {
+    this.views.delete(userId);
+  }
   updateView(userId: string, update: Partial<ViewConfig>): void {
     const v = this.views.get(userId);
     if (v) this.views.set(userId, { ...v, ...update });
   }
 
-  setGaussianCount(count: number): void { this.gaussianCount = count; }
+  setGaussianCount(count: number): void {
+    this.gaussianCount = count;
+  }
 
   preprocess(): { sortedIndices: Uint32Array; preprocessMs: number } {
     const start = performance.now();
@@ -73,7 +81,7 @@ export class MultiviewGaussianRendererTrait {
     const peripheralFraction = 1 - fovealFraction;
     return Math.ceil(
       this.gaussianCount * fovealFraction * this.blendConfig.innerQuality +
-      this.gaussianCount * peripheralFraction * this.blendConfig.outerQuality
+        this.gaussianCount * peripheralFraction * this.blendConfig.outerQuality
     );
   }
 
@@ -85,7 +93,13 @@ export class MultiviewGaussianRendererTrait {
     return naiveTotal > 0 ? ((naiveTotal - effectiveTotal) / naiveTotal) * 100 : 0;
   }
 
-  getViewCount(): number { return this.views.size; }
-  getBlendConfig(): FoveatedBlendConfig { return { ...this.blendConfig }; }
-  setBlendConfig(config: Partial<FoveatedBlendConfig>): void { Object.assign(this.blendConfig, config); }
+  getViewCount(): number {
+    return this.views.size;
+  }
+  getBlendConfig(): FoveatedBlendConfig {
+    return { ...this.blendConfig };
+  }
+  setBlendConfig(config: Partial<FoveatedBlendConfig>): void {
+    Object.assign(this.blendConfig, config);
+  }
 }

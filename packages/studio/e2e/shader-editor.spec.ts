@@ -15,7 +15,9 @@ test.describe('Shader Node Graph editor', () => {
     await page.waitForLoadState('networkidle');
 
     // Open the shader editor panel (bottom panel toggle)
-    const shaderToggle = page.getByRole('button', { name: /node graph|shader|graph editor/i }).first();
+    const shaderToggle = page
+      .getByRole('button', { name: /node graph|shader|graph editor/i })
+      .first();
     if (await shaderToggle.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await shaderToggle.click();
     }
@@ -41,7 +43,9 @@ test.describe('Shader Node Graph editor', () => {
     if (await paletteBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
       await paletteBtn.click();
       // A new node should appear
-      await expect(page.locator('.react-flow__node')).toHaveCount(nodesBefore + 1, { timeout: 5_000 });
+      await expect(page.locator('.react-flow__node')).toHaveCount(nodesBefore + 1, {
+        timeout: 5_000,
+      });
     }
   });
 

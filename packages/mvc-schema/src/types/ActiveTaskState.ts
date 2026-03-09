@@ -99,10 +99,13 @@ export interface ActiveTaskState {
   tasks: TaskEntry[];
 
   /** OR-Set add/remove tags for each task */
-  taskTags: Record<string, {
-    addTags: string[];
-    removeTags: string[];
-  }>;
+  taskTags: Record<
+    string,
+    {
+      addTags: string[];
+      removeTags: string[];
+    }
+  >;
 
   /** LWW status registers for each task */
   statusRegisters: Record<string, TaskStatusUpdate>;

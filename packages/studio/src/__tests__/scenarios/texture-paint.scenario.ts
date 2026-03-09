@@ -91,8 +91,8 @@ describe('Scenario: Texture Paint — UV Coordinate Mapping', () => {
   });
 
   it('V axis is flipped (WebGL convention)', () => {
-    const low = uvToCanvas(0.5, 0.25);   // lower in texture
-    const high = uvToCanvas(0.5, 0.75);  // higher in texture
-    expect(low.y).toBeGreaterThan(high.y);  // flipped on canvas
+    const low = uvToCanvas(0.5, 0.25); // lower in texture
+    const high = uvToCanvas(0.5, 0.75); // higher in texture
+    expect(low.y).toBeGreaterThan(high.y); // flipped on canvas
   });
 });

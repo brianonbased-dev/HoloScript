@@ -87,7 +87,7 @@ export class TreeSitterManager {
     // ── Both failed ────────────────────────────────────────────────────────
     console.error(
       '[TreeSitter] Neither native nor WASM backend available. ' +
-      'Parser features disabled (non-fatal).',
+        'Parser features disabled (non-fatal).'
     );
     return false;
   }
@@ -124,7 +124,7 @@ export class TreeSitterManager {
       return true;
     } catch (err) {
       console.error(
-        `[TreeSitter] Native initialization failed: ${err instanceof Error ? err.message : err}`,
+        `[TreeSitter] Native initialization failed: ${err instanceof Error ? err.message : err}`
       );
       return false;
     }
@@ -164,7 +164,7 @@ export class TreeSitterManager {
       return true;
     } catch (err) {
       console.error(
-        `[TreeSitter] WASM fallback failed: ${err instanceof Error ? err.message : err}`,
+        `[TreeSitter] WASM fallback failed: ${err instanceof Error ? err.message : err}`
       );
       return false;
     }
@@ -209,7 +209,7 @@ export class TreeSitterManager {
     uri: string,
     newText: string,
     version: number,
-    changes: ContentChange[],
+    changes: ContentChange[]
   ): Parser.Tree | null {
     if (!this.parser) return null;
 
@@ -238,9 +238,10 @@ export class TreeSitterManager {
       // After editing the tree, apply the same text change to our tracked text
       // so byte offsets stay correct for subsequent changes in this batch.
       const startOffset = this.positionToByteOffset(currentText, change.range.start);
-      const endOffset = change.rangeLength !== undefined
-        ? startOffset + change.rangeLength
-        : this.positionToByteOffset(currentText, change.range.end);
+      const endOffset =
+        change.rangeLength !== undefined
+          ? startOffset + change.rangeLength
+          : this.positionToByteOffset(currentText, change.range.end);
       currentText = currentText.slice(0, startOffset) + change.text + currentText.slice(endOffset);
     }
 
@@ -293,15 +294,13 @@ export class TreeSitterManager {
   /**
    * Convert an LSP ContentChange (with range) into a tree-sitter Edit descriptor.
    */
-  private contentChangeToEdit(
-    text: string,
-    change: ContentChange,
-  ): Parser.Edit {
+  private contentChangeToEdit(text: string, change: ContentChange): Parser.Edit {
     const range = change.range!;
     const startIndex = this.positionToByteOffset(text, range.start);
-    const oldEndIndex = change.rangeLength !== undefined
-      ? startIndex + change.rangeLength
-      : this.positionToByteOffset(text, range.end);
+    const oldEndIndex =
+      change.rangeLength !== undefined
+        ? startIndex + change.rangeLength
+        : this.positionToByteOffset(text, range.end);
     const newEndIndex = startIndex + change.text.length;
 
     const startPosition = { row: range.start.line, column: range.start.character };
@@ -332,7 +331,7 @@ export class TreeSitterManager {
    */
   private positionToByteOffset(
     text: string,
-    position: { line: number; character: number },
+    position: { line: number; character: number }
   ): number {
     let offset = 0;
     let line = 0;
@@ -355,7 +354,7 @@ export class TreeSitterManager {
   private walkErrors(
     node: Parser.SyntaxNode,
     diagnostics: TreeSitterDiagnostic[],
-    seen: Set<number>,
+    seen: Set<number>
   ): void {
     if (seen.has(node.id)) return;
 

@@ -173,12 +173,8 @@ describe('FracturePhysics', () => {
       }
 
       // Find columns on different floors
-      const bottomColumn = structure.elements.find(
-        (el) => el.type === 'column' && el.floor === 1
-      );
-      const topColumn = structure.elements.find(
-        (el) => el.type === 'column' && el.floor === 10
-      );
+      const bottomColumn = structure.elements.find((el) => el.type === 'column' && el.floor === 1);
+      const topColumn = structure.elements.find((el) => el.type === 'column' && el.floor === 10);
 
       expect(bottomColumn).toBeDefined();
       expect(topColumn).toBeDefined();
@@ -388,9 +384,7 @@ describe('FracturePhysics', () => {
       if (debris.length > 0) {
         const particle = debris[0];
         const speed = Math.sqrt(
-          particle.velocity[0] ** 2 +
-          particle.velocity[1] ** 2 +
-          particle.velocity[2] ** 2
+          particle.velocity[0] ** 2 + particle.velocity[1] ** 2 + particle.velocity[2] ** 2
         );
 
         expect(speed).toBeGreaterThan(0);
@@ -656,9 +650,7 @@ describe('FracturePhysics', () => {
       if (stats.failedElements > 0) {
         expect(stats.failureRate).toBeGreaterThan(0);
         expect(stats.failureRate).toBeLessThanOrEqual(1);
-        expect(stats.failureRate).toBeCloseTo(
-          stats.failedElements / stats.totalElements
-        );
+        expect(stats.failureRate).toBeCloseTo(stats.failedElements / stats.totalElements);
       }
     });
   });

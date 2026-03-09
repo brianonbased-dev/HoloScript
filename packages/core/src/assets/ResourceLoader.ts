@@ -50,9 +50,15 @@ export class ResourceLoader {
   // Request Management
   // ---------------------------------------------------------------------------
 
-  addRequest(req: ResourceRequest): void { this.requests.set(req.id, req); }
-  cancelRequest(id: string): void { this.cancelled.add(id); }
-  onProgress(callback: ProgressCallback): void { this.progressCallbacks.push(callback); }
+  addRequest(req: ResourceRequest): void {
+    this.requests.set(req.id, req);
+  }
+  cancelRequest(id: string): void {
+    this.cancelled.add(id);
+  }
+  onProgress(callback: ProgressCallback): void {
+    this.progressCallbacks.push(callback);
+  }
 
   // ---------------------------------------------------------------------------
   // Loading (respects dependency order)
@@ -72,13 +78,19 @@ export class ResourceLoader {
       const req = this.requests.get(id)!;
 
       // Check dependencies
-      const depsFailed = req.dependencies.some(depId => {
+      const depsFailed = req.dependencies.some((depId) => {
         const depResult = this.results.get(depId);
         return !depResult || depResult.status !== 'loaded';
       });
 
       if (depsFailed) {
-        this.results.set(id, { id, status: 'error', data: null, error: 'dependency failed', loadTimeMs: 0 });
+        this.results.set(id, {
+          id,
+          status: 'error',
+          data: null,
+          error: 'dependency failed',
+          loadTimeMs: 0,
+        });
         loaded++;
         continue;
       }
@@ -89,7 +101,13 @@ export class ResourceLoader {
         this.results.set(id, { id, status: 'loaded', data, loadTimeMs: Date.now() - start });
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'unknown error';
-        this.results.set(id, { id, status: 'error', data: null, error: msg, loadTimeMs: Date.now() - start });
+        this.results.set(id, {
+          id,
+          status: 'error',
+          data: null,
+          error: msg,
+          loadTimeMs: Date.now() - start,
+        });
       }
 
       loaded++;
@@ -128,7 +146,13 @@ export class ResourceLoader {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getResult(id: string): ResourceResult | undefined { return this.results.get(id); }
-  getRequestCount(): number { return this.requests.size; }
-  getLoadedCount(): number { return [...this.results.values()].filter(r => r.status === 'loaded').length; }
+  getResult(id: string): ResourceResult | undefined {
+    return this.results.get(id);
+  }
+  getRequestCount(): number {
+    return this.requests.size;
+  }
+  getLoadedCount(): number {
+    return [...this.results.values()].filter((r) => r.status === 'loaded').length;
+  }
 }

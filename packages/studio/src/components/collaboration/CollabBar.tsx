@@ -81,16 +81,8 @@ export function CollabBar({ enabled = false }: CollabBarProps) {
               : 'border border-studio-border/60 bg-studio-surface text-studio-muted hover:text-studio-text'
         }`}
       >
-        {collabOn && connected ? (
-          <Wifi className="h-3 w-3" />
-        ) : (
-          <WifiOff className="h-3 w-3" />
-        )}
-        {collabOn
-          ? connected
-            ? `${peers.length + 1} online`
-            : 'Connecting…'
-          : 'Collab'}
+        {collabOn && connected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+        {collabOn ? (connected ? `${peers.length + 1} online` : 'Connecting…') : 'Collab'}
       </button>
 
       {/* Peer avatars */}

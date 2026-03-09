@@ -12,11 +12,7 @@ async function quickBench() {
   // Simple operation test
   console.log('Testing basic operations (100 iterations)...\n');
 
-  const adapters = [
-    new HoloScriptCRDTAdapter(),
-    new YjsAdapter(),
-    new AutomergeAdapter(),
-  ];
+  const adapters = [new HoloScriptCRDTAdapter(), new YjsAdapter(), new AutomergeAdapter()];
 
   for (const adapter of adapters) {
     const start = performance.now();

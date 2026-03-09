@@ -27,7 +27,9 @@ describe('LocalRegistry', () => {
 
   it('throws if duplicate version published', () => {
     registry.publish({ name: 'my-pkg', version: '1.0.0', content: 'v1' });
-    expect(() => registry.publish({ name: 'my-pkg', version: '1.0.0', content: 'dup' })).toThrow('already exists');
+    expect(() => registry.publish({ name: 'my-pkg', version: '1.0.0', content: 'dup' })).toThrow(
+      'already exists'
+    );
   });
 
   it('getPackage returns manifest when found', () => {
@@ -83,8 +85,18 @@ describe('LocalRegistry', () => {
   });
 
   it('search finds by description', () => {
-    registry.publish({ name: 'pkg-x', version: '1.0.0', description: 'audio engine', content: 'x' });
-    registry.publish({ name: 'pkg-y', version: '1.0.0', description: 'shader toolkit', content: 'y' });
+    registry.publish({
+      name: 'pkg-x',
+      version: '1.0.0',
+      description: 'audio engine',
+      content: 'x',
+    });
+    registry.publish({
+      name: 'pkg-y',
+      version: '1.0.0',
+      description: 'shader toolkit',
+      content: 'y',
+    });
     const results = registry.search('audio');
     expect(results).toHaveLength(1);
     expect(results[0]!.name).toBe('pkg-x');
@@ -146,7 +158,7 @@ describe('LocalRegistry', () => {
     expect(registry.size).toBe(0);
     expect(registry.list()).toHaveLength(0);
   });
-}); 
+});
 
 describe('PackageResolver', () => {
   let registry: LocalRegistry;
@@ -246,4 +258,4 @@ describe('PackageResolver', () => {
     const emptyResolver = new PackageResolver(emptyRegistry);
     expect(emptyResolver.resolve('any-pkg', '*')).toBeNull();
   });
-}); 
+});

@@ -15,10 +15,7 @@ interface Props {
   stroke: Stroke;
 }
 
-function materialForBrush(
-  color: string,
-  style: Stroke['material']
-): THREE.Material {
+function materialForBrush(color: string, style: Stroke['material']): THREE.Material {
   const hex = new THREE.Color(color);
 
   switch (style) {
@@ -67,10 +64,7 @@ export function SketchStroke({ stroke }: Props) {
     return new THREE.TubeGeometry(path, Math.max(points.length * 3, 12), size, 8, false);
   }, [points, size]);
 
-  const mat = useMemo(
-    () => materialForBrush(color, brushMat),
-    [color, brushMat]
-  );
+  const mat = useMemo(() => materialForBrush(color, brushMat), [color, brushMat]);
 
   if (!tubeGeometry) return null;
 

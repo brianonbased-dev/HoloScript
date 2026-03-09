@@ -127,7 +127,8 @@ export class SceneBundler {
     const criticalAssets = [...this.entryPoints].filter((id) => this.assets.has(id));
     if (criticalAssets.length > 0) {
       const criticalSize = criticalAssets.reduce(
-        (sum, id) => sum + (this.assets.get(id)?.sizeBytes || 0), 0
+        (sum, id) => sum + (this.assets.get(id)?.sizeBytes || 0),
+        0
       );
       chunks.push({
         id: 'chunk_critical',
@@ -139,9 +140,7 @@ export class SceneBundler {
     }
 
     // Remaining assets grouped by type
-    const remaining = [...this.assets.entries()].filter(
-      ([id]) => !this.entryPoints.has(id)
-    );
+    const remaining = [...this.assets.entries()].filter(([id]) => !this.entryPoints.has(id));
 
     let currentChunk: BundleChunk = {
       id: `chunk_${chunks.length}`,
@@ -152,7 +151,10 @@ export class SceneBundler {
     };
 
     for (const [id, asset] of remaining) {
-      if (currentChunk.totalSize + asset.sizeBytes > this.config.maxChunkSize && currentChunk.assets.length > 0) {
+      if (
+        currentChunk.totalSize + asset.sizeBytes > this.config.maxChunkSize &&
+        currentChunk.assets.length > 0
+      ) {
         chunks.push(currentChunk);
         currentChunk = {
           id: `chunk_${chunks.length}`,

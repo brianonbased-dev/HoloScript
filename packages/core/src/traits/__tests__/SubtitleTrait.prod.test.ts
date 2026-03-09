@@ -5,11 +5,14 @@ import { describe, it, expect, vi } from 'vitest';
 import { subtitleHandler } from '../SubtitleTrait';
 
 // The SPEAKER_COLORS const is internal — expected values inlined from source:
-const SPEAKER_COLORS_EXPECTED = ['#FFFFFF','#00FFFF','#FFFF00','#FF00FF','#00FF00','#FFA500'];
+const SPEAKER_COLORS_EXPECTED = ['#FFFFFF', '#00FFFF', '#FFFF00', '#FF00FF', '#00FF00', '#FFA500'];
 
-
-function makeNode() { return { id: 'sub_node' }; }
-function makeContext() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'sub_node' };
+}
+function makeContext() {
+  return { emit: vi.fn() };
+}
 function attachNode(config: any = {}) {
   const node = makeNode();
   const ctx = makeContext();
@@ -22,34 +25,48 @@ describe('SPEAKER_COLORS (internal — values verified from source)', () => {
   it('has 6 colors', () => expect(SPEAKER_COLORS_EXPECTED).toHaveLength(6));
   it('first = #FFFFFF', () => expect(SPEAKER_COLORS_EXPECTED[0]).toBe('#FFFFFF'));
   it('second = #00FFFF', () => expect(SPEAKER_COLORS_EXPECTED[1]).toBe('#00FFFF'));
-  it('all valid hex', () => { for (const c of SPEAKER_COLORS_EXPECTED) expect(c).toMatch(/^#[0-9A-Fa-f]{6}$/); });
+  it('all valid hex', () => {
+    for (const c of SPEAKER_COLORS_EXPECTED) expect(c).toMatch(/^#[0-9A-Fa-f]{6}$/);
+  });
 });
-
 
 describe('subtitleHandler.defaultConfig', () => {
   it('language = en', () => expect(subtitleHandler.defaultConfig!.language).toBe('en'));
   it('position = bottom', () => expect(subtitleHandler.defaultConfig!.position).toBe('bottom'));
   it('font_size = 16', () => expect(subtitleHandler.defaultConfig!.font_size).toBe(16));
   it('background = true', () => expect(subtitleHandler.defaultConfig!.background).toBe(true));
-  it('background_opacity = 0.7', () => expect(subtitleHandler.defaultConfig!.background_opacity).toBe(0.7));
+  it('background_opacity = 0.7', () =>
+    expect(subtitleHandler.defaultConfig!.background_opacity).toBe(0.7));
   it('max_lines = 3', () => expect(subtitleHandler.defaultConfig!.max_lines).toBe(3));
   it('line_duration = 5000', () => expect(subtitleHandler.defaultConfig!.line_duration).toBe(5000));
-  it('auto_translate = []', () => expect(subtitleHandler.defaultConfig!.auto_translate).toEqual([]));
-  it('speaker_colors = false', () => expect(subtitleHandler.defaultConfig!.speaker_colors).toBe(false));
-  it('speaker_labels = true', () => expect(subtitleHandler.defaultConfig!.speaker_labels).toBe(true));
-  it('word_highlight = false', () => expect(subtitleHandler.defaultConfig!.word_highlight).toBe(false));
+  it('auto_translate = []', () =>
+    expect(subtitleHandler.defaultConfig!.auto_translate).toEqual([]));
+  it('speaker_colors = false', () =>
+    expect(subtitleHandler.defaultConfig!.speaker_colors).toBe(false));
+  it('speaker_labels = true', () =>
+    expect(subtitleHandler.defaultConfig!.speaker_labels).toBe(true));
+  it('word_highlight = false', () =>
+    expect(subtitleHandler.defaultConfig!.word_highlight).toBe(false));
 });
 
 describe('subtitleHandler.onAttach', () => {
-  it('creates __subtitleState', () => expect((attachNode().node as any).__subtitleState).toBeDefined());
-  it('isDisplaying = false', () => expect((attachNode().node as any).__subtitleState.isDisplaying).toBe(false));
+  it('creates __subtitleState', () =>
+    expect((attachNode().node as any).__subtitleState).toBeDefined());
+  it('isDisplaying = false', () =>
+    expect((attachNode().node as any).__subtitleState.isDisplaying).toBe(false));
   it('lines = []', () => expect((attachNode().node as any).__subtitleState.lines).toEqual([]));
-  it('currentSpeaker = null', () => expect((attachNode().node as any).__subtitleState.currentSpeaker).toBeNull());
-  it('speechRecognitionActive = false', () => expect((attachNode().node as any).__subtitleState.speechRecognitionActive).toBe(false));
-  it('translationPending = false', () => expect((attachNode().node as any).__subtitleState.translationPending).toBe(false));
+  it('currentSpeaker = null', () =>
+    expect((attachNode().node as any).__subtitleState.currentSpeaker).toBeNull());
+  it('speechRecognitionActive = false', () =>
+    expect((attachNode().node as any).__subtitleState.speechRecognitionActive).toBe(false));
+  it('translationPending = false', () =>
+    expect((attachNode().node as any).__subtitleState.translationPending).toBe(false));
   it('emits subtitle_init with position/fontSize/background', () => {
     const { ctx } = attachNode({ position: 'top', font_size: 24 });
-    expect(ctx.emit).toHaveBeenCalledWith('subtitle_init', expect.objectContaining({ position: 'top', fontSize: 24 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'subtitle_init',
+      expect.objectContaining({ position: 'top', fontSize: 24 })
+    );
   });
 });
 
@@ -77,7 +94,9 @@ describe('subtitleHandler.onDetach', () => {
 describe('subtitleHandler.onUpdate — line expiration', () => {
   it('removes expired lines and emits subtitle_hide when empty', () => {
     const { node, cfg, ctx } = attachNode({ line_duration: 1000 });
-    (node as any).__subtitleState.lines = [{ text: 'Old', speaker: 'X', timestamp: Date.now() - 2000, language: 'en' }];
+    (node as any).__subtitleState.lines = [
+      { text: 'Old', speaker: 'X', timestamp: Date.now() - 2000, language: 'en' },
+    ];
     (node as any).__subtitleState.isDisplaying = true;
     ctx.emit.mockClear();
     subtitleHandler.onUpdate!(node, cfg, ctx, 0.016);
@@ -87,7 +106,9 @@ describe('subtitleHandler.onUpdate — line expiration', () => {
   });
   it('keeps fresh lines', () => {
     const { node, cfg, ctx } = attachNode({ line_duration: 5000 });
-    (node as any).__subtitleState.lines = [{ text: 'Fresh', speaker: 'Y', timestamp: Date.now() - 100, language: 'en' }];
+    (node as any).__subtitleState.lines = [
+      { text: 'Fresh', speaker: 'Y', timestamp: Date.now() - 100, language: 'en' },
+    ];
     ctx.emit.mockClear();
     subtitleHandler.onUpdate!(node, cfg, ctx, 0.016);
     expect((node as any).__subtitleState.lines).toHaveLength(1);
@@ -97,7 +118,11 @@ describe('subtitleHandler.onUpdate — line expiration', () => {
 describe('subtitleHandler.onEvent — subtitle_text', () => {
   it('adds line and sets isDisplaying=true', () => {
     const { node, cfg, ctx } = attachNode();
-    subtitleHandler.onEvent!(node, cfg, ctx, { type: 'subtitle_text', text: 'Hello', speaker: 'Alice' });
+    subtitleHandler.onEvent!(node, cfg, ctx, {
+      type: 'subtitle_text',
+      text: 'Hello',
+      speaker: 'Alice',
+    });
     expect((node as any).__subtitleState.lines).toHaveLength(1);
     expect((node as any).__subtitleState.isDisplaying).toBe(true);
   });
@@ -118,12 +143,20 @@ describe('subtitleHandler.onEvent — subtitle_text', () => {
     const { node, cfg, ctx } = attachNode();
     ctx.emit.mockClear();
     subtitleHandler.onEvent!(node, cfg, ctx, { type: 'subtitle_text', text: 'T', speaker: 'D' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_subtitle_display', expect.objectContaining({ text: 'T', speaker: 'D' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_subtitle_display',
+      expect.objectContaining({ text: 'T', speaker: 'D' })
+    );
   });
   it('emits subtitle_translate per auto_translate target', () => {
     const { node, cfg, ctx } = attachNode({ auto_translate: ['fr', 'es'], language: 'en' });
     ctx.emit.mockClear();
-    subtitleHandler.onEvent!(node, cfg, ctx, { type: 'subtitle_text', text: 'Hello', speaker: 'A', language: 'en' });
+    subtitleHandler.onEvent!(node, cfg, ctx, {
+      type: 'subtitle_text',
+      text: 'Hello',
+      speaker: 'A',
+      language: 'en',
+    });
     const calls = ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'subtitle_translate');
     expect(calls).toHaveLength(2);
   });
@@ -139,26 +172,46 @@ describe('subtitleHandler.onEvent — translation_complete', () => {
     const { node, cfg, ctx } = attachNode();
     (node as any).__subtitleState.translationPending = true;
     ctx.emit.mockClear();
-    subtitleHandler.onEvent!(node, cfg, ctx, { type: 'subtitle_translation_complete', translatedText: 'Hola', targetLang: 'es' });
+    subtitleHandler.onEvent!(node, cfg, ctx, {
+      type: 'subtitle_translation_complete',
+      translatedText: 'Hola',
+      targetLang: 'es',
+    });
     expect((node as any).__subtitleState.translationPending).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('subtitle_translation_ready', expect.objectContaining({ text: 'Hola', language: 'es' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'subtitle_translation_ready',
+      expect.objectContaining({ text: 'Hola', language: 'es' })
+    );
   });
 });
 
 describe('subtitleHandler.onEvent — speech_recognition_result', () => {
   it('final: adds to lines', () => {
     const { node, cfg, ctx } = attachNode();
-    subtitleHandler.onEvent!(node, cfg, ctx, { type: 'speech_recognition_result', text: 'Final', isFinal: true, speaker: 'Eve' });
+    subtitleHandler.onEvent!(node, cfg, ctx, {
+      type: 'speech_recognition_result',
+      text: 'Final',
+      isFinal: true,
+      speaker: 'Eve',
+    });
     expect((node as any).__subtitleState.lines.some((l: any) => l.text === 'Final')).toBe(true);
   });
   it('interim: does NOT add to lines', () => {
     const { node, cfg, ctx } = attachNode();
-    subtitleHandler.onEvent!(node, cfg, ctx, { type: 'speech_recognition_result', text: '...', isFinal: false });
+    subtitleHandler.onEvent!(node, cfg, ctx, {
+      type: 'speech_recognition_result',
+      text: '...',
+      isFinal: false,
+    });
     expect((node as any).__subtitleState.lines).toHaveLength(0);
   });
   it('sets isDisplaying = true regardless of final/interim', () => {
     const { node, cfg, ctx } = attachNode();
-    subtitleHandler.onEvent!(node, cfg, ctx, { type: 'speech_recognition_result', text: 'Hi', isFinal: false });
+    subtitleHandler.onEvent!(node, cfg, ctx, {
+      type: 'speech_recognition_result',
+      text: 'Hi',
+      isFinal: false,
+    });
     expect((node as any).__subtitleState.isDisplaying).toBe(true);
   });
 });
@@ -169,7 +222,10 @@ describe('subtitleHandler.onEvent — misc', () => {
     ctx.emit.mockClear();
     subtitleHandler.onEvent!(node, cfg, ctx, { type: 'subtitle_start_recognition' });
     expect((node as any).__subtitleState.speechRecognitionActive).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('speech_recognition_start', expect.objectContaining({ language: 'fr' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'speech_recognition_start',
+      expect.objectContaining({ language: 'fr' })
+    );
   });
   it('stop_recognition clears active', () => {
     const { node, cfg, ctx } = attachNode();
@@ -179,7 +235,9 @@ describe('subtitleHandler.onEvent — misc', () => {
   });
   it('subtitle_clear empties lines and emits subtitle_hide', () => {
     const { node, cfg, ctx } = attachNode();
-    (node as any).__subtitleState.lines = [{ text: 'a', speaker: 'X', timestamp: Date.now(), language: 'en' }];
+    (node as any).__subtitleState.lines = [
+      { text: 'a', speaker: 'X', timestamp: Date.now(), language: 'en' },
+    ];
     ctx.emit.mockClear();
     subtitleHandler.onEvent!(node, cfg, ctx, { type: 'subtitle_clear' });
     expect((node as any).__subtitleState.lines).toHaveLength(0);
@@ -189,7 +247,10 @@ describe('subtitleHandler.onEvent — misc', () => {
     const { node, cfg, ctx } = attachNode();
     ctx.emit.mockClear();
     subtitleHandler.onEvent!(node, cfg, ctx, { type: 'subtitle_set_position', position: 'top' });
-    expect(ctx.emit).toHaveBeenCalledWith('subtitle_update_position', expect.objectContaining({ position: 'top' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'subtitle_update_position',
+      expect.objectContaining({ position: 'top' })
+    );
   });
   it('subtitle_query emits subtitle_info snapshot', () => {
     const { node, cfg, ctx } = attachNode();
@@ -197,6 +258,9 @@ describe('subtitleHandler.onEvent — misc', () => {
     (node as any).__subtitleState.currentSpeaker = 'Zara';
     ctx.emit.mockClear();
     subtitleHandler.onEvent!(node, cfg, ctx, { type: 'subtitle_query', queryId: 'q7' });
-    expect(ctx.emit).toHaveBeenCalledWith('subtitle_info', expect.objectContaining({ queryId: 'q7', isDisplaying: true, currentSpeaker: 'Zara' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'subtitle_info',
+      expect.objectContaining({ queryId: 'q7', isDisplaying: true, currentSpeaker: 'Zara' })
+    );
   });
 });

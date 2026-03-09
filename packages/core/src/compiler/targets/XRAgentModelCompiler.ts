@@ -96,16 +96,16 @@ export interface XRAgentModelResult {
 // ── Trait-to-Capability Mapping ────────────────────────────────────────────
 
 const TRAIT_CAPABILITY_MAP: Record<string, string> = {
-  'NPC':              'dialogue-generation',
-  'Navigation':       'path-planning',
-  'BehaviorTree':     'decision-making',
-  'GoalPlanner':      'goal-planning',
-  'ComputerUse':      'screen-understanding',
-  'AINPCBrain':       'personality-modeling',
-  'AgentDiscovery':   'agent-discovery',
-  'AgentMemory':      'episodic-memory',
-  'PerceptionSystem': 'scene-understanding',
-  'Analytics':        'data-analysis',
+  NPC: 'dialogue-generation',
+  Navigation: 'path-planning',
+  BehaviorTree: 'decision-making',
+  GoalPlanner: 'goal-planning',
+  ComputerUse: 'screen-understanding',
+  AINPCBrain: 'personality-modeling',
+  AgentDiscovery: 'agent-discovery',
+  AgentMemory: 'episodic-memory',
+  PerceptionSystem: 'scene-understanding',
+  Analytics: 'data-analysis',
 };
 
 // ── Compiler ───────────────────────────────────────────────────────────────
@@ -159,21 +159,51 @@ export class XRAgentModelCompiler {
 
     // Determine input/output tensors based on capabilities
     const inputs: TensorSpec[] = [
-      { name: 'input_ids', dtype: 'int32', shape: [1, this.config.maxTokens], description: 'Token IDs' },
-      { name: 'attention_mask', dtype: 'int32', shape: [1, this.config.maxTokens], description: 'Attention mask' },
+      {
+        name: 'input_ids',
+        dtype: 'int32',
+        shape: [1, this.config.maxTokens],
+        description: 'Token IDs',
+      },
+      {
+        name: 'attention_mask',
+        dtype: 'int32',
+        shape: [1, this.config.maxTokens],
+        description: 'Attention mask',
+      },
     ];
 
     const outputs: TensorSpec[] = [
-      { name: 'logits', dtype: this.config.quantization === 'fp16' ? 'float16' : 'float32', shape: [1, this.config.maxTokens, -1], description: 'Output logits' },
+      {
+        name: 'logits',
+        dtype: this.config.quantization === 'fp16' ? 'float16' : 'float32',
+        shape: [1, this.config.maxTokens, -1],
+        description: 'Output logits',
+      },
     ];
 
     if (capabilities.includes('scene-understanding')) {
-      inputs.push({ name: 'scene_features', dtype: 'float16', shape: [1, 256, 768], description: 'Scene feature embeddings' });
+      inputs.push({
+        name: 'scene_features',
+        dtype: 'float16',
+        shape: [1, 256, 768],
+        description: 'Scene feature embeddings',
+      });
     }
 
     if (capabilities.includes('path-planning')) {
-      inputs.push({ name: 'navmesh_features', dtype: 'float16', shape: [1, 64, 3], description: 'Navigation mesh waypoints' });
-      outputs.push({ name: 'path_waypoints', dtype: 'float32', shape: [1, 32, 3], description: 'Planned path waypoints' });
+      inputs.push({
+        name: 'navmesh_features',
+        dtype: 'float16',
+        shape: [1, 64, 3],
+        description: 'Navigation mesh waypoints',
+      });
+      outputs.push({
+        name: 'path_waypoints',
+        dtype: 'float32',
+        shape: [1, 32, 3],
+        description: 'Planned path waypoints',
+      });
     }
 
     // Build delegate configs
@@ -188,7 +218,7 @@ export class XRAgentModelCompiler {
     if (modelSizeMB > this.config.maxModelSizeMB) {
       warnings.push(
         `Estimated model size (${modelSizeMB}MB) exceeds budget (${this.config.maxModelSizeMB}MB). ` +
-        `Consider using INT8 quantization or reducing trait count.`
+          `Consider using INT8 quantization or reducing trait count.`
       );
     }
 
@@ -197,7 +227,8 @@ export class XRAgentModelCompiler {
       model: {
         name: `${composition.name}-xr-agent`,
         version: '1.0.0',
-        description: composition.description ?? `XR Agent model compiled from '${composition.name}'`,
+        description:
+          composition.description ?? `XR Agent model compiled from '${composition.name}'`,
         sourceComposition: composition.name,
         compiledAt: new Date().toISOString(),
       },
@@ -232,19 +263,28 @@ export class XRAgentModelCompiler {
 
   private getDelegateConfig(name: RuntimeDelegate): Record<string, unknown> {
     switch (name) {
-      case 'xnnpack': return { numThreads: 4, enableFp16: this.config.quantization === 'fp16' };
-      case 'metal': return { enableFloat16: true, useSharedMemory: true };
-      case 'vulkan': return { enableFloat16: true, preferredDevice: 'discrete' };
-      case 'qnn': return { htpPerformanceMode: 'burst', enableHtp: true };
-      case 'coreml': return { computeUnits: 'cpuAndNeuralEngine' };
-      default: return {};
+      case 'xnnpack':
+        return { numThreads: 4, enableFp16: this.config.quantization === 'fp16' };
+      case 'metal':
+        return { enableFloat16: true, useSharedMemory: true };
+      case 'vulkan':
+        return { enableFloat16: true, preferredDevice: 'discrete' };
+      case 'qnn':
+        return { htpPerformanceMode: 'burst', enableHtp: true };
+      case 'coreml':
+        return { computeUnits: 'cpuAndNeuralEngine' };
+      default:
+        return {};
     }
   }
 
   private estimateModelSize(traitCount: number, capabilityCount: number): number {
     // Base 7B model sizes by quantization
     const baseSizes: Record<QuantizationType, number> = {
-      fp32: 28000, fp16: 14000, int8: 7000, int4: 3500,
+      fp32: 28000,
+      fp16: 14000,
+      int8: 7000,
+      int4: 3500,
     };
     const base = baseSizes[this.config.quantization];
     // Each capability adds ~2% overhead

@@ -198,9 +198,7 @@ describe('visualizeFlow', () => {
 
   it('focus filter does not crash and returns a string', () => {
     // With no flows extracted (logic regex limitation), output still renders
-    const g = parseHoloToGraph(
-      'orb alpha { x: 1 } orb beta { x: 1 }'
-    );
+    const g = parseHoloToGraph('orb alpha { x: 1 } orb beta { x: 1 }');
     const out = visualizeFlow(g, 'alpha');
     expect(typeof out).toBe('string');
     expect(out).toContain('alpha');

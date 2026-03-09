@@ -7,7 +7,7 @@
 import type * as Monaco from 'monaco-editor';
 
 // Example HoloScript code snippets
-const EXAMPLES: Record<string, {name: string, desc: string, runtime: string, code: string}> = {
+const EXAMPLES: Record<string, { name: string; desc: string; runtime: string; code: string }> = {
   demolition: {
     name: 'Building Demolition',
     desc: 'Realistic building collapse with physics',
@@ -54,7 +54,7 @@ const EXAMPLES: Record<string, {name: string, desc: string, runtime: string, cod
       explosionRadius: 15
     }
   }
-}`
+}`,
   },
 
   avalanche: {
@@ -93,7 +93,7 @@ const EXAMPLES: Record<string, {name: string, desc: string, runtime: string, cod
       trigger: "click"
     }
   }
-}`
+}`,
   },
 
   erosion: {
@@ -131,7 +131,7 @@ const EXAMPLES: Record<string, {name: string, desc: string, runtime: string, cod
       trigger: "continuous"
     }
   }
-}`
+}`,
   },
 
   earthquake: {
@@ -169,8 +169,8 @@ const EXAMPLES: Record<string, {name: string, desc: string, runtime: string, cod
       trigger: "click"
     }
   }
-}`
-  }
+}`,
+  },
 };
 
 // Runtime options
@@ -178,7 +178,7 @@ const RUNTIMES = [
   { id: 'demolition', name: 'Demolition', icon: '💥', desc: 'Building collapse physics' },
   { id: 'avalanche', name: 'Avalanche', icon: '❄️', desc: 'Snow and terrain dynamics' },
   { id: 'erosion', name: 'Erosion', icon: '🌊', desc: 'Water erosion simulation' },
-  { id: 'earthquake', name: 'Earthquake', icon: '🏗️', desc: 'Seismic wave propagation' }
+  { id: 'earthquake', name: 'Earthquake', icon: '🏗️', desc: 'Seismic wave propagation' },
 ];
 
 // Playground state
@@ -192,7 +192,7 @@ class PlaygroundState {
   stats = {
     fps: 0,
     particles: 0,
-    status: 'Ready'
+    status: 'Ready',
   };
 }
 
@@ -204,7 +204,7 @@ const state = new PlaygroundState();
 async function initializeEditor(): Promise<void> {
   return new Promise((resolve) => {
     (window as any).require.config({
-      paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }
+      paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' },
     });
 
     (window as any).require(['vs/editor/editor.main'], () => {
@@ -216,24 +216,36 @@ async function initializeEditor(): Promise<void> {
       // Define syntax highlighting
       monaco.languages.setMonarchTokensProvider('holoscript', {
         keywords: [
-          'composition', 'traits', 'entities', 'behavior', 'structure',
-          'terrain', 'water', 'camera', 'physics', 'trigger', 'seismicEvent'
+          'composition',
+          'traits',
+          'entities',
+          'behavior',
+          'structure',
+          'terrain',
+          'water',
+          'camera',
+          'physics',
+          'trigger',
+          'seismicEvent',
         ],
         operators: [':', ',', '[', ']', '{', '}'],
         tokenizer: {
           root: [
-            [/[a-zA-Z_]\w*/, {
-              cases: {
-                '@keywords': 'keyword',
-                '@default': 'identifier'
-              }
-            }],
+            [
+              /[a-zA-Z_]\w*/,
+              {
+                cases: {
+                  '@keywords': 'keyword',
+                  '@default': 'identifier',
+                },
+              },
+            ],
             [/"[^"]*"/, 'string'],
             [/\d+(\.\d+)?/, 'number'],
             [/\/\/.*$/, 'comment'],
             [/[{}()\[\]]/, '@brackets'],
-          ]
-        }
+          ],
+        },
       });
 
       // Create editor
@@ -248,7 +260,7 @@ async function initializeEditor(): Promise<void> {
         roundedSelection: false,
         scrollBeyondLastLine: false,
         wordWrap: 'on',
-        tabSize: 2
+        tabSize: 2,
       });
 
       state.editor = editor;
@@ -284,7 +296,7 @@ function initializeUI(): void {
 
   // Load runtimes
   const runtimeSelector = document.getElementById('runtime-selector')!;
-  RUNTIMES.forEach(runtime => {
+  RUNTIMES.forEach((runtime) => {
     const option = document.createElement('div');
     option.className = `runtime-option ${runtime.id === state.currentRuntime ? 'active' : ''}`;
     option.innerHTML = `
@@ -378,10 +390,10 @@ async function runCode(): Promise<void> {
 
     // Parse and execute (placeholder - would integrate with actual runtime)
     logConsole('log', 'Parsing HoloScript code...');
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate parsing
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate parsing
 
     logConsole('info', `Initializing ${state.currentRuntime} runtime...`);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate initialization
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate initialization
 
     logConsole('success', 'Runtime started successfully!');
 
@@ -390,7 +402,6 @@ async function runCode(): Promise<void> {
 
     state.isRunning = true;
     state.stats.status = 'Running';
-
   } catch (error) {
     logConsole('error', `Error: ${(error as any).message}`);
     state.stats.status = 'Error';
@@ -502,7 +513,11 @@ function startAnimationLoop(): void {
     ctx.fillStyle = '#cccccc';
     ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto';
     ctx.textAlign = 'center';
-    ctx.fillText(`${RUNTIMES.find(r => r.id === state.currentRuntime)?.name} Runtime`, canvas.width / 2, 30);
+    ctx.fillText(
+      `${RUNTIMES.find((r) => r.id === state.currentRuntime)?.name} Runtime`,
+      canvas.width / 2,
+      30
+    );
     ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto';
     ctx.fillStyle = '#969696';
     ctx.fillText('Preview: Full runtime integration coming soon', canvas.width / 2, 55);
@@ -584,7 +599,7 @@ function loadFromURL(): void {
     }
   }
 
-  if (runtime && RUNTIMES.find(r => r.id === runtime)) {
+  if (runtime && RUNTIMES.find((r) => r.id === runtime)) {
     selectRuntime(runtime);
   }
 }
@@ -602,7 +617,6 @@ async function init(): Promise<void> {
 
     logConsole('success', 'Playground ready! 🎉');
     logConsole('info', 'Select an example or write your own HoloScript code');
-
   } catch (error) {
     console.error('Failed to initialize playground:', error);
     logConsole('error', `Initialization failed: ${(error as any).message}`);

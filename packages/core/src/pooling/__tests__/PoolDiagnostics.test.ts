@@ -29,7 +29,9 @@ describe('PoolDiagnostics', () => {
   it('healthy pool has no warnings', () => {
     const pool = makePool();
     // Acquire some objects to have reasonable utilization
-    pool.acquire(); pool.acquire(); pool.acquire();
+    pool.acquire();
+    pool.acquire();
+    pool.acquire();
     const diag = new PoolDiagnostics();
     diag.register('bullets', pool as any);
     const report = diag.getHealthReport('bullets')!;
@@ -51,7 +53,7 @@ describe('PoolDiagnostics', () => {
     diag.register('full', pool as any);
     const report = diag.getHealthReport('full')!;
     expect(report.utilization).toBe(1);
-    expect(report.warnings.some(w => w.includes('90%'))).toBe(true);
+    expect(report.warnings.some((w) => w.includes('90%'))).toBe(true);
   });
 
   it('trackAcquire and trackRelease manage leak tracking', () => {

@@ -30,7 +30,7 @@ interface Props {
 
 export function PanelSplitter({ direction, onDelta, className = '' }: Props) {
   const dragging = useRef(false);
-  const last     = useRef(0);
+  const last = useRef(0);
 
   // ── Mouse drag ─────────────────────────────────────────────────────────────
   const onMouseDown = useCallback(
@@ -41,7 +41,7 @@ export function PanelSplitter({ direction, onDelta, className = '' }: Props) {
 
       const onMove = (ev: MouseEvent) => {
         if (!dragging.current) return;
-        const cur   = direction === 'horizontal' ? ev.clientX : ev.clientY;
+        const cur = direction === 'horizontal' ? ev.clientX : ev.clientY;
         const delta = cur - last.current;
         last.current = cur;
         onDelta(delta);
@@ -55,7 +55,7 @@ export function PanelSplitter({ direction, onDelta, className = '' }: Props) {
         document.body.style.userSelect = '';
       };
 
-      document.body.style.cursor    = direction === 'horizontal' ? 'col-resize' : 'row-resize';
+      document.body.style.cursor = direction === 'horizontal' ? 'col-resize' : 'row-resize';
       document.body.style.userSelect = 'none';
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
@@ -75,7 +75,7 @@ export function PanelSplitter({ direction, onDelta, className = '' }: Props) {
         if (!dragging.current || ev.touches.length !== 1) return;
         ev.preventDefault(); // prevent scroll while dragging
         const t = ev.touches[0];
-        const cur   = direction === 'horizontal' ? t.clientX : t.clientY;
+        const cur = direction === 'horizontal' ? t.clientX : t.clientY;
         const delta = cur - last.current;
         last.current = cur;
         onDelta(delta);
@@ -105,9 +105,11 @@ export function PanelSplitter({ direction, onDelta, className = '' }: Props) {
       aria-orientation={isH ? 'vertical' : 'horizontal'}
       tabIndex={0}
       className={`group relative shrink-0 flex items-center justify-center transition-colors touch-none
-        ${isH
-          ? 'w-[5px] cursor-col-resize hover:bg-studio-accent/30 studio-splitter-h'
-          : 'h-[5px] cursor-row-resize hover:bg-studio-accent/30 studio-splitter-v'}
+        ${
+          isH
+            ? 'w-[5px] cursor-col-resize hover:bg-studio-accent/30 studio-splitter-h'
+            : 'h-[5px] cursor-row-resize hover:bg-studio-accent/30 studio-splitter-v'
+        }
         bg-studio-border/60
         ${className}`}
     >

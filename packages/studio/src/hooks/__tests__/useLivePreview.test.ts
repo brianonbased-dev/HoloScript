@@ -352,10 +352,9 @@ describe('useLivePreview', () => {
     });
 
     it('should reconnect when sceneId changes', () => {
-      const { rerender } = renderHook(
-        ({ sceneId }) => useLivePreview({ sceneId }),
-        { initialProps: { sceneId: 'scene-1' } }
-      );
+      const { rerender } = renderHook(({ sceneId }) => useLivePreview({ sceneId }), {
+        initialProps: { sceneId: 'scene-1' },
+      });
 
       const initialCallCount = (global.EventSource as any).mock.calls.length;
 
@@ -365,10 +364,9 @@ describe('useLivePreview', () => {
     });
 
     it('should close old connection when reconnecting', () => {
-      const { rerender } = renderHook(
-        ({ sceneId }) => useLivePreview({ sceneId }),
-        { initialProps: { sceneId: 'scene-1' } }
-      );
+      const { rerender } = renderHook(({ sceneId }) => useLivePreview({ sceneId }), {
+        initialProps: { sceneId: 'scene-1' },
+      });
 
       const closeCallsBefore = mockEventSource.close.mock.calls.length;
 
@@ -446,9 +444,7 @@ describe('useLivePreview', () => {
     it('should handle special characters in sceneId', () => {
       renderHook(() => useLivePreview({ sceneId: 'scene!@#$%^&*()' }));
 
-      expect(global.EventSource).toHaveBeenCalledWith(
-        expect.stringContaining('sceneId=')
-      );
+      expect(global.EventSource).toHaveBeenCalledWith(expect.stringContaining('sceneId='));
     });
 
     it('should handle multiple rapid connect calls', () => {

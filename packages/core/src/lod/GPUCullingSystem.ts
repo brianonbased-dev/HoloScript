@@ -434,7 +434,11 @@ export class GPUCullingSystem {
   /**
    * Update camera uniform buffer
    */
-  updateCameraBuffer(viewProjMatrix: Float32Array, cameraPos: [number, number, number], frustumPlanes: Float32Array): void {
+  updateCameraBuffer(
+    viewProjMatrix: Float32Array,
+    cameraPos: [number, number, number],
+    frustumPlanes: Float32Array
+  ): void {
     if (!this.device) return;
 
     if (!this.cameraBuffer) {
@@ -526,13 +530,7 @@ export class GPUCullingSystem {
 
     // Copy results to readback buffer
     if (this.visibleCountBuffer && this.readbackBuffer) {
-      commandEncoder.copyBufferToBuffer(
-        this.visibleCountBuffer,
-        0,
-        this.readbackBuffer,
-        0,
-        4
-      );
+      commandEncoder.copyBufferToBuffer(this.visibleCountBuffer, 0, this.readbackBuffer, 0, 4);
     }
 
     this.device.queue.submit([commandEncoder.finish()]);
@@ -558,13 +556,7 @@ export class GPUCullingSystem {
     passEncoder.end();
 
     if (this.visibleCountBuffer && this.readbackBuffer) {
-      commandEncoder.copyBufferToBuffer(
-        this.visibleCountBuffer,
-        0,
-        this.readbackBuffer,
-        0,
-        4
-      );
+      commandEncoder.copyBufferToBuffer(this.visibleCountBuffer, 0, this.readbackBuffer, 0, 4);
     }
 
     this.device.queue.submit([commandEncoder.finish()]);
@@ -593,10 +585,7 @@ export class GPUCullingSystem {
       const width = Math.max(1, depthTexture.width >> (level + 1));
       const height = Math.max(1, depthTexture.height >> (level + 1));
 
-      passEncoder.dispatchWorkgroups(
-        Math.ceil(width / 8),
-        Math.ceil(height / 8)
-      );
+      passEncoder.dispatchWorkgroups(Math.ceil(width / 8), Math.ceil(height / 8));
       passEncoder.end();
     }
 

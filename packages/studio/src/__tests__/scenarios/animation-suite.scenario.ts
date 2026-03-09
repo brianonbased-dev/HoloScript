@@ -11,13 +11,23 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import {
-  analyzeLoop, generateSeamlessLoop, reverseAnimation,
-  createPalindromeLoop, extendAnimation, getLoopRecommendations,
+  analyzeLoop,
+  generateSeamlessLoop,
+  reverseAnimation,
+  createPalindromeLoop,
+  extendAnimation,
+  getLoopRecommendations,
   type LoopAnalysis,
 } from '@/lib/animationLooping';
 import {
-  VIRAL_POSES, getAllPoses, getPopularPoses, getPosesByCategory,
-  searchPoses, getPoseById, getRandomPose, getPosesByDifficulty,
+  VIRAL_POSES,
+  getAllPoses,
+  getPopularPoses,
+  getPosesByCategory,
+  searchPoses,
+  getPoseById,
+  getRandomPose,
+  getPosesByDifficulty,
   interpolatePoses,
   type ViralPose,
 } from '@/lib/poseLibrary';
@@ -100,8 +110,11 @@ describe('Scenario: Animation Suite — Loop Detection', () => {
 
   it('getLoopRecommendations() returns advice strings', () => {
     const analysis: LoopAnalysis = {
-      canLoop: false, loopQuality: 'poor', startEndDistance: 1.5,
-      suggestedBlendFrames: 10, problematicBones: ['LeftArm'],
+      canLoop: false,
+      loopQuality: 'poor',
+      startEndDistance: 1.5,
+      suggestedBlendFrames: 10,
+      problematicBones: ['LeftArm'],
     };
     const recs = getLoopRecommendations(analysis);
     expect(recs.length).toBeGreaterThan(0);
@@ -132,7 +145,7 @@ describe('Scenario: Animation Suite — Viral Pose Library', () => {
   it('getPosesByCategory() filters by "classic"', () => {
     const classics = getPosesByCategory('classic');
     expect(classics.length).toBeGreaterThanOrEqual(1);
-    expect(classics.every(p => p.category === 'classic')).toBe(true);
+    expect(classics.every((p) => p.category === 'classic')).toBe(true);
   });
 
   it('searchPoses() finds by name (case-insensitive)', () => {
@@ -161,7 +174,7 @@ describe('Scenario: Animation Suite — Viral Pose Library', () => {
   it('getPosesByDifficulty("easy") returns only easy poses', () => {
     const easy = getPosesByDifficulty('easy');
     expect(easy.length).toBeGreaterThanOrEqual(1);
-    expect(easy.every(p => p.difficulty === 'easy')).toBe(true);
+    expect(easy.every((p) => p.difficulty === 'easy')).toBe(true);
   });
 
   it('each pose has at least one BonePose entry', () => {
@@ -172,10 +185,18 @@ describe('Scenario: Animation Suite — Viral Pose Library', () => {
 
   it('retarget — pose bone names map to target skeleton', () => {
     const sourcePose = getPoseById('dab')!;
-    const targetBoneNames = ['Hips', 'Spine', 'Head', 'LeftArm', 'RightArm', 'LeftForeArm', 'RightForeArm'];
-    const retargeted = sourcePose.bones.filter(b => targetBoneNames.includes(b.boneName));
+    const targetBoneNames = [
+      'Hips',
+      'Spine',
+      'Head',
+      'LeftArm',
+      'RightArm',
+      'LeftForeArm',
+      'RightForeArm',
+    ];
+    const retargeted = sourcePose.bones.filter((b) => targetBoneNames.includes(b.boneName));
     expect(retargeted.length).toBeGreaterThan(0);
-    expect(retargeted.every(b => targetBoneNames.includes(b.boneName))).toBe(true);
+    expect(retargeted.every((b) => targetBoneNames.includes(b.boneName))).toBe(true);
   });
 
   it('blend two poses at configurable weight via interpolatePoses', () => {
@@ -197,9 +218,14 @@ describe('Scenario: Animation Suite — Viral Pose Library', () => {
 
 describe('Scenario: Animation Suite — IK Solver', () => {
   function makeJointChain(): { joints: IKJoint[]; effector: THREE.Object3D } {
-    const root = new THREE.Object3D(); root.position.set(0, 0, 0);
-    const mid = new THREE.Object3D(); mid.position.set(0, 1, 0); root.add(mid);
-    const tip = new THREE.Object3D(); tip.position.set(0, 2, 0); mid.add(tip);
+    const root = new THREE.Object3D();
+    root.position.set(0, 0, 0);
+    const mid = new THREE.Object3D();
+    mid.position.set(0, 1, 0);
+    root.add(mid);
+    const tip = new THREE.Object3D();
+    tip.position.set(0, 2, 0);
+    mid.add(tip);
     root.updateMatrixWorld(true);
     const joints: IKJoint[] = [
       { mesh: root, axis: new THREE.Vector3(0, 0, 1), minAngle: -Math.PI, maxAngle: Math.PI },
@@ -241,7 +267,8 @@ describe('Scenario: Animation Suite — IK Solver', () => {
     const controllerInput = {
       position: new THREE.Vector3(0.5, 1.2, -0.3),
       rotation: new THREE.Quaternion(0, 0, 0, 1),
-      grip: 0.8, trigger: 0.0,
+      grip: 0.8,
+      trigger: 0.0,
     };
     expect(controllerInput.position.x).toBeCloseTo(0.5, 1);
     expect(controllerInput.grip).toBe(0.8);
@@ -261,15 +288,26 @@ describe('Scenario: Animation Suite — IK Solver', () => {
     const narrowJoint: IKJoint = {
       mesh: new THREE.Object3D(),
       axis: new THREE.Vector3(0, 0, 1),
-      minAngle: -Math.PI / 6, maxAngle: Math.PI / 6,
+      minAngle: -Math.PI / 6,
+      maxAngle: Math.PI / 6,
     };
     expect(narrowJoint.maxAngle - narrowJoint.minAngle).toBeCloseTo(Math.PI / 3, 3);
   });
 
   it('IK chain auto-detection from bone names', () => {
-    const skeletonBones = ['Hips', 'Spine', 'Head', 'LeftArm', 'LeftForeArm', 'LeftHand', 'RightArm', 'RightForeArm', 'RightHand'];
-    const leftArmChain = skeletonBones.filter(b => b.startsWith('Left'));
-    const rightArmChain = skeletonBones.filter(b => b.startsWith('Right'));
+    const skeletonBones = [
+      'Hips',
+      'Spine',
+      'Head',
+      'LeftArm',
+      'LeftForeArm',
+      'LeftHand',
+      'RightArm',
+      'RightForeArm',
+      'RightHand',
+    ];
+    const leftArmChain = skeletonBones.filter((b) => b.startsWith('Left'));
+    const rightArmChain = skeletonBones.filter((b) => b.startsWith('Right'));
     expect(leftArmChain).toEqual(['LeftArm', 'LeftForeArm', 'LeftHand']);
     expect(rightArmChain).toEqual(['RightArm', 'RightForeArm', 'RightHand']);
   });

@@ -39,7 +39,7 @@ const nextConfig = {
       playwright: false,
       // Externalize blockchain/wallet packages that don't work in browser
       '@coinbase/agentkit': false,
-      'viem': false,
+      viem: false,
       'viem/accounts': false,
       '@privy-io/server-auth': false,
       '@x402/paywall': false,

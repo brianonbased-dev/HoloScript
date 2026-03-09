@@ -10,7 +10,9 @@ const normal = { x: 0, y: 1, z: 0 };
 
 describe('DecalSystem', () => {
   let sys: DecalSystem;
-  beforeEach(() => { sys = new DecalSystem(); });
+  beforeEach(() => {
+    sys = new DecalSystem();
+  });
 
   it('spawn creates active decal', () => {
     const d = sys.spawn({ textureId: 'blood', position: pos, normal });
@@ -37,13 +39,26 @@ describe('DecalSystem', () => {
   });
 
   it('update reaches full opacity after fadeIn', () => {
-    const d = sys.spawn({ textureId: 'a', position: pos, normal, fadeInDuration: 0.1, lifetime: 0 });
+    const d = sys.spawn({
+      textureId: 'a',
+      position: pos,
+      normal,
+      fadeInDuration: 0.1,
+      lifetime: 0,
+    });
     sys.update(0.2);
     expect(d.opacity).toBe(1);
   });
 
   it('update removes expired decals', () => {
-    sys.spawn({ textureId: 'a', position: pos, normal, lifetime: 1, fadeInDuration: 0, fadeOutDuration: 0 });
+    sys.spawn({
+      textureId: 'a',
+      position: pos,
+      normal,
+      lifetime: 1,
+      fadeInDuration: 0,
+      fadeOutDuration: 0,
+    });
     sys.update(2);
     expect(sys.getActiveCount()).toBe(0);
   });

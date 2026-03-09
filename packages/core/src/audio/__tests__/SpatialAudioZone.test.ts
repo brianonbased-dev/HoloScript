@@ -13,7 +13,12 @@ import {
   type AudioPortal,
 } from '../SpatialAudioZone';
 
-function makeBoxZone(id: string, pos = { x: 0, y: 0, z: 0 }, size = { x: 5, y: 5, z: 5 }, overrides: Partial<AudioZoneConfig> = {}): AudioZoneConfig {
+function makeBoxZone(
+  id: string,
+  pos = { x: 0, y: 0, z: 0 },
+  size = { x: 5, y: 5, z: 5 },
+  overrides: Partial<AudioZoneConfig> = {}
+): AudioZoneConfig {
   return {
     id,
     shape: 'box',
@@ -26,7 +31,12 @@ function makeBoxZone(id: string, pos = { x: 0, y: 0, z: 0 }, size = { x: 5, y: 5
   };
 }
 
-function makeSphereZone(id: string, pos = { x: 0, y: 0, z: 0 }, radius = 5, overrides: Partial<AudioZoneConfig> = {}): AudioZoneConfig {
+function makeSphereZone(
+  id: string,
+  pos = { x: 0, y: 0, z: 0 },
+  radius = 5,
+  overrides: Partial<AudioZoneConfig> = {}
+): AudioZoneConfig {
   return {
     id,
     shape: 'sphere',
@@ -74,7 +84,9 @@ describe('SpatialAudioZoneSystem', () => {
     });
 
     it('should detect listener outside a box zone', () => {
-      system.addZone(makeBoxZone('room', { x: 0, y: 0, z: 0 }, { x: 5, y: 5, z: 5 }, { fadeDistance: 2 }));
+      system.addZone(
+        makeBoxZone('room', { x: 0, y: 0, z: 0 }, { x: 5, y: 5, z: 5 }, { fadeDistance: 2 })
+      );
       system.updateListenerPosition({ x: 100, y: 100, z: 100 });
 
       expect(system.isListenerInsideZone('room')).toBe(false);
@@ -82,7 +94,9 @@ describe('SpatialAudioZoneSystem', () => {
     });
 
     it('should blend weight at zone boundary', () => {
-      system.addZone(makeBoxZone('room', { x: 0, y: 0, z: 0 }, { x: 5, y: 5, z: 5 }, { fadeDistance: 4 }));
+      system.addZone(
+        makeBoxZone('room', { x: 0, y: 0, z: 0 }, { x: 5, y: 5, z: 5 }, { fadeDistance: 4 })
+      );
       // Position just outside the box (distance ~1 from boundary)
       system.updateListenerPosition({ x: 6, y: 0, z: 0 });
 
@@ -113,8 +127,12 @@ describe('SpatialAudioZoneSystem', () => {
 
   describe('priority ordering', () => {
     it('should sort active zones by priority (highest first)', () => {
-      system.addZone(makeBoxZone('low', { x: 0, y: 0, z: 0 }, { x: 10, y: 10, z: 10 }, { priority: 1 }));
-      system.addZone(makeBoxZone('high', { x: 0, y: 0, z: 0 }, { x: 10, y: 10, z: 10 }, { priority: 10 }));
+      system.addZone(
+        makeBoxZone('low', { x: 0, y: 0, z: 0 }, { x: 10, y: 10, z: 10 }, { priority: 1 })
+      );
+      system.addZone(
+        makeBoxZone('high', { x: 0, y: 0, z: 0 }, { x: 10, y: 10, z: 10 }, { priority: 10 })
+      );
       system.updateListenerPosition({ x: 0, y: 0, z: 0 });
 
       const active = system.getActiveZones();
@@ -162,8 +180,14 @@ describe('SpatialAudioZoneSystem', () => {
 
     it('should remove a portal', () => {
       system.addPortal({
-        id: 'p1', position: { x: 0, y: 0, z: 0 }, normal: { x: 1, y: 0, z: 0 },
-        width: 2, height: 3, fromZoneId: 'a', toZoneId: 'b', attenuation: 0.8,
+        id: 'p1',
+        position: { x: 0, y: 0, z: 0 },
+        normal: { x: 1, y: 0, z: 0 },
+        width: 2,
+        height: 3,
+        fromZoneId: 'a',
+        toZoneId: 'b',
+        attenuation: 0.8,
       });
       system.removePortal('p1');
       expect(system.getPortalAttenuation('a', 'b')).toBe(0);

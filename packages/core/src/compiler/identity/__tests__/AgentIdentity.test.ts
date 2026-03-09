@@ -176,14 +176,24 @@ describe('AgentIdentity', () => {
 
   describe('isValidWorkflowTransition', () => {
     it('should allow valid sequential transitions', () => {
-      expect(isValidWorkflowTransition(WorkflowStep.PARSE_TOKENS, WorkflowStep.BUILD_AST)).toBe(true);
-      expect(isValidWorkflowTransition(WorkflowStep.BUILD_AST, WorkflowStep.ANALYZE_AST)).toBe(true);
-      expect(isValidWorkflowTransition(WorkflowStep.ANALYZE_AST, WorkflowStep.APPLY_TRANSFORMS)).toBe(true);
+      expect(isValidWorkflowTransition(WorkflowStep.PARSE_TOKENS, WorkflowStep.BUILD_AST)).toBe(
+        true
+      );
+      expect(isValidWorkflowTransition(WorkflowStep.BUILD_AST, WorkflowStep.ANALYZE_AST)).toBe(
+        true
+      );
+      expect(
+        isValidWorkflowTransition(WorkflowStep.ANALYZE_AST, WorkflowStep.APPLY_TRANSFORMS)
+      ).toBe(true);
     });
 
     it('should deny invalid transitions', () => {
-      expect(isValidWorkflowTransition(WorkflowStep.PARSE_TOKENS, WorkflowStep.SERIALIZE)).toBe(false);
-      expect(isValidWorkflowTransition(WorkflowStep.BUILD_AST, WorkflowStep.GENERATE_ASSEMBLY)).toBe(false);
+      expect(isValidWorkflowTransition(WorkflowStep.PARSE_TOKENS, WorkflowStep.SERIALIZE)).toBe(
+        false
+      );
+      expect(
+        isValidWorkflowTransition(WorkflowStep.BUILD_AST, WorkflowStep.GENERATE_ASSEMBLY)
+      ).toBe(false);
     });
 
     it('should deny transitions from terminal step', () => {

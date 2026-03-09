@@ -8,7 +8,8 @@ import { buildSchema } from 'type-graphql';
 import 'reflect-metadata';
 
 console.log('Importing resolvers...');
-const { QueryResolver, CompilerResolver, BatchCompilerResolver, SubscriptionResolver, pubsub } = await import('./dist/index.js');
+const { QueryResolver, CompilerResolver, BatchCompilerResolver, SubscriptionResolver, pubsub } =
+  await import('./dist/index.js');
 
 console.log('Building schema...');
 const schema = await buildSchema({

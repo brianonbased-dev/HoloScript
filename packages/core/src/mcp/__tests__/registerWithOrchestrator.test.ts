@@ -263,7 +263,7 @@ describe('unregisterFromOrchestrator', () => {
     expect(result.success).toBe(true);
     expect(mockFetch).toHaveBeenCalledWith(
       'http://localhost:5567/servers/holoscript-tools',
-      expect.objectContaining({ method: 'DELETE' }),
+      expect.objectContaining({ method: 'DELETE' })
     );
   });
 

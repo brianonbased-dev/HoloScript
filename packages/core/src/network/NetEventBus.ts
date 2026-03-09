@@ -40,7 +40,13 @@ export class NetEventBus {
    * Create a channel
    */
   createChannel(id: string, reliability: ChannelReliability = 'reliable'): NetChannel {
-    const channel: NetChannel = { id, reliability, handlers: new Map(), messageCount: 0, bytesTransferred: 0 };
+    const channel: NetChannel = {
+      id,
+      reliability,
+      handlers: new Map(),
+      messageCount: 0,
+      bytesTransferred: 0,
+    };
     this.channels.set(id, channel);
     return channel;
   }
@@ -64,8 +70,12 @@ export class NetEventBus {
     if (!channel) return false;
 
     const msg: NetMessage = {
-      channel: channelId, event, payload,
-      senderId: this.localId, timestamp: Date.now(), sequenceId: this.sequence++,
+      channel: channelId,
+      event,
+      payload,
+      senderId: this.localId,
+      timestamp: Date.now(),
+      sequenceId: this.sequence++,
     };
 
     this.outbox.push(msg);
@@ -85,7 +95,11 @@ export class NetEventBus {
     const handlers = channel.handlers.get(msg.event);
     if (handlers) {
       for (const h of handlers) {
-        try { h(msg.payload); } catch { /* isolate */ }
+        try {
+          h(msg.payload);
+        } catch {
+          /* isolate */
+        }
       }
     }
   }
@@ -101,8 +115,16 @@ export class NetEventBus {
   /**
    * Get outbox size
    */
-  getOutboxSize(): number { return this.outbox.length; }
-  getInboxSize(): number { return this.inbox.length; }
-  getChannelCount(): number { return this.channels.size; }
-  getChannel(id: string): NetChannel | undefined { return this.channels.get(id); }
+  getOutboxSize(): number {
+    return this.outbox.length;
+  }
+  getInboxSize(): number {
+    return this.inbox.length;
+  }
+  getChannelCount(): number {
+    return this.channels.size;
+  }
+  getChannel(id: string): NetChannel | undefined {
+    return this.channels.get(id);
+  }
 }

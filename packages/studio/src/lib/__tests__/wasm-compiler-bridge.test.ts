@@ -12,17 +12,27 @@ const mockR3FCompileComposition = vi.fn().mockReturnValue({ type: 'group', child
 vi.mock('@holoscript/core', () => ({
   parseHolo: mockParseHolo,
   HoloScriptValidator: class {
-    validate(code: string) { return mockValidate(code); }
+    validate(code: string) {
+      return mockValidate(code);
+    }
   },
   HoloScriptPlusParser: class {
-    parse(source: string) { return { ast: { type: 'program', body: [] } }; }
+    parse(source: string) {
+      return { ast: { type: 'program', body: [] } };
+    }
   },
   HoloCompositionParser: class {
-    parse(source: string) { return { ast: { type: 'composition', body: [] } }; }
+    parse(source: string) {
+      return { ast: { type: 'composition', body: [] } };
+    }
   },
   R3FCompiler: class {
-    compile(ast: unknown) { return mockR3FCompile(ast); }
-    compileComposition(ast: unknown) { return mockR3FCompileComposition(ast); }
+    compile(ast: unknown) {
+      return mockR3FCompile(ast);
+    }
+    compileComposition(ast: unknown) {
+      return mockR3FCompileComposition(ast);
+    }
   },
 }));
 
@@ -49,7 +59,7 @@ class MockWorker {
       const response = MockWorker.responseHandler?.(type, payload, id);
       if (response) {
         const event = new MessageEvent('message', { data: { id, ...response } });
-        this.listeners.get('message')?.forEach(h => h(event));
+        this.listeners.get('message')?.forEach((h) => h(event));
       }
     }, 0);
   }
@@ -58,10 +68,19 @@ class MockWorker {
     this.listeners.clear();
   }
 
-  static responseHandler: ((type: string, payload: any, id: number) => { type: 'result' | 'error'; payload: any } | null) | null = null;
+  static responseHandler:
+    | ((
+        type: string,
+        payload: any,
+        id: number
+      ) => { type: 'result' | 'error'; payload: any } | null)
+    | null = null;
 }
 
-vi.stubGlobal('Worker', vi.fn().mockImplementation(() => new MockWorker()));
+vi.stubGlobal(
+  'Worker',
+  vi.fn().mockImplementation(() => new MockWorker())
+);
 
 describe('CompilerBridge', () => {
   let bridge: CompilerBridge;
@@ -123,7 +142,9 @@ describe('CompilerBridge', () => {
     });
 
     it('should return errors when parseHolo throws', async () => {
-      mockParseHolo.mockImplementationOnce(() => { throw new Error('parse failed'); });
+      mockParseHolo.mockImplementationOnce(() => {
+        throw new Error('parse failed');
+      });
       const result = await bridge.parse('invalid');
       expect(result).toHaveProperty('errors');
       expect(result.errors![0].severity).toBe('error');
@@ -194,19 +215,19 @@ describe('CompilerBridge', () => {
   describe('Fallback Suggest Traits', () => {
     it('should suggest grabbable for interactive descriptions', async () => {
       const traits = await bridge.suggestTraits('a grabbable glowing orb');
-      expect(traits.some(t => t.name === 'grabbable')).toBe(true);
-      expect(traits.some(t => t.name === 'glowing')).toBe(true);
+      expect(traits.some((t) => t.name === 'grabbable')).toBe(true);
+      expect(traits.some((t) => t.name === 'glowing')).toBe(true);
     });
 
     it('should suggest physics traits for physics descriptions', async () => {
       const traits = await bridge.suggestTraits('a bouncing ball with physics');
-      expect(traits.some(t => t.name === 'physics')).toBe(true);
-      expect(traits.some(t => t.name === 'collidable')).toBe(true);
+      expect(traits.some((t) => t.name === 'physics')).toBe(true);
+      expect(traits.some((t) => t.name === 'collidable')).toBe(true);
     });
 
     it('should suggest networked for multiplayer descriptions', async () => {
       const traits = await bridge.suggestTraits('a multiplayer synced object');
-      expect(traits.some(t => t.name === 'networked')).toBe(true);
+      expect(traits.some((t) => t.name === 'networked')).toBe(true);
     });
 
     it('should return empty for unrelated descriptions', async () => {
@@ -229,7 +250,7 @@ describe('CompilerBridge', () => {
     it('should filter traits by category', async () => {
       const traits = await bridge.listTraitsByCategory('interaction');
       expect(traits.length).toBeGreaterThan(0);
-      expect(traits.every(t => t.category === 'interaction')).toBe(true);
+      expect(traits.every((t) => t.category === 'interaction')).toBe(true);
     });
 
     it('should return empty for unknown category', async () => {

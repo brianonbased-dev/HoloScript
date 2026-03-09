@@ -7,12 +7,21 @@ describe('TreePlacer', () => {
   beforeEach(() => {
     placer = new TreePlacer();
     placer.addTemplate({
-      id: 'oak', meshId: 'oak_mesh', minScale: 0.8, maxScale: 1.5,
-      trunkRadius: 0.5, biomes: ['forest'], probability: 1,
+      id: 'oak',
+      meshId: 'oak_mesh',
+      minScale: 0.8,
+      maxScale: 1.5,
+      trunkRadius: 0.5,
+      biomes: ['forest'],
+      probability: 1,
     });
     placer.addBiome({
-      id: 'forest', name: 'Forest', density: 0.5, minSpacing: 2,
-      heightRange: { min: 0, max: 100 }, slopeMax: 45,
+      id: 'forest',
+      name: 'Forest',
+      density: 0.5,
+      minSpacing: 2,
+      heightRange: { min: 0, max: 100 },
+      slopeMax: 45,
     });
   });
 
@@ -37,16 +46,20 @@ describe('TreePlacer', () => {
   });
 
   it('respects height range', () => {
-    const placed = placer.placeInRegion('forest', { x: 0, z: 0, w: 10, h: 10 },
-      () => 200, // all above max height
+    const placed = placer.placeInRegion(
+      'forest',
+      { x: 0, z: 0, w: 10, h: 10 },
+      () => 200 // all above max height
     );
     expect(placed).toHaveLength(0);
   });
 
   it('respects slope constraint', () => {
-    const placed = placer.placeInRegion('forest', { x: 0, z: 0, w: 10, h: 10 },
+    const placed = placer.placeInRegion(
+      'forest',
+      { x: 0, z: 0, w: 10, h: 10 },
       () => 50, // valid height
-      () => 90, // too steep
+      () => 90 // too steep
     );
     expect(placed).toHaveLength(0);
   });

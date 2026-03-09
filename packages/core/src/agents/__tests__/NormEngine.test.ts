@@ -18,9 +18,14 @@ describe('NormEngine', () => {
     it('registers custom norms', () => {
       const engine = new NormEngine();
       const custom: CulturalNorm = {
-        id: 'custom_1', name: 'Custom Norm', category: 'cooperation',
-        description: 'Test norm', enforcement: 'soft', scope: 'zone',
-        activationThreshold: 0.5, strength: 'moderate',
+        id: 'custom_1',
+        name: 'Custom Norm',
+        category: 'cooperation',
+        description: 'Test norm',
+        enforcement: 'soft',
+        scope: 'zone',
+        activationThreshold: 0.5,
+        strength: 'moderate',
       };
       engine.registerNorm(custom);
       expect(engine.getNorm('custom_1')).toBeDefined();
@@ -86,7 +91,7 @@ describe('NormEngine', () => {
       // resource_sharing has activationThreshold of 0.5 in built-in, but nobody adopted it
       const violations = engine.evaluate('a1', ['inventory:give'], 'zone_a');
       // No violations because norm is not active
-      expect(violations.filter(v => v.normId === 'resource_sharing')).toHaveLength(0);
+      expect(violations.filter((v) => v.normId === 'resource_sharing')).toHaveLength(0);
     });
   });
 
@@ -98,8 +103,12 @@ describe('NormEngine', () => {
       engine.registerAgent('a1', ['no_griefing']);
       // Lower compliance first via a violation
       engine.recordViolation({
-        normId: 'no_griefing', agentId: 'a1', effect: 'agent:kill',
-        timestamp: 0, severity: 'hard', witnessed: [],
+        normId: 'no_griefing',
+        agentId: 'a1',
+        effect: 'agent:kill',
+        timestamp: 0,
+        severity: 'hard',
+        witnessed: [],
       });
       const before = engine.getCompliance('a1', 'no_griefing');
       expect(before).toBeLessThan(1);
@@ -113,8 +122,12 @@ describe('NormEngine', () => {
       engine.registerAgent('a1', ['no_griefing']);
       const before = engine.getCompliance('a1', 'no_griefing');
       engine.recordViolation({
-        normId: 'no_griefing', agentId: 'a1', effect: 'agent:kill',
-        timestamp: 0, severity: 'hard', witnessed: [],
+        normId: 'no_griefing',
+        agentId: 'a1',
+        effect: 'agent:kill',
+        timestamp: 0,
+        severity: 'hard',
+        witnessed: [],
       });
       const after = engine.getCompliance('a1', 'no_griefing');
       expect(after).toBeLessThan(before);
@@ -129,9 +142,14 @@ describe('NormEngine', () => {
       engine.registerAgent('a1');
       engine.registerAgent('a2');
       const proposal = engine.proposeNorm('a1', {
-        id: 'quiet_zone', name: 'Quiet Zone', category: 'safety',
-        description: 'No audio in library zones', enforcement: 'soft',
-        scope: 'zone', activationThreshold: 0.3, strength: 'moderate',
+        id: 'quiet_zone',
+        name: 'Quiet Zone',
+        category: 'safety',
+        description: 'No audio in library zones',
+        enforcement: 'soft',
+        scope: 'zone',
+        activationThreshold: 0.3,
+        strength: 'moderate',
         forbiddenEffects: ['audio:play', 'audio:global'],
       });
       expect(proposal.status).toBe('pending');
@@ -142,9 +160,14 @@ describe('NormEngine', () => {
       engine.registerAgent('a1');
       engine.registerAgent('a2');
       const proposal = engine.proposeNorm('a1', {
-        id: 'new_norm', name: 'New', category: 'cooperation',
-        description: 'Test', enforcement: 'soft', scope: 'zone',
-        activationThreshold: 0.3, strength: 'moderate',
+        id: 'new_norm',
+        name: 'New',
+        category: 'cooperation',
+        description: 'Test',
+        enforcement: 'soft',
+        scope: 'zone',
+        activationThreshold: 0.3,
+        strength: 'moderate',
       });
       engine.vote(proposal.id, 'a1', true);
       engine.vote(proposal.id, 'a2', true);
@@ -157,9 +180,14 @@ describe('NormEngine', () => {
       engine.registerAgent('a1');
       engine.registerAgent('a2');
       const proposal = engine.proposeNorm('a1', {
-        id: 'bad_norm', name: 'Bad', category: 'authority',
-        description: 'Test', enforcement: 'hard', scope: 'world',
-        activationThreshold: 0, strength: 'strong',
+        id: 'bad_norm',
+        name: 'Bad',
+        category: 'authority',
+        description: 'Test',
+        enforcement: 'hard',
+        scope: 'world',
+        activationThreshold: 0,
+        strength: 'strong',
       });
       engine.vote(proposal.id, 'a1', true);
       engine.vote(proposal.id, 'a2', false); // 50% < 80% threshold
@@ -181,8 +209,12 @@ describe('NormEngine', () => {
       const engine = new NormEngine({ violationPenalty: 0.5 });
       engine.registerAgent('a1', ['no_griefing']);
       engine.recordViolation({
-        normId: 'no_griefing', agentId: 'a1', effect: 'agent:kill',
-        timestamp: 0, severity: 'hard', witnessed: [],
+        normId: 'no_griefing',
+        agentId: 'a1',
+        effect: 'agent:kill',
+        timestamp: 0,
+        severity: 'hard',
+        witnessed: [],
       });
       expect(engine.culturalHealth()).toBeLessThan(1);
     });
@@ -227,17 +259,17 @@ describe('NormEngine', () => {
 
   describe('Critical Mass', () => {
     it('weak norms require 2% for change', () => {
-      const weakNorm = BUILTIN_NORMS.find(n => n.strength === 'weak')!;
+      const weakNorm = BUILTIN_NORMS.find((n) => n.strength === 'weak')!;
       expect(criticalMassForChange(weakNorm, 100)).toBe(2);
     });
 
     it('strong norms require 50% for change', () => {
-      const strongNorm = BUILTIN_NORMS.find(n => n.strength === 'strong')!;
+      const strongNorm = BUILTIN_NORMS.find((n) => n.strength === 'strong')!;
       expect(criticalMassForChange(strongNorm, 100)).toBe(50);
     });
 
     it('moderate norms require 25% for change', () => {
-      const modNorm = BUILTIN_NORMS.find(n => n.strength === 'moderate')!;
+      const modNorm = BUILTIN_NORMS.find((n) => n.strength === 'moderate')!;
       expect(criticalMassForChange(modNorm, 100)).toBe(25);
     });
   });

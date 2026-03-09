@@ -169,12 +169,16 @@ describe('AndroidXRCompiler -- AI Glasses Mode', () => {
 
     it('imports ProjectedDeviceController', () => {
       const result = glassesCompiler.compile(makeComp(), 'test-token');
-      expect(result.activityFile).toContain('import androidx.xr.projected.ProjectedDeviceController');
+      expect(result.activityFile).toContain(
+        'import androidx.xr.projected.ProjectedDeviceController'
+      );
     });
 
     it('imports ProjectedDisplayController', () => {
       const result = glassesCompiler.compile(makeComp(), 'test-token');
-      expect(result.activityFile).toContain('import androidx.xr.projected.ProjectedDisplayController');
+      expect(result.activityFile).toContain(
+        'import androidx.xr.projected.ProjectedDisplayController'
+      );
     });
 
     it('imports CAPABILITY_VISUAL_UI', () => {
@@ -194,7 +198,9 @@ describe('AndroidXRCompiler -- AI Glasses Mode', () => {
 
     it('emits ProjectedDisplayController field', () => {
       const result = glassesCompiler.compile(makeComp(), 'test-token');
-      expect(result.activityFile).toContain('private var displayController: ProjectedDisplayController?');
+      expect(result.activityFile).toContain(
+        'private var displayController: ProjectedDisplayController?'
+      );
     });
 
     it('emits isVisualUiSupported state', () => {
@@ -287,7 +293,13 @@ describe('AndroidXRCompiler -- AI Glasses Mode', () => {
       const comp = makeComp({
         ui: {
           elements: [
-            { name: 'StartBtn', properties: [{ key: 'type', value: 'button' }, { key: 'label', value: 'Start' }] },
+            {
+              name: 'StartBtn',
+              properties: [
+                { key: 'type', value: 'button' },
+                { key: 'label', value: 'Start' },
+              ],
+            },
           ],
         },
       } as any);
@@ -299,9 +311,7 @@ describe('AndroidXRCompiler -- AI Glasses Mode', () => {
     it('compiles UI text elements', () => {
       const comp = makeComp({
         ui: {
-          elements: [
-            { name: 'InfoText', properties: [{ key: 'text', value: 'Welcome' }] },
-          ],
+          elements: [{ name: 'InfoText', properties: [{ key: 'text', value: 'Welcome' }] }],
         },
       } as any);
       const result = glassesCompiler.compile(comp, 'test-token');
@@ -310,7 +320,12 @@ describe('AndroidXRCompiler -- AI Glasses Mode', () => {
 
     it('compiles state properties as mutableStateOf', () => {
       const comp = makeComp({
-        state: { properties: [{ key: 'count', value: 0 }, { key: 'label', value: 'hello' }] },
+        state: {
+          properties: [
+            { key: 'count', value: 0 },
+            { key: 'label', value: 'hello' },
+          ],
+        },
       });
       const result = glassesCompiler.compile(comp, 'test-token');
       expect(result.activityFile).toContain('mutableStateOf(0)');
@@ -485,7 +500,9 @@ describe('AndroidXRCompiler -- AI Glasses Mode', () => {
     it('contains getGlassesCameraContext helper', () => {
       const result = glassesCompiler.compile(makeComp(), 'test-token');
       expect(result.glimmerComponentsFile).toContain('fun getGlassesCameraContext(');
-      expect(result.glimmerComponentsFile).toContain('ProjectedContext.createProjectedDeviceContext');
+      expect(result.glimmerComponentsFile).toContain(
+        'ProjectedContext.createProjectedDeviceContext'
+      );
     });
 
     it('contains rememberGlassesConnectionState composable', () => {
@@ -503,7 +520,9 @@ describe('AndroidXRCompiler -- AI Glasses Mode', () => {
 
     it('imports ProjectedContext', () => {
       const result = glassesCompiler.compile(makeComp(), 'test-token');
-      expect(result.glimmerComponentsFile).toContain('import androidx.xr.projected.ProjectedContext');
+      expect(result.glimmerComponentsFile).toContain(
+        'import androidx.xr.projected.ProjectedContext'
+      );
     });
 
     it('has audio fallback text', () => {

@@ -121,7 +121,9 @@ vi.mock('@holoscript/core', () => ({
     neon: { emissive: '#00ffff', emissiveIntensity: 2.0, color: '#00ffff' },
   },
   HoloScriptValidator: class {
-    validate() { return []; }
+    validate() {
+      return [];
+    }
   },
   HoloScriptPlusParser: class {
     parse(source: string) {
@@ -155,12 +157,15 @@ vi.mock('@holoscript/core', () => ({
 }));
 
 // Mock Worker (no real WASM in test env)
-vi.stubGlobal('Worker', vi.fn().mockImplementation(() => ({
-  addEventListener: vi.fn(),
-  removeEventListener: vi.fn(),
-  postMessage: vi.fn(),
-  terminate: vi.fn(),
-})));
+vi.stubGlobal(
+  'Worker',
+  vi.fn().mockImplementation(() => ({
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    postMessage: vi.fn(),
+    terminate: vi.fn(),
+  }))
+);
 
 // Mock the useCompilerBridge hook to use our mock core
 import { CompilerBridge, resetCompilerBridge } from '../lib/wasm-compiler-bridge';
@@ -253,7 +258,9 @@ describe('E2E Pipeline: Compile -> Render -> Interact', () => {
         // Verify mesh has hsType for geometry mapping
         const firstMesh = meshes[0];
         expect(firstMesh.props.hsType).toBeDefined();
-        expect(['cube', 'sphere', 'cylinder', 'cone', 'box', 'orb']).toContain(firstMesh.props.hsType);
+        expect(['cube', 'sphere', 'cylinder', 'cone', 'box', 'orb']).toContain(
+          firstMesh.props.hsType
+        );
       }
     });
 
@@ -264,9 +271,12 @@ describe('E2E Pipeline: Compile -> Render -> Interact', () => {
       expect(result.type).toBe('text');
       if (result.type === 'text') {
         const tree = JSON.parse(result.data);
-        const lights = tree.children.filter((c: any) =>
-          c.type === 'directionalLight' || c.type === 'ambientLight' ||
-          c.type === 'pointLight' || c.type === 'spotLight'
+        const lights = tree.children.filter(
+          (c: any) =>
+            c.type === 'directionalLight' ||
+            c.type === 'ambientLight' ||
+            c.type === 'pointLight' ||
+            c.type === 'spotLight'
         );
         expect(lights.length).toBeGreaterThan(0);
       }
@@ -451,7 +461,8 @@ describe('E2E Pipeline: Compile -> Render -> Interact', () => {
 
   describe('Phase 7: Full Pipeline Validation', () => {
     it('should complete full pipeline: parse -> validate -> compile -> verify tree', async () => {
-      const source = 'composition "FullPipeline" { object "Cube" { geometry: "cube" position: [0, 1, 0] } }';
+      const source =
+        'composition "FullPipeline" { object "Cube" { geometry: "cube" position: [0, 1, 0] } }';
 
       // Step 1: Parse
       const parseResult = await bridge.parse(source);
@@ -489,7 +500,7 @@ describe('E2E Pipeline: Compile -> Render -> Interact', () => {
         results.push(await bridge.compile(s, 'threejs'));
       }
 
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.type).toBe('text');
       });
     });
@@ -514,7 +525,7 @@ describe('E2E Pipeline: Compile -> Render -> Interact', () => {
 
       // At least one should succeed, errors should not crash other compilations
       expect(results.length).toBe(3);
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result).toBeDefined();
         expect(['text', 'error']).toContain(result.type);
       });

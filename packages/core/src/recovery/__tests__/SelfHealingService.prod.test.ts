@@ -15,7 +15,11 @@ function makeFailure(overrides: Partial<IAgentFailure> = {}): IAgentFailure {
   };
 }
 
-function makeStrategy(id: string, handles: IAgentFailure['errorType'][], executeResult: Partial<IRecoveryResult> = {}): IRecoveryStrategy {
+function makeStrategy(
+  id: string,
+  handles: IAgentFailure['errorType'][],
+  executeResult: Partial<IRecoveryResult> = {}
+): IRecoveryStrategy {
   return {
     id,
     handles,
@@ -86,7 +90,7 @@ describe('SelfHealingService — Production Tests', () => {
 
     it('appears in getActiveFailures()', async () => {
       await svc.reportFailure(makeFailure({ id: 'fail-Y' }));
-      expect(svc.getActiveFailures().some(f => f.id === 'fail-Y')).toBe(true);
+      expect(svc.getActiveFailures().some((f) => f.id === 'fail-Y')).toBe(true);
     });
   });
 
@@ -146,9 +150,11 @@ describe('SelfHealingService — Production Tests', () => {
 
     it('filters by agentId', async () => {
       await svc.reportFailure(makeFailure({ id: 'f1', agentId: 'agent-A' }));
-      await svc.reportFailure(makeFailure({ id: 'f2', agentId: 'agent-B', errorType: 'api-rate-limit' }));
+      await svc.reportFailure(
+        makeFailure({ id: 'f2', agentId: 'agent-B', errorType: 'api-rate-limit' })
+      );
       const agentAPatterns = svc.getFailurePatterns('agent-A');
-      expect(agentAPatterns.every(p => p.errorType === 'network-timeout')).toBe(true);
+      expect(agentAPatterns.every((p) => p.errorType === 'network-timeout')).toBe(true);
     });
   });
 

@@ -10,8 +10,18 @@ describe('Cycle 138: Decals & Projectors', () => {
 
   it('should spawn and track decals with pooling', () => {
     const ds = new DecalSystem();
-    const d1 = ds.spawn({ textureId: 'blood', position: { x: 0, y: 0, z: 0 }, normal: { x: 0, y: 1, z: 0 }, lifetime: 5 });
-    const d2 = ds.spawn({ textureId: 'crack', position: { x: 1, y: 0, z: 0 }, normal: { x: 0, y: 1, z: 0 }, lifetime: 3 });
+    const d1 = ds.spawn({
+      textureId: 'blood',
+      position: { x: 0, y: 0, z: 0 },
+      normal: { x: 0, y: 1, z: 0 },
+      lifetime: 5,
+    });
+    const d2 = ds.spawn({
+      textureId: 'crack',
+      position: { x: 1, y: 0, z: 0 },
+      normal: { x: 0, y: 1, z: 0 },
+      lifetime: 3,
+    });
 
     expect(ds.getActiveCount()).toBe(2);
 
@@ -19,13 +29,24 @@ describe('Cycle 138: Decals & Projectors', () => {
     expect(ds.getActiveCount()).toBe(1);
 
     // Spawn reuses pooled instance
-    const d3 = ds.spawn({ textureId: 'scorch', position: { x: 2, y: 0, z: 0 }, normal: { x: 0, y: 1, z: 0 } });
+    const d3 = ds.spawn({
+      textureId: 'scorch',
+      position: { x: 2, y: 0, z: 0 },
+      normal: { x: 0, y: 1, z: 0 },
+    });
     expect(d3).toBeDefined();
   });
 
   it('should fade in/out and expire decals', () => {
     const ds = new DecalSystem();
-    ds.spawn({ textureId: 'test', position: { x: 0, y: 0, z: 0 }, normal: { x: 0, y: 1, z: 0 }, lifetime: 2, fadeInDuration: 0.5, fadeOutDuration: 0.5 });
+    ds.spawn({
+      textureId: 'test',
+      position: { x: 0, y: 0, z: 0 },
+      normal: { x: 0, y: 1, z: 0 },
+      lifetime: 2,
+      fadeInDuration: 0.5,
+      fadeOutDuration: 0.5,
+    });
 
     ds.update(0.25);
     const d = ds.getVisible()[0];
@@ -46,7 +67,11 @@ describe('Cycle 138: Decals & Projectors', () => {
     ds.setMaxDecals(3);
 
     for (let i = 0; i < 5; i++) {
-      ds.spawn({ textureId: `tex${i}`, position: { x: i, y: 0, z: 0 }, normal: { x: 0, y: 1, z: 0 } });
+      ds.spawn({
+        textureId: `tex${i}`,
+        position: { x: i, y: 0, z: 0 },
+        normal: { x: 0, y: 1, z: 0 },
+      });
     }
 
     expect(ds.getActiveCount()).toBeLessThanOrEqual(3);
@@ -62,9 +87,15 @@ describe('Cycle 138: Decals & Projectors', () => {
       position: { x: 0, y: 10, z: 0 },
       direction: { x: 0, y: -1, z: 0 },
       cookieTextureId: 'spotlight_cookie',
-      fov: 60, aspectRatio: 1, nearClip: 1, farClip: 20,
-      intensity: 2, color: { r: 1, g: 1, b: 1 },
-      falloff: 'linear', enabled: true, id: 'spot1',
+      fov: 60,
+      aspectRatio: 1,
+      nearClip: 1,
+      farClip: 20,
+      intensity: 2,
+      color: { r: 1, g: 1, b: 1 },
+      falloff: 'linear',
+      enabled: true,
+      id: 'spot1',
     });
 
     expect(pl.getCount()).toBe(1);
@@ -79,10 +110,18 @@ describe('Cycle 138: Decals & Projectors', () => {
   it('should compute falloff attenuation', () => {
     const pl = new ProjectorLight();
     pl.create({
-      id: 'p1', position: { x: 0, y: 0, z: 0 }, direction: { x: 0, y: 0, z: 1 },
-      cookieTextureId: 'cookie', fov: 90, aspectRatio: 1,
-      nearClip: 0, farClip: 10, intensity: 1, color: { r: 1, g: 1, b: 1 },
-      falloff: 'linear', enabled: true,
+      id: 'p1',
+      position: { x: 0, y: 0, z: 0 },
+      direction: { x: 0, y: 0, z: 1 },
+      cookieTextureId: 'cookie',
+      fov: 90,
+      aspectRatio: 1,
+      nearClip: 0,
+      farClip: 10,
+      intensity: 1,
+      color: { r: 1, g: 1, b: 1 },
+      falloff: 'linear',
+      enabled: true,
     });
 
     expect(pl.computeAttenuation('p1', 0)).toBe(1);
@@ -100,11 +139,13 @@ describe('Cycle 138: Decals & Projectors', () => {
 
     for (let i = 0; i < 10; i++) {
       batcher.addInstance({
-        id: `d${i}`, textureId: i < 5 ? 'blood' : 'scorch',
+        id: `d${i}`,
+        textureId: i < 5 ? 'blood' : 'scorch',
         position: { x: i * 5, y: 0, z: 0 },
         scale: { x: 1, y: 1, z: 1 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        opacity: 1, lodLevel: 0,
+        opacity: 1,
+        lodLevel: 0,
       });
     }
 
@@ -120,14 +161,22 @@ describe('Cycle 138: Decals & Projectors', () => {
     const batcher = new DecalBatcher();
 
     batcher.addInstance({
-      id: 'visible', textureId: 'tex', position: { x: 5, y: 0, z: 0 },
-      scale: { x: 1, y: 1, z: 1 }, rotation: { x: 0, y: 0, z: 0, w: 1 },
-      opacity: 1, lodLevel: 0,
+      id: 'visible',
+      textureId: 'tex',
+      position: { x: 5, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      opacity: 1,
+      lodLevel: 0,
     });
     batcher.addInstance({
-      id: 'hidden', textureId: 'tex', position: { x: 500, y: 0, z: 0 },
-      scale: { x: 1, y: 1, z: 1 }, rotation: { x: 0, y: 0, z: 0, w: 1 },
-      opacity: 1, lodLevel: 0,
+      id: 'hidden',
+      textureId: 'tex',
+      position: { x: 500, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      opacity: 1,
+      lodLevel: 0,
     });
 
     const batches = batcher.buildBatches(

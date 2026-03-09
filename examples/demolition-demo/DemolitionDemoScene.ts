@@ -440,10 +440,7 @@ export class DemolitionDemoScene {
     // Update shake
     if (this.camera.shakeMagnitude > 0.01) {
       // Apply shake decay
-      this.camera.shakeMagnitude *= Math.pow(
-        this.config.camera.shakeDecay ?? 0.9,
-        dt * 60
-      );
+      this.camera.shakeMagnitude *= Math.pow(this.config.camera.shakeDecay ?? 0.9, dt * 60);
 
       // Update shake offset with spring physics
       const springForce = -this.camera.shakeOffset.x * 10;

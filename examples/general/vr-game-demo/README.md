@@ -9,22 +9,26 @@ This example showcases HoloScript's gaming capabilities with a fast-paced VR sho
 ### Key Features
 
 ✓ **Physics-Based Combat**
+
 - Realistic weapon handling (pistol, shotgun)
 - Projectile physics with bullet tracers
 - Hit detection with damage zones (body vs. headshot)
 
 ✓ **Enemy AI & Spawning**
+
 - Multiple target types (static, moving, flying drones)
 - Wave-based spawning system
 - Difficulty scaling
 
 ✓ **Game Systems**
+
 - Score tracking with combo multipliers
 - Power-ups (health, ammo, damage boost)
 - Leaderboards and high scores
 - Game state machine (menu, playing, game over)
 
 ✓ **VR Interactions**
+
 - Grab and fire weapons with controllers
 - Haptic feedback for shooting
 - Teleportation and standing gameplay
@@ -58,17 +62,20 @@ holoscript compile target-practice.holo --target vrchat --output ./output/vrchat
 ### Run the Experience
 
 #### Unity (Quest/PCVR)
+
 1. Import compiled C# scripts into Unity project
 2. Install XR Interaction Toolkit
 3. Build for Quest or PCVR
 4. Deploy and play
 
 #### Godot
+
 1. Import compiled GDScript files
 2. Configure OpenXR
 3. Export for VR platform
 
 #### VRChat
+
 1. Upload compiled world scripts
 2. Publish to VRChat
 3. Invite friends to play
@@ -76,6 +83,7 @@ holoscript compile target-practice.holo --target vrchat --output ./output/vrchat
 ## 📖 Code Walkthrough
 
 ### Weapon System (Lines 98-198)
+
 ```holoscript
 weapon#pistol @firearm @physics {
   stats {
@@ -100,6 +108,7 @@ weapon#pistol @firearm @physics {
 ```
 
 ### Target AI (Lines 278-377)
+
 ```holoscript
 target#moving @enemy @moving {
   health: 50
@@ -123,6 +132,7 @@ target#moving @enemy @moving {
 ```
 
 ### Wave Spawning (Lines 441-483)
+
 ```holoscript
 system#spawner @game_system {
   spawn_rate: 1.5
@@ -144,6 +154,7 @@ system#spawner @game_system {
 ```
 
 ### Game State Machine (Lines 619-662)
+
 ```holoscript
 game_state_machine {
   state#main_menu {
@@ -177,16 +188,19 @@ game_state_machine {
 ## 🎓 Use Cases
 
 ### Arcade & Entertainment
+
 - VR arcades
 - Home entertainment
 - Party games
 
 ### Skill Training
+
 - Reaction time training
 - Hand-eye coordination
 - VR shooter fundamentals
 
 ### Commercial
+
 - Game studios prototyping
 - VR demo experiences
 - Trade show attractions
@@ -194,6 +208,7 @@ game_state_machine {
 ## ⚙️ Customization
 
 ### Adding New Weapons
+
 ```holoscript
 weapon#rifle @firearm @physics {
   model: "assault_rifle.glb"
@@ -209,6 +224,7 @@ weapon#rifle @firearm @physics {
 ```
 
 ### Creating Custom Targets
+
 ```holoscript
 target#boss @enemy @boss {
   health: 500
@@ -223,6 +239,7 @@ target#boss @enemy @boss {
 ```
 
 ### Adjusting Difficulty
+
 ```holoscript
 game_settings {
   difficulty_levels: {
@@ -238,12 +255,14 @@ game_settings {
 ## 📊 Performance Tips
 
 ### Optimization
+
 - Target 90 FPS for VR comfort
 - Use object pooling for projectiles
 - Limit active particles to 100
 - LOD for distant targets
 
 ### Graphics Settings
+
 ```holoscript
 settings {
   graphics_quality: "high"
@@ -257,6 +276,7 @@ settings {
 ## 🔧 Technical Details
 
 ### Performance Targets
+
 - **Quest 2**: 72-90 FPS
 - **PCVR**: 90-120 FPS
 - **VRChat**: 60+ FPS
@@ -264,16 +284,19 @@ settings {
 ### Platform-Specific Features
 
 **Unity**
+
 - ✅ Full XR Interaction Toolkit support
 - ✅ Hand tracking on Quest Pro
 - ✅ Best performance
 
 **Godot**
+
 - ✅ Open-source
 - ✅ Cross-platform
 - ⚠️ Less VR tooling
 
 **VRChat**
+
 - ✅ Social multiplayer built-in
 - ✅ Easy sharing
 - ⚠️ Performance constraints
@@ -288,6 +311,7 @@ settings {
 ## 🤝 Contributing
 
 Improvements welcome! Ideas:
+
 - Multiplayer co-op mode
 - More weapon types
 - Boss battles

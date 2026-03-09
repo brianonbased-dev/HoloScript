@@ -25,7 +25,7 @@ describe('TrainingDataGenerator — constructor / generateAll', () => {
       expect(typeof ex.id).toBe('string');
       expect(typeof ex.category).toBe('string');
       expect(typeof ex.holoScript).toBe('string');
-      expect(['basic','intermediate','advanced']).toContain(ex.complexity);
+      expect(['basic', 'intermediate', 'advanced']).toContain(ex.complexity);
       expect(Array.isArray(ex.tags)).toBe(true);
     }
   });
@@ -55,13 +55,13 @@ describe('TrainingDataGenerator — generate() category filter', () => {
     const gen = new TrainingDataGenerator();
     const results = gen.generate({ categories: ['geometry'] });
     expect(results.length).toBeGreaterThan(0);
-    expect(results.every(e => e.category === 'geometry')).toBe(true);
+    expect(results.every((e) => e.category === 'geometry')).toBe(true);
   });
 
   it('filters by multiple categories', () => {
     const gen = new TrainingDataGenerator();
     const results = gen.generate({ categories: ['geometry', 'physics'] });
-    expect(results.every(e => ['geometry','physics'].includes(e.category))).toBe(true);
+    expect(results.every((e) => ['geometry', 'physics'].includes(e.category))).toBe(true);
     expect(results.length).toBeGreaterThan(0);
   });
 
@@ -77,19 +77,19 @@ describe('TrainingDataGenerator — generate() complexity filter', () => {
     const gen = new TrainingDataGenerator();
     const results = gen.generate({ complexityFilter: ['basic'] });
     expect(results.length).toBeGreaterThan(0);
-    expect(results.every(e => e.complexity === 'basic')).toBe(true);
+    expect(results.every((e) => e.complexity === 'basic')).toBe(true);
   });
 
   it('filters advanced only', () => {
     const gen = new TrainingDataGenerator();
     const results = gen.generate({ complexityFilter: ['advanced'] });
-    expect(results.every(e => e.complexity === 'advanced')).toBe(true);
+    expect(results.every((e) => e.complexity === 'advanced')).toBe(true);
   });
 
   it('filters multiple complexities', () => {
     const gen = new TrainingDataGenerator();
-    const results = gen.generate({ complexityFilter: ['basic','intermediate'] });
-    expect(results.every(e => ['basic','intermediate'].includes(e.complexity))).toBe(true);
+    const results = gen.generate({ complexityFilter: ['basic', 'intermediate'] });
+    expect(results.every((e) => ['basic', 'intermediate'].includes(e.complexity))).toBe(true);
   });
 });
 
@@ -118,7 +118,7 @@ describe('TrainingDataGenerator — generate() combined filters', () => {
   it('category + complexity combined', () => {
     const gen = new TrainingDataGenerator();
     const results = gen.generate({ categories: ['physics'], complexityFilter: ['basic'] });
-    expect(results.every(e => e.category === 'physics' && e.complexity === 'basic')).toBe(true);
+    expect(results.every((e) => e.category === 'physics' && e.complexity === 'basic')).toBe(true);
   });
 
   it('count with category never exceeds category pool', () => {
@@ -134,7 +134,7 @@ describe('TrainingDataGenerator — getByCategory', () => {
     const gen = new TrainingDataGenerator();
     const results = gen.getByCategory('audio');
     expect(results.length).toBeGreaterThan(0);
-    expect(results.every(e => e.category === 'audio')).toBe(true);
+    expect(results.every((e) => e.category === 'audio')).toBe(true);
   });
 
   it('returns empty for unknown category (cast)', () => {
@@ -148,7 +148,7 @@ describe('TrainingDataGenerator — getByComplexity', () => {
   it('returns basic complexity examples', () => {
     const gen = new TrainingDataGenerator();
     const results = gen.getByComplexity('basic');
-    expect(results.every(e => e.complexity === 'basic')).toBe(true);
+    expect(results.every((e) => e.complexity === 'basic')).toBe(true);
     expect(results.length).toBeGreaterThan(0);
   });
 
@@ -167,7 +167,7 @@ describe('TrainingDataGenerator — getByTag', () => {
     const gen = new TrainingDataGenerator();
     const results = gen.getByTag('physics');
     expect(results.length).toBeGreaterThan(0);
-    expect(results.every(e => e.tags.includes('physics'))).toBe(true);
+    expect(results.every((e) => e.tags.includes('physics'))).toBe(true);
   });
 
   it('returns empty for unknown tag', () => {
@@ -178,7 +178,7 @@ describe('TrainingDataGenerator — getByTag', () => {
   it('tag "basic" matches examples with that tag', () => {
     const gen = new TrainingDataGenerator();
     const results = gen.getByTag('basic');
-    expect(results.every(e => e.tags.includes('basic'))).toBe(true);
+    expect(results.every((e) => e.tags.includes('basic'))).toBe(true);
   });
 });
 
@@ -224,13 +224,19 @@ describe('TrainingDataGenerator — exportJSON / exportJSONL', () => {
 
   it('exportJSONL returns one object per line', () => {
     const gen = new TrainingDataGenerator();
-    const lines = gen.exportJSONL().split('\n').filter(l => l.trim().length > 0);
+    const lines = gen
+      .exportJSONL()
+      .split('\n')
+      .filter((l) => l.trim().length > 0);
     expect(lines.length).toBe(gen.generateAll().length);
   });
 
   it('each JSONL line is valid JSON', () => {
     const gen = new TrainingDataGenerator();
-    const lines = gen.exportJSONL().split('\n').filter(l => l.trim().length > 0);
+    const lines = gen
+      .exportJSONL()
+      .split('\n')
+      .filter((l) => l.trim().length > 0);
     for (const line of lines) {
       expect(() => JSON.parse(line)).not.toThrow();
     }
@@ -238,7 +244,10 @@ describe('TrainingDataGenerator — exportJSON / exportJSONL', () => {
 
   it('JSONL lines do not contain newlines within them', () => {
     const gen = new TrainingDataGenerator();
-    const lines = gen.exportJSONL().split('\n').filter(l => l.trim().length > 0);
+    const lines = gen
+      .exportJSONL()
+      .split('\n')
+      .filter((l) => l.trim().length > 0);
     for (const line of lines) {
       // the holoScript field contains internal newlines but JSON.stringify escapes them
       const obj = JSON.parse(line);
@@ -264,7 +273,7 @@ describe('ALL_CATEGORIES', () => {
   it('is a non-empty array of strings', () => {
     expect(Array.isArray(ALL_CATEGORIES)).toBe(true);
     expect(ALL_CATEGORIES.length).toBeGreaterThan(0);
-    expect(ALL_CATEGORIES.every(c => typeof c === 'string')).toBe(true);
+    expect(ALL_CATEGORIES.every((c) => typeof c === 'string')).toBe(true);
   });
 
   it('includes expected categories', () => {

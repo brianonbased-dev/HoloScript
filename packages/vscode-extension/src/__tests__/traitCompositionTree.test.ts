@@ -369,7 +369,7 @@ describe('TraitCompositionAnalyzer', () => {
 
       // Should have a warnings category
       const warningsCategory = comp.children.find(
-        (c) => c.label === 'Diamond Inheritance Warnings',
+        (c) => c.label === 'Diamond Inheritance Warnings'
       );
       expect(warningsCategory).toBeDefined();
       expect(warningsCategory!.children.length).toBeGreaterThan(0);

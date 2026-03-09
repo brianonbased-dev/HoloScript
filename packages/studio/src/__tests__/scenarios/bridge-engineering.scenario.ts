@@ -7,12 +7,21 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  normalStress, shearStress, vonMisesStress, safetyFactor,
-  isStructurallySafe, beamDeflection, naturalFrequency,
-  totalLoad, deadLoadWeight, fatigueLifeCycles,
-  feaMeshGenerate, windResonanceCheck,
+  normalStress,
+  shearStress,
+  vonMisesStress,
+  safetyFactor,
+  isStructurallySafe,
+  beamDeflection,
+  naturalFrequency,
+  totalLoad,
+  deadLoadWeight,
+  fatigueLifeCycles,
+  feaMeshGenerate,
+  windResonanceCheck,
   MATERIALS,
-  type AppliedLoad, type BridgeSpan,
+  type AppliedLoad,
+  type BridgeSpan,
 } from '@/lib/bridgeEngineering';
 
 describe('Scenario: Bridge Engineering — Materials', () => {
@@ -43,7 +52,7 @@ describe('Scenario: Bridge Engineering — Stress Analysis', () => {
   it('vonMisesStress combines normal + shear', () => {
     const vm = vonMisesStress(100, 50);
     expect(vm).toBeGreaterThan(100);
-    expect(vm).toBeCloseTo(Math.sqrt(100**2 + 3*50**2), 1);
+    expect(vm).toBeCloseTo(Math.sqrt(100 ** 2 + 3 * 50 ** 2), 1);
   });
 
   it('safetyFactor = yield / applied', () => {
@@ -70,7 +79,7 @@ describe('Scenario: Bridge Engineering — Deflection & Dynamics', () => {
 
   it('naturalFrequency decreases with longer spans', () => {
     const f_short = naturalFrequency(10, 200000, 0.001, 50);
-    const f_long  = naturalFrequency(20, 200000, 0.001, 50);
+    const f_long = naturalFrequency(20, 200000, 0.001, 50);
     expect(f_long).toBeLessThan(f_short);
   });
 
@@ -84,8 +93,16 @@ describe('Scenario: Bridge Engineering — Deflection & Dynamics', () => {
   });
 
   it('deadLoadWeight = volume × density × g', () => {
-    const span: BridgeSpan = { id: 's1', type: 'beam', lengthM: 20, widthM: 4, heightM: 1,
-      material: MATERIALS.steel, crossSectionArea: 0.1, momentOfInertia: 0.001 };
+    const span: BridgeSpan = {
+      id: 's1',
+      type: 'beam',
+      lengthM: 20,
+      widthM: 4,
+      heightM: 1,
+      material: MATERIALS.steel,
+      crossSectionArea: 0.1,
+      momentOfInertia: 0.001,
+    };
     const weight = deadLoadWeight(span);
     expect(weight).toBeGreaterThan(0);
     // 20m × 0.1m² × 7850 kg/m³ × 9.81 / 1000 ≈ 154 kN
@@ -94,7 +111,7 @@ describe('Scenario: Bridge Engineering — Deflection & Dynamics', () => {
 
   it('fatigueLifeCycles increases with lower stress range', () => {
     const highStress = fatigueLifeCycles(100, 160);
-    const lowStress  = fatigueLifeCycles(50, 160);
+    const lowStress = fatigueLifeCycles(50, 160);
     expect(lowStress).toBeGreaterThan(highStress);
   });
 
@@ -116,7 +133,16 @@ describe('Scenario: Bridge Engineering — Deflection & Dynamics', () => {
   });
 
   it('wind resonance — vortex shedding and Tacoma Narrows check', () => {
-    const span: BridgeSpan = { id: 's1', type: 'suspension', lengthM: 853, widthM: 12, heightM: 2.4, material: MATERIALS.steel, crossSectionArea: 0.5, momentOfInertia: 0.1 };
+    const span: BridgeSpan = {
+      id: 's1',
+      type: 'suspension',
+      lengthM: 853,
+      widthM: 12,
+      heightM: 2.4,
+      material: MATERIALS.steel,
+      crossSectionArea: 0.5,
+      momentOfInertia: 0.1,
+    };
     // Low wind — no resonance
     const low = windResonanceCheck(span, 5);
     expect(low.resonanceRisk).toBe(false);

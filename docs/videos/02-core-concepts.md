@@ -14,6 +14,7 @@
 > HoloScript gives you."
 
 Topics:
+
 1. Orbs — the building blocks
 2. Properties — position, scale, color, and more
 3. Traits — adding behavior in one line
@@ -35,6 +36,7 @@ orb "Cube" {
 > hold its properties. Everything in a HoloScript scene is an orb."
 
 Multiple orbs:
+
 ```hsplus
 orb "Floor" {
   color: "#888888"
@@ -57,6 +59,7 @@ orb "Ball" {
 ### 3:00 — Properties: The Full Reference (150s)
 
 **Transform properties:**
+
 ```hsplus
 orb "Object" {
   position:  [0, 1, -2]     // vec3: x, y, z (metres)
@@ -66,6 +69,7 @@ orb "Object" {
 ```
 
 **Visual properties:**
+
 ```hsplus
 orb "Object" {
   color:     "#ff6b6b"       // hex, rgb(), or named color
@@ -76,6 +80,7 @@ orb "Object" {
 ```
 
 **Computed / inferred types:**
+
 ```hsplus
 orb "Object" {
   count     = 0              // inferred: number
@@ -161,6 +166,7 @@ orb "Bookshelf" {
 > and traits. You can override any property after the spread."
 
 Override example:
+
 ```hsplus
 orb "GlassTable" {
   ...Furniture

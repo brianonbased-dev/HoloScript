@@ -2,12 +2,20 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { BarkManager, type BarkDefinition } from '../BarkManager';
 
 const bark1: BarkDefinition = {
-  id: 'b1', context: 'combat_start', lines: ['Fight!', 'En garde!'],
-  priority: 5, cooldown: 2, maxRange: 0,
+  id: 'b1',
+  context: 'combat_start',
+  lines: ['Fight!', 'En garde!'],
+  priority: 5,
+  cooldown: 2,
+  maxRange: 0,
 };
 const bark2: BarkDefinition = {
-  id: 'b2', context: 'combat_start', lines: ['Attack!'],
-  priority: 10, cooldown: 1, maxRange: 50,
+  id: 'b2',
+  context: 'combat_start',
+  lines: ['Attack!'],
+  priority: 10,
+  cooldown: 1,
+  maxRange: 50,
 };
 
 describe('BarkManager', () => {

@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { vectorDBHandler } from '../VectorDBTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('VectorDBTrait', () => {
   let node: Record<string, unknown>;
@@ -50,16 +57,40 @@ describe('VectorDBTrait', () => {
     const n = createMockNode('vdb2');
     const c = createMockContext();
     attachTrait(vectorDBHandler, n, smallCfg, c);
-    sendEvent(vectorDBHandler, n, smallCfg, c, { type: 'vector_db_insert', id: 'a', embedding: [1, 0, 0] });
-    sendEvent(vectorDBHandler, n, smallCfg, c, { type: 'vector_db_insert', id: 'b', embedding: [0, 1, 0] });
-    sendEvent(vectorDBHandler, n, smallCfg, c, { type: 'vector_db_insert', id: 'c', embedding: [0, 0, 1] });
+    sendEvent(vectorDBHandler, n, smallCfg, c, {
+      type: 'vector_db_insert',
+      id: 'a',
+      embedding: [1, 0, 0],
+    });
+    sendEvent(vectorDBHandler, n, smallCfg, c, {
+      type: 'vector_db_insert',
+      id: 'b',
+      embedding: [0, 1, 0],
+    });
+    sendEvent(vectorDBHandler, n, smallCfg, c, {
+      type: 'vector_db_insert',
+      id: 'c',
+      embedding: [0, 0, 1],
+    });
     expect(getEventCount(c, 'vector_db_error')).toBe(1);
   });
 
   it('search returns ranked results', () => {
-    sendEvent(vectorDBHandler, node, cfg, ctx, { type: 'vector_db_insert', id: 'a', embedding: [1, 0, 0] });
-    sendEvent(vectorDBHandler, node, cfg, ctx, { type: 'vector_db_insert', id: 'b', embedding: [0, 1, 0] });
-    sendEvent(vectorDBHandler, node, cfg, ctx, { type: 'vector_db_insert', id: 'c', embedding: [0.9, 0.1, 0] });
+    sendEvent(vectorDBHandler, node, cfg, ctx, {
+      type: 'vector_db_insert',
+      id: 'a',
+      embedding: [1, 0, 0],
+    });
+    sendEvent(vectorDBHandler, node, cfg, ctx, {
+      type: 'vector_db_insert',
+      id: 'b',
+      embedding: [0, 1, 0],
+    });
+    sendEvent(vectorDBHandler, node, cfg, ctx, {
+      type: 'vector_db_insert',
+      id: 'c',
+      embedding: [0.9, 0.1, 0],
+    });
     sendEvent(vectorDBHandler, node, cfg, ctx, {
       type: 'vector_db_search',
       embedding: [1, 0, 0],
@@ -80,8 +111,16 @@ describe('VectorDBTrait', () => {
   });
 
   it('delete removes entry and rebuilds index', () => {
-    sendEvent(vectorDBHandler, node, cfg, ctx, { type: 'vector_db_insert', id: 'a', embedding: [1, 0, 0] });
-    sendEvent(vectorDBHandler, node, cfg, ctx, { type: 'vector_db_insert', id: 'b', embedding: [0, 1, 0] });
+    sendEvent(vectorDBHandler, node, cfg, ctx, {
+      type: 'vector_db_insert',
+      id: 'a',
+      embedding: [1, 0, 0],
+    });
+    sendEvent(vectorDBHandler, node, cfg, ctx, {
+      type: 'vector_db_insert',
+      id: 'b',
+      embedding: [0, 1, 0],
+    });
     sendEvent(vectorDBHandler, node, cfg, ctx, { type: 'vector_db_delete', id: 'a' });
     expect((node as any).__vectorDBState.entry_count).toBe(1);
     expect(getEventCount(ctx, 'on_vector_deleted')).toBe(1);

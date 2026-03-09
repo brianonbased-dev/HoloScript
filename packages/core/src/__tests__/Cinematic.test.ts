@@ -24,10 +24,17 @@ describe('Cycle 144: Cinematic Sequencer', () => {
   it('should handle clip blending and muting', () => {
     const seq = new SequenceTrack();
     const track = seq.addTrack('alpha', 'Alpha', 'float');
-    seq.addClip('alpha', 0, 2, [
-      { time: 0, value: 1, easing: 'linear' },
-      { time: 1, value: 1, easing: 'linear' },
-    ], 0.5, 0.5); // blendIn=0.5s, blendOut=0.5s
+    seq.addClip(
+      'alpha',
+      0,
+      2,
+      [
+        { time: 0, value: 1, easing: 'linear' },
+        { time: 1, value: 1, easing: 'linear' },
+      ],
+      0.5,
+      0.5
+    ); // blendIn=0.5s, blendOut=0.5s
 
     seq.play();
     const early = seq.update(0.25); // In blend-in zone (0.25/0.5=0.5)

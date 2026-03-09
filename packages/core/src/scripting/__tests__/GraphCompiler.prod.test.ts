@@ -72,7 +72,7 @@ describe('GraphCompiler: production', () => {
     it('unconnected output port warns', () => {
       graph.addNode(makeNode('n1'));
       const { warnings } = compiler.compile(graph);
-      expect(warnings.some(w => w.includes('unconnected'))).toBe(true);
+      expect(warnings.some((w) => w.includes('unconnected'))).toBe(true);
     });
   });
 
@@ -83,7 +83,7 @@ describe('GraphCompiler: production', () => {
       graph.addNode(makeNode('b'));
       graph.connect('a', 'out', 'b', 'in');
       const { steps } = compiler.compile(graph);
-      const ids = steps.map(s => s.nodeId);
+      const ids = steps.map((s) => s.nodeId);
       expect(ids.indexOf('a')).toBeLessThan(ids.indexOf('b'));
     });
 
@@ -92,7 +92,7 @@ describe('GraphCompiler: production', () => {
       graph.addNode(makeNode('b'));
       graph.connect('a', 'out', 'b', 'in');
       const { steps } = compiler.compile(graph);
-      const bStep = steps.find(s => s.nodeId === 'b')!;
+      const bStep = steps.find((s) => s.nodeId === 'b')!;
       expect(bStep.inputs['in'].source).toBe('wire');
       expect(bStep.inputs['in'].wireFrom).toBe('a');
     });
@@ -110,7 +110,7 @@ describe('GraphCompiler: production', () => {
       graph.connect('a', 'out', 'b', 'in');
       const { warnings } = compiler.compile(graph);
       // b's output is unconnected so still warns, but a's output is connected so no warn for a
-      expect(warnings.every(w => !w.includes('Node a'))).toBe(true);
+      expect(warnings.every((w) => !w.includes('Node a'))).toBe(true);
     });
   });
 

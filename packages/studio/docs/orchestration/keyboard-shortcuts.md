@@ -21,14 +21,14 @@ Master these keyboard shortcuts to dramatically speed up your workflow design an
 
 ### Primary Panels
 
-| Shortcut | Action | Component |
-|----------|--------|-----------|
-| `Ctrl+M` | Toggle MCP Server Config Panel | MCPServerConfigPanel |
-| `Ctrl+Shift+W` | Toggle Workflow Editor | AgentOrchestrationGraphEditor |
-| `Ctrl+B` | Toggle Behavior Tree Editor | BehaviorTreeVisualEditor |
-| `Ctrl+E` | Toggle Event Monitor | AgentEventMonitorPanel |
-| `Ctrl+Shift+T` | Toggle Tool Call Graph | ToolCallGraphVisualizer |
-| `Ctrl+Shift+A` | Toggle Agent Ensemble | DesktopAgentEnsemble |
+| Shortcut       | Action                         | Component                     |
+| -------------- | ------------------------------ | ----------------------------- |
+| `Ctrl+M`       | Toggle MCP Server Config Panel | MCPServerConfigPanel          |
+| `Ctrl+Shift+W` | Toggle Workflow Editor         | AgentOrchestrationGraphEditor |
+| `Ctrl+B`       | Toggle Behavior Tree Editor    | BehaviorTreeVisualEditor      |
+| `Ctrl+E`       | Toggle Event Monitor           | AgentEventMonitorPanel        |
+| `Ctrl+Shift+T` | Toggle Tool Call Graph         | ToolCallGraphVisualizer       |
+| `Ctrl+Shift+A` | Toggle Agent Ensemble          | DesktopAgentEnsemble          |
 
 **Note:** All shortcuts use `Ctrl` on Windows/Linux and `Cmd` on macOS.
 
@@ -52,92 +52,92 @@ Master these keyboard shortcuts to dramatically speed up your workflow design an
 
 ### Workflow Editor (Ctrl+Shift+W)
 
-| Shortcut | Action |
-|----------|--------|
-| **Node Operations** |
-| Click + Drag | Move node |
-| Drag from handle | Create connection |
-| `Delete` | Delete selected node/edge |
-| `Ctrl+Z` | Undo last action |
-| `Ctrl+Y` | Redo action |
-| `Ctrl+C` | Copy selected nodes |
-| `Ctrl+V` | Paste nodes |
-| `Ctrl+A` | Select all nodes |
+| Shortcut              | Action                    |
+| --------------------- | ------------------------- |
+| **Node Operations**   |
+| Click + Drag          | Move node                 |
+| Drag from handle      | Create connection         |
+| `Delete`              | Delete selected node/edge |
+| `Ctrl+Z`              | Undo last action          |
+| `Ctrl+Y`              | Redo action               |
+| `Ctrl+C`              | Copy selected nodes       |
+| `Ctrl+V`              | Paste nodes               |
+| `Ctrl+A`              | Select all nodes          |
 | **Canvas Navigation** |
-| Mouse wheel | Zoom in/out |
-| Space + Drag | Pan canvas |
-| `Ctrl+0` | Reset zoom to 100% |
-| `Ctrl+F` | Fit view to all nodes |
-| **Saving** |
-| `Ctrl+S` | Save workflow |
+| Mouse wheel           | Zoom in/out               |
+| Space + Drag          | Pan canvas                |
+| `Ctrl+0`              | Reset zoom to 100%        |
+| `Ctrl+F`              | Fit view to all nodes     |
+| **Saving**            |
+| `Ctrl+S`              | Save workflow             |
 
 ---
 
 ### Behavior Tree Editor (Ctrl+B)
 
-| Shortcut | Action |
-|----------|--------|
+| Shortcut            | Action               |
+| ------------------- | -------------------- |
 | **Node Operations** |
-| Click + Drag | Move node |
-| Drag from output | Connect to child |
-| `Delete` | Delete selected node |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Y` | Redo |
-| `Ctrl+D` | Duplicate node |
+| Click + Drag        | Move node            |
+| Drag from output    | Connect to child     |
+| `Delete`            | Delete selected node |
+| `Ctrl+Z`            | Undo                 |
+| `Ctrl+Y`            | Redo                 |
+| `Ctrl+D`            | Duplicate node       |
 | **Tree Navigation** |
-| Mouse wheel | Zoom |
-| Space + Drag | Pan |
-| `Ctrl+F` | Fit view |
-| **Execution** |
-| `Ctrl+Enter` | Test tree execution |
+| Mouse wheel         | Zoom                 |
+| Space + Drag        | Pan                  |
+| `Ctrl+F`            | Fit view             |
+| **Execution**       |
+| `Ctrl+Enter`        | Test tree execution  |
 
 ---
 
 ### MCP Server Config (Ctrl+M)
 
-| Shortcut | Action |
-|----------|--------|
-| `↑` / `↓` | Navigate server list |
-| `Enter` | Select server |
-| `Ctrl+F` | Focus search box |
-| `Esc` | Clear search |
-| `Ctrl+R` | Refresh health checks |
-| `Ctrl+T` | Test selected tool |
+| Shortcut  | Action                |
+| --------- | --------------------- |
+| `↑` / `↓` | Navigate server list  |
+| `Enter`   | Select server         |
+| `Ctrl+F`  | Focus search box      |
+| `Esc`     | Clear search          |
+| `Ctrl+R`  | Refresh health checks |
+| `Ctrl+T`  | Test selected tool    |
 
 ---
 
 ### Event Monitor (Ctrl+E)
 
-| Shortcut | Action |
-|----------|--------|
-| `Space` | Pause/Resume event capture |
-| `Ctrl+K` | Clear event log |
-| `Ctrl+F` | Focus filter input |
-| `Ctrl+E` (again) | Export events as CSV |
-| `Ctrl+Shift+E` | Export events as JSON |
-| `↑` / `↓` | Scroll event list |
+| Shortcut         | Action                     |
+| ---------------- | -------------------------- |
+| `Space`          | Pause/Resume event capture |
+| `Ctrl+K`         | Clear event log            |
+| `Ctrl+F`         | Focus filter input         |
+| `Ctrl+E` (again) | Export events as CSV       |
+| `Ctrl+Shift+E`   | Export events as JSON      |
+| `↑` / `↓`        | Scroll event list          |
 
 ---
 
 ### Tool Call Graph (Ctrl+Shift+T)
 
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+K` | Clear call history |
-| `Ctrl+F` | Filter by tool name |
-| `Enter` | Expand selected call details |
-| `Ctrl+E` | Export call history |
+| Shortcut | Action                       |
+| -------- | ---------------------------- |
+| `Ctrl+K` | Clear call history           |
+| `Ctrl+F` | Filter by tool name          |
+| `Enter`  | Expand selected call details |
+| `Ctrl+E` | Export call history          |
 
 ---
 
 ### Agent Ensemble (Ctrl+Shift+A)
 
-| Shortcut | Action |
-|----------|--------|
-| Click + Drag | Move agent position |
-| `Ctrl+R` | Reset agent positions |
-| `Ctrl+G` | Toggle grid snap |
-| `Space` | Pause/Resume agent updates |
+| Shortcut     | Action                     |
+| ------------ | -------------------------- |
+| Click + Drag | Move agent position        |
+| `Ctrl+R`     | Reset agent positions      |
+| `Ctrl+G`     | Toggle grid snap           |
+| `Space`      | Pause/Resume agent updates |
 
 ---
 
@@ -145,14 +145,15 @@ Master these keyboard shortcuts to dramatically speed up your workflow design an
 
 ### Panel Management
 
-| Shortcut | Action |
-|----------|--------|
-| `Esc` | Close active panel |
-| `Ctrl+W` | Close active panel (alternative) |
-| `Ctrl+Tab` | Cycle through open panels |
-| `Ctrl+Shift+Tab` | Cycle backwards |
+| Shortcut         | Action                           |
+| ---------------- | -------------------------------- |
+| `Esc`            | Close active panel               |
+| `Ctrl+W`         | Close active panel (alternative) |
+| `Ctrl+Tab`       | Cycle through open panels        |
+| `Ctrl+Shift+Tab` | Cycle backwards                  |
 
 **Example:** Quickly switch between panels
+
 ```
 Ctrl+M       → Open MCP panel
 Ctrl+Tab     → Switch to next panel
@@ -183,6 +184,7 @@ Esc          → Close current panel
 Practice these frequently used combinations:
 
 **Design Flow:**
+
 ```
 Ctrl+Shift+W → Open workflow
 Add nodes (mouse)
@@ -191,6 +193,7 @@ Ctrl+E → Monitor events
 ```
 
 **Debug Flow:**
+
 ```
 Ctrl+E → Check events
 Ctrl+Shift+T → Check tool calls
@@ -198,6 +201,7 @@ Ctrl+M → Verify server health
 ```
 
 **Export Flow:**
+
 ```
 Ctrl+Shift+W → Open workflow
 Ctrl+Shift+E → Export as JSON
@@ -223,6 +227,7 @@ Right hand stays on mouse for node manipulation.
 Chain shortcuts for complex workflows:
 
 **Create & Test Workflow:**
+
 ```
 1. Ctrl+Shift+W  (open editor)
 2. Add nodes      (mouse)
@@ -233,6 +238,7 @@ Chain shortcuts for complex workflows:
 ```
 
 **Export Everything:**
+
 ```
 1. Ctrl+Shift+W  (workflow)
 2. Ctrl+Shift+E  (export workflow)
@@ -247,12 +253,14 @@ Chain shortcuts for complex workflows:
 ### 4. Modifier Key Patterns
 
 **Ctrl alone:**
+
 - `Ctrl+M` - MCP
 - `Ctrl+B` - Behavior tree
 - `Ctrl+E` - Events
 - `Ctrl+W` - Close
 
 **Ctrl+Shift:**
+
 - `Ctrl+Shift+W` - Workflow
 - `Ctrl+Shift+T` - Tool calls
 - `Ctrl+Shift+A` - Agent ensemble
@@ -267,11 +275,13 @@ Chain shortcuts for complex workflows:
 Some shortcuts behave differently based on context:
 
 **`Ctrl+E` behavior:**
+
 - No panel open → Opens Event Monitor
 - Event Monitor open → Exports events as CSV
 - Other panel open → Toggles Event Monitor
 
 **`Ctrl+S` behavior:**
+
 - Workflow editor → Saves workflow
 - Behavior tree editor → Saves tree
 - MCP config → Saves server settings
@@ -283,6 +293,7 @@ Some shortcuts behave differently based on context:
 ### Implementation Location
 
 Shortcuts are defined in:
+
 ```
 src/hooks/useOrchestrationKeyboard.ts
 ```
@@ -329,13 +340,13 @@ export function useOrchestrationKeyboard(callbacks: OrchestrationKeyboardCallbac
 
 ### Browser Shortcuts to Avoid
 
-| Shortcut | Browser Action | Status |
-|----------|---------------|--------|
-| `Ctrl+T` | New tab | ⚠️ Conflicts with Tool Call Graph |
-| `Ctrl+W` | Close tab | ⚠️ Conflicts with Close Panel |
-| `Ctrl+N` | New window | ✓ Safe (not used) |
-| `Ctrl+R` | Reload page | ⚠️ Used in MCP panel (refresh) |
-| `Ctrl+F` | Find in page | ⚠️ Used for filter inputs |
+| Shortcut | Browser Action | Status                            |
+| -------- | -------------- | --------------------------------- |
+| `Ctrl+T` | New tab        | ⚠️ Conflicts with Tool Call Graph |
+| `Ctrl+W` | Close tab      | ⚠️ Conflicts with Close Panel     |
+| `Ctrl+N` | New window     | ✓ Safe (not used)                 |
+| `Ctrl+R` | Reload page    | ⚠️ Used in MCP panel (refresh)    |
+| `Ctrl+F` | Find in page   | ⚠️ Used for filter inputs         |
 
 **Solution:** HoloScript Studio uses `preventDefault()` to override browser defaults when panels are open.
 
@@ -344,11 +355,13 @@ export function useOrchestrationKeyboard(callbacks: OrchestrationKeyboardCallbac
 ### OS Shortcuts to Avoid
 
 **Windows:**
+
 - `Ctrl+Alt+Delete` - Task manager (can't override)
 - `Windows+D` - Show desktop (can't override)
 - `Alt+Tab` - Switch apps (can't override)
 
 **macOS:**
+
 - `Cmd+Space` - Spotlight (can't override)
 - `Cmd+Tab` - Switch apps (can't override)
 - `Cmd+Q` - Quit app (can't override)
@@ -362,10 +375,11 @@ export function useOrchestrationKeyboard(callbacks: OrchestrationKeyboardCallbac
 **Problem:** `Ctrl+Shift+T` reopens closed browser tab
 
 **Solution:**
+
 ```typescript
 if (e.ctrlKey && e.shiftKey && e.key === 'T') {
-  e.preventDefault();        // ← Prevent browser action
-  e.stopPropagation();       // ← Stop event bubbling
+  e.preventDefault(); // ← Prevent browser action
+  e.stopPropagation(); // ← Stop event bubbling
   callbacks.onToggleToolCallGraph();
 }
 ```
@@ -424,9 +438,7 @@ Print this for desk reference:
 Shortcuts are announced to screen readers:
 
 ```html
-<button aria-label="Open MCP Panel (Ctrl+M)">
-  MCP
-</button>
+<button aria-label="Open MCP Panel (Ctrl+M)">MCP</button>
 ```
 
 ### Alternative Navigation
@@ -459,7 +471,7 @@ Rapid shortcuts are debounced to prevent UI jank:
 ```typescript
 const debouncedToggle = debounce(() => {
   callbacks.onToggleMCP();
-}, 100);  // 100ms debounce
+}, 100); // 100ms debounce
 ```
 
 **Result:** Smooth panel transitions even with rapid keypresses
@@ -510,6 +522,7 @@ Master all shortcuts:
 **Problem:** Shortcut doesn't work
 
 **Solutions:**
+
 1. Check browser focus (click inside HoloScript Studio window)
 2. Verify no modal/dialog is open (Esc to close)
 3. Check browser console for errors
@@ -520,6 +533,7 @@ Master all shortcuts:
 **Problem:** Shortcut triggers browser action
 
 **Solutions:**
+
 1. Update browser to latest version
 2. Check `preventDefault()` in `useOrchestrationKeyboard.ts`
 3. Use alternative shortcut
@@ -530,6 +544,7 @@ Master all shortcuts:
 **Problem:** Shortcut conflicts with OS
 
 **Solutions:**
+
 1. Use different modifier (Shift, Alt)
 2. Customize shortcut in keyboard hook
 3. Disable OS shortcut (advanced users)

@@ -116,9 +116,9 @@ describe('Cycle 129: Procedural Audio', () => {
 
     const prog = gen.generateProgression([1, 4, 5, 1], ['major', 'major', 'major', 'major']);
     expect(prog).toHaveLength(4);
-    expect(prog[0].root).toBe(60);        // I
-    expect(prog[1].root).toBe(65);        // IV
-    expect(prog[2].root).toBe(67);        // V
+    expect(prog[0].root).toBe(60); // I
+    expect(prog[1].root).toBe(65); // IV
+    expect(prog[2].root).toBe(67); // V
     expect(prog[0].notes).toHaveLength(3); // Triad
   });
 

@@ -220,51 +220,63 @@ const HOLO_KEYWORDS: Record<string, { detail: string; documentation: string }> =
   // ── v4.2 Simulation Domain Blocks ──────────────────────────────────────
   material: {
     detail: 'PBR material block',
-    documentation: 'Defines a physically-based material.\\n\\n```holo\\nmaterial "Steel" {\\n  baseColor: "#888"\\n  metallic: 1.0\\n  roughness: 0.3\\n}\\n```',
+    documentation:
+      'Defines a physically-based material.\\n\\n```holo\\nmaterial "Steel" {\\n  baseColor: "#888"\\n  metallic: 1.0\\n  roughness: 0.3\\n}\\n```',
   },
   rigidbody: {
     detail: 'Rigid body physics',
-    documentation: 'Dynamic rigid body with mass and gravity.\\n\\n```holo\\nrigidbody { mass: 10, use_gravity: true }\\n```',
+    documentation:
+      'Dynamic rigid body with mass and gravity.\\n\\n```holo\\nrigidbody { mass: 10, use_gravity: true }\\n```',
   },
   collider: {
     detail: 'Collision shape',
-    documentation: 'Physics collision shape (box, sphere, capsule, mesh).\\n\\n```holo\\ncollider { shape: "box", half_extents: [1,1,1] }\\n```',
+    documentation:
+      'Physics collision shape (box, sphere, capsule, mesh).\\n\\n```holo\\ncollider { shape: "box", half_extents: [1,1,1] }\\n```',
   },
   particles: {
     detail: 'Particle system',
-    documentation: 'GPU particle system with emission/velocity/color modules.\\n\\n```holo\\nparticles "Fire" { max_particles: 10000 }\\n```',
+    documentation:
+      'GPU particle system with emission/velocity/color modules.\\n\\n```holo\\nparticles "Fire" { max_particles: 10000 }\\n```',
   },
   post_processing: {
     detail: 'Post-processing stack',
-    documentation: 'Screen-space effects: bloom, DOF, SSAO, color grading.\\n\\n```holo\\npost_processing { bloom { intensity: 1.5 } }\\n```',
+    documentation:
+      'Screen-space effects: bloom, DOF, SSAO, color grading.\\n\\n```holo\\npost_processing { bloom { intensity: 1.5 } }\\n```',
   },
   audio_source: {
     detail: 'Spatial audio source',
-    documentation: '3D audio emitter with HRTF spatialization.\\n\\n```holo\\naudio_source "BGM" { clip: "music.ogg", spatialization: "hrtf" }\\n```',
+    documentation:
+      '3D audio emitter with HRTF spatialization.\\n\\n```holo\\naudio_source "BGM" { clip: "music.ogg", spatialization: "hrtf" }\\n```',
   },
   weather: {
     detail: 'Weather system',
-    documentation: 'Multi-layer weather: rain, snow, wind, fog, clouds, lightning.\\n\\n```holo\\nweather "Forest" { layer rain { intensity: 0.7 } }\\n```',
+    documentation:
+      'Multi-layer weather: rain, snow, wind, fog, clouds, lightning.\\n\\n```holo\\nweather "Forest" { layer rain { intensity: 0.7 } }\\n```',
   },
   procedural: {
     detail: 'Procedural generation',
-    documentation: 'Noise-based terrain and scatter with biome rules.\\n\\n```holo\\nprocedural "Terrain" { noise perlin { scale: 100 } }\\n```',
+    documentation:
+      'Noise-based terrain and scatter with biome rules.\\n\\n```holo\\nprocedural "Terrain" { noise perlin { scale: 100 } }\\n```',
   },
   lod: {
     detail: 'Level of detail',
-    documentation: 'Distance-based LOD tiers.\\n\\n```holo\\nlod { level 0 { distance: 0 } level 1 { distance: 50 } }\\n```',
+    documentation:
+      'Distance-based LOD tiers.\\n\\n```holo\\nlod { level 0 { distance: 0 } level 1 { distance: 50 } }\\n```',
   },
   navmesh: {
     detail: 'Navigation mesh',
-    documentation: 'AI navigation with agent radius/height.\\n\\n```holo\\nnavmesh { agent_radius: 0.5, agent_height: 2.0 }\\n```',
+    documentation:
+      'AI navigation with agent radius/height.\\n\\n```holo\\nnavmesh { agent_radius: 0.5, agent_height: 2.0 }\\n```',
   },
   behavior_tree: {
     detail: 'AI behavior tree',
-    documentation: 'Hierarchical decision tree for NPC AI.\\n\\n```holo\\nbehavior_tree "Guard" { selector { sequence { ... } } }\\n```',
+    documentation:
+      'Hierarchical decision tree for NPC AI.\\n\\n```holo\\nbehavior_tree "Guard" { selector { sequence { ... } } }\\n```',
   },
   input: {
     detail: 'Input bindings',
-    documentation: 'Maps controller/keyboard to actions.\\n\\n```holo\\ninput "Controls" { "jump": primary_button }\\n```',
+    documentation:
+      'Maps controller/keyboard to actions.\\n\\n```holo\\ninput "Controls" { "jump": primary_button }\\n```',
   },
 };
 
@@ -841,7 +853,10 @@ export class HoloScriptLSP {
         diagnostics.push({
           severity: d.severity as any,
           message: d.message,
-          range: { start: { line: d.line, character: d.column }, end: { line: d.line, character: d.column + 1 } },
+          range: {
+            start: { line: d.line, character: d.column },
+            end: { line: d.line, character: d.column + 1 },
+          },
           code: d.code,
           source: 'holoscript',
         });
@@ -998,10 +1013,11 @@ export class HoloScriptLSP {
     });
     for (const pi of providerItems) {
       // Avoid duplicates with existing items
-      if (!items.some(i => i.label === pi.label)) {
+      if (!items.some((i) => i.label === pi.label)) {
         items.push({
           label: pi.label,
-          kind: pi.kind === 'block' ? 'snippet' : pi.kind === 'trait' ? 'decorator' : pi.kind as any,
+          kind:
+            pi.kind === 'block' ? 'snippet' : pi.kind === 'trait' ? 'decorator' : (pi.kind as any),
           detail: pi.detail,
           documentation: pi.documentation,
           insertText: pi.insertText,
@@ -1032,8 +1048,18 @@ export class HoloScriptLSP {
   private detectBlockContext(source: string, position: LSPPosition): string | undefined {
     const lines = source.split('\n');
     const blockKeywords = [
-      'material', 'rigidbody', 'collider', 'particles', 'post_processing',
-      'audio_source', 'weather', 'procedural', 'lod', 'navmesh', 'behavior_tree', 'input',
+      'material',
+      'rigidbody',
+      'collider',
+      'particles',
+      'post_processing',
+      'audio_source',
+      'weather',
+      'procedural',
+      'lod',
+      'navmesh',
+      'behavior_tree',
+      'input',
     ];
     // Walk backwards from cursor to find enclosing block
     let depth = 0;

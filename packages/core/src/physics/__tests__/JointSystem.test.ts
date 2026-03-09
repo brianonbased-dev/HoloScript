@@ -23,7 +23,9 @@ describe('JointSystem', () => {
 
   it('creates joint with custom config', () => {
     const j = sys.createJoint('slider', 'a', 'b', {
-      stiffness: 5, damping: 0.5, breakForce: 100
+      stiffness: 5,
+      damping: 0.5,
+      breakForce: 100,
     });
     expect(j.stiffness).toBe(5);
     expect(j.breakForce).toBe(100);
@@ -67,7 +69,8 @@ describe('JointSystem', () => {
   // ---------- Breakable joints ----------
   it('breaks joint when force exceeds breakForce', () => {
     const j = sys.createJoint('spring', 'a', 'b', {
-      breakForce: 0.001, stiffness: 100,
+      breakForce: 0.001,
+      stiffness: 100,
       anchorA: { x: 0, y: 0, z: 0 },
       anchorB: { x: 0, y: 0, z: 0 },
     });

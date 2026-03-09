@@ -47,7 +47,7 @@ export class BusinessQuestTools {
     return JSON.stringify({
       version: '1.0',
       ...config,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     });
   }
 
@@ -55,31 +55,34 @@ export class BusinessQuestTools {
    * Registers a newly formulated quest with the Hololand Agent Economy
    * which delegates AI agents (story weavers) to populate the quest details.
    */
-  async deployQuest(config: BusinessQuestConfig, injectNarrative = false): Promise<{ success: boolean; url: string }> {
+  async deployQuest(
+    config: BusinessQuestConfig,
+    injectNarrative = false
+  ): Promise<{ success: boolean; url: string }> {
     try {
       let finalConfig = { ...config };
-      
+
       if (injectNarrative) {
-          const narrativeSvc = getNarrativeQuestService();
-          const p: QuestParams = {
-            locationName: config.title,
-            theme: 'mystery',
-            difficulty: 'medium',
-            poiContext: config.description
-          };
-          const story = await narrativeSvc.generateQuestNarrative(p);
-          finalConfig.description = story.loreDescription;
+        const narrativeSvc = getNarrativeQuestService();
+        const p: QuestParams = {
+          locationName: config.title,
+          theme: 'mystery',
+          difficulty: 'medium',
+          poiContext: config.description,
+        };
+        const story = await narrativeSvc.generateQuestNarrative(p);
+        finalConfig.description = story.loreDescription;
       }
-      
+
       const payload = this.createQuestTemplate(finalConfig);
-      
+
       const response = await fetch(`${this.apiEndpoint}/deploy`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
         },
-        body: payload
+        body: payload,
       });
 
       if (!response.ok) {
@@ -89,13 +92,13 @@ export class BusinessQuestTools {
       const data = await response.json();
       return { success: true, url: data.quest_url };
     } catch (err) {
-      console.error("[BusinessQuestTools] Failed to deploy quest:", err);
+      console.error('[BusinessQuestTools] Failed to deploy quest:', err);
       return { success: false, url: '' };
     }
   }
 
   /**
-   * Helper function to generate an AST HoloScript snippet for building the 
+   * Helper function to generate an AST HoloScript snippet for building the
    * twin's Quest Hub declaratively.
    */
   generateHoloScriptSnippet(config: BusinessQuestConfig): string {

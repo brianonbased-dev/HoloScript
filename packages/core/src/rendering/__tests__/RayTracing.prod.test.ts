@@ -25,11 +25,15 @@ function floorTri(z = 5): Triangle[] {
 }
 
 function makeRay(ox = 0, oy = 5, oz = 0, dx = 0, dy = -1, dz = 0): Ray {
-  return { origin: { x: ox, y: oy, z: oz }, direction: { x: dx, y: dy, z: dz }, tMin: 1e-3, tMax: 1000 };
+  return {
+    origin: { x: ox, y: oy, z: oz },
+    direction: { x: dx, y: dy, z: dz },
+    tMin: 1e-3,
+    tMax: 1000,
+  };
 }
 
 describe('RayTracing — Production Tests', () => {
-
   // ---------------------------------------------------------------------------
   // AABB Utilities
   // ---------------------------------------------------------------------------
@@ -67,7 +71,9 @@ describe('RayTracing — Production Tests', () => {
     it('returns centre of unit cube', () => {
       const box: AABB = { min: { x: 0, y: 0, z: 0 }, max: { x: 2, y: 4, z: 6 } };
       const c = aabbCentroid(box);
-      expect(c.x).toBeCloseTo(1, 5); expect(c.y).toBeCloseTo(2, 5); expect(c.z).toBeCloseTo(3, 5);
+      expect(c.x).toBeCloseTo(1, 5);
+      expect(c.y).toBeCloseTo(2, 5);
+      expect(c.z).toBeCloseTo(3, 5);
     });
   });
 
@@ -90,7 +96,12 @@ describe('RayTracing — Production Tests', () => {
     });
 
     it('ray inside box has tmin = ray.tMin (already inside)', () => {
-      const ray: Ray = { origin: { x: 0, y: 0, z: 0 }, direction: { x: 0, y: 1, z: 0 }, tMin: 0, tMax: 100 };
+      const ray: Ray = {
+        origin: { x: 0, y: 0, z: 0 },
+        direction: { x: 0, y: 1, z: 0 },
+        tMin: 0,
+        tMax: 100,
+      };
       const t = intersectRayAABB(ray, box);
       expect(t).toBeGreaterThanOrEqual(0);
     });
@@ -119,13 +130,23 @@ describe('RayTracing — Production Tests', () => {
     });
 
     it('parallel ray returns -1', () => {
-      const ray: Ray = { origin: { x: 0, y: 1, z: 0 }, direction: { x: 1, y: 0, z: 0 }, tMin: 0, tMax: 100 };
+      const ray: Ray = {
+        origin: { x: 0, y: 1, z: 0 },
+        direction: { x: 1, y: 0, z: 0 },
+        tMin: 0,
+        tMax: 100,
+      };
       const t = intersectRayTriangle(ray, tri);
       expect(t).toBe(-1);
     });
 
     it('hit is within [tMin, tMax]', () => {
-      const ray: Ray = { origin: { x: 0, y: 5, z: 0 }, direction: { x: 0, y: -1, z: 0 }, tMin: 1, tMax: 4 };
+      const ray: Ray = {
+        origin: { x: 0, y: 5, z: 0 },
+        direction: { x: 0, y: -1, z: 0 },
+        tMin: 1,
+        tMax: 4,
+      };
       // Triangle at y=0, ray starts at y=5, max=4 — no hit
       const t = intersectRayTriangle(ray, tri);
       expect(t).toBe(-1);
@@ -138,7 +159,9 @@ describe('RayTracing — Production Tests', () => {
   describe('computeTriangleNormal', () => {
     it('flat tri on XZ plane has upward normal', () => {
       const tri: Triangle = {
-        v0: { x: 0, y: 0, z: 0 }, v1: { x: 1, y: 0, z: 0 }, v2: { x: 0, y: 0, z: 1 }
+        v0: { x: 0, y: 0, z: 0 },
+        v1: { x: 1, y: 0, z: 0 },
+        v2: { x: 0, y: 0, z: 1 },
       };
       const n = computeTriangleNormal(tri);
       // Normal should be (0, ±1, 0)
@@ -148,7 +171,9 @@ describe('RayTracing — Production Tests', () => {
 
     it('returns a unit vector', () => {
       const tri: Triangle = {
-        v0: { x: 1, y: 2, z: 3 }, v1: { x: 4, y: 1, z: 0 }, v2: { x: -1, y: 3, z: 2 }
+        v0: { x: 1, y: 2, z: 3 },
+        v1: { x: 4, y: 1, z: 0 },
+        v2: { x: -1, y: 3, z: 2 },
       };
       const n = computeTriangleNormal(tri);
       const len = Math.sqrt(n.x ** 2 + n.y ** 2 + n.z ** 2);
@@ -236,7 +261,8 @@ describe('RayTracing — Production Tests', () => {
     });
 
     it('miss ray returns sky colour', () => {
-      const bvh = new BVH(); bvh.build([]);
+      const bvh = new BVH();
+      bvh.build([]);
       const scene: PathTracerScene = { bvh, skyColor: [0.2, 0.3, 0.8], lights: [] };
       const ray = makeRay(0, 0, 0, 0, 1, 0); // shooting up
       const result = pathTrace(ray, scene, 1, 0.1);
@@ -259,14 +285,16 @@ describe('RayTracing — Production Tests', () => {
   // ---------------------------------------------------------------------------
   describe('nlmDenoise', () => {
     it('returns output of same size', () => {
-      const W = 8, H = 8;
+      const W = 8,
+        H = 8;
       const noisy = new Float32Array(W * H * 4).fill(0.5);
       const out = nlmDenoise(noisy, W, H, { searchRadius: 2, patchRadius: 1, h: 0.1 });
       expect(out.length).toBe(W * H * 4);
     });
 
     it('smooth (constant) image is preserved after denoising', () => {
-      const W = 4, H = 4;
+      const W = 4,
+        H = 4;
       const flat = new Float32Array(W * H * 4).fill(0.6);
       const out = nlmDenoise(flat, W, H, { searchRadius: 2, patchRadius: 1, h: 0.1 });
       for (let i = 0; i < out.length; i += 4) {
@@ -275,7 +303,8 @@ describe('RayTracing — Production Tests', () => {
     });
 
     it('output values are all finite', () => {
-      const W = 4, H = 4;
+      const W = 4,
+        H = 4;
       const noisy = new Float32Array(W * H * 4).map(() => Math.random());
       const out = nlmDenoise(noisy, W, H);
       for (const v of out) expect(isFinite(v)).toBe(true);
@@ -313,7 +342,9 @@ describe('RayTracing — Production Tests', () => {
 
     it('renderPixel returns finite RGB', () => {
       const rt = new RayTracer({ spp: 2, max_bounces: 1 });
-      rt.loadScene(floorTri(), [{ position: { x: 0, y: 10, z: 0 }, color: [1, 1, 1], intensity: 10 }]);
+      rt.loadScene(floorTri(), [
+        { position: { x: 0, y: 10, z: 0 }, color: [1, 1, 1], intensity: 10 },
+      ]);
       const result = rt.renderPixel({ x: 0, y: 5, z: 0 }, { x: 0, y: -1, z: 0 }, 0, 0);
       for (const c of result) {
         expect(isFinite(c)).toBe(true);

@@ -740,21 +740,26 @@ export class IncrementalCompiler {
    * @returns          `{ scope, modules, errors }` from `ImportResolver.resolve()`
    */
   async resolveImports(
-    result: { ast?: { imports?: Array<{ path: string; alias: string; namedImports?: string[]; isWildcard?: boolean }> } },
+    result: {
+      ast?: {
+        imports?: Array<{
+          path: string;
+          alias: string;
+          namedImports?: string[];
+          isWildcard?: boolean;
+        }>;
+      };
+    },
     options: Pick<IncrementalCompileOptions, 'baseDir' | 'sourceFile' | 'readFile'>
   ): Promise<ImportResolutionResult> {
     const baseDir = options.baseDir ?? '/';
     const sourceFile = options.sourceFile ?? `${baseDir}/unknown.hs`;
 
     const resolver = new ImportResolver();
-    const resolution = await resolver.resolve(
-      result as any,
-      sourceFile,
-      {
-        baseDir,
-        readFile: options.readFile,
-      }
-    );
+    const resolution = await resolver.resolve(result as any, sourceFile, {
+      baseDir,
+      readFile: options.readFile,
+    });
 
     // ── Register cross-file import edges in TraitDependencyGraph ─────────────
     // This enables getFilesAffectedByChange() to propagate recompilation when
@@ -850,10 +855,7 @@ export class IncrementalCompiler {
         // Try semantic cache first (if enabled)
         if (this.semanticCache) {
           const astHash = hashASTSubtree(obj);
-          const semanticResult = await this.semanticCache.get<string>(
-            astHash,
-            'compiled-object'
-          );
+          const semanticResult = await this.semanticCache.get<string>(astHash, 'compiled-object');
           if (semanticResult.hit) {
             cachedObjects.push(name);
             compiledParts.push(semanticResult.entry!.data);
@@ -1109,12 +1111,12 @@ export function deserializeCache(json: string): IncrementalCompiler {
 export class UnauthorizedIncrementalCompilerAccessError extends Error {
   constructor(
     public readonly decision: AccessDecision,
-    public readonly compilerName: string,
+    public readonly compilerName: string
   ) {
     super(
       `[${compilerName}] Unauthorized access: ${decision.reason || 'Access denied'}\n` +
-      `Agent Role: ${decision.agentRole || 'unknown'}\n` +
-      `Required Permission: ${decision.requiredPermission || 'unknown'}`,
+        `Agent Role: ${decision.agentRole || 'unknown'}\n` +
+        `Required Permission: ${decision.requiredPermission || 'unknown'}`
     );
     this.name = 'UnauthorizedIncrementalCompilerAccessError';
   }

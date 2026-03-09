@@ -12,7 +12,9 @@ import { spatialNavigationHandler } from '../SpatialNavigationTrait';
 // HELPERS
 // =============================================================================
 
-function makeNode(id = 'nav-node') { return { id } as any; }
+function makeNode(id = 'nav-node') {
+  return { id } as any;
+}
 
 function makeConfig(overrides: any = {}) {
   return { ...spatialNavigationHandler.defaultConfig, ...overrides };
@@ -108,7 +110,10 @@ describe('SpatialNavigationTrait — Production', () => {
       });
       ctx.emit.mockClear();
 
-      spatialNavigationHandler.onEvent!(node, config, ctx, { type: 'navigation:stop', payload: {} });
+      spatialNavigationHandler.onEvent!(node, config, ctx, {
+        type: 'navigation:stop',
+        payload: {},
+      });
 
       expect(getState(ctx).isNavigating).toBe(false);
       expect(ctx.emit).toHaveBeenCalledWith('navigation:stopped');
@@ -219,7 +224,10 @@ describe('SpatialNavigationTrait — Production', () => {
   describe('edge cases', () => {
     it('event with no state is a no-op', () => {
       const noCtx = { emit: vi.fn(), setState: vi.fn(), getState: () => ({}) } as any;
-      spatialNavigationHandler.onEvent!(node, config, noCtx, { type: 'navigation:start', payload: {} });
+      spatialNavigationHandler.onEvent!(node, config, noCtx, {
+        type: 'navigation:start',
+        payload: {},
+      });
       expect(noCtx.emit).not.toHaveBeenCalled();
     });
   });

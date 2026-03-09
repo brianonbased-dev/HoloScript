@@ -109,7 +109,9 @@ export class FracturePhysics {
     this.collapseEvents = [];
     this.debrisParticles = [];
 
-    console.log(`🌊 Earthquake triggered: Intensity ${config.intensity}, Duration ${config.duration}s`);
+    console.log(
+      `🌊 Earthquake triggered: Intensity ${config.intensity}, Duration ${config.duration}s`
+    );
   }
 
   /**
@@ -211,7 +213,7 @@ export class FracturePhysics {
       }
 
       // Base stress from element's own weight
-      const gravityStress = (element.mass * 9.8) / element.loadCapacity * 10;
+      const gravityStress = ((element.mass * 9.8) / element.loadCapacity) * 10;
       element.stress = gravityStress;
     }
 
@@ -262,7 +264,7 @@ export class FracturePhysics {
         .filter((el) => el && !this.failedElements.has(el.id));
 
       // Distribute failed element's load to connected elements
-      const loadPerElement = failedElement.mass * 9.8 / intactConnected.length;
+      const loadPerElement = (failedElement.mass * 9.8) / intactConnected.length;
 
       for (const connected of intactConnected) {
         if (connected) {
@@ -395,16 +397,15 @@ export class FracturePhysics {
     failureMode: string
   ): number {
     // Debris count based on element size
-    const volume =
-      element.dimensions[0] * element.dimensions[1] * element.dimensions[2];
+    const volume = element.dimensions[0] * element.dimensions[1] * element.dimensions[2];
     const baseCount = Math.floor(volume * 50); // ~50 particles per cubic meter
 
     // Vary count based on failure mode
     const modeMultiplier = {
-      snap: 0.5,    // Clean break = fewer, larger pieces
-      bend: 0.7,    // Bending = moderate fragmentation
-      crush: 1.5,   // Crushing = many small pieces
-      shear: 1.0,   // Shear = moderate pieces
+      snap: 0.5, // Clean break = fewer, larger pieces
+      bend: 0.7, // Bending = moderate fragmentation
+      crush: 1.5, // Crushing = many small pieces
+      shear: 1.0, // Shear = moderate pieces
     };
 
     const debrisCount = Math.floor(
@@ -505,9 +506,7 @@ export class FracturePhysics {
 
       // Deactivate if settled
       const speed = Math.sqrt(
-        particle.velocity[0] ** 2 +
-        particle.velocity[1] ** 2 +
-        particle.velocity[2] ** 2
+        particle.velocity[0] ** 2 + particle.velocity[1] ** 2 + particle.velocity[2] ** 2
       );
 
       if (speed < 0.05 && particle.position[1] < 1) {

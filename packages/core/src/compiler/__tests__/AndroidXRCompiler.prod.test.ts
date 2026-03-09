@@ -5,7 +5,7 @@
  * Kotlin output, Jetpack Compose XR, Activity class, ARCore session,
  * objects, lights, camera, timelines, audio, UI, zones, effects, transitions.
  */
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AndroidXRCompiler } from '../AndroidXRCompiler';
 import type { AndroidXRCompileResult } from '../AndroidXRCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
@@ -18,7 +18,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   };
 });
 
-
 function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
     name: 'TestScene',
@@ -30,7 +29,11 @@ function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   } as HoloComposition;
 }
 
-function makeObj(name: string, props: Array<{ key: string; value: unknown }> = [], traits: any[] = []): HoloObjectDecl {
+function makeObj(
+  name: string,
+  props: Array<{ key: string; value: unknown }> = [],
+  traits: any[] = []
+): HoloObjectDecl {
   return {
     name,
     properties: props.map(({ key, value }) => ({ key, value })),
@@ -52,7 +55,11 @@ describe('AndroidXRCompiler -- Production', () => {
   });
 
   it('constructs with custom options', () => {
-    const c = new AndroidXRCompiler({ packageName: 'com.example.app', activityName: 'MainActivity', useARCore: true });
+    const c = new AndroidXRCompiler({
+      packageName: 'com.example.app',
+      activityName: 'MainActivity',
+      useARCore: true,
+    });
     expect(c).toBeDefined();
   });
 
@@ -136,64 +143,138 @@ describe('AndroidXRCompiler -- Production', () => {
 
   // ─── Lights ──────────────────────────────────────────────────────────
   it('compiles a point light', () => {
-    const result = compiler.compile(makeComp({
-      lights: [{ name: 'KeyLight', lightType: 'point', properties: [{ key: 'intensity', value: 1000 }, { key: 'color', value: '#ffffff' }] }] as any,
-    }), 'test-token');
+    const result = compiler.compile(
+      makeComp({
+        lights: [
+          {
+            name: 'KeyLight',
+            lightType: 'point',
+            properties: [
+              { key: 'intensity', value: 1000 },
+              { key: 'color', value: '#ffffff' },
+            ],
+          },
+        ] as any,
+      }),
+      'test-token'
+    );
     expect(result.activityFile).toContain('KeyLight');
   });
 
   it('compiles a directional light', () => {
-    const result = compiler.compile(makeComp({
-      lights: [{ name: 'Sun', lightType: 'directional', properties: [{ key: 'intensity', value: 5 }, { key: 'color', value: '#fff8e7' }] }] as any,
-    }), 'test-token');
+    const result = compiler.compile(
+      makeComp({
+        lights: [
+          {
+            name: 'Sun',
+            lightType: 'directional',
+            properties: [
+              { key: 'intensity', value: 5 },
+              { key: 'color', value: '#fff8e7' },
+            ],
+          },
+        ] as any,
+      }),
+      'test-token'
+    );
     expect(result.activityFile).toBeDefined();
   });
 
   // ─── Camera ───────────────────────────────────────────────────────────
   it('compiles camera configuration', () => {
-    const result = compiler.compile(makeComp({
-      camera: { cameraType: 'perspective', properties: [{ key: 'fov', value: 75 }, { key: 'near', value: 0.1 }, { key: 'far', value: 500 }] },
-    } as any), 'test-token');
+    const result = compiler.compile(
+      makeComp({
+        camera: {
+          cameraType: 'perspective',
+          properties: [
+            { key: 'fov', value: 75 },
+            { key: 'near', value: 0.1 },
+            { key: 'far', value: 500 },
+          ],
+        },
+      } as any),
+      'test-token'
+    );
     expect(result.activityFile).toBeDefined();
   });
 
   // ─── Timelines ───────────────────────────────────────────────────────
   it('compiles a timeline', () => {
-    const result = compiler.compile(makeComp({
-      timelines: [{ name: 'FadeIn', duration: 1.5, entries: [] }] as any,
-    }), 'test-token');
+    const result = compiler.compile(
+      makeComp({
+        timelines: [{ name: 'FadeIn', duration: 1.5, entries: [] }] as any,
+      }),
+      'test-token'
+    );
     expect(result.activityFile).toContain('FadeIn');
   });
 
   // ─── Audio ───────────────────────────────────────────────────────────
   it('compiles audio', () => {
-    const result = compiler.compile(makeComp({
-      audio: [{ name: 'BgMusic', properties: [{ key: 'src', value: 'music.mp3' }, { key: 'loop', value: true }, { key: 'volume', value: 0.7 }] }],
-    } as any), 'test-token');
+    const result = compiler.compile(
+      makeComp({
+        audio: [
+          {
+            name: 'BgMusic',
+            properties: [
+              { key: 'src', value: 'music.mp3' },
+              { key: 'loop', value: true },
+              { key: 'volume', value: 0.7 },
+            ],
+          },
+        ],
+      } as any),
+      'test-token'
+    );
     expect(result.activityFile).toBeDefined();
   });
 
   // ─── UI ──────────────────────────────────────────────────────────────
   it('compiles UI elements', () => {
-    const result = compiler.compile(makeComp({
-      ui: { elements: [{ name: 'HUD', properties: [{ key: 'type', value: 'panel' }] }] },
-    } as any), 'test-token');
+    const result = compiler.compile(
+      makeComp({
+        ui: { elements: [{ name: 'HUD', properties: [{ key: 'type', value: 'panel' }] }] },
+      } as any),
+      'test-token'
+    );
     expect(result.activityFile).toBeDefined();
   });
 
   // ─── Zones ───────────────────────────────────────────────────────────
   it('compiles trigger zones', () => {
-    const result = compiler.compile(makeComp({
-      zones: [{ name: 'SafeZone', properties: [{ key: 'shape', value: 'sphere' }, { key: 'radius', value: 3 }] }],
-    } as any), 'test-token');
+    const result = compiler.compile(
+      makeComp({
+        zones: [
+          {
+            name: 'SafeZone',
+            properties: [
+              { key: 'shape', value: 'sphere' },
+              { key: 'radius', value: 3 },
+            ],
+          },
+        ],
+      } as any),
+      'test-token'
+    );
     expect(result.activityFile).toBeDefined();
   });
 
   // ─── Transitions ─────────────────────────────────────────────────────
   it('compiles transitions', () => {
-    const result = compiler.compile(makeComp({
-      transitions: [{ name: 'FadeOut', properties: [{ key: 'target', value: 'B' }, { key: 'duration', value: 0.8 }] }],
-    } as any), 'test-token');
+    const result = compiler.compile(
+      makeComp({
+        transitions: [
+          {
+            name: 'FadeOut',
+            properties: [
+              { key: 'target', value: 'B' },
+              { key: 'duration', value: 0.8 },
+            ],
+          },
+        ],
+      } as any),
+      'test-token'
+    );
     expect(result.activityFile).toContain('FadeOut');
   });
 
@@ -242,7 +323,11 @@ describe('AndroidXRCompiler -- Production', () => {
 
   // ─── DP3: UserSubspace Head-Following UI ──────────────────────────
   it('DP3: wraps follows_head objects in UserSubspace', () => {
-    const obj = makeObj('HUD', [{ key: 'width', value: 400 }], [{ name: 'follows_head', config: { distance: 1.5 } }]);
+    const obj = makeObj(
+      'HUD',
+      [{ key: 'width', value: 400 }],
+      [{ name: 'follows_head', config: { distance: 1.5 } }]
+    );
     const result = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(result.activityFile).toContain('UserSubspace {');
     expect(result.activityFile).toContain('head-following');
@@ -250,14 +335,20 @@ describe('AndroidXRCompiler -- Production', () => {
 
   // ─── DP3: SurfaceEntity with DRM ──────────────────────────────────
   it('DP3: emits SurfaceEntity with DRM protection', () => {
-    const obj = makeObj('DrmPlayer', [], [{
-      name: 'drm_video',
-      config: {
-        uri: 'https://cdn.example.com/movie.mpd',
-        license_uri: 'https://drm.example.com/license',
-        shape: 'quad',
-      },
-    }]);
+    const obj = makeObj(
+      'DrmPlayer',
+      [],
+      [
+        {
+          name: 'drm_video',
+          config: {
+            uri: 'https://cdn.example.com/movie.mpd',
+            license_uri: 'https://drm.example.com/license',
+            shape: 'quad',
+          },
+        },
+      ]
+    );
     const result = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(result.activityFile).toContain('SurfaceEntity.SurfaceProtection.PROTECTED');
     expect(result.activityFile).toContain('ExoPlayer');
@@ -265,10 +356,16 @@ describe('AndroidXRCompiler -- Production', () => {
   });
 
   it('DP3: supports hemisphere shape for 180 video', () => {
-    const obj = makeObj('Video180', [], [{
-      name: 'drm_video',
-      config: { shape: 'hemisphere', radius: 8 },
-    }]);
+    const obj = makeObj(
+      'Video180',
+      [],
+      [
+        {
+          name: 'drm_video',
+          config: { shape: 'hemisphere', radius: 8 },
+        },
+      ]
+    );
     const result = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(result.activityFile).toContain('SurfaceEntity.Shape.Hemisphere(8f)');
   });
@@ -288,7 +385,12 @@ describe('AndroidXRCompiler -- Production', () => {
 
   it('state file includes state properties from composition', () => {
     const comp = makeComp({
-      state: { properties: [{ key: 'health', value: 100 }, { key: 'playerName', value: 'Player1' }] },
+      state: {
+        properties: [
+          { key: 'health', value: 100 },
+          { key: 'playerName', value: 'Player1' },
+        ],
+      },
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.stateFile).toContain('health');
@@ -365,10 +467,16 @@ describe('AndroidXRCompiler -- Production', () => {
   });
 
   it('build.gradle includes Media3 when DRM video is used', () => {
-    const obj = makeObj('DrmPlayer', [], [{
-      name: 'drm_video',
-      config: { uri: 'test.mpd' },
-    }]);
+    const obj = makeObj(
+      'DrmPlayer',
+      [],
+      [
+        {
+          name: 'drm_video',
+          config: { uri: 'test.mpd' },
+        },
+      ]
+    );
     const result = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(result.buildGradle).toContain('media3-exoplayer');
     expect(result.buildGradle).toContain('media3-common');

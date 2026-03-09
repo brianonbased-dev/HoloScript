@@ -83,9 +83,14 @@ describe('PooledSpawner', () => {
   it('onSpawn callback fires', () => {
     let called = false;
     spawner.registerPrefab({
-      id: 'fx', poolSize: 5, maxInstances: 10, autoExpand: false,
+      id: 'fx',
+      poolSize: 5,
+      maxInstances: 10,
+      autoExpand: false,
       defaultLifetime: 1,
-      onSpawn: () => { called = true; },
+      onSpawn: () => {
+        called = true;
+      },
     });
     spawner.spawn('fx');
     expect(called).toBe(true);
@@ -94,9 +99,14 @@ describe('PooledSpawner', () => {
   it('onDespawn callback fires', () => {
     let called = false;
     spawner.registerPrefab({
-      id: 'fx', poolSize: 5, maxInstances: 10, autoExpand: false,
+      id: 'fx',
+      poolSize: 5,
+      maxInstances: 10,
+      autoExpand: false,
       defaultLifetime: 1,
-      onDespawn: () => { called = true; },
+      onDespawn: () => {
+        called = true;
+      },
     });
     const e = spawner.spawn('fx')!;
     spawner.despawn(e.id);

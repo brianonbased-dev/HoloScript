@@ -28,10 +28,7 @@ function bone(name: string, length: number, position = { x: 0, y: 0, z: 0 }): IK
 function twoSegmentChain(): IKChain {
   return {
     name: 'arm',
-    bones: [
-      bone('upper', 1.0, { x: 0, y: 0, z: 0 }),
-      bone('lower', 1.0, { x: 0, y: 1, z: 0 }),
-    ],
+    bones: [bone('upper', 1.0, { x: 0, y: 0, z: 0 }), bone('lower', 1.0, { x: 0, y: 1, z: 0 })],
     solver: 'fabrik',
   };
 }

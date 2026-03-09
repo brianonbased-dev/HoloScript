@@ -454,11 +454,7 @@ export function secureRandom(min: number, max: number): number {
 /**
  * Validate API signature
  */
-export function validateSignature(
-  payload: string,
-  signature: string,
-  secret: string
-): boolean {
+export function validateSignature(payload: string, signature: string, secret: string): boolean {
   try {
     const hmac = crypto.createHmac('sha256', secret);
     hmac.update(payload);

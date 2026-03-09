@@ -12,7 +12,9 @@ import { LightingModel } from '../LightingModel';
 describe('LightingModel', () => {
   let lm: LightingModel;
 
-  beforeEach(() => { lm = new LightingModel(); });
+  beforeEach(() => {
+    lm = new LightingModel();
+  });
 
   // -------------------------------------------------------------------------
   // addLight / removeLight / getLight / getLightCount
@@ -118,7 +120,13 @@ describe('LightingModel', () => {
   // -------------------------------------------------------------------------
   describe('calculateAttenuation — point', () => {
     beforeEach(() => {
-      lm.addLight({ id: 'bulb', type: 'point', position: { x: 0, y: 0, z: 0 }, range: 10, enabled: true });
+      lm.addLight({
+        id: 'bulb',
+        type: 'point',
+        position: { x: 0, y: 0, z: 0 },
+        range: 10,
+        enabled: true,
+      });
     });
 
     it('at the light position attenuation ≈ 1', () => {
@@ -127,8 +135,8 @@ describe('LightingModel', () => {
     });
 
     it('attenuation decreases with distance', () => {
-      const near  = lm.calculateAttenuation('bulb', { x: 2, y: 0, z: 0 });
-      const far   = lm.calculateAttenuation('bulb', { x: 8, y: 0, z: 0 });
+      const near = lm.calculateAttenuation('bulb', { x: 2, y: 0, z: 0 });
+      const far = lm.calculateAttenuation('bulb', { x: 8, y: 0, z: 0 });
       expect(near).toBeGreaterThan(far);
     });
 
@@ -143,10 +151,14 @@ describe('LightingModel', () => {
   describe('calculateAttenuation — spot', () => {
     it('point directly in front of spot has full attenuation', () => {
       lm.addLight({
-        id: 'spot', type: 'spot',
+        id: 'spot',
+        type: 'spot',
         position: { x: 0, y: 0, z: 0 },
         direction: { x: 0, y: 0, z: 1 }, // pointing +z
-        range: 20, spotAngle: 90, spotPenumbra: 0.1, enabled: true,
+        range: 20,
+        spotAngle: 90,
+        spotPenumbra: 0.1,
+        enabled: true,
       });
       // A point directly behind the spotlight — within range but outside cone
       const att = lm.calculateAttenuation('spot', { x: 0, y: 0, z: 5 });
@@ -158,10 +170,14 @@ describe('LightingModel', () => {
 
     it('point outside spot cone returns 0', () => {
       lm.addLight({
-        id: 'spot', type: 'spot',
+        id: 'spot',
+        type: 'spot',
         position: { x: 0, y: 0, z: 0 },
         direction: { x: 0, y: 1, z: 0 }, // pointing up
-        range: 20, spotAngle: 10, spotPenumbra: 0.1, enabled: true,
+        range: 20,
+        spotAngle: 10,
+        spotPenumbra: 0.1,
+        enabled: true,
       });
       // Point at side, clearly outside narrow cone
       const att = lm.calculateAttenuation('spot', { x: 10, y: 0.01, z: 0 });
@@ -180,20 +196,38 @@ describe('LightingModel', () => {
     });
 
     it('probe inside radius contributes to GI sample', () => {
-      lm.addGIProbe({ id: 'p1', position: { x: 0, y: 0, z: 0 }, radius: 10, irradiance: [1, 0, 0], weight: 1 });
+      lm.addGIProbe({
+        id: 'p1',
+        position: { x: 0, y: 0, z: 0 },
+        radius: 10,
+        irradiance: [1, 0, 0],
+        weight: 1,
+      });
       const gi = lm.sampleGI({ x: 5, y: 0, z: 0 }); // inside radius
       expect(gi[0]).toBeGreaterThan(0); // should have red irradiance contribution
     });
 
     it('probe outside radius has no effect', () => {
-      lm.addGIProbe({ id: 'p1', position: { x: 0, y: 0, z: 0 }, radius: 3, irradiance: [1, 0, 0], weight: 1 });
+      lm.addGIProbe({
+        id: 'p1',
+        position: { x: 0, y: 0, z: 0 },
+        radius: 3,
+        irradiance: [1, 0, 0],
+        weight: 1,
+      });
       lm.setAmbient({ color: [0, 0, 0], intensity: 1 });
       const gi = lm.sampleGI({ x: 100, y: 0, z: 0 }); // way outside radius
       expect(gi[0]).toBe(0); // falls back to ambient which is [0,0,0]
     });
 
     it('removeGIProbe removes the probe', () => {
-      lm.addGIProbe({ id: 'p1', position: { x: 0, y: 0, z: 0 }, radius: 100, irradiance: [1, 0, 0], weight: 1 });
+      lm.addGIProbe({
+        id: 'p1',
+        position: { x: 0, y: 0, z: 0 },
+        radius: 100,
+        irradiance: [1, 0, 0],
+        weight: 1,
+      });
       lm.removeGIProbe('p1');
       lm.setAmbient({ color: [0, 0, 0], intensity: 1 });
       const gi = lm.sampleGI({ x: 0, y: 0, z: 0 });
@@ -208,7 +242,7 @@ describe('LightingModel', () => {
     it('directional lights are always visible', () => {
       lm.addLight({ id: 'sun', type: 'directional', enabled: true });
       const visible = lm.getVisibleLights({ x: 0, y: 0, z: 0 }, 100);
-      expect(visible.some(l => l.id === 'sun')).toBe(true);
+      expect(visible.some((l) => l.id === 'sun')).toBe(true);
     });
 
     it('disabled lights are excluded', () => {
@@ -217,15 +251,21 @@ describe('LightingModel', () => {
     });
 
     it('point light in range is visible', () => {
-      lm.addLight({ id: 'p', type: 'point', position: { x: 5, y: 0, z: 0 }, range: 20, enabled: true });
+      lm.addLight({
+        id: 'p',
+        type: 'point',
+        position: { x: 5, y: 0, z: 0 },
+        range: 20,
+        enabled: true,
+      });
       const vis = lm.getVisibleLights({ x: 0, y: 0, z: 0 }, 50);
-      expect(vis.some(l => l.id === 'p')).toBe(true);
+      expect(vis.some((l) => l.id === 'p')).toBe(true);
     });
 
     it('layer mask filters lights', () => {
       lm.addLight({ id: 'sun', type: 'directional', enabled: true, layer: 0x1 });
       const vis = lm.getVisibleLights({ x: 0, y: 0, z: 0 }, 100, 0x2); // different layer
-      expect(vis.some(l => l.id === 'sun')).toBe(false);
+      expect(vis.some((l) => l.id === 'sun')).toBe(false);
     });
   });
 

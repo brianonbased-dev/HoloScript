@@ -58,7 +58,8 @@ User is new to HoloScript?
   → NO  ↓
 
 User is modifying TypeScript (packages/*)?
-  → YES → pnpm test first → edit → pnpm test again → explicit git add
+  → YES → PRE-REFACTOR: run `npx tsx packages/cli/src/cli.ts absorb <package-path> > knowledge.holo`
+  → THEN → pnpm test first → edit → pnpm test again → explicit git add
   → NO  ↓
 
 User is writing docs?
@@ -70,6 +71,7 @@ User is writing docs?
 ## ∞ MCP TOOL INJECTION — Exact Call Sequences
 
 ### Generate HoloScript Object
+
 ```
 Step 1: suggest_traits({ description: "<user's object description>" })
 Step 2: generate_object({ description: "<description>", traits: <result from step 1> })
@@ -78,6 +80,7 @@ Step 4: Return validated code
 ```
 
 ### Generate Full Scene
+
 ```
 Step 1: suggest_traits({ description: "<scene description>" })
 Step 2: generate_scene({ description: "<description>", traits: <step 1 result> })
@@ -85,12 +88,14 @@ Step 3: validate_holoscript({ code: <step 2 result> })
 ```
 
 ### Explain Existing Code
+
 ```
 Step 1: parse_hs({ code: "<code>" })  OR  parse_holo({ code: "<code>" })
 Step 2: explain_code({ ast: <step 1 result> })
 ```
 
 ### Find Right Traits
+
 ```
 Step 1: list_traits({ category: "<interaction|physics|visual|networking|ai|spatial|audio|iot>" })
 Step 2: explain_trait({ name: "<trait name>" })
@@ -114,6 +119,7 @@ ARCHIVE     UPPERCASE .md → docs/_archive/ | lowercase .md → docs/[section]/
 ```
 
 ### Packages Quick Map
+
 ```
 @holoscript/core             Parser · AST · 1,800+ traits · 18+ compilers
 @holoscript/mcp-server       34 AI tools (parse, validate, generate, compile)
@@ -130,6 +136,7 @@ holoscript (PyPI)            Python bindings + robotics module
 ```
 
 ### File Format Decision Matrix
+
 ```
 Situation                                    → Use
 Simple object/scene, no interactivity        → .hs
@@ -139,6 +146,7 @@ Tooling, CLI, parser, adapter code           → .ts (TypeScript)
 ```
 
 ### Trait Category Index
+
 ```
 interaction   @grabbable @throwable @clickable @hoverable @draggable @pointable @scalable
 physics       @collidable @physics @rigid @kinematic @trigger @gravity @soft_body
@@ -180,6 +188,7 @@ docs/_archive/         Dev notes, phase guides, session notes (NOT user-facing)
 ```
 □ Did I call validate_holoscript on all generated HoloScript code?
 □ Did I run pnpm test if I modified any TypeScript?
+□ Did I run `holoscript absorb` BEFORE refactoring ANY TypeScript package?
 □ Did I use explicit git add (never git add -A)?
 □ Did I update docs/.vitepress/config.ts if I created a new doc page?
 □ Does the output match what the user actually asked for?

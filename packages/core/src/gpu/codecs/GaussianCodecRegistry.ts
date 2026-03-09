@@ -152,7 +152,7 @@ export class GaussianCodecRegistry {
     const codec = this.getCodec(codecId);
     if (!codec) {
       throw new Error(
-        `Codec '${codecId}' is not registered. Available codecs: ${this.getRegisteredIds().join(', ')}`,
+        `Codec '${codecId}' is not registered. Available codecs: ${this.getRegisteredIds().join(', ')}`
       );
     }
     return codec;
@@ -245,7 +245,7 @@ export class GaussianCodecRegistry {
    */
   async decode(
     buffer: ArrayBuffer,
-    options?: GaussianDecodeOptions & CodecDetectOptions,
+    options?: GaussianDecodeOptions & CodecDetectOptions
   ): Promise<CodecResult<GaussianSplatData>> {
     const codec = this.detectCodec({
       codecId: options?.codecId,
@@ -257,8 +257,8 @@ export class GaussianCodecRegistry {
     if (!codec) {
       throw new Error(
         'No codec found that can decode this data. ' +
-        `Registered codecs: ${this.getRegisteredIds().join(', ')}. ` +
-        'Ensure the correct codec is registered or specify codecId explicitly.',
+          `Registered codecs: ${this.getRegisteredIds().join(', ')}. ` +
+          'Ensure the correct codec is registered or specify codecId explicitly.'
       );
     }
 
@@ -277,7 +277,7 @@ export class GaussianCodecRegistry {
    */
   async decodeFromUrl(
     url: string,
-    options?: GaussianDecodeOptions & CodecDetectOptions,
+    options?: GaussianDecodeOptions & CodecDetectOptions
   ): Promise<CodecResult<GaussianSplatData>> {
     const codec = this.detectCodec({
       codecId: options?.codecId,
@@ -288,7 +288,7 @@ export class GaussianCodecRegistry {
     if (!codec) {
       throw new Error(
         `No codec found for URL '${url}'. ` +
-        `Registered codecs: ${this.getRegisteredIds().join(', ')}`,
+          `Registered codecs: ${this.getRegisteredIds().join(', ')}`
       );
     }
 
@@ -319,7 +319,7 @@ export class GaussianCodecRegistry {
           await entry.codec.initialize();
           entry.initialized = true;
         }
-      }),
+      })
     );
   }
 
@@ -352,7 +352,7 @@ export class GaussianCodecRegistry {
 
   private matchesMaturity(
     entry: RegisteredCodec,
-    filter?: Array<'production' | 'beta' | 'experimental' | 'stub'>,
+    filter?: Array<'production' | 'beta' | 'experimental' | 'stub'>
   ): boolean {
     if (!filter) return true;
     return filter.includes(entry.capabilities.maturity);

@@ -86,10 +86,14 @@ describe('QuotaTrait', () => {
 
   it('tracks peak usage', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'scene_count', amount: 5,
+      type: 'quota_consume',
+      resource: 'scene_count',
+      amount: 5,
     });
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_release', resource: 'scene_count', amount: 3,
+      type: 'quota_release',
+      resource: 'scene_count',
+      amount: 3,
     });
     const state = (node as any).__quotaState;
     const limit = state.limits.get('scene_count');
@@ -99,7 +103,9 @@ describe('QuotaTrait', () => {
 
   it('blocks consumption on hard limit exceeded', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'scene_count', amount: 11,
+      type: 'quota_consume',
+      resource: 'scene_count',
+      amount: 11,
     });
     expect(getEventCount(ctx, 'quota_exceeded')).toBe(1);
     const exceeded = getLastEvent(ctx, 'quota_exceeded') as any;
@@ -117,7 +123,9 @@ describe('QuotaTrait', () => {
     const c = createMockContext();
     attachTrait(quotaHandler, n, cfg, c);
     sendEvent(quotaHandler, n, cfg, c, {
-      type: 'quota_consume', resource: 'scene_count', amount: 6,
+      type: 'quota_consume',
+      resource: 'scene_count',
+      amount: 6,
     });
     expect(getEventCount(c, 'quota_exceeded')).toBe(1);
     const exceeded = getLastEvent(c, 'quota_exceeded') as any;
@@ -137,7 +145,9 @@ describe('QuotaTrait', () => {
   it('triggers notification thresholds', () => {
     // Consume 50% of scene_count (5 out of 10)
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'scene_count', amount: 5,
+      type: 'quota_consume',
+      resource: 'scene_count',
+      amount: 5,
     });
     expect(getEventCount(ctx, 'quota_threshold_reached')).toBe(1);
     const threshold = getLastEvent(ctx, 'quota_threshold_reached') as any;
@@ -148,19 +158,25 @@ describe('QuotaTrait', () => {
   it('triggers multiple thresholds at once', () => {
     // Consume 100% (10 out of 10) - should trigger 50, 75, 90, 100
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'scene_count', amount: 10,
+      type: 'quota_consume',
+      resource: 'scene_count',
+      amount: 10,
     });
     expect(getEventCount(ctx, 'quota_threshold_reached')).toBe(4);
   });
 
   it('does not re-trigger already sent thresholds', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'scene_count', amount: 5,
+      type: 'quota_consume',
+      resource: 'scene_count',
+      amount: 5,
     });
     const firstCount = getEventCount(ctx, 'quota_threshold_reached');
     // Consume 1 more (still at 60%, should not re-trigger 50%)
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'scene_count', amount: 1,
+      type: 'quota_consume',
+      resource: 'scene_count',
+      amount: 1,
     });
     expect(getEventCount(ctx, 'quota_threshold_reached')).toBe(firstCount);
   });
@@ -171,10 +187,14 @@ describe('QuotaTrait', () => {
 
   it('releases quota and reduces usage', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'scene_count', amount: 5,
+      type: 'quota_consume',
+      resource: 'scene_count',
+      amount: 5,
     });
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_release', resource: 'scene_count', amount: 2,
+      type: 'quota_release',
+      resource: 'scene_count',
+      amount: 2,
     });
     const state = (node as any).__quotaState;
     expect(state.limits.get('scene_count').currentUsage).toBe(3);
@@ -183,7 +203,9 @@ describe('QuotaTrait', () => {
 
   it('does not go below zero on release', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_release', resource: 'scene_count', amount: 5,
+      type: 'quota_release',
+      resource: 'scene_count',
+      amount: 5,
     });
     const state = (node as any).__quotaState;
     expect(state.limits.get('scene_count').currentUsage).toBe(0);
@@ -195,7 +217,9 @@ describe('QuotaTrait', () => {
 
   it('changes quota limit', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_set_limit', resource: 'scene_count', limit: 50,
+      type: 'quota_set_limit',
+      resource: 'scene_count',
+      limit: 50,
     });
     const state = (node as any).__quotaState;
     expect(state.limits.get('scene_count').hardLimit).toBe(50);
@@ -204,10 +228,14 @@ describe('QuotaTrait', () => {
 
   it('recalculates overage on limit decrease', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'scene_count', amount: 8,
+      type: 'quota_consume',
+      resource: 'scene_count',
+      amount: 8,
     });
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_set_limit', resource: 'scene_count', limit: 5,
+      type: 'quota_set_limit',
+      resource: 'scene_count',
+      limit: 5,
     });
     const state = (node as any).__quotaState;
     expect(state.limits.get('scene_count').overage).toBe(3);
@@ -219,7 +247,8 @@ describe('QuotaTrait', () => {
 
   it('applies tier defaults', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_apply_tier', tier: 'enterprise',
+      type: 'quota_apply_tier',
+      tier: 'enterprise',
     });
     expect(getEventCount(ctx, 'quota_tier_applied')).toBe(1);
     const state = (node as any).__quotaState;
@@ -229,7 +258,8 @@ describe('QuotaTrait', () => {
 
   it('rejects unknown tier', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_apply_tier', tier: 'mythical',
+      type: 'quota_apply_tier',
+      tier: 'mythical',
     });
     expect(getEventCount(ctx, 'quota_error')).toBe(1);
   });
@@ -240,10 +270,16 @@ describe('QuotaTrait', () => {
 
   it('tracks per-user sub-quotas when enabled', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'scene_count', amount: 3, userId: 'user-1',
+      type: 'quota_consume',
+      resource: 'scene_count',
+      amount: 3,
+      userId: 'user-1',
     });
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'scene_count', amount: 2, userId: 'user-2',
+      type: 'quota_consume',
+      resource: 'scene_count',
+      amount: 2,
+      userId: 'user-2',
     });
     const state = (node as any).__quotaState;
     const u1 = state.userSubQuotas.get('user-1');
@@ -259,11 +295,15 @@ describe('QuotaTrait', () => {
 
   it('queries specific quota resource', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'scene_count', amount: 3,
+      type: 'quota_consume',
+      resource: 'scene_count',
+      amount: 3,
     });
     ctx.clearEvents();
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_query', resource: 'scene_count', queryId: 'q1',
+      type: 'quota_query',
+      resource: 'scene_count',
+      queryId: 'q1',
     });
     const result = getLastEvent(ctx, 'quota_info') as any;
     expect(result.resource).toBe('scene_count');
@@ -275,7 +315,8 @@ describe('QuotaTrait', () => {
   it('queries all quotas', () => {
     ctx.clearEvents();
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_query', queryId: 'q2',
+      type: 'quota_query',
+      queryId: 'q2',
     });
     const result = getLastEvent(ctx, 'quota_info') as any;
     expect(result.limits).toBeDefined();
@@ -288,7 +329,9 @@ describe('QuotaTrait', () => {
 
   it('tracks Gaussian budget consumption', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'gaussian_budget', amount: 500_000,
+      type: 'quota_consume',
+      resource: 'gaussian_budget',
+      amount: 500_000,
     });
     const state = (node as any).__quotaState;
     expect(state.limits.get('gaussian_budget').currentUsage).toBe(500_000);
@@ -296,7 +339,9 @@ describe('QuotaTrait', () => {
 
   it('blocks Gaussian overage with hard limit', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'gaussian_budget', amount: 1_500_000,
+      type: 'quota_consume',
+      resource: 'gaussian_budget',
+      amount: 1_500_000,
     });
     expect(getEventCount(ctx, 'quota_exceeded')).toBe(1);
     const exceeded = getLastEvent(ctx, 'quota_exceeded') as any;
@@ -310,7 +355,9 @@ describe('QuotaTrait', () => {
 
   it('tracks render credit consumption', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'render_credits', amount: 100,
+      type: 'quota_consume',
+      resource: 'render_credits',
+      amount: 100,
     });
     const state = (node as any).__quotaState;
     expect(state.limits.get('render_credits').currentUsage).toBe(100);
@@ -322,7 +369,9 @@ describe('QuotaTrait', () => {
 
   it('tracks storage consumption in bytes', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'storage_bytes', amount: 50 * 1024 * 1024,
+      type: 'quota_consume',
+      resource: 'storage_bytes',
+      amount: 50 * 1024 * 1024,
     });
     const state = (node as any).__quotaState;
     expect(state.limits.get('storage_bytes').currentUsage).toBe(50 * 1024 * 1024);
@@ -334,14 +383,21 @@ describe('QuotaTrait', () => {
 
   it('generates usage report', () => {
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'scene_count', amount: 1,
+      type: 'quota_consume',
+      resource: 'scene_count',
+      amount: 1,
     });
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_consume', resource: 'scene_count', amount: 2,
+      type: 'quota_consume',
+      resource: 'scene_count',
+      amount: 2,
     });
     ctx.clearEvents();
     sendEvent(quotaHandler, node, baseCfg, ctx, {
-      type: 'quota_usage_report', resource: 'scene_count', queryId: 'rpt1', limit: 10,
+      type: 'quota_usage_report',
+      resource: 'scene_count',
+      queryId: 'rpt1',
+      limit: 10,
     });
     const result = getLastEvent(ctx, 'quota_usage_report_result') as any;
     expect(result.records.length).toBe(2);

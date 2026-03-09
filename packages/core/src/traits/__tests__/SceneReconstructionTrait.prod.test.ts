@@ -8,8 +8,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { sceneReconstructionHandler } from '../SceneReconstructionTrait';
 
-function makeNode(id = 'sr-node') { return { id } as any; }
-function makeConfig(o: any = {}) { return { ...sceneReconstructionHandler.defaultConfig, ...o }; }
+function makeNode(id = 'sr-node') {
+  return { id } as any;
+}
+function makeConfig(o: any = {}) {
+  return { ...sceneReconstructionHandler.defaultConfig, ...o };
+}
 function makeContext() {
   const store: Record<string, any> = {};
   return {
@@ -18,7 +22,9 @@ function makeContext() {
     getState: () => store,
   };
 }
-function getState(ctx: ReturnType<typeof makeContext>) { return ctx.getState().sceneReconstruction; }
+function getState(ctx: ReturnType<typeof makeContext>) {
+  return ctx.getState().sceneReconstruction;
+}
 
 describe('SceneReconstructionTrait — Production', () => {
   let node: any, config: any, ctx: ReturnType<typeof makeContext>;
@@ -115,7 +121,10 @@ describe('SceneReconstructionTrait — Production', () => {
       // update_interval_ms=100 → 0.1s of delta
       sceneReconstructionHandler.onUpdate!(node, config, ctx, 0.15);
 
-      expect(ctx.emit).toHaveBeenCalledWith('reconstruction:mesh_update', { faceCount: 0, progress: 0 });
+      expect(ctx.emit).toHaveBeenCalledWith('reconstruction:mesh_update', {
+        faceCount: 0,
+        progress: 0,
+      });
     });
 
     it('skips when not scanning', () => {

@@ -20,7 +20,7 @@ import { HoloOpCode, ValueType } from './opcodes';
 // =============================================================================
 
 /** File magic bytes: "HOLB" */
-export const HOLOB_MAGIC = 0x484F4C42; // ASCII: H O L B
+export const HOLOB_MAGIC = 0x484f4c42; // ASCII: H O L B
 export const HOLOB_VERSION = 1;
 
 // =============================================================================
@@ -274,7 +274,11 @@ export class HoloBytecodeBuilder {
   /**
    * Add component data to an entity
    */
-  addComponentToEntity(entityIdx: number, componentType: number, values: Record<string, HoloOperand>): this {
+  addComponentToEntity(
+    entityIdx: number,
+    componentType: number,
+    values: Record<string, HoloOperand>
+  ): this {
     this.entities[entityIdx].components.push({ componentType, values });
     return this;
   }
@@ -313,7 +317,7 @@ export class HoloFunctionBuilder {
   constructor(
     private func: HoloFunction,
     private parent: HoloBytecodeBuilder,
-    public readonly index: number,
+    public readonly index: number
   ) {}
 
   private emit(opcode: HoloOpCode, ...operands: HoloOperand[]): this {
@@ -325,7 +329,9 @@ export class HoloFunctionBuilder {
   spawn(entityType: number, name: string): this {
     return this.emit(HoloOpCode.SPAWN, entityType, this.parent.internString(name));
   }
-  despawn(entityId: number): this { return this.emit(HoloOpCode.DESPAWN, entityId); }
+  despawn(entityId: number): this {
+    return this.emit(HoloOpCode.DESPAWN, entityId);
+  }
   setComponent(entityId: number, compType: number, ...data: HoloOperand[]): this {
     return this.emit(HoloOpCode.SET_COMPONENT, entityId, compType, ...data);
   }
@@ -335,7 +341,9 @@ export class HoloFunctionBuilder {
   setParent(childId: number, parentId: number): this {
     return this.emit(HoloOpCode.SET_PARENT, childId, parentId);
   }
-  query(archetypeMask: number): this { return this.emit(HoloOpCode.QUERY, archetypeMask); }
+  query(archetypeMask: number): this {
+    return this.emit(HoloOpCode.QUERY, archetypeMask);
+  }
 
   // ── Spatial ───────────────────────────────────────────────────────────────
   transform(entityId: number, x: number, y: number, z: number): this {
@@ -350,7 +358,15 @@ export class HoloFunctionBuilder {
   lookAt(entityId: number, tx: number, ty: number, tz: number): this {
     return this.emit(HoloOpCode.LOOK_AT, entityId, tx, ty, tz);
   }
-  raycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxDist: number): this {
+  raycast(
+    ox: number,
+    oy: number,
+    oz: number,
+    dx: number,
+    dy: number,
+    dz: number,
+    maxDist: number
+  ): this {
     return this.emit(HoloOpCode.RAYCAST, ox, oy, oz, dx, dy, dz, maxDist);
   }
 
@@ -367,7 +383,9 @@ export class HoloFunctionBuilder {
   setGravity(gx: number, gy: number, gz: number): this {
     return this.emit(HoloOpCode.SET_GRAVITY, gx, gy, gz);
   }
-  physicsStep(dt: number): this { return this.emit(HoloOpCode.PHYSICS_STEP, dt); }
+  physicsStep(dt: number): this {
+    return this.emit(HoloOpCode.PHYSICS_STEP, dt);
+  }
 
   // ── Rendering Hints ───────────────────────────────────────────────────────
   setGeometry(entityId: number, geoType: number): this {
@@ -412,35 +430,71 @@ export class HoloFunctionBuilder {
   }
 
   // ── Control Flow ──────────────────────────────────────────────────────────
-  nop(): this { return this.emit(HoloOpCode.NOP); }
-  jump(offset: number): this { return this.emit(HoloOpCode.JUMP, offset); }
-  jumpIf(offset: number): this { return this.emit(HoloOpCode.JUMP_IF, offset); }
-  call(funcIdx: number): this { return this.emit(HoloOpCode.CALL, funcIdx); }
-  ret(): this { return this.emit(HoloOpCode.RETURN); }
-  push(value: HoloOperand): this { return this.emit(HoloOpCode.PUSH, value); }
-  pop(): this { return this.emit(HoloOpCode.POP); }
+  nop(): this {
+    return this.emit(HoloOpCode.NOP);
+  }
+  jump(offset: number): this {
+    return this.emit(HoloOpCode.JUMP, offset);
+  }
+  jumpIf(offset: number): this {
+    return this.emit(HoloOpCode.JUMP_IF, offset);
+  }
+  call(funcIdx: number): this {
+    return this.emit(HoloOpCode.CALL, funcIdx);
+  }
+  ret(): this {
+    return this.emit(HoloOpCode.RETURN);
+  }
+  push(value: HoloOperand): this {
+    return this.emit(HoloOpCode.PUSH, value);
+  }
+  pop(): this {
+    return this.emit(HoloOpCode.POP);
+  }
   store(registerIdx: number): this {
     this.func.registerCount = Math.max(this.func.registerCount, registerIdx + 1);
     return this.emit(HoloOpCode.STORE, registerIdx);
   }
-  load(registerIdx: number): this { return this.emit(HoloOpCode.LOAD, registerIdx); }
-  halt(): this { return this.emit(HoloOpCode.HALT); }
-  yieldTick(): this { return this.emit(HoloOpCode.YIELD); }
+  load(registerIdx: number): this {
+    return this.emit(HoloOpCode.LOAD, registerIdx);
+  }
+  halt(): this {
+    return this.emit(HoloOpCode.HALT);
+  }
+  yieldTick(): this {
+    return this.emit(HoloOpCode.YIELD);
+  }
   timer(delayMs: number, handlerOffset: number): this {
     return this.emit(HoloOpCode.TIMER, delayMs, handlerOffset);
   }
 
   // ── Arithmetic ────────────────────────────────────────────────────────────
-  add(): this { return this.emit(HoloOpCode.ADD); }
-  sub(): this { return this.emit(HoloOpCode.SUB); }
-  mul(): this { return this.emit(HoloOpCode.MUL); }
-  div(): this { return this.emit(HoloOpCode.DIV); }
+  add(): this {
+    return this.emit(HoloOpCode.ADD);
+  }
+  sub(): this {
+    return this.emit(HoloOpCode.SUB);
+  }
+  mul(): this {
+    return this.emit(HoloOpCode.MUL);
+  }
+  div(): this {
+    return this.emit(HoloOpCode.DIV);
+  }
 
   // ── Comparison ────────────────────────────────────────────────────────────
-  cmpEq(): this { return this.emit(HoloOpCode.CMP_EQ); }
-  cmpLt(): this { return this.emit(HoloOpCode.CMP_LT); }
-  cmpGt(): this { return this.emit(HoloOpCode.CMP_GT); }
-  not(): this { return this.emit(HoloOpCode.NOT); }
+  cmpEq(): this {
+    return this.emit(HoloOpCode.CMP_EQ);
+  }
+  cmpLt(): this {
+    return this.emit(HoloOpCode.CMP_LT);
+  }
+  cmpGt(): this {
+    return this.emit(HoloOpCode.CMP_GT);
+  }
+  not(): this {
+    return this.emit(HoloOpCode.NOT);
+  }
 
   // ── Agent Bridge ──────────────────────────────────────────────────────────
   agentInvoke(agentId: number, actionIdx: number): this {

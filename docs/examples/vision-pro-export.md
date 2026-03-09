@@ -43,35 +43,35 @@ link.click();
 ```html
 <!DOCTYPE html>
 <html>
-<head>
-  <title>AR Quick Look Demo</title>
-  <style>
-    .ar-button {
-      display: inline-block;
-      padding: 20px 40px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      text-decoration: none;
-      border-radius: 12px;
-      font-size: 18px;
-      font-weight: 600;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    }
+  <head>
+    <title>AR Quick Look Demo</title>
+    <style>
+      .ar-button {
+        display: inline-block;
+        padding: 20px 40px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      }
 
-    .ar-button img {
-      width: 200px;
-      height: 200px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-    }
-  </style>
-</head>
-<body>
-  <a href="model.usdz" rel="ar" class="ar-button">
-    <img src="thumbnail.png" alt="3D Model">
-    <div>View in AR</div>
-  </a>
-</body>
+      .ar-button img {
+        width: 200px;
+        height: 200px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="model.usdz" rel="ar" class="ar-button">
+      <img src="thumbnail.png" alt="3D Model" />
+      <div>View in AR</div>
+    </a>
+  </body>
 </html>
 ```
 
@@ -312,10 +312,7 @@ import { USDZExporter } from '@holoscript/core/export/usdz';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 
-async function exportToFile(
-  scene: ISceneGraph,
-  outputPath: string
-): Promise<void> {
+async function exportToFile(scene: ISceneGraph, outputPath: string): Promise<void> {
   const exporter = new USDZExporter({
     placementMode: 'floor',
     materialQuality: 'high',
@@ -373,10 +370,7 @@ app.listen(3000, () => {
 class USDZExportCache {
   private cache = new Map<string, ArrayBuffer>();
 
-  async exportWithCache(
-    scene: ISceneGraph,
-    options: IUSDZExportOptions
-  ): Promise<ArrayBuffer> {
+  async exportWithCache(scene: ISceneGraph, options: IUSDZExportOptions): Promise<ArrayBuffer> {
     const key = this.getCacheKey(scene, options);
 
     if (this.cache.has(key)) {
@@ -391,10 +385,7 @@ class USDZExportCache {
     return result.usdz;
   }
 
-  private getCacheKey(
-    scene: ISceneGraph,
-    options: IUSDZExportOptions
-  ): string {
+  private getCacheKey(scene: ISceneGraph, options: IUSDZExportOptions): string {
     return JSON.stringify({ scene, options });
   }
 
@@ -416,10 +407,13 @@ self.onmessage = async (e) => {
   const exporter = new USDZExporter(options);
   const result = await exporter.export(sceneGraph);
 
-  self.postMessage({
-    usdz: result.usdz,
-    stats: result.stats,
-  }, [result.usdz]);
+  self.postMessage(
+    {
+      usdz: result.usdz,
+      stats: result.stats,
+    },
+    [result.usdz]
+  );
 };
 
 // main.ts
@@ -490,8 +484,7 @@ console.log('Input material:', {
 
 // Export and check
 const result = await exporter.export(scene);
-const usdMaterial = result.stage.prims[0].children
-  ?.find(p => p.name === 'Materials')
+const usdMaterial = result.stage.prims[0].children?.find((p) => p.name === 'Materials')
   ?.children?.[0];
 
 console.log('USD material:', usdMaterial);

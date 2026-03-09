@@ -17,7 +17,12 @@ class StudioBus {
     this.history.push({ channel, data, timestamp: Date.now() });
     if (this.history.length > this.maxHistory) this.history.shift();
     const cbs = this.listeners.get(channel);
-    if (cbs) cbs.forEach(cb => { try { cb(data); } catch (_) {} });
+    if (cbs)
+      cbs.forEach((cb) => {
+        try {
+          cb(data);
+        } catch (_) {}
+      });
   }
 
   on(channel: string, cb: (data: unknown) => void) {
@@ -30,8 +35,12 @@ class StudioBus {
     this.listeners.get(channel)?.delete(cb);
   }
 
-  getHistory() { return [...this.history]; }
-  clear() { this.history = []; }
+  getHistory() {
+    return [...this.history];
+  }
+  clear() {
+    this.history = [];
+  }
 }
 
 // =============================================================================
@@ -41,7 +50,9 @@ class StudioBus {
 describe('StudioBus', () => {
   let bus: StudioBus;
 
-  beforeEach(() => { bus = new StudioBus(); });
+  beforeEach(() => {
+    bus = new StudioBus();
+  });
 
   it('emits and receives events', () => {
     const received: unknown[] = [];
@@ -93,8 +104,12 @@ describe('StudioBus', () => {
 
   it('handles listener errors gracefully', () => {
     let reached = false;
-    bus.on('err', () => { throw new Error('boom'); });
-    bus.on('err', () => { reached = true; });
+    bus.on('err', () => {
+      throw new Error('boom');
+    });
+    bus.on('err', () => {
+      reached = true;
+    });
     bus.emit('err');
     expect(reached).toBe(true); // Second listener still runs
   });
@@ -150,7 +165,7 @@ describe('PanelPresets (logic)', () => {
   });
 
   it('preset has required fields', () => {
-    BUILT_IN_PRESETS.forEach(p => {
+    BUILT_IN_PRESETS.forEach((p) => {
       expect(p.name).toBeTruthy();
       expect(p.activeTab).toBeTruthy();
       expect(typeof p.isOpen).toBe('boolean');
@@ -159,25 +174,38 @@ describe('PanelPresets (logic)', () => {
   });
 
   it('can create custom preset', () => {
-    const custom: PanelPreset = { name: 'My Layout', activeTab: 'camera', isOpen: true, createdAt: Date.now() };
+    const custom: PanelPreset = {
+      name: 'My Layout',
+      activeTab: 'camera',
+      isOpen: true,
+      createdAt: Date.now(),
+    };
     const all = [...BUILT_IN_PRESETS, custom];
     expect(all.length).toBe(6);
-    expect(all.find(p => p.name === 'My Layout')).toBeDefined();
+    expect(all.find((p) => p.name === 'My Layout')).toBeDefined();
   });
 
   it('can filter out built-in presets', () => {
-    const custom: PanelPreset = { name: 'Custom 1', activeTab: 'shader', isOpen: true, createdAt: Date.now() };
+    const custom: PanelPreset = {
+      name: 'Custom 1',
+      activeTab: 'shader',
+      isOpen: true,
+      createdAt: Date.now(),
+    };
     const all = [...BUILT_IN_PRESETS, custom];
-    const customOnly = all.filter(p => !BUILT_IN_PRESETS.some(b => b.name === p.name));
+    const customOnly = all.filter((p) => !BUILT_IN_PRESETS.some((b) => b.name === p.name));
     expect(customOnly.length).toBe(1);
     expect(customOnly[0].name).toBe('Custom 1');
   });
 
   it('prevents duplicate custom preset names', () => {
-    const existing = [...BUILT_IN_PRESETS, { name: 'MyPreset', activeTab: 'camera', isOpen: true, createdAt: Date.now() }];
-    const updated = existing.filter(p => p.name !== 'MyPreset');
+    const existing = [
+      ...BUILT_IN_PRESETS,
+      { name: 'MyPreset', activeTab: 'camera', isOpen: true, createdAt: Date.now() },
+    ];
+    const updated = existing.filter((p) => p.name !== 'MyPreset');
     updated.push({ name: 'MyPreset', activeTab: 'lighting', isOpen: true, createdAt: Date.now() });
-    const match = updated.filter(p => p.name === 'MyPreset');
+    const match = updated.filter((p) => p.name === 'MyPreset');
     expect(match.length).toBe(1);
     expect(match[0].activeTab).toBe('lighting'); // Updated
   });

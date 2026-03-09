@@ -11,6 +11,7 @@
 ## 1. Motivation
 
 HoloScript already has a rich runtime culture system:
+
 - `CultureTraits.ts` defines norm types, enforcement modes, and built-in norms
 - `NormEngine.ts` implements the full CRSEC lifecycle (Creation, Representation, Spreading, Evaluation, Compliance)
 - `CulturalMemory.ts` provides dual episodic/stigmergic memory with SOP consolidation
@@ -37,6 +38,7 @@ Culture blocks compose with the existing trait system. A `culture` block is synt
 ### 2.2 Compile-Time Verifiable
 
 The compiler can statically verify:
+
 - Referenced norm IDs exist in the culture declaration
 - Effect constraints (`forbids`, `requires`) reference valid effect categories
 - Enforcement modes are valid enum values
@@ -46,6 +48,7 @@ The compiler can statically verify:
 ### 2.3 Layered Adoption
 
 Culture blocks are optional. Existing `.holo` files without culture blocks continue to work unchanged. The system supports three levels of adoption:
+
 - **Level 0:** No culture keyword (status quo, runtime-only culture)
 - **Level 1:** Culture block with static norms (compile-time validation)
 - **Level 2:** Culture block with emergent norms (compile-time + runtime evolution)
@@ -53,6 +56,7 @@ Culture blocks are optional. Existing `.holo` files without culture blocks conti
 ### 2.4 Research-Backed
 
 The design encodes research findings from:
+
 - IJCAI 2024: Emergence of Social Norms in Generative Agent Societies
 - Science Advances 2025: Emergent Social Conventions in LLM Populations
 - AAMAS 2026: Molt Dynamics in Autonomous AI Agent Populations
@@ -408,7 +412,7 @@ New AST node types added to `HoloCompositionTypes.ts`:
 export interface HoloCultureBlock {
   type: 'culture';
   name: string;
-  base?: string;                    // extends clause
+  base?: string; // extends clause
   locale?: string;
   region?: string;
   norms: HoloCultureNorm[];
@@ -429,9 +433,9 @@ export interface HoloCultureNorm {
   scope: 'agent' | 'zone' | 'world' | 'session';
   activationThreshold?: number;
   strength?: 'weak' | 'moderate' | 'strong';
-  requires?: string[];              // Required effect signatures
-  forbids?: string[];               // Forbidden effect signatures
-  appliesTo?: string[];             // Zone tags
+  requires?: string[]; // Required effect signatures
+  forbids?: string[]; // Forbidden effect signatures
+  appliesTo?: string[]; // Zone tags
   loc?: HoloSourceLocation;
 }
 
@@ -457,21 +461,21 @@ A new `CultureValidationPass` runs after parsing and before code generation:
 
 **Validations performed:**
 
-| Check | Severity | Description |
-|-------|----------|-------------|
-| Norm ID uniqueness | Error | No duplicate norm IDs within a culture |
-| Effect reference validity | Error | `requires` and `forbids` reference valid effect signatures from `effects.ts` |
-| Enforcement enum validity | Error | Must be `hard`, `soft`, or `advisory` |
-| Scope enum validity | Error | Must be `agent`, `zone`, `world`, or `session` |
-| Category enum validity | Warning | Should be a known `NormCategory` |
-| Strength enum validity | Error | Must be `weak`, `moderate`, or `strong` |
-| Base culture existence | Error | `extends` clause references a defined culture |
-| Circular inheritance | Error | `A extends B extends A` detected |
-| Agent norm reference | Error | `@norm_compliant` norms list references norms in the bound culture |
-| Zone culture reference | Error | Zone `culture:` references a defined culture block |
-| Proxemics ordering | Warning | `intimate < personal < social < public` expected |
-| Defaults subset | Error | `defaults` array items must be norm IDs defined in this culture |
-| Activation threshold range | Warning | Should be 0.0 to 1.0 |
+| Check                      | Severity | Description                                                                  |
+| -------------------------- | -------- | ---------------------------------------------------------------------------- |
+| Norm ID uniqueness         | Error    | No duplicate norm IDs within a culture                                       |
+| Effect reference validity  | Error    | `requires` and `forbids` reference valid effect signatures from `effects.ts` |
+| Enforcement enum validity  | Error    | Must be `hard`, `soft`, or `advisory`                                        |
+| Scope enum validity        | Error    | Must be `agent`, `zone`, `world`, or `session`                               |
+| Category enum validity     | Warning  | Should be a known `NormCategory`                                             |
+| Strength enum validity     | Error    | Must be `weak`, `moderate`, or `strong`                                      |
+| Base culture existence     | Error    | `extends` clause references a defined culture                                |
+| Circular inheritance       | Error    | `A extends B extends A` detected                                             |
+| Agent norm reference       | Error    | `@norm_compliant` norms list references norms in the bound culture           |
+| Zone culture reference     | Error    | Zone `culture:` references a defined culture block                           |
+| Proxemics ordering         | Warning  | `intimate < personal < social < public` expected                             |
+| Defaults subset            | Error    | `defaults` array items must be norm IDs defined in this culture              |
+| Activation threshold range | Warning  | Should be 0.0 to 1.0                                                         |
 
 ### 5.3 Effect Integration
 
@@ -514,6 +518,7 @@ this.registerTrait({
 ### 5.5 Culture Inheritance Resolution
 
 Culture inheritance reuses the same `TraitInheritanceResolver` pattern:
+
 - Child culture overrides parent properties (child-wins semantics)
 - Norms are additive (child adds norms; use `override norm` to replace)
 - Proxemics, gestures, and colors merge with child-wins
@@ -525,23 +530,23 @@ Culture inheritance reuses the same `TraitInheritanceResolver` pattern:
 
 Each of the 18+ export targets receives culture data and generates platform-appropriate infrastructure:
 
-| Target | Culture Compilation Output |
-|--------|---------------------------|
-| **Unity** | `CultureConfig` ScriptableObject + `NormEnforcer` MonoBehaviour |
-| **Unreal** | `UCultureSubsystem` + DataTable for norms |
-| **Godot** | `CultureResource` + `NormNode` |
-| **VRChat** | Udon# norm checking scripts |
-| **Babylon.js** | `CultureManager` class + norm observer |
-| **R3F** | React context provider + `useCulture()` hook |
-| **WebGPU** | Compute shader for proximity-based norm evaluation |
-| **WASM** | Compiled norm evaluator module |
-| **USD/USDZ** | Custom schema with culture metadata |
-| **URDF/SDF** | Constraint annotations for robot social norms |
-| **DTDL** | Digital twin cultural properties |
-| **glTF** | `HOLO_culture` extension with norm metadata |
-| **Android/iOS** | Native norm enforcement service |
-| **VisionOS** | `CultureEntity` + RealityKit integration |
-| **PlayCanvas** | Script component with norm evaluation |
+| Target          | Culture Compilation Output                                      |
+| --------------- | --------------------------------------------------------------- |
+| **Unity**       | `CultureConfig` ScriptableObject + `NormEnforcer` MonoBehaviour |
+| **Unreal**      | `UCultureSubsystem` + DataTable for norms                       |
+| **Godot**       | `CultureResource` + `NormNode`                                  |
+| **VRChat**      | Udon# norm checking scripts                                     |
+| **Babylon.js**  | `CultureManager` class + norm observer                          |
+| **R3F**         | React context provider + `useCulture()` hook                    |
+| **WebGPU**      | Compute shader for proximity-based norm evaluation              |
+| **WASM**        | Compiled norm evaluator module                                  |
+| **USD/USDZ**    | Custom schema with culture metadata                             |
+| **URDF/SDF**    | Constraint annotations for robot social norms                   |
+| **DTDL**        | Digital twin cultural properties                                |
+| **glTF**        | `HOLO_culture` extension with norm metadata                     |
+| **Android/iOS** | Native norm enforcement service                                 |
+| **VisionOS**    | `CultureEntity` + RealityKit integration                        |
+| **PlayCanvas**  | Script component with norm evaluation                           |
 
 ---
 
@@ -561,12 +566,14 @@ Each of the 18+ export targets receives culture data and generates platform-appr
 ### 7.2 Hover Documentation
 
 Hovering over a `culture` block shows:
+
 - Culture name, locale, region
 - Number of norms defined
 - Inheritance chain (if extends)
 - Memory configuration summary
 
 Hovering over a `norm` shows:
+
 - Norm name, category, enforcement level
 - Required/forbidden effects
 - Applicable zone tags
@@ -575,6 +582,7 @@ Hovering over a `norm` shows:
 ### 7.3 Diagnostics
 
 Real-time diagnostics for:
+
 - Unknown norm references in `@norm_compliant`
 - Effect conflicts (agent uses trait that produces forbidden effect)
 - Missing culture blocks referenced by zones
@@ -670,7 +678,7 @@ culture "EmergentVillage" {
 ### 10.3 Tree-Sitter Grammar Change Size
 
 - **New rules:** 6 (culture_block, norm_declaration, proxemics_block, gestures_block, colors_block, memory_block)
-- **Modified rules:** 2 (_definition, _composition_content -- add culture_block to choices)
+- **Modified rules:** 2 (\_definition, \_composition_content -- add culture_block to choices)
 - **New keywords:** culture, norm, proxemics, gestures, emergence
 - **Estimated LOC change:** ~80 lines in grammar.js
 
@@ -705,18 +713,18 @@ culture "EmergentVillage" {
 
 ## 13. Implementation Estimate
 
-| Component | Effort | Priority |
-|-----------|--------|----------|
-| Grammar rules (grammar.js) | 2 days | P0 |
-| Parser types (HoloCompositionTypes.ts) | 1 day | P0 |
-| CultureValidationPass | 3 days | P0 |
-| Effect integration | 1 day | P0 |
-| TraitDependencyGraph integration | 1 day | P1 |
-| TraitInheritanceResolver for cultures | 2 days | P1 |
-| LSP completions + hover | 2 days | P1 |
-| LSP diagnostics | 2 days | P1 |
-| Export target compilation (18 targets) | 5 days | P2 |
-| Emergent culture runtime bridge | 3 days | P2 |
-| Test suite | 3 days | P0 |
-| Documentation | 2 days | P2 |
-| **Total** | **~27 days** | |
+| Component                              | Effort       | Priority |
+| -------------------------------------- | ------------ | -------- |
+| Grammar rules (grammar.js)             | 2 days       | P0       |
+| Parser types (HoloCompositionTypes.ts) | 1 day        | P0       |
+| CultureValidationPass                  | 3 days       | P0       |
+| Effect integration                     | 1 day        | P0       |
+| TraitDependencyGraph integration       | 1 day        | P1       |
+| TraitInheritanceResolver for cultures  | 2 days       | P1       |
+| LSP completions + hover                | 2 days       | P1       |
+| LSP diagnostics                        | 2 days       | P1       |
+| Export target compilation (18 targets) | 5 days       | P2       |
+| Emergent culture runtime bridge        | 3 days       | P2       |
+| Test suite                             | 3 days       | P0       |
+| Documentation                          | 2 days       | P2       |
+| **Total**                              | **~27 days** |          |

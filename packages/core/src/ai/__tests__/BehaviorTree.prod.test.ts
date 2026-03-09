@@ -119,7 +119,10 @@ describe('BehaviorTree', () => {
 
     it('passes deltaTime in context to nodes', () => {
       let receivedDt = -1;
-      const node = new ActionNode('dt-spy', (ctx) => { receivedDt = ctx.deltaTime; return 'success'; });
+      const node = new ActionNode('dt-spy', (ctx) => {
+        receivedDt = ctx.deltaTime;
+        return 'success';
+      });
       bt.createTree('t1', node, 'a');
       bt.tick('t1', 0.033);
       expect(receivedDt).toBe(0.033);
@@ -139,7 +142,10 @@ describe('BehaviorTree', () => {
   describe('tickAll()', () => {
     it('ticks all registered trees', () => {
       let count = 0;
-      const spy = new ActionNode('spy', () => { count++; return 'success'; });
+      const spy = new ActionNode('spy', () => {
+        count++;
+        return 'success';
+      });
       bt.createTree('t1', spy, 'a');
       bt.createTree('t2', spy, 'b');
       bt.tickAll(0.016);

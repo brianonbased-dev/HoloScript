@@ -61,9 +61,15 @@ export class SequenceTrack {
     return track;
   }
 
-  removeTrack(id: string): void { this.tracks.delete(id); }
-  getTrack(id: string): Track | undefined { return this.tracks.get(id); }
-  getTracks(): Track[] { return [...this.tracks.values()]; }
+  removeTrack(id: string): void {
+    this.tracks.delete(id);
+  }
+  getTrack(id: string): Track | undefined {
+    return this.tracks.get(id);
+  }
+  getTracks(): Track[] {
+    return [...this.tracks.values()];
+  }
 
   muteTrack(id: string, muted: boolean): void {
     const t = this.tracks.get(id);
@@ -74,13 +80,25 @@ export class SequenceTrack {
   // Clip Management
   // ---------------------------------------------------------------------------
 
-  addClip(trackId: string, startTime: number, duration: number, keyframes: TrackKeyframe[], blendIn = 0, blendOut = 0): TrackClip | null {
+  addClip(
+    trackId: string,
+    startTime: number,
+    duration: number,
+    keyframes: TrackKeyframe[],
+    blendIn = 0,
+    blendOut = 0
+  ): TrackClip | null {
     const track = this.tracks.get(trackId);
     if (!track) return null;
 
     const clip: TrackClip = {
-      id: `clip_${_clipId++}`, trackId, startTime, duration,
-      keyframes, blendIn, blendOut,
+      id: `clip_${_clipId++}`,
+      trackId,
+      startTime,
+      duration,
+      keyframes,
+      blendIn,
+      blendOut,
     };
     track.clips.push(clip);
     track.clips.sort((a, b) => a.startTime - b.startTime);
@@ -91,19 +109,32 @@ export class SequenceTrack {
 
   removeClip(trackId: string, clipId: string): void {
     const track = this.tracks.get(trackId);
-    if (track) track.clips = track.clips.filter(c => c.id !== clipId);
+    if (track) track.clips = track.clips.filter((c) => c.id !== clipId);
   }
 
   // ---------------------------------------------------------------------------
   // Playback
   // ---------------------------------------------------------------------------
 
-  play(): void { this.playing = true; }
-  pause(): void { this.playing = false; }
-  stop(): void { this.playing = false; this.currentTime = 0; }
-  setSpeed(speed: number): void { this.speed = speed; }
-  setLoop(loop: boolean): void { this.loop = loop; }
-  seek(time: number): void { this.currentTime = Math.max(0, Math.min(time, this.duration)); }
+  play(): void {
+    this.playing = true;
+  }
+  pause(): void {
+    this.playing = false;
+  }
+  stop(): void {
+    this.playing = false;
+    this.currentTime = 0;
+  }
+  setSpeed(speed: number): void {
+    this.speed = speed;
+  }
+  setLoop(loop: boolean): void {
+    this.loop = loop;
+  }
+  seek(time: number): void {
+    this.currentTime = Math.max(0, Math.min(time, this.duration));
+  }
 
   update(dt: number): Map<string, number> {
     const output = new Map<string, number>();
@@ -149,13 +180,14 @@ export class SequenceTrack {
     if (kfs.length === 1) return kfs[0].value;
 
     // Find surrounding keyframes
-    const t = (localTime / clip.duration);
+    const t = localTime / clip.duration;
     let i = 0;
     for (; i < kfs.length - 1; i++) {
       if (kfs[i + 1].time >= t) break;
     }
 
-    const a = kfs[i], b = kfs[Math.min(i + 1, kfs.length - 1)];
+    const a = kfs[i],
+      b = kfs[Math.min(i + 1, kfs.length - 1)];
     if (a === b || a.time === b.time) return a.value;
 
     const frac = (t - a.time) / (b.time - a.time);
@@ -165,10 +197,18 @@ export class SequenceTrack {
   private interpolate(a: number, b: number, t: number, easing: string): number {
     let e = t;
     switch (easing) {
-      case 'easeIn': e = t * t; break;
-      case 'easeOut': e = 1 - (1 - t) * (1 - t); break;
-      case 'easeInOut': e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; break;
-      case 'step': e = t < 1 ? 0 : 1; break;
+      case 'easeIn':
+        e = t * t;
+        break;
+      case 'easeOut':
+        e = 1 - (1 - t) * (1 - t);
+        break;
+      case 'easeInOut':
+        e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        break;
+      case 'step':
+        e = t < 1 ? 0 : 1;
+        break;
     }
     return a + (b - a) * e;
   }
@@ -177,7 +217,13 @@ export class SequenceTrack {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getDuration(): number { return this.duration; }
-  getCurrentTime(): number { return this.currentTime; }
-  isPlaying(): boolean { return this.playing; }
+  getDuration(): number {
+    return this.duration;
+  }
+  getCurrentTime(): number {
+    return this.currentTime;
+  }
+  isPlaying(): boolean {
+    return this.playing;
+  }
 }

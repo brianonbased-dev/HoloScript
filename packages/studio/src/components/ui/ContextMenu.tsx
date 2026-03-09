@@ -13,7 +13,15 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
-export function ContextMenu({ x, y, targetName, onEdit, onDuplicate, onDelete, onClose }: ContextMenuProps) {
+export function ContextMenu({
+  x,
+  y,
+  targetName,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  onClose,
+}: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,14 +41,33 @@ export function ContextMenu({ x, y, targetName, onEdit, onDuplicate, onDelete, o
   };
 
   const items = [
-    { icon: <Edit3 className="h-3.5 w-3.5" />, label: 'Edit Properties', action: onEdit, color: 'text-studio-text' },
-    { icon: <Copy className="h-3.5 w-3.5" />, label: 'Duplicate', action: onDuplicate, color: 'text-studio-text' },
+    {
+      icon: <Edit3 className="h-3.5 w-3.5" />,
+      label: 'Edit Properties',
+      action: onEdit,
+      color: 'text-studio-text',
+    },
+    {
+      icon: <Copy className="h-3.5 w-3.5" />,
+      label: 'Duplicate',
+      action: onDuplicate,
+      color: 'text-studio-text',
+    },
     null, // separator
-    { icon: <Trash2 className="h-3.5 w-3.5" />, label: 'Delete', action: onDelete, color: 'text-red-400' },
+    {
+      icon: <Trash2 className="h-3.5 w-3.5" />,
+      label: 'Delete',
+      action: onDelete,
+      color: 'text-red-400',
+    },
   ];
 
   return (
-    <div ref={ref} style={style} className="min-w-[160px] rounded-xl border border-studio-border bg-studio-panel shadow-2xl">
+    <div
+      ref={ref}
+      style={style}
+      className="min-w-[160px] rounded-xl border border-studio-border bg-studio-panel shadow-2xl"
+    >
       {targetName && (
         <div className="flex items-center gap-2 border-b border-studio-border px-3 py-2">
           <Layers className="h-3 w-3 text-studio-muted" />
@@ -54,7 +81,10 @@ export function ContextMenu({ x, y, targetName, onEdit, onDuplicate, onDelete, o
           ) : (
             <button
               key={item.label}
-              onClick={() => { item.action?.(); onClose(); }}
+              onClick={() => {
+                item.action?.();
+                onClose();
+              }}
               className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs transition hover:bg-white/10 ${item.color}`}
             >
               {item.icon}

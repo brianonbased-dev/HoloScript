@@ -39,7 +39,13 @@ export class UIDataBinding {
   /**
    * Bind a model path to a widget property
    */
-  bind(modelPath: string, widgetId: string, widgetProperty: string, direction: BindingDirection = 'one-way', formatter?: Formatter): DataBinding {
+  bind(
+    modelPath: string,
+    widgetId: string,
+    widgetProperty: string,
+    direction: BindingDirection = 'one-way',
+    formatter?: Formatter
+  ): DataBinding {
     const id = `binding_${this.nextId++}`;
     const binding: DataBinding = { id, modelPath, widgetId, widgetProperty, direction, formatter };
     this.bindings.set(id, binding);
@@ -49,7 +55,9 @@ export class UIDataBinding {
   /**
    * Remove a binding
    */
-  unbind(id: string): boolean { return this.bindings.delete(id); }
+  unbind(id: string): boolean {
+    return this.bindings.delete(id);
+  }
 
   /**
    * Resolve the display value for a binding
@@ -66,14 +74,14 @@ export class UIDataBinding {
    * Get all bindings for a widget
    */
   getBindingsForWidget(widgetId: string): DataBinding[] {
-    return [...this.bindings.values()].filter(b => b.widgetId === widgetId);
+    return [...this.bindings.values()].filter((b) => b.widgetId === widgetId);
   }
 
   /**
    * Get all bindings for a model path
    */
   getBindingsForPath(path: string): DataBinding[] {
-    return [...this.bindings.values()].filter(b => b.modelPath === path);
+    return [...this.bindings.values()].filter((b) => b.modelPath === path);
   }
 
   /**
@@ -95,6 +103,10 @@ export class UIDataBinding {
     return result;
   }
 
-  getBindingCount(): number { return this.bindings.size; }
-  getModel(): Record<string, unknown> { return { ...this.model }; }
+  getBindingCount(): number {
+    return this.bindings.size;
+  }
+  getModel(): Record<string, unknown> {
+    return { ...this.model };
+  }
 }

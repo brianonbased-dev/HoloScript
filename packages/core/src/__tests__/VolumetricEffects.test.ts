@@ -20,7 +20,12 @@ describe('Cycle 152: Volumetric Effects', () => {
   });
 
   it('should blend scene color with fog color', () => {
-    const fog = new FogSystem({ mode: 'linear', nearDistance: 0, farDistance: 100, color: [1, 1, 1] });
+    const fog = new FogSystem({
+      mode: 'linear',
+      nearDistance: 0,
+      farDistance: 100,
+      color: [1, 1, 1],
+    });
 
     const original: [number, number, number] = [0, 0, 0]; // Black scene
     const blended = fog.blendWithFog(original, 50);
@@ -31,10 +36,15 @@ describe('Cycle 152: Volumetric Effects', () => {
   });
 
   it('should apply height fog attenuation', () => {
-    const fog = new FogSystem({ heightFog: true, heightStart: 0, heightEnd: 100, heightDensity: 0.01 });
+    const fog = new FogSystem({
+      heightFog: true,
+      heightStart: 0,
+      heightEnd: 100,
+      heightDensity: 0.01,
+    });
 
-    const low = fog.computeFogFactor(50, 10);   // Low altitude — more fog
-    const high = fog.computeFogFactor(50, 90);  // High altitude — less fog
+    const low = fog.computeFogFactor(50, 10); // Low altitude — more fog
+    const high = fog.computeFogFactor(50, 90); // High altitude — less fog
 
     expect(low).toBeGreaterThan(high);
   });
@@ -45,7 +55,13 @@ describe('Cycle 152: Volumetric Effects', () => {
 
   it('should march rays and accumulate scattering', () => {
     const vl = new VolumetricLight();
-    vl.addLight({ id: 'sun', position: { x: 0, y: 100, z: 0 }, intensity: 2, scattering: 0.5, samples: 16 });
+    vl.addLight({
+      id: 'sun',
+      position: { x: 0, y: 100, z: 0 },
+      intensity: 2,
+      scattering: 0.5,
+      samples: 16,
+    });
 
     const samples = vl.march('sun', { x: 0, y: 0, z: 0 }, { x: 0, y: 1, z: 0 });
     expect(samples.length).toBe(16);
@@ -58,7 +74,13 @@ describe('Cycle 152: Volumetric Effects', () => {
 
   it('should compute scattering falloff with distance', () => {
     const vl = new VolumetricLight();
-    vl.addLight({ id: 'spot', position: { x: 0, y: 0, z: 0 }, maxDistance: 50, scattering: 0.8, intensity: 1 });
+    vl.addLight({
+      id: 'spot',
+      position: { x: 0, y: 0, z: 0 },
+      maxDistance: 50,
+      scattering: 0.8,
+      intensity: 1,
+    });
 
     const near = vl.getScatteringAt('spot', { x: 5, y: 0, z: 0 });
     const far = vl.getScatteringAt('spot', { x: 40, y: 0, z: 0 });
@@ -75,8 +97,8 @@ describe('Cycle 152: Volumetric Effects', () => {
   it('should sample zero density outside cloud altitude', () => {
     const cr = new CloudRenderer({ altitude: 200, thickness: 50 });
 
-    expect(cr.sampleDensity(0, 100, 0)).toBe(0);  // Below
-    expect(cr.sampleDensity(0, 300, 0)).toBe(0);  // Above
+    expect(cr.sampleDensity(0, 100, 0)).toBe(0); // Below
+    expect(cr.sampleDensity(0, 300, 0)).toBe(0); // Above
   });
 
   it('should generate a coverage map and respond to wind', () => {
@@ -89,7 +111,10 @@ describe('Cycle 152: Volumetric Effects', () => {
     // Maps should differ after wind drift
     let different = false;
     for (let i = 0; i < map1.length; i++) {
-      if (Math.abs(map1[i] - map2[i]) > 0.001) { different = true; break; }
+      if (Math.abs(map1[i] - map2[i]) > 0.001) {
+        different = true;
+        break;
+      }
     }
     expect(different).toBe(true);
   });

@@ -12,14 +12,21 @@
 // =============================================================================
 
 export interface Plane4 {
-  a: number; b: number; c: number; d: number; // ax + by + cz + d = 0
+  a: number;
+  b: number;
+  c: number;
+  d: number; // ax + by + cz + d = 0
 }
 
 export interface BoundingVolume {
   id: string;
   type: 'aabb' | 'sphere';
-  centerX: number; centerY: number; centerZ: number;
-  halfX?: number; halfY?: number; halfZ?: number; // AABB half-extents
+  centerX: number;
+  centerY: number;
+  centerZ: number;
+  halfX?: number;
+  halfY?: number;
+  halfZ?: number; // AABB half-extents
   radius?: number;
 }
 
@@ -39,43 +46,76 @@ export class FrustumCuller {
   // ---------------------------------------------------------------------------
 
   setFrustumFromPerspective(
-    fovDeg: number, aspect: number, near: number, far: number,
-    eyeX: number, eyeY: number, eyeZ: number,
-    lookX: number, lookY: number, lookZ: number,
+    fovDeg: number,
+    aspect: number,
+    near: number,
+    far: number,
+    eyeX: number,
+    eyeY: number,
+    eyeZ: number,
+    lookX: number,
+    lookY: number,
+    lookZ: number
   ): void {
     // Compute simplified frustum planes based on camera parameters
-    const fovRad = (fovDeg / 2) * Math.PI / 180;
+    const fovRad = ((fovDeg / 2) * Math.PI) / 180;
     const tanHalf = Math.tan(fovRad);
 
     // Forward direction
-    const dx = lookX - eyeX, dy = lookY - eyeY, dz = lookZ - eyeZ;
+    const dx = lookX - eyeX,
+      dy = lookY - eyeY,
+      dz = lookZ - eyeZ;
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
-    const fx = dx / len, fy = dy / len, fz = dz / len;
+    const fx = dx / len,
+      fy = dy / len,
+      fz = dz / len;
 
     // Near and far planes
     this.planes = [
-      { a: fx, b: fy, c: fz, d: -(fx * (eyeX + fx * near) + fy * (eyeY + fy * near) + fz * (eyeZ + fz * near)) },
-      { a: -fx, b: -fy, c: -fz, d: (fx * (eyeX + fx * far) + fy * (eyeY + fy * far) + fz * (eyeZ + fz * far)) },
+      {
+        a: fx,
+        b: fy,
+        c: fz,
+        d: -(fx * (eyeX + fx * near) + fy * (eyeY + fy * near) + fz * (eyeZ + fz * near)),
+      },
+      {
+        a: -fx,
+        b: -fy,
+        c: -fz,
+        d: fx * (eyeX + fx * far) + fy * (eyeY + fy * far) + fz * (eyeZ + fz * far),
+      },
     ];
 
     // Simplified side planes (using fov angle offset)
-    const rightX = fy * 0 - fz * 0 || 1, rightY = 0, rightZ = 0; // Simplified right vector
+    const rightX = fy * 0 - fz * 0 || 1,
+      rightY = 0,
+      rightZ = 0; // Simplified right vector
     this.planes.push(
       { a: fx + tanHalf, b: fy, c: fz, d: -(eyeX * (fx + tanHalf) + eyeY * fy + eyeZ * fz) },
-      { a: fx - tanHalf, b: fy, c: fz, d: -(eyeX * (fx - tanHalf) + eyeY * fy + eyeZ * fz) },
+      { a: fx - tanHalf, b: fy, c: fz, d: -(eyeX * (fx - tanHalf) + eyeY * fy + eyeZ * fz) }
     );
   }
 
-  setPlanes(planes: Plane4[]): void { this.planes = planes.map(p => ({ ...p })); }
-  getPlaneCount(): number { return this.planes.length; }
+  setPlanes(planes: Plane4[]): void {
+    this.planes = planes.map((p) => ({ ...p }));
+  }
+  getPlaneCount(): number {
+    return this.planes.length;
+  }
 
   // ---------------------------------------------------------------------------
   // Volume Management
   // ---------------------------------------------------------------------------
 
-  addVolume(volume: BoundingVolume): void { this.volumes.set(volume.id, volume); }
-  removeVolume(id: string): void { this.volumes.delete(id); }
-  getVolumeCount(): number { return this.volumes.size; }
+  addVolume(volume: BoundingVolume): void {
+    this.volumes.set(volume.id, volume);
+  }
+  removeVolume(id: string): void {
+    this.volumes.delete(id);
+  }
+  getVolumeCount(): number {
+    return this.volumes.size;
+  }
 
   // ---------------------------------------------------------------------------
   // Culling
@@ -114,7 +154,14 @@ export class FrustumCuller {
       if (vol.type === 'sphere' && vol.radius !== undefined) {
         result = this.testSphere(vol.centerX, vol.centerY, vol.centerZ, vol.radius);
       } else if (vol.type === 'aabb' && vol.halfX !== undefined) {
-        result = this.testAABB(vol.centerX, vol.centerY, vol.centerZ, vol.halfX!, vol.halfY!, vol.halfZ!);
+        result = this.testAABB(
+          vol.centerX,
+          vol.centerY,
+          vol.centerZ,
+          vol.halfX!,
+          vol.halfY!,
+          vol.halfZ!
+        );
       } else {
         continue;
       }
@@ -125,6 +172,10 @@ export class FrustumCuller {
     return [...this.visibleSet];
   }
 
-  isVisible(id: string): boolean { return this.visibleSet.has(id); }
-  getVisibleCount(): number { return this.visibleSet.size; }
+  isVisible(id: string): boolean {
+    return this.visibleSet.has(id);
+  }
+  getVisibleCount(): number {
+    return this.visibleSet.size;
+  }
 }

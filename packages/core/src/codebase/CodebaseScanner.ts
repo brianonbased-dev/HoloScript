@@ -21,13 +21,35 @@ import { AdapterManager } from './AdapterManager';
 import { getAdapterForFile, detectLanguage } from './adapters';
 
 const DEFAULT_EXCLUDE = [
-  'node_modules', '.git', 'dist', 'build', 'out', 'target',
-  '.next', '.nuxt', '.output', '__pycache__', '.pytest_cache',
-  'vendor', '.venv', 'venv', 'env', '.env',
-  'coverage', '.nyc_output', '.stryker-tmp',
-  '.idea', '.vscode', '.vs',
-  '*.min.js', '*.min.css', '*.map',
-  '*.lock', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock',
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'out',
+  'target',
+  '.next',
+  '.nuxt',
+  '.output',
+  '__pycache__',
+  '.pytest_cache',
+  'vendor',
+  '.venv',
+  'venv',
+  'env',
+  '.env',
+  'coverage',
+  '.nyc_output',
+  '.stryker-tmp',
+  '.idea',
+  '.vscode',
+  '.vs',
+  '*.min.js',
+  '*.min.css',
+  '*.map',
+  '*.lock',
+  'package-lock.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
 ];
 
 const DEFAULT_MAX_FILE_SIZE = 1024 * 1024; // 1MB
@@ -151,7 +173,7 @@ export class CodebaseScanner {
     rootDir: string,
     exclude: Set<string>,
     maxFiles: number,
-    languages?: SupportedLanguage[],
+    languages?: SupportedLanguage[]
   ): string[] {
     const files: string[] = [];
     const langFilter = languages ? new Set(languages) : null;

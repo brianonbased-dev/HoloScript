@@ -5,7 +5,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { AudioDiffractionSystem } from '../AudioDiffraction';
 import type { DiffractionEdge } from '../AudioDiffraction';
 
-function makeSystem() { return new AudioDiffractionSystem(); }
+function makeSystem() {
+  return new AudioDiffractionSystem();
+}
 
 // Simple providers for testing:
 // LOS provider: always clear (returns true)
@@ -17,46 +19,56 @@ function addEdge(id: string, x: number): DiffractionEdge {
   return {
     id,
     point1: { x, y: -1, z: 0 },
-    point2: { x, y:  1, z: 0 },
+    point2: { x, y: 1, z: 0 },
   };
 }
 
 const src = { x: -5, y: 0, z: 0 };
-const lst = { x:  5, y: 0, z: 0 };
+const lst = { x: 5, y: 0, z: 0 };
 
 describe('AudioDiffractionSystem — defaults', () => {
-  it('constructs without throwing', () => { expect(() => makeSystem()).not.toThrow(); });
+  it('constructs without throwing', () => {
+    expect(() => makeSystem()).not.toThrow();
+  });
   it('default config: enabled=true, maxPaths=2', () => {
     const cfg = makeSystem().getConfig();
-    expect(cfg.enabled).toBe(true); expect(cfg.maxPaths).toBe(2);
+    expect(cfg.enabled).toBe(true);
+    expect(cfg.maxPaths).toBe(2);
   });
   it('default frequency=1000Hz, speedOfSound=343', () => {
     const cfg = makeSystem().getConfig();
-    expect(cfg.frequency).toBe(1000); expect(cfg.speedOfSound).toBe(343);
+    expect(cfg.frequency).toBe(1000);
+    expect(cfg.speedOfSound).toBe(343);
   });
 });
 
 describe('AudioDiffractionSystem — setConfig', () => {
   it('merges partial config', () => {
-    const s = makeSystem(); s.setConfig({ enabled: false });
+    const s = makeSystem();
+    s.setConfig({ enabled: false });
     expect(s.getConfig().enabled).toBe(false);
     expect(s.getConfig().maxPaths).toBe(2); // unchanged
   });
   it('getConfig returns a copy (mutation safe)', () => {
-    const s = makeSystem(); const cfg = s.getConfig(); cfg.frequency = 9999;
+    const s = makeSystem();
+    const cfg = s.getConfig();
+    cfg.frequency = 9999;
     expect(s.getConfig().frequency).toBe(1000);
   });
 });
 
 describe('AudioDiffractionSystem — disabled or no providers', () => {
   it('returns volumeMultiplier=1 when disabled', () => {
-    const s = makeSystem(); s.setConfig({ enabled: false });
+    const s = makeSystem();
+    s.setConfig({ enabled: false });
     const r = s.computeDiffraction(src, lst, 's1');
-    expect(r.volumeMultiplier).toBe(1); expect(r.hasDiffraction).toBe(false);
+    expect(r.volumeMultiplier).toBe(1);
+    expect(r.hasDiffraction).toBe(false);
   });
   it('returns volumeMultiplier=1 when no providers set', () => {
     const r = makeSystem().computeDiffraction(src, lst, 's2');
-    expect(r.volumeMultiplier).toBe(1); expect(r.paths).toHaveLength(0);
+    expect(r.volumeMultiplier).toBe(1);
+    expect(r.paths).toHaveLength(0);
   });
   it('no diffraction when direct LOS is clear', () => {
     const s = makeSystem();
@@ -108,7 +120,9 @@ describe('AudioDiffractionSystem — diffraction with blocked direct path', () =
     const s = makeBlockedSystem([addEdge('e1', 1), addEdge('e2', 2)]);
     const r = s.computeDiffraction(src, lst, 'x');
     if (r.paths.length >= 2) {
-      expect(r.paths[0].diffractionCoefficient).toBeGreaterThanOrEqual(r.paths[1].diffractionCoefficient);
+      expect(r.paths[0].diffractionCoefficient).toBeGreaterThanOrEqual(
+        r.paths[1].diffractionCoefficient
+      );
     }
   });
 });

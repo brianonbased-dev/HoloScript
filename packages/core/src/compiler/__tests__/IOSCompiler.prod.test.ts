@@ -4,7 +4,7 @@
  * Covers: compile() returns IOSCompileResult (viewFile, sceneFile, stateFile, infoPlist),
  * Swift ARKit output, ARSCNView, SceneKit nodes, lights, audio, gestures, options.
  */
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IOSCompiler, compileToIOS } from '../IOSCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
@@ -15,7 +15,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
@@ -133,25 +132,54 @@ describe('IOSCompiler — Production', () => {
   // ─── Lights ──────────────────────────────────────────────────────────
   // HoloLight uses `lightType` + `properties` array, not flat `type` field
   it('compiles point light (name in sceneFile)', () => {
-    const { sceneFile } = compiler.compile(makeComp({
-      lights: [{ name: 'Key', lightType: 'point', properties: [{ key: 'color', value: '#ffffff' }, { key: 'intensity', value: 0.5 }] }],
-    } as any), 'test-token');
+    const { sceneFile } = compiler.compile(
+      makeComp({
+        lights: [
+          {
+            name: 'Key',
+            lightType: 'point',
+            properties: [
+              { key: 'color', value: '#ffffff' },
+              { key: 'intensity', value: 0.5 },
+            ],
+          },
+        ],
+      } as any),
+      'test-token'
+    );
     expect(sceneFile).toContain('Key');
   });
 
   it('compiles directional light (sceneFile defined)', () => {
-    const { sceneFile } = compiler.compile(makeComp({
-      lights: [{ name: 'Sun', lightType: 'directional', properties: [{ key: 'intensity', value: 3 }] }],
-    } as any), 'test-token');
+    const { sceneFile } = compiler.compile(
+      makeComp({
+        lights: [
+          { name: 'Sun', lightType: 'directional', properties: [{ key: 'intensity', value: 3 }] },
+        ],
+      } as any),
+      'test-token'
+    );
     expect(sceneFile).toBeDefined();
   });
 
   // ─── Audio ───────────────────────────────────────────────────────────
   // HoloAudio uses `properties` array format
   it('compiles audio source (sceneFile defined)', () => {
-    const { sceneFile } = compiler.compile(makeComp({
-      audio: [{ name: 'BgMusic', properties: [{ key: 'src', value: 'music.mp3' }, { key: 'loop', value: true }, { key: 'volume', value: 0.7 }] }],
-    } as any), 'test-token');
+    const { sceneFile } = compiler.compile(
+      makeComp({
+        audio: [
+          {
+            name: 'BgMusic',
+            properties: [
+              { key: 'src', value: 'music.mp3' },
+              { key: 'loop', value: true },
+              { key: 'volume', value: 0.7 },
+            ],
+          },
+        ],
+      } as any),
+      'test-token'
+    );
     expect(sceneFile).toBeDefined();
   });
 

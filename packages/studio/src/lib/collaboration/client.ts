@@ -135,11 +135,7 @@ export class CollaborationClient {
   /**
    * Sync workflow state to Yjs
    */
-  syncWorkflow(workflow: {
-    nodes: any[];
-    edges: any[];
-    metadata: Record<string, any>;
-  }): void {
+  syncWorkflow(workflow: { nodes: any[]; edges: any[]; metadata: Record<string, any> }): void {
     this.ydoc.transact(() => {
       const nodesArray = this.getNodesArray();
       const edgesArray = this.getEdgesArray();
@@ -293,11 +289,7 @@ export class CollaborationClient {
    * Create undo manager for collaborative editing
    */
   createUndoManager(scope?: Y.AbstractType<any>[]): Y.UndoManager {
-    const scopes = scope || [
-      this.getNodesArray(),
-      this.getEdgesArray(),
-      this.getMetadataMap(),
-    ];
+    const scopes = scope || [this.getNodesArray(), this.getEdgesArray(), this.getMetadataMap()];
 
     return new Y.UndoManager(scopes, {
       trackedOrigins: new Set([this.awareness?.clientID]),

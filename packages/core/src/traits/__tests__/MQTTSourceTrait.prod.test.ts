@@ -36,9 +36,13 @@ function makeMockClient() {
   const client = {
     connect: vi.fn().mockResolvedValue(undefined),
     disconnect: vi.fn(),
-    subscribe: vi.fn((_opts: any, cb: (msg: any) => void) => { _subscribeCallback = cb; }),
+    subscribe: vi.fn((_opts: any, cb: (msg: any) => void) => {
+      _subscribeCallback = cb;
+    }),
     unsubscribe: vi.fn(),
-    on: vi.fn((event: string, cb: any) => { evtListeners[event] = cb; }),
+    on: vi.fn((event: string, cb: any) => {
+      evtListeners[event] = cb;
+    }),
     _trigger: (event: string, ...args: any[]) => evtListeners[event]?.(...args),
     _triggerMessage: (msg: any) => _subscribeCallback?.(msg),
   };
@@ -47,7 +51,11 @@ function makeMockClient() {
 
 vi.mock('../../runtime/protocols/MQTTClient', () => {
   const parsePayload = vi.fn((msg: any) => {
-    try { return JSON.parse(msg.payload); } catch { return msg.payload; }
+    try {
+      return JSON.parse(msg.payload);
+    } catch {
+      return msg.payload;
+    }
   });
   return {
     createMQTTClient: vi.fn(() => {
@@ -55,7 +63,9 @@ vi.mock('../../runtime/protocols/MQTTClient', () => {
       return _mockClientInstance;
     }),
     getMQTTClient: vi.fn((key: string) => _clientRegistry[key] || null),
-    registerMQTTClient: vi.fn((key: string, client: any) => { _clientRegistry[key] = client; }),
+    registerMQTTClient: vi.fn((key: string, client: any) => {
+      _clientRegistry[key] = client;
+    }),
     MQTTClient: { parsePayload },
   };
 });
@@ -70,9 +80,15 @@ import { createMQTTClient, getMQTTClient, MQTTClient } from '../../runtime/proto
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 let _nodeId = 0;
-function makeNode(name = 'SrcNode') { return { id: `src_${++_nodeId}`, name }; }
-function makeCtx() { return { emit: vi.fn(), setState: vi.fn(), getState: vi.fn().mockReturnValue({}) }; }
-function makeConfig(o: any = {}) { return { ...mqttSourceHandler.defaultConfig!, ...o }; }
+function makeNode(name = 'SrcNode') {
+  return { id: `src_${++_nodeId}`, name };
+}
+function makeCtx() {
+  return { emit: vi.fn(), setState: vi.fn(), getState: vi.fn().mockReturnValue({}) };
+}
+function makeConfig(o: any = {}) {
+  return { ...mqttSourceHandler.defaultConfig!, ...o };
+}
 
 function attach(configOverrides: any = {}) {
   const node = makeNode();
@@ -81,7 +97,9 @@ function attach(configOverrides: any = {}) {
   mqttSourceHandler.onAttach!(node as any, config, ctx as any);
   return { node, ctx, config };
 }
-function getState(node: any) { return (node as any).__mqttSourceState; }
+function getState(node: any) {
+  return (node as any).__mqttSourceState;
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -149,7 +167,10 @@ describe('mqttSourceHandler.onAttach', () => {
       getState(node).client._trigger('connect');
       expect(getState(node).connected).toBe(true);
       expect(getState(node).error).toBeNull();
-      expect(ctx.emit).toHaveBeenCalledWith('mqtt_connected', expect.objectContaining({ broker: mqttSourceHandler.defaultConfig!.broker }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'mqtt_connected',
+        expect.objectContaining({ broker: mqttSourceHandler.defaultConfig!.broker })
+      );
     });
 
     it('disconnect → state.connected=false, emits mqtt_disconnected', () => {
@@ -164,7 +185,10 @@ describe('mqttSourceHandler.onAttach', () => {
       const { node, ctx } = attach();
       getState(node).client._trigger('error', new Error('broker_down'));
       expect(getState(node).error).toBe('broker_down');
-      expect(ctx.emit).toHaveBeenCalledWith('mqtt_error', expect.objectContaining({ error: 'broker_down' }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'mqtt_error',
+        expect.objectContaining({ error: 'broker_down' })
+      );
     });
   });
 });
@@ -200,9 +224,13 @@ describe('subscribe message callback', () => {
     const { node, ctx } = attach({ parseJson: false, topic: 'test/topic' });
     ctx.emit.mockClear();
     getState(node).client._triggerMessage({ payload: 'hello' });
-    expect(ctx.emit).toHaveBeenCalledWith('mqtt_message', expect.objectContaining({
-      topic: 'test/topic', value: 'hello',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'mqtt_message',
+      expect.objectContaining({
+        topic: 'test/topic',
+        value: 'hello',
+      })
+    );
   });
 
   it('debounce: only processes once after timeout fires', async () => {
@@ -271,17 +299,23 @@ describe('mqttSourceHandler.onEvent', () => {
 
   it('mqtt_disconnect_request → calls client.disconnect()', () => {
     const { node, ctx, config } = attach();
-    mqttSourceHandler.onEvent!(node as any, config, ctx as any, { type: 'mqtt_disconnect_request' });
+    mqttSourceHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'mqtt_disconnect_request',
+    });
     expect(getState(node).client.disconnect).toHaveBeenCalled();
   });
 });
 
 // ─── exported helpers ─────────────────────────────────────────────────────────
 describe('exported helpers', () => {
-  it('hasMQTTSourceTrait: true after attach', () => expect(hasMQTTSourceTrait(attach().node)).toBe(true));
-  it('hasMQTTSourceTrait: false before attach', () => expect(hasMQTTSourceTrait(makeNode())).toBe(false));
-  it('getMQTTSourceState: returns state object', () => expect(getMQTTSourceState(attach().node)).toBeDefined());
-  it('isMQTTSourceConnected: false initially', () => expect(isMQTTSourceConnected(attach().node)).toBe(false));
+  it('hasMQTTSourceTrait: true after attach', () =>
+    expect(hasMQTTSourceTrait(attach().node)).toBe(true));
+  it('hasMQTTSourceTrait: false before attach', () =>
+    expect(hasMQTTSourceTrait(makeNode())).toBe(false));
+  it('getMQTTSourceState: returns state object', () =>
+    expect(getMQTTSourceState(attach().node)).toBeDefined());
+  it('isMQTTSourceConnected: false initially', () =>
+    expect(isMQTTSourceConnected(attach().node)).toBe(false));
   it('isMQTTSourceConnected: true after connect callback', () => {
     const { node } = attach();
     getState(node).client._trigger('connect');

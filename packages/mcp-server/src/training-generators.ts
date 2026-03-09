@@ -83,7 +83,8 @@ export const ALL_TRAINING_EXAMPLES: TrainingExample[] = [
   {
     instruction: 'Create a procedurally generated forest with 50 trees',
     input: 'density: high',
-    output: 'scene Forest {\n  repeat(50) {\n    object tree_{i} {\n      position: vec3(random(-20, 20), 0, random(-20, 20))\n      scale: vec3(1, random(2, 5), 1)\n      trait LOD { levels: [10, 30, 80] }\n    }\n  }\n}',
+    output:
+      'scene Forest {\n  repeat(50) {\n    object tree_{i} {\n      position: vec3(random(-20, 20), 0, random(-20, 20))\n      scale: vec3(1, random(2, 5), 1)\n      trait LOD { levels: [10, 30, 80] }\n    }\n  }\n}',
     metadata: {
       category: 'spatial',
       difficulty: 'advanced',
@@ -207,10 +208,7 @@ export const ALL_TRAINING_EXAMPLES: TrainingExample[] = [
  * Generate a requested number of variation examples based on a seed example.
  * Variations differ by inserting slightly modified phrasing or parameters.
  */
-export function generateVariations(
-  example: TrainingExample,
-  count: number
-): TrainingExample[] {
+export function generateVariations(example: TrainingExample, count: number): TrainingExample[] {
   const variations: TrainingExample[] = [];
 
   for (let i = 0; i < count; i++) {
@@ -238,9 +236,7 @@ export function generateVariations(
  *                              (minimum 1 to guarantee the result is at least
  *                              as large as the base array).
  */
-export function generateHololandDataset(
-  variationsPerExample: number = 1
-): TrainingExample[] {
+export function generateHololandDataset(variationsPerExample: number = 1): TrainingExample[] {
   const safeVariations = Math.max(1, variationsPerExample);
   const dataset: TrainingExample[] = [...ALL_TRAINING_EXAMPLES];
 

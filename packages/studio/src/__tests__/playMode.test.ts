@@ -243,7 +243,7 @@ describe('Animation & Simulation State Model', () => {
 
   it('AnimationType accepts valid presets', () => {
     const validTypes = ['none', 'spin', 'bob', 'pulse', 'orbit'] as const;
-    validTypes.forEach(t => {
+    validTypes.forEach((t) => {
       const obj = { animation: t };
       expect(obj.animation).toBe(t);
     });
@@ -251,7 +251,7 @@ describe('Animation & Simulation State Model', () => {
 
   it('ParticleType accepts valid presets', () => {
     const validTypes = ['none', 'sparkles', 'trail', 'fire'] as const;
-    validTypes.forEach(t => {
+    validTypes.forEach((t) => {
       const obj = { particles: t };
       expect(obj.particles).toBe(t);
     });
@@ -349,7 +349,7 @@ describe('Animation & Simulation State Model', () => {
       { id: '1', animation: 'none' as string },
       { id: '2', animation: 'none' as string },
     ];
-    const updated = objects.map(o => o.id === '1' ? { ...o, animation: 'spin' } : o);
+    const updated = objects.map((o) => (o.id === '1' ? { ...o, animation: 'spin' } : o));
     expect(updated[0].animation).toBe('spin');
     expect(updated[1].animation).toBe('none');
   });
@@ -359,7 +359,7 @@ describe('Animation & Simulation State Model', () => {
       { id: '1', particles: 'none' as string },
       { id: '2', particles: 'none' as string },
     ];
-    const updated = objects.map(o => o.id === '2' ? { ...o, particles: 'fire' } : o);
+    const updated = objects.map((o) => (o.id === '2' ? { ...o, particles: 'fire' } : o));
     expect(updated[0].particles).toBe('none');
     expect(updated[1].particles).toBe('fire');
   });

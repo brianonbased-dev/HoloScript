@@ -80,7 +80,7 @@ export class TraitInheritanceError extends Error {
   constructor(
     public readonly traitName: string,
     public readonly detail: string,
-    public readonly loc?: SourceLocation,
+    public readonly loc?: SourceLocation
   ) {
     super(`Trait inheritance error in "${traitName}": ${detail}`);
     this.name = 'TraitInheritanceError';
@@ -93,13 +93,9 @@ export class TraitInheritanceError extends Error {
 export class CircularInheritanceError extends TraitInheritanceError {
   constructor(
     public readonly cycle: string[],
-    loc?: SourceLocation,
+    loc?: SourceLocation
   ) {
-    super(
-      cycle[0],
-      `Circular inheritance detected: ${cycle.join(' -> ')}`,
-      loc,
-    );
+    super(cycle[0], `Circular inheritance detected: ${cycle.join(' -> ')}`, loc);
     this.name = 'CircularInheritanceError';
   }
 }
@@ -255,7 +251,7 @@ export class TraitInheritanceResolver {
     if (!def) {
       throw new TraitInheritanceError(
         name,
-        `Trait "${name}" is not defined. Register it before resolving.`,
+        `Trait "${name}" is not defined. Register it before resolving.`
       );
     }
 
@@ -449,7 +445,7 @@ export class TraitInheritanceResolver {
         def.name,
         `Parent trait "${def.base}" is not defined. ` +
           `Ensure it is declared before "${def.name}".`,
-        def.loc?.start ? { line: def.loc.start.line, column: def.loc.start.column } : undefined,
+        def.loc?.start ? { line: def.loc.start.line, column: def.loc.start.column } : undefined
       );
     }
 
@@ -465,16 +461,10 @@ export class TraitInheritanceResolver {
     };
 
     // Merge event handlers: child handlers override parent handlers with same event name
-    const mergedHandlers = this.mergeEventHandlers(
-      parent.eventHandlers,
-      def.eventHandlers || [],
-    );
+    const mergedHandlers = this.mergeEventHandlers(parent.eventHandlers, def.eventHandlers || []);
 
     // Merge actions: child actions override parent actions with same name
-    const mergedActions = this.mergeActions(
-      parent.actions,
-      def.actions || [],
-    );
+    const mergedActions = this.mergeActions(parent.actions, def.actions || []);
 
     // Check for property shadowing and emit warnings
     const ownProps = this.propertiesToRecord(def.properties);
@@ -486,7 +476,7 @@ export class TraitInheritanceResolver {
           warnings.push(
             `Property "${key}" in "${def.name}" overrides inherited value from ` +
               `"${this.findPropertyOrigin(key, ancestors)}" ` +
-              `(${parentVal} -> ${childVal}).`,
+              `(${parentVal} -> ${childVal}).`
           );
         }
       }
@@ -507,7 +497,7 @@ export class TraitInheritanceResolver {
    * Convert HoloTraitProperty[] to a flat Record.
    */
   private propertiesToRecord(
-    properties: HoloTraitProperty[] | undefined,
+    properties: HoloTraitProperty[] | undefined
   ): Record<string, HoloValue> {
     const result: Record<string, HoloValue> = {};
     if (!properties) return result;
@@ -522,7 +512,7 @@ export class TraitInheritanceResolver {
    */
   private mergeEventHandlers(
     parentHandlers: HoloEventHandler[],
-    childHandlers: HoloEventHandler[],
+    childHandlers: HoloEventHandler[]
   ): HoloEventHandler[] {
     const handlerMap = new Map<string, HoloEventHandler>();
 
@@ -542,10 +532,7 @@ export class TraitInheritanceResolver {
   /**
    * Merge actions (child wins for same action name).
    */
-  private mergeActions(
-    parentActions: HoloAction[],
-    childActions: HoloAction[],
-  ): HoloAction[] {
+  private mergeActions(parentActions: HoloAction[], childActions: HoloAction[]): HoloAction[] {
     const actionMap = new Map<string, HoloAction>();
 
     // Parent actions first

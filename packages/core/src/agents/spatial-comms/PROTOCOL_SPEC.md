@@ -84,6 +84,7 @@ Frame Budget Body (17+ bytes):
 ### 2.3 Message Types
 
 #### 2.3.1 Position Sync (0x01)
+
 - **Purpose**: Synchronize agent spatial transforms at 90fps
 - **Rate**: 90 messages/second
 - **Fields**:
@@ -93,6 +94,7 @@ Frame Budget Body (17+ bytes):
   - `velocity`: [vx, vy, vz] for prediction (optional, float32)
 
 #### 2.3.2 Frame Budget (0x02)
+
 - **Purpose**: Broadcast frame budget status for graceful degradation
 - **Rate**: Every 10 frames (9 messages/second)
 - **Fields**:
@@ -103,6 +105,7 @@ Frame Budget Body (17+ bytes):
   - `quality_level`: Current quality setting (uint8: 0=high, 1=medium, 2=low, 3=minimal)
 
 #### 2.3.3 Spatial Conflict (0x03)
+
 - **Purpose**: Alert agents of spatial overlaps or performance impacts
 - **Rate**: On-demand (when conflicts detected)
 - **Fields**:
@@ -113,6 +116,7 @@ Frame Budget Body (17+ bytes):
   - `suggested_action`: pause | relocate | reduce_quality | defer
 
 #### 2.3.4 Performance Metric (0x04)
+
 - **Purpose**: Real-time performance telemetry
 - **Rate**: On-demand
 - **Fields**:
@@ -145,8 +149,8 @@ socket.on('message', (buffer, rinfo) => {
 ```typescript
 // Create data channel
 const dataChannel = peerConnection.createDataChannel('realtime', {
-  ordered: false,        // Unordered for minimal latency
-  maxRetransmits: 0,     // No retransmits (UDP-like)
+  ordered: false, // Unordered for minimal latency
+  maxRetransmits: 0, // No retransmits (UDP-like)
 });
 
 // Send message
@@ -162,13 +166,13 @@ dataChannel.onmessage = (event) => {
 
 ### 2.6 Performance Guarantees
 
-| Metric | Target | Typical |
-|--------|--------|---------|
-| Encoding time | <0.5ms | 0.1-0.2ms |
-| Decoding time | <0.5ms | 0.1-0.2ms |
-| Round-trip latency | <1ms | 0.5-0.8ms |
-| Message size | <512B | 52-72B |
-| Bandwidth (per agent) | <10 KB/s | 5-6 KB/s |
+| Metric                | Target   | Typical   |
+| --------------------- | -------- | --------- |
+| Encoding time         | <0.5ms   | 0.1-0.2ms |
+| Decoding time         | <0.5ms   | 0.1-0.2ms |
+| Round-trip latency    | <1ms     | 0.5-0.8ms |
+| Message size          | <512B    | 52-72B    |
+| Bandwidth (per agent) | <10 KB/s | 5-6 KB/s  |
 
 ---
 
@@ -185,6 +189,7 @@ dataChannel.onmessage = (event) => {
 ### 3.2 Message Types
 
 #### 3.2.1 Task Assignment
+
 ```json
 {
   "type": "task_assignment",
@@ -212,6 +217,7 @@ dataChannel.onmessage = (event) => {
 ```
 
 #### 3.2.2 Task Completion
+
 ```json
 {
   "type": "task_complete",
@@ -234,6 +240,7 @@ dataChannel.onmessage = (event) => {
 ```
 
 #### 3.2.3 Spatial Claim
+
 ```json
 {
   "type": "spatial_claim",
@@ -252,6 +259,7 @@ dataChannel.onmessage = (event) => {
 ```
 
 #### 3.2.4 Conflict Resolution
+
 ```json
 {
   "type": "conflict_resolution",
@@ -338,13 +346,13 @@ function flushBatch() {
 
 ### 3.6 Conflict Resolution Strategies
 
-| Strategy | Description | Use Case |
-|----------|-------------|----------|
-| **priority_based** | Higher priority agent wins | Critical path operations |
-| **time_slicing** | Agents take turns | Fair resource sharing |
-| **spatial_partitioning** | Divide space between agents | Large regions |
-| **quality_reduction** | All agents reduce quality | System-wide overload |
-| **agent_relocation** | Move conflicting agent(s) | Spatial conflicts |
+| Strategy                 | Description                 | Use Case                 |
+| ------------------------ | --------------------------- | ------------------------ |
+| **priority_based**       | Higher priority agent wins  | Critical path operations |
+| **time_slicing**         | Agents take turns           | Fair resource sharing    |
+| **spatial_partitioning** | Divide space between agents | Large regions            |
+| **quality_reduction**    | All agents reduce quality   | System-wide overload     |
+| **agent_relocation**     | Move conflicting agent(s)   | Spatial conflicts        |
 
 ---
 
@@ -361,6 +369,7 @@ function flushBatch() {
 ### 4.2 MCP Tools
 
 #### 4.2.1 create_world
+
 ```json
 {
   "tool": "create_world",
@@ -397,6 +406,7 @@ function flushBatch() {
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -429,6 +439,7 @@ function flushBatch() {
 ```
 
 #### 4.2.2 get_world_status
+
 ```json
 {
   "tool": "get_world_status",
@@ -439,6 +450,7 @@ function flushBatch() {
 ```
 
 #### 4.2.3 get_performance_metrics
+
 ```json
 {
   "tool": "get_performance_metrics",
@@ -450,6 +462,7 @@ function flushBatch() {
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -525,12 +538,12 @@ Each agent has 2.2ms budget per frame
 
 ### 5.2 Quality Levels
 
-| Level | Frame Time | FPS | Actions |
-|-------|-----------|-----|---------|
-| **High** | ≤11.1ms | 90+ | Full detail, max quality |
-| **Medium** | 11.1-13.3ms | 75-90 | Reduced detail, LOD adjustments |
-| **Low** | 13.3-16.7ms | 60-75 | Minimal detail, aggressive LOD |
-| **Minimal** | >16.7ms | <60 | Bare essentials, survival mode |
+| Level       | Frame Time  | FPS   | Actions                         |
+| ----------- | ----------- | ----- | ------------------------------- |
+| **High**    | ≤11.1ms     | 90+   | Full detail, max quality        |
+| **Medium**  | 11.1-13.3ms | 75-90 | Reduced detail, LOD adjustments |
+| **Low**     | 13.3-16.7ms | 60-75 | Minimal detail, aggressive LOD  |
+| **Minimal** | >16.7ms     | <60   | Bare essentials, survival mode  |
 
 ### 5.3 Automatic Degradation
 
@@ -546,7 +559,7 @@ const workAmount = {
   high: 100,
   medium: 50,
   low: 25,
-  minimal: 10
+  minimal: 10,
 }[quality];
 ```
 
@@ -578,28 +591,28 @@ await agentRegistry.register({
   capabilities: ['terrain', 'layer1', 'layer2', 'layer3'],
   spatialScope: {
     scene: 'world-001',
-    region: { center: [0, 0, 0], radius: 1000 }
-  }
+    region: { center: [0, 0, 0], radius: 1000 },
+  },
 });
 
 // Query agents for task assignment
 const agents = await agentRegistry.discover({
   capabilities: ['terrain'],
-  status: 'online'
+  status: 'online',
 });
 ```
 
 ### 6.2 uAA2++ Phase Integration
 
-| Phase | Layer 1 | Layer 2 | Layer 3 |
-|-------|---------|---------|---------|
-| **INTAKE** | Load agent config | Register with A2A | Query world status |
-| **REFLECT** | Check frame budget | Analyze task queue | Review metrics |
-| **EXECUTE** | Sync position | Complete tasks | Update world |
-| **COMPRESS** | Send perf metrics | Report completion | Store learnings |
-| **REINTAKE** | Re-check budget | Re-prioritize tasks | Re-assess world |
-| **GROW** | Optimize send rate | Learn patterns | Improve coordination |
-| **EVOLVE** | Adapt quality | Evolve strategies | Optimize world |
+| Phase        | Layer 1            | Layer 2             | Layer 3              |
+| ------------ | ------------------ | ------------------- | -------------------- |
+| **INTAKE**   | Load agent config  | Register with A2A   | Query world status   |
+| **REFLECT**  | Check frame budget | Analyze task queue  | Review metrics       |
+| **EXECUTE**  | Sync position      | Complete tasks      | Update world         |
+| **COMPRESS** | Send perf metrics  | Report completion   | Store learnings      |
+| **REINTAKE** | Re-check budget    | Re-prioritize tasks | Re-assess world      |
+| **GROW**     | Optimize send rate | Learn patterns      | Improve coordination |
+| **EVOLVE**   | Adapt quality      | Evolve strategies   | Optimize world       |
 
 ---
 
@@ -615,11 +628,13 @@ const agents = await agentRegistry.discover({
 ### 7.2 Setup Steps
 
 1. **Install Package**:
+
    ```bash
    npm install @holoscript/core
    ```
 
 2. **Configure Environment**:
+
    ```bash
    export MCP_API_KEY=dev-key-12345
    export A2A_ENDPOINT=http://localhost:3002/a2a
@@ -627,19 +642,21 @@ const agents = await agentRegistry.discover({
    ```
 
 3. **Create Client**:
+
    ```typescript
    import { SpatialCommClient } from '@holoscript/core/agents/spatial-comms';
 
    const client = new SpatialCommClient('agent-001', {
      layer1: { udpPort: 9001 },
      layer2: { endpoint: 'http://localhost:3002/a2a' },
-     layer3: { apiKey: process.env.MCP_API_KEY }
+     layer3: { apiKey: process.env.MCP_API_KEY },
    });
 
    await client.init();
    ```
 
 4. **Start Agents**:
+
    ```typescript
    // Orchestrator
    const orchestrator = new OrchestratorAgent('orchestrator-001');
@@ -683,6 +700,7 @@ setInterval(async () => {
 ## 8. Performance Benchmarks
 
 ### 8.1 Test Environment
+
 - CPU: Intel i7-9700K @ 3.6GHz
 - RAM: 32GB DDR4
 - GPU: NVIDIA RTX 2080
@@ -690,47 +708,51 @@ setInterval(async () => {
 
 ### 8.2 Results
 
-| Scenario | Target | Measured | Pass |
-|----------|--------|----------|------|
-| **Layer 1 Encoding** | <0.5ms | 0.15ms | ✓ |
-| **Layer 1 Decoding** | <0.5ms | 0.18ms | ✓ |
-| **Layer 1 Latency** | <1ms | 0.6ms | ✓ |
-| **5 Agents FPS** | 90 | 88.5 | ✓ |
-| **10 Agents FPS** | 90 | 82.1 | ✓ |
-| **Bandwidth (5 agents)** | <50 KB/s | 28 KB/s | ✓ |
-| **Memory Growth (1000 frames)** | <10 MB | 6.2 MB | ✓ |
+| Scenario                        | Target   | Measured | Pass |
+| ------------------------------- | -------- | -------- | ---- |
+| **Layer 1 Encoding**            | <0.5ms   | 0.15ms   | ✓    |
+| **Layer 1 Decoding**            | <0.5ms   | 0.18ms   | ✓    |
+| **Layer 1 Latency**             | <1ms     | 0.6ms    | ✓    |
+| **5 Agents FPS**                | 90       | 88.5     | ✓    |
+| **10 Agents FPS**               | 90       | 82.1     | ✓    |
+| **Bandwidth (5 agents)**        | <50 KB/s | 28 KB/s  | ✓    |
+| **Memory Growth (1000 frames)** | <10 MB   | 6.2 MB   | ✓    |
 
 ### 8.3 Scaling
 
-| Agents | FPS | Frame Time | Quality | Bandwidth |
-|--------|-----|------------|---------|-----------|
-| 1 | 90.2 | 11.1ms | High | 6 KB/s |
-| 3 | 89.8 | 11.2ms | High | 18 KB/s |
-| 5 | 88.5 | 11.3ms | High | 28 KB/s |
-| 10 | 82.1 | 12.2ms | Medium | 55 KB/s |
-| 15 | 72.3 | 13.8ms | Low | 82 KB/s |
-| 20 | 61.5 | 16.3ms | Minimal | 108 KB/s |
+| Agents | FPS  | Frame Time | Quality | Bandwidth |
+| ------ | ---- | ---------- | ------- | --------- |
+| 1      | 90.2 | 11.1ms     | High    | 6 KB/s    |
+| 3      | 89.8 | 11.2ms     | High    | 18 KB/s   |
+| 5      | 88.5 | 11.3ms     | High    | 28 KB/s   |
+| 10     | 82.1 | 12.2ms     | Medium  | 55 KB/s   |
+| 15     | 72.3 | 13.8ms     | Low     | 82 KB/s   |
+| 20     | 61.5 | 16.3ms     | Minimal | 108 KB/s  |
 
 ---
 
 ## 9. Security Considerations
 
 ### 9.1 Authentication
+
 - All agents must authenticate via AgentRegistry
 - MCP API key required for Layer 3 operations
 - Agent IDs validated on every message
 
 ### 9.2 Authorization
+
 - Spatial claims checked against agent permissions
 - Task assignments verified against agent capabilities
 - Resource requests validated against quotas
 
 ### 9.3 Rate Limiting
+
 - Layer 1: 90 msg/s per agent (enforced)
 - Layer 2: 100 requests/min per agent
 - Layer 3: 10 commands/min per agent
 
 ### 9.4 Data Validation
+
 - Binary messages validated against protocol spec
 - JSON messages validated against schemas
 - Bounding boxes checked for validity
@@ -740,12 +762,14 @@ setInterval(async () => {
 ## 10. Future Enhancements
 
 ### 10.1 Phase 2 (v1.1)
+
 - WebTransport support for Layer 1 (better than WebRTC)
 - gRPC option for Layer 2 (better than HTTP/2)
 - Layer 2 message signing for security
 - Distributed spatial claims (P2P)
 
 ### 10.2 Phase 3 (v2.0)
+
 - AI-driven quality prediction
 - Adaptive message rates based on workload
 - Cross-world agent coordination

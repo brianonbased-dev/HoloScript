@@ -1,9 +1,18 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { X, Crosshair, Upload, Link, CheckCircle2, Loader2, AlertTriangle, ChevronRight } from 'lucide-react';
+import {
+  X,
+  Crosshair,
+  Upload,
+  Link,
+  CheckCircle2,
+  Loader2,
+  AlertTriangle,
+  ChevronRight,
+} from 'lucide-react';
 import { useAssetStore } from './useAssetStore';
-import { useSceneGraphStore } from '@/lib/store';
+import { useSceneGraphStore } from '@/lib/stores';
 
 type WizardStep = 'method' | 'capture' | 'url' | 'upload' | 'configure' | 'done';
 
@@ -26,9 +35,7 @@ const DEFAULT_CONFIG: SplatConfig = {
 function StepMethod({ onChoose }: { onChoose: (step: WizardStep) => void }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-studio-muted">
-        How do you want to bring in your Gaussian Splat?
-      </p>
+      <p className="text-sm text-studio-muted">How do you want to bring in your Gaussian Splat?</p>
       <div className="grid grid-cols-1 gap-2">
         {[
           {
@@ -115,7 +122,10 @@ function StepURL({
         />
       </div>
       <div className="flex gap-2">
-        <button onClick={onBack} className="rounded-xl border border-studio-border px-4 py-2 text-sm text-studio-muted transition hover:text-studio-text">
+        <button
+          onClick={onBack}
+          className="rounded-xl border border-studio-border px-4 py-2 text-sm text-studio-muted transition hover:text-studio-text"
+        >
           Back
         </button>
         <button
@@ -162,7 +172,10 @@ function StepUpload({
   return (
     <div className="space-y-4">
       <div
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => {
           e.preventDefault();
@@ -171,10 +184,14 @@ function StepUpload({
           if (file) handleFile(file);
         }}
         className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition ${
-          dragging ? 'border-studio-accent bg-studio-accent/5' : 'border-studio-border bg-studio-surface/50'
+          dragging
+            ? 'border-studio-accent bg-studio-accent/5'
+            : 'border-studio-border bg-studio-surface/50'
         }`}
       >
-        <Upload className={`mb-2 h-8 w-8 ${dragging ? 'text-studio-accent' : 'text-studio-muted'}`} />
+        <Upload
+          className={`mb-2 h-8 w-8 ${dragging ? 'text-studio-accent' : 'text-studio-muted'}`}
+        />
         <p className="text-sm text-studio-muted">Drop .splat file here</p>
         <p className="mt-1 text-xs text-studio-muted">or</p>
         <label className="mt-2 cursor-pointer rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted transition hover:border-studio-accent hover:text-studio-text">
@@ -183,7 +200,10 @@ function StepUpload({
             type="file"
             accept=".splat,.ksplat"
             className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+            }}
           />
         </label>
         {fileName && (
@@ -194,7 +214,10 @@ function StepUpload({
         )}
       </div>
       <div className="flex gap-2">
-        <button onClick={onBack} className="rounded-xl border border-studio-border px-4 py-2 text-sm text-studio-muted transition hover:text-studio-text">
+        <button
+          onClick={onBack}
+          className="rounded-xl border border-studio-border px-4 py-2 text-sm text-studio-muted transition hover:text-studio-text"
+        >
           Back
         </button>
         <button
@@ -275,7 +298,10 @@ function StepConfigure({
       </div>
 
       <div className="flex gap-2">
-        <button onClick={onBack} className="rounded-xl border border-studio-border px-4 py-2 text-sm text-studio-muted transition hover:text-studio-text">
+        <button
+          onClick={onBack}
+          className="rounded-xl border border-studio-border px-4 py-2 text-sm text-studio-muted transition hover:text-studio-text"
+        >
           Back
         </button>
         <button
@@ -308,7 +334,8 @@ function StepDone({ name, onClose }: { name: string; onClose: () => void }) {
       <div>
         <p className="font-semibold text-studio-text">Import complete!</p>
         <p className="mt-1 text-sm text-studio-muted">
-          <span className="text-studio-text">{name}</span> has been added to your scene and asset library.
+          <span className="text-studio-text">{name}</span> has been added to your scene and asset
+          library.
         </p>
       </div>
       <button
@@ -429,7 +456,9 @@ export function SplatCaptureWizard({ open, onClose }: SplatCaptureWizardProps) {
               <div key={s} className="flex items-center gap-1">
                 <div
                   className={`h-1.5 w-8 rounded-full transition-all ${
-                    step === s || (step === 'upload' && s === 'url') || step === 'configure' && i <= 2
+                    step === s ||
+                    (step === 'upload' && s === 'url') ||
+                    (step === 'configure' && i <= 2)
                       ? 'bg-purple-500'
                       : 'bg-studio-border'
                   }`}

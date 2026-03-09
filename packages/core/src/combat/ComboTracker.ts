@@ -12,15 +12,15 @@
 // =============================================================================
 
 export interface ComboStep {
-  input: string;           // e.g. 'punch', 'kick', 'special'
-  maxDelay: number;         // Max ms between this step and the next
+  input: string; // e.g. 'punch', 'kick', 'special'
+  maxDelay: number; // Max ms between this step and the next
 }
 
 export interface ComboDefinition {
   id: string;
   name: string;
   steps: ComboStep[];
-  reward: string;           // Action to trigger on completion
+  reward: string; // Action to trigger on completion
 }
 
 export interface ComboState {
@@ -44,7 +44,9 @@ export class ComboTracker {
   // Combo Registration
   // ---------------------------------------------------------------------------
 
-  registerCombo(combo: ComboDefinition): void { this.combos.push(combo); }
+  registerCombo(combo: ComboDefinition): void {
+    this.combos.push(combo);
+  }
 
   // ---------------------------------------------------------------------------
   // Input Processing
@@ -57,7 +59,7 @@ export class ComboTracker {
     // Advance active combos
     for (let i = this.activeStates.length - 1; i >= 0; i--) {
       const state = this.activeStates[i];
-      const combo = this.combos.find(c => c.id === state.comboId)!;
+      const combo = this.combos.find((c) => c.id === state.comboId)!;
       const step = combo.steps[state.currentStep];
 
       // Check timing
@@ -83,14 +85,16 @@ export class ComboTracker {
     for (const combo of this.combos) {
       if (combo.steps[0].input === input) {
         // Avoid duplicates
-        const exists = this.activeStates.some(s => s.comboId === combo.id && s.currentStep === 1);
+        const exists = this.activeStates.some((s) => s.comboId === combo.id && s.currentStep === 1);
         if (!exists) {
           if (combo.steps.length === 1) {
             this.completedCombos.push(combo.reward);
           } else {
             this.activeStates.push({
-              comboId: combo.id, currentStep: 1,
-              lastInputTime: timestamp, completed: false,
+              comboId: combo.id,
+              currentStep: 1,
+              lastInputTime: timestamp,
+              completed: false,
             });
           }
         }
@@ -107,14 +111,21 @@ export class ComboTracker {
   tick(timestamp: number): void {
     this.currentTime = timestamp;
     // Clean up timed-out combos
-    this.activeStates = this.activeStates.filter(state => {
-      const combo = this.combos.find(c => c.id === state.comboId)!;
+    this.activeStates = this.activeStates.filter((state) => {
+      const combo = this.combos.find((c) => c.id === state.comboId)!;
       const step = combo.steps[state.currentStep];
       return timestamp - state.lastInputTime <= step.maxDelay;
     });
   }
 
-  getActiveComboCount(): number { return this.activeStates.length; }
-  getCompletedCombos(): string[] { return [...this.completedCombos]; }
-  reset(): void { this.activeStates = []; this.completedCombos = []; }
+  getActiveComboCount(): number {
+    return this.activeStates.length;
+  }
+  getCompletedCombos(): string[] {
+    return [...this.completedCombos];
+  }
+  reset(): void {
+    this.activeStates = [];
+    this.completedCombos = [];
+  }
 }

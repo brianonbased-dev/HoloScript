@@ -496,30 +496,30 @@ export interface AgentPackage {
   repository?: string;
 
   // Model artifacts
-  modelFile: string;          // Full Ollama Modelfile content
-  baseModel: BaseAgentModel;  // Which model was fine-tuned
-  ggufUrl: string;            // R2 presigned or permanent download URL
-  ggufSizeBytes: number;      // File size for display (typically ~4.1GB for Q4_K_M)
+  modelFile: string; // Full Ollama Modelfile content
+  baseModel: BaseAgentModel; // Which model was fine-tuned
+  ggufUrl: string; // R2 presigned or permanent download URL
+  ggufSizeBytes: number; // File size for display (typically ~4.1GB for Q4_K_M)
   quantization: 'Q4_K_M' | 'Q5_K_M' | 'Q8_0' | 'F16';
 
   // Training metadata
-  exampleCount: number;        // Training examples used
-  trainingJobId?: string;      // Reference to GPU fine-tune job
-  baseModelVersion?: string;   // Exact version of base model fine-tuned
+  exampleCount: number; // Training examples used
+  trainingJobId?: string; // Reference to GPU fine-tune job
+  baseModelVersion?: string; // Exact version of base model fine-tuned
 
   // Quality gate (computed by platform, not submitter)
-  evalScore: number;           // 0–30 — HoloScript Score from automated 30-prompt eval
-  evalPassThreshold: number;   // Minimum to publish (default: 20)
+  evalScore: number; // 0–30 — HoloScript Score from automated 30-prompt eval
+  evalPassThreshold: number; // Minimum to publish (default: 20)
   evalPassedAt?: Date;
 
   // Discovery
-  scenePools: ScenePoolId[];  // Which scene domains this agent specializes in
+  scenePools: ScenePoolId[]; // Which scene domains this agent specializes in
   tags?: string[];
 
   // Pricing
   pricingModel: AgentPricingModel;
-  price: number;               // One-time price in USD cents (e.g., 999 = $9.99)
-  subscriptionPrice?: number;  // Monthly price in USD cents (if pricingModel === 'subscription')
+  price: number; // One-time price in USD cents (e.g., 999 = $9.99)
+  subscriptionPrice?: number; // Monthly price in USD cents (if pricingModel === 'subscription')
 
   // Status
   verified: boolean;
@@ -550,7 +550,7 @@ export interface AgentSummary {
   description: string;
   author: Pick<Author, 'name' | 'verified'>;
   baseModel: BaseAgentModel;
-  evalScore: number;           // Displayed as "HoloScript Score: XX/30"
+  evalScore: number; // Displayed as "HoloScript Score: XX/30"
   exampleCount: number;
   scenePools: ScenePoolId[];
   pricingModel: AgentPricingModel;
@@ -569,18 +569,18 @@ export interface AgentSummary {
  * Submitted via POST /api/agents/train.
  */
 export interface TrainAgentRequest {
-  name: string;                 // Agent display name
+  name: string; // Agent display name
   description: string;
   baseModel: BaseAgentModel;
-  scenePools: ScenePoolId[];    // Domain specialization tags
+  scenePools: ScenePoolId[]; // Domain specialization tags
   pricingModel: AgentPricingModel;
-  price: number;                // In USD cents
+  price: number; // In USD cents
   subscriptionPrice?: number;
   keywords?: string[];
   // Training data is sourced from the user's submitted examples in the pool
   // Optional: include extra inline examples for this fine-tune only
   extraExamples?: Array<{ instruction: string; output: string }>;
-  webhookUrl?: string;          // Called on job completion/failure
+  webhookUrl?: string; // Called on job completion/failure
 }
 
 /**
@@ -590,11 +590,11 @@ export interface TrainAgentRequest {
 export interface TrainJobStatus {
   jobId: string;
   status: 'queued' | 'running' | 'eval_running' | 'publishing' | 'done' | 'failed';
-  progressPercent: number;      // 0–100
-  currentStep?: string;         // Human-readable: "Epoch 2/3", "Running eval harness", etc.
-  evalScore?: number;           // Set once eval completes
+  progressPercent: number; // 0–100
+  currentStep?: string; // Human-readable: "Epoch 2/3", "Running eval harness", etc.
+  evalScore?: number; // Set once eval completes
   evalPassed?: boolean;
-  agentId?: string;             // Set once published
+  agentId?: string; // Set once published
   errorMessage?: string;
   createdAt: Date;
   startedAt?: Date;
@@ -638,8 +638,8 @@ export interface AgentSearchQuery {
   q?: string;
   scenePools?: ScenePoolId[];
   baseModel?: BaseAgentModel;
-  minEvalScore?: number;        // Filter by HoloScript Score
-  maxPrice?: number;            // In USD cents
+  minEvalScore?: number; // Filter by HoloScript Score
+  maxPrice?: number; // In USD cents
   pricingModel?: AgentPricingModel;
   verified?: boolean;
   minDownloads?: number;
@@ -665,11 +665,11 @@ export interface AgentSearchResult {
  * Training example submitted by a user to the shared pool
  */
 export interface TrainingExample {
-  instruction: string;          // Natural language prompt
-  output: string;               // Expected HoloScript DSL output
-  scenePool: ScenePoolId;       // Domain tag
-  contributorId: string;        // User who submitted
-  validationScore?: number;     // From @holoscript/ai-validator (0–1)
+  instruction: string; // Natural language prompt
+  output: string; // Expected HoloScript DSL output
+  scenePool: ScenePoolId; // Domain tag
+  contributorId: string; // User who submitted
+  validationScore?: number; // From @holoscript/ai-validator (0–1)
   approvedAt?: Date;
 }
 
@@ -679,11 +679,11 @@ export interface TrainingExample {
 export interface RoyaltyRecord {
   contributorId: string;
   agentId: string;
-  exampleCount: number;         // Their examples used in this model
+  exampleCount: number; // Their examples used in this model
   totalExamplesInModel: number; // All examples in the model
-  sharePercent: number;         // exampleCount / totalExamplesInModel
-  earnedPerDownload: number;    // In USD cents
-  totalEarned: number;          // Cumulative earnings
+  sharePercent: number; // exampleCount / totalExamplesInModel
+  earnedPerDownload: number; // In USD cents
+  totalEarned: number; // Cumulative earnings
   lastUpdatedAt: Date;
 }
 
@@ -753,19 +753,27 @@ export interface IAgentMarketplaceAPI {
   getAgent(agentId: string): Promise<AgentPackage>;
   getFeaturedAgents(scenePool?: ScenePoolId, limit?: number): Promise<AgentSummary[]>;
   getRecentAgents(limit?: number): Promise<AgentSummary[]>;
-  getTopAgents(sortBy: 'downloads' | 'eval_score' | 'rating', limit?: number): Promise<AgentSummary[]>;
+  getTopAgents(
+    sortBy: 'downloads' | 'eval_score' | 'rating',
+    limit?: number
+  ): Promise<AgentSummary[]>;
 
   // Purchase & download
   purchaseAgent(agentId: string, token: string): Promise<{ downloadUrl: string; expiresAt: Date }>;
   getDownloadUrl(agentId: string, token: string): Promise<{ url: string; expiresAt: Date }>;
 
   // Training data contribution
-  submitTrainingExample(example: Omit<TrainingExample, 'contributorId' | 'approvedAt'>, token: string): Promise<{ exampleId: string; validationScore: number }>;
+  submitTrainingExample(
+    example: Omit<TrainingExample, 'contributorId' | 'approvedAt'>,
+    token: string
+  ): Promise<{ exampleId: string; validationScore: number }>;
   getMyExamples(token: string, page?: number): Promise<TrainingExample[]>;
 
   // Royalties
   getRoyalties(token: string): Promise<RoyaltyRecord[]>;
-  getRoyaltySummary(token: string): Promise<{ totalEarned: number; pendingPayout: number; exampleCount: number }>;
+  getRoyaltySummary(
+    token: string
+  ): Promise<{ totalEarned: number; pendingPayout: number; exampleCount: number }>;
 
   // Stats
   recordAgentDownload(agentId: string): Promise<void>;
@@ -784,15 +792,15 @@ export interface IAgentMarketplaceAPI {
  * Skill category for AI agent skills and configurations
  */
 export type SkillCategory =
-  | 'agent_framework'     // Full agent classes (ComponentGenerator, DeploymentAgent, etc.)
-  | 'workflow'            // Step-by-step Claude/Gemini workflows
-  | 'rbac_policy'         // Pre-built RBAC role configs
-  | 'orchestration'       // uAA2++ protocol configs
-  | 'mcp_bundle'          // Curated MCP tool bundles
-  | 'ecosystem_script'    // Monitoring, quality, CI/CD scripts
-  | 'decision_template'   // Architecture/security decision frameworks
-  | 'prompt_template'     // Reusable prompt engineering templates
-  | 'code_generator';     // Code generation patterns/templates
+  | 'agent_framework' // Full agent classes (ComponentGenerator, DeploymentAgent, etc.)
+  | 'workflow' // Step-by-step Claude/Gemini workflows
+  | 'rbac_policy' // Pre-built RBAC role configs
+  | 'orchestration' // uAA2++ protocol configs
+  | 'mcp_bundle' // Curated MCP tool bundles
+  | 'ecosystem_script' // Monitoring, quality, CI/CD scripts
+  | 'decision_template' // Architecture/security decision frameworks
+  | 'prompt_template' // Reusable prompt engineering templates
+  | 'code_generator'; // Code generation patterns/templates
 
 /**
  * Target AI platform for the skill
@@ -803,9 +811,9 @@ export type SkillTargetPlatform = 'claude' | 'gemini' | 'openai' | 'universal';
  * A file within a skill package
  */
 export interface SkillFile {
-  path: string;           // Relative path within package (e.g., "SKILL.md", "scripts/deploy.sh")
-  content: string;        // File content
-  mimeType: string;       // e.g., "text/markdown", "application/typescript"
+  path: string; // Relative path within package (e.g., "SKILL.md", "scripts/deploy.sh")
+  content: string; // File content
+  mimeType: string; // e.g., "text/markdown", "application/typescript"
   sizeBytes: number;
 }
 
@@ -827,9 +835,9 @@ export interface SkillPackage {
   // Skill-specific
   category: SkillCategory;
   targetPlatform: SkillTargetPlatform;
-  entrypoint: string;                 // Main file path (e.g., "SKILL.md")
-  files: SkillFile[];                 // All files in the skill package
-  requiredEnvVars?: string[];         // Env vars needed to run the skill
+  entrypoint: string; // Main file path (e.g., "SKILL.md")
+  files: SkillFile[]; // All files in the skill package
+  requiredEnvVars?: string[]; // Env vars needed to run the skill
   dependencies?: Record<string, string>; // npm package dependencies
 
   // Content
@@ -838,14 +846,14 @@ export interface SkillPackage {
   examples?: SkillExample[];
 
   // Security
-  sandboxed: boolean;                 // Whether skill runs in sandbox
-  permissions: SkillPermission[];     // What the skill can do
-  signatureVerified: boolean;         // Ed25519 signature verified
+  sandboxed: boolean; // Whether skill runs in sandbox
+  permissions: SkillPermission[]; // What the skill can do
+  signatureVerified: boolean; // Ed25519 signature verified
 
   // Pricing
   pricingModel: 'free' | 'one_time' | 'subscription';
-  price: number;                      // USD cents (e.g., 999 = $9.99)
-  subscriptionPrice?: number;         // Monthly price in USD cents
+  price: number; // USD cents (e.g., 999 = $9.99)
+  subscriptionPrice?: number; // Monthly price in USD cents
 
   // Status
   verified: boolean;
@@ -856,7 +864,7 @@ export interface SkillPackage {
   // Stats
   downloads: number;
   weeklyDownloads?: number;
-  installs: number;                   // Active installs
+  installs: number; // Active installs
   rating: number;
   ratingCount: number;
 
@@ -870,13 +878,13 @@ export interface SkillPackage {
  * Permission scopes for skills
  */
 export type SkillPermission =
-  | 'read_files'          // Can read project files
-  | 'write_files'         // Can create/modify files
-  | 'run_commands'        // Can execute shell commands
-  | 'network_access'      // Can make HTTP requests
-  | 'env_access'          // Can read environment variables
-  | 'browser_access'      // Can control browser
-  | 'mcp_tools';          // Can invoke MCP tools
+  | 'read_files' // Can read project files
+  | 'write_files' // Can create/modify files
+  | 'run_commands' // Can execute shell commands
+  | 'network_access' // Can make HTTP requests
+  | 'env_access' // Can read environment variables
+  | 'browser_access' // Can control browser
+  | 'mcp_tools'; // Can invoke MCP tools
 
 /**
  * Example usage for a skill
@@ -884,7 +892,7 @@ export type SkillPermission =
 export interface SkillExample {
   name: string;
   description?: string;
-  prompt: string;          // Sample prompt to test against
+  prompt: string; // Sample prompt to test against
   expectedOutput?: string; // Expected behavior/output
 }
 
@@ -1021,7 +1029,10 @@ export interface ISkillMarketplaceAPI {
   getSkill(skillId: string, version?: string): Promise<SkillPackage>;
   getFeaturedSkills(category?: SkillCategory, limit?: number): Promise<SkillSummary[]>;
   getRecentSkills(limit?: number): Promise<SkillSummary[]>;
-  getTopSkills(sortBy: 'downloads' | 'rating' | 'installs', limit?: number): Promise<SkillSummary[]>;
+  getTopSkills(
+    sortBy: 'downloads' | 'rating' | 'installs',
+    limit?: number
+  ): Promise<SkillSummary[]>;
   getCategories(): Promise<{ category: SkillCategory; count: number; description: string }[]>;
 
   // Purchase & download
@@ -1029,12 +1040,20 @@ export interface ISkillMarketplaceAPI {
   getDownloadUrl(skillId: string, token: string): Promise<{ url: string; expiresAt: Date }>;
 
   // Install (into workspace)
-  installSkill(skillId: string, workspacePath: string, token: string): Promise<{ installed: boolean; path: string }>;
+  installSkill(
+    skillId: string,
+    workspacePath: string,
+    token: string
+  ): Promise<{ installed: boolean; path: string }>;
   uninstallSkill(skillId: string, workspacePath: string, token: string): Promise<void>;
   getInstalledSkills(workspacePath: string, token: string): Promise<SkillSummary[]>;
 
   // Testing
-  testSkill(skillId: string, prompt: string, token: string): Promise<{ output: string; duration: number }>;
+  testSkill(
+    skillId: string,
+    prompt: string,
+    token: string
+  ): Promise<{ output: string; duration: number }>;
 
   // Stats
   recordSkillDownload(skillId: string): Promise<void>;
@@ -1058,27 +1077,27 @@ export type DatasetFormat = 'jsonl' | 'csv' | 'parquet' | 'json' | 'huggingface'
  * Domain for training data
  */
 export type TrainingDomain =
-  | 'code_generation'      // Code gen training data
-  | 'spatial_reasoning'    // 3D/spatial understanding
-  | 'agent_behavior'       // Agent decision-making traces
-  | 'dialogue'             // Conversational data
-  | 'holoscript'           // HoloScript-specific training
-  | 'vr_interaction'       // VR/AR interaction patterns
-  | 'creative'             // Art, music, design generation
-  | 'reasoning'            // Logic and problem solving
-  | 'multimodal'           // Vision + text + code
-  | 'custom';              // User-defined domain
+  | 'code_generation' // Code gen training data
+  | 'spatial_reasoning' // 3D/spatial understanding
+  | 'agent_behavior' // Agent decision-making traces
+  | 'dialogue' // Conversational data
+  | 'holoscript' // HoloScript-specific training
+  | 'vr_interaction' // VR/AR interaction patterns
+  | 'creative' // Art, music, design generation
+  | 'reasoning' // Logic and problem solving
+  | 'multimodal' // Vision + text + code
+  | 'custom'; // User-defined domain
 
 /**
  * Quality metrics for a training dataset
  */
 export interface DatasetQualityMetrics {
-  overallScore: number;           // 0-100 quality score
-  deduplicationRate: number;      // % duplicates removed
-  consistencyScore: number;       // Data consistency 0-100
-  diversityScore: number;         // Coverage diversity 0-100
-  labelAccuracy?: number;         // If labeled, accuracy 0-100
-  humanReviewedPct: number;       // % human reviewed
+  overallScore: number; // 0-100 quality score
+  deduplicationRate: number; // % duplicates removed
+  consistencyScore: number; // Data consistency 0-100
+  diversityScore: number; // Coverage diversity 0-100
+  labelAccuracy?: number; // If labeled, accuracy 0-100
+  humanReviewedPct: number; // % human reviewed
 }
 
 /**
@@ -1098,24 +1117,24 @@ export interface TrainingDataPackage {
   // Dataset specifics
   domain: TrainingDomain;
   format: DatasetFormat;
-  exampleCount: number;           // Number of training examples
-  totalSizeBytes: number;         // Total dataset size
-  sampleData: string;             // Preview sample (first 5 examples)
+  exampleCount: number; // Number of training examples
+  totalSizeBytes: number; // Total dataset size
+  sampleData: string; // Preview sample (first 5 examples)
   schema?: Record<string, string>; // Field schema: { "input": "string", "output": "string" }
 
   // Curriculum context (from TrainingMonkey)
-  curriculumId?: string;          // ID in TrainingMonkey curriculum system
-  batchIds?: string[];            // Training batch IDs this was generated from
-  sourceContentTypes?: string[];  // What content was used (scenes, skills, etc.)
+  curriculumId?: string; // ID in TrainingMonkey curriculum system
+  batchIds?: string[]; // Training batch IDs this was generated from
+  sourceContentTypes?: string[]; // What content was used (scenes, skills, etc.)
 
   // Quality
   quality: DatasetQualityMetrics;
-  modelCompatibility: string[];   // e.g., ["gpt-4", "claude-3", "llama-3"]
-  baseModelSuggested?: string;    // Recommended base model for fine-tuning
+  modelCompatibility: string[]; // e.g., ["gpt-4", "claude-3", "llama-3"]
+  baseModelSuggested?: string; // Recommended base model for fine-tuning
 
   // Pricing
   pricingModel: 'free' | 'one_time' | 'subscription';
-  price: number;                  // USD cents
+  price: number; // USD cents
   subscriptionPrice?: number;
 
   // Status
@@ -1193,25 +1212,45 @@ export interface TrainingDataSearchQuery {
  */
 export interface ITrainingDataMarketplaceAPI {
   // Publishing
-  publishDataset(dataset: Omit<TrainingDataPackage, 'id' | 'downloads' | 'rating' | 'ratingCount' | 'createdAt' | 'updatedAt'>, token: string): Promise<{ datasetId: string; version: string }>;
+  publishDataset(
+    dataset: Omit<
+      TrainingDataPackage,
+      'id' | 'downloads' | 'rating' | 'ratingCount' | 'createdAt' | 'updatedAt'
+    >,
+    token: string
+  ): Promise<{ datasetId: string; version: string }>;
   unpublishDataset(datasetId: string, token: string): Promise<void>;
 
   // Discovery
-  searchDatasets(query: TrainingDataSearchQuery): Promise<{ results: TrainingDataSummary[]; total: number }>;
+  searchDatasets(
+    query: TrainingDataSearchQuery
+  ): Promise<{ results: TrainingDataSummary[]; total: number }>;
   getDataset(datasetId: string): Promise<TrainingDataPackage>;
   getSampleData(datasetId: string): Promise<string>;
   getDomains(): Promise<{ domain: TrainingDomain; count: number; description: string }[]>;
 
   // Purchase
-  purchaseDataset(datasetId: string, token: string): Promise<{ downloadUrl: string; expiresAt: Date }>;
+  purchaseDataset(
+    datasetId: string,
+    token: string
+  ): Promise<{ downloadUrl: string; expiresAt: Date }>;
 
   // DataForge integration
-  forgeFromContent(contentIds: string[], domain: TrainingDomain, options: {
-    format: DatasetFormat;
-    maxExamples?: number;
-    qualityThreshold?: number;
-  }, token: string): Promise<{ forgeJobId: string; estimatedTime: number }>;
-  getForgeStatus(forgeJobId: string): Promise<{ status: 'pending' | 'processing' | 'complete' | 'failed'; datasetId?: string; progress: number }>;
+  forgeFromContent(
+    contentIds: string[],
+    domain: TrainingDomain,
+    options: {
+      format: DatasetFormat;
+      maxExamples?: number;
+      qualityThreshold?: number;
+    },
+    token: string
+  ): Promise<{ forgeJobId: string; estimatedTime: number }>;
+  getForgeStatus(forgeJobId: string): Promise<{
+    status: 'pending' | 'processing' | 'complete' | 'failed';
+    datasetId?: string;
+    progress: number;
+  }>;
 
   // Ratings
   rateDataset(datasetId: string, rating: number, review?: string, token?: string): Promise<void>;

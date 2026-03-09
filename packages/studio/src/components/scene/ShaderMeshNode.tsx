@@ -18,7 +18,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { R3FNode } from '@holoscript/core';
 import { ShaderTrait, SHADER_PRESETS, createShaderTrait } from '@holoscript/core';
-import { useEditorStore } from '@/lib/store';
+import { useEditorStore } from '@/lib/stores';
 import * as THREE from 'three';
 import { getGeometry } from './materialUtils';
 
@@ -87,10 +87,7 @@ export function ShaderMeshNode({ node }: ShaderMeshNodeProps) {
   const isSelected = node.id === selectedId;
 
   // Resolve shader config from trait
-  const shaderConfig = useMemo(
-    () => resolveShaderConfig(props.shader),
-    [props.shader]
-  );
+  const shaderConfig = useMemo(() => resolveShaderConfig(props.shader), [props.shader]);
 
   // Clone uniforms so each instance gets its own values
   const uniforms = useMemo(() => {
@@ -140,9 +137,9 @@ export function ShaderMeshNode({ node }: ShaderMeshNodeProps) {
           vertexShader={shaderConfig.vertexShader as string}
           fragmentShader={shaderConfig.fragmentShader as string}
           uniforms={uniforms}
-          transparent={shaderConfig.transparent as boolean ?? false}
-          depthTest={shaderConfig.depthTest as boolean ?? true}
-          depthWrite={shaderConfig.depthWrite as boolean ?? true}
+          transparent={(shaderConfig.transparent as boolean) ?? false}
+          depthTest={(shaderConfig.depthTest as boolean) ?? true}
+          depthWrite={(shaderConfig.depthWrite as boolean) ?? true}
           side={(shaderConfig.side as THREE.Side) ?? THREE.FrontSide}
         />
         {isSelected && (

@@ -201,7 +201,7 @@ describe('NIRToWGSLCompiler', () => {
       const result = c.compileGraph(graph);
 
       expect(result.metadata.integrationMethod).toBe('rk4');
-      const lifShader = result.shaders.find(s => s.nodeType === 'LIF');
+      const lifShader = result.shaders.find((s) => s.nodeType === 'LIF');
       expect(lifShader).toBeDefined();
       expect(lifShader!.wgsl).toContain('RK4');
       expect(lifShader!.wgsl).toContain('lif_dvdt');
@@ -223,7 +223,7 @@ describe('NIRToWGSLCompiler', () => {
       const result = c.compileGraph(graph);
 
       expect(result.metadata.dt).toBe(0.5);
-      const lifShader = result.shaders.find(s => s.nodeType === 'LIF');
+      const lifShader = result.shaders.find((s) => s.nodeType === 'LIF');
       expect(lifShader!.wgsl).toContain('0.5');
     });
 
@@ -242,7 +242,7 @@ describe('NIRToWGSLCompiler', () => {
       });
       const result = c.compileGraph(graph);
 
-      const lifShader = result.shaders.find(s => s.nodeType === 'LIF');
+      const lifShader = result.shaders.find((s) => s.nodeType === 'LIF');
       expect(lifShader!.wgsl).toContain('@workgroup_size(128)');
     });
 
@@ -260,7 +260,7 @@ describe('NIRToWGSLCompiler', () => {
         ],
       });
       const result = c.compileGraph(graph);
-      const lifShader = result.shaders.find(s => s.nodeType === 'LIF');
+      const lifShader = result.shaders.find((s) => s.nodeType === 'LIF');
       // Comments start with "// LIF Neuron"
       expect(lifShader!.wgsl).not.toContain('// LIF Neuron');
     });
@@ -379,7 +379,7 @@ describe('NIRToWGSLCompiler', () => {
 
       expect(shader!.buffers.length).toBe(8);
 
-      const bufferNames = shader!.buffers.map(b => b.name);
+      const bufferNames = shader!.buffers.map((b) => b.name);
       expect(bufferNames).toContain('simulation_params');
       expect(bufferNames).toContain('lif_buffers_input');
       expect(bufferNames).toContain('lif_buffers_tau');
@@ -390,9 +390,9 @@ describe('NIRToWGSLCompiler', () => {
       expect(bufferNames).toContain('lif_buffers_output');
 
       // Check roles
-      const stateBuffers = shader!.buffers.filter(b => b.role === 'state');
+      const stateBuffers = shader!.buffers.filter((b) => b.role === 'state');
       expect(stateBuffers.length).toBe(1); // voltage
-      const outputBuffers = shader!.buffers.filter(b => b.role === 'output');
+      const outputBuffers = shader!.buffers.filter((b) => b.role === 'output');
       expect(outputBuffers.length).toBe(1); // spikes
     });
 
@@ -460,7 +460,7 @@ describe('NIRToWGSLCompiler', () => {
       expect(shader!.buffers.length).toBe(11);
 
       // Should have both i_syn and voltage as state buffers
-      const stateBuffers = shader!.buffers.filter(b => b.role === 'state');
+      const stateBuffers = shader!.buffers.filter((b) => b.role === 'state');
       expect(stateBuffers.length).toBe(2); // i_syn + voltage
     });
   });
@@ -525,7 +525,7 @@ describe('NIRToWGSLCompiler', () => {
       };
       const shader = compiler.generateShaderForNode(node);
 
-      const outputBuf = shader!.buffers.find(b => b.role === 'output');
+      const outputBuf = shader!.buffers.find((b) => b.role === 'output');
       expect(outputBuf).toBeDefined();
       expect(outputBuf!.elementType).toBe('f32'); // not u32
     });
@@ -570,10 +570,10 @@ describe('NIRToWGSLCompiler', () => {
       const node = makeAffineNode('fc', 128, 64);
       const shader = compiler.generateShaderForNode(node);
 
-      const inputBuf = shader!.buffers.find(b => b.name.includes('input'));
-      const weightBuf = shader!.buffers.find(b => b.name.includes('weight'));
-      const biasBuf = shader!.buffers.find(b => b.name.includes('bias'));
-      const outputBuf = shader!.buffers.find(b => b.role === 'output');
+      const inputBuf = shader!.buffers.find((b) => b.name.includes('input'));
+      const weightBuf = shader!.buffers.find((b) => b.name.includes('weight'));
+      const biasBuf = shader!.buffers.find((b) => b.name.includes('bias'));
+      const outputBuf = shader!.buffers.find((b) => b.role === 'output');
 
       expect(inputBuf!.size).toBe(128);
       expect(weightBuf!.size).toBe(128 * 64); // outputSize * inputSize
@@ -630,7 +630,15 @@ describe('NIRToWGSLCompiler', () => {
         id: 'conv_padded',
         type: 'Conv2d',
         params: {
-          weight: [[[[0.01, 0.01, 0.01], [0.01, 0.01, 0.01], [0.01, 0.01, 0.01]]]],
+          weight: [
+            [
+              [
+                [0.01, 0.01, 0.01],
+                [0.01, 0.01, 0.01],
+                [0.01, 0.01, 0.01],
+              ],
+            ],
+          ],
           stride: [1, 1],
           padding: [1, 1],
           dilation: [1, 1],
@@ -714,7 +722,7 @@ describe('NIRToWGSLCompiler', () => {
       };
       const shader = compiler.generateShaderForNode(node);
 
-      const ringBuf = shader!.buffers.find(b => b.name.includes('ring_buffer'));
+      const ringBuf = shader!.buffers.find((b) => b.name.includes('ring_buffer'));
       expect(ringBuf).toBeDefined();
       expect(ringBuf!.role).toBe('state');
       expect(ringBuf!.size).toBe(16 * 256); // size * buffer_depth
@@ -743,7 +751,7 @@ describe('NIRToWGSLCompiler', () => {
       expect(shader!.wgsl).toContain('output[idx] = input[idx]');
 
       // Total size should be 16 * 7 * 7 = 784
-      const outputBuf = shader!.buffers.find(b => b.role === 'output');
+      const outputBuf = shader!.buffers.find((b) => b.role === 'output');
       expect(outputBuf!.size).toBe(784);
     });
   });
@@ -873,13 +881,13 @@ describe('NIRToWGSLCompiler', () => {
       // fc2 -> output (skipped, Output boundary)
       expect(result.connections.length).toBe(2);
 
-      const conn1 = result.connections.find(c => c.sourceNodeId === 'fc1');
+      const conn1 = result.connections.find((c) => c.sourceNodeId === 'fc1');
       expect(conn1).toBeDefined();
       expect(conn1!.targetNodeId).toBe('lif1');
       expect(conn1!.sourceBuffer).toBe('fc1_output');
       expect(conn1!.targetBuffer).toBe('lif1_input');
 
-      const conn2 = result.connections.find(c => c.sourceNodeId === 'lif1');
+      const conn2 = result.connections.find((c) => c.sourceNodeId === 'lif1');
       expect(conn2).toBeDefined();
       expect(conn2!.targetNodeId).toBe('fc2');
     });
@@ -1009,7 +1017,7 @@ describe('NIRToWGSLCompiler', () => {
       expect(result.shaders.length).toBe(6);
 
       // Verify shader types
-      const types = result.shaders.map(s => s.nodeType);
+      const types = result.shaders.map((s) => s.nodeType);
       expect(types).toContain('Affine');
       expect(types).toContain('Threshold');
       expect(types).toContain('LIF');
@@ -1092,7 +1100,11 @@ describe('NIRToWGSLCompiler', () => {
         makeLinearNode('lin', 8, 4),
         { id: 'thresh', type: 'Threshold', params: { threshold: Array(8).fill(1.0) } },
         { id: 'scale', type: 'Scale', params: { scale: Array(8).fill(1.0) } },
-        { id: 'flat', type: 'Flatten', params: { input_type: { shape: [2, 4] }, start_dim: 0, end_dim: -1 } },
+        {
+          id: 'flat',
+          type: 'Flatten',
+          params: { input_type: { shape: [2, 4] }, start_dim: 0, end_dim: -1 },
+        },
       ];
 
       for (const node of nodeTypes) {
@@ -1109,7 +1121,7 @@ describe('NIRToWGSLCompiler', () => {
 
       // Check that binding numbers are sequential
       const bindingMatches = shader!.wgsl.matchAll(/@binding\((\d+)\)/g);
-      const bindings = Array.from(bindingMatches).map(m => parseInt(m[1]));
+      const bindings = Array.from(bindingMatches).map((m) => parseInt(m[1]));
       for (let i = 0; i < bindings.length; i++) {
         expect(bindings[i]).toBe(i);
       }
@@ -1234,11 +1246,13 @@ describe('NIRToWGSLCompiler', () => {
             id: 'enc_gain',
             type: 'Affine',
             params: {
-              weight: Array(784).fill(null).map(() => {
-                const row = Array(784).fill(0);
-                // Diagonal identity * gain
-                return row;
-              }),
+              weight: Array(784)
+                .fill(null)
+                .map(() => {
+                  const row = Array(784).fill(0);
+                  // Diagonal identity * gain
+                  return row;
+                }),
               bias: Array(784).fill(0),
             },
             metadata: { source_trait: 'spike_encoder', role: 'gain_scaling' },
@@ -1253,7 +1267,9 @@ describe('NIRToWGSLCompiler', () => {
             id: 'fc1',
             type: 'Affine',
             params: {
-              weight: Array(256).fill(null).map(() => Array(784).fill(0.01)),
+              weight: Array(256)
+                .fill(null)
+                .map(() => Array(784).fill(0.01)),
               bias: Array(256).fill(0.0),
             },
             metadata: { source_trait: 'synaptic_connection' },
@@ -1294,8 +1310,8 @@ describe('NIRToWGSLCompiler', () => {
       expect(result.metadata.source).toBe('MNIST_SNN');
 
       // Verify each shader type
-      const shaderTypes = result.shaders.map(s => s.nodeType);
-      expect(shaderTypes.filter(t => t === 'Affine').length).toBe(2);
+      const shaderTypes = result.shaders.map((s) => s.nodeType);
+      expect(shaderTypes.filter((t) => t === 'Affine').length).toBe(2);
       expect(shaderTypes).toContain('Threshold');
       expect(shaderTypes).toContain('LIF');
 

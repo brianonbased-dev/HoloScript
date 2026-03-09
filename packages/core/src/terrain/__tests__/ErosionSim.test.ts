@@ -7,10 +7,12 @@ function flatHeightmap(w: number, h: number, val = 0.5): Float32Array {
 
 function peakedHeightmap(w: number, h: number): Float32Array {
   const hm = new Float32Array(w * h);
-  const cx = w / 2, cz = h / 2;
+  const cx = w / 2,
+    cz = h / 2;
   for (let z = 0; z < h; z++) {
     for (let x = 0; x < w; x++) {
-      const dx = x - cx, dz = z - cz;
+      const dx = x - cx,
+        dz = z - cz;
       hm[z * w + x] = 1 - Math.sqrt(dx * dx + dz * dz) / Math.max(cx, cz);
     }
   }
@@ -20,7 +22,9 @@ function peakedHeightmap(w: number, h: number): Float32Array {
 describe('ErosionSim', () => {
   let sim: ErosionSim;
 
-  beforeEach(() => { sim = new ErosionSim({ iterations: 500, seed: 42 }); });
+  beforeEach(() => {
+    sim = new ErosionSim({ iterations: 500, seed: 42 });
+  });
 
   it('default config', () => {
     const c = sim.getConfig();
@@ -51,7 +55,10 @@ describe('ErosionSim', () => {
     // The sum of changes should be non-zero for a non-flat map
     let changed = false;
     for (let i = 0; i < hm.length; i++) {
-      if (hm[i] !== peakedHeightmap(16, 16)[i]) { changed = true; break; }
+      if (hm[i] !== peakedHeightmap(16, 16)[i]) {
+        changed = true;
+        break;
+      }
     }
     expect(changed).toBe(true);
   });

@@ -75,8 +75,12 @@ export class RuntimeProfiler {
   beginScope(name: string): void {
     if (!this.enabled) return;
     const scope: ProfileScope = {
-      name, startTime: performance.now(), endTime: 0, duration: 0,
-      children: [], parent: this.scopeStack[this.scopeStack.length - 1] ?? null,
+      name,
+      startTime: performance.now(),
+      endTime: 0,
+      duration: 0,
+      children: [],
+      parent: this.scopeStack[this.scopeStack.length - 1] ?? null,
     };
 
     if (scope.parent) {
@@ -109,7 +113,7 @@ export class RuntimeProfiler {
   getPercentile(percentile: number, lastN?: number): number {
     const frames = lastN ? this.frameHistory.slice(-lastN) : this.frameHistory;
     if (frames.length === 0) return 0;
-    const sorted = frames.map(f => f.frameTime).sort((a, b) => a - b);
+    const sorted = frames.map((f) => f.frameTime).sort((a, b) => a - b);
     const idx = Math.ceil((percentile / 100) * sorted.length) - 1;
     return sorted[Math.max(0, idx)];
   }
@@ -120,10 +124,14 @@ export class RuntimeProfiler {
   }
 
   getScopeStats(scopeName: string): { count: number; totalMs: number; avgMs: number } {
-    let count = 0, total = 0;
+    let count = 0,
+      total = 0;
     const searchScopes = (scopes: ProfileScope[]) => {
       for (const s of scopes) {
-        if (s.name === scopeName) { count++; total += s.duration; }
+        if (s.name === scopeName) {
+          count++;
+          total += s.duration;
+        }
         searchScopes(s.children);
       }
     };
@@ -135,9 +143,20 @@ export class RuntimeProfiler {
   // Control
   // ---------------------------------------------------------------------------
 
-  setEnabled(enabled: boolean): void { this.enabled = enabled; }
-  isEnabled(): boolean { return this.enabled; }
-  getFrameCount(): number { return this.frameHistory.length; }
-  getFrameHistory(): FrameStats[] { return [...this.frameHistory]; }
-  clear(): void { this.frameHistory = []; this.frameNumber = 0; }
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+  }
+  isEnabled(): boolean {
+    return this.enabled;
+  }
+  getFrameCount(): number {
+    return this.frameHistory.length;
+  }
+  getFrameHistory(): FrameStats[] {
+    return [...this.frameHistory];
+  }
+  clear(): void {
+    this.frameHistory = [];
+    this.frameNumber = 0;
+  }
 }

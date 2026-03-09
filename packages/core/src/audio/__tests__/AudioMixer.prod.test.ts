@@ -19,7 +19,7 @@ describe('AudioMixer — Production', () => {
 
   // ─── Default channels ─────────────────────────────────────────────
   it('creates default channels on construction', () => {
-    const names = mixer.getChannels().map(c => c.name);
+    const names = mixer.getChannels().map((c) => c.name);
     expect(names).toContain('master');
     expect(names).toContain('sfx');
     expect(names).toContain('music');

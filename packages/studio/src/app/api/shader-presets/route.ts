@@ -1,5 +1,3 @@
-
-
 /**
  * GET /api/shader-presets — GLSL shader snippet catalog.
  * Each preset contains vertex and/or fragment GLSL that can be embedded in @material.
@@ -19,7 +17,10 @@ export interface ShaderPreset {
 
 const PRESETS: ShaderPreset[] = [
   {
-    id: 'wave-displace', name: 'Wave Displacement', category: 'distortion', emoji: '🌊',
+    id: 'wave-displace',
+    name: 'Wave Displacement',
+    category: 'distortion',
+    emoji: '🌊',
     description: 'Sinusoidal vertex displacement on Y axis — ripple effect for water/cloth',
     vertexGLSL: `float wave = sin(position.x * uFrequency + uTime * uSpeed) * uAmplitude;
 position.y += wave;`,
@@ -37,7 +38,10 @@ position.y += wave;`,
   }`,
   },
   {
-    id: 'hologram', name: 'Hologram Glitch', category: 'color', emoji: '👾',
+    id: 'hologram',
+    name: 'Hologram Glitch',
+    category: 'color',
+    emoji: '👾',
     description: 'Scanline + RGB shift glitch effect for sci-fi objects',
     fragmentGLSL: `float scanline = mod(vUv.y * 100.0 + uTime * 10.0, 1.0);
 vec3 glitch = vec3(scanline > 0.95 ? 0.0 : 1.0);
@@ -55,7 +59,10 @@ gl_FragColor = vec4(uColor * glitch, 0.8 + sin(uTime) * 0.2);`,
   }`,
   },
   {
-    id: 'plasma', name: 'Plasma Wave', category: 'procedural', emoji: '🔮',
+    id: 'plasma',
+    name: 'Plasma Wave',
+    category: 'procedural',
+    emoji: '🔮',
     description: 'Multi-frequency sine plasma for mystical/energy objects',
     fragmentGLSL: `float plasma = sin(vUv.x * 10.0 + uTime) + sin(vUv.y * 10.0 + uTime * 1.3);
 plasma += sin((vUv.x + vUv.y) * 7.0 + uTime * 0.7);
@@ -69,7 +76,10 @@ gl_FragColor = vec4(col, 1.0);`,
   }`,
   },
   {
-    id: 'fresnel', name: 'Fresnel Rim', category: 'color', emoji: '💫',
+    id: 'fresnel',
+    name: 'Fresnel Rim',
+    category: 'color',
+    emoji: '💫',
     description: 'View-angle dependent rim glow — perfect for force fields and shields',
     fragmentGLSL: `float fresnel = pow(1.0 - dot(vNormal, vViewDir), uPower);
 gl_FragColor = mix(uBaseColor, uRimColor, fresnel);`,
@@ -86,7 +96,10 @@ gl_FragColor = mix(uBaseColor, uRimColor, fresnel);`,
   }`,
   },
   {
-    id: 'dissolve', name: 'Noise Dissolve', category: 'distortion', emoji: '💨',
+    id: 'dissolve',
+    name: 'Noise Dissolve',
+    category: 'distortion',
+    emoji: '💨',
     description: 'Threshold-based noise dissolve — objects appearing or disappearing',
     fragmentGLSL: `float noise = fract(sin(dot(vUv, vec2(127.1, 311.7))) * 43758.5);
 if (noise < uThreshold) discard;
@@ -102,7 +115,10 @@ gl_FragColor = vec4(uColor, 1.0);`,
   }`,
   },
   {
-    id: 'cel-shade', name: 'Cel Shading', category: 'color', emoji: '🎨',
+    id: 'cel-shade',
+    name: 'Cel Shading',
+    category: 'color',
+    emoji: '🎨',
     description: 'Quantized flat-shaded toon look with hard shadow steps',
     fragmentGLSL: `float diffuse = max(dot(vNormal, uLightDir), 0.0);
 float cel = floor(diffuse * uSteps) / uSteps;
@@ -126,7 +142,10 @@ export async function GET(request: Request) {
   const category = url.searchParams.get('category') ?? '';
   let results: ShaderPreset[] = PRESETS;
   if (category) results = results.filter((p) => p.category === category);
-  if (q) results = results.filter((p) => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
+  if (q)
+    results = results.filter(
+      (p) => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
+    );
   const categories = [...new Set(PRESETS.map((p) => p.category))];
   return Response.json({ presets: results, total: results.length, categories });
 }

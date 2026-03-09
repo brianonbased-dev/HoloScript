@@ -17,13 +17,12 @@ import dynamic from 'next/dynamic';
 import type { OnMount } from '@monaco-editor/react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useEditorStore, useSceneGraphStore } from '@/lib/store';
+import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { X, ChevronRight, Play, Code2, Eye } from 'lucide-react';
 
-const MonacoEditor = dynamic(
-  () => import('@monaco-editor/react').then((m) => m.default),
-  { ssr: false }
-);
+const MonacoEditor = dynamic(() => import('@monaco-editor/react').then((m) => m.default), {
+  ssr: false,
+});
 
 // ─── Default GLSL shaders ─────────────────────────────────────────────────────
 
@@ -61,7 +60,13 @@ void main() {
 
 // ─── Live preview sphere ──────────────────────────────────────────────────────
 
-function PreviewMesh({ vertexShader, fragmentShader }: { vertexShader: string; fragmentShader: string }) {
+function PreviewMesh({
+  vertexShader,
+  fragmentShader,
+}: {
+  vertexShader: string;
+  fragmentShader: string;
+}) {
   const meshRef = useRef<THREE.Mesh>(null);
   const matRef = useRef<THREE.ShaderMaterial>(
     new THREE.ShaderMaterial({
@@ -129,15 +134,38 @@ export function ShaderEditorPanel({ onClose }: ShaderEditorPanelProps) {
       monaco.languages.register({ id: 'glsl', extensions: ['.glsl', '.vert', '.frag'] });
       monaco.languages.setMonarchTokensProvider('glsl', {
         keywords: [
-          'void', 'float', 'int', 'bool', 'vec2', 'vec3', 'vec4',
-          'mat2', 'mat3', 'mat4', 'sampler2D', 'samplerCube',
-          'uniform', 'varying', 'attribute', 'precision', 'mediump', 'highp', 'lowp',
-          'in', 'out', 'inout', 'const', 'return', 'if', 'else', 'for', 'while',
-          'discard', 'struct',
+          'void',
+          'float',
+          'int',
+          'bool',
+          'vec2',
+          'vec3',
+          'vec4',
+          'mat2',
+          'mat3',
+          'mat4',
+          'sampler2D',
+          'samplerCube',
+          'uniform',
+          'varying',
+          'attribute',
+          'precision',
+          'mediump',
+          'highp',
+          'lowp',
+          'in',
+          'out',
+          'inout',
+          'const',
+          'return',
+          'if',
+          'else',
+          'for',
+          'while',
+          'discard',
+          'struct',
         ],
-        builtins: [
-          'gl_Position', 'gl_FragColor', 'gl_PointSize', 'gl_FragDepth',
-        ],
+        builtins: ['gl_Position', 'gl_FragColor', 'gl_PointSize', 'gl_FragDepth'],
         tokenizer: {
           root: [
             [/#[a-z]+/, 'keyword.control'],
@@ -146,7 +174,16 @@ export function ShaderEditorPanel({ onClose }: ShaderEditorPanelProps) {
             [/\d+\.\d*([eE][+-]?\d+)?/, 'number.float'],
             [/\d+[uU]?/, 'number'],
             [/"[^"]*"/, 'string'],
-            [/[a-zA-Z_]\w*/, { cases: { '@keywords': 'keyword', '@builtins': 'variable.other', '@default': 'identifier' } }],
+            [
+              /[a-zA-Z_]\w*/,
+              {
+                cases: {
+                  '@keywords': 'keyword',
+                  '@builtins': 'variable.other',
+                  '@default': 'identifier',
+                },
+              },
+            ],
             [/[{}()[\]]/, '@brackets'],
             [/[;,.]/, 'delimiter'],
           ],
@@ -189,7 +226,10 @@ export function ShaderEditorPanel({ onClose }: ShaderEditorPanelProps) {
           >
             <Play className="h-3 w-3" /> Apply
           </button>
-          <button onClick={onClose} className="rounded p-1.5 text-studio-muted hover:text-studio-text">
+          <button
+            onClick={onClose}
+            className="rounded p-1.5 text-studio-muted hover:text-studio-text"
+          >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>

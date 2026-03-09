@@ -6,7 +6,12 @@
  */
 
 // ─── Gallery & Launcher ──────────────────────────────────────────
-export { ScenarioGallery, SCENARIOS, type ScenarioEntry, type ScenarioCategory } from './ScenarioGallery';
+export {
+  ScenarioGallery,
+  SCENARIOS,
+  type ScenarioEntry,
+  type ScenarioCategory,
+} from './ScenarioGallery';
 export { ScenarioLauncher } from './ScenarioLauncher';
 
 // ─── Batch 1 (4 panels) ─────────────────────────────────────────

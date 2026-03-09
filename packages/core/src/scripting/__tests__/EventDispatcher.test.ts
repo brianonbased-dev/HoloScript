@@ -4,7 +4,9 @@ import { EventDispatcher } from '../EventDispatcher';
 describe('EventDispatcher', () => {
   let dispatcher: EventDispatcher;
 
-  beforeEach(() => { dispatcher = new EventDispatcher(); });
+  beforeEach(() => {
+    dispatcher = new EventDispatcher();
+  });
 
   it('on and emit triggers callback', () => {
     const cb = vi.fn();
@@ -57,7 +59,9 @@ describe('EventDispatcher', () => {
   });
 
   it('stopping propagation stops later listeners', () => {
-    const cb1 = vi.fn((e) => { e.propagate = false; });
+    const cb1 = vi.fn((e) => {
+      e.propagate = false;
+    });
     const cb2 = vi.fn();
     dispatcher.on('stop', cb1, 10);
     dispatcher.on('stop', cb2, 1);

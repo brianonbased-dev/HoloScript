@@ -32,10 +32,7 @@ describe('HITLManager', () => {
   });
 
   it('auto-approves high-confidence actions', async () => {
-    const decision = await mgr.requestApproval(
-      makeAction({ confidence: 0.95 }),
-      ['user-1'],
-    );
+    const decision = await mgr.requestApproval(makeAction({ confidence: 0.95 }), ['user-1']);
     expect(decision.approved).toBe(true);
     expect(decision.approvedBy).toBe('auto');
   });
@@ -43,7 +40,7 @@ describe('HITLManager', () => {
   it('auto-approves when impact doesnt require approval', async () => {
     const decision = await mgr.requestApproval(
       makeAction({ estimatedImpact: 'low', confidence: 0.3 }),
-      ['user-1'],
+      ['user-1']
     );
     expect(decision.approved).toBe(true);
     expect(decision.approvedBy).toBe('auto');
@@ -135,8 +132,8 @@ describe('HITLManager', () => {
     await mgr.requestApproval(makeAction(), ['user-1']);
     const log = mgr.getAuditLog();
     expect(log.length).toBeGreaterThanOrEqual(2); // request + decision
-    expect(log.some(e => e.type === 'request')).toBe(true);
-    expect(log.some(e => e.type === 'decision')).toBe(true);
+    expect(log.some((e) => e.type === 'request')).toBe(true);
+    expect(log.some((e) => e.type === 'decision')).toBe(true);
   });
 
   it('queryAuditLog filters by agentId', async () => {

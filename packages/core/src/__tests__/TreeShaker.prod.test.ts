@@ -19,7 +19,7 @@ describe('TreeShaker — Production', () => {
     const ts = new TreeShaker({ entryPoints: ['Main'] });
     const nodes = [makeNode('object', 'Main'), makeNode('object', 'Unused')];
     const r = ts.shake(nodes);
-    expect(r.kept.some(n => n.name === 'Main')).toBe(true);
+    expect(r.kept.some((n) => n.name === 'Main')).toBe(true);
     expect(r.stats.keptNodes).toBeGreaterThanOrEqual(1);
   });
 
@@ -44,14 +44,14 @@ describe('TreeShaker — Production', () => {
     const ts = new TreeShaker({ entryPoints: [], keepExports: true });
     const nodes = [makeNode('export', 'Exp')];
     const r = ts.shake(nodes);
-    expect(r.kept.some(n => n.name === 'Exp')).toBe(true);
+    expect(r.kept.some((n) => n.name === 'Exp')).toBe(true);
   });
 
   it('keepNames retains specific named nodes', () => {
     const ts = new TreeShaker({ entryPoints: [], keepNames: ['Config'] });
     const nodes = [makeNode('object', 'Config'), makeNode('object', 'X')];
     const r = ts.shake(nodes);
-    expect(r.kept.some(n => n.name === 'Config')).toBe(true);
+    expect(r.kept.some((n) => n.name === 'Config')).toBe(true);
   });
 
   // ─── Graph Stats ──────────────────────────────────────────────────

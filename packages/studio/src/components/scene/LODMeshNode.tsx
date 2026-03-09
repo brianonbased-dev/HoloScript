@@ -94,10 +94,10 @@ export function LODMeshNode({ node, distances = [0, 25, 50] }: LODMeshNodeProps)
   const scale = props.scale || [1, 1, 1];
 
   const matProps = getMaterialProps(node);
-  const proceduralMaps = useProceduralTexture(
-    isScaledBody(hsType) ? 'scaleFull' : null,
-    { size: 512, tiling: [3, 3] }
-  );
+  const proceduralMaps = useProceduralTexture(isScaledBody(hsType) ? 'scaleFull' : null, {
+    size: 512,
+    tiling: [3, 3],
+  });
   const needsTextures = hasTextures(matProps);
 
   return (
@@ -108,14 +108,35 @@ export function LODMeshNode({ node, distances = [0, 25, 50] }: LODMeshNodeProps)
     >
       <Detailed distances={distances}>
         {/* LOD 0: Full detail (closest) */}
-        <LODLevel hsType={hsType} size={size} props={props} detail="high"
-          matProps={matProps} proceduralMaps={proceduralMaps} needsTextures={needsTextures} />
+        <LODLevel
+          hsType={hsType}
+          size={size}
+          props={props}
+          detail="high"
+          matProps={matProps}
+          proceduralMaps={proceduralMaps}
+          needsTextures={needsTextures}
+        />
         {/* LOD 1: Medium detail */}
-        <LODLevel hsType={hsType} size={size} props={props} detail="medium"
-          matProps={matProps} proceduralMaps={proceduralMaps} needsTextures={needsTextures} />
+        <LODLevel
+          hsType={hsType}
+          size={size}
+          props={props}
+          detail="medium"
+          matProps={matProps}
+          proceduralMaps={proceduralMaps}
+          needsTextures={needsTextures}
+        />
         {/* LOD 2: Low detail (farthest) */}
-        <LODLevel hsType={hsType} size={size} props={props} detail="low"
-          matProps={matProps} proceduralMaps={proceduralMaps} needsTextures={needsTextures} />
+        <LODLevel
+          hsType={hsType}
+          size={size}
+          props={props}
+          detail="low"
+          matProps={matProps}
+          proceduralMaps={proceduralMaps}
+          needsTextures={needsTextures}
+        />
       </Detailed>
     </group>
   );

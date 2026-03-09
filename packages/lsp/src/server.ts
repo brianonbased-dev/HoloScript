@@ -367,7 +367,9 @@ connection.onInitialize(async (_params: InitializeParams): Promise<InitializeRes
 
   // Initialize tree-sitter incremental parsing (non-blocking, graceful degradation)
   const tsReady = await treeSitter.initialize();
-  console.error(`[LSP] Tree-sitter incremental parsing: ${tsReady ? 'enabled' : 'disabled (native binding unavailable)'}`);
+  console.error(
+    `[LSP] Tree-sitter incremental parsing: ${tsReady ? 'enabled' : 'disabled (native binding unavailable)'}`
+  );
 
   return {
     capabilities: {
@@ -448,7 +450,7 @@ async function validateDocument(document: TextDocument): Promise<void> {
       }
     } catch (tsErr) {
       console.error(
-        `[TreeSitter] Parse failed for ${uri}: ${tsErr instanceof Error ? tsErr.message : tsErr}`,
+        `[TreeSitter] Parse failed for ${uri}: ${tsErr instanceof Error ? tsErr.message : tsErr}`
       );
       // Non-fatal: fall through to HSPlus parser
     }
@@ -532,7 +534,7 @@ async function validateDocument(document: TextDocument): Promise<void> {
         diagnostics.push(...safetyDiags);
       } catch (safetyErr) {
         console.error(
-          `[Safety] Pass failed: ${safetyErr instanceof Error ? safetyErr.message : safetyErr}`,
+          `[Safety] Pass failed: ${safetyErr instanceof Error ? safetyErr.message : safetyErr}`
         );
       }
 

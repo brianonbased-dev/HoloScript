@@ -15,26 +15,50 @@
 // Types
 // ===========================================================================
 
-export interface PIDGains { kp: number; ki: number; kd: number; }
+export interface PIDGains {
+  kp: number;
+  ki: number;
+  kd: number;
+}
 
 export interface PIDConfig {
-  gains: PIDGains; outputMin: number; outputMax: number;
-  integralWindupLimit: number; derivativeFilterCoeff: number;
-  innerLoopHz: number; outerLoopHz: number; deadband: number;
+  gains: PIDGains;
+  outputMin: number;
+  outputMax: number;
+  integralWindupLimit: number;
+  derivativeFilterCoeff: number;
+  innerLoopHz: number;
+  outerLoopHz: number;
+  deadband: number;
   /** Output smoothing filter coefficient (0 = no smoothing, 1 = maximum smoothing). */
   outputSmoothingCoeff: number;
 }
 
 export const DEFAULT_PID_CONFIG: PIDConfig = {
-  gains: { kp: 1.0, ki: 0.1, kd: 0.05 }, outputMin: -Infinity, outputMax: Infinity,
-  integralWindupLimit: 100, derivativeFilterCoeff: 0.1, innerLoopHz: 90, outerLoopHz: 30, deadband: 0.001,
+  gains: { kp: 1.0, ki: 0.1, kd: 0.05 },
+  outputMin: -Infinity,
+  outputMax: Infinity,
+  integralWindupLimit: 100,
+  derivativeFilterCoeff: 0.1,
+  innerLoopHz: 90,
+  outerLoopHz: 30,
+  deadband: 0.001,
   outputSmoothingCoeff: 0,
 };
 
 export interface PIDState {
-  setpoint: number; measurement: number; error: number; integral: number; derivative: number;
-  previousError: number; output: number; velocity: number; lastInnerTick: number; lastOuterTick: number;
-  tickCount: number; settled: boolean;
+  setpoint: number;
+  measurement: number;
+  error: number;
+  integral: number;
+  derivative: number;
+  previousError: number;
+  output: number;
+  velocity: number;
+  lastInnerTick: number;
+  lastOuterTick: number;
+  tickCount: number;
+  settled: boolean;
   /** Smoothed output (after optional low-pass filter). */
   smoothedOutput: number;
 }
@@ -80,7 +104,9 @@ export interface AutoTuneResult {
 // Helpers
 // ===========================================================================
 
-function clamp(v: number, min: number, max: number): number { return Math.min(Math.max(v, min), max); }
+function clamp(v: number, min: number, max: number): number {
+  return Math.min(Math.max(v, min), max);
+}
 
 /**
  * Apply Ziegler-Nichols tuning formulas given Ku and Tu.
@@ -89,13 +115,13 @@ function zieglerNicholsGains(Ku: number, Tu: number, rule: ZNTuningRule): PIDGai
   switch (rule) {
     case 'classic':
       // Classic PID: Kp=0.6*Ku, Ki=1.2*Ku/Tu, Kd=0.075*Ku*Tu
-      return { kp: 0.6 * Ku, ki: 1.2 * Ku / Tu, kd: 0.075 * Ku * Tu };
+      return { kp: 0.6 * Ku, ki: (1.2 * Ku) / Tu, kd: 0.075 * Ku * Tu };
     case 'some_overshoot':
       // Kp=0.33*Ku, Ki=0.66*Ku/Tu, Kd=0.11*Ku*Tu
-      return { kp: 0.33 * Ku, ki: 0.66 * Ku / Tu, kd: 0.11 * Ku * Tu };
+      return { kp: 0.33 * Ku, ki: (0.66 * Ku) / Tu, kd: 0.11 * Ku * Tu };
     case 'no_overshoot':
       // Kp=0.2*Ku, Ki=0.4*Ku/Tu, Kd=0.066*Ku*Tu
-      return { kp: 0.2 * Ku, ki: 0.4 * Ku / Tu, kd: 0.066 * Ku * Tu };
+      return { kp: 0.2 * Ku, ki: (0.4 * Ku) / Tu, kd: 0.066 * Ku * Tu };
   }
 }
 
@@ -133,7 +159,13 @@ class PerformanceTracker {
   /** Compute metrics from recorded step-response. */
   compute(): PIDPerformanceMetrics {
     if (this.samples.length === 0 || this.stepStartTime === null || this.stepSize === 0) {
-      return { overshootPercent: 0, riseTimeS: null, settlingTimeS: null, steadyStateError: 0, sampleCount: 0 };
+      return {
+        overshootPercent: 0,
+        riseTimeS: null,
+        settlingTimeS: null,
+        steadyStateError: 0,
+        sampleCount: 0,
+      };
     }
 
     const target = this.stepTarget;
@@ -218,11 +250,22 @@ export class PIDControllerTrait {
       gains: { ...DEFAULT_PID_CONFIG.gains, ...config.gains },
     };
     const init: PIDState = {
-      setpoint: 0, measurement: 0, error: 0, integral: 0, derivative: 0,
-      previousError: 0, output: 0, velocity: 0, lastInnerTick: 0, lastOuterTick: 0,
-      tickCount: 0, settled: false, smoothedOutput: 0,
+      setpoint: 0,
+      measurement: 0,
+      error: 0,
+      integral: 0,
+      derivative: 0,
+      previousError: 0,
+      output: 0,
+      velocity: 0,
+      lastInnerTick: 0,
+      lastOuterTick: 0,
+      tickCount: 0,
+      settled: false,
+      smoothedOutput: 0,
     };
-    this.front = { ...init }; this.back = { ...init };
+    this.front = { ...init };
+    this.back = { ...init };
   }
 
   setSetpoint(value: number): void {
@@ -234,18 +277,33 @@ export class PIDControllerTrait {
   }
 
   update(measurement: number, dt: number): number {
-    const s = this.back; const { kp, ki, kd } = this.config.gains;
-    const prev = s.measurement; s.measurement = measurement;
+    const s = this.back;
+    const { kp, ki, kd } = this.config.gains;
+    const prev = s.measurement;
+    s.measurement = measurement;
     s.velocity = dt > 0 ? (measurement - prev) / dt : 0;
     s.error = s.setpoint - measurement;
-    if (Math.abs(s.error) < this.config.deadband) { s.error = 0; s.settled = true; } else { s.settled = false; }
+    if (Math.abs(s.error) < this.config.deadband) {
+      s.error = 0;
+      s.settled = true;
+    } else {
+      s.settled = false;
+    }
     s.integral += s.error * dt;
-    s.integral = clamp(s.integral, -this.config.integralWindupLimit, this.config.integralWindupLimit);
+    s.integral = clamp(
+      s.integral,
+      -this.config.integralWindupLimit,
+      this.config.integralWindupLimit
+    );
     const rawD = dt > 0 ? (s.error - s.previousError) / dt : 0;
     const a = this.config.derivativeFilterCoeff;
     s.derivative = a * rawD + (1 - a) * s.derivative;
     s.previousError = s.error;
-    const rawOutput = clamp(kp * s.error + ki * s.integral + kd * s.derivative, this.config.outputMin, this.config.outputMax);
+    const rawOutput = clamp(
+      kp * s.error + ki * s.integral + kd * s.derivative,
+      this.config.outputMin,
+      this.config.outputMax
+    );
 
     // Output smoothing filter (exponential moving average)
     const smooth = this.config.outputSmoothingCoeff;
@@ -257,7 +315,8 @@ export class PIDControllerTrait {
       s.smoothedOutput = rawOutput;
     }
 
-    s.tickCount++; s.lastInnerTick = Date.now();
+    s.tickCount++;
+    s.lastInnerTick = Date.now();
     this.cumulativeTimeS += dt;
 
     // Record for performance metrics
@@ -277,19 +336,33 @@ export class PIDControllerTrait {
   }
 
   reset(): void {
-    this.back.integral = 0; this.back.derivative = 0; this.back.previousError = 0;
-    this.back.output = 0; this.back.smoothedOutput = 0; this.back.tickCount = 0;
+    this.back.integral = 0;
+    this.back.derivative = 0;
+    this.back.previousError = 0;
+    this.back.output = 0;
+    this.back.smoothedOutput = 0;
+    this.back.tickCount = 0;
     this.back.settled = false;
     this.cumulativeTimeS = 0;
     this.perfTracker.reset();
     Object.assign(this.front, this.back);
   }
 
-  getState(): Readonly<PIDState> { return this.front; }
-  getGains(): PIDGains { return { ...this.config.gains }; }
-  setGains(gains: Partial<PIDGains>): void { Object.assign(this.config.gains, gains); }
-  isSettled(): boolean { return this.front.settled; }
-  getVelocity(): number { return this.front.velocity; }
+  getState(): Readonly<PIDState> {
+    return this.front;
+  }
+  getGains(): PIDGains {
+    return { ...this.config.gains };
+  }
+  setGains(gains: Partial<PIDGains>): void {
+    Object.assign(this.config.gains, gains);
+  }
+  isSettled(): boolean {
+    return this.front.settled;
+  }
+  getVelocity(): number {
+    return this.front.velocity;
+  }
 
   // =========================================================================
   // Output smoothing configuration
@@ -351,11 +424,12 @@ export class PIDControllerTrait {
       dt?: number;
       rule?: ZNTuningRule;
       apply?: boolean;
-    } = {},
+    } = {}
   ): Promise<AutoTuneResult | null> {
-    const relayAmplitude = options.relayAmplitude ?? (isFinite(this.config.outputMax) ? this.config.outputMax * 0.5 : 1);
+    const relayAmplitude =
+      options.relayAmplitude ?? (isFinite(this.config.outputMax) ? this.config.outputMax * 0.5 : 1);
     const maxIter = options.maxIterations ?? 2000;
-    const dt = options.dt ?? (1 / this.config.innerLoopHz);
+    const dt = options.dt ?? 1 / this.config.innerLoopHz;
     const rule = options.rule ?? 'classic';
     const apply = options.apply !== false;
 
@@ -407,9 +481,10 @@ export class PIDControllerTrait {
 
     // Ultimate gain Ku = 4 * relayAmplitude / (pi * peakAmplitude)
     // Peak amplitude = average of peak deviations from setpoint
-    const validPeaks = peaks.filter(p => isFinite(p) && p > -Infinity);
+    const validPeaks = peaks.filter((p) => isFinite(p) && p > -Infinity);
     if (validPeaks.length === 0) return null;
-    const avgPeakDeviation = validPeaks.reduce((a, b) => a + Math.abs(b - setpoint), 0) / validPeaks.length;
+    const avgPeakDeviation =
+      validPeaks.reduce((a, b) => a + Math.abs(b - setpoint), 0) / validPeaks.length;
     if (avgPeakDeviation === 0) return null;
 
     const Ku = (4 * relayAmplitude) / (Math.PI * avgPeakDeviation);
@@ -452,10 +527,7 @@ export class CascadePIDController {
    * @param outerConfig - Configuration for the outer (slow) loop.
    * @param innerConfig - Configuration for the inner (fast) loop.
    */
-  constructor(
-    outerConfig: Partial<PIDConfig> = {},
-    innerConfig: Partial<PIDConfig> = {},
-  ) {
+  constructor(outerConfig: Partial<PIDConfig> = {}, innerConfig: Partial<PIDConfig> = {}) {
     // Outer loop defaults to slower rate
     const outerDefaults: Partial<PIDConfig> = { innerLoopHz: 30, outerLoopHz: 10 };
     this.outer = new PIDControllerTrait({ ...outerDefaults, ...outerConfig });
@@ -504,8 +576,12 @@ export class CascadePIDController {
     this.outerAccumDt = 0;
   }
 
-  getOuterState(): Readonly<PIDState> { return this.outer.getState(); }
-  getInnerState(): Readonly<PIDState> { return this.inner.getState(); }
+  getOuterState(): Readonly<PIDState> {
+    return this.outer.getState();
+  }
+  getInnerState(): Readonly<PIDState> {
+    return this.inner.getState();
+  }
 
   /** Get performance metrics for both loops. */
   getPerformanceMetrics(): { outer: PIDPerformanceMetrics; inner: PIDPerformanceMetrics } {

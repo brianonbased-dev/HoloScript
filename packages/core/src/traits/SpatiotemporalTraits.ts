@@ -94,11 +94,7 @@ function predictPosition(
 /**
  * Find the closest point on a line segment AB to point P.
  */
-function closestPointOnSegment(
-  p: Vector3,
-  a: Vector3,
-  b: Vector3
-): Vector3 {
+function closestPointOnSegment(p: Vector3, a: Vector3, b: Vector3): Vector3 {
   const abx = b.x - a.x;
   const aby = b.y - a.y;
   const abz = b.z - a.z;
@@ -327,12 +323,7 @@ export const spatialTemporalAdjacentHandler: TraitHandler<SpatialTemporalAdjacen
       // If duration is now satisfied and was previously violated, resolve
       if (state.durationSatisfied && state.violated) {
         state.violated = false;
-        emitResolved(
-          context,
-          'spatial_temporal_adjacent',
-          node.id || '',
-          config.target
-        );
+        emitResolved(context, 'spatial_temporal_adjacent', node.id || '', config.target);
       }
     } else {
       // Out of range
@@ -346,9 +337,8 @@ export const spatialTemporalAdjacentHandler: TraitHandler<SpatialTemporalAdjacen
       }
 
       const gracePeriod = config.gracePeriod ?? 0;
-      const brokenDuration = state.brokenSinceTime !== null
-        ? state.elapsedTime - state.brokenSinceTime
-        : Infinity;
+      const brokenDuration =
+        state.brokenSinceTime !== null ? state.elapsedTime - state.brokenSinceTime : Infinity;
 
       // Only violate after grace period
       if (brokenDuration >= gracePeriod && !state.violated) {
@@ -382,10 +372,7 @@ export const spatialTemporalAdjacentHandler: TraitHandler<SpatialTemporalAdjacen
   },
 
   onEvent(node, config, context, event) {
-    if (
-      event.type === 'spatial_target_update' &&
-      (event as any).targetId === config.target
-    ) {
+    if (event.type === 'spatial_target_update' && (event as any).targetId === config.target) {
       const state = context.getState().spatialTemporalAdjacent as TemporalAdjacentState | undefined;
       if (state) {
         state.targetPosition = (event as any).position;
@@ -499,11 +486,7 @@ export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReacha
             const t = (s / sampleCount) * horizon;
 
             // Predict obstacle position at time t
-            const predictedObsPos = predictPosition(
-              obstacle.position,
-              obstacle.velocity,
-              t
-            );
+            const predictedObsPos = predictPosition(obstacle.position, obstacle.velocity, t);
 
             // Check if predicted obstacle position is within
             // (obstacle.radius + safetyMargin + agentRadius) of the line segment
@@ -541,9 +524,10 @@ export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReacha
     state.violated = !reachable;
 
     if (!reachable && wasReachable) {
-      const collisionMsg = state.predictedCollisionTime !== null
-        ? ` Predicted obstacle collision in ${state.predictedCollisionTime.toFixed(1)}s.`
-        : '';
+      const collisionMsg =
+        state.predictedCollisionTime !== null
+          ? ` Predicted obstacle collision in ${state.predictedCollisionTime.toFixed(1)}s.`
+          : '';
       emitViolation(
         context,
         'spatial_temporal_reachable',
@@ -565,10 +549,7 @@ export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReacha
     if (!state) return;
 
     // Track target position
-    if (
-      event.type === 'spatial_target_update' &&
-      (event as any).targetId === config.target
-    ) {
+    if (event.type === 'spatial_target_update' && (event as any).targetId === config.target) {
       state.targetPosition = (event as any).position;
       context.setState({ spatialTemporalReachable: state });
     }
@@ -644,9 +625,7 @@ export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
       regionBounds: null,
       lastTrajectory: [],
       violatingIndices: [],
-      waypointsReached: config.waypoints
-        ? new Array(config.waypoints.length).fill(false)
-        : [],
+      waypointsReached: config.waypoints ? new Array(config.waypoints.length).fill(false) : [],
     };
     context.setState({ spatialTrajectory: state });
   },
@@ -670,9 +649,10 @@ export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
     const trajectory: Vector3[] = [];
     for (let i = 0; i <= sampleCount; i++) {
       const t = (i / sampleCount) * horizon;
-      const pt = config.useAcceleration && state.acceleration
-        ? predictPosition(nodePos, state.velocity, t, state.acceleration)
-        : predictPosition(nodePos, state.velocity, t);
+      const pt =
+        config.useAcceleration && state.acceleration
+          ? predictPosition(nodePos, state.velocity, t, state.acceleration)
+          : predictPosition(nodePos, state.velocity, t);
       trajectory.push(pt);
     }
     state.lastTrajectory = trajectory;
@@ -716,12 +696,7 @@ export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
         0
       );
     } else if (!isViolated && wasViolated) {
-      emitResolved(
-        context,
-        'spatial_trajectory',
-        node.id || '',
-        config.regionId || ''
-      );
+      emitResolved(context, 'spatial_trajectory', node.id || '', config.regionId || '');
     }
 
     context.setState({ spatialTrajectory: state });
@@ -749,9 +724,12 @@ export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
         inside = dist <= bounds.radius;
       } else {
         inside =
-          pt.x >= bounds.min.x && pt.x <= bounds.max.x &&
-          pt.y >= bounds.min.y && pt.y <= bounds.max.y &&
-          pt.z >= bounds.min.z && pt.z <= bounds.max.z;
+          pt.x >= bounds.min.x &&
+          pt.x <= bounds.max.x &&
+          pt.y >= bounds.min.y &&
+          pt.y <= bounds.max.y &&
+          pt.z >= bounds.min.z &&
+          pt.z <= bounds.max.z;
       }
 
       if (!inside) {
@@ -783,9 +761,12 @@ export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
         inside = dist <= bounds.radius;
       } else {
         inside =
-          pt.x >= bounds.min.x && pt.x <= bounds.max.x &&
-          pt.y >= bounds.min.y && pt.y <= bounds.max.y &&
-          pt.z >= bounds.min.z && pt.z <= bounds.max.z;
+          pt.x >= bounds.min.x &&
+          pt.x <= bounds.max.x &&
+          pt.y >= bounds.min.y &&
+          pt.y <= bounds.max.y &&
+          pt.z >= bounds.min.z &&
+          pt.z <= bounds.max.z;
       }
 
       if (inside) {
@@ -879,10 +860,26 @@ export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
     }
   },
 } as TraitHandler<SpatialTrajectoryConfig> & {
-  _checkKeepIn: (trajectory: Vector3[], state: TrajectoryState, config: SpatialTrajectoryConfig) => boolean;
-  _checkKeepOut: (trajectory: Vector3[], state: TrajectoryState, config: SpatialTrajectoryConfig) => boolean;
-  _checkFollow: (trajectory: Vector3[], state: TrajectoryState, config: SpatialTrajectoryConfig) => boolean;
-  _checkWaypoints: (trajectory: Vector3[], state: TrajectoryState, config: SpatialTrajectoryConfig) => boolean;
+  _checkKeepIn: (
+    trajectory: Vector3[],
+    state: TrajectoryState,
+    config: SpatialTrajectoryConfig
+  ) => boolean;
+  _checkKeepOut: (
+    trajectory: Vector3[],
+    state: TrajectoryState,
+    config: SpatialTrajectoryConfig
+  ) => boolean;
+  _checkFollow: (
+    trajectory: Vector3[],
+    state: TrajectoryState,
+    config: SpatialTrajectoryConfig
+  ) => boolean;
+  _checkWaypoints: (
+    trajectory: Vector3[],
+    state: TrajectoryState,
+    config: SpatialTrajectoryConfig
+  ) => boolean;
 };
 
 // =============================================================================

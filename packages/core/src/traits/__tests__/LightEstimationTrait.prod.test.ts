@@ -12,8 +12,12 @@ import { lightEstimationHandler } from '../LightEstimationTrait';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode() { return { id: 'le_test' } as any; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'le_test' } as any;
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 
 function attach(node: any, overrides: Record<string, unknown> = {}) {
   const cfg = { ...lightEstimationHandler.defaultConfig!, ...overrides } as any;
@@ -22,7 +26,9 @@ function attach(node: any, overrides: Record<string, unknown> = {}) {
   return { cfg, ctx };
 }
 
-function st(node: any) { return node.__lightEstimationState as any; }
+function st(node: any) {
+  return node.__lightEstimationState as any;
+}
 
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
   lightEstimationHandler.onEvent!(node, cfg, ctx as any, evt as any);
@@ -63,9 +69,13 @@ describe('LightEstimationTrait — onAttach', () => {
   it('emits light_estimation_request with mode and shadowEstimation', () => {
     const node = makeNode();
     const { ctx } = attach(node, { mode: 'directional', shadow_estimation: true });
-    expect(ctx.emit).toHaveBeenCalledWith('light_estimation_request', expect.objectContaining({
-      mode: 'directional', shadowEstimation: true,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'light_estimation_request',
+      expect.objectContaining({
+        mode: 'directional',
+        shadowEstimation: true,
+      })
+    );
   });
 });
 
@@ -119,12 +129,19 @@ describe('LightEstimationTrait — onUpdate', () => {
 
   it('auto_apply=true: always emits scene_light_update with finalIntensity', () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { auto_apply: true, intensity_multiplier: 2.0, update_rate: 30 });
+    const { cfg, ctx } = attach(node, {
+      auto_apply: true,
+      intensity_multiplier: 2.0,
+      update_rate: 30,
+    });
     st(node).intensity = 0.5;
     ctx.emit.mockClear();
     lightEstimationHandler.onUpdate!(node, cfg, ctx as any, 0.016);
     // finalIntensity = 0.5 * 2.0 = 1.0
-    expect(ctx.emit).toHaveBeenCalledWith('scene_light_update', expect.objectContaining({ intensity: 1.0 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'scene_light_update',
+      expect.objectContaining({ intensity: 1.0 })
+    );
   });
 
   it('auto_apply=false: no scene_light_update emitted', () => {
@@ -154,7 +171,11 @@ describe('LightEstimationTrait — onEvent: light_estimation_update', () => {
     const { cfg, ctx } = attach(node, { smoothing: 0.8, color_temperature: true });
     st(node).colorTemperature = 6500;
     // 6500*0.8 + 3000*0.2 = 5200+600 = 5800K
-    fire(node, cfg, ctx, { type: 'light_estimation_update', intensity: 1.0, colorTemperature: 3000 });
+    fire(node, cfg, ctx, {
+      type: 'light_estimation_update',
+      intensity: 1.0,
+      colorTemperature: 3000,
+    });
     const newTemp = st(node).colorTemperature;
     expect(newTemp).toBeCloseTo(5800, 0);
     // colorCorrection should be updated (not {r:1,g:1,b:1})
@@ -168,7 +189,11 @@ describe('LightEstimationTrait — onEvent: light_estimation_update', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { smoothing: 0.8, color_temperature: false });
     const origTemp = st(node).colorTemperature;
-    fire(node, cfg, ctx, { type: 'light_estimation_update', intensity: 1.0, colorTemperature: 2000 });
+    fire(node, cfg, ctx, {
+      type: 'light_estimation_update',
+      intensity: 1.0,
+      colorTemperature: 2000,
+    });
     expect(st(node).colorTemperature).toBe(origTemp); // unchanged
   });
 
@@ -176,7 +201,11 @@ describe('LightEstimationTrait — onEvent: light_estimation_update', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { smoothing: 0.8 });
     st(node).primaryDirection = { x: 0, y: -1, z: 0 };
-    fire(node, cfg, ctx, { type: 'light_estimation_update', intensity: 1.0, direction: { x: 1, y: 0, z: 0 } });
+    fire(node, cfg, ctx, {
+      type: 'light_estimation_update',
+      intensity: 1.0,
+      direction: { x: 1, y: 0, z: 0 },
+    });
     // x: 0*0.8 + 1*0.2 = 0.2
     expect(st(node).primaryDirection.x).toBeCloseTo(0.2);
     // y: -1*0.8 + 0*0.2 = -0.8
@@ -187,7 +216,11 @@ describe('LightEstimationTrait — onEvent: light_estimation_update', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { color_temperature: false });
     const sh = new Float32Array([1, 2, 3]);
-    fire(node, cfg, ctx, { type: 'light_estimation_update', intensity: 1.0, sphericalHarmonics: sh });
+    fire(node, cfg, ctx, {
+      type: 'light_estimation_update',
+      intensity: 1.0,
+      sphericalHarmonics: sh,
+    });
     expect(st(node).sphericalHarmonics).toBe(sh);
   });
 
@@ -196,10 +229,13 @@ describe('LightEstimationTrait — onEvent: light_estimation_update', () => {
     const { cfg, ctx } = attach(node, { color_temperature: false });
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'light_estimation_update', intensity: 0.75 });
-    expect(ctx.emit).toHaveBeenCalledWith('on_light_estimated', expect.objectContaining({
-      intensity: expect.any(Number),
-      colorTemperature: expect.any(Number),
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_light_estimated',
+      expect.objectContaining({
+        intensity: expect.any(Number),
+        colorTemperature: expect.any(Number),
+      })
+    );
   });
 });
 
@@ -213,7 +249,10 @@ describe('LightEstimationTrait — onEvent: light_estimation_env_map', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'light_estimation_env_map', envMap });
     expect(st(node).environmentMap).toBe(envMap);
-    expect(ctx.emit).toHaveBeenCalledWith('scene_environment_map_update', expect.objectContaining({ envMap }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'scene_environment_map_update',
+      expect.objectContaining({ envMap })
+    );
   });
 });
 
@@ -246,13 +285,16 @@ describe('LightEstimationTrait — onEvent: light_estimation_query', () => {
     st(node).colorTemperature = 5000;
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'light_estimation_query', queryId: 'q5' });
-    expect(ctx.emit).toHaveBeenCalledWith('light_estimation_response', expect.objectContaining({
-      queryId: 'q5',
-      intensity: 0.9,
-      colorTemperature: 5000,
-      hasSphericalHarmonics: false,
-      hasEnvironmentMap: false,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'light_estimation_response',
+      expect.objectContaining({
+        queryId: 'q5',
+        intensity: 0.9,
+        colorTemperature: 5000,
+        hasSphericalHarmonics: false,
+        hasEnvironmentMap: false,
+      })
+    );
   });
 
   it('hasSphericalHarmonics=true when sh is set', () => {
@@ -261,7 +303,9 @@ describe('LightEstimationTrait — onEvent: light_estimation_query', () => {
     st(node).sphericalHarmonics = new Float32Array([1]);
     st(node).environmentMap = { hdr: true };
     fire(node, cfg, ctx, { type: 'light_estimation_query', queryId: 'q6' });
-    const call = (ctx.emit as any).mock.calls.find((c: any[]) => c[0] === 'light_estimation_response')?.[1];
+    const call = (ctx.emit as any).mock.calls.find(
+      (c: any[]) => c[0] === 'light_estimation_response'
+    )?.[1];
     expect(call.hasSphericalHarmonics).toBe(true);
     expect(call.hasEnvironmentMap).toBe(true);
   });
@@ -274,7 +318,11 @@ describe('LightEstimationTrait — kelvinToRGB (indirect)', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { smoothing: 0, color_temperature: true });
     // smoothing=0 means full replace: newTemp = 0*0 + 2700*1 = 2700K
-    fire(node, cfg, ctx, { type: 'light_estimation_update', intensity: 1.0, colorTemperature: 2700 });
+    fire(node, cfg, ctx, {
+      type: 'light_estimation_update',
+      intensity: 1.0,
+      colorTemperature: 2700,
+    });
     const cc = st(node).colorCorrection;
     expect(cc.r).toBeGreaterThan(0.9); // r≈1 (temp <= 66 → r=255)
     // All channels are normalised 0-1
@@ -283,12 +331,15 @@ describe('LightEstimationTrait — kelvinToRGB (indirect)', () => {
     expect(cc.b).toBeGreaterThanOrEqual(0);
   });
 
-
   it('cool 10000K produces blue-shifted (low r, mid g, full b) colorCorrection', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { smoothing: 0, color_temperature: true });
     // 10000/100 = 100 > 66
-    fire(node, cfg, ctx, { type: 'light_estimation_update', intensity: 1.0, colorTemperature: 10000 });
+    fire(node, cfg, ctx, {
+      type: 'light_estimation_update',
+      intensity: 1.0,
+      colorTemperature: 10000,
+    });
     const cc = st(node).colorCorrection;
     expect(cc.b).toBeCloseTo(1.0); // b = 255/255 = 1 for temp > 66
     expect(cc.r).toBeLessThan(1.0); // r decreases for high temp

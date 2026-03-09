@@ -85,7 +85,10 @@ describe('useMobileRemote', () => {
 
     it('should start polling after session creation', async () => {
       mockFetch.mockResolvedValueOnce({
-        json: async () => ({ token: 'test-token', remoteUrl: 'https://example.com/remote/test-token' }),
+        json: async () => ({
+          token: 'test-token',
+          remoteUrl: 'https://example.com/remote/test-token',
+        }),
       });
 
       const { result } = renderHook(() => useMobileRemote());
@@ -119,7 +122,10 @@ describe('useMobileRemote', () => {
     beforeEach(async () => {
       // Setup active session
       mockFetch.mockResolvedValueOnce({
-        json: async () => ({ token: 'poll-token', remoteUrl: 'https://example.com/remote/poll-token' }),
+        json: async () => ({
+          token: 'poll-token',
+          remoteUrl: 'https://example.com/remote/poll-token',
+        }),
       });
     });
 
@@ -215,7 +221,10 @@ describe('useMobileRemote', () => {
   describe('Command Processing', () => {
     beforeEach(async () => {
       mockFetch.mockResolvedValueOnce({
-        json: async () => ({ token: 'cmd-token', remoteUrl: 'https://example.com/remote/cmd-token' }),
+        json: async () => ({
+          token: 'cmd-token',
+          remoteUrl: 'https://example.com/remote/cmd-token',
+        }),
       });
     });
 
@@ -375,7 +384,10 @@ describe('useMobileRemote', () => {
   describe('Session Termination', () => {
     it('should end session successfully', async () => {
       mockFetch.mockResolvedValueOnce({
-        json: async () => ({ token: 'end-token', remoteUrl: 'https://example.com/remote/end-token' }),
+        json: async () => ({
+          token: 'end-token',
+          remoteUrl: 'https://example.com/remote/end-token',
+        }),
       });
 
       const { result } = renderHook(() => useMobileRemote());
@@ -402,7 +414,10 @@ describe('useMobileRemote', () => {
 
     it('should stop polling when session ends', async () => {
       mockFetch.mockResolvedValueOnce({
-        json: async () => ({ token: 'stop-token', remoteUrl: 'https://example.com/remote/stop-token' }),
+        json: async () => ({
+          token: 'stop-token',
+          remoteUrl: 'https://example.com/remote/stop-token',
+        }),
       });
 
       const { result } = renderHook(() => useMobileRemote());
@@ -443,7 +458,10 @@ describe('useMobileRemote', () => {
 
     it('should clear interval on unmount', async () => {
       mockFetch.mockResolvedValueOnce({
-        json: async () => ({ token: 'unmount-token', remoteUrl: 'https://example.com/remote/unmount-token' }),
+        json: async () => ({
+          token: 'unmount-token',
+          remoteUrl: 'https://example.com/remote/unmount-token',
+        }),
       });
 
       const { result, unmount } = renderHook(() => useMobileRemote());
@@ -473,7 +491,10 @@ describe('useMobileRemote', () => {
       expect(result.current.status).toBe('idle');
 
       mockFetch.mockResolvedValueOnce({
-        json: async () => ({ token: 'status-token', remoteUrl: 'https://example.com/remote/status-token' }),
+        json: async () => ({
+          token: 'status-token',
+          remoteUrl: 'https://example.com/remote/status-token',
+        }),
       });
 
       await act(async () => {
@@ -494,7 +515,10 @@ describe('useMobileRemote', () => {
 
     it('should transition from active to idle on endSession', async () => {
       mockFetch.mockResolvedValueOnce({
-        json: async () => ({ token: 'transition-token', remoteUrl: 'https://example.com/remote/transition-token' }),
+        json: async () => ({
+          token: 'transition-token',
+          remoteUrl: 'https://example.com/remote/transition-token',
+        }),
       });
 
       const { result } = renderHook(() => useMobileRemote());
@@ -534,7 +558,10 @@ describe('useMobileRemote', () => {
   describe('Edge Cases', () => {
     it('should handle multiple createSession calls', async () => {
       mockFetch.mockResolvedValue({
-        json: async () => ({ token: 'multi-token', remoteUrl: 'https://example.com/remote/multi-token' }),
+        json: async () => ({
+          token: 'multi-token',
+          remoteUrl: 'https://example.com/remote/multi-token',
+        }),
       });
 
       const { result } = renderHook(() => useMobileRemote());
@@ -546,7 +573,10 @@ describe('useMobileRemote', () => {
       const firstToken = result.current.token;
 
       mockFetch.mockResolvedValue({
-        json: async () => ({ token: 'new-token', remoteUrl: 'https://example.com/remote/new-token' }),
+        json: async () => ({
+          token: 'new-token',
+          remoteUrl: 'https://example.com/remote/new-token',
+        }),
       });
 
       await act(async () => {
@@ -560,7 +590,10 @@ describe('useMobileRemote', () => {
 
     it('should handle rapid polling cycles', async () => {
       mockFetch.mockResolvedValueOnce({
-        json: async () => ({ token: 'rapid-token', remoteUrl: 'https://example.com/remote/rapid-token' }),
+        json: async () => ({
+          token: 'rapid-token',
+          remoteUrl: 'https://example.com/remote/rapid-token',
+        }),
       });
 
       const { result } = renderHook(() => useMobileRemote());
@@ -589,7 +622,10 @@ describe('useMobileRemote', () => {
 
     it('should handle commands with missing optional fields', async () => {
       mockFetch.mockResolvedValueOnce({
-        json: async () => ({ token: 'minimal-token', remoteUrl: 'https://example.com/remote/minimal-token' }),
+        json: async () => ({
+          token: 'minimal-token',
+          remoteUrl: 'https://example.com/remote/minimal-token',
+        }),
       });
 
       const { result } = renderHook(() => useMobileRemote());
@@ -619,7 +655,10 @@ describe('useMobileRemote', () => {
 
     it('should handle malformed polling responses gracefully', async () => {
       mockFetch.mockResolvedValueOnce({
-        json: async () => ({ token: 'malformed-token', remoteUrl: 'https://example.com/remote/malformed-token' }),
+        json: async () => ({
+          token: 'malformed-token',
+          remoteUrl: 'https://example.com/remote/malformed-token',
+        }),
       });
 
       const { result } = renderHook(() => useMobileRemote());
@@ -644,7 +683,10 @@ describe('useMobileRemote', () => {
 
     it('should reset commandCount when endSession is called', async () => {
       mockFetch.mockResolvedValueOnce({
-        json: async () => ({ token: 'reset-token', remoteUrl: 'https://example.com/remote/reset-token' }),
+        json: async () => ({
+          token: 'reset-token',
+          remoteUrl: 'https://example.com/remote/reset-token',
+        }),
       });
 
       const { result } = renderHook(() => useMobileRemote());

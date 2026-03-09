@@ -28,12 +28,14 @@ describe('loadConstraintsFromConfig — Production', () => {
 
   it('parses valid requires constraint', () => {
     const config = {
-      traitConstraints: [{
-        type: 'requires',
-        source: 'physics',
-        targets: ['collidable'],
-        message: 'Physics needs collision.',
-      }],
+      traitConstraints: [
+        {
+          type: 'requires',
+          source: 'physics',
+          targets: ['collidable'],
+          message: 'Physics needs collision.',
+        },
+      ],
     };
     const result = loadConstraintsFromConfig(config);
     expect(result).toHaveLength(1);
@@ -44,37 +46,43 @@ describe('loadConstraintsFromConfig — Production', () => {
 
   it('parses conflicts constraint', () => {
     const config = {
-      traitConstraints: [{
-        type: 'conflicts',
-        source: 'static',
-        targets: ['physics'],
-        message: 'Static conflicts physics.',
-      }],
+      traitConstraints: [
+        {
+          type: 'conflicts',
+          source: 'static',
+          targets: ['physics'],
+          message: 'Static conflicts physics.',
+        },
+      ],
     };
     expect(loadConstraintsFromConfig(config)).toHaveLength(1);
   });
 
   it('parses oneof constraint', () => {
     const config = {
-      traitConstraints: [{
-        type: 'oneof',
-        source: 'interaction',
-        targets: ['grab', 'click'],
-        message: 'One interaction.',
-      }],
+      traitConstraints: [
+        {
+          type: 'oneof',
+          source: 'interaction',
+          targets: ['grab', 'click'],
+          message: 'One interaction.',
+        },
+      ],
     };
     expect(loadConstraintsFromConfig(config)).toHaveLength(1);
   });
 
   it('includes optional suggestion', () => {
     const config = {
-      traitConstraints: [{
-        type: 'requires',
-        source: 'a',
-        targets: ['b'],
-        message: 'A needs B.',
-        suggestion: 'Add @b trait.',
-      }],
+      traitConstraints: [
+        {
+          type: 'requires',
+          source: 'a',
+          targets: ['b'],
+          message: 'A needs B.',
+          suggestion: 'Add @b trait.',
+        },
+      ],
     };
     const result = loadConstraintsFromConfig(config);
     expect(result[0].suggestion).toBe('Add @b trait.');
@@ -85,9 +93,9 @@ describe('loadConstraintsFromConfig — Production', () => {
       traitConstraints: [
         null,
         { type: 'invalid', source: 'x', targets: ['y'] },
-        { type: 'requires', source: '', targets: ['y'] },        // empty source
-        { type: 'requires', source: 'x', targets: [] },          // empty targets
-        { type: 'requires', source: 'x', targets: [123] },       // non-string target
+        { type: 'requires', source: '', targets: ['y'] }, // empty source
+        { type: 'requires', source: 'x', targets: [] }, // empty targets
+        { type: 'requires', source: 'x', targets: [123] }, // non-string target
         { type: 'requires', source: 'valid', targets: ['dep'], message: 'ok' }, // valid
       ],
     };
@@ -98,11 +106,13 @@ describe('loadConstraintsFromConfig — Production', () => {
 
   it('handles message as optional', () => {
     const config = {
-      traitConstraints: [{
-        type: 'requires',
-        source: 'a',
-        targets: ['b'],
-      }],
+      traitConstraints: [
+        {
+          type: 'requires',
+          source: 'a',
+          targets: ['b'],
+        },
+      ],
     };
     const result = loadConstraintsFromConfig(config);
     expect(result).toHaveLength(1);

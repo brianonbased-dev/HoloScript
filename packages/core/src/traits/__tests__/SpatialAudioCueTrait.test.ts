@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { spatialAudioCueHandler } from '../SpatialAudioCueTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('SpatialAudioCueTrait', () => {
   let node: Record<string, unknown>;
@@ -73,7 +80,10 @@ describe('SpatialAudioCueTrait', () => {
   });
 
   it('listener_distance_update triggers when in range', () => {
-    sendEvent(spatialAudioCueHandler, node, cfg, ctx, { type: 'listener_distance_update', distance: 5 });
+    sendEvent(spatialAudioCueHandler, node, cfg, ctx, {
+      type: 'listener_distance_update',
+      distance: 5,
+    });
     expect(getEventCount(ctx, 'audio_cue_trigger')).toBe(1);
   });
 

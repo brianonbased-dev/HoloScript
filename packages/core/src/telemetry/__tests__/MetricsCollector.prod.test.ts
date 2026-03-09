@@ -79,7 +79,7 @@ describe('MetricsCollector — Production', () => {
   });
 
   it('histogram stats: p50 (median) approximately correct', () => {
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].forEach(v => mc.recordHistogram('vals', v));
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].forEach((v) => mc.recordHistogram('vals', v));
     const stats = mc.getHistogramStats('vals')!;
     expect(stats.p50).toBeGreaterThanOrEqual(5);
     expect(stats.p50).toBeLessThanOrEqual(6);

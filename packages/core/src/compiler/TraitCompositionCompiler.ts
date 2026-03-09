@@ -64,20 +64,23 @@ export class CompositionConflictError extends Error {
   constructor(
     public readonly traitA: string,
     public readonly traitB: string,
-    public readonly conflictKey: string,
+    public readonly conflictKey: string
   ) {
     super(
-      `Trait composition conflict: "${traitA}" and "${traitB}" both declare conflicting key "${conflictKey}".`,
+      `Trait composition conflict: "${traitA}" and "${traitB}" both declare conflicting key "${conflictKey}".`
     );
     this.name = 'CompositionConflictError';
   }
 }
 
 export class MissingComponentError extends Error {
-  constructor(public readonly composedName: string, public readonly missingComponent: string) {
+  constructor(
+    public readonly composedName: string,
+    public readonly missingComponent: string
+  ) {
     super(
       `Composition "${composedName}" references unknown component trait "${missingComponent}". ` +
-        `Register it in TraitBinder before compiling.`,
+        `Register it in TraitBinder before compiling.`
     );
     this.name = 'MissingComponentError';
   }
@@ -122,7 +125,7 @@ export class TraitCompositionCompiler {
     decls: TraitCompositionDecl[],
     getHandler: (name: string) => ComponentTraitHandler | undefined,
     traitGraph?: TraitDependencyGraph,
-    agentToken?: string,
+    agentToken?: string
   ): ComposedTraitDef[] {
     this.validateAccess(agentToken);
     return decls.map((decl) => this.compileOne(decl, getHandler, traitGraph));
@@ -159,7 +162,7 @@ export class TraitCompositionCompiler {
   private compileOne(
     decl: TraitCompositionDecl,
     getHandler: (name: string) => ComponentTraitHandler | undefined,
-    traitGraph?: TraitDependencyGraph,
+    traitGraph?: TraitDependencyGraph
   ): ComposedTraitDef {
     // 1. Resolve all components
     const handlers = decl.components.map((name) => {
@@ -216,9 +219,7 @@ export class TraitCompositionCompiler {
    * Naive conflict check: if handler A's `conflicts` array includes handler B's
    * name (or vice-versa), throw.
    */
-  private detectConflicts(
-    handlers: Array<{ name: string; handler: ComponentTraitHandler }>,
-  ): void {
+  private detectConflicts(handlers: Array<{ name: string; handler: ComponentTraitHandler }>): void {
     for (let i = 0; i < handlers.length; i++) {
       const a = handlers[i];
       const aConflicts = a.handler.conflicts ?? [];
@@ -243,12 +244,12 @@ export class TraitCompositionCompiler {
 export class UnauthorizedTraitCompositionAccessError extends Error {
   constructor(
     public readonly decision: AccessDecision,
-    public readonly compilerName: string,
+    public readonly compilerName: string
   ) {
     super(
       `[${compilerName}] Unauthorized access: ${decision.reason || 'Access denied'}\n` +
-      `Agent Role: ${decision.agentRole || 'unknown'}\n` +
-      `Required Permission: ${decision.requiredPermission || 'unknown'}`,
+        `Agent Role: ${decision.agentRole || 'unknown'}\n` +
+        `Required Permission: ${decision.requiredPermission || 'unknown'}`
     );
     this.name = 'UnauthorizedTraitCompositionAccessError';
   }

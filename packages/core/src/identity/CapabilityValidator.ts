@@ -69,7 +69,7 @@ export class CapabilityValidator {
   validate(
     token: CapabilityToken,
     resource: string,
-    action: 'read' | 'write' | 'delete',
+    action: 'read' | 'write' | 'delete'
   ): ValidationResult {
     // 1. Revocation
     if (this.revokedTokens.has(token.nonce)) {
@@ -89,8 +89,7 @@ export class CapabilityValidator {
 
     // 4. Scope matching
     const matchedScopes = token.scopes.filter(
-      (scope) =>
-        scope.resource === resource && scope.actions.includes(action),
+      (scope) => scope.resource === resource && scope.actions.includes(action)
     );
 
     if (matchedScopes.length === 0) {

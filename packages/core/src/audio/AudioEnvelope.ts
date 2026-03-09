@@ -12,10 +12,10 @@
 // =============================================================================
 
 export interface ADSRConfig {
-  attack: number;     // seconds
-  decay: number;      // seconds
-  sustain: number;    // 0-1 level
-  release: number;    // seconds
+  attack: number; // seconds
+  decay: number; // seconds
+  sustain: number; // 0-1 level
+  release: number; // seconds
 }
 
 export type EnvelopeStage = 'idle' | 'attack' | 'decay' | 'sustain' | 'release';
@@ -41,10 +41,16 @@ export class AudioEnvelope {
   // Gate On/Off
   // ---------------------------------------------------------------------------
 
-  noteOn(): void { this.stage = 'attack'; this.elapsed = 0; }
+  noteOn(): void {
+    this.stage = 'attack';
+    this.elapsed = 0;
+  }
 
   noteOff(): void {
-    if (this.stage !== 'idle') { this.stage = 'release'; this.elapsed = 0; }
+    if (this.stage !== 'idle') {
+      this.stage = 'release';
+      this.elapsed = 0;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -62,14 +68,20 @@ export class AudioEnvelope {
       case 'attack': {
         const t = Math.min(1, this.elapsed / this.config.attack);
         this.level = this.applyCurve(t);
-        if (t >= 1) { this.stage = 'decay'; this.elapsed = 0; }
+        if (t >= 1) {
+          this.stage = 'decay';
+          this.elapsed = 0;
+        }
         break;
       }
 
       case 'decay': {
         const t = Math.min(1, this.elapsed / this.config.decay);
         this.level = 1 - (1 - this.config.sustain) * this.applyCurve(t);
-        if (t >= 1) { this.stage = 'sustain'; this.elapsed = 0; }
+        if (t >= 1) {
+          this.stage = 'sustain';
+          this.elapsed = 0;
+        }
         break;
       }
 
@@ -80,7 +92,10 @@ export class AudioEnvelope {
       case 'release': {
         const t = Math.min(1, this.elapsed / this.config.release);
         this.level = this.config.sustain * (1 - this.applyCurve(t));
-        if (t >= 1) { this.stage = 'idle'; this.level = 0; }
+        if (t >= 1) {
+          this.stage = 'idle';
+          this.level = 0;
+        }
         break;
       }
     }
@@ -94,9 +109,12 @@ export class AudioEnvelope {
 
   private applyCurve(t: number): number {
     switch (this.curve) {
-      case 'linear': return t;
-      case 'exponential': return t * t;
-      case 'logarithmic': return Math.sqrt(t);
+      case 'linear':
+        return t;
+      case 'exponential':
+        return t * t;
+      case 'logarithmic':
+        return Math.sqrt(t);
     }
   }
 
@@ -104,9 +122,19 @@ export class AudioEnvelope {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getLevel(): number { return this.level; }
-  getStage(): EnvelopeStage { return this.stage; }
-  setConfig(config: Partial<ADSRConfig>): void { Object.assign(this.config, config); }
-  getConfig(): ADSRConfig { return { ...this.config }; }
-  isActive(): boolean { return this.stage !== 'idle'; }
+  getLevel(): number {
+    return this.level;
+  }
+  getStage(): EnvelopeStage {
+    return this.stage;
+  }
+  setConfig(config: Partial<ADSRConfig>): void {
+    Object.assign(this.config, config);
+  }
+  getConfig(): ADSRConfig {
+    return { ...this.config };
+  }
+  isActive(): boolean {
+    return this.stage !== 'idle';
+  }
 }

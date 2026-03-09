@@ -27,6 +27,7 @@ Opens at `http://localhost:5173` by default.
 ## Purpose
 
 Used for:
+
 - Live preview of compiled HoloScript scene graphs
 - Debugging trait bindings and entity hierarchies
 - Validating compiler output before targeting a production platform

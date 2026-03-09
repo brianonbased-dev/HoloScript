@@ -49,9 +49,8 @@ import { SelfImproveHarvester } from '../packages/core/src/self-improvement/Self
 
 // ─── Path Resolution ─────────────────────────────────────────────────────────
 
-const __scriptDir = typeof __dirname !== 'undefined'
-  ? __dirname
-  : path.dirname(fileURLToPath(import.meta.url));
+const __scriptDir =
+  typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = process.env.HOLOSCRIPT_ROOT ?? path.resolve(__scriptDir, '..');
 const STATE_DIR = path.join(REPO_ROOT, '.holoscript');
 const STATE_FILE = path.join(STATE_DIR, 'daemon-state.json');
@@ -81,8 +80,8 @@ interface DaemonState {
   bestQuality: number;
   focusRotation: string[];
   currentFocusIndex: number;
-  convergenceStreak: number;   // consecutive cycles with < 0.01 quality change
-  backoffMultiplier: number;   // increases when converged, resets on improvement
+  convergenceStreak: number; // consecutive cycles with < 0.01 quality change
+  backoffMultiplier: number; // increases when converged, resets on improvement
   improvements: Array<{
     cycle: number;
     timestamp: string;
@@ -151,7 +150,9 @@ function loadDaemonState(): DaemonState {
     if (fs.existsSync(STATE_FILE)) {
       return JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
     }
-  } catch { /* start fresh */ }
+  } catch {
+    /* start fresh */
+  }
 
   return {
     totalCycles: 0,
@@ -178,7 +179,9 @@ function appendQualityHistory(entry: QualityEntry): void {
     if (fs.existsSync(HISTORY_FILE)) {
       history = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf-8'));
     }
-  } catch { /* start fresh */ }
+  } catch {
+    /* start fresh */
+  }
   history.push(entry);
   // Keep last 500 entries
   if (history.length > 500) history = history.slice(-500);
@@ -192,7 +195,9 @@ function log(msg: string, toConsole = true): void {
   try {
     ensureStateDir();
     fs.appendFileSync(LOG_FILE, line + '\n', 'utf-8');
-  } catch { /* best effort */ }
+  } catch {
+    /* best effort */
+  }
 }
 
 // ─── Tool Loading ────────────────────────────────────────────────────────────
@@ -222,7 +227,7 @@ async function loadToolHandlers() {
 async function callTool(
   handlers: Array<(name: string, args: Record<string, unknown>) => Promise<unknown | null>>,
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<string> {
   try {
     for (const handler of handlers) {
@@ -239,22 +244,36 @@ async function callTool(
 
 function loadSkill(): string {
   const skillPaths = [
-    path.join(process.env.USERPROFILE || process.env.HOME || '', '.claude', 'skills', 'holoscript', 'SKILL.md'),
+    path.join(
+      process.env.USERPROFILE || process.env.HOME || '',
+      '.claude',
+      'skills',
+      'holoscript',
+      'SKILL.md'
+    ),
     path.join(REPO_ROOT, '.claude', 'skills', 'holoscript', 'SKILL.md'),
   ];
   for (const p of skillPaths) {
     try {
       if (fs.existsSync(p)) {
-        return fs.readFileSync(p, 'utf-8').replace(/^---[\s\S]*?---\s*/, '').slice(0, 3000);
+        return fs
+          .readFileSync(p, 'utf-8')
+          .replace(/^---[\s\S]*?---\s*/, '')
+          .slice(0, 3000);
       }
-    } catch { /* skip */ }
+    } catch {
+      /* skip */
+    }
   }
   return '';
 }
 
 // ─── Convergence Detection ──────────────────────────────────────────────────
 
-function detectConvergence(state: DaemonState, newQuality: number): {
+function detectConvergence(
+  state: DaemonState,
+  newQuality: number
+): {
   converged: boolean;
   backoffMinutes: number;
   reason: string;
@@ -276,9 +295,10 @@ function detectConvergence(state: DaemonState, newQuality: number): {
   return {
     converged: false,
     backoffMinutes: 1,
-    reason: newQuality > state.lastQuality
-      ? `Improving: ${state.lastQuality.toFixed(3)} → ${newQuality.toFixed(3)} (+${delta.toFixed(4)})`
-      : `Change: ${state.lastQuality.toFixed(3)} → ${newQuality.toFixed(3)}`,
+    reason:
+      newQuality > state.lastQuality
+        ? `Improving: ${state.lastQuality.toFixed(3)} → ${newQuality.toFixed(3)} (+${delta.toFixed(4)})`
+        : `Change: ${state.lastQuality.toFixed(3)} → ${newQuality.toFixed(3)}`,
   };
 }
 
@@ -299,7 +319,7 @@ async function runImprovementCycle(
   state: DaemonState,
   skillContext: string,
   focus: string,
-  harvestData?: CycleHarvestData,
+  harvestData?: CycleHarvestData
 ): Promise<{ summary: string; qualityScore: number }> {
   const tools: Anthropic.Tool[] = toolDefs.map((t: any) => ({
     name: t.name,
@@ -333,7 +353,10 @@ ${skillContext ? `## /holoscript Skill\n${skillContext}\n` : ''}
 Keep responses concise. You are a diagnosis engine, not a code editor.`;
 
   let messages: Anthropic.MessageParam[] = [
-    { role: 'user', content: `Run self-improvement cycle ${state.totalCycles + 1}. Focus: ${focus}. Start now.` },
+    {
+      role: 'user',
+      content: `Run self-improvement cycle ${state.totalCycles + 1}. Focus: ${focus}. Start now.`,
+    },
   ];
 
   let toolCallCount = 0;
@@ -359,7 +382,7 @@ Keep responses concise. You are a diagnosis engine, not a code editor.`;
     if (response.stop_reason !== 'tool_use') break;
 
     const toolUseBlocks = response.content.filter(
-      (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
+      (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use'
     );
 
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
@@ -369,7 +392,9 @@ Keep responses concise. You are a diagnosis engine, not a code editor.`;
       const input = toolUse.input as Record<string, unknown>;
 
       if (config.verbose) {
-        log(`  🔧 [${toolCallCount}/${MAX_TOOL_CALLS}] ${toolUse.name}(${JSON.stringify(input).slice(0, 120)})`);
+        log(
+          `  🔧 [${toolCallCount}/${MAX_TOOL_CALLS}] ${toolUse.name}(${JSON.stringify(input).slice(0, 120)})`
+        );
       }
 
       const result = await callTool(handlers, toolUse.name, input);
@@ -378,10 +403,18 @@ Keep responses concise. You are a diagnosis engine, not a code editor.`;
       if (harvestData) {
         harvestData.toolCalls.push({ name: toolUse.name, args: input, result });
         if (toolUse.name === 'holo_self_diagnose') {
-          try { harvestData.diagnoseResult = JSON.parse(result); } catch { /* skip */ }
+          try {
+            harvestData.diagnoseResult = JSON.parse(result);
+          } catch {
+            /* skip */
+          }
         }
         if (toolUse.name === 'holo_validate_quality') {
-          try { harvestData.validateResult = JSON.parse(result); } catch { /* skip */ }
+          try {
+            harvestData.validateResult = JSON.parse(result);
+          } catch {
+            /* skip */
+          }
         }
       }
 
@@ -390,7 +423,9 @@ Keep responses concise. You are a diagnosis engine, not a code editor.`;
         try {
           const parsed = JSON.parse(result);
           if (parsed.composite !== undefined) qualityScore = parsed.composite;
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
       }
 
       if (config.verbose) {
@@ -418,7 +453,7 @@ function harvestCycleData(
   cycleNumber: number,
   qualityScore: number,
   focus: string,
-  convergenceConverged: boolean,
+  convergenceConverged: boolean
 ): void {
   // Extract the top candidate from diagnose results
   const candidates = harvestData.diagnoseResult?.candidates ?? [];
@@ -431,7 +466,9 @@ function harvestCycleData(
     `Self-improvement cycle targeting ${focus}:`,
     `Analyze and test ${topCandidate.symbol} in ${topCandidate.file}`,
     topCandidate.reason ?? '',
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   // Build output from all tool call results (summarized)
   const outputParts: string[] = [];
@@ -461,20 +498,29 @@ function harvestCycleData(
 
   // Use the harvester's captureIteration by first setting up internal state
   // via a synthetic quality report and convergence status
-  const qualityReport = qualityScore > 0 ? {
-    score: qualityScore,
-    scorePercent: Math.round(qualityScore * 100),
-    dimensions: {} as any,
-    timestamp: new Date().toISOString(),
-    status: qualityScore >= 0.9 ? 'excellent' as const :
-            qualityScore >= 0.75 ? 'good' as const :
-            qualityScore >= 0.55 ? 'fair' as const :
-            qualityScore >= 0.35 ? 'poor' as const : 'critical' as const,
-  } : null;
+  const qualityReport =
+    qualityScore > 0
+      ? {
+          score: qualityScore,
+          scorePercent: Math.round(qualityScore * 100),
+          dimensions: {} as any,
+          timestamp: new Date().toISOString(),
+          status:
+            qualityScore >= 0.9
+              ? ('excellent' as const)
+              : qualityScore >= 0.75
+                ? ('good' as const)
+                : qualityScore >= 0.55
+                  ? ('fair' as const)
+                  : qualityScore >= 0.35
+                    ? ('poor' as const)
+                    : ('critical' as const),
+        }
+      : null;
 
   const convergenceStatus = {
     converged: convergenceConverged,
-    reason: convergenceConverged ? 'plateau' as const : null,
+    reason: convergenceConverged ? ('plateau' as const) : null,
     iterations: cycleNumber,
     currentScore: qualityScore,
     bestScore: qualityScore,
@@ -503,9 +549,10 @@ function harvestCycleData(
       target_file: topCandidate.file ?? '',
       quality_score: qualityScore,
       test_passed: testResult.passed,
-      pass_rate: testResult.testsTotal > 0
-        ? Math.round((testResult.testsPassed / testResult.testsTotal) * 10000) / 10000
-        : 0,
+      pass_rate:
+        testResult.testsTotal > 0
+          ? Math.round((testResult.testsPassed / testResult.testsTotal) * 10000) / 10000
+          : 0,
       convergence_converged: convergenceConverged,
       filter_stages_passed: ['format'],
     },
@@ -536,7 +583,7 @@ async function runDaemon(
   toolDefs: any[],
   config: Config,
   skillContext: string,
-  harvester?: SelfImproveHarvester,
+  harvester?: SelfImproveHarvester
 ) {
   let state = config.resume ? loadDaemonState() : loadDaemonState();
   let running = true;
@@ -546,25 +593,34 @@ async function runDaemon(
     log('🛑 Shutdown signal received — saving state...');
     saveDaemonState(state);
     if (harvester) {
-      harvester.flush().catch(() => { /* best effort */ });
+      harvester.flush().catch(() => {
+        /* best effort */
+      });
       const stats = harvester.getStats();
-      log(`📊 Harvest stats: ${stats.totalAccepted} accepted / ${stats.totalCaptured} captured → ${stats.outputFile}`);
+      log(
+        `📊 Harvest stats: ${stats.totalAccepted} accepted / ${stats.totalCaptured} captured → ${stats.outputFile}`
+      );
     }
-    log(`💾 State saved (${state.totalCycles} cycles, best quality: ${state.bestQuality.toFixed(3)})`);
+    log(
+      `💾 State saved (${state.totalCycles} cycles, best quality: ${state.bestQuality.toFixed(3)})`
+    );
     running = false;
   };
 
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 
-  log(`🔁 Daemon started — interval: ${config.intervalMinutes}m, focus rotation: ${state.focusRotation.join(' → ')}`);
+  log(
+    `🔁 Daemon started — interval: ${config.intervalMinutes}m, focus rotation: ${state.focusRotation.join(' → ')}`
+  );
   log(`📊 Resuming from cycle ${state.totalCycles}, best quality: ${state.bestQuality.toFixed(3)}`);
 
   while (running) {
     // Rotate focus each cycle
-    const focus = config.focus !== 'all'
-      ? config.focus
-      : state.focusRotation[state.currentFocusIndex % state.focusRotation.length];
+    const focus =
+      config.focus !== 'all'
+        ? config.focus
+        : state.focusRotation[state.currentFocusIndex % state.focusRotation.length];
 
     log(`\n━━━ Cycle ${state.totalCycles + 1} (focus: ${focus}) ━━━━━━━━━━━━━━━━━━━━━━`);
     const startTime = Date.now();
@@ -576,7 +632,14 @@ async function runDaemon(
         : undefined;
 
       const result = await runImprovementCycle(
-        anthropic, handlers, toolDefs, config, state, skillContext, focus, harvestData,
+        anthropic,
+        handlers,
+        toolDefs,
+        config,
+        state,
+        skillContext,
+        focus,
+        harvestData
       );
 
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -607,8 +670,12 @@ async function runDaemon(
       // Harvest training data if enabled
       if (harvester && harvestData) {
         harvestCycleData(
-          harvester, harvestData, state.totalCycles,
-          result.qualityScore, focus, convergence.converged,
+          harvester,
+          harvestData,
+          state.totalCycles,
+          result.qualityScore,
+          focus,
+          convergence.converged
         );
       }
 
@@ -620,12 +687,23 @@ async function runDaemon(
         timestamp: new Date().toISOString(),
         cycle: state.totalCycles,
         composite: result.qualityScore,
-        grade: result.qualityScore >= 0.9 ? 'A' : result.qualityScore >= 0.8 ? 'B' : result.qualityScore >= 0.7 ? 'C' : result.qualityScore >= 0.5 ? 'D' : 'F',
+        grade:
+          result.qualityScore >= 0.9
+            ? 'A'
+            : result.qualityScore >= 0.8
+              ? 'B'
+              : result.qualityScore >= 0.7
+                ? 'C'
+                : result.qualityScore >= 0.5
+                  ? 'D'
+                  : 'F',
         focus,
         summary: result.summary.slice(0, 300),
       });
 
-      log(`📋 Cycle ${state.totalCycles} done (${durationSec}s) — quality: ${result.qualityScore.toFixed(3)} — ${convergence.reason}`);
+      log(
+        `📋 Cycle ${state.totalCycles} done (${durationSec}s) — quality: ${result.qualityScore.toFixed(3)} — ${convergence.reason}`
+      );
       log(result.summary.split('\n').slice(0, 5).join('\n'));
 
       // Calculate next interval
@@ -633,10 +711,14 @@ async function runDaemon(
       const nextIntervalMin = (nextIntervalMs / 60000).toFixed(0);
 
       if (convergence.converged) {
-        log(`💤 Converged (streak ${state.convergenceStreak}) — backing off to ${nextIntervalMin}m interval`);
+        log(
+          `💤 Converged (streak ${state.convergenceStreak}) — backing off to ${nextIntervalMin}m interval`
+        );
       }
 
-      log(`⏰ Next cycle in ${nextIntervalMin}m (${new Date(Date.now() + nextIntervalMs).toLocaleTimeString()})`);
+      log(
+        `⏰ Next cycle in ${nextIntervalMin}m (${new Date(Date.now() + nextIntervalMs).toLocaleTimeString()})`
+      );
 
       // Wait for next cycle
       await new Promise<void>((resolve) => {
@@ -650,7 +732,6 @@ async function runDaemon(
           }
         }, 1000);
       });
-
     } catch (err: any) {
       log(`❌ Cycle failed: ${err.message}`);
       if (config.verbose) log(err.stack);
@@ -674,16 +755,15 @@ async function runSingleShot(
   toolDefs: any[],
   config: Config,
   skillContext: string,
-  harvester?: SelfImproveHarvester,
+  harvester?: SelfImproveHarvester
 ) {
   const state = loadDaemonState();
 
   for (let i = 0; i < config.cycles; i++) {
-    const focus = config.focus !== 'all'
-      ? config.focus
-      : state.focusRotation[
-          (state.currentFocusIndex + i) % state.focusRotation.length
-        ];
+    const focus =
+      config.focus !== 'all'
+        ? config.focus
+        : state.focusRotation[(state.currentFocusIndex + i) % state.focusRotation.length];
 
     console.log(`\n━━━ Cycle ${i + 1}/${config.cycles} (focus: ${focus}) ━━━━━━━━━━━━━━━━━━━`);
     const startTime = Date.now();
@@ -695,7 +775,14 @@ async function runSingleShot(
         : undefined;
 
       const result = await runImprovementCycle(
-        anthropic, handlers, toolDefs, config, state, skillContext, focus, harvestData,
+        anthropic,
+        handlers,
+        toolDefs,
+        config,
+        state,
+        skillContext,
+        focus,
+        harvestData
       );
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
 
@@ -707,8 +794,12 @@ async function runSingleShot(
       // Harvest training data if enabled
       if (harvester && harvestData) {
         harvestCycleData(
-          harvester, harvestData, state.totalCycles,
-          result.qualityScore, focus, false,
+          harvester,
+          harvestData,
+          state.totalCycles,
+          result.qualityScore,
+          focus,
+          false
         );
       }
 
@@ -722,7 +813,9 @@ async function runSingleShot(
         summary: result.summary.slice(0, 300),
       });
 
-      console.log(`\n📋 Cycle ${i + 1} (${durationSec}s) — quality: ${result.qualityScore.toFixed(3)}`);
+      console.log(
+        `\n📋 Cycle ${i + 1} (${durationSec}s) — quality: ${result.qualityScore.toFixed(3)}`
+      );
       console.log(result.summary);
       console.log(`✅ Cycle ${i + 1} complete\n`);
     } catch (err: any) {
@@ -750,11 +843,15 @@ async function main() {
   }
 
   console.log('╔══════════════════════════════════════════════════════════════╗');
-  console.log(`║  🔁 HoloScript Self-Improvement ${config.daemon ? 'DAEMON' : 'Runner'}                  ║`);
+  console.log(
+    `║  🔁 HoloScript Self-Improvement ${config.daemon ? 'DAEMON' : 'Runner'}                  ║`
+  );
   console.log('╚══════════════════════════════════════════════════════════════╝');
   console.log(`  Root:     ${config.rootDir}`);
   console.log(`  Focus:    ${config.focus}`);
-  console.log(`  Mode:     ${config.daemon ? `DAEMON (every ${config.intervalMinutes}m)` : `SINGLE (${config.cycles} cycle${config.cycles > 1 ? 's' : ''})`}`);
+  console.log(
+    `  Mode:     ${config.daemon ? `DAEMON (every ${config.intervalMinutes}m)` : `SINGLE (${config.cycles} cycle${config.cycles > 1 ? 's' : ''})`}`
+  );
   console.log(`  Commit:   ${config.commit ? '✅ YES' : '❌ NO (dry run)'}`);
   console.log(`  Harvest:  ${config.harvest ? '✅ YES (JSONL training data)' : '❌ NO'}`);
   console.log(`  Model:    ${MODEL}`);
@@ -782,7 +879,9 @@ async function main() {
   // Load state
   const state = loadDaemonState();
   if (state.totalCycles > 0) {
-    console.log(`📊 Resuming — ${state.totalCycles} prior cycles, best quality: ${state.bestQuality.toFixed(3)}`);
+    console.log(
+      `📊 Resuming — ${state.totalCycles} prior cycles, best quality: ${state.bestQuality.toFixed(3)}`
+    );
   }
 
   // Initialize harvester if --harvest flag is set

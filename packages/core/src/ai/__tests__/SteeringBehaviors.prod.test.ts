@@ -12,7 +12,9 @@ function agent(px = 0, py = 0, pz = 0, vx = 0, vy = 0, vz = 0): SteeringAgent {
   return {
     position: { x: px, y: py, z: pz },
     velocity: { x: vx, y: vy, z: vz },
-    maxSpeed: 10, maxForce: 5, mass: 1,
+    maxSpeed: 10,
+    maxForce: 5,
+    mass: 1,
   };
 }
 
@@ -61,7 +63,12 @@ describe('SteeringBehaviors — Production', () => {
   it('flock combines separation/alignment/cohesion', () => {
     const a = agent(0, 0, 0, 1, 0, 0);
     const neighbors = [agent(2, 0, 0, 1, 0, 0), agent(-2, 0, 0, 1, 0, 0)];
-    const config = { separationWeight: 1, alignmentWeight: 1, cohesionWeight: 1, neighborRadius: 10 };
+    const config = {
+      separationWeight: 1,
+      alignmentWeight: 1,
+      cohesionWeight: 1,
+      neighborRadius: 10,
+    };
     const force = SteeringBehaviors.flock(a, neighbors, config);
     expect(typeof force.x).toBe('number');
     expect(typeof force.y).toBe('number');
@@ -71,7 +78,12 @@ describe('SteeringBehaviors — Production', () => {
   it('flock returns zero with no neighbors in range', () => {
     const a = agent(0, 0, 0);
     const neighbors = [agent(1000, 0, 0)]; // way out of range
-    const config = { separationWeight: 1, alignmentWeight: 1, cohesionWeight: 1, neighborRadius: 5 };
+    const config = {
+      separationWeight: 1,
+      alignmentWeight: 1,
+      cohesionWeight: 1,
+      neighborRadius: 5,
+    };
     const force = SteeringBehaviors.flock(a, neighbors, config);
     expect(force.x).toBe(0);
     expect(force.y).toBe(0);
@@ -80,7 +92,12 @@ describe('SteeringBehaviors — Production', () => {
 
   it('flock excludes self from neighbors', () => {
     const a = agent(0, 0, 0);
-    const config = { separationWeight: 1, alignmentWeight: 1, cohesionWeight: 1, neighborRadius: 10 };
+    const config = {
+      separationWeight: 1,
+      alignmentWeight: 1,
+      cohesionWeight: 1,
+      neighborRadius: 10,
+    };
     const force = SteeringBehaviors.flock(a, [a], config); // self is neighbor
     expect(force.x).toBe(0); // should be zero since self filtered out
   });

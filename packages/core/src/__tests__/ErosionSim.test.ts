@@ -11,9 +11,7 @@ function flatMap(w: number, h: number, val = 10): Float32Array {
 
 function slopedMap(w: number, h: number): Float32Array {
   const map = new Float32Array(w * h);
-  for (let z = 0; z < h; z++)
-    for (let x = 0; x < w; x++)
-      map[z * w + x] = 50 - z * (50 / h);
+  for (let z = 0; z < h; z++) for (let x = 0; x < w; x++) map[z * w + x] = 50 - z * (50 / h);
   return map;
 }
 
@@ -47,7 +45,10 @@ describe('ErosionSim', () => {
     e.hydraulicErode(map, 32, 32);
     let changed = false;
     for (let i = 0; i < map.length; i++) {
-      if (Math.abs(map[i] - original[i]) > 1e-6) { changed = true; break; }
+      if (Math.abs(map[i] - original[i]) > 1e-6) {
+        changed = true;
+        break;
+      }
     }
     expect(changed).toBe(true);
   });
@@ -91,7 +92,10 @@ describe('ErosionSim', () => {
     new ErosionSim({ iterations: 200, seed: 999 }).hydraulicErode(map2, 16, 16);
     let same = true;
     for (let i = 0; i < map1.length; i++) {
-      if (Math.abs(map1[i] - map2[i]) > 1e-6) { same = false; break; }
+      if (Math.abs(map1[i] - map2[i]) > 1e-6) {
+        same = false;
+        break;
+      }
     }
     expect(same).toBe(false);
   });

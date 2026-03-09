@@ -3,7 +3,14 @@ import { CapabilityMatcher, findAgents, findBestAgent } from '../CapabilityMatch
 import type { AgentManifest, AgentCapability } from '../AgentManifest';
 
 function makeCap(overrides: Partial<AgentCapability> = {}): AgentCapability {
-  return { type: 'render', domain: 'spatial', latency: 'fast', priority: 50, available: true, ...overrides };
+  return {
+    type: 'render',
+    domain: 'spatial',
+    latency: 'fast',
+    priority: 50,
+    available: true,
+    ...overrides,
+  };
 }
 
 function makeManifest(id: string, overrides: Partial<AgentManifest> = {}): AgentManifest {
@@ -62,7 +69,9 @@ describe('CapabilityMatcher', () => {
   });
 
   it('returns score with priority bonus', () => {
-    const result = matcher.matchCapability(makeCap({ type: 'render', priority: 80 }), { type: 'render' });
+    const result = matcher.matchCapability(makeCap({ type: 'render', priority: 80 }), {
+      type: 'render',
+    });
     expect(result!.score).toBeGreaterThan(0);
   });
 

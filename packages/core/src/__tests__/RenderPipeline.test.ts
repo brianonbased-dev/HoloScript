@@ -10,21 +10,55 @@ describe('Cycle 147: Render Pipeline', () => {
 
   it('should order passes by dependencies', () => {
     const rp = new RenderPass();
-    rp.addPass({ id: 'composite', name: 'Composite', order: 2, enabled: true, dependencies: ['gbuffer', 'lighting'], attachments: [], inputs: [] });
-    rp.addPass({ id: 'gbuffer', name: 'GBuffer', order: 0, enabled: true, dependencies: [], attachments: [{ name: 'albedo', format: 'rgba8', width: 1920, height: 1080, clearOp: 'clear' }], inputs: [] });
-    rp.addPass({ id: 'lighting', name: 'Lighting', order: 1, enabled: true, dependencies: ['gbuffer'], attachments: [], inputs: ['albedo'] });
+    rp.addPass({
+      id: 'composite',
+      name: 'Composite',
+      order: 2,
+      enabled: true,
+      dependencies: ['gbuffer', 'lighting'],
+      attachments: [],
+      inputs: [],
+    });
+    rp.addPass({
+      id: 'gbuffer',
+      name: 'GBuffer',
+      order: 0,
+      enabled: true,
+      dependencies: [],
+      attachments: [
+        { name: 'albedo', format: 'rgba8', width: 1920, height: 1080, clearOp: 'clear' },
+      ],
+      inputs: [],
+    });
+    rp.addPass({
+      id: 'lighting',
+      name: 'Lighting',
+      order: 1,
+      enabled: true,
+      dependencies: ['gbuffer'],
+      attachments: [],
+      inputs: ['albedo'],
+    });
 
     const order = rp.getExecutionOrder();
-    expect(order.map(p => p.id)).toEqual(['gbuffer', 'lighting', 'composite']);
+    expect(order.map((p) => p.id)).toEqual(['gbuffer', 'lighting', 'composite']);
   });
 
   it('should validate dependencies and detect missing inputs', () => {
     const rp = new RenderPass();
-    rp.addPass({ id: 'final', name: 'Final', order: 0, enabled: true, dependencies: ['missing'], attachments: [], inputs: ['nonexistent'] });
+    rp.addPass({
+      id: 'final',
+      name: 'Final',
+      order: 0,
+      enabled: true,
+      dependencies: ['missing'],
+      attachments: [],
+      inputs: ['nonexistent'],
+    });
 
     const errors = rp.validate();
-    expect(errors.some(e => e.includes('unknown pass'))).toBe(true);
-    expect(errors.some(e => e.includes('nonexistent'))).toBe(true);
+    expect(errors.some((e) => e.includes('unknown pass'))).toBe(true);
+    expect(errors.some((e) => e.includes('nonexistent'))).toBe(true);
   });
 
   // -------------------------------------------------------------------------
@@ -72,7 +106,13 @@ describe('Cycle 147: Render Pipeline', () => {
 
   it('should calculate point light attenuation', () => {
     const lm = new LightingModel();
-    lm.addLight({ id: 'lamp', type: 'point', position: { x: 0, y: 5, z: 0 }, intensity: 1, range: 20 });
+    lm.addLight({
+      id: 'lamp',
+      type: 'point',
+      position: { x: 0, y: 5, z: 0 },
+      intensity: 1,
+      range: 20,
+    });
 
     const near = lm.calculateAttenuation('lamp', { x: 0, y: 4, z: 0 });
     const far = lm.calculateAttenuation('lamp', { x: 0, y: -14, z: 0 });
@@ -84,7 +124,13 @@ describe('Cycle 147: Render Pipeline', () => {
 
   it('should sample GI probes with distance falloff', () => {
     const lm = new LightingModel();
-    lm.addGIProbe({ id: 'p1', position: { x: 0, y: 0, z: 0 }, radius: 10, irradiance: [0.5, 0.4, 0.3], weight: 1 });
+    lm.addGIProbe({
+      id: 'p1',
+      position: { x: 0, y: 0, z: 0 },
+      radius: 10,
+      irradiance: [0.5, 0.4, 0.3],
+      weight: 1,
+    });
 
     const inside = lm.sampleGI({ x: 1, y: 0, z: 0 });
     expect(inside[0]).toBeGreaterThan(0);
@@ -97,8 +143,20 @@ describe('Cycle 147: Render Pipeline', () => {
   it('should cull lights by range and layer', () => {
     const lm = new LightingModel();
     lm.addLight({ id: 'sun', type: 'directional', intensity: 1 });
-    lm.addLight({ id: 'close', type: 'point', position: { x: 5, y: 0, z: 0 }, range: 10, layer: 1 });
-    lm.addLight({ id: 'far', type: 'point', position: { x: 500, y: 0, z: 0 }, range: 10, layer: 2 });
+    lm.addLight({
+      id: 'close',
+      type: 'point',
+      position: { x: 5, y: 0, z: 0 },
+      range: 10,
+      layer: 1,
+    });
+    lm.addLight({
+      id: 'far',
+      type: 'point',
+      position: { x: 500, y: 0, z: 0 },
+      range: 10,
+      layer: 2,
+    });
 
     // All layers, near camera
     const visible = lm.getVisibleLights({ x: 0, y: 0, z: 0 }, 50);
@@ -106,7 +164,7 @@ describe('Cycle 147: Render Pipeline', () => {
 
     // Layer filter — only layer 2 (sun has all layers so still included)
     const layer2 = lm.getVisibleLights({ x: 0, y: 0, z: 0 }, 50, 2);
-    expect(layer2.some(l => l.id === 'sun')).toBe(true);   // Sun passes all masks
-    expect(layer2.some(l => l.id === 'close')).toBe(false); // Close is layer 1, mask 2 → excluded
+    expect(layer2.some((l) => l.id === 'sun')).toBe(true); // Sun passes all masks
+    expect(layer2.some((l) => l.id === 'close')).toBe(false); // Close is layer 1, mask 2 → excluded
   });
 });

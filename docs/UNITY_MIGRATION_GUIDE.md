@@ -8,14 +8,14 @@
 
 ## Why Migrate?
 
-| Pain Point | Unity | HoloScript |
-|---|---|---|
-| Licensing | Proprietary (runtime fees reinstated risk) | MIT — irrevocable, zero risk |
-| Revenue share | 70/30 Asset Store | 90/10 HoloLand Marketplace |
-| Distribution | APK / EXE download | URL — instant play, no install |
-| 3D generation | No AI scene generation | `SpatialAgentOrchestrator` (text → 3D) |
-| Local LLM agents | Plugin-dependent | `LocalLLMTrait` (Ollama/LM Studio built-in) |
-| Privacy | No ZKP support | `ZkPrivateTrait` (Aztec Noir) |
+| Pain Point       | Unity                                      | HoloScript                                  |
+| ---------------- | ------------------------------------------ | ------------------------------------------- |
+| Licensing        | Proprietary (runtime fees reinstated risk) | MIT — irrevocable, zero risk                |
+| Revenue share    | 70/30 Asset Store                          | 90/10 HoloLand Marketplace                  |
+| Distribution     | APK / EXE download                         | URL — instant play, no install              |
+| 3D generation    | No AI scene generation                     | `SpatialAgentOrchestrator` (text → 3D)      |
+| Local LLM agents | Plugin-dependent                           | `LocalLLMTrait` (Ollama/LM Studio built-in) |
+| Privacy          | No ZKP support                             | `ZkPrivateTrait` (Aztec Noir)               |
 
 ---
 
@@ -24,6 +24,7 @@
 ### 1. Export Your Unity Scene
 
 From **Unity Editor**:
+
 ```
 Tools → HoloScript Exporter → Export Scene as JSON
 ```
@@ -77,54 +78,54 @@ const result = convertUnityScene({
   },
 });
 
-console.log(result.dsl);           // HoloScript DSL
-console.log(result.traits);        // Required traits: ['PhysicsTrait']
-console.log(result.warnings);      // Any conversion warnings
+console.log(result.dsl); // HoloScript DSL
+console.log(result.traits); // Required traits: ['PhysicsTrait']
+console.log(result.warnings); // Any conversion warnings
 ```
 
 ---
 
 ## Component → Trait Mapping
 
-| Unity Component | HoloScript Trait | Notes |
-|---|---|---|
-| `Rigidbody` | `PhysicsTrait` | Full gravity, mass, drag support |
-| `BoxCollider` | `ColliderTrait` | Layer mask → collision group |
-| `SphereCollider` | `ColliderTrait` | |
-| `CapsuleCollider` | `ColliderTrait` | |
-| `CharacterController` | `CharacterTrait` | Step height, slope limit |
-| `NavMeshAgent` | `PatrolTrait` | Waypoints via agent config |
-| `Animator` | `AnimationTrait` | State machine → trait states |
-| `AudioSource` | `AudioTrait` | 3D spatial audio preserved |
-| `Light` | `LightTrait` | All light types supported |
-| `Camera` | `CameraTrait` | FOV, near/far planes |
-| `ParticleSystem` | `ParticleTrait` | Basic emission, simplified |
-| `Canvas` | `UITrait` | World-space UI panels |
-| `NetworkIdentity` | `MultiplayerTrait` | Authority model differs |
+| Unity Component       | HoloScript Trait   | Notes                            |
+| --------------------- | ------------------ | -------------------------------- |
+| `Rigidbody`           | `PhysicsTrait`     | Full gravity, mass, drag support |
+| `BoxCollider`         | `ColliderTrait`    | Layer mask → collision group     |
+| `SphereCollider`      | `ColliderTrait`    |                                  |
+| `CapsuleCollider`     | `ColliderTrait`    |                                  |
+| `CharacterController` | `CharacterTrait`   | Step height, slope limit         |
+| `NavMeshAgent`        | `PatrolTrait`      | Waypoints via agent config       |
+| `Animator`            | `AnimationTrait`   | State machine → trait states     |
+| `AudioSource`         | `AudioTrait`       | 3D spatial audio preserved       |
+| `Light`               | `LightTrait`       | All light types supported        |
+| `Camera`              | `CameraTrait`      | FOV, near/far planes             |
+| `ParticleSystem`      | `ParticleTrait`    | Basic emission, simplified       |
+| `Canvas`              | `UITrait`          | World-space UI panels            |
+| `NetworkIdentity`     | `MultiplayerTrait` | Authority model differs          |
 
 ### Unsupported Components (Workarounds)
 
-| Unity Component | Status | HoloScript Alternative |
-|---|---|---|
-| `TerrainCollider` | ⚠️ Partial | Use `ColliderTrait` with mesh |
-| `WheelCollider` | ❌ Manual | Custom physics via `PhysicsTrait` |
-| `Cloth` | ❌ Manual | Shader-based cloth simulation |
-| `Joint` (all types) | ⚠️ Partial | Constraint system in v4.1 |
-| `VideoPlayer` | ❌ Manual | `MediaTrait` (v4.2) |
+| Unity Component     | Status     | HoloScript Alternative            |
+| ------------------- | ---------- | --------------------------------- |
+| `TerrainCollider`   | ⚠️ Partial | Use `ColliderTrait` with mesh     |
+| `WheelCollider`     | ❌ Manual  | Custom physics via `PhysicsTrait` |
+| `Cloth`             | ❌ Manual  | Shader-based cloth simulation     |
+| `Joint` (all types) | ⚠️ Partial | Constraint system in v4.1         |
+| `VideoPlayer`       | ❌ Manual  | `MediaTrait` (v4.2)               |
 
 ---
 
 ## Material / Shader Mapping
 
-| Unity Shader | HoloScript Type | Notes |
-|---|---|---|
-| `Standard` | `pbr` | Full metalness/roughness workflow |
-| `URP/Lit` | `pbr` | |
-| `URP/Unlit` | `unlit` | No lighting calculations |
-| `Unlit/Color` | `unlit` | |
-| `Toon/Lit` | `toon` | Cel shading preserved |
-| `Holographic/Additive` | `holographic` | AR overlay mode |
-| Custom shaders | ⚠️ Manual | Use Visual Shader Editor |
+| Unity Shader           | HoloScript Type | Notes                             |
+| ---------------------- | --------------- | --------------------------------- |
+| `Standard`             | `pbr`           | Full metalness/roughness workflow |
+| `URP/Lit`              | `pbr`           |                                   |
+| `URP/Unlit`            | `unlit`         | No lighting calculations          |
+| `Unlit/Color`          | `unlit`         |                                   |
+| `Toon/Lit`             | `toon`          | Cel shading preserved             |
+| `Holographic/Additive` | `holographic`   | AR overlay mode                   |
+| Custom shaders         | ⚠️ Manual       | Use Visual Shader Editor          |
 
 ### Color Space
 
@@ -142,7 +143,7 @@ Unity                          HoloScript
 Scene                      →   scene MyScene { }
   │
   ├── GameObject             →   object my_go : box { }
-  │     ├── Transform        →   position/rotation/scale fields  
+  │     ├── Transform        →   position/rotation/scale fields
   │     ├── MeshFilter       →   geometry type (box/sphere/etc)
   │     ├── MeshRenderer     →   material: my_material
   │     ├── Rigidbody        →   traits: ["PhysicsTrait"]
@@ -159,15 +160,16 @@ Scene                      →   scene MyScene { }
 Unity `MonoBehaviour` → HoloScript requires a rewrite, but the patterns map well:
 
 ### Unity MonoBehaviour
+
 ```csharp
 public class EnemyAI : MonoBehaviour {
     public float speed = 3f;
     private NavMeshAgent agent;
-    
+
     void Start() {
         agent = GetComponent<NavMeshAgent>();
     }
-    
+
     void Update() {
         // Move toward player
         agent.SetDestination(player.transform.position);
@@ -176,12 +178,13 @@ public class EnemyAI : MonoBehaviour {
 ```
 
 ### HoloScript Equivalent
+
 ```holoscript
 // In your .holo scene file:
 object enemy : capsule {
   position: [0, 0, 0]
   traits: ["PatrolTrait", "AgentMemoryTrait"]
-  
+
   config PatrolTrait {
     speed: 3.0
     mode: "chase"
@@ -191,6 +194,7 @@ object enemy : capsule {
 ```
 
 Or via TypeScript trait:
+
 ```typescript
 import { agentMovementSystem, ECSWorld } from '@holoscript/core/traits/ECSWorldTrait';
 
@@ -215,15 +219,16 @@ console.log(`Entities/sec: ${result.entitiesPerSecond.toFixed(0)}`);
 
 **Expected results (Apple M1, 2024):**
 
-| Entity Count | Avg Frame (TS) | Meets 60fps |
-|---|---|---|
-| 100 | <0.1ms | ✅ |
-| 1,000 | <1ms | ✅ |
-| 5,000 | ~4ms | ✅ |
-| 10,000 | ~16ms | ⚠️ Borderline |
-| 50,000 | ~80ms | ❌ Use WASM path |
+| Entity Count | Avg Frame (TS) | Meets 60fps      |
+| ------------ | -------------- | ---------------- |
+| 100          | <0.1ms         | ✅               |
+| 1,000        | <1ms           | ✅               |
+| 5,000        | ~4ms           | ✅               |
+| 10,000       | ~16ms          | ⚠️ Borderline    |
+| 50,000       | ~80ms          | ❌ Use WASM path |
 
 For 10K+ entities, use the compiled WASM path via:
+
 ```bash
 holoscript build --target wasm --optimize performance
 ```
@@ -252,4 +257,4 @@ holoscript build --target wasm --optimize performance
 
 ---
 
-*See also: [IMMUTABILITY_MANIFESTO.md](../IMMUTABILITY_MANIFESTO.md) — our binding commitment on licensing and revenue splits.*
+_See also: [IMMUTABILITY_MANIFESTO.md](../IMMUTABILITY_MANIFESTO.md) — our binding commitment on licensing and revenue splits._

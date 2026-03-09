@@ -6,7 +6,19 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Search, Download, Settings, ToggleLeft, ToggleRight, Trash2, ExternalLink, Package, Check, AlertCircle } from 'lucide-react';
+import {
+  X,
+  Search,
+  Download,
+  Settings,
+  ToggleLeft,
+  ToggleRight,
+  Trash2,
+  ExternalLink,
+  Package,
+  Check,
+  AlertCircle,
+} from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { usePluginManager } from '@/lib/plugins/pluginManager';
 import type { PluginRegistryEntry } from '@/lib/plugins/types';
@@ -16,16 +28,20 @@ interface PluginManagerPanelProps {
 }
 
 export function PluginManagerPanel({ onClose }: PluginManagerPanelProps) {
-  const { plugins, loading, error, enablePlugin, disablePlugin, uninstallPlugin } = usePluginManager();
+  const { plugins, loading, error, enablePlugin, disablePlugin, uninstallPlugin } =
+    usePluginManager();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlugin, setSelectedPlugin] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
   const pluginsList = Array.from(plugins.values());
-  const filteredPlugins = pluginsList.filter((entry) =>
-    entry.plugin.metadata.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    entry.plugin.metadata.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    entry.plugin.metadata.keywords?.some((k) => k.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredPlugins = pluginsList.filter(
+    (entry) =>
+      entry.plugin.metadata.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      entry.plugin.metadata.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      entry.plugin.metadata.keywords?.some((k) =>
+        k.toLowerCase().includes(searchQuery.toLowerCase())
+      )
   );
 
   const handleToggle = async (id: string, enabled: boolean) => {
@@ -64,7 +80,8 @@ export function PluginManagerPanel({ onClose }: PluginManagerPanelProps) {
             <div>
               <h2 className="text-lg font-bold text-studio-text">Plugin Manager</h2>
               <p className="text-[10px] text-studio-muted">
-                {pluginsList.length} plugins installed • {pluginsList.filter((p) => p.enabled).length} enabled
+                {pluginsList.length} plugins installed •{' '}
+                {pluginsList.filter((p) => p.enabled).length} enabled
               </p>
             </div>
           </div>
@@ -112,7 +129,9 @@ export function PluginManagerPanel({ onClose }: PluginManagerPanelProps) {
                 <Package className="h-16 w-16 text-studio-muted opacity-50" />
                 <p className="mt-4 text-sm font-medium text-studio-text">No plugins found</p>
                 <p className="mt-1 text-xs text-studio-muted">
-                  {searchQuery ? 'Try a different search term' : 'Install plugins to extend HoloScript Studio'}
+                  {searchQuery
+                    ? 'Try a different search term'
+                    : 'Install plugins to extend HoloScript Studio'}
                 </p>
               </div>
             )}
@@ -150,11 +169,17 @@ export function PluginManagerPanel({ onClose }: PluginManagerPanelProps) {
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-studio-border px-6 py-4">
           <p className="text-xs text-studio-muted">
-            Plugin SDK: <a href="https://holoscript.net/docs/plugins" target="_blank" rel="noopener noreferrer" className="text-studio-accent hover:underline">Documentation</a>
+            Plugin SDK:{' '}
+            <a
+              href="https://holoscript.net/docs/plugins"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-studio-accent hover:underline"
+            >
+              Documentation
+            </a>
           </p>
-          <button
-            className="flex items-center gap-2 rounded-lg bg-studio-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-studio-accent/90"
-          >
+          <button className="flex items-center gap-2 rounded-lg bg-studio-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-studio-accent/90">
             <Download className="h-4 w-4" />
             Install Plugin
           </button>
@@ -175,7 +200,14 @@ interface PluginCardProps {
   onSettings: () => void;
 }
 
-function PluginCard({ entry, selected, onSelect, onToggle, onUninstall, onSettings }: PluginCardProps) {
+function PluginCard({
+  entry,
+  selected,
+  onSelect,
+  onToggle,
+  onUninstall,
+  onSettings,
+}: PluginCardProps) {
   const { plugin, enabled } = entry;
   const { metadata } = plugin;
   const IconComponent = metadata.icon ? (LucideIcons as any)[metadata.icon] || Package : Package;
@@ -192,7 +224,9 @@ function PluginCard({ entry, selected, onSelect, onToggle, onUninstall, onSettin
       <div className="flex items-start gap-3">
         {/* Icon */}
         <div className={`rounded-lg p-2 ${enabled ? 'bg-emerald-500/20' : 'bg-studio-border/50'}`}>
-          <IconComponent className={`h-5 w-5 ${enabled ? 'text-emerald-400' : 'text-studio-muted'}`} />
+          <IconComponent
+            className={`h-5 w-5 ${enabled ? 'text-emerald-400' : 'text-studio-muted'}`}
+          />
         </div>
 
         {/* Info */}
@@ -342,7 +376,10 @@ function PluginDetails({ entry, showSettings, onCloseSettings }: PluginDetailsPr
           <p className="text-xs font-medium text-studio-muted">Author</p>
           <p className="mt-1 text-sm text-studio-text">{metadata.author.name}</p>
           {metadata.author.email && (
-            <a href={`mailto:${metadata.author.email}`} className="mt-0.5 text-xs text-studio-accent hover:underline">
+            <a
+              href={`mailto:${metadata.author.email}`}
+              className="mt-0.5 text-xs text-studio-accent hover:underline"
+            >
               {metadata.author.email}
             </a>
           )}
@@ -373,7 +410,9 @@ function PluginDetails({ entry, showSettings, onCloseSettings }: PluginDetailsPr
         {plugin.nodeTypes && (
           <div className="flex items-center gap-2 text-xs">
             <span className="rounded bg-blue-500/20 px-2 py-1 text-blue-400">
-              {(plugin.nodeTypes.workflow?.length || 0) + (plugin.nodeTypes.behaviorTree?.length || 0)} custom nodes
+              {(plugin.nodeTypes.workflow?.length || 0) +
+                (plugin.nodeTypes.behaviorTree?.length || 0)}{' '}
+              custom nodes
             </span>
           </div>
         )}

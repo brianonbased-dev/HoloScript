@@ -35,7 +35,7 @@ describe('ResourceLoader — Production', () => {
       const results = await loader.loadAll();
 
       expect(results.length).toBe(2);
-      expect(results.every(r => r.status === 'loaded')).toBe(true);
+      expect(results.every((r) => r.status === 'loaded')).toBe(true);
       expect(loader.getLoadedCount()).toBe(2);
     });
 
@@ -63,8 +63,8 @@ describe('ResourceLoader — Production', () => {
       failLoader.addRequest(makeReq('child', ['dep']));
       const results = await failLoader.loadAll();
 
-      const depResult = results.find(r => r.id === 'dep');
-      const childResult = results.find(r => r.id === 'child');
+      const depResult = results.find((r) => r.id === 'dep');
+      const childResult = results.find((r) => r.id === 'child');
       expect(depResult?.status).toBe('error');
       expect(childResult?.status).toBe('error');
       expect(childResult?.error).toBe('dependency failed');
@@ -76,7 +76,7 @@ describe('ResourceLoader — Production', () => {
       loader.cancelRequest('a');
 
       const results = await loader.loadAll();
-      const aResult = results.find(r => r.id === 'a');
+      const aResult = results.find((r) => r.id === 'a');
       expect(aResult?.status).toBe('cancelled');
     });
 

@@ -193,10 +193,7 @@ describe('generateReport', () => {
       {
         suite: 'Parser',
         timestamp: '2026-02-18T00:00:00Z',
-        results: [
-          makeResult('parse-simple', 50000),
-          makeResult('parse-complex', 20000),
-        ],
+        results: [makeResult('parse-simple', 50000), makeResult('parse-complex', 20000)],
       },
     ],
   };

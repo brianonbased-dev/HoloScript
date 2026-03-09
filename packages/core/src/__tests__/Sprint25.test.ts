@@ -187,9 +187,22 @@ describe('Feature 2A: PostProcess Types — getDefaultParams / mergeParams', () 
 
   it('DEFAULT_PARAMS has entry for all 16 effect types', () => {
     const types: PostProcessEffectType[] = [
-      'bloom', 'tonemap', 'dof', 'motionBlur', 'ssao', 'fxaa',
-      'sharpen', 'vignette', 'colorGrade', 'filmGrain',
-      'chromaticAberration', 'fog', 'caustics', 'ssr', 'ssgi', 'custom',
+      'bloom',
+      'tonemap',
+      'dof',
+      'motionBlur',
+      'ssao',
+      'fxaa',
+      'sharpen',
+      'vignette',
+      'colorGrade',
+      'filmGrain',
+      'chromaticAberration',
+      'fog',
+      'caustics',
+      'ssr',
+      'ssgi',
+      'custom',
     ];
     for (const t of types) {
       expect(DEFAULT_PARAMS[t]).toBeDefined();
@@ -252,9 +265,22 @@ describe('Feature 2C: PostProcess Types — UNIFORM_SIZES', () => {
 
   it('UNIFORM_SIZES has entry for all 16 effect types', () => {
     const types: PostProcessEffectType[] = [
-      'bloom', 'tonemap', 'dof', 'motionBlur', 'ssao', 'fxaa',
-      'sharpen', 'vignette', 'colorGrade', 'filmGrain',
-      'chromaticAberration', 'fog', 'caustics', 'ssr', 'ssgi', 'custom',
+      'bloom',
+      'tonemap',
+      'dof',
+      'motionBlur',
+      'ssao',
+      'fxaa',
+      'sharpen',
+      'vignette',
+      'colorGrade',
+      'filmGrain',
+      'chromaticAberration',
+      'fog',
+      'caustics',
+      'ssr',
+      'ssgi',
+      'custom',
     ];
     for (const t of types) {
       expect(UNIFORM_SIZES[t]).toBeDefined();
@@ -543,12 +569,12 @@ describe('Feature 5B: ShaderGraphTypes — type conversion / templates', () => {
   });
 
   it('ALL_NODE_TEMPLATES includes output_surface', () => {
-    const found = ALL_NODE_TEMPLATES.find(t => t.type === 'output_surface');
+    const found = ALL_NODE_TEMPLATES.find((t) => t.type === 'output_surface');
     expect(found).toBeDefined();
   });
 
   it('ALL_NODE_TEMPLATES includes trig_sin', () => {
-    const found = ALL_NODE_TEMPLATES.find(t => t.type === 'trig_sin');
+    const found = ALL_NODE_TEMPLATES.find((t) => t.type === 'trig_sin');
     expect(found).toBeDefined();
   });
 });
@@ -626,7 +652,7 @@ describe('Feature 6A: PlatformExporter', () => {
   it('web export includes pwa service worker', () => {
     exp.configure('web');
     const result = exp.export('web');
-    const swFile = result.files.find(f => f.path.includes('sw.js'));
+    const swFile = result.files.find((f) => f.path.includes('sw.js'));
     expect(swFile).toBeDefined();
   });
 });
@@ -693,7 +719,7 @@ describe('Feature 7A: SceneBundler', () => {
     bundler.addAsset(makeAsset('entry1'));
     bundler.addEntryPoint('entry1');
     const chunks = bundler.splitChunks();
-    const critical = chunks.find(c => c.priority === 'critical');
+    const critical = chunks.find((c) => c.priority === 'critical');
     expect(critical).toBeDefined();
     expect(critical?.assets).toContain('entry1');
   });

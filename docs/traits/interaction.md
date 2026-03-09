@@ -174,8 +174,8 @@ object Model @scalable(min_scale: 0.5, max_scale: 3.0) {
 
 ---
 
-
 ## See Also
+
 - [Physics Traits](/traits/physics)
 - [AI & Behavior Traits](/traits/ai-behavior)
 - [Extending Traits](/traits/extending)

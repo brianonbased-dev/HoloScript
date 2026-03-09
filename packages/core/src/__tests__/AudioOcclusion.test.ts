@@ -4,7 +4,9 @@ import { AudioOcclusionSystem, OCCLUSION_MATERIALS } from '../audio/AudioOcclusi
 describe('AudioOcclusionSystem', () => {
   let occ: AudioOcclusionSystem;
 
-  beforeEach(() => { occ = new AudioOcclusionSystem(); });
+  beforeEach(() => {
+    occ = new AudioOcclusionSystem();
+  });
 
   it('has default materials registered', () => {
     expect(occ.getMaterial('glass')).toBeDefined();
@@ -19,9 +21,7 @@ describe('AudioOcclusionSystem', () => {
   });
 
   it('computes occlusion with raycast hits', () => {
-    occ.setRaycastProvider(() => [
-      { distance: 3, materialId: 'glass', thickness: 0.1 },
-    ]);
+    occ.setRaycastProvider(() => [{ distance: 3, materialId: 'glass', thickness: 0.1 }]);
     const r = occ.computeOcclusion({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
     expect(r.occluded).toBe(true);
     expect(r.hitCount).toBe(1);
@@ -40,9 +40,7 @@ describe('AudioOcclusionSystem', () => {
 
   it('caps total loss at maxTransmissionLoss', () => {
     occ.setMaxTransmissionLoss(20);
-    occ.setRaycastProvider(() => [
-      { distance: 2, materialId: 'concrete', thickness: 0.3 },
-    ]);
+    occ.setRaycastProvider(() => [{ distance: 2, materialId: 'concrete', thickness: 0.3 }]);
     const r = occ.computeOcclusion({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
     expect(r.totalTransmissionLoss).toBe(20);
     expect(r.occlusionFactor).toBe(1); // capped = max
@@ -76,7 +74,12 @@ describe('AudioOcclusionSystem', () => {
   });
 
   it('registers custom material', () => {
-    occ.registerMaterial({ id: 'foam', name: 'Foam', absorptionCoefficient: 0.9, transmissionLoss: 1 });
+    occ.registerMaterial({
+      id: 'foam',
+      name: 'Foam',
+      absorptionCoefficient: 0.9,
+      transmissionLoss: 1,
+    });
     expect(occ.getMaterial('foam')?.transmissionLoss).toBe(1);
   });
 

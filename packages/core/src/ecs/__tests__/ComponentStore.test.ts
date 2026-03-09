@@ -4,7 +4,9 @@ import { ComponentStore } from '../ComponentStore';
 describe('ComponentStore', () => {
   let store: ComponentStore;
 
-  beforeEach(() => { store = new ComponentStore(); });
+  beforeEach(() => {
+    store = new ComponentStore();
+  });
 
   // ---------------------------------------------------------------------------
   // Pool Management
@@ -88,7 +90,9 @@ describe('ComponentStore', () => {
   });
 
   it('forEach does nothing for missing pool', () => {
-    store.forEach('nope', () => { throw new Error('should not run'); });
+    store.forEach('nope', () => {
+      throw new Error('should not run');
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -102,7 +106,8 @@ describe('ComponentStore', () => {
   });
 
   it('getEntitiesWithAll returns intersection', () => {
-    store.add('a', 1, {}); store.add('b', 1, {});
+    store.add('a', 1, {});
+    store.add('b', 1, {});
     store.add('a', 2, {});
     expect(store.getEntitiesWithAll('a', 'b')).toEqual([1]);
   });
@@ -116,31 +121,38 @@ describe('ComponentStore', () => {
   // ---------------------------------------------------------------------------
 
   it('removeAllForEntity cleans all pools', () => {
-    store.add('a', 1, {}); store.add('b', 1, {}); store.add('c', 1, {});
+    store.add('a', 1, {});
+    store.add('b', 1, {});
+    store.add('c', 1, {});
     expect(store.removeAllForEntity(1)).toBe(3);
     expect(store.has('a', 1)).toBe(false);
   });
 
   it('getComponentCount returns pool size', () => {
-    store.add('hp', 1, {}); store.add('hp', 2, {});
+    store.add('hp', 1, {});
+    store.add('hp', 2, {});
     expect(store.getComponentCount('hp')).toBe(2);
     expect(store.getComponentCount('nope')).toBe(0);
   });
 
   it('getTotalComponentCount sums all pools', () => {
-    store.add('a', 1, {}); store.add('b', 1, {}); store.add('b', 2, {});
+    store.add('a', 1, {});
+    store.add('b', 1, {});
+    store.add('b', 2, {});
     expect(store.getTotalComponentCount()).toBe(3);
   });
 
   it('clear(type) clears specific pool', () => {
-    store.add('a', 1, {}); store.add('b', 1, {});
+    store.add('a', 1, {});
+    store.add('b', 1, {});
     store.clear('a');
     expect(store.getComponentCount('a')).toBe(0);
     expect(store.getComponentCount('b')).toBe(1);
   });
 
   it('clear() clears all pools', () => {
-    store.add('a', 1, {}); store.add('b', 1, {});
+    store.add('a', 1, {});
+    store.add('b', 1, {});
     store.clear();
     expect(store.getTotalComponentCount()).toBe(0);
   });

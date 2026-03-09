@@ -26,9 +26,13 @@ function makeCtx(initialState: Record<string, unknown> = {}) {
   return {
     emit: vi.fn(),
     getState: () => _state,
-    setState: (s: Record<string, unknown>) => { _state = { ..._state, ...s }; },
+    setState: (s: Record<string, unknown>) => {
+      _state = { ..._state, ...s };
+    },
     // helper to mutate state between calls
-    _mutateState: (s: Record<string, unknown>) => { _state = { ..._state, ...s }; },
+    _mutateState: (s: Record<string, unknown>) => {
+      _state = { ..._state, ...s };
+    },
   };
 }
 
@@ -39,7 +43,9 @@ function attach(node: any, overrides: Record<string, unknown> = {}) {
   return { cfg, ctx };
 }
 
-function st(node: any) { return node.__wotThingState as any; }
+function st(node: any) {
+  return node.__wotThingState as any;
+}
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
   wotThingHandler.onEvent!(node, cfg, ctx as any, evt as any);
 }
@@ -76,9 +82,13 @@ describe('WoTThingTrait — onAttach', () => {
   it('emits wot_thing_attached with nodeId=node.name and config', () => {
     const node = makeNode('n1', 'MyThing');
     const { ctx, cfg } = attach(node, { title: 'My Thing', security: 'bearer' });
-    expect(ctx.emit).toHaveBeenCalledWith('wot_thing_attached', expect.objectContaining({
-      nodeId: 'MyThing', config: cfg,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'wot_thing_attached',
+      expect.objectContaining({
+        nodeId: 'MyThing',
+        config: cfg,
+      })
+    );
   });
 
   it('schedules wot_thing_generate via setTimeout when auto_generate=true', async () => {
@@ -87,7 +97,10 @@ describe('WoTThingTrait — onAttach', () => {
     const { ctx } = attach(node, { auto_generate: true });
     ctx.emit.mockClear();
     vi.runAllTimers(); // flush the setTimeout(() => emit, 0)
-    expect(ctx.emit).toHaveBeenCalledWith('wot_thing_generate', expect.objectContaining({ nodeId: node.name }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'wot_thing_generate',
+      expect.objectContaining({ nodeId: node.name })
+    );
     vi.useRealTimers();
   });
 
@@ -155,7 +168,10 @@ describe('WoTThingTrait — onUpdate', () => {
     ctx._mutateState({ count: 2 });
     wotThingHandler.onUpdate!(node, cfg, ctx as any, 0.016);
 
-    expect(ctx.emit).toHaveBeenCalledWith('wot_thing_stale', expect.objectContaining({ nodeId: 'T' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'wot_thing_stale',
+      expect.objectContaining({ nodeId: 'T' })
+    );
     expect(st(node).cachedTD).toBeNull();
   });
 
@@ -182,9 +198,12 @@ describe('WoTThingTrait — onEvent: wot_generate_request', () => {
     const { cfg, ctx } = attach(node, { title: 'My Thing', security: 'oauth2' });
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'wot_generate_request' });
-    expect(ctx.emit).toHaveBeenCalledWith('wot_thing_generate', expect.objectContaining({
-      nodeId: 'MyThing',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'wot_thing_generate',
+      expect.objectContaining({
+        nodeId: 'MyThing',
+      })
+    );
   });
 });
 

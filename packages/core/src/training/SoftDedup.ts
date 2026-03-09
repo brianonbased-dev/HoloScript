@@ -290,24 +290,16 @@ export class SoftDedup {
     const sorted = [...weights].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
     const medianWeight =
-      sorted.length % 2 === 0
-        ? (sorted[mid - 1] + sorted[mid]) / 2
-        : sorted[mid];
+      sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 
     // Standard deviation
-    const variance =
-      weights.reduce((acc, w) => acc + (w - meanWeight) ** 2, 0) /
-      totalExamples;
+    const variance = weights.reduce((acc, w) => acc + (w - meanWeight) ** 2, 0) / totalExamples;
     const stdWeight = Math.sqrt(variance);
 
     // Count extremes (with small epsilon for floating point)
     const epsilon = 1e-9;
-    const atMinWeight = weights.filter(
-      (w) => Math.abs(w - this.config.minWeight) < epsilon,
-    ).length;
-    const atMaxWeight = weights.filter(
-      (w) => Math.abs(w - this.config.maxWeight) < epsilon,
-    ).length;
+    const atMinWeight = weights.filter((w) => Math.abs(w - this.config.minWeight) < epsilon).length;
+    const atMaxWeight = weights.filter((w) => Math.abs(w - this.config.maxWeight) < epsilon).length;
 
     const effectiveDatasetSize = sum;
     const reductionRatio = 1 - effectiveDatasetSize / totalExamples;
@@ -387,9 +379,7 @@ export class SoftDedup {
     }
 
     const freqValues = Array.from(frequencies.values()).sort((a, b) => a - b);
-    const percentileIndex = Math.floor(
-      freqValues.length * this.config.commonThresholdPercentile,
-    );
+    const percentileIndex = Math.floor(freqValues.length * this.config.commonThresholdPercentile);
     const clampedIndex = Math.min(percentileIndex, freqValues.length - 1);
 
     return Math.max(freqValues[clampedIndex], 2); // At least frequency 2 to be "common"
@@ -422,26 +412,20 @@ export class SoftDedup {
       this.config;
 
     if (minWeight <= 0 || minWeight > 1) {
-      throw new Error(
-        `SoftDedup: minWeight must be in (0, 1], got ${minWeight}`,
-      );
+      throw new Error(`SoftDedup: minWeight must be in (0, 1], got ${minWeight}`);
     }
 
     if (maxWeight < minWeight || maxWeight > 1) {
-      throw new Error(
-        `SoftDedup: maxWeight must be in [minWeight, 1], got ${maxWeight}`,
-      );
+      throw new Error(`SoftDedup: maxWeight must be in [minWeight, 1], got ${maxWeight}`);
     }
 
     if (temperature <= 0) {
-      throw new Error(
-        `SoftDedup: temperature must be > 0, got ${temperature}`,
-      );
+      throw new Error(`SoftDedup: temperature must be > 0, got ${temperature}`);
     }
 
     if (commonThresholdPercentile < 0 || commonThresholdPercentile > 1) {
       throw new Error(
-        `SoftDedup: commonThresholdPercentile must be in [0, 1], got ${commonThresholdPercentile}`,
+        `SoftDedup: commonThresholdPercentile must be in [0, 1], got ${commonThresholdPercentile}`
       );
     }
 
@@ -451,9 +435,7 @@ export class SoftDedup {
 
     for (const n of ngramSizes) {
       if (n < 1 || !Number.isInteger(n)) {
-        throw new Error(
-          `SoftDedup: each ngramSize must be a positive integer, got ${n}`,
-        );
+        throw new Error(`SoftDedup: each ngramSize must be a positive integer, got ${n}`);
       }
     }
   }
@@ -474,8 +456,6 @@ export class SoftDedup {
  * console.log(`Effective dataset size: ${stats.effectiveDatasetSize}`);
  * ```
  */
-export function createSoftDedup(
-  config: Partial<SoftDedupConfig> = {},
-): SoftDedup {
+export function createSoftDedup(config: Partial<SoftDedupConfig> = {}): SoftDedup {
   return new SoftDedup(config);
 }

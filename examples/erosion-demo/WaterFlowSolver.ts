@@ -133,12 +133,7 @@ export class WaterFlowSolver {
   /**
    * Add rain to specific region
    */
-  public addRainToRegion(
-    centerX: number,
-    centerZ: number,
-    radius: number,
-    amount: number
-  ): void {
+  public addRainToRegion(centerX: number, centerZ: number, radius: number, amount: number): void {
     const radiusSquared = radius * radius;
 
     for (let z = 0; z < this.resolution; z++) {
@@ -289,18 +284,22 @@ export class WaterFlowSolver {
         let gradZ = 0;
 
         if (x > 0 && x < this.resolution - 1) {
-          const westHeight = this.terrain.getHeightAtGrid(x - 1, z) +
-                            this.water[(z * this.resolution) + (x - 1)].height;
-          const eastHeight = this.terrain.getHeightAtGrid(x + 1, z) +
-                            this.water[(z * this.resolution) + (x + 1)].height;
+          const westHeight =
+            this.terrain.getHeightAtGrid(x - 1, z) +
+            this.water[z * this.resolution + (x - 1)].height;
+          const eastHeight =
+            this.terrain.getHeightAtGrid(x + 1, z) +
+            this.water[z * this.resolution + (x + 1)].height;
           gradX = (eastHeight - westHeight) / (2 * this.cellSizeX);
         }
 
         if (z > 0 && z < this.resolution - 1) {
-          const northHeight = this.terrain.getHeightAtGrid(x, z - 1) +
-                             this.water[((z - 1) * this.resolution) + x].height;
-          const southHeight = this.terrain.getHeightAtGrid(x, z + 1) +
-                             this.water[((z + 1) * this.resolution) + x].height;
+          const northHeight =
+            this.terrain.getHeightAtGrid(x, z - 1) +
+            this.water[(z - 1) * this.resolution + x].height;
+          const southHeight =
+            this.terrain.getHeightAtGrid(x, z + 1) +
+            this.water[(z + 1) * this.resolution + x].height;
           gradZ = (southHeight - northHeight) / (2 * this.cellSizeZ);
         }
 
@@ -315,8 +314,7 @@ export class WaterFlowSolver {
 
         // Clamp velocity
         const speed = Math.sqrt(
-          cell.velocity[0] * cell.velocity[0] +
-          cell.velocity[1] * cell.velocity[1]
+          cell.velocity[0] * cell.velocity[0] + cell.velocity[1] * cell.velocity[1]
         );
 
         if (speed > this.config.maxVelocity) {
@@ -389,8 +387,7 @@ export class WaterFlowSolver {
         maxHeight = Math.max(maxHeight, cell.height);
 
         const speed = Math.sqrt(
-          cell.velocity[0] * cell.velocity[0] +
-          cell.velocity[1] * cell.velocity[1]
+          cell.velocity[0] * cell.velocity[0] + cell.velocity[1] * cell.velocity[1]
         );
         sumVelocity += speed;
         maxVelocity = Math.max(maxVelocity, speed);
@@ -438,8 +435,8 @@ export class WaterFlowSolver {
             continue;
           }
 
-          const neighborHeight = this.terrain.getHeightAtGrid(nx, nz) +
-                                this.water[nz * this.resolution + nx].height;
+          const neighborHeight =
+            this.terrain.getHeightAtGrid(nx, nz) + this.water[nz * this.resolution + nx].height;
 
           if (neighborHeight < waterSurface) {
             isLocalMin = false;
@@ -497,8 +494,7 @@ export class WaterFlowSolver {
         const nidx = nz * this.resolution + nx;
         if (visited.has(nidx)) continue;
 
-        const neighborHeight = this.terrain.getHeightAtGrid(nx, nz) +
-                              this.water[nidx].height;
+        const neighborHeight = this.terrain.getHeightAtGrid(nx, nz) + this.water[nidx].height;
 
         if (Math.abs(neighborHeight - currentHeight) < terrainThreshold) {
           queue.push([nx, nz]);

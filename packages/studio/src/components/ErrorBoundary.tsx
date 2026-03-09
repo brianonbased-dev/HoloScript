@@ -10,6 +10,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  astPath?: string;
 }
 
 /**
@@ -27,7 +28,13 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('[HoloScript Studio] Uncaught error:', error, info.componentStack);
+    // Extract component name from stack trace to form a mock AST path
+    const componentMatch = info.componentStack?.match(/at\s+([A-Za-z0-9_]+)/);
+    const componentName = componentMatch ? componentMatch[1] : 'Unknown';
+    const astPath = `AST_PATH::[Component:${componentName}]`;
+    
+    console.error(`[HoloScript Studio] AST_PATH_ERROR ${astPath}:`, error, info.componentStack);
+    this.setState({ astPath });
   }
 
   handleReset = () => {
@@ -41,7 +48,15 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex min-h-[400px] flex-col items-center justify-center gap-6 p-8 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-400">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-red-400"
+            >
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
               <line x1="12" y1="9" x2="12" y2="13" />
               <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -72,6 +87,11 @@ export class ErrorBoundary extends Component<Props, State> {
               Technical Details
             </summary>
             <pre className="mt-2 overflow-auto rounded-lg bg-studio-panel p-3 text-xs text-red-300">
+              {this.state.astPath && (
+                <div className="mb-2 font-bold text-red-400 border-b border-red-500/20 pb-1">
+                  {this.state.astPath}
+                </div>
+              )}
               {this.state.error?.stack}
             </pre>
           </details>

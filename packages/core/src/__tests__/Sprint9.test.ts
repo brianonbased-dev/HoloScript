@@ -53,10 +53,7 @@ import {
 // Imports — Partner SDK
 // ============================================================================
 
-import {
-  HoloScriptRuntime,
-  createRuntime,
-} from '../../../partner-sdk/src/runtime/Runtime.js';
+import { HoloScriptRuntime, createRuntime } from '../../../partner-sdk/src/runtime/Runtime.js';
 
 import {
   WebhookHandler,
@@ -94,10 +91,7 @@ function makeGoodFiles(): Map<string, string> {
     ['LICENSE', 'MIT License'],
     ['package.json', JSON.stringify({ dependencies: {} })],
     ['holoscript.config.json', '{}'],
-    [
-      'src/index.ts',
-      '/** @param x The value */ export function foo(x: number) { return x; }',
-    ],
+    ['src/index.ts', '/** @param x The value */ export function foo(x: number) { return x; }'],
     ['__tests__/index.test.ts', 'describe("foo", () => { it("works", () => {}) })'],
     ['docs/API.md', '# API Reference'],
   ]);
@@ -107,7 +101,9 @@ function makePoorFiles(): Map<string, string> {
   return new Map([['index.js', 'module.exports = {}']]);
 }
 
-function makeCertifiedResult(level: 'bronze' | 'silver' | 'gold' | 'platinum'): CertificationResult {
+function makeCertifiedResult(
+  level: 'bronze' | 'silver' | 'gold' | 'platinum'
+): CertificationResult {
   return {
     certified: true,
     level,
@@ -631,7 +627,12 @@ describe('Feature 3: WebhookHandler', () => {
     eventType: 'package.published' as const,
     timestamp: new Date().toISOString(),
     partnerId: 'partner-123',
-    data: { name: '@test/pkg', version: '1.0.0', author: 'user', tarballUrl: 'https://test.example' },
+    data: {
+      name: '@test/pkg',
+      version: '1.0.0',
+      author: 'user',
+      tarballUrl: 'https://test.example',
+    },
     ...overrides,
   });
 
@@ -734,7 +735,9 @@ describe('Feature 4: HoloScript 3.0 release artifacts', () => {
   });
 
   it('partner-sdk has analytics module (PartnerAnalytics.ts)', () => {
-    expect(existsSync(join(PARTNER_SDK_ROOT, 'src', 'analytics', 'PartnerAnalytics.ts'))).toBe(true);
+    expect(existsSync(join(PARTNER_SDK_ROOT, 'src', 'analytics', 'PartnerAnalytics.ts'))).toBe(
+      true
+    );
   });
 
   it('partner-sdk has API client module (RegistryClient.ts)', () => {

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Trash2, FolderOpen } from 'lucide-react';
 import { listProjects, deleteProject } from '@/lib/storage';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 import type { Project } from '@/types';
 
 export default function ProjectsPage() {

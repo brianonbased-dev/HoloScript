@@ -22,8 +22,8 @@ export interface DiffusionRealtimeConfig {
   stream_mode: StreamMode;
   target_fps: number;
   guidance_scale: number;
-  noise_strength: number;      // 0–1, how much to denoise each frame
-  steps: number;               // inference steps per frame (2–4 for LCM)
+  noise_strength: number; // 0–1, how much to denoise each frame
+  steps: number; // inference steps per frame (2–4 for LCM)
   width: number;
   height: number;
   prompt: string;

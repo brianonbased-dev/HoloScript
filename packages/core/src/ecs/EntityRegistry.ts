@@ -70,7 +70,7 @@ export class EntityRegistry {
     // Remove from parent
     if (entity.parent !== null) {
       const parent = this.entities.get(entity.parent);
-      if (parent) parent.children = parent.children.filter(c => c !== id);
+      if (parent) parent.children = parent.children.filter((c) => c !== id);
     }
 
     // Destroy children recursively
@@ -93,7 +93,9 @@ export class EntityRegistry {
   // Queries
   // ---------------------------------------------------------------------------
 
-  get(id: number): Entity | undefined { return this.entities.get(id); }
+  get(id: number): Entity | undefined {
+    return this.entities.get(id);
+  }
   getByName(name: string): Entity | undefined {
     const id = this.nameIndex.get(name);
     return id !== undefined ? this.entities.get(id) : undefined;
@@ -102,27 +104,31 @@ export class EntityRegistry {
   getByTag(tag: string): Entity[] {
     const ids = this.tagIndex.get(tag);
     if (!ids) return [];
-    return [...ids].map(id => this.entities.get(id)!).filter(e => e && e.active);
+    return [...ids].map((id) => this.entities.get(id)!).filter((e) => e && e.active);
   }
 
   getByComponents(...componentTypes: string[]): Entity[] {
     const result: Entity[] = [];
     for (const entity of this.entities.values()) {
       if (!entity.active) continue;
-      if (componentTypes.every(t => entity.components.has(t))) {
+      if (componentTypes.every((t) => entity.components.has(t))) {
         result.push(entity);
       }
     }
     return result;
   }
 
-  getAll(): Entity[] { return [...this.entities.values()]; }
+  getAll(): Entity[] {
+    return [...this.entities.values()];
+  }
   getActiveCount(): number {
     let count = 0;
     for (const e of this.entities.values()) if (e.active) count++;
     return count;
   }
-  getTotalCount(): number { return this.entities.size; }
+  getTotalCount(): number {
+    return this.entities.size;
+  }
 
   // ---------------------------------------------------------------------------
   // Tags
@@ -161,7 +167,7 @@ export class EntityRegistry {
     // Remove from old parent
     if (child.parent !== null) {
       const oldParent = this.entities.get(child.parent);
-      if (oldParent) oldParent.children = oldParent.children.filter(c => c !== childId);
+      if (oldParent) oldParent.children = oldParent.children.filter((c) => c !== childId);
     }
 
     child.parent = parentId;
@@ -172,7 +178,7 @@ export class EntityRegistry {
   getChildren(id: number): Entity[] {
     const entity = this.entities.get(id);
     if (!entity) return [];
-    return entity.children.map(cid => this.entities.get(cid)!).filter(Boolean);
+    return entity.children.map((cid) => this.entities.get(cid)!).filter(Boolean);
   }
 
   // ---------------------------------------------------------------------------

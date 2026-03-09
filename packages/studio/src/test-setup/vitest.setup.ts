@@ -13,9 +13,15 @@ import { vi } from 'vitest';
 
 // -------------- IDBKeyRange stub (used by idb internals) ----------------------
 class IDBKeyRangeStub {
-  static only(v: unknown) { return { only: v }; }
-  static lowerBound(v: unknown, o?: boolean) { return { lower: v, lowerOpen: o }; }
-  static upperBound(v: unknown, o?: boolean) { return { upper: v, upperOpen: o }; }
+  static only(v: unknown) {
+    return { only: v };
+  }
+  static lowerBound(v: unknown, o?: boolean) {
+    return { lower: v, lowerOpen: o };
+  }
+  static upperBound(v: unknown, o?: boolean) {
+    return { upper: v, upperOpen: o };
+  }
   static bound(l: unknown, u: unknown, lo?: boolean, uo?: boolean) {
     return { lower: l, upper: u, lowerOpen: lo, upperOpen: uo };
   }
@@ -115,7 +121,10 @@ class MemDatabase {
 
   transaction(storeNames: string | string[], mode?: string) {
     const names = Array.isArray(storeNames) ? storeNames : [storeNames];
-    const tx: Record<string, MemStore> & { done: Promise<void>; objectStore: (n: string) => MemStore } = {
+    const tx: Record<string, MemStore> & {
+      done: Promise<void>;
+      objectStore: (n: string) => MemStore;
+    } = {
       done: Promise.resolve(),
       objectStore: (name: string) => {
         if (!this.stores.has(name)) this.stores.set(name, new MemStore());
@@ -154,11 +163,17 @@ class MemDatabase {
 // -------------- Mock `idb` openDB -----------------------------------------------
 // The `idb` library wraps native IndexedDB. We mock the module entirely.
 vi.mock('idb', () => ({
-  openDB: vi.fn(async (name: string, version: number, { upgrade }: { upgrade?: (db: MemDatabase) => void } = {}) => {
-    const db = new MemDatabase();
-    if (upgrade) upgrade(db);
-    return db;
-  }),
+  openDB: vi.fn(
+    async (
+      name: string,
+      version: number,
+      { upgrade }: { upgrade?: (db: MemDatabase) => void } = {}
+    ) => {
+      const db = new MemDatabase();
+      if (upgrade) upgrade(db);
+      return db;
+    }
+  ),
 }));
 
 // ── localStorage mock ──────────────────────────────────────────────────────────
@@ -173,7 +188,9 @@ Object.defineProperty(global, 'localStorage', {
     setItem: (key: string, value: string) => localStorageData.set(key, value),
     removeItem: (key: string) => localStorageData.delete(key),
     clear: () => localStorageData.clear(),
-    get length() { return localStorageData.size; },
+    get length() {
+      return localStorageData.size;
+    },
     key: (index: number) => Array.from(localStorageData.keys())[index] ?? null,
   },
   writable: false,

@@ -11,7 +11,7 @@
  *  - nodes: optional pre-built SceneNode[]
  */
 
-import type { SceneNode } from '@/lib/store';
+import type { SceneNode } from '@/lib/stores';
 
 export interface SceneTemplate {
   id: string;
@@ -135,9 +135,36 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
   }
 }`,
     nodes: [
-      { id: id(), name: 'Sun',   type: 'mesh', parentId: null, position: [0, 0, 0],   scale: [1.5, 1.5, 1.5], rotation: [0,0,0], traits: [{ name: 'glow', properties: { emissive: '#ff6600', emissiveIntensity: 2 } }] },
-      { id: id(), name: 'Earth', type: 'mesh', parentId: null, position: [4, 0, 0],   scale: [0.5, 0.5, 0.5], rotation: [0,0,0], traits: [] },
-      { id: id(), name: 'Moon',  type: 'mesh', parentId: null, position: [5.2, 0, 0], scale: [0.14, 0.14, 0.14], rotation: [0,0,0], traits: [] },
+      {
+        id: id(),
+        name: 'Sun',
+        type: 'mesh',
+        parentId: null,
+        position: [0, 0, 0],
+        scale: [1.5, 1.5, 1.5],
+        rotation: [0, 0, 0],
+        traits: [{ name: 'glow', properties: { emissive: '#ff6600', emissiveIntensity: 2 } }],
+      },
+      {
+        id: id(),
+        name: 'Earth',
+        type: 'mesh',
+        parentId: null,
+        position: [4, 0, 0],
+        scale: [0.5, 0.5, 0.5],
+        rotation: [0, 0, 0],
+        traits: [],
+      },
+      {
+        id: id(),
+        name: 'Moon',
+        type: 'mesh',
+        parentId: null,
+        position: [5.2, 0, 0],
+        scale: [0.14, 0.14, 0.14],
+        rotation: [0, 0, 0],
+        traits: [],
+      },
     ],
   },
 
@@ -509,7 +536,8 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
   {
     id: 'ai-agent-hub',
     name: 'Agentic Behavior Hub',
-    description: 'A logic-heavy template pre-wired with an AI Agent Node, navigation mesh, and dialogue triggers.',
+    description:
+      'A logic-heavy template pre-wired with an AI Agent Node, navigation mesh, and dialogue triggers.',
     thumbnail: '🧠',
     tags: ['ai', 'agent', 'npc', 'behavior', 'logic'],
     category: 'AI Builder',
@@ -558,7 +586,8 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
   {
     id: 'mcp-mesh-node',
     name: 'MCP Mesh Data Center',
-    description: 'A spatial visualization of a Quantum MCP Mesh server node, wired for pub-sub telemetry and orchestration monitoring.',
+    description:
+      'A spatial visualization of a Quantum MCP Mesh server node, wired for pub-sub telemetry and orchestration monitoring.',
     thumbnail: '🖧',
     tags: ['orchestration', 'mcp', 'mesh', 'server', 'network', 'visualization'],
     category: 'Orchestration',

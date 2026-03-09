@@ -9,16 +9,48 @@
 
 import { useCallback, useState, useEffect } from 'react';
 import ReactFlow, {
-  Background, Controls, MiniMap, addEdge,
-  BackgroundVariant, type Connection, type Edge, type Node, type NodeTypes,
-  useNodesState, useEdgesState,
+  Background,
+  Controls,
+  MiniMap,
+  addEdge,
+  BackgroundVariant,
+  type Connection,
+  type Edge,
+  type Node,
+  type NodeTypes,
+  useNodesState,
+  useEdgesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Play, Save, Workflow, X, GitBranch, Repeat, Layers, GitMerge, BookTemplate, Undo, Redo, History } from 'lucide-react';
+import {
+  Play,
+  Save,
+  Workflow,
+  X,
+  GitBranch,
+  Repeat,
+  Layers,
+  GitMerge,
+  BookTemplate,
+  Undo,
+  Redo,
+  History,
+} from 'lucide-react';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
-import type { WorkflowNode, AgentNodeData, ToolNodeData, DecisionNodeData, LoopNodeData, ParallelNodeData, MergeNodeData } from '@/lib/orchestrationStore';
+import type {
+  WorkflowNode,
+  AgentNodeData,
+  ToolNodeData,
+  DecisionNodeData,
+  LoopNodeData,
+  ParallelNodeData,
+  MergeNodeData,
+} from '@/lib/orchestrationStore';
 import { TemplateBrowserPanel } from './TemplateBrowserPanel';
-import { useOrchestrationHistory, useOrchestrationKeyboardShortcuts } from '@/hooks/useOrchestrationHistory';
+import {
+  useOrchestrationHistory,
+  useOrchestrationKeyboardShortcuts,
+} from '@/hooks/useOrchestrationHistory';
 import {
   trackWorkflowNodeAdded,
   trackWorkflowSaved,
@@ -139,14 +171,18 @@ interface AgentOrchestrationGraphEditorProps {
   onClose: () => void;
 }
 
-export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrchestrationGraphEditorProps) {
+export function AgentOrchestrationGraphEditor({
+  workflowId,
+  onClose,
+}: AgentOrchestrationGraphEditorProps) {
   const workflow = useOrchestrationStore((s) => s.workflows.get(workflowId));
   const updateWorkflow = useOrchestrationStore((s) => s.updateWorkflow);
   const addWorkflowNode = useOrchestrationStore((s) => s.addWorkflowNode);
   const addWorkflowEdge = useOrchestrationStore((s) => s.addWorkflowEdge);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(
-    workflow?.nodes.map((n) => ({ id: n.id, type: n.type, position: n.position, data: n.data })) || []
+    workflow?.nodes.map((n) => ({ id: n.id, type: n.type, position: n.position, data: n.data })) ||
+      []
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState(workflow?.edges || []);
   const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
@@ -222,7 +258,10 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
         maxTokens: 2048,
       },
     };
-    setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node.data }]);
+    setNodes((ns) => [
+      ...ns,
+      { id: node.id, type: node.type, position: node.position, data: node.data },
+    ]);
     if (workflow) {
       addWorkflowNode(workflow.id, node);
       trackWorkflowNodeAdded(workflow.id, 'agent');
@@ -242,7 +281,10 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
         falseOutput: '',
       },
     };
-    setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node.data }]);
+    setNodes((ns) => [
+      ...ns,
+      { id: node.id, type: node.type, position: node.position, data: node.data },
+    ]);
     if (workflow) {
       addWorkflowNode(workflow.id, node);
       trackWorkflowNodeAdded(workflow.id, 'decision');
@@ -262,7 +304,10 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
         maxIterations: 100,
       },
     };
-    setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node.data }]);
+    setNodes((ns) => [
+      ...ns,
+      { id: node.id, type: node.type, position: node.position, data: node.data },
+    ]);
     if (workflow) {
       addWorkflowNode(workflow.id, node);
       trackWorkflowNodeAdded(workflow.id, 'loop');
@@ -281,7 +326,10 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
         timeout: 30000,
       },
     };
-    setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node.data }]);
+    setNodes((ns) => [
+      ...ns,
+      { id: node.id, type: node.type, position: node.position, data: node.data },
+    ]);
     if (workflow) {
       addWorkflowNode(workflow.id, node);
       trackWorkflowNodeAdded(workflow.id, 'parallel');
@@ -300,7 +348,10 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
         timeout: 30000,
       },
     };
-    setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node.data }]);
+    setNodes((ns) => [
+      ...ns,
+      { id: node.id, type: node.type, position: node.position, data: node.data },
+    ]);
     if (workflow) {
       addWorkflowNode(workflow.id, node);
       trackWorkflowNodeAdded(workflow.id, 'merge');
@@ -466,7 +517,10 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
           <History className="inline h-3 w-3 mr-1" />
           Versions
         </button>
-        <button onClick={onClose} className="rounded p-1 text-studio-muted hover:text-studio-text flex-shrink-0">
+        <button
+          onClick={onClose}
+          className="rounded p-1 text-studio-muted hover:text-studio-text flex-shrink-0"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>

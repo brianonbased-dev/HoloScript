@@ -11,11 +11,13 @@
 All security traits have been scaffolded following HoloScript's trait handler pattern.
 
 ### 1. **EncryptionTrait.ts** - TLS 1.3 & End-to-End Encryption
+
 **File**: `packages/core/src/traits/EncryptionTrait.ts`
 **Lines**: ~250
 **Coverage**: TLS 1.3, E2EE, AES-256, perfect forward secrecy, certificate pinning
 
 **Features**:
+
 - Multi-protocol support (TLS 1.3, TLS 1.2, DTLS, QUIC)
 - Cipher suites (AES-256-GCM, AES-128-GCM, ChaCha20-Poly1305)
 - Key exchange algorithms (ECDHE-X25519, ECDHE-P256)
@@ -25,6 +27,7 @@ All security traits have been scaffolded following HoloScript's trait handler pa
 - Session resumption
 
 **Compiler Targets**:
+
 - Unity (C# SSL/TLS configuration)
 - Unreal (C++ SSL module)
 - Godot (GDScript StreamPeerTLS)
@@ -33,11 +36,13 @@ All security traits have been scaffolded following HoloScript's trait handler pa
 ---
 
 ### 2. **RSAEncryptionTrait.ts** - Public Key Cryptography
+
 **File**: `packages/core/src/traits/RSAEncryptionTrait.ts`
 **Lines**: ~320
 **Coverage**: RSA-2048/3072/4096, OAEP padding, hybrid RSA+AES encryption
 
 **Features**:
+
 - Key sizes (2048, 3072, 4096 bits)
 - Padding schemes (OAEP, PKCS#1, PSS)
 - Hash algorithms (SHA-256, SHA-384, SHA-512)
@@ -46,6 +51,7 @@ All security traits have been scaffolded following HoloScript's trait handler pa
 - Public/private key export (PEM, DER formats)
 
 **Compiler Targets**:
+
 - Web (WebCrypto API)
 - Node.js (crypto module)
 - Unity (System.Security.Cryptography)
@@ -53,11 +59,13 @@ All security traits have been scaffolded following HoloScript's trait handler pa
 ---
 
 ### 3. **PackageSigningTrait.ts** - Code Signing & Verification
+
 **File**: `packages/core/src/traits/PackageSigningTrait.ts`
 **Lines**: ~370
 **Coverage**: Ed25519, ECDSA, signature verification, timestamping
 
 **Features**:
+
 - **Ed25519** signing (recommended for performance)
 - ECDSA (P-256, secp256k1 for Ethereum compatibility)
 - RSA-PSS signing
@@ -68,6 +76,7 @@ All security traits have been scaffolded following HoloScript's trait handler pa
 - Ethereum-compatible signatures (EIP-712)
 
 **Compiler Targets**:
+
 - Web (@noble/curves library)
 - Node.js (crypto module)
 - Solidity (on-chain signature verification)
@@ -75,11 +84,13 @@ All security traits have been scaffolded following HoloScript's trait handler pa
 ---
 
 ### 4. **ZeroKnowledgeProofTrait.ts** - Privacy-Preserving Proofs
+
 **File**: `packages/core/src/traits/ZeroKnowledgeProofTrait.ts`
 **Lines**: ~350
 **Coverage**: zk-SNARKs, zk-STARKs, Bulletproofs, PLONK, Groth16
 
 **Features**:
+
 - **Groth16** (most widely used, requires trusted setup)
 - **PLONK** (universal trusted setup, more efficient)
 - **zk-STARKs** (no trusted setup, quantum-resistant)
@@ -90,17 +101,20 @@ All security traits have been scaffolded following HoloScript's trait handler pa
 - Commitment schemes (Pedersen, Poseidon, SHA-256)
 
 **Compiler Targets**:
+
 - Web (snarkjs library)
 - Solidity (on-chain verification contracts)
 
 ---
 
 ### 5. **HSMIntegrationTrait.ts** - Hardware Security Modules
+
 **File**: `packages/core/src/traits/HSMIntegrationTrait.ts`
 **Lines**: ~480
 **Coverage**: AWS CloudHSM, Azure Key Vault, Google Cloud HSM, TPM, Secure Enclave
 
 **Features**:
+
 - **Cloud HSM providers**:
   - AWS CloudHSM (FIPS 140-2 Level 3)
   - Azure Key Vault (FIPS 140-2 Level 2/3)
@@ -115,6 +129,7 @@ All security traits have been scaffolded following HoloScript's trait handler pa
 - Backup and disaster recovery
 
 **Compiler Targets**:
+
 - AWS (Node.js @aws-sdk/client-kms)
 - Azure (Node.js @azure/keyvault-keys)
 - Google Cloud (Node.js @google-cloud/kms)
@@ -124,11 +139,13 @@ All security traits have been scaffolded following HoloScript's trait handler pa
 ---
 
 ### 6. **SandboxExecutionTrait.ts** - Code Isolation
+
 **File**: `packages/core/src/traits/SandboxExecutionTrait.ts`
 **Lines**: ~450
 **Coverage**: VM, WASM, iframe, Web Worker, container sandboxing
 
 **Features**:
+
 - **WebAssembly sandbox** (strictest isolation)
 - **Node.js VM** (vm module with context isolation)
 - **Web Worker** (browser-based parallelism)
@@ -140,17 +157,20 @@ All security traits have been scaffolded following HoloScript's trait handler pa
 - Execution metrics (time, memory, CPU usage)
 
 **Compiler Targets**:
+
 - Web (WebAssembly, Workers, iframes)
 - Node.js (vm module)
 
 ---
 
 ### 7. **VulnerabilityScannerTrait.ts** - Security Validation
+
 **File**: `packages/core/src/traits/VulnerabilityScannerTrait.ts`
 **Lines**: ~520
 **Coverage**: Static analysis, dependency scanning, composition validation
 
 **Features**:
+
 - **Static analysis**:
   - ESLint security plugins
   - Semgrep security rules
@@ -169,6 +189,7 @@ All security traits have been scaffolded following HoloScript's trait handler pa
 - CI/CD integration (GitHub Actions)
 
 **Compiler Targets**:
+
 - Node.js (security scanners)
 - CI/CD (GitHub Actions workflow)
 
@@ -176,22 +197,23 @@ All security traits have been scaffolded following HoloScript's trait handler pa
 
 ## 📊 Coverage Summary
 
-| Security Domain | Trait File | Lines | Compiler Targets | Production Ready |
-|----------------|------------|-------|------------------|------------------|
-| **Encryption** | EncryptionTrait.ts | ~250 | Unity, Unreal, Godot, Web | ✅ Yes |
-| **RSA Crypto** | RSAEncryptionTrait.ts | ~320 | Web, Node, Unity | ✅ Yes |
-| **Code Signing** | PackageSigningTrait.ts | ~370 | Web, Node, Solidity | ✅ Yes |
-| **Zero-Knowledge** | ZeroKnowledgeProofTrait.ts | ~350 | Web, Solidity | ✅ Yes |
-| **HSM** | HSMIntegrationTrait.ts | ~480 | AWS, Azure, GCP, iOS, TPM | ✅ Yes |
-| **Sandboxing** | SandboxExecutionTrait.ts | ~450 | Web, Node | ✅ Yes |
-| **Vulnerability Scanning** | VulnerabilityScannerTrait.ts | ~520 | Node, CI/CD | ✅ Yes |
-| **TOTAL** | **7 files** | **~2,740 lines** | **15+ targets** | **100% coverage** |
+| Security Domain            | Trait File                   | Lines            | Compiler Targets          | Production Ready  |
+| -------------------------- | ---------------------------- | ---------------- | ------------------------- | ----------------- |
+| **Encryption**             | EncryptionTrait.ts           | ~250             | Unity, Unreal, Godot, Web | ✅ Yes            |
+| **RSA Crypto**             | RSAEncryptionTrait.ts        | ~320             | Web, Node, Unity          | ✅ Yes            |
+| **Code Signing**           | PackageSigningTrait.ts       | ~370             | Web, Node, Solidity       | ✅ Yes            |
+| **Zero-Knowledge**         | ZeroKnowledgeProofTrait.ts   | ~350             | Web, Solidity             | ✅ Yes            |
+| **HSM**                    | HSMIntegrationTrait.ts       | ~480             | AWS, Azure, GCP, iOS, TPM | ✅ Yes            |
+| **Sandboxing**             | SandboxExecutionTrait.ts     | ~450             | Web, Node                 | ✅ Yes            |
+| **Vulnerability Scanning** | VulnerabilityScannerTrait.ts | ~520             | Node, CI/CD               | ✅ Yes            |
+| **TOTAL**                  | **7 files**                  | **~2,740 lines** | **15+ targets**           | **100% coverage** |
 
 ---
 
 ## 🎯 Integration Steps
 
 ### 1. Import into HoloScript Trait Registry
+
 ```typescript
 // packages/core/src/traits/index.ts
 export { EncryptionTrait } from './EncryptionTrait';
@@ -204,6 +226,7 @@ export { VulnerabilityScannerTrait } from './VulnerabilityScannerTrait';
 ```
 
 ### 2. Add to Trait Constant Registry
+
 ```typescript
 // packages/core/src/canonical/holoscript-constants.ts
 export const SECURITY_TRAITS = [
@@ -227,6 +250,7 @@ export const SECURITY_TRAITS = [
 ```
 
 ### 3. Create Unit Tests
+
 ```bash
 # Test files to create:
 packages/core/src/traits/__tests__/EncryptionTrait.test.ts
@@ -239,6 +263,7 @@ packages/core/src/traits/__tests__/VulnerabilityScannerTrait.test.ts
 ```
 
 ### 4. Update Compiler Trait Maps
+
 ```typescript
 // Unity compiler
 packages/core/src/compiler/UnityCompiler.ts
@@ -261,11 +286,13 @@ packages/core/src/compiler/SolidityCompiler.ts
 ## ✅ Gap Closed
 
 **Before**:
+
 - ❌ Only 6 security-related files found in HoloScript
 - ❌ TrainingMonkey training covered 35 security traits
 - ❌ **Gap**: ~29 security traits without trait implementations
 
 **After**:
+
 - ✅ **7 comprehensive security trait files** created (~2,740 lines)
 - ✅ **35 security traits** now have trait handler implementations
 - ✅ **15+ compiler targets** supported across all domains
@@ -278,13 +305,13 @@ packages/core/src/compiler/SolidityCompiler.ts
 ### ✅ Completed Integration Steps
 
 1. **✅ Created 7 comprehensive unit test files** (~730 lines of tests)
-   - [EncryptionTrait.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits\__tests__\EncryptionTrait.test.ts) (111 lines)
-   - [RSAEncryptionTrait.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits\__tests__\RSAEncryptionTrait.test.ts) (233 lines)
-   - [PackageSigningTrait.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits\__tests__\PackageSigningTrait.test.ts) (263 lines)
-   - [ZeroKnowledgeProofTrait.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits\__tests__\ZeroKnowledgeProofTrait.test.ts) (270 lines)
-   - [HSMIntegrationTrait.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits\__tests__\HSMIntegrationTrait.test.ts) (344 lines)
-   - [SandboxExecutionTrait.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits\__tests__\SandboxExecutionTrait.test.ts) (307 lines)
-   - [VulnerabilityScannerTrait.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits\__tests__\VulnerabilityScannerTrait.test.ts) (401 lines)
+   - [EncryptionTrait.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits__tests__\EncryptionTrait.test.ts) (111 lines)
+   - [RSAEncryptionTrait.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits__tests__\RSAEncryptionTrait.test.ts) (233 lines)
+   - [PackageSigningTrait.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits__tests__\PackageSigningTrait.test.ts) (263 lines)
+   - [ZeroKnowledgeProofTrait.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits__tests__\ZeroKnowledgeProofTrait.test.ts) (270 lines)
+   - [HSMIntegrationTrait.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits__tests__\HSMIntegrationTrait.test.ts) (344 lines)
+   - [SandboxExecutionTrait.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits__tests__\SandboxExecutionTrait.test.ts) (307 lines)
+   - [VulnerabilityScannerTrait.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits__tests__\VulnerabilityScannerTrait.test.ts) (401 lines)
 
 2. **✅ Added to trait constants registry**
    - Created [security-crypto.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits\constants\security-crypto.ts) (76 security traits)
@@ -303,7 +330,7 @@ packages/core/src/compiler/SolidityCompiler.ts
    - Best practices and troubleshooting guides
 
 5. **✅ E2E tests**: Create end-to-end security workflow integration tests
-   - Created [SecurityWorkflows.e2e.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits\__tests__\SecurityWorkflows.e2e.test.ts) (652 lines)
+   - Created [SecurityWorkflows.e2e.test.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\traits__tests__\SecurityWorkflows.e2e.test.ts) (652 lines)
    - **10 comprehensive security workflows**:
      1. Secure Multiplayer VR with TLS 1.3
      2. Hybrid RSA+AES Asset Encryption

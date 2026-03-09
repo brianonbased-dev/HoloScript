@@ -12,22 +12,26 @@ import type { GNode, GEdge } from '@/lib/nodeGraphStore';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode(
-  id: string,
-  type: GNode['type'],
-  data: GNode['data'],
-  x = 0,
-  y = 0
-): GNode {
+function makeNode(id: string, type: GNode['type'], data: GNode['data'], x = 0, y = 0): GNode {
   return { id, type, position: { x, y }, data } as GNode;
 }
 
-function edge(id: string, source: string, target: string, sourceHandle = 'out', targetHandle = 'a'): GEdge {
+function edge(
+  id: string,
+  source: string,
+  target: string,
+  sourceHandle = 'out',
+  targetHandle = 'a'
+): GEdge {
   return { id, source, target, sourceHandle, targetHandle };
 }
 
 function outputNode(): GNode {
-  return makeNode('out', 'outputNode', { type: 'output', label: 'Output', outputType: 'fragColor' });
+  return makeNode('out', 'outputNode', {
+    type: 'output',
+    label: 'Output',
+    outputType: 'fragColor',
+  });
 }
 
 function timeNode(id = 'time'): GNode {
@@ -64,10 +68,7 @@ describe('compileNodeGraph — minimal valid graph', () => {
   });
 
   it('compiles a UV → output graph', () => {
-    const nodes = [
-      makeNode('uv', 'uvNode', { type: 'uv', label: 'UV', channel: 0 }),
-      outputNode(),
-    ];
+    const nodes = [makeNode('uv', 'uvNode', { type: 'uv', label: 'UV', channel: 0 }), outputNode()];
     const edges: GEdge[] = [edge('e1', 'uv', 'out', 'out', 'rgb')];
     const result = compileNodeGraph(nodes, edges);
     expect(result.ok).toBe(true);
@@ -114,7 +115,20 @@ describe('compileNodeGraph — constant node', () => {
 
 // ─── Math ops ─────────────────────────────────────────────────────────────────
 
-const MATH_OPS = ['add', 'sub', 'mul', 'div', 'pow', 'sin', 'cos', 'max', 'min', 'mix', 'dot', 'length'] as const;
+const MATH_OPS = [
+  'add',
+  'sub',
+  'mul',
+  'div',
+  'pow',
+  'sin',
+  'cos',
+  'max',
+  'min',
+  'mix',
+  'dot',
+  'length',
+] as const;
 
 describe.each(MATH_OPS.map((op) => [op]))('compileNodeGraph — math op %s', (op) => {
   it(`emits valid GLSL for op=${op}`, () => {
@@ -123,10 +137,7 @@ describe.each(MATH_OPS.map((op) => [op]))('compileNodeGraph — math op %s', (op
       makeNode('m', 'mathNode', { type: 'math', label: op, op }),
       outputNode(),
     ];
-    const edges: GEdge[] = [
-      edge('e1', 't', 'm', 'out', 'a'),
-      edge('e2', 'm', 'out', 'out', 'rgb'),
-    ];
+    const edges: GEdge[] = [edge('e1', 't', 'm', 'out', 'a'), edge('e2', 'm', 'out', 'out', 'rgb')];
     const result = compileNodeGraph(nodes, edges);
     expect(result.ok).toBe(true);
     // Each math node emits a float variable
@@ -240,11 +251,15 @@ describe('compileNodeGraph — texture node', () => {
       outputNode(),
     ];
     // NOTE: texture node data shape is { type: 'texture', label, uniformName }
-    const texNode = makeNode('tex2', 'timeNode' as GNode['type'], {
-      type: 'texture',
-      label: 'Texture',
-      uniformName: 'uMainTex',
-    } as GNode['data']);
+    const texNode = makeNode(
+      'tex2',
+      'timeNode' as GNode['type'],
+      {
+        type: 'texture',
+        label: 'Texture',
+        uniformName: 'uMainTex',
+      } as GNode['data']
+    );
 
     const allNodes = [texNode, outputNode()];
     const result = compileNodeGraph(allNodes, []);
@@ -264,7 +279,7 @@ describe('compileNodeGraph — multi-node chain', () => {
       outputNode(),
     ];
     const edges: GEdge[] = [
-      edge('e1', 't',   'sin', 'out', 'a'),
+      edge('e1', 't', 'sin', 'out', 'a'),
       edge('e2', 'sin', 'mul', 'out', 'a'),
       edge('e3', 'mul', 'out', 'out', 'rgb'),
     ];
@@ -286,8 +301,8 @@ describe('compileNodeGraph — multi-node chain', () => {
       outputNode(),
     ];
     const edges: GEdge[] = [
-      edge('e1', 't1',  'add', 'out', 'a'),
-      edge('e2', 'u',   'add', 'out', 'b'),
+      edge('e1', 't1', 'add', 'out', 'a'),
+      edge('e2', 'u', 'add', 'out', 'b'),
       edge('e3', 'add', 'out', 'out', 'rgb'),
     ];
     const result = compileNodeGraph(nodes, edges);

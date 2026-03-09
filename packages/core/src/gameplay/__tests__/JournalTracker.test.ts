@@ -3,7 +3,9 @@ import { JournalTracker } from '../JournalTracker';
 
 describe('JournalTracker', () => {
   let jt: JournalTracker;
-  beforeEach(() => { jt = new JournalTracker(); });
+  beforeEach(() => {
+    jt = new JournalTracker();
+  });
 
   // --- Entry Management ---
   it('addEntry creates entry', () => {
@@ -76,13 +78,13 @@ describe('JournalTracker', () => {
     jt.addEntry('q1', 'Test', 'main', 'desc');
     jt.updateEntry('q1', { status: 'completed' });
     const notifs = jt.getNotifications();
-    expect(notifs.some(n => n.type === 'quest_completed')).toBe(true);
+    expect(notifs.some((n) => n.type === 'quest_completed')).toBe(true);
   });
 
   it('failed status generates quest_failed notification', () => {
     jt.addEntry('q1', 'Test', 'main', 'desc');
     jt.updateEntry('q1', { status: 'failed' });
-    expect(jt.getNotifications().some(n => n.type === 'quest_failed')).toBe(true);
+    expect(jt.getNotifications().some((n) => n.type === 'quest_failed')).toBe(true);
   });
 
   it('markRead clears unread flag', () => {

@@ -11,7 +11,11 @@
  * @version 1.0.0
  */
 
-export { TraitCompositionTreeProvider, TraitTreeItem, registerTraitTreeCommands } from './TraitCompositionTreeProvider';
+export {
+  TraitCompositionTreeProvider,
+  TraitTreeItem,
+  registerTraitTreeCommands,
+} from './TraitCompositionTreeProvider';
 export { TraitCompositionAnalyzer } from './TraitCompositionAnalyzer';
 export type {
   TraitTreeNode,

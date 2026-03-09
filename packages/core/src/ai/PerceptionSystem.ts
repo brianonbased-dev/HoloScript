@@ -18,7 +18,7 @@ export interface Stimulus {
   type: SenseType;
   sourceId: string;
   position: { x: number; y: number; z: number };
-  intensity: number;     // 0-1
+  intensity: number; // 0-1
   timestamp: number;
   data?: unknown;
 }
@@ -26,12 +26,12 @@ export interface Stimulus {
 export interface SenseConfig {
   type: SenseType;
   range: number;
-  fov: number;           // Degrees (360 = omnidirectional)
-  sensitivity: number;   // Multiplier on intensity
+  fov: number; // Degrees (360 = omnidirectional)
+  sensitivity: number; // Multiplier on intensity
 }
 
 export interface PerceivedStimulus extends Stimulus {
-  awareness: number;     // 0-1 (increases with exposure)
+  awareness: number; // 0-1 (increases with exposure)
   lastSeen: number;
 }
 
@@ -41,13 +41,16 @@ export interface PerceivedStimulus extends Stimulus {
 
 export class PerceptionSystem {
   // Per-entity: senses config, memory of perceived stimuli
-  private entities: Map<string, {
-    senses: SenseConfig[];
-    facing: { x: number; y: number; z: number };
-    position: { x: number; y: number; z: number };
-    memory: Map<string, PerceivedStimulus>;
-    memoryDuration: number;
-  }> = new Map();
+  private entities: Map<
+    string,
+    {
+      senses: SenseConfig[];
+      facing: { x: number; y: number; z: number };
+      position: { x: number; y: number; z: number };
+      memory: Map<string, PerceivedStimulus>;
+      memoryDuration: number;
+    }
+  > = new Map();
 
   // Active stimuli in the world
   private stimuli: Map<string, Stimulus> = new Map();
@@ -58,23 +61,36 @@ export class PerceptionSystem {
 
   registerEntity(id: string, senses: SenseConfig[], memoryDuration = 10): void {
     this.entities.set(id, {
-      senses, facing: { x: 0, y: 0, z: 1 },
+      senses,
+      facing: { x: 0, y: 0, z: 1 },
       position: { x: 0, y: 0, z: 0 },
-      memory: new Map(), memoryDuration,
+      memory: new Map(),
+      memoryDuration,
     });
   }
 
-  setEntityTransform(entityId: string, position: { x: number; y: number; z: number }, facing: { x: number; y: number; z: number }): void {
+  setEntityTransform(
+    entityId: string,
+    position: { x: number; y: number; z: number },
+    facing: { x: number; y: number; z: number }
+  ): void {
     const e = this.entities.get(entityId);
-    if (e) { e.position = position; e.facing = facing; }
+    if (e) {
+      e.position = position;
+      e.facing = facing;
+    }
   }
 
   // ---------------------------------------------------------------------------
   // Stimuli
   // ---------------------------------------------------------------------------
 
-  addStimulus(stimulus: Stimulus): void { this.stimuli.set(stimulus.id, stimulus); }
-  removeStimulus(id: string): void { this.stimuli.delete(id); }
+  addStimulus(stimulus: Stimulus): void {
+    this.stimuli.set(stimulus.id, stimulus);
+  }
+  removeStimulus(id: string): void {
+    this.stimuli.delete(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Perception Update
@@ -106,8 +122,10 @@ export class PerceptionSystem {
 
           // FOV check (only for directional senses)
           if (sense.fov < 360 && dist > 0) {
-            const fLen = Math.sqrt(entity.facing.x ** 2 + entity.facing.y ** 2 + entity.facing.z ** 2) || 1;
-            const dot = (dx * entity.facing.x + dy * entity.facing.y + dz * entity.facing.z) / (dist * fLen);
+            const fLen =
+              Math.sqrt(entity.facing.x ** 2 + entity.facing.y ** 2 + entity.facing.z ** 2) || 1;
+            const dot =
+              (dx * entity.facing.x + dy * entity.facing.y + dz * entity.facing.z) / (dist * fLen);
             const halfFovRad = (sense.fov / 2) * (Math.PI / 180);
             if (dot < Math.cos(halfFovRad)) continue;
           }
@@ -145,12 +163,16 @@ export class PerceptionSystem {
   getHighestPriority(entityId: string): PerceivedStimulus | null {
     const perceived = this.getPerceivedStimuli(entityId);
     if (perceived.length === 0) return null;
-    return perceived.reduce((best, s) => s.awareness * s.intensity > best.awareness * best.intensity ? s : best);
+    return perceived.reduce((best, s) =>
+      s.awareness * s.intensity > best.awareness * best.intensity ? s : best
+    );
   }
 
   isAwareOf(entityId: string, stimulusId: string): boolean {
     return this.entities.get(entityId)?.memory.has(stimulusId) ?? false;
   }
 
-  getStimulusCount(): number { return this.stimuli.size; }
+  getStimulusCount(): number {
+    return this.stimuli.size;
+  }
 }

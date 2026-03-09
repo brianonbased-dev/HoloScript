@@ -17,21 +17,11 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import {
-  BuildOptimizer,
-  type OptimizationResult,
-} from '../build/BuildOptimizer.js';
+import { BuildOptimizer, type OptimizationResult } from '../build/BuildOptimizer.js';
 
-import {
-  SceneBundler,
-  type BundleAsset,
-  type BundleManifest,
-} from '../build/SceneBundler.js';
+import { SceneBundler, type BundleAsset, type BundleManifest } from '../build/SceneBundler.js';
 
-import {
-  PlatformExporter,
-  type PlatformTarget,
-} from '../build/PlatformExporter.js';
+import { PlatformExporter, type PlatformTarget } from '../build/PlatformExporter.js';
 
 import {
   DEFAULT_BLOOM_CONFIG,
@@ -45,7 +35,11 @@ import {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function makeAsset(id: string, type: BundleAsset['type'] = 'mesh', refs: string[] = []): BundleAsset {
+function makeAsset(
+  id: string,
+  type: BundleAsset['type'] = 'mesh',
+  refs: string[] = []
+): BundleAsset {
   return { id, type, path: `/assets/${id}`, sizeBytes: 1024, references: refs };
 }
 
@@ -97,7 +91,9 @@ describe('Feature 1A: BuildOptimizer — instantiation', () => {
 describe('Feature 1B: BuildOptimizer — addTarget', () => {
   let opt: BuildOptimizer;
 
-  beforeEach(() => { opt = new BuildOptimizer(); });
+  beforeEach(() => {
+    opt = new BuildOptimizer();
+  });
 
   it('getTargetCount() starts at 0', () => {
     expect(opt.getTargetCount()).toBe(0);
@@ -232,7 +228,9 @@ describe('Feature 1D: BuildOptimizer — optimize()', () => {
 describe('Feature 1E: BuildOptimizer — enablePass/disablePass', () => {
   let opt: BuildOptimizer;
 
-  beforeEach(() => { opt = new BuildOptimizer({ enabledPasses: ['minify'] }); });
+  beforeEach(() => {
+    opt = new BuildOptimizer({ enabledPasses: ['minify'] });
+  });
 
   it('enablePass adds new pass', () => {
     opt.enablePass('tree_shake');
@@ -432,7 +430,9 @@ describe('Feature 3A: PlatformExporter — getSupportedTargets', () => {
 describe('Feature 3B: PlatformExporter — configure()', () => {
   let exporter: PlatformExporter;
 
-  beforeEach(() => { exporter = new PlatformExporter(); });
+  beforeEach(() => {
+    exporter = new PlatformExporter();
+  });
 
   it('getConfiguredCount() starts at 0', () => {
     expect(exporter.getConfiguredCount()).toBe(0);
@@ -647,7 +647,11 @@ describe('Feature 4C: createPostFXPipeline()', () => {
   });
 
   it('custom effects merged', () => {
-    const p = createPostFXPipeline({ effects: { ssao: { enabled: true, order: 5, params: { intensity: 0.8, radius: 0.5, bias: 0.01 } } } });
+    const p = createPostFXPipeline({
+      effects: {
+        ssao: { enabled: true, order: 5, params: { intensity: 0.8, radius: 0.5, bias: 0.01 } },
+      },
+    });
     expect(p.effects.ssao).toBeDefined();
     expect(p.effects.bloom).toBeDefined(); // still inherited
   });

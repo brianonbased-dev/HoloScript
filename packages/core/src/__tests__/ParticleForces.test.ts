@@ -11,9 +11,14 @@ describe('Cycle 158: Particle Forces', () => {
   it('should attract particles toward a point', () => {
     const sys = new ParticleAttractorSystem();
     sys.addAttractor({
-      id: 'a1', shape: 'point',
-      position: { x: 10, y: 0, z: 0 }, direction: { x: 0, y: 0, z: 0 },
-      strength: 100, radius: 50, killRadius: 0, orbit: false,
+      id: 'a1',
+      shape: 'point',
+      position: { x: 10, y: 0, z: 0 },
+      direction: { x: 0, y: 0, z: 0 },
+      strength: 100,
+      radius: 50,
+      killRadius: 0,
+      orbit: false,
     });
 
     const p: Particle = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, alive: true };
@@ -25,9 +30,14 @@ describe('Cycle 158: Particle Forces', () => {
   it('should kill particles within kill radius', () => {
     const sys = new ParticleAttractorSystem();
     sys.addAttractor({
-      id: 'a1', shape: 'point',
-      position: { x: 0, y: 0, z: 0 }, direction: { x: 0, y: 0, z: 0 },
-      strength: 1, radius: 50, killRadius: 2, orbit: false,
+      id: 'a1',
+      shape: 'point',
+      position: { x: 0, y: 0, z: 0 },
+      direction: { x: 0, y: 0, z: 0 },
+      strength: 1,
+      radius: 50,
+      killRadius: 2,
+      orbit: false,
     });
 
     const p: Particle = { x: 1, y: 0, z: 0, vx: 0, vy: 0, vz: 0, alive: true };
@@ -66,9 +76,27 @@ describe('Cycle 158: Particle Forces', () => {
 
   it('should bounce particles off a ground plane', () => {
     const col = new ParticleCollisionSystem();
-    col.addPlane({ id: 'ground', nx: 0, ny: 1, nz: 0, d: 0, bounce: 0.8, friction: 0, lifetimeLoss: 0 });
+    col.addPlane({
+      id: 'ground',
+      nx: 0,
+      ny: 1,
+      nz: 0,
+      d: 0,
+      bounce: 0.8,
+      friction: 0,
+      lifetimeLoss: 0,
+    });
 
-    const p: CollidableParticle = { x: 0, y: -1, z: 0, vx: 0, vy: -10, vz: 0, lifetime: 1, alive: true };
+    const p: CollidableParticle = {
+      x: 0,
+      y: -1,
+      z: 0,
+      vx: 0,
+      vy: -10,
+      vz: 0,
+      lifetime: 1,
+      alive: true,
+    };
     col.resolve([p]);
 
     expect(p.y).toBeGreaterThanOrEqual(0);
@@ -78,9 +106,27 @@ describe('Cycle 158: Particle Forces', () => {
 
   it('should reduce lifetime on collision', () => {
     const col = new ParticleCollisionSystem();
-    col.addPlane({ id: 'wall', nx: 1, ny: 0, nz: 0, d: 0, bounce: 1, friction: 0, lifetimeLoss: 0.6 });
+    col.addPlane({
+      id: 'wall',
+      nx: 1,
+      ny: 0,
+      nz: 0,
+      d: 0,
+      bounce: 1,
+      friction: 0,
+      lifetimeLoss: 0.6,
+    });
 
-    const p: CollidableParticle = { x: -1, y: 0, z: 0, vx: -5, vy: 0, vz: 0, lifetime: 0.5, alive: true };
+    const p: CollidableParticle = {
+      x: -1,
+      y: 0,
+      z: 0,
+      vx: -5,
+      vy: 0,
+      vz: 0,
+      lifetime: 0.5,
+      alive: true,
+    };
     col.resolve([p]);
 
     expect(p.alive).toBe(false); // 0.5 - 0.6 < 0 → dead

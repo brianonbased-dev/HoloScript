@@ -1,7 +1,7 @@
 /**
  * v43-dynamic-generation.scenario.ts — LIVING-SPEC: Dynamic Real-time AI Generation
  *
- * Persona: Casey — technical artist relying on the local V43 Brittney LLM 
+ * Persona: Casey — technical artist relying on the local V43 Brittney LLM
  * to parse and inject massive procedural structures dynamically spanning
  * thousands of geometric elements perfectly translating raw HoloScript to AST.
  *
@@ -42,7 +42,8 @@ describe('Scenario: Studio — V43 Dynamic Architectural Generation', () => {
 
       const { V43Generator } = await import('../../core/ai/V43Generator');
       const generator = new V43Generator();
-      const prompt = 'Instantiate a massive cyberpunk architectural structure. Keep it extremely simple with just a few nested geometric blocks to demonstrate syntax.';
+      const prompt =
+        'Instantiate a massive cyberpunk architectural structure. Keep it extremely simple with just a few nested geometric blocks to demonstrate syntax.';
 
       const rawCode = await generator.generateHoloScript(prompt);
 
@@ -68,8 +69,8 @@ Do not use complicated macros, just a simple valid object block.`;
 
       const astNodes = await generator.generateAST(prompt);
       const rawCode = await generator.generateHoloScript(prompt);
-      console.log("Raw V43 code:\n", rawCode);
-      console.log("AST Layout Length:", astNodes.length, "\nKeys:", Object.keys(astNodes));
+      console.log('Raw V43 code:\n', rawCode);
+      console.log('AST Layout Length:', astNodes.length, '\nKeys:', Object.keys(astNodes));
 
       expect(astNodes.length).toBeGreaterThan(0);
 
@@ -83,7 +84,7 @@ Do not use complicated macros, just a simple valid object block.`;
         traits: [{ name: '@ai_generated', properties: {} }],
         position: [0, 0, 0],
         rotation: [0, 0, 0],
-        scale: [1, 1, 1]
+        scale: [1, 1, 1],
       }));
 
       useSceneGraphStore.setState({ nodes: structuralArray });
@@ -96,5 +97,3 @@ Do not use complicated macros, just a simple valid object block.`;
     }
   }, 120000);
 });
-
-

@@ -33,9 +33,12 @@ Measures average time per operation (lower is better).
 
 | Library | Operation | Avg Time (μs) | Ops/sec | Margin |
 |---------|-----------|---------------|---------|--------|
-${results.operations.map((r: any) =>
-  `| ${r.library} | ${r.operation} | ${(r.avgTime * 1000).toFixed(2)} | ${r.hz.toFixed(0)} | ±${r.margin.toFixed(2)}% |`
-).join('\n')}
+${results.operations
+  .map(
+    (r: any) =>
+      `| ${r.library} | ${r.operation} | ${(r.avgTime * 1000).toFixed(2)} | ${r.hz.toFixed(0)} | ±${r.margin.toFixed(2)}% |`
+  )
+  .join('\n')}
 
 ### Analysis
 
@@ -49,9 +52,12 @@ Measures heap memory consumption after N operations (lower is better).
 
 | Library | Operations | Heap Used (MB) | Bytes/Op |
 |---------|-----------|----------------|----------|
-${results.memory.map((r: any) =>
-  `| ${r.library} | ${r.operationCount.toLocaleString()} | ${(r.heapUsed / 1024 / 1024).toFixed(2)} | ${(r.heapUsed / r.operationCount).toFixed(2)} |`
-).join('\n')}
+${results.memory
+  .map(
+    (r: any) =>
+      `| ${r.library} | ${r.operationCount.toLocaleString()} | ${(r.heapUsed / 1024 / 1024).toFixed(2)} | ${(r.heapUsed / r.operationCount).toFixed(2)} |`
+  )
+  .join('\n')}
 
 ### Analysis
 
@@ -65,9 +71,12 @@ Measures wire format efficiency (lower is better).
 
 | Library | Operations | Size (KB) | Bytes/Op | Serialize (ms) | Deserialize (ms) |
 |---------|-----------|-----------|----------|----------------|------------------|
-${results.serialization.map((r: any) =>
-  `| ${r.library} | ${r.operationCount.toLocaleString()} | ${(r.serializedSize / 1024).toFixed(2)} | ${(r.serializedSize / r.operationCount).toFixed(2)} | ${r.serializeTime.toFixed(4)} | ${r.deserializeTime.toFixed(4)} |`
-).join('\n')}
+${results.serialization
+  .map(
+    (r: any) =>
+      `| ${r.library} | ${r.operationCount.toLocaleString()} | ${(r.serializedSize / 1024).toFixed(2)} | ${(r.serializedSize / r.operationCount).toFixed(2)} | ${r.serializeTime.toFixed(4)} | ${r.deserializeTime.toFixed(4)} |`
+  )
+  .join('\n')}
 
 ### Analysis
 
@@ -81,9 +90,12 @@ Measures time to merge concurrent edits from multiple actors (lower is better).
 
 | Library | Actors × Edits | Merge Time (ms) | Time/Edit (μs) |
 |---------|----------------|-----------------|----------------|
-${results.merge.map((r: any) =>
-  `| ${r.library} | ${r.name.split(' - ')[1]} | ${r.mergeTime.toFixed(4)} | ${(r.mergeTime * 1000 / r.concurrentEdits).toFixed(2)} |`
-).join('\n')}
+${results.merge
+  .map(
+    (r: any) =>
+      `| ${r.library} | ${r.name.split(' - ')[1]} | ${r.mergeTime.toFixed(4)} | ${((r.mergeTime * 1000) / r.concurrentEdits).toFixed(2)} |`
+  )
+  .join('\n')}
 
 ### Analysis
 
@@ -97,11 +109,13 @@ Measures authentication overhead for authenticated operations.
 
 | Operation | Sign Time (μs) | Verify Time (μs) | Signatures/sec |
 |-----------|----------------|------------------|----------------|
-${results.signing.map((r: any) =>
-  r.signTime > 0
-    ? `| ${r.name} | ${(r.signTime * 1000).toFixed(2)} | - | ${(1 / r.signTime).toFixed(0)} |`
-    : `| ${r.name} | - | ${(r.verifyTime * 1000).toFixed(2)} | ${(1 / r.verifyTime).toFixed(0)} |`
-).join('\n')}
+${results.signing
+  .map((r: any) =>
+    r.signTime > 0
+      ? `| ${r.name} | ${(r.signTime * 1000).toFixed(2)} | - | ${(1 / r.signTime).toFixed(0)} |`
+      : `| ${r.name} | - | ${(r.verifyTime * 1000).toFixed(2)} | ${(1 / r.verifyTime).toFixed(0)} |`
+  )
+  .join('\n')}
 
 ### Analysis
 
@@ -180,7 +194,7 @@ function analyzeOperations(ops: any[]): string {
   }
 
   analysis += '\n**Winner:** ';
-  const fastest = ops.reduce((best, r) => r.hz > best.hz ? r : best);
+  const fastest = ops.reduce((best, r) => (r.hz > best.hz ? r : best));
   analysis += `${fastest.library} for ${fastest.operation} operations (${fastest.hz.toFixed(0)} ops/sec)\n`;
 
   return analysis;
@@ -219,10 +233,11 @@ function analyzeSerialization(ser: any[]): string {
 }
 
 function analyzeMerge(merge: any[]): string {
-  let analysis = 'All CRDT implementations successfully merged concurrent edits without conflicts.\n\n';
+  let analysis =
+    'All CRDT implementations successfully merged concurrent edits without conflicts.\n\n';
 
-  const fastest = merge.reduce((best, r) => r.mergeTime < best.mergeTime ? r : best);
-  const slowest = merge.reduce((worst, r) => r.mergeTime > worst.mergeTime ? r : worst);
+  const fastest = merge.reduce((best, r) => (r.mergeTime < best.mergeTime ? r : best));
+  const slowest = merge.reduce((worst, r) => (r.mergeTime > worst.mergeTime ? r : worst));
 
   analysis += `- **Fastest:** ${fastest.library} (${fastest.mergeTime.toFixed(4)} ms)\n`;
   analysis += `- **Slowest:** ${slowest.library} (${slowest.mergeTime.toFixed(4)} ms)\n`;
@@ -231,10 +246,10 @@ function analyzeMerge(merge: any[]): string {
 }
 
 function analyzeSigning(signing: any[]): string {
-  const signOps = signing.filter(r => r.signTime > 0);
+  const signOps = signing.filter((r) => r.signTime > 0);
   const avgSignTime = signOps.reduce((sum, r) => sum + r.signTime, 0) / signOps.length;
 
-  const verifyOps = signing.filter(r => r.verifyTime > 0);
+  const verifyOps = signing.filter((r) => r.verifyTime > 0);
   const avgVerifyTime = verifyOps.reduce((sum, r) => sum + r.verifyTime, 0) / verifyOps.length;
 
   return `DID signing adds **${(avgSignTime * 1000).toFixed(0)}μs** overhead per operation for authentication.
@@ -355,10 +370,13 @@ Based on benchmark results, we recommend:
 }
 
 function groupBy<T>(arr: T[], key: keyof T): Record<string, T[]> {
-  return arr.reduce((acc, item) => {
-    const group = String(item[key]);
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(item);
-    return acc;
-  }, {} as Record<string, T[]>);
+  return arr.reduce(
+    (acc, item) => {
+      const group = String(item[key]);
+      if (!acc[group]) acc[group] = [];
+      acc[group].push(item);
+      return acc;
+    },
+    {} as Record<string, T[]>
+  );
 }

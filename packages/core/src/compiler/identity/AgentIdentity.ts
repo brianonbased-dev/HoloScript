@@ -204,9 +204,9 @@ export interface IntentTokenPayload {
  * Ed25519 key pair for Proof-of-Possession
  */
 export interface AgentKeyPair {
-  publicKey: string;  // PEM format
+  publicKey: string; // PEM format
   privateKey: string; // PEM format
-  kid: string;        // Key ID (agent:role#timestamp)
+  kid: string; // Key ID (agent:role#timestamp)
   thumbprint: string; // JWK SHA-256 thumbprint
 }
 
@@ -282,10 +282,7 @@ export async function generateAgentKeyPair(
     crv: 'Ed25519',
     x: pubKeyBytes.toString('base64url'),
   };
-  const thumbprint = crypto
-    .createHash('sha256')
-    .update(JSON.stringify(jwk))
-    .digest('base64url');
+  const thumbprint = crypto.createHash('sha256').update(JSON.stringify(jwk)).digest('base64url');
 
   return {
     publicKey,
@@ -376,10 +373,7 @@ export function getDefaultPermissions(role: AgentRole): AgentPermission[] {
 /**
  * Check if agent has required permission
  */
-export function hasPermission(
-  permissions: AgentPermission[],
-  required: AgentPermission
-): boolean {
+export function hasPermission(permissions: AgentPermission[], required: AgentPermission): boolean {
   // Check for exact permission or wildcard
   return permissions.includes(required) || permissions.includes(AgentPermission.EXECUTE_CODEGEN);
 }

@@ -45,17 +45,23 @@ describe('OpenAIAdapter', () => {
   });
 
   it('accepts custom baseUrl', () => {
-    expect(() => new OpenAIAdapter({
-      apiKey: 'x',
-      baseUrl: 'https://my-proxy.com/v1',
-    })).not.toThrow();
+    expect(
+      () =>
+        new OpenAIAdapter({
+          apiKey: 'x',
+          baseUrl: 'https://my-proxy.com/v1',
+        })
+    ).not.toThrow();
   });
 
   it('accepts organization field', () => {
-    expect(() => new OpenAIAdapter({
-      apiKey: 'x',
-      organization: 'org-123',
-    })).not.toThrow();
+    expect(
+      () =>
+        new OpenAIAdapter({
+          apiKey: 'x',
+          organization: 'org-123',
+        })
+    ).not.toThrow();
   });
 });
 
@@ -79,10 +85,13 @@ describe('AnthropicAdapter', () => {
   });
 
   it('accepts custom model', () => {
-    expect(() => new AnthropicAdapter({
-      apiKey: 'x',
-      model: 'claude-3-opus',
-    })).not.toThrow();
+    expect(
+      () =>
+        new AnthropicAdapter({
+          apiKey: 'x',
+          model: 'claude-3-opus',
+        })
+    ).not.toThrow();
   });
 });
 
@@ -164,17 +173,23 @@ describe('GeminiAdapter', () => {
   });
 
   it('accepts custom model', () => {
-    expect(() => new GeminiAdapter({
-      apiKey: 'x',
-      model: 'gemini-1.5-pro',
-    })).not.toThrow();
+    expect(
+      () =>
+        new GeminiAdapter({
+          apiKey: 'x',
+          model: 'gemini-1.5-pro',
+        })
+    ).not.toThrow();
   });
 
   it('accepts custom embeddingModel', () => {
-    expect(() => new GeminiAdapter({
-      apiKey: 'x',
-      embeddingModel: 'text-multilingual-embedding-002',
-    })).not.toThrow();
+    expect(
+      () =>
+        new GeminiAdapter({
+          apiKey: 'x',
+          embeddingModel: 'text-multilingual-embedding-002',
+        })
+    ).not.toThrow();
   });
 });
 

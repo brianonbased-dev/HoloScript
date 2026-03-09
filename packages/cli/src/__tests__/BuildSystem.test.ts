@@ -24,9 +24,7 @@ describe('SceneSplitter — Production', () => {
 
   it('puts objects without position in main chunk', () => {
     const comp = {
-      objects: [
-        { name: 'obj1', properties: [{ key: 'color', value: 'red' }], traits: [] },
-      ],
+      objects: [{ name: 'obj1', properties: [{ key: 'color', value: 'red' }], traits: [] }],
       zones: [],
     } as any;
     const chunks = splitter.split(comp);
@@ -41,15 +39,26 @@ describe('SceneSplitter — Production', () => {
         { name: 'outZone', properties: [{ key: 'position', value: [100, 100, 100] }], traits: [] },
       ],
       zones: [
-        { name: 'zone-a', properties: [{ key: 'bounds', value: [[0, 0, 0], [10, 10, 10]] }] },
+        {
+          name: 'zone-a',
+          properties: [
+            {
+              key: 'bounds',
+              value: [
+                [0, 0, 0],
+                [10, 10, 10],
+              ],
+            },
+          ],
+        },
       ],
     } as any;
     const chunks = splitter.split(comp);
-    const zoneChunk = chunks.find(c => c.id === 'zone-a');
-    const mainChunk = chunks.find(c => c.id === 'main');
+    const zoneChunk = chunks.find((c) => c.id === 'zone-a');
+    const mainChunk = chunks.find((c) => c.id === 'main');
     expect(zoneChunk).toBeDefined();
-    expect(zoneChunk!.objects.some(o => o.name === 'inZone')).toBe(true);
-    expect(mainChunk!.objects.some(o => o.name === 'outZone')).toBe(true);
+    expect(zoneChunk!.objects.some((o) => o.name === 'inZone')).toBe(true);
+    expect(mainChunk!.objects.some((o) => o.name === 'outZone')).toBe(true);
   });
 
   it('respects @chunk trait annotation', () => {
@@ -64,7 +73,7 @@ describe('SceneSplitter — Production', () => {
       zones: [],
     } as any;
     const chunks = splitter.split(comp);
-    const customChunk = chunks.find(c => c.id === 'custom-chunk');
+    const customChunk = chunks.find((c) => c.id === 'custom-chunk');
     expect(customChunk).toBeDefined();
     expect(customChunk!.objects[0].name).toBe('manual');
   });
@@ -72,10 +81,42 @@ describe('SceneSplitter — Production', () => {
   it('isPointInBounds correctly checks 3D bounds', () => {
     // Access private method via any cast
     const s = splitter as any;
-    expect(s.isPointInBounds([5, 5, 5], [[0, 0, 0], [10, 10, 10]])).toBe(true);
-    expect(s.isPointInBounds([0, 0, 0], [[0, 0, 0], [10, 10, 10]])).toBe(true); // edge
-    expect(s.isPointInBounds([11, 5, 5], [[0, 0, 0], [10, 10, 10]])).toBe(false);
-    expect(s.isPointInBounds([5, 5, 5], [[6, 6, 6], [10, 10, 10]])).toBe(false);
+    expect(
+      s.isPointInBounds(
+        [5, 5, 5],
+        [
+          [0, 0, 0],
+          [10, 10, 10],
+        ]
+      )
+    ).toBe(true);
+    expect(
+      s.isPointInBounds(
+        [0, 0, 0],
+        [
+          [0, 0, 0],
+          [10, 10, 10],
+        ]
+      )
+    ).toBe(true); // edge
+    expect(
+      s.isPointInBounds(
+        [11, 5, 5],
+        [
+          [0, 0, 0],
+          [10, 10, 10],
+        ]
+      )
+    ).toBe(false);
+    expect(
+      s.isPointInBounds(
+        [5, 5, 5],
+        [
+          [6, 6, 6],
+          [10, 10, 10],
+        ]
+      )
+    ).toBe(false);
   });
 
   it('isPointInBounds returns false for insufficient bounds', () => {
@@ -91,9 +132,7 @@ describe('ManifestGenerator — Production', () => {
   const gen = new ManifestGenerator();
 
   it('generates manifest with main entry', () => {
-    const chunks = [
-      { id: 'main', objects: [] as any[], metadata: {} },
-    ];
+    const chunks = [{ id: 'main', objects: [] as any[], metadata: {} }];
     const manifest = gen.generate(chunks, 'dist');
     expect(manifest.entry).toBe('main.chunk.js');
     expect(manifest.chunks['main']).toBeDefined();
@@ -103,12 +142,24 @@ describe('ManifestGenerator — Production', () => {
   it('generates manifest with multiple chunks', () => {
     const chunks = [
       { id: 'main', objects: [], metadata: {} },
-      { id: 'zone-a', objects: [], metadata: { bounds: [[0, 0, 0], [10, 10, 10]] } },
+      {
+        id: 'zone-a',
+        objects: [],
+        metadata: {
+          bounds: [
+            [0, 0, 0],
+            [10, 10, 10],
+          ],
+        },
+      },
     ] as any[];
     const manifest = gen.generate(chunks, 'dist');
     expect(Object.keys(manifest.chunks).length).toBe(2);
     expect(manifest.chunks['zone-a'].file).toBe('zone-a.chunk.js');
-    expect(manifest.chunks['zone-a'].bounds).toEqual([[0, 0, 0], [10, 10, 10]]);
+    expect(manifest.chunks['zone-a'].bounds).toEqual([
+      [0, 0, 0],
+      [10, 10, 10],
+    ]);
   });
 
   it('detects cross-chunk dependencies via object references', () => {
@@ -125,9 +176,7 @@ describe('ManifestGenerator — Production', () => {
       },
       {
         id: 'zone-b',
-        objects: [
-          { name: 'enemy', properties: [] },
-        ],
+        objects: [{ name: 'enemy', properties: [] }],
         metadata: {},
       },
     ] as any[];

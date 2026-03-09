@@ -4,7 +4,9 @@ import { FogSystem } from '../FogSystem';
 describe('FogSystem', () => {
   let fog: FogSystem;
 
-  beforeEach(() => { fog = new FogSystem(); });
+  beforeEach(() => {
+    fog = new FogSystem();
+  });
 
   it('default config is exponential', () => {
     expect(fog.getConfig().mode).toBe('exponential');

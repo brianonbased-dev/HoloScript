@@ -19,7 +19,7 @@ if (!fs.existsSync(distDir)) {
   fs.mkdirSync(distDir, { recursive: true });
 }
 
-// Comprehensive type declaration - includes all major exports  
+// Comprehensive type declaration - includes all major exports
 const mainDTS = `/**
  * @fileoverview Type definitions for HoloScript Core (v5.0)
  * @module @holoscript/core

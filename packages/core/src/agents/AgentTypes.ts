@@ -554,11 +554,19 @@ export interface AgentTraitContext {
   // Economy & Autonomy Extensions
   wallet?: {
     getBalance: (asset?: string) => Promise<number>;
-    pay: (endpoint: string, amount: number, asset: string) => Promise<{ success: boolean; txHash?: string }>;
-    trade: (from: string, to: string, amount: number) => Promise<{ success: boolean; txHash?: string }>;
+    pay: (
+      endpoint: string,
+      amount: number,
+      asset: string
+    ) => Promise<{ success: boolean; txHash?: string }>;
+    trade: (
+      from: string,
+      to: string,
+      amount: number
+    ) => Promise<{ success: boolean; txHash?: string }>;
     mintNFT: (metadata: Record<string, any>) => Promise<{ success: boolean; tokenId?: string }>;
   };
-  
+
   story_weaver?: {
     generateNarrative: (context: Record<string, unknown>) => Promise<string>;
     createWorld: (theme: string) => Promise<string>; // Returns VRR Twin ID

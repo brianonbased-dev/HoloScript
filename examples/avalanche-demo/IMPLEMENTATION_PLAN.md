@@ -9,6 +9,7 @@
 ## 🎯 Core Objectives
 
 ### Must-Have Features
+
 1. ✅ **Terrain System** (heightmap-based)
    - Procedural mountain generation
    - Slope angle calculation
@@ -45,6 +46,7 @@
 ## 📐 Architecture Design
 
 ### Component Hierarchy
+
 ```
 AvalancheDemoScene (main orchestrator)
     ├── TerrainGenerator (CPU)
@@ -80,6 +82,7 @@ AvalancheDemoScene (main orchestrator)
 ```
 
 ### Data Flow
+
 ```
 1. Terrain Generation (startup)
    TerrainGenerator → heightmap data → GPU buffer
@@ -122,6 +125,7 @@ AvalancheDemoScene (main orchestrator)
 **Purpose**: Generate procedural mountain terrain with realistic slope profiles
 
 **Key Features**:
+
 - Perlin noise-based heightmap
 - Configurable mountain parameters (height, steepness, roughness)
 - Slope angle calculation (critical for avalanche trigger)
@@ -129,19 +133,21 @@ AvalancheDemoScene (main orchestrator)
 - Mesh generation for rendering
 
 **Configuration**:
+
 ```typescript
 interface TerrainConfig {
-  width: number;           // 200m
-  depth: number;           // 200m
-  resolution: number;      // 128×128 heightmap
-  maxHeight: number;       // 50m peak
-  steepness: number;       // 0-1 (controls slope angles)
-  roughness: number;       // 0-1 (noise detail)
-  seed?: number;           // Random seed
+  width: number; // 200m
+  depth: number; // 200m
+  resolution: number; // 128×128 heightmap
+  maxHeight: number; // 50m peak
+  steepness: number; // 0-1 (controls slope angles)
+  roughness: number; // 0-1 (noise detail)
+  seed?: number; // Random seed
 }
 ```
 
 **Key Algorithms**:
+
 ```typescript
 // Multi-octave Perlin noise for realistic terrain
 height = 0;
@@ -163,13 +169,14 @@ normal = normalize([-dx, 2, -dz]);
 ```
 
 **Output**:
+
 ```typescript
 interface TerrainData {
-  heightmap: Float32Array;      // resolution × resolution heights
-  slopes: Float32Array;          // slope angle per cell (radians)
-  normals: Float32Array;         // 3× normal per cell
-  vertices: Float32Array;        // Mesh vertices for rendering
-  indices: Uint32Array;          // Mesh triangulation
+  heightmap: Float32Array; // resolution × resolution heights
+  slopes: Float32Array; // slope angle per cell (radians)
+  normals: Float32Array; // 3× normal per cell
+  vertices: Float32Array; // Mesh vertices for rendering
+  indices: Uint32Array; // Mesh triangulation
   bounds: {
     min: [number, number, number];
     max: [number, number, number];
@@ -184,6 +191,7 @@ interface TerrainData {
 **Purpose**: Simulate snow deposition and stability analysis
 
 **Key Features**:
+
 - Place snow particles on terrain surface
 - Track snow depth per terrain cell
 - Calculate slope stability (angle of repose)
@@ -191,18 +199,20 @@ interface TerrainData {
 - Update accumulation over time
 
 **Configuration**:
+
 ```typescript
 interface SnowConfig {
-  particleCount: number;         // 100,000
-  particleMass: number;          // 0.1 kg
-  angleOfRepose: number;         // 35° (critical slope angle)
-  cohesion: number;              // 0-1 (snow stickiness)
-  settlementRate: number;        // particles/second
-  densityFactor: number;         // kg/m³
+  particleCount: number; // 100,000
+  particleMass: number; // 0.1 kg
+  angleOfRepose: number; // 35° (critical slope angle)
+  cohesion: number; // 0-1 (snow stickiness)
+  settlementRate: number; // particles/second
+  densityFactor: number; // kg/m³
 }
 ```
 
 **Key Concepts**:
+
 ```typescript
 // Slope stability (simplified Mohr-Coulomb)
 slopeAngle = terrain.getSlope(x, z);
@@ -220,6 +230,7 @@ if (slopeAngle > angleOfRepose && snowDepth > minDepth) {
 ```
 
 **State Tracking**:
+
 ```typescript
 interface SnowParticle {
   id: number;
@@ -227,9 +238,9 @@ interface SnowParticle {
   velocity: [number, number, number];
   mass: number;
   state: 'resting' | 'sliding' | 'airborne';
-  terrainCell: [number, number];  // Which heightmap cell
-  age: number;                     // Time since deposition
-  temperature: number;             // Optional: affects cohesion
+  terrainCell: [number, number]; // Which heightmap cell
+  age: number; // Time since deposition
+  temperature: number; // Optional: affects cohesion
 }
 ```
 
@@ -240,6 +251,7 @@ interface SnowParticle {
 **Purpose**: Core avalanche simulation logic and particle state management
 
 **Key Features**:
+
 - Trigger avalanche (mark unstable particles)
 - State transitions (resting → sliding → airborne)
 - Entrainment simulation (snowball effect)
@@ -249,19 +261,21 @@ interface SnowParticle {
 - Settling detection
 
 **Configuration**:
+
 ```typescript
 interface AvalancheConfig {
-  gravity: number;               // 9.8 m/s²
-  frictionCoefficient: number;   // 0.1-0.3 (snow on snow)
-  dragCoefficient: number;       // 0.5-1.0 (air resistance)
-  entrainmentRadius: number;     // 2.0m (pickup radius)
-  entrainmentThreshold: number;  // Min velocity to entrain
-  restitution: number;           // 0.3 (bounce factor)
-  settlingVelocity: number;      // 0.5 m/s (stop threshold)
+  gravity: number; // 9.8 m/s²
+  frictionCoefficient: number; // 0.1-0.3 (snow on snow)
+  dragCoefficient: number; // 0.5-1.0 (air resistance)
+  entrainmentRadius: number; // 2.0m (pickup radius)
+  entrainmentThreshold: number; // Min velocity to entrain
+  restitution: number; // 0.3 (bounce factor)
+  settlingVelocity: number; // 0.5 m/s (stop threshold)
 }
 ```
 
 **Key Algorithms**:
+
 ```typescript
 // Avalanche trigger (convert resting → sliding)
 function triggerAvalanche(epicenter: [x, z], radius: number) {
@@ -361,12 +375,14 @@ function updateParticle(particle: SnowParticle, dt: number) {
 **Purpose**: CPU-GPU integration layer (similar to EarthquakeSimulation)
 
 **Key Features**:
+
 - Upload terrain to GPU
 - Sync snow particles to GPU
 - Bridge AvalanchePhysics with GPUPhysicsPipeline
 - Performance monitoring
 
 **Data Sync**:
+
 ```typescript
 async syncToGPU(): Promise<void> {
   // Upload terrain heightmap (once at startup)
@@ -407,6 +423,7 @@ async update(dt: number): Promise<void> {
 **Purpose**: Main demo orchestrator with UI and interaction
 
 **Key Features**:
+
 - Initialize terrain and snow
 - Trigger avalanche on user action
 - Camera tracking (follow avalanche center)
@@ -415,6 +432,7 @@ async update(dt: number): Promise<void> {
 - Animation loop
 
 **UI Controls**:
+
 ```typescript
 - Trigger Avalanche button
 - Snow Amount slider (10K - 200K particles)
@@ -425,6 +443,7 @@ async update(dt: number): Promise<void> {
 ```
 
 **Stats Display**:
+
 ```typescript
 interface AvalancheStats {
   totalParticles: number;
@@ -433,8 +452,8 @@ interface AvalancheStats {
   airborneParticles: number;
   averageVelocity: number;
   maxVelocity: number;
-  coverageArea: number;        // m² of terrain covered
-  avalancheDuration: number;   // seconds since trigger
+  coverageArea: number; // m² of terrain covered
+  avalancheDuration: number; // seconds since trigger
   fps: number;
 }
 ```
@@ -444,11 +463,13 @@ interface AvalancheStats {
 ## 🎨 Visual Enhancements
 
 ### Snow Particle Rendering
+
 - **Resting particles**: White spheres, small size (0.1m)
 - **Sliding particles**: Light blue, medium size (0.15m), motion blur
 - **Airborne particles**: White/transparent, varied sizes (0.1-0.3m)
 
 ### Dust Cloud Effect
+
 ```typescript
 // Spawn dust particles when snow is moving fast
 if (particle.state === 'sliding' && particle.velocity.length > 5.0) {
@@ -463,6 +484,7 @@ if (particle.state === 'sliding' && particle.velocity.length > 5.0) {
 ```
 
 ### Camera Follow Mode
+
 ```typescript
 // Calculate avalanche center of mass
 centerOfMass = average(slidingParticles.map(p => p.position));
@@ -483,6 +505,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 ## 📊 Performance Targets
 
 ### Must Meet
+
 - **100K particles @ 60 FPS** (16.67ms frame budget)
   - CPU physics: < 5ms
   - GPU physics: < 8ms
@@ -493,6 +516,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 - **Scalability**: Support 10K - 200K particles
 
 ### Stretch Goals
+
 - **200K particles @ 30 FPS**
 - **Real-time snow accumulation** (settling particles)
 - **Multiple simultaneous avalanches**
@@ -502,6 +526,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 ## 🧪 Testing Strategy
 
 ### Unit Tests
+
 1. **TerrainGenerator.test.ts** (~300 lines)
    - Heightmap generation
    - Slope calculation accuracy
@@ -527,6 +552,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
    - Integration with GPU pipeline
 
 ### Performance Tests
+
 5. **performance.test.ts** (~400 lines)
    - 100K particles @ 60 FPS
    - Memory usage validation
@@ -540,6 +566,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 ## 📅 Implementation Schedule
 
 ### Day 1: Terrain Foundation (4-6 hours)
+
 - [ ] Create TerrainGenerator.ts
 - [ ] Implement Perlin noise heightmap
 - [ ] Calculate slopes and normals
@@ -547,6 +574,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 - [ ] Verify terrain rendering
 
 ### Day 2: Snow Accumulation (4-6 hours)
+
 - [ ] Create SnowAccumulation.ts
 - [ ] Implement particle placement
 - [ ] Stability analysis
@@ -554,6 +582,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 - [ ] Visualize snow layer
 
 ### Day 3: Avalanche Physics (6-8 hours)
+
 - [ ] Create AvalanchePhysics.ts
 - [ ] Implement state machine
 - [ ] Entrainment algorithm
@@ -561,6 +590,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 - [ ] Write AvalanchePhysics.test.ts
 
 ### Day 4: GPU Integration (4-6 hours)
+
 - [ ] Create AvalancheSimulation.ts
 - [ ] CPU-GPU sync
 - [ ] Integrate with GPUPhysicsPipeline
@@ -568,6 +598,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 - [ ] Optimize data transfer
 
 ### Day 5: Demo Scene & Polish (6-8 hours)
+
 - [ ] Create AvalancheDemoScene.ts
 - [ ] UI controls
 - [ ] Camera tracking
@@ -577,6 +608,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 - [ ] Write performance.test.ts
 
 ### Day 6: Testing & Optimization (4-6 hours)
+
 - [ ] Run all tests, fix failures
 - [ ] Performance profiling
 - [ ] Memory optimization
@@ -584,6 +616,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 - [ ] Documentation
 
 ### Day 7: Documentation & Polish (2-4 hours)
+
 - [ ] Create WEEK_6_COMPLETE.md
 - [ ] Create USAGE_GUIDE.md
 - [ ] Create VISUAL_QUALITY_CHECKLIST.md
@@ -597,6 +630,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 ## 🎯 Success Criteria
 
 ### Must Have ✅
+
 - [ ] 100K particles running @ 60 FPS
 - [ ] Realistic avalanche trigger and flow
 - [ ] Terrain collision working correctly
@@ -607,6 +641,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 - [ ] No memory leaks
 
 ### Nice to Have 🎨
+
 - [ ] Dust cloud particles
 - [ ] Particle trails (motion blur effect)
 - [ ] Dynamic LOD (reduce particles in distance)
@@ -615,6 +650,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 - [ ] Multiple avalanche trigger points
 
 ### Stretch Goals 🚀
+
 - [ ] 200K particles @ 30 FPS
 - [ ] Real-time snow accumulation (continuous settling)
 - [ ] Terrain deformation (snow carved paths)
@@ -625,6 +661,7 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 ## 🔄 Lessons from Week 5
 
 ### What to Reuse
+
 - ✅ GPUPhysicsPipeline (proven particle physics)
 - ✅ SpatialGrid (collision detection)
 - ✅ InstancedRenderer (efficient rendering)
@@ -632,12 +669,14 @@ camera.fov = lerp(camera.fov, targetFOV, 0.05);
 - ✅ Testing patterns (beforeEach, toBeCloseTo, mock objects)
 
 ### What to Improve
+
 - Better GPU-CPU sync (reduce readback frequency)
 - More efficient particle state management
 - Progressive LOD for distant particles
 - Batched particle updates (don't update resting particles)
 
 ### New Challenges
+
 - Terrain heightmap storage and access on GPU
 - State machine for 3 particle states
 - Entrainment algorithm efficiency (spatial queries)

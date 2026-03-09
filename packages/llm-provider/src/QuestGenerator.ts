@@ -56,7 +56,7 @@ export class QuestGenerator {
       const completion = await this.llmManager.complete({
         prompt,
         temperature: 0.7,
-        maxTokens: 500
+        maxTokens: 500,
       });
 
       // Simple extraction of JSON from Markdown blocks if present
@@ -69,18 +69,18 @@ export class QuestGenerator {
       const parsed = JSON.parse(content);
       return {
         title: parsed.title || `${request.business_name} Quest`,
-        description: parsed.description || "Discover the secrets of the digital twin.",
-        npc_greeting: parsed.npc_greeting || "Welcome, traveler!",
-        success_message: parsed.success_message || "Quest Complete!"
+        description: parsed.description || 'Discover the secrets of the digital twin.',
+        npc_greeting: parsed.npc_greeting || 'Welcome, traveler!',
+        success_message: parsed.success_message || 'Quest Complete!',
       };
     } catch (err) {
-      console.error("[QuestGenerator] Failed to generate narrative:", err);
+      console.error('[QuestGenerator] Failed to generate narrative:', err);
       // Fallback
       return {
         title: `${request.business_name} Discovery`,
         description: `Explore the ${request.location} digital twin for rewards!`,
         npc_greeting: `Welcome to ${request.business_name}. We need your help!`,
-        success_message: `You did it! Here is your reward.`
+        success_message: `You did it! Here is your reward.`,
       };
     }
   }

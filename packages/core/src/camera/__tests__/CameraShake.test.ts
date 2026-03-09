@@ -4,7 +4,9 @@ import { CameraShake } from '../CameraShake';
 describe('CameraShake', () => {
   let shake: CameraShake;
 
-  beforeEach(() => { shake = new CameraShake(); });
+  beforeEach(() => {
+    shake = new CameraShake();
+  });
 
   // ---------------------------------------------------------------------------
   // Layer Management

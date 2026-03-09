@@ -316,8 +316,22 @@ describe('AiTextureGenTrait', () => {
     it('switches active texture', () => {
       // Generate two textures
       const state = ctx.getState().aiTextureGen as any;
-      state.textures.set('tex_a', { id: 'tex_a', prompt: 'a', diffuseUrl: 'a', normalUrl: null, roughnessUrl: null, generatedAt: 1 });
-      state.textures.set('tex_b', { id: 'tex_b', prompt: 'b', diffuseUrl: 'b', normalUrl: null, roughnessUrl: null, generatedAt: 2 });
+      state.textures.set('tex_a', {
+        id: 'tex_a',
+        prompt: 'a',
+        diffuseUrl: 'a',
+        normalUrl: null,
+        roughnessUrl: null,
+        generatedAt: 1,
+      });
+      state.textures.set('tex_b', {
+        id: 'tex_b',
+        prompt: 'b',
+        diffuseUrl: 'b',
+        normalUrl: null,
+        roughnessUrl: null,
+        generatedAt: 2,
+      });
       state.activeTextureId = 'tex_a';
 
       ctx.clearEvents();

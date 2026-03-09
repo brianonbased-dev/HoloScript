@@ -16,6 +16,7 @@ unity-hub --create-project "HoloScript-Benchmark-Unity" \
 ### 2. Install Dependencies
 
 **Package Manager** (Window → Package Manager):
+
 - XR Interaction Toolkit (2.3.0+)
 - XR Plugin Management
 - Oculus XR Plugin (Quest support)
@@ -30,6 +31,7 @@ unity-hub --create-project "HoloScript-Benchmark-Unity" \
 ### 4. Build for Quest 2/3
 
 **Build Settings**:
+
 - Platform: Android
 - Texture Compression: ASTC
 - Graphics API: Vulkan
@@ -38,10 +40,12 @@ unity-hub --create-project "HoloScript-Benchmark-Unity" \
 - Target Architectures: ARM64
 
 **XR Settings**:
+
 - Initialize XR on Startup: ✓
 - XR Plugin: Oculus
 
 **Build**:
+
 ```bash
 # Build APK
 unity-hub --buildTarget Android \
@@ -65,6 +69,7 @@ unity-hub --buildTarget Android \
 ### Quest 2/3 (Device)
 
 1. **Deploy APK**:
+
    ```bash
    adb install -r Builds/BasicScene.apk
    ```
@@ -75,6 +80,7 @@ unity-hub --buildTarget Android \
    - Deep Profiling: ✗ (too slow)
 
 3. **Connect Profiler**:
+
    ```bash
    # Unity Editor → Profiler → Target: AndroidPlayer
    # Or use OVR Metrics Tool
@@ -98,6 +104,7 @@ adb shell setprop debug.oculus.perfhud 3
 ## Expected Results
 
 ### Desktop (RTX 3060)
+
 - **FPS**: 90 FPS (uncapped VR)
 - **Frame Time**: 11ms
 - **Memory**: 320MB
@@ -105,6 +112,7 @@ adb shell setprop debug.oculus.perfhud 3
 - **Triangles**: 5,000
 
 ### Quest 2
+
 - **FPS**: 90 FPS (with fixed foveated rendering)
 - **Frame Time**: 11ms
 - **Memory**: 280MB
@@ -112,6 +120,7 @@ adb shell setprop debug.oculus.perfhud 3
 - **Triangles**: 4,800
 
 ### Quest 3
+
 - **FPS**: 90 FPS
 - **Frame Time**: 11ms
 - **Memory**: 290MB
@@ -121,6 +130,7 @@ adb shell setprop debug.oculus.perfhud 3
 ## Performance Optimization
 
 Already optimized:
+
 - ✅ Single pass instanced rendering
 - ✅ Static batching (ground plane)
 - ✅ Occlusion culling
@@ -138,9 +148,10 @@ Overhead % = (HoloScript_Time - Unity_Baseline) / Unity_Baseline * 100
 **Target**: <10% overhead
 
 **Example**:
+
 - Unity Baseline: 90 FPS (11ms frame time)
 - HoloScript → Unity: 85 FPS (11.76ms frame time)
-- Overhead: (11.76 - 11) / 11 * 100 = 6.9% ✅ PASS
+- Overhead: (11.76 - 11) / 11 \* 100 = 6.9% ✅ PASS
 
 ## Files
 

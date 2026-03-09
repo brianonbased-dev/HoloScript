@@ -134,7 +134,10 @@ describe('ACOEngine — path quality', () => {
   });
   it('two nodes — bestPath visits both', async () => {
     const aco = mkACO({ antCount: 3, maxIterations: 3 });
-    const result = await aco.optimize(2, [[0, 5], [5, 0]]);
+    const result = await aco.optimize(2, [
+      [0, 5],
+      [5, 0],
+    ]);
     expect(result.bestPath).toHaveLength(2);
     expect(new Set(result.bestPath).size).toBe(2);
   });

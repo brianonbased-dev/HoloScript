@@ -71,7 +71,14 @@ describe('Cycle 112: Particle System', () => {
   });
 
   it('should emit from different shapes', () => {
-    const shapes: Array<EmitterConfig['emissionShape']> = ['point', 'sphere', 'box', 'cone', 'circle', 'line'];
+    const shapes: Array<EmitterConfig['emissionShape']> = [
+      'point',
+      'sphere',
+      'box',
+      'cone',
+      'circle',
+      'line',
+    ];
     for (const shape of shapes) {
       const cfg: EmitterConfig = {
         ...baseConfig,
@@ -96,7 +103,7 @@ describe('Cycle 112: Particle System', () => {
     const emitter = new ParticleEmitter(colorConfig);
     emitter.play();
     emitter.update(0.01); // emit
-    emitter.update(0.5);  // advance to 50% life
+    emitter.update(0.5); // advance to 50% life
 
     const particles = emitter.getAliveParticles();
     if (particles.length > 0) {
@@ -110,13 +117,19 @@ describe('Cycle 112: Particle System', () => {
   // -------------------------------------------------------------------------
 
   it('should apply gravity force', () => {
-    const emitter = new ParticleEmitter({ ...baseConfig, gravity: 0, startSpeed: { min: 0, max: 0 } });
+    const emitter = new ParticleEmitter({
+      ...baseConfig,
+      gravity: 0,
+      startSpeed: { min: 0, max: 0 },
+    });
     emitter.play();
     emitter.update(0.016);
 
     const forces = new ParticleForceSystem();
     forces.addForce({
-      id: 'gravity', type: 'gravity', strength: 9.8,
+      id: 'gravity',
+      type: 'gravity',
+      strength: 9.8,
       direction: { x: 0, y: -1, z: 0 },
     });
 
@@ -129,13 +142,19 @@ describe('Cycle 112: Particle System', () => {
   });
 
   it('should apply attractor force', () => {
-    const emitter = new ParticleEmitter({ ...baseConfig, gravity: 0, startSpeed: { min: 0, max: 0 } });
+    const emitter = new ParticleEmitter({
+      ...baseConfig,
+      gravity: 0,
+      startSpeed: { min: 0, max: 0 },
+    });
     emitter.play();
     emitter.update(0.016);
 
     const forces = new ParticleForceSystem();
     forces.addForce({
-      id: 'attract', type: 'attractor', strength: 5,
+      id: 'attract',
+      type: 'attractor',
+      strength: 5,
       position: { x: 10, y: 0, z: 0 },
     });
 

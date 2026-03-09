@@ -26,8 +26,8 @@ export interface MaterialDef {
   name: string;
   // PBR properties
   albedo: { r: number; g: number; b: number; a: number };
-  metallic: number;         // 0-1
-  roughness: number;        // 0-1
+  metallic: number; // 0-1
+  roughness: number; // 0-1
   emission: { r: number; g: number; b: number };
   emissionStrength: number;
   normalScale: number;
@@ -78,29 +78,43 @@ const defaultMat: MaterialDef = {
 
 export const MATERIAL_PRESETS: Record<string, Partial<MaterialDef>> = {
   metal: {
-    name: 'Metal', metallic: 0.9, roughness: 0.2,
+    name: 'Metal',
+    metallic: 0.9,
+    roughness: 0.2,
     albedo: { r: 0.9, g: 0.9, b: 0.9, a: 1 },
   },
   wood: {
-    name: 'Wood', metallic: 0, roughness: 0.7,
+    name: 'Wood',
+    metallic: 0,
+    roughness: 0.7,
     albedo: { r: 0.55, g: 0.35, b: 0.15, a: 1 },
   },
   glass: {
-    name: 'Glass', metallic: 0, roughness: 0.05,
+    name: 'Glass',
+    metallic: 0,
+    roughness: 0.05,
     albedo: { r: 0.9, g: 0.95, b: 1, a: 0.3 },
-    blendMode: 'transparent' as BlendMode, doubleSided: true,
+    blendMode: 'transparent' as BlendMode,
+    doubleSided: true,
   },
   plastic: {
-    name: 'Plastic', metallic: 0, roughness: 0.4,
+    name: 'Plastic',
+    metallic: 0,
+    roughness: 0.4,
     albedo: { r: 1, g: 0.2, b: 0.2, a: 1 },
   },
   emissive: {
-    name: 'Emissive', metallic: 0, roughness: 1,
+    name: 'Emissive',
+    metallic: 0,
+    roughness: 1,
     albedo: { r: 0, g: 0, b: 0, a: 1 },
-    emission: { r: 0.3, g: 0.7, b: 1 }, emissionStrength: 5,
+    emission: { r: 0.3, g: 0.7, b: 1 },
+    emissionStrength: 5,
   },
   ground: {
-    name: 'Ground', metallic: 0, roughness: 0.9,
+    name: 'Ground',
+    metallic: 0,
+    roughness: 0.9,
     albedo: { r: 0.35, g: 0.3, b: 0.2, a: 1 },
   },
 };
@@ -160,7 +174,10 @@ export class MaterialLibrary {
   // Instancing
   // ---------------------------------------------------------------------------
 
-  createInstance(baseMaterialId: string, overrides: Partial<MaterialDef> = {}): MaterialInstance | null {
+  createInstance(
+    baseMaterialId: string,
+    overrides: Partial<MaterialDef> = {}
+  ): MaterialInstance | null {
     if (!this.materials.has(baseMaterialId)) return null;
     const inst: MaterialInstance = {
       id: `matinst_${_matInstanceId++}`,
@@ -194,7 +211,14 @@ export class MaterialLibrary {
   // Texture Slot Helpers
   // ---------------------------------------------------------------------------
 
-  setTexture(materialId: string, slot: keyof Pick<MaterialDef, 'albedoMap' | 'normalMap' | 'metallicRoughnessMap' | 'emissionMap' | 'aoMap'>, textureId: string): boolean {
+  setTexture(
+    materialId: string,
+    slot: keyof Pick<
+      MaterialDef,
+      'albedoMap' | 'normalMap' | 'metallicRoughnessMap' | 'emissionMap' | 'aoMap'
+    >,
+    textureId: string
+  ): boolean {
     const mat = this.materials.get(materialId);
     if (!mat) return false;
     mat[slot] = {

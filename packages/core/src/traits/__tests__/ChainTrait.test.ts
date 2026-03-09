@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { chainHandler } from '../ChainTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('ChainTrait', () => {
   let node: Record<string, unknown>;
@@ -52,7 +59,11 @@ describe('ChainTrait', () => {
 
   it('updates all links via chain_full_update', () => {
     const positions = Array.from({ length: 5 }, (_, i) => ({ x: i, y: 0, z: 0 }));
-    sendEvent(chainHandler, node, cfg, ctx, { type: 'chain_full_update', positions, rotations: [] });
+    sendEvent(chainHandler, node, cfg, ctx, {
+      type: 'chain_full_update',
+      positions,
+      rotations: [],
+    });
     expect((node as any).__chainState.links[3].position).toEqual({ x: 3, y: 0, z: 0 });
   });
 

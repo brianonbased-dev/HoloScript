@@ -67,7 +67,7 @@ const DEFAULT_CONFIG: RegistrationConfig = {
  */
 export function buildRegistrationPayload(
   config: RegistrationConfig,
-  tools: MCPToolDefinition[],
+  tools: MCPToolDefinition[]
 ): Record<string, unknown> {
   return {
     id: config.serverName,
@@ -91,7 +91,7 @@ export function buildRegistrationPayload(
  * @returns Registration result with success/failure details
  */
 export async function registerWithOrchestrator(
-  config: Partial<RegistrationConfig> = {},
+  config: Partial<RegistrationConfig> = {}
 ): Promise<RegistrationResult> {
   const fullConfig: RegistrationConfig = { ...DEFAULT_CONFIG, ...config };
   const result: RegistrationResult = {
@@ -120,7 +120,7 @@ export async function registerWithOrchestrator(
 
     if (!healthResponse.ok) {
       result.errors.push(
-        `Orchestrator health check returned ${healthResponse.status}: ${healthResponse.statusText}`,
+        `Orchestrator health check returned ${healthResponse.status}: ${healthResponse.statusText}`
       );
       return result;
     }
@@ -148,9 +148,7 @@ export async function registerWithOrchestrator(
 
     if (!registerResponse.ok) {
       const body = await registerResponse.text().catch(() => '<no body>');
-      result.errors.push(
-        `Server registration failed (${registerResponse.status}): ${body}`,
-      );
+      result.errors.push(`Server registration failed (${registerResponse.status}): ${body}`);
       return result;
     }
 
@@ -164,7 +162,7 @@ export async function registerWithOrchestrator(
       });
 
       if (verifyResponse.ok) {
-        const verifyData = await verifyResponse.json() as { tools?: Array<{ name: string }> };
+        const verifyData = (await verifyResponse.json()) as { tools?: Array<{ name: string }> };
         if (verifyData.tools && Array.isArray(verifyData.tools)) {
           result.toolsRegistered = verifyData.tools.map((t) => t.name);
         }
@@ -191,7 +189,7 @@ export async function registerWithOrchestrator(
  * Unregister the HoloScript MCP server from the orchestrator.
  */
 export async function unregisterFromOrchestrator(
-  config: Partial<RegistrationConfig> = {},
+  config: Partial<RegistrationConfig> = {}
 ): Promise<{ success: boolean; error?: string }> {
   const fullConfig: RegistrationConfig = { ...DEFAULT_CONFIG, ...config };
 
@@ -204,7 +202,10 @@ export async function unregisterFromOrchestrator(
     });
 
     if (!response.ok) {
-      return { success: false, error: `Unregistration failed: ${response.status} ${response.statusText}` };
+      return {
+        success: false,
+        error: `Unregistration failed: ${response.status} ${response.statusText}`,
+      };
     }
 
     return { success: true };
@@ -286,7 +287,7 @@ async function main(): Promise<void> {
 const isMainModule =
   typeof import.meta.url === 'string' &&
   (process.argv[1]?.endsWith('registerWithOrchestrator.ts') ||
-   process.argv[1]?.endsWith('registerWithOrchestrator.js'));
+    process.argv[1]?.endsWith('registerWithOrchestrator.js'));
 
 if (isMainModule) {
   main().catch((err) => {

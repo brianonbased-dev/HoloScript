@@ -7,8 +7,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { avatarEmbodimentHandler } from '../AvatarEmbodimentTrait';
 
-function makeNode() { return { id: 'avatar_1' }; }
-function makeContext() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'avatar_1' };
+}
+function makeContext() {
+  return { emit: vi.fn() };
+}
 function attachNode(config: any = {}) {
   const node = makeNode();
   const ctx = makeContext();
@@ -114,7 +118,9 @@ describe('avatarEmbodimentHandler.onUpdate', () => {
   it('does not throw when no state (early return)', () => {
     const node = makeNode(); // no state attached
     const ctx = makeContext();
-    expect(() => avatarEmbodimentHandler.onUpdate!(node, avatarEmbodimentHandler.defaultConfig!, ctx, 0.016)).not.toThrow();
+    expect(() =>
+      avatarEmbodimentHandler.onUpdate!(node, avatarEmbodimentHandler.defaultConfig!, ctx, 0.016)
+    ).not.toThrow();
   });
 });
 
@@ -145,7 +151,10 @@ describe('avatarEmbodimentHandler.onEvent — disembody', () => {
     const { node, cfg, ctx } = attachNode();
     ctx.emit.mockClear();
     avatarEmbodimentHandler.onEvent!(node, cfg, ctx, { type: 'disembody' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_avatar_disembodied', expect.objectContaining({ node }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_avatar_disembodied',
+      expect.objectContaining({ node })
+    );
   });
 });
 
@@ -159,13 +168,18 @@ describe('avatarEmbodimentHandler.onEvent — calibrate', () => {
     const { node, cfg, ctx } = attachNode();
     ctx.emit.mockClear();
     avatarEmbodimentHandler.onEvent!(node, cfg, ctx, { type: 'calibrate' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_avatar_calibrated', expect.objectContaining({ node }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_avatar_calibrated',
+      expect.objectContaining({ node })
+    );
   });
 });
 
 describe('avatarEmbodimentHandler.onEvent — unknown', () => {
   it('unknown event type does not throw', () => {
     const { node, cfg, ctx } = attachNode();
-    expect(() => avatarEmbodimentHandler.onEvent!(node, cfg, ctx, { type: 'some_unknown_event' })).not.toThrow();
+    expect(() =>
+      avatarEmbodimentHandler.onEvent!(node, cfg, ctx, { type: 'some_unknown_event' })
+    ).not.toThrow();
   });
 });

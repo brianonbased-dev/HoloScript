@@ -3,6 +3,7 @@
 **A complete example demonstrating `.holo`, `.hsplus`, and `.hs` working together**
 
 This example shows the **three-layer architecture** in action:
+
 - `.hs` files define reusable logic (scoring system)
 - `.hsplus` files define visual components with traits (interactive button)
 - `.holo` files compose everything into a complete scene
@@ -158,6 +159,7 @@ holoscript compile main.holo --target vrchat -o dist/vrchat/
 ### 1. Separation of Concerns
 
 Each layer has a distinct responsibility:
+
 - **Logic** (`.hs`): Pure business logic, reusable across scenes
 - **Presentation** (`.hsplus`): Visual components with traits
 - **Composition** (`.holo`): Complete scene assembly with state
@@ -165,6 +167,7 @@ Each layer has a distinct responsibility:
 ### 2. Import System
 
 Files can reference each other:
+
 ```holo
 import { function } from "./logic/file.hs"
 import { template } from "./components/file.hsplus"
@@ -173,6 +176,7 @@ import { template } from "./components/file.hsplus"
 ### 3. Template Spreading
 
 The `...TemplateName` syntax spreads template properties:
+
 ```holo
 object "MyButton" {
   ...InteractiveButton  // Inherits all properties
@@ -183,6 +187,7 @@ object "MyButton" {
 ### 4. Reactivity
 
 State changes automatically update bound properties:
+
 ```holo
 state { score: 0 }
 
@@ -214,16 +219,19 @@ object "Display" {
 ## 📊 Why This Architecture?
 
 ### Maintainability
+
 - Change scoring logic in one place (`scoring.hs`)
 - Reuse button across multiple scenes
 - Easy to find where things are defined
 
 ### AI-Friendliness
+
 - `.holo` files are easy for LLMs to generate
 - Clear structure makes automation possible
 - Declarative syntax reduces errors
 
 ### Scalability
+
 - Add new logic files without touching scenes
 - Create component libraries in `.hsplus`
 - Build complex worlds from simple parts

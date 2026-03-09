@@ -85,7 +85,12 @@ describe('Cycle 117: UI Framework', () => {
 
   it('should center-align items', () => {
     const engine = new UILayoutEngine();
-    const parent = engine.createNode({ direction: 'column', width: 200, height: 200, alignItems: 'center' });
+    const parent = engine.createNode({
+      direction: 'column',
+      width: 200,
+      height: 200,
+      alignItems: 'center',
+    });
     const child = engine.createNode({ width: 80, height: 30 });
     engine.addChild(parent, child);
 
@@ -100,7 +105,9 @@ describe('Cycle 117: UI Framework', () => {
   it('should create and interact with widgets', () => {
     const factory = new UIWidgetFactory();
     let clicked = false;
-    const btn = factory.createButton('Click Me', () => { clicked = true; });
+    const btn = factory.createButton('Click Me', () => {
+      clicked = true;
+    });
 
     factory.pressButton(btn.id);
     expect(clicked).toBe(true);

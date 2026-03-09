@@ -56,12 +56,23 @@ export class NetEntitySync {
   /**
    * Add a synced component to an entity
    */
-  addComponent(entityId: string, componentType: string, data: Record<string, unknown>, ownerId: string = 'server'): void {
+  addComponent(
+    entityId: string,
+    componentType: string,
+    data: Record<string, unknown>,
+    ownerId: string = 'server'
+  ): void {
     this.registerEntity(entityId, ownerId);
     const components = this.entities.get(entityId)!;
     components.set(componentType, {
-      entityId, componentType, data, version: 1,
-      lastSyncedAt: Date.now(), authority: 'server', ownerId, dirty: true,
+      entityId,
+      componentType,
+      data,
+      version: 1,
+      lastSyncedAt: Date.now(),
+      authority: 'server',
+      ownerId,
+      dirty: true,
     });
   }
 
@@ -112,7 +123,10 @@ export class NetEntitySync {
 
       if (hasDirty) {
         const snapshot: SyncSnapshot = {
-          entityId, components: dirtyData, version: maxVersion, timestamp: Date.now(),
+          entityId,
+          components: dirtyData,
+          version: maxVersion,
+          timestamp: Date.now(),
         };
         snapshots.push(snapshot);
         this.snapshots.push(snapshot);
@@ -152,7 +166,10 @@ export class NetEntitySync {
     let dirty = 0;
     for (const components of this.entities.values()) {
       for (const comp of components.values()) {
-        if (comp.dirty) { dirty++; break; }
+        if (comp.dirty) {
+          dirty++;
+          break;
+        }
       }
     }
     return {
@@ -163,9 +180,15 @@ export class NetEntitySync {
     };
   }
 
-  getEntityCount(): number { return this.entities.size; }
-  getSyncRate(): number { return this.syncRate; }
-  getSnapshotCount(): number { return this.snapshots.length; }
+  getEntityCount(): number {
+    return this.entities.size;
+  }
+  getSyncRate(): number {
+    return this.syncRate;
+  }
+  getSnapshotCount(): number {
+    return this.snapshots.length;
+  }
 
   // ---------------------------------------------------------------------------
   // Interpolation
@@ -185,10 +208,7 @@ export class NetEntitySync {
    * @param entityId   Entity to interpolate
    * @param renderTime Render timestamp in ms (typically Date.now() - bufferMs)
    */
-  getInterpolatedSnapshot(
-    entityId: string,
-    renderTime: number,
-  ): Record<string, unknown> | null {
+  getInterpolatedSnapshot(entityId: string, renderTime: number): Record<string, unknown> | null {
     // Collect snapshots for this entity, oldest-first
     const entitySnaps = this.snapshots
       .filter((s) => s.entityId === entityId)
@@ -211,7 +231,7 @@ export class NetEntitySync {
 
     // t in [0,1] within the [lo, hi] time window
     const span = hi.timestamp - lo.timestamp;
-    const t    = span > 0 ? Math.max(0, Math.min(1, (renderTime - lo.timestamp) / span)) : 1;
+    const t = span > 0 ? Math.max(0, Math.min(1, (renderTime - lo.timestamp) / span)) : 1;
 
     // Merge component data from lo, then interpolate numeric fields
     const result: Record<string, unknown> = { ...lo.components };
@@ -227,10 +247,16 @@ export class NetEntitySync {
 
       // IVector3-shaped object {x, y, z}
       if (
-        loVal !== null && typeof loVal === 'object' &&
-        'x' in (loVal as object) && 'y' in (loVal as object) && 'z' in (loVal as object) &&
-        hiVal !== null && typeof hiVal === 'object' &&
-        'x' in (hiVal as object) && 'y' in (hiVal as object) && 'z' in (hiVal as object)
+        loVal !== null &&
+        typeof loVal === 'object' &&
+        'x' in (loVal as object) &&
+        'y' in (loVal as object) &&
+        'z' in (loVal as object) &&
+        hiVal !== null &&
+        typeof hiVal === 'object' &&
+        'x' in (hiVal as object) &&
+        'y' in (hiVal as object) &&
+        'z' in (hiVal as object)
       ) {
         const lv = loVal as { x: number; y: number; z: number };
         const hv = hiVal as { x: number; y: number; z: number };
@@ -238,15 +264,18 @@ export class NetEntitySync {
         if (entitySnaps.length >= 4) {
           // Catmull-Rom: pick the surrounding 4-point window
           const loIdx = entitySnaps.indexOf(lo);
-          const p0 = entitySnaps[Math.max(0, loIdx - 1)].components[key] as typeof lv ?? lv;
-          const p3 = entitySnaps[Math.min(entitySnaps.length - 1, loIdx + 2)].components[key] as typeof hv ?? hv;
+          const p0 = (entitySnaps[Math.max(0, loIdx - 1)].components[key] as typeof lv) ?? lv;
+          const p3 =
+            (entitySnaps[Math.min(entitySnaps.length - 1, loIdx + 2)].components[
+              key
+            ] as typeof hv) ?? hv;
 
           const t2 = t * t;
           const t3 = t2 * t;
           const c0 = -0.5 * t3 + t2 - 0.5 * t;
-          const c1 =  1.5 * t3 - 2.5 * t2 + 1.0;
+          const c1 = 1.5 * t3 - 2.5 * t2 + 1.0;
           const c2 = -1.5 * t3 + 2.0 * t2 + 0.5 * t;
-          const c3 =  0.5 * t3 - 0.5 * t2;
+          const c3 = 0.5 * t3 - 0.5 * t2;
 
           result[key] = {
             x: c0 * p0.x + c1 * lv.x + c2 * hv.x + c3 * p3.x,

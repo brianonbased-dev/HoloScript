@@ -129,9 +129,12 @@ describe('Profiler', () => {
 
     it('multiple sequential spans are all recorded', () => {
       p.start('s');
-      p.beginSpan('a'); p.endSpan();
-      p.beginSpan('b'); p.endSpan();
-      p.beginSpan('c'); p.endSpan();
+      p.beginSpan('a');
+      p.endSpan();
+      p.beginSpan('b');
+      p.endSpan();
+      p.beginSpan('c');
+      p.endSpan();
       const result = p.stop();
       expect(result.samples.length).toBe(3);
     });

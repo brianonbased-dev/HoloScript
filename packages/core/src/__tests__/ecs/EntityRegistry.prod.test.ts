@@ -11,12 +11,13 @@ import { EntityRegistry } from '../../ecs/EntityRegistry';
 
 // ── fixture factory ────────────────────────────────────────────────────────────
 
-function makeReg() { return new EntityRegistry(); }
+function makeReg() {
+  return new EntityRegistry();
+}
 
 // ── create ────────────────────────────────────────────────────────────────────
 
 describe('EntityRegistry — create', () => {
-
   it('creates an entity with auto-generated name when no name supplied', () => {
     const r = makeReg();
     const e = r.create();
@@ -54,7 +55,6 @@ describe('EntityRegistry — create', () => {
 // ── destroy ───────────────────────────────────────────────────────────────────
 
 describe('EntityRegistry — destroy', () => {
-
   it('returns true when entity existed', () => {
     const r = makeReg();
     const e = r.create();
@@ -110,7 +110,6 @@ describe('EntityRegistry — destroy', () => {
 // ── queries ───────────────────────────────────────────────────────────────────
 
 describe('EntityRegistry — queries', () => {
-
   it('get returns entity for valid id', () => {
     const r = makeReg();
     const e = r.create('X');
@@ -162,8 +161,8 @@ describe('EntityRegistry — queries', () => {
     r.registerComponent(a.id, 'Mesh');
     r.registerComponent(b.id, 'Transform');
     const results = r.getByComponents('Transform', 'Mesh');
-    expect(results.some(e => e.id === a.id)).toBe(true);
-    expect(results.some(e => e.id === b.id)).toBe(false);
+    expect(results.some((e) => e.id === a.id)).toBe(true);
+    expect(results.some((e) => e.id === b.id)).toBe(false);
   });
 
   it('getAll returns all entities including inactive', () => {
@@ -195,12 +194,11 @@ describe('EntityRegistry — queries', () => {
 // ── tags ──────────────────────────────────────────────────────────────────────
 
 describe('EntityRegistry — tags', () => {
-
   it('addTag returns true and makes entity findable by tag', () => {
     const r = makeReg();
     const e = r.create();
     expect(r.addTag(e.id, 'flying')).toBe(true);
-    expect(r.getByTag('flying').some(x => x.id === e.id)).toBe(true);
+    expect(r.getByTag('flying').some((x) => x.id === e.id)).toBe(true);
   });
 
   it('addTag returns false for unknown entity', () => {
@@ -233,7 +231,6 @@ describe('EntityRegistry — tags', () => {
 // ── hierarchy ────────────────────────────────────────────────────────────────
 
 describe('EntityRegistry — hierarchy', () => {
-
   it('setParent sets parent and adds to children list', () => {
     const r = makeReg();
     const parent = r.create('P');
@@ -256,8 +253,8 @@ describe('EntityRegistry — hierarchy', () => {
     r.setParent(c1.id, p.id);
     r.setParent(c2.id, p.id);
     const children = r.getChildren(p.id);
-    expect(children.some(x => x.id === c1.id)).toBe(true);
-    expect(children.some(x => x.id === c2.id)).toBe(true);
+    expect(children.some((x) => x.id === c1.id)).toBe(true);
+    expect(children.some((x) => x.id === c2.id)).toBe(true);
   });
 
   it('getChildren returns empty array for leaf entities', () => {
@@ -281,7 +278,6 @@ describe('EntityRegistry — hierarchy', () => {
 // ── component bookkeeping ─────────────────────────────────────────────────────
 
 describe('EntityRegistry — component bookkeeping', () => {
-
   it('registerComponent returns true and sets hasComponent', () => {
     const r = makeReg();
     const e = r.create();
@@ -312,7 +308,6 @@ describe('EntityRegistry — component bookkeeping', () => {
 // ── setActive ─────────────────────────────────────────────────────────────────
 
 describe('EntityRegistry — setActive', () => {
-
   it('setActive(false) deactivates entity', () => {
     const r = makeReg();
     const e = r.create();

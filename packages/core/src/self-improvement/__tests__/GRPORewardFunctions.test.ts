@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { RewardToolRunner } from '../GRPORewardFunctions';
-import {
-  createGRPORewardFunctions,
-  GRPO_REWARD_WEIGHTS,
-} from '../GRPORewardFunctions';
+import { createGRPORewardFunctions, GRPO_REWARD_WEIGHTS } from '../GRPORewardFunctions';
 
 // =============================================================================
 // MOCK TOOL RUNNER
@@ -53,11 +50,11 @@ describe('GRPORewardFunctions', () => {
     });
 
     it('has correct individual weights', () => {
-      expect(GRPO_REWARD_WEIGHTS.testPassReward).toBe(0.40);
-      expect(GRPO_REWARD_WEIGHTS.typeCheckReward).toBe(0.20);
+      expect(GRPO_REWARD_WEIGHTS.testPassReward).toBe(0.4);
+      expect(GRPO_REWARD_WEIGHTS.typeCheckReward).toBe(0.2);
       expect(GRPO_REWARD_WEIGHTS.lintReward).toBe(0.15);
       expect(GRPO_REWARD_WEIGHTS.coverageReward).toBe(0.15);
-      expect(GRPO_REWARD_WEIGHTS.circuitBreakerReward).toBe(0.10);
+      expect(GRPO_REWARD_WEIGHTS.circuitBreakerReward).toBe(0.1);
     });
   });
 
@@ -393,7 +390,7 @@ describe('GRPORewardFunctions', () => {
 
       expect(runner.runVitest).toHaveBeenCalledWith(
         '/tmp/test-file.ts',
-        expect.objectContaining({ withCoverage: true }),
+        expect.objectContaining({ withCoverage: true })
       );
     });
 
@@ -449,9 +446,7 @@ describe('GRPORewardFunctions', () => {
     });
 
     it('returns 1.0 for all completions when health check fails', async () => {
-      vi.mocked(runner.getCircuitBreakerHealth).mockRejectedValue(
-        new Error('CB unavailable'),
-      );
+      vi.mocked(runner.getCircuitBreakerHealth).mockRejectedValue(new Error('CB unavailable'));
 
       const rewards = await fns.circuitBreakerReward(['a', 'b']);
       expect(rewards).toEqual([1.0, 1.0]);
@@ -473,9 +468,9 @@ describe('GRPORewardFunctions', () => {
   describe('timeout handling', () => {
     it('returns 0 when evaluation exceeds timeout', async () => {
       const runner = createMockRunner({
-        runVitest: vi.fn().mockImplementation(
-          () => new Promise((resolve) => setTimeout(resolve, 10_000)),
-        ),
+        runVitest: vi
+          .fn()
+          .mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 10_000))),
       });
       const fns = createGRPORewardFunctions(runner);
 

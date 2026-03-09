@@ -68,9 +68,7 @@ export class TypeAliasRegistry {
    */
   static parse(source: string, line?: number): TypeAliasDeclaration | null {
     // Match: type Name<Params> = definition
-    const match = source.match(
-      /^\s*type\s+([A-Z][A-Za-z0-9_]*)(?:<([^>]+)>)?\s*=\s*(.+)$/
-    );
+    const match = source.match(/^\s*type\s+([A-Z][A-Za-z0-9_]*)(?:<([^>]+)>)?\s*=\s*(.+)$/);
     if (!match) return null;
 
     const name = match[1];
@@ -78,12 +76,14 @@ export class TypeAliasRegistry {
     const definition = match[3].trim();
 
     const typeParams = rawParams
-      ? rawParams.split(',').map((p) => p.trim()).filter(Boolean)
+      ? rawParams
+          .split(',')
+          .map((p) => p.trim())
+          .filter(Boolean)
       : [];
 
     const isUnion = definition.includes('|');
-    const kind: TypeAliasKind =
-      typeParams.length > 0 ? 'generic' : isUnion ? 'union' : 'simple';
+    const kind: TypeAliasKind = typeParams.length > 0 ? 'generic' : isUnion ? 'union' : 'simple';
 
     return { name, kind, definition, typeParams, line };
   }

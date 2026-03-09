@@ -2,14 +2,20 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { TerrainTexturing, type TerrainLayer } from '../TerrainTexturing';
 
 const makeLayer = (id: string): TerrainLayer => ({
-  id, textureId: `tex_${id}`, tiling: { x: 1, y: 1 },
-  metallic: 0, roughness: 0.5, heightBlend: false,
+  id,
+  textureId: `tex_${id}`,
+  tiling: { x: 1, y: 1 },
+  metallic: 0,
+  roughness: 0.5,
+  heightBlend: false,
 });
 
 describe('TerrainTexturing', () => {
   let tt: TerrainTexturing;
 
-  beforeEach(() => { tt = new TerrainTexturing(); });
+  beforeEach(() => {
+    tt = new TerrainTexturing();
+  });
 
   // Layers
   it('addLayer increases count', () => {

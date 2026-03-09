@@ -325,7 +325,7 @@ describe('ORSet', () => {
     set.add('hello', 'id1');
     set.add('hello', 'id2');
     const val = set.value();
-    expect(val.filter(v => v === 'hello').length).toBe(1);
+    expect(val.filter((v) => v === 'hello').length).toBe(1);
   });
 
   it('add multiple different elements', () => {

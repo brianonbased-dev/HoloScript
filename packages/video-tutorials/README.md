@@ -24,10 +24,10 @@ npm run render
 
 ## Available Videos
 
-| Composition ID | Output File | Duration |
-|---------------|-------------|----------|
-| `SyntaxIntroduction` | `syntax-introduction.mp4` | ~33s |
-| `UnityCompilerWalkthrough` | `unity-compiler-walkthrough.mp4` | ~32s |
+| Composition ID             | Output File                      | Duration |
+| -------------------------- | -------------------------------- | -------- |
+| `SyntaxIntroduction`       | `syntax-introduction.mp4`        | ~33s     |
+| `UnityCompilerWalkthrough` | `unity-compiler-walkthrough.mp4` | ~32s     |
 
 ## Generate a New Video with Claude Code
 
@@ -42,6 +42,7 @@ npm run render
 ```
 
 Claude will:
+
 - Create `src/content/godot-compiler.md` (Code Hike markdown)
 - Create `src/compositions/GodotCompilerWalkthrough.tsx`
 - Register it in `src/Root.tsx`
@@ -69,8 +70,9 @@ npm run narration -- --all
 ```
 
 Audio saved to `public/narration/*.mp3`. Reference in Remotion:
+
 ```tsx
-<Audio src={staticFile("narration/unity-compiler.mp3")} />
+<Audio src={staticFile('narration/unity-compiler.mp3')} />
 ```
 
 ## Record CLI Demos (Asciinema)
@@ -93,6 +95,7 @@ Output: `public/terminal-demos/*.gif`
 Videos are automatically rendered on every GitHub Release via `.github/workflows/render-videos.yml`.
 
 Rendered MP4s are:
+
 - Uploaded as GitHub Actions artifacts (90-day retention)
 - Attached to the GitHub Release as downloadable assets
 

@@ -47,7 +47,12 @@ function useRingBuffer(size: number) {
 
 // ─── Sparkline ───────────────────────────────────────────────────────────────
 
-function Sparkline({ values, width = 120, height = 30, color = '#6366f1' }: {
+function Sparkline({
+  values,
+  width = 120,
+  height = 30,
+  color = '#6366f1',
+}: {
   values: number[];
   width?: number;
   height?: number;
@@ -65,7 +70,16 @@ function Sparkline({ values, width = 120, height = 30, color = '#6366f1' }: {
   return (
     <svg width={width} height={height} style={{ display: 'block' }}>
       {/* 60fps guide */}
-      <line x1={0} y1={targetY} x2={width} y2={targetY} stroke="#22c55e" strokeWidth={0.5} opacity={0.4} strokeDasharray="3,2" />
+      <line
+        x1={0}
+        y1={targetY}
+        x2={width}
+        y2={targetY}
+        stroke="#22c55e"
+        strokeWidth={0.5}
+        opacity={0.4}
+        strokeDasharray="3,2"
+      />
       {/* FPS line */}
       <polyline points={pts} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" />
     </svg>
@@ -89,7 +103,12 @@ export function PerformanceOverlay({ open }: StatsProps) {
 
   const ring = useRingBuffer(RING_SIZE);
   const [snapshot, setSnapshot] = useState({
-    fps: 0, frameMs: 0, calls: 0, tris: 0, geoms: 0, texs: 0,
+    fps: 0,
+    frameMs: 0,
+    calls: 0,
+    tris: 0,
+    geoms: 0,
+    texs: 0,
     sparkValues: [] as number[],
   });
 
@@ -141,8 +160,7 @@ export function PerformanceOverlay({ open }: StatsProps) {
 
   if (!open) return null;
 
-  const fpsColor =
-    snapshot.fps >= 55 ? '#22c55e' : snapshot.fps >= 30 ? '#f59e0b' : '#ef4444';
+  const fpsColor = snapshot.fps >= 55 ? '#22c55e' : snapshot.fps >= 30 ? '#f59e0b' : '#ef4444';
 
   return (
     <Html
@@ -173,16 +191,16 @@ export function PerformanceOverlay({ open }: StatsProps) {
         {/* FPS */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
           <span>FPS</span>
-          <span style={{ color: fpsColor, fontWeight: 700, fontSize: 13 }}>
-            {snapshot.fps}
-          </span>
+          <span style={{ color: fpsColor, fontWeight: 700, fontSize: 13 }}>{snapshot.fps}</span>
         </div>
 
         {/* Sparkline */}
         <Sparkline values={snapshot.sparkValues} />
 
         {/* Stats grid */}
-        <div style={{ marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px' }}>
+        <div
+          style={{ marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px' }}
+        >
           <span style={{ color: '#6b7280' }}>Frame</span>
           <span style={{ textAlign: 'right' }}>{snapshot.frameMs}ms</span>
 

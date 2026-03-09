@@ -169,7 +169,9 @@ export function ExportModal({
             {/* Duration & FPS */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-white">Duration (seconds)</label>
+                <label className="mb-2 block text-sm font-semibold text-white">
+                  Duration (seconds)
+                </label>
                 <input
                   type="number"
                   value={duration / 1000}
@@ -252,7 +254,9 @@ export function ExportModal({
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-purple-400" />
-              <span className="text-sm font-semibold text-white">{stageLabels[progress.stage]}</span>
+              <span className="text-sm font-semibold text-white">
+                {stageLabels[progress.stage]}
+              </span>
             </div>
 
             {/* Progress bar */}

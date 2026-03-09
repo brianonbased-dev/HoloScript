@@ -66,7 +66,6 @@ export interface XRInputSourceChangeEvent {
   removed: XRInputSource[];
 }
 
-
 export interface WebXRConfig {
   features?: string[]; // e.g. ['local-floor', 'hand-tracking']
 }
@@ -77,10 +76,11 @@ export class WebXRManager {
   private glBinding: any | null = null; // XRWebGPUTypes['binding']
   private projectionLayer: any | null = null; // XRWebGPUTypes['projectionLayer']
   private context: IWebGPUContext;
-  
+
   public onSessionStart: ((session: XRSession) => void) | null = null;
   public onSessionEnd: (() => void) | null = null;
-  public onInputSourcesChange: ((added: XRInputSource[], removed: XRInputSource[]) => void) | null = null;
+  public onInputSourcesChange: ((added: XRInputSource[], removed: XRInputSource[]) => void) | null =
+    null;
 
   constructor(context: IWebGPUContext) {
     this.context = context;
@@ -110,16 +110,16 @@ export class WebXRManager {
    * Trigger haptic pulse on a controller
    */
   public triggerHaptic(hand: 'left' | 'right', intensity: number, duration: number): void {
-      if (!this.session) return;
-      
-      for (const source of this.session.inputSources) {
-          if (source.handedness === hand && source.gamepad) {
-              const actuators = (source.gamepad as any).hapticActuators;
-              if (actuators && actuators.length > 0) {
-                  actuators[0].pulse(intensity, duration);
-              }
-          }
+    if (!this.session) return;
+
+    for (const source of this.session.inputSources) {
+      if (source.handedness === hand && source.gamepad) {
+        const actuators = (source.gamepad as any).hapticActuators;
+        if (actuators && actuators.length > 0) {
+          actuators[0].pulse(intensity, duration);
+        }
       }
+    }
   }
 
   /**
@@ -138,7 +138,7 @@ export class WebXRManager {
 
     try {
       this.session = await (navigator as any).xr.requestSession('immersive-vr', sessionInit);
-      
+
       // Handle session end
       this.session!.addEventListener('end', this.handleSessionEnd);
       this.session!.addEventListener('inputsourceschange', this.handleInputSourcesChange);
@@ -147,10 +147,10 @@ export class WebXRManager {
       // Note: This API is experimental and varies by browser
       // We check for global constructor existence
       if (typeof XRWebGPUBinding !== 'undefined') {
-         // @ts-ignore
-         this.glBinding = new XRWebGPUBinding(this.session!, this.context.device);
+        // @ts-ignore
+        this.glBinding = new XRWebGPUBinding(this.session!, this.context.device);
       } else {
-         console.warn('XRWebGPUBinding not found. Rendering may fail.');
+        console.warn('XRWebGPUBinding not found. Rendering may fail.');
       }
 
       // Get Reference Space
@@ -160,13 +160,13 @@ export class WebXRManager {
       if (this.glBinding) {
         this.projectionLayer = this.glBinding.createProjectionLayer({
           colorFormat: this.context.format,
-          depthStencilFormat: 'depth24plus', 
+          depthStencilFormat: 'depth24plus',
         });
         this.session!.updateRenderState({ layers: [this.projectionLayer] });
       }
 
       this.onSessionStart?.(this.session!);
-      
+
       return this.session!;
     } catch (error) {
       console.error('Failed to start WebXR session:', error);

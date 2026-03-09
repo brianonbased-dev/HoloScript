@@ -19,25 +19,52 @@ export type SyncMode = 'strong' | 'eventual' | 'crdt';
 export type CompressionMode = 'none' | 'delta' | 'quantized' | 'lz4';
 
 export interface SyncFieldConfig {
-  mode: SyncMode; updateRateHz: number; compression: CompressionMode;
-  priority: number; interpolation: 'none' | 'linear' | 'hermite';
+  mode: SyncMode;
+  updateRateHz: number;
+  compression: CompressionMode;
+  priority: number;
+  interpolation: 'none' | 'linear' | 'hermite';
   crdtType?: 'lww-register' | 'g-counter' | 'or-set';
-  maxLatencyMs: number; jitterBufferMs: number;
+  maxLatencyMs: number;
+  jitterBufferMs: number;
 }
 
 export const DEFAULT_SYNC_FIELD: SyncFieldConfig = {
-  mode: 'eventual', updateRateHz: 20, compression: 'delta', priority: 1,
-  interpolation: 'linear', maxLatencyMs: 200, jitterBufferMs: 50,
+  mode: 'eventual',
+  updateRateHz: 20,
+  compression: 'delta',
+  priority: 1,
+  interpolation: 'linear',
+  maxLatencyMs: 200,
+  jitterBufferMs: 50,
 };
 
 export const SYNC_PRESETS: Record<string, Partial<SyncFieldConfig>> = {
-  'position': { mode: 'eventual', updateRateHz: 60, compression: 'quantized', interpolation: 'hermite', priority: 10 },
-  'rotation': { mode: 'eventual', updateRateHz: 60, compression: 'quantized', interpolation: 'hermite', priority: 10 },
-  'health': { mode: 'strong', updateRateHz: 10, compression: 'none', priority: 5 },
-  'inventory': { mode: 'crdt', updateRateHz: 1, compression: 'lz4', crdtType: 'or-set', priority: 3 },
-  'score': { mode: 'crdt', updateRateHz: 5, compression: 'none', crdtType: 'g-counter', priority: 7 },
-  'chat': { mode: 'strong', updateRateHz: 0, compression: 'lz4', priority: 2 },
-  'animation': { mode: 'eventual', updateRateHz: 30, compression: 'delta', interpolation: 'linear', priority: 8 },
+  position: {
+    mode: 'eventual',
+    updateRateHz: 60,
+    compression: 'quantized',
+    interpolation: 'hermite',
+    priority: 10,
+  },
+  rotation: {
+    mode: 'eventual',
+    updateRateHz: 60,
+    compression: 'quantized',
+    interpolation: 'hermite',
+    priority: 10,
+  },
+  health: { mode: 'strong', updateRateHz: 10, compression: 'none', priority: 5 },
+  inventory: { mode: 'crdt', updateRateHz: 1, compression: 'lz4', crdtType: 'or-set', priority: 3 },
+  score: { mode: 'crdt', updateRateHz: 5, compression: 'none', crdtType: 'g-counter', priority: 7 },
+  chat: { mode: 'strong', updateRateHz: 0, compression: 'lz4', priority: 2 },
+  animation: {
+    mode: 'eventual',
+    updateRateHz: 30,
+    compression: 'delta',
+    interpolation: 'linear',
+    priority: 8,
+  },
 };
 
 export interface SyncTierConfig {
@@ -186,20 +213,35 @@ export class SyncTierTrait {
     this.lastSyncTimestamps.delete(name);
   }
 
-  getField(name: string): SyncFieldConfig | undefined { return this.fields.get(name); }
-  getAllFields(): Map<string, SyncFieldConfig> { return new Map(this.fields); }
+  getField(name: string): SyncFieldConfig | undefined {
+    return this.fields.get(name);
+  }
+  getAllFields(): Map<string, SyncFieldConfig> {
+    return new Map(this.fields);
+  }
 
   estimateBandwidth(): number {
     let bps = 0;
     for (const [, cfg] of this.fields) {
-      const baseSize = cfg.compression === 'none' ? 32 : cfg.compression === 'delta' ? 8 : cfg.compression === 'quantized' ? 4 : 16;
-      const effectiveRate = this.congested ? cfg.updateRateHz * this.congestionFactor : cfg.updateRateHz;
+      const baseSize =
+        cfg.compression === 'none'
+          ? 32
+          : cfg.compression === 'delta'
+            ? 8
+            : cfg.compression === 'quantized'
+              ? 4
+              : 16;
+      const effectiveRate = this.congested
+        ? cfg.updateRateHz * this.congestionFactor
+        : cfg.updateRateHz;
       bps += baseSize * 8 * effectiveRate;
     }
     return bps;
   }
 
-  exceedsBandwidthBudget(): boolean { return this.estimateBandwidth() > this.bandwidthBudget; }
+  exceedsBandwidthBudget(): boolean {
+    return this.estimateBandwidth() > this.bandwidthBudget;
+  }
 
   getFieldsByMode(mode: SyncMode): [string, SyncFieldConfig][] {
     return [...this.fields.entries()].filter(([, c]) => c.mode === mode);
@@ -342,10 +384,7 @@ export class SyncTierTrait {
    * @returns Array of BatchPackets. If all updates fit in one packet, the
    *   array has length 1.
    */
-  packBatch(
-    fieldPayloads: Map<string, string>,
-    mtuBytes?: number,
-  ): BatchPacket[] {
+  packBatch(fieldPayloads: Map<string, string>, mtuBytes?: number): BatchPacket[] {
     const mtu = mtuBytes ?? this.defaultMTUBytes;
     const packets: BatchPacket[] = [];
     let currentUpdates: BatchFieldUpdate[] = [];
@@ -391,7 +430,11 @@ export class SyncTierTrait {
     return packets;
   }
 
-  private createPacket(updates: BatchFieldUpdate[], totalBytes: number, mtuBytes: number): BatchPacket {
+  private createPacket(
+    updates: BatchFieldUpdate[],
+    totalBytes: number,
+    mtuBytes: number
+  ): BatchPacket {
     return {
       packetId: this.nextPacketId++,
       assembledAt: new Date().toISOString(),
@@ -431,7 +474,7 @@ export class SyncTierTrait {
     localValue: string,
     remoteValue: string,
     resolution: 'local' | 'remote' | 'merged',
-    note?: string,
+    note?: string
   ): void {
     const cfg = this.fields.get(fieldName);
     if (!cfg || cfg.mode !== 'crdt' || !cfg.crdtType) return;
@@ -454,7 +497,7 @@ export class SyncTierTrait {
 
   /** Get merge conflicts for a specific field. */
   getMergeConflictsForField(fieldName: string): CRDTMergeConflict[] {
-    return this.mergeConflictLog.filter(c => c.fieldName === fieldName);
+    return this.mergeConflictLog.filter((c) => c.fieldName === fieldName);
   }
 
   /** Clear the merge conflict log. */

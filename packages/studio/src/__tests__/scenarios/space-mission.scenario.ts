@@ -7,10 +7,18 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  orbitalPeriod, orbitalVelocity, escapeVelocity,
-  hohmannDeltaV, hohmannTransferTime, tsiolkovskyDeltaV,
-  fuelRequired, totalMissionDeltaV, missionProgress,
-  gravityAssistDeltaV, reentryPeakHeatFlux, reentryTotalHeatLoad,
+  orbitalPeriod,
+  orbitalVelocity,
+  escapeVelocity,
+  hohmannDeltaV,
+  hohmannTransferTime,
+  tsiolkovskyDeltaV,
+  fuelRequired,
+  totalMissionDeltaV,
+  missionProgress,
+  gravityAssistDeltaV,
+  reentryPeakHeatFlux,
+  reentryTotalHeatLoad,
   BODY_DATA,
   type MissionEvent,
 } from '@/lib/spaceMission';
@@ -86,18 +94,66 @@ describe('Scenario: Space Mission — Spacecraft', () => {
 
   it('totalMissionDeltaV sums all events', () => {
     const events: MissionEvent[] = [
-      { id: 'e1', phase: 'launch', name: 'Launch', description: '', deltaVMs: 9400, timestamp: 0, completed: true },
-      { id: 'e2', phase: 'transfer', name: 'TMI', description: '', deltaVMs: 3600, timestamp: 0, completed: true },
-      { id: 'e3', phase: 'arrival', name: 'MOI', description: '', deltaVMs: 2100, timestamp: 0, completed: false },
+      {
+        id: 'e1',
+        phase: 'launch',
+        name: 'Launch',
+        description: '',
+        deltaVMs: 9400,
+        timestamp: 0,
+        completed: true,
+      },
+      {
+        id: 'e2',
+        phase: 'transfer',
+        name: 'TMI',
+        description: '',
+        deltaVMs: 3600,
+        timestamp: 0,
+        completed: true,
+      },
+      {
+        id: 'e3',
+        phase: 'arrival',
+        name: 'MOI',
+        description: '',
+        deltaVMs: 2100,
+        timestamp: 0,
+        completed: false,
+      },
     ];
     expect(totalMissionDeltaV(events)).toBeCloseTo(15.1, 0); // km/s
   });
 
   it('missionProgress = 66% with 2/3 events complete', () => {
     const events: MissionEvent[] = [
-      { id: 'e1', phase: 'launch', name: '', description: '', deltaVMs: 0, timestamp: 0, completed: true },
-      { id: 'e2', phase: 'transfer', name: '', description: '', deltaVMs: 0, timestamp: 0, completed: true },
-      { id: 'e3', phase: 'arrival', name: '', description: '', deltaVMs: 0, timestamp: 0, completed: false },
+      {
+        id: 'e1',
+        phase: 'launch',
+        name: '',
+        description: '',
+        deltaVMs: 0,
+        timestamp: 0,
+        completed: true,
+      },
+      {
+        id: 'e2',
+        phase: 'transfer',
+        name: '',
+        description: '',
+        deltaVMs: 0,
+        timestamp: 0,
+        completed: true,
+      },
+      {
+        id: 'e3',
+        phase: 'arrival',
+        name: '',
+        description: '',
+        deltaVMs: 0,
+        timestamp: 0,
+        completed: false,
+      },
     ];
     expect(missionProgress(events)).toBeCloseTo(0.667, 1);
   });

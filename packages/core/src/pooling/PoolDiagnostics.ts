@@ -16,8 +16,8 @@ import { ObjectPool, PoolStats } from './ObjectPool';
 export interface PoolHealthReport {
   poolName: string;
   stats: PoolStats;
-  utilization: number;         // 0-1
-  fragmentation: number;       // 0-1 (free / total)
+  utilization: number; // 0-1
+  fragmentation: number; // 0-1 (free / total)
   possibleLeaks: number;
   isHealthy: boolean;
   warnings: string[];
@@ -26,7 +26,7 @@ export interface PoolHealthReport {
 export interface LeakEntry {
   poolName: string;
   acquireTime: number;
-  age: number;                 // seconds since acquire
+  age: number; // seconds since acquire
 }
 
 // =============================================================================
@@ -36,7 +36,7 @@ export interface LeakEntry {
 export class PoolDiagnostics {
   private pools: Map<string, ObjectPool<unknown>> = new Map();
   private acquireTimes: Map<string, Map<unknown, number>> = new Map(); // pool → obj → timestamp
-  private leakThreshold: number;  // seconds before flagging as potential leak
+  private leakThreshold: number; // seconds before flagging as potential leak
   private history: Array<{ poolName: string; time: number; stats: PoolStats }> = [];
   private maxHistory = 1000;
 
@@ -91,11 +91,16 @@ export class PoolDiagnostics {
 
     if (utilization > 0.9) warnings.push('Pool near capacity (>90% utilized)');
     if (possibleLeaks > 0) warnings.push(`${possibleLeaks} possible leak(s) detected`);
-    if (stats.expandCount > 5) warnings.push(`Pool expanded ${stats.expandCount} times — consider larger initial size`);
-    if (fragmentation > 0.8) warnings.push('High fragmentation (>80% free) — pool may be oversized');
+    if (stats.expandCount > 5)
+      warnings.push(`Pool expanded ${stats.expandCount} times — consider larger initial size`);
+    if (fragmentation > 0.8)
+      warnings.push('High fragmentation (>80% free) — pool may be oversized');
 
     return {
-      poolName, stats, utilization, fragmentation,
+      poolName,
+      stats,
+      utilization,
+      fragmentation,
       possibleLeaks,
       isHealthy: warnings.length === 0,
       warnings,
@@ -146,13 +151,17 @@ export class PoolDiagnostics {
   }
 
   getHistory(poolName?: string): typeof this.history {
-    return poolName ? this.history.filter(h => h.poolName === poolName) : [...this.history];
+    return poolName ? this.history.filter((h) => h.poolName === poolName) : [...this.history];
   }
 
   // ---------------------------------------------------------------------------
   // Config
   // ---------------------------------------------------------------------------
 
-  setLeakThreshold(seconds: number): void { this.leakThreshold = seconds; }
-  getLeakThreshold(): number { return this.leakThreshold; }
+  setLeakThreshold(seconds: number): void {
+    this.leakThreshold = seconds;
+  }
+  getLeakThreshold(): number {
+    return this.leakThreshold;
+  }
 }

@@ -116,9 +116,7 @@ async function main() {
   }
 
   // Load target mapping
-  const targetMapping: TargetMapping = JSON.parse(
-    fs.readFileSync(TARGET_MAPPING_PATH, 'utf-8')
-  );
+  const targetMapping: TargetMapping = JSON.parse(fs.readFileSync(TARGET_MAPPING_PATH, 'utf-8'));
 
   // Get all composition files
   const compositionFiles = fs
@@ -160,19 +158,14 @@ async function main() {
 
     // Compile to each target
     for (const target of verticalTargets) {
-      const result = await benchmarkCompilation(
-        vertical,
-        file,
-        target,
-        parseResult.ast!
-      );
+      const result = await benchmarkCompilation(vertical, file, target, parseResult.ast!);
       allResults.push(result);
 
       if (result.success) {
         console.log(
           `  ✓ ${target.padEnd(15)} ${result.compilationTimeMs.toFixed(0)}ms  ` +
-          `${formatBytes(result.outputSizeBytes).padEnd(10)}  ` +
-          `Parity: ${result.featureParity.percentage.toFixed(0)}%`
+            `${formatBytes(result.outputSizeBytes).padEnd(10)}  ` +
+            `Parity: ${result.featureParity.percentage.toFixed(0)}%`
         );
       } else {
         console.log(`  ✗ ${target.padEnd(15)} FAILED: ${result.error}`);
@@ -222,9 +215,10 @@ async function benchmarkCompilation(
     const compileTime = performance.now() - compileStart;
 
     // Measure output size
-    const outputSize = typeof output === 'string'
-      ? Buffer.byteLength(output, 'utf-8')
-      : JSON.stringify(output).length;
+    const outputSize =
+      typeof output === 'string'
+        ? Buffer.byteLength(output, 'utf-8')
+        : JSON.stringify(output).length;
 
     // Calculate feature parity
     const featureParity = calculateFeatureParity(ast, output);
@@ -264,8 +258,8 @@ function calculateFeatureParity(ast: any, output: any): FeatureParityScore {
   for (const feature of features) {
     // Check if feature is referenced in output
     // This is a simplified heuristic - could be made more sophisticated
-    const featurePresent = outputStr.includes(feature) ||
-                          outputStr.toLowerCase().includes(feature.toLowerCase());
+    const featurePresent =
+      outputStr.includes(feature) || outputStr.toLowerCase().includes(feature.toLowerCase());
 
     if (featurePresent) {
       supportedCount++;
@@ -312,7 +306,7 @@ function extractFeatures(ast: any): string[] {
 
   // Extract environment features
   if (ast.environment) {
-    Object.keys(ast.environment).forEach(key => features.add(`env:${key}`));
+    Object.keys(ast.environment).forEach((key) => features.add(`env:${key}`));
   }
 
   // Extract state
@@ -348,31 +342,45 @@ async function generateReport(results: BenchmarkResult[], targetMapping: TargetM
 
   // Executive Summary
   lines.push('## Executive Summary\n');
-  lines.push('This benchmark suite tests HoloScript\'s cross-compilation capabilities by compiling 15 representative compositions (one per vertical) to all applicable platform targets.\n');
+  lines.push(
+    "This benchmark suite tests HoloScript's cross-compilation capabilities by compiling 15 representative compositions (one per vertical) to all applicable platform targets.\n"
+  );
 
-  const successfulCompilations = results.filter(r => r.success).length;
-  const failedCompilations = results.filter(r => !r.success).length;
+  const successfulCompilations = results.filter((r) => r.success).length;
+  const failedCompilations = results.filter((r) => !r.success).length;
 
   lines.push(`- **Total Compilations:** ${results.length}`);
-  lines.push(`- **Successful:** ${successfulCompilations} (${((successfulCompilations/results.length)*100).toFixed(1)}%)`);
-  lines.push(`- **Failed:** ${failedCompilations} (${((failedCompilations/results.length)*100).toFixed(1)}%)`);
-  lines.push(`- **Average Compilation Time:** ${calculateAverage(results.filter(r => r.success).map(r => r.compilationTimeMs)).toFixed(0)}ms`);
-  lines.push(`- **Average Output Size:** ${formatBytes(calculateAverage(results.filter(r => r.success).map(r => r.outputSizeBytes)))}`);
-  lines.push(`- **Average Feature Parity:** ${calculateAverage(results.filter(r => r.success).map(r => r.featureParity.percentage)).toFixed(1)}%\n`);
+  lines.push(
+    `- **Successful:** ${successfulCompilations} (${((successfulCompilations / results.length) * 100).toFixed(1)}%)`
+  );
+  lines.push(
+    `- **Failed:** ${failedCompilations} (${((failedCompilations / results.length) * 100).toFixed(1)}%)`
+  );
+  lines.push(
+    `- **Average Compilation Time:** ${calculateAverage(results.filter((r) => r.success).map((r) => r.compilationTimeMs)).toFixed(0)}ms`
+  );
+  lines.push(
+    `- **Average Output Size:** ${formatBytes(calculateAverage(results.filter((r) => r.success).map((r) => r.outputSizeBytes)))}`
+  );
+  lines.push(
+    `- **Average Feature Parity:** ${calculateAverage(results.filter((r) => r.success).map((r) => r.featureParity.percentage)).toFixed(1)}%\n`
+  );
 
   // Per-Vertical Summary
   lines.push('\n---\n');
   lines.push('## Results by Vertical\n');
 
-  const verticals = Array.from(new Set(results.map(r => r.vertical))).sort();
+  const verticals = Array.from(new Set(results.map((r) => r.vertical))).sort();
 
   for (const vertical of verticals) {
-    const verticalResults = results.filter(r => r.vertical === vertical);
-    const successCount = verticalResults.filter(r => r.success).length;
+    const verticalResults = results.filter((r) => r.vertical === vertical);
+    const successCount = verticalResults.filter((r) => r.success).length;
     const totalTargets = verticalResults.length;
 
     lines.push(`### ${vertical.charAt(0).toUpperCase() + vertical.slice(1)}\n`);
-    lines.push(`**Compilation Success:** ${successCount}/${totalTargets} targets (${((successCount/totalTargets)*100).toFixed(0)}%)\n`);
+    lines.push(
+      `**Compilation Success:** ${successCount}/${totalTargets} targets (${((successCount / totalTargets) * 100).toFixed(0)}%)\n`
+    );
     lines.push(`**Target Platforms:** ${targetMapping[vertical]?.targets.join(', ')}\n`);
 
     lines.push('\n| Target | Status | Time (ms) | Size | Parity % | Missing Features |');
@@ -384,10 +392,11 @@ async function generateReport(results: BenchmarkResult[], targetMapping: TargetM
       const size = result.success ? formatBytes(result.outputSizeBytes) : '-';
       const parity = result.success ? result.featureParity.percentage.toFixed(0) + '%' : '-';
       const missing = result.success
-        ? (result.featureParity.missingFeatures.length > 0
-            ? result.featureParity.missingFeatures.slice(0, 3).join(', ') + (result.featureParity.missingFeatures.length > 3 ? '...' : '')
-            : 'None')
-        : (result.error || 'Unknown error');
+        ? result.featureParity.missingFeatures.length > 0
+          ? result.featureParity.missingFeatures.slice(0, 3).join(', ') +
+            (result.featureParity.missingFeatures.length > 3 ? '...' : '')
+          : 'None'
+        : result.error || 'Unknown error';
 
       lines.push(`| ${result.target} | ${status} | ${time} | ${size} | ${parity} | ${missing} |`);
     }
@@ -399,21 +408,29 @@ async function generateReport(results: BenchmarkResult[], targetMapping: TargetM
   lines.push('\n---\n');
   lines.push('## Results by Target Platform\n');
 
-  const targets = Array.from(new Set(results.map(r => r.target))).sort();
+  const targets = Array.from(new Set(results.map((r) => r.target))).sort();
 
   for (const target of targets) {
-    const targetResults = results.filter(r => r.target === target);
-    const successCount = targetResults.filter(r => r.success).length;
+    const targetResults = results.filter((r) => r.target === target);
+    const successCount = targetResults.filter((r) => r.success).length;
     const totalVerticals = targetResults.length;
 
     if (successCount === 0) continue; // Skip targets with zero successes
 
     lines.push(`### ${target.toUpperCase()}\n`);
-    lines.push(`**Compilation Success:** ${successCount}/${totalVerticals} verticals (${((successCount/totalVerticals)*100).toFixed(0)}%)\n`);
+    lines.push(
+      `**Compilation Success:** ${successCount}/${totalVerticals} verticals (${((successCount / totalVerticals) * 100).toFixed(0)}%)\n`
+    );
 
-    const avgTime = calculateAverage(targetResults.filter(r => r.success).map(r => r.compilationTimeMs));
-    const avgSize = calculateAverage(targetResults.filter(r => r.success).map(r => r.outputSizeBytes));
-    const avgParity = calculateAverage(targetResults.filter(r => r.success).map(r => r.featureParity.percentage));
+    const avgTime = calculateAverage(
+      targetResults.filter((r) => r.success).map((r) => r.compilationTimeMs)
+    );
+    const avgSize = calculateAverage(
+      targetResults.filter((r) => r.success).map((r) => r.outputSizeBytes)
+    );
+    const avgParity = calculateAverage(
+      targetResults.filter((r) => r.success).map((r) => r.featureParity.percentage)
+    );
 
     lines.push(`- **Average Compilation Time:** ${avgTime.toFixed(0)}ms`);
     lines.push(`- **Average Output Size:** ${formatBytes(avgSize)}`);
@@ -440,42 +457,44 @@ async function generateReport(results: BenchmarkResult[], targetMapping: TargetM
 
   lines.push('### Fastest Compilation Times\n');
   const fastestCompilations = results
-    .filter(r => r.success)
+    .filter((r) => r.success)
     .sort((a, b) => a.compilationTimeMs - b.compilationTimeMs)
     .slice(0, 10);
 
   lines.push('| Rank | Vertical | Target | Time (ms) |');
   lines.push('|------|----------|--------|-----------|');
   fastestCompilations.forEach((r, i) => {
-    lines.push(`| ${i+1} | ${r.vertical} | ${r.target} | ${r.compilationTimeMs.toFixed(0)} |`);
+    lines.push(`| ${i + 1} | ${r.vertical} | ${r.target} | ${r.compilationTimeMs.toFixed(0)} |`);
   });
 
   lines.push('\n### Smallest Output Sizes\n');
   const smallestOutputs = results
-    .filter(r => r.success)
+    .filter((r) => r.success)
     .sort((a, b) => a.outputSizeBytes - b.outputSizeBytes)
     .slice(0, 10);
 
   lines.push('| Rank | Vertical | Target | Size |');
   lines.push('|------|----------|--------|------|');
   smallestOutputs.forEach((r, i) => {
-    lines.push(`| ${i+1} | ${r.vertical} | ${r.target} | ${formatBytes(r.outputSizeBytes)} |`);
+    lines.push(`| ${i + 1} | ${r.vertical} | ${r.target} | ${formatBytes(r.outputSizeBytes)} |`);
   });
 
   lines.push('\n### Highest Feature Parity\n');
   const highestParity = results
-    .filter(r => r.success)
+    .filter((r) => r.success)
     .sort((a, b) => b.featureParity.percentage - a.featureParity.percentage)
     .slice(0, 10);
 
   lines.push('| Rank | Vertical | Target | Parity % | Supported/Total |');
   lines.push('|------|----------|--------|----------|-----------------|');
   highestParity.forEach((r, i) => {
-    lines.push(`| ${i+1} | ${r.vertical} | ${r.target} | ${r.featureParity.percentage.toFixed(1)}% | ${r.featureParity.supportedFeatures}/${r.featureParity.totalFeatures} |`);
+    lines.push(
+      `| ${i + 1} | ${r.vertical} | ${r.target} | ${r.featureParity.percentage.toFixed(1)}% | ${r.featureParity.supportedFeatures}/${r.featureParity.totalFeatures} |`
+    );
   });
 
   // Failure Analysis
-  const failures = results.filter(r => !r.success);
+  const failures = results.filter((r) => !r.success);
   if (failures.length > 0) {
     lines.push('\n---\n');
     lines.push('## Failure Analysis\n');
@@ -483,7 +502,7 @@ async function generateReport(results: BenchmarkResult[], targetMapping: TargetM
 
     lines.push('| Vertical | Target | Error |');
     lines.push('|----------|--------|-------|');
-    failures.forEach(r => {
+    failures.forEach((r) => {
       lines.push(`| ${r.vertical} | ${r.target} | ${r.error || 'Unknown'} |`);
     });
     lines.push('\n');
@@ -493,16 +512,24 @@ async function generateReport(results: BenchmarkResult[], targetMapping: TargetM
   lines.push('\n---\n');
   lines.push('## Methodology\n');
   lines.push('### Benchmark Compositions\n');
-  lines.push('Each vertical is represented by a carefully designed composition that exercises representative features:\n');
+  lines.push(
+    'Each vertical is represented by a carefully designed composition that exercises representative features:\n'
+  );
 
   for (const vertical of verticals) {
-    lines.push(`- **${vertical}**: ${targetMapping[vertical]?.reasoning || 'Standard vertical composition'}`);
+    lines.push(
+      `- **${vertical}**: ${targetMapping[vertical]?.reasoning || 'Standard vertical composition'}`
+    );
   }
 
   lines.push('\n### Metrics\n');
-  lines.push('- **Compilation Time**: Measured using `performance.now()` from parse to output generation');
+  lines.push(
+    '- **Compilation Time**: Measured using `performance.now()` from parse to output generation'
+  );
   lines.push('- **Output Size**: Total byte count of generated code/data');
-  lines.push('- **Feature Parity**: Percentage of HoloScript features (traits, environment settings, etc.) present in compiled output\n');
+  lines.push(
+    '- **Feature Parity**: Percentage of HoloScript features (traits, environment settings, etc.) present in compiled output\n'
+  );
 
   lines.push('### Platform Applicability\n');
   lines.push('Not all platforms are suitable for all verticals. The target mapping is based on:\n');
@@ -530,7 +557,7 @@ function formatBytes(bytes: number): string {
 }
 
 function calculateSuccessRate(results: BenchmarkResult[]): number {
-  const successful = results.filter(r => r.success).length;
+  const successful = results.filter((r) => r.success).length;
   return results.length > 0 ? (successful / results.length) * 100 : 0;
 }
 

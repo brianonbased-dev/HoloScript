@@ -3,6 +3,7 @@
 ## Behavior Tree Decorator Nodes
 
 ### Example: RepeatNode Component
+
 ```typescript
 function RepeatNode({ data }: { data: any }) {
   return (
@@ -18,6 +19,7 @@ function RepeatNode({ data }: { data: any }) {
 ```
 
 ### Example: Creating a Retry Node
+
 ```typescript
 const handleAddRetry = () => {
   const node: BTNode = {
@@ -33,6 +35,7 @@ const handleAddRetry = () => {
 ```
 
 ### Example: Toolbar Button
+
 ```typescript
 <button
   onClick={handleAddTimeout}
@@ -46,6 +49,7 @@ const handleAddRetry = () => {
 ## Workflow Control Nodes
 
 ### Example: DecisionNode Component
+
 ```typescript
 function DecisionNode({ data }: { data: DecisionNodeData }) {
   return (
@@ -66,6 +70,7 @@ function DecisionNode({ data }: { data: DecisionNodeData }) {
 ```
 
 ### Example: Creating a Loop Node
+
 ```typescript
 const handleAddLoop = () => {
   const node: WorkflowNode = {
@@ -80,7 +85,10 @@ const handleAddLoop = () => {
       maxIterations: 100,
     },
   };
-  setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node.data }]);
+  setNodes((ns) => [
+    ...ns,
+    { id: node.id, type: node.type, position: node.position, data: node.data },
+  ]);
   if (workflow) {
     addWorkflowNode(workflow.id, node);
   }
@@ -88,6 +96,7 @@ const handleAddLoop = () => {
 ```
 
 ### Example: Toolbar with Icons
+
 ```typescript
 <button
   onClick={handleAddParallel}
@@ -102,38 +111,41 @@ const handleAddLoop = () => {
 ## TypeScript Type Definitions
 
 ### Extended BTNodeType
+
 ```typescript
-export type BTNodeType = 
-  | 'sequence' 
-  | 'selector' 
-  | 'parallel' 
-  | 'action' 
-  | 'condition' 
-  | 'inverter'   // NEW
-  | 'repeat'     // NEW
-  | 'retry'      // NEW
-  | 'guard'      // NEW
-  | 'timeout';   // NEW
+export type BTNodeType =
+  | 'sequence'
+  | 'selector'
+  | 'parallel'
+  | 'action'
+  | 'condition'
+  | 'inverter' // NEW
+  | 'repeat' // NEW
+  | 'retry' // NEW
+  | 'guard' // NEW
+  | 'timeout'; // NEW
 ```
 
 ### Extended WorkflowNodeType
+
 ```typescript
-export type WorkflowNodeType = 
-  | 'agent' 
-  | 'tool' 
-  | 'decision' 
-  | 'parallel' 
-  | 'sequential' 
-  | 'loop'       // NEW
-  | 'merge';     // NEW
+export type WorkflowNodeType =
+  | 'agent'
+  | 'tool'
+  | 'decision'
+  | 'parallel'
+  | 'sequential'
+  | 'loop' // NEW
+  | 'merge'; // NEW
 ```
 
 ### New Data Interfaces
+
 ```typescript
 export interface LoopNodeData {
   type: 'loop';
   iterableSource: string; // Variable name or expression
-  itemVariable: string;   // Loop variable name
+  itemVariable: string; // Loop variable name
   maxIterations?: number;
 }
 
@@ -146,13 +158,13 @@ export interface MergeNodeData {
 export interface BTNodeData {
   // Composite nodes
   policy?: 'require-all' | 'require-one';
-  
+
   // Decorator nodes
-  maxRepeats?: number;   // For repeat
-  maxRetries?: number;   // For retry (NEW)
-  condition?: string;    // For guard
-  timeoutMs?: number;    // For timeout (NEW)
-  
+  maxRepeats?: number; // For repeat
+  maxRetries?: number; // For retry (NEW)
+  condition?: string; // For guard
+  timeoutMs?: number; // For timeout (NEW)
+
   // Leaf nodes
   actionCode?: string;
   conditionCode?: string;
@@ -162,33 +174,36 @@ export interface BTNodeData {
 ## Node Type Registry Updates
 
 ### Behavior Tree
+
 ```typescript
 const nodeTypes: NodeTypes = {
   sequence: SequenceNode,
   action: ActionNode,
-  inverter: InverterNode,      // NEW
-  repeat: RepeatNode,           // NEW
-  retry: RetryNode,             // NEW
-  guard: GuardNode,             // NEW
-  timeout: TimeoutNode,         // NEW
+  inverter: InverterNode, // NEW
+  repeat: RepeatNode, // NEW
+  retry: RetryNode, // NEW
+  guard: GuardNode, // NEW
+  timeout: TimeoutNode, // NEW
 };
 ```
 
 ### Workflow
+
 ```typescript
 const nodeTypes: NodeTypes = {
   agent: AgentNode,
   tool: ToolNode,
-  decision: DecisionNode,       // NEW
-  loop: LoopNode,               // NEW
-  parallel: ParallelNode,       // NEW
-  merge: MergeNode,             // NEW
+  decision: DecisionNode, // NEW
+  loop: LoopNode, // NEW
+  parallel: ParallelNode, // NEW
+  merge: MergeNode, // NEW
 };
 ```
 
 ## Usage Examples
 
 ### Creating a Complete Behavior Tree with Decorators
+
 ```typescript
 // Root sequence
 const rootSequence = {
@@ -196,7 +211,7 @@ const rootSequence = {
   type: 'sequence',
   label: 'Root Sequence',
   position: { x: 100, y: 50 },
-  data: {}
+  data: {},
 };
 
 // Retry decorator wrapping an action
@@ -205,7 +220,7 @@ const retryNode = {
   type: 'retry',
   label: 'Retry API Call',
   position: { x: 100, y: 150 },
-  data: { maxRetries: 3 }
+  data: { maxRetries: 3 },
 };
 
 // Guard for conditional execution
@@ -214,7 +229,7 @@ const guardNode = {
   type: 'guard',
   label: 'Check Prerequisites',
   position: { x: 300, y: 150 },
-  data: { condition: 'hasPermission === true' }
+  data: { condition: 'hasPermission === true' },
 };
 
 // Timeout for long operations
@@ -223,11 +238,12 @@ const timeoutNode = {
   type: 'timeout',
   label: 'Timeout Upload',
   position: { x: 500, y: 150 },
-  data: { timeoutMs: 10000 }
+  data: { timeoutMs: 10000 },
 };
 ```
 
 ### Creating a Complete Workflow with Control Flow
+
 ```typescript
 // Agent node
 const agent = {
@@ -241,8 +257,8 @@ const agent = {
     systemPrompt: 'Process incoming data',
     temperature: 0.7,
     tools: [],
-    maxTokens: 2048
-  }
+    maxTokens: 2048,
+  },
 };
 
 // Decision for branching
@@ -255,8 +271,8 @@ const decision = {
     type: 'decision',
     condition: 'result.success === true',
     trueOutput: 'loop_1',
-    falseOutput: 'agent_error'
-  }
+    falseOutput: 'agent_error',
+  },
 };
 
 // Loop for batch processing
@@ -269,8 +285,8 @@ const loop = {
     type: 'loop',
     iterableSource: 'result.items',
     itemVariable: 'item',
-    maxIterations: 100
-  }
+    maxIterations: 100,
+  },
 };
 
 // Merge to synchronize parallel branches
@@ -282,11 +298,12 @@ const merge = {
   data: {
     type: 'merge',
     waitForAll: true,
-    timeout: 30000
-  }
+    timeout: 30000,
+  },
 };
 ```
 
 ---
+
 **File**: PHASE2_TASK2_CODE_EXAMPLES.md
 **Date**: 2026-02-28

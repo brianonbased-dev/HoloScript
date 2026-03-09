@@ -106,7 +106,7 @@ export class CodebaseTheme {
    */
   getStyle(
     symbol: ExternalSymbolDefinition,
-    metrics?: { connections?: number; maxLoc?: number; maxConnections?: number },
+    metrics?: { connections?: number; maxLoc?: number; maxConnections?: number }
   ): VisualStyle {
     const color = this.getColor(symbol);
     const scale = this.getScale(symbol, metrics);
@@ -137,7 +137,7 @@ export class CodebaseTheme {
    */
   getScale(
     symbol: ExternalSymbolDefinition,
-    metrics?: { connections?: number; maxLoc?: number; maxConnections?: number },
+    metrics?: { connections?: number; maxLoc?: number; maxConnections?: number }
   ): number {
     const base = this.options.baseScale;
     const max = this.options.maxScale;
@@ -149,13 +149,13 @@ export class CodebaseTheme {
     if (this.options.sizeBy === 'loc') {
       const loc = symbol.loc ?? 10;
       const maxLoc = metrics?.maxLoc ?? 500;
-      return base + ((loc / maxLoc) * (max - base));
+      return base + (loc / maxLoc) * (max - base);
     }
 
     if (this.options.sizeBy === 'connections') {
       const connections = metrics?.connections ?? 1;
       const maxConn = metrics?.maxConnections ?? 50;
-      return base + ((connections / maxConn) * (max - base));
+      return base + (connections / maxConn) * (max - base);
     }
 
     return base;
@@ -202,7 +202,11 @@ export class CodebaseTheme {
   /**
    * Get highlighted edge style (thicker, brighter).
    */
-  getHighlightedEdgeStyle(edgeType: 'import' | 'call'): { color: string; opacity: number; width: number } {
+  getHighlightedEdgeStyle(edgeType: 'import' | 'call'): {
+    color: string;
+    opacity: number;
+    width: number;
+  } {
     return {
       color: edgeType === 'import' ? '#88ccff' : '#ffcc44',
       opacity: 0.9,

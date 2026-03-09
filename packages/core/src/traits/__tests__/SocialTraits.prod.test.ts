@@ -17,13 +17,17 @@ import {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function makeNode(): any { return {}; }
-function makeCtx() { const emit = vi.fn(); return { emit }; }
+function makeNode(): any {
+  return {};
+}
+function makeCtx() {
+  const emit = vi.fn();
+  return { emit };
+}
 
 // ─── Tests: shareableHandler ─────────────────────────────────────────────────
 
 describe('shareableHandler — Production', () => {
-
   beforeEach(() => vi.clearAllMocks());
 
   it('has name shareable', () => {
@@ -67,15 +71,23 @@ describe('shareableHandler — Production', () => {
   it('onUpdate is a no-op (does not throw)', () => {
     const node = makeNode();
     const ctx = makeCtx();
-    expect(() => shareableHandler.onUpdate!(node, shareableHandler.defaultConfig, ctx as any, 16)).not.toThrow();
+    expect(() =>
+      shareableHandler.onUpdate!(node, shareableHandler.defaultConfig, ctx as any, 16)
+    ).not.toThrow();
   });
 
   it('share event emits on_share with platform', () => {
     const node = makeNode();
     const ctx = makeCtx();
     shareableHandler.onAttach!(node, shareableHandler.defaultConfig, ctx as any);
-    shareableHandler.onEvent!(node, shareableHandler.defaultConfig, ctx as any, { type: 'share', platform: 'twitter' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_share', expect.objectContaining({ platform: 'twitter' }));
+    shareableHandler.onEvent!(node, shareableHandler.defaultConfig, ctx as any, {
+      type: 'share',
+      platform: 'twitter',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_share',
+      expect.objectContaining({ platform: 'twitter' })
+    );
   });
 
   it('share event defaults platform to x when not provided', () => {
@@ -90,14 +102,17 @@ describe('shareableHandler — Production', () => {
     const node = makeNode();
     const ctx = makeCtx();
     shareableHandler.onAttach!(node, shareableHandler.defaultConfig, ctx as any);
-    expect(() => shareableHandler.onEvent!(node, shareableHandler.defaultConfig, ctx as any, { type: 'mystery' })).not.toThrow();
+    expect(() =>
+      shareableHandler.onEvent!(node, shareableHandler.defaultConfig, ctx as any, {
+        type: 'mystery',
+      })
+    ).not.toThrow();
   });
 });
 
 // ─── Tests: collaborativeHandler ─────────────────────────────────────────────
 
 describe('collaborativeHandler — Production', () => {
-
   beforeEach(() => vi.clearAllMocks());
 
   it('has name collaborative', () => {
@@ -139,7 +154,11 @@ describe('collaborativeHandler — Production', () => {
   it('emits request_mic_access when voice=true on attach', () => {
     const node = makeNode();
     const ctx = makeCtx();
-    collaborativeHandler.onAttach!(node, { ...collaborativeHandler.defaultConfig, voice: true }, ctx as any);
+    collaborativeHandler.onAttach!(
+      node,
+      { ...collaborativeHandler.defaultConfig, voice: true },
+      ctx as any
+    );
     // The initializeVoice call is async, but emit should eventually be called
     // We check it is called via the sync path if present
     // Since it's async, we just verify no crash and the node state was created
@@ -154,9 +173,12 @@ describe('collaborativeHandler — Production', () => {
       type: 'user_join',
       user: { id: 'u1', name: 'Alice' },
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_user_join', expect.objectContaining({
-      user: { id: 'u1', name: 'Alice' },
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_user_join',
+      expect.objectContaining({
+        user: { id: 'u1', name: 'Alice' },
+      })
+    );
   });
 
   it('user_leave event emits on_user_leave', () => {
@@ -167,7 +189,10 @@ describe('collaborativeHandler — Production', () => {
       type: 'user_leave',
       user: { id: 'u1' },
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_user_leave', expect.objectContaining({ user: { id: 'u1' } }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_user_leave',
+      expect.objectContaining({ user: { id: 'u1' } })
+    );
   });
 
   it('edit event emits on_edit', () => {
@@ -178,9 +203,12 @@ describe('collaborativeHandler — Production', () => {
       type: 'edit',
       edit: { property: 'position', value: [1, 2, 3] },
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_edit', expect.objectContaining({
-      edit: { property: 'position', value: [1, 2, 3] },
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_edit',
+      expect.objectContaining({
+        edit: { property: 'position', value: [1, 2, 3] },
+      })
+    );
   });
 
   it('voice_stream_received emits on_voice_stream with peerId', () => {
@@ -192,16 +220,18 @@ describe('collaborativeHandler — Production', () => {
       peerId: 'peer123',
       stream: {},
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_voice_stream', expect.objectContaining({
-      peerId: 'peer123',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_voice_stream',
+      expect.objectContaining({
+        peerId: 'peer123',
+      })
+    );
   });
 });
 
 // ─── Tests: tweetableHandler ─────────────────────────────────────────────────
 
 describe('tweetableHandler — Production', () => {
-
   beforeEach(() => vi.clearAllMocks());
 
   it('has name tweetable', () => {
@@ -246,7 +276,9 @@ describe('tweetableHandler — Production', () => {
     const node = makeNode();
     const ctx = makeCtx();
     tweetableHandler.onAttach!(node, tweetableHandler.defaultConfig, ctx as any);
-    tweetableHandler.onEvent!(node, tweetableHandler.defaultConfig, ctx as any, { type: 'thread_created' });
+    tweetableHandler.onEvent!(node, tweetableHandler.defaultConfig, ctx as any, {
+      type: 'thread_created',
+    });
     expect(ctx.emit).toHaveBeenCalledWith('on_thread_created', expect.objectContaining({ node }));
   });
 });
@@ -254,7 +286,6 @@ describe('tweetableHandler — Production', () => {
 // ─── Tests: generateTweetUrl ─────────────────────────────────────────────────
 
 describe('generateTweetUrl — helper', () => {
-
   const baseCfg = {
     template: 'Check out {name}! Built with HoloScript 🎮',
     hashtags: ['HoloScript', 'VR'],
@@ -298,7 +329,6 @@ describe('generateTweetUrl — helper', () => {
 // ─── Tests: generateQRCodeUrl ────────────────────────────────────────────────
 
 describe('generateQRCodeUrl — helper', () => {
-
   it('returns a qrserver URL', () => {
     const url = generateQRCodeUrl('https://holo.dev/scene1');
     expect(url).toMatch(/^https:\/\/api\.qrserver\.com\/v1\/create-qr-code/);

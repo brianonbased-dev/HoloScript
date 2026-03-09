@@ -32,11 +32,7 @@ const objectIds: string[] = [];
 for (let i = 0; i < OBJECT_COUNT; i++) {
   const id = `object_${i}`;
   const config = createStandardLODConfig(id, 3, 10);
-  manager.register(id, config, [
-    Math.random() * 100,
-    Math.random() * 100,
-    Math.random() * 100
-  ]);
+  manager.register(id, config, [Math.random() * 100, Math.random() * 100, Math.random() * 100]);
   objectIds.push(id);
 }
 
@@ -56,7 +52,7 @@ const baselineAvg = baselineTime / ITERATIONS;
 console.log(`Single-threaded (baseline):`);
 console.log(`  Total: ${baselineTime.toFixed(2)} ms`);
 console.log(`  Average: ${baselineAvg.toFixed(2)} ms/iteration`);
-console.log(`  FPS Impact: ${(baselineAvg / 16.67 * 100).toFixed(1)}% of frame budget`);
+console.log(`  FPS Impact: ${((baselineAvg / 16.67) * 100).toFixed(1)}% of frame budget`);
 console.log();
 
 // Batch update
@@ -72,7 +68,7 @@ console.log(`Batch processing:`);
 console.log(`  Total: ${batchTime.toFixed(2)} ms`);
 console.log(`  Average: ${batchAvg.toFixed(2)} ms/iteration`);
 console.log(`  Speedup: ${batchSpeedup.toFixed(2)}x`);
-console.log(`  FPS Impact: ${(batchAvg / 16.67 * 100).toFixed(1)}% of frame budget`);
+console.log(`  FPS Impact: ${((batchAvg / 16.67) * 100).toFixed(1)}% of frame budget`);
 console.log();
 
 // Benchmark 2: Memory Pool Efficiency
@@ -83,7 +79,7 @@ console.log('-'.repeat(60));
 const pool = createLODMemoryPool({
   initialPoolSize: 10,
   maxPoolSize: 100,
-  bufferSizes: [1000, 5000, 10000]
+  bufferSizes: [1000, 5000, 10000],
 });
 
 const poolStart = performance.now();
@@ -122,7 +118,9 @@ console.log();
 console.log('Pool Statistics:');
 console.log(`  Hit Rate: ${(stats.hitRate * 100).toFixed(1)}%`);
 console.log(`  Reuse Count: ${stats.reuseCount} / ${stats.allocationCount + stats.reuseCount}`);
-console.log(`  Memory Savings: ${((stats.reuseCount / (stats.allocationCount + stats.reuseCount)) * 100).toFixed(1)}% fewer allocations`);
+console.log(
+  `  Memory Savings: ${((stats.reuseCount / (stats.allocationCount + stats.reuseCount)) * 100).toFixed(1)}% fewer allocations`
+);
 console.log(`  Total Memory: ${(stats.totalMemoryBytes / 1024 / 1024).toFixed(2)} MB`);
 console.log();
 

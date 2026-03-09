@@ -57,9 +57,7 @@ function countTokens(text: string): number {
 /**
  * Detect file type based on extension
  */
-function detectFileType(
-  filePath: string
-): 'code' | 'log' | 'markdown' | 'unknown' {
+function detectFileType(filePath: string): 'code' | 'log' | 'markdown' | 'unknown' {
   const ext = filePath.split('.').pop()?.toLowerCase() || '';
 
   if (['ts', 'js', 'jsx', 'tsx', 'hs', 'hsplus'].includes(ext)) {
@@ -135,16 +133,13 @@ class StructureBasedChunker {
 
     for (let i = 0; i < boundaries.length; i++) {
       const boundary = boundaries[i];
-      const segmentContent = lines
-        .slice(boundary.startLine - 1, boundary.endLine)
-        .join('\n');
+      const segmentContent = lines.slice(boundary.startLine - 1, boundary.endLine).join('\n');
       const segmentTokens = countTokens(segmentContent);
 
       // If adding this segment would exceed max, flush current chunk
       if (
         currentChunk.length > 0 &&
-        countTokens(currentChunk.join('\n') + '\n' + segmentContent) >
-          this.options.maxTokens
+        countTokens(currentChunk.join('\n') + '\n' + segmentContent) > this.options.maxTokens
       ) {
         const chunkContent = currentChunk.join('\n');
         chunks.push({
@@ -224,9 +219,7 @@ class StructureBasedChunker {
         const classMatch = trimmed.match(
           /^(export\s+)?(abstract\s+)?class\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/
         );
-        const interfaceMatch = trimmed.match(
-          /^(export\s+)?interface\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/
-        );
+        const interfaceMatch = trimmed.match(/^(export\s+)?interface\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/);
         const methodMatch = trimmed.match(
           /^(public|private|protected|static)?\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)\s*[:{]/
         );
@@ -501,10 +494,7 @@ class SemanticChunker {
       const groupTokens = countTokens(groupContent + '\n\n' + para.content);
 
       // Merge if similar and doesn't exceed max tokens
-      if (
-        similarity >= this.options.semanticThreshold &&
-        groupTokens <= this.options.maxTokens
-      ) {
+      if (similarity >= this.options.semanticThreshold && groupTokens <= this.options.maxTokens) {
         currentGroup.push(para);
       } else {
         // Flush current group
@@ -710,8 +700,7 @@ export class HybridChunker {
     const strategyDistribution: Record<string, number> = {};
 
     for (const chunk of chunks) {
-      strategyDistribution[chunk.strategy] =
-        (strategyDistribution[chunk.strategy] || 0) + 1;
+      strategyDistribution[chunk.strategy] = (strategyDistribution[chunk.strategy] || 0) + 1;
     }
 
     return {

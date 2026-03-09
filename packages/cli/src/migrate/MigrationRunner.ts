@@ -1,7 +1,7 @@
 /** Compare two semver strings. Returns -1, 0, or 1. */
 function compareSemver(a: string, b: string): number {
-  const pa = a.split(".").map(Number);
-  const pb = b.split(".").map(Number);
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
   for (let i = 0; i < 3; i++) {
     if (pa[i] < pb[i]) return -1;
     if (pa[i] > pb[i]) return 1;
@@ -71,10 +71,22 @@ export class MigrationRunner {
         }
         nextFiles.set(filePath, migratedContent);
         if (migratedContent !== originalContent) {
-          changes.push({ filePath, originalContent, migratedContent, changesCount: changeDescriptions.length, changeDescriptions });
+          changes.push({
+            filePath,
+            originalContent,
+            migratedContent,
+            changesCount: changeDescriptions.length,
+            changeDescriptions,
+          });
         }
       }
-      results.push({ migration, changes, totalFiles: currentFiles.size, modifiedFiles: changes.length, skippedFiles: currentFiles.size - changes.length });
+      results.push({
+        migration,
+        changes,
+        totalFiles: currentFiles.size,
+        modifiedFiles: changes.length,
+        skippedFiles: currentFiles.size - changes.length,
+      });
       currentFiles = nextFiles;
     }
     return results;
@@ -87,7 +99,8 @@ export class MigrationRunner {
       const nextFiles = new Map<string, string>();
       for (const [filePath, content] of currentFiles) {
         let migratedContent = content;
-        for (const transform of migration.transforms) migratedContent = transform.transform(migratedContent, filePath);
+        for (const transform of migration.transforms)
+          migratedContent = transform.transform(migratedContent, filePath);
         nextFiles.set(filePath, migratedContent);
       }
       currentFiles = nextFiles;
@@ -100,7 +113,15 @@ export class MigrationRunner {
     const lines: string[] = [];
     for (const result of results) {
       lines.push('Migration: ' + result.migration.from + ' => ' + result.migration.to);
-      lines.push('  Files: ' + result.totalFiles + ' total, ' + result.modifiedFiles + ' modified, ' + result.skippedFiles + ' skipped');
+      lines.push(
+        '  Files: ' +
+          result.totalFiles +
+          ' total, ' +
+          result.modifiedFiles +
+          ' modified, ' +
+          result.skippedFiles +
+          ' skipped'
+      );
       if (result.changes.length === 0) {
         lines.push('  No changes.');
       } else {

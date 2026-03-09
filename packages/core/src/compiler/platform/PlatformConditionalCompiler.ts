@@ -65,7 +65,10 @@ export class PlatformConditionalCompiler {
    * Resolve @platform() blocks for the current target.
    * Later blocks override earlier blocks (cascade order).
    */
-  resolve(blocks: PlatformBlock[], baseTraits: Record<string, unknown> = {}): PlatformConditionalResult {
+  resolve(
+    blocks: PlatformBlock[],
+    baseTraits: Record<string, unknown> = {}
+  ): PlatformConditionalResult {
     const resolvedTraits = { ...baseTraits };
     const includedBlocks: PlatformBlock[] = [];
     const eliminatedBlocks: PlatformBlock[] = [];
@@ -81,7 +84,9 @@ export class PlatformConditionalCompiler {
     }
 
     if (includedBlocks.length === 0 && blocks.length > 0) {
-      warnings.push(`No @platform() blocks match target '${this.targetPlatform}' (category: ${this.targetCategory})`);
+      warnings.push(
+        `No @platform() blocks match target '${this.targetPlatform}' (category: ${this.targetCategory})`
+      );
     }
 
     const total = blocks.length;
@@ -100,7 +105,7 @@ export class PlatformConditionalCompiler {
   }
 
   private matchesPlatform(block: PlatformBlock): boolean {
-    const matchesAny = block.platforms.some(p => {
+    const matchesAny = block.platforms.some((p) => {
       if (p === '*') return true;
       if (p === this.targetPlatform) return true;
       if (p === this.targetCategory) return true;
@@ -116,11 +121,18 @@ export class PlatformConditionalCompiler {
    * "@platform(vr)" → { platforms: ['vr'], negated: false }
    * "@platform(!automotive)" → { platforms: ['automotive'], negated: true }
    */
-  static parseAnnotation(annotation: string): { platforms: (PlatformTarget | PlatformCategory | '*')[]; negated: boolean } {
+  static parseAnnotation(annotation: string): {
+    platforms: (PlatformTarget | PlatformCategory | '*')[];
+    negated: boolean;
+  } {
     const match = annotation.match(/@platform\((!?)([^)]+)\)/);
     if (!match) throw new Error(`Invalid @platform() annotation: ${annotation}`);
     const negated = match[1] === '!';
-    const platforms = match[2].split(',').map(p => p.trim()) as (PlatformTarget | PlatformCategory | '*')[];
+    const platforms = match[2].split(',').map((p) => p.trim()) as (
+      | PlatformTarget
+      | PlatformCategory
+      | '*'
+    )[];
     return { platforms, negated };
   }
 
@@ -138,10 +150,16 @@ export class PlatformConditionalCompiler {
     return errors;
   }
 
-  getTarget(): PlatformTarget { return this.targetPlatform; }
-  getCategory(): PlatformCategory { return this.targetCategory; }
+  getTarget(): PlatformTarget {
+    return this.targetPlatform;
+  }
+  getCategory(): PlatformCategory {
+    return this.targetCategory;
+  }
 }
 
-export function createPlatformConditionalCompiler(target: PlatformTarget): PlatformConditionalCompiler {
+export function createPlatformConditionalCompiler(
+  target: PlatformTarget
+): PlatformConditionalCompiler {
   return new PlatformConditionalCompiler(target);
 }

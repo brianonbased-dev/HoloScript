@@ -72,7 +72,10 @@ describe('GrabbableTrait', () => {
     const ctx = mockContext();
     ctx.vr.hands.right = mockHand({ x: 0, y: 0, z: 0 }, 0.95);
     trait.onUpdate(node, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('physics_grab', expect.objectContaining({ nodeId: 'obj-1', hand: 'right' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'physics_grab',
+      expect.objectContaining({ nodeId: 'obj-1', hand: 'right' })
+    );
   });
 
   it('does not grab when hand is too far', () => {
@@ -95,7 +98,10 @@ describe('GrabbableTrait', () => {
     // Then: release (pinch < 0.5)
     ctx.vr.hands.right = mockHand({ x: 0.1, y: 0, z: 0 }, 0.3);
     trait.onUpdate(node, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('physics_release', expect.objectContaining({ nodeId: 'obj-1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'physics_release',
+      expect.objectContaining({ nodeId: 'obj-1' })
+    );
   });
 
   it('calculates throw velocity on release', () => {
@@ -111,7 +117,7 @@ describe('GrabbableTrait', () => {
     ctx.vr.hands.right = mockHand({ x: 1, y: 0, z: 0 }, 0.1);
     trait.onUpdate(node, ctx as any, 0.016);
 
-    const releaseCall = ctx.emit.mock.calls.find(c => c[0] === 'physics_release');
+    const releaseCall = ctx.emit.mock.calls.find((c) => c[0] === 'physics_release');
     expect(releaseCall).toBeDefined();
     expect(releaseCall![1].velocity).toBeDefined();
     expect(releaseCall![1].velocity.length).toBe(3);
@@ -130,7 +136,10 @@ describe('GrabbableTrait', () => {
     // Grab with left too
     ctx.vr.hands.left = mockHand({ x: 0, y: 0, z: 0 }, 0.95);
     trait.onUpdate(node, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('physics_release', expect.objectContaining({ nodeId: 'obj-1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'physics_release',
+      expect.objectContaining({ nodeId: 'obj-1' })
+    );
   });
 
   it('two-handed scaling changes node scale', () => {
@@ -163,7 +172,10 @@ describe('GrabbableTrait', () => {
 
     // Detach should release
     trait.onDetach(node, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('physics_release', expect.objectContaining({ nodeId: 'obj-1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'physics_release',
+      expect.objectContaining({ nodeId: 'obj-1' })
+    );
   });
 });
 
@@ -182,11 +194,14 @@ describe('PressableTrait', () => {
     const node = mockNode('btn-1', { distance: 0.02, stiffness: 150, damping: 8 });
     const ctx = mockContext();
     trait.onAttach(node, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('physics_add_constraint', expect.objectContaining({
-      type: 'prismatic',
-      nodeId: 'btn-1',
-      axis: { x: 0, y: 0, z: 1 },
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'physics_add_constraint',
+      expect.objectContaining({
+        type: 'prismatic',
+        nodeId: 'btn-1',
+        axis: { x: 0, y: 0, z: 1 },
+      })
+    );
   });
 
   it('uses default values when properties missing', () => {
@@ -261,13 +276,16 @@ describe('SlidableTrait', () => {
     const node = mockNode('slider-1', { axis: 'x', length: 0.2 });
     const ctx = mockContext();
     trait.onAttach(node, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('physics_add_constraint', expect.objectContaining({
-      type: 'prismatic',
-      nodeId: 'slider-1',
-      axis: { x: 1, y: 0, z: 0 },
-      min: -0.1,
-      max: 0.1,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'physics_add_constraint',
+      expect.objectContaining({
+        type: 'prismatic',
+        nodeId: 'slider-1',
+        axis: { x: 1, y: 0, z: 0 },
+        min: -0.1,
+        max: 0.1,
+      })
+    );
   });
 
   it('supports y and z axes', () => {
@@ -292,9 +310,12 @@ describe('SlidableTrait', () => {
     // Move to max → should emit value ~1.0
     ctx.physics.getBodyPosition.mockReturnValue({ x: 0.1, y: 0, z: 0 });
     trait.onUpdate(node, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('ui_value_change', expect.objectContaining({ nodeId: 'slider-2' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'ui_value_change',
+      expect.objectContaining({ nodeId: 'slider-2' })
+    );
     // Last emitted value (not first, which is 0.5 from center)
-    const calls = ctx.emit.mock.calls.filter(c => c[0] === 'ui_value_change');
+    const calls = ctx.emit.mock.calls.filter((c) => c[0] === 'ui_value_change');
     const value = calls[calls.length - 1][1].value;
     expect(value).toBeCloseTo(1.0, 1);
   });
@@ -310,7 +331,7 @@ describe('SlidableTrait', () => {
     ctx.physics.getBodyPosition.mockReturnValue({ x: 10, y: 0, z: 0 });
     trait.onUpdate(node, ctx as any, 0.016);
     // Last emitted value should be clamped to 1
-    const calls = ctx.emit.mock.calls.filter(c => c[0] === 'ui_value_change');
+    const calls = ctx.emit.mock.calls.filter((c) => c[0] === 'ui_value_change');
     const value = calls[calls.length - 1][1].value;
     expect(value).toBe(1);
   });

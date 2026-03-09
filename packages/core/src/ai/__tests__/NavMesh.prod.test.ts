@@ -8,7 +8,11 @@ import { describe, it, expect } from 'vitest';
 import { NavMesh } from '../NavMesh';
 
 function tri(x: number, z: number): { x: number; z: number }[] {
-  return [{ x, z }, { x: x + 2, z }, { x: x + 1, z: z + 2 }];
+  return [
+    { x, z },
+    { x: x + 2, z },
+    { x: x + 1, z: z + 2 },
+  ];
 }
 
 describe('NavMesh — Production', () => {
@@ -24,7 +28,11 @@ describe('NavMesh — Production', () => {
 
   it('polygon center is computed correctly', () => {
     const nav = new NavMesh();
-    const id = nav.addPolygon([{ x: 0, z: 0 }, { x: 3, z: 0 }, { x: 0, z: 3 }]);
+    const id = nav.addPolygon([
+      { x: 0, z: 0 },
+      { x: 3, z: 0 },
+      { x: 0, z: 3 },
+    ]);
     const poly = nav.getPolygon(id);
     expect(poly!.center.x).toBe(1);
     expect(poly!.center.z).toBe(1);
@@ -110,7 +118,7 @@ describe('NavMesh — Production', () => {
     const nav = new NavMesh();
     const a = nav.addPolygon(tri(0, 0));
     const b = nav.addPolygon(tri(3, 0), true, 100); // expensive
-    const c = nav.addPolygon(tri(0, 3), true, 1);   // cheap
+    const c = nav.addPolygon(tri(0, 3), true, 1); // cheap
     const d = nav.addPolygon(tri(3, 3));
     nav.connect(a, b);
     nav.connect(b, d);

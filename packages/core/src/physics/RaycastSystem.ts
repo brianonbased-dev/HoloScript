@@ -56,20 +56,26 @@ export class RaycastSystem {
   // Registration
   // ---------------------------------------------------------------------------
 
-  addCollider(collider: Collider): void { this.colliders.set(collider.entityId, collider); }
-  removeCollider(entityId: string): void { this.colliders.delete(entityId); }
-  getColliderCount(): number { return this.colliders.size; }
+  addCollider(collider: Collider): void {
+    this.colliders.set(collider.entityId, collider);
+  }
+  removeCollider(entityId: string): void {
+    this.colliders.delete(entityId);
+  }
+  getColliderCount(): number {
+    return this.colliders.size;
+  }
 
   // ---------------------------------------------------------------------------
   // Raycasting
   // ---------------------------------------------------------------------------
 
-  raycast(ray: Ray, maxDistance = Infinity, layerMask = 0xFFFFFFFF): RayHit | null {
+  raycast(ray: Ray, maxDistance = Infinity, layerMask = 0xffffffff): RayHit | null {
     const hits = this.raycastAll(ray, maxDistance, layerMask);
     return hits.length > 0 ? hits[0] : null;
   }
 
-  raycastAll(ray: Ray, maxDistance = Infinity, layerMask = 0xFFFFFFFF): RayHit[] {
+  raycastAll(ray: Ray, maxDistance = Infinity, layerMask = 0xffffffff): RayHit[] {
     const hits: RayHit[] = [];
     const dir = this.normalize(ray.direction);
 
@@ -78,9 +84,15 @@ export class RaycastSystem {
 
       let hit: RayHit | null = null;
       switch (collider.type) {
-        case 'aabb': hit = this.rayAABB(ray.origin, dir, collider.shape as AABB, collider.entityId); break;
-        case 'sphere': hit = this.raySphere(ray.origin, dir, collider.shape as Sphere, collider.entityId); break;
-        case 'plane': hit = this.rayPlane(ray.origin, dir, collider.shape as Plane, collider.entityId); break;
+        case 'aabb':
+          hit = this.rayAABB(ray.origin, dir, collider.shape as AABB, collider.entityId);
+          break;
+        case 'sphere':
+          hit = this.raySphere(ray.origin, dir, collider.shape as Sphere, collider.entityId);
+          break;
+        case 'plane':
+          hit = this.rayPlane(ray.origin, dir, collider.shape as Plane, collider.entityId);
+          break;
       }
 
       if (hit && hit.distance <= maxDistance) hits.push(hit);
@@ -93,8 +105,14 @@ export class RaycastSystem {
   // Intersection Tests
   // ---------------------------------------------------------------------------
 
-  private rayAABB(origin: { x: number; y: number; z: number }, dir: { x: number; y: number; z: number }, aabb: AABB, entityId: string): RayHit | null {
-    let tmin = -Infinity, tmax = Infinity;
+  private rayAABB(
+    origin: { x: number; y: number; z: number },
+    dir: { x: number; y: number; z: number },
+    aabb: AABB,
+    entityId: string
+  ): RayHit | null {
+    let tmin = -Infinity,
+      tmax = Infinity;
     const axes: Array<'x' | 'y' | 'z'> = ['x', 'y', 'z'];
     let hitNormal = { x: 0, y: 0, z: 0 };
 
@@ -123,14 +141,22 @@ export class RaycastSystem {
     if (t < 0) return null;
 
     return {
-      entityId, distance: t,
+      entityId,
+      distance: t,
       point: { x: origin.x + dir.x * t, y: origin.y + dir.y * t, z: origin.z + dir.z * t },
       normal: hitNormal,
     };
   }
 
-  private raySphere(origin: { x: number; y: number; z: number }, dir: { x: number; y: number; z: number }, sphere: Sphere, entityId: string): RayHit | null {
-    const ox = origin.x - sphere.center.x, oy = origin.y - sphere.center.y, oz = origin.z - sphere.center.z;
+  private raySphere(
+    origin: { x: number; y: number; z: number },
+    dir: { x: number; y: number; z: number },
+    sphere: Sphere,
+    entityId: string
+  ): RayHit | null {
+    const ox = origin.x - sphere.center.x,
+      oy = origin.y - sphere.center.y,
+      oz = origin.z - sphere.center.z;
     const a = dir.x * dir.x + dir.y * dir.y + dir.z * dir.z;
     const b = 2 * (ox * dir.x + oy * dir.y + oz * dir.z);
     const c = ox * ox + oy * oy + oz * oz - sphere.radius * sphere.radius;
@@ -144,24 +170,40 @@ export class RaycastSystem {
     if (t < 0) return null;
 
     const point = { x: origin.x + dir.x * t, y: origin.y + dir.y * t, z: origin.z + dir.z * t };
-    const nx = point.x - sphere.center.x, ny = point.y - sphere.center.y, nz = point.z - sphere.center.z;
+    const nx = point.x - sphere.center.x,
+      ny = point.y - sphere.center.y,
+      nz = point.z - sphere.center.z;
     const nLen = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
 
     return {
-      entityId, distance: t, point,
+      entityId,
+      distance: t,
+      point,
       normal: { x: nx / nLen, y: ny / nLen, z: nz / nLen },
     };
   }
 
-  private rayPlane(origin: { x: number; y: number; z: number }, dir: { x: number; y: number; z: number }, plane: Plane, entityId: string): RayHit | null {
+  private rayPlane(
+    origin: { x: number; y: number; z: number },
+    dir: { x: number; y: number; z: number },
+    plane: Plane,
+    entityId: string
+  ): RayHit | null {
     const denom = plane.normal.x * dir.x + plane.normal.y * dir.y + plane.normal.z * dir.z;
     if (Math.abs(denom) < 1e-10) return null;
 
-    const t = -(plane.normal.x * origin.x + plane.normal.y * origin.y + plane.normal.z * origin.z + plane.distance) / denom;
+    const t =
+      -(
+        plane.normal.x * origin.x +
+        plane.normal.y * origin.y +
+        plane.normal.z * origin.z +
+        plane.distance
+      ) / denom;
     if (t < 0) return null;
 
     return {
-      entityId, distance: t,
+      entityId,
+      distance: t,
       point: { x: origin.x + dir.x * t, y: origin.y + dir.y * t, z: origin.z + dir.z * t },
       normal: { ...plane.normal },
     };

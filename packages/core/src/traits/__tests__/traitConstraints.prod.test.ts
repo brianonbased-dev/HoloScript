@@ -36,41 +36,41 @@ describe('traitConstraints (BUILTIN_CONSTRAINTS) — Production', () => {
 
   describe('physics chain', () => {
     it('physics requires collidable', () => {
-      const c = BUILTIN_CONSTRAINTS.find(c => c.source === 'physics' && c.type === 'requires');
+      const c = BUILTIN_CONSTRAINTS.find((c) => c.source === 'physics' && c.type === 'requires');
       expect(c?.targets).toContain('collidable');
     });
 
     it('grabbable requires physics', () => {
-      const c = BUILTIN_CONSTRAINTS.find(c => c.source === 'grabbable' && c.type === 'requires');
+      const c = BUILTIN_CONSTRAINTS.find((c) => c.source === 'grabbable' && c.type === 'requires');
       expect(c?.targets).toContain('physics');
     });
 
     it('throwable requires grabbable', () => {
-      const c = BUILTIN_CONSTRAINTS.find(c => c.source === 'throwable' && c.type === 'requires');
+      const c = BUILTIN_CONSTRAINTS.find((c) => c.source === 'throwable' && c.type === 'requires');
       expect(c?.targets).toContain('grabbable');
     });
   });
 
   describe('conflict rules', () => {
     it('static conflicts physics', () => {
-      const c = BUILTIN_CONSTRAINTS.find(c => c.source === 'static' && c.type === 'conflicts');
+      const c = BUILTIN_CONSTRAINTS.find((c) => c.source === 'static' && c.type === 'conflicts');
       expect(c?.targets).toContain('physics');
     });
 
     it('vr_only conflicts ar_only', () => {
-      const c = BUILTIN_CONSTRAINTS.find(c => c.source === 'vr_only' && c.type === 'conflicts');
+      const c = BUILTIN_CONSTRAINTS.find((c) => c.source === 'vr_only' && c.type === 'conflicts');
       expect(c?.targets).toContain('ar_only');
     });
   });
 
   describe('oneof rules', () => {
     it('interaction_mode is oneof', () => {
-      const c = BUILTIN_CONSTRAINTS.find(c => c.source === 'interaction_mode');
+      const c = BUILTIN_CONSTRAINTS.find((c) => c.source === 'interaction_mode');
       expect(c?.type).toBe('oneof');
     });
 
     it('ui_position_mode is oneof', () => {
-      const c = BUILTIN_CONSTRAINTS.find(c => c.source === 'ui_position_mode');
+      const c = BUILTIN_CONSTRAINTS.find((c) => c.source === 'ui_position_mode');
       expect(c?.type).toBe('oneof');
     });
   });

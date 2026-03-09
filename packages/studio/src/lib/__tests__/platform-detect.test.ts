@@ -109,8 +109,9 @@ describe('platform-detect', () => {
     it('should compute recommendedWorld based on device specs', async () => {
       const caps = await detectPlatform();
       // In test env (Node/jsdom), typically has 4+ GB and 4+ cores
-      expect(['holoscript-runtime', 'holoscript-parser', 'holoscript-spatial'])
-        .toContain(caps.recommendedWorld);
+      expect(['holoscript-runtime', 'holoscript-parser', 'holoscript-spatial']).toContain(
+        caps.recommendedWorld
+      );
     });
   });
 
@@ -161,15 +162,18 @@ describe('platform-detect', () => {
     });
 
     it('should have tauri with highest budgets', () => {
-      expect(PLATFORM_BUDGETS['tauri'].maxWasmBinaryKB)
-        .toBeGreaterThan(PLATFORM_BUDGETS['browser'].maxWasmBinaryKB);
-      expect(PLATFORM_BUDGETS['tauri'].maxMemoryMB)
-        .toBeGreaterThan(PLATFORM_BUDGETS['browser'].maxMemoryMB);
+      expect(PLATFORM_BUDGETS['tauri'].maxWasmBinaryKB).toBeGreaterThan(
+        PLATFORM_BUDGETS['browser'].maxWasmBinaryKB
+      );
+      expect(PLATFORM_BUDGETS['tauri'].maxMemoryMB).toBeGreaterThan(
+        PLATFORM_BUDGETS['browser'].maxMemoryMB
+      );
     });
 
     it('should have mobile with lowest budgets', () => {
-      expect(PLATFORM_BUDGETS['mobile'].maxWasmBinaryKB)
-        .toBeLessThan(PLATFORM_BUDGETS['browser'].maxWasmBinaryKB);
+      expect(PLATFORM_BUDGETS['mobile'].maxWasmBinaryKB).toBeLessThan(
+        PLATFORM_BUDGETS['browser'].maxWasmBinaryKB
+      );
     });
   });
 
@@ -200,8 +204,8 @@ describe('platform-detect', () => {
     it('should detect multiple violations', () => {
       const result = checkBudget('mobile', {
         maxWasmBinaryKB: 1000, // mobile budget: 800
-        maxInitTimeMs: 300,     // mobile budget: 200
-        maxMemoryMB: 64,        // mobile budget: 32
+        maxInitTimeMs: 300, // mobile budget: 200
+        maxMemoryMB: 64, // mobile budget: 32
       });
       expect(result.withinBudget).toBe(false);
       expect(result.violations.length).toBe(3);

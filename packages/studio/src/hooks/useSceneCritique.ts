@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 import type { CritiqueResult } from '@/app/api/critique/route';
 
 export function useSceneCritique() {
@@ -16,8 +16,12 @@ export function useSceneCritique() {
   const [lastAnalysedLen, setLastAnalysedLen] = useState(0);
 
   const analyse = useCallback(async () => {
-    if (!code.trim()) { setError('No code to analyse.'); return; }
-    setLoading(true); setError(null);
+    if (!code.trim()) {
+      setError('No code to analyse.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/critique', {
         method: 'POST',

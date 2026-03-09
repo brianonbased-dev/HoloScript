@@ -15,17 +15,27 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 export type MeshClassification =
-  | 'none' | 'wall' | 'floor' | 'ceiling' | 'table' | 'seat'
-  | 'window' | 'door' | 'stairs' | 'bed' | 'counter' | 'unknown';
+  | 'none'
+  | 'wall'
+  | 'floor'
+  | 'ceiling'
+  | 'table'
+  | 'seat'
+  | 'window'
+  | 'door'
+  | 'stairs'
+  | 'bed'
+  | 'counter'
+  | 'unknown';
 
 export interface RealityKitMeshConfig {
   mesh_classification: boolean;
   physics_enabled: boolean;
   occlusion_enabled: boolean;
-  collision_margin: number;     // meters
-  update_frequency: number;     // Hz
-  max_anchor_distance: number;  // meters
-  render_wireframe: boolean;    // debug: show mesh wireframe
+  collision_margin: number; // meters
+  update_frequency: number; // Hz
+  max_anchor_distance: number; // meters
+  render_wireframe: boolean; // debug: show mesh wireframe
 }
 
 interface MeshAnchor {

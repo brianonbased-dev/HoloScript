@@ -18,11 +18,14 @@ export {
 /*
  */
 
-export interface Vec2 { x: number; y: number }
+export interface Vec2 {
+  x: number;
+  y: number;
+}
 
 export interface StrokePoint {
   position: Vec2;
-  pressure: number;    // 0..1 (tablet pressure or 1.0 for mouse)
+  pressure: number; // 0..1 (tablet pressure or 1.0 for mouse)
   timestamp: number;
 }
 
@@ -35,7 +38,11 @@ export interface SmoothedStroke {
 /**
  * Smooth a stroke using Catmull-Rom spline interpolation.
  */
-export function catmullRomSmooth(points: StrokePoint[], tension: number = 0.5, segments: number = 4): StrokePoint[] {
+export function catmullRomSmooth(
+  points: StrokePoint[],
+  tension: number = 0.5,
+  segments: number = 4
+): StrokePoint[] {
   if (points.length < 3) return points;
 
   const smoothed: StrokePoint[] = [points[0]];
@@ -51,18 +58,18 @@ export function catmullRomSmooth(points: StrokePoint[], tension: number = 0.5, s
       const t2 = t * t;
       const t3 = t2 * t;
 
-      const x = 0.5 * (
-        (2 * p1.position.x) +
-        (-p0.position.x + p2.position.x) * t +
-        (2 * p0.position.x - 5 * p1.position.x + 4 * p2.position.x - p3.position.x) * t2 +
-        (-p0.position.x + 3 * p1.position.x - 3 * p2.position.x + p3.position.x) * t3
-      );
-      const y = 0.5 * (
-        (2 * p1.position.y) +
-        (-p0.position.y + p2.position.y) * t +
-        (2 * p0.position.y - 5 * p1.position.y + 4 * p2.position.y - p3.position.y) * t2 +
-        (-p0.position.y + 3 * p1.position.y - 3 * p2.position.y + p3.position.y) * t3
-      );
+      const x =
+        0.5 *
+        (2 * p1.position.x +
+          (-p0.position.x + p2.position.x) * t +
+          (2 * p0.position.x - 5 * p1.position.x + 4 * p2.position.x - p3.position.x) * t2 +
+          (-p0.position.x + 3 * p1.position.x - 3 * p2.position.x + p3.position.x) * t3);
+      const y =
+        0.5 *
+        (2 * p1.position.y +
+          (-p0.position.y + p2.position.y) * t +
+          (2 * p0.position.y - 5 * p1.position.y + 4 * p2.position.y - p3.position.y) * t2 +
+          (-p0.position.y + 3 * p1.position.y - 3 * p2.position.y + p3.position.y) * t3);
 
       const pressure = p1.pressure + (p2.pressure - p1.pressure) * t;
       const timestamp = p1.timestamp + (p2.timestamp - p1.timestamp) * t;
@@ -108,7 +115,9 @@ function perpendicularDistance(point: Vec2, lineStart: Vec2, lineEnd: Vec2): num
   const dy = lineEnd.y - lineStart.y;
   const len = Math.sqrt(dx * dx + dy * dy);
   if (len === 0) return Math.sqrt((point.x - lineStart.x) ** 2 + (point.y - lineStart.y) ** 2);
-  return Math.abs(dy * point.x - dx * point.y + lineEnd.x * lineStart.y - lineEnd.y * lineStart.x) / len;
+  return (
+    Math.abs(dy * point.x - dx * point.y + lineEnd.x * lineStart.y - lineEnd.y * lineStart.x) / len
+  );
 }
 
 // strokeLength is re-exported from ./sculpt/strokeSmoothing (Vec3 version)
@@ -130,7 +139,9 @@ export function movingAverageSmooth(points: StrokePoint[], windowSize: number = 
   return points.map((p, i) => {
     const start = Math.max(0, i - half);
     const end = Math.min(points.length - 1, i + half);
-    let sumX = 0, sumY = 0, count = 0;
+    let sumX = 0,
+      sumY = 0,
+      count = 0;
     for (let j = start; j <= end; j++) {
       sumX += points[j].position.x;
       sumY += points[j].position.y;

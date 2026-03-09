@@ -4,7 +4,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SwarmMembership } from '../SwarmMembership';
 
-function make(cfg = {}) { return new SwarmMembership(cfg); }
+function make(cfg = {}) {
+  return new SwarmMembership(cfg);
+}
 
 describe('SwarmMembership — join', () => {
   it('first join succeeds', () => {
@@ -31,7 +33,8 @@ describe('SwarmMembership — join', () => {
   });
   it('join fails when at maximumSize', () => {
     const s = make({ quorum: { minimumSize: 1, optimalSize: 2, maximumSize: 2 } });
-    s.join({ agentId: 'a1' }); s.join({ agentId: 'a2' });
+    s.join({ agentId: 'a1' });
+    s.join({ agentId: 'a2' });
     expect(s.join({ agentId: 'a3' })).toBe(false);
     expect(s.getMemberCount()).toBe(2);
   });
@@ -50,7 +53,9 @@ describe('SwarmMembership — join', () => {
 describe('SwarmMembership — leave', () => {
   it('graceful leave succeeds for multi-member swarm', () => {
     const s = make({ quorum: { minimumSize: 2 } });
-    s.join({ agentId: 'a1' }); s.join({ agentId: 'a2' }); s.join({ agentId: 'a3' });
+    s.join({ agentId: 'a1' });
+    s.join({ agentId: 'a2' });
+    s.join({ agentId: 'a3' });
     expect(s.leave({ agentId: 'a3', graceful: true })).toBe(true);
     expect(s.getMemberCount()).toBe(2);
   });
@@ -66,7 +71,9 @@ describe('SwarmMembership — leave', () => {
   });
   it('cannot leave when at minimumSize (quorum enforcement)', () => {
     const s = make({ quorum: { minimumSize: 3 } });
-    s.join({ agentId: 'a1' }); s.join({ agentId: 'a2' }); s.join({ agentId: 'a3' });
+    s.join({ agentId: 'a1' });
+    s.join({ agentId: 'a2' });
+    s.join({ agentId: 'a3' });
     // 3 members, minimumSize=3 → canLeave=false
     const result = s.leave({ agentId: 'a3', graceful: true });
     // Either marks as 'leaving' (returns false) or permits for observers
@@ -76,7 +83,8 @@ describe('SwarmMembership — leave', () => {
   });
   it('leader leave triggers re-election', () => {
     const s = make({ quorum: { minimumSize: 1 } });
-    s.join({ agentId: 'a1' }); s.join({ agentId: 'a2' });
+    s.join({ agentId: 'a1' });
+    s.join({ agentId: 'a2' });
     s.leave({ agentId: 'a1', graceful: true });
     expect(s.getLeader()?.agentId).toBe('a2');
   });
@@ -85,14 +93,17 @@ describe('SwarmMembership — leave', () => {
 describe('SwarmMembership — removeForcefully', () => {
   it('removes member unconditionally', () => {
     const s = make({ quorum: { minimumSize: 3 } });
-    s.join({ agentId: 'a1' }); s.join({ agentId: 'a2' }); s.join({ agentId: 'a3' });
+    s.join({ agentId: 'a1' });
+    s.join({ agentId: 'a2' });
+    s.join({ agentId: 'a3' });
     s.removeForcefully('a3', 'timeout');
     expect(s.getMemberCount()).toBe(2);
     expect(s.getMember('a3')).toBeUndefined();
   });
   it('force removing leader triggers re-election', () => {
     const s = make({ quorum: { minimumSize: 1 } });
-    s.join({ agentId: 'a1' }); s.join({ agentId: 'a2' });
+    s.join({ agentId: 'a1' });
+    s.join({ agentId: 'a2' });
     s.removeForcefully('a1', 'kicked');
     expect(s.getLeader()?.agentId).toBe('a2');
   });
@@ -142,7 +153,8 @@ describe('SwarmMembership — approval workflow', () => {
   });
   it('approveJoin by non-leader fails', () => {
     const s = make({ requireApprovalToJoin: true });
-    s.join({ agentId: 'leader' }); s.join({ agentId: 'a2' });
+    s.join({ agentId: 'leader' });
+    s.join({ agentId: 'a2' });
     s.join({ agentId: 'newcomer' });
     expect(s.approveJoin('a2', 'newcomer')).toBe(false);
   });
@@ -156,13 +168,15 @@ describe('SwarmMembership — approval workflow', () => {
 describe('SwarmMembership — changeRole', () => {
   it('changeRole to leader updates leaderId', () => {
     const s = make({ quorum: { minimumSize: 1 } });
-    s.join({ agentId: 'a1' }); s.join({ agentId: 'a2' });
+    s.join({ agentId: 'a1' });
+    s.join({ agentId: 'a2' });
     s.changeRole('a2', 'leader');
     expect(s.getLeader()?.agentId).toBe('a2');
   });
   it('old leader demoted to member when new leader elected', () => {
     const s = make({ quorum: { minimumSize: 1 } });
-    s.join({ agentId: 'a1' }); s.join({ agentId: 'a2' });
+    s.join({ agentId: 'a1' });
+    s.join({ agentId: 'a2' });
     s.changeRole('a2', 'leader');
     expect(s.getMember('a1')?.role).toBe('member');
   });
@@ -190,7 +204,8 @@ describe('SwarmMembership — heartbeat & timeouts', () => {
   });
   it('checkTimeouts returns timed-out IDs', async () => {
     const s = make({ heartbeatTimeoutMs: 1 });
-    s.join({ agentId: 'a1' }); s.join({ agentId: 'a2' });
+    s.join({ agentId: 'a1' });
+    s.join({ agentId: 'a2' });
     await new Promise((r) => setTimeout(r, 5)); // let timeout expire
     const timedOut = s.checkTimeouts();
     expect(timedOut).toContain('a1');
@@ -205,7 +220,8 @@ describe('SwarmMembership — heartbeat & timeouts', () => {
 
 describe('SwarmMembership — events', () => {
   it('emits joined event on join', () => {
-    const s = make(); const events: string[] = [];
+    const s = make();
+    const events: string[] = [];
     s.onEvent((e) => events.push(e.type));
     s.join({ agentId: 'a1' });
     expect(events).toContain('joined');
@@ -213,7 +229,8 @@ describe('SwarmMembership — events', () => {
   it('emits left event on leave', () => {
     const s = make({ quorum: { minimumSize: 1 } });
     const events: string[] = [];
-    s.join({ agentId: 'a1' }); s.join({ agentId: 'a2' });
+    s.join({ agentId: 'a1' });
+    s.join({ agentId: 'a2' });
     s.onEvent((e) => events.push(e.type));
     s.leave({ agentId: 'a2', graceful: true });
     expect(events).toContain('left');
@@ -223,11 +240,14 @@ describe('SwarmMembership — events', () => {
     const events: string[] = [];
     const s = make();
     s.onEvent((e) => events.push(e.type));
-    s.join({ agentId: 'a1' }); s.join({ agentId: 'a2' }); s.join({ agentId: 'a3' });
+    s.join({ agentId: 'a1' });
+    s.join({ agentId: 'a2' });
+    s.join({ agentId: 'a3' });
     expect(events).toContain('quorum-gained');
   });
   it('unsubscribe returned function removes handler', () => {
-    const s = make(); const events: string[] = [];
+    const s = make();
+    const events: string[] = [];
     const unsub = s.onEvent((e) => events.push(e.type));
     unsub();
     s.join({ agentId: 'a1' });
@@ -244,7 +264,8 @@ describe('SwarmMembership — getActiveMembers / getMembers', () => {
   });
   it('getActiveMembers excludes observers and inactive', async () => {
     const s = make({ allowObservers: true, heartbeatTimeoutMs: 1 });
-    s.join({ agentId: 'a1' }); s.join({ agentId: 'obs1', requestedRole: 'observer' });
+    s.join({ agentId: 'a1' });
+    s.join({ agentId: 'obs1', requestedRole: 'observer' });
     await new Promise((r) => setTimeout(r, 5)); // let timeout expire
     s.checkTimeouts(); // marks a1 inactive
     expect(s.getActiveMembers()).toHaveLength(0);

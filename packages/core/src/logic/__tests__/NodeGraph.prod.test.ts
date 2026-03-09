@@ -83,21 +83,21 @@ describe('NodeGraph — Production', () => {
 
   it('addNode MathMultiply — has a and b inputs', () => {
     const n = g.addNode('MathMultiply');
-    const names = n.inputs.map(p => p.name);
+    const names = n.inputs.map((p) => p.name);
     expect(names).toContain('a');
     expect(names).toContain('b');
   });
 
   it('addNode Compare — has a and b inputs', () => {
     const n = g.addNode('Compare');
-    const names = n.inputs.map(p => p.name);
+    const names = n.inputs.map((p) => p.name);
     expect(names).toContain('a');
     expect(names).toContain('b');
   });
 
   it('addNode Compare — has equal/greater/less outputs', () => {
     const n = g.addNode('Compare');
-    const names = n.outputs.map(p => p.name);
+    const names = n.outputs.map((p) => p.name);
     expect(names).toContain('equal');
     expect(names).toContain('greater');
     expect(names).toContain('less');
@@ -105,23 +105,23 @@ describe('NodeGraph — Production', () => {
 
   it('addNode Branch — has condition input', () => {
     const n = g.addNode('Branch');
-    expect(n.inputs.some(p => p.name === 'condition')).toBe(true);
+    expect(n.inputs.some((p) => p.name === 'condition')).toBe(true);
   });
 
   it('addNode Not — has value input and result output', () => {
     const n = g.addNode('Not');
-    expect(n.inputs.some(p => p.name === 'value')).toBe(true);
-    expect(n.outputs.some(p => p.name === 'result')).toBe(true);
+    expect(n.inputs.some((p) => p.name === 'value')).toBe(true);
+    expect(n.outputs.some((p) => p.name === 'result')).toBe(true);
   });
 
   it('addNode GetState — has key input port', () => {
     const n = g.addNode('GetState');
-    expect(n.inputs.some(p => p.name === 'key')).toBe(true);
+    expect(n.inputs.some((p) => p.name === 'key')).toBe(true);
   });
 
   it('addNode SetState — has key and value input ports', () => {
     const n = g.addNode('SetState');
-    const names = n.inputs.map(p => p.name);
+    const names = n.inputs.map((p) => p.name);
     expect(names).toContain('key');
     expect(names).toContain('value');
   });
@@ -129,30 +129,30 @@ describe('NodeGraph — Production', () => {
   it('addNode OnEvent — has eventName input', () => {
     const n = g.addNode('OnEvent');
     // Source: port is named 'eventName' (not 'event')
-    expect(n.inputs.some(p => p.name === 'eventName')).toBe(true);
+    expect(n.inputs.some((p) => p.name === 'eventName')).toBe(true);
   });
 
   it('addNode EmitEvent — has eventName input', () => {
     const n = g.addNode('EmitEvent');
     // Source: port is named 'eventName' (not 'event')
-    expect(n.inputs.some(p => p.name === 'eventName')).toBe(true);
+    expect(n.inputs.some((p) => p.name === 'eventName')).toBe(true);
   });
 
   it('addNode Timer — has duration input', () => {
     const n = g.addNode('Timer');
-    expect(n.inputs.some(p => p.name === 'duration')).toBe(true);
+    expect(n.inputs.some((p) => p.name === 'duration')).toBe(true);
   });
 
   it('addNode Clamp — has min and max inputs', () => {
     const n = g.addNode('Clamp');
-    const names = n.inputs.map(p => p.name);
+    const names = n.inputs.map((p) => p.name);
     expect(names).toContain('min');
     expect(names).toContain('max');
   });
 
   it('addNode Random — has value output', () => {
     const n = g.addNode('Random');
-    expect(n.outputs.some(p => p.name === 'value')).toBe(true);
+    expect(n.outputs.some((p) => p.name === 'value')).toBe(true);
   });
 
   it('addNode throws (or returns node with empty ports) for unknown type', () => {
@@ -226,7 +226,7 @@ describe('NodeGraph — Production', () => {
     const c = g.addNode('Compare');
     g.connect(a.id, 'result', c.id, 'a');
     g.connect(b.id, 'result', c.id, 'a'); // replaces previous
-    const conns = g.getConnections().filter(x => x.toPort === 'a' && x.toNode === c.id);
+    const conns = g.getConnections().filter((x) => x.toPort === 'a' && x.toNode === c.id);
     expect(conns).toHaveLength(1);
     expect(conns[0].fromNode).toBe(b.id);
   });
@@ -308,16 +308,16 @@ describe('NodeGraph — Production', () => {
   it('evaluate: MathAdd computes a + b from defaultValues', () => {
     const n = g.addNode('MathAdd');
     // Patch defaultValues to test input propagation
-    n.inputs.find(p => p.name === 'a')!.defaultValue = 3;
-    n.inputs.find(p => p.name === 'b')!.defaultValue = 4;
+    n.inputs.find((p) => p.name === 'a')!.defaultValue = 3;
+    n.inputs.find((p) => p.name === 'b')!.defaultValue = 4;
     const results = g.evaluate(makeCtx());
     expect(results.get(n.id)?.result).toBe(7);
   });
 
   it('evaluate: MathMultiply computes a * b', () => {
     const n = g.addNode('MathMultiply');
-    n.inputs.find(p => p.name === 'a')!.defaultValue = 6;
-    n.inputs.find(p => p.name === 'b')!.defaultValue = 7;
+    n.inputs.find((p) => p.name === 'a')!.defaultValue = 6;
+    n.inputs.find((p) => p.name === 'b')!.defaultValue = 7;
     const results = g.evaluate(makeCtx());
     expect(results.get(n.id)?.result).toBe(42);
   });
@@ -325,9 +325,9 @@ describe('NodeGraph — Production', () => {
   it('evaluate: chained Add → Multiply', () => {
     const add = g.addNode('MathAdd');
     const mul = g.addNode('MathMultiply');
-    add.inputs.find(p => p.name === 'a')!.defaultValue = 2;
-    add.inputs.find(p => p.name === 'b')!.defaultValue = 3; // 2+3=5
-    mul.inputs.find(p => p.name === 'b')!.defaultValue = 4; // 5*4=20
+    add.inputs.find((p) => p.name === 'a')!.defaultValue = 2;
+    add.inputs.find((p) => p.name === 'b')!.defaultValue = 3; // 2+3=5
+    mul.inputs.find((p) => p.name === 'b')!.defaultValue = 4; // 5*4=20
     g.connect(add.id, 'result', mul.id, 'a');
     const results = g.evaluate(makeCtx());
     expect(results.get(mul.id)?.result).toBe(20);
@@ -335,15 +335,15 @@ describe('NodeGraph — Production', () => {
 
   it('evaluate: Not node inverts boolean', () => {
     const notNode = g.addNode('Not');
-    notNode.inputs.find(p => p.name === 'value')!.defaultValue = true;
+    notNode.inputs.find((p) => p.name === 'value')!.defaultValue = true;
     const results = g.evaluate(makeCtx());
     expect(results.get(notNode.id)?.result).toBe(false);
   });
 
   it('evaluate: Random produces number in [min, max]', () => {
     const r = g.addNode('Random');
-    r.inputs.find(p => p.name === 'min')!.defaultValue = 10;
-    r.inputs.find(p => p.name === 'max')!.defaultValue = 20;
+    r.inputs.find((p) => p.name === 'min')!.defaultValue = 10;
+    r.inputs.find((p) => p.name === 'max')!.defaultValue = 20;
     const results = g.evaluate(makeCtx());
     const val = results.get(r.id)?.value as number;
     expect(val).toBeGreaterThanOrEqual(10);
@@ -352,17 +352,17 @@ describe('NodeGraph — Production', () => {
 
   it('evaluate: Clamp clamps value within range', () => {
     const c = g.addNode('Clamp');
-    c.inputs.find(p => p.name === 'value')!.defaultValue = 150;
-    c.inputs.find(p => p.name === 'min')!.defaultValue = 0;
-    c.inputs.find(p => p.name === 'max')!.defaultValue = 100;
+    c.inputs.find((p) => p.name === 'value')!.defaultValue = 150;
+    c.inputs.find((p) => p.name === 'min')!.defaultValue = 0;
+    c.inputs.find((p) => p.name === 'max')!.defaultValue = 100;
     const results = g.evaluate(makeCtx());
     expect(results.get(c.id)?.result).toBe(100);
   });
 
   it('evaluate: SetState writes to context.state', () => {
     const setter = g.addNode('SetState');
-    setter.inputs.find(p => p.name === 'key')!.defaultValue = 'hp';
-    setter.inputs.find(p => p.name === 'value')!.defaultValue = 99;
+    setter.inputs.find((p) => p.name === 'key')!.defaultValue = 'hp';
+    setter.inputs.find((p) => p.name === 'value')!.defaultValue = 99;
     const ctx = makeCtx();
     g.evaluate(ctx);
     expect(ctx.state['hp']).toBe(99);
@@ -370,7 +370,7 @@ describe('NodeGraph — Production', () => {
 
   it('evaluate: GetState reads from context.state', () => {
     const getter = g.addNode('GetState');
-    getter.inputs.find(p => p.name === 'key')!.defaultValue = 'hp';
+    getter.inputs.find((p) => p.name === 'key')!.defaultValue = 'hp';
     const ctx = makeCtx({ hp: 42 });
     const results = g.evaluate(ctx);
     expect(results.get(getter.id)?.value).toBe(42);
@@ -389,10 +389,10 @@ describe('NodeGraph — Production', () => {
       'Double',
       [{ name: 'x', type: 'number', defaultValue: 0 }],
       [{ name: 'result', type: 'number' }],
-      (_node, inputs) => ({ result: (inputs.x as number) * 2 }),
+      (_node, inputs) => ({ result: (inputs.x as number) * 2 })
     );
     const n = g.addNode('Double');
-    n.inputs.find(p => p.name === 'x')!.defaultValue = 7;
+    n.inputs.find((p) => p.name === 'x')!.defaultValue = 7;
     const results = g.evaluate(makeCtx());
     expect(results.get(n.id)?.result).toBe(14);
   });

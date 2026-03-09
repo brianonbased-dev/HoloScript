@@ -7,7 +7,9 @@ import { CloudRenderer } from '../rendering/CloudRenderer';
 
 describe('CloudRenderer', () => {
   let cloud: CloudRenderer;
-  beforeEach(() => { cloud = new CloudRenderer(); });
+  beforeEach(() => {
+    cloud = new CloudRenderer();
+  });
 
   it('constructor sets default config', () => {
     const cfg = cloud.getConfig();
@@ -64,7 +66,8 @@ describe('CloudRenderer', () => {
     const low = new CloudRenderer({ coverage: 0.1 });
     const high = new CloudRenderer({ coverage: 0.9 });
     // Sample at many points and compare average density
-    let sumLow = 0, sumHigh = 0;
+    let sumLow = 0,
+      sumHigh = 0;
     for (let x = 0; x < 100; x += 10) {
       sumLow += low.sampleDensity(x, 225, 0);
       sumHigh += high.sampleDensity(x, 225, 0);

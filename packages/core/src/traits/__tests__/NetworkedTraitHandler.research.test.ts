@@ -98,13 +98,16 @@ describe('networkedHandler onAttach', () => {
 
     networkedHandler.onAttach(node, networkedHandler.defaultConfig, ctx);
 
-    expect(ctx.emit).toHaveBeenCalledWith('networked:register', expect.objectContaining({
-      nodeId: 'player_1',
-      config: expect.objectContaining({
-        mode: 'owner',
-        syncRate: 20,
-      }),
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'networked:register',
+      expect.objectContaining({
+        nodeId: 'player_1',
+        config: expect.objectContaining({
+          mode: 'owner',
+          syncRate: 20,
+        }),
+      })
+    );
   });
 
   it('stores network metadata via setState', () => {
@@ -113,10 +116,12 @@ describe('networkedHandler onAttach', () => {
 
     networkedHandler.onAttach(node, networkedHandler.defaultConfig, ctx);
 
-    expect(ctx.setState).toHaveBeenCalledWith(expect.objectContaining({
-      __networked: true,
-      __networkMode: 'owner',
-    }));
+    expect(ctx.setState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        __networked: true,
+        __networkMode: 'owner',
+      })
+    );
   });
 });
 
@@ -128,13 +133,18 @@ describe('networkedHandler onDetach', () => {
     networkedHandler.onAttach(node, networkedHandler.defaultConfig, ctx);
     networkedHandler.onDetach!(node, networkedHandler.defaultConfig, ctx);
 
-    expect(ctx.emit).toHaveBeenCalledWith('networked:unregister', expect.objectContaining({
-      nodeId: 'player_3',
-    }));
-    expect(ctx.setState).toHaveBeenCalledWith(expect.objectContaining({
-      __networked: false,
-      __networkMode: null,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'networked:unregister',
+      expect.objectContaining({
+        nodeId: 'player_3',
+      })
+    );
+    expect(ctx.setState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        __networked: false,
+        __networkMode: null,
+      })
+    );
   });
 });
 
@@ -144,16 +154,23 @@ describe('networkedHandler onDetach', () => {
 
 describe('networkedHandler agent_state event (W.NET.05)', () => {
   it('accepts isAgent config for AI entities', () => {
-    const agentConfig = { ...networkedHandler.defaultConfig, isAgent: true, syncTier: 'ai_agent' as const };
+    const agentConfig = {
+      ...networkedHandler.defaultConfig,
+      isAgent: true,
+      syncTier: 'ai_agent' as const,
+    };
     const node = createMockNode('agent_1');
     const ctx = createMockContext();
 
     networkedHandler.onAttach(node, agentConfig, ctx);
 
     // Registration should succeed with agent config
-    expect(ctx.emit).toHaveBeenCalledWith('networked:register', expect.objectContaining({
-      nodeId: 'agent_1',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'networked:register',
+      expect.objectContaining({
+        nodeId: 'agent_1',
+      })
+    );
   });
 
   it('handles networked:agent_state event', () => {

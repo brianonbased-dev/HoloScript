@@ -3,20 +3,28 @@ import { GoalPlanner, type WorldState, type PlanAction, type Goal } from '../Goa
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-function makeAction(id: string, cost: number, pre: Record<string,boolean>, effects: Record<string,boolean>, execute = vi.fn()): PlanAction {
+function makeAction(
+  id: string,
+  cost: number,
+  pre: Record<string, boolean>,
+  effects: Record<string, boolean>,
+  execute = vi.fn()
+): PlanAction {
   return {
-    id, name: id, cost,
+    id,
+    name: id,
+    cost,
     preconditions: new Map(Object.entries(pre)),
     effects: new Map(Object.entries(effects)),
     execute,
   };
 }
 
-function makeGoal(id: string, priority: number, conditions: Record<string,boolean>): Goal {
+function makeGoal(id: string, priority: number, conditions: Record<string, boolean>): Goal {
   return { id, name: id, priority, conditions: new Map(Object.entries(conditions)) };
 }
 
-function makeState(entries: Record<string,boolean>): WorldState {
+function makeState(entries: Record<string, boolean>): WorldState {
   return new Map(Object.entries(entries));
 }
 
@@ -137,7 +145,7 @@ describe('GoalPlanner — cost optimization (A*)', () => {
     gp.addGoal(makeGoal('goal', 10, { done: true }));
     const plan = gp.plan(makeState({}));
     expect(plan!.totalCost).toBe(3);
-    expect(plan!.actions.some(a => a.id === 'expensive')).toBe(false);
+    expect(plan!.actions.some((a) => a.id === 'expensive')).toBe(false);
   });
 });
 
@@ -183,8 +191,24 @@ describe('GoalPlanner — executePlan', () => {
   it('calls execute on each action in order', () => {
     const calls: string[] = [];
     const gp = new GoalPlanner();
-    gp.addAction(makeAction('a1', 1, {}, { mid: true }, vi.fn(() => calls.push('a1'))));
-    gp.addAction(makeAction('a2', 1, { mid: true }, { done: true }, vi.fn(() => calls.push('a2'))));
+    gp.addAction(
+      makeAction(
+        'a1',
+        1,
+        {},
+        { mid: true },
+        vi.fn(() => calls.push('a1'))
+      )
+    );
+    gp.addAction(
+      makeAction(
+        'a2',
+        1,
+        { mid: true },
+        { done: true },
+        vi.fn(() => calls.push('a2'))
+      )
+    );
     gp.addGoal(makeGoal('g', 10, { done: true }));
     const plan = gp.plan(makeState({}));
     gp.executePlan(plan!);

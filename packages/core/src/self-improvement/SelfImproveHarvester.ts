@@ -105,10 +105,7 @@ export class SelfImproveHarvester {
   private acceptedExamples: AcceptedExample[] = [];
   private pendingFlush: string[] = [];
 
-  constructor(
-    config: Partial<HarvesterConfig> = {},
-    options?: { fileWriter?: FileWriter },
-  ) {
+  constructor(config: Partial<HarvesterConfig> = {}, options?: { fileWriter?: FileWriter }) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.currentFile = this.getFilePath();
     this.fileWriter = options?.fileWriter ?? createDefaultFileWriter();
@@ -136,7 +133,9 @@ export class SelfImproveHarvester {
           this.fileIndex++;
           this.currentFile = this.getFilePath();
         }
-      } catch { /* file doesn't exist yet */ }
+      } catch {
+        /* file doesn't exist yet */
+      }
     }
 
     this.fileWriter.appendSync(this.currentFile, line);
@@ -149,7 +148,7 @@ export class SelfImproveHarvester {
     output: string,
     testResult: HarvestEntry['testResult'],
     qualityScore: number,
-    meta?: Record<string, unknown>,
+    meta?: Record<string, unknown>
   ): void {
     this.harvest({ instruction, output, testResult, qualityScore, metadata: meta ?? {} });
   }
@@ -171,9 +170,7 @@ export class SelfImproveHarvester {
           instruction: `Run test: ${testFilePath}`,
           output: JSON.stringify(result),
           testResult: result.passed ? 'pass' : 'fail',
-          qualityScore: result.passed
-            ? result.testsPassed / Math.max(result.testsTotal, 1)
-            : 0,
+          qualityScore: result.passed ? result.testsPassed / Math.max(result.testsTotal, 1) : 0,
           metadata: { testFilePath, ...result },
         });
         return result;
@@ -213,7 +210,12 @@ export class SelfImproveHarvester {
   readEntries(filePath?: string): HarvestEntry[] {
     const fp = filePath ?? this.currentFile;
     if (!fs.existsSync(fp)) return [];
-    return fs.readFileSync(fp, 'utf-8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+    return fs
+      .readFileSync(fp, 'utf-8')
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
   }
 
   /**
@@ -222,7 +224,7 @@ export class SelfImproveHarvester {
    */
   captureIteration(
     qualityReport: QualityReport,
-    convergenceStatus: ConvergenceStatus | null,
+    convergenceStatus: ConvergenceStatus | null
   ): AcceptedExample {
     this.totalCaptured++;
 
@@ -235,7 +237,8 @@ export class SelfImproveHarvester {
     if (qualityReport.dimensions.coverage.raw >= 0.5) filterStages.push('coverage');
     if (qualityReport.dimensions.typeCheckPass.raw >= 0.5) filterStages.push('type-check');
     if (qualityReport.dimensions.lintScore.raw >= 0.5) filterStages.push('lint');
-    if (qualityReport.dimensions.circuitBreakerHealth.raw >= 0.5) filterStages.push('circuit-breaker');
+    if (qualityReport.dimensions.circuitBreakerHealth.raw >= 0.5)
+      filterStages.push('circuit-breaker');
 
     const example: AcceptedExample = {
       instruction: `Improve HoloScript code quality (score: ${qualityReport.scorePercent.toFixed(1)}%)`,
@@ -282,6 +285,6 @@ export class SelfImproveHarvester {
 
   /** Serialize accepted examples as JSONL */
   toJSONL(): string {
-    return this.acceptedExamples.map(e => JSON.stringify(e)).join('\n');
+    return this.acceptedExamples.map((e) => JSON.stringify(e)).join('\n');
   }
 }

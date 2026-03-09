@@ -270,7 +270,9 @@ export class CircuitBreakerMonitor {
     const lines: string[] = [];
 
     // Overall metrics
-    lines.push('# HELP holoscript_circuit_breaker_state Circuit breaker state (0=CLOSED, 1=OPEN, 2=HALF_OPEN)');
+    lines.push(
+      '# HELP holoscript_circuit_breaker_state Circuit breaker state (0=CLOSED, 1=OPEN, 2=HALF_OPEN)'
+    );
     lines.push('# TYPE holoscript_circuit_breaker_state gauge');
 
     for (const [target, metrics] of Object.entries(allMetrics.targets)) {
@@ -296,10 +298,14 @@ export class CircuitBreakerMonitor {
     lines.push('# TYPE holoscript_circuit_breaker_failure_rate gauge');
 
     for (const [target, metrics] of Object.entries(allMetrics.targets)) {
-      lines.push(`holoscript_circuit_breaker_failure_rate{target="${target}"} ${metrics.failureRate}`);
+      lines.push(
+        `holoscript_circuit_breaker_failure_rate{target="${target}"} ${metrics.failureRate}`
+      );
     }
 
-    lines.push('# HELP holoscript_circuit_breaker_degraded_time_ms Time spent in degraded mode (ms)');
+    lines.push(
+      '# HELP holoscript_circuit_breaker_degraded_time_ms Time spent in degraded mode (ms)'
+    );
     lines.push('# TYPE holoscript_circuit_breaker_degraded_time_ms counter');
 
     for (const [target, metrics] of Object.entries(allMetrics.targets)) {
@@ -338,7 +344,10 @@ export class CircuitBreakerMonitor {
 
     // Failure rate impact
     if (metrics.failureRate > this.alertConfig.failureRateThreshold) {
-      const impact = Math.min(30, (metrics.failureRate / this.alertConfig.failureRateThreshold) * 15);
+      const impact = Math.min(
+        30,
+        (metrics.failureRate / this.alertConfig.failureRateThreshold) * 15
+      );
       score -= impact;
       issues.push(`High failure rate: ${metrics.failureRate.toFixed(1)} failures/hour`);
       recommendations.push('Review recent error logs and consider scaling resources');
@@ -350,7 +359,9 @@ export class CircuitBreakerMonitor {
       issues.push(
         `Extended degraded mode: ${(metrics.timeInDegradedMode / 1000 / 60).toFixed(1)} minutes`
       );
-      recommendations.push('Circuit has been open for extended period - manual intervention may be needed');
+      recommendations.push(
+        'Circuit has been open for extended period - manual intervention may be needed'
+      );
     }
 
     // Recent failures
@@ -479,9 +490,8 @@ export class CircuitBreakerMonitor {
       const execTimes = this.performanceData.get(target as ExportTarget) || [];
 
       // Calculate average execution time
-      const avgExecTime = execTimes.length > 0
-        ? execTimes.reduce((sum, t) => sum + t, 0) / execTimes.length
-        : 0;
+      const avgExecTime =
+        execTimes.length > 0 ? execTimes.reduce((sum, t) => sum + t, 0) / execTimes.length : 0;
 
       // Calculate p95 and p99
       const sorted = [...execTimes].sort((a, b) => a - b);
@@ -493,14 +503,11 @@ export class CircuitBreakerMonitor {
       // Calculate throughput (requests/minute)
       const recentHistory = history.slice(-60); // Last 60 data points
       const totalRequests = metrics.totalRequests;
-      const throughput = recentHistory.length > 0
-        ? (totalRequests / recentHistory.length) * 60
-        : 0;
+      const throughput = recentHistory.length > 0 ? (totalRequests / recentHistory.length) * 60 : 0;
 
       // Calculate error and availability rates
-      const errorRate = metrics.totalRequests > 0
-        ? metrics.failedRequests / metrics.totalRequests
-        : 0;
+      const errorRate =
+        metrics.totalRequests > 0 ? metrics.failedRequests / metrics.totalRequests : 0;
       const availabilityRate = 1 - errorRate;
 
       performance.push({
@@ -577,7 +584,9 @@ export function formatHealthReport(dashboard: DashboardData): string {
   lines.push(`  Total Requests: ${dashboard.aggregatedMetrics.totalRequests}`);
   lines.push(`  Successes: ${dashboard.aggregatedMetrics.totalSuccesses}`);
   lines.push(`  Failures: ${dashboard.aggregatedMetrics.totalFailures}`);
-  lines.push(`  Avg Failure Rate: ${dashboard.aggregatedMetrics.avgFailureRate.toFixed(1)} failures/hour`);
+  lines.push(
+    `  Avg Failure Rate: ${dashboard.aggregatedMetrics.avgFailureRate.toFixed(1)} failures/hour`
+  );
   lines.push('');
 
   if (dashboard.activeAlerts.length > 0) {
@@ -591,9 +600,13 @@ export function formatHealthReport(dashboard: DashboardData): string {
   lines.push('Per-Target Health:');
   for (const health of dashboard.targetHealth.sort((a, b) => a.score - b.score)) {
     const statusEmoji =
-      health.status === 'healthy' ? '✓' :
-      health.status === 'degraded' ? '⚠' :
-      health.status === 'critical' ? '⚠⚠' : '✗';
+      health.status === 'healthy'
+        ? '✓'
+        : health.status === 'degraded'
+          ? '⚠'
+          : health.status === 'critical'
+            ? '⚠⚠'
+            : '✗';
     lines.push(
       `  ${statusEmoji} ${health.target.padEnd(20)} | Score: ${health.score.toFixed(0).padStart(3)} | Circuit: ${health.circuitState}`
     );

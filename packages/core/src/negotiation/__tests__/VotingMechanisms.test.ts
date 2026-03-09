@@ -17,7 +17,14 @@ function vote(agentId: string, ranking: string[], weight = 1, approvals?: string
 }
 
 function proposal(id: string, priority = 1, submittedAt = 0): Proposal {
-  return { id, agentId: 'proposer', content: {}, priority, status: 'submitted', submittedAt } as Proposal;
+  return {
+    id,
+    agentId: 'proposer',
+    content: {},
+    priority,
+    status: 'submitted',
+    submittedAt,
+  } as Proposal;
 }
 
 const cfg = (overrides: Partial<NegotiationConfig> = {}): NegotiationConfig => ({
@@ -40,9 +47,15 @@ describe('Majority handler', () => {
   it('declares leader even without majority', () => {
     const pC = proposal('C');
     // A=2 (40%), B=1, C=2 → tie. Instead: A=3 (43%), B=2, C=2
-    const votes = [vote('a1', ['A']), vote('a2', ['A']), vote('a3', ['A']),
-                   vote('a4', ['B']), vote('a5', ['B']),
-                   vote('a6', ['C']), vote('a7', ['C'])];
+    const votes = [
+      vote('a1', ['A']),
+      vote('a2', ['A']),
+      vote('a3', ['A']),
+      vote('a4', ['B']),
+      vote('a5', ['B']),
+      vote('a6', ['C']),
+      vote('a7', ['C']),
+    ];
     const r = majorityHandler.count(votes, [pA, pB, pC], cfg(), 1);
     expect(r.resolved).toBe(true);
     expect(r.winnerId).toBe('A');
@@ -215,16 +228,13 @@ describe('Borda handler', () => {
     expect(r.resolved).toBe(true);
     expect(r.winnerId).toBe('A');
     // A: 2+1+2=5pts, B: 1+2+0=3pts, C: 0+0+1=1pt
-    const tallyA = r.tallies.find(t => t.proposalId === 'A');
+    const tallyA = r.tallies.find((t) => t.proposalId === 'A');
     expect(tallyA?.bordaPoints).toBe(5);
   });
 
   it('handles weights', () => {
     // Weight 2 voter boosts their choice
-    const votes = [
-      vote('a1', ['A', 'B'], 2),
-      vote('a2', ['B', 'A'], 1),
-    ];
+    const votes = [vote('a1', ['A', 'B'], 2), vote('a2', ['B', 'A'], 1)];
     const r = bordaHandler.count(votes, [pA, pB], cfg(), 1);
     // A: 1*2 + 0*1 = 2, B: 0*2 + 1*1 = 1
     expect(r.winnerId).toBe('A');
@@ -232,15 +242,20 @@ describe('Borda handler', () => {
 });
 
 describe('getVotingHandler', () => {
-  it.each(['majority', 'supermajority', 'weighted', 'consensus', 'ranked', 'approval', 'borda'] as const)(
-    'returns handler for %s',
-    (mechanism) => {
-      const handler = getVotingHandler(mechanism);
-      expect(handler.count).toBeDefined();
-      expect(handler.validateVote).toBeDefined();
-      expect(handler.getRequiredQuorum).toBeDefined();
-    }
-  );
+  it.each([
+    'majority',
+    'supermajority',
+    'weighted',
+    'consensus',
+    'ranked',
+    'approval',
+    'borda',
+  ] as const)('returns handler for %s', (mechanism) => {
+    const handler = getVotingHandler(mechanism);
+    expect(handler.count).toBeDefined();
+    expect(handler.validateVote).toBeDefined();
+    expect(handler.getRequiredQuorum).toBeDefined();
+  });
 
   it('defaults to majority for custom/unknown', () => {
     expect(getVotingHandler('custom')).toBe(majorityHandler);

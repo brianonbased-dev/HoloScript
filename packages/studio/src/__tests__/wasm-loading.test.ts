@@ -1,6 +1,6 @@
 /**
  * Test: Raw WASM Module Loading
- * 
+ *
  * Verifies that the compiled holoscript-component.wasm can be instantiated
  * and that its exported functions are accessible from JavaScript.
  **/
@@ -21,7 +21,7 @@ describe('WASM Module Loading', () => {
         __dirname,
         '../../../holoscript-component/target/wasm32-wasip1/release/holoscript_component.wasm'
       );
-      
+
       const data = await fs.readFile(wasmPath);
       wasmBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
     } catch (error) {
@@ -55,7 +55,7 @@ describe('WASM Module Loading', () => {
     }
 
     const exports = wasmModule.exports as Record<string, any>;
-    
+
     // Check for common WASM exports
     expect(typeof exports).toBe('object');
     console.log('Available exports:', Object.keys(exports).length);
@@ -64,11 +64,11 @@ describe('WASM Module Loading', () => {
 
   it('should have reasonable binary size', () => {
     if (!wasmBuffer) return;
-    
+
     const sizeKB = wasmBuffer.byteLength / 1024;
     expect(sizeKB).toBeLessThan(2000); // Should be under 2MB
     expect(sizeKB).toBeGreaterThan(100); // Should be reasonably large (not empty)
-    
+
     console.log(`WASM binary size: ${sizeKB.toFixed(2)} KB`);
   });
 });

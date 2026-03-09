@@ -21,7 +21,10 @@ export interface RagdollBone {
   angularVelocity: { x: number; y: number; z: number };
   mass: number;
   length: number;
-  jointLimits: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } };
+  jointLimits: {
+    min: { x: number; y: number; z: number };
+    max: { x: number; y: number; z: number };
+  };
 }
 
 export interface RagdollConfig {
@@ -40,7 +43,7 @@ export class RagdollController {
   private bones: Map<string, RagdollBone> = new Map();
   private rootBone: string | null = null;
   private state: RagdollState = 'active';
-  private blendFactor = 0;     // 0 = animated, 1 = ragdoll
+  private blendFactor = 0; // 0 = animated, 1 = ragdoll
   private blendSpeed = 2;
   private config: RagdollConfig;
 
@@ -52,15 +55,23 @@ export class RagdollController {
   // Bone Chain Setup
   // ---------------------------------------------------------------------------
 
-  addBone(name: string, parentId: string | null, mass: number, length: number,
-          limits?: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }): RagdollBone {
+  addBone(
+    name: string,
+    parentId: string | null,
+    mass: number,
+    length: number,
+    limits?: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }
+  ): RagdollBone {
     const bone: RagdollBone = {
-      id: name, name, parentId,
+      id: name,
+      name,
+      parentId,
       position: { x: 0, y: 0, z: 0 },
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
-      mass, length,
+      mass,
+      length,
       jointLimits: limits ?? { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } },
     };
     this.bones.set(name, bone);
@@ -68,23 +79,35 @@ export class RagdollController {
     return bone;
   }
 
-  removeBone(name: string): boolean { return this.bones.delete(name); }
+  removeBone(name: string): boolean {
+    return this.bones.delete(name);
+  }
 
   // ---------------------------------------------------------------------------
   // State Control
   // ---------------------------------------------------------------------------
 
-  activate(): void { this.state = 'active'; this.blendFactor = 0; }
+  activate(): void {
+    this.state = 'active';
+    this.blendFactor = 0;
+  }
 
-  goRagdoll(): void { this.state = 'ragdoll'; this.blendFactor = 1; }
+  goRagdoll(): void {
+    this.state = 'ragdoll';
+    this.blendFactor = 1;
+  }
 
   startBlend(toRagdoll = true): void {
     this.state = 'blending';
     this.blendFactor = toRagdoll ? 0 : 1;
   }
 
-  getState(): RagdollState { return this.state; }
-  getBlendFactor(): number { return this.blendFactor; }
+  getState(): RagdollState {
+    return this.state;
+  }
+  getBlendFactor(): number {
+    return this.blendFactor;
+  }
 
   // ---------------------------------------------------------------------------
   // Physics Update
@@ -138,9 +161,18 @@ export class RagdollController {
         }
 
         // Joint limits
-        bone.rotation.x = Math.max(bone.jointLimits.min.x, Math.min(bone.jointLimits.max.x, bone.rotation.x));
-        bone.rotation.y = Math.max(bone.jointLimits.min.y, Math.min(bone.jointLimits.max.y, bone.rotation.y));
-        bone.rotation.z = Math.max(bone.jointLimits.min.z, Math.min(bone.jointLimits.max.z, bone.rotation.z));
+        bone.rotation.x = Math.max(
+          bone.jointLimits.min.x,
+          Math.min(bone.jointLimits.max.x, bone.rotation.x)
+        );
+        bone.rotation.y = Math.max(
+          bone.jointLimits.min.y,
+          Math.min(bone.jointLimits.max.y, bone.rotation.y)
+        );
+        bone.rotation.z = Math.max(
+          bone.jointLimits.min.z,
+          Math.min(bone.jointLimits.max.z, bone.rotation.z)
+        );
       }
     }
   }
@@ -161,11 +193,17 @@ export class RagdollController {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getBone(id: string): RagdollBone | undefined { return this.bones.get(id); }
-  getBoneCount(): number { return this.bones.size; }
-  getRootBone(): RagdollBone | undefined { return this.rootBone ? this.bones.get(this.rootBone) : undefined; }
+  getBone(id: string): RagdollBone | undefined {
+    return this.bones.get(id);
+  }
+  getBoneCount(): number {
+    return this.bones.size;
+  }
+  getRootBone(): RagdollBone | undefined {
+    return this.rootBone ? this.bones.get(this.rootBone) : undefined;
+  }
 
   getChildren(boneId: string): RagdollBone[] {
-    return [...this.bones.values()].filter(b => b.parentId === boneId);
+    return [...this.bones.values()].filter((b) => b.parentId === boneId);
   }
 }

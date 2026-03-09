@@ -22,21 +22,25 @@ By the end, you'll understand how to organize projects like a pro."
 "HoloScript isn't just one file type — it's a **three-layer architecture**:
 
 **Layer 1: Composition** (`.holo` files)
+
 - Complete scenes and worlds
 - AI-friendly declarative syntax
 - Entry point for compilation
 
 **Layer 2: Presentation** (`.hsplus` files)
+
 - 3D objects with visual traits
 - Modules and templates
 - TypeScript-like syntax
 
 **Layer 3: Logic** (`.hs` files)
+
 - Business logic and utilities
 - State machines
 - Reusable functions
 
 **Infrastructure:** (`.ts` files)
+
 - Parser implementations
 - CLI tools
 - NOT HoloScript code - this is the implementation OF HoloScript"
@@ -188,6 +192,7 @@ my-vr-project/
 > [SCREEN: Compilation flow animation]
 
 "When you compile `main.holo`:
+
 1. HoloScript parses it with `HoloCompositionParser`
 2. Resolves imports from `.hs` and `.hsplus` files
 3. Parses those with `HoloScriptPlusParser`
@@ -244,6 +249,7 @@ holoscript compile scoring.hs --target unity    # ❌ Not an entry point
 ## OUTRO (9:45 - 10:00)
 
 "You now understand HoloScript's layered architecture:
+
 - `.holo` → Complete scenes
 - `.hsplus` → Visual components & modules
 - `.hs` → Pure logic

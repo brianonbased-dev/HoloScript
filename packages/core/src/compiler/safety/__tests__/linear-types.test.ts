@@ -10,11 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  LinearTypeChecker,
-  BUILTIN_RESOURCES,
-  TRAIT_RESOURCE_MAP,
-} from '../LinearTypeChecker';
+import { LinearTypeChecker, BUILTIN_RESOURCES, TRAIT_RESOURCE_MAP } from '../LinearTypeChecker';
 import { runSafetyPass } from '../CompilerSafetyPass';
 import type { EffectASTNode } from '../EffectChecker';
 import type { ResourceAbility } from '../../../types/linear';
@@ -203,7 +199,7 @@ describe('LinearTypeChecker violations', () => {
     // Since the first node already consumed it, the checker detects it via checkReferencesInNode
     const result = checker.checkModule(nodes);
     // The second node references a consumed resource
-    const useAfterConsume = result.violations.filter(v => v.kind === 'use-after-consume');
+    const useAfterConsume = result.violations.filter((v) => v.kind === 'use-after-consume');
     expect(useAfterConsume.length).toBeGreaterThan(0);
   });
 
@@ -214,7 +210,7 @@ describe('LinearTypeChecker violations', () => {
       { type: 'action', name: 'Crown', traits: [], calls: ['revokeAccess'] },
     ];
     const result = checker.checkModule(nodes);
-    const useAfterMove = result.violations.filter(v => v.kind === 'use-after-move');
+    const useAfterMove = result.violations.filter((v) => v.kind === 'use-after-move');
     expect(useAfterMove.length).toBeGreaterThan(0);
   });
 
@@ -224,18 +220,16 @@ describe('LinearTypeChecker violations', () => {
     ];
     const result = checker.checkModule(nodes);
     expect(result.passed).toBe(false);
-    const leaks = result.violations.filter(v => v.kind === 'resource-leak');
+    const leaks = result.violations.filter((v) => v.kind === 'resource-leak');
     expect(leaks.length).toBe(1);
     expect(leaks[0].resourceType).toBe('EntityAuthority');
   });
 
   it('detects leak for AgentHandle (no drop)', () => {
-    const nodes: EffectASTNode[] = [
-      { type: 'object', name: 'Bot', traits: ['@agent'], calls: [] },
-    ];
+    const nodes: EffectASTNode[] = [{ type: 'object', name: 'Bot', traits: ['@agent'], calls: [] }];
     const result = checker.checkModule(nodes);
     expect(result.passed).toBe(false);
-    const leaks = result.violations.filter(v => v.kind === 'resource-leak');
+    const leaks = result.violations.filter((v) => v.kind === 'resource-leak');
     expect(leaks.length).toBe(1);
     expect(leaks[0].resourceType).toBe('AgentHandle');
   });
@@ -289,7 +283,8 @@ describe('Linear types in runSafetyPass', () => {
   it('safe module with no resources passes linear check', () => {
     const nodes: EffectASTNode[] = [
       {
-        type: 'object', name: 'SafePlayer',
+        type: 'object',
+        name: 'SafePlayer',
         traits: ['@mesh', '@audio'],
         calls: [],
         declaredEffects: ['render:spawn', 'audio:play'],
@@ -308,7 +303,8 @@ describe('Linear types in runSafetyPass', () => {
   it('module with resource leak reports in linear section', () => {
     const nodes: EffectASTNode[] = [
       {
-        type: 'object', name: 'LeakyItem',
+        type: 'object',
+        name: 'LeakyItem',
         traits: ['@mesh', '@inventory'],
         calls: [],
         declaredEffects: ['render:spawn', 'inventory:take', 'inventory:give'],
@@ -326,7 +322,8 @@ describe('Linear types in runSafetyPass', () => {
   it('linear violations affect overall verdict', () => {
     const nodes: EffectASTNode[] = [
       {
-        type: 'object', name: 'LeakyAuth',
+        type: 'object',
+        name: 'LeakyAuth',
         traits: ['@owned'],
         calls: [],
         declaredEffects: ['authority:own'],
@@ -344,7 +341,8 @@ describe('Linear types in runSafetyPass', () => {
   it('consumed resource passes linear check', () => {
     const nodes: EffectASTNode[] = [
       {
-        type: 'object', name: 'UsedItem',
+        type: 'object',
+        name: 'UsedItem',
         traits: ['@consumable'],
         calls: ['consumeItem'],
         declaredEffects: ['inventory:take', 'inventory:give', 'inventory:destroy'],
@@ -359,7 +357,13 @@ describe('Linear types in runSafetyPass', () => {
 
   it('formatted report includes linear section', () => {
     const nodes: EffectASTNode[] = [
-      { type: 'object', name: 'A', traits: ['@mesh'], calls: [], declaredEffects: ['render:spawn'] },
+      {
+        type: 'object',
+        name: 'A',
+        traits: ['@mesh'],
+        calls: [],
+        declaredEffects: ['render:spawn'],
+      },
     ];
     const result = runSafetyPass(nodes, { moduleId: 'format-test', trustLevel: 'basic' });
     expect(result.formattedReport).toContain('Linear Types:');

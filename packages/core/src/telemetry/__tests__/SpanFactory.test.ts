@@ -4,7 +4,9 @@ import { SpanFactory, createSpanObject, generateTraceId, generateSpanId } from '
 describe('SpanFactory', () => {
   let factory: SpanFactory;
 
-  beforeEach(() => { factory = new SpanFactory(); });
+  beforeEach(() => {
+    factory = new SpanFactory();
+  });
 
   // ID generation
   it('generateTraceId returns 32-char hex string', () => {
@@ -85,7 +87,9 @@ describe('SpanFactory', () => {
 
   it('withSpan ends span with error on throw', () => {
     expect(() => {
-      factory.withSpan('fail', () => { throw new Error('boom'); });
+      factory.withSpan('fail', () => {
+        throw new Error('boom');
+      });
     }).toThrow('boom');
   });
 
@@ -100,7 +104,9 @@ describe('SpanFactory', () => {
 
   it('withSpan async handles rejection', async () => {
     await expect(
-      factory.withSpan('fail', async () => { throw new Error('async-boom'); })
+      factory.withSpan('fail', async () => {
+        throw new Error('async-boom');
+      })
     ).rejects.toThrow('async-boom');
   });
 });

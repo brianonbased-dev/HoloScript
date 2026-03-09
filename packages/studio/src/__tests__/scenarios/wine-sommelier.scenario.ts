@@ -7,16 +7,69 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  pairingScore, bestPairing, cellarValue, cellarTotalBottles,
-  winesAtPeak, winesPastPrime, agingPotential,
-  servingTemperatureC, decantTimeMinutes,
-  blindTastingScore, terroirIndex,
-  type WineProfile, type CellarEntry,
+  pairingScore,
+  bestPairing,
+  cellarValue,
+  cellarTotalBottles,
+  winesAtPeak,
+  winesPastPrime,
+  agingPotential,
+  servingTemperatureC,
+  decantTimeMinutes,
+  blindTastingScore,
+  terroirIndex,
+  type WineProfile,
+  type CellarEntry,
 } from '@/lib/wineSommelier';
 
-const cabernet: WineProfile = { id: 'w1', name: 'Napa Cab', color: 'red', varietal: 'cabernet-sauvignon', region: 'Napa Valley', vintage: 2018, abv: 14.5, tastingNotes: ['blackberry', 'oak', 'vanilla'], acidity: 3, tannins: 5, body: 5, sweetness: 1, score: 92, priceUSD: 85 };
-const chardonnay: WineProfile = { id: 'w2', name: 'Burgundy Chard', color: 'white', varietal: 'chardonnay', region: 'Burgundy', vintage: 2020, abv: 13, tastingNotes: ['apple', 'citrus', 'mineral'], acidity: 4, tannins: 1, body: 3, sweetness: 1, score: 88, priceUSD: 55 };
-const riesling: WineProfile = { id: 'w3', name: 'Mosel Riesling', color: 'white', varietal: 'riesling', region: 'Mosel', vintage: 2021, abv: 11, tastingNotes: ['peach', 'honey', 'floral'], acidity: 5, tannins: 1, body: 2, sweetness: 3, score: 90, priceUSD: 35 };
+const cabernet: WineProfile = {
+  id: 'w1',
+  name: 'Napa Cab',
+  color: 'red',
+  varietal: 'cabernet-sauvignon',
+  region: 'Napa Valley',
+  vintage: 2018,
+  abv: 14.5,
+  tastingNotes: ['blackberry', 'oak', 'vanilla'],
+  acidity: 3,
+  tannins: 5,
+  body: 5,
+  sweetness: 1,
+  score: 92,
+  priceUSD: 85,
+};
+const chardonnay: WineProfile = {
+  id: 'w2',
+  name: 'Burgundy Chard',
+  color: 'white',
+  varietal: 'chardonnay',
+  region: 'Burgundy',
+  vintage: 2020,
+  abv: 13,
+  tastingNotes: ['apple', 'citrus', 'mineral'],
+  acidity: 4,
+  tannins: 1,
+  body: 3,
+  sweetness: 1,
+  score: 88,
+  priceUSD: 55,
+};
+const riesling: WineProfile = {
+  id: 'w3',
+  name: 'Mosel Riesling',
+  color: 'white',
+  varietal: 'riesling',
+  region: 'Mosel',
+  vintage: 2021,
+  abv: 11,
+  tastingNotes: ['peach', 'honey', 'floral'],
+  acidity: 5,
+  tannins: 1,
+  body: 2,
+  sweetness: 3,
+  score: 90,
+  priceUSD: 35,
+};
 
 describe('Scenario: Wine Sommelier — Food Pairing', () => {
   it('red cab pairs well with beef (high score)', () => {
@@ -44,8 +97,22 @@ describe('Scenario: Wine Sommelier — Food Pairing', () => {
 
 describe('Scenario: Wine Sommelier — Cellar', () => {
   const entries: CellarEntry[] = [
-    { wine: cabernet, quantity: 6, purchaseDate: Date.now(), drinkByYear: 2035, location: 'A3', peakYear: 2026 },
-    { wine: chardonnay, quantity: 3, purchaseDate: Date.now(), drinkByYear: 2025, location: 'B1', peakYear: 2023 },
+    {
+      wine: cabernet,
+      quantity: 6,
+      purchaseDate: Date.now(),
+      drinkByYear: 2035,
+      location: 'A3',
+      peakYear: 2026,
+    },
+    {
+      wine: chardonnay,
+      quantity: 3,
+      purchaseDate: Date.now(),
+      drinkByYear: 2025,
+      location: 'B1',
+      peakYear: 2023,
+    },
   ];
 
   it('cellarValue = 6×85 + 3×55 = 675', () => {

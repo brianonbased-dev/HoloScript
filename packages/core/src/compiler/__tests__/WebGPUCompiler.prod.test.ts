@@ -8,7 +8,7 @@
  * compute shaders, render loop, draw calls, options (entryPoint, enableCompute,
  * msaa), and utility helpers (parseColor, geometryVertexDataFn, sanitizeName).
  */
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { WebGPUCompiler } from '../WebGPUCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -19,7 +19,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -109,12 +108,18 @@ describe('WebGPUCompiler — Production', () => {
   // ─── Environment ──────────────────────────────────────────────────────────
   describe('compile() — environment', () => {
     it('compiles with environment node', () => {
-      const result = compiler.compile(makeComp({ environment: { properties: [{ key: 'background', value: '#001122' }] } as any }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ environment: { properties: [{ key: 'background', value: '#001122' }] } as any }),
+        'test-token'
+      );
       expect(typeof result).toBe('string');
     });
 
     it('environment color appears in output', () => {
-      const result = compiler.compile(makeComp({ environment: { properties: [{ key: 'background', value: '#112233' }] } as any }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ environment: { properties: [{ key: 'background', value: '#112233' }] } as any }),
+        'test-token'
+      );
       // Parsed hex 0x11/255~0.067, 0x22/255~0.133, 0x33/255~0.2
       expect(result).toContain('clearColor');
     });
@@ -123,38 +128,59 @@ describe('WebGPUCompiler — Production', () => {
   // ─── Objects ──────────────────────────────────────────────────────────────
   describe('compile() — objects', () => {
     it('compiles a box object', () => {
-      const result = compiler.compile(makeComp({ objects: [makeObj('myBox', 'box')] }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ objects: [makeObj('myBox', 'box')] }),
+        'test-token'
+      );
       expect(result).toContain('myBox');
     });
 
     it('compiles a sphere object', () => {
-      const result = compiler.compile(makeComp({ objects: [makeObj('ball', 'sphere')] }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ objects: [makeObj('ball', 'sphere')] }),
+        'test-token'
+      );
       expect(result).toContain('ball');
     });
 
     it('compiles a cylinder object', () => {
-      const result = compiler.compile(makeComp({ objects: [makeObj('pillar', 'cylinder')] }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ objects: [makeObj('pillar', 'cylinder')] }),
+        'test-token'
+      );
       expect(result).toContain('pillar');
     });
 
     it('compiles a gaussian_splat object', () => {
-      const result = compiler.compile(makeComp({ objects: [makeObj('splat', 'gaussian_splat')] }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ objects: [makeObj('splat', 'gaussian_splat')] }),
+        'test-token'
+      );
       expect(result).toBeDefined();
     });
 
     it('compiles a point_cloud object', () => {
-      const result = compiler.compile(makeComp({ objects: [makeObj('cloud', 'point_cloud')] }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ objects: [makeObj('cloud', 'point_cloud')] }),
+        'test-token'
+      );
       expect(result).toBeDefined();
     });
 
     it('compiles gpu_particles object', () => {
-      const result = compiler.compile(makeComp({ objects: [makeObj('particles', 'gpu_particles')] }), 'test-token');
+      const result = compiler.compile(
+        makeComp({ objects: [makeObj('particles', 'gpu_particles')] }),
+        'test-token'
+      );
       expect(result).toBeDefined();
     });
 
     it('multiple objects produce longer output', () => {
       const single = compiler.compile(makeComp({ objects: [makeObj('a')] }), 'test-token');
-      const multi = compiler.compile(makeComp({ objects: [makeObj('a'), makeObj('b'), makeObj('c')] }), 'test-token');
+      const multi = compiler.compile(
+        makeComp({ objects: [makeObj('a'), makeObj('b'), makeObj('c')] }),
+        'test-token'
+      );
       expect(multi.length).toBeGreaterThan(single.length);
     });
   });
@@ -162,13 +188,18 @@ describe('WebGPUCompiler — Production', () => {
   // ─── Spatial groups ────────────────────────────────────────────────────────
   describe('compile() — spatial groups', () => {
     it('compiles a spatial group', () => {
-      const result = compiler.compile(makeComp({
-          spatialGroups: [{
-            name: 'grp1',
-            objects: [makeObj('child')],
-            properties: [],
-          } as any],
-        }), 'test-token');
+      const result = compiler.compile(
+        makeComp({
+          spatialGroups: [
+            {
+              name: 'grp1',
+              objects: [makeObj('child')],
+              properties: [],
+            } as any,
+          ],
+        }),
+        'test-token'
+      );
       expect(result).toContain('grp1');
     });
   });
@@ -176,23 +207,38 @@ describe('WebGPUCompiler — Production', () => {
   // ─── Lights ───────────────────────────────────────────────────────────────
   describe('compile() — lights', () => {
     it('compiles directional light', () => {
-      const result = compiler.compile(makeComp({
-          lights: [{ name: 'sun', lightType: 'directional', properties: [{ key: 'intensity', value: 1.0 }] }],
-        }), 'test-token');
+      const result = compiler.compile(
+        makeComp({
+          lights: [
+            {
+              name: 'sun',
+              lightType: 'directional',
+              properties: [{ key: 'intensity', value: 1.0 }],
+            },
+          ],
+        }),
+        'test-token'
+      );
       expect(result).toContain('sun');
     });
 
     it('compiles point light', () => {
-      const result = compiler.compile(makeComp({
+      const result = compiler.compile(
+        makeComp({
           lights: [{ name: 'lamp', lightType: 'point', properties: [] }],
-        }), 'test-token');
+        }),
+        'test-token'
+      );
       expect(result).toContain('lamp');
     });
 
     it('compiles ambient light', () => {
-      const result = compiler.compile(makeComp({
+      const result = compiler.compile(
+        makeComp({
           lights: [{ name: 'ambient', lightType: 'ambient', properties: [] }],
-        }), 'test-token');
+        }),
+        'test-token'
+      );
       expect(result).toBeDefined();
     });
   });
@@ -200,9 +246,12 @@ describe('WebGPUCompiler — Production', () => {
   // ─── Camera ───────────────────────────────────────────────────────────────
   describe('compile() — camera', () => {
     it('compiles perspective camera', () => {
-      const result = compiler.compile(makeComp({
+      const result = compiler.compile(
+        makeComp({
           camera: { cameraType: 'perspective', properties: [{ key: 'fov', value: 90 }] },
-        }), 'test-token');
+        }),
+        'test-token'
+      );
       expect(result).toBeDefined();
       expect(result).toContain('camera');
     });
@@ -212,7 +261,10 @@ describe('WebGPUCompiler — Production', () => {
   describe('compile() — compute shaders', () => {
     it('enableCompute: true generates compute shader reference', () => {
       const c = new WebGPUCompiler({ enableCompute: true });
-      const result = c.compile(makeComp({ objects: [makeObj('particles', 'gpu_particles')] }), 'test-token');
+      const result = c.compile(
+        makeComp({ objects: [makeObj('particles', 'gpu_particles')] }),
+        'test-token'
+      );
       expect(result).toMatch(/compute|@compute/i);
     });
 

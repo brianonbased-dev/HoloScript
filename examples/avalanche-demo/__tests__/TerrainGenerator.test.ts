@@ -71,7 +71,7 @@ describe('TerrainGenerator', () => {
       // Heights should differ with different seeds
       // Check center area where noise has more effect (avoid edges which are all ~0)
       const res = defaultConfig.resolution;
-      const centerStart = Math.floor(res * res / 4); // Start from 25% in
+      const centerStart = Math.floor((res * res) / 4); // Start from 25% in
       const differences = [];
 
       for (let i = centerStart; i < centerStart + 1000; i++) {

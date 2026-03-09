@@ -81,7 +81,14 @@ describe('NavMesh — Production', () => {
     it('returns walkable neighbors only', () => {
       const p1 = mesh.addPolygon(TRI);
       const p2 = mesh.addPolygon(SQUARE);
-      const p3 = mesh.addPolygon([{ x: 40, y: 0, z: 0 }, { x: 50, y: 0, z: 0 }, { x: 50, y: 0, z: 10 }], false);
+      const p3 = mesh.addPolygon(
+        [
+          { x: 40, y: 0, z: 0 },
+          { x: 50, y: 0, z: 0 },
+          { x: 50, y: 0, z: 10 },
+        ],
+        false
+      );
       mesh.connectPolygons(p1.id, p2.id);
       mesh.connectPolygons(p1.id, p3.id);
       const neighbors = mesh.getWalkableNeighbors(p1.id);

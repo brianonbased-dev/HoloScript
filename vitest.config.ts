@@ -87,7 +87,12 @@ export default defineConfig({
           name: '@holoscript/test',
           root: './packages/test',
           include: ['src/**/*.test.ts'],
-          exclude: ['**/dist/**', '**/node_modules/**', 'src/__tests__/scenes.test.ts', 'src/__tests__/visual.test.ts'],
+          exclude: [
+            '**/dist/**',
+            '**/node_modules/**',
+            'src/__tests__/scenes.test.ts',
+            'src/__tests__/visual.test.ts',
+          ],
           environment: 'node',
         },
       },

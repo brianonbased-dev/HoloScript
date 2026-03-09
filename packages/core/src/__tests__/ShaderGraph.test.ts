@@ -7,7 +7,9 @@ import { ShaderGraph, SHADER_NODES } from '../rendering/ShaderGraph';
 
 describe('ShaderGraph', () => {
   let graph: ShaderGraph;
-  beforeEach(() => { graph = new ShaderGraph('test_shader'); });
+  beforeEach(() => {
+    graph = new ShaderGraph('test_shader');
+  });
 
   it('constructor initializes built-in node defs', () => {
     expect(Object.keys(SHADER_NODES).length).toBeGreaterThanOrEqual(6);
@@ -86,7 +88,7 @@ describe('ShaderGraph', () => {
     const output = graph.addNode('Output')!;
     graph.connect(color.id, 'rgba', output.id, 'albedo');
     const compiled = graph.compile();
-    const colorUniform = compiled.uniforms.find(u => u.name.includes('color'));
+    const colorUniform = compiled.uniforms.find((u) => u.name.includes('color'));
     expect(colorUniform).toBeDefined();
     expect(colorUniform!.value).toEqual([1, 0, 0, 1]);
   });

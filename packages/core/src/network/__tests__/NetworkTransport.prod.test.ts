@@ -140,7 +140,9 @@ describe('NetworkTransport: production', () => {
 
     it('handler receives the NetworkMessage', () => {
       let received: any;
-      transport.onMessage('data', msg => { received = msg; });
+      transport.onMessage('data', (msg) => {
+        received = msg;
+      });
       transport.connect('c1');
       transport.send('c1', 'data', { n: 42 });
       expect(received.payload.n).toBe(42);

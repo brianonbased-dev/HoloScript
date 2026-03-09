@@ -31,9 +31,11 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [metadata, setMetadata] = useState({
     name: remixFrom ? `${remixFrom.name} (Remix)` : '',
-    description: remixFrom ? `Remix of "${remixFrom.name}" by ${remixFrom.author.name}\n\n${remixFrom.description}` : '',
+    description: remixFrom
+      ? `Remix of "${remixFrom.name}" by ${remixFrom.author.name}\n\n${remixFrom.description}`
+      : '',
     category: '',
-    tags: remixFrom ? ['remix'] : [] as string[],
+    tags: remixFrom ? ['remix'] : ([] as string[]),
     license: 'MIT' as const,
     version: '1.0.0',
     remixOf: remixFrom?.id,
@@ -53,7 +55,11 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
       case 'thumbnail':
         return thumbnailFile !== null;
       case 'metadata':
-        return metadata.name.trim() !== '' && metadata.description.trim() !== '' && metadata.category !== '';
+        return (
+          metadata.name.trim() !== '' &&
+          metadata.description.trim() !== '' &&
+          metadata.category !== ''
+        );
       case 'preview':
         return true;
       default:
@@ -112,17 +118,20 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
     if (file) setThumbnailFile(file);
   };
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>, type: 'content' | 'thumbnail') => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      if (type === 'content') {
-        setContentFile(file);
-      } else {
-        setThumbnailFile(file);
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>, type: 'content' | 'thumbnail') => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        if (type === 'content') {
+          setContentFile(file);
+        } else {
+          setThumbnailFile(file);
+        }
       }
-    }
-  }, []);
+    },
+    []
+  );
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -270,9 +279,7 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
               <h3 className="text-sm font-semibold text-studio-text">Content Details</h3>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-studio-muted">
-                  Title *
-                </label>
+                <label className="mb-1 block text-xs font-medium text-studio-muted">Title *</label>
                 <input
                   type="text"
                   value={metadata.name}
@@ -371,10 +378,15 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
                 <input
                   type="text"
                   value={metadata.tags.join(', ')}
-                  onChange={(e) => setMetadata({
-                    ...metadata,
-                    tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean)
-                  })}
+                  onChange={(e) =>
+                    setMetadata({
+                      ...metadata,
+                      tags: e.target.value
+                        .split(',')
+                        .map((t) => t.trim())
+                        .filter(Boolean),
+                    })
+                  }
                   className="w-full rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-sm text-studio-text outline-none focus:border-studio-accent"
                   placeholder="e.g., vr, animation, beginner-friendly"
                 />

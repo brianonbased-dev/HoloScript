@@ -69,7 +69,7 @@ describe('AIValidator', () => {
       const result = await validator.validate(invalidCode);
 
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.type === 'syntax')).toBe(true);
+      expect(result.errors.some((e) => e.type === 'syntax')).toBe(true);
     });
 
     it('should detect triple brace hallucinations', async () => {
@@ -96,8 +96,8 @@ describe('AIValidator', () => {
       const result = await validator.validate(unbalanced);
 
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.type === 'structural')).toBe(true);
-      expect(result.errors.some(e => e.message.includes('unclosed'))).toBe(true);
+      expect(result.errors.some((e) => e.type === 'structural')).toBe(true);
+      expect(result.errors.some((e) => e.message.includes('unclosed'))).toBe(true);
     });
 
     it('should detect extra closing braces', async () => {
@@ -110,7 +110,7 @@ describe('AIValidator', () => {
       const result = await validator.validate(extraBrace);
 
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.type === 'structural')).toBe(true);
+      expect(result.errors.some((e) => e.type === 'structural')).toBe(true);
     });
   });
 
@@ -126,8 +126,8 @@ describe('AIValidator', () => {
       const result = await validator.validate(unknownTrait);
 
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.type === 'trait')).toBe(true);
-      expect(result.errors.some(e => e.message.includes('@magic_flying'))).toBe(true);
+      expect(result.errors.some((e) => e.type === 'trait')).toBe(true);
+      expect(result.errors.some((e) => e.message.includes('@magic_flying'))).toBe(true);
     });
 
     it('should suggest similar valid traits', async () => {
@@ -140,7 +140,7 @@ describe('AIValidator', () => {
       const result = await validator.validate(typoTrait);
 
       expect(result.valid).toBe(false);
-      const traitError = result.errors.find(e => e.type === 'trait');
+      const traitError = result.errors.find((e) => e.type === 'trait');
       expect(traitError?.suggestion).toContain('@grabbable');
     });
 
@@ -171,7 +171,7 @@ describe('AIValidator', () => {
       const result = await validator.validate(aiTrait);
 
       expect(result.metadata.hallucinationScore).toBeGreaterThan(0);
-      expect(result.warnings.some(w => w.message.includes('AI-like'))).toBe(true);
+      expect(result.warnings.some((w) => w.message.includes('AI-like'))).toBe(true);
     });
 
     it('should detect placeholder text', async () => {
@@ -185,7 +185,7 @@ describe('AIValidator', () => {
       const result = await validator.validate(placeholderCode);
 
       expect(result.metadata.hallucinationScore).toBeGreaterThan(50);
-      expect(result.warnings.some(w => w.message.includes('Placeholder'))).toBe(true);
+      expect(result.warnings.some((w) => w.message.includes('Placeholder'))).toBe(true);
     });
 
     it('should detect mixed language syntax', async () => {
@@ -198,7 +198,7 @@ describe('AIValidator', () => {
       const result = await validator.validate(mixedSyntax);
 
       expect(result.metadata.hallucinationScore).toBeGreaterThan(0);
-      expect(result.warnings.some(w => w.message.includes('HTML'))).toBe(true);
+      expect(result.warnings.some((w) => w.message.includes('HTML'))).toBe(true);
     });
 
     it('should detect JavaScript syntax hallucinations', async () => {
@@ -211,7 +211,7 @@ describe('AIValidator', () => {
       const result = await validator.validate(jsSyntax);
 
       expect(result.metadata.hallucinationScore).toBeGreaterThan(0);
-      expect(result.warnings.some(w => w.message.includes('JavaScript'))).toBe(true);
+      expect(result.warnings.some((w) => w.message.includes('JavaScript'))).toBe(true);
     });
 
     it('should detect TODO comments', async () => {
@@ -224,7 +224,7 @@ describe('AIValidator', () => {
 
       const result = await validator.validate(todoCode);
 
-      expect(result.warnings.some(w => w.message.includes('Incomplete'))).toBe(true);
+      expect(result.warnings.some((w) => w.message.includes('Incomplete'))).toBe(true);
     });
 
     it('should detect OOP syntax hallucinations', async () => {
@@ -237,7 +237,7 @@ describe('AIValidator', () => {
       const result = await validator.validate(oopSyntax);
 
       expect(result.metadata.hallucinationScore).toBeGreaterThan(0);
-      expect(result.warnings.some(w => w.message.includes('OOP'))).toBe(true);
+      expect(result.warnings.some((w) => w.message.includes('OOP'))).toBe(true);
     });
 
     it('should detect excessive trait repetition', async () => {
@@ -254,7 +254,7 @@ describe('AIValidator', () => {
 
       const result = await validator.validate(repetitive);
 
-      expect(result.warnings.some(w => w.message.includes('repetition'))).toBe(true);
+      expect(result.warnings.some((w) => w.message.includes('repetition'))).toBe(true);
     });
   });
 
@@ -267,7 +267,7 @@ describe('AIValidator', () => {
 
       const result = await validator.validate(emptyObject);
 
-      expect(result.warnings.some(w => w.message.includes('Empty'))).toBe(true);
+      expect(result.warnings.some((w) => w.message.includes('Empty'))).toBe(true);
     });
 
     it('should warn about very long lines', async () => {
@@ -275,7 +275,7 @@ describe('AIValidator', () => {
 
       const result = await validator.validate(longLine);
 
-      expect(result.warnings.some(w => w.message.includes('120 characters'))).toBe(true);
+      expect(result.warnings.some((w) => w.message.includes('120 characters'))).toBe(true);
     });
   });
 
@@ -290,7 +290,7 @@ describe('AIValidator', () => {
 
       const result = await openaiValidator.validate(fencedCode);
 
-      expect(result.errors.some(e => e.message.includes('markdown fence'))).toBe(true);
+      expect(result.errors.some((e) => e.message.includes('markdown fence'))).toBe(true);
     });
 
     it('should handle Anthropic provider', async () => {
@@ -365,7 +365,7 @@ describe('AIValidator', () => {
 
       const result = await validator.validate(multiLineInvalid);
 
-      const traitError = result.errors.find(e => e.type === 'trait');
+      const traitError = result.errors.find((e) => e.type === 'trait');
       expect(traitError?.line).toBeGreaterThan(0);
     });
 
@@ -378,7 +378,7 @@ describe('AIValidator', () => {
 
       const result = await validator.validate(typo);
 
-      const error = result.errors.find(e => e.type === 'trait');
+      const error = result.errors.find((e) => e.type === 'trait');
       expect(error?.suggestion).toBeDefined();
       expect(error?.suggestion).toContain('@grabbable');
     });

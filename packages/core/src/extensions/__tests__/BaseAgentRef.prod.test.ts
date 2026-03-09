@@ -49,7 +49,10 @@ describe('LocalAgentRef — tell()', () => {
   it('calls onMessage handler', async () => {
     const calls: string[] = [];
     const ref = new LocalAgentRef<string>('a', {
-      onMessage: async (m) => { calls.push(m); return; },
+      onMessage: async (m) => {
+        calls.push(m);
+        return;
+      },
     });
     ref.tell('hello');
     // tell is fire-and-forget; give microtask time to run
@@ -58,7 +61,9 @@ describe('LocalAgentRef — tell()', () => {
   });
   it('swallows errors in handler (fire-and-forget)', async () => {
     const ref = new LocalAgentRef<string>('a', {
-      onMessage: async () => { throw new Error('boom'); },
+      onMessage: async () => {
+        throw new Error('boom');
+      },
     });
     await expect(ref.tell('msg')).resolves.toBeUndefined();
   });
@@ -78,7 +83,8 @@ describe('LocalAgentRef — ask()', () => {
   });
   it('includes agentId in timeout error', async () => {
     const ref = new LocalAgentRef('my-special-agent', {
-      onMessage: async () => new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 100)),
+      onMessage: async () =>
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 100)),
     });
     await expect(ref.ask('msg', 10)).rejects.toThrow(/my-special-agent/);
   });
@@ -87,7 +93,8 @@ describe('LocalAgentRef — ask()', () => {
       onMessage: async () => ({ status: 'ok', score: 42 }),
     });
     const r = await ref.ask<{ status: string; score: number }>('q', 500);
-    expect(r.status).toBe('ok'); expect(r.score).toBe(42);
+    expect(r.status).toBe('ok');
+    expect(r.score).toBe(42);
   });
   it('resolves with null handler response', async () => {
     const ref = new LocalAgentRef<string>('a', {

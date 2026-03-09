@@ -129,11 +129,12 @@ export function HotkeyMapOverlay({ open, onClose }: HotkeyMapOverlayProps) {
   const q = query.toLowerCase();
   const filtered: ShortcutGroup[] = SHORTCUT_GROUPS.map((g) => ({
     ...g,
-    shortcuts: g.shortcuts.filter((s) =>
-      !q ||
-      s.action.toLowerCase().includes(q) ||
-      s.keys.some((k) => k.toLowerCase().includes(q)) ||
-      g.group.toLowerCase().includes(q)
+    shortcuts: g.shortcuts.filter(
+      (s) =>
+        !q ||
+        s.action.toLowerCase().includes(q) ||
+        s.keys.some((k) => k.toLowerCase().includes(q)) ||
+        g.group.toLowerCase().includes(q)
     ),
   })).filter((g) => g.shortcuts.length > 0);
 
@@ -158,7 +159,10 @@ export function HotkeyMapOverlay({ open, onClose }: HotkeyMapOverlayProps) {
               className="flex-1 bg-transparent text-[10px] text-studio-text placeholder:text-studio-muted/60 outline-none"
             />
           </div>
-          <button onClick={onClose} className="rounded p-1 text-studio-muted hover:text-studio-text">
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-studio-muted hover:text-studio-text"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -166,11 +170,16 @@ export function HotkeyMapOverlay({ open, onClose }: HotkeyMapOverlayProps) {
         {/* Body — 2-column grid of groups */}
         <div className="flex-1 overflow-y-auto p-4">
           {filtered.length === 0 && (
-            <p className="py-8 text-center text-[10px] text-studio-muted">No shortcuts match "{query}"</p>
+            <p className="py-8 text-center text-[10px] text-studio-muted">
+              No shortcuts match "{query}"
+            </p>
           )}
           <div className="columns-2 gap-4 space-y-4">
             {filtered.map((group) => (
-              <div key={group.group} className="break-inside-avoid rounded-xl border border-studio-border bg-studio-surface/60 p-3 space-y-1.5 mb-4">
+              <div
+                key={group.group}
+                className="break-inside-avoid rounded-xl border border-studio-border bg-studio-surface/60 p-3 space-y-1.5 mb-4"
+              >
                 <p className="flex items-center gap-1.5 text-[10px] font-semibold">
                   <span>{group.icon}</span> {group.group}
                 </p>
@@ -180,7 +189,9 @@ export function HotkeyMapOverlay({ open, onClose }: HotkeyMapOverlayProps) {
                       {s.keys.map((k, i) => (
                         <span key={k} className="flex items-center gap-0.5">
                           <KeyBadge k={k} />
-                          {i < s.keys.length - 1 && <span className="text-[8px] text-studio-muted">+</span>}
+                          {i < s.keys.length - 1 && (
+                            <span className="text-[8px] text-studio-muted">+</span>
+                          )}
                         </span>
                       ))}
                     </div>
@@ -194,8 +205,12 @@ export function HotkeyMapOverlay({ open, onClose }: HotkeyMapOverlayProps) {
 
         {/* Footer */}
         <div className="shrink-0 border-t border-studio-border px-4 py-2 text-[8px] text-studio-muted flex items-center">
-          <span>Press <KeyBadge k="?" /> anywhere to open · <KeyBadge k="Esc" /> to close</span>
-          <span className="ml-auto">{SHORTCUT_GROUPS.reduce((a, g) => a + g.shortcuts.length, 0)} shortcuts</span>
+          <span>
+            Press <KeyBadge k="?" /> anywhere to open · <KeyBadge k="Esc" /> to close
+          </span>
+          <span className="ml-auto">
+            {SHORTCUT_GROUPS.reduce((a, g) => a + g.shortcuts.length, 0)} shortcuts
+          </span>
         </div>
       </div>
     </div>

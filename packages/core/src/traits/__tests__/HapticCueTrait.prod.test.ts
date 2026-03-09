@@ -184,7 +184,10 @@ describe('hapticCueHandler.onEvent — trigger', () => {
     const { node, ctx, config } = attach({ pattern: 'success' });
     ctx.emit.mockClear();
     hapticCueHandler.onEvent!(node as any, config, ctx as any, { type: 'interact' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_haptic_start', { node: expect.anything(), pattern: 'success' });
+    expect(ctx.emit).toHaveBeenCalledWith('on_haptic_start', {
+      node: expect.anything(),
+      pattern: 'success',
+    });
   });
 
   it('unrelated event type does not trigger haptic', () => {
@@ -265,7 +268,13 @@ describe('hapticCueHandler.onEvent — stop & intensity', () => {
   it('haptic_set_intensity emits haptic_update_intensity with value', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    hapticCueHandler.onEvent!(node as any, config, ctx as any, { type: 'haptic_set_intensity', intensity: 0.9 });
-    expect(ctx.emit).toHaveBeenCalledWith('haptic_update_intensity', expect.objectContaining({ intensity: 0.9 }));
+    hapticCueHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'haptic_set_intensity',
+      intensity: 0.9,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'haptic_update_intensity',
+      expect.objectContaining({ intensity: 0.9 })
+    );
   });
 });

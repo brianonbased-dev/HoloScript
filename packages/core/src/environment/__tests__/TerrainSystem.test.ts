@@ -3,7 +3,14 @@ import { TerrainSystem } from '../TerrainSystem';
 
 describe('TerrainSystem', () => {
   let ts: TerrainSystem;
-  const cfg = { id: 't1', width: 100, depth: 100, resolution: 32, maxHeight: 50, position: { x: 0, y: 0, z: 0 } };
+  const cfg = {
+    id: 't1',
+    width: 100,
+    depth: 100,
+    resolution: 32,
+    maxHeight: 50,
+    position: { x: 0, y: 0, z: 0 },
+  };
 
   beforeEach(() => {
     ts = new TerrainSystem();
@@ -62,7 +69,17 @@ describe('TerrainSystem', () => {
 
   it('setLayers and getLayers', () => {
     ts.createTerrain(cfg);
-    const layers = [{ id: 'grass', texture: 'grass.png', tiling: 10, minHeight: 0, maxHeight: 0.3, minSlope: 0, maxSlope: 30 }];
+    const layers = [
+      {
+        id: 'grass',
+        texture: 'grass.png',
+        tiling: 10,
+        minHeight: 0,
+        maxHeight: 0.3,
+        minSlope: 0,
+        maxSlope: 30,
+      },
+    ];
     ts.setLayers('t1', layers);
     expect(ts.getLayers('t1')).toEqual(layers);
   });

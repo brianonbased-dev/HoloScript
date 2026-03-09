@@ -14,12 +14,7 @@ import type {
   CallEdge,
   ExtendedSymbolType,
 } from '../types';
-import {
-  walkTree,
-  nodeToSymbol,
-  getFieldText,
-  extractVisibility,
-} from './BaseAdapter';
+import { walkTree, nodeToSymbol, getFieldText, extractVisibility } from './BaseAdapter';
 
 export class TypeScriptAdapter implements LanguageAdapter {
   readonly language = 'typescript' as const;
@@ -36,11 +31,13 @@ export class TypeScriptAdapter implements LanguageAdapter {
         case 'abstract_class_declaration': {
           const name = getFieldText(node, 'name');
           if (name) {
-            symbols.push(nodeToSymbol(node, name, 'class', 'typescript', filePath, {
-              visibility: extractVisibility(node, 'typescript'),
-              isExported: exportedNames.has(name) || this.hasExportModifier(node),
-              signature: this.classSignature(node),
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'class', 'typescript', filePath, {
+                visibility: extractVisibility(node, 'typescript'),
+                isExported: exportedNames.has(name) || this.hasExportModifier(node),
+                signature: this.classSignature(node),
+              })
+            );
             // Extract methods and fields
             this.extractClassMembers(node, name, filePath, symbols);
           }
@@ -50,11 +47,13 @@ export class TypeScriptAdapter implements LanguageAdapter {
         case 'interface_declaration': {
           const name = getFieldText(node, 'name');
           if (name) {
-            symbols.push(nodeToSymbol(node, name, 'interface', 'typescript', filePath, {
-              visibility: 'public',
-              isExported: exportedNames.has(name) || this.hasExportModifier(node),
-              signature: `interface ${name}`,
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'interface', 'typescript', filePath, {
+                visibility: 'public',
+                isExported: exportedNames.has(name) || this.hasExportModifier(node),
+                signature: `interface ${name}`,
+              })
+            );
           }
           return false;
         }
@@ -62,10 +61,12 @@ export class TypeScriptAdapter implements LanguageAdapter {
         case 'type_alias_declaration': {
           const name = getFieldText(node, 'name');
           if (name) {
-            symbols.push(nodeToSymbol(node, name, 'type_alias', 'typescript', filePath, {
-              visibility: 'public',
-              isExported: exportedNames.has(name) || this.hasExportModifier(node),
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'type_alias', 'typescript', filePath, {
+                visibility: 'public',
+                isExported: exportedNames.has(name) || this.hasExportModifier(node),
+              })
+            );
           }
           return false;
         }
@@ -73,10 +74,12 @@ export class TypeScriptAdapter implements LanguageAdapter {
         case 'enum_declaration': {
           const name = getFieldText(node, 'name');
           if (name) {
-            symbols.push(nodeToSymbol(node, name, 'enum', 'typescript', filePath, {
-              visibility: 'public',
-              isExported: exportedNames.has(name) || this.hasExportModifier(node),
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'enum', 'typescript', filePath, {
+                visibility: 'public',
+                isExported: exportedNames.has(name) || this.hasExportModifier(node),
+              })
+            );
           }
           return false;
         }
@@ -84,11 +87,13 @@ export class TypeScriptAdapter implements LanguageAdapter {
         case 'function_declaration': {
           const name = getFieldText(node, 'name');
           if (name) {
-            symbols.push(nodeToSymbol(node, name, 'function', 'typescript', filePath, {
-              visibility: 'public',
-              isExported: exportedNames.has(name) || this.hasExportModifier(node),
-              signature: this.functionSignature(node),
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'function', 'typescript', filePath, {
+                visibility: 'public',
+                isExported: exportedNames.has(name) || this.hasExportModifier(node),
+                signature: this.functionSignature(node),
+              })
+            );
           }
           return false;
         }
@@ -102,18 +107,26 @@ export class TypeScriptAdapter implements LanguageAdapter {
               const value = declarator.childForFieldName('value');
               if (name && value) {
                 // Arrow function or function expression -> treat as function
-                if (value.type === 'arrow_function' || value.type === 'function_expression' || value.type === 'function') {
-                  symbols.push(nodeToSymbol(node, name, 'function', 'typescript', filePath, {
-                    visibility: 'public',
-                    isExported: exportedNames.has(name) || this.hasExportModifier(node),
-                    signature: this.arrowSignature(name, value),
-                  }));
+                if (
+                  value.type === 'arrow_function' ||
+                  value.type === 'function_expression' ||
+                  value.type === 'function'
+                ) {
+                  symbols.push(
+                    nodeToSymbol(node, name, 'function', 'typescript', filePath, {
+                      visibility: 'public',
+                      isExported: exportedNames.has(name) || this.hasExportModifier(node),
+                      signature: this.arrowSignature(name, value),
+                    })
+                  );
                 } else {
                   // Regular constant
-                  symbols.push(nodeToSymbol(node, name, 'constant', 'typescript', filePath, {
-                    visibility: 'public',
-                    isExported: exportedNames.has(name) || this.hasExportModifier(node),
-                  }));
+                  symbols.push(
+                    nodeToSymbol(node, name, 'constant', 'typescript', filePath, {
+                      visibility: 'public',
+                      isExported: exportedNames.has(name) || this.hasExportModifier(node),
+                    })
+                  );
                 }
               }
             }
@@ -298,7 +311,7 @@ export class TypeScriptAdapter implements LanguageAdapter {
     classNode: SyntaxNode,
     className: string,
     filePath: string,
-    symbols: ExternalSymbolDefinition[],
+    symbols: ExternalSymbolDefinition[]
   ): void {
     const body = classNode.childForFieldName('body');
     if (!body) return;
@@ -307,11 +320,13 @@ export class TypeScriptAdapter implements LanguageAdapter {
       if (member.type === 'method_definition') {
         const name = getFieldText(member, 'name');
         if (name) {
-          symbols.push(nodeToSymbol(member, name, 'method', 'typescript', filePath, {
-            visibility: extractVisibility(member, 'typescript'),
-            owner: className,
-            signature: this.methodSignature(className, member),
-          }));
+          symbols.push(
+            nodeToSymbol(member, name, 'method', 'typescript', filePath, {
+              visibility: extractVisibility(member, 'typescript'),
+              owner: className,
+              signature: this.methodSignature(className, member),
+            })
+          );
         }
       } else if (
         member.type === 'public_field_definition' ||
@@ -319,10 +334,12 @@ export class TypeScriptAdapter implements LanguageAdapter {
       ) {
         const name = getFieldText(member, 'name');
         if (name) {
-          symbols.push(nodeToSymbol(member, name, 'field', 'typescript', filePath, {
-            visibility: extractVisibility(member, 'typescript'),
-            owner: className,
-          }));
+          symbols.push(
+            nodeToSymbol(member, name, 'field', 'typescript', filePath, {
+              visibility: extractVisibility(member, 'typescript'),
+              owner: className,
+            })
+          );
         }
       }
     }

@@ -79,7 +79,13 @@ describe('heatmap3dHandler.onAttach', () => {
   });
 
   it('emits heatmap_create with colorMap, opacity, resolution, interpolation, heightExtrusion', () => {
-    const { ctx } = attach({ color_map: 'plasma', opacity: 0.5, resolution: 64, interpolation: 'cubic', height_extrusion: 2 });
+    const { ctx } = attach({
+      color_map: 'plasma',
+      opacity: 0.5,
+      resolution: 64,
+      interpolation: 'cubic',
+      height_extrusion: 2,
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'heatmap_create');
     expect(call).toBeDefined();
     expect(call![1].colorMap).toBe('plasma');
@@ -91,7 +97,10 @@ describe('heatmap3dHandler.onAttach', () => {
 
   it('emits heatmap_load_data when data_source is set', () => {
     const { ctx } = attach({ data_source: 'https://example.com/data.json' });
-    expect(ctx.emit).toHaveBeenCalledWith('heatmap_load_data', expect.objectContaining({ source: 'https://example.com/data.json' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'heatmap_load_data',
+      expect.objectContaining({ source: 'https://example.com/data.json' })
+    );
   });
 
   it('does NOT emit heatmap_load_data when data_source is empty', () => {
@@ -100,7 +109,12 @@ describe('heatmap3dHandler.onAttach', () => {
   });
 
   it('emits heatmap_show_legend when legend=true', () => {
-    const { ctx } = attach({ legend: true, legend_position: 'top-left', color_map: 'turbo', range: { min: 0, max: 100 } });
+    const { ctx } = attach({
+      legend: true,
+      legend_position: 'top-left',
+      color_map: 'turbo',
+      range: { min: 0, max: 100 },
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'heatmap_show_legend');
     expect(call).toBeDefined();
     expect(call![1].position).toBe('top-left');
@@ -148,8 +162,14 @@ describe('heatmap3dHandler.onUpdate — needsUpdate path', () => {
     state.dataPoints = [{ position: [0, 0, 0], value: 0.5 }];
     ctx.emit.mockClear();
     heatmap3dHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('heatmap_render', expect.objectContaining({ data: state.dataPoints }));
-    expect(ctx.emit).toHaveBeenCalledWith('on_heatmap_update', expect.objectContaining({ pointCount: 1 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'heatmap_render',
+      expect.objectContaining({ data: state.dataPoints })
+    );
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_heatmap_update',
+      expect.objectContaining({ pointCount: 1 })
+    );
   });
 
   it('resets needsUpdate=false after render', () => {
@@ -220,7 +240,10 @@ describe('heatmap3dHandler.onEvent — heatmap_data_loaded', () => {
 
   it('stores dataPoints and sets isLoaded=true', () => {
     const { node, ctx, config } = attach({ auto_range: false });
-    heatmap3dHandler.onEvent!(node as any, config, ctx as any, { type: 'heatmap_data_loaded', data: pts });
+    heatmap3dHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'heatmap_data_loaded',
+      data: pts,
+    });
     const s = (node as any).__heatmap3dState;
     expect(s.dataPoints).toEqual(pts);
     expect(s.isLoaded).toBe(true);
@@ -228,7 +251,10 @@ describe('heatmap3dHandler.onEvent — heatmap_data_loaded', () => {
 
   it('auto_range calculates min/max from data values', () => {
     const { node, ctx, config } = attach({ auto_range: true });
-    heatmap3dHandler.onEvent!(node as any, config, ctx as any, { type: 'heatmap_data_loaded', data: pts });
+    heatmap3dHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'heatmap_data_loaded',
+      data: pts,
+    });
     const s = (node as any).__heatmap3dState;
     expect(s.minValue).toBeCloseTo(0.1, 4);
     expect(s.maxValue).toBeCloseTo(0.9, 4);
@@ -236,7 +262,10 @@ describe('heatmap3dHandler.onEvent — heatmap_data_loaded', () => {
 
   it('sets needsUpdate=true', () => {
     const { node, ctx, config } = attach({ auto_range: false });
-    heatmap3dHandler.onEvent!(node as any, config, ctx as any, { type: 'heatmap_data_loaded', data: pts });
+    heatmap3dHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'heatmap_data_loaded',
+      data: pts,
+    });
     expect((node as any).__heatmap3dState.needsUpdate).toBe(true);
   });
 
@@ -244,7 +273,10 @@ describe('heatmap3dHandler.onEvent — heatmap_data_loaded', () => {
     const { node, ctx, config } = attach({ animated: true });
     const state = (node as any).__heatmap3dState;
     state.dataPoints = [{ position: [0, 0, 0] as [number, number, number], value: 0.5 }];
-    heatmap3dHandler.onEvent!(node as any, config, ctx as any, { type: 'heatmap_data_loaded', data: pts });
+    heatmap3dHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'heatmap_data_loaded',
+      data: pts,
+    });
     expect(state.previousData).toBeDefined();
     expect(state.animationProgress).toBe(0);
   });
@@ -278,7 +310,11 @@ describe('heatmap3dHandler.onEvent — heatmap_add_point', () => {
 describe('heatmap3dHandler.onEvent — heatmap_set_range', () => {
   it('overrides min/max and sets needsUpdate=true', () => {
     const { node, ctx, config } = attach();
-    heatmap3dHandler.onEvent!(node as any, config, ctx as any, { type: 'heatmap_set_range', min: -10, max: 100 });
+    heatmap3dHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'heatmap_set_range',
+      min: -10,
+      max: 100,
+    });
     const s = (node as any).__heatmap3dState;
     expect(s.minValue).toBe(-10);
     expect(s.maxValue).toBe(100);
@@ -288,16 +324,27 @@ describe('heatmap3dHandler.onEvent — heatmap_set_range', () => {
   it('emits heatmap_update_legend when legend=true', () => {
     const { node, ctx, config } = attach({ legend: true });
     ctx.emit.mockClear();
-    heatmap3dHandler.onEvent!(node as any, config, ctx as any, { type: 'heatmap_set_range', min: 0, max: 50 });
-    expect(ctx.emit).toHaveBeenCalledWith('heatmap_update_legend', expect.objectContaining({
-      range: { min: 0, max: 50 },
-    }));
+    heatmap3dHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'heatmap_set_range',
+      min: 0,
+      max: 50,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'heatmap_update_legend',
+      expect.objectContaining({
+        range: { min: 0, max: 50 },
+      })
+    );
   });
 
   it('does NOT emit heatmap_update_legend when legend=false', () => {
     const { node, ctx, config } = attach({ legend: false });
     ctx.emit.mockClear();
-    heatmap3dHandler.onEvent!(node as any, config, ctx as any, { type: 'heatmap_set_range', min: 0, max: 50 });
+    heatmap3dHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'heatmap_set_range',
+      min: 0,
+      max: 50,
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('heatmap_update_legend', expect.anything());
   });
 });
@@ -308,8 +355,14 @@ describe('heatmap3dHandler.onEvent — other events', () => {
   it('heatmap_set_colormap emits heatmap_change_colormap + sets needsUpdate', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    heatmap3dHandler.onEvent!(node as any, config, ctx as any, { type: 'heatmap_set_colormap', colorMap: 'jet' });
-    expect(ctx.emit).toHaveBeenCalledWith('heatmap_change_colormap', expect.objectContaining({ colorMap: 'jet' }));
+    heatmap3dHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'heatmap_set_colormap',
+      colorMap: 'jet',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'heatmap_change_colormap',
+      expect.objectContaining({ colorMap: 'jet' })
+    );
     expect((node as any).__heatmap3dState.needsUpdate).toBe(true);
   });
 
@@ -327,7 +380,10 @@ describe('heatmap3dHandler.onEvent — other events', () => {
   it('heatmap_query emits heatmap_info snapshot', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    heatmap3dHandler.onEvent!(node as any, config, ctx as any, { type: 'heatmap_query', queryId: 'q1' });
+    heatmap3dHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'heatmap_query',
+      queryId: 'q1',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'heatmap_info');
     expect(call).toBeDefined();
     expect(call![1].queryId).toBe('q1');

@@ -41,8 +41,8 @@ describe('Cycle 119: Scripting & Events', () => {
   it('should call native functions', () => {
     const vm = new ScriptVM();
     vm.load([
-      { op: OpCode.PUSH, operand: -7 },  // arg
-      { op: OpCode.PUSH, operand: 1 },   // argc
+      { op: OpCode.PUSH, operand: -7 }, // arg
+      { op: OpCode.PUSH, operand: 1 }, // argc
       { op: OpCode.CALL, operand: 'abs' },
       { op: OpCode.HALT },
     ]);
@@ -73,7 +73,7 @@ describe('Cycle 119: Scripting & Events', () => {
     const order: number[] = [];
 
     dispatcher.on('test', () => order.push(1), 1);
-    dispatcher.on('test', () => order.push(2), 10);  // Higher priority
+    dispatcher.on('test', () => order.push(2), 10); // Higher priority
     dispatcher.on('test', () => order.push(3), 5);
 
     dispatcher.emit('test');
@@ -100,7 +100,14 @@ describe('Cycle 119: Scripting & Events', () => {
     const dispatcher = new EventDispatcher();
     const results: string[] = [];
 
-    dispatcher.on('click', (e) => { results.push('first'); e.propagate = false; }, 10);
+    dispatcher.on(
+      'click',
+      (e) => {
+        results.push('first');
+        e.propagate = false;
+      },
+      10
+    );
     dispatcher.on('click', () => results.push('second'), 1);
 
     dispatcher.emit('click');
@@ -116,9 +123,14 @@ describe('Cycle 119: Scripting & Events', () => {
     let value = 0;
 
     const cmd: Command = {
-      id: 'inc', name: 'increment',
-      execute: () => { value += 10; },
-      undo: () => { value -= 10; },
+      id: 'inc',
+      name: 'increment',
+      execute: () => {
+        value += 10;
+      },
+      undo: () => {
+        value -= 10;
+      },
     };
 
     buffer.execute(cmd);
@@ -133,11 +145,30 @@ describe('Cycle 119: Scripting & Events', () => {
 
   it('should execute and undo batches', () => {
     const buffer = new CommandBuffer();
-    let a = 0, b = 0;
+    let a = 0,
+      b = 0;
 
     buffer.executeBatch([
-      { id: 'a', name: 'incA', execute: () => { a += 5; }, undo: () => { a -= 5; } },
-      { id: 'b', name: 'incB', execute: () => { b += 3; }, undo: () => { b -= 3; } },
+      {
+        id: 'a',
+        name: 'incA',
+        execute: () => {
+          a += 5;
+        },
+        undo: () => {
+          a -= 5;
+        },
+      },
+      {
+        id: 'b',
+        name: 'incB',
+        execute: () => {
+          b += 3;
+        },
+        undo: () => {
+          b -= 3;
+        },
+      },
     ]);
 
     expect(a).toBe(5);
@@ -154,8 +185,26 @@ describe('Cycle 119: Scripting & Events', () => {
     let value = 0;
 
     buffer.startRecording();
-    buffer.execute({ id: 'a', name: 'add', execute: () => { value += 1; }, undo: () => { value -= 1; } });
-    buffer.execute({ id: 'b', name: 'add', execute: () => { value += 2; }, undo: () => { value -= 2; } });
+    buffer.execute({
+      id: 'a',
+      name: 'add',
+      execute: () => {
+        value += 1;
+      },
+      undo: () => {
+        value -= 1;
+      },
+    });
+    buffer.execute({
+      id: 'b',
+      name: 'add',
+      execute: () => {
+        value += 2;
+      },
+      undo: () => {
+        value -= 2;
+      },
+    });
     buffer.stopRecording('myMacro');
 
     expect(buffer.getMacroNames()).toContain('myMacro');

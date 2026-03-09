@@ -303,7 +303,9 @@ describe('VerificationService', () => {
 
   // ── verifyTraitSource ──
   it('safe code returns safe:true', async () => {
-    const result = await svc.verifyTraitSource('export function greet(name) { return "Hello " + name; }');
+    const result = await svc.verifyTraitSource(
+      'export function greet(name) { return "Hello " + name; }'
+    );
     expect(result.safe).toBe(true);
     expect(result.issues).toHaveLength(0);
   });
@@ -311,7 +313,7 @@ describe('VerificationService', () => {
   it('eval() is flagged as unsafe', async () => {
     const result = await svc.verifyTraitSource('eval("dangerous code")');
     expect(result.safe).toBe(false);
-    expect(result.issues.some(i => i.includes('eval'))).toBe(true);
+    expect(result.issues.some((i) => i.includes('eval'))).toBe(true);
   });
 
   it('Function constructor is flagged as unsafe', async () => {
@@ -322,7 +324,7 @@ describe('VerificationService', () => {
   it('fetch triggers a warning, not an error', async () => {
     const result = await svc.verifyTraitSource('fetch("https://api.example.com")');
     expect(result.safe).toBe(true); // warnings don't make it unsafe
-    expect(result.warnings.some(w => w.includes('Network'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('Network'))).toBe(true);
   });
 
   it('returns sha256 hash', async () => {

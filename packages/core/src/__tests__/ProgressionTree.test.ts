@@ -7,14 +7,23 @@ import type { SkillNode } from '../gameplay/ProgressionTree';
 // =============================================================================
 
 const BASE_SKILL: Omit<SkillNode, 'currentLevel' | 'unlocked'> = {
-  id: 'fireball', name: 'Fireball', description: 'Launch a fireball',
-  tier: 1, maxLevel: 5, cost: 1, prerequisites: [],
-  icon: '🔥', category: 'magic', effects: { damage: 10 },
+  id: 'fireball',
+  name: 'Fireball',
+  description: 'Launch a fireball',
+  tier: 1,
+  maxLevel: 5,
+  cost: 1,
+  prerequisites: [],
+  icon: '🔥',
+  category: 'magic',
+  effects: { damage: 10 },
 };
 
 describe('ProgressionTree', () => {
   let tree: ProgressionTree;
-  beforeEach(() => { tree = new ProgressionTree(); });
+  beforeEach(() => {
+    tree = new ProgressionTree();
+  });
 
   it('addNode creates a node', () => {
     tree.addNode(BASE_SKILL);
@@ -61,7 +70,13 @@ describe('ProgressionTree', () => {
 
   it('investing in prerequisite unlocks downstream nodes', () => {
     tree.addNode(BASE_SKILL);
-    tree.addNode({ ...BASE_SKILL, id: 'meteor', name: 'Meteor', tier: 2, prerequisites: ['fireball'] });
+    tree.addNode({
+      ...BASE_SKILL,
+      id: 'meteor',
+      name: 'Meteor',
+      tier: 2,
+      prerequisites: ['fireball'],
+    });
     tree.addPoints(10);
     tree.invest('fireball'); // level 1 → unlocks meteor
     expect(tree.getNode('meteor')!.unlocked).toBe(true);

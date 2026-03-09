@@ -31,7 +31,12 @@ function createMockContext(stateOverrides: Record<string, any> = {}) {
   const emitted: any[] = [];
 
   return {
-    vr: { hands: { left: null, right: null }, headset: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } }, getPointerRay: () => null, getDominantHand: () => null },
+    vr: {
+      hands: { left: null, right: null },
+      headset: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } },
+      getPointerRay: () => null,
+      getDominantHand: () => null,
+    },
     physics: {
       applyVelocity: vi.fn(),
       applyAngularVelocity: vi.fn(),
@@ -124,11 +129,16 @@ describe('spatialAdjacentHandler', () => {
     spatialAdjacentHandler.onAttach!(node as any, config, context as any);
 
     // Set target position via event
-    spatialAdjacentHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'other',
-      position: { x: 10, y: 0, z: 0 },
-    } as any);
+    spatialAdjacentHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'other',
+        position: { x: 10, y: 0, z: 0 },
+      } as any
+    );
 
     spatialAdjacentHandler.onUpdate!(node as any, config, context as any, 0.016);
 
@@ -153,19 +163,29 @@ describe('spatialAdjacentHandler', () => {
     spatialAdjacentHandler.onAttach!(node as any, config, context as any);
 
     // First: set far target (violation)
-    spatialAdjacentHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'other',
-      position: { x: 10, y: 0, z: 0 },
-    } as any);
+    spatialAdjacentHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'other',
+        position: { x: 10, y: 0, z: 0 },
+      } as any
+    );
     spatialAdjacentHandler.onUpdate!(node as any, config, context as any, 0.016);
 
     // Then: move target close (resolve)
-    spatialAdjacentHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'other',
-      position: { x: 1, y: 0, z: 0 },
-    } as any);
+    spatialAdjacentHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'other',
+        position: { x: 1, y: 0, z: 0 },
+      } as any
+    );
     spatialAdjacentHandler.onUpdate!(node as any, config, context as any, 0.016);
 
     expect(context.emit).toHaveBeenCalledWith(
@@ -189,11 +209,16 @@ describe('spatialAdjacentHandler', () => {
 
     spatialAdjacentHandler.onAttach!(node as any, config, context as any);
 
-    spatialAdjacentHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'other',
-      position: { x: 10, y: 0, z: 0 },
-    } as any);
+    spatialAdjacentHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'other',
+        position: { x: 10, y: 0, z: 0 },
+      } as any
+    );
 
     spatialAdjacentHandler.onUpdate!(node as any, config, context as any, 0.016);
 
@@ -239,11 +264,16 @@ describe('spatialContainsHandler', () => {
     spatialContainsHandler.onAttach!(node as any, config, context as any);
 
     // Register a contained entity
-    spatialContainsHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_entity_registered',
-      entityId: 'chair_1',
-      entityType: 'furniture',
-    } as any);
+    spatialContainsHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_entity_registered',
+        entityId: 'chair_1',
+        entityType: 'furniture',
+      } as any
+    );
 
     const state = context._state.spatialContains;
     expect(state.containedEntities).toContain('chair_1');
@@ -257,16 +287,26 @@ describe('spatialContainsHandler', () => {
     spatialContainsHandler.onAttach!(node as any, config, context as any);
 
     // Register same entity twice
-    spatialContainsHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_entity_registered',
-      entityId: 'chair_1',
-      entityType: 'furniture',
-    } as any);
-    spatialContainsHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_entity_registered',
-      entityId: 'chair_1',
-      entityType: 'furniture',
-    } as any);
+    spatialContainsHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_entity_registered',
+        entityId: 'chair_1',
+        entityType: 'furniture',
+      } as any
+    );
+    spatialContainsHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_entity_registered',
+        entityId: 'chair_1',
+        entityType: 'furniture',
+      } as any
+    );
 
     const state = context._state.spatialContains;
     expect(state.containedEntities.length).toBe(1);
@@ -309,11 +349,16 @@ describe('spatialReachableHandler', () => {
 
     spatialReachableHandler.onAttach!(node as any, config, context as any);
 
-    spatialReachableHandler.onEvent!(node as any, config, context as any, {
-      type: 'spatial_target_update',
-      targetId: 'exit',
-      position: { x: 10, y: 0, z: 0 },
-    } as any);
+    spatialReachableHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'spatial_target_update',
+        targetId: 'exit',
+        position: { x: 10, y: 0, z: 0 },
+      } as any
+    );
 
     expect(context._state['reachable_target_exit']).toEqual({
       x: 10,
@@ -333,12 +378,17 @@ describe('spatialReachableHandler', () => {
 
     spatialReachableHandler.onAttach!(node as any, config, context as any);
 
-    spatialReachableHandler.onEvent!(node as any, config, context as any, {
-      type: 'pathfinding_result',
-      targetId: 'exit',
-      pathFound: false,
-      pathLength: 0,
-    } as any);
+    spatialReachableHandler.onEvent!(
+      node as any,
+      config,
+      context as any,
+      {
+        type: 'pathfinding_result',
+        targetId: 'exit',
+        pathFound: false,
+        pathLength: 0,
+      } as any
+    );
 
     const state = context._state.spatialReachable;
     expect(state.isReachable).toBe(false);

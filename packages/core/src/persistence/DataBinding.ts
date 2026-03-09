@@ -38,7 +38,8 @@ let _bindId = 0;
 export class DataBindingContext {
   private bindings: Map<string, Binding> = new Map();
   private computed: Map<string, ComputedBinding> = new Map();
-  private changeLog: Array<{ key: string; oldVal: unknown; newVal: unknown; timestamp: number }> = [];
+  private changeLog: Array<{ key: string; oldVal: unknown; newVal: unknown; timestamp: number }> =
+    [];
   private maxChangeLog = 100;
   private batchMode = false;
   private batchedKeys: Set<string> = new Set();
@@ -71,7 +72,10 @@ export class DataBindingContext {
     binding.dirty = true;
 
     this.changeLog.push({
-      key, oldVal: binding.previousValue, newVal: value, timestamp: Date.now(),
+      key,
+      oldVal: binding.previousValue,
+      newVal: value,
+      timestamp: Date.now(),
     });
     if (this.changeLog.length > this.maxChangeLog) this.changeLog.shift();
 
@@ -177,11 +181,21 @@ export class DataBindingContext {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getBindingCount(): number { return this.bindings.size; }
-  getComputedCount(): number { return this.computed.size; }
-  getChangeLog(): typeof this.changeLog { return [...this.changeLog]; }
-  isDirty(key: string): boolean { return this.bindings.get(key)?.dirty ?? false; }
-  getKeys(): string[] { return [...this.bindings.keys()]; }
+  getBindingCount(): number {
+    return this.bindings.size;
+  }
+  getComputedCount(): number {
+    return this.computed.size;
+  }
+  getChangeLog(): typeof this.changeLog {
+    return [...this.changeLog];
+  }
+  isDirty(key: string): boolean {
+    return this.bindings.get(key)?.dirty ?? false;
+  }
+  getKeys(): string[] {
+    return [...this.bindings.keys()];
+  }
 
   has(key: string): boolean {
     return this.bindings.has(key) || this.computed.has(key);

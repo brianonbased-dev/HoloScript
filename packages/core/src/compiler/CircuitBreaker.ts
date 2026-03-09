@@ -41,35 +41,35 @@ export enum CircuitState {
  * Supported HoloScript export targets
  */
 export type ExportTarget =
-  | 'urdf'        // ROS 2 / Gazebo robotics
-  | 'sdf'         // Gazebo simulation
-  | 'unity'       // Unity Engine
-  | 'unreal'      // Unreal Engine
-  | 'godot'       // Godot Engine
-  | 'vrchat'      // VRChat SDK
-  | 'openxr'      // OpenXR runtime
-  | 'android'     // Android XR
-  | 'android-xr'  // Android XR (dedicated)
-  | 'ios'         // iOS ARKit
-  | 'visionos'    // Apple Vision Pro
-  | 'ar'          // Generic AR
-  | 'babylon'     // Babylon.js
-  | 'webgpu'      // WebGPU API
-  | 'r3f'         // React Three Fiber
-  | 'wasm'        // WebAssembly
-  | 'playcanvas'  // PlayCanvas engine
-  | 'usd'         // Pixar USD
-  | 'usdz'        // USDZ (iOS AR)
-  | 'dtdl'        // Azure Digital Twins
-  | 'vrr'         // VR Rendering (custom)
+  | 'urdf' // ROS 2 / Gazebo robotics
+  | 'sdf' // Gazebo simulation
+  | 'unity' // Unity Engine
+  | 'unreal' // Unreal Engine
+  | 'godot' // Godot Engine
+  | 'vrchat' // VRChat SDK
+  | 'openxr' // OpenXR runtime
+  | 'android' // Android XR
+  | 'android-xr' // Android XR (dedicated)
+  | 'ios' // iOS ARKit
+  | 'visionos' // Apple Vision Pro
+  | 'ar' // Generic AR
+  | 'babylon' // Babylon.js
+  | 'webgpu' // WebGPU API
+  | 'r3f' // React Three Fiber
+  | 'wasm' // WebAssembly
+  | 'playcanvas' // PlayCanvas engine
+  | 'usd' // Pixar USD
+  | 'usdz' // USDZ (iOS AR)
+  | 'dtdl' // Azure Digital Twins
+  | 'vrr' // VR Rendering (custom)
   | 'multi-layer' // Multi-layer compositions
   | 'incremental' // Incremental compilation
-  | 'state'       // State machine compilation
+  | 'state' // State machine compilation
   | 'trait-composition' // Trait composition
-  | 'tsl'             // Trait Shader Language (trait-to-shader)
-  | 'a2a-agent-card'  // A2A Protocol Agent Card manifests
-  | 'nir'             // Neuromorphic Intermediate Representation (Intel Loihi 2, SpiNNaker 2, SynSense)
-  | 'openxr-spatial-entities';  // OpenXR Spatial Entity persistence (XR_FB_spatial_entity_storage)
+  | 'tsl' // Trait Shader Language (trait-to-shader)
+  | 'a2a-agent-card' // A2A Protocol Agent Card manifests
+  | 'nir' // Neuromorphic Intermediate Representation (Intel Loihi 2, SpiNNaker 2, SynSense)
+  | 'openxr-spatial-entities'; // OpenXR Spatial Entity persistence (XR_FB_spatial_entity_storage)
 
 /**
  * Circuit configuration per target
@@ -137,10 +137,10 @@ interface FailureRecord {
 // =============================================================================
 
 const DEFAULT_CONFIG: CircuitBreakerConfig = {
-  failureThreshold: 5,           // 5 consecutive failures
+  failureThreshold: 5, // 5 consecutive failures
   failureWindow: 10 * 60 * 1000, // 10 minutes
   halfOpenTimeout: 2 * 60 * 1000, // 2 minutes
-  successThreshold: 3,            // 3 successes to close
+  successThreshold: 3, // 3 successes to close
   enableFallback: true,
 };
 
@@ -200,10 +200,7 @@ export class CircuitBreaker<T = any> {
   /**
    * Execute synchronous operation with circuit breaker protection
    */
-  executeSync<R = T>(
-    operation: () => R,
-    fallback?: () => R
-  ): CircuitResult<R> {
+  executeSync<R = T>(operation: () => R, fallback?: () => R): CircuitResult<R> {
     this.metrics.totalRequests++;
 
     // Check circuit state

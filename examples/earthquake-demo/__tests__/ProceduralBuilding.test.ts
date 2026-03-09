@@ -109,8 +109,7 @@ describe('ProceduralBuilding', () => {
         expect(element.mass).toBeGreaterThan(0);
 
         // Concrete density ~2400 kg/m³, steel ~7850 kg/m³
-        const volume =
-          element.dimensions[0] * element.dimensions[1] * element.dimensions[2];
+        const volume = element.dimensions[0] * element.dimensions[1] * element.dimensions[2];
         const expectedMassRange = volume * 1000; // Minimum reasonable mass
 
         expect(element.mass).toBeGreaterThan(expectedMassRange);
@@ -155,9 +154,7 @@ describe('ProceduralBuilding', () => {
       const structure = builder.generateStructure({ ...defaultConfig, floors: 3 });
 
       // Find a column on floor 1
-      const floor1Column = structure.elements.find(
-        (el) => el.type === 'column' && el.floor === 1
-      );
+      const floor1Column = structure.elements.find((el) => el.type === 'column' && el.floor === 1);
 
       expect(floor1Column).toBeDefined();
 
@@ -260,8 +257,7 @@ describe('ProceduralBuilding', () => {
           bottomWeakPoints.reduce((sum, wp) => sum + wp.failureThreshold, 0) /
           bottomWeakPoints.length;
         const avgTopThreshold =
-          topWeakPoints.reduce((sum, wp) => sum + wp.failureThreshold, 0) /
-          topWeakPoints.length;
+          topWeakPoints.reduce((sum, wp) => sum + wp.failureThreshold, 0) / topWeakPoints.length;
 
         // Bottom floor should have lower threshold (fails easier due to higher stress)
         expect(avgBottomThreshold).toBeLessThanOrEqual(avgTopThreshold + 10); // Allow some variance
@@ -345,9 +341,7 @@ describe('ProceduralBuilding', () => {
 
     it('should get connected elements', () => {
       const structure = builder.generateStructure(defaultConfig);
-      const elementWithConnections = structure.elements.find(
-        (el) => el.connections.length > 0
-      );
+      const elementWithConnections = structure.elements.find((el) => el.connections.length > 0);
 
       if (elementWithConnections) {
         const connected = builder.getConnectedElements(structure, elementWithConnections.id);

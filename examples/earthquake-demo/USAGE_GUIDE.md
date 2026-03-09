@@ -24,7 +24,7 @@ import {
   FracturePhysics,
   EarthquakeSimulation,
   CameraController,
-  EarthquakeDemoScene
+  EarthquakeDemoScene,
 } from '@holoscript/core/demos/earthquake';
 
 // 1. Create canvas
@@ -87,6 +87,7 @@ window.addEventListener('keydown', (e) => demoScene.handleKeyboard(e));
 ## 🏗️ ProceduralBuilding
 
 ### Purpose
+
 Generates multi-story buildings with structural elements.
 
 ### Basic Usage
@@ -97,12 +98,12 @@ import { ProceduralBuilding, type BuildingConfig } from '@holoscript/core/demos/
 const builder = new ProceduralBuilding();
 
 const config: BuildingConfig = {
-  floors: 7,           // 5-10 floors
-  floorHeight: 3.0,    // meters
-  width: 20,           // meters
-  depth: 20,           // meters
-  columnsPerSide: 4,   // 4×4 = 16 columns per floor
-  beamsPerFloor: 12,   // horizontal beams
+  floors: 7, // 5-10 floors
+  floorHeight: 3.0, // meters
+  width: 20, // meters
+  depth: 20, // meters
+  columnsPerSide: 4, // 4×4 = 16 columns per floor
+  beamsPerFloor: 12, // horizontal beams
 };
 
 const building = builder.generateStructure(config);
@@ -112,10 +113,10 @@ const building = builder.generateStructure(config);
 
 ```typescript
 interface BuildingStructure {
-  elements: StructuralElement[];  // All structural elements
-  weakPoints: WeakPoint[];        // Failure points
-  config: BuildingConfig;         // Original config
-  totalMass: number;              // kg
+  elements: StructuralElement[]; // All structural elements
+  weakPoints: WeakPoint[]; // Failure points
+  config: BuildingConfig; // Original config
+  totalMass: number; // kg
   centerOfMass: [number, number, number];
   bounds: {
     min: [number, number, number];
@@ -135,10 +136,10 @@ const connected = builder.getConnectedElements(building, elementId);
 
 // Get statistics
 const stats = builder.getStatistics(building);
-console.log(stats.columns);      // Number of columns
-console.log(stats.beams);        // Number of beams
-console.log(stats.floors);       // Number of floors
-console.log(stats.totalMass);    // Total mass (kg)
+console.log(stats.columns); // Number of columns
+console.log(stats.beams); // Number of beams
+console.log(stats.floors); // Number of floors
+console.log(stats.totalMass); // Total mass (kg)
 console.log(stats.averageHealth); // 0-100%
 ```
 
@@ -148,15 +149,15 @@ console.log(stats.averageHealth); // 0-100%
 interface StructuralElement {
   id: number;
   type: 'column' | 'beam' | 'floor' | 'foundation';
-  position: [number, number, number];      // Center position
-  dimensions: [number, number, number];    // [width, height, depth]
+  position: [number, number, number]; // Center position
+  dimensions: [number, number, number]; // [width, height, depth]
   material: 'concrete' | 'steel' | 'composite';
-  health: number;                          // 0-100%
-  connections: number[];                   // Connected element IDs
-  mass: number;                            // kg
-  loadCapacity: number;                    // N
-  stress: number;                          // 0-100%
-  floor: number;                           // Floor number
+  health: number; // 0-100%
+  connections: number[]; // Connected element IDs
+  mass: number; // kg
+  loadCapacity: number; // N
+  stress: number; // 0-100%
+  floor: number; // Floor number
 }
 ```
 
@@ -165,6 +166,7 @@ interface StructuralElement {
 ## 💥 FracturePhysics
 
 ### Purpose
+
 Simulates earthquake forces, structural stress, progressive collapse, and debris.
 
 ### Basic Usage
@@ -176,11 +178,11 @@ const physics = new FracturePhysics(building);
 
 // Trigger earthquake
 const earthquakeConfig: EarthquakeConfig = {
-  intensity: 7,              // 0-10 (Richter-like)
-  duration: 5,               // seconds
-  frequency: 2.5,            // Hz (ground shake)
-  epicenter: [0, 0, 0],      // [x, y, z]
-  verticalComponent: 0.3,    // 0-1 (relative to horizontal)
+  intensity: 7, // 0-10 (Richter-like)
+  duration: 5, // seconds
+  frequency: 2.5, // Hz (ground shake)
+  epicenter: [0, 0, 0], // [x, y, z]
+  verticalComponent: 0.3, // 0-1 (relative to horizontal)
 };
 
 physics.triggerEarthquake(earthquakeConfig);
@@ -230,20 +232,20 @@ const distantEpicenter: EarthquakeConfig = {
 ```typescript
 interface DebrisParticle {
   id: number;
-  sourceElementId: number;               // Failed element
+  sourceElementId: number; // Failed element
   position: [number, number, number];
   velocity: [number, number, number];
   angularVelocity: [number, number, number];
-  radius: number;                        // meters
-  mass: number;                          // kg
+  radius: number; // meters
+  mass: number; // kg
   material: 'concrete' | 'steel' | 'composite';
-  age: number;                           // seconds
-  active: boolean;                       // Still moving?
+  age: number; // seconds
+  active: boolean; // Still moving?
 }
 
 // Access debris
-const allDebris = physics.getAllDebris();           // All particles
-const activeDebris = physics.getActiveDebris();     // Still moving
+const allDebris = physics.getAllDebris(); // All particles
+const activeDebris = physics.getActiveDebris(); // Still moving
 const settledCount = allDebris.length - activeDebris.length;
 ```
 
@@ -251,12 +253,12 @@ const settledCount = allDebris.length - activeDebris.length;
 
 ```typescript
 interface CollapseEvent {
-  time: number;                          // When it happened
-  elementId: number;                     // What failed
+  time: number; // When it happened
+  elementId: number; // What failed
   failureMode: 'snap' | 'bend' | 'crush' | 'shear';
-  position: [number, number, number];    // Where it failed
-  debrisCount: number;                   // Particles spawned
-  cascadeElements: number[];             // Elements failed due to this
+  position: [number, number, number]; // Where it failed
+  debrisCount: number; // Particles spawned
+  cascadeElements: number[]; // Elements failed due to this
 }
 
 // Get events
@@ -273,12 +275,12 @@ for (const event of events) {
 
 ```typescript
 const stats = physics.getStatistics();
-console.log(stats.failedElements);        // Count
-console.log(stats.totalElements);         // Total
-console.log(stats.failureRate);           // 0-1
-console.log(stats.activeDebris);          // Currently moving
-console.log(stats.totalDebris);           // All spawned
-console.log(stats.collapseEvents);        // Event count
+console.log(stats.failedElements); // Count
+console.log(stats.totalElements); // Total
+console.log(stats.failureRate); // 0-1
+console.log(stats.activeDebris); // Currently moving
+console.log(stats.totalDebris); // All spawned
+console.log(stats.collapseEvents); // Event count
 ```
 
 ### Reset
@@ -288,8 +290,8 @@ console.log(stats.collapseEvents);        // Event count
 physics.reset();
 
 // Check state
-console.log(physics.isEarthquakeActive());  // false
-console.log(physics.hasFailures());         // false
+console.log(physics.isEarthquakeActive()); // false
+console.log(physics.hasFailures()); // false
 ```
 
 ---
@@ -297,6 +299,7 @@ console.log(physics.hasFailures());         // false
 ## 🎮 EarthquakeSimulation
 
 ### Purpose
+
 Integrates CPU fracture physics with GPU particle system.
 
 ### Basic Usage
@@ -323,13 +326,13 @@ simulation.triggerEarthquake(earthquakeConfig);
 
 // Get state
 const state = simulation.getState();
-console.log(state.fps);                      // Current FPS
-console.log(state.structuralIntegrity);      // 0-100%
-console.log(state.activeDebrisCount);        // Active particles
-console.log(state.totalDebrisCount);         // Total particles
-console.log(state.collapseEventCount);       // Events
-console.log(state.earthquakeActive);         // boolean
-console.log(state.collapseStarted);          // boolean
+console.log(state.fps); // Current FPS
+console.log(state.structuralIntegrity); // 0-100%
+console.log(state.activeDebrisCount); // Active particles
+console.log(state.totalDebrisCount); // Total particles
+console.log(state.collapseEventCount); // Events
+console.log(state.earthquakeActive); // boolean
+console.log(state.collapseStarted); // boolean
 ```
 
 ### Integration with GPU
@@ -342,12 +345,12 @@ console.log(state.collapseStarted);          // boolean
 // 4. Performance monitoring
 
 // Access underlying systems
-const building = simulation.getBuilding();       // ProceduralBuilding
-const physics = simulation.getPhysics();         // FracturePhysics
+const building = simulation.getBuilding(); // ProceduralBuilding
+const physics = simulation.getPhysics(); // FracturePhysics
 
 // Manual control (advanced)
 simulation.reset();
-simulation.destroy();  // Cleanup
+simulation.destroy(); // Cleanup
 ```
 
 ---
@@ -355,6 +358,7 @@ simulation.destroy();  // Cleanup
 ## 📹 CameraController
 
 ### Purpose
+
 Manages camera positioning, shake effects, and smooth transitions.
 
 ### Basic Usage
@@ -381,17 +385,17 @@ const camera = cameraController.getCamera();
 type CameraMode = 'overview' | 'street' | 'topdown' | 'cinematic' | 'free';
 
 // Transition to preset
-cameraController.transitionToPreset('overview', 1.5);   // 1.5s transition
-cameraController.transitionToPreset('street', 0);       // Instant
+cameraController.transitionToPreset('overview', 1.5); // 1.5s transition
+cameraController.transitionToPreset('street', 0); // Instant
 
 // Get current mode
-const mode = cameraController.getCurrentMode();  // 'overview'
+const mode = cameraController.getCurrentMode(); // 'overview'
 
 // Get preset details
 const preset = cameraController.getPreset('cinematic');
-console.log(preset.position);  // [40, 15, 40]
-console.log(preset.target);    // [0, 20, 0]
-console.log(preset.fov);       // radians
+console.log(preset.position); // [40, 15, 40]
+console.log(preset.target); // [0, 20, 0]
+console.log(preset.fov); // radians
 ```
 
 ### Camera Shake
@@ -400,12 +404,12 @@ console.log(preset.fov);       // radians
 import { type CameraShakeConfig } from '@holoscript/core/demos/earthquake';
 
 const shakeConfig: CameraShakeConfig = {
-  intensity: 5,                  // 0-10
-  frequency: 2.5,                // Hz
-  duration: 5,                   // seconds
-  falloff: 'exponential',        // 'linear' | 'exponential' | 'none'
-  horizontalAmount: 1.0,         // 0-1
-  verticalAmount: 0.5,           // 0-1
+  intensity: 5, // 0-10
+  frequency: 2.5, // Hz
+  duration: 5, // seconds
+  falloff: 'exponential', // 'linear' | 'exponential' | 'none'
+  horizontalAmount: 1.0, // 0-1
+  verticalAmount: 0.5, // 0-1
 };
 
 cameraController.applyEarthquakeShake(shakeConfig);
@@ -418,25 +422,25 @@ cameraController.stopShake();
 
 ```typescript
 // Move camera
-cameraController.moveCamera([5, 0, 0]);  // +5m on X axis
+cameraController.moveCamera([5, 0, 0]); // +5m on X axis
 
 // Orbit around target
-cameraController.orbitCamera(Math.PI / 4, 0);  // 45° horizontal rotation
+cameraController.orbitCamera(Math.PI / 4, 0); // 45° horizontal rotation
 
 // Zoom (FOV)
-cameraController.zoom(-0.1, true);  // Zoom in (adjust FOV)
+cameraController.zoom(-0.1, true); // Zoom in (adjust FOV)
 
 // Zoom (distance)
-cameraController.zoom(-5, false);  // Move 5m closer
+cameraController.zoom(-5, false); // Move 5m closer
 
 // Pan (move both position and target)
-cameraController.panCamera(5, 0);  // Pan right 5m
+cameraController.panCamera(5, 0); // Pan right 5m
 
 // Set camera directly (no transition)
 cameraController.setCamera(
-  [30, 20, 30],  // position
-  [0, 15, 0],    // target
-  Math.PI / 4    // fov
+  [30, 20, 30], // position
+  [0, 15, 0], // target
+  Math.PI / 4 // fov
 );
 ```
 
@@ -445,6 +449,7 @@ cameraController.setCamera(
 ## 🎨 EarthquakeDemoScene
 
 ### Purpose
+
 Complete interactive demo with UI controls and animation loop.
 
 ### Full Setup
@@ -542,12 +547,12 @@ window.addEventListener('keydown', (e) => demo.handleKeyboard(e));
 ```typescript
 // Generate custom building
 const simulation = await createEarthquakeSimulation(context, {
-  floors: 10,           // Tall building
-  floorHeight: 3.5,     // Taller floors
-  width: 30,            // Wider
-  depth: 30,            // Deeper
-  columnsPerSide: 6,    // More columns (6×6 = 36)
-  beamsPerFloor: 20,    // More beams
+  floors: 10, // Tall building
+  floorHeight: 3.5, // Taller floors
+  width: 30, // Wider
+  depth: 30, // Deeper
+  columnsPerSide: 6, // More columns (6×6 = 36)
+  beamsPerFloor: 20, // More beams
 });
 ```
 
@@ -560,7 +565,7 @@ const camera = cameraController.getCamera();
 
 // Animation loop
 function animate() {
-  const dt = 1/60;  // 60 FPS
+  const dt = 1 / 60; // 60 FPS
 
   // Update physics
   simulation.update(dt);
@@ -583,7 +588,7 @@ setTimeout(() => {
     epicenter: [0, 0, 0],
     verticalComponent: 0.3,
   });
-}, 2000);  // After 2 seconds
+}, 2000); // After 2 seconds
 
 animate();
 ```
@@ -600,19 +605,24 @@ const stats = physics.getStatistics();
 function updateDashboard() {
   document.getElementById('fps').textContent = state.fps.toString();
   document.getElementById('integrity').textContent = `${state.structuralIntegrity.toFixed(1)}%`;
-  document.getElementById('debris').textContent = `${state.activeDebrisCount} / ${state.totalDebrisCount}`;
-  document.getElementById('failed').textContent = `${stats.failedElements} / ${stats.totalElements}`;
+  document.getElementById('debris').textContent =
+    `${state.activeDebrisCount} / ${state.totalDebrisCount}`;
+  document.getElementById('failed').textContent =
+    `${stats.failedElements} / ${stats.totalElements}`;
   document.getElementById('events').textContent = stats.collapseEvents.toString();
 
   // Show collapse events
   const events = physics.getCollapseEvents();
-  const eventList = events.map(e =>
-    `${e.time.toFixed(1)}s: Element ${e.elementId} (${e.failureMode}) → ${e.debrisCount} debris`
-  ).join('\n');
+  const eventList = events
+    .map(
+      (e) =>
+        `${e.time.toFixed(1)}s: Element ${e.elementId} (${e.failureMode}) → ${e.debrisCount} debris`
+    )
+    .join('\n');
   document.getElementById('event-log').textContent = eventList;
 }
 
-setInterval(updateDashboard, 100);  // Update 10 times per second
+setInterval(updateDashboard, 100); // Update 10 times per second
 ```
 
 ### Scenario 5: Multiple Earthquakes
@@ -664,7 +674,7 @@ const building = builder.generateStructure(config);
 
 // Lower failure thresholds for specific elements
 for (const weakPoint of building.weakPoints) {
-  const element = building.elements.find(el => el.id === weakPoint.elementId);
+  const element = building.elements.find((el) => el.id === weakPoint.elementId);
 
   if (element?.floor === 1) {
     // First floor more vulnerable
@@ -716,22 +726,20 @@ function processDebris() {
   const debris = physics.getAllDebris();
 
   // Group by material
-  const concrete = debris.filter(d => d.material === 'concrete');
-  const steel = debris.filter(d => d.material === 'steel');
+  const concrete = debris.filter((d) => d.material === 'concrete');
+  const steel = debris.filter((d) => d.material === 'steel');
 
   // Find highest particle
-  const highest = debris.reduce((max, d) =>
-    d.position[1] > max.position[1] ? d : max
-  , debris[0]);
+  const highest = debris.reduce((max, d) => (d.position[1] > max.position[1] ? d : max), debris[0]);
 
   // Calculate debris cloud bounds
   const bounds = {
-    minX: Math.min(...debris.map(d => d.position[0])),
-    maxX: Math.max(...debris.map(d => d.position[0])),
-    minY: Math.min(...debris.map(d => d.position[1])),
-    maxY: Math.max(...debris.map(d => d.position[1])),
-    minZ: Math.min(...debris.map(d => d.position[2])),
-    maxZ: Math.max(...debris.map(d => d.position[2])),
+    minX: Math.min(...debris.map((d) => d.position[0])),
+    maxX: Math.max(...debris.map((d) => d.position[0])),
+    minY: Math.min(...debris.map((d) => d.position[1])),
+    maxY: Math.max(...debris.map((d) => d.position[1])),
+    minZ: Math.min(...debris.map((d) => d.position[2])),
+    maxZ: Math.max(...debris.map((d) => d.position[2])),
   };
 
   console.log(`Debris cloud: ${bounds.maxX - bounds.minX}m wide`);
@@ -748,14 +756,14 @@ function processDebris() {
 ```typescript
 // For 60 FPS on most hardware
 const config = {
-  floors: 5-7,              // Moderate building size
-  columnsPerSide: 4,        // 16 columns per floor
-  beamsPerFloor: 12,        // Moderate beam count
+  floors: 5 - 7, // Moderate building size
+  columnsPerSide: 4, // 16 columns per floor
+  beamsPerFloor: 12, // Moderate beam count
 };
 
 const earthquake = {
-  intensity: 6-8,           // Good balance
-  duration: 5,              // Not too long
+  intensity: 6 - 8, // Good balance
+  duration: 5, // Not too long
 };
 
 // Debris is auto-capped at 500 per element
@@ -796,14 +804,14 @@ try {
 ```typescript
 // Reduce building complexity
 const config = {
-  floors: 3,              // Smaller building
-  columnsPerSide: 3,      // Fewer columns
-  beamsPerFloor: 8,       // Fewer beams
+  floors: 3, // Smaller building
+  columnsPerSide: 3, // Fewer columns
+  beamsPerFloor: 8, // Fewer beams
 };
 
 // Or use lower earthquake intensity
 const earthquake = {
-  intensity: 5,           // Less dramatic = less debris
+  intensity: 5, // Less dramatic = less debris
 };
 ```
 
@@ -817,7 +825,7 @@ demo.destroy();
 // Or reset simulation periodically
 setInterval(() => {
   simulation.reset();
-}, 60000);  // Reset every minute
+}, 60000); // Reset every minute
 ```
 
 ---
@@ -825,6 +833,7 @@ setInterval(() => {
 ## 📚 API Reference
 
 Full TypeScript definitions available in source files:
+
 - [ProceduralBuilding.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\demos\earthquake\ProceduralBuilding.ts)
 - [FracturePhysics.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\demos\earthquake\FracturePhysics.ts)
 - [EarthquakeSimulation.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\demos\earthquake\EarthquakeSimulation.ts)
@@ -836,6 +845,7 @@ Full TypeScript definitions available in source files:
 ## 🎉 Next Steps
 
 Ready to build more spectacular demos:
+
 - Week 6: Avalanche Simulation (100K snow particles)
 - Week 7: Water Erosion (heightmap terrain)
 - Week 8: Explosive Demolition (120K debris)

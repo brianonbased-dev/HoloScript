@@ -2,8 +2,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ProjectileSystem, type ProjectileConfig } from '../ProjectileSystem';
 
 const baseConfig: ProjectileConfig = {
-  speed: 10, lifetime: 5, damage: 25,
-  homing: false, homingStrength: 0, piercing: 0, gravity: 0,
+  speed: 10,
+  lifetime: 5,
+  damage: 25,
+  homing: false,
+  homingStrength: 0,
+  piercing: 0,
+  gravity: 0,
 };
 
 describe('ProjectileSystem', () => {
@@ -70,7 +75,9 @@ describe('ProjectileSystem', () => {
 
   it('homing adjusts velocity toward nearest target', () => {
     const id = sys.spawn('p1', 0, 0, 0, 1, 0, 0, {
-      ...baseConfig, homing: true, homingStrength: 100,
+      ...baseConfig,
+      homing: true,
+      homingStrength: 100,
     });
     sys.update(0.1, [{ id: 'e', x: 0, y: 10, z: 0, radius: 1 }]);
     const p = sys.getProjectile(id)!;

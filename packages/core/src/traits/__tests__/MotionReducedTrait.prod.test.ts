@@ -144,7 +144,10 @@ describe('motionReducedHandler.onUpdate — velocity clamping', () => {
     const speed = Math.sqrt(12);
     const scale = 2 / speed;
     expect((node as any).velocity.x).toBeCloseTo(2 * scale, 5);
-    expect(ctx.emit).toHaveBeenCalledWith('on_motion_clamped', expect.objectContaining({ clampedSpeed: 2 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_motion_clamped',
+      expect.objectContaining({ clampedSpeed: 2 })
+    );
   });
 
   it('does NOT clamp velocity when within max_velocity', () => {
@@ -161,7 +164,9 @@ describe('motionReducedHandler.onUpdate — velocity clamping', () => {
     const { node, ctx, config } = attach();
     const state = (node as any).__motionReducedState;
     state.isActive = true;
-    expect(() => motionReducedHandler.onUpdate!(node as any, config, ctx as any, 0.016)).not.toThrow();
+    expect(() =>
+      motionReducedHandler.onUpdate!(node as any, config, ctx as any, 0.016)
+    ).not.toThrow();
   });
 
   it('caps velocityBuffer at 10 entries', () => {
@@ -215,25 +220,37 @@ describe('motionReducedHandler.onEvent — enable/disable/toggle', () => {
   it('motion_reduced_enable → isActive=true + emits apply', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    motionReducedHandler.onEvent!(node as any, config, ctx as any, { type: 'motion_reduced_enable' });
+    motionReducedHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'motion_reduced_enable',
+    });
     expect((node as any).__motionReducedState.isActive).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith('motion_reduced_apply', expect.any(Object));
-    expect(ctx.emit).toHaveBeenCalledWith('on_motion_reduce', { node: expect.anything(), enabled: true });
+    expect(ctx.emit).toHaveBeenCalledWith('on_motion_reduce', {
+      node: expect.anything(),
+      enabled: true,
+    });
   });
 
   it('motion_reduced_disable → isActive=false + emits restore + on_motion_reduce false', () => {
     const { node, ctx, config } = attach();
     (node as any).__motionReducedState.isActive = true;
     ctx.emit.mockClear();
-    motionReducedHandler.onEvent!(node as any, config, ctx as any, { type: 'motion_reduced_disable' });
+    motionReducedHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'motion_reduced_disable',
+    });
     expect((node as any).__motionReducedState.isActive).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('on_motion_reduce', { node: expect.anything(), enabled: false });
+    expect(ctx.emit).toHaveBeenCalledWith('on_motion_reduce', {
+      node: expect.anything(),
+      enabled: false,
+    });
   });
 
   it('motion_reduced_toggle: off→on emits apply', () => {
     const { node, ctx, config } = attach(); // starts false
     ctx.emit.mockClear();
-    motionReducedHandler.onEvent!(node as any, config, ctx as any, { type: 'motion_reduced_toggle' });
+    motionReducedHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'motion_reduced_toggle',
+    });
     expect((node as any).__motionReducedState.isActive).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith('motion_reduced_apply', expect.any(Object));
   });
@@ -242,9 +259,14 @@ describe('motionReducedHandler.onEvent — enable/disable/toggle', () => {
     const { node, ctx, config } = attach();
     (node as any).__motionReducedState.isActive = true;
     ctx.emit.mockClear();
-    motionReducedHandler.onEvent!(node as any, config, ctx as any, { type: 'motion_reduced_toggle' });
+    motionReducedHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'motion_reduced_toggle',
+    });
     expect((node as any).__motionReducedState.isActive).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('on_motion_reduce', { node: expect.anything(), enabled: false });
+    expect(ctx.emit).toHaveBeenCalledWith('on_motion_reduce', {
+      node: expect.anything(),
+      enabled: false,
+    });
   });
 });
 
@@ -271,10 +293,13 @@ describe('motionReducedHandler.onEvent — animation_start', () => {
       animationId: 'jump',
       animation: {},
     });
-    expect(ctx.emit).toHaveBeenCalledWith('motion_reduced_replace_animation', expect.objectContaining({
-      animationId: 'jump',
-      useFade: true,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'motion_reduced_replace_animation',
+      expect.objectContaining({
+        animationId: 'jump',
+        useFade: true,
+      })
+    );
   });
 
   it('does NOT intercept when isActive=false', () => {
@@ -285,7 +310,10 @@ describe('motionReducedHandler.onEvent — animation_start', () => {
       animationId: 'idle',
       animation: {},
     });
-    expect(ctx.emit).not.toHaveBeenCalledWith('motion_reduced_replace_animation', expect.anything());
+    expect(ctx.emit).not.toHaveBeenCalledWith(
+      'motion_reduced_replace_animation',
+      expect.anything()
+    );
   });
 });
 
@@ -293,17 +321,23 @@ describe('motionReducedHandler.onEvent — animation_start', () => {
 
 describe('motionReducedHandler.onEvent — camera_transition_request', () => {
   it('converts to camera_teleport when active + teleport=true', () => {
-    const { node, ctx, config } = attach({ teleport_instead_of_smooth: true, fade_transitions: true });
+    const { node, ctx, config } = attach({
+      teleport_instead_of_smooth: true,
+      fade_transitions: true,
+    });
     (node as any).__motionReducedState.isActive = true;
     ctx.emit.mockClear();
     motionReducedHandler.onEvent!(node as any, config, ctx as any, {
       type: 'camera_transition_request',
       target: { x: 10, y: 0, z: 0 },
     });
-    expect(ctx.emit).toHaveBeenCalledWith('camera_teleport', expect.objectContaining({
-      fade: true,
-      fadeDuration: 200,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'camera_teleport',
+      expect.objectContaining({
+        fade: true,
+        fadeDuration: 200,
+      })
+    );
   });
 
   it('does NOT emit camera_teleport when isActive=false', () => {

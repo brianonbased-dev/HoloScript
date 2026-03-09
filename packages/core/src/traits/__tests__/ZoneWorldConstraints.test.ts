@@ -216,19 +216,13 @@ describe('World Constraint Validation', () => {
     ];
 
     it('should pass when required zone exists', () => {
-      const world = makeWorld(
-        [makeZone({ traits: ['spawn_zone'] })],
-        ['playable'],
-      );
+      const world = makeWorld([makeZone({ traits: ['spawn_zone'] })], ['playable']);
       const violations = validateWorldConstraints(world, constraints);
       expect(violations).toHaveLength(0);
     });
 
     it('should fail when required zone is missing', () => {
-      const world = makeWorld(
-        [makeZone()],
-        ['playable'],
-      );
+      const world = makeWorld([makeZone()], ['playable']);
       const violations = validateWorldConstraints(world, constraints);
       expect(violations).toHaveLength(1);
       expect(violations[0].severity).toBe('error');
@@ -264,7 +258,7 @@ describe('World Constraint Validation', () => {
           makeZone({ id: 'z1', entityCounts: { spawn_point: 1 } }),
           makeZone({ id: 'z2', entityCounts: { spawn_point: 1 } }),
         ],
-        ['playable'],
+        ['playable']
       );
 
       // World doesn't have 'playable' trait → this tests that population scope='world'
@@ -272,10 +266,7 @@ describe('World Constraint Validation', () => {
       // For world population constraints, source just identifies when to apply
       // The constraint won't trigger because world.traits doesn't match 'playable'
       // Let me adjust...
-      const violations = validateWorldConstraints(
-        { ...world, traits: ['playable'] },
-        constraints,
-      );
+      const violations = validateWorldConstraints({ ...world, traits: ['playable'] }, constraints);
       expect(violations.length).toBeGreaterThan(0);
     });
 
@@ -299,7 +290,7 @@ describe('World Constraint Validation', () => {
           makeZone({ id: 'z1', entityCounts: { point_of_interest: 1 } }),
           makeZone({ id: 'z2', entityCounts: { point_of_interest: 2 } }),
         ],
-        ['explorable'],
+        ['explorable']
       );
       const violations = validateWorldConstraints(world, constraints);
       expect(getErrors(violations)).toHaveLength(0);
@@ -395,7 +386,7 @@ describe('World Constraint Validation', () => {
 
       const world = makeWorld(
         [makeZone({ biome: 'ocean', entityTraits: [] })], // Missing water_body
-        ['playable'], // Missing spawn_zone
+        ['playable'] // Missing spawn_zone
       );
       const violations = validateWorldConstraints(world, allConstraints);
       expect(getErrors(violations)).toHaveLength(2);
@@ -410,13 +401,13 @@ describe('World Constraint Validation', () => {
 describe('Builtin Constraints', () => {
   it('ZONE_CONSTRAINTS should contain biome rules', () => {
     expect(ZONE_CONSTRAINTS.length).toBeGreaterThan(5);
-    const forestReqs = ZONE_CONSTRAINTS.filter(c => c.source === 'forest');
+    const forestReqs = ZONE_CONSTRAINTS.filter((c) => c.source === 'forest');
     expect(forestReqs.length).toBeGreaterThan(0);
   });
 
   it('WORLD_CONSTRAINTS should contain playability rules', () => {
     expect(WORLD_CONSTRAINTS.length).toBeGreaterThan(3);
-    const playableReqs = WORLD_CONSTRAINTS.filter(c => c.source === 'playable');
+    const playableReqs = WORLD_CONSTRAINTS.filter((c) => c.source === 'playable');
     expect(playableReqs.length).toBeGreaterThan(0);
   });
 
@@ -439,9 +430,30 @@ describe('Builtin Constraints', () => {
 
 describe('Constraint Utilities', () => {
   const mixed: ZoneWorldConstraint[] = [
-    { type: 'requires', source: 'a', targets: ['b'], scope: 'zone', severity: 'error', message: '' },
-    { type: 'requires', source: 'c', targets: ['d'], scope: 'world', severity: 'warning', message: '' },
-    { type: 'conflicts', source: 'e', targets: ['f'], scope: 'object', severity: 'hint', message: '' },
+    {
+      type: 'requires',
+      source: 'a',
+      targets: ['b'],
+      scope: 'zone',
+      severity: 'error',
+      message: '',
+    },
+    {
+      type: 'requires',
+      source: 'c',
+      targets: ['d'],
+      scope: 'world',
+      severity: 'warning',
+      message: '',
+    },
+    {
+      type: 'conflicts',
+      source: 'e',
+      targets: ['f'],
+      scope: 'object',
+      severity: 'hint',
+      message: '',
+    },
   ];
 
   describe('getConstraintsByScope', () => {
@@ -459,8 +471,22 @@ describe('Constraint Utilities', () => {
   describe('getConstraintsForBiome', () => {
     it('should find constraints for a biome', () => {
       const constraints: ZoneWorldConstraint[] = [
-        { type: 'requires', source: 'forest', targets: ['veg'], scope: 'zone', severity: 'warning', message: '' },
-        { type: 'conflicts', source: 'desert', targets: ['ice'], scope: 'zone', severity: 'error', message: '' },
+        {
+          type: 'requires',
+          source: 'forest',
+          targets: ['veg'],
+          scope: 'zone',
+          severity: 'warning',
+          message: '',
+        },
+        {
+          type: 'conflicts',
+          source: 'desert',
+          targets: ['ice'],
+          scope: 'zone',
+          severity: 'error',
+          message: '',
+        },
       ];
       expect(getConstraintsForBiome(constraints, 'forest')).toHaveLength(1);
       expect(getConstraintsForBiome(constraints, 'ocean')).toHaveLength(0);
@@ -470,20 +496,48 @@ describe('Constraint Utilities', () => {
   describe('mergeConstraints', () => {
     it('should deduplicate identical constraints', () => {
       const set1: ZoneWorldConstraint[] = [
-        { type: 'requires', source: 'a', targets: ['b'], scope: 'zone', severity: 'error', message: '' },
+        {
+          type: 'requires',
+          source: 'a',
+          targets: ['b'],
+          scope: 'zone',
+          severity: 'error',
+          message: '',
+        },
       ];
       const set2: ZoneWorldConstraint[] = [
-        { type: 'requires', source: 'a', targets: ['b'], scope: 'zone', severity: 'error', message: '' },
+        {
+          type: 'requires',
+          source: 'a',
+          targets: ['b'],
+          scope: 'zone',
+          severity: 'error',
+          message: '',
+        },
       ];
       expect(mergeConstraints(set1, set2)).toHaveLength(1);
     });
 
     it('should keep different constraints', () => {
       const set1: ZoneWorldConstraint[] = [
-        { type: 'requires', source: 'a', targets: ['b'], scope: 'zone', severity: 'error', message: '' },
+        {
+          type: 'requires',
+          source: 'a',
+          targets: ['b'],
+          scope: 'zone',
+          severity: 'error',
+          message: '',
+        },
       ];
       const set2: ZoneWorldConstraint[] = [
-        { type: 'requires', source: 'x', targets: ['y'], scope: 'zone', severity: 'error', message: '' },
+        {
+          type: 'requires',
+          source: 'x',
+          targets: ['y'],
+          scope: 'zone',
+          severity: 'error',
+          message: '',
+        },
       ];
       expect(mergeConstraints(set1, set2)).toHaveLength(2);
     });

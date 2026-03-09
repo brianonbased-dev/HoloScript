@@ -1,16 +1,20 @@
 # Phase 2 Task 2: Advanced Node Types - Implementation Complete
 
 ## Overview
+
 Successfully implemented 9 new advanced node types across both orchestration editors:
+
 - 5 Behavior Tree Decorator Nodes
 - 4 Workflow Decision & Loop Nodes
 
 ## Files Modified
 
 ### 1. orchestrationStore.ts
+
 **Location**: `packages/studio/src/lib/orchestrationStore.ts`
 
 #### Changes:
+
 - Extended `BTNodeType` to include: `'inverter' | 'repeat' | 'retry' | 'guard' | 'timeout'`
 - Extended `WorkflowNodeType` to include: `'loop' | 'merge'`
 - Added new interfaces:
@@ -21,9 +25,11 @@ Successfully implemented 9 new advanced node types across both orchestration edi
   - `timeoutMs?: number` - for timeout decorator
 
 ### 2. BehaviorTreeVisualEditor.tsx
+
 **Location**: `packages/studio/src/components/orchestration/BehaviorTreeVisualEditor.tsx`
 
 #### New Node Components:
+
 1. **InverterNode** - Pink border (#ec4899)
    - Inverts child result (success → failure, failure → success)
    - Icon: ↻
@@ -49,16 +55,20 @@ Successfully implemented 9 new advanced node types across both orchestration edi
    - Icon: ⏱️
 
 #### Toolbar Buttons:
+
 All 5 new node types added to header with:
+
 - Color-coded backgrounds matching node borders
 - Hover effects (opacity increase)
 - Tooltips describing functionality
 - Sequential layout for easy access
 
 ### 3. AgentOrchestrationGraphEditor.tsx
+
 **Location**: `packages/studio/src/components/orchestration/AgentOrchestrationGraphEditor.tsx`
 
 #### New Node Components:
+
 1. **DecisionNode** - Amber border (#f59e0b)
    - If/else branching
    - Icon: GitBranch
@@ -80,7 +90,9 @@ All 5 new node types added to header with:
    - Shows: wait policy (Wait All / First Input)
 
 #### Toolbar Buttons:
+
 All 4 new node types added to header with:
+
 - Icon + label for clarity
 - Color-coded backgrounds
 - Hover effects
@@ -90,33 +102,36 @@ All 4 new node types added to header with:
 ## Node Type Registry
 
 ### Behavior Tree Nodes (nodeTypes object)
+
 ```typescript
 const nodeTypes: NodeTypes = {
   sequence: SequenceNode,
   action: ActionNode,
-  inverter: InverterNode,      // NEW
-  repeat: RepeatNode,            // NEW
-  retry: RetryNode,              // NEW
-  guard: GuardNode,              // NEW
-  timeout: TimeoutNode,          // NEW
+  inverter: InverterNode, // NEW
+  repeat: RepeatNode, // NEW
+  retry: RetryNode, // NEW
+  guard: GuardNode, // NEW
+  timeout: TimeoutNode, // NEW
 };
 ```
 
 ### Workflow Nodes (nodeTypes object)
+
 ```typescript
 const nodeTypes: NodeTypes = {
   agent: AgentNode,
   tool: ToolNode,
-  decision: DecisionNode,        // NEW
-  loop: LoopNode,                // NEW
-  parallel: ParallelNode,        // NEW
-  merge: MergeNode,              // NEW
+  decision: DecisionNode, // NEW
+  loop: LoopNode, // NEW
+  parallel: ParallelNode, // NEW
+  merge: MergeNode, // NEW
 };
 ```
 
 ## Default Node Configurations
 
 ### Behavior Tree Decorator Defaults:
+
 - **Inverter**: No config needed
 - **Repeat N**: `maxRepeats: 3`
 - **Retry**: `maxRetries: 3`
@@ -124,6 +139,7 @@ const nodeTypes: NodeTypes = {
 - **Timeout**: `timeoutMs: 5000`
 
 ### Workflow Control Defaults:
+
 - **Decision**: `condition: 'result.success === true'`
 - **Loop**: `iterableSource: 'items'`, `itemVariable: 'item'`, `maxIterations: 100`
 - **Parallel**: `policy: 'require-all'`, `timeout: 30000`
@@ -132,7 +148,9 @@ const nodeTypes: NodeTypes = {
 ## Visual Design
 
 ### Color Scheme
+
 **Behavior Tree Decorators:**
+
 - Inverter: Pink (#ec4899)
 - Repeat: Purple (#8b5cf6)
 - Retry: Cyan (#06b6d4)
@@ -140,12 +158,14 @@ const nodeTypes: NodeTypes = {
 - Timeout: Red (#ef4444)
 
 **Workflow Control:**
+
 - Decision: Amber (#f59e0b)
 - Loop: Indigo (#6366f1)
 - Parallel: Emerald (#10b981)
 - Merge: Teal (#14b8a6)
 
 ### Node Styling
+
 - All decorator nodes use `border-2` (thicker border)
 - Workflow nodes use standard `border`
 - Consistent padding: `px-3 py-2`
@@ -153,19 +173,23 @@ const nodeTypes: NodeTypes = {
 - Font sizes: 10px (labels), 11px (titles), 9px (metadata)
 
 ## TypeScript Type Safety
+
 All new node types fully typed with:
+
 - Discriminated union types for node data
 - Proper interface definitions
 - Type guards for node-specific properties
 - Full IntelliSense support
 
 ## Build Status
+
 ✅ Next.js compilation successful
 ✅ All TypeScript types valid
 ✅ No runtime errors
 ✅ React Flow integration complete
 
 ## Testing Checklist
+
 - [ ] Create Inverter node via toolbar button
 - [ ] Create Repeat node and configure max repeats
 - [ ] Create Retry node and configure max retries
@@ -182,6 +206,7 @@ All new node types fully typed with:
 - [ ] Verify tooltips appear on hover
 
 ## Next Steps (Phase 2 Task 3+)
+
 1. Node configuration panels for editing properties
 2. Validation logic for node connections
 3. Execution visualization for runtime debugging
@@ -189,6 +214,7 @@ All new node types fully typed with:
 5. Export/import workflows and trees
 
 ---
+
 **Implementation Date**: 2026-02-28
 **Status**: ✅ Complete
 **Build**: Passing

@@ -19,8 +19,8 @@ export interface ReplicatedEntity {
   entityId: string;
   type: ReplicationType;
   ownerId: string;
-  priority: number;           // 0-10, higher = more frequent updates
-  updateIntervalMs: number;   // Min time between updates
+  priority: number; // 0-10, higher = more frequent updates
+  updateIntervalMs: number; // Min time between updates
   lastUpdateTime: number;
   isDirty: boolean;
   sentFullSnapshot: boolean;
@@ -68,16 +68,21 @@ export class ReplicationManager {
   // Registration
   // ---------------------------------------------------------------------------
 
-  register(entityId: string, type: ReplicationType, ownerId: string, options: Partial<{
-    priority: number;
-    updateIntervalMs: number;
-  }> = {}): ReplicatedEntity {
+  register(
+    entityId: string,
+    type: ReplicationType,
+    ownerId: string,
+    options: Partial<{
+      priority: number;
+      updateIntervalMs: number;
+    }> = {}
+  ): ReplicatedEntity {
     const entity: ReplicatedEntity = {
       entityId,
       type,
       ownerId,
       priority: options.priority ?? 5,
-      updateIntervalMs: options.updateIntervalMs ?? (1000 / 20), // 20 Hz default
+      updateIntervalMs: options.updateIntervalMs ?? 1000 / 20, // 20 Hz default
       lastUpdateTime: 0,
       isDirty: true,
       sentFullSnapshot: false,
@@ -134,7 +139,7 @@ export class ReplicationManager {
 
     // Sort by priority (highest first)
     const sorted = [...this.entities.values()]
-      .filter(e => e.isDirty)
+      .filter((e) => e.isDirty)
       .sort((a, b) => b.priority - a.priority);
 
     for (const entity of sorted) {
@@ -272,9 +277,11 @@ export class ReplicationManager {
   // ---------------------------------------------------------------------------
 
   private vec3Differs(a: IVector3, b: IVector3, threshold: number): boolean {
-    return Math.abs(a.x - b.x) > threshold ||
-           Math.abs(a.y - b.y) > threshold ||
-           Math.abs(a.z - b.z) > threshold;
+    return (
+      Math.abs(a.x - b.x) > threshold ||
+      Math.abs(a.y - b.y) > threshold ||
+      Math.abs(a.z - b.z) > threshold
+    );
   }
 
   private quatDiffers(
@@ -282,9 +289,11 @@ export class ReplicationManager {
     b: { x: number; y: number; z: number; w: number },
     threshold: number
   ): boolean {
-    return Math.abs(a.x - b.x) > threshold ||
-           Math.abs(a.y - b.y) > threshold ||
-           Math.abs(a.z - b.z) > threshold ||
-           Math.abs(a.w - b.w) > threshold;
+    return (
+      Math.abs(a.x - b.x) > threshold ||
+      Math.abs(a.y - b.y) > threshold ||
+      Math.abs(a.z - b.z) > threshold ||
+      Math.abs(a.w - b.w) > threshold
+    );
   }
 }

@@ -36,8 +36,8 @@ const AGENT_CONFIGS: AgentConfig[] = [
       'Moderation cost model (Roblox $100M/year breakdown)',
       'Staffing plan (AI moderators vs human reviewers)',
       'AI vendor comparison (Spectrum, Hive, OpenAI)',
-      'Budget projection for HoloLand (15-20% revenue target)'
-    ]
+      'Budget projection for HoloLand (15-20% revenue target)',
+    ],
   },
   {
     id: 'agent-2-benchmarks',
@@ -50,8 +50,8 @@ const AGENT_CONFIGS: AgentConfig[] = [
       'Unity WebGL vs native WASM performance comparison',
       'Bevy + WASM vs Godot 4 benchmarks',
       'Public benchmark report (GitHub repo)',
-      'Blog post draft (requires HITL approval before publishing)'
-    ]
+      'Blog post draft (requires HITL approval before publishing)',
+    ],
   },
   {
     id: 'agent-3-migration',
@@ -64,8 +64,8 @@ const AGENT_CONFIGS: AgentConfig[] = [
       'Unity asset format compatibility matrix (FBX, glTF, etc.)',
       'C# → TypeScript conversion guide',
       'Automated converter tool specification',
-      'Migration workflow documentation'
-    ]
+      'Migration workflow documentation',
+    ],
   },
   {
     id: 'agent-4-remix',
@@ -78,8 +78,8 @@ const AGENT_CONFIGS: AgentConfig[] = [
       'Revenue attribution formula (original vs remix vs platform)',
       'Smart contract specification (ERC-20 or custom)',
       'UX mockups for remix button',
-      'Viral coefficient model (target >1.0)'
-    ]
+      'Viral coefficient model (target >1.0)',
+    ],
   },
   {
     id: 'agent-5-prototype',
@@ -92,8 +92,8 @@ const AGENT_CONFIGS: AgentConfig[] = [
       'GitHub repo (Rust + Bevy + WASM)',
       'Live demo URL (1K entities @ 60fps)',
       'Performance metrics (FPS, memory, load time)',
-      'Comparison to Unity WebGL baseline'
-    ]
+      'Comparison to Unity WebGL baseline',
+    ],
   },
   {
     id: 'agent-6-networking',
@@ -106,8 +106,8 @@ const AGENT_CONFIGS: AgentConfig[] = [
       'WebRTC vs WebSocket latency comparison',
       'NAT traversal success rate',
       'Protocol decision (WebRTC recommended)',
-      'Prototype chat + movement sync'
-    ]
+      'Prototype chat + movement sync',
+    ],
   },
   {
     id: 'agent-7-outreach',
@@ -120,9 +120,9 @@ const AGENT_CONFIGS: AgentConfig[] = [
       '10 completed developer interviews',
       'Pain point analysis (trust, fees, stability)',
       'Recruiting pipeline (for HoloLand Founders)',
-      'Anonymized interview transcripts'
-    ]
-  }
+      'Anonymized interview transcripts',
+    ],
+  },
 ];
 
 async function deployAgents() {
@@ -154,8 +154,8 @@ async function deployAgents() {
         priority: config.priority,
         estimatedHours: config.estimatedHours,
         autoApprove: config.autoApprove,
-        deliverables: config.deliverables
-      }
+        deliverables: config.deliverables,
+      },
     });
 
     console.log(`  └─ ✅ Registered\n`);
@@ -176,11 +176,11 @@ async function deployAgents() {
       budget: {
         time: '7 days',
         compute: '$500',
-        humanReview: '8 hours'
-      }
+        humanReview: '8 hours',
+      },
     },
     priority: 'high',
-    ttl: 3600000 // 1 hour
+    ttl: 3600000, // 1 hour
   });
 
   console.log('✅ DEPLOYMENT_START broadcast sent\n');
@@ -196,7 +196,7 @@ async function deployAgents() {
   // Configure rollback
   hitl.enableRollback({
     maxRollbacks: 3,
-    expiry: 24 * 60 * 60 * 1000 // 24 hours
+    expiry: 24 * 60 * 60 * 1000, // 24 hours
   });
 
   // Set up notification webhook (example)
@@ -214,11 +214,15 @@ async function deployAgents() {
 
   console.log('📊 Agent Breakdown:');
   console.log(`  - Total Agents: ${AGENT_CONFIGS.length}`);
-  console.log(`  - Critical Priority: ${AGENT_CONFIGS.filter(a => a.priority === 'CRITICAL').length}`);
-  console.log(`  - High Priority: ${AGENT_CONFIGS.filter(a => a.priority === 'HIGH').length}`);
-  console.log(`  - Medium Priority: ${AGENT_CONFIGS.filter(a => a.priority === 'MEDIUM').length}`);
-  console.log(`  - Auto-Approve Enabled: ${AGENT_CONFIGS.filter(a => a.autoApprove).length}`);
-  console.log(`  - Requires HITL: ${AGENT_CONFIGS.filter(a => !a.autoApprove).length}\n`);
+  console.log(
+    `  - Critical Priority: ${AGENT_CONFIGS.filter((a) => a.priority === 'CRITICAL').length}`
+  );
+  console.log(`  - High Priority: ${AGENT_CONFIGS.filter((a) => a.priority === 'HIGH').length}`);
+  console.log(
+    `  - Medium Priority: ${AGENT_CONFIGS.filter((a) => a.priority === 'MEDIUM').length}`
+  );
+  console.log(`  - Auto-Approve Enabled: ${AGENT_CONFIGS.filter((a) => a.autoApprove).length}`);
+  console.log(`  - Requires HITL: ${AGENT_CONFIGS.filter((a) => !a.autoApprove).length}\n`);
 
   const totalHours = AGENT_CONFIGS.reduce((sum, a) => sum + a.estimatedHours, 0);
   console.log(`⏱️  Estimated Time:`);
@@ -229,7 +233,7 @@ async function deployAgents() {
   console.log('📁 Deliverables:');
   AGENT_CONFIGS.forEach((config, idx) => {
     console.log(`\n  Agent ${idx + 1}: ${config.id}`);
-    config.deliverables.forEach(d => console.log(`    • ${d}`));
+    config.deliverables.forEach((d) => console.log(`    • ${d}`));
   });
 
   console.log('\n═══════════════════════════════════════════════════════════════');
@@ -249,7 +253,7 @@ async function deployAgents() {
 }
 
 // Execute deployment
-deployAgents().catch(error => {
+deployAgents().catch((error) => {
   console.error('❌ Deployment failed:', error);
   process.exit(1);
 });

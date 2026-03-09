@@ -43,10 +43,14 @@ describe('GraphGrammar', () => {
     });
 
     it('should create anchor nodes with bounds', () => {
-      const node = createAnchor('spawn', { x: 0, y: 0, z: 0 }, {
-        min: { x: -10, y: 0, z: -10 },
-        max: { x: 10, y: 5, z: 10 },
-      });
+      const node = createAnchor(
+        'spawn',
+        { x: 0, y: 0, z: 0 },
+        {
+          min: { x: -10, y: 0, z: -10 },
+          max: { x: 10, y: 5, z: 10 },
+        }
+      );
 
       expect(node.type).toBe(NodeType.ANCHOR);
       expect(node.transform.positionMode).toBe('random_in_bounds');
@@ -160,9 +164,8 @@ describe('GraphGrammar', () => {
         symbol: 'Prolific',
         weight: 1.0,
         tags: [],
-        produce: () => Array.from({ length: 50 }, (_, i) =>
-          createNonTerminal('Prolific', { x: i, y: 0, z: 0 })
-        ),
+        produce: () =>
+          Array.from({ length: 50 }, (_, i) => createNonTerminal('Prolific', { x: i, y: 0, z: 0 })),
       });
 
       const result = grammar.expand({ maxNodes: 20, seed: 42 });
@@ -292,10 +295,16 @@ describe('GraphGrammar', () => {
       expect(rule.symbol).toBe('turret');
       expect(rule.tags).toContain('composition');
 
-      const produced = rule.produce(
-        createNonTerminal('turret', { x: 0, y: 0, z: 0 }),
-        { depth: 0, maxDepth: 10, seed: 0, state: new Map(), parentChain: [], nodeCount: 0, maxNodes: 1000, symbolBudgets: new Map() },
-      );
+      const produced = rule.produce(createNonTerminal('turret', { x: 0, y: 0, z: 0 }), {
+        depth: 0,
+        maxDepth: 10,
+        seed: 0,
+        state: new Map(),
+        parentChain: [],
+        nodeCount: 0,
+        maxNodes: 1000,
+        symbolBudgets: new Map(),
+      });
 
       expect(produced.length).toBe(1);
       expect(produced[0].traits).toEqual(['physics', 'ai_npc', 'targeting']);
@@ -307,10 +316,16 @@ describe('GraphGrammar', () => {
       expect(rule.id).toBe('tmpl_Soldier');
       expect(rule.symbol).toBe('Soldier');
 
-      const produced = rule.produce(
-        createNonTerminal('Soldier', { x: 0, y: 0, z: 0 }),
-        { depth: 0, maxDepth: 10, seed: 0, state: new Map(), parentChain: [], nodeCount: 0, maxNodes: 1000, symbolBudgets: new Map() },
-      );
+      const produced = rule.produce(createNonTerminal('Soldier', { x: 0, y: 0, z: 0 }), {
+        depth: 0,
+        maxDepth: 10,
+        seed: 0,
+        state: new Map(),
+        parentChain: [],
+        nodeCount: 0,
+        maxNodes: 1000,
+        symbolBudgets: new Map(),
+      });
 
       expect(produced.length).toBe(1);
       expect(produced[0].traits).toContain('health');

@@ -13,7 +13,9 @@ import { ClientPrediction } from '../multiplayer/ClientPrediction';
 
 describe('ReplicationManager', () => {
   let rm: ReplicationManager;
-  beforeEach(() => { rm = new ReplicationManager(); });
+  beforeEach(() => {
+    rm = new ReplicationManager();
+  });
 
   it('registers entities', () => {
     const e = rm.register('player1', 'character', 'host');
@@ -123,7 +125,9 @@ describe('ClientPrediction', () => {
   });
 
   let cp: ClientPrediction;
-  beforeEach(() => { cp = new ClientPrediction(initialState, predictor); });
+  beforeEach(() => {
+    cp = new ClientPrediction(initialState, predictor);
+  });
 
   it('starts with initial state', () => {
     const s = cp.getState();

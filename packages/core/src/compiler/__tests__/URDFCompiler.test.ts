@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
-import { URDFCompiler} from '../URDFCompiler';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { URDFCompiler } from '../URDFCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
@@ -9,7 +9,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 // Helper to build a minimal composition
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
@@ -80,9 +79,7 @@ describe('URDFCompiler', () => {
       objects: [
         {
           name: 'cube',
-          properties: [
-            { key: 'geometry', value: 'box' },
-          ],
+          properties: [{ key: 'geometry', value: 'box' }],
           traits: [],
         },
       ] as any,

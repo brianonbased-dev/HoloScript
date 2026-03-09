@@ -12,35 +12,44 @@ import type { BrushMaterial } from '@/lib/sketchStore';
 import { Trash2, Undo2 } from 'lucide-react';
 
 const BRUSH_MATERIALS: { id: BrushMaterial; label: string; emoji: string }[] = [
-  { id: 'neon',  label: 'Neon',  emoji: '⚡' },
+  { id: 'neon', label: 'Neon', emoji: '⚡' },
   { id: 'chalk', label: 'Chalk', emoji: '🪨' },
-  { id: 'ink',   label: 'Ink',   emoji: '🖊' },
-  { id: 'glow',  label: 'Glow',  emoji: '✨' },
+  { id: 'ink', label: 'Ink', emoji: '🖊' },
+  { id: 'glow', label: 'Glow', emoji: '✨' },
 ];
 
 const PALETTE = [
-  '#6366f1', '#ec4899', '#22c55e', '#f97316',
-  '#06b6d4', '#eab308', '#ef4444', '#ffffff',
-  '#a855f7', '#3b82f6', '#84cc16', '#f59e0b',
+  '#6366f1',
+  '#ec4899',
+  '#22c55e',
+  '#f97316',
+  '#06b6d4',
+  '#eab308',
+  '#ef4444',
+  '#ffffff',
+  '#a855f7',
+  '#3b82f6',
+  '#84cc16',
+  '#f59e0b',
 ];
 
 const SIZE_PRESETS = [
   { label: 'XS', value: 0.006 },
-  { label: 'S',  value: 0.012 },
-  { label: 'M',  value: 0.022 },
-  { label: 'L',  value: 0.040 },
+  { label: 'S', value: 0.012 },
+  { label: 'M', value: 0.022 },
+  { label: 'L', value: 0.04 },
 ];
 
 export function SketchToolbar() {
-  const brushColor    = useSketchStore((s) => s.brushColor);
-  const brushSize     = useSketchStore((s) => s.brushSize);
+  const brushColor = useSketchStore((s) => s.brushColor);
+  const brushSize = useSketchStore((s) => s.brushSize);
   const brushMaterial = useSketchStore((s) => s.brushMaterial);
-  const strokes       = useSketchStore((s) => s.strokes);
-  const setBrushColor    = useSketchStore((s) => s.setBrushColor);
-  const setBrushSize     = useSketchStore((s) => s.setBrushSize);
+  const strokes = useSketchStore((s) => s.strokes);
+  const setBrushColor = useSketchStore((s) => s.setBrushColor);
+  const setBrushSize = useSketchStore((s) => s.setBrushSize);
   const setBrushMaterial = useSketchStore((s) => s.setBrushMaterial);
-  const clearStrokes     = useSketchStore((s) => s.clearStrokes);
-  const removeStroke     = useSketchStore((s) => s.removeStroke);
+  const clearStrokes = useSketchStore((s) => s.clearStrokes);
+  const removeStroke = useSketchStore((s) => s.removeStroke);
 
   const handleUndo = () => {
     if (strokes.length === 0) return;

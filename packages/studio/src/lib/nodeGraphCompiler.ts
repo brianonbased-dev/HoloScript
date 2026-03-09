@@ -58,12 +58,7 @@ function outVar(id: string) {
 
 // ─── Source for a handle ─────────────────────────────────────────────────────
 
-function resolveSource(
-  nodeId: string,
-  handle: string,
-  edges: GEdge[],
-  fallback: string
-): string {
+function resolveSource(nodeId: string, handle: string, edges: GEdge[], fallback: string): string {
   const edge = edges.find((e) => e.target === nodeId && e.targetHandle === handle);
   return edge ? outVar(edge.source) : fallback;
 }
@@ -96,9 +91,7 @@ export function compileNodeGraph(nodes: GNode[], edges: GEdge[]): CompiledResult
   const nodeMap: NodeMap = new Map(nodes.map((n) => [n.id, n]));
   const order = topoSort(nodes, edges);
 
-  const uniformLines: string[] = [
-    'uniform float uTime;',
-  ];
+  const uniformLines: string[] = ['uniform float uTime;'];
   const bodyLines: string[] = [];
 
   // Collect texture uniforms
@@ -130,7 +123,9 @@ export function compileNodeGraph(nodes: GNode[], edges: GEdge[]): CompiledResult
 
       case 'texture': {
         const uvSrc = resolveSource(id, 'uv', edges, 'vUv');
-        bodyLines.push(`vec4 ${vout}_raw = texture2D(${d.uniformName}, ${uvSrc}_is_scalar ? vec2(${uvSrc}) : vUv);`);
+        bodyLines.push(
+          `vec4 ${vout}_raw = texture2D(${d.uniformName}, ${uvSrc}_is_scalar ? vec2(${uvSrc}) : vUv);`
+        );
         bodyLines.push(`float ${vout} = ${vout}_raw.r;`);
         break;
       }

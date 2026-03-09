@@ -4,7 +4,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PostProcessingStack, PP_PRESETS } from '../PostProcessing';
 
-function makeStack() { return new PostProcessingStack(); }
+function makeStack() {
+  return new PostProcessingStack();
+}
 
 describe('PostProcessingStack — construction', () => {
   it('starts with 1 profile (default)', () => {
@@ -28,18 +30,23 @@ describe('PostProcessingStack — construction', () => {
 
 describe('PostProcessingStack — createProfile', () => {
   it('creates a profile with given id and name', () => {
-    const s = makeStack(); const p = s.createProfile('cinematic', 'Cinematic Look');
-    expect(p.id).toBe('cinematic'); expect(p.name).toBe('Cinematic Look');
+    const s = makeStack();
+    const p = s.createProfile('cinematic', 'Cinematic Look');
+    expect(p.id).toBe('cinematic');
+    expect(p.name).toBe('Cinematic Look');
   });
   it('getProfileCount increments', () => {
-    const s = makeStack(); s.createProfile('a', 'A'); s.createProfile('b', 'B');
+    const s = makeStack();
+    s.createProfile('a', 'A');
+    s.createProfile('b', 'B');
     expect(s.getProfileCount()).toBe(3);
   });
   it('getProfile returns undefined for unknown id', () => {
     expect(makeStack().getProfile('ghost')).toBeUndefined();
   });
   it('new profile has all effects disabled by default', () => {
-    const s = makeStack(); const p = s.createProfile('fresh', 'Fresh');
+    const s = makeStack();
+    const p = s.createProfile('fresh', 'Fresh');
     expect(p.bloom.enabled).toBe(false);
     expect(p.antiAliasing).toBe('fxaa');
     expect(p.toneMapping).toBe('aces');
@@ -48,7 +55,8 @@ describe('PostProcessingStack — createProfile', () => {
 
 describe('PostProcessingStack — removeProfile', () => {
   it('removes a profile', () => {
-    const s = makeStack(); s.createProfile('tmp', 'Tmp');
+    const s = makeStack();
+    s.createProfile('tmp', 'Tmp');
     expect(s.removeProfile('tmp')).toBe(true);
     expect(s.getProfile('tmp')).toBeUndefined();
   });
@@ -56,7 +64,9 @@ describe('PostProcessingStack — removeProfile', () => {
     expect(makeStack().removeProfile('nope')).toBe(false);
   });
   it('removes active profile reference when deleted', () => {
-    const s = makeStack(); s.createProfile('p', 'P'); s.setActive('p');
+    const s = makeStack();
+    s.createProfile('p', 'P');
+    s.setActive('p');
     s.removeProfile('p');
     expect(s.getActive()).toBeNull();
   });
@@ -84,10 +94,12 @@ describe('PostProcessingStack — loadPreset', () => {
   });
   it('sciFi preset has bloom and ssao enabled', () => {
     const p = makeStack().loadPreset('sciFi')!;
-    expect(p.bloom.enabled).toBe(true); expect(p.ssao.enabled).toBe(true);
+    expect(p.bloom.enabled).toBe(true);
+    expect(p.ssao.enabled).toBe(true);
   });
   it('loadPreset accepts custom id', () => {
-    const s = makeStack(); s.loadPreset('cinematic', 'my-cinematic');
+    const s = makeStack();
+    s.loadPreset('cinematic', 'my-cinematic');
     expect(s.getProfile('my-cinematic')).toBeDefined();
     expect(s.getProfile('cinematic')).toBeUndefined();
   });
@@ -98,18 +110,22 @@ describe('PostProcessingStack — loadPreset', () => {
 
 describe('PostProcessingStack — setActive / getActive', () => {
   it('setActive returns true for known profile', () => {
-    const s = makeStack(); expect(s.setActive('default')).toBe(true);
+    const s = makeStack();
+    expect(s.setActive('default')).toBe(true);
   });
   it('setActive returns false for unknown id', () => {
     expect(makeStack().setActive('ghost')).toBe(false);
   });
   it('getActive returns the active profile', () => {
-    const s = makeStack(); s.setActive('default');
+    const s = makeStack();
+    s.setActive('default');
     expect(s.getActive()!.id).toBe('default');
   });
   it('switching active profile works', () => {
-    const s = makeStack(); s.createProfile('p2', 'P2');
-    s.setActive('default'); s.setActive('p2');
+    const s = makeStack();
+    s.createProfile('p2', 'P2');
+    s.setActive('default');
+    s.setActive('p2');
     expect(s.getActive()!.id).toBe('p2');
   });
 });
@@ -124,7 +140,8 @@ describe('PostProcessingStack — setEffectEnabled', () => {
     expect(s.getProfile('default')!.bloom.enabled).toBe(true);
   });
   it('disables effect that was enabled', () => {
-    const s = makeStack(); s.loadPreset('cinematic');
+    const s = makeStack();
+    s.loadPreset('cinematic');
     s.setEffectEnabled('cinematic', 'bloom', false);
     expect(s.getProfile('cinematic')!.bloom.enabled).toBe(false);
   });
@@ -146,38 +163,53 @@ describe('PostProcessingStack — blendProfiles', () => {
   });
   it('t=0 returns values close to "from"', () => {
     const s = makeStack();
-    s.createProfile('a', 'A'); s.createProfile('b', 'B');
-    s.getProfile('a')!.bloom.intensity = 0; s.getProfile('b')!.bloom.intensity = 1;
+    s.createProfile('a', 'A');
+    s.createProfile('b', 'B');
+    s.getProfile('a')!.bloom.intensity = 0;
+    s.getProfile('b')!.bloom.intensity = 1;
     const blended = s.blendProfiles('a', 'b', 0)!;
     expect(blended.bloom.intensity).toBeCloseTo(0);
   });
   it('t=1 returns values close to "to"', () => {
     const s = makeStack();
-    s.createProfile('a', 'A'); s.createProfile('b', 'B');
-    s.getProfile('a')!.bloom.intensity = 0; s.getProfile('b')!.bloom.intensity = 1;
+    s.createProfile('a', 'A');
+    s.createProfile('b', 'B');
+    s.getProfile('a')!.bloom.intensity = 0;
+    s.getProfile('b')!.bloom.intensity = 1;
     const blended = s.blendProfiles('a', 'b', 1)!;
     expect(blended.bloom.intensity).toBeCloseTo(1);
   });
   it('t=0.5 returns midpoint', () => {
     const s = makeStack();
-    s.createProfile('a', 'A'); s.createProfile('b', 'B');
-    s.getProfile('a')!.exposure = 0; s.getProfile('b')!.exposure = 1;
+    s.createProfile('a', 'A');
+    s.createProfile('b', 'B');
+    s.getProfile('a')!.exposure = 0;
+    s.getProfile('b')!.exposure = 1;
     expect(s.blendProfiles('a', 'b', 0.5)!.exposure).toBeCloseTo(0.5);
   });
   it('blended profile id contains both source ids', () => {
-    const s = makeStack(); s.createProfile('x', 'X'); s.createProfile('y', 'Y');
+    const s = makeStack();
+    s.createProfile('x', 'X');
+    s.createProfile('y', 'Y');
     const b = s.blendProfiles('x', 'y', 0.5)!;
-    expect(b.id).toContain('x'); expect(b.id).toContain('y');
+    expect(b.id).toContain('x');
+    expect(b.id).toContain('y');
   });
   it('enabled flag switches at t=0.5 boundary', () => {
-    const s = makeStack(); s.createProfile('a', 'A'); s.createProfile('b', 'B');
-    s.getProfile('a')!.bloom.enabled = false; s.getProfile('b')!.bloom.enabled = true;
+    const s = makeStack();
+    s.createProfile('a', 'A');
+    s.createProfile('b', 'B');
+    s.getProfile('a')!.bloom.enabled = false;
+    s.getProfile('b')!.bloom.enabled = true;
     expect(s.blendProfiles('a', 'b', 0.4)!.bloom.enabled).toBe(false);
     expect(s.blendProfiles('a', 'b', 0.6)!.bloom.enabled).toBe(true);
   });
   it('ssao samples are rounded integers', () => {
-    const s = makeStack(); s.createProfile('a', 'A'); s.createProfile('b', 'B');
-    s.getProfile('a')!.ssao.samples = 16; s.getProfile('b')!.ssao.samples = 32;
+    const s = makeStack();
+    s.createProfile('a', 'A');
+    s.createProfile('b', 'B');
+    s.getProfile('a')!.ssao.samples = 16;
+    s.getProfile('b')!.ssao.samples = 32;
     const samples = s.blendProfiles('a', 'b', 0.5)!.ssao.samples;
     expect(Number.isInteger(samples)).toBe(true);
   });

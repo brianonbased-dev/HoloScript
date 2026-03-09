@@ -11,7 +11,9 @@ import { FogSystem } from '../FogSystem';
 describe('FogSystem', () => {
   let fog: FogSystem;
 
-  beforeEach(() => { fog = new FogSystem({ enabled: true }); });
+  beforeEach(() => {
+    fog = new FogSystem({ enabled: true });
+  });
 
   describe('configuration', () => {
     it('default mode is exponential', () => {
@@ -36,7 +38,9 @@ describe('FogSystem', () => {
   });
 
   describe('computeFogFactor — linear', () => {
-    beforeEach(() => { fog.setConfig({ mode: 'linear', nearDistance: 10, farDistance: 100 }); });
+    beforeEach(() => {
+      fog.setConfig({ mode: 'linear', nearDistance: 10, farDistance: 100 });
+    });
 
     it('at nearDistance factor = 0', () => {
       expect(fog.computeFogFactor(10)).toBeCloseTo(0, 5);
@@ -56,7 +60,9 @@ describe('FogSystem', () => {
   });
 
   describe('computeFogFactor — exponential', () => {
-    beforeEach(() => { fog.setConfig({ mode: 'exponential', density: 0.05 }); });
+    beforeEach(() => {
+      fog.setConfig({ mode: 'exponential', density: 0.05 });
+    });
 
     it('at distance=0 factor = 0', () => {
       expect(fog.computeFogFactor(0)).toBeCloseTo(0, 5);
@@ -101,8 +107,12 @@ describe('FogSystem', () => {
   describe('height fog', () => {
     beforeEach(() => {
       fog.setConfig({
-        mode: 'exponential', density: 0.02,
-        heightFog: true, heightStart: 0, heightEnd: 50, heightDensity: 0,
+        mode: 'exponential',
+        density: 0.02,
+        heightFog: true,
+        heightStart: 0,
+        heightEnd: 50,
+        heightDensity: 0,
       });
     });
 
@@ -116,7 +126,7 @@ describe('FogSystem', () => {
 
     it('mid-height produces partial fog', () => {
       const full = fog.computeFogFactor(100, 0);
-      const mid  = fog.computeFogFactor(100, 25);
+      const mid = fog.computeFogFactor(100, 25);
       expect(mid).toBeLessThan(full);
       expect(mid).toBeGreaterThan(0);
     });
@@ -155,8 +165,11 @@ describe('FogSystem', () => {
       fog.setConfig({ density: 0.02 });
       fog.setAnimation(1);
       const densities: number[] = [];
-      for (let i = 0; i < 10; i++) { fog.update(0.1); densities.push(fog.getConfig().density); }
-      const allSame = densities.every(d => Math.abs(d - densities[0]) < 1e-10);
+      for (let i = 0; i < 10; i++) {
+        fog.update(0.1);
+        densities.push(fog.getConfig().density);
+      }
+      const allSame = densities.every((d) => Math.abs(d - densities[0]) < 1e-10);
       expect(allSame).toBe(false);
     });
   });

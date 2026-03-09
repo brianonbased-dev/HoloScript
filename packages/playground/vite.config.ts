@@ -8,13 +8,13 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          monaco: ['monaco-editor']
-        }
-      }
-    }
+          monaco: ['monaco-editor'],
+        },
+      },
+    },
   },
   server: {
     port: 3000,
-    open: true
-  }
+    open: true,
+  },
 });

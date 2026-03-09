@@ -72,7 +72,11 @@ function buildCSPString(directives: ContentSecurityPolicyDirectives): string {
  * Builds the HTML content for the sandboxed iframe.
  * This creates a minimal shell that loads the plugin script.
  */
-function buildIframeContent(pluginUrl: string, pluginId: string, csp: ContentSecurityPolicyDirectives): string {
+function buildIframeContent(
+  pluginUrl: string,
+  pluginId: string,
+  csp: ContentSecurityPolicyDirectives
+): string {
   const cspString = buildCSPString(csp);
 
   return `<!DOCTYPE html>
@@ -170,11 +174,14 @@ export class PluginSandbox {
   private state: SandboxState = 'creating';
   private stateChangedAt: number = Date.now();
   private messageHandlers: Array<(message: PluginToHostMessage) => void> = [];
-  private pendingResponses: Map<MessageId, {
-    resolve: (data: unknown) => void;
-    reject: (error: Error) => void;
-    timeout: ReturnType<typeof setTimeout>;
-  }> = new Map();
+  private pendingResponses: Map<
+    MessageId,
+    {
+      resolve: (data: unknown) => void;
+      reject: (error: Error) => void;
+      timeout: ReturnType<typeof setTimeout>;
+    }
+  > = new Map();
   private auditLog: SandboxAuditEntry[] = [];
   private metrics: {
     messagesSent: number;
@@ -226,10 +233,10 @@ export class PluginSandbox {
     // Create iframe element
     this.iframe = document.createElement('iframe');
     this.iframe.id = `holoscript-plugin-${this.options.pluginId}`;
-    this.iframe.setAttribute('sandbox', buildSandboxFlags(
-      this.options.manifest.permissions,
-      this.options.hasUI,
-    ));
+    this.iframe.setAttribute(
+      'sandbox',
+      buildSandboxFlags(this.options.manifest.permissions, this.options.hasUI)
+    );
     this.iframe.setAttribute('referrerpolicy', 'no-referrer');
     this.iframe.setAttribute('loading', 'lazy');
 
@@ -254,11 +261,7 @@ export class PluginSandbox {
     this.setupMessageListener();
 
     // Write content into the iframe using srcdoc (avoids cross-origin issues)
-    const iframeContent = buildIframeContent(
-      this.options.pluginUrl,
-      this.options.pluginId,
-      csp,
-    );
+    const iframeContent = buildIframeContent(this.options.pluginUrl, this.options.pluginId, csp);
     this.iframe.srcdoc = iframeContent;
 
     // Append to container
@@ -273,9 +276,17 @@ export class PluginSandbox {
 
       // Set initialization timeout
       const timeout = setTimeout(() => {
-        this.audit('error', `Plugin ${this.options.pluginId} failed to initialize within ${this.options.initTimeout}ms`, 'error');
+        this.audit(
+          'error',
+          `Plugin ${this.options.pluginId} failed to initialize within ${this.options.initTimeout}ms`,
+          'error'
+        );
         this.setState('error');
-        reject(new Error(`Plugin ${this.options.pluginId} initialization timed out after ${this.options.initTimeout}ms`));
+        reject(
+          new Error(
+            `Plugin ${this.options.pluginId} initialization timed out after ${this.options.initTimeout}ms`
+          )
+        );
       }, this.options.initTimeout);
 
       // Store timeout so we can clear it when plugin signals ready
@@ -300,12 +311,18 @@ export class PluginSandbox {
    */
   public postMessage(message: HostToPluginMessage): void {
     if (!this.iframe?.contentWindow) {
-      this.log('warn', `Cannot send message to plugin ${this.options.pluginId}: iframe not available`);
+      this.log(
+        'warn',
+        `Cannot send message to plugin ${this.options.pluginId}: iframe not available`
+      );
       return;
     }
 
     if (this.state === 'terminated' || this.state === 'error') {
-      this.log('warn', `Cannot send message to plugin ${this.options.pluginId}: sandbox in ${this.state} state`);
+      this.log(
+        'warn',
+        `Cannot send message to plugin ${this.options.pluginId}: sandbox in ${this.state} state`
+      );
       return;
     }
 
@@ -322,7 +339,12 @@ export class PluginSandbox {
   /**
    * Sends a response to a specific plugin request.
    */
-  public sendResponse(requestId: MessageId, success: boolean, data?: unknown, error?: { code: string; message: string }): void {
+  public sendResponse(
+    requestId: MessageId,
+    success: boolean,
+    data?: unknown,
+    error?: { code: string; message: string }
+  ): void {
     const response: HostResponseMessage = {
       protocol: 'holoscript-sandbox-v1',
       id: generateMessageId(),
@@ -374,8 +396,13 @@ export class PluginSandbox {
    * @param gracePeriodMs - Time to wait for plugin cleanup (default: 3000ms)
    */
   public async destroy(
-    reason: 'user-disabled' | 'user-uninstalled' | 'error' | 'resource-limit' | 'studio-closing' = 'user-disabled',
-    gracePeriodMs: number = 3000,
+    reason:
+      | 'user-disabled'
+      | 'user-uninstalled'
+      | 'error'
+      | 'resource-limit'
+      | 'studio-closing' = 'user-disabled',
+    gracePeriodMs: number = 3000
   ): Promise<void> {
     if (this.state === 'terminated') {
       return;
@@ -426,9 +453,10 @@ export class PluginSandbox {
    * Returns health metrics for monitoring.
    */
   public getHealthMetrics(): SandboxHealthMetrics {
-    const avgLatency = this.metrics.latencies.length > 0
-      ? this.metrics.latencies.reduce((a, b) => a + b, 0) / this.metrics.latencies.length
-      : 0;
+    const avgLatency =
+      this.metrics.latencies.length > 0
+        ? this.metrics.latencies.reduce((a, b) => a + b, 0) / this.metrics.latencies.length
+        : 0;
 
     return {
       state: this.state,
@@ -601,9 +629,12 @@ export class PluginSandbox {
     const merged: ContentSecurityPolicyDirectives = { ...DEFAULT_CSP };
 
     // If plugin has network:fetch permission, relax connect-src based on network policy
-    if (this.options.manifest.permissions.includes('network:fetch') && this.options.manifest.networkPolicy) {
+    if (
+      this.options.manifest.permissions.includes('network:fetch') &&
+      this.options.manifest.networkPolicy
+    ) {
       const connectSources = this.options.manifest.networkPolicy.allowedDomains.map(
-        (domain) => `https://${domain}`,
+        (domain) => `https://${domain}`
       );
       if (this.options.manifest.networkPolicy.allowLocalhost) {
         connectSources.push('http://localhost:*', 'http://127.0.0.1:*');
@@ -618,7 +649,7 @@ export class PluginSandbox {
         if (merged[key] && values) {
           // Merge (union) but never weaken to '*' or 'unsafe-eval'
           const safeValues = values.filter(
-            (v: string) => v !== '*' && v !== "'unsafe-eval'" && !v.includes('data:'),
+            (v: string) => v !== '*' && v !== "'unsafe-eval'" && !v.includes('data:')
           );
           merged[key] = [...new Set([...merged[key], ...safeValues])];
         }
@@ -644,7 +675,11 @@ export class PluginSandbox {
   /**
    * Adds an entry to the audit log.
    */
-  private audit(event: SandboxAuditEntry['event'], details: string, severity: SandboxAuditEntry['severity']): void {
+  private audit(
+    event: SandboxAuditEntry['event'],
+    details: string,
+    severity: SandboxAuditEntry['severity']
+  ): void {
     const entry: SandboxAuditEntry = {
       timestamp: Date.now(),
       pluginId: this.options.pluginId,

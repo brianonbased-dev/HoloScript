@@ -1,9 +1,11 @@
 # Extended Geometries Proposal
 
 ## Problem
+
 Current HoloScript only supports 7 THREE.js geometries, limiting creative possibilities.
 
 ## Solution
+
 Add 20+ missing THREE.js geometries to ThreeJSRenderer.
 
 ---
@@ -184,17 +186,20 @@ private createGeometry(type: string, spec: any): any {
 ## New Geometries Added (27 total)
 
 ### Polyhedrons (4)
+
 - ✅ `dodecahedron` - D12 dice, crystals
 - ✅ `icosahedron` - D20 dice, geodesic domes
 - ✅ `octahedron` - D8 dice, gems
 - ✅ `tetrahedron` - D4 dice, pyramids
 
 ### Advanced (3)
+
 - ✅ `torusknot` - Decorative knots
 - ✅ `tube` - Curved tubes, tentacles, intestines
 - ✅ `capsule` - Pill shapes
 
 ### Procedural (6)
+
 - ✅ `heart` - Valentine's day, health icons
 - ✅ `star` - Emblems, badges, decorations
 - ✅ `crystal` - Magical crystals, power-ups
@@ -216,6 +221,7 @@ private createGeometry(type: string, spec: any): any {
 ## Training Data Impact
 
 With 27 geometries:
+
 - Theoretical max: 169 traits × 27 geo × 98 mat × 38 colors × 2 = **30M+ combinations**
 - Current 1M examples = **3.3% coverage** (vs 0.44% before)
 - Still 99.99%+ unique

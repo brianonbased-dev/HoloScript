@@ -12,13 +12,13 @@
 export type NodeStatus = 'success' | 'failure' | 'running';
 
 export interface BTContext {
-    [key: string]: any;
+  [key: string]: any;
 }
 
 export interface BTNode {
-    type: string;
-    tick(context: BTContext, delta: number): NodeStatus;
-    reset?(): void;
+  type: string;
+  tick(context: BTContext, delta: number): NodeStatus;
+  reset?(): void;
 }
 
 // =============================================================================
@@ -29,51 +29,51 @@ export interface BTNode {
  * Action: Executes a function. Returns success/failure/running.
  */
 export class ActionNode implements BTNode {
-    type = 'action';
-    constructor(
-        public name: string,
-        private fn: (ctx: BTContext, delta: number) => NodeStatus
-    ) {}
+  type = 'action';
+  constructor(
+    public name: string,
+    private fn: (ctx: BTContext, delta: number) => NodeStatus
+  ) {}
 
-    tick(context: BTContext, delta: number): NodeStatus {
-        return this.fn(context, delta);
-    }
+  tick(context: BTContext, delta: number): NodeStatus {
+    return this.fn(context, delta);
+  }
 }
 
 /**
  * Condition: Checks a predicate. Returns success/failure.
  */
 export class ConditionNode implements BTNode {
-    type = 'condition';
-    constructor(
-        public name: string,
-        private predicate: (ctx: BTContext) => boolean
-    ) {}
+  type = 'condition';
+  constructor(
+    public name: string,
+    private predicate: (ctx: BTContext) => boolean
+  ) {}
 
-    tick(context: BTContext): NodeStatus {
-        return this.predicate(context) ? 'success' : 'failure';
-    }
+  tick(context: BTContext): NodeStatus {
+    return this.predicate(context) ? 'success' : 'failure';
+  }
 }
 
 /**
  * Wait: Returns 'running' for a specified duration, then 'success'.
  */
 export class WaitNode implements BTNode {
-    type = 'wait';
-    private elapsed: number = 0;
-    constructor(public duration: number) {}
+  type = 'wait';
+  private elapsed: number = 0;
+  constructor(public duration: number) {}
 
-    tick(_context: BTContext, delta: number): NodeStatus {
-        this.elapsed += delta;
-        if (this.elapsed >= this.duration) {
-            return 'success';
-        }
-        return 'running';
+  tick(_context: BTContext, delta: number): NodeStatus {
+    this.elapsed += delta;
+    if (this.elapsed >= this.duration) {
+      return 'success';
     }
+    return 'running';
+  }
 
-    reset(): void {
-        this.elapsed = 0;
-    }
+  reset(): void {
+    this.elapsed = 0;
+  }
 }
 
 // =============================================================================
@@ -85,33 +85,33 @@ export class WaitNode implements BTNode {
  * Returns 'running' if a child is running.
  */
 export class SequenceNode implements BTNode {
-    type = 'sequence';
-    private currentIndex: number = 0;
+  type = 'sequence';
+  private currentIndex: number = 0;
 
-    constructor(public children: BTNode[]) {}
+  constructor(public children: BTNode[]) {}
 
-    tick(context: BTContext, delta: number): NodeStatus {
-        while (this.currentIndex < this.children.length) {
-            const status = this.children[this.currentIndex].tick(context, delta);
+  tick(context: BTContext, delta: number): NodeStatus {
+    while (this.currentIndex < this.children.length) {
+      const status = this.children[this.currentIndex].tick(context, delta);
 
-            if (status === 'failure') {
-                this.currentIndex = 0;
-                return 'failure';
-            }
-            if (status === 'running') {
-                return 'running';
-            }
-            // success -> next child
-            this.currentIndex++;
-        }
+      if (status === 'failure') {
         this.currentIndex = 0;
-        return 'success';
+        return 'failure';
+      }
+      if (status === 'running') {
+        return 'running';
+      }
+      // success -> next child
+      this.currentIndex++;
     }
+    this.currentIndex = 0;
+    return 'success';
+  }
 
-    reset(): void {
-        this.currentIndex = 0;
-        for (const child of this.children) child.reset?.();
-    }
+  reset(): void {
+    this.currentIndex = 0;
+    for (const child of this.children) child.reset?.();
+  }
 }
 
 /**
@@ -119,33 +119,33 @@ export class SequenceNode implements BTNode {
  * Falls through to next child on failure.
  */
 export class SelectorNode implements BTNode {
-    type = 'selector';
-    private currentIndex: number = 0;
+  type = 'selector';
+  private currentIndex: number = 0;
 
-    constructor(public children: BTNode[]) {}
+  constructor(public children: BTNode[]) {}
 
-    tick(context: BTContext, delta: number): NodeStatus {
-        while (this.currentIndex < this.children.length) {
-            const status = this.children[this.currentIndex].tick(context, delta);
+  tick(context: BTContext, delta: number): NodeStatus {
+    while (this.currentIndex < this.children.length) {
+      const status = this.children[this.currentIndex].tick(context, delta);
 
-            if (status === 'success') {
-                this.currentIndex = 0;
-                return 'success';
-            }
-            if (status === 'running') {
-                return 'running';
-            }
-            // failure -> try next child
-            this.currentIndex++;
-        }
+      if (status === 'success') {
         this.currentIndex = 0;
-        return 'failure';
+        return 'success';
+      }
+      if (status === 'running') {
+        return 'running';
+      }
+      // failure -> try next child
+      this.currentIndex++;
     }
+    this.currentIndex = 0;
+    return 'failure';
+  }
 
-    reset(): void {
-        this.currentIndex = 0;
-        for (const child of this.children) child.reset?.();
-    }
+  reset(): void {
+    this.currentIndex = 0;
+    for (const child of this.children) child.reset?.();
+  }
 }
 
 // =============================================================================
@@ -156,49 +156,51 @@ export class SelectorNode implements BTNode {
  * Inverter: Flips success/failure.
  */
 export class InverterNode implements BTNode {
-    type = 'inverter';
-    constructor(public child: BTNode) {}
+  type = 'inverter';
+  constructor(public child: BTNode) {}
 
-    tick(context: BTContext, delta: number): NodeStatus {
-        const status = this.child.tick(context, delta);
-        if (status === 'success') return 'failure';
-        if (status === 'failure') return 'success';
-        return 'running';
-    }
+  tick(context: BTContext, delta: number): NodeStatus {
+    const status = this.child.tick(context, delta);
+    if (status === 'success') return 'failure';
+    if (status === 'failure') return 'success';
+    return 'running';
+  }
 
-    reset(): void { this.child.reset?.(); }
+  reset(): void {
+    this.child.reset?.();
+  }
 }
 
 /**
  * Repeater: Repeats a child N times (or infinitely if count = -1).
  */
 export class RepeaterNode implements BTNode {
-    type = 'repeater';
-    private count: number = 0;
-    constructor(
-        public child: BTNode,
-        public maxCount: number = -1
-    ) {}
+  type = 'repeater';
+  private count: number = 0;
+  constructor(
+    public child: BTNode,
+    public maxCount: number = -1
+  ) {}
 
-    tick(context: BTContext, delta: number): NodeStatus {
-        const status = this.child.tick(context, delta);
+  tick(context: BTContext, delta: number): NodeStatus {
+    const status = this.child.tick(context, delta);
 
-        if (status === 'running') return 'running';
+    if (status === 'running') return 'running';
 
-        this.count++;
-        this.child.reset?.();
+    this.count++;
+    this.child.reset?.();
 
-        if (this.maxCount !== -1 && this.count >= this.maxCount) {
-            this.count = 0;
-            return 'success';
-        }
-        return 'running';
+    if (this.maxCount !== -1 && this.count >= this.maxCount) {
+      this.count = 0;
+      return 'success';
     }
+    return 'running';
+  }
 
-    reset(): void {
-        this.count = 0;
-        this.child.reset?.();
-    }
+  reset(): void {
+    this.count = 0;
+    this.child.reset?.();
+  }
 }
 
 // =============================================================================
@@ -206,27 +208,27 @@ export class RepeaterNode implements BTNode {
 // =============================================================================
 
 export class BehaviorTree {
-    private root: BTNode;
-    private context: BTContext;
+  private root: BTNode;
+  private context: BTContext;
 
-    constructor(root: BTNode, context: BTContext = {}) {
-        this.root = root;
-        this.context = context;
-    }
+  constructor(root: BTNode, context: BTContext = {}) {
+    this.root = root;
+    this.context = context;
+  }
 
-    tick(delta: number): NodeStatus {
-        return this.root.tick(this.context, delta);
-    }
+  tick(delta: number): NodeStatus {
+    return this.root.tick(this.context, delta);
+  }
 
-    getContext(): BTContext {
-        return this.context;
-    }
+  getContext(): BTContext {
+    return this.context;
+  }
 
-    setContext(key: string, value: any): void {
-        this.context[key] = value;
-    }
+  setContext(key: string, value: any): void {
+    this.context[key] = value;
+  }
 
-    reset(): void {
-        this.root.reset?.();
-    }
+  reset(): void {
+    this.root.reset?.();
+  }
 }

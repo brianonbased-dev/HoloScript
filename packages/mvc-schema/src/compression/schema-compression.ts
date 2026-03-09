@@ -110,17 +110,12 @@ const COMPACT_KEY_MAP: Record<string, string> = {
 /**
  * Reverse key map for decompression
  */
-const REVERSE_KEY_MAP = Object.fromEntries(
-  Object.entries(COMPACT_KEY_MAP).map(([k, v]) => [v, k])
-);
+const REVERSE_KEY_MAP = Object.fromEntries(Object.entries(COMPACT_KEY_MAP).map(([k, v]) => [v, k]));
 
 /**
  * Compress MVC object using schema-based compression
  */
-export function compressMVC(
-  obj: MVCObject,
-  options: CompressionOptions = {}
-): CompressionResult {
+export function compressMVC(obj: MVCObject, options: CompressionOptions = {}): CompressionResult {
   const originalJSON = JSON.stringify(obj);
   const originalSize = new TextEncoder().encode(originalJSON).length;
 

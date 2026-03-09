@@ -30,7 +30,7 @@ function makeCtx() {
   return {
     emit: (type: string, payload: unknown) => events.push({ type, payload }),
     events,
-    of: (type: string) => events.filter(e => e.type === type),
+    of: (type: string) => events.filter((e) => e.type === type),
   };
 }
 
@@ -92,7 +92,16 @@ describe('ZkPrivateTrait -- onAttach (v4.0 compat)', () => {
 
   it('loads user-provided circuits', async () => {
     const { node } = await attach({
-      circuits: [{ id: 'custom', name: 'Custom', description: '', source: 'fn main() {}', publicInputs: [], privateInputs: [] }],
+      circuits: [
+        {
+          id: 'custom',
+          name: 'Custom',
+          description: '',
+          source: 'fn main() {}',
+          publicInputs: [],
+          privateInputs: [],
+        },
+      ],
     });
     expect(node.__zkPrivateState.circuits.size).toBe(8);
   });
@@ -105,7 +114,10 @@ describe('ZkPrivateTrait -- onAttach (v4.0 compat)', () => {
 describe('ZkPrivateTrait -- proof_generate (v4.0 compat)', () => {
   it('emits proof_generation_started', async () => {
     const { node, ctx, config } = await attach();
-    zkPrivateHandler.onEvent(node, config, ctx, { type: 'proof_generate', payload: { circuitId: 'ownership_proof', publicInputs: { public_hash: 'X' } } });
+    zkPrivateHandler.onEvent(node, config, ctx, {
+      type: 'proof_generate',
+      payload: { circuitId: 'ownership_proof', publicInputs: { public_hash: 'X' } },
+    });
     expect(ctx.of('proof_generation_started').length).toBe(1);
   });
 
@@ -113,9 +125,13 @@ describe('ZkPrivateTrait -- proof_generate (v4.0 compat)', () => {
     const { node, ctx, config } = await attach();
     zkPrivateHandler.onEvent(node, config, ctx, {
       type: 'proof_generate',
-      payload: { circuitId: 'ownership_proof', publicInputs: { public_hash: '0xABC' }, requestId: 'r1' },
+      payload: {
+        circuitId: 'ownership_proof',
+        publicInputs: { public_hash: '0xABC' },
+        requestId: 'r1',
+      },
     });
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 50));
     const p = ctx.of('proof_generated')[0].payload as any;
     expect(p.requestId).toBe('r1');
     expect(p.proof.length).toBe(64);
@@ -124,24 +140,44 @@ describe('ZkPrivateTrait -- proof_generate (v4.0 compat)', () => {
 
   it('different inputs produce different proofs', async () => {
     const { node, ctx, config } = await attach();
-    zkPrivateHandler.onEvent(node, config, ctx, { type: 'proof_generate', payload: { circuitId: 'ownership_proof', publicInputs: { public_hash: 'A' }, requestId: 'r1' } });
-    zkPrivateHandler.onEvent(node, config, ctx, { type: 'proof_generate', payload: { circuitId: 'ownership_proof', publicInputs: { public_hash: 'B' }, requestId: 'r2' } });
-    await new Promise(r => setTimeout(r, 100));
+    zkPrivateHandler.onEvent(node, config, ctx, {
+      type: 'proof_generate',
+      payload: {
+        circuitId: 'ownership_proof',
+        publicInputs: { public_hash: 'A' },
+        requestId: 'r1',
+      },
+    });
+    zkPrivateHandler.onEvent(node, config, ctx, {
+      type: 'proof_generate',
+      payload: {
+        circuitId: 'ownership_proof',
+        publicInputs: { public_hash: 'B' },
+        requestId: 'r2',
+      },
+    });
+    await new Promise((r) => setTimeout(r, 100));
     const [p1, p2] = ctx.of('proof_generated').map((e: any) => e.payload.proof as number[]);
     expect(p1.every((b: number, i: number) => b === p2[i])).toBe(false);
   });
 
   it('emits zk_error for unknown circuit', async () => {
     const { node, ctx, config } = await attach();
-    zkPrivateHandler.onEvent(node, config, ctx, { type: 'proof_generate', payload: { circuitId: 'ghost' } });
+    zkPrivateHandler.onEvent(node, config, ctx, {
+      type: 'proof_generate',
+      payload: { circuitId: 'ghost' },
+    });
     expect(ctx.of('zk_error')[0]).toBeDefined();
     expect((ctx.of('zk_error')[0].payload as any).error).toContain('Unknown circuit');
   });
 
   it('increments totalProofsGenerated', async () => {
     const { node, ctx, config } = await attach();
-    zkPrivateHandler.onEvent(node, config, ctx, { type: 'proof_generate', payload: { circuitId: 'price_range_proof', publicInputs: {} } });
-    await new Promise(r => setTimeout(r, 50));
+    zkPrivateHandler.onEvent(node, config, ctx, {
+      type: 'proof_generate',
+      payload: { circuitId: 'price_range_proof', publicInputs: {} },
+    });
+    await new Promise((r) => setTimeout(r, 50));
     expect(node.__zkPrivateState.totalProofsGenerated).toBe(1);
   });
 });
@@ -153,22 +189,42 @@ describe('ZkPrivateTrait -- proof_generate (v4.0 compat)', () => {
 describe('ZkPrivateTrait -- proof_verify (v4.0 compat)', () => {
   it('verifies a non-zero proof as valid', async () => {
     const { node, ctx, config } = await attach();
-    zkPrivateHandler.onEvent(node, config, ctx, { type: 'proof_generate', payload: { circuitId: 'ownership_proof', publicInputs: { public_hash: 'x' }, requestId: 'g1' } });
-    await new Promise(r => setTimeout(r, 50));
+    zkPrivateHandler.onEvent(node, config, ctx, {
+      type: 'proof_generate',
+      payload: {
+        circuitId: 'ownership_proof',
+        publicInputs: { public_hash: 'x' },
+        requestId: 'g1',
+      },
+    });
+    await new Promise((r) => setTimeout(r, 50));
     const proofBytes = (ctx.of('proof_generated')[0].payload as any).proof;
-    zkPrivateHandler.onEvent(node, config, ctx, { type: 'proof_verify', payload: { proof: proofBytes, publicInputs: { public_hash: 'x' }, circuitId: 'ownership_proof' } });
+    zkPrivateHandler.onEvent(node, config, ctx, {
+      type: 'proof_verify',
+      payload: {
+        proof: proofBytes,
+        publicInputs: { public_hash: 'x' },
+        circuitId: 'ownership_proof',
+      },
+    });
     expect((ctx.of('proof_verified')[0].payload as any).valid).toBe(true);
   });
 
   it('rejects all-zero proof', async () => {
     const { node, ctx, config } = await attach();
-    zkPrivateHandler.onEvent(node, config, ctx, { type: 'proof_verify', payload: { proof: new Array(64).fill(0), publicInputs: {} } });
+    zkPrivateHandler.onEvent(node, config, ctx, {
+      type: 'proof_verify',
+      payload: { proof: new Array(64).fill(0), publicInputs: {} },
+    });
     expect((ctx.of('proof_verified')[0].payload as any).valid).toBe(false);
   });
 
   it('increments totalProofsVerified', async () => {
     const { node, ctx, config } = await attach();
-    zkPrivateHandler.onEvent(node, config, ctx, { type: 'proof_verify', payload: { proof: [1], publicInputs: {} } });
+    zkPrivateHandler.onEvent(node, config, ctx, {
+      type: 'proof_verify',
+      payload: { proof: [1], publicInputs: {} },
+    });
     expect(node.__zkPrivateState.totalProofsVerified).toBe(1);
   });
 });
@@ -180,16 +236,29 @@ describe('ZkPrivateTrait -- proof_verify (v4.0 compat)', () => {
 describe('ZkPrivateTrait -- circuit_register & compile (v4.0 compat)', () => {
   it('registers new circuit', async () => {
     const { node, ctx, config } = await attach();
-    zkPrivateHandler.onEvent(node, config, ctx, { type: 'circuit_register', payload: { id: 'age', name: 'Age', description: '', source: 'fn main() {}', publicInputs: [], privateInputs: [] } });
+    zkPrivateHandler.onEvent(node, config, ctx, {
+      type: 'circuit_register',
+      payload: {
+        id: 'age',
+        name: 'Age',
+        description: '',
+        source: 'fn main() {}',
+        publicInputs: [],
+        privateInputs: [],
+      },
+    });
     expect(node.__zkPrivateState.circuits.has('age')).toBe(true);
     expect(ctx.of('circuit_registered').length).toBe(1);
   });
 
   it('compiles a circuit', async () => {
     const { node, ctx, config } = await attach();
-    zkPrivateHandler.onEvent(node, config, ctx, { type: 'circuit_compile', payload: { circuitId: 'ownership_proof' } });
+    zkPrivateHandler.onEvent(node, config, ctx, {
+      type: 'circuit_compile',
+      payload: { circuitId: 'ownership_proof' },
+    });
     // Wait for async compilation
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 50));
     expect(ctx.of('circuit_compiled').length).toBe(1);
   });
 
@@ -384,7 +453,12 @@ describe('ZkPrivateTrait -- selective disclosure (v4.3)', () => {
       neverDisclose: ['secret_key'],
     };
     const fields = { name: 'Alice', email: 'alice@test.com', secret_key: '0xDEAD' };
-    const disclosure = createSelectiveDisclosure(fields, policy, new Uint8Array(64), 'test_circuit');
+    const disclosure = createSelectiveDisclosure(
+      fields,
+      policy,
+      new Uint8Array(64),
+      'test_circuit'
+    );
 
     expect(disclosure.disclosedFields.name).toBe('Alice');
     expect(disclosure.disclosedFields.email).toBeUndefined();
@@ -401,7 +475,9 @@ describe('ZkPrivateTrait -- selective disclosure (v4.3)', () => {
       neverDisclose: [],
     };
     const fields = { email: 'alice@test.com', location: 'NYC' };
-    const disclosure = createSelectiveDisclosure(fields, policy, new Uint8Array(64), 'test', ['email']);
+    const disclosure = createSelectiveDisclosure(fields, policy, new Uint8Array(64), 'test', [
+      'email',
+    ]);
 
     expect(disclosure.disclosedFields.email).toBe('alice@test.com');
     expect(disclosure.disclosedFields.location).toBeUndefined();
@@ -583,7 +659,13 @@ describe('ZkPrivateTrait -- wallet integration (v4.3)', () => {
 
     zkPrivateHandler.onEvent(node, config, ctx, {
       type: 'zk_wallet_submit_proof',
-      payload: { proof: [1], publicInputs: {}, circuitId: 'test', chain: 'ethereum', verifierContract: '0x' },
+      payload: {
+        proof: [1],
+        publicInputs: {},
+        circuitId: 'test',
+        chain: 'ethereum',
+        verifierContract: '0x',
+      },
     });
 
     const txId = (ctx.of('zk_wallet_proof_pending')[0].payload as any).txId;
@@ -632,7 +714,7 @@ describe('ZkPrivateTrait -- batch operations (v4.3)', () => {
     ctx.events.length = 0;
 
     zkPrivateHandler.onEvent(node, config, ctx, { type: 'zk_compile_all_spatial' });
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 50));
 
     const result = ctx.of('zk_spatial_circuits_compiled')[0].payload as any;
     expect(result.compiled).toBe(3);
@@ -647,7 +729,7 @@ describe('ZkPrivateTrait -- batch operations (v4.3)', () => {
 
     // Compile once
     zkPrivateHandler.onEvent(node, config, ctx, { type: 'zk_compile_all_spatial' });
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 50));
     ctx.events.length = 0;
 
     // Compile again
@@ -752,7 +834,7 @@ describe('ZkPrivateTrait -- BarretenbergBackend (v4.3)', () => {
     });
     const result = await backend.generateProof('test', { x: 42 }, {});
     expect(result.proof.length).toBe(64);
-    expect(result.proof.some(b => b !== 0)).toBe(true);
+    expect(result.proof.some((b) => b !== 0)).toBe(true);
   });
 
   it('verifyProof validates non-zero proofs in mock mode', async () => {
@@ -804,8 +886,8 @@ describe('ZkPrivateTrait -- exported constants (v4.3)', () => {
 
   it('all circuits have matching input definitions', () => {
     for (const circuit of ALL_CIRCUITS) {
-      const pubNames = circuit.publicInputs.map(i => i.name);
-      const privNames = circuit.privateInputs.map(i => i.name);
+      const pubNames = circuit.publicInputs.map((i) => i.name);
+      const privNames = circuit.privateInputs.map((i) => i.name);
       // Verify no overlap between public and private
       for (const name of pubNames) {
         expect(privNames).not.toContain(name);

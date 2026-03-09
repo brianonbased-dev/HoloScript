@@ -16,6 +16,7 @@
 **[SCREEN: HoloScript logo animation]**
 
 What we'll cover:
+
 - Installing the CLI
 - VS Code setup
 - Writing your first orb
@@ -35,6 +36,7 @@ holoscript --version
 **[SCREEN: terminal running the commands]**
 
 If you prefer Yarn or pnpm:
+
 ```bash
 yarn global add @holoscript/cli
 pnpm add -g @holoscript/cli
@@ -49,6 +51,7 @@ pnpm add -g @holoscript/cli
 **[SCREEN: VS Code marketplace showing extension]**
 
 Features you get automatically:
+
 - Syntax highlighting
 - Completions for traits and properties
 - Inline type errors
@@ -67,6 +70,7 @@ code .
 **[SCREEN: VS Code opens with project structure]**
 
 Project structure:
+
 ```
 my-first-scene/
 ├── src/
@@ -94,6 +98,7 @@ orb "Hello" {
 > It has a color, a scale, and a position in 3D space."
 
 Add a trait:
+
 ```hsplus
 orb "Hello" {
   color: "blue"
@@ -139,6 +144,7 @@ holoscript deploy --device=quest3
 > for each device — you don't change your code."
 
 Other targets:
+
 ```bash
 --target=visionos    # Apple Vision Pro
 --target=webxr       # Any WebXR browser

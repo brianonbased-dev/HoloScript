@@ -34,6 +34,7 @@ vrchat_world#config @vrchat_sdk3 {
 ```
 
 **Capacity tiers:**
+
 - 1-16: Small/Medium world
 - 17-32: Large world
 - 33-80: Massive world (performance intensive)
@@ -59,6 +60,7 @@ for i in range(8) {
 ```
 
 **Spawn behavior:**
+
 - Players spawn at random spawn point
 - `spawn_order` can prioritize certain spawns
 - Must have at least 1 spawn point
@@ -102,12 +104,14 @@ object#mirror @vrchat_mirror {
 ```
 
 **Mirror layers:**
+
 - `PlayerLocal` - Your own avatar (in mirrors)
 - `Player` - Other players' avatars
 - `Default` - Environment objects
 - `UI` - World UI (usually excluded)
 
 **Performance:**
+
 - Mirrors render scene twice (expensive)
 - Desktop: 1-2 mirrors OK
 - Quest: 0-1 mirrors, lower resolution
@@ -188,10 +192,12 @@ object#video_screen @vrchat_video_player {
 ```
 
 **Video player types:**
+
 - **AVPro**: YouTube, Twitch, livestreams (recommended)
 - **Unity Video**: Direct MP4/WebM URLs only
 
 **Supported platforms:**
+
 - Desktop: Full support
 - Quest: Limited (direct MP4 URLs only, no YouTube/Twitch)
 
@@ -224,6 +230,7 @@ object#avatar_pedestal @vrchat_avatar_pedestal {
 ```
 
 **Avatar ID workflow:**
+
 1. Upload avatar to VRChat via Unity
 2. VRChat SDK > Build & Publish (Avatar)
 3. Copy Avatar ID from VRChat website
@@ -287,10 +294,12 @@ object#ball @vrchat_pickup {
 ```
 
 **Pickup modes:**
+
 - `orientation: "grip"` - Natural hand hold (most objects)
 - `orientation: "gun"` - Points forward (guns, tools)
 
 **Auto Hold:**
+
 - `use_auto_hold: true` - Object locked to hand (no physics jitter)
 - `use_auto_hold: false` - Physics-based hold (more realistic but jittery)
 
@@ -316,6 +325,7 @@ object#portal @vrchat_portal {
 ```
 
 **Portal behavior:**
+
 - Players walk through to enter portal
 - Prompts: "Visit [World Name]?"
 - Can specify instance ID in `room_id` for specific room
@@ -363,6 +373,7 @@ udon_behavior#color_changer {
 ```
 
 **Networking flow:**
+
 1. Owner modifies `synced_variables`
 2. Owner calls `request_serialization()`
 3. Network sends data to all clients
@@ -394,6 +405,7 @@ udon_behavior#notification_system {
 ```
 
 **Network event types:**
+
 - `send_custom_network_event` - Send to all
 - `send_custom_network_event_target` - Send to specific player
 - `send_custom_network_event_owner` - Send to object owner
@@ -431,6 +443,7 @@ udon_behavior#player_tracker @global {
 ```
 
 **Player properties:**
+
 - `player.display_name` - Display name
 - `player.is_local` - Is this the local player?
 - `player.is_master` - Is this the instance master?
@@ -452,12 +465,14 @@ udon_behavior#player_tracker @global {
 ### World Optimization
 
 **Desktop:**
+
 - Baked lighting (not realtime)
 - Draw calls: <1000
 - Lightmap: 2048x2048
 - Shadows: 2-3 dynamic lights, 80m distance
 
 **Quest:**
+
 - Mobile shaders only
 - Draw calls: <300
 - Lightmap: 512x512
@@ -496,11 +511,13 @@ udon_behavior {
 ### Security
 
 **Permissions:**
+
 - Only instance master can change video URLs (default)
 - Don't expose admin-only features to all players
 - Validate input in Udon scripts
 
 **Malicious URLs:**
+
 - Video players can load any URL (phishing risk)
 - Consider whitelist of allowed domains
 - Or restrict URL changes to instance master
@@ -597,6 +614,7 @@ udon_behavior#persistent_state {
 **Error**: "Missing VRC_SceneDescriptor"
 
 **Fix**:
+
 1. Create empty GameObject "VRCWorld"
 2. Add component: VRC_SceneDescriptor
 3. Assign spawn points
@@ -604,6 +622,7 @@ udon_behavior#persistent_state {
 ### Udon Compile Errors
 
 Check Unity Console for:
+
 - Syntax errors in Udon# scripts
 - Missing variable declarations
 - Incorrect function signatures

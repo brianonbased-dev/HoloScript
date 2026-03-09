@@ -57,31 +57,28 @@ function buildGlb(json: object, binaryData?: ArrayBuffer): ArrayBuffer {
 
   // Total size: header(12) + json chunk header(8) + json data + optional bin chunk header(8) + bin data
   const hasbin = binPadded !== undefined;
-  const totalLength =
-    12 +
-    8 + jsonPaddedLength +
-    (hasbin ? 8 + binPaddedLength : 0);
+  const totalLength = 12 + 8 + jsonPaddedLength + (hasbin ? 8 + binPaddedLength : 0);
 
   const buffer = new ArrayBuffer(totalLength);
   const view = new DataView(buffer);
   const bytes = new Uint8Array(buffer);
 
   // GLB header
-  view.setUint32(0, 0x46546c67, true);  // magic: "glTF"
-  view.setUint32(4, 2, true);            // version: 2
-  view.setUint32(8, totalLength, true);   // total length
+  view.setUint32(0, 0x46546c67, true); // magic: "glTF"
+  view.setUint32(4, 2, true); // version: 2
+  view.setUint32(8, totalLength, true); // total length
 
   // JSON chunk
   let offset = 12;
-  view.setUint32(offset, jsonPaddedLength, true);  // chunk length
-  view.setUint32(offset + 4, 0x4e4f534a, true);   // chunk type: "JSON"
+  view.setUint32(offset, jsonPaddedLength, true); // chunk length
+  view.setUint32(offset + 4, 0x4e4f534a, true); // chunk type: "JSON"
   bytes.set(jsonPadded, offset + 8);
   offset += 8 + jsonPaddedLength;
 
   // BIN chunk (optional)
   if (hasbin) {
-    view.setUint32(offset, binPaddedLength, true);    // chunk length
-    view.setUint32(offset + 4, 0x004e4942, true);     // chunk type: "BIN\0"
+    view.setUint32(offset, binPaddedLength, true); // chunk length
+    view.setUint32(offset + 4, 0x004e4942, true); // chunk type: "BIN\0"
     bytes.set(binPadded!, offset + 8);
   }
 
@@ -103,16 +100,16 @@ function createBaselineGltfData(
     colorSpace?: string;
     scaleInLogSpace?: boolean;
     includeShDegree1?: boolean;
-  },
+  }
 ) {
   const scaleInLogSpace = options?.scaleInLogSpace ?? true;
 
   // Calculate buffer layout
-  const posBytes = count * 3 * 4;      // VEC3 float
-  const rotBytes = count * 4 * 4;      // VEC4 float
-  const scaleBytes = count * 3 * 4;    // VEC3 float
-  const opacityBytes = count * 1 * 4;  // SCALAR float
-  const colorBytes = count * 4 * 4;    // VEC4 float
+  const posBytes = count * 3 * 4; // VEC3 float
+  const rotBytes = count * 4 * 4; // VEC4 float
+  const scaleBytes = count * 3 * 4; // VEC3 float
+  const opacityBytes = count * 1 * 4; // SCALAR float
+  const colorBytes = count * 4 * 4; // VEC4 float
   const sh1Bytes = options?.includeShDegree1 ? count * 3 * 3 * 4 : 0; // 3 VEC3 floats
 
   const totalBytes = posBytes + rotBytes + scaleBytes + opacityBytes + colorBytes + sh1Bytes;
@@ -124,43 +121,58 @@ function createBaselineGltfData(
   // Write positions
   const posOffset = offset;
   for (let i = 0; i < count; i++) {
-    dataView.setFloat32(offset, (i % 10) * 0.1, true); offset += 4;  // x
-    dataView.setFloat32(offset, Math.floor(i / 10) * 0.1, true); offset += 4;  // y
-    dataView.setFloat32(offset, 0.0, true); offset += 4;  // z
+    dataView.setFloat32(offset, (i % 10) * 0.1, true);
+    offset += 4; // x
+    dataView.setFloat32(offset, Math.floor(i / 10) * 0.1, true);
+    offset += 4; // y
+    dataView.setFloat32(offset, 0.0, true);
+    offset += 4; // z
   }
 
   // Write rotations (identity quaternion: x=0, y=0, z=0, w=1)
   const rotOffset = offset;
   for (let i = 0; i < count; i++) {
-    dataView.setFloat32(offset, 0.0, true); offset += 4;  // x
-    dataView.setFloat32(offset, 0.0, true); offset += 4;  // y
-    dataView.setFloat32(offset, 0.0, true); offset += 4;  // z
-    dataView.setFloat32(offset, 1.0, true); offset += 4;  // w
+    dataView.setFloat32(offset, 0.0, true);
+    offset += 4; // x
+    dataView.setFloat32(offset, 0.0, true);
+    offset += 4; // y
+    dataView.setFloat32(offset, 0.0, true);
+    offset += 4; // z
+    dataView.setFloat32(offset, 1.0, true);
+    offset += 4; // w
   }
 
   // Write scales (in log-space or linear)
   const scaleOffset = offset;
   for (let i = 0; i < count; i++) {
     const scaleVal = scaleInLogSpace ? Math.log(0.01) : 0.01;
-    dataView.setFloat32(offset, scaleVal, true); offset += 4;
-    dataView.setFloat32(offset, scaleVal, true); offset += 4;
-    dataView.setFloat32(offset, scaleVal, true); offset += 4;
+    dataView.setFloat32(offset, scaleVal, true);
+    offset += 4;
+    dataView.setFloat32(offset, scaleVal, true);
+    offset += 4;
+    dataView.setFloat32(offset, scaleVal, true);
+    offset += 4;
   }
 
   // Write opacities
   const opacityOffset = offset;
   for (let i = 0; i < count; i++) {
-    dataView.setFloat32(offset, 0.8, true); offset += 4;
+    dataView.setFloat32(offset, 0.8, true);
+    offset += 4;
   }
 
   // Write colors (gradient red to blue, RGBA)
   const colorOffset = offset;
   for (let i = 0; i < count; i++) {
     const t = count > 1 ? i / (count - 1) : 0;
-    dataView.setFloat32(offset, 1 - t, true); offset += 4;  // r
-    dataView.setFloat32(offset, 0.0, true); offset += 4;    // g
-    dataView.setFloat32(offset, t, true); offset += 4;      // b
-    dataView.setFloat32(offset, 0.8, true); offset += 4;    // a
+    dataView.setFloat32(offset, 1 - t, true);
+    offset += 4; // r
+    dataView.setFloat32(offset, 0.0, true);
+    offset += 4; // g
+    dataView.setFloat32(offset, t, true);
+    offset += 4; // b
+    dataView.setFloat32(offset, 0.8, true);
+    offset += 4; // a
   }
 
   // Write SH degree 1 coefficients (3 VEC3 attributes)
@@ -168,9 +180,12 @@ function createBaselineGltfData(
   if (options?.includeShDegree1) {
     for (let coef = 0; coef < 3; coef++) {
       for (let i = 0; i < count; i++) {
-        dataView.setFloat32(offset, 0.1 * (coef + 1), true); offset += 4; // r
-        dataView.setFloat32(offset, 0.2 * (coef + 1), true); offset += 4; // g
-        dataView.setFloat32(offset, 0.3 * (coef + 1), true); offset += 4; // b
+        dataView.setFloat32(offset, 0.1 * (coef + 1), true);
+        offset += 4; // r
+        dataView.setFloat32(offset, 0.2 * (coef + 1), true);
+        offset += 4; // g
+        dataView.setFloat32(offset, 0.3 * (coef + 1), true);
+        offset += 4; // b
       }
     }
   }
@@ -186,20 +201,20 @@ function createBaselineGltfData(
 
   // Build accessors
   const accessors = [
-    { bufferView: 0, componentType: 5126, count, type: 'VEC3' },   // POSITION
-    { bufferView: 1, componentType: 5126, count, type: 'VEC4' },   // ROTATION
-    { bufferView: 2, componentType: 5126, count, type: 'VEC3' },   // SCALE
+    { bufferView: 0, componentType: 5126, count, type: 'VEC3' }, // POSITION
+    { bufferView: 1, componentType: 5126, count, type: 'VEC4' }, // ROTATION
+    { bufferView: 2, componentType: 5126, count, type: 'VEC3' }, // SCALE
     { bufferView: 3, componentType: 5126, count, type: 'SCALAR' }, // OPACITY
-    { bufferView: 4, componentType: 5126, count, type: 'VEC4' },   // COLOR_0
+    { bufferView: 4, componentType: 5126, count, type: 'VEC4' }, // COLOR_0
   ];
 
   // Build SH degree 1 buffer views and accessors
   const attributes: Record<string, number> = {
-    'POSITION': 0,
-    '_ROTATION': 1,
-    '_SCALE': 2,
-    '_OPACITY': 3,
-    'COLOR_0': 4,
+    POSITION: 0,
+    _ROTATION: 1,
+    _SCALE: 2,
+    _OPACITY: 3,
+    COLOR_0: 4,
   };
 
   if (options?.includeShDegree1) {
@@ -321,8 +336,8 @@ describe('GltfGaussianSplatCodec', () => {
       const glbHeader = new ArrayBuffer(12);
       const view = new DataView(glbHeader);
       view.setUint32(0, 0x46546c67, true); // "glTF" magic
-      view.setUint32(4, 2, true);           // version 2
-      view.setUint32(8, 12, true);          // length
+      view.setUint32(4, 2, true); // version 2
+      view.setUint32(8, 12, true); // length
 
       expect(codec.canDecode(glbHeader)).toBe(true);
     });
@@ -434,7 +449,7 @@ describe('GltfGaussianSplatCodec', () => {
       expect(result.data.rotations.length).toBe(count * 4);
 
       for (let i = 0; i < count; i++) {
-        expect(result.data.rotations[i * 4]).toBeCloseTo(0);     // x
+        expect(result.data.rotations[i * 4]).toBeCloseTo(0); // x
         expect(result.data.rotations[i * 4 + 1]).toBeCloseTo(0); // y
         expect(result.data.rotations[i * 4 + 2]).toBeCloseTo(0); // z
         expect(result.data.rotations[i * 4 + 3]).toBeCloseTo(1); // w
@@ -486,7 +501,7 @@ describe('GltfGaussianSplatCodec', () => {
 
       // Last Gaussian: blue (0, 0, 1, 0.8)
       const lastIdx = (count - 1) * 4;
-      expect(result.data.colors[lastIdx]).toBeCloseTo(0.0);     // r
+      expect(result.data.colors[lastIdx]).toBeCloseTo(0.0); // r
       expect(result.data.colors[lastIdx + 1]).toBeCloseTo(0.0); // g
       expect(result.data.colors[lastIdx + 2]).toBeCloseTo(1.0); // b
       expect(result.data.colors[lastIdx + 3]).toBeCloseTo(0.8); // a
@@ -499,8 +514,8 @@ describe('GltfGaussianSplatCodec', () => {
 
       const result = await codec.decode(glb, { maxGaussians: 25 });
       expect(result.data.count).toBe(25);
-      expect(result.data.positions.length).toBe(75);    // 25 * 3
-      expect(result.data.rotations.length).toBe(100);   // 25 * 4
+      expect(result.data.positions.length).toBe(75); // 25 * 3
+      expect(result.data.rotations.length).toBe(100); // 25 * 4
     });
 
     it('should include timing information', async () => {
@@ -547,7 +562,7 @@ describe('GltfGaussianSplatCodec', () => {
       expect(result.data.colors[1]).toBeCloseTo(0.0, 1);
 
       // Check that conversion warning was generated
-      expect(result.warnings.some(w => w.includes('linear RGB to sRGB'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('linear RGB to sRGB'))).toBe(true);
     });
   });
 
@@ -633,9 +648,7 @@ describe('GltfGaussianSplatCodec', () => {
         asset: { version: '2.0' },
         meshes: [
           {
-            primitives: [
-              { attributes: { POSITION: 0 }, mode: 0 },
-            ],
+            primitives: [{ attributes: { POSITION: 0 }, mode: 0 }],
           },
         ],
       };
@@ -658,19 +671,15 @@ describe('GltfGaussianSplatCodec', () => {
           {
             primitives: [
               {
-                attributes: { '_ROTATION': 0 },
+                attributes: { _ROTATION: 0 },
                 mode: 0,
                 extensions: { KHR_gaussian_splatting: {} },
               },
             ],
           },
         ],
-        accessors: [
-          { bufferView: 0, componentType: 5126, count: 10, type: 'VEC4' },
-        ],
-        bufferViews: [
-          { buffer: 0, byteOffset: 0, byteLength: 160 },
-        ],
+        accessors: [{ bufferView: 0, componentType: 5126, count: 10, type: 'VEC4' }],
+        bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: 160 }],
         buffers: [{ byteLength: 160 }],
       };
       const glb = buildGlb(json, new ArrayBuffer(160));
@@ -782,7 +791,7 @@ describe('GltfGaussianSplatCodec', () => {
       for (let i = 0; i < count; i++) {
         expect(result.data.rotations[i * 4 + 3]).toBeCloseTo(1); // w = 1
       }
-      expect(result.warnings.some(w => w.includes('ROTATION'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('ROTATION'))).toBe(true);
     });
 
     it('should use default scale when SCALE is missing', async () => {
@@ -795,7 +804,7 @@ describe('GltfGaussianSplatCodec', () => {
       const result = await codec.decode(glb);
 
       expect(result.data.scales[0]).toBeCloseTo(0.01);
-      expect(result.warnings.some(w => w.includes('SCALE'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('SCALE'))).toBe(true);
     });
 
     it('should use full opacity when OPACITY is missing', async () => {
@@ -808,7 +817,7 @@ describe('GltfGaussianSplatCodec', () => {
       const result = await codec.decode(glb);
 
       expect(result.data.opacities[0]).toBeCloseTo(1.0);
-      expect(result.warnings.some(w => w.includes('OPACITY'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('OPACITY'))).toBe(true);
     });
 
     it('should use mid-gray when no color data available', async () => {
@@ -823,7 +832,7 @@ describe('GltfGaussianSplatCodec', () => {
       expect(result.data.colors[0]).toBeCloseTo(0.5); // r
       expect(result.data.colors[1]).toBeCloseTo(0.5); // g
       expect(result.data.colors[2]).toBeCloseTo(0.5); // b
-      expect(result.warnings.some(w => w.includes('mid-gray'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('mid-gray'))).toBe(true);
     });
   });
 

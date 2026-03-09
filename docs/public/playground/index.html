@@ -1,340 +1,366 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HoloScript Interactive Playground - Advanced Earthquake Demo</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HoloScript Interactive Playground - Advanced Earthquake Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
-      color: #fff;
-      overflow: hidden;
-    }
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+        color: #fff;
+        overflow: hidden;
+      }
 
-    #app {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-    }
+      #app {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+      }
 
-    #header {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0, 0, 0, 0.9);
-      padding: 15px 30px;
-      border-bottom: 2px solid #00ff88;
-      z-index: 100;
-      backdrop-filter: blur(10px);
-    }
+      #header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.9);
+        padding: 15px 30px;
+        border-bottom: 2px solid #00ff88;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+      }
 
-    #header h1 {
-      font-size: 24px;
-      margin: 0;
-      color: #00ff88;
-    }
+      #header h1 {
+        font-size: 24px;
+        margin: 0;
+        color: #00ff88;
+      }
 
-    #header .subtitle {
-      font-size: 14px;
-      color: #888;
-      margin-top: 5px;
-    }
+      #header .subtitle {
+        font-size: 14px;
+        color: #888;
+        margin-top: 5px;
+      }
 
-    #stats {
-      position: absolute;
-      top: 100px;
-      left: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 15px 20px;
-      border-radius: 8px;
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
-      z-index: 10;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      max-width: 300px;
-    }
+      #stats {
+        position: absolute;
+        top: 100px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 15px 20px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        z-index: 10;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        max-width: 300px;
+      }
 
-    #stats h2 {
-      margin: 0 0 10px 0;
-      font-size: 18px;
-      color: #00ff88;
-    }
+      #stats h2 {
+        margin: 0 0 10px 0;
+        font-size: 18px;
+        color: #00ff88;
+      }
 
-    #stats .stat-row {
-      margin: 5px 0;
-      display: flex;
-      justify-content: space-between;
-      gap: 20px;
-    }
+      #stats .stat-row {
+        margin: 5px 0;
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
 
-    #stats .label {
-      color: #888;
-    }
+      #stats .label {
+        color: #888;
+      }
 
-    #stats .value {
-      color: #fff;
-      font-weight: bold;
-    }
+      #stats .value {
+        color: #fff;
+        font-weight: bold;
+      }
 
-    #stats .value.good {
-      color: #00ff88;
-    }
+      #stats .value.good {
+        color: #00ff88;
+      }
 
-    #stats .value.warn {
-      color: #ffaa00;
-    }
+      #stats .value.warn {
+        color: #ffaa00;
+      }
 
-    #stats .value.bad {
-      color: #ff4444;
-    }
+      #stats .value.bad {
+        color: #ff4444;
+      }
 
-    #controls {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 15px 20px;
-      border-radius: 8px;
-      font-size: 13px;
-      z-index: 10;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      max-width: 400px;
-    }
+      #controls {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 15px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        z-index: 10;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        max-width: 400px;
+      }
 
-    #controls h3 {
-      margin: 0 0 10px 0;
-      color: #00ff88;
-      font-size: 16px;
-    }
+      #controls h3 {
+        margin: 0 0 10px 0;
+        color: #00ff88;
+        font-size: 16px;
+      }
 
-    #controls .key {
-      display: inline-block;
-      background: #333;
-      padding: 3px 8px;
-      border-radius: 4px;
-      margin-right: 5px;
-      font-weight: bold;
-      color: #00ff88;
-    }
+      #controls .key {
+        display: inline-block;
+        background: #333;
+        padding: 3px 8px;
+        border-radius: 4px;
+        margin-right: 5px;
+        font-weight: bold;
+        color: #00ff88;
+      }
 
-    #features {
-      position: absolute;
-      top: 100px;
-      right: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 15px 20px;
-      border-radius: 8px;
-      font-size: 13px;
-      z-index: 10;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      max-width: 300px;
-    }
+      #features {
+        position: absolute;
+        top: 100px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 15px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        z-index: 10;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        max-width: 300px;
+      }
 
-    #features h3 {
-      margin: 0 0 10px 0;
-      color: #00ff88;
-      font-size: 16px;
-    }
+      #features h3 {
+        margin: 0 0 10px 0;
+        color: #00ff88;
+        font-size: 16px;
+      }
 
-    #features ul {
-      list-style: none;
-      padding: 0;
-    }
+      #features ul {
+        list-style: none;
+        padding: 0;
+      }
 
-    #features li {
-      margin: 5px 0;
-      padding-left: 20px;
-      position: relative;
-    }
+      #features li {
+        margin: 5px 0;
+        padding-left: 20px;
+        position: relative;
+      }
 
-    #features li::before {
-      content: '✓';
-      position: absolute;
-      left: 0;
-      color: #00ff88;
-      font-weight: bold;
-    }
+      #features li::before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        color: #00ff88;
+        font-weight: bold;
+      }
 
-    #loading {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      z-index: 100;
-    }
+      #loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        z-index: 100;
+      }
 
-    #loading h1 {
-      font-size: 36px;
-      margin-bottom: 20px;
-      color: #00ff88;
-    }
+      #loading h1 {
+        font-size: 36px;
+        margin-bottom: 20px;
+        color: #00ff88;
+      }
 
-    #loading .spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid rgba(255, 255, 255, 0.1);
-      border-top-color: #00ff88;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto;
-    }
+      #loading .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-top-color: #00ff88;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
 
-    #loading .status {
-      margin-top: 20px;
-      color: #888;
-      font-size: 14px;
-    }
+      #loading .status {
+        margin-top: 20px;
+        color: #888;
+        font-size: 14px;
+      }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
 
-    .hidden {
-      display: none;
-    }
+      .hidden {
+        display: none;
+      }
 
-    #error {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(255, 68, 68, 0.1);
-      border: 2px solid #ff4444;
-      border-radius: 8px;
-      padding: 30px;
-      max-width: 500px;
-      text-align: center;
-    }
+      #error {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(255, 68, 68, 0.1);
+        border: 2px solid #ff4444;
+        border-radius: 8px;
+        padding: 30px;
+        max-width: 500px;
+        text-align: center;
+      }
 
-    #error h2 {
-      color: #ff4444;
-      margin-bottom: 15px;
-    }
+      #error h2 {
+        color: #ff4444;
+        margin-bottom: 15px;
+      }
 
-    #error p {
-      color: #ccc;
-      line-height: 1.6;
-    }
-  </style>
-</head>
-<body>
-  <div id="app">
-    <!-- Header -->
-    <div id="header">
-      <h1>🌋 HoloScript Interactive Playground</h1>
-      <div class="subtitle">Advanced Earthquake Simulation - Runtime Integration Demo</div>
+      #error p {
+        color: #ccc;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Header -->
+      <div id="header">
+        <h1>🌋 HoloScript Interactive Playground</h1>
+        <div class="subtitle">Advanced Earthquake Simulation - Runtime Integration Demo</div>
+      </div>
+
+      <!-- Loading screen -->
+      <div id="loading">
+        <h1>🚀 Initializing HoloScript Runtime</h1>
+        <div class="spinner"></div>
+        <p class="status">Loading advanced rendering systems...</p>
+      </div>
+
+      <!-- Error display -->
+      <div id="error" class="hidden">
+        <h2>⚠️ Demo Currently Unavailable</h2>
+        <p id="error-message">
+          This interactive demo requires a build step to bundle the TypeScript modules. Please see
+          the
+          <a
+            href="https://github.com/brianonbased-dev/HoloScript/tree/main/examples"
+            style="color: #00ff88"
+            >examples directory</a
+          >
+          in the GitHub repository for the full source code.
+        </p>
+        <p style="margin-top: 15px; font-size: 12px; color: #666">
+          To run this demo locally, clone the repository and run:<br />
+          <code
+            style="
+              background: #000;
+              padding: 5px 10px;
+              border-radius: 4px;
+              display: inline-block;
+              margin-top: 5px;
+            "
+          >
+            pnpm install && pnpm build && cd examples && open advanced-earthquake-demo.html
+          </code>
+        </p>
+      </div>
+
+      <!-- Stats panel -->
+      <div id="stats" class="hidden">
+        <h2>📊 Performance</h2>
+        <div class="stat-row">
+          <span class="label">FPS:</span>
+          <span class="value good" id="fps">60</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Frame Time:</span>
+          <span class="value" id="frameTime">16.7ms</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Objects:</span>
+          <span class="value" id="objects">12,847</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Triangles:</span>
+          <span class="value" id="triangles">156,932</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Draw Calls:</span>
+          <span class="value" id="drawCalls">10</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Quality:</span>
+          <span class="value" id="quality">HIGH</span>
+        </div>
+      </div>
+
+      <!-- Features panel -->
+      <div id="features" class="hidden">
+        <h3>✨ Features Enabled</h3>
+        <ul>
+          <li>GPU Instancing (100x perf)</li>
+          <li>Custom Shaders (5x faster)</li>
+          <li>Post-Processing (SSAO, Bloom, TAA)</li>
+          <li>Scene Inspector</li>
+          <li>Earthquake Simulation (7.5)</li>
+          <li>Real-time Physics</li>
+        </ul>
+      </div>
+
+      <!-- Controls panel -->
+      <div id="controls" class="hidden">
+        <h3>⌨️ Keyboard Controls</h3>
+        <div style="margin: 5px 0"><span class="key">R</span> Reset Simulation</div>
+        <div style="margin: 5px 0"><span class="key">B</span> Toggle Bounding Boxes</div>
+        <div style="margin: 5px 0"><span class="key">G</span> Toggle Grid</div>
+        <div style="margin: 5px 0"><span class="key">P</span> Toggle Post-Processing</div>
+        <div style="margin: 5px 0">
+          <span class="key">Q</span> Cycle Quality (Low/Med/High/Ultra)
+        </div>
+        <div style="margin: 5px 0"><span class="key">S</span> Export Stats</div>
+        <div style="margin: 5px 0"><span class="key">H</span> Show Console Help</div>
+      </div>
     </div>
 
-    <!-- Loading screen -->
-    <div id="loading">
-      <h1>🚀 Initializing HoloScript Runtime</h1>
-      <div class="spinner"></div>
-      <p class="status">Loading advanced rendering systems...</p>
-    </div>
+    <script>
+      // Show error message after brief loading
+      setTimeout(() => {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('error').classList.remove('hidden');
 
-    <!-- Error display -->
-    <div id="error" class="hidden">
-      <h2>⚠️ Demo Currently Unavailable</h2>
-      <p id="error-message">
-        This interactive demo requires a build step to bundle the TypeScript modules.
-        Please see the <a href="https://github.com/brianonbased-dev/HoloScript/tree/main/examples" style="color: #00ff88;">examples directory</a>
-        in the GitHub repository for the full source code.
-      </p>
-      <p style="margin-top: 15px; font-size: 12px; color: #666;">
-        To run this demo locally, clone the repository and run:<br>
-        <code style="background: #000; padding: 5px 10px; border-radius: 4px; display: inline-block; margin-top: 5px;">
-          pnpm install && pnpm build && cd examples && open advanced-earthquake-demo.html
-        </code>
-      </p>
-    </div>
-
-    <!-- Stats panel -->
-    <div id="stats" class="hidden">
-      <h2>📊 Performance</h2>
-      <div class="stat-row">
-        <span class="label">FPS:</span>
-        <span class="value good" id="fps">60</span>
-      </div>
-      <div class="stat-row">
-        <span class="label">Frame Time:</span>
-        <span class="value" id="frameTime">16.7ms</span>
-      </div>
-      <div class="stat-row">
-        <span class="label">Objects:</span>
-        <span class="value" id="objects">12,847</span>
-      </div>
-      <div class="stat-row">
-        <span class="label">Triangles:</span>
-        <span class="value" id="triangles">156,932</span>
-      </div>
-      <div class="stat-row">
-        <span class="label">Draw Calls:</span>
-        <span class="value" id="drawCalls">10</span>
-      </div>
-      <div class="stat-row">
-        <span class="label">Quality:</span>
-        <span class="value" id="quality">HIGH</span>
-      </div>
-    </div>
-
-    <!-- Features panel -->
-    <div id="features" class="hidden">
-      <h3>✨ Features Enabled</h3>
-      <ul>
-        <li>GPU Instancing (100x perf)</li>
-        <li>Custom Shaders (5x faster)</li>
-        <li>Post-Processing (SSAO, Bloom, TAA)</li>
-        <li>Scene Inspector</li>
-        <li>Earthquake Simulation (7.5)</li>
-        <li>Real-time Physics</li>
-      </ul>
-    </div>
-
-    <!-- Controls panel -->
-    <div id="controls" class="hidden">
-      <h3>⌨️ Keyboard Controls</h3>
-      <div style="margin: 5px 0;"><span class="key">R</span> Reset Simulation</div>
-      <div style="margin: 5px 0;"><span class="key">B</span> Toggle Bounding Boxes</div>
-      <div style="margin: 5px 0;"><span class="key">G</span> Toggle Grid</div>
-      <div style="margin: 5px 0;"><span class="key">P</span> Toggle Post-Processing</div>
-      <div style="margin: 5px 0;"><span class="key">Q</span> Cycle Quality (Low/Med/High/Ultra)</div>
-      <div style="margin: 5px 0;"><span class="key">S</span> Export Stats</div>
-      <div style="margin: 5px 0;"><span class="key">H</span> Show Console Help</div>
-    </div>
-  </div>
-
-  <script>
-    // Show error message after brief loading
-    setTimeout(() => {
-      document.getElementById('loading').classList.add('hidden');
-      document.getElementById('error').classList.remove('hidden');
-
-      console.log('%c🌋 HoloScript Interactive Playground', 'font-size: 24px; color: #00ff88; font-weight: bold;');
-      console.log('%cThis demo showcases the HoloScript Runtime Integration features:', 'font-size: 14px; color: #888;');
-      console.log('  ✓ EarthquakeRuntimeExecutor - Seismic simulation (Richter 7.5)');
-      console.log('  ✓ GPU Instancing - 100x performance improvement');
-      console.log('  ✓ Post-Processing - SSAO, Bloom, TAA, Vignette');
-      console.log('  ✓ Optimized Shaders - 5x faster particle rendering');
-      console.log('  ✓ Scene Inspector - Real-time debugging');
-      console.log('\n%cTo run the full demo:', 'font-size: 14px; font-weight: bold;');
-      console.log('1. Clone: git clone https://github.com/brianonbased-dev/HoloScript.git');
-      console.log('2. Install: pnpm install');
-      console.log('3. Build: pnpm build');
-      console.log('4. Run: cd examples && open advanced-earthquake-demo.html');
-      console.log('\n%cSource code: https://github.com/brianonbased-dev/HoloScript/tree/main/examples', 'color: #00ff88;');
-    }, 1500);
-  </script>
-</body>
+        console.log(
+          '%c🌋 HoloScript Interactive Playground',
+          'font-size: 24px; color: #00ff88; font-weight: bold;'
+        );
+        console.log(
+          '%cThis demo showcases the HoloScript Runtime Integration features:',
+          'font-size: 14px; color: #888;'
+        );
+        console.log('  ✓ EarthquakeRuntimeExecutor - Seismic simulation (Richter 7.5)');
+        console.log('  ✓ GPU Instancing - 100x performance improvement');
+        console.log('  ✓ Post-Processing - SSAO, Bloom, TAA, Vignette');
+        console.log('  ✓ Optimized Shaders - 5x faster particle rendering');
+        console.log('  ✓ Scene Inspector - Real-time debugging');
+        console.log('\n%cTo run the full demo:', 'font-size: 14px; font-weight: bold;');
+        console.log('1. Clone: git clone https://github.com/brianonbased-dev/HoloScript.git');
+        console.log('2. Install: pnpm install');
+        console.log('3. Build: pnpm build');
+        console.log('4. Run: cd examples && open advanced-earthquake-demo.html');
+        console.log(
+          '\n%cSource code: https://github.com/brianonbased-dev/HoloScript/tree/main/examples',
+          'color: #00ff88;'
+        );
+      }, 1500);
+    </script>
+  </body>
 </html>

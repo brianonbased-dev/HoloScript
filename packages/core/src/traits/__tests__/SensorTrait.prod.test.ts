@@ -4,8 +4,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { sensorHandler } from '../SensorTrait';
 
-function makeNode() { return { id: 'sensor_node' }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'sensor_node' };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}) {
   const node = makeNode();
   const ctx = makeCtx();
@@ -40,10 +44,13 @@ describe('sensorHandler.onAttach', () => {
   it('history=[]', () => expect(attach().node.__sensorState.history).toEqual([]));
   it('emits sensor_connect when endpoint set', () => {
     const { ctx } = attach({ endpoint: 'http://sensor.local/temp', protocol: 'rest' });
-    expect(ctx.emit).toHaveBeenCalledWith('sensor_connect', expect.objectContaining({
-      endpoint: 'http://sensor.local/temp',
-      protocol: 'rest',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'sensor_connect',
+      expect.objectContaining({
+        endpoint: 'http://sensor.local/temp',
+        protocol: 'rest',
+      })
+    );
   });
   it('no sensor_connect when endpoint empty', () => {
     const { ctx } = attach({ endpoint: '' });
@@ -78,21 +85,36 @@ describe('sensorHandler.onDetach', () => {
 
 describe('sensorHandler.onUpdate — REST polling', () => {
   it('no-op when not connected', () => {
-    const { node, config, ctx } = attach({ protocol: 'rest', update_interval: 1000, endpoint: 'http://x' });
+    const { node, config, ctx } = attach({
+      protocol: 'rest',
+      update_interval: 1000,
+      endpoint: 'http://x',
+    });
     ctx.emit.mockClear();
     sensorHandler.onUpdate!(node, config, ctx, 0.016);
     expect(ctx.emit).not.toHaveBeenCalled();
   });
   it('emits sensor_fetch when interval elapsed', () => {
-    const { node, config, ctx } = attach({ protocol: 'rest', update_interval: 100, endpoint: 'http://x' });
+    const { node, config, ctx } = attach({
+      protocol: 'rest',
+      update_interval: 100,
+      endpoint: 'http://x',
+    });
     node.__sensorState.isConnected = true;
     node.__sensorState.lastUpdate = Date.now() - 200; // 200ms ago
     ctx.emit.mockClear();
     sensorHandler.onUpdate!(node, config, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('sensor_fetch', expect.objectContaining({ endpoint: 'http://x' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'sensor_fetch',
+      expect.objectContaining({ endpoint: 'http://x' })
+    );
   });
   it('no sensor_fetch when interval not elapsed', () => {
-    const { node, config, ctx } = attach({ protocol: 'rest', update_interval: 60000, endpoint: 'http://x' });
+    const { node, config, ctx } = attach({
+      protocol: 'rest',
+      update_interval: 60000,
+      endpoint: 'http://x',
+    });
     node.__sensorState.isConnected = true;
     node.__sensorState.lastUpdate = Date.now(); // just now
     ctx.emit.mockClear();
@@ -100,7 +122,11 @@ describe('sensorHandler.onUpdate — REST polling', () => {
     expect(ctx.emit).not.toHaveBeenCalled();
   });
   it('no poll for websocket protocol', () => {
-    const { node, config, ctx } = attach({ protocol: 'websocket', update_interval: 100, endpoint: 'ws://x' });
+    const { node, config, ctx } = attach({
+      protocol: 'websocket',
+      update_interval: 100,
+      endpoint: 'ws://x',
+    });
     node.__sensorState.isConnected = true;
     node.__sensorState.lastUpdate = 0;
     ctx.emit.mockClear();
@@ -149,10 +175,13 @@ describe('sensorHandler.onEvent — sensor_data', () => {
     const { node, config, ctx } = attach({ unit: '°C' });
     ctx.emit.mockClear();
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 25 });
-    expect(ctx.emit).toHaveBeenCalledWith('on_sensor_update', expect.objectContaining({
-      value: 25,
-      unit: '°C',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_sensor_update',
+      expect.objectContaining({
+        value: 25,
+        unit: '°C',
+      })
+    );
   });
   it('records history entry', () => {
     const { node, config, ctx } = attach();
@@ -227,7 +256,10 @@ describe('sensorHandler.onEvent — sensor_error', () => {
     const { node, config, ctx } = attach();
     ctx.emit.mockClear();
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_error', error: 'timeout' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_sensor_error', expect.objectContaining({ error: 'timeout' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_sensor_error',
+      expect.objectContaining({ error: 'timeout' })
+    );
   });
 });
 
@@ -259,7 +291,12 @@ describe('sensorHandler.onEvent — sensor_get_history', () => {
       { timestamp: Date.now(), value: 2 },
     ];
     ctx.emit.mockClear();
-    sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_get_history', startTime: t0 - 1, endTime: Date.now() + 1, callbackId: 'cb1' });
+    sensorHandler.onEvent!(node, config, ctx, {
+      type: 'sensor_get_history',
+      startTime: t0 - 1,
+      endTime: Date.now() + 1,
+      callbackId: 'cb1',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'sensor_history_result')!;
     expect(call[1].history).toHaveLength(2);
     expect(call[1].callbackId).toBe('cb1');
@@ -272,7 +309,11 @@ describe('sensorHandler.onEvent — sensor_get_history', () => {
       { timestamp: now, value: 'new' },
     ];
     ctx.emit.mockClear();
-    sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_get_history', startTime: now - 1000, endTime: now + 1 });
+    sensorHandler.onEvent!(node, config, ctx, {
+      type: 'sensor_get_history',
+      startTime: now - 1000,
+      endTime: now + 1,
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'sensor_history_result')!;
     expect(call[1].history).toHaveLength(1);
     expect(call[1].history[0].value).toBe('new');
@@ -285,14 +326,23 @@ describe('sensorHandler.onEvent — sensor_set_endpoint', () => {
   it('reconnects with new endpoint', () => {
     const { node, config, ctx } = attach();
     ctx.emit.mockClear();
-    sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_set_endpoint', endpoint: 'http://new-endpoint' });
-    expect(ctx.emit).toHaveBeenCalledWith('sensor_connect', expect.objectContaining({ endpoint: 'http://new-endpoint' }));
+    sensorHandler.onEvent!(node, config, ctx, {
+      type: 'sensor_set_endpoint',
+      endpoint: 'http://new-endpoint',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'sensor_connect',
+      expect.objectContaining({ endpoint: 'http://new-endpoint' })
+    );
   });
   it('disconnects old connection if handle exists', () => {
     const { node, config, ctx } = attach();
     node.__sensorState.connectionHandle = 'old';
     ctx.emit.mockClear();
-    sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_set_endpoint', endpoint: 'http://new' });
+    sensorHandler.onEvent!(node, config, ctx, {
+      type: 'sensor_set_endpoint',
+      endpoint: 'http://new',
+    });
     expect(ctx.emit).toHaveBeenCalledWith('sensor_disconnect', expect.anything());
   });
 });
@@ -306,11 +356,14 @@ describe('sensorHandler.onEvent — sensor_query', () => {
     node.__sensorState.currentValue = 300;
     ctx.emit.mockClear();
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_query', queryId: 'q1' });
-    expect(ctx.emit).toHaveBeenCalledWith('sensor_info', expect.objectContaining({
-      queryId: 'q1',
-      isConnected: true,
-      currentValue: 300,
-      unit: 'K',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'sensor_info',
+      expect.objectContaining({
+        queryId: 'q1',
+        isConnected: true,
+        currentValue: 300,
+        unit: 'K',
+      })
+    );
   });
 });

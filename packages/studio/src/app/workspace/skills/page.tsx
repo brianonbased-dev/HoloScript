@@ -13,11 +13,27 @@
 
 import { useState, useCallback } from 'react';
 import {
-  Brain, FileText, Play, Upload, Save,
-  Plus, Trash2, Eye, Code, Terminal,
-  ChevronRight, FolderOpen, File,
-  Sparkles, Shield, Globe, Zap,
-  Check, X, Loader2, ArrowLeft,
+  Brain,
+  FileText,
+  Play,
+  Upload,
+  Save,
+  Plus,
+  Trash2,
+  Eye,
+  Code,
+  Terminal,
+  ChevronRight,
+  FolderOpen,
+  File,
+  Sparkles,
+  Shield,
+  Globe,
+  Zap,
+  Check,
+  X,
+  Loader2,
+  ArrowLeft,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -30,9 +46,15 @@ interface SkillFile {
 }
 
 type SkillCategory =
-  | 'agent_framework' | 'workflow' | 'rbac_policy' | 'orchestration'
-  | 'mcp_bundle' | 'ecosystem_script' | 'decision_template'
-  | 'prompt_template' | 'code_generator';
+  | 'agent_framework'
+  | 'workflow'
+  | 'rbac_policy'
+  | 'orchestration'
+  | 'mcp_bundle'
+  | 'ecosystem_script'
+  | 'decision_template'
+  | 'prompt_template'
+  | 'code_generator';
 
 type TargetPlatform = 'claude' | 'gemini' | 'openai' | 'universal';
 
@@ -57,7 +79,12 @@ interface TestResult {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const CATEGORY_OPTIONS: { value: SkillCategory; label: string; icon: typeof Brain; color: string }[] = [
+const CATEGORY_OPTIONS: {
+  value: SkillCategory;
+  label: string;
+  icon: typeof Brain;
+  color: string;
+}[] = [
   { value: 'workflow', label: 'Workflow', icon: Zap, color: 'text-amber-400' },
   { value: 'agent_framework', label: 'Agent Framework', icon: Brain, color: 'text-violet-400' },
   { value: 'rbac_policy', label: 'RBAC Policy', icon: Shield, color: 'text-blue-400' },
@@ -65,7 +92,12 @@ const CATEGORY_OPTIONS: { value: SkillCategory; label: string; icon: typeof Brai
   { value: 'prompt_template', label: 'Prompt Template', icon: Sparkles, color: 'text-rose-400' },
   { value: 'orchestration', label: 'Orchestration', icon: Terminal, color: 'text-cyan-400' },
   { value: 'ecosystem_script', label: 'Ecosystem Script', icon: Code, color: 'text-orange-400' },
-  { value: 'decision_template', label: 'Decision Template', icon: FileText, color: 'text-teal-400' },
+  {
+    value: 'decision_template',
+    label: 'Decision Template',
+    icon: FileText,
+    color: 'text-teal-400',
+  },
   { value: 'code_generator', label: 'Code Generator', icon: Code, color: 'text-indigo-400' },
 ];
 
@@ -138,7 +170,10 @@ function FileTree({
             <span className="flex-1 truncate">{file.path}</span>
             {file.path !== 'SKILL.md' && (
               <button
-                onClick={(e) => { e.stopPropagation(); onDelete(file.path); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(file.path);
+                }}
                 className="hidden rounded p-0.5 text-white/20 hover:text-red-400 group-hover:block"
               >
                 <Trash2 className="h-3 w-3" />
@@ -202,7 +237,9 @@ function TestHarness({
     <div className="flex flex-col border-t border-white/5">
       <div className="flex items-center gap-2 border-b border-white/5 px-4 py-2">
         <Terminal className="h-4 w-4 text-white/40" />
-        <span className="text-xs font-medium uppercase tracking-wider text-white/40">Test Harness</span>
+        <span className="text-xs font-medium uppercase tracking-wider text-white/40">
+          Test Harness
+        </span>
       </div>
 
       {/* Test input */}
@@ -221,11 +258,7 @@ function TestHarness({
           disabled={isRunning || !prompt.trim()}
           className="flex items-center gap-1.5 rounded-lg bg-amber-500/20 px-4 py-2 text-sm font-medium text-amber-400 transition hover:bg-amber-500/30 disabled:opacity-50"
         >
-          {isRunning ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
+          {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
           Run
         </button>
       </div>
@@ -320,10 +353,18 @@ function MetadataPanel({
           onChange={(e) => onChange({ targetPlatform: e.target.value as TargetPlatform })}
           className="rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-white/10 focus:outline-none"
         >
-          <option value="universal" className="bg-[#0a0a12]">Universal</option>
-          <option value="claude" className="bg-[#0a0a12]">Claude</option>
-          <option value="gemini" className="bg-[#0a0a12]">Gemini</option>
-          <option value="openai" className="bg-[#0a0a12]">OpenAI</option>
+          <option value="universal" className="bg-[#0a0a12]">
+            Universal
+          </option>
+          <option value="claude" className="bg-[#0a0a12]">
+            Claude
+          </option>
+          <option value="gemini" className="bg-[#0a0a12]">
+            Gemini
+          </option>
+          <option value="openai" className="bg-[#0a0a12]">
+            OpenAI
+          </option>
         </select>
       </label>
 
@@ -343,12 +384,20 @@ function MetadataPanel({
         <span className="text-xs text-white/40">Pricing</span>
         <select
           value={meta.pricingModel}
-          onChange={(e) => onChange({ pricingModel: e.target.value as 'free' | 'one_time' | 'subscription' })}
+          onChange={(e) =>
+            onChange({ pricingModel: e.target.value as 'free' | 'one_time' | 'subscription' })
+          }
           className="rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-white/10 focus:outline-none"
         >
-          <option value="free" className="bg-[#0a0a12]">Free</option>
-          <option value="one_time" className="bg-[#0a0a12]">One-time Purchase</option>
-          <option value="subscription" className="bg-[#0a0a12]">Subscription</option>
+          <option value="free" className="bg-[#0a0a12]">
+            Free
+          </option>
+          <option value="one_time" className="bg-[#0a0a12]">
+            One-time Purchase
+          </option>
+          <option value="subscription" className="bg-[#0a0a12]">
+            Subscription
+          </option>
         </select>
       </label>
 
@@ -372,7 +421,14 @@ function MetadataPanel({
         <input
           type="text"
           value={meta.keywords.join(', ')}
-          onChange={(e) => onChange({ keywords: e.target.value.split(',').map((k) => k.trim()).filter(Boolean) })}
+          onChange={(e) =>
+            onChange({
+              keywords: e.target.value
+                .split(',')
+                .map((k) => k.trim())
+                .filter(Boolean),
+            })
+          }
           className="rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-white/10 focus:outline-none"
         />
       </label>
@@ -406,7 +462,9 @@ export default function SkillBuilderPage() {
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [isTestRunning, setIsTestRunning] = useState(false);
-  const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'done' | 'error'>('idle');
+  const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'done' | 'error'>(
+    'idle'
+  );
 
   // File operations
   const handleAddFile = useCallback(() => {
@@ -421,11 +479,12 @@ export default function SkillBuilderPage() {
     setSelectedFile('SKILL.md');
   }, []);
 
-  const handleFileContentChange = useCallback((content: string) => {
-    setFiles((prev) =>
-      prev.map((f) => (f.path === selectedFile ? { ...f, content } : f))
-    );
-  }, [selectedFile]);
+  const handleFileContentChange = useCallback(
+    (content: string) => {
+      setFiles((prev) => prev.map((f) => (f.path === selectedFile ? { ...f, content } : f)));
+    },
+    [selectedFile]
+  );
 
   // Meta updates
   const handleMetaChange = useCallback((partial: Partial<SkillMeta>) => {
@@ -433,21 +492,24 @@ export default function SkillBuilderPage() {
   }, []);
 
   // Test
-  const handleRunTest = useCallback(async (testPrompt: string) => {
-    setIsTestRunning(true);
-    // Simulated test — in production this calls the API
-    await new Promise((r) => setTimeout(r, 800));
-    setTestResults((prev) => [
-      {
-        prompt: testPrompt,
-        output: `[Simulated] Skill "${meta.name}" processed: "${testPrompt.slice(0, 80)}..."`,
-        duration: Math.floor(Math.random() * 500) + 200,
-        status: 'success',
-      },
-      ...prev,
-    ]);
-    setIsTestRunning(false);
-  }, [meta.name]);
+  const handleRunTest = useCallback(
+    async (testPrompt: string) => {
+      setIsTestRunning(true);
+      // Simulated test — in production this calls the API
+      await new Promise((r) => setTimeout(r, 800));
+      setTestResults((prev) => [
+        {
+          prompt: testPrompt,
+          output: `[Simulated] Skill "${meta.name}" processed: "${testPrompt.slice(0, 80)}..."`,
+          duration: Math.floor(Math.random() * 500) + 200,
+          status: 'success',
+        },
+        ...prev,
+      ]);
+      setIsTestRunning(false);
+    },
+    [meta.name]
+  );
 
   // Publish
   const handlePublish = useCallback(async () => {
@@ -483,18 +545,25 @@ export default function SkillBuilderPage() {
   }, [meta, files]);
 
   const currentFile = files.find((f) => f.path === selectedFile);
-  const fileLanguage = selectedFile.endsWith('.md') ? 'markdown'
-    : selectedFile.endsWith('.ts') || selectedFile.endsWith('.tsx') ? 'typescript'
-    : selectedFile.endsWith('.sh') ? 'bash'
-    : selectedFile.endsWith('.json') ? 'json'
-    : 'text';
+  const fileLanguage = selectedFile.endsWith('.md')
+    ? 'markdown'
+    : selectedFile.endsWith('.ts') || selectedFile.endsWith('.tsx')
+      ? 'typescript'
+      : selectedFile.endsWith('.sh')
+        ? 'bash'
+        : selectedFile.endsWith('.json')
+          ? 'json'
+          : 'text';
 
   return (
     <div className="flex h-screen flex-col bg-[#0a0a12] text-white">
       {/* Top Bar */}
       <div className="flex items-center justify-between border-b border-white/5 px-4 py-2">
         <div className="flex items-center gap-3">
-          <Link href="/workspace" className="rounded-lg p-1.5 text-white/40 transition hover:bg-white/5 hover:text-white/60">
+          <Link
+            href="/workspace"
+            className="rounded-lg p-1.5 text-white/40 transition hover:bg-white/5 hover:text-white/60"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <Brain className="h-5 w-5 text-amber-400" />
@@ -510,7 +579,9 @@ export default function SkillBuilderPage() {
             <button
               onClick={() => setActiveTab('edit')}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                activeTab === 'edit' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'
+                activeTab === 'edit'
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/40 hover:text-white/60'
               }`}
             >
               <Code className="h-3.5 w-3.5" /> Edit
@@ -518,7 +589,9 @@ export default function SkillBuilderPage() {
             <button
               onClick={() => setActiveTab('preview')}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                activeTab === 'preview' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'
+                activeTab === 'preview'
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/40 hover:text-white/60'
               }`}
             >
               <Eye className="h-3.5 w-3.5" /> Preview
@@ -542,7 +615,11 @@ export default function SkillBuilderPage() {
             ) : (
               <Upload className="h-3.5 w-3.5" />
             )}
-            {publishState === 'done' ? 'Published!' : publishState === 'publishing' ? 'Publishing...' : 'Publish'}
+            {publishState === 'done'
+              ? 'Published!'
+              : publishState === 'publishing'
+                ? 'Publishing...'
+                : 'Publish'}
           </button>
         </div>
       </div>
@@ -579,11 +656,7 @@ export default function SkillBuilderPage() {
           )}
 
           {/* Test Harness */}
-          <TestHarness
-            results={testResults}
-            onRunTest={handleRunTest}
-            isRunning={isTestRunning}
-          />
+          <TestHarness results={testResults} onRunTest={handleRunTest} isRunning={isTestRunning} />
         </div>
 
         {/* Metadata Panel (280px) */}

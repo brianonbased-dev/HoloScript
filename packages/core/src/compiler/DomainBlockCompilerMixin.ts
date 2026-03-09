@@ -10,10 +10,7 @@
  * @version 4.2.0
  */
 
-import type {
-  HoloDomainBlock,
-  HoloDomainType,
-} from '../parser/HoloCompositionTypes';
+import type { HoloDomainBlock, HoloDomainType } from '../parser/HoloCompositionTypes';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 
 // =============================================================================
@@ -35,8 +32,8 @@ export interface CompiledMaterial {
 }
 
 export function compileMaterialBlock(block: HoloDomainBlock): CompiledMaterial {
-  const type = block.keyword === 'unlit_material' ? 'unlit'
-    : block.keyword === 'shader' ? 'shader' : 'pbr';
+  const type =
+    block.keyword === 'unlit_material' ? 'unlit' : block.keyword === 'shader' ? 'shader' : 'pbr';
 
   const textureMaps: Record<string, string> = {};
   const otherProps: Record<string, any> = {};
@@ -115,7 +112,7 @@ export function compilePhysicsBlock(block: HoloDomainBlock): CompiledPhysics {
   const joints: CompiledJoint[] = [];
   let rigidbody: CompiledRigidbody | undefined;
 
-  for (const child of (block.children || [])) {
+  for (const child of block.children || []) {
     const c = child as any;
     if (c.type !== 'DomainBlock') continue;
 
@@ -128,7 +125,16 @@ export function compilePhysicsBlock(block: HoloDomainBlock): CompiledPhysics {
       });
     } else if (kw === 'rigidbody') {
       rigidbody = { properties: c.properties || {} };
-    } else if (['force_field', 'gravity_zone', 'wind_zone', 'buoyancy_zone', 'magnetic_field', 'drag_zone'].includes(kw)) {
+    } else if (
+      [
+        'force_field',
+        'gravity_zone',
+        'wind_zone',
+        'buoyancy_zone',
+        'magnetic_field',
+        'drag_zone',
+      ].includes(kw)
+    ) {
       forceFields.push({
         keyword: kw,
         name: c.name,
@@ -181,7 +187,7 @@ export interface CompiledParticleSystem {
 export function compileParticleBlock(block: HoloDomainBlock): CompiledParticleSystem {
   const modules: CompiledParticleModule[] = [];
 
-  for (const child of (block.children || [])) {
+  for (const child of block.children || []) {
     const c = child as any;
     if (c.type === 'DomainBlock') {
       modules.push({
@@ -222,7 +228,7 @@ export interface CompiledPostProcessing {
 export function compilePostProcessingBlock(block: HoloDomainBlock): CompiledPostProcessing {
   const effects: CompiledPostEffect[] = [];
 
-  for (const child of (block.children || [])) {
+  for (const child of block.children || []) {
     const c = child as any;
     if (c.type === 'DomainBlock') {
       effects.push({
@@ -288,7 +294,7 @@ export interface CompiledWeather {
 export function compileWeatherBlock(block: HoloDomainBlock): CompiledWeather {
   const layers: CompiledWeatherLayer[] = [];
 
-  for (const child of (block.children || [])) {
+  for (const child of block.children || []) {
     const c = child as any;
     if (c.type === 'DomainBlock') {
       layers.push({
@@ -331,39 +337,42 @@ export function particlesToR3F(ps: CompiledParticleSystem): string {
   const isLooping = ps.traits.includes('looping');
   if (isLooping) props.push('loop');
 
-  const modulesJSX = ps.modules.map(m => {
-    const mProps = Object.entries(m.properties)
-      .map(([k, v]) => {
-        const camel = k.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
-        return typeof v === 'string' ? `${camel}="${v}"` : `${camel}={${JSON.stringify(v)}}`;
-      }).join(' ');
-    return `  <${m.type} ${mProps} />`;
-  }).join('\n');
+  const modulesJSX = ps.modules
+    .map((m) => {
+      const mProps = Object.entries(m.properties)
+        .map(([k, v]) => {
+          const camel = k.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+          return typeof v === 'string' ? `${camel}="${v}"` : `${camel}={${JSON.stringify(v)}}`;
+        })
+        .join(' ');
+      return `  <${m.type} ${mProps} />`;
+    })
+    .join('\n');
 
-  return [
-    `<ParticleSystem name="${ps.name}" ${props.join(' ')}>`,
-    modulesJSX,
-    '</ParticleSystem>',
-  ].filter(Boolean).join('\n');
+  return [`<ParticleSystem name="${ps.name}" ${props.join(' ')}>`, modulesJSX, '</ParticleSystem>']
+    .filter(Boolean)
+    .join('\n');
 }
 
 /** Generate R3F/Three.js post-processing JSX (react-postprocessing) */
 export function postProcessingToR3F(pp: CompiledPostProcessing): string {
-  const effectsJSX = pp.effects.map(e => {
-    const componentName = e.type.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join('');
-    const props = Object.entries(e.properties)
-      .map(([k, v]) => {
-        const camel = k.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
-        return typeof v === 'string' ? `${camel}="${v}"` : `${camel}={${JSON.stringify(v)}}`;
-      }).join(' ');
-    return `  <${componentName} ${props} />`;
-  }).join('\n');
+  const effectsJSX = pp.effects
+    .map((e) => {
+      const componentName = e.type
+        .split('_')
+        .map((w) => w[0].toUpperCase() + w.slice(1))
+        .join('');
+      const props = Object.entries(e.properties)
+        .map(([k, v]) => {
+          const camel = k.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+          return typeof v === 'string' ? `${camel}="${v}"` : `${camel}={${JSON.stringify(v)}}`;
+        })
+        .join(' ');
+      return `  <${componentName} ${props} />`;
+    })
+    .join('\n');
 
-  return [
-    '<EffectComposer>',
-    effectsJSX,
-    '</EffectComposer>',
-  ].join('\n');
+  return ['<EffectComposer>', effectsJSX, '</EffectComposer>'].join('\n');
 }
 
 /** Generate R3F/Three.js audio source JSX */
@@ -385,20 +394,25 @@ export function audioSourceToR3F(audio: CompiledAudioSource): string {
 
 /** Generate USD weather/atmosphere representation */
 export function weatherToUSD(weather: CompiledWeather): string {
-  const lines: string[] = [
-    `def Scope "${weather.name || 'Weather'}" {`,
-  ];
+  const lines: string[] = [`def Scope "${weather.name || 'Weather'}" {`];
 
   for (const [key, value] of Object.entries(weather.properties)) {
-    lines.push(`    custom ${typeof value === 'number' ? 'float' : 'string'} ${key} = ${JSON.stringify(value)}`);
+    lines.push(
+      `    custom ${typeof value === 'number' ? 'float' : 'string'} ${key} = ${JSON.stringify(value)}`
+    );
   }
 
   for (const layer of weather.layers) {
     lines.push(`    def Scope "${layer.type}" {`);
     for (const [key, value] of Object.entries(layer.properties)) {
-      const usdType = typeof value === 'number' ? 'float'
-        : typeof value === 'boolean' ? 'bool'
-        : Array.isArray(value) ? 'float3' : 'string';
+      const usdType =
+        typeof value === 'number'
+          ? 'float'
+          : typeof value === 'boolean'
+            ? 'bool'
+            : Array.isArray(value)
+              ? 'float3'
+              : 'string';
       const usdVal = Array.isArray(value) ? `(${value.join(', ')})` : JSON.stringify(value);
       lines.push(`        custom ${usdType} ${key} = ${usdVal}`);
     }
@@ -416,7 +430,9 @@ export function materialToR3F(mat: CompiledMaterial): string {
       mat.emissiveColor ? `emissive="${mat.emissiveColor}"` : '',
       mat.emissiveIntensity ? `emissiveIntensity={${mat.emissiveIntensity}}` : '',
       mat.opacity !== undefined ? `opacity={${mat.opacity}} transparent` : '',
-    ].filter(Boolean).join(' ');
+    ]
+      .filter(Boolean)
+      .join(' ');
     return `<meshBasicMaterial ${props} />`;
   }
 
@@ -427,12 +443,16 @@ export function materialToR3F(mat: CompiledMaterial): string {
     mat.opacity !== undefined ? `opacity={${mat.opacity}} transparent` : '',
     mat.emissiveColor ? `emissive="${mat.emissiveColor}"` : '',
     mat.emissiveIntensity ? `emissiveIntensity={${mat.emissiveIntensity}}` : '',
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 
-  const textures = Object.entries(mat.textureMaps).map(([type, path]) => {
-    const propName = type.replace(/_map$/, 'Map').replace(/^albedo/, '');
-    return `${propName}={useTexture("${path}")}`;
-  }).join(' ');
+  const textures = Object.entries(mat.textureMaps)
+    .map(([type, path]) => {
+      const propName = type.replace(/_map$/, 'Map').replace(/^albedo/, '');
+      return `${propName}={useTexture("${path}")}`;
+    })
+    .join(' ');
 
   return `<meshStandardMaterial ${props} ${textures} />`;
 }
@@ -445,7 +465,8 @@ export function materialToUSD(mat: CompiledMaterial): string {
     `    def Shader "PBRShader" {`,
     `        uniform token info:id = "UsdPreviewSurface"`,
   ];
-  if (mat.baseColor) lines.push(`        color3f inputs:diffuseColor = (${hexToRGB(mat.baseColor)})`);
+  if (mat.baseColor)
+    lines.push(`        color3f inputs:diffuseColor = (${hexToRGB(mat.baseColor)})`);
   if (mat.roughness !== undefined) lines.push(`        float inputs:roughness = ${mat.roughness}`);
   if (mat.metallic !== undefined) lines.push(`        float inputs:metallic = ${mat.metallic}`);
   if (mat.opacity !== undefined) lines.push(`        float inputs:opacity = ${mat.opacity}`);
@@ -455,7 +476,7 @@ export function materialToUSD(mat: CompiledMaterial): string {
   if (mat.emissiveColor) {
     const rgb = hexToRGB(mat.emissiveColor).split(', ').map(Number);
     const intensity = mat.emissiveIntensity ?? 1;
-    const scaled = rgb.map(c => Math.min(1, c * intensity));
+    const scaled = rgb.map((c) => Math.min(1, c * intensity));
     lines.push(`        color3f inputs:emissiveColor = (${scaled.join(', ')})`);
   }
 
@@ -521,14 +542,21 @@ export function materialToGLTF(mat: CompiledMaterial): object {
 /** Map joint keyword to URDF joint type */
 function jointKeywordToURDF(keyword: string): string {
   switch (keyword) {
-    case 'hinge': return 'revolute';
+    case 'hinge':
+      return 'revolute';
     case 'slider':
-    case 'prismatic': return 'prismatic';
-    case 'ball_socket': return 'ball';
-    case 'fixed_joint': return 'fixed';
-    case 'd6_joint': return 'floating';
-    case 'spring_joint': return 'revolute'; // closest URDF equivalent
-    default: return 'fixed';
+    case 'prismatic':
+      return 'prismatic';
+    case 'ball_socket':
+      return 'ball';
+    case 'fixed_joint':
+      return 'fixed';
+    case 'd6_joint':
+      return 'floating';
+    case 'spring_joint':
+      return 'revolute'; // closest URDF equivalent
+    default:
+      return 'fixed';
   }
 }
 
@@ -543,7 +571,9 @@ function colliderToURDF(collider: CompiledCollider): string {
       lines.push(`    <geometry><sphere radius="${props.radius || 0.5}"/></geometry>`);
       break;
     case 'capsule':
-      lines.push(`    <geometry><cylinder radius="${props.radius || 0.5}" length="${props.height || 1.0}"/></geometry>`);
+      lines.push(
+        `    <geometry><cylinder radius="${props.radius || 0.5}" length="${props.height || 1.0}"/></geometry>`
+      );
       break;
     case 'box':
     default: {
@@ -576,15 +606,19 @@ export function physicsToURDF(physics: CompiledPhysics): string {
 
   // Articulation with joint sub-blocks
   if (physics.keyword === 'articulation') {
-    const joints = (physics.joints || []).map(j => {
+    const joints = (physics.joints || []).map((j) => {
       const props = j.properties;
       return [
         `  <joint name="${j.name}" type="${jointKeywordToURDF(j.keyword)}">`,
-        props.axis ? `    <axis xyz="${Array.isArray(props.axis) ? props.axis.join(' ') : '0 0 1'}"/>` : '',
+        props.axis
+          ? `    <axis xyz="${Array.isArray(props.axis) ? props.axis.join(' ') : '0 0 1'}"/>`
+          : '',
         props.limits ? `    <limit lower="${props.limits[0]}" upper="${props.limits[1]}"/>` : '',
         props.damping ? `    <dynamics damping="${props.damping}"/>` : '',
         `  </joint>`,
-      ].filter(Boolean).join('\n');
+      ]
+        .filter(Boolean)
+        .join('\n');
     });
     parts.push(...joints);
   }
@@ -604,7 +638,9 @@ export function physicsToURDF(physics: CompiledPhysics): string {
   // Force fields -> URDF comments (no direct URDF equivalent)
   if (physics.forceFields) {
     for (const ff of physics.forceFields) {
-      parts.push(`  <!-- ${ff.keyword} "${ff.name || ''}" strength="${ff.properties.strength || 0}" -->`);
+      parts.push(
+        `  <!-- ${ff.keyword} "${ff.name || ''}" strength="${ff.properties.strength || 0}" -->`
+      );
     }
   }
 
@@ -620,27 +656,44 @@ export function physicsToURDF(physics: CompiledPhysics): string {
 export function materialToUnity(mat: CompiledMaterial, varPrefix: string): string {
   const lines: string[] = [];
   lines.push(`// Material: ${mat.name}`);
-  lines.push(`var ${varPrefix}Mat = new Material(Shader.Find("${mat.type === 'unlit' ? 'Unlit/Color' : 'Standard'}"));`);
+  lines.push(
+    `var ${varPrefix}Mat = new Material(Shader.Find("${mat.type === 'unlit' ? 'Unlit/Color' : 'Standard'}"));`
+  );
   if (mat.baseColor) lines.push(`${varPrefix}Mat.color = ${hexToUnityColor(mat.baseColor)};`);
-  if (mat.roughness !== undefined) lines.push(`${varPrefix}Mat.SetFloat("_Smoothness", ${(1 - mat.roughness).toFixed(3)}f);`);
-  if (mat.metallic !== undefined) lines.push(`${varPrefix}Mat.SetFloat("_Metallic", ${mat.metallic}f);`);
+  if (mat.roughness !== undefined)
+    lines.push(`${varPrefix}Mat.SetFloat("_Smoothness", ${(1 - mat.roughness).toFixed(3)}f);`);
+  if (mat.metallic !== undefined)
+    lines.push(`${varPrefix}Mat.SetFloat("_Metallic", ${mat.metallic}f);`);
   if (mat.opacity !== undefined && mat.opacity < 1) {
     lines.push(`${varPrefix}Mat.SetFloat("_Mode", 3); // Transparent`);
-    lines.push(`${varPrefix}Mat.color = new Color(${varPrefix}Mat.color.r, ${varPrefix}Mat.color.g, ${varPrefix}Mat.color.b, ${mat.opacity}f);`);
+    lines.push(
+      `${varPrefix}Mat.color = new Color(${varPrefix}Mat.color.r, ${varPrefix}Mat.color.g, ${varPrefix}Mat.color.b, ${mat.opacity}f);`
+    );
   }
   if (mat.emissiveColor) {
     lines.push(`${varPrefix}Mat.EnableKeyword("_EMISSION");`);
-    lines.push(`${varPrefix}Mat.SetColor("_EmissionColor", ${hexToUnityColor(mat.emissiveColor)}${mat.emissiveIntensity ? ` * ${mat.emissiveIntensity}f` : ''});`);
+    lines.push(
+      `${varPrefix}Mat.SetColor("_EmissionColor", ${hexToUnityColor(mat.emissiveColor)}${mat.emissiveIntensity ? ` * ${mat.emissiveIntensity}f` : ''});`
+    );
   }
   for (const [mapType, path] of Object.entries(mat.textureMaps)) {
-    const shaderProp = mapType === 'albedo_map' ? '_MainTex'
-      : mapType === 'normal_map' ? '_BumpMap'
-      : mapType === 'metallic_map' ? '_MetallicGlossMap'
-      : mapType === 'roughness_map' ? '_SpecGlossMap'
-      : mapType === 'emission_map' ? '_EmissionMap'
-      : mapType === 'occlusion_map' ? '_OcclusionMap'
-      : `_${mapType.replace(/_map$/, '')}`;
-    lines.push(`${varPrefix}Mat.SetTexture("${shaderProp}", Resources.Load<Texture2D>("${path}"));`);
+    const shaderProp =
+      mapType === 'albedo_map'
+        ? '_MainTex'
+        : mapType === 'normal_map'
+          ? '_BumpMap'
+          : mapType === 'metallic_map'
+            ? '_MetallicGlossMap'
+            : mapType === 'roughness_map'
+              ? '_SpecGlossMap'
+              : mapType === 'emission_map'
+                ? '_EmissionMap'
+                : mapType === 'occlusion_map'
+                  ? '_OcclusionMap'
+                  : `_${mapType.replace(/_map$/, '')}`;
+    lines.push(
+      `${varPrefix}Mat.SetTexture("${shaderProp}", Resources.Load<Texture2D>("${path}"));`
+    );
   }
   return lines.join('\n');
 }
@@ -655,7 +708,8 @@ export function physicsToUnity(physics: CompiledPhysics, varPrefix: string): str
     const rb = physics.rigidbody.properties;
     if (rb.mass !== undefined) lines.push(`${varPrefix}RB.mass = ${rb.mass}f;`);
     if (rb.drag !== undefined) lines.push(`${varPrefix}RB.drag = ${rb.drag}f;`);
-    if (rb.angular_damping !== undefined) lines.push(`${varPrefix}RB.angularDrag = ${rb.angular_damping}f;`);
+    if (rb.angular_damping !== undefined)
+      lines.push(`${varPrefix}RB.angularDrag = ${rb.angular_damping}f;`);
     if (rb.use_gravity === false) lines.push(`${varPrefix}RB.useGravity = false;`);
   }
 
@@ -685,7 +739,8 @@ export function physicsToUnity(physics: CompiledPhysics, varPrefix: string): str
     for (const ff of physics.forceFields) {
       if (ff.keyword === 'wind_zone') {
         lines.push(`var ${varPrefix}Wind = ${varPrefix}GO.AddComponent<WindZone>();`);
-        if (ff.properties.strength) lines.push(`${varPrefix}Wind.windMain = ${ff.properties.strength}f;`);
+        if (ff.properties.strength)
+          lines.push(`${varPrefix}Wind.windMain = ${ff.properties.strength}f;`);
       } else {
         lines.push(`// ${ff.keyword} "${ff.name || ''}": ${JSON.stringify(ff.properties)}`);
       }
@@ -707,7 +762,8 @@ export function particlesToUnity(ps: CompiledParticleSystem, varPrefix: string):
   lines.push(`// Particles: ${ps.name}`);
   lines.push(`var ${varPrefix}PS = ${varPrefix}GO.AddComponent<ParticleSystem>();`);
   lines.push(`var ${varPrefix}Main = ${varPrefix}PS.main;`);
-  if (ps.properties.max_particles) lines.push(`${varPrefix}Main.maxParticles = ${ps.properties.max_particles};`);
+  if (ps.properties.max_particles)
+    lines.push(`${varPrefix}Main.maxParticles = ${ps.properties.max_particles};`);
   if (ps.properties.start_lifetime) {
     const lt = ps.properties.start_lifetime;
     lines.push(`${varPrefix}Main.startLifetime = ${Array.isArray(lt) ? lt[0] : lt}f;`);
@@ -732,7 +788,10 @@ export function postProcessingToUnity(pp: CompiledPostProcessing): string {
   const lines: string[] = [];
   lines.push('// Post-Processing (URP Volume Profile)');
   for (const e of pp.effects) {
-    const className = e.type.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join('');
+    const className = e.type
+      .split('_')
+      .map((w) => w[0].toUpperCase() + w.slice(1))
+      .join('');
     lines.push(`// Effect: ${className}`);
     for (const [k, v] of Object.entries(e.properties)) {
       lines.push(`//   ${k} = ${JSON.stringify(v)}`);
@@ -747,15 +806,24 @@ export function audioSourceToUnity(audio: CompiledAudioSource, varPrefix: string
   lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
   if (audio.keyword === 'reverb_zone') {
     lines.push(`var ${varPrefix}Reverb = ${varPrefix}GO.AddComponent<AudioReverbZone>();`);
-    if (audio.properties.min_distance) lines.push(`${varPrefix}Reverb.minDistance = ${audio.properties.min_distance}f;`);
-    if (audio.properties.max_distance) lines.push(`${varPrefix}Reverb.maxDistance = ${audio.properties.max_distance}f;`);
+    if (audio.properties.min_distance)
+      lines.push(`${varPrefix}Reverb.minDistance = ${audio.properties.min_distance}f;`);
+    if (audio.properties.max_distance)
+      lines.push(`${varPrefix}Reverb.maxDistance = ${audio.properties.max_distance}f;`);
   } else {
     lines.push(`var ${varPrefix}AS = ${varPrefix}GO.AddComponent<AudioSource>();`);
-    if (audio.properties.clip) lines.push(`${varPrefix}AS.clip = Resources.Load<AudioClip>("Audio/${audio.properties.clip}");`);
-    if (audio.properties.volume !== undefined) lines.push(`${varPrefix}AS.volume = ${audio.properties.volume}f;`);
-    if (audio.properties.loop !== undefined) lines.push(`${varPrefix}AS.loop = ${audio.properties.loop};`);
-    if (audio.properties.spatial_blend !== undefined) lines.push(`${varPrefix}AS.spatialBlend = ${audio.properties.spatial_blend}f;`);
-    if (audio.properties.max_distance) lines.push(`${varPrefix}AS.maxDistance = ${audio.properties.max_distance}f;`);
+    if (audio.properties.clip)
+      lines.push(
+        `${varPrefix}AS.clip = Resources.Load<AudioClip>("Audio/${audio.properties.clip}");`
+      );
+    if (audio.properties.volume !== undefined)
+      lines.push(`${varPrefix}AS.volume = ${audio.properties.volume}f;`);
+    if (audio.properties.loop !== undefined)
+      lines.push(`${varPrefix}AS.loop = ${audio.properties.loop};`);
+    if (audio.properties.spatial_blend !== undefined)
+      lines.push(`${varPrefix}AS.spatialBlend = ${audio.properties.spatial_blend}f;`);
+    if (audio.properties.max_distance)
+      lines.push(`${varPrefix}AS.maxDistance = ${audio.properties.max_distance}f;`);
     if (audio.traits.includes('spatial') || audio.traits.includes('hrtf')) {
       lines.push(`${varPrefix}AS.spatialBlend = 1.0f;`);
     }
@@ -786,21 +854,32 @@ export function materialToUnreal(mat: CompiledMaterial, varPrefix: string): stri
   const lines: string[] = [];
   lines.push(`// Material: ${mat.name}`);
   lines.push(`UMaterialInstanceDynamic* ${varPrefix}Mat = UMaterialInstanceDynamic::Create(`);
-  lines.push(`    LoadObject<UMaterial>(nullptr, TEXT("/Game/Materials/M_${mat.type === 'unlit' ? 'Unlit' : 'PBR'}")), this);`);
+  lines.push(
+    `    LoadObject<UMaterial>(nullptr, TEXT("/Game/Materials/M_${mat.type === 'unlit' ? 'Unlit' : 'PBR'}")), this);`
+  );
   if (mat.baseColor) {
     const [r, g, b] = hexToRGBTuple(mat.baseColor);
-    lines.push(`${varPrefix}Mat->SetVectorParameterValue(TEXT("BaseColor"), FLinearColor(${r}f, ${g}f, ${b}f));`);
+    lines.push(
+      `${varPrefix}Mat->SetVectorParameterValue(TEXT("BaseColor"), FLinearColor(${r}f, ${g}f, ${b}f));`
+    );
   }
-  if (mat.roughness !== undefined) lines.push(`${varPrefix}Mat->SetScalarParameterValue(TEXT("Roughness"), ${mat.roughness}f);`);
-  if (mat.metallic !== undefined) lines.push(`${varPrefix}Mat->SetScalarParameterValue(TEXT("Metallic"), ${mat.metallic}f);`);
-  if (mat.opacity !== undefined) lines.push(`${varPrefix}Mat->SetScalarParameterValue(TEXT("Opacity"), ${mat.opacity}f);`);
+  if (mat.roughness !== undefined)
+    lines.push(`${varPrefix}Mat->SetScalarParameterValue(TEXT("Roughness"), ${mat.roughness}f);`);
+  if (mat.metallic !== undefined)
+    lines.push(`${varPrefix}Mat->SetScalarParameterValue(TEXT("Metallic"), ${mat.metallic}f);`);
+  if (mat.opacity !== undefined)
+    lines.push(`${varPrefix}Mat->SetScalarParameterValue(TEXT("Opacity"), ${mat.opacity}f);`);
   if (mat.emissiveColor) {
     const [r, g, b] = hexToRGBTuple(mat.emissiveColor);
     const intensity = mat.emissiveIntensity ?? 1;
-    lines.push(`${varPrefix}Mat->SetVectorParameterValue(TEXT("EmissiveColor"), FLinearColor(${r * intensity}f, ${g * intensity}f, ${b * intensity}f));`);
+    lines.push(
+      `${varPrefix}Mat->SetVectorParameterValue(TEXT("EmissiveColor"), FLinearColor(${r * intensity}f, ${g * intensity}f, ${b * intensity}f));`
+    );
   }
   for (const [mapType, path] of Object.entries(mat.textureMaps)) {
-    lines.push(`${varPrefix}Mat->SetTextureParameterValue(TEXT("${mapType}"), LoadObject<UTexture2D>(nullptr, TEXT("/Game/Textures/${path}")));`);
+    lines.push(
+      `${varPrefix}Mat->SetTextureParameterValue(TEXT("${mapType}"), LoadObject<UTexture2D>(nullptr, TEXT("/Game/Textures/${path}")));`
+    );
   }
   return lines.join('\n');
 }
@@ -813,9 +892,11 @@ export function physicsToUnreal(physics: CompiledPhysics, varPrefix: string): st
   if (physics.rigidbody) {
     const rb = physics.rigidbody.properties;
     lines.push(`${varPrefix}Mesh->SetSimulatePhysics(true);`);
-    if (rb.mass !== undefined) lines.push(`${varPrefix}Mesh->SetMassOverrideInKg(NAME_None, ${rb.mass}f);`);
+    if (rb.mass !== undefined)
+      lines.push(`${varPrefix}Mesh->SetMassOverrideInKg(NAME_None, ${rb.mass}f);`);
     if (rb.drag !== undefined) lines.push(`${varPrefix}Mesh->SetLinearDamping(${rb.drag}f);`);
-    if (rb.angular_damping !== undefined) lines.push(`${varPrefix}Mesh->SetAngularDamping(${rb.angular_damping}f);`);
+    if (rb.angular_damping !== undefined)
+      lines.push(`${varPrefix}Mesh->SetAngularDamping(${rb.angular_damping}f);`);
     if (rb.use_gravity === false) lines.push(`${varPrefix}Mesh->SetEnableGravity(false);`);
   }
 
@@ -823,25 +904,36 @@ export function physicsToUnreal(physics: CompiledPhysics, varPrefix: string): st
     for (const c of physics.colliders) {
       const shape = c.shape || 'box';
       if (shape === 'sphere') {
-        lines.push(`auto* ${varPrefix}Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("${varPrefix}Sphere"));`);
-        if (c.properties.radius) lines.push(`${varPrefix}Sphere->SetSphereRadius(${c.properties.radius}f);`);
+        lines.push(
+          `auto* ${varPrefix}Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("${varPrefix}Sphere"));`
+        );
+        if (c.properties.radius)
+          lines.push(`${varPrefix}Sphere->SetSphereRadius(${c.properties.radius}f);`);
       } else if (shape === 'capsule') {
-        lines.push(`auto* ${varPrefix}Capsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("${varPrefix}Capsule"));`);
+        lines.push(
+          `auto* ${varPrefix}Capsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("${varPrefix}Capsule"));`
+        );
       } else {
-        lines.push(`auto* ${varPrefix}Box = CreateDefaultSubobject<UBoxComponent>(TEXT("${varPrefix}Box"));`);
+        lines.push(
+          `auto* ${varPrefix}Box = CreateDefaultSubobject<UBoxComponent>(TEXT("${varPrefix}Box"));`
+        );
       }
     }
   }
 
   if (physics.forceFields) {
     for (const ff of physics.forceFields) {
-      lines.push(`// Force field: ${ff.keyword} "${ff.name || ''}" — ${JSON.stringify(ff.properties)}`);
+      lines.push(
+        `// Force field: ${ff.keyword} "${ff.name || ''}" — ${JSON.stringify(ff.properties)}`
+      );
     }
   }
 
   if (physics.joints) {
     for (const j of physics.joints) {
-      lines.push(`auto* ${varPrefix}Constraint = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("${j.name || varPrefix + 'Joint'}"));`);
+      lines.push(
+        `auto* ${varPrefix}Constraint = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("${j.name || varPrefix + 'Joint'}"));`
+      );
       lines.push(`// Joint type: ${j.keyword} — configure constraint limits`);
     }
   }
@@ -853,11 +945,18 @@ export function physicsToUnreal(physics: CompiledPhysics, varPrefix: string): st
 export function particlesToUnreal(ps: CompiledParticleSystem, varPrefix: string): string {
   const lines: string[] = [];
   lines.push(`// Niagara Particles: ${ps.name}`);
-  lines.push(`auto* ${varPrefix}Niagara = CreateDefaultSubobject<UNiagaraComponent>(TEXT("${ps.name}"));`);
+  lines.push(
+    `auto* ${varPrefix}Niagara = CreateDefaultSubobject<UNiagaraComponent>(TEXT("${ps.name}"));`
+  );
   lines.push(`${varPrefix}Niagara->SetupAttachment(RootComponent);`);
-  if (ps.properties.rate) lines.push(`${varPrefix}Niagara->SetVariableFloat(TEXT("SpawnRate"), ${ps.properties.rate}f);`);
-  if (ps.properties.start_lifetime) lines.push(`${varPrefix}Niagara->SetVariableFloat(TEXT("Lifetime"), ${Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime}f);`);
-  if (ps.traits.includes('looping')) lines.push(`${varPrefix}Niagara->SetVariableBool(TEXT("Looping"), true);`);
+  if (ps.properties.rate)
+    lines.push(`${varPrefix}Niagara->SetVariableFloat(TEXT("SpawnRate"), ${ps.properties.rate}f);`);
+  if (ps.properties.start_lifetime)
+    lines.push(
+      `${varPrefix}Niagara->SetVariableFloat(TEXT("Lifetime"), ${Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime}f);`
+    );
+  if (ps.traits.includes('looping'))
+    lines.push(`${varPrefix}Niagara->SetVariableBool(TEXT("Looping"), true);`);
   for (const m of ps.modules) {
     lines.push(`// Module: ${m.type} — ${JSON.stringify(m.properties)}`);
   }
@@ -868,16 +967,23 @@ export function particlesToUnreal(ps: CompiledParticleSystem, varPrefix: string)
 export function postProcessingToUnreal(pp: CompiledPostProcessing, varPrefix: string): string {
   const lines: string[] = [];
   lines.push(`// Post-Processing: ${pp.keyword}`);
-  lines.push(`auto* ${varPrefix}PP = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcess"));`);
+  lines.push(
+    `auto* ${varPrefix}PP = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcess"));`
+  );
   lines.push(`${varPrefix}PP->SetupAttachment(RootComponent);`);
   for (const e of pp.effects) {
     if (e.type === 'bloom') {
       lines.push(`${varPrefix}PP->Settings.bOverride_BloomIntensity = true;`);
-      if (e.properties.intensity) lines.push(`${varPrefix}PP->Settings.BloomIntensity = ${e.properties.intensity}f;`);
-      if (e.properties.threshold) lines.push(`${varPrefix}PP->Settings.BloomThreshold = ${e.properties.threshold}f;`);
+      if (e.properties.intensity)
+        lines.push(`${varPrefix}PP->Settings.BloomIntensity = ${e.properties.intensity}f;`);
+      if (e.properties.threshold)
+        lines.push(`${varPrefix}PP->Settings.BloomThreshold = ${e.properties.threshold}f;`);
     } else if (e.type === 'depth_of_field') {
       lines.push(`${varPrefix}PP->Settings.bOverride_DepthOfFieldFocalDistance = true;`);
-      if (e.properties.focal_distance) lines.push(`${varPrefix}PP->Settings.DepthOfFieldFocalDistance = ${e.properties.focal_distance}f;`);
+      if (e.properties.focal_distance)
+        lines.push(
+          `${varPrefix}PP->Settings.DepthOfFieldFocalDistance = ${e.properties.focal_distance}f;`
+        );
     } else {
       lines.push(`// Effect: ${e.type} — ${JSON.stringify(e.properties)}`);
     }
@@ -889,14 +995,24 @@ export function postProcessingToUnreal(pp: CompiledPostProcessing, varPrefix: st
 export function audioSourceToUnreal(audio: CompiledAudioSource, varPrefix: string): string {
   const lines: string[] = [];
   lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
-  lines.push(`auto* ${varPrefix}Audio = CreateDefaultSubobject<UAudioComponent>(TEXT("${audio.name}"));`);
+  lines.push(
+    `auto* ${varPrefix}Audio = CreateDefaultSubobject<UAudioComponent>(TEXT("${audio.name}"));`
+  );
   lines.push(`${varPrefix}Audio->SetupAttachment(RootComponent);`);
-  if (audio.properties.clip) lines.push(`${varPrefix}Audio->SetSound(LoadObject<USoundWave>(nullptr, TEXT("/Game/Audio/${audio.properties.clip}")));`);
-  if (audio.properties.volume !== undefined) lines.push(`${varPrefix}Audio->SetVolumeMultiplier(${audio.properties.volume}f);`);
-  if (audio.properties.loop !== undefined) lines.push(`${varPrefix}Audio->bIsLooping = ${audio.properties.loop ? 'true' : 'false'};`);
+  if (audio.properties.clip)
+    lines.push(
+      `${varPrefix}Audio->SetSound(LoadObject<USoundWave>(nullptr, TEXT("/Game/Audio/${audio.properties.clip}")));`
+    );
+  if (audio.properties.volume !== undefined)
+    lines.push(`${varPrefix}Audio->SetVolumeMultiplier(${audio.properties.volume}f);`);
+  if (audio.properties.loop !== undefined)
+    lines.push(`${varPrefix}Audio->bIsLooping = ${audio.properties.loop ? 'true' : 'false'};`);
   if (audio.traits.includes('spatial') || audio.properties.spatial_blend > 0) {
     lines.push(`${varPrefix}Audio->bOverrideAttenuation = true;`);
-    if (audio.properties.max_distance) lines.push(`${varPrefix}Audio->AttenuationOverrides.FalloffDistance = ${audio.properties.max_distance}f;`);
+    if (audio.properties.max_distance)
+      lines.push(
+        `${varPrefix}Audio->AttenuationOverrides.FalloffDistance = ${audio.properties.max_distance}f;`
+      );
   }
   if (audio.properties.play_on_awake) lines.push(`${varPrefix}Audio->bAutoActivate = true;`);
   return lines.join('\n');
@@ -937,15 +1053,22 @@ export function materialToGodot(mat: CompiledMaterial, varPrefix: string): strin
   if (mat.emissiveColor) {
     lines.push(`${varPrefix}_mat.emission_enabled = true`);
     lines.push(`${varPrefix}_mat.emission = Color.html("${mat.emissiveColor}")`);
-    if (mat.emissiveIntensity) lines.push(`${varPrefix}_mat.emission_energy_multiplier = ${mat.emissiveIntensity}`);
+    if (mat.emissiveIntensity)
+      lines.push(`${varPrefix}_mat.emission_energy_multiplier = ${mat.emissiveIntensity}`);
   }
   for (const [mapType, path] of Object.entries(mat.textureMaps)) {
-    const prop = mapType === 'albedo_map' ? 'albedo_texture'
-      : mapType === 'normal_map' ? 'normal_texture'
-      : mapType === 'metallic_map' ? 'metallic_texture'
-      : mapType === 'roughness_map' ? 'roughness_texture'
-      : mapType === 'emission_map' ? 'emission_texture'
-      : `${mapType.replace(/_map$/, '_texture')}`;
+    const prop =
+      mapType === 'albedo_map'
+        ? 'albedo_texture'
+        : mapType === 'normal_map'
+          ? 'normal_texture'
+          : mapType === 'metallic_map'
+            ? 'metallic_texture'
+            : mapType === 'roughness_map'
+              ? 'roughness_texture'
+              : mapType === 'emission_map'
+                ? 'emission_texture'
+                : `${mapType.replace(/_map$/, '_texture')}`;
     lines.push(`${varPrefix}_mat.${prop} = load("res://${path}")`);
   }
   return lines.join('\n');
@@ -961,7 +1084,8 @@ export function physicsToGodot(physics: CompiledPhysics, varPrefix: string): str
     lines.push(`var ${varPrefix}_rb = RigidBody3D.new()`);
     if (rb.mass !== undefined) lines.push(`${varPrefix}_rb.mass = ${rb.mass}`);
     if (rb.drag !== undefined) lines.push(`${varPrefix}_rb.linear_damp = ${rb.drag}`);
-    if (rb.angular_damping !== undefined) lines.push(`${varPrefix}_rb.angular_damp = ${rb.angular_damping}`);
+    if (rb.angular_damping !== undefined)
+      lines.push(`${varPrefix}_rb.angular_damp = ${rb.angular_damping}`);
     if (rb.use_gravity === false) lines.push(`${varPrefix}_rb.gravity_scale = 0.0`);
   }
 
@@ -972,7 +1096,8 @@ export function physicsToGodot(physics: CompiledPhysics, varPrefix: string): str
       if (shape === 'sphere') {
         lines.push(`var ${varPrefix}_col${i} = CollisionShape3D.new()`);
         lines.push(`${varPrefix}_col${i}.shape = SphereShape3D.new()`);
-        if (c.properties.radius) lines.push(`${varPrefix}_col${i}.shape.radius = ${c.properties.radius}`);
+        if (c.properties.radius)
+          lines.push(`${varPrefix}_col${i}.shape.radius = ${c.properties.radius}`);
       } else if (shape === 'capsule') {
         lines.push(`var ${varPrefix}_col${i} = CollisionShape3D.new()`);
         lines.push(`${varPrefix}_col${i}.shape = CapsuleShape3D.new()`);
@@ -985,15 +1110,20 @@ export function physicsToGodot(physics: CompiledPhysics, varPrefix: string): str
 
   if (physics.forceFields) {
     for (const ff of physics.forceFields) {
-      lines.push(`# Force field: ${ff.keyword} "${ff.name || ''}" — ${JSON.stringify(ff.properties)}`);
+      lines.push(
+        `# Force field: ${ff.keyword} "${ff.name || ''}" — ${JSON.stringify(ff.properties)}`
+      );
     }
   }
 
   if (physics.joints) {
     for (const j of physics.joints) {
-      const jointType = j.keyword === 'hinge' ? 'HingeJoint3D'
-        : j.keyword === 'slider' ? 'SliderJoint3D'
-        : 'Generic6DOFJoint3D';
+      const jointType =
+        j.keyword === 'hinge'
+          ? 'HingeJoint3D'
+          : j.keyword === 'slider'
+            ? 'SliderJoint3D'
+            : 'Generic6DOFJoint3D';
       lines.push(`var ${varPrefix}_joint = ${jointType}.new()`);
       lines.push(`# Joint: ${j.keyword} "${j.name || ''}" — ${JSON.stringify(j.properties)}`);
     }
@@ -1008,9 +1138,12 @@ export function particlesToGodot(ps: CompiledParticleSystem, varPrefix: string):
   lines.push(`# Particles: ${ps.name}`);
   lines.push(`var ${varPrefix}_particles = GPUParticles3D.new()`);
   lines.push(`${varPrefix}_particles.name = "${ps.name}"`);
-  if (ps.properties.max_particles) lines.push(`${varPrefix}_particles.amount = ${ps.properties.max_particles}`);
+  if (ps.properties.max_particles)
+    lines.push(`${varPrefix}_particles.amount = ${ps.properties.max_particles}`);
   if (ps.properties.start_lifetime) {
-    const lt = Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime;
+    const lt = Array.isArray(ps.properties.start_lifetime)
+      ? ps.properties.start_lifetime[0]
+      : ps.properties.start_lifetime;
     lines.push(`${varPrefix}_particles.lifetime = ${lt}`);
   }
   if (ps.traits.includes('looping')) lines.push(`${varPrefix}_particles.one_shot = false`);
@@ -1030,7 +1163,8 @@ export function postProcessingToGodot(pp: CompiledPostProcessing): string {
   for (const e of pp.effects) {
     if (e.type === 'bloom' || e.type === 'glow') {
       lines.push('environment.glow_enabled = true');
-      if (e.properties.intensity) lines.push(`environment.glow_intensity = ${e.properties.intensity}`);
+      if (e.properties.intensity)
+        lines.push(`environment.glow_intensity = ${e.properties.intensity}`);
       if (e.properties.threshold) lines.push(`environment.glow_bloom = ${e.properties.threshold}`);
     } else if (e.type === 'fog') {
       lines.push('environment.fog_enabled = true');
@@ -1051,8 +1185,10 @@ export function audioSourceToGodot(audio: CompiledAudioSource, varPrefix: string
   const nodeType = isSpatial ? 'AudioStreamPlayer3D' : 'AudioStreamPlayer';
   lines.push(`var ${varPrefix}_audio = ${nodeType}.new()`);
   lines.push(`${varPrefix}_audio.name = "${audio.name}"`);
-  if (audio.properties.clip) lines.push(`${varPrefix}_audio.stream = load("res://${audio.properties.clip}")`);
-  if (audio.properties.volume !== undefined) lines.push(`${varPrefix}_audio.volume_db = linear_to_db(${audio.properties.volume})`);
+  if (audio.properties.clip)
+    lines.push(`${varPrefix}_audio.stream = load("res://${audio.properties.clip}")`);
+  if (audio.properties.volume !== undefined)
+    lines.push(`${varPrefix}_audio.volume_db = linear_to_db(${audio.properties.volume})`);
   if (isSpatial && audio.properties.max_distance) {
     lines.push(`${varPrefix}_audio.max_distance = ${audio.properties.max_distance}`);
   }
@@ -1080,24 +1216,39 @@ export function materialToVisionOS(mat: CompiledMaterial, varPrefix: string): st
   lines.push(`// Material: ${mat.name}`);
   if (mat.type === 'unlit') {
     lines.push(`var ${varPrefix}Mat = UnlitMaterial()`);
-    if (mat.baseColor) lines.push(`${varPrefix}Mat.color = .init(tint: ${hexToSwiftColor(mat.baseColor)})`);
+    if (mat.baseColor)
+      lines.push(`${varPrefix}Mat.color = .init(tint: ${hexToSwiftColor(mat.baseColor)})`);
   } else {
     lines.push(`var ${varPrefix}Mat = PhysicallyBasedMaterial()`);
-    if (mat.baseColor) lines.push(`${varPrefix}Mat.baseColor = .init(tint: ${hexToSwiftColor(mat.baseColor)})`);
-    if (mat.roughness !== undefined) lines.push(`${varPrefix}Mat.roughness = .init(floatLiteral: ${mat.roughness})`);
-    if (mat.metallic !== undefined) lines.push(`${varPrefix}Mat.metallic = .init(floatLiteral: ${mat.metallic})`);
-    if (mat.opacity !== undefined && mat.opacity < 1) lines.push(`${varPrefix}Mat.blending = .transparent(opacity: .init(floatLiteral: ${mat.opacity}))`);
+    if (mat.baseColor)
+      lines.push(`${varPrefix}Mat.baseColor = .init(tint: ${hexToSwiftColor(mat.baseColor)})`);
+    if (mat.roughness !== undefined)
+      lines.push(`${varPrefix}Mat.roughness = .init(floatLiteral: ${mat.roughness})`);
+    if (mat.metallic !== undefined)
+      lines.push(`${varPrefix}Mat.metallic = .init(floatLiteral: ${mat.metallic})`);
+    if (mat.opacity !== undefined && mat.opacity < 1)
+      lines.push(
+        `${varPrefix}Mat.blending = .transparent(opacity: .init(floatLiteral: ${mat.opacity}))`
+      );
     if (mat.emissiveColor) {
-      lines.push(`${varPrefix}Mat.emissiveColor = .init(color: ${hexToSwiftColor(mat.emissiveColor)})`);
-      if (mat.emissiveIntensity) lines.push(`${varPrefix}Mat.emissiveIntensity = ${mat.emissiveIntensity}`);
+      lines.push(
+        `${varPrefix}Mat.emissiveColor = .init(color: ${hexToSwiftColor(mat.emissiveColor)})`
+      );
+      if (mat.emissiveIntensity)
+        lines.push(`${varPrefix}Mat.emissiveIntensity = ${mat.emissiveIntensity}`);
     }
   }
   for (const [mapType, path] of Object.entries(mat.textureMaps)) {
-    const prop = mapType === 'albedo_map' ? 'baseColor'
-      : mapType === 'normal_map' ? 'normal'
-      : mapType === 'metallic_map' ? 'metallic'
-      : mapType === 'roughness_map' ? 'roughness'
-      : mapType;
+    const prop =
+      mapType === 'albedo_map'
+        ? 'baseColor'
+        : mapType === 'normal_map'
+          ? 'normal'
+          : mapType === 'metallic_map'
+            ? 'metallic'
+            : mapType === 'roughness_map'
+              ? 'roughness'
+              : mapType;
     lines.push(`${varPrefix}Mat.${prop} = .init(texture: .init(try! .load(named: "${path}")))`);
   }
   return lines.join('\n');
@@ -1112,21 +1263,31 @@ export function physicsToVisionOS(physics: CompiledPhysics, varPrefix: string): 
     for (const c of physics.colliders) {
       const shape = c.shape || 'box';
       if (shape === 'sphere') {
-        lines.push(`${varPrefix}Entity.components.set(CollisionComponent(shapes: [.generateSphere(radius: ${c.properties.radius || 0.5})]))`);
+        lines.push(
+          `${varPrefix}Entity.components.set(CollisionComponent(shapes: [.generateSphere(radius: ${c.properties.radius || 0.5})]))`
+        );
       } else if (shape === 'capsule') {
-        lines.push(`${varPrefix}Entity.components.set(CollisionComponent(shapes: [.generateCapsule(height: ${c.properties.height || 1}, radius: ${c.properties.radius || 0.25})]))`);
+        lines.push(
+          `${varPrefix}Entity.components.set(CollisionComponent(shapes: [.generateCapsule(height: ${c.properties.height || 1}, radius: ${c.properties.radius || 0.25})]))`
+        );
       } else {
-        const size = c.properties.size && Array.isArray(c.properties.size) ? c.properties.size : [1, 1, 1];
-        lines.push(`${varPrefix}Entity.components.set(CollisionComponent(shapes: [.generateBox(size: [${size.join(', ')}])]))`);
+        const size =
+          c.properties.size && Array.isArray(c.properties.size) ? c.properties.size : [1, 1, 1];
+        lines.push(
+          `${varPrefix}Entity.components.set(CollisionComponent(shapes: [.generateBox(size: [${size.join(', ')}])]))`
+        );
       }
     }
   }
 
   if (physics.rigidbody) {
     const rb = physics.rigidbody.properties;
-    lines.push(`var ${varPrefix}Physics = PhysicsBodyComponent(massProperties: .init(mass: ${rb.mass ?? 1}), mode: .dynamic)`);
+    lines.push(
+      `var ${varPrefix}Physics = PhysicsBodyComponent(massProperties: .init(mass: ${rb.mass ?? 1}), mode: .dynamic)`
+    );
     if (rb.drag !== undefined) lines.push(`${varPrefix}Physics.linearDamping = ${rb.drag}`);
-    if (rb.angular_damping !== undefined) lines.push(`${varPrefix}Physics.angularDamping = ${rb.angular_damping}`);
+    if (rb.angular_damping !== undefined)
+      lines.push(`${varPrefix}Physics.angularDamping = ${rb.angular_damping}`);
     lines.push(`${varPrefix}Entity.components.set(${varPrefix}Physics)`);
   }
 
@@ -1146,7 +1307,9 @@ export function particlesToVisionOS(ps: CompiledParticleSystem, varPrefix: strin
   lines.push(`var ${varPrefix}Particles = ParticleEmitterComponent()`);
   if (ps.properties.rate) lines.push(`${varPrefix}Particles.birthRate = ${ps.properties.rate}`);
   if (ps.properties.start_lifetime) {
-    const lt = Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime;
+    const lt = Array.isArray(ps.properties.start_lifetime)
+      ? ps.properties.start_lifetime[0]
+      : ps.properties.start_lifetime;
     lines.push(`${varPrefix}Particles.lifeSpan = ${lt}`);
   }
   if (ps.traits.includes('looping')) lines.push(`${varPrefix}Particles.isEmitting = true`);
@@ -1162,11 +1325,19 @@ export function audioSourceToVisionOS(audio: CompiledAudioSource, varPrefix: str
   if (isSpatial) {
     lines.push(`let ${varPrefix}Audio = Entity()`);
     lines.push(`${varPrefix}Audio.spatialAudio = SpatialAudioComponent()`);
-    if (audio.properties.max_distance) lines.push(`${varPrefix}Audio.spatialAudio?.distanceAttenuation = .rolloff(factor: .custom(${audio.properties.max_distance}))`);
+    if (audio.properties.max_distance)
+      lines.push(
+        `${varPrefix}Audio.spatialAudio?.distanceAttenuation = .rolloff(factor: .custom(${audio.properties.max_distance}))`
+      );
   }
-  lines.push(`let ${varPrefix}Resource = try! AudioFileResource.load(named: "${audio.properties.clip || audio.name}")`);
+  lines.push(
+    `let ${varPrefix}Resource = try! AudioFileResource.load(named: "${audio.properties.clip || audio.name}")`
+  );
   lines.push(`let ${varPrefix}Controller = ${varPrefix}Entity.prepareAudio(${varPrefix}Resource)`);
-  if (audio.properties.volume !== undefined) lines.push(`${varPrefix}Controller.gain = AudioPlaybackController.Decibel(${audio.properties.volume})`);
+  if (audio.properties.volume !== undefined)
+    lines.push(
+      `${varPrefix}Controller.gain = AudioPlaybackController.Decibel(${audio.properties.volume})`
+    );
   if (audio.properties.play_on_awake) lines.push(`${varPrefix}Controller.play()`);
   return lines.join('\n');
 }
@@ -1181,7 +1352,9 @@ export function materialToAndroidXR(mat: CompiledMaterial, varPrefix: string): s
   lines.push(`// Material: ${mat.name}`);
   if (mat.type === 'unlit') {
     lines.push(`val ${varPrefix}MatBuilder = MaterialInstance.Builder()`);
-    lines.push(`    .setParameter("baseColor", ${mat.baseColor ? hexToFilamentColor(mat.baseColor) : 'Float4(1f, 1f, 1f, 1f)'})`);
+    lines.push(
+      `    .setParameter("baseColor", ${mat.baseColor ? hexToFilamentColor(mat.baseColor) : 'Float4(1f, 1f, 1f, 1f)'})`
+    );
     if (mat.opacity !== undefined) lines.push(`    .setParameter("alpha", ${mat.opacity}f)`);
     lines.push(`val ${varPrefix}Mat = ${varPrefix}MatBuilder.build(engine)`);
   } else {
@@ -1189,7 +1362,8 @@ export function materialToAndroidXR(mat: CompiledMaterial, varPrefix: string): s
     if (mat.baseColor) {
       lines.push(`    .setParameter("baseColor", ${hexToFilamentColor(mat.baseColor)})`);
     }
-    if (mat.roughness !== undefined) lines.push(`    .setParameter("roughness", ${mat.roughness}f)`);
+    if (mat.roughness !== undefined)
+      lines.push(`    .setParameter("roughness", ${mat.roughness}f)`);
     if (mat.metallic !== undefined) lines.push(`    .setParameter("metallic", ${mat.metallic}f)`);
     if (mat.opacity !== undefined && mat.opacity < 1) {
       lines.push(`    .setParameter("alpha", ${mat.opacity}f)`);
@@ -1197,21 +1371,34 @@ export function materialToAndroidXR(mat: CompiledMaterial, varPrefix: string): s
     if (mat.emissiveColor) {
       const [er, eg, eb] = hexToRGBTuple(mat.emissiveColor);
       const intensity = mat.emissiveIntensity ?? 1;
-      lines.push(`    .setParameter("emissive", Float4(${er * intensity}f, ${eg * intensity}f, ${eb * intensity}f, 1f))`);
+      lines.push(
+        `    .setParameter("emissive", Float4(${er * intensity}f, ${eg * intensity}f, ${eb * intensity}f, 1f))`
+      );
     }
     lines.push(`val ${varPrefix}Mat = ${varPrefix}MatBuilder.build(engine)`);
   }
   for (const [mapType, path] of Object.entries(mat.textureMaps)) {
-    const paramName = mapType === 'albedo_map' ? 'baseColorMap'
-      : mapType === 'normal_map' ? 'normalMap'
-      : mapType === 'metallic_map' ? 'metallicMap'
-      : mapType === 'roughness_map' ? 'roughnessMap'
-      : mapType === 'emission_map' ? 'emissiveMap'
-      : mapType === 'occlusion_map' ? 'aoMap'
-      : mapType.replace(/_map$/, 'Map');
+    const paramName =
+      mapType === 'albedo_map'
+        ? 'baseColorMap'
+        : mapType === 'normal_map'
+          ? 'normalMap'
+          : mapType === 'metallic_map'
+            ? 'metallicMap'
+            : mapType === 'roughness_map'
+              ? 'roughnessMap'
+              : mapType === 'emission_map'
+                ? 'emissiveMap'
+                : mapType === 'occlusion_map'
+                  ? 'aoMap'
+                  : mapType.replace(/_map$/, 'Map');
     lines.push(`// Texture: ${paramName} -> "${path}"`);
-    lines.push(`val ${varPrefix}Tex_${paramName} = Texture.Builder().build(engine) // load from "${path}"`);
-    lines.push(`${varPrefix}Mat.setParameter("${paramName}", ${varPrefix}Tex_${paramName}, TextureSampler())`);
+    lines.push(
+      `val ${varPrefix}Tex_${paramName} = Texture.Builder().build(engine) // load from "${path}"`
+    );
+    lines.push(
+      `${varPrefix}Mat.setParameter("${paramName}", ${varPrefix}Tex_${paramName}, TextureSampler())`
+    );
   }
   return lines.join('\n');
 }
@@ -1229,11 +1416,15 @@ export function physicsToAndroidXR(physics: CompiledPhysics, varPrefix: string):
       if (shape === 'sphere') {
         lines.push(`val ${colVar} = SphereCollider(engine, ${c.properties.radius || 0.5}f)`);
       } else if (shape === 'capsule') {
-        lines.push(`val ${colVar} = CapsuleCollider(engine, ${c.properties.radius || 0.25}f, ${c.properties.height || 1.0}f)`);
+        lines.push(
+          `val ${colVar} = CapsuleCollider(engine, ${c.properties.radius || 0.25}f, ${c.properties.height || 1.0}f)`
+        );
       } else {
-        const size = c.properties.size && Array.isArray(c.properties.size)
-          ? c.properties.size : [1, 1, 1];
-        lines.push(`val ${colVar} = BoxCollider(engine, Float3(${size[0]}f, ${size[1]}f, ${size[2]}f))`);
+        const size =
+          c.properties.size && Array.isArray(c.properties.size) ? c.properties.size : [1, 1, 1];
+        lines.push(
+          `val ${colVar} = BoxCollider(engine, Float3(${size[0]}f, ${size[1]}f, ${size[2]}f))`
+        );
       }
       if (c.type === 'trigger') lines.push(`${colVar}.isTrigger = true`);
       lines.push(`${varPrefix}Entity.addComponent(${colVar})`);
@@ -1245,7 +1436,8 @@ export function physicsToAndroidXR(physics: CompiledPhysics, varPrefix: string):
     lines.push(`val ${varPrefix}RB = RigidBodyComponent()`);
     if (rb.mass !== undefined) lines.push(`${varPrefix}RB.mass = ${rb.mass}f`);
     if (rb.drag !== undefined) lines.push(`${varPrefix}RB.linearDamping = ${rb.drag}f`);
-    if (rb.angular_damping !== undefined) lines.push(`${varPrefix}RB.angularDamping = ${rb.angular_damping}f`);
+    if (rb.angular_damping !== undefined)
+      lines.push(`${varPrefix}RB.angularDamping = ${rb.angular_damping}f`);
     if (rb.use_gravity === false) lines.push(`${varPrefix}RB.isGravityEnabled = false`);
     lines.push(`${varPrefix}Entity.addComponent(${varPrefix}RB)`);
   }
@@ -1256,7 +1448,9 @@ export function physicsToAndroidXR(physics: CompiledPhysics, varPrefix: string):
         lines.push(`// Wind zone: "${ff.name || ''}" strength=${ff.properties.strength || 0}`);
         lines.push(`// Implement via custom force application in physics update loop`);
       } else {
-        lines.push(`// Force field: ${ff.keyword} "${ff.name || ''}" — ${JSON.stringify(ff.properties)}`);
+        lines.push(
+          `// Force field: ${ff.keyword} "${ff.name || ''}" — ${JSON.stringify(ff.properties)}`
+        );
       }
     }
   }
@@ -1282,13 +1476,18 @@ export function particlesToAndroidXR(ps: CompiledParticleSystem, varPrefix: stri
   lines.push(`// Configure particle system via Filament ParticleSystem or custom emitter`);
 
   if (ps.properties.rate) lines.push(`val ${varPrefix}EmitRate = ${ps.properties.rate}f`);
-  if (ps.properties.max_particles) lines.push(`val ${varPrefix}MaxParticles = ${ps.properties.max_particles}`);
+  if (ps.properties.max_particles)
+    lines.push(`val ${varPrefix}MaxParticles = ${ps.properties.max_particles}`);
   if (ps.properties.start_lifetime) {
-    const lt = Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime;
+    const lt = Array.isArray(ps.properties.start_lifetime)
+      ? ps.properties.start_lifetime[0]
+      : ps.properties.start_lifetime;
     lines.push(`val ${varPrefix}Lifetime = ${lt}f`);
   }
   if (ps.properties.start_speed) {
-    const sp = Array.isArray(ps.properties.start_speed) ? ps.properties.start_speed[0] : ps.properties.start_speed;
+    const sp = Array.isArray(ps.properties.start_speed)
+      ? ps.properties.start_speed[0]
+      : ps.properties.start_speed;
     lines.push(`val ${varPrefix}Speed = ${sp}f`);
   }
   if (ps.properties.gravity_modifier !== undefined) {
@@ -1307,33 +1506,48 @@ export function particlesToAndroidXR(ps: CompiledParticleSystem, varPrefix: stri
 export function audioSourceToAndroidXR(audio: CompiledAudioSource, varPrefix: string): string {
   const lines: string[] = [];
   lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
-  const isSpatial = audio.traits.includes('spatial') || audio.traits.includes('hrtf') || audio.properties.spatial_blend > 0;
+  const isSpatial =
+    audio.traits.includes('spatial') ||
+    audio.traits.includes('hrtf') ||
+    audio.properties.spatial_blend > 0;
 
   if (audio.keyword === 'reverb_zone') {
     lines.push(`// Reverb zone: "${audio.name}" — implement via AudioEffect.EFFECT_TYPE_REVERB`);
-    if (audio.properties.min_distance) lines.push(`// minDistance = ${audio.properties.min_distance}`);
-    if (audio.properties.max_distance) lines.push(`// maxDistance = ${audio.properties.max_distance}`);
+    if (audio.properties.min_distance)
+      lines.push(`// minDistance = ${audio.properties.min_distance}`);
+    if (audio.properties.max_distance)
+      lines.push(`// maxDistance = ${audio.properties.max_distance}`);
     return lines.join('\n');
   }
 
   lines.push(`val ${varPrefix}AudioEntity = xrSession.scene.createEntity("${audio.name}")`);
 
   if (isSpatial) {
-    lines.push(`val ${varPrefix}SpatialTrack = SpatialAudioTrack(xrSession, ${varPrefix}AudioEntity)`);
+    lines.push(
+      `val ${varPrefix}SpatialTrack = SpatialAudioTrack(xrSession, ${varPrefix}AudioEntity)`
+    );
     if (audio.properties.max_distance) {
       lines.push(`// Spatial falloff distance: ${audio.properties.max_distance}`);
     }
   }
 
   if (audio.properties.clip) {
-    lines.push(`val ${varPrefix}SoundId = soundPool.load(context, R.raw.${audio.properties.clip.toString().replace(/[^a-zA-Z0-9_]/g, '_')}, 1)`);
+    lines.push(
+      `val ${varPrefix}SoundId = soundPool.load(context, R.raw.${audio.properties.clip.toString().replace(/[^a-zA-Z0-9_]/g, '_')}, 1)`
+    );
   }
-  if (audio.properties.volume !== undefined) lines.push(`val ${varPrefix}Volume = ${audio.properties.volume}f`);
-  if (audio.properties.loop !== undefined) lines.push(`val ${varPrefix}Loop = ${audio.properties.loop ? '1' : '0'} // -1 = loop, 0 = once`);
+  if (audio.properties.volume !== undefined)
+    lines.push(`val ${varPrefix}Volume = ${audio.properties.volume}f`);
+  if (audio.properties.loop !== undefined)
+    lines.push(
+      `val ${varPrefix}Loop = ${audio.properties.loop ? '1' : '0'} // -1 = loop, 0 = once`
+    );
 
   if (audio.properties.play_on_awake || audio.properties.clip) {
     lines.push(`soundPool.setOnLoadCompleteListener { pool, id, _ ->`);
-    lines.push(`    if (id == ${varPrefix}SoundId) pool.play(id, ${audio.properties.volume ?? 1}f, ${audio.properties.volume ?? 1}f, 1, ${audio.properties.loop ? '-1' : '0'}, 1.0f)`);
+    lines.push(
+      `    if (id == ${varPrefix}SoundId) pool.play(id, ${audio.properties.volume ?? 1}f, ${audio.properties.volume ?? 1}f, 1, ${audio.properties.loop ? '-1' : '0'}, 1.0f)`
+    );
     lines.push(`}`);
   }
 
@@ -1353,11 +1567,17 @@ export function weatherToAndroidXR(weather: CompiledWeather): string {
   for (const layer of weather.layers) {
     lines.push(`// Layer: ${layer.type}`);
     if (layer.type === 'rain' || layer.type === 'snow') {
-      lines.push(`// Use GPU particle emitter for ${layer.type} — rate=${layer.properties.rate || 'default'}, intensity=${layer.properties.intensity || 'default'}`);
+      lines.push(
+        `// Use GPU particle emitter for ${layer.type} — rate=${layer.properties.rate || 'default'}, intensity=${layer.properties.intensity || 'default'}`
+      );
     } else if (layer.type === 'wind') {
-      lines.push(`// Apply force to particle systems: strength=${layer.properties.strength || 'default'}, direction=${JSON.stringify(layer.properties.direction) || 'default'}`);
+      lines.push(
+        `// Apply force to particle systems: strength=${layer.properties.strength || 'default'}, direction=${JSON.stringify(layer.properties.direction) || 'default'}`
+      );
     } else if (layer.type === 'fog' || layer.type === 'fog_layer') {
-      lines.push(`// Configure Filament fog: density=${layer.properties.density || 'default'}, color=${layer.properties.color || 'default'}`);
+      lines.push(
+        `// Configure Filament fog: density=${layer.properties.density || 'default'}, color=${layer.properties.color || 'default'}`
+      );
     } else if (layer.type === 'lightning') {
       lines.push(`// Lightning flash: frequency=${layer.properties.frequency || 'default'}`);
     } else if (layer.type === 'clouds') {
@@ -1389,29 +1609,43 @@ export function materialToBabylon(mat: CompiledMaterial, varPrefix: string): str
   if (mat.type === 'unlit') {
     lines.push(`const ${varPrefix}Mat = new BABYLON.StandardMaterial("${mat.name}", scene);`);
     lines.push(`${varPrefix}Mat.disableLighting = true;`);
-    if (mat.emissiveColor) lines.push(`${varPrefix}Mat.emissiveColor = BABYLON.Color3.FromHexString("${mat.emissiveColor}");`);
+    if (mat.emissiveColor)
+      lines.push(
+        `${varPrefix}Mat.emissiveColor = BABYLON.Color3.FromHexString("${mat.emissiveColor}");`
+      );
   } else {
     lines.push(`const ${varPrefix}Mat = new BABYLON.PBRMaterial("${mat.name}", scene);`);
-    if (mat.baseColor) lines.push(`${varPrefix}Mat.albedoColor = BABYLON.Color3.FromHexString("${mat.baseColor}");`);
+    if (mat.baseColor)
+      lines.push(`${varPrefix}Mat.albedoColor = BABYLON.Color3.FromHexString("${mat.baseColor}");`);
     if (mat.roughness !== undefined) lines.push(`${varPrefix}Mat.roughness = ${mat.roughness};`);
     if (mat.metallic !== undefined) lines.push(`${varPrefix}Mat.metallic = ${mat.metallic};`);
     if (mat.opacity !== undefined && mat.opacity < 1) {
       lines.push(`${varPrefix}Mat.alpha = ${mat.opacity};`);
     }
     if (mat.emissiveColor) {
-      lines.push(`${varPrefix}Mat.emissiveColor = BABYLON.Color3.FromHexString("${mat.emissiveColor}");`);
-      if (mat.emissiveIntensity) lines.push(`${varPrefix}Mat.emissiveIntensity = ${mat.emissiveIntensity};`);
+      lines.push(
+        `${varPrefix}Mat.emissiveColor = BABYLON.Color3.FromHexString("${mat.emissiveColor}");`
+      );
+      if (mat.emissiveIntensity)
+        lines.push(`${varPrefix}Mat.emissiveIntensity = ${mat.emissiveIntensity};`);
     }
     if (mat.ior !== undefined) lines.push(`${varPrefix}Mat.indexOfRefraction = ${mat.ior};`);
   }
   for (const [mapType, path] of Object.entries(mat.textureMaps)) {
-    const prop = mapType === 'albedo_map' ? 'albedoTexture'
-      : mapType === 'normal_map' ? 'bumpTexture'
-      : mapType === 'metallic_map' ? 'metallicTexture'
-      : mapType === 'roughness_map' ? 'microSurfaceTexture'
-      : mapType === 'emission_map' ? 'emissiveTexture'
-      : mapType === 'occlusion_map' ? 'ambientTexture'
-      : `${mapType.replace(/_map$/, 'Texture')}`;
+    const prop =
+      mapType === 'albedo_map'
+        ? 'albedoTexture'
+        : mapType === 'normal_map'
+          ? 'bumpTexture'
+          : mapType === 'metallic_map'
+            ? 'metallicTexture'
+            : mapType === 'roughness_map'
+              ? 'microSurfaceTexture'
+              : mapType === 'emission_map'
+                ? 'emissiveTexture'
+                : mapType === 'occlusion_map'
+                  ? 'ambientTexture'
+                  : `${mapType.replace(/_map$/, 'Texture')}`;
     lines.push(`${varPrefix}Mat.${prop} = new BABYLON.Texture("${path}", scene);`);
   }
   return lines.join('\n');
@@ -1424,7 +1658,9 @@ export function physicsToBabylon(physics: CompiledPhysics, varPrefix: string): s
 
   if (physics.rigidbody) {
     const rb = physics.rigidbody.properties;
-    lines.push(`const ${varPrefix}Aggregate = new BABYLON.PhysicsAggregate(${varPrefix}Mesh, BABYLON.PhysicsShapeType.BOX, {`);
+    lines.push(
+      `const ${varPrefix}Aggregate = new BABYLON.PhysicsAggregate(${varPrefix}Mesh, BABYLON.PhysicsShapeType.BOX, {`
+    );
     if (rb.mass !== undefined) lines.push(`  mass: ${rb.mass},`);
     if (rb.drag !== undefined) lines.push(`  linearDamping: ${rb.drag},`);
     if (rb.angular_damping !== undefined) lines.push(`  angularDamping: ${rb.angular_damping},`);
@@ -1441,10 +1677,14 @@ export function physicsToBabylon(physics: CompiledPhysics, varPrefix: string): s
 
   if (physics.joints) {
     for (const j of physics.joints) {
-      const jointType = j.keyword === 'hinge' ? 'HingeConstraint'
-        : j.keyword === 'slider' ? 'SliderConstraint'
-        : j.keyword === 'ball_socket' ? 'BallAndSocketConstraint'
-        : 'Physics6DoFConstraint';
+      const jointType =
+        j.keyword === 'hinge'
+          ? 'HingeConstraint'
+          : j.keyword === 'slider'
+            ? 'SliderConstraint'
+            : j.keyword === 'ball_socket'
+              ? 'BallAndSocketConstraint'
+              : 'Physics6DoFConstraint';
       lines.push(`// Joint: ${j.keyword} — BABYLON.${jointType}`);
     }
   }
@@ -1458,9 +1698,13 @@ export function particlesToBabylon(ps: CompiledParticleSystem, varPrefix: string
   lines.push(`// Particles: ${ps.name}`);
   const useGPU = ps.traits.includes('gpu');
   if (useGPU) {
-    lines.push(`const ${varPrefix}PS = new BABYLON.GPUParticleSystem("${ps.name}", { capacity: ${ps.properties.max_particles || 1000} }, scene);`);
+    lines.push(
+      `const ${varPrefix}PS = new BABYLON.GPUParticleSystem("${ps.name}", { capacity: ${ps.properties.max_particles || 1000} }, scene);`
+    );
   } else {
-    lines.push(`const ${varPrefix}PS = new BABYLON.ParticleSystem("${ps.name}", ${ps.properties.max_particles || 1000}, scene);`);
+    lines.push(
+      `const ${varPrefix}PS = new BABYLON.ParticleSystem("${ps.name}", ${ps.properties.max_particles || 1000}, scene);`
+    );
   }
   if (ps.properties.rate) lines.push(`${varPrefix}PS.emitRate = ${ps.properties.rate};`);
   if (ps.properties.start_lifetime) {
@@ -1484,7 +1728,9 @@ export function particlesToBabylon(ps: CompiledParticleSystem, varPrefix: string
     }
   }
   if (ps.properties.gravity_modifier !== undefined) {
-    lines.push(`${varPrefix}PS.gravity = new BABYLON.Vector3(0, ${-9.81 * ps.properties.gravity_modifier}, 0);`);
+    lines.push(
+      `${varPrefix}PS.gravity = new BABYLON.Vector3(0, ${-9.81 * ps.properties.gravity_modifier}, 0);`
+    );
   }
   lines.push(`${varPrefix}PS.start();`);
   return lines.join('\n');
@@ -1494,21 +1740,27 @@ export function particlesToBabylon(ps: CompiledParticleSystem, varPrefix: string
 export function postProcessingToBabylon(pp: CompiledPostProcessing): string {
   const lines: string[] = [];
   lines.push(`// Post-Processing: ${pp.keyword}`);
-  lines.push('const pipeline = new BABYLON.DefaultRenderingPipeline("default", true, scene, [camera]);');
+  lines.push(
+    'const pipeline = new BABYLON.DefaultRenderingPipeline("default", true, scene, [camera]);'
+  );
   for (const e of pp.effects) {
     if (e.type === 'bloom') {
       lines.push('pipeline.bloomEnabled = true;');
       if (e.properties.intensity) lines.push(`pipeline.bloomWeight = ${e.properties.intensity};`);
-      if (e.properties.threshold) lines.push(`pipeline.bloomThreshold = ${e.properties.threshold};`);
+      if (e.properties.threshold)
+        lines.push(`pipeline.bloomThreshold = ${e.properties.threshold};`);
     } else if (e.type === 'depth_of_field') {
       lines.push('pipeline.depthOfFieldEnabled = true;');
-      if (e.properties.focal_length) lines.push(`pipeline.depthOfField.focalLength = ${e.properties.focal_length};`);
+      if (e.properties.focal_length)
+        lines.push(`pipeline.depthOfField.focalLength = ${e.properties.focal_length};`);
     } else if (e.type === 'chromatic_aberration') {
       lines.push('pipeline.chromaticAberrationEnabled = true;');
-      if (e.properties.amount) lines.push(`pipeline.chromaticAberration.aberrationAmount = ${e.properties.amount};`);
+      if (e.properties.amount)
+        lines.push(`pipeline.chromaticAberration.aberrationAmount = ${e.properties.amount};`);
     } else if (e.type === 'vignette') {
       lines.push('pipeline.imageProcessing.vignetteEnabled = true;');
-      if (e.properties.weight) lines.push(`pipeline.imageProcessing.vignetteWeight = ${e.properties.weight};`);
+      if (e.properties.weight)
+        lines.push(`pipeline.imageProcessing.vignetteWeight = ${e.properties.weight};`);
     } else {
       lines.push(`// Effect: ${e.type} — ${JSON.stringify(e.properties)}`);
     }
@@ -1521,12 +1773,15 @@ export function audioSourceToBabylon(audio: CompiledAudioSource, varPrefix: stri
   const lines: string[] = [];
   lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
   const isSpatial = audio.traits.includes('spatial') || audio.properties.spatial_blend > 0;
-  lines.push(`const ${varPrefix}Sound = new BABYLON.Sound("${audio.name}", "${audio.properties.clip || ''}", scene, null, {`);
+  lines.push(
+    `const ${varPrefix}Sound = new BABYLON.Sound("${audio.name}", "${audio.properties.clip || ''}", scene, null, {`
+  );
   if (audio.properties.loop !== undefined) lines.push(`  loop: ${audio.properties.loop},`);
   if (audio.properties.volume !== undefined) lines.push(`  volume: ${audio.properties.volume},`);
   if (isSpatial) lines.push('  spatialSound: true,');
   if (audio.properties.play_on_awake) lines.push('  autoplay: true,');
-  if (isSpatial && audio.properties.max_distance) lines.push(`  maxDistance: ${audio.properties.max_distance},`);
+  if (isSpatial && audio.properties.max_distance)
+    lines.push(`  maxDistance: ${audio.properties.max_distance},`);
   lines.push('});');
   return lines.join('\n');
 }
@@ -1541,8 +1796,10 @@ export function materialToPlayCanvas(mat: CompiledMaterial, varPrefix: string): 
   lines.push(`// Material: ${mat.name}`);
   lines.push(`const ${varPrefix}Mat = new pc.StandardMaterial();`);
   lines.push(`${varPrefix}Mat.name = "${mat.name}";`);
-  if (mat.baseColor) lines.push(`${varPrefix}Mat.diffuse = new pc.Color().fromString("${mat.baseColor}");`);
-  if (mat.roughness !== undefined) lines.push(`${varPrefix}Mat.gloss = ${1 - mat.roughness}; // roughness inverted`);
+  if (mat.baseColor)
+    lines.push(`${varPrefix}Mat.diffuse = new pc.Color().fromString("${mat.baseColor}");`);
+  if (mat.roughness !== undefined)
+    lines.push(`${varPrefix}Mat.gloss = ${1 - mat.roughness}; // roughness inverted`);
   if (mat.metallic !== undefined) lines.push(`${varPrefix}Mat.metalness = ${mat.metallic};`);
   if (mat.metallic !== undefined) lines.push(`${varPrefix}Mat.useMetalness = true;`);
   if (mat.opacity !== undefined && mat.opacity < 1) {
@@ -1551,7 +1808,8 @@ export function materialToPlayCanvas(mat: CompiledMaterial, varPrefix: string): 
   }
   if (mat.emissiveColor) {
     lines.push(`${varPrefix}Mat.emissive = new pc.Color().fromString("${mat.emissiveColor}");`);
-    if (mat.emissiveIntensity) lines.push(`${varPrefix}Mat.emissiveIntensity = ${mat.emissiveIntensity};`);
+    if (mat.emissiveIntensity)
+      lines.push(`${varPrefix}Mat.emissiveIntensity = ${mat.emissiveIntensity};`);
   }
   lines.push(`${varPrefix}Mat.update();`);
   return lines.join('\n');
@@ -1580,7 +1838,9 @@ export function physicsToPlayCanvas(physics: CompiledPhysics, varPrefix: string)
       if (c.properties.radius) lines.push(`  radius: ${c.properties.radius},`);
       if (c.properties.height) lines.push(`  height: ${c.properties.height},`);
       if (c.properties.size && Array.isArray(c.properties.size)) {
-        lines.push(`  halfExtents: new pc.Vec3(${c.properties.size.map((s: number) => s / 2).join(', ')}),`);
+        lines.push(
+          `  halfExtents: new pc.Vec3(${c.properties.size.map((s: number) => s / 2).join(', ')}),`
+        );
       }
       lines.push('});');
     }
@@ -1596,8 +1856,14 @@ export function particlesToPlayCanvas(ps: CompiledParticleSystem, varPrefix: str
   lines.push(`${varPrefix}Entity.addComponent("particlesystem", {`);
   if (ps.properties.max_particles) lines.push(`  numParticles: ${ps.properties.max_particles},`);
   if (ps.properties.rate) lines.push(`  rate: ${ps.properties.rate},`);
-  if (ps.properties.start_lifetime) lines.push(`  lifetime: ${Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime},`);
-  if (ps.properties.start_speed) lines.push(`  emitterExtents: new pc.Vec3(${Array.isArray(ps.properties.start_speed) ? ps.properties.start_speed[0] : ps.properties.start_speed}, 0, 0),`);
+  if (ps.properties.start_lifetime)
+    lines.push(
+      `  lifetime: ${Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime},`
+    );
+  if (ps.properties.start_speed)
+    lines.push(
+      `  emitterExtents: new pc.Vec3(${Array.isArray(ps.properties.start_speed) ? ps.properties.start_speed[0] : ps.properties.start_speed}, 0, 0),`
+    );
   lines.push(`  loop: ${ps.traits.includes('looping')},`);
   lines.push('});');
   return lines.join('\n');
@@ -1608,12 +1874,16 @@ export function audioSourceToPlayCanvas(audio: CompiledAudioSource, varPrefix: s
   const lines: string[] = [];
   lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
   lines.push(`${varPrefix}Entity.addComponent("sound", {`);
-  lines.push(`  positional: ${audio.traits.includes('spatial') || audio.properties.spatial_blend > 0},`);
+  lines.push(
+    `  positional: ${audio.traits.includes('spatial') || audio.properties.spatial_blend > 0},`
+  );
   if (audio.properties.volume !== undefined) lines.push(`  volume: ${audio.properties.volume},`);
   if (audio.properties.max_distance) lines.push(`  maxDistance: ${audio.properties.max_distance},`);
   lines.push('});');
   if (audio.properties.clip) {
-    lines.push(`${varPrefix}Entity.sound.addSlot("${audio.name}", { asset: app.assets.find("${audio.properties.clip}"),`);
+    lines.push(
+      `${varPrefix}Entity.sound.addSlot("${audio.name}", { asset: app.assets.find("${audio.properties.clip}"),`
+    );
     if (audio.properties.loop !== undefined) lines.push(`  loop: ${audio.properties.loop},`);
     if (audio.properties.play_on_awake) lines.push('  autoPlay: true,');
     lines.push('});');
@@ -1665,9 +1935,12 @@ export function physicsToSDF(physics: CompiledPhysics): string {
       if (shape === 'sphere') {
         lines.push(`    <sphere><radius>${c.properties.radius || 0.5}</radius></sphere>`);
       } else if (shape === 'capsule' || shape === 'cylinder') {
-        lines.push(`    <cylinder><radius>${c.properties.radius || 0.5}</radius><length>${c.properties.height || 1.0}</length></cylinder>`);
+        lines.push(
+          `    <cylinder><radius>${c.properties.radius || 0.5}</radius><length>${c.properties.height || 1.0}</length></cylinder>`
+        );
       } else {
-        const size = c.properties.size && Array.isArray(c.properties.size) ? c.properties.size : [1, 1, 1];
+        const size =
+          c.properties.size && Array.isArray(c.properties.size) ? c.properties.size : [1, 1, 1];
         lines.push(`    <box><size>${size.join(' ')}</size></box>`);
       }
       lines.push('  </geometry>');
@@ -1677,18 +1950,25 @@ export function physicsToSDF(physics: CompiledPhysics): string {
 
   if (physics.joints) {
     for (const j of physics.joints) {
-      const sdfType = j.keyword === 'hinge' ? 'revolute'
-        : j.keyword === 'slider' ? 'prismatic'
-        : j.keyword === 'ball_socket' ? 'ball'
-        : j.keyword === 'fixed_joint' ? 'fixed'
-        : 'revolute';
+      const sdfType =
+        j.keyword === 'hinge'
+          ? 'revolute'
+          : j.keyword === 'slider'
+            ? 'prismatic'
+            : j.keyword === 'ball_socket'
+              ? 'ball'
+              : j.keyword === 'fixed_joint'
+                ? 'fixed'
+                : 'revolute';
       lines.push(`<joint name="${j.name || 'joint'}" type="${sdfType}">`);
       if (j.properties.axis) {
         const axis = Array.isArray(j.properties.axis) ? j.properties.axis : [0, 0, 1];
         lines.push(`  <axis><xyz>${axis.join(' ')}</xyz></axis>`);
       }
       if (j.properties.limits) {
-        lines.push(`  <axis><limit><lower>${j.properties.limits[0]}</lower><upper>${j.properties.limits[1]}</upper></limit></axis>`);
+        lines.push(
+          `  <axis><limit><lower>${j.properties.limits[0]}</lower><upper>${j.properties.limits[1]}</upper></limit></axis>`
+        );
       }
       lines.push('</joint>');
     }
@@ -1706,12 +1986,17 @@ export function materialToVRChat(mat: CompiledMaterial, varPrefix: string): stri
   const lines: string[] = [];
   lines.push(`// VRChat Material: ${mat.name}`);
   lines.push(`var ${varPrefix}Mat = new Material(Shader.Find("VRChat/Mobile/Standard Lite"));`);
-  if (mat.baseColor) lines.push(`${varPrefix}Mat.SetColor("_Color", ${hexToUnityColor(mat.baseColor)});`);
-  if (mat.roughness !== undefined) lines.push(`${varPrefix}Mat.SetFloat("_Glossiness", ${(1 - mat.roughness).toFixed(3)}f);`);
-  if (mat.metallic !== undefined) lines.push(`${varPrefix}Mat.SetFloat("_Metallic", ${mat.metallic}f);`);
+  if (mat.baseColor)
+    lines.push(`${varPrefix}Mat.SetColor("_Color", ${hexToUnityColor(mat.baseColor)});`);
+  if (mat.roughness !== undefined)
+    lines.push(`${varPrefix}Mat.SetFloat("_Glossiness", ${(1 - mat.roughness).toFixed(3)}f);`);
+  if (mat.metallic !== undefined)
+    lines.push(`${varPrefix}Mat.SetFloat("_Metallic", ${mat.metallic}f);`);
   if (mat.emissiveColor) {
     lines.push(`${varPrefix}Mat.EnableKeyword("_EMISSION");`);
-    lines.push(`${varPrefix}Mat.SetColor("_EmissionColor", ${hexToUnityColor(mat.emissiveColor)});`);
+    lines.push(
+      `${varPrefix}Mat.SetColor("_EmissionColor", ${hexToUnityColor(mat.emissiveColor)});`
+    );
   }
   return lines.join('\n');
 }
@@ -1726,8 +2011,12 @@ export function particlesToUSD(ps: CompiledParticleSystem): string {
   lines.push(`def Scope "Particles_${ps.name.replace(/[^a-zA-Z0-9_]/g, '_')}" {`);
   lines.push(`    custom string holoscript:type = "particle_system"`);
   if (ps.properties.rate) lines.push(`    custom float holoscript:rate = ${ps.properties.rate}`);
-  if (ps.properties.max_particles) lines.push(`    custom int holoscript:maxParticles = ${ps.properties.max_particles}`);
-  if (ps.properties.start_lifetime) lines.push(`    custom float holoscript:lifetime = ${Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime}`);
+  if (ps.properties.max_particles)
+    lines.push(`    custom int holoscript:maxParticles = ${ps.properties.max_particles}`);
+  if (ps.properties.start_lifetime)
+    lines.push(
+      `    custom float holoscript:lifetime = ${Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime}`
+    );
   for (const m of ps.modules) {
     lines.push(`    def Scope "${m.type}" {`);
     for (const [k, v] of Object.entries(m.properties)) {
@@ -1762,9 +2051,12 @@ export function audioSourceToUSD(audio: CompiledAudioSource): string {
   lines.push(`def Scope "Audio_${audio.name.replace(/[^a-zA-Z0-9_]/g, '_')}" {`);
   lines.push(`    custom string holoscript:type = "${audio.keyword}"`);
   if (audio.properties.clip) lines.push(`    asset holoscript:clip = @${audio.properties.clip}@`);
-  if (audio.properties.volume !== undefined) lines.push(`    custom float holoscript:volume = ${audio.properties.volume}`);
-  if (audio.properties.loop !== undefined) lines.push(`    custom bool holoscript:loop = ${audio.properties.loop}`);
-  if (audio.properties.spatial_blend !== undefined) lines.push(`    custom float holoscript:spatialBlend = ${audio.properties.spatial_blend}`);
+  if (audio.properties.volume !== undefined)
+    lines.push(`    custom float holoscript:volume = ${audio.properties.volume}`);
+  if (audio.properties.loop !== undefined)
+    lines.push(`    custom bool holoscript:loop = ${audio.properties.loop}`);
+  if (audio.properties.spatial_blend !== undefined)
+    lines.push(`    custom float holoscript:spatialBlend = ${audio.properties.spatial_blend}`);
   lines.push('}');
   return lines.join('\n');
 }
@@ -1780,15 +2072,20 @@ export function physicsToR3F(physics: CompiledPhysics): string {
   if (physics.rigidbody) {
     const rb = physics.rigidbody.properties;
     const bodyType = rb.use_gravity === false ? 'kinematicPosition' : 'dynamic';
-    lines.push(`<RigidBody type="${bodyType}"${rb.mass ? ` mass={${rb.mass}}` : ''}${rb.drag ? ` linearDamping={${rb.drag}}` : ''}${rb.angular_damping ? ` angularDamping={${rb.angular_damping}}` : ''}>`);
+    lines.push(
+      `<RigidBody type="${bodyType}"${rb.mass ? ` mass={${rb.mass}}` : ''}${rb.drag ? ` linearDamping={${rb.drag}}` : ''}${rb.angular_damping ? ` angularDamping={${rb.angular_damping}}` : ''}>`
+    );
   }
 
   if (physics.colliders) {
     for (const c of physics.colliders) {
       const shape = c.shape || 'cuboid';
       const r3fShape = shape === 'box' ? 'cuboid' : shape === 'sphere' ? 'ball' : shape;
-      const args = shape === 'sphere' && c.properties.radius ? ` args={[${c.properties.radius}]}` : '';
-      lines.push(`  <${c.type === 'trigger' ? 'CuboidCollider sensor' : `${capitalizeFirst(r3fShape)}Collider`}${args} />`);
+      const args =
+        shape === 'sphere' && c.properties.radius ? ` args={[${c.properties.radius}]}` : '';
+      lines.push(
+        `  <${c.type === 'trigger' ? 'CuboidCollider sensor' : `${capitalizeFirst(r3fShape)}Collider`}${args} />`
+      );
     }
   }
 
@@ -1798,13 +2095,17 @@ export function physicsToR3F(physics: CompiledPhysics): string {
 
   if (physics.joints) {
     for (const j of physics.joints) {
-      lines.push(`{/* Joint: ${j.keyword} "${j.name || ''}" — use useRevoluteJoint/useSphericalJoint */}`);
+      lines.push(
+        `{/* Joint: ${j.keyword} "${j.name || ''}" — use useRevoluteJoint/useSphericalJoint */}`
+      );
     }
   }
 
   if (physics.forceFields) {
     for (const ff of physics.forceFields) {
-      lines.push(`{/* Force field: ${ff.keyword} "${ff.name || ''}" — ${JSON.stringify(ff.properties)} */}`);
+      lines.push(
+        `{/* Force field: ${ff.keyword} "${ff.name || ''}" — ${JSON.stringify(ff.properties)} */}`
+      );
     }
   }
 
@@ -1821,7 +2122,8 @@ export function weatherToR3F(weather: CompiledWeather): string {
       .map(([k, v]) => {
         const camel = k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
         return typeof v === 'string' ? `${camel}="${v}"` : `${camel}={${JSON.stringify(v)}}`;
-      }).join(' ');
+      })
+      .join(' ');
     lines.push(`<${componentName} ${props} />`);
   }
   return lines.join('\n');
@@ -1842,7 +2144,9 @@ export function materialToWebGPU(mat: CompiledMaterial, varPrefix: string): stri
   } else {
     lines.push('  1.0, 1.0, 1.0, 1.0,  // baseColor + opacity');
   }
-  lines.push(`  ${mat.roughness ?? 0.5}, ${mat.metallic ?? 0}, ${mat.ior ?? 1.5}, 0.0,  // roughness, metallic, ior, pad`);
+  lines.push(
+    `  ${mat.roughness ?? 0.5}, ${mat.metallic ?? 0}, ${mat.ior ?? 1.5}, 0.0,  // roughness, metallic, ior, pad`
+  );
   if (mat.emissiveColor) {
     const [r, g, b] = hexToRGBTuple(mat.emissiveColor);
     lines.push(`  ${r}, ${g}, ${b}, ${mat.emissiveIntensity ?? 1},  // emissive + intensity`);
@@ -1900,7 +2204,7 @@ export function compileNarrativeBlock(block: HoloDomainBlock): CompiledNarrative
   const chapters: CompiledChapter[] = [];
   let hasChoices = false;
 
-  for (const child of (block.children || [])) {
+  for (const child of block.children || []) {
     const c = child as any;
     if (c.type !== 'DomainBlock') continue;
 
@@ -1913,7 +2217,7 @@ export function compileNarrativeBlock(block: HoloDomainBlock): CompiledNarrative
       // Dialogue tree as a virtual chapter
       const dialogueLines: CompiledDialogueLine[] = [];
       const choices: CompiledChoice[] = [];
-      for (const dc of (c.children || [])) {
+      for (const dc of c.children || []) {
         const dck = (dc as any).keyword as string;
         if (dck === 'line' || dck === 'dialogue') {
           dialogueLines.push(compileDialogueLine(dc as any));
@@ -1931,8 +2235,11 @@ export function compileNarrativeBlock(block: HoloDomainBlock): CompiledNarrative
   }
 
   const props = block.properties || {};
-  const narrativeType: CompiledNarrative['type'] = hasChoices ? 'branching'
-    : (props.type as string) === 'open_world' ? 'open_world' : 'linear';
+  const narrativeType: CompiledNarrative['type'] = hasChoices
+    ? 'branching'
+    : (props.type as string) === 'open_world'
+      ? 'open_world'
+      : 'linear';
 
   return {
     name: block.name || 'unnamed',
@@ -1949,14 +2256,21 @@ function compileChapterBlock(block: any): CompiledChapter {
   const choices: CompiledChoice[] = [];
   const cutsceneActions: CompiledCutsceneAction[] = [];
 
-  for (const child of (block.children || [])) {
+  for (const child of block.children || []) {
     const c = child as any;
     const kw = c.keyword as string;
     if (kw === 'line' || kw === 'dialogue') {
       dialogueLines.push(compileDialogueLine(c));
     } else if (kw === 'choice') {
       choices.push(compileChoiceNode(c));
-    } else if (kw === 'cutscene' || kw === 'camera' || kw === 'action' || kw === 'wait' || kw === 'effect' || kw === 'audio') {
+    } else if (
+      kw === 'cutscene' ||
+      kw === 'camera' ||
+      kw === 'action' ||
+      kw === 'wait' ||
+      kw === 'effect' ||
+      kw === 'audio'
+    ) {
       cutsceneActions.push(compileCutsceneAction(c));
     }
   }
@@ -1996,11 +2310,15 @@ function compileCutsceneAction(block: any): CompiledCutsceneAction {
   const props = block.properties || {};
   const kw = block.keyword as string;
   const type: CompiledCutsceneAction['type'] =
-    kw === 'camera' || kw === 'camera_move' ? 'camera_move'
-    : kw === 'action' || kw === 'character_action' ? 'character_action'
-    : kw === 'wait' ? 'wait'
-    : kw === 'audio' ? 'audio'
-    : 'effect';
+    kw === 'camera' || kw === 'camera_move'
+      ? 'camera_move'
+      : kw === 'action' || kw === 'character_action'
+        ? 'character_action'
+        : kw === 'wait'
+          ? 'wait'
+          : kw === 'audio'
+            ? 'audio'
+            : 'effect';
 
   return {
     type,
@@ -2077,7 +2395,9 @@ export function narrativeToGodot(narrative: CompiledNarrative): string {
   lines.push('signal choice_presented(choices: Array)');
   lines.push('');
   lines.push(`var narrative_type: String = "${narrative.type}"`);
-  lines.push(`var current_chapter: String = "${narrative.startChapter || (narrative.chapters[0]?.name || '')}"`);
+  lines.push(
+    `var current_chapter: String = "${narrative.startChapter || narrative.chapters[0]?.name || ''}"`
+  );
 
   // Chapter data dictionary
   lines.push('');
@@ -2091,7 +2411,9 @@ export function narrativeToGodot(narrative: CompiledNarrative): string {
     if (chapter.dialogueLines && chapter.dialogueLines.length > 0) {
       lines.push('        "dialogue": [');
       for (const dl of chapter.dialogueLines) {
-        lines.push(`            {"speaker": "${dl.speaker || ''}", "text": "${dl.text}", "emotion": "${dl.emotion || 'neutral'}"},`);
+        lines.push(
+          `            {"speaker": "${dl.speaker || ''}", "text": "${dl.text}", "emotion": "${dl.emotion || 'neutral'}"},`
+        );
       }
       lines.push('        ],');
     }
@@ -2136,7 +2458,9 @@ export function narrativeToVRChat(narrative: CompiledNarrative): string {
   lines.push('[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]');
   lines.push(`public class ${safeName}Narrative : UdonSharpBehaviour {`);
   lines.push('    [UdonSynced] public int currentChapter = 0;');
-  lines.push(`    private string[] chapterNames = new string[] { ${narrative.chapters.map(c => `"${c.name}"`).join(', ')} };`);
+  lines.push(
+    `    private string[] chapterNames = new string[] { ${narrative.chapters.map((c) => `"${c.name}"`).join(', ')} };`
+  );
   lines.push('');
 
   // Trigger detection
@@ -2153,7 +2477,9 @@ export function narrativeToVRChat(narrative: CompiledNarrative): string {
   lines.push('            Networking.SetOwner(Networking.LocalPlayer, gameObject);');
   lines.push('        }');
   lines.push('        currentChapter++;');
-  lines.push('        if (currentChapter >= chapterNames.Length) currentChapter = chapterNames.Length - 1;');
+  lines.push(
+    '        if (currentChapter >= chapterNames.Length) currentChapter = chapterNames.Length - 1;'
+  );
   lines.push('        RequestSerialization();');
   lines.push('    }');
 
@@ -2244,17 +2570,22 @@ export function narrativeToUSDA(narrative: CompiledNarrative): string {
     const chName = chapter.name.replace(/[^a-zA-Z0-9_]/g, '_');
     lines.push(`    def Scope "Chapter_${chName}" {`);
     lines.push(`        custom string holoscript:chapterName = "${chapter.name}"`);
-    if (chapter.trigger) lines.push(`        custom string holoscript:trigger = "${chapter.trigger}"`);
-    if (chapter.onComplete) lines.push(`        custom string holoscript:onComplete = "${chapter.onComplete}"`);
+    if (chapter.trigger)
+      lines.push(`        custom string holoscript:trigger = "${chapter.trigger}"`);
+    if (chapter.onComplete)
+      lines.push(`        custom string holoscript:onComplete = "${chapter.onComplete}"`);
 
     if (chapter.dialogueLines) {
       for (let i = 0; i < chapter.dialogueLines.length; i++) {
         const dl = chapter.dialogueLines[i];
         lines.push(`        def Scope "Dialogue_${i}" {`);
         lines.push(`            custom string holoscript:text = "${dl.text}"`);
-        if (dl.speaker) lines.push(`            custom string holoscript:speaker = "${dl.speaker}"`);
-        if (dl.emotion) lines.push(`            custom string holoscript:emotion = "${dl.emotion}"`);
-        if (dl.duration) lines.push(`            custom float holoscript:duration = ${dl.duration}`);
+        if (dl.speaker)
+          lines.push(`            custom string holoscript:speaker = "${dl.speaker}"`);
+        if (dl.emotion)
+          lines.push(`            custom string holoscript:emotion = "${dl.emotion}"`);
+        if (dl.duration)
+          lines.push(`            custom float holoscript:duration = ${dl.duration}`);
         lines.push('        }');
       }
     }
@@ -2264,8 +2595,10 @@ export function narrativeToUSDA(narrative: CompiledNarrative): string {
         const ch = chapter.choices[i];
         lines.push(`        def Scope "Choice_${i}" {`);
         lines.push(`            custom string holoscript:text = "${ch.text}"`);
-        if (ch.nextChapter) lines.push(`            custom string holoscript:nextChapter = "${ch.nextChapter}"`);
-        if (ch.condition) lines.push(`            custom string holoscript:condition = "${ch.condition}"`);
+        if (ch.nextChapter)
+          lines.push(`            custom string holoscript:nextChapter = "${ch.nextChapter}"`);
+        if (ch.condition)
+          lines.push(`            custom string holoscript:condition = "${ch.condition}"`);
         lines.push('        }');
       }
     }
@@ -2276,7 +2609,8 @@ export function narrativeToUSDA(narrative: CompiledNarrative): string {
         lines.push(`        def Scope "CutsceneAction_${i}" {`);
         lines.push(`            custom string holoscript:actionType = "${ca.type}"`);
         if (ca.target) lines.push(`            custom string holoscript:target = "${ca.target}"`);
-        if (ca.duration) lines.push(`            custom float holoscript:duration = ${ca.duration}`);
+        if (ca.duration)
+          lines.push(`            custom float holoscript:duration = ${ca.duration}`);
         lines.push('        }');
       }
     }
@@ -2298,10 +2632,13 @@ export function compilePaymentBlock(block: HoloDomainBlock): CompiledPaywall {
   const props = block.properties || {};
 
   const paywallType: CompiledPaywall['type'] =
-    block.keyword === 'subscription' ? 'subscription'
-    : block.keyword === 'tip_jar' ? 'tip'
-    : block.keyword === 'per_use' || props.per_use ? 'per_use'
-    : 'one_time';
+    block.keyword === 'subscription'
+      ? 'subscription'
+      : block.keyword === 'tip_jar'
+        ? 'tip'
+        : block.keyword === 'per_use' || props.per_use
+          ? 'per_use'
+          : 'one_time';
 
   // Extract gated content from children or property
   const gatedContent: string[] = [];
@@ -2310,7 +2647,7 @@ export function compilePaymentBlock(block: HoloDomainBlock): CompiledPaywall {
   } else if (typeof props.gated_content === 'string') {
     gatedContent.push(props.gated_content as string);
   }
-  for (const child of (block.children || [])) {
+  for (const child of block.children || []) {
     const c = child as any;
     if (c.name) gatedContent.push(c.name);
   }
@@ -2356,10 +2693,14 @@ export function paymentToUnity(paywall: CompiledPaywall): string {
     lines.push(`    public string description = "${paywall.description}";`);
   }
   if (paywall.gatedContent && paywall.gatedContent.length > 0) {
-    lines.push(`    public string[] gatedObjects = new string[] { ${paywall.gatedContent.map(g => `"${g}"`).join(', ')} };`);
+    lines.push(
+      `    public string[] gatedObjects = new string[] { ${paywall.gatedContent.map((g) => `"${g}"`).join(', ')} };`
+    );
   }
   if (paywall.revenueSplit) {
-    lines.push(`    // Revenue split: ${paywall.revenueSplit.creator}% Creator, ${paywall.revenueSplit.platform}% Platform, ${paywall.revenueSplit.agent}% Agent`);
+    lines.push(
+      `    // Revenue split: ${paywall.revenueSplit.creator}% Creator, ${paywall.revenueSplit.platform}% Platform, ${paywall.revenueSplit.agent}% Agent`
+    );
   }
   lines.push('');
   lines.push('    public bool IsUnlocked { get; private set; }');
@@ -2398,7 +2739,9 @@ export function paymentToGodot(paywall: CompiledPaywall): string {
   lines.push(`var paywall_type: String = "${paywall.type}"`);
   lines.push('var is_unlocked: bool = false');
   if (paywall.gatedContent && paywall.gatedContent.length > 0) {
-    lines.push(`var gated_objects: Array = [${paywall.gatedContent.map(g => `"${g}"`).join(', ')}]`);
+    lines.push(
+      `var gated_objects: Array = [${paywall.gatedContent.map((g) => `"${g}"`).join(', ')}]`
+    );
   }
   lines.push('');
   lines.push('func request_payment() -> void:');
@@ -2477,10 +2820,12 @@ export function paymentToR3F(paywall: CompiledPaywall): string {
     lines.push(`  description: "${paywall.description}",`);
   }
   if (paywall.gatedContent && paywall.gatedContent.length > 0) {
-    lines.push(`  gatedContent: [${paywall.gatedContent.map(g => `"${g}"`).join(', ')}],`);
+    lines.push(`  gatedContent: [${paywall.gatedContent.map((g) => `"${g}"`).join(', ')}],`);
   }
   if (paywall.revenueSplit) {
-    lines.push(`  revenueSplit: { creator: ${paywall.revenueSplit.creator}, platform: ${paywall.revenueSplit.platform}, agent: ${paywall.revenueSplit.agent} },`);
+    lines.push(
+      `  revenueSplit: { creator: ${paywall.revenueSplit.creator}, platform: ${paywall.revenueSplit.platform}, agent: ${paywall.revenueSplit.agent} },`
+    );
   }
   lines.push('};');
 
@@ -2504,11 +2849,15 @@ export function paymentToUSDA(paywall: CompiledPaywall): string {
     lines.push(`    custom string holoscript:description = "${paywall.description}"`);
   }
   if (paywall.gatedContent && paywall.gatedContent.length > 0) {
-    lines.push(`    custom string[] holoscript:gatedContent = [${paywall.gatedContent.map(g => `"${g}"`).join(', ')}]`);
+    lines.push(
+      `    custom string[] holoscript:gatedContent = [${paywall.gatedContent.map((g) => `"${g}"`).join(', ')}]`
+    );
   }
   if (paywall.revenueSplit) {
     lines.push(`    custom float holoscript:revenueSplitCreator = ${paywall.revenueSplit.creator}`);
-    lines.push(`    custom float holoscript:revenueSplitPlatform = ${paywall.revenueSplit.platform}`);
+    lines.push(
+      `    custom float holoscript:revenueSplitPlatform = ${paywall.revenueSplit.platform}`
+    );
     lines.push(`    custom float holoscript:revenueSplitAgent = ${paywall.revenueSplit.agent}`);
   }
   lines.push('}');
@@ -2526,9 +2875,9 @@ export type DomainCompileFn = (block: HoloDomainBlock) => string;
 export function compileDomainBlocks(
   blocks: HoloDomainBlock[],
   handlers: Partial<Record<HoloDomainType, DomainCompileFn>>,
-  fallback?: DomainCompileFn,
+  fallback?: DomainCompileFn
 ): string[] {
-  return blocks.map(block => {
+  return blocks.map((block) => {
     const handler = handlers[block.domain];
     if (handler) return handler(block);
     if (fallback) return fallback(block);
@@ -2568,7 +2917,8 @@ function hexToRGBA(hex: string, alpha: number): number[] {
  * Since DomainBlockCompilerMixin is a utility module (not a CompilerBase subclass),
  * it exposes its required capability as an exported constant and helper function.
  */
-export const DOMAIN_BLOCK_COMPILER_MIXIN_CAPABILITY: ANSCapabilityPathValue = ANSCapabilityPath.DOMAIN_BLOCK;
+export const DOMAIN_BLOCK_COMPILER_MIXIN_CAPABILITY: ANSCapabilityPathValue =
+  ANSCapabilityPath.DOMAIN_BLOCK;
 
 /**
  * Get the ANS capability namespace path for DomainBlockCompilerMixin.

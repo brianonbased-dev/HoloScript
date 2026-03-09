@@ -31,12 +31,14 @@ import type {
  * Validates each line is valid JSON and returns typed entries.
  */
 function parseJSONL(jsonl: string): SpatialTrainingJSONLEntry[] {
-  const lines = jsonl.split('\n').filter(line => line.trim() !== '');
+  const lines = jsonl.split('\n').filter((line) => line.trim() !== '');
   return lines.map((line, idx) => {
     try {
       return JSON.parse(line) as SpatialTrainingJSONLEntry;
     } catch (e) {
-      throw new Error(`Failed to parse JSONL line ${idx + 1}: ${(e as Error).message}\nLine: ${line}`);
+      throw new Error(
+        `Failed to parse JSONL line ${idx + 1}: ${(e as Error).message}\nLine: ${line}`
+      );
     }
   });
 }
@@ -60,8 +62,14 @@ function validateJSONLEntry(entry: SpatialTrainingJSONLEntry): string[] {
   if (typeof entry.metadata.id !== 'string' || entry.metadata.id.length === 0) {
     errors.push('metadata.id must be a non-empty string');
   }
-  if (!['spatial_adjacent', 'spatial_contains', 'spatial_reachable'].includes(entry.metadata.relationship_type)) {
-    errors.push(`metadata.relationship_type must be a valid type, got: ${entry.metadata.relationship_type}`);
+  if (
+    !['spatial_adjacent', 'spatial_contains', 'spatial_reachable'].includes(
+      entry.metadata.relationship_type
+    )
+  ) {
+    errors.push(
+      `metadata.relationship_type must be a valid type, got: ${entry.metadata.relationship_type}`
+    );
   }
   if (typeof entry.metadata.is_positive !== 'boolean') {
     errors.push('metadata.is_positive must be a boolean');
@@ -108,7 +116,10 @@ describe('Integration: SpatialTrainingDataGenerator -> JSONL Pipeline', () => {
       // Step 4: Validate every entry structure
       for (let i = 0; i < entries.length; i++) {
         const errors = validateJSONLEntry(entries[i]);
-        expect(errors, `Entry ${i} (${entries[i].metadata?.id}) has validation errors: ${errors.join(', ')}`).toHaveLength(0);
+        expect(
+          errors,
+          `Entry ${i} (${entries[i].metadata?.id}) has validation errors: ${errors.join(', ')}`
+        ).toHaveLength(0);
       }
     });
 
@@ -120,7 +131,7 @@ describe('Integration: SpatialTrainingDataGenerator -> JSONL Pipeline', () => {
 
       const examples = generator.generate();
       const jsonl = generator.exportJSONL(examples);
-      const lines = jsonl.split('\n').filter(line => line.trim() !== '');
+      const lines = jsonl.split('\n').filter((line) => line.trim() !== '');
 
       // Each line must be individually parseable
       for (const line of lines) {
@@ -148,7 +159,7 @@ describe('Integration: SpatialTrainingDataGenerator -> JSONL Pipeline', () => {
       const jsonl = generator.exportJSONL(examples);
       const entries = parseJSONL(jsonl);
 
-      const types = new Set(entries.map(e => e.metadata.relationship_type));
+      const types = new Set(entries.map((e) => e.metadata.relationship_type));
       expect(types.has('spatial_adjacent')).toBe(true);
       expect(types.has('spatial_contains')).toBe(true);
       expect(types.has('spatial_reachable')).toBe(true);
@@ -165,9 +176,7 @@ describe('Integration: SpatialTrainingDataGenerator -> JSONL Pipeline', () => {
       const stats = generator.getStats(examples);
 
       // 3 relationship types x 3 difficulty levels x 6 = 54
-      expect(stats.totalExamples).toBe(
-        3 * 3 * examplesPerCategory,
-      );
+      expect(stats.totalExamples).toBe(3 * 3 * examplesPerCategory);
 
       // Each relationship type should get 3 difficulty levels x examplesPerCategory
       expect(stats.byRelationship.spatial_adjacent).toBe(3 * examplesPerCategory);
@@ -191,7 +200,7 @@ describe('Integration: SpatialTrainingDataGenerator -> JSONL Pipeline', () => {
       const jsonl = generator.exportJSONL(examples);
       const entries = parseJSONL(jsonl);
 
-      const difficulties = new Set(entries.map(e => e.metadata.difficulty));
+      const difficulties = new Set(entries.map((e) => e.metadata.difficulty));
       expect(difficulties.has('basic')).toBe(true);
       expect(difficulties.has('intermediate')).toBe(true);
       expect(difficulties.has('advanced')).toBe(true);
@@ -246,7 +255,7 @@ describe('Integration: SpatialTrainingDataGenerator -> JSONL Pipeline', () => {
       const examples = generator.generate();
 
       for (const ex of examples) {
-        const templateTag = ex.tags.find(t => t.startsWith('template:'));
+        const templateTag = ex.tags.find((t) => t.startsWith('template:'));
         expect(templateTag, `Example ${ex.id} should have a template tag`).toBeDefined();
         expect(templateTag).toMatch(/^template:spatial_(adjacent|contains|reachable)-\d+$/);
       }
@@ -479,14 +488,14 @@ describe('Integration: SpatialTrainingDataGenerator -> JSONL Pipeline', () => {
       expect(stats.totalExamples).toBe(examples.length);
       expect(stats.positiveCount + stats.negativeCount).toBe(stats.totalExamples);
 
-      const relSum = stats.byRelationship.spatial_adjacent
-        + stats.byRelationship.spatial_contains
-        + stats.byRelationship.spatial_reachable;
+      const relSum =
+        stats.byRelationship.spatial_adjacent +
+        stats.byRelationship.spatial_contains +
+        stats.byRelationship.spatial_reachable;
       expect(relSum).toBe(stats.totalExamples);
 
-      const diffSum = stats.byDifficulty.basic
-        + stats.byDifficulty.intermediate
-        + stats.byDifficulty.advanced;
+      const diffSum =
+        stats.byDifficulty.basic + stats.byDifficulty.intermediate + stats.byDifficulty.advanced;
       expect(diffSum).toBe(stats.totalExamples);
     });
   });
@@ -538,11 +547,11 @@ describe('Integration: SpatialTrainingDataGenerator -> JSONL Pipeline', () => {
       });
 
       const examples = generator.generateForRelationship('spatial_reachable');
-      const nonBasic = examples.filter(ex => ex.difficulty !== 'basic');
+      const nonBasic = examples.filter((ex) => ex.difficulty !== 'basic');
 
       // At least some non-basic examples should have obstacles
       // (obstacles are randomly generated, so check at least some have them)
-      const withObstacles = nonBasic.filter(ex => ex.context.includes('@collidable'));
+      const withObstacles = nonBasic.filter((ex) => ex.context.includes('@collidable'));
       expect(withObstacles.length).toBeGreaterThan(0);
     });
   });

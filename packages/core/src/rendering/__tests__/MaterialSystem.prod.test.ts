@@ -11,7 +11,9 @@ import { MaterialSystem } from '../MaterialSystem';
 describe('MaterialSystem', () => {
   let ms: MaterialSystem;
 
-  beforeEach(() => { ms = new MaterialSystem(); });
+  beforeEach(() => {
+    ms = new MaterialSystem();
+  });
 
   // -------------------------------------------------------------------------
   // Shader Management
@@ -175,24 +177,36 @@ describe('MaterialSystem', () => {
   // -------------------------------------------------------------------------
   describe('getSortedMaterials', () => {
     it('opaque materials come before transparent', () => {
-      const a = ms.createMaterial('a', 'A', 'pbr'); a.blendMode = 'alpha'; a.renderOrder = 0;
-      const b = ms.createMaterial('b', 'B', 'pbr'); b.blendMode = 'opaque'; b.renderOrder = 0;
+      const a = ms.createMaterial('a', 'A', 'pbr');
+      a.blendMode = 'alpha';
+      a.renderOrder = 0;
+      const b = ms.createMaterial('b', 'B', 'pbr');
+      b.blendMode = 'opaque';
+      b.renderOrder = 0;
       const sorted = ms.getSortedMaterials();
       expect(sorted[0].id).toBe('b');
       expect(sorted[1].id).toBe('a');
     });
 
     it('opaque materials sorted by renderOrder ascending', () => {
-      const a = ms.createMaterial('a', 'A', 'pbr'); a.blendMode = 'opaque'; a.renderOrder = 5;
-      const b = ms.createMaterial('b', 'B', 'pbr'); b.blendMode = 'opaque'; b.renderOrder = 2;
+      const a = ms.createMaterial('a', 'A', 'pbr');
+      a.blendMode = 'opaque';
+      a.renderOrder = 5;
+      const b = ms.createMaterial('b', 'B', 'pbr');
+      b.blendMode = 'opaque';
+      b.renderOrder = 2;
       const sorted = ms.getSortedMaterials();
       expect(sorted[0].id).toBe('b');
       expect(sorted[1].id).toBe('a');
     });
 
     it('transparent materials sorted by renderOrder ascending', () => {
-      const a = ms.createMaterial('a', 'A', 'pbr'); a.blendMode = 'alpha'; a.renderOrder = 10;
-      const b = ms.createMaterial('b', 'B', 'pbr'); b.blendMode = 'alpha'; b.renderOrder = 5;
+      const a = ms.createMaterial('a', 'A', 'pbr');
+      a.blendMode = 'alpha';
+      a.renderOrder = 10;
+      const b = ms.createMaterial('b', 'B', 'pbr');
+      b.blendMode = 'alpha';
+      b.renderOrder = 5;
       const sorted = ms.getSortedMaterials();
       expect(sorted[0].id).toBe('b');
     });

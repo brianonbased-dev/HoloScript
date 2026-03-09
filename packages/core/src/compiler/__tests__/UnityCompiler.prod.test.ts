@@ -20,14 +20,11 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   };
 });
 
-
-
 function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
 }
 
 describe('UnityCompiler — Production', () => {
-
   // ─── Header & Structure ──────────────────────────────────────────────────
 
   it('emits auto-generated header with composition name', () => {
@@ -43,9 +40,11 @@ describe('UnityCompiler — Production', () => {
   });
 
   it('emits System.Collections when timelines are present', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      timelines: [{ name: 'intro', autoplay: true, loop: false, entries: [] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        timelines: [{ name: 'intro', autoplay: true, loop: false, entries: [] }] as any,
+      })
+    );
     expect(cs).toContain('using System.Collections;');
   });
 
@@ -80,195 +79,262 @@ describe('UnityCompiler — Production', () => {
   // ─── State Fields ─────────────────────────────────────────────────────────
 
   it('compiles integer state to int field', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      state: { properties: [{ key: 'score', value: 0 }] } as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        state: { properties: [{ key: 'score', value: 0 }] } as any,
+      })
+    );
     expect(cs).toContain('private int score = 0;');
   });
 
   it('compiles float state to float field', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      state: { properties: [{ key: 'speed', value: 3.5 }] } as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        state: { properties: [{ key: 'speed', value: 3.5 }] } as any,
+      })
+    );
     expect(cs).toContain('private float speed = 3.5f;');
   });
 
   it('compiles boolean state to bool field', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      state: { properties: [{ key: 'active', value: true }] } as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        state: { properties: [{ key: 'active', value: true }] } as any,
+      })
+    );
     expect(cs).toContain('private bool active = true;');
   });
 
   it('compiles string state to string field', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      state: { properties: [{ key: 'level', value: 'forest' }] } as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        state: { properties: [{ key: 'level', value: 'forest' }] } as any,
+      })
+    );
     expect(cs).toContain('private string level = "forest";');
   });
 
   // ─── Object Primitives ────────────────────────────────────────────────────
 
   it('compiles cube/box object to PrimitiveType.Cube', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{ name: 'block', properties: [{ key: 'geometry', value: 'box' }], traits: [] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          { name: 'block', properties: [{ key: 'geometry', value: 'box' }], traits: [] },
+        ] as any,
+      })
+    );
     expect(cs).toContain('PrimitiveType.Cube');
     expect(cs).toContain('blockGO');
   });
 
   it('compiles sphere object to PrimitiveType.Sphere', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{ name: 'ball', properties: [{ key: 'mesh', value: 'sphere' }], traits: [] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          { name: 'ball', properties: [{ key: 'mesh', value: 'sphere' }], traits: [] },
+        ] as any,
+      })
+    );
     expect(cs).toContain('PrimitiveType.Sphere');
   });
 
   it('compiles plane to PrimitiveType.Plane', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{ name: 'floor', properties: [{ key: 'mesh', value: 'plane' }], traits: [] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          { name: 'floor', properties: [{ key: 'mesh', value: 'plane' }], traits: [] },
+        ] as any,
+      })
+    );
     expect(cs).toContain('PrimitiveType.Plane');
   });
 
   it('compiles cylinder to PrimitiveType.Cylinder', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{ name: 'pillar', properties: [{ key: 'mesh', value: 'cylinder' }], traits: [] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          { name: 'pillar', properties: [{ key: 'mesh', value: 'cylinder' }], traits: [] },
+        ] as any,
+      })
+    );
     expect(cs).toContain('PrimitiveType.Cylinder');
   });
 
   it('compiles capsule to PrimitiveType.Capsule', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{ name: 'player', properties: [{ key: 'mesh', value: 'capsule' }], traits: [] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          { name: 'player', properties: [{ key: 'mesh', value: 'capsule' }], traits: [] },
+        ] as any,
+      })
+    );
     expect(cs).toContain('PrimitiveType.Capsule');
   });
 
   // ─── Special Object Types ─────────────────────────────────────────────────
 
   it('compiles text object to TextMesh with text property', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{
-        name: 'label',
-        properties: [{ key: 'mesh', value: 'text' }, { key: 'text', value: 'Hello World' }],
-        traits: [],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          {
+            name: 'label',
+            properties: [
+              { key: 'mesh', value: 'text' },
+              { key: 'text', value: 'Hello World' },
+            ],
+            traits: [],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('AddComponent<TextMesh>()');
     expect(cs).toContain('"Hello World"');
   });
 
   it('compiles model object via Instantiate', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{
-        name: 'tree',
-        properties: [{ key: 'model', value: 'oak_tree' }],
-        traits: [],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          {
+            name: 'tree',
+            properties: [{ key: 'model', value: 'oak_tree' }],
+            traits: [],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('Instantiate(Resources.Load<GameObject>');
     expect(cs).toContain('oak_tree');
   });
 
   it('compiles sparkles object as ParticleSystem', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{
-        name: 'magic',
-        properties: [{ key: 'mesh', value: 'sparkles' }],
-        traits: [],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          {
+            name: 'magic',
+            properties: [{ key: 'mesh', value: 'sparkles' }],
+            traits: [],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('AddComponent<ParticleSystem>()');
   });
 
   // ─── Transforms ───────────────────────────────────────────────────────────
 
   it('compiles position to localPosition Vector3', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{
-        name: 'obj',
-        properties: [
-          { key: 'mesh', value: 'cube' },
-          { key: 'position', value: [1, 2, 3] },
-        ],
-        traits: [],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          {
+            name: 'obj',
+            properties: [
+              { key: 'mesh', value: 'cube' },
+              { key: 'position', value: [1, 2, 3] },
+            ],
+            traits: [],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('localPosition = new Vector3(1f, 2f, 3f)');
   });
 
   it('compiles rotation to localEulerAngles Vector3', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{
-        name: 'obj',
-        properties: [
-          { key: 'mesh', value: 'cube' },
-          { key: 'rotation', value: [0, 90, 0] },
-        ],
-        traits: [],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          {
+            name: 'obj',
+            properties: [
+              { key: 'mesh', value: 'cube' },
+              { key: 'rotation', value: [0, 90, 0] },
+            ],
+            traits: [],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('localEulerAngles = new Vector3(0f, 90f, 0f)');
   });
 
   it('compiles uniform scalar size to Vector3.one * n', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{
-        name: 'obj',
-        properties: [
-          { key: 'mesh', value: 'cube' },
-          { key: 'size', value: 2 },
-        ],
-        traits: [],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          {
+            name: 'obj',
+            properties: [
+              { key: 'mesh', value: 'cube' },
+              { key: 'size', value: 2 },
+            ],
+            traits: [],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('Vector3.one * 2f');
   });
 
   // ─── Materials ────────────────────────────────────────────────────────────
 
   it('compiles material color from hex string', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{
-        name: 'obj',
-        properties: [
-          { key: 'mesh', value: 'cube' },
-          { key: 'material', value: { color: '#ff0000' } },
-        ],
-        traits: [],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          {
+            name: 'obj',
+            properties: [
+              { key: 'mesh', value: 'cube' },
+              { key: 'material', value: { color: '#ff0000' } },
+            ],
+            traits: [],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('new Color(');
     expect(cs).toContain('GetComponent<Renderer>()');
   });
 
   it('compiles material roughness to _Smoothness (inverted)', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{
-        name: 'obj',
-        properties: [
-          { key: 'mesh', value: 'cube' },
-          { key: 'material', value: { roughness: 0.3 } },
-        ],
-        traits: [],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          {
+            name: 'obj',
+            properties: [
+              { key: 'mesh', value: 'cube' },
+              { key: 'material', value: { roughness: 0.3 } },
+            ],
+            traits: [],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('_Smoothness');
     expect(cs).toContain('0.7'); // 1 - 0.3
   });
 
   it('compiles material emissive to _EmissionColor', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{
-        name: 'glow',
-        properties: [
-          { key: 'mesh', value: 'cube' },
-          { key: 'material', value: { emissive: '#00ff00' } },
-        ],
-        traits: [],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          {
+            name: 'glow',
+            properties: [
+              { key: 'mesh', value: 'cube' },
+              { key: 'material', value: { emissive: '#00ff00' } },
+            ],
+            traits: [],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('EnableKeyword("_EMISSION")');
     expect(cs).toContain('_EmissionColor');
   });
@@ -276,68 +342,100 @@ describe('UnityCompiler — Production', () => {
   // ─── Physics Traits ────────────────────────────────────────────────────────
 
   it('compiles physics trait to Rigidbody with mass', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{
-        name: 'rock',
-        properties: [{ key: 'mesh', value: 'sphere' }],
-        traits: [{ name: 'physics', config: { mass: 5 } }],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          {
+            name: 'rock',
+            properties: [{ key: 'mesh', value: 'sphere' }],
+            traits: [{ name: 'physics', config: { mass: 5 } }],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('AddComponent<Rigidbody>()');
     expect(cs).toContain('mass = 5f');
   });
 
   it('compiles grabbable trait to Rigidbody', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{
-        name: 'flag',
-        properties: [{ key: 'mesh', value: 'plane' }],
-        traits: [{ name: 'grabbable', config: {} }],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          {
+            name: 'flag',
+            properties: [{ key: 'mesh', value: 'plane' }],
+            traits: [{ name: 'grabbable', config: {} }],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('AddComponent<Rigidbody>()');
   });
 
   // ─── Lights ───────────────────────────────────────────────────────────────
 
   it('compiles directional light', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      lights: [{
-        name: 'sun',
-        lightType: 'directional',
-        properties: [{ key: 'intensity', value: 1.5 }],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        lights: [
+          {
+            name: 'sun',
+            lightType: 'directional',
+            properties: [{ key: 'intensity', value: 1.5 }],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('AddComponent<Light>()');
     expect(cs).toContain('LightType.Directional');
     expect(cs).toContain('intensity = 1.5f');
   });
 
   it('compiles point light', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      lights: [{ name: 'lamp', lightType: 'point', properties: [] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        lights: [{ name: 'lamp', lightType: 'point', properties: [] }] as any,
+      })
+    );
     expect(cs).toContain('LightType.Point');
   });
 
   it('compiles spot light', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      lights: [{ name: 'spot', lightType: 'spot', properties: [] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        lights: [{ name: 'spot', lightType: 'spot', properties: [] }] as any,
+      })
+    );
     expect(cs).toContain('LightType.Spot');
   });
 
   it('compiles light shadow property', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      lights: [{ name: 'sun', lightType: 'directional', properties: [{ key: 'cast_shadow', value: true }] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        lights: [
+          {
+            name: 'sun',
+            lightType: 'directional',
+            properties: [{ key: 'cast_shadow', value: true }],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('LightShadows.Soft');
   });
 
   it('compiles light hex color', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      lights: [{ name: 'sun', lightType: 'directional', properties: [{ key: 'color', value: '#ffffff' }] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        lights: [
+          {
+            name: 'sun',
+            lightType: 'directional',
+            properties: [{ key: 'color', value: '#ffffff' }],
+          },
+        ] as any,
+      })
+    );
     expect(cs).not.toContain('light_color');
     expect(cs).toContain('.color = new Color(');
   });
@@ -345,16 +443,25 @@ describe('UnityCompiler — Production', () => {
   // ─── Camera ───────────────────────────────────────────────────────────────
 
   it('compiles camera with fov', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      camera: { properties: [{ key: 'fov', value: 75 }] } as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        camera: { properties: [{ key: 'fov', value: 75 }] } as any,
+      })
+    );
     expect(cs).toContain('cam.fieldOfView = 75f');
   });
 
   it('compiles camera with near and far clip planes', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      camera: { properties: [{ key: 'near', value: 0.01 }, { key: 'far', value: 1000 }] } as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        camera: {
+          properties: [
+            { key: 'near', value: 0.01 },
+            { key: 'far', value: 1000 },
+          ],
+        } as any,
+      })
+    );
     expect(cs).toContain('cam.nearClipPlane = 0.01f');
     expect(cs).toContain('cam.farClipPlane = 1000f');
   });
@@ -362,9 +469,19 @@ describe('UnityCompiler — Production', () => {
   // ─── Audio ────────────────────────────────────────────────────────────────
 
   it('compiles audio with src and volume', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      audio: [{ name: 'bgm', properties: [{ key: 'src', value: 'music.mp3' }, { key: 'volume', value: 0.8 }] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        audio: [
+          {
+            name: 'bgm',
+            properties: [
+              { key: 'src', value: 'music.mp3' },
+              { key: 'volume', value: 0.8 },
+            ],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('AddComponent<AudioSource>()');
     expect(cs).toContain('Resources.Load<AudioClip>');
     expect(cs).toContain('volume = 0.8f');
@@ -372,78 +489,104 @@ describe('UnityCompiler — Production', () => {
   });
 
   it('compiles audio loop property', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      audio: [{ name: 'bgm', properties: [{ key: 'loop', value: true }] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        audio: [{ name: 'bgm', properties: [{ key: 'loop', value: true }] }] as any,
+      })
+    );
     expect(cs).toContain('loop = true');
   });
 
   it('compiles spatial audio', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      audio: [{ name: 'sfx', properties: [{ key: 'spatial', value: true }] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        audio: [{ name: 'sfx', properties: [{ key: 'spatial', value: true }] }] as any,
+      })
+    );
     expect(cs).toContain('spatialBlend = 1.0f');
   });
 
   // ─── Zones ────────────────────────────────────────────────────────────────
 
   it('compiles box zone with BoxCollider trigger', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      zones: [{ name: 'exit', properties: [{ key: 'shape', value: 'box' }], handlers: [] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        zones: [
+          { name: 'exit', properties: [{ key: 'shape', value: 'box' }], handlers: [] },
+        ] as any,
+      })
+    );
     expect(cs).toContain('AddComponent<BoxCollider>()');
     expect(cs).toContain('isTrigger = true');
   });
 
   it('compiles sphere zone with SphereCollider trigger', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      zones: [{ name: 'pickup', properties: [{ key: 'shape', value: 'sphere' }], handlers: [] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        zones: [
+          { name: 'pickup', properties: [{ key: 'shape', value: 'sphere' }], handlers: [] },
+        ] as any,
+      })
+    );
     expect(cs).toContain('AddComponent<SphereCollider>()');
   });
 
   // ─── Timelines ────────────────────────────────────────────────────────────
 
   it('autoplay timeline starts coroutine in Awake', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      timelines: [{ name: 'intro', autoplay: true, loop: false, entries: [] }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        timelines: [{ name: 'intro', autoplay: true, loop: false, entries: [] }] as any,
+      })
+    );
     expect(cs).toContain('StartCoroutine(introRoutine())');
   });
 
   it('timeline with delay emits WaitForSeconds', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      timelines: [{
-        name: 'seq',
-        autoplay: false,
-        loop: false,
-        entries: [{ time: 2, action: { kind: 'emit', event: 'done' } }],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        timelines: [
+          {
+            name: 'seq',
+            autoplay: false,
+            loop: false,
+            entries: [{ time: 2, action: { kind: 'emit', event: 'done' } }],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('WaitForSeconds(2f)');
   });
 
   it('looping timeline emits StartCoroutine loop comment', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      timelines: [{
-        name: 'loop',
-        autoplay: false,
-        loop: true,
-        entries: [],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        timelines: [
+          {
+            name: 'loop',
+            autoplay: false,
+            loop: true,
+            entries: [],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('// loop');
   });
 
   // ─── Transitions ──────────────────────────────────────────────────────────
 
   it('compiles transition to SceneManager.LoadScene', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      transitions: [{
-        name: 'goToHub',
-        properties: [{ key: 'target', value: 'HubWorld' }],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        transitions: [
+          {
+            name: 'goToHub',
+            properties: [{ key: 'target', value: 'HubWorld' }],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('SceneManager.LoadScene("HubWorld")');
     expect(cs).toContain('public void goToHub()');
   });
@@ -451,13 +594,17 @@ describe('UnityCompiler — Production', () => {
   // ─── Spatial Groups ───────────────────────────────────────────────────────
 
   it('compiles spatial group with position', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      spatialGroups: [{
-        name: 'cluster',
-        objects: [],
-        properties: [{ key: 'position', value: [5, 0, 5] }],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        spatialGroups: [
+          {
+            name: 'cluster',
+            objects: [],
+            properties: [{ key: 'position', value: [5, 0, 5] }],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('// Spatial Group: cluster');
     expect(cs).toContain('new Vector3(5f, 0f, 5f)');
   });
@@ -465,25 +612,34 @@ describe('UnityCompiler — Production', () => {
   // ─── UI ───────────────────────────────────────────────────────────────────
 
   it('compiles UI Canvas and text element', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      ui: {
-        elements: [{
-          name: 'hud_score',
-          properties: [{ key: 'type', value: 'text' }, { key: 'text', value: 'Score: 0' }],
-        }],
-      } as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        ui: {
+          elements: [
+            {
+              name: 'hud_score',
+              properties: [
+                { key: 'type', value: 'text' },
+                { key: 'text', value: 'Score: 0' },
+              ],
+            },
+          ],
+        } as any,
+      })
+    );
     expect(cs).toContain('AddComponent<Canvas>()');
     expect(cs).toContain('AddComponent<Text>()');
     expect(cs).toContain('"Score: 0"');
   });
 
   it('compiles progress bar UI element to Slider', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      ui: {
-        elements: [{ name: 'health_bar', properties: [{ key: 'type', value: 'progress' }] }],
-      } as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        ui: {
+          elements: [{ name: 'health_bar', properties: [{ key: 'type', value: 'progress' }] }],
+        } as any,
+      })
+    );
     expect(cs).toContain('AddComponent<Slider>()');
   });
 
@@ -500,18 +656,24 @@ describe('UnityCompiler — Production', () => {
   // ─── Children ─────────────────────────────────────────────────────────────
 
   it('compiles nested child object under parent transform', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      objects: [{
-        name: 'parent',
-        properties: [{ key: 'mesh', value: 'cube' }],
-        traits: [],
-        children: [{
-          name: 'child_cube',
-          properties: [{ key: 'mesh', value: 'sphere' }],
-          traits: [],
-        }],
-      }] as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        objects: [
+          {
+            name: 'parent',
+            properties: [{ key: 'mesh', value: 'cube' }],
+            traits: [],
+            children: [
+              {
+                name: 'child_cube',
+                properties: [{ key: 'mesh', value: 'sphere' }],
+                traits: [],
+              },
+            ],
+          },
+        ] as any,
+      })
+    );
     expect(cs).toContain('parentGO.transform');
     expect(cs).toContain('child_cube');
   });
@@ -519,19 +681,23 @@ describe('UnityCompiler — Production', () => {
   // ─── Environment ──────────────────────────────────────────────────────────
 
   it('compiles environment skybox', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      environment: { properties: [{ key: 'skybox', value: 'sunset' }] } as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        environment: { properties: [{ key: 'skybox', value: 'sunset' }] } as any,
+      })
+    );
     expect(cs).toContain('RenderSettings.skybox');
     expect(cs).toContain('Skybox/sunset');
   });
 
   it('compiles environment fog settings', () => {
-    const cs = new UnityCompiler().compile(makeComp({
-      environment: {
-        properties: [{ key: 'fog', value: { color: '#aabbcc', near: 10, far: 200 } }],
-      } as any,
-    }));
+    const cs = new UnityCompiler().compile(
+      makeComp({
+        environment: {
+          properties: [{ key: 'fog', value: { color: '#aabbcc', near: 10, far: 200 } }],
+        } as any,
+      })
+    );
     expect(cs).toContain('RenderSettings.fog = true');
     expect(cs).toContain('fogStartDistance = 10f');
     expect(cs).toContain('fogEndDistance = 200f');

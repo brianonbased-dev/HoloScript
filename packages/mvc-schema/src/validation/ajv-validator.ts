@@ -105,10 +105,7 @@ function formatErrors(ajvErrors: ErrorObject[] | null | undefined): ValidationEr
 /**
  * Validate MVC object against its schema
  */
-export function validateMVC(
-  obj: unknown,
-  schemaType: MVCSchemaType
-): ValidationResult {
+export function validateMVC(obj: unknown, schemaType: MVCSchemaType): ValidationResult {
   const validator = getValidator();
   const validate = validator.getSchema(schemaType);
 
@@ -234,9 +231,7 @@ export function validateAuto(obj: unknown): ValidationResult {
 /**
  * Batch validate multiple MVC objects
  */
-export function validateBatch(
-  objects: Array<{ obj: unknown; schemaType?: MVCSchemaType }>
-): {
+export function validateBatch(objects: Array<{ obj: unknown; schemaType?: MVCSchemaType }>): {
   results: ValidationResult[];
   allValid: boolean;
   errorCount: number;
@@ -249,10 +244,7 @@ export function validateBatch(
   });
 
   const allValid = results.every((r) => r.valid);
-  const errorCount = results.reduce(
-    (sum, r) => sum + (r.errors?.length ?? 0),
-    0
-  );
+  const errorCount = results.reduce((sum, r) => sum + (r.errors?.length ?? 0), 0);
 
   return {
     results,

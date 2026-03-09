@@ -321,9 +321,7 @@ export class SceneInspector {
     const recentFrames = this.performanceHistory.slice(-60);
     const fpsList = recentFrames.map((f) => f.fps).filter((fps) => fps > 0);
 
-    const averageFPS = fpsList.length > 0
-      ? fpsList.reduce((a, b) => a + b, 0) / fpsList.length
-      : 0;
+    const averageFPS = fpsList.length > 0 ? fpsList.reduce((a, b) => a + b, 0) / fpsList.length : 0;
     const minFPS = fpsList.length > 0 ? Math.min(...fpsList) : 0;
     const maxFPS = fpsList.length > 0 ? Math.max(...fpsList) : 0;
 
@@ -355,7 +353,12 @@ export class SceneInspector {
    */
   public togglePhysicsVisualization(type: keyof PhysicsVisualization): void {
     this.physicsVisualization[type] = !this.physicsVisualization[type];
-    console.log('[SceneInspector] Physics visualization:', type, '=', this.physicsVisualization[type]);
+    console.log(
+      '[SceneInspector] Physics visualization:',
+      type,
+      '=',
+      this.physicsVisualization[type]
+    );
   }
 
   /**
@@ -382,7 +385,9 @@ export class SceneInspector {
         </div>
 
         <!-- Statistics Panel -->
-        ${this.config.showStatistics ? `
+        ${
+          this.config.showStatistics
+            ? `
         <div style="padding: 15px; border-bottom: 1px solid #333;">
           <h3 style="margin: 0 0 10px 0; color: #ffd93d;">📊 Statistics</h3>
           <div style="line-height: 1.6;">
@@ -393,14 +398,20 @@ export class SceneInspector {
             <div>Memory: ${(stats.textureMemory + stats.geometryMemory).toFixed(1)} MB</div>
           </div>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <!-- Hierarchy Panel -->
-        ${this.config.showHierarchy ? `
+        ${
+          this.config.showHierarchy
+            ? `
         <div style="padding: 15px; border-bottom: 1px solid #333;">
           <h3 style="margin: 0 0 10px 0; color: #95e1d3;">🌳 Hierarchy</h3>
           <div style="max-height: 300px; overflow-y: auto;">
-            ${this.getEntityHierarchy().map(entity => `
+            ${this.getEntityHierarchy()
+              .map(
+                (entity) => `
               <div
                 data-entity-id="${entity.id}"
                 style="padding: 5px; margin: 2px 0; background: ${this.selectedEntityId === entity.id ? '#4ecdc4' : '#2a2a3e'}; cursor: pointer; border-radius: 4px;"
@@ -409,13 +420,19 @@ export class SceneInspector {
                 <div style="font-weight: bold;">${entity.name}</div>
                 <div style="color: #aaa; font-size: 10px;">${entity.type} · ${entity.traits.join(', ')}</div>
               </div>
-            `).join('')}
+            `
+              )
+              .join('')}
           </div>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <!-- Properties Panel -->
-        ${this.config.showProperties && selectedEntity ? `
+        ${
+          this.config.showProperties && selectedEntity
+            ? `
         <div style="padding: 15px; border-bottom: 1px solid #333;">
           <h3 style="margin: 0 0 10px 0; color: #ff6b6b;">⚙️ Properties</h3>
           <div style="line-height: 1.8;">
@@ -424,9 +441,9 @@ export class SceneInspector {
             <div style="margin: 10px 0;">
               <div style="color: #ffd93d;">Transform:</div>
               <div style="margin-left: 10px;">
-                <div>Position: ${selectedEntity.transform.position.map(v => v.toFixed(2)).join(', ')}</div>
-                <div>Rotation: ${selectedEntity.transform.rotation.map(v => v.toFixed(2)).join(', ')}</div>
-                <div>Scale: ${selectedEntity.transform.scale.map(v => v.toFixed(2)).join(', ')}</div>
+                <div>Position: ${selectedEntity.transform.position.map((v) => v.toFixed(2)).join(', ')}</div>
+                <div>Rotation: ${selectedEntity.transform.rotation.map((v) => v.toFixed(2)).join(', ')}</div>
+                <div>Scale: ${selectedEntity.transform.scale.map((v) => v.toFixed(2)).join(', ')}</div>
               </div>
             </div>
 
@@ -438,22 +455,32 @@ export class SceneInspector {
             <div style="margin: 10px 0;">
               <div style="color: #ffd93d;">Properties:</div>
               <div style="margin-left: 10px;">
-                ${Object.entries(selectedEntity.properties).map(([key, value]) => `
+                ${Object.entries(selectedEntity.properties)
+                  .map(
+                    ([key, value]) => `
                   <div>${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}</div>
-                `).join('')}
+                `
+                  )
+                  .join('')}
               </div>
             </div>
           </div>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <!-- Performance Graph -->
-        ${this.config.showPerformance ? `
+        ${
+          this.config.showPerformance
+            ? `
         <div style="padding: 15px;">
           <h3 style="margin: 0 0 10px 0; color: #95e1d3;">⚡ Performance</h3>
           <canvas id="performance-graph" width="370" height="100" style="background: #1a1a2e; border-radius: 4px;"></canvas>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
       </div>
 
@@ -465,7 +492,9 @@ export class SceneInspector {
         };
 
         // Render performance graph
-        ${this.config.showPerformance ? `
+        ${
+          this.config.showPerformance
+            ? `
         (function() {
           const canvas = document.getElementById('performance-graph');
           if (!canvas) return;
@@ -511,7 +540,9 @@ export class SceneInspector {
           ctx.fillText('60 FPS', 5, 10);
           ctx.fillText('0 FPS', 5, height - 5);
         })();
-        ` : ''}
+        `
+            : ''
+        }
       </script>
     `;
   }

@@ -24,14 +24,18 @@ function mkManifest(id: string, extra: Partial<AgentManifest> = {}): AgentManife
 describe('AgentRegistry — Production', () => {
   let reg: AgentRegistry;
 
-  beforeEach(() => { reg = new AgentRegistry({ autoCleanup: false }); });
-  afterEach(() => { reg.stop(); });
+  beforeEach(() => {
+    reg = new AgentRegistry({ autoCleanup: false });
+  });
+  afterEach(() => {
+    reg.stop();
+  });
 
   // ─── Registration ────────────────────────────────────────────────
   it('register adds an agent', async () => {
     await reg.register(mkManifest('a1'));
     expect(reg.has('a1')).toBe(true);
-    expect(reg.size).toBe(1);   // size is a getter
+    expect(reg.size).toBe(1); // size is a getter
   });
 
   it('register updates existing agent (no reject)', async () => {
@@ -62,11 +66,15 @@ describe('AgentRegistry — Production', () => {
 
   // ─── Discovery ───────────────────────────────────────────────────
   it('discover returns matching agents', async () => {
-    await reg.register(mkManifest('a1', { capabilities: [{ type: 'compute', domain: 'physics' }] } as any));
-    await reg.register(mkManifest('a2', { capabilities: [{ type: 'render', domain: 'graphics' }] } as any));
+    await reg.register(
+      mkManifest('a1', { capabilities: [{ type: 'compute', domain: 'physics' }] } as any)
+    );
+    await reg.register(
+      mkManifest('a2', { capabilities: [{ type: 'render', domain: 'graphics' }] } as any)
+    );
     const results = await reg.discover({ type: 'compute' });
     expect(results.length).toBeGreaterThanOrEqual(1);
-    expect(results.some(r => r.id === 'a1')).toBe(true);
+    expect(results.some((r) => r.id === 'a1')).toBe(true);
   });
 
   it('findBest returns best matching agent', async () => {

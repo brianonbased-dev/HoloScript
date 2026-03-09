@@ -17,18 +17,18 @@ import {
 // -------------------------------------------------------------------------
 
 const EARTH: OrbitalElements = {
-  semiMajorAxis: 1.000,          // 1 AU
+  semiMajorAxis: 1.0, // 1 AU
   eccentricity: 0.0167,
-  inclination: 0.0001,           // ~ecliptic plane
+  inclination: 0.0001, // ~ecliptic plane
   longitudeAscending: 0.0,
   argumentPeriapsis: 102.9372,
   meanAnomalyEpoch: 357.5291,
-  orbitalPeriod: 365.25,         // days
+  orbitalPeriod: 365.25, // days
 };
 
 // A circular orbit (eccentricity = 0) for easier math
 const CIRCULAR: OrbitalElements = {
-  semiMajorAxis: 2.0,            // 2 AU
+  semiMajorAxis: 2.0, // 2 AU
   eccentricity: 0.0,
   inclination: 0.0,
   longitudeAscending: 0.0,
@@ -38,7 +38,6 @@ const CIRCULAR: OrbitalElements = {
 };
 
 describe('KeplerianCalculator', () => {
-
   // -------------------------------------------------------------------------
   // toDegrees
   // -------------------------------------------------------------------------

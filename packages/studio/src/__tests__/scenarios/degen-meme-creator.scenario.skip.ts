@@ -41,15 +41,7 @@ describe.skip('Scenario: Degen Meme Creator — Character Import (API mismatch -
   it('should load character from drag-and-drop GLB file', () => {
     // Arrange: Mock GLB file upload
     const mockGlbUrl = 'blob:http://localhost:5173/abc-123';
-    const mockBones = [
-      'Root',
-      'Spine',
-      'Head',
-      'LeftArm',
-      'RightArm',
-      'LeftLeg',
-      'RightLeg',
-    ];
+    const mockBones = ['Root', 'Spine', 'Head', 'LeftArm', 'RightArm', 'LeftLeg', 'RightLeg'];
 
     // Act: Load GLB (simulates GlbDropZone upload)
     useCharacterStore.getState().setGlbUrl(mockGlbUrl);
@@ -214,7 +206,10 @@ describe('Scenario: Degen Meme Creator — Meme-Specific Traits', () => {
   });
 
   it('should add emoji reaction trait (floating emojis on trigger)', () => {
-    const { EmojiReactionTrait, useEmojiReactions } = require('../../lib/traits/emojiReactionTrait');
+    const {
+      EmojiReactionTrait,
+      useEmojiReactions,
+    } = require('../../lib/traits/emojiReactionTrait');
 
     // Verify trait class exists
     expect(EmojiReactionTrait).toBeDefined();
@@ -470,7 +465,10 @@ describe('Scenario: Degen Meme Creator — Meme Reactions & Triggers', () => {
   beforeEach(resetToMemeCreatorMode);
 
   it('should trigger animation on Discord reaction (via webhook)', () => {
-    const { DiscordWebhookManager, useDiscordWebhook } = require('../../integrations/discordWebhook');
+    const {
+      DiscordWebhookManager,
+      useDiscordWebhook,
+    } = require('../../integrations/discordWebhook');
     const {
       ReactionTriggerTrait,
       useReactionTrigger,
@@ -553,10 +551,7 @@ describe('Scenario: Degen Meme Creator — Meme Reactions & Triggers', () => {
       estimate: '12 hours',
       description: 'Character performs victory dance on Web3 events',
       acceptance: 'Listens to smart contract events, triggers animations',
-      relatedFiles: [
-        'integrations/web3Listener.ts (new)',
-        'contractEventTrait.ts (new)',
-      ],
+      relatedFiles: ['integrations/web3Listener.ts (new)', 'contractEventTrait.ts (new)'],
     })
   );
 });
@@ -587,7 +582,15 @@ describe('Scenario: Degen Meme Creator — Speed Optimizations', () => {
       expect(progress).toHaveProperty('stage');
       expect(progress).toHaveProperty('progress');
       expect(progress).toHaveProperty('timeElapsed');
-      expect(['cache-check', 'downloading', 'parsing', 'skeleton', 'mesh', 'textures', 'complete']).toContain(progress.stage);
+      expect([
+        'cache-check',
+        'downloading',
+        'parsing',
+        'skeleton',
+        'mesh',
+        'textures',
+        'complete',
+      ]).toContain(progress.stage);
     };
 
     // Cleanup

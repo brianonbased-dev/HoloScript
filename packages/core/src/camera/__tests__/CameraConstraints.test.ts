@@ -111,7 +111,7 @@ describe('CameraConstraints', () => {
     cc.setSmoothing(2);
     cc.follow(100, 0);
     expect(cc.getPosition().x).toBe(100); // clamped to 1
-    
+
     cc.setPosition(0, 0);
     cc.setSmoothing(-1);
     cc.follow(100, 0);

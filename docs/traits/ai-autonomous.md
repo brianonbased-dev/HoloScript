@@ -118,7 +118,6 @@ object FactoryMachine @digital_twin {
 
 ---
 
-
 ---
 
 ### @hitl
@@ -133,35 +132,35 @@ object "AgentSupervisor" @hitl(
 ) { }
 ```
 
-| Config                  | Type    | Default      | Description                                                 |
-| ----------------------- | ------- | ------------ | ----------------------------------------------------------- |
-| `approval_endpoint`     | string  | `""`         | **Required.** Webhook URL for approval requests.            |
-| `timeout_seconds`       | number  | `300`        | Seconds before a pending request is auto-decided.           |
-| `fallback_on_timeout`   | string  | `"reject"`   | `"reject"` or `"approve"` when timeout expires.             |
-| `require_reason`        | bool    | `false`      | Require reviewer to provide a reason string.                |
-| `max_pending`           | number  | `10`         | Max queued requests before new ones are auto-rejected.      |
-| `audit_log`             | bool    | `true`       | Persist all decisions to the audit log.                     |
-| `escalation_threshold`  | number  | `3`          | Auto-escalate after this many consecutive rejections.       |
+| Config                 | Type   | Default    | Description                                            |
+| ---------------------- | ------ | ---------- | ------------------------------------------------------ |
+| `approval_endpoint`    | string | `""`       | **Required.** Webhook URL for approval requests.       |
+| `timeout_seconds`      | number | `300`      | Seconds before a pending request is auto-decided.      |
+| `fallback_on_timeout`  | string | `"reject"` | `"reject"` or `"approve"` when timeout expires.        |
+| `require_reason`       | bool   | `false`    | Require reviewer to provide a reason string.           |
+| `max_pending`          | number | `10`       | Max queued requests before new ones are auto-rejected. |
+| `audit_log`            | bool   | `true`     | Persist all decisions to the audit log.                |
+| `escalation_threshold` | number | `3`        | Auto-escalate after this many consecutive rejections.  |
 
 **Events — Incoming:**
 
-| Event              | Payload                                                   | Description                           |
-| ------------------ | --------------------------------------------------------- | ------------------------------------- |
-| `request_approval` | `{ action_id, action_type, payload, risk_level?, memo? }` | Queue an action for human review.     |
-| `approve_action`   | `{ request_id, reviewer_id?, reason? }`                   | Programmatically approve a request.   |
-| `reject_action`    | `{ request_id, reviewer_id?, reason? }`                   | Programmatically reject a request.    |
-| `rollback_action`  | `{ action_id }`                                           | Undo a previously approved action.    |
+| Event              | Payload                                                   | Description                         |
+| ------------------ | --------------------------------------------------------- | ----------------------------------- |
+| `request_approval` | `{ action_id, action_type, payload, risk_level?, memo? }` | Queue an action for human review.   |
+| `approve_action`   | `{ request_id, reviewer_id?, reason? }`                   | Programmatically approve a request. |
+| `reject_action`    | `{ request_id, reviewer_id?, reason? }`                   | Programmatically reject a request.  |
+| `rollback_action`  | `{ action_id }`                                           | Undo a previously approved action.  |
 
 **Events — Outgoing:**
 
-| Event              | Payload                                                       | Description                      |
-| ------------------ | ------------------------------------------------------------- | -------------------------------- |
-| `approval_pending` | `{ requestId, actionType, payload, expiresAt }`               | Request queued for review.       |
-| `action_approved`  | `{ requestId, actionId, reviewerId?, reason?, executedAt }`   | Action approved and executed.    |
-| `action_rejected`  | `{ requestId, actionId, reviewerId?, reason? }`               | Action rejected by reviewer.     |
-| `action_timed_out` | `{ requestId, fallbackDecision }`                             | Request expired, fallback applied.|
-| `action_rolled_back`| `{ actionId, requestId }`                                    | Action successfully rolled back.  |
-| `escalation_triggered`| `{ consecutiveRejections, escalationLevel }`               | Rejection threshold reached.     |
+| Event                  | Payload                                                     | Description                        |
+| ---------------------- | ----------------------------------------------------------- | ---------------------------------- |
+| `approval_pending`     | `{ requestId, actionType, payload, expiresAt }`             | Request queued for review.         |
+| `action_approved`      | `{ requestId, actionId, reviewerId?, reason?, executedAt }` | Action approved and executed.      |
+| `action_rejected`      | `{ requestId, actionId, reviewerId?, reason? }`             | Action rejected by reviewer.       |
+| `action_timed_out`     | `{ requestId, fallbackDecision }`                           | Request expired, fallback applied. |
+| `action_rolled_back`   | `{ actionId, requestId }`                                   | Action successfully rolled back.   |
+| `escalation_triggered` | `{ consecutiveRejections, escalationLevel }`                | Rejection threshold reached.       |
 
 **Example — gate AI-generated scene changes:**
 
@@ -197,6 +196,7 @@ logic {
 ---
 
 ## See Also
+
 - [AI & Behavior Traits](/traits/ai-behavior)
 - [MCP Server Integration](/integrations/)
 - [API Reference](/api/)

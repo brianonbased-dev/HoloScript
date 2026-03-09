@@ -62,7 +62,11 @@ export class AndroidCompiler extends CompilerBase {
     };
   }
 
-  compile(composition: HoloComposition, agentToken: string, outputPath?: string): AndroidCompileResult {
+  compile(
+    composition: HoloComposition,
+    agentToken: string,
+    outputPath?: string
+  ): AndroidCompileResult {
     this.validateCompilerAccess(agentToken, outputPath);
     return {
       activityFile: this.generateActivityFile(composition),

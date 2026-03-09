@@ -212,7 +212,7 @@ export class WebRTCTransport {
   private messageHandlers = new Map<string, (msg: unknown) => void>();
   private signalingWs: WebSocket | null = null;
   private socialMessageHandlers: Set<(packet: SocialPacket) => void> = new Set();
-  
+
   // Batching
   private socialBatchQueue: SocialPacket[] = [];
   private batchInterval: any = null;
@@ -231,10 +231,10 @@ export class WebRTCTransport {
    */
   addStream(stream: MediaStream): void {
     this.localStream = stream;
-    
+
     // Add tracks to all existing peers
     this.peers.forEach((peer) => {
-      stream.getTracks().forEach(track => {
+      stream.getTracks().forEach((track) => {
         peer.connection.addTrack(track, stream);
       });
       // Re-negotiate if needed (simplified for this implementation)
@@ -247,9 +247,9 @@ export class WebRTCTransport {
    */
   setMicrophoneEnabled(enabled: boolean): void {
     if (this.localStream) {
-        this.localStream.getAudioTracks().forEach(track => {
-            track.enabled = enabled;
-        });
+      this.localStream.getAudioTracks().forEach((track) => {
+        track.enabled = enabled;
+      });
     }
   }
 
@@ -266,7 +266,7 @@ export class WebRTCTransport {
   private emit(event: string, ...args: any[]): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
-      handlers.forEach(h => h(...args));
+      handlers.forEach((h) => h(...args));
     }
   }
 
@@ -279,10 +279,8 @@ export class WebRTCTransport {
         this.signalingWs = new WebSocket(this.config.signalingServerUrl);
 
         this.signalingWs.onopen = () => {
-          console.log(
-            `✓ WebRTC signaling connected to ${this.config.signalingServerUrl}`
-          );
-          
+          console.log(`✓ WebRTC signaling connected to ${this.config.signalingServerUrl}`);
+
           // Announce presence in room
           this.signalingWs?.send(
             JSON.stringify({
@@ -328,10 +326,10 @@ export class WebRTCTransport {
     };
 
     const pc = new RTCPeerConnection(config);
-    
+
     // Add local stream tracks to new connection
     if (this.localStream) {
-      this.localStream.getTracks().forEach(track => {
+      this.localStream.getTracks().forEach((track) => {
         pc.addTrack(track, this.localStream!);
       });
     }
@@ -348,7 +346,7 @@ export class WebRTCTransport {
       this.emit('stream-added', {
         peerId: remotePeerId,
         stream: evt.streams[0],
-        track: evt.track
+        track: evt.track,
       });
     };
 
@@ -431,49 +429,49 @@ export class WebRTCTransport {
   sendSocialMessage(packet: SocialPacket, targetPeerId?: string): void {
     // Batch status updates to reduce overhead
     if (packet.type === 'SOCIAL_STATUS') {
-        this.socialBatchQueue.push(packet);
-        if (!this.batchInterval) {
-            this.batchInterval = setInterval(() => this.flushBatch(), this.BATCH_DELAY_MS);
-        }
-        return;
+      this.socialBatchQueue.push(packet);
+      if (!this.batchInterval) {
+        this.batchInterval = setInterval(() => this.flushBatch(), this.BATCH_DELAY_MS);
+      }
+      return;
     }
 
     const msg = {
       _system: true,
-      ...packet
+      ...packet,
     };
     this.sendMessage(targetPeerId || null, msg); // Targeted or Broadcast
   }
 
   private flushBatch(): void {
     if (this.socialBatchQueue.length === 0) {
-        clearInterval(this.batchInterval);
-        this.batchInterval = null;
-        return;
+      clearInterval(this.batchInterval);
+      this.batchInterval = null;
+      return;
     }
 
     // Deduplicate status updates for same user (last wins)
-    // Only beneficial if we were sending multiple updates for same user, 
+    // Only beneficial if we were sending multiple updates for same user,
     // but here we are sending OUR status to multiple people.
     // Actually, if we have multiple packets, we should bundle them.
-    // BUT current protocol expects single packet. 
+    // BUT current protocol expects single packet.
     // Optimization: Just send the latest one if multiple updates queued for same user (us).
     // Start simple: send all as individual messages (batching network calls is harder without protocol change)
     // WAIT: To truly batch, we need a SOCIAL_BATCH packet type.
     // For now, let's just use the interval to throttle the *sending* calls on the socket.
-    
+
     // Better Optimization for now: Throttle/Debounce outgoing status
     // If we have multiple SOCIAL_STATUS in queue, only send the last one.
-    
+
     const lastStatus = this.socialBatchQueue.pop(); // Get latest
     this.socialBatchQueue = []; // Clear rest (intermediate states don't matter)
-    
+
     if (lastStatus) {
-        const msg = {
-            _system: true,
-            ...lastStatus
-        };
-        this.sendMessage(null, msg);
+      const msg = {
+        _system: true,
+        ...lastStatus,
+      };
+      this.sendMessage(null, msg);
     }
   }
 
@@ -560,10 +558,7 @@ export class WebRTCTransport {
     }
   }
 
-  private async handleAnswer(
-    peerId: string,
-    answer: RTCSessionDescriptionInit
-  ): Promise<void> {
+  private async handleAnswer(peerId: string, answer: RTCSessionDescriptionInit): Promise<void> {
     const peer = this.peers.get(peerId);
     if (peer) {
       try {
@@ -590,11 +585,11 @@ export class WebRTCTransport {
     channel.onmessage = (evt) => {
       try {
         const msg = JSON.parse(evt.data);
-        
+
         // Intercept system messages
         if (msg._system && this.socialMessageHandlers.size > 0) {
-           this.socialMessageHandlers.forEach(handler => handler(msg));
-           return;
+          this.socialMessageHandlers.forEach((handler) => handler(msg));
+          return;
         }
 
         const handler = this.messageHandlers.get('default');

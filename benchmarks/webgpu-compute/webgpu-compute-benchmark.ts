@@ -365,7 +365,8 @@ function validateWGSLSyntax(output: string, errors: string[]): boolean {
     invalidCharacters: /[^\w\s@(){}[\]<>:;,.\-+*/=!&|^%]/g,
     validStageAttributes: /@(vertex|fragment|compute)/g,
     validGroupBinding: /@group\(\d+\)\s+@binding\(\d+\)/g,
-    validBuiltins: /@builtin\((position|vertex_index|instance_index|global_invocation_id|local_invocation_id|workgroup_id)\)/gi,
+    validBuiltins:
+      /@builtin\((position|vertex_index|instance_index|global_invocation_id|local_invocation_id|workgroup_id)\)/gi,
   };
 
   let isValid = true;
@@ -419,14 +420,21 @@ function printResult(result: BenchmarkResult): void {
     console.log(`⚙️  Compile Time:      ${result.compileTimeMs.toFixed(2)}ms`);
     console.log(`📊 Total Time:        ${result.totalTimeMs.toFixed(2)}ms`);
     console.log(`📦 Output Size:       ${formatBytes(result.outputSizeBytes)}`);
-    console.log(`🔧 WGSL Shaders:      ${result.wgslShaderCount} total (${result.computeShaderCount} compute)`);
+    console.log(
+      `🔧 WGSL Shaders:      ${result.wgslShaderCount} total (${result.computeShaderCount} compute)`
+    );
 
     console.log(``);
     console.log(`🎯 Performance Targets (RTX 3080):`);
-    console.log(`   Target:            ${result.performanceTargets.targetFPS} FPS (${result.performanceTargets.targetFrameTimeMs.toFixed(2)}ms/frame)`);
+    console.log(
+      `   Target:            ${result.performanceTargets.targetFPS} FPS (${result.performanceTargets.targetFrameTimeMs.toFixed(2)}ms/frame)`
+    );
     if (result.performanceTargets.estimatedFPS) {
-      console.log(`   Estimated:         ${result.performanceTargets.estimatedFPS} FPS (${result.performanceTargets.estimatedFrameTimeMs?.toFixed(2)}ms/frame)`);
-      const meetsTarget = result.performanceTargets.estimatedFPS >= result.performanceTargets.targetFPS;
+      console.log(
+        `   Estimated:         ${result.performanceTargets.estimatedFPS} FPS (${result.performanceTargets.estimatedFrameTimeMs?.toFixed(2)}ms/frame)`
+      );
+      const meetsTarget =
+        result.performanceTargets.estimatedFPS >= result.performanceTargets.targetFPS;
       console.log(`   Status:            ${meetsTarget ? '✓ MEETS TARGET' : '✗ BELOW TARGET'}`);
     }
 
@@ -434,7 +442,9 @@ function printResult(result: BenchmarkResult): void {
       console.log(`   Grid Resolution:   ${result.performanceTargets.gridResolution}`);
     }
     if (result.performanceTargets.particleCount) {
-      console.log(`   Particle Count:    ${result.performanceTargets.particleCount.toLocaleString()}`);
+      console.log(
+        `   Particle Count:    ${result.performanceTargets.particleCount.toLocaleString()}`
+      );
     }
     if (result.performanceTargets.bodyCount) {
       console.log(`   Body Count:        ${result.performanceTargets.bodyCount.toLocaleString()}`);
@@ -479,8 +489,12 @@ function printSummary(results: BenchmarkResult[]): void {
   console.log('━'.repeat(80));
   console.log(``);
   console.log(`Total Examples:       ${results.length}`);
-  console.log(`✓ Successful:         ${successful.length} (${((successful.length / results.length) * 100).toFixed(1)}%)`);
-  console.log(`✗ Failed:             ${failed.length} (${((failed.length / results.length) * 100).toFixed(1)}%)`);
+  console.log(
+    `✓ Successful:         ${successful.length} (${((successful.length / results.length) * 100).toFixed(1)}%)`
+  );
+  console.log(
+    `✗ Failed:             ${failed.length} (${((failed.length / results.length) * 100).toFixed(1)}%)`
+  );
   console.log(``);
 
   if (successful.length > 0) {
@@ -527,13 +541,15 @@ async function generateReport(results: BenchmarkResult[]): Promise<void> {
   lines.push(`**HoloScript Version:** v3.43.0\n`);
   lines.push(`**Baseline GPU:** NVIDIA RTX 3080\n`);
   lines.push(`**Total Examples:** ${results.length}\n`);
-  lines.push(`**Success Rate:** ${((results.filter((r) => r.success).length / results.length) * 100).toFixed(1)}%\n`);
+  lines.push(
+    `**Success Rate:** ${((results.filter((r) => r.success).length / results.length) * 100).toFixed(1)}%\n`
+  );
   lines.push('\n---\n');
 
   // Executive Summary
   lines.push('## Executive Summary\n');
   lines.push(
-    'This benchmark suite validates HoloScript\'s WebGPU compute shader compilation capabilities by testing 5 advanced GPU computing examples:\n'
+    "This benchmark suite validates HoloScript's WebGPU compute shader compilation capabilities by testing 5 advanced GPU computing examples:\n"
   );
   lines.push('1. **Fluid Simulation** - Navier-Stokes solver with pressure projection');
   lines.push('2. **Million Particles** - 1M+ particle system with spatial hashing');
@@ -545,8 +561,12 @@ async function generateReport(results: BenchmarkResult[]): Promise<void> {
   const failed = results.filter((r) => !r.success);
 
   lines.push(`- **Total Compilations:** ${results.length}`);
-  lines.push(`- **Successful:** ${successful.length} (${((successful.length / results.length) * 100).toFixed(1)}%)`);
-  lines.push(`- **Failed:** ${failed.length} (${((failed.length / results.length) * 100).toFixed(1)}%)\n`);
+  lines.push(
+    `- **Successful:** ${successful.length} (${((successful.length / results.length) * 100).toFixed(1)}%)`
+  );
+  lines.push(
+    `- **Failed:** ${failed.length} (${((failed.length / results.length) * 100).toFixed(1)}%)\n`
+  );
 
   if (successful.length > 0) {
     const avgParse = successful.reduce((sum, r) => sum + r.parseTimeMs, 0) / successful.length;
@@ -562,8 +582,12 @@ async function generateReport(results: BenchmarkResult[]): Promise<void> {
   lines.push('\n---\n');
   lines.push('## Detailed Results\n');
 
-  lines.push('| Example | Status | Parse (ms) | Compile (ms) | Size | WGSL Shaders | Target FPS | Est. FPS | Meets Target |');
-  lines.push('|---------|--------|------------|--------------|------|--------------|------------|----------|--------------|');
+  lines.push(
+    '| Example | Status | Parse (ms) | Compile (ms) | Size | WGSL Shaders | Target FPS | Est. FPS | Meets Target |'
+  );
+  lines.push(
+    '|---------|--------|------------|--------------|------|--------------|------------|----------|--------------|'
+  );
 
   for (const result of results) {
     const status = result.success ? '✅' : '❌';
@@ -575,11 +599,16 @@ async function generateReport(results: BenchmarkResult[]): Promise<void> {
       : '-';
     const targetFPS = result.performanceTargets.targetFPS;
     const estFPS = result.performanceTargets.estimatedFPS || '-';
-    const meetsTarget = result.success && result.performanceTargets.estimatedFPS
-      ? (result.performanceTargets.estimatedFPS >= targetFPS ? '✓' : '✗')
-      : '-';
+    const meetsTarget =
+      result.success && result.performanceTargets.estimatedFPS
+        ? result.performanceTargets.estimatedFPS >= targetFPS
+          ? '✓'
+          : '✗'
+        : '-';
 
-    lines.push(`| ${result.example} | ${status} | ${parse} | ${compile} | ${size} | ${shaders} | ${targetFPS} | ${estFPS} | ${meetsTarget} |`);
+    lines.push(
+      `| ${result.example} | ${status} | ${parse} | ${compile} | ${size} | ${shaders} | ${targetFPS} | ${estFPS} | ${meetsTarget} |`
+    );
   }
 
   lines.push('\n');
@@ -592,11 +621,16 @@ async function generateReport(results: BenchmarkResult[]): Promise<void> {
     lines.push(`### ${result.example}\n`);
 
     lines.push(`**Performance Targets:**`);
-    lines.push(`- Target FPS: ${result.performanceTargets.targetFPS} (${result.performanceTargets.targetFrameTimeMs.toFixed(2)}ms/frame)`);
+    lines.push(
+      `- Target FPS: ${result.performanceTargets.targetFPS} (${result.performanceTargets.targetFrameTimeMs.toFixed(2)}ms/frame)`
+    );
 
     if (result.performanceTargets.estimatedFPS) {
-      lines.push(`- Estimated FPS: ${result.performanceTargets.estimatedFPS} (${result.performanceTargets.estimatedFrameTimeMs?.toFixed(2)}ms/frame)`);
-      const meetsTarget = result.performanceTargets.estimatedFPS >= result.performanceTargets.targetFPS;
+      lines.push(
+        `- Estimated FPS: ${result.performanceTargets.estimatedFPS} (${result.performanceTargets.estimatedFrameTimeMs?.toFixed(2)}ms/frame)`
+      );
+      const meetsTarget =
+        result.performanceTargets.estimatedFPS >= result.performanceTargets.targetFPS;
       lines.push(`- **Status:** ${meetsTarget ? '✓ MEETS 60 FPS TARGET' : '✗ BELOW TARGET'}`);
     }
 
@@ -615,7 +649,9 @@ async function generateReport(results: BenchmarkResult[]): Promise<void> {
     lines.push(`- Parse Time: ${result.parseTimeMs.toFixed(2)}ms`);
     lines.push(`- Compile Time: ${result.compileTimeMs.toFixed(2)}ms`);
     lines.push(`- Output Size: ${formatBytes(result.outputSizeBytes)}`);
-    lines.push(`- WGSL Shaders: ${result.wgslShaderCount} total (${result.computeShaderCount} compute)`);
+    lines.push(
+      `- WGSL Shaders: ${result.wgslShaderCount} total (${result.computeShaderCount} compute)`
+    );
 
     lines.push(``);
     lines.push(`**Validation:**`);
@@ -650,11 +686,21 @@ async function generateReport(results: BenchmarkResult[]): Promise<void> {
 
   lines.push(`| Validation Check | Pass Rate |`);
   lines.push(`|------------------|-----------|`);
-  lines.push(`| WGSL Syntax Valid | ${validationMetrics.wgslSyntax}/${successful.length} (${((validationMetrics.wgslSyntax / successful.length) * 100).toFixed(0)}%) |`);
-  lines.push(`| Compute Shaders Found | ${validationMetrics.computeShaders}/${successful.length} (${((validationMetrics.computeShaders / successful.length) * 100).toFixed(0)}%) |`);
-  lines.push(`| GPU Buffers Allocated | ${validationMetrics.buffers}/${successful.length} (${((validationMetrics.buffers / successful.length) * 100).toFixed(0)}%) |`);
-  lines.push(`| Dispatch Calls Present | ${validationMetrics.dispatch}/${successful.length} (${((validationMetrics.dispatch / successful.length) * 100).toFixed(0)}%) |`);
-  lines.push(`| GPU Timing Enabled | ${validationMetrics.timing}/${successful.length} (${((validationMetrics.timing / successful.length) * 100).toFixed(0)}%) |`);
+  lines.push(
+    `| WGSL Syntax Valid | ${validationMetrics.wgslSyntax}/${successful.length} (${((validationMetrics.wgslSyntax / successful.length) * 100).toFixed(0)}%) |`
+  );
+  lines.push(
+    `| Compute Shaders Found | ${validationMetrics.computeShaders}/${successful.length} (${((validationMetrics.computeShaders / successful.length) * 100).toFixed(0)}%) |`
+  );
+  lines.push(
+    `| GPU Buffers Allocated | ${validationMetrics.buffers}/${successful.length} (${((validationMetrics.buffers / successful.length) * 100).toFixed(0)}%) |`
+  );
+  lines.push(
+    `| Dispatch Calls Present | ${validationMetrics.dispatch}/${successful.length} (${((validationMetrics.dispatch / successful.length) * 100).toFixed(0)}%) |`
+  );
+  lines.push(
+    `| GPU Timing Enabled | ${validationMetrics.timing}/${successful.length} (${((validationMetrics.timing / successful.length) * 100).toFixed(0)}%) |`
+  );
   lines.push('\n');
 
   // Failure Analysis
@@ -680,12 +726,20 @@ async function generateReport(results: BenchmarkResult[]): Promise<void> {
 
   lines.push('### Benchmark Process\n');
   lines.push('1. **Parse** - Parse HoloScript composition using HoloCompositionParser');
-  lines.push('2. **Compile** - Compile to WebGPU using WebGPUCompiler with compute shaders enabled');
-  lines.push('3. **Validate** - Check for WGSL syntax, compute shaders, buffers, dispatch calls, and GPU timing');
-  lines.push('4. **Analyze** - Extract performance targets from example comments and validate against 60 FPS baseline\n');
+  lines.push(
+    '2. **Compile** - Compile to WebGPU using WebGPUCompiler with compute shaders enabled'
+  );
+  lines.push(
+    '3. **Validate** - Check for WGSL syntax, compute shaders, buffers, dispatch calls, and GPU timing'
+  );
+  lines.push(
+    '4. **Analyze** - Extract performance targets from example comments and validate against 60 FPS baseline\n'
+  );
 
   lines.push('### Performance Baselines\n');
-  lines.push('All performance targets are documented within each `.holo` file and validated against RTX 3080 benchmarks:\n');
+  lines.push(
+    'All performance targets are documented within each `.holo` file and validated against RTX 3080 benchmarks:\n'
+  );
   lines.push('- **Target:** 60 FPS (16.67ms/frame)');
   lines.push('- **GPU:** NVIDIA RTX 3080');
   lines.push('- **API:** WebGPU (Chrome Canary / Edge Dev)');

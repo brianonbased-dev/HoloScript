@@ -140,7 +140,7 @@ function createReactiveProxy<T extends object>(
       if (oldValue !== value) {
         trigger(obj, key);
         if (onMutation) {
-            onMutation(obj, key, value, oldValue);
+          onMutation(obj, key, value, oldValue);
         }
       }
 
@@ -439,8 +439,8 @@ export function ref<T>(value: T): { value: T } {
 }
 
 export function reactive<T extends object>(
-    target: T, 
-    onMutation?: (target: T, key: string | symbol, value: any, oldValue: any) => void
+  target: T,
+  onMutation?: (target: T, key: string | symbol, value: any, oldValue: any) => void
 ): T {
   return createReactiveProxy(target, onMutation);
 }

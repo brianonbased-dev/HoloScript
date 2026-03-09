@@ -9,15 +9,15 @@ HoloScript's agent orchestration and trait composition.
 // Define the choreography manager
 object "ChoreographyDirector" {
   @networked { authority: "server" }
-  
+
   agents: []
   currentBeat: 0
   bpm: 120
-  
+
   function addAgent(agent) {
     this.agents.push(agent)
   }
-  
+
   function onBeat() {
     this.currentBeat += 1
     for (agent in this.agents) {
@@ -39,9 +39,9 @@ object "Dancer_Alpha" {
   }
   @grabbable { physics: true }
   @spatial_audio { radius: 5.0 }
-  
+
   position: { x: -2, y: 0, z: 0 }
-  
+
   on beat(data) {
     // Choose animation based on beat number and personality
     if (data.beat % 4 == 0) {
@@ -66,10 +66,10 @@ object "Dancer_Beta" {
     }
   }
   @networked { sync: "position,rotation" }
-  
+
   position: { x: 2, y: 0, z: 0 }
   mirrorTarget: "Dancer_Alpha"
-  
+
   on beat(data) {
     // Mirror the other dancer's position with a 1-beat delay
     let target = scene.find(this.mirrorTarget)
@@ -86,12 +86,12 @@ connect ChoreographyDirector to Dancer_Beta as "choreography"
 
 ## Key Concepts
 
-| Concept | Trait/API | Purpose |
-|---------|-----------|---------|
-| Agent coordination | `@networked` | Sync beat state across clients |
-| AI embodiment | `@avatar_embodiment` | Full-body IK with personality |
-| Spatial audio | `@spatial_audio` | Position-based sound |
-| Event system | `on beat()` | Real-time choreography sync |
+| Concept            | Trait/API            | Purpose                        |
+| ------------------ | -------------------- | ------------------------------ |
+| Agent coordination | `@networked`         | Sync beat state across clients |
+| AI embodiment      | `@avatar_embodiment` | Full-body IK with personality  |
+| Spatial audio      | `@spatial_audio`     | Position-based sound           |
+| Event system       | `on beat()`          | Real-time choreography sync    |
 
 ## Running
 

@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  RECOMMENDED_GRPO_CONFIG,
-  buildGRPOConfig,
-  exportGRPOConfigAsPython,
-} from '../GRPOConfig';
+import { RECOMMENDED_GRPO_CONFIG, buildGRPOConfig, exportGRPOConfigAsPython } from '../GRPOConfig';
 import { GRPO_REWARD_WEIGHTS } from '../GRPORewardFunctions';
 
 // =============================================================================
@@ -149,15 +145,15 @@ describe('GRPOConfig', () => {
     it('allows overriding reward weights', () => {
       const config = buildGRPOConfig({
         rewardWeights: {
-          testPassReward: 0.50,
-          typeCheckReward: 0.20,
-          lintReward: 0.10,
-          coverageReward: 0.10,
-          circuitBreakerReward: 0.10,
+          testPassReward: 0.5,
+          typeCheckReward: 0.2,
+          lintReward: 0.1,
+          coverageReward: 0.1,
+          circuitBreakerReward: 0.1,
         },
       });
 
-      expect(config.rewardWeights.testPassReward).toBe(0.50);
+      expect(config.rewardWeights.testPassReward).toBe(0.5);
     });
 
     it('does not mutate RECOMMENDED_GRPO_CONFIG', () => {

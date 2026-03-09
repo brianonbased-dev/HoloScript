@@ -11,7 +11,8 @@ export interface WFCTile {
 }
 
 export interface WFCCell {
-  x: number; y: number;
+  x: number;
+  y: number;
   collapsed: boolean;
   tileId: string | null;
   options: string[];
@@ -29,7 +30,10 @@ export class WaveFunction {
     this.width = width;
     this.height = height;
     let s = seed;
-    this.rng = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+    this.rng = () => {
+      s = (s * 16807) % 2147483647;
+      return (s - 1) / 2147483646;
+    };
   }
 
   /**
@@ -90,12 +94,12 @@ export class WaveFunction {
     // Weighted random selection
     let totalWeight = 0;
     for (const tileId of cell.options) {
-      totalWeight += (this.tiles.get(tileId)?.weight ?? 1);
+      totalWeight += this.tiles.get(tileId)?.weight ?? 1;
     }
 
     let rand = this.rng() * totalWeight;
     for (const tileId of cell.options) {
-      rand -= (this.tiles.get(tileId)?.weight ?? 1);
+      rand -= this.tiles.get(tileId)?.weight ?? 1;
       if (rand <= 0) {
         cell.tileId = tileId;
         cell.options = [tileId];
@@ -133,7 +137,7 @@ export class WaveFunction {
         }
 
         const before = neighbor.options.length;
-        neighbor.options = neighbor.options.filter(o => validOptions.has(o));
+        neighbor.options = neighbor.options.filter((o) => validOptions.has(o));
 
         if (neighbor.options.length < before) {
           stack.push(neighbor);
@@ -170,10 +174,22 @@ export class WaveFunction {
     return result;
   }
 
-  getCell(x: number, y: number): WFCCell | undefined { return this.grid[y]?.[x]; }
-  getGrid(): WFCCell[][] { return this.grid.map(row => row.map(c => ({ ...c }))); }
-  isComplete(): boolean { return this.grid.every(row => row.every(c => c.collapsed)); }
-  getContradictions(): number { return this.contradictions; }
-  getWidth(): number { return this.width; }
-  getHeight(): number { return this.height; }
+  getCell(x: number, y: number): WFCCell | undefined {
+    return this.grid[y]?.[x];
+  }
+  getGrid(): WFCCell[][] {
+    return this.grid.map((row) => row.map((c) => ({ ...c })));
+  }
+  isComplete(): boolean {
+    return this.grid.every((row) => row.every((c) => c.collapsed));
+  }
+  getContradictions(): number {
+    return this.contradictions;
+  }
+  getWidth(): number {
+    return this.width;
+  }
+  getHeight(): number {
+    return this.height;
+  }
 }

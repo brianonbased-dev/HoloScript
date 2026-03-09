@@ -5,10 +5,29 @@
  * procedure step tracking, and anatomical landmark registration.
  */
 
-export interface Vec3 { x: number; y: number; z: number }
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
-export type OrganSystem = 'cardiovascular' | 'respiratory' | 'digestive' | 'nervous' | 'skeletal' | 'muscular' | 'urinary';
-export type InstrumentType = 'scalpel' | 'forceps' | 'retractor' | 'suture' | 'cautery' | 'drill' | 'endoscope' | 'laser';
+export type OrganSystem =
+  | 'cardiovascular'
+  | 'respiratory'
+  | 'digestive'
+  | 'nervous'
+  | 'skeletal'
+  | 'muscular'
+  | 'urinary';
+export type InstrumentType =
+  | 'scalpel'
+  | 'forceps'
+  | 'retractor'
+  | 'suture'
+  | 'cautery'
+  | 'drill'
+  | 'endoscope'
+  | 'laser';
 export type TissueType = 'skin' | 'muscle' | 'bone' | 'nerve' | 'vessel' | 'organ' | 'connective';
 
 export interface AnatomicalLandmark {
@@ -16,7 +35,7 @@ export interface AnatomicalLandmark {
   name: string;
   position: Vec3;
   system: OrganSystem;
-  critical: boolean;         // If damaged = severe complication
+  critical: boolean; // If damaged = severe complication
 }
 
 export interface OrganModel {
@@ -24,9 +43,9 @@ export interface OrganModel {
   name: string;
   system: OrganSystem;
   position: Vec3;
-  boundingRadius: number;    // cm
+  boundingRadius: number; // cm
   tissueType: TissueType;
-  density: number;           // g/cm³
+  density: number; // g/cm³
   landmarks: AnatomicalLandmark[];
 }
 
@@ -35,7 +54,7 @@ export interface SurgicalInstrument {
   name: string;
   type: InstrumentType;
   tipPosition: Vec3;
-  safetyRadius: number;      // cm — keep this far from critical structures
+  safetyRadius: number; // cm — keep this far from critical structures
   maxForceNewtons: number;
 }
 
@@ -54,9 +73,9 @@ export interface ProcedureStep {
 export interface HapticZone {
   id: string;
   center: Vec3;
-  radius: number;            // cm
+  radius: number; // cm
   tissueType: TissueType;
-  resistance: number;        // 0-1 (0 = soft, 1 = bone)
+  resistance: number; // 0-1 (0 = soft, 1 = bone)
   feedback: 'vibration' | 'force' | 'texture' | 'temperature';
 }
 
@@ -93,14 +112,19 @@ export function isNearCriticalStructure(
 
 export function hapticResistanceForTissue(tissue: TissueType): number {
   const map: Record<TissueType, number> = {
-    skin: 0.3, muscle: 0.4, bone: 1.0, nerve: 0.1,
-    vessel: 0.2, organ: 0.35, connective: 0.5,
+    skin: 0.3,
+    muscle: 0.4,
+    bone: 1.0,
+    nerve: 0.1,
+    vessel: 0.2,
+    organ: 0.35,
+    connective: 0.5,
   };
   return map[tissue];
 }
 
 export function procedureProgress(session: SurgicalSession): number {
-  const completed = session.steps.filter(s => s.completed).length;
+  const completed = session.steps.filter((s) => s.completed).length;
   return session.steps.length > 0 ? completed / session.steps.length : 0;
 }
 
@@ -108,12 +132,15 @@ export function estimateProcedureDuration(steps: ProcedureStep[]): number {
   return steps.reduce((sum, s) => sum + s.durationMinutes, 0);
 }
 
-export function stepsByRisk(steps: ProcedureStep[], risk: ProcedureStep['riskLevel']): ProcedureStep[] {
-  return steps.filter(s => s.riskLevel === risk);
+export function stepsByRisk(
+  steps: ProcedureStep[],
+  risk: ProcedureStep['riskLevel']
+): ProcedureStep[] {
+  return steps.filter((s) => s.riskLevel === risk);
 }
 
 export function getNextStep(session: SurgicalSession): ProcedureStep | null {
-  return session.steps.find(s => !s.completed) ?? null;
+  return session.steps.find((s) => !s.completed) ?? null;
 }
 
 export function validateStepOrder(steps: ProcedureStep[]): boolean {
@@ -127,7 +154,7 @@ export function instrumentForStep(
   step: ProcedureStep,
   instruments: SurgicalInstrument[]
 ): SurgicalInstrument | null {
-  return instruments.find(i => i.type === step.instrumentRequired) ?? null;
+  return instruments.find((i) => i.type === step.instrumentRequired) ?? null;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -144,7 +171,7 @@ export function anatomyAtlas(
   fieldCenter: Vec3
 ): OrganModel[] {
   return organs
-    .filter(o => o.system === system)
+    .filter((o) => o.system === system)
     .sort((a, b) => distance3D(a.position, fieldCenter) - distance3D(b.position, fieldCenter));
 }
 
@@ -170,8 +197,8 @@ export function bloodFlowSim(
   systolicPressure: number
 ): { segmentId: string; perfusion: number }[] {
   const restingFlow = systolicPressure / 120; // Normalized to average systolic
-  const cardiacFactor = heartRateBPM / 70;    // Normalized to resting HR
-  return vessels.map(v => ({
+  const cardiacFactor = heartRateBPM / 70; // Normalized to resting HR
+  return vessels.map((v) => ({
     segmentId: v.id,
     perfusion: Math.min(1, (v.flowRateMlS / 5) * restingFlow * cardiacFactor * (v.diameterMm / 3)),
   }));

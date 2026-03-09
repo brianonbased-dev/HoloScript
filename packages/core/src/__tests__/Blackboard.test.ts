@@ -7,7 +7,9 @@ import { Blackboard } from '../ai/Blackboard';
 
 describe('Blackboard', () => {
   let bb: Blackboard;
-  beforeEach(() => { bb = new Blackboard(); });
+  beforeEach(() => {
+    bb = new Blackboard();
+  });
 
   it('set and get', () => {
     bb.set('hp', 100);

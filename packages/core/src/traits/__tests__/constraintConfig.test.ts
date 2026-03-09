@@ -132,9 +132,7 @@ describe('constraintConfig', () => {
 
     it('skips entries with empty source', () => {
       const result = loadConstraintsFromConfig({
-        traitConstraints: [
-          { type: 'requires', source: '', targets: ['b'] },
-        ],
+        traitConstraints: [{ type: 'requires', source: '', targets: ['b'] }],
       });
 
       expect(result).toHaveLength(0);
@@ -142,9 +140,7 @@ describe('constraintConfig', () => {
 
     it('skips entries with empty targets array', () => {
       const result = loadConstraintsFromConfig({
-        traitConstraints: [
-          { type: 'requires', source: 'a', targets: [] },
-        ],
+        traitConstraints: [{ type: 'requires', source: 'a', targets: [] }],
       });
 
       expect(result).toHaveLength(0);
@@ -152,9 +148,7 @@ describe('constraintConfig', () => {
 
     it('skips entries with non-string targets', () => {
       const result = loadConstraintsFromConfig({
-        traitConstraints: [
-          { type: 'requires', source: 'a', targets: [123, 'b'] },
-        ],
+        traitConstraints: [{ type: 'requires', source: 'a', targets: [123, 'b'] }],
       });
 
       expect(result).toHaveLength(0);

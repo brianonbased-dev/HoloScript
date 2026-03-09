@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { LagCompensation, HistoryState } from '../multiplayer/LagCompensation';
 
-function makeState(ts: number, entities: Array<[string, number, number, number, number]>): HistoryState {
+function makeState(
+  ts: number,
+  entities: Array<[string, number, number, number, number]>
+): HistoryState {
   const map = new Map<string, { x: number; y: number; z: number; radius: number }>();
   for (const [id, x, y, z, r] of entities) map.set(id, { x, y, z, radius: r });
   return { timestamp: ts, entities: map };
@@ -10,7 +13,9 @@ function makeState(ts: number, entities: Array<[string, number, number, number, 
 describe('LagCompensation', () => {
   let lc: LagCompensation;
 
-  beforeEach(() => { lc = new LagCompensation(60, 500); });
+  beforeEach(() => {
+    lc = new LagCompensation(60, 500);
+  });
 
   it('pushState stores states and getHistoryLength returns count', () => {
     lc.pushState(makeState(100, [['a', 0, 0, 0, 1]]));
@@ -39,7 +44,14 @@ describe('LagCompensation', () => {
 
   it('verifyHit returns hit=true when within radius', () => {
     lc.pushState(makeState(100, [['enemy', 5, 0, 0, 2]]));
-    const result = lc.verifyHit({ originX: 4, originY: 0, originZ: 0, targetId: 'enemy', clientTimestamp: 150, clientLatency: 50 });
+    const result = lc.verifyHit({
+      originX: 4,
+      originY: 0,
+      originZ: 0,
+      targetId: 'enemy',
+      clientTimestamp: 150,
+      clientLatency: 50,
+    });
     expect(result.hit).toBe(true);
     expect(result.distance).toBeCloseTo(1);
     expect(result.targetPosition).toEqual({ x: 5, y: 0, z: 0 });
@@ -47,14 +59,28 @@ describe('LagCompensation', () => {
 
   it('verifyHit returns hit=false when out of radius', () => {
     lc.pushState(makeState(100, [['enemy', 50, 0, 0, 1]]));
-    const result = lc.verifyHit({ originX: 0, originY: 0, originZ: 0, targetId: 'enemy', clientTimestamp: 150, clientLatency: 50 });
+    const result = lc.verifyHit({
+      originX: 0,
+      originY: 0,
+      originZ: 0,
+      targetId: 'enemy',
+      clientTimestamp: 150,
+      clientLatency: 50,
+    });
     expect(result.hit).toBe(false);
     expect(result.distance).toBeGreaterThan(1);
   });
 
   it('verifyHit returns miss for unknown target', () => {
     lc.pushState(makeState(100, [['enemy', 5, 0, 0, 2]]));
-    const result = lc.verifyHit({ originX: 0, originY: 0, originZ: 0, targetId: 'ghost', clientTimestamp: 150, clientLatency: 50 });
+    const result = lc.verifyHit({
+      originX: 0,
+      originY: 0,
+      originZ: 0,
+      targetId: 'ghost',
+      clientTimestamp: 150,
+      clientLatency: 50,
+    });
     expect(result.hit).toBe(false);
     expect(result.targetPosition).toBeNull();
   });

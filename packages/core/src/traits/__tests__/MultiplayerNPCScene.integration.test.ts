@@ -28,11 +28,17 @@ vi.mock('../../network/SyncProtocol', () => {
   return { SyncProtocol };
 });
 vi.mock('../../network/WebSocketTransport', () => {
-  class WebSocketTransport { connect = vi.fn().mockRejectedValue(new Error()); disconnect = vi.fn(); }
+  class WebSocketTransport {
+    connect = vi.fn().mockRejectedValue(new Error());
+    disconnect = vi.fn();
+  }
   return { WebSocketTransport };
 });
 vi.mock('../../network/WebRTCTransport', () => {
-  class WebRTCTransport { initialize = vi.fn().mockRejectedValue(new Error()); disconnect = vi.fn(); }
+  class WebRTCTransport {
+    initialize = vi.fn().mockRejectedValue(new Error());
+    disconnect = vi.fn();
+  }
   return { WebRTCTransport };
 });
 vi.mock('../../logger', () => ({
@@ -72,12 +78,13 @@ function spawnAgent(agentId: string, caps: string[] = [], cfg: any = {}) {
   const ctx = makeCtx();
   multiAgentHandler.onAttach!(node, config, ctx);
   return {
-    node, config, ctx,
+    node,
+    config,
+    ctx,
     state: () => node.__multiAgentState,
     event: (type: string, payload: any = {}) =>
       multiAgentHandler.onEvent!(node, config, ctx, { type, payload }),
-    update: (delta = 16) =>
-      multiAgentHandler.onUpdate!(node, config, ctx, delta),
+    update: (delta = 16) => multiAgentHandler.onUpdate!(node, config, ctx, delta),
   };
 }
 
@@ -175,7 +182,9 @@ describe('MultiAgentTrait — NPC registration', () => {
     coord.ctx.emit.mockClear();
 
     coord.event('discover_agents', { capability: 'combat' });
-    const call = coord.ctx.emit.mock.calls.find(([ev]: any) => ev === 'multi_agent_discovery_result');
+    const call = coord.ctx.emit.mock.calls.find(
+      ([ev]: any) => ev === 'multi_agent_discovery_result'
+    );
     expect(call![1].agents).toHaveLength(1);
     expect(call![1].agents[0].id).toBe('npc_combat');
   });
@@ -221,7 +230,8 @@ describe('NPCAITrait — AI prompt → behavior emit', () => {
       text: 'On my way. <action type="patrol" zone="west" />',
     });
 
-    expect(npcCtx.emit).toHaveBeenCalledWith('npc_action',
+    expect(npcCtx.emit).toHaveBeenCalledWith(
+      'npc_action',
       expect.objectContaining({ type: 'patrol' })
     );
     npcAIHandler.onDetach!(npcNode, npcConfig, npcCtx as any);
@@ -239,10 +249,12 @@ describe('NPCAITrait — AI prompt → behavior emit', () => {
       text: 'Attack! <action type="attack" target="enemy_1" />',
     });
 
-    expect(npcCtx.emit).toHaveBeenCalledWith('npc_behavior_attack',
+    expect(npcCtx.emit).toHaveBeenCalledWith(
+      'npc_behavior_attack',
       expect.objectContaining({ params: expect.objectContaining({ target: 'enemy_1' }) })
     );
-    expect(npcCtx.emit).toHaveBeenCalledWith('npc_action',
+    expect(npcCtx.emit).toHaveBeenCalledWith(
+      'npc_action',
       expect.objectContaining({ type: 'attack' })
     );
     npcAIHandler.onDetach!(npcNode, npcConfig, npcCtx as any);
@@ -255,7 +267,10 @@ describe('MultiAgentTrait — task delegation', () => {
     const coord = spawnAgent('coord', ['management']);
     const npc = spawnAgent('npc_guard', ['combat', 'patrol']);
     discover(coord, npc);
-    coord.event('delegate_task', { requiredCapabilities: ['patrol'], description: 'Patrol east wing' });
+    coord.event('delegate_task', {
+      requiredCapabilities: ['patrol'],
+      description: 'Patrol east wing',
+    });
     const task = coord.state().delegatedTasks[0];
     expect(task.assigneeId).toBe('npc_guard');
     expect(task.status).toBe('assigned');
@@ -264,10 +279,20 @@ describe('MultiAgentTrait — task delegation', () => {
   it('NPC accepts task and marks itself busy', () => {
     const npc = spawnAgent('npc_busy', ['combat']);
     npc.state().assignedTasks.push({
-      id: 'task_guard', delegatorId: 'coord', assigneeId: 'npc_busy',
-      description: 'Guard door', requiredCapabilities: [], status: 'assigned',
-      priority: 'normal', payload: {}, result: null,
-      createdAt: Date.now(), updatedAt: Date.now(), deadline: 0, retryCount: 0, maxRetries: 3,
+      id: 'task_guard',
+      delegatorId: 'coord',
+      assigneeId: 'npc_busy',
+      description: 'Guard door',
+      requiredCapabilities: [],
+      status: 'assigned',
+      priority: 'normal',
+      payload: {},
+      result: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      deadline: 0,
+      retryCount: 0,
+      maxRetries: 3,
     });
     npc.event('accept_task', { taskId: 'task_guard' });
     expect(npc.state().self.status).toBe('busy');
@@ -277,10 +302,20 @@ describe('MultiAgentTrait — task delegation', () => {
   it('NPC completes task and returns to active', () => {
     const npc = spawnAgent('npc_done', ['combat']);
     npc.state().assignedTasks.push({
-      id: 'task_2', delegatorId: 'coord', assigneeId: 'npc_done',
-      description: 'Work', requiredCapabilities: [], status: 'in_progress',
-      priority: 'normal', payload: {}, result: null,
-      createdAt: Date.now(), updatedAt: Date.now(), deadline: 0, retryCount: 0, maxRetries: 3,
+      id: 'task_2',
+      delegatorId: 'coord',
+      assigneeId: 'npc_done',
+      description: 'Work',
+      requiredCapabilities: [],
+      status: 'in_progress',
+      priority: 'normal',
+      payload: {},
+      result: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      deadline: 0,
+      retryCount: 0,
+      maxRetries: 3,
     });
     npc.state().self.status = 'busy';
     npc.event('complete_task', { taskId: 'task_2', result: { success: true } });
@@ -308,13 +343,17 @@ describe('MultiAgentTrait — shared state sync', () => {
     npc1.event('set_shared_state', { key: 'score', value: 1500 });
 
     const entries = Array.from(npc1.state().sharedState.entries()).map(([k, v]: any) => ({
-      key: k, value: v.value, writer: v.lastWriter, version: v.version,
+      key: k,
+      value: v.value,
+      writer: v.lastWriter,
+      version: v.version,
     }));
     npc2.event('sync_shared_state', { entries });
 
     npc2.ctx.emit.mockClear();
     npc2.event('get_shared_state', { key: 'score' });
-    expect(npc2.ctx.emit).toHaveBeenCalledWith('multi_agent_shared_state_response',
+    expect(npc2.ctx.emit).toHaveBeenCalledWith(
+      'multi_agent_shared_state_response',
       expect.objectContaining({ key: 'score', value: 1500 })
     );
   });
@@ -327,7 +366,8 @@ describe('MultiAgentTrait — shared state sync', () => {
     });
     npc1.ctx.emit.mockClear();
     npc1.event('get_shared_state', { key: 'phase' });
-    expect(npc1.ctx.emit).toHaveBeenCalledWith('multi_agent_shared_state_response',
+    expect(npc1.ctx.emit).toHaveBeenCalledWith(
+      'multi_agent_shared_state_response',
       expect.objectContaining({ value: 'wave_2', version: 2 })
     );
   });
@@ -385,18 +425,25 @@ describe('Multiplayer NPC Scene — full round-trip', () => {
     expect(coord.state().registry.size).toBe(2);
 
     // 3. Delegate patrol
-    coord.event('delegate_task', { requiredCapabilities: ['patrol'], description: 'Patrol west wing' });
+    coord.event('delegate_task', {
+      requiredCapabilities: ['patrol'],
+      description: 'Patrol west wing',
+    });
     expect(coord.state().delegatedTasks[0].assigneeId).toBe('npc_guard');
 
     // 4. Shared state: game phase
     coord.event('set_shared_state', { key: 'gamePhase', value: 'round_1' });
     const entries = Array.from(coord.state().sharedState.entries()).map(([k, v]: any) => ({
-      key: k, value: v.value, writer: v.lastWriter, version: v.version,
+      key: k,
+      value: v.value,
+      writer: v.lastWriter,
+      version: v.version,
     }));
     npc.event('sync_shared_state', { entries });
     npc.ctx.emit.mockClear();
     npc.event('get_shared_state', { key: 'gamePhase' });
-    expect(npc.ctx.emit).toHaveBeenCalledWith('multi_agent_shared_state_response',
+    expect(npc.ctx.emit).toHaveBeenCalledWith(
+      'multi_agent_shared_state_response',
       expect.objectContaining({ value: 'round_1' })
     );
 
@@ -410,7 +457,10 @@ describe('Multiplayer NPC Scene — full round-trip', () => {
   });
 
   it('NPC goes offline → coordinator marks it → task auto-assign fails → pending', () => {
-    const coord = spawnAgent('coord_x', ['management'], { heartbeat_interval: 100, offline_threshold: 2 });
+    const coord = spawnAgent('coord_x', ['management'], {
+      heartbeat_interval: 100,
+      offline_threshold: 2,
+    });
     const npc = spawnAgent('npc_gone', ['combat']);
     discover(coord, npc);
 

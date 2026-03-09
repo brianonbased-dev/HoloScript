@@ -31,7 +31,7 @@ export class CacheManager {
 
   constructor(
     private readonly cacheDir = '.holoscript-cache',
-    private readonly compilerVersion = '3.13.0',
+    private readonly compilerVersion = '3.13.0'
   ) {
     this.manifest = this.emptyManifest();
   }
@@ -90,7 +90,11 @@ export class CacheManager {
       this.depTracker.addDependency(filePath, dep);
     }
     this.manifest.entries[filePath] = {
-      hash, depHashes, compilerVersion: this.compilerVersion, outputs, buildTime: Date.now(),
+      hash,
+      depHashes,
+      compilerVersion: this.compilerVersion,
+      outputs,
+      buildTime: Date.now(),
     };
   }
 

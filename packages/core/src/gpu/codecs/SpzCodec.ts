@@ -84,11 +84,11 @@ const GZIP_MAGIC_1 = 0x8b;
 
 interface SpzHeader {
   magic: number;
-  version: number;         // 1, 2, or 3
+  version: number; // 1, 2, or 3
   numPoints: number;
-  shDegree: number;        // 0-3
-  fractionalBits: number;  // typically 12
-  flags: number;           // bit 0: antialiased
+  shDegree: number; // 0-3
+  fractionalBits: number; // typically 12
+  flags: number; // bit 0: antialiased
   reserved: number;
 }
 
@@ -144,7 +144,7 @@ export class SpzCodec extends AbstractGaussianCodec {
       throw new CodecDecompressError(
         this.codecId,
         'Gzip decompression failed. Ensure the data is a valid SPZ file.',
-        err instanceof Error ? err : undefined,
+        err instanceof Error ? err : undefined
       );
     }
   }
@@ -162,10 +162,10 @@ export class SpzCodec extends AbstractGaussianCodec {
 
     const uncompressedSize =
       SPZ_HEADER_SIZE +
-      header.numPoints * 9 +      // positions
-      header.numPoints +           // alphas
-      header.numPoints * 3 +      // colors
-      header.numPoints * 3 +      // scales
+      header.numPoints * 9 + // positions
+      header.numPoints + // alphas
+      header.numPoints * 3 + // colors
+      header.numPoints * 3 + // scales
       header.numPoints * rotBytes + // rotations
       header.numPoints * shDim * 3; // SH
 
@@ -184,7 +184,7 @@ export class SpzCodec extends AbstractGaussianCodec {
 
   async decode(
     buffer: ArrayBuffer,
-    options?: GaussianDecodeOptions,
+    options?: GaussianDecodeOptions
   ): Promise<CodecResult<GaussianSplatData>> {
     const startTime = performance.now();
     const warnings: string[] = [];
@@ -205,7 +205,7 @@ export class SpzCodec extends AbstractGaussianCodec {
     const N = Math.min(header.numPoints, maxGaussians);
     if (N < header.numPoints) {
       warnings.push(
-        `Clamped Gaussian count from ${header.numPoints.toLocaleString()} to ${N.toLocaleString()} (maxGaussians limit)`,
+        `Clamped Gaussian count from ${header.numPoints.toLocaleString()} to ${N.toLocaleString()} (maxGaussians limit)`
       );
     }
 
@@ -230,7 +230,7 @@ export class SpzCodec extends AbstractGaussianCodec {
       throw new CodecDecodeError(
         this.codecId,
         `SPZ buffer too short: ${data.length} bytes, expected at least ${expectedSize} bytes ` +
-        `for ${header.numPoints} points with SH degree ${header.shDegree}`,
+          `for ${header.numPoints} points with SH degree ${header.shDegree}`
       );
     }
 
@@ -296,10 +296,10 @@ export class SpzCodec extends AbstractGaussianCodec {
         quat = decodeQuaternionV2(data, rOff);
       }
 
-      rotations[i * 4] = quat[0];      // x
-      rotations[i * 4 + 1] = quat[1];  // y
-      rotations[i * 4 + 2] = quat[2];  // z
-      rotations[i * 4 + 3] = quat[3];  // w
+      rotations[i * 4] = quat[0]; // x
+      rotations[i * 4 + 1] = quat[1]; // y
+      rotations[i * 4 + 2] = quat[2]; // z
+      rotations[i * 4 + 3] = quat[3]; // w
     }
 
     // Step 11: Decode SH coefficients (optional)
@@ -347,7 +347,7 @@ export class SpzCodec extends AbstractGaussianCodec {
       finalCount = writeIdx;
       if (finalCount < N) {
         warnings.push(
-          `Filtered ${N - finalCount} Gaussians below alpha threshold ${alphaThreshold}`,
+          `Filtered ${N - finalCount} Gaussians below alpha threshold ${alphaThreshold}`
         );
       }
     }
@@ -359,7 +359,9 @@ export class SpzCodec extends AbstractGaussianCodec {
       colors: finalCount < N ? colors.slice(0, finalCount * 4) : colors,
       opacities: finalCount < N ? opacities.slice(0, finalCount) : opacities,
       shCoefficients: shCoefficients
-        ? (finalCount < N ? shCoefficients.slice(0, finalCount * shDim * 3) : shCoefficients)
+        ? finalCount < N
+          ? shCoefficients.slice(0, finalCount * shDim * 3)
+          : shCoefficients
         : undefined,
       shDegree: decodeSH ? header.shDegree : 0,
       count: finalCount,
@@ -378,7 +380,7 @@ export class SpzCodec extends AbstractGaussianCodec {
 
   async encode(
     data: GaussianSplatData,
-    options?: GaussianEncodeOptions,
+    options?: GaussianEncodeOptions
   ): Promise<CodecResult<EncodedGaussianData>> {
     const startTime = performance.now();
     const warnings: string[] = [];
@@ -391,7 +393,7 @@ export class SpzCodec extends AbstractGaussianCodec {
     if (N > SPZ_MAX_POINTS) {
       throw new CodecEncodeError(
         this.codecId,
-        `Cannot encode ${N.toLocaleString()} Gaussians: exceeds maximum of ${SPZ_MAX_POINTS.toLocaleString()}`,
+        `Cannot encode ${N.toLocaleString()} Gaussians: exceeds maximum of ${SPZ_MAX_POINTS.toLocaleString()}`
       );
     }
 
@@ -402,12 +404,12 @@ export class SpzCodec extends AbstractGaussianCodec {
     // Calculate buffer size
     const payloadSize =
       SPZ_HEADER_SIZE +
-      N * 9 +            // positions
-      N +                // alphas
-      N * 3 +            // colors
-      N * 3 +            // scales
-      N * rotBytes +     // rotations
-      N * shDim * 3;     // SH
+      N * 9 + // positions
+      N + // alphas
+      N * 3 + // colors
+      N * 3 + // scales
+      N * rotBytes + // rotations
+      N * shDim * 3; // SH
 
     const buffer = new ArrayBuffer(payloadSize);
     const out = new Uint8Array(buffer);
@@ -479,7 +481,7 @@ export class SpzCodec extends AbstractGaussianCodec {
           data.rotations[i * 4],
           data.rotations[i * 4 + 1],
           data.rotations[i * 4 + 2],
-          data.rotations[i * 4 + 3],
+          data.rotations[i * 4 + 3]
         );
         out[rOff] = packed & 0xff;
         out[rOff + 1] = (packed >>> 8) & 0xff;
@@ -545,7 +547,7 @@ export class SpzCodec extends AbstractGaussianCodec {
 
   async *stream(
     source: string | ReadableStream<Uint8Array>,
-    options?: GaussianStreamDecodeOptions,
+    options?: GaussianStreamDecodeOptions
   ): AsyncIterable<CodecResult<GaussianSplatData>> {
     const signal = options?.signal;
 
@@ -692,7 +694,7 @@ async function decompressGzip(compressed: ArrayBuffer): Promise<ArrayBuffer> {
   }
 
   throw new Error(
-    'SPZ decompression requires DecompressionStream API (modern browsers) or pako library.',
+    'SPZ decompression requires DecompressionStream API (modern browsers) or pako library.'
   );
 }
 
@@ -727,9 +729,7 @@ async function compressGzip(data: ArrayBuffer): Promise<ArrayBuffer> {
     return result.buffer;
   }
 
-  throw new Error(
-    'SPZ encoding requires CompressionStream API (modern browsers).',
-  );
+  throw new Error('SPZ encoding requires CompressionStream API (modern browsers).');
 }
 
 /**
@@ -755,14 +755,14 @@ function validateSpzHeader(header: SpzHeader, codecId: string): void {
     throw new CodecDecodeError(
       codecId,
       `Invalid SPZ magic: 0x${header.magic.toString(16).toUpperCase()}, ` +
-      `expected 0x${SPZ_MAGIC.toString(16).toUpperCase()} ("NGSP")`,
+        `expected 0x${SPZ_MAGIC.toString(16).toUpperCase()} ("NGSP")`
     );
   }
 
   if (header.version < 1 || header.version > 3) {
     throw new CodecDecodeError(
       codecId,
-      `Unsupported SPZ version: ${header.version} (supported: 1-3)`,
+      `Unsupported SPZ version: ${header.version} (supported: 1-3)`
     );
   }
 
@@ -770,15 +770,12 @@ function validateSpzHeader(header: SpzHeader, codecId: string): void {
     throw new CodecDecodeError(
       codecId,
       `SPZ file contains ${header.numPoints.toLocaleString()} points, ` +
-      `exceeding maximum of ${SPZ_MAX_POINTS.toLocaleString()}`,
+        `exceeding maximum of ${SPZ_MAX_POINTS.toLocaleString()}`
     );
   }
 
   if (header.shDegree > 3) {
-    throw new CodecDecodeError(
-      codecId,
-      `Invalid SPZ SH degree: ${header.shDegree} (max 3)`,
-    );
+    throw new CodecDecodeError(codecId, `Invalid SPZ SH degree: ${header.shDegree} (max 3)`);
   }
 }
 
@@ -787,24 +784,26 @@ function validateSpzHeader(header: SpzHeader, codecId: string): void {
  */
 function shDimForDegree(degree: number): number {
   switch (degree) {
-    case 0: return 0;
-    case 1: return 3;
-    case 2: return 8;
-    case 3: return 15;
-    default: return 0;
+    case 0:
+      return 0;
+    case 1:
+      return 3;
+    case 2:
+      return 8;
+    case 3:
+      return 15;
+    default:
+      return 0;
   }
 }
 
 /**
  * Decode v2 quaternion: 3 bytes, first-three encoding.
  */
-function decodeQuaternionV2(
-  data: Uint8Array,
-  offset: number,
-): [number, number, number, number] {
-  const x = (data[offset] / 127.5) - 1;
-  const y = (data[offset + 1] / 127.5) - 1;
-  const z = (data[offset + 2] / 127.5) - 1;
+function decodeQuaternionV2(data: Uint8Array, offset: number): [number, number, number, number] {
+  const x = data[offset] / 127.5 - 1;
+  const y = data[offset + 1] / 127.5 - 1;
+  const z = data[offset + 2] / 127.5 - 1;
   const w = Math.sqrt(Math.max(0, 1 - x * x - y * y - z * z));
   return [x, y, z, w];
 }
@@ -812,15 +811,9 @@ function decodeQuaternionV2(
 /**
  * Decode v3 quaternion: 4 bytes, smallest-three-components encoding.
  */
-function decodeQuaternionV3(
-  data: Uint8Array,
-  offset: number,
-): [number, number, number, number] {
+function decodeQuaternionV3(data: Uint8Array, offset: number): [number, number, number, number] {
   const comp =
-    data[offset] |
-    (data[offset + 1] << 8) |
-    (data[offset + 2] << 16) |
-    (data[offset + 3] << 24);
+    data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) | (data[offset + 3] << 24);
   const iLargest = (comp >>> 30) & 0x3;
   const MASK_9 = (1 << 9) - 1; // 511
 
@@ -834,7 +827,7 @@ function decodeQuaternionV3(
     const negBit = (comp >>> (bitPos + 9)) & 0x1;
     bitPos += 10;
 
-    let value = SQRT1_2 * mag / MASK_9;
+    let value = (SQRT1_2 * mag) / MASK_9;
     if (negBit === 1) value = -value;
     quat[i] = value;
     sumSquares += value * value;
@@ -860,12 +853,7 @@ function decodeQuaternionV3(
  *
  * This is the exact inverse of decodeQuaternionV3().
  */
-function encodeQuaternionV3(
-  x: number,
-  y: number,
-  z: number,
-  w: number,
-): number {
+function encodeQuaternionV3(x: number, y: number, z: number, w: number): number {
   // Step 1: Normalize the quaternion to unit length
   const len = Math.sqrt(x * x + y * y + z * z + w * w);
   if (len > 0) {
@@ -876,7 +864,10 @@ function encodeQuaternionV3(
     w *= invLen;
   } else {
     // Degenerate zero quaternion: encode as identity
-    x = 0; y = 0; z = 0; w = 1;
+    x = 0;
+    y = 0;
+    z = 0;
+    w = 1;
   }
 
   // Step 2: Find the component with the largest absolute value
@@ -910,13 +901,13 @@ function encodeQuaternionV3(
     // Quantize: |value| is in [0, sqrt(1/2)], map to [0, 511]
     const mag = Math.min(MASK_9, Math.round((Math.abs(value) / SQRT1_2) * MASK_9));
 
-    packed |= (mag << bitPos);
-    packed |= (negBit << (bitPos + 9));
+    packed |= mag << bitPos;
+    packed |= negBit << (bitPos + 9);
     bitPos += 10;
   }
 
   // Step 5: Pack the largest-component index into bits 30-31
-  packed |= (iLargest << 30);
+  packed |= iLargest << 30;
 
   // Return as unsigned 32-bit integer
   return packed >>> 0;

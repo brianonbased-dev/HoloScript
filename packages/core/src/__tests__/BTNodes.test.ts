@@ -1,8 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  SequenceNode, SelectorNode, ParallelNode,
-  InverterNode, RepeaterNode, GuardNode,
-  ActionNode, ConditionNode, WaitNode,
+  SequenceNode,
+  SelectorNode,
+  ParallelNode,
+  InverterNode,
+  RepeaterNode,
+  GuardNode,
+  ActionNode,
+  ConditionNode,
+  WaitNode,
   type BTContext,
 } from '../ai/BTNodes';
 
@@ -13,7 +19,12 @@ import {
 function ctx(dt = 0.016): BTContext {
   const data: Record<string, unknown> = {};
   return {
-    blackboard: { get: (k: string) => data[k], set: (k: string, v: unknown) => { data[k] = v; } },
+    blackboard: {
+      get: (k: string) => data[k],
+      set: (k: string, v: unknown) => {
+        data[k] = v;
+      },
+    },
     deltaTime: dt,
     entity: 'e1',
   };
@@ -27,7 +38,7 @@ describe('BTNodes', () => {
 
   it('ConditionNode returns success when true, failure when false', () => {
     const yes = new ConditionNode('c', () => true);
-    const no  = new ConditionNode('c', () => false);
+    const no = new ConditionNode('c', () => false);
     expect(yes.tick(ctx())).toBe('success');
     expect(no.tick(ctx())).toBe('failure');
   });
@@ -66,11 +77,15 @@ describe('BTNodes', () => {
   });
 
   it('ParallelNode succeeds when required count met', () => {
-    const par = new ParallelNode('par', [
-      new ActionNode('a', () => 'success'),
-      new ActionNode('b', () => 'failure'),
-      new ActionNode('c', () => 'success'),
-    ], 2);
+    const par = new ParallelNode(
+      'par',
+      [
+        new ActionNode('a', () => 'success'),
+        new ActionNode('b', () => 'failure'),
+        new ActionNode('c', () => 'success'),
+      ],
+      2
+    );
     expect(par.tick(ctx())).toBe('success');
   });
 
@@ -86,7 +101,14 @@ describe('BTNodes', () => {
 
   it('RepeaterNode repeats child N times', () => {
     let count = 0;
-    const rep = new RepeaterNode('rep', new ActionNode('a', () => { count++; return 'success'; }), 3);
+    const rep = new RepeaterNode(
+      'rep',
+      new ActionNode('a', () => {
+        count++;
+        return 'success';
+      }),
+      3
+    );
     rep.tick(ctx()); // first completion → count=1
     rep.tick(ctx()); // second → count=2
     rep.tick(ctx()); // third → count=3

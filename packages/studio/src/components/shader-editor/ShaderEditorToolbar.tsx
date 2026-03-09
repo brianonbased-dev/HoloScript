@@ -159,9 +159,7 @@ export function ShaderEditorToolbar() {
           onClick={undo}
           disabled={!canUndo}
           className={`p-1.5 rounded transition-colors ${
-            canUndo
-              ? 'text-white hover:bg-gray-700'
-              : 'text-gray-600 cursor-not-allowed'
+            canUndo ? 'text-white hover:bg-gray-700' : 'text-gray-600 cursor-not-allowed'
           }`}
           title="Undo (Ctrl+Z)"
         >
@@ -172,9 +170,7 @@ export function ShaderEditorToolbar() {
           onClick={redo}
           disabled={!canRedo}
           className={`p-1.5 rounded transition-colors ${
-            canRedo
-              ? 'text-white hover:bg-gray-700'
-              : 'text-gray-600 cursor-not-allowed'
+            canRedo ? 'text-white hover:bg-gray-700' : 'text-gray-600 cursor-not-allowed'
           }`}
           title="Redo (Ctrl+Y)"
         >

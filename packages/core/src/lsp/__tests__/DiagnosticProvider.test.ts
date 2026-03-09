@@ -19,11 +19,14 @@ describe('DiagnosticProvider', () => {
   });
 
   it('HS001: unknown directive', () => {
-    const ctx = makeCtx([{
-      type: 'mesh', name: 'box',
-      directives: [{ name: 'nonexistent' }],
-      loc: { start: { line: 5, column: 3 }, end: { line: 5, column: 15 } },
-    }]);
+    const ctx = makeCtx([
+      {
+        type: 'mesh',
+        name: 'box',
+        directives: [{ name: 'nonexistent' }],
+        loc: { start: { line: 5, column: 3 }, end: { line: 5, column: 15 } },
+      },
+    ]);
     const diags = provider.diagnose(ctx);
     expect(diags.length).toBe(1);
     expect(diags[0].code).toBe('HS001');
@@ -32,10 +35,7 @@ describe('DiagnosticProvider', () => {
   });
 
   it('HS001: known trait not flagged', () => {
-    const ctx = makeCtx(
-      [{ type: 'mesh', directives: [{ name: 'grabbable' }] }],
-      ['grabbable']
-    );
+    const ctx = makeCtx([{ type: 'mesh', directives: [{ name: 'grabbable' }] }], ['grabbable']);
     expect(provider.diagnose(ctx).length).toBe(0);
   });
 
@@ -62,8 +62,17 @@ describe('DiagnosticProvider', () => {
 
   it('sorts diagnostics by line then column', () => {
     const ctx = makeCtx([
-      { type: 'group', name: 'g1', children: [], loc: { start: { line: 10, column: 1 }, end: { line: 10, column: 5 } } },
-      { type: 'mesh', directives: [{ name: 'bad' }], loc: { start: { line: 3, column: 5 }, end: { line: 3, column: 10 } } },
+      {
+        type: 'group',
+        name: 'g1',
+        children: [],
+        loc: { start: { line: 10, column: 1 }, end: { line: 10, column: 5 } },
+      },
+      {
+        type: 'mesh',
+        directives: [{ name: 'bad' }],
+        loc: { start: { line: 3, column: 5 }, end: { line: 3, column: 10 } },
+      },
     ]);
     const diags = provider.diagnose(ctx);
     expect(diags.length).toBe(2);
@@ -79,7 +88,7 @@ describe('DiagnosticProvider', () => {
     });
     expect(provider.ruleCount).toBe(before + 1);
     const diags = provider.diagnose(makeCtx([]));
-    expect(diags.some(d => d.message === 'test')).toBe(true);
+    expect(diags.some((d) => d.message === 'test')).toBe(true);
   });
 
   it('handles nodes without directives', () => {

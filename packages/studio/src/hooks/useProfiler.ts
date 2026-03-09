@@ -36,25 +36,55 @@ export function useProfiler(): UseProfilerReturn {
     setMemory(profRef.current.getMemorySnapshots());
   }, []);
 
-  const simulateFrames = useCallback((count = 10) => {
-    const systems = ['Physics', 'Rendering', 'AI', 'Audio', 'Particles', 'Network'];
-    for (let i = 0; i < count; i++) {
-      profRef.current.beginFrame();
-      for (const sys of systems) {
-        profRef.current.beginScope(sys);
-        // Simulate work
-        const start = performance.now();
-        while (performance.now() - start < Math.random() * 2) { /* spin */ }
-        profRef.current.endScope();
+  const simulateFrames = useCallback(
+    (count = 10) => {
+      const systems = ['Physics', 'Rendering', 'AI', 'Audio', 'Particles', 'Network'];
+      for (let i = 0; i < count; i++) {
+        profRef.current.beginFrame();
+        for (const sys of systems) {
+          profRef.current.beginScope(sys);
+          // Simulate work
+          const start = performance.now();
+          while (performance.now() - start < Math.random() * 2) {
+            /* spin */
+          }
+          profRef.current.endScope();
+        }
+        profRef.current.endFrame();
       }
-      profRef.current.endFrame();
-    }
+      sync();
+    },
+    [sync]
+  );
+
+  const takeSnapshot = useCallback(
+    (label = 'Manual') => {
+      profRef.current.takeMemorySnapshot(label);
+      sync();
+    },
+    [sync]
+  );
+  const toggleEnabled = useCallback(() => {
+    const next = !profRef.current.isEnabled();
+    profRef.current.setEnabled(next);
+    setEnabled(next);
+  }, []);
+  const reset = useCallback(() => {
+    profRef.current.reset();
     sync();
   }, [sync]);
 
-  const takeSnapshot = useCallback((label = 'Manual') => { profRef.current.takeMemorySnapshot(label); sync(); }, [sync]);
-  const toggleEnabled = useCallback(() => { const next = !profRef.current.isEnabled(); profRef.current.setEnabled(next); setEnabled(next); }, []);
-  const reset = useCallback(() => { profRef.current.reset(); sync(); }, [sync]);
-
-  return { profiler: profRef.current, fps, frameCount, summaries, slowest, memory, enabled, simulateFrames, takeSnapshot, toggleEnabled, reset };
+  return {
+    profiler: profRef.current,
+    fps,
+    frameCount,
+    summaries,
+    slowest,
+    memory,
+    enabled,
+    simulateFrames,
+    takeSnapshot,
+    toggleEnabled,
+    reset,
+  };
 }

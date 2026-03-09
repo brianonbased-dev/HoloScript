@@ -6,11 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  NetworkedTrait,
-  createNetworkedTrait,
-  cleanupNetworkPool,
-} from '../NetworkedTrait';
+import { NetworkedTrait, createNetworkedTrait, cleanupNetworkPool } from '../NetworkedTrait';
 import type { NetworkedConfig, NetworkEvent } from '../NetworkedTrait';
 
 // ---------------------------------------------------------------------------
@@ -30,11 +26,15 @@ function makeTrait(overrides: Partial<NetworkedConfig> = {}): NetworkedTrait {
   return new NetworkedTrait(makeConfig(overrides));
 }
 
-function makeSample(ts: number, pos: [number, number, number], rot?: [number, number, number, number]) {
+function makeSample(
+  ts: number,
+  pos: [number, number, number],
+  rot?: [number, number, number, number]
+) {
   return {
     timestamp: ts,
     position: pos,
-    rotation: rot || [0, 0, 0, 1] as [number, number, number, number],
+    rotation: rot || ([0, 0, 0, 1] as [number, number, number, number]),
     scale: [1, 1, 1] as [number, number, number],
     properties: { position: pos },
   };

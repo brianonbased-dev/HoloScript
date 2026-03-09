@@ -1,14 +1,23 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { OcclusionCulling, AABB, FrustumPlane } from '../OcclusionCulling';
 
-function aabb(minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number): AABB {
+function aabb(
+  minX: number,
+  minY: number,
+  minZ: number,
+  maxX: number,
+  maxY: number,
+  maxZ: number
+): AABB {
   return { min: { x: minX, y: minY, z: minZ }, max: { x: maxX, y: maxY, z: maxZ } };
 }
 
 describe('OcclusionCulling', () => {
   let oc: OcclusionCulling;
 
-  beforeEach(() => { oc = new OcclusionCulling(); });
+  beforeEach(() => {
+    oc = new OcclusionCulling();
+  });
 
   // --- Registration ---
   it('register / getTotalCount', () => {
@@ -49,9 +58,7 @@ describe('OcclusionCulling', () => {
     oc.register('inside', aabb(0, 0, 0, 1, 1, 1));
     oc.register('outside', aabb(100, 100, 100, 101, 101, 101));
     // Simple frustum: a single plane at x=10 facing left
-    const planes: FrustumPlane[] = [
-      { normal: { x: -1, y: 0, z: 0 }, distance: 10 },
-    ];
+    const planes: FrustumPlane[] = [{ normal: { x: -1, y: 0, z: 0 }, distance: 10 }];
     oc.setFrustum(planes);
     oc.performCulling();
     expect(oc.getVisibleCount()).toBe(1);

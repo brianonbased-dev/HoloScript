@@ -4,17 +4,32 @@ import { WaveFunction, type WFCTile } from '../WaveFunction';
 const grass: WFCTile = {
   id: 'grass',
   weight: 3,
-  adjacency: { up: ['grass', 'sand'], down: ['grass', 'sand'], left: ['grass', 'sand'], right: ['grass', 'sand'] },
+  adjacency: {
+    up: ['grass', 'sand'],
+    down: ['grass', 'sand'],
+    left: ['grass', 'sand'],
+    right: ['grass', 'sand'],
+  },
 };
 const sand: WFCTile = {
   id: 'sand',
   weight: 1,
-  adjacency: { up: ['grass', 'sand', 'water'], down: ['grass', 'sand', 'water'], left: ['grass', 'sand', 'water'], right: ['grass', 'sand', 'water'] },
+  adjacency: {
+    up: ['grass', 'sand', 'water'],
+    down: ['grass', 'sand', 'water'],
+    left: ['grass', 'sand', 'water'],
+    right: ['grass', 'sand', 'water'],
+  },
 };
 const water: WFCTile = {
   id: 'water',
   weight: 2,
-  adjacency: { up: ['sand', 'water'], down: ['sand', 'water'], left: ['sand', 'water'], right: ['sand', 'water'] },
+  adjacency: {
+    up: ['sand', 'water'],
+    down: ['sand', 'water'],
+    left: ['sand', 'water'],
+    right: ['sand', 'water'],
+  },
 };
 
 function makeWFC(w = 4, h = 4) {
@@ -109,7 +124,7 @@ describe('WaveFunction', () => {
       for (let x = 0; x < 4; x++) {
         const cell = grid[y][x];
         if (!cell.tileId) continue;
-        const tile = [grass, sand, water].find(t => t.id === cell.tileId)!;
+        const tile = [grass, sand, water].find((t) => t.id === cell.tileId)!;
         // Check right neighbor
         if (x < 3) {
           const right = grid[y][x + 1];

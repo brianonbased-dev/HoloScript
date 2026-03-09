@@ -4,7 +4,9 @@ import { MusicGenerator } from '../audio/MusicGenerator';
 describe('MusicGenerator', () => {
   let mg: MusicGenerator;
 
-  beforeEach(() => { mg = new MusicGenerator(42); });
+  beforeEach(() => {
+    mg = new MusicGenerator(42);
+  });
 
   it('getScaleNotes returns correct major scale notes', () => {
     mg.setRoot(60); // C4
@@ -17,8 +19,8 @@ describe('MusicGenerator', () => {
   it('isInScale checks note membership', () => {
     mg.setScale('major');
     mg.setRoot(60);
-    expect(mg.isInScale(60)).toBe(true);  // root
-    expect(mg.isInScale(62)).toBe(true);  // D
+    expect(mg.isInScale(60)).toBe(true); // root
+    expect(mg.isInScale(62)).toBe(true); // D
     expect(mg.isInScale(61)).toBe(false); // C#
   });
 
@@ -64,7 +66,7 @@ describe('MusicGenerator', () => {
     const mg2 = new MusicGenerator(99);
     const m1 = mg1.generateMelody(1, 1.0);
     const m2 = mg2.generateMelody(1, 1.0);
-    expect(m1.map(n => n.pitch)).toEqual(m2.map(n => n.pitch));
+    expect(m1.map((n) => n.pitch)).toEqual(m2.map((n) => n.pitch));
   });
 
   it('reseed changes output', () => {

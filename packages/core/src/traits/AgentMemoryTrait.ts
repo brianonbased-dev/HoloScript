@@ -93,7 +93,9 @@ function generateId(): string {
 
 function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length || a.length === 0) return 0;
-  let dot = 0, normA = 0, normB = 0;
+  let dot = 0,
+    normA = 0,
+    normB = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
     normA += a[i] * a[i];
@@ -210,12 +212,24 @@ export const agentMemoryHandler = {
     if (!state?.isReady) return;
 
     switch (event.type) {
-      case 'memory_store':    this._store(state, node, config, ctx, event.payload);    break;
-      case 'memory_recall':   this._recall(state, node, config, ctx, event.payload);   break;
-      case 'memory_forget':   this._forget(state, node, config, ctx, event.payload);   break;
-      case 'memory_compress': this._compress(state, node, config, ctx, event.payload); break;
-      case 'memory_list':     this._list(state, node, ctx, event.payload);             break;
-      case 'memory_stats':    this._stats(state, node, ctx);                           break;
+      case 'memory_store':
+        this._store(state, node, config, ctx, event.payload);
+        break;
+      case 'memory_recall':
+        this._recall(state, node, config, ctx, event.payload);
+        break;
+      case 'memory_forget':
+        this._forget(state, node, config, ctx, event.payload);
+        break;
+      case 'memory_compress':
+        this._compress(state, node, config, ctx, event.payload);
+        break;
+      case 'memory_list':
+        this._list(state, node, ctx, event.payload);
+        break;
+      case 'memory_stats':
+        this._stats(state, node, ctx);
+        break;
     }
   },
 
@@ -235,7 +249,14 @@ export const agentMemoryHandler = {
     node: any,
     config: AgentMemoryConfig,
     ctx: any,
-    payload: { key: string; content: string; tags?: string[]; ttl?: number | null; source?: string; embedding?: number[] }
+    payload: {
+      key: string;
+      content: string;
+      tags?: string[];
+      ttl?: number | null;
+      source?: string;
+      embedding?: number[];
+    }
   ): void {
     if (!payload?.key || !payload?.content) return;
 
@@ -275,18 +296,18 @@ export const agentMemoryHandler = {
     ctx: any,
     payload: { query: string; top_k?: number; tags?: string[]; embedding?: number[] }
   ): void {
-    if (!payload?.query && (!payload?.tags?.length) && !payload?.embedding?.length) return;
+    if (!payload?.query && !payload?.tags?.length && !payload?.embedding?.length) return;
 
     state.totalRecalled++;
     const topK = payload.top_k ?? 10;
     const filterTags = payload.tags ?? [];
     const queryEmbedding = payload.embedding ?? null;
 
-    let candidates: Memory[] = [...state.memories.values()].filter(m => !isExpired(m));
+    let candidates: Memory[] = [...state.memories.values()].filter((m) => !isExpired(m));
 
     // Tag filter
     if (filterTags.length > 0) {
-      candidates = candidates.filter(m => filterTags.every(t => m.tags.includes(t)));
+      candidates = candidates.filter((m) => filterTags.every((t) => m.tags.includes(t)));
     }
 
     let results: MemoryRecallResult[];
@@ -294,23 +315,23 @@ export const agentMemoryHandler = {
     if (queryEmbedding && queryEmbedding.length > 0) {
       // Semantic search via cosine similarity
       results = candidates
-        .filter(m => m.embedding && m.embedding.length > 0)
-        .map(m => ({ memory: m, score: cosineSimilarity(queryEmbedding, m.embedding!) }))
+        .filter((m) => m.embedding && m.embedding.length > 0)
+        .map((m) => ({ memory: m, score: cosineSimilarity(queryEmbedding, m.embedding!) }))
         .sort((a, b) => b.score - a.score)
         .slice(0, topK);
     } else {
       // Keyword fallback
       const q = payload.query.toLowerCase();
       results = candidates
-        .map(m => {
+        .map((m) => {
           const content = m.content.toLowerCase();
           const key = m.key.toLowerCase();
-          const tagScore = m.tags.some(t => t.toLowerCase().includes(q)) ? 0.3 : 0;
+          const tagScore = m.tags.some((t) => t.toLowerCase().includes(q)) ? 0.3 : 0;
           const keyScore = key.includes(q) ? 0.5 : 0;
           const contentScore = content.includes(q) ? 0.8 : 0;
           return { memory: m, score: Math.max(tagScore, keyScore, contentScore) };
         })
-        .filter(r => r.score > 0)
+        .filter((r) => r.score > 0)
         .sort((a, b) => b.score - a.score)
         .slice(0, topK);
     }
@@ -385,7 +406,7 @@ export const agentMemoryHandler = {
     if (strategy === 'least_accessed') {
       sorted = [...state.memories.values()].sort((a, b) => a.accessCount - b.accessCount);
     } else if (strategy === 'tag' && payload?.tag) {
-      sorted = [...state.memories.values()].filter(m => m.tags.includes(payload.tag!));
+      sorted = [...state.memories.values()].filter((m) => m.tags.includes(payload.tag!));
     } else {
       sorted = [...state.memories.values()].sort((a, b) => a.createdAt - b.createdAt);
     }
@@ -407,9 +428,9 @@ export const agentMemoryHandler = {
     ctx: any,
     payload: { limit?: number; offset?: number; tags?: string[] }
   ): void {
-    let list = [...state.memories.values()].filter(m => !isExpired(m));
+    let list = [...state.memories.values()].filter((m) => !isExpired(m));
     if (payload?.tags?.length) {
-      list = list.filter(m => payload.tags!.every(t => m.tags.includes(t)));
+      list = list.filter((m) => payload.tags!.every((t) => m.tags.includes(t)));
     }
     const offset = payload?.offset ?? 0;
     const limit = payload?.limit ?? 50;

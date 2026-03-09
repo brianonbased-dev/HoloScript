@@ -94,7 +94,9 @@ describe('EntityRegistry — Production', () => {
 
   it('reparenting updates old parent', () => {
     const r = new EntityRegistry();
-    const p1 = r.create('p1'), p2 = r.create('p2'), c = r.create('child');
+    const p1 = r.create('p1'),
+      p2 = r.create('p2'),
+      c = r.create('child');
     r.setParent(c.id, p1.id);
     r.setParent(c.id, p2.id);
     expect(r.getChildren(p1.id).length).toBe(0);
@@ -114,7 +116,9 @@ describe('EntityRegistry — Production', () => {
   // ─── Counts ───────────────────────────────────────────────────────
   it('getActiveCount and getTotalCount', () => {
     const r = new EntityRegistry();
-    r.create('a'); r.create('b'); const c = r.create('c');
+    r.create('a');
+    r.create('b');
+    const c = r.create('c');
     r.setActive(c.id, false);
     expect(r.getTotalCount()).toBe(3);
     expect(r.getActiveCount()).toBe(2);

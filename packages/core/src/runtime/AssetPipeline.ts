@@ -15,8 +15,8 @@
 export type AssetLoader<T = unknown> = (path: string) => Promise<T>;
 
 export class AssetPipeline {
-  private loaders  = new Map<string, AssetLoader>();
-  private cache    = new Map<string, unknown>();
+  private loaders = new Map<string, AssetLoader>();
+  private cache = new Map<string, unknown>();
 
   // ---------------------------------------------------------------------------
   // Loader registration

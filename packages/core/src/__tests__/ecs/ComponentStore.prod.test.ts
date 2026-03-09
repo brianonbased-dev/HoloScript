@@ -9,12 +9,13 @@
 import { describe, it, expect } from 'vitest';
 import { ComponentStore } from '../../ecs/ComponentStore';
 
-function makeCS() { return new ComponentStore(); }
+function makeCS() {
+  return new ComponentStore();
+}
 
 // ── pool management ───────────────────────────────────────────────────────────
 
 describe('ComponentStore — pool management', () => {
-
   it('registerPool creates a typed pool', () => {
     const cs = makeCS();
     const pool = cs.registerPool<{ x: number }>('Position');
@@ -51,7 +52,6 @@ describe('ComponentStore — pool management', () => {
 // ── add ───────────────────────────────────────────────────────────────────────
 
 describe('ComponentStore — add', () => {
-
   it('add returns true and stores component', () => {
     const cs = makeCS();
     expect(cs.add('Transform', 1, { x: 0, y: 0, z: 0 })).toBe(true);
@@ -81,7 +81,6 @@ describe('ComponentStore — add', () => {
 // ── remove / has ──────────────────────────────────────────────────────────────
 
 describe('ComponentStore — remove / has', () => {
-
   it('has returns true after add', () => {
     const cs = makeCS();
     cs.add('X', 1, { v: 1 });
@@ -115,7 +114,6 @@ describe('ComponentStore — remove / has', () => {
 // ── get / set ─────────────────────────────────────────────────────────────────
 
 describe('ComponentStore — get / set', () => {
-
   it('get returns undefined for missing component', () => {
     const cs = makeCS();
     expect(cs.get('HP', 1)).toBeUndefined();
@@ -143,7 +141,6 @@ describe('ComponentStore — get / set', () => {
 // ── forEach ───────────────────────────────────────────────────────────────────
 
 describe('ComponentStore — forEach', () => {
-
   it('iterates over all components in pool', () => {
     const cs = makeCS();
     cs.add('Pos', 1, { x: 1 });
@@ -163,7 +160,6 @@ describe('ComponentStore — forEach', () => {
 // ── getEntitiesWithComponent ──────────────────────────────────────────────────
 
 describe('ComponentStore — getEntitiesWithComponent', () => {
-
   it('returns entity ids in pool', () => {
     const cs = makeCS();
     cs.add('Light', 10, { intensity: 1 });
@@ -182,10 +178,10 @@ describe('ComponentStore — getEntitiesWithComponent', () => {
 // ── getEntitiesWithAll ────────────────────────────────────────────────────────
 
 describe('ComponentStore — getEntitiesWithAll', () => {
-
   it('returns entities with all listed components', () => {
     const cs = makeCS();
-    cs.add('A', 1, {}); cs.add('B', 1, {});
+    cs.add('A', 1, {});
+    cs.add('B', 1, {});
     cs.add('A', 2, {}); // B missing for entity 2
     const result = cs.getEntitiesWithAll('A', 'B');
     expect(result).toContain(1);
@@ -207,7 +203,6 @@ describe('ComponentStore — getEntitiesWithAll', () => {
 // ── removeAllForEntity ────────────────────────────────────────────────────────
 
 describe('ComponentStore — removeAllForEntity', () => {
-
   it('removes all components for given entity across pools', () => {
     const cs = makeCS();
     cs.add('Transform', 5, {});
@@ -229,10 +224,10 @@ describe('ComponentStore — removeAllForEntity', () => {
 // ── counts ────────────────────────────────────────────────────────────────────
 
 describe('ComponentStore — counts', () => {
-
   it('getComponentCount returns count for a specific pool', () => {
     const cs = makeCS();
-    cs.add('M', 1, {}); cs.add('M', 2, {});
+    cs.add('M', 1, {});
+    cs.add('M', 2, {});
     expect(cs.getComponentCount('M')).toBe(2);
   });
 
@@ -243,7 +238,8 @@ describe('ComponentStore — counts', () => {
 
   it('getTotalComponentCount sums all pools', () => {
     const cs = makeCS();
-    cs.add('A', 1, {}); cs.add('A', 2, {});
+    cs.add('A', 1, {});
+    cs.add('A', 2, {});
     cs.add('B', 1, {});
     expect(cs.getTotalComponentCount()).toBe(3);
   });
@@ -252,17 +248,18 @@ describe('ComponentStore — counts', () => {
 // ── clear ─────────────────────────────────────────────────────────────────────
 
 describe('ComponentStore — clear', () => {
-
   it('clear(type) removes all entries in that pool', () => {
     const cs = makeCS();
-    cs.add('X', 1, {}); cs.add('X', 2, {});
+    cs.add('X', 1, {});
+    cs.add('X', 2, {});
     cs.clear('X');
     expect(cs.getComponentCount('X')).toBe(0);
   });
 
   it('clear() clears all pools', () => {
     const cs = makeCS();
-    cs.add('A', 1, {}); cs.add('B', 2, {});
+    cs.add('A', 1, {});
+    cs.add('B', 2, {});
     cs.clear();
     expect(cs.getTotalComponentCount()).toBe(0);
   });

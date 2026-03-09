@@ -36,7 +36,7 @@ import { runComparativeBenchmarks } from '@holoscript/comparative-benchmarks';
 const { results, report } = await runComparativeBenchmarks({
   iterations: 1000,
   warmupIterations: 100,
-  targets: ['holoscript', 'unity', 'gltf']
+  targets: ['holoscript', 'unity', 'gltf'],
 });
 
 console.log(report);
@@ -49,11 +49,13 @@ console.log(report);
 **Test:** Parse a simple scene with 1 object + 4 traits
 
 **HoloScript Advantage:**
+
 - Lightweight parsing (no heavy JSON overhead)
 - Optimized AST generation
 - Minimal allocations
 
 **Typical Results:**
+
 - HoloScript: ~500,000 ops/sec
 - Unity: ~200,000 ops/sec (2.5x slower)
 - glTF: ~300,000 ops/sec (1.7x slower)
@@ -63,11 +65,13 @@ console.log(report);
 **Test:** Instantiate 100 objects
 
 **HoloScript Advantage:**
+
 - No component system overhead
 - Flat object structure
 - Zero virtual calls
 
 **Typical Results:**
+
 - HoloScript: ~100,000 ops/sec
 - Unity: ~40,000 ops/sec (2.5x slower)
 - glTF: ~60,000 ops/sec (1.7x slower)
@@ -77,11 +81,13 @@ console.log(report);
 **Test:** Apply 1000 traits to objects
 
 **HoloScript Advantage:**
+
 - Declarative trait system
 - No GetComponent/AddComponent overhead
 - Minimal runtime cost
 
 **Typical Results:**
+
 - HoloScript: ~200,000 ops/sec
 - Unity: ~80,000 ops/sec (2.5x slower)
 - glTF: ~120,000 ops/sec (1.7x slower)
@@ -91,11 +97,13 @@ console.log(report);
 **Test:** Update 1000 objects per frame
 
 **HoloScript Advantage:**
+
 - Flat array iteration
 - No message passing
 - Direct property access
 
 **Typical Results:**
+
 - HoloScript: ~50,000 ops/sec
 - Unity: ~25,000 ops/sec (2x slower)
 - glTF: ~30,000 ops/sec (1.7x slower)
@@ -105,11 +113,13 @@ console.log(report);
 **Test:** 500 objects, 10 traits each
 
 **HoloScript Advantage:**
+
 - Efficient bulk operations
 - Minimal overhead per object
 - Optimized memory layout
 
 **Typical Results:**
+
 - HoloScript: ~10,000 ops/sec
 - Unity: ~4,000 ops/sec (2.5x slower)
 - glTF: ~6,000 ops/sec (1.7x slower)
@@ -118,11 +128,11 @@ console.log(report);
 
 ### Overall Win Rate
 
-| Runtime | Typical Win Rate |
-|---------|------------------|
-| **HoloScript** | **100%** (5/5) |
-| Unity | 0% (0/5) |
-| glTF | 0% (0/5) |
+| Runtime        | Typical Win Rate |
+| -------------- | ---------------- |
+| **HoloScript** | **100%** (5/5)   |
+| Unity          | 0% (0/5)         |
+| glTF           | 0% (0/5)         |
 
 ### Average Speedup
 
@@ -134,6 +144,7 @@ console.log(report);
 ### 1. **No Component System Overhead**
 
 Unity's GameObject/Component architecture requires:
+
 - Dictionary lookups for GetComponent
 - Virtual method calls for lifecycle hooks
 - Message passing for events
@@ -267,7 +278,7 @@ import { ComparativeBenchmarks } from '@holoscript/comparative-benchmarks';
 const benchmarks = new ComparativeBenchmarks({
   iterations: 5000,
   warmupIterations: 200,
-  includeMemory: true
+  includeMemory: true,
 });
 
 const results = await benchmarks.runAll();

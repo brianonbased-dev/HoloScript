@@ -333,8 +333,14 @@ describe('ConfigLoader', () => {
     const loader = new ConfigLoader();
     const cfg = loader.loadConfig(import.meta.url.replace('file:///', '').replace(/%3A/, ':'));
     const requiredKeys: (keyof FormatterConfig)[] = [
-      'indentSize', 'useTabs', 'maxLineLength', 'braceStyle',
-      'trailingComma', 'bracketSpacing', 'semicolons', 'singleQuote',
+      'indentSize',
+      'useTabs',
+      'maxLineLength',
+      'braceStyle',
+      'trailingComma',
+      'bracketSpacing',
+      'semicolons',
+      'singleQuote',
     ];
     for (const key of requiredKeys) {
       expect(cfg).toHaveProperty(key);

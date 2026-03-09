@@ -20,27 +20,40 @@ export type EntityId = number;
 
 /** Component IDs — integer enum for fast bitmasking */
 export const enum ComponentType {
-  Transform   = 0b00001,
-  Velocity    = 0b00010,
-  Collider    = 0b00100,
-  Renderable  = 0b01000,
-  Agent       = 0b10000,
+  Transform = 0b00001,
+  Velocity = 0b00010,
+  Collider = 0b00100,
+  Renderable = 0b01000,
+  Agent = 0b10000,
 }
 
 export interface TransformComponent {
-  x: number; y: number; z: number;
-  rx: number; ry: number; rz: number;
-  sx: number; sy: number; sz: number;
+  x: number;
+  y: number;
+  z: number;
+  rx: number;
+  ry: number;
+  rz: number;
+  sx: number;
+  sy: number;
+  sz: number;
 }
 
 export interface VelocityComponent {
-  vx: number; vy: number; vz: number;
-  angularX: number; angularY: number; angularZ: number;
+  vx: number;
+  vy: number;
+  vz: number;
+  angularX: number;
+  angularY: number;
+  angularZ: number;
 }
 
 export interface ColliderComponent {
   type: 'box' | 'sphere' | 'capsule';
-  radius: number; halfExtentX: number; halfExtentY: number; halfExtentZ: number;
+  radius: number;
+  halfExtentX: number;
+  halfExtentY: number;
+  halfExtentZ: number;
   isTrigger: boolean;
 }
 
@@ -53,7 +66,9 @@ export interface RenderableComponent {
 
 export interface AgentComponent {
   state: 'idle' | 'moving' | 'interacting';
-  targetX: number; targetY: number; targetZ: number;
+  targetX: number;
+  targetY: number;
+  targetZ: number;
   speed: number;
   traitMask: number;
 }
@@ -80,8 +95,12 @@ export class ECSWorld {
   private readonly systems: Array<(world: ECSWorld, dt: number) => void> = [];
 
   private stats: SystemStats = {
-    entityCount: 0, systemCount: 0, lastFrameMs: 0,
-    avgFrameMs: 0, peakFrameMs: 0, totalFrames: 0,
+    entityCount: 0,
+    systemCount: 0,
+    lastFrameMs: 0,
+    avgFrameMs: 0,
+    peakFrameMs: 0,
+    totalFrames: 0,
   };
 
   // ── Entity lifecycle ──
@@ -105,7 +124,9 @@ export class ECSWorld {
     return true;
   }
 
-  entityCount(): number { return this.stats.entityCount; }
+  entityCount(): number {
+    return this.stats.entityCount;
+  }
 
   // ── Component add/get/remove ──
 
@@ -139,12 +160,24 @@ export class ECSWorld {
     return this;
   }
 
-  getTransform(id: EntityId): TransformComponent | undefined { return this.transforms.get(id); }
-  getVelocity(id: EntityId): VelocityComponent | undefined { return this.velocities.get(id); }
-  getCollider(id: EntityId): ColliderComponent | undefined { return this.colliders.get(id); }
-  getRenderable(id: EntityId): RenderableComponent | undefined { return this.renderables.get(id); }
-  getAgent(id: EntityId): AgentComponent | undefined { return this.agents.get(id); }
-  getMask(id: EntityId): number { return this.masks.get(id) ?? 0; }
+  getTransform(id: EntityId): TransformComponent | undefined {
+    return this.transforms.get(id);
+  }
+  getVelocity(id: EntityId): VelocityComponent | undefined {
+    return this.velocities.get(id);
+  }
+  getCollider(id: EntityId): ColliderComponent | undefined {
+    return this.colliders.get(id);
+  }
+  getRenderable(id: EntityId): RenderableComponent | undefined {
+    return this.renderables.get(id);
+  }
+  getAgent(id: EntityId): AgentComponent | undefined {
+    return this.agents.get(id);
+  }
+  getMask(id: EntityId): number {
+    return this.masks.get(id) ?? 0;
+  }
 
   hasComponent(id: EntityId, type: ComponentType): boolean {
     return (this.getMask(id) & type) !== 0;
@@ -184,10 +217,13 @@ export class ECSWorld {
     this.stats.lastFrameMs = elapsed;
     this.stats.totalFrames++;
     this.stats.peakFrameMs = Math.max(this.stats.peakFrameMs, elapsed);
-    this.stats.avgFrameMs = (this.stats.avgFrameMs * (this.stats.totalFrames - 1) + elapsed) / this.stats.totalFrames;
+    this.stats.avgFrameMs =
+      (this.stats.avgFrameMs * (this.stats.totalFrames - 1) + elapsed) / this.stats.totalFrames;
   }
 
-  getStats(): Readonly<SystemStats> { return { ...this.stats }; }
+  getStats(): Readonly<SystemStats> {
+    return { ...this.stats };
+  }
 
   reset(): void {
     this.nextId = 1;
@@ -197,7 +233,14 @@ export class ECSWorld {
     this.colliders.clear();
     this.renderables.clear();
     this.agents.clear();
-    this.stats = { entityCount: 0, systemCount: this.systems.length, lastFrameMs: 0, avgFrameMs: 0, peakFrameMs: 0, totalFrames: 0 };
+    this.stats = {
+      entityCount: 0,
+      systemCount: this.systems.length,
+      lastFrameMs: 0,
+      avgFrameMs: 0,
+      peakFrameMs: 0,
+      totalFrames: 0,
+    };
   }
 }
 
@@ -244,12 +287,20 @@ export function agentMovementSystem(world: ECSWorld, dt: number): void {
 }
 
 /** LOD system: update renderable LOD level based on camera distance */
-export function lodSystem(world: ECSWorld, _dt: number, cameraX = 0, cameraY = 0, cameraZ = 0): void {
+export function lodSystem(
+  world: ECSWorld,
+  _dt: number,
+  cameraX = 0,
+  cameraY = 0,
+  cameraZ = 0
+): void {
   const mask = ComponentType.Transform | ComponentType.Renderable;
   for (const id of world.query(mask)) {
     const t = world.getTransform(id)!;
     const r = world.getRenderable(id)!;
-    const dx = t.x - cameraX, dy = t.y - cameraY, dz = t.z - cameraZ;
+    const dx = t.x - cameraX,
+      dy = t.y - cameraY,
+      dz = t.z - cameraZ;
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
     r.lodLevel = dist < 10 ? 0 : dist < 30 ? 1 : dist < 100 ? 2 : 3;
   }
@@ -267,7 +318,11 @@ export interface BenchmarkResult {
   entitiesPerSecond: number;
 }
 
-export function runECSBenchmark(entityCount = 1000, framesTarget = 300, targetFPS = 60): BenchmarkResult {
+export function runECSBenchmark(
+  entityCount = 1000,
+  framesTarget = 300,
+  targetFPS = 60
+): BenchmarkResult {
   const world = new ECSWorld();
   world.addSystem(physicsSystem);
   world.addSystem(agentMovementSystem);
@@ -277,10 +332,34 @@ export function runECSBenchmark(entityCount = 1000, framesTarget = 300, targetFP
   for (let i = 0; i < entityCount; i++) {
     const e = world.createEntity();
     world
-      .addTransform(e, { x: Math.random() * 100, y: 0, z: Math.random() * 100, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1, sz: 1 })
-      .addVelocity(e, { vx: (Math.random() - 0.5) * 2, vy: 0, vz: (Math.random() - 0.5) * 2, angularX: 0, angularY: Math.random(), angularZ: 0 })
+      .addTransform(e, {
+        x: Math.random() * 100,
+        y: 0,
+        z: Math.random() * 100,
+        rx: 0,
+        ry: 0,
+        rz: 0,
+        sx: 1,
+        sy: 1,
+        sz: 1,
+      })
+      .addVelocity(e, {
+        vx: (Math.random() - 0.5) * 2,
+        vy: 0,
+        vz: (Math.random() - 0.5) * 2,
+        angularX: 0,
+        angularY: Math.random(),
+        angularZ: 0,
+      })
       .addRenderable(e, { meshId: 'cube', materialId: 'default', visible: true, lodLevel: 0 })
-      .addAgent(e, { state: 'moving', targetX: Math.random() * 100, targetY: 0, targetZ: Math.random() * 100, speed: 5, traitMask: 0 });
+      .addAgent(e, {
+        state: 'moving',
+        targetX: Math.random() * 100,
+        targetY: 0,
+        targetZ: Math.random() * 100,
+        speed: 5,
+        traitMask: 0,
+      });
   }
 
   const dt = 1 / targetFPS;
@@ -382,7 +461,7 @@ export const wasmBridgeHandler = {
         const result = runECSBenchmark(
           event.payload?.entityCount ?? config.entity_count,
           event.payload?.frames ?? 300,
-          config.target_fps,
+          config.target_fps
         );
         ctx.emit('ecs_benchmark_complete', { node, result });
         break;
@@ -390,5 +469,7 @@ export const wasmBridgeHandler = {
     }
   },
 
-  onUpdate(_n: any, _c: any, _ctx: any, _dt: number): void { /* tick driven by ecs_tick events */ },
+  onUpdate(_n: any, _c: any, _ctx: any, _dt: number): void {
+    /* tick driven by ecs_tick events */
+  },
 } as const;

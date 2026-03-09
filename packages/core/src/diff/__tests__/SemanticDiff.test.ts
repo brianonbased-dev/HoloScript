@@ -55,7 +55,9 @@ describe('SemanticDiffEngine', () => {
       children: [{ type: 'Object', name: 'Hero', value: 'hero', health: 100 }],
     };
     const result = engine.diff(oldAST, newAST);
-    const hasRenameOrModified = result.changes.some(c => c.type === 'renamed' || c.type === 'modified');
+    const hasRenameOrModified = result.changes.some(
+      (c) => c.type === 'renamed' || c.type === 'modified'
+    );
     expect(hasRenameOrModified).toBe(true);
   });
 
@@ -78,18 +80,13 @@ describe('SemanticDiffEngine', () => {
   });
 
   it('formatDiffResult shows change count for non-equivalent', () => {
-    const result = semanticDiff(
-      { type: 'X', value: 1 },
-      { type: 'X', value: 2 }
-    );
+    const result = semanticDiff({ type: 'X', value: 1 }, { type: 'X', value: 2 });
     const text = formatDiffResult(result);
     expect(text).toContain('change(s)');
   });
 
   it('files field records filenames', () => {
-    const result = semanticDiff(
-      { type: 'P' }, { type: 'P' }, undefined, undefined
-    );
+    const result = semanticDiff({ type: 'P' }, { type: 'P' }, undefined, undefined);
     expect(result.files.old).toBe('old');
     expect(result.files.new).toBe('new');
   });

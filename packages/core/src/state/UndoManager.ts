@@ -1,6 +1,6 @@
 /**
  * Undo Manager for HoloScript+
- * 
+ *
  * Tracks operation history with a temporal buffer (5s+).
  */
 
@@ -23,7 +23,7 @@ export class UndoManager<OpType = any> {
   public push(undoOp: OpType, redoOp: OpType): void {
     const now = Date.now();
     this.undoStack.push({ undo: undoOp, redo: redoOp, timestamp: now });
-    this.redoStack = []; 
+    this.redoStack = [];
 
     this.prune(now);
   }

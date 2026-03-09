@@ -37,9 +37,7 @@ export type AgentID = string;
 /**
  * Result type for economic operations that can fail.
  */
-export type EconomicResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: EconomicError };
+export type EconomicResult<T> = { ok: true; value: T } | { ok: false; error: EconomicError };
 
 /**
  * Economic error codes.
@@ -62,15 +60,15 @@ export type EconomicError =
  * These map to the existing HoloScript RBAC system (RBACTrait.ts).
  */
 export type EconomicPermission =
-  | 'economy.trade'        // Transfer items/currency between agents
-  | 'economy.mint'         // Create new currency (faucet operation)
-  | 'economy.burn'         // Destroy currency (sink operation)
-  | 'economy.set_price'    // Modify prices on bonding curves
-  | 'economy.tax'          // Levy and collect taxes
+  | 'economy.trade' // Transfer items/currency between agents
+  | 'economy.mint' // Create new currency (faucet operation)
+  | 'economy.burn' // Destroy currency (sink operation)
+  | 'economy.set_price' // Modify prices on bonding curves
+  | 'economy.tax' // Levy and collect taxes
   | 'economy.redistribute' // Distribute collected tax proceeds
-  | 'economy.tune_pid'     // Modify PID controller parameters
-  | 'economy.audit'        // View economic state and logs
-  | 'economy.*';           // Full economic authority
+  | 'economy.tune_pid' // Modify PID controller parameters
+  | 'economy.audit' // View economic state and logs
+  | 'economy.*'; // Full economic authority
 
 // =============================================================================
 // TRADEABLE PRIMITIVES
@@ -187,7 +185,7 @@ export interface DepreciationConfig {
  * Default depreciation configuration.
  */
 export const DEFAULT_DEPRECIATION: DepreciationConfig = {
-  decayRate: 0.0001,         // 0.01% per second (~36% per hour)
+  decayRate: 0.0001, // 0.01% per second (~36% per hour)
   condition: 1.0,
   destroyThreshold: 0.01,
   repairable: true,
@@ -328,10 +326,7 @@ export function bondingCurvePrice(
  * Calculate the cost to buy `amount` tokens on the bonding curve.
  * Integrates the price function from currentSupply to currentSupply + amount.
  */
-export function bondingCurveBuyCost(
-  config: BondingCurveConfig,
-  amount: number
-): Currency {
+export function bondingCurveBuyCost(config: BondingCurveConfig, amount: number): Currency {
   if (amount <= 0) return 0;
 
   // Numerical integration using Simpson's rule (good enough for game economies)
@@ -343,7 +338,11 @@ export function bondingCurveBuyCost(
   for (let i = 0; i <= n; i++) {
     const s = s0 + i * h;
     const p = bondingCurvePrice(
-      s, config.reserveRatio, config.curveSteepness, config.curveType, config.sigmoidK
+      s,
+      config.reserveRatio,
+      config.curveSteepness,
+      config.curveType,
+      config.sigmoidK
     );
 
     if (i === 0 || i === n) {
@@ -362,10 +361,7 @@ export function bondingCurveBuyCost(
 /**
  * Calculate the refund for selling `amount` tokens on the bonding curve.
  */
-export function bondingCurveSellRefund(
-  config: BondingCurveConfig,
-  amount: number
-): Currency {
+export function bondingCurveSellRefund(config: BondingCurveConfig, amount: number): Currency {
   if (amount <= 0) return 0;
   if (amount > config.currentSupply) return 0;
 
@@ -377,7 +373,11 @@ export function bondingCurveSellRefund(
   for (let i = 0; i <= n; i++) {
     const s = s0 + i * h;
     const p = bondingCurvePrice(
-      s, config.reserveRatio, config.curveSteepness, config.curveType, config.sigmoidK
+      s,
+      config.reserveRatio,
+      config.curveSteepness,
+      config.curveType,
+      config.sigmoidK
     );
 
     if (i === 0 || i === n) {
@@ -434,8 +434,8 @@ export interface WealthTaxConfig {
  */
 export const DEFAULT_WEALTH_TAX: WealthTaxConfig = {
   threshold: 10000,
-  baseRate: 0.01,           // 1% base
-  maxEffectiveRate: 0.05,   // 5% cap
+  baseRate: 0.01, // 1% base
+  maxEffectiveRate: 0.05, // 5% cap
   collectionInterval: 'daily',
   enableRedistribution: true,
   redistributionFraction: 0.7, // 70% redistributed, 30% burned as hard sink
@@ -462,16 +462,8 @@ export function calculateTaxRate(
 /**
  * Calculate the tax amount owed for a given wealth level.
  */
-export function calculateTaxAmount(
-  wealth: Currency,
-  config: WealthTaxConfig
-): Currency {
-  const rate = calculateTaxRate(
-    wealth,
-    config.threshold,
-    config.baseRate,
-    config.maxEffectiveRate
-  );
+export function calculateTaxAmount(wealth: Currency, config: WealthTaxConfig): Currency {
+  const rate = calculateTaxRate(wealth, config.threshold, config.baseRate, config.maxEffectiveRate);
   return wealth * rate;
 }
 
@@ -584,10 +576,7 @@ export function updatePID(
 
   // Integral term with anti-windup
   state.integral += error * dt;
-  state.integral = Math.max(
-    -config.integralLimit,
-    Math.min(config.integralLimit, state.integral)
-  );
+  state.integral = Math.max(-config.integralLimit, Math.min(config.integralLimit, state.integral));
   const i = config.ki * state.integral;
 
   // Derivative term (skip on first update to avoid spike)
@@ -724,9 +713,12 @@ export function createFaucetSinkMetrics(timestamp: number): FaucetSinkMetrics {
  */
 export function recordFaucet(metrics: FaucetSinkMetrics, amount: Currency): void {
   metrics.totalFaucet += amount;
-  metrics.ratio = metrics.totalSink > 0
-    ? metrics.totalFaucet / metrics.totalSink
-    : metrics.totalFaucet > 0 ? Infinity : 1.0;
+  metrics.ratio =
+    metrics.totalSink > 0
+      ? metrics.totalFaucet / metrics.totalSink
+      : metrics.totalFaucet > 0
+        ? Infinity
+        : 1.0;
 }
 
 /**
@@ -734,18 +726,18 @@ export function recordFaucet(metrics: FaucetSinkMetrics, amount: Currency): void
  */
 export function recordSink(metrics: FaucetSinkMetrics, amount: Currency): void {
   metrics.totalSink += amount;
-  metrics.ratio = metrics.totalSink > 0
-    ? metrics.totalFaucet / metrics.totalSink
-    : metrics.totalFaucet > 0 ? Infinity : 1.0;
+  metrics.ratio =
+    metrics.totalSink > 0
+      ? metrics.totalFaucet / metrics.totalSink
+      : metrics.totalFaucet > 0
+        ? Infinity
+        : 1.0;
 }
 
 /**
  * Reset metrics for a new period, archiving the current ratio.
  */
-export function resetMetricsPeriod(
-  metrics: FaucetSinkMetrics,
-  timestamp: number
-): void {
+export function resetMetricsPeriod(metrics: FaucetSinkMetrics, timestamp: number): void {
   // Archive current ratio
   if (metrics.totalFaucet > 0 || metrics.totalSink > 0) {
     metrics.ratioHistory.push(metrics.ratio);

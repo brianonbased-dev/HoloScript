@@ -22,7 +22,7 @@ export class AutomergeAdapter implements CRDTAdapter {
 
   setText(value: string): void {
     this.mode = 'text';
-    this.doc = A.change(this.doc, doc => {
+    this.doc = A.change(this.doc, (doc) => {
       doc.text = value;
     });
   }
@@ -33,7 +33,7 @@ export class AutomergeAdapter implements CRDTAdapter {
 
   increment(amount: number = 1): void {
     this.mode = 'counter';
-    this.doc = A.change(this.doc, doc => {
+    this.doc = A.change(this.doc, (doc) => {
       doc.counter = (doc.counter ?? 0) + amount;
     });
   }
@@ -44,7 +44,7 @@ export class AutomergeAdapter implements CRDTAdapter {
 
   add(value: string): void {
     this.mode = 'set';
-    this.doc = A.change(this.doc, doc => {
+    this.doc = A.change(this.doc, (doc) => {
       if (!doc.set) doc.set = [];
       if (!doc.set.includes(value)) {
         doc.set.push(value);
@@ -53,7 +53,7 @@ export class AutomergeAdapter implements CRDTAdapter {
   }
 
   remove(value: string): void {
-    this.doc = A.change(this.doc, doc => {
+    this.doc = A.change(this.doc, (doc) => {
       if (!doc.set) return;
       const index = doc.set.indexOf(value);
       if (index !== -1) {

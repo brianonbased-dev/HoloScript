@@ -9,8 +9,8 @@ pnpm install
 ```
 
 ```ts
-import { createProvider } from "@holoscript/llm-provider";
-import { OpenAIAdapter } from "@holoscript/llm-provider/adapters/openai";
+import { createProvider } from '@holoscript/llm-provider';
+import { OpenAIAdapter } from '@holoscript/llm-provider/adapters/openai';
 ```
 
 Install the provider SDK you need as a peer dependency (`openai` or `@anthropic-ai/sdk`).

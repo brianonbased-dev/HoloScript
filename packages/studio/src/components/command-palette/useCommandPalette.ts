@@ -60,7 +60,7 @@ export function useCommandPalette(): UseCommandPaletteReturn {
   // Subscribe to registry changes for re-rendering
   const commandCount = useSyncExternalStore(
     (cb) => commandRegistry.subscribe(cb),
-    () => commandRegistry.size,
+    () => commandRegistry.size
   );
 
   // Search results based on query

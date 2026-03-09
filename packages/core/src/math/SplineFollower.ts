@@ -17,7 +17,7 @@ export type EasingType = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
 
 export interface SplineMarker {
   id: string;
-  t: number;         // 0-1 position on spline
+  t: number; // 0-1 position on spline
   label: string;
   triggered: boolean;
 }
@@ -30,14 +30,14 @@ let _markerId = 0;
 
 export class SplineFollower {
   private spline: SplinePath;
-  private t = 0;                // Current parameter (0-1)
-  private speed = 1;            // Units per second
+  private t = 0; // Current parameter (0-1)
+  private speed = 1; // Units per second
   private easing: EasingType = 'linear';
   private playing = false;
   private loop = false;
   private pingPong = false;
-  private direction = 1;        // 1 forward, -1 reverse
-  private lookAhead = 0.05;     // How far ahead for orientation
+  private direction = 1; // 1 forward, -1 reverse
+  private lookAhead = 0.05; // How far ahead for orientation
   private markers: SplineMarker[] = [];
   private listeners: Array<(marker: SplineMarker) => void> = [];
   private completeListeners: Array<() => void> = [];
@@ -50,23 +50,50 @@ export class SplineFollower {
   // Configuration
   // ---------------------------------------------------------------------------
 
-  setSpeed(speed: number): void { this.speed = Math.max(0, speed); }
-  getSpeed(): number { return this.speed; }
-  setEasing(easing: EasingType): void { this.easing = easing; }
-  setLoop(loop: boolean): void { this.loop = loop; }
-  setPingPong(pp: boolean): void { this.pingPong = pp; }
-  setLookAhead(dist: number): void { this.lookAhead = dist; }
+  setSpeed(speed: number): void {
+    this.speed = Math.max(0, speed);
+  }
+  getSpeed(): number {
+    return this.speed;
+  }
+  setEasing(easing: EasingType): void {
+    this.easing = easing;
+  }
+  setLoop(loop: boolean): void {
+    this.loop = loop;
+  }
+  setPingPong(pp: boolean): void {
+    this.pingPong = pp;
+  }
+  setLookAhead(dist: number): void {
+    this.lookAhead = dist;
+  }
 
   // ---------------------------------------------------------------------------
   // Playback
   // ---------------------------------------------------------------------------
 
-  play(): void { this.playing = true; }
-  pause(): void { this.playing = false; }
-  stop(): void { this.playing = false; this.t = 0; this.direction = 1; this.resetMarkers(); }
-  isPlaying(): boolean { return this.playing; }
-  getT(): number { return this.t; }
-  setT(t: number): void { this.t = Math.max(0, Math.min(1, t)); }
+  play(): void {
+    this.playing = true;
+  }
+  pause(): void {
+    this.playing = false;
+  }
+  stop(): void {
+    this.playing = false;
+    this.t = 0;
+    this.direction = 1;
+    this.resetMarkers();
+  }
+  isPlaying(): boolean {
+    return this.playing;
+  }
+  getT(): number {
+    return this.t;
+  }
+  setT(t: number): void {
+    this.t = Math.max(0, Math.min(1, t));
+  }
 
   // ---------------------------------------------------------------------------
   // Update
@@ -138,10 +165,14 @@ export class SplineFollower {
 
   private applyEasing(t: number): number {
     switch (this.easing) {
-      case 'ease-in': return t * t;
-      case 'ease-out': return 1 - (1 - t) * (1 - t);
-      case 'ease-in-out': return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-      default: return t;
+      case 'ease-in':
+        return t * t;
+      case 'ease-out':
+        return 1 - (1 - t) * (1 - t);
+      case 'ease-in-out':
+        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      default:
+        return t;
     }
   }
 
@@ -164,16 +195,28 @@ export class SplineFollower {
     }
   }
 
-  private resetMarkers(): void { for (const m of this.markers) m.triggered = false; }
+  private resetMarkers(): void {
+    for (const m of this.markers) m.triggered = false;
+  }
 
-  onMarker(listener: (marker: SplineMarker) => void): void { this.listeners.push(listener); }
-  onComplete(listener: () => void): void { this.completeListeners.push(listener); }
+  onMarker(listener: (marker: SplineMarker) => void): void {
+    this.listeners.push(listener);
+  }
+  onComplete(listener: () => void): void {
+    this.completeListeners.push(listener);
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getMarkers(): SplineMarker[] { return [...this.markers]; }
-  getDistanceTraveled(): number { return this.t * this.spline.getLength(); }
-  getRemainingDistance(): number { return (1 - this.t) * this.spline.getLength(); }
+  getMarkers(): SplineMarker[] {
+    return [...this.markers];
+  }
+  getDistanceTraveled(): number {
+    return this.t * this.spline.getLength();
+  }
+  getRemainingDistance(): number {
+    return (1 - this.t) * this.spline.getLength();
+  }
 }

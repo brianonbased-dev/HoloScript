@@ -4,7 +4,9 @@ import { DialogueGraph } from '../DialogueGraph';
 describe('DialogueGraph', () => {
   let g: DialogueGraph;
 
-  beforeEach(() => { g = new DialogueGraph(); });
+  beforeEach(() => {
+    g = new DialogueGraph();
+  });
 
   // --- Node Management ---
   it('addTextNode stores node', () => {

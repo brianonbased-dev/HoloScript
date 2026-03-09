@@ -9,17 +9,37 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useCharacterStore } from '@/lib/stores';
-import { extractBuiltinAnimations, buildClipFromFrames, type BoneFrame, type RecordedClip } from '@/lib/animationBuilder';
+import {
+  extractBuiltinAnimations,
+  buildClipFromFrames,
+  type BoneFrame,
+  type RecordedClip,
+} from '@/lib/animationBuilder';
 import type { Keyframe, AnimTrack } from '@/hooks/useKeyframes';
 import {
-  easeInCubic, easeOutCubic, easeInOutCubic,
-  easeInQuad, easeOutQuad,
-  easeInSine, easeOutSine, easeInOutSine,
-  easeInBack, easeOutBack,
-  easeOutBounce, easeInElastic, easeOutElastic,
-  easeInExpo, easeOutExpo,
-  cubicBezier, CSS_EASE, CSS_EASE_IN, CSS_EASE_OUT, CSS_EASE_IN_OUT,
-  applyEasing, evaluateTrackWithEasing, insertKeyframeSorted,
+  easeInCubic,
+  easeOutCubic,
+  easeInOutCubic,
+  easeInQuad,
+  easeOutQuad,
+  easeInSine,
+  easeOutSine,
+  easeInOutSine,
+  easeInBack,
+  easeOutBack,
+  easeOutBounce,
+  easeInElastic,
+  easeOutElastic,
+  easeInExpo,
+  easeOutExpo,
+  cubicBezier,
+  CSS_EASE,
+  CSS_EASE_IN,
+  CSS_EASE_OUT,
+  CSS_EASE_IN_OUT,
+  applyEasing,
+  evaluateTrackWithEasing,
+  insertKeyframeSorted,
   linear,
 } from '@/lib/curveEasing';
 import * as THREE from 'three';
@@ -32,7 +52,8 @@ function evaluateTrack(track: AnimTrack, currentTime: number): number | null {
   if (currentTime <= kfs[0]!.time) return kfs[0]!.value;
   if (currentTime >= kfs[kfs.length - 1]!.time) return kfs[kfs.length - 1]!.value;
   for (let i = 0; i < kfs.length - 1; i++) {
-    const a = kfs[i]!; const b = kfs[i + 1]!;
+    const a = kfs[i]!;
+    const b = kfs[i + 1]!;
     if (currentTime >= a.time && currentTime <= b.time) {
       const t = (currentTime - a.time) / (b.time - a.time);
       return a.value + (b.value - a.value) * t;
@@ -41,13 +62,29 @@ function evaluateTrack(track: AnimTrack, currentTime: number): number | null {
   return null;
 }
 
-function makeKF(id: string, time: number, value: number, easing: Keyframe['easing'] = 'linear'): Keyframe {
+function makeKF(
+  id: string,
+  time: number,
+  value: number,
+  easing: Keyframe['easing'] = 'linear'
+): Keyframe {
   return { id, track: 'default', time, value, easing };
 }
 function makeTrack(id: string, keyframes: Keyframe[]): AnimTrack {
-  return { id, sceneId: 'test', name: 'Track', property: 'position.x', objectName: 'Cube', keyframes };
+  return {
+    id,
+    sceneId: 'test',
+    name: 'Track',
+    property: 'position.x',
+    objectName: 'Cube',
+    keyframes,
+  };
 }
-function makeBoneFrame(boneIndex: number, time: number, q: [number,number,number,number]): BoneFrame {
+function makeBoneFrame(
+  boneIndex: number,
+  time: number,
+  q: [number, number, number, number]
+): BoneFrame {
   return { time, boneIndex, qx: q[0], qy: q[1], qz: q[2], qw: q[3] };
 }
 function makeRecordedClip(id: string, frames: BoneFrame[], duration = 2000): RecordedClip {
@@ -61,14 +98,20 @@ function makeRecordedClip(id: string, frames: BoneFrame[], duration = 2000): Rec
 describe('Scenario: Animator — Character Store', () => {
   beforeEach(() => {
     useCharacterStore.setState({
-      glbUrl: null, boneNames: [], selectedBoneIndex: null,
-      showSkeleton: true, isRecording: false,
-      recordedClips: [], activeClipId: null,
-      builtinAnimations: [], activeBuiltinAnimation: null,
+      glbUrl: null,
+      boneNames: [],
+      selectedBoneIndex: null,
+      showSkeleton: true,
+      isRecording: false,
+      recordedClips: [],
+      activeClipId: null,
+      builtinAnimations: [],
+      activeBuiltinAnimation: null,
     });
   });
 
-  it('starts with no character loaded (glbUrl is null)', () => expect(useCharacterStore.getState().glbUrl).toBeNull());
+  it('starts with no character loaded (glbUrl is null)', () =>
+    expect(useCharacterStore.getState().glbUrl).toBeNull());
 
   it('setGlbUrl() stores the URL and resets skeleton state', () => {
     useCharacterStore.setState({ boneNames: ['Hip', 'Spine'], selectedBoneIndex: 2 });
@@ -114,7 +157,9 @@ describe('Scenario: Animator — Character Store', () => {
 
   it('bone list renders in SkeletonPanel with expandable hierarchy', () => {
     useCharacterStore.getState().setGlbUrl('blob:char');
-    useCharacterStore.getState().setBoneNames(['Hips', 'Spine', 'Spine1', 'Spine2', 'Neck', 'Head', 'LeftArm', 'RightArm']);
+    useCharacterStore
+      .getState()
+      .setBoneNames(['Hips', 'Spine', 'Spine1', 'Spine2', 'Neck', 'Head', 'LeftArm', 'RightArm']);
     const state = useCharacterStore.getState();
     expect(state.boneNames).toHaveLength(8);
     expect(state.boneNames).toContain('Hips');
@@ -138,10 +183,15 @@ describe('Scenario: Animator — Character Store', () => {
 describe('Scenario: Animator — Clip Recording', () => {
   beforeEach(() => {
     useCharacterStore.setState({
-      glbUrl: 'blob:char', boneNames: ['Hip', 'Arm'],
-      selectedBoneIndex: null, showSkeleton: true,
-      isRecording: false, recordedClips: [], activeClipId: null,
-      builtinAnimations: [], activeBuiltinAnimation: null,
+      glbUrl: 'blob:char',
+      boneNames: ['Hip', 'Arm'],
+      selectedBoneIndex: null,
+      showSkeleton: true,
+      isRecording: false,
+      recordedClips: [],
+      activeClipId: null,
+      builtinAnimations: [],
+      activeBuiltinAnimation: null,
     });
   });
 
@@ -151,7 +201,8 @@ describe('Scenario: Animator — Clip Recording', () => {
   });
 
   it('addRecordedClip() accumulates multiple clips', () => {
-    for (let i = 0; i < 3; i++) useCharacterStore.getState().addRecordedClip(makeRecordedClip(`c${i}`, []));
+    for (let i = 0; i < 3; i++)
+      useCharacterStore.getState().addRecordedClip(makeRecordedClip(`c${i}`, []));
     expect(useCharacterStore.getState().recordedClips).toHaveLength(3);
   });
 
@@ -159,8 +210,8 @@ describe('Scenario: Animator — Clip Recording', () => {
     useCharacterStore.getState().addRecordedClip(makeRecordedClip('keep', []));
     useCharacterStore.getState().addRecordedClip(makeRecordedClip('del', []));
     useCharacterStore.getState().removeRecordedClip('del');
-    expect(useCharacterStore.getState().recordedClips.map(c => c.id)).toContain('keep');
-    expect(useCharacterStore.getState().recordedClips.map(c => c.id)).not.toContain('del');
+    expect(useCharacterStore.getState().recordedClips.map((c) => c.id)).toContain('keep');
+    expect(useCharacterStore.getState().recordedClips.map((c) => c.id)).not.toContain('del');
   });
 
   it('renameRecordedClip() updates the clip name', () => {
@@ -223,7 +274,7 @@ describe('Scenario: Animator — Animation Builder', () => {
     bone.name = 'Hip';
     const skeleton = new THREE.Skeleton([bone]);
     const frames: BoneFrame[] = [
-      { time: 0,   boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
+      { time: 0, boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
       { time: 500, boneIndex: 0, qx: 0.1, qy: 0, qz: 0, qw: 0.995 },
     ];
     const clip = buildClipFromFrames(frames, skeleton, 500, 'TestClip');
@@ -231,10 +282,11 @@ describe('Scenario: Animator — Animation Builder', () => {
   });
 
   it('buildClipFromFrames() duration is in seconds (durationMs / 1000)', () => {
-    const bone = new THREE.Bone(); bone.name = 'Spine';
+    const bone = new THREE.Bone();
+    bone.name = 'Spine';
     const skeleton = new THREE.Skeleton([bone]);
     const frames: BoneFrame[] = [
-      { time: 0,    boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
+      { time: 0, boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
       { time: 2000, boneIndex: 0, qx: 0.2, qy: 0, qz: 0, qw: 0.98 },
     ];
     const clip = buildClipFromFrames(frames, skeleton, 2000);
@@ -242,21 +294,23 @@ describe('Scenario: Animator — Animation Builder', () => {
   });
 
   it('buildClipFromFrames() skips static bones (all same quaternion)', () => {
-    const bone = new THREE.Bone(); bone.name = 'StaticBone';
+    const bone = new THREE.Bone();
+    bone.name = 'StaticBone';
     const skeleton = new THREE.Skeleton([bone]);
     const frames: BoneFrame[] = [
-      { time: 0,    boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
-      { time: 500,  boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 }, // no movement
+      { time: 0, boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
+      { time: 500, boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 }, // no movement
     ];
     const clip = buildClipFromFrames(frames, skeleton, 500);
     expect(clip.tracks).toHaveLength(0);
   });
 
   it('buildClipFromFrames() names tracks as "BoneName.quaternion"', () => {
-    const bone = new THREE.Bone(); bone.name = 'RightArm';
+    const bone = new THREE.Bone();
+    bone.name = 'RightArm';
     const skeleton = new THREE.Skeleton([bone]);
     const frames: BoneFrame[] = [
-      { time: 0,   boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
+      { time: 0, boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
       { time: 200, boneIndex: 0, qx: 0.5, qy: 0, qz: 0, qw: 0.866 },
     ];
     const clip = buildClipFromFrames(frames, skeleton, 200);
@@ -264,14 +318,16 @@ describe('Scenario: Animator — Animation Builder', () => {
   });
 
   it('buildClipFromFrames() with empty frames → 0 tracks', () => {
-    const bone = new THREE.Bone(); bone.name = 'Empty';
+    const bone = new THREE.Bone();
+    bone.name = 'Empty';
     const skeleton = new THREE.Skeleton([bone]);
     const clip = buildClipFromFrames([], skeleton, 1000);
     expect(clip.tracks).toHaveLength(0);
   });
 
   it('export recorded clip as .glb with animation embedded', () => {
-    const bone = new THREE.Bone(); bone.name = 'Hip';
+    const bone = new THREE.Bone();
+    bone.name = 'Hip';
     const skeleton = new THREE.Skeleton([bone]);
     const frames: BoneFrame[] = [
       { time: 0, boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
@@ -286,7 +342,8 @@ describe('Scenario: Animator — Animation Builder', () => {
 
   it('export recorded clip as .bvh (Biovision Hierarchy)', () => {
     // BVH export format: bone hierarchy + motion data in ms frames
-    const bone = new THREE.Bone(); bone.name = 'Root';
+    const bone = new THREE.Bone();
+    bone.name = 'Root';
     const skeleton = new THREE.Skeleton([bone]);
     const frames: BoneFrame[] = [
       { time: 0, boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
@@ -300,7 +357,8 @@ describe('Scenario: Animator — Animation Builder', () => {
 
   it('NLA editor — layer multiple clips with weight blending', () => {
     // NLA (Non-Linear Animation) blends clips at different weights
-    const bone = new THREE.Bone(); bone.name = 'Arm';
+    const bone = new THREE.Bone();
+    bone.name = 'Arm';
     const skeleton = new THREE.Skeleton([bone]);
     const framesA: BoneFrame[] = [
       { time: 0, boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
@@ -357,10 +415,15 @@ describe('Scenario: Animator — Animation Builder', () => {
   it('HoloScript @animate trait refs a clip ID and plays on scene load', () => {
     // @animate(clipId: "walk") → the store should ref the clip
     useCharacterStore.setState({
-      glbUrl: 'blob:char', boneNames: ['Hip'],
-      selectedBoneIndex: null, showSkeleton: true,
-      isRecording: false, recordedClips: [], activeClipId: null,
-      builtinAnimations: [], activeBuiltinAnimation: null,
+      glbUrl: 'blob:char',
+      boneNames: ['Hip'],
+      selectedBoneIndex: null,
+      showSkeleton: true,
+      isRecording: false,
+      recordedClips: [],
+      activeClipId: null,
+      builtinAnimations: [],
+      activeBuiltinAnimation: null,
     });
     useCharacterStore.getState().addRecordedClip(makeRecordedClip('walk', []));
     useCharacterStore.getState().setActiveClipId('walk');
@@ -374,16 +437,23 @@ describe('Scenario: Animator — Animation Builder', () => {
 
 describe('Scenario: Animator — Keyframe Evaluation (Linear)', () => {
   const TRACK_X = makeTrack('t1', [
-    makeKF('k0', 0, 0), makeKF('k1', 1, 10), makeKF('k2', 2, 5), makeKF('k3', 4, 20),
+    makeKF('k0', 0, 0),
+    makeKF('k1', 1, 10),
+    makeKF('k2', 2, 5),
+    makeKF('k3', 4, 20),
   ]);
 
   it('evaluates exact keyframe value at t=0', () => expect(evaluateTrack(TRACK_X, 0)).toBe(0));
   it('evaluates exact keyframe value at t=1', () => expect(evaluateTrack(TRACK_X, 1)).toBe(10));
-  it('interpolates linearly at t=0.5 → 5', () => expect(evaluateTrack(TRACK_X, 0.5)).toBeCloseTo(5));
-  it('interpolates linearly between t=2 and t=4 at t=3 → 12.5', () => expect(evaluateTrack(TRACK_X, 3)).toBeCloseTo(12.5));
+  it('interpolates linearly at t=0.5 → 5', () =>
+    expect(evaluateTrack(TRACK_X, 0.5)).toBeCloseTo(5));
+  it('interpolates linearly between t=2 and t=4 at t=3 → 12.5', () =>
+    expect(evaluateTrack(TRACK_X, 3)).toBeCloseTo(12.5));
   it('clamps to first keyframe value before t=0', () => expect(evaluateTrack(TRACK_X, -1)).toBe(0));
-  it('clamps to last keyframe value after last keyframe', () => expect(evaluateTrack(TRACK_X, 99)).toBe(20));
-  it('returns null for an empty track', () => expect(evaluateTrack(makeTrack('e', []), 0.5)).toBeNull());
+  it('clamps to last keyframe value after last keyframe', () =>
+    expect(evaluateTrack(TRACK_X, 99)).toBe(20));
+  it('returns null for an empty track', () =>
+    expect(evaluateTrack(makeTrack('e', []), 0.5)).toBeNull());
   it('single-keyframe track returns that value at any time', () => {
     const solo = makeTrack('solo', [makeKF('k', 2, 42)]);
     expect(evaluateTrack(solo, 0)).toBe(42);
@@ -452,7 +522,7 @@ describe('Scenario: Animator — Easing Curves', () => {
 
   it('easeOutBack overshoots above 1 at mid-range (then returns to 1)', () => {
     // Check the overshoot region
-    const maxVal = Math.max(...[0.7,0.75,0.8,0.85,0.9].map(easeOutBack));
+    const maxVal = Math.max(...[0.7, 0.75, 0.8, 0.85, 0.9].map(easeOutBack));
     expect(maxVal).toBeGreaterThan(1);
   });
 
@@ -505,7 +575,7 @@ describe('Scenario: Animator — Easing Curves', () => {
   it('insertKeyframeSorted inserts into the correct position by time', () => {
     const kfs = [makeKF('a', 0, 0), makeKF('c', 2, 20)];
     const result = insertKeyframeSorted(kfs, makeKF('b', 1, 10));
-    expect(result.map(k => k.time)).toEqual([0, 1, 2]);
+    expect(result.map((k) => k.time)).toEqual([0, 1, 2]);
   });
 
   it('insertKeyframeSorted at the end works', () => {
@@ -528,7 +598,16 @@ describe('Scenario: Animator — Easing Curves', () => {
 
   it('easing functions applied in the KeyframeEditor curve view', () => {
     // Verify that each built-in easing maps [0,1] endpoints correctly
-    const easings = [easeInCubic, easeOutCubic, easeInOutCubic, easeInQuad, easeOutQuad, easeInSine, easeOutSine, easeInOutSine];
+    const easings = [
+      easeInCubic,
+      easeOutCubic,
+      easeInOutCubic,
+      easeInQuad,
+      easeOutQuad,
+      easeInSine,
+      easeOutSine,
+      easeInOutSine,
+    ];
     for (const fn of easings) {
       expect(fn(0)).toBeCloseTo(0, 5);
       expect(fn(1)).toBeCloseTo(1, 5);
@@ -539,8 +618,8 @@ describe('Scenario: Animator — Easing Curves', () => {
     const kfs = [makeKF('a', 0, 0), makeKF('d', 3, 30)];
     let result = insertKeyframeSorted(kfs, makeKF('b', 1, 10));
     result = insertKeyframeSorted(result, makeKF('c', 2, 20));
-    expect(result.map(k => k.time)).toEqual([0, 1, 2, 3]);
-    expect(result.map(k => k.value)).toEqual([0, 10, 20, 30]);
+    expect(result.map((k) => k.time)).toEqual([0, 1, 2, 3]);
+    expect(result.map((k) => k.value)).toEqual([0, 10, 20, 30]);
   });
 
   it('playback loop — clip loops at end when loop=true', () => {
@@ -564,7 +643,8 @@ describe('Scenario: Animator — Easing Curves', () => {
 
 describe('Scenario: Animator — Export & Integration', () => {
   it('export recorded clip as .glb with animation embedded', () => {
-    const bone = new THREE.Bone(); bone.name = 'ExportBone';
+    const bone = new THREE.Bone();
+    bone.name = 'ExportBone';
     const skeleton = new THREE.Skeleton([bone]);
     const frames: BoneFrame[] = [
       { time: 0, boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
@@ -576,7 +656,8 @@ describe('Scenario: Animator — Export & Integration', () => {
   });
 
   it('export recorded clip as .bvh (Biovision Hierarchy)', () => {
-    const bone = new THREE.Bone(); bone.name = 'BvhRoot';
+    const bone = new THREE.Bone();
+    bone.name = 'BvhRoot';
     const skeleton = new THREE.Skeleton([bone]);
     const frames: BoneFrame[] = [
       { time: 0, boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
@@ -590,16 +671,27 @@ describe('Scenario: Animator — Export & Integration', () => {
 
   it('NLA editor — layer multiple clips with weight blending', () => {
     // Verify two independently built clips can coexist
-    const bone = new THREE.Bone(); bone.name = 'NlaBone';
+    const bone = new THREE.Bone();
+    bone.name = 'NlaBone';
     const skeleton = new THREE.Skeleton([bone]);
-    const clip1 = buildClipFromFrames([
-      { time: 0, boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
-      { time: 400, boneIndex: 0, qx: 0.4, qy: 0, qz: 0, qw: 0.917 },
-    ], skeleton, 400, 'Layer1');
-    const clip2 = buildClipFromFrames([
-      { time: 0, boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
-      { time: 400, boneIndex: 0, qx: 0, qy: 0.4, qz: 0, qw: 0.917 },
-    ], skeleton, 400, 'Layer2');
+    const clip1 = buildClipFromFrames(
+      [
+        { time: 0, boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
+        { time: 400, boneIndex: 0, qx: 0.4, qy: 0, qz: 0, qw: 0.917 },
+      ],
+      skeleton,
+      400,
+      'Layer1'
+    );
+    const clip2 = buildClipFromFrames(
+      [
+        { time: 0, boneIndex: 0, qx: 0, qy: 0, qz: 0, qw: 1 },
+        { time: 400, boneIndex: 0, qx: 0, qy: 0.4, qz: 0, qw: 0.917 },
+      ],
+      skeleton,
+      400,
+      'Layer2'
+    );
     // NLA blends at 50/50 weight — both exist, same bone same duration
     expect(clip1.name).toBe('Layer1');
     expect(clip2.name).toBe('Layer2');
@@ -609,20 +701,34 @@ describe('Scenario: Animator — Export & Integration', () => {
   it('animation graph — state machine with transitions', () => {
     type State = 'idle' | 'walk' | 'attack';
     let state: State = 'idle';
-    const machine = { idle: { move: 'walk' as State }, walk: { attack: 'attack' as State, stop: 'idle' as State }, attack: { done: 'idle' as State } };
-    function transition(event: string) { state = (machine[state] as any)?.[event] ?? state; }
-    transition('move'); expect(state).toBe('walk');
-    transition('attack'); expect(state).toBe('attack');
-    transition('done'); expect(state).toBe('idle');
+    const machine = {
+      idle: { move: 'walk' as State },
+      walk: { attack: 'attack' as State, stop: 'idle' as State },
+      attack: { done: 'idle' as State },
+    };
+    function transition(event: string) {
+      state = (machine[state] as any)?.[event] ?? state;
+    }
+    transition('move');
+    expect(state).toBe('walk');
+    transition('attack');
+    expect(state).toBe('attack');
+    transition('done');
+    expect(state).toBe('idle');
   });
 
   it('publish character + animation to HoloScript Gallery', () => {
     // Publish action: clip + character metadata forms a gallery entry
     useCharacterStore.setState({
-      glbUrl: 'blob:publishable', boneNames: ['Hip', 'Spine'],
-      selectedBoneIndex: null, showSkeleton: true,
-      isRecording: false, recordedClips: [], activeClipId: null,
-      builtinAnimations: [], activeBuiltinAnimation: null,
+      glbUrl: 'blob:publishable',
+      boneNames: ['Hip', 'Spine'],
+      selectedBoneIndex: null,
+      showSkeleton: true,
+      isRecording: false,
+      recordedClips: [],
+      activeClipId: null,
+      builtinAnimations: [],
+      activeBuiltinAnimation: null,
     });
     useCharacterStore.getState().addRecordedClip(makeRecordedClip('dance', [], 3000));
     const { glbUrl, recordedClips } = useCharacterStore.getState();

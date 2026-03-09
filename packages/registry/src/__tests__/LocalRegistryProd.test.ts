@@ -60,7 +60,12 @@ describe('LocalRegistry — Production', () => {
 
   it('search by name and description', () => {
     const reg = new LocalRegistry();
-    reg.publish({ name: 'holoscript-ui', version: '1.0.0', description: 'UI widgets', content: '' });
+    reg.publish({
+      name: 'holoscript-ui',
+      version: '1.0.0',
+      description: 'UI widgets',
+      content: '',
+    });
     reg.publish({ name: 'holoscript-ai', version: '1.0.0', description: 'AI stuff', content: '' });
     expect(reg.search('ui').length).toBe(1);
     expect(reg.search('holoscript').length).toBe(2);

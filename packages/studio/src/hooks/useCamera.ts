@@ -27,33 +27,82 @@ export function useCamera(): UseCameraReturn {
   const [state, setState] = useState<CameraState>(ctrlRef.current.getState());
   const [mode, setModeState] = useState<CameraMode>('orbit');
 
-  const sync = useCallback(() => { setState(ctrlRef.current.getState()); }, []);
+  const sync = useCallback(() => {
+    setState(ctrlRef.current.getState());
+  }, []);
 
-  const setMode = useCallback((m: CameraMode) => {
-    ctrlRef.current.setMode(m);
-    setModeState(m);
+  const setMode = useCallback(
+    (m: CameraMode) => {
+      ctrlRef.current.setMode(m);
+      setModeState(m);
+      sync();
+    },
+    [sync]
+  );
+
+  const setTarget = useCallback(
+    (x: number, y: number, z: number) => {
+      ctrlRef.current.setTarget(x, y, z);
+      sync();
+    },
+    [sync]
+  );
+
+  const move = useCallback(
+    (dx: number, dy: number, dz: number) => {
+      ctrlRef.current.moveCamera(dx, dy, dz);
+      sync();
+    },
+    [sync]
+  );
+
+  const rotateOrbit = useCallback(
+    (angle: number, pitch: number) => {
+      ctrlRef.current.rotateOrbit(angle, pitch);
+      sync();
+    },
+    [sync]
+  );
+
+  const zoom = useCallback(
+    (delta: number) => {
+      ctrlRef.current.zoom(delta);
+      sync();
+    },
+    [sync]
+  );
+  const setFOV = useCallback(
+    (fov: number) => {
+      ctrlRef.current.setFOV(fov);
+      sync();
+    },
+    [sync]
+  );
+  const step = useCallback(
+    (dt = 1 / 60) => {
+      ctrlRef.current.update(dt);
+      sync();
+    },
+    [sync]
+  );
+  const reset = useCallback(() => {
+    ctrlRef.current = new CameraController({ mode: 'orbit' });
+    setModeState('orbit');
     sync();
   }, [sync]);
 
-  const setTarget = useCallback((x: number, y: number, z: number) => {
-    ctrlRef.current.setTarget(x, y, z);
-    sync();
-  }, [sync]);
-
-  const move = useCallback((dx: number, dy: number, dz: number) => {
-    ctrlRef.current.moveCamera(dx, dy, dz);
-    sync();
-  }, [sync]);
-
-  const rotateOrbit = useCallback((angle: number, pitch: number) => {
-    ctrlRef.current.rotateOrbit(angle, pitch);
-    sync();
-  }, [sync]);
-
-  const zoom = useCallback((delta: number) => { ctrlRef.current.zoom(delta); sync(); }, [sync]);
-  const setFOV = useCallback((fov: number) => { ctrlRef.current.setFOV(fov); sync(); }, [sync]);
-  const step = useCallback((dt = 1 / 60) => { ctrlRef.current.update(dt); sync(); }, [sync]);
-  const reset = useCallback(() => { ctrlRef.current = new CameraController({ mode: 'orbit' }); setModeState('orbit'); sync(); }, [sync]);
-
-  return { controller: ctrlRef.current, state, mode, modes: ALL_MODES, setMode, setTarget, move, rotateOrbit, zoom, setFOV, step, reset };
+  return {
+    controller: ctrlRef.current,
+    state,
+    mode,
+    modes: ALL_MODES,
+    setMode,
+    setTarget,
+    move,
+    rotateOrbit,
+    zoom,
+    setFOV,
+    step,
+    reset,
+  };
 }

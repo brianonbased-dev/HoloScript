@@ -54,7 +54,9 @@ export class DecalBatcher {
     this.maxLOD = distances.length;
   }
 
-  getLODDistances(): number[] { return [...this.lodDistances]; }
+  getLODDistances(): number[] {
+    return [...this.lodDistances];
+  }
 
   // ---------------------------------------------------------------------------
   // Instance Management
@@ -65,7 +67,7 @@ export class DecalBatcher {
   }
 
   removeInstance(id: string): boolean {
-    const idx = this.instances.findIndex(i => i.id === id);
+    const idx = this.instances.findIndex((i) => i.id === id);
     if (idx === -1) return false;
     this.instances.splice(idx, 1);
     return true;
@@ -76,7 +78,9 @@ export class DecalBatcher {
     this.batches.clear();
   }
 
-  getInstanceCount(): number { return this.instances.length; }
+  getInstanceCount(): number {
+    return this.instances.length;
+  }
 
   // ---------------------------------------------------------------------------
   // LOD
@@ -102,10 +106,16 @@ export class DecalBatcher {
     let drawn = 0;
 
     for (const inst of this.instances) {
-      if (inst.opacity <= 0) { culled++; continue; }
+      if (inst.opacity <= 0) {
+        culled++;
+        continue;
+      }
 
       // Frustum cull
-      if (frustumTest && !frustumTest(inst.position)) { culled++; continue; }
+      if (frustumTest && !frustumTest(inst.position)) {
+        culled++;
+        continue;
+      }
 
       // LOD
       const dx = inst.position.x - cameraPos.x;
@@ -114,7 +124,10 @@ export class DecalBatcher {
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       const lod = this.computeLOD(dist);
 
-      if (lod > this.maxLOD) { culled++; continue; }
+      if (lod > this.maxLOD) {
+        culled++;
+        continue;
+      }
 
       inst.lodLevel = lod;
       drawn++;
@@ -144,5 +157,7 @@ export class DecalBatcher {
   // Stats
   // ---------------------------------------------------------------------------
 
-  getStats(): BatchStats { return { ...this.stats }; }
+  getStats(): BatchStats {
+    return { ...this.stats };
+  }
 }

@@ -107,7 +107,9 @@ describe('PerformanceTelemetry', () => {
   it('exportMetrics sends to registered exporters', async () => {
     const exported: Metric[][] = [];
     const mockExporter: AnalyticsExporter = {
-      export: vi.fn(async (metrics) => { exported.push(metrics); }),
+      export: vi.fn(async (metrics) => {
+        exported.push(metrics);
+      }),
       flush: vi.fn(async () => {}),
     };
 

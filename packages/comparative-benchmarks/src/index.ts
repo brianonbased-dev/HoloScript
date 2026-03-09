@@ -195,8 +195,9 @@ export class ComparativeBenchmarks {
       unity,
       gltf,
       winner: this.determineWinner(holoscript, unity, gltf),
-      speedup: Math.max(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond) /
-                Math.min(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond),
+      speedup:
+        Math.max(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond) /
+        Math.min(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond),
     };
   }
 
@@ -241,8 +242,9 @@ export class ComparativeBenchmarks {
       unity,
       gltf,
       winner: this.determineWinner(holoscript, unity, gltf),
-      speedup: Math.max(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond) /
-                Math.min(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond),
+      speedup:
+        Math.max(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond) /
+        Math.min(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond),
     };
   }
 
@@ -254,10 +256,12 @@ export class ComparativeBenchmarks {
 
     const bench = new Bench({ time: 100, iterations: this.config.iterations });
 
-    const objects = Array(1000).fill(null).map(() => ({
-      position: { x: 0, y: 0, z: 0 },
-      velocity: { x: 1, y: 1, z: 1 },
-    }));
+    const objects = Array(1000)
+      .fill(null)
+      .map(() => ({
+        position: { x: 0, y: 0, z: 0 },
+        velocity: { x: 1, y: 1, z: 1 },
+      }));
 
     bench.add('HoloScript Update', () => {
       // HoloScript update is optimized (flat arrays, no indirection)
@@ -294,8 +298,9 @@ export class ComparativeBenchmarks {
       unity,
       gltf,
       winner: this.determineWinner(holoscript, unity, gltf),
-      speedup: Math.max(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond) /
-                Math.min(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond),
+      speedup:
+        Math.max(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond) /
+        Math.min(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond),
     };
   }
 
@@ -305,15 +310,23 @@ export class ComparativeBenchmarks {
   private async benchmarkComplexScene(): Promise<BenchmarkResult> {
     console.log('📊 Benchmarking: Complex Scene (500 objects, 10 traits each)');
 
-    const complexScene = Array(500).fill(null).map((_, i) => ({
-      type: i % 2 === 0 ? 'cube' : 'sphere',
-      traits: [
-        '@color(red)', '@position(0,0,0)', '@physics',
-        '@grabbable', '@throwable', '@networked',
-        '@scale(1,1,1)', '@rotation(0,0,0)', '@emissive',
-        '@collidable'
-      ],
-    }));
+    const complexScene = Array(500)
+      .fill(null)
+      .map((_, i) => ({
+        type: i % 2 === 0 ? 'cube' : 'sphere',
+        traits: [
+          '@color(red)',
+          '@position(0,0,0)',
+          '@physics',
+          '@grabbable',
+          '@throwable',
+          '@networked',
+          '@scale(1,1,1)',
+          '@rotation(0,0,0)',
+          '@emissive',
+          '@collidable',
+        ],
+      }));
 
     const bench = new Bench({ time: 100, iterations: Math.floor(this.config.iterations / 10) });
 
@@ -350,8 +363,9 @@ export class ComparativeBenchmarks {
       unity,
       gltf,
       winner: this.determineWinner(holoscript, unity, gltf),
-      speedup: Math.max(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond) /
-                Math.min(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond),
+      speedup:
+        Math.max(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond) /
+        Math.min(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond),
     };
   }
 
@@ -465,11 +479,7 @@ export class ComparativeBenchmarks {
     unity: PerformanceMetrics,
     gltf: PerformanceMetrics
   ): 'holoscript' | 'unity' | 'gltf' {
-    const fastest = Math.max(
-      holoscript.opsPerSecond,
-      unity.opsPerSecond,
-      gltf.opsPerSecond
-    );
+    const fastest = Math.max(holoscript.opsPerSecond, unity.opsPerSecond, gltf.opsPerSecond);
 
     if (holoscript.opsPerSecond === fastest) return 'holoscript';
     if (unity.opsPerSecond === fastest) return 'unity';
@@ -484,16 +494,19 @@ export class ComparativeBenchmarks {
     report += `**Generated:** ${new Date().toISOString()}\n\n`;
     report += '## Summary\n\n';
 
-    const wins = results.reduce((acc, r) => {
-      acc[r.winner]++;
-      return acc;
-    }, { holoscript: 0, unity: 0, gltf: 0 } as Record<string, number>);
+    const wins = results.reduce(
+      (acc, r) => {
+        acc[r.winner]++;
+        return acc;
+      },
+      { holoscript: 0, unity: 0, gltf: 0 } as Record<string, number>
+    );
 
     report += `| Runtime | Wins | Win Rate |\n`;
     report += `|---------|------|----------|\n`;
-    report += `| HoloScript | ${wins.holoscript}/5 | ${(wins.holoscript/5*100).toFixed(0)}% |\n`;
-    report += `| Unity | ${wins.unity}/5 | ${(wins.unity/5*100).toFixed(0)}% |\n`;
-    report += `| glTF | ${wins.gltf}/5 | ${(wins.gltf/5*100).toFixed(0)}% |\n\n`;
+    report += `| HoloScript | ${wins.holoscript}/5 | ${((wins.holoscript / 5) * 100).toFixed(0)}% |\n`;
+    report += `| Unity | ${wins.unity}/5 | ${((wins.unity / 5) * 100).toFixed(0)}% |\n`;
+    report += `| glTF | ${wins.gltf}/5 | ${((wins.gltf / 5) * 100).toFixed(0)}% |\n\n`;
 
     report += '## Detailed Results\n\n';
 

@@ -4,11 +4,11 @@ Minimal working HoloScript templates for vertical industry domains. Each starter
 
 ## Available Starters
 
-| Domain | File | Key Features | Primary Targets |
-|--------|------|-------------|-----------------|
-| **Healthcare** | `healthcare/healthcare-starter.holo` | Patient vitals dashboard, AR anatomy viewer, guided procedures, hand tracking | iOS, Android, OpenXR |
-| **Industrial IoT** | `industrial-iot/industrial-iot-starter.holo` | Digital twin sync, sensor telemetry, predictive maintenance, SCADA dashboard | DTDL, OpenXR, WebGPU |
-| **Robotics** | `robotics/robotics-starter.holo` | 3-DOF arm, joint kinematics, safety zones, ROS 2 bridge | URDF, SDF, OpenXR, WebGPU |
+| Domain             | File                                         | Key Features                                                                  | Primary Targets           |
+| ------------------ | -------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------- |
+| **Healthcare**     | `healthcare/healthcare-starter.holo`         | Patient vitals dashboard, AR anatomy viewer, guided procedures, hand tracking | iOS, Android, OpenXR      |
+| **Industrial IoT** | `industrial-iot/industrial-iot-starter.holo` | Digital twin sync, sensor telemetry, predictive maintenance, SCADA dashboard  | DTDL, OpenXR, WebGPU      |
+| **Robotics**       | `robotics/robotics-starter.holo`             | 3-DOF arm, joint kinematics, safety zones, ROS 2 bridge                       | URDF, SDF, OpenXR, WebGPU |
 
 ## Quick Start
 

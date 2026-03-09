@@ -4,7 +4,9 @@ import { TerrainBrush } from '../TerrainBrush';
 describe('TerrainBrush', () => {
   let tb: TerrainBrush;
 
-  beforeEach(() => { tb = new TerrainBrush(16); });
+  beforeEach(() => {
+    tb = new TerrainBrush(16);
+  });
 
   it('constructs with defaults', () => {
     expect(tb.getGridSize()).toBe(16);

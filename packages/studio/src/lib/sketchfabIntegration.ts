@@ -25,8 +25,12 @@ export interface SketchfabModel {
 }
 
 export type SketchfabLicense =
-  | 'cc-by-4.0' | 'cc-by-sa-4.0' | 'cc-by-nc-4.0'
-  | 'cc-by-nc-sa-4.0' | 'cc-by-nd-4.0' | 'cc0-1.0'
+  | 'cc-by-4.0'
+  | 'cc-by-sa-4.0'
+  | 'cc-by-nc-4.0'
+  | 'cc-by-nc-sa-4.0'
+  | 'cc-by-nd-4.0'
+  | 'cc0-1.0'
   | 'all-rights-reserved';
 
 export interface SketchfabSearchParams {
@@ -56,7 +60,8 @@ export function buildSearchUrl(params: SketchfabSearchParams): string {
   const qs = new URLSearchParams();
   qs.set('q', params.query);
   qs.set('type', params.type ?? 'models');
-  if (params.sort) qs.set('sort_by', params.sort === 'recent' ? '-publishedAt' : `-${params.sort}Count`);
+  if (params.sort)
+    qs.set('sort_by', params.sort === 'recent' ? '-publishedAt' : `-${params.sort}Count`);
   if (params.isAnimated !== undefined) qs.set('animated', String(params.isAnimated));
   if (params.isDownloadable !== undefined) qs.set('downloadable', String(params.isDownloadable));
   if (params.license) qs.set('license', params.license);

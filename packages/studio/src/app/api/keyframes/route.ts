@@ -8,38 +8,56 @@ import { NextRequest } from 'next/server';
 
 export interface Keyframe {
   id: string;
-  track: string;       // e.g. "Column A.position.x"
-  time: number;        // seconds
-  value: number;       // numeric
+  track: string; // e.g. "Column A.position.x"
+  time: number; // seconds
+  value: number; // numeric
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
 }
 
 export interface AnimTrack {
   id: string;
   sceneId: string;
-  name: string;          // human label e.g. "Column A → position.x"
-  property: string;      // e.g. "position.x"
+  name: string; // human label e.g. "Column A → position.x"
+  property: string; // e.g. "position.x"
   objectName: string;
   keyframes: Keyframe[];
 }
 
-interface KFStore { [sceneId: string]: AnimTrack[] }
+interface KFStore {
+  [sceneId: string]: AnimTrack[];
+}
 
-declare global { var __kfStore__: KFStore | undefined; }
+declare global {
+  var __kfStore__: KFStore | undefined;
+}
 const store: KFStore = globalThis.__kfStore__ ?? (globalThis.__kfStore__ = {});
 
-function uid() { return Math.random().toString(36).slice(2, 10); }
+function uid() {
+  return Math.random().toString(36).slice(2, 10);
+}
 
 export async function GET(request: NextRequest) {
   const sceneId = request.nextUrl.searchParams.get('sceneId') ?? 'default';
   return Response.json({ tracks: store[sceneId] ?? [], sceneId });
 }
 
-interface KFBody { sceneId?: string; trackId?: string; objectName?: string; property?: string; time?: number; value?: number; easing?: Keyframe['easing'] }
+interface KFBody {
+  sceneId?: string;
+  trackId?: string;
+  objectName?: string;
+  property?: string;
+  time?: number;
+  value?: number;
+  easing?: Keyframe['easing'];
+}
 
 export async function POST(request: NextRequest) {
   let body: KFBody;
-  try { body = (await request.json()) as KFBody; } catch { return Response.json({ error: 'Bad JSON' }, { status: 400 }); }
+  try {
+    body = (await request.json()) as KFBody;
+  } catch {
+    return Response.json({ error: 'Bad JSON' }, { status: 400 });
+  }
 
   const sceneId = body.sceneId ?? 'default';
   if (!store[sceneId]) store[sceneId] = [];
@@ -50,7 +68,9 @@ export async function POST(request: NextRequest) {
   // Auto-create track if needed
   if (!track && body.objectName && body.property) {
     track = {
-      id: uid(), sceneId, objectName: body.objectName,
+      id: uid(),
+      sceneId,
+      objectName: body.objectName,
       property: body.property,
       name: `${body.objectName} → ${body.property}`,
       keyframes: [],
@@ -61,7 +81,8 @@ export async function POST(request: NextRequest) {
   if (!track) return Response.json({ error: 'Track not found' }, { status: 404 });
 
   const kf: Keyframe = {
-    id: uid(), track: track.id,
+    id: uid(),
+    track: track.id,
     time: body.time ?? 0,
     value: body.value ?? 0,
     easing: body.easing ?? 'linear',
@@ -82,7 +103,10 @@ export async function DELETE(request: NextRequest) {
   const tracks = store[sceneId] ?? [];
   for (const t of tracks) {
     const idx = t.keyframes.findIndex((k) => k.id === id);
-    if (idx >= 0) { t.keyframes.splice(idx, 1); return Response.json({ ok: true }); }
+    if (idx >= 0) {
+      t.keyframes.splice(idx, 1);
+      return Response.json({ ok: true });
+    }
   }
   return Response.json({ error: 'Not found' }, { status: 404 });
 }

@@ -74,9 +74,10 @@ export async function GET(request: NextRequest) {
     const st = shortType(type);
 
     // raw is { assetId: { name, tags, categories, authors, ... }, ... }
-    let entries: [string, Record<string, unknown>][] = Object.entries(raw).map(
-      ([id, meta]) => [id, meta as Record<string, unknown>]
-    );
+    let entries: [string, Record<string, unknown>][] = Object.entries(raw).map(([id, meta]) => [
+      id,
+      meta as Record<string, unknown>,
+    ]);
 
     // Search filter
     if (q) {
@@ -125,7 +126,13 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return Response.json(
-      { error: `Failed to fetch Poly Haven assets: ${message}`, items: [], total: 0, page: 1, pages: 1 },
+      {
+        error: `Failed to fetch Poly Haven assets: ${message}`,
+        items: [],
+        total: 0,
+        page: 1,
+        pages: 1,
+      },
       { status: 502 }
     );
   }

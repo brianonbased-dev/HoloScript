@@ -40,15 +40,31 @@ const panels: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
 };
 
 const SCENARIO_NAMES: Record<string, string> = {
-  dna: '🧬 DNA Lab', space: '🚀 Space Mission', brain: '🧠 Brain Mapper',
-  climate: '🌡️ Climate', wine: '🍷 Wine', ocean: '🌊 Ocean',
-  themepark: '🎢 Theme Park', geology: '🪨 Geology', music: '🎵 Music',
-  forensic: '🔬 Forensic', escape: '🔐 Escape Room', biomech: '🏋️ Biomechanics',
-  film: '🎬 Film', bridge: '🏗️ Bridge', disaster: '🚨 Disaster',
-  surgery: '🏥 Surgery', dream: '💭 Dream', stars: '⭐ Stars',
-  archaeology: '🏛️ Archaeology', epidemic: '🦠 Epidemic', courtroom: '⚖️ Court',
-  fashion: '👗 Fashion', timecapsule: '⏳ Time Capsule',
-  accessibility: '♿ Accessibility', molecular: '🧪 Molecular',
+  dna: '🧬 DNA Lab',
+  space: '🚀 Space Mission',
+  brain: '🧠 Brain Mapper',
+  climate: '🌡️ Climate',
+  wine: '🍷 Wine',
+  ocean: '🌊 Ocean',
+  themepark: '🎢 Theme Park',
+  geology: '🪨 Geology',
+  music: '🎵 Music',
+  forensic: '🔬 Forensic',
+  escape: '🔐 Escape Room',
+  biomech: '🏋️ Biomechanics',
+  film: '🎬 Film',
+  bridge: '🏗️ Bridge',
+  disaster: '🚨 Disaster',
+  surgery: '🏥 Surgery',
+  dream: '💭 Dream',
+  stars: '⭐ Stars',
+  archaeology: '🏛️ Archaeology',
+  epidemic: '🦠 Epidemic',
+  courtroom: '⚖️ Court',
+  fashion: '👗 Fashion',
+  timecapsule: '⏳ Time Capsule',
+  accessibility: '♿ Accessibility',
+  molecular: '🧪 Molecular',
 };
 
 export function ScenarioLauncher() {
@@ -59,27 +75,57 @@ export function ScenarioLauncher() {
     return (
       <div style={{ minHeight: '100vh', background: '#08090f' }}>
         {/* Top Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <button onClick={() => setActiveScenario(null)}
-            style={{ padding: '6px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#aab', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '12px 20px',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
+          <button
+            onClick={() => setActiveScenario(null)}
+            style={{
+              padding: '6px 14px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 8,
+              color: '#aab',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
             ← Gallery
           </button>
           <span style={{ fontSize: 14, fontWeight: 700, color: '#e8e8f8' }}>
             {SCENARIO_NAMES[activeScenario] ?? activeScenario}
           </span>
           <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 11, padding: '3px 8px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 6, color: '#4ade80' }}>
+          <span
+            style={{
+              fontSize: 11,
+              padding: '3px 8px',
+              background: 'rgba(34,197,94,0.1)',
+              border: '1px solid rgba(34,197,94,0.2)',
+              borderRadius: 6,
+              color: '#4ade80',
+            }}
+          >
             🔴 Recording
           </span>
         </div>
         {/* Panel */}
         <div style={{ maxWidth: 760, margin: '20px auto', padding: '0 20px' }}>
-          <Suspense fallback={
-            <div style={{ textAlign: 'center', padding: 60, color: '#556677' }}>
-              <div style={{ fontSize: 32 }}>⏳</div>
-              <div style={{ marginTop: 8 }}>Loading scenario engine...</div>
-            </div>
-          }>
+          <Suspense
+            fallback={
+              <div style={{ textAlign: 'center', padding: 60, color: '#556677' }}>
+                <div style={{ fontSize: 32 }}>⏳</div>
+                <div style={{ marginTop: 8 }}>Loading scenario engine...</div>
+              </div>
+            }
+          >
             <Panel />
           </Suspense>
         </div>

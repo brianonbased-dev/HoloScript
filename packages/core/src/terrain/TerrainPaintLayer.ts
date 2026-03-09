@@ -151,7 +151,13 @@ export class TerrainPaintLayer {
   /**
    * Get layer definitions
    */
-  getLayers(): PaintLayer[] { return [...this.layers]; }
-  getLayerCount(): number { return this.layers.length; }
-  getUndoCount(): number { return this.undoStack.length; }
+  getLayers(): PaintLayer[] {
+    return [...this.layers];
+  }
+  getLayerCount(): number {
+    return this.layers.length;
+  }
+  getUndoCount(): number {
+    return this.undoStack.length;
+  }
 }

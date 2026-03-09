@@ -11,13 +11,21 @@
 // TYPES
 // =============================================================================
 
-export type TimeOfDay = 'dawn' | 'morning' | 'noon' | 'afternoon' | 'dusk' | 'evening' | 'night' | 'midnight';
+export type TimeOfDay =
+  | 'dawn'
+  | 'morning'
+  | 'noon'
+  | 'afternoon'
+  | 'dusk'
+  | 'evening'
+  | 'night'
+  | 'midnight';
 
 export interface DayNightState {
-  time: number;               // 0-24 hours
-  sunAngle: number;           // degrees
+  time: number; // 0-24 hours
+  sunAngle: number; // degrees
   moonAngle: number;
-  sunIntensity: number;       // 0-1
+  sunIntensity: number; // 0-1
   moonIntensity: number;
   ambientColor: { r: number; g: number; b: number };
   ambientIntensity: number;
@@ -30,8 +38,8 @@ export interface DayNightState {
 // =============================================================================
 
 export class DayNightCycle {
-  private time = 8;           // Start at 8 AM
-  private timeScale = 1;      // 1 = real-time, 60 = 1 min per real second
+  private time = 8; // Start at 8 AM
+  private timeScale = 1; // 1 = real-time, 60 = 1 min per real second
   private dayCount = 0;
   private paused = false;
   private listeners: Array<(period: TimeOfDay, state: DayNightState) => void> = [];
@@ -46,11 +54,21 @@ export class DayNightCycle {
     this.lastPeriod = this.getPeriod();
   }
 
-  setTimeScale(scale: number): void { this.timeScale = Math.max(0, scale); }
-  getTimeScale(): number { return this.timeScale; }
-  pause(): void { this.paused = true; }
-  resume(): void { this.paused = false; }
-  isPaused(): boolean { return this.paused; }
+  setTimeScale(scale: number): void {
+    this.timeScale = Math.max(0, scale);
+  }
+  getTimeScale(): number {
+    return this.timeScale;
+  }
+  pause(): void {
+    this.paused = true;
+  }
+  resume(): void {
+    this.paused = false;
+  }
+  isPaused(): boolean {
+    return this.paused;
+  }
 
   // ---------------------------------------------------------------------------
   // Update
@@ -113,10 +131,10 @@ export class DayNightCycle {
 
   getAmbientColor(): { r: number; g: number; b: number } {
     const intensity = this.getSunIntensity();
-    if (intensity > 0.7) return { r: 1, g: 0.95, b: 0.9 };       // Day
-    if (intensity > 0.3) return { r: 1, g: 0.7, b: 0.4 };        // Sunset/Sunrise
-    if (intensity > 0) return { r: 0.6, g: 0.3, b: 0.3 };        // Twilight
-    return { r: 0.1, g: 0.1, b: 0.2 };                            // Night
+    if (intensity > 0.7) return { r: 1, g: 0.95, b: 0.9 }; // Day
+    if (intensity > 0.3) return { r: 1, g: 0.7, b: 0.4 }; // Sunset/Sunrise
+    if (intensity > 0) return { r: 0.6, g: 0.3, b: 0.3 }; // Twilight
+    return { r: 0.1, g: 0.1, b: 0.2 }; // Night
   }
 
   // ---------------------------------------------------------------------------
@@ -146,8 +164,12 @@ export class DayNightCycle {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getTime(): number { return this.time; }
-  getDayCount(): number { return this.dayCount; }
+  getTime(): number {
+    return this.time;
+  }
+  getDayCount(): number {
+    return this.dayCount;
+  }
 
   getState(): DayNightState {
     return {

@@ -7,7 +7,9 @@ import { LeaderboardManager } from '../gameplay/LeaderboardManager';
 
 describe('LeaderboardManager', () => {
   let lm: LeaderboardManager;
-  beforeEach(() => { lm = new LeaderboardManager(); });
+  beforeEach(() => {
+    lm = new LeaderboardManager();
+  });
 
   it('createBoard creates a leaderboard', () => {
     lm.createBoard('score', 'High Scores');

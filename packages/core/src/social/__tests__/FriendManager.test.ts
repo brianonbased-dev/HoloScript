@@ -3,7 +3,13 @@ import { FriendManager } from '../FriendManager';
 import { SocialGraph, type SocialUser } from '../SocialGraph';
 
 function makeUser(id: string): SocialUser {
-  return { id, username: `user_${id}`, displayName: `User ${id}`, status: 'online', lastSeen: Date.now() };
+  return {
+    id,
+    username: `user_${id}`,
+    displayName: `User ${id}`,
+    status: 'online',
+    lastSeen: Date.now(),
+  };
 }
 
 function makeGraph() {

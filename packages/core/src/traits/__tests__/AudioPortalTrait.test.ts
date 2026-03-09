@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { audioPortalHandler } from '../AudioPortalTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('AudioPortalTrait', () => {
   let node: Record<string, unknown>;
@@ -47,23 +55,41 @@ describe('AudioPortalTrait', () => {
   });
 
   it('set_openness controls partial opening', () => {
-    sendEvent(audioPortalHandler, node, cfg, ctx, { type: 'audio_portal_set_openness', amount: 0.5 });
+    sendEvent(audioPortalHandler, node, cfg, ctx, {
+      type: 'audio_portal_set_openness',
+      amount: 0.5,
+    });
     expect((node as any).__audioPortalState.openAmount).toBe(0.5);
   });
 
   it('routes audio source through portal', () => {
-    sendEvent(audioPortalHandler, node, cfg, ctx, { type: 'audio_source_route', sourceId: 's1', fromZone: 'room_a', toZone: 'room_b' });
+    sendEvent(audioPortalHandler, node, cfg, ctx, {
+      type: 'audio_source_route',
+      sourceId: 's1',
+      fromZone: 'room_a',
+      toZone: 'room_b',
+    });
     expect((node as any).__audioPortalState.activeConnections.has('s1')).toBe(true);
     expect(getEventCount(ctx, 'audio_portal_route_source')).toBe(1);
   });
 
   it('ignores route for non-connected zones', () => {
-    sendEvent(audioPortalHandler, node, cfg, ctx, { type: 'audio_source_route', sourceId: 's2', fromZone: 'room_c', toZone: 'room_d' });
+    sendEvent(audioPortalHandler, node, cfg, ctx, {
+      type: 'audio_source_route',
+      sourceId: 's2',
+      fromZone: 'room_c',
+      toZone: 'room_d',
+    });
     expect((node as any).__audioPortalState.activeConnections.size).toBe(0);
   });
 
   it('unroutes audio source', () => {
-    sendEvent(audioPortalHandler, node, cfg, ctx, { type: 'audio_source_route', sourceId: 's1', fromZone: 'room_a', toZone: 'room_b' });
+    sendEvent(audioPortalHandler, node, cfg, ctx, {
+      type: 'audio_source_route',
+      sourceId: 's1',
+      fromZone: 'room_a',
+      toZone: 'room_b',
+    });
     sendEvent(audioPortalHandler, node, cfg, ctx, { type: 'audio_source_unroute', sourceId: 's1' });
     expect((node as any).__audioPortalState.activeConnections.has('s1')).toBe(false);
   });

@@ -93,16 +93,16 @@ describe('Module Name', () => {
   describe('Feature Group', () => {
     it('should test specific behavior', () => {
       // Arrange: Set up test data
-      const input = createTestInput()
-      
+      const input = createTestInput();
+
       // Act: Execute the function
-      const result = executeFunction(input)
-      
+      const result = executeFunction(input);
+
       // Assert: Verify the result
-      expect(result).toEqual(expectedOutput)
-    })
-  })
-})
+      expect(result).toEqual(expectedOutput);
+    });
+  });
+});
 ```
 
 ### Test File Naming
@@ -114,59 +114,63 @@ describe('Module Name', () => {
 ### Coverage Requirements by Test Type
 
 **1. Unit Tests** - For isolated function behavior
+
 ```typescript
 describe('Parser', () => {
   it('should parse valid composition', () => {
-    const code = 'composition "test" { }'
-    const result = parse(code)
-    expect(result.name).toBe('test')
-  })
-  
+    const code = 'composition "test" { }';
+    const result = parse(code);
+    expect(result.name).toBe('test');
+  });
+
   it('should throw on invalid syntax', () => {
-    const code = 'invalid syntax !@#'
-    expect(() => parse(code)).toThrow()
-  })
-})
+    const code = 'invalid syntax !@#';
+    expect(() => parse(code)).toThrow();
+  });
+});
 ```
 
 **2. Integration Tests** - For pipeline validation (see `Integration.comprehensive.test.ts`)
+
 ```typescript
 describe('Parser-to-Compiler Pipeline', () => {
   it('should preserve data through compilation', () => {
-    const input = createComposition()
-    const parsed = parser.parse(input)
-    const compiled = compiler.compile(parsed)
-    
-    expect(compiled.metadata).toEqual(parsed.metadata)
-  })
-})
+    const input = createComposition();
+    const parsed = parser.parse(input);
+    const compiled = compiler.compile(parsed);
+
+    expect(compiled.metadata).toEqual(parsed.metadata);
+  });
+});
 ```
 
 **3. Edge Case Tests** - For boundary conditions (see `ParserEdgeCases.test.ts`)
+
 ```typescript
 describe('Parser Edge Cases', () => {
   it('should handle maximum nesting level', () => {
-    const nested = generateNesting(15) // At architectural limit
-    const result = parse(nested)
-    expect(result).toBeDefined()
-  })
-  
+    const nested = generateNesting(15); // At architectural limit
+    const result = parse(nested);
+    expect(result).toBeDefined();
+  });
+
   it('should fail gracefully beyond limits', () => {
-    const nested = generateNesting(20) // Beyond limit
-    expect(() => parse(nested)).toThrow()
-  })
-})
+    const nested = generateNesting(20); // Beyond limit
+    expect(() => parse(nested)).toThrow();
+  });
+});
 ```
 
 **4. Platform-Specific Tests** - For target code generation (see `TargetSpecific.comprehensive.test.ts`)
+
 ```typescript
 describe('Python Code Generation', () => {
   it('should generate valid Python type hints', () => {
-    const python = compiler.generatePython(ast)
-    expect(python).toContain(':')  // Type annotation marker
-    expect(isPythonValid(python)).toBe(true)
-  })
-})
+    const python = compiler.generatePython(ast);
+    expect(python).toContain(':'); // Type annotation marker
+    expect(isPythonValid(python)).toBe(true);
+  });
+});
 ```
 
 ### Coverage Targets
@@ -176,6 +180,7 @@ describe('Python Code Generation', () => {
 - **Aspirational:** 100% for public APIs
 
 Run coverage analysis:
+
 ```bash
 pnpm vitest run --coverage
 ```
@@ -204,6 +209,7 @@ pnpm vitest run \
 ### Known Test Limitations
 
 Three edge cases in ParserEdgeCases.test.ts are expected to fail (non-blocking):
+
 1. Deep nesting (>15 levels) - Parser architectural constraint
 2. Negative number literals in certain contexts - Expected workaround: use unary operator
 3. Multiple event declarations on same object - Expected: use event bus pattern instead
@@ -235,15 +241,15 @@ When AI agents (Claude, Cursor, GitHub Copilot, etc.) generate documentation or 
 
 ### What Goes Where
 
-| Content Type | Location | Naming |
-| --- | --- | --- |
-| User-facing guides | `docs/guides/` | `lowercase-kebab-case.md` |
-| Trait reference updates | `docs/traits/` | Per-category file (e.g., `interaction.md`) |
-| Compiler docs | `docs/compilers/` | Per-target file (e.g., `unity.md`) |
-| Session notes / implementation reports | `docs/_archive/session-notes/` | Any name |
-| Phase implementation guides | `docs/_archive/phase-guides/` | Any name |
-| Feature planning docs | `docs/_archive/planning/` | Any name |
-| Status updates | GitHub Issues or PRs — not in docs | N/A |
+| Content Type                           | Location                           | Naming                                     |
+| -------------------------------------- | ---------------------------------- | ------------------------------------------ |
+| User-facing guides                     | `docs/guides/`                     | `lowercase-kebab-case.md`                  |
+| Trait reference updates                | `docs/traits/`                     | Per-category file (e.g., `interaction.md`) |
+| Compiler docs                          | `docs/compilers/`                  | Per-target file (e.g., `unity.md`)         |
+| Session notes / implementation reports | `docs/_archive/session-notes/`     | Any name                                   |
+| Phase implementation guides            | `docs/_archive/phase-guides/`      | Any name                                   |
+| Feature planning docs                  | `docs/_archive/planning/`          | Any name                                   |
+| Status updates                         | GitHub Issues or PRs — not in docs | N/A                                        |
 
 ### Naming Rules
 

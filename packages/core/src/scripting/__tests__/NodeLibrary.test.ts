@@ -4,7 +4,9 @@ import { NodeLibrary } from '../NodeLibrary';
 describe('NodeLibrary', () => {
   let lib: NodeLibrary;
 
-  beforeEach(() => { lib = new NodeLibrary(); });
+  beforeEach(() => {
+    lib = new NodeLibrary();
+  });
 
   it('starts with built-in nodes', () => {
     expect(lib.getCount()).toBeGreaterThan(0);
@@ -22,8 +24,11 @@ describe('NodeLibrary', () => {
   it('register adds custom node', () => {
     const before = lib.getCount();
     lib.register({
-      type: 'custom.test', label: 'Test', category: 'custom',
-      description: 'A test node', ports: [],
+      type: 'custom.test',
+      label: 'Test',
+      category: 'custom',
+      description: 'A test node',
+      ports: [],
     });
     expect(lib.getCount()).toBe(before + 1);
     expect(lib.get('custom.test')).toBeDefined();

@@ -18,8 +18,8 @@ export interface SkillNode {
   tier: number;
   maxLevel: number;
   currentLevel: number;
-  cost: number;          // Points per level
-  prerequisites: string[];  // Node IDs
+  cost: number; // Points per level
+  prerequisites: string[]; // Node IDs
   unlocked: boolean;
   icon: string;
   category: string;
@@ -47,15 +47,23 @@ export class ProgressionTree {
     return node;
   }
 
-  getNode(id: string): SkillNode | undefined { return this.nodes.get(id); }
+  getNode(id: string): SkillNode | undefined {
+    return this.nodes.get(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Points
   // ---------------------------------------------------------------------------
 
-  addPoints(amount: number): void { this.availablePoints += amount; }
-  getAvailablePoints(): number { return this.availablePoints; }
-  getTotalSpent(): number { return this.totalSpent; }
+  addPoints(amount: number): void {
+    this.availablePoints += amount;
+  }
+  getAvailablePoints(): number {
+    return this.availablePoints;
+  }
+  getTotalSpent(): number {
+    return this.totalSpent;
+  }
 
   // ---------------------------------------------------------------------------
   // Allocation
@@ -93,7 +101,7 @@ export class ProgressionTree {
     const node = this.nodes.get(id);
     if (!node || node.unlocked) return;
 
-    const met = node.prerequisites.every(preId => {
+    const met = node.prerequisites.every((preId) => {
       const pre = this.nodes.get(preId);
       return pre && pre.currentLevel > 0;
     });
@@ -121,17 +129,29 @@ export class ProgressionTree {
     this.recheckAll();
   }
 
-  getRespecCount(): number { return this.respecCount; }
+  getRespecCount(): number {
+    return this.respecCount;
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getByTier(tier: number): SkillNode[] { return [...this.nodes.values()].filter(n => n.tier === tier); }
-  getByCategory(cat: string): SkillNode[] { return [...this.nodes.values()].filter(n => n.category === cat); }
-  getUnlocked(): SkillNode[] { return [...this.nodes.values()].filter(n => n.unlocked); }
-  getInvested(): SkillNode[] { return [...this.nodes.values()].filter(n => n.currentLevel > 0); }
-  getNodeCount(): number { return this.nodes.size; }
+  getByTier(tier: number): SkillNode[] {
+    return [...this.nodes.values()].filter((n) => n.tier === tier);
+  }
+  getByCategory(cat: string): SkillNode[] {
+    return [...this.nodes.values()].filter((n) => n.category === cat);
+  }
+  getUnlocked(): SkillNode[] {
+    return [...this.nodes.values()].filter((n) => n.unlocked);
+  }
+  getInvested(): SkillNode[] {
+    return [...this.nodes.values()].filter((n) => n.currentLevel > 0);
+  }
+  getNodeCount(): number {
+    return this.nodes.size;
+  }
 
   getEffectTotal(stat: string): number {
     let total = 0;

@@ -64,11 +64,11 @@ logic {
 
 ### Session Modes
 
-| Mode           | Description                         |
-| -------------- | ----------------------------------- |
-| `immersive-vr` | Full VR immersive mode (default)    |
-| `immersive-ar` | AR with passthrough                 |
-| `inline`       | Non-immersive (desktop/preview)     |
+| Mode           | Description                      |
+| -------------- | -------------------------------- |
+| `immersive-vr` | Full VR immersive mode (default) |
+| `immersive-ar` | AR with passthrough              |
+| `inline`       | Non-immersive (desktop/preview)  |
 
 ---
 
@@ -76,28 +76,28 @@ logic {
 
 ### Outgoing (listen via `on_event`)
 
-| Event                      | Payload                                          | Description                             |
-| -------------------------- | ------------------------------------------------ | --------------------------------------- |
-| `openxr_ready`             | `{ deviceProfile, capabilities }`               | Device detected and session ready.      |
-| `openxr_session_start`     | `{ mode, deviceProfile, featuresAvailable }`     | XR session started.                     |
-| `openxr_session_end`       | `{ reason, errorCount }`                         | Session ended.                          |
-| `openxr_session_resumed`   | `{ node }`                                       | Session became visible again.           |
-| `openxr_simulated`         | `{ reason }`                                     | Falling back to simulation.             |
-| `openxr_frame`             | `{ delta, performanceLevel, sessionVisible }`    | Per-frame update (60–144 Hz).           |
-| `xr_input_source_update`   | `{ source, pose, timestamp }`                    | Controller pose + profile.              |
-| `controller_data`          | `{ hand, buttons, axes, triggerValue, gripValue }`| Gamepad button/axis state.             |
-| `hand_data`                | `{ hand, joints, pinchStrength, gripStrength }`  | Hand skeleton joint poses.             |
-| `eye_gaze_update`          | `{ origin, direction, timestamp }`               | Eye gaze ray in world space.            |
-| `haptic_triggered`         | `{ hand, intensity, duration, success }`         | Haptic feedback result.                 |
-| `openxr_features_detected` | `{ features, handTracking, eyeTracking }`        | Available WebXR features.              |
+| Event                      | Payload                                            | Description                        |
+| -------------------------- | -------------------------------------------------- | ---------------------------------- |
+| `openxr_ready`             | `{ deviceProfile, capabilities }`                  | Device detected and session ready. |
+| `openxr_session_start`     | `{ mode, deviceProfile, featuresAvailable }`       | XR session started.                |
+| `openxr_session_end`       | `{ reason, errorCount }`                           | Session ended.                     |
+| `openxr_session_resumed`   | `{ node }`                                         | Session became visible again.      |
+| `openxr_simulated`         | `{ reason }`                                       | Falling back to simulation.        |
+| `openxr_frame`             | `{ delta, performanceLevel, sessionVisible }`      | Per-frame update (60–144 Hz).      |
+| `xr_input_source_update`   | `{ source, pose, timestamp }`                      | Controller pose + profile.         |
+| `controller_data`          | `{ hand, buttons, axes, triggerValue, gripValue }` | Gamepad button/axis state.         |
+| `hand_data`                | `{ hand, joints, pinchStrength, gripStrength }`    | Hand skeleton joint poses.         |
+| `eye_gaze_update`          | `{ origin, direction, timestamp }`                 | Eye gaze ray in world space.       |
+| `haptic_triggered`         | `{ hand, intensity, duration, success }`           | Haptic feedback result.            |
+| `openxr_features_detected` | `{ features, handTracking, eyeTracking }`          | Available WebXR features.          |
 
 ### Incoming (trigger via `emit`)
 
-| Event               | Payload                                          | Description                  |
-| ------------------- | ------------------------------------------------ | ---------------------------- |
-| `request_xr_session`| `{ mode }`                                       | Start an XR session.         |
-| `end_xr_session`    | `{}`                                             | End the current session.     |
-| `trigger_haptic`    | `{ hand, intensity, duration, actuator_index? }` | Fire haptic feedback.        |
+| Event                | Payload                                          | Description              |
+| -------------------- | ------------------------------------------------ | ------------------------ |
+| `request_xr_session` | `{ mode }`                                       | Start an XR session.     |
+| `end_xr_session`     | `{}`                                             | End the current session. |
+| `trigger_haptic`     | `{ hand, intensity, duration, actuator_index? }` | Fire haptic feedback.    |
 
 ---
 
@@ -162,12 +162,12 @@ logic {
 
 The trait tracks rendering performance and exposes it via `openxr_frame` events:
 
-| Level    | Frame Time  |
-| -------- | ----------- |
-| `max`    | < 8.33 ms   |
-| `high`   | 8–11 ms     |
-| `medium` | 11–16 ms    |
-| `low`    | > 16.67 ms  |
+| Level    | Frame Time |
+| -------- | ---------- |
+| `max`    | < 8.33 ms  |
+| `high`   | 8–11 ms    |
+| `medium` | 11–16 ms   |
+| `low`    | > 16.67 ms |
 
 Use this to adaptively lower fidelity when the device struggles.
 

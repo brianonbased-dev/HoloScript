@@ -98,9 +98,7 @@ export function HotkeyGuide() {
 
         {/* Footer */}
         <div className="mt-6 pt-4 border-t border-gray-700 text-center text-sm text-gray-400">
-          <p>
-            Pro tip: Keep your hands on the keyboard for maximum degen efficiency 🚀
-          </p>
+          <p>Pro tip: Keep your hands on the keyboard for maximum degen efficiency 🚀</p>
         </div>
       </div>
     </div>
@@ -110,9 +108,7 @@ export function HotkeyGuide() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
-        {title}
-      </h3>
+      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">{title}</h3>
       <div className="space-y-1">{children}</div>
     </div>
   );
@@ -154,11 +150,7 @@ export function HotkeyHint() {
       <span className="text-sm">
         Press <kbd className="px-2 py-0.5 bg-purple-700 rounded">?</kbd> for shortcuts
       </span>
-      <button
-        onClick={handleDismiss}
-        className="text-white/80 hover:text-white"
-        title="Dismiss"
-      >
+      <button onClick={handleDismiss} className="text-white/80 hover:text-white" title="Dismiss">
         ×
       </button>
     </div>

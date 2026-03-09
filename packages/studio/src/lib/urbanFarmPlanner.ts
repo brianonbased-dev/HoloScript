@@ -9,7 +9,10 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
-export interface Vec2 { x: number; y: number }
+export interface Vec2 {
+  x: number;
+  y: number;
+}
 
 export type Season = 'spring' | 'summer' | 'fall' | 'winter';
 export type SoilType = 'clay' | 'sandy' | 'loam' | 'silt' | 'peat';
@@ -41,10 +44,10 @@ export interface PlantingBed {
 }
 
 export interface SunlightData {
-  hour: number;         // 0-23
-  altitude: number;     // degrees above horizon
-  azimuth: number;      // degrees from north
-  intensity: number;    // 0-1 (0 = shadow, 1 = full sun)
+  hour: number; // 0-23
+  altitude: number; // degrees above horizon
+  azimuth: number; // degrees from north
+  intensity: number; // 0-1 (0 = shadow, 1 = full sun)
 }
 
 export interface VerticalLevel {
@@ -58,7 +61,7 @@ export interface VerticalLevel {
 export interface IrrigationZone {
   id: string;
   beds: string[];
-  flowRateLPH: number;       // liters per hour
+  flowRateLPH: number; // liters per hour
   schedule: { startHour: number; durationMin: number }[];
   waterUsageLitersPerDay: number;
 }
@@ -68,12 +71,84 @@ export interface IrrigationZone {
 // ═══════════════════════════════════════════════════════════════════
 
 export const CROP_DATABASE: CropProfile[] = [
-  { id: 'tomato', name: 'Tomato', category: 'fruit', growingSeasons: ['spring', 'summer'], daysToHarvest: 80, sunHoursMin: 6, waterLitersPerDay: 2, spacingCm: 60, companionCrops: ['basil', 'carrot'], incompatibleCrops: ['fennel'], yieldKgPerM2: 8 },
-  { id: 'lettuce', name: 'Lettuce', category: 'leafy', growingSeasons: ['spring', 'fall'], daysToHarvest: 45, sunHoursMin: 4, waterLitersPerDay: 1, spacingCm: 25, companionCrops: ['carrot', 'radish'], incompatibleCrops: [], yieldKgPerM2: 5 },
-  { id: 'carrot', name: 'Carrot', category: 'root', growingSeasons: ['spring', 'fall'], daysToHarvest: 70, sunHoursMin: 6, waterLitersPerDay: 1.5, spacingCm: 8, companionCrops: ['tomato', 'lettuce'], incompatibleCrops: ['dill'], yieldKgPerM2: 4 },
-  { id: 'basil', name: 'Basil', category: 'herb', growingSeasons: ['spring', 'summer'], daysToHarvest: 30, sunHoursMin: 6, waterLitersPerDay: 0.5, spacingCm: 20, companionCrops: ['tomato'], incompatibleCrops: ['sage'], yieldKgPerM2: 2 },
-  { id: 'bean', name: 'Bush Bean', category: 'legume', growingSeasons: ['spring', 'summer'], daysToHarvest: 55, sunHoursMin: 6, waterLitersPerDay: 1, spacingCm: 15, companionCrops: ['carrot', 'lettuce'], incompatibleCrops: ['onion'], yieldKgPerM2: 3 },
-  { id: 'kale', name: 'Kale', category: 'leafy', growingSeasons: ['spring', 'fall', 'winter'], daysToHarvest: 55, sunHoursMin: 4, waterLitersPerDay: 1.5, spacingCm: 45, companionCrops: ['bean', 'lettuce'], incompatibleCrops: [], yieldKgPerM2: 4 },
+  {
+    id: 'tomato',
+    name: 'Tomato',
+    category: 'fruit',
+    growingSeasons: ['spring', 'summer'],
+    daysToHarvest: 80,
+    sunHoursMin: 6,
+    waterLitersPerDay: 2,
+    spacingCm: 60,
+    companionCrops: ['basil', 'carrot'],
+    incompatibleCrops: ['fennel'],
+    yieldKgPerM2: 8,
+  },
+  {
+    id: 'lettuce',
+    name: 'Lettuce',
+    category: 'leafy',
+    growingSeasons: ['spring', 'fall'],
+    daysToHarvest: 45,
+    sunHoursMin: 4,
+    waterLitersPerDay: 1,
+    spacingCm: 25,
+    companionCrops: ['carrot', 'radish'],
+    incompatibleCrops: [],
+    yieldKgPerM2: 5,
+  },
+  {
+    id: 'carrot',
+    name: 'Carrot',
+    category: 'root',
+    growingSeasons: ['spring', 'fall'],
+    daysToHarvest: 70,
+    sunHoursMin: 6,
+    waterLitersPerDay: 1.5,
+    spacingCm: 8,
+    companionCrops: ['tomato', 'lettuce'],
+    incompatibleCrops: ['dill'],
+    yieldKgPerM2: 4,
+  },
+  {
+    id: 'basil',
+    name: 'Basil',
+    category: 'herb',
+    growingSeasons: ['spring', 'summer'],
+    daysToHarvest: 30,
+    sunHoursMin: 6,
+    waterLitersPerDay: 0.5,
+    spacingCm: 20,
+    companionCrops: ['tomato'],
+    incompatibleCrops: ['sage'],
+    yieldKgPerM2: 2,
+  },
+  {
+    id: 'bean',
+    name: 'Bush Bean',
+    category: 'legume',
+    growingSeasons: ['spring', 'summer'],
+    daysToHarvest: 55,
+    sunHoursMin: 6,
+    waterLitersPerDay: 1,
+    spacingCm: 15,
+    companionCrops: ['carrot', 'lettuce'],
+    incompatibleCrops: ['onion'],
+    yieldKgPerM2: 3,
+  },
+  {
+    id: 'kale',
+    name: 'Kale',
+    category: 'leafy',
+    growingSeasons: ['spring', 'fall', 'winter'],
+    daysToHarvest: 55,
+    sunHoursMin: 4,
+    waterLitersPerDay: 1.5,
+    spacingCm: 45,
+    companionCrops: ['bean', 'lettuce'],
+    incompatibleCrops: [],
+    yieldKgPerM2: 4,
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -82,14 +157,17 @@ export const CROP_DATABASE: CropProfile[] = [
 
 export function sunPositionAtHour(hour: number, latitude: number, dayOfYear: number): SunlightData {
   // Simplified solar position calculation
-  const declination = 23.45 * Math.sin((2 * Math.PI / 365) * (dayOfYear - 81));
+  const declination = 23.45 * Math.sin(((2 * Math.PI) / 365) * (dayOfYear - 81));
   const hourAngle = (hour - 12) * 15; // degrees
-  const latRad = latitude * Math.PI / 180;
-  const decRad = declination * Math.PI / 180;
-  const altitude = Math.asin(
-    Math.sin(latRad) * Math.sin(decRad) +
-    Math.cos(latRad) * Math.cos(decRad) * Math.cos(hourAngle * Math.PI / 180)
-  ) * 180 / Math.PI;
+  const latRad = (latitude * Math.PI) / 180;
+  const decRad = (declination * Math.PI) / 180;
+  const altitude =
+    (Math.asin(
+      Math.sin(latRad) * Math.sin(decRad) +
+        Math.cos(latRad) * Math.cos(decRad) * Math.cos((hourAngle * Math.PI) / 180)
+    ) *
+      180) /
+    Math.PI;
   const azimuth = (hourAngle + 180) % 360;
   return { hour, altitude: Math.max(0, altitude), azimuth, intensity: Math.max(0, altitude / 90) };
 }
@@ -112,11 +190,11 @@ export function hasSufficientSun(sunHours: number, crop: CropProfile): boolean {
 // ═══════════════════════════════════════════════════════════════════
 
 export function getCropById(id: string): CropProfile | undefined {
-  return CROP_DATABASE.find(c => c.id === id);
+  return CROP_DATABASE.find((c) => c.id === id);
 }
 
 export function cropsForSeason(season: Season): CropProfile[] {
-  return CROP_DATABASE.filter(c => c.growingSeasons.includes(season));
+  return CROP_DATABASE.filter((c) => c.growingSeasons.includes(season));
 }
 
 export function areCompanions(a: CropProfile, b: CropProfile): boolean {
@@ -159,33 +237,65 @@ export function dailyWaterUsage(beds: PlantingBed[]): number {
 // ═══════════════════════════════════════════════════════════════════
 
 export type FoodForestLayer =
-  | 'canopy'         // Large fruit/nut trees (>10m)
-  | 'understory'     // Smaller trees (3-10m)
-  | 'shrub'          // Berry bushes, hazelnuts
-  | 'herbaceous'     // Herbs, perennial vegetables
-  | 'groundcover'    // Creeping plants, strawberries
-  | 'rhizosphere'    // Root crops, fungi
-  | 'climber';       // Vines, grapes, kiwifruit
+  | 'canopy' // Large fruit/nut trees (>10m)
+  | 'understory' // Smaller trees (3-10m)
+  | 'shrub' // Berry bushes, hazelnuts
+  | 'herbaceous' // Herbs, perennial vegetables
+  | 'groundcover' // Creeping plants, strawberries
+  | 'rhizosphere' // Root crops, fungi
+  | 'climber'; // Vines, grapes, kiwifruit
 
 export interface FoodForestPlant {
   id: string;
   name: string;
   layer: FoodForestLayer;
-  nitrogenFixer: boolean;    // Leguminous — enriches soil
+  nitrogenFixer: boolean; // Leguminous — enriches soil
   dynamicAccumulator: boolean; // Deep roots bring up minerals
-  pollinator: boolean;        // Attracts bees/butterflies
+  pollinator: boolean; // Attracts bees/butterflies
   edible: boolean;
   perennial: boolean;
 }
 
-export const FOOD_FOREST_LAYERS: { layer: FoodForestLayer; heightM: string; description: string }[] = [
-  { layer: 'canopy',      heightM: '10-30m',  description: 'Tall fruit/nut trees — chestnuts, walnuts, mulberries' },
-  { layer: 'understory',  heightM: '3-10m',   description: 'Dwarf fruit trees — apples, peaches, figs, plums' },
-  { layer: 'shrub',       heightM: '1-3m',    description: 'Berry bushes — blueberry, currant, gooseberry, hazelnut' },
-  { layer: 'herbaceous',  heightM: '0.3-1m',  description: 'Herbs & perennials — comfrey, yarrow, rhubarb, mint' },
-  { layer: 'groundcover', heightM: '0-0.3m',  description: 'Spreading plants — strawberry, clover, creeping thyme' },
-  { layer: 'rhizosphere', heightM: '<0m',      description: 'Root layer — potato, garlic, ginger, mushrooms' },
-  { layer: 'climber',     heightM: 'vertical', description: 'Vines — grapes, kiwifruit, passionfruit, hops' },
+export const FOOD_FOREST_LAYERS: {
+  layer: FoodForestLayer;
+  heightM: string;
+  description: string;
+}[] = [
+  {
+    layer: 'canopy',
+    heightM: '10-30m',
+    description: 'Tall fruit/nut trees — chestnuts, walnuts, mulberries',
+  },
+  {
+    layer: 'understory',
+    heightM: '3-10m',
+    description: 'Dwarf fruit trees — apples, peaches, figs, plums',
+  },
+  {
+    layer: 'shrub',
+    heightM: '1-3m',
+    description: 'Berry bushes — blueberry, currant, gooseberry, hazelnut',
+  },
+  {
+    layer: 'herbaceous',
+    heightM: '0.3-1m',
+    description: 'Herbs & perennials — comfrey, yarrow, rhubarb, mint',
+  },
+  {
+    layer: 'groundcover',
+    heightM: '0-0.3m',
+    description: 'Spreading plants — strawberry, clover, creeping thyme',
+  },
+  {
+    layer: 'rhizosphere',
+    heightM: '<0m',
+    description: 'Root layer — potato, garlic, ginger, mushrooms',
+  },
+  {
+    layer: 'climber',
+    heightM: 'vertical',
+    description: 'Vines — grapes, kiwifruit, passionfruit, hops',
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -195,45 +305,128 @@ export const FOOD_FOREST_LAYERS: { layer: FoodForestLayer; heightM: string; desc
 export interface PlantGuild {
   id: string;
   name: string;
-  centerPlant: string;       // Anchor species (usually a tree)
+  centerPlant: string; // Anchor species (usually a tree)
   members: FoodForestPlant[];
-  benefits: string[];        // Mutual benefits
+  benefits: string[]; // Mutual benefits
 }
 
 export const THREE_SISTERS_GUILD: PlantGuild = {
-  id: 'three-sisters', name: 'Three Sisters (Corn-Bean-Squash)',
+  id: 'three-sisters',
+  name: 'Three Sisters (Corn-Bean-Squash)',
   centerPlant: 'corn',
   members: [
-    { id: 'corn', name: 'Corn', layer: 'herbaceous', nitrogenFixer: false, dynamicAccumulator: false, pollinator: false, edible: true, perennial: false },
-    { id: 'bean', name: 'Climbing Bean', layer: 'climber', nitrogenFixer: true, dynamicAccumulator: false, pollinator: true, edible: true, perennial: false },
-    { id: 'squash', name: 'Winter Squash', layer: 'groundcover', nitrogenFixer: false, dynamicAccumulator: false, pollinator: true, edible: true, perennial: false },
+    {
+      id: 'corn',
+      name: 'Corn',
+      layer: 'herbaceous',
+      nitrogenFixer: false,
+      dynamicAccumulator: false,
+      pollinator: false,
+      edible: true,
+      perennial: false,
+    },
+    {
+      id: 'bean',
+      name: 'Climbing Bean',
+      layer: 'climber',
+      nitrogenFixer: true,
+      dynamicAccumulator: false,
+      pollinator: true,
+      edible: true,
+      perennial: false,
+    },
+    {
+      id: 'squash',
+      name: 'Winter Squash',
+      layer: 'groundcover',
+      nitrogenFixer: false,
+      dynamicAccumulator: false,
+      pollinator: true,
+      edible: true,
+      perennial: false,
+    },
   ],
-  benefits: ['Corn provides structure for beans', 'Beans fix nitrogen for all', 'Squash shades soil and suppresses weeds'],
+  benefits: [
+    'Corn provides structure for beans',
+    'Beans fix nitrogen for all',
+    'Squash shades soil and suppresses weeds',
+  ],
 };
 
 export const APPLE_GUILD: PlantGuild = {
-  id: 'apple-guild', name: 'Apple Tree Guild',
+  id: 'apple-guild',
+  name: 'Apple Tree Guild',
   centerPlant: 'apple',
   members: [
-    { id: 'apple', name: 'Apple Tree', layer: 'understory', nitrogenFixer: false, dynamicAccumulator: false, pollinator: true, edible: true, perennial: true },
-    { id: 'comfrey', name: 'Comfrey', layer: 'herbaceous', nitrogenFixer: false, dynamicAccumulator: true, pollinator: true, edible: false, perennial: true },
-    { id: 'white-clover', name: 'White Clover', layer: 'groundcover', nitrogenFixer: true, dynamicAccumulator: false, pollinator: true, edible: false, perennial: true },
-    { id: 'nasturtium', name: 'Nasturtium', layer: 'groundcover', nitrogenFixer: false, dynamicAccumulator: false, pollinator: true, edible: true, perennial: false },
-    { id: 'chives', name: 'Chives', layer: 'herbaceous', nitrogenFixer: false, dynamicAccumulator: false, pollinator: true, edible: true, perennial: true },
+    {
+      id: 'apple',
+      name: 'Apple Tree',
+      layer: 'understory',
+      nitrogenFixer: false,
+      dynamicAccumulator: false,
+      pollinator: true,
+      edible: true,
+      perennial: true,
+    },
+    {
+      id: 'comfrey',
+      name: 'Comfrey',
+      layer: 'herbaceous',
+      nitrogenFixer: false,
+      dynamicAccumulator: true,
+      pollinator: true,
+      edible: false,
+      perennial: true,
+    },
+    {
+      id: 'white-clover',
+      name: 'White Clover',
+      layer: 'groundcover',
+      nitrogenFixer: true,
+      dynamicAccumulator: false,
+      pollinator: true,
+      edible: false,
+      perennial: true,
+    },
+    {
+      id: 'nasturtium',
+      name: 'Nasturtium',
+      layer: 'groundcover',
+      nitrogenFixer: false,
+      dynamicAccumulator: false,
+      pollinator: true,
+      edible: true,
+      perennial: false,
+    },
+    {
+      id: 'chives',
+      name: 'Chives',
+      layer: 'herbaceous',
+      nitrogenFixer: false,
+      dynamicAccumulator: false,
+      pollinator: true,
+      edible: true,
+      perennial: true,
+    },
   ],
-  benefits: ['Clover fixes nitrogen', 'Comfrey mines deep minerals', 'Nasturtium traps aphids', 'Chives deter pests'],
+  benefits: [
+    'Clover fixes nitrogen',
+    'Comfrey mines deep minerals',
+    'Nasturtium traps aphids',
+    'Chives deter pests',
+  ],
 };
 
 export function guildNitrogenFixers(guild: PlantGuild): FoodForestPlant[] {
-  return guild.members.filter(m => m.nitrogenFixer);
+  return guild.members.filter((m) => m.nitrogenFixer);
 }
 
 export function guildDynamicAccumulators(guild: PlantGuild): FoodForestPlant[] {
-  return guild.members.filter(m => m.dynamicAccumulator);
+  return guild.members.filter((m) => m.dynamicAccumulator);
 }
 
 export function guildLayerCoverage(guild: PlantGuild): FoodForestLayer[] {
-  return [...new Set(guild.members.map(m => m.layer))];
+  return [...new Set(guild.members.map((m) => m.layer))];
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -241,13 +434,13 @@ export function guildLayerCoverage(guild: PlantGuild): FoodForestLayer[] {
 // ═══════════════════════════════════════════════════════════════════
 
 export interface SoilHealthProfile {
-  organicMatterPercent: number;   // Ideal: 3-6%
-  ph: number;                      // 6.0-7.0 for most crops
+  organicMatterPercent: number; // Ideal: 3-6%
+  ph: number; // 6.0-7.0 for most crops
   nitrogenPPM: number;
   phosphorusPPM: number;
   potassiumPPM: number;
   microbialDiversityIndex: number; // 0-1 (Shannon-Wiener normalized)
-  compactionPSI: number;           // <300 ideal
+  compactionPSI: number; // <300 ideal
   drainageRate: 'poor' | 'moderate' | 'good' | 'excessive';
 }
 
@@ -271,17 +464,45 @@ export function soilHealthScore(soil: SoilHealthProfile): number {
 export interface CoverCrop {
   id: string;
   name: string;
-  nitrogenFixKgPerHa: number;    // Estimated nitrogen contribution
+  nitrogenFixKgPerHa: number; // Estimated nitrogen contribution
   biomassKgPerHa: number;
   season: Season;
   terminationMethod: 'mow' | 'crimp' | 'till' | 'frost-kill';
 }
 
 export const COVER_CROPS: CoverCrop[] = [
-  { id: 'crimson-clover', name: 'Crimson Clover', nitrogenFixKgPerHa: 130, biomassKgPerHa: 4000, season: 'fall', terminationMethod: 'frost-kill' },
-  { id: 'winter-rye', name: 'Winter Rye', nitrogenFixKgPerHa: 0, biomassKgPerHa: 8000, season: 'fall', terminationMethod: 'crimp' },
-  { id: 'buckwheat', name: 'Buckwheat', nitrogenFixKgPerHa: 0, biomassKgPerHa: 3000, season: 'summer', terminationMethod: 'mow' },
-  { id: 'hairy-vetch', name: 'Hairy Vetch', nitrogenFixKgPerHa: 180, biomassKgPerHa: 5000, season: 'fall', terminationMethod: 'crimp' },
+  {
+    id: 'crimson-clover',
+    name: 'Crimson Clover',
+    nitrogenFixKgPerHa: 130,
+    biomassKgPerHa: 4000,
+    season: 'fall',
+    terminationMethod: 'frost-kill',
+  },
+  {
+    id: 'winter-rye',
+    name: 'Winter Rye',
+    nitrogenFixKgPerHa: 0,
+    biomassKgPerHa: 8000,
+    season: 'fall',
+    terminationMethod: 'crimp',
+  },
+  {
+    id: 'buckwheat',
+    name: 'Buckwheat',
+    nitrogenFixKgPerHa: 0,
+    biomassKgPerHa: 3000,
+    season: 'summer',
+    terminationMethod: 'mow',
+  },
+  {
+    id: 'hairy-vetch',
+    name: 'Hairy Vetch',
+    nitrogenFixKgPerHa: 180,
+    biomassKgPerHa: 5000,
+    season: 'fall',
+    terminationMethod: 'crimp',
+  },
 ];
 
 export function coverCropNitrogenValue(crop: CoverCrop, areaSqM: number): number {
@@ -297,23 +518,18 @@ export function rotationPlan(categories: CropCategory[]): CropCategory[][] {
   return years;
 }
 
-export function compostDecompositionRate(
-  temperatureC: number,
-  moisturePercent: number
-): number {
+export function compostDecompositionRate(temperatureC: number, moisturePercent: number): number {
   // Decomposition rate multiplier (1.0 = optimal at 55°C, 60% moisture)
-  const tempFactor = temperatureC >= 45 && temperatureC <= 65 ? 1.0
-    : temperatureC >= 30 ? 0.6
-    : 0.3;
-  const moistureFactor = moisturePercent >= 50 && moisturePercent <= 70 ? 1.0
-    : moisturePercent >= 40 ? 0.7
-    : 0.3;
+  const tempFactor =
+    temperatureC >= 45 && temperatureC <= 65 ? 1.0 : temperatureC >= 30 ? 0.6 : 0.3;
+  const moistureFactor =
+    moisturePercent >= 50 && moisturePercent <= 70 ? 1.0 : moisturePercent >= 40 ? 0.7 : 0.3;
   return tempFactor * moistureFactor;
 }
 
 export function polycultureDiversityScore(plants: FoodForestPlant[]): number {
   // Shannon-Wiener diversity index simplified: count unique layers covered
-  const uniqueLayers = new Set(plants.map(p => p.layer));
+  const uniqueLayers = new Set(plants.map((p) => p.layer));
   return uniqueLayers.size / 7; // 7 possible layers
 }
 
@@ -329,12 +545,12 @@ export interface IoTSensor {
   name: string;
   type: IoTSensorType;
   position: Vec2;
-  bedId?: string;              // Associated planting bed
+  bedId?: string; // Associated planting bed
   status: DeviceStatus;
-  batteryPercent: number;      // 0-100
-  lastReading: number;         // Latest sensor value
-  lastReadingTime: number;     // Unix timestamp
-  unit: string;                // e.g., '%', '°C', 'lux', 'pH', 'mS/cm'
+  batteryPercent: number; // 0-100
+  lastReading: number; // Latest sensor value
+  lastReadingTime: number; // Unix timestamp
+  unit: string; // e.g., '%', '°C', 'lux', 'pH', 'mS/cm'
 }
 
 export interface SensorReading {
@@ -368,12 +584,12 @@ export interface SensorThreshold {
 export interface WeatherStation {
   id: string;
   position: Vec2;
-  temperature: number;         // °C
-  humidity: number;            // %
+  temperature: number; // °C
+  humidity: number; // %
   windSpeedKmh: number;
-  rainfall24h: number;         // mm
-  uvIndex: number;             // 0-11+
-  barometricPressure: number;  // hPa
+  rainfall24h: number; // mm
+  uvIndex: number; // 0-11+
+  barometricPressure: number; // hPa
   status: DeviceStatus;
 }
 
@@ -384,7 +600,7 @@ export interface WeatherStation {
 export interface IrrigationTrigger {
   bedId: string;
   moistureSensorId: string;
-  thresholdPercent: number;    // Trigger when soil moisture drops below
+  thresholdPercent: number; // Trigger when soil moisture drops below
   durationMinutes: number;
   enabled: boolean;
 }
@@ -406,46 +622,59 @@ export const DEFAULT_SENSOR_THRESHOLDS: SensorThreshold[] = [
 // IoT — Core Functions
 // ═══════════════════════════════════════════════════════════════════
 
-export function checkSensorAlerts(
-  sensor: IoTSensor,
-  thresholds: SensorThreshold[]
-): SensorAlert[] {
+export function checkSensorAlerts(sensor: IoTSensor, thresholds: SensorThreshold[]): SensorAlert[] {
   const alerts: SensorAlert[] = [];
   const now = Date.now();
 
   // Battery alert
   if (sensor.batteryPercent < 15) {
     alerts.push({
-      sensorId: sensor.id, type: 'battery', value: sensor.batteryPercent,
-      threshold: 15, message: `${sensor.name} battery low (${sensor.batteryPercent}%)`,
-      timestamp: now, acknowledged: false,
+      sensorId: sensor.id,
+      type: 'battery',
+      value: sensor.batteryPercent,
+      threshold: 15,
+      message: `${sensor.name} battery low (${sensor.batteryPercent}%)`,
+      timestamp: now,
+      acknowledged: false,
     });
   }
 
   // Offline alert (no reading in 30 minutes)
   if (now - sensor.lastReadingTime > 30 * 60 * 1000) {
     alerts.push({
-      sensorId: sensor.id, type: 'offline', value: 0,
-      threshold: 30, message: `${sensor.name} offline — no data for 30+ min`,
-      timestamp: now, acknowledged: false,
+      sensorId: sensor.id,
+      type: 'offline',
+      value: 0,
+      threshold: 30,
+      message: `${sensor.name} offline — no data for 30+ min`,
+      timestamp: now,
+      acknowledged: false,
     });
   }
 
   // Value threshold alerts
-  const threshold = thresholds.find(t => t.sensorType === sensor.type);
+  const threshold = thresholds.find((t) => t.sensorType === sensor.type);
   if (threshold) {
     if (sensor.lastReading < threshold.min) {
       alerts.push({
-        sensorId: sensor.id, type: 'low', value: sensor.lastReading,
-        threshold: threshold.min, message: `${sensor.name} below minimum (${sensor.lastReading} ${sensor.unit})`,
-        timestamp: now, acknowledged: false,
+        sensorId: sensor.id,
+        type: 'low',
+        value: sensor.lastReading,
+        threshold: threshold.min,
+        message: `${sensor.name} below minimum (${sensor.lastReading} ${sensor.unit})`,
+        timestamp: now,
+        acknowledged: false,
       });
     }
     if (sensor.lastReading > threshold.max) {
       alerts.push({
-        sensorId: sensor.id, type: 'high', value: sensor.lastReading,
-        threshold: threshold.max, message: `${sensor.name} above maximum (${sensor.lastReading} ${sensor.unit})`,
-        timestamp: now, acknowledged: false,
+        sensorId: sensor.id,
+        type: 'high',
+        value: sensor.lastReading,
+        threshold: threshold.max,
+        message: `${sensor.name} above maximum (${sensor.lastReading} ${sensor.unit})`,
+        timestamp: now,
+        acknowledged: false,
       });
     }
   }
@@ -461,15 +690,15 @@ export function shouldTriggerIrrigation(
 }
 
 export function sensorsByType(sensors: IoTSensor[], type: IoTSensorType): IoTSensor[] {
-  return sensors.filter(s => s.type === type);
+  return sensors.filter((s) => s.type === type);
 }
 
 export function onlineSensors(sensors: IoTSensor[]): IoTSensor[] {
-  return sensors.filter(s => s.status === 'online');
+  return sensors.filter((s) => s.status === 'online');
 }
 
 export function offlineSensors(sensors: IoTSensor[]): IoTSensor[] {
-  return sensors.filter(s => s.status === 'offline' || s.status === 'error');
+  return sensors.filter((s) => s.status === 'offline' || s.status === 'error');
 }
 
 export function averageSensorValue(sensors: IoTSensor[]): number {
@@ -479,14 +708,11 @@ export function averageSensorValue(sensors: IoTSensor[]): number {
 
 export function fleetHealthPercent(sensors: IoTSensor[]): number {
   if (sensors.length === 0) return 100;
-  const healthy = sensors.filter(s => s.status === 'online' && s.batteryPercent >= 15).length;
+  const healthy = sensors.filter((s) => s.status === 'online' && s.batteryPercent >= 15).length;
   return (healthy / sensors.length) * 100;
 }
 
-export function growingDegreeDays(
-  readings: SensorReading[],
-  baseTemperatureC: number
-): number {
+export function growingDegreeDays(readings: SensorReading[], baseTemperatureC: number): number {
   // Sum of (daily avg temp - base temp) for each reading above base
   let gdd = 0;
   for (const r of readings) {
@@ -541,8 +767,15 @@ export function mycorrhizalNetworkSim(
       const dy = plants[i].position.y - plants[j].position.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist <= maxDistanceM) {
-        const flow = (1 - dist / maxDistanceM) * (plants[i].nitrogenFixer || plants[j].nitrogenFixer ? 2 : 0.5);
-        links.push({ plantA: plants[i].id, plantB: plants[j].id, nutrientFlowKgPerYear: Math.round(flow * 100) / 100, distanceM: Math.round(dist * 100) / 100 });
+        const flow =
+          (1 - dist / maxDistanceM) *
+          (plants[i].nitrogenFixer || plants[j].nitrogenFixer ? 2 : 0.5);
+        links.push({
+          plantA: plants[i].id,
+          plantB: plants[j].id,
+          nutrientFlowKgPerYear: Math.round(flow * 100) / 100,
+          distanceM: Math.round(dist * 100) / 100,
+        });
       }
     }
   }
@@ -576,7 +809,12 @@ export function lorawanMeshConnect(
       const maxRange = Math.min(nodes[i].rangeM, nodes[j].rangeM);
       const connected = dist <= maxRange;
       const signalStrength = connected ? Math.max(0, 1 - dist / maxRange) : 0;
-      links.push({ from: nodes[i].id, to: nodes[j].id, signalStrength: Math.round(signalStrength * 100) / 100, connected });
+      links.push({
+        from: nodes[i].id,
+        to: nodes[j].id,
+        signalStrength: Math.round(signalStrength * 100) / 100,
+        connected,
+      });
     }
   }
   return links;
@@ -590,8 +828,10 @@ export function lorawanMeshConnect(
  * Generate an aerial drone survey grid for crop monitoring.
  */
 export function droneSurveyGrid(
-  originX: number, originY: number,
-  widthM: number, heightM: number,
+  originX: number,
+  originY: number,
+  widthM: number,
+  heightM: number,
   altitudeM: number,
   laneSpacingM: number
 ): Vec2[] {
@@ -606,4 +846,3 @@ export function droneSurveyGrid(
   }
   return waypoints;
 }
-

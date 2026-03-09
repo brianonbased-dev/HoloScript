@@ -2,12 +2,7 @@
  * @fileoverview Tests for CameraController, InventorySystem, TerrainSystem, LightingModel barrel exports
  */
 import { describe, it, expect } from 'vitest';
-import {
-  CameraController,
-  InventorySystem,
-  TerrainSystem,
-  LightingModel,
-} from '../index';
+import { CameraController, InventorySystem, TerrainSystem, LightingModel } from '../index';
 
 describe('CameraController exports', () => {
   it('creates with default config and returns state', () => {
@@ -52,8 +47,26 @@ describe('CameraController exports', () => {
 });
 
 describe('InventorySystem exports', () => {
-  const sword = { id: 'sword', name: 'Sword', category: 'weapon' as const, rarity: 'common' as const, weight: 3, maxStack: 1, value: 50, properties: {} };
-  const potion = { id: 'potion', name: 'Potion', category: 'consumable' as const, rarity: 'common' as const, weight: 0.5, maxStack: 20, value: 10, properties: {} };
+  const sword = {
+    id: 'sword',
+    name: 'Sword',
+    category: 'weapon' as const,
+    rarity: 'common' as const,
+    weight: 3,
+    maxStack: 1,
+    value: 50,
+    properties: {},
+  };
+  const potion = {
+    id: 'potion',
+    name: 'Potion',
+    category: 'consumable' as const,
+    rarity: 'common' as const,
+    weight: 0.5,
+    maxStack: 20,
+    value: 10,
+    properties: {},
+  };
 
   it('adds items and tracks weight', () => {
     const inv = new InventorySystem(10, 50);
@@ -98,14 +111,31 @@ describe('InventorySystem exports', () => {
 describe('TerrainSystem exports', () => {
   it('creates terrain with procedural generation', () => {
     const ts = new TerrainSystem();
-    const id = ts.createTerrain({ id: 'test', width: 32, depth: 32, resolution: 8, maxHeight: 10, position: { x: 0, y: 0, z: 0 } });
+    const id = ts.createTerrain({
+      id: 'test',
+      width: 32,
+      depth: 32,
+      resolution: 8,
+      maxHeight: 10,
+      position: { x: 0, y: 0, z: 0 },
+    });
     expect(typeof id).toBe('string');
     expect(ts.getTerrainIds().length).toBe(1);
   });
 
   it('getHeightAt returns interpolated height', () => {
     const ts = new TerrainSystem();
-    const id = ts.createTerrain({ id: 'h', width: 16, depth: 16, resolution: 4, maxHeight: 5, position: { x: 0, y: 0, z: 0 } }, { seed: 42 });
+    const id = ts.createTerrain(
+      {
+        id: 'h',
+        width: 16,
+        depth: 16,
+        resolution: 4,
+        maxHeight: 5,
+        position: { x: 0, y: 0, z: 0 },
+      },
+      { seed: 42 }
+    );
     const h = ts.getHeightAt(id, 8, 8);
     expect(typeof h).toBe('number');
   });
@@ -113,8 +143,16 @@ describe('TerrainSystem exports', () => {
   it('setHeightAt modifies heightmap', () => {
     const ts = new TerrainSystem();
     const res = 8;
-    const id = ts.createTerrain({ id: 'edit', width: 32, depth: 32, resolution: res, maxHeight: 10, position: { x: 0, y: 0, z: 0 } });
-    const gx = 3, gz = 3;
+    const id = ts.createTerrain({
+      id: 'edit',
+      width: 32,
+      depth: 32,
+      resolution: res,
+      maxHeight: 10,
+      position: { x: 0, y: 0, z: 0 },
+    });
+    const gx = 3,
+      gz = 3;
     // Heights are normalized [0,1] in TerrainSystem
     ts.setHeightAt(id, gx, gz, 0.75);
     const t = ts.getTerrain(id);
@@ -124,7 +162,14 @@ describe('TerrainSystem exports', () => {
 
   it('getCollider returns collider interface', () => {
     const ts = new TerrainSystem();
-    const id = ts.createTerrain({ id: 'col', width: 16, depth: 16, resolution: 4, maxHeight: 5, position: { x: 0, y: 0, z: 0 } });
+    const id = ts.createTerrain({
+      id: 'col',
+      width: 16,
+      depth: 16,
+      resolution: 4,
+      maxHeight: 5,
+      position: { x: 0, y: 0, z: 0 },
+    });
     const collider = ts.getCollider(id);
     expect(collider).not.toBeNull();
     expect(typeof collider!.getHeightAt(8, 8)).toBe('number');
@@ -132,7 +177,14 @@ describe('TerrainSystem exports', () => {
 
   it('removeTerrain cleans up', () => {
     const ts = new TerrainSystem();
-    const id = ts.createTerrain({ id: 'del', width: 8, depth: 8, resolution: 4, maxHeight: 5, position: { x: 0, y: 0, z: 0 } });
+    const id = ts.createTerrain({
+      id: 'del',
+      width: 8,
+      depth: 8,
+      resolution: 4,
+      maxHeight: 5,
+      position: { x: 0, y: 0, z: 0 },
+    });
     expect(ts.removeTerrain(id)).toBe(true);
     expect(ts.getTerrainIds().length).toBe(0);
   });

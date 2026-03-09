@@ -433,11 +433,7 @@ export interface AgentPassport {
  * @deprecated Prefer `generateAgentDIDv2` for new passports.
  */
 export function generateAgentDID(role: AgentRole, publicKey: string): string {
-  const fingerprint = crypto
-    .createHash('sha256')
-    .update(publicKey)
-    .digest('hex')
-    .substring(0, 16);
+  const fingerprint = crypto.createHash('sha256').update(publicKey).digest('hex').substring(0, 16);
   return `did:holoscript:${role}:${fingerprint}`;
 }
 
@@ -453,11 +449,7 @@ export function generateAgentDID(role: AgentRole, publicKey: string): string {
  * across a larger, role-independent namespace.
  */
 export function generateAgentDIDv2(publicKey: string): string {
-  const fingerprint = crypto
-    .createHash('sha256')
-    .update(publicKey)
-    .digest('hex')
-    .substring(0, 32);
+  const fingerprint = crypto.createHash('sha256').update(publicKey).digest('hex').substring(0, 32);
   return `did:holoscript:${fingerprint}`;
 }
 
@@ -482,7 +474,8 @@ export function createDIDDocument(
 
   // Convert public key to multibase (base58btc would be 'z' prefix)
   // For simplicity, use base64url with 'u' prefix
-  const pubKeyBytes = crypto.createPublicKey(keyPair.publicKey)
+  const pubKeyBytes = crypto
+    .createPublicKey(keyPair.publicKey)
     .export({ type: 'spki', format: 'der' });
   const publicKeyMultibase = 'u' + pubKeyBytes.toString('base64url');
 
@@ -672,10 +665,7 @@ export function verifyPassportSignature(passport: AgentPassport): boolean {
   const hash = crypto.createHash('sha256').update(canonical).digest();
 
   // Decode multibase public key
-  const pubKeyDer = Buffer.from(
-    verificationMethod.publicKeyMultibase.substring(1),
-    'base64url'
-  );
+  const pubKeyDer = Buffer.from(verificationMethod.publicKeyMultibase.substring(1), 'base64url');
   const publicKey = crypto.createPublicKey({
     key: pubKeyDer,
     format: 'der',
@@ -718,13 +708,17 @@ export function validatePassport(passport: AgentPassport): {
     // v1: did:holoscript:<role>:<fingerprint> (4 colon-separated parts)
     const v1Parts = passport.did?.id?.split(':');
     if (v1Parts && v1Parts.length !== 4) {
-      errors.push(`DID v1 format expected 4 parts (did:holoscript:<role>:<fingerprint>), got ${v1Parts.length}`);
+      errors.push(
+        `DID v1 format expected 4 parts (did:holoscript:<role>:<fingerprint>), got ${v1Parts.length}`
+      );
     }
   } else if (didVer === 2) {
     // v2: did:holoscript:<fingerprint> (3 colon-separated parts)
     const v2Parts = passport.did?.id?.split(':');
     if (v2Parts && v2Parts.length !== 3) {
-      errors.push(`DID v2 format expected 3 parts (did:holoscript:<fingerprint>), got ${v2Parts.length}`);
+      errors.push(
+        `DID v2 format expected 3 parts (did:holoscript:<fingerprint>), got ${v2Parts.length}`
+      );
     }
   }
 
@@ -880,11 +874,7 @@ export function getDIDv2(passport: AgentPassport): string {
   // The publicKeyMultibase starts with 'u' prefix (base64url)
   // Decode it back to DER, then hash for v2 fingerprint
   const pubKeyDer = Buffer.from(vm.publicKeyMultibase.substring(1), 'base64url');
-  const fingerprint = crypto
-    .createHash('sha256')
-    .update(pubKeyDer)
-    .digest('hex')
-    .substring(0, 32);
+  const fingerprint = crypto.createHash('sha256').update(pubKeyDer).digest('hex').substring(0, 32);
   return `did:holoscript:${fingerprint}`;
 }
 
@@ -902,7 +892,8 @@ export function getCapabilities(passport: AgentPassport): Capability[] {
   // Prefer UCAN delegation chain if present
   if (passport.capabilityDelegationChain && passport.capabilityDelegationChain.length > 0) {
     // The last token in the chain is the one granted to this agent
-    const leafToken = passport.capabilityDelegationChain[passport.capabilityDelegationChain.length - 1];
+    const leafToken =
+      passport.capabilityDelegationChain[passport.capabilityDelegationChain.length - 1];
     return [...leafToken.payload.att];
   }
 

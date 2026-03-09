@@ -8,58 +8,123 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // types.ts
 // ─────────────────────────────────────────────
 import {
-  vec2, vec3, vec4, quat, transform,
-  rgb, rgba, hsl, aabb, ray,
-  vec3ToArray, arrayToVec3,
-  quatToArray, arrayToQuat,
-  parseColor, colorToHex,
+  vec2,
+  vec3,
+  vec4,
+  quat,
+  transform,
+  rgb,
+  rgba,
+  hsl,
+  aabb,
+  ray,
+  vec3ToArray,
+  arrayToVec3,
+  quatToArray,
+  arrayToQuat,
+  parseColor,
+  colorToHex,
 } from '../types.js';
 
 // ─────────────────────────────────────────────
 // collections.ts
 // ─────────────────────────────────────────────
-import {
-  List, HoloMap, HoloSet,
-  SpatialGrid, PriorityQueue,
-} from '../collections.js';
+import { List, HoloMap, HoloSet, SpatialGrid, PriorityQueue } from '../collections.js';
 
 // ─────────────────────────────────────────────
 // math.ts
 // ─────────────────────────────────────────────
 import {
-  PI, TAU, HALF_PI, DEG_TO_RAD, RAD_TO_DEG, EPSILON,
-  clamp, lerp, inverseLerp, remap, smoothstep,
-  degToRad, radToDeg, mod, fract, sign, step,
-  vec2Math, vec3Math, quatMath, aabbMath,
-  noise, random,
+  PI,
+  TAU,
+  HALF_PI,
+  DEG_TO_RAD,
+  RAD_TO_DEG,
+  EPSILON,
+  clamp,
+  lerp,
+  inverseLerp,
+  remap,
+  smoothstep,
+  degToRad,
+  radToDeg,
+  mod,
+  fract,
+  sign,
+  step,
+  vec2Math,
+  vec3Math,
+  quatMath,
+  aabbMath,
+  noise,
+  random,
 } from '../math.js';
 
 // ─────────────────────────────────────────────
 // string.ts
 // ─────────────────────────────────────────────
 import {
-  capitalize, titleCase, camelCase, pascalCase,
-  snakeCase, kebabCase, constantCase,
-  padLeft, padRight, center, truncate, truncateMiddle,
-  isBlank, isNotBlank, containsIgnoreCase,
-  startsWithIgnoreCase, endsWithIgnoreCase,
-  isValidIdentifier, isNumeric, isAlphanumeric, isAlpha,
-  repeat, reverse, count, removeWhitespace, collapseWhitespace,
-  removePrefix, removeSuffix, wrap, unwrap,
-  lines, words, chars,
-  format, formatBytes, formatDuration,
-  escapeHtml, unescapeHtml, escapeRegex, slugify,
-  levenshtein, similarity,
-  indent, dedent, wordWrap,
-  randomString, uuid,
+  capitalize,
+  titleCase,
+  camelCase,
+  pascalCase,
+  snakeCase,
+  kebabCase,
+  constantCase,
+  padLeft,
+  padRight,
+  center,
+  truncate,
+  truncateMiddle,
+  isBlank,
+  isNotBlank,
+  containsIgnoreCase,
+  startsWithIgnoreCase,
+  endsWithIgnoreCase,
+  isValidIdentifier,
+  isNumeric,
+  isAlphanumeric,
+  isAlpha,
+  repeat,
+  reverse,
+  count,
+  removeWhitespace,
+  collapseWhitespace,
+  removePrefix,
+  removeSuffix,
+  wrap,
+  unwrap,
+  lines,
+  words,
+  chars,
+  format,
+  formatBytes,
+  formatDuration,
+  escapeHtml,
+  unescapeHtml,
+  escapeRegex,
+  slugify,
+  levenshtein,
+  similarity,
+  indent,
+  dedent,
+  wordWrap,
+  randomString,
+  uuid,
 } from '../string.js';
 
 // ─────────────────────────────────────────────
 // time.ts
 // ─────────────────────────────────────────────
 import {
-  now, sleep, measure, debounce, throttle,
-  Stopwatch, FrameTimer, DateTime,
+  now,
+  sleep,
+  measure,
+  debounce,
+  throttle,
+  Stopwatch,
+  FrameTimer,
+  DateTime,
 } from '../time.js';
 
 // ═══════════════════════════════════════════════
@@ -204,12 +269,12 @@ describe('List', () => {
   });
 
   it('map transforms elements', () => {
-    const l = List.of(1, 2, 3).map(x => x * 2);
+    const l = List.of(1, 2, 3).map((x) => x * 2);
     expect(l.toArray()).toEqual([2, 4, 6]);
   });
 
   it('filter keeps matching elements', () => {
-    const l = List.of(1, 2, 3, 4).filter(x => x % 2 === 0);
+    const l = List.of(1, 2, 3, 4).filter((x) => x % 2 === 0);
     expect(l.toArray()).toEqual([2, 4]);
   });
 
@@ -219,14 +284,14 @@ describe('List', () => {
   });
 
   it('find returns matching element', () => {
-    const v = List.of(1, 2, 3).find(x => x > 1);
+    const v = List.of(1, 2, 3).find((x) => x > 1);
     expect(v).toBe(2);
   });
 
   it('some / every', () => {
     const l = List.of(2, 4, 6);
-    expect(l.some(x => x > 5)).toBe(true);
-    expect(l.every(x => x % 2 === 0)).toBe(true);
+    expect(l.some((x) => x > 5)).toBe(true);
+    expect(l.every((x) => x % 2 === 0)).toBe(true);
   });
 
   it('concat combines lists', () => {
@@ -245,7 +310,11 @@ describe('List', () => {
   });
 
   it('sort', () => {
-    expect(List.of(3, 1, 2).sort((a, b) => a - b).toArray()).toEqual([1, 2, 3]);
+    expect(
+      List.of(3, 1, 2)
+        .sort((a, b) => a - b)
+        .toArray()
+    ).toEqual([1, 2, 3]);
   });
 
   it('unique removes duplicates', () => {
@@ -253,13 +322,13 @@ describe('List', () => {
   });
 
   it('groupBy groups by key', () => {
-    const map = List.of('a', 'bb', 'c', 'dd').groupBy(s => s.length);
+    const map = List.of('a', 'bb', 'c', 'dd').groupBy((s) => s.length);
     expect(map.has(1)).toBe(true);
     expect(map.has(2)).toBe(true);
   });
 
   it('partition splits into two', () => {
-    const [evens, odds] = List.of(1, 2, 3, 4).partition(x => x % 2 === 0);
+    const [evens, odds] = List.of(1, 2, 3, 4).partition((x) => x % 2 === 0);
     expect(evens.toArray()).toEqual([2, 4]);
     expect(odds.toArray()).toEqual([1, 3]);
   });
@@ -310,7 +379,10 @@ describe('HoloMap', () => {
   });
 
   it('HoloMap.from()', () => {
-    const m = HoloMap.from([['x', 10], ['y', 20]]);
+    const m = HoloMap.from([
+      ['x', 10],
+      ['y', 20],
+    ]);
     expect(m.get('y')).toBe(20);
   });
 
@@ -347,12 +419,12 @@ describe('HoloMap', () => {
   });
 
   it('map transforms values', () => {
-    const m = HoloMap.of(['a', 1], ['b', 2]).map(v => v * 10);
+    const m = HoloMap.of(['a', 1], ['b', 2]).map((v) => v * 10);
     expect(m.get('a')).toBe(10);
   });
 
   it('filter keeps matching entries', () => {
-    const m = HoloMap.of(['a', 1], ['b', 20]).filter(v => v > 5);
+    const m = HoloMap.of(['a', 1], ['b', 20]).filter((v) => v > 5);
     expect(m.has('b')).toBe(true);
     expect(m.has('a')).toBe(false);
   });

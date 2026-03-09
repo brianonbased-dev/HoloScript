@@ -12,7 +12,9 @@ import {
 
 describe('DeprecationRegistry', () => {
   let registry: DeprecationRegistry;
-  beforeEach(() => { registry = new DeprecationRegistry(); });
+  beforeEach(() => {
+    registry = new DeprecationRegistry();
+  });
 
   it('register() adds an entry', () => {
     registry.register({ name: 'clickable', kind: 'trait', message: 'Use @interactive instead' });
@@ -23,7 +25,12 @@ describe('DeprecationRegistry', () => {
     expect(registry.has('nonexistent')).toBe(false);
   });
   it('get() returns the entry by name', () => {
-    const entry: DeprecationEntry = { name: 'oldTrait', kind: 'trait', message: 'Use newTrait', replacement: 'newTrait' };
+    const entry: DeprecationEntry = {
+      name: 'oldTrait',
+      kind: 'trait',
+      message: 'Use newTrait',
+      replacement: 'newTrait',
+    };
     registry.register(entry);
     const result = registry.get('oldTrait');
     expect(result).toBeDefined();
@@ -52,10 +59,7 @@ describe('DeprecationRegistry', () => {
   });
 
   it('parseAnnotations() parses simple annotation', () => {
-    const source = [
-      `@deprecated("Use @interactive instead")`,
-      `@clickable`,
-    ].join('\n');
+    const source = [`@deprecated("Use @interactive instead")`, `@clickable`].join('\n');
     const entries = DeprecationRegistry.parseAnnotations(source);
     expect(entries).toHaveLength(1);
     expect(entries[0].name).toBe('clickable');
@@ -84,14 +88,19 @@ template LegacyTemplate`;
     expect(entries[0].kind).toBe('trait');
   });
   it('parseAnnotations() returns empty when no annotations', () => {
-    expect(DeprecationRegistry.parseAnnotations('orb#myOrb {}') ).toHaveLength(0);
+    expect(DeprecationRegistry.parseAnnotations('orb#myOrb {}')).toHaveLength(0);
   });
   it('parseAnnotations() skips with no following symbol', () => {
     expect(DeprecationRegistry.parseAnnotations(`@deprecated("msg")`)).toHaveLength(0);
   });
 
   it('scanForUsages() finds deprecated trait in source', () => {
-    registry.register({ name: 'clickable', kind: 'trait', message: 'Use @interactive instead', replacement: '@interactive' });
+    registry.register({
+      name: 'clickable',
+      kind: 'trait',
+      message: 'Use @interactive instead',
+      replacement: '@interactive',
+    });
     const source = 'orb#btn {\n  @clickable\n  color: "red"\n}';
     const warnings = registry.scanForUsages(source, 'test.holo');
     expect(warnings).toHaveLength(1);
@@ -123,11 +132,17 @@ template LegacyTemplate`;
   });
 
   it('formatWarning() returns string with file/line/column info', () => {
-    registry.register({ name: 'clickable', kind: 'trait', message: 'Use @interactive instead', replacement: '@interactive' });
+    registry.register({
+      name: 'clickable',
+      kind: 'trait',
+      message: 'Use @interactive instead',
+      replacement: '@interactive',
+    });
     const warning: DeprecationWarning = {
       entry: registry.get('clickable')!,
       filePath: 'src/scene.holo',
-      line: 10, column: 3,
+      line: 10,
+      column: 3,
       usageLine: '  @clickable',
     };
     const formatted = registry.formatWarning(warning);
@@ -138,10 +153,19 @@ template LegacyTemplate`;
     expect(formatted).toContain('@interactive');
   });
   it('formatWarning() includes deprecatedIn and removedIn', () => {
-    registry.register({ name: 'talkable', kind: 'trait', message: 'Deprecated', deprecatedIn: '2.0', removedIn: '3.0' });
+    registry.register({
+      name: 'talkable',
+      kind: 'trait',
+      message: 'Deprecated',
+      deprecatedIn: '2.0',
+      removedIn: '3.0',
+    });
     const warning: DeprecationWarning = {
       entry: registry.get('talkable')!,
-      filePath: 'f.holo', line: 1, column: 1, usageLine: '@talkable',
+      filePath: 'f.holo',
+      line: 1,
+      column: 1,
+      usageLine: '@talkable',
     };
     const formatted = registry.formatWarning(warning);
     expect(formatted).toContain('2.0');
@@ -154,9 +178,9 @@ describe('NoDeprecatedRule', () => {
     const registry = new DeprecationRegistry();
     const rule = new NoDeprecatedRule(registry);
     rule.registerBuiltins();
-    expect(registry.has('clickable') ).toBe(true);
-    expect(registry.has('talkable') ).toBe(true);
-    expect(registry.has('collidable') ).toBe(true);
+    expect(registry.has('clickable')).toBe(true);
+    expect(registry.has('talkable')).toBe(true);
+    expect(registry.has('collidable')).toBe(true);
   });
   it('check() returns warnings for deprecated usage', () => {
     const registry = new DeprecationRegistry();
@@ -172,7 +196,10 @@ describe('NoDeprecatedRule', () => {
     const registry = new DeprecationRegistry();
     registry.register({ name: 'talkable', kind: 'trait', message: 'deprecated' });
     const rule = new NoDeprecatedRule(registry);
-    const files = new Map([['a.holo', '@talkable'], ['b.holo', '@talkable']]);
+    const files = new Map([
+      ['a.holo', '@talkable'],
+      ['b.holo', '@talkable'],
+    ]);
     expect(rule.check(files)).toHaveLength(2);
   });
   it('check() returns no warnings for non-deprecated files', () => {
@@ -188,7 +215,12 @@ describe('NoDeprecatedRule', () => {
   });
   it('formatReport() formats warnings into a readable report', () => {
     const registry = new DeprecationRegistry();
-    registry.register({ name: 'clickable', kind: 'trait', message: 'Use @interactive instead', replacement: '@interactive' });
+    registry.register({
+      name: 'clickable',
+      kind: 'trait',
+      message: 'Use @interactive instead',
+      replacement: '@interactive',
+    });
     const rule = new NoDeprecatedRule(registry);
     const files = new Map([['scene.holo', '@clickable']]);
     const warnings = rule.check(files);

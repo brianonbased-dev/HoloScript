@@ -57,12 +57,15 @@ export default function BenchmarkScene() {
   const collectedFps = useRef<number[]>([]);
   const runTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleFpsUpdate = useCallback((fps: number) => {
-    setCurrentFps(fps);
-    if (isRunning) {
-      collectedFps.current.push(fps);
-    }
-  }, [isRunning]);
+  const handleFpsUpdate = useCallback(
+    (fps: number) => {
+      setCurrentFps(fps);
+      if (isRunning) {
+        collectedFps.current.push(fps);
+      }
+    },
+    [isRunning]
+  );
 
   const startBenchmark = useCallback(() => {
     collectedFps.current = [];
@@ -120,16 +123,12 @@ export default function BenchmarkScene() {
           <span
             className="font-mono text-lg font-bold"
             style={{
-              color:
-                currentFps >= 55 ? '#4ade80' :
-                currentFps >= 30 ? '#fbbf24' : '#f87171',
+              color: currentFps >= 55 ? '#4ade80' : currentFps >= 30 ? '#fbbf24' : '#f87171',
             }}
           >
             {currentFps} FPS
           </span>
-          {isRunning && (
-            <span className="animate-pulse text-xs text-amber-400">● Recording…</span>
-          )}
+          {isRunning && <span className="animate-pulse text-xs text-amber-400">● Recording…</span>}
         </div>
       </div>
 
@@ -197,7 +196,9 @@ export default function BenchmarkScene() {
               onChange={(e) => setAnimated(e.target.checked)}
               className="accent-blue-500"
             />
-            <label htmlFor="animated" className="text-studio-muted">Animate objects</label>
+            <label htmlFor="animated" className="text-studio-muted">
+              Animate objects
+            </label>
           </div>
 
           {/* Run buttons */}
@@ -241,8 +242,12 @@ export default function BenchmarkScene() {
 
               <button
                 onClick={() => {
-                  const csv = ['count,avg_fps,min_fps,max_fps,status,timestamp',
-                    ...results.map(r => `${r.count},${r.avgFps},${r.minFps},${r.maxFps},${r.status},${new Date(r.timestamp).toISOString()}`)
+                  const csv = [
+                    'count,avg_fps,min_fps,max_fps,status,timestamp',
+                    ...results.map(
+                      (r) =>
+                        `${r.count},${r.avgFps},${r.minFps},${r.maxFps},${r.status},${new Date(r.timestamp).toISOString()}`
+                    ),
                   ].join('\n');
                   const a = document.createElement('a');
                   a.href = `data:text/csv,${encodeURIComponent(csv)}`;

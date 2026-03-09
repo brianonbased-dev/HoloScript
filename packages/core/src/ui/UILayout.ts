@@ -17,7 +17,10 @@ export type FlexJustify = 'start' | 'center' | 'end' | 'spaceBetween' | 'spaceAr
 export type SizeMode = 'fixed' | 'auto' | 'fill' | 'percent';
 
 export interface LayoutEdges {
-  top: number; right: number; bottom: number; left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
 }
 
 export interface LayoutConfig {
@@ -106,7 +109,12 @@ export class UILayoutEngine {
   // Layout Computation
   // ---------------------------------------------------------------------------
 
-  compute(node: LayoutNode, containerWidth: number, containerHeight: number, isRoot: boolean = true): void {
+  compute(
+    node: LayoutNode,
+    containerWidth: number,
+    containerHeight: number,
+    isRoot: boolean = true
+  ): void {
     const cfg = node.config;
     const pad = cfg.padding;
 
@@ -168,8 +176,12 @@ export class UILayoutEngine {
     let gapExtra = 0;
 
     switch (cfg.justifyContent) {
-      case 'center': mainOffset = freeSpace / 2; break;
-      case 'end': mainOffset = freeSpace; break;
+      case 'center':
+        mainOffset = freeSpace / 2;
+        break;
+      case 'end':
+        mainOffset = freeSpace;
+        break;
       case 'spaceBetween':
         gapExtra = node.children.length > 1 ? freeSpace / (node.children.length - 1) : 0;
         break;
@@ -190,8 +202,12 @@ export class UILayoutEngine {
       let crossOffset = 0;
       const actualCross = cfg.alignItems === 'stretch' ? crossSize : sz.cross;
       switch (cfg.alignItems) {
-        case 'center': crossOffset = (crossSize - actualCross) / 2; break;
-        case 'end': crossOffset = crossSize - actualCross; break;
+        case 'center':
+          crossOffset = (crossSize - actualCross) / 2;
+          break;
+        case 'end':
+          crossOffset = crossSize - actualCross;
+          break;
       }
 
       if (isRow) {
@@ -207,8 +223,16 @@ export class UILayoutEngine {
       }
 
       // Clamp child
-      child.result.width = this.clamp(child.result.width, child.config.minWidth, child.config.maxWidth);
-      child.result.height = this.clamp(child.result.height, child.config.minHeight, child.config.maxHeight);
+      child.result.width = this.clamp(
+        child.result.width,
+        child.config.minWidth,
+        child.config.maxWidth
+      );
+      child.result.height = this.clamp(
+        child.result.height,
+        child.config.minHeight,
+        child.config.maxHeight
+      );
 
       // Recurse
       this.compute(child, child.result.width, child.result.height, false);
@@ -223,11 +247,16 @@ export class UILayoutEngine {
 
   private resolveSize(mode: SizeMode, value: number, container: number): number {
     switch (mode) {
-      case 'fixed': return value;
-      case 'fill': return container;
-      case 'percent': return (value / 100) * container;
-      case 'auto': return value; // Fallback to fixed for now
-      default: return value;
+      case 'fixed':
+        return value;
+      case 'fill':
+        return container;
+      case 'percent':
+        return (value / 100) * container;
+      case 'auto':
+        return value; // Fallback to fixed for now
+      default:
+        return value;
     }
   }
 

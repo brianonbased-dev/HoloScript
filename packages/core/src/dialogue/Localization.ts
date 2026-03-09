@@ -14,7 +14,10 @@
 export interface LocaleData {
   locale: string;
   strings: Map<string, string>;
-  pluralRules: Map<string, { zero?: string; one: string; few?: string; many?: string; other: string }>;
+  pluralRules: Map<
+    string,
+    { zero?: string; one: string; few?: string; many?: string; other: string }
+  >;
 }
 
 // =============================================================================
@@ -40,7 +43,11 @@ export class Localization {
     this.locales.set(locale, data);
   }
 
-  addPluralRule(locale: string, key: string, rules: { zero?: string; one: string; few?: string; many?: string; other: string }): void {
+  addPluralRule(
+    locale: string,
+    key: string,
+    rules: { zero?: string; one: string; few?: string; many?: string; other: string }
+  ): void {
     const data = this.locales.get(locale);
     if (data) data.pluralRules.set(key, rules);
   }
@@ -51,9 +58,15 @@ export class Localization {
     return true;
   }
 
-  setFallback(locale: string): void { this.fallbackLocale = locale; }
-  getCurrentLocale(): string { return this.currentLocale; }
-  getAvailableLocales(): string[] { return [...this.locales.keys()]; }
+  setFallback(locale: string): void {
+    this.fallbackLocale = locale;
+  }
+  getCurrentLocale(): string {
+    return this.currentLocale;
+  }
+  getAvailableLocales(): string[] {
+    return [...this.locales.keys()];
+  }
 
   // ---------------------------------------------------------------------------
   // Translation
@@ -113,8 +126,12 @@ export class Localization {
     return this.locales.get(loc)?.strings.size ?? 0;
   }
 
-  getMissingKeys(): string[] { return [...this.missingKeys]; }
-  clearMissingKeys(): void { this.missingKeys.clear(); }
+  getMissingKeys(): string[] {
+    return [...this.missingKeys];
+  }
+  clearMissingKeys(): void {
+    this.missingKeys.clear();
+  }
 
   hasKey(key: string, locale?: string): boolean {
     const loc = locale ?? this.currentLocale;

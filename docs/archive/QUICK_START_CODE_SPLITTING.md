@@ -1,4 +1,5 @@
 # Quick Start: HoloScript Code Splitting
+
 ## v3.42.0+ - Dynamic Compiler Loading
 
 **🎯 TL;DR**: Import specific compilers instead of the whole bundle. Save 50-60% bundle size!
@@ -8,11 +9,13 @@
 ## ⚡ Quick Migration (30 seconds)
 
 ### Before (❌ Old - 20MB)
+
 ```typescript
 import { VRRCompiler } from '@holoscript/core';
 ```
 
 ### After (✅ New - 8MB)
+
 ```typescript
 import { VRRCompiler } from '@holoscript/core/compiler/vrr';
 ```
@@ -87,11 +90,11 @@ const compiler = new CompilerClass();
 
 ## 📊 Bundle Size Impact
 
-| Users Load | Before | After | Savings |
-|------------|--------|-------|---------|
-| 1 compiler | 20 MB | 8 MB | **60%** ✨ |
-| 2 compilers | 20 MB | 10 MB | **50%** 🎯 |
-| 5 compilers | 20 MB | 13 MB | **35%** 💪 |
+| Users Load  | Before | After | Savings    |
+| ----------- | ------ | ----- | ---------- |
+| 1 compiler  | 20 MB  | 8 MB  | **60%** ✨ |
+| 2 compilers | 20 MB  | 10 MB | **50%** 🎯 |
+| 5 compilers | 20 MB  | 13 MB | **35%** 💪 |
 
 ---
 

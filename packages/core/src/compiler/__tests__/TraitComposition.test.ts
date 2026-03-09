@@ -15,15 +15,26 @@ import type { TraitHandler } from '../../traits/TraitTypes';
 // HELPERS
 // =============================================================================
 
-function makeHandler(name: string, defaultConfig: Record<string, unknown> = {}): TraitHandler<Record<string, unknown>> {
+function makeHandler(
+  name: string,
+  defaultConfig: Record<string, unknown> = {}
+): TraitHandler<Record<string, unknown>> {
   const calls: string[] = [];
   const h: TraitHandler<Record<string, unknown>> = {
     name: name as any,
     defaultConfig,
-    onAttach(node: any, _config: any, _ctx: any) { (node._calls ??= []).push(`${name}:attach`); },
-    onDetach(node: any, _config: any, _ctx: any) { (node._calls ??= []).push(`${name}:detach`); },
-    onUpdate(node: any, _config: any, _ctx: any, _dt: any) { (node._calls ??= []).push(`${name}:update`); },
-    onEvent(node: any, _config: any, _ctx: any, event: any) { (node._calls ??= []).push(`${name}:event:${event?.type}`); },
+    onAttach(node: any, _config: any, _ctx: any) {
+      (node._calls ??= []).push(`${name}:attach`);
+    },
+    onDetach(node: any, _config: any, _ctx: any) {
+      (node._calls ??= []).push(`${name}:detach`);
+    },
+    onUpdate(node: any, _config: any, _ctx: any, _dt: any) {
+      (node._calls ??= []).push(`${name}:update`);
+    },
+    onEvent(node: any, _config: any, _ctx: any, event: any) {
+      (node._calls ??= []).push(`${name}:event:${event?.type}`);
+    },
   };
   (h as any)._recordedCalls = calls;
   return h;
@@ -51,9 +62,7 @@ describe('TraitComposer.parseCompositionLine()', () => {
   });
 
   it('handles extra whitespace', () => {
-    const result = TraitComposer.parseCompositionLine(
-      '@turret  =  @physics  +  @targeting',
-    );
+    const result = TraitComposer.parseCompositionLine('@turret  =  @physics  +  @targeting');
     expect(result).toEqual({ name: 'turret', sources: ['physics', 'targeting'] });
   });
 });

@@ -7,11 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  NetworkedTrait,
-  createNetworkedTrait,
-  cleanupNetworkPool,
-} from '../NetworkedTrait';
+import { NetworkedTrait, createNetworkedTrait, cleanupNetworkPool } from '../NetworkedTrait';
 import type { NetworkedConfig, NetworkEvent } from '../NetworkedTrait';
 
 // ---------------------------------------------------------------------------
@@ -79,7 +75,7 @@ describe('NetworkedTrait', () => {
     it('preserves SyncProperty objects unchanged', () => {
       const prop = { name: 'health', priority: 10, deltaCompression: true };
       const t = makeTrait({ syncProperties: [prop] });
-      const props = t.getConfig().syncProperties as typeof prop[];
+      const props = t.getConfig().syncProperties as (typeof prop)[];
       expect(props[0]).toEqual(prop);
     });
 
@@ -135,7 +131,9 @@ describe('NetworkedTrait', () => {
   describe('property management', () => {
     let t: NetworkedTrait;
 
-    beforeEach(() => { t = makeTrait(); });
+    beforeEach(() => {
+      t = makeTrait();
+    });
 
     it('setProperty stores a value', () => {
       t.setProperty('health', 100);
@@ -258,8 +256,20 @@ describe('NetworkedTrait', () => {
       // Both samples are far in the past; renderTime = now - 100ms is before them
       const past = Date.now() - 2000;
       (t as any).interpolationBuffer = [
-        { timestamp: past - 200, position: [0, 0, 0], rotation: [0, 0, 0, 1], scale: [1, 1, 1], properties: {} },
-        { timestamp: past - 100, position: [10, 0, 0], rotation: [0, 0, 0, 1], scale: [1, 1, 1], properties: {} },
+        {
+          timestamp: past - 200,
+          position: [0, 0, 0],
+          rotation: [0, 0, 0, 1],
+          scale: [1, 1, 1],
+          properties: {},
+        },
+        {
+          timestamp: past - 100,
+          position: [10, 0, 0],
+          rotation: [0, 0, 0, 1],
+          scale: [1, 1, 1],
+          properties: {},
+        },
       ];
       const result = t.getInterpolatedState(100);
       // Falls through to last sample
@@ -480,10 +490,7 @@ describe('NetworkedTrait', () => {
       // Buffer: from=50ms ago, to=now+50ms; renderTime = now - 100ms
       // i.e. both samples must bracket renderTime = (nowCall - 100)
       // Simpler: set bufferTimeMs so renderTime = older.timestamp
-      (t as any).interpolationBuffer = [
-        makeSample(now - 200, 0),
-        makeSample(now - 100, 10),
-      ];
+      (t as any).interpolationBuffer = [makeSample(now - 200, 0), makeSample(now - 100, 10)];
       // renderTime = (now - 150) if bufferTimeMs = 150
       const result = t.getInterpolatedState(150);
       if (result && result.interpolated !== undefined) {

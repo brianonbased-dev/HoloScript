@@ -22,7 +22,7 @@ interface VolumetricState {
   currentLOD: number;
   renderMode: 'splat' | 'nerf' | 'cloud';
   opacity: number;
-  clipBounds: { min: Vector3, max: Vector3 } | null;
+  clipBounds: { min: Vector3; max: Vector3 } | null;
   splatData: SplatData | null;
   indices: Uint32Array | null;
   service: SplatProcessingService;
@@ -103,19 +103,19 @@ export const volumetricHandler: TraitHandler<VolumetricConfig> = {
     if (event.type === 'volumetric_data_ready') {
       const buffer = event.buffer as ArrayBuffer;
       if (state.renderMode === 'splat') {
-        state.service.parseSplat(buffer).then(data => {
+        state.service.parseSplat(buffer).then((data) => {
           state.splatData = data;
           state.pointCount = data.count;
           state.isLoaded = true;
           state.isLoading = false;
-          
+
           // Initial sort from origin
           state.indices = state.service.sortSplat(data, [0, 0, 0]);
-          
-          context.emit?.('on_volumetric_ready', { 
-            node, 
+
+          context.emit?.('on_volumetric_ready', {
+            node,
             pointCount: state.pointCount,
-            dimensions: event.dimensions 
+            dimensions: event.dimensions,
           });
         });
       }
@@ -138,16 +138,16 @@ export const volumetricHandler: TraitHandler<VolumetricConfig> = {
       const { origin, direction, threshold } = event as any;
       if (state.renderMode === 'splat' && state.splatData) {
         const hit = state.service.intersectRay(
-          state.splatData, 
-          origin, 
-          direction, 
+          state.splatData,
+          origin,
+          direction,
           threshold || 0.5
         );
-        
-        context.emit?.('volumetric_ray_hit', { 
-          node, 
+
+        context.emit?.('volumetric_ray_hit', {
+          node,
           hit,
-          queryId: (event as any).queryId 
+          queryId: (event as any).queryId,
         });
       }
     }

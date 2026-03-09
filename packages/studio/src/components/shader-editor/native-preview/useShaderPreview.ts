@@ -105,7 +105,9 @@ export interface ShaderPreviewActions {
 // ─── Tauri Invoke Helper ─────────────────────────────────────────────────────
 
 /** Dynamically import Tauri invoke — returns null if not in Tauri context. */
-async function getTauriInvoke(): Promise<((cmd: string, args?: Record<string, unknown>) => Promise<unknown>) | null> {
+async function getTauriInvoke(): Promise<
+  ((cmd: string, args?: Record<string, unknown>) => Promise<unknown>) | null
+> {
   try {
     const { invoke } = await import('@tauri-apps/api/core');
     return invoke as (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
@@ -121,7 +123,9 @@ async function getTauriInvoke(): Promise<((cmd: string, args?: Record<string, un
  *
  * @param targetFps - Target frame rate (default: 30)
  */
-export function useShaderPreview(targetFps: number = 30): [ShaderPreviewState, ShaderPreviewActions] {
+export function useShaderPreview(
+  targetFps: number = 30
+): [ShaderPreviewState, ShaderPreviewActions] {
   const [state, setState] = useState<ShaderPreviewState>({
     ready: false,
     initializing: false,
@@ -135,7 +139,9 @@ export function useShaderPreview(targetFps: number = 30): [ShaderPreviewState, S
 
   const rafRef = useRef<number | null>(null);
   const runningRef = useRef(false);
-  const invokeRef = useRef<((cmd: string, args?: Record<string, unknown>) => Promise<unknown>) | null>(null);
+  const invokeRef = useRef<
+    ((cmd: string, args?: Record<string, unknown>) => Promise<unknown>) | null
+  >(null);
   const lastTimeRef = useRef(0);
   const frameCountRef = useRef(0);
   const fpsTimerRef = useRef(0);
@@ -172,10 +178,10 @@ export function useShaderPreview(targetFps: number = 30): [ShaderPreviewState, S
       lastTimeRef.current = now - (elapsed % frameInterval);
 
       try {
-        const result = await invokeRef.current('shader_preview_frame', {
+        const result = (await invokeRef.current('shader_preview_frame', {
           mouse_x: mouseRef.current.x,
           mouse_y: mouseRef.current.y,
-        }) as FrameResult;
+        })) as FrameResult;
 
         setState((s) => ({
           ...s,
@@ -207,11 +213,11 @@ export function useShaderPreview(targetFps: number = 30): [ShaderPreviewState, S
       setState((s) => ({ ...s, initializing: true, error: null }));
 
       try {
-        const timingsJson = await invoke('shader_preview_init', {
+        const timingsJson = (await invoke('shader_preview_init', {
           width,
           height,
           shader_code: shaderCode ?? null,
-        }) as string;
+        })) as string;
 
         const timings: PipelineTimings = JSON.parse(timingsJson);
 
@@ -253,9 +259,9 @@ export function useShaderPreview(targetFps: number = 30): [ShaderPreviewState, S
       if (!invoke) return;
 
       try {
-        const timingsJson = await invoke('shader_preview_update', {
+        const timingsJson = (await invoke('shader_preview_update', {
           shader_code: wgslCode,
-        }) as string;
+        })) as string;
 
         const timings: PipelineTimings = JSON.parse(timingsJson);
         setState((s) => ({ ...s, initTimings: timings, error: null }));
@@ -280,9 +286,9 @@ export function useShaderPreview(targetFps: number = 30): [ShaderPreviewState, S
       if (!invoke) return null;
 
       try {
-        const resultJson = await invoke('shader_preview_benchmark', {
+        const resultJson = (await invoke('shader_preview_benchmark', {
           frame_count: frameCount,
-        }) as string;
+        })) as string;
 
         return JSON.parse(resultJson) as BenchmarkResult;
       } catch (err) {

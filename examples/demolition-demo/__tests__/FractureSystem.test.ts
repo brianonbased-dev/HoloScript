@@ -134,11 +134,7 @@ describe('FractureSystem', () => {
 
       system.addObject(object);
 
-      system.applyImpactToObject(
-        object.id,
-        { x: 5000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      system.applyImpactToObject(object.id, { x: 5000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       const fragments = system.getFragments();
       expect(fragments.length).toBeGreaterThan(0);
@@ -155,11 +151,7 @@ describe('FractureSystem', () => {
 
       system.addObject(object);
 
-      system.applyImpactToObject(
-        object.id,
-        { x: 10000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      system.applyImpactToObject(object.id, { x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       const retrieved = system.getObject(object.id);
       expect(retrieved).toBeUndefined();
@@ -176,11 +168,7 @@ describe('FractureSystem', () => {
 
       system.addObject(object);
 
-      system.applyImpactToObject(
-        object.id,
-        { x: 10000, y: 0, z: 0 },
-        { x: 1, y: 2, z: 3 }
-      );
+      system.applyImpactToObject(object.id, { x: 10000, y: 0, z: 0 }, { x: 1, y: 2, z: 3 });
 
       const events = system.getFractureEvents();
       expect(events.length).toBe(1);
@@ -220,11 +208,7 @@ describe('FractureSystem', () => {
       });
 
       system.addObject(object);
-      system.applyImpactToObject(
-        object.id,
-        { x: 10000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      system.applyImpactToObject(object.id, { x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       const fragments = system.getFragments();
       expect(fragments.length).toBeGreaterThan(0);
@@ -240,11 +224,7 @@ describe('FractureSystem', () => {
       });
 
       system.addObject(object);
-      system.applyImpactToObject(
-        object.id,
-        { x: 10000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      system.applyImpactToObject(object.id, { x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       const activeFragments = system.getActiveFragments();
       expect(activeFragments.length).toBeGreaterThan(0);
@@ -260,11 +240,7 @@ describe('FractureSystem', () => {
       });
 
       system.addObject(object);
-      system.applyImpactToObject(
-        object.id,
-        { x: 10000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      system.applyImpactToObject(object.id, { x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       system.clearFragments();
 
@@ -285,11 +261,7 @@ describe('FractureSystem', () => {
       });
 
       system.addObject(object);
-      system.applyImpactToObject(
-        object.id,
-        { x: 10000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      system.applyImpactToObject(object.id, { x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       const fragment = system.getFragments()[0];
       const posBefore = { ...fragment.physics.position };
@@ -310,11 +282,7 @@ describe('FractureSystem', () => {
       });
 
       system.addObject(object);
-      system.applyImpactToObject(
-        object.id,
-        { x: 10000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      system.applyImpactToObject(object.id, { x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       const fragment = system.getFragments()[0];
       const posBefore = { ...fragment.physics.position };
@@ -341,11 +309,7 @@ describe('FractureSystem', () => {
       });
 
       systemWithAuto.addObject(object);
-      systemWithAuto.applyImpactToObject(
-        object.id,
-        { x: 10000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      systemWithAuto.applyImpactToObject(object.id, { x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       const fragments = systemWithAuto.getFragments();
 
@@ -394,11 +358,7 @@ describe('FractureSystem', () => {
       });
 
       system.addObject(object);
-      system.applyImpactToObject(
-        object.id,
-        { x: 10000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      system.applyImpactToObject(object.id, { x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       const stats = system.getStatistics();
       expect(stats.fracturedObjects).toBe(1);
@@ -414,11 +374,7 @@ describe('FractureSystem', () => {
       });
 
       system.addObject(object);
-      system.applyImpactToObject(
-        object.id,
-        { x: 10000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      system.applyImpactToObject(object.id, { x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       const stats = system.getStatistics();
       expect(stats.totalFragments).toBeGreaterThan(0);
@@ -465,11 +421,7 @@ describe('FractureSystem', () => {
       });
 
       system.addObject(object);
-      system.applyImpactToObject(
-        object.id,
-        { x: 10000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      system.applyImpactToObject(object.id, { x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       system.reset();
 
@@ -487,11 +439,7 @@ describe('FractureSystem', () => {
       });
 
       system.addObject(object);
-      system.applyImpactToObject(
-        object.id,
-        { x: 10000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      system.applyImpactToObject(object.id, { x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       system.reset();
 
@@ -509,11 +457,7 @@ describe('FractureSystem', () => {
       });
 
       system.addObject(object);
-      system.applyImpactToObject(
-        object.id,
-        { x: 5000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      system.applyImpactToObject(object.id, { x: 5000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       // Object would be removed after fracturing, so add it back
       system.addObject(object);
@@ -539,11 +483,7 @@ describe('FractureSystem', () => {
       });
 
       limitedSystem.addObject(object);
-      limitedSystem.applyImpactToObject(
-        object.id,
-        { x: 10000, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }
-      );
+      limitedSystem.applyImpactToObject(object.id, { x: 10000, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
       const fragments = limitedSystem.getFragments();
       expect(fragments.length).toBeLessThanOrEqual(5);

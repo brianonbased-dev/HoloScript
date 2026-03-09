@@ -13,8 +13,12 @@ import { ReactiveState, ExpressionEvaluator, createState } from '../ReactiveStat
 describe('ReactiveState — multiple subscribers', () => {
   it('notifies all subscribers on set', () => {
     const s = new ReactiveState({ x: 0 });
-    const cb1 = vi.fn(), cb2 = vi.fn(), cb3 = vi.fn();
-    s.subscribe(cb1); s.subscribe(cb2); s.subscribe(cb3);
+    const cb1 = vi.fn(),
+      cb2 = vi.fn(),
+      cb3 = vi.fn();
+    s.subscribe(cb1);
+    s.subscribe(cb2);
+    s.subscribe(cb3);
     s.set('x', 1);
     expect(cb1).toHaveBeenCalledTimes(1);
     expect(cb2).toHaveBeenCalledTimes(1);
@@ -22,7 +26,8 @@ describe('ReactiveState — multiple subscribers', () => {
   });
   it('unsubscribing one does not affect others', () => {
     const s = new ReactiveState({ y: 0 });
-    const cb1 = vi.fn(), cb2 = vi.fn();
+    const cb1 = vi.fn(),
+      cb2 = vi.fn();
     const unsub1 = s.subscribe(cb1);
     s.subscribe(cb2);
     unsub1();
@@ -33,8 +38,8 @@ describe('ReactiveState — multiple subscribers', () => {
   it('each subscriber receives the updated snapshot', () => {
     const s = new ReactiveState({ count: 0 });
     const snapshots: any[] = [];
-    s.subscribe(snap => snapshots.push(snap));
-    s.subscribe(snap => snapshots.push(snap));
+    s.subscribe((snap) => snapshots.push(snap));
+    s.subscribe((snap) => snapshots.push(snap));
     s.set('count', 42);
     expect(snapshots[0].count).toBe(42);
     expect(snapshots[1].count).toBe(42);
@@ -53,7 +58,9 @@ describe('ReactiveState — subscriber called on update()', () => {
     const s = new ReactiveState({ x: 0, y: 0, z: 0 });
     s.update({ x: 1, y: 2, z: 3 });
     const snap = s.getSnapshot();
-    expect(snap.x).toBe(1); expect(snap.y).toBe(2); expect(snap.z).toBe(3);
+    expect(snap.x).toBe(1);
+    expect(snap.y).toBe(2);
+    expect(snap.z).toBe(3);
   });
 });
 
@@ -167,7 +174,6 @@ describe('ExpressionEvaluator — security depth', () => {
     });
   }
 });
-
 
 describe('ExpressionEvaluator — context edge cases', () => {
   it('evaluate with numeric 0 context variable', () => {

@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ComboTracker, type ComboDefinition } from '../ComboTracker';
 
 const hadouken: ComboDefinition = {
-  id: 'hadouken', name: 'Hadouken',
+  id: 'hadouken',
+  name: 'Hadouken',
   steps: [
     { input: 'down', maxDelay: 200 },
     { input: 'forward', maxDelay: 200 },
@@ -12,7 +13,8 @@ const hadouken: ComboDefinition = {
 };
 
 const uppercut: ComboDefinition = {
-  id: 'uppercut', name: 'Uppercut',
+  id: 'uppercut',
+  name: 'Uppercut',
   steps: [
     { input: 'forward', maxDelay: 150 },
     { input: 'punch', maxDelay: 150 },
@@ -35,7 +37,9 @@ describe('ComboTracker', () => {
 
   it('single-input combo triggers immediately', () => {
     tracker.registerCombo({
-      id: 'quick', name: 'Quick', reward: 'flash',
+      id: 'quick',
+      name: 'Quick',
+      reward: 'flash',
       steps: [{ input: 'snap', maxDelay: 100 }],
     });
     expect(tracker.pushInput('snap', 0)).toBe('flash');
@@ -83,7 +87,7 @@ describe('ComboTracker', () => {
   });
 
   it('multiple combos can track simultaneously', () => {
-    tracker.pushInput('down', 0);    // starts hadouken
+    tracker.pushInput('down', 0); // starts hadouken
     tracker.pushInput('forward', 100); // advances hadouken, starts uppercut
     expect(tracker.getActiveComboCount()).toBeGreaterThanOrEqual(1);
   });

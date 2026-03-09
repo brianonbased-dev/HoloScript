@@ -39,7 +39,7 @@ function makeCtx(headPos: Vec3Arr = [0, 0, 0], handPos: Vec3Arr | null = [0.1, 0
     emit: vi.fn(),
     vr: {
       headset: { position: headPos },
-      getDominantHand: vi.fn(() => handPos ? { position: handPos } : null),
+      getDominantHand: vi.fn(() => (handPos ? { position: handPos } : null)),
     },
   };
 }
@@ -51,7 +51,6 @@ function attach(cfg: Partial<typeof userMonitorHandler.defaultConfig> = {}) {
   userMonitorHandler.onAttach!(node as any, config, ctx as any);
   return { node, ctx, config };
 }
-
 
 // ─── defaultConfig ────────────────────────────────────────────────────────────
 
@@ -221,6 +220,8 @@ describe('userMonitorHandler.onEvent — click', () => {
     const node = makeNode();
     const ctx = makeCtx();
     const config = userMonitorHandler.defaultConfig!;
-    expect(() => userMonitorHandler.onEvent!(node as any, config as any, ctx as any, { type: 'click' })).not.toThrow();
+    expect(() =>
+      userMonitorHandler.onEvent!(node as any, config as any, ctx as any, { type: 'click' })
+    ).not.toThrow();
   });
 });

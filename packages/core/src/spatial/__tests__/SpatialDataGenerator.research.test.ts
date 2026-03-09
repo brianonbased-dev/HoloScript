@@ -5,10 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type {
-  SpatialRelationshipType,
-  ZoneMetadata,
-} from '../SpatialDataGenerator';
+import type { SpatialRelationshipType, ZoneMetadata } from '../SpatialDataGenerator';
 
 // =============================================================================
 // SpatialRelationshipType — zone-aware types (P.PROCGEN.01)

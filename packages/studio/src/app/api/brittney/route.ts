@@ -73,7 +73,10 @@ async function* streamBrittneyCloud(
       const trimmed = line.replace(/^data: /, '').trim();
       if (!trimmed) continue;
       try {
-        const event = JSON.parse(trimmed) as { type: 'text' | 'tool_call' | 'done'; payload: unknown };
+        const event = JSON.parse(trimmed) as {
+          type: 'text' | 'tool_call' | 'done';
+          payload: unknown;
+        };
         yield event;
         if (event.type === 'done') return;
       } catch {
@@ -210,7 +213,9 @@ async function* streamOpenAI(
                   arguments: JSON.parse(pendingToolCall.argsBuf || '{}'),
                 },
               };
-            } catch { /* ignore */ }
+            } catch {
+              /* ignore */
+            }
             pendingToolCall = null;
           }
           yield { type: 'done', payload: null };
@@ -239,7 +244,9 @@ async function* streamOpenAI(
                       arguments: JSON.parse(pendingToolCall.argsBuf || '{}'),
                     },
                   };
-                } catch { /* ignore */ }
+                } catch {
+                  /* ignore */
+                }
               }
               pendingToolCall = { name: tc.function.name, argsBuf: tc.function.arguments ?? '' };
             } else if (pendingToolCall && tc.function?.arguments) {
@@ -277,7 +284,9 @@ export async function POST(req: NextRequest) {
           try {
             gen = streamBrittneyCloud(messages, sceneContext);
           } catch {
-            gen = process.env.OPENAI_API_KEY ? streamOpenAI(messages, sceneContext) : streamOllama(messages, sceneContext);
+            gen = process.env.OPENAI_API_KEY
+              ? streamOpenAI(messages, sceneContext)
+              : streamOllama(messages, sceneContext);
           }
         } else if (process.env.OPENAI_API_KEY) {
           gen = streamOpenAI(messages, sceneContext);

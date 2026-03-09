@@ -14,20 +14,14 @@ import {
   registerNavigationEngine,
   getNavigationEngine,
 } from '../NavigationEngine';
-import type {
-  NavigationEngine,
-  NavigationConfig,
-  NavDestination,
-} from '../NavigationEngine';
+import type { NavigationEngine, NavigationConfig, NavDestination } from '../NavigationEngine';
 import type { Vector3 } from '../../types/HoloScriptPlus';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function createMockNavigationEngine(
-  overrides?: Partial<NavigationEngine>,
-): NavigationEngine {
+function createMockNavigationEngine(overrides?: Partial<NavigationEngine>): NavigationEngine {
   return {
     initialize: vi.fn().mockResolvedValue(undefined),
     updateFlowField: vi.fn().mockResolvedValue(undefined),
@@ -117,9 +111,7 @@ describe('NavigationEngine — initialize', () => {
 
   it('initialize resolves successfully', async () => {
     const engine = createMockNavigationEngine();
-    await expect(
-      engine.initialize(createDefaultConfig()),
-    ).resolves.toBeUndefined();
+    await expect(engine.initialize(createDefaultConfig())).resolves.toBeUndefined();
   });
 
   it('initialize with optional floorY', async () => {
@@ -131,9 +123,7 @@ describe('NavigationEngine — initialize', () => {
       floorY: 0.5,
     };
     await engine.initialize(config);
-    expect(engine.initialize).toHaveBeenCalledWith(
-      expect.objectContaining({ floorY: 0.5 }),
-    );
+    expect(engine.initialize).toHaveBeenCalledWith(expect.objectContaining({ floorY: 0.5 }));
   });
 });
 
@@ -160,9 +150,7 @@ describe('NavigationEngine — flow field', () => {
       radius: 5.0,
     };
     await engine.updateFlowField(dest);
-    expect(engine.updateFlowField).toHaveBeenCalledWith(
-      expect.objectContaining({ radius: 5.0 }),
-    );
+    expect(engine.updateFlowField).toHaveBeenCalledWith(expect.objectContaining({ radius: 5.0 }));
   });
 
   it('updateFlowField resolves successfully', async () => {
@@ -219,45 +207,30 @@ describe('NavigationEngine — sampleDirection', () => {
 describe('NavigationEngine — obstacles', () => {
   it('updateObstacle adds an active obstacle', () => {
     const engine = createMockNavigationEngine();
-    engine.updateObstacle(
-      'wall-1',
-      { x: 10, y: 0, z: 10 },
-      { x: 5, y: 3, z: 1 },
-      true,
-    );
+    engine.updateObstacle('wall-1', { x: 10, y: 0, z: 10 }, { x: 5, y: 3, z: 1 }, true);
     expect(engine.updateObstacle).toHaveBeenCalledWith(
       'wall-1',
       { x: 10, y: 0, z: 10 },
       { x: 5, y: 3, z: 1 },
-      true,
+      true
     );
   });
 
   it('updateObstacle deactivates an obstacle', () => {
     const engine = createMockNavigationEngine();
-    engine.updateObstacle(
-      'wall-1',
-      { x: 10, y: 0, z: 10 },
-      { x: 5, y: 3, z: 1 },
-      false,
-    );
+    engine.updateObstacle('wall-1', { x: 10, y: 0, z: 10 }, { x: 5, y: 3, z: 1 }, false);
     expect(engine.updateObstacle).toHaveBeenCalledWith(
       'wall-1',
       expect.anything(),
       expect.anything(),
-      false,
+      false
     );
   });
 
   it('updateObstacle with tuple vectors', () => {
     const engine = createMockNavigationEngine();
     engine.updateObstacle('box', [0, 0, 0], [2, 2, 2], true);
-    expect(engine.updateObstacle).toHaveBeenCalledWith(
-      'box',
-      [0, 0, 0],
-      [2, 2, 2],
-      true,
-    );
+    expect(engine.updateObstacle).toHaveBeenCalledWith('box', [0, 0, 0], [2, 2, 2], true);
   });
 });
 

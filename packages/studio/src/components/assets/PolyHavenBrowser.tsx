@@ -6,9 +6,19 @@
  */
 
 import { useState } from 'react';
-import { Search, Download, ExternalLink, ChevronLeft, ChevronRight, Globe2, Box, Sun, Image } from 'lucide-react';
+import {
+  Search,
+  Download,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  Globe2,
+  Box,
+  Sun,
+  Image,
+} from 'lucide-react';
 import { usePolyHaven, type PolyHavenAsset, type PolyHavenType } from '@/hooks/usePolyHaven';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 const TYPE_TABS: { id: PolyHavenType; label: string; icon: React.ReactNode }[] = [
   { id: 'models', label: 'Models', icon: <Box className="h-3 w-3" /> },
@@ -28,7 +38,13 @@ function generateSnippet(asset: PolyHavenAsset): string {
   return `\nobject "${safeName}" {\n  @mesh { src: "${asset.downloadUrl}" }\n  @transform { position: [0, 0, 0] scale: [1, 1, 1] }\n  @physics { type: static }\n}\n`;
 }
 
-function AssetCard({ asset, onImport }: { asset: PolyHavenAsset; onImport: (a: PolyHavenAsset) => void }) {
+function AssetCard({
+  asset,
+  onImport,
+}: {
+  asset: PolyHavenAsset;
+  onImport: (a: PolyHavenAsset) => void;
+}) {
   const [imgError, setImgError] = useState(false);
 
   return (
@@ -61,7 +77,9 @@ function AssetCard({ asset, onImport }: { asset: PolyHavenAsset; onImport: (a: P
         <p className="truncate text-[11px] font-medium text-studio-text">{asset.name}</p>
         <div className="mt-0.5 flex items-center gap-1 text-[9px] text-studio-muted flex-wrap">
           {asset.tags.slice(0, 3).map((tag) => (
-            <span key={tag} className="rounded bg-studio-border/60 px-1 py-0.5">{tag}</span>
+            <span key={tag} className="rounded bg-studio-border/60 px-1 py-0.5">
+              {tag}
+            </span>
           ))}
         </div>
         <div className="mt-1.5 flex gap-1">
@@ -87,7 +105,8 @@ function AssetCard({ asset, onImport }: { asset: PolyHavenAsset; onImport: (a: P
 
 export function PolyHavenBrowser() {
   const [q, setQ] = useState('');
-  const { results, total, page, pages, assetType, loading, error, search, setPage, setType } = usePolyHaven();
+  const { results, total, page, pages, assetType, loading, error, search, setPage, setType } =
+    usePolyHaven();
   const appendCode = useSceneStore((s) => s.setCode);
   const currentCode = useSceneStore((s) => s.code) ?? '';
 
@@ -114,7 +133,8 @@ export function PolyHavenBrowser() {
           </button>
         ))}
         <span className="ml-auto flex items-center text-[9px] text-studio-muted">
-          <Globe2 className="mr-1 h-3 w-3" />{total.toLocaleString()} assets
+          <Globe2 className="mr-1 h-3 w-3" />
+          {total.toLocaleString()} assets
         </span>
       </div>
 
@@ -142,7 +162,9 @@ export function PolyHavenBrowser() {
         {error && (
           <div className="py-8 text-center text-[10px] text-red-400">
             {error}
-            <button onClick={() => search(q)} className="ml-2 text-studio-accent hover:underline">Retry</button>
+            <button onClick={() => search(q)} className="ml-2 text-studio-accent hover:underline">
+              Retry
+            </button>
           </div>
         )}
         {!loading && !error && results.length === 0 && (

@@ -72,7 +72,12 @@ describe('SceneSerializer — Production', () => {
 
   describe('sanitizeValue', () => {
     it('converts Map to object', () => {
-      const result = (serializer as any).sanitizeValue(new Map([['a', 1], ['b', 2]]));
+      const result = (serializer as any).sanitizeValue(
+        new Map([
+          ['a', 1],
+          ['b', 2],
+        ])
+      );
       expect(result).toEqual({ a: 1, b: 2 });
     });
 

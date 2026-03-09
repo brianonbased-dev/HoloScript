@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { TemplateGrid } from '@/components/templates/TemplateGrid';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 import type { TemplateInfo } from '@/types';
 
 const TEMPLATES: TemplateInfo[] = [

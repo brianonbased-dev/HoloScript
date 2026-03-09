@@ -175,11 +175,19 @@ describe('ZoraMarketplaceService', () => {
     });
 
     it('should calculate average royalty rate', async () => {
-      const mint1 = service.mintNFT(sampleMetadata, { percentage: 10, recipient: '0x123', permanent: true });
+      const mint1 = service.mintNFT(sampleMetadata, {
+        percentage: 10,
+        recipient: '0x123',
+        permanent: true,
+      });
       await vi.advanceTimersByTimeAsync(3500);
       await mint1;
 
-      const mint2 = service.mintNFT(sampleMetadata, { percentage: 15, recipient: '0x123', permanent: true });
+      const mint2 = service.mintNFT(sampleMetadata, {
+        percentage: 15,
+        recipient: '0x123',
+        permanent: true,
+      });
       await vi.advanceTimersByTimeAsync(3500);
       await mint2;
 

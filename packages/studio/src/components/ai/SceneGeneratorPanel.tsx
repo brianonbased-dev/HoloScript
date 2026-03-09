@@ -8,10 +8,17 @@
 
 import { useState, useRef } from 'react';
 import {
-  Wand2, X, Loader2, AlertCircle, CheckCircle, ChevronRight, RefreshCw, Copy,
+  Wand2,
+  X,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  ChevronRight,
+  RefreshCw,
+  Copy,
 } from 'lucide-react';
 import { useSceneGenerator } from '@/hooks/useSceneGenerator';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 const EXAMPLE_PROMPTS = [
   'A medieval castle courtyard at sunset with torches',
@@ -70,7 +77,10 @@ export function SceneGeneratorPanel({ onClose }: SceneGeneratorPanelProps) {
       <div className="flex shrink-0 items-center gap-2 border-b border-studio-border px-3 py-2.5">
         <Wand2 className="h-4 w-4 text-studio-accent" />
         <span className="text-[12px] font-semibold">AI Scene Generator</span>
-        <button onClick={onClose} className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text">
+        <button
+          onClick={onClose}
+          className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -83,7 +93,9 @@ export function SceneGeneratorPanel({ onClose }: SceneGeneratorPanelProps) {
             ref={textareaRef}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && e.ctrlKey) handleGenerate(); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && e.ctrlKey) handleGenerate();
+            }}
             placeholder="e.g. A cyberpunk alley with neon signs and rain puddles…"
             rows={3}
             className="w-full resize-none rounded-xl border border-studio-border bg-studio-surface px-3 py-2 text-[11px] text-studio-text outline-none placeholder-studio-muted/40 focus:border-studio-accent"
@@ -114,7 +126,11 @@ export function SceneGeneratorPanel({ onClose }: SceneGeneratorPanelProps) {
             disabled={!prompt.trim() || status === 'generating'}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-studio-accent py-2 text-[11px] font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
           >
-            {status === 'generating' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+            {status === 'generating' ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Wand2 className="h-3.5 w-3.5" />
+            )}
             Generate
           </button>
           <button
@@ -130,14 +146,16 @@ export function SceneGeneratorPanel({ onClose }: SceneGeneratorPanelProps) {
         {/* Warning */}
         {warning && (
           <div className="flex items-start gap-2 rounded-xl border border-yellow-500/20 bg-yellow-500/8 p-2.5 text-[10px] text-yellow-400">
-            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{warning}
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            {warning}
           </div>
         )}
 
         {/* Error */}
         {error && (
           <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-2.5 text-[11px] text-red-400">
-            <AlertCircle className="h-4 w-4 shrink-0" />{error}
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
           </div>
         )}
 
@@ -147,10 +165,16 @@ export function SceneGeneratorPanel({ onClose }: SceneGeneratorPanelProps) {
             <div className="flex items-center justify-between">
               <p className="text-[10px] text-studio-muted">Generated scene</p>
               <div className="flex gap-1">
-                <button onClick={handleCopy} className="text-[10px] text-studio-muted hover:text-studio-accent transition">
+                <button
+                  onClick={handleCopy}
+                  className="text-[10px] text-studio-muted hover:text-studio-accent transition"
+                >
                   {copied ? <CheckCircle className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                 </button>
-                <button onClick={reset} className="text-[10px] text-studio-muted hover:text-red-400 transition">
+                <button
+                  onClick={reset}
+                  className="text-[10px] text-studio-muted hover:text-red-400 transition"
+                >
                   <X className="h-3 w-3" />
                 </button>
               </div>

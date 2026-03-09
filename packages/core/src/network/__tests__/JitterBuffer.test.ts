@@ -80,7 +80,7 @@ describe('JitterBuffer', () => {
     // Inserting next one triggers flush
     const ready = buf.insert(makeState(3));
     expect(ready.length).toBe(3);
-    expect(ready.map(s => s.sequenceNumber)).toEqual([0, 1, 2]);
+    expect(ready.map((s) => s.sequenceNumber)).toEqual([0, 1, 2]);
   });
 
   // ===========================================================================
@@ -106,7 +106,7 @@ describe('JitterBuffer', () => {
     vi.advanceTimersByTime(60);
     const ready = buf.insert(makeState(3));
     // Should emit 0, 1, 2 in order (all held long enough)
-    expect(ready.map(s => s.sequenceNumber)).toEqual([0, 1, 2]);
+    expect(ready.map((s) => s.sequenceNumber)).toEqual([0, 1, 2]);
   });
 
   it('out-of-order insert where first packet has higher seq treats lower seqs as late', () => {
@@ -117,7 +117,7 @@ describe('JitterBuffer', () => {
     vi.advanceTimersByTime(60);
     const ready = buf.insert(makeState(3));
     // Only seq 2 is emitted (0 and 1 are below nextExpected=2, treated as late)
-    expect(ready.map(s => s.sequenceNumber)).toEqual([2]);
+    expect(ready.map((s) => s.sequenceNumber)).toEqual([2]);
   });
 
   // ===========================================================================
@@ -135,7 +135,7 @@ describe('JitterBuffer', () => {
     // After advancing 30ms on top of the 60ms, seq 2 has been held ~30ms
     // which is less than holdTimeMs * gapSkipMultiplier (50 * 2 = 100)
     // So seq 2 should not be emitted
-    const allSequences = ready.map(s => s.sequenceNumber);
+    const allSequences = ready.map((s) => s.sequenceNumber);
     expect(allSequences).not.toContain(2);
   });
 
@@ -148,7 +148,7 @@ describe('JitterBuffer', () => {
     vi.advanceTimersByTime(110); // 50 * 2 = 100ms skip threshold
     const ready = buf.tick(Date.now());
     // Now seq 2 should be emitted (gap skipped)
-    expect(ready.some(s => s.sequenceNumber === 2)).toBe(true);
+    expect(ready.some((s) => s.sequenceNumber === 2)).toBe(true);
   });
 
   // ===========================================================================
@@ -167,7 +167,7 @@ describe('JitterBuffer', () => {
     vi.advanceTimersByTime(60);
     const ready = buf.tick(Date.now());
     expect(ready.length).toBe(2);
-    const objectIds = ready.map(s => s.objectId).sort();
+    const objectIds = ready.map((s) => s.objectId).sort();
     expect(objectIds).toEqual(['obj1', 'obj2']);
   });
 
@@ -181,7 +181,7 @@ describe('JitterBuffer', () => {
     buf.insert(makeState(0, 'obj2'));
     const flushed = buf.forceFlush('obj1');
     expect(flushed.length).toBe(2);
-    expect(flushed.every(s => s.objectId === 'obj1')).toBe(true);
+    expect(flushed.every((s) => s.objectId === 'obj1')).toBe(true);
   });
 
   it('forceFlush returns all states across all objects when no id given', () => {
@@ -253,7 +253,7 @@ describe('JitterBuffer', () => {
     // Should not re-emit; pending should be 0 since it was already dropped
     vi.advanceTimersByTime(60);
     const ready = buf.tick(Date.now());
-    expect(ready.filter(s => s.sequenceNumber === 0).length).toBe(0);
+    expect(ready.filter((s) => s.sequenceNumber === 0).length).toBe(0);
   });
 
   // ===========================================================================
@@ -300,10 +300,10 @@ describe('JitterBuffer', () => {
     customBuf.insert(makeState(2)); // gap
     vi.advanceTimersByTime(110); // 50 * 2 = 100, but multiplier is 4, so threshold is 200
     let ready = customBuf.tick(Date.now());
-    expect(ready.some(s => s.sequenceNumber === 2)).toBe(false); // not yet
+    expect(ready.some((s) => s.sequenceNumber === 2)).toBe(false); // not yet
 
     vi.advanceTimersByTime(100); // total ~210ms > 200
     ready = customBuf.tick(Date.now());
-    expect(ready.some(s => s.sequenceNumber === 2)).toBe(true); // now skipped
+    expect(ready.some((s) => s.sequenceNumber === 2)).toBe(true); // now skipped
   });
 });

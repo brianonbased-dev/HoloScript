@@ -22,10 +22,7 @@ import {
 // ---------------------------------------------------------------------------
 
 /** Dot-product of two quaternions (measure of similarity) */
-function quatDot(
-  a: [number, number, number, number],
-  b: [number, number, number, number]
-): number {
+function quatDot(a: [number, number, number, number], b: [number, number, number, number]): number {
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
 }
 
@@ -53,7 +50,7 @@ describe('quantizePosition / dequantizePosition', () => {
     [1, 2, 3],
     [-1, -2, -3],
     [10.5, -7.25, 100.0],
-    [0.01, 0.02, 0.03],  // precision boundary
+    [0.01, 0.02, 0.03], // precision boundary
   ];
 
   it.each(cases)('round-trips (%f, %f, %f) within 0.01m tolerance', (x, y, z) => {
@@ -102,25 +99,22 @@ describe('compressQuaternion / decompressQuaternion', () => {
   }
 
   const cases: Array<[number, number, number, number]> = [
-    norm(0, 0, 0, 1),          // identity
-    norm(1, 0, 0, 1),          // 90° around X
-    norm(0, 1, 0, 1),          // 90° around Y
-    norm(0, 0, 1, 1),          // 90° around Z
-    norm(1, 1, 1, 1),          // equal components
-    norm(-1, 0, 0, 1),         // negative component
+    norm(0, 0, 0, 1), // identity
+    norm(1, 0, 0, 1), // 90° around X
+    norm(0, 1, 0, 1), // 90° around Y
+    norm(0, 0, 1, 1), // 90° around Z
+    norm(1, 1, 1, 1), // equal components
+    norm(-1, 0, 0, 1), // negative component
     norm(0.5, -0.5, 0.5, 0.5), // mixed signs
   ];
 
-  it.each(cases)(
-    'round-trips (%f, %f, %f, %f) — dot product ≥ 0.99',
-    (qx, qy, qz, qw) => {
-      const compressed = compressQuaternion(qx, qy, qz, qw);
-      const decompressed = decompressQuaternion(compressed);
-      // Account for double-cover: q and -q represent the same rotation
-      const d = Math.abs(quatDot([qx, qy, qz, qw], decompressed));
-      expect(d).toBeGreaterThanOrEqual(0.99);
-    }
-  );
+  it.each(cases)('round-trips (%f, %f, %f, %f) — dot product ≥ 0.99', (qx, qy, qz, qw) => {
+    const compressed = compressQuaternion(qx, qy, qz, qw);
+    const decompressed = decompressQuaternion(compressed);
+    // Account for double-cover: q and -q represent the same rotation
+    const d = Math.abs(quatDot([qx, qy, qz, qw], decompressed));
+    expect(d).toBeGreaterThanOrEqual(0.99);
+  });
 
   it('selects the correct largest component index', () => {
     // w is clearly the largest

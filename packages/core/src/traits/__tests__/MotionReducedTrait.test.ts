@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { motionReducedHandler } from '../MotionReducedTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('MotionReducedTrait', () => {
   let node: Record<string, unknown>;
@@ -29,7 +37,10 @@ describe('MotionReducedTrait', () => {
   });
 
   it('system preference activates when auto_detect', () => {
-    sendEvent(motionReducedHandler, node, cfg, ctx, { type: 'motion_reduced_system_preference', prefersReducedMotion: true });
+    sendEvent(motionReducedHandler, node, cfg, ctx, {
+      type: 'motion_reduced_system_preference',
+      prefersReducedMotion: true,
+    });
     expect((node as any).__motionReducedState.isActive).toBe(true);
     expect(getEventCount(ctx, 'motion_reduced_apply')).toBe(1);
   });
@@ -61,18 +72,28 @@ describe('MotionReducedTrait', () => {
 
   it('intercepts animation_start when active', () => {
     sendEvent(motionReducedHandler, node, cfg, ctx, { type: 'motion_reduced_enable' });
-    sendEvent(motionReducedHandler, node, cfg, ctx, { type: 'animation_start', animationId: 'a1', animation: {} });
+    sendEvent(motionReducedHandler, node, cfg, ctx, {
+      type: 'animation_start',
+      animationId: 'a1',
+      animation: {},
+    });
     expect(getEventCount(ctx, 'motion_reduced_replace_animation')).toBe(1);
   });
 
   it('camera transition converts to teleport', () => {
     sendEvent(motionReducedHandler, node, cfg, ctx, { type: 'motion_reduced_enable' });
-    sendEvent(motionReducedHandler, node, cfg, ctx, { type: 'camera_transition_request', target: { x: 1, y: 2, z: 3 } });
+    sendEvent(motionReducedHandler, node, cfg, ctx, {
+      type: 'camera_transition_request',
+      target: { x: 1, y: 2, z: 3 },
+    });
     expect(getEventCount(ctx, 'camera_teleport')).toBe(1);
   });
 
   it('query returns state', () => {
-    sendEvent(motionReducedHandler, node, cfg, ctx, { type: 'motion_reduced_query', queryId: 'q1' });
+    sendEvent(motionReducedHandler, node, cfg, ctx, {
+      type: 'motion_reduced_query',
+      queryId: 'q1',
+    });
     const r = getLastEvent(ctx, 'motion_reduced_info') as any;
     expect(r.isActive).toBe(false);
     expect(r.config.maxVelocity).toBe(2);

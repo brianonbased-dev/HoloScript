@@ -17,9 +17,11 @@ HoloScript has **solid foundational rigid body physics** with good collision det
 ## ✅ Current Physics Capabilities
 
 ### 1. **Rigid Body Physics** (Good)
+
 **File**: `packages/core/src/traits/PhysicsTrait.ts`
 
 **Features**:
+
 - ✅ Basic rigid body dynamics (mass, velocity, forces)
 - ✅ Collision detection (sphere, box, capsule)
 - ✅ Constraint systems (joints, springs)
@@ -30,7 +32,9 @@ HoloScript has **solid foundational rigid body physics** with good collision det
 ---
 
 ### 2. **Collision Detection** (Good)
+
 **Features**:
+
 - ✅ Primitive shapes (sphere, box, capsule, mesh)
 - ✅ Broadphase optimization (spatial hashing)
 - ✅ Contact generation
@@ -40,7 +44,9 @@ HoloScript has **solid foundational rigid body physics** with good collision det
 ---
 
 ### 3. **Basic Soft Body** (Basic)
+
 **Features**:
+
 - 🟡 Simple soft body deformation
 - 🟡 Spring-mass systems
 
@@ -53,6 +59,7 @@ HoloScript has **solid foundational rigid body physics** with good collision det
 ### Gap 1: **Fluid Simulation** ❌ MISSING
 
 **What's Missing**:
+
 - ❌ **Particle-based fluids** (SPH - Smoothed Particle Hydrodynamics)
   - Position-based fluid dynamics
   - Incompressibility constraint
@@ -68,6 +75,7 @@ HoloScript has **solid foundational rigid body physics** with good collision det
   - Foam and bubble generation
 
 **Industry Comparison**:
+
 - Unity: ✅ Particle-based with VFX Graph
 - Unreal: ✅ Niagara Fluids (GPU-accelerated SPH)
 - NVIDIA PhysX 5: ✅ Omniverse fluid simulation
@@ -80,9 +88,11 @@ HoloScript has **solid foundational rigid body physics** with good collision det
 ### Gap 2: **Advanced Cloth Simulation** ❌ INCOMPLETE
 
 **What Exists**:
+
 - 🟡 Basic spring-mass cloth (limited)
 
 **What's Missing**:
+
 - ❌ **Strain-based cloth dynamics** (position-based dynamics - PBD)
   - Distance constraints for stretch/compression
   - Bending constraints for wrinkles
@@ -97,6 +107,7 @@ HoloScript has **solid foundational rigid body physics** with good collision det
   - Stress-based tear propagation
 
 **Industry Comparison**:
+
 - Unity: ✅ Cloth Component (PBD-based)
 - Unreal: ✅ Chaos Cloth (strain-based)
 - NVIDIA PhysX 5: ✅ Advanced cloth solver
@@ -109,6 +120,7 @@ HoloScript has **solid foundational rigid body physics** with good collision det
 ### Gap 3: **Granular Materials** ❌ MISSING
 
 **What's Missing**:
+
 - ❌ **Particle-based granular simulation** (DEM - Discrete Element Method)
   - Sand, gravel, grain physics
   - Friction and cohesion modeling
@@ -122,6 +134,7 @@ HoloScript has **solid foundational rigid body physics** with good collision det
   - Spatial hashing for neighbor search
 
 **Industry Comparison**:
+
 - Houdini: ✅ Industry-leading granular solver
 - Unreal: ✅ Chaos Destruction (includes granular)
 - Unity: 🟡 Limited (via VFX Graph particles)
@@ -134,6 +147,7 @@ HoloScript has **solid foundational rigid body physics** with good collision det
 ### Gap 4: **Destruction & Fracture** ❌ MISSING
 
 **What's Missing**:
+
 - ❌ **Voronoi fracture** (procedural breakage)
   - 3D Voronoi cell generation
   - Centroidal Voronoi tessellation for realistic shards
@@ -148,6 +162,7 @@ HoloScript has **solid foundational rigid body physics** with good collision det
   - LOD for destruction fragments
 
 **Industry Comparison**:
+
 - Unreal: ✅ Chaos Destruction (Voronoi + stress)
 - NVIDIA PhysX 5: ✅ Blast destruction library
 - Unity: 🟡 Limited (requires third-party like Fracture)
@@ -159,26 +174,28 @@ HoloScript has **solid foundational rigid body physics** with good collision det
 
 ## 📊 Coverage Summary Table
 
-| Feature Category | Status | Implementation | Gap |
-|------------------|--------|----------------|-----|
-| **Rigid Body Physics** | ✅ Good | PhysicsTrait.ts | 0% |
-| **Collision Detection** | ✅ Good | Existing system | 0% |
-| **Basic Soft Body** | 🟡 Basic | Spring-mass | 15% |
-| **Fluid Simulation** | ❌ Missing | N/A | **100% gap** 🔴 |
-| **Advanced Cloth** | 🟡 Incomplete | Basic springs | **80% gap** 🔴 |
-| **Granular Materials** | ❌ Missing | N/A | **100% gap** 🟡 |
-| **Destruction/Fracture** | ❌ Missing | N/A | **100% gap** 🟡 |
-| **TOTAL** | **80% coverage** | **3/7 complete** | **~20%** |
+| Feature Category         | Status           | Implementation   | Gap             |
+| ------------------------ | ---------------- | ---------------- | --------------- |
+| **Rigid Body Physics**   | ✅ Good          | PhysicsTrait.ts  | 0%              |
+| **Collision Detection**  | ✅ Good          | Existing system  | 0%              |
+| **Basic Soft Body**      | 🟡 Basic         | Spring-mass      | 15%             |
+| **Fluid Simulation**     | ❌ Missing       | N/A              | **100% gap** 🔴 |
+| **Advanced Cloth**       | 🟡 Incomplete    | Basic springs    | **80% gap** 🔴  |
+| **Granular Materials**   | ❌ Missing       | N/A              | **100% gap** 🟡 |
+| **Destruction/Fracture** | ❌ Missing       | N/A              | **100% gap** 🟡 |
+| **TOTAL**                | **80% coverage** | **3/7 complete** | **~20%**        |
 
 ---
 
 ## 🎯 Recommended Roadmap - Sprint CLXXXII
 
 ### ✅ Phase 1: Fluid Simulation — PENDING
+
 **Priority**: 🔴 HIGH — **Critical for realistic liquids and smoke**
 **Estimated**: ~900 lines, 45 tests
 
 **What to Implement**:
+
 - ✅ FluidSimulationTrait.ts (~900 lines)
 - ✅ SPH (Smoothed Particle Hydrodynamics) solver
   - Density calculation with kernel functions (poly6, spiky, viscosity)
@@ -199,10 +216,12 @@ HoloScript has **solid foundational rigid body physics** with good collision det
 ---
 
 ### ✅ Phase 2: Advanced Cloth Simulation — PENDING
+
 **Priority**: 🔴 MEDIUM-HIGH — **Important for character clothing**
 **Estimated**: ~850 lines, 42 tests
 
 **What to Implement**:
+
 - ✅ AdvancedClothTrait.ts (~850 lines)
 - ✅ Position-Based Dynamics (PBD)
   - Distance constraints (stretch/compression prevention)
@@ -210,7 +229,7 @@ HoloScript has **solid foundational rigid body physics** with good collision det
   - Collision constraints (with friction)
   - Self-collision detection with spatial hashing
 - ✅ Wind and aerodynamics
-  - Drag force calculation (0.5 * ρ * Cd * A * v²)
+  - Drag force calculation (0.5 _ ρ _ Cd _ A _ v²)
   - Lift force for realistic fabric flutter
   - Turbulence noise (Perlin/Simplex)
 - ✅ Cloth tearing
@@ -222,10 +241,12 @@ HoloScript has **solid foundational rigid body physics** with good collision det
 ---
 
 ### ✅ Phase 3: Granular Materials — PENDING
+
 **Priority**: 🟡 MEDIUM — **Useful for terrain and particle effects**
 **Estimated**: ~850 lines, 45 tests
 
 **What to Implement**:
+
 - ✅ GranularMaterialTrait.ts (~850 lines)
 - ✅ DEM (Discrete Element Method) solver
   - Particle-particle contact resolution (Hertz contact model)
@@ -245,10 +266,12 @@ HoloScript has **solid foundational rigid body physics** with good collision det
 ---
 
 ### ✅ Phase 4: Destruction & Fracture — PENDING
+
 **Priority**: 🟡 MEDIUM — **Nice-to-have for games**
 **Estimated**: ~900 lines, 48 tests
 
 **What to Implement**:
+
 - ✅ DestructionTrait.ts (~900 lines)
 - ✅ Voronoi fracture generation
   - 3D Voronoi cell computation (Fortune's algorithm or GPU-based)
@@ -269,12 +292,12 @@ HoloScript has **solid foundational rigid body physics** with good collision det
 
 ## 📈 Quality Assessment
 
-| Milestone | Physics Quality | Industry Parity |
-|-----------|-----------------|-----------------|
-| **Pre-Sprint (80%)** | ⭐⭐⭐⭐ (4/5) — Strong rigid body, good collisions | Unity Basic Physics ✅<br>Unreal Chaos ❌<br>NVIDIA PhysX 5 ❌ |
-| **After Phase 1-2 (90%)** | ⭐⭐⭐⭐½ (4.5/5) — Fluids + advanced cloth | Unity Physics ✅<br>Unreal Chaos Cloth ✅<br>PhysX Fluids ⚠️ |
-| **After Phase 3 (95%)** | ⭐⭐⭐⭐⭐ (5/5) — Granular materials added | Full simulation suite |
-| **After Phase 4 (100%)** | ⭐⭐⭐⭐⭐ (5/5) — Complete physics system | Unity ✅<br>Unreal Chaos ✅<br>PhysX 5 ✅<br>**Feature Complete** ✅ |
+| Milestone                 | Physics Quality                                     | Industry Parity                                                      |
+| ------------------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
+| **Pre-Sprint (80%)**      | ⭐⭐⭐⭐ (4/5) — Strong rigid body, good collisions | Unity Basic Physics ✅<br>Unreal Chaos ❌<br>NVIDIA PhysX 5 ❌       |
+| **After Phase 1-2 (90%)** | ⭐⭐⭐⭐½ (4.5/5) — Fluids + advanced cloth         | Unity Physics ✅<br>Unreal Chaos Cloth ✅<br>PhysX Fluids ⚠️         |
+| **After Phase 3 (95%)**   | ⭐⭐⭐⭐⭐ (5/5) — Granular materials added         | Full simulation suite                                                |
+| **After Phase 4 (100%)**  | ⭐⭐⭐⭐⭐ (5/5) — Complete physics system          | Unity ✅<br>Unreal Chaos ✅<br>PhysX 5 ✅<br>**Feature Complete** ✅ |
 
 ---
 
@@ -283,17 +306,20 @@ HoloScript has **solid foundational rigid body physics** with good collision det
 **Physics Reality Gap**: **~20% remaining** (down from 100% for advanced features)
 
 ### Current Strengths:
+
 - ✅ **Excellent rigid body physics** (production-ready)
 - ✅ **Good collision detection** (broadphase + narrowphase)
 - ✅ **Basic soft body** (spring-mass systems)
 
 ### Remaining Gaps:
+
 - ❌ **Fluid simulation** (SPH, FLIP) — **Phase 1 priority**
 - 🟡 **Advanced cloth** (PBD, wind, tearing) — **Phase 2 priority**
 - ❌ **Granular materials** (DEM, sand, debris) — **Phase 3 priority**
 - ❌ **Destruction** (Voronoi fracture, stress-based) — **Phase 4 priority**
 
 ### Sprint CLXXXII Plan:
+
 - **Phase 1**: Fluid simulation (SPH/FLIP) — ~900 lines, 45 tests
 - **Phase 2**: Advanced cloth (PBD + wind) — ~850 lines, 42 tests
 - **Phase 3**: Granular materials (DEM) — ~850 lines, 45 tests

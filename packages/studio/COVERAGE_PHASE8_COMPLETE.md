@@ -10,22 +10,22 @@
 
 ### Overall Metrics
 
-| Metric | Phase 7 | Phase 8 | Change | Status |
-|--------|---------|---------|--------|--------|
-| **Test Files** | 31 | 32 | **+1** ✅ | +3.23% |
-| **Total Tests** | 1000 | 1027 | **+27** ✅ | +2.70% |
-| **Lines Coverage** | 18.59% | 18.65% | **+0.06%** ✅ | Improved |
-| **Function Coverage** | 73.35% | 73.35% | 0.00% | Stable |
-| **Branch Coverage** | 80.30% | 80.30% | 0.00% | Stable |
-| **Hooks Coverage** | 37.93% | 40.34% | **+2.41%** ✅ | +6.35% |
+| Metric                | Phase 7 | Phase 8 | Change        | Status   |
+| --------------------- | ------- | ------- | ------------- | -------- |
+| **Test Files**        | 31      | 32      | **+1** ✅     | +3.23%   |
+| **Total Tests**       | 1000    | 1027    | **+27** ✅    | +2.70%   |
+| **Lines Coverage**    | 18.59%  | 18.65%  | **+0.06%** ✅ | Improved |
+| **Function Coverage** | 73.35%  | 73.35%  | 0.00%         | Stable   |
+| **Branch Coverage**   | 80.30%  | 80.30%  | 0.00%         | Stable   |
+| **Hooks Coverage**    | 37.93%  | 40.34%  | **+2.41%** ✅ | +6.35%   |
 
 ### Cumulative Progress (Baseline → Phase 8)
 
-| Metric | Baseline | Phase 8 | Total Change |
-|--------|----------|---------|--------------|
-| **Test Files** | 22 | 32 | **+10** (+45.45%) |
-| **Total Tests** | 766 | 1027 | **+261** (+34.07%) |
-| **Hooks Coverage** | 12.98% | 40.34% | **+27.36%** (+210.79%) |
+| Metric             | Baseline | Phase 8 | Total Change           |
+| ------------------ | -------- | ------- | ---------------------- |
+| **Test Files**     | 22       | 32      | **+10** (+45.45%)      |
+| **Total Tests**    | 766      | 1027    | **+261** (+34.07%)     |
+| **Hooks Coverage** | 12.98%   | 40.34%  | **+27.36%** (+210.79%) |
 
 ---
 
@@ -102,11 +102,11 @@ Tests covering HoloScript environment block management:
 
 ### Hooks Directory Progress
 
-| Metric | Baseline | Phase 1 | Phase 2 | Phase 3 | Phase 4 | Phase 5 | Phase 6 | Phase 7 | Phase 8 | Total Change |
-|--------|----------|---------|---------|---------|---------|---------|---------|---------|---------|--------------|
-| **Lines** | 12.98% | 15.86% | 18.58% | 22.58% | 27.17% | 31.03% | 34.48% | 37.93% | **40.34%** | **+27.36%** |
-| **Functions** | 63.75% | 71.35% | 76.15% | 79.45% | 80.30% | 83.35% | 86.67% | 90.00% | **92.50%** | **+28.75%** |
-| **Branches** | 42.85% | 45.05% | 48.38% | 50.11% | 52.45% | 55.30% | 58.82% | 62.50% | **65.00%** | **+22.15%** |
+| Metric        | Baseline | Phase 1 | Phase 2 | Phase 3 | Phase 4 | Phase 5 | Phase 6 | Phase 7 | Phase 8    | Total Change |
+| ------------- | -------- | ------- | ------- | ------- | ------- | ------- | ------- | ------- | ---------- | ------------ |
+| **Lines**     | 12.98%   | 15.86%  | 18.58%  | 22.58%  | 27.17%  | 31.03%  | 34.48%  | 37.93%  | **40.34%** | **+27.36%**  |
+| **Functions** | 63.75%   | 71.35%  | 76.15%  | 79.45%  | 80.30%  | 83.35%  | 86.67%  | 90.00%  | **92.50%** | **+28.75%**  |
+| **Branches**  | 42.85%   | 45.05%  | 48.38%  | 50.11%  | 52.45%  | 55.30%  | 58.82%  | 62.50%  | **65.00%** | **+22.15%**  |
 
 ### Test Distribution
 
@@ -172,9 +172,7 @@ it('should replace existing environment block', () => {
     result.current.applyPreset('  skybox("new");');
   });
 
-  expect(mockSetCode).toHaveBeenCalledWith(
-    'scene Main {}\nenvironment {\n  skybox("new");\n}'
-  );
+  expect(mockSetCode).toHaveBeenCalledWith('scene Main {}\nenvironment {\n  skybox("new");\n}');
 });
 ```
 
@@ -275,12 +273,12 @@ it('should update state when code changes', () => {
 
 From **12.98%** baseline to **40.34%** - a **210.79%** improvement!
 
-| Milestone | Baseline | Phase 8 | Improvement |
-|-----------|----------|---------|-------------|
-| **Hooks Coverage** | 12.98% | **40.34%** | **+27.36%** |
-| **Total Tests** | 766 | 1027 | **+261** (+34%) |
-| **Hooks at 100%** | 0 | **11** | **+11** |
-| **Test Pass Rate** | - | **100%** | Perfect |
+| Milestone          | Baseline | Phase 8    | Improvement     |
+| ------------------ | -------- | ---------- | --------------- |
+| **Hooks Coverage** | 12.98%   | **40.34%** | **+27.36%**     |
+| **Total Tests**    | 766      | 1027       | **+261** (+34%) |
+| **Hooks at 100%**  | 0        | **11**     | **+11**         |
+| **Test Pass Rate** | -        | **100%**   | Perfect         |
 
 ### What This Means
 

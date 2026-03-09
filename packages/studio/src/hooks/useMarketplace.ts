@@ -6,10 +6,16 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import {
-  MarketplaceRegistry, type PackageListing, type MarketplaceSearchFilters,
-  type MarketplaceSearchResult, type InstallManifest,
-  createSubmission, verifySubmission, publishSubmission,
-  type MarketplacePackage, type MarketplaceSubmissionType,
+  MarketplaceRegistry,
+  type PackageListing,
+  type MarketplaceSearchFilters,
+  type MarketplaceSearchResult,
+  type InstallManifest,
+  createSubmission,
+  verifySubmission,
+  publishSubmission,
+  type MarketplacePackage,
+  type MarketplaceSubmissionType,
 } from '@holoscript/core';
 import { seedMarketplace } from '../data/marketplace-seeds';
 
@@ -47,7 +53,9 @@ export function useMarketplace(worldId: string = 'default'): UseMarketplaceRetur
     setStats(registryRef.current.stats());
   }, [worldId]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   const search = useCallback((filters: MarketplaceSearchFilters = {}) => {
     const res = registryRef.current.search(filters);
@@ -61,36 +69,57 @@ export function useMarketplace(worldId: string = 'default'): UseMarketplaceRetur
     return pkg;
   }, []);
 
-  const install = useCallback((packageId: string, wId: string) => {
-    const manifest = registryRef.current.install(packageId, wId);
-    refresh();
-    return manifest;
-  }, [refresh]);
+  const install = useCallback(
+    (packageId: string, wId: string) => {
+      const manifest = registryRef.current.install(packageId, wId);
+      refresh();
+      return manifest;
+    },
+    [refresh]
+  );
 
-  const uninstall = useCallback((packageId: string, wId: string) => {
-    const result = registryRef.current.uninstall(packageId, wId);
-    refresh();
-    return result;
-  }, [refresh]);
+  const uninstall = useCallback(
+    (packageId: string, wId: string) => {
+      const result = registryRef.current.uninstall(packageId, wId);
+      refresh();
+      return result;
+    },
+    [refresh]
+  );
 
   const rate = useCallback((packageId: string, rating: number) => {
     return registryRef.current.rate(packageId, rating);
   }, []);
 
-  const submit = useCallback((pkg: MarketplacePackage) => {
-    const sub = createSubmission(pkg);
-    verifySubmission(sub);
-    if (sub.status === 'verified') {
-      publishSubmission(sub);
-      if (sub.status === 'published') {
-        registryRef.current.publish(sub);
-        refresh();
+  const submit = useCallback(
+    (pkg: MarketplacePackage) => {
+      const sub = createSubmission(pkg);
+      verifySubmission(sub);
+      if (sub.status === 'verified') {
+        publishSubmission(sub);
+        if (sub.status === 'published') {
+          registryRef.current.publish(sub);
+          refresh();
+        }
       }
-    }
-    return sub;
-  }, [refresh]);
+      return sub;
+    },
+    [refresh]
+  );
 
   const getInstalled = useCallback((wId: string) => registryRef.current.getInstalled(wId), []);
 
-  return { results, selected, installed, stats, search, select, install, uninstall, rate, submit, getInstalled };
+  return {
+    results,
+    selected,
+    installed,
+    stats,
+    search,
+    select,
+    install,
+    uninstall,
+    rate,
+    submit,
+    getInstalled,
+  };
 }

@@ -10,7 +10,7 @@ import { useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { useSceneGraphStore, useEditorStore } from '@/lib/store';
+import { useSceneGraphStore, useEditorStore } from '@/lib/stores';
 
 // ─── Scene Graph List Panel ───────────────────────────────────────────────────
 
@@ -34,12 +34,18 @@ function SceneListPanel() {
         pointerEvents: 'auto',
       }}
     >
-      <div style={{ fontSize: 10, letterSpacing: 2, opacity: 0.5, marginBottom: 8, textTransform: 'uppercase' }}>
+      <div
+        style={{
+          fontSize: 10,
+          letterSpacing: 2,
+          opacity: 0.5,
+          marginBottom: 8,
+          textTransform: 'uppercase',
+        }}
+      >
         Scene
       </div>
-      {nodes.length === 0 && (
-        <div style={{ opacity: 0.4, fontSize: 11 }}>Empty scene</div>
-      )}
+      {nodes.length === 0 && <div style={{ opacity: 0.4, fontSize: 11 }}>Empty scene</div>}
       {nodes.map((node) => (
         <div
           key={node.id}
@@ -58,7 +64,16 @@ function SceneListPanel() {
           <span style={{ opacity: 0.5, fontSize: 10 }}>{node.type}</span>
           <span>{node.name}</span>
           {node.traits.length > 0 && (
-            <span style={{ marginLeft: 'auto', fontSize: 9, opacity: 0.5, background: 'rgba(99,102,241,0.2)', padding: '1px 4px', borderRadius: 4 }}>
+            <span
+              style={{
+                marginLeft: 'auto',
+                fontSize: 9,
+                opacity: 0.5,
+                background: 'rgba(99,102,241,0.2)',
+                padding: '1px 4px',
+                borderRadius: 4,
+              }}
+            >
               {node.traits.length}
             </span>
           )}
@@ -111,16 +126,40 @@ function InspectorPanel() {
     >
       <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{node.name}</div>
       <div style={{ fontSize: 10, opacity: 0.5, marginBottom: 8, display: 'flex', gap: 4 }}>
-        <span style={{ background: 'rgba(99,102,241,0.2)', padding: '2px 6px', borderRadius: 4 }}>{node.type}</span>
+        <span style={{ background: 'rgba(99,102,241,0.2)', padding: '2px 6px', borderRadius: 4 }}>
+          {node.type}
+        </span>
       </div>
 
       {/* Position */}
-      <div style={{ fontSize: 10, opacity: 0.5, marginBottom: 4, letterSpacing: 1, textTransform: 'uppercase' }}>Transform</div>
+      <div
+        style={{
+          fontSize: 10,
+          opacity: 0.5,
+          marginBottom: 4,
+          letterSpacing: 1,
+          textTransform: 'uppercase',
+        }}
+      >
+        Transform
+      </div>
       {(['position', 'rotation', 'scale'] as const).map((prop) => (
         <div key={prop} style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ width: 48, opacity: 0.5, fontSize: 10 }}>{prop.slice(0, 3).toUpperCase()}</span>
+          <span style={{ width: 48, opacity: 0.5, fontSize: 10 }}>
+            {prop.slice(0, 3).toUpperCase()}
+          </span>
           {node[prop].map((v, i) => (
-            <span key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 4, padding: '2px 4px', textAlign: 'right', fontSize: 10 }}>
+            <span
+              key={i}
+              style={{
+                flex: 1,
+                background: 'rgba(255,255,255,0.04)',
+                borderRadius: 4,
+                padding: '2px 4px',
+                textAlign: 'right',
+                fontSize: 10,
+              }}
+            >
               {v.toFixed(2)}
             </span>
           ))}
@@ -130,9 +169,29 @@ function InspectorPanel() {
       {/* Traits */}
       {node.traits.length > 0 && (
         <>
-          <div style={{ fontSize: 10, opacity: 0.5, marginTop: 8, marginBottom: 4, letterSpacing: 1, textTransform: 'uppercase' }}>Traits</div>
+          <div
+            style={{
+              fontSize: 10,
+              opacity: 0.5,
+              marginTop: 8,
+              marginBottom: 4,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+            }}
+          >
+            Traits
+          </div>
           {node.traits.map((t) => (
-            <div key={t.name} style={{ fontSize: 11, padding: '3px 6px', background: 'rgba(99,102,241,0.15)', borderRadius: 6, marginBottom: 3 }}>
+            <div
+              key={t.name}
+              style={{
+                fontSize: 11,
+                padding: '3px 6px',
+                background: 'rgba(99,102,241,0.15)',
+                borderRadius: 6,
+                marginBottom: 3,
+              }}
+            >
               @{t.name}
             </div>
           ))}

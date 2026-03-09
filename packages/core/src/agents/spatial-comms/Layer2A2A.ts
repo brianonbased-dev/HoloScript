@@ -43,11 +43,7 @@ class MessageQueue {
   /**
    * Add message to queue
    */
-  add(
-    message: A2AMessage,
-    maxRetries: number,
-    backoffBase: number
-  ): Promise<A2AResponse> {
+  add(message: A2AMessage, maxRetries: number, backoffBase: number): Promise<A2AResponse> {
     return new Promise((resolve, reject) => {
       this.queue.set(message.message_id, {
         message,
@@ -167,7 +163,7 @@ class SpatialClaimManager {
    * Get claims by agent
    */
   getClaimsByAgent(agentId: string): SpatialClaim[] {
-    return Array.from(this.claims.values()).filter(c => c.agent_id === agentId);
+    return Array.from(this.claims.values()).filter((c) => c.agent_id === agentId);
   }
 
   /**
@@ -200,9 +196,12 @@ class SpatialClaimManager {
     box2: { min: [number, number, number]; max: [number, number, number] }
   ): boolean {
     return (
-      box1.min[0] <= box2.max[0] && box1.max[0] >= box2.min[0] &&
-      box1.min[1] <= box2.max[1] && box1.max[1] >= box2.min[1] &&
-      box1.min[2] <= box2.max[2] && box1.max[2] >= box2.min[2]
+      box1.min[0] <= box2.max[0] &&
+      box1.max[0] >= box2.min[0] &&
+      box1.min[1] <= box2.max[1] &&
+      box1.max[1] >= box2.min[1] &&
+      box1.min[2] <= box2.max[2] &&
+      box1.max[2] >= box2.min[2]
     );
   }
 
@@ -353,7 +352,7 @@ export class Layer2A2AClient extends EventEmitter {
       });
 
       // If any conflict has higher or equal priority, fail
-      const hasHigherPriority = conflicts.some(c => {
+      const hasHigherPriority = conflicts.some((c) => {
         const priorities = ['low', 'medium', 'high', 'critical'];
         return priorities.indexOf(c.priority) >= priorities.indexOf(priority);
       });
@@ -448,10 +447,7 @@ export class Layer2A2AClient extends EventEmitter {
   /**
    * Register message handler
    */
-  onMessage(
-    messageType: string,
-    handler: (message: A2AMessage) => Promise<A2AResponse>
-  ): void {
+  onMessage(messageType: string, handler: (message: A2AMessage) => Promise<A2AResponse>): void {
     this.messageHandlers.set(messageType, handler);
   }
 
@@ -586,7 +582,8 @@ export class Layer2A2AClient extends EventEmitter {
     // Create promise for response
     const responsePromise = new Promise<A2AResponse>((resolve, reject) => {
       // Store resolve/reject in message queue
-      this.messageQueue.add(message, this.config.maxRetries, this.config.retryBackoffBase)
+      this.messageQueue
+        .add(message, this.config.maxRetries, this.config.retryBackoffBase)
         .then(resolve)
         .catch(reject);
     });

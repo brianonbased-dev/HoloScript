@@ -14,7 +14,13 @@ import {
   AIProviderConfig,
   PaymentProcessorConfig,
 } from '../../plugins/HololandExtensionPoint';
-import type { WeatherData, AIGeneratedNarrative, AIGeneratedQuest, PaymentRequest, PaymentReceipt } from '../../plugins/HololandTypes';
+import type {
+  WeatherData,
+  AIGeneratedNarrative,
+  AIGeneratedQuest,
+  PaymentRequest,
+  PaymentReceipt,
+} from '../../plugins/HololandTypes';
 
 // =============================================================================
 // CONCRETE IMPLEMENTATIONS FOR TESTING
@@ -27,7 +33,9 @@ class TestWeatherProvider extends BaseWeatherProvider {
 
 class TestAIProvider extends BaseAIProvider {
   readonly id = 'test-ai';
-  generateNarrative = vi.fn().mockResolvedValue({ text: 'Once upon a time...' } as AIGeneratedNarrative);
+  generateNarrative = vi
+    .fn()
+    .mockResolvedValue({ text: 'Once upon a time...' } as AIGeneratedNarrative);
   generateQuest = vi.fn().mockResolvedValue({ title: 'Mighty Quest' } as AIGeneratedQuest);
   checkAvailability = vi.fn().mockResolvedValue(true);
   // exposes protected updateStats for testing
@@ -38,7 +46,9 @@ class TestAIProvider extends BaseAIProvider {
 
 class TestPaymentProcessor extends BasePaymentProcessor {
   readonly id = 'test-payment';
-  processPayment = vi.fn().mockResolvedValue({ txHash: 'abc', amount: 100n, timestamp: Date.now() } as any);
+  processPayment = vi
+    .fn()
+    .mockResolvedValue({ txHash: 'abc', amount: 100n, timestamp: Date.now() } as any);
   verifyPayment = vi.fn().mockResolvedValue({ valid: true, amount: 100, timestamp: Date.now() });
   checkAvailability = vi.fn().mockResolvedValue(true);
   // exposes protected recordPayment
@@ -173,13 +183,17 @@ describe('BaseAIProvider — Production Tests', () => {
   });
 
   it('generateDialogue delegates to generateNarrative and splits lines', async () => {
-    provider.generateNarrative.mockResolvedValueOnce({ text: 'Hello there.\nHow are you?\nFarewell.' } as AIGeneratedNarrative);
+    provider.generateNarrative.mockResolvedValueOnce({
+      text: 'Hello there.\nHow are you?\nFarewell.',
+    } as AIGeneratedNarrative);
     const lines = await provider.generateDialogue('Bob', 'gruff', 'barkeep setting');
     expect(lines).toEqual(['Hello there.', 'How are you?', 'Farewell.']);
   });
 
   it('generateDialogue filters empty lines', async () => {
-    provider.generateNarrative.mockResolvedValueOnce({ text: 'Line one.\n\n\nLine two.' } as AIGeneratedNarrative);
+    provider.generateNarrative.mockResolvedValueOnce({
+      text: 'Line one.\n\n\nLine two.',
+    } as AIGeneratedNarrative);
     const lines = await provider.generateDialogue('X', 'Y', 'Z');
     expect(lines).toHaveLength(2);
   });

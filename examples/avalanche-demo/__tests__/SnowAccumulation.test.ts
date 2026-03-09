@@ -339,10 +339,7 @@ describe('SnowAccumulation', () => {
       expect(stats.restingParticles).toBe(snowConfig.particleCount);
       expect(stats.slidingParticles).toBe(0);
       expect(stats.airborneParticles).toBe(0);
-      expect(stats.totalMass).toBeCloseTo(
-        snowConfig.particleCount * snowConfig.particleMass,
-        1
-      );
+      expect(stats.totalMass).toBeCloseTo(snowConfig.particleCount * snowConfig.particleMass, 1);
       expect(stats.avgDepth).toBeGreaterThan(0);
       expect(stats.maxDepth).toBeGreaterThan(0);
       expect(stats.stableCells).toBeGreaterThanOrEqual(0);
@@ -359,8 +356,7 @@ describe('SnowAccumulation', () => {
     it('should have total particles = sum of state counts', () => {
       const stats = snow.getStatistics();
 
-      const stateSum =
-        stats.restingParticles + stats.slidingParticles + stats.airborneParticles;
+      const stateSum = stats.restingParticles + stats.slidingParticles + stats.airborneParticles;
 
       expect(stateSum).toBe(stats.totalParticles);
     });

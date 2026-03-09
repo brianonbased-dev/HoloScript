@@ -12,7 +12,7 @@ export type LoadType = 'dead' | 'live' | 'wind' | 'seismic' | 'thermal' | 'impac
 export interface Material {
   type: MaterialType;
   yieldStrengthMPa: number;
-  elasticModulusMPa: number;    // Young's modulus
+  elasticModulusMPa: number; // Young's modulus
   densityKgM3: number;
   poissonRatio: number;
   fatigueStrengthMPa: number;
@@ -25,17 +25,17 @@ export interface BridgeSpan {
   widthM: number;
   heightM: number;
   material: Material;
-  crossSectionArea: number;     // m²
-  momentOfInertia: number;      // m⁴
+  crossSectionArea: number; // m²
+  momentOfInertia: number; // m⁴
 }
 
 export interface AppliedLoad {
   id: string;
   type: LoadType;
   magnitudeKN: number;
-  positionM: number;            // distance from left support
-  distributed: boolean;         // point vs distributed load
-  spanLength?: number;          // for distributed loads
+  positionM: number; // distance from left support
+  distributed: boolean; // point vs distributed load
+  spanLength?: number; // for distributed loads
 }
 
 export interface StressResult {
@@ -51,11 +51,46 @@ export interface StressResult {
 // ═══════════════════════════════════════════════════════════════════
 
 export const MATERIALS: Record<MaterialType, Material> = {
-  steel:     { type: 'steel',     yieldStrengthMPa: 250, elasticModulusMPa: 200000, densityKgM3: 7850, poissonRatio: 0.30, fatigueStrengthMPa: 160 },
-  concrete:  { type: 'concrete',  yieldStrengthMPa: 30,  elasticModulusMPa: 30000,  densityKgM3: 2400, poissonRatio: 0.20, fatigueStrengthMPa: 10 },
-  timber:    { type: 'timber',    yieldStrengthMPa: 40,  elasticModulusMPa: 12000,  densityKgM3: 600,  poissonRatio: 0.35, fatigueStrengthMPa: 15 },
-  composite: { type: 'composite', yieldStrengthMPa: 500, elasticModulusMPa: 150000, densityKgM3: 1600, poissonRatio: 0.28, fatigueStrengthMPa: 300 },
-  aluminum:  { type: 'aluminum',  yieldStrengthMPa: 270, elasticModulusMPa: 69000,  densityKgM3: 2700, poissonRatio: 0.33, fatigueStrengthMPa: 100 },
+  steel: {
+    type: 'steel',
+    yieldStrengthMPa: 250,
+    elasticModulusMPa: 200000,
+    densityKgM3: 7850,
+    poissonRatio: 0.3,
+    fatigueStrengthMPa: 160,
+  },
+  concrete: {
+    type: 'concrete',
+    yieldStrengthMPa: 30,
+    elasticModulusMPa: 30000,
+    densityKgM3: 2400,
+    poissonRatio: 0.2,
+    fatigueStrengthMPa: 10,
+  },
+  timber: {
+    type: 'timber',
+    yieldStrengthMPa: 40,
+    elasticModulusMPa: 12000,
+    densityKgM3: 600,
+    poissonRatio: 0.35,
+    fatigueStrengthMPa: 15,
+  },
+  composite: {
+    type: 'composite',
+    yieldStrengthMPa: 500,
+    elasticModulusMPa: 150000,
+    densityKgM3: 1600,
+    poissonRatio: 0.28,
+    fatigueStrengthMPa: 300,
+  },
+  aluminum: {
+    type: 'aluminum',
+    yieldStrengthMPa: 270,
+    elasticModulusMPa: 69000,
+    densityKgM3: 2700,
+    poissonRatio: 0.33,
+    fatigueStrengthMPa: 100,
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -83,14 +118,17 @@ export function isStructurallySafe(sf: number, minRequired: number = 1.5): boole
   return sf >= minRequired;
 }
 
-export function beamDeflection(
-  loadKN: number, lengthM: number, E: number, I: number
-): number {
+export function beamDeflection(loadKN: number, lengthM: number, E: number, I: number): number {
   // Simply supported beam, point load at center: δ = PL³/(48EI)
   return (loadKN * 1000 * lengthM ** 3) / (48 * E * 1e6 * I);
 }
 
-export function naturalFrequency(lengthM: number, E: number, I: number, massPerMeter: number): number {
+export function naturalFrequency(
+  lengthM: number,
+  E: number,
+  I: number,
+  massPerMeter: number
+): number {
   // First mode: f = (π²/2L²) × √(EI/m)
   return (Math.PI ** 2 / (2 * lengthM ** 2)) * Math.sqrt((E * 1e6 * I) / massPerMeter);
 }
@@ -114,16 +152,25 @@ export function fatigueLifeCycles(stressRange: number, fatigueStrength: number):
 // FEA Mesh Generation
 // ═══════════════════════════════════════════════════════════════════
 
-export interface FEANode { id: number; x: number; y: number }
-export interface FEAElement { id: number; nodes: [number, number, number] }
+export interface FEANode {
+  id: number;
+  x: number;
+  y: number;
+}
+export interface FEAElement {
+  id: number;
+  nodes: [number, number, number];
+}
 
 /**
  * Generate a 2D triangulated FEA mesh for a rectangular span.
  * Returns nodes and triangular elements for stress analysis.
  */
 export function feaMeshGenerate(
-  lengthM: number, heightM: number,
-  nx: number, ny: number
+  lengthM: number,
+  heightM: number,
+  nx: number,
+  ny: number
 ): { nodes: FEANode[]; elements: FEAElement[] } {
   const nodes: FEANode[] = [];
   const elements: FEAElement[] = [];
@@ -165,9 +212,14 @@ export function windResonanceCheck(
   windSpeedMs: number,
   strouhalNumber: number = 0.2
 ): { vortexFreqHz: number; naturalFreqHz: number; resonanceRisk: boolean } {
-  const vortexFreqHz = strouhalNumber * windSpeedMs / span.widthM;
+  const vortexFreqHz = (strouhalNumber * windSpeedMs) / span.widthM;
   const massPerMeter = span.crossSectionArea * span.material.densityKgM3;
-  const naturalFreqHz = naturalFrequency(span.lengthM, span.material.elasticModulusMPa, span.momentOfInertia, massPerMeter);
+  const naturalFreqHz = naturalFrequency(
+    span.lengthM,
+    span.material.elasticModulusMPa,
+    span.momentOfInertia,
+    massPerMeter
+  );
   // Risk if vortex freq is within 20% of natural frequency
   const ratio = vortexFreqHz / naturalFreqHz;
   return { vortexFreqHz, naturalFreqHz, resonanceRisk: ratio > 0.8 && ratio < 1.2 };

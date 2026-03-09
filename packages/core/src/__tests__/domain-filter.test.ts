@@ -12,36 +12,135 @@ type PanelTab = string;
 type DomainProfile = 'all' | 'game' | 'vr' | 'iot' | 'film';
 
 const ALL_TABS: PanelTab[] = [
-  'safety','marketplace','platform','traits','physics','ai','dialogue','ecs',
-  'animation','audio','procgen','multiplayer','shader','combat','pathfinding',
-  'particles','camera','inventory','terrain','lighting','cinematic',
-  'collaboration','security','scripting','saveload','profiler','compiler',
-  'lod','statemachine','input','network','culture','timeline','scene',
-  'assets','state','viewport','bus','presets','events','agent',
+  'safety',
+  'marketplace',
+  'platform',
+  'traits',
+  'physics',
+  'ai',
+  'dialogue',
+  'ecs',
+  'animation',
+  'audio',
+  'procgen',
+  'multiplayer',
+  'shader',
+  'combat',
+  'pathfinding',
+  'particles',
+  'camera',
+  'inventory',
+  'terrain',
+  'lighting',
+  'cinematic',
+  'collaboration',
+  'security',
+  'scripting',
+  'saveload',
+  'profiler',
+  'compiler',
+  'lod',
+  'statemachine',
+  'input',
+  'network',
+  'culture',
+  'timeline',
+  'scene',
+  'assets',
+  'state',
+  'viewport',
+  'bus',
+  'presets',
+  'events',
+  'agent',
 ];
 
 const DOMAIN_TABS: Record<DomainProfile, Set<string>> = {
   all: new Set(ALL_TABS),
   game: new Set([
-    'safety','physics','ai','dialogue','ecs','animation','audio','combat',
-    'pathfinding','particles','camera','inventory','terrain','lighting',
-    'input','statemachine','compiler','lod','scene','assets','viewport',
-    'profiler','saveload','timeline','scripting',
+    'safety',
+    'physics',
+    'ai',
+    'dialogue',
+    'ecs',
+    'animation',
+    'audio',
+    'combat',
+    'pathfinding',
+    'particles',
+    'camera',
+    'inventory',
+    'terrain',
+    'lighting',
+    'input',
+    'statemachine',
+    'compiler',
+    'lod',
+    'scene',
+    'assets',
+    'viewport',
+    'profiler',
+    'saveload',
+    'timeline',
+    'scripting',
   ]),
   vr: new Set([
-    'safety','physics','ecs','animation','audio','shader','camera',
-    'lighting','input','collaboration','scene','assets','viewport',
-    'profiler','multiplayer','platform','lod','compiler','saveload',
+    'safety',
+    'physics',
+    'ecs',
+    'animation',
+    'audio',
+    'shader',
+    'camera',
+    'lighting',
+    'input',
+    'collaboration',
+    'scene',
+    'assets',
+    'viewport',
+    'profiler',
+    'multiplayer',
+    'platform',
+    'lod',
+    'compiler',
+    'saveload',
   ]),
   iot: new Set([
-    'safety','ecs','network','state','compiler','assets','scene',
-    'platform','traits','collaboration','security','profiler','saveload',
-    'scripting','bus','events','agent',
+    'safety',
+    'ecs',
+    'network',
+    'state',
+    'compiler',
+    'assets',
+    'scene',
+    'platform',
+    'traits',
+    'collaboration',
+    'security',
+    'profiler',
+    'saveload',
+    'scripting',
+    'bus',
+    'events',
+    'agent',
   ]),
   film: new Set([
-    'safety','animation','audio','shader','camera','lighting','cinematic',
-    'particles','scene','assets','viewport','timeline','profiler',
-    'saveload','compiler','lod',
+    'safety',
+    'animation',
+    'audio',
+    'shader',
+    'camera',
+    'lighting',
+    'cinematic',
+    'particles',
+    'scene',
+    'assets',
+    'viewport',
+    'timeline',
+    'profiler',
+    'saveload',
+    'compiler',
+    'lod',
   ]),
 };
 
@@ -136,7 +235,7 @@ describe('Favorites', () => {
   it('favorites override domain filter', () => {
     const domain: DomainProfile = 'film';
     const favorites = new Set(['combat', 'dialogue']); // Not in film profile
-    
+
     function isVisible(tab: string): boolean {
       if (favorites.has(tab)) return true;
       return DOMAIN_TABS[domain].has(tab);
@@ -145,11 +244,11 @@ describe('Favorites', () => {
     // Combat and dialogue are NOT in film profile
     expect(DOMAIN_TABS.film.has('combat')).toBe(false);
     expect(DOMAIN_TABS.film.has('dialogue')).toBe(false);
-    
+
     // But they ARE visible because they're favorites
     expect(isVisible('combat')).toBe(true);
     expect(isVisible('dialogue')).toBe(true);
-    
+
     // Regular film tabs still visible
     expect(isVisible('camera')).toBe(true);
     expect(isVisible('lighting')).toBe(true);

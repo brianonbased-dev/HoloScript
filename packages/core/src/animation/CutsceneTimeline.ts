@@ -23,8 +23,8 @@ export type TimelineEventType =
 export interface TimelineEvent {
   id: string;
   type: TimelineEventType;
-  startTime: number;        // Seconds from timeline start
-  duration: number;         // Duration in seconds
+  startTime: number; // Seconds from timeline start
+  duration: number; // Duration in seconds
   data: Record<string, unknown>;
 }
 
@@ -39,7 +39,7 @@ export interface TimelineTrack {
 export interface CutsceneDefinition {
   id: string;
   name: string;
-  duration: number;         // Total cutscene duration
+  duration: number; // Total cutscene duration
   tracks: TimelineTrack[];
   loop: boolean;
 }
@@ -50,7 +50,7 @@ export interface CutsceneState {
   isPlaying: boolean;
   isPaused: boolean;
   speed: number;
-  activeEvents: Set<string>;  // Currently active event IDs
+  activeEvents: Set<string>; // Currently active event IDs
   completedEvents: Set<string>;
   triggeredCallbacks: string[];
 }
@@ -269,8 +269,10 @@ export class CutsceneBuilder {
   }
 
   build(): CutsceneDefinition {
-    const maxEnd = this.tracks.reduce((max, track) =>
-      Math.max(max, ...track.events.map(e => e.startTime + e.duration)), 0);
+    const maxEnd = this.tracks.reduce(
+      (max, track) => Math.max(max, ...track.events.map((e) => e.startTime + e.duration)),
+      0
+    );
 
     return {
       id: this.id,

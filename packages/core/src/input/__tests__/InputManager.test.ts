@@ -4,7 +4,9 @@ import { InputManager } from '../InputManager';
 describe('InputManager', () => {
   let input: InputManager;
 
-  beforeEach(() => { input = new InputManager(); });
+  beforeEach(() => {
+    input = new InputManager();
+  });
 
   // ---------------------------------------------------------------------------
   // Keyboard

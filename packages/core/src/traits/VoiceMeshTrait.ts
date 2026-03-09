@@ -58,7 +58,7 @@ export const voiceMeshHandler: TraitHandler<VoiceMeshConfig> = {
   onDetach(node, _config, context) {
     const state = (node as any).__voiceMeshState as VoiceMeshState;
     if (state) {
-      state.localStream?.getTracks().forEach(track => track.stop());
+      state.localStream?.getTracks().forEach((track) => track.stop());
       state.audioContext?.close();
       delete (node as any).__voiceMeshState;
     }
@@ -74,16 +74,16 @@ export const voiceMeshHandler: TraitHandler<VoiceMeshConfig> = {
 
     let sum = 0;
     for (let i = 0; i < dataArray.length; i++) {
-        sum += dataArray[i];
+      sum += dataArray[i];
     }
     const average = sum / dataArray.length;
     // Simple mock VAD: average amplitude check
     // In real implementation, converts to dB
-    const isTalking = average > (config.vad_threshold + 100); // Mock scaling
+    const isTalking = average > config.vad_threshold + 100; // Mock scaling
 
     if (isTalking !== state.isTalking) {
-        state.isTalking = isTalking;
-        context.emit?.('voice_activity_change', { node, isTalking });
+      state.isTalking = isTalking;
+      context.emit?.('voice_activity_change', { node, isTalking });
     }
   },
 
@@ -92,17 +92,17 @@ export const voiceMeshHandler: TraitHandler<VoiceMeshConfig> = {
     if (!state) return;
 
     if (event.type === 'voice_stream_received') {
-        const { peerId, stream } = event as any;
-        state.remoteStreams.set(peerId, stream);
-        
-        // Pipe to HeadTrackedAudio if spatial is enabled
-        // Needs a separate node for each peer really, but simple case:
-        context.emit?.('audio_source_loaded', { 
-            node, 
-            sourceId: `voice_${peerId}`,
-            stream,
-            spatial: config.spatial 
-        });
+      const { peerId, stream } = event as any;
+      state.remoteStreams.set(peerId, stream);
+
+      // Pipe to HeadTrackedAudio if spatial is enabled
+      // Needs a separate node for each peer really, but simple case:
+      context.emit?.('audio_source_loaded', {
+        node,
+        sourceId: `voice_${peerId}`,
+        stream,
+        spatial: config.spatial,
+      });
     }
   },
 
@@ -110,33 +110,33 @@ export const voiceMeshHandler: TraitHandler<VoiceMeshConfig> = {
 
   async startLocalStream(node: any, config: VoiceMeshConfig, context: any) {
     const state = (node as any).__voiceMeshState as VoiceMeshState;
-    
+
     // In node/test env, navigator might be missing
     if (typeof navigator === 'undefined' || !navigator.mediaDevices) {
-        console.warn('VoiceMesh: No media devices found (non-browser env).');
-        return;
+      console.warn('VoiceMesh: No media devices found (non-browser env).');
+      return;
     }
 
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        state.localStream = stream;
-        
-        // Setup Analysis for VAD
-        const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
-        if (AudioContextClass) {
-            state.audioContext = new AudioContextClass();
-            const source = state.audioContext.createMediaStreamSource(stream);
-            state.analyzer = state.audioContext.createAnalyser();
-            state.analyzer.fftSize = 256;
-            source.connect(state.analyzer);
-        }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      state.localStream = stream;
 
-        context.emit?.('voice_local_stream_started', { node, stream });
+      // Setup Analysis for VAD
+      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        state.audioContext = new AudioContextClass();
+        const source = state.audioContext.createMediaStreamSource(stream);
+        state.analyzer = state.audioContext.createAnalyser();
+        state.analyzer.fftSize = 256;
+        source.connect(state.analyzer);
+      }
+
+      context.emit?.('voice_local_stream_started', { node, stream });
     } catch (err) {
-        console.error('VoiceMesh: Failed to get microphone:', err);
-        context.emit?.('voice_error', { node, error: err });
+      console.error('VoiceMesh: Failed to get microphone:', err);
+      context.emit?.('voice_error', { node, error: err });
     }
-  }
+  },
 };
 
 export default voiceMeshHandler;

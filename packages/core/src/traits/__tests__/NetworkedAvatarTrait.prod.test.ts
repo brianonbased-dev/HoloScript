@@ -76,16 +76,26 @@ import { networkedAvatarHandler } from '../NetworkedAvatarTrait';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 let _nodeId = 0;
-function makeNode() { return { id: `avatar_${++_nodeId}` }; }
-function makeCtx() { return { emit: vi.fn() }; }
-function makeConfig(o: any = {}) { return { ...networkedAvatarHandler.defaultConfig!, ...o }; }
+function makeNode() {
+  return { id: `avatar_${++_nodeId}` };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
+function makeConfig(o: any = {}) {
+  return { ...networkedAvatarHandler.defaultConfig!, ...o };
+}
 
 function attach(o: any = {}) {
-  const node = makeNode(); const ctx = makeCtx(); const config = makeConfig(o);
+  const node = makeNode();
+  const ctx = makeCtx();
+  const config = makeConfig(o);
   networkedAvatarHandler.onAttach!(node as any, config, ctx as any);
   return { node, ctx, config };
 }
-function getState(node: any) { return (node as any).__avatarState; }
+function getState(node: any) {
+  return (node as any).__avatarState;
+}
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -97,7 +107,10 @@ describe('networkedAvatarHandler.defaultConfig', () => {
 
 // ─── onAttach ─────────────────────────────────────────────────────────────────
 describe('networkedAvatarHandler.onAttach', () => {
-  it('creates __avatarState', () => { const { node } = attach(); expect(getState(node)).toBeDefined(); });
+  it('creates __avatarState', () => {
+    const { node } = attach();
+    expect(getState(node)).toBeDefined();
+  });
   it('state has bones, solver, controller', () => {
     const { node } = attach();
     const s = getState(node);
@@ -105,7 +118,10 @@ describe('networkedAvatarHandler.onAttach', () => {
     expect(s.solver).toBeDefined();
     expect(s.controller).toBeDefined();
   });
-  it('lastUpdate initialised to 0', () => { const { node } = attach(); expect(getState(node).lastUpdate).toBe(0); });
+  it('lastUpdate initialised to 0', () => {
+    const { node } = attach();
+    expect(getState(node).lastUpdate).toBe(0);
+  });
   it('updateInterval = 1000 / updateRate', () => {
     const { node } = attach({ updateRate: 60 });
     expect(getState(node).updateInterval).toBeCloseTo(1000 / 60, 5);
@@ -158,7 +174,10 @@ describe('networkedAvatarHandler.onUpdate (isLocal=true)', () => {
   it('emits avatar_pose_update when interval elapsed (lastUpdate=0)', () => {
     const { node, ctx, config } = attach({ isLocal: true, updateRate: 30 });
     networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', expect.objectContaining({ pose: expect.any(Object) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'avatar_pose_update',
+      expect.objectContaining({ pose: expect.any(Object) })
+    );
   });
 
   it('does NOT emit on second call within interval', () => {
@@ -187,9 +206,14 @@ describe("networkedAvatarHandler.onEvent 'network_pose_received'", () => {
     const { node, ctx, config } = attach({ isLocal: false });
     const pose = { LeftArm: { tx: 1, ty: 2, tz: 0 } };
     networkedAvatarHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'network_pose_received', pose,
+      type: 'network_pose_received',
+      pose,
     });
-    expect(_boneInstance.setLocalTransform).toHaveBeenCalledWith('LeftArm', { tx: 1, ty: 2, tz: 0 });
+    expect(_boneInstance.setLocalTransform).toHaveBeenCalledWith('LeftArm', {
+      tx: 1,
+      ty: 2,
+      tz: 0,
+    });
     expect(_boneInstance.updateWorldTransforms).toHaveBeenCalled();
   });
 
@@ -200,7 +224,8 @@ describe("networkedAvatarHandler.onEvent 'network_pose_received'", () => {
       RightArm: { tx: -1 },
     };
     networkedAvatarHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'network_pose_received', pose,
+      type: 'network_pose_received',
+      pose,
     });
     expect(_boneInstance.setLocalTransform).toHaveBeenCalledTimes(2);
   });
@@ -209,7 +234,8 @@ describe("networkedAvatarHandler.onEvent 'network_pose_received'", () => {
     const { node, ctx, config } = attach({ isLocal: true });
     vi.clearAllMocks();
     networkedAvatarHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'network_pose_received', pose: { LeftArm: { tx: 1 } },
+      type: 'network_pose_received',
+      pose: { LeftArm: { tx: 1 } },
     });
     expect(_boneInstance.setLocalTransform).not.toHaveBeenCalled();
   });

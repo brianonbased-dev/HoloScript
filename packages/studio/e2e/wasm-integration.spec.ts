@@ -29,7 +29,14 @@ test.describe('WASM Integration', () => {
           world: result.world,
         };
       } catch (e) {
-        return { error: String(e), backend: 'failed', wasmLoaded: false, binarySize: 0, version: '', world: '' };
+        return {
+          error: String(e),
+          backend: 'failed',
+          wasmLoaded: false,
+          binarySize: 0,
+          version: '',
+          world: '',
+        };
       } finally {
         bridge.destroy();
       }
@@ -50,7 +57,9 @@ test.describe('WASM Integration', () => {
       const bridge = new CompilerBridge();
       try {
         await bridge.init('/wasm/holoscript.component.wasm');
-        const parseResult = await bridge.parse('composition "Test" { object "Cube" { geometry: "cube" } }');
+        const parseResult = await bridge.parse(
+          'composition "Test" { object "Cube" { geometry: "cube" } }'
+        );
         return { hasAst: !!parseResult.ast, hasErrors: !!parseResult.errors };
       } catch (e) {
         return { error: String(e), hasAst: false, hasErrors: true };
@@ -74,9 +83,12 @@ test.describe('WASM Integration', () => {
         await bridge.init('/wasm/holoscript.component.wasm');
         const compileResult = await bridge.compile(
           'composition "Test" { object "Cube" { geometry: "cube" position: [0, 1, 0] } }',
-          'threejs',
+          'threejs'
         );
-        return { type: compileResult.type, hasData: compileResult.type === 'text' && compileResult.data.length > 0 };
+        return {
+          type: compileResult.type,
+          hasData: compileResult.type === 'text' && compileResult.data.length > 0,
+        };
       } catch (e) {
         return { error: String(e), type: 'error', hasData: false };
       } finally {

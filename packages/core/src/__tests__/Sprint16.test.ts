@@ -93,7 +93,14 @@ describe('Feature 1A: TRAIT_DOCS -- count & structure', () => {
 
   it('every trait has a valid category', () => {
     const validCategories = [
-      'physics', 'animation', 'rendering', 'networking', 'input', 'ai', 'utility', 'hololand',
+      'physics',
+      'animation',
+      'rendering',
+      'networking',
+      'input',
+      'ai',
+      'utility',
+      'hololand',
     ];
     for (const [, doc] of Object.entries(TRAIT_DOCS)) {
       expect(validCategories).toContain(doc.category);
@@ -156,9 +163,7 @@ describe('Feature 1B: TRAIT_DOCS -- specific trait values', () => {
   });
 
   it('physics category has multiple traits', () => {
-    const physicsTraits = Object.values(TRAIT_DOCS).filter(
-      (d) => d.category === 'physics'
-    );
+    const physicsTraits = Object.values(TRAIT_DOCS).filter((d) => d.category === 'physics');
     expect(physicsTraits.length).toBeGreaterThanOrEqual(2);
   });
 });

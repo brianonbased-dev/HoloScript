@@ -30,10 +30,7 @@ export type {
   SpatialRelationshipParams,
 } from './SpatialTrainingDataTypes';
 
-export {
-  SparsityMonitor,
-  createSparsityMonitor,
-} from './SparsityMonitor';
+export { SparsityMonitor, createSparsityMonitor } from './SparsityMonitor';
 
 export type { LayerActivityInput } from './SparsityMonitor';
 
@@ -48,18 +45,9 @@ export type {
 } from './SparsityMonitorTypes';
 
 // SoftDedup (W.008): N-gram commonness-based reweighting
-export {
-  SoftDedup,
-  createSoftDedup,
-  DEFAULT_SOFTDEDUP_CONFIG,
-} from './SoftDedup';
+export { SoftDedup, createSoftDedup, DEFAULT_SOFTDEDUP_CONFIG } from './SoftDedup';
 
-export type {
-  SoftDedupConfig,
-  SoftDedupResult,
-  NgramStats,
-  SoftDedupStats,
-} from './SoftDedup';
+export type { SoftDedupConfig, SoftDedupResult, NgramStats, SoftDedupStats } from './SoftDedup';
 
 // LR Scheduler (W.009): Warmup + cosine decay
 export {
@@ -70,11 +58,7 @@ export {
   GRPO_LR_SCHEDULER_CONFIG,
 } from './LRScheduler';
 
-export type {
-  LRSchedulerConfig,
-  LRSchedulerSnapshot,
-  LRScheduleStats,
-} from './LRScheduler';
+export type { LRSchedulerConfig, LRSchedulerSnapshot, LRScheduleStats } from './LRScheduler';
 
 // Unified Training Pipeline Configuration
 export {
@@ -90,16 +74,9 @@ export type {
 } from './TrainingPipelineConfig';
 
 // Quality Scoring Pipeline
-export {
-  QualityScoringPipeline,
-  DEFAULT_SCORING_CONFIG,
-} from './QualityScoringPipeline';
+export { QualityScoringPipeline, DEFAULT_SCORING_CONFIG } from './QualityScoringPipeline';
 
-export type {
-  QualityScore,
-  QualityDetail,
-  QualityScoringConfig,
-} from './QualityScoringPipeline';
+export type { QualityScore, QualityDetail, QualityScoringConfig } from './QualityScoringPipeline';
 
 // TrainingMonkey Integration: Spatial reasoning data -> Alpaca format pipeline
 export {

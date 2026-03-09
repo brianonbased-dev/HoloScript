@@ -59,8 +59,8 @@ export class PinataProvider implements IIPFSProvider {
     const response = await fetch(`${this.baseUrl}/pinning/pinFileToIPFS`, {
       method: 'POST',
       headers: {
-        'pinata_api_key': this.apiKey,
-        'pinata_secret_api_key': this.apiSecret,
+        pinata_api_key: this.apiKey,
+        pinata_secret_api_key: this.apiSecret,
       },
       body: formData,
     });
@@ -82,8 +82,8 @@ export class PinataProvider implements IIPFSProvider {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'pinata_api_key': this.apiKey,
-        'pinata_secret_api_key': this.apiSecret,
+        pinata_api_key: this.apiKey,
+        pinata_secret_api_key: this.apiSecret,
       },
       body: JSON.stringify({
         hashToPin: cid,
@@ -103,8 +103,8 @@ export class PinataProvider implements IIPFSProvider {
     const response = await fetch(`${this.baseUrl}/pinning/unpin/${cid}`, {
       method: 'DELETE',
       headers: {
-        'pinata_api_key': this.apiKey,
-        'pinata_secret_api_key': this.apiSecret,
+        pinata_api_key: this.apiKey,
+        pinata_secret_api_key: this.apiSecret,
       },
     });
 
@@ -119,8 +119,8 @@ export class PinataProvider implements IIPFSProvider {
       `${this.baseUrl}/data/pinList?hashContains=${cid}&status=pinned,pinning`,
       {
         headers: {
-          'pinata_api_key': this.apiKey,
-          'pinata_secret_api_key': this.apiSecret,
+          pinata_api_key: this.apiKey,
+          pinata_secret_api_key: this.apiSecret,
         },
       }
     );
@@ -141,8 +141,8 @@ export class PinataProvider implements IIPFSProvider {
   async listPins(): Promise<PinInfo[]> {
     const response = await fetch(`${this.baseUrl}/data/pinList?status=pinned`, {
       headers: {
-        'pinata_api_key': this.apiKey,
-        'pinata_secret_api_key': this.apiSecret,
+        pinata_api_key: this.apiKey,
+        pinata_secret_api_key: this.apiSecret,
       },
     });
 
@@ -196,7 +196,7 @@ export class NFTStorageProvider implements IIPFSProvider {
     const response = await fetch(`${this.baseUrl}/upload`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this.apiKey}`,
       },
       body: formData,
     });
@@ -222,7 +222,7 @@ export class NFTStorageProvider implements IIPFSProvider {
     const response = await fetch(`${this.baseUrl}/${cid}`, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this.apiKey}`,
       },
     });
 
@@ -235,7 +235,7 @@ export class NFTStorageProvider implements IIPFSProvider {
   async getPinStatus(cid: string): Promise<PinStatus> {
     const response = await fetch(`${this.baseUrl}/${cid}`, {
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this.apiKey}`,
       },
     });
 
@@ -250,7 +250,7 @@ export class NFTStorageProvider implements IIPFSProvider {
   async listPins(): Promise<PinInfo[]> {
     const response = await fetch(`${this.baseUrl}`, {
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this.apiKey}`,
       },
     });
 
@@ -311,7 +311,7 @@ export class InfuraProvider implements IIPFSProvider {
     const response = await fetch(`${this.baseUrl}/add?wrap-with-directory=true`, {
       method: 'POST',
       headers: {
-        'Authorization': this.getAuthHeader(),
+        Authorization: this.getAuthHeader(),
       },
       body: formData,
     });
@@ -342,7 +342,7 @@ export class InfuraProvider implements IIPFSProvider {
     const response = await fetch(`${this.baseUrl}/pin/add?arg=${cid}`, {
       method: 'POST',
       headers: {
-        'Authorization': this.getAuthHeader(),
+        Authorization: this.getAuthHeader(),
       },
     });
 
@@ -356,7 +356,7 @@ export class InfuraProvider implements IIPFSProvider {
     const response = await fetch(`${this.baseUrl}/pin/rm?arg=${cid}`, {
       method: 'POST',
       headers: {
-        'Authorization': this.getAuthHeader(),
+        Authorization: this.getAuthHeader(),
       },
     });
 
@@ -369,7 +369,7 @@ export class InfuraProvider implements IIPFSProvider {
   async getPinStatus(cid: string): Promise<PinStatus> {
     const response = await fetch(`${this.baseUrl}/pin/ls?arg=${cid}`, {
       headers: {
-        'Authorization': this.getAuthHeader(),
+        Authorization: this.getAuthHeader(),
       },
     });
 
@@ -384,7 +384,7 @@ export class InfuraProvider implements IIPFSProvider {
   async listPins(): Promise<PinInfo[]> {
     const response = await fetch(`${this.baseUrl}/pin/ls`, {
       headers: {
-        'Authorization': this.getAuthHeader(),
+        Authorization: this.getAuthHeader(),
       },
     });
 
@@ -406,7 +406,7 @@ export class InfuraProvider implements IIPFSProvider {
       const response = await fetch(`${this.baseUrl}/cat?arg=${cid}`, {
         method: 'POST',
         headers: {
-          'Authorization': this.getAuthHeader(),
+          Authorization: this.getAuthHeader(),
         },
       });
       return response.ok;

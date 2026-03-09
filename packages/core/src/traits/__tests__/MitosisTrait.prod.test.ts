@@ -19,9 +19,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mitosisHandler } from '../MitosisTrait';
 
 let _nodeId = 0;
-function makeNode(properties: any = {}) { return { id: `mitosis_${++_nodeId}`, properties }; }
-function makeCtx() { return { emit: vi.fn() }; }
-function makeConfig(o: any = {}) { return { ...mitosisHandler.defaultConfig!, ...o }; }
+function makeNode(properties: any = {}) {
+  return { id: `mitosis_${++_nodeId}`, properties };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
+function makeConfig(o: any = {}) {
+  return { ...mitosisHandler.defaultConfig!, ...o };
+}
 function attach(o: any = {}) {
   const node = makeNode();
   const ctx = makeCtx();
@@ -29,7 +35,9 @@ function attach(o: any = {}) {
   mitosisHandler.onAttach!(node as any, config, ctx as any);
   return { node, ctx, config };
 }
-function getState(node: any) { return (node as any).__mitosisState; }
+function getState(node: any) {
+  return (node as any).__mitosisState;
+}
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -67,11 +75,14 @@ describe('mitosisHandler.onAttach', () => {
   });
   it('emits mitosis_init with nodeId + strategy + parent_id', () => {
     const { node, ctx } = attach({ strategy: 'swarm' });
-    expect(ctx.emit).toHaveBeenCalledWith('mitosis_init', expect.objectContaining({
-      nodeId: node.id,
-      strategy: 'swarm',
-      parent_id: null,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'mitosis_init',
+      expect.objectContaining({
+        nodeId: node.id,
+        strategy: 'swarm',
+        parent_id: null,
+      })
+    );
   });
 });
 
@@ -108,7 +119,9 @@ describe("mitosisHandler.onEvent 'mitosis_spawned'", () => {
   it('registers child and increments tasks_delegated when parentId === node.id', () => {
     const { node, ctx, config } = attach();
     mitosisHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'mitosis_spawned', childId: 'child1', parentId: node.id,
+      type: 'mitosis_spawned',
+      childId: 'child1',
+      parentId: node.id,
     });
     const s = getState(node);
     expect(s.active_children).toContain('child1');
@@ -119,9 +132,12 @@ describe("mitosisHandler.onEvent 'mitosis_spawned'", () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     mitosisHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'mitosis_spawned', childId: 'child1', parentId: node.id,
+      type: 'mitosis_spawned',
+      childId: 'child1',
+      parentId: node.id,
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_mitosis_spawned',
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_mitosis_spawned',
       expect.objectContaining({ childId: 'child1', parentId: node.id })
     );
   });
@@ -131,7 +147,9 @@ describe("mitosisHandler.onEvent 'mitosis_spawned'", () => {
     ctx.emit.mockClear();
     const stateSnapshot = { ...getState(node) };
     mitosisHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'mitosis_spawned', childId: 'child1', parentId: 'other_node',
+      type: 'mitosis_spawned',
+      childId: 'child1',
+      parentId: 'other_node',
     });
     expect(ctx.emit).toHaveBeenCalledTimes(0);
     expect(getState(node).active_children.length).toBe(0);
@@ -144,12 +162,20 @@ describe("mitosisHandler.onEvent 'mitosis_child_complete'", () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     mitosisHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'mitosis_child_complete', childId: 'c1', parentId: node.id, result: { score: 10 },
+      type: 'mitosis_child_complete',
+      childId: 'c1',
+      parentId: node.id,
+      result: { score: 10 },
     });
     expect(getState(node).completed_tasks).toBe(1);
-    expect(ctx.emit).toHaveBeenCalledWith('mitosis_synced', expect.objectContaining({
-      parentId: node.id, childId: 'c1', result: { score: 10 },
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'mitosis_synced',
+      expect.objectContaining({
+        parentId: node.id,
+        childId: 'c1',
+        result: { score: 10 },
+      })
+    );
   });
 
   it('collaborative: merges result object into node.properties', () => {
@@ -159,7 +185,10 @@ describe("mitosisHandler.onEvent 'mitosis_child_complete'", () => {
     mitosisHandler.onAttach!(node as any, config, ctx as any);
     ctx.emit.mockClear();
     mitosisHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'mitosis_child_complete', childId: 'c1', parentId: node.id, result: { newProp: 42 },
+      type: 'mitosis_child_complete',
+      childId: 'c1',
+      parentId: node.id,
+      result: { newProp: 42 },
     });
     expect((node.properties as any).newProp).toBe(42);
     expect((node.properties as any).existingProp).toBe('keep');
@@ -172,7 +201,10 @@ describe("mitosisHandler.onEvent 'mitosis_child_complete'", () => {
     mitosisHandler.onAttach!(node as any, config, ctx as any);
     ctx.emit.mockClear();
     mitosisHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'mitosis_child_complete', childId: 'c1', parentId: node.id, result: { injected: true },
+      type: 'mitosis_child_complete',
+      childId: 'c1',
+      parentId: node.id,
+      result: { injected: true },
     });
     expect((node.properties as any).injected).toBeUndefined();
   });
@@ -181,7 +213,10 @@ describe("mitosisHandler.onEvent 'mitosis_child_complete'", () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     mitosisHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'mitosis_child_complete', childId: 'c1', parentId: 'other_node', result: {},
+      type: 'mitosis_child_complete',
+      childId: 'c1',
+      parentId: 'other_node',
+      result: {},
     });
     expect(getState(node).completed_tasks).toBe(0);
     expect(ctx.emit).toHaveBeenCalledTimes(0);
@@ -189,9 +224,14 @@ describe("mitosisHandler.onEvent 'mitosis_child_complete'", () => {
 
   it('null result: does not throw', () => {
     const { node, ctx, config } = attach();
-    expect(() => mitosisHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'mitosis_child_complete', childId: 'c1', parentId: node.id, result: null,
-    })).not.toThrow();
+    expect(() =>
+      mitosisHandler.onEvent!(node as any, config, ctx as any, {
+        type: 'mitosis_child_complete',
+        childId: 'c1',
+        parentId: node.id,
+        result: null,
+      })
+    ).not.toThrow();
   });
 });
 
@@ -201,12 +241,17 @@ describe("mitosisHandler.onEvent 'mitosis_child_failed'", () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     mitosisHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'mitosis_child_failed', childId: 'c1', error: 'timeout',
-    });
-    expect(ctx.emit).toHaveBeenCalledWith('on_mitosis_error', expect.objectContaining({
-      parentId: node.id,
+      type: 'mitosis_child_failed',
       childId: 'c1',
       error: 'timeout',
-    }));
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_mitosis_error',
+      expect.objectContaining({
+        parentId: node.id,
+        childId: 'c1',
+        error: 'timeout',
+      })
+    );
   });
 });

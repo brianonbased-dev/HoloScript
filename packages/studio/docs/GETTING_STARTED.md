@@ -28,16 +28,16 @@ Brittney (the AI assistant) generates a HoloScript world definition and populate
 
 ### 3. Explore the 3D Viewport
 
-| Action | Result |
-|--------|--------|
-| **Left click + drag** | Orbit camera |
-| **Right click + drag** | Pan |
-| **Scroll wheel** | Zoom |
-| **Click an object** | Select it |
-| **G** | Move selected object |
-| **R** | Rotate selected object |
-| **S** | Scale selected object |
-| **Escape** | Deselect |
+| Action                 | Result                 |
+| ---------------------- | ---------------------- |
+| **Left click + drag**  | Orbit camera           |
+| **Right click + drag** | Pan                    |
+| **Scroll wheel**       | Zoom                   |
+| **Click an object**    | Select it              |
+| **G**                  | Move selected object   |
+| **R**                  | Rotate selected object |
+| **S**                  | Scale selected object  |
+| **Escape**             | Deselect               |
 
 ### 4. Pick a Template (optional)
 
@@ -63,12 +63,12 @@ Click **Publish** in the top-right header to generate a shareable URL. Anyone ca
 
 Switch between modes using the **mode bar** in the header center:
 
-| Mode | Best For |
-|------|----------|
-| 🎨 **Creator** | AI-driven scene building, drag-and-drop |
-| 🖌️ **Artist** | Shader graph editor, materials, VFX |
-| 🎬 **Filmmaker** | Camera paths, cinematic timelines |
-| ⚙️ **Expert** | Full HoloScript code editor |
+| Mode             | Best For                                     |
+| ---------------- | -------------------------------------------- |
+| 🎨 **Creator**   | AI-driven scene building, drag-and-drop      |
+| 🖌️ **Artist**    | Shader graph editor, materials, VFX          |
+| 🎬 **Filmmaker** | Camera paths, cinematic timelines            |
+| ⚙️ **Expert**    | Full HoloScript code editor                  |
 | 🦴 **Character** | GLB import, skeleton FK, animation recording |
 
 ---
@@ -79,10 +79,10 @@ Switch between modes using the **mode bar** in the header center:
 
 Type in plain English. Brittney understands spatial and game concepts:
 
-- **Spatial**: *"Move the fireplace to the left wall"*
-- **Game logic**: *"Add 3 zombies that patrol"*
-- **Atmosphere**: *"Make it feel like a horror movie"*
-- **Iteration**: *"Make the trees taller"*
+- **Spatial**: _"Move the fireplace to the left wall"_
+- **Game logic**: _"Add 3 zombies that patrol"_
+- **Atmosphere**: _"Make it feel like a horror movie"_
+- **Iteration**: _"Make the trees taller"_
 
 ### Shader Graph Editor (Artist Mode)
 
@@ -170,12 +170,12 @@ Click the **VR** button in the header (requires WebXR-compatible headset):
 
 ## Performance Tips
 
-| Scene Size | Recommended Settings |
-|------------|---------------------|
-| < 100 objects | Any settings, full quality |
-| 100–500 objects | Normal — no changes needed |
+| Scene Size       | Recommended Settings                 |
+| ---------------- | ------------------------------------ |
+| < 100 objects    | Any settings, full quality           |
+| 100–500 objects  | Normal — no changes needed           |
 | 500–1000 objects | Consider LODs, reduce shadow quality |
-| 1000+ objects | Enable instancing, use InstancedMesh |
+| 1000+ objects    | Enable instancing, use InstancedMesh |
 
 ### Benchmark Your Scene
 
@@ -216,18 +216,18 @@ Click the **VR** button in the header (requires WebXR-compatible headset):
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `G` | Move (grab) |
-| `R` | Rotate |
-| `S` | Scale |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Shift+Z` | Redo |
-| `Ctrl+S` | Save |
-| `Delete` | Delete selected |
-| `F` | Focus on selected |
-| `Numpad 0` | Camera view |
-| `Escape` | Deselect / cancel |
+| Shortcut       | Action            |
+| -------------- | ----------------- |
+| `G`            | Move (grab)       |
+| `R`            | Rotate            |
+| `S`            | Scale             |
+| `Ctrl+Z`       | Undo              |
+| `Ctrl+Shift+Z` | Redo              |
+| `Ctrl+S`       | Save              |
+| `Delete`       | Delete selected   |
+| `F`            | Focus on selected |
+| `Numpad 0`     | Camera view       |
+| `Escape`       | Deselect / cancel |
 
 ---
 
@@ -237,9 +237,9 @@ Click the **VR** button in the header (requires WebXR-compatible headset):
 - 🎮 [Game Logic Guide](./GAME_LOGIC.md)
 - 🌐 [Deployment Guide](./DEPLOYMENT.md)
 - 🤝 [Contributing](../../CONTRIBUTING.md)
-- 💬 [Discord Community](https://discord.gg/holoscript) *(coming in beta)*
+- 💬 [Discord Community](https://discord.gg/holoscript) _(coming in beta)_
 
 ---
 
-*HoloScript Studio — AI-native spatial IDE for the web*  
-*v0.1.0 — Beta Launch 2026*
+_HoloScript Studio — AI-native spatial IDE for the web_  
+_v0.1.0 — Beta Launch 2026_

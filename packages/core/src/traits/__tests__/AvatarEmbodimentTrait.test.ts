@@ -1,8 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { avatarEmbodimentHandler } from '../AvatarEmbodimentTrait';
 import {
-  createMockContext, createMockNode, attachTrait,
-  sendEvent, getEventCount, getLastEvent,
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
 } from './traitTestHelpers';
 
 describe('AvatarEmbodimentTrait', () => {
@@ -20,7 +24,9 @@ describe('AvatarEmbodimentTrait', () => {
     auto_pipeline: true,
   };
 
-  function state() { return (node as any).__avatarEmbodimentState; }
+  function state() {
+    return (node as any).__avatarEmbodimentState;
+  }
 
   beforeEach(() => {
     node = createMockNode('av');

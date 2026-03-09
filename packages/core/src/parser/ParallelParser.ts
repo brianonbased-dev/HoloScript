@@ -316,15 +316,11 @@ export class ParallelParser extends SimpleEventEmitter {
     let processFiles = files;
     if (this.options.enableHybridChunking) {
       processFiles = this.prechunkFiles(files);
-      this.log(
-        `Hybrid chunking: ${files.length} files → ${processFiles.length} chunks`
-      );
+      this.log(`Hybrid chunking: ${files.length} files → ${processFiles.length} chunks`);
     }
 
     // Sort files by size (largest first for better load balancing)
-    const sortedFiles = [...processFiles].sort(
-      (a, b) => b.content.length - a.content.length
-    );
+    const sortedFiles = [...processFiles].sort((a, b) => b.content.length - a.content.length);
 
     // Use fallback if no worker pool
     if (!this.workerPool && this.fallbackParser) {

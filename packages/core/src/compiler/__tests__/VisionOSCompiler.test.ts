@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VisionOSCompiler } from '../VisionOSCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -9,7 +9,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
@@ -48,7 +47,12 @@ describe('VisionOSCompiler', () => {
 
   it('compiles state to Swift properties', () => {
     const comp = makeComposition({
-      state: { properties: [{ key: 'count', value: 0 }, { key: 'active', value: true }] },
+      state: {
+        properties: [
+          { key: 'count', value: 0 },
+          { key: 'active', value: true },
+        ],
+      },
     });
     const swift = compiler.compile(comp, 'test-token');
     expect(swift).toContain('count');
@@ -82,7 +86,9 @@ describe('VisionOSCompiler', () => {
 
   it('compiles lights', () => {
     const comp = makeComposition({
-      lights: [{ name: 'sun', lightType: 'directional', properties: [{ key: 'intensity', value: 1000 }] }] as any,
+      lights: [
+        { name: 'sun', lightType: 'directional', properties: [{ key: 'intensity', value: 1000 }] },
+      ] as any,
     });
     const swift = compiler.compile(comp, 'test-token');
     expect(swift).toContain('sun');

@@ -57,7 +57,7 @@ export interface AuthConfig {
 export class AuthError extends Error {
   constructor(
     message: string,
-    public readonly code: 'TOKEN_EXPIRED' | 'INVALID_TOKEN' | 'AUTH_FAILED',
+    public readonly code: 'TOKEN_EXPIRED' | 'INVALID_TOKEN' | 'AUTH_FAILED'
   ) {
     super(message);
     this.name = 'AuthError';
@@ -100,7 +100,7 @@ export class AuthService {
       process.env.NODE_ENV === 'production'
     ) {
       console.error(
-        '[AUTH ERROR] Using default JWT secret in production! Set JWT_SECRET environment variable.',
+        '[AUTH ERROR] Using default JWT secret in production! Set JWT_SECRET environment variable.'
       );
     }
   }

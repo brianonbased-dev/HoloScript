@@ -24,7 +24,7 @@ export interface AssetChange {
 
 export interface HotReloadSubscription {
   id: string;
-  pattern: string;        // Glob-like pattern or asset ID
+  pattern: string; // Glob-like pattern or asset ID
   callback: (change: AssetChange) => void;
 }
 
@@ -56,10 +56,16 @@ export class AssetHotReload {
   // Configuration
   // ---------------------------------------------------------------------------
 
-  setEnabled(enabled: boolean): void { this.enabled = enabled; }
-  isEnabled(): boolean { return this.enabled; }
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+  }
+  isEnabled(): boolean {
+    return this.enabled;
+  }
 
-  setDebounceMs(ms: number): void { this.debounceMs = Math.max(0, ms); }
+  setDebounceMs(ms: number): void {
+    this.debounceMs = Math.max(0, ms);
+  }
 
   // ---------------------------------------------------------------------------
   // Watch Registration
@@ -149,8 +155,10 @@ export class AssetHotReload {
 
   private notifySubscribers(change: AssetChange): void {
     for (const sub of this.subscriptions.values()) {
-      if (this.matchesPattern(change.assetId, sub.pattern) ||
-          this.matchesPattern(change.path, sub.pattern)) {
+      if (
+        this.matchesPattern(change.assetId, sub.pattern) ||
+        this.matchesPattern(change.path, sub.pattern)
+      ) {
         sub.callback(change);
       }
     }

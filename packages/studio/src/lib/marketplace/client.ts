@@ -65,7 +65,7 @@ export class MarketplaceClient {
   private getMCPMeHeaders(): HeadersInit {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      Accept: 'application/json',
     };
     if (this.mcpmeApiKey) {
       headers['x-mcp-api-key'] = this.mcpmeApiKey;
@@ -148,9 +148,7 @@ export class MarketplaceClient {
   /**
    * Browse content with filters
    */
-  async browse(
-    filter: MarketplaceFilter = {}
-  ): Promise<MarketplaceResponse<MarketplaceItem[]>> {
+  async browse(filter: MarketplaceFilter = {}): Promise<MarketplaceResponse<MarketplaceItem[]>> {
     return this.get<MarketplaceResponse<MarketplaceItem[]>>('/content', filter);
   }
 
@@ -182,10 +180,10 @@ export class MarketplaceClient {
    * Get trending content (most downloads in last 7 days)
    */
   async getTrending(limit = 10, type?: ContentType): Promise<MarketplaceItem[]> {
-    const response = await this.get<MarketplaceResponse<MarketplaceItem[]>>(
-      '/content/trending',
-      { limit, ...(type ? { type } : {}) }
-    );
+    const response = await this.get<MarketplaceResponse<MarketplaceItem[]>>('/content/trending', {
+      limit,
+      ...(type ? { type } : {}),
+    });
     return response.data;
   }
 
@@ -279,7 +277,11 @@ export class MarketplaceClient {
   /**
    * Get reviews for content
    */
-  async getReviews(contentId: string, page = 1, limit = 10): Promise<MarketplaceResponse<ContentReview[]>> {
+  async getReviews(
+    contentId: string,
+    page = 1,
+    limit = 10
+  ): Promise<MarketplaceResponse<ContentReview[]>> {
     return this.get<MarketplaceResponse<ContentReview[]>>(`/content/${contentId}/reviews`, {
       page,
       limit,
@@ -289,11 +291,7 @@ export class MarketplaceClient {
   /**
    * Submit a review
    */
-  async submitReview(
-    contentId: string,
-    rating: number,
-    comment: string
-  ): Promise<ContentReview> {
+  async submitReview(contentId: string, rating: number, comment: string): Promise<ContentReview> {
     return this.post<ContentReview>(`/content/${contentId}/reviews`, {
       rating,
       comment,
@@ -344,7 +342,7 @@ export class MarketplaceClient {
       method: 'POST',
       headers: {
         // Don't set Content-Type for FormData - browser will set it with boundary
-        'Authorization': this.apiKey ? `Bearer ${this.apiKey}` : '',
+        Authorization: this.apiKey ? `Bearer ${this.apiKey}` : '',
       },
       body: formData,
     });
@@ -447,12 +445,14 @@ export class MarketplaceClient {
   /**
    * Get curated collections (e.g., "Starter Pack", "Advanced VR")
    */
-  async getCollections(): Promise<Array<{
-    id: string;
-    name: string;
-    description: string;
-    items: MarketplaceItem[];
-  }>> {
+  async getCollections(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      description: string;
+      items: MarketplaceItem[];
+    }>
+  > {
     return this.get('/collections');
   }
 
@@ -477,11 +477,18 @@ export class MarketplaceClient {
    */
   async getMCPMeCatalog(): Promise<{
     services: Array<{
-      id: string; name: string; description: string;
-      tier: string; tools: string[]; computeMultiplier: number;
+      id: string;
+      name: string;
+      description: string;
+      tier: string;
+      tools: string[];
+      computeMultiplier: number;
     }>;
     plans: Array<{
-      tier: string; name: string; price: number; features: string[];
+      tier: string;
+      name: string;
+      price: number;
+      features: string[];
     }>;
   }> {
     return this.mcpmeGet('/catalog');
@@ -490,18 +497,28 @@ export class MarketplaceClient {
   /**
    * Search uAA2++ agent templates on the orchestrator
    */
-  async searchAgents(options: {
-    query?: string;
-    category?: string;
-    tier?: string;
-    sort?: 'popular' | 'recent' | 'rating';
-    limit?: number;
-  } = {}): Promise<{
+  async searchAgents(
+    options: {
+      query?: string;
+      category?: string;
+      tier?: string;
+      sort?: 'popular' | 'recent' | 'rating';
+      limit?: number;
+    } = {}
+  ): Promise<{
     templates: Array<{
-      id: string; name: string; slug: string; description: string;
-      author: string; category: string; tier: string;
-      tags: string[]; capabilities: string[];
-      installs: number; rating: number; ratingCount: number;
+      id: string;
+      name: string;
+      slug: string;
+      description: string;
+      author: string;
+      category: string;
+      tier: string;
+      tags: string[];
+      capabilities: string[];
+      installs: number;
+      rating: number;
+      ratingCount: number;
       official: boolean;
     }>;
     total: number;
@@ -518,10 +535,16 @@ export class MarketplaceClient {
   /**
    * Get featured agent templates (official first-party)
    */
-  async getFeaturedAgents(): Promise<Array<{
-    id: string; name: string; description: string;
-    tier: string; installs: number; rating: number;
-  }>> {
+  async getFeaturedAgents(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      description: string;
+      tier: string;
+      installs: number;
+      rating: number;
+    }>
+  > {
     const data = await this.mcpmeGet<{ templates: any[] }>('/marketplace/featured');
     return data.templates;
   }
@@ -593,4 +616,3 @@ export function getMarketplaceClient(config?: MarketplaceClientConfig): Marketpl
 export function configureMarketplace(config: MarketplaceClientConfig): void {
   marketplaceClient = new MarketplaceClient(config);
 }
-

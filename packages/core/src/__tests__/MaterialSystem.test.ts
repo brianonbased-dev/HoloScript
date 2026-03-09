@@ -7,7 +7,9 @@ import { MaterialSystem } from '../rendering/MaterialSystem';
 
 describe('MaterialSystem', () => {
   let ms: MaterialSystem;
-  beforeEach(() => { ms = new MaterialSystem(); });
+  beforeEach(() => {
+    ms = new MaterialSystem();
+  });
 
   it('registerShader stores shader', () => {
     ms.registerShader('pbr', 'void main(){}', 'void main(){}');

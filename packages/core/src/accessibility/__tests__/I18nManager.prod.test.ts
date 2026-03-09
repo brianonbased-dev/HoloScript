@@ -81,7 +81,7 @@ describe('I18nManager — Production', () => {
     const i = new I18nManager();
     i.addTable('en', { a: 'A', b: 'B', c: 'C' });
     i.addTable('fr', { a: 'A_fr', b: 'B_fr' });
-    expect(i.getCompletionRate('fr')).toBeCloseTo(2/3, 2);
+    expect(i.getCompletionRate('fr')).toBeCloseTo(2 / 3, 2);
   });
 
   it('getCompletionRate returns 0 for unknown locale', () => {

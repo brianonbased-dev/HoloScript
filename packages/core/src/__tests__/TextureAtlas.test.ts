@@ -9,8 +9,12 @@ describe('TextureAtlas', () => {
   let atlas: TextureAtlas;
   beforeEach(() => {
     atlas = new TextureAtlas({
-      id: 'test-atlas', maxWidth: 256, maxHeight: 256,
-      padding: 1, allowRotation: false, powerOfTwo: false,
+      id: 'test-atlas',
+      maxWidth: 256,
+      maxHeight: 256,
+      padding: 1,
+      allowRotation: false,
+      powerOfTwo: false,
     });
   });
 
@@ -30,8 +34,12 @@ describe('TextureAtlas', () => {
 
   it('returns null when texture does not fit', () => {
     const small = new TextureAtlas({
-      id: 'tiny', maxWidth: 50, maxHeight: 50,
-      padding: 0, allowRotation: false, powerOfTwo: false,
+      id: 'tiny',
+      maxWidth: 50,
+      maxHeight: 50,
+      padding: 0,
+      allowRotation: false,
+      powerOfTwo: false,
     });
     small.pack('a', 40, 40);
     const result = small.pack('b', 40, 40);
@@ -48,8 +56,12 @@ describe('TextureAtlas', () => {
 
   it('padding offsets rect position', () => {
     const a = new TextureAtlas({
-      id: 'pad', maxWidth: 512, maxHeight: 512,
-      padding: 4, allowRotation: false, powerOfTwo: false,
+      id: 'pad',
+      maxWidth: 512,
+      maxHeight: 512,
+      padding: 4,
+      allowRotation: false,
+      powerOfTwo: false,
     });
     const entry = a.pack('padded', 32, 32)!;
     expect(entry.rect.x).toBe(4); // padding offset
@@ -83,8 +95,12 @@ describe('TextureAtlas', () => {
 
   it('powerOfTwo rounds up dimensions', () => {
     const pot = new TextureAtlas({
-      id: 'pot', maxWidth: 1024, maxHeight: 1024,
-      padding: 0, allowRotation: false, powerOfTwo: true,
+      id: 'pot',
+      maxWidth: 1024,
+      maxHeight: 1024,
+      padding: 0,
+      allowRotation: false,
+      powerOfTwo: true,
     });
     pot.pack('x', 33, 33);
     // 33 → next power of 2 = 64

@@ -232,11 +232,7 @@ export class SnowAccumulation {
   /**
    * Grow trigger zone from seed cell using flood fill
    */
-  private growTriggerZone(
-    seedX: number,
-    seedZ: number,
-    visited: Set<number>
-  ): TriggerZone {
+  private growTriggerZone(seedX: number, seedZ: number, visited: Set<number>): TriggerZone {
     const { resolution } = this.terrain.config;
     const { angleOfRepose } = this.config;
     const angleOfReposeRad = (angleOfRepose * Math.PI) / 180;

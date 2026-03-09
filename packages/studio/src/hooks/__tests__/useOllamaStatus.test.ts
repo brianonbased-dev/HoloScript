@@ -3,10 +3,10 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useOllamaStatus } from '../useOllamaStatus';
-import { useAIStore } from '@/lib/store';
+import { useAIStore } from '@/lib/stores';
 import * as api from '@/lib/api';
 
-vi.mock('@/lib/store', () => ({
+vi.mock('@/lib/stores', () => ({
   useAIStore: vi.fn(),
 }));
 
@@ -37,7 +37,7 @@ describe('useOllamaStatus', () => {
       renderHook(() => useOllamaStatus());
 
       // Wait a tick for the initial effect
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(mockCheckOllamaHealth).toHaveBeenCalled();
     });
@@ -47,7 +47,7 @@ describe('useOllamaStatus', () => {
       renderHook(() => useOllamaStatus());
 
       // Wait for async health check
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(mockSetOllamaStatus).toHaveBeenCalledWith('connected');
     });
@@ -57,7 +57,7 @@ describe('useOllamaStatus', () => {
       renderHook(() => useOllamaStatus());
 
       // Wait for async health check
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(mockSetOllamaStatus).toHaveBeenCalledWith('disconnected');
     });
@@ -73,7 +73,7 @@ describe('useOllamaStatus', () => {
     it('should not update status after unmount', async () => {
       let resolveHealth: ((value: boolean) => void) | null = null;
       mockCheckOllamaHealth.mockReturnValue(
-        new Promise(resolve => {
+        new Promise((resolve) => {
           resolveHealth = resolve;
         })
       );
@@ -87,7 +87,7 @@ describe('useOllamaStatus', () => {
       if (resolveHealth) resolveHealth(true);
 
       // Wait a bit
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Should not set status after unmount
       expect(mockSetOllamaStatus).not.toHaveBeenCalled();
@@ -102,7 +102,7 @@ describe('useOllamaStatus', () => {
       renderHook(() => useOllamaStatus());
 
       // Wait for async check
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Should not crash and should have been called
       expect(mockCheckOllamaHealth).toHaveBeenCalled();

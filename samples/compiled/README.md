@@ -5,6 +5,7 @@ This directory contains verified compilation outputs for all 25+ export targets 
 ## Purpose
 
 These samples serve as:
+
 - **Reference Implementations** - Expected output format for each target
 - **Validation Tests** - Automated tests verify these outputs
 - **Documentation** - Examples for users implementing custom exporters
@@ -281,6 +282,7 @@ All compiled samples must pass:
 ## Contributing
 
 See [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines on:
+
 - Adding new export targets
 - Improving existing exporters
 - Reporting export bugs

@@ -23,7 +23,9 @@ class MyAgent extends BaseAgent {
     return {
       phase: ProtocolPhase.INTAKE,
       status: 'success',
-      data: { /* collected context */ },
+      data: {
+        /* collected context */
+      },
       durationMs: 0,
       timestamp: Date.now(),
     };
@@ -40,16 +42,16 @@ const result = await agent.runCycle('Analyze spatial layout');
 
 ## 8-Phase Protocol
 
-| Phase | ID | Purpose |
-|---|---|---|
-| 0. INTAKE | `0` | Gather data and context |
-| 1. REFLECT | `1` | Analyze and understand |
-| 2. EXECUTE | `2` | Take action |
-| 3. COMPRESS | `3` | Store knowledge efficiently |
-| 4. REINTAKE | `4` | Re-evaluate with compressed knowledge |
-| 5. GROW | `5` | Learn patterns, wisdom, gotchas |
-| 6. EVOLVE | `6` | Adapt and optimize |
-| 7. AUTONOMIZE | `7` | Self-directed goal synthesis |
+| Phase         | ID  | Purpose                               |
+| ------------- | --- | ------------------------------------- |
+| 0. INTAKE     | `0` | Gather data and context               |
+| 1. REFLECT    | `1` | Analyze and understand                |
+| 2. EXECUTE    | `2` | Take action                           |
+| 3. COMPRESS   | `3` | Store knowledge efficiently           |
+| 4. REINTAKE   | `4` | Re-evaluate with compressed knowledge |
+| 5. GROW       | `5` | Learn patterns, wisdom, gotchas       |
+| 6. EVOLVE     | `6` | Adapt and optimize                    |
+| 7. AUTONOMIZE | `7` | Self-directed goal synthesis          |
 
 ## PWG Knowledge Format
 

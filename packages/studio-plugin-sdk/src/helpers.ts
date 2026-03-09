@@ -29,7 +29,10 @@ export function createPlugin(plugin: HoloScriptPlugin): HoloScriptPlugin {
 /**
  * Validate plugin metadata
  */
-export function validatePluginMetadata(metadata: PluginMetadata): { valid: boolean; errors: string[] } {
+export function validatePluginMetadata(metadata: PluginMetadata): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   if (!metadata.id) {
@@ -282,7 +285,7 @@ export function mergePlugins(plugins: HoloScriptPlugin[]): HoloScriptPlugin {
  * ```
  */
 export function createSandboxedPlugin(
-  plugin: HoloScriptPlugin & { sandbox: PluginSandboxManifest },
+  plugin: HoloScriptPlugin & { sandbox: PluginSandboxManifest }
 ): HoloScriptPlugin {
   // Ensure trust level defaults to sandboxed
   if (!plugin.sandbox.trustLevel) {
@@ -301,22 +304,36 @@ export function createSandboxedPlugin(
  */
 export function validateSandboxManifest(
   manifest: PluginSandboxManifest,
-  plugin?: HoloScriptPlugin,
+  plugin?: HoloScriptPlugin
 ): { valid: boolean; errors: string[]; warnings: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
 
   // Valid permissions list
   const validPermissions: SandboxPermission[] = [
-    'scene:read', 'scene:write', 'scene:subscribe',
-    'editor:selection', 'editor:viewport', 'editor:undo',
-    'ui:panel', 'ui:toolbar', 'ui:menu', 'ui:modal', 'ui:notification', 'ui:theme',
-    'storage:local', 'storage:project',
-    'network:fetch', 'network:websocket',
-    'clipboard:read', 'clipboard:write',
-    'fs:import', 'fs:export',
+    'scene:read',
+    'scene:write',
+    'scene:subscribe',
+    'editor:selection',
+    'editor:viewport',
+    'editor:undo',
+    'ui:panel',
+    'ui:toolbar',
+    'ui:menu',
+    'ui:modal',
+    'ui:notification',
+    'ui:theme',
+    'storage:local',
+    'storage:project',
+    'network:fetch',
+    'network:websocket',
+    'clipboard:read',
+    'clipboard:write',
+    'fs:import',
+    'fs:export',
     'user:read',
-    'nodes:workflow', 'nodes:behaviortree',
+    'nodes:workflow',
+    'nodes:behaviortree',
     'keyboard:shortcuts',
   ];
 
@@ -337,7 +354,9 @@ export function validateSandboxManifest(
     manifest.permissions?.includes('network:websocket')
   ) {
     if (!manifest.networkPolicy) {
-      errors.push('Network policy is required when requesting network:fetch or network:websocket permission');
+      errors.push(
+        'Network policy is required when requesting network:fetch or network:websocket permission'
+      );
     } else if (
       !manifest.networkPolicy.allowedDomains ||
       manifest.networkPolicy.allowedDomains.length === 0
@@ -359,22 +378,52 @@ export function validateSandboxManifest(
     if (plugin.panels && plugin.panels.length > 0 && !manifest.permissions?.includes('ui:panel')) {
       warnings.push("Plugin declares panels but doesn't request 'ui:panel' permission");
     }
-    if (plugin.toolbarButtons && plugin.toolbarButtons.length > 0 && !manifest.permissions?.includes('ui:toolbar')) {
+    if (
+      plugin.toolbarButtons &&
+      plugin.toolbarButtons.length > 0 &&
+      !manifest.permissions?.includes('ui:toolbar')
+    ) {
       warnings.push("Plugin declares toolbar buttons but doesn't request 'ui:toolbar' permission");
     }
-    if (plugin.keyboardShortcuts && plugin.keyboardShortcuts.length > 0 && !manifest.permissions?.includes('keyboard:shortcuts')) {
-      warnings.push("Plugin declares keyboard shortcuts but doesn't request 'keyboard:shortcuts' permission");
+    if (
+      plugin.keyboardShortcuts &&
+      plugin.keyboardShortcuts.length > 0 &&
+      !manifest.permissions?.includes('keyboard:shortcuts')
+    ) {
+      warnings.push(
+        "Plugin declares keyboard shortcuts but doesn't request 'keyboard:shortcuts' permission"
+      );
     }
-    if (plugin.menuItems && plugin.menuItems.length > 0 && !manifest.permissions?.includes('ui:menu')) {
+    if (
+      plugin.menuItems &&
+      plugin.menuItems.length > 0 &&
+      !manifest.permissions?.includes('ui:menu')
+    ) {
       warnings.push("Plugin declares menu items but doesn't request 'ui:menu' permission");
     }
-    if (plugin.nodeTypes?.workflow && plugin.nodeTypes.workflow.length > 0 && !manifest.permissions?.includes('nodes:workflow')) {
-      warnings.push("Plugin declares workflow nodes but doesn't request 'nodes:workflow' permission");
+    if (
+      plugin.nodeTypes?.workflow &&
+      plugin.nodeTypes.workflow.length > 0 &&
+      !manifest.permissions?.includes('nodes:workflow')
+    ) {
+      warnings.push(
+        "Plugin declares workflow nodes but doesn't request 'nodes:workflow' permission"
+      );
     }
-    if (plugin.nodeTypes?.behaviorTree && plugin.nodeTypes.behaviorTree.length > 0 && !manifest.permissions?.includes('nodes:behaviortree')) {
-      warnings.push("Plugin declares behavior tree nodes but doesn't request 'nodes:behaviortree' permission");
+    if (
+      plugin.nodeTypes?.behaviorTree &&
+      plugin.nodeTypes.behaviorTree.length > 0 &&
+      !manifest.permissions?.includes('nodes:behaviortree')
+    ) {
+      warnings.push(
+        "Plugin declares behavior tree nodes but doesn't request 'nodes:behaviortree' permission"
+      );
     }
-    if (plugin.mcpServers && plugin.mcpServers.length > 0 && !manifest.permissions?.includes('network:fetch')) {
+    if (
+      plugin.mcpServers &&
+      plugin.mcpServers.length > 0 &&
+      !manifest.permissions?.includes('network:fetch')
+    ) {
       warnings.push("Plugin declares MCP servers but doesn't request 'network:fetch' permission");
     }
   }

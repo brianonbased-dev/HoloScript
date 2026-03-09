@@ -11,7 +11,13 @@
 // TYPES
 // =============================================================================
 
-export type PlatformTarget = 'web' | 'desktop-win' | 'desktop-mac' | 'desktop-linux' | 'vr-quest' | 'vr-pcvr';
+export type PlatformTarget =
+  | 'web'
+  | 'desktop-win'
+  | 'desktop-mac'
+  | 'desktop-linux'
+  | 'vr-quest'
+  | 'vr-pcvr';
 
 export interface PlatformConfig {
   target: PlatformTarget;
@@ -47,7 +53,7 @@ export interface ExportFile {
 // =============================================================================
 
 const PLATFORM_DEFAULTS: Record<PlatformTarget, Partial<PlatformConfig>> = {
-  'web': {
+  web: {
     entryPoint: 'index.html',
     polyfills: ['webxr-polyfill', 'webgpu-polyfill'],
     features: ['service-worker', 'pwa'],
@@ -104,9 +110,12 @@ export class PlatformExporter {
       polyfills: overrides.polyfills ?? defaults.polyfills ?? [],
       features: overrides.features ?? defaults.features ?? [],
       minVersion: overrides.minVersion,
-      optimizations: overrides.optimizations ?? defaults.optimizations ?? {
-        minify: true, sourceMaps: false, compress: true
-      },
+      optimizations: overrides.optimizations ??
+        defaults.optimizations ?? {
+          minify: true,
+          sourceMaps: false,
+          compress: true,
+        },
     };
 
     this.configs.set(target, config);

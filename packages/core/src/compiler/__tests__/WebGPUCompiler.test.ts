@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { WebGPUCompiler } from '../WebGPUCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -9,7 +9,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
@@ -47,7 +46,11 @@ describe('WebGPUCompiler', () => {
     const c = new WebGPUCompiler({ enableCompute: true });
     const comp = makeComposition({
       objects: [
-        { name: 'particles', properties: [{ key: 'geometry', value: 'gpu_particles' }], traits: [] },
+        {
+          name: 'particles',
+          properties: [{ key: 'geometry', value: 'gpu_particles' }],
+          traits: [],
+        },
       ] as any,
     });
     const code = c.compile(comp, 'test-token');
@@ -113,7 +116,9 @@ describe('WebGPUCompiler', () => {
 
   it('compiles lights to uniform buffers', () => {
     const comp = makeComposition({
-      lights: [{ name: 'sun', lightType: 'directional', properties: [{ key: 'color', value: '#ffffff' }] }] as any,
+      lights: [
+        { name: 'sun', lightType: 'directional', properties: [{ key: 'color', value: '#ffffff' }] },
+      ] as any,
     });
     const code = compiler.compile(comp, 'test-token');
     expect(code).toContain('sun');
@@ -126,9 +131,7 @@ describe('WebGPUCompiler', () => {
       spatialGroups: [
         {
           name: 'group_a',
-          objects: [
-            { name: 'child', properties: [{ key: 'geometry', value: 'box' }], traits: [] },
-          ],
+          objects: [{ name: 'child', properties: [{ key: 'geometry', value: 'box' }], traits: [] }],
           properties: [],
         },
       ] as any,

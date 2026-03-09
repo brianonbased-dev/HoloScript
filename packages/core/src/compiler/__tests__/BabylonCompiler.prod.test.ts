@@ -64,14 +64,21 @@ describe('BabylonCompiler — compile() structure', () => {
 
   it('includes GUI import when ui is present', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      ui: {
-        elements: [{
-          name: 'Label',
-          properties: [{ key: 'type', value: 'text' }, { key: 'text', value: 'Hello' }],
-        }],
-      },
-    }));
+    const code = c.compile(
+      makeComposition({
+        ui: {
+          elements: [
+            {
+              name: 'Label',
+              properties: [
+                { key: 'type', value: 'text' },
+                { key: 'text', value: 'Hello' },
+              ],
+            },
+          ],
+        },
+      })
+    );
     expect(code).toContain('@babylonjs/gui');
   });
 
@@ -104,103 +111,131 @@ describe('BabylonCompiler — compile() structure', () => {
 describe('BabylonCompiler — emitObject', () => {
   it('emits MeshBuilder for sphere geometry', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      objects: [{
-        name: 'Ball',
-        properties: [{ key: 'geometry', value: 'sphere' }],
-        traits: [],
-      }],
-    }));
+    const code = c.compile(
+      makeComposition({
+        objects: [
+          {
+            name: 'Ball',
+            properties: [{ key: 'geometry', value: 'sphere' }],
+            traits: [],
+          },
+        ],
+      })
+    );
     expect(code).toContain('CreateSphere');
     expect(code).toContain('"Ball"');
   });
 
   it('emits SceneLoader for model src', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      objects: [{
-        name: 'Robot',
-        properties: [{ key: 'src', value: 'models/robot.glb' }],
-        traits: [],
-      }],
-    }));
+    const code = c.compile(
+      makeComposition({
+        objects: [
+          {
+            name: 'Robot',
+            properties: [{ key: 'src', value: 'models/robot.glb' }],
+            traits: [],
+          },
+        ],
+      })
+    );
     expect(code).toContain('ImportMeshAsync');
     expect(code).toContain('models/robot.glb');
   });
 
   it('emits PBR material when color is provided', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      objects: [{
-        name: 'RedCube',
-        properties: [
-          { key: 'geometry', value: 'cube' },
-          { key: 'color', value: '#ff0000' },
+    const code = c.compile(
+      makeComposition({
+        objects: [
+          {
+            name: 'RedCube',
+            properties: [
+              { key: 'geometry', value: 'cube' },
+              { key: 'color', value: '#ff0000' },
+            ],
+            traits: [],
+          },
         ],
-        traits: [],
-      }],
-    }));
+      })
+    );
     expect(code).toContain('PBRMaterial');
     expect(code).toContain('albedoColor');
   });
 
   it('emits position and rotation', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      objects: [{
-        name: 'MovingBox',
-        properties: [
-          { key: 'geometry', value: 'cube' },
-          { key: 'position', value: [1, 2, 3] },
-          { key: 'rotation', value: [0, 90, 0] },
+    const code = c.compile(
+      makeComposition({
+        objects: [
+          {
+            name: 'MovingBox',
+            properties: [
+              { key: 'geometry', value: 'cube' },
+              { key: 'position', value: [1, 2, 3] },
+              { key: 'rotation', value: [0, 90, 0] },
+            ],
+            traits: [],
+          },
         ],
-        traits: [],
-      }],
-    }));
+      })
+    );
     expect(code).toContain('1, 2, 3');
     expect(code).toContain('0, 90, 0');
   });
 
   it('emits uniform scale', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      objects: [{
-        name: 'BigBox',
-        properties: [
-          { key: 'geometry', value: 'cube' },
-          { key: 'scale', value: 2 },
+    const code = c.compile(
+      makeComposition({
+        objects: [
+          {
+            name: 'BigBox',
+            properties: [
+              { key: 'geometry', value: 'cube' },
+              { key: 'scale', value: 2 },
+            ],
+            traits: [],
+          },
         ],
-        traits: [],
-      }],
-    }));
+      })
+    );
     expect(code).toContain('Vector3(2, 2, 2)');
   });
 
   it('emits physics body for @physics trait', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      objects: [{
-        name: 'PhysicsCube',
-        properties: [{ key: 'geometry', value: 'cube' }],
-        traits: [{ name: 'physics', config: { type: 'dynamic', mass: 10 } }],
-      }],
-    }));
+    const code = c.compile(
+      makeComposition({
+        objects: [
+          {
+            name: 'PhysicsCube',
+            properties: [{ key: 'geometry', value: 'cube' }],
+            traits: [{ name: 'physics', config: { type: 'dynamic', mass: 10 } }],
+          },
+        ],
+      })
+    );
     expect(code).toContain('PhysicsBody');
     expect(code).toContain('mass: 10');
   });
 
   it('emits text mesh for text geometry', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      objects: [{
-        name: 'Label',
-        properties: [
-          { key: 'geometry', value: 'text' },
-          { key: 'text', value: 'Hello World' },
+    const code = c.compile(
+      makeComposition({
+        objects: [
+          {
+            name: 'Label',
+            properties: [
+              { key: 'geometry', value: 'text' },
+              { key: 'text', value: 'Hello World' },
+            ],
+            traits: [],
+          },
         ],
-        traits: [],
-      }],
-    }));
+      })
+    );
     expect(code).toContain('DynamicTexture');
     expect(code).toContain('Hello World');
   });
@@ -210,63 +245,83 @@ describe('BabylonCompiler — emitObject', () => {
 describe('BabylonCompiler — emitLight', () => {
   it('emits HemisphericLight for ambient type', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      lights: [{
-        name: 'AmbientLight',
-        lightType: 'ambient',
-        properties: [{ key: 'intensity', value: 0.5 }],
-      }],
-    }));
+    const code = c.compile(
+      makeComposition({
+        lights: [
+          {
+            name: 'AmbientLight',
+            lightType: 'ambient',
+            properties: [{ key: 'intensity', value: 0.5 }],
+          },
+        ],
+      })
+    );
     expect(code).toContain('HemisphericLight');
     expect(code).toContain('intensity = 0.5');
   });
 
   it('emits DirectionalLight', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      lights: [{
-        name: 'Sun',
-        lightType: 'directional',
-        properties: [{ key: 'direction', value: [0, -1, 0] }],
-      }],
-    }));
+    const code = c.compile(
+      makeComposition({
+        lights: [
+          {
+            name: 'Sun',
+            lightType: 'directional',
+            properties: [{ key: 'direction', value: [0, -1, 0] }],
+          },
+        ],
+      })
+    );
     expect(code).toContain('DirectionalLight');
   });
 
   it('emits PointLight', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      lights: [{
-        name: 'Bulb',
-        lightType: 'point',
-        properties: [],
-      }],
-    }));
+    const code = c.compile(
+      makeComposition({
+        lights: [
+          {
+            name: 'Bulb',
+            lightType: 'point',
+            properties: [],
+          },
+        ],
+      })
+    );
     expect(code).toContain('PointLight');
   });
 
   it('emits SpotLight with angle', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      lights: [{
-        name: 'Spot',
-        lightType: 'spot',
-        properties: [{ key: 'angle', value: 0.5 }],
-      }],
-    }));
+    const code = c.compile(
+      makeComposition({
+        lights: [
+          {
+            name: 'Spot',
+            lightType: 'spot',
+            properties: [{ key: 'angle', value: 0.5 }],
+          },
+        ],
+      })
+    );
     expect(code).toContain('SpotLight');
     expect(code).toContain('0.5');
   });
 
   it('emits ShadowGenerator when castShadow=true', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      lights: [{
-        name: 'ShadowLight',
-        lightType: 'directional',
-        properties: [{ key: 'cast_shadow', value: true }],
-      }],
-    }));
+    const code = c.compile(
+      makeComposition({
+        lights: [
+          {
+            name: 'ShadowLight',
+            lightType: 'directional',
+            properties: [{ key: 'cast_shadow', value: true }],
+          },
+        ],
+      })
+    );
     expect(code).toContain('ShadowGenerator');
   });
 
@@ -281,26 +336,32 @@ describe('BabylonCompiler — emitLight', () => {
 describe('BabylonCompiler — emitCamera', () => {
   it('emits ArcRotateCamera by default', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      camera: { cameraType: 'perspective', properties: [] },
-    }));
+    const code = c.compile(
+      makeComposition({
+        camera: { cameraType: 'perspective', properties: [] },
+      })
+    );
     expect(code).toContain('ArcRotateCamera');
   });
 
   it('emits FreeCamera for orthographic type', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      camera: { cameraType: 'orthographic', properties: [] },
-    }));
+    const code = c.compile(
+      makeComposition({
+        camera: { cameraType: 'orthographic', properties: [] },
+      })
+    );
     expect(code).toContain('FreeCamera');
     expect(code).toContain('ORTHOGRAPHIC_CAMERA');
   });
 
   it('emits fov in radians', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      camera: { cameraType: 'perspective', properties: [{ key: 'fov', value: 90 }] },
-    }));
+    const code = c.compile(
+      makeComposition({
+        camera: { cameraType: 'perspective', properties: [{ key: 'fov', value: 90 }] },
+      })
+    );
     // 90 * (PI / 180) ≈ 1.5707...
     expect(code).toContain('1.5707');
   });
@@ -310,16 +371,20 @@ describe('BabylonCompiler — emitCamera', () => {
 describe('BabylonCompiler — toBabylonColor3 (via objects)', () => {
   it('converts hex color to BABYLON.Color3', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      objects: [{
-        name: 'RedBox',
-        properties: [
-          { key: 'geometry', value: 'cube' },
-          { key: 'color', value: '#ff0000' },
+    const code = c.compile(
+      makeComposition({
+        objects: [
+          {
+            name: 'RedBox',
+            properties: [
+              { key: 'geometry', value: 'cube' },
+              { key: 'color', value: '#ff0000' },
+            ],
+            traits: [],
+          },
         ],
-        traits: [],
-      }],
-    }));
+      })
+    );
     // #ff0000 → r=1.000, g=0.000, b=0.000
     expect(code).toContain('1.000');
     expect(code).toContain('0.000');
@@ -327,16 +392,20 @@ describe('BabylonCompiler — toBabylonColor3 (via objects)', () => {
 
   it('uses Color3.White() when color is unrecognized', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      objects: [{
-        name: 'WhiteBox',
-        properties: [
-          { key: 'geometry', value: 'cube' },
-          { key: 'color', value: 42 }, // invalid color
+    const code = c.compile(
+      makeComposition({
+        objects: [
+          {
+            name: 'WhiteBox',
+            properties: [
+              { key: 'geometry', value: 'cube' },
+              { key: 'color', value: 42 }, // invalid color
+            ],
+            traits: [],
+          },
         ],
-        traits: [],
-      }],
-    }));
+      })
+    );
     expect(code).toContain('Color3.White()');
   });
 });
@@ -345,11 +414,13 @@ describe('BabylonCompiler — toBabylonColor3 (via objects)', () => {
 describe('BabylonCompiler — emitEffects', () => {
   it('emits DefaultRenderingPipeline', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      effects: {
-        effects: [{ effectType: 'bloom', properties: { intensity: 0.3 } }],
-      },
-    }));
+    const code = c.compile(
+      makeComposition({
+        effects: {
+          effects: [{ effectType: 'bloom', properties: { intensity: 0.3 } }],
+        },
+      })
+    );
     expect(code).toContain('DefaultRenderingPipeline');
     expect(code).toContain('bloomEnabled = true');
     expect(code).toContain('0.3');
@@ -357,11 +428,13 @@ describe('BabylonCompiler — emitEffects', () => {
 
   it('emits vignette', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      effects: {
-        effects: [{ effectType: 'vignette', properties: { weight: 0.5 } }],
-      },
-    }));
+    const code = c.compile(
+      makeComposition({
+        effects: {
+          effects: [{ effectType: 'vignette', properties: { weight: 0.5 } }],
+        },
+      })
+    );
     expect(code).toContain('vignetteEnabled');
     expect(code).toContain('0.5');
   });
@@ -371,15 +444,19 @@ describe('BabylonCompiler — emitEffects', () => {
 describe('BabylonCompiler — emitAudio', () => {
   it('emits BABYLON.Sound with src and volume', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      audio: [{
-        name: 'Bgm',
-        properties: [
-          { key: 'src', value: 'audio/music.mp3' },
-          { key: 'volume', value: 0.7 },
+    const code = c.compile(
+      makeComposition({
+        audio: [
+          {
+            name: 'Bgm',
+            properties: [
+              { key: 'src', value: 'audio/music.mp3' },
+              { key: 'volume', value: 0.7 },
+            ],
+          },
         ],
-      }],
-    }));
+      })
+    );
     expect(code).toContain('BABYLON.Sound');
     expect(code).toContain('audio/music.mp3');
     expect(code).toContain('volume: 0.7');
@@ -387,15 +464,19 @@ describe('BabylonCompiler — emitAudio', () => {
 
   it('emits spatialSound option when spatial=true', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      audio: [{
-        name: 'Spatial',
-        properties: [
-          { key: 'src', value: 'sfx.wav' },
-          { key: 'spatial', value: true },
+    const code = c.compile(
+      makeComposition({
+        audio: [
+          {
+            name: 'Spatial',
+            properties: [
+              { key: 'src', value: 'sfx.wav' },
+              { key: 'spatial', value: true },
+            ],
+          },
         ],
-      }],
-    }));
+      })
+    );
     expect(code).toContain('spatialSound: true');
   });
 });
@@ -404,9 +485,11 @@ describe('BabylonCompiler — emitAudio', () => {
 describe('BabylonCompiler — emitZone', () => {
   it('emits box zone by default', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      zones: [{ name: 'SafeZone', properties: [] }],
-    }));
+    const code = c.compile(
+      makeComposition({
+        zones: [{ name: 'SafeZone', properties: [] }],
+      })
+    );
     expect(code).toContain('CreateBox');
     expect(code).toContain('"SafeZone"');
     expect(code).toContain('isVisible = false');
@@ -414,9 +497,11 @@ describe('BabylonCompiler — emitZone', () => {
 
   it('emits sphere zone when shape=sphere', () => {
     const c = makeCompiler();
-    const code = c.compile(makeComposition({
-      zones: [{ name: 'SphereZone', properties: [{ key: 'shape', value: 'sphere' }] }],
-    }));
+    const code = c.compile(
+      makeComposition({
+        zones: [{ name: 'SphereZone', properties: [{ key: 'shape', value: 'sphere' }] }],
+      })
+    );
     expect(code).toContain('CreateSphere');
   });
 });

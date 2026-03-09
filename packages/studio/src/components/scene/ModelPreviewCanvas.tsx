@@ -164,7 +164,10 @@ export function ModelPreviewCanvas({
   const isTree = modelType === 'tree';
 
   return (
-    <div className={`bg-[#0a0a14] rounded-lg overflow-hidden ${className}`} style={{ width, height }}>
+    <div
+      className={`bg-[#0a0a14] rounded-lg overflow-hidden ${className}`}
+      style={{ width, height }}
+    >
       <Canvas
         camera={{ position: [0, 0.2, 2.2], fov: 40 }}
         dpr={[1, 1.5]}
@@ -188,12 +191,7 @@ export function ModelPreviewCanvas({
         </Suspense>
 
         {interactive && (
-          <OrbitControls
-            enableZoom={false}
-            enablePan={false}
-            autoRotate
-            autoRotateSpeed={2}
-          />
+          <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={2} />
         )}
       </Canvas>
     </div>
@@ -203,13 +201,7 @@ export function ModelPreviewCanvas({
 /**
  * Tiny inline preview — sized for list items (40x40).
  */
-export function ModelPreviewInline({
-  modelType,
-  color,
-}: {
-  modelType: string;
-  color?: string;
-}) {
+export function ModelPreviewInline({ modelType, color }: { modelType: string; color?: string }) {
   return (
     <ModelPreviewCanvas
       modelType={modelType}

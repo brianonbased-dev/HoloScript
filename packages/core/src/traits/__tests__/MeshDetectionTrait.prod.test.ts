@@ -4,8 +4,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { meshDetectionHandler } from '../MeshDetectionTrait';
 
-function makeNode() { return { id: 'mesh_node' }; }
-function makeContext() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'mesh_node' };
+}
+function makeContext() {
+  return { emit: vi.fn() };
+}
 function attachNode(config: any = {}) {
   const node = makeNode();
   const ctx = makeContext();
@@ -30,12 +34,16 @@ function makeBlock(id: string, vCount = 10, tCount = 5): any {
 // ─── defaultConfig ────────────────────────────────────────────────────────────
 
 describe('meshDetectionHandler.defaultConfig', () => {
-  it('resolution = medium', () => expect(meshDetectionHandler.defaultConfig!.resolution).toBe('medium'));
-  it('semantic_labeling = false', () => expect(meshDetectionHandler.defaultConfig!.semantic_labeling).toBe(false));
+  it('resolution = medium', () =>
+    expect(meshDetectionHandler.defaultConfig!.resolution).toBe('medium'));
+  it('semantic_labeling = false', () =>
+    expect(meshDetectionHandler.defaultConfig!.semantic_labeling).toBe(false));
   it('update_rate = 10', () => expect(meshDetectionHandler.defaultConfig!.update_rate).toBe(10));
   it('max_distance = 5', () => expect(meshDetectionHandler.defaultConfig!.max_distance).toBe(5));
-  it('occlusion_enabled = true', () => expect(meshDetectionHandler.defaultConfig!.occlusion_enabled).toBe(true));
-  it('physics_collider = false', () => expect(meshDetectionHandler.defaultConfig!.physics_collider).toBe(false));
+  it('occlusion_enabled = true', () =>
+    expect(meshDetectionHandler.defaultConfig!.occlusion_enabled).toBe(true));
+  it('physics_collider = false', () =>
+    expect(meshDetectionHandler.defaultConfig!.physics_collider).toBe(false));
   it('visible = false', () => expect(meshDetectionHandler.defaultConfig!.visible).toBe(false));
   it('wireframe = false', () => expect(meshDetectionHandler.defaultConfig!.wireframe).toBe(false));
   it('block_size = 1.0', () => expect(meshDetectionHandler.defaultConfig!.block_size).toBe(1.0));
@@ -44,19 +52,32 @@ describe('meshDetectionHandler.defaultConfig', () => {
 // ─── onAttach ────────────────────────────────────────────────────────────────
 
 describe('meshDetectionHandler.onAttach', () => {
-  it('creates __meshDetectionState', () => expect((attachNode().node as any).__meshDetectionState).toBeDefined());
-  it('meshBlocks is an empty Map', () => expect((attachNode().node as any).__meshDetectionState.meshBlocks.size).toBe(0));
-  it('lastUpdateTime = 0', () => expect((attachNode().node as any).__meshDetectionState.lastUpdateTime).toBe(0));
-  it('isScanning = true after attach', () => expect((attachNode().node as any).__meshDetectionState.isScanning).toBe(true));
-  it('totalVertices = 0', () => expect((attachNode().node as any).__meshDetectionState.totalVertices).toBe(0));
-  it('totalTriangles = 0', () => expect((attachNode().node as any).__meshDetectionState.totalTriangles).toBe(0));
-  it('scanProgress = 0', () => expect((attachNode().node as any).__meshDetectionState.scanProgress).toBe(0));
-  it('physicsColliderIds = []', () => expect((attachNode().node as any).__meshDetectionState.physicsColliderIds).toEqual([]));
+  it('creates __meshDetectionState', () =>
+    expect((attachNode().node as any).__meshDetectionState).toBeDefined());
+  it('meshBlocks is an empty Map', () =>
+    expect((attachNode().node as any).__meshDetectionState.meshBlocks.size).toBe(0));
+  it('lastUpdateTime = 0', () =>
+    expect((attachNode().node as any).__meshDetectionState.lastUpdateTime).toBe(0));
+  it('isScanning = true after attach', () =>
+    expect((attachNode().node as any).__meshDetectionState.isScanning).toBe(true));
+  it('totalVertices = 0', () =>
+    expect((attachNode().node as any).__meshDetectionState.totalVertices).toBe(0));
+  it('totalTriangles = 0', () =>
+    expect((attachNode().node as any).__meshDetectionState.totalTriangles).toBe(0));
+  it('scanProgress = 0', () =>
+    expect((attachNode().node as any).__meshDetectionState.scanProgress).toBe(0));
+  it('physicsColliderIds = []', () =>
+    expect((attachNode().node as any).__meshDetectionState.physicsColliderIds).toEqual([]));
   it('emits mesh_detection_start with resolution, maxDistance, semanticLabeling', () => {
     const { ctx } = attachNode({ resolution: 'high', max_distance: 8, semantic_labeling: true });
-    expect(ctx.emit).toHaveBeenCalledWith('mesh_detection_start', expect.objectContaining({
-      resolution: 'high', maxDistance: 8, semanticLabeling: true,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'mesh_detection_start',
+      expect.objectContaining({
+        resolution: 'high',
+        maxDistance: 8,
+        semanticLabeling: true,
+      })
+    );
   });
 });
 
@@ -107,7 +128,10 @@ describe('meshDetectionHandler.onUpdate', () => {
     // lastUpdateTime=0, Date.now() will be >> 100ms (1000/10)
     ctx.emit.mockClear();
     meshDetectionHandler.onUpdate!(node, cfg, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('mesh_request_update', expect.objectContaining({ maxDistance: cfg.max_distance }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'mesh_request_update',
+      expect.objectContaining({ maxDistance: cfg.max_distance })
+    );
   });
   it('does NOT emit when isScanning=false', () => {
     const { node, cfg, ctx } = attachNode();
@@ -158,14 +182,20 @@ describe('meshDetectionHandler.onEvent — mesh_block_update (new)', () => {
     const block = makeBlock('new_b');
     ctx.emit.mockClear();
     meshDetectionHandler.onEvent!(node, cfg, ctx, { type: 'mesh_block_update', block });
-    expect(ctx.emit).toHaveBeenCalledWith('mesh_block_created', expect.objectContaining({ blockId: 'new_b' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'mesh_block_created',
+      expect.objectContaining({ blockId: 'new_b' })
+    );
   });
   it('emits mesh_block_render when visible=true', () => {
     const { node, cfg, ctx } = attachNode({ visible: true, wireframe: true });
     const block = makeBlock('vb');
     ctx.emit.mockClear();
     meshDetectionHandler.onEvent!(node, cfg, ctx, { type: 'mesh_block_update', block });
-    expect(ctx.emit).toHaveBeenCalledWith('mesh_block_render', expect.objectContaining({ blockId: 'vb', wireframe: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'mesh_block_render',
+      expect.objectContaining({ blockId: 'vb', wireframe: true })
+    );
   });
   it('does NOT emit mesh_block_render when visible=false', () => {
     const { node, cfg, ctx } = attachNode({ visible: false });
@@ -179,7 +209,10 @@ describe('meshDetectionHandler.onEvent — mesh_block_update (new)', () => {
     const block = makeBlock('ob');
     ctx.emit.mockClear();
     meshDetectionHandler.onEvent!(node, cfg, ctx, { type: 'mesh_block_update', block });
-    expect(ctx.emit).toHaveBeenCalledWith('mesh_occlusion_update', expect.objectContaining({ blockId: 'ob' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'mesh_occlusion_update',
+      expect.objectContaining({ blockId: 'ob' })
+    );
   });
   it('does NOT emit mesh_occlusion_update when occlusion_enabled=false', () => {
     const { node, cfg, ctx } = attachNode({ occlusion_enabled: false });
@@ -193,7 +226,10 @@ describe('meshDetectionHandler.onEvent — mesh_block_update (new)', () => {
     const block = makeBlock('pb');
     ctx.emit.mockClear();
     meshDetectionHandler.onEvent!(node, cfg, ctx, { type: 'mesh_block_update', block });
-    expect(ctx.emit).toHaveBeenCalledWith('physics_add_mesh_collider', expect.objectContaining({ colliderId: 'mesh_collider_pb', isStatic: true }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'physics_add_mesh_collider',
+      expect.objectContaining({ colliderId: 'mesh_collider_pb', isStatic: true })
+    );
   });
   it('adds colliderId to physicsColliderIds when physics_collider=true', () => {
     const { node, cfg, ctx } = attachNode({ physics_collider: true });
@@ -229,7 +265,10 @@ describe('meshDetectionHandler.onEvent — mesh_block_update (updated)', () => {
     meshDetectionHandler.onEvent!(node, cfg, ctx, { type: 'mesh_block_update', block });
     ctx.emit.mockClear();
     meshDetectionHandler.onEvent!(node, cfg, ctx, { type: 'mesh_block_update', block });
-    expect(ctx.emit).toHaveBeenCalledWith('mesh_block_updated', expect.objectContaining({ blockId: 'b1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'mesh_block_updated',
+      expect.objectContaining({ blockId: 'b1' })
+    );
   });
 });
 
@@ -250,7 +289,12 @@ describe('meshDetectionHandler.onEvent — block_removed, scan_progress, pause/r
   it('mesh_block_removed: ignores unknown blockId gracefully', () => {
     const { node, cfg, ctx } = attachNode();
     ctx.emit.mockClear();
-    expect(() => meshDetectionHandler.onEvent!(node, cfg, ctx, { type: 'mesh_block_removed', blockId: 'ghost' })).not.toThrow();
+    expect(() =>
+      meshDetectionHandler.onEvent!(node, cfg, ctx, {
+        type: 'mesh_block_removed',
+        blockId: 'ghost',
+      })
+    ).not.toThrow();
     expect(ctx.emit).not.toHaveBeenCalledWith('mesh_block_remove', expect.any(Object));
   });
   it('mesh_scan_progress: updates scanProgress', () => {

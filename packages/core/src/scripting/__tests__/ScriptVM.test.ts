@@ -4,7 +4,9 @@ import { ScriptVM, OpCode, type Instruction } from '../ScriptVM';
 describe('ScriptVM', () => {
   let vm: ScriptVM;
 
-  beforeEach(() => { vm = new ScriptVM(); });
+  beforeEach(() => {
+    vm = new ScriptVM();
+  });
 
   // Basic arithmetic
   it('PUSH + ADD + HALT', () => {
@@ -51,11 +53,7 @@ describe('ScriptVM', () => {
   });
 
   it('DIV by zero throws error', () => {
-    vm.load([
-      { op: OpCode.PUSH, operand: 1 },
-      { op: OpCode.PUSH, operand: 0 },
-      { op: OpCode.DIV },
-    ]);
+    vm.load([{ op: OpCode.PUSH, operand: 1 }, { op: OpCode.PUSH, operand: 0 }, { op: OpCode.DIV }]);
     const state = vm.run();
     expect(state.error).toContain('Division by zero');
   });
@@ -71,11 +69,7 @@ describe('ScriptVM', () => {
   });
 
   it('NEG', () => {
-    vm.load([
-      { op: OpCode.PUSH, operand: 5 },
-      { op: OpCode.NEG },
-      { op: OpCode.HALT },
-    ]);
+    vm.load([{ op: OpCode.PUSH, operand: 5 }, { op: OpCode.NEG }, { op: OpCode.HALT }]);
     expect(vm.run().stack[0]).toBe(-5);
   });
 
@@ -130,9 +124,9 @@ describe('ScriptVM', () => {
 
   it('JMP_IF conditional jump', () => {
     vm.load([
-      { op: OpCode.PUSH, operand: 1 },     // truthy
+      { op: OpCode.PUSH, operand: 1 }, // truthy
       { op: OpCode.JMP_IF, operand: 3 },
-      { op: OpCode.PUSH, operand: 999 },    // skipped
+      { op: OpCode.PUSH, operand: 999 }, // skipped
       { op: OpCode.PUSH, operand: 42 },
       { op: OpCode.HALT },
     ]);
@@ -143,7 +137,7 @@ describe('ScriptVM', () => {
   it('CALL built-in abs', () => {
     vm.load([
       { op: OpCode.PUSH, operand: -7 },
-      { op: OpCode.PUSH, operand: 1 },  // argc
+      { op: OpCode.PUSH, operand: 1 }, // argc
       { op: OpCode.CALL, operand: 'abs' },
       { op: OpCode.HALT },
     ]);
@@ -187,10 +181,7 @@ describe('ScriptVM', () => {
 
   // Max instructions
   it('max instructions protection', () => {
-    const loop: Instruction[] = [
-      { op: OpCode.NOP },
-      { op: OpCode.JMP, operand: 0 },
-    ];
+    const loop: Instruction[] = [{ op: OpCode.NOP }, { op: OpCode.JMP, operand: 0 }];
     vm.load(loop);
     const state = vm.run();
     expect(state.error).toContain('Max instructions');

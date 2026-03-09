@@ -12,7 +12,9 @@ import { controlNetHandler } from '../ControlNetTrait';
 // HELPERS
 // =============================================================================
 
-function makeNode(id = 'cn-node') { return { id } as any; }
+function makeNode(id = 'cn-node') {
+  return { id } as any;
+}
 
 function makeConfig(overrides: any = {}) {
   return { ...controlNetHandler.defaultConfig, ...overrides };
@@ -127,11 +129,17 @@ describe('ControlNetTrait — Production', () => {
     it('calculates rolling average time over multiple completions', () => {
       // Process 1: 100ms
       controlNetHandler.onEvent!(node, config, ctx, { type: 'controlnet:process', payload: {} });
-      controlNetHandler.onEvent!(node, config, ctx, { type: 'controlnet:complete', payload: { elapsedMs: 100 } });
+      controlNetHandler.onEvent!(node, config, ctx, {
+        type: 'controlnet:complete',
+        payload: { elapsedMs: 100 },
+      });
 
       // Process 2: 300ms → avg = 200
       controlNetHandler.onEvent!(node, config, ctx, { type: 'controlnet:process', payload: {} });
-      controlNetHandler.onEvent!(node, config, ctx, { type: 'controlnet:complete', payload: { elapsedMs: 300 } });
+      controlNetHandler.onEvent!(node, config, ctx, {
+        type: 'controlnet:complete',
+        payload: { elapsedMs: 300 },
+      });
 
       expect(getState(ctx).avgProcessTimeMs).toBe(200);
       expect(getState(ctx).processCount).toBe(2);

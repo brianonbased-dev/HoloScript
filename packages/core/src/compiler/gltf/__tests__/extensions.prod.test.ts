@@ -70,7 +70,9 @@ describe('glTF Extensions — Production', () => {
   });
 
   it('createTransmissionExtension clamps 0-1', () => {
-    expect(createTransmissionExtension(0.5).KHR_materials_transmission.transmissionFactor).toBe(0.5);
+    expect(createTransmissionExtension(0.5).KHR_materials_transmission.transmissionFactor).toBe(
+      0.5
+    );
     expect(createTransmissionExtension(2).KHR_materials_transmission.transmissionFactor).toBe(1);
     expect(createTransmissionExtension(-1).KHR_materials_transmission.transmissionFactor).toBe(0);
   });
@@ -169,8 +171,8 @@ describe('glTF Extensions — Production', () => {
       materials: [{ extensions: { KHR_draco_mesh_compression: {} } }],
     };
     declareExtensions(gltf);
-    expect((gltf.extensionsUsed as string[])).toContain('KHR_draco_mesh_compression');
-    expect((gltf.extensionsRequired as string[])).toContain('KHR_draco_mesh_compression');
+    expect(gltf.extensionsUsed as string[]).toContain('KHR_draco_mesh_compression');
+    expect(gltf.extensionsRequired as string[]).toContain('KHR_draco_mesh_compression');
   });
 
   it('declareExtensions skips if no extensions', () => {

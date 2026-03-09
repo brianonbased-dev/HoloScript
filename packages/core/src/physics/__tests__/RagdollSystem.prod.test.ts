@@ -20,7 +20,7 @@ describe('RagdollSystem — Production', () => {
   it('humanoid has constraints for each non-root bone', () => {
     const rs = new RagdollSystem();
     const ragdoll = rs.createHumanoid('hero', origin);
-    const childBones = HUMANOID_PRESET.filter(b => b.parentBone);
+    const childBones = HUMANOID_PRESET.filter((b) => b.parentBone);
     expect(ragdoll.constraints.length).toBe(childBones.length);
   });
 
@@ -40,7 +40,7 @@ describe('RagdollSystem — Production', () => {
   it('quadruped has constraints for each non-root bone', () => {
     const rs = new RagdollSystem();
     const ragdoll = rs.createQuadruped('dog', origin);
-    const childBones = QUADRUPED_PRESET.filter(b => b.parentBone);
+    const childBones = QUADRUPED_PRESET.filter((b) => b.parentBone);
     expect(ragdoll.constraints.length).toBe(childBones.length);
   });
 
@@ -81,7 +81,7 @@ describe('RagdollSystem — Production', () => {
   it('humanoid includes both cone and hinge constraints', () => {
     const rs = new RagdollSystem();
     const ragdoll = rs.createHumanoid('hero', origin);
-    const types = new Set(ragdoll.constraints.map(c => c.type));
+    const types = new Set(ragdoll.constraints.map((c) => c.type));
     expect(types.has('cone')).toBe(true);
     expect(types.has('hinge')).toBe(true);
   });

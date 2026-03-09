@@ -15,7 +15,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { X, Search } from 'lucide-react';
 import { SCENE_TEMPLATES, searchTemplates, type SceneTemplate } from '@/lib/sceneTemplates';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 interface TemplatePickerProps {
   onClose: () => void;
@@ -44,7 +44,11 @@ function TemplateCard({
           onError={(e) => {
             // Fallback: hide broken image, show category initial
             (e.target as HTMLImageElement).style.display = 'none';
-            (e.target as HTMLImageElement).parentElement!.classList.add('flex', 'items-center', 'justify-center');
+            (e.target as HTMLImageElement).parentElement!.classList.add(
+              'flex',
+              'items-center',
+              'justify-center'
+            );
             const span = document.createElement('span');
             span.className = 'text-3xl text-studio-muted/30 font-bold';
             span.textContent = template.category.charAt(0).toUpperCase();

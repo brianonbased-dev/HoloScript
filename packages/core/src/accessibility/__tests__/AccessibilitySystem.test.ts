@@ -4,7 +4,9 @@ import { AccessibilitySystem } from '../AccessibilitySystem';
 describe('AccessibilitySystem', () => {
   let a11y: AccessibilitySystem;
 
-  beforeEach(() => { a11y = new AccessibilitySystem(); });
+  beforeEach(() => {
+    a11y = new AccessibilitySystem();
+  });
 
   // ---------------------------------------------------------------------------
   // Configuration
@@ -60,7 +62,14 @@ describe('AccessibilitySystem', () => {
   });
 
   it('getContrastColors covers all modes', () => {
-    for (const mode of ['normal', 'high', 'inverted', 'deuteranopia', 'protanopia', 'tritanopia'] as const) {
+    for (const mode of [
+      'normal',
+      'high',
+      'inverted',
+      'deuteranopia',
+      'protanopia',
+      'tritanopia',
+    ] as const) {
       a11y.setContrastMode(mode);
       const colors = a11y.getContrastColors();
       expect(colors.bg).toBeDefined();

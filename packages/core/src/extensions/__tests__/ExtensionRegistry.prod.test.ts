@@ -68,7 +68,9 @@ describe('ExtensionRegistry — Production', () => {
 
     it('throws on load error', () => {
       const ext = makeExtension('bad', {
-        onLoad: () => { throw new Error('load failed'); },
+        onLoad: () => {
+          throw new Error('load failed');
+        },
       });
 
       expect(() => registry.loadExtension(ext)).toThrow('load failed');

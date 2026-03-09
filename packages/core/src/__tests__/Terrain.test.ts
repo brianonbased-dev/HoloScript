@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { TerrainSystem } from '../environment/TerrainSystem';
-import { EnvironmentManager, PRESET_SUNNY_DAY, PRESET_NIGHT, ALL_PRESETS } from '../environment/EnvironmentPresets';
+import {
+  EnvironmentManager,
+  PRESET_SUNNY_DAY,
+  PRESET_NIGHT,
+  ALL_PRESETS,
+} from '../environment/EnvironmentPresets';
 import { TerrainBrush } from '../environment/TerrainBrush';
 
 describe('Cycle 106: Terrain & Environment System', () => {
@@ -32,14 +37,17 @@ describe('Cycle 106: Terrain & Environment System', () => {
     const heightmap = new Float32Array(res * res).fill(0.5);
     heightmap[2 * res + 2] = 1.0; // Center peak
 
-    system.createFromHeightmap({
-      id: 'flat_terrain',
-      width: 10,
-      depth: 10,
-      resolution: res,
-      maxHeight: 10,
-      position: { x: 0, y: 0, z: 0 },
-    }, heightmap);
+    system.createFromHeightmap(
+      {
+        id: 'flat_terrain',
+        width: 10,
+        depth: 10,
+        resolution: res,
+        maxHeight: 10,
+        position: { x: 0, y: 0, z: 0 },
+      },
+      heightmap
+    );
 
     // Center of terrain
     const h = system.getHeightAt('flat_terrain', 5, 5);
@@ -137,21 +145,24 @@ describe('Cycle 106: Terrain & Environment System', () => {
 
     // Create flat terrain
     const heightmap = new Float32Array(res * res).fill(0.5);
-    system.createFromHeightmap({
-      id: 'brush_terrain',
-      width: 100,
-      depth: 100,
-      resolution: res,
-      maxHeight: 10,
-      position: { x: 0, y: 0, z: 0 },
-    }, heightmap);
+    system.createFromHeightmap(
+      {
+        id: 'brush_terrain',
+        width: 100,
+        depth: 100,
+        resolution: res,
+        maxHeight: 10,
+        position: { x: 0, y: 0, z: 0 },
+      },
+      heightmap
+    );
 
     const brush = new TerrainBrush(system, { mode: 'raise', radius: 3, strength: 0.5 });
     const stroke = brush.apply('brush_terrain', 16, 16);
 
     expect(stroke.affectedCells.length).toBeGreaterThan(0);
     // Center should have been raised
-    const centerCell = stroke.affectedCells.find(c => c.x === 16 && c.z === 16);
+    const centerCell = stroke.affectedCells.find((c) => c.x === 16 && c.z === 16);
     expect(centerCell).toBeDefined();
     expect(centerCell!.newHeight).toBeGreaterThan(centerCell!.oldHeight);
   });
@@ -160,14 +171,17 @@ describe('Cycle 106: Terrain & Environment System', () => {
     const system = new TerrainSystem();
     const res = 17;
     const heightmap = new Float32Array(res * res).fill(0.5);
-    system.createFromHeightmap({
-      id: 'undo_terrain',
-      width: 50,
-      depth: 50,
-      resolution: res,
-      maxHeight: 10,
-      position: { x: 0, y: 0, z: 0 },
-    }, heightmap);
+    system.createFromHeightmap(
+      {
+        id: 'undo_terrain',
+        width: 50,
+        depth: 50,
+        resolution: res,
+        maxHeight: 10,
+        position: { x: 0, y: 0, z: 0 },
+      },
+      heightmap
+    );
 
     const brush = new TerrainBrush(system, { mode: 'raise', radius: 2, strength: 0.8 });
     brush.apply('undo_terrain', 8, 8);

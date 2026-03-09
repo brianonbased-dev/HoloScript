@@ -1,6 +1,7 @@
 # Shader Preview wgpu Benchmark Results
 
 ## Test Environment
+
 - Date: 2026-02-28
 - Platform: Windows (x86_64)
 - GPU: System GPU (DirectX 12 / Vulkan backend via wgpu)
@@ -26,12 +27,12 @@ VERDICT: PASS - Meets 720p@30fps target
 ## Performance Analysis
 
 | Phase      | Time (ms) | % of Budget (33.3ms) |
-|------------|-----------|---------------------|
-| Render     | 0.20      | 0.6%                |
-| Readback   | 1.58      | 4.7%                |
-| PNG Encode | 10.87     | 32.6%               |
-| **Total**  | **12.76** | **38.3%**           |
-| Headroom   | 20.54     | 61.7%               |
+| ---------- | --------- | -------------------- |
+| Render     | 0.20      | 0.6%                 |
+| Readback   | 1.58      | 4.7%                 |
+| PNG Encode | 10.87     | 32.6%                |
+| **Total**  | **12.76** | **38.3%**            |
+| Headroom   | 20.54     | 61.7%                |
 
 ## Key Findings
 

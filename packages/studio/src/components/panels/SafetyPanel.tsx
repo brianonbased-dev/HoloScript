@@ -34,18 +34,24 @@ interface SafetyPanelProps {
 // ═══════════════════════════════════════════════════════════════════
 
 const VERDICT_STYLES: Record<SafetyVerdict, { icon: string; color: string; bg: string }> = {
-  safe:     { icon: '✅', color: '#10b981', bg: '#10b98115' },
+  safe: { icon: '✅', color: '#10b981', bg: '#10b98115' },
   warnings: { icon: '⚠️', color: '#f59e0b', bg: '#f59e0b15' },
-  unsafe:   { icon: '🛑', color: '#ef4444', bg: '#ef444415' },
+  unsafe: { icon: '🛑', color: '#ef4444', bg: '#ef444415' },
 };
 
-export function SafetyPanel({ nodes, targetPlatform, trustLevel, autoAnalyze = true, compact = false }: SafetyPanelProps) {
+export function SafetyPanel({
+  nodes,
+  targetPlatform,
+  trustLevel,
+  autoAnalyze = true,
+  compact = false,
+}: SafetyPanelProps) {
   const { report, analyze, verdict, dangerScore, isAnalyzing } = useSafetyPass();
 
   useEffect(() => {
     if (autoAnalyze && nodes.length > 0) {
       analyze(nodes, {
-        targetPlatforms: targetPlatform ? [targetPlatform] as any : undefined,
+        targetPlatforms: targetPlatform ? ([targetPlatform] as any) : undefined,
         trustLevel,
       });
     }
@@ -88,14 +94,22 @@ export function SafetyPanel({ nodes, targetPlatform, trustLevel, autoAnalyze = t
       <div style={styles.section}>
         <div style={styles.sectionTitle}>Effects ({report.effects.totalEffects})</div>
         <div style={styles.tagList}>
-          {report.effects.categories.map(cat => (
-            <span key={cat} style={styles.tag}>{cat}</span>
+          {report.effects.categories.map((cat) => (
+            <span key={cat} style={styles.tag}>
+              {cat}
+            </span>
           ))}
         </div>
         {report.effects.violations.length > 0 && (
           <div style={styles.violations}>
             {report.effects.violations.map((v, i) => (
-              <div key={i} style={{ ...styles.violation, color: v.severity === 'error' ? '#ef4444' : '#f59e0b' }}>
+              <div
+                key={i}
+                style={{
+                  ...styles.violation,
+                  color: v.severity === 'error' ? '#ef4444' : '#f59e0b',
+                }}
+              >
                 {v.severity === 'error' ? '✗' : '⚠'} {v.message}
               </div>
             ))}
@@ -111,11 +125,18 @@ export function SafetyPanel({ nodes, targetPlatform, trustLevel, autoAnalyze = t
             <div key={i} style={styles.budgetRow}>
               <span style={styles.budgetLabel}>{d.category}</span>
               <div style={styles.budgetBar}>
-                <div style={{
-                  ...styles.budgetFill,
-                  width: `${Math.min(d.usagePercent, 100)}%`,
-                  background: d.usagePercent > 100 ? '#ef4444' : d.usagePercent > 80 ? '#f59e0b' : '#10b981',
-                }} />
+                <div
+                  style={{
+                    ...styles.budgetFill,
+                    width: `${Math.min(d.usagePercent, 100)}%`,
+                    background:
+                      d.usagePercent > 100
+                        ? '#ef4444'
+                        : d.usagePercent > 80
+                          ? '#f59e0b'
+                          : '#10b981',
+                  }}
+                />
               </div>
               <span style={styles.budgetPercent}>{d.usagePercent.toFixed(0)}%</span>
             </div>
@@ -151,26 +172,70 @@ export function SafetyPanel({ nodes, targetPlatform, trustLevel, autoAnalyze = t
 // ═══════════════════════════════════════════════════════════════════
 
 const styles: Record<string, React.CSSProperties> = {
-  container: { padding: 12, fontFamily: 'Inter, system-ui, sans-serif', fontSize: 13, color: '#e0e0e0', background: '#1a1a2e', borderRadius: 8, border: '1px solid #2a2a4a' },
-  header: { fontWeight: 700, fontSize: 14, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 },
+  container: {
+    padding: 12,
+    fontFamily: 'Inter, system-ui, sans-serif',
+    fontSize: 13,
+    color: '#e0e0e0',
+    background: '#1a1a2e',
+    borderRadius: 8,
+    border: '1px solid #2a2a4a',
+  },
+  header: {
+    fontWeight: 700,
+    fontSize: 14,
+    marginBottom: 12,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
   spinner: { animation: 'spin 1s linear infinite', fontSize: 16 },
   empty: { color: '#666', fontStyle: 'italic', padding: '16px 0', textAlign: 'center' },
-  verdictBox: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 6, border: '1px solid', marginBottom: 12 },
+  verdictBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '8px 12px',
+    borderRadius: 6,
+    border: '1px solid',
+    marginBottom: 12,
+  },
   verdictIcon: { fontSize: 20 },
   verdictText: { fontWeight: 700, fontSize: 14, flex: 1 },
   dangerScore: { fontSize: 12, color: '#aaa' },
   section: { marginBottom: 12, padding: 8, background: '#1e1e3a', borderRadius: 6 },
   sectionTitle: { fontWeight: 600, fontSize: 12, marginBottom: 6, color: '#a0a0ff' },
   tagList: { display: 'flex', flexWrap: 'wrap' as const, gap: 4 },
-  tag: { padding: '2px 8px', background: '#2a2a5a', borderRadius: 4, fontSize: 11, color: '#c0c0ff' },
+  tag: {
+    padding: '2px 8px',
+    background: '#2a2a5a',
+    borderRadius: 4,
+    fontSize: 11,
+    color: '#c0c0ff',
+  },
   violations: { marginTop: 8 },
   violation: { fontSize: 12, padding: '2px 0' },
   budgetRow: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 },
   budgetLabel: { width: 100, fontSize: 11, color: '#aaa' },
-  budgetBar: { flex: 1, height: 6, background: '#2a2a4a', borderRadius: 3, overflow: 'hidden' as const },
+  budgetBar: {
+    flex: 1,
+    height: 6,
+    background: '#2a2a4a',
+    borderRadius: 3,
+    overflow: 'hidden' as const,
+  },
   budgetFill: { height: '100%', borderRadius: 3, transition: 'width 0.3s' },
   budgetPercent: { width: 40, textAlign: 'right' as const, fontSize: 11, color: '#aaa' },
   capMissing: { fontSize: 12, padding: '2px 0', color: '#f59e0b' },
   certHash: { fontSize: 11, fontFamily: 'monospace', color: '#10b981' },
-  badge: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 4, fontSize: 12, fontWeight: 600, border: '1px solid' },
+  badge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '4px 10px',
+    borderRadius: 4,
+    fontSize: 12,
+    fontWeight: 600,
+    border: '1px solid',
+  },
 };

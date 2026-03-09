@@ -12,8 +12,12 @@ import { volumetricVideoHandler } from '../VolumetricVideoTrait';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode() { return { id: 'vv_test' } as any; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'vv_test' } as any;
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 
 function attach(node: any, overrides: Record<string, unknown> = {}) {
   const cfg = { ...volumetricVideoHandler.defaultConfig!, ...overrides } as any;
@@ -22,7 +26,9 @@ function attach(node: any, overrides: Record<string, unknown> = {}) {
   return { cfg, ctx };
 }
 
-function st(node: any) { return node.__volumetricVideoState as any; }
+function st(node: any) {
+  return node.__volumetricVideoState as any;
+}
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
   volumetricVideoHandler.onEvent!(node, cfg, ctx as any, evt as any);
 }
@@ -78,18 +84,34 @@ describe('VolumetricVideoTrait — onAttach', () => {
 
   it('emits volumetric_load when source set and preload=true', () => {
     const node = makeNode();
-    const { ctx } = attach(node, { source: 'capture.4dgs', preload: true, format: '4dgs', quality: 'high', buffer_size: 60 });
-    expect(ctx.emit).toHaveBeenCalledWith('volumetric_load', expect.objectContaining({
-      source: 'capture.4dgs', format: '4dgs', quality: 'high', bufferSize: 60,
-    }));
+    const { ctx } = attach(node, {
+      source: 'capture.4dgs',
+      preload: true,
+      format: '4dgs',
+      quality: 'high',
+      buffer_size: 60,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'volumetric_load',
+      expect.objectContaining({
+        source: 'capture.4dgs',
+        format: '4dgs',
+        quality: 'high',
+        bufferSize: 60,
+      })
+    );
   });
 
   it('emits volumetric_init (not load) when source set and preload=false', () => {
     const node = makeNode();
     const { ctx } = attach(node, { source: 'capture.4dgs', preload: false, format: 'v3d' });
-    expect(ctx.emit).toHaveBeenCalledWith('volumetric_init', expect.objectContaining({
-      source: 'capture.4dgs', format: 'v3d',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'volumetric_init',
+      expect.objectContaining({
+        source: 'capture.4dgs',
+        format: 'v3d',
+      })
+    );
     expect(ctx.emit).not.toHaveBeenCalledWith('volumetric_load', expect.any(Object));
   });
 
@@ -209,7 +231,10 @@ describe('VolumetricVideoTrait — onEvent: volumetric_play', () => {
     st(node).isLoaded = true;
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'volumetric_play' });
-    expect(ctx.emit).toHaveBeenCalledWith('volumetric_sync_audio', expect.objectContaining({ audioSource: 'audio.wav' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'volumetric_sync_audio',
+      expect.objectContaining({ audioSource: 'audio.wav' })
+    );
   });
 
   it('triggers load (returns early) when not loaded', () => {
@@ -296,7 +321,10 @@ describe('VolumetricVideoTrait — onEvent: volumetric_loaded', () => {
     expect(st(node).duration).toBeCloseTo(10.0); // 300/30
     expect(st(node).currentTime).toBeCloseTo(1.0); // start_time
     expect(st(node).currentFrame).toBeCloseTo(30); // 1.0 * 30
-    expect(ctx.emit).toHaveBeenCalledWith('on_volume_loaded', expect.objectContaining({ duration: 10, totalFrames: 300, fps: 30 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_volume_loaded',
+      expect.objectContaining({ duration: 10, totalFrames: 300, fps: 30 })
+    );
   });
 
   it('defaults fps to 30 when not provided', () => {
@@ -343,7 +371,10 @@ describe('VolumetricVideoTrait — onEvent: volumetric_error', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'volumetric_error', error: 'DECODE_FAIL' });
     expect(st(node).playbackState).toBe('error');
-    expect(ctx.emit).toHaveBeenCalledWith('on_volume_error', expect.objectContaining({ error: 'DECODE_FAIL' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_volume_error',
+      expect.objectContaining({ error: 'DECODE_FAIL' })
+    );
   });
 });
 
@@ -356,8 +387,16 @@ describe('VolumetricVideoTrait — onEvent: volumetric_query', () => {
     setPlaying(node, 30, 900, 50);
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'volumetric_query', queryId: 'vq1' });
-    expect(ctx.emit).toHaveBeenCalledWith('volumetric_info', expect.objectContaining({
-      queryId: 'vq1', playbackState: 'playing', totalFrames: 900, fps: 30, isLoaded: true, format: '4dgs',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'volumetric_info',
+      expect.objectContaining({
+        queryId: 'vq1',
+        playbackState: 'playing',
+        totalFrames: 900,
+        fps: 30,
+        isLoaded: true,
+        format: '4dgs',
+      })
+    );
   });
 });

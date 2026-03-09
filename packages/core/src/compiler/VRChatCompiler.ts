@@ -85,7 +85,11 @@ export class VRChatCompiler extends CompilerBase {
     };
   }
 
-  compile(composition: HoloComposition, agentToken: string, outputPath?: string): VRChatCompileResult {
+  compile(
+    composition: HoloComposition,
+    agentToken: string,
+    outputPath?: string
+  ): VRChatCompileResult {
     this.validateCompilerAccess(agentToken, outputPath);
     this.lines = [];
     this.udonScripts.clear();
@@ -248,40 +252,44 @@ export class VRChatCompiler extends CompilerBase {
     this.emit('// === v4.2 Domain Blocks (VRChat/Unity) ===');
 
     let blockIdx = 0;
-    const compiled = compileDomainBlocks(domainBlocks, {
-      material: (block) => {
-        const mat = compileMaterialBlock(block);
-        return materialToVRChat(mat, `db${blockIdx++}`);
+    const compiled = compileDomainBlocks(
+      domainBlocks,
+      {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          return materialToVRChat(mat, `db${blockIdx++}`);
+        },
+        physics: (block) => {
+          const phys = compilePhysicsBlock(block);
+          return physicsToUnity(phys, `db${blockIdx++}`);
+        },
+        vfx: (block) => {
+          const ps = compileParticleBlock(block);
+          return particlesToUnity(ps, `db${blockIdx++}`);
+        },
+        postfx: (block) => {
+          const pp = compilePostProcessingBlock(block);
+          return postProcessingToUnity(pp);
+        },
+        audio: (block) => {
+          const audio = compileAudioSourceBlock(block);
+          return audioSourceToUnity(audio, `db${blockIdx++}`);
+        },
+        weather: (block) => {
+          const weather = compileWeatherBlock(block);
+          return weatherToUnity(weather);
+        },
+        narrative: (block) => {
+          const narr = compileNarrativeBlock(block);
+          return narrativeToVRChat(narr);
+        },
+        payment: (block) => {
+          const pay = compilePaymentBlock(block);
+          return paymentToVRChat(pay);
+        },
       },
-      physics: (block) => {
-        const phys = compilePhysicsBlock(block);
-        return physicsToUnity(phys, `db${blockIdx++}`);
-      },
-      vfx: (block) => {
-        const ps = compileParticleBlock(block);
-        return particlesToUnity(ps, `db${blockIdx++}`);
-      },
-      postfx: (block) => {
-        const pp = compilePostProcessingBlock(block);
-        return postProcessingToUnity(pp);
-      },
-      audio: (block) => {
-        const audio = compileAudioSourceBlock(block);
-        return audioSourceToUnity(audio, `db${blockIdx++}`);
-      },
-      weather: (block) => {
-        const weather = compileWeatherBlock(block);
-        return weatherToUnity(weather);
-      },
-      narrative: (block) => {
-        const narr = compileNarrativeBlock(block);
-        return narrativeToVRChat(narr);
-      },
-      payment: (block) => {
-        const pay = compilePaymentBlock(block);
-        return paymentToVRChat(pay);
-      },
-    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+      (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`
+    );
 
     for (const line of compiled) {
       for (const l of line.split('\n')) {

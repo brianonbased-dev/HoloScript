@@ -68,7 +68,11 @@ describe('SpatialInputHandTrackingTrait', () => {
   });
 
   it('cleans up state on detach', () => {
-    spatialHandTrackingHandler.onDetach?.(node as any, spatialHandTrackingHandler.defaultConfig, ctx as any);
+    spatialHandTrackingHandler.onDetach?.(
+      node as any,
+      spatialHandTrackingHandler.defaultConfig,
+      ctx as any
+    );
     expect((node as any).__spatialHandTrackingState).toBeUndefined();
     expect(getEventCount(ctx, 'spatial_hand_tracking_stop')).toBe(1);
   });
@@ -81,7 +85,11 @@ describe('SpatialInputHandTrackingTrait', () => {
       hand: 'left',
       tracked: true,
       joints: {
-        wrist: { position: { x: 0, y: 1, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, radius: 0.02 },
+        wrist: {
+          position: { x: 0, y: 1, z: 0 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          radius: 0.02,
+        },
       },
       pinchStrength: 0.2,
       gripStrength: 0.1,
@@ -232,7 +240,11 @@ describe('SpatialInputHandTrackingTrait', () => {
       hand: 'left',
       tracked: true,
       joints: {
-        wrist: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, radius: 0.02 },
+        wrist: {
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          radius: 0.02,
+        },
       },
       pinchStrength: 0,
       gripStrength: 0,
@@ -244,7 +256,11 @@ describe('SpatialInputHandTrackingTrait', () => {
       hand: 'left',
       tracked: true,
       joints: {
-        wrist: { position: { x: 1, y: 1, z: 1 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, radius: 0.02 },
+        wrist: {
+          position: { x: 1, y: 1, z: 1 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          radius: 0.02,
+        },
       },
       pinchStrength: 0,
       gripStrength: 0,
@@ -263,7 +279,11 @@ describe('SpatialInputHandTrackingTrait', () => {
       hand: 'right',
       tracked: true,
       joints: {
-        wrist: { position: { x: 0.5, y: 1.2, z: -0.3 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, radius: 0.02 },
+        wrist: {
+          position: { x: 0.5, y: 1.2, z: -0.3 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          radius: 0.02,
+        },
       },
       pinchStrength: 0,
       gripStrength: 0,
@@ -277,7 +297,11 @@ describe('SpatialInputHandTrackingTrait', () => {
   it('emits pose update on update when hands tracked', () => {
     const state = (node as any).__spatialHandTrackingState as SpatialHandTrackingState;
     state.left.tracked = true;
-    state.left.joints.set('wrist', { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, radius: 0.02 });
+    state.left.joints.set('wrist', {
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      radius: 0.02,
+    });
 
     updateTrait(spatialHandTrackingHandler, node, defaultCfg, ctx, 0.012);
     expect(getEventCount(ctx, 'spatial_hand_pose_update')).toBeGreaterThanOrEqual(1);
@@ -310,7 +334,11 @@ describe('SpatialInputGazeTransientPointerTrait', () => {
   });
 
   it('cleans up on detach', () => {
-    gazeTransientPointerHandler.onDetach?.(node as any, gazeTransientPointerHandler.defaultConfig, ctx as any);
+    gazeTransientPointerHandler.onDetach?.(
+      node as any,
+      gazeTransientPointerHandler.defaultConfig,
+      ctx as any
+    );
     expect((node as any).__gazeTransientPointerState).toBeUndefined();
     expect(getEventCount(ctx, 'gaze_transient_pointer_stop')).toBe(1);
   });
@@ -537,7 +565,11 @@ describe('SpatialInputAnchorSharedTrait', () => {
   it('handles shared_anchor_resolved event', () => {
     sendEvent(spatialAnchorSharedHandler, node, defaultCfg, ctx, {
       type: 'shared_anchor_resolved',
-      pose: { position: { x: 1, y: 0, z: -2 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: 0.95 },
+      pose: {
+        position: { x: 1, y: 0, z: -2 },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        confidence: 0.95,
+      },
       cloudAnchorId: 'cloud-xyz-456',
     });
 
@@ -576,7 +608,11 @@ describe('SpatialInputAnchorSharedTrait', () => {
 
     sendEvent(spatialAnchorSharedHandler, node, defaultCfg, ctx, {
       type: 'shared_anchor_joined',
-      pose: { position: { x: 2, y: 1, z: -1 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: 0.9 },
+      pose: {
+        position: { x: 2, y: 1, z: -1 },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        confidence: 0.9,
+      },
     });
 
     expect(state.resolveState).toBe('joined');
@@ -686,7 +722,11 @@ describe('SpatialInputAnchorSharedTrait', () => {
 
     sendEvent(spatialAnchorSharedHandler, node, defaultCfg, ctx, {
       type: 'shared_anchor_pose_update',
-      pose: { position: { x: 5, y: 1, z: -3 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: 0.8 },
+      pose: {
+        position: { x: 5, y: 1, z: -3 },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        confidence: 0.8,
+      },
     });
 
     expect(state.localPose!.position.x).toBe(5);
@@ -702,7 +742,11 @@ describe('SpatialInputAnchorSharedTrait', () => {
 
     sendEvent(spatialAnchorSharedHandler, node, defaultCfg, ctx, {
       type: 'shared_anchor_pose_update',
-      pose: { position: { x: 99, y: 99, z: 99 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: 0.2 },
+      pose: {
+        position: { x: 99, y: 99, z: 99 },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        confidence: 0.2,
+      },
     });
 
     expect(state.localPose!.position.x).toBe(0); // unchanged

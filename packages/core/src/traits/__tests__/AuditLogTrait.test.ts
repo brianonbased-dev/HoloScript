@@ -139,10 +139,14 @@ describe('AuditLogTrait', () => {
 
   it('builds hash chain when enabled', () => {
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'tenant.create', details: {},
+      type: 'audit_log',
+      action: 'tenant.create',
+      details: {},
     });
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'rbac.role.assign', details: {},
+      type: 'audit_log',
+      action: 'rbac.role.assign',
+      details: {},
     });
     const state = (node as any).__auditLogState;
     const entries = state.entries;
@@ -153,10 +157,14 @@ describe('AuditLogTrait', () => {
 
   it('passes integrity check on valid chain', () => {
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'tenant.create', details: {},
+      type: 'audit_log',
+      action: 'tenant.create',
+      details: {},
     });
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'rbac.role.assign', details: {},
+      type: 'audit_log',
+      action: 'rbac.role.assign',
+      details: {},
     });
     ctx.clearEvents();
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
@@ -169,7 +177,9 @@ describe('AuditLogTrait', () => {
 
   it('detects tampered hash chain', () => {
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'tenant.create', details: {},
+      type: 'audit_log',
+      action: 'tenant.create',
+      details: {},
     });
     // Tamper with the hash
     const state = (node as any).__auditLogState;
@@ -189,7 +199,9 @@ describe('AuditLogTrait', () => {
 
   it('tags entries with compliance frameworks', () => {
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'tenant.create', details: {},
+      type: 'audit_log',
+      action: 'tenant.create',
+      details: {},
     });
     const state = (node as any).__auditLogState;
     const entry = state.entries[state.entries.length - 1];
@@ -202,14 +214,23 @@ describe('AuditLogTrait', () => {
 
   it('queries audit log with filters', () => {
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'tenant.create', details: {}, userId: 'admin-1',
+      type: 'audit_log',
+      action: 'tenant.create',
+      details: {},
+      userId: 'admin-1',
     });
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'rbac.role.assign', details: {}, userId: 'admin-2',
+      type: 'audit_log',
+      action: 'rbac.role.assign',
+      details: {},
+      userId: 'admin-2',
     });
     ctx.clearEvents();
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_query', queryId: 'q1', userId: 'admin-1', limit: 10,
+      type: 'audit_query',
+      queryId: 'q1',
+      userId: 'admin-1',
+      limit: 10,
     });
     const result = getLastEvent(ctx, 'audit_query_result') as any;
     expect(result.entries.length).toBe(1);
@@ -218,14 +239,21 @@ describe('AuditLogTrait', () => {
 
   it('queries by category', () => {
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'tenant.create', details: {},
+      type: 'audit_log',
+      action: 'tenant.create',
+      details: {},
     });
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'rbac.role.assign', details: {},
+      type: 'audit_log',
+      action: 'rbac.role.assign',
+      details: {},
     });
     ctx.clearEvents();
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_query', queryId: 'q2', category: 'rbac', limit: 10,
+      type: 'audit_query',
+      queryId: 'q2',
+      category: 'rbac',
+      limit: 10,
     });
     const result = getLastEvent(ctx, 'audit_query_result') as any;
     expect(result.entries.length).toBe(1);
@@ -235,12 +263,18 @@ describe('AuditLogTrait', () => {
   it('supports pagination', () => {
     for (let i = 0; i < 5; i++) {
       sendEvent(auditLogHandler, node, baseCfg, ctx, {
-        type: 'audit_log', action: `scene.update.${i}`, details: { index: i }, severity: 'warning',
+        type: 'audit_log',
+        action: `scene.update.${i}`,
+        details: { index: i },
+        severity: 'warning',
       });
     }
     ctx.clearEvents();
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_query', queryId: 'page1', limit: 2, offset: 0,
+      type: 'audit_query',
+      queryId: 'page1',
+      limit: 2,
+      offset: 0,
     });
     const page1 = getLastEvent(ctx, 'audit_query_result') as any;
     expect(page1.entries.length).toBe(2);
@@ -248,7 +282,10 @@ describe('AuditLogTrait', () => {
 
     ctx.clearEvents();
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_query', queryId: 'page2', limit: 2, offset: 2,
+      type: 'audit_query',
+      queryId: 'page2',
+      limit: 2,
+      offset: 2,
     });
     const page2 = getLastEvent(ctx, 'audit_query_result') as any;
     expect(page2.entries.length).toBe(2);
@@ -260,14 +297,19 @@ describe('AuditLogTrait', () => {
 
   it('returns audit statistics', () => {
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'tenant.create', details: {},
+      type: 'audit_log',
+      action: 'tenant.create',
+      details: {},
     });
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'scene.delete', details: {},
+      type: 'audit_log',
+      action: 'scene.delete',
+      details: {},
     });
     ctx.clearEvents();
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_stats', queryId: 'stats1',
+      type: 'audit_stats',
+      queryId: 'stats1',
     });
     const stats = getLastEvent(ctx, 'audit_stats_result') as any;
     expect(stats.totalEntryCount).toBe(3);
@@ -281,11 +323,15 @@ describe('AuditLogTrait', () => {
 
   it('exports audit log data', () => {
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'tenant.create', details: {},
+      type: 'audit_log',
+      action: 'tenant.create',
+      details: {},
     });
     ctx.clearEvents();
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_export', queryId: 'exp1', format: 'json',
+      type: 'audit_export',
+      queryId: 'exp1',
+      format: 'json',
     });
     const result = getLastEvent(ctx, 'audit_export_result') as any;
     expect(result.format).toBe('json');
@@ -298,14 +344,19 @@ describe('AuditLogTrait', () => {
 
   it('emits real-time events when enabled', () => {
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'tenant.create', details: {},
+      type: 'audit_log',
+      action: 'tenant.create',
+      details: {},
     });
     expect(getEventCount(ctx, 'audit_entry_created')).toBe(1);
   });
 
   it('emits critical event alerts', () => {
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
-      type: 'audit_log', action: 'security.breach', details: {}, severity: 'critical',
+      type: 'audit_log',
+      action: 'security.breach',
+      details: {},
+      severity: 'critical',
     });
     expect(getEventCount(ctx, 'audit_critical_event')).toBe(1);
   });
@@ -315,7 +366,11 @@ describe('AuditLogTrait', () => {
   // =========================================================================
 
   it('cleans up on detach', () => {
-    auditLogHandler.onDetach?.(node as any, { ...auditLogHandler.defaultConfig, ...baseCfg }, ctx as any);
+    auditLogHandler.onDetach?.(
+      node as any,
+      { ...auditLogHandler.defaultConfig, ...baseCfg },
+      ctx as any
+    );
     expect((node as any).__auditLogState).toBeUndefined();
   });
 });

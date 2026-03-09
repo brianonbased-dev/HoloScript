@@ -23,7 +23,13 @@ describe('SaveSerializer — Production', () => {
 
   describe('encode', () => {
     it('produces SaveData with header', () => {
-      const save = ser.encode({ hp: 100, name: 'Player', alive: true, inventory: [1, 2], stats: { str: 10 } });
+      const save = ser.encode({
+        hp: 100,
+        name: 'Player',
+        alive: true,
+        inventory: [1, 2],
+        stats: { str: 10 },
+      });
       expect(save.header.version).toBe(1);
       expect(save.header.fieldCount).toBe(5);
       expect(save.header.checksum).not.toBe(0);
@@ -36,7 +42,13 @@ describe('SaveSerializer — Production', () => {
     });
 
     it('validates types', () => {
-      const save = ser.encode({ hp: '42' as any, name: 123 as any, alive: 0 as any, inventory: 'not-array' as any, stats: 'not-obj' as any });
+      const save = ser.encode({
+        hp: '42' as any,
+        name: 123 as any,
+        alive: 0 as any,
+        inventory: 'not-array' as any,
+        stats: 'not-obj' as any,
+      });
       expect(typeof save.payload.hp).toBe('number');
       expect(typeof save.payload.name).toBe('string');
       expect(typeof save.payload.alive).toBe('boolean');

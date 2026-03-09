@@ -22,9 +22,33 @@ interface Agent2DPosition {
 }
 
 const DEFAULT_AGENTS: Agent2DPosition[] = [
-  { id: 'physics', label: 'Physics', emoji: '🔵', x: 100, y: 200, color: '#60a5fa', isActive: true },
-  { id: 'art', label: 'Art Director', emoji: '🟣', x: 400, y: 100, color: '#a78bfa', isActive: true },
-  { id: 'animator', label: 'Animator', emoji: '🟡', x: 700, y: 200, color: '#fbbf24', isActive: true },
+  {
+    id: 'physics',
+    label: 'Physics',
+    emoji: '🔵',
+    x: 100,
+    y: 200,
+    color: '#60a5fa',
+    isActive: true,
+  },
+  {
+    id: 'art',
+    label: 'Art Director',
+    emoji: '🟣',
+    x: 400,
+    y: 100,
+    color: '#a78bfa',
+    isActive: true,
+  },
+  {
+    id: 'animator',
+    label: 'Animator',
+    emoji: '🟡',
+    x: 700,
+    y: 200,
+    color: '#fbbf24',
+    isActive: true,
+  },
   { id: 'sound', label: 'Sound', emoji: '🔴', x: 500, y: 350, color: '#f87171', isActive: true },
 ];
 
@@ -44,11 +68,7 @@ export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
   };
 
   const updateAgentPosition = useCallback((agentId: string, x: number, y: number) => {
-    setAgents((prev) =>
-      prev.map((agent) =>
-        agent.id === agentId ? { ...agent, x, y } : agent
-      )
-    );
+    setAgents((prev) => prev.map((agent) => (agent.id === agentId ? { ...agent, x, y } : agent)));
   }, []);
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
@@ -112,7 +132,10 @@ export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
       <div className="flex shrink-0 items-center gap-2 border-b border-studio-border px-3 py-2.5">
         <Users className="h-4 w-4 text-studio-accent" />
         <span className="text-[12px] font-semibold">Agent Ensemble (2D View)</span>
-        <button onClick={onClose} className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text">
+        <button
+          onClick={onClose}
+          className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -145,24 +168,19 @@ export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
               {/* Glow */}
               <circle r="30" fill={agent.color} opacity="0.15" />
               {/* Core */}
-              <circle r="20" fill={agent.color} opacity="0.5" stroke={agent.color} strokeWidth="2" />
+              <circle
+                r="20"
+                fill={agent.color}
+                opacity="0.5"
+                stroke={agent.color}
+                strokeWidth="2"
+              />
               {/* Label */}
-              <text
-                y="-25"
-                textAnchor="middle"
-                fill="#e4e4e7"
-                fontSize="12"
-                fontWeight="bold"
-              >
+              <text y="-25" textAnchor="middle" fill="#e4e4e7" fontSize="12" fontWeight="bold">
                 {agent.emoji} {agent.label}
               </text>
               {/* Status */}
-              <circle
-                r="4"
-                cx="15"
-                cy="-15"
-                fill={agent.isActive ? '#22c55e' : '#71717a'}
-              />
+              <circle r="4" cx="15" cy="-15" fill={agent.isActive ? '#22c55e' : '#71717a'} />
             </g>
           ))}
         </svg>

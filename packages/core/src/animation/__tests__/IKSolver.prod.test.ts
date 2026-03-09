@@ -22,10 +22,7 @@ function makeBone(id: string, x: number, y: number, z: number, length: number): 
 function makeTwoBoneChain(id: string, targetX: number, targetY: number, targetZ: number): IKChain {
   return {
     id,
-    bones: [
-      makeBone('root', 0, 0, 0, 1),
-      makeBone('mid',  0, 1, 0, 1),
-    ],
+    bones: [makeBone('root', 0, 0, 0, 1), makeBone('mid', 0, 1, 0, 1)],
     target: { x: targetX, y: targetY, z: targetZ },
     weight: 1,
     iterations: 10,
@@ -181,8 +178,8 @@ describe('IKSolver', () => {
         id: 'arm3',
         bones: [
           makeBone('root', 0, 0, 0, 1),
-          makeBone('mid',  0, 1, 0, 1),
-          makeBone('end',  0, 2, 0, 0.5),
+          makeBone('mid', 0, 1, 0, 1),
+          makeBone('end', 0, 2, 0, 0.5),
         ],
         target: { x: 0, y: 1.5, z: 0 },
         weight: 1,
@@ -226,12 +223,12 @@ describe('IKSolver', () => {
       solver.addChain(chain);
       const startDist = Math.hypot(
         solver.getChain('spine')!.bones.at(-1)!.position.x - 1,
-        solver.getChain('spine')!.bones.at(-1)!.position.y - 1,
+        solver.getChain('spine')!.bones.at(-1)!.position.y - 1
       );
       solver.solveCCD('spine');
       const endDist = Math.hypot(
         solver.getChain('spine')!.bones.at(-1)!.position.x - 1,
-        solver.getChain('spine')!.bones.at(-1)!.position.y - 1,
+        solver.getChain('spine')!.bones.at(-1)!.position.y - 1
       );
       expect(endDist).toBeLessThanOrEqual(startDist + 0.001);
     });
@@ -266,7 +263,7 @@ describe('IKSolver', () => {
 
     it('second call uses previous position (memory)', () => {
       solver.setFootPlacement({ footOffset: 0, blendSpeed: 10, enabled: true });
-      solver.updateFootPlacement('foot', 5, 0.016);   // first call
+      solver.updateFootPlacement('foot', 5, 0.016); // first call
       const pos = solver.updateFootPlacement('foot', 5, 0.016); // second call
       // y is blending toward 5; should be > 0 now
       expect(pos.y).toBeGreaterThan(0);

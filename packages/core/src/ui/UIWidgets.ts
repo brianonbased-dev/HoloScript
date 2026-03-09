@@ -91,7 +91,7 @@ export interface DropdownWidget extends WidgetBase {
 
 export interface ProgressBarWidget extends WidgetBase {
   type: 'progress';
-  value: number;         // 0-1
+  value: number; // 0-1
   color: string;
   animated: boolean;
 }
@@ -100,7 +100,13 @@ export interface ProgressBarWidget extends WidgetBase {
 // UNION TYPE
 // =============================================================================
 
-export type Widget = ButtonWidget | SliderWidget | ToggleWidget | TextInputWidget | DropdownWidget | ProgressBarWidget;
+export type Widget =
+  | ButtonWidget
+  | SliderWidget
+  | ToggleWidget
+  | TextInputWidget
+  | DropdownWidget
+  | ProgressBarWidget;
 
 // =============================================================================
 // WIDGET FACTORY
@@ -117,8 +123,13 @@ export class UIWidgetFactory {
 
   createButton(label: string, onClick?: () => void): ButtonWidget {
     const w: ButtonWidget = {
-      id: `widget_${_widgetId++}`, type: 'button', state: 'normal', enabled: true,
-      visible: true, label, onClick: onClick ?? null,
+      id: `widget_${_widgetId++}`,
+      type: 'button',
+      state: 'normal',
+      enabled: true,
+      visible: true,
+      label,
+      onClick: onClick ?? null,
     };
     this.widgets.set(w.id, w);
     return w;
@@ -126,8 +137,17 @@ export class UIWidgetFactory {
 
   createSlider(label: string, min = 0, max = 100, value = 50, step = 1): SliderWidget {
     const w: SliderWidget = {
-      id: `widget_${_widgetId++}`, type: 'slider', state: 'normal', enabled: true,
-      visible: true, label, value, min, max, step, onChange: null,
+      id: `widget_${_widgetId++}`,
+      type: 'slider',
+      state: 'normal',
+      enabled: true,
+      visible: true,
+      label,
+      value,
+      min,
+      max,
+      step,
+      onChange: null,
     };
     this.widgets.set(w.id, w);
     return w;
@@ -135,8 +155,14 @@ export class UIWidgetFactory {
 
   createToggle(label: string, checked = false): ToggleWidget {
     const w: ToggleWidget = {
-      id: `widget_${_widgetId++}`, type: 'toggle', state: 'normal', enabled: true,
-      visible: true, label, checked, onToggle: null,
+      id: `widget_${_widgetId++}`,
+      type: 'toggle',
+      state: 'normal',
+      enabled: true,
+      visible: true,
+      label,
+      checked,
+      onToggle: null,
     };
     this.widgets.set(w.id, w);
     return w;
@@ -144,9 +170,18 @@ export class UIWidgetFactory {
 
   createTextInput(label: string, placeholder = ''): TextInputWidget {
     const w: TextInputWidget = {
-      id: `widget_${_widgetId++}`, type: 'textInput', state: 'normal', enabled: true,
-      visible: true, label, value: '', placeholder, maxLength: 256, password: false,
-      onSubmit: null, onChange: null,
+      id: `widget_${_widgetId++}`,
+      type: 'textInput',
+      state: 'normal',
+      enabled: true,
+      visible: true,
+      label,
+      value: '',
+      placeholder,
+      maxLength: 256,
+      password: false,
+      onSubmit: null,
+      onChange: null,
     };
     this.widgets.set(w.id, w);
     return w;
@@ -154,8 +189,15 @@ export class UIWidgetFactory {
 
   createDropdown(label: string, options: DropdownOption[]): DropdownWidget {
     const w: DropdownWidget = {
-      id: `widget_${_widgetId++}`, type: 'dropdown', state: 'normal', enabled: true,
-      visible: true, label, options: [...options], selectedIndex: 0, isOpen: false,
+      id: `widget_${_widgetId++}`,
+      type: 'dropdown',
+      state: 'normal',
+      enabled: true,
+      visible: true,
+      label,
+      options: [...options],
+      selectedIndex: 0,
+      isOpen: false,
       onSelect: null,
     };
     this.widgets.set(w.id, w);
@@ -164,8 +206,14 @@ export class UIWidgetFactory {
 
   createProgressBar(label: string, value = 0): ProgressBarWidget {
     const w: ProgressBarWidget = {
-      id: `widget_${_widgetId++}`, type: 'progress', state: 'normal', enabled: true,
-      visible: true, label, value: Math.max(0, Math.min(1, value)), color: '#4CAF50',
+      id: `widget_${_widgetId++}`,
+      type: 'progress',
+      state: 'normal',
+      enabled: true,
+      visible: true,
+      label,
+      value: Math.max(0, Math.min(1, value)),
+      color: '#4CAF50',
       animated: false,
     };
     this.widgets.set(w.id, w);
@@ -235,9 +283,15 @@ export class UIWidgetFactory {
     return this.widgets.get(id) as T | undefined;
   }
 
-  getWidgetCount(): number { return this.widgets.size; }
+  getWidgetCount(): number {
+    return this.widgets.size;
+  }
 
-  getAllWidgets(): Widget[] { return [...this.widgets.values()]; }
+  getAllWidgets(): Widget[] {
+    return [...this.widgets.values()];
+  }
 
-  removeWidget(id: string): boolean { return this.widgets.delete(id); }
+  removeWidget(id: string): boolean {
+    return this.widgets.delete(id);
+  }
 }

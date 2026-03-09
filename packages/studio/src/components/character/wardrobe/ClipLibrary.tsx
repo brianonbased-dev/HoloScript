@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useCharacterStore } from '@/lib/store';
+import { useCharacterStore } from '@/lib/stores';
 import { Play, Square, Circle, Trash2, Edit3, Check, X, Download } from 'lucide-react';
 
 function formatDuration(ms: number): string {
@@ -12,7 +12,7 @@ function formatDuration(ms: number): string {
 function ClipRow({
   clip,
   isActive,
-  onExport
+  onExport,
 }: {
   clip: { id: string; name: string; duration: number };
   isActive: boolean;
@@ -32,14 +32,20 @@ function ClipRow({
   };
 
   return (
-    <div className={`group flex items-center gap-2 rounded-lg border px-2 py-1.5 transition ${
-      isActive ? 'border-purple-500/60 bg-purple-500/10' : 'border-studio-border hover:border-studio-border/80 hover:bg-white/5'
-    }`}>
+    <div
+      className={`group flex items-center gap-2 rounded-lg border px-2 py-1.5 transition ${
+        isActive
+          ? 'border-purple-500/60 bg-purple-500/10'
+          : 'border-studio-border hover:border-studio-border/80 hover:bg-white/5'
+      }`}
+    >
       {/* Play/Stop */}
       <button
         onClick={() => setActiveClipId(activeClipId === clip.id ? null : clip.id)}
         className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition ${
-          isActive ? 'bg-purple-500/30 text-purple-400' : 'bg-white/5 text-studio-muted hover:text-purple-400'
+          isActive
+            ? 'bg-purple-500/30 text-purple-400'
+            : 'bg-white/5 text-studio-muted hover:text-purple-400'
         }`}
       >
         {isActive ? <Square className="h-3 w-3" /> : <Play className="h-3 w-3" />}
@@ -53,11 +59,18 @@ function ClipRow({
               autoFocus
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditing(false); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitRename();
+                if (e.key === 'Escape') setEditing(false);
+              }}
               className="w-full rounded bg-black/30 px-1 py-0.5 text-[11px] text-studio-text outline-none focus:ring-1 focus:ring-purple-500/40"
             />
-            <button onClick={commitRename}><Check className="h-3 w-3 text-emerald-400" /></button>
-            <button onClick={() => setEditing(false)}><X className="h-3 w-3 text-red-400" /></button>
+            <button onClick={commitRename}>
+              <Check className="h-3 w-3 text-emerald-400" />
+            </button>
+            <button onClick={() => setEditing(false)}>
+              <X className="h-3 w-3 text-red-400" />
+            </button>
           </div>
         ) : (
           <p className="truncate text-[11px] font-medium text-studio-text">{clip.name}</p>
@@ -77,10 +90,16 @@ function ClipRow({
               <Download className="h-3 w-3" />
             </button>
           )}
-          <button onClick={() => setEditing(true)} className="rounded p-0.5 text-studio-muted hover:text-studio-text">
+          <button
+            onClick={() => setEditing(true)}
+            className="rounded p-0.5 text-studio-muted hover:text-studio-text"
+          >
             <Edit3 className="h-3 w-3" />
           </button>
-          <button onClick={() => removeRecordedClip(clip.id)} className="rounded p-0.5 text-studio-muted hover:text-red-400">
+          <button
+            onClick={() => removeRecordedClip(clip.id)}
+            className="rounded p-0.5 text-studio-muted hover:text-red-400"
+          >
             <Trash2 className="h-3 w-3" />
           </button>
         </div>
@@ -100,7 +119,10 @@ export function RecordingControls() {
   const toggleRecord = () => {
     if (isRecording) {
       setIsRecording(false);
-      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     } else {
       setElapsedMs(0);
       setIsRecording(true);
@@ -120,19 +142,19 @@ export function RecordingControls() {
           isRecording
             ? 'animate-pulse border-red-500/60 bg-red-500/15 text-red-400'
             : disabled
-            ? 'cursor-not-allowed border-studio-border text-studio-muted/40'
-            : 'border-red-500/40 bg-black/20 text-red-400 hover:bg-red-500/10'
+              ? 'cursor-not-allowed border-studio-border text-studio-muted/40'
+              : 'border-red-500/40 bg-black/20 text-red-400 hover:bg-red-500/10'
         }`}
       >
-        {isRecording ? <Square className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" fill={disabled ? 'none' : 'currentColor'} />}
-        {isRecording
-          ? `Stop  ${(elapsedMs / 1000).toFixed(1)}s`
-          : '⏺ Record'}
+        {isRecording ? (
+          <Square className="h-3.5 w-3.5" />
+        ) : (
+          <Circle className="h-3.5 w-3.5" fill={disabled ? 'none' : 'currentColor'} />
+        )}
+        {isRecording ? `Stop  ${(elapsedMs / 1000).toFixed(1)}s` : '⏺ Record'}
       </button>
 
-      {!glbUrl && (
-        <p className="text-[10px] text-studio-muted">Load a model first</p>
-      )}
+      {!glbUrl && <p className="text-[10px] text-studio-muted">Load a model first</p>}
     </div>
   );
 }
@@ -163,7 +185,12 @@ export function ClipLibrary({ onExport }: { onExport?: (clipId: string) => void 
           ) : (
             <div className="space-y-1">
               {recordedClips.map((clip) => (
-                <ClipRow key={clip.id} clip={clip} isActive={activeClipId === clip.id} onExport={onExport} />
+                <ClipRow
+                  key={clip.id}
+                  clip={clip}
+                  isActive={activeClipId === clip.id}
+                  onExport={onExport}
+                />
               ))}
             </div>
           )}
@@ -186,11 +213,19 @@ export function ClipLibrary({ onExport }: { onExport?: (clipId: string) => void 
                       setActiveBuiltinAnimation(isActive ? null : name);
                     }}
                     className={`flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition ${
-                      isActive ? 'border-amber-500/60 bg-amber-500/10' : 'border-studio-border hover:bg-white/5'
+                      isActive
+                        ? 'border-amber-500/60 bg-amber-500/10'
+                        : 'border-studio-border hover:bg-white/5'
                     }`}
                   >
-                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${isActive ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-studio-muted'}`}>
-                      {isActive ? <Square className="h-2.5 w-2.5" /> : <Play className="h-2.5 w-2.5" />}
+                    <span
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${isActive ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-studio-muted'}`}
+                    >
+                      {isActive ? (
+                        <Square className="h-2.5 w-2.5" />
+                      ) : (
+                        <Play className="h-2.5 w-2.5" />
+                      )}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[11px] text-studio-text">{name}</p>

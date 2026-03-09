@@ -47,39 +47,39 @@ export type BakingStage =
 
 /** Source capture format for 3DGS training input */
 export type CaptureFormat =
-  | 'images'       // Directory of images with COLMAP poses
-  | 'video'        // Video file (extracted to frames + COLMAP)
-  | 'polycam'      // Polycam export (pre-computed poses)
-  | 'record3d'     // Record3D LiDAR scan
-  | 'ply'          // Pre-trained PLY (skip training, go to bake)
-  | 'splat'        // Raw .splat file
-  | 'orbx';        // Octane ORBX scene package
+  | 'images' // Directory of images with COLMAP poses
+  | 'video' // Video file (extracted to frames + COLMAP)
+  | 'polycam' // Polycam export (pre-computed poses)
+  | 'record3d' // Record3D LiDAR scan
+  | 'ply' // Pre-trained PLY (skip training, go to bake)
+  | 'splat' // Raw .splat file
+  | 'orbx'; // Octane ORBX scene package
 
 /** Training method for 3DGS */
 export type TrainingMethod =
-  | 'splatfacto'      // Nerfstudio Splatfacto (default, balanced)
-  | 'gsplat'          // NVIDIA gsplat (4x less memory, 10% faster)
-  | '3dgs_original'   // Original 3DGS implementation
-  | 'sugar'           // SuGaR (mesh-extracted Gaussians)
-  | 'mip_splatting';  // Mip-Splatting (anti-aliased, multi-scale)
+  | 'splatfacto' // Nerfstudio Splatfacto (default, balanced)
+  | 'gsplat' // NVIDIA gsplat (4x less memory, 10% faster)
+  | '3dgs_original' // Original 3DGS implementation
+  | 'sugar' // SuGaR (mesh-extracted Gaussians)
+  | 'mip_splatting'; // Mip-Splatting (anti-aliased, multi-scale)
 
 /** Octane render engine configuration for baking */
 export type OctaneBakeMode =
-  | 'path_trace'          // Full path tracing (highest quality)
-  | 'direct_lighting'     // Direct lighting only (fastest)
-  | 'path_trace_ao';      // Path trace + ambient occlusion pass
+  | 'path_trace' // Full path tracing (highest quality)
+  | 'direct_lighting' // Direct lighting only (fastest)
+  | 'path_trace_ao'; // Path trace + ambient occlusion pass
 
 /** SPZ compression configuration */
 export type SPZCompressionLevel =
-  | 'none'      // No compression (raw PLY output)
-  | 'standard'  // SPZ v1.0 (fixed-point quantization, ~10x reduction)
+  | 'none' // No compression (raw PLY output)
+  | 'standard' // SPZ v1.0 (fixed-point quantization, ~10x reduction)
   | 'optimized' // SPZ v2.0 (smallest-three quaternions, ~12x reduction)
   | 'aggressive'; // SPZ v2.0 + pruning (up to 20x reduction)
 
 /** Render Network tier for compute pricing */
 export type RenderTier =
-  | 'tier2_priority'  // 100 OBh per RENDER, priority queue
-  | 'tier3_economy';  // 200 OBh per RENDER, economy queue
+  | 'tier2_priority' // 100 OBh per RENDER, priority queue
+  | 'tier3_economy'; // 200 OBh per RENDER, economy queue
 
 // =============================================================================
 // TYPES — Configuration
@@ -223,11 +223,11 @@ export interface CostEstimate {
   totalRENDER: number;
   /** Per-stage breakdown */
   breakdown: {
-    upload: number;     // Typically 0 (included in job cost)
-    training: number;   // GPU hours * tier rate
-    baking: number;     // Octane OBh * tier rate
+    upload: number; // Typically 0 (included in job cost)
+    training: number; // GPU hours * tier rate
+    baking: number; // Octane OBh * tier rate
     compression: number; // Minimal compute cost
-    download: number;    // Typically 0
+    download: number; // Typically 0
   };
   /** Estimated OctaneBench hours */
   estimatedOBh: number;
@@ -345,27 +345,33 @@ const REFERENCE_OB_SCORES: Record<string, number> = {
  * Estimated GPU hours per training configuration.
  * Based on empirical data from nerfstudio splatfacto benchmarks.
  */
-const TRAINING_GPU_HOURS_ESTIMATE: Record<TrainingMethod, {
-  baseHours: number;  // For 500K Gaussians, 30K iterations
-  scalingFactor: number; // Linear scaling per additional 100K Gaussians
-}> = {
-  splatfacto:      { baseHours: 0.5,  scalingFactor: 0.08 },
-  gsplat:          { baseHours: 0.35, scalingFactor: 0.06 },
+const TRAINING_GPU_HOURS_ESTIMATE: Record<
+  TrainingMethod,
+  {
+    baseHours: number; // For 500K Gaussians, 30K iterations
+    scalingFactor: number; // Linear scaling per additional 100K Gaussians
+  }
+> = {
+  splatfacto: { baseHours: 0.5, scalingFactor: 0.08 },
+  gsplat: { baseHours: 0.35, scalingFactor: 0.06 },
   '3dgs_original': { baseHours: 0.75, scalingFactor: 0.12 },
-  sugar:           { baseHours: 1.2,  scalingFactor: 0.15 },
-  mip_splatting:   { baseHours: 0.6,  scalingFactor: 0.1  },
+  sugar: { baseHours: 1.2, scalingFactor: 0.15 },
+  mip_splatting: { baseHours: 0.6, scalingFactor: 0.1 },
 };
 
 /**
  * Octane baking time estimates (OBh per 1M Gaussians).
  */
-const BAKING_OBH_ESTIMATES: Record<OctaneBakeMode, {
-  obhPer1MGaussians: number;
-  samplesMultiplier: number; // Multiply by (samples / 512)
-}> = {
-  path_trace:        { obhPer1MGaussians: 8.0,  samplesMultiplier: 1.0 },
-  direct_lighting:   { obhPer1MGaussians: 1.5,  samplesMultiplier: 0.3 },
-  path_trace_ao:     { obhPer1MGaussians: 10.0, samplesMultiplier: 1.2 },
+const BAKING_OBH_ESTIMATES: Record<
+  OctaneBakeMode,
+  {
+    obhPer1MGaussians: number;
+    samplesMultiplier: number; // Multiply by (samples / 512)
+  }
+> = {
+  path_trace: { obhPer1MGaussians: 8.0, samplesMultiplier: 1.0 },
+  direct_lighting: { obhPer1MGaussians: 1.5, samplesMultiplier: 0.3 },
+  path_trace_ao: { obhPer1MGaussians: 10.0, samplesMultiplier: 1.2 },
 };
 
 /** Default pipeline configuration */
@@ -437,10 +443,10 @@ export class GaussianBakingClient {
     if (config.maxCreditsBudget > 0 && costEstimate.totalRENDER > config.maxCreditsBudget) {
       throw new BakingPipelineError(
         `Estimated cost (${costEstimate.totalRENDER.toFixed(2)} RENDER) exceeds budget ` +
-        `(${config.maxCreditsBudget} RENDER)`,
+          `(${config.maxCreditsBudget} RENDER)`,
         'BUDGET_EXCEEDED',
         'idle',
-        false,
+        false
       );
     }
 
@@ -487,8 +493,14 @@ export class GaussianBakingClient {
           target_size_mb: config.targetFileSizeMB,
           prune: config.pruneEnabled,
           prune_alpha_threshold: config.pruneAlphaThreshold,
-          spz_version: config.compressionLevel === 'optimized' || config.compressionLevel === 'aggressive' ? '2.0' : '1.0',
-          quaternion_encoding: config.compressionLevel === 'optimized' || config.compressionLevel === 'aggressive' ? 'smallest_three' : 'default',
+          spz_version:
+            config.compressionLevel === 'optimized' || config.compressionLevel === 'aggressive'
+              ? '2.0'
+              : '1.0',
+          quaternion_encoding:
+            config.compressionLevel === 'optimized' || config.compressionLevel === 'aggressive'
+              ? 'smallest_three'
+              : 'default',
         },
         output: {
           format: config.outputFormat,
@@ -502,10 +514,12 @@ export class GaussianBakingClient {
           node_count: config.nodeCount,
           max_budget: config.maxCreditsBudget,
         },
-        webhook: config.webhookUrl ? {
-          url: config.webhookUrl,
-          include_preview: config.webhookIncludePreview,
-        } : undefined,
+        webhook: config.webhookUrl
+          ? {
+              url: config.webhookUrl,
+              include_preview: config.webhookIncludePreview,
+            }
+          : undefined,
       },
     });
 
@@ -522,7 +536,7 @@ export class GaussianBakingClient {
   async createUploadSession(
     jobId: string,
     totalSizeBytes: number,
-    captureFormat: CaptureFormat,
+    captureFormat: CaptureFormat
   ): Promise<{ sessionId: string; chunkSize: number; uploadUrl: string }> {
     const response = await this.apiCall('/gaussian/uploads', 'POST', {
       job_id: jobId,
@@ -545,28 +559,25 @@ export class GaussianBakingClient {
     sessionId: string,
     chunk: ArrayBuffer,
     offset: number,
-    totalSize: number,
+    totalSize: number
   ): Promise<{ uploadedBytes: number; complete: boolean }> {
     const formData = new FormData();
     formData.append('chunk', new Blob([chunk]));
     formData.append('offset', String(offset));
     formData.append('total_size', String(totalSize));
 
-    const response = await fetch(
-      `${RENDER_NETWORK_API}/gaussian/uploads/${sessionId}/chunk`,
-      {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${this.apiKey}` },
-        body: formData,
-      },
-    );
+    const response = await fetch(`${RENDER_NETWORK_API}/gaussian/uploads/${sessionId}/chunk`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.apiKey}` },
+      body: formData,
+    });
 
     if (!response.ok) {
       throw new BakingPipelineError(
         `Chunk upload failed: HTTP ${response.status}`,
         'UPLOAD_FAILED',
         'uploading',
-        true,
+        true
       );
     }
 
@@ -585,10 +596,7 @@ export class GaussianBakingClient {
     totalBytes: number;
     complete: boolean;
   }> {
-    const response = await this.apiCall(
-      `/gaussian/uploads/${sessionId}/progress`,
-      'GET',
-    );
+    const response = await this.apiCall(`/gaussian/uploads/${sessionId}/progress`, 'GET');
     return {
       uploadedBytes: response.uploaded_bytes,
       totalBytes: response.total_bytes,
@@ -641,10 +649,10 @@ export class GaussianBakingClient {
    */
   async downloadOutput(
     url: string,
-    onProgress?: (downloadedBytes: number, totalBytes: number) => void,
+    onProgress?: (downloadedBytes: number, totalBytes: number) => void
   ): Promise<ArrayBuffer> {
     const response = await fetch(url, {
-      headers: { 'Authorization': `Bearer ${this.apiKey}` },
+      headers: { Authorization: `Bearer ${this.apiKey}` },
     });
 
     if (!response.ok) {
@@ -652,7 +660,7 @@ export class GaussianBakingClient {
         `Download failed: HTTP ${response.status}`,
         'DOWNLOAD_FAILED',
         'downloading',
-        true,
+        true
       );
     }
 
@@ -704,19 +712,19 @@ export class GaussianBakingClient {
   estimateCost(
     config: GaussianBakingConfig,
     localOBScore?: number,
-    renderTokenPriceUSD: number = 2.0,
+    renderTokenPriceUSD: number = 2.0
   ): CostEstimate {
-    const obScore = localOBScore ?? REFERENCE_OB_SCORES[config.preferredGPU] ?? REFERENCE_OB_SCORES.auto;
+    const obScore =
+      localOBScore ?? REFERENCE_OB_SCORES[config.preferredGPU] ?? REFERENCE_OB_SCORES.auto;
     const obhPerRender = OBH_PER_RENDER[config.renderTier];
 
     // Training cost estimation
     const trainingProfile = TRAINING_GPU_HOURS_ESTIMATE[config.trainingMethod];
     const gaussianScale = (config.targetGaussianCount - 500_000) / 100_000;
     const iterationScale = config.trainingIterations / 30_000;
-    const rawTrainingHours = (
-      trainingProfile.baseHours +
-      Math.max(0, gaussianScale * trainingProfile.scalingFactor)
-    ) * iterationScale;
+    const rawTrainingHours =
+      (trainingProfile.baseHours + Math.max(0, gaussianScale * trainingProfile.scalingFactor)) *
+      iterationScale;
 
     // Convert GPU hours to OBh: GPU hours * OB score = OBh
     const trainingOBh = rawTrainingHours * obScore;
@@ -726,8 +734,10 @@ export class GaussianBakingClient {
     const bakingProfile = BAKING_OBH_ESTIMATES[config.octaneBakeMode];
     const gaussianMillions = config.targetGaussianCount / 1_000_000;
     const samplesScale = config.bakeSamples / 512;
-    const bakingOBh = bakingProfile.obhPer1MGaussians * gaussianMillions *
-                      (1 + (samplesScale - 1) * bakingProfile.samplesMultiplier);
+    const bakingOBh =
+      bakingProfile.obhPer1MGaussians *
+      gaussianMillions *
+      (1 + (samplesScale - 1) * bakingProfile.samplesMultiplier);
     const bakingRENDER = bakingOBh / obhPerRender;
 
     // Compression cost (minimal GPU work)
@@ -776,7 +786,7 @@ export class GaussianBakingClient {
   private async apiCall(
     path: string,
     method: 'GET' | 'POST' | 'DELETE',
-    body?: unknown,
+    body?: unknown
   ): Promise<any> {
     const maxRetries = 3;
     const backoff = [1000, 2000, 4000];
@@ -786,9 +796,9 @@ export class GaussianBakingClient {
         const response = await fetch(`${RENDER_NETWORK_API}${path}`, {
           method,
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
+            Authorization: `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
+            Accept: 'application/json',
             'X-Region': this.region,
           },
           ...(body != null ? { body: JSON.stringify(body) } : {}),
@@ -831,7 +841,7 @@ export type ProgressCallback = (state: BakingJobState) => void;
 export type StageTransitionCallback = (
   previousStage: BakingStage,
   newStage: BakingStage,
-  state: BakingJobState,
+  state: BakingJobState
 ) => void;
 
 /**
@@ -858,7 +868,7 @@ export class BakingProgressTracker {
     options: {
       pollIntervalMs?: number;
       maxPollDurationMs?: number;
-    } = {},
+    } = {}
   ) {
     this.client = client;
     this.jobState = jobState;
@@ -873,10 +883,18 @@ export class BakingProgressTracker {
   on(event: 'error', cb: (error: BakingPipelineError, state: BakingJobState) => void): this;
   on(event: string, cb: any): this {
     switch (event) {
-      case 'progress': this.onProgress = cb; break;
-      case 'stageTransition': this.onStageTransition = cb; break;
-      case 'complete': this.onComplete = cb; break;
-      case 'error': this.onError = cb; break;
+      case 'progress':
+        this.onProgress = cb;
+        break;
+      case 'stageTransition':
+        this.onStageTransition = cb;
+        break;
+      case 'complete':
+        this.onComplete = cb;
+        break;
+      case 'error':
+        this.onError = cb;
+        break;
     }
     return this;
   }
@@ -896,7 +914,7 @@ export class BakingProgressTracker {
           'Polling timeout exceeded',
           'POLL_TIMEOUT',
           this.jobState.stage,
-          false,
+          false
         );
         this.onError?.(error, this.jobState);
         return;
@@ -937,7 +955,9 @@ export class BakingProgressTracker {
       // Update timestamps
       const ts = this.jobState.timestamps;
       switch (status.stage) {
-        case 'uploading': ts.uploadStarted = Date.now(); break;
+        case 'uploading':
+          ts.uploadStarted = Date.now();
+          break;
         case 'training':
           if (!ts.uploadCompleted) ts.uploadCompleted = Date.now();
           ts.trainingStarted = Date.now();
@@ -980,7 +1000,8 @@ export class BakingProgressTracker {
         this.jobState.stageProgress[currentStage].progress = status.stageProgress;
         this.jobState.stageProgress[currentStage].message = status.message ?? '';
         if (status.estimatedTimeRemainingMs !== undefined) {
-          this.jobState.stageProgress[currentStage].estimatedTimeRemainingMs = status.estimatedTimeRemainingMs;
+          this.jobState.stageProgress[currentStage].estimatedTimeRemainingMs =
+            status.estimatedTimeRemainingMs;
         }
       }
     }
@@ -1023,7 +1044,7 @@ export class BakingProgressTracker {
         this.jobState.error.message,
         this.jobState.error.code,
         previousStage,
-        this.jobState.error.retryable,
+        this.jobState.error.retryable
       );
       this.onError?.(error, this.jobState);
     }
@@ -1276,10 +1297,14 @@ export interface OctaneBakeJobConfig {
 
 function mapBakeMode(mode: OctaneBakeMode): string {
   switch (mode) {
-    case 'path_trace': return 'PT';
-    case 'direct_lighting': return 'DL';
-    case 'path_trace_ao': return 'PT+AO';
-    default: return 'PT';
+    case 'path_trace':
+      return 'PT';
+    case 'direct_lighting':
+      return 'DL';
+    case 'path_trace_ao':
+      return 'PT+AO';
+    default:
+      return 'PT';
   }
 }
 
@@ -1328,7 +1353,9 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function createInitialStageProgress(config: GaussianBakingConfig): Record<BakingStage, StageProgress> {
+function createInitialStageProgress(
+  config: GaussianBakingConfig
+): Record<BakingStage, StageProgress> {
   const skipTraining = config.captureFormat === 'ply' || config.captureFormat === 'splat';
   const skipCompression = config.compressionLevel === 'none';
 

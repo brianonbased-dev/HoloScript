@@ -24,29 +24,10 @@
  * ```
  */
 
-export {
-  UAALOpCode,
-  getUAALOpcodeName,
-  isCognitiveOp,
-  isControlFlowOp,
-} from './opcodes';
-export type {
-  UAALOperand,
-  UAALInstruction,
-  UAALBytecode,
-} from './opcodes';
+export { UAALOpCode, getUAALOpcodeName, isCognitiveOp, isControlFlowOp } from './opcodes';
+export type { UAALOperand, UAALInstruction, UAALBytecode } from './opcodes';
 
-export {
-  UAALVirtualMachine,
-} from './vm';
-export type {
-  VMState,
-  VMResult,
-  VMProxy,
-  OpcodeHandler,
-  UAALVMOptions,
-} from './vm';
+export { UAALVirtualMachine } from './vm';
+export type { VMState, VMResult, VMProxy, OpcodeHandler, UAALVMOptions } from './vm';
 
-export {
-  UAALCompiler,
-} from './compiler';
+export { UAALCompiler } from './compiler';

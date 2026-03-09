@@ -25,12 +25,12 @@ orb "InfoPanel" {
 
 ### Accessibility traits
 
-| Trait        | Purpose                                     |
-|--------------|---------------------------------------------|
-| `@accessible`| Assigns ARIA-like roles and keyboard nav    |
-| `@alt_text`  | Screen-reader description for the object   |
-| `@haptic`    | Tactile feedback when interacting           |
-| `@contrast`  | Ensures visible contrast ratios             |
+| Trait         | Purpose                                  |
+| ------------- | ---------------------------------------- |
+| `@accessible` | Assigns ARIA-like roles and keyboard nav |
+| `@alt_text`   | Screen-reader description for the object |
+| `@haptic`     | Tactile feedback when interacting        |
+| `@contrast`   | Ensures visible contrast ratios          |
 
 ## Try it:
 

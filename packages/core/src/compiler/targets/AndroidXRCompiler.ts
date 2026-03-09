@@ -91,18 +91,18 @@ export interface AndroidXRCompilationResult {
  * Maps HoloScript traits to Android XR SDK components/behaviors.
  */
 const TRAIT_TO_ANDROID_XR: Record<string, string> = {
-  'Grabbable':          'MovableComponent',
-  'Resizable':          'ResizableComponent',
-  'Physics':            'PhysicsComponent (via JoltPhysics)',
-  'Animation':          'AnimatorComponent',
-  'SpatialAudio':       'SpatialAudioComponent',
-  'HandTracking':       'HandTrackingComponent',
-  'Anchor':             'AnchorComponent',
-  'Passthrough':        'PassthroughComponent',
-  'GazeTarget':         'GazeInteractionComponent',
-  'Panel':              'SpatialPanel',
-  'Volume':             'SpatialVolume',
-  'Environment':        'SpatialEnvironment',
+  Grabbable: 'MovableComponent',
+  Resizable: 'ResizableComponent',
+  Physics: 'PhysicsComponent (via JoltPhysics)',
+  Animation: 'AnimatorComponent',
+  SpatialAudio: 'SpatialAudioComponent',
+  HandTracking: 'HandTrackingComponent',
+  Anchor: 'AnchorComponent',
+  Passthrough: 'PassthroughComponent',
+  GazeTarget: 'GazeInteractionComponent',
+  Panel: 'SpatialPanel',
+  Volume: 'SpatialVolume',
+  Environment: 'SpatialEnvironment',
 };
 
 // ── Compiler ───────────────────────────────────────────────────────────────
@@ -164,7 +164,16 @@ export class AndroidXRCompiler {
     // Validate
     if (!composition.name) {
       errors.push('Composition name is required');
-      return { success: false, files, assets, entities, warnings, errors, manifestPermissions, gradleDependencies };
+      return {
+        success: false,
+        files,
+        assets,
+        entities,
+        warnings,
+        errors,
+        manifestPermissions,
+        gradleDependencies,
+      };
     }
 
     if ((composition.objects?.length ?? 0) > this.config.maxEntities) {
@@ -177,13 +186,13 @@ export class AndroidXRCompiler {
     gradleDependencies.push(
       `implementation("androidx.xr.scenecore:scenecore:${this.config.jetpackXRVersion}")`,
       `implementation("androidx.xr.compose:compose:${this.config.jetpackXRVersion}")`,
-      `implementation("androidx.xr.arcore:arcore:${this.config.jetpackXRVersion}")`,
+      `implementation("androidx.xr.arcore:arcore:${this.config.jetpackXRVersion}")`
     );
 
     // Manifest permissions
     manifestPermissions.push(
       'android.permission.SCENE_UNDERSTANDING',
-      'com.android.permission.XR_CONTENT',
+      'com.android.permission.XR_CONTENT'
     );
 
     if (this.config.enableHandTracking) {
@@ -250,14 +259,16 @@ export class AndroidXRCompiler {
       model?: string;
       properties?: Record<string, unknown>;
     },
-    warnings: string[],
+    warnings: string[]
   ): XRSpatialEntity {
     const entityType = this.mapType(obj.type);
 
     // Check for unsupported traits
     for (const trait of obj.traits ?? []) {
       if (!TRAIT_TO_ANDROID_XR[trait]) {
-        warnings.push(`Trait '${trait}' on '${obj.name}' has no Android XR mapping; it will be ignored.`);
+        warnings.push(
+          `Trait '${trait}' on '${obj.name}' has no Android XR mapping; it will be ignored.`
+        );
       }
     }
 
@@ -275,11 +286,16 @@ export class AndroidXRCompiler {
 
   private mapType(type?: string): XRSpatialEntity['type'] {
     switch (type?.toLowerCase()) {
-      case 'panel': return 'panel';
-      case 'volume': return 'volume';
-      case 'environment': return 'environment';
-      case 'anchor': return 'anchor';
-      default: return 'model';
+      case 'panel':
+        return 'panel';
+      case 'volume':
+        return 'volume';
+      case 'environment':
+        return 'environment';
+      case 'anchor':
+        return 'anchor';
+      default:
+        return 'model';
     }
   }
 
@@ -321,7 +337,8 @@ class ${className}Activity : ComponentActivity() {
             Subspace {
 ${entities
   .filter((e) => e.type === 'panel')
-  .map((e) => `                SpatialPanel(
+  .map(
+    (e) => `                SpatialPanel(
                     SubspaceModifier
                         .offset(${e.position[0]}f, ${e.position[1]}f, ${e.position[2]}f)
                         .width(1.0f)
@@ -329,17 +346,20 @@ ${entities
                 ) {
                     // Panel: ${e.name}
                     ${className}Scene.${this.sanitizeName(e.name)}Panel()
-                }`)
+                }`
+  )
   .join('\n')}
 ${entities
   .filter((e) => e.type === 'volume' || e.type === 'model')
-  .map((e) => `                Volume(
+  .map(
+    (e) => `                Volume(
                     SubspaceModifier
                         .offset(${e.position[0]}f, ${e.position[1]}f, ${e.position[2]}f)
                         .scale(${e.scale[0]}f, ${e.scale[1]}f, ${e.scale[2]}f)
                 ) {
                     // Volume: ${e.name}${e.modelPath ? `\n                    // Model: ${e.modelPath}` : ''}
-                }`)
+                }`
+  )
   .join('\n')}
             }
         }
@@ -382,13 +402,15 @@ object ${className}Scene {
 
 ${entities
   .filter((e) => e.type === 'panel')
-  .map((e) => `    @Composable
+  .map(
+    (e) => `    @Composable
     fun ${this.sanitizeName(e.name)}Panel() {
         Text(
             text = "${e.name}",
             style = MaterialTheme.typography.titleMedium,
         )
-    }`)
+    }`
+  )
   .join('\n\n')}
 
     /**
@@ -425,7 +447,9 @@ data class SpatialEntityDef(
 
 object SpatialEntities {
     val all: List<SpatialEntityDef> = listOf(
-${entities.map((e) => `        SpatialEntityDef(
+${entities
+  .map(
+    (e) => `        SpatialEntityDef(
             name = "${e.name}",
             type = "${e.type}",
             position = floatArrayOf(${e.position.join('f, ')}f),
@@ -433,7 +457,9 @@ ${entities.map((e) => `        SpatialEntityDef(
             scale = floatArrayOf(${e.scale.join('f, ')}f),
             modelPath = ${e.modelPath ? `"${e.modelPath}"` : 'null'},
             traits = listOf(${e.traits.map((t) => `"${t}"`).join(', ')}),
-        )`).join(',\n')}
+        )`
+  )
+  .join(',\n')}
     )
 }
 `;

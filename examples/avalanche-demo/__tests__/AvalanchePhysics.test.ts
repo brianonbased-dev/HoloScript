@@ -294,9 +294,7 @@ describe('AvalanchePhysics', () => {
       const stats = physics.getStatistics();
 
       // Resting count should decrease (some particles got entrained) OR entrainment was attempted
-      expect(
-        stats.restingCount < initialRestingCount || stats.entrainmentCount >= 0
-      ).toBe(true);
+      expect(stats.restingCount < initialRestingCount || stats.entrainmentCount >= 0).toBe(true);
     });
 
     it('should only entrain particles within radius', () => {
@@ -398,7 +396,8 @@ describe('AvalanchePhysics', () => {
       const collisionEvents = events.filter((e) => e.type === 'collision');
 
       // Should have recorded collision events OR particles settled
-      const settledCount = physics.getParticlesByState('resting').length +
+      const settledCount =
+        physics.getParticlesByState('resting').length +
         physics.getParticlesByState('sliding').length;
 
       expect(collisionEvents.length > 0 || settledCount > 0).toBe(true);

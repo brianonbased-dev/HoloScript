@@ -32,8 +32,18 @@ import {
 
 describe('Feature 1A: MATERIAL_PRESETS -- count & keys', () => {
   const EXPECTED_MATERIALS = [
-    'plastic', 'metal', 'chrome', 'gold', 'copper', 'glass',
-    'crystal', 'wood', 'fabric', 'rubber', 'leather', 'water',
+    'plastic',
+    'metal',
+    'chrome',
+    'gold',
+    'copper',
+    'glass',
+    'crystal',
+    'wood',
+    'fabric',
+    'rubber',
+    'leather',
+    'water',
   ];
 
   it('has at least 12 material presets', () => {
@@ -137,8 +147,12 @@ describe('Feature 1B: MATERIAL_PRESETS -- PBR property values', () => {
 
 describe('Feature 2A: ENVIRONMENT_PRESETS -- count & keys', () => {
   const EXPECTED_ENVS = [
-    'forest_sunset', 'cyberpunk_city', 'space_void',
-    'studio', 'underwater', 'desert',
+    'forest_sunset',
+    'cyberpunk_city',
+    'space_void',
+    'studio',
+    'underwater',
+    'desert',
   ];
 
   it('has exactly 6 environment presets', () => {
@@ -211,8 +225,14 @@ describe('Feature 2B: ENVIRONMENT_PRESETS -- specific properties', () => {
 
 describe('Feature 3A: UI_COMPONENT_PRESETS -- count & structure', () => {
   const EXPECTED_COMPONENTS = [
-    'UIPanel', 'UIText', 'UIButton', 'UISlider',
-    'UIInput', 'UIImage', 'UIChart', 'UIGauge',
+    'UIPanel',
+    'UIText',
+    'UIButton',
+    'UISlider',
+    'UIInput',
+    'UIImage',
+    'UIChart',
+    'UIGauge',
   ];
 
   it('has exactly 8 UI component presets', () => {
@@ -336,7 +356,9 @@ describe('Feature 4A: R3FCompiler -- instantiation', () => {
 
 describe('Feature 4B: R3FCompiler -- compileComposition()', () => {
   let compiler: R3FCompiler;
-  beforeEach(() => { compiler = new R3FCompiler(); });
+  beforeEach(() => {
+    compiler = new R3FCompiler();
+  });
 
   const minimalComposition = () => ({
     name: 'TestScene',
@@ -382,11 +404,13 @@ describe('Feature 4B: R3FCompiler -- compileComposition()', () => {
   it('composition with one object produces one child', () => {
     const comp = {
       name: 'Scene',
-      objects: [{
-        name: 'MyBox',
-        type: 'cube',
-        properties: [],
-      }],
+      objects: [
+        {
+          name: 'MyBox',
+          type: 'cube',
+          properties: [],
+        },
+      ],
     };
     const result = compiler.compileComposition(comp);
     expect(result.children!.length).toBeGreaterThanOrEqual(1);
@@ -411,10 +435,11 @@ describe('Feature 4B: R3FCompiler -- compileComposition()', () => {
 
 describe('Feature 4C: R3FNode interface shape', () => {
   let compiler: R3FCompiler;
-  beforeEach(() => { compiler = new R3FCompiler(); });
+  beforeEach(() => {
+    compiler = new R3FCompiler();
+  });
 
-  const getRoot = (): R3FNode =>
-    compiler.compileComposition({ name: 'Shape', objects: [] });
+  const getRoot = (): R3FNode => compiler.compileComposition({ name: 'Shape', objects: [] });
 
   it('R3FNode.type is a string', () => {
     expect(typeof getRoot().type).toBe('string');

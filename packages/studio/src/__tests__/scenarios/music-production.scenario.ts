@@ -7,11 +7,23 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  midiNoteNumber, noteFromMidi, noteFrequency,
-  beatsToSeconds, secondsToBeats, measureCount,
-  dbToLinear, linearToDb, panLaw, isClipping,
-  trackDuration, soloedTracks, vstChainGain, waveformRMS,
-  type MidiTrack, type TimeSignature, type EffectInstance,
+  midiNoteNumber,
+  noteFromMidi,
+  noteFrequency,
+  beatsToSeconds,
+  secondsToBeats,
+  measureCount,
+  dbToLinear,
+  linearToDb,
+  panLaw,
+  isClipping,
+  trackDuration,
+  soloedTracks,
+  vstChainGain,
+  waveformRMS,
+  type MidiTrack,
+  type TimeSignature,
+  type EffectInstance,
 } from '@/lib/musicProduction';
 
 describe('Scenario: Music Production — MIDI Notes', () => {
@@ -96,17 +108,44 @@ describe('Scenario: Music Production — Mixing', () => {
   });
 
   it('trackDuration returns last note end', () => {
-    const track: MidiTrack = { id: 't', name: '', instrument: '', notes: [
-      { note: 'C', octave: 4, velocity: 100, startBeat: 0, durationBeats: 4, channel: 0 },
-      { note: 'E', octave: 4, velocity: 90, startBeat: 8, durationBeats: 2, channel: 0 },
-    ], muted: false, solo: false, volume: 1, pan: 0 };
+    const track: MidiTrack = {
+      id: 't',
+      name: '',
+      instrument: '',
+      notes: [
+        { note: 'C', octave: 4, velocity: 100, startBeat: 0, durationBeats: 4, channel: 0 },
+        { note: 'E', octave: 4, velocity: 90, startBeat: 8, durationBeats: 2, channel: 0 },
+      ],
+      muted: false,
+      solo: false,
+      volume: 1,
+      pan: 0,
+    };
     expect(trackDuration(track)).toBe(10);
   });
 
   it('soloedTracks returns only soloed if any', () => {
     const tracks: MidiTrack[] = [
-      { id: 'a', name: 'Bass', instrument: '', notes: [], muted: false, solo: false, volume: 1, pan: 0 },
-      { id: 'b', name: 'Lead', instrument: '', notes: [], muted: false, solo: true, volume: 1, pan: 0 },
+      {
+        id: 'a',
+        name: 'Bass',
+        instrument: '',
+        notes: [],
+        muted: false,
+        solo: false,
+        volume: 1,
+        pan: 0,
+      },
+      {
+        id: 'b',
+        name: 'Lead',
+        instrument: '',
+        notes: [],
+        muted: false,
+        solo: true,
+        volume: 1,
+        pan: 0,
+      },
     ];
     expect(soloedTracks(tracks)).toHaveLength(1);
     expect(soloedTracks(tracks)[0].name).toBe('Lead');

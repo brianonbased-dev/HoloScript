@@ -4,7 +4,10 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  build, parseSceneGraph, getAllTargets, getTargetMeta,
+  build,
+  parseSceneGraph,
+  getAllTargets,
+  getTargetMeta,
   type BuildTarget,
 } from '../lib/buildService';
 
@@ -144,7 +147,7 @@ describe('Target metadata', () => {
   it('getAllTargets returns 6 targets', () => {
     const targets = getAllTargets();
     expect(targets).toHaveLength(6);
-    expect(targets.map(t => t.id)).toEqual(['web', 'embed', 'pwa', 'urdf', 'gltf', 'json']);
+    expect(targets.map((t) => t.id)).toEqual(['web', 'embed', 'pwa', 'urdf', 'gltf', 'json']);
   });
 
   it('getTargetMeta returns correct info', () => {

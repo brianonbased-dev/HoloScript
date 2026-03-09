@@ -15,7 +15,11 @@ import { TreeShaker, treeShake, eliminateDeadCode } from './TreeShaker';
 import type { ASTNode } from './types';
 
 // Helper to create minimal AST nodes
-function node(name: string, type: string = 'GenericNode', overrides: Partial<ASTNode> = {}): ASTNode {
+function node(
+  name: string,
+  type: string = 'GenericNode',
+  overrides: Partial<ASTNode> = {}
+): ASTNode {
   return {
     type,
     name,
@@ -31,7 +35,7 @@ describe('TreeShaker', () => {
     it('keeps entry point nodes', () => {
       const shaker = new TreeShaker({ entryPoints: ['main'] });
       const result = shaker.shake([node('main'), node('unused')]);
-      expect(result.kept.some(n => n.name === 'main')).toBe(true);
+      expect(result.kept.some((n) => n.name === 'main')).toBe(true);
       expect(result.stats.keptNodes).toBeGreaterThanOrEqual(1);
     });
 
@@ -76,7 +80,7 @@ describe('TreeShaker', () => {
     it('keeps nodes by name regardless of usage', () => {
       const shaker = new TreeShaker({ keepNames: ['preserved'], entryPoints: ['main'] });
       const result = shaker.shake([node('main'), node('preserved'), node('removed')]);
-      expect(result.kept.some(n => n.name === 'preserved')).toBe(true);
+      expect(result.kept.some((n) => n.name === 'preserved')).toBe(true);
     });
   });
 

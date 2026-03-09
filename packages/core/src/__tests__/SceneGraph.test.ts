@@ -18,7 +18,9 @@ import { SceneManager } from '../scene/SceneManager';
 
 describe('SceneNode', () => {
   let root: SceneNode;
-  beforeEach(() => { root = new SceneNode('root', 'Root'); });
+  beforeEach(() => {
+    root = new SceneNode('root', 'Root');
+  });
 
   it('creates with id and name', () => {
     expect(root.id).toBe('root');
@@ -140,15 +142,19 @@ describe('SceneManager', () => {
       timestamp: new Date().toISOString(),
       name,
       root: {
-        id: 'node_1', type: 'entity',
-        properties: {}, traits: {},
+        id: 'node_1',
+        type: 'entity',
+        properties: {},
+        traits: {},
         children: [],
       },
     },
     state: undefined,
   });
 
-  beforeEach(() => { sm = new SceneManager(); });
+  beforeEach(() => {
+    sm = new SceneManager();
+  });
 
   it('has returns false for missing scene', () => {
     expect(sm.has('nope')).toBe(false);
@@ -185,8 +191,8 @@ describe('SceneManager', () => {
     sm.importJSON(JSON.stringify(makeSavedScene('b')));
     const list = sm.list();
     expect(list).toHaveLength(2);
-    expect(list.map(e => e.name)).toContain('a');
-    expect(list.map(e => e.name)).toContain('b');
+    expect(list.map((e) => e.name)).toContain('a');
+    expect(list.map((e) => e.name)).toContain('b');
   });
 
   it('exportJSON and importJSON roundtrip', () => {

@@ -3,7 +3,7 @@ import { NodeGraphCompiler } from '../NodeGraphCompiler';
 
 // Mock NodeGraph
 function mockGraph(nodes: any[], connections: any[] = []) {
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
   return {
     getNodes: () => nodes,
     getConnections: () => connections,
@@ -31,53 +31,41 @@ describe('NodeGraphCompiler', () => {
   });
 
   it('extracts state declarations from SetState nodes', () => {
-    const graph = mockGraph([
-      makeNode('n1', 'SetState', { key: 'health', initialValue: 100 }),
-    ]);
+    const graph = mockGraph([makeNode('n1', 'SetState', { key: 'health', initialValue: 100 })]);
     const result = compiler.compile(graph);
     expect(result.stateDeclarations.health).toBe(100);
-    expect(result.directives.some(d => d.type === 'state')).toBe(true);
+    expect(result.directives.some((d) => d.type === 'state')).toBe(true);
   });
 
   it('extracts state from GetState nodes', () => {
-    const graph = mockGraph([
-      makeNode('n1', 'GetState', { key: 'score' }),
-    ]);
+    const graph = mockGraph([makeNode('n1', 'GetState', { key: 'score' })]);
     const result = compiler.compile(graph);
     expect('score' in result.stateDeclarations).toBe(true);
   });
 
   it('compiles OnEvent nodes to lifecycle directives', () => {
-    const graph = mockGraph([
-      makeNode('n1', 'OnEvent', { eventName: 'click' }),
-    ]);
+    const graph = mockGraph([makeNode('n1', 'OnEvent', { eventName: 'click' })]);
     const result = compiler.compile(graph);
     expect(result.eventHandlers.length).toBe(1);
     expect(result.eventHandlers[0].event).toBe('click');
-    expect(result.directives.some(d => d.name === 'on_click')).toBe(true);
+    expect(result.directives.some((d) => d.name === 'on_click')).toBe(true);
   });
 
   it('compiles Timer nodes to on_update directive', () => {
-    const graph = mockGraph([
-      makeNode('t1', 'Timer', { duration: 2, loop: true }),
-    ]);
+    const graph = mockGraph([makeNode('t1', 'Timer', { duration: 2, loop: true })]);
     const result = compiler.compile(graph);
-    expect(result.directives.some(d => d.name === 'on_update')).toBe(true);
+    expect(result.directives.some((d) => d.name === 'on_update')).toBe(true);
   });
 
   it('warns about disconnected nodes', () => {
-    const graph = mockGraph([
-      makeNode('orphan', 'MathAdd', {}),
-    ]);
+    const graph = mockGraph([makeNode('orphan', 'MathAdd', {})]);
     const result = compiler.compile(graph);
     expect(result.warnings.length).toBe(1);
     expect(result.warnings[0]).toContain('disconnected');
   });
 
   it('does not warn about disconnected OnEvent nodes', () => {
-    const graph = mockGraph([
-      makeNode('ev', 'OnEvent', { eventName: 'start' }),
-    ]);
+    const graph = mockGraph([makeNode('ev', 'OnEvent', { eventName: 'start' })]);
     const result = compiler.compile(graph);
     expect(result.warnings.length).toBe(0);
   });

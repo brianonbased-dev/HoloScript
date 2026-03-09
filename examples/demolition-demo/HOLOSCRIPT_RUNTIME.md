@@ -48,12 +48,14 @@ This document explains how **HoloScript language** drives the **HoloScript runti
 ## The HoloScript Way
 
 ### ❌ Old Way (Just TypeScript)
+
 ```typescript
 const scene = new DemolitionDemoScene();
-scene.createExplosion({ position: {x: 0, y: 5, z: 0}, force: 1000 });
+scene.createExplosion({ position: { x: 0, y: 5, z: 0 }, force: 1000 });
 ```
 
 ### ✅ HoloScript Way (Declarative → Runtime)
+
 ```holoscript
 // demolition.holo
 composition ExplosiveDemolition {
@@ -107,19 +109,19 @@ Bridges HoloScript compositions to the runtime:
 ```typescript
 class DemolitionRuntimeExecutor {
   // Load composition
-  loadComposition(composition: HoloComposition): void
+  loadComposition(composition: HoloComposition): void;
 
   // Initialize scene from composition
-  private initializeScene(composition): DemolitionDemoScene
+  private initializeScene(composition): DemolitionDemoScene;
 
   // Build entities (structures, fracturable objects)
-  private buildEntities(composition, scene): void
+  private buildEntities(composition, scene): void;
 
   // Setup behaviors (mouse click, timelines)
-  private setupBehaviors(composition, scene): void
+  private setupBehaviors(composition, scene): void;
 
   // Start execution loop
-  start(): void
+  start(): void;
 }
 ```
 
@@ -137,6 +139,7 @@ Manages the interactive demo scene:
 ### 4. Physics Runtime
 
 **Modules**:
+
 - **FractureSystem** ([`FractureSystem.ts`](./FractureSystem.ts)): Object fracturing
 - **ShockWaveSolver** ([`ShockWaveSolver.ts`](./ShockWaveSolver.ts)): Explosion waves
 - **DebrisParticleSystem** ([`DebrisParticleSystem.ts`](./DebrisParticleSystem.ts)): 120K+ particles
@@ -233,18 +236,22 @@ executor.start(); // Timelines run based on schedule
 ## Advantages
 
 ### Single Source of Truth
+
 - Write once in HoloScript
 - Run everywhere via runtime
 
 ### Consistent Behavior
+
 - Same physics on all platforms
 - No platform-specific bugs
 
 ### Declarative Power
+
 - Describe WHAT, not HOW
 - Easy to read and modify
 
 ### Extensible
+
 - Add new traits
 - Add new runtime modules
 - Add new export targets
@@ -252,12 +259,14 @@ executor.start(); // Timelines run based on schedule
 ## Statistics
 
 **Week 8 Runtime Modules**:
+
 - Implementation: 4,698 lines
 - Tests: 5,923 lines
 - Total tests: 430 passing
 - Performance: 120K+ particles, 10K+ fragments
 
 **Capabilities**:
+
 - ✅ Realistic fracture physics (Voronoi, radial, shatter)
 - ✅ Shock wave propagation with reflection
 - ✅ Spatial-hashed particle system
@@ -268,17 +277,20 @@ executor.start(); // Timelines run based on schedule
 ## Future Work
 
 ### Parser Extensions
+
 - Add demolition-specific traits to parser
 - Support timeline syntax
 - Support behavior syntax
 
 ### Runtime Enhancements
+
 - Expose physics/structural systems through scene API
 - Add visual effects (smoke, dust clouds)
 - Add audio effects (explosions, collapse)
 - Add replay/recording system
 
 ### Platform Bindings
+
 - Unity C# bindings for runtime
 - Unreal C++ bindings for runtime
 - WebAssembly compilation for performance

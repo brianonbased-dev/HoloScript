@@ -50,10 +50,7 @@ function makeObject(
   };
 }
 
-function makeComposition(
-  name: string,
-  objects: SpatialObject[]
-): SpatialComposition {
+function makeComposition(name: string, objects: SpatialObject[]): SpatialComposition {
   return { name, objects };
 }
 
@@ -170,9 +167,7 @@ describe('SpatialDataGenerator', () => {
       ]);
 
       const samples = gen.generate(comp);
-      const adjacentSamples = samples.filter(
-        (s) => s.relationship.type === 'adjacent'
-      );
+      const adjacentSamples = samples.filter((s) => s.relationship.type === 'adjacent');
 
       // Distance is 2m: adjacent at 3.0 and 5.0 thresholds, not at 1.0
       const positives = adjacentSamples.filter((s) => s.relationship.holds);
@@ -189,9 +184,7 @@ describe('SpatialDataGenerator', () => {
       ]);
 
       const samples = generator.generate(comp);
-      const adjacentSamples = samples.filter(
-        (s) => s.relationship.type === 'adjacent'
-      );
+      const adjacentSamples = samples.filter((s) => s.relationship.type === 'adjacent');
 
       for (const sample of adjacentSamples) {
         expect(sample.relationship.distance).toBeCloseTo(5.0, 1); // 3-4-5 triangle
@@ -206,15 +199,25 @@ describe('SpatialDataGenerator', () => {
   describe('contains relationships', () => {
     it('should detect containment when target center is inside container bounds', () => {
       const comp = makeComposition('Containment', [
-        makeObject('room', 'Room', { x: 0, y: 2.5, z: 0 }, {
-          bounds: {
-            min: { x: -5, y: 0, z: -5 },
-            max: { x: 5, y: 5, z: 5 },
-          },
-        }),
-        makeObject('table', 'Table', { x: 1, y: 0.75, z: 0 }, {
-          scale: { x: 2, y: 0.1, z: 1 },
-        }),
+        makeObject(
+          'room',
+          'Room',
+          { x: 0, y: 2.5, z: 0 },
+          {
+            bounds: {
+              min: { x: -5, y: 0, z: -5 },
+              max: { x: 5, y: 5, z: 5 },
+            },
+          }
+        ),
+        makeObject(
+          'table',
+          'Table',
+          { x: 1, y: 0.75, z: 0 },
+          {
+            scale: { x: 2, y: 0.1, z: 1 },
+          }
+        ),
       ]);
 
       const samples = generator.generate(comp);
@@ -232,12 +235,17 @@ describe('SpatialDataGenerator', () => {
 
     it('should NOT detect containment when target is outside container', () => {
       const comp = makeComposition('NoContainment', [
-        makeObject('box', 'Box', { x: 0, y: 0, z: 0 }, {
-          bounds: {
-            min: { x: -1, y: -1, z: -1 },
-            max: { x: 1, y: 1, z: 1 },
-          },
-        }),
+        makeObject(
+          'box',
+          'Box',
+          { x: 0, y: 0, z: 0 },
+          {
+            bounds: {
+              min: { x: -1, y: -1, z: -1 },
+              max: { x: 1, y: 1, z: 1 },
+            },
+          }
+        ),
         makeObject('sphere', 'Sphere', { x: 5, y: 0, z: 0 }),
       ]);
 
@@ -252,15 +260,25 @@ describe('SpatialDataGenerator', () => {
 
     it('should include overlap ratio in containment samples', () => {
       const comp = makeComposition('OverlapTest', [
-        makeObject('container', 'Container', { x: 0, y: 0, z: 0 }, {
-          bounds: {
-            min: { x: -5, y: -5, z: -5 },
-            max: { x: 5, y: 5, z: 5 },
-          },
-        }),
-        makeObject('inner', 'Inner', { x: 0, y: 0, z: 0 }, {
-          scale: { x: 2, y: 2, z: 2 },
-        }),
+        makeObject(
+          'container',
+          'Container',
+          { x: 0, y: 0, z: 0 },
+          {
+            bounds: {
+              min: { x: -5, y: -5, z: -5 },
+              max: { x: 5, y: 5, z: 5 },
+            },
+          }
+        ),
+        makeObject(
+          'inner',
+          'Inner',
+          { x: 0, y: 0, z: 0 },
+          {
+            scale: { x: 2, y: 2, z: 2 },
+          }
+        ),
       ]);
 
       const samples = generator.generate(comp);
@@ -283,26 +301,37 @@ describe('SpatialDataGenerator', () => {
 
       // Object partially outside container
       const comp = makeComposition('StrictTest', [
-        makeObject('container', 'Container', { x: 0, y: 0, z: 0 }, {
-          bounds: {
-            min: { x: -2, y: -2, z: -2 },
-            max: { x: 2, y: 2, z: 2 },
-          },
-        }),
-        makeObject('overhanging', 'Overhanging', { x: 1.5, y: 0, z: 0 }, {
-          scale: { x: 2, y: 1, z: 1 },
-          bounds: {
-            min: { x: 0.5, y: -0.5, z: -0.5 },
-            max: { x: 2.5, y: 0.5, z: 0.5 },
-          },
-        }),
+        makeObject(
+          'container',
+          'Container',
+          { x: 0, y: 0, z: 0 },
+          {
+            bounds: {
+              min: { x: -2, y: -2, z: -2 },
+              max: { x: 2, y: 2, z: 2 },
+            },
+          }
+        ),
+        makeObject(
+          'overhanging',
+          'Overhanging',
+          { x: 1.5, y: 0, z: 0 },
+          {
+            scale: { x: 2, y: 1, z: 1 },
+            bounds: {
+              min: { x: 0.5, y: -0.5, z: -0.5 },
+              max: { x: 2.5, y: 0.5, z: 0.5 },
+            },
+          }
+        ),
       ]);
 
       const samples = gen.generate(comp);
       const strictContains = samples.filter(
-        (s) => s.relationship.type === 'contains' &&
-               s.relationship.sourceName === 'Container' &&
-               s.relationship.holds
+        (s) =>
+          s.relationship.type === 'contains' &&
+          s.relationship.sourceName === 'Container' &&
+          s.relationship.holds
       );
 
       // Strict mode: overhanging bounds exceed container, should NOT contain
@@ -335,21 +364,27 @@ describe('SpatialDataGenerator', () => {
       const comp = makeComposition('Blocked', [
         makeObject('a', 'PointA', { x: 0, y: 0, z: 0 }),
         makeObject('b', 'PointB', { x: 10, y: 0, z: 0 }),
-        makeObject('wall', 'Wall', { x: 5, y: 0, z: 0 }, {
-          type: 'wall',
-          isStatic: true,
-          bounds: {
-            min: { x: 4.5, y: -2, z: -2 },
-            max: { x: 5.5, y: 2, z: 2 },
-          },
-        }),
+        makeObject(
+          'wall',
+          'Wall',
+          { x: 5, y: 0, z: 0 },
+          {
+            type: 'wall',
+            isStatic: true,
+            bounds: {
+              min: { x: 4.5, y: -2, z: -2 },
+              max: { x: 5.5, y: 2, z: 2 },
+            },
+          }
+        ),
       ]);
 
       const samples = generator.generate(comp);
       const reachableAB = samples.filter(
-        (s) => s.relationship.type === 'reachable' &&
-               s.relationship.sourceId === 'a' &&
-               s.relationship.targetId === 'b'
+        (s) =>
+          s.relationship.type === 'reachable' &&
+          s.relationship.sourceId === 'a' &&
+          s.relationship.targetId === 'b'
       );
 
       expect(reachableAB.length).toBeGreaterThan(0);
@@ -372,9 +407,7 @@ describe('SpatialDataGenerator', () => {
       ]);
 
       const samples = gen.generate(comp);
-      const reachable = samples.filter(
-        (s) => s.relationship.type === 'reachable'
-      );
+      const reachable = samples.filter((s) => s.relationship.type === 'reachable');
 
       expect(reachable).toHaveLength(0);
     });
@@ -407,9 +440,7 @@ describe('SpatialDataGenerator', () => {
       ]);
 
       const samples = generator.generate(comp);
-      const adjacentSample = samples.find(
-        (s) => s.relationship.type === 'adjacent'
-      );
+      const adjacentSample = samples.find((s) => s.relationship.type === 'adjacent');
 
       expect(adjacentSample).toBeDefined();
       expect(adjacentSample!.relationship.directions).toContain('above');
@@ -423,8 +454,7 @@ describe('SpatialDataGenerator', () => {
 
       const samples = generator.generate(comp);
       const adjacentSample = samples.find(
-        (s) => s.relationship.type === 'adjacent' &&
-               s.relationship.sourceId === 'ceiling_0'
+        (s) => s.relationship.type === 'adjacent' && s.relationship.sourceId === 'ceiling_0'
       );
 
       // The auto-generated IDs will depend on enrichment; check any adjacent sample
@@ -603,9 +633,7 @@ describe('SpatialDataGenerator', () => {
       const negatives = samples.filter((s) => !s.relationship.holds);
 
       // May still have some reachable negatives from blocked paths, but no adjacency negatives
-      const adjacentNegatives = negatives.filter(
-        (s) => s.relationship.type === 'adjacent'
-      );
+      const adjacentNegatives = negatives.filter((s) => s.relationship.type === 'adjacent');
       expect(adjacentNegatives).toHaveLength(0);
     });
   });
@@ -801,9 +829,12 @@ describe('SpatialDataGenerator', () => {
       expect(stats.generationTimeMs).toBeGreaterThanOrEqual(0);
 
       const totalFromBreakdown =
-        stats.adjacentPositive + stats.adjacentNegative +
-        stats.containsPositive + stats.containsNegative +
-        stats.reachablePositive + stats.reachableNegative;
+        stats.adjacentPositive +
+        stats.adjacentNegative +
+        stats.containsPositive +
+        stats.containsNegative +
+        stats.reachablePositive +
+        stats.reachableNegative;
 
       expect(totalFromBreakdown).toBe(stats.totalSamples);
     });
@@ -901,21 +932,32 @@ describe('SpatialDataGenerator', () => {
 
     it('should handle sphere-type bounds correctly', () => {
       const comp = makeComposition('SphereBounds', [
-        makeObject('big', 'BigSphere', { x: 0, y: 0, z: 0 }, {
-          type: 'sphere',
-          scale: { x: 5, y: 5, z: 5 },
-        }),
-        makeObject('small', 'SmallCube', { x: 0, y: 0, z: 0 }, {
-          type: 'cube',
-          scale: { x: 0.5, y: 0.5, z: 0.5 },
-        }),
+        makeObject(
+          'big',
+          'BigSphere',
+          { x: 0, y: 0, z: 0 },
+          {
+            type: 'sphere',
+            scale: { x: 5, y: 5, z: 5 },
+          }
+        ),
+        makeObject(
+          'small',
+          'SmallCube',
+          { x: 0, y: 0, z: 0 },
+          {
+            type: 'cube',
+            scale: { x: 0.5, y: 0.5, z: 0.5 },
+          }
+        ),
       ]);
 
       const samples = generator.generate(comp);
       const containsSample = samples.find(
-        (s) => s.relationship.type === 'contains' &&
-               s.relationship.sourceName === 'BigSphere' &&
-               s.relationship.holds
+        (s) =>
+          s.relationship.type === 'contains' &&
+          s.relationship.sourceName === 'BigSphere' &&
+          s.relationship.holds
       );
       expect(containsSample).toBeDefined();
     });
@@ -1145,10 +1187,11 @@ describe('end-to-end pipeline', () => {
 
     // Crate1 and Crate2 should be adjacent (1m apart vertically)
     const crateAdjacent = samples.find(
-      (s) => s.relationship.type === 'adjacent' &&
-             s.relationship.holds &&
-             ((s.relationship.sourceName === 'Crate1' && s.relationship.targetName === 'Crate2') ||
-              (s.relationship.sourceName === 'Crate2' && s.relationship.targetName === 'Crate1'))
+      (s) =>
+        s.relationship.type === 'adjacent' &&
+        s.relationship.holds &&
+        ((s.relationship.sourceName === 'Crate1' && s.relationship.targetName === 'Crate2') ||
+          (s.relationship.sourceName === 'Crate2' && s.relationship.targetName === 'Crate1'))
     );
     expect(crateAdjacent).toBeDefined();
 

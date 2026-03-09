@@ -8,8 +8,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { volumetricWindowHandler } from '../VolumetricWindowTrait';
 
-function makeNode(id = 'vw-node') { return { id } as any; }
-function makeConfig(o: any = {}) { return { ...volumetricWindowHandler.defaultConfig, ...o }; }
+function makeNode(id = 'vw-node') {
+  return { id } as any;
+}
+function makeConfig(o: any = {}) {
+  return { ...volumetricWindowHandler.defaultConfig, ...o };
+}
 function makeContext() {
   const store: Record<string, any> = {};
   return {
@@ -18,7 +22,9 @@ function makeContext() {
     getState: () => store,
   };
 }
-function getState(ctx: ReturnType<typeof makeContext>) { return ctx.getState().volumetricWindow; }
+function getState(ctx: ReturnType<typeof makeContext>) {
+  return ctx.getState().volumetricWindow;
+}
 
 describe('VolumetricWindowTrait — Production', () => {
   let node: any, config: any, ctx: ReturnType<typeof makeContext>;
@@ -52,7 +58,10 @@ describe('VolumetricWindowTrait — Production', () => {
     });
 
     it('emits vWindow:init', () => {
-      expect(ctx.emit).toHaveBeenCalledWith('vWindow:init', { type: 'bounded', scale_mode: 'tabletop' });
+      expect(ctx.emit).toHaveBeenCalledWith('vWindow:init', {
+        type: 'bounded',
+        scale_mode: 'tabletop',
+      });
     });
 
     it('has correct defaults', () => {
@@ -99,7 +108,11 @@ describe('VolumetricWindowTrait — Production', () => {
       expect(s.currentWidth).toBe(1.0);
       expect(s.currentHeight).toBe(0.8);
       expect(s.currentDepth).toBe(0.5);
-      expect(ctx.emit).toHaveBeenCalledWith('vWindow:resized', { width: 1.0, height: 0.8, depth: 0.5 });
+      expect(ctx.emit).toHaveBeenCalledWith('vWindow:resized', {
+        width: 1.0,
+        height: 0.8,
+        depth: 0.5,
+      });
     });
 
     it('ignores resize when not resizable', () => {

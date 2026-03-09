@@ -75,7 +75,7 @@ export class EdgeRenderer {
    */
   render(
     edges: Array<{ from: string; to: string; type: 'import' | 'call' }>,
-    positions: Map<string, EdgePoint>,
+    positions: Map<string, EdgePoint>
   ): RenderedEdge[] {
     const result: RenderedEdge[] = [];
     const maxEdges = this.options.maxEdges;
@@ -112,7 +112,7 @@ export class EdgeRenderer {
     to: string,
     type: 'import' | 'call',
     fromPos: EdgePoint,
-    toPos: EdgePoint,
+    toPos: EdgePoint
   ): RenderedEdge {
     const isCall = type === 'call';
 

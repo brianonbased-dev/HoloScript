@@ -59,7 +59,7 @@ export class CircularImportError extends Error {
 export class ModuleNotFoundError extends Error {
   constructor(
     public readonly requestedPath: string,
-    public readonly fromFile: string,
+    public readonly fromFile: string
   ) {
     super(`Cannot find module "${requestedPath}" imported from "${fromFile}"`);
     this.name = 'ModuleNotFoundError';
@@ -213,7 +213,7 @@ export class ModuleResolver {
       // @import @a, @b from "path"
       // @import * from "path"
       const importMatch = line.match(
-        /^@import\s+([\w@*,\s]+?)(?:\s+as\s+(@\w+))?\s+from\s+["']([^"']+)["']/,
+        /^@import\s+([\w@*,\s]+?)(?:\s+as\s+(@\w+))?\s+from\s+["']([^"']+)["']/
       );
       if (importMatch) {
         const specifiersPart = importMatch[1].trim();

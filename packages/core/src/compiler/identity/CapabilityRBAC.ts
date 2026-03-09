@@ -17,11 +17,7 @@
  * @version 1.0.0
  */
 
-import {
-  AgentRole,
-  AgentPermission,
-  AgentKeyPair,
-} from './AgentIdentity';
+import { AgentRole, AgentPermission, AgentKeyPair } from './AgentIdentity';
 
 import {
   AgentRBAC,
@@ -34,11 +30,7 @@ import {
 
 import { AgentTokenIssuer } from './AgentTokenIssuer';
 
-import type {
-  Capability,
-  CapabilityToken,
-  CapabilityVerificationResult,
-} from './CapabilityToken';
+import type { Capability, CapabilityToken, CapabilityVerificationResult } from './CapabilityToken';
 
 import {
   PERMISSION_TO_ACTION,

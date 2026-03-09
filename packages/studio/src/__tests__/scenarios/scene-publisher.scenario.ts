@@ -10,8 +10,11 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  MEME_TEMPLATES, detectMemeTemplate, getPopularTemplates,
-  searchTemplates as searchMemeTemplates, getTemplate,
+  MEME_TEMPLATES,
+  detectMemeTemplate,
+  getPopularTemplates,
+  searchTemplates as searchMemeTemplates,
+  getTemplate,
   getTemplateConfiguration,
   type MemeTemplate,
 } from '@/lib/memeTemplates';
@@ -63,7 +66,7 @@ describe('Scenario: Scene Publisher — Meme Template Detection', () => {
   it('searchMemeTemplates() finds by name', () => {
     const results = searchMemeTemplates('wojak');
     expect(results.length).toBeGreaterThanOrEqual(1);
-    expect(results.some(t => t.id === 'wojak')).toBe(true);
+    expect(results.some((t) => t.id === 'wojak')).toBe(true);
   });
 
   it('searchMemeTemplates() finds by tag', () => {
@@ -123,7 +126,9 @@ describe('Scenario: Scene Publisher — Video Export Config', () => {
 
   it('custom resolution (720p) reduces file size', () => {
     const opts: VideoExportOptions = {
-      width: 1280, height: 720, duration: 5,
+      width: 1280,
+      height: 720,
+      duration: 5,
     };
     expect(opts.width).toBe(1280);
     expect(opts.height).toBe(720);
@@ -132,8 +137,11 @@ describe('Scenario: Scene Publisher — Video Export Config', () => {
   it('ExportProgress tracks rendering stages', () => {
     const stages: ExportProgress['stage'][] = ['preparing', 'rendering', 'encoding', 'complete'];
     const progress: ExportProgress = {
-      stage: 'rendering', progress: 0.5,
-      currentFrame: 75, totalFrames: 150, timeElapsed: 2000,
+      stage: 'rendering',
+      progress: 0.5,
+      currentFrame: 75,
+      totalFrames: 150,
+      timeElapsed: 2000,
     };
     expect(stages).toContain(progress.stage);
     expect(progress.progress).toBe(0.5);
@@ -165,7 +173,9 @@ describe('Scenario: Scene Publisher — Video Export Config', () => {
   it('WebM export via WebCodecs uses VP9 codec', () => {
     const config = {
       codec: 'vp09.00.10.08' as const,
-      width: 1920, height: 1080, bitrate: 8_000_000,
+      width: 1920,
+      height: 1080,
+      bitrate: 8_000_000,
     };
     expect(config.codec).toContain('vp09');
     expect(config.bitrate).toBe(8_000_000);
@@ -175,7 +185,8 @@ describe('Scenario: Scene Publisher — Video Export Config', () => {
     const sharing = {
       thumbnailUrl: 'https://cdn.holoscript.io/thumb/abc123.jpg',
       previewUrl: 'https://holoscript.io/preview/abc123',
-      title: 'Doge Dancing', tags: ['meme', 'doge', 'dance'],
+      title: 'Doge Dancing',
+      tags: ['meme', 'doge', 'dance'],
     };
     expect(sharing.thumbnailUrl).toContain('.jpg');
     expect(sharing.previewUrl).toContain('/preview/');
@@ -186,7 +197,8 @@ describe('Scenario: Scene Publisher — Video Export Config', () => {
     const watermark = {
       text: 'Made with HoloScript',
       position: { x: 0.95, y: 0.95 }, // normalized coords (bottom-right)
-      opacity: 0.6, fontSize: 14,
+      opacity: 0.6,
+      fontSize: 14,
     };
     expect(watermark.position.x).toBeGreaterThan(0.5);
     expect(watermark.position.y).toBeGreaterThan(0.5);
@@ -195,7 +207,8 @@ describe('Scenario: Scene Publisher — Video Export Config', () => {
 
   it('gallery publish includes scene data and metadata', () => {
     const publishPayload = {
-      sceneId: 'scene-abc', title: 'Pepe Vibing',
+      sceneId: 'scene-abc',
+      title: 'Pepe Vibing',
       description: 'A classic frog moment',
       tags: ['pepe', 'vibing', 'meme'],
       visibility: 'public' as const,

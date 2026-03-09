@@ -9,7 +9,7 @@
  */
 
 import { useFrame, useThree } from '@react-three/fiber';
-import { useCharacterStore } from '@/lib/store';
+import { useCharacterStore } from '@/lib/stores';
 import * as THREE from 'three';
 import { useRef, useEffect } from 'react';
 
@@ -19,24 +19,24 @@ import { useRef, useEffect } from 'react';
  */
 const MORPH_NAME_MAP: Record<string, string[]> = {
   // Body
-  body_height:    ['Height', 'height', 'Body_Height'],
-  body_build:     ['Build', 'build', 'Body_Build', 'Muscle', 'muscular'],
+  body_height: ['Height', 'height', 'Body_Height'],
+  body_build: ['Build', 'build', 'Body_Build', 'Muscle', 'muscular'],
   body_shoulders: ['Shoulders', 'shoulders', 'Shoulder_Width'],
-  body_chest:     ['Chest', 'chest', 'Bust'],
-  body_waist:     ['Waist', 'waist', 'Waist_Size'],
-  body_hips:      ['Hips', 'hips', 'Hip_Width'],
-  body_arms:      ['ArmLength', 'arm_length', 'Arms'],
-  body_legs:      ['LegLength', 'leg_length', 'Legs'],
+  body_chest: ['Chest', 'chest', 'Bust'],
+  body_waist: ['Waist', 'waist', 'Waist_Size'],
+  body_hips: ['Hips', 'hips', 'Hip_Width'],
+  body_arms: ['ArmLength', 'arm_length', 'Arms'],
+  body_legs: ['LegLength', 'leg_length', 'Legs'],
 
   // Face
-  face_eye_size:    ['EyeSize', 'eye_size', 'eyeWide', 'A_EyeOpen'],
+  face_eye_size: ['EyeSize', 'eye_size', 'eyeWide', 'A_EyeOpen'],
   face_eye_spacing: ['EyeSpacing', 'eye_spacing', 'EyeWide'],
-  face_nose_width:  ['NoseWidth', 'nose_width', 'Nose_Width'],
+  face_nose_width: ['NoseWidth', 'nose_width', 'Nose_Width'],
   face_nose_length: ['NoseLength', 'nose_length', 'Nose_Length'],
   face_mouth_width: ['MouthWidth', 'mouth_width', 'Mouth_Wide', 'mouthWide'],
-  face_jaw_width:   ['JawWidth', 'jaw_width', 'Jaw_Width', 'jawOpen'],
-  face_cheek:       ['Cheek', 'cheek', 'cheekPuff', 'CheekPuff'],
-  face_brow:        ['BrowHeight', 'brow_height', 'browInnerUp', 'BrowUp'],
+  face_jaw_width: ['JawWidth', 'jaw_width', 'Jaw_Width', 'jawOpen'],
+  face_cheek: ['Cheek', 'cheek', 'cheekPuff', 'CheekPuff'],
+  face_brow: ['BrowHeight', 'brow_height', 'browInnerUp', 'BrowUp'],
 };
 
 /**
@@ -90,7 +90,12 @@ export function MorphTargetController() {
         const mat = mesh.material as THREE.MeshStandardMaterial;
         // Only apply if the material name suggests skin (avoid overriding hair/clothes)
         const matName = mat.name?.toLowerCase() ?? '';
-        if (matName.includes('skin') || matName.includes('body') || matName.includes('face') || matName === '') {
+        if (
+          matName.includes('skin') ||
+          matName.includes('body') ||
+          matName.includes('face') ||
+          matName === ''
+        ) {
           mat.color.set(skinColor);
         }
       }

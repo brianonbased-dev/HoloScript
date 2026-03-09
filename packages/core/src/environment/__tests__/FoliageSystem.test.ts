@@ -3,9 +3,15 @@ import { FoliageSystem } from '../FoliageSystem';
 import type { FoliageType } from '../FoliageSystem';
 
 const grassType: FoliageType = {
-  id: 'grass', meshId: 'grass_mesh', density: 10,
-  minScale: 0.8, maxScale: 1.2, alignToNormal: true,
-  windResponse: 0.5, castsShadow: false, lodDistances: [20, 40, 60],
+  id: 'grass',
+  meshId: 'grass_mesh',
+  density: 10,
+  minScale: 0.8,
+  maxScale: 1.2,
+  alignToNormal: true,
+  windResponse: 0.5,
+  castsShadow: false,
+  lodDistances: [20, 40, 60],
 };
 
 describe('FoliageSystem', () => {
@@ -28,8 +34,9 @@ describe('FoliageSystem', () => {
   });
 
   it('scatter throws for unknown type', () => {
-    expect(() => sys.scatter('p1', 'unknown', { x: 0, z: 0, w: 5, h: 5 }, 10))
-      .toThrow('Unknown foliage type');
+    expect(() => sys.scatter('p1', 'unknown', { x: 0, z: 0, w: 5, h: 5 }, 10)).toThrow(
+      'Unknown foliage type'
+    );
   });
 
   it('instances have valid properties', () => {

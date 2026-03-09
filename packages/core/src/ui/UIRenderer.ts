@@ -11,10 +11,23 @@
 // TYPES
 // =============================================================================
 
-export type UINodeType = 'container' | 'text' | 'image' | 'button' | 'slider' | 'toggle' | 'input' | 'dropdown' | 'progress' | 'custom';
+export type UINodeType =
+  | 'container'
+  | 'text'
+  | 'image'
+  | 'button'
+  | 'slider'
+  | 'toggle'
+  | 'input'
+  | 'dropdown'
+  | 'progress'
+  | 'custom';
 
 export interface UIRect {
-  x: number; y: number; width: number; height: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 export interface UIStyle {
@@ -126,9 +139,15 @@ export class UIRenderer {
     return true;
   }
 
-  getRoot(): UINode { return this.root; }
-  getNode(id: string): UINode | undefined { return this.nodeMap.get(id); }
-  getNodeCount(): number { return this.nodeMap.size; }
+  getRoot(): UINode {
+    return this.root;
+  }
+  getNode(id: string): UINode | undefined {
+    return this.nodeMap.get(id);
+  }
+  getNodeCount(): number {
+    return this.nodeMap.size;
+  }
 
   findByTag(tag: string): UINode | undefined {
     for (const node of this.nodeMap.values()) {
@@ -190,7 +209,7 @@ export class UIRenderer {
   }
 
   getFocusedNode(): UINode | null {
-    return this.focusedNodeId ? this.nodeMap.get(this.focusedNodeId) ?? null : null;
+    return this.focusedNodeId ? (this.nodeMap.get(this.focusedNodeId) ?? null) : null;
   }
 
   focusNext(): UINode | null {
@@ -209,7 +228,9 @@ export class UIRenderer {
     return this.nodeMap.get(this.focusedNodeId) ?? null;
   }
 
-  clearFocus(): void { this.focusedNodeId = null; }
+  clearFocus(): void {
+    this.focusedNodeId = null;
+  }
 
   private rebuildFocusOrder(): void {
     this.focusOrder = [];
@@ -226,7 +247,13 @@ export class UIRenderer {
   // Dirty Tracking
   // ---------------------------------------------------------------------------
 
-  markDirty(nodeId: string): void { this.dirtyNodes.add(nodeId); }
-  getDirtyNodes(): string[] { return [...this.dirtyNodes]; }
-  clearDirty(): void { this.dirtyNodes.clear(); }
+  markDirty(nodeId: string): void {
+    this.dirtyNodes.add(nodeId);
+  }
+  getDirtyNodes(): string[] {
+    return [...this.dirtyNodes];
+  }
+  clearDirty(): void {
+    this.dirtyNodes.clear();
+  }
 }

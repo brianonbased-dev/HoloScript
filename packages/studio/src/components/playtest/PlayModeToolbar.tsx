@@ -16,9 +16,19 @@
  */
 
 import { useCallback } from 'react';
-import { Play, Pause, Square, RotateCcw, Bot, ChevronDown, Monitor, Eye, EyeOff } from 'lucide-react';
+import {
+  Play,
+  Pause,
+  Square,
+  RotateCcw,
+  Bot,
+  ChevronDown,
+  Monitor,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 import { usePlayMode } from '@/lib/stores/playModeStore';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 export function PlayModeToolbar() {
   const playState = usePlayMode((s) => s.playState);
@@ -81,7 +91,9 @@ export function PlayModeToolbar() {
             className="bg-transparent text-studio-muted outline-none cursor-pointer"
           >
             {[0, 1, 2, 3, 5, 10].map((n) => (
-              <option key={n} value={n}>{n}</option>
+              <option key={n} value={n}>
+                {n}
+              </option>
             ))}
           </select>
           <ChevronDown className="h-3 w-3" />
@@ -116,7 +128,9 @@ export function PlayModeToolbar() {
       {/* Pulsing/static indicator */}
       <span className="flex h-2.5 w-2.5 shrink-0">
         {isPlaying && (
-          <span className={`absolute inline-flex h-2.5 w-2.5 animate-ping rounded-full ${dotColor} opacity-75`} />
+          <span
+            className={`absolute inline-flex h-2.5 w-2.5 animate-ping rounded-full ${dotColor} opacity-75`}
+          />
         )}
         <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${dotColor}`} />
       </span>

@@ -7,16 +7,34 @@ function buildTestNavMesh(): NavMesh {
   const mesh = new NavMesh();
   // A → B → C linear graph (addPolygon takes vertices[], walkable, cost)
   const a = mesh.addPolygon(
-    [{ x: 0, y: 0, z: 0 }, { x: 5, y: 0, z: 0 }, { x: 5, y: 0, z: 5 }, { x: 0, y: 0, z: 5 }],
-    true, 1,
+    [
+      { x: 0, y: 0, z: 0 },
+      { x: 5, y: 0, z: 0 },
+      { x: 5, y: 0, z: 5 },
+      { x: 0, y: 0, z: 5 },
+    ],
+    true,
+    1
   );
   const b = mesh.addPolygon(
-    [{ x: 5, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, { x: 10, y: 0, z: 5 }, { x: 5, y: 0, z: 5 }],
-    true, 1,
+    [
+      { x: 5, y: 0, z: 0 },
+      { x: 10, y: 0, z: 0 },
+      { x: 10, y: 0, z: 5 },
+      { x: 5, y: 0, z: 5 },
+    ],
+    true,
+    1
   );
   const c = mesh.addPolygon(
-    [{ x: 10, y: 0, z: 0 }, { x: 15, y: 0, z: 0 }, { x: 15, y: 0, z: 5 }, { x: 10, y: 0, z: 5 }],
-    true, 1,
+    [
+      { x: 10, y: 0, z: 0 },
+      { x: 15, y: 0, z: 0 },
+      { x: 15, y: 0, z: 5 },
+      { x: 10, y: 0, z: 5 },
+    ],
+    true,
+    1
   );
   // Link neighbors: A↔B↔C
   mesh.connectPolygons(a.id, b.id);
@@ -103,7 +121,10 @@ describe('AStarPathfinder', () => {
   });
 
   it('smoothPath with 2 or fewer points returns as-is', () => {
-    const path = [{ x: 0, y: 0, z: 0 }, { x: 5, y: 0, z: 5 }];
+    const path = [
+      { x: 0, y: 0, z: 0 },
+      { x: 5, y: 0, z: 5 },
+    ];
     expect(pf.smoothPath(path)).toEqual(path);
   });
 

@@ -40,10 +40,22 @@ export interface ShaderGraphData {
 }
 
 export type ShaderNodeType =
-  | 'output' | 'color' | 'texture-sample' | 'uv'
-  | 'multiply' | 'add' | 'mix' | 'normalize'
-  | 'fresnel' | 'noise' | 'time' | 'step'
-  | 'split' | 'combine' | 'clamp' | 'dot';
+  | 'output'
+  | 'color'
+  | 'texture-sample'
+  | 'uv'
+  | 'multiply'
+  | 'add'
+  | 'mix'
+  | 'normalize'
+  | 'fresnel'
+  | 'noise'
+  | 'time'
+  | 'step'
+  | 'split'
+  | 'combine'
+  | 'clamp'
+  | 'dot';
 
 /**
  * Create a default empty shader graph.
@@ -66,7 +78,13 @@ export function createShaderGraph(name: string): ShaderGraphData {
     params: {},
   };
 
-  return { id: `graph-${Date.now().toString(36)}`, name, nodes: [outputNode], edges: [], outputNodeId: outputNode.id };
+  return {
+    id: `graph-${Date.now().toString(36)}`,
+    name,
+    nodes: [outputNode],
+    edges: [],
+    outputNodeId: outputNode.id,
+  };
 }
 
 /**
@@ -81,8 +99,10 @@ export function addNode(graph: ShaderGraphData, node: ShaderNode): ShaderGraphDa
  */
 export function connectPorts(
   graph: ShaderGraphData,
-  fromNodeId: string, fromPort: string,
-  toNodeId: string, toPort: string
+  fromNodeId: string,
+  fromPort: string,
+  toNodeId: string,
+  toPort: string
 ): ShaderGraphData {
   const edge: ShaderEdge = {
     id: `edge-${Date.now().toString(36)}`,
@@ -98,8 +118,8 @@ export function connectPorts(
 export function removeNode(graph: ShaderGraphData, nodeId: string): ShaderGraphData {
   return {
     ...graph,
-    nodes: graph.nodes.filter(n => n.id !== nodeId),
-    edges: graph.edges.filter(e => e.from.nodeId !== nodeId && e.to.nodeId !== nodeId),
+    nodes: graph.nodes.filter((n) => n.id !== nodeId),
+    edges: graph.edges.filter((e) => e.from.nodeId !== nodeId && e.to.nodeId !== nodeId),
   };
 }
 
@@ -144,7 +164,7 @@ export function connectionCount(graph: ShaderGraphData): number {
  * Get unconnected input ports (potential issues).
  */
 export function unconnectedInputs(graph: ShaderGraphData): Array<{ nodeId: string; port: string }> {
-  const connected = new Set(graph.edges.map(e => `${e.to.nodeId}:${e.to.port}`));
+  const connected = new Set(graph.edges.map((e) => `${e.to.nodeId}:${e.to.port}`));
   const unconnected: Array<{ nodeId: string; port: string }> = [];
   for (const node of graph.nodes) {
     for (const input of node.inputs) {

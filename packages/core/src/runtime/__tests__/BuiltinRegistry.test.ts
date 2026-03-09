@@ -49,13 +49,15 @@ describe('BuiltinRegistry', () => {
   });
 
   it('create throws for unknown builtin', () => {
-    expect(() => registry.create({ name: 'NonExistent', backend: 'any', config: {} })).toThrow('Unknown builtin');
+    expect(() => registry.create({ name: 'NonExistent', backend: 'any', config: {} })).toThrow(
+      'Unknown builtin'
+    );
   });
 
   it('list returns all registered builtins', () => {
     const all = registry.list();
     expect(all.length).toBeGreaterThanOrEqual(5);
-    const names = all.map(b => b.name);
+    const names = all.map((b) => b.name);
     expect(names).toContain('speechrecognizer');
   });
 
@@ -63,7 +65,9 @@ describe('BuiltinRegistry', () => {
     let destroyed = false;
     registry.register('destroyable', {
       create: () => ({ alive: true }),
-      destroy: () => { destroyed = true; },
+      destroy: () => {
+        destroyed = true;
+      },
     });
     registry.create({ name: 'destroyable', backend: 'test', config: {} });
     registry.cleanup();
@@ -73,21 +77,15 @@ describe('BuiltinRegistry', () => {
 
 describe('parseRuntimeDeclaration', () => {
   it('parses valid builtin declaration', () => {
-    const decl = parseRuntimeDeclaration(
-      'MyModule',
-      [{ type: 'builtin', value: '' }],
-      { backend: 'gpu' }
-    );
+    const decl = parseRuntimeDeclaration('MyModule', [{ type: 'builtin', value: '' }], {
+      backend: 'gpu',
+    });
     expect(decl.name).toBe('MyModule');
     expect(decl.backend).toBe('gpu');
   });
 
   it('defaults backend to auto', () => {
-    const decl = parseRuntimeDeclaration(
-      'MyModule',
-      [{ type: 'builtin', value: '' }],
-      {}
-    );
+    const decl = parseRuntimeDeclaration('MyModule', [{ type: 'builtin', value: '' }], {});
     expect(decl.backend).toBe('auto');
   });
 

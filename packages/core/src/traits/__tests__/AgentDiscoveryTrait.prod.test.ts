@@ -21,7 +21,7 @@
  *    - agent_register       → calls registerAgent path
  *    - agent_deregister     → calls deregisterAgent path
  *
- * Note: async operations are tested only for sync effects. For pure async paths 
+ * Note: async operations are tested only for sync effects. For pure async paths
  * (registerAgent, discoverPeers, runQuery) we test state changes that happen
  * synchronously or via awaiting vitest's fake timers.
  */
@@ -67,10 +67,10 @@ function attach(cfg: Partial<typeof agentDiscoveryHandler.defaultConfig> = {}) {
   const ctx = makeCtx();
   const config = {
     ...agentDiscoveryHandler.defaultConfig!,
-    heartbeat_interval: 0,  // avoid setInterval in tests
-    discovery_interval: 0,  // avoid setInterval in tests
-    auto_register: false,   // avoid async register in tests
-    auto_discover: false,   // avoid async discover in tests
+    heartbeat_interval: 0, // avoid setInterval in tests
+    discovery_interval: 0, // avoid setInterval in tests
+    auto_register: false, // avoid async register in tests
+    auto_discover: false, // avoid async discover in tests
     ...cfg,
   };
   agentDiscoveryHandler.onAttach!(node as any, config, ctx as any);
@@ -129,8 +129,12 @@ describe('agentDiscoveryHandler.onAttach', () => {
     const ctx = makeCtx();
     const config = {
       ...agentDiscoveryHandler.defaultConfig!,
-      heartbeat_interval: 0, discovery_interval: 0, auto_register: false, auto_discover: false,
-      agent_name: '', agent_id: '',
+      heartbeat_interval: 0,
+      discovery_interval: 0,
+      auto_register: false,
+      auto_discover: false,
+      agent_name: '',
+      agent_id: '',
     };
     agentDiscoveryHandler.onAttach!(node as any, config, ctx as any);
     const manifest = (node as any).__agentDiscoveryState.manifest;
@@ -140,7 +144,10 @@ describe('agentDiscoveryHandler.onAttach', () => {
 
   it('emits agent_discovery_initialized', () => {
     const { ctx } = attach({ agent_name: 'TestAgent' });
-    expect(ctx.emit).toHaveBeenCalledWith('agent_discovery_initialized', expect.objectContaining({ mode: 'active' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'agent_discovery_initialized',
+      expect.objectContaining({ mode: 'active' })
+    );
   });
 
   it('discoveredAgents starts empty', () => {
@@ -211,14 +218,27 @@ describe('agentDiscoveryHandler.onEvent — agent_get_discovered', () => {
   it('emits discovered_agents with count=0 initially', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, { type: 'agent_get_discovered' });
-    expect(ctx.emit).toHaveBeenCalledWith('discovered_agents', expect.objectContaining({ count: 0, agents: [] }));
+    agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'agent_get_discovered',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'discovered_agents',
+      expect.objectContaining({ count: 0, agents: [] })
+    );
   });
 
   it('emits discovered_agents with correct agents list', () => {
     const { node, ctx, config } = attach();
     const state = (node as any).__agentDiscoveryState;
-    const fakeManifest = { id: 'peer_1', name: 'PeerAgent', capabilities: [], endpoints: [], trustLevel: 'local', tags: [], status: 'online' };
+    const fakeManifest = {
+      id: 'peer_1',
+      name: 'PeerAgent',
+      capabilities: [],
+      endpoints: [],
+      trustLevel: 'local',
+      tags: [],
+      status: 'online',
+    };
     state.discoveredAgents.set('peer_1', {
       manifest: fakeManifest,
       discoveredAt: Date.now(),
@@ -227,7 +247,9 @@ describe('agentDiscoveryHandler.onEvent — agent_get_discovered', () => {
       connectionStatus: 'connected',
     });
     ctx.emit.mockClear();
-    agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, { type: 'agent_get_discovered' });
+    agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'agent_get_discovered',
+    });
     const [, payload] = ctx.emit.mock.calls[0];
     expect(payload.count).toBe(1);
     expect(payload.agents[0].id).toBe('peer_1');
@@ -242,11 +264,14 @@ describe('agentDiscoveryHandler.onEvent — agent_get_status', () => {
     const { node, ctx, config } = attach({ agent_id: 'a1', agent_name: 'Agent1' });
     ctx.emit.mockClear();
     agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, { type: 'agent_get_status' });
-    expect(ctx.emit).toHaveBeenCalledWith('discovery_status', expect.objectContaining({
-      registrationStatus: 'unregistered',
-      agentName: 'Agent1',
-      discoveredCount: 0,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'discovery_status',
+      expect.objectContaining({
+        registrationStatus: 'unregistered',
+        agentName: 'Agent1',
+        discoveredCount: 0,
+      })
+    );
   });
 
   it('includes eventCount in status', () => {
@@ -267,7 +292,15 @@ describe('agentDiscoveryHandler.onUpdate', () => {
     const { node, ctx, config } = attach();
     const state = (node as any).__agentDiscoveryState;
     state.registrationStatus = 'registered';
-    state.manifest = { id: 'a1', name: 'A', capabilities: [], endpoints: [], trustLevel: 'local', tags: [], status: 'online' };
+    state.manifest = {
+      id: 'a1',
+      name: 'A',
+      capabilities: [],
+      endpoints: [],
+      trustLevel: 'local',
+      tags: [],
+      status: 'online',
+    };
     state.registry = getRegistry();
     agentDiscoveryHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     await Promise.resolve();

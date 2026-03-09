@@ -87,7 +87,9 @@ describe('Cycle 140: Replay System', () => {
 
     let eventFired = false;
     player.addEvent('explosion', 500, { power: 10 });
-    player.onEvent('explosion', () => { eventFired = true; });
+    player.onEvent('explosion', () => {
+      eventFired = true;
+    });
 
     player.play();
     player.update(0.3); // 300ms — not yet

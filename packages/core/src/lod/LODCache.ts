@@ -455,7 +455,9 @@ export class LODCache {
   /**
    * Compress mesh data
    */
-  private async compressMesh(meshData: MeshData): Promise<{ data: Uint8Array; size: number } | null> {
+  private async compressMesh(
+    meshData: MeshData
+  ): Promise<{ data: Uint8Array; size: number } | null> {
     try {
       // In production, use actual compression library (Draco, meshopt)
       // For now, simulate compression with size reduction

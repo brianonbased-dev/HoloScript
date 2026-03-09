@@ -15,9 +15,9 @@ export type FilterType = 'lowpass' | 'highpass' | 'bandpass' | 'notch' | 'peakin
 
 export interface FilterConfig {
   type: FilterType;
-  frequency: number;      // Cutoff/center Hz
-  q: number;              // Resonance / Q factor
-  gain: number;           // dB (for peaking)
+  frequency: number; // Cutoff/center Hz
+  q: number; // Resonance / Q factor
+  gain: number; // dB (for peaking)
 }
 
 export interface EQBand {
@@ -41,7 +41,9 @@ export class AudioFilter {
     this.bands.set(id, { id, config, enabled: true });
   }
 
-  removeBand(id: string): void { this.bands.delete(id); }
+  removeBand(id: string): void {
+    this.bands.delete(id);
+  }
 
   setBandEnabled(id: string, enabled: boolean): void {
     const band = this.bands.get(id);
@@ -109,7 +111,13 @@ export class AudioFilter {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getBand(id: string): EQBand | undefined { return this.bands.get(id); }
-  getBandCount(): number { return this.bands.size; }
-  getEnabledBandCount(): number { return [...this.bands.values()].filter(b => b.enabled).length; }
+  getBand(id: string): EQBand | undefined {
+    return this.bands.get(id);
+  }
+  getBandCount(): number {
+    return this.bands.size;
+  }
+  getEnabledBandCount(): number {
+    return [...this.bands.values()].filter((b) => b.enabled).length;
+  }
 }

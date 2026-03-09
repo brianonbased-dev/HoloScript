@@ -76,7 +76,7 @@ describe('ModRegistry — Production', () => {
       reg.register(makeMod('low'), { priority: 0 });
       reg.register(makeMod('high'), { priority: 10 });
       reg.register(makeMod('mid'), { priority: 5 });
-      const order = reg.getLoadOrder().map(m => m.manifest.id);
+      const order = reg.getLoadOrder().map((m) => m.manifest.id);
       expect(order).toEqual(['low', 'mid', 'high']);
       vi.restoreAllMocks();
     });

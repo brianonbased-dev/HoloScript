@@ -44,7 +44,7 @@ export function RevenueChart({ data, loading }: RevenueChartProps) {
       '7D': 7,
       '30D': 30,
       '90D': 90,
-      'ALL': Infinity,
+      ALL: Infinity,
     };
 
     const daysToShow = ranges[timeRange];
@@ -53,19 +53,19 @@ export function RevenueChart({ data, loading }: RevenueChartProps) {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToShow);
 
-    return data.filter(point => new Date(point.date) >= cutoffDate);
+    return data.filter((point) => new Date(point.date) >= cutoffDate);
   }, [data, timeRange]);
 
   const chartData = useMemo(() => {
     return {
-      labels: filteredData.map(point => {
+      labels: filteredData.map((point) => {
         const date = new Date(point.date);
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       }),
       datasets: [
         {
           label: 'Primary Sales',
-          data: filteredData.map(point => point.primarySales),
+          data: filteredData.map((point) => point.primarySales),
           borderColor: 'rgb(99, 102, 241)',
           backgroundColor: 'rgba(99, 102, 241, 0.1)',
           fill: true,
@@ -73,7 +73,7 @@ export function RevenueChart({ data, loading }: RevenueChartProps) {
         },
         {
           label: 'Royalties',
-          data: filteredData.map(point => point.royalties),
+          data: filteredData.map((point) => point.royalties),
           borderColor: 'rgb(34, 197, 94)',
           backgroundColor: 'rgba(34, 197, 94, 0.1)',
           fill: true,
@@ -165,7 +165,7 @@ export function RevenueChart({ data, loading }: RevenueChartProps) {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-white">Revenue Over Time</h2>
         <div className="flex gap-2">
-          {(['7D', '30D', '90D', 'ALL'] as TimeRange[]).map(range => (
+          {(['7D', '30D', '90D', 'ALL'] as TimeRange[]).map((range) => (
             <button
               key={range}
               onClick={() => setTimeRange(range)}

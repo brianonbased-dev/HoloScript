@@ -16,7 +16,10 @@ import type { TraitHandler } from './TraitTypes';
 export type AnimationModel = 'neural_motion' | 'motion_matching' | 'diffusion';
 
 export interface SkeletonPose {
-  joints: Record<string, { position: [number, number, number]; rotation: [number, number, number, number] }>;
+  joints: Record<
+    string,
+    { position: [number, number, number]; rotation: [number, number, number, number] }
+  >;
   timestamp: number;
 }
 
@@ -118,7 +121,11 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
       state.blend_accumulator += delta * (1 / config.smoothing);
       const t = Math.min(state.blend_accumulator, 1.0);
 
-      const blended = interpolatePoses(state.current_pose, state.target_pose, t * config.blend_weight);
+      const blended = interpolatePoses(
+        state.current_pose,
+        state.target_pose,
+        t * config.blend_weight
+      );
 
       state.current_pose = blended;
 

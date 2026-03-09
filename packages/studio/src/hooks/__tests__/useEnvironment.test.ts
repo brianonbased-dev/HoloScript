@@ -7,10 +7,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useEnvironment } from '../useEnvironment';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 // Mock useSceneStore
-vi.mock('@/lib/store', () => ({
+vi.mock('@/lib/stores', () => ({
   useSceneStore: vi.fn(),
 }));
 
@@ -180,9 +180,7 @@ environment {
         result.current.applyPreset('  skybox("new");');
       });
 
-      expect(mockSetCode).toHaveBeenCalledWith(
-        'scene Main {}\nenvironment {\n  skybox("new");\n}'
-      );
+      expect(mockSetCode).toHaveBeenCalledWith('scene Main {}\nenvironment {\n  skybox("new");\n}');
     });
 
     it('should format preset with proper indentation', () => {
@@ -201,9 +199,7 @@ environment {
       });
 
       const expectedBlock = 'environment {\n  skybox("desert");\n  fog(0.5);\n}\n';
-      expect(mockSetCode).toHaveBeenCalledWith(
-        'scene Main {}\n\n' + expectedBlock
-      );
+      expect(mockSetCode).toHaveBeenCalledWith('scene Main {}\n\n' + expectedBlock);
     });
 
     it('should insert at end of empty code', () => {
@@ -221,9 +217,7 @@ environment {
         result.current.applyPreset('  ambient(#ffffff);');
       });
 
-      expect(mockSetCode).toHaveBeenCalledWith(
-        '\n\nenvironment {\n  ambient(#ffffff);\n}\n'
-      );
+      expect(mockSetCode).toHaveBeenCalledWith('\n\nenvironment {\n  ambient(#ffffff);\n}\n');
     });
 
     it('should replace environment block preserving surrounding code', () => {
@@ -502,9 +496,7 @@ environment {
         result.current.applyPreset('');
       });
 
-      expect(mockSetCode).toHaveBeenCalledWith(
-        'scene Main {}\n\nenvironment {\n\n}\n'
-      );
+      expect(mockSetCode).toHaveBeenCalledWith('scene Main {}\n\nenvironment {\n\n}\n');
     });
   });
 });

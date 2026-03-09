@@ -12,9 +12,13 @@
 // =============================================================================
 
 export interface PathPoint {
-  x: number; y: number; z: number;
-  lookAtX?: number; lookAtY?: number; lookAtZ?: number;
-  speedMultiplier?: number;  // 1 = default speed
+  x: number;
+  y: number;
+  z: number;
+  lookAtX?: number;
+  lookAtY?: number;
+  lookAtZ?: number;
+  speedMultiplier?: number; // 1 = default speed
 }
 
 // =============================================================================
@@ -23,8 +27,8 @@ export interface PathPoint {
 
 export class CameraPath {
   private points: PathPoint[] = [];
-  private progress = 0;     // 0-1
-  private speed = 1;         // Units per second
+  private progress = 0; // 0-1
+  private speed = 1; // Units per second
   private loop = false;
   private playing = false;
 
@@ -32,27 +36,54 @@ export class CameraPath {
   // Path Setup
   // ---------------------------------------------------------------------------
 
-  setPoints(points: PathPoint[]): void { this.points = [...points]; }
-  addPoint(point: PathPoint): void { this.points.push(point); }
-  clearPoints(): void { this.points = []; this.progress = 0; }
+  setPoints(points: PathPoint[]): void {
+    this.points = [...points];
+  }
+  addPoint(point: PathPoint): void {
+    this.points.push(point);
+  }
+  clearPoints(): void {
+    this.points = [];
+    this.progress = 0;
+  }
 
-  setSpeed(speed: number): void { this.speed = speed; }
-  setLoop(loop: boolean): void { this.loop = loop; }
+  setSpeed(speed: number): void {
+    this.speed = speed;
+  }
+  setLoop(loop: boolean): void {
+    this.loop = loop;
+  }
 
   // ---------------------------------------------------------------------------
   // Playback
   // ---------------------------------------------------------------------------
 
-  play(): void { this.playing = true; this.progress = 0; }
-  pause(): void { this.playing = false; }
-  resume(): void { this.playing = true; }
-  stop(): void { this.playing = false; this.progress = 0; }
+  play(): void {
+    this.playing = true;
+    this.progress = 0;
+  }
+  pause(): void {
+    this.playing = false;
+  }
+  resume(): void {
+    this.playing = true;
+  }
+  stop(): void {
+    this.playing = false;
+    this.progress = 0;
+  }
 
-  update(dt: number): { position: { x: number; y: number; z: number }; lookAt: { x: number; y: number; z: number } | null } | null {
+  update(dt: number): {
+    position: { x: number; y: number; z: number };
+    lookAt: { x: number; y: number; z: number } | null;
+  } | null {
     if (!this.playing || this.points.length < 2) return null;
 
     // Get speed multiplier at current point
-    const segIndex = Math.min(Math.floor(this.progress * (this.points.length - 1)), this.points.length - 2);
+    const segIndex = Math.min(
+      Math.floor(this.progress * (this.points.length - 1)),
+      this.points.length - 2
+    );
     const speedMul = this.points[segIndex]?.speedMultiplier ?? 1;
 
     // Advance
@@ -75,7 +106,10 @@ export class CameraPath {
   // Catmull-Rom Evaluation
   // ---------------------------------------------------------------------------
 
-  evaluate(t: number): { position: { x: number; y: number; z: number }; lookAt: { x: number; y: number; z: number } | null } {
+  evaluate(t: number): {
+    position: { x: number; y: number; z: number };
+    lookAt: { x: number; y: number; z: number } | null;
+  } {
     const n = this.points.length;
     if (n === 0) return { position: { x: 0, y: 0, z: 0 }, lookAt: null };
     if (n === 1) return { position: { ...this.points[0] }, lookAt: null };
@@ -110,12 +144,14 @@ export class CameraPath {
   }
 
   private catmullRom(p0: number, p1: number, p2: number, p3: number, t: number): number {
-    const t2 = t * t, t3 = t2 * t;
-    return 0.5 * (
-      (2 * p1) +
-      (-p0 + p2) * t +
-      (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
-      (-p0 + 3 * p1 - 3 * p2 + p3) * t3
+    const t2 = t * t,
+      t3 = t2 * t;
+    return (
+      0.5 *
+      (2 * p1 +
+        (-p0 + p2) * t +
+        (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+        (-p0 + 3 * p1 - 3 * p2 + p3) * t3)
     );
   }
 
@@ -123,7 +159,13 @@ export class CameraPath {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getProgress(): number { return this.progress; }
-  isPlaying(): boolean { return this.playing; }
-  getPointCount(): number { return this.points.length; }
+  getProgress(): number {
+    return this.progress;
+  }
+  isPlaying(): boolean {
+    return this.playing;
+  }
+  getPointCount(): number {
+    return this.points.length;
+  }
 }

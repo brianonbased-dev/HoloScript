@@ -21,11 +21,11 @@ export interface FluidParticle {
 
 export interface FluidConfig {
   restDensity: number;
-  gasConstant: number;      // Pressure stiffness
+  gasConstant: number; // Pressure stiffness
   viscosity: number;
   surfaceTension: number;
   gravity: { x: number; y: number; z: number };
-  smoothingRadius: number;  // SPH kernel radius
+  smoothingRadius: number; // SPH kernel radius
   timeStep: number;
   boundaryMin: { x: number; y: number; z: number };
   boundaryMax: { x: number; y: number; z: number };
@@ -60,7 +60,10 @@ export class FluidSim {
   // Particle Management
   // ---------------------------------------------------------------------------
 
-  addParticle(position: { x: number; y: number; z: number }, velocity?: { x: number; y: number; z: number }): void {
+  addParticle(
+    position: { x: number; y: number; z: number },
+    velocity?: { x: number; y: number; z: number }
+  ): void {
     this.particles.push({
       position: { ...position },
       velocity: velocity ? { ...velocity } : { x: 0, y: 0, z: 0 },
@@ -70,7 +73,11 @@ export class FluidSim {
     });
   }
 
-  addBlock(min: { x: number; y: number; z: number }, max: { x: number; y: number; z: number }, spacing: number): number {
+  addBlock(
+    min: { x: number; y: number; z: number },
+    max: { x: number; y: number; z: number },
+    spacing: number
+  ): number {
     let count = 0;
     for (let x = min.x; x <= max.x; x += spacing) {
       for (let y = min.y; y <= max.y; y += spacing) {
@@ -128,7 +135,9 @@ export class FluidSim {
 
     // 2. Compute forces & integrate
     for (const pi of this.particles) {
-      let fx = 0, fy = 0, fz = 0;
+      let fx = 0,
+        fy = 0,
+        fz = 0;
 
       for (const pj of this.particles) {
         if (pi === pj) continue;
@@ -141,14 +150,15 @@ export class FluidSim {
         if (r < h && r > 0) {
           // Pressure force
           const pressGrad = this.spikyGrad(r, h);
-          const pressScale = -pj.mass * (pi.pressure + pj.pressure) / (2 * pj.density || 1) * pressGrad;
+          const pressScale =
+            ((-pj.mass * (pi.pressure + pj.pressure)) / (2 * pj.density || 1)) * pressGrad;
           fx += (dx / r) * pressScale;
           fy += (dy / r) * pressScale;
           fz += (dz / r) * pressScale;
 
           // Viscosity force
           const viscLap = this.viscosityLaplacian(r, h);
-          const viscScale = this.config.viscosity * pj.mass / (pj.density || 1) * viscLap;
+          const viscScale = ((this.config.viscosity * pj.mass) / (pj.density || 1)) * viscLap;
           fx += (pj.velocity.x - pi.velocity.x) * viscScale;
           fy += (pj.velocity.y - pi.velocity.y) * viscScale;
           fz += (pj.velocity.z - pi.velocity.z) * viscScale;
@@ -178,12 +188,30 @@ export class FluidSim {
   private enforceBoundaries(): void {
     const { boundaryMin: mn, boundaryMax: mx, boundaryDamping: d } = this.config;
     for (const p of this.particles) {
-      if (p.position.x < mn.x) { p.position.x = mn.x; p.velocity.x *= -d; }
-      if (p.position.x > mx.x) { p.position.x = mx.x; p.velocity.x *= -d; }
-      if (p.position.y < mn.y) { p.position.y = mn.y; p.velocity.y *= -d; }
-      if (p.position.y > mx.y) { p.position.y = mx.y; p.velocity.y *= -d; }
-      if (p.position.z < mn.z) { p.position.z = mn.z; p.velocity.z *= -d; }
-      if (p.position.z > mx.z) { p.position.z = mx.z; p.velocity.z *= -d; }
+      if (p.position.x < mn.x) {
+        p.position.x = mn.x;
+        p.velocity.x *= -d;
+      }
+      if (p.position.x > mx.x) {
+        p.position.x = mx.x;
+        p.velocity.x *= -d;
+      }
+      if (p.position.y < mn.y) {
+        p.position.y = mn.y;
+        p.velocity.y *= -d;
+      }
+      if (p.position.y > mx.y) {
+        p.position.y = mx.y;
+        p.velocity.y *= -d;
+      }
+      if (p.position.z < mn.z) {
+        p.position.z = mn.z;
+        p.velocity.z *= -d;
+      }
+      if (p.position.z > mx.z) {
+        p.position.z = mx.z;
+        p.velocity.z *= -d;
+      }
     }
   }
 
@@ -191,8 +219,12 @@ export class FluidSim {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getParticles(): FluidParticle[] { return this.particles; }
-  getParticleCount(): number { return this.particles.length; }
+  getParticles(): FluidParticle[] {
+    return this.particles;
+  }
+  getParticleCount(): number {
+    return this.particles.length;
+  }
   getAverageDensity(): number {
     if (this.particles.length === 0) return 0;
     return this.particles.reduce((s, p) => s + p.density, 0) / this.particles.length;
@@ -202,6 +234,10 @@ export class FluidSim {
       return s + 0.5 * p.mass * (p.velocity.x ** 2 + p.velocity.y ** 2 + p.velocity.z ** 2);
     }, 0);
   }
-  clear(): void { this.particles = []; }
-  setConfig(config: Partial<FluidConfig>): void { Object.assign(this.config, config); }
+  clear(): void {
+    this.particles = [];
+  }
+  setConfig(config: Partial<FluidConfig>): void {
+    Object.assign(this.config, config);
+  }
 }

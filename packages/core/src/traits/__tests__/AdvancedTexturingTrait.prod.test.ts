@@ -9,7 +9,13 @@ const displacementConfig: AdvancedTexturingConfig = {
 
 const pomConfig: AdvancedTexturingConfig = {
   mode: 'pom',
-  pom: { heightMap: 'textures/pom_height.png', scale: 0.05, steps: 32, refinementSteps: 8, selfShadow: true },
+  pom: {
+    heightMap: 'textures/pom_height.png',
+    scale: 0.05,
+    steps: 32,
+    refinementSteps: 8,
+    selfShadow: true,
+  },
 };
 
 const triplanarConfig: AdvancedTexturingConfig = {
@@ -25,7 +31,12 @@ const triplanarConfig: AdvancedTexturingConfig = {
 
 const detailConfig: AdvancedTexturingConfig = {
   mode: 'detail',
-  detail: { albedoMap: 'detail/micro_albedo.png', normalMap: 'detail/micro_normal.png', scale: 8, intensity: 0.5 },
+  detail: {
+    albedoMap: 'detail/micro_albedo.png',
+    normalMap: 'detail/micro_normal.png',
+    scale: 8,
+    intensity: 0.5,
+  },
 };
 
 const atlasConfig: AdvancedTexturingConfig = {
@@ -34,7 +45,6 @@ const atlasConfig: AdvancedTexturingConfig = {
 };
 
 describe('AdvancedTexturingTrait — Production Tests', () => {
-
   describe('validate()', () => {
     it('accepts displacement config', () => {
       expect(AdvancedTexturingTrait.validate(displacementConfig)).toBe(true);
@@ -61,7 +71,9 @@ describe('AdvancedTexturingTrait — Production Tests', () => {
     });
 
     it('throws when displacement mode missing config', () => {
-      expect(() => AdvancedTexturingTrait.validate({ mode: 'displacement' })).toThrow('displacement config');
+      expect(() => AdvancedTexturingTrait.validate({ mode: 'displacement' })).toThrow(
+        'displacement config'
+      );
     });
 
     it('throws when pom mode missing config', () => {
@@ -69,7 +81,9 @@ describe('AdvancedTexturingTrait — Production Tests', () => {
     });
 
     it('throws when triplanar mode missing config', () => {
-      expect(() => AdvancedTexturingTrait.validate({ mode: 'triplanar' })).toThrow('triplanar config');
+      expect(() => AdvancedTexturingTrait.validate({ mode: 'triplanar' })).toThrow(
+        'triplanar config'
+      );
     });
 
     it('throws when pom.steps < 1', () => {
@@ -83,7 +97,10 @@ describe('AdvancedTexturingTrait — Production Tests', () => {
     });
 
     it('throws when atlas width <= 0', () => {
-      const bad: AdvancedTexturingConfig = { ...atlasConfig, atlas: { ...atlasConfig.atlas!, width: 0 } };
+      const bad: AdvancedTexturingConfig = {
+        ...atlasConfig,
+        atlas: { ...atlasConfig.atlas!, width: 0 },
+      };
       expect(() => AdvancedTexturingTrait.validate(bad)).toThrow('dimensions');
     });
   });
@@ -122,7 +139,9 @@ describe('AdvancedTexturingTrait — Production Tests', () => {
     });
 
     it('POM Unreal output references Parallax Occlusion Mapping', () => {
-      expect(AdvancedTexturingTrait.compile(pomConfig, 'unreal')).toContain('Parallax Occlusion Mapping');
+      expect(AdvancedTexturingTrait.compile(pomConfig, 'unreal')).toContain(
+        'Parallax Occlusion Mapping'
+      );
     });
 
     it('triplanar Unreal output references Triplanar', () => {
@@ -132,7 +151,9 @@ describe('AdvancedTexturingTrait — Production Tests', () => {
 
   describe('compile() — Web', () => {
     it('displacement Web output references displacementMap', () => {
-      expect(AdvancedTexturingTrait.compile(displacementConfig, 'web')).toContain('displacementMap');
+      expect(AdvancedTexturingTrait.compile(displacementConfig, 'web')).toContain(
+        'displacementMap'
+      );
     });
 
     it('POM Web output references heightMap file', () => {
@@ -153,7 +174,9 @@ describe('AdvancedTexturingTrait — Production Tests', () => {
     });
 
     it('triplanar WebGPU output contains triplanarSample function', () => {
-      expect(AdvancedTexturingTrait.compile(triplanarConfig, 'webgpu')).toContain('triplanarSample');
+      expect(AdvancedTexturingTrait.compile(triplanarConfig, 'webgpu')).toContain(
+        'triplanarSample'
+      );
     });
 
     it('POM WebGPU output embeds correct step count', () => {

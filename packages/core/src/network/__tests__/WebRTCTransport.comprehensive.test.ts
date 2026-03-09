@@ -87,7 +87,9 @@ describe('WebRTC Transport - Comprehensive Test Suite', () => {
         close: vi.fn(),
       };
 
-      global.WebSocket = vi.fn(function() { return mockWs; }) as any;
+      global.WebSocket = vi.fn(function () {
+        return mockWs;
+      }) as any;
 
       // Start initialization (don't await yet)
       const initPromise = transport.initialize();
@@ -100,14 +102,12 @@ describe('WebRTC Transport - Comprehensive Test Suite', () => {
         // Actually, initialize sets onopen synchronously after new WebSocket
         // But if mockWs was created inside the mock constructor, we have a reference.
       }
-      
+
       // Wait for initialization to complete
       await initPromise;
 
       // Should send join-room message
-      expect(mockWs.send).toHaveBeenCalledWith(
-        expect.stringContaining('join-room')
-      );
+      expect(mockWs.send).toHaveBeenCalledWith(expect.stringContaining('join-room'));
     });
 
     it('should handle connection errors', async () => {
@@ -494,8 +494,7 @@ describe('WebRTC Transport - Comprehensive Test Suite', () => {
       const latencies = [20, 25, 18, 22, 21];
       const mean = latencies.reduce((a, b) => a + b) / latencies.length;
       const variance =
-        latencies.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
-        latencies.length;
+        latencies.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / latencies.length;
       const jitter = Math.sqrt(variance);
 
       expect(jitter).toBeGreaterThanOrEqual(0);
@@ -514,10 +513,7 @@ describe('WebRTC Transport - Comprehensive Test Suite', () => {
         bandwidth: 8000,
       };
 
-      const isHealthy =
-        health.latency < 100 &&
-        health.packetLoss < 5 &&
-        health.bandwidth > 1000;
+      const isHealthy = health.latency < 100 && health.packetLoss < 5 && health.bandwidth > 1000;
 
       expect(isHealthy).toBe(true);
     });

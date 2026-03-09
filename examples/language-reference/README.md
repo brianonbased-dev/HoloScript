@@ -3,6 +3,7 @@
 Comprehensive examples demonstrating all language features across the three HoloScript formats (`.hs`, `.hsplus`, `.holo`).
 
 **Purpose:**
+
 - Developer learning and onboarding
 - AI agent grounding for code generation
 - Systematic coverage of all syntax constructs
@@ -36,27 +37,29 @@ Comprehensive examples demonstrating all language features across the three Holo
 
 ### 3. Feature Matrix
 
-| Feature | `.hs` | `.hsplus` | `.holo` (entity) | `.holo` (object) |
-|---------|-------|-----------|------------------|------------------|
-| Basic objects | ✓ | ✓ | ✓ | ✓ |
-| Templates | ✗ | ✓ | ✗ | ✓ |
-| Decorators (@) | ✗ | ✓ | ✗ | ✓ |
-| State blocks | ✗ | ✓ | ✗ | ✓ |
-| Actions | ✗ | ✓ | ✗ | ✓ |
-| Event handlers | ✗ | ✓ | ✓ | ✓ |
-| Trait configs | ✗ | ✗ | ✓ | ✗ |
-| Modules | ✗ | ✓ | ✗ | ✗ |
-| Panels/UI | ✗ | ✓ | ✓ | ✓ |
+| Feature        | `.hs` | `.hsplus` | `.holo` (entity) | `.holo` (object) |
+| -------------- | ----- | --------- | ---------------- | ---------------- |
+| Basic objects  | ✓     | ✓         | ✓                | ✓                |
+| Templates      | ✗     | ✓         | ✗                | ✓                |
+| Decorators (@) | ✗     | ✓         | ✗                | ✓                |
+| State blocks   | ✗     | ✓         | ✗                | ✓                |
+| Actions        | ✗     | ✓         | ✗                | ✓                |
+| Event handlers | ✗     | ✓         | ✓                | ✓                |
+| Trait configs  | ✗     | ✗         | ✓                | ✗                |
+| Modules        | ✗     | ✓         | ✗                | ✗                |
+| Panels/UI      | ✗     | ✓         | ✓                | ✓                |
 
 ## Format Selection Guide
 
 ### Use `.hs` when:
+
 - Learning HoloScript basics
 - Creating simple static scenes
 - Prototyping quickly
 - No interactivity needed
 
 ### Use `.hsplus` when:
+
 - Need templates/reusability
 - State management required
 - Event-driven interactions
@@ -64,12 +67,14 @@ Comprehensive examples demonstrating all language features across the three Holo
 - Modular code organization
 
 ### Use `.holo` (entity pattern) when:
+
 - Advanced trait-based configuration
 - Complex spatial computing features
 - VR/AR/XR experiences
 - Fine-grained control over spatial primitives
 
 ### Use `.holo` (object pattern) when:
+
 - Need both templates AND traits
 - Migrating from .hsplus
 - Complex scenes with many objects
@@ -88,6 +93,7 @@ For AI agents generating HoloScript code:
 ## Quick Reference
 
 **Minimal .hs example:**
+
 ```holoscript
 object "Cube" {
   geometry: "box"
@@ -97,6 +103,7 @@ object "Cube" {
 ```
 
 **Minimal .hsplus example:**
+
 ```holoscript
 composition "Scene" {
   template "Interactive" {
@@ -112,6 +119,7 @@ composition "Scene" {
 ```
 
 **Minimal .holo (entity) example:**
+
 ```holoscript
 composition SimpleScene {
   entity PhysicsObject {
@@ -129,6 +137,7 @@ composition SimpleScene {
 ```
 
 **Minimal .holo (object) example:**
+
 ```holoscript
 composition "Scene" {
   template "Base" {

@@ -4,7 +4,10 @@
  * @version 1.0.0
  */
 
-export interface Vec2 { x: number; z: number; }
+export interface Vec2 {
+  x: number;
+  z: number;
+}
 
 export type SteeringType = 'seek' | 'flee' | 'arrive' | 'wander' | 'avoid' | 'pursue' | 'evade';
 
@@ -54,9 +57,7 @@ export class SteeringBehavior {
     const dist = Math.sqrt(toTarget.x ** 2 + toTarget.z ** 2);
     if (dist === 0) return { x: 0, z: 0 };
 
-    const speed = dist < slowRadius
-      ? agent.maxSpeed * (dist / slowRadius)
-      : agent.maxSpeed;
+    const speed = dist < slowRadius ? agent.maxSpeed * (dist / slowRadius) : agent.maxSpeed;
 
     const desired = {
       x: (toTarget.x / dist) * speed,
@@ -72,7 +73,12 @@ export class SteeringBehavior {
   /**
    * Wander — random jitter-based steering
    */
-  static wander(agent: SteeringAgent, wanderRadius: number = 2, wanderDistance: number = 4, jitter: number = 0.5): Vec2 {
+  static wander(
+    agent: SteeringAgent,
+    wanderRadius: number = 2,
+    wanderDistance: number = 4,
+    jitter: number = 0.5
+  ): Vec2 {
     const angle = Math.random() * Math.PI * 2;
     const wanderTarget = {
       x: agent.position.x + Math.cos(angle) * wanderRadius * jitter,
@@ -80,22 +86,33 @@ export class SteeringBehavior {
     };
 
     const velMag = Math.sqrt(agent.velocity.x ** 2 + agent.velocity.z ** 2);
-    const forward = velMag > 0
-      ? { x: (agent.velocity.x / velMag) * wanderDistance, z: (agent.velocity.z / velMag) * wanderDistance }
-      : { x: wanderDistance, z: 0 };
+    const forward =
+      velMag > 0
+        ? {
+            x: (agent.velocity.x / velMag) * wanderDistance,
+            z: (agent.velocity.z / velMag) * wanderDistance,
+          }
+        : { x: wanderDistance, z: 0 };
 
     const circleCenter = {
       x: agent.position.x + forward.x,
       z: agent.position.z + forward.z,
     };
 
-    return this.seek(agent, { x: circleCenter.x + wanderTarget.x - agent.position.x, z: circleCenter.z + wanderTarget.z - agent.position.z });
+    return this.seek(agent, {
+      x: circleCenter.x + wanderTarget.x - agent.position.x,
+      z: circleCenter.z + wanderTarget.z - agent.position.z,
+    });
   }
 
   /**
    * Obstacle avoidance
    */
-  static avoid(agent: SteeringAgent, obstacles: { position: Vec2; radius: number }[], lookAhead: number = 5): Vec2 {
+  static avoid(
+    agent: SteeringAgent,
+    obstacles: { position: Vec2; radius: number }[],
+    lookAhead: number = 5
+  ): Vec2 {
     const force: Vec2 = { x: 0, z: 0 };
 
     for (const obs of obstacles) {

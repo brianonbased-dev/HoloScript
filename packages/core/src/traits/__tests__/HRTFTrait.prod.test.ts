@@ -79,9 +79,12 @@ describe('hrtfHandler.onAttach', () => {
 
   it('emits hrtf_load_custom when custom_sofa_url provided', () => {
     const { ctx } = attach({ custom_sofa_url: 'https://example.com/my.sofa' });
-    expect(ctx.emit).toHaveBeenCalledWith('hrtf_load_custom', expect.objectContaining({
-      url: 'https://example.com/my.sofa',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'hrtf_load_custom',
+      expect.objectContaining({
+        url: 'https://example.com/my.sofa',
+      })
+    );
   });
 
   it('does NOT emit hrtf_load_database when custom_sofa_url provided', () => {
@@ -98,7 +101,13 @@ describe('hrtfHandler.onAttach', () => {
   });
 
   it('always emits hrtf_configure', () => {
-    const { ctx } = attach({ interpolation: 'sphere', crossfade_time: 100, head_radius: 0.09, enable_near_field: false, itd_model: 'measured' });
+    const { ctx } = attach({
+      interpolation: 'sphere',
+      crossfade_time: 100,
+      head_radius: 0.09,
+      enable_near_field: false,
+      itd_model: 'measured',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'hrtf_configure');
     expect(call).toBeDefined();
     expect(call![1].interpolation).toBe('sphere');
@@ -184,8 +193,14 @@ describe('hrtfHandler.onEvent', () => {
   it('hrtf_database_loaded with null subjectId → hrtf_ready with null', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    hrtfHandler.onEvent!(node as any, config, ctx as any, { type: 'hrtf_database_loaded', subjectId: null });
-    expect(ctx.emit).toHaveBeenCalledWith('hrtf_ready', { node: expect.anything(), subjectId: null });
+    hrtfHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'hrtf_database_loaded',
+      subjectId: null,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith('hrtf_ready', {
+      node: expect.anything(),
+      subjectId: null,
+    });
   });
 
   it('listener_update stores position and orientation, emits hrtf_listener_update', () => {
@@ -201,18 +216,27 @@ describe('hrtfHandler.onEvent', () => {
     const state = (node as any).__hrtfState;
     expect(state.listenerPosition).toEqual(pos);
     expect(state.listenerOrientation).toEqual(orient);
-    expect(ctx.emit).toHaveBeenCalledWith('hrtf_listener_update', expect.objectContaining({
-      position: pos,
-      orientation: orient,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'hrtf_listener_update',
+      expect.objectContaining({
+        position: pos,
+        orientation: orient,
+      })
+    );
   });
 
   it('hrtf_set_head_radius updates headRadius and emits hrtf_configure', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    hrtfHandler.onEvent!(node as any, config, ctx as any, { type: 'hrtf_set_head_radius', radius: 0.1 });
+    hrtfHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'hrtf_set_head_radius',
+      radius: 0.1,
+    });
     expect((node as any).__hrtfState.headRadius).toBeCloseTo(0.1, 5);
-    expect(ctx.emit).toHaveBeenCalledWith('hrtf_configure', expect.objectContaining({ headRadius: 0.1 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'hrtf_configure',
+      expect.objectContaining({ headRadius: 0.1 })
+    );
   });
 
   it('hrtf_enable sets isActive=true', () => {
@@ -232,6 +256,8 @@ describe('hrtfHandler.onEvent', () => {
     const node = makeNode();
     const ctx = makeCtx();
     const config = hrtfHandler.defaultConfig!;
-    expect(() => hrtfHandler.onEvent!(node as any, config, ctx as any, { type: 'hrtf_enable' })).not.toThrow();
+    expect(() =>
+      hrtfHandler.onEvent!(node as any, config, ctx as any, { type: 'hrtf_enable' })
+    ).not.toThrow();
   });
 });

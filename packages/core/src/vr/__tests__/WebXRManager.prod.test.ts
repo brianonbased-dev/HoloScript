@@ -22,7 +22,7 @@ function makeSessionMock() {
     requestReferenceSpace: vi.fn().mockResolvedValue({ type: 'local-floor' }),
     requestAnimationFrame: vi.fn(),
     end: vi.fn().mockResolvedValue(undefined),
-    _fire: (event: string) => listeners[event]?.forEach(cb => cb()),
+    _fire: (event: string) => listeners[event]?.forEach((cb) => cb()),
   };
   return session;
 }

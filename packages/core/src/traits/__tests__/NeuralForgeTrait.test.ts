@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { neuralForgeHandler } from '../NeuralForgeTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('NeuralForgeTrait', () => {
   let node: Record<string, unknown>;
@@ -61,7 +67,9 @@ describe('NeuralForgeTrait', () => {
     sendEvent(neuralForgeHandler, node, cfg, ctx, {
       type: 'neural_absorb_shard',
       shard: {
-        id: 'shard-2', sourceId: 'other', timestamp: Date.now(),
+        id: 'shard-2',
+        sourceId: 'other',
+        timestamp: Date.now(),
         type: 'personality',
         data: { modifiers: { openness: 2.0 } },
         weight: 1.0,

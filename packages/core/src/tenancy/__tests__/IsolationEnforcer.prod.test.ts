@@ -65,8 +65,7 @@ describe('validateResourceAccess', () => {
   });
 
   it('throws TenantIsolationError on mismatch', () => {
-    expect(() => validateResourceAccess(ctx('alice'), 'bob'))
-      .toThrow(TenantIsolationError);
+    expect(() => validateResourceAccess(ctx('alice'), 'bob')).toThrow(TenantIsolationError);
   });
 
   it('thrown error has correct requestingTenantId', () => {
@@ -103,7 +102,9 @@ describe('validateResourceAccess', () => {
 describe('isolateExecution', () => {
   it('calls fn with correct namespace prefix', async () => {
     let received = '';
-    await isolateExecution(ctx('t1'), (prefix) => { received = prefix; });
+    await isolateExecution(ctx('t1'), (prefix) => {
+      received = prefix;
+    });
     expect(received).toBe('tenant:t1:');
   });
 
@@ -121,13 +122,15 @@ describe('isolateExecution', () => {
 
   it('executes fn once', async () => {
     let calls = 0;
-    await isolateExecution(ctx('t'), () => { calls++; });
+    await isolateExecution(ctx('t'), () => {
+      calls++;
+    });
     expect(calls).toBe(1);
   });
 
   it('different tenants get different namespace prefixes', async () => {
-    const r1 = await isolateExecution(ctx('t-A'), p => p);
-    const r2 = await isolateExecution(ctx('t-B'), p => p);
+    const r1 = await isolateExecution(ctx('t-A'), (p) => p);
+    const r2 = await isolateExecution(ctx('t-B'), (p) => p);
     expect(r1).not.toBe(r2);
   });
 });
@@ -142,8 +145,7 @@ describe('validateNamespace', () => {
   });
 
   it('throws TenantIsolationError for namespace of different tenant', () => {
-    expect(() => validateNamespace(ctx('t1'), 'tenant:t2:resource'))
-      .toThrow(TenantIsolationError);
+    expect(() => validateNamespace(ctx('t1'), 'tenant:t2:resource')).toThrow(TenantIsolationError);
   });
 
   it('throws for namespace with no tenant prefix', () => {
@@ -160,9 +162,7 @@ describe('validateNamespace', () => {
 
   it('allows any key within correct tenant namespace', () => {
     for (const key of ['config', 'user/profile', 'data/x/y/z']) {
-      expect(() =>
-        validateNamespace(ctx('myTenant'), `tenant:myTenant:${key}`)
-      ).not.toThrow();
+      expect(() => validateNamespace(ctx('myTenant'), `tenant:myTenant:${key}`)).not.toThrow();
     }
   });
 });
@@ -173,8 +173,7 @@ describe('validateNamespace', () => {
 
 describe('getIsolatedNamespace', () => {
   it('prepends tenant prefix to name', () => {
-    expect(getIsolatedNamespace(ctx('abc'), 'config'))
-      .toBe('tenant:abc:config');
+    expect(getIsolatedNamespace(ctx('abc'), 'config')).toBe('tenant:abc:config');
   });
 
   it('works with empty name', () => {

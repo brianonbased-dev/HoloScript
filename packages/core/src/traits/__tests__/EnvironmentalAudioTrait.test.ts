@@ -28,25 +28,25 @@ describe('EnvironmentalAudioTrait', () => {
 
     it('storm has highest ambient volume', () => {
       expect(WEATHER_PRESETS.storm.ambientVolume).toBeGreaterThanOrEqual(
-        WEATHER_PRESETS.clear.ambientVolume,
+        WEATHER_PRESETS.clear.ambientVolume
       );
       expect(WEATHER_PRESETS.storm.ambientVolume).toBeGreaterThanOrEqual(
-        WEATHER_PRESETS.rain.ambientVolume,
+        WEATHER_PRESETS.rain.ambientVolume
       );
     });
 
     it('snow has highest reverb damping', () => {
       expect(WEATHER_PRESETS.snow.reverbDamping).toBeGreaterThanOrEqual(
-        WEATHER_PRESETS.clear.reverbDamping,
+        WEATHER_PRESETS.clear.reverbDamping
       );
       expect(WEATHER_PRESETS.snow.reverbDamping).toBeGreaterThanOrEqual(
-        WEATHER_PRESETS.rain.reverbDamping,
+        WEATHER_PRESETS.rain.reverbDamping
       );
     });
 
     it('clear has lowest air absorption', () => {
       expect(WEATHER_PRESETS.clear.airAbsorptionMultiplier).toBeLessThanOrEqual(
-        WEATHER_PRESETS.storm.airAbsorptionMultiplier,
+        WEATHER_PRESETS.storm.airAbsorptionMultiplier
       );
     });
 
@@ -193,7 +193,8 @@ describe('EnvironmentalAudioTrait', () => {
       const multiplier = system.getAirAbsorptionMultiplier(100);
       const detailed = system.calculateAirAbsorption(100);
 
-      const average = (detailed[500] + detailed[1000] + detailed[2000] + detailed[4000] + detailed[8000]) / 5;
+      const average =
+        (detailed[500] + detailed[1000] + detailed[2000] + detailed[4000] + detailed[8000]) / 5;
       expect(multiplier).toBeCloseTo(average, 5);
     });
   });
@@ -207,7 +208,7 @@ describe('EnvironmentalAudioTrait', () => {
       const shift = system.calculateDopplerShift(
         { x: 0, y: 0, z: 0 }, // source velocity
         { x: 0, y: 0, z: 0 }, // listener velocity
-        { x: 10, y: 0, z: 0 }, // source to listener
+        { x: 10, y: 0, z: 0 } // source to listener
       );
       expect(shift).toBeCloseTo(1.0, 2);
     });
@@ -216,7 +217,7 @@ describe('EnvironmentalAudioTrait', () => {
       const shift = system.calculateDopplerShift(
         { x: 10, y: 0, z: 0 }, // source moving toward listener (positive x)
         { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 }, // listener at +x
+        { x: 10, y: 0, z: 0 } // listener at +x
       );
       expect(shift).toBeGreaterThan(1.0);
     });
@@ -225,7 +226,7 @@ describe('EnvironmentalAudioTrait', () => {
       const shift = system.calculateDopplerShift(
         { x: -10, y: 0, z: 0 }, // source moving away (negative x)
         { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
+        { x: 10, y: 0, z: 0 }
       );
       expect(shift).toBeLessThan(1.0);
     });
@@ -235,7 +236,7 @@ describe('EnvironmentalAudioTrait', () => {
       const shift = system.calculateDopplerShift(
         { x: 50, y: 0, z: 0 },
         { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
+        { x: 10, y: 0, z: 0 }
       );
       expect(shift).toBe(1.0);
     });
@@ -245,7 +246,7 @@ describe('EnvironmentalAudioTrait', () => {
       const shift = system.calculateDopplerShift(
         { x: 200, y: 0, z: 0 }, // Very fast approach
         { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
+        { x: 10, y: 0, z: 0 }
       );
       expect(shift).toBeLessThanOrEqual(1.3);
     });
@@ -265,14 +266,14 @@ describe('EnvironmentalAudioTrait', () => {
       const windShift = system.calculateDopplerShift(
         { x: 20, y: 0, z: 0 },
         { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
+        { x: 10, y: 0, z: 0 }
       );
 
       system.setWeather('storm'); // Lower Doppler scale
       const stormShift = system.calculateDopplerShift(
         { x: 20, y: 0, z: 0 },
         { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
+        { x: 10, y: 0, z: 0 }
       );
 
       // Wind should have stronger Doppler effect
@@ -283,7 +284,7 @@ describe('EnvironmentalAudioTrait', () => {
       const shift = system.calculateDopplerShift(
         { x: 10, y: 0, z: 0 },
         { x: 0, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 }, // Zero distance
+        { x: 0, y: 0, z: 0 } // Zero distance
       );
       expect(shift).toBe(1.0);
     });
@@ -332,7 +333,7 @@ describe('EnvironmentalAudioTrait', () => {
         100,
         { x: 10, y: 0, z: 0 }, // source velocity
         { x: 0, y: 0, z: 0 }, // listener velocity
-        { x: 100, y: 0, z: 0 }, // source to listener
+        { x: 100, y: 0, z: 0 } // source to listener
       );
 
       expect(effect.dopplerShift).toBeGreaterThan(1.0);

@@ -19,16 +19,10 @@ async function example1_SharedAvatarPosition() {
   const bob = createTestSigner('bob');
 
   // Alice creates a position register for her avatar
-  const alicePosition = new LWWRegister<{ x: number; y: number; z: number }>(
-    'avatar-alice',
-    alice
-  );
+  const alicePosition = new LWWRegister<{ x: number; y: number; z: number }>('avatar-alice', alice);
 
   // Bob creates his own view of Alice's position (starts empty)
-  const bobViewOfAlice = new LWWRegister<{ x: number; y: number; z: number }>(
-    'avatar-alice',
-    bob
-  );
+  const bobViewOfAlice = new LWWRegister<{ x: number; y: number; z: number }>('avatar-alice', bob);
 
   // Alice moves to position (1, 0, 1)
   const op1 = await alicePosition.set({ x: 1, y: 0, z: 1 });
@@ -44,7 +38,10 @@ async function example1_SharedAvatarPosition() {
 
   // Both converge to the same position (LWW = Last Write Wins)
   console.log('Bob sees Alice at:', bobViewOfAlice.get());
-  console.log('Positions match:', JSON.stringify(alicePosition.get()) === JSON.stringify(bobViewOfAlice.get()));
+  console.log(
+    'Positions match:',
+    JSON.stringify(alicePosition.get()) === JSON.stringify(bobViewOfAlice.get())
+  );
 }
 
 // ============================================================================
@@ -87,7 +84,10 @@ async function example2_RoomParticipants() {
   }
 
   console.log('After Charlie leaves:', bobRoomView.values());
-  console.log('Sets converged:', JSON.stringify(aliceRoomView.values().sort()) === JSON.stringify(bobRoomView.values().sort()));
+  console.log(
+    'Sets converged:',
+    JSON.stringify(aliceRoomView.values().sort()) === JSON.stringify(bobRoomView.values().sort())
+  );
 }
 
 // ============================================================================

@@ -16,7 +16,9 @@ function makeEntry(id: string, sizeBytes: number, loaded = false): BundleEntry {
 
 describe('ResourceBundle — createBundle / removeBundle', () => {
   let rb: ResourceBundle;
-  beforeEach(() => { rb = new ResourceBundle(); });
+  beforeEach(() => {
+    rb = new ResourceBundle();
+  });
 
   it('starts with 0 bundles', () => {
     expect(rb.getBundleCount()).toBe(0);
@@ -48,7 +50,9 @@ describe('ResourceBundle — createBundle / removeBundle', () => {
 
 describe('ResourceBundle — addEntry', () => {
   let rb: ResourceBundle;
-  beforeEach(() => { rb = new ResourceBundle(); });
+  beforeEach(() => {
+    rb = new ResourceBundle();
+  });
 
   it('returns false for unknown bundle', () => {
     expect(rb.addEntry('ghost', makeEntry('e1', 100))).toBe(false);
@@ -82,7 +86,9 @@ describe('ResourceBundle — addEntry', () => {
 
 describe('ResourceBundle — getBundleSize / getLoadedCount / isFullyLoaded / getLoadProgress', () => {
   let rb: ResourceBundle;
-  beforeEach(() => { rb = new ResourceBundle(); });
+  beforeEach(() => {
+    rb = new ResourceBundle();
+  });
 
   it('getBundleSize returns 0 for unknown bundle', () => {
     expect(rb.getBundleSize('ghost')).toBe(0);
@@ -113,7 +119,9 @@ describe('ResourceBundle — getBundleSize / getLoadedCount / isFullyLoaded / ge
 
 describe('ResourceBundle — loadBundle', () => {
   let rb: ResourceBundle;
-  beforeEach(() => { rb = new ResourceBundle(); });
+  beforeEach(() => {
+    rb = new ResourceBundle();
+  });
 
   it('marks all unloaded entries as loaded', async () => {
     rb.createBundle(makeConfig('a', 100000));
@@ -158,7 +166,9 @@ describe('ResourceBundle — loadBundle', () => {
 
 describe('ResourceBundle — preloadAll', () => {
   let rb: ResourceBundle;
-  beforeEach(() => { rb = new ResourceBundle(); });
+  beforeEach(() => {
+    rb = new ResourceBundle();
+  });
 
   it('returns [] when no preloadable bundles', async () => {
     rb.createBundle(makeConfig('a', 1000, 0, false));

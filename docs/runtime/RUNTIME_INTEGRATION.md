@@ -1,5 +1,3 @@
-
-
 # HoloScript Runtime Integration
 
 ## Overview
@@ -68,6 +66,7 @@ executor.start();
 ```
 
 **Features**:
+
 - ✅ Runtime registration and discovery
 - ✅ Capability-based querying
 - ✅ Tag-based filtering
@@ -90,6 +89,7 @@ RuntimeRegistry.register(DemolitionRuntime);
 ```
 
 **Capabilities**:
+
 - Physics: Gravity, collision, constraints
 - Rendering: 120K particles, post-processing
 - Interaction: User input
@@ -109,14 +109,14 @@ All runtimes implement the standardized `RuntimeExecutor` interface:
 
 ```typescript
 interface RuntimeExecutor {
-  start(): void;      // Start execution
-  stop(): void;       // Stop execution
-  pause(): void;      // Pause
-  resume(): void;     // Resume
-  update(dt: number): void;  // Update per frame
-  getStatistics(): any;      // Get stats
-  getState(): any;           // Get state
-  reset(): void;             // Reset
+  start(): void; // Start execution
+  stop(): void; // Stop execution
+  pause(): void; // Pause
+  resume(): void; // Resume
+  update(dt: number): void; // Update per frame
+  getStatistics(): any; // Get stats
+  getState(): any; // Get state
+  reset(): void; // Reset
 }
 ```
 
@@ -127,6 +127,7 @@ This ensures **consistent behavior** across all runtimes.
 Runtimes now consume HoloScript core systems:
 
 #### Parser Integration
+
 ```typescript
 import { parseHoloScript } from '@holoscript/core/parser';
 
@@ -135,6 +136,7 @@ const executor = RuntimeRegistry.execute(composition);
 ```
 
 #### Trait System Integration (Future)
+
 ```typescript
 import { registerTrait } from '@holoscript/core/parser/traits';
 
@@ -145,13 +147,14 @@ registerTrait(new StructuralTrait());
 ```
 
 #### Compiler Integration (Future)
+
 ```typescript
 import { compileToUnity } from '@holoscript/core/compiler';
 
 // Generate Unity code from composition
 const unityCode = compileToUnity(composition, {
   runtime: 'demolition',
-  version: '2022.3'
+  version: '2022.3',
 });
 ```
 
@@ -204,7 +207,7 @@ import { DemolitionRuntime } from '@holoscript/core/demos/demolition';
 
 const executor = DemolitionRuntime.initialize(composition, {
   debug: true,
-  targetFPS: 60
+  targetFPS: 60,
 });
 
 executor.start();
@@ -212,15 +215,16 @@ executor.start();
 
 ## Registered Runtimes
 
-| Runtime | ID | Version | Capabilities | Status |
-|---------|----|---------|--------------| -------|
-| **Demolition** | `demolition` | 1.0.0 | Physics, Particles, Structural | ✅ Complete |
-| Avalanche | `avalanche` | 1.0.0 | Particles, Terrain | 🚧 Pending |
-| Erosion | `erosion` | 1.0.0 | Fluids, Terrain | 🚧 Pending |
+| Runtime        | ID           | Version | Capabilities                   | Status      |
+| -------------- | ------------ | ------- | ------------------------------ | ----------- |
+| **Demolition** | `demolition` | 1.0.0   | Physics, Particles, Structural | ✅ Complete |
+| Avalanche      | `avalanche`  | 1.0.0   | Particles, Terrain             | 🚧 Pending  |
+| Erosion        | `erosion`    | 1.0.0   | Fluids, Terrain                | 🚧 Pending  |
 
 ## Runtime Statistics
 
 **Demolition Runtime**:
+
 - Implementation: 4,698 lines
 - Tests: 5,923 lines
 - Test coverage: 430 tests passing
@@ -231,18 +235,21 @@ executor.start();
 ## Benefits
 
 ### For Developers
+
 - ✅ **Consistent API** - All runtimes use same interface
 - ✅ **Discovery** - Query runtimes by capability/tag
 - ✅ **Type safety** - Full TypeScript support
 - ✅ **Testing** - Isolated runtime testing
 
 ### For Hololand
+
 - ✅ **Dynamic loading** - Discover runtimes at runtime
 - ✅ **Capability matching** - Route compositions to appropriate runtime
 - ✅ **Monitoring** - Track runtime statistics
 - ✅ **Extensibility** - Easy to add new runtimes
 
 ### For Users
+
 - ✅ **Write once** - HoloScript works across all runtimes
 - ✅ **Predictable** - Consistent behavior everywhere
 - ✅ **Discoverable** - Easy to find what runtimes can do
@@ -255,11 +262,13 @@ executor.start();
 HoloScript now has **complete runtime rendering** using Three.js!
 
 **Files**:
+
 - `RuntimeRenderer.ts` - Abstract renderer interface (281 lines)
 - `ThreeJSRenderer.ts` - Three.js implementation (679 lines)
 - `rendering-demo.html` - Standalone browser demo
 
 **Features**:
+
 - ✅ **R3F Material Presets** - 80+ materials extracted from R3FCompiler
 - ✅ **PBR Rendering** - Full physically-based rendering
 - ✅ **Particle Systems** - 120K+ particles with real-time updates
@@ -268,6 +277,7 @@ HoloScript now has **complete runtime rendering** using Three.js!
 - ✅ **Statistics** - FPS, draw calls, triangles, memory usage
 
 **Usage**:
+
 ```typescript
 import { ThreeJSRenderer } from '@holoscript/core/runtime';
 
@@ -287,6 +297,7 @@ renderer.start();
 ## Future Work
 
 ### Phase 1: Rendering Enhancement (In Progress)
+
 - ✅ RuntimeRenderer interface
 - ✅ ThreeJSRenderer implementation
 - ✅ R3F material preset extraction
@@ -295,27 +306,32 @@ renderer.start();
 - 🚧 Post-processing effects (bloom, motion blur, DOF)
 
 ### Phase 2: Trait Extensions
+
 - Define demolition-specific traits in parser
 - Register traits with parser system
 - Support trait validation
 
 ### Phase 3: More Runtimes
+
 - Register avalanche runtime
 - Register erosion runtime
 - Create cloth runtime
 - Create fire runtime
 
 ### Phase 4: Alternative Renderers
+
 - Babylon.js renderer backend
 - WebGPU renderer backend
 - Headless renderer (server-side)
 
 ### Phase 5: Compiler Integration
+
 - Generate Unity C# from compositions
 - Generate Unreal C++ from compositions
 - Use runtime capabilities for code generation
 
 ### Phase 6: Shared Components
+
 - Extract common particle systems
 - Share spatial hashing across runtimes
 - Create base physics integrator

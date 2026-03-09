@@ -20,7 +20,11 @@ import {
   SignatureComponents,
   SignatureMetadata,
 } from './AgentPoP';
-import { extractComponentsFromRequest, hasSignatureHeaders, formatSignatureError } from './PopUtils';
+import {
+  extractComponentsFromRequest,
+  hasSignatureHeaders,
+  formatSignatureError,
+} from './PopUtils';
 import { AgentTokenIssuer, getTokenIssuer } from './AgentTokenIssuer';
 import { IntentTokenPayload } from './AgentIdentity';
 
@@ -98,7 +102,11 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
     onError,
   } = config;
 
-  return async (req: AuthenticatedRequest, res: HttpResponse, next: NextFunction): Promise<void> => {
+  return async (
+    req: AuthenticatedRequest,
+    res: HttpResponse,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       // Skip excluded paths
       if (excludePaths.some((path) => req.path.startsWith(path))) {
@@ -108,39 +116,37 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
       // Extract Authorization header
       const authHeader = req.headers.authorization;
       if (!authHeader) {
-        res.status(401).json(
-          formatSignatureError('MISSING_AUTH', 'Missing Authorization header')
-        );
+        res.status(401).json(formatSignatureError('MISSING_AUTH', 'Missing Authorization header'));
         return;
       }
 
       // Ensure authHeader is a string (not an array)
       const authHeaderStr = Array.isArray(authHeader) ? authHeader[0] : authHeader;
       if (!authHeaderStr) {
-        res.status(401).json(
-          formatSignatureError('INVALID_AUTH', 'Authorization header is empty')
-        );
+        res.status(401).json(formatSignatureError('INVALID_AUTH', 'Authorization header is empty'));
         return;
       }
 
       // Extract JWT token
       const token = tokenIssuer.extractToken(authHeaderStr);
       if (!token) {
-        res.status(401).json(
-          formatSignatureError('INVALID_AUTH', 'Invalid Authorization header format')
-        );
+        res
+          .status(401)
+          .json(formatSignatureError('INVALID_AUTH', 'Invalid Authorization header format'));
         return;
       }
 
       // Verify JWT token
       const tokenResult = tokenIssuer.verifyToken(token);
       if (!tokenResult.valid || !tokenResult.payload) {
-        res.status(401).json(
-          formatSignatureError(
-            tokenResult.errorCode || 'INVALID_TOKEN',
-            tokenResult.error || 'Token verification failed'
-          )
-        );
+        res
+          .status(401)
+          .json(
+            formatSignatureError(
+              tokenResult.errorCode || 'INVALID_TOKEN',
+              tokenResult.error || 'Token verification failed'
+            )
+          );
         return;
       }
 
@@ -153,12 +159,14 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
 
       // If no signature headers and legacy mode is disabled, reject
       if (!hasSignature && !allowLegacy) {
-        res.status(401).json(
-          formatSignatureError(
-            'MISSING_SIGNATURE',
-            'HTTP Message Signature required. Legacy mode disabled.'
-          )
-        );
+        res
+          .status(401)
+          .json(
+            formatSignatureError(
+              'MISSING_SIGNATURE',
+              'HTTP Message Signature required. Legacy mode disabled.'
+            )
+          );
         return;
       }
 
@@ -177,9 +185,9 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
       });
 
       if (!parsedSignature) {
-        res.status(400).json(
-          formatSignatureError('INVALID_SIGNATURE_HEADERS', 'Malformed signature headers')
-        );
+        res
+          .status(400)
+          .json(formatSignatureError('INVALID_SIGNATURE_HEADERS', 'Malformed signature headers'));
         return;
       }
 
@@ -190,12 +198,14 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
       // For now, we use the JWK thumbprint (cnf.jkt) for key binding
       const jkt = tokenResult.payload.cnf?.jkt;
       if (!jkt) {
-        res.status(400).json(
-          formatSignatureError(
-            'MISSING_JKT',
-            'Token missing JWK thumbprint (cnf.jkt). Cannot verify PoP.'
-          )
-        );
+        res
+          .status(400)
+          .json(
+            formatSignatureError(
+              'MISSING_JKT',
+              'Token missing JWK thumbprint (cnf.jkt). Cannot verify PoP.'
+            )
+          );
         return;
       }
 
@@ -203,12 +213,14 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
       // For now, we'll add publicKey to token claims in AgentTokenIssuer update
       const publicKey = (tokenResult.payload as any).publicKey;
       if (!publicKey) {
-        res.status(500).json(
-          formatSignatureError(
-            'MISSING_PUBLIC_KEY',
-            'Token missing public key. Update AgentTokenIssuer to include publicKey in claims.'
-          )
-        );
+        res
+          .status(500)
+          .json(
+            formatSignatureError(
+              'MISSING_PUBLIC_KEY',
+              'Token missing public key. Update AgentTokenIssuer to include publicKey in claims.'
+            )
+          );
         return;
       }
 
@@ -246,12 +258,14 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
       const verificationResult = verifySignature(signatureBase, signature, publicKey, metadata);
 
       if (!verificationResult.valid) {
-        res.status(401).json(
-          formatSignatureError(
-            verificationResult.errorCode || 'SIGNATURE_VERIFICATION_FAILED',
-            verificationResult.error || 'Signature verification failed'
-          )
-        );
+        res
+          .status(401)
+          .json(
+            formatSignatureError(
+              verificationResult.errorCode || 'SIGNATURE_VERIFICATION_FAILED',
+              verificationResult.error || 'Signature verification failed'
+            )
+          );
         return;
       }
 
@@ -266,9 +280,11 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
         onError(error, req, res);
       } else {
         console.error('[POP_MIDDLEWARE] Unexpected error:', error);
-        res.status(500).json(
-          formatSignatureError('INTERNAL_ERROR', 'Internal server error during PoP verification')
-        );
+        res
+          .status(500)
+          .json(
+            formatSignatureError('INTERNAL_ERROR', 'Internal server error during PoP verification')
+          );
       }
     }
   };
@@ -289,19 +305,14 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
 export function requirePermission(permission: string) {
   return (req: AuthenticatedRequest, res: HttpResponse, next: NextFunction): void => {
     if (!req.agent) {
-      res.status(401).json(
-        formatSignatureError('UNAUTHORIZED', 'Agent identity not verified')
-      );
+      res.status(401).json(formatSignatureError('UNAUTHORIZED', 'Agent identity not verified'));
       return;
     }
 
     if (!req.agent.permissions.includes(permission as any)) {
-      res.status(403).json(
-        formatSignatureError(
-          'FORBIDDEN',
-          `Agent lacks required permission: ${permission}`
-        )
-      );
+      res
+        .status(403)
+        .json(formatSignatureError('FORBIDDEN', `Agent lacks required permission: ${permission}`));
       return;
     }
 
@@ -324,19 +335,19 @@ export function requirePermission(permission: string) {
 export function requireWorkflowStep(expectedStep: string) {
   return (req: AuthenticatedRequest, res: HttpResponse, next: NextFunction): void => {
     if (!req.agent) {
-      res.status(401).json(
-        formatSignatureError('UNAUTHORIZED', 'Agent identity not verified')
-      );
+      res.status(401).json(formatSignatureError('UNAUTHORIZED', 'Agent identity not verified'));
       return;
     }
 
     if (req.agent.intent.workflow_step !== expectedStep) {
-      res.status(403).json(
-        formatSignatureError(
-          'WORKFLOW_VIOLATION',
-          `Expected workflow step: ${expectedStep}, got: ${req.agent.intent.workflow_step}`
-        )
-      );
+      res
+        .status(403)
+        .json(
+          formatSignatureError(
+            'WORKFLOW_VIOLATION',
+            `Expected workflow step: ${expectedStep}, got: ${req.agent.intent.workflow_step}`
+          )
+        );
       return;
     }
 

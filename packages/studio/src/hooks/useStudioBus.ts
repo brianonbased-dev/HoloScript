@@ -29,7 +29,12 @@ class StudioBus {
     if (this.history.length > this.maxHistory) this.history.shift();
 
     const cbs = this.listeners.get(channel);
-    if (cbs) cbs.forEach(cb => { try { cb(data); } catch (_) {} });
+    if (cbs)
+      cbs.forEach((cb) => {
+        try {
+          cb(data);
+        } catch (_) {}
+      });
   }
 
   on(channel: string, cb: BusCallback) {
@@ -42,8 +47,12 @@ class StudioBus {
     this.listeners.get(channel)?.delete(cb);
   }
 
-  getHistory() { return [...this.history]; }
-  clear() { this.history = []; }
+  getHistory() {
+    return [...this.history];
+  }
+  clear() {
+    this.history = [];
+  }
 }
 
 // Singleton instance shared across all panels
@@ -64,15 +73,18 @@ export function useStudioBus(): UseStudioBusReturn {
   const subscriptions = useRef<Array<() => void>>([]);
 
   // Cleanup on unmount
-  useEffect(() => () => subscriptions.current.forEach(unsub => unsub()), []);
+  useEffect(() => () => subscriptions.current.forEach((unsub) => unsub()), []);
 
   const emit = useCallback((channel: string, data?: unknown) => bus.emit(channel, data), [bus]);
 
-  const on = useCallback((channel: string, cb: BusCallback) => {
-    const unsub = bus.on(channel, cb);
-    subscriptions.current.push(unsub);
-    return unsub;
-  }, [bus]);
+  const on = useCallback(
+    (channel: string, cb: BusCallback) => {
+      const unsub = bus.on(channel, cb);
+      subscriptions.current.push(unsub);
+      return unsub;
+    },
+    [bus]
+  );
 
   return { emit, on, getHistory: () => bus.getHistory() };
 }

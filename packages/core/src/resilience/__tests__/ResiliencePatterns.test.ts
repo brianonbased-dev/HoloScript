@@ -67,10 +67,11 @@ describe('retryWithBackoff', () => {
 
   it('throws after max attempts', async () => {
     await expect(
-      retryWithBackoff(
-        () => Promise.reject(new Error('always fail')),
-        { maxAttempts: 2, initialBackoffMs: 1, jitter: false }
-      )
+      retryWithBackoff(() => Promise.reject(new Error('always fail')), {
+        maxAttempts: 2,
+        initialBackoffMs: 1,
+        jitter: false,
+      })
     ).rejects.toThrow('always fail');
   });
 });
@@ -85,7 +86,7 @@ describe('Bulkhead', () => {
   it('rejects when queue is full', async () => {
     const bh = new Bulkhead({ maxConcurrent: 1, queueSize: 0 });
     // Fill the single concurrent slot
-    const slow = bh.execute(() => new Promise(r => setTimeout(r, 1000)));
+    const slow = bh.execute(() => new Promise((r) => setTimeout(r, 1000)));
     await expect(bh.execute(() => Promise.resolve(1))).rejects.toThrow('queue full');
     slow.catch(() => {}); // Cleanup
   });
@@ -117,10 +118,7 @@ describe('fallbackChain', () => {
 
   it('throws if all strategies fail', async () => {
     await expect(
-      fallbackChain([
-        () => Promise.reject(new Error('a')),
-        () => Promise.reject(new Error('b')),
-      ])
+      fallbackChain([() => Promise.reject(new Error('a')), () => Promise.reject(new Error('b'))])
     ).rejects.toThrow('b');
   });
 });
@@ -153,7 +151,7 @@ describe('withTimeout', () => {
   });
 
   it('rejects if timeout expires', async () => {
-    const slow = new Promise(r => setTimeout(() => r('slow'), 5000));
+    const slow = new Promise((r) => setTimeout(() => r('slow'), 5000));
     await expect(withTimeout(slow, 10)).rejects.toThrow('timeout');
   });
 });

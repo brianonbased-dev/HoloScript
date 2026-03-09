@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { nftHandler } from '../NFTTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('NFTTrait', () => {
   let node: Record<string, unknown>;
@@ -75,7 +82,10 @@ describe('NFTTrait', () => {
     const n = createMockNode('n3');
     const c = createMockContext();
     attachTrait(nftHandler, n, { ...cfg, transfer_enabled: false }, c);
-    sendEvent(nftHandler, n, { ...cfg, transfer_enabled: false }, c, { type: 'nft_transfer', toAddress: '0xNew' });
+    sendEvent(nftHandler, n, { ...cfg, transfer_enabled: false }, c, {
+      type: 'nft_transfer',
+      toAddress: '0xNew',
+    });
     expect(getEventCount(c, 'on_nft_error')).toBe(1);
     expect(getEventCount(c, 'nft_initiate_transfer')).toBe(0);
   });

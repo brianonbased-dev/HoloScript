@@ -15,12 +15,12 @@ import { GraphQLCircuitBreakerClient } from '@holoscript/core';
 
 const client = new GraphQLCircuitBreakerClient({
   endpoint: 'https://api.example.com/graphql',
-  enableCacheFallback: true
+  enableCacheFallback: true,
 });
 
 const result = await client.query({
   query: 'query GetUser { user { id name } }',
-  operationName: 'GetUser'
+  operationName: 'GetUser',
 });
 ```
 
@@ -45,11 +45,11 @@ function App() {
 import { FallbackDataProvider } from '@holoscript/core';
 
 FallbackDataProvider.register('GetUsers', {
-  data: { users: [] }
+  data: { users: [] },
 });
 
 FallbackDataProvider.register('GetDashboard', {
-  data: { widgets: [], loading: true }
+  data: { widgets: [], loading: true },
 });
 ```
 
@@ -59,7 +59,7 @@ FallbackDataProvider.register('GetDashboard', {
 // Get circuit status
 const stats = client.getCircuitStats();
 
-stats.forEach(stat => {
+stats.forEach((stat) => {
   console.log(`${stat.operationName}: ${stat.state}`);
   console.log(`  Failure rate: ${(stat.failureRate * 100).toFixed(2)}%`);
   console.log(`  Cache hits: ${stat.cacheHits}`);
@@ -101,15 +101,15 @@ const client = new GraphQLCircuitBreakerClient({
   enableCacheFallback: true,
 
   circuitBreakerConfig: {
-    failureRateThreshold: 0.5,    // 50% failure rate
-    minimumRequests: 10,           // Over 10 requests
+    failureRateThreshold: 0.5, // 50% failure rate
+    minimumRequests: 10, // Over 10 requests
     consecutiveTimeoutThreshold: 5, // OR 5 timeouts
-    openStateTimeout: 30000,       // 30s recovery wait
-    healthCheckCount: 5,           // 5 health checks
-    successThreshold: 3,           // 3 must succeed
-    baseRetryDelay: 1000,          // 1s base delay
-    maxRetryDelay: 30000           // 30s max delay
-  }
+    openStateTimeout: 30000, // 30s recovery wait
+    healthCheckCount: 5, // 5 health checks
+    successThreshold: 3, // 3 must succeed
+    baseRetryDelay: 1000, // 1s base delay
+    maxRetryDelay: 30000, // 30s max delay
+  },
 });
 ```
 
@@ -122,14 +122,14 @@ const client = new GraphQLCircuitBreakerClient({
   headers: {
     'X-Agent-ID': process.env.AGENT_ID,
     'X-Agent-Role': 'testing-agent',
-    Authorization: `Bearer ${process.env.AGENT_TOKEN}`
-  }
+    Authorization: `Bearer ${process.env.AGENT_TOKEN}`,
+  },
 });
 
 // Run tests with circuit breaker protection
 const testResult = await client.query({
   query: 'query TestQuery { test { result } }',
-  operationName: 'TestQuery'
+  operationName: 'TestQuery',
 });
 
 // Tests continue even if backend is degraded
@@ -147,7 +147,7 @@ if (testResult.fromCache) {
 const [users, posts, comments] = await Promise.all([
   client.query({ query: 'query GetUsers { users { id } }', operationName: 'GetUsers' }),
   client.query({ query: 'query GetPosts { posts { id } }', operationName: 'GetPosts' }),
-  client.query({ query: 'query GetComments { comments { id } }', operationName: 'GetComments' })
+  client.query({ query: 'query GetComments { comments { id } }', operationName: 'GetComments' }),
 ]);
 
 // If one circuit opens, others continue normally
@@ -219,11 +219,11 @@ Verify cache is enabled:
 
 ```typescript
 {
-  enableCacheFallback: true  // Must be true
+  enableCacheFallback: true; // Must be true
 }
 
 // And check cache TTL
-client.setCacheTTL(10 * 60 * 1000);  // 10 minutes
+client.setCacheTTL(10 * 60 * 1000); // 10 minutes
 ```
 
 ### No metrics showing
@@ -248,6 +248,7 @@ console.log(snapshot);
 ## Support
 
 For issues or questions:
+
 - GitHub Issues: https://github.com/holoscript/holoscript
 - Discord: https://discord.gg/holoscript
 - Email: support@holoscript.dev

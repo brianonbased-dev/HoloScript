@@ -155,7 +155,7 @@ export class TypeInferencePass {
 
   private typeFromConfig(
     props: Record<string, unknown>,
-    config: Record<string, unknown>,
+    config: Record<string, unknown>
   ): HSPlusType {
     for (const [key, value] of Object.entries(props)) {
       if (key in config) {

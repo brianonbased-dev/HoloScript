@@ -11,6 +11,7 @@ This guide covers deploying ZoraCoinsTrait with real Zora Protocol integration t
 ## Pre-Deployment Checklist
 
 ### Code Validation
+
 - [x] All integration tests passing (24/24)
 - [x] TypeScript compilation successful
 - [x] No linting errors
@@ -18,6 +19,7 @@ This guide covers deploying ZoraCoinsTrait with real Zora Protocol integration t
 - [x] Documentation complete
 
 ### Infrastructure
+
 - [ ] Production RPC endpoint configured (Alchemy/Infura recommended)
 - [ ] Wallet private keys stored securely (not in .env!)
 - [ ] Error monitoring set up (Sentry, LogRocket, etc.)
@@ -25,12 +27,14 @@ This guide covers deploying ZoraCoinsTrait with real Zora Protocol integration t
 - [ ] Backup RPC endpoints configured
 
 ### Zora Configuration
+
 - [ ] Production Zora collection(s) created on Base mainnet
 - [ ] Collection ownership verified
 - [ ] Royalty settings configured
 - [ ] Mint permissions set correctly
 
 ### Security
+
 - [ ] Private keys stored in secure vault (AWS KMS, HashiCorp Vault, etc.)
 - [ ] Environment variables validated
 - [ ] Rate limiting configured
@@ -84,6 +88,7 @@ This guide covers deploying ZoraCoinsTrait with real Zora Protocol integration t
    ```
 
 **Benefits:**
+
 - Free tier: 300M compute units/month
 - Enhanced APIs (NFT, Token, Transaction)
 - Websocket support
@@ -153,6 +158,7 @@ WALLET_PRIVATE_KEY=0x...
 ```
 
 Add to `.gitignore`:
+
 ```
 .env
 .env.local
@@ -231,19 +237,13 @@ import { GasEstimator } from './src/traits/utils/GasEstimator';
 const MAX_GAS_PRICE_GWEI = 0.1; // 0.1 gwei (Base is very cheap)
 
 async function estimateWithLimit(publicClient, contractAddress, quantity) {
-  const estimate = await GasEstimator.estimateMintGas(
-    publicClient,
-    contractAddress,
-    quantity
-  );
+  const estimate = await GasEstimator.estimateMintGas(publicClient, contractAddress, quantity);
 
   // Check if gas price is reasonable
   const gasPriceGwei = Number(estimate.maxFeePerGas) / 1e9;
 
   if (gasPriceGwei > MAX_GAS_PRICE_GWEI) {
-    throw new Error(
-      `Gas price too high: ${gasPriceGwei} gwei (max: ${MAX_GAS_PRICE_GWEI} gwei)`
-    );
+    throw new Error(`Gas price too high: ${gasPriceGwei} gwei (max: ${MAX_GAS_PRICE_GWEI} gwei)`);
   }
 
   return estimate;
@@ -313,6 +313,7 @@ smokeTest().catch(console.error);
 ```
 
 Run:
+
 ```bash
 PRODUCTION_COLLECTION_ID=0x... pnpm tsx smoke-test-mainnet.ts
 ```
@@ -329,6 +330,7 @@ pnpm tsx examples/production-mint.ts --quantity=1
 ```
 
 **Monitor transaction:**
+
 - Check BaseScan: `https://basescan.org/tx/TX_HASH`
 - Verify NFT minted correctly
 - Check gas costs are reasonable
@@ -401,10 +403,7 @@ async function alertSlack(message: string, severity: 'info' | 'warning' | 'error
 
 // Use in error handlers
 context.on('zora_mint_failed', async (data) => {
-  await alertSlack(
-    `Mint failed for ${data.mintId}: ${data.error}`,
-    'error'
-  );
+  await alertSlack(`Mint failed for ${data.mintId}: ${data.error}`, 'error');
 });
 ```
 
@@ -464,8 +463,8 @@ Implement rate limiting to avoid overwhelming the RPC:
 import Bottleneck from 'bottleneck';
 
 const limiter = new Bottleneck({
-  maxConcurrent: 5,  // Max 5 concurrent requests
-  minTime: 200,      // Min 200ms between requests
+  maxConcurrent: 5, // Max 5 concurrent requests
+  minTime: 200, // Min 200ms between requests
 });
 
 // Wrap mint function
@@ -482,21 +481,23 @@ For high-volume scenarios, batch mints:
 // Mint 100 NFTs in a single transaction
 context.emit('zora_mint', {
   mintConfig: {
-    initialSupply: 100,  // Batch mint
+    initialSupply: 100, // Batch mint
     maxSupply: 10000,
     priceETH: '0.001',
     name: 'Batch Collection',
-    description: 'High-volume minting'
-  }
+    description: 'High-volume minting',
+  },
 });
 ```
 
 **Benefits:**
+
 - Lower gas cost per NFT (amortized)
 - Fewer transactions to monitor
 - Faster minting process
 
 **Considerations:**
+
 - Higher upfront cost
 - All-or-nothing (transaction fails, all mints fail)
 
@@ -564,6 +565,7 @@ Monitor for first 24 hours:
 ## Security Best Practices
 
 ### 1. Never Commit Secrets
+
 ```bash
 # .gitignore
 .env
@@ -628,18 +630,21 @@ function checkReplay(txHash: string) {
 If issues occur in production:
 
 ### 1. Immediate Actions
+
 - Pause new mints (feature flag)
 - Alert team
 - Capture error logs
 - Check BaseScan for transaction status
 
 ### 2. Investigation
+
 - Review error logs
 - Check RPC endpoint status
 - Verify contract state
 - Test on testnet to reproduce
 
 ### 3. Rollback Steps
+
 - Revert to previous working version
 - Re-deploy with fixes
 - Validate on testnet first

@@ -46,18 +46,18 @@ export interface CommandEntry {
 // ─── Category Metadata ──────────────────────────────────────────
 
 export const CATEGORY_META: Record<CommandCategory, { label: string; order: number }> = {
-  navigation:    { label: 'Navigation',    order: 0 },
-  panel:         { label: 'Panels',        order: 1 },
-  scene:         { label: 'Scene',         order: 2 },
-  editor:        { label: 'Editor',        order: 3 },
-  shader:        { label: 'Shaders',       order: 4 },
-  export:        { label: 'Export',         order: 5 },
-  ai:            { label: 'AI',            order: 6 },
+  navigation: { label: 'Navigation', order: 0 },
+  panel: { label: 'Panels', order: 1 },
+  scene: { label: 'Scene', order: 2 },
+  editor: { label: 'Editor', order: 3 },
+  shader: { label: 'Shaders', order: 4 },
+  export: { label: 'Export', order: 5 },
+  ai: { label: 'AI', order: 6 },
   collaboration: { label: 'Collaboration', order: 7 },
-  debug:         { label: 'Debug',         order: 8 },
-  scenario:      { label: 'Scenarios',     order: 9 },
-  settings:      { label: 'Settings',      order: 10 },
-  help:          { label: 'Help',          order: 11 },
+  debug: { label: 'Debug', order: 8 },
+  scenario: { label: 'Scenarios', order: 9 },
+  settings: { label: 'Settings', order: 10 },
+  help: { label: 'Help', order: 11 },
 };
 
 // ─── Registry ───────────────────────────────────────────────────

@@ -137,9 +137,11 @@ describe('ChoreographyPlanner', () => {
 
   describe('validate', () => {
     it('returns valid=true for well-formed plan', () => {
-      const p = planner.createPlan(makeDefinition({
-        constraints: [{ type: 'timeout', value: 60000, hard: true }],
-      }));
+      const p = planner.createPlan(
+        makeDefinition({
+          constraints: [{ type: 'timeout', value: 60000, hard: true }],
+        })
+      );
       const result = planner.validate(p);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -160,12 +162,14 @@ describe('ChoreographyPlanner', () => {
 
     it('detects circular dependency', () => {
       // Manually create a circular dep plan (bypass normal createPlan validation)
-      const p = planner.createPlan(makeDefinition({
-        steps: [
-          makeStep({ id: 'a', dependencies: [] }),
-          makeStep({ id: 'b', dependencies: ['a'] }),
-        ],
-      }));
+      const p = planner.createPlan(
+        makeDefinition({
+          steps: [
+            makeStep({ id: 'a', dependencies: [] }),
+            makeStep({ id: 'b', dependencies: ['a'] }),
+          ],
+        })
+      );
       // Manually inject a cycle
       p.steps[0].dependencies = ['b'];
 
@@ -203,10 +207,7 @@ describe('ChoreographyPlanner', () => {
 
     it('groups independent steps in same parallel group', () => {
       const def = makeDefinition({
-        steps: [
-          makeStep({ id: 'a', dependencies: [] }),
-          makeStep({ id: 'b', dependencies: [] }),
-        ],
+        steps: [makeStep({ id: 'a', dependencies: [] }), makeStep({ id: 'b', dependencies: [] })],
       });
       const p = planner.createPlan(def);
       const order = planner.calculateExecutionOrder(p);

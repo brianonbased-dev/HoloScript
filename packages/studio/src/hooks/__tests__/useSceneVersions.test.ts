@@ -8,7 +8,7 @@ import type { SceneVersion } from '../useSceneVersions';
 // Mock the store
 const mockSetCode = vi.fn();
 const mockMarkClean = vi.fn();
-vi.mock('@/lib/store', () => ({
+vi.mock('@/lib/stores', () => ({
   useSceneStore: vi.fn((selector) => {
     const store = {
       setCode: mockSetCode,
@@ -684,10 +684,9 @@ describe('useSceneVersions', () => {
         json: async () => ({ versions: [] }),
       });
 
-      const { result, rerender } = renderHook(
-        ({ sceneId }) => useSceneVersions(sceneId),
-        { initialProps: { sceneId: 'scene-1' } }
-      );
+      const { result, rerender } = renderHook(({ sceneId }) => useSceneVersions(sceneId), {
+        initialProps: { sceneId: 'scene-1' },
+      });
 
       await act(async () => {
         await result.current.loadVersions();

@@ -166,7 +166,11 @@ export class CopilotPanel {
 
   async requestSuggestion(): Promise<CopilotResponse> {
     const response = await this.copilot.suggestFromSelection();
-    this.messages.push({ role: 'assistant', text: response.text, suggestions: response.suggestions });
+    this.messages.push({
+      role: 'assistant',
+      text: response.text,
+      suggestions: response.suggestions,
+    });
     return response;
   }
 

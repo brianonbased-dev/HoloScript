@@ -4,7 +4,9 @@ import { OctreeSystem } from '../OctreeSystem';
 describe('OctreeSystem', () => {
   let tree: OctreeSystem;
 
-  beforeEach(() => { tree = new OctreeSystem(0, 0, 0, 100); });
+  beforeEach(() => {
+    tree = new OctreeSystem(0, 0, 0, 100);
+  });
 
   it('insert and getEntryCount', () => {
     tree.insert({ id: 'a', x: 0, y: 0, z: 0, radius: 1 });
@@ -62,7 +64,13 @@ describe('OctreeSystem', () => {
 
   it('handles many objects triggering subdivision', () => {
     for (let i = 0; i < 100; i++) {
-      tree.insert({ id: `o${i}`, x: (i % 10) * 10 - 45, y: Math.floor(i / 10) * 10 - 45, z: 0, radius: 1 });
+      tree.insert({
+        id: `o${i}`,
+        x: (i % 10) * 10 - 45,
+        y: Math.floor(i / 10) * 10 - 45,
+        z: 0,
+        radius: 1,
+      });
     }
     expect(tree.getEntryCount()).toBe(100);
     const results = tree.queryRadius(0, 0, 0, 15);

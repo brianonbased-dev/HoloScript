@@ -47,23 +47,17 @@ export function CircuitBreakerStatus({
         <div className="circuit-breaker__metrics">
           <div className="circuit-breaker__metric">
             <span className="circuit-breaker__metric-label">Failure Rate:</span>
-            <span className="circuit-breaker__metric-value">
-              {(failureRate * 100).toFixed(2)}%
-            </span>
+            <span className="circuit-breaker__metric-value">{(failureRate * 100).toFixed(2)}%</span>
           </div>
 
           <div className="circuit-breaker__metric">
             <span className="circuit-breaker__metric-label">Failures:</span>
-            <span className="circuit-breaker__metric-value">
-              {status.failureCount}
-            </span>
+            <span className="circuit-breaker__metric-value">{status.failureCount}</span>
           </div>
 
           <div className="circuit-breaker__metric">
             <span className="circuit-breaker__metric-label">Successes:</span>
-            <span className="circuit-breaker__metric-value">
-              {status.successCount}
-            </span>
+            <span className="circuit-breaker__metric-value">{status.successCount}</span>
           </div>
 
           {status.timeUntilClose !== undefined && status.timeUntilClose > 0 && (
@@ -87,15 +81,14 @@ export function CircuitBreakerStatus({
 
       {/* Reset Button */}
       {state === 'open' && (
-        <button
-          className="circuit-breaker__reset-button"
-          onClick={reset}
-        >
+        <button className="circuit-breaker__reset-button" onClick={reset}>
           Reset Circuit
         </button>
       )}
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .circuit-breaker {
           padding: 16px;
           border: 1px solid #e0e0e0;
@@ -234,7 +227,9 @@ export function CircuitBreakerStatus({
         .circuit-breaker__reset-button:active {
           background: #0d47a1;
         }
-      ` }} />
+      `,
+        }}
+      />
     </div>
   );
 }

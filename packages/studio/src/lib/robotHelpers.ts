@@ -87,7 +87,14 @@ export function parseRobotDefinition(urdfXml: string): RobotDefinition {
       limits: { min: limitLower, max: limitUpper },
       parent,
       child,
-      origin: { x: ox ?? 0, y: oy ?? 0, z: oz ?? 0, roll: roll ?? 0, pitch: pitch ?? 0, yaw: yaw ?? 0 },
+      origin: {
+        x: ox ?? 0,
+        y: oy ?? 0,
+        z: oz ?? 0,
+        roll: roll ?? 0,
+        pitch: pitch ?? 0,
+        yaw: yaw ?? 0,
+      },
     };
   });
 
@@ -161,9 +168,10 @@ export function forwardKinematics(
  * Estimates the reachable workspace of a serial robot as a sphere.
  * Radius = sum of all link lengths (reachable if all joints at max).
  */
-export function workspaceBounds(
-  joints: Array<{ joint: Joint; linkLength: number }>
-): { center: [number, number, number]; radius: number } {
+export function workspaceBounds(joints: Array<{ joint: Joint; linkLength: number }>): {
+  center: [number, number, number];
+  radius: number;
+} {
   const radius = joints.reduce((sum, { linkLength }) => sum + linkLength, 0);
   return { center: [0, 0, 0], radius };
 }
@@ -192,7 +200,7 @@ export function inverseKinematics(
       mesh: jointMesh,
       axis: new THREE.Vector3(0, 1, 0),
       minAngle: -Math.PI,
-      maxAngle: Math.PI
+      maxAngle: Math.PI,
     });
 
     const linkEnd = new THREE.Object3D();
@@ -210,7 +218,7 @@ export function inverseKinematics(
   solver.solve(new THREE.Vector3(target[0], target[1], target[2]));
 
   // Return the resolved angle for each joint along its Y-axis
-  return simulatedJoints.map(j => j.mesh.rotation.y);
+  return simulatedJoints.map((j) => j.mesh.rotation.y);
 }
 
 // ── HoloScript Trait Generation ───────────────────────────────────────────────
@@ -267,11 +275,10 @@ function extractAllBlocks(xml: string, tagName: string): string[] {
   const selfClosing = new RegExp(`<${tagName}(?:\\s[^>]*)?/>`, 'gi');
   while ((m = selfClosing.exec(xml)) !== null) {
     // Only add if not already inside an open+close block we captured
-    if (!blocks.some(b => b.includes(m![0]))) {
+    if (!blocks.some((b) => b.includes(m![0]))) {
       blocks.push(m[0]);
     }
   }
 
   return blocks;
 }
-

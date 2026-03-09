@@ -77,19 +77,29 @@ describe('NFTTrait — Production', () => {
     });
 
     it('auto-verifies and loads metadata when contract + token provided', () => {
-      const cfg = makeConfig({ contract_address: '0xABC', token_id: '42', metadata_uri: 'https://meta.io/42' });
+      const cfg = makeConfig({
+        contract_address: '0xABC',
+        token_id: '42',
+        metadata_uri: 'https://meta.io/42',
+      });
       nftHandler.onAttach(node, cfg, ctx);
 
-      expect(ctx.emit).toHaveBeenCalledWith('nft_verify_ownership', expect.objectContaining({
-        node,
-        chain: 'ethereum',
-        contractAddress: '0xABC',
-        tokenId: '42',
-      }));
-      expect(ctx.emit).toHaveBeenCalledWith('nft_load_metadata', expect.objectContaining({
-        node,
-        uri: 'https://meta.io/42',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'nft_verify_ownership',
+        expect.objectContaining({
+          node,
+          chain: 'ethereum',
+          contractAddress: '0xABC',
+          tokenId: '42',
+        })
+      );
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'nft_load_metadata',
+        expect.objectContaining({
+          node,
+          uri: 'https://meta.io/42',
+        })
+      );
     });
 
     it('does NOT auto-verify when contract_address is empty', () => {
@@ -101,12 +111,15 @@ describe('NFTTrait — Production', () => {
       const cfg = makeConfig({ contract_address: '0xABC', token_id: '42' });
       nftHandler.onAttach(node, cfg, ctx);
 
-      expect(ctx.emit).toHaveBeenCalledWith('nft_fetch_metadata_uri', expect.objectContaining({
-        node,
-        chain: 'ethereum',
-        contractAddress: '0xABC',
-        tokenId: '42',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'nft_fetch_metadata_uri',
+        expect.objectContaining({
+          node,
+          chain: 'ethereum',
+          contractAddress: '0xABC',
+          tokenId: '42',
+        })
+      );
     });
   });
 
@@ -208,17 +221,24 @@ describe('NFTTrait — Production', () => {
     });
 
     it('re-verifies on nft_verify event', () => {
-      const cfg = makeConfig({ contract_address: '0xC', token_id: '1', rpc_endpoint: 'https://rpc.io' });
+      const cfg = makeConfig({
+        contract_address: '0xC',
+        token_id: '1',
+        rpc_endpoint: 'https://rpc.io',
+      });
       nftHandler.onAttach(node, cfg, ctx);
       ctx.emit.mockClear();
 
       nftHandler.onEvent!(node, cfg, ctx, { type: 'nft_verify' });
 
-      expect(ctx.emit).toHaveBeenCalledWith('nft_verify_ownership', expect.objectContaining({
-        contractAddress: '0xC',
-        tokenId: '1',
-        rpcEndpoint: 'https://rpc.io',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'nft_verify_ownership',
+        expect.objectContaining({
+          contractAddress: '0xC',
+          tokenId: '1',
+          rpcEndpoint: 'https://rpc.io',
+        })
+      );
     });
   });
 
@@ -266,10 +286,13 @@ describe('NFTTrait — Production', () => {
 
       nftHandler.onEvent!(node, cfg, ctx, { type: 'nft_refresh_metadata' });
 
-      expect(ctx.emit).toHaveBeenCalledWith('nft_fetch_metadata_uri', expect.objectContaining({
-        contractAddress: '0xD',
-        tokenId: '5',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'nft_fetch_metadata_uri',
+        expect.objectContaining({
+          contractAddress: '0xD',
+          tokenId: '5',
+        })
+      );
     });
   });
 
@@ -277,7 +300,12 @@ describe('NFTTrait — Production', () => {
 
   describe('transfer lifecycle', () => {
     it('initiates transfer when enabled', () => {
-      const cfg = makeConfig({ transfer_enabled: true, chain: 'base', contract_address: '0xT', token_id: '7' });
+      const cfg = makeConfig({
+        transfer_enabled: true,
+        chain: 'base',
+        contract_address: '0xT',
+        token_id: '7',
+      });
       nftHandler.onAttach(node, cfg, ctx);
       const s = getState(node);
       s.ownerAddress = '0xSeller';
@@ -310,9 +338,12 @@ describe('NFTTrait — Production', () => {
         toAddress: '0xBuyer',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('nft_initiate_transfer', expect.objectContaining({
-        from: '0xExplicitFrom',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'nft_initiate_transfer',
+        expect.objectContaining({
+          from: '0xExplicitFrom',
+        })
+      );
     });
 
     it('rejects transfer when disabled', () => {
@@ -385,9 +416,12 @@ describe('NFTTrait — Production', () => {
         address: '0xStranger',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('nft_owner_check_result', expect.objectContaining({
-        isOwner: false,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'nft_owner_check_result',
+        expect.objectContaining({
+          isOwner: false,
+        })
+      );
     });
   });
 
@@ -427,7 +461,11 @@ describe('NFTTrait — Production', () => {
 
   describe('periodic re-verification', () => {
     it('triggers re-verify when interval elapsed', () => {
-      const cfg = makeConfig({ verification_interval: 1000, contract_address: '0xR', token_id: '1' });
+      const cfg = makeConfig({
+        verification_interval: 1000,
+        contract_address: '0xR',
+        token_id: '1',
+      });
       nftHandler.onAttach(node, cfg, ctx);
       const s = getState(node);
       s.isVerified = true;
@@ -436,13 +474,20 @@ describe('NFTTrait — Production', () => {
 
       nftHandler.onUpdate!(node, cfg, ctx, 16);
 
-      expect(ctx.emit).toHaveBeenCalledWith('nft_verify_ownership', expect.objectContaining({
-        contractAddress: '0xR',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'nft_verify_ownership',
+        expect.objectContaining({
+          contractAddress: '0xR',
+        })
+      );
     });
 
     it('does NOT re-verify before interval', () => {
-      const cfg = makeConfig({ verification_interval: 5000, contract_address: '0xR', token_id: '1' });
+      const cfg = makeConfig({
+        verification_interval: 5000,
+        contract_address: '0xR',
+        token_id: '1',
+      });
       nftHandler.onAttach(node, cfg, ctx);
       const s = getState(node);
       s.isVerified = true;

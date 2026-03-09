@@ -405,10 +405,12 @@ export class ShaderOptimizationManager {
   /**
    * Create optimized particle material
    */
-  createParticleMaterial(params: {
-    pointSize?: number;
-    fadeDistance?: number;
-  } = {}): THREE.ShaderMaterial {
+  createParticleMaterial(
+    params: {
+      pointSize?: number;
+      fadeDistance?: number;
+    } = {}
+  ): THREE.ShaderMaterial {
     if (!this.config.useOptimizedParticles) {
       // Fallback to standard material
       return new THREE.ShaderMaterial({
@@ -446,10 +448,12 @@ export class ShaderOptimizationManager {
   /**
    * Create optimized debris material
    */
-  createDebrisMaterial(params: {
-    lightPosition?: THREE.Vector3;
-    ambientIntensity?: number;
-  } = {}): THREE.ShaderMaterial {
+  createDebrisMaterial(
+    params: {
+      lightPosition?: THREE.Vector3;
+      ambientIntensity?: number;
+    } = {}
+  ): THREE.ShaderMaterial {
     const startTime = performance.now();
 
     const uniforms = THREE.UniformsUtils.clone(OptimizedDebrisShader.uniforms);
@@ -476,10 +480,12 @@ export class ShaderOptimizationManager {
   /**
    * Create batched mesh material
    */
-  createBatchedMeshMaterial(params: {
-    diffuseMap?: THREE.Texture;
-    tintColor?: THREE.Color;
-  } = {}): THREE.ShaderMaterial {
+  createBatchedMeshMaterial(
+    params: {
+      diffuseMap?: THREE.Texture;
+      tintColor?: THREE.Color;
+    } = {}
+  ): THREE.ShaderMaterial {
     const startTime = performance.now();
 
     const uniforms = THREE.UniformsUtils.clone(BatchedMeshShader.uniforms);
@@ -505,12 +511,14 @@ export class ShaderOptimizationManager {
   /**
    * Create fluid shader material
    */
-  createFluidMaterial(params: {
-    flowSpeed?: number;
-    waveHeight?: number;
-    waterColor?: THREE.Color;
-    opacity?: number;
-  } = {}): THREE.ShaderMaterial {
+  createFluidMaterial(
+    params: {
+      flowSpeed?: number;
+      waveHeight?: number;
+      waterColor?: THREE.Color;
+      opacity?: number;
+    } = {}
+  ): THREE.ShaderMaterial {
     const startTime = performance.now();
 
     const uniforms = THREE.UniformsUtils.clone(OptimizedFluidShader.uniforms);
@@ -536,11 +544,13 @@ export class ShaderOptimizationManager {
   /**
    * Create terrain deformation material
    */
-  createTerrainMaterial(params: {
-    deformationMap?: THREE.Texture;
-    heightScale?: number;
-    baseColor?: THREE.Color;
-  } = {}): THREE.ShaderMaterial {
+  createTerrainMaterial(
+    params: {
+      deformationMap?: THREE.Texture;
+      heightScale?: number;
+      baseColor?: THREE.Color;
+    } = {}
+  ): THREE.ShaderMaterial {
     const startTime = performance.now();
 
     const uniforms = THREE.UniformsUtils.clone(TerrainDeformationShader.uniforms);

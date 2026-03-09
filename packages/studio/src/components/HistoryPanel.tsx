@@ -18,7 +18,14 @@ import { Clock, RotateCcw, RotateCw, Trash2, List, GitBranch } from 'lucide-reac
 
 const UndoTreePanel = dynamic(
   () => import('@/components/history/UndoTreePanel').then((m) => ({ default: m.UndoTreePanel })),
-  { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center text-xs text-studio-muted animate-pulse">Loading tree…</div> }
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex-1 flex items-center justify-center text-xs text-studio-muted animate-pulse">
+        Loading tree…
+      </div>
+    ),
+  }
 );
 
 interface HistoryPanelProps {
@@ -28,17 +35,17 @@ interface HistoryPanelProps {
 export function HistoryPanel({ onClose }: HistoryPanelProps) {
   const [viewMode, setViewMode] = useState<'list' | 'tree'>('list');
 
-  const past   = useTemporalStore((s) => s.pastStates);
+  const past = useTemporalStore((s) => s.pastStates);
   const future = useTemporalStore((s) => s.futureStates);
-  const undo   = useTemporalStore((s) => s.undo);
-  const redo   = useTemporalStore((s) => s.redo);
-  const clear  = useTemporalStore((s) => s.clear);
+  const undo = useTemporalStore((s) => s.undo);
+  const redo = useTemporalStore((s) => s.redo);
+  const clear = useTemporalStore((s) => s.clear);
 
   /** Action labels recorded alongside each temporal snapshot (oldest→newest). */
   const storedLabels = useHistoryLabelStore((s) => s.labels);
 
-  const canUndo    = past.length > 0;
-  const canRedo    = future.length > 0;
+  const canUndo = past.length > 0;
+  const canRedo = future.length > 0;
   const allEntries = [...past].reverse(); // most-recent first
 
   /** Map a past-entry index (0 = most-recent) to its human-readable action label. */
@@ -77,20 +84,34 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
 
         {/* Undo / Redo / Clear / Close */}
         <div className="flex items-center gap-1">
-          <button onClick={() => undo()} disabled={!canUndo} title="Undo (Ctrl+Z)"
-            className="rounded p-1 text-studio-muted transition hover:text-studio-text disabled:opacity-30">
+          <button
+            onClick={() => undo()}
+            disabled={!canUndo}
+            title="Undo (Ctrl+Z)"
+            className="rounded p-1 text-studio-muted transition hover:text-studio-text disabled:opacity-30"
+          >
             <RotateCcw className="h-3.5 w-3.5" />
           </button>
-          <button onClick={() => redo()} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)"
-            className="rounded p-1 text-studio-muted transition hover:text-studio-text disabled:opacity-30">
+          <button
+            onClick={() => redo()}
+            disabled={!canRedo}
+            title="Redo (Ctrl+Shift+Z)"
+            className="rounded p-1 text-studio-muted transition hover:text-studio-text disabled:opacity-30"
+          >
             <RotateCw className="h-3.5 w-3.5" />
           </button>
-          <button onClick={() => clear()} title="Clear history"
-            className="rounded p-1 text-studio-muted transition hover:text-studio-error disabled:opacity-30">
+          <button
+            onClick={() => clear()}
+            title="Clear history"
+            className="rounded p-1 text-studio-muted transition hover:text-studio-error disabled:opacity-30"
+          >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
-          <button onClick={onClose} title="Close"
-            className="rounded p-1 text-studio-muted transition hover:text-studio-text">
+          <button
+            onClick={onClose}
+            title="Close"
+            className="rounded p-1 text-studio-muted transition hover:text-studio-text"
+          >
             ×
           </button>
         </div>
@@ -98,7 +119,13 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
 
       {/* Tree view */}
       {viewMode === 'tree' ? (
-        <Suspense fallback={<div className="flex-1 flex items-center justify-center text-xs text-studio-muted animate-pulse">Loading…</div>}>
+        <Suspense
+          fallback={
+            <div className="flex-1 flex items-center justify-center text-xs text-studio-muted animate-pulse">
+              Loading…
+            </div>
+          }
+        >
           <UndoTreePanel onClose={onClose} />
         </Suspense>
       ) : (
@@ -124,7 +151,9 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
                   className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left transition hover:bg-studio-surface"
                 >
                   <RotateCw className="h-3 w-3 text-studio-muted/50" />
-                  <span className="text-[11px] text-studio-muted/50">Future step {future.length - i}</span>
+                  <span className="text-[11px] text-studio-muted/50">
+                    Future step {future.length - i}
+                  </span>
                 </button>
               ))}
             </div>

@@ -1,11 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ObjectPool, type PoolConfig } from '../ObjectPool';
 
-function makeConfig(overrides: Partial<PoolConfig<{ id: number }>> = {}): PoolConfig<{ id: number }> {
+function makeConfig(
+  overrides: Partial<PoolConfig<{ id: number }>> = {}
+): PoolConfig<{ id: number }> {
   let counter = 0;
   return {
     factory: () => ({ id: counter++ }),
-    reset: (obj) => { obj.id = -1; },
+    reset: (obj) => {
+      obj.id = -1;
+    },
     initialSize: 3,
     maxSize: 10,
     autoExpand: true,
@@ -74,7 +78,9 @@ describe('ObjectPool', () => {
 
   it('releaseAll returns all active to free', () => {
     const pool = new ObjectPool(makeConfig());
-    pool.acquire(); pool.acquire(); pool.acquire();
+    pool.acquire();
+    pool.acquire();
+    pool.acquire();
     expect(pool.getActiveCount()).toBe(3);
     pool.releaseAll();
     expect(pool.getActiveCount()).toBe(0);
@@ -83,7 +89,9 @@ describe('ObjectPool', () => {
 
   it('peakActive tracks high-water mark', () => {
     const pool = new ObjectPool(makeConfig({ initialSize: 5 }));
-    pool.acquire(); pool.acquire(); pool.acquire();
+    pool.acquire();
+    pool.acquire();
+    pool.acquire();
     const stats = pool.getStats();
     expect(stats.peakActive).toBe(3);
   });
@@ -101,9 +109,10 @@ describe('ObjectPool', () => {
 
   it('forEach iterates active objects only', () => {
     const pool = new ObjectPool(makeConfig());
-    pool.acquire(); pool.acquire();
+    pool.acquire();
+    pool.acquire();
     const visited: number[] = [];
-    pool.forEach(obj => visited.push(obj.id));
+    pool.forEach((obj) => visited.push(obj.id));
     expect(visited.length).toBe(2);
   });
 

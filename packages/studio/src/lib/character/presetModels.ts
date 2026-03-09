@@ -303,10 +303,7 @@ export const CDN_CONFIG = {
   thumbnailsPath: '/thumbnails',
 
   // Alternative CDN endpoints (for redundancy)
-  fallbackCdns: [
-    'https://cdn2.holoscript.dev',
-    'https://assets.holoscript.com',
-  ],
+  fallbackCdns: ['https://cdn2.holoscript.dev', 'https://assets.holoscript.com'],
 };
 
 /**

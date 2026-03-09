@@ -51,6 +51,7 @@ ui#lobby_screen {
 ```
 
 **Lobby functions**:
+
 - `join_room(id)` - Join specific room
 - `join_random_room()` - Quick match
 - `create_room(options)` - Create new room
@@ -102,6 +103,7 @@ player#vr_rig @networked @photon_view {
 ```
 
 **What gets synced**:
+
 - Head position/rotation (HMD tracking)
 - Left/right hand position/rotation
 - Button states (grab, trigger, thumbstick)
@@ -135,6 +137,7 @@ object#cube @grabbable @networked {
 ```
 
 **Ownership modes**:
+
 - `"mine"` - Only I can modify (my player rig)
 - `"request"` - Ask current owner to transfer
 - `"master_client"` - Only room master can modify
@@ -163,6 +166,7 @@ object#ball @networked {
 ```
 
 **Interpolation modes**:
+
 - `"none"` - Teleport to new position (choppy)
 - `"lerp"` - Linear interpolation (smooth)
 - `"slerp"` - Spherical interpolation (for rotation)
@@ -194,6 +198,7 @@ on_hit_target() {
 ```
 
 **RPC Best Practices**:
+
 - Use for events, not continuous updates (use sync for that)
 - Keep parameters small (<1KB)
 - Don't send >30 RPCs/second per player
@@ -235,6 +240,7 @@ voice_chat#player_voice @photon_voice {
 ```
 
 **Voice modes**:
+
 - `"auto"` - Voice activation (speaks when loud enough)
 - `"push_to_talk"` - Hold button to speak
 - `"always_on"` - Constantly transmitting
@@ -280,6 +286,7 @@ object#whiteboard @networked @drawable {
 ```
 
 **Whiteboard sync strategy**:
+
 - ✅ Send strokes as point arrays (~100 bytes each)
 - ❌ Don't send full texture (~8MB) on every change
 - ✅ New player joins → master sends compressed texture once
@@ -326,6 +333,7 @@ object#video_screen @networked {
 ```
 
 **Video sync challenges**:
+
 - Network latency → players see different frames
 - Solution: Master client is authoritative
 - Periodic re-sync every 5s to prevent drift
@@ -393,6 +401,7 @@ on_disconnected(reason) {
 ```
 
 **Network lifecycle**:
+
 1. Connect to Photon Cloud
 2. Join or create room
 3. Spawn player prefab (networked)
@@ -413,6 +422,7 @@ on_disconnected(reason) {
 ## Best Practices
 
 ### Bandwidth Management
+
 - **Target**: <100 kbps per player (without voice)
 - **Position updates**: 10-20 Hz
 - **Rotation updates**: 10-20 Hz
@@ -420,6 +430,7 @@ on_disconnected(reason) {
 - **Total**: ~80 kbps per player
 
 **Optimization**:
+
 ```holoscript
 transform_sync {
   send_rate: 15  // Lower for distant players
@@ -429,12 +440,14 @@ transform_sync {
 ```
 
 ### Latency Compensation
+
 - **Client-side prediction**: Move locally first, sync later
 - **Interpolation**: Smooth between network updates
 - **Dead reckoning**: Predict future position
 - **Server authority**: Master client resolves conflicts
 
 ### Security
+
 - **Validate RPCs**: Check sender permissions
 - **Rate limiting**: Max X RPCs per second
 - **Master client authority**: Critical state (scores, rules)
@@ -459,6 +472,7 @@ on_rpc("SpawnObject", sender, params) {
 ```
 
 ### Scalability
+
 - **Room size**: 8-16 players ideal for VR
 - **Zone culling**: Don't sync far objects
 - **Interest management**: Only sync nearby players
@@ -550,21 +564,25 @@ on_disconnected(reason) {
 ## Troubleshooting
 
 ### High Latency
+
 - **Symptom**: Players jittery, delayed reactions
 - **Cause**: Long distance to server, slow internet
 - **Fix**: Select closer region, reduce `send_rate`
 
 ### Voice Cutting Out
+
 - **Symptom**: Broken audio, robotic voice
 - **Cause**: Packet loss, low bandwidth
 - **Fix**: Lower voice bitrate, check WiFi signal
 
 ### Players Not Syncing
+
 - **Symptom**: Players invisible or frozen
 - **Cause**: Missing `PhotonView`, wrong `ObservedComponents`
 - **Fix**: Verify prefab setup, check console errors
 
 ### Objects Stuck
+
 - **Symptom**: Can't grab object, "ownership denied"
 - **Cause**: Another player holds it, network lag
 - **Fix**: Add ownership timeout, visual feedback

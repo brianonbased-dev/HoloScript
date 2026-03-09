@@ -16,24 +16,24 @@ export type StackBehavior = 'stack' | 'refresh' | 'replace' | 'ignore';
 
 export interface StatModifier {
   stat: string;
-  flat: number;           // Added to base value
-  percent: number;        // Multiplied (1.0 = no change, 1.5 = +50%)
+  flat: number; // Added to base value
+  percent: number; // Multiplied (1.0 = no change, 1.5 = +50%)
 }
 
 export interface StatusEffect {
   id: string;
   name: string;
   type: EffectType;
-  duration: number;       // seconds, 0 = infinite
+  duration: number; // seconds, 0 = infinite
   elapsed: number;
   stacks: number;
   maxStacks: number;
   stackBehavior: StackBehavior;
   modifiers: StatModifier[];
-  tickInterval: number;   // 0 = no tick
+  tickInterval: number; // 0 = no tick
   lastTick: number;
   tickDamage: number;
-  onApply?: string;       // event name
+  onApply?: string; // event name
   onRemove?: string;
   onTick?: string;
 }
@@ -46,14 +46,17 @@ let _effectId = 0;
 
 export class StatusEffectSystem {
   private effects: Map<string, Map<string, StatusEffect>> = new Map(); // entityId → effectName → effect
-  private immunities: Map<string, Set<string>> = new Map();             // entityId → immune effect names
+  private immunities: Map<string, Set<string>> = new Map(); // entityId → immune effect names
   private tickResults: Array<{ entityId: string; effectName: string; damage: number }> = [];
 
   // ---------------------------------------------------------------------------
   // Application
   // ---------------------------------------------------------------------------
 
-  apply(entityId: string, effectDef: Omit<StatusEffect, 'id' | 'elapsed' | 'lastTick' | 'stacks'> & { stacks?: number }): StatusEffect | null {
+  apply(
+    entityId: string,
+    effectDef: Omit<StatusEffect, 'id' | 'elapsed' | 'lastTick' | 'stacks'> & { stacks?: number }
+  ): StatusEffect | null {
     // Check immunity
     const immune = this.immunities.get(entityId);
     if (immune?.has(effectDef.name)) return null;
@@ -108,7 +111,10 @@ export class StatusEffectSystem {
     if (!entityEffects) return 0;
     let count = 0;
     for (const [name, effect] of entityEffects) {
-      if (effect.type === type) { entityEffects.delete(name); count++; }
+      if (effect.type === type) {
+        entityEffects.delete(name);
+        count++;
+      }
     }
     return count;
   }
@@ -153,7 +159,9 @@ export class StatusEffectSystem {
     }
   }
 
-  getTickResults(): typeof this.tickResults { return [...this.tickResults]; }
+  getTickResults(): typeof this.tickResults {
+    return [...this.tickResults];
+  }
 
   // ---------------------------------------------------------------------------
   // Immunity
@@ -161,7 +169,10 @@ export class StatusEffectSystem {
 
   addImmunity(entityId: string, effectName: string): void {
     let set = this.immunities.get(entityId);
-    if (!set) { set = new Set(); this.immunities.set(entityId, set); }
+    if (!set) {
+      set = new Set();
+      this.immunities.set(entityId, set);
+    }
     set.add(effectName);
   }
 
@@ -174,7 +185,8 @@ export class StatusEffectSystem {
   // ---------------------------------------------------------------------------
 
   getStatModifiers(entityId: string, stat: string): { flat: number; percent: number } {
-    let flat = 0, percent = 1.0;
+    let flat = 0,
+      percent = 1.0;
     const entityEffects = this.effects.get(entityId);
     if (entityEffects) {
       for (const effect of entityEffects.values()) {

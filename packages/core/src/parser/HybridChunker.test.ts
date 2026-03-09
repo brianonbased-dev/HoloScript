@@ -158,8 +158,8 @@ export function farewell(name: string): string {
 `;
     const chunks = chunker.chunk(code, 'greet.ts');
     expect(chunks.length).toBeGreaterThan(0);
-    expect(chunks.every(c => c.strategy === 'structure')).toBe(true);
-    expect(chunks.every(c => c.tokens > 0)).toBe(true);
+    expect(chunks.every((c) => c.strategy === 'structure')).toBe(true);
+    expect(chunks.every((c) => c.tokens > 0)).toBe(true);
   });
 
   it('detects class boundaries', () => {
@@ -178,8 +178,8 @@ export class AuthService {
 `;
     const chunks = chunker.chunk(code, 'services.ts');
     expect(chunks.length).toBeGreaterThan(0);
-    const hasUser = chunks.some(c => c.content.includes('UserService'));
-    const hasAuth = chunks.some(c => c.content.includes('AuthService'));
+    const hasUser = chunks.some((c) => c.content.includes('UserService'));
+    const hasAuth = chunks.some((c) => c.content.includes('AuthService'));
     expect(hasUser).toBe(true);
     expect(hasAuth).toBe(true);
   });
@@ -208,7 +208,10 @@ export interface Post {
   });
 
   it('recursively splits oversized functions', () => {
-    const body = Array(500).fill(0).map((_, i) => `  console.log("Line ${i}");`).join('\n');
+    const body = Array(500)
+      .fill(0)
+      .map((_, i) => `  console.log("Line ${i}");`)
+      .join('\n');
     const code = `export function massive() {\n${body}\n}`;
 
     const small = new HybridChunker({ maxTokens: 256 });
@@ -256,14 +259,12 @@ describe('HybridChunker - Fixed-Size Chunking', () => {
     const chunks = chunker.chunk(logContent, 'app.log');
 
     expect(chunks.length).toBeGreaterThan(0);
-    expect(chunks.every(c => c.strategy === 'fixed')).toBe(true);
-    expect(chunks.every(c => c.type === 'text-block')).toBe(true);
+    expect(chunks.every((c) => c.strategy === 'fixed')).toBe(true);
+    expect(chunks.every((c) => c.type === 'text-block')).toBe(true);
   });
 
   it('respects maxTokens limit', () => {
-    const logContent = Array(100)
-      .fill('Line: Some log entry with some content')
-      .join('\n');
+    const logContent = Array(100).fill('Line: Some log entry with some content').join('\n');
 
     const chunker = new HybridChunker({ maxTokens: 256 });
     const chunks = chunker.chunk(logContent, 'debug.log');
@@ -410,7 +411,10 @@ describe('HybridChunker - getStats', () => {
   });
 
   it('returns correct totalChunks', () => {
-    const chunks = chunker.chunk('function a() { return 1; }\nfunction b() { return 2; }', 'test.ts');
+    const chunks = chunker.chunk(
+      'function a() { return 1; }\nfunction b() { return 2; }',
+      'test.ts'
+    );
     const stats = chunker.getStats(chunks);
     expect(stats.totalChunks).toBe(chunks.length);
   });
@@ -485,9 +489,12 @@ describe('HybridChunker - Edge Cases', () => {
   });
 
   it('assigns unique IDs to all chunks', () => {
-    const code = Array(50).fill(0).map((_, i) => `function fn${i}() { return ${i}; }`).join('\n\n');
+    const code = Array(50)
+      .fill(0)
+      .map((_, i) => `function fn${i}() { return ${i}; }`)
+      .join('\n\n');
     const chunks = chunker.chunk(code, 'many.ts');
-    const ids = new Set(chunks.map(c => c.id));
+    const ids = new Set(chunks.map((c) => c.id));
     expect(ids.size).toBe(chunks.length);
   });
 
@@ -516,7 +523,10 @@ describe('HybridChunker - Performance', () => {
   it('handles large code files within 1 second', () => {
     const largeFunctions = Array(100)
       .fill(0)
-      .map((_, i) => `export function fn${i}() {\n  return Array(10).fill(${i}).reduce((a,b)=>a+b,0);\n}`)
+      .map(
+        (_, i) =>
+          `export function fn${i}() {\n  return Array(10).fill(${i}).reduce((a,b)=>a+b,0);\n}`
+      )
       .join('\n\n');
 
     const chunker = new HybridChunker();

@@ -21,12 +21,12 @@ object "Agent" {
 
 ## Key Events
 
-| Event | When | Track For |
-|-------|------|-----------|
-| `llm_request` | API call start | Usage, costs |
-| `llm_response` | Got response | Quality, tokens |
-| `llm_tool_call` | Tool invoked | Tool usage |
-| `llm_escalation` | Need help | Errors, uncertainty |
+| Event            | When           | Track For           |
+| ---------------- | -------------- | ------------------- |
+| `llm_request`    | API call start | Usage, costs        |
+| `llm_response`   | Got response   | Quality, tokens     |
+| `llm_tool_call`  | Tool invoked   | Tool usage          |
+| `llm_escalation` | Need help      | Errors, uncertainty |
 
 ---
 
@@ -47,7 +47,7 @@ Track: `phase_complete` event for each phase
 // Init
 const experiment = new Experiment({
   apiKey: process.env.COMET_API_KEY,
-  projectName: 'holoscript-agents'
+  projectName: 'holoscript-agents',
 });
 
 // Track LLM
@@ -84,13 +84,11 @@ const registry = new AgentRegistry();
 
 await registry.register({
   id: 'my_agent',
-  capabilities: [
-    { type: 'analyze', domain: 'spatial' }
-  ]
+  capabilities: [{ type: 'analyze', domain: 'spatial' }],
 });
 
 const agents = await registry.discover({
-  type: 'analyze'
+  type: 'analyze',
 });
 ```
 
@@ -114,12 +112,12 @@ interface AgentMetrics {
 
 ## File Locations
 
-| What | Where |
-|------|-------|
-| LLMAgentTrait | `packages/core/src/traits/LLMAgentTrait.ts` |
-| uAA2++ Types | `packages/core/src/agents/AgentTypes.ts` |
-| Agent Registry | `packages/core/src/agents/AgentRegistry.ts` |
-| Choreography | `packages/core/src/choreography/ChoreographyEngine.ts` |
+| What           | Where                                                  |
+| -------------- | ------------------------------------------------------ |
+| LLMAgentTrait  | `packages/core/src/traits/LLMAgentTrait.ts`            |
+| uAA2++ Types   | `packages/core/src/agents/AgentTypes.ts`               |
+| Agent Registry | `packages/core/src/agents/AgentRegistry.ts`            |
+| Choreography   | `packages/core/src/choreography/ChoreographyEngine.ts` |
 
 ---
 

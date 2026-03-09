@@ -85,7 +85,7 @@ describe('VehicleSystem', () => {
     const def = createDefaultCar('v8');
     const state = sys.createVehicle(def, { x: 0, y: 0, z: 0 });
     const fwd = sys.getForwardVector(state);
-    const len = Math.sqrt(fwd.x*fwd.x + fwd.y*fwd.y + fwd.z*fwd.z);
+    const len = Math.sqrt(fwd.x * fwd.x + fwd.y * fwd.y + fwd.z * fwd.z);
     expect(len).toBeCloseTo(1, 0);
   });
 });

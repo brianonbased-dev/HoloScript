@@ -1,16 +1,16 @@
 /**
  * Browser Benchmark Script
- * 
+ *
  * This script can be pasted into the browser console to run real WASM vs
  * TypeScript benchmarks in the browser environment.
- * 
+ *
  * Usage:
  * 1. Run: cd packages/studio && npm run dev
  * 2. Navigate to http://localhost:3100
  * 3. Open DevTools console (F12)
  * 4. Copy and paste this script
  * 5. View results in console
- * 
+ *
  * The script will:
  * - Test WASM initialization and compilation
  * - Compare against TypeScript fallback
@@ -68,9 +68,7 @@
         console.log(`  Parse:      ${result.speedup.parse.toFixed(2)}x faster`);
         console.log(`  Compile:    ${result.speedup.compile.toFixed(2)}x faster`);
 
-        const avgSpeedup = (
-          (result.speedup.parse + result.speedup.compile) / 2
-        ).toFixed(2);
+        const avgSpeedup = ((result.speedup.parse + result.speedup.compile) / 2).toFixed(2);
         console.log(`  Average:    ${avgSpeedup}x faster`);
       }
 

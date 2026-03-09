@@ -23,7 +23,8 @@ import type {
  * Mock sandbox that captures messages and simulates permission checks.
  */
 function createMockSandbox(pluginId: string, permissions: SandboxPermission[]) {
-  const sentResponses: Array<{ id: MessageId; success: boolean; data?: unknown; error?: unknown }> = [];
+  const sentResponses: Array<{ id: MessageId; success: boolean; data?: unknown; error?: unknown }> =
+    [];
   const sentEvents: Array<{ namespace: string; event: string; data: unknown }> = [];
   const violations: Array<{ permission: SandboxPermission; details: string }> = [];
   const latencies: number[] = [];
@@ -82,7 +83,7 @@ function createMockSandbox(pluginId: string, permissions: SandboxPermission[]) {
 function createTestMessage<T extends PluginToHostMessage['type']>(
   type: T,
   pluginId: string,
-  payload: Record<string, unknown>,
+  payload: Record<string, unknown>
 ): PluginToHostMessage {
   return {
     protocol: 'holoscript-sandbox-v1',
@@ -351,7 +352,9 @@ describe('PluginBridge Log and Error Handling', () => {
     mockSandbox._simulateMessage(message);
     await new Promise((r) => setTimeout(r, 10));
 
-    expect(logHandler).toHaveBeenCalledWith('test-plugin', 'info', 'Hello from plugin', { extra: true });
+    expect(logHandler).toHaveBeenCalledWith('test-plugin', 'info', 'Hello from plugin', {
+      extra: true,
+    });
 
     bridge.disconnect();
   });
@@ -381,7 +384,7 @@ describe('PluginBridge Log and Error Handling', () => {
       'test-plugin',
       'PLUGIN_CRASH',
       'Something went wrong',
-      'Error: Something went wrong\n  at plugin.js:42',
+      'Error: Something went wrong\n  at plugin.js:42'
     );
 
     bridge.disconnect();
@@ -434,7 +437,10 @@ describe('PluginBridge Registration Handling', () => {
     mockSandbox._simulateMessage(message);
     await new Promise((r) => setTimeout(r, 10));
 
-    expect(registerHandler).toHaveBeenCalledWith('test-plugin', 'panel', { id: 'my-panel', label: 'My Panel' });
+    expect(registerHandler).toHaveBeenCalledWith('test-plugin', 'panel', {
+      id: 'my-panel',
+      label: 'My Panel',
+    });
 
     const lastResponse = mockSandbox._sentResponses[mockSandbox._sentResponses.length - 1];
     expect(lastResponse.success).toBe(true);

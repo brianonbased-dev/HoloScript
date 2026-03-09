@@ -30,15 +30,15 @@ This guide covers all seven Hololand services and how to use them effectively.
 
 The Hololand Platform consists of seven specialized services:
 
-| Service | Purpose | Key Features |
-|---------|---------|-------------|
-| **VRR Sync Service** | Real-time VRR data synchronization | Weather, events, inventory sync |
-| **X402 Payment Service** | HTTP 402 blockchain payments | Ethereum transactions, payment gating |
-| **Agent Kit Service** | AI agent wallet management | NFT minting, wallet creation |
-| **Zora Marketplace Service** | NFT marketplace integration | Zora Protocol, IPFS uploads, royalties |
-| **StoryWeaver AI Service** | AI narrative generation | LLM integration, quest narratives |
-| **Quest Builder Service** | Business quest creation | Objectives, rewards, progress tracking |
-| **AR Preview Service** | AR entry point simulation | QR codes, portals, layer transitions |
+| Service                      | Purpose                            | Key Features                           |
+| ---------------------------- | ---------------------------------- | -------------------------------------- |
+| **VRR Sync Service**         | Real-time VRR data synchronization | Weather, events, inventory sync        |
+| **X402 Payment Service**     | HTTP 402 blockchain payments       | Ethereum transactions, payment gating  |
+| **Agent Kit Service**        | AI agent wallet management         | NFT minting, wallet creation           |
+| **Zora Marketplace Service** | NFT marketplace integration        | Zora Protocol, IPFS uploads, royalties |
+| **StoryWeaver AI Service**   | AI narrative generation            | LLM integration, quest narratives      |
+| **Quest Builder Service**    | Business quest creation            | Objectives, rewards, progress tracking |
+| **AR Preview Service**       | AR entry point simulation          | QR codes, portals, layer transitions   |
 
 ---
 
@@ -233,10 +233,7 @@ const paymentRequest = {
 
 // Process payment (simulated)
 try {
-  const result = await paymentService.requestPayment(
-    paymentRequest,
-    'user-123'
-  );
+  const result = await paymentService.requestPayment(paymentRequest, 'user-123');
 
   console.log('Payment successful!');
   console.log('Transaction:', result.txHash);
@@ -441,10 +438,7 @@ console.log('Generated narrative:');
 console.log(narrative);
 
 // Generate quest
-const quest = await storyService.generateQuest(
-  'cafe-001',
-  'treasure hunt'
-);
+const quest = await storyService.generateQuest('cafe-001', 'treasure hunt');
 
 console.log('Quest:', quest.title);
 console.log('Objectives:', quest.objectives.length);
@@ -537,12 +531,7 @@ console.log('Title:', quest.title);
 console.log('Estimated duration:', quest.estimatedDuration, 'minutes');
 
 // Track player progress
-questService.updateQuestProgress(
-  questId,
-  'player-123',
-  quest.objectives[0].id,
-  1
-);
+questService.updateQuestProgress(questId, 'player-123', quest.objectives[0].id, 1);
 
 // Complete quest
 const completion = await questService.completeQuest(questId, 'player-123');
@@ -705,6 +694,7 @@ describe('VRRSyncService', () => {
 ### Test Coverage
 
 Current test statistics:
+
 - **Total Tests**: 295
 - **Test Files**: 12
 - **Pass Rate**: 100%

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PlayCanvasCompiler } from '../PlayCanvasCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -9,7 +9,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
@@ -75,7 +74,9 @@ describe('PlayCanvasCompiler', () => {
 
   it('compiles lights', () => {
     const comp = makeComposition({
-      lights: [{ name: 'sun', lightType: 'directional', properties: [{ key: 'intensity', value: 1.0 }] }] as any,
+      lights: [
+        { name: 'sun', lightType: 'directional', properties: [{ key: 'intensity', value: 1.0 }] },
+      ] as any,
     });
     const code = compiler.compile(comp, 'test-token');
     expect(code).toContain('light');

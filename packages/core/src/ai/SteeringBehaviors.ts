@@ -46,14 +46,20 @@ export class SteeringBehaviors {
     const desired = SteeringBehaviors.sub(target, agent.position);
     const norm = SteeringBehaviors.normalize(desired);
     const scaled = SteeringBehaviors.scale(norm, agent.maxSpeed);
-    return SteeringBehaviors.truncate(SteeringBehaviors.sub(scaled, agent.velocity), agent.maxForce);
+    return SteeringBehaviors.truncate(
+      SteeringBehaviors.sub(scaled, agent.velocity),
+      agent.maxForce
+    );
   }
 
   static flee(agent: SteeringAgent, threat: Vec3): Vec3 {
     const desired = SteeringBehaviors.sub(agent.position, threat);
     const norm = SteeringBehaviors.normalize(desired);
     const scaled = SteeringBehaviors.scale(norm, agent.maxSpeed);
-    return SteeringBehaviors.truncate(SteeringBehaviors.sub(scaled, agent.velocity), agent.maxForce);
+    return SteeringBehaviors.truncate(
+      SteeringBehaviors.sub(scaled, agent.velocity),
+      agent.maxForce
+    );
   }
 
   static arrive(agent: SteeringAgent, target: Vec3, slowRadius: number): Vec3 {
@@ -63,13 +69,25 @@ export class SteeringBehaviors {
 
     const speed = dist < slowRadius ? agent.maxSpeed * (dist / slowRadius) : agent.maxSpeed;
     const desired = SteeringBehaviors.scale(SteeringBehaviors.normalize(toTarget), speed);
-    return SteeringBehaviors.truncate(SteeringBehaviors.sub(desired, agent.velocity), agent.maxForce);
+    return SteeringBehaviors.truncate(
+      SteeringBehaviors.sub(desired, agent.velocity),
+      agent.maxForce
+    );
   }
 
-  static wander(agent: SteeringAgent, circleDistance: number, circleRadius: number, angleJitter: number, currentAngle: number): { force: Vec3; newAngle: number } {
+  static wander(
+    agent: SteeringAgent,
+    circleDistance: number,
+    circleRadius: number,
+    angleJitter: number,
+    currentAngle: number
+  ): { force: Vec3; newAngle: number } {
     const angle = currentAngle + (Math.random() - 0.5) * angleJitter;
     const vel = SteeringBehaviors.normalize(agent.velocity);
-    const circleCenter = SteeringBehaviors.add(agent.position, SteeringBehaviors.scale(vel, circleDistance));
+    const circleCenter = SteeringBehaviors.add(
+      agent.position,
+      SteeringBehaviors.scale(vel, circleDistance)
+    );
     const offset = { x: Math.cos(angle) * circleRadius, y: 0, z: Math.sin(angle) * circleRadius };
     const target = SteeringBehaviors.add(circleCenter, offset);
     return { force: SteeringBehaviors.seek(agent, target), newAngle: angle };
@@ -80,7 +98,7 @@ export class SteeringBehaviors {
   // ---------------------------------------------------------------------------
 
   static flock(agent: SteeringAgent, neighbors: SteeringAgent[], config: FlockConfig): Vec3 {
-    const nearby = neighbors.filter(n => {
+    const nearby = neighbors.filter((n) => {
       if (n === agent) return false;
       return SteeringBehaviors.distance(agent.position, n.position) < config.neighborRadius;
     });
@@ -92,14 +110,25 @@ export class SteeringBehaviors {
     const coh = SteeringBehaviors.cohesion(agent, nearby);
 
     return {
-      x: sep.x * config.separationWeight + ali.x * config.alignmentWeight + coh.x * config.cohesionWeight,
-      y: sep.y * config.separationWeight + ali.y * config.alignmentWeight + coh.y * config.cohesionWeight,
-      z: sep.z * config.separationWeight + ali.z * config.alignmentWeight + coh.z * config.cohesionWeight,
+      x:
+        sep.x * config.separationWeight +
+        ali.x * config.alignmentWeight +
+        coh.x * config.cohesionWeight,
+      y:
+        sep.y * config.separationWeight +
+        ali.y * config.alignmentWeight +
+        coh.y * config.cohesionWeight,
+      z:
+        sep.z * config.separationWeight +
+        ali.z * config.alignmentWeight +
+        coh.z * config.cohesionWeight,
     };
   }
 
   private static separation(agent: SteeringAgent, neighbors: SteeringAgent[]): Vec3 {
-    let fx = 0, fy = 0, fz = 0;
+    let fx = 0,
+      fy = 0,
+      fz = 0;
     for (const n of neighbors) {
       const d = SteeringBehaviors.sub(agent.position, n.position);
       const dist = SteeringBehaviors.length(d) || 0.001;
@@ -111,15 +140,27 @@ export class SteeringBehaviors {
   }
 
   private static alignment(_agent: SteeringAgent, neighbors: SteeringAgent[]): Vec3 {
-    let vx = 0, vy = 0, vz = 0;
-    for (const n of neighbors) { vx += n.velocity.x; vy += n.velocity.y; vz += n.velocity.z; }
+    let vx = 0,
+      vy = 0,
+      vz = 0;
+    for (const n of neighbors) {
+      vx += n.velocity.x;
+      vy += n.velocity.y;
+      vz += n.velocity.z;
+    }
     const avg = { x: vx / neighbors.length, y: vy / neighbors.length, z: vz / neighbors.length };
     return SteeringBehaviors.normalize(avg);
   }
 
   private static cohesion(agent: SteeringAgent, neighbors: SteeringAgent[]): Vec3 {
-    let cx = 0, cy = 0, cz = 0;
-    for (const n of neighbors) { cx += n.position.x; cy += n.position.y; cz += n.position.z; }
+    let cx = 0,
+      cy = 0,
+      cz = 0;
+    for (const n of neighbors) {
+      cx += n.position.x;
+      cy += n.position.y;
+      cz += n.position.z;
+    }
     const center = { x: cx / neighbors.length, y: cy / neighbors.length, z: cz / neighbors.length };
     return SteeringBehaviors.normalize(SteeringBehaviors.sub(center, agent.position));
   }
@@ -128,8 +169,15 @@ export class SteeringBehaviors {
   // Obstacle Avoidance
   // ---------------------------------------------------------------------------
 
-  static obstacleAvoidance(agent: SteeringAgent, obstacles: ObstacleCircle[], lookAhead: number): Vec3 {
-    const ahead = SteeringBehaviors.add(agent.position, SteeringBehaviors.scale(SteeringBehaviors.normalize(agent.velocity), lookAhead));
+  static obstacleAvoidance(
+    agent: SteeringAgent,
+    obstacles: ObstacleCircle[],
+    lookAhead: number
+  ): Vec3 {
+    const ahead = SteeringBehaviors.add(
+      agent.position,
+      SteeringBehaviors.scale(SteeringBehaviors.normalize(agent.velocity), lookAhead)
+    );
 
     let nearest: ObstacleCircle | null = null;
     let nearestDist = Infinity;
@@ -153,7 +201,9 @@ export class SteeringBehaviors {
   // ---------------------------------------------------------------------------
 
   static applyForce(agent: SteeringAgent, force: Vec3, dt: number): void {
-    const ax = force.x / agent.mass, ay = force.y / agent.mass, az = force.z / agent.mass;
+    const ax = force.x / agent.mass,
+      ay = force.y / agent.mass,
+      az = force.z / agent.mass;
     agent.velocity.x += ax * dt;
     agent.velocity.y += ay * dt;
     agent.velocity.z += az * dt;
@@ -167,11 +217,21 @@ export class SteeringBehaviors {
   // Vec3 Helpers
   // ---------------------------------------------------------------------------
 
-  private static sub(a: Vec3, b: Vec3): Vec3 { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
-  private static add(a: Vec3, b: Vec3): Vec3 { return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }; }
-  private static scale(v: Vec3, s: number): Vec3 { return { x: v.x * s, y: v.y * s, z: v.z * s }; }
-  private static length(v: Vec3): number { return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z); }
-  private static distance(a: Vec3, b: Vec3): number { return SteeringBehaviors.length(SteeringBehaviors.sub(a, b)); }
+  private static sub(a: Vec3, b: Vec3): Vec3 {
+    return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+  }
+  private static add(a: Vec3, b: Vec3): Vec3 {
+    return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+  }
+  private static scale(v: Vec3, s: number): Vec3 {
+    return { x: v.x * s, y: v.y * s, z: v.z * s };
+  }
+  private static length(v: Vec3): number {
+    return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+  }
+  private static distance(a: Vec3, b: Vec3): number {
+    return SteeringBehaviors.length(SteeringBehaviors.sub(a, b));
+  }
   private static normalize(v: Vec3): Vec3 {
     const len = SteeringBehaviors.length(v) || 1;
     return { x: v.x / len, y: v.y / len, z: v.z / len };

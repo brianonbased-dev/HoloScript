@@ -317,12 +317,7 @@ function shouldSample(config: AnalyticsConfig, state: AnalyticsState): boolean {
   return true;
 }
 
-function quantizePosition(
-  x: number,
-  y: number,
-  z: number,
-  resolution: number
-): string {
+function quantizePosition(x: number, y: number, z: number, resolution: number): string {
   const qx = Math.floor(x / resolution) * resolution;
   const qy = Math.floor(y / resolution) * resolution;
   const qz = Math.floor(z / resolution) * resolution;
@@ -395,12 +390,7 @@ export const analyticsHandler: TraitHandler<AnalyticsConfig> = {
     (node as any).__analyticsState = state;
 
     // Start root trace span for scene lifetime
-    const rootSpan = createSpan(
-      state,
-      config,
-      'scene_lifecycle',
-      null
-    );
+    const rootSpan = createSpan(state, config, 'scene_lifecycle', null);
     rootSpan.attributes['scene.id'] = state.sceneId;
     rootSpan.attributes['session.id'] = state.sessionId;
 
@@ -518,9 +508,7 @@ export const analyticsHandler: TraitHandler<AnalyticsConfig> = {
     // Aggregate on window boundary
     const windowMs = parseAggregationWindowMs(config.aggregation_window);
     if (now - state.lastAggregateTime >= windowMs) {
-      const windowSamples = state.samples.filter(
-        (s) => s.timestamp > state.lastAggregateTime
-      );
+      const windowSamples = state.samples.filter((s) => s.timestamp > state.lastAggregateTime);
 
       if (windowSamples.length > 0) {
         const aggregate = computeAggregate(windowSamples);
@@ -542,16 +530,76 @@ export const analyticsHandler: TraitHandler<AnalyticsConfig> = {
           };
 
           state.dashboardBuffer.push(
-            { metricName: 'scene.fps.avg', value: aggregate.fps.avg, timestamp: now, tags, unit: 'fps' },
-            { metricName: 'scene.fps.p95', value: aggregate.fps.p95, timestamp: now, tags, unit: 'fps' },
-            { metricName: 'scene.frame_time.avg', value: aggregate.frameTimeMs.avg, timestamp: now, tags, unit: 'ms' },
-            { metricName: 'scene.frame_time.p99', value: aggregate.frameTimeMs.p99, timestamp: now, tags, unit: 'ms' },
-            { metricName: 'scene.draw_calls.avg', value: aggregate.drawCalls.avg, timestamp: now, tags, unit: 'count' },
-            { metricName: 'scene.gaussians.avg', value: aggregate.gaussianCount.avg, timestamp: now, tags, unit: 'count' },
-            { metricName: 'scene.memory.avg', value: aggregate.memoryUsageMB.avg, timestamp: now, tags, unit: 'MB' },
-            { metricName: 'scene.gpu_memory.avg', value: aggregate.gpuMemoryUsageMB.avg, timestamp: now, tags, unit: 'MB' },
-            { metricName: 'scene.jank_frames', value: aggregate.jankFrames, timestamp: now, tags, unit: 'count' },
-            { metricName: 'scene.stutter_frames', value: aggregate.stutterFrames, timestamp: now, tags, unit: 'count' }
+            {
+              metricName: 'scene.fps.avg',
+              value: aggregate.fps.avg,
+              timestamp: now,
+              tags,
+              unit: 'fps',
+            },
+            {
+              metricName: 'scene.fps.p95',
+              value: aggregate.fps.p95,
+              timestamp: now,
+              tags,
+              unit: 'fps',
+            },
+            {
+              metricName: 'scene.frame_time.avg',
+              value: aggregate.frameTimeMs.avg,
+              timestamp: now,
+              tags,
+              unit: 'ms',
+            },
+            {
+              metricName: 'scene.frame_time.p99',
+              value: aggregate.frameTimeMs.p99,
+              timestamp: now,
+              tags,
+              unit: 'ms',
+            },
+            {
+              metricName: 'scene.draw_calls.avg',
+              value: aggregate.drawCalls.avg,
+              timestamp: now,
+              tags,
+              unit: 'count',
+            },
+            {
+              metricName: 'scene.gaussians.avg',
+              value: aggregate.gaussianCount.avg,
+              timestamp: now,
+              tags,
+              unit: 'count',
+            },
+            {
+              metricName: 'scene.memory.avg',
+              value: aggregate.memoryUsageMB.avg,
+              timestamp: now,
+              tags,
+              unit: 'MB',
+            },
+            {
+              metricName: 'scene.gpu_memory.avg',
+              value: aggregate.gpuMemoryUsageMB.avg,
+              timestamp: now,
+              tags,
+              unit: 'MB',
+            },
+            {
+              metricName: 'scene.jank_frames',
+              value: aggregate.jankFrames,
+              timestamp: now,
+              tags,
+              unit: 'count',
+            },
+            {
+              metricName: 'scene.stutter_frames',
+              value: aggregate.stutterFrames,
+              timestamp: now,
+              tags,
+              unit: 'count',
+            }
           );
         }
       }
@@ -645,20 +693,14 @@ export const analyticsHandler: TraitHandler<AnalyticsConfig> = {
         if (state.engagement.interactionCount > 1) {
           const prevAvg = state.engagement.avgInteractionInterval;
           const count = state.engagement.interactionCount;
-          state.engagement.avgInteractionInterval =
-            prevAvg + (interval - prevAvg) / count;
+          state.engagement.avgInteractionInterval = prevAvg + (interval - prevAvg) / count;
         }
         state.lastInteractionTime = now;
 
         // Interaction heatmap (spatial bucket, no PII)
         if (config.collect_heatmap && event.position) {
           const pos = event.position as { x: number; y: number; z: number };
-          const bucket = quantizePosition(
-            pos.x,
-            pos.y,
-            pos.z,
-            config.heatmap_resolution
-          );
+          const bucket = quantizePosition(pos.x, pos.y, pos.z, config.heatmap_resolution);
           const current = state.engagement.interactionHeatmapBuckets.get(bucket) || 0;
           state.engagement.interactionHeatmapBuckets.set(bucket, current + 1);
         }
@@ -704,9 +746,7 @@ export const analyticsHandler: TraitHandler<AnalyticsConfig> = {
         traceId: span.traceId,
         operationName,
       });
-    }
-
-    else if (event.type === 'analytics_end_span') {
+    } else if (event.type === 'analytics_end_span') {
       const spanId = event.spanId as string;
       const status = (event.status as 'OK' | 'ERROR') || 'OK';
 
@@ -738,14 +778,11 @@ export const analyticsHandler: TraitHandler<AnalyticsConfig> = {
         context.emit?.('analytics_span_ended', {
           node,
           spanId,
-          durationMs:
-            (span.endTimeUnixNano - span.startTimeUnixNano) / 1_000_000,
+          durationMs: (span.endTimeUnixNano - span.startTimeUnixNano) / 1_000_000,
           status,
         });
       }
-    }
-
-    else if (event.type === 'analytics_span_event') {
+    } else if (event.type === 'analytics_span_event') {
       const spanId = event.spanId as string;
       const eventName = (event.eventName as string) || 'event';
       const attributes = (event.attributes as Record<string, string | number | boolean>) || {};
@@ -795,13 +832,9 @@ export const analyticsHandler: TraitHandler<AnalyticsConfig> = {
     // --- Control events ---
     else if (event.type === 'analytics_enable') {
       state.isCollecting = true;
-    }
-
-    else if (event.type === 'analytics_disable') {
+    } else if (event.type === 'analytics_disable') {
       state.isCollecting = false;
-    }
-
-    else if (event.type === 'analytics_reset') {
+    } else if (event.type === 'analytics_reset') {
       state.samples = [];
       state.aggregates = [];
       state.completedSpans = [];
@@ -814,9 +847,7 @@ export const analyticsHandler: TraitHandler<AnalyticsConfig> = {
     // --- Query events ---
     else if (event.type === 'analytics_query') {
       const latestAggregate =
-        state.aggregates.length > 0
-          ? state.aggregates[state.aggregates.length - 1]
-          : null;
+        state.aggregates.length > 0 ? state.aggregates[state.aggregates.length - 1] : null;
 
       context.emit?.('analytics_info', {
         queryId: event.queryId,

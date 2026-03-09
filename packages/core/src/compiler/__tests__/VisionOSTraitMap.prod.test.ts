@@ -28,9 +28,14 @@ describe('VisionOSTraitMap — Production', () => {
   // ─── Combined Map ─────────────────────────────────────────────────
   it('VISIONOS_TRAIT_MAP merges all sub-maps', () => {
     const subMaps = [
-      PHYSICS_TRAIT_MAP, INTERACTION_TRAIT_MAP, VISUAL_TRAIT_MAP,
-      ACCESSIBILITY_TRAIT_MAP, AR_TRAIT_MAP, UI_TRAIT_MAP,
-      PORTAL_TRAIT_MAP, V43_TRAIT_MAP,
+      PHYSICS_TRAIT_MAP,
+      INTERACTION_TRAIT_MAP,
+      VISUAL_TRAIT_MAP,
+      ACCESSIBILITY_TRAIT_MAP,
+      AR_TRAIT_MAP,
+      UI_TRAIT_MAP,
+      PORTAL_TRAIT_MAP,
+      V43_TRAIT_MAP,
     ];
     const expectedCount = subMaps.reduce((n, m) => n + Object.keys(m).length, 0);
     // May have fewer if there are key collisions, but should be close
@@ -43,7 +48,7 @@ describe('VisionOSTraitMap — Production', () => {
     expect(mapping.level).toBe('full');
     expect(mapping.components).toContain('CollisionComponent');
     const lines = mapping.generate('myEntity', {});
-    expect(lines.some(l => l.includes('CollisionComponent'))).toBe(true);
+    expect(lines.some((l) => l.includes('CollisionComponent'))).toBe(true);
   });
 
   it('physics trait supports dynamic/kinematic modes', () => {
@@ -68,18 +73,18 @@ describe('VisionOSTraitMap — Production', () => {
   // ─── Visual Traits ────────────────────────────────────────────────
   it('billboard trait generates BillboardComponent', () => {
     const lines = VISUAL_TRAIT_MAP['billboard'].generate('sign', {});
-    expect(lines.some(l => l.includes('BillboardComponent'))).toBe(true);
+    expect(lines.some((l) => l.includes('BillboardComponent'))).toBe(true);
   });
 
   it('particle_emitter trait uses config rate and lifetime', () => {
     const lines = VISUAL_TRAIT_MAP['particle_emitter'].generate('fx', { rate: 200, lifetime: 2.0 });
-    expect(lines.some(l => l.includes('200'))).toBe(true);
-    expect(lines.some(l => l.includes('2'))).toBe(true);
+    expect(lines.some((l) => l.includes('200'))).toBe(true);
+    expect(lines.some((l) => l.includes('2'))).toBe(true);
   });
 
   it('animated trait handles clip name', () => {
     const lines = VISUAL_TRAIT_MAP['animated'].generate('char', { clip: 'walk', loop: true });
-    expect(lines.some(l => l.includes('walk'))).toBe(true);
+    expect(lines.some((l) => l.includes('walk'))).toBe(true);
   });
 
   // ─── AR Traits ────────────────────────────────────────────────────
@@ -87,7 +92,7 @@ describe('VisionOSTraitMap — Production', () => {
     const m = AR_TRAIT_MAP['hand_tracking'];
     expect(m.imports).toContain('ARKit');
     const lines = m.generate('hand', {});
-    expect(lines.some(l => l.includes('HandTrackingProvider'))).toBe(true);
+    expect(lines.some((l) => l.includes('HandTrackingProvider'))).toBe(true);
   });
 
   it('geospatial trait is unsupported', () => {
@@ -97,10 +102,13 @@ describe('VisionOSTraitMap — Production', () => {
 
   // ─── Accessibility Traits ─────────────────────────────────────────
   it('accessible trait generates AccessibilityComponent with label', () => {
-    const lines = ACCESSIBILITY_TRAIT_MAP['accessible'].generate('btn', { label: 'Play', isButton: true });
-    expect(lines.some(l => l.includes('AccessibilityComponent'))).toBe(true);
-    expect(lines.some(l => l.includes('Play'))).toBe(true);
-    expect(lines.some(l => l.includes('isButton'))).toBe(true);
+    const lines = ACCESSIBILITY_TRAIT_MAP['accessible'].generate('btn', {
+      label: 'Play',
+      isButton: true,
+    });
+    expect(lines.some((l) => l.includes('AccessibilityComponent'))).toBe(true);
+    expect(lines.some((l) => l.includes('Play'))).toBe(true);
+    expect(lines.some((l) => l.includes('isButton'))).toBe(true);
   });
 
   // ─── Portal Traits ───────────────────────────────────────────────
@@ -109,12 +117,12 @@ describe('VisionOSTraitMap — Production', () => {
     expect(m.components).toContain('PortalComponent');
     expect(m.components).toContain('WorldComponent');
     const lines = m.generate('door', {});
-    expect(lines.some(l => l.includes('PortalComponent'))).toBe(true);
+    expect(lines.some((l) => l.includes('PortalComponent'))).toBe(true);
   });
 
   it('immersive trait supports style config', () => {
     const lines = PORTAL_TRAIT_MAP['immersive'].generate('space', { style: 'full' });
-    expect(lines.some(l => l.includes('.full'))).toBe(true);
+    expect(lines.some((l) => l.includes('.full'))).toBe(true);
   });
 
   // ─── Helper Functions ─────────────────────────────────────────────
@@ -138,7 +146,7 @@ describe('VisionOSTraitMap — Production', () => {
     const imports = getRequiredImports(['hand_tracking', 'scene_reconstruction', 'collidable']);
     expect(imports).toContain('ARKit');
     // no duplicates
-    expect(imports.filter(i => i === 'ARKit').length).toBe(1);
+    expect(imports.filter((i) => i === 'ARKit').length).toBe(1);
   });
 
   it('getMinVisionOSVersion returns highest among traits', () => {

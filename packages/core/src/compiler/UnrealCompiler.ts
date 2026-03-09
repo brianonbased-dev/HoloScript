@@ -83,7 +83,11 @@ export class UnrealCompiler extends CompilerBase {
     };
   }
 
-  compile(composition: HoloComposition, agentToken: string, outputPath?: string): UnrealCompileResult {
+  compile(
+    composition: HoloComposition,
+    agentToken: string,
+    outputPath?: string
+  ): UnrealCompileResult {
     // ─── Agent Identity Verification ───────────────────────────────────────
     this.validateCompilerAccess(agentToken, outputPath);
     // ───────────────────────────────────────────────────────────────────────
@@ -740,32 +744,36 @@ export class UnrealCompiler extends CompilerBase {
     this.emitS('// === v4.2 Domain Blocks ===');
 
     let blockIdx = 0;
-    const compiled = compileDomainBlocks(domainBlocks, {
-      material: (block) => {
-        const mat = compileMaterialBlock(block);
-        return materialToUnreal(mat, `DB${blockIdx++}`);
+    const compiled = compileDomainBlocks(
+      domainBlocks,
+      {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          return materialToUnreal(mat, `DB${blockIdx++}`);
+        },
+        physics: (block) => {
+          const phys = compilePhysicsBlock(block);
+          return physicsToUnreal(phys, `DB${blockIdx++}`);
+        },
+        vfx: (block) => {
+          const ps = compileParticleBlock(block);
+          return particlesToUnreal(ps, `DB${blockIdx++}`);
+        },
+        postfx: (block) => {
+          const pp = compilePostProcessingBlock(block);
+          return postProcessingToUnreal(pp, `DB${blockIdx++}`);
+        },
+        audio: (block) => {
+          const audio = compileAudioSourceBlock(block);
+          return audioSourceToUnreal(audio, `DB${blockIdx++}`);
+        },
+        weather: (block) => {
+          const weather = compileWeatherBlock(block);
+          return weatherToUnreal(weather);
+        },
       },
-      physics: (block) => {
-        const phys = compilePhysicsBlock(block);
-        return physicsToUnreal(phys, `DB${blockIdx++}`);
-      },
-      vfx: (block) => {
-        const ps = compileParticleBlock(block);
-        return particlesToUnreal(ps, `DB${blockIdx++}`);
-      },
-      postfx: (block) => {
-        const pp = compilePostProcessingBlock(block);
-        return postProcessingToUnreal(pp, `DB${blockIdx++}`);
-      },
-      audio: (block) => {
-        const audio = compileAudioSourceBlock(block);
-        return audioSourceToUnreal(audio, `DB${blockIdx++}`);
-      },
-      weather: (block) => {
-        const weather = compileWeatherBlock(block);
-        return weatherToUnreal(weather);
-      },
-    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+      (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`
+    );
 
     for (const line of compiled) {
       for (const l of line.split('\n')) {

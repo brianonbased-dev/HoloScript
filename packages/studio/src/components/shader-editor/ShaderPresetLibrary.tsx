@@ -54,10 +54,14 @@ function PresetCard({ preset, onLoad, loading }: PresetCardProps) {
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-xl leading-none" role="img" aria-label={preset.name}>{preset.emoji}</span>
+          <span className="text-xl leading-none" role="img" aria-label={preset.name}>
+            {preset.emoji}
+          </span>
           <div>
             <p className="text-sm font-semibold text-white">{preset.name}</p>
-            <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[preset.category] ?? 'bg-gray-700 text-gray-400'}`}>
+            <span
+              className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[preset.category] ?? 'bg-gray-700 text-gray-400'}`}
+            >
               {preset.category}
             </span>
           </div>
@@ -80,7 +84,10 @@ function PresetCard({ preset, onLoad, loading }: PresetCardProps) {
       {Object.keys(preset.uniforms).length > 0 && (
         <div className="flex flex-wrap gap-1">
           {Object.entries(preset.uniforms).map(([name, def]) => (
-            <span key={name} className="rounded bg-gray-700/60 px-1.5 py-0.5 font-mono text-[10px] text-gray-400">
+            <span
+              key={name}
+              className="rounded bg-gray-700/60 px-1.5 py-0.5 font-mono text-[10px] text-gray-400"
+            >
               {name}: <span className="text-gray-300">{def.type}</span>
             </span>
           ))}
@@ -101,7 +108,7 @@ export function ShaderPresetLibrary() {
   const [loadingPresetId, setLoadingPresetId] = useState<string | null>(null);
 
   const createNode = useShaderGraph((s) => s.createNode);
-  const clearGraph  = useShaderGraph((s) => s.clearGraph);
+  const clearGraph = useShaderGraph((s) => s.clearGraph);
 
   // Fetch presets on mount
   useEffect(() => {
@@ -109,36 +116,52 @@ export function ShaderPresetLibrary() {
     setIsLoading(true);
     fetch('/api/shader-presets')
       .then((r) => r.json())
-      .then((data: ShaderPreset[]) => { if (!cancelled) { setPresets(data); setIsLoading(false); } })
-      .catch(() => { if (!cancelled) { setError('Failed to load presets'); setIsLoading(false); } });
-    return () => { cancelled = true; };
+      .then((data: ShaderPreset[]) => {
+        if (!cancelled) {
+          setPresets(data);
+          setIsLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError('Failed to load presets');
+          setIsLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Apply preset: clear graph, add a GLSLSnippet node with the preset code
-  const handleLoad = useCallback(async (preset: ShaderPreset) => {
-    setLoadingPresetId(preset.id);
-    try {
-      clearGraph?.();
-      // Add output node
-      createNode('FragOutput', { x: 400, y: 200 });
-      // Add a comment node with the preset GLSL snippet for reference
-      // In a full implementation this would create a ParsedGLSL node per uniform
-      // For now we inject a ColorConstant + time node that matches the preset's uniforms
-      if (preset.uniforms['uTime'] !== undefined) {
-        createNode('TimeInput', { x: 80, y: 140 });
+  const handleLoad = useCallback(
+    async (preset: ShaderPreset) => {
+      setLoadingPresetId(preset.id);
+      try {
+        clearGraph?.();
+        // Add output node
+        createNode('FragOutput', { x: 400, y: 200 });
+        // Add a comment node with the preset GLSL snippet for reference
+        // In a full implementation this would create a ParsedGLSL node per uniform
+        // For now we inject a ColorConstant + time node that matches the preset's uniforms
+        if (preset.uniforms['uTime'] !== undefined) {
+          createNode('TimeInput', { x: 80, y: 140 });
+        }
+        if (preset.uniforms['uColor'] !== undefined || preset.fragmentGLSL) {
+          createNode('ColorConstant', { x: 80, y: 240 });
+        }
+      } finally {
+        setLoadingPresetId(null);
       }
-      if (preset.uniforms['uColor'] !== undefined || preset.fragmentGLSL) {
-        createNode('ColorConstant', { x: 80, y: 240 });
-      }
-    } finally {
-      setLoadingPresetId(null);
-    }
-  }, [clearGraph, createNode]);
+    },
+    [clearGraph, createNode]
+  );
 
   // Filter
   const filtered = presets.filter((p) => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-                        p.description.toLowerCase().includes(search.toLowerCase());
+    const matchSearch =
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.description.toLowerCase().includes(search.toLowerCase());
     const matchCategory = category === 'all' || p.category === category;
     return matchSearch && matchCategory;
   });
@@ -149,7 +172,9 @@ export function ShaderPresetLibrary() {
     <div className="flex h-full flex-col bg-gray-950">
       {/* Header */}
       <div className="border-b border-gray-800 px-3 py-2">
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400">Shader Presets</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+          Shader Presets
+        </h3>
       </div>
 
       {/* Search */}

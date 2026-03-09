@@ -14,11 +14,16 @@ const NODE_TYPE_COLORS: Record<string, string> = {
 };
 
 const NODE_TYPE_ICONS: Record<string, string> = {
-  text: '💬', choice: '🔀', branch: '🔀', event: '⚡', end: '🏁',
+  text: '💬',
+  choice: '🔀',
+  branch: '🔀',
+  event: '⚡',
+  end: '🏁',
 };
 
 export function DialoguePanel() {
-  const { currentNode, choices, history, isComplete, nodeCount, start, advance, reset, loadDemo } = useDialogue();
+  const { currentNode, choices, history, isComplete, nodeCount, start, advance, reset, loadDemo } =
+    useDialogue();
 
   return (
     <div className="p-3 space-y-3 text-xs">
@@ -29,9 +34,25 @@ export function DialoguePanel() {
 
       {/* Controls */}
       <div className="flex gap-1.5">
-        <button onClick={loadDemo} className="px-2 py-1 bg-studio-accent/20 text-studio-accent rounded hover:bg-studio-accent/30 transition flex-1">Load Demo</button>
-        <button onClick={() => start('greet')} disabled={nodeCount === 0} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30 transition disabled:opacity-40">▶ Start</button>
-        <button onClick={reset} className="px-2 py-1 bg-red-500/10 text-red-400 rounded hover:bg-red-500/20 transition">↺</button>
+        <button
+          onClick={loadDemo}
+          className="px-2 py-1 bg-studio-accent/20 text-studio-accent rounded hover:bg-studio-accent/30 transition flex-1"
+        >
+          Load Demo
+        </button>
+        <button
+          onClick={() => start('greet')}
+          disabled={nodeCount === 0}
+          className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30 transition disabled:opacity-40"
+        >
+          ▶ Start
+        </button>
+        <button
+          onClick={reset}
+          className="px-2 py-1 bg-red-500/10 text-red-400 rounded hover:bg-red-500/20 transition"
+        >
+          ↺
+        </button>
       </div>
 
       {/* Current node */}
@@ -39,7 +60,9 @@ export function DialoguePanel() {
         <div className="bg-studio-panel/50 rounded-lg p-3 space-y-2">
           <div className="flex items-center gap-2">
             <span>{NODE_TYPE_ICONS[currentNode.type] || '💬'}</span>
-            <span className={`font-medium ${NODE_TYPE_COLORS[currentNode.type]}`}>{currentNode.type}</span>
+            <span className={`font-medium ${NODE_TYPE_COLORS[currentNode.type]}`}>
+              {currentNode.type}
+            </span>
             <span className="text-studio-muted">·</span>
             <span className="text-studio-text font-medium">{currentNode.speaker}</span>
           </div>
@@ -53,8 +76,11 @@ export function DialoguePanel() {
           {choices.length > 0 && (
             <div className="space-y-1 mt-2">
               {choices.map((c, i) => (
-                <button key={i} onClick={() => advance(i)}
-                  className="w-full text-left px-2.5 py-1.5 bg-amber-500/10 text-amber-300 rounded hover:bg-amber-500/20 transition text-[11px]">
+                <button
+                  key={i}
+                  onClick={() => advance(i)}
+                  className="w-full text-left px-2.5 py-1.5 bg-amber-500/10 text-amber-300 rounded hover:bg-amber-500/20 transition text-[11px]"
+                >
                   {i + 1}. {c.text}
                 </button>
               ))}
@@ -63,7 +89,10 @@ export function DialoguePanel() {
 
           {/* Auto-advance for text nodes */}
           {currentNode.type === 'text' && choices.length === 0 && (
-            <button onClick={() => advance()} className="w-full px-2 py-1.5 bg-studio-accent/20 text-studio-accent rounded hover:bg-studio-accent/30 transition">
+            <button
+              onClick={() => advance()}
+              className="w-full px-2 py-1.5 bg-studio-accent/20 text-studio-accent rounded hover:bg-studio-accent/30 transition"
+            >
               Continue →
             </button>
           )}
@@ -88,7 +117,10 @@ export function DialoguePanel() {
           <h4 className="text-studio-muted font-medium mb-1">History</h4>
           <div className="flex flex-wrap gap-1">
             {history.map((id, i) => (
-              <span key={i} className="px-1.5 py-0.5 bg-studio-panel/40 rounded text-[10px] text-studio-muted font-mono">
+              <span
+                key={i}
+                className="px-1.5 py-0.5 bg-studio-panel/40 rounded text-[10px] text-studio-muted font-mono"
+              >
                 {id}
               </span>
             ))}

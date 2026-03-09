@@ -80,7 +80,7 @@ export interface CRDTAdapter {
 }
 
 export interface TestDataset {
-  small: string[];   // 1K operations
-  medium: string[];  // 10K operations
-  large: string[];   // 100K operations
+  small: string[]; // 1K operations
+  medium: string[]; // 10K operations
+  large: string[]; // 100K operations
 }

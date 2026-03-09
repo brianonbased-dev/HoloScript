@@ -134,7 +134,8 @@ export class GasOptimizationAnalyzer {
     const lines = code.split('\n');
 
     // Detect state variables
-    const stateVarPattern = /^\s*(uint\d+|int\d+|bool|address|bytes\d+)\s+(?:public|private|internal)?\s+(\w+)/;
+    const stateVarPattern =
+      /^\s*(uint\d+|int\d+|bool|address|bytes\d+)\s+(?:public|private|internal)?\s+(\w+)/;
 
     let currentSlot = 0;
     let currentSlotSize = 0;
@@ -397,7 +398,7 @@ export class GasOptimizationAnalyzer {
 
         // Check next 5 lines for repeated calls
         const nextLines = lines.slice(i + 1, i + 6);
-        const repeats = nextLines.filter(l => l.includes(`${contract}.`)).length;
+        const repeats = nextLines.filter((l) => l.includes(`${contract}.`)).length;
 
         if (repeats > 1) {
           this.optimizations.push({
@@ -463,10 +464,10 @@ export class GasOptimizationAnalyzer {
    * Generate comprehensive gas analysis report
    */
   private generateReport(): GasAnalysisReport {
-    const criticalCount = this.optimizations.filter(o => o.severity === 'critical').length;
-    const highCount = this.optimizations.filter(o => o.severity === 'high').length;
-    const mediumCount = this.optimizations.filter(o => o.severity === 'medium').length;
-    const lowCount = this.optimizations.filter(o => o.severity === 'low').length;
+    const criticalCount = this.optimizations.filter((o) => o.severity === 'critical').length;
+    const highCount = this.optimizations.filter((o) => o.severity === 'high').length;
+    const mediumCount = this.optimizations.filter((o) => o.severity === 'medium').length;
+    const lowCount = this.optimizations.filter((o) => o.severity === 'low').length;
 
     const totalSavings = this.optimizations.reduce((sum, o) => sum + o.potentialSavings, 0);
 
@@ -570,7 +571,7 @@ export class GasOptimizationAnalyzer {
   private toCamelCase(str: string): string {
     return str
       .replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
-      .replace(/^./, chr => chr.toUpperCase());
+      .replace(/^./, (chr) => chr.toUpperCase());
   }
 }
 
@@ -586,11 +587,27 @@ export const ANALYZER_PRESETS = {
   development: {
     enableAutoFix: true,
     severityThreshold: 'info' as const,
-    categories: ['storage', 'arithmetic', 'loops', 'errors', 'memory', 'external-calls', 'visibility'],
+    categories: [
+      'storage',
+      'arithmetic',
+      'loops',
+      'errors',
+      'memory',
+      'external-calls',
+      'visibility',
+    ],
   },
   aggressive: {
     enableAutoFix: true,
     severityThreshold: 'low' as const,
-    categories: ['storage', 'arithmetic', 'loops', 'errors', 'memory', 'external-calls', 'visibility'],
+    categories: [
+      'storage',
+      'arithmetic',
+      'loops',
+      'errors',
+      'memory',
+      'external-calls',
+      'visibility',
+    ],
   },
 };

@@ -1,18 +1,35 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { goalOrientedHandler } from '../GoalOrientedTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('GoalOrientedTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
 
   const cfg = {
-    goals: [
-      { name: 'eat', priority: 1, desiredState: { hungry: false } },
-    ],
+    goals: [{ name: 'eat', priority: 1, desiredState: { hungry: false } }],
     actions: [
-      { name: 'find_food', cost: 1, preconditions: { hungry: true }, effects: { hasFood: true }, duration: 1 },
-      { name: 'eat_food', cost: 1, preconditions: { hasFood: true }, effects: { hungry: false }, duration: 1 },
+      {
+        name: 'find_food',
+        cost: 1,
+        preconditions: { hungry: true },
+        effects: { hasFood: true },
+        duration: 1,
+      },
+      {
+        name: 'eat_food',
+        cost: 1,
+        preconditions: { hasFood: true },
+        effects: { hungry: false },
+        duration: 1,
+      },
     ],
     initial_state: { hungry: true, hasFood: false } as Record<string, number | boolean | string>,
     replan_interval: 5000,

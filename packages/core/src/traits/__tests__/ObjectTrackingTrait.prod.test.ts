@@ -12,7 +12,9 @@ import { objectTrackingHandler } from '../ObjectTrackingTrait';
 // HELPERS
 // =============================================================================
 
-function makeNode(id = 'ot-node') { return { id } as any; }
+function makeNode(id = 'ot-node') {
+  return { id } as any;
+}
 
 function makeConfig(overrides: any = {}) {
   return { ...objectTrackingHandler.defaultConfig, ...overrides };

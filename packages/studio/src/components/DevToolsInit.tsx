@@ -12,14 +12,17 @@ export function DevToolsInit() {
         // Dynamic import to avoid build issues
         const { getCompilerBridge } = await import('../lib/wasm-compiler-bridge');
         const bridge = getCompilerBridge();
-        
+
         // Expose directly to window
         (window as any).CompilerBridge = bridge;
-        
+
         // Create tools namespace
         (window as any).holoscriptTools = {
           checkStatus: () => {
-            console.log('🔍 Status: CompilerBridge =', !!(window as any).CompilerBridge ? '✅' : '❌');
+            console.log(
+              '🔍 Status: CompilerBridge =',
+              !!(window as any).CompilerBridge ? '✅' : '❌'
+            );
             return { ready: !!(window as any).CompilerBridge };
           },
           test: async () => {
@@ -38,9 +41,9 @@ export function DevToolsInit() {
               console.error('❌ Parse failed:', e.message);
               return { success: false, error: e.message };
             }
-          }
+          },
         };
-        
+
         console.log('%c✅ DevTools Ready', 'color: #0a0; font-weight: bold');
       } catch (e) {
         console.error('Failed to init DevTools:', e);

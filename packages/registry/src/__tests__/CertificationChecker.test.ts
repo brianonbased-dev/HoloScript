@@ -514,7 +514,11 @@ describe('CertificationBadge', () => {
     });
 
     it('truncates long package names', () => {
-      const badge = issueBadge('@very-long-org/extremely-long-package-name-here', '1.0.0', makeBadgeResult('bronze', 62))!;
+      const badge = issueBadge(
+        '@very-long-org/extremely-long-package-name-here',
+        '1.0.0',
+        makeBadgeResult('bronze', 62)
+      )!;
       const svg = generateBadgeSVG(badge);
       // Should not throw and should produce valid SVG
       expect(svg).toContain('<svg');
@@ -547,7 +551,7 @@ describe('CertificationBadge', () => {
       const badge = issueBadge('@list/test', '1.0.0', makeBadgeResult('bronze', 62))!;
       storeBadge(badge);
       const all = listBadges();
-      expect(all.some(b => b.packageName === '@list/test')).toBe(true);
+      expect(all.some((b) => b.packageName === '@list/test')).toBe(true);
     });
 
     it('revokeBadge removes the badge', () => {

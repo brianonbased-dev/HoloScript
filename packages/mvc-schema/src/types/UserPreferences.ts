@@ -130,11 +130,14 @@ export interface UserPreferences {
   privacy?: PrivacyPreferences;
 
   /** LWW metadata for each field (field path -> LWW metadata) */
-  lwwMetadata: Record<string, {
-    timestamp: number;
-    actorDid: string;
-    operationId: string;
-  }>;
+  lwwMetadata: Record<
+    string,
+    {
+      timestamp: number;
+      actorDid: string;
+      operationId: string;
+    }
+  >;
 
   /** Last update timestamp */
   lastUpdated: number;

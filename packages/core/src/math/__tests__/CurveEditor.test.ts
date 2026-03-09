@@ -4,7 +4,9 @@ import { CurveEditor } from '../CurveEditor';
 describe('CurveEditor', () => {
   let curve: CurveEditor;
 
-  beforeEach(() => { curve = new CurveEditor(); });
+  beforeEach(() => {
+    curve = new CurveEditor();
+  });
 
   // ---------------------------------------------------------------------------
   // Keyframe Management
@@ -42,7 +44,7 @@ describe('CurveEditor', () => {
     curve.addKey(1, 1);
     curve.setKey(1, 0.5, 0.5);
     const keys = curve.getKeyframes();
-    expect(keys.some(k => k.time === 0.5 && k.value === 0.5)).toBe(true);
+    expect(keys.some((k) => k.time === 0.5 && k.value === 0.5)).toBe(true);
   });
 
   // ---------------------------------------------------------------------------

@@ -13,14 +13,9 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import {
-  parseArgs,
-  type CLIOptions,
-} from '../../../cli/src/args.js';
+import { parseArgs, type CLIOptions } from '../../../cli/src/args.js';
 
-import {
-  formatError,
-} from '../../../cli/src/formatters.js';
+import { formatError } from '../../../cli/src/formatters.js';
 
 import {
   TRAITS,
@@ -31,10 +26,7 @@ import {
   type TraitInfo,
 } from '../../../cli/src/traits.js';
 
-import {
-  listTemplates,
-  getTemplate,
-} from '../../../cli/src/generator.js';
+import { listTemplates, getTemplate } from '../../../cli/src/generator.js';
 
 import {
   HoloScriptLinter,
@@ -95,7 +87,9 @@ describe('Feature 1A: parseArgs -- basic command parsing', () => {
 
 describe('Feature 1B: parseArgs -- CLIOptions defaults', () => {
   let opts: CLIOptions;
-  beforeEach(() => { opts = parseArgs([]); });
+  beforeEach(() => {
+    opts = parseArgs([]);
+  });
 
   it('verbose defaults to false', () => {
     expect(opts.verbose).toBe(false);

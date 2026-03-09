@@ -9,6 +9,7 @@
 ## 🎯 Demo Objectives
 
 ### Visual Impact
+
 - ✅ Multi-story building (5-10 floors)
 - ✅ Progressive structural collapse
 - ✅ 50K+ debris particles
@@ -18,6 +19,7 @@
 - ✅ Sound effects (optional)
 
 ### Technical Requirements
+
 - ✅ Integration with GPU physics system
 - ✅ Fracture physics for building destruction
 - ✅ Real-time particle spawning
@@ -25,6 +27,7 @@
 - ✅ Interactive controls (trigger earthquake, adjust intensity)
 
 ### User Experience
+
 - ✅ Spectacular visual showcase
 - ✅ Demonstrates GPU physics capabilities
 - ✅ Educational value (structural engineering)
@@ -61,6 +64,7 @@
 ### Component Breakdown
 
 **1. Building Model**
+
 - Procedural building generation
 - Multi-floor structure (5-10 floors)
 - Structural elements (beams, columns, floors)
@@ -68,6 +72,7 @@
 - Weak points for realistic collapse
 
 **2. Fracture Physics**
+
 - Progressive structural failure
 - Beam/column destruction
 - Floor collapse propagation
@@ -75,6 +80,7 @@
 - Connection breaking
 
 **3. Debris Particles**
+
 - 50K GPU-accelerated particles
 - Various sizes (small chunks to large slabs)
 - Realistic mass distribution
@@ -82,6 +88,7 @@
 - Settling and rest states
 
 **4. Camera Effects**
+
 - Earthquake shake (procedural noise)
 - Dynamic FOV changes
 - Follow-cam during collapse
@@ -89,6 +96,7 @@
 - Multiple camera angles
 
 **5. Visual Effects**
+
 - Dust particle clouds
 - Debris trails
 - Impact effects
@@ -101,14 +109,15 @@
 ### Phase 1: Building Structure (Day 1-2)
 
 **Task 1.1: Procedural Building Generator**
+
 ```typescript
 interface BuildingConfig {
-  floors: number;           // 5-10
-  floorHeight: number;      // 3.0m
-  width: number;            // 20m
-  depth: number;            // 20m
-  columnsPerSide: number;   // 4
-  beamsPerFloor: number;    // 12
+  floors: number; // 5-10
+  floorHeight: number; // 3.0m
+  width: number; // 20m
+  depth: number; // 20m
+  columnsPerSide: number; // 4
+  beamsPerFloor: number; // 12
 }
 
 class ProceduralBuilding {
@@ -119,14 +128,15 @@ class ProceduralBuilding {
 ```
 
 **Task 1.2: Structural Elements**
+
 ```typescript
 interface StructuralElement {
   type: 'column' | 'beam' | 'floor';
   position: vec3;
   dimensions: vec3;
   material: 'concrete' | 'steel';
-  health: number;           // 0-100%
-  connections: number[];    // Connected element IDs
+  health: number; // 0-100%
+  connections: number[]; // Connected element IDs
   mass: number;
 }
 
@@ -138,6 +148,7 @@ interface WeakPoint {
 ```
 
 **Task 1.3: Building Mesh**
+
 - Generate visual mesh for building
 - Instanced rendering for structural elements
 - Color coding by material/stress
@@ -148,6 +159,7 @@ interface WeakPoint {
 ### Phase 2: Fracture Physics (Day 2-3)
 
 **Task 2.1: Structural Analysis**
+
 ```typescript
 interface StructuralAnalysis {
   calculateStress(element: StructuralElement): number;
@@ -165,12 +177,14 @@ class FracturePhysics {
 ```
 
 **Task 2.2: Progressive Collapse**
+
 - Top-down or bottom-up collapse
 - Chain reaction of failures
 - Realistic collapse patterns
 - Timing and sequencing
 
 **Task 2.3: Debris Spawning**
+
 ```typescript
 interface DebrisSpawnConfig {
   sourceElement: StructuralElement;
@@ -192,6 +206,7 @@ class DebrisSpawner {
 ### Phase 3: GPU Integration (Day 3-4)
 
 **Task 3.1: Particle System Integration**
+
 ```typescript
 class EarthquakeSimulation {
   private gpuPhysics: ComputePipeline;
@@ -207,12 +222,14 @@ class EarthquakeSimulation {
 ```
 
 **Task 3.2: Debris Particle Upload**
+
 - Convert structural elements to GPU particles
 - Upload debris to GPU buffers
 - Manage particle lifecycle (spawn/destroy)
 - Track active particle count
 
 **Task 3.3: Performance Optimization**
+
 - Batch debris spawning (avoid frame spikes)
 - Particle pooling
 - Sleep state for settled debris
@@ -223,11 +240,12 @@ class EarthquakeSimulation {
 ### Phase 4: Camera & Effects (Day 4-5)
 
 **Task 4.1: Camera Shake**
+
 ```typescript
 interface CameraShake {
-  intensity: number;       // 0-10
-  frequency: number;       // Hz
-  duration: number;        // seconds
+  intensity: number; // 0-10
+  frequency: number; // Hz
+  duration: number; // seconds
   falloff: 'linear' | 'exponential';
 }
 
@@ -239,12 +257,14 @@ class CameraController {
 ```
 
 **Task 4.2: Visual Effects**
+
 - Dust particle system (separate from debris)
 - Impact flash effects
 - Debris trails
 - Screen effects (optional)
 
 **Task 4.3: Multiple Camera Modes**
+
 - Fixed camera (overview)
 - Follow camera (track collapse)
 - Cinematic camera (pre-scripted path)
@@ -255,6 +275,7 @@ class CameraController {
 ### Phase 5: Demo Scene & UI (Day 5-6)
 
 **Task 5.1: Interactive Demo**
+
 ```typescript
 interface EarthquakeControls {
   triggerEarthquake(): void;
@@ -273,6 +294,7 @@ class EarthquakeDemoScene {
 ```
 
 **Task 5.2: UI Controls**
+
 - Earthquake trigger button
 - Intensity slider (1-10)
 - Reset button
@@ -282,6 +304,7 @@ class EarthquakeDemoScene {
 - Slow-motion toggle
 
 **Task 5.3: Visual Polish**
+
 - Loading screen
 - Instructions overlay
 - Stats display
@@ -292,18 +315,21 @@ class EarthquakeDemoScene {
 ### Phase 6: Testing & Polish (Day 6-7)
 
 **Task 6.1: Performance Testing**
+
 - 50K particles @ 60 FPS validation
 - Memory usage monitoring
 - Garbage collection profiling
 - Frame time consistency
 
 **Task 6.2: Visual Refinement**
+
 - Material colors and textures
 - Lighting adjustments
 - Dust effect tuning
 - Camera shake calibration
 
 **Task 6.3: User Testing**
+
 - Controls intuitive?
 - Visual impact sufficient?
 - Performance acceptable?
@@ -316,6 +342,7 @@ class EarthquakeDemoScene {
 ## 🎨 Visual Design
 
 ### Building Appearance
+
 ```
 Floor 10: ▓▓▓▓▓▓▓▓▓▓
 Floor 9:  ▓▓▓▓▓▓▓▓▓▓
@@ -337,6 +364,7 @@ Materials:
 ```
 
 ### Collapse Sequence
+
 ```
 T=0s:   Building intact
         └─ Earthquake starts (ground shake)
@@ -369,24 +397,28 @@ T=6-10s: Settling phase
 ### Camera Angles
 
 **Angle 1: Overview (Default)**
+
 - Position: (30, 20, 30)
 - Target: Building center
 - FOV: 60°
 - Shows entire collapse
 
 **Angle 2: Street Level**
+
 - Position: (50, 2, 0)
 - Target: Building base
 - FOV: 70°
 - Ground-level perspective
 
 **Angle 3: Top-Down**
+
 - Position: (0, 80, 0)
 - Target: Building center
 - FOV: 45°
 - Architectural view
 
 **Angle 4: Cinematic**
+
 - Dynamic path following collapse
 - Variable FOV for impact
 - Slow-motion capable
@@ -396,6 +428,7 @@ T=6-10s: Settling phase
 ## 🧪 Testing Strategy
 
 ### Performance Benchmarks
+
 ```typescript
 interface PerformanceTarget {
   targetFPS: 60;
@@ -416,21 +449,25 @@ interface PerformanceMetrics {
 ### Test Scenarios
 
 **Test 1: Baseline Performance**
+
 - Empty scene (building only, no collapse)
 - Should maintain 60 FPS
 - Memory: ~20 MB
 
 **Test 2: Partial Collapse**
+
 - 10K particles active
 - Should maintain 60 FPS
 - Memory: ~40 MB
 
 **Test 3: Full Collapse**
+
 - 50K particles active
 - Target: 60 FPS (min 55 FPS acceptable)
 - Memory: ~80 MB
 
 **Test 4: Stress Test**
+
 - 100K particles (double target)
 - Should maintain 30+ FPS
 - Memory: ~150 MB
@@ -438,6 +475,7 @@ interface PerformanceMetrics {
 ### Quality Checks
 
 **Visual Quality**
+
 - ✅ Building looks realistic
 - ✅ Collapse is believable
 - ✅ Debris behavior natural
@@ -445,12 +483,14 @@ interface PerformanceMetrics {
 - ✅ Dust effects enhance realism
 
 **Physics Accuracy**
+
 - ✅ Structural failures make sense
 - ✅ Debris falls realistically
 - ✅ Collisions work properly
 - ✅ Particles settle naturally
 
 **User Experience**
+
 - ✅ Controls are intuitive
 - ✅ Demo is impressive
 - ✅ Performance is smooth
@@ -461,6 +501,7 @@ interface PerformanceMetrics {
 ## 📦 Deliverables Checklist
 
 ### Code (Week 5)
+
 - [ ] `ProceduralBuilding.ts` (300 lines)
 - [ ] `FracturePhysics.ts` (400 lines)
 - [ ] `EarthquakeSimulation.ts` (350 lines)
@@ -470,6 +511,7 @@ interface PerformanceMetrics {
 - **Total**: ~1,800 lines
 
 ### Documentation
+
 - [ ] Architecture overview
 - [ ] User guide
 - [ ] API documentation
@@ -477,12 +519,14 @@ interface PerformanceMetrics {
 - **Total**: ~400 lines
 
 ### Demo Assets
+
 - [ ] HTML demo page
 - [ ] Interactive controls
 - [ ] Multiple camera angles
 - [ ] Recording capability (optional)
 
 ### Testing
+
 - [ ] Performance benchmarks
 - [ ] Visual quality checks
 - [ ] User experience validation
@@ -493,6 +537,7 @@ interface PerformanceMetrics {
 ## 🎯 Success Criteria
 
 ### Must Have (MVP)
+
 - ✅ 50K particles @ 60 FPS
 - ✅ Building collapse animation
 - ✅ GPU physics integration
@@ -500,6 +545,7 @@ interface PerformanceMetrics {
 - ✅ Camera shake effects
 
 ### Should Have
+
 - ✅ Multiple camera angles
 - ✅ Dust particle effects
 - ✅ Slow-motion mode
@@ -507,6 +553,7 @@ interface PerformanceMetrics {
 - ✅ Performance stats
 
 ### Nice to Have
+
 - 🎯 Sound effects
 - 🎯 Video recording
 - 🎯 Configurable building (floors, size)
@@ -518,6 +565,7 @@ interface PerformanceMetrics {
 ## 🔮 Future Enhancements
 
 ### Post-Week 5
+
 1. **Multiple Building Types**
    - Residential
    - Commercial
@@ -585,24 +633,28 @@ Day 6-7: Testing & Polish
 ## 💡 Technical Considerations
 
 ### Memory Management
+
 - Particle pooling to avoid GC
 - Reuse debris particles when possible
 - Clear settled particles (beyond view)
 - Efficient buffer management
 
 ### Performance Optimization
+
 - Batch debris spawning (max 1K/frame)
 - Sleep state for settled debris
 - Frustum culling for off-screen particles
 - LOD for building elements
 
 ### Physics Accuracy
+
 - Realistic material properties
 - Proper mass distribution
 - Accurate collision response
 - Energy conservation
 
 ### Visual Quality
+
 - Appropriate debris sizes
 - Realistic dust effects
 - Smooth camera motion
@@ -613,12 +665,14 @@ Day 6-7: Testing & Polish
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - ✅ GPU acceleration system (Phase 1-3)
 - ✅ WebGPU-capable browser
 - ✅ HoloScript development environment
 - ✅ Test data for structural analysis
 
 ### Initial Setup
+
 ```bash
 cd c:/Users/josep/Documents/GitHub/HoloScript
 mkdir -p packages/demos/earthquake
@@ -629,6 +683,7 @@ pnpm init
 ```
 
 ### First Implementation Step
+
 Start with `ProceduralBuilding.ts` - the foundation for everything else.
 
 ---

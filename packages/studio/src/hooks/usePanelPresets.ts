@@ -31,14 +31,19 @@ function loadPresets(): PanelPreset[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return BUILT_IN_PRESETS;
     const saved = JSON.parse(raw) as PanelPreset[];
-    return [...BUILT_IN_PRESETS, ...saved.filter(s => !BUILT_IN_PRESETS.some(b => b.name === s.name))];
-  } catch { return BUILT_IN_PRESETS; }
+    return [
+      ...BUILT_IN_PRESETS,
+      ...saved.filter((s) => !BUILT_IN_PRESETS.some((b) => b.name === s.name)),
+    ];
+  } catch {
+    return BUILT_IN_PRESETS;
+  }
 }
 
 function savePresets(presets: PanelPreset[]) {
   try {
     if (typeof window === 'undefined') return;
-    const custom = presets.filter(p => !BUILT_IN_PRESETS.some(b => b.name === p.name));
+    const custom = presets.filter((p) => !BUILT_IN_PRESETS.some((b) => b.name === p.name));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(custom));
   } catch {}
 }
@@ -56,8 +61,8 @@ export function usePanelPresets(): UsePanelPresetsReturn {
   const [activePreset, setActivePreset] = useState<string | null>(null);
 
   const savePresetFn = useCallback((name: string, activeTab: PanelTab, isOpen: boolean) => {
-    setPresets(prev => {
-      const next = prev.filter(p => p.name !== name);
+    setPresets((prev) => {
+      const next = prev.filter((p) => p.name !== name);
       const preset: PanelPreset = { name, activeTab, isOpen, createdAt: Date.now() };
       next.push(preset);
       savePresets(next);
@@ -66,19 +71,28 @@ export function usePanelPresets(): UsePanelPresetsReturn {
   }, []);
 
   const deletePreset = useCallback((name: string) => {
-    if (BUILT_IN_PRESETS.some(b => b.name === name)) return; // Can't delete built-in
-    setPresets(prev => {
-      const next = prev.filter(p => p.name !== name);
+    if (BUILT_IN_PRESETS.some((b) => b.name === name)) return; // Can't delete built-in
+    setPresets((prev) => {
+      const next = prev.filter((p) => p.name !== name);
       savePresets(next);
       return next;
     });
   }, []);
 
-  const loadPresetFn = useCallback((name: string) => {
-    const preset = presets.find(p => p.name === name) || null;
-    if (preset) setActivePreset(name);
-    return preset;
-  }, [presets]);
+  const loadPresetFn = useCallback(
+    (name: string) => {
+      const preset = presets.find((p) => p.name === name) || null;
+      if (preset) setActivePreset(name);
+      return preset;
+    },
+    [presets]
+  );
 
-  return { presets, activePreset, savePreset: savePresetFn, deletePreset, loadPreset: loadPresetFn };
+  return {
+    presets,
+    activePreset,
+    savePreset: savePresetFn,
+    deletePreset,
+    loadPreset: loadPresetFn,
+  };
 }

@@ -64,10 +64,16 @@ describe('Dialogue System (Cycle 181)', () => {
       runner = new DialogueRunner();
       runner.loadNodes([
         { id: 'start', type: 'text', speaker: 'NPC', text: 'Hello {player}!', nextId: 'choice' },
-        { id: 'choice', type: 'choice', speaker: 'NPC', text: 'Choose:', choices: [
-          { label: 'Yes', nextId: 'yes' },
-          { label: 'No', nextId: 'no' },
-        ]},
+        {
+          id: 'choice',
+          type: 'choice',
+          speaker: 'NPC',
+          text: 'Choose:',
+          choices: [
+            { label: 'Yes', nextId: 'yes' },
+            { label: 'No', nextId: 'no' },
+          ],
+        },
         { id: 'yes', type: 'text', speaker: 'NPC', text: 'Great!' },
         { id: 'no', type: 'text', speaker: 'NPC', text: 'Too bad.' },
       ]);

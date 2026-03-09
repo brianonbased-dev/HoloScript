@@ -10,11 +10,22 @@ describe('Runtime Debugging (Cycle 178)', () => {
     beforeEach(() => {
       inspector = new EntityInspector();
       inspector.registerEntity({
-        id: 'e1', name: 'Player', tags: ['actor', 'controlled'], active: true, parentId: null,
-        components: new Map([['transform', { x: 0, y: 0 }], ['health', { hp: 100 }]]),
+        id: 'e1',
+        name: 'Player',
+        tags: ['actor', 'controlled'],
+        active: true,
+        parentId: null,
+        components: new Map([
+          ['transform', { x: 0, y: 0 }],
+          ['health', { hp: 100 }],
+        ]),
       });
       inspector.registerEntity({
-        id: 'e2', name: 'Enemy', tags: ['actor', 'ai'], active: true, parentId: null,
+        id: 'e2',
+        name: 'Enemy',
+        tags: ['actor', 'ai'],
+        active: true,
+        parentId: null,
         components: new Map([['transform', { x: 10, y: 0 }]]),
       });
     });

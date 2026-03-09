@@ -12,6 +12,7 @@ This guide documents the implementation of real Zora Protocol SDK integration fo
 ## ✅ Completed (Week 1, Days 1-3)
 
 ### 1. Dependencies Added
+
 - `wagmi@3.4.3` - React hooks for Ethereum
 - `viem@2.45.3` - Low-level Ethereum library
 - `@zoralabs/protocol-deployments@0.7.2` - Zora contract ABIs
@@ -19,24 +20,28 @@ This guide documents the implementation of real Zora Protocol SDK integration fo
 ### 2. Utility Classes Created
 
 #### **WalletConnection.ts** (`src/traits/utils/WalletConnection.ts`)
+
 - Manages Base L2 blockchain connections
 - Provides public client (read) and wallet client (write)
 - Supports mainnet (`base`) and testnet (`base-testnet`)
 - Environment variable support (`BASE_RPC_URL`, `BASE_TESTNET_RPC_URL`)
 
 **Key Methods:**
+
 - `connect(account: Address)` - Connect wallet for transactions
 - `getPublicClient()` - Get read-only client
 - `getWalletClient()` - Get write client (throws if not connected)
 - `isConnected()` - Check connection status
 
 #### **GasEstimator.ts** (`src/traits/utils/GasEstimator.ts`)
+
 - Estimates gas costs for Zora mints
 - Calculates total cost (gas + 0.000777 ETH mint fee)
 - Checks wallet balance sufficiency
 - Formats costs for display
 
 **Key Methods:**
+
 - `estimateMintGas(publicClient, contractAddress, quantity)` - Get gas estimate
 - `checkSufficientBalance(publicClient, walletAddress, estimate)` - Validate funds
 - `formatEstimate(estimate, ethPriceUSD?)` - Format for display
@@ -50,6 +55,7 @@ This guide documents the implementation of real Zora Protocol SDK integration fo
 #### Changes Required:
 
 **A. Add Imports** (after line 22):
+
 ```typescript
 import { WalletConnection } from './utils/WalletConnection';
 import { GasEstimator } from './utils/GasEstimator';
@@ -58,6 +64,7 @@ import { ZoraCreator1155Impl } from '@zoralabs/protocol-deployments';
 ```
 
 **B. Add Context Interface** (after line 143):
+
 ```typescript
 interface ZoraExecutionContext {
   wallet: WalletConnection;
@@ -90,7 +97,6 @@ async function executeMinting(
   config: ZoraCoinsConfig,
   context: ZoraExecutionContext
 ): Promise<{ txHash: string; contractAddress: string }> {
-
   // 1. Validate wallet connection
   if (!context.wallet.isConnected()) {
     throw new Error(
@@ -113,7 +119,7 @@ async function executeMinting(
     // TODO: Implement auto-deployment in future version
     throw new Error(
       'collection_id is required. Auto-deployment not yet implemented. ' +
-      'Create a Zora collection first at https://zora.co/create'
+        'Create a Zora collection first at https://zora.co/create'
     );
   }
 
@@ -123,14 +129,10 @@ async function executeMinting(
   // 4. Estimate gas costs
   context.emitEvent('zora_estimating_gas', {
     mintId: mint.id,
-    quantity: Number(quantity)
+    quantity: Number(quantity),
   });
 
-  const gasEstimate = await GasEstimator.estimateMintGas(
-    publicClient,
-    contractAddress,
-    quantity
-  );
+  const gasEstimate = await GasEstimator.estimateMintGas(publicClient, contractAddress, quantity);
 
   const formattedEstimate = GasEstimator.formatEstimate(gasEstimate);
 
@@ -148,17 +150,17 @@ async function executeMinting(
 
     throw new Error(
       `Insufficient balance for mint transaction.\n` +
-      `Required: ${required}\n` +
-      `Available: ${balance}\n` +
-      `Shortfall: ${shortfall}\n\n` +
-      `Gas estimate: ${formattedEstimate.totalGasCostETH}\n` +
-      `Mint fee (0.000777 ETH × ${quantity}): ${formattedEstimate.mintFeeETH}`
+        `Required: ${required}\n` +
+        `Available: ${balance}\n` +
+        `Shortfall: ${shortfall}\n\n` +
+        `Gas estimate: ${formattedEstimate.totalGasCostETH}\n` +
+        `Mint fee (0.000777 ETH × ${quantity}): ${formattedEstimate.mintFeeETH}`
     );
   }
 
   context.emitEvent('zora_gas_estimated', {
     mintId: mint.id,
-    estimate: formattedEstimate
+    estimate: formattedEstimate,
   });
 
   // 6. Prepare mint transaction
@@ -175,40 +177,40 @@ async function executeMinting(
       abi: ZoraCreator1155Impl.abi,
       functionName: 'mintWithRewards',
       args: [
-        walletAddress,     // minter (who receives the NFT)
-        tokenId,           // tokenId (0 for new)
-        quantity,          // quantity to mint
-        '0x' as Hex,       // minterArguments (empty)
-        mintReferral       // mintReferral (who gets referral reward)
+        walletAddress, // minter (who receives the NFT)
+        tokenId, // tokenId (0 for new)
+        quantity, // quantity to mint
+        '0x' as Hex, // minterArguments (empty)
+        mintReferral, // mintReferral (who gets referral reward)
       ],
       value: gasEstimate.mintFee, // Total mint fee (0.000777 ETH × quantity)
       account: walletClient.account,
       gas: gasEstimate.gasLimit,
       maxFeePerGas: gasEstimate.maxFeePerGas,
-      maxPriorityFeePerGas: gasEstimate.maxPriorityFeePerGas
+      maxPriorityFeePerGas: gasEstimate.maxPriorityFeePerGas,
     });
 
     context.emitEvent('zora_transaction_simulated', {
       mintId: mint.id,
-      success: true
+      success: true,
     });
 
     // 8. Execute transaction
     context.emitEvent('zora_transaction_sending', {
-      mintId: mint.id
+      mintId: mint.id,
     });
 
     const txHash = await walletClient.writeContract(request);
 
     context.emitEvent('zora_transaction_sent', {
       mintId: mint.id,
-      txHash
+      txHash,
     });
 
     // 9. Wait for transaction confirmation (1 block on Base ≈ 2 seconds)
     const receipt = await publicClient.waitForTransactionReceipt({
       hash: txHash,
-      confirmations: 1
+      confirmations: 1,
     });
 
     if (receipt.status === 'reverted') {
@@ -219,22 +221,21 @@ async function executeMinting(
       mintId: mint.id,
       txHash,
       blockNumber: Number(receipt.blockNumber),
-      gasUsed: receipt.gasUsed.toString()
+      gasUsed: receipt.gasUsed.toString(),
     });
 
     // 10. Return success
     return {
       txHash,
-      contractAddress
+      contractAddress,
     };
-
   } catch (error: any) {
     // Handle simulation or execution errors
     const errorMessage = error.message || 'Unknown error during mint transaction';
 
     context.emitEvent('zora_transaction_failed', {
       mintId: mint.id,
-      error: errorMessage
+      error: errorMessage,
     });
 
     throw new Error(`Zora mint transaction failed: ${errorMessage}`);
@@ -259,7 +260,6 @@ async function checkMintStatus(
   _state: ZoraCoinsState,
   context: ZoraExecutionContext
 ): Promise<void> {
-
   // Only check mints in 'minting' status
   if (mint.status !== 'minting') {
     return;
@@ -275,7 +275,7 @@ async function checkMintStatus(
   try {
     // Poll for transaction receipt
     const receipt = await publicClient.getTransactionReceipt({
-      hash: mint.txHash as `0x${string}`
+      hash: mint.txHash as `0x${string}`,
     });
 
     if (receipt.status === 'success') {
@@ -285,10 +285,12 @@ async function checkMintStatus(
 
       // Extract minted token ID from logs
       // Zora emits a 'Minted' event with token ID
-      const mintLog = receipt.logs.find(log => {
+      const mintLog = receipt.logs.find((log) => {
         // Check for Zora Minted event signature
         // Event signature: Minted(address indexed minter, uint256 indexed tokenId, uint256 quantity)
-        return log.topics[0] === '0x30385c845b448a36257a6a1716e6ad2e1bc2cbe333cde1e69fe849ad6511adfe';
+        return (
+          log.topics[0] === '0x30385c845b448a36257a6a1716e6ad2e1bc2cbe333cde1e69fe849ad6511adfe'
+        );
       });
 
       if (mintLog && mintLog.topics[2]) {
@@ -303,9 +305,8 @@ async function checkMintStatus(
         contractAddress: mint.contractAddress,
         tokenId: mint.tokenId,
         blockNumber: mint.blockNumber,
-        gasUsed: receipt.gasUsed.toString()
+        gasUsed: receipt.gasUsed.toString(),
       });
-
     } else if (receipt.status === 'reverted') {
       // Transaction failed
       mint.status = 'failed';
@@ -314,10 +315,9 @@ async function checkMintStatus(
       context.emitEvent('zora_mint_failed', {
         mintId: mint.id,
         txHash: mint.txHash,
-        error: mint.error
+        error: mint.error,
       });
     }
-
   } catch (error: any) {
     // Transaction not yet confirmed or error fetching receipt
 
@@ -332,7 +332,7 @@ async function checkMintStatus(
       context.emitEvent('zora_mint_failed', {
         mintId: mint.id,
         txHash: mint.txHash,
-        error: mint.error
+        error: mint.error,
       });
     }
 
@@ -385,6 +385,7 @@ async function checkMintStatus(
 ## 🔐 Environment Variables Required
 
 Add to `.env`:
+
 ```bash
 # Base Mainnet RPC (required for production)
 BASE_RPC_URL=https://mainnet.base.org
@@ -400,16 +401,16 @@ BASE_TESTNET_RPC_URL=https://goerli.base.org
 
 ## 📊 Progress Tracking
 
-| Task | Status | Duration | Completion |
-|------|--------|----------|------------|
-| Dependencies | ✅ Complete | Day 1 | 100% |
-| WalletConnection | ✅ Complete | Day 2 | 100% |
-| GasEstimator | ✅ Complete | Day 3 | 100% |
-| executeMinting() | ✅ Complete | Days 4-5 | 100% |
-| checkMintStatus() | ✅ Complete | Day 5 | 100% |
-| Integration Tests | ✅ Complete | Day 6 | 100% |
-| Documentation | ✅ Complete | Day 7 | 100% |
-| Production Deployment Setup | ✅ Complete | Day 8 | 100% |
+| Task                        | Status      | Duration | Completion |
+| --------------------------- | ----------- | -------- | ---------- |
+| Dependencies                | ✅ Complete | Day 1    | 100%       |
+| WalletConnection            | ✅ Complete | Day 2    | 100%       |
+| GasEstimator                | ✅ Complete | Day 3    | 100%       |
+| executeMinting()            | ✅ Complete | Days 4-5 | 100%       |
+| checkMintStatus()           | ✅ Complete | Day 5    | 100%       |
+| Integration Tests           | ✅ Complete | Day 6    | 100%       |
+| Documentation               | ✅ Complete | Day 7    | 100%       |
+| Production Deployment Setup | ✅ Complete | Day 8    | 100%       |
 
 **Overall Progress:** 100% Complete (PRODUCTION READY - all implementation, tests, docs, and deployment guides finished)
 
@@ -431,4 +432,3 @@ BASE_TESTNET_RPC_URL=https://goerli.base.org
 ---
 
 **Next Command:** Apply the changes to ZoraCoinsTrait.ts
-

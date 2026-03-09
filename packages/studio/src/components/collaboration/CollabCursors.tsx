@@ -80,11 +80,13 @@ export function CollabStatusDot() {
         className={`h-2 w-2 rounded-full ${
           connected ? 'bg-green-400 animate-pulse' : 'bg-studio-muted'
         }`}
-        title={connected ? `${count} collaborator${count !== 1 ? 's' : ''} online` : 'Collab disconnected'}
+        title={
+          connected
+            ? `${count} collaborator${count !== 1 ? 's' : ''} online`
+            : 'Collab disconnected'
+        }
       />
-      {connected && count > 0 && (
-        <span className="text-[9px] text-studio-muted">{count}</span>
-      )}
+      {connected && count > 0 && <span className="text-[9px] text-studio-muted">{count}</span>}
     </div>
   );
 }

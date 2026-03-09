@@ -517,21 +517,29 @@ describe('Stress Tests & Scalability', () => {
       `;
     }
     composition += '}';
-    
+
     expect(composition.length).toBeGreaterThan(10000);
   });
 
   it('should handle compositions with massive trait counts', () => {
     let composition = 'orb#obj ';
     const traits = [
-      '@grabbable', '@throwable', '@hoverable', '@scalable', '@rotatable',
-      '@collidable', '@physics', '@animated', '@glowing', '@networked'
+      '@grabbable',
+      '@throwable',
+      '@hoverable',
+      '@scalable',
+      '@rotatable',
+      '@collidable',
+      '@physics',
+      '@animated',
+      '@glowing',
+      '@networked',
     ];
     for (let i = 0; i < 50; i++) {
       composition += traits[i % traits.length] + ' ';
     }
     composition += '{ position: [0, 0, 0] }';
-    
+
     expect(composition).toBeDefined();
   });
 
@@ -542,7 +550,7 @@ describe('Stress Tests & Scalability', () => {
       if (i < 19) composition = composition.slice(0, -1) + '.data.';
     }
     composition += ' } }';
-    
+
     expect(composition).toBeDefined();
   });
 });

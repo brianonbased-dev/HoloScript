@@ -9,10 +9,20 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
-export interface Vec3 { x: number; y: number; z: number }
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 export type ComplianceLevel = 'pass' | 'warning' | 'fail';
-export type MobilityDevice = 'manual-wheelchair' | 'power-wheelchair' | 'scooter' | 'walker' | 'crutches' | 'cane';
+export type MobilityDevice =
+  | 'manual-wheelchair'
+  | 'power-wheelchair'
+  | 'scooter'
+  | 'walker'
+  | 'crutches'
+  | 'cane';
 
 export interface Doorway {
   id: string;
@@ -20,10 +30,10 @@ export interface Doorway {
   position: Vec3;
   widthCm: number;
   heightCm: number;
-  thresholdCm: number;       // Threshold height
+  thresholdCm: number; // Threshold height
   hasAutoOpener: boolean;
   handleType: 'lever' | 'knob' | 'push' | 'pull' | 'automatic';
-  forceNewtons: number;       // Force to open (max 22N ADA)
+  forceNewtons: number; // Force to open (max 22N ADA)
 }
 
 export interface Ramp {
@@ -48,7 +58,7 @@ export interface Elevator {
   floorsServed: number[];
   hasBraille: boolean;
   hasAudioAnnounce: boolean;
-  controlHeightCm: number;    // Height of highest button
+  controlHeightCm: number; // Height of highest button
 }
 
 export interface Restroom {
@@ -78,7 +88,7 @@ export interface AuditFinding {
   elementId: string;
   elementType: 'doorway' | 'ramp' | 'elevator' | 'restroom' | 'parking' | 'path';
   compliance: ComplianceLevel;
-  standard: string;           // e.g., 'ADA 404.2.3', 'WCAG 2.1'
+  standard: string; // e.g., 'ADA 404.2.3', 'WCAG 2.1'
   description: string;
   recommendation?: string;
 }
@@ -87,7 +97,7 @@ export interface AuditReport {
   buildingName: string;
   auditDate: string;
   findings: AuditFinding[];
-  overallScore: number;       // 0-100
+  overallScore: number; // 0-100
   passCount: number;
   warningCount: number;
   failCount: number;
@@ -98,21 +108,21 @@ export interface AuditReport {
 // ═══════════════════════════════════════════════════════════════════
 
 export const ADA = {
-  MIN_DOOR_WIDTH_CM: 81.3,          // 32 inches
-  MAX_THRESHOLD_CM: 1.3,            // 0.5 inches
-  MAX_DOOR_FORCE_N: 22,             // 5 lbf
-  MAX_RAMP_SLOPE: 8.33,             // 1:12 = 8.33%
-  MIN_RAMP_WIDTH_CM: 91.4,          // 36 inches
-  MAX_RAMP_RUN_M: 9.14,             // 30 feet
-  MIN_LANDING_LENGTH_CM: 152.4,     // 60 inches
-  MIN_ELEVATOR_WIDTH_CM: 170.2,     // 67 inches
-  MIN_ELEVATOR_DEPTH_CM: 137.2,     // 54 inches
-  MIN_ELEVATOR_DOOR_CM: 91.4,       // 36 inches
-  MAX_CONTROL_HEIGHT_CM: 137.2,     // 54 inches
-  MIN_TURNING_RADIUS_CM: 152.4,     // 60 inches (5 feet)
-  MIN_ACCESSIBLE_PARKING_WIDTH_CM: 243.8,  // 96 inches
+  MIN_DOOR_WIDTH_CM: 81.3, // 32 inches
+  MAX_THRESHOLD_CM: 1.3, // 0.5 inches
+  MAX_DOOR_FORCE_N: 22, // 5 lbf
+  MAX_RAMP_SLOPE: 8.33, // 1:12 = 8.33%
+  MIN_RAMP_WIDTH_CM: 91.4, // 36 inches
+  MAX_RAMP_RUN_M: 9.14, // 30 feet
+  MIN_LANDING_LENGTH_CM: 152.4, // 60 inches
+  MIN_ELEVATOR_WIDTH_CM: 170.2, // 67 inches
+  MIN_ELEVATOR_DEPTH_CM: 137.2, // 54 inches
+  MIN_ELEVATOR_DOOR_CM: 91.4, // 36 inches
+  MAX_CONTROL_HEIGHT_CM: 137.2, // 54 inches
+  MIN_TURNING_RADIUS_CM: 152.4, // 60 inches (5 feet)
+  MIN_ACCESSIBLE_PARKING_WIDTH_CM: 243.8, // 96 inches
   MIN_ACCESS_AISLE_WIDTH_CM: 152.4, // 60 inches
-  MAX_PARKING_DISTANCE_M: 61,       // 200 feet
+  MAX_PARKING_DISTANCE_M: 61, // 200 feet
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════
@@ -124,8 +134,11 @@ export function checkDoorway(door: Doorway): AuditFinding[] {
 
   if (door.widthCm < ADA.MIN_DOOR_WIDTH_CM) {
     findings.push({
-      id: `door-width-${door.id}`, elementId: door.id, elementType: 'doorway',
-      compliance: 'fail', standard: 'ADA 404.2.3',
+      id: `door-width-${door.id}`,
+      elementId: door.id,
+      elementType: 'doorway',
+      compliance: 'fail',
+      standard: 'ADA 404.2.3',
       description: `Door width ${door.widthCm}cm < ${ADA.MIN_DOOR_WIDTH_CM}cm minimum`,
       recommendation: `Widen doorway to at least ${ADA.MIN_DOOR_WIDTH_CM}cm`,
     });
@@ -133,8 +146,11 @@ export function checkDoorway(door: Doorway): AuditFinding[] {
 
   if (door.thresholdCm > ADA.MAX_THRESHOLD_CM) {
     findings.push({
-      id: `door-threshold-${door.id}`, elementId: door.id, elementType: 'doorway',
-      compliance: 'fail', standard: 'ADA 404.2.5',
+      id: `door-threshold-${door.id}`,
+      elementId: door.id,
+      elementType: 'doorway',
+      compliance: 'fail',
+      standard: 'ADA 404.2.5',
       description: `Threshold ${door.thresholdCm}cm > ${ADA.MAX_THRESHOLD_CM}cm maximum`,
       recommendation: 'Reduce or remove threshold',
     });
@@ -142,8 +158,11 @@ export function checkDoorway(door: Doorway): AuditFinding[] {
 
   if (door.handleType === 'knob') {
     findings.push({
-      id: `door-handle-${door.id}`, elementId: door.id, elementType: 'doorway',
-      compliance: 'fail', standard: 'ADA 404.2.7',
+      id: `door-handle-${door.id}`,
+      elementId: door.id,
+      elementType: 'doorway',
+      compliance: 'fail',
+      standard: 'ADA 404.2.7',
       description: 'Round knob handles not operable with one hand',
       recommendation: 'Replace with lever handle',
     });
@@ -151,8 +170,11 @@ export function checkDoorway(door: Doorway): AuditFinding[] {
 
   if (door.forceNewtons > ADA.MAX_DOOR_FORCE_N && !door.hasAutoOpener) {
     findings.push({
-      id: `door-force-${door.id}`, elementId: door.id, elementType: 'doorway',
-      compliance: 'warning', standard: 'ADA 404.2.9',
+      id: `door-force-${door.id}`,
+      elementId: door.id,
+      elementType: 'doorway',
+      compliance: 'warning',
+      standard: 'ADA 404.2.9',
       description: `Opening force ${door.forceNewtons}N > ${ADA.MAX_DOOR_FORCE_N}N maximum`,
       recommendation: 'Install automatic door opener',
     });
@@ -182,8 +204,11 @@ export function checkRamp(ramp: Ramp): AuditFinding[] {
 
   if (slope > ADA.MAX_RAMP_SLOPE) {
     findings.push({
-      id: `ramp-slope-${ramp.id}`, elementId: ramp.id, elementType: 'ramp',
-      compliance: 'fail', standard: 'ADA 405.2',
+      id: `ramp-slope-${ramp.id}`,
+      elementId: ramp.id,
+      elementType: 'ramp',
+      compliance: 'fail',
+      standard: 'ADA 405.2',
       description: `Slope ${slope.toFixed(1)}% > ${ADA.MAX_RAMP_SLOPE}% maximum (1:12)`,
       recommendation: `Extend ramp to reduce slope below ${ADA.MAX_RAMP_SLOPE}%`,
     });
@@ -191,16 +216,22 @@ export function checkRamp(ramp: Ramp): AuditFinding[] {
 
   if (ramp.widthCm < ADA.MIN_RAMP_WIDTH_CM) {
     findings.push({
-      id: `ramp-width-${ramp.id}`, elementId: ramp.id, elementType: 'ramp',
-      compliance: 'fail', standard: 'ADA 405.5',
+      id: `ramp-width-${ramp.id}`,
+      elementId: ramp.id,
+      elementType: 'ramp',
+      compliance: 'fail',
+      standard: 'ADA 405.5',
       description: `Ramp width ${ramp.widthCm}cm < ${ADA.MIN_RAMP_WIDTH_CM}cm minimum`,
     });
   }
 
   if (!ramp.hasHandrails && ramp.riseMeters > 0.15) {
     findings.push({
-      id: `ramp-handrails-${ramp.id}`, elementId: ramp.id, elementType: 'ramp',
-      compliance: 'fail', standard: 'ADA 405.8',
+      id: `ramp-handrails-${ramp.id}`,
+      elementId: ramp.id,
+      elementType: 'ramp',
+      compliance: 'fail',
+      standard: 'ADA 405.8',
       description: 'Handrails required for ramps with >15cm rise',
       recommendation: 'Install handrails on both sides',
     });
@@ -218,16 +249,22 @@ export function checkElevator(elevator: Elevator): AuditFinding[] {
 
   if (elevator.doorWidthCm < ADA.MIN_ELEVATOR_DOOR_CM) {
     findings.push({
-      id: `elev-door-${elevator.id}`, elementId: elevator.id, elementType: 'elevator',
-      compliance: 'fail', standard: 'ADA 407.3.6',
+      id: `elev-door-${elevator.id}`,
+      elementId: elevator.id,
+      elementType: 'elevator',
+      compliance: 'fail',
+      standard: 'ADA 407.3.6',
       description: `Elevator door ${elevator.doorWidthCm}cm < ${ADA.MIN_ELEVATOR_DOOR_CM}cm`,
     });
   }
 
   if (elevator.controlHeightCm > ADA.MAX_CONTROL_HEIGHT_CM) {
     findings.push({
-      id: `elev-controls-${elevator.id}`, elementId: elevator.id, elementType: 'elevator',
-      compliance: 'fail', standard: 'ADA 407.4.6',
+      id: `elev-controls-${elevator.id}`,
+      elementId: elevator.id,
+      elementType: 'elevator',
+      compliance: 'fail',
+      standard: 'ADA 407.4.6',
       description: `Controls at ${elevator.controlHeightCm}cm > ${ADA.MAX_CONTROL_HEIGHT_CM}cm reach`,
       recommendation: 'Lower control panel or add side panel',
     });
@@ -235,16 +272,22 @@ export function checkElevator(elevator: Elevator): AuditFinding[] {
 
   if (!elevator.hasBraille) {
     findings.push({
-      id: `elev-braille-${elevator.id}`, elementId: elevator.id, elementType: 'elevator',
-      compliance: 'fail', standard: 'ADA 407.4.7',
+      id: `elev-braille-${elevator.id}`,
+      elementId: elevator.id,
+      elementType: 'elevator',
+      compliance: 'fail',
+      standard: 'ADA 407.4.7',
       description: 'Elevator buttons must have Braille markings',
     });
   }
 
   if (!elevator.hasAudioAnnounce) {
     findings.push({
-      id: `elev-audio-${elevator.id}`, elementId: elevator.id, elementType: 'elevator',
-      compliance: 'warning', standard: 'ADA 407.4.8',
+      id: `elev-audio-${elevator.id}`,
+      elementId: elevator.id,
+      elementType: 'elevator',
+      compliance: 'warning',
+      standard: 'ADA 407.4.8',
       description: 'Audio floor announcements recommended',
     });
   }
@@ -256,13 +299,10 @@ export function checkElevator(elevator: Elevator): AuditFinding[] {
 // Audit Report Generation
 // ═══════════════════════════════════════════════════════════════════
 
-export function generateAuditReport(
-  buildingName: string,
-  findings: AuditFinding[]
-): AuditReport {
-  const passCount = findings.filter(f => f.compliance === 'pass').length;
-  const warningCount = findings.filter(f => f.compliance === 'warning').length;
-  const failCount = findings.filter(f => f.compliance === 'fail').length;
+export function generateAuditReport(buildingName: string, findings: AuditFinding[]): AuditReport {
+  const passCount = findings.filter((f) => f.compliance === 'pass').length;
+  const warningCount = findings.filter((f) => f.compliance === 'warning').length;
+  const failCount = findings.filter((f) => f.compliance === 'fail').length;
   const total = findings.length || 1;
   const overallScore = Math.round(((passCount + warningCount * 0.5) / total) * 100);
 
@@ -279,17 +319,17 @@ export function generateAuditReport(
 
 export function wheelchairTurningRadius(deviceWidth: number): number {
   // Standard turning radius = device width * π / 2
-  return deviceWidth * Math.PI / 2;
+  return (deviceWidth * Math.PI) / 2;
 }
 
 export function isPathWideEnough(pathWidthCm: number, device: MobilityDevice): boolean {
   const deviceWidths: Record<MobilityDevice, number> = {
-    'manual-wheelchair': 63.5,   // 25 inches
-    'power-wheelchair': 68.6,    // 27 inches
-    'scooter': 63.5,
-    'walker': 61.0,
-    'crutches': 91.4,            // Need wider clearance
-    'cane': 45.7,
+    'manual-wheelchair': 63.5, // 25 inches
+    'power-wheelchair': 68.6, // 27 inches
+    scooter: 63.5,
+    walker: 61.0,
+    crutches: 91.4, // Need wider clearance
+    cane: 45.7,
   };
   return pathWidthCm >= deviceWidths[device] + 15; // 15cm clearance buffer
 }
@@ -314,7 +354,7 @@ function hexToSRGB(hex: string): [number, number, number] {
  * Calculates relative luminance per WCAG 2.1.
  */
 function relativeLuminance(r: number, g: number, b: number): number {
-  const linearize = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const linearize = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
   return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
 }
 
@@ -369,14 +409,14 @@ export function vrWheelchairPerspective(
   const reachRadius = 0.6; // Average reach radius in meters
 
   const obstaclesInView = obstacles
-    .filter(o => {
+    .filter((o) => {
       const dx = o.position.x - position.x;
       const dy = o.position.y - position.y;
       const dz = o.position.z - position.z;
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       return dist <= maxViewDistance && o.heightCm > eyeHeight * 100;
     })
-    .map(o => o.id);
+    .map((o) => o.id);
 
   return {
     position: { x: position.x, y: eyeHeight, z: position.z },
@@ -407,7 +447,7 @@ export function findAccessibleRoute(
   startId: string,
   endId: string
 ): string[] | null {
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
   const queue: string[][] = [[startId]];
   const visited = new Set<string>([startId]);
 
@@ -430,4 +470,3 @@ export function findAccessibleRoute(
 
   return null; // No accessible route found
 }
-

@@ -51,7 +51,11 @@ describe('MaterialTrait', () => {
 
   it('getCustomShader and setCustomShader work', () => {
     expect(mat.getCustomShader()).toBeUndefined();
-    mat.setCustomShader({ vertex: 'void main(){}', fragment: 'void main(){}', shaderLanguage: 'glsl' });
+    mat.setCustomShader({
+      vertex: 'void main(){}',
+      fragment: 'void main(){}',
+      shaderLanguage: 'glsl',
+    });
     expect(mat.getCustomShader()!.shaderLanguage).toBe('glsl');
   });
 

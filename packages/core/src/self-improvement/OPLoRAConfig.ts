@@ -126,15 +126,7 @@ export const DEFAULT_OPLORA_CONFIG: ExtendedOPLoRAConfig = {
   rank: 16,
   alpha: 32,
   projectionRank: 32, // rank * 2
-  targetModules: [
-    'q_proj',
-    'k_proj',
-    'v_proj',
-    'o_proj',
-    'gate_proj',
-    'up_proj',
-    'down_proj',
-  ],
+  targetModules: ['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'],
   loraDropout: 0.05,
   orthogonalWeight: 1.0,
   svdRecomputeInterval: 100,
@@ -161,7 +153,7 @@ export interface OPLoRAValidationError {
  * @returns Array of validation errors (empty if valid)
  */
 export function validateOPLoRAConfig(
-  config: Partial<ExtendedOPLoRAConfig>,
+  config: Partial<ExtendedOPLoRAConfig>
 ): OPLoRAValidationError[] {
   const errors: OPLoRAValidationError[] = [];
 
@@ -241,7 +233,11 @@ export function validateOPLoRAConfig(
 
   // loraDropout
   if (config.loraDropout !== undefined) {
-    if (typeof config.loraDropout !== 'number' || config.loraDropout < 0 || config.loraDropout >= 1) {
+    if (
+      typeof config.loraDropout !== 'number' ||
+      config.loraDropout < 0 ||
+      config.loraDropout >= 1
+    ) {
       errors.push({
         field: 'loraDropout',
         message: 'loraDropout must be a number in [0, 1)',
@@ -263,10 +259,7 @@ export function validateOPLoRAConfig(
 
   // svdRecomputeInterval
   if (config.svdRecomputeInterval !== undefined) {
-    if (
-      !Number.isInteger(config.svdRecomputeInterval) ||
-      config.svdRecomputeInterval < 0
-    ) {
+    if (!Number.isInteger(config.svdRecomputeInterval) || config.svdRecomputeInterval < 0) {
       errors.push({
         field: 'svdRecomputeInterval',
         message: 'svdRecomputeInterval must be a non-negative integer (0 = compute once)',
@@ -289,7 +282,7 @@ export function validateOPLoRAConfig(
  * @throws Error if validation fails
  */
 export function buildOPLoRAConfig(
-  overrides: Partial<ExtendedOPLoRAConfig> = {},
+  overrides: Partial<ExtendedOPLoRAConfig> = {}
 ): ValidatedOPLoRAConfig {
   const config: ExtendedOPLoRAConfig = {
     ...DEFAULT_OPLORA_CONFIG,
@@ -303,9 +296,7 @@ export function buildOPLoRAConfig(
   const errors = validateOPLoRAConfig(config);
   if (errors.length > 0) {
     const messages = errors.map((e) => `  ${e.field}: ${e.message} (got: ${e.value})`);
-    throw new Error(
-      `Invalid OPLoRA configuration:\n${messages.join('\n')}`,
-    );
+    throw new Error(`Invalid OPLoRA configuration:\n${messages.join('\n')}`);
   }
 
   return Object.assign(config, { __validated: true as const });

@@ -4,7 +4,9 @@ import { NetEventBus } from '../NetEventBus';
 describe('NetEventBus', () => {
   let bus: NetEventBus;
 
-  beforeEach(() => { bus = new NetEventBus('player1', 16); });
+  beforeEach(() => {
+    bus = new NetEventBus('player1', 16);
+  });
 
   // ---------------------------------------------------------------------------
   // Channel Management
@@ -75,8 +77,12 @@ describe('NetEventBus', () => {
     bus.createChannel('ch1');
     bus.subscribe('ch1', 'chat', handler);
     bus.receive({
-      channel: 'ch1', event: 'chat', payload: { text: 'hello' },
-      senderId: 'player2', timestamp: Date.now(), sequenceId: 0,
+      channel: 'ch1',
+      event: 'chat',
+      payload: { text: 'hello' },
+      senderId: 'player2',
+      timestamp: Date.now(),
+      sequenceId: 0,
     });
     expect(handler).toHaveBeenCalledWith({ text: 'hello' });
   });
@@ -85,16 +91,24 @@ describe('NetEventBus', () => {
     bus.createChannel('ch1');
     // Should not throw
     bus.receive({
-      channel: 'ch1', event: 'unknown', payload: {},
-      senderId: 'player2', timestamp: Date.now(), sequenceId: 0,
+      channel: 'ch1',
+      event: 'unknown',
+      payload: {},
+      senderId: 'player2',
+      timestamp: Date.now(),
+      sequenceId: 0,
     });
   });
 
   it('receive tracks inbox size', () => {
     bus.createChannel('ch1');
     bus.receive({
-      channel: 'ch1', event: 'a', payload: {},
-      senderId: 'p2', timestamp: Date.now(), sequenceId: 0,
+      channel: 'ch1',
+      event: 'a',
+      payload: {},
+      senderId: 'p2',
+      timestamp: Date.now(),
+      sequenceId: 0,
     });
     expect(bus.getInboxSize()).toBe(1);
   });
@@ -106,8 +120,12 @@ describe('NetEventBus', () => {
     bus.subscribe('ch1', 'hit', h1);
     bus.subscribe('ch1', 'hit', h2);
     bus.receive({
-      channel: 'ch1', event: 'hit', payload: { dmg: 5 },
-      senderId: 'p2', timestamp: Date.now(), sequenceId: 0,
+      channel: 'ch1',
+      event: 'hit',
+      payload: { dmg: 5 },
+      senderId: 'p2',
+      timestamp: Date.now(),
+      sequenceId: 0,
     });
     expect(h1).toHaveBeenCalledTimes(1);
     expect(h2).toHaveBeenCalledTimes(1);

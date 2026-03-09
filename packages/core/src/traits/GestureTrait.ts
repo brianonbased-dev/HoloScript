@@ -1,108 +1,106 @@
+import { VRHand, Vector3 } from '../types/HoloScriptPlus';
+import { TraitHandler, TraitContext, VRContext } from './TraitTypes';
 
-import { 
-    VRHand,
-    Vector3 
-} from '../types/HoloScriptPlus';
-import { 
-    TraitHandler, 
-    TraitContext,
-    VRContext 
-} from './TraitTypes';
-
-export type GestureType = 'swipe_left' | 'swipe_right' | 'swipe_up' | 'swipe_down' | 'pinch' | 'palm_open';
+export type GestureType =
+  | 'swipe_left'
+  | 'swipe_right'
+  | 'swipe_up'
+  | 'swipe_down'
+  | 'pinch'
+  | 'palm_open';
 
 export interface GestureConfig {
-    enabledGestures: GestureType[];
-    swipeThreshold?: number; // Distance in meters
-    pinchThreshold?: number; // 0-1 strength
-    palmThreshold?: number; // 0-1 openness? No, usually distinct state.
-    debounce?: number; // ms
+  enabledGestures: GestureType[];
+  swipeThreshold?: number; // Distance in meters
+  pinchThreshold?: number; // 0-1 strength
+  palmThreshold?: number; // 0-1 openness? No, usually distinct state.
+  debounce?: number; // ms
 }
 
 interface GestureState {
-    lastPosition: Vector3 | null;
-    lastTime: number;
-    isPinching: boolean;
-    lastGestureTime: number;
+  lastPosition: Vector3 | null;
+  lastTime: number;
+  isPinching: boolean;
+  lastGestureTime: number;
 }
 
 const gestureStates = new Map<string, Record<string, GestureState>>(); // nodeId -> hand -> state
 
 export const gestureHandler: TraitHandler<GestureConfig> = {
-    name: 'gesture_recognition',
-    defaultConfig: {
-        enabledGestures: ['swipe_left', 'swipe_right', 'pinch'],
-        swipeThreshold: 0.1,
-        pinchThreshold: 0.9,
-        debounce: 300
-    },
+  name: 'gesture_recognition',
+  defaultConfig: {
+    enabledGestures: ['swipe_left', 'swipe_right', 'pinch'],
+    swipeThreshold: 0.1,
+    pinchThreshold: 0.9,
+    debounce: 300,
+  },
 
-    onAttach(node, config, context) {
-        gestureStates.set(node.id!, {
-            left: { lastPosition: null, lastTime: 0, isPinching: false, lastGestureTime: 0 },
-            right: { lastPosition: null, lastTime: 0, isPinching: false, lastGestureTime: 0 }
-        });
-    },
+  onAttach(node, config, context) {
+    gestureStates.set(node.id!, {
+      left: { lastPosition: null, lastTime: 0, isPinching: false, lastGestureTime: 0 },
+      right: { lastPosition: null, lastTime: 0, isPinching: false, lastGestureTime: 0 },
+    });
+  },
 
-    onDetach(node, config, context) {
-        gestureStates.delete(node.id!);
-    },
+  onDetach(node, config, context) {
+    gestureStates.delete(node.id!);
+  },
 
-    onUpdate(node, config, context, delta) {
-        const vrContext = (context as any).vr as VRContext;
-        if (!vrContext || !vrContext.hands) return;
+  onUpdate(node, config, context, delta) {
+    const vrContext = (context as any).vr as VRContext;
+    if (!vrContext || !vrContext.hands) return;
 
-        const nodeStates = gestureStates.get(node.id!);
-        if (!nodeStates) return;
+    const nodeStates = gestureStates.get(node.id!);
+    if (!nodeStates) return;
 
-        const time = performance.now();
+    const time = performance.now();
 
-        ['left', 'right'].forEach((handName) => {
-            const hand = vrContext.hands[handName] as VRHand | null;
-            if (!hand) return;
+    ['left', 'right'].forEach((handName) => {
+      const hand = vrContext.hands[handName] as VRHand | null;
+      if (!hand) return;
 
-            const state = nodeStates[handName];
-            
-            // 1. Pinch Detection
-            if (config.enabledGestures.includes('pinch')) {
-                const isPinching = (hand.pinchStrength || 0) > (config.pinchThreshold || 0.9);
-                if (isPinching && !state.isPinching) {
-                     if (time - state.lastGestureTime > (config.debounce || 300)) {
-                         context.emit('gesture', { type: 'pinch', hand: handName, nodeId: node.id });
-                         state.lastGestureTime = time;
-                     }
-                }
-                state.isPinching = isPinching;
+      const state = nodeStates[handName];
+
+      // 1. Pinch Detection
+      if (config.enabledGestures.includes('pinch')) {
+        const isPinching = (hand.pinchStrength || 0) > (config.pinchThreshold || 0.9);
+        if (isPinching && !state.isPinching) {
+          if (time - state.lastGestureTime > (config.debounce || 300)) {
+            context.emit('gesture', { type: 'pinch', hand: handName, nodeId: node.id });
+            state.lastGestureTime = time;
+          }
+        }
+        state.isPinching = isPinching;
+      }
+
+      // 2. Swipe Detection
+      // Require tracked movement over short window
+      if (state.lastPosition) {
+        const dx = hand.position.x - state.lastPosition.x;
+        const dy = hand.position.y - state.lastPosition.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > (config.swipeThreshold || 0.1)) {
+          if (time - state.lastGestureTime > (config.debounce || 300)) {
+            let type: GestureType | null = null;
+            if (Math.abs(dx) > Math.abs(dy)) {
+              type = dx > 0 ? 'swipe_right' : 'swipe_left';
+            } else {
+              type = dy > 0 ? 'swipe_up' : 'swipe_down';
             }
 
-            // 2. Swipe Detection
-            // Require tracked movement over short window
-            if (state.lastPosition) {
-                const dx = hand.position.x - state.lastPosition.x;
-                const dy = hand.position.y - state.lastPosition.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                
-                if (dist > (config.swipeThreshold || 0.1)) {
-                    if (time - state.lastGestureTime > (config.debounce || 300)) {
-                        let type: GestureType | null = null;
-                        if (Math.abs(dx) > Math.abs(dy)) {
-                            type = dx > 0 ? 'swipe_right' : 'swipe_left';
-                        } else {
-                            type = dy > 0 ? 'swipe_up' : 'swipe_down';
-                        }
-                        
-                        if (type && config.enabledGestures.includes(type)) {
-                             context.emit('gesture', { type, hand: handName, nodeId: node.id });
-                             state.lastGestureTime = time;
-                             // Reset position to prevent double triggers? 
-                             // Or just rely on debounce.
-                        }
-                    }
-                }
+            if (type && config.enabledGestures.includes(type)) {
+              context.emit('gesture', { type, hand: handName, nodeId: node.id });
+              state.lastGestureTime = time;
+              // Reset position to prevent double triggers?
+              // Or just rely on debounce.
             }
+          }
+        }
+      }
 
-            state.lastPosition = { ...hand.position };
-            state.lastTime = time;
-        });
-    }
+      state.lastPosition = { ...hand.position };
+      state.lastTime = time;
+    });
+  },
 };

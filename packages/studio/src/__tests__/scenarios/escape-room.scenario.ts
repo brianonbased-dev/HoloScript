@@ -7,18 +7,87 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  isPuzzleAvailable, checkSolution, roomProgress, timeRemaining,
-  isRoomComplete, getNextHint, criticalPath, averageDifficulty,
-  estimatedTotalTime, generateProceduralPuzzle, multiplayerSync,
-  type Puzzle, type EscapeRoom,
+  isPuzzleAvailable,
+  checkSolution,
+  roomProgress,
+  timeRemaining,
+  isRoomComplete,
+  getNextHint,
+  criticalPath,
+  averageDifficulty,
+  estimatedTotalTime,
+  generateProceduralPuzzle,
+  multiplayerSync,
+  type Puzzle,
+  type EscapeRoom,
 } from '@/lib/escapeRoomDesigner';
 
 describe('Scenario: Escape Room — Puzzle Dependencies', () => {
   const puzzles: Puzzle[] = [
-    { id: 'p1', name: 'Find the Key', type: 'search', description: '', position: { x: 0, y: 0, z: 0 }, difficulty: 1, timeEstimateSec: 60, solution: 'drawer', status: 'solved', dependsOn: [], hints: [{ level: 'nudge', text: 'Look around' }], maxAttempts: 5, attempts: 1 },
-    { id: 'p2', name: 'Open the Box', type: 'lock', description: '', position: { x: 1, y: 0, z: 0 }, difficulty: 2, timeEstimateSec: 120, solution: '4521', status: 'available', dependsOn: ['p1'], hints: [{ level: 'nudge', text: 'Check the key' }, { level: 'direction', text: 'Numbers on back' }, { level: 'solution', text: '4521' }], maxAttempts: 5, attempts: 0 },
-    { id: 'p3', name: 'Decode Message', type: 'cipher', description: '', position: { x: 2, y: 0, z: 0 }, difficulty: 4, timeEstimateSec: 300, solution: 'freedom', status: 'locked', dependsOn: ['p2'], hints: [{ level: 'nudge', text: 'Use the cipher wheel' }], maxAttempts: 3, attempts: 0 },
-    { id: 'p4', name: 'Final Lock', type: 'logic', description: '', position: { x: 3, y: 0, z: 0 }, difficulty: 5, timeEstimateSec: 180, solution: 'escape', status: 'locked', dependsOn: ['p2', 'p3'], hints: [], maxAttempts: 3, attempts: 0 },
+    {
+      id: 'p1',
+      name: 'Find the Key',
+      type: 'search',
+      description: '',
+      position: { x: 0, y: 0, z: 0 },
+      difficulty: 1,
+      timeEstimateSec: 60,
+      solution: 'drawer',
+      status: 'solved',
+      dependsOn: [],
+      hints: [{ level: 'nudge', text: 'Look around' }],
+      maxAttempts: 5,
+      attempts: 1,
+    },
+    {
+      id: 'p2',
+      name: 'Open the Box',
+      type: 'lock',
+      description: '',
+      position: { x: 1, y: 0, z: 0 },
+      difficulty: 2,
+      timeEstimateSec: 120,
+      solution: '4521',
+      status: 'available',
+      dependsOn: ['p1'],
+      hints: [
+        { level: 'nudge', text: 'Check the key' },
+        { level: 'direction', text: 'Numbers on back' },
+        { level: 'solution', text: '4521' },
+      ],
+      maxAttempts: 5,
+      attempts: 0,
+    },
+    {
+      id: 'p3',
+      name: 'Decode Message',
+      type: 'cipher',
+      description: '',
+      position: { x: 2, y: 0, z: 0 },
+      difficulty: 4,
+      timeEstimateSec: 300,
+      solution: 'freedom',
+      status: 'locked',
+      dependsOn: ['p2'],
+      hints: [{ level: 'nudge', text: 'Use the cipher wheel' }],
+      maxAttempts: 3,
+      attempts: 0,
+    },
+    {
+      id: 'p4',
+      name: 'Final Lock',
+      type: 'logic',
+      description: '',
+      position: { x: 3, y: 0, z: 0 },
+      difficulty: 5,
+      timeEstimateSec: 180,
+      solution: 'escape',
+      status: 'locked',
+      dependsOn: ['p2', 'p3'],
+      hints: [],
+      maxAttempts: 3,
+      attempts: 0,
+    },
   ];
 
   it('p2 is available because p1 is solved', () => {
@@ -45,7 +114,21 @@ describe('Scenario: Escape Room — Puzzle Dependencies', () => {
 
 describe('Scenario: Escape Room — Solutions & Hints', () => {
   it('checkSolution() is case-insensitive', () => {
-    const puzzle: Puzzle = { id: 'p', name: '', type: 'cipher', description: '', position: { x: 0, y: 0, z: 0 }, difficulty: 1, timeEstimateSec: 60, solution: 'Hello', status: 'available', dependsOn: [], hints: [], maxAttempts: 5, attempts: 0 };
+    const puzzle: Puzzle = {
+      id: 'p',
+      name: '',
+      type: 'cipher',
+      description: '',
+      position: { x: 0, y: 0, z: 0 },
+      difficulty: 1,
+      timeEstimateSec: 60,
+      solution: 'Hello',
+      status: 'available',
+      dependsOn: [],
+      hints: [],
+      maxAttempts: 5,
+      attempts: 0,
+    };
     expect(checkSolution(puzzle, 'hello')).toBe(true);
     expect(checkSolution(puzzle, 'HELLO')).toBe(true);
     expect(checkSolution(puzzle, '  hello  ')).toBe(true);
@@ -53,7 +136,25 @@ describe('Scenario: Escape Room — Solutions & Hints', () => {
   });
 
   it('getNextHint() returns progressive hints', () => {
-    const puzzle: Puzzle = { id: 'p', name: '', type: 'lock', description: '', position: { x: 0, y: 0, z: 0 }, difficulty: 2, timeEstimateSec: 120, solution: '1234', status: 'available', dependsOn: [], hints: [{ level: 'nudge', text: 'Look closer' }, { level: 'direction', text: 'Try the shelf' }, { level: 'solution', text: '1234' }], maxAttempts: 5, attempts: 0 };
+    const puzzle: Puzzle = {
+      id: 'p',
+      name: '',
+      type: 'lock',
+      description: '',
+      position: { x: 0, y: 0, z: 0 },
+      difficulty: 2,
+      timeEstimateSec: 120,
+      solution: '1234',
+      status: 'available',
+      dependsOn: [],
+      hints: [
+        { level: 'nudge', text: 'Look closer' },
+        { level: 'direction', text: 'Try the shelf' },
+        { level: 'solution', text: '1234' },
+      ],
+      maxAttempts: 5,
+      attempts: 0,
+    };
     expect(getNextHint(puzzle, 0)).toBe('Look closer');
     expect(getNextHint(puzzle, 1)).toBe('Try the shelf');
     expect(getNextHint(puzzle, 2)).toBe('1234');
@@ -63,12 +164,46 @@ describe('Scenario: Escape Room — Solutions & Hints', () => {
 
 describe('Scenario: Escape Room — Room Progress', () => {
   const room: EscapeRoom = {
-    id: 'r1', name: 'The Vault', theme: 'heist', timeLimitSec: 3600,
+    id: 'r1',
+    name: 'The Vault',
+    theme: 'heist',
+    timeLimitSec: 3600,
     puzzles: [
-      { id: 'p1', name: 'A', type: 'search', description: '', position: { x: 0, y: 0, z: 0 }, difficulty: 1, timeEstimateSec: 60, solution: 'x', status: 'solved', dependsOn: [], hints: [], maxAttempts: 5, attempts: 1 },
-      { id: 'p2', name: 'B', type: 'lock', description: '', position: { x: 0, y: 0, z: 0 }, difficulty: 3, timeEstimateSec: 120, solution: 'y', status: 'in-progress', dependsOn: [], hints: [], maxAttempts: 5, attempts: 2 },
+      {
+        id: 'p1',
+        name: 'A',
+        type: 'search',
+        description: '',
+        position: { x: 0, y: 0, z: 0 },
+        difficulty: 1,
+        timeEstimateSec: 60,
+        solution: 'x',
+        status: 'solved',
+        dependsOn: [],
+        hints: [],
+        maxAttempts: 5,
+        attempts: 1,
+      },
+      {
+        id: 'p2',
+        name: 'B',
+        type: 'lock',
+        description: '',
+        position: { x: 0, y: 0, z: 0 },
+        difficulty: 3,
+        timeEstimateSec: 120,
+        solution: 'y',
+        status: 'in-progress',
+        dependsOn: [],
+        hints: [],
+        maxAttempts: 5,
+        attempts: 2,
+      },
     ],
-    startTime: Date.now(), elapsedSec: 1200, hintsUsed: 1, maxHints: 5,
+    startTime: Date.now(),
+    elapsedSec: 1200,
+    hintsUsed: 1,
+    maxHints: 5,
   };
 
   it('roomProgress() = 50% with 1/2 solved', () => {
@@ -93,25 +228,77 @@ describe('Scenario: Escape Room — Room Progress', () => {
 
   it('multiplayer sync — coordinate puzzle solving across players', () => {
     const puzzles: Puzzle[] = [
-      { id: 'p1', name: 'Lock', type: 'lock', description: '', position: { x: 0, y: 0, z: 0 }, difficulty: 1, timeEstimateSec: 60, solution: '1234', status: 'available', dependsOn: [], hints: [], maxAttempts: 5, attempts: 0 },
-      { id: 'p2', name: 'Cipher', type: 'cipher', description: '', position: { x: 1, y: 0, z: 0 }, difficulty: 2, timeEstimateSec: 120, solution: 'escape', status: 'available', dependsOn: [], hints: [], maxAttempts: 5, attempts: 0 },
-      { id: 'p3', name: 'Logic', type: 'logic', description: '', position: { x: 2, y: 0, z: 0 }, difficulty: 3, timeEstimateSec: 180, solution: 'true', status: 'locked', dependsOn: ['p1'], hints: [], maxAttempts: 5, attempts: 0 },
+      {
+        id: 'p1',
+        name: 'Lock',
+        type: 'lock',
+        description: '',
+        position: { x: 0, y: 0, z: 0 },
+        difficulty: 1,
+        timeEstimateSec: 60,
+        solution: '1234',
+        status: 'available',
+        dependsOn: [],
+        hints: [],
+        maxAttempts: 5,
+        attempts: 0,
+      },
+      {
+        id: 'p2',
+        name: 'Cipher',
+        type: 'cipher',
+        description: '',
+        position: { x: 1, y: 0, z: 0 },
+        difficulty: 2,
+        timeEstimateSec: 120,
+        solution: 'escape',
+        status: 'available',
+        dependsOn: [],
+        hints: [],
+        maxAttempts: 5,
+        attempts: 0,
+      },
+      {
+        id: 'p3',
+        name: 'Logic',
+        type: 'logic',
+        description: '',
+        position: { x: 2, y: 0, z: 0 },
+        difficulty: 3,
+        timeEstimateSec: 180,
+        solution: 'true',
+        status: 'locked',
+        dependsOn: ['p1'],
+        hints: [],
+        maxAttempts: 5,
+        attempts: 0,
+      },
     ];
     const assignments = multiplayerSync(puzzles, ['alice', 'bob']);
     // Only p1 and p2 are available (p3 is locked)
     expect(assignments.length).toBe(2);
     // Should distribute evenly (one puzzle per player)
-    const alicePuzzles = assignments.filter(a => a.playerId === 'alice');
-    const bobPuzzles = assignments.filter(a => a.playerId === 'bob');
+    const alicePuzzles = assignments.filter((a) => a.playerId === 'alice');
+    const bobPuzzles = assignments.filter((a) => a.playerId === 'bob');
     expect(alicePuzzles.length).toBe(1);
     expect(bobPuzzles.length).toBe(1);
   });
 
   it('procedural puzzle generation — randomize solutions each playthrough', () => {
     const template: Puzzle = {
-      id: 'p1', name: 'Lock', type: 'lock', description: '', position: { x: 0, y: 0, z: 0 },
-      difficulty: 2, timeEstimateSec: 60, solution: 'original', status: 'available',
-      dependsOn: [], hints: [], maxAttempts: 5, attempts: 3,
+      id: 'p1',
+      name: 'Lock',
+      type: 'lock',
+      description: '',
+      position: { x: 0, y: 0, z: 0 },
+      difficulty: 2,
+      timeEstimateSec: 60,
+      solution: 'original',
+      status: 'available',
+      dependsOn: [],
+      hints: [],
+      maxAttempts: 5,
+      attempts: 3,
     };
     // Same seed → same solution
     const a = generateProceduralPuzzle(template, 42);

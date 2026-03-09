@@ -12,7 +12,7 @@ function createMockTransport() {
     onSocialMessage: vi.fn((handler: (packet: any) => void) => handlers.push(handler)),
     sendSocialMessage: vi.fn(),
     _receive(packet: any) {
-      handlers.forEach(h => h(packet));
+      handlers.forEach((h) => h(packet));
     },
   };
 }

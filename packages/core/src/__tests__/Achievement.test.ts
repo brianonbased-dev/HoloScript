@@ -10,8 +10,26 @@ describe('Cycle 135: Achievement & Progression', () => {
 
   it('should track achievement progress and unlock', () => {
     const ach = new AchievementSystem();
-    ach.register({ id: 'first_kill', name: 'First Kill', description: 'Defeat an enemy', icon: '⚔️', rarity: 'bronze', maxProgress: 1, hidden: false, category: 'combat' });
-    ach.register({ id: 'collector', name: 'Collector', description: 'Collect 100 items', icon: '📦', rarity: 'gold', maxProgress: 100, hidden: false, category: 'exploration' });
+    ach.register({
+      id: 'first_kill',
+      name: 'First Kill',
+      description: 'Defeat an enemy',
+      icon: '⚔️',
+      rarity: 'bronze',
+      maxProgress: 1,
+      hidden: false,
+      category: 'combat',
+    });
+    ach.register({
+      id: 'collector',
+      name: 'Collector',
+      description: 'Collect 100 items',
+      icon: '📦',
+      rarity: 'gold',
+      maxProgress: 100,
+      hidden: false,
+      category: 'exploration',
+    });
 
     expect(ach.getCount()).toBe(2);
     expect(ach.getUnlockedCount()).toBe(0);
@@ -27,11 +45,29 @@ describe('Cycle 135: Achievement & Progression', () => {
 
   it('should fire unlock events and report completion', () => {
     const ach = new AchievementSystem();
-    ach.register({ id: 'a1', name: 'A1', description: '', icon: '', rarity: 'silver', maxProgress: 1, hidden: false, category: 'test' });
-    ach.register({ id: 'a2', name: 'A2', description: '', icon: '', rarity: 'gold', maxProgress: 1, hidden: false, category: 'test' });
+    ach.register({
+      id: 'a1',
+      name: 'A1',
+      description: '',
+      icon: '',
+      rarity: 'silver',
+      maxProgress: 1,
+      hidden: false,
+      category: 'test',
+    });
+    ach.register({
+      id: 'a2',
+      name: 'A2',
+      description: '',
+      icon: '',
+      rarity: 'gold',
+      maxProgress: 1,
+      hidden: false,
+      category: 'test',
+    });
 
     const unlocked: string[] = [];
-    ach.onUnlock(a => unlocked.push(a.id));
+    ach.onUnlock((a) => unlocked.push(a.id));
 
     ach.unlock('a1');
     ach.unlock('a2');
@@ -45,8 +81,30 @@ describe('Cycle 135: Achievement & Progression', () => {
 
   it('should allocate skill points with prerequisites', () => {
     const tree = new ProgressionTree();
-    tree.addNode({ id: 'str', name: 'Strength', description: '+ATK', tier: 1, maxLevel: 5, cost: 1, prerequisites: [], icon: '💪', category: 'combat', effects: { attack: 2 } });
-    tree.addNode({ id: 'crit', name: 'Critical', description: '+Crit', tier: 2, maxLevel: 3, cost: 2, prerequisites: ['str'], icon: '🎯', category: 'combat', effects: { critChance: 5 } });
+    tree.addNode({
+      id: 'str',
+      name: 'Strength',
+      description: '+ATK',
+      tier: 1,
+      maxLevel: 5,
+      cost: 1,
+      prerequisites: [],
+      icon: '💪',
+      category: 'combat',
+      effects: { attack: 2 },
+    });
+    tree.addNode({
+      id: 'crit',
+      name: 'Critical',
+      description: '+Crit',
+      tier: 2,
+      maxLevel: 3,
+      cost: 2,
+      prerequisites: ['str'],
+      icon: '🎯',
+      category: 'combat',
+      effects: { critChance: 5 },
+    });
 
     tree.addPoints(10);
     expect(tree.getNode('crit')!.unlocked).toBe(false); // prereq not met
@@ -61,7 +119,18 @@ describe('Cycle 135: Achievement & Progression', () => {
 
   it('should respec and refund points', () => {
     const tree = new ProgressionTree();
-    tree.addNode({ id: 'hp', name: 'Health', description: '+HP', tier: 1, maxLevel: 10, cost: 1, prerequisites: [], icon: '❤️', category: 'survival', effects: { health: 10 } });
+    tree.addNode({
+      id: 'hp',
+      name: 'Health',
+      description: '+HP',
+      tier: 1,
+      maxLevel: 10,
+      cost: 1,
+      prerequisites: [],
+      icon: '❤️',
+      category: 'survival',
+      effects: { health: 10 },
+    });
     tree.addPoints(5);
     tree.invest('hp', 3);
     expect(tree.getAvailablePoints()).toBe(2);

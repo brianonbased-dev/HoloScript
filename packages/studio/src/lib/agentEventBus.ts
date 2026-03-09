@@ -10,12 +10,12 @@
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface AgentEvent<T = unknown> {
-  id: string;                   // uuid-style unique per event
-  topic: string;                // routing key
-  payload: T;                   // arbitrary data
-  senderId: string;             // which agent sent it
-  timestamp: number;            // performance.now() or Date.now() in Node
-  receivedBy: string[];         // filled in as subscribers handle it
+  id: string; // uuid-style unique per event
+  topic: string; // routing key
+  payload: T; // arbitrary data
+  senderId: string; // which agent sent it
+  timestamp: number; // performance.now() or Date.now() in Node
+  receivedBy: string[]; // filled in as subscribers handle it
 }
 
 export type EventHandler<T = unknown> = (event: AgentEvent<T>) => void;
@@ -70,9 +70,7 @@ export class AgentEventBus {
 
   /** Returns all events for a topic, ordered by timestamp (ascending). */
   getEvents(topic: string): AgentEvent[] {
-    return this.history
-      .filter((e) => e.topic === topic)
-      .sort((a, b) => a.timestamp - b.timestamp);
+    return this.history.filter((e) => e.topic === topic).sort((a, b) => a.timestamp - b.timestamp);
   }
 
   /** Returns all events regardless of topic, ordered by timestamp. */
@@ -117,9 +115,9 @@ export class AgentEventBus {
 
 export interface AgentConfig {
   id: string;
-  model: string;     // e.g. 'llama3', 'gpt-4o', 'rule-based'
-  goal: string;      // plain-English objective
-  memoryKb: number;  // allowed context size in KB
+  model: string; // e.g. 'llama3', 'gpt-4o', 'rule-based'
+  goal: string; // plain-English objective
+  memoryKb: number; // allowed context size in KB
   decisionStrategy: 'bfs' | 'llm' | 'rule' | 'reactive';
   perceptionRange: number; // meters (simulated)
 }
@@ -205,14 +203,17 @@ export function applyFlockingRules(
   ];
 
   return [
-    boid.velocity[0] + sep[0] * params.separation * 0.001
-      + (align[0] / n) * params.alignment * 0.001
-      + cohSteer[0] * params.cohesion,
-    boid.velocity[1] + sep[1] * params.separation * 0.001
-      + (align[1] / n) * params.alignment * 0.001
-      + cohSteer[1] * params.cohesion,
-    boid.velocity[2] + sep[2] * params.separation * 0.001
-      + (align[2] / n) * params.alignment * 0.001
-      + cohSteer[2] * params.cohesion,
+    boid.velocity[0] +
+      sep[0] * params.separation * 0.001 +
+      (align[0] / n) * params.alignment * 0.001 +
+      cohSteer[0] * params.cohesion,
+    boid.velocity[1] +
+      sep[1] * params.separation * 0.001 +
+      (align[1] / n) * params.alignment * 0.001 +
+      cohSteer[1] * params.cohesion,
+    boid.velocity[2] +
+      sep[2] * params.separation * 0.001 +
+      (align[2] / n) * params.alignment * 0.001 +
+      cohSteer[2] * params.cohesion,
   ];
 }

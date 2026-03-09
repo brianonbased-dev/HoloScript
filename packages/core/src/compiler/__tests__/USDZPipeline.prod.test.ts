@@ -100,7 +100,16 @@ describe('USDZPipeline — Production', () => {
   // ─── Geometry ─────────────────────────────────────────────────────
   it('generates Sphere geometry', () => {
     const comp = makeComposition({
-      objects: [{ name: 'Ball', traits: [], properties: [{ key: 'mesh', value: 'sphere' }, { key: 'radius', value: 2 }] }],
+      objects: [
+        {
+          name: 'Ball',
+          traits: [],
+          properties: [
+            { key: 'mesh', value: 'sphere' },
+            { key: 'radius', value: 2 },
+          ],
+        },
+      ],
     });
     const usda = generateUSDA(comp);
     expect(usda).toContain('def Sphere "Geometry"');
@@ -137,13 +146,17 @@ describe('USDZPipeline — Production', () => {
 
   it('includes rotation and scale ops', () => {
     const comp = makeComposition({
-      objects: [{
-        name: 'T', traits: [], properties: [
-          { key: 'mesh', value: 'cube' },
-          { key: 'rotation', value: [45, 0, 90] },
-          { key: 'scale', value: [2, 2, 2] },
-        ],
-      }],
+      objects: [
+        {
+          name: 'T',
+          traits: [],
+          properties: [
+            { key: 'mesh', value: 'cube' },
+            { key: 'rotation', value: [45, 0, 90] },
+            { key: 'scale', value: [2, 2, 2] },
+          ],
+        },
+      ],
     });
     const usda = generateUSDA(comp);
     expect(usda).toContain('xformOp:rotateXYZ');

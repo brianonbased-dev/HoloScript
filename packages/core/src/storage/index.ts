@@ -11,11 +11,7 @@
 export { IPFSService } from './IPFSService.js';
 
 // Provider implementations
-export {
-  PinataProvider,
-  NFTStorageProvider,
-  InfuraProvider,
-} from './IPFSProviders.js';
+export { PinataProvider, NFTStorageProvider, InfuraProvider } from './IPFSProviders.js';
 
 // Types and interfaces
 export type {
@@ -32,8 +28,4 @@ export type {
 } from './IPFSTypes.js';
 
 // Error classes
-export {
-  IPFSUploadError,
-  IPFSPinError,
-  FileSizeExceededError,
-} from './IPFSTypes.js';
+export { IPFSUploadError, IPFSPinError, FileSizeExceededError } from './IPFSTypes.js';

@@ -28,7 +28,7 @@ import { RTree, type GeospatialAnchor } from '@holoscript/spatial-index';
 // Create an R-Tree
 const rtree = new RTree({
   maxEntries: 9, // Node capacity (default: 9)
-  bulkLoadingEnabled: true // Enable OMT optimization (default: true)
+  bulkLoadingEnabled: true, // Enable OMT optimization (default: true)
 });
 
 // Insert anchors
@@ -37,7 +37,7 @@ const anchor: GeospatialAnchor = {
   lat: 37.8087,
   lon: -122.4098,
   alt: 5,
-  metadata: { name: 'Pier 39', type: 'tourist-attraction' }
+  metadata: { name: 'Pier 39', type: 'tourist-attraction' },
 };
 
 rtree.insert(anchor);
@@ -60,7 +60,7 @@ const results = rtree.search({
   minLat: 37.7,
   minLon: -122.5,
   maxLat: 37.8,
-  maxLon: -122.4
+  maxLon: -122.4,
 });
 
 // Radius search (in meters)
@@ -88,7 +88,7 @@ const storage = new GeospatialAnchorStorage({
   dbName: 'my-app-geospatial',
   storeName: 'anchors',
   maxEntries: 9,
-  enableCache: true
+  enableCache: true,
 });
 
 // Initialize (loads existing anchors into R-Tree)
@@ -98,7 +98,7 @@ await storage.init();
 await storage.set({
   id: 'marker-1',
   lat: 37.7749,
-  lon: -122.4194
+  lon: -122.4194,
 });
 
 // Batch insert for efficiency
@@ -126,20 +126,21 @@ console.log(stats);
 
 ### Benchmark Results (M1 MacBook Pro)
 
-| Operation | 10K Anchors | 50K Anchors | 100K Anchors |
-|-----------|-------------|-------------|--------------|
-| Bulk Load | ~50ms | ~280ms | ~600ms |
-| BBox Query | <10ms | <20ms | <50ms |
-| Radius Query 1km | <5ms | <15ms | <40ms |
-| KNN (k=10) | <5ms | <10ms | <30ms |
-| Insert | <0.1ms | <0.1ms | <0.2ms |
-| Remove | <1ms | <2ms | <5ms |
+| Operation        | 10K Anchors | 50K Anchors | 100K Anchors |
+| ---------------- | ----------- | ----------- | ------------ |
+| Bulk Load        | ~50ms       | ~280ms      | ~600ms       |
+| BBox Query       | <10ms       | <20ms       | <50ms        |
+| Radius Query 1km | <5ms        | <15ms       | <40ms        |
+| KNN (k=10)       | <5ms        | <10ms       | <30ms        |
+| Insert           | <0.1ms      | <0.1ms      | <0.2ms       |
+| Remove           | <1ms        | <2ms        | <5ms         |
 
 **Target Met**: ✅ <100ms query time for 100K anchors
 
 ### vs Linear Scan
 
 For 10K anchors, radius search comparison:
+
 - **Linear Scan**: ~45ms (O(n))
 - **R-Tree**: ~4ms (O(log n))
 - **Speedup**: ~11x faster
@@ -235,6 +236,7 @@ interface RTreeStats {
 ### OMT Bulk Loading
 
 Overlap Minimizing Top-down (OMT) algorithm:
+
 1. Sort anchors by Hilbert curve value for spatial locality
 2. Split into groups of maxEntries size
 3. Recursively build nodes bottom-up
@@ -274,8 +276,8 @@ scene.on('geospatial_anchor_resolved', async (event) => {
     alt: event.altitude,
     metadata: {
       accuracy: event.accuracy,
-      timestamp: Date.now()
-    }
+      timestamp: Date.now(),
+    },
   });
 });
 
@@ -290,7 +292,7 @@ for (const { anchor, distance } of nearby) {
   scene.emit('load_geospatial_marker', {
     id: anchor.id,
     position: { lat: anchor.lat, lon: anchor.lon, alt: anchor.alt },
-    distance
+    distance,
   });
 }
 ```

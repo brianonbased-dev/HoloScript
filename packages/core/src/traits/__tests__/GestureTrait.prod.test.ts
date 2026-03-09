@@ -73,7 +73,9 @@ describe('gestureHandler — pinch detection', () => {
     const { node } = attach(cfg);
     const ctx = mkCtx(mkHand({ x: 0, y: 0 }, 0.95));
     gestureHandler.onUpdate!(node, cfg, ctx as any, 0.016);
-    expect(ctx.emitted.some((e: any) => e.type === 'gesture' && e.payload.type === 'pinch')).toBe(true);
+    expect(ctx.emitted.some((e: any) => e.type === 'gesture' && e.payload.type === 'pinch')).toBe(
+      true
+    );
   });
 
   it('pinch emits hand name = left', () => {

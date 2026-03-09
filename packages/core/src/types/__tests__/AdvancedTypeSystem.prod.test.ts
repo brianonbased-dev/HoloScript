@@ -5,10 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  TypeInferenceEngine,
-  ExhaustivenessChecker,
-} from '../../types/AdvancedTypeSystem';
+import { TypeInferenceEngine, ExhaustivenessChecker } from '../../types/AdvancedTypeSystem';
 import type { HoloScriptType, UnionType, GenericType } from '../../types/AdvancedTypeSystem';
 
 describe('TypeInferenceEngine — Production', () => {
@@ -116,7 +113,6 @@ describe('TypeInferenceEngine — Production', () => {
     const result = engine.resolveGeneric(generic, [concrete]);
     expect(result).toBeDefined();
   });
-
 });
 
 describe('ExhaustivenessChecker — Production', () => {

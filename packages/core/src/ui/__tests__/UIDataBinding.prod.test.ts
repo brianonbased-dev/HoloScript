@@ -183,7 +183,10 @@ describe('UIDataBinding', () => {
     it('formatter receives raw model value', () => {
       let received: unknown;
       db.set('raw', 'hello');
-      const b = db.bind('raw', 'w', 'text', 'one-way', (v) => { received = v; return String(v); });
+      const b = db.bind('raw', 'w', 'text', 'one-way', (v) => {
+        received = v;
+        return String(v);
+      });
       db.resolve(b.id);
       expect(received).toBe('hello');
     });
@@ -208,7 +211,7 @@ describe('UIDataBinding', () => {
       db.bind('c', 'w2', 'text');
       const result = db.getBindingsForWidget('w1');
       expect(result.length).toBe(2);
-      expect(result.every(b => b.widgetId === 'w1')).toBe(true);
+      expect(result.every((b) => b.widgetId === 'w1')).toBe(true);
     });
 
     it('getBindingsForWidget returns empty array for unknown widget', () => {
@@ -221,7 +224,7 @@ describe('UIDataBinding', () => {
       db.bind('level', 'w3', 'text');
       const result = db.getBindingsForPath('score');
       expect(result.length).toBe(2);
-      expect(result.every(b => b.modelPath === 'score')).toBe(true);
+      expect(result.every((b) => b.modelPath === 'score')).toBe(true);
     });
 
     it('getBindingsForPath returns empty array for unknown path', () => {
@@ -251,7 +254,8 @@ describe('UIDataBinding', () => {
     it('multiple bindings all appear in result', () => {
       const b1 = db.bind('a', 'w1', 'text');
       const b2 = db.bind('b', 'w2', 'text');
-      db.set('a', 1); db.set('b', 2);
+      db.set('a', 1);
+      db.set('b', 2);
       const result = db.propagate();
       expect(result.size).toBe(2);
       expect(result.has(b1.id)).toBe(true);

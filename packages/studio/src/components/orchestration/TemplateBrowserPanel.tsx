@@ -44,7 +44,9 @@ export function TemplateBrowserPanel({ onClose, onLoadTemplate }: TemplateBrowse
 
   const filteredBehaviorTrees = useMemo(() => {
     if (filterType === 'workflow') return [];
-    const templates = searchQuery ? searchBehaviorTreeTemplates(searchQuery) : BEHAVIOR_TREE_TEMPLATES;
+    const templates = searchQuery
+      ? searchBehaviorTreeTemplates(searchQuery)
+      : BEHAVIOR_TREE_TEMPLATES;
     return templates;
   }, [searchQuery, filterType]);
 
@@ -178,7 +180,9 @@ export function TemplateBrowserPanel({ onClose, onLoadTemplate }: TemplateBrowse
               <div className="mb-3 flex items-center gap-2">
                 <GitBranch className="h-4 w-4 text-green-400" />
                 <h3 className="text-[12px] font-bold text-green-400">Behavior Tree Templates</h3>
-                <span className="text-[10px] text-studio-muted">({filteredBehaviorTrees.length})</span>
+                <span className="text-[10px] text-studio-muted">
+                  ({filteredBehaviorTrees.length})
+                </span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredBehaviorTrees.map((template) => (
@@ -237,7 +241,9 @@ function TemplateCard({ template, type, onLoad }: TemplateCardProps) {
   return (
     <div className="group relative rounded-xl border border-studio-border bg-studio-panel hover:border-studio-accent transition-all duration-200 overflow-hidden">
       {/* Thumbnail/Preview Area */}
-      <div className={`h-24 bg-gradient-to-br from-${color}-500/20 to-${color}-600/10 border-b border-studio-border flex items-center justify-center`}>
+      <div
+        className={`h-24 bg-gradient-to-br from-${color}-500/20 to-${color}-600/10 border-b border-studio-border flex items-center justify-center`}
+      >
         <Icon className={`h-10 w-10 text-${color}-400 opacity-40`} />
       </div>
 

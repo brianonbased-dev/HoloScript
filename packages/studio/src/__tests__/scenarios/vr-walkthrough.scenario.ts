@@ -9,12 +9,23 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  teleportArc, validateTeleportTarget,
-  isInBounds, roomArea, roomVolume,
-  detectGesture, handReachDistance,
-  applyComfortMovement, snapTurn, isComfortableFrameRate,
-  walkthroughDuration, waypointAtTime, walkthroughPathLength,
-  type RoomBounds, type HandPose, type ComfortSettings, type WalkthroughWaypoint,
+  teleportArc,
+  validateTeleportTarget,
+  isInBounds,
+  roomArea,
+  roomVolume,
+  detectGesture,
+  handReachDistance,
+  applyComfortMovement,
+  snapTurn,
+  isComfortableFrameRate,
+  walkthroughDuration,
+  waypointAtTime,
+  walkthroughPathLength,
+  type RoomBounds,
+  type HandPose,
+  type ComfortSettings,
+  type WalkthroughWaypoint,
 } from '@/lib/vrWalkthrough';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -23,17 +34,13 @@ import {
 
 describe('Scenario: VR Walkthrough — Teleportation', () => {
   it('teleportArc() generates parabolic trajectory', () => {
-    const arc = teleportArc(
-      { x: 0, y: 1.5, z: 0 },
-      { x: 2, y: 3, z: 0 },
-      9.81
-    );
+    const arc = teleportArc({ x: 0, y: 1.5, z: 0 }, { x: 2, y: 3, z: 0 }, 9.81);
     expect(arc.length).toBeGreaterThan(2);
     // First point is origin
     expect(arc[0].x).toBe(0);
     expect(arc[0].y).toBe(1.5);
     // Arc rises then falls
-    const maxY = Math.max(...arc.map(p => p.y));
+    const maxY = Math.max(...arc.map((p) => p.y));
     expect(maxY).toBeGreaterThan(1.5);
     // Last point is at or below ground
     expect(arc[arc.length - 1].y).toBeLessThanOrEqual(0.01);
@@ -43,7 +50,8 @@ describe('Scenario: VR Walkthrough — Teleportation', () => {
     const arc = teleportArc(
       { x: 0, y: 10, z: 0 },
       { x: 1, y: -2, z: 0 }, // Downward
-      9.81, 100
+      9.81,
+      100
     );
     expect(arc[arc.length - 1].y).toBe(0);
   });
@@ -51,7 +59,9 @@ describe('Scenario: VR Walkthrough — Teleportation', () => {
   it('validateTeleportTarget() — valid target within bounds', () => {
     const bounds: RoomBounds = {
       center: { x: 0, y: 0, z: 0 },
-      widthM: 10, depthM: 10, heightM: 3,
+      widthM: 10,
+      depthM: 10,
+      heightM: 3,
       boundaryPoints: [],
     };
     const target = validateTeleportTarget({ x: 2, y: 0, z: 3 }, bounds);
@@ -62,7 +72,9 @@ describe('Scenario: VR Walkthrough — Teleportation', () => {
   it('validateTeleportTarget() — rejects target outside bounds', () => {
     const bounds: RoomBounds = {
       center: { x: 0, y: 0, z: 0 },
-      widthM: 4, depthM: 4, heightM: 3,
+      widthM: 4,
+      depthM: 4,
+      heightM: 3,
       boundaryPoints: [],
     };
     const target = validateTeleportTarget({ x: 10, y: 0, z: 0 }, bounds);
@@ -72,7 +84,9 @@ describe('Scenario: VR Walkthrough — Teleportation', () => {
   it('validateTeleportTarget() — rejects elevated targets', () => {
     const bounds: RoomBounds = {
       center: { x: 0, y: 0, z: 0 },
-      widthM: 10, depthM: 10, heightM: 3,
+      widthM: 10,
+      depthM: 10,
+      heightM: 3,
       boundaryPoints: [],
     };
     const target = validateTeleportTarget({ x: 0, y: 2, z: 0 }, bounds);
@@ -87,7 +101,9 @@ describe('Scenario: VR Walkthrough — Teleportation', () => {
 describe('Scenario: VR Walkthrough — Room Bounds', () => {
   const bounds: RoomBounds = {
     center: { x: 0, y: 0, z: 0 },
-    widthM: 6, depthM: 4, heightM: 2.5,
+    widthM: 6,
+    depthM: 4,
+    heightM: 2.5,
     boundaryPoints: [],
   };
 
@@ -225,9 +241,27 @@ describe('Scenario: VR Walkthrough — Comfort Settings', () => {
 
 describe('Scenario: VR Walkthrough — Guided Tour', () => {
   const waypoints: WalkthroughWaypoint[] = [
-    { id: 'wp1', position: { x: 0, y: 0, z: 0 }, lookAt: { x: 5, y: 1, z: 0 }, durationSec: 10, label: 'Entrance' },
-    { id: 'wp2', position: { x: 5, y: 0, z: 0 }, lookAt: { x: 10, y: 1, z: 0 }, durationSec: 15, label: 'Lobby' },
-    { id: 'wp3', position: { x: 10, y: 3, z: 5 }, lookAt: { x: 10, y: 3, z: 10 }, durationSec: 20, label: 'Rooftop' },
+    {
+      id: 'wp1',
+      position: { x: 0, y: 0, z: 0 },
+      lookAt: { x: 5, y: 1, z: 0 },
+      durationSec: 10,
+      label: 'Entrance',
+    },
+    {
+      id: 'wp2',
+      position: { x: 5, y: 0, z: 0 },
+      lookAt: { x: 10, y: 1, z: 0 },
+      durationSec: 15,
+      label: 'Lobby',
+    },
+    {
+      id: 'wp3',
+      position: { x: 10, y: 3, z: 5 },
+      lookAt: { x: 10, y: 3, z: 10 },
+      durationSec: 20,
+      label: 'Rooftop',
+    },
   ];
 
   it('walkthroughDuration() sums all waypoint durations', () => {

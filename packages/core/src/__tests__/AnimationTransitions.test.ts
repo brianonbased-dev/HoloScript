@@ -8,7 +8,9 @@ describe('AnimationTransitionSystem', () => {
     { boneId: 'head', position: { x: 0, y: 2, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
   ];
 
-  beforeEach(() => { sys = new AnimationTransitionSystem({ duration: 1, curve: 'linear' }); });
+  beforeEach(() => {
+    sys = new AnimationTransitionSystem({ duration: 1, curve: 'linear' });
+  });
 
   it('starts anim-to-ragdoll transition', () => {
     sys.startAnimToRagdoll('e1', pose);

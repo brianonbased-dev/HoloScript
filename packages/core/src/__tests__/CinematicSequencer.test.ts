@@ -5,8 +5,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { CinematicDirector } from '../cinematic/CinematicDirector';
-import { SequenceTrack }     from '../cinematic/SequenceTrack';
-import { CameraRig }         from '../cinematic/CameraRig';
+import { SequenceTrack } from '../cinematic/SequenceTrack';
+import { CameraRig } from '../cinematic/CameraRig';
 
 // =============================================================================
 // CinematicDirector
@@ -14,7 +14,9 @@ import { CameraRig }         from '../cinematic/CameraRig';
 describe('CinematicDirector', () => {
   let dir: CinematicDirector;
 
-  beforeEach(() => { dir = new CinematicDirector(); });
+  beforeEach(() => {
+    dir = new CinematicDirector();
+  });
 
   it('creates and retrieves scenes', () => {
     const scene = dir.createScene('s1', 'Intro', 10);
@@ -26,7 +28,11 @@ describe('CinematicDirector', () => {
 
   it('adds actor marks to scenes', () => {
     dir.createScene('s1', 'Intro', 10);
-    dir.addActorMark('s1', { actorId: 'hero', position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } });
+    dir.addActorMark('s1', {
+      actorId: 'hero',
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+    });
     const scene = dir.getScene('s1')!;
     expect(scene.actors).toHaveLength(1);
     expect(scene.actors[0].actorId).toBe('hero');
@@ -87,7 +93,9 @@ describe('CinematicDirector', () => {
 describe('SequenceTrack', () => {
   let seq: SequenceTrack;
 
-  beforeEach(() => { seq = new SequenceTrack(); });
+  beforeEach(() => {
+    seq = new SequenceTrack();
+  });
 
   it('adds and retrieves tracks', () => {
     const track = seq.addTrack('t1', 'Position', 'float');
@@ -185,7 +193,8 @@ describe('CameraRig', () => {
     rig.shake('medium');
     const state = rig.update(0.01);
     // During active shake, offsets should be non-zero
-    const hasShake = state.shakeOffset.x !== 0 || state.shakeOffset.y !== 0 || state.shakeOffset.z !== 0;
+    const hasShake =
+      state.shakeOffset.x !== 0 || state.shakeOffset.y !== 0 || state.shakeOffset.z !== 0;
     expect(hasShake).toBe(true);
   });
 

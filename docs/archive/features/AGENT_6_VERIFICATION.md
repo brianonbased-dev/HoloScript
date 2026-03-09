@@ -174,7 +174,7 @@ import { IPFSService } from '@holoscript/core/storage';
 const ipfs = new IPFSService({
   provider: 'nft.storage',
   apiKey: process.env.NFT_STORAGE_KEY,
-  enableCDN: true
+  enableCDN: true,
 });
 
 const result = await ipfs.upload({
@@ -182,8 +182,8 @@ const result = await ipfs.upload({
   files: [
     { path: 'scene.glb', content: glbBuffer },
     { path: 'thumbnail.png', content: pngBuffer },
-    { path: 'metadata.json', content: JSON.stringify(metadata) }
-  ]
+    { path: 'metadata.json', content: JSON.stringify(metadata) },
+  ],
 });
 
 console.log('Uploaded to IPFS:', result.uri);

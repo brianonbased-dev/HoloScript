@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createMockNode, createMockContext, attachTrait, updateTrait, sendEvent } from './traitTestHelpers';
+import {
+  createMockNode,
+  createMockContext,
+  attachTrait,
+  updateTrait,
+  sendEvent,
+} from './traitTestHelpers';
 
 // Mock HandTrackingTrait base
 vi.mock('../HandTrackingTrait', () => ({
@@ -62,7 +68,7 @@ describe('HandMeshAITrait', () => {
   });
 
   it('emits hand_mesh_ai_init on attach', () => {
-    const initEvents = ctx.emittedEvents.filter(e => e.event === 'hand_mesh_ai_init');
+    const initEvents = ctx.emittedEvents.filter((e) => e.event === 'hand_mesh_ai_init');
     expect(initEvents.length).toBe(1);
   });
 
@@ -75,7 +81,7 @@ describe('HandMeshAITrait', () => {
     // Force enough time to trigger generation
     (node as any).__handMeshState.last_update_time = 0;
     updateTrait(handMeshAIHandler, node, cfg, ctx, 0.016);
-    const genEvents = ctx.emittedEvents.filter(e => e.event === 'hand_mesh_generate');
+    const genEvents = ctx.emittedEvents.filter((e) => e.event === 'hand_mesh_generate');
     expect(genEvents.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -99,9 +105,13 @@ describe('HandMeshAITrait', () => {
     sendEvent(handMeshAIHandler, node, cfg, ctx, {
       type: 'hand_mesh_result',
       hand: 'right',
-      mesh: { vertices: new Float32Array(12), normals: new Float32Array(12), indices: new Uint16Array(6) },
+      mesh: {
+        vertices: new Float32Array(12),
+        normals: new Float32Array(12),
+        indices: new Uint16Array(6),
+      },
     });
-    const updateEvents = ctx.emittedEvents.filter(e => e.event === 'on_hand_mesh_updated');
+    const updateEvents = ctx.emittedEvents.filter((e) => e.event === 'on_hand_mesh_updated');
     expect(updateEvents.length).toBe(1);
   });
 

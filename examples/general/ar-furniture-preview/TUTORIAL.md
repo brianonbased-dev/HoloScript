@@ -31,6 +31,7 @@ ar_session#furniture_preview @mobile @markerless {
 ```
 
 **Breaking it down:**
+
 - `@mobile` - Optimized for phone/tablet AR
 - `@markerless` - No QR codes or image markers required
 - `mode: "world_tracking"` - Track real-world surfaces and camera movement
@@ -69,6 +70,7 @@ on_plane_detected {
 ```
 
 **User flow:**
+
 1. User grants camera permission
 2. AR session starts → show instruction
 3. User points camera at floor → plane detected
@@ -108,6 +110,7 @@ catalog#furniture_items {
 ```
 
 **Key fields:**
+
 - `id` - Unique identifier for database/API integration
 - `dimensions` - Real-world size in meters (critical for AR accuracy)
 - `model` - 3D model file (.glb format recommended)
@@ -125,6 +128,7 @@ materials: [
 ```
 
 **Price modifiers**: Add to base price when material selected.
+
 - Gray fabric: $1,299.99 + $0 = $1,299.99
 - Leather: $1,299.99 + $300 = $1,599.99
 
@@ -172,6 +176,7 @@ ar_placement#furniture_placer {
 ```
 
 **Visual feedback:**
+
 - Circle/crosshair shows where furniture will be placed
 - Green color = valid placement
 - Red color = invalid (surface too small)
@@ -199,6 +204,7 @@ validate_placement {
 ```
 
 **Checks:**
+
 1. **Surface area**: Is the detected plane large enough for this furniture?
 2. **Lighting**: Is there enough light for good AR tracking?
 3. **Stability**: Is the plane stable (not a moving object)?
@@ -224,6 +230,7 @@ on_screen_tap {
 ```
 
 **User flow:**
+
 1. User selects product from catalog
 2. Placement reticle appears when plane detected
 3. User taps screen → furniture spawns at reticle position
@@ -335,6 +342,7 @@ ui#config_panel @floating @contextual {
 ```
 
 **Key features:**
+
 - `@floating` - Hovers in AR space (not screen-space)
 - `@contextual` - Appears only when furniture selected
 - `position: "above_furniture"` - Follows selected furniture
@@ -370,6 +378,7 @@ grid#material_swatches {
 ```
 
 **Visual design:**
+
 - Grid of color swatches (3 columns)
 - Blue border on selected material
 - Tap to apply new material instantly
@@ -443,6 +452,7 @@ ar_lighting#environment_match @auto {
 ```
 
 **How it works:**
+
 1. Device camera estimates real-world lighting
 2. Scene lighting updates to match
 3. All furniture materials update their shading
@@ -505,6 +515,7 @@ ui#cart_panel @modal {
 ```
 
 **Cart items store:**
+
 - Product ID and name
 - Selected material variant
 - Quantity
@@ -587,6 +598,7 @@ export_json: {
 ```
 
 **Use cases:**
+
 - Save for later (persistent AR sessions)
 - Share with interior designer
 - Compare multiple layout options
@@ -618,6 +630,7 @@ settings {
 ```
 
 **Guidelines:**
+
 - Keep models under 10,000 triangles
 - Use 1K-2K textures (compress with Basis Universal)
 - Enable LOD (Level of Detail) for complex furniture
@@ -660,41 +673,45 @@ Now that you understand AR furniture preview, try:
 
 ## Key Concepts
 
-| Concept | Description |
-|---|---|
-| `ar_session` | Configures the AR tracking mode, plane detection, and lighting estimation |
-| `catalog` | Organized collection of products with categories, variants, and pricing |
-| `ar_placement` | Controls where and how virtual objects are placed in AR space |
-| `placement_reticle` | Visual indicator showing the valid placement location |
-| `on_screen_tap` | Event handler for mobile touch-to-place interactions |
-| `on_pinch_gesture` | Event handler for two-finger scale gesture |
-| `on_horizontal_swipe` | Event handler for single-finger rotation gesture |
-| `ar_lighting` | Matches virtual object lighting to the real-world environment |
-| `api_call` | Makes HTTP requests to external services (e-commerce APIs, etc.) |
-| `materials` | Color and texture variants with optional price modifiers |
+| Concept               | Description                                                               |
+| --------------------- | ------------------------------------------------------------------------- |
+| `ar_session`          | Configures the AR tracking mode, plane detection, and lighting estimation |
+| `catalog`             | Organized collection of products with categories, variants, and pricing   |
+| `ar_placement`        | Controls where and how virtual objects are placed in AR space             |
+| `placement_reticle`   | Visual indicator showing the valid placement location                     |
+| `on_screen_tap`       | Event handler for mobile touch-to-place interactions                      |
+| `on_pinch_gesture`    | Event handler for two-finger scale gesture                                |
+| `on_horizontal_swipe` | Event handler for single-finger rotation gesture                          |
+| `ar_lighting`         | Matches virtual object lighting to the real-world environment             |
+| `api_call`            | Makes HTTP requests to external services (e-commerce APIs, etc.)          |
+| `materials`           | Color and texture variants with optional price modifiers                  |
 
 ---
 
 ## Best Practices
 
 ### AR Performance
+
 - Keep GLB model poly count below 10,000 triangles per item
 - Use Basis Universal texture compression for mobile bandwidth
 - Cap concurrent placed objects at 20 to avoid frame rate drops
 - Enable `reduce_quality_on_low_battery: true` for sustained performance
 
 ### User Experience
+
 - Always show a placement reticle with clear color feedback (green/red)
 - Provide haptic feedback on successful placement
 - Use bottom-sheet UI for catalogs — avoids occlusion of AR view
 - Show surface detection progress before allowing placement
 
 ### E-Commerce Integration
+
 - Pass `session_id` with checkout calls for analytics attribution
 - Store `selected_material` persistently so users don't re-select after reload
 - Validate prices client-side and server-side to prevent manipulation
 
 ### Cross-Platform
+
 - Test on both iOS Safari (WebXR) and Android Chrome before shipping
 - Provide a fallback 3D viewer for browsers without AR support
 - Use `HTTPS` — camera access is blocked on insecure origins

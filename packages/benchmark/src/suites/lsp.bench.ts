@@ -11,14 +11,27 @@ import { Bench } from 'tinybench';
 // Mock LSP handler (standalone — no real server needed for benchmarks)
 // ---------------------------------------------------------------------------
 
-interface Position { line: number; character: number; }
-interface TextDocumentIdentifier { uri: string; }
+interface Position {
+  line: number;
+  character: number;
+}
+interface TextDocumentIdentifier {
+  uri: string;
+}
 
 function mockCompletion(uri: string, pos: Position): unknown[] {
   // Simulate scanning visible traits + keywords
   const traits = [
-    '@grabbable', '@physics', '@synced', '@networked', '@accessible',
-    '@highlight', '@haptic', '@contrast', '@alt_text', '@shadow',
+    '@grabbable',
+    '@physics',
+    '@synced',
+    '@networked',
+    '@accessible',
+    '@highlight',
+    '@haptic',
+    '@contrast',
+    '@alt_text',
+    '@shadow',
   ];
   const keywords = ['orb', 'template', 'environment', 'logic', 'on_click', 'on_tick'];
   // Simulate filtering by character context (pos.character affects result set size)
@@ -44,7 +57,8 @@ function mockGoToDefinition(uri: string, pos: Position): Position | null {
     character: 0,
   }));
   const target = pos.line * 3;
-  let lo = 0, hi = symbols.length - 1;
+  let lo = 0,
+    hi = symbols.length - 1;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
     if (symbols[mid].line === target) return symbols[mid];

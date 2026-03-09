@@ -41,7 +41,13 @@ import {
 describe('Scenario: Psychotherapy Sound — Brainwave Entrainment', () => {
   it('BRAINWAVE_BANDS covers delta through gamma', () => {
     expect(BRAINWAVE_BANDS).toHaveLength(5);
-    expect(BRAINWAVE_BANDS.map(b => b.name)).toEqual(['delta', 'theta', 'alpha', 'beta', 'gamma']);
+    expect(BRAINWAVE_BANDS.map((b) => b.name)).toEqual([
+      'delta',
+      'theta',
+      'alpha',
+      'beta',
+      'gamma',
+    ]);
   });
 
   it('getBrainwaveBand(2) = delta (deep sleep)', () => {
@@ -89,7 +95,7 @@ describe('Scenario: Psychotherapy Sound — Binaural Beats', () => {
 
   it('alpha state uses 8-13 Hz beat frequency', () => {
     const beat = createBinauralBeat(200, 10, 'alpha');
-    const band = BRAINWAVE_BANDS.find(b => b.name === 'alpha')!;
+    const band = BRAINWAVE_BANDS.find((b) => b.name === 'alpha')!;
     expect(beat.beatFrequencyHz).toBeGreaterThanOrEqual(band.minHz);
     expect(beat.beatFrequencyHz).toBeLessThanOrEqual(band.maxHz);
   });
@@ -128,13 +134,13 @@ describe('Scenario: Psychotherapy Sound — Solfeggio Frequencies', () => {
   });
 
   it('528 Hz is the "Miracle" frequency', () => {
-    const f528 = SOLFEGGIO_FREQUENCIES.find(f => f.hz === 528);
+    const f528 = SOLFEGGIO_FREQUENCIES.find((f) => f.hz === 528);
     expect(f528).toBeDefined();
     expect(f528!.name).toBe('Miracle');
   });
 
   it('432 Hz is natural tuning frequency', () => {
-    const f432 = SOLFEGGIO_FREQUENCIES.find(f => f.hz === 432);
+    const f432 = SOLFEGGIO_FREQUENCIES.find((f) => f.hz === 432);
     expect(f432).toBeDefined();
     expect(f432!.description).toContain('nature');
   });
@@ -189,35 +195,80 @@ describe('Scenario: Psychotherapy Sound — Patient Safety', () => {
 
   it('validateSessionSafety() warns on high volume', () => {
     const session: TherapySession = {
-      id: 's1', patientId: 'p1', therapistId: 't1', type: 'binaural',
-      startTime: Date.now(), durationMinutes: 30, maxVolumeDBA: 80,
-      layers: [{ id: 'l1', name: 'Binaural', type: 'binaural', volume: 0.5, panLR: 0, fadeInSec: 5, fadeOutSec: 5 }],
+      id: 's1',
+      patientId: 'p1',
+      therapistId: 't1',
+      type: 'binaural',
+      startTime: Date.now(),
+      durationMinutes: 30,
+      maxVolumeDBA: 80,
+      layers: [
+        {
+          id: 'l1',
+          name: 'Binaural',
+          type: 'binaural',
+          volume: 0.5,
+          panLR: 0,
+          fadeInSec: 5,
+          fadeOutSec: 5,
+        },
+      ],
       notes: 'Standard session',
     };
     const warnings = validateSessionSafety(session);
-    expect(warnings.some(w => w.includes('Volume'))).toBe(true);
+    expect(warnings.some((w) => w.includes('Volume'))).toBe(true);
   });
 
   it('validateSessionSafety() warns on sessions > 90 minutes', () => {
     const session: TherapySession = {
-      id: 's1', patientId: 'p1', therapistId: 't1', type: 'solfeggio',
-      startTime: Date.now(), durationMinutes: 120, maxVolumeDBA: 55,
-      layers: [{ id: 'l1', name: 'Tone', type: 'frequency', volume: 0.3, panLR: 0, fadeInSec: 10, fadeOutSec: 10 }],
+      id: 's1',
+      patientId: 'p1',
+      therapistId: 't1',
+      type: 'solfeggio',
+      startTime: Date.now(),
+      durationMinutes: 120,
+      maxVolumeDBA: 55,
+      layers: [
+        {
+          id: 'l1',
+          name: 'Tone',
+          type: 'frequency',
+          volume: 0.3,
+          panLR: 0,
+          fadeInSec: 10,
+          fadeOutSec: 10,
+        },
+      ],
       notes: 'Extended session',
     };
     const warnings = validateSessionSafety(session);
-    expect(warnings.some(w => w.includes('90-minute'))).toBe(true);
+    expect(warnings.some((w) => w.includes('90-minute'))).toBe(true);
   });
 
   it('validateSessionSafety() warns exposure therapy without consent', () => {
     const session: TherapySession = {
-      id: 's1', patientId: 'p1', therapistId: 't1', type: 'exposure',
-      startTime: Date.now(), durationMinutes: 30, maxVolumeDBA: 60,
-      layers: [{ id: 'l1', name: 'Thunder', type: 'nature', volume: 0.4, panLR: 0, fadeInSec: 30, fadeOutSec: 10 }],
+      id: 's1',
+      patientId: 'p1',
+      therapistId: 't1',
+      type: 'exposure',
+      startTime: Date.now(),
+      durationMinutes: 30,
+      maxVolumeDBA: 60,
+      layers: [
+        {
+          id: 'l1',
+          name: 'Thunder',
+          type: 'nature',
+          volume: 0.4,
+          panLR: 0,
+          fadeInSec: 30,
+          fadeOutSec: 10,
+        },
+      ],
       notes: 'Gradual storm exposure',
     };
     const warnings = validateSessionSafety(session);
-    expect(warnings.some(w => w.includes('consent'))).toBe(true);
+    expect(warnings.some((w) => w.includes('consent'))).toBe(true);
   });
 });
 
@@ -227,8 +278,12 @@ describe('Scenario: Psychotherapy Sound — Patient Safety', () => {
 
 describe('Scenario: Psychotherapy Sound — Exposure Therapy', () => {
   const config: ExposureTherapyConfig = {
-    trigger: 'thunderstorm', startIntensity: 0.05, endIntensity: 0.7,
-    rampDurationMin: 20, safeWord: 'stop', maxVolumeDBA: 65,
+    trigger: 'thunderstorm',
+    startIntensity: 0.05,
+    endIntensity: 0.7,
+    rampDurationMin: 20,
+    safeWord: 'stop',
+    maxVolumeDBA: 65,
   };
 
   it('exposure starts at low intensity (5%)', () => {
@@ -298,9 +353,24 @@ describe('Scenario: Psychotherapy Sound — Exposure Therapy', () => {
 
   it('HIPAA-compliant session log redacts patient PII', () => {
     const session: TherapySession = {
-      id: 's1', patientId: 'P-12345', therapistId: 'T-001', type: 'binaural',
-      startTime: Date.now(), durationMinutes: 30, maxVolumeDBA: 55,
-      layers: [{ id: 'l1', name: 'Alpha', type: 'binaural', volume: 0.5, panLR: 0, fadeInSec: 5, fadeOutSec: 5 }],
+      id: 's1',
+      patientId: 'P-12345',
+      therapistId: 'T-001',
+      type: 'binaural',
+      startTime: Date.now(),
+      durationMinutes: 30,
+      maxVolumeDBA: 55,
+      layers: [
+        {
+          id: 'l1',
+          name: 'Alpha',
+          type: 'binaural',
+          volume: 0.5,
+          panLR: 0,
+          fadeInSec: 5,
+          fadeOutSec: 5,
+        },
+      ],
       notes: 'Patient gave informed consent.',
     };
     const exported = exportSessionHIPAA(session);

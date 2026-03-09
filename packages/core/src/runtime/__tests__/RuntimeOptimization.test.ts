@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ObjectPool, Lazy, memoize, LRUCache, Batcher, PerformanceProfiler, getGlobalProfiler } from '../RuntimeOptimization';
+import {
+  ObjectPool,
+  Lazy,
+  memoize,
+  LRUCache,
+  Batcher,
+  PerformanceProfiler,
+  getGlobalProfiler,
+} from '../RuntimeOptimization';
 
 // =============================================================================
 // ObjectPool
@@ -11,7 +19,9 @@ describe('ObjectPool', () => {
   beforeEach(() => {
     pool = new ObjectPool(
       () => ({ value: 0 }),
-      (obj) => { obj.value = 0; },
+      (obj) => {
+        obj.value = 0;
+      },
       5 // capacity = 5, preallocates 5
     );
   });
@@ -226,7 +236,7 @@ describe('LRUCache', () => {
 
 describe('Batcher', () => {
   it('flushAll processes all queued items', async () => {
-    const processor = vi.fn(async (batch: number[]) => batch.map(x => x + 1));
+    const processor = vi.fn(async (batch: number[]) => batch.map((x) => x + 1));
     const batcher = new Batcher(processor, 100, 10000); // large batch + long timeout
 
     // Add items (won't auto-flush since batchSize=100)

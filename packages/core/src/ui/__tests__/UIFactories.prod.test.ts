@@ -74,12 +74,14 @@ describe('createVirtualKeyboard — Production', () => {
 
   it('has number row + letter rows + space', () => {
     const kb = createVirtualKeyboard('kb', {});
-    const keyTexts = kb.children!.map((c: any) => {
-      // Each child is a UIButton with innerBtn > text child
-      const innerBtn = c.children?.[0];
-      const textNode = innerBtn?.children?.[0];
-      return textNode?.properties?.text;
-    }).filter(Boolean);
+    const keyTexts = kb
+      .children!.map((c: any) => {
+        // Each child is a UIButton with innerBtn > text child
+        const innerBtn = c.children?.[0];
+        const textNode = innerBtn?.children?.[0];
+        return textNode?.properties?.text;
+      })
+      .filter(Boolean);
     expect(keyTexts).toContain('Q');
     expect(keyTexts).toContain('Space');
     expect(keyTexts).toContain('Enter');

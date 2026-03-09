@@ -251,11 +251,7 @@ describe('SynchronizationStrategies', () => {
   });
 
   it('skipToKeyword finds target keyword', () => {
-    const tokens = [
-      tok('IDENT', 'foo'),
-      tok('IDENT', 'bar'),
-      tok('IDENT', 'composition'),
-    ];
+    const tokens = [tok('IDENT', 'foo'), tok('IDENT', 'bar'), tok('IDENT', 'composition')];
     expect(SynchronizationStrategies.skipToKeyword(tokens, 0, ['composition'])).toBe(2);
   });
 
@@ -265,13 +261,7 @@ describe('SynchronizationStrategies', () => {
   });
 
   it('findMatchingBracket finds matching close', () => {
-    const tokens = [
-      tok('LPAREN'),
-      tok('IDENT'),
-      tok('LPAREN'),
-      tok('RPAREN'),
-      tok('RPAREN'),
-    ];
+    const tokens = [tok('LPAREN'), tok('IDENT'), tok('LPAREN'), tok('RPAREN'), tok('RPAREN')];
     expect(SynchronizationStrategies.findMatchingBracket(tokens, 0, 'LPAREN', 'RPAREN')).toBe(4);
   });
 

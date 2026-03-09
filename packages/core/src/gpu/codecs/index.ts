@@ -73,7 +73,4 @@ export {
   resetGlobalCodecRegistry,
 } from './GaussianCodecRegistry.js';
 
-export type {
-  CodecDetectOptions,
-  RegisteredCodec,
-} from './GaussianCodecRegistry.js';
+export type { CodecDetectOptions, RegisteredCodec } from './GaussianCodecRegistry.js';

@@ -122,9 +122,7 @@ export function DeploymentCard({ deployment, onClick }: DeploymentCardProps) {
       {deployment.endpoint && deployment.status === 'active' && (
         <div className="mb-3 rounded bg-studio-panel px-2 py-1.5">
           <div className="flex items-center gap-2">
-            <code className="flex-1 truncate text-[10px] text-sky-400">
-              {deployment.endpoint}
-            </code>
+            <code className="flex-1 truncate text-[10px] text-sky-400">{deployment.endpoint}</code>
             <a
               href={deployment.endpoint}
               target="_blank"

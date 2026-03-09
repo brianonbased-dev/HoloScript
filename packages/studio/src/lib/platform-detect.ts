@@ -59,7 +59,11 @@ export interface PlatformCapabilities {
   deviceMemoryGB: number;
 
   /** Recommended WASM world to load */
-  recommendedWorld: 'holoscript-runtime' | 'holoscript-parser' | 'holoscript-compiler' | 'holoscript-spatial';
+  recommendedWorld:
+    | 'holoscript-runtime'
+    | 'holoscript-parser'
+    | 'holoscript-compiler'
+    | 'holoscript-spatial';
 
   /** Recommended compiler backend */
   recommendedBackend: 'wasm-component' | 'wasm-legacy' | 'typescript-fallback';
@@ -109,17 +113,17 @@ export function detectPlatformSync(): PlatformCapabilities {
     hasWebGL2: detectWebGL2(),
     hasWebGL1: detectWebGL1(),
 
-    hasWebXR: false,  // requires async probe
+    hasWebXR: false, // requires async probe
     hasWebXRImmersive: false,
     hasWebXRAR: false,
 
     hasIndexedDB: typeof indexedDB !== 'undefined',
-    hasOPFS: false,   // requires async probe
+    hasOPFS: false, // requires async probe
 
     hasServiceWorker: typeof navigator !== 'undefined' && 'serviceWorker' in navigator,
     isSecureContext: typeof isSecureContext !== 'undefined' && isSecureContext,
 
-    hardwareConcurrency: typeof navigator !== 'undefined' ? (navigator.hardwareConcurrency || 1) : 1,
+    hardwareConcurrency: typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 1 : 1,
     deviceMemoryGB: getDeviceMemory(),
 
     recommendedWorld: 'holoscript-runtime',
@@ -138,7 +142,10 @@ function detectRuntime(): PlatformCapabilities['runtime'] {
   }
 
   // Web Worker
-  if (typeof self !== 'undefined' && typeof (self as unknown as { importScripts?: unknown }).importScripts === 'function') {
+  if (
+    typeof self !== 'undefined' &&
+    typeof (self as unknown as { importScripts?: unknown }).importScripts === 'function'
+  ) {
     return 'worker';
   }
 
@@ -159,7 +166,8 @@ function getTauriVersion(): string | undefined {
   try {
     // Tauri 2.0 exposes version via __TAURI_INTERNALS__
     const internals = (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ as
-      { metadata?: { tauriVersion?: string } } | undefined;
+      | { metadata?: { tauriVersion?: string } }
+      | undefined;
     return internals?.metadata?.tauriVersion;
   } catch {
     return undefined;
@@ -176,10 +184,20 @@ function detectWasmThreads(): boolean {
     if (typeof SharedArrayBuffer === 'undefined') return false;
     // Probe by validating a WASM module with shared memory
     const bytes = new Uint8Array([
-      0x00, 0x61, 0x73, 0x6d, // magic
-      0x01, 0x00, 0x00, 0x00, // version
-      0x05, 0x04, 0x01,       // memory section
-      0x03, 0x01, 0x01,       // shared memory, 1 page min, 1 page max
+      0x00,
+      0x61,
+      0x73,
+      0x6d, // magic
+      0x01,
+      0x00,
+      0x00,
+      0x00, // version
+      0x05,
+      0x04,
+      0x01, // memory section
+      0x03,
+      0x01,
+      0x01, // shared memory, 1 page min, 1 page max
     ]);
     return WebAssembly.validate(bytes);
   } catch {
@@ -191,14 +209,48 @@ function detectWasmSIMD(): boolean {
   try {
     // Probe with v128.const instruction
     const bytes = new Uint8Array([
-      0x00, 0x61, 0x73, 0x6d, // magic
-      0x01, 0x00, 0x00, 0x00, // version
-      0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7b, // type: () -> v128
-      0x03, 0x02, 0x01, 0x00, // func
-      0x0a, 0x15, 0x01, 0x13, 0x00, // code
-      0xfd, 0x0c, // v128.const
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00,
+      0x61,
+      0x73,
+      0x6d, // magic
+      0x01,
+      0x00,
+      0x00,
+      0x00, // version
+      0x01,
+      0x05,
+      0x01,
+      0x60,
+      0x00,
+      0x01,
+      0x7b, // type: () -> v128
+      0x03,
+      0x02,
+      0x01,
+      0x00, // func
+      0x0a,
+      0x15,
+      0x01,
+      0x13,
+      0x00, // code
+      0xfd,
+      0x0c, // v128.const
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
       0x0b, // end
     ]);
     return WebAssembly.validate(bytes);
@@ -243,7 +295,9 @@ async function probeWebGPU(): Promise<boolean> {
   if (typeof navigator === 'undefined') return false;
   try {
     if (!('gpu' in navigator)) return false;
-    const adapter = await (navigator as unknown as { gpu: { requestAdapter(): Promise<unknown | null> } }).gpu.requestAdapter();
+    const adapter = await (
+      navigator as unknown as { gpu: { requestAdapter(): Promise<unknown | null> } }
+    ).gpu.requestAdapter();
     return adapter !== null;
   } catch {
     return false;
@@ -266,7 +320,9 @@ async function probeWebXR(): Promise<boolean> {
 async function probeWebXRImmersive(): Promise<boolean> {
   if (typeof navigator === 'undefined') return false;
   try {
-    const xr = (navigator as unknown as Record<string, { isSessionSupported(mode: string): Promise<boolean> }>).xr;
+    const xr = (
+      navigator as unknown as Record<string, { isSessionSupported(mode: string): Promise<boolean> }>
+    ).xr;
     if (!xr) return false;
     return await xr.isSessionSupported('immersive-vr');
   } catch {
@@ -277,7 +333,9 @@ async function probeWebXRImmersive(): Promise<boolean> {
 async function probeWebXRAR(): Promise<boolean> {
   if (typeof navigator === 'undefined') return false;
   try {
-    const xr = (navigator as unknown as Record<string, { isSessionSupported(mode: string): Promise<boolean> }>).xr;
+    const xr = (
+      navigator as unknown as Record<string, { isSessionSupported(mode: string): Promise<boolean> }>
+    ).xr;
     if (!xr) return false;
     return await xr.isSessionSupported('immersive-ar');
   } catch {
@@ -314,7 +372,9 @@ function getDeviceMemory(): number {
 // Recommendation Logic
 // ═══════════════════════════════════════════════════════════════════
 
-function computeRecommendedWorld(caps: PlatformCapabilities): PlatformCapabilities['recommendedWorld'] {
+function computeRecommendedWorld(
+  caps: PlatformCapabilities
+): PlatformCapabilities['recommendedWorld'] {
   // Tauri desktop: full runtime (native GPU handles rendering)
   if (caps.isTauri) {
     return 'holoscript-runtime';
@@ -334,7 +394,9 @@ function computeRecommendedWorld(caps: PlatformCapabilities): PlatformCapabiliti
   return 'holoscript-spatial';
 }
 
-function computeRecommendedBackend(caps: PlatformCapabilities): PlatformCapabilities['recommendedBackend'] {
+function computeRecommendedBackend(
+  caps: PlatformCapabilities
+): PlatformCapabilities['recommendedBackend'] {
   // No WASM at all → TS fallback
   if (!caps.hasWasm) {
     return 'typescript-fallback';
@@ -363,22 +425,22 @@ export interface PerformanceBudget {
 
 /** Default budgets per platform (from ADAPTIVE_PLATFORM_LAYERS.md) */
 export const PLATFORM_BUDGETS: Record<string, PerformanceBudget> = {
-  'tauri': {
-    maxWasmBinaryKB: 2048,   // 2MB (less constrained on desktop)
+  tauri: {
+    maxWasmBinaryKB: 2048, // 2MB (less constrained on desktop)
     maxInitTimeMs: 500,
     maxParseTimeMs: 50,
     maxCompileTimeMs: 500,
     maxMemoryMB: 256,
   },
-  'browser': {
-    maxWasmBinaryKB: 1200,   // 1.2MB target
-    maxInitTimeMs: 300,       // Must feel instant
-    maxParseTimeMs: 30,       // Real-time editing
+  browser: {
+    maxWasmBinaryKB: 1200, // 1.2MB target
+    maxInitTimeMs: 300, // Must feel instant
+    maxParseTimeMs: 30, // Real-time editing
     maxCompileTimeMs: 300,
     maxMemoryMB: 64,
   },
-  'mobile': {
-    maxWasmBinaryKB: 800,    // Smaller for mobile
+  mobile: {
+    maxWasmBinaryKB: 800, // Smaller for mobile
     maxInitTimeMs: 200,
     maxParseTimeMs: 20,
     maxCompileTimeMs: 200,
@@ -389,13 +451,15 @@ export const PLATFORM_BUDGETS: Record<string, PerformanceBudget> = {
 /** Check if actual metrics are within budget */
 export function checkBudget(
   platform: string,
-  metrics: Partial<PerformanceBudget>,
+  metrics: Partial<PerformanceBudget>
 ): { withinBudget: boolean; violations: string[] } {
   const budget = PLATFORM_BUDGETS[platform] || PLATFORM_BUDGETS['browser'];
   const violations: string[] = [];
 
   if (metrics.maxWasmBinaryKB !== undefined && metrics.maxWasmBinaryKB > budget.maxWasmBinaryKB) {
-    violations.push(`WASM binary: ${metrics.maxWasmBinaryKB}KB > ${budget.maxWasmBinaryKB}KB budget`);
+    violations.push(
+      `WASM binary: ${metrics.maxWasmBinaryKB}KB > ${budget.maxWasmBinaryKB}KB budget`
+    );
   }
   if (metrics.maxInitTimeMs !== undefined && metrics.maxInitTimeMs > budget.maxInitTimeMs) {
     violations.push(`Init time: ${metrics.maxInitTimeMs}ms > ${budget.maxInitTimeMs}ms budget`);
@@ -403,8 +467,13 @@ export function checkBudget(
   if (metrics.maxParseTimeMs !== undefined && metrics.maxParseTimeMs > budget.maxParseTimeMs) {
     violations.push(`Parse time: ${metrics.maxParseTimeMs}ms > ${budget.maxParseTimeMs}ms budget`);
   }
-  if (metrics.maxCompileTimeMs !== undefined && metrics.maxCompileTimeMs > budget.maxCompileTimeMs) {
-    violations.push(`Compile time: ${metrics.maxCompileTimeMs}ms > ${budget.maxCompileTimeMs}ms budget`);
+  if (
+    metrics.maxCompileTimeMs !== undefined &&
+    metrics.maxCompileTimeMs > budget.maxCompileTimeMs
+  ) {
+    violations.push(
+      `Compile time: ${metrics.maxCompileTimeMs}ms > ${budget.maxCompileTimeMs}ms budget`
+    );
   }
   if (metrics.maxMemoryMB !== undefined && metrics.maxMemoryMB > budget.maxMemoryMB) {
     violations.push(`Memory: ${metrics.maxMemoryMB}MB > ${budget.maxMemoryMB}MB budget`);

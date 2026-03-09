@@ -17,11 +17,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  ImportResolver,
-  resolveImportPath,
-  type ImportResolveOptions,
-} from '../ImportResolver';
+import { ImportResolver, resolveImportPath, type ImportResolveOptions } from '../ImportResolver';
 
 // =============================================================================
 // Test helpers
@@ -58,7 +54,10 @@ async function parseWith(source: string) {
 }
 
 const BASE = '/project';
-function opts(reader: (p: string) => Promise<string>, extra: Partial<ImportResolveOptions> = {}): ImportResolveOptions {
+function opts(
+  reader: (p: string) => Promise<string>,
+  extra: Partial<ImportResolveOptions> = {}
+): ImportResolveOptions {
   return { baseDir: BASE, readFile: reader, ...extra };
 }
 
@@ -95,7 +94,9 @@ describe('resolveImportPath', () => {
 
 describe('ImportResolver — basic', () => {
   let resolver: ImportResolver;
-  beforeEach(() => { resolver = new ImportResolver(); });
+  beforeEach(() => {
+    resolver = new ImportResolver();
+  });
 
   it('returns empty scope when no imports', async () => {
     const result = await parseWith('orb x { }\n');
@@ -137,7 +138,9 @@ describe('ImportResolver — basic', () => {
 
 describe('ImportResolver — named imports', () => {
   let resolver: ImportResolver;
-  beforeEach(() => { resolver = new ImportResolver(); });
+  beforeEach(() => {
+    resolver = new ImportResolver();
+  });
 
   it('only imports listed names via named imports', async () => {
     const libSrc = [hsExport('Button'), hsExport('Card'), hsExport('Input')].join('');
@@ -161,8 +164,8 @@ describe('ImportResolver — named imports', () => {
     const result = await parseWith(sceneSrc);
     const res = await resolver.resolve(result, `${BASE}/scene.hs`, opts(reader));
 
-    expect(res.errors.some(e => e.code === 'named_not_exported')).toBe(true);
-    expect(res.errors.find(e => e.code === 'named_not_exported')?.message).toContain('Ghost');
+    expect(res.errors.some((e) => e.code === 'named_not_exported')).toBe(true);
+    expect(res.errors.find((e) => e.code === 'named_not_exported')?.message).toContain('Ghost');
   });
 });
 
@@ -172,7 +175,9 @@ describe('ImportResolver — named imports', () => {
 
 describe('ImportResolver — module cache', () => {
   let resolver: ImportResolver;
-  beforeEach(() => { resolver = new ImportResolver(); });
+  beforeEach(() => {
+    resolver = new ImportResolver();
+  });
 
   it('reads each imported file exactly once even if imported twice', async () => {
     const libSrc = hsExport('Shared');
@@ -186,7 +191,7 @@ describe('ImportResolver — module cache', () => {
     await resolver.resolve(src2, `${BASE}/scene2.hs`, opts(reader));
 
     // Only one actual file read
-    expect(calls.filter(c => c === `${BASE}/shared.hs`).length).toBe(1);
+    expect(calls.filter((c) => c === `${BASE}/shared.hs`).length).toBe(1);
   });
 
   it('getCachedPaths returns resolved paths', async () => {
@@ -213,7 +218,9 @@ describe('ImportResolver — module cache', () => {
 
 describe('ImportResolver — file not found', () => {
   let resolver: ImportResolver;
-  beforeEach(() => { resolver = new ImportResolver(); });
+  beforeEach(() => {
+    resolver = new ImportResolver();
+  });
 
   it('returns not_found error for missing file', async () => {
     const { reader } = makeReader({}); // empty — nothing exists
@@ -233,7 +240,7 @@ describe('ImportResolver — file not found', () => {
     const result = await parseWith(sceneSrc);
     const res = await resolver.resolve(result, `${BASE}/scene.hs`, opts(reader));
 
-    expect(res.errors.some(e => e.code === 'not_found')).toBe(true);
+    expect(res.errors.some((e) => e.code === 'not_found')).toBe(true);
     expect(res.scope.has('found.Found')).toBe(true);
   });
 });
@@ -244,7 +251,9 @@ describe('ImportResolver — file not found', () => {
 
 describe('ImportResolver — cycle detection', () => {
   let resolver: ImportResolver;
-  beforeEach(() => { resolver = new ImportResolver(); });
+  beforeEach(() => {
+    resolver = new ImportResolver();
+  });
 
   it('detects direct self-import cycle', async () => {
     const selfSrc = `@import "./self.hs"\norb x { }\n`;
@@ -254,7 +263,7 @@ describe('ImportResolver — cycle detection', () => {
     const res = await resolver.resolve(result, `${BASE}/self.hs`, opts(reader));
 
     // Should have a cycle error
-    expect(res.errors.some(e => e.code === 'cycle')).toBe(true);
+    expect(res.errors.some((e) => e.code === 'cycle')).toBe(true);
   });
 
   it('detects two-file cycle: a→b→a', async () => {
@@ -268,8 +277,8 @@ describe('ImportResolver — cycle detection', () => {
     const result = await parseWith(aSrc);
     const res = await resolver.resolve(result, `${BASE}/a.hs`, opts(reader));
 
-    expect(res.errors.some(e => e.code === 'cycle')).toBe(true);
-    const cycleErr = res.errors.find(e => e.code === 'cycle')!;
+    expect(res.errors.some((e) => e.code === 'cycle')).toBe(true);
+    const cycleErr = res.errors.find((e) => e.code === 'cycle')!;
     expect(cycleErr.message).toContain('Circular import');
   });
 
@@ -297,7 +306,9 @@ describe('ImportResolver — cycle detection', () => {
 
 describe('ImportResolver — transitive deps', () => {
   let resolver: ImportResolver;
-  beforeEach(() => { resolver = new ImportResolver(); });
+  beforeEach(() => {
+    resolver = new ImportResolver();
+  });
 
   it('resolves a→b→c chain, c exports reachable from a', async () => {
     const cSrc = hsExport('BaseWidget');
@@ -327,7 +338,9 @@ describe('ImportResolver — transitive deps', () => {
 
 describe('ImportResolver — max depth', () => {
   let resolver: ImportResolver;
-  beforeEach(() => { resolver = new ImportResolver(); });
+  beforeEach(() => {
+    resolver = new ImportResolver();
+  });
 
   it('respects maxDepth option', async () => {
     // Simulate a long (non-cyclic) chain: a→b→c→d→e
@@ -349,7 +362,7 @@ describe('ImportResolver — max depth', () => {
     // max depth of 1 should cause an error when resolving b's dep on c
     const res = await resolver.resolve(result, `${BASE}/a.hs`, opts(reader, { maxDepth: 1 }));
 
-    expect(res.errors.some(e => e.code === 'max_depth')).toBe(true);
+    expect(res.errors.some((e) => e.code === 'max_depth')).toBe(true);
   });
 });
 
@@ -362,7 +375,11 @@ describe('ImportResolver — disabled mode', () => {
     const result = await parseWith(hsImport('./foo.hs'));
     const { reader } = makeReader({ [`${BASE}/foo.hs`]: hsExport('X') });
     const resolver = new ImportResolver();
-    const res = await resolver.resolve(result, `${BASE}/s.hs`, { baseDir: BASE, readFile: reader, disabled: true });
+    const res = await resolver.resolve(result, `${BASE}/s.hs`, {
+      baseDir: BASE,
+      readFile: reader,
+      disabled: true,
+    });
     expect(res.scope.size).toBe(0);
     expect(res.errors).toHaveLength(0);
   });

@@ -46,6 +46,7 @@ holoscript compile robot-arm-simulation.holo --target unreal --output ./build/un
 ## Robot Specifications
 
 **Universal Robots UR5**
+
 - Reach: 850mm
 - Payload: 5kg
 - Repeatability: ±0.1mm
@@ -53,6 +54,7 @@ holoscript compile robot-arm-simulation.holo --target unreal --output ./build/un
 - DOF: 6 (revolute joints)
 
 **Gripper** (Robotiq 85)
+
 - Max Opening: 85mm
 - Gripping Force: 100N
 - Payload: 2kg
@@ -60,18 +62,21 @@ holoscript compile robot-arm-simulation.holo --target unreal --output ./build/un
 ## Use Cases
 
 ### Industrial Automation
+
 - Pick and place operations
 - Assembly line simulation
 - Quality control inspection
 - Warehouse automation
 
 ### Training & Education
+
 - Robot programming training
 - Operator safety certification
 - Engineering education
 - Digital twin development
 
 ### Research
+
 - Motion planning algorithms
 - Grasp planning
 - Computer vision integration

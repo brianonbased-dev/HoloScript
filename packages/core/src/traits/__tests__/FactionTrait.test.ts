@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { factionHandler } from '../FactionTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('FactionTrait', () => {
   let node: Record<string, unknown>;
@@ -80,14 +88,22 @@ describe('FactionTrait', () => {
   });
 
   it('get_relation returns relation info', () => {
-    sendEvent(factionHandler, node, cfg, ctx, { type: 'get_relation', factionId: 'elves', queryId: 'q1' });
+    sendEvent(factionHandler, node, cfg, ctx, {
+      type: 'get_relation',
+      factionId: 'elves',
+      queryId: 'q1',
+    });
     const result = getLastEvent(ctx, 'relation_result');
     expect(result.factionId).toBe('elves');
     expect(result.standing).toBe(60);
   });
 
   it('check_hostile returns hostility', () => {
-    sendEvent(factionHandler, node, cfg, ctx, { type: 'check_hostile', factionId: 'demons', queryId: 'q2' });
+    sendEvent(factionHandler, node, cfg, ctx, {
+      type: 'check_hostile',
+      factionId: 'demons',
+      queryId: 'q2',
+    });
     const result = getLastEvent(ctx, 'hostility_result');
     expect(result.isHostile).toBe(true);
   });

@@ -16,7 +16,12 @@ import type { AssetMetadata } from '../../assets/AssetMetadata';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-function mkMeta(id: string, depIds: string[] = [], texIds: string[] = [], shaderIds: string[] = []): AssetMetadata {
+function mkMeta(
+  id: string,
+  depIds: string[] = [],
+  texIds: string[] = [],
+  shaderIds: string[] = []
+): AssetMetadata {
   return {
     id,
     name: id,
@@ -26,7 +31,7 @@ function mkMeta(id: string, depIds: string[] = [], texIds: string[] = [], shader
     size: 1000,
     checksum: id,
     tags: [],
-    dependencies: depIds.map(d => ({ assetId: d, required: true, version: '1.0' })),
+    dependencies: depIds.map((d) => ({ assetId: d, required: true, version: '1.0' })),
     textureDependencies: texIds,
     shaderDependencies: shaderIds,
     createdAt: Date.now(),
@@ -39,7 +44,6 @@ function mkMeta(id: string, depIds: string[] = [], texIds: string[] = [], shader
 // ── addDependency / getDependencies / getDependents ────────────────────────────
 
 describe('AssetDependencyGraph — addDependency / getDependencies / getDependents', () => {
-
   it('getDependencies returns directly added dependency', () => {
     const g = new AssetDependencyGraph();
     g.addDependency('A', 'B', false);
@@ -73,7 +77,6 @@ describe('AssetDependencyGraph — addDependency / getDependencies / getDependen
 // ── removeDependency ──────────────────────────────────────────────────────────
 
 describe('AssetDependencyGraph — removeDependency', () => {
-
   it('removes dependency edge from both directions', () => {
     const g = new AssetDependencyGraph();
     g.addDependency('A', 'B', false);
@@ -90,7 +93,6 @@ describe('AssetDependencyGraph — removeDependency', () => {
 // ── addAsset / removeAsset ────────────────────────────────────────────────────
 
 describe('AssetDependencyGraph — addAsset / removeAsset', () => {
-
   it('addAsset registers asset and its declared dependencies', () => {
     const g = new AssetDependencyGraph();
     g.addAsset(mkMeta('model', ['tex1']));
@@ -124,7 +126,6 @@ describe('AssetDependencyGraph — addAsset / removeAsset', () => {
 // ── getTransitiveDependencies / getTransitiveDependents ────────────────────────
 
 describe('AssetDependencyGraph — transitive traversal', () => {
-
   it('getTransitiveDependencies returns all deps recursively', () => {
     const g = new AssetDependencyGraph();
     g.addDependency('A', 'B', false);
@@ -156,7 +157,6 @@ describe('AssetDependencyGraph — transitive traversal', () => {
 // ── hasDependency ─────────────────────────────────────────────────────────────
 
 describe('AssetDependencyGraph — hasDependency', () => {
-
   it('returns true for direct dependency', () => {
     const g = new AssetDependencyGraph();
     g.addDependency('A', 'B', false);
@@ -187,7 +187,6 @@ describe('AssetDependencyGraph — hasDependency', () => {
 // ── detectCycles ──────────────────────────────────────────────────────────────
 
 describe('AssetDependencyGraph — detectCycles', () => {
-
   it('returns empty array for acyclic graph', () => {
     const g = new AssetDependencyGraph();
     g.addDependency('A', 'B', false);
@@ -206,7 +205,6 @@ describe('AssetDependencyGraph — detectCycles', () => {
 // ── topologicalSort ───────────────────────────────────────────────────────────
 
 describe('AssetDependencyGraph — topologicalSort', () => {
-
   it('returns all nodes', () => {
     const g = new AssetDependencyGraph();
     g.addDependency('A', 'B', false);
@@ -226,7 +224,6 @@ describe('AssetDependencyGraph — topologicalSort', () => {
 // ── resolve ───────────────────────────────────────────────────────────────────
 
 describe('AssetDependencyGraph — resolve', () => {
-
   it('resolve() with no root returns all assets in loadOrder', () => {
     const g = new AssetDependencyGraph();
     g.addDependency('X', 'Y', false);
@@ -256,7 +253,7 @@ describe('AssetDependencyGraph — resolve', () => {
     const g = new AssetDependencyGraph();
     g.addAsset(mkMeta('model', ['missingTex']));
     const result = g.resolve();
-    expect(result.missing.some(m => m.dependencyId === 'missingTex')).toBe(true);
+    expect(result.missing.some((m) => m.dependencyId === 'missingTex')).toBe(true);
   });
 
   it('resolve([rootId]) limits loadOrder to root and its deps', () => {
@@ -273,7 +270,6 @@ describe('AssetDependencyGraph — resolve', () => {
 // ── getLeafNodes / getRootNodes ────────────────────────────────────────────────
 
 describe('AssetDependencyGraph — getLeafNodes / getRootNodes', () => {
-
   it('leaf nodes have no dependencies', () => {
     const g = new AssetDependencyGraph();
     g.addDependency('A', 'B', false);
@@ -292,7 +288,6 @@ describe('AssetDependencyGraph — getLeafNodes / getRootNodes', () => {
 // ── getStats ──────────────────────────────────────────────────────────────────
 
 describe('AssetDependencyGraph — getStats', () => {
-
   it('nodeCount = 0 for empty graph', () => {
     expect(new AssetDependencyGraph().getStats().nodeCount).toBe(0);
   });
@@ -308,7 +303,6 @@ describe('AssetDependencyGraph — getStats', () => {
 // ── clear ─────────────────────────────────────────────────────────────────────
 
 describe('AssetDependencyGraph — clear', () => {
-
   it('clear resets the graph to empty', () => {
     const g = new AssetDependencyGraph();
     g.addDependency('A', 'B', false);
@@ -320,7 +314,6 @@ describe('AssetDependencyGraph — clear', () => {
 // ── factory functions ─────────────────────────────────────────────────────────
 
 describe('AssetDependencyGraph — factory functions', () => {
-
   it('createDependencyGraph returns an empty graph', () => {
     const g = createDependencyGraph();
     expect(g.getStats().nodeCount).toBe(0);

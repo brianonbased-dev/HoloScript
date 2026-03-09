@@ -30,42 +30,42 @@ export class PhysicsDebugDrawer {
     if (!this.enabled) return;
 
     const states = this.world.getStates();
-    
+
     // Sync meshes with physics bodies
     for (const [id, state] of Object.entries(states)) {
-       let mesh = this.debugMeshes.get(id);
+      let mesh = this.debugMeshes.get(id);
 
-       if (!mesh) {
-          // Create debug mesh if new body found
-          // We need access to body Props to know shape, but getStates doesn't return shape
-          // For now, we assume a default box or need to expand getStates/getBody
-          const body = this.world.getBody(id);
-          if (body) {
-             mesh = this.createDebugMesh(body);
-             this.debugMeshes.set(id, mesh);
-          }
-       }
+      if (!mesh) {
+        // Create debug mesh if new body found
+        // We need access to body Props to know shape, but getStates doesn't return shape
+        // For now, we assume a default box or need to expand getStates/getBody
+        const body = this.world.getBody(id);
+        if (body) {
+          mesh = this.createDebugMesh(body);
+          this.debugMeshes.set(id, mesh);
+        }
+      }
 
-       if (mesh) {
-          // Update transform
-          mesh.position = state.position;
-          mesh.rotation = state.rotation;
-          
-          // Color coding
-          if (state.isSleeping) {
-             mesh.material.color = '#333333'; // Grey for sleeping
-          } else {
-             mesh.material.color = '#00ff00'; // Green for active
-          }
-       }
+      if (mesh) {
+        // Update transform
+        mesh.position = state.position;
+        mesh.rotation = state.rotation;
+
+        // Color coding
+        if (state.isSleeping) {
+          mesh.material.color = '#333333'; // Grey for sleeping
+        } else {
+          mesh.material.color = '#00ff00'; // Green for active
+        }
+      }
     }
 
     // Cleanup removed bodies
     for (const [id, mesh] of this.debugMeshes) {
-       if (!states[id]) {
-          this.renderer.destroy(mesh);
-          this.debugMeshes.delete(id);
-       }
+      if (!states[id]) {
+        this.renderer.destroy(mesh);
+        this.debugMeshes.delete(id);
+      }
     }
   }
 
@@ -78,18 +78,18 @@ export class PhysicsDebugDrawer {
     let meshParams: any = { wireframe: true, color: '#00ff00' };
 
     if (shape === 'box') {
-        meshParams.geometry = 'box';
-        meshParams.size = params; // [x, y, z]
+      meshParams.geometry = 'box';
+      meshParams.size = params; // [x, y, z]
     } else if (shape === 'sphere') {
-        meshParams.geometry = 'sphere';
-        meshParams.radius = params[0];
+      meshParams.geometry = 'sphere';
+      meshParams.radius = params[0];
     } else if (shape === 'capsule') {
-        meshParams.geometry = 'capsule';
-        meshParams.radius = params[0];
-        meshParams.height = params[1];
+      meshParams.geometry = 'capsule';
+      meshParams.radius = params[0];
+      meshParams.height = params[1];
     } else {
-        meshParams.geometry = 'box'; // Fallback
-        meshParams.size = [0.2, 0.2, 0.2];
+      meshParams.geometry = 'box'; // Fallback
+      meshParams.size = [0.2, 0.2, 0.2];
     }
 
     return this.renderer.createElement('mesh', meshParams);
@@ -97,7 +97,7 @@ export class PhysicsDebugDrawer {
 
   public clear(): void {
     for (const mesh of this.debugMeshes.values()) {
-        this.renderer.destroy(mesh);
+      this.renderer.destroy(mesh);
     }
     this.debugMeshes.clear();
   }

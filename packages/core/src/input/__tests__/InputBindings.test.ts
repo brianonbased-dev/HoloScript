@@ -4,7 +4,9 @@ import { InputBindings } from '../InputBindings';
 describe('InputBindings', () => {
   let bindings: InputBindings;
 
-  beforeEach(() => { bindings = new InputBindings(); });
+  beforeEach(() => {
+    bindings = new InputBindings();
+  });
 
   // ---------------------------------------------------------------------------
   // Profile Management
@@ -89,19 +91,28 @@ describe('InputBindings', () => {
 
   it('resolveComposite returns +1 for positive', () => {
     bindings.addCompositeAxis('h', 'KeyD', 'KeyA');
-    const keys = new Map([['KeyD', true], ['KeyA', false]]);
+    const keys = new Map([
+      ['KeyD', true],
+      ['KeyA', false],
+    ]);
     expect(bindings.resolveComposite('h', keys)).toBe(1);
   });
 
   it('resolveComposite returns -1 for negative', () => {
     bindings.addCompositeAxis('h', 'KeyD', 'KeyA');
-    const keys = new Map([['KeyD', false], ['KeyA', true]]);
+    const keys = new Map([
+      ['KeyD', false],
+      ['KeyA', true],
+    ]);
     expect(bindings.resolveComposite('h', keys)).toBe(-1);
   });
 
   it('resolveComposite returns 0 when both pressed', () => {
     bindings.addCompositeAxis('h', 'KeyD', 'KeyA');
-    const keys = new Map([['KeyD', true], ['KeyA', true]]);
+    const keys = new Map([
+      ['KeyD', true],
+      ['KeyA', true],
+    ]);
     expect(bindings.resolveComposite('h', keys)).toBe(0);
   });
 

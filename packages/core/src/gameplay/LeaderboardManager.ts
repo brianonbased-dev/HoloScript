@@ -25,7 +25,7 @@ export interface LeaderboardEntry {
 export interface LeaderboardDef {
   id: string;
   name: string;
-  ascending: boolean;     // true = lower is better (time-based)
+  ascending: boolean; // true = lower is better (time-based)
   maxEntries: number;
   entries: LeaderboardEntry[];
 }
@@ -48,37 +48,52 @@ export class LeaderboardManager {
     return board;
   }
 
-  getBoard(id: string): LeaderboardDef | undefined { return this.leaderboards.get(id); }
+  getBoard(id: string): LeaderboardDef | undefined {
+    return this.leaderboards.get(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Score Submission
   // ---------------------------------------------------------------------------
 
-  submitScore(boardId: string, playerId: string, playerName: string, score: number, metadata: Record<string, unknown> = {}): { rank: number; isPersonalBest: boolean } | null {
+  submitScore(
+    boardId: string,
+    playerId: string,
+    playerName: string,
+    score: number,
+    metadata: Record<string, unknown> = {}
+  ): { rank: number; isPersonalBest: boolean } | null {
     const board = this.leaderboards.get(boardId);
     if (!board) return null;
 
     // Check personal best
     let pbMap = this.personalBests.get(playerId);
-    if (!pbMap) { pbMap = new Map(); this.personalBests.set(playerId, pbMap); }
+    if (!pbMap) {
+      pbMap = new Map();
+      this.personalBests.set(playerId, pbMap);
+    }
 
     const prevBest = pbMap.get(boardId);
-    const isPersonalBest = prevBest === undefined ||
-      (board.ascending ? score < prevBest : score > prevBest);
+    const isPersonalBest =
+      prevBest === undefined || (board.ascending ? score < prevBest : score > prevBest);
 
     if (isPersonalBest) pbMap.set(boardId, score);
 
     // Remove existing entry for this player
-    board.entries = board.entries.filter(e => e.playerId !== playerId);
+    board.entries = board.entries.filter((e) => e.playerId !== playerId);
 
     // Add new entry
     board.entries.push({
-      playerId, playerName, score, rank: 0,
-      timestamp: Date.now(), metadata,
+      playerId,
+      playerName,
+      score,
+      rank: 0,
+      timestamp: Date.now(),
+      metadata,
     });
 
     // Sort and rank
-    board.entries.sort((a, b) => board.ascending ? a.score - b.score : b.score - a.score);
+    board.entries.sort((a, b) => (board.ascending ? a.score - b.score : b.score - a.score));
 
     // Trim to max
     if (board.entries.length > board.maxEntries) {
@@ -86,9 +101,9 @@ export class LeaderboardManager {
     }
 
     // Assign ranks
-    board.entries.forEach((e, i) => e.rank = i + 1);
+    board.entries.forEach((e, i) => (e.rank = i + 1));
 
-    const entry = board.entries.find(e => e.playerId === playerId);
+    const entry = board.entries.find((e) => e.playerId === playerId);
     return { rank: entry?.rank ?? -1, isPersonalBest };
   }
 
@@ -112,13 +127,13 @@ export class LeaderboardManager {
   getPlayerRank(boardId: string, playerId: string): number {
     const board = this.leaderboards.get(boardId);
     if (!board) return -1;
-    const entry = board.entries.find(e => e.playerId === playerId);
+    const entry = board.entries.find((e) => e.playerId === playerId);
     return entry?.rank ?? -1;
   }
 
   getPlayerEntry(boardId: string, playerId: string): LeaderboardEntry | undefined {
     const board = this.leaderboards.get(boardId);
-    return board?.entries.find(e => e.playerId === playerId);
+    return board?.entries.find((e) => e.playerId === playerId);
   }
 
   getPersonalBest(playerId: string, boardId: string): number | undefined {
@@ -128,13 +143,17 @@ export class LeaderboardManager {
   getAroundPlayer(boardId: string, playerId: string, range = 2): LeaderboardEntry[] {
     const board = this.leaderboards.get(boardId);
     if (!board) return [];
-    const idx = board.entries.findIndex(e => e.playerId === playerId);
+    const idx = board.entries.findIndex((e) => e.playerId === playerId);
     if (idx === -1) return [];
     const start = Math.max(0, idx - range);
     const end = Math.min(board.entries.length, idx + range + 1);
     return board.entries.slice(start, end);
   }
 
-  getBoardCount(): number { return this.leaderboards.size; }
-  getEntryCount(boardId: string): number { return this.leaderboards.get(boardId)?.entries.length ?? 0; }
+  getBoardCount(): number {
+    return this.leaderboards.size;
+  }
+  getEntryCount(boardId: string): number {
+    return this.leaderboards.get(boardId)?.entries.length ?? 0;
+  }
 }

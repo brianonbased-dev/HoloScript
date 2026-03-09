@@ -4,7 +4,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NetEventBus, type NetMessage } from '../NetEventBus';
 
-function makeMsg(channel: string, event: string, payload: unknown = {}, senderId = 'peer-1'): NetMessage {
+function makeMsg(
+  channel: string,
+  event: string,
+  payload: unknown = {},
+  senderId = 'peer-1'
+): NetMessage {
   return { channel, event, payload, senderId, timestamp: Date.now(), sequenceId: 0 };
 }
 
@@ -147,7 +152,9 @@ describe('NetEventBus — receive', () => {
   it('isolates handler errors', () => {
     const b = new NetEventBus();
     b.createChannel('c');
-    b.subscribe('c', 'ev', () => { throw new Error('boom'); });
+    b.subscribe('c', 'ev', () => {
+      throw new Error('boom');
+    });
     expect(() => b.receive(makeMsg('c', 'ev'))).not.toThrow();
   });
 });
@@ -171,7 +178,9 @@ describe('NetEventBus — flush', () => {
   it('respects maxBatchSize: first flush returns max, remainder stays', () => {
     const b = new NetEventBus('x', 2);
     b.createChannel('c');
-    b.send('c', 'a', {}); b.send('c', 'b', {}); b.send('c', 'c', {});
+    b.send('c', 'a', {});
+    b.send('c', 'b', {});
+    b.send('c', 'c', {});
     const first = b.flush();
     expect(first).toHaveLength(2);
     expect(b.getOutboxSize()).toBe(1);

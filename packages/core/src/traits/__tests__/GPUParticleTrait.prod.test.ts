@@ -144,7 +144,10 @@ describe('gpuParticleHandler.onDetach', () => {
     getState(node).computeHandle = { handle: 42 }; // non-null
     ctx.emit.mockClear();
     gpuParticleHandler.onDetach!(node as any, config, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_particle_destroy', expect.objectContaining({ node }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_particle_destroy',
+      expect.objectContaining({ node })
+    );
   });
 });
 
@@ -170,8 +173,14 @@ describe('gpuParticleHandler.onUpdate — burst queue', () => {
     state.burstQueue.push({ count: 50, position: { x: 1, y: 0, z: 0 } });
     ctx.emit.mockClear();
     gpuParticleHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_particle_burst', expect.objectContaining({ count: 100 }));
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_particle_burst', expect.objectContaining({ count: 50 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_particle_burst',
+      expect.objectContaining({ count: 100 })
+    );
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_particle_burst',
+      expect.objectContaining({ count: 50 })
+    );
     expect(state.burstQueue.length).toBe(0);
   });
 
@@ -190,7 +199,10 @@ describe('gpuParticleHandler.onUpdate — burst queue', () => {
     state.burstQueue.push({ count: 10 }); // no position
     ctx.emit.mockClear();
     gpuParticleHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_particle_burst', expect.objectContaining({ position: { x: 5, y: 0, z: 0 } }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_particle_burst',
+      expect.objectContaining({ position: { x: 5, y: 0, z: 0 } })
+    );
   });
 });
 
@@ -228,7 +240,10 @@ describe('gpuParticleHandler.onUpdate — continuous emission', () => {
     const { node, ctx, config } = attach({ emission_rate: 0 });
     ctx.emit.mockClear();
     gpuParticleHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_particle_step', expect.objectContaining({ deltaTime: 0.016 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_particle_step',
+      expect.objectContaining({ deltaTime: 0.016 })
+    );
   });
 
   it('caps emitted count to remaining capacity', () => {
@@ -247,7 +262,10 @@ describe('gpuParticleHandler.onUpdate — continuous emission', () => {
 describe('gpuParticleHandler.onEvent', () => {
   it('gpu_particle_update — updates activeCount', () => {
     const { node, ctx, config } = attach();
-    gpuParticleHandler.onEvent!(node as any, config, ctx as any, { type: 'gpu_particle_update', activeCount: 500 });
+    gpuParticleHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'gpu_particle_update',
+      activeCount: 500,
+    });
     expect(getState(node).activeCount).toBe(500);
   });
 
@@ -260,7 +278,11 @@ describe('gpuParticleHandler.onEvent', () => {
   it('particle_burst — queues burst with custom count and position', () => {
     const { node, ctx, config } = attach();
     const pos = { x: 3, y: 0, z: 0 };
-    gpuParticleHandler.onEvent!(node as any, config, ctx as any, { type: 'particle_burst', count: 250, position: pos });
+    gpuParticleHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'particle_burst',
+      count: 250,
+      position: pos,
+    });
     expect(getState(node).burstQueue[0]).toEqual({ count: 250, position: pos });
   });
 
@@ -321,15 +343,27 @@ describe('gpuParticleHandler.onEvent', () => {
     const { node, ctx, config } = attach();
     const force = { type: 'wind', strength: 5, direction: [1, 0, 0] };
     ctx.emit.mockClear();
-    gpuParticleHandler.onEvent!(node as any, config, ctx as any, { type: 'particle_add_force', force });
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_particle_add_force', expect.objectContaining({ force }));
+    gpuParticleHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'particle_add_force',
+      force,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_particle_add_force',
+      expect.objectContaining({ force })
+    );
   });
 
   it('particle_remove_force — emits gpu_particle_remove_force with forceIndex', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    gpuParticleHandler.onEvent!(node as any, config, ctx as any, { type: 'particle_remove_force', forceIndex: 2 });
-    expect(ctx.emit).toHaveBeenCalledWith('gpu_particle_remove_force', expect.objectContaining({ forceIndex: 2 }));
+    gpuParticleHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'particle_remove_force',
+      forceIndex: 2,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gpu_particle_remove_force',
+      expect.objectContaining({ forceIndex: 2 })
+    );
   });
 
   it('particle_query — emits particle_info with state snapshot', () => {
@@ -338,7 +372,10 @@ describe('gpuParticleHandler.onEvent', () => {
     state.activeCount = 300;
     state.totalEmitted = 1200;
     ctx.emit.mockClear();
-    gpuParticleHandler.onEvent!(node as any, config, ctx as any, { type: 'particle_query', queryId: 'q1' });
+    gpuParticleHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'particle_query',
+      queryId: 'q1',
+    });
     expect(ctx.emit).toHaveBeenCalledWith(
       'particle_info',
       expect.objectContaining({

@@ -2,8 +2,8 @@
 
 import { useState, useCallback } from 'react';
 import { ChevronDown, ChevronRight, Plus, X, Grip, Code2 } from 'lucide-react';
-import { useEditorStore, useSceneGraphStore } from '@/lib/store';
-import type { TraitConfig } from '@/lib/store';
+import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
+import type { TraitConfig } from '@/lib/stores';
 
 // ─── Property field renderer ─────────────────────────────────────────────────
 
@@ -130,7 +130,10 @@ function TraitCard({
         <span className="flex-1 text-xs font-semibold text-studio-accent">@{trait.name}</span>
         {isMaterial && onOpenShaderEditor && (
           <button
-            onClick={(e) => { e.stopPropagation(); onOpenShaderEditor(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenShaderEditor();
+            }}
             className="rounded p-0.5 text-studio-muted hover:bg-studio-accent/20 hover:text-studio-accent mr-1"
             title="Open GLSL Shader Editor"
           >
@@ -217,7 +220,9 @@ export function TraitInspector({ onOpenPalette, onOpenShaderEditor }: TraitInspe
         <div className="grid grid-cols-3 gap-2">
           {(['position', 'rotation', 'scale'] as const).map((prop) => (
             <div key={prop}>
-              <div className="mb-1 text-[10px] uppercase tracking-wider text-studio-muted">{prop}</div>
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-studio-muted">
+                {prop}
+              </div>
               <div className="flex gap-1">
                 {(['x', 'y', 'z'] as const).map((axis, i) => (
                   <input

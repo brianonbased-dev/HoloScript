@@ -17,9 +17,9 @@ import { useRef, useState, useCallback } from 'react';
 import { Loader2, CheckCircle, UploadCloud } from 'lucide-react';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
-import { useSceneGraphStore } from '@/lib/store';
+import { useSceneGraphStore } from '@/lib/stores';
 import { useAssetStore } from '@/components/assets/useAssetStore';
-import type { SceneNode } from '@/lib/store';
+import type { SceneNode } from '@/lib/stores';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,7 +39,35 @@ function makeId() {
 async function loadGLTFFromBuffer(buffer: ArrayBuffer): Promise<THREE.Group> {
   return new Promise((resolve, reject) => {
     const loader = new GLTFLoader();
-    loader.parse(buffer, '', (gltf) => resolve(gltf.scene), reject);
+    loader.parse(
+      buffer,
+      '',
+      (gltf) => {
+        // Pre-warm materials for PBR and shadows before returning the group
+        gltf.scene.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            
+            if (child.material) {
+              // Ensure material is treated as Standard/Physical for envMap
+              child.material.envMapIntensity = 1.0;
+              child.material.needsUpdate = true;
+              
+              // If it's an array of materials
+              if (Array.isArray(child.material)) {
+                child.material.forEach((mat) => {
+                  mat.envMapIntensity = 1.0;
+                  mat.needsUpdate = true;
+                });
+              }
+            }
+          }
+        });
+        resolve(gltf.scene);
+      },
+      reject
+    );
   });
 }
 
@@ -165,7 +193,9 @@ export function AssetDropOverlay() {
   return (
     <div className="absolute bottom-16 left-1/2 z-40 -translate-x-1/2 flex items-center gap-2 rounded-xl border border-studio-border bg-studio-panel/95 px-4 py-3 shadow-xl backdrop-blur">
       {icons[status.state as keyof typeof icons]}
-      <span className="text-sm text-studio-text">{messages[status.state as keyof typeof messages]}</span>
+      <span className="text-sm text-studio-text">
+        {messages[status.state as keyof typeof messages]}
+      </span>
     </div>
   );
 }

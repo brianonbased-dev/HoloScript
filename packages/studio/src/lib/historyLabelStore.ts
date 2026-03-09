@@ -30,11 +30,8 @@ interface HistoryLabelState {
 
 export const useHistoryLabelStore = create<HistoryLabelState>()((set) => ({
   labels: [],
-  pushLabel: (label) =>
-    set((s) => ({ labels: [...s.labels, label] })),
-  popLabel: () =>
-    set((s) => ({ labels: s.labels.slice(0, -1) })),
-  trimToLength: (length) =>
-    set((s) => ({ labels: s.labels.slice(0, length) })),
+  pushLabel: (label) => set((s) => ({ labels: [...s.labels, label] })),
+  popLabel: () => set((s) => ({ labels: s.labels.slice(0, -1) })),
+  trimToLength: (length) => set((s) => ({ labels: s.labels.slice(0, length) })),
   clearLabels: () => set({ labels: [] }),
 }));

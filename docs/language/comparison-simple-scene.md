@@ -65,6 +65,7 @@ object "Light" {
 ```
 
 **Limitations**:
+
 - No VR interaction (balls not actually grabbable)
 - No templates (code duplication)
 - No event handlers
@@ -136,6 +137,7 @@ composition "InteractiveVRRoom" {
 ```
 
 **Advantages**:
+
 - ✅ VR interaction works (`@grabbable`, `@throwable`)
 - ✅ Template reusability (less code duplication)
 - ✅ Decorator parameters for fine control
@@ -236,6 +238,7 @@ composition InteractiveVRRoom {
 ```
 
 **Advantages**:
+
 - ✅ Fine-grained trait control
 - ✅ Event handlers (`on_grab`, `on_release`)
 - ✅ Advanced PBR materials
@@ -243,6 +246,7 @@ composition InteractiveVRRoom {
 - ✅ Full control over all properties
 
 **Disadvantages**:
+
 - ❌ More verbose (no templates in entity pattern)
 - ❌ Code duplication (3 similar ball entities)
 
@@ -252,14 +256,14 @@ The `.holo` format also supports the [object+template pattern](./reference-holo-
 
 ## Key Differences Summary
 
-| Feature | `.hs` | `.hsplus` | `.holo` |
-|---------|-------|-----------|---------|
-| VR interaction | ✗ | ✓ | ✓ |
-| Templates | ✗ | ✓ | ✓ (object pattern) |
-| Event handlers | ✗ | ✓ | ✓ |
-| Trait configs | ✗ | ✗ | ✓ |
-| PBR materials | ✗ | ✗ | ✓ |
-| Lines of code | ~70 | ~80 | ~220 |
+| Feature        | `.hs` | `.hsplus` | `.holo`            |
+| -------------- | ----- | --------- | ------------------ |
+| VR interaction | ✗     | ✓         | ✓                  |
+| Templates      | ✗     | ✓         | ✓ (object pattern) |
+| Event handlers | ✗     | ✓         | ✓                  |
+| Trait configs  | ✗     | ✗         | ✓                  |
+| PBR materials  | ✗     | ✗         | ✓                  |
+| Lines of code  | ~70   | ~80       | ~220               |
 
 ## When to Use Each Format
 

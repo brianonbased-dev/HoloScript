@@ -27,13 +27,13 @@ export function SketchCanvas() {
   const { camera, gl, size } = useThree();
   const isDrawing = useRef(false);
 
-  const strokes         = useSketchStore((s) => s.strokes);
-  const activeStroke    = useSketchStore((s) => s.activeStroke);
-  const brushSize       = useSketchStore((s) => s.brushSize);
-  const beginStroke     = useSketchStore((s) => s.beginStroke);
-  const appendPoint     = useSketchStore((s) => s.appendPoint);
-  const commitStroke    = useSketchStore((s) => s.commitStroke);
-  const cancelStroke    = useSketchStore((s) => s.cancelStroke);
+  const strokes = useSketchStore((s) => s.strokes);
+  const activeStroke = useSketchStore((s) => s.activeStroke);
+  const brushSize = useSketchStore((s) => s.brushSize);
+  const beginStroke = useSketchStore((s) => s.beginStroke);
+  const appendPoint = useSketchStore((s) => s.appendPoint);
+  const commitStroke = useSketchStore((s) => s.commitStroke);
+  const cancelStroke = useSketchStore((s) => s.cancelStroke);
 
   // Update draw-plane normal to always face camera
   useFrame(() => {
@@ -118,9 +118,7 @@ export function SketchCanvas() {
       ))}
 
       {/* Active (in-progress) stroke */}
-      {activeStroke && activeStroke.points.length >= 2 && (
-        <SketchStroke stroke={activeStroke} />
-      )}
+      {activeStroke && activeStroke.points.length >= 2 && <SketchStroke stroke={activeStroke} />}
     </>
   );
 }

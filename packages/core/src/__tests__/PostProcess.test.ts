@@ -6,7 +6,12 @@ import { ColorGrading } from '../rendering/ColorGrading';
 // Helper: create a 2x2 RGBA pixel buffer
 function makePixels(r: number, g: number, b: number, a = 1): Float32Array {
   const buf = new Float32Array(16);
-  for (let i = 0; i < 16; i += 4) { buf[i] = r; buf[i+1] = g; buf[i+2] = b; buf[i+3] = a; }
+  for (let i = 0; i < 16; i += 4) {
+    buf[i] = r;
+    buf[i + 1] = g;
+    buf[i + 2] = b;
+    buf[i + 3] = a;
+  }
   return buf;
 }
 
@@ -19,8 +24,14 @@ describe('Cycle 133: Post-Processing', () => {
     const stack = new PostProcessStack();
     const order: string[] = [];
 
-    stack.addEffect('second', 20, (input) => { order.push('B'); return input; });
-    stack.addEffect('first', 10, (input) => { order.push('A'); return input; });
+    stack.addEffect('second', 20, (input) => {
+      order.push('B');
+      return input;
+    });
+    stack.addEffect('first', 10, (input) => {
+      order.push('A');
+      return input;
+    });
 
     stack.process(makePixels(0.5, 0.5, 0.5), 2, 2);
     expect(order).toEqual(['A', 'B']);

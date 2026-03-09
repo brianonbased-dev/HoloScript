@@ -83,6 +83,7 @@ interface RuntimeRenderer {
 ```
 
 **Features**:
+
 - ✅ Abstraction layer for multiple backends (Three.js, Babylon.js, etc.)
 - ✅ Object/mesh management
 - ✅ Particle system support (120K+ particles)
@@ -98,6 +99,7 @@ interface RuntimeRenderer {
 Three.js implementation of RuntimeRenderer using R3FCompiler's material presets.
 
 **Key Features**:
+
 - ✅ **R3F Material Presets** - 80+ physically-based materials
 - ✅ **PBR Rendering** - MeshStandardMaterial with full PBR support
 - ✅ **Particle Systems** - BufferGeometry-based particles with 120K+ capacity
@@ -114,6 +116,7 @@ Three.js implementation of RuntimeRenderer using R3FCompiler's material presets.
 80+ material presets with full PBR properties:
 
 #### Basic Materials
+
 ```typescript
 plastic: { roughness: 0.5, metalness: 0.0, clearcoat: 0.1 }
 metal: { roughness: 0.2, metalness: 1.0 }
@@ -122,6 +125,7 @@ wood: { roughness: 0.8, metalness: 0.0 }
 ```
 
 #### Realistic Fabrics
+
 ```typescript
 cotton: { roughness: 0.95, sheen: 0.6, sheenRoughness: 0.9 }
 silk: { roughness: 0.3, sheen: 1.0, anisotropy: 0.8 }
@@ -129,12 +133,14 @@ leather: { roughness: 0.7, sheen: 0.3, sheenColor: '#3d2b1f' }
 ```
 
 #### Skin & Organic (Subsurface Scattering)
+
 ```typescript
 skin: { roughness: 0.5, color: '#e8b89d', thickness: 0.8, attenuationColor: '#cc4422' }
 jade: { roughness: 0.2, color: '#00a86b', transmission: 0.1, thickness: 1.5 }
 ```
 
 #### Metals (Brushed/Anisotropic)
+
 ```typescript
 brushed_steel: { roughness: 0.35, metalness: 1.0, anisotropy: 0.7 }
 gold: { roughness: 0.3, metalness: 1.0, color: '#ffd700' }
@@ -142,6 +148,7 @@ bronze: { roughness: 0.45, metalness: 1.0, color: '#cd7f32' }
 ```
 
 #### Gemstones (Transmission + IOR)
+
 ```typescript
 diamond: { roughness: 0.0, transmission: 0.95, ior: 2.417 }
 ruby: { roughness: 0.05, color: '#e0115f', transmission: 0.4, ior: 1.76 }
@@ -149,6 +156,7 @@ emerald: { roughness: 0.1, color: '#50c878', transmission: 0.3, ior: 1.57 }
 ```
 
 #### Iridescent Materials
+
 ```typescript
 soap_bubble: { transmission: 0.9, iridescence: 1.0, iridescenceIOR: 1.5 }
 oil_slick: { roughness: 0.0, iridescence: 1.0, iridescenceIOR: 1.8 }
@@ -156,6 +164,7 @@ pearl: { roughness: 0.15, iridescence: 0.6, sheen: 0.3 }
 ```
 
 #### Coated Surfaces (Clearcoat)
+
 ```typescript
 car_paint: { roughness: 0.1, clearcoat: 1.0, clearcoatRoughness: 0.05 }
 wet_stone: { roughness: 0.3, clearcoat: 0.8, clearcoatRoughness: 0.1 }
@@ -216,7 +225,7 @@ function loop() {
 
   // Sync objects to renderer
   const objects = executor.getState().objects;
-  objects.forEach(obj => {
+  objects.forEach((obj) => {
     renderer.updateObjectTransform(obj.id, {
       position: obj.position,
       rotation: obj.rotation,
@@ -304,6 +313,7 @@ renderer.updateParticleSystem('debris_particles', updatedPositions, updatedColor
 See `packages/core/src/runtime/examples/rendering-demo.html` for a complete standalone demo.
 
 Open in browser to see:
+
 - HoloComposition → Three.js scene
 - R3F material presets applied to objects
 - Real-time rendering at 60 FPS
@@ -312,30 +322,35 @@ Open in browser to see:
 ## Comparison: Runtime vs Compilation
 
 ### Path 1: Compilation (Original)
+
 ```
 .holo → Parser → HoloComposition → Compiler → Unity C# / Unreal C++
                                                (deploy to Unity/Unreal)
 ```
 
 ### Path 2: Runtime (NEW!)
+
 ```
 .holo → Parser → HoloComposition → Runtime → ThreeJSRenderer → WebGL Canvas
                                     Executor    (real-time)
 ```
 
 **Both paths are supported!** Users can:
+
 - **Develop** with runtime rendering (instant feedback)
 - **Export** to Unity/Unreal for production (optional)
 
 ## Implementation Status
 
 ### Runtime System
+
 - ✅ RuntimeRegistry - Central registry (261 lines)
 - ✅ RuntimeModule interface - Standard module definition
 - ✅ RuntimeExecutor interface - Standard execution API
 - ✅ Demolition runtime registered - Auto-registration working
 
 ### Rendering System (NEW!)
+
 - ✅ RuntimeRenderer interface - Abstract renderer (281 lines)
 - ✅ ThreeJSRenderer - Three.js implementation (679 lines)
 - ✅ R3F Material extraction - 80+ material presets
@@ -346,12 +361,14 @@ Open in browser to see:
 - ✅ Statistics - FPS, draw calls, triangles, memory
 
 ### Integration
+
 - ✅ Composition → Renderer - Load .holo entities as meshes
 - ✅ Material system - R3F presets → Three.js PBR
 - ✅ Demo HTML - Standalone browser demo
 - ✅ Documentation - Complete architecture docs
 
 ### Next Steps
+
 - 🚧 Physics → Renderer sync - Real-time object updates
 - 🚧 Particle → Renderer sync - Real-time particle positions
 - 🚧 Post-processing - Bloom, motion blur, DOF
@@ -379,6 +396,7 @@ packages/core/src/
 ## Performance Metrics
 
 **ThreeJSRenderer**:
+
 - Max particles: 120,000+
 - Max objects: 10,000+
 - Target FPS: 60
@@ -387,6 +405,7 @@ packages/core/src/
 - Light types: 5
 
 **R3FCompiler Knowledge Reused**:
+
 - Material presets: 80+
 - Geometry types: 10+
 - Light types: 5

@@ -10,22 +10,22 @@
 
 ### Overall Metrics
 
-| Metric | Phase 1 | Phase 2 | Change | Status |
-|--------|---------|---------|--------|--------|
-| **Test Files** | 24 | 26 | **+2** ✅ | +8.33% |
-| **Total Tests** | 810 | 858 | **+48** ✅ | +5.93% |
-| **Lines Coverage** | 18.34% | 18.32% | -0.02% | Stable |
-| **Function Coverage** | 71.62% | 72.43% | **+0.81%** | Improved |
-| **Branch Coverage** | 71.35% | 76.15% | **+4.80%** ✅ | Improved |
-| **Hooks Coverage** | 15.86% | 18.58% | **+2.72%** ✅ | +17.16% |
+| Metric                | Phase 1 | Phase 2 | Change        | Status   |
+| --------------------- | ------- | ------- | ------------- | -------- |
+| **Test Files**        | 24      | 26      | **+2** ✅     | +8.33%   |
+| **Total Tests**       | 810     | 858     | **+48** ✅    | +5.93%   |
+| **Lines Coverage**    | 18.34%  | 18.32%  | -0.02%        | Stable   |
+| **Function Coverage** | 71.62%  | 72.43%  | **+0.81%**    | Improved |
+| **Branch Coverage**   | 71.35%  | 76.15%  | **+4.80%** ✅ | Improved |
+| **Hooks Coverage**    | 15.86%  | 18.58%  | **+2.72%** ✅ | +17.16%  |
 
 ### Cumulative Progress (Baseline → Phase 2)
 
-| Metric | Baseline | Phase 2 | Total Change |
-|--------|----------|---------|--------------|
-| **Test Files** | 22 | 26 | **+4** (+18.18%) |
-| **Total Tests** | 766 | 858 | **+92** (+12.01%) |
-| **Hooks Coverage** | 12.98% | 18.58% | **+5.60%** (+43.14%) |
+| Metric             | Baseline | Phase 2 | Total Change         |
+| ------------------ | -------- | ------- | -------------------- |
+| **Test Files**     | 22       | 26      | **+4** (+18.18%)     |
+| **Total Tests**    | 766      | 858     | **+92** (+12.01%)    |
+| **Hooks Coverage** | 12.98%   | 18.58%  | **+5.60%** (+43.14%) |
 
 ---
 
@@ -140,11 +140,11 @@ Tests covering auto-save functionality:
 
 ### Hooks Directory Progress
 
-| Metric | Baseline | Phase 1 | Phase 2 | Total Change |
-|--------|----------|---------|---------|--------------|
-| **Lines** | 12.98% | 15.86% | 18.58% | **+5.60%** |
-| **Functions** | 63.75% | 71.35% | 76.15% | **+12.40%** |
-| **Branches** | 42.85% | 45.05% | 48.38% | **+5.53%** |
+| Metric        | Baseline | Phase 1 | Phase 2 | Total Change |
+| ------------- | -------- | ------- | ------- | ------------ |
+| **Lines**     | 12.98%   | 15.86%  | 18.58%  | **+5.60%**   |
+| **Functions** | 63.75%   | 71.35%  | 76.15%  | **+12.40%**  |
+| **Branches**  | 42.85%   | 45.05%  | 48.38%  | **+5.53%**   |
 
 ### Test Distribution
 

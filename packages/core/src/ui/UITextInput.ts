@@ -1,4 +1,3 @@
-
 import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 export interface UITextInputConfig {
@@ -23,7 +22,7 @@ export function createUITextInput(id: string, config: UITextInputConfig = {}): H
   // State for cursor and selection
   // We store these in the node's properties so they are reactive/accessible
   // selectionStart/End: indices into the text string
-  
+
   return {
     id,
     type: 'ui_text_input',
@@ -34,27 +33,30 @@ export function createUITextInput(id: string, config: UITextInputConfig = {}): H
       height,
       color: bgColor,
       position: config.position ?? { x: 0, y: 0, z: 0 },
-      
+
       // Data accessible by KeyboardSystem
       data: {
-          inputType: 'text',
-          text: initialText,
-          placeholder: placeholder,
-          cursorIndex: initialText.length, // Default at end
-          selectionStart: initialText.length,
-          selectionEnd: initialText.length,
-          isFocused: false
+        inputType: 'text',
+        text: initialText,
+        placeholder: placeholder,
+        cursorIndex: initialText.length, // Default at end
+        selectionStart: initialText.length,
+        selectionEnd: initialText.length,
+        isFocused: false,
       },
-      
+
       // Allow it to be clicked to gain focus
       // We use 'interactive' or 'pressable' via directives or traits
     },
     traits: new Map([
-        ['pressable', { 
-            // Minimal press depth, mostly for click detection
-            travelDistance: 0.002, 
-            triggerDistance: 0.001 
-        }]
+      [
+        'pressable',
+        {
+          // Minimal press depth, mostly for click detection
+          travelDistance: 0.002,
+          triggerDistance: 0.001,
+        },
+      ],
     ]),
     children: [
       // 1. Text Label (The value)
@@ -67,8 +69,8 @@ export function createUITextInput(id: string, config: UITextInputConfig = {}): H
           fontSize: 0.03,
           position: { x: -width / 2 + 0.02, y: 0, z: 0.005 }, // Left aligned with padding
           anchorX: 'left',
-          anchorY: 'middle'
-        }
+          anchorY: 'middle',
+        },
       },
       // 2. Cursor (Vertical Bar)
       // Hidden by default, toggled via system when focused
@@ -81,11 +83,11 @@ export function createUITextInput(id: string, config: UITextInputConfig = {}): H
           height: 0.04,
           color: '#00AAFF',
           position: { x: 0, y: 0, z: 0.006 },
-          visible: false
-        }
-      }
+          visible: false,
+        },
+      },
     ],
     // Directives to handle focus logic could be added here or managed by system
-    directives: [] 
+    directives: [],
   };
 }

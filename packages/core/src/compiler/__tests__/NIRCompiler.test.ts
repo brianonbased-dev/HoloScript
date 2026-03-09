@@ -41,7 +41,7 @@ function makeNeuronObject(
 ) {
   return {
     name,
-    properties: properties.map(p => ({ key: p.key, value: p.value })),
+    properties: properties.map((p) => ({ key: p.key, value: p.value })),
     traits: [{ name: traitName, config }],
   };
 }
@@ -83,9 +83,7 @@ describe('NIRCompiler', () => {
         objects: [makeNeuronObject('neuron1', 'lif_neuron')] as any,
       });
       const result = JSON.parse(c.compile(comp, 'test-token'));
-      const lifNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'LIF'
-      ) as any;
+      const lifNode = Object.values(result.nodes).find((n: any) => n.type === 'LIF') as any;
       expect(lifNode).toBeDefined();
       expect(lifNode.params.tau).toHaveLength(256);
     });
@@ -160,9 +158,7 @@ describe('NIRCompiler', () => {
         ] as any,
       });
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
-      const lifNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'LIF'
-      ) as any;
+      const lifNode = Object.values(result.nodes).find((n: any) => n.type === 'LIF') as any;
 
       expect(lifNode).toBeDefined();
       expect(lifNode.type).toBe('LIF');
@@ -184,9 +180,7 @@ describe('NIRCompiler', () => {
         ] as any,
       });
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
-      const cubaNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'CubaLIF'
-      ) as any;
+      const cubaNode = Object.values(result.nodes).find((n: any) => n.type === 'CubaLIF') as any;
 
       expect(cubaNode).toBeDefined();
       expect(cubaNode.params.tau_syn).toHaveLength(32);
@@ -205,9 +199,7 @@ describe('NIRCompiler', () => {
         ] as any,
       });
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
-      const ifNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'IF'
-      ) as any;
+      const ifNode = Object.values(result.nodes).find((n: any) => n.type === 'IF') as any;
 
       expect(ifNode).toBeDefined();
       expect(ifNode.params.r).toHaveLength(16);
@@ -216,14 +208,10 @@ describe('NIRCompiler', () => {
 
     it('compiles leaky integrator trait', () => {
       const comp = makeComposition({
-        objects: [
-          makeNeuronObject('readout', 'leaky_integrator', { size: 10, tau: 50.0 }),
-        ] as any,
+        objects: [makeNeuronObject('readout', 'leaky_integrator', { size: 10, tau: 50.0 })] as any,
       });
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
-      const liNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'LI'
-      ) as any;
+      const liNode = Object.values(result.nodes).find((n: any) => n.type === 'LI') as any;
 
       expect(liNode).toBeDefined();
       expect(liNode.params.tau).toHaveLength(10);
@@ -232,14 +220,10 @@ describe('NIRCompiler', () => {
 
     it('compiles integrator trait', () => {
       const comp = makeComposition({
-        objects: [
-          makeNeuronObject('accum', 'integrator', { size: 8 }),
-        ] as any,
+        objects: [makeNeuronObject('accum', 'integrator', { size: 8 })] as any,
       });
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
-      const intNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'Integrator'
-      ) as any;
+      const intNode = Object.values(result.nodes).find((n: any) => n.type === 'Integrator') as any;
 
       expect(intNode).toBeDefined();
       expect(intNode.params.r).toHaveLength(8);
@@ -250,9 +234,7 @@ describe('NIRCompiler', () => {
         objects: [makeNeuronObject('layer', 'lif_neuron')] as any,
       });
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
-      const lifNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'LIF'
-      ) as any;
+      const lifNode = Object.values(result.nodes).find((n: any) => n.type === 'LIF') as any;
       expect(lifNode.params.tau).toHaveLength(128); // default
     });
   });
@@ -272,9 +254,7 @@ describe('NIRCompiler', () => {
         ] as any,
       });
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
-      const affineNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'Affine'
-      ) as any;
+      const affineNode = Object.values(result.nodes).find((n: any) => n.type === 'Affine') as any;
 
       expect(affineNode).toBeDefined();
       expect(affineNode.params.weight).toHaveLength(32); // output_size rows
@@ -292,9 +272,7 @@ describe('NIRCompiler', () => {
         ] as any,
       });
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
-      const linearNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'Linear'
-      ) as any;
+      const linearNode = Object.values(result.nodes).find((n: any) => n.type === 'Linear') as any;
 
       expect(linearNode).toBeDefined();
       expect(linearNode.params.weight).toHaveLength(64);
@@ -314,9 +292,7 @@ describe('NIRCompiler', () => {
         ] as any,
       });
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
-      const convNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'Conv2d'
-      ) as any;
+      const convNode = Object.values(result.nodes).find((n: any) => n.type === 'Conv2d') as any;
 
       expect(convNode).toBeDefined();
       expect(convNode.params.weight).toHaveLength(16); // out_channels
@@ -345,9 +321,7 @@ describe('NIRCompiler', () => {
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
 
       // Should generate both gain (Affine) and threshold nodes
-      const gainNode = Object.values(result.nodes).find(
-        (n: any) => n.id?.includes('gain')
-      ) as any;
+      const gainNode = Object.values(result.nodes).find((n: any) => n.id?.includes('gain')) as any;
       const threshNode = Object.values(result.nodes).find(
         (n: any) => n.type === 'Threshold'
       ) as any;
@@ -372,8 +346,8 @@ describe('NIRCompiler', () => {
       });
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
 
-      const scaleNode = Object.values(result.nodes).find(
-        (n: any) => n.id?.includes('scale')
+      const scaleNode = Object.values(result.nodes).find((n: any) =>
+        n.id?.includes('scale')
       ) as any;
       const lifNode = Object.values(result.nodes).find(
         (n: any) => n.type === 'LIF' && n.id?.includes('lif')
@@ -408,14 +382,10 @@ describe('NIRCompiler', () => {
   describe('topology traits', () => {
     it('compiles spike_delay', () => {
       const comp = makeComposition({
-        objects: [
-          makeNeuronObject('delay_line', 'spike_delay', { size: 64, delay: 3.0 }),
-        ] as any,
+        objects: [makeNeuronObject('delay_line', 'spike_delay', { size: 64, delay: 3.0 })] as any,
       });
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
-      const delayNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'Delay'
-      ) as any;
+      const delayNode = Object.values(result.nodes).find((n: any) => n.type === 'Delay') as any;
 
       expect(delayNode).toBeDefined();
       expect(delayNode.params.delay).toHaveLength(64);
@@ -424,14 +394,10 @@ describe('NIRCompiler', () => {
 
     it('compiles spike_pooling (SumPooling)', () => {
       const comp = makeComposition({
-        objects: [
-          makeNeuronObject('pool', 'spike_pooling', { kernel_size: 4 }),
-        ] as any,
+        objects: [makeNeuronObject('pool', 'spike_pooling', { kernel_size: 4 })] as any,
       });
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
-      const poolNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'SumPooling'
-      ) as any;
+      const poolNode = Object.values(result.nodes).find((n: any) => n.type === 'SumPooling') as any;
 
       expect(poolNode).toBeDefined();
       expect(poolNode.params.kernel_size).toEqual([4, 4]);
@@ -439,14 +405,10 @@ describe('NIRCompiler', () => {
 
     it('compiles flatten', () => {
       const comp = makeComposition({
-        objects: [
-          makeNeuronObject('flat', 'flatten', { input_shape: [16, 7, 7] }),
-        ] as any,
+        objects: [makeNeuronObject('flat', 'flatten', { input_shape: [16, 7, 7] })] as any,
       });
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
-      const flatNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'Flatten'
-      ) as any;
+      const flatNode = Object.values(result.nodes).find((n: any) => n.type === 'Flatten') as any;
 
       expect(flatNode).toBeDefined();
       expect(flatNode.params.input_type.shape).toEqual([16, 7, 7]);
@@ -454,14 +416,10 @@ describe('NIRCompiler', () => {
 
     it('compiles scaling', () => {
       const comp = makeComposition({
-        objects: [
-          makeNeuronObject('scale', 'scaling', { size: 32, scale: 0.5 }),
-        ] as any,
+        objects: [makeNeuronObject('scale', 'scaling', { size: 32, scale: 0.5 })] as any,
       });
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
-      const scaleNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'Scale'
-      ) as any;
+      const scaleNode = Object.values(result.nodes).find((n: any) => n.type === 'Scale') as any;
 
       expect(scaleNode).toBeDefined();
       expect(scaleNode.params.scale).toHaveLength(32);
@@ -502,9 +460,9 @@ describe('NIRCompiler', () => {
 
       // Count node types
       const nodeTypes = Object.values(result.nodes).map((n: any) => n.type);
-      expect(nodeTypes.filter(t => t === 'LIF').length).toBe(2);
-      expect(nodeTypes.filter(t => t === 'Affine').length).toBeGreaterThanOrEqual(3);
-      expect(nodeTypes.filter(t => t === 'LI').length).toBeGreaterThanOrEqual(1);
+      expect(nodeTypes.filter((t) => t === 'LIF').length).toBe(2);
+      expect(nodeTypes.filter((t) => t === 'Affine').length).toBeGreaterThanOrEqual(3);
+      expect(nodeTypes.filter((t) => t === 'LI').length).toBeGreaterThanOrEqual(1);
 
       // Should have edges connecting layers
       expect(result.edges.length).toBeGreaterThan(0);
@@ -581,9 +539,7 @@ describe('NIRCompiler', () => {
       });
 
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
-      const lifNode = Object.values(result.nodes).find(
-        (n: any) => n.type === 'LIF'
-      ) as any;
+      const lifNode = Object.values(result.nodes).find((n: any) => n.type === 'LIF') as any;
 
       expect(lifNode).toBeDefined();
       expect(lifNode.params.tau[0]).toBe(10.0);
@@ -608,14 +564,10 @@ describe('NIRCompiler', () => {
 
       const result = JSON.parse(c.compile(comp, 'test-token'));
       // Conv2d should be excluded since synsense_speck is not in its platforms
-      const convNodes = Object.values(result.nodes).filter(
-        (n: any) => n.type === 'Conv2d'
-      );
+      const convNodes = Object.values(result.nodes).filter((n: any) => n.type === 'Conv2d');
       expect(convNodes.length).toBe(0);
       // LIF should still be present (it supports synsense_speck)
-      const lifNodes = Object.values(result.nodes).filter(
-        (n: any) => n.type === 'LIF'
-      );
+      const lifNodes = Object.values(result.nodes).filter((n: any) => n.type === 'LIF');
       expect(lifNodes.length).toBe(1);
     });
   });
@@ -633,9 +585,7 @@ describe('NIRCompiler', () => {
             { key: 'output_size', value: 10 },
           ],
         } as any,
-        objects: [
-          makeNeuronObject('layer', 'lif_neuron', { num_neurons: 64 }),
-        ] as any,
+        objects: [makeNeuronObject('layer', 'lif_neuron', { num_neurons: 64 })] as any,
       });
 
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
@@ -651,14 +601,12 @@ describe('NIRCompiler', () => {
   describe('node ID sanitization', () => {
     it('sanitizes special characters in node IDs', () => {
       const comp = makeComposition({
-        objects: [
-          makeNeuronObject('my layer!@#$%', 'lif_neuron', { num_neurons: 16 }),
-        ] as any,
+        objects: [makeNeuronObject('my layer!@#$%', 'lif_neuron', { num_neurons: 16 })] as any,
       });
 
       const result = JSON.parse(compiler.compile(comp, 'test-token'));
       const nodeIds = Object.keys(result.nodes);
-      const lifNodeId = nodeIds.find(id => id !== 'input' && id !== 'output');
+      const lifNodeId = nodeIds.find((id) => id !== 'input' && id !== 'output');
       expect(lifNodeId).toMatch(/^[a-z0-9_]+$/);
     });
   });
@@ -733,8 +681,8 @@ describe('NIRTraitMap', () => {
       expect(result).not.toBeNull();
       expect(result!.nodes).toHaveLength(2);
       expect(result!.edges).toHaveLength(1);
-      expect(result!.nodes.map(n => n.type)).toContain('Affine');
-      expect(result!.nodes.map(n => n.type)).toContain('Threshold');
+      expect(result!.nodes.map((n) => n.type)).toContain('Affine');
+      expect(result!.nodes.map((n) => n.type)).toContain('Threshold');
     });
 
     it('returns null for unknown traits', () => {
@@ -819,7 +767,11 @@ describe('NIRTraitMap', () => {
         version: '0.5.0',
         nodes: {
           input: { id: 'input', type: 'Input', params: { shape: [128] } },
-          lif: { id: 'lif', type: 'LIF', params: { tau: [10], r: [1], v_leak: [0], v_threshold: [1] } },
+          lif: {
+            id: 'lif',
+            type: 'LIF',
+            params: { tau: [10], r: [1], v_leak: [0], v_threshold: [1] },
+          },
           output: { id: 'output', type: 'Output', params: { shape: [128] } },
         },
         edges: [
@@ -852,7 +804,7 @@ describe('NIRTraitMap', () => {
 
       const result = validateNIRGraph(graph);
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.includes('Input'))).toBe(true);
+      expect(result.errors.some((e) => e.includes('Input'))).toBe(true);
     });
 
     it('detects missing Output node', () => {
@@ -868,7 +820,7 @@ describe('NIRTraitMap', () => {
 
       const result = validateNIRGraph(graph);
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.includes('Output'))).toBe(true);
+      expect(result.errors.some((e) => e.includes('Output'))).toBe(true);
     });
 
     it('detects edges referencing non-existent nodes', () => {
@@ -884,7 +836,7 @@ describe('NIRTraitMap', () => {
 
       const result = validateNIRGraph(graph);
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.includes('nonexistent'))).toBe(true);
+      expect(result.errors.some((e) => e.includes('nonexistent'))).toBe(true);
     });
 
     it('detects orphaned nodes', () => {
@@ -901,7 +853,7 @@ describe('NIRTraitMap', () => {
 
       const result = validateNIRGraph(graph);
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.includes('Orphaned'))).toBe(true);
+      expect(result.errors.some((e) => e.includes('Orphaned'))).toBe(true);
     });
   });
 });
@@ -926,34 +878,21 @@ describe('NIR trait coverage', () => {
   });
 
   it('covers all expected synapse traits', () => {
-    const expectedSynapseTraits = [
-      'synaptic_connection',
-      'linear_connection',
-      'conv_connection',
-    ];
+    const expectedSynapseTraits = ['synaptic_connection', 'linear_connection', 'conv_connection'];
     for (const trait of expectedSynapseTraits) {
       expect(NIR_TRAIT_MAP[trait]).toBeDefined();
     }
   });
 
   it('covers all expected encoding traits', () => {
-    const expectedEncodingTraits = [
-      'spike_encoder',
-      'rate_encoder',
-      'spike_decoder',
-    ];
+    const expectedEncodingTraits = ['spike_encoder', 'rate_encoder', 'spike_decoder'];
     for (const trait of expectedEncodingTraits) {
       expect(NIR_TRAIT_MAP[trait]).toBeDefined();
     }
   });
 
   it('covers all expected topology traits', () => {
-    const expectedTopologyTraits = [
-      'spike_delay',
-      'spike_pooling',
-      'flatten',
-      'scaling',
-    ];
+    const expectedTopologyTraits = ['spike_delay', 'spike_pooling', 'flatten', 'scaling'];
     for (const trait of expectedTopologyTraits) {
       expect(NIR_TRAIT_MAP[trait]).toBeDefined();
     }

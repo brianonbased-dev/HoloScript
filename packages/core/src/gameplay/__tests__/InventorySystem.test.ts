@@ -3,15 +3,23 @@ import { InventorySystem, ItemDef } from '../InventorySystem';
 
 function item(id: string, overrides: Partial<ItemDef> = {}): ItemDef {
   return {
-    id, name: id, category: 'misc', rarity: 'common',
-    weight: 1, maxStack: 10, value: 5, properties: {},
+    id,
+    name: id,
+    category: 'misc',
+    rarity: 'common',
+    weight: 1,
+    maxStack: 10,
+    value: 5,
+    properties: {},
     ...overrides,
   };
 }
 
 describe('InventorySystem', () => {
   let inv: InventorySystem;
-  beforeEach(() => { inv = new InventorySystem(10, 50); });
+  beforeEach(() => {
+    inv = new InventorySystem(10, 50);
+  });
 
   // --- Add ---
   it('addItem creates a slot', () => {
@@ -36,7 +44,7 @@ describe('InventorySystem', () => {
 
   it('addItem respects weight limit', () => {
     const r = inv.addItem(item('rock', { weight: 10 }), 10);
-    expect(r.added).toBe(5);  // 5*10=50
+    expect(r.added).toBe(5); // 5*10=50
     expect(r.remaining).toBe(5);
     expect(inv.getCurrentWeight()).toBe(50);
   });
@@ -100,7 +108,7 @@ describe('InventorySystem', () => {
     inv.addItem(item('zeta'));
     inv.addItem(item('alpha'));
     inv.sort('name');
-    const names = inv.getAllItems().map(s => s.item.name);
+    const names = inv.getAllItems().map((s) => s.item.name);
     expect(names[0]).toBe('alpha');
   });
 

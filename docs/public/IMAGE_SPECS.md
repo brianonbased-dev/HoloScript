@@ -21,12 +21,14 @@ This document specifies all images, thumbnails, and Open Graph (OG) cards needed
 ### Content Requirements
 
 **Primary Text:**
+
 ```
 HoloScript
 One Language, Every Platform
 ```
 
 **Secondary Text:**
+
 ```
 1,800+ Semantic Traits
 25+ Compilation Targets
@@ -34,6 +36,7 @@ AI-Powered Development
 ```
 
 **Visual Elements:**
+
 - HoloScript logo (top-left or center)
 - Abstract 3D/VR visual elements
 - Platform icons: Unity, Unreal, Godot, visionOS, Quest
@@ -41,11 +44,13 @@ AI-Powered Development
 - Gradient: Cyan (#00ffff) to Purple/Magenta
 
 **Typography:**
+
 - Primary: Bold, modern sans-serif (Inter, Geist, or similar)
 - Secondary: Regular weight
 - Code: Monospace (JetBrains Mono, Fira Code)
 
 **Color Palette:**
+
 - Background: Dark (#0a0a0f → #1a1a2e gradient)
 - Primary text: White (#ffffff)
 - Accent: Cyan (#00ffff)
@@ -62,6 +67,7 @@ AI-Powered Development
 **Location:** `/docs/public/tutorials/og-first-ai-scene.png`
 
 **Content:**
+
 ```
 Your First AI Scene
 Build VR Scenes with Natural Language
@@ -72,6 +78,7 @@ Build VR Scenes with Natural Language
 ```
 
 **Visual Elements:**
+
 - Brittney AI chat interface mockup
 - 3D viewport showing simple scene
 - "Creator Mode" badge/icon
@@ -88,6 +95,7 @@ Build VR Scenes with Natural Language
 **Location:** `/docs/public/tutorials/og-first-ai-npc.png`
 
 **Content:**
+
 ```
 Building Your First AI NPC
 Create Intelligent Characters
@@ -96,6 +104,7 @@ Create Intelligent Characters
 ```
 
 **Visual Elements:**
+
 - Shopkeeper NPC character (3D render or icon)
 - Speech bubble with AI-generated dialog
 - Code snippet showing `@llm_agent` trait
@@ -112,6 +121,7 @@ Create Intelligent Characters
 **Location:** `/docs/public/tutorials/og-studio-reference.png`
 
 **Content:**
+
 ```
 HoloScript Studio
 Complete IDE Reference
@@ -121,6 +131,7 @@ Complete IDE Reference
 ```
 
 **Visual Elements:**
+
 - Studio interface overview (5-panel layout)
 - Mode icons prominently displayed
 - Keyboard shortcuts reference (small, bottom)
@@ -134,6 +145,7 @@ Complete IDE Reference
 
 **Current:** `/docs/public/logo.svg`
 **Dimensions Required:**
+
 - `favicon.ico` - 16×16, 32×32, 48×48 (multi-size ICO)
 - `favicon-16x16.png`
 - `favicon-32x32.png`
@@ -142,6 +154,7 @@ Complete IDE Reference
 - `android-chrome-512x512.png` - 512×512px
 
 **Design Requirements:**
+
 - Simple, recognizable at small sizes
 - HoloScript "H" monogram or holographic cube
 - Cyan (#00ffff) primary color
@@ -154,6 +167,7 @@ Complete IDE Reference
 For use in tutorial cards/listings on the main guides page.
 
 ### Dimensions
+
 - **Width:** 800px
 - **Height:** 450px (16:9 aspect ratio)
 - **Format:** PNG or WebP
@@ -161,16 +175,19 @@ For use in tutorial cards/listings on the main guides page.
 ### Required Thumbnails
 
 #### 4.1 First AI Scene Thumbnail
+
 **File:** `thumb-first-ai-scene.png`
 **Content:** Brittney chat + 3D viewport preview
 **Style:** Bright, inviting, beginner-friendly
 
 #### 4.2 First AI NPC Thumbnail
+
 **File:** `thumb-first-ai-npc.png`
 **Content:** NPC character + code snippet
 **Style:** Technical but approachable
 
 #### 4.3 Studio Reference Thumbnail
+
 **File:** `thumb-studio-reference.png`
 **Content:** Studio interface overview
 **Style:** Clean, professional, comprehensive
@@ -182,13 +199,16 @@ For use in tutorial cards/listings on the main guides page.
 For use in landing page and documentation sections.
 
 ### 5.1 AI Features Hero
+
 **File:** `feature-ai-hero.png`
 **Dimensions:** 1600×900px
 **Content:** Brittney AI + multi-agent visualization
 **Usage:** AI features section hero image
 
 ### 5.2 Studio Modes Grid
+
 **Files:**
+
 - `mode-creator.png` (600×400px)
 - `mode-artist.png` (600×400px)
 - `mode-filmmaker.png` (600×400px)
@@ -199,6 +219,7 @@ For use in landing page and documentation sections.
 **Usage:** Studio capabilities showcase
 
 ### 5.3 Platform Targets
+
 **File:** `platform-targets.png`
 **Dimensions:** 1200×600px
 **Content:** Icons of all 25+ supported platforms
@@ -249,25 +270,30 @@ For use in landing page and documentation sections.
 ## 7. Logo Variations
 
 ### 7.1 Horizontal Logo
+
 **File:** `logo-horizontal.png`
 **Dimensions:** 400×100px (4:1 ratio)
 **Background:** Transparent
 **Usage:** Website headers, documentation headers
 
 ### 7.2 Vertical Logo
+
 **File:** `logo-vertical.png`
 **Dimensions:** 200×250px
 **Background:** Transparent
 **Usage:** Narrow sidebars, mobile headers
 
 ### 7.3 Logo with Tagline
+
 **File:** `logo-with-tagline.png`
 **Dimensions:** 600×150px
 **Text:** "HoloScript - One Language, Every Platform"
 **Usage:** Marketing materials, presentations
 
 ### 7.4 Monochrome Variations
+
 **Files:**
+
 - `logo-white.svg` - For dark backgrounds
 - `logo-black.svg` - For light backgrounds
 - `logo-cyan.svg` - Brand accent color
@@ -277,16 +303,19 @@ For use in landing page and documentation sections.
 ## 8. Social Media Assets
 
 ### 8.1 Twitter/X Card
+
 **File:** `twitter-card.png`
 **Dimensions:** 1200×675px (16:9)
 **Content:** Same as main OG image but optimized for Twitter
 
 ### 8.2 LinkedIn Share
+
 **File:** `linkedin-share.png`
 **Dimensions:** 1200×627px
 **Content:** Professional styling, emphasize developer tools
 
 ### 8.3 Discord Embed
+
 **File:** `discord-embed.png`
 **Dimensions:** 1280×720px
 **Content:** Clean, readable at smaller sizes
@@ -320,23 +349,27 @@ For inline documentation images showing specific features.
 ## 10. Implementation Checklist
 
 ### Phase 1: Critical Images (Week 1)
+
 - [ ] Main OG image (`og-image.png`) - **PRIORITY**
 - [ ] Favicon suite (6 files)
 - [ ] Tutorial OG images (3 files)
 - [ ] Tutorial thumbnails (3 files)
 
 ### Phase 2: Screenshots (Week 2)
+
 - [ ] Studio mode screenshots (6 files)
 - [ ] Brittney UI screenshots (2 files)
 - [ ] VR mode screenshot (1 file)
 
 ### Phase 3: Assets & Illustrations (Week 3)
+
 - [ ] Logo variations (7 files)
 - [ ] Feature section images (2 files)
 - [ ] Platform targets graphic (1 file)
 - [ ] Tutorial step illustrations (7 files)
 
 ### Phase 4: Social Media (Week 4)
+
 - [ ] Twitter card (1 file)
 - [ ] LinkedIn share (1 file)
 - [ ] Discord embed (1 file)
@@ -346,6 +379,7 @@ For inline documentation images showing specific features.
 ## 11. Design Tools & Resources
 
 ### Recommended Tools
+
 - **Figma** - UI mockups, OG images, thumbnails
 - **Blender** - 3D renders (Studio interface, NPC characters)
 - **Excalidraw** - Diagrams, illustrations
@@ -353,12 +387,14 @@ For inline documentation images showing specific features.
 - **Photopea** - Image editing (Photoshop alternative)
 
 ### Asset Libraries
+
 - **Icons:** Lucide Icons, Heroicons
 - **3D Models:** Sketchfab (for NPC examples)
 - **Gradients:** UIGradients.com
 - **Platform Logos:** Official brand kits
 
 ### Color Palette (from brand)
+
 ```css
 --primary-cyan: #00ffff;
 --primary-magenta: #ec4899;
@@ -427,19 +463,19 @@ docs/public/
 For each new tutorial page, add these meta tags:
 
 ```html
-<meta property="og:title" content="[Tutorial Title] - HoloScript">
-<meta property="og:description" content="[Brief description, 2-3 sentences]">
-<meta property="og:image" content="https://holoscript.net/tutorials/[og-image-file]">
-<meta property="og:url" content="https://holoscript.net/guides/[tutorial-slug]">
-<meta property="og:type" content="article">
+<meta property="og:title" content="[Tutorial Title] - HoloScript" />
+<meta property="og:description" content="[Brief description, 2-3 sentences]" />
+<meta property="og:image" content="https://holoscript.net/tutorials/[og-image-file]" />
+<meta property="og:url" content="https://holoscript.net/guides/[tutorial-slug]" />
+<meta property="og:type" content="article" />
 
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="[Tutorial Title] - HoloScript">
-<meta name="twitter:description" content="[Brief description]">
-<meta name="twitter:image" content="https://holoscript.net/tutorials/[og-image-file]">
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="[Tutorial Title] - HoloScript" />
+<meta name="twitter:description" content="[Brief description]" />
+<meta name="twitter:image" content="https://holoscript.net/tutorials/[og-image-file]" />
 
-<meta name="description" content="[SEO-optimized description, 150-160 chars]">
-<meta name="keywords" content="holoscript, vr, ai, tutorial, [specific-keywords]">
+<meta name="description" content="[SEO-optimized description, 150-160 chars]" />
+<meta name="keywords" content="holoscript, vr, ai, tutorial, [specific-keywords]" />
 ```
 
 ---
@@ -447,16 +483,19 @@ For each new tutorial page, add these meta tags:
 ## 14. Priority Action Items
 
 ### Immediate (This Week)
+
 1. **Update main OG image** with "1,800+ semantic traits, 25+ targets"
 2. **Create favicon suite** for better browser tab appearance
 3. **Add meta tags** to new tutorial pages (code-only, no images needed yet)
 
 ### Short-Term (Next 2 Weeks)
+
 4. **Capture Studio screenshots** for all 5 modes
 5. **Create tutorial thumbnails** for guides index page
 6. **Design tutorial-specific OG images**
 
 ### Long-Term (Month 1)
+
 7. **Create feature illustrations** for landing page
 8. **Design platform targets graphic**
 9. **Create tutorial step illustrations** for inline docs
@@ -466,12 +505,14 @@ For each new tutorial page, add these meta tags:
 ## 15. Notes for Designers
 
 ### Brand Voice
+
 - **Modern** - Clean, contemporary design
 - **Technical** - Professional developer tools aesthetic
 - **Accessible** - High contrast, readable at all sizes
 - **Futuristic** - Subtle sci-fi/VR elements
 
 ### Do's
+
 ✅ Use cyan (#00ffff) as primary brand color
 ✅ Maintain high contrast for accessibility
 ✅ Include actual Studio UI screenshots when possible
@@ -479,6 +520,7 @@ For each new tutorial page, add these meta tags:
 ✅ Use modern, clean typography
 
 ### Don'ts
+
 ❌ Don't use outdated stock photos
 ❌ Don't overcomplicate - keep it clean
 ❌ Don't use low-resolution assets

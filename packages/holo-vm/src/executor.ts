@@ -123,7 +123,7 @@ export class ECSWorld {
     if (entity.parentId !== -1) {
       const parent = this.entities.get(entity.parentId);
       if (parent) {
-        parent.childIds = parent.childIds.filter(id => id !== entityId);
+        parent.childIds = parent.childIds.filter((id) => id !== entityId);
       }
     }
 
@@ -174,7 +174,7 @@ export class ECSWorld {
     if (child.parentId !== -1) {
       const oldParent = this.entities.get(child.parentId);
       if (oldParent) {
-        oldParent.childIds = oldParent.childIds.filter(id => id !== childId);
+        oldParent.childIds = oldParent.childIds.filter((id) => id !== childId);
       }
     }
 
@@ -355,7 +355,13 @@ export class HoloVM {
    */
   tick(deltaMs: number): VMResult {
     if (!this.bytecode) {
-      return { status: VMStatus.Error, stackTop: null, tickCount: this.tickCount, entityCount: 0, error: 'No bytecode loaded' };
+      return {
+        status: VMStatus.Error,
+        stackTop: null,
+        tickCount: this.tickCount,
+        entityCount: 0,
+        error: 'No bytecode loaded',
+      };
     }
 
     this.tickCount++;
@@ -458,7 +464,7 @@ export class HoloVM {
         const entityId = operands[0] as number;
         const compType = operands[1] as number;
         const data = this.world.getComponent(entityId, compType);
-        this.push(data as HoloOperand ?? null);
+        this.push((data as HoloOperand) ?? null);
         break;
       }
       case HoloOpCode.REMOVE_COMPONENT: {
@@ -484,8 +490,17 @@ export class HoloVM {
       case HoloOpCode.TRANSFORM: {
         const entityId = operands[0] as number;
         const transform: TransformComponent = {
-          position: { x: operands[1] as number, y: operands[2] as number, z: operands[3] as number },
-          rotation: { x: operands[4] as number, y: operands[5] as number, z: operands[6] as number, w: operands[7] as number },
+          position: {
+            x: operands[1] as number,
+            y: operands[2] as number,
+            z: operands[3] as number,
+          },
+          rotation: {
+            x: operands[4] as number,
+            y: operands[5] as number,
+            z: operands[6] as number,
+            w: operands[7] as number,
+          },
           scale: { x: operands[8] as number, y: operands[9] as number, z: operands[10] as number },
         };
         this.world.setComponent(entityId, ComponentType.Transform, transform);
@@ -493,7 +508,10 @@ export class HoloVM {
       }
       case HoloOpCode.TRANSLATE: {
         const entityId = operands[0] as number;
-        const existing = this.world.getComponent<TransformComponent>(entityId, ComponentType.Transform);
+        const existing = this.world.getComponent<TransformComponent>(
+          entityId,
+          ComponentType.Transform
+        );
         if (existing) {
           existing.position.x += operands[1] as number;
           existing.position.y += operands[2] as number;
@@ -506,7 +524,12 @@ export class HoloVM {
         const entityId = operands[0] as number;
         this.world.setComponent(entityId, ComponentType.Transform, {
           position: { x: 0, y: 0, z: 0 },
-          rotation: { x: operands[1] as number, y: operands[2] as number, z: operands[3] as number, w: operands[4] as number },
+          rotation: {
+            x: operands[1] as number,
+            y: operands[2] as number,
+            z: operands[3] as number,
+            w: operands[4] as number,
+          },
           scale: { x: 1, y: 1, z: 1 },
         });
         break;
@@ -539,7 +562,10 @@ export class HoloVM {
       case HoloOpCode.SET_LIGHT: {
         const entityId = operands[0] as number;
         const lightType = operands[1] as number;
-        this.world.setComponent(entityId, ComponentType.Light, { type: lightType, params: operands.slice(2) });
+        this.world.setComponent(entityId, ComponentType.Light, {
+          type: lightType,
+          params: operands.slice(2),
+        });
         break;
       }
 
@@ -560,9 +586,9 @@ export class HoloVM {
         const rb = this.world.getComponent<RigidBodyComponent>(entityId, ComponentType.RigidBody);
         if (rb && rb.mass > 0) {
           const dt = 1 / 90; // Assume 90fps
-          rb.velocity.x += (operands[1] as number) / rb.mass * dt;
-          rb.velocity.y += (operands[2] as number) / rb.mass * dt;
-          rb.velocity.z += (operands[3] as number) / rb.mass * dt;
+          rb.velocity.x += ((operands[1] as number) / rb.mass) * dt;
+          rb.velocity.y += ((operands[2] as number) / rb.mass) * dt;
+          rb.velocity.z += ((operands[3] as number) / rb.mass) * dt;
           this.world.setComponent(entityId, ComponentType.RigidBody, rb);
         }
         break;
@@ -582,14 +608,18 @@ export class HoloVM {
         const entityId = operands[0] as number;
         const rb = this.world.getComponent<RigidBodyComponent>(entityId, ComponentType.RigidBody);
         if (rb) {
-          rb.velocity = { x: operands[1] as number, y: operands[2] as number, z: operands[3] as number };
+          rb.velocity = {
+            x: operands[1] as number,
+            y: operands[2] as number,
+            z: operands[3] as number,
+          };
           this.world.setComponent(entityId, ComponentType.RigidBody, rb);
         }
         break;
       }
       case HoloOpCode.SET_GRAVITY: {
         // Store as world-level metadata
-        this.world.setComponent(0, 0xFF, { x: operands[0], y: operands[1], z: operands[2] });
+        this.world.setComponent(0, 0xff, { x: operands[0], y: operands[1], z: operands[2] });
         break;
       }
 
@@ -825,7 +855,7 @@ export class HoloVM {
 
   private processTimers(): void {
     const expired: TimerEntry[] = [];
-    this.timers = this.timers.filter(t => {
+    this.timers = this.timers.filter((t) => {
       if (t.triggerTimeMs <= this.currentTimeMs) {
         expired.push(t);
         return false;

@@ -7,12 +7,12 @@
 
 import { useMemo } from 'react';
 import { useTemporalStore } from '@/lib/historyStore';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 export interface HistoryEntry {
   index: number;
   label: string;
-  preview: string;  // first 60 chars of scene code at that snapshot
+  preview: string; // first 60 chars of scene code at that snapshot
   isCurrent: boolean;
   timestamp?: number;
 }
@@ -23,8 +23,10 @@ export function useUndoHistory() {
   const currentCode = useSceneStore((s) => s.code) ?? '';
 
   // zundo stores past/future as arrays of partial store states
-  const pastStates  = (temporal as unknown as { pastStates: Array<{ code?: string }> }).pastStates  ?? [];
-  const futureStates = (temporal as unknown as { futureStates: Array<{ code?: string }> }).futureStates ?? [];
+  const pastStates =
+    (temporal as unknown as { pastStates: Array<{ code?: string }> }).pastStates ?? [];
+  const futureStates =
+    (temporal as unknown as { futureStates: Array<{ code?: string }> }).futureStates ?? [];
 
   const entries = useMemo<HistoryEntry[]>(() => {
     const result: HistoryEntry[] = [];
@@ -35,7 +37,9 @@ export function useUndoHistory() {
       const objMatch = code.match(/object\s+"([^"]+)"/g);
       const label = objMatch
         ? `Edit — ${objMatch.length} object${objMatch.length !== 1 ? 's' : ''}`
-        : code.split('\n').length > 1 ? 'Edit — multiline' : 'Edit';
+        : code.split('\n').length > 1
+          ? 'Edit — multiline'
+          : 'Edit';
       result.push({ index: i, label, preview: code.trim().slice(0, 60), isCurrent: false });
     });
 
@@ -63,7 +67,10 @@ export function useUndoHistory() {
   }, [pastStates, futureStates, currentCode]);
 
   const jumpTo = useMemo(() => {
-    const { undo, redo } = temporal as unknown as { undo?: (steps: number) => void; redo?: (steps: number) => void };
+    const { undo, redo } = temporal as unknown as {
+      undo?: (steps: number) => void;
+      redo?: (steps: number) => void;
+    };
     return (targetIndex: number) => {
       const currentIndex = pastStates.length;
       const delta = targetIndex - currentIndex;

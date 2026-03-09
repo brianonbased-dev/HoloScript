@@ -60,7 +60,9 @@ describe('LocalEmotionDetector — Production', () => {
 
   describe('engagement', () => {
     it('high engagement with intense stable interaction', () => {
-      const result = detector.infer(makeSignals({ interactionIntensity: 1.0, headStability: 0.95 }));
+      const result = detector.infer(
+        makeSignals({ interactionIntensity: 1.0, headStability: 0.95 })
+      );
       expect(result.engagement).toBeGreaterThan(0.8);
     });
   });

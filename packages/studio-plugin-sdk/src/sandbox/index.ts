@@ -114,7 +114,13 @@ export type {
 // Host-side classes
 export { PluginSandbox } from './PluginSandbox.js';
 export { PluginBridge } from './PluginBridge.js';
-export type { APIHandler, StorageHandler, FetchHandler, RegisterHandler, PluginBridgeOptions } from './PluginBridge.js';
+export type {
+  APIHandler,
+  StorageHandler,
+  FetchHandler,
+  RegisterHandler,
+  PluginBridgeOptions,
+} from './PluginBridge.js';
 export { SandboxedPluginHost } from './SandboxedPluginHost.js';
 export type { SandboxedPluginHostOptions, PluginHostHealthSummary } from './SandboxedPluginHost.js';
 

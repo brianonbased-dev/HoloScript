@@ -192,8 +192,4 @@ downloadWorkflowJSON(sampleWorkflow, 'my-custom-workflow.json');
 downloadEventsCSV(sampleEvents, 'event-log-backup.csv');
 */
 
-export {
-  sampleWorkflow,
-  sampleBehaviorTree,
-  sampleEvents,
-};
+export { sampleWorkflow, sampleBehaviorTree, sampleEvents };

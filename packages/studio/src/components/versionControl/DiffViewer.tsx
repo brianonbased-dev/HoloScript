@@ -74,10 +74,7 @@ export function DiffViewer({ diffs, commitA, commitB }: DiffViewerProps) {
       {/* Diffs */}
       <div className="space-y-2 max-h-96 overflow-y-auto">
         {diffs.map((diff, index) => (
-          <div
-            key={index}
-            className={`rounded-lg border p-3 ${getDiffColor(diff.type)}`}
-          >
+          <div key={index} className={`rounded-lg border p-3 ${getDiffColor(diff.type)}`}>
             <div className="flex items-start gap-2">
               <div className="flex-shrink-0 mt-0.5">{getDiffIcon(diff.type)}</div>
               <div className="flex-1 min-w-0">

@@ -9,19 +9,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { StateMachine } from '../StateMachine';
 
 describe('StateMachine — Production', () => {
-  const makeSimpleFSM = () => new StateMachine({
-    initialState: 'idle',
-    states: [
-      { name: 'idle' },
-      { name: 'walking' },
-      { name: 'running' },
-    ],
-    transitions: [
-      { from: 'idle', to: 'walking', event: 'walk' },
-      { from: 'walking', to: 'running', event: 'run' },
-      { from: 'running', to: 'idle', event: 'stop' },
-    ],
-  });
+  const makeSimpleFSM = () =>
+    new StateMachine({
+      initialState: 'idle',
+      states: [{ name: 'idle' }, { name: 'walking' }, { name: 'running' }],
+      transitions: [
+        { from: 'idle', to: 'walking', event: 'walk' },
+        { from: 'walking', to: 'running', event: 'run' },
+        { from: 'running', to: 'idle', event: 'stop' },
+      ],
+    });
 
   it('starts in initial state', () => {
     const fsm = makeSimpleFSM();

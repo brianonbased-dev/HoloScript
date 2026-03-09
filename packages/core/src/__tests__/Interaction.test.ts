@@ -5,116 +5,130 @@ import { WebGPURenderer } from '../rendering/webgpu/WebGPURenderer';
 
 // Mock Physics World
 vi.mock('../physics/PhysicsWorldImpl', () => {
-    return {
-        PhysicsWorldImpl: vi.fn().mockImplementation(function() {
-            const bodies = new Map();
-            bodies.set('box1', { position: {x:0, y:0, z:-0.5}, velocity: {x:0, y:0, z:0}, type: 'dynamic' });
+  return {
+    PhysicsWorldImpl: vi.fn().mockImplementation(function () {
+      const bodies = new Map();
+      bodies.set('box1', {
+        position: { x: 0, y: 0, z: -0.5 },
+        velocity: { x: 0, y: 0, z: 0 },
+        type: 'dynamic',
+      });
 
-            return {
-                step: vi.fn(),
-                addBody: vi.fn((id, config) => {
-                    bodies.set(id, { 
-                        position: config.position, 
-                        velocity: {x:0, y:0, z:0}, 
-                        type: config.type 
-                    });
-                }),
-                getBody: vi.fn((id) => bodies.get(id) || null),
-                addConstraint: vi.fn(),
-                removeConstraints: vi.fn(),
-                raycast: vi.fn(),
-                getStates: vi.fn().mockReturnValue({}),
-            };
-        })
-    }
+      return {
+        step: vi.fn(),
+        addBody: vi.fn((id, config) => {
+          bodies.set(id, {
+            position: config.position,
+            velocity: { x: 0, y: 0, z: 0 },
+            type: config.type,
+          });
+        }),
+        getBody: vi.fn((id) => bodies.get(id) || null),
+        addConstraint: vi.fn(),
+        removeConstraints: vi.fn(),
+        raycast: vi.fn(),
+        getStates: vi.fn().mockReturnValue({}),
+      };
+    }),
+  };
 });
 
 // Mock WebGPURenderer
 vi.mock('../render/webgpu/WebGPURenderer', () => {
-    return {
-        WebGPURenderer: vi.fn().mockImplementation(function() {
-            return {
-                createElement: vi.fn(),
-                destroy: vi.fn(),
-                context: {}
-            };
-        })
-    }
+  return {
+    WebGPURenderer: vi.fn().mockImplementation(function () {
+      return {
+        createElement: vi.fn(),
+        destroy: vi.fn(),
+        context: {},
+      };
+    }),
+  };
 });
 
 describe('Physics Interaction', () => {
-    let runtime: HoloScriptPlusRuntimeImpl;
-    let physicsWorld: any;
-    let mockRenderer: any;
+  let runtime: HoloScriptPlusRuntimeImpl;
+  let physicsWorld: any;
+  let mockRenderer: any;
 
-    beforeEach(() => {
-        mockRenderer = {
-            createElement: vi.fn(),
-            destroy: vi.fn(),
-            context: {}
-        };
+  beforeEach(() => {
+    mockRenderer = {
+      createElement: vi.fn(),
+      destroy: vi.fn(),
+      context: {},
+    };
 
-        const mockAST = {
-            root: {
-                type: 'composition',
-                id: 'root',
-                children: [],
-                traits: new Map(),
-                properties: {},
-                directives: []
-            },
-            imports: [],
-            version: 1,
-        };
+    const mockAST = {
+      root: {
+        type: 'composition',
+        id: 'root',
+        children: [],
+        traits: new Map(),
+        properties: {},
+        directives: [],
+      },
+      imports: [],
+      version: 1,
+    };
 
-        runtime = new HoloScriptPlusRuntimeImpl(mockAST as any, { 
-            vrEnabled: true, 
-            renderer: mockRenderer 
-        });
-
-        // Get access to the mocked physics world
-        physicsWorld = (runtime as any).physicsWorld;
-        
-        // Bypass return guard
-        (runtime as any).rootInstance = { id: 'root' };
+    runtime = new HoloScriptPlusRuntimeImpl(mockAST as any, {
+      vrEnabled: true,
+      renderer: mockRenderer,
     });
 
-    it('creates hand bodies in physics world on update', () => {
-        // Find the bridge
-        const bridge = (runtime as any).vrPhysicsBridge;
-        const handData = { position: {x: -0.2, y: 1.5, z: -0.5}, rotation: {x:0, y:0, z:0}, pinchStrength: 0 };
-        
-        // Call directly
-        bridge.updateHand(handData, 'left', 0.016);
-        
-        expect(physicsWorld.addBody).toHaveBeenCalledWith('hand_left', expect.anything());
-    });
+    // Get access to the mocked physics world
+    physicsWorld = (runtime as any).physicsWorld;
 
-    it('triggers grab event when pinching near object', () => {
-        // Ensure hand body exists
-        const bridge = (runtime as any).vrPhysicsBridge;
-        bridge.updateHand({ position: {x:0,y:0,z:0}, rotation: {x:0,y:0,z:0}, pinchStrength: 1 }, 'right', 0.016);
+    // Bypass return guard
+    (runtime as any).rootInstance = { id: 'root' };
+  });
 
-        const payload = { nodeId: 'box1', hand: 'right' };
-        (runtime as any).emit('physics_grab', payload);
-        
-        expect(physicsWorld.addConstraint).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'fixed',
-            bodyB: 'box1'
-        }));
-    });
+  it('creates hand bodies in physics world on update', () => {
+    // Find the bridge
+    const bridge = (runtime as any).vrPhysicsBridge;
+    const handData = {
+      position: { x: -0.2, y: 1.5, z: -0.5 },
+      rotation: { x: 0, y: 0, z: 0 },
+      pinchStrength: 0,
+    };
 
-    it('triggers release event and applies velocity', () => {
-        const payload = { nodeId: 'box1', velocity: [10, 5, 0] };
-        (runtime as any).emit('physics_release', payload);
-        
-        expect(physicsWorld.removeConstraints).toHaveBeenCalledWith('box1');
-        
-        // Check if getBody was called to retrieve the body for velocity application
-        expect(physicsWorld.getBody).toHaveBeenCalledWith('box1');
-        
-        // Since we mock the world, we can't easily check the *value* of velocity on the body 
-        // without a more complex mock that returns a mutable object.
-        // But we proved the flow works.
-    });
+    // Call directly
+    bridge.updateHand(handData, 'left', 0.016);
+
+    expect(physicsWorld.addBody).toHaveBeenCalledWith('hand_left', expect.anything());
+  });
+
+  it('triggers grab event when pinching near object', () => {
+    // Ensure hand body exists
+    const bridge = (runtime as any).vrPhysicsBridge;
+    bridge.updateHand(
+      { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, pinchStrength: 1 },
+      'right',
+      0.016
+    );
+
+    const payload = { nodeId: 'box1', hand: 'right' };
+    (runtime as any).emit('physics_grab', payload);
+
+    expect(physicsWorld.addConstraint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'fixed',
+        bodyB: 'box1',
+      })
+    );
+  });
+
+  it('triggers release event and applies velocity', () => {
+    const payload = { nodeId: 'box1', velocity: [10, 5, 0] };
+    (runtime as any).emit('physics_release', payload);
+
+    expect(physicsWorld.removeConstraints).toHaveBeenCalledWith('box1');
+
+    // Check if getBody was called to retrieve the body for velocity application
+    expect(physicsWorld.getBody).toHaveBeenCalledWith('box1');
+
+    // Since we mock the world, we can't easily check the *value* of velocity on the body
+    // without a more complex mock that returns a mutable object.
+    // But we proved the flow works.
+  });
 });

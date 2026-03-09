@@ -13,13 +13,17 @@ import { spatialPersonaHandler } from '../SpatialPersonaTrait';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode() { return { id: 'sp_test' } as any; }
+function makeNode() {
+  return { id: 'sp_test' } as any;
+}
 
 function makeCtx() {
   let _state: Record<string, unknown> = {};
   return {
     emit: vi.fn(),
-    setState: vi.fn((s: Record<string, unknown>) => { _state = { ..._state, ...s }; }),
+    setState: vi.fn((s: Record<string, unknown>) => {
+      _state = { ..._state, ...s };
+    }),
     getState: () => _state,
   };
 }
@@ -75,7 +79,8 @@ describe('SpatialPersonaTrait — onAttach', () => {
     const node = makeNode();
     const { ctx } = attach(node, { persona_style: 'stylized', visibility: 'when_speaking' });
     expect(ctx.emit).toHaveBeenCalledWith('persona:init', {
-      style: 'stylized', visibility: 'when_speaking',
+      style: 'stylized',
+      visibility: 'when_speaking',
     });
   });
 });
@@ -153,7 +158,10 @@ describe('SpatialPersonaTrait — onEvent: persona:position_update', () => {
     fire(node, cfg, ctx, 'persona:position_update', { position: pos, orientation: ori });
     expect(st(ctx).position).toEqual([1, 2, 3]);
     expect(st(ctx).orientation).toEqual([0, 0, 0, 1]);
-    expect(ctx.emit).toHaveBeenCalledWith('persona:moved', expect.objectContaining({ personaId: 'pid1', position: pos }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'persona:moved',
+      expect.objectContaining({ personaId: 'pid1', position: pos })
+    );
   });
 
   it('updates only position when orientation not in payload', () => {
@@ -178,7 +186,10 @@ describe('SpatialPersonaTrait — onEvent: persona:expression', () => {
     fire(node, cfg, ctx, 'persona:expression', { expression: 'talking' });
     expect(st(ctx).expressionState).toBe('talking');
     expect(st(ctx).isSpeaking).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('persona:expression_changed', expect.objectContaining({ expression: 'talking' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'persona:expression_changed',
+      expect.objectContaining({ expression: 'talking' })
+    );
   });
 
   it('sets isSpeaking=false for non-talking expressions', () => {

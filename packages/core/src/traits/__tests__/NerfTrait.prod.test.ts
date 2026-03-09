@@ -12,7 +12,9 @@ import { nerfHandler } from '../NerfTrait';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode() { return { id: 'nerf_test' } as any; }
+function makeNode() {
+  return { id: 'nerf_test' } as any;
+}
 function makeCtx(camera?: any) {
   return { emit: vi.fn(), camera: camera ?? null };
 }
@@ -24,7 +26,9 @@ function attach(node: any, overrides: Record<string, unknown> = {}) {
   return { cfg, ctx };
 }
 
-function st(node: any) { return node.__nerfState as any; }
+function st(node: any) {
+  return node.__nerfState as any;
+}
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
   nerfHandler.onEvent!(node, cfg, ctx as any, evt as any);
 }
@@ -65,9 +69,13 @@ describe('NerfTrait — onAttach', () => {
   it('emits nerf_load when model_url is set', () => {
     const node = makeNode();
     const { ctx } = attach(node, { model_url: 'model.nerf', background_color: [0.1, 0.2, 0.3] });
-    expect(ctx.emit).toHaveBeenCalledWith('nerf_load', expect.objectContaining({
-      url: 'model.nerf', backgroundColor: [0.1, 0.2, 0.3],
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'nerf_load',
+      expect.objectContaining({
+        url: 'model.nerf',
+        backgroundColor: [0.1, 0.2, 0.3],
+      })
+    );
   });
 
   it('does NOT emit nerf_load when model_url is empty', () => {
@@ -132,9 +140,13 @@ describe('NerfTrait — onUpdate', () => {
     const ctx = makeCtx(cam);
     st(node).isReady = true;
     nerfHandler.onUpdate!(node, cfg, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('nerf_render', expect.objectContaining({
-      resolution: 1024, quality: 'quality',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'nerf_render',
+      expect.objectContaining({
+        resolution: 1024,
+        quality: 'quality',
+      })
+    );
   });
 
   it('does NOT re-render on same camera hash (no change)', () => {
@@ -161,7 +173,10 @@ describe('NerfTrait — onUpdate', () => {
     const hash = '5,5,5,0,0,0';
     st(node).frameCache.set(hash, 'cached_frame');
     nerfHandler.onUpdate!(node, cfg, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('nerf_use_cached', expect.objectContaining({ cacheKey: hash }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'nerf_use_cached',
+      expect.objectContaining({ cacheKey: hash })
+    );
   });
 
   it('cacheKey is undefined in nerf_render when cache_frames=false', () => {
@@ -201,7 +216,10 @@ describe('NerfTrait — onEvent: nerf_load_error', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'nerf_load_error', error: 'ENOTFOUND' });
     expect(st(node).isLoading).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('on_nerf_error', expect.objectContaining({ error: 'ENOTFOUND' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_nerf_error',
+      expect.objectContaining({ error: 'ENOTFOUND' })
+    );
   });
 });
 
@@ -211,7 +229,12 @@ describe('NerfTrait — onEvent: nerf_frame_rendered', () => {
   it('stores renderTime and caches frame when cache_frames=true + cacheKey set', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { cache_frames: true, cache_size: 32 });
-    fire(node, cfg, ctx, { type: 'nerf_frame_rendered', renderTime: 14, cacheKey: 'k1', frame: 'frame_data' });
+    fire(node, cfg, ctx, {
+      type: 'nerf_frame_rendered',
+      renderTime: 14,
+      cacheKey: 'k1',
+      frame: 'frame_data',
+    });
     expect(st(node).renderTime).toBe(14);
     expect(st(node).frameCache.get('k1')).toBe('frame_data');
   });
@@ -219,17 +242,37 @@ describe('NerfTrait — onEvent: nerf_frame_rendered', () => {
   it('does NOT cache when cache_frames=false', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { cache_frames: false });
-    fire(node, cfg, ctx, { type: 'nerf_frame_rendered', renderTime: 14, cacheKey: 'k1', frame: 'fd' });
+    fire(node, cfg, ctx, {
+      type: 'nerf_frame_rendered',
+      renderTime: 14,
+      cacheKey: 'k1',
+      frame: 'fd',
+    });
     expect(st(node).frameCache.size).toBe(0);
   });
 
   it('LRU evicts oldest entry when cache full (cache_size=2)', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { cache_frames: true, cache_size: 2 });
-    fire(node, cfg, ctx, { type: 'nerf_frame_rendered', renderTime: 1, cacheKey: 'k1', frame: 'f1' });
-    fire(node, cfg, ctx, { type: 'nerf_frame_rendered', renderTime: 1, cacheKey: 'k2', frame: 'f2' });
+    fire(node, cfg, ctx, {
+      type: 'nerf_frame_rendered',
+      renderTime: 1,
+      cacheKey: 'k1',
+      frame: 'f1',
+    });
+    fire(node, cfg, ctx, {
+      type: 'nerf_frame_rendered',
+      renderTime: 1,
+      cacheKey: 'k2',
+      frame: 'f2',
+    });
     // Cache full (size=2). Adding k3 should evict k1.
-    fire(node, cfg, ctx, { type: 'nerf_frame_rendered', renderTime: 1, cacheKey: 'k3', frame: 'f3' });
+    fire(node, cfg, ctx, {
+      type: 'nerf_frame_rendered',
+      renderTime: 1,
+      cacheKey: 'k3',
+      frame: 'f3',
+    });
     expect(st(node).frameCache.has('k1')).toBe(false); // evicted
     expect(st(node).frameCache.has('k2')).toBe(true);
     expect(st(node).frameCache.has('k3')).toBe(true);
@@ -245,7 +288,10 @@ describe('NerfTrait — onEvent: nerf_set_quality / nerf_set_resolution', () => 
     const { cfg, ctx } = attach(node);
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'nerf_set_quality', quality: 'fast' });
-    expect(ctx.emit).toHaveBeenCalledWith('nerf_update_quality', expect.objectContaining({ quality: 'fast' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'nerf_update_quality',
+      expect.objectContaining({ quality: 'fast' })
+    );
   });
 
   it('nerf_set_resolution emits nerf_update_resolution', () => {
@@ -253,7 +299,10 @@ describe('NerfTrait — onEvent: nerf_set_quality / nerf_set_resolution', () => 
     const { cfg, ctx } = attach(node);
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'nerf_set_resolution', resolution: 1024 });
-    expect(ctx.emit).toHaveBeenCalledWith('nerf_update_resolution', expect.objectContaining({ resolution: 1024 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'nerf_update_resolution',
+      expect.objectContaining({ resolution: 1024 })
+    );
   });
 });
 
@@ -263,7 +312,12 @@ describe('NerfTrait — onEvent: nerf_clear_cache', () => {
   it('clears frameCache', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { cache_frames: true });
-    fire(node, cfg, ctx, { type: 'nerf_frame_rendered', renderTime: 1, cacheKey: 'k1', frame: 'f1' });
+    fire(node, cfg, ctx, {
+      type: 'nerf_frame_rendered',
+      renderTime: 1,
+      cacheKey: 'k1',
+      frame: 'f1',
+    });
     expect(st(node).frameCache.size).toBe(1);
     fire(node, cfg, ctx, { type: 'nerf_clear_cache' });
     expect(st(node).frameCache.size).toBe(0);
@@ -307,8 +361,15 @@ describe('NerfTrait — onEvent: nerf_query', () => {
     st(node).frameCache.set('k1', 'f1');
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'nerf_query', queryId: 'nq1' });
-    expect(ctx.emit).toHaveBeenCalledWith('nerf_info', expect.objectContaining({
-      queryId: 'nq1', isReady: true, renderTime: 22, cachedFrames: 1, cacheSize: 16,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'nerf_info',
+      expect.objectContaining({
+        queryId: 'nq1',
+        isReady: true,
+        renderTime: 22,
+        cachedFrames: 1,
+        cacheSize: 16,
+      })
+    );
   });
 });

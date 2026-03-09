@@ -4,7 +4,9 @@ import { SplinePath } from '../SplinePath';
 describe('SplinePath', () => {
   let spline: SplinePath;
 
-  beforeEach(() => { spline = new SplinePath(); });
+  beforeEach(() => {
+    spline = new SplinePath();
+  });
 
   // ---------------------------------------------------------------------------
   // Configuration

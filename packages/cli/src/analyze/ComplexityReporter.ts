@@ -4,18 +4,26 @@ export class ComplexityReporter {
   formatTable(report: ComplexityReport): string {
     const sep = '-'.repeat(90);
     const colH =
-      this._pr('File', 45) + ' ' +
-      this._pl('CC', 4) + ' ' +
-      this._pl('Depth', 5) + ' ' +
-      this._pl('Lines', 5) + ' ' +
+      this._pr('File', 45) +
+      ' ' +
+      this._pl('CC', 4) +
+      ' ' +
+      this._pl('Depth', 5) +
+      ' ' +
+      this._pl('Lines', 5) +
+      ' ' +
       this._pl('Grade', 5);
     const rows = report.files.map(
       (f) =>
-        this._pr(f.filePath, 45) + ' ' +
-        this._pl(String(f.cyclomaticComplexity), 4) + ' ' +
-        this._pl(String(f.nestingDepth), 5) + ' ' +
-        this._pl(String(f.lineCount), 5) + ' ' +
-        this._pl(f.grade, 5),
+        this._pr(f.filePath, 45) +
+        ' ' +
+        this._pl(String(f.cyclomaticComplexity), 4) +
+        ' ' +
+        this._pl(String(f.nestingDepth), 5) +
+        ' ' +
+        this._pl(String(f.lineCount), 5) +
+        ' ' +
+        this._pl(f.grade, 5)
     );
     const footer = [
       '',

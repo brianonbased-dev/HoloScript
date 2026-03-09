@@ -5,10 +5,20 @@
  * lighting cue integration, and show timing management.
  */
 
-export interface Vec2 { x: number; y: number }
+export interface Vec2 {
+  x: number;
+  y: number;
+}
 
 export type WalkStyle = 'standard' | 'editorial' | 'casual' | 'dramatic' | 'avant-garde';
-export type GarmentType = 'dress' | 'suit' | 'gown' | 'streetwear' | 'couture' | 'swimwear' | 'outerwear';
+export type GarmentType =
+  | 'dress'
+  | 'suit'
+  | 'gown'
+  | 'streetwear'
+  | 'couture'
+  | 'swimwear'
+  | 'outerwear';
 export type CameraAngle = 'front' | 'side' | 'overhead' | 'close-up' | 'detail' | 'audience';
 export type FabricPhysics = 'rigid' | 'flowing' | 'structured' | 'sheer' | 'heavy';
 
@@ -16,7 +26,7 @@ export interface ModelProfile {
   id: string;
   name: string;
   walkStyle: WalkStyle;
-  walkSpeedMPS: number;     // meters per second
+  walkSpeedMPS: number; // meters per second
   heightCm: number;
   outfitIds: string[];
 }
@@ -24,7 +34,7 @@ export interface ModelProfile {
 export interface RunwayPath {
   id: string;
   waypoints: Vec2[];
-  pausePoints: Vec2[];       // Pose stops
+  pausePoints: Vec2[]; // Pose stops
   pauseDurationSec: number;
   totalLengthM: number;
 }
@@ -34,7 +44,7 @@ export interface Outfit {
   designerName: string;
   garmentType: GarmentType;
   fabricPhysics: FabricPhysics;
-  trainLengthM: number;      // Trailing fabric length
+  trainLengthM: number; // Trailing fabric length
   color: string;
   description: string;
 }
@@ -45,7 +55,7 @@ export interface CameraCut {
   startTimeSec: number;
   durationSec: number;
   targetModelId: string;
-  zoom: number;              // 1.0 = wide, 3.0 = close
+  zoom: number; // 1.0 = wide, 3.0 = close
   transition: 'cut' | 'dissolve' | 'pan' | 'whip';
 }
 
@@ -108,16 +118,28 @@ export function modelPositionAtTime(
 
 export function cameraSequenceDuration(cuts: CameraCut[]): number {
   if (cuts.length === 0) return 0;
-  const last = cuts.reduce((max, c) => c.startTimeSec + c.durationSec > max ? c.startTimeSec + c.durationSec : max, 0);
+  const last = cuts.reduce(
+    (max, c) => (c.startTimeSec + c.durationSec > max ? c.startTimeSec + c.durationSec : max),
+    0
+  );
   return last;
 }
 
 export function activeCameraAtTime(cuts: CameraCut[], timeSec: number): CameraCut | null {
-  return cuts.find(c => timeSec >= c.startTimeSec && timeSec < c.startTimeSec + c.durationSec) ?? null;
+  return (
+    cuts.find((c) => timeSec >= c.startTimeSec && timeSec < c.startTimeSec + c.durationSec) ?? null
+  );
 }
 
 export function cutCountByAngle(cuts: CameraCut[]): Record<CameraAngle, number> {
-  const counts: Record<CameraAngle, number> = { front: 0, side: 0, overhead: 0, 'close-up': 0, detail: 0, audience: 0 };
+  const counts: Record<CameraAngle, number> = {
+    front: 0,
+    side: 0,
+    overhead: 0,
+    'close-up': 0,
+    detail: 0,
+    audience: 0,
+  };
   for (const c of cuts) counts[c.angle]++;
   return counts;
 }
@@ -127,7 +149,13 @@ export function cutCountByAngle(cuts: CameraCut[]): Record<CameraAngle, number> 
 // ═══════════════════════════════════════════════════════════════════
 
 export function fabricSwayFactor(physics: FabricPhysics): number {
-  const factors: Record<FabricPhysics, number> = { rigid: 0.05, structured: 0.15, heavy: 0.2, flowing: 0.8, sheer: 0.9 };
+  const factors: Record<FabricPhysics, number> = {
+    rigid: 0.05,
+    structured: 0.15,
+    heavy: 0.2,
+    flowing: 0.8,
+    sheer: 0.9,
+  };
   return factors[physics];
 }
 
@@ -144,15 +172,24 @@ export function showTotalDuration(segments: ShowSegment[]): number {
 // Cloth Simulation (PBD-inspired)
 // ═══════════════════════════════════════════════════════════════════
 
-export interface ClothParticle { x: number; y: number; vx: number; vy: number; pinned: boolean }
+export interface ClothParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  pinned: boolean;
+}
 
 /**
  * Generate a single frame of cloth simulation using Verlet-style integration.
  * Returns particle grid after applying gravity + spring constraints.
  */
 export function clothSimSnapshot(
-  gridW: number, gridH: number,
-  gravity: number, stiffness: number, dt: number,
+  gridW: number,
+  gridH: number,
+  gravity: number,
+  stiffness: number,
+  dt: number,
   steps: number
 ): ClothParticle[][] {
   // Initialize grid
@@ -188,9 +225,16 @@ export function clothSimSnapshot(
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < 0.0001) continue;
           const diff = (dist - restLen) * stiffness;
-          const nx = dx / dist, ny = dy / dist;
-          if (!p.pinned) { p.x += nx * diff * 0.5; p.y += ny * diff * 0.5; }
-          if (!n.pinned) { n.x -= nx * diff * 0.5; n.y -= ny * diff * 0.5; }
+          const nx = dx / dist,
+            ny = dy / dist;
+          if (!p.pinned) {
+            p.x += nx * diff * 0.5;
+            p.y += ny * diff * 0.5;
+          }
+          if (!n.pinned) {
+            n.x -= nx * diff * 0.5;
+            n.y -= ny * diff * 0.5;
+          }
         }
       }
     }
@@ -202,7 +246,11 @@ export function clothSimSnapshot(
 // Attention Heatmap
 // ═══════════════════════════════════════════════════════════════════
 
-export interface HeatmapCell { x: number; y: number; intensity: number }
+export interface HeatmapCell {
+  x: number;
+  y: number;
+  intensity: number;
+}
 
 /**
  * Compute audience visual attention heatmap.
@@ -211,8 +259,10 @@ export interface HeatmapCell { x: number; y: number; intensity: number }
  */
 export function audienceHeatmap(
   modelPositions: Vec2[],
-  gridW: number, gridH: number,
-  runwayLengthM: number, runwayWidthM: number
+  gridW: number,
+  gridH: number,
+  runwayLengthM: number,
+  runwayWidthM: number
 ): HeatmapCell[] {
   const cells: HeatmapCell[] = [];
   const cellW = runwayLengthM / gridW;

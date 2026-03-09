@@ -27,21 +27,34 @@ export class SplinePath {
   private points: SplinePoint[] = [];
   private type: SplineType = 'catmull-rom';
   private loop = false;
-  private tension = 0.5;     // Catmull-Rom tension
+  private tension = 0.5; // Catmull-Rom tension
   private arcLengthTable: number[] = [];
   private totalLength = 0;
   private dirty = true;
-  private resolution = 100;  // Samples for arc-length table
+  private resolution = 100; // Samples for arc-length table
 
   // ---------------------------------------------------------------------------
   // Configuration
   // ---------------------------------------------------------------------------
 
-  setType(type: SplineType): void { this.type = type; this.dirty = true; }
-  getType(): SplineType { return this.type; }
-  setLoop(loop: boolean): void { this.loop = loop; this.dirty = true; }
-  isLoop(): boolean { return this.loop; }
-  setTension(t: number): void { this.tension = Math.max(0, Math.min(1, t)); this.dirty = true; }
+  setType(type: SplineType): void {
+    this.type = type;
+    this.dirty = true;
+  }
+  getType(): SplineType {
+    return this.type;
+  }
+  setLoop(loop: boolean): void {
+    this.loop = loop;
+    this.dirty = true;
+  }
+  isLoop(): boolean {
+    return this.loop;
+  }
+  setTension(t: number): void {
+    this.tension = Math.max(0, Math.min(1, t));
+    this.dirty = true;
+  }
 
   // ---------------------------------------------------------------------------
   // Points
@@ -64,8 +77,12 @@ export class SplinePath {
     this.dirty = true;
   }
 
-  getPoints(): SplinePoint[] { return [...this.points]; }
-  getPointCount(): number { return this.points.length; }
+  getPoints(): SplinePoint[] {
+    return [...this.points];
+  }
+  getPointCount(): number {
+    return this.points.length;
+  }
 
   // ---------------------------------------------------------------------------
   // Evaluation
@@ -82,10 +99,14 @@ export class SplinePath {
     const localT = scaled - seg;
 
     switch (this.type) {
-      case 'linear': return this.evalLinear(seg, localT);
-      case 'catmull-rom': return this.evalCatmullRom(seg, localT);
-      case 'bezier': return this.evalBezier(seg, localT);
-      default: return this.evalLinear(seg, localT);
+      case 'linear':
+        return this.evalLinear(seg, localT);
+      case 'catmull-rom':
+        return this.evalCatmullRom(seg, localT);
+      case 'bezier':
+        return this.evalBezier(seg, localT);
+      default:
+        return this.evalLinear(seg, localT);
     }
   }
 
@@ -110,10 +131,9 @@ export class SplinePath {
     const s = this.tension;
 
     const interp = (a: number, b: number, c: number, d: number) => {
-      return b + 0.5 * s * (
-        (-a + c) * t +
-        (2 * a - 5 * b + 4 * c - d) * tt +
-        (-a + 3 * b - 3 * c + d) * ttt
+      return (
+        b +
+        0.5 * s * ((-a + c) * t + (2 * a - 5 * b + 4 * c - d) * tt + (-a + 3 * b - 3 * c + d) * ttt)
       );
     };
 
@@ -182,7 +202,9 @@ export class SplinePath {
     for (let i = 1; i <= this.resolution; i++) {
       const t = i / this.resolution;
       const curr = this.evaluate(t);
-      const dx = curr.x - prev.x, dy = curr.y - prev.y, dz = curr.z - prev.z;
+      const dx = curr.x - prev.x,
+        dy = curr.y - prev.y,
+        dz = curr.z - prev.z;
       total += Math.sqrt(dx * dx + dy * dy + dz * dz);
       this.arcLengthTable.push(total);
       prev = curr;
@@ -195,10 +217,12 @@ export class SplinePath {
   private distanceToT(distance: number): number {
     const table = this.arcLengthTable;
     // Binary search
-    let lo = 0, hi = table.length - 1;
+    let lo = 0,
+      hi = table.length - 1;
     while (lo < hi - 1) {
       const mid = Math.floor((lo + hi) / 2);
-      if (table[mid] < distance) lo = mid; else hi = mid;
+      if (table[mid] < distance) lo = mid;
+      else hi = mid;
     }
     const segLen = table[hi] - table[lo];
     const frac = segLen > 0 ? (distance - table[lo]) / segLen : 0;
@@ -213,7 +237,9 @@ export class SplinePath {
     const eps = 0.001;
     const a = this.evaluate(Math.max(0, t - eps));
     const b = this.evaluate(Math.min(1, t + eps));
-    const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+    const dx = b.x - a.x,
+      dy = b.y - a.y,
+      dz = b.z - a.z;
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
     return { x: dx / len, y: dy / len, z: dz / len };
   }

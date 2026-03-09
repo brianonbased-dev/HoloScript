@@ -7,18 +7,43 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  pathLength, walkDuration, modelPositionAtTime,
-  cameraSequenceDuration, activeCameraAtTime, cutCountByAngle,
-  fabricSwayFactor, trainDragAdjustment, showTotalDuration,
-  clothSimSnapshot, audienceHeatmap,
-  type ModelProfile, type RunwayPath, type CameraCut, type ShowSegment, type Vec2,
+  pathLength,
+  walkDuration,
+  modelPositionAtTime,
+  cameraSequenceDuration,
+  activeCameraAtTime,
+  cutCountByAngle,
+  fabricSwayFactor,
+  trainDragAdjustment,
+  showTotalDuration,
+  clothSimSnapshot,
+  audienceHeatmap,
+  type ModelProfile,
+  type RunwayPath,
+  type CameraCut,
+  type ShowSegment,
+  type Vec2,
 } from '@/lib/fashionRunway';
 
 describe('Scenario: Fashion Runway — Walk Path', () => {
-  const model: ModelProfile = { id: 'm1', name: 'Elena', walkStyle: 'editorial', walkSpeedMPS: 1.2, heightCm: 180, outfitIds: ['o1'] };
+  const model: ModelProfile = {
+    id: 'm1',
+    name: 'Elena',
+    walkStyle: 'editorial',
+    walkSpeedMPS: 1.2,
+    heightCm: 180,
+    outfitIds: ['o1'],
+  };
   const path: RunwayPath = {
-    id: 'p1', waypoints: [{ x: 0, y: 0 }, { x: 0, y: 20 }, { x: 0, y: 0 }],
-    pausePoints: [{ x: 0, y: 20 }], pauseDurationSec: 3, totalLengthM: 40,
+    id: 'p1',
+    waypoints: [
+      { x: 0, y: 0 },
+      { x: 0, y: 20 },
+      { x: 0, y: 0 },
+    ],
+    pausePoints: [{ x: 0, y: 20 }],
+    pauseDurationSec: 3,
+    totalLengthM: 40,
   };
 
   it('pathLength() sums waypoint distances', () => {
@@ -44,9 +69,33 @@ describe('Scenario: Fashion Runway — Walk Path', () => {
 
 describe('Scenario: Fashion Runway — Camera', () => {
   const cuts: CameraCut[] = [
-    { id: 'c1', angle: 'front', startTimeSec: 0, durationSec: 5, targetModelId: 'm1', zoom: 1, transition: 'cut' },
-    { id: 'c2', angle: 'close-up', startTimeSec: 5, durationSec: 3, targetModelId: 'm1', zoom: 2.5, transition: 'dissolve' },
-    { id: 'c3', angle: 'side', startTimeSec: 8, durationSec: 4, targetModelId: 'm1', zoom: 1.5, transition: 'pan' },
+    {
+      id: 'c1',
+      angle: 'front',
+      startTimeSec: 0,
+      durationSec: 5,
+      targetModelId: 'm1',
+      zoom: 1,
+      transition: 'cut',
+    },
+    {
+      id: 'c2',
+      angle: 'close-up',
+      startTimeSec: 5,
+      durationSec: 3,
+      targetModelId: 'm1',
+      zoom: 2.5,
+      transition: 'dissolve',
+    },
+    {
+      id: 'c3',
+      angle: 'side',
+      startTimeSec: 8,
+      durationSec: 4,
+      targetModelId: 'm1',
+      zoom: 1.5,
+      transition: 'pan',
+    },
   ];
 
   it('cameraSequenceDuration() returns total length', () => {
@@ -89,8 +138,24 @@ describe('Scenario: Fashion Runway — Garment Physics', () => {
 
   it('showTotalDuration() sums all segments', () => {
     const segments: ShowSegment[] = [
-      { id: 's1', name: 'Opening', models: [], musicTrack: '', bpm: 120, durationSec: 180, lightingCue: '' },
-      { id: 's2', name: 'Finale', models: [], musicTrack: '', bpm: 130, durationSec: 120, lightingCue: '' },
+      {
+        id: 's1',
+        name: 'Opening',
+        models: [],
+        musicTrack: '',
+        bpm: 120,
+        durationSec: 180,
+        lightingCue: '',
+      },
+      {
+        id: 's2',
+        name: 'Finale',
+        models: [],
+        musicTrack: '',
+        bpm: 130,
+        durationSec: 120,
+        lightingCue: '',
+      },
     ];
     expect(showTotalDuration(segments)).toBe(300);
   });
@@ -105,12 +170,15 @@ describe('Scenario: Fashion Runway — Garment Physics', () => {
   });
 
   it('audience reaction heatmap — track visual attention zones', () => {
-    const modelPositions: Vec2[] = [{ x: 5, y: 1 }, { x: 5, y: 3 }];
+    const modelPositions: Vec2[] = [
+      { x: 5, y: 1 },
+      { x: 5, y: 3 },
+    ];
     const heatmap = audienceHeatmap(modelPositions, 4, 4, 10, 4);
     // Cells near models should have higher intensity
     expect(heatmap.length).toBe(16); // 4x4 grid
-    const nearModel = heatmap.find(c => Math.abs(c.x - 5) < 2 && Math.abs(c.y - 1) < 1)!;
-    const farFromModel = heatmap.find(c => c.x < 2 && c.y < 1)!;
+    const nearModel = heatmap.find((c) => Math.abs(c.x - 5) < 2 && Math.abs(c.y - 1) < 1)!;
+    const farFromModel = heatmap.find((c) => c.x < 2 && c.y < 1)!;
     expect(nearModel.intensity).toBeGreaterThan(farFromModel.intensity);
   });
 });

@@ -14,7 +14,7 @@
 export interface LODLevel {
   level: number;
   maxDistance: number;
-  meshDetail: number;        // 0-1, 1 = full detail
+  meshDetail: number; // 0-1, 1 = full detail
 }
 
 export interface LODObject {
@@ -22,15 +22,15 @@ export interface LODObject {
   position: { x: number; y: number; z: number };
   currentLevel: number;
   levels: LODLevel[];
-  bias: number;              // Multiplier to push LOD transitions
+  bias: number; // Multiplier to push LOD transitions
   visible: boolean;
-  transitionAlpha: number;   // 0-1 for blending
+  transitionAlpha: number; // 0-1 for blending
 }
 
 export interface LODConfig {
   defaultLevels: LODLevel[];
-  hysteresis: number;        // Extra distance before switching back
-  transitionSpeed: number;   // Blend speed
+  hysteresis: number; // Extra distance before switching back
+  transitionSpeed: number; // Blend speed
   maxObjects: number;
 }
 
@@ -69,8 +69,12 @@ export class LODManager {
   // Object Management
   // ---------------------------------------------------------------------------
 
-  register(id: string, position: { x: number; y: number; z: number },
-           levels?: LODLevel[], bias = 1): LODObject {
+  register(
+    id: string,
+    position: { x: number; y: number; z: number },
+    levels?: LODLevel[],
+    bias = 1
+  ): LODObject {
     const obj: LODObject = {
       id,
       position: { ...position },
@@ -84,7 +88,9 @@ export class LODManager {
     return obj;
   }
 
-  unregister(id: string): boolean { return this.objects.delete(id); }
+  unregister(id: string): boolean {
+    return this.objects.delete(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Update
@@ -105,8 +111,8 @@ export class LODManager {
       let targetLevel = obj.levels.length - 1;
       for (let i = 0; i < obj.levels.length; i++) {
         const threshold = obj.levels[i].maxDistance;
-        const hysteresisAdjust = (i > obj.currentLevel)
-          ? this.config.hysteresis : -this.config.hysteresis;
+        const hysteresisAdjust =
+          i > obj.currentLevel ? this.config.hysteresis : -this.config.hysteresis;
         if (dist < threshold + hysteresisAdjust) {
           targetLevel = i;
           break;
@@ -129,8 +135,12 @@ export class LODManager {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getObject(id: string): LODObject | undefined { return this.objects.get(id); }
-  getObjectCount(): number { return this.objects.size; }
+  getObject(id: string): LODObject | undefined {
+    return this.objects.get(id);
+  }
+  getObjectCount(): number {
+    return this.objects.size;
+  }
 
   getLevelDistribution(): Map<number, number> {
     const dist = new Map<number, number>();
@@ -141,7 +151,7 @@ export class LODManager {
   }
 
   getObjectsAtLevel(level: number): LODObject[] {
-    return [...this.objects.values()].filter(o => o.currentLevel === level);
+    return [...this.objects.values()].filter((o) => o.currentLevel === level);
   }
 
   getAverageLOD(): number {

@@ -23,7 +23,9 @@ function makeConfig(overrides?: Partial<EmitterConfig>): EmitterConfig {
 describe('ParticleEmitter', () => {
   let emitter: ParticleEmitter;
 
-  beforeEach(() => { emitter = new ParticleEmitter(makeConfig()); });
+  beforeEach(() => {
+    emitter = new ParticleEmitter(makeConfig());
+  });
 
   // ---------------------------------------------------------------------------
   // Construction
@@ -77,22 +79,26 @@ describe('ParticleEmitter', () => {
   });
 
   it('particles die after lifetime', () => {
-    const shortLived = new ParticleEmitter(makeConfig({
-      lifetime: { min: 0.1, max: 0.1 },
-      emissionRate: 100,
-    }));
+    const shortLived = new ParticleEmitter(
+      makeConfig({
+        lifetime: { min: 0.1, max: 0.1 },
+        emissionRate: 100,
+      })
+    );
     shortLived.play();
     shortLived.update(0.01); // Emit some, age=0.01 < 0.1 lifetime → alive
     expect(shortLived.getAliveCount()).toBeGreaterThan(0);
-    shortLived.update(1);   // age += 1 → 1.01 > 0.1 → all dead
+    shortLived.update(1); // age += 1 → 1.01 > 0.1 → all dead
     expect(shortLived.getAliveCount()).toBe(0);
   });
 
   it('respects maxParticles limit', () => {
-    const limited = new ParticleEmitter(makeConfig({
-      maxParticles: 5,
-      emissionRate: 1000,
-    }));
+    const limited = new ParticleEmitter(
+      makeConfig({
+        maxParticles: 5,
+        emissionRate: 1000,
+      })
+    );
     limited.play();
     limited.update(1); // Try to emit 1000 but max is 5
     expect(limited.getAliveCount()).toBeLessThanOrEqual(5);
@@ -106,7 +112,7 @@ describe('ParticleEmitter', () => {
     emitter.play();
     emitter.update(0.1);
     const alive = emitter.getAliveParticles();
-    expect(alive.every(p => p.alive)).toBe(true);
+    expect(alive.every((p) => p.alive)).toBe(true);
   });
 
   it('getCapacity returns maxParticles', () => {

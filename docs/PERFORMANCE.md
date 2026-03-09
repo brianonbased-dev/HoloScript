@@ -65,24 +65,24 @@ HoloScript v3.43.0 includes extensive performance optimizations across parsing, 
 
 ### Compilation Benchmarks
 
-| Operation | Time | Notes |
-| --------- | ---- | ----- |
-| Parse small file (< 100 lines) | < 5ms | Single-pass tokenizer |
-| Parse large file (1000+ lines) | < 50ms | With full AST construction |
-| Type check (simple) | < 10ms | Cached inference |
-| Type check (complex, nested) | < 30ms | WeakMap cache hits |
-| Compile to single target | < 100ms | From cached AST |
-| Compile to all 20+ targets | < 500ms | Shared AST, parallel passes |
+| Operation                      | Time    | Notes                       |
+| ------------------------------ | ------- | --------------------------- |
+| Parse small file (< 100 lines) | < 5ms   | Single-pass tokenizer       |
+| Parse large file (1000+ lines) | < 50ms  | With full AST construction  |
+| Type check (simple)            | < 10ms  | Cached inference            |
+| Type check (complex, nested)   | < 30ms  | WeakMap cache hits          |
+| Compile to single target       | < 100ms | From cached AST             |
+| Compile to all 20+ targets     | < 500ms | Shared AST, parallel passes |
 
 ### Trait Application
 
-| Operation | Time | Notes |
-| --------- | ---- | ----- |
-| Apply 1 trait | < 0.1ms | Direct set lookup |
-| Apply 100 traits | < 5ms | Batch application |
-| Apply 1000 traits | < 40ms | With dependency resolution |
-| Trait validation | < 0.01ms | O(1) set membership |
-| Trait suggestion (typo) | < 2ms | Levenshtein on indexed vocab |
+| Operation               | Time     | Notes                        |
+| ----------------------- | -------- | ---------------------------- |
+| Apply 1 trait           | < 0.1ms  | Direct set lookup            |
+| Apply 100 traits        | < 5ms    | Batch application            |
+| Apply 1000 traits       | < 40ms   | With dependency resolution   |
+| Trait validation        | < 0.01ms | O(1) set membership          |
+| Trait suggestion (typo) | < 2ms    | Levenshtein on indexed vocab |
 
 ### Memory Usage
 

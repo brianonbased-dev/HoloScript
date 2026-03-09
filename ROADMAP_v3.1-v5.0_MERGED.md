@@ -30,7 +30,7 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 | OpenXR HAL         | Not specified | **v3.1**            | Blocks ALL haptic traits - critical blocker                |
 | HITL Architecture  | Not specified | **v3.1**            | 40% agentic AI project failure rate without it             |
 | Gaussian Splatting | v3.2          | **v4.1**            | PLY/SPLAT support exists, Levy flight optimization pending |
-| Zora Coins         | v3.2          | **v3.2 STRENGTHEN** | Film3D creator economy - high priority                      |
+| Zora Coins         | v3.2          | **v3.2 STRENGTHEN** | Film3D creator economy - high priority                     |
 
 ---
 
@@ -42,7 +42,7 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 | AI Agents         | $8.5B      | $180B+          | MCP MAS + HITL + LLMAgentTrait    |
 | RWA Tokenization  | $50B       | $230B+          | TokenGatedTrait + Zora Coins      |
 | Spatial Computing | $12B       | $60B+           | USD-Z export + Gaussian Splatting |
-| Creator Economy   | $127B      | $250B+          | Film3D + Zora Protocol             |
+| Creator Economy   | $127B      | $250B+          | Film3D + Zora Protocol            |
 
 ---
 
@@ -54,12 +54,12 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 
 ### Maturity Criteria (Exit Gates)
 
-| Metric                | Current        | Target | Status |
-| --------------------- | -------------- | ------ | ------ |
+| Metric                | Current           | Target | Status |
+| --------------------- | ----------------- | ------ | ------ |
 | Test Coverage         | 1,630+ test files | 40%+   | ✅     |
-| Stub Traits Completed | 6/6            | 6/6    | ✅     |
-| Security Audit        | Passed         | Passed | ✅     |
-| CI/CD Pipeline        | Full           | Full   | ✅     |
+| Stub Traits Completed | 6/6               | 6/6    | ✅     |
+| Security Audit        | Passed            | Passed | ✅     |
+| CI/CD Pipeline        | Full              | Full   | ✅     |
 
 ### Sprint 1: Core Trait Completion (2 weeks)
 
@@ -229,12 +229,12 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 
 #### ✅ Film3D Creator Economy
 
-| Component | Package | Lines | Tests |
-|---|---|---|---|
-| Creator Monetization Service | `marketplace-api` | 920 | 30 |
-| Creator Dashboard UI | `studio` | 965 | — |
-| IPFS Integration (Pinata/NFT.Storage/Infura) | `core/storage` | 453 | 32 |
-| Film3DTypes | `marketplace-api/types` | 495 | — |
+| Component                                    | Package                 | Lines | Tests |
+| -------------------------------------------- | ----------------------- | ----- | ----- |
+| Creator Monetization Service                 | `marketplace-api`       | 920   | 30    |
+| Creator Dashboard UI                         | `studio`                | 965   | —     |
+| IPFS Integration (Pinata/NFT.Storage/Infura) | `core/storage`          | 453   | 32    |
+| Film3DTypes                                  | `marketplace-api/types` | 495   | —     |
 
 - Revenue sharing: 80% artist / 10% platform / 10% AI
 - NFT minting via Zora Protocol (Base L2)
@@ -244,11 +244,11 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 
 #### ✅ Web3 Trait Ecosystem
 
-| Trait | File | Lines | Features |
-|---|---|---|---|
-| NFTTrait | `NFTTrait.ts` | 237 | ERC721/ERC1155/SPL, Base chain |
-| TokenGatedTrait | `TokenGatedTrait.ts` | 252 | Access control, combine policies |
-| WalletTrait | `WalletTrait.ts` | 314 | MetaMask, WalletConnect, Coinbase |
+| Trait           | File                 | Lines | Features                          |
+| --------------- | -------------------- | ----- | --------------------------------- |
+| NFTTrait        | `NFTTrait.ts`        | 237   | ERC721/ERC1155/SPL, Base chain    |
+| TokenGatedTrait | `TokenGatedTrait.ts` | 252   | Access control, combine policies  |
+| WalletTrait     | `WalletTrait.ts`     | 314   | MetaMask, WalletConnect, Coinbase |
 
 ---
 
@@ -284,11 +284,11 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 
 #### ✅ Advanced Compression
 
-| Format | Implementation | Reduction |
-|---|---|---|
-| KTX2 (textures) | `AdvancedCompression.ts` | 70–90% |
-| Draco (meshes) | `@gltf-transform/*` | 60–80% |
-| Quantized anim | GLTFExporter.ts | — |
+| Format          | Implementation           | Reduction |
+| --------------- | ------------------------ | --------- |
+| KTX2 (textures) | `AdvancedCompression.ts` | 70–90%    |
+| Draco (meshes)  | `@gltf-transform/*`      | 60–80%    |
+| Quantized anim  | GLTFExporter.ts          | —         |
 
 - 36 compression tests passing
 - Export time: <5s for 10MB scene
@@ -300,6 +300,7 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 **Theme**: HSPlus Constructs + 8 Industry Domain Blocks + Spatial Primitives
 
 ### Core Deliverables (Shipped)
+
 - **20+ HSPlus constructs**: `module`, `struct`, `enum`, `interface`, `import/export`, `function`, `variable_declaration`, `for_of`, `try/catch`, `throw`, `switch/case`, `await`, `new`, `optional_chain`, `generic_type`
 - **8 domain-specific blocks**: IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3 (72 keywords total)
 - **Extensible `custom_block`**: Any identifier as a block keyword
@@ -336,7 +337,6 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 
 ---
 
-
 ---
 
 ## v4.2 – Perception & Simulation Layer ✅ COMPLETE (March 2026)
@@ -344,6 +344,7 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 **Theme**: Materials + Particles + Post-Processing + Weather + Physics + Navigation + Test Framework
 
 ### Core Deliverables (Shipped)
+
 - **PBR Materials**: `pbr_material`, `glass_material`, `toon_material`, `subsurface_material`, `unlit_material` with texture maps and shader connections
 - **Particle Systems**: `particle_block` with sub-emitters, color/size over life, emission shapes
 - **Post-Processing**: `post_processing_block` — bloom, depth of field, color grading, SSAO, motion blur, tone mapping
@@ -463,19 +464,19 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 
 ## Milestone Summary
 
-| Version    | Quarter     | Theme                | Key Deliverables                                                  | Status |
-| ---------- | ----------- | -------------------- | ----------------------------------------------------------------- | ------ |
-| **v3.0.x** | **Q1 2026** | **Stabilization**    | 1,630+ test files, all stubs complete, security audit             | ✅     |
-| v3.1       | Q1 2026     | Foundation & Safety  | OpenXR HAL, HITL backend, MultiAgentTrait, WebRTC auto-detect     | ✅     |
-| v3.2       | Q2 2026     | Creator Economy      | ZoraCoinsTrait, Film3D creator stack, IPFS integration            | ✅     |
-| v3.3       | Q2 2026     | Spatial Export       | USDZ (Apple Vision Pro), Render Network (real API), KTX2+Draco   | ✅     |
-| v3.4–v3.5  | Q2 2026     | Rendering + DX       | LOD streaming, GPU culling, Visual Shader Editor, 38 packages     | ✅     |
-| v3.6–v3.42 | Q2 2026     | IDE + AI + DX        | IntelliJ/Neovim/VSCode plugins, MCP server, AI autocomplete, WASM | ✅     |
-| **v4.0**   | **Q1 2026** | **Multi-Domain**   | 8 industry domains, HSPlus constructs, spatial primitives, 62 token types  | ✅     |
-| **v4.2**   | **Q1 2026** | **Simulation**     | PBR materials, particles, post-FX, weather, physics, navigation, test FW  | ✅     |
-| v4.1       | Q1 2026     | Volumetric Media     | Gaussian Splatting v2 (Levy flight), NeRF rendering               | ✅     |
-| v4.3       | Q1 2026     | Privacy & Enterprise | `@zkPrivate` (Aztec Noir), multi-tenant, SSO, analytics           | ✅     |
-| v5.0       | H1 2027     | Autonomous           | Cross-scene agent networks, economic primitives                   | ⬜     |
+| Version    | Quarter     | Theme                | Key Deliverables                                                          | Status |
+| ---------- | ----------- | -------------------- | ------------------------------------------------------------------------- | ------ |
+| **v3.0.x** | **Q1 2026** | **Stabilization**    | 1,630+ test files, all stubs complete, security audit                     | ✅     |
+| v3.1       | Q1 2026     | Foundation & Safety  | OpenXR HAL, HITL backend, MultiAgentTrait, WebRTC auto-detect             | ✅     |
+| v3.2       | Q2 2026     | Creator Economy      | ZoraCoinsTrait, Film3D creator stack, IPFS integration                    | ✅     |
+| v3.3       | Q2 2026     | Spatial Export       | USDZ (Apple Vision Pro), Render Network (real API), KTX2+Draco            | ✅     |
+| v3.4–v3.5  | Q2 2026     | Rendering + DX       | LOD streaming, GPU culling, Visual Shader Editor, 38 packages             | ✅     |
+| v3.6–v3.42 | Q2 2026     | IDE + AI + DX        | IntelliJ/Neovim/VSCode plugins, MCP server, AI autocomplete, WASM         | ✅     |
+| **v4.0**   | **Q1 2026** | **Multi-Domain**     | 8 industry domains, HSPlus constructs, spatial primitives, 62 token types | ✅     |
+| **v4.2**   | **Q1 2026** | **Simulation**       | PBR materials, particles, post-FX, weather, physics, navigation, test FW  | ✅     |
+| v4.1       | Q1 2026     | Volumetric Media     | Gaussian Splatting v2 (Levy flight), NeRF rendering                       | ✅     |
+| v4.3       | Q1 2026     | Privacy & Enterprise | `@zkPrivate` (Aztec Noir), multi-tenant, SSO, analytics                   | ✅     |
+| v5.0       | H1 2027     | Autonomous           | Cross-scene agent networks, economic primitives                           | ⬜     |
 
 > [!IMPORTANT]
 > **v4.0 Scope Update (March 2026)**: The main [ROADMAP.md](docs/strategy/ROADMAP.md) now defines v4.0 as **x402 Protocol + StoryWeaver AI**, while this file listed `@zkPrivate` + Enhanced LLMAgent. The main ROADMAP.md is the source of truth for v4.0+ planning. The 8 AI traits originally planned for v4.0 were completed as part of v3.x.
@@ -486,10 +487,10 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 
 **Status**: ✅ **100% Complete** — Delivered 2026-02-22
 
-| Component | Lines | Tests |
-|---|---|---|
-| LODStreamingManager + LODCache + GPUCullingSystem | 3,049 | 56 |
-| LODPerformance optimizations + LODMemoryPool | 1,783 | 36 |
+| Component                                         | Lines | Tests |
+| ------------------------------------------------- | ----- | ----- |
+| LODStreamingManager + LODCache + GPUCullingSystem | 3,049 | 56    |
+| LODPerformance optimizations + LODMemoryPool      | 1,783 | 36    |
 
 **Highlights**: 50+ dragons @ 60 FPS, 3× faster LOD selection, 90% stuttering reduction, 95% fewer memory allocations.
 
@@ -499,11 +500,11 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 
 **Status**: ✅ **100% Complete** — Delivered 2026-02-22 (4 parallel agents, 2 hours)
 
-| Component | Lines | Tests |
-|---|---|---|
-| ShaderEditorService + Live Preview + Material Library (26 presets) | 3,685 | 27 |
-| ShaderEditor React components + hooks | 2,287 | 15 |
-| ShaderTemplates (12 templates) + UndoRedoSystem | 1,271 | 7 |
+| Component                                                          | Lines | Tests |
+| ------------------------------------------------------------------ | ----- | ----- |
+| ShaderEditorService + Live Preview + Material Library (26 presets) | 3,685 | 27    |
+| ShaderEditor React components + hooks                              | 2,287 | 15    |
+| ShaderTemplates (12 templates) + UndoRedoSystem                    | 1,271 | 7     |
 
 **Highlights**: 100+ shader node templates, React Flow canvas, live WGSL compilation, IndexedDB auto-save, 100-level undo.
 
@@ -513,14 +514,14 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 
 **Status**: ✅ Shipped across 160 commits. See [`docs/V3.6-V3.42_AUDIT.md`](docs/V3.6-V3.42_AUDIT.md) for full inventory.
 
-| Feature Area | Packages |
-|---|---|
-| IDE Plugins | `intellij`, `neovim`, `vscode-extension`, `tree-sitter-holoscript` |
-| AI Integration | `ai-validator`, `llm-provider`, `mcp-server` (34 tools) |
-| Build Targets | `compiler-wasm`, `python-bindings`, `unity-sdk` |
-| DevTools | `cli`, `linter`, `formatter`, `lsp`, `benchmark`, `playground` |
-| Platform | `runtime`, `std`, `fs`, `security-sandbox`, `adapter-postgres` |
-| Distribution | `registry`, `holoscript-cdn`, `partner-sdk`, `marketplace-web` |
+| Feature Area   | Packages                                                           |
+| -------------- | ------------------------------------------------------------------ |
+| IDE Plugins    | `intellij`, `neovim`, `vscode-extension`, `tree-sitter-holoscript` |
+| AI Integration | `ai-validator`, `llm-provider`, `mcp-server` (34 tools)            |
+| Build Targets  | `compiler-wasm`, `python-bindings`, `unity-sdk`                    |
+| DevTools       | `cli`, `linter`, `formatter`, `lsp`, `benchmark`, `playground`     |
+| Platform       | `runtime`, `std`, `fs`, `security-sandbox`, `adapter-postgres`     |
+| Distribution   | `registry`, `holoscript-cdn`, `partner-sdk`, `marketplace-web`     |
 
 ---
 
@@ -529,6 +530,7 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 > **Current release: v4.3.0** (2026-03-03). All v3.0.x through v4.3 objectives are complete.
 
 ### HoloScript Engine
+
 1. **v4.0 — 8 AI Traits**: AgentMemory, SpatialAgentOrchestrator, CronTrait, LocalLLM, ComputerUse, Messaging, SkillRegistry, ZkPrivate ✅ COMPLETE
 2. **v4.0 — `@zkPrivate`**: Aztec Noir SDK integration, ZKP circuits for spatial data privacy ✅ COMPLETE (March 2026)
 3. **v4.0 — Enhanced LLMAgent**: Multi-model orchestration, long-horizon planning, memory persistence ✅ COMPLETE (March 2026)
@@ -538,12 +540,13 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 7. **v5.0 — Autonomous Ecosystems**: Cross-scene agent networks, in-scene microtransactions, emergent behavior
 
 ### HoloLand Platform
+
 See [HoloLand Platform Launch](#hololand-platform-launch) section below.
 
 ---
 
-
 ### The Five Pillars (from Immutability Manifesto)
+
 1. **MIT License, Forever** — irrevocable, legally binding
 2. **90/10 Revenue Split** — capped permanently by Creator Council veto
 3. **No Runtime Fees Ever** — per-install charges prohibited
@@ -557,6 +560,7 @@ See [`IMMUTABILITY_MANIFESTO.md`](IMMUTABILITY_MANIFESTO.md) for the full legal 
 ### 12-Month Launch Roadmap
 
 #### Month 1–3: Foundation
+
 - [ ] Assemble 10-person core team (Engine × 4, Platform × 3, Creator Success × 3)
 - [✅] Tech stack confirmed: Rust + TypeScript + WASM (ECS+WASM POC validated )
 - [✅] Publish **Immutability Manifesto** (MIT, 90/10, no runtime fees) ✅
@@ -565,6 +569,7 @@ See [`IMMUTABILITY_MANIFESTO.md`](IMMUTABILITY_MANIFESTO.md) for the full legal 
 - [] Open `holoscript.net` landing page with benchmark results
 
 #### Month 4–6: Alpha (100 Founders, Closed) ✅ COMPLETE (March 2026)
+
 - [x] **HoloLand Founders Program** — 100 curated creators
   - 95/5 revenue split (5% platform, permanently)
   - $2,000/month guaranteed income for 12 months
@@ -574,6 +579,7 @@ See [`IMMUTABILITY_MANIFESTO.md`](IMMUTABILITY_MANIFESTO.md) for the full legal 
 - [x] First 10 published worlds live on `hololand.io/[creator]` URLs
 
 #### Month 7–9: Beta (1,000 Creators, 10,000 Players) ✅ COMPLETE (March 2026)
+
 - [x] Public platform launch (open creator signups)
 - [x] Revenue split: 92/8 (remains best in market)
 - [x] **"Instant Remix"** feature: one-click fork any world → new URL
@@ -582,6 +588,7 @@ See [`IMMUTABILITY_MANIFESTO.md`](IMMUTABILITY_MANIFESTO.md) for the full legal 
 - [x] Mobile web optimization (battery/thermal benchmarks)
 
 #### Month 10–12: Public Launch (10,000 Creators, 100,000 Players) ✅ COMPLETE (March 2026)
+
 - [x] Open creator signups — no approval required
 - [x] Revenue split: 90/10 (permanent, legally locked)
 - [ ] First **$10M+ creator payout milestone**
@@ -595,17 +602,18 @@ See [`IMMUTABILITY_MANIFESTO.md`](IMMUTABILITY_MANIFESTO.md) for the full legal 
 **Why Unity devs will come**: Trust destroyed in 2023. HoloScript offers MIT license, WASM-first (instant play URLs vs EXE downloads), and identical ECS architecture.
 
 **Tools shipped** (2026-02-23):
+
 - [`UnityToHoloScriptConverter.ts`](packages/core/src/traits/UnityToHoloScriptConverter.ts) — C# MonoBehaviour → HoloScript DSL (23 tests ✅)
 - [`docs/UNITY_MIGRATION_GUIDE.md`](docs/UNITY_MIGRATION_GUIDE.md) — Step-by-step migration docs
 
 **Unity Component → HoloScript Trait mapping:**
 
-| Unity | HoloScript |
-|---|---|
-| `Rigidbody` | `PhysicsTrait` |
-| `NavMeshAgent` | `PatrolTrait` |
-| `Animator` | `AnimationTrait` |
-| `AudioSource` | `AudioTrait` |
+| Unity             | HoloScript         |
+| ----------------- | ------------------ |
+| `Rigidbody`       | `PhysicsTrait`     |
+| `NavMeshAgent`    | `PatrolTrait`      |
+| `Animator`        | `AnimationTrait`   |
+| `AudioSource`     | `AudioTrait`       |
 | `NetworkIdentity` | `MultiplayerTrait` |
 
 ---
@@ -615,27 +623,28 @@ See [`IMMUTABILITY_MANIFESTO.md`](IMMUTABILITY_MANIFESTO.md) for the full legal 
 **Internal POC** (TypeScript baseline, 2026-02-23):
 
 | Entity Count | Avg Frame (TypeScript) | Meets 60fps |
-|---|---|---|
-| 100 | <0.1ms | ✅ |
-| 1,000 | <1ms | ✅ |
-| 5,000 | ~4ms | ✅ |
-| 10,000+ | Use WASM path | ⚠️ |
+| ------------ | ---------------------- | ----------- |
+| 100          | <0.1ms                 | ✅          |
+| 1,000        | <1ms                   | ✅          |
+| 5,000        | ~4ms                   | ✅          |
+| 10,000+      | Use WASM path          | ⚠️          |
 
 **External WASM benchmarks** (TODO-R2, 50+ sources):
 
-| Metric | Unity WebGL | Native WASM | Advantage |
-|---|---|---|---|
-| FPS @ 1K entities | 30–45 fps | **60 fps** | **+40%** ✅ |
-| Load time | 30+ seconds | 3–8 seconds | **4-10×** faster ✅ |
-| Memory model | 2-4GB hard crash | Flexible heap | No OOM crashes ✅ |
-| GC pauses | Yes (lag spikes) | None | Smooth gameplay ✅ |
-| Battery consumption | High | 20-30% lower | Mobile advantage ✅ |
-| Physics processing | Baseline | 87% faster | ✅ |
-| Multithreading | Not supported | 2.32× speedup | ✅ |
+| Metric              | Unity WebGL      | Native WASM   | Advantage           |
+| ------------------- | ---------------- | ------------- | ------------------- |
+| FPS @ 1K entities   | 30–45 fps        | **60 fps**    | **+40%** ✅         |
+| Load time           | 30+ seconds      | 3–8 seconds   | **4-10×** faster ✅ |
+| Memory model        | 2-4GB hard crash | Flexible heap | No OOM crashes ✅   |
+| GC pauses           | Yes (lag spikes) | None          | Smooth gameplay ✅  |
+| Battery consumption | High             | 20-30% lower  | Mobile advantage ✅ |
+| Physics processing  | Baseline         | 87% faster    | ✅                  |
+| Multithreading      | Not supported    | 2.32× speedup | ✅                  |
 
-**Marketing headline**: *"40% faster than Unity WebGL. No install required."*
+**Marketing headline**: _"40% faster than Unity WebGL. No install required."_
 
 **Files shipped**:
+
 - [`ECSWorldTrait.ts`](packages/core/src/traits/ECSWorldTrait.ts) — ECS runtime + `runECSBenchmark()` (27 tests ✅)
 - `wasmBridgeHandler` — HoloScript trait exposing ECS as scene events
 - Bevy/Godot reference: 190fps @ 10K entities (validates 1K @ 60fps is conservative)
@@ -644,22 +653,22 @@ See [`IMMUTABILITY_MANIFESTO.md`](IMMUTABILITY_MANIFESTO.md) for the full legal 
 
 ### Competitive Matrix (All Claims Now Data-Backed)
 
-| Dimension | Unity | Roblox | **HoloLand** | Evidence |
-|---|---|---|---|---|
-| License | Proprietary | Proprietary | MIT (irrevocable) | `IMMUTABILITY_MANIFESTO.md` |
-| Revenue split | 70/30 | ~25/75 | **90/10 (capped)** | Manifesto, legally locked |
-| Distribution | Download EXE/APK | App download | **URL instant-play** | WASM architecture |
-| Runtime fees | Yes (reinstated risk) | No | **Never** | Manifesto Pillar III |
-| FPS @ 1K entities | 30–45 fps ❌ | N/A | **60 fps** ✅ | TODO-R2 (50+ sources) |
-| Load time | 30+ seconds ❌ | App install | **3–8 seconds** ✅ | TODO-R2 benchmarks |
-| Migration automation | N/A | N/A | **60–70%** automated | TODO-R3 analysis |
-| AI scene gen | No | No | **SpatialAgentOrchestrator** | v4.0 (151 tests) |
-| Remix economy | No | No | **K=1.3 viral, on-chain** | TODO-R4 model |
-| Local LLM agents | Plugin-dependent | No | **LocalLLMTrait (built-in)** | v4.0 (151 tests) |
-| Multiplayer | N/A | Proprietary | **WebRTC+WS, 99.5% NAT** | TODO-I2 validated |
-| ZK privacy | No | No | **ZkPrivateTrait** | v4.0 (151 tests) |
-| Moderation cost | N/A | $824M/year (13%) | **17% revenue, 9.6× efficient** | TODO-R1 analysis |
-| Target demo | All ages | <13 dominant | **13–25 (Creator-first)** | Developer outreach |
+| Dimension            | Unity                 | Roblox           | **HoloLand**                    | Evidence                    |
+| -------------------- | --------------------- | ---------------- | ------------------------------- | --------------------------- |
+| License              | Proprietary           | Proprietary      | MIT (irrevocable)               | `IMMUTABILITY_MANIFESTO.md` |
+| Revenue split        | 70/30                 | ~25/75           | **90/10 (capped)**              | Manifesto, legally locked   |
+| Distribution         | Download EXE/APK      | App download     | **URL instant-play**            | WASM architecture           |
+| Runtime fees         | Yes (reinstated risk) | No               | **Never**                       | Manifesto Pillar III        |
+| FPS @ 1K entities    | 30–45 fps ❌          | N/A              | **60 fps** ✅                   | TODO-R2 (50+ sources)       |
+| Load time            | 30+ seconds ❌        | App install      | **3–8 seconds** ✅              | TODO-R2 benchmarks          |
+| Migration automation | N/A                   | N/A              | **60–70%** automated            | TODO-R3 analysis            |
+| AI scene gen         | No                    | No               | **SpatialAgentOrchestrator**    | v4.0 (151 tests)            |
+| Remix economy        | No                    | No               | **K=1.3 viral, on-chain**       | TODO-R4 model               |
+| Local LLM agents     | Plugin-dependent      | No               | **LocalLLMTrait (built-in)**    | v4.0 (151 tests)            |
+| Multiplayer          | N/A                   | Proprietary      | **WebRTC+WS, 99.5% NAT**        | TODO-I2 validated           |
+| ZK privacy           | No                    | No               | **ZkPrivateTrait**              | v4.0 (151 tests)            |
+| Moderation cost      | N/A                   | $824M/year (13%) | **17% revenue, 9.6× efficient** | TODO-R1 analysis            |
+| Target demo          | All ages              | <13 dominant     | **13–25 (Creator-first)**       | Developer outreach          |
 
 **All 7 research claims independently validated with 50+ sources each.**
 
@@ -672,35 +681,40 @@ See [`IMMUTABILITY_MANIFESTO.md`](IMMUTABILITY_MANIFESTO.md) for the full legal 
 **The opportunity**: Roblox and Fortnite actively discourage remixing (copyright fear, no attribution). HoloLand turns it into the primary growth engine.
 
 #### Economic Model
-| Layer | Share | Notes |
-|---|---|---|
-| Platform | 10% | Hosting, moderation, infrastructure |
+
+| Layer            | Share           | Notes                                               |
+| ---------------- | --------------- | --------------------------------------------------- |
+| Platform         | 10%             | Hosting, moderation, infrastructure                 |
 | Original creator | 40-50% (decays) | `50% × 0.75^depth` — sustainable at any chain depth |
-| Remixer | 40-50% | High enough to justify effort even at Depth 10+ |
+| Remixer          | 40-50%          | High enough to justify effort even at Depth 10+     |
 
 **Why remixing wins**: 6h effort vs 200h original, 35% success rate vs 10% = **15.5× more profitable per hour**.
 
 #### Viral Coefficient: K = 1.3
+
 ```
 K = (7 remixes/game) × (10% CTR) × (0.35 success rate) = 1.225 ≈ 1.3
 ```
 
 | Month | Games on Platform |
-|---|---|
-| 0 | 100 |
-| 3 | 183 |
-| 6 | 337 |
-| 12 | **1,140** |
+| ----- | ----------------- |
+| 0     | 100               |
+| 3     | 183               |
+| 6     | 337               |
+| 12    | **1,140**         |
 
 #### Decay Attribution (Prevents "Death Spiral")
+
 ```
 Depth 1:  Original 50%, remixer 50%       ✅
 Depth 5:  Original 12%, parents 45%, remixer 38%  ✅
 Depth 10: Original 4%,  parents 56%, remixer 35%  ✅
 ```
+
 Revenue sharing remains positive at **any depth**. Smart contract caps at depth 15, gas cost <$0.50 on L2.
 
 #### 12-Week Implementation Roadmap
+
 - **Weeks 1-2**: Smart contract architecture (GameAsset, AttributionChain, RevenueDistribution)
 - **Weeks 3-4**: UX — "Remix" button + attribution preview modal + fork tree visualization
 - **Weeks 5-7**: Backend integration, testnet deploy (Polygon Mumbai), wallet infrastructure
@@ -719,28 +733,31 @@ Revenue sharing remains positive at **any depth**. Smart contract caps at depth 
 **Verdict**: `NetworkedTrait.ts` already implements industry best practices (same architecture as Overwatch, Halo). **No architectural changes needed — just ship it.**
 
 #### Architecture by Player Count
-| Players | Architecture | Transport |
-|---|---|---|
-| 2–8 | P2P mesh | WebRTC (10-50ms latency) |
-| 8–32 | Hybrid + SFU voice | WebRTC + WebSocket |
-| 32+ | Client-server | WebSocket + interest management |
+
+| Players | Architecture       | Transport                       |
+| ------- | ------------------ | ------------------------------- |
+| 2–8     | P2P mesh           | WebRTC (10-50ms latency)        |
+| 8–32    | Hybrid + SFU voice | WebRTC + WebSocket              |
+| 32+     | Client-server      | WebSocket + interest management |
 
 #### NAT Traversal
-| Method | Success Rate |
-|---|---|
-| STUN only | ~75% |
-| TURN fallback | +8-10% |
-| **STUN + TURN combined** | **>99.5%** |
+
+| Method                   | Success Rate |
+| ------------------------ | ------------ |
+| STUN only                | ~75%         |
+| TURN fallback            | +8-10%       |
+| **STUN + TURN combined** | **>99.5%**   |
 
 #### Confirmed Production-Ready Features
-| Feature | Status | Location |
-|---|---|---|
-| WebRTC → WebSocket → Local fallback | ✅ Optimal | Lines 274-326 |
-| Unreliable channels (UDP-like) | ✅ Correct | Line 246 |
-| Interpolation (linear, hermite, catmull-rom) | ✅ Advanced | Lines 553-621 |
-| Client-side prediction + reconciliation | ✅ Implemented | Lines 119-136 |
-| Delta encoding | ✅ Enabled | Line 207 |
-| Rate limiting (20 Hz default) | ✅ Configurable | Lines 734-743 |
+
+| Feature                                      | Status          | Location      |
+| -------------------------------------------- | --------------- | ------------- |
+| WebRTC → WebSocket → Local fallback          | ✅ Optimal      | Lines 274-326 |
+| Unreliable channels (UDP-like)               | ✅ Correct      | Line 246      |
+| Interpolation (linear, hermite, catmull-rom) | ✅ Advanced     | Lines 553-621 |
+| Client-side prediction + reconciliation      | ✅ Implemented  | Lines 119-136 |
+| Delta encoding                               | ✅ Enabled      | Line 207      |
+| Rate limiting (20 Hz default)                | ✅ Configurable | Lines 734-743 |
 
 **Next**: Add TURN server example to docs, load-test with 8-32 concurrent players.
 
@@ -754,30 +771,33 @@ Revenue sharing remains positive at **any depth**. Smart contract caps at depth 
 
 #### HoloLand Budget Model
 
-| Year | Revenue | T&S Budget (17%) | DAU Target | Moderators |
-|---|---|---|---|---|
-| 1 | $50M | **$8.5M** | 10M | 22 FTE |
-| 2 | $120M | $20M | 20M | 59 FTE |
-| 3 | $250M | $42M | 35M | 119 FTE + 40 BPO |
-| 5 | $550M | $94M | 60M | 280 FTE equiv. |
+| Year | Revenue | T&S Budget (17%) | DAU Target | Moderators       |
+| ---- | ------- | ---------------- | ---------- | ---------------- |
+| 1    | $50M    | **$8.5M**        | 10M        | 22 FTE           |
+| 2    | $120M   | $20M             | 20M        | 59 FTE           |
+| 3    | $250M   | $42M             | 35M        | 119 FTE + 40 BPO |
+| 5    | $550M   | $94M             | 60M        | 280 FTE equiv.   |
 
 **Efficiency**: 1 moderator per 314K DAU (Year 3) vs Roblox's 1:32,600 = **9.6× more efficient** via aggressive AI automation.
 
 #### Year 1 Stack ($8.5M)
-| Layer | Vendor | Cost |
-|---|---|---|
-| Text chat | OpenAI Moderation API | **FREE** (~$2M saved vs paid) |
-| Images/video | Hive Moderation | $1.2M |
-| 3D assets | Secur3D | $800K |
-| Behavior detection | Spectrum Labs (pilot) | $600K |
-| Custom ML infra | Cloud compute | $400K |
-| Human moderators | 22 FTE | $1.5M |
-| Infrastructure + ops | Queue, dashboards, appeals | $3.5M |
+
+| Layer                | Vendor                     | Cost                          |
+| -------------------- | -------------------------- | ----------------------------- |
+| Text chat            | OpenAI Moderation API      | **FREE** (~$2M saved vs paid) |
+| Images/video         | Hive Moderation            | $1.2M                         |
+| 3D assets            | Secur3D                    | $800K                         |
+| Behavior detection   | Spectrum Labs (pilot)      | $600K                         |
+| Custom ML infra      | Cloud compute              | $400K                         |
+| Human moderators     | 22 FTE                     | $1.5M                         |
+| Infrastructure + ops | Queue, dashboards, appeals | $3.5M                         |
 
 #### Differentiator: 3D-Native Safety
+
 Most moderation vendors only handle text/images. Spatial harassment, physics-based exploits, and 3D trademark violations are **entirely underserved** — HoloLand can own this category with $5M invested in Years 2-3.
 
 #### KPIs
+
 - Median time to action: **<5 min** (vs Roblox's 10 min)
 - False positive rate: <2%
 - Automation rate: >90%
@@ -796,19 +816,19 @@ _This roadmap supersedes previous versions and incorporates all uAA2++ Research 
 
 ### P1: Language Features (All ✅ — Previously Implemented, Now Tested)
 
-| Feature | Implementation | Tests | Status |
-|---|---|---|---|
-| `@import` / `@export` Module System | `ImportResolver.ts` (436 lines) | 20 (new) | ✅ |
-| Trait Composition (`@A = @b + @c`) | `TraitCompositionCompiler.ts` + `TraitComposer.ts` | 31 (new) | ✅ |
-| Local Reactive State | `ReactiveState.ts` + `StateTrait.ts` | 87 (existing) | ✅ |
+| Feature                             | Implementation                                     | Tests         | Status |
+| ----------------------------------- | -------------------------------------------------- | ------------- | ------ |
+| `@import` / `@export` Module System | `ImportResolver.ts` (436 lines)                    | 20 (new)      | ✅     |
+| Trait Composition (`@A = @b + @c`)  | `TraitCompositionCompiler.ts` + `TraitComposer.ts` | 31 (new)      | ✅     |
+| Local Reactive State                | `ReactiveState.ts` + `StateTrait.ts`               | 87 (existing) | ✅     |
 
 ### P2: Traits & Demo (All ✅)
 
-| Deliverable | Tests | Status |
-|---|---|---|
-| `LLMAgentTrait` v2 (multi-turn, tool calls, escalation, rate-limit, bounded autonomy) | 27 (new) | ✅ |
-| `GaussianSplatTrait` v2 (load lifecycle, camera sort, source swap, quality, query) | 22 (new) | ✅ |
-| WASM Benchmark Demo (`demos/wasm-benchmark/index.html`) | Live ECS 1K entities @60fps | ✅ |
+| Deliverable                                                                           | Tests                       | Status |
+| ------------------------------------------------------------------------------------- | --------------------------- | ------ |
+| `LLMAgentTrait` v2 (multi-turn, tool calls, escalation, rate-limit, bounded autonomy) | 27 (new)                    | ✅     |
+| `GaussianSplatTrait` v2 (load lifecycle, camera sort, source swap, quality, query)    | 22 (new)                    | ✅     |
+| WASM Benchmark Demo (`demos/wasm-benchmark/index.html`)                               | Live ECS 1K entities @60fps | ✅     |
 
 ### Documentation Updated
 

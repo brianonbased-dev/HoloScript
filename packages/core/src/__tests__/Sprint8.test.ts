@@ -36,7 +36,7 @@ import { WorkspaceRepository } from '../../../registry/src/workspace/WorkspaceRe
 // Path constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const WASM_ROOT   = join(__dirname, '../../../../packages/compiler-wasm');
+const WASM_ROOT = join(__dirname, '../../../../packages/compiler-wasm');
 const ACADEMY_ROOT = join(__dirname, '../../../../docs/academy');
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -156,8 +156,8 @@ describe('Sprint 8 – Workspace RBAC permissions', () => {
   });
 
   it('permission hierarchy: owner permissions ⊇ admin ⊇ developer ⊇ viewer', () => {
-    const adminPerms  = new Set(ROLE_PERMISSIONS.admin);
-    const devPerms    = new Set(ROLE_PERMISSIONS.developer);
+    const adminPerms = new Set(ROLE_PERMISSIONS.admin);
+    const devPerms = new Set(ROLE_PERMISSIONS.developer);
     const viewerPerms = new Set(ROLE_PERMISSIONS.viewer);
 
     // Every admin perm is an owner perm
@@ -406,9 +406,7 @@ describe('Sprint 8 – HoloScript Academy', () => {
 
   it('total Academy lesson files count is at least 28', () => {
     const allLessons = [
-      ...Array.from({ length: 10 }, (_, i) =>
-        existsSync(L1(`${String(i + 1).padStart(2, '0')}-`))
-      ),
+      ...Array.from({ length: 10 }, (_, i) => existsSync(L1(`${String(i + 1).padStart(2, '0')}-`))),
     ];
     // Count all .md files under level-*/
     const { readdirSync } = require('fs');
@@ -416,7 +414,9 @@ describe('Sprint 8 – HoloScript Academy', () => {
     for (const level of ['level-1-fundamentals', 'level-2-intermediate', 'level-3-advanced']) {
       const dir = join(ACADEMY_ROOT, level);
       if (existsSync(dir)) {
-        count += readdirSync(dir).filter((f: string) => f.endsWith('.md') && !f.startsWith('index')).length;
+        count += readdirSync(dir).filter(
+          (f: string) => f.endsWith('.md') && !f.startsWith('index')
+        ).length;
       }
     }
     expect(count).toBeGreaterThanOrEqual(28);

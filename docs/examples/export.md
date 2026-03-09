@@ -110,20 +110,20 @@ holoscript compile scene.holo --target wasm --output ./wasm/
 
 ```typescript
 import { HoloScriptPlusParser } from '@holoscript/core';
-import { unityCompiler }   from '@holoscript/core';
-import { godotCompiler }   from '@holoscript/core';
-import { vrchatCompiler }  from '@holoscript/core';
-import { urdfCompiler }    from '@holoscript/core';
+import { unityCompiler } from '@holoscript/core';
+import { godotCompiler } from '@holoscript/core';
+import { vrchatCompiler } from '@holoscript/core';
+import { urdfCompiler } from '@holoscript/core';
 
 const parser = new HoloScriptPlusParser();
 const { ast } = parser.parse(source);
 
 // Compile to multiple targets at once
 const targets = [
-  { name: 'unity',   fn: unityCompiler },
-  { name: 'godot',   fn: godotCompiler },
-  { name: 'vrchat',  fn: vrchatCompiler },
-  { name: 'urdf',    fn: urdfCompiler },
+  { name: 'unity', fn: unityCompiler },
+  { name: 'godot', fn: godotCompiler },
+  { name: 'vrchat', fn: vrchatCompiler },
+  { name: 'urdf', fn: urdfCompiler },
 ];
 
 for (const { name, fn } of targets) {
@@ -136,14 +136,14 @@ for (const { name, fn } of targets) {
 
 Not every trait maps to every platform. Here's a summary:
 
-| Trait | Unity | VRChat | Three.js | URDF |
-| --- | :---: | :---: | :---: | :---: |
-| `@grabbable` | ✅ XRGrabInteractable | ✅ VRC_Pickup | ✅ | ❌ |
-| `@physics` | ✅ Rigidbody | ✅ | ✅ Cannon.js | ✅ inertia |
-| `@networked` | ✅ Netcode | ✅ UdonSynced | ✅ WebSockets | ❌ |
-| `@glowing` | ✅ Emission | ✅ | ✅ | ❌ |
-| `@spatial_audio` | ✅ AudioSource | ✅ VRC_Audio | ✅ Web Audio | ❌ |
-| `@collidable` | ✅ Collider | ✅ | ✅ | ✅ collision |
+| Trait            |         Unity         |    VRChat     |   Three.js    |     URDF     |
+| ---------------- | :-------------------: | :-----------: | :-----------: | :----------: |
+| `@grabbable`     | ✅ XRGrabInteractable | ✅ VRC_Pickup |      ✅       |      ❌      |
+| `@physics`       |     ✅ Rigidbody      |      ✅       | ✅ Cannon.js  |  ✅ inertia  |
+| `@networked`     |      ✅ Netcode       | ✅ UdonSynced | ✅ WebSockets |      ❌      |
+| `@glowing`       |      ✅ Emission      |      ✅       |      ✅       |      ❌      |
+| `@spatial_audio` |    ✅ AudioSource     | ✅ VRC_Audio  | ✅ Web Audio  |      ❌      |
+| `@collidable`    |      ✅ Collider      |      ✅       |      ✅       | ✅ collision |
 
 ## Batch Export Script
 
@@ -166,22 +166,22 @@ echo "Done! Output in ./dist/"
 
 ## Output File Types
 
-| Target | Output Files |
-| --- | --- |
-| `unity` | `SceneName.cs` MonoBehaviours |
-| `unreal` | `SceneName.h` + `SceneName.cpp` |
-| `godot` | `SceneName.gd` |
-| `vrchat` | `SceneName_UdonSharp.cs` + `.prefab` metadata |
-| `visionos` | `SceneName.swift` |
-| `threejs` | `SceneName.js` with Three.js setup |
-| `babylon` | `SceneName.ts` |
-| `webgpu` | `SceneName.ts` with WebGPU pipeline |
-| `urdf` | `SceneName.urdf` |
-| `sdf` | `SceneName.sdf` |
-| `dtdl` | `SceneName.json` (DTDL v3) |
-| `wot` | `SceneName.td.jsonld` (JSON-LD) |
-| `usda` | `SceneName.usda` |
-| `wasm` | `SceneName.wasm` + `SceneName.js` glue |
+| Target     | Output Files                                  |
+| ---------- | --------------------------------------------- |
+| `unity`    | `SceneName.cs` MonoBehaviours                 |
+| `unreal`   | `SceneName.h` + `SceneName.cpp`               |
+| `godot`    | `SceneName.gd`                                |
+| `vrchat`   | `SceneName_UdonSharp.cs` + `.prefab` metadata |
+| `visionos` | `SceneName.swift`                             |
+| `threejs`  | `SceneName.js` with Three.js setup            |
+| `babylon`  | `SceneName.ts`                                |
+| `webgpu`   | `SceneName.ts` with WebGPU pipeline           |
+| `urdf`     | `SceneName.urdf`                              |
+| `sdf`      | `SceneName.sdf`                               |
+| `dtdl`     | `SceneName.json` (DTDL v3)                    |
+| `wot`      | `SceneName.td.jsonld` (JSON-LD)               |
+| `usda`     | `SceneName.usda`                              |
+| `wasm`     | `SceneName.wasm` + `SceneName.js` glue        |
 
 ## See Also
 

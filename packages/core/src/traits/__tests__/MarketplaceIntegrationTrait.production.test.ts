@@ -52,7 +52,9 @@ function createContext() {
   };
 }
 
-function defaultConfig(overrides?: Partial<MarketplaceIntegrationConfig>): MarketplaceIntegrationConfig {
+function defaultConfig(
+  overrides?: Partial<MarketplaceIntegrationConfig>
+): MarketplaceIntegrationConfig {
   return {
     ...marketplaceIntegrationHandler.defaultConfig,
     publisher_id: 'pub_123',
@@ -97,9 +99,12 @@ describe('MarketplaceIntegrationTrait — Production Tests', () => {
       attach(node, defaultConfig(), ctx);
       expect(getState(node).isAuthenticated).toBe(true);
       expect(getState(node).publisherName).toBe('TestPublisher');
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_authenticated', expect.objectContaining({
-        publisherId: 'pub_123',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_authenticated',
+        expect.objectContaining({
+          publisherId: 'pub_123',
+        })
+      );
     });
 
     it('skips authentication without publisher_id', () => {
@@ -154,9 +159,12 @@ describe('MarketplaceIntegrationTrait — Production Tests', () => {
         version: '1.0.0',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-        error: expect.stringContaining('Not authenticated'),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_error',
+        expect.objectContaining({
+          error: expect.stringContaining('Not authenticated'),
+        })
+      );
     });
 
     it('rejects invalid semver', () => {
@@ -168,9 +176,12 @@ describe('MarketplaceIntegrationTrait — Production Tests', () => {
         version: 'not-a-version',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-        error: expect.stringContaining('Invalid version format'),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_error',
+        expect.objectContaining({
+          error: expect.stringContaining('Invalid version format'),
+        })
+      );
     });
 
     it('rejects oversized packages', () => {
@@ -184,9 +195,12 @@ describe('MarketplaceIntegrationTrait — Production Tests', () => {
         fileSize: 2 * 1024 * 1024, // 2MB > 1MB limit
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-        error: expect.stringContaining('exceeds max size'),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_error',
+        expect.objectContaining({
+          error: expect.stringContaining('exceeds max size'),
+        })
+      );
     });
   });
 
@@ -238,9 +252,12 @@ describe('MarketplaceIntegrationTrait — Production Tests', () => {
       });
 
       expect(getState(node).pendingPublications.length).toBe(0);
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_rejected', expect.objectContaining({
-        reason: 'Policy violation',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_rejected',
+        expect.objectContaining({
+          reason: 'Policy violation',
+        })
+      );
     });
   });
 
@@ -312,9 +329,12 @@ describe('MarketplaceIntegrationTrait — Production Tests', () => {
         version: '1.0.0',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-        error: expect.stringContaining('must be greater'),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_error',
+        expect.objectContaining({
+          error: expect.stringContaining('must be greater'),
+        })
+      );
     });
 
     it('rejects same version', () => {
@@ -335,9 +355,12 @@ describe('MarketplaceIntegrationTrait — Production Tests', () => {
         version: '1.0.0',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-        error: expect.stringContaining('must be greater'),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_error',
+        expect.objectContaining({
+          error: expect.stringContaining('must be greater'),
+        })
+      );
     });
   });
 
@@ -375,9 +398,12 @@ describe('MarketplaceIntegrationTrait — Production Tests', () => {
         name: 'Trait',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-        error: expect.stringContaining('already installed'),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_error',
+        expect.objectContaining({
+          error: expect.stringContaining('already installed'),
+        })
+      );
     });
 
     it('uninstalls a trait', () => {
@@ -505,11 +531,14 @@ describe('MarketplaceIntegrationTrait — Production Tests', () => {
         queryId: 'q1',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_integration_info', expect.objectContaining({
-        queryId: 'q1',
-        publisherName: 'TestPublisher',
-        isAuthenticated: true,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_integration_info',
+        expect.objectContaining({
+          queryId: 'q1',
+          publisherName: 'TestPublisher',
+          isAuthenticated: true,
+        })
+      );
     });
   });
 

@@ -115,7 +115,14 @@ export class Profiler {
     // Update summary
     let summary = this.summaries.get(scope.name);
     if (!summary) {
-      summary = { name: scope.name, avgTime: 0, minTime: Infinity, maxTime: 0, totalTime: 0, callCount: 0 };
+      summary = {
+        name: scope.name,
+        avgTime: 0,
+        minTime: Infinity,
+        maxTime: 0,
+        totalTime: 0,
+        callCount: 0,
+      };
       this.summaries.set(scope.name, summary);
     }
     summary.callCount++;
@@ -162,13 +169,17 @@ export class Profiler {
     return snap;
   }
 
-  getMemorySnapshots(): MemorySnapshot[] { return [...this.memorySnapshots]; }
+  getMemorySnapshots(): MemorySnapshot[] {
+    return [...this.memorySnapshots];
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getFrameHistory(): FrameProfile[] { return [...this.frameHistory]; }
+  getFrameHistory(): FrameProfile[] {
+    return [...this.frameHistory];
+  }
   getLastFrame(): FrameProfile | null {
     return this.frameHistory.length > 0 ? this.frameHistory[this.frameHistory.length - 1] : null;
   }
@@ -176,11 +187,15 @@ export class Profiler {
   getAverageFPS(): number {
     if (this.frameHistory.length < 2) return 0;
     const totalTime = this.frameHistory.reduce((sum, f) => sum + f.totalTime, 0);
-    return totalTime > 0 ? (this.frameHistory.length / (totalTime / 1000)) : 0;
+    return totalTime > 0 ? this.frameHistory.length / (totalTime / 1000) : 0;
   }
 
-  getSummary(name: string): ProfileSummary | undefined { return this.summaries.get(name); }
-  getAllSummaries(): ProfileSummary[] { return [...this.summaries.values()]; }
+  getSummary(name: string): ProfileSummary | undefined {
+    return this.summaries.get(name);
+  }
+  getAllSummaries(): ProfileSummary[] {
+    return [...this.summaries.values()];
+  }
 
   getSlowestScopes(count = 5): ProfileSummary[] {
     return [...this.summaries.values()].sort((a, b) => b.maxTime - a.maxTime).slice(0, count);
@@ -190,8 +205,12 @@ export class Profiler {
   // Control
   // ---------------------------------------------------------------------------
 
-  setEnabled(enabled: boolean): void { this.enabled = enabled; }
-  isEnabled(): boolean { return this.enabled; }
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+  }
+  isEnabled(): boolean {
+    return this.enabled;
+  }
 
   reset(): void {
     this.frameHistory = [];

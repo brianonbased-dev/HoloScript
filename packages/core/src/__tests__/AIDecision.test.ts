@@ -13,14 +13,30 @@ describe('Cycle 153: AI Decision Systems', () => {
     let executed = '';
 
     ai.addAction({
-      id: 'eat', name: 'Eat', cooldown: 0, lastExecuted: -1, bonus: 0,
-      considerations: [{ name: 'hunger', input: () => 0.9, curve: 'linear', weight: 1, invert: false }],
-      execute: () => { executed = 'eat'; },
+      id: 'eat',
+      name: 'Eat',
+      cooldown: 0,
+      lastExecuted: -1,
+      bonus: 0,
+      considerations: [
+        { name: 'hunger', input: () => 0.9, curve: 'linear', weight: 1, invert: false },
+      ],
+      execute: () => {
+        executed = 'eat';
+      },
     });
     ai.addAction({
-      id: 'sleep', name: 'Sleep', cooldown: 0, lastExecuted: -1, bonus: 0,
-      considerations: [{ name: 'fatigue', input: () => 0.3, curve: 'linear', weight: 1, invert: false }],
-      execute: () => { executed = 'sleep'; },
+      id: 'sleep',
+      name: 'Sleep',
+      cooldown: 0,
+      lastExecuted: -1,
+      bonus: 0,
+      considerations: [
+        { name: 'fatigue', input: () => 0.3, curve: 'linear', weight: 1, invert: false },
+      ],
+      execute: () => {
+        executed = 'sleep';
+      },
     });
 
     const scores = ai.scoreAll();
@@ -34,8 +50,14 @@ describe('Cycle 153: AI Decision Systems', () => {
     const ai = new UtilityAI();
 
     ai.addAction({
-      id: 'attack', name: 'Attack', cooldown: 5, lastExecuted: 0, bonus: 0,
-      considerations: [{ name: 'threat', input: () => 1, curve: 'linear', weight: 1, invert: false }],
+      id: 'attack',
+      name: 'Attack',
+      cooldown: 5,
+      lastExecuted: 0,
+      bonus: 0,
+      considerations: [
+        { name: 'threat', input: () => 1, curve: 'linear', weight: 1, invert: false },
+      ],
       execute: () => {},
     });
 
@@ -56,28 +78,37 @@ describe('Cycle 153: AI Decision Systems', () => {
     const log: string[] = [];
 
     planner.addAction({
-      id: 'getAxe', name: 'Get Axe', cost: 1,
+      id: 'getAxe',
+      name: 'Get Axe',
+      cost: 1,
       preconditions: new Map(),
       effects: new Map([['hasAxe', true]]),
       execute: () => log.push('getAxe'),
     });
     planner.addAction({
-      id: 'chopTree', name: 'Chop Tree', cost: 2,
+      id: 'chopTree',
+      name: 'Chop Tree',
+      cost: 2,
       preconditions: new Map([['hasAxe', true]]),
       effects: new Map([['hasWood', true]]),
       execute: () => log.push('chopTree'),
     });
 
     planner.addGoal({
-      id: 'getWood', name: 'Get Wood', priority: 1,
+      id: 'getWood',
+      name: 'Get Wood',
+      priority: 1,
       conditions: new Map([['hasWood', true]]),
     });
 
-    const currentState: WorldState = new Map([['hasAxe', false], ['hasWood', false]]);
+    const currentState: WorldState = new Map([
+      ['hasAxe', false],
+      ['hasWood', false],
+    ]);
     const plan = planner.plan(currentState);
 
     expect(plan).not.toBeNull();
-    expect(plan!.actions.map(a => a.id)).toEqual(['getAxe', 'chopTree']);
+    expect(plan!.actions.map((a) => a.id)).toEqual(['getAxe', 'chopTree']);
     expect(plan!.totalCost).toBe(3);
 
     planner.executePlan(plan!);
@@ -92,8 +123,28 @@ describe('Cycle 153: AI Decision Systems', () => {
     const selector = new BehaviorSelector('priority');
     let picked = '';
 
-    selector.addBehavior({ id: 'a', name: 'Low', weight: 1, priority: 1, action: () => { picked = 'a'; }, lockoutMs: 0, lastExecuted: -1 });
-    selector.addBehavior({ id: 'b', name: 'High', weight: 1, priority: 10, action: () => { picked = 'b'; }, lockoutMs: 0, lastExecuted: -1 });
+    selector.addBehavior({
+      id: 'a',
+      name: 'Low',
+      weight: 1,
+      priority: 1,
+      action: () => {
+        picked = 'a';
+      },
+      lockoutMs: 0,
+      lastExecuted: -1,
+    });
+    selector.addBehavior({
+      id: 'b',
+      name: 'High',
+      weight: 1,
+      priority: 10,
+      action: () => {
+        picked = 'b';
+      },
+      lockoutMs: 0,
+      lastExecuted: -1,
+    });
 
     selector.execute();
     expect(picked).toBe('b');
@@ -103,8 +154,28 @@ describe('Cycle 153: AI Decision Systems', () => {
     const selector = new BehaviorSelector('priority');
     let picked = '';
 
-    selector.addBehavior({ id: 'x', name: 'Main', weight: 1, priority: 10, action: () => { picked = 'x'; }, lockoutMs: 1000, lastExecuted: 0 });
-    selector.addBehavior({ id: 'y', name: 'Backup', weight: 1, priority: 1, action: () => { picked = 'y'; }, lockoutMs: 0, lastExecuted: -1 });
+    selector.addBehavior({
+      id: 'x',
+      name: 'Main',
+      weight: 1,
+      priority: 10,
+      action: () => {
+        picked = 'x';
+      },
+      lockoutMs: 1000,
+      lastExecuted: 0,
+    });
+    selector.addBehavior({
+      id: 'y',
+      name: 'Backup',
+      weight: 1,
+      priority: 1,
+      action: () => {
+        picked = 'y';
+      },
+      lockoutMs: 0,
+      lastExecuted: -1,
+    });
 
     selector.setTime(500); // Main still locked out
     selector.execute();
@@ -119,8 +190,29 @@ describe('Cycle 153: AI Decision Systems', () => {
     const selector = new BehaviorSelector('priority');
     let picked = '';
 
-    selector.addBehavior({ id: 'a', name: 'A', weight: 1, priority: 1, condition: () => false, action: () => { picked = 'a'; }, lockoutMs: 0, lastExecuted: -1 });
-    selector.setFallback({ id: 'fb', name: 'Fallback', weight: 1, priority: 0, action: () => { picked = 'fb'; }, lockoutMs: 0, lastExecuted: -1 });
+    selector.addBehavior({
+      id: 'a',
+      name: 'A',
+      weight: 1,
+      priority: 1,
+      condition: () => false,
+      action: () => {
+        picked = 'a';
+      },
+      lockoutMs: 0,
+      lastExecuted: -1,
+    });
+    selector.setFallback({
+      id: 'fb',
+      name: 'Fallback',
+      weight: 1,
+      priority: 0,
+      action: () => {
+        picked = 'fb';
+      },
+      lockoutMs: 0,
+      lastExecuted: -1,
+    });
 
     selector.execute();
     expect(picked).toBe('fb');

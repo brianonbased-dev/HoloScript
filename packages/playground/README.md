@@ -5,27 +5,32 @@ Interactive web-based editor for trying HoloScript in your browser - no installa
 ## Features
 
 ✨ **Live Code Editor**
+
 - Monaco Editor with HoloScript syntax highlighting
 - Auto-completion and error detection
 - Real-time preview
 
 🎮 **Multiple Runtime Engines**
+
 - **Demolition**: Building collapse with realistic physics
 - **Avalanche**: Snow avalanche simulation
 - **Erosion**: Water erosion and terrain deformation
 - **Earthquake**: Seismic wave propagation
 
 📚 **Example Gallery**
+
 - Pre-built examples for each runtime
 - One-click loading
 - Instant preview
 
 🔗 **Share & Export**
+
 - Share code via URL
 - Download .holo files
 - Export to various formats
 
 📊 **Live Statistics**
+
 - FPS counter
 - Particle count
 - Runtime status
@@ -138,6 +143,7 @@ composition BuildingDemolition {
 ## Features Roadmap
 
 ### ✅ Completed
+
 - [x] Monaco Editor integration
 - [x] HoloScript syntax highlighting
 - [x] Example gallery
@@ -148,12 +154,14 @@ composition BuildingDemolition {
 - [x] Console output
 
 ### 🚧 In Progress
+
 - [ ] Full runtime executor integration
 - [ ] 3D preview with Three.js
 - [ ] Real-time particle rendering
 - [ ] Interactive canvas controls
 
 ### 🔮 Future
+
 - [ ] Collaborative editing (multiplayer)
 - [ ] Version history
 - [ ] Community examples

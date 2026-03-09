@@ -70,22 +70,22 @@ export interface ApprovalDecision {
 export interface HITLConfig {
   /** Enable HITL system */
   enabled: boolean;
-  
+
   /** Confidence threshold below which approval is required */
   approvalThreshold: number; // 0-1
-  
+
   /** Impact levels requiring approval */
   requiresApprovalFor: ('low' | 'medium' | 'high' | 'critical')[];
-  
+
   /** Default approval timeout (ms) */
   approvalTimeoutMs: number;
-  
+
   /** Actions allowed to fail N times before escalation */
   escalationFailureThreshold: number;
-  
+
   /** Enable learning from corrections */
   enableFeedbackLoop: boolean;
-  
+
   /** Enable audit logging */
   enableAuditLog: boolean;
 }
@@ -194,7 +194,11 @@ export class HITLManager {
         timestamp: Date.now(),
         agentId: action.agentId,
         actionId: action.id,
-        details: { requestId: request.id, impact: action.estimatedImpact, confidence: action.confidence },
+        details: {
+          requestId: request.id,
+          impact: action.estimatedImpact,
+          confidence: action.confidence,
+        },
       });
     }
 
@@ -295,7 +299,10 @@ export class HITLManager {
   /**
    * Register escalation handler (optionally by name)
    */
-  onEscalation(nameOrHandler: string | ((request: HumanApprovalRequest) => void), handler?: (request: HumanApprovalRequest) => void): void {
+  onEscalation(
+    nameOrHandler: string | ((request: HumanApprovalRequest) => void),
+    handler?: (request: HumanApprovalRequest) => void
+  ): void {
     if (typeof nameOrHandler === 'function') {
       this.escalationHandlers.set(`handler-${Date.now()}`, nameOrHandler);
     } else if (handler) {
@@ -327,8 +334,7 @@ export class HITLManager {
       approvalRate: total > 0 ? (approved / total) * 100 : 0,
       pending: this.pendingRequests.size,
       avgConfidence:
-        this.actionHistory.reduce((sum, h) => sum + h.action.confidence, 0) /
-        Math.max(1, total),
+        this.actionHistory.reduce((sum, h) => sum + h.action.confidence, 0) / Math.max(1, total),
     };
   }
 
@@ -344,8 +350,13 @@ export class HITLManager {
     return [...this.auditEntries];
   }
 
-  queryAuditLog(filter: { agentId?: string; type?: string; startTime?: number; endTime?: number }): AuditEntry[] {
-    return this.auditEntries.filter(e => {
+  queryAuditLog(filter: {
+    agentId?: string;
+    type?: string;
+    startTime?: number;
+    endTime?: number;
+  }): AuditEntry[] {
+    return this.auditEntries.filter((e) => {
       if (filter.agentId && e.agentId !== filter.agentId) return false;
       if (filter.type && e.type !== filter.type) return false;
       if (filter.startTime && e.timestamp < filter.startTime) return false;
@@ -386,9 +397,7 @@ export class HITLManager {
   }
 
   private notifyApprovers(request: HumanApprovalRequest): void {
-    console.log(
-      `📢 Approval request ${request.id} sent to ${request.approvers.join(', ')}`
-    );
+    console.log(`📢 Approval request ${request.id} sent to ${request.approvers.join(', ')}`);
 
     this.approvalHandlers.forEach((handler) => {
       handler(request);
@@ -428,7 +437,10 @@ export class HITLManager {
     return '';
   }
 
-  recordFeedback(decisionOrAction: ApprovalDecision | AgentAction, decision?: ApprovalDecision): void {
+  recordFeedback(
+    decisionOrAction: ApprovalDecision | AgentAction,
+    decision?: ApprovalDecision
+  ): void {
     // Support both recordFeedback(decision) and recordFeedback(action, decision)
     if (decision) {
       this.actionHistory.push({ action: decisionOrAction as AgentAction, decision });

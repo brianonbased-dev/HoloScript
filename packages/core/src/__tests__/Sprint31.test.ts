@@ -180,14 +180,24 @@ describe('Feature 3: UILayoutEngine', () => {
 
   it('compute sets result dimensions', () => {
     const le = new UILayoutEngine();
-    const root = le.createNode({ widthMode: 'fixed', width: 300, heightMode: 'fixed', height: 200 } as any);
+    const root = le.createNode({
+      widthMode: 'fixed',
+      width: 300,
+      heightMode: 'fixed',
+      height: 200,
+    } as any);
     le.compute(root, 800, 600, true);
     expect(root.result.width).toBeGreaterThan(0);
   });
 
   it('compute with children does not throw', () => {
     const le = new UILayoutEngine();
-    const root = le.createNode({ widthMode: 'fixed', width: 200, heightMode: 'fixed', height: 100 } as any);
+    const root = le.createNode({
+      widthMode: 'fixed',
+      width: 200,
+      heightMode: 'fixed',
+      height: 100,
+    } as any);
     const child = le.createNode({ widthMode: 'fill', heightMode: 'fill' } as any);
     le.addChild(root, child);
     expect(() => le.compute(root, 800, 600)).not.toThrow();

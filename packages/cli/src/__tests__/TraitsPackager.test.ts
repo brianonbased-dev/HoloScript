@@ -6,12 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  TRAITS,
-  getTraitsByCategory,
-  getCategories,
-  formatTrait,
-} from '../traits';
+import { TRAITS, getTraitsByCategory, getCategories, formatTrait } from '../traits';
 import { PackagePackager } from '../publish/packager';
 
 // ─── Traits Data + Utilities ─────────────────────────────────────────────
@@ -37,9 +32,20 @@ describe('TRAITS Data — Integrity', () => {
   });
 
   it('categories are valid', () => {
-    const validCategories = ['interaction', 'physics', 'visual', 'networking', 'behavior', 'spatial', 'audio', 'state'];
+    const validCategories = [
+      'interaction',
+      'physics',
+      'visual',
+      'networking',
+      'behavior',
+      'spatial',
+      'audio',
+      'state',
+    ];
     for (const [key, trait] of Object.entries(TRAITS)) {
-      expect(validCategories, `${key} has invalid category: ${trait.category}`).toContain(trait.category);
+      expect(validCategories, `${key} has invalid category: ${trait.category}`).toContain(
+        trait.category
+      );
     }
   });
 });
@@ -48,17 +54,26 @@ describe('getTraitsByCategory — Production', () => {
   it('returns interaction traits', () => {
     const traits = getTraitsByCategory('interaction');
     expect(traits.length).toBeGreaterThan(0);
-    expect(traits.every(t => t.category === 'interaction')).toBe(true);
+    expect(traits.every((t) => t.category === 'interaction')).toBe(true);
   });
 
   it('returns physics traits', () => {
     const traits = getTraitsByCategory('physics');
     expect(traits.length).toBeGreaterThan(0);
-    expect(traits.every(t => t.category === 'physics')).toBe(true);
+    expect(traits.every((t) => t.category === 'physics')).toBe(true);
   });
 
   it('returns all categories', () => {
-    const categories = ['interaction', 'physics', 'visual', 'networking', 'behavior', 'spatial', 'audio', 'state'] as const;
+    const categories = [
+      'interaction',
+      'physics',
+      'visual',
+      'networking',
+      'behavior',
+      'spatial',
+      'audio',
+      'state',
+    ] as const;
     for (const cat of categories) {
       const traits = getTraitsByCategory(cat);
       expect(traits.length, `${cat} should have traits`).toBeGreaterThan(0);

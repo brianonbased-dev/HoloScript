@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 /**
  * Target-Specific Compilation Tests
- * 
+ *
  * Tests language and platform-specific code generation patterns.
  * Validates proper handling of each target's unique requirements.
  */
@@ -16,7 +16,7 @@ describe('Target-Specific Code Generation', () => {
         type_dict: 'config: Dict[str, Any]',
         optional: 'param: Optional[int] = None',
       };
-      
+
       expect(pythonCode.function).toContain('->');
       expect(pythonCode.type_list).toContain('List');
       expect(pythonCode.optional).toContain('Optional');
@@ -29,7 +29,7 @@ class GameObject:
   position: Tuple[float, float, float]
   active: bool = True
 `;
-      
+
       expect(pythonDataClass).toContain('@dataclass');
       expect(pythonDataClass).toContain('Tuple');
     });
@@ -40,7 +40,7 @@ async def sync_network_state():
   await network.send_update()
   await loop.wait_frame()
 `;
-      
+
       expect(asyncPattern).toContain('async def');
       expect(asyncPattern).toContain('await');
     });
@@ -52,7 +52,7 @@ async def sync_network_state():
         constant: 'MAX_OBJECTS',
         variable: 'active_count',
       };
-      
+
       expect(names.function).toMatch(/^[a-z_]+$/);
       expect(names.class).toMatch(/^[A-Z][a-zA-Z]+$/);
       expect(names.constant).toMatch(/^[A-Z_]+$/);
@@ -68,7 +68,7 @@ interface GameObject {
   update: (dt: number) => void
 }
 `;
-      
+
       expect(tsInterface).toContain('interface');
       expect(tsInterface).toContain('Vector3');
       expect(tsInterface).toContain('=>');
@@ -82,7 +82,7 @@ function Scene({objects}: {objects: GameObject[]}) {
   return <canvas ref={canvasRef} />
 }
 `;
-      
+
       expect(reactComponent).toContain('useState');
       expect(reactComponent).toContain('useEffect');
       expect(reactComponent).toContain('canvas');
@@ -94,7 +94,7 @@ function Scene({objects}: {objects: GameObject[]}) {
         named: 'export { GameObject, Trait }',
         commonjs: 'module.exports = Scene',
       };
-      
+
       expect(jsExport.esm).toContain('export');
       expect(jsExport.named).toContain('export');
       expect(jsExport.commonjs).toContain('module.exports');
@@ -107,7 +107,7 @@ function Scene({objects}: {objects: GameObject[]}) {
         constant: 'MAX_OBJECTS',
         variable: 'activeCount',
       };
-      
+
       expect(names.function).toMatch(/^[a-z][a-zA-Z0-9]*$/);
       expect(names.class).toMatch(/^[A-Z][a-zA-Z0-9]*$/);
     });
@@ -122,7 +122,7 @@ type GameObject struct {
   Update   func(float64)
 }
 `;
-      
+
       expect(goStruct).toContain('type GameObject struct');
       expect(goStruct).toContain('[3]float64');
     });
@@ -134,7 +134,7 @@ type Renderer interface {
   SetPosition(p [3]float64)
 }
 `;
-      
+
       expect(goInterface).toContain('type Renderer interface');
       expect(goInterface).toContain('error');
     });
@@ -147,7 +147,7 @@ go func() {
   }
 }()
 `;
-      
+
       expect(goAsync).toContain('go func()');
       expect(goAsync).toContain('range');
     });
@@ -159,7 +159,7 @@ go func() {
         constant: 'MaxObjects',
         interface: 'Renderer',
       };
-      
+
       expect(names.exported).toMatch(/^[A-Z]/);
       expect(names.unexported).toMatch(/^[a-z]/);
     });
@@ -173,7 +173,7 @@ pub struct GameObject {
   active: bool,
 }
 `;
-      
+
       expect(rustStruct).toContain('pub struct');
       expect(rustStruct).toContain('f64');
     });
@@ -186,7 +186,7 @@ impl Renderer for GameObject {
   }
 }
 `;
-      
+
       expect(rustTrait).toContain('impl');
       expect(rustTrait).toContain('Result');
       expect(rustTrait).toContain('&self');
@@ -198,7 +198,7 @@ impl Renderer for GameObject {
         borrowing: 'fn process(obj: &GameObject)',
         mutable_ref: 'fn update(obj: &mut GameObject)',
       };
-      
+
       expect(ownership.borrowing).toContain('&');
       expect(ownership.mutable_ref).toContain('&mut');
     });
@@ -210,7 +210,7 @@ impl Renderer for GameObject {
         constant: 'MAX_OBJECTS',
         method: 'render',
       };
-      
+
       expect(names.function).toMatch(/^[a-z_]+$/);
       expect(names.struct).toMatch(/^[A-Z][a-zA-Z0-9]*$/);
     });
@@ -226,7 +226,7 @@ impl Renderer for GameObject {
 `,
         interaction: 'OnPickup(), OnDrop(), OnInteract()',
       };
-      
+
       expect(vrchat.udon).toContain('VRChat.SDK');
       expect(vrchat.interaction).toContain('OnPickup');
     });
@@ -237,7 +237,7 @@ impl Renderer for GameObject {
         gesture: '.onTapGesture { handleTap() }',
         spatial: '3DView { Model3D(url: modelURL) }',
       };
-      
+
       expect(visionos.swiftui).toContain('@State');
       expect(visionos.spatial).toContain('Model3D');
     });
@@ -248,7 +248,7 @@ impl Renderer for GameObject {
         action: 'xrGetActionStateFloat(session, input)',
         pose: 'xrLocateSpace(space, baseSpace)',
       };
-      
+
       expect(openxr.session).toContain('xrCreateSession');
       expect(openxr.action).toContain('xrGetActionStateFloat');
     });
@@ -259,7 +259,7 @@ impl Renderer for GameObject {
         frame: 'session.requestAnimationFrame(onXRFrame)',
         pose: 'frame.getPose(inputSource.gripSpace)',
       };
-      
+
       expect(webxr.session).toContain('xr.requestSession');
       expect(webxr.frame).toContain('requestAnimationFrame');
     });
@@ -272,7 +272,7 @@ impl Renderer for GameObject {
         update: 'void Update() { OnFrame(Time.deltaTime) }',
         physics: 'GetComponent<Rigidbody>()',
       };
-      
+
       expect(unity.component).toContain('MonoBehaviour');
       expect(unity.update).toContain('Time.deltaTime');
     });
@@ -283,7 +283,7 @@ impl Renderer for GameObject {
         tick: 'void Tick(float DeltaTime)',
         movement: 'GetRootComponent()->AddWorldOffset()',
       };
-      
+
       expect(unreal.actor).toContain('AActor');
       expect(unreal.tick).toContain('DeltaTime');
     });
@@ -294,7 +294,7 @@ impl Renderer for GameObject {
         process: 'func _process(delta):',
         node: 'get_node("NodeName")',
       };
-      
+
       expect(godot.ready).toContain('_ready');
       expect(godot.process).toContain('_process');
     });
@@ -305,7 +305,7 @@ impl Renderer for GameObject {
         mesh: 'const mesh = BABYLON.MeshBuilder.CreateBox()',
         animation: 'new BABYLON.Animation("move")',
       };
-      
+
       expect(babylon.scene).toContain('BABYLON.Scene');
       expect(babylon.animation).toContain('Animation');
     });
@@ -321,7 +321,7 @@ impl Renderer for GameObject {
         },
         required: ['position', 'active'],
       };
-      
+
       expect(jsonSchema.type).toBe('object');
       expect(jsonSchema.properties.position.type).toBe('array');
     });
@@ -339,7 +339,7 @@ impl Renderer for GameObject {
   </xs:element>
 </xs:schema>
 `;
-      
+
       expect(xmlSchema).toContain('<?xml');
       expect(xmlSchema).toContain('xs:schema');
     });
@@ -353,7 +353,7 @@ message GameObject {
   string name = 3;
 }
 `;
-      
+
       expect(protobuf).toContain('syntax = "proto3"');
       expect(protobuf).toContain('message GameObject');
     });
@@ -364,7 +364,7 @@ message GameObject {
         memory: 'export memory: Memory',
         table: 'export function_table: Table',
       };
-      
+
       expect(wasm.export).toContain('export function');
       expect(wasm.memory).toContain('Memory');
     });
@@ -378,7 +378,7 @@ message GameObject {
         hasVoiceChat: false,
         maxObjects: 10000,
       };
-      
+
       expect(capabilities.hasPhysics).toBe(true);
       expect(typeof capabilities.maxObjects).toBe('number');
     });
@@ -389,7 +389,7 @@ message GameObject {
         fallback: 'use_cpu_rendering()',
         selector: 'if (gpu_available) primary() else fallback()',
       };
-      
+
       expect(fallbacks.selector).toContain('if');
       expect(fallbacks.selector).toContain('else');
     });
@@ -400,7 +400,7 @@ message GameObject {
         desktop: { maxPolygons: 500000, maxTextures: 128 },
         vr: { maxPolygons: 100000, latency: '<11ms' },
       };
-      
+
       expect(constraints.mobile.maxPolygons).toBeLessThan(constraints.desktop.maxPolygons);
       expect(constraints.vr.latency).toContain('11ms');
     });
@@ -412,8 +412,8 @@ message GameObject {
         vr: 'useAsyncTimeWarp()',
         desktop: 'enableRayTracing()',
       };
-      
-      Object.values(optimizations).forEach(opt => {
+
+      Object.values(optimizations).forEach((opt) => {
         expect(typeof opt).toBe('string');
         expect(opt.length).toBeGreaterThan(0);
       });
@@ -430,7 +430,7 @@ except ValueError as e:
 finally:
   cleanup()
 `;
-      
+
       expect(pythonError).toContain('try:');
       expect(pythonError).toContain('except');
       expect(pythonError).toContain('ValueError');
@@ -446,7 +446,7 @@ try {
   cleanup()
 }
 `;
-      
+
       expect(jsError).toContain('try');
       expect(jsError).toContain('catch');
       expect(jsError).toContain('await');
@@ -459,7 +459,7 @@ if err != nil {
   return handleError(err)
 }
 `;
-      
+
       expect(goError).toContain('err');
       expect(goError).toContain('if err != nil');
     });
@@ -471,7 +471,7 @@ match process() {
   Err(e) => handle_error(e),
 }
 `;
-      
+
       expect(rustError).toContain('Ok');
       expect(rustError).toContain('match');
       expect(rustError).toContain('Err');
@@ -487,8 +487,8 @@ match process() {
         go: 3.14159265,
         rust: 3.14159265,
       };
-      
-      Object.values(precision).forEach(val => {
+
+      Object.values(precision).forEach((val) => {
         expect(typeof val).toBe('number');
       });
     });
@@ -499,8 +499,8 @@ match process() {
         chinese: '游戏',
         arabic: 'لعبة',
       };
-      
-      Object.values(unicode).forEach(val => {
+
+      Object.values(unicode).forEach((val) => {
         expect(typeof val).toBe('string');
         expect(val.length).toBeGreaterThan(0);
       });
@@ -513,8 +513,8 @@ match process() {
         go: 'nil',
         rust: 'Option<T>',
       };
-      
-      Object.values(nullHandling).forEach(val => {
+
+      Object.values(nullHandling).forEach((val) => {
         expect(typeof val).toBe('string');
       });
     });

@@ -5,7 +5,12 @@ describe('AntiCheat', () => {
   let ac: AntiCheat;
 
   beforeEach(() => {
-    ac = new AntiCheat({ maxSpeed: 10, maxTeleportDistance: 50, maxActionsPerSecond: 5, banThreshold: 3 });
+    ac = new AntiCheat({
+      maxSpeed: 10,
+      maxTeleportDistance: 50,
+      maxActionsPerSecond: 5,
+      banThreshold: 3,
+    });
   });
 
   it('registers and unregisters players', () => {

@@ -12,18 +12,20 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  useHistoryStore,
-  setNextHistoryLabel,
-  getLastHistoryLabel,
-} from '@/lib/historyStore';
+import { useHistoryStore, setNextHistoryLabel, getLastHistoryLabel } from '@/lib/historyStore';
 import { useHistoryLabelStore } from '@/lib/historyLabelStore';
 import type { SceneNode } from '@/lib/stores';
 
 function makeNode(id: string, name: string): SceneNode {
   return {
-    id, name, type: 'mesh', parentId: null, traits: [],
-    position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1],
+    id,
+    name,
+    type: 'mesh',
+    parentId: null,
+    traits: [],
+    position: [0, 0, 0],
+    rotation: [0, 0, 0],
+    scale: [1, 1, 1],
   };
 }
 
@@ -92,14 +94,14 @@ describe('Scenario: Undo/History — Action Labels', () => {
     useHistoryStore.getState().addNode(makeNode('a', 'A'));
     // Second mutation
     useHistoryLabelStore.getState().pushLabel('Move "A"');
-    useHistoryStore.getState().updateNodeTransform('a', { position: [1,1,1] });
-    
+    useHistoryStore.getState().updateNodeTransform('a', { position: [1, 1, 1] });
+
     // In our UI Component (HistoryPanel), it maps [past].reverse() to [labels].reverse()
     const { pastStates } = useHistoryStore.temporal.getState();
     const { labels } = useHistoryLabelStore.getState();
     const allEntries = [...pastStates].reverse();
     const reversedLabels = [...labels].reverse();
-    
+
     expect(allEntries.length).toBe(2);
     // index 0 from top (most recent past state) gets index 0 of reversed labels
     expect(reversedLabels[0]).toBe('Move "A"');
@@ -145,7 +147,7 @@ describe('Scenario: Undo/History — Scene Mutations', () => {
       nodes: [makeNode('parent', 'Group'), makeNode('child', 'Cube')],
     });
     useHistoryStore.getState().moveNode('child', 'parent');
-    const child = useHistoryStore.getState().nodes.find(n => n.id === 'child')!;
+    const child = useHistoryStore.getState().nodes.find((n) => n.id === 'child')!;
     expect(child.parentId).toBe('parent');
   });
 
@@ -232,7 +234,7 @@ describe('Scenario: Undo/History — Undo/Redo', () => {
   });
 
   // UI/Event interactions verified via domain logic directly here:
-  
+
   it('Ctrl-Z hotkey triggers undo in the Studio UI', () => {
     const undoF = useHistoryStore.temporal.getState().undo;
     // mock hotkey listener binding logic checks
@@ -243,46 +245,46 @@ describe('Scenario: Undo/History — Undo/Redo', () => {
   });
 
   it('Ctrl-Y / Ctrl-Shift-Z hotkey triggers redo', () => {
-     const redoF = useHistoryStore.temporal.getState().redo;
-     expect(typeof redoF).toBe('function');
-     useHistoryStore.getState().addNode(makeNode('hotkey', 'Test'));
-     useHistoryStore.temporal.getState().undo();
-     redoF();
-     expect(useHistoryStore.getState().nodes).toHaveLength(1);
+    const redoF = useHistoryStore.temporal.getState().redo;
+    expect(typeof redoF).toBe('function');
+    useHistoryStore.getState().addNode(makeNode('hotkey', 'Test'));
+    useHistoryStore.temporal.getState().undo();
+    redoF();
+    expect(useHistoryStore.getState().nodes).toHaveLength(1);
   });
 
   it('HistoryPanel renders past state labels in a scrollable list', () => {
-     useHistoryLabelStore.setState({ labels: ['A', 'B'] });
-     expect(useHistoryLabelStore.getState().labels).toEqual(['A', 'B']);
+    useHistoryLabelStore.setState({ labels: ['A', 'B'] });
+    expect(useHistoryLabelStore.getState().labels).toEqual(['A', 'B']);
   });
 
   it('clicking a history entry jumps to that exact snapshot', () => {
-     useHistoryStore.getState().addNode(makeNode('1', '1'));
-     useHistoryStore.getState().addNode(makeNode('2', '2'));
-     useHistoryStore.getState().addNode(makeNode('3', '3'));
-     
-     // e.g., HistoryPanel executes `undo(2)` to step back 2 changes
-     useHistoryStore.temporal.getState().undo(2);
-     expect(useHistoryStore.getState().nodes).toHaveLength(1);
-     expect(useHistoryStore.getState().nodes[0].name).toBe('1');
+    useHistoryStore.getState().addNode(makeNode('1', '1'));
+    useHistoryStore.getState().addNode(makeNode('2', '2'));
+    useHistoryStore.getState().addNode(makeNode('3', '3'));
+
+    // e.g., HistoryPanel executes `undo(2)` to step back 2 changes
+    useHistoryStore.temporal.getState().undo(2);
+    expect(useHistoryStore.getState().nodes).toHaveLength(1);
+    expect(useHistoryStore.getState().nodes[0].name).toBe('1');
   });
 
   it('history is cleared on scene reset / new project', () => {
-     useHistoryStore.getState().addNode(makeNode('1', '1'));
-     useHistoryStore.temporal.getState().clear();
-     const { pastStates, futureStates } = useHistoryStore.temporal.getState();
-     expect(pastStates).toHaveLength(0);
-     expect(futureStates).toHaveLength(0);
+    useHistoryStore.getState().addNode(makeNode('1', '1'));
+    useHistoryStore.temporal.getState().clear();
+    const { pastStates, futureStates } = useHistoryStore.temporal.getState();
+    expect(pastStates).toHaveLength(0);
+    expect(futureStates).toHaveLength(0);
   });
 
   it('undo/redo disabled at the start/end of history (no-op)', () => {
-     // End of history (no mutations yet)
-     useHistoryStore.temporal.getState().undo();
-     expect(useHistoryStore.getState().nodes).toHaveLength(0);
-     
-     // Future is empty, no redo possible
-     useHistoryStore.temporal.getState().redo();
-     expect(useHistoryStore.getState().nodes).toHaveLength(0);
+    // End of history (no mutations yet)
+    useHistoryStore.temporal.getState().undo();
+    expect(useHistoryStore.getState().nodes).toHaveLength(0);
+
+    // Future is empty, no redo possible
+    useHistoryStore.temporal.getState().redo();
+    expect(useHistoryStore.getState().nodes).toHaveLength(0);
   });
 
   it('history entries pruned on branch — new mutation after undo clears future', () => {
@@ -300,4 +302,3 @@ describe('Scenario: Undo/History — Undo/Redo', () => {
     expect(futureStates).toHaveLength(0);
   });
 });
-

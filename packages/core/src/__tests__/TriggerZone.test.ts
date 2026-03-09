@@ -27,7 +27,9 @@ function boxZone(): TriggerZoneConfig {
 
 describe('TriggerZoneSystem', () => {
   let sys: TriggerZoneSystem;
-  beforeEach(() => { sys = new TriggerZoneSystem(); });
+  beforeEach(() => {
+    sys = new TriggerZoneSystem();
+  });
 
   it('addZone and getZoneCount', () => {
     sys.addZone(sphereZone());

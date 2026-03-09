@@ -11,11 +11,20 @@
 // TYPES
 // =============================================================================
 
-export interface IVector3 { x: number; y: number; z: number; }
-export interface IColor { r: number; g: number; b: number; a: number; }
+export interface IVector3 {
+  x: number;
+  y: number;
+  z: number;
+}
+export interface IColor {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
 
 export interface CurveKeyframe {
-  time: number;     // 0-1 normalized lifetime
+  time: number; // 0-1 normalized lifetime
   value: number;
 }
 
@@ -24,13 +33,13 @@ export type EmissionShape = 'point' | 'sphere' | 'box' | 'cone' | 'circle' | 'li
 export interface EmitterConfig {
   id: string;
   maxParticles: number;
-  emissionRate: number;         // Particles per second
+  emissionRate: number; // Particles per second
   emissionShape: EmissionShape;
   shapeParams: {
     radius?: number;
-    angle?: number;             // Cone angle in degrees
-    extents?: IVector3;         // Box half-extents
-    length?: number;            // Line length
+    angle?: number; // Cone angle in degrees
+    extents?: IVector3; // Box half-extents
+    length?: number; // Line length
   };
   lifetime: { min: number; max: number };
   startSpeed: { min: number; max: number };
@@ -126,8 +135,12 @@ export class ParticleEmitter {
   // Controls
   // ---------------------------------------------------------------------------
 
-  play(): void { this.state.playing = true; }
-  pause(): void { this.state.playing = false; }
+  play(): void {
+    this.state.playing = true;
+  }
+  pause(): void {
+    this.state.playing = false;
+  }
   stop(): void {
     this.state.playing = false;
     this.state.elapsed = 0;
@@ -136,8 +149,12 @@ export class ParticleEmitter {
     this.state.aliveCount = 0;
   }
 
-  isPlaying(): boolean { return this.state.playing; }
-  getState(): EmitterState { return { ...this.state }; }
+  isPlaying(): boolean {
+    return this.state.playing;
+  }
+  getState(): EmitterState {
+    return { ...this.state };
+  }
 
   // ---------------------------------------------------------------------------
   // Update
@@ -218,7 +235,7 @@ export class ParticleEmitter {
 
   private emit(): void {
     // Find a dead particle to reuse
-    const p = this.particles.find(p => !p.alive);
+    const p = this.particles.find((p) => !p.alive);
     if (!p) return;
 
     p.alive = true;
@@ -270,7 +287,7 @@ export class ParticleEmitter {
       }
 
       case 'cone': {
-        const angle = (params.angle ?? 30) * Math.PI / 180;
+        const angle = ((params.angle ?? 30) * Math.PI) / 180;
         const phi = Math.random() * 2 * Math.PI;
         const cosTheta = Math.cos(angle * Math.random());
         const sinTheta = Math.sqrt(1 - cosTheta * cosTheta);
@@ -331,7 +348,7 @@ export class ParticleEmitter {
   // ---------------------------------------------------------------------------
 
   getAliveParticles(): Particle[] {
-    return this.particles.filter(p => p.alive);
+    return this.particles.filter((p) => p.alive);
   }
 
   getAliveCount(): number {

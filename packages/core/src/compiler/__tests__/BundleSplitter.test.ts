@@ -144,7 +144,7 @@ describe('BundleSplitter', () => {
     const manifest = splitter.generateManifest();
     // main + 2 unique dynamic chunks
     expect(manifest.length).toBe(3);
-    expect(manifest.filter(c => c.isDynamic).length).toBe(2);
+    expect(manifest.filter((c) => c.isDynamic).length).toBe(2);
   });
 
   it('dynamic chunks reference parent as main', () => {
@@ -156,7 +156,7 @@ describe('BundleSplitter', () => {
     } as unknown as HSPlusNode);
     splitter.analyze(ast);
     const manifest = splitter.generateManifest();
-    const dynamic = manifest.find(c => c.isDynamic);
+    const dynamic = manifest.find((c) => c.isDynamic);
     expect(dynamic).toBeDefined();
     expect(dynamic!.parentChunkId).toBe('main');
   });
@@ -164,20 +164,24 @@ describe('BundleSplitter', () => {
   // =========== getSplitPoints / clear ===========
 
   it('getSplitPoints returns detected split points', () => {
-    splitter.analyze(makeAST({
-      type: 'logic',
-      id: 'l',
-      body: { functions: [{ name: 'f', body: 'import("./x")' }] },
-    } as unknown as HSPlusNode));
+    splitter.analyze(
+      makeAST({
+        type: 'logic',
+        id: 'l',
+        body: { functions: [{ name: 'f', body: 'import("./x")' }] },
+      } as unknown as HSPlusNode)
+    );
     expect(splitter.getSplitPoints().length).toBeGreaterThanOrEqual(1);
   });
 
   it('clear resets all state', () => {
-    splitter.analyze(makeAST({
-      type: 'logic',
-      id: 'l',
-      body: { functions: [{ name: 'f', body: 'import("./x")' }] },
-    } as unknown as HSPlusNode));
+    splitter.analyze(
+      makeAST({
+        type: 'logic',
+        id: 'l',
+        body: { functions: [{ name: 'f', body: 'import("./x")' }] },
+      } as unknown as HSPlusNode)
+    );
     splitter.generateManifest();
     splitter.clear();
     expect(splitter.getSplitPoints()).toHaveLength(0);

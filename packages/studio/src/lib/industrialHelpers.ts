@@ -43,9 +43,9 @@ export interface EquipmentNode {
 }
 
 export interface ThroughputSimParams {
-  itemsPerMinuteInput: number;     // source rate
-  processingTimeSeconds: number;   // time to process each item
-  bufferCapacity: number;          // max items waiting
+  itemsPerMinuteInput: number; // source rate
+  processingTimeSeconds: number; // time to process each item
+  bufferCapacity: number; // max items waiting
 }
 
 // ── Grid Snap ─────────────────────────────────────────────────────────────────
@@ -146,9 +146,12 @@ export function equipmentBounds(node: EquipmentNode): BoundingBox {
 /** Returns true if two bounding boxes intersect (AABB test). */
 export function boxesOverlap(a: BoundingBox, b: BoundingBox): boolean {
   return (
-    a.min.x <= b.max.x && a.max.x >= b.min.x &&
-    a.min.y <= b.max.y && a.max.y >= b.min.y &&
-    a.min.z <= b.max.z && a.max.z >= b.min.z
+    a.min.x <= b.max.x &&
+    a.max.x >= b.min.x &&
+    a.min.y <= b.max.y &&
+    a.max.y >= b.min.y &&
+    a.min.z <= b.max.z &&
+    a.max.z >= b.min.z
   );
 }
 
@@ -193,7 +196,10 @@ export function simulateThroughput(params: ThroughputSimParams): ThroughputResul
 // ── HoloScript Trait Generators ───────────────────────────────────────────────
 
 /** Generates a @conveyor_belt trait string for HoloScript templates. */
-export function conveyorBeltTrait(speedMs: number, direction: 'x' | 'y' | 'z' | '-x' | '-y' | '-z'): string {
+export function conveyorBeltTrait(
+  speedMs: number,
+  direction: 'x' | 'y' | 'z' | '-x' | '-y' | '-z'
+): string {
   return `@conveyor_belt(speed: ${speedMs}, direction: "${direction}")`;
 }
 

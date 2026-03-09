@@ -12,7 +12,9 @@ import type { TimeOfDay } from '../DayNightCycle';
 describe('DayNightCycle', () => {
   let dnc: DayNightCycle;
 
-  beforeEach(() => { dnc = new DayNightCycle(); });
+  beforeEach(() => {
+    dnc = new DayNightCycle();
+  });
 
   // -------------------------------------------------------------------------
   // Time control

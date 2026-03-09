@@ -64,7 +64,7 @@ function createHostResponse(
   requestId: string,
   success: boolean,
   data?: unknown,
-  error?: { code: string; message: string },
+  error?: { code: string; message: string }
 ): HostResponseMessage {
   return {
     protocol: 'holoscript-sandbox-v1',

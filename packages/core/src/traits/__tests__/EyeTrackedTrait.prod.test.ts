@@ -25,14 +25,20 @@ function makeNode(props: Record<string, unknown> = {}) {
 }
 
 /** Head pointing straight forward along -Z axis (headRot [0,0,0]). */
-function makeCtx(headPos: [number, number, number] = [0, 0, 0], headRot: [number, number, number] = [0, 0, 0]) {
+function makeCtx(
+  headPos: [number, number, number] = [0, 0, 0],
+  headRot: [number, number, number] = [0, 0, 0]
+) {
   return {
     emit: vi.fn(),
     vr: { headset: { position: headPos, rotation: headRot } },
   };
 }
 
-function attach(cfg: Partial<typeof eyeTrackedHandler.defaultConfig> = {}, nodeProps: Record<string, unknown> = {}) {
+function attach(
+  cfg: Partial<typeof eyeTrackedHandler.defaultConfig> = {},
+  nodeProps: Record<string, unknown> = {}
+) {
   const node = makeNode(nodeProps);
   const ctx = makeCtx();
   const config = { ...eyeTrackedHandler.defaultConfig!, ...cfg };
@@ -83,7 +89,10 @@ describe('eyeTrackedHandler.onAttach', () => {
 
   it('emits register_foveated with foveated_priority', () => {
     const { ctx } = attach({ foveated_priority: 'high' });
-    expect(ctx.emit).toHaveBeenCalledWith('register_foveated', expect.objectContaining({ priority: 'high' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'register_foveated',
+      expect.objectContaining({ priority: 'high' })
+    );
   });
 });
 
@@ -209,7 +218,10 @@ describe('eyeTrackedHandler.onUpdate — dwell', () => {
   it('emits dwell_progress on each update when dwell_feedback=true', () => {
     const { node, ctx, config } = setupGazed({ dwell_feedback: true, dwell_enabled: true });
     eyeTrackedHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('dwell_progress', expect.objectContaining({ progress: expect.any(Number) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'dwell_progress',
+      expect.objectContaining({ progress: expect.any(Number) })
+    );
   });
 
   it('does NOT emit dwell_progress when dwell_feedback=false', () => {
@@ -245,7 +257,10 @@ describe('eyeTrackedHandler.onEvent', () => {
   it('simulate_gaze active=true sets isGazed=true and updates gazeStartTime', () => {
     const { node, ctx, config } = attach();
     const before = Date.now();
-    eyeTrackedHandler.onEvent!(node as any, config, ctx as any, { type: 'simulate_gaze', active: true });
+    eyeTrackedHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'simulate_gaze',
+      active: true,
+    });
     const state = (node as any).__eyeTrackedState;
     expect(state.isGazed).toBe(true);
     expect(state.gazeStartTime).toBeGreaterThanOrEqual(before);
@@ -254,7 +269,10 @@ describe('eyeTrackedHandler.onEvent', () => {
   it('simulate_gaze active=false sets isGazed=false without updating gazeStartTime', () => {
     const { node, ctx, config } = attach();
     (node as any).__eyeTrackedState.isGazed = true;
-    eyeTrackedHandler.onEvent!(node as any, config, ctx as any, { type: 'simulate_gaze', active: false });
+    eyeTrackedHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'simulate_gaze',
+      active: false,
+    });
     expect((node as any).__eyeTrackedState.isGazed).toBe(false);
   });
 
@@ -274,6 +292,8 @@ describe('eyeTrackedHandler.onEvent', () => {
 
   it('unknown event type is a no-op', () => {
     const { node, ctx, config } = attach();
-    expect(() => eyeTrackedHandler.onEvent!(node as any, config, ctx as any, { type: 'unknown_event' })).not.toThrow();
+    expect(() =>
+      eyeTrackedHandler.onEvent!(node as any, config, ctx as any, { type: 'unknown_event' })
+    ).not.toThrow();
   });
 });

@@ -71,9 +71,7 @@ describe('Sprint 4 - Exhaustive Match Checking', () => {
 
   describe('number literal union exhaustiveness', () => {
     test('complete number union match', () => {
-      checker.typeAliasRegistry.register(
-        TypeAliasRegistry.parse('type Priority = 1 | 2 | 3')!
-      );
+      checker.typeAliasRegistry.register(TypeAliasRegistry.parse('type Priority = 1 | 2 | 3')!);
       const errors = checker.checkExhaustiveMatch({
         typeName: 'Priority',
         coveredPatterns: ['1', '2', '3'],
@@ -82,9 +80,7 @@ describe('Sprint 4 - Exhaustive Match Checking', () => {
     });
 
     test('incomplete number union match', () => {
-      checker.typeAliasRegistry.register(
-        TypeAliasRegistry.parse('type Priority = 1 | 2 | 3')!
-      );
+      checker.typeAliasRegistry.register(TypeAliasRegistry.parse('type Priority = 1 | 2 | 3')!);
       const errors = checker.checkExhaustiveMatch({
         typeName: 'Priority',
         coveredPatterns: ['1', '2'],
@@ -94,9 +90,7 @@ describe('Sprint 4 - Exhaustive Match Checking', () => {
     });
 
     test('float number literals in union', () => {
-      checker.typeAliasRegistry.register(
-        TypeAliasRegistry.parse('type Scale = 0.5 | 1.0 | 2.0')!
-      );
+      checker.typeAliasRegistry.register(TypeAliasRegistry.parse('type Scale = 0.5 | 1.0 | 2.0')!);
       const errors = checker.checkExhaustiveMatch({
         typeName: 'Scale',
         coveredPatterns: ['0.5', '1.0', '2.0'],
@@ -131,9 +125,7 @@ describe('Sprint 4 - Exhaustive Match Checking', () => {
 
   describe('quick-fix suggestions', () => {
     test('suggestions list all missing cases', () => {
-      checker.typeAliasRegistry.register(
-        TypeAliasRegistry.parse('type State = "a" | "b" | "c"')!
-      );
+      checker.typeAliasRegistry.register(TypeAliasRegistry.parse('type State = "a" | "b" | "c"')!);
       const errors = checker.checkExhaustiveMatch({
         typeName: 'State',
         coveredPatterns: ['a'],
@@ -155,9 +147,7 @@ describe('Sprint 4 - Exhaustive Match Checking', () => {
     });
 
     test('non-union type (simple alias) returns no errors', () => {
-      checker.typeAliasRegistry.register(
-        TypeAliasRegistry.parse('type Name = string')!
-      );
+      checker.typeAliasRegistry.register(TypeAliasRegistry.parse('type Name = string')!);
       const errors = checker.checkExhaustiveMatch({
         typeName: 'Name',
         coveredPatterns: [],
@@ -166,9 +156,7 @@ describe('Sprint 4 - Exhaustive Match Checking', () => {
     });
 
     test('generic type is not checked (no members)', () => {
-      checker.typeAliasRegistry.register(
-        TypeAliasRegistry.parse('type Optional<T> = T | null')!
-      );
+      checker.typeAliasRegistry.register(TypeAliasRegistry.parse('type Optional<T> = T | null')!);
       const errors = checker.checkExhaustiveMatch({
         typeName: 'Optional',
         coveredPatterns: [],
@@ -177,9 +165,7 @@ describe('Sprint 4 - Exhaustive Match Checking', () => {
     });
 
     test('mixed string and type identifier union - only extracts literals', () => {
-      checker.typeAliasRegistry.register(
-        TypeAliasRegistry.parse('type Result = "ok" | Error')!
-      );
+      checker.typeAliasRegistry.register(TypeAliasRegistry.parse('type Result = "ok" | Error')!);
       const errors = checker.checkExhaustiveMatch({
         typeName: 'Result',
         coveredPatterns: ['ok'],
@@ -188,12 +174,8 @@ describe('Sprint 4 - Exhaustive Match Checking', () => {
     });
 
     test('nested match - reports per-level (each call independent)', () => {
-      checker.typeAliasRegistry.register(
-        TypeAliasRegistry.parse('type Outer = "x" | "y"')!
-      );
-      checker.typeAliasRegistry.register(
-        TypeAliasRegistry.parse('type Inner = "a" | "b"')!
-      );
+      checker.typeAliasRegistry.register(TypeAliasRegistry.parse('type Outer = "x" | "y"')!);
+      checker.typeAliasRegistry.register(TypeAliasRegistry.parse('type Inner = "a" | "b"')!);
       const outerErrors = checker.checkExhaustiveMatch({
         typeName: 'Outer',
         coveredPatterns: ['x'],
@@ -212,10 +194,12 @@ describe('Sprint 4 - Exhaustive Match Checking', () => {
       const decl = TypeAliasRegistry.parse('type Toggle = "on" | "off"')!;
       checker.typeAliasRegistry.register(decl);
 
-      expect(checker.checkExhaustiveMatch({
-        typeName: 'Toggle',
-        coveredPatterns: ['on', 'off'],
-      })).toHaveLength(0);
+      expect(
+        checker.checkExhaustiveMatch({
+          typeName: 'Toggle',
+          coveredPatterns: ['on', 'off'],
+        })
+      ).toHaveLength(0);
     });
 
     test('two-member union partially covered', () => {

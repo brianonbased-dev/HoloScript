@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   GraphQLCircuitBreakerClient,
   GraphQLClientOptions,
-  FallbackDataProvider
+  FallbackDataProvider,
 } from './GraphQLCircuitBreakerClient';
 import { CircuitState } from './CircuitBreaker';
 
@@ -41,8 +41,8 @@ describe('GraphQLCircuitBreakerClient', () => {
         healthCheckCount: 5,
         successThreshold: 3,
         maxRetryDelay: 5000,
-        baseRetryDelay: 100
-      }
+        baseRetryDelay: 100,
+      },
     };
 
     client = new GraphQLCircuitBreakerClient(options);
@@ -55,17 +55,17 @@ describe('GraphQLCircuitBreakerClient', () => {
   describe('Successful Query Execution', () => {
     it('should execute query successfully', async () => {
       const mockResponse = {
-        data: { user: { id: '1', name: 'Test User' } }
+        data: { user: { id: '1', name: 'Test User' } },
       };
 
       fetchMock.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       });
 
       const result = await client.query({
         query: 'query GetUser { user { id name } }',
-        operationName: 'GetUser'
+        operationName: 'GetUser',
       });
 
       expect(result.success).toBe(true);
@@ -75,21 +75,21 @@ describe('GraphQLCircuitBreakerClient', () => {
 
     it('should cache successful response', async () => {
       const mockResponse = {
-        data: { user: { id: '1', name: 'Test User' } }
+        data: { user: { id: '1', name: 'Test User' } },
       };
 
       fetchMock.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       });
 
       await client.query({
         query: 'query GetUser { user { id name } }',
-        operationName: 'GetUser'
+        operationName: 'GetUser',
       });
 
       const stats = client.getCircuitStats();
-      const userStats = stats.find(s => s.operationName === 'GetUser');
+      const userStats = stats.find((s) => s.operationName === 'GetUser');
 
       expect(userStats).toBeDefined();
       expect(userStats!.totalRequests).toBe(1);
@@ -100,15 +100,15 @@ describe('GraphQLCircuitBreakerClient', () => {
 
       fetchMock.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       });
 
       await client.query({
-        query: 'query GetPosts { posts { id } }'
+        query: 'query GetPosts { posts { id } }',
       });
 
       const stats = client.getCircuitStats();
-      const postStats = stats.find(s => s.operationName === 'GetPosts');
+      const postStats = stats.find((s) => s.operationName === 'GetPosts');
 
       expect(postStats).toBeDefined();
     });
@@ -117,29 +117,31 @@ describe('GraphQLCircuitBreakerClient', () => {
   describe('Error Handling and Retries', () => {
     it('should retry on retriable error', async () => {
       const errorResponse = {
-        errors: [{
-          message: 'Internal server error',
-          extensions: { code: 'INTERNAL_SERVER_ERROR' }
-        }]
+        errors: [
+          {
+            message: 'Internal server error',
+            extensions: { code: 'INTERNAL_SERVER_ERROR' },
+          },
+        ],
       };
 
       const successResponse = {
-        data: { user: { id: '1', name: 'Test' } }
+        data: { user: { id: '1', name: 'Test' } },
       };
 
       fetchMock
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => errorResponse
+          json: async () => errorResponse,
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => successResponse
+          json: async () => successResponse,
         });
 
       const result = await client.query({
         query: 'query GetUser { user { id name } }',
-        operationName: 'GetUser'
+        operationName: 'GetUser',
       });
 
       expect(result.success).toBe(true);
@@ -149,20 +151,22 @@ describe('GraphQLCircuitBreakerClient', () => {
 
     it('should not retry on non-retriable error', async () => {
       const errorResponse = {
-        errors: [{
-          message: 'Unauthorized',
-          extensions: { code: 'UNAUTHENTICATED' }
-        }]
+        errors: [
+          {
+            message: 'Unauthorized',
+            extensions: { code: 'UNAUTHENTICATED' },
+          },
+        ],
       };
 
       fetchMock.mockResolvedValueOnce({
         ok: true,
-        json: async () => errorResponse
+        json: async () => errorResponse,
       });
 
       const result = await client.query({
         query: 'query GetUser { user { id } }',
-        operationName: 'GetUser'
+        operationName: 'GetUser',
       });
 
       expect(result.success).toBe(false);
@@ -171,20 +175,22 @@ describe('GraphQLCircuitBreakerClient', () => {
 
     it('should respect maxRetries limit', async () => {
       const errorResponse = {
-        errors: [{
-          message: 'Service unavailable',
-          extensions: { code: 'SERVICE_UNAVAILABLE' }
-        }]
+        errors: [
+          {
+            message: 'Service unavailable',
+            extensions: { code: 'SERVICE_UNAVAILABLE' },
+          },
+        ],
       };
 
       fetchMock.mockResolvedValue({
         ok: true,
-        json: async () => errorResponse
+        json: async () => errorResponse,
       });
 
       const result = await client.query({
         query: 'query GetUser { user { id } }',
-        operationName: 'GetUser'
+        operationName: 'GetUser',
       });
 
       expect(result.success).toBe(false);
@@ -194,22 +200,24 @@ describe('GraphQLCircuitBreakerClient', () => {
 
     it('should apply jittered exponential backoff', async () => {
       const errorResponse = {
-        errors: [{
-          message: 'Rate limit',
-          extensions: { code: 'RATE_LIMIT_EXCEEDED' }
-        }]
+        errors: [
+          {
+            message: 'Rate limit',
+            extensions: { code: 'RATE_LIMIT_EXCEEDED' },
+          },
+        ],
       };
 
       fetchMock.mockResolvedValue({
         ok: true,
-        json: async () => errorResponse
+        json: async () => errorResponse,
       });
 
       const startTime = Date.now();
 
       await client.query({
         query: 'query GetUser { user { id } }',
-        operationName: 'GetUser'
+        operationName: 'GetUser',
       });
 
       const endTime = Date.now();
@@ -237,7 +245,7 @@ describe('GraphQLCircuitBreakerClient', () => {
         try {
           await client.query({
             query: 'query GetUser { user { id } }',
-            operationName: 'GetUser'
+            operationName: 'GetUser',
           });
         } catch (error) {
           // Expected to fail
@@ -245,7 +253,7 @@ describe('GraphQLCircuitBreakerClient', () => {
       }
 
       const stats = client.getCircuitStats();
-      const userStats = stats.find(s => s.operationName === 'GetUser');
+      const userStats = stats.find((s) => s.operationName === 'GetUser');
 
       expect(userStats?.state).toBe(CircuitState.OPEN);
     });
@@ -253,21 +261,21 @@ describe('GraphQLCircuitBreakerClient', () => {
     it('should open circuit when failure rate exceeds threshold', async () => {
       // Use non-retriable errors so retries don't consume extra mocks
       const errorResponse = {
-        errors: [{ message: 'Unauthorized', extensions: { code: 'UNAUTHENTICATED' } }]
+        errors: [{ message: 'Unauthorized', extensions: { code: 'UNAUTHENTICATED' } }],
       };
 
       // 10 requests: 5 success, 5 non-retriable failure (50% rate = at threshold)
       for (let i = 0; i < 5; i++) {
         fetchMock.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ data: { user: {} } })
+          json: async () => ({ data: { user: {} } }),
         });
       }
 
       for (let i = 0; i < 5; i++) {
         fetchMock.mockResolvedValueOnce({
           ok: true,
-          json: async () => errorResponse
+          json: async () => errorResponse,
         });
       }
 
@@ -275,23 +283,23 @@ describe('GraphQLCircuitBreakerClient', () => {
       for (let i = 0; i < 10; i++) {
         await client.query({
           query: 'query GetUser { user { id } }',
-          operationName: 'GetUser'
+          operationName: 'GetUser',
         });
       }
 
       // Add one more failure to exceed threshold (>50%)
       fetchMock.mockResolvedValueOnce({
         ok: true,
-        json: async () => errorResponse
+        json: async () => errorResponse,
       });
 
       await client.query({
         query: 'query GetUser { user { id } }',
-        operationName: 'GetUser'
+        operationName: 'GetUser',
       });
 
       const stats = client.getCircuitStats();
-      const userStats = stats.find(s => s.operationName === 'GetUser');
+      const userStats = stats.find((s) => s.operationName === 'GetUser');
 
       expect(userStats?.state).toBe(CircuitState.OPEN);
     });
@@ -302,12 +310,12 @@ describe('GraphQLCircuitBreakerClient', () => {
       // First, execute successful query to populate cache
       fetchMock.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: { user: { id: '1', name: 'Cached' } } })
+        json: async () => ({ data: { user: { id: '1', name: 'Cached' } } }),
       });
 
       const firstResult = await client.query({
         query: 'query GetUser { user { id name } }',
-        operationName: 'GetUser'
+        operationName: 'GetUser',
       });
 
       expect(firstResult.success).toBe(true);
@@ -323,7 +331,7 @@ describe('GraphQLCircuitBreakerClient', () => {
         try {
           await client.query({
             query: 'query GetUser { user { id } }',
-            operationName: 'GetUser'
+            operationName: 'GetUser',
           });
         } catch (error) {
           // Expected
@@ -333,7 +341,7 @@ describe('GraphQLCircuitBreakerClient', () => {
       // Now query should return cached data
       const cachedResult = await client.query({
         query: 'query GetUser { user { id name } }',
-        operationName: 'GetUser'
+        operationName: 'GetUser',
       });
 
       expect(cachedResult.fromCache).toBe(true);
@@ -343,7 +351,7 @@ describe('GraphQLCircuitBreakerClient', () => {
     it('should use fallback data if no cache available', async () => {
       // Register fallback
       FallbackDataProvider.register('GetPosts', {
-        data: { posts: [] }
+        data: { posts: [] },
       });
 
       // Open circuit with TimeoutError to trigger consecutiveTimeoutThreshold
@@ -357,7 +365,7 @@ describe('GraphQLCircuitBreakerClient', () => {
         try {
           await client.query({
             query: 'query GetPosts { posts { id } }',
-            operationName: 'GetPosts'
+            operationName: 'GetPosts',
           });
         } catch (error) {
           // Expected
@@ -367,7 +375,7 @@ describe('GraphQLCircuitBreakerClient', () => {
       // Query with open circuit
       const result = await client.query({
         query: 'query GetPosts { posts { id } }',
-        operationName: 'GetPosts'
+        operationName: 'GetPosts',
       });
 
       expect(result.data).toEqual({ posts: [] });
@@ -378,12 +386,12 @@ describe('GraphQLCircuitBreakerClient', () => {
       // Populate cache
       fetchMock.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: { user: { id: '1' } } })
+        json: async () => ({ data: { user: { id: '1' } } }),
       });
 
       await client.query({
         query: 'query GetUser { user { id } }',
-        operationName: 'GetUser'
+        operationName: 'GetUser',
       });
 
       // Open circuit by causing consecutive timeout failures.
@@ -399,7 +407,7 @@ describe('GraphQLCircuitBreakerClient', () => {
         try {
           await client.query({
             query: 'query GetUser { user { id } }',
-            operationName: 'GetUser'
+            operationName: 'GetUser',
           });
         } catch (e) {}
       }
@@ -408,12 +416,12 @@ describe('GraphQLCircuitBreakerClient', () => {
       for (let i = 0; i < 3; i++) {
         await client.query({
           query: 'query GetUser { user { id } }',
-          operationName: 'GetUser'
+          operationName: 'GetUser',
         });
       }
 
       const stats = client.getCircuitStats();
-      const userStats = stats.find(s => s.operationName === 'GetUser');
+      const userStats = stats.find((s) => s.operationName === 'GetUser');
 
       expect(userStats?.cacheHits).toBe(3);
     });
@@ -423,12 +431,12 @@ describe('GraphQLCircuitBreakerClient', () => {
     it('should report system health', async () => {
       fetchMock.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: { user: {} } })
+        json: async () => ({ data: { user: {} } }),
       });
 
       await client.query({
         query: 'query GetUser { user { id } }',
-        operationName: 'GetUser'
+        operationName: 'GetUser',
       });
 
       const health = client.getSystemHealth();
@@ -451,7 +459,7 @@ describe('GraphQLCircuitBreakerClient', () => {
         try {
           await client.query({
             query: 'query GetUser { user { id } }',
-            operationName: 'GetUser'
+            operationName: 'GetUser',
           });
         } catch (e) {}
       }
@@ -468,18 +476,18 @@ describe('GraphQLCircuitBreakerClient', () => {
       // Generate some activity
       fetchMock.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: {} })
+        json: async () => ({ data: {} }),
       });
 
       await client.query({
         query: 'query GetUser { user { id } }',
-        operationName: 'GetUser'
+        operationName: 'GetUser',
       });
 
       client.resetCircuit('GetUser');
 
       const stats = client.getCircuitStats();
-      const userStats = stats.find(s => s.operationName === 'GetUser');
+      const userStats = stats.find((s) => s.operationName === 'GetUser');
 
       expect(userStats?.totalRequests).toBe(0);
     });
@@ -487,23 +495,23 @@ describe('GraphQLCircuitBreakerClient', () => {
     it('should reset all circuits', async () => {
       fetchMock.mockResolvedValue({
         ok: true,
-        json: async () => ({ data: {} })
+        json: async () => ({ data: {} }),
       });
 
       await client.query({
         query: 'query GetUser { user { id } }',
-        operationName: 'GetUser'
+        operationName: 'GetUser',
       });
 
       await client.query({
         query: 'query GetPosts { posts { id } }',
-        operationName: 'GetPosts'
+        operationName: 'GetPosts',
       });
 
       client.resetAllCircuits();
 
       const stats = client.getCircuitStats();
-      expect(stats.every(s => s.totalRequests === 0)).toBe(true);
+      expect(stats.every((s) => s.totalRequests === 0)).toBe(true);
     });
   });
 
@@ -563,19 +571,19 @@ describe('Integration Scenarios', () => {
         healthCheckCount: 3,
         successThreshold: 2,
         maxRetryDelay: 2000,
-        baseRetryDelay: 100
-      }
+        baseRetryDelay: 100,
+      },
     });
   });
 
   it('should handle thundering herd with jittered delays', async () => {
     const errorResponse = {
-      errors: [{ message: 'Error', extensions: { code: 'INTERNAL_SERVER_ERROR' } }]
+      errors: [{ message: 'Error', extensions: { code: 'INTERNAL_SERVER_ERROR' } }],
     };
 
     fetchMock.mockResolvedValue({
       ok: true,
-      json: async () => errorResponse
+      json: async () => errorResponse,
     });
 
     // Simulate 100 concurrent requests (thundering herd)
@@ -584,7 +592,7 @@ describe('Integration Scenarios', () => {
       requests.push(
         client.query({
           query: 'query GetData { data }',
-          operationName: 'GetData'
+          operationName: 'GetData',
         })
       );
     }
@@ -593,7 +601,7 @@ describe('Integration Scenarios', () => {
 
     // Verify jitter was applied (different retry delays)
     const stats = client.getCircuitStats();
-    const dataStats = stats.find(s => s.operationName === 'GetData');
+    const dataStats = stats.find((s) => s.operationName === 'GetData');
 
     // Circuit should eventually open
     expect(dataStats?.state).toBe(CircuitState.OPEN);
@@ -612,33 +620,33 @@ describe('Integration Scenarios', () => {
       try {
         await client.query({
           query: 'query GetUser { user { id } }',
-          operationName: 'GetUser'
+          operationName: 'GetUser',
         });
       } catch (e) {}
     }
 
     let stats = client.getCircuitStats();
-    let userStats = stats.find(s => s.operationName === 'GetUser');
+    let userStats = stats.find((s) => s.operationName === 'GetUser');
     expect(userStats?.state).toBe(CircuitState.OPEN);
 
     // Wait for half-open
-    await new Promise(resolve => setTimeout(resolve, 600));
+    await new Promise((resolve) => setTimeout(resolve, 600));
 
     // Successful health checks
     fetchMock.mockResolvedValue({
       ok: true,
-      json: async () => ({ data: { user: { id: '1' } } })
+      json: async () => ({ data: { user: { id: '1' } } }),
     });
 
     for (let i = 0; i < 3; i++) {
       await client.query({
         query: 'query GetUser { user { id } }',
-        operationName: 'GetUser'
+        operationName: 'GetUser',
       });
     }
 
     stats = client.getCircuitStats();
-    userStats = stats.find(s => s.operationName === 'GetUser');
+    userStats = stats.find((s) => s.operationName === 'GetUser');
     expect(userStats?.state).toBe(CircuitState.CLOSED);
   });
 });

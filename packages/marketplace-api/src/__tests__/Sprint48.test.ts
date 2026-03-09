@@ -131,9 +131,36 @@ describe('InMemoryTraitDatabase search', () => {
 
   beforeEach(async () => {
     db = new InMemoryTraitDatabase();
-    await db.insertTrait(makeTrait({ id: 'alpha', name: 'alpha', description: 'First trait for alpha testing purposes', keywords: ['first'], category: 'rendering', downloads: 100 }));
-    await db.insertTrait(makeTrait({ id: 'beta', name: 'beta', description: 'Second trait for beta testing purposes', keywords: ['second'], category: 'physics', downloads: 50 }));
-    await db.insertTrait(makeTrait({ id: 'gamma', name: 'gamma', description: 'Third trait for gamma testing purposes', keywords: ['third'], category: 'rendering', downloads: 200 }));
+    await db.insertTrait(
+      makeTrait({
+        id: 'alpha',
+        name: 'alpha',
+        description: 'First trait for alpha testing purposes',
+        keywords: ['first'],
+        category: 'rendering',
+        downloads: 100,
+      })
+    );
+    await db.insertTrait(
+      makeTrait({
+        id: 'beta',
+        name: 'beta',
+        description: 'Second trait for beta testing purposes',
+        keywords: ['second'],
+        category: 'physics',
+        downloads: 50,
+      })
+    );
+    await db.insertTrait(
+      makeTrait({
+        id: 'gamma',
+        name: 'gamma',
+        description: 'Third trait for gamma testing purposes',
+        keywords: ['third'],
+        category: 'rendering',
+        downloads: 200,
+      })
+    );
   });
 
   it('search returns all traits with empty query', async () => {
@@ -192,31 +219,37 @@ describe('TraitRegistry', () => {
   });
 
   it('publish returns success for a valid request', async () => {
-    const result = await registry.publish({
-      name: 'my-trait',
-      version: '1.0.0',
-      description: 'A nice trait for doing things well',
-      source: '@trait my-trait { enabled: true }',
-      platforms: ['web'],
-      category: 'utility',
-      license: 'MIT',
-      keywords: ['test'],
-    }, author);
+    const result = await registry.publish(
+      {
+        name: 'my-trait',
+        version: '1.0.0',
+        description: 'A nice trait for doing things well',
+        source: '@trait my-trait { enabled: true }',
+        platforms: ['web'],
+        category: 'utility',
+        license: 'MIT',
+        keywords: ['test'],
+      },
+      author
+    );
     expect(result.success).toBe(true);
     expect(result.traitId).toBe('my-trait');
   });
 
   it('publish returns failure for invalid name', async () => {
-    const result = await registry.publish({
-      name: '',
-      version: '1.0.0',
-      description: 'Bad trait',
-      source: 'x',
-      platforms: ['web'],
-      category: 'utility',
-      license: 'MIT',
-      keywords: [],
-    }, author);
+    const result = await registry.publish(
+      {
+        name: '',
+        version: '1.0.0',
+        description: 'Bad trait',
+        source: 'x',
+        platforms: ['web'],
+        category: 'utility',
+        license: 'MIT',
+        keywords: [],
+      },
+      author
+    );
     expect(result.success).toBe(false);
     expect(result.errors).toBeDefined();
     expect(result.errors!.length).toBeGreaterThan(0);
@@ -245,16 +278,19 @@ describe('TraitRegistry', () => {
   });
 
   it('getTrait returns published trait', async () => {
-    await registry.publish({
-      name: 'find-me',
-      version: '1.0.0',
-      description: 'Finding this trait is the test goal',
-      source: '@trait find-me {}',
-      platforms: ['web'],
-      category: 'utility',
-      license: 'MIT',
-      keywords: [],
-    }, author);
+    await registry.publish(
+      {
+        name: 'find-me',
+        version: '1.0.0',
+        description: 'Finding this trait is the test goal',
+        source: '@trait find-me {}',
+        platforms: ['web'],
+        category: 'utility',
+        license: 'MIT',
+        keywords: [],
+      },
+      author
+    );
     const found = await registry.getTrait('find-me');
     expect(found).not.toBeNull();
     expect(found!.name).toBe('find-me');

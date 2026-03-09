@@ -19,8 +19,8 @@ and iteratively refine HoloScript worlds through natural language.
 ## Example Prompt
 
 > "Create a cozy forest cabin with a fireplace, bookshelves,
->  and a window looking out at mountains. Make it interactive
->  — I want to grab books and throw logs into the fire."
+> and a window looking out at mountains. Make it interactive
+> — I want to grab books and throw logs into the fire."
 
 ## Generated Output
 
@@ -30,20 +30,20 @@ and iteratively refine HoloScript worlds through natural language.
 
 object "Cabin" {
   @physics { fixed: true }
-  
+
   // Warm wooden floor
   object "Floor" {
     geometry: { type: "box", size: { x: 6, y: 0.1, z: 5 } }
     material: { color: "#8B5E3C", roughness: 0.7, texture: "wood_planks" }
   }
-  
+
   // Stone fireplace
   object "Fireplace" {
     @physics { fixed: true, collider: "mesh" }
     geometry: { type: "box", size: { x: 1.5, y: 2, z: 0.8 } }
     material: { color: "#555555", roughness: 0.9, texture: "stone" }
     position: { x: 0, y: 1, z: -2.3 }
-    
+
     // Fire particle system
     object "Fire" {
       @particles {
@@ -58,14 +58,14 @@ object "Cabin" {
       position: { x: 0, y: 0.3, z: 0 }
     }
   }
-  
+
   // Bookshelf with grabbable books
   object "Bookshelf" {
     @physics { fixed: true, collider: "box" }
     geometry: { type: "box", size: { x: 1.2, y: 2.2, z: 0.35 } }
     material: { color: "#5D3A1A", texture: "dark_wood" }
     position: { x: -2.5, y: 1.1, z: -2 }
-    
+
     // Spawn 12 grabbable books
     for (i in 0..12) {
       object "Book_${i}" {
@@ -82,7 +82,7 @@ object "Cabin" {
       }
     }
   }
-  
+
   // Throwable fire logs
   for (i in 0..3) {
     object "Log_${i}" {
@@ -92,7 +92,7 @@ object "Cabin" {
       geometry: { type: "cylinder", radius: 0.06, height: 0.4 }
       material: { color: "#6B4226", texture: "bark" }
       position: { x: 1.5, y: 0.2, z: -1.5 + i * 0.2 }
-      
+
       on collide(other) {
         if (other.name == "Fire") {
           // Log catches fire when thrown into fireplace
@@ -106,7 +106,7 @@ object "Cabin" {
       }
     }
   }
-  
+
   // Window with mountain view
   object "Window" {
     geometry: { type: "box", size: { x: 1.5, y: 1.2, z: 0.05 } }
@@ -139,10 +139,10 @@ if (result.valid && result.confidence > 0.7) {
 
 ## Safety Guardrails
 
-| Check | What it catches |
-|-------|----------------|
+| Check              | What it catches                    |
+| ------------------ | ---------------------------------- |
 | Dangerous patterns | `eval()`, `require()`, `process.*` |
-| Brace balancing | Unclosed objects / syntax errors |
-| Nesting limit | Runaway recursive generation |
-| Trait allowlist | Hallucinated trait names |
-| Confidence score | Low confidence → human review |
+| Brace balancing    | Unclosed objects / syntax errors   |
+| Nesting limit      | Runaway recursive generation       |
+| Trait allowlist    | Hallucinated trait names           |
+| Confidence score   | Low confidence → human review      |

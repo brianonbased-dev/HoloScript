@@ -1105,7 +1105,10 @@ export class HoloCompositionParser {
         // domain block's parseDomainBlock() handles inline traits itself)
         if (this.check('AT')) {
           // Peek ahead to check if this is @platform(...)
-          if (this.peek(1).type === 'IDENTIFIER' && this.peek(1).value.toLowerCase() === 'platform') {
+          if (
+            this.peek(1).type === 'IDENTIFIER' &&
+            this.peek(1).value.toLowerCase() === 'platform'
+          ) {
             this.advance(); // consume @
             this.advance(); // consume 'platform'
             const constraint = this.parsePlatformConstraint();
@@ -1200,7 +1203,7 @@ export class HoloCompositionParser {
           composition.achievements.push(this.parseAchievement());
         } else if (this.check('TALENT_TREE')) {
           composition.talentTrees.push(this.parseTalentTree());
-        // Spatial primitives (v4)
+          // Spatial primitives (v4)
         } else if (this.check('SPAWN_GROUP')) {
           composition.spawnGroups!.push(this.parseSpawnGroup());
         } else if (this.check('WAYPOINTS')) {
@@ -1209,12 +1212,12 @@ export class HoloCompositionParser {
           composition.constraints!.push(this.parseConstraintBlock());
         } else if (this.check('TERRAIN')) {
           composition.terrains!.push(this.parseTerrainBlock());
-        // Norm lifecycle blocks (v4.5 — CRSEC model)
+          // Norm lifecycle blocks (v4.5 — CRSEC model)
         } else if (this.check('NORM')) {
           composition.norms!.push(this.parseNormBlock());
         } else if (this.check('METANORM')) {
           composition.metanorms!.push(this.parseMetanormBlock());
-        // Domain-specific blocks (v4.1)
+          // Domain-specific blocks (v4.1)
         } else if (this.isDomainBlockToken()) {
           composition.domainBlocks!.push(this.parseDomainBlock());
         } else if (this.check('COMMENT') || this.check('LINE_COMMENT')) {
@@ -1465,7 +1468,7 @@ export class HoloCompositionParser {
           composition.achievements.push(this.parseAchievement());
         } else if (this.check('TALENT_TREE')) {
           composition.talentTrees.push(this.parseTalentTree());
-        // Spatial primitives (v4)
+          // Spatial primitives (v4)
         } else if (this.check('SPAWN_GROUP')) {
           composition.spawnGroups!.push(this.parseSpawnGroup());
         } else if (this.check('WAYPOINTS')) {
@@ -1474,17 +1477,20 @@ export class HoloCompositionParser {
           composition.constraints!.push(this.parseConstraintBlock());
         } else if (this.check('TERRAIN')) {
           composition.terrains!.push(this.parseTerrainBlock());
-        // Norm lifecycle blocks (v4.5 — CRSEC model)
+          // Norm lifecycle blocks (v4.5 — CRSEC model)
         } else if (this.check('NORM')) {
           composition.norms!.push(this.parseNormBlock());
         } else if (this.check('METANORM')) {
           composition.metanorms!.push(this.parseMetanormBlock());
-        // Domain-specific blocks (v4)
+          // Domain-specific blocks (v4)
         } else if (this.isDomainBlockToken()) {
           composition.domainBlocks!.push(this.parseDomainBlock());
         } else if (this.check('AT')) {
           // Check for @platform(...) decorator at composition level
-          if (this.peek(1).type === 'IDENTIFIER' && this.peek(1).value.toLowerCase() === 'platform') {
+          if (
+            this.peek(1).type === 'IDENTIFIER' &&
+            this.peek(1).value.toLowerCase() === 'platform'
+          ) {
             this.advance(); // consume @
             this.advance(); // consume 'platform'
             const constraint = this.parsePlatformConstraint();
@@ -2410,10 +2416,7 @@ export class HoloCompositionParser {
           parameters,
           body: [],
         });
-      } else if (
-        this.isPropertyName() &&
-        this.peek(1).type === 'LPAREN'
-      ) {
+      } else if (this.isPropertyName() && this.peek(1).type === 'LPAREN') {
         // method_name() { ... } — event handler / lifecycle method in template body
         const methodName = this.expectIdentifier();
         this.skipParens(); // skip parameter list
@@ -2438,17 +2441,24 @@ export class HoloCompositionParser {
         }
         if (this.check('LBRACE')) {
           this.skipBlock(); // skip HoloScript property block (not code statements)
-          (template as any).directives!.push({ type: blockType, name: blockName, parameters: [], body: [] });
+          (template as any).directives!.push({
+            type: blockType,
+            name: blockName,
+            parameters: [],
+            body: [],
+          });
         }
-      } else if (
-        this.isPropertyName() &&
-        this.peek(1).type === 'LBRACE'
-      ) {
+      } else if (this.isPropertyName() && this.peek(1).type === 'LBRACE') {
         // audio { } or unknown_block { } — bare block with no name
         const blockType = this.expectIdentifier();
         if (this.check('LBRACE')) {
           this.skipBlock(); // skip HoloScript property block (not code statements)
-          (template as any).directives!.push({ type: blockType, name: '', parameters: [], body: [] });
+          (template as any).directives!.push({
+            type: blockType,
+            name: '',
+            parameters: [],
+            body: [],
+          });
         }
       } else {
         const key = this.expectIdentifier();
@@ -2588,7 +2598,8 @@ export class HoloCompositionParser {
       } else if (
         this.check('IDENTIFIER') &&
         this.current().value === 'physics' &&
-        (this.peek(1).type === 'LBRACE' || this.peek(1).type === 'COLON' && this.peek(2).type === 'LBRACE')
+        (this.peek(1).type === 'LBRACE' ||
+          (this.peek(1).type === 'COLON' && this.peek(2).type === 'LBRACE'))
       ) {
         // Structured physics block: physics { collider { ... } rigidbody { ... } ... }
         // Also supports legacy: physics: { mass: 0.5 } (colon + flat object)
@@ -2606,7 +2617,8 @@ export class HoloCompositionParser {
           if (this.check('LBRACE')) {
             // Check if it's a statement block or object value
             // Treat on_xxx and onXxx (camelCase event handlers) as statement blocks
-            const isCodeBlock = key.startsWith('on_') || /^on[A-Z]/.test(key) || key === 'lifecycle';
+            const isCodeBlock =
+              key.startsWith('on_') || /^on[A-Z]/.test(key) || key === 'lifecycle';
             if (isCodeBlock) {
               // Use skipBlock() for event handlers — bodies may contain non-HoloScript syntax
               this.skipBlock();
@@ -3572,11 +3584,11 @@ export class HoloCompositionParser {
     this.advance(); // consume the light primitive identifier
 
     const LIGHT_TYPE_MAP: Record<string, HoloLight['lightType']> = {
-      'point_light': 'point',
-      'ambient_light': 'ambient',
-      'directional_light': 'directional',
-      'spot_light': 'spot',
-      'hemisphere_light': 'hemisphere',
+      point_light: 'point',
+      ambient_light: 'ambient',
+      directional_light: 'directional',
+      spot_light: 'spot',
+      hemisphere_light: 'hemisphere',
     };
     const lightType = LIGHT_TYPE_MAP[lightPrimitive] || 'point';
 
@@ -5000,80 +5012,181 @@ export class HoloCompositionParser {
   /** Domain block token type set */
   private static readonly DOMAIN_TOKENS: Set<TokenType> = new Set([
     // Original 8 domain blocks
-    'IOT_SENSOR', 'IOT_DEVICE', 'IOT_BINDING', 'IOT_TELEMETRY', 'IOT_DIGITAL_TWIN',
-    'ROBOT_JOINT', 'ROBOT_ACTUATOR', 'ROBOT_CONTROLLER', 'ROBOT_END_EFFECTOR',
-    'DATAVIZ_DASHBOARD', 'DATAVIZ_CHART', 'DATAVIZ_DATA_SOURCE', 'DATAVIZ_WIDGET', 'DATAVIZ_METRIC',
-    'EDU_LESSON', 'EDU_QUIZ', 'EDU_CURRICULUM',
-    'HEALTH_PROCEDURE', 'HEALTH_PATIENT_MODEL', 'HEALTH_VITAL_MONITOR',
-    'MUSIC_INSTRUMENT', 'MUSIC_TRACK', 'MUSIC_SEQUENCE', 'MUSIC_EFFECT_CHAIN',
-    'ARCH_FLOOR_PLAN', 'ARCH_ROOM', 'ARCH_BUILDING', 'ARCH_HVAC',
-    'WEB3_CONTRACT', 'WEB3_TOKEN', 'WEB3_WALLET', 'WEB3_MARKETPLACE', 'WEB3_GOVERNANCE',
+    'IOT_SENSOR',
+    'IOT_DEVICE',
+    'IOT_BINDING',
+    'IOT_TELEMETRY',
+    'IOT_DIGITAL_TWIN',
+    'ROBOT_JOINT',
+    'ROBOT_ACTUATOR',
+    'ROBOT_CONTROLLER',
+    'ROBOT_END_EFFECTOR',
+    'DATAVIZ_DASHBOARD',
+    'DATAVIZ_CHART',
+    'DATAVIZ_DATA_SOURCE',
+    'DATAVIZ_WIDGET',
+    'DATAVIZ_METRIC',
+    'EDU_LESSON',
+    'EDU_QUIZ',
+    'EDU_CURRICULUM',
+    'HEALTH_PROCEDURE',
+    'HEALTH_PATIENT_MODEL',
+    'HEALTH_VITAL_MONITOR',
+    'MUSIC_INSTRUMENT',
+    'MUSIC_TRACK',
+    'MUSIC_SEQUENCE',
+    'MUSIC_EFFECT_CHAIN',
+    'ARCH_FLOOR_PLAN',
+    'ARCH_ROOM',
+    'ARCH_BUILDING',
+    'ARCH_HVAC',
+    'WEB3_CONTRACT',
+    'WEB3_TOKEN',
+    'WEB3_WALLET',
+    'WEB3_MARKETPLACE',
+    'WEB3_GOVERNANCE',
     // Perception & simulation layer
-    'MATERIAL', 'PBR_MATERIAL', 'UNLIT_MATERIAL', 'SHADER',
-    'COLLIDER', 'RIGIDBODY', 'FORCE_FIELD', 'ARTICULATION',
-    'PARTICLES', 'EMITTER', 'VFX',
-    'POST_PROCESSING', 'POST_FX',
-    'AUDIO_SOURCE', 'REVERB_ZONE', 'AMBIENCE',
-    'WEATHER', 'ATMOSPHERE',
-    'PROCEDURAL', 'SCATTER',
-    'LOD_BLOCK', 'RENDER',
-    'NAVMESH', 'NAV_AGENT', 'BEHAVIOR_TREE',
-    'INPUT_BLOCK', 'INTERACTION',
+    'MATERIAL',
+    'PBR_MATERIAL',
+    'UNLIT_MATERIAL',
+    'SHADER',
+    'COLLIDER',
+    'RIGIDBODY',
+    'FORCE_FIELD',
+    'ARTICULATION',
+    'PARTICLES',
+    'EMITTER',
+    'VFX',
+    'POST_PROCESSING',
+    'POST_FX',
+    'AUDIO_SOURCE',
+    'REVERB_ZONE',
+    'AMBIENCE',
+    'WEATHER',
+    'ATMOSPHERE',
+    'PROCEDURAL',
+    'SCATTER',
+    'LOD_BLOCK',
+    'RENDER',
+    'NAVMESH',
+    'NAV_AGENT',
+    'BEHAVIOR_TREE',
+    'INPUT_BLOCK',
+    'INTERACTION',
     // Codebase absorption (v4.3)
-    'CODEBASE', 'MODULE_MAP', 'DEPENDENCY_GRAPH', 'CALL_GRAPH',
+    'CODEBASE',
+    'MODULE_MAP',
+    'DEPENDENCY_GRAPH',
+    'CALL_GRAPH',
     // Graph RAG (v4.4)
-    'SEMANTIC_SEARCH', 'GRAPH_QUERY',
+    'SEMANTIC_SEARCH',
+    'GRAPH_QUERY',
     // Norm lifecycle / cultural engineering (v4.5)
-    'NORM_PROPOSAL', 'NORM_VOTING', 'NORM_ADOPTION', 'NORM_VIOLATION', 'NORM_SANCTION',
+    'NORM_PROPOSAL',
+    'NORM_VOTING',
+    'NORM_ADOPTION',
+    'NORM_VIOLATION',
+    'NORM_SANCTION',
     // Narrative / StoryWeaver Protocol (v4.6)
-    'NARRATIVE_BLOCK', 'CHAPTER', 'DIALOGUE_TREE', 'CUTSCENE_SEQUENCE',
+    'NARRATIVE_BLOCK',
+    'CHAPTER',
+    'DIALOGUE_TREE',
+    'CUTSCENE_SEQUENCE',
     // Payment / x402 Protocol (v4.7)
-    'PAYWALL', 'PAYMENT_GATE', 'SUBSCRIPTION', 'TIP_JAR',
+    'PAYWALL',
+    'PAYMENT_GATE',
+    'SUBSCRIPTION',
+    'TIP_JAR',
   ]);
 
   /** Token → domain type mapping */
   private static readonly TOKEN_DOMAIN_MAP: Record<string, HoloDomainType> = {
     // Original 8 domains
-    IOT_SENSOR: 'iot', IOT_DEVICE: 'iot', IOT_BINDING: 'iot',
-    IOT_TELEMETRY: 'iot', IOT_DIGITAL_TWIN: 'iot',
-    ROBOT_JOINT: 'robotics', ROBOT_ACTUATOR: 'robotics',
-    ROBOT_CONTROLLER: 'robotics', ROBOT_END_EFFECTOR: 'robotics',
-    DATAVIZ_DASHBOARD: 'dataviz', DATAVIZ_CHART: 'dataviz',
-    DATAVIZ_DATA_SOURCE: 'dataviz', DATAVIZ_WIDGET: 'dataviz', DATAVIZ_METRIC: 'dataviz',
-    EDU_LESSON: 'education', EDU_QUIZ: 'education', EDU_CURRICULUM: 'education',
-    HEALTH_PROCEDURE: 'healthcare', HEALTH_PATIENT_MODEL: 'healthcare',
+    IOT_SENSOR: 'iot',
+    IOT_DEVICE: 'iot',
+    IOT_BINDING: 'iot',
+    IOT_TELEMETRY: 'iot',
+    IOT_DIGITAL_TWIN: 'iot',
+    ROBOT_JOINT: 'robotics',
+    ROBOT_ACTUATOR: 'robotics',
+    ROBOT_CONTROLLER: 'robotics',
+    ROBOT_END_EFFECTOR: 'robotics',
+    DATAVIZ_DASHBOARD: 'dataviz',
+    DATAVIZ_CHART: 'dataviz',
+    DATAVIZ_DATA_SOURCE: 'dataviz',
+    DATAVIZ_WIDGET: 'dataviz',
+    DATAVIZ_METRIC: 'dataviz',
+    EDU_LESSON: 'education',
+    EDU_QUIZ: 'education',
+    EDU_CURRICULUM: 'education',
+    HEALTH_PROCEDURE: 'healthcare',
+    HEALTH_PATIENT_MODEL: 'healthcare',
     HEALTH_VITAL_MONITOR: 'healthcare',
-    MUSIC_INSTRUMENT: 'music', MUSIC_TRACK: 'music',
-    MUSIC_SEQUENCE: 'music', MUSIC_EFFECT_CHAIN: 'music',
-    ARCH_FLOOR_PLAN: 'architecture', ARCH_ROOM: 'architecture',
-    ARCH_BUILDING: 'architecture', ARCH_HVAC: 'architecture',
-    WEB3_CONTRACT: 'web3', WEB3_TOKEN: 'web3', WEB3_WALLET: 'web3',
-    WEB3_MARKETPLACE: 'web3', WEB3_GOVERNANCE: 'web3',
+    MUSIC_INSTRUMENT: 'music',
+    MUSIC_TRACK: 'music',
+    MUSIC_SEQUENCE: 'music',
+    MUSIC_EFFECT_CHAIN: 'music',
+    ARCH_FLOOR_PLAN: 'architecture',
+    ARCH_ROOM: 'architecture',
+    ARCH_BUILDING: 'architecture',
+    ARCH_HVAC: 'architecture',
+    WEB3_CONTRACT: 'web3',
+    WEB3_TOKEN: 'web3',
+    WEB3_WALLET: 'web3',
+    WEB3_MARKETPLACE: 'web3',
+    WEB3_GOVERNANCE: 'web3',
     // Perception & simulation layer
-    MATERIAL: 'material', PBR_MATERIAL: 'material', UNLIT_MATERIAL: 'material', SHADER: 'material',
-    COLLIDER: 'physics', RIGIDBODY: 'physics', FORCE_FIELD: 'physics', ARTICULATION: 'physics',
-    PARTICLES: 'vfx', EMITTER: 'vfx', VFX: 'vfx',
-    POST_PROCESSING: 'postfx', POST_FX: 'postfx',
-    AUDIO_SOURCE: 'audio', REVERB_ZONE: 'audio', AMBIENCE: 'audio',
-    WEATHER: 'weather', ATMOSPHERE: 'weather',
-    PROCEDURAL: 'procedural', SCATTER: 'procedural',
-    LOD_BLOCK: 'rendering', RENDER: 'rendering',
-    NAVMESH: 'navigation', NAV_AGENT: 'navigation', BEHAVIOR_TREE: 'navigation',
-    INPUT_BLOCK: 'input', INTERACTION: 'input',
+    MATERIAL: 'material',
+    PBR_MATERIAL: 'material',
+    UNLIT_MATERIAL: 'material',
+    SHADER: 'material',
+    COLLIDER: 'physics',
+    RIGIDBODY: 'physics',
+    FORCE_FIELD: 'physics',
+    ARTICULATION: 'physics',
+    PARTICLES: 'vfx',
+    EMITTER: 'vfx',
+    VFX: 'vfx',
+    POST_PROCESSING: 'postfx',
+    POST_FX: 'postfx',
+    AUDIO_SOURCE: 'audio',
+    REVERB_ZONE: 'audio',
+    AMBIENCE: 'audio',
+    WEATHER: 'weather',
+    ATMOSPHERE: 'weather',
+    PROCEDURAL: 'procedural',
+    SCATTER: 'procedural',
+    LOD_BLOCK: 'rendering',
+    RENDER: 'rendering',
+    NAVMESH: 'navigation',
+    NAV_AGENT: 'navigation',
+    BEHAVIOR_TREE: 'navigation',
+    INPUT_BLOCK: 'input',
+    INTERACTION: 'input',
     // Codebase absorption (v4.3)
-    CODEBASE: 'codebase', MODULE_MAP: 'codebase',
-    DEPENDENCY_GRAPH: 'codebase', CALL_GRAPH: 'codebase',
+    CODEBASE: 'codebase',
+    MODULE_MAP: 'codebase',
+    DEPENDENCY_GRAPH: 'codebase',
+    CALL_GRAPH: 'codebase',
     // Graph RAG (v4.4)
-    SEMANTIC_SEARCH: 'codebase', GRAPH_QUERY: 'codebase',
+    SEMANTIC_SEARCH: 'codebase',
+    GRAPH_QUERY: 'codebase',
     // Norm lifecycle / cultural engineering (v4.5)
-    NORM_PROPOSAL: 'norms', NORM_VOTING: 'norms', NORM_ADOPTION: 'norms',
-    NORM_VIOLATION: 'norms', NORM_SANCTION: 'norms',
+    NORM_PROPOSAL: 'norms',
+    NORM_VOTING: 'norms',
+    NORM_ADOPTION: 'norms',
+    NORM_VIOLATION: 'norms',
+    NORM_SANCTION: 'norms',
     // Narrative / StoryWeaver Protocol (v4.6)
-    NARRATIVE_BLOCK: 'narrative', CHAPTER: 'narrative',
-    DIALOGUE_TREE: 'narrative', CUTSCENE_SEQUENCE: 'narrative',
+    NARRATIVE_BLOCK: 'narrative',
+    CHAPTER: 'narrative',
+    DIALOGUE_TREE: 'narrative',
+    CUTSCENE_SEQUENCE: 'narrative',
     // Payment / x402 Protocol (v4.7)
-    PAYWALL: 'payment', PAYMENT_GATE: 'payment',
-    SUBSCRIPTION: 'payment', TIP_JAR: 'payment',
+    PAYWALL: 'payment',
+    PAYMENT_GATE: 'payment',
+    SUBSCRIPTION: 'payment',
+    TIP_JAR: 'payment',
   };
 
   /** Check if current token is a domain block token */
@@ -5170,8 +5283,12 @@ export class HoloCompositionParser {
         compliance = this.parseNormSubBlock('NormCompliance') as HoloNormCompliance;
       }
       // Event handlers (on_norm_violated, on_adopted, etc.)
-      else if (this.check('IDENTIFIER') && tokenLower.startsWith('on') && tokenLower.length > 2 &&
-               (this.peek(1)?.type === 'LPAREN' || this.peek(1)?.type === 'LBRACE')) {
+      else if (
+        this.check('IDENTIFIER') &&
+        tokenLower.startsWith('on') &&
+        tokenLower.length > 2 &&
+        (this.peek(1)?.type === 'LPAREN' || this.peek(1)?.type === 'LBRACE')
+      ) {
         const evtName = this.current().value;
         this.advance(); // consume event name
         const parameters: HoloParameter[] = [];
@@ -5187,7 +5304,12 @@ export class HoloCompositionParser {
         if (this.check('LBRACE')) {
           const body = this.parseStatementBlock();
           this.expect('RBRACE');
-          eventHandlers.push({ type: 'EventHandler', event: evtName, parameters, body } as HoloEventHandler);
+          eventHandlers.push({
+            type: 'EventHandler',
+            event: evtName,
+            parameters,
+            body,
+          } as HoloEventHandler);
         }
       }
       // Regular key: value properties
@@ -5225,7 +5347,10 @@ export class HoloCompositionParser {
    * Parse a norm lifecycle sub-block (creation, representation, spreading, evaluation, compliance).
    * All sub-blocks follow the same pattern: { key: value, ... }
    */
-  private parseNormSubBlock(nodeType: string): { type: string; properties: Record<string, HoloValue> } {
+  private parseNormSubBlock(nodeType: string): {
+    type: string;
+    properties: Record<string, HoloValue>;
+  } {
     this.expect('LBRACE');
     this.skipNewlines();
 
@@ -5312,8 +5437,12 @@ export class HoloCompositionParser {
         escalation = this.parseNormSubBlock('MetanormEscalation') as HoloMetanormEscalation;
       }
       // Event handlers (on_norm_conflict, etc.)
-      else if (this.check('IDENTIFIER') && tokenLower.startsWith('on') && tokenLower.length > 2 &&
-               (this.peek(1)?.type === 'LPAREN' || this.peek(1)?.type === 'LBRACE')) {
+      else if (
+        this.check('IDENTIFIER') &&
+        tokenLower.startsWith('on') &&
+        tokenLower.length > 2 &&
+        (this.peek(1)?.type === 'LPAREN' || this.peek(1)?.type === 'LBRACE')
+      ) {
         const evtName = this.current().value;
         this.advance(); // consume event name
         const parameters: HoloParameter[] = [];
@@ -5329,7 +5458,12 @@ export class HoloCompositionParser {
         if (this.check('LBRACE')) {
           const body = this.parseStatementBlock();
           this.expect('RBRACE');
-          eventHandlers.push({ type: 'EventHandler', event: evtName, parameters, body } as HoloEventHandler);
+          eventHandlers.push({
+            type: 'EventHandler',
+            event: evtName,
+            parameters,
+            body,
+          } as HoloEventHandler);
         }
       }
       // Regular properties
@@ -5406,14 +5540,20 @@ export class HoloCompositionParser {
       if (this.check('RBRACE')) break;
 
       // Nested objects
-      if (this.check('OBJECT') || (this.check('IDENTIFIER') && PRIMITIVE_SHAPES.has(this.current().value))) {
+      if (
+        this.check('OBJECT') ||
+        (this.check('IDENTIFIER') && PRIMITIVE_SHAPES.has(this.current().value))
+      ) {
         children.push(this.parseObject());
       }
       // Event handlers
       else if (this.check('IDENTIFIER') && this.current().value.startsWith('on')) {
         const evtName = this.current().value;
         // Peek ahead: if followed by ( or { it's an event handler
-        if (this.tokens[this.pos + 1]?.type === 'LPAREN' || this.tokens[this.pos + 1]?.type === 'LBRACE') {
+        if (
+          this.tokens[this.pos + 1]?.type === 'LPAREN' ||
+          this.tokens[this.pos + 1]?.type === 'LBRACE'
+        ) {
           this.advance(); // consume event name
           // Simple event handler: skip parameters and body
           if (this.check('LPAREN')) {

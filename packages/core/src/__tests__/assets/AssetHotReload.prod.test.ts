@@ -25,7 +25,6 @@ function mkHR() {
 // ── setEnabled / isEnabled ────────────────────────────────────────────────────
 
 describe('AssetHotReload — setEnabled / isEnabled', () => {
-
   it('isEnabled is true by default', () => {
     expect(new AssetHotReload().isEnabled()).toBe(true);
   });
@@ -47,7 +46,6 @@ describe('AssetHotReload — setEnabled / isEnabled', () => {
 // ── watch / unwatch / isWatched ───────────────────────────────────────────────
 
 describe('AssetHotReload — watch / unwatch / isWatched', () => {
-
   it('watch registers the asset', () => {
     const hr = mkHR();
     hr.watch('tex1', '/textures/tex1.png', 'abc');
@@ -76,7 +74,6 @@ describe('AssetHotReload — watch / unwatch / isWatched', () => {
 // ── subscribe / unsubscribe ───────────────────────────────────────────────────
 
 describe('AssetHotReload — subscribe / unsubscribe', () => {
-
   it('subscribe returns a unique subscription id', () => {
     const hr = mkHR();
     const id1 = hr.subscribe('*', () => {});
@@ -102,7 +99,6 @@ describe('AssetHotReload — subscribe / unsubscribe', () => {
 // ── reportChange + flush (no debounce) ───────────────────────────────────────
 
 describe('AssetHotReload — reportChange + flush', () => {
-
   it('reportChange while disabled does not queue a change', () => {
     const hr = mkHR();
     hr.setEnabled(false);
@@ -122,7 +118,7 @@ describe('AssetHotReload — reportChange + flush', () => {
   it('reportChange with created changeType fires even for unwatched asset', () => {
     const hr = mkHR();
     const received: string[] = [];
-    hr.subscribe('newAsset', change => received.push(change.assetId));
+    hr.subscribe('newAsset', (change) => received.push(change.assetId));
     hr.reportChange('newAsset', 'hash123', 'created');
     hr.flush();
     expect(hr.getChangeHistory()).toHaveLength(1);
@@ -132,7 +128,7 @@ describe('AssetHotReload — reportChange + flush', () => {
     const hr = mkHR();
     hr.watch('asset1', '/a.png', 'old');
     const changes: string[] = [];
-    hr.subscribe('asset1', change => changes.push(change.newHash ?? ''));
+    hr.subscribe('asset1', (change) => changes.push(change.newHash ?? ''));
     hr.reportChange('asset1', 'newHash', 'modified');
     hr.flush();
     expect(changes).toContain('newHash');
@@ -179,12 +175,11 @@ describe('AssetHotReload — reportChange + flush', () => {
 // ── pattern matching ──────────────────────────────────────────────────────────
 
 describe('AssetHotReload — subscriber pattern matching', () => {
-
   function fireAndCollect(pattern: string, assetId: string): string[] {
     const hr = mkHR();
     hr.watch(assetId, `/${assetId}.png`, 'h');
     const received: string[] = [];
-    hr.subscribe(pattern, c => received.push(c.assetId));
+    hr.subscribe(pattern, (c) => received.push(c.assetId));
     hr.reportChange(assetId, 'new', 'modified');
     hr.flush();
     return received;
@@ -207,7 +202,7 @@ describe('AssetHotReload — subscriber pattern matching', () => {
     const hr = mkHR();
     hr.watch('tex', '/textures/albedo.png', 'h');
     const received: string[] = [];
-    hr.subscribe('*.png', c => received.push(c.assetId));
+    hr.subscribe('*.png', (c) => received.push(c.assetId));
     hr.reportChange('tex', 'new', 'modified');
     hr.flush();
     expect(received).toContain('tex');
@@ -217,7 +212,7 @@ describe('AssetHotReload — subscriber pattern matching', () => {
     const hr = mkHR();
     hr.watch('model', '/models/character.glb', 'h');
     const received: string[] = [];
-    hr.subscribe('/models/**', c => received.push(c.assetId));
+    hr.subscribe('/models/**', (c) => received.push(c.assetId));
     hr.reportChange('model', 'new', 'modified');
     hr.flush();
     expect(received).toContain('model');
@@ -227,7 +222,6 @@ describe('AssetHotReload — subscriber pattern matching', () => {
 // ── getChangeHistory / getRecentChanges / clearHistory ───────────────────────
 
 describe('AssetHotReload — change history', () => {
-
   it('getChangeHistory is empty initially', () => {
     expect(mkHR().getChangeHistory()).toHaveLength(0);
   });
@@ -244,10 +238,15 @@ describe('AssetHotReload — change history', () => {
 
   it('getRecentChanges returns last N entries', () => {
     const hr = mkHR();
-    hr.watch('a', '/a', 'h'); hr.watch('b', '/b', 'h'); hr.watch('c', '/c', 'h');
-    hr.reportChange('a', 'n', 'modified'); hr.flush();
-    hr.reportChange('b', 'n', 'modified'); hr.flush();
-    hr.reportChange('c', 'n', 'modified'); hr.flush();
+    hr.watch('a', '/a', 'h');
+    hr.watch('b', '/b', 'h');
+    hr.watch('c', '/c', 'h');
+    hr.reportChange('a', 'n', 'modified');
+    hr.flush();
+    hr.reportChange('b', 'n', 'modified');
+    hr.flush();
+    hr.reportChange('c', 'n', 'modified');
+    hr.flush();
     const recent = hr.getRecentChanges(2);
     expect(recent).toHaveLength(2);
     expect(recent[1].assetId).toBe('c');
@@ -275,7 +274,6 @@ describe('AssetHotReload — change history', () => {
 // ── getStats ──────────────────────────────────────────────────────────────────
 
 describe('AssetHotReload — getStats', () => {
-
   it('all stats fields are 0/empty on fresh instance', () => {
     const stats = new AssetHotReload().getStats();
     expect(stats.totalReloads).toBe(0);

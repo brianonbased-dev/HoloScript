@@ -112,7 +112,7 @@ describe('InMemoryTraitDatabase', () => {
     const t = await db.getTraitByName('multi');
     const versions = await db.getVersions(t!.id);
     expect(versions.length).toBeGreaterThanOrEqual(1);
-    expect(versions.every(v => typeof v.version === 'string')).toBe(true);
+    expect(versions.every((v) => typeof v.version === 'string')).toBe(true);
   });
 
   // ── deleteVersion ──
@@ -127,10 +127,12 @@ describe('InMemoryTraitDatabase', () => {
   // ── search: basic text ──
   it('search by query string finds matching traits', async () => {
     await db.insertTrait(makeTrait({ id: 't1', name: 'gravity-gun', description: 'Physics tool' }));
-    await db.insertTrait(makeTrait({ id: 't2', name: 'glow-shader', description: 'Visual effect' }));
+    await db.insertTrait(
+      makeTrait({ id: 't2', name: 'glow-shader', description: 'Visual effect' })
+    );
     const result = await db.search({ q: 'gravity' });
-    expect(result.results.some(r => r.name === 'gravity-gun')).toBe(true);
-    expect(result.results.some(r => r.name === 'glow-shader')).toBe(false);
+    expect(result.results.some((r) => r.name === 'gravity-gun')).toBe(true);
+    expect(result.results.some((r) => r.name === 'glow-shader')).toBe(false);
   });
 
   it('search with no query returns all', async () => {
@@ -152,19 +154,31 @@ describe('InMemoryTraitDatabase', () => {
     await db.insertTrait(makeTrait({ id: 't1', name: 'unity-only', platforms: ['unity'] }));
     await db.insertTrait(makeTrait({ id: 't2', name: 'web-only', platforms: ['web'] }));
     const result = await db.search({ platform: 'unity' });
-    expect(result.results.some(r => r.name === 'unity-only')).toBe(true);
-    expect(result.results.some(r => r.name === 'web-only')).toBe(false);
+    expect(result.results.some((r) => r.name === 'unity-only')).toBe(true);
+    expect(result.results.some((r) => r.name === 'web-only')).toBe(false);
   });
 
   it('search platform "all" matches any platform filter', async () => {
     await db.insertTrait(makeTrait({ id: 't1', name: 'universal', platforms: ['all'] }));
     const result = await db.search({ platform: 'unity' });
-    expect(result.results.some(r => r.name === 'universal')).toBe(true);
+    expect(result.results.some((r) => r.name === 'universal')).toBe(true);
   });
 
   it('search filters by author', async () => {
-    await db.insertTrait(makeTrait({ id: 't1', name: 'alice-trait', author: { name: 'Alice', email: 'a@x.com', verified: true } }));
-    await db.insertTrait(makeTrait({ id: 't2', name: 'bob-trait', author: { name: 'Bob', email: 'b@x.com', verified: false } }));
+    await db.insertTrait(
+      makeTrait({
+        id: 't1',
+        name: 'alice-trait',
+        author: { name: 'Alice', email: 'a@x.com', verified: true },
+      })
+    );
+    await db.insertTrait(
+      makeTrait({
+        id: 't2',
+        name: 'bob-trait',
+        author: { name: 'Bob', email: 'b@x.com', verified: false },
+      })
+    );
     const result = await db.search({ author: 'alice' });
     expect(result.total).toBe(1);
     expect(result.results[0].name).toBe('alice-trait');
@@ -338,7 +352,7 @@ describe('RatingService', () => {
     await svc.rate('t1', 'u1', 3);
     await svc.rate('t1', 'u1', 5);
     const ratings = await svc.getRatings('t1');
-    expect(ratings.find(r => r.userId === 'u1')!.rating).toBe(5);
+    expect(ratings.find((r) => r.userId === 'u1')!.rating).toBe(5);
   });
 
   // ── getRatings ──

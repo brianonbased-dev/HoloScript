@@ -30,9 +30,7 @@ describe('ParticleTurbulence — Production', () => {
 
   describe('apply', () => {
     it('modifies particle velocities', () => {
-      const particles = [
-        { x: 1, y: 2, z: 3, vx: 0, vy: 0, vz: 0 },
-      ];
+      const particles = [{ x: 1, y: 2, z: 3, vx: 0, vy: 0, vz: 0 }];
       turb.apply(particles, 0.016);
       const speed = Math.sqrt(particles[0].vx ** 2 + particles[0].vy ** 2 + particles[0].vz ** 2);
       expect(speed).toBeGreaterThan(0);

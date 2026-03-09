@@ -7,23 +7,55 @@ import { TerrainTexturing } from '../terrain/TerrainTexturing';
 
 describe('TerrainTexturing', () => {
   let tex: TerrainTexturing;
-  beforeEach(() => { tex = new TerrainTexturing(); });
+  beforeEach(() => {
+    tex = new TerrainTexturing();
+  });
 
   it('adds terrain layers', () => {
-    tex.addLayer({ id: 'grass', textureId: 't1', tiling: { x: 1, y: 1 }, metallic: 0, roughness: 0.8, heightBlend: false });
+    tex.addLayer({
+      id: 'grass',
+      textureId: 't1',
+      tiling: { x: 1, y: 1 },
+      metallic: 0,
+      roughness: 0.8,
+      heightBlend: false,
+    });
     expect(tex.getLayerCount()).toBe(1);
     expect(tex.getLayer(0)?.id).toBe('grass');
   });
 
   it('throws when exceeding 16 layers', () => {
     for (let i = 0; i < 16; i++) {
-      tex.addLayer({ id: `l${i}`, textureId: `t${i}`, tiling: { x: 1, y: 1 }, metallic: 0, roughness: 0.5, heightBlend: false });
+      tex.addLayer({
+        id: `l${i}`,
+        textureId: `t${i}`,
+        tiling: { x: 1, y: 1 },
+        metallic: 0,
+        roughness: 0.5,
+        heightBlend: false,
+      });
     }
-    expect(() => tex.addLayer({ id: 'overflow', textureId: 'x', tiling: { x: 1, y: 1 }, metallic: 0, roughness: 0.5, heightBlend: false })).toThrow('Max 16');
+    expect(() =>
+      tex.addLayer({
+        id: 'overflow',
+        textureId: 'x',
+        tiling: { x: 1, y: 1 },
+        metallic: 0,
+        roughness: 0.5,
+        heightBlend: false,
+      })
+    ).toThrow('Max 16');
   });
 
   it('removes a layer by id', () => {
-    tex.addLayer({ id: 'dirt', textureId: 't2', tiling: { x: 1, y: 1 }, metallic: 0, roughness: 0.9, heightBlend: false });
+    tex.addLayer({
+      id: 'dirt',
+      textureId: 't2',
+      tiling: { x: 1, y: 1 },
+      metallic: 0,
+      roughness: 0.9,
+      heightBlend: false,
+    });
     tex.removeLayer('dirt');
     expect(tex.getLayerCount()).toBe(0);
   });

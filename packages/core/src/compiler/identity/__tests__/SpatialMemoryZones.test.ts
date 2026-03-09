@@ -80,7 +80,7 @@ function validPayload(overrides: Record<string, unknown> = {}) {
       initiated_by: AgentRole.ORCHESTRATOR,
       delegation_chain: [],
     },
-    ...(overrides.extra as Record<string, unknown> ?? {}),
+    ...((overrides.extra as Record<string, unknown>) ?? {}),
   };
 }
 
@@ -118,8 +118,15 @@ describe('SpatialMemoryZones', () => {
   describe('Zone creation', () => {
     it('creates a geospatial zone with full bounds', () => {
       const zone = createGeospatialZone(
-        'geo-1', 'Downtown SF', 'public',
-        37.77, 37.79, -122.43, -122.41, 0, 500,
+        'geo-1',
+        'Downtown SF',
+        'public',
+        37.77,
+        37.79,
+        -122.43,
+        -122.41,
+        0,
+        500
       );
 
       expect(zone.id).toBe('geo-1');
@@ -139,8 +146,13 @@ describe('SpatialMemoryZones', () => {
 
     it('creates a geospatial zone without altitude', () => {
       const zone = createGeospatialZone(
-        'geo-2', 'Flat Area', 'restricted',
-        40.0, 41.0, -74.0, -73.0,
+        'geo-2',
+        'Flat Area',
+        'restricted',
+        40.0,
+        41.0,
+        -74.0,
+        -73.0
       );
       expect(zone.bounds!.type).toBe('geospatial');
       if (zone.bounds!.type === 'geospatial') {
@@ -150,10 +162,7 @@ describe('SpatialMemoryZones', () => {
     });
 
     it('creates a local-coordinate zone', () => {
-      const zone = createLocalZone(
-        'local-1', 'Meeting Room A', 'private',
-        0, 10, 0, 5, 0, 3,
-      );
+      const zone = createLocalZone('local-1', 'Meeting Room A', 'private', 0, 10, 0, 5, 0, 3);
 
       expect(zone.id).toBe('local-1');
       expect(zone.bounds!.type).toBe('local');
@@ -251,14 +260,16 @@ describe('SpatialMemoryZones', () => {
         'z-p',
         { [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_ADMIN] },
         { 'special-agent': [SpatialPermission.SPATIAL_WRITE] },
-        [SpatialPermission.SPATIAL_READ],
+        [SpatialPermission.SPATIAL_READ]
       );
       enforcer.setPolicy(policy);
 
       const retrieved = enforcer.getPolicy('z-p');
       expect(retrieved).toBeDefined();
       expect(retrieved!.zoneId).toBe('z-p');
-      expect(retrieved!.rolePermissions[AgentRole.ORCHESTRATOR]).toContain(SpatialPermission.SPATIAL_ADMIN);
+      expect(retrieved!.rolePermissions[AgentRole.ORCHESTRATOR]).toContain(
+        SpatialPermission.SPATIAL_ADMIN
+      );
       expect(retrieved!.agentOverrides['special-agent']).toContain(SpatialPermission.SPATIAL_WRITE);
       expect(retrieved!.defaultPermissions).toContain(SpatialPermission.SPATIAL_READ);
     });
@@ -282,7 +293,11 @@ describe('SpatialMemoryZones', () => {
     it('denies access when zone does not exist', () => {
       setupValidToken();
 
-      const decision = enforcer.checkZoneAccess('token', 'nonexistent', SpatialPermission.SPATIAL_READ);
+      const decision = enforcer.checkZoneAccess(
+        'token',
+        'nonexistent',
+        SpatialPermission.SPATIAL_READ
+      );
       expect(decision.allowed).toBe(false);
       expect(decision.reason).toContain('Zone not found');
     });
@@ -292,17 +307,32 @@ describe('SpatialMemoryZones', () => {
 
       const zone = createNamedZone('z-role', 'Role Zone', 'private');
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'z-role',
-        { [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_READ, SpatialPermission.SPATIAL_WRITE] },
-        {},
-        [],
-      ));
+      enforcer.setPolicy(
+        createZonePolicy(
+          'z-role',
+          {
+            [AgentRole.ORCHESTRATOR]: [
+              SpatialPermission.SPATIAL_READ,
+              SpatialPermission.SPATIAL_WRITE,
+            ],
+          },
+          {},
+          []
+        )
+      );
 
-      const readDecision = enforcer.checkZoneAccess('token', 'z-role', SpatialPermission.SPATIAL_READ);
+      const readDecision = enforcer.checkZoneAccess(
+        'token',
+        'z-role',
+        SpatialPermission.SPATIAL_READ
+      );
       expect(readDecision.allowed).toBe(true);
 
-      const writeDecision = enforcer.checkZoneAccess('token', 'z-role', SpatialPermission.SPATIAL_WRITE);
+      const writeDecision = enforcer.checkZoneAccess(
+        'token',
+        'z-role',
+        SpatialPermission.SPATIAL_WRITE
+      );
       expect(writeDecision.allowed).toBe(true);
     });
 
@@ -311,12 +341,14 @@ describe('SpatialMemoryZones', () => {
 
       const zone = createNamedZone('z-deny', 'Deny Zone', 'private');
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'z-deny',
-        { [AgentRole.SYNTAX_ANALYZER]: [SpatialPermission.SPATIAL_READ] },
-        {},
-        [],
-      ));
+      enforcer.setPolicy(
+        createZonePolicy(
+          'z-deny',
+          { [AgentRole.SYNTAX_ANALYZER]: [SpatialPermission.SPATIAL_READ] },
+          {},
+          []
+        )
+      );
 
       const decision = enforcer.checkZoneAccess('token', 'z-deny', SpatialPermission.SPATIAL_WRITE);
       expect(decision.allowed).toBe(false);
@@ -328,12 +360,14 @@ describe('SpatialMemoryZones', () => {
 
       const zone = createNamedZone('z-def', 'Default Zone', 'public');
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'z-def',
-        {},  // no role grants
-        {},
-        [SpatialPermission.SPATIAL_READ],
-      ));
+      enforcer.setPolicy(
+        createZonePolicy(
+          'z-def',
+          {}, // no role grants
+          {},
+          [SpatialPermission.SPATIAL_READ]
+        )
+      );
 
       const decision = enforcer.checkZoneAccess('token', 'z-def', SpatialPermission.SPATIAL_READ);
       expect(decision.allowed).toBe(true);
@@ -344,14 +378,13 @@ describe('SpatialMemoryZones', () => {
 
       const zone = createNamedZone('z-def2', 'Default Zone 2', 'public');
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'z-def2',
-        {},
-        {},
-        [SpatialPermission.SPATIAL_READ],
-      ));
+      enforcer.setPolicy(createZonePolicy('z-def2', {}, {}, [SpatialPermission.SPATIAL_READ]));
 
-      const decision = enforcer.checkZoneAccess('token', 'z-def2', SpatialPermission.SPATIAL_DELETE);
+      const decision = enforcer.checkZoneAccess(
+        'token',
+        'z-def2',
+        SpatialPermission.SPATIAL_DELETE
+      );
       expect(decision.allowed).toBe(false);
     });
   });
@@ -367,18 +400,34 @@ describe('SpatialMemoryZones', () => {
 
       const zone = createNamedZone('z-ov', 'Override Zone', 'private');
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'z-ov',
-        { [AgentRole.SYNTAX_ANALYZER]: [SpatialPermission.SPATIAL_READ] },
-        { [agentSub]: [SpatialPermission.SPATIAL_READ, SpatialPermission.SPATIAL_WRITE, SpatialPermission.SPATIAL_ADMIN] },
-        [],
-      ));
+      enforcer.setPolicy(
+        createZonePolicy(
+          'z-ov',
+          { [AgentRole.SYNTAX_ANALYZER]: [SpatialPermission.SPATIAL_READ] },
+          {
+            [agentSub]: [
+              SpatialPermission.SPATIAL_READ,
+              SpatialPermission.SPATIAL_WRITE,
+              SpatialPermission.SPATIAL_ADMIN,
+            ],
+          },
+          []
+        )
+      );
 
       // Agent override gives ADMIN, even though role only gives READ
-      const adminDecision = enforcer.checkZoneAccess('token', 'z-ov', SpatialPermission.SPATIAL_ADMIN);
+      const adminDecision = enforcer.checkZoneAccess(
+        'token',
+        'z-ov',
+        SpatialPermission.SPATIAL_ADMIN
+      );
       expect(adminDecision.allowed).toBe(true);
 
-      const writeDecision = enforcer.checkZoneAccess('token', 'z-ov', SpatialPermission.SPATIAL_WRITE);
+      const writeDecision = enforcer.checkZoneAccess(
+        'token',
+        'z-ov',
+        SpatialPermission.SPATIAL_WRITE
+      );
       expect(writeDecision.allowed).toBe(true);
     });
 
@@ -388,14 +437,26 @@ describe('SpatialMemoryZones', () => {
 
       const zone = createNamedZone('z-ov-restrict', 'Restricted Override', 'public');
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'z-ov-restrict',
-        { [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_READ, SpatialPermission.SPATIAL_WRITE, SpatialPermission.SPATIAL_ADMIN] },
-        { [agentSub]: [] },  // empty override = no permissions
-        [SpatialPermission.SPATIAL_READ],
-      ));
+      enforcer.setPolicy(
+        createZonePolicy(
+          'z-ov-restrict',
+          {
+            [AgentRole.ORCHESTRATOR]: [
+              SpatialPermission.SPATIAL_READ,
+              SpatialPermission.SPATIAL_WRITE,
+              SpatialPermission.SPATIAL_ADMIN,
+            ],
+          },
+          { [agentSub]: [] }, // empty override = no permissions
+          [SpatialPermission.SPATIAL_READ]
+        )
+      );
 
-      const decision = enforcer.checkZoneAccess('token', 'z-ov-restrict', SpatialPermission.SPATIAL_READ);
+      const decision = enforcer.checkZoneAccess(
+        'token',
+        'z-ov-restrict',
+        SpatialPermission.SPATIAL_READ
+      );
       expect(decision.allowed).toBe(false);
     });
   });
@@ -433,7 +494,11 @@ describe('SpatialMemoryZones', () => {
       setupValidToken();
       enforcer.registerZone(createNamedZone('priv', 'Private', 'private'));
 
-      const readDecision = enforcer.checkZoneAccess('token', 'priv', SpatialPermission.SPATIAL_READ);
+      const readDecision = enforcer.checkZoneAccess(
+        'token',
+        'priv',
+        SpatialPermission.SPATIAL_READ
+      );
       expect(readDecision.allowed).toBe(false);
     });
 
@@ -441,7 +506,11 @@ describe('SpatialMemoryZones', () => {
       setupValidToken();
       enforcer.registerZone(createNamedZone('sens', 'Sensitive', 'sensitive'));
 
-      const readDecision = enforcer.checkZoneAccess('token', 'sens', SpatialPermission.SPATIAL_READ);
+      const readDecision = enforcer.checkZoneAccess(
+        'token',
+        'sens',
+        SpatialPermission.SPATIAL_READ
+      );
       expect(readDecision.allowed).toBe(false);
     });
   });
@@ -455,17 +524,32 @@ describe('SpatialMemoryZones', () => {
       setupValidToken({ agent_role: AgentRole.ORCHESTRATOR, sub: 'agent:orch:1' });
 
       const zone = createGeospatialZone(
-        'geo-check', 'SF Check', 'public',
-        37.77, 37.79, -122.43, -122.41, 0, 500,
+        'geo-check',
+        'SF Check',
+        'public',
+        37.77,
+        37.79,
+        -122.43,
+        -122.41,
+        0,
+        500
       );
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'geo-check',
-        { [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_READ, SpatialPermission.SPATIAL_WRITE] },
-      ));
+      enforcer.setPolicy(
+        createZonePolicy('geo-check', {
+          [AgentRole.ORCHESTRATOR]: [
+            SpatialPermission.SPATIAL_READ,
+            SpatialPermission.SPATIAL_WRITE,
+          ],
+        })
+      );
 
       const position: SpatialPosition = { x: 37.78, y: -122.42, z: 100 };
-      const decision = enforcer.validateSpatialOperation('token', position, SpatialPermission.SPATIAL_READ);
+      const decision = enforcer.validateSpatialOperation(
+        'token',
+        position,
+        SpatialPermission.SPATIAL_READ
+      );
       expect(decision.allowed).toBe(true);
       expect(decision.reason).toContain('geo-check');
     });
@@ -474,18 +558,26 @@ describe('SpatialMemoryZones', () => {
       setupValidToken({ agent_role: AgentRole.ORCHESTRATOR, sub: 'agent:orch:1' });
 
       const zone = createGeospatialZone(
-        'geo-miss', 'SF Miss', 'public',
-        37.77, 37.79, -122.43, -122.41,
+        'geo-miss',
+        'SF Miss',
+        'public',
+        37.77,
+        37.79,
+        -122.43,
+        -122.41
       );
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'geo-miss',
-        { [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_READ] },
-      ));
+      enforcer.setPolicy(
+        createZonePolicy('geo-miss', { [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_READ] })
+      );
 
       // Position outside the zone bounds
       const position: SpatialPosition = { x: 40.0, y: -74.0, z: 0 };
-      const decision = enforcer.validateSpatialOperation('token', position, SpatialPermission.SPATIAL_READ);
+      const decision = enforcer.validateSpatialOperation(
+        'token',
+        position,
+        SpatialPermission.SPATIAL_READ
+      );
       expect(decision.allowed).toBe(false);
       expect(decision.reason).toContain('No registered zone contains position');
     });
@@ -493,38 +585,41 @@ describe('SpatialMemoryZones', () => {
     it('grants access when position is inside a local zone', () => {
       setupValidToken({ agent_role: AgentRole.AST_OPTIMIZER, sub: 'agent:opt:1' });
 
-      const zone = createLocalZone(
-        'room-1', 'Room 1', 'restricted',
-        0, 10, 0, 5, 0, 3,
-      );
+      const zone = createLocalZone('room-1', 'Room 1', 'restricted', 0, 10, 0, 5, 0, 3);
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'room-1',
-        { [AgentRole.AST_OPTIMIZER]: [SpatialPermission.SPATIAL_READ] },
-      ));
+      enforcer.setPolicy(
+        createZonePolicy('room-1', { [AgentRole.AST_OPTIMIZER]: [SpatialPermission.SPATIAL_READ] })
+      );
 
       const position: SpatialPosition = { x: 5, y: 2.5, z: 1.5 };
-      const decision = enforcer.validateSpatialOperation('token', position, SpatialPermission.SPATIAL_READ);
+      const decision = enforcer.validateSpatialOperation(
+        'token',
+        position,
+        SpatialPermission.SPATIAL_READ
+      );
       expect(decision.allowed).toBe(true);
     });
 
     it('denies access when position is inside zone but agent lacks permission', () => {
       setupValidToken({ agent_role: AgentRole.SYNTAX_ANALYZER, sub: 'agent:sa:1' });
 
-      const zone = createLocalZone(
-        'room-2', 'Room 2', 'private',
-        0, 10, 0, 5, 0, 3,
-      );
+      const zone = createLocalZone('room-2', 'Room 2', 'private', 0, 10, 0, 5, 0, 3);
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'room-2',
-        { [AgentRole.SYNTAX_ANALYZER]: [SpatialPermission.SPATIAL_READ] },
-        {},
-        [],
-      ));
+      enforcer.setPolicy(
+        createZonePolicy(
+          'room-2',
+          { [AgentRole.SYNTAX_ANALYZER]: [SpatialPermission.SPATIAL_READ] },
+          {},
+          []
+        )
+      );
 
       const position: SpatialPosition = { x: 5, y: 2.5, z: 1.5 };
-      const decision = enforcer.validateSpatialOperation('token', position, SpatialPermission.SPATIAL_WRITE);
+      const decision = enforcer.validateSpatialOperation(
+        'token',
+        position,
+        SpatialPermission.SPATIAL_WRITE
+      );
       expect(decision.allowed).toBe(false);
       expect(decision.reason).toContain('denied');
     });
@@ -534,13 +629,16 @@ describe('SpatialMemoryZones', () => {
 
       const zone = createNamedZone('lobby', 'Lobby', 'public');
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'lobby',
-        { [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_READ] },
-      ));
+      enforcer.setPolicy(
+        createZonePolicy('lobby', { [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_READ] })
+      );
 
       const position: SpatialPosition = { x: 0, y: 0, z: 0 };
-      const decision = enforcer.validateSpatialOperation('token', position, SpatialPermission.SPATIAL_READ);
+      const decision = enforcer.validateSpatialOperation(
+        'token',
+        position,
+        SpatialPermission.SPATIAL_READ
+      );
       // Named zones have no bounds, so the position cannot match
       expect(decision.allowed).toBe(false);
       expect(decision.reason).toContain('No registered zone');
@@ -553,7 +651,11 @@ describe('SpatialMemoryZones', () => {
       enforcer.registerZone(zone);
 
       const position: SpatialPosition = { x: 5, y: 2.5, z: 1.5 };
-      const decision = enforcer.validateSpatialOperation('bad-token', position, SpatialPermission.SPATIAL_READ);
+      const decision = enforcer.validateSpatialOperation(
+        'bad-token',
+        position,
+        SpatialPermission.SPATIAL_READ
+      );
       expect(decision.allowed).toBe(false);
       expect(decision.reason).toContain('Token verification failed');
     });
@@ -562,51 +664,70 @@ describe('SpatialMemoryZones', () => {
       setupValidToken({ agent_role: AgentRole.ORCHESTRATOR, sub: 'agent:orch:1' });
 
       const zone = createGeospatialZone(
-        'geo-alt', 'Alt Check', 'public',
-        37.77, 37.79, -122.43, -122.41, 100, 200,
+        'geo-alt',
+        'Alt Check',
+        'public',
+        37.77,
+        37.79,
+        -122.43,
+        -122.41,
+        100,
+        200
       );
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'geo-alt',
-        { [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_READ] },
-      ));
+      enforcer.setPolicy(
+        createZonePolicy('geo-alt', { [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_READ] })
+      );
 
       // Inside altitude range
       const inside: SpatialPosition = { x: 37.78, y: -122.42, z: 150 };
-      const insideDecision = enforcer.validateSpatialOperation('token', inside, SpatialPermission.SPATIAL_READ);
+      const insideDecision = enforcer.validateSpatialOperation(
+        'token',
+        inside,
+        SpatialPermission.SPATIAL_READ
+      );
       expect(insideDecision.allowed).toBe(true);
 
       // Outside altitude range (too high)
       const above: SpatialPosition = { x: 37.78, y: -122.42, z: 300 };
-      const aboveDecision = enforcer.validateSpatialOperation('token', above, SpatialPermission.SPATIAL_READ);
+      const aboveDecision = enforcer.validateSpatialOperation(
+        'token',
+        above,
+        SpatialPermission.SPATIAL_READ
+      );
       expect(aboveDecision.allowed).toBe(false);
 
       // Outside altitude range (too low)
       const below: SpatialPosition = { x: 37.78, y: -122.42, z: 50 };
-      const belowDecision = enforcer.validateSpatialOperation('token', below, SpatialPermission.SPATIAL_READ);
+      const belowDecision = enforcer.validateSpatialOperation(
+        'token',
+        below,
+        SpatialPermission.SPATIAL_READ
+      );
       expect(belowDecision.allowed).toBe(false);
     });
 
     it('position on exact boundary is included (inclusive bounds)', () => {
       setupValidToken({ agent_role: AgentRole.ORCHESTRATOR, sub: 'agent:orch:1' });
 
-      const zone = createLocalZone(
-        'edge', 'Edge Zone', 'public',
-        0, 10, 0, 5, 0, 3,
-      );
+      const zone = createLocalZone('edge', 'Edge Zone', 'public', 0, 10, 0, 5, 0, 3);
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'edge',
-        { [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_READ] },
-      ));
+      enforcer.setPolicy(
+        createZonePolicy('edge', { [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_READ] })
+      );
 
       // Exact corner
       const corner: SpatialPosition = { x: 0, y: 0, z: 0 };
-      expect(enforcer.validateSpatialOperation('token', corner, SpatialPermission.SPATIAL_READ).allowed).toBe(true);
+      expect(
+        enforcer.validateSpatialOperation('token', corner, SpatialPermission.SPATIAL_READ).allowed
+      ).toBe(true);
 
       // Opposite exact corner
       const farCorner: SpatialPosition = { x: 10, y: 5, z: 3 };
-      expect(enforcer.validateSpatialOperation('token', farCorner, SpatialPermission.SPATIAL_READ).allowed).toBe(true);
+      expect(
+        enforcer.validateSpatialOperation('token', farCorner, SpatialPermission.SPATIAL_READ)
+          .allowed
+      ).toBe(true);
     });
   });
 
@@ -645,12 +766,14 @@ describe('SpatialMemoryZones', () => {
 
       const zone = createNamedZone('granted', 'Granted', 'private');
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'granted',
-        { [AgentRole.SYNTAX_ANALYZER]: [SpatialPermission.SPATIAL_READ] },
-        {},
-        [],
-      ));
+      enforcer.setPolicy(
+        createZonePolicy(
+          'granted',
+          { [AgentRole.SYNTAX_ANALYZER]: [SpatialPermission.SPATIAL_READ] },
+          {},
+          []
+        )
+      );
 
       const zones = enforcer.getAccessibleZones('token');
       expect(zones).toContain('granted');
@@ -774,12 +897,17 @@ describe('SpatialMemoryZones', () => {
 
       const zone = createLocalZone('spatial-audit', 'SA', 'public', 0, 10, 0, 10, 0, 10);
       enforcer.registerZone(zone);
-      enforcer.setPolicy(createZonePolicy(
-        'spatial-audit',
-        { [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_READ] },
-      ));
+      enforcer.setPolicy(
+        createZonePolicy('spatial-audit', {
+          [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_READ],
+        })
+      );
 
-      enforcer.validateSpatialOperation('token', { x: 5, y: 5, z: 5 }, SpatialPermission.SPATIAL_READ);
+      enforcer.validateSpatialOperation(
+        'token',
+        { x: 5, y: 5, z: 5 },
+        SpatialPermission.SPATIAL_READ
+      );
 
       const log = enforcer.getAuditLog();
       expect(log.length).toBeGreaterThanOrEqual(1);
@@ -827,7 +955,7 @@ describe('SpatialMemoryZones', () => {
         'z-full',
         { admin: [SpatialPermission.SPATIAL_ADMIN] },
         { 'special:agent': [SpatialPermission.SPATIAL_WRITE] },
-        [SpatialPermission.SPATIAL_READ],
+        [SpatialPermission.SPATIAL_READ]
       );
       expect(policy.zoneId).toBe('z-full');
       expect(policy.rolePermissions['admin']).toContain(SpatialPermission.SPATIAL_ADMIN);
@@ -868,26 +996,39 @@ describe('SpatialMemoryZones', () => {
       // Zone A: denies write
       const zoneA = createLocalZone('overlap-a', 'A', 'private', 0, 10, 0, 10, 0, 10);
       enforcer.registerZone(zoneA);
-      enforcer.setPolicy(createZonePolicy(
-        'overlap-a',
-        { [AgentRole.CODE_GENERATOR]: [SpatialPermission.SPATIAL_READ] },
-        {},
-        [],
-      ));
+      enforcer.setPolicy(
+        createZonePolicy(
+          'overlap-a',
+          { [AgentRole.CODE_GENERATOR]: [SpatialPermission.SPATIAL_READ] },
+          {},
+          []
+        )
+      );
 
       // Zone B: overlaps and grants write
       const zoneB = createLocalZone('overlap-b', 'B', 'private', 5, 15, 0, 10, 0, 10);
       enforcer.registerZone(zoneB);
-      enforcer.setPolicy(createZonePolicy(
-        'overlap-b',
-        { [AgentRole.CODE_GENERATOR]: [SpatialPermission.SPATIAL_READ, SpatialPermission.SPATIAL_WRITE] },
-        {},
-        [],
-      ));
+      enforcer.setPolicy(
+        createZonePolicy(
+          'overlap-b',
+          {
+            [AgentRole.CODE_GENERATOR]: [
+              SpatialPermission.SPATIAL_READ,
+              SpatialPermission.SPATIAL_WRITE,
+            ],
+          },
+          {},
+          []
+        )
+      );
 
       // Position in overlap region
       const position: SpatialPosition = { x: 7, y: 5, z: 5 };
-      const decision = enforcer.validateSpatialOperation('token', position, SpatialPermission.SPATIAL_WRITE);
+      const decision = enforcer.validateSpatialOperation(
+        'token',
+        position,
+        SpatialPermission.SPATIAL_WRITE
+      );
       expect(decision.allowed).toBe(true);
       expect(decision.reason).toContain('overlap-b');
     });
@@ -904,7 +1045,11 @@ describe('SpatialMemoryZones', () => {
       enforcer.setPolicy(createZonePolicy('deny-b', {}, {}, []));
 
       const position: SpatialPosition = { x: 7, y: 5, z: 5 };
-      const decision = enforcer.validateSpatialOperation('token', position, SpatialPermission.SPATIAL_READ);
+      const decision = enforcer.validateSpatialOperation(
+        'token',
+        position,
+        SpatialPermission.SPATIAL_READ
+      );
       expect(decision.allowed).toBe(false);
     });
   });

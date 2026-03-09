@@ -47,8 +47,12 @@ export class PerformanceOverlay {
     this.frameNumber++;
     const sample: FrameSample = {
       frameNumber: this.frameNumber,
-      deltaMs, fps: deltaMs > 0 ? 1000 / deltaMs : 0,
-      drawCalls, triangles, memoryMB, timestamp: Date.now(),
+      deltaMs,
+      fps: deltaMs > 0 ? 1000 / deltaMs : 0,
+      drawCalls,
+      triangles,
+      memoryMB,
+      timestamp: Date.now(),
     };
     this.samples.push(sample);
     if (this.samples.length > this.config.maxSamples) this.samples.shift();
@@ -91,11 +95,19 @@ export class PerformanceOverlay {
    * Get frame graph data (last N samples)
    */
   getFrameGraph(count: number = 60): number[] {
-    return this.samples.slice(-count).map(s => s.deltaMs);
+    return this.samples.slice(-count).map((s) => s.deltaMs);
   }
 
-  toggle(): void { this.visible = !this.visible; }
-  isVisible(): boolean { return this.visible; }
-  getSampleCount(): number { return this.samples.length; }
-  getConfig(): OverlayConfig { return { ...this.config }; }
+  toggle(): void {
+    this.visible = !this.visible;
+  }
+  isVisible(): boolean {
+    return this.visible;
+  }
+  getSampleCount(): number {
+    return this.samples.length;
+  }
+  getConfig(): OverlayConfig {
+    return { ...this.config };
+  }
 }

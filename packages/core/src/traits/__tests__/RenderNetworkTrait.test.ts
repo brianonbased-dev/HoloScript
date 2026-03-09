@@ -526,7 +526,12 @@ describe('RenderNetworkTrait', () => {
 
     priorities.forEach((priority) => {
       it(`should support ${priority} priority`, async () => {
-        await attachTraitAsync(renderNetworkHandler, node, { default_priority: priority as any }, ctx);
+        await attachTraitAsync(
+          renderNetworkHandler,
+          node,
+          { default_priority: priority as any },
+          ctx
+        );
 
         const state = (node as any).__renderNetworkState;
         expect(state).toBeDefined();

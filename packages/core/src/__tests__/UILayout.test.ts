@@ -7,7 +7,9 @@ import { UILayoutEngine, createDefaultLayout } from '../ui/UILayout';
 
 describe('UILayoutEngine', () => {
   let engine: UILayoutEngine;
-  beforeEach(() => { engine = new UILayoutEngine(); });
+  beforeEach(() => {
+    engine = new UILayoutEngine();
+  });
 
   it('createNode returns node with defaults', () => {
     const node = engine.createNode();
@@ -24,7 +26,12 @@ describe('UILayoutEngine', () => {
   });
 
   it('compute sets root size from fixed config', () => {
-    const root = engine.createNode({ width: 200, height: 100, widthMode: 'fixed', heightMode: 'fixed' });
+    const root = engine.createNode({
+      width: 200,
+      height: 100,
+      widthMode: 'fixed',
+      heightMode: 'fixed',
+    });
     engine.compute(root, 800, 600);
     expect(root.result.width).toBe(200);
     expect(root.result.height).toBe(100);
@@ -38,7 +45,12 @@ describe('UILayoutEngine', () => {
   });
 
   it('compute percent mode calculates correctly', () => {
-    const root = engine.createNode({ widthMode: 'percent', width: 50, heightMode: 'percent', height: 25 });
+    const root = engine.createNode({
+      widthMode: 'percent',
+      width: 50,
+      heightMode: 'percent',
+      height: 25,
+    });
     engine.compute(root, 800, 400);
     expect(root.result.width).toBe(400);
     expect(root.result.height).toBe(100);
@@ -78,7 +90,9 @@ describe('UILayoutEngine', () => {
 
   it('padding offsets children', () => {
     const root = engine.createNode({
-      direction: 'column', width: 200, height: 200,
+      direction: 'column',
+      width: 200,
+      height: 200,
       padding: { top: 15, right: 0, bottom: 0, left: 20 },
     });
     const c = engine.createNode({ width: 50, height: 30 });
@@ -101,7 +115,12 @@ describe('UILayoutEngine', () => {
   });
 
   it('justifyContent center shifts children', () => {
-    const root = engine.createNode({ direction: 'row', width: 200, height: 100, justifyContent: 'center' });
+    const root = engine.createNode({
+      direction: 'row',
+      width: 200,
+      height: 100,
+      justifyContent: 'center',
+    });
     const c = engine.createNode({ width: 50, height: 100 });
     engine.addChild(root, c);
     engine.compute(root, 800, 600);
@@ -110,7 +129,12 @@ describe('UILayoutEngine', () => {
   });
 
   it('alignItems center centers on cross axis', () => {
-    const root = engine.createNode({ direction: 'row', width: 200, height: 100, alignItems: 'center' });
+    const root = engine.createNode({
+      direction: 'row',
+      width: 200,
+      height: 100,
+      alignItems: 'center',
+    });
     const c = engine.createNode({ width: 50, height: 30 });
     engine.addChild(root, c);
     engine.compute(root, 800, 600);

@@ -6,7 +6,7 @@
  */
 
 import { useMemo } from 'react';
-import { useSceneStore, useEditorStore } from '@/lib/store';
+import { useSceneStore, useEditorStore } from '@/lib/stores';
 
 export type OutlinerNodeType = 'scene' | 'object' | 'light' | 'camera' | 'group';
 
@@ -85,13 +85,19 @@ export function useSceneOutliner() {
   const allNodes = useMemo(() => {
     const flat: OutlinerNode[] = [];
     const flatten = (nodes: OutlinerNode[]) => {
-      for (const n of nodes) { flat.push(n); flatten(n.children); }
+      for (const n of nodes) {
+        flat.push(n);
+        flatten(n.children);
+      }
     };
     flatten(tree);
     return flat;
   }, [tree]);
 
-  const selectedNode = useMemo(() => allNodes.find((n) => n.id === selectedId) ?? null, [allNodes, selectedId]);
+  const selectedNode = useMemo(
+    () => allNodes.find((n) => n.id === selectedId) ?? null,
+    [allNodes, selectedId]
+  );
 
   return { tree, allNodes, selectedNode };
 }

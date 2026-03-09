@@ -42,7 +42,11 @@ function attach(cfg: Partial<typeof sceneGraphHandler.defaultConfig> = {}, nodeI
 }
 
 function addNode(node: any, ctx: any, config: any, childId: string, parentId?: string) {
-  sceneGraphHandler.onEvent!(node, config, ctx, { type: 'scene_graph_add_node', childId, parentId });
+  sceneGraphHandler.onEvent!(node, config, ctx, {
+    type: 'scene_graph_add_node',
+    childId,
+    parentId,
+  });
 }
 
 // ─── defaultConfig ────────────────────────────────────────────────────────────
@@ -102,7 +106,10 @@ describe('sceneGraphHandler.onAttach', () => {
 
   it('emits scene_graph_init with coordinateSystem', () => {
     const { ctx } = attach({ coordinate_system: 'z_up' });
-    expect(ctx.emit).toHaveBeenCalledWith('scene_graph_init', expect.objectContaining({ coordinateSystem: 'z_up' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'scene_graph_init',
+      expect.objectContaining({ coordinateSystem: 'z_up' })
+    );
   });
 });
 
@@ -139,7 +146,10 @@ describe('sceneGraphHandler.onUpdate', () => {
     ctx.emit.mockClear();
     sceneGraphHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect((node as any).__sceneGraphState.isDirty).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('scene_graph_updated', expect.objectContaining({ nodeCount: 1 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'scene_graph_updated',
+      expect.objectContaining({ nodeCount: 1 })
+    );
   });
 
   it('recalculates nodeCount after add_node', () => {
@@ -194,7 +204,10 @@ describe('sceneGraphHandler.onEvent — add_node', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     addNode(node as any, ctx, config, 'child1', 'root_node');
-    expect(ctx.emit).toHaveBeenCalledWith('on_node_added', expect.objectContaining({ childId: 'child1', parentId: 'root_node' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_node_added',
+      expect.objectContaining({ childId: 'child1', parentId: 'root_node' })
+    );
   });
 
   it('merge_strategy=skip_existing: ignores duplicate childId', () => {
@@ -225,14 +238,20 @@ describe('sceneGraphHandler.onEvent — remove_node', () => {
   it('removes node from Map', () => {
     const { node, ctx, config } = attach({}, 'root_node');
     addNode(node as any, ctx, config, 'child1', 'root_node');
-    sceneGraphHandler.onEvent!(node as any, config, ctx as any, { type: 'scene_graph_remove_node', nodeId: 'child1' });
+    sceneGraphHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'scene_graph_remove_node',
+      nodeId: 'child1',
+    });
     expect((node as any).__sceneGraphState.nodes.has('child1')).toBe(false);
   });
 
   it('removes childId from parent children array', () => {
     const { node, ctx, config } = attach({}, 'root_node');
     addNode(node as any, ctx, config, 'child1', 'root_node');
-    sceneGraphHandler.onEvent!(node as any, config, ctx as any, { type: 'scene_graph_remove_node', nodeId: 'child1' });
+    sceneGraphHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'scene_graph_remove_node',
+      nodeId: 'child1',
+    });
     const root = (node as any).__sceneGraphState.nodes.get('root_node');
     expect(root.children).not.toContain('child1');
   });
@@ -241,7 +260,10 @@ describe('sceneGraphHandler.onEvent — remove_node', () => {
     const { node, ctx, config } = attach({}, 'root_node');
     addNode(node as any, ctx, config, 'child1', 'root_node');
     addNode(node as any, ctx, config, 'grandchild1', 'child1');
-    sceneGraphHandler.onEvent!(node as any, config, ctx as any, { type: 'scene_graph_remove_node', nodeId: 'child1' });
+    sceneGraphHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'scene_graph_remove_node',
+      nodeId: 'child1',
+    });
     const state = (node as any).__sceneGraphState;
     expect(state.nodes.has('child1')).toBe(false);
     expect(state.nodes.has('grandchild1')).toBe(false);
@@ -251,7 +273,10 @@ describe('sceneGraphHandler.onEvent — remove_node', () => {
     const { node, ctx, config } = attach();
     addNode(node as any, ctx, config, 'child1');
     (node as any).__sceneGraphState.isDirty = false;
-    sceneGraphHandler.onEvent!(node as any, config, ctx as any, { type: 'scene_graph_remove_node', nodeId: 'child1' });
+    sceneGraphHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'scene_graph_remove_node',
+      nodeId: 'child1',
+    });
     expect((node as any).__sceneGraphState.isDirty).toBe(true);
   });
 });
@@ -264,7 +289,11 @@ describe('sceneGraphHandler.onEvent — reparent', () => {
     addNode(node as any, ctx, config, 'p1', 'root_node');
     addNode(node as any, ctx, config, 'p2', 'root_node');
     addNode(node as any, ctx, config, 'child1', 'p1');
-    sceneGraphHandler.onEvent!(node as any, config, ctx as any, { type: 'scene_graph_reparent', nodeId: 'child1', newParentId: 'p2' });
+    sceneGraphHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'scene_graph_reparent',
+      nodeId: 'child1',
+      newParentId: 'p2',
+    });
     const state = (node as any).__sceneGraphState;
     expect(state.nodes.get('p1').children).not.toContain('child1');
     expect(state.nodes.get('p2').children).toContain('child1');
@@ -277,7 +306,11 @@ describe('sceneGraphHandler.onEvent — reparent', () => {
     addNode(node as any, ctx, config, 'p2', 'root_node');
     addNode(node as any, ctx, config, 'child1', 'p1');
     (node as any).__sceneGraphState.isDirty = false;
-    sceneGraphHandler.onEvent!(node as any, config, ctx as any, { type: 'scene_graph_reparent', nodeId: 'child1', newParentId: 'p2' });
+    sceneGraphHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'scene_graph_reparent',
+      nodeId: 'child1',
+      newParentId: 'p2',
+    });
     expect((node as any).__sceneGraphState.isDirty).toBe(true);
   });
 });
@@ -289,9 +322,13 @@ describe('sceneGraphHandler.onEvent — set_transform', () => {
     const { node, ctx, config } = attach({}, 'root_node');
     addNode(node as any, ctx, config, 'child1', 'root_node');
     sceneGraphHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'scene_graph_set_transform', nodeId: 'child1', transform: { position: [1, 2, 3] },
+      type: 'scene_graph_set_transform',
+      nodeId: 'child1',
+      transform: { position: [1, 2, 3] },
     });
-    expect((node as any).__sceneGraphState.nodes.get('child1').localTransform.position).toEqual([1, 2, 3]);
+    expect((node as any).__sceneGraphState.nodes.get('child1').localTransform.position).toEqual([
+      1, 2, 3,
+    ]);
   });
 
   it('emits scene_graph_transform_updated', () => {
@@ -299,9 +336,14 @@ describe('sceneGraphHandler.onEvent — set_transform', () => {
     addNode(node as any, ctx, config, 'child1', 'root_node');
     ctx.emit.mockClear();
     sceneGraphHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'scene_graph_set_transform', nodeId: 'child1', transform: { scale: [2, 2, 2] },
+      type: 'scene_graph_set_transform',
+      nodeId: 'child1',
+      transform: { scale: [2, 2, 2] },
     });
-    expect(ctx.emit).toHaveBeenCalledWith('scene_graph_transform_updated', expect.objectContaining({ nodeId: 'child1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'scene_graph_transform_updated',
+      expect.objectContaining({ nodeId: 'child1' })
+    );
   });
 });
 
@@ -313,42 +355,79 @@ describe('sceneGraphHandler.onEvent — data events', () => {
     addNode(node as any, ctx, config, 'child1', 'root_node');
     ctx.emit.mockClear();
     sceneGraphHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'scene_graph_get_children', parentId: 'root_node', callbackId: 'cb1',
+      type: 'scene_graph_get_children',
+      parentId: 'root_node',
+      callbackId: 'cb1',
     });
-    expect(ctx.emit).toHaveBeenCalledWith('scene_graph_children_result', expect.objectContaining({ children: ['child1'], callbackId: 'cb1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'scene_graph_children_result',
+      expect.objectContaining({ children: ['child1'], callbackId: 'cb1' })
+    );
   });
 
   it('export emits scene_graph_generate_export with flatten flag', () => {
     const { node, ctx, config } = attach({ flatten_on_export: true, coordinate_system: 'z_up' });
     ctx.emit.mockClear();
-    sceneGraphHandler.onEvent!(node as any, config, ctx as any, { type: 'scene_graph_export', format: 'gltf' });
-    expect(ctx.emit).toHaveBeenCalledWith('scene_graph_generate_export', expect.objectContaining({
-      format: 'gltf', flatten: true, coordinateSystem: 'z_up',
-    }));
+    sceneGraphHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'scene_graph_export',
+      format: 'gltf',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'scene_graph_generate_export',
+      expect.objectContaining({
+        format: 'gltf',
+        flatten: true,
+        coordinateSystem: 'z_up',
+      })
+    );
   });
 
   it('import adds all nodes and emits on_scene_composed', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     const importedNodes = [
-      { id: 'n1', name: 'Node1', parent: null, children: [], localTransform: { position: [0,0,0], rotation: [0,0,0,1], scale: [1,1,1] } },
-      { id: 'n2', name: 'Node2', parent: 'n1', children: [], localTransform: { position: [1,0,0], rotation: [0,0,0,1], scale: [1,1,1] } },
+      {
+        id: 'n1',
+        name: 'Node1',
+        parent: null,
+        children: [],
+        localTransform: { position: [0, 0, 0], rotation: [0, 0, 0, 1], scale: [1, 1, 1] },
+      },
+      {
+        id: 'n2',
+        name: 'Node2',
+        parent: 'n1',
+        children: [],
+        localTransform: { position: [1, 0, 0], rotation: [0, 0, 0, 1], scale: [1, 1, 1] },
+      },
     ];
-    sceneGraphHandler.onEvent!(node as any, config, ctx as any, { type: 'scene_graph_import', data: importedNodes });
+    sceneGraphHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'scene_graph_import',
+      data: importedNodes,
+    });
     const state = (node as any).__sceneGraphState;
     expect(state.nodes.has('n1')).toBe(true);
     expect(state.nodes.has('n2')).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('on_scene_composed', expect.objectContaining({ importedCount: 2 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_scene_composed',
+      expect.objectContaining({ importedCount: 2 })
+    );
   });
 
   it('query emits scene_graph_info snapshot', () => {
     const { node, ctx, config } = attach({ coordinate_system: 'z_up', unit_scale: 0.01 });
     ctx.emit.mockClear();
-    sceneGraphHandler.onEvent!(node as any, config, ctx as any, { type: 'scene_graph_query', queryId: 'q1' });
-    expect(ctx.emit).toHaveBeenCalledWith('scene_graph_info', expect.objectContaining({
+    sceneGraphHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'scene_graph_query',
       queryId: 'q1',
-      coordinateSystem: 'z_up',
-      unitScale: 0.01,
-    }));
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'scene_graph_info',
+      expect.objectContaining({
+        queryId: 'q1',
+        coordinateSystem: 'z_up',
+        unitScale: 0.01,
+      })
+    );
   });
 });

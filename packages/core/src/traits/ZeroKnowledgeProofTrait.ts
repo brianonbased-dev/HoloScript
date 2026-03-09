@@ -41,8 +41,10 @@ export const ZeroKnowledgeProofTrait: TraitHandler<ZeroKnowledgeProofConfig> = {
 
   validate(config: ZeroKnowledgeProofConfig): boolean {
     // Groth16 and PLONK require trusted setup
-    if ((config.proof_system === 'groth16' || config.proof_system === 'plonk') &&
-        config.trusted_setup_required === false) {
+    if (
+      (config.proof_system === 'groth16' || config.proof_system === 'plonk') &&
+      config.trusted_setup_required === false
+    ) {
       throw new Error(`${config.proof_system} requires trusted setup`);
     }
 
@@ -82,38 +84,50 @@ class ZKProofSystem {
   constructor() {
     this.proofSystem = '${config.proof_system}';
     this.curve = '${config.curve || 'bn254'}';
-    ${config.trusted_setup_required ? `
+    ${
+      config.trusted_setup_required
+        ? `
     this.trustedSetup = true;
-    ` : ''}
+    `
+        : ''
+    }
   }
 
   async generateProof(witness, provingKey) {
     const startTime = performance.now();
 
-    ${config.proof_system === 'groth16' ? `
+    ${
+      config.proof_system === 'groth16'
+        ? `
     // Groth16 proof generation
     const { proof, publicSignals } = await groth16.fullProve(
       witness,
       provingKey.wasm,
       provingKey.zkey
     );
-    ` : config.proof_system === 'plonk' ? `
+    `
+        : config.proof_system === 'plonk'
+          ? `
     // PLONK proof generation
     const { proof, publicSignals } = await plonk.fullProve(
       witness,
       provingKey.wasm,
       provingKey.zkey
     );
-    ` : config.proof_system === 'zk_stark' ? `
+    `
+          : config.proof_system === 'zk_stark'
+            ? `
     // zk-STARK proof generation (no trusted setup)
     const { proof, publicSignals } = await stark.prove(
       witness,
       provingKey
     );
-    ` : `
+    `
+            : `
     // Generic ZK proof generation
     const { proof, publicSignals } = await this.proveGeneric(witness, provingKey);
-    `}
+    `
+    }
 
     const generationTime = performance.now() - startTime;
 
@@ -126,29 +140,43 @@ class ZKProofSystem {
   }
 
   async verifyProof(proof, publicSignals, verificationKey) {
-    ${config.proof_system === 'groth16' ? `
+    ${
+      config.proof_system === 'groth16'
+        ? `
     return await groth16.verify(verificationKey, publicSignals, proof);
-    ` : config.proof_system === 'plonk' ? `
+    `
+        : config.proof_system === 'plonk'
+          ? `
     return await plonk.verify(verificationKey, publicSignals, proof);
-    ` : `
+    `
+          : `
     return await this.verifyGeneric(verificationKey, publicSignals, proof);
-    `}
+    `
+    }
   }
 
-  ${config.batch_verification ? `
+  ${
+    config.batch_verification
+      ? `
   async batchVerify(proofs, publicSignals, verificationKey) {
     // Batch verification for improved performance
     return await groth16.batchVerify(verificationKey, publicSignals, proofs);
   }
-  ` : ''}
+  `
+      : ''
+  }
 
-  ${config.recursive_proof ? `
+  ${
+    config.recursive_proof
+      ? `
   async generateRecursiveProof(innerProof, outerWitness, provingKey) {
     // Recursive proof composition
     const combinedWitness = this.combineProofs(innerProof, outerWitness);
     return await this.generateProof(combinedWitness, provingKey);
   }
-  ` : ''}
+  `
+      : ''
+  }
 }
 
 export default new ZKProofSystem();`;
@@ -164,7 +192,9 @@ pragma solidity ^0.8.0;
  * ${config.trusted_setup_required ? 'Requires trusted setup ceremony' : 'Trustless proof system'}
  */
 contract ZKVerifier {
-    ${config.proof_system === 'groth16' ? `
+    ${
+      config.proof_system === 'groth16'
+        ? `
     struct Proof {
         uint[2] a;
         uint[2][2] b;
@@ -206,7 +236,9 @@ contract ZKVerifier {
             verifyingKey.delta
         );
     }
-    ` : config.proof_system === 'plonk' ? `
+    `
+        : config.proof_system === 'plonk'
+          ? `
     // PLONK verification (more efficient than Groth16)
     struct PlonkProof {
         uint256[24] polyCommitments;
@@ -221,16 +253,20 @@ contract ZKVerifier {
         // PLONK verification logic
         return verifyPlonkInternal(proof, publicInputs);
     }
-    ` : `
+    `
+          : `
     // Generic ZK verification
     function verify(bytes memory proof, uint256[] memory publicInputs)
         public view returns (bool) {
         // Custom verification logic
         return true;
     }
-    `}
+    `
+    }
 
-    ${config.batch_verification ? `
+    ${
+      config.batch_verification
+        ? `
     function batchVerify(
         Proof[] memory proofs,
         uint[][] memory inputs
@@ -247,7 +283,9 @@ contract ZKVerifier {
         }
         return true;
     }
-    ` : ''}
+    `
+        : ''
+    }
 
     // Elliptic curve operations
     function addition(uint[2] memory p1, uint[2] memory p2)
@@ -271,16 +309,20 @@ contract ZKVerifier {
   },
 
   compileGeneric(config: ZeroKnowledgeProofConfig): string {
-    return JSON.stringify({
-      proof_system: config.proof_system,
-      curve: config.curve || 'bn254',
-      circuit_size: config.circuit_size,
-      trusted_setup_required: config.trusted_setup_required || false,
-      recursive_proof: config.recursive_proof || false,
-      batch_verification: config.batch_verification || false,
-      commitment_scheme: config.commitment_scheme || 'pedersen'
-    }, null, 2);
-  }
+    return JSON.stringify(
+      {
+        proof_system: config.proof_system,
+        curve: config.curve || 'bn254',
+        circuit_size: config.circuit_size,
+        trusted_setup_required: config.trusted_setup_required || false,
+        recursive_proof: config.recursive_proof || false,
+        batch_verification: config.batch_verification || false,
+        commitment_scheme: config.commitment_scheme || 'pedersen',
+      },
+      null,
+      2
+    );
+  },
 };
 
 export default ZeroKnowledgeProofTrait;

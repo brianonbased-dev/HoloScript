@@ -84,12 +84,7 @@ describe('ShaderEditor', () => {
         const addNode = result.current.createNode('math_add', { x: 300, y: 100 });
 
         if (floatNode && addNode) {
-          const connection = result.current.connect(
-            floatNode.id,
-            'value',
-            addNode.id,
-            'a'
-          );
+          const connection = result.current.connect(floatNode.id, 'value', addNode.id, 'a');
           expect(connection).toBeTruthy();
         }
       });
@@ -181,7 +176,9 @@ describe('ShaderEditor', () => {
         nodeId = node!.id;
       });
 
-      act(() => { result.current.undo(); });
+      act(() => {
+        result.current.undo();
+      });
 
       expect(result.current.graph.getNode(nodeId!)).toBeUndefined();
     });
@@ -196,10 +193,14 @@ describe('ShaderEditor', () => {
         nodeId = node!.id;
       });
 
-      act(() => { result.current.undo(); });
+      act(() => {
+        result.current.undo();
+      });
       expect(result.current.graph.getNode(nodeId!)).toBeUndefined();
 
-      act(() => { result.current.redo(); });
+      act(() => {
+        result.current.redo();
+      });
       expect(result.current.graph.getNode(nodeId!)).toBeTruthy();
     });
 
@@ -216,7 +217,9 @@ describe('ShaderEditor', () => {
       expect(result.current.canUndo()).toBe(true);
       expect(result.current.canRedo()).toBe(false);
 
-      act(() => { result.current.undo(); });
+      act(() => {
+        result.current.undo();
+      });
 
       expect(result.current.canUndo()).toBe(false);
 

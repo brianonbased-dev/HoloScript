@@ -21,10 +21,16 @@ import { Blackboard } from '../ai/Blackboard.js';
 
 // Feature 2A
 import {
-  ActionNode, ConditionNode, WaitNode,
-  SequenceNode, SelectorNode, InverterNode, RepeaterNode,
+  ActionNode,
+  ConditionNode,
+  WaitNode,
+  SequenceNode,
+  SelectorNode,
+  InverterNode,
+  RepeaterNode,
   BehaviorTree as BehaviorBT,
-  type BTContext, type NodeStatus,
+  type BTContext,
+  type NodeStatus,
 } from '../behavior/BehaviorTree.js';
 
 // Feature 2B
@@ -340,7 +346,10 @@ describe('Feature 2A: behavior/BehaviorTree nodes', () => {
     let bCalled = false;
     const seq = new SequenceNode([
       new ActionNode('a', () => 'failure'),
-      new ActionNode('b', () => { bCalled = true; return 'success'; }),
+      new ActionNode('b', () => {
+        bCalled = true;
+        return 'success';
+      }),
     ]);
     seq.tick(ctx, 0);
     expect(bCalled).toBe(false);
@@ -374,7 +383,10 @@ describe('Feature 2A: behavior/BehaviorTree nodes', () => {
     let bCalled = false;
     const sel = new SelectorNode([
       new ActionNode('a', () => 'success'),
-      new ActionNode('b', () => { bCalled = true; return 'failure'; }),
+      new ActionNode('b', () => {
+        bCalled = true;
+        return 'failure';
+      }),
     ]);
     sel.tick(ctx, 0);
     expect(bCalled).toBe(false);
@@ -415,7 +427,10 @@ describe('Feature 2A: behavior/BehaviorTree nodes', () => {
 
   it('RepeaterNode: runs child and returns success after maxCount', () => {
     let calls = 0;
-    const child = new ActionNode('c', () => { calls++; return 'success'; });
+    const child = new ActionNode('c', () => {
+      calls++;
+      return 'success';
+    });
     const rep = new RepeaterNode(child, 2);
     const s1 = rep.tick(ctx, 0); // count=1, not at max
     expect(s1).toBe('running');
@@ -464,14 +479,10 @@ describe('Feature 2B: behavior/StateMachine', () => {
   function makePlayerSM() {
     return new BehaviorSM({
       initialState: 'idle',
-      states: [
-        { name: 'idle' },
-        { name: 'run' },
-        { name: 'jump' },
-      ],
+      states: [{ name: 'idle' }, { name: 'run' }, { name: 'jump' }],
       transitions: [
         { from: 'idle', to: 'run', event: 'start' },
-        { from: 'run',  to: 'jump', event: 'jump' },
+        { from: 'run', to: 'jump', event: 'jump' },
         { from: 'jump', to: 'idle', event: 'land' },
       ],
     });
@@ -567,9 +578,16 @@ describe('Feature 2B: behavior/StateMachine', () => {
 // =============================================================================
 
 describe('Feature 3A: ai/GoalPlanner', () => {
-  function makeAction(id: string, pre: Record<string, boolean>, eff: Record<string, boolean>, cost = 1): PlanAction {
+  function makeAction(
+    id: string,
+    pre: Record<string, boolean>,
+    eff: Record<string, boolean>,
+    cost = 1
+  ): PlanAction {
     return {
-      id, name: id, cost,
+      id,
+      name: id,
+      cost,
       preconditions: new Map(Object.entries(pre)),
       effects: new Map(Object.entries(eff)),
       execute: vi.fn(),
@@ -632,7 +650,7 @@ describe('Feature 3A: ai/GoalPlanner', () => {
     gp.addAction(makeAction('pickup', {}, { hasItem: true }));
     gp.addGoal(makeGoal('collect', { hasItem: true }));
     const plan = gp.plan(new Map([['hasItem', false]]))!;
-    expect(plan.actions.some(a => a.id === 'pickup')).toBe(true);
+    expect(plan.actions.some((a) => a.id === 'pickup')).toBe(true);
   });
 
   it('plan.totalCost equals sum of action costs', () => {
@@ -645,10 +663,15 @@ describe('Feature 3A: ai/GoalPlanner', () => {
 
   it('plan chains multiple actions for multi-step goal', () => {
     const gp = new GoalPlanner();
-    gp.addAction(makeAction('chop',  {},               { hasWood: true }));
+    gp.addAction(makeAction('chop', {}, { hasWood: true }));
     gp.addAction(makeAction('build', { hasWood: true }, { hasHouse: true }));
     gp.addGoal(makeGoal('shelter', { hasHouse: true }));
-    const plan = gp.plan(new Map([['hasWood', false], ['hasHouse', false]]))!;
+    const plan = gp.plan(
+      new Map([
+        ['hasWood', false],
+        ['hasHouse', false],
+      ])
+    )!;
     expect(plan).not.toBeNull();
     expect(plan.actions.length).toBeGreaterThanOrEqual(2);
   });
@@ -656,7 +679,14 @@ describe('Feature 3A: ai/GoalPlanner', () => {
   it('executePlan calls execute() on each action', () => {
     const execFn = vi.fn();
     const gp = new GoalPlanner();
-    gp.addAction({ id: 'act', name: 'act', cost: 1, preconditions: new Map(), effects: new Map([['done', true]]), execute: execFn });
+    gp.addAction({
+      id: 'act',
+      name: 'act',
+      cost: 1,
+      preconditions: new Map(),
+      effects: new Map([['done', true]]),
+      execute: execFn,
+    });
     gp.addGoal(makeGoal('g', { done: true }));
     const plan = gp.plan(new Map([['done', false]]))!;
     gp.executePlan(plan);
@@ -685,14 +715,17 @@ describe('Feature 3A: ai/GoalPlanner', () => {
 describe('Feature 3B: ai/UtilityAI', () => {
   function makeAction(id: string, inputScore: number, cooldown = 0): UtilityAction {
     return {
-      id, name: id,
-      considerations: [{
-        name: 'c',
-        input: () => inputScore,
-        curve: 'linear' as const,
-        weight: 1,
-        invert: false,
-      }],
+      id,
+      name: id,
+      considerations: [
+        {
+          name: 'c',
+          input: () => inputScore,
+          curve: 'linear' as const,
+          weight: 1,
+          invert: false,
+        },
+      ],
       cooldown,
       lastExecuted: -Infinity,
       bonus: 0,
@@ -721,7 +754,7 @@ describe('Feature 3B: ai/UtilityAI', () => {
     ai.addAction(makeAction('b', 0.3));
     const scores = ai.scoreAll();
     expect(scores).toHaveLength(2);
-    expect(scores.every(s => typeof s.score === 'number')).toBe(true);
+    expect(scores.every((s) => typeof s.score === 'number')).toBe(true);
   });
 
   it('selectBest returns the highest-scoring action', () => {
@@ -776,9 +809,13 @@ describe('Feature 3B: ai/UtilityAI', () => {
   it('scoreAction with invert=true inverts the score', () => {
     const ai = new UtilityAI();
     const action: UtilityAction = {
-      id: 'inv', name: 'inv',
+      id: 'inv',
+      name: 'inv',
       considerations: [{ name: 'c', input: () => 0.8, curve: 'linear', weight: 1, invert: true }],
-      cooldown: 0, lastExecuted: -Infinity, bonus: 0, execute: vi.fn(),
+      cooldown: 0,
+      lastExecuted: -Infinity,
+      bonus: 0,
+      execute: vi.fn(),
     };
     const score = ai.scoreAction(action);
     expect(score).toBeCloseTo(0.2, 5); // 1 - 0.8

@@ -3,7 +3,9 @@ import { SynthEngine } from '../SynthEngine';
 
 describe('SynthEngine', () => {
   let synth: SynthEngine;
-  beforeEach(() => { synth = new SynthEngine(); });
+  beforeEach(() => {
+    synth = new SynthEngine();
+  });
 
   // --- noteOn / noteOff ---
   it('noteOn creates a voice and returns id', () => {

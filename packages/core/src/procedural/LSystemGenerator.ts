@@ -16,15 +16,15 @@ import { IVector3 } from '../physics/PhysicsTypes';
 export interface LSystemRule {
   symbol: string;
   replacement: string;
-  probability?: number;      // 0-1 for stochastic rules (default: 1)
+  probability?: number; // 0-1 for stochastic rules (default: 1)
 }
 
 export interface LSystemConfig {
   axiom: string;
   rules: LSystemRule[];
-  angle: number;             // Branch angle in degrees
-  length: number;            // Segment length
-  lengthScale: number;       // Length reduction per iteration (0.8 typical)
+  angle: number; // Branch angle in degrees
+  length: number; // Segment length
+  lengthScale: number; // Length reduction per iteration (0.8 typical)
   iterations: number;
 }
 
@@ -61,9 +61,7 @@ export interface LSystemResult {
 
 export const TREE_SIMPLE: LSystemConfig = {
   axiom: 'F',
-  rules: [
-    { symbol: 'F', replacement: 'FF+[+F-F-F]-[-F+F+F]' },
-  ],
+  rules: [{ symbol: 'F', replacement: 'FF+[+F-F-F]-[-F+F+F]' }],
   angle: 25,
   length: 1.0,
   lengthScale: 0.7,
@@ -132,7 +130,7 @@ export class LSystemGenerator {
     for (let i = 0; i < config.iterations; i++) {
       let next = '';
       for (const char of current) {
-        const matching = config.rules.filter(r => r.symbol === char);
+        const matching = config.rules.filter((r) => r.symbol === char);
 
         if (matching.length === 0) {
           next += char;
@@ -140,14 +138,17 @@ export class LSystemGenerator {
         }
 
         // Stochastic selection
-        if (matching.length === 1 && (matching[0].probability === undefined || matching[0].probability >= 1)) {
+        if (
+          matching.length === 1 &&
+          (matching[0].probability === undefined || matching[0].probability >= 1)
+        ) {
           next += matching[0].replacement;
         } else {
           const roll = this.rng();
           let cumulative = 0;
           let chosen = matching[0].replacement;
           for (const rule of matching) {
-            cumulative += (rule.probability ?? 1);
+            cumulative += rule.probability ?? 1;
             if (roll <= cumulative) {
               chosen = rule.replacement;
               break;

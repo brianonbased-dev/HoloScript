@@ -81,8 +81,13 @@ export class SpatialEngine {
   constructor(config?: Partial<EngineConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.metrics = {
-      fps: 0, frameTimeMs: 0, physicsTimeMs: 0,
-      renderTimeMs: 0, entityCount: 0, drawCalls: 0, frameNumber: 0,
+      fps: 0,
+      frameTimeMs: 0,
+      physicsTimeMs: 0,
+      renderTimeMs: 0,
+      entityCount: 0,
+      drawCalls: 0,
+      frameNumber: 0,
     };
   }
 
@@ -99,7 +104,7 @@ export class SpatialEngine {
 
   /** Remove a system by name. */
   removeSystem(name: string): boolean {
-    const idx = this.systems.findIndex(s => s.name === name);
+    const idx = this.systems.findIndex((s) => s.name === name);
     if (idx >= 0) {
       this.systems[idx].destroy?.();
       this.systems.splice(idx, 1);
@@ -110,7 +115,7 @@ export class SpatialEngine {
 
   /** Get a registered system by name. */
   getSystem<T extends EngineSystem>(name: string): T | undefined {
-    return this.systems.find(s => s.name === name) as T | undefined;
+    return this.systems.find((s) => s.name === name) as T | undefined;
   }
 
   // ---------------------------------------------------------------------------
@@ -165,9 +170,15 @@ export class SpatialEngine {
     }
   }
 
-  getState(): EngineState { return this.state; }
-  getMetrics(): Readonly<EngineMetrics> { return this.metrics; }
-  getConfig(): Readonly<EngineConfig> { return this.config; }
+  getState(): EngineState {
+    return this.state;
+  }
+  getMetrics(): Readonly<EngineMetrics> {
+    return this.metrics;
+  }
+  getConfig(): Readonly<EngineConfig> {
+    return this.config;
+  }
 
   // ---------------------------------------------------------------------------
   // Game Loop
@@ -224,8 +235,8 @@ export class SpatialEngine {
         frameTimeMs: Math.round(rawDt * 1000 * 100) / 100,
         physicsTimeMs: Math.round((physEnd - physStart) * 100) / 100,
         renderTimeMs: 0, // Set by render system
-        entityCount: 0,  // Set by ECS system
-        drawCalls: 0,    // Set by render system
+        entityCount: 0, // Set by ECS system
+        drawCalls: 0, // Set by render system
         frameNumber: this.frameNumber,
       };
     }

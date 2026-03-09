@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ragKnowledgeHandler } from '../RAGKnowledgeTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('RAGKnowledgeTrait', () => {
   let node: Record<string, unknown>;
@@ -54,7 +61,10 @@ describe('RAGKnowledgeTrait', () => {
       id: 'doc1',
       content: 'Short doc.',
     });
-    sendEvent(ragKnowledgeHandler, node, cfg, ctx, { type: 'rag_embeddings_ready', documentId: 'doc1' });
+    sendEvent(ragKnowledgeHandler, node, cfg, ctx, {
+      type: 'rag_embeddings_ready',
+      documentId: 'doc1',
+    });
     const doc = (node as any).__ragState.indexed_documents.get('doc1');
     expect(doc.indexed).toBe(true);
     expect(getEventCount(ctx, 'on_document_indexed')).toBe(1);

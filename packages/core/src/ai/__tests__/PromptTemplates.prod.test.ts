@@ -26,7 +26,9 @@ function makeCustomTemplate(overrides: Partial<PromptTemplate> = {}): PromptTemp
 
 describe('PromptTemplateSystem — getAvailableTemplates', () => {
   let pts: PromptTemplateSystem;
-  beforeEach(() => { pts = new PromptTemplateSystem(); });
+  beforeEach(() => {
+    pts = new PromptTemplateSystem();
+  });
 
   it('returns a non-empty array of built-in templates', () => {
     const templates = pts.getAvailableTemplates();
@@ -44,25 +46,27 @@ describe('PromptTemplateSystem — getAvailableTemplates', () => {
   });
 
   it('includes built-in basic-object template', () => {
-    const ids = pts.getAvailableTemplates().map(t => t.id);
+    const ids = pts.getAvailableTemplates().map((t) => t.id);
     expect(ids).toContain('basic-object');
   });
 
   it('custom templates are included after registration', () => {
     pts.registerTemplate(makeCustomTemplate());
-    const ids = pts.getAvailableTemplates().map(t => t.id);
+    const ids = pts.getAvailableTemplates().map((t) => t.id);
     expect(ids).toContain('custom-001');
   });
 });
 
 describe('PromptTemplateSystem — getTemplatesByCategory', () => {
   let pts: PromptTemplateSystem;
-  beforeEach(() => { pts = new PromptTemplateSystem(); });
+  beforeEach(() => {
+    pts = new PromptTemplateSystem();
+  });
 
   it('returns templates for "basic" category', () => {
     const results = pts.getTemplatesByCategory('basic');
     expect(results.length).toBeGreaterThan(0);
-    expect(results.every(t => t.category === 'basic')).toBe(true);
+    expect(results.every((t) => t.category === 'basic')).toBe(true);
   });
 
   it('returns empty array for unknown category', () => {
@@ -71,14 +75,16 @@ describe('PromptTemplateSystem — getTemplatesByCategory', () => {
 
   it('returns ui category templates only', () => {
     const results = pts.getTemplatesByCategory('ui');
-    expect(results.every(t => t.category === 'ui')).toBe(true);
+    expect(results.every((t) => t.category === 'ui')).toBe(true);
     expect(results.length).toBeGreaterThan(0);
   });
 });
 
 describe('PromptTemplateSystem — getTemplate', () => {
   let pts: PromptTemplateSystem;
-  beforeEach(() => { pts = new PromptTemplateSystem(); });
+  beforeEach(() => {
+    pts = new PromptTemplateSystem();
+  });
 
   it('returns a built-in template by id', () => {
     const t = pts.getTemplate('basic-object');
@@ -105,10 +111,16 @@ describe('PromptTemplateSystem — getTemplate', () => {
 
 describe('PromptTemplateSystem — createPrompt', () => {
   let pts: PromptTemplateSystem;
-  beforeEach(() => { pts = new PromptTemplateSystem(); });
+  beforeEach(() => {
+    pts = new PromptTemplateSystem();
+  });
 
   it('replaces all variables in template', () => {
-    const result = pts.createPrompt('basic-object', { geometry: 'sphere', color: 'red', position: '[0,1,0]' });
+    const result = pts.createPrompt('basic-object', {
+      geometry: 'sphere',
+      color: 'red',
+      position: '[0,1,0]',
+    });
     expect(result).toContain('sphere');
     expect(result).toContain('red');
     expect(result).toContain('[0,1,0]');
@@ -126,7 +138,10 @@ describe('PromptTemplateSystem — createPrompt', () => {
 
   it('handles number values in context', () => {
     const result = pts.createPrompt('physics-object', {
-      geometry: 'sphere', physics_type: 'dynamic', mass: 2.5, restitution: 0.7,
+      geometry: 'sphere',
+      physics_type: 'dynamic',
+      mass: 2.5,
+      restitution: 0.7,
     });
     expect(result).toContain('2.5');
     expect(result).toContain('0.7');
@@ -147,11 +162,15 @@ describe('PromptTemplateSystem — createPrompt', () => {
 
 describe('PromptTemplateSystem — validateContext', () => {
   let pts: PromptTemplateSystem;
-  beforeEach(() => { pts = new PromptTemplateSystem(); });
+  beforeEach(() => {
+    pts = new PromptTemplateSystem();
+  });
 
   it('valid=true when all variables provided', () => {
     const { valid, missing } = pts.validateContext('basic-object', {
-      geometry: 'cube', color: 'red', position: '[0,0,0]',
+      geometry: 'cube',
+      color: 'red',
+      position: '[0,0,0]',
     });
     expect(valid).toBe(true);
     expect(missing).toHaveLength(0);
@@ -172,7 +191,10 @@ describe('PromptTemplateSystem — validateContext', () => {
 
   it('extra context keys do not cause false positive', () => {
     const { valid } = pts.validateContext('basic-object', {
-      geometry: 'cube', color: 'blue', position: '[0,0,0]', extra: 'ignored',
+      geometry: 'cube',
+      color: 'blue',
+      position: '[0,0,0]',
+      extra: 'ignored',
     });
     expect(valid).toBe(true);
   });
@@ -180,7 +202,9 @@ describe('PromptTemplateSystem — validateContext', () => {
 
 describe('PromptTemplateSystem — registerTemplate / getCategories / suggestTemplates', () => {
   let pts: PromptTemplateSystem;
-  beforeEach(() => { pts = new PromptTemplateSystem(); });
+  beforeEach(() => {
+    pts = new PromptTemplateSystem();
+  });
 
   it('getCategories returns sorted unique category names', () => {
     const cats = pts.getCategories();
@@ -198,7 +222,7 @@ describe('PromptTemplateSystem — registerTemplate / getCategories / suggestTem
   it('suggestTemplates returns subset matching query', () => {
     const results = pts.suggestTemplates('basic', 'object');
     expect(results.length).toBeLessThanOrEqual(5);
-    expect(results.every(t => t.category === 'basic')).toBe(true);
+    expect(results.every((t) => t.category === 'basic')).toBe(true);
   });
 
   it('suggestTemplates returns all in category when no query', () => {
@@ -213,19 +237,30 @@ describe('PromptTemplateSystem — registerTemplate / getCategories / suggestTem
 
 describe('PromptTemplateSystem — createBatch', () => {
   let pts: PromptTemplateSystem;
-  beforeEach(() => { pts = new PromptTemplateSystem(); });
+  beforeEach(() => {
+    pts = new PromptTemplateSystem();
+  });
 
   it('returns array of same length as input', () => {
     const batch = pts.createBatch([
-      { templateId: 'basic-object', context: { geometry: 'box', color: 'blue', position: '[0,0,0]' } },
-      { templateId: 'basic-object', context: { geometry: 'sphere', color: 'red', position: '[1,0,0]' } },
+      {
+        templateId: 'basic-object',
+        context: { geometry: 'box', color: 'blue', position: '[0,0,0]' },
+      },
+      {
+        templateId: 'basic-object',
+        context: { geometry: 'sphere', color: 'red', position: '[1,0,0]' },
+      },
     ]);
     expect(batch).toHaveLength(2);
   });
 
   it('each result is a string with variables substituted', () => {
     const batch = pts.createBatch([
-      { templateId: 'basic-object', context: { geometry: 'cube', color: 'green', position: '[0,0,0]' } },
+      {
+        templateId: 'basic-object',
+        context: { geometry: 'cube', color: 'green', position: '[0,0,0]' },
+      },
     ]);
     expect(batch[0]).toContain('cube');
     expect(batch[0]).toContain('green');

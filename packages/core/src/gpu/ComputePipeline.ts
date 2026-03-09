@@ -218,9 +218,11 @@ export class ComputePipeline {
     }
 
     // Create command encoder if not provided
-    const encoder = commandEncoder ?? this.device.createCommandEncoder({
-      label: 'particle-physics-compute-encoder',
-    });
+    const encoder =
+      commandEncoder ??
+      this.device.createCommandEncoder({
+        label: 'particle-physics-compute-encoder',
+      });
 
     // Create compute pass
     const computePass = encoder.beginComputePass({

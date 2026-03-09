@@ -113,23 +113,16 @@ export interface CodecMetadata {
  *   - `vendor.*` : Vendor-specific codecs
  */
 export type GaussianCodecId =
-  | 'khr.spz.v2'        // Niantic SPZ v2 (3-byte quaternion, first-three encoding)
-  | 'khr.spz.v3'        // Niantic SPZ v3 (4-byte quaternion, smallest-three encoding)
-  | 'khr.gltf.baseline'  // KHR_gaussian_splatting baseline (uncompressed glTF)
-  | 'mpeg.gsc.v1'        // MPEG Gaussian Splat Coding v1 (future)
-  | string;              // Extensible for custom/vendor codecs
+  | 'khr.spz.v2' // Niantic SPZ v2 (3-byte quaternion, first-three encoding)
+  | 'khr.spz.v3' // Niantic SPZ v3 (4-byte quaternion, smallest-three encoding)
+  | 'khr.gltf.baseline' // KHR_gaussian_splatting baseline (uncompressed glTF)
+  | 'mpeg.gsc.v1' // MPEG Gaussian Splat Coding v1 (future)
+  | string; // Extensible for custom/vendor codecs
 
 /**
  * File extensions associated with Gaussian splat codecs.
  */
-export type GaussianFileExtension =
-  | 'spz'
-  | 'ply'
-  | 'splat'
-  | 'ksplat'
-  | 'gltf'
-  | 'glb'
-  | string;
+export type GaussianFileExtension = 'spz' | 'ply' | 'splat' | 'ksplat' | 'gltf' | 'glb' | string;
 
 // =============================================================================
 // Streaming Types

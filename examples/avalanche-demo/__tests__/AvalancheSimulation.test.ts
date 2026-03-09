@@ -434,11 +434,7 @@ describe('AvalancheSimulation', () => {
 
     it('should handle very few particles', async () => {
       const fewSnow = new SnowAccumulation(terrain, { ...snowConfig, particleCount: 5 });
-      const fewPhysics = new AvalanchePhysics(
-        terrain,
-        fewSnow.getParticles(),
-        avalancheConfig
-      );
+      const fewPhysics = new AvalanchePhysics(terrain, fewSnow.getParticles(), avalancheConfig);
       const fewSim = new AvalancheSimulation(terrain, fewPhysics, simulationConfig);
 
       await fewSim.update(0.1);
@@ -450,11 +446,7 @@ describe('AvalancheSimulation', () => {
 
     it('should handle many particles', async () => {
       const manySnow = new SnowAccumulation(terrain, { ...snowConfig, particleCount: 5000 });
-      const manyPhysics = new AvalanchePhysics(
-        terrain,
-        manySnow.getParticles(),
-        avalancheConfig
-      );
+      const manyPhysics = new AvalanchePhysics(terrain, manySnow.getParticles(), avalancheConfig);
       const manySim = new AvalancheSimulation(terrain, manyPhysics, simulationConfig);
 
       manySim.triggerAvalanche([0, 0], 50);
@@ -462,9 +454,7 @@ describe('AvalancheSimulation', () => {
 
       const stats = manySim.getStatistics();
 
-      expect(
-        stats.restingCount + stats.slidingCount + stats.airborneCount
-      ).toBe(5000);
+      expect(stats.restingCount + stats.slidingCount + stats.airborneCount).toBe(5000);
     });
 
     it('should handle rapid consecutive updates', async () => {

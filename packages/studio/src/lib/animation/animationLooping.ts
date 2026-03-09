@@ -57,14 +57,8 @@ export interface LoopOptions {
 /**
  * Analyze if animation can loop seamlessly
  */
-export function analyzeLoop(
-  clip: RecordedClip,
-  options: LoopOptions = {}
-): LoopAnalysis {
-  const {
-    perfectThreshold = 0.01,
-    goodThreshold = 0.05,
-  } = options;
+export function analyzeLoop(clip: RecordedClip, options: LoopOptions = {}): LoopAnalysis {
+  const { perfectThreshold = 0.01, goodThreshold = 0.05 } = options;
 
   if (clip.frames.length === 0) {
     return {
@@ -102,12 +96,7 @@ export function analyzeLoop(
       startFrame.qz,
       startFrame.qw
     );
-    const endQuat = new THREE.Quaternion(
-      endFrame.qx,
-      endFrame.qy,
-      endFrame.qz,
-      endFrame.qw
-    );
+    const endQuat = new THREE.Quaternion(endFrame.qx, endFrame.qy, endFrame.qz, endFrame.qw);
 
     const distance = quatDistance(startQuat, endQuat);
     boneDistances.push({ boneIndex, distance });
@@ -151,14 +140,8 @@ export function analyzeLoop(
 /**
  * Generate seamless loop by blending start/end frames
  */
-export function generateSeamlessLoop(
-  clip: RecordedClip,
-  options: LoopOptions = {}
-): RecordedClip {
-  const {
-    blendFrames = 5,
-    useEasing = true,
-  } = options;
+export function generateSeamlessLoop(clip: RecordedClip, options: LoopOptions = {}): RecordedClip {
+  const { blendFrames = 5, useEasing = true } = options;
 
   const analysis = analyzeLoop(clip, options);
 
@@ -208,12 +191,7 @@ export function generateSeamlessLoop(
         startFrame.qz,
         startFrame.qw
       );
-      const endQuat = new THREE.Quaternion(
-        endFrame.qx,
-        endFrame.qy,
-        endFrame.qz,
-        endFrame.qw
-      );
+      const endQuat = new THREE.Quaternion(endFrame.qx, endFrame.qy, endFrame.qz, endFrame.qw);
 
       const blendedQuat = new THREE.Quaternion().slerpQuaternions(startQuat, endQuat, t);
 
@@ -255,10 +233,7 @@ function easeInOutCubic(t: number): number {
 /**
  * Extend animation by duplicating and appending (for longer loops)
  */
-export function extendAnimation(
-  clip: RecordedClip,
-  repetitions: number
-): RecordedClip {
+export function extendAnimation(clip: RecordedClip, repetitions: number): RecordedClip {
   if (repetitions <= 1) return clip;
 
   const extendedFrames: BoneFrame[] = [];
@@ -326,9 +301,7 @@ export function createPalindromeLoop(clip: RecordedClip): RecordedClip {
 /**
  * Get loop recommendations based on analysis
  */
-export function getLoopRecommendations(
-  analysis: LoopAnalysis
-): string[] {
+export function getLoopRecommendations(analysis: LoopAnalysis): string[] {
   const recommendations: string[] = [];
 
   if (analysis.loopQuality === 'perfect') {
@@ -341,16 +314,12 @@ export function getLoopRecommendations(
     recommendations.push(
       '⚠️ Fair loop quality. Blending recommended to reduce jarring transition.'
     );
-    recommendations.push(
-      `Blend ${analysis.suggestedBlendFrames} frames at loop point.`
-    );
+    recommendations.push(`Blend ${analysis.suggestedBlendFrames} frames at loop point.`);
   } else {
     recommendations.push(
       '❌ Poor loop quality. Consider re-recording with matching start/end poses.'
     );
-    recommendations.push(
-      `Problematic bones: ${analysis.problematicBones.join(', ')}`
-    );
+    recommendations.push(`Problematic bones: ${analysis.problematicBones.join(', ')}`);
     recommendations.push(
       'Tip: Record in a circular motion or use palindrome mode (forward + backward).'
     );

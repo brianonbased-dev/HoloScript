@@ -9,7 +9,7 @@
 
 import { useState, useCallback } from 'react';
 import { Globe, Copy, Check, Loader2, X, ExternalLink } from 'lucide-react';
-import { useSceneStore, useSceneGraphStore } from '@/lib/store';
+import { useSceneStore, useSceneGraphStore } from '@/lib/stores';
 import { useAssetStore } from '@/components/assets/useAssetStore';
 import { serializeScene } from '@/lib/serializer';
 
@@ -60,7 +60,7 @@ export function PublishModal({ onClose }: PublishModalProps) {
         },
         code,
         nodes,
-        assets,
+        assets
       );
 
       // Attach r3fTree so the viewer can render immediately without re-compiling
@@ -149,8 +149,15 @@ export function PublishModal({ onClose }: PublishModalProps) {
               {/* URL bar */}
               <div className="flex w-full items-center gap-2 rounded-lg border border-studio-border bg-studio-surface px-3 py-2">
                 <span className="flex-1 truncate text-xs text-studio-muted">{publishedUrl}</span>
-                <button onClick={handleCopy} className="shrink-0 text-studio-muted hover:text-studio-accent transition">
-                  {copied ? <Check className="h-3.5 w-3.5 text-studio-success" /> : <Copy className="h-3.5 w-3.5" />}
+                <button
+                  onClick={handleCopy}
+                  className="shrink-0 text-studio-muted hover:text-studio-accent transition"
+                >
+                  {copied ? (
+                    <Check className="h-3.5 w-3.5 text-studio-success" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
                 </button>
                 <a
                   href={publishedUrl}

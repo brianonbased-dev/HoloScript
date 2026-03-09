@@ -35,12 +35,17 @@ describe('AnimationTrait', () => {
     const node = makeNode('clip1');
     const config: AnimationTraitConfig = {
       autoPlay: true,
-      clips: [{
-        property: 'opacity',
-        keyframes: [{ time: 0, value: 0 }, { time: 1, value: 1 }],
-        duration: 1,
-        loop: false,
-      }],
+      clips: [
+        {
+          property: 'opacity',
+          keyframes: [
+            { time: 0, value: 0 },
+            { time: 1, value: 1 },
+          ],
+          duration: 1,
+          loop: false,
+        },
+      ],
       springs: [],
     };
     expect(() => animationTraitHandler.onAttach!(node, config, {})).not.toThrow();
@@ -50,11 +55,16 @@ describe('AnimationTrait', () => {
     const node = makeNode('noauto');
     const config: AnimationTraitConfig = {
       autoPlay: false,
-      clips: [{
-        property: 'x',
-        keyframes: [{ time: 0, value: 0 }, { time: 1, value: 10 }],
-        duration: 1,
-      }],
+      clips: [
+        {
+          property: 'x',
+          keyframes: [
+            { time: 0, value: 0 },
+            { time: 1, value: 10 },
+          ],
+          duration: 1,
+        },
+      ],
       springs: [],
     };
     expect(() => animationTraitHandler.onAttach!(node, config, {})).not.toThrow();
@@ -86,12 +96,17 @@ describe('AnimationTrait', () => {
     const node = makeNode('det1');
     const config: AnimationTraitConfig = {
       autoPlay: true,
-      clips: [{
-        property: 'x',
-        keyframes: [{ time: 0, value: 0 }, { time: 1, value: 5 }],
-        duration: 1,
-        loop: true,
-      }],
+      clips: [
+        {
+          property: 'x',
+          keyframes: [
+            { time: 0, value: 0 },
+            { time: 1, value: 5 },
+          ],
+          duration: 1,
+          loop: true,
+        },
+      ],
       springs: [],
     };
     animationTraitHandler.onAttach!(node, config, {});
@@ -102,7 +117,8 @@ describe('AnimationTrait', () => {
   it('onUpdate ticks without error', () => {
     const node = makeNode('upd1', { scale: 1 });
     const config: AnimationTraitConfig = {
-      autoPlay: true, clips: [],
+      autoPlay: true,
+      clips: [],
       springs: [{ property: 'scale', target: 3 }],
     };
     animationTraitHandler.onAttach!(node, config, {});
@@ -121,11 +137,16 @@ describe('AnimationTrait', () => {
     const node = makeNode('nested1', { transform: { position: { x: 0 } } });
     const config: AnimationTraitConfig = {
       autoPlay: true,
-      clips: [{
-        property: 'transform.position.x',
-        keyframes: [{ time: 0, value: 0 }, { time: 1, value: 10 }],
-        duration: 0.001,
-      }],
+      clips: [
+        {
+          property: 'transform.position.x',
+          keyframes: [
+            { time: 0, value: 0 },
+            { time: 1, value: 10 },
+          ],
+          duration: 0.001,
+        },
+      ],
       springs: [],
     };
     animationTraitHandler.onAttach!(node, config, {});
@@ -141,8 +162,22 @@ describe('AnimationTrait', () => {
     const config: AnimationTraitConfig = {
       autoPlay: true,
       clips: [
-        { property: 'x', keyframes: [{ time: 0, value: 0 }, { time: 1, value: 5 }], duration: 1 },
-        { property: 'y', keyframes: [{ time: 0, value: 0 }, { time: 1, value: 10 }], duration: 1 },
+        {
+          property: 'x',
+          keyframes: [
+            { time: 0, value: 0 },
+            { time: 1, value: 5 },
+          ],
+          duration: 1,
+        },
+        {
+          property: 'y',
+          keyframes: [
+            { time: 0, value: 0 },
+            { time: 1, value: 10 },
+          ],
+          duration: 1,
+        },
       ],
       springs: [],
     };
@@ -153,14 +188,19 @@ describe('AnimationTrait', () => {
     const node = makeNode('loop1');
     const config: AnimationTraitConfig = {
       autoPlay: true,
-      clips: [{
-        property: 'alpha',
-        keyframes: [{ time: 0, value: 0 }, { time: 1, value: 1 }],
-        duration: 2,
-        loop: true,
-        pingPong: true,
-        delay: 0.5,
-      }],
+      clips: [
+        {
+          property: 'alpha',
+          keyframes: [
+            { time: 0, value: 0 },
+            { time: 1, value: 1 },
+          ],
+          duration: 2,
+          loop: true,
+          pingPong: true,
+          delay: 0.5,
+        },
+      ],
       springs: [],
     };
     expect(() => animationTraitHandler.onAttach!(node, config, {})).not.toThrow();
@@ -170,14 +210,16 @@ describe('AnimationTrait', () => {
     const node = makeNode('ease1');
     const config: AnimationTraitConfig = {
       autoPlay: true,
-      clips: [{
-        property: 'opacity',
-        keyframes: [
-          { time: 0, value: 0, easing: 'ease-in' },
-          { time: 1, value: 1, easing: 'ease-out-bounce' },
-        ],
-        duration: 1,
-      }],
+      clips: [
+        {
+          property: 'opacity',
+          keyframes: [
+            { time: 0, value: 0, easing: 'ease-in' },
+            { time: 1, value: 1, easing: 'ease-out-bounce' },
+          ],
+          duration: 1,
+        },
+      ],
       springs: [],
     };
     expect(() => animationTraitHandler.onAttach!(node, config, {})).not.toThrow();

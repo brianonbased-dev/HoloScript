@@ -120,6 +120,7 @@ renderer.start();
 ```
 
 **APIs Used**:
+
 - `parseHoloScript()` - Public parser
 - `RuntimeRegistry.execute()` - Public runtime
 - `ThreeJSRenderer` - Public renderer (anyone can use)
@@ -156,13 +157,13 @@ import { compileToUnreal } from '@holoscript/core/compiler';
 // Compile Hololand world to Unity (public compiler)
 const unityCode = compileToUnity(composition, {
   version: '2022.3',
-  outputPath: './unity-export'
+  outputPath: './unity-export',
 });
 
 // Compile to Unreal (public compiler)
 const unrealCode = compileToUnreal(composition, {
   version: '5.3',
-  outputPath: './unreal-export'
+  outputPath: './unreal-export',
 });
 ```
 
@@ -203,18 +204,18 @@ protocol.on('entity_update', (data) => {
 
 Hololand uses **ONLY** these public HoloScript APIs:
 
-| Package | API | Purpose | Public? |
-|---------|-----|---------|---------|
-| `@holoscript/core` | `parseHoloScript()` | Parse `.holo` files | ✅ Yes |
-| `@holoscript/core` | `compileToUnity()` | Compile to Unity C# | ✅ Yes |
-| `@holoscript/core` | `compileToUnreal()` | Compile to Unreal C++ | ✅ Yes |
-| `@holoscript/core` | `compileToR3F()` | Compile to React Three Fiber | ✅ Yes |
-| `@holoscript/runtime` | `RuntimeRegistry` | Runtime execution | ✅ Yes |
-| `@holoscript/runtime` | `ThreeJSRenderer` | Three.js rendering | ✅ Yes |
-| `@holoscript/runtime` | `RuntimeExecutor` | Execution interface | ✅ Yes |
-| `@holoscript/core` | `getStreamProtocol()` | Multiplayer protocol | ✅ Yes |
-| `@holoscript/core` | `getHololandClient()` | Connection management | ✅ Yes (for any platform) |
-| `@holoscript/traits` | All 1,800+ traits | Composable behaviors | ✅ Yes |
+| Package               | API                   | Purpose                      | Public?                   |
+| --------------------- | --------------------- | ---------------------------- | ------------------------- |
+| `@holoscript/core`    | `parseHoloScript()`   | Parse `.holo` files          | ✅ Yes                    |
+| `@holoscript/core`    | `compileToUnity()`    | Compile to Unity C#          | ✅ Yes                    |
+| `@holoscript/core`    | `compileToUnreal()`   | Compile to Unreal C++        | ✅ Yes                    |
+| `@holoscript/core`    | `compileToR3F()`      | Compile to React Three Fiber | ✅ Yes                    |
+| `@holoscript/runtime` | `RuntimeRegistry`     | Runtime execution            | ✅ Yes                    |
+| `@holoscript/runtime` | `ThreeJSRenderer`     | Three.js rendering           | ✅ Yes                    |
+| `@holoscript/runtime` | `RuntimeExecutor`     | Execution interface          | ✅ Yes                    |
+| `@holoscript/core`    | `getStreamProtocol()` | Multiplayer protocol         | ✅ Yes                    |
+| `@holoscript/core`    | `getHololandClient()` | Connection management        | ✅ Yes (for any platform) |
+| `@holoscript/traits`  | All 1,800+ traits     | Composable behaviors         | ✅ Yes                    |
 
 **Verification**: Check `@holoscript/core/package.json` - all exports are public.
 
@@ -293,7 +294,7 @@ import { compileToUnity } from '@holoscript/core/compiler';
 // Compile to Unity (public API)
 const unityCode = compileToUnity(composition, {
   version: '2022.3',
-  outputPath: './unity-export'
+  outputPath: './unity-export',
 });
 
 // Deploy to App Store/Steam
@@ -340,15 +341,15 @@ Hololand/
 
 ## API Comparison: Hololand vs. Your Platform
 
-| Feature | Hololand Uses | Your Platform Can Use |
-|---------|---------------|------------------------|
-| **World Parsing** | `parseHoloScript()` | ✅ Same API |
-| **Runtime Execution** | `RuntimeRegistry.execute()` | ✅ Same API |
-| **Rendering** | `ThreeJSRenderer` | ✅ Same API |
-| **Traits** | `@grabbable`, `@physics`, etc. | ✅ Same traits |
-| **Multiplayer** | `getStreamProtocol()` | ✅ Same API |
-| **Compilation** | `compileToUnity()` | ✅ Same API |
-| **AI Integration** | Brittney agent (MCP tools) | ✅ Same tools |
+| Feature               | Hololand Uses                  | Your Platform Can Use |
+| --------------------- | ------------------------------ | --------------------- |
+| **World Parsing**     | `parseHoloScript()`            | ✅ Same API           |
+| **Runtime Execution** | `RuntimeRegistry.execute()`    | ✅ Same API           |
+| **Rendering**         | `ThreeJSRenderer`              | ✅ Same API           |
+| **Traits**            | `@grabbable`, `@physics`, etc. | ✅ Same traits        |
+| **Multiplayer**       | `getStreamProtocol()`          | ✅ Same API           |
+| **Compilation**       | `compileToUnity()`             | ✅ Same API           |
+| **AI Integration**    | Brittney agent (MCP tools)     | ✅ Same tools         |
 
 **Conclusion**: Perfect parity. You have **equal access**.
 
@@ -373,11 +374,13 @@ Hololand/
 ### Differentiators
 
 Hololand competes on:
+
 - **Execution** (user experience, not API lock-in)
 - **Community** (network effects, creator economy)
 - **Innovation** (new features, better UX)
 
 You can compete by building:
+
 - **Better UX**: Mobile-first, accessibility, performance
 - **Different Focus**: Education, corporate training, gaming
 - **Vertical Integration**: Industry-specific (healthcare, retail)
@@ -405,6 +408,7 @@ We're looking for platforms built on HoloScript:
 ### How can I verify this claim?
 
 **Audit**:
+
 1. Clone both repos (HoloScript + Hololand)
 2. Run `npm ls @holoscript/core` in Hololand repo
 3. Check `@holoscript/core/package.json` exports
@@ -414,6 +418,7 @@ We're looking for platforms built on HoloScript:
 ### Can I fork Hololand and build my own?
 
 **Yes!** Hololand is MIT licensed. You can:
+
 - Fork and rebrand
 - Customize features
 - Deploy your own servers
@@ -422,6 +427,7 @@ We're looking for platforms built on HoloScript:
 ### Will HoloScript break Hololand compatibility?
 
 **No.** HoloScript follows semantic versioning:
+
 - **Patch** (3.4.1): Bug fixes, no breaking changes
 - **Minor** (3.5.0): New features, backward compatible
 - **Major** (4.0.0): Breaking changes (rare, with migration guide)
@@ -431,6 +437,7 @@ Hololand updates HoloScript versions like any other platform.
 ### What if I need a feature Hololand has but I can't access?
 
 **Impossible.** If Hololand uses it, it's a public API. Check:
+
 1. `@holoscript/core/package.json` exports
 2. HoloScript documentation
 3. Ask on Discord (#api-questions)
@@ -465,6 +472,6 @@ Help us maintain the "even playing field":
 
 ---
 
-*This document demonstrates HoloScript's commitment to commons-based governance. If Hololand can be built with public APIs, so can your platform. Compete freely.*
+_This document demonstrates HoloScript's commitment to commons-based governance. If Hololand can be built with public APIs, so can your platform. Compete freely._
 
 © 2026 HoloScript Foundation

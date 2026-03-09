@@ -18,13 +18,13 @@ export interface SaveSlot {
   data: Record<string, unknown>;
   checksum: string;
   version: number;
-  playtime: number;       // seconds
+  playtime: number; // seconds
   metadata: Record<string, string>;
 }
 
 export interface SaveConfig {
   maxSlots: number;
-  autosaveInterval: number;   // seconds, 0 = disabled
+  autosaveInterval: number; // seconds, 0 = disabled
   autosaveSlotId: string;
   version: number;
 }
@@ -61,7 +61,12 @@ export class SaveManager {
   // Save & Load
   // ---------------------------------------------------------------------------
 
-  save(slotId: string, name: string, data: Record<string, unknown>, metadata: Record<string, string> = {}): SaveSlot {
+  save(
+    slotId: string,
+    name: string,
+    data: Record<string, unknown>,
+    metadata: Record<string, string> = {}
+  ): SaveSlot {
     if (this.slots.size >= this.config.maxSlots && !this.slots.has(slotId)) {
       // Remove oldest
       let oldest: SaveSlot | null = null;
@@ -122,7 +127,9 @@ export class SaveManager {
 
   autosave(): SaveSlot | null {
     if (Object.keys(this.currentData).length === 0) return null;
-    return this.save(this.config.autosaveSlotId, 'Autosave', this.currentData, { type: 'autosave' });
+    return this.save(this.config.autosaveSlotId, 'Autosave', this.currentData, {
+      type: 'autosave',
+    });
   }
 
   setCurrentData(data: Record<string, unknown>): void {
@@ -133,11 +140,19 @@ export class SaveManager {
   // Slot Management
   // ---------------------------------------------------------------------------
 
-  getSlot(slotId: string): SaveSlot | undefined { return this.slots.get(slotId); }
-  getAllSlots(): SaveSlot[] { return [...this.slots.values()].sort((a, b) => b.timestamp - a.timestamp); }
-  getSlotCount(): number { return this.slots.size; }
+  getSlot(slotId: string): SaveSlot | undefined {
+    return this.slots.get(slotId);
+  }
+  getAllSlots(): SaveSlot[] {
+    return [...this.slots.values()].sort((a, b) => b.timestamp - a.timestamp);
+  }
+  getSlotCount(): number {
+    return this.slots.size;
+  }
 
-  deleteSlot(slotId: string): boolean { return this.slots.delete(slotId); }
+  deleteSlot(slotId: string): boolean {
+    return this.slots.delete(slotId);
+  }
 
   isCorrupted(slotId: string): boolean {
     const slot = this.slots.get(slotId);
@@ -158,15 +173,21 @@ export class SaveManager {
       const slots: SaveSlot[] = JSON.parse(json);
       for (const slot of slots) this.slots.set(slot.id, slot);
       return slots.length;
-    } catch { return 0; }
+    } catch {
+      return 0;
+    }
   }
 
   // ---------------------------------------------------------------------------
   // Listeners
   // ---------------------------------------------------------------------------
 
-  onSave(listener: (slot: SaveSlot) => void): void { this.saveListeners.push(listener); }
-  onLoad(listener: (slot: SaveSlot) => void): void { this.loadListeners.push(listener); }
+  onSave(listener: (slot: SaveSlot) => void): void {
+    this.saveListeners.push(listener);
+  }
+  onLoad(listener: (slot: SaveSlot) => void): void {
+    this.loadListeners.push(listener);
+  }
 
   // ---------------------------------------------------------------------------
   // Helpers
@@ -176,11 +197,13 @@ export class SaveManager {
     let hash = 0;
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash |= 0;
     }
     return hash.toString(16);
   }
 
-  getPlaytime(): number { return this.playtime; }
+  getPlaytime(): number {
+    return this.playtime;
+  }
 }

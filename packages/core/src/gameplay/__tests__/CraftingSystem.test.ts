@@ -2,18 +2,31 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { CraftingSystem, type CraftingRecipe } from '../CraftingSystem';
 
 const recipe = (id: string, discovered = true, level = 1): CraftingRecipe => ({
-  id, name: id,
-  ingredients: [{ itemId: 'wood', quantity: 2 }, { itemId: 'stone', quantity: 1 }],
+  id,
+  name: id,
+  ingredients: [
+    { itemId: 'wood', quantity: 2 },
+    { itemId: 'stone', quantity: 1 },
+  ],
   output: { itemId: `${id}_out`, quantity: 1 },
-  workbenchType: null, craftTime: 1, discovered, level,
+  workbenchType: null,
+  craftTime: 1,
+  discovered,
+  level,
 });
 
-const items = (wood = 10, stone = 5) => new Map([['wood', wood], ['stone', stone]]);
+const items = (wood = 10, stone = 5) =>
+  new Map([
+    ['wood', wood],
+    ['stone', stone],
+  ]);
 
 describe('CraftingSystem', () => {
   let cs: CraftingSystem;
 
-  beforeEach(() => { cs = new CraftingSystem(); });
+  beforeEach(() => {
+    cs = new CraftingSystem();
+  });
 
   it('addRecipe and getRecipe', () => {
     cs.addRecipe(recipe('axe'));

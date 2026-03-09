@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi } from 'vitest';
 import { World } from '../ecs/World';
 import { effect } from '../state/ReactiveState';
@@ -8,10 +7,10 @@ describe('Reactive ECS', () => {
     const world = new World();
     const entity = world.createEntity();
     const data = { x: 0, y: 0 };
-    
+
     world.addComponent(entity, 'Position', data);
-    const comp = world.getComponent<{ x: number, y: number }>(entity, 'Position');
-    
+    const comp = world.getComponent<{ x: number; y: number }>(entity, 'Position');
+
     expect(comp).not.toBe(data); // Proxy wrapper
     expect(comp?.x).toBe(0);
   });
@@ -20,22 +19,22 @@ describe('Reactive ECS', () => {
     const world = new World();
     const entity = world.createEntity();
     world.addComponent(entity, 'Health', { current: 100, max: 100 });
-    
+
     const comp = world.getComponent<{ current: number }>(entity, 'Health')!;
     const callback = vi.fn();
-    
+
     effect(() => {
       callback(comp.current);
     });
-    
+
     expect(callback).toHaveBeenCalledWith(100);
-    
+
     // Modify component property
     comp.current = 90;
-    
+
     // Updates are batched (microtask)
     await Promise.resolve();
-    
+
     expect(callback).toHaveBeenCalledWith(90);
     expect(callback).toHaveBeenCalledTimes(2);
   });
@@ -43,24 +42,24 @@ describe('Reactive ECS', () => {
   it('should support tracking nested objects', async () => {
     const world = new World();
     const entity = world.createEntity();
-    world.addComponent(entity, 'Transform', { 
-        position: { x: 0, y: 0, z: 0 },
-        scale: { x: 1, y: 1, z: 1 }
+    world.addComponent(entity, 'Transform', {
+      position: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
     });
-    
+
     const transform = world.getComponent<any>(entity, 'Transform')!;
     const callback = vi.fn();
-    
+
     effect(() => {
-        callback(transform.position.x);
+      callback(transform.position.x);
     });
-    
+
     expect(callback).toHaveBeenCalledWith(0);
-    
+
     transform.position.x = 10;
-    
+
     await Promise.resolve();
-    
+
     expect(callback).toHaveBeenCalledWith(10);
   });
 });

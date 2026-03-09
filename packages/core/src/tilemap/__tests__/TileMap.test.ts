@@ -80,7 +80,7 @@ describe('TileMap', () => {
       }
     }
     // Rule: center tile with id=1 and all 8 neighbors of id=1 → becomes id=9
-    map.addAutoTileRule({ tileId: 1, neighbors: 0xFF, resultId: 9 });
+    map.addAutoTileRule({ tileId: 1, neighbors: 0xff, resultId: 9 });
     const count = map.applyAutoTile('ground');
     // Only center tile (1,1) has all 8 neighbors
     expect(count).toBe(1);

@@ -13,12 +13,12 @@ orb "Cube" {
 }
 ```
 
-| Property   | Type           | Default       |
-|------------|----------------|---------------|
-| `color`    | string (hex or name) | `"white"` |
-| `scale`    | number or [x,y,z] | `1.0`    |
-| `position` | [x, y, z]      | `[0, 0, 0]`  |
-| `rotation` | [x, y, z] deg  | `[0, 0, 0]`  |
+| Property   | Type                 | Default     |
+| ---------- | -------------------- | ----------- |
+| `color`    | string (hex or name) | `"white"`   |
+| `scale`    | number or [x,y,z]    | `1.0`       |
+| `position` | [x, y, z]            | `[0, 0, 0]` |
+| `rotation` | [x, y, z] deg        | `[0, 0, 0]` |
 
 ## Try it:
 

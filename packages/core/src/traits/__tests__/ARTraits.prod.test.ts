@@ -37,7 +37,10 @@ describe('ObjectTrackingTrait — Production', () => {
   it('tracking:acquired activates tracking', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
-    handler.onEvent!(mockNode, config, ctx, { type: 'tracking:acquired', payload: { anchorId: 'a1' } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'tracking:acquired',
+      payload: { anchorId: 'a1' },
+    });
     const s = ctx.getState().objectTracking;
     expect(s.isTracking).toBe(true);
     expect(s.anchorId).toBe('a1');
@@ -75,7 +78,10 @@ describe('ObjectTrackingTrait — Production', () => {
   it('onDetach emits anchor_removed if anchor exists', () => {
     const ctx = mockContext();
     handler.onAttach!(mockNode, config, ctx);
-    handler.onEvent!(mockNode, config, ctx, { type: 'tracking:acquired', payload: { anchorId: 'a1' } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'tracking:acquired',
+      payload: { anchorId: 'a1' },
+    });
     handler.onDetach!(mockNode, config, ctx);
     expect(ctx.emit).toHaveBeenCalledWith('tracking:anchor_removed', { anchorId: 'a1' });
   });
@@ -174,7 +180,13 @@ describe('RealityKitMeshTrait — Production', () => {
     handler.onAttach!(mockNode, config, ctx);
     handler.onEvent!(mockNode, config, ctx, {
       type: 'rkMesh:anchor_added',
-      payload: { id: 'm1', classification: 'wall', vertexCount: 100, faceCount: 50, boundingBox: { min: [0,0,0], max: [1,1,1] } },
+      payload: {
+        id: 'm1',
+        classification: 'wall',
+        vertexCount: 100,
+        faceCount: 50,
+        boundingBox: { min: [0, 0, 0], max: [1, 1, 1] },
+      },
     });
     expect(ctx.getState().realityKitMesh.totalVertices).toBe(100);
     expect(ctx.getState().realityKitMesh.classificationCounts.wall).toBe(1);
@@ -185,9 +197,18 @@ describe('RealityKitMeshTrait — Production', () => {
     handler.onAttach!(mockNode, config, ctx);
     handler.onEvent!(mockNode, config, ctx, {
       type: 'rkMesh:anchor_added',
-      payload: { id: 'm1', classification: 'floor', vertexCount: 200, faceCount: 80, boundingBox: { min: [0,0,0], max: [1,1,1] } },
+      payload: {
+        id: 'm1',
+        classification: 'floor',
+        vertexCount: 200,
+        faceCount: 80,
+        boundingBox: { min: [0, 0, 0], max: [1, 1, 1] },
+      },
     });
-    handler.onEvent!(mockNode, config, ctx, { type: 'rkMesh:anchor_removed', payload: { id: 'm1' } });
+    handler.onEvent!(mockNode, config, ctx, {
+      type: 'rkMesh:anchor_removed',
+      payload: { id: 'm1' },
+    });
     expect(ctx.getState().realityKitMesh.totalVertices).toBe(0);
     expect(ctx.getState().realityKitMesh.anchors.size).toBe(0);
   });
@@ -205,7 +226,13 @@ describe('RealityKitMeshTrait — Production', () => {
     handler.onAttach!(mockNode, config, ctx);
     handler.onEvent!(mockNode, config, ctx, {
       type: 'rkMesh:anchor_added',
-      payload: { id: 'm1', classification: 'none', vertexCount: 50, faceCount: 20, boundingBox: { min: [0,0,0], max: [1,1,1] } },
+      payload: {
+        id: 'm1',
+        classification: 'none',
+        vertexCount: 50,
+        faceCount: 20,
+        boundingBox: { min: [0, 0, 0], max: [1, 1, 1] },
+      },
     });
     handler.onDetach!(mockNode, config, ctx);
     expect(ctx.getState().realityKitMesh.anchors.size).toBe(0);

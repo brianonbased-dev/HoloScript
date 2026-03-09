@@ -52,20 +52,29 @@ describe('AgentPortalTrait', () => {
   });
 
   it('emits portal:init on attach', () => {
-    expect(ctx.emit).toHaveBeenCalledWith('portal:init', expect.objectContaining({
-      sceneId: 'scene_alpha',
-      agentId: 'agent_1',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'portal:init',
+      expect.objectContaining({
+        sceneId: 'scene_alpha',
+        agentId: 'agent_1',
+      })
+    );
   });
 
   it('handles connection lifecycle', () => {
     agentPortalHandler.onEvent!(node, config, ctx, { type: 'portal:ws_connected' });
     expect(node.__portalState.connected).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('portal:connected', expect.objectContaining({
-      sceneId: 'scene_alpha',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'portal:connected',
+      expect.objectContaining({
+        sceneId: 'scene_alpha',
+      })
+    );
 
-    agentPortalHandler.onEvent!(node, config, ctx, { type: 'portal:ws_disconnected', payload: { reason: 'server_close' } });
+    agentPortalHandler.onEvent!(node, config, ctx, {
+      type: 'portal:ws_disconnected',
+      payload: { reason: 'server_close' },
+    });
     expect(node.__portalState.connected).toBe(false);
   });
 
@@ -92,18 +101,29 @@ describe('AgentPortalTrait', () => {
     // Connect → outbox should flush
     agentPortalHandler.onEvent!(node, config, ctx, { type: 'portal:ws_connected' });
     expect(node.__portalState.outbox).toHaveLength(0);
-    expect(ctx.emit).toHaveBeenCalledWith('portal:relay_send', expect.objectContaining({ type: 'ping' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'portal:relay_send',
+      expect.objectContaining({ type: 'ping' })
+    );
   });
 
   it('discovers remote scenes', () => {
     agentPortalHandler.onEvent!(node, config, ctx, {
       type: 'portal:scene_announce',
-      payload: { sceneId: 'scene_beta', sceneName: 'Beta', agentCount: 3, capabilities: ['trading'] },
+      payload: {
+        sceneId: 'scene_beta',
+        sceneName: 'Beta',
+        agentCount: 3,
+        capabilities: ['trading'],
+      },
     });
     expect(node.__portalState.scenes.size).toBe(1);
-    expect(ctx.emit).toHaveBeenCalledWith('portal:scene_discovered', expect.objectContaining({
-      sceneId: 'scene_beta',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'portal:scene_discovered',
+      expect.objectContaining({
+        sceneId: 'scene_beta',
+      })
+    );
   });
 
   it('handles agent migration out', () => {
@@ -121,10 +141,13 @@ describe('AgentPortalTrait', () => {
     });
 
     expect(node.__portalState.totalMigrations).toBe(1);
-    expect(ctx.emit).toHaveBeenCalledWith('portal:agent_migrated', expect.objectContaining({
-      agentId: 'agent_1',
-      toScene: 'scene_beta',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'portal:agent_migrated',
+      expect.objectContaining({
+        agentId: 'agent_1',
+        toScene: 'scene_beta',
+      })
+    );
   });
 
   it('queries federation by capability', () => {
@@ -133,8 +156,20 @@ describe('AgentPortalTrait', () => {
       type: 'portal:remote_agents',
       payload: {
         agents: [
-          { sceneId: 'beta', agentId: 'a1', name: 'Trader', capabilities: ['trading'], status: 'active' },
-          { sceneId: 'gamma', agentId: 'a2', name: 'Guard', capabilities: ['combat'], status: 'idle' },
+          {
+            sceneId: 'beta',
+            agentId: 'a1',
+            name: 'Trader',
+            capabilities: ['trading'],
+            status: 'active',
+          },
+          {
+            sceneId: 'gamma',
+            agentId: 'a2',
+            name: 'Guard',
+            capabilities: ['combat'],
+            status: 'idle',
+          },
         ],
       },
     });
@@ -144,18 +179,24 @@ describe('AgentPortalTrait', () => {
       payload: { capability: 'trading' },
     });
 
-    expect(ctx.emit).toHaveBeenCalledWith('portal:federation_query', expect.objectContaining({
-      capability: 'trading',
-      results: expect.arrayContaining([expect.objectContaining({ name: 'Trader' })]),
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'portal:federation_query',
+      expect.objectContaining({
+        capability: 'trading',
+        results: expect.arrayContaining([expect.objectContaining({ name: 'Trader' })]),
+      })
+    );
   });
 
   it('cleans up on detach', () => {
     agentPortalHandler.onDetach!(node, config, ctx);
     expect(node.__portalState).toBeUndefined();
-    expect(ctx.emit).toHaveBeenCalledWith('portal:disconnected', expect.objectContaining({
-      reason: 'detached',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'portal:disconnected',
+      expect.objectContaining({
+        reason: 'detached',
+      })
+    );
   });
 });
 
@@ -185,10 +226,13 @@ describe('EconomyPrimitivesTrait', () => {
       type: 'economy:get_balance',
       payload: { agentId: 'agent_1' },
     });
-    expect(ctx.emit).toHaveBeenCalledWith('economy:account_created', expect.objectContaining({
-      agentId: 'agent_1',
-      initialBalance: 100,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'economy:account_created',
+      expect.objectContaining({
+        agentId: 'agent_1',
+        initialBalance: 100,
+      })
+    );
   });
 
   it('handles earning credits', () => {
@@ -199,10 +243,13 @@ describe('EconomyPrimitivesTrait', () => {
 
     const account = node.__economyState.accounts.get('agent_1');
     expect(account.balance).toBe(150); // initial 100 + 50
-    expect(ctx.emit).toHaveBeenCalledWith('economy:credit_earned', expect.objectContaining({
-      amount: 50,
-      newBalance: 150,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'economy:credit_earned',
+      expect.objectContaining({
+        amount: 50,
+        newBalance: 150,
+      })
+    );
   });
 
   it('handles spending credits', () => {
@@ -221,10 +268,13 @@ describe('EconomyPrimitivesTrait', () => {
       payload: { agentId: 'agent_1', amount: 500 },
     });
 
-    expect(ctx.emit).toHaveBeenCalledWith('economy:insufficient_funds', expect.objectContaining({
-      agentId: 'agent_1',
-      amount: 500,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'economy:insufficient_funds',
+      expect.objectContaining({
+        agentId: 'agent_1',
+        amount: 500,
+      })
+    );
     expect(node.__economyState.accounts.get('agent_1').balance).toBe(100);
   });
 
@@ -236,11 +286,14 @@ describe('EconomyPrimitivesTrait', () => {
 
     expect(node.__economyState.accounts.get('agent_1').balance).toBe(75);
     expect(node.__economyState.accounts.get('agent_2').balance).toBe(125);
-    expect(ctx.emit).toHaveBeenCalledWith('economy:transaction', expect.objectContaining({
-      from: 'agent_1',
-      to: 'agent_2',
-      amount: 25,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'economy:transaction',
+      expect.objectContaining({
+        from: 'agent_1',
+        to: 'agent_2',
+        amount: 25,
+      })
+    );
   });
 
   it('posts bounties with escrow', () => {
@@ -257,9 +310,12 @@ describe('EconomyPrimitivesTrait', () => {
     const account = node.__economyState.accounts.get('agent_1');
     expect(account.balance).toBe(50); // 100 - 50 escrow
     expect(node.__economyState.bounties.size).toBe(1);
-    expect(ctx.emit).toHaveBeenCalledWith('economy:bounty_posted', expect.objectContaining({
-      reward: 50,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'economy:bounty_posted',
+      expect.objectContaining({
+        reward: 50,
+      })
+    );
   });
 
   it('completes bounty lifecycle', () => {
@@ -325,10 +381,13 @@ describe('FeedbackLoopTrait', () => {
     const fps = node.__feedbackState.metrics.get('fps');
     expect(fps.value).toBe(55);
     expect(fps.history).toHaveLength(1);
-    expect(ctx.emit).toHaveBeenCalledWith('feedback:metric_updated', expect.objectContaining({
-      name: 'fps',
-      value: 55,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'feedback:metric_updated',
+      expect.objectContaining({
+        name: 'fps',
+        value: 55,
+      })
+    );
   });
 
   it('detects critical drift and emits optimization signal', () => {
@@ -338,15 +397,21 @@ describe('FeedbackLoopTrait', () => {
       payload: { name: 'fps', value: 15 },
     });
 
-    expect(ctx.emit).toHaveBeenCalledWith('feedback:metric_alert', expect.objectContaining({
-      name: 'fps',
-      severity: 'critical',
-    }));
-    expect(ctx.emit).toHaveBeenCalledWith('feedback:optimization_signal', expect.objectContaining({
-      metric: 'fps',
-      direction: 'increase',
-      suggestedAction: 'reduce_gaussian_quality',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'feedback:metric_alert',
+      expect.objectContaining({
+        name: 'fps',
+        severity: 'critical',
+      })
+    );
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'feedback:optimization_signal',
+      expect.objectContaining({
+        metric: 'fps',
+        direction: 'increase',
+        suggestedAction: 'reduce_gaussian_quality',
+      })
+    );
   });
 
   it('collects user feedback', () => {
@@ -357,14 +422,17 @@ describe('FeedbackLoopTrait', () => {
 
     expect(node.__feedbackState.feedback).toHaveLength(1);
     expect(node.__feedbackState.totalFeedback).toBe(1);
-    expect(ctx.emit).toHaveBeenCalledWith('feedback:user_submitted', expect.objectContaining({
-      rating: 4,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'feedback:user_submitted',
+      expect.objectContaining({
+        rating: 4,
+      })
+    );
   });
 
   it('generates reports with average rating', () => {
     // Submit 3 ratings
-    [5, 4, 3].forEach(rating => {
+    [5, 4, 3].forEach((rating) => {
       feedbackLoopHandler.onEvent!(node, config, ctx, {
         type: 'feedback:submit',
         payload: { userId: 'u', rating },
@@ -372,10 +440,13 @@ describe('FeedbackLoopTrait', () => {
     });
 
     feedbackLoopHandler.onEvent!(node, config, ctx, { type: 'feedback:get_report' });
-    expect(ctx.emit).toHaveBeenCalledWith('feedback:report', expect.objectContaining({
-      averageRating: 4, // (5+4+3)/3
-      totalFeedback: 3,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'feedback:report',
+      expect.objectContaining({
+        averageRating: 4, // (5+4+3)/3
+        totalFeedback: 3,
+      })
+    );
   });
 
   it('detects improving trend with sufficient samples', () => {
@@ -402,8 +473,11 @@ describe('FeedbackLoopTrait', () => {
   it('cleans up on detach', () => {
     feedbackLoopHandler.onDetach!(node, config, ctx);
     expect(node.__feedbackState).toBeUndefined();
-    expect(ctx.emit).toHaveBeenCalledWith('feedback:shutdown', expect.objectContaining({
-      totalFeedback: 0,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'feedback:shutdown',
+      expect.objectContaining({
+        totalFeedback: 0,
+      })
+    );
   });
 });

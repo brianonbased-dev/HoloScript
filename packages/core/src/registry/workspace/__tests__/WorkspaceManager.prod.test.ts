@@ -12,20 +12,25 @@ function setup() {
 
 // ─── ROLE_PERMISSIONS ─────────────────────────────────────────────────────────
 describe('ROLE_PERMISSIONS', () => {
-  it('owner has workspace:delete', () => expect(ROLE_PERMISSIONS.owner).toContain('workspace:delete'));
+  it('owner has workspace:delete', () =>
+    expect(ROLE_PERMISSIONS.owner).toContain('workspace:delete'));
   it('owner has billing:manage', () => expect(ROLE_PERMISSIONS.owner).toContain('billing:manage'));
   it('admin has packages:publish but not billing:manage', () => {
     expect(ROLE_PERMISSIONS.admin).toContain('packages:publish');
     expect(ROLE_PERMISSIONS.admin).not.toContain('billing:manage');
   });
-  it('developer cannot manage members', () => expect(ROLE_PERMISSIONS.developer).not.toContain('members:manage'));
-  it('viewer can only read packages', () => expect(ROLE_PERMISSIONS.viewer).toEqual(['packages:read']));
+  it('developer cannot manage members', () =>
+    expect(ROLE_PERMISSIONS.developer).not.toContain('members:manage'));
+  it('viewer can only read packages', () =>
+    expect(ROLE_PERMISSIONS.viewer).toEqual(['packages:read']));
 });
 
 // ─── createWorkspace ──────────────────────────────────────────────────────────
 describe('WorkspaceManager — createWorkspace', () => {
   let mgr: WorkspaceManager;
-  beforeEach(() => { mgr = new WorkspaceManager(); });
+  beforeEach(() => {
+    mgr = new WorkspaceManager();
+  });
 
   it('returns workspace with correct name', () => {
     expect(mgr.createWorkspace('alice', { name: 'my-team' }).name).toBe('my-team');
@@ -66,7 +71,7 @@ describe('WorkspaceManager — read access', () => {
   });
   it('getUserWorkspaces includes owner workspace', () => {
     const { mgr } = setup();
-    expect(mgr.getUserWorkspaces('alice').map(w => w.name)).toContain('team-alpha');
+    expect(mgr.getUserWorkspaces('alice').map((w) => w.name)).toContain('team-alpha');
   });
   it('getUserWorkspaces returns [] for unknown user', () => {
     const { mgr } = setup();
@@ -115,7 +120,9 @@ describe('WorkspaceManager — inviteMember', () => {
   it('developer cannot invite members', () => {
     const { mgr } = setup();
     mgr.inviteMember('team-alpha', 'alice', 'bob', 'bob', 'developer');
-    expect(() => mgr.inviteMember('team-alpha', 'bob', 'carol', 'carol')).toThrow(/Permission denied/);
+    expect(() => mgr.inviteMember('team-alpha', 'bob', 'carol', 'carol')).toThrow(
+      /Permission denied/
+    );
   });
 });
 
@@ -124,7 +131,7 @@ describe('WorkspaceManager — removeMember', () => {
     const { mgr } = setup();
     mgr.inviteMember('team-alpha', 'alice', 'bob', 'bob');
     mgr.removeMember('team-alpha', 'alice', 'bob');
-    expect(mgr.getWorkspace('team-alpha')!.members.some(m => m.userId === 'bob')).toBe(false);
+    expect(mgr.getWorkspace('team-alpha')!.members.some((m) => m.userId === 'bob')).toBe(false);
   });
   it('cannot remove owner', () => {
     const { mgr } = setup();
@@ -137,9 +144,11 @@ describe('WorkspaceManager — changeMemberRole', () => {
     const { mgr } = setup();
     mgr.inviteMember('team-alpha', 'alice', 'bob', 'bob', 'developer');
     mgr.changeMemberRole('team-alpha', 'alice', 'bob', 'admin');
-    expect(mgr.getWorkspace('team-alpha')!.members.find(m => m.userId === 'bob')?.role).toBe('admin');
+    expect(mgr.getWorkspace('team-alpha')!.members.find((m) => m.userId === 'bob')?.role).toBe(
+      'admin'
+    );
   });
-  it("cannot promote to owner", () => {
+  it('cannot promote to owner', () => {
     const { mgr } = setup();
     mgr.inviteMember('team-alpha', 'alice', 'bob', 'bob', 'developer');
     expect(() => mgr.changeMemberRole('team-alpha', 'alice', 'bob', 'owner')).toThrow(/owner/);
@@ -198,7 +207,8 @@ describe('WorkspaceManager — getActivity', () => {
   });
   it('limit caps returned entries', () => {
     const { mgr } = setup();
-    for (let i = 0; i < 10; i++) mgr.updateSettings('team-alpha', 'alice', { formatter: { tabWidth: i } });
+    for (let i = 0; i < 10; i++)
+      mgr.updateSettings('team-alpha', 'alice', { formatter: { tabWidth: i } });
     expect(mgr.getActivity('team-alpha', 'alice', 3).length).toBeLessThanOrEqual(3);
   });
 });

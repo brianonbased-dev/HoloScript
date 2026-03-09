@@ -15,21 +15,28 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 export type ControlNetModel =
-  | 'canny' | 'depth' | 'pose' | 'normal' | 'hed'
-  | 'seg' | 'scribble' | 'softedge' | 'lineart';
+  | 'canny'
+  | 'depth'
+  | 'pose'
+  | 'normal'
+  | 'hed'
+  | 'seg'
+  | 'scribble'
+  | 'softedge'
+  | 'lineart';
 
 export interface ControlNetConfig {
   model_type: ControlNetModel;
-  control_weight: number;        // 0–2, strength of conditioning
-  guidance_start: number;        // 0–1, fraction of steps to start applying
-  guidance_end: number;          // 0–1, fraction of steps to stop applying
-  preprocessor_resolution: number;  // pixels for control map extraction
+  control_weight: number; // 0–2, strength of conditioning
+  guidance_start: number; // 0–1, fraction of steps to start applying
+  guidance_end: number; // 0–1, fraction of steps to stop applying
+  preprocessor_resolution: number; // pixels for control map extraction
   invert_mask: boolean;
 }
 
 interface ControlNetState {
   isProcessing: boolean;
-  lastControlMap: string | null;   // base64 or URL
+  lastControlMap: string | null; // base64 or URL
   processCount: number;
   lastPrompt: string | null;
   lastResult: string | null;
@@ -95,9 +102,10 @@ export const controlNetHandler: TraitHandler<ControlNetConfig> = {
       state.processCount += 1;
 
       const elapsed: number = payload?.elapsedMs ?? 0;
-      state.avgProcessTimeMs = state.processCount > 1
-        ? (state.avgProcessTimeMs * (state.processCount - 1) + elapsed) / state.processCount
-        : elapsed;
+      state.avgProcessTimeMs =
+        state.processCount > 1
+          ? (state.avgProcessTimeMs * (state.processCount - 1) + elapsed) / state.processCount
+          : elapsed;
 
       context.emit('controlnet:result', {
         result: state.lastResult,

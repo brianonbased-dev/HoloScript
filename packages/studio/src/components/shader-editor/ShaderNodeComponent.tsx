@@ -38,19 +38,19 @@ const TYPE_COLORS: Record<ShaderDataType, string> = {
 
 // Color-blind accessible shape markers (shape + color = double signal)
 const TYPE_SHAPES: Record<ShaderDataType, string> = {
-  float:       '●', // filled circle
-  vec2:        '▲', // triangle up
-  vec3:        '■', // filled square
-  vec4:        '◆', // diamond
-  mat2:        '★', // star
-  mat3:        '▼', // triangle down
-  mat4:        '▶', // triangle right
-  int:         '⧟', // double circle
-  ivec2:       '⧡', // dotted fence
-  ivec3:       '◈', // white diamond + dot
-  ivec4:       '▣', // square + dot
-  bool:        '☐', // ballot box
-  sampler2D:   '⬢', // black hexagon
+  float: '●', // filled circle
+  vec2: '▲', // triangle up
+  vec3: '■', // filled square
+  vec4: '◆', // diamond
+  mat2: '★', // star
+  mat3: '▼', // triangle down
+  mat4: '▶', // triangle right
+  int: '⧟', // double circle
+  ivec2: '⧡', // dotted fence
+  ivec3: '◈', // white diamond + dot
+  ivec4: '▣', // square + dot
+  bool: '☐', // ballot box
+  sampler2D: '⬢', // black hexagon
   samplerCube: '◉', // fisheye
 };
 

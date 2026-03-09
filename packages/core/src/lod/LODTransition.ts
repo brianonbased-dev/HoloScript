@@ -15,15 +15,15 @@ export type TransitionMode = 'instant' | 'crossfade' | 'dither' | 'morph';
 
 export interface LODTransitionConfig {
   mode: TransitionMode;
-  duration: number;         // Seconds for transition
-  hysteresisBand: number;   // Distance band to prevent flip-flopping
+  duration: number; // Seconds for transition
+  hysteresisBand: number; // Distance band to prevent flip-flopping
 }
 
 export interface TransitionState {
   entityId: string;
   fromLOD: number;
   toLOD: number;
-  progress: number;         // 0-1
+  progress: number; // 0-1
   active: boolean;
 }
 
@@ -77,10 +77,14 @@ export class LODTransition {
     if (!state) return 1;
 
     switch (this.config.mode) {
-      case 'instant': return 1;
-      case 'crossfade': return state.progress;
-      case 'dither': return state.progress > 0.5 ? 1 : 0; // Binary threshold for dither patterns
-      case 'morph': return this.smoothstep(state.progress);
+      case 'instant':
+        return 1;
+      case 'crossfade':
+        return state.progress;
+      case 'dither':
+        return state.progress > 0.5 ? 1 : 0; // Binary threshold for dither patterns
+      case 'morph':
+        return this.smoothstep(state.progress);
     }
   }
 
@@ -90,10 +94,15 @@ export class LODTransition {
   }
 
   // ---------------------------------------------------------------------------
-  // Hysteresis  
+  // Hysteresis
   // ---------------------------------------------------------------------------
 
-  shouldTransition(currentDist: number, threshold: number, currentLOD: number, newLOD: number): boolean {
+  shouldTransition(
+    currentDist: number,
+    threshold: number,
+    currentLOD: number,
+    newLOD: number
+  ): boolean {
     const band = this.config.hysteresisBand;
     if (newLOD > currentLOD) {
       return currentDist > threshold + band;
@@ -105,12 +114,22 @@ export class LODTransition {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private smoothstep(t: number): number { return t * t * (3 - 2 * t); }
+  private smoothstep(t: number): number {
+    return t * t * (3 - 2 * t);
+  }
 
-  isTransitioning(entityId: string): boolean { return this.transitions.get(entityId)?.active ?? false; }
-  getTransitionState(entityId: string): TransitionState | undefined { return this.transitions.get(entityId); }
-  getMode(): TransitionMode { return this.config.mode; }
-  setMode(mode: TransitionMode): void { this.config.mode = mode; }
+  isTransitioning(entityId: string): boolean {
+    return this.transitions.get(entityId)?.active ?? false;
+  }
+  getTransitionState(entityId: string): TransitionState | undefined {
+    return this.transitions.get(entityId);
+  }
+  getMode(): TransitionMode {
+    return this.config.mode;
+  }
+  setMode(mode: TransitionMode): void {
+    this.config.mode = mode;
+  }
 
   // ---------------------------------------------------------------------------
   // v3.5 Performance Optimizations
@@ -122,14 +141,9 @@ export class LODTransition {
   private generateDitherLUT(): Uint8Array {
     // 8x8 Bayer matrix for ordered dithering
     const bayerMatrix = new Uint8Array([
-      0, 32, 8, 40, 2, 34, 10, 42,
-      48, 16, 56, 24, 50, 18, 58, 26,
-      12, 44, 4, 36, 14, 46, 6, 38,
-      60, 28, 52, 20, 62, 30, 54, 22,
-      3, 35, 11, 43, 1, 33, 9, 41,
-      51, 19, 59, 27, 49, 17, 57, 25,
-      15, 47, 7, 39, 13, 45, 5, 37,
-      63, 31, 55, 23, 61, 29, 53, 21
+      0, 32, 8, 40, 2, 34, 10, 42, 48, 16, 56, 24, 50, 18, 58, 26, 12, 44, 4, 36, 14, 46, 6, 38, 60,
+      28, 52, 20, 62, 30, 54, 22, 3, 35, 11, 43, 1, 33, 9, 41, 51, 19, 59, 27, 49, 17, 57, 25, 15,
+      47, 7, 39, 13, 45, 5, 37, 63, 31, 55, 23, 61, 29, 53, 21,
     ]);
 
     // Normalize to 0-255 range
@@ -251,7 +265,7 @@ export class TransitionScheduler {
       maxGPUTimeMs,
       currentGPUTimeMs: 0,
       maxTransitions,
-      currentTransitions: 0
+      currentTransitions: 0,
     };
   }
 
@@ -266,7 +280,7 @@ export class TransitionScheduler {
     estimatedCostMs: number = 0.1
   ): boolean {
     // Check if already scheduled
-    if (this.queue.some(t => t.entityId === entityId)) {
+    if (this.queue.some((t) => t.entityId === entityId)) {
       return false;
     }
 
@@ -276,7 +290,7 @@ export class TransitionScheduler {
       toLOD,
       priority,
       estimatedCostMs,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // Sort by priority (highest first)
@@ -310,7 +324,7 @@ export class TransitionScheduler {
     }
 
     // Remove activated transitions from queue
-    this.queue = this.queue.filter(t => !this.activatedThisFrame.has(t.entityId));
+    this.queue = this.queue.filter((t) => !this.activatedThisFrame.has(t.entityId));
 
     return activated;
   }
@@ -371,7 +385,7 @@ export class TransitionScheduler {
   getBudgetUtilization(): { gpu: number; transitions: number } {
     return {
       gpu: this.budget.currentGPUTimeMs / this.budget.maxGPUTimeMs,
-      transitions: this.budget.currentTransitions / this.budget.maxTransitions
+      transitions: this.budget.currentTransitions / this.budget.maxTransitions,
     };
   }
 }

@@ -30,17 +30,17 @@ export function AnalyticsPanel({ stats, loading }: AnalyticsPanelProps) {
       labels: ['Artist (80%)', 'Platform (10%)', 'AI Providers (10%)'],
       datasets: [
         {
-          data: [stats.revenueBreakdown.artist, stats.revenueBreakdown.platform, stats.revenueBreakdown.aiProviders],
+          data: [
+            stats.revenueBreakdown.artist,
+            stats.revenueBreakdown.platform,
+            stats.revenueBreakdown.aiProviders,
+          ],
           backgroundColor: [
             'rgba(99, 102, 241, 0.8)',
             'rgba(34, 197, 94, 0.8)',
             'rgba(251, 191, 36, 0.8)',
           ],
-          borderColor: [
-            'rgb(99, 102, 241)',
-            'rgb(34, 197, 94)',
-            'rgb(251, 191, 36)',
-          ],
+          borderColor: ['rgb(99, 102, 241)', 'rgb(34, 197, 94)', 'rgb(251, 191, 36)'],
           borderWidth: 2,
         },
       ],
@@ -53,7 +53,9 @@ export function AnalyticsPanel({ stats, loading }: AnalyticsPanelProps) {
     // Simulated weekly views data
     const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
     const totalViews = stats.totalViews;
-    const viewsPerWeek = weeks.map((_, i) => Math.floor(totalViews / 4) + Math.random() * 500 - 250);
+    const viewsPerWeek = weeks.map(
+      (_, i) => Math.floor(totalViews / 4) + Math.random() * 500 - 250
+    );
 
     return {
       labels: weeks,
@@ -110,7 +112,7 @@ export function AnalyticsPanel({ stats, loading }: AnalyticsPanelProps) {
 
     const csvData = [
       ['NFT Name', 'Sales Count', 'Price (ETH)', 'Royalties Earned ($)', 'Status'],
-      ...stats.mintedNFTs.map(nft => [
+      ...stats.mintedNFTs.map((nft) => [
         nft.name,
         nft.salesCount.toString(),
         nft.price.toFixed(4),
@@ -119,7 +121,7 @@ export function AnalyticsPanel({ stats, loading }: AnalyticsPanelProps) {
       ]),
     ];
 
-    const csvContent = csvData.map(row => row.join(',')).join('\n');
+    const csvContent = csvData.map((row) => row.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -189,23 +191,43 @@ export function AnalyticsPanel({ stats, loading }: AnalyticsPanelProps) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-gray-600 rounded-lg p-4">
             <div className="text-gray-400 text-sm mb-2">7 Days</div>
-            <div className="text-white text-2xl font-bold">{stats.floorPriceTrend.sevenDays.toFixed(4)} ETH</div>
+            <div className="text-white text-2xl font-bold">
+              {stats.floorPriceTrend.sevenDays.toFixed(4)} ETH
+            </div>
             <div className="flex items-center gap-1 text-green-500 text-sm mt-2">
               <TrendingUp className="w-4 h-4" />
-              <span>+{((stats.floorPriceTrend.sevenDays / stats.floorPriceTrend.allTime - 1) * 100).toFixed(1)}%</span>
+              <span>
+                +
+                {(
+                  (stats.floorPriceTrend.sevenDays / stats.floorPriceTrend.allTime - 1) *
+                  100
+                ).toFixed(1)}
+                %
+              </span>
             </div>
           </div>
           <div className="bg-gray-600 rounded-lg p-4">
             <div className="text-gray-400 text-sm mb-2">30 Days</div>
-            <div className="text-white text-2xl font-bold">{stats.floorPriceTrend.thirtyDays.toFixed(4)} ETH</div>
+            <div className="text-white text-2xl font-bold">
+              {stats.floorPriceTrend.thirtyDays.toFixed(4)} ETH
+            </div>
             <div className="flex items-center gap-1 text-green-500 text-sm mt-2">
               <TrendingUp className="w-4 h-4" />
-              <span>+{((stats.floorPriceTrend.thirtyDays / stats.floorPriceTrend.allTime - 1) * 100).toFixed(1)}%</span>
+              <span>
+                +
+                {(
+                  (stats.floorPriceTrend.thirtyDays / stats.floorPriceTrend.allTime - 1) *
+                  100
+                ).toFixed(1)}
+                %
+              </span>
             </div>
           </div>
           <div className="bg-gray-600 rounded-lg p-4">
             <div className="text-gray-400 text-sm mb-2">All Time</div>
-            <div className="text-white text-2xl font-bold">{stats.floorPriceTrend.allTime.toFixed(4)} ETH</div>
+            <div className="text-white text-2xl font-bold">
+              {stats.floorPriceTrend.allTime.toFixed(4)} ETH
+            </div>
             <div className="text-gray-400 text-sm mt-2">Baseline</div>
           </div>
         </div>
@@ -236,15 +258,17 @@ export function AnalyticsPanel({ stats, loading }: AnalyticsPanelProps) {
                   </td>
                   <td className="py-3 text-right text-white">{nft.salesCount}</td>
                   <td className="py-3 text-right text-white">{nft.price.toFixed(4)} ETH</td>
-                  <td className="py-3 text-right text-green-500">${nft.royaltiesEarned.toFixed(2)}</td>
+                  <td className="py-3 text-right text-green-500">
+                    ${nft.royaltiesEarned.toFixed(2)}
+                  </td>
                   <td className="py-3 text-right">
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
                         nft.status === 'sold'
                           ? 'bg-green-500/10 text-green-500'
                           : nft.status === 'listed'
-                          ? 'bg-blue-500/10 text-blue-500'
-                          : 'bg-gray-500/10 text-gray-400'
+                            ? 'bg-blue-500/10 text-blue-500'
+                            : 'bg-gray-500/10 text-gray-400'
                       }`}
                     >
                       {nft.status}

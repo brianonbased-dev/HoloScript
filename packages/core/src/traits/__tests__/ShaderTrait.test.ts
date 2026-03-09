@@ -74,7 +74,11 @@ describe('ShaderTrait', () => {
 
   it('validate catches unbalanced braces', () => {
     const bad = new ShaderTrait({
-      source: { language: 'glsl', vertex: 'void main() {', fragment: 'void main() { gl_FragColor = vec4(1.0); }' },
+      source: {
+        language: 'glsl',
+        vertex: 'void main() {',
+        fragment: 'void main() { gl_FragColor = vec4(1.0); }',
+      },
     });
     const result = bad.validate();
     expect(result.errors.some((e) => e.code === 'E003')).toBe(true);

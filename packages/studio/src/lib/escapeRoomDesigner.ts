@@ -5,9 +5,20 @@
  * solution verification, and room flow management.
  */
 
-export interface Vec3 { x: number; y: number; z: number }
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
-export type PuzzleType = 'lock' | 'cipher' | 'pattern' | 'physical' | 'logic' | 'search' | 'mechanical';
+export type PuzzleType =
+  | 'lock'
+  | 'cipher'
+  | 'pattern'
+  | 'physical'
+  | 'logic'
+  | 'search'
+  | 'mechanical';
 export type PuzzleStatus = 'locked' | 'available' | 'in-progress' | 'solved' | 'skipped';
 export type HintLevel = 'nudge' | 'direction' | 'solution';
 
@@ -21,7 +32,7 @@ export interface Puzzle {
   timeEstimateSec: number;
   solution: string;
   status: PuzzleStatus;
-  dependsOn: string[];       // Puzzle IDs that must be solved first
+  dependsOn: string[]; // Puzzle IDs that must be solved first
   hints: Array<{ level: HintLevel; text: string }>;
   maxAttempts: number;
   attempts: number;
@@ -41,8 +52,8 @@ export interface EscapeRoom {
 
 export function isPuzzleAvailable(puzzle: Puzzle, allPuzzles: Puzzle[]): boolean {
   if (puzzle.status === 'solved') return false;
-  return puzzle.dependsOn.every(depId => {
-    const dep = allPuzzles.find(p => p.id === depId);
+  return puzzle.dependsOn.every((depId) => {
+    const dep = allPuzzles.find((p) => p.id === depId);
     return dep?.status === 'solved';
   });
 }
@@ -52,7 +63,7 @@ export function checkSolution(puzzle: Puzzle, answer: string): boolean {
 }
 
 export function roomProgress(room: EscapeRoom): number {
-  const solved = room.puzzles.filter(p => p.status === 'solved').length;
+  const solved = room.puzzles.filter((p) => p.status === 'solved').length;
   return room.puzzles.length > 0 ? solved / room.puzzles.length : 0;
 }
 
@@ -61,7 +72,7 @@ export function timeRemaining(room: EscapeRoom): number {
 }
 
 export function isRoomComplete(room: EscapeRoom): boolean {
-  return room.puzzles.every(p => p.status === 'solved' || p.status === 'skipped');
+  return room.puzzles.every((p) => p.status === 'solved' || p.status === 'skipped');
 }
 
 export function getNextHint(puzzle: Puzzle, hintsGiven: number): string | null {
@@ -76,7 +87,7 @@ export function criticalPath(puzzles: Puzzle[]): Puzzle[] {
   function dfs(id: string): number {
     if (visited.has(id)) return 0;
     visited.add(id);
-    const puzzle = puzzles.find(p => p.id === id);
+    const puzzle = puzzles.find((p) => p.id === id);
     if (!puzzle) return 0;
     let maxDepth = 0;
     for (const dep of puzzle.dependsOn) {
@@ -116,15 +127,16 @@ const SOLUTIONS_POOL: Record<PuzzleType, string[]> = {
  * Generates a procedural puzzle variant with a randomized solution
  * from the type-appropriate pool. Randomizes solution each playthrough.
  */
-export function generateProceduralPuzzle(
-  template: Puzzle,
-  seed?: number
-): Puzzle {
+export function generateProceduralPuzzle(template: Puzzle, seed?: number): Puzzle {
   const pool = SOLUTIONS_POOL[template.type] ?? ['default'];
   // Simple seeded random (LCG)
-  const rng = seed !== undefined
-    ? () => { seed = (seed! * 1664525 + 1013904223) & 0x7fffffff; return seed / 0x7fffffff; }
-    : Math.random;
+  const rng =
+    seed !== undefined
+      ? () => {
+          seed = (seed! * 1664525 + 1013904223) & 0x7fffffff;
+          return seed / 0x7fffffff;
+        }
+      : Math.random;
 
   const solution = pool[Math.floor(rng() * pool.length)];
   return {
@@ -148,15 +160,10 @@ export interface PlayerAssignment {
  * Distribute available puzzles across players for coordinated solving.
  * Assigns each available puzzle to the player with the fewest assignments.
  */
-export function multiplayerSync(
-  puzzles: Puzzle[],
-  playerIds: string[]
-): PlayerAssignment[] {
+export function multiplayerSync(puzzles: Puzzle[], playerIds: string[]): PlayerAssignment[] {
   if (playerIds.length === 0) return [];
 
-  const available = puzzles.filter(p =>
-    isPuzzleAvailable(p, puzzles) && p.status !== 'solved'
-  );
+  const available = puzzles.filter((p) => isPuzzleAvailable(p, puzzles) && p.status !== 'solved');
 
   const assignments: PlayerAssignment[] = [];
   const playerLoad = new Map<string, number>();
@@ -167,7 +174,10 @@ export function multiplayerSync(
     let minPlayer = playerIds[0];
     let minLoad = Infinity;
     for (const [id, load] of playerLoad) {
-      if (load < minLoad) { minLoad = load; minPlayer = id; }
+      if (load < minLoad) {
+        minLoad = load;
+        minPlayer = id;
+      }
     }
     assignments.push({ playerId: minPlayer, puzzleId: puzzle.id });
     playerLoad.set(minPlayer, (playerLoad.get(minPlayer) ?? 0) + 1);

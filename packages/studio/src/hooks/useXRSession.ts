@@ -57,7 +57,12 @@ export function useXRSession(): XRSessionState {
     if (mode === 'none') return;
 
     const features: string[] = ['local-floor'];
-    const optionalFeatures: string[] = ['hand-tracking', 'bounded-floor', 'anchors', 'depth-sensing'];
+    const optionalFeatures: string[] = [
+      'hand-tracking',
+      'bounded-floor',
+      'anchors',
+      'depth-sensing',
+    ];
 
     const xrSession = await navigator.xr.requestSession(mode as XRSessionMode, {
       requiredFeatures: features,

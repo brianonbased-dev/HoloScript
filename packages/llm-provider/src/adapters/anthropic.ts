@@ -147,14 +147,16 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     };
   }
 
-  private mapStopReason(
-    reason: string | null
-  ): LLMCompletionResponse['finishReason'] {
+  private mapStopReason(reason: string | null): LLMCompletionResponse['finishReason'] {
     switch (reason) {
-      case 'end_turn': return 'stop';
-      case 'max_tokens': return 'length';
-      case 'stop_sequence': return 'stop';
-      default: return 'stop';
+      case 'end_turn':
+        return 'stop';
+      case 'max_tokens':
+        return 'length';
+      case 'stop_sequence':
+        return 'stop';
+      default:
+        return 'stop';
     }
   }
 

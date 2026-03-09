@@ -8,10 +8,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import {
-  Package, Search, Download, Loader2, X, Star, RefreshCw, Tag,
-} from 'lucide-react';
-import { useSceneStore } from '@/lib/store';
+import { Package, Search, Download, Loader2, X, Star, RefreshCw, Tag } from 'lucide-react';
+import { useSceneStore } from '@/lib/stores';
 
 interface RegistryPack {
   packId: string;
@@ -61,29 +59,39 @@ export function RegistryPanel({ onClose }: RegistryPanelProps) {
       const res = await fetch(url);
       const data = (await res.json()) as { packs?: RegistryPack[] };
       setPacks(data.packs ?? []);
-    } catch { /* noop */ } finally {
+    } catch {
+      /* noop */
+    } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchPacks(); }, [fetchPacks]);
+  useEffect(() => {
+    fetchPacks();
+  }, [fetchPacks]);
 
-  const handleSearch = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    fetchPacks(query);
-  }, [fetchPacks, query]);
+  const handleSearch = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      fetchPacks(query);
+    },
+    [fetchPacks, query]
+  );
 
-  const handleImport = useCallback(async (pack: RegistryPack) => {
-    setImporting(pack.packId);
-    // Increment download count
-    await fetch(`/api/registry/${pack.packId}`, { method: 'POST' }).catch(() => {});
+  const handleImport = useCallback(
+    async (pack: RegistryPack) => {
+      setImporting(pack.packId);
+      // Increment download count
+      await fetch(`/api/registry/${pack.packId}`, { method: 'POST' }).catch(() => {});
 
-    if (pack.previewCode) {
-      // Append preview HoloScript to current code
-      setCode(`${code}\n\n// Imported from: ${pack.name} v${pack.version}\n${pack.previewCode}`);
-    }
-    setTimeout(() => setImporting(null), 800);
-  }, [code, setCode]);
+      if (pack.previewCode) {
+        // Append preview HoloScript to current code
+        setCode(`${code}\n\n// Imported from: ${pack.name} v${pack.version}\n${pack.previewCode}`);
+      }
+      setTimeout(() => setImporting(null), 800);
+    },
+    [code, setCode]
+  );
 
   return (
     <div className="flex h-full flex-col bg-studio-panel text-studio-text">
@@ -108,7 +116,10 @@ export function RegistryPanel({ onClose }: RegistryPanelProps) {
           >
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
-          <button onClick={onClose} className="rounded p-1 text-studio-muted hover:text-studio-text">
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-studio-muted hover:text-studio-text"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -147,7 +158,9 @@ export function RegistryPanel({ onClose }: RegistryPanelProps) {
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <p className="truncate text-[11px] font-semibold text-studio-text">{pack.name}</p>
-                  <p className="mt-0.5 text-[10px] text-studio-muted line-clamp-2">{pack.description}</p>
+                  <p className="mt-0.5 text-[10px] text-studio-muted line-clamp-2">
+                    {pack.description}
+                  </p>
                 </div>
                 <button
                   onClick={() => handleImport(pack)}
@@ -167,7 +180,9 @@ export function RegistryPanel({ onClose }: RegistryPanelProps) {
               <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] text-studio-muted">
                 <span>by {pack.author}</span>
                 <span>v{pack.version}</span>
-                <span>{pack.files.length} files · {humanBytes(totalSize)}</span>
+                <span>
+                  {pack.files.length} files · {humanBytes(totalSize)}
+                </span>
                 <span className="flex items-center gap-0.5">
                   <Star className="h-2.5 w-2.5" /> {pack.downloads.toLocaleString()}
                 </span>
@@ -180,10 +195,14 @@ export function RegistryPanel({ onClose }: RegistryPanelProps) {
                   {pack.tags.map((t) => (
                     <button
                       key={t}
-                      onClick={() => { setQuery(t); fetchPacks(t); }}
+                      onClick={() => {
+                        setQuery(t);
+                        fetchPacks(t);
+                      }}
                       className="flex items-center gap-0.5 rounded-full bg-studio-border/50 px-1.5 py-0.5 text-[9px] text-studio-muted hover:text-studio-accent transition"
                     >
-                      <Tag className="h-2 w-2" />{t}
+                      <Tag className="h-2 w-2" />
+                      {t}
                     </button>
                   ))}
                 </div>

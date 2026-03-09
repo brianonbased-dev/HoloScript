@@ -33,15 +33,17 @@ function createMockIO(overrides: Partial<SelfImproveIO> = {}): SelfImproveIO {
       },
     ]),
 
-    generateTest: vi.fn<(target: UntestedTarget) => Promise<GeneratedTest>>().mockImplementation(
-      async (target) => ({
+    generateTest: vi
+      .fn<(target: UntestedTarget) => Promise<GeneratedTest>>()
+      .mockImplementation(async (target) => ({
         testFilePath: `src/__tests__/${target.symbolName.replace(/\./g, '_')}.test.ts`,
         content: `describe('${target.symbolName}', () => { it('works', () => { expect(true).toBe(true); }); });`,
         target,
-      }),
-    ),
+      })),
 
-    writeFile: vi.fn<(path: string, content: string) => Promise<void>>().mockResolvedValue(undefined),
+    writeFile: vi
+      .fn<(path: string, content: string) => Promise<void>>()
+      .mockResolvedValue(undefined),
 
     runVitest: vi.fn<(testFilePath: string) => Promise<VitestResult>>().mockResolvedValue({
       passed: true,
@@ -107,7 +109,7 @@ describe('SelfImproveCommand', () => {
       await cmd.execute();
 
       expect(io.generateTest).toHaveBeenCalledWith(
-        expect.objectContaining({ symbolName: 'CircuitBreaker.recordFailure' }),
+        expect.objectContaining({ symbolName: 'CircuitBreaker.recordFailure' })
       );
     });
 
@@ -117,7 +119,7 @@ describe('SelfImproveCommand', () => {
 
       expect(io.writeFile).toHaveBeenCalledWith(
         expect.stringContaining('.test.ts'),
-        expect.any(String),
+        expect.any(String)
       );
     });
 
@@ -125,9 +127,7 @@ describe('SelfImproveCommand', () => {
       const cmd = new SelfImproveCommand(io, { maxIterations: 1 });
       await cmd.execute();
 
-      expect(io.runVitest).toHaveBeenCalledWith(
-        expect.stringContaining('.test.ts'),
-      );
+      expect(io.runVitest).toHaveBeenCalledWith(expect.stringContaining('.test.ts'));
     });
   });
 
@@ -141,9 +141,7 @@ describe('SelfImproveCommand', () => {
       const result = await cmd.execute();
 
       expect(io.gitAdd).toHaveBeenCalled();
-      expect(io.gitCommit).toHaveBeenCalledWith(
-        expect.stringContaining('test(self-improve)'),
-      );
+      expect(io.gitCommit).toHaveBeenCalledWith(expect.stringContaining('test(self-improve)'));
       expect(result.totalCommits).toBe(1);
     });
 
@@ -370,7 +368,13 @@ describe('SelfImproveCommand', () => {
           return {
             testFilePath: 'test.ts',
             content: 'test content',
-            target: { symbolName: 'X', filePath: 'x.ts', language: 'ts', relevanceScore: 0.5, description: '' },
+            target: {
+              symbolName: 'X',
+              filePath: 'x.ts',
+              language: 'ts',
+              relevanceScore: 0.5,
+              description: '',
+            },
           };
         }),
       });

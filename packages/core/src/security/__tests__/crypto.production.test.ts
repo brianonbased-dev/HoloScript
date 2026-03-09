@@ -224,9 +224,7 @@ describe('Random Utilities', () => {
   describe('randomUUID', () => {
     it('produces valid UUID v4 format', () => {
       const uuid = randomUUID();
-      expect(uuid).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      );
+      expect(uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
     });
 
     it('generates unique UUIDs', () => {
@@ -273,9 +271,9 @@ describe('Wallet Address Validation', () => {
 
   describe('Solana', () => {
     it('valid 44-char address', () => {
-      expect(
-        validateWalletAddress('5YNmS1R9nNSCDzb5a7mMJ1dwK9uHeAAF4CmPEwKgVWr8', 'solana')
-      ).toBe(true);
+      expect(validateWalletAddress('5YNmS1R9nNSCDzb5a7mMJ1dwK9uHeAAF4CmPEwKgVWr8', 'solana')).toBe(
+        true
+      );
     });
 
     it('valid 32-char address', () => {
@@ -288,9 +286,9 @@ describe('Wallet Address Validation', () => {
 
     it('rejects characters not in base58', () => {
       // '0', 'O', 'I', 'l' are not in base58
-      expect(
-        validateWalletAddress('0YNmS1R9nNSCDzb5a7mMJ1dwK9uHeAAF4CmPEwKgVWr8', 'solana')
-      ).toBe(false);
+      expect(validateWalletAddress('0YNmS1R9nNSCDzb5a7mMJ1dwK9uHeAAF4CmPEwKgVWr8', 'solana')).toBe(
+        false
+      );
     });
   });
 });

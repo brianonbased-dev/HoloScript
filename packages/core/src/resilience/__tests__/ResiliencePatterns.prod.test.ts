@@ -25,8 +25,14 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const ok = <T>(v: T) => () => Promise.resolve(v);
-const fail = (msg = 'boom') => () => Promise.reject(new Error(msg));
+const ok =
+  <T>(v: T) =>
+  () =>
+    Promise.resolve(v);
+const fail =
+  (msg = 'boom') =>
+  () =>
+    Promise.reject(new Error(msg));
 const failThen = (failTimes: number, value: string) => {
   let calls = 0;
   return () => {
@@ -44,7 +50,12 @@ describe('CircuitBreaker', () => {
   let cb: CircuitBreaker;
 
   beforeEach(() => {
-    cb = new CircuitBreaker({ failureThreshold: 3, successThreshold: 2, resetTimeoutMs: 50, windowMs: 5000 });
+    cb = new CircuitBreaker({
+      failureThreshold: 3,
+      successThreshold: 2,
+      resetTimeoutMs: 50,
+      windowMs: 5000,
+    });
   });
 
   it('starts in CLOSED state', () => {
@@ -84,7 +95,7 @@ describe('CircuitBreaker', () => {
       await expect(cb.execute(fail())).rejects.toThrow();
     }
     // Wait for reset timeout
-    await new Promise(r => setTimeout(r, 60));
+    await new Promise((r) => setTimeout(r, 60));
     // Execute a successful call — this will transition to HALF_OPEN then CLOSED
     const result = await cb.execute(ok('recovered'));
     expect(result).toBe('recovered');
@@ -95,7 +106,7 @@ describe('CircuitBreaker', () => {
     for (let i = 0; i < 3; i++) {
       await expect(cb.execute(fail())).rejects.toThrow();
     }
-    await new Promise(r => setTimeout(r, 60)); // reset timeout
+    await new Promise((r) => setTimeout(r, 60)); // reset timeout
     // Two successes → CLOSED
     await cb.execute(ok(1));
     await cb.execute(ok(2));
@@ -107,7 +118,7 @@ describe('CircuitBreaker', () => {
     for (let i = 0; i < 3; i++) {
       await expect(cb.execute(fail())).rejects.toThrow();
     }
-    await new Promise(r => setTimeout(r, 60));
+    await new Promise((r) => setTimeout(r, 60));
     // Fail during HALF_OPEN
     await expect(cb.execute(fail('still broken'))).rejects.toThrow('still broken');
     expect(cb.currentState).toBe(CircuitBreakerState.OPEN);
@@ -140,7 +151,10 @@ describe('Bulkhead', () => {
   it('queues excess operations', async () => {
     const bh = new Bulkhead({ maxConcurrent: 1, queueSize: 5, timeoutMs: 2000 });
     let resolve1: () => void;
-    const blocker = () => new Promise<string>((res) => { resolve1 = () => res('done'); });
+    const blocker = () =>
+      new Promise<string>((res) => {
+        resolve1 = () => res('done');
+      });
     const p1 = bh.execute(blocker);
     const p2 = bh.execute(ok('queued'));
     resolve1!();
@@ -153,7 +167,10 @@ describe('Bulkhead', () => {
   it('rejects when queue is full', async () => {
     const bh = new Bulkhead({ maxConcurrent: 1, queueSize: 1, timeoutMs: 5000 });
     let resolve1: () => void;
-    const blocker = () => new Promise<void>(res => { resolve1 = res; });
+    const blocker = () =>
+      new Promise<void>((res) => {
+        resolve1 = res;
+      });
     // Fills the one concurrent slot
     const p1 = bh.execute(blocker);
     // Added to queue (size=1, now full)
@@ -187,13 +204,21 @@ describe('Bulkhead', () => {
 
 describe('retryWithBackoff', () => {
   it('returns result immediately on first success', async () => {
-    const result = await retryWithBackoff(ok('hello'), { maxAttempts: 3, initialBackoffMs: 1, jitter: false });
+    const result = await retryWithBackoff(ok('hello'), {
+      maxAttempts: 3,
+      initialBackoffMs: 1,
+      jitter: false,
+    });
     expect(result).toBe('hello');
   });
 
   it('retries up to maxAttempts and succeeds', async () => {
     const fn = failThen(2, 'success');
-    const result = await retryWithBackoff(fn, { maxAttempts: 3, initialBackoffMs: 1, jitter: false });
+    const result = await retryWithBackoff(fn, {
+      maxAttempts: 3,
+      initialBackoffMs: 1,
+      jitter: false,
+    });
     expect(result).toBe('success');
   });
 
@@ -298,11 +323,13 @@ describe('withTimeout', () => {
   });
 
   it('rejects when operation exceeds timeout', async () => {
-    const slow = new Promise<string>(resolve => setTimeout(() => resolve('slow'), 200));
+    const slow = new Promise<string>((resolve) => setTimeout(() => resolve('slow'), 200));
     await expect(withTimeout(slow, 50)).rejects.toThrow(/timeout/i);
   });
 
   it('propagates rejection from inner promise', async () => {
-    await expect(withTimeout(Promise.reject(new Error('inner fail')), 500)).rejects.toThrow('inner fail');
+    await expect(withTimeout(Promise.reject(new Error('inner fail')), 500)).rejects.toThrow(
+      'inner fail'
+    );
   });
 });

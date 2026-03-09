@@ -286,7 +286,7 @@ const RISK_TIER_MAP: Record<RiskProfile, QualityTier> = {
  * Confidence thresholds per tier
  */
 const TIER_CONFIDENCE_THRESHOLDS: Record<QualityTier, number> = {
-  [QualityTier.TIER_1_AUTONOMOUS]: 0.70,
+  [QualityTier.TIER_1_AUTONOMOUS]: 0.7,
   [QualityTier.TIER_2_NOTIFY]: 0.85,
   [QualityTier.TIER_3_APPROVAL]: 0.95,
 };
@@ -306,7 +306,7 @@ export function createLintCheck(): QualityCheck {
     tier: QualityTier.TIER_1_AUTONOMOUS,
     category: CheckCategory.LINT,
     riskProfile: RiskProfile.LOW,
-    confidenceThreshold: 0.70,
+    confidenceThreshold: 0.7,
     blocking: true,
     timeoutMs: 30_000,
     execute: async (context: QualityContext): Promise<CheckResult> => {
@@ -343,9 +343,9 @@ export function createLintCheck(): QualityCheck {
         }
       }
 
-      const errors = findings.filter(f => f.severity === 'error');
+      const errors = findings.filter((f) => f.severity === 'error');
       const passed = errors.length === 0;
-      const confidence = passed ? 0.95 : Math.max(0, 1 - (errors.length * 0.15));
+      const confidence = passed ? 0.95 : Math.max(0, 1 - errors.length * 0.15);
 
       return {
         checkId: 'lint-001',
@@ -372,7 +372,7 @@ export function createTypeCheck(): QualityCheck {
     tier: QualityTier.TIER_1_AUTONOMOUS,
     category: CheckCategory.TYPE_CHECK,
     riskProfile: RiskProfile.LOW,
-    confidenceThreshold: 0.70,
+    confidenceThreshold: 0.7,
     blocking: true,
     timeoutMs: 60_000,
     execute: async (context: QualityContext): Promise<CheckResult> => {
@@ -396,13 +396,13 @@ export function createTypeCheck(): QualityCheck {
         }
       }
 
-      const errors = findings.filter(f => f.severity === 'error');
+      const errors = findings.filter((f) => f.severity === 'error');
       const passed = errors.length === 0;
 
       return {
         checkId: 'type-001',
         passed,
-        confidence: passed ? 0.90 : 0.50,
+        confidence: passed ? 0.9 : 0.5,
         message: passed ? 'Type check passed' : `Type check failed: ${errors.length} type errors`,
         findings,
         durationMs: Date.now() - start,
@@ -432,13 +432,14 @@ export function createSemanticCheck(): QualityCheck {
       if (context.source) {
         // Check for potentially conflicting traits
         const traitRefs = context.source.match(/@(\w+)/g) || [];
-        const traitNames = traitRefs.map(t => t.replace('@', ''));
+        const traitNames = traitRefs.map((t) => t.replace('@', ''));
 
         // Check physics + static conflict
         if (traitNames.includes('physics') && traitNames.includes('static')) {
           findings.push({
             severity: 'warning',
-            message: '@physics and @static traits conflict - object cannot be both dynamic and static',
+            message:
+              '@physics and @static traits conflict - object cannot be both dynamic and static',
             rule: 'trait-conflict',
           });
         }
@@ -465,16 +466,17 @@ export function createSemanticCheck(): QualityCheck {
         if (traitNames.includes('throwable') && !traitNames.includes('grabbable')) {
           findings.push({
             severity: 'warning',
-            message: '@throwable requires @grabbable - object must be grabbable before it can be thrown',
+            message:
+              '@throwable requires @grabbable - object must be grabbable before it can be thrown',
             rule: 'missing-dependency',
           });
         }
       }
 
-      const errors = findings.filter(f => f.severity === 'error');
-      const warnings = findings.filter(f => f.severity === 'warning');
+      const errors = findings.filter((f) => f.severity === 'error');
+      const warnings = findings.filter((f) => f.severity === 'warning');
       const passed = errors.length === 0;
-      const confidence = Math.max(0.5, 1 - (errors.length * 0.2) - (warnings.length * 0.05));
+      const confidence = Math.max(0.5, 1 - errors.length * 0.2 - warnings.length * 0.05);
 
       return {
         checkId: 'semantic-001',
@@ -493,7 +495,7 @@ export function createSemanticCheck(): QualityCheck {
 /**
  * Create Tier 2 coverage check
  */
-export function createCoverageCheck(threshold: number = 0.80): QualityCheck {
+export function createCoverageCheck(threshold: number = 0.8): QualityCheck {
   return {
     id: 'coverage-001',
     name: 'Test Coverage Gate',
@@ -524,7 +526,7 @@ export function createCoverageCheck(threshold: number = 0.80): QualityCheck {
       return {
         checkId: 'coverage-001',
         passed,
-        confidence: passed ? 0.90 : 0.60,
+        confidence: passed ? 0.9 : 0.6,
         message: `Coverage: ${coveragePercent.toFixed(1)}% (threshold: ${(threshold * 100).toFixed(0)}%)`,
         findings,
         durationMs: Date.now() - start,
@@ -607,9 +609,9 @@ export function createSecurityAuditCheck(): QualityCheck {
         });
       }
 
-      const errors = findings.filter(f => f.severity === 'error');
+      const errors = findings.filter((f) => f.severity === 'error');
       const passed = errors.length === 0;
-      const confidence = passed ? 0.97 : Math.max(0.3, 1 - (errors.length * 0.25));
+      const confidence = passed ? 0.97 : Math.max(0.3, 1 - errors.length * 0.25);
 
       return {
         checkId: 'security-001',
@@ -620,7 +622,7 @@ export function createSecurityAuditCheck(): QualityCheck {
           : `Security audit found ${errors.length} critical issues requiring review`,
         findings,
         durationMs: Date.now() - start,
-        fixes: errors.map(e => ({
+        fixes: errors.map((e) => ({
           description: `Fix: ${e.message}`,
           confidence: 0.7,
           autoApplicable: false,
@@ -684,13 +686,13 @@ export function createProductionExportCheck(): QualityCheck {
         });
       }
 
-      const errors = findings.filter(f => f.severity === 'error');
+      const errors = findings.filter((f) => f.severity === 'error');
       const passed = errors.length === 0;
 
       return {
         checkId: 'prod-export-001',
         passed,
-        confidence: passed ? 0.98 : 0.40,
+        confidence: passed ? 0.98 : 0.4,
         message: passed
           ? 'Production export gate passed - awaiting human approval'
           : `Production gate blocked: ${errors.length} requirements unmet`,
@@ -791,7 +793,7 @@ export class QualityGatePipeline {
           reason: `Tier 3 checks passed with ${(tier3.aggregateConfidence * 100).toFixed(1)}% confidence. Human approval required.`,
           riskProfile,
           tier: QualityTier.TIER_3_APPROVAL,
-          findings: tier3.results.flatMap(r => r.findings),
+          findings: tier3.results.flatMap((r) => r.findings),
           requestedAt: new Date().toISOString(),
           status: 'pending',
         };
@@ -834,25 +836,28 @@ export class QualityGatePipeline {
           passed: false,
           confidence: 0,
           message: `Check failed with error: ${err instanceof Error ? err.message : String(err)}`,
-          findings: [{
-            severity: 'error',
-            message: `Check execution error: ${err instanceof Error ? err.message : String(err)}`,
-            rule: 'execution-error',
-          }],
+          findings: [
+            {
+              severity: 'error',
+              message: `Check execution error: ${err instanceof Error ? err.message : String(err)}`,
+              rule: 'execution-error',
+            },
+          ],
           durationMs: 0,
         });
       }
     }
 
     // Calculate aggregate confidence
-    const confidenceValues = results.map(r => r.confidence);
-    const aggregateConfidence = confidenceValues.length > 0
-      ? confidenceValues.reduce((a, b) => a + b, 0) / confidenceValues.length
-      : 1.0;
+    const confidenceValues = results.map((r) => r.confidence);
+    const aggregateConfidence =
+      confidenceValues.length > 0
+        ? confidenceValues.reduce((a, b) => a + b, 0) / confidenceValues.length
+        : 1.0;
 
     // Determine if gate passes
-    const blockingFailures = results.filter(r =>
-      !r.passed && checks.find(c => c.id === r.checkId)?.blocking
+    const blockingFailures = results.filter(
+      (r) => !r.passed && checks.find((c) => c.id === r.checkId)?.blocking
     );
     const passed = blockingFailures.length === 0 && aggregateConfidence >= threshold;
 
@@ -863,7 +868,7 @@ export class QualityGatePipeline {
     } else if (tier === QualityTier.TIER_3_APPROVAL) {
       action = 'notify'; // Tier 3 always notifies even on pass
     } else if (tier === QualityTier.TIER_2_NOTIFY) {
-      action = results.some(r => r.findings.length > 0) ? 'notify' : 'proceed';
+      action = results.some((r) => r.findings.length > 0) ? 'notify' : 'proceed';
     } else {
       action = 'proceed';
     }
@@ -890,19 +895,26 @@ export class QualityGatePipeline {
 
     // Check if security-sensitive files are affected
     const sensitivePatterns = [
-      /identity/i, /rbac/i, /permission/i, /auth/i, /security/i,
-      /signing/i, /keystore/i, /token/i, /secret/i,
+      /identity/i,
+      /rbac/i,
+      /permission/i,
+      /auth/i,
+      /security/i,
+      /signing/i,
+      /keystore/i,
+      /token/i,
+      /secret/i,
     ];
-    const hasSensitiveFiles = context.affectedFiles.some(f =>
-      sensitivePatterns.some(p => p.test(f))
+    const hasSensitiveFiles = context.affectedFiles.some((f) =>
+      sensitivePatterns.some((p) => p.test(f))
     );
     if (hasSensitiveFiles) return RiskProfile.HIGH;
 
     // Check if cross-package changes
     const packages = new Set(
       context.affectedFiles
-        .filter(f => f.includes('packages/'))
-        .map(f => f.split('packages/')[1]?.split('/')[0])
+        .filter((f) => f.includes('packages/'))
+        .map((f) => f.split('packages/')[1]?.split('/')[0])
         .filter(Boolean)
     );
     if (packages.size > 1) return RiskProfile.MEDIUM;
@@ -926,10 +938,10 @@ export class QualityGatePipeline {
     tiers: GateDecision[],
     notifications: Notification[],
     approvalRequests: ApprovalRequest[],
-    totalDurationMs: number,
+    totalDurationMs: number
   ): QualityPipelineResult {
-    const allPassed = tiers.every(t => t.passed);
-    const noRejectedApprovals = !approvalRequests.some(a => a.status === 'rejected');
+    const allPassed = tiers.every((t) => t.passed);
+    const noRejectedApprovals = !approvalRequests.some((a) => a.status === 'rejected');
 
     let highestPassedTier: QualityTier | null = null;
     for (const tier of tiers) {
@@ -960,7 +972,7 @@ export class QualityGatePipeline {
 
     // Tier 2: Notify
     pipeline.registerCheck(createSemanticCheck());
-    pipeline.registerCheck(createCoverageCheck(0.80));
+    pipeline.registerCheck(createCoverageCheck(0.8));
 
     // Tier 3: Approval
     pipeline.registerCheck(createSecurityAuditCheck());

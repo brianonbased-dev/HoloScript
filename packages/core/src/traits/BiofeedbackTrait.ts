@@ -52,11 +52,11 @@ export interface BiofeedbackConfig {
 
 // Default physiological ranges for normalization
 const DEFAULT_RANGES: Record<BiofeedbackSource, { min: number; max: number }> = {
-  heart_rate: { min: 40, max: 200 },    // BPM
-  gsr:        { min: 0.1, max: 20 },    // µS
-  pupil:      { min: 2, max: 8 },       // mm
-  breath_rate: { min: 4, max: 40 },     // breaths/min
-  eeg_alpha:  { min: 0, max: 100 },     // µV²
+  heart_rate: { min: 40, max: 200 }, // BPM
+  gsr: { min: 0.1, max: 20 }, // µS
+  pupil: { min: 2, max: 8 }, // mm
+  breath_rate: { min: 4, max: 40 }, // breaths/min
+  eeg_alpha: { min: 0, max: 100 }, // µV²
 };
 
 // =============================================================================
@@ -106,11 +106,9 @@ export const biofeedbackHandler: TraitHandler<BiofeedbackConfig> = {
     if (event.type === 'biofeedback_device_connected') {
       state.isConnected = true;
       context.emit?.('on_biofeedback_ready', { node, sources: config.sources });
-
     } else if (event.type === 'biofeedback_device_disconnected') {
       state.isConnected = false;
       context.emit?.('on_biofeedback_lost', { node });
-
     } else if (event.type === 'biofeedback_sample') {
       const source = event.source as BiofeedbackSource;
       const rawValue = event.value as number;
@@ -133,7 +131,11 @@ export const biofeedbackHandler: TraitHandler<BiofeedbackConfig> = {
       state.lastSampleTime = Date.now();
 
       context.emit?.('biofeedback_reading', {
-        node, source, raw: rawValue, normalized, timestamp: sample.timestamp,
+        node,
+        source,
+        raw: rawValue,
+        normalized,
+        timestamp: sample.timestamp,
       });
 
       // Threshold edge detection
@@ -149,32 +151,41 @@ export const biofeedbackHandler: TraitHandler<BiofeedbackConfig> = {
         if (newEdge !== prevEdge) {
           state.thresholdEdge.set(source, newEdge);
           context.emit?.('biofeedback_threshold_crossed', {
-            node, source, direction: newEdge, value: rawValue, normalized,
+            node,
+            source,
+            direction: newEdge,
+            value: rawValue,
+            normalized,
           });
         }
       }
-
     } else if (event.type === 'biofeedback_query') {
       const source = event.source as BiofeedbackSource | undefined;
       if (source) {
         const sample = state.samples.get(source);
         context.emit?.('biofeedback_response', {
-          queryId: event.queryId, node, source, sample: sample ?? null,
+          queryId: event.queryId,
+          node,
+          source,
+          sample: sample ?? null,
         });
       } else {
         // Return all samples
         const allSamples = Object.fromEntries(state.samples.entries());
         context.emit?.('biofeedback_response', {
-          queryId: event.queryId, node, samples: allSamples,
+          queryId: event.queryId,
+          node,
+          samples: allSamples,
         });
       }
-
     } else if (event.type === 'biofeedback_calibrate') {
       // Recalibrate zero-point (clear samples, reconnect)
       state.samples.clear();
       state.thresholdEdge.clear();
       context.emit?.('biofeedback_connect', {
-        node, sources: config.sources, sampleRateHz: config.sample_rate_hz,
+        node,
+        sources: config.sources,
+        sampleRateHz: config.sample_rate_hz,
       });
     }
   },

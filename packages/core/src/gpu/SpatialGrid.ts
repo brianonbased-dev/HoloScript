@@ -73,11 +73,7 @@ export class SpatialGrid {
   private buildBindGroup: GPUBindGroup | null = null;
   private collisionBindGroup: GPUBindGroup | null = null;
 
-  constructor(
-    context: WebGPUContext,
-    particleCount: number,
-    options: SpatialGridOptions
-  ) {
+  constructor(context: WebGPUContext, particleCount: number, options: SpatialGridOptions) {
     this.context = context;
     this.device = context.getDevice();
     this.particleCount = particleCount;
@@ -90,9 +86,7 @@ export class SpatialGrid {
     };
 
     this.totalCells =
-      this.options.gridDimensions.x *
-      this.options.gridDimensions.y *
-      this.options.gridDimensions.z;
+      this.options.gridDimensions.x * this.options.gridDimensions.y * this.options.gridDimensions.z;
   }
 
   /**
@@ -157,7 +151,8 @@ export class SpatialGrid {
     });
 
     // Grid particle indices
-    const indicesSize = this.totalCells * this.options.maxParticlesPerCell * Uint32Array.BYTES_PER_ELEMENT;
+    const indicesSize =
+      this.totalCells * this.options.maxParticlesPerCell * Uint32Array.BYTES_PER_ELEMENT;
 
     this.gridParticleIndicesBuffer = this.device.createBuffer({
       label: 'grid-particle-indices',
@@ -297,7 +292,12 @@ export class SpatialGrid {
    * Clear grid counters (run before buildGrid each frame)
    */
   clearGrid(commandEncoder?: GPUCommandEncoder): GPUCommandEncoder {
-    if (!this.clearPipeline || !this.uniformBuffer || !this.gridCellStartBuffer || !this.gridCellEndBuffer) {
+    if (
+      !this.clearPipeline ||
+      !this.uniformBuffer ||
+      !this.gridCellStartBuffer ||
+      !this.gridCellEndBuffer
+    ) {
       throw new Error('Spatial grid not initialized');
     }
 
@@ -313,7 +313,8 @@ export class SpatialGrid {
       });
     }
 
-    const encoder = commandEncoder ?? this.device.createCommandEncoder({ label: 'grid-clear-encoder' });
+    const encoder =
+      commandEncoder ?? this.device.createCommandEncoder({ label: 'grid-clear-encoder' });
 
     const pass = encoder.beginComputePass({ label: 'grid-clear-pass' });
     pass.setPipeline(this.clearPipeline);
@@ -330,7 +331,12 @@ export class SpatialGrid {
    * Build spatial grid from particle positions
    */
   buildGrid(positionBuffer: GPUBuffer, commandEncoder?: GPUCommandEncoder): GPUCommandEncoder {
-    if (!this.buildPipeline || !this.uniformBuffer || !this.gridCellEndBuffer || !this.gridParticleIndicesBuffer) {
+    if (
+      !this.buildPipeline ||
+      !this.uniformBuffer ||
+      !this.gridCellEndBuffer ||
+      !this.gridParticleIndicesBuffer
+    ) {
       throw new Error('Spatial grid not initialized');
     }
 
@@ -347,7 +353,8 @@ export class SpatialGrid {
       });
     }
 
-    const encoder = commandEncoder ?? this.device.createCommandEncoder({ label: 'grid-build-encoder' });
+    const encoder =
+      commandEncoder ?? this.device.createCommandEncoder({ label: 'grid-build-encoder' });
 
     const pass = encoder.beginComputePass({ label: 'grid-build-pass' });
     pass.setPipeline(this.buildPipeline);
@@ -388,7 +395,8 @@ export class SpatialGrid {
       });
     }
 
-    const encoder = commandEncoder ?? this.device.createCommandEncoder({ label: 'grid-collision-encoder' });
+    const encoder =
+      commandEncoder ?? this.device.createCommandEncoder({ label: 'grid-collision-encoder' });
 
     const pass = encoder.beginComputePass({ label: 'grid-collision-pass' });
     pass.setPipeline(this.collisionPipeline);
@@ -439,7 +447,13 @@ export class SpatialGrid {
     });
 
     const encoder = this.device.createCommandEncoder({ label: 'collision-forces-readback' });
-    encoder.copyBufferToBuffer(this.collisionForcesBuffer, 0, stagingBuffer, 0, this.collisionForcesBuffer.size);
+    encoder.copyBufferToBuffer(
+      this.collisionForcesBuffer,
+      0,
+      stagingBuffer,
+      0,
+      this.collisionForcesBuffer.size
+    );
     this.device.queue.submit([encoder.finish()]);
 
     await stagingBuffer.mapAsync(GPUMapMode.READ);

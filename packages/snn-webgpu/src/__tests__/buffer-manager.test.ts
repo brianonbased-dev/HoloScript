@@ -111,7 +111,7 @@ describe('BufferManager', () => {
         0,
         data.buffer,
         data.byteOffset,
-        data.byteLength,
+        data.byteLength
       );
     });
 
@@ -130,7 +130,7 @@ describe('BufferManager', () => {
         8,
         data.buffer,
         data.byteOffset,
-        data.byteLength,
+        data.byteLength
       );
     });
   });

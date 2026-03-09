@@ -17,10 +17,7 @@ import type { HoloComposition, HoloObjectDecl, HoloState } from '../parser/HoloC
 import type { HSPlusAST, HSPlusNode } from '../types/HoloScriptPlus';
 import { CompilerBase } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
-import {
-  compileDomainBlocks,
-  compileMaterialBlock,
-} from './DomainBlockCompilerMixin';
+import { compileDomainBlocks, compileMaterialBlock } from './DomainBlockCompilerMixin';
 
 // =============================================================================
 // TYPES
@@ -158,7 +155,11 @@ export class WASMCompiler extends CompilerBase {
   /**
    * Compile HoloComposition AST to WASM
    */
-  compile(composition: HoloComposition, agentToken: string, outputPath?: string): WASMCompileResult {
+  compile(
+    composition: HoloComposition,
+    agentToken: string,
+    outputPath?: string
+  ): WASMCompileResult {
     this.validateCompilerAccess(agentToken, outputPath);
     this.reset();
 
@@ -175,17 +176,23 @@ export class WASMCompiler extends CompilerBase {
     if (domainBlocks.length > 0) {
       this.emit('');
       this.emit('  ;; === v4.2 Domain Blocks ===');
-      compileDomainBlocks(domainBlocks, {
-        material: (block) => {
-          const mat = compileMaterialBlock(block);
-          this.emit(`  ;; Material: "${mat.name}" type=${mat.type}`);
-          this.emit(`  ;; baseColor=${mat.baseColor || 'none'} roughness=${mat.roughness ?? 0.5} metallic=${mat.metallic ?? 0}`);
-          return '';
+      compileDomainBlocks(
+        domainBlocks,
+        {
+          material: (block) => {
+            const mat = compileMaterialBlock(block);
+            this.emit(`  ;; Material: "${mat.name}" type=${mat.type}`);
+            this.emit(
+              `  ;; baseColor=${mat.baseColor || 'none'} roughness=${mat.roughness ?? 0.5} metallic=${mat.metallic ?? 0}`
+            );
+            return '';
+          },
         },
-      }, (block) => {
-        this.emit(`  ;; Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
-        return '';
-      });
+        (block) => {
+          this.emit(`  ;; Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+          return '';
+        }
+      );
     }
 
     // Generate JS bindings

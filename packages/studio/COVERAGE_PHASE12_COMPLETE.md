@@ -10,12 +10,12 @@
 
 ### Overall Metrics
 
-| Metric | Phase 11 | Phase 12 | Change | Status |
-|--------|----------|----------|--------|--------|
-| **Test Files** | 22 | 25 | **+3** ✅ | +13.6% |
-| **Total Tests** | 545 | 633 | **+88** ✅ | +16.1% |
-| **Hooks Tested** | 22 | 25 | **+3** ✅ | +13.6% |
-| **Hooks Coverage** | 48.9% | **55.6%** | **+6.7%** ✅ | 25/45 hooks |
+| Metric             | Phase 11 | Phase 12  | Change       | Status      |
+| ------------------ | -------- | --------- | ------------ | ----------- |
+| **Test Files**     | 22       | 25        | **+3** ✅    | +13.6%      |
+| **Total Tests**    | 545      | 633       | **+88** ✅   | +16.1%      |
+| **Hooks Tested**   | 22       | 25        | **+3** ✅    | +13.6%      |
+| **Hooks Coverage** | 48.9%    | **55.6%** | **+6.7%** ✅ | 25/45 hooks |
 
 ### Achievement
 
@@ -43,6 +43,7 @@ Tests covering HoloScript → R3F compilation pipeline:
 - Edge Cases (5 tests)
 
 **Key Features Tested:**
+
 - Auto-detects .holo composition vs .hsplus format
 - Parses with HoloScriptPlusParser or HoloCompositionParser
 - Compiles to R3FNode tree via R3FCompiler
@@ -50,6 +51,7 @@ Tests covering HoloScript → R3F compilation pipeline:
 - useMemo caching based on code string
 
 **Testing Patterns:**
+
 - Mocked @holoscript/core classes (parsers and compiler)
 - Tested format detection with trimStart()
 - Verified error mapping (string errors, object errors)
@@ -71,6 +73,7 @@ Tests covering Brittney AI chat history persistence:
 - Edge Cases (5 tests)
 
 **Key Features Tested:**
+
 - localStorage persistence with key format: `brittney-history-${projectId}`
 - ChatMessage array with role, content, timestamp
 - MAX_MESSAGES = 200 cap
@@ -79,6 +82,7 @@ Tests covering Brittney AI chat history persistence:
 - Reloads history on projectId change
 
 **Testing Patterns:**
+
 - Mocked localStorage with in-memory store
 - Mocked Date.now() for timestamp consistency
 - Tested JSON parse errors and invalid data
@@ -98,6 +102,7 @@ Tests covering AI material generation:
 - Edge Cases (4 tests)
 
 **Key Features Tested:**
+
 - Generates GLSL fragment shader + @material trait from prompt
 - POST /api/material/generate with { prompt, baseColor }
 - Returns { glsl?, traits?, error? }
@@ -106,6 +111,7 @@ Tests covering AI material generation:
 - Clears previous results before generating
 
 **Testing Patterns:**
+
 - Mocked global fetch
 - Tested async status transitions
 - Verified error handling (HTTP, API, network, JSON)
@@ -124,6 +130,7 @@ Tests covering AI material generation:
 ### All Tested Hooks (25 total)
 
 #### Phase 1-9 Hooks (13 hooks)
+
 1. ✅ useMultiSelect.ts - 100%
 2. ✅ useSceneExport.ts - 100%
 3. ✅ useSnapshots.ts - 100%
@@ -139,12 +146,14 @@ Tests covering AI material generation:
 13. ✅ useCollaboration.ts - ~70%
 
 #### Phase 10 Hooks (4 hooks)
+
 14. ✅ useKeyframes.ts - 99.2%
 15. ✅ useOllamaStatus.ts - 100%
 16. ✅ useREPL.ts - 100%
 17. ✅ useSceneCritique.ts - 100%
 
 #### Phase 11 Hooks (5 hooks)
+
 18. ✅ useUndoRedo.ts - 100%
 19. ✅ useAssetLibrary.ts - 100%
 20. ✅ useMinimap.ts - 100%
@@ -152,6 +161,7 @@ Tests covering AI material generation:
 22. ✅ useSnapshotDiff.ts - 100%
 
 #### Phase 12 Hooks (3 hooks) - NEW
+
 23. ✅ **useScenePipeline.ts** - 100% - NEW
 24. ✅ **useBrittneyHistory.ts** - 100% - NEW
 25. ✅ **useAIMaterial.ts** - 100% - NEW

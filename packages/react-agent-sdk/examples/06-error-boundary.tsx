@@ -5,11 +5,7 @@
  */
 
 import React from 'react';
-import {
-  AgentErrorBoundary,
-  useAgent,
-  useTask,
-} from '@hololand/react-agent-sdk';
+import { AgentErrorBoundary, useAgent, useTask } from '@hololand/react-agent-sdk';
 
 function RiskyAgentComponent() {
   const { agent } = useAgent('brittney');

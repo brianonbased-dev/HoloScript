@@ -23,13 +23,13 @@ export interface IoTDevice {
   state: DeviceState;
   firmwareVersion: string;
   lastSeen: number;
-  rssi?: number;            // Signal strength (BLE/LoRaWAN)
-  ipAddress?: string;       // Network devices
-  capabilities: string[];   // e.g., ['temperature', 'humidity', 'motion']
+  rssi?: number; // Signal strength (BLE/LoRaWAN)
+  ipAddress?: string; // Network devices
+  capabilities: string[]; // e.g., ['temperature', 'humidity', 'motion']
 }
 
 export interface MQTTConfig {
-  broker: string;           // e.g., 'mqtt://farm.local:1883'
+  broker: string; // e.g., 'mqtt://farm.local:1883'
   clientId: string;
   username?: string;
   password?: string;
@@ -48,11 +48,11 @@ export interface TelemetryPacket {
 
 export interface DigitalTwinState {
   twinId: string;
-  modelId: string;           // DTDL model reference (e.g., 'dtmi:holoscript:SmartPlanter;1')
+  modelId: string; // DTDL model reference (e.g., 'dtmi:holoscript:SmartPlanter;1')
   properties: Record<string, unknown>;
   telemetry: TelemetryPacket[];
   lastSync: number;
-  driftMs: number;           // Sync drift from physical device
+  driftMs: number; // Sync drift from physical device
 }
 
 export interface OTAUpdate {
@@ -63,7 +63,7 @@ export interface OTAUpdate {
   sizeBytes: number;
   checksum: string;
   status: 'pending' | 'downloading' | 'installing' | 'complete' | 'failed';
-  progress: number;          // 0-100
+  progress: number; // 0-100
 }
 
 export interface BLEScanResult {
@@ -109,7 +109,7 @@ export function mqttTopicMatch(pattern: string, topic: string): boolean {
 
   for (let i = 0; i < patternParts.length; i++) {
     if (patternParts[i] === '#') return true; // Multi-level wildcard
-    if (patternParts[i] === '+') continue;    // Single-level wildcard
+    if (patternParts[i] === '+') continue; // Single-level wildcard
     if (i >= topicParts.length || patternParts[i] !== topicParts[i]) return false;
   }
   return patternParts.length === topicParts.length;
@@ -147,17 +147,16 @@ export function parseTelemetryPayload(
 /**
  * Simulate BLE device discovery scan.
  */
-export function bleDiscover(
-  scanDurationMs: number,
-  knownDevices: IoTDevice[]
-): BLEScanResult[] {
+export function bleDiscover(scanDurationMs: number, knownDevices: IoTDevice[]): BLEScanResult[] {
   return knownDevices
-    .filter(d => d.protocol === 'ble')
-    .map(d => ({
+    .filter((d) => d.protocol === 'ble')
+    .map((d) => ({
       deviceId: d.id,
       name: d.name,
       rssi: d.rssi ?? -65,
-      services: d.capabilities.map(c => `0000${c.charCodeAt(0).toString(16).padStart(4, '0')}-0000-1000-8000-00805f9b34fb`),
+      services: d.capabilities.map(
+        (c) => `0000${c.charCodeAt(0).toString(16).padStart(4, '0')}-0000-1000-8000-00805f9b34fb`
+      ),
       connectable: d.state !== 'error',
       manufacturer: 'HoloScript IoT',
     }));
@@ -180,11 +179,8 @@ export function bleSignalStrength(rssi: number): 'strong' | 'medium' | 'weak' | 
 /**
  * Register a new IoT device.
  */
-export function registerDevice(
-  registry: IoTDevice[],
-  device: IoTDevice
-): IoTDevice[] {
-  const existing = registry.findIndex(d => d.id === device.id);
+export function registerDevice(registry: IoTDevice[], device: IoTDevice): IoTDevice[] {
+  const existing = registry.findIndex((d) => d.id === device.id);
   if (existing >= 0) {
     const updated = [...registry];
     updated[existing] = device;
@@ -196,11 +192,8 @@ export function registerDevice(
 /**
  * Find devices by capability.
  */
-export function devicesByCapability(
-  registry: IoTDevice[],
-  capability: string
-): IoTDevice[] {
-  return registry.filter(d => d.capabilities.includes(capability));
+export function devicesByCapability(registry: IoTDevice[], capability: string): IoTDevice[] {
+  return registry.filter((d) => d.capabilities.includes(capability));
 }
 
 /**
@@ -208,7 +201,11 @@ export function devicesByCapability(
  */
 export function deviceStateCount(registry: IoTDevice[]): Record<DeviceState, number> {
   const counts: Record<DeviceState, number> = {
-    connected: 0, disconnected: 0, pairing: 0, error: 0, 'firmware-update': 0,
+    connected: 0,
+    disconnected: 0,
+    pairing: 0,
+    error: 0,
+    'firmware-update': 0,
   };
   for (const d of registry) counts[d.state]++;
   return counts;
@@ -218,7 +215,7 @@ export function deviceStateCount(registry: IoTDevice[]): Record<DeviceState, num
  * Check which devices are stale (no communication within timeoutMs).
  */
 export function staleDevices(registry: IoTDevice[], timeoutMs: number, now: number): IoTDevice[] {
-  return registry.filter(d => now - d.lastSeen > timeoutMs);
+  return registry.filter((d) => now - d.lastSeen > timeoutMs);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -228,10 +225,7 @@ export function staleDevices(registry: IoTDevice[], timeoutMs: number, now: numb
 /**
  * Synchronize a digital twin with incoming telemetry.
  */
-export function digitalTwinSync(
-  twin: DigitalTwinState,
-  packet: TelemetryPacket
-): DigitalTwinState {
+export function digitalTwinSync(twin: DigitalTwinState, packet: TelemetryPacket): DigitalTwinState {
   const updatedProperties = { ...twin.properties };
   for (const [key, value] of Object.entries(packet.readings)) {
     updatedProperties[key] = value;
@@ -252,13 +246,17 @@ export function twinHealthScore(twin: DigitalTwinState, now: number): number {
   let score = 100;
   // Penalize for drift
   const ageSec = (now - twin.lastSync) / 1000;
-  if (ageSec > 300) score -= 40;      // >5 min stale
-  else if (ageSec > 60) score -= 20;  // >1 min stale
+  if (ageSec > 300)
+    score -= 40; // >5 min stale
+  else if (ageSec > 60)
+    score -= 20; // >1 min stale
   else if (ageSec > 10) score -= 5;
 
   // Penalize for poor quality recent telemetry
   const recent = twin.telemetry.slice(-5);
-  const degradedCount = recent.filter(t => t.quality === 'degraded' || t.quality === 'lost').length;
+  const degradedCount = recent.filter(
+    (t) => t.quality === 'degraded' || t.quality === 'lost'
+  ).length;
   score -= degradedCount * 10;
 
   return Math.max(0, Math.min(100, score));
@@ -310,7 +308,11 @@ export function otaProgressTick(update: OTAUpdate, chunkBytes: number): OTAUpdat
  * Finalize OTA update (marks as complete or failed).
  */
 export function otaFinalize(update: OTAUpdate, success: boolean): OTAUpdate {
-  return { ...update, status: success ? 'complete' : 'failed', progress: success ? 100 : update.progress };
+  return {
+    ...update,
+    status: success ? 'complete' : 'failed',
+    progress: success ? 100 : update.progress,
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -324,9 +326,7 @@ export function aggregateTelemetry(
   packets: TelemetryPacket[],
   key: string
 ): { min: number; max: number; avg: number; count: number } {
-  const values = packets
-    .map(p => p.readings[key])
-    .filter((v): v is number => v !== undefined);
+  const values = packets.map((p) => p.readings[key]).filter((v): v is number => v !== undefined);
 
   if (values.length === 0) return { min: 0, max: 0, avg: 0, count: 0 };
 

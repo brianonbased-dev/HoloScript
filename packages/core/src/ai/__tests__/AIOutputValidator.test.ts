@@ -15,7 +15,7 @@ describe('validateAIOutput', () => {
     const code = Array(3000).fill('const x = 1;').join('\n');
     const result = validateAIOutput(code);
     expect(result.valid).toBe(false);
-    expect(result.issues.some(i => i.rule === 'max-lines')).toBe(true);
+    expect(result.issues.some((i) => i.rule === 'max-lines')).toBe(true);
   });
 
   it('custom maxLines overrides default', () => {
@@ -28,19 +28,19 @@ describe('validateAIOutput', () => {
   it('detects eval()', () => {
     const result = validateAIOutput('eval("alert(1)")');
     expect(result.valid).toBe(false);
-    expect(result.issues.some(i => i.rule === 'no-eval')).toBe(true);
+    expect(result.issues.some((i) => i.rule === 'no-eval')).toBe(true);
   });
 
   it('detects Function constructor', () => {
     const result = validateAIOutput('new Function("return 1")');
     expect(result.valid).toBe(false);
-    expect(result.issues.some(i => i.rule === 'no-function-constructor')).toBe(true);
+    expect(result.issues.some((i) => i.rule === 'no-function-constructor')).toBe(true);
   });
 
   it('detects require()', () => {
     const result = validateAIOutput('const fs = require("fs")');
     expect(result.valid).toBe(false);
-    expect(result.issues.some(i => i.rule === 'no-require')).toBe(true);
+    expect(result.issues.some((i) => i.rule === 'no-require')).toBe(true);
   });
 
   it('detects __proto__', () => {
@@ -51,7 +51,7 @@ describe('validateAIOutput', () => {
   it('detects process.', () => {
     const result = validateAIOutput('process.exit(1)');
     expect(result.valid).toBe(false);
-    expect(result.issues.some(i => i.rule === 'no-process')).toBe(true);
+    expect(result.issues.some((i) => i.rule === 'no-process')).toBe(true);
   });
 
   it('detects dynamic import()', () => {
@@ -73,20 +73,20 @@ describe('validateAIOutput', () => {
   it('warns on excessive nesting', () => {
     const code = '{'.repeat(20) + '}'.repeat(20);
     const result = validateAIOutput(code);
-    expect(result.issues.some(i => i.rule === 'max-nesting')).toBe(true);
+    expect(result.issues.some((i) => i.rule === 'max-nesting')).toBe(true);
   });
 
   it('custom maxNesting overrides default', () => {
     const code = '{ { { } } }';
     const result = validateAIOutput(code, { maxNesting: 2 });
-    expect(result.issues.some(i => i.rule === 'max-nesting')).toBe(true);
+    expect(result.issues.some((i) => i.rule === 'max-nesting')).toBe(true);
   });
 
   // Unbalanced braces
   it('detects unbalanced braces', () => {
     const result = validateAIOutput('{ { }');
     expect(result.valid).toBe(false);
-    expect(result.issues.some(i => i.rule === 'balanced-braces')).toBe(true);
+    expect(result.issues.some((i) => i.rule === 'balanced-braces')).toBe(true);
   });
 
   // Traits
@@ -98,12 +98,12 @@ describe('validateAIOutput', () => {
   it('warns on too many traits', () => {
     const code = Array(200).fill('@trait').join(' ');
     const result = validateAIOutput(code);
-    expect(result.issues.some(i => i.rule === 'max-traits')).toBe(true);
+    expect(result.issues.some((i) => i.rule === 'max-traits')).toBe(true);
   });
 
   it('warns on disallowed traits', () => {
     const result = validateAIOutput('@physics @animate', { allowedTraits: ['physics'] });
-    expect(result.issues.some(i => i.rule === 'allowed-traits')).toBe(true);
+    expect(result.issues.some((i) => i.rule === 'allowed-traits')).toBe(true);
   });
 
   // Confidence scoring
@@ -122,7 +122,7 @@ describe('validateAIOutput', () => {
 
   it('reports line numbers for dangerous patterns', () => {
     const result = validateAIOutput('const x = 1;\neval("2");\nconst y = 3;');
-    const evalIssue = result.issues.find(i => i.rule === 'no-eval')!;
+    const evalIssue = result.issues.find((i) => i.rule === 'no-eval')!;
     expect(evalIssue.line).toBe(2);
   });
 });

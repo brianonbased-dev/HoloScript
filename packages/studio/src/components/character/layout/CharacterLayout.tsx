@@ -15,7 +15,7 @@
 import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { useCharacterStore } from '@/lib/store';
+import { useCharacterStore } from '@/lib/stores';
 import { SkeletonPanel } from './SkeletonPanel';
 import { ClipLibrary } from '../wardrobe/ClipLibrary';
 import { GlbDropZone } from '../viewer/GlbDropZone';
@@ -71,7 +71,9 @@ function Viewport() {
           <button
             onClick={() => setPanelMode('skeleton')}
             className={`flex items-center gap-1 px-3 py-1 text-[10px] transition ${
-              panelMode === 'skeleton' ? 'bg-purple-500/20 text-purple-300' : 'text-studio-muted hover:text-studio-text'
+              panelMode === 'skeleton'
+                ? 'bg-purple-500/20 text-purple-300'
+                : 'text-studio-muted hover:text-studio-text'
             }`}
             title="Skeleton / FK mode"
           >
@@ -80,7 +82,9 @@ function Viewport() {
           <button
             onClick={() => setPanelMode('customize')}
             className={`flex items-center gap-1 px-3 py-1 text-[10px] transition ${
-              panelMode === 'customize' ? 'bg-purple-500/20 text-purple-300' : 'text-studio-muted hover:text-studio-text'
+              panelMode === 'customize'
+                ? 'bg-purple-500/20 text-purple-300'
+                : 'text-studio-muted hover:text-studio-text'
             }`}
             title="Character customizer mode"
           >
@@ -89,7 +93,9 @@ function Viewport() {
           <button
             onClick={() => setPanelMode('wardrobe')}
             className={`flex items-center gap-1 px-3 py-1 text-[10px] transition ${
-              panelMode === 'wardrobe' ? 'bg-purple-500/20 text-purple-300' : 'text-studio-muted hover:text-studio-text'
+              panelMode === 'wardrobe'
+                ? 'bg-purple-500/20 text-purple-300'
+                : 'text-studio-muted hover:text-studio-text'
             }`}
             title="Wardrobe mode"
           >

@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  DeprecationRegistry,
-  createDeprecationRegistry,
-} from '../deprecation/DeprecationRegistry';
+import { DeprecationRegistry, createDeprecationRegistry } from '../deprecation/DeprecationRegistry';
 import type { DeprecationEntry, DeprecationSeverity } from '../deprecation/DeprecationRegistry';
 
 // =============================================================================

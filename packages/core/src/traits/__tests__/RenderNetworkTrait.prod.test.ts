@@ -33,8 +33,12 @@ vi.mock('../RenderJobPersistence', () => ({
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode() { return { id: 'rn_test' } as any; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'rn_test' } as any;
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 
 async function attach(node: any, overrides: Record<string, unknown> = {}) {
   // Don't provide api_key so connectToRenderNetwork is NOT called (avoids fetch)
@@ -44,7 +48,9 @@ async function attach(node: any, overrides: Record<string, unknown> = {}) {
   return { cfg, ctx };
 }
 
-function st(node: any) { return node.__renderNetworkState as any; }
+function st(node: any) {
+  return node.__renderNetworkState as any;
+}
 
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
   renderNetworkHandler.onEvent!(node, cfg, ctx as any, evt as any);
@@ -176,13 +182,18 @@ describe('RenderNetworkTrait — onEvent: render_cancel', () => {
     expect(st(node).completedJobs).toHaveLength(1);
     expect(st(node).completedJobs[0].status).toBe('failed');
     expect(st(node).completedJobs[0].error).toBe('Cancelled by user');
-    expect(ctx.emit).toHaveBeenCalledWith('render_job_cancelled', expect.objectContaining({ job: expect.any(Object) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'render_job_cancelled',
+      expect.objectContaining({ job: expect.any(Object) })
+    );
   });
 
   it('unknown jobId is ignored gracefully', async () => {
     const node = makeNode();
     const { cfg, ctx } = await attach(node);
-    expect(() => fire(node, cfg, ctx, { type: 'render_cancel', payload: { jobId: 'ghost' } })).not.toThrow();
+    expect(() =>
+      fire(node, cfg, ctx, { type: 'render_cancel', payload: { jobId: 'ghost' } })
+    ).not.toThrow();
     expect(ctx.emit).not.toHaveBeenCalledWith('render_job_cancelled', expect.any(Object));
   });
 });
@@ -193,24 +204,44 @@ describe('RenderNetworkTrait — onEvent: render_download', () => {
   it('emits render_download_ready with correct output', async () => {
     const node = makeNode();
     const { cfg, ctx } = await attach(node);
-    const output = { type: 'frame', url: 'https://r.net/out.png', format: 'png', resolution: { width: 1920, height: 1080 }, size: 1024, checksum: 'abc' };
+    const output = {
+      type: 'frame',
+      url: 'https://r.net/out.png',
+      format: 'png',
+      resolution: { width: 1920, height: 1080 },
+      size: 1024,
+      checksum: 'abc',
+    };
     const job = makeCompletedJob('j_dl', [output]);
     st(node).completedJobs.push(job);
 
     fire(node, cfg, ctx, { type: 'render_download', payload: { jobId: 'j_dl', outputIndex: 0 } });
-    expect(ctx.emit).toHaveBeenCalledWith('render_download_ready', expect.objectContaining({
-      output,
-      job: expect.objectContaining({ id: 'j_dl' }),
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'render_download_ready',
+      expect.objectContaining({
+        output,
+        job: expect.objectContaining({ id: 'j_dl' }),
+      })
+    );
   });
 
   it('default outputIndex=0 used when not provided', async () => {
     const node = makeNode();
     const { cfg, ctx } = await attach(node);
-    const output = { type: 'sequence', url: 'https://r.net/seq.zip', format: 'png', resolution: { width: 1280, height: 720 }, size: 2048, checksum: 'def' };
+    const output = {
+      type: 'sequence',
+      url: 'https://r.net/seq.zip',
+      format: 'png',
+      resolution: { width: 1280, height: 720 },
+      size: 2048,
+      checksum: 'def',
+    };
     st(node).completedJobs.push(makeCompletedJob('j2', [output]));
     fire(node, cfg, ctx, { type: 'render_download', payload: { jobId: 'j2' } });
-    expect(ctx.emit).toHaveBeenCalledWith('render_download_ready', expect.objectContaining({ output }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'render_download_ready',
+      expect.objectContaining({ output })
+    );
   });
 
   it('unknown jobId: no emit', async () => {
@@ -235,17 +266,27 @@ describe('RenderNetworkTrait — onEvent: volumetric_process', () => {
   it('does NOT emit volumetric_job_submitted when volumetric_enabled=false', async () => {
     const node = makeNode();
     const { cfg, ctx } = await attach(node, { volumetric_enabled: false });
-    fire(node, cfg, ctx, { type: 'volumetric_process', payload: { source: 'clip.mp4', outputFormat: 'mp4' } });
+    fire(node, cfg, ctx, {
+      type: 'volumetric_process',
+      payload: { source: 'clip.mp4', outputFormat: 'mp4' },
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('volumetric_job_submitted', expect.any(Object));
   });
 
   it('emits volumetric_job_submitted and adds activeJob when enabled', async () => {
     const node = makeNode();
     const { cfg, ctx } = await attach(node, { volumetric_enabled: true });
-    fire(node, cfg, ctx, { type: 'volumetric_process', payload: { source: 'clip.mp4', outputFormat: 'mp4' } });
-    expect(ctx.emit).toHaveBeenCalledWith('volumetric_job_submitted', expect.objectContaining({
-      source: 'clip.mp4', format: 'mp4',
-    }));
+    fire(node, cfg, ctx, {
+      type: 'volumetric_process',
+      payload: { source: 'clip.mp4', outputFormat: 'mp4' },
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'volumetric_job_submitted',
+      expect.objectContaining({
+        source: 'clip.mp4',
+        format: 'mp4',
+      })
+    );
     expect(st(node).activeJobs).toHaveLength(1);
     expect(st(node).activeJobs[0].estimatedCredits).toBe(5.0);
   });
@@ -257,31 +298,47 @@ describe('RenderNetworkTrait — onEvent: splat_bake', () => {
   it('does NOT emit splat_bake_submitted when splat_baking_enabled=false', async () => {
     const node = makeNode();
     const { cfg, ctx } = await attach(node, { splat_baking_enabled: false });
-    fire(node, cfg, ctx, { type: 'splat_bake', payload: { source: 'scan.glb', targetSplatCount: 5000, quality: 'high' } });
+    fire(node, cfg, ctx, {
+      type: 'splat_bake',
+      payload: { source: 'scan.glb', targetSplatCount: 5000, quality: 'high' },
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('splat_bake_submitted', expect.any(Object));
   });
 
   it('emits splat_bake_submitted and adds activeJob when enabled (high quality = 3.0 credits)', async () => {
     const node = makeNode();
     const { cfg, ctx } = await attach(node, { splat_baking_enabled: true });
-    fire(node, cfg, ctx, { type: 'splat_bake', payload: { source: 'scan.glb', targetSplatCount: 5000, quality: 'high' } });
-    expect(ctx.emit).toHaveBeenCalledWith('splat_bake_submitted', expect.objectContaining({
-      source: 'scan.glb', targetSplatCount: 5000,
-    }));
+    fire(node, cfg, ctx, {
+      type: 'splat_bake',
+      payload: { source: 'scan.glb', targetSplatCount: 5000, quality: 'high' },
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'splat_bake_submitted',
+      expect.objectContaining({
+        source: 'scan.glb',
+        targetSplatCount: 5000,
+      })
+    );
     expect(st(node).activeJobs[0].estimatedCredits).toBe(3.0);
   });
 
   it('medium quality = 1.5 credits', async () => {
     const node = makeNode();
     const { cfg, ctx } = await attach(node, { splat_baking_enabled: true });
-    fire(node, cfg, ctx, { type: 'splat_bake', payload: { source: 's.glb', targetSplatCount: 1000, quality: 'medium' } });
+    fire(node, cfg, ctx, {
+      type: 'splat_bake',
+      payload: { source: 's.glb', targetSplatCount: 1000, quality: 'medium' },
+    });
     expect(st(node).activeJobs[0].estimatedCredits).toBe(1.5);
   });
 
   it('low quality = 0.5 credits', async () => {
     const node = makeNode();
     const { cfg, ctx } = await attach(node, { splat_baking_enabled: true });
-    fire(node, cfg, ctx, { type: 'splat_bake', payload: { source: 's.glb', targetSplatCount: 500, quality: 'low' } });
+    fire(node, cfg, ctx, {
+      type: 'splat_bake',
+      payload: { source: 's.glb', targetSplatCount: 500, quality: 'low' },
+    });
     expect(st(node).activeJobs[0].estimatedCredits).toBe(0.5);
   });
 });

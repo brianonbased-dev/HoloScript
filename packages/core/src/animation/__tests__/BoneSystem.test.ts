@@ -4,7 +4,9 @@ import { BoneSystem } from '../BoneSystem';
 describe('BoneSystem', () => {
   let bs: BoneSystem;
 
-  beforeEach(() => { bs = new BoneSystem(); });
+  beforeEach(() => {
+    bs = new BoneSystem();
+  });
 
   // Bone management
   it('addBone creates bone with defaults', () => {

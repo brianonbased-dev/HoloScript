@@ -115,12 +115,8 @@ export const nodePlugin: HoloScriptPlugin = {
         icon: 'Zap',
         color: '#8b5cf6',
         description: 'Transform input data using custom logic',
-        inputs: [
-          { id: 'data', label: 'Input Data', type: 'any' },
-        ],
-        outputs: [
-          { id: 'result', label: 'Output', type: 'any' },
-        ],
+        inputs: [{ id: 'data', label: 'Input Data', type: 'any' }],
+        outputs: [{ id: 'result', label: 'Output', type: 'any' }],
       },
     ],
   },
@@ -165,7 +161,7 @@ export const settingsPlugin: HoloScriptPlugin = {
     },
   ],
 
-  onLoad: function() {
+  onLoad: function () {
     const apiKey = this.settings?.apiKey;
     const interval = this.settings?.refreshInterval || 5000;
     console.log(`Loaded with API key: ${apiKey}, interval: ${interval}ms`);
@@ -207,8 +203,12 @@ interface HoloScriptPlugin {
 import { createPlugin } from '@holoscript/studio-plugin-sdk';
 
 export const myPlugin = createPlugin({
-  metadata: { /* ... */ },
-  onLoad: () => { /* ... */ },
+  metadata: {
+    /* ... */
+  },
+  onLoad: () => {
+    /* ... */
+  },
 });
 ```
 
@@ -248,6 +248,7 @@ npx create-holoscript-plugin my-plugin --template=panel
 ## Development Workflow
 
 1. **Create plugin**:
+
    ```bash
    npx create-holoscript-plugin my-plugin
    cd my-plugin
@@ -255,11 +256,13 @@ npx create-holoscript-plugin my-plugin --template=panel
    ```
 
 2. **Develop with watch mode**:
+
    ```bash
    npm run dev
    ```
 
 3. **Build for distribution**:
+
    ```bash
    npm run build
    ```

@@ -73,8 +73,8 @@ describe('GhostRunner', () => {
 
   it('faster run replaces personal best', () => {
     const r = new GhostRunner();
-    recordRun(r, 10, 1, 'slow');                // 1.0s
-    const fast = recordRun(r, 5, 2, 'fast');     // 0.5s
+    recordRun(r, 10, 1, 'slow'); // 1.0s
+    const fast = recordRun(r, 5, 2, 'fast'); // 0.5s
     expect(fast.isPersonalBest).toBe(true);
     expect(r.getPersonalBest()).toBe(fast);
     // Note: old run's isPersonalBest flag is NOT cleared by finishRecording,
@@ -83,8 +83,8 @@ describe('GhostRunner', () => {
 
   it('slower run does not replace personal best', () => {
     const r = new GhostRunner();
-    const fast = recordRun(r, 3, 1, 'fast');    // 0.3s
-    const slow = recordRun(r, 10, 1, 'slow');   // 1.0s
+    const fast = recordRun(r, 3, 1, 'fast'); // 0.3s
+    const slow = recordRun(r, 10, 1, 'slow'); // 1.0s
     expect(slow.isPersonalBest).toBe(false);
     expect(r.getPersonalBest()).toBe(fast);
   });
@@ -141,9 +141,9 @@ describe('GhostRunner', () => {
 
   it('getAllRuns returns runs sorted by totalTime ascending', () => {
     const r = new GhostRunner();
-    recordRun(r, 10, 1, 'slow');  // 1.0s
-    recordRun(r, 3, 1, 'fast');   // 0.3s
-    recordRun(r, 7, 1, 'mid');    // 0.7s
+    recordRun(r, 10, 1, 'slow'); // 1.0s
+    recordRun(r, 3, 1, 'fast'); // 0.3s
+    recordRun(r, 7, 1, 'mid'); // 0.7s
     const all = r.getAllRuns();
     expect(all[0].name).toBe('fast');
     expect(all[1].name).toBe('mid');

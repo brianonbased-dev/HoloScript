@@ -120,7 +120,10 @@ describe('LeaderElection', () => {
   });
 
   it('getRandomElectionTimeout is within configured range', () => {
-    const le = new LeaderElection('node1', ['node1'], { electionTimeoutMin: 100, electionTimeoutMax: 200 });
+    const le = new LeaderElection('node1', ['node1'], {
+      electionTimeoutMin: 100,
+      electionTimeoutMax: 200,
+    });
     for (let i = 0; i < 20; i++) {
       const t = le.getRandomElectionTimeout();
       expect(t).toBeGreaterThanOrEqual(100);

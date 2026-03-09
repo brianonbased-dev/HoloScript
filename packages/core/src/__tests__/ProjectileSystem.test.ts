@@ -2,13 +2,24 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ProjectileSystem, ProjectileConfig } from '../combat/ProjectileSystem';
 
 function config(overrides: Partial<ProjectileConfig> = {}): ProjectileConfig {
-  return { speed: 20, lifetime: 5, damage: 10, homing: false, homingStrength: 0, piercing: 0, gravity: 0, ...overrides };
+  return {
+    speed: 20,
+    lifetime: 5,
+    damage: 10,
+    homing: false,
+    homingStrength: 0,
+    piercing: 0,
+    gravity: 0,
+    ...overrides,
+  };
 }
 
 describe('ProjectileSystem', () => {
   let ps: ProjectileSystem;
 
-  beforeEach(() => { ps = new ProjectileSystem(); });
+  beforeEach(() => {
+    ps = new ProjectileSystem();
+  });
 
   it('spawn creates a projectile', () => {
     const id = ps.spawn('owner', 0, 0, 0, 1, 0, 0, config());

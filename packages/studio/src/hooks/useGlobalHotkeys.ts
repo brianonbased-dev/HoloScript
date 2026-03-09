@@ -6,11 +6,7 @@ export function useGlobalHotkeys() {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Avoid triggering hotkeys inside inputs or textareas
       const target = e.target as HTMLElement;
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
         return;
       }
 

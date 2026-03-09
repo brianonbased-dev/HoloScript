@@ -42,7 +42,19 @@ export async function POST(req: Request) {
     // Validate extension
     const name = file.name;
     const ext = path.extname(name).toLowerCase();
-    const ALLOWED = ['.glb', '.gltf', '.jpg', '.jpeg', '.png', '.webp', '.hdr', '.exr', '.mp3', '.wav', '.ogg'];
+    const ALLOWED = [
+      '.glb',
+      '.gltf',
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.webp',
+      '.hdr',
+      '.exr',
+      '.mp3',
+      '.wav',
+      '.ogg',
+    ];
     if (!ALLOWED.includes(ext)) {
       return NextResponse.json({ error: `Unsupported file type: ${ext}` }, { status: 400 });
     }

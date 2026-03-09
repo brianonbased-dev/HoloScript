@@ -7,20 +7,36 @@ import type { LootEntry } from '../gameplay/LootTable';
 // =============================================================================
 
 const COMMON_ITEM: LootEntry = {
-  itemId: 'iron_ore', weight: 50, rarity: 'common',
-  minQuantity: 1, maxQuantity: 5, guaranteed: false,
+  itemId: 'iron_ore',
+  weight: 50,
+  rarity: 'common',
+  minQuantity: 1,
+  maxQuantity: 5,
+  guaranteed: false,
 };
 const RARE_ITEM: LootEntry = {
-  itemId: 'diamond', weight: 5, rarity: 'rare',
-  minQuantity: 1, maxQuantity: 1, guaranteed: false,
+  itemId: 'diamond',
+  weight: 5,
+  rarity: 'rare',
+  minQuantity: 1,
+  maxQuantity: 1,
+  guaranteed: false,
 };
 const GUARANTEED_ITEM: LootEntry = {
-  itemId: 'gold_coin', weight: 0, rarity: 'common',
-  minQuantity: 1, maxQuantity: 3, guaranteed: true,
+  itemId: 'gold_coin',
+  weight: 0,
+  rarity: 'common',
+  minQuantity: 1,
+  maxQuantity: 3,
+  guaranteed: true,
 };
 const CONDITIONAL_ITEM: LootEntry = {
-  itemId: 'key', weight: 20, rarity: 'uncommon',
-  minQuantity: 1, maxQuantity: 1, guaranteed: false,
+  itemId: 'key',
+  weight: 20,
+  rarity: 'uncommon',
+  minQuantity: 1,
+  maxQuantity: 1,
+  guaranteed: false,
   condition: 'hasBossKill',
 };
 
@@ -65,7 +81,7 @@ describe('LootTable', () => {
     const lt = new LootTable(42);
     lt.addTable('loot', [GUARANTEED_ITEM], 0, 0);
     const drops = lt.roll('loot');
-    expect(drops.some(d => d.itemId === 'gold_coin')).toBe(true);
+    expect(drops.some((d) => d.itemId === 'gold_coin')).toBe(true);
   });
 
   it('conditional items require condition to be true', () => {
@@ -73,7 +89,7 @@ describe('LootTable', () => {
     lt.addTable('loot', [CONDITIONAL_ITEM], 1, 3);
     // Without condition set, should get 0 random drops from this item
     const drops1 = lt.roll('loot');
-    const hasKey1 = drops1.some(d => d.itemId === 'key');
+    const hasKey1 = drops1.some((d) => d.itemId === 'key');
     expect(hasKey1).toBe(false);
 
     // Set condition

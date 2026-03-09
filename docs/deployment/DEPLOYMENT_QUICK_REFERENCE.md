@@ -7,6 +7,7 @@
 ## 📚 Documentation (GitHub Pages)
 
 ### Deploy Documentation
+
 ```bash
 # Auto-deploys on push to main
 git push origin main
@@ -16,6 +17,7 @@ git push origin main
 ```
 
 ### Preview Documentation Locally
+
 ```bash
 cd docs/
 pnpm install
@@ -24,6 +26,7 @@ pnpm dev
 ```
 
 ### Build Documentation
+
 ```bash
 cd docs/
 pnpm build
@@ -31,6 +34,7 @@ pnpm build
 ```
 
 ### Check Documentation Links
+
 ```bash
 cd docs/
 pnpm build  # Warnings show broken links
@@ -423,15 +427,18 @@ railway up --service studio
 ## 🎓 Learning Resources
 
 ### Railway Specific
+
 - **Railway Docs**: https://docs.railway.app
 - **Railway Templates**: https://railway.app/templates
 - **Railway CLI Reference**: https://docs.railway.app/develop/cli
 
 ### GitHub Actions
+
 - **Workflow Syntax**: https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
 - **Environment Protection**: https://docs.github.com/en/actions/deployment/targeting-different-environments
 
 ### Debugging
+
 - **Railway Logs**: `railway logs --service <name> --tail`
 - **Local Debugging**: `pnpm dev` (runs in watch mode)
 - **Production Debugging**: `railway shell --service <name>` (SSH into container)

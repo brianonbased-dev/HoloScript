@@ -110,6 +110,7 @@ $$C_N^{shared} = S + N \cdot R$$
 $$\sigma(N) = 1 - \frac{C_N^{shared}}{C_N^{indep}} = 1 - \frac{S + NR}{N(S + R)} = \frac{S(N-1)}{N(S+R)}$$
 
 **Properties:**
+
 - σ(1) = 0 (no savings for single user — trivially correct)
 - σ is monotonically increasing in N
 - lim(N→∞) σ = S/(S+R) (asymptotic ceiling)
@@ -127,11 +128,11 @@ $$\sigma(N) = 1 - \frac{C_N^{shared}}{C_N^{indep}} = 1 - \frac{S + NR}{N(S + R)}
 
 ### 4.2 Measured Performance
 
-| Config | Frame Time | Relative Cost | Savings |
-|--------|-----------|---------------|---------|
-| 1 user (baseline) | 8.2 ms | 1.0× | — |
-| 2 users (independent) | 16.4 ms | 2.0× | — |
-| **2 users (SS-MFGS)** | **11.5 ms** | **1.4×** | **30%** |
+| Config                | Frame Time  | Relative Cost | Savings |
+| --------------------- | ----------- | ------------- | ------- |
+| 1 user (baseline)     | 8.2 ms      | 1.0×          | —       |
+| 2 users (independent) | 16.4 ms     | 2.0×          | —       |
+| **2 users (SS-MFGS)** | **11.5 ms** | **1.4×**      | **30%** |
 
 From N=2 measurement: S/R ≈ 1.5, implying sort consumes ~60% of single-user frame time.
 
@@ -139,14 +140,14 @@ From N=2 measurement: S/R ≈ 1.5, implying sort consumes ~60% of single-user fr
 
 Using S/R = 1.5 derived from measurement:
 
-| N | C_shared/C_1 | C_indep/C_1 | Savings σ(N) | Projected Frame Time |
-|---|-------------|-------------|-------------|---------------------|
-| 1 | 1.0× | 1.0× | 0% | 8.2 ms |
-| 2 | **1.4×** | 2.0× | **30%** | 11.5 ms |
-| 4 | 2.2× | 4.0× | **45%** | 18.0 ms |
-| 8 | 3.8× | 8.0× | **52%** | 31.2 ms |
-| 16 | 7.0× | 16.0× | **56%** | 57.4 ms |
-| ∞ | — | — | **60%** | — |
+| N   | C_shared/C_1 | C_indep/C_1 | Savings σ(N) | Projected Frame Time |
+| --- | ------------ | ----------- | ------------ | -------------------- |
+| 1   | 1.0×         | 1.0×        | 0%           | 8.2 ms               |
+| 2   | **1.4×**     | 2.0×        | **30%**      | 11.5 ms              |
+| 4   | 2.2×         | 4.0×        | **45%**      | 18.0 ms              |
+| 8   | 3.8×         | 8.0×        | **52%**      | 31.2 ms              |
+| 16  | 7.0×         | 16.0×       | **56%**      | 57.4 ms              |
+| ∞   | —            | —           | **60%**      | —                    |
 
 **Asymptotic ceiling: 60% savings** (= S/(S+R) = 1.5/2.5).
 
@@ -169,14 +170,14 @@ Per-view visibility bitmask management, atomic buffer operations for shared sort
 
 The optimal SS-MFGS group size (N=4–8) coincides with independently discovered group-size optima across unrelated domains:
 
-| Domain | Optimal N | Source | Limiting Resource |
-|--------|-----------|--------|-------------------|
-| **SS-MFGS rendering** | 4–8 | This work | GPU bandwidth |
-| **Working memory** | 7 ± 2 | Miller (1956) | Attentional capacity |
-| **Conversation groups** | 4–8 | Dunbar (1998) | Auditory processing |
-| **Military fire teams** | 4–5 | US Army FM 7-8 | C2 coordination |
-| **Agile dev teams** | 5–9 | Scrum Guide | Communication channels |
-| **Primate grooming cliques** | 4–5 | Dunbar (1993) | Time budget |
+| Domain                       | Optimal N | Source         | Limiting Resource      |
+| ---------------------------- | --------- | -------------- | ---------------------- |
+| **SS-MFGS rendering**        | 4–8       | This work      | GPU bandwidth          |
+| **Working memory**           | 7 ± 2     | Miller (1956)  | Attentional capacity   |
+| **Conversation groups**      | 4–8       | Dunbar (1998)  | Auditory processing    |
+| **Military fire teams**      | 4–5       | US Army FM 7-8 | C2 coordination        |
+| **Agile dev teams**          | 5–9       | Scrum Guide    | Communication channels |
+| **Primate grooming cliques** | 4–5       | Dunbar (1993)  | Time budget            |
 
 ### 5.2 Structural Explanation
 
@@ -243,4 +244,4 @@ The universe renders in groups of seven. So should VR.
 
 ---
 
-*Draft generated 2026-03-04. Benchmark data: N=2 on RTX 4090, 500K Gaussians, Quest 3 resolution.*
+_Draft generated 2026-03-04. Benchmark data: N=2 on RTX 4090, 500K Gaussians, Quest 3 resolution._

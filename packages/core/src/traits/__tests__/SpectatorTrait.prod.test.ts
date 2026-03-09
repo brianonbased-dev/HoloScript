@@ -9,8 +9,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { spectatorHandler } from '../SpectatorTrait';
 
-function makeNode() { return { id: 'spectator_node' }; }
-function makeContext() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'spectator_node' };
+}
+function makeContext() {
+  return { emit: vi.fn() };
+}
 function attachNode(config: any = {}) {
   const node = makeNode();
   const ctx = makeContext();
@@ -23,9 +27,12 @@ function attachNode(config: any = {}) {
 
 describe('spectatorHandler.defaultConfig', () => {
   it('camera_mode = free', () => expect(spectatorHandler.defaultConfig!.camera_mode).toBe('free'));
-  it('follow_target = empty string', () => expect(spectatorHandler.defaultConfig!.follow_target).toBe(''));
-  it('can_interact = false', () => expect(spectatorHandler.defaultConfig!.can_interact).toBe(false));
-  it('visible_to_participants = false', () => expect(spectatorHandler.defaultConfig!.visible_to_participants).toBe(false));
+  it('follow_target = empty string', () =>
+    expect(spectatorHandler.defaultConfig!.follow_target).toBe(''));
+  it('can_interact = false', () =>
+    expect(spectatorHandler.defaultConfig!.can_interact).toBe(false));
+  it('visible_to_participants = false', () =>
+    expect(spectatorHandler.defaultConfig!.visible_to_participants).toBe(false));
   it('max_spectators = 50', () => expect(spectatorHandler.defaultConfig!.max_spectators).toBe(50));
   it('delay = 0', () => expect(spectatorHandler.defaultConfig!.delay).toBe(0));
   it('allowed_camera_modes includes free, follow, orbit', () => {
@@ -33,7 +40,8 @@ describe('spectatorHandler.defaultConfig', () => {
     expect(spectatorHandler.defaultConfig!.allowed_camera_modes).toContain('follow');
     expect(spectatorHandler.defaultConfig!.allowed_camera_modes).toContain('orbit');
   });
-  it('broadcast_events = true', () => expect(spectatorHandler.defaultConfig!.broadcast_events).toBe(true));
+  it('broadcast_events = true', () =>
+    expect(spectatorHandler.defaultConfig!.broadcast_events).toBe(true));
 });
 
 // ─── onAttach ────────────────────────────────────────────────────────────────
@@ -73,7 +81,10 @@ describe('spectatorHandler.onAttach', () => {
   });
   it('emits spectator_init with max_spectators and delay', () => {
     const { ctx } = attachNode({ max_spectators: 10, delay: 500 });
-    expect(ctx.emit).toHaveBeenCalledWith('spectator_init', expect.objectContaining({ maxSpectators: 10, delay: 500 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'spectator_init',
+      expect.objectContaining({ maxSpectators: 10, delay: 500 })
+    );
   });
 });
 
@@ -110,7 +121,10 @@ describe('spectatorHandler.onUpdate', () => {
     (node as any).__spectatorState.followTarget = 'player_2';
     ctx.emit.mockClear();
     spectatorHandler.onUpdate!(node, cfg, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('spectator_update_follow', expect.objectContaining({ targetId: 'player_2' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'spectator_update_follow',
+      expect.objectContaining({ targetId: 'player_2' })
+    );
   });
   it('does NOT emit spectator_update_follow when activeCamera != follow', () => {
     const { node, cfg, ctx } = attachNode();
@@ -135,15 +149,24 @@ describe('spectatorHandler.onEvent — spectator_join', () => {
     const { node, cfg, ctx } = attachNode();
     ctx.emit.mockClear();
     spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_join', spectatorId: 'spec_a' });
-    expect(ctx.emit).toHaveBeenCalledWith('spectator_setup', expect.objectContaining({ spectatorId: 'spec_a' }));
-    expect(ctx.emit).toHaveBeenCalledWith('on_spectator_join', expect.objectContaining({ spectatorId: 'spec_a', spectatorCount: 1 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'spectator_setup',
+      expect.objectContaining({ spectatorId: 'spec_a' })
+    );
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_spectator_join',
+      expect.objectContaining({ spectatorId: 'spec_a', spectatorCount: 1 })
+    );
   });
   it('rejects join when at max capacity and emits spectator_rejected', () => {
     const { node, cfg, ctx } = attachNode({ max_spectators: 1 });
     spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_join', spectatorId: 'spec_1' });
     ctx.emit.mockClear();
     spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_join', spectatorId: 'spec_2' });
-    expect(ctx.emit).toHaveBeenCalledWith('spectator_rejected', expect.objectContaining({ reason: 'max_capacity' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'spectator_rejected',
+      expect.objectContaining({ reason: 'max_capacity' })
+    );
     expect((node as any).__spectatorState.spectatorCount).toBe(1); // unchanged
   });
 });
@@ -163,7 +186,10 @@ describe('spectatorHandler.onEvent — spectator_leave', () => {
     spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_join', spectatorId: 'spec_Y' });
     ctx.emit.mockClear();
     spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_leave', spectatorId: 'spec_Y' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_spectator_leave', expect.objectContaining({ spectatorId: 'spec_Y' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_spectator_leave',
+      expect.objectContaining({ spectatorId: 'spec_Y' })
+    );
   });
   it('ignores leave for unknown spectator', () => {
     const { node, cfg, ctx } = attachNode();
@@ -179,21 +205,36 @@ describe('spectatorHandler.onEvent — spectator_set_camera', () => {
   it('updates spectator camera mode when allowed', () => {
     const { node, cfg, ctx } = attachNode({ allowed_camera_modes: ['free', 'orbit'] });
     spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_join', spectatorId: 'sp1' });
-    spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_set_camera', spectatorId: 'sp1', mode: 'orbit' });
+    spectatorHandler.onEvent!(node, cfg, ctx, {
+      type: 'spectator_set_camera',
+      spectatorId: 'sp1',
+      mode: 'orbit',
+    });
     expect((node as any).__spectatorState.spectators.get('sp1').cameraMode).toBe('orbit');
   });
   it('emits spectator_camera_change on allowed mode', () => {
     const { node, cfg, ctx } = attachNode({ allowed_camera_modes: ['free', 'orbit'] });
     spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_join', spectatorId: 'sp1' });
     ctx.emit.mockClear();
-    spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_set_camera', spectatorId: 'sp1', mode: 'orbit' });
-    expect(ctx.emit).toHaveBeenCalledWith('spectator_camera_change', expect.objectContaining({ mode: 'orbit' }));
+    spectatorHandler.onEvent!(node, cfg, ctx, {
+      type: 'spectator_set_camera',
+      spectatorId: 'sp1',
+      mode: 'orbit',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'spectator_camera_change',
+      expect.objectContaining({ mode: 'orbit' })
+    );
   });
   it('ignores disallowed camera mode', () => {
     const { node, cfg, ctx } = attachNode({ allowed_camera_modes: ['free'] }); // 'cinematic' not allowed
     spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_join', spectatorId: 'sp2' });
     ctx.emit.mockClear();
-    spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_set_camera', spectatorId: 'sp2', mode: 'cinematic' });
+    spectatorHandler.onEvent!(node, cfg, ctx, {
+      type: 'spectator_set_camera',
+      spectatorId: 'sp2',
+      mode: 'cinematic',
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('spectator_camera_change', expect.any(Object));
   });
 });
@@ -209,10 +250,17 @@ describe('spectatorHandler.onEvent — spectator_set_follow', () => {
   it('emits spectator_update_target for spectators in follow mode', () => {
     const { node, cfg, ctx } = attachNode({ allowed_camera_modes: ['free', 'follow'] });
     spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_join', spectatorId: 'sp3' });
-    spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_set_camera', spectatorId: 'sp3', mode: 'follow' });
+    spectatorHandler.onEvent!(node, cfg, ctx, {
+      type: 'spectator_set_camera',
+      spectatorId: 'sp3',
+      mode: 'follow',
+    });
     ctx.emit.mockClear();
     spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_set_follow', targetId: 'boss' });
-    expect(ctx.emit).toHaveBeenCalledWith('spectator_update_target', expect.objectContaining({ spectatorId: 'sp3', targetId: 'boss' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'spectator_update_target',
+      expect.objectContaining({ spectatorId: 'sp3', targetId: 'boss' })
+    );
   });
 });
 
@@ -222,8 +270,14 @@ describe('spectatorHandler.onEvent — spectator_broadcast', () => {
   it('emits spectator_event_broadcast immediately when delay=0', () => {
     const { node, cfg, ctx } = attachNode({ delay: 0, broadcast_events: true });
     ctx.emit.mockClear();
-    spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_broadcast', data: { foo: 'bar' } });
-    expect(ctx.emit).toHaveBeenCalledWith('spectator_event_broadcast', expect.objectContaining({ data: { foo: 'bar' } }));
+    spectatorHandler.onEvent!(node, cfg, ctx, {
+      type: 'spectator_broadcast',
+      data: { foo: 'bar' },
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'spectator_event_broadcast',
+      expect.objectContaining({ data: { foo: 'bar' } })
+    );
   });
   it('does NOT emit broadcast when broadcast_events=false', () => {
     const { node, cfg, ctx } = attachNode({ broadcast_events: false });
@@ -244,16 +298,27 @@ describe('spectatorHandler.onEvent — misc events', () => {
   it('spectator_toggle_visibility emits spectator_visibility_change', () => {
     const { node, cfg, ctx } = attachNode();
     ctx.emit.mockClear();
-    spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_toggle_visibility', visible: true });
-    expect(ctx.emit).toHaveBeenCalledWith('spectator_visibility_change', expect.objectContaining({ visible: true }));
+    spectatorHandler.onEvent!(node, cfg, ctx, {
+      type: 'spectator_toggle_visibility',
+      visible: true,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'spectator_visibility_change',
+      expect.objectContaining({ visible: true })
+    );
   });
   it('spectator_query emits spectator_info with count, camera, followTarget, delay, spectatorIds', () => {
     const { node, cfg, ctx } = attachNode();
     spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_join', spectatorId: 'sp_q' });
     ctx.emit.mockClear();
     spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_query', queryId: 'q99' });
-    expect(ctx.emit).toHaveBeenCalledWith('spectator_info', expect.objectContaining({
-      queryId: 'q99', spectatorCount: 1, spectatorIds: ['sp_q'],
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'spectator_info',
+      expect.objectContaining({
+        queryId: 'q99',
+        spectatorCount: 1,
+        spectatorIds: ['sp_q'],
+      })
+    );
   });
 });

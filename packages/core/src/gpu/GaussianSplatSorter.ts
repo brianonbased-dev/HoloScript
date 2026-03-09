@@ -101,7 +101,7 @@ export interface CameraState {
 
 const RADIX_BITS = 8;
 const RADIX_SIZE = 256; // 2^8
-const NUM_PASSES = 4;   // 32-bit keys / 8 bits per pass
+const NUM_PASSES = 4; // 32-bit keys / 8 bits per pass
 const BYTES_PER_COMPRESSED_SPLAT = 32;
 const BYTES_PER_RAW_SPLAT = 64; // vec3 pos + vec3 scale + vec4 rot + vec4 color
 
@@ -216,7 +216,9 @@ export class GaussianSplatSorter {
         const info = await module.getCompilationInfo();
         for (const msg of info.messages) {
           if (msg.type === 'error') {
-            throw new Error(`Shader compilation error in ${label}: ${msg.message} (line ${msg.lineNum})`);
+            throw new Error(
+              `Shader compilation error in ${label}: ${msg.message} (line ${msg.lineNum})`
+            );
           }
           if (msg.type === 'warning') {
             console.warn(`Shader warning in ${label}: ${msg.message} (line ${msg.lineNum})`);
@@ -316,22 +318,24 @@ export class GaussianSplatSorter {
       fragment: {
         module: this.renderShaderModule,
         entryPoint: 'fs_main',
-        targets: [{
-          format: navigator.gpu.getPreferredCanvasFormat(),
-          blend: {
-            // Premultiplied alpha blending (back-to-front)
-            color: {
-              srcFactor: 'one',
-              dstFactor: 'one-minus-src-alpha',
-              operation: 'add',
-            },
-            alpha: {
-              srcFactor: 'one',
-              dstFactor: 'one-minus-src-alpha',
-              operation: 'add',
+        targets: [
+          {
+            format: navigator.gpu.getPreferredCanvasFormat(),
+            blend: {
+              // Premultiplied alpha blending (back-to-front)
+              color: {
+                srcFactor: 'one',
+                dstFactor: 'one-minus-src-alpha',
+                operation: 'add',
+              },
+              alpha: {
+                srcFactor: 'one',
+                dstFactor: 'one-minus-src-alpha',
+                operation: 'add',
+              },
             },
           },
-        }],
+        ],
       },
       primitive: {
         topology: 'triangle-strip',
@@ -453,10 +457,12 @@ export class GaussianSplatSorter {
       0,
       data.buffer,
       data.byteOffset,
-      count * BYTES_PER_RAW_SPLAT,
+      count * BYTES_PER_RAW_SPLAT
     );
 
-    console.log(`Uploaded ${count} splats (${(count * BYTES_PER_RAW_SPLAT / 1024 / 1024).toFixed(2)} MB)`);
+    console.log(
+      `Uploaded ${count} splats (${((count * BYTES_PER_RAW_SPLAT) / 1024 / 1024).toFixed(2)} MB)`
+    );
   }
 
   // ===========================================================================
@@ -478,9 +484,11 @@ export class GaussianSplatSorter {
       throw new Error('Not initialized. Call initialize() first.');
     }
 
-    const encoder = commandEncoder ?? this.device.createCommandEncoder({
-      label: 'gaussian-splat-sort-encoder',
-    });
+    const encoder =
+      commandEncoder ??
+      this.device.createCommandEncoder({
+        label: 'gaussian-splat-sort-encoder',
+      });
 
     // Step 1: Compress splats and generate sort keys
     this.recordCompressPass(encoder, camera);
@@ -490,7 +498,7 @@ export class GaussianSplatSorter {
     // Ping-pong between keysA/valuesA and keysB/valuesB
     for (let pass = 0; pass < NUM_PASSES; pass++) {
       const bitOffset = pass * RADIX_BITS;
-      const readFromA = (pass % 2) === 0;
+      const readFromA = pass % 2 === 0;
 
       this.recordSortPass(encoder, bitOffset, readFromA);
     }
@@ -508,18 +516,18 @@ export class GaussianSplatSorter {
 
     // Update compress uniforms
     const uniforms = new Float32Array(40); // 160 bytes / 4
-    uniforms.set(camera.viewMatrix, 0);      // offset 0: viewMatrix (16 floats)
-    uniforms.set(camera.projMatrix, 16);     // offset 64: projMatrix (16 floats)
+    uniforms.set(camera.viewMatrix, 0); // offset 0: viewMatrix (16 floats)
+    uniforms.set(camera.projMatrix, 16); // offset 64: projMatrix (16 floats)
 
     const uintView = new Uint32Array(uniforms.buffer);
-    uniforms[32] = this.options.canvasWidth;  // screenWidth
+    uniforms[32] = this.options.canvasWidth; // screenWidth
     uniforms[33] = this.options.canvasHeight; // screenHeight
-    uniforms[34] = camera.focalX;            // focalX
-    uniforms[35] = camera.focalY;            // focalY
-    uintView[36] = this.splatCount;          // splatCount
-    uintView[37] = 0;                        // pad
-    uintView[38] = 0;                        // pad
-    uintView[39] = 0;                        // pad
+    uniforms[34] = camera.focalX; // focalX
+    uniforms[35] = camera.focalY; // focalY
+    uintView[36] = this.splatCount; // splatCount
+    uintView[37] = 0; // pad
+    uintView[38] = 0; // pad
+    uintView[39] = 0; // pad
 
     this.device.queue.writeBuffer(this.compressUniformBuffer, 0, uniforms);
 
@@ -540,20 +548,14 @@ export class GaussianSplatSorter {
     const computePass = encoder.beginComputePass({ label: 'compress-pass' });
     computePass.setPipeline(this.compressPipeline);
     computePass.setBindGroup(0, this.compressBindGroup);
-    computePass.dispatchWorkgroups(
-      Math.ceil(this.splatCount / this.options.workgroupSize),
-    );
+    computePass.dispatchWorkgroups(Math.ceil(this.splatCount / this.options.workgroupSize));
     computePass.end();
   }
 
   /**
    * Record one radix sort pass (histogram + scan + scatter).
    */
-  private recordSortPass(
-    encoder: GPUCommandEncoder,
-    bitOffset: number,
-    readFromA: boolean,
-  ): void {
+  private recordSortPass(encoder: GPUCommandEncoder, bitOffset: number, readFromA: boolean): void {
     const keysIn = readFromA ? this.sortKeysA! : this.sortKeysB!;
     const keysOut = readFromA ? this.sortKeysB! : this.sortKeysA!;
     const valuesIn = readFromA ? this.sortValuesA! : this.sortValuesB!;
@@ -671,7 +673,7 @@ export class GaussianSplatSorter {
     camera: CameraState,
     colorView: GPUTextureView,
     depthView: GPUTextureView,
-    clearColor?: GPUColor,
+    clearColor?: GPUColor
   ): void {
     if (!this.renderPipeline || !this.renderUniformBuffer) {
       throw new Error('Render pipeline not created');
@@ -679,8 +681,8 @@ export class GaussianSplatSorter {
 
     // Update render uniforms
     const renderUniforms = new Float32Array(40); // 160 bytes
-    renderUniforms.set(camera.viewProjectionMatrix, 0);  // viewProjection (16 floats)
-    renderUniforms.set(camera.viewMatrix, 16);           // viewMatrix (16 floats)
+    renderUniforms.set(camera.viewProjectionMatrix, 0); // viewProjection (16 floats)
+    renderUniforms.set(camera.viewMatrix, 16); // viewMatrix (16 floats)
     renderUniforms[32] = camera.cameraPosition[0];
     renderUniforms[33] = camera.cameraPosition[1];
     renderUniforms[34] = camera.cameraPosition[2];
@@ -710,12 +712,14 @@ export class GaussianSplatSorter {
     // Record render pass
     const renderPass = encoder.beginRenderPass({
       label: 'sorted-splat-render-pass',
-      colorAttachments: [{
-        view: colorView,
-        clearValue: clearColor ?? { r: 0, g: 0, b: 0, a: 0 },
-        loadOp: clearColor ? 'clear' : 'load',
-        storeOp: 'store',
-      }],
+      colorAttachments: [
+        {
+          view: colorView,
+          clearValue: clearColor ?? { r: 0, g: 0, b: 0, a: 0 },
+          loadOp: clearColor ? 'clear' : 'load',
+          storeOp: 'store',
+        },
+      ],
       depthStencilAttachment: {
         view: depthView,
         depthClearValue: 1.0,
@@ -745,7 +749,7 @@ export class GaussianSplatSorter {
     camera: CameraState,
     colorView: GPUTextureView,
     depthView: GPUTextureView,
-    clearColor?: GPUColor,
+    clearColor?: GPUColor
   ): void {
     const encoder = this.device.createCommandEncoder({
       label: 'gaussian-splat-frame-encoder',
@@ -786,12 +790,14 @@ export class GaussianSplatSorter {
     );
 
     return (
-      maxSplats * BYTES_PER_RAW_SPLAT +        // raw splats
-      maxSplats * BYTES_PER_COMPRESSED_SPLAT +  // compressed splats
-      maxSplats * 4 * 4 +                       // 2x keys + 2x values (u32 each)
-      maxBlocks * RADIX_SIZE * 4 +              // block histograms
-      RADIX_SIZE * 4 +                          // global prefixes
-      160 + 16 + 160                            // uniform buffers
+      maxSplats * BYTES_PER_RAW_SPLAT + // raw splats
+      maxSplats * BYTES_PER_COMPRESSED_SPLAT + // compressed splats
+      maxSplats * 4 * 4 + // 2x keys + 2x values (u32 each)
+      maxBlocks * RADIX_SIZE * 4 + // block histograms
+      RADIX_SIZE * 4 + // global prefixes
+      160 +
+      16 +
+      160 // uniform buffers
     );
   }
 
@@ -903,7 +909,7 @@ export class GaussianSplatSorter {
  * ```
  */
 export async function createGaussianSplatSorter(
-  options: GaussianSplatSorterOptions & { contextOptions?: any },
+  options: GaussianSplatSorterOptions & { contextOptions?: any }
 ): Promise<GaussianSplatSorter> {
   const { WebGPUContext } = await import('./WebGPUContext.js');
 

@@ -22,47 +22,133 @@ import { ProjectileSystem } from '../ProjectileSystem';
 
 describe('CombatManager', () => {
   let cm: CombatManager;
-  beforeEach(() => { cm = new CombatManager(); });
+  beforeEach(() => {
+    cm = new CombatManager();
+  });
 
   it('adds and counts hitboxes', () => {
-    cm.addHitBox({ id: 'hb1', ownerId: 'a', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true, damage: 10, damageType: 'physical', knockback: 1 });
+    cm.addHitBox({
+      id: 'hb1',
+      ownerId: 'a',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+      damage: 10,
+      damageType: 'physical',
+      knockback: 1,
+    });
     expect(cm.getHitBoxCount()).toBe(1);
   });
 
   it('adds and counts hurtboxes', () => {
-    cm.addHurtBox({ id: 'hr1', ownerId: 'b', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true });
+    cm.addHurtBox({
+      id: 'hr1',
+      ownerId: 'b',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+    });
     expect(cm.getHurtBoxCount()).toBe(1);
   });
 
   it('removes hitbox', () => {
-    cm.addHitBox({ id: 'hb1', ownerId: 'a', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true, damage: 10, damageType: 'physical', knockback: 1 });
+    cm.addHitBox({
+      id: 'hb1',
+      ownerId: 'a',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+      damage: 10,
+      damageType: 'physical',
+      knockback: 1,
+    });
     cm.removeHitBox('hb1');
     expect(cm.getHitBoxCount()).toBe(0);
   });
 
   it('detects AABB collision between overlapping boxes', () => {
-    cm.addHitBox({ id: 'hb1', ownerId: 'attacker', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true, damage: 20, damageType: 'physical', knockback: 1 });
-    cm.addHurtBox({ id: 'hr1', ownerId: 'defender', position: { x: 0.5, y: 0.5, z: 0.5 }, size: { x: 2, y: 2, z: 2 }, active: true });
+    cm.addHitBox({
+      id: 'hb1',
+      ownerId: 'attacker',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+      damage: 20,
+      damageType: 'physical',
+      knockback: 1,
+    });
+    cm.addHurtBox({
+      id: 'hr1',
+      ownerId: 'defender',
+      position: { x: 0.5, y: 0.5, z: 0.5 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+    });
     const hits = cm.checkCollisions();
     expect(hits.length).toBeGreaterThan(0);
     expect(hits[0].hitbox.damage).toBe(20);
   });
 
   it('no self-hit collision', () => {
-    cm.addHitBox({ id: 'hb1', ownerId: 'same', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true, damage: 10, damageType: 'physical', knockback: 1 });
-    cm.addHurtBox({ id: 'hr1', ownerId: 'same', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true });
+    cm.addHitBox({
+      id: 'hb1',
+      ownerId: 'same',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+      damage: 10,
+      damageType: 'physical',
+      knockback: 1,
+    });
+    cm.addHurtBox({
+      id: 'hr1',
+      ownerId: 'same',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+    });
     expect(cm.checkCollisions().length).toBe(0);
   });
 
   it('no collision when hitbox inactive', () => {
-    cm.addHitBox({ id: 'hb1', ownerId: 'a', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: false, damage: 10, damageType: 'physical', knockback: 1 });
-    cm.addHurtBox({ id: 'hr1', ownerId: 'b', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true });
+    cm.addHitBox({
+      id: 'hb1',
+      ownerId: 'a',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: false,
+      damage: 10,
+      damageType: 'physical',
+      knockback: 1,
+    });
+    cm.addHurtBox({
+      id: 'hr1',
+      ownerId: 'b',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+    });
     expect(cm.checkCollisions().length).toBe(0);
   });
 
   it('setHitBoxActive toggles collision', () => {
-    cm.addHitBox({ id: 'hb1', ownerId: 'a', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: false, damage: 10, damageType: 'physical', knockback: 1 });
-    cm.addHurtBox({ id: 'hr1', ownerId: 'b', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true });
+    cm.addHitBox({
+      id: 'hb1',
+      ownerId: 'a',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: false,
+      damage: 10,
+      damageType: 'physical',
+      knockback: 1,
+    });
+    cm.addHurtBox({
+      id: 'hr1',
+      ownerId: 'b',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+    });
     cm.setHitBoxActive('hb1', true);
     expect(cm.checkCollisions().length).toBeGreaterThan(0);
   });
@@ -116,8 +202,23 @@ describe('CombatManager', () => {
   });
 
   it('returns hit log after collisions', () => {
-    cm.addHitBox({ id: 'hb1', ownerId: 'a', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true, damage: 10, damageType: 'physical', knockback: 1 });
-    cm.addHurtBox({ id: 'hr1', ownerId: 'b', position: { x: 0, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active: true });
+    cm.addHitBox({
+      id: 'hb1',
+      ownerId: 'a',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+      damage: 10,
+      damageType: 'physical',
+      knockback: 1,
+    });
+    cm.addHurtBox({
+      id: 'hr1',
+      ownerId: 'b',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      active: true,
+    });
     cm.checkCollisions();
     expect(cm.getHitLog().length).toBe(1);
   });
@@ -161,7 +262,7 @@ describe('DamageSystem', () => {
 
   it('armor penetration reduces effective resistance', () => {
     ds.setResistances('t', { physical: 1.0 }); // fully resistant
-    ds.setConfig({ armorPenetration: 1.0 });    // fully penetrate
+    ds.setConfig({ armorPenetration: 1.0 }); // fully penetrate
     const inst = ds.calculateDamage('s', 't', 100, 'physical', false);
     expect(inst.finalDamage).toBeCloseTo(100);
   });
@@ -169,7 +270,7 @@ describe('DamageSystem', () => {
   it('fires onDamage callbacks', () => {
     ds.setConfig({ critChance: 0, critMultiplier: 1, globalMultiplier: 1 });
     const events: number[] = [];
-    ds.onDamage(d => events.push(d.finalDamage));
+    ds.onDamage((d) => events.push(d.finalDamage));
     ds.calculateDamage('s', 't', 50, 'true', false);
     expect(events).toHaveLength(1);
     expect(events[0]).toBe(50);
@@ -210,11 +311,18 @@ describe('DamageSystem', () => {
 describe('StatusEffectSystem', () => {
   let sys: StatusEffectSystem;
   const base = {
-    name: 'burn', type: 'debuff' as const, duration: 5,
-    maxStacks: 3, stackBehavior: 'stack' as const,
-    modifiers: [], tickInterval: 1, tickDamage: 10,
+    name: 'burn',
+    type: 'debuff' as const,
+    duration: 5,
+    maxStacks: 3,
+    stackBehavior: 'stack' as const,
+    modifiers: [],
+    tickInterval: 1,
+    tickDamage: 10,
   };
-  beforeEach(() => { sys = new StatusEffectSystem(); });
+  beforeEach(() => {
+    sys = new StatusEffectSystem();
+  });
 
   it('applies a status effect', () => {
     sys.apply('entity1', base);
@@ -228,7 +336,7 @@ describe('StatusEffectSystem', () => {
     sys.apply('e', base);
     sys.apply('e', base); // beyond max
     const effects = sys.getEffects('e');
-    const burn = effects.find(e => e.name === 'burn');
+    const burn = effects.find((e) => e.name === 'burn');
     expect(burn?.stacks).toBe(3);
   });
 
@@ -237,14 +345,14 @@ describe('StatusEffectSystem', () => {
     sys.apply('e', refresh);
     sys.update(2); // elapse 2s
     sys.apply('e', refresh); // refresh
-    expect(sys.getEffects('e').find(x => x.name === 'chill')?.elapsed).toBe(0);
+    expect(sys.getEffects('e').find((x) => x.name === 'chill')?.elapsed).toBe(0);
   });
 
   it('ignores reapply (ignore behavior)', () => {
     const ign = { ...base, name: 'shield', stackBehavior: 'ignore' as const };
     sys.apply('e', ign);
     sys.apply('e', { ...ign, tickDamage: 999 });
-    expect(sys.getEffects('e').find(x => x.name === 'shield')?.tickDamage).toBe(10);
+    expect(sys.getEffects('e').find((x) => x.name === 'shield')?.tickDamage).toBe(10);
   });
 
   it('removes effect by name', () => {
@@ -280,9 +388,13 @@ describe('StatusEffectSystem', () => {
 
   it('computes stat modifiers from stacked effects', () => {
     sys.apply('e', {
-      ...base, name: 'str_up', type: 'buff', stackBehavior: 'stack',
+      ...base,
+      name: 'str_up',
+      type: 'buff',
+      stackBehavior: 'stack',
       modifiers: [{ stat: 'strength', flat: 10, percent: 1.0 }],
-      tickInterval: 0, tickDamage: 0,
+      tickInterval: 0,
+      tickDamage: 0,
     });
     const mod = sys.getStatModifiers('e', 'strength');
     expect(mod.flat).toBe(10);
@@ -325,7 +437,12 @@ describe('ComboTracker', () => {
   });
 
   it('single-step combo completes immediately', () => {
-    ct.registerCombo({ id: 'quick', name: 'Quick', steps: [{ input: 'kick', maxDelay: 200 }], reward: 'quick_kick' });
+    ct.registerCombo({
+      id: 'quick',
+      name: 'Quick',
+      steps: [{ input: 'kick', maxDelay: 200 }],
+      reward: 'quick_kick',
+    });
     const r = ct.pushInput('kick', 0);
     expect(r).toBe('quick_kick');
   });
@@ -357,18 +474,35 @@ describe('ComboTracker', () => {
 describe('HitboxSystem', () => {
   let hs: HitboxSystem;
   const makeHB = (ownerId: string, active: [number, number]) => ({
-    id: `hb_${ownerId}`, ownerId,
-    x: 0, y: 0, z: 0, width: 2, height: 2, depth: 2,
-    damage: 15, knockbackX: 1, knockbackY: 0.5,
-    activeStart: active[0], activeEnd: active[1],
+    id: `hb_${ownerId}`,
+    ownerId,
+    x: 0,
+    y: 0,
+    z: 0,
+    width: 2,
+    height: 2,
+    depth: 2,
+    damage: 15,
+    knockbackX: 1,
+    knockbackY: 0.5,
+    activeStart: active[0],
+    activeEnd: active[1],
     group: `grp_${ownerId}`,
   });
   const makeHR = (entityId: string) => ({
-    id: `hr_${entityId}`, entityId,
-    x: 0, y: 0, z: 0, width: 2, height: 2, depth: 2,
+    id: `hr_${entityId}`,
+    entityId,
+    x: 0,
+    y: 0,
+    z: 0,
+    width: 2,
+    height: 2,
+    depth: 2,
   });
 
-  beforeEach(() => { hs = new HitboxSystem(); });
+  beforeEach(() => {
+    hs = new HitboxSystem();
+  });
 
   it('registers hitbox and hurtbox', () => {
     hs.addHitbox(makeHB('a', [1, 5]));
@@ -424,11 +558,17 @@ describe('HitboxSystem', () => {
 describe('ProjectileSystem', () => {
   let ps: ProjectileSystem;
   const cfg = {
-    speed: 10, lifetime: 5, damage: 20,
-    homing: false, homingStrength: 0,
-    piercing: 0, gravity: 0,
+    speed: 10,
+    lifetime: 5,
+    damage: 20,
+    homing: false,
+    homingStrength: 0,
+    piercing: 0,
+    gravity: 0,
   };
-  beforeEach(() => { ps = new ProjectileSystem(); });
+  beforeEach(() => {
+    ps = new ProjectileSystem();
+  });
 
   it('spawns a projectile and tracks it', () => {
     const id = ps.spawn('own', 0, 0, 0, 1, 0, 0, cfg);
@@ -468,7 +608,9 @@ describe('ProjectileSystem', () => {
 
   it('fires impact callback on hit and kills non-piercing projectile', () => {
     let hit = false;
-    ps.setImpactCallback(() => { hit = true; });
+    ps.setImpactCallback(() => {
+      hit = true;
+    });
     const id = ps.spawn('own', 0, 0, 0, 1, 0, 0, cfg);
     const targets = [{ id: 'enemy', x: 0.1, y: 0, z: 0, radius: 5 }];
     ps.update(0, targets);

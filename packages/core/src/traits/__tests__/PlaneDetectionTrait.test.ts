@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { planeDetectionHandler } from '../PlaneDetectionTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('PlaneDetectionTrait', () => {
   let node: Record<string, unknown>;
@@ -41,20 +48,32 @@ describe('PlaneDetectionTrait', () => {
   });
 
   it('plane_detected adds plane and emits found', () => {
-    sendEvent(planeDetectionHandler, node, cfg, ctx, { type: 'plane_detected', plane: makePlane('p1') });
+    sendEvent(planeDetectionHandler, node, cfg, ctx, {
+      type: 'plane_detected',
+      plane: makePlane('p1'),
+    });
     expect((node as any).__planeDetectionState.planes.size).toBe(1);
     expect(getEventCount(ctx, 'plane_found')).toBe(1);
   });
 
   it('updating existing plane emits updated not found', () => {
-    sendEvent(planeDetectionHandler, node, cfg, ctx, { type: 'plane_detected', plane: makePlane('p1') });
-    sendEvent(planeDetectionHandler, node, cfg, ctx, { type: 'plane_detected', plane: makePlane('p1', 2) });
+    sendEvent(planeDetectionHandler, node, cfg, ctx, {
+      type: 'plane_detected',
+      plane: makePlane('p1'),
+    });
+    sendEvent(planeDetectionHandler, node, cfg, ctx, {
+      type: 'plane_detected',
+      plane: makePlane('p1', 2),
+    });
     expect(getEventCount(ctx, 'plane_found')).toBe(1);
     expect(getEventCount(ctx, 'plane_updated')).toBe(1);
   });
 
   it('filters by min_area', () => {
-    sendEvent(planeDetectionHandler, node, cfg, ctx, { type: 'plane_detected', plane: makePlane('small', 0.1) });
+    sendEvent(planeDetectionHandler, node, cfg, ctx, {
+      type: 'plane_detected',
+      plane: makePlane('small', 0.1),
+    });
     expect((node as any).__planeDetectionState.planes.size).toBe(0);
   });
 
@@ -63,7 +82,10 @@ describe('PlaneDetectionTrait', () => {
     const n2 = createMockNode('hp');
     const c2 = createMockContext();
     attachTrait(planeDetectionHandler, n2, hCfg, c2);
-    sendEvent(planeDetectionHandler, n2, hCfg, c2, { type: 'plane_detected', plane: makePlane('wall', 1, 0) });
+    sendEvent(planeDetectionHandler, n2, hCfg, c2, {
+      type: 'plane_detected',
+      plane: makePlane('wall', 1, 0),
+    });
     expect((n2 as any).__planeDetectionState.planes.size).toBe(0);
   });
 

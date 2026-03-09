@@ -114,8 +114,8 @@ describe('NodeGraph', () => {
   });
 
   it('evaluate MathAdd chain: (0+0)*1=0 via connections', () => {
-    const add = graph.addNode('MathAdd');      // 0+0=0
-    const mul = graph.addNode('MathMultiply');  // default b=1 
+    const add = graph.addNode('MathAdd'); // 0+0=0
+    const mul = graph.addNode('MathMultiply'); // default b=1
     graph.connect(add.id, 'result', mul.id, 'a');
     const results = graph.evaluate(makeCtx());
     expect(results.get(mul.id)?.result).toBe(0);
@@ -201,7 +201,7 @@ describe('NodeGraph', () => {
       'Double',
       [{ name: 'val', type: 'number', defaultValue: 7 }],
       [{ name: 'result', type: 'number' }],
-      (_node, inputs) => ({ result: (inputs.val as number) * 2 }),
+      (_node, inputs) => ({ result: (inputs.val as number) * 2 })
     );
     const n = graph.addNode('Double');
     const results = graph.evaluate(makeCtx());
@@ -246,7 +246,7 @@ describe('NodeGraphCompiler', () => {
     const graph = new NodeGraph();
     graph.addNode('Timer', { x: 0, y: 0 }, { duration: 2, loop: true });
     const result = compiler.compile(graph);
-    const timerDirective = result.directives.find(d => d.name === 'on_update');
+    const timerDirective = result.directives.find((d) => d.name === 'on_update');
     expect(timerDirective).toBeDefined();
   });
 

@@ -11,7 +11,9 @@ describe('Cycle 143: Object Pooling', () => {
   it('should pre-allocate and acquire/release objects', () => {
     const pool = new ObjectPool<{ value: number }>({
       factory: () => ({ value: 0 }),
-      reset: (obj) => { obj.value = 0; },
+      reset: (obj) => {
+        obj.value = 0;
+      },
       initialSize: 5,
       maxSize: 10,
       autoExpand: false,
@@ -38,7 +40,8 @@ describe('Cycle 143: Object Pooling', () => {
       expandAmount: 3,
     });
 
-    pool.acquire(); pool.acquire();
+    pool.acquire();
+    pool.acquire();
     expect(pool.getFreeCount()).toBe(0);
 
     const obj = pool.acquire(); // Triggers expand
@@ -93,8 +96,10 @@ describe('Cycle 143: Object Pooling', () => {
     const spawner = new PooledSpawner();
     spawner.registerPrefab({
       id: 'particle',
-      poolSize: 5, maxInstances: 20,
-      autoExpand: false, defaultLifetime: 2,
+      poolSize: 5,
+      maxInstances: 20,
+      autoExpand: false,
+      defaultLifetime: 2,
     });
 
     spawner.spawn('particle');
@@ -127,7 +132,7 @@ describe('Cycle 143: Object Pooling', () => {
 
     const report = diag.getHealthReport('test')!;
     expect(report.utilization).toBeCloseTo(1.0, 1);
-    expect(report.warnings.some(w => w.includes('capacity'))).toBe(true);
+    expect(report.warnings.some((w) => w.includes('capacity'))).toBe(true);
   });
 
   it('should detect potential leaks', () => {
@@ -147,7 +152,9 @@ describe('Cycle 143: Object Pooling', () => {
 
     // Wait a tiny bit for the threshold to pass
     const start = Date.now();
-    while (Date.now() - start < 5) { /* spin */ }
+    while (Date.now() - start < 5) {
+      /* spin */
+    }
 
     const leaks = diag.getLeaks();
     expect(leaks.length).toBe(1);

@@ -38,9 +38,15 @@ function printBanner(options: CLIOptions, rootDir: string): void {
   console.log(`${C.cyan}${C.bold}${'='.repeat(60)}${C.reset}`);
   console.log('');
   console.log(`  ${C.dim}Root:${C.reset}          ${rootDir}`);
-  console.log(`  ${C.dim}Cycles:${C.reset}        ${options.daemonMode ? 'Continuous (daemon)' : (options.cycles ?? 5)}`);
-  console.log(`  ${C.dim}Auto-commit:${C.reset}   ${options.autoCommit ? `${C.green}YES${C.reset}` : `${C.yellow}NO${C.reset}`}`);
-  console.log(`  ${C.dim}Harvest:${C.reset}       ${options.harvest ? `${C.green}YES${C.reset}` : `${C.dim}NO${C.reset}`}`);
+  console.log(
+    `  ${C.dim}Cycles:${C.reset}        ${options.daemonMode ? 'Continuous (daemon)' : (options.cycles ?? 5)}`
+  );
+  console.log(
+    `  ${C.dim}Auto-commit:${C.reset}   ${options.autoCommit ? `${C.green}YES${C.reset}` : `${C.yellow}NO${C.reset}`}`
+  );
+  console.log(
+    `  ${C.dim}Harvest:${C.reset}       ${options.harvest ? `${C.green}YES${C.reset}` : `${C.dim}NO${C.reset}`}`
+  );
   console.log(`  ${C.dim}Max failures:${C.reset}  ${options.maxFailures ?? 3}`);
   console.log(`  ${C.dim}Verbose:${C.reset}       ${options.verbose ? 'YES' : 'NO'}`);
   console.log('');
@@ -53,7 +59,7 @@ function printIterationSummary(
   testPassed: boolean,
   committed: boolean,
   qualityPercent: number | null,
-  convergenceSlope: number | null,
+  convergenceSlope: number | null
 ): void {
   const status = testPassed ? `${C.green}PASS${C.reset}` : `${C.red}FAIL${C.reset}`;
   const commitStr = committed ? `${C.green}committed${C.reset}` : `${C.dim}skipped${C.reset}`;
@@ -61,7 +67,9 @@ function printIterationSummary(
   const slopeStr = convergenceSlope !== null ? convergenceSlope.toFixed(4) : 'N/A';
 
   console.log(`  ${C.bold}[${iteration}/${total}]${C.reset} ${target ?? 'no target'}`);
-  console.log(`    Test: ${status} | Commit: ${commitStr} | Quality: ${qualityStr} | Slope: ${slopeStr}`);
+  console.log(
+    `    Test: ${status} | Commit: ${commitStr} | Quality: ${qualityStr} | Slope: ${slopeStr}`
+  );
 }
 
 function printFinalSummary(
@@ -70,7 +78,7 @@ function printFinalSummary(
   abortReason: string | null,
   qualityPercent: number | null,
   duration: number,
-  harvestFile: string | null,
+  harvestFile: string | null
 ): void {
   console.log('');
   console.log(`${C.cyan}${C.bold}${'='.repeat(60)}${C.reset}`);
@@ -80,7 +88,9 @@ function printFinalSummary(
   console.log(`  ${C.dim}Tests added:${C.reset}     ${totalTests}`);
   console.log(`  ${C.dim}Commits:${C.reset}         ${totalCommits}`);
   console.log(`  ${C.dim}Stop reason:${C.reset}     ${abortReason ?? 'completed'}`);
-  console.log(`  ${C.dim}Final quality:${C.reset}   ${qualityPercent !== null ? `${qualityPercent.toFixed(1)}%` : 'N/A'}`);
+  console.log(
+    `  ${C.dim}Final quality:${C.reset}   ${qualityPercent !== null ? `${qualityPercent.toFixed(1)}%` : 'N/A'}`
+  );
   console.log(`  ${C.dim}Duration:${C.reset}        ${(duration / 1000).toFixed(1)}s`);
 
   if (harvestFile) {
@@ -103,9 +113,7 @@ function printFinalSummary(
 export async function runSelfImprove(options: CLIOptions): Promise<number> {
   const path = await import('path');
 
-  const rootDir = options.input
-    ? path.resolve(options.input)
-    : process.cwd();
+  const rootDir = options.input ? path.resolve(options.input) : process.cwd();
 
   printBanner(options, rootDir);
 
@@ -176,7 +184,7 @@ export async function runSelfImprove(options: CLIOptions): Promise<number> {
       iter.testPassed,
       iter.committed,
       iter.qualityReport?.scorePercent ?? null,
-      iter.convergenceStatus?.windowSlope ?? null,
+      iter.convergenceStatus?.windowSlope ?? null
     );
   }
 
@@ -191,7 +199,7 @@ export async function runSelfImprove(options: CLIOptions): Promise<number> {
     result.abortReason,
     result.finalQuality?.scorePercent ?? null,
     result.totalDuration,
-    harvester?.getOutputFile() ?? null,
+    harvester?.getOutputFile() ?? null
   );
 
   return 0;
@@ -206,7 +214,7 @@ async function runDaemonMode(
   baseConfig: Record<string, unknown>,
   options: CLIOptions,
   harvester: any | null,
-  rootDir: string,
+  rootDir: string
 ): Promise<number> {
   const corePkg = '@holoscript/core';
   const { SelfImproveCommand } = await import(corePkg + '/self-improvement');
@@ -227,8 +235,12 @@ async function runDaemonMode(
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 
-  console.log(`${C.magenta}${C.bold}Daemon mode activated${C.reset} - running until convergence or interrupt`);
-  console.log(`  Convergence: ${MAX_CONVERGENCE_STREAK} consecutive cycles with < ${CONVERGENCE_THRESHOLD * 100}% quality change`);
+  console.log(
+    `${C.magenta}${C.bold}Daemon mode activated${C.reset} - running until convergence or interrupt`
+  );
+  console.log(
+    `  Convergence: ${MAX_CONVERGENCE_STREAK} consecutive cycles with < ${CONVERGENCE_THRESHOLD * 100}% quality change`
+  );
   console.log('');
 
   while (running) {
@@ -252,7 +264,7 @@ async function runDaemonMode(
         iter.testPassed,
         iter.committed,
         iter.qualityReport?.scorePercent ?? null,
-        iter.convergenceStatus?.windowSlope ?? null,
+        iter.convergenceStatus?.windowSlope ?? null
       );
     }
 
@@ -262,18 +274,24 @@ async function runDaemonMode(
 
     if (delta < CONVERGENCE_THRESHOLD && cycleCount > 1) {
       convergenceStreak++;
-      console.log(`  ${C.yellow}Quality plateau: streak ${convergenceStreak}/${MAX_CONVERGENCE_STREAK}${C.reset}`);
+      console.log(
+        `  ${C.yellow}Quality plateau: streak ${convergenceStreak}/${MAX_CONVERGENCE_STREAK}${C.reset}`
+      );
     } else {
       convergenceStreak = 0;
       if (currentQuality > lastQuality) {
-        console.log(`  ${C.green}Quality improved: ${(lastQuality * 100).toFixed(1)}% -> ${(currentQuality * 100).toFixed(1)}%${C.reset}`);
+        console.log(
+          `  ${C.green}Quality improved: ${(lastQuality * 100).toFixed(1)}% -> ${(currentQuality * 100).toFixed(1)}%${C.reset}`
+        );
       }
     }
 
     lastQuality = currentQuality;
 
     if (convergenceStreak >= MAX_CONVERGENCE_STREAK) {
-      console.log(`\n${C.green}${C.bold}Convergence detected after ${cycleCount} daemon cycles.${C.reset}`);
+      console.log(
+        `\n${C.green}${C.bold}Convergence detected after ${cycleCount} daemon cycles.${C.reset}`
+      );
       break;
     }
 
@@ -297,15 +315,18 @@ async function runDaemonMode(
   if (harvester) {
     await harvester.flush();
     const stats = harvester.getStats();
-    console.log(`  ${C.dim}Harvest stats: ${stats.totalAccepted} accepted / ${stats.totalCaptured} captured${C.reset}`);
+    console.log(
+      `  ${C.dim}Harvest stats: ${stats.totalAccepted} accepted / ${stats.totalCaptured} captured${C.reset}`
+    );
   }
 
   printFinalSummary(
-    0, 0,
+    0,
+    0,
     convergenceStreak >= MAX_CONVERGENCE_STREAK ? 'converged' : 'interrupted',
     lastQuality > 0 ? lastQuality * 100 : null,
     0,
-    harvester?.getOutputFile() ?? null,
+    harvester?.getOutputFile() ?? null
   );
 
   return 0;

@@ -10,56 +10,56 @@ import type { HSPlusNode } from '../types/HoloScriptPlus';
 import { getSharedEventBus } from './EventBus';
 
 export interface EventTraitConfig {
-    /** Events this node listens to: { eventName: handlerPropertyName } */
-    listen?: Record<string, string>;
-    /** Events emitted on lifecycle */
-    emitOnAttach?: string;
-    emitOnDetach?: string;
+  /** Events this node listens to: { eventName: handlerPropertyName } */
+  listen?: Record<string, string>;
+  /** Events emitted on lifecycle */
+  emitOnAttach?: string;
+  emitOnDetach?: string;
 }
 
 const nodeListenerIds = new Map<string, number[]>();
 
 export const eventTraitHandler: TraitHandler<EventTraitConfig> = {
-    name: 'events' as any,
-    defaultConfig: {},
+  name: 'events' as any,
+  defaultConfig: {},
 
-    onAttach(node: HSPlusNode, config: EventTraitConfig, _context: any) {
-        const bus = getSharedEventBus();
-        const nodeId = node.id!;
-        const ids: number[] = [];
+  onAttach(node: HSPlusNode, config: EventTraitConfig, _context: any) {
+    const bus = getSharedEventBus();
+    const nodeId = node.id!;
+    const ids: number[] = [];
 
-        if (config.listen) {
-            for (const [event, propName] of Object.entries(config.listen)) {
-                const id = bus.on(event, (data) => {
-                    if (node.properties) {
-                        (node.properties as any)[propName] = data;
-                    }
-                });
-                ids.push(id);
-            }
-        }
+    if (config.listen) {
+      for (const [event, propName] of Object.entries(config.listen)) {
+        const id = bus.on(event, (data) => {
+          if (node.properties) {
+            (node.properties as any)[propName] = data;
+          }
+        });
+        ids.push(id);
+      }
+    }
 
-        nodeListenerIds.set(nodeId, ids);
+    nodeListenerIds.set(nodeId, ids);
 
-        if (config.emitOnAttach) {
-            bus.emit(config.emitOnAttach, { nodeId, type: 'attach' });
-        }
-    },
+    if (config.emitOnAttach) {
+      bus.emit(config.emitOnAttach, { nodeId, type: 'attach' });
+    }
+  },
 
-    onDetach(node: HSPlusNode, config: EventTraitConfig, _context: any) {
-        const bus = getSharedEventBus();
-        const nodeId = node.id!;
+  onDetach(node: HSPlusNode, config: EventTraitConfig, _context: any) {
+    const bus = getSharedEventBus();
+    const nodeId = node.id!;
 
-        const ids = nodeListenerIds.get(nodeId) || [];
-        for (const id of ids) bus.off(id);
-        nodeListenerIds.delete(nodeId);
+    const ids = nodeListenerIds.get(nodeId) || [];
+    for (const id of ids) bus.off(id);
+    nodeListenerIds.delete(nodeId);
 
-        if (config.emitOnDetach) {
-            bus.emit(config.emitOnDetach, { nodeId, type: 'detach' });
-        }
-    },
+    if (config.emitOnDetach) {
+      bus.emit(config.emitOnDetach, { nodeId, type: 'detach' });
+    }
+  },
 
-    onUpdate(_node: HSPlusNode, _config: EventTraitConfig, _context: any, _delta: number) {
-        // Event-driven; no per-frame work needed
-    },
+  onUpdate(_node: HSPlusNode, _config: EventTraitConfig, _context: any, _delta: number) {
+    // Event-driven; no per-frame work needed
+  },
 };

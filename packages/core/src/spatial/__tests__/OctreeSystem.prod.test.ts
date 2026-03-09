@@ -65,7 +65,7 @@ describe('OctreeSystem: production', () => {
     oct.remove('a');
     expect(oct.getEntryCount()).toBe(1);
     const hits = oct.queryRadius(-10, 0, 0, 2);
-    expect(hits.some(e => e.id === 'b')).toBe(true);
+    expect(hits.some((e) => e.id === 'b')).toBe(true);
   });
 
   // ─── Queries ────────────────────────────────────────────────────────────
@@ -73,8 +73,8 @@ describe('OctreeSystem: production', () => {
     oct.insert(makeEntry('near', 5, 0, 0));
     oct.insert(makeEntry('far', 80, 0, 0));
     const results = oct.queryRadius(0, 0, 0, 10);
-    expect(results.some(e => e.id === 'near')).toBe(true);
-    expect(results.some(e => e.id === 'far')).toBe(false);
+    expect(results.some((e) => e.id === 'near')).toBe(true);
+    expect(results.some((e) => e.id === 'far')).toBe(false);
   });
 
   it('queryRadius returns empty when no entries in range', () => {
@@ -87,7 +87,7 @@ describe('OctreeSystem: production', () => {
     // Entry at x=12, radius=3 → overlaps query sphere at x=0 r=10 (dist=12, 10+3=13 > 12)
     oct.insert(makeEntry('overlap', 12, 0, 0, 3));
     const results = oct.queryRadius(0, 0, 0, 10);
-    expect(results.some(e => e.id === 'overlap')).toBe(true);
+    expect(results.some((e) => e.id === 'overlap')).toBe(true);
   });
 
   it('queryRadius returns all entries inside large radius', () => {
@@ -131,7 +131,7 @@ describe('OctreeSystem: production', () => {
     oct.insert(makeEntry('z-pos', 0, 0, 30));
     oct.insert(makeEntry('z-neg', 0, 0, -30));
     const results = oct.queryRadius(0, 0, 25, 10);
-    expect(results.some(e => e.id === 'z-pos')).toBe(true);
-    expect(results.some(e => e.id === 'z-neg')).toBe(false);
+    expect(results.some((e) => e.id === 'z-pos')).toBe(true);
+    expect(results.some((e) => e.id === 'z-neg')).toBe(false);
   });
 });

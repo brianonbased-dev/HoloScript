@@ -56,7 +56,16 @@ describe('TRAIT_DOCS catalog', () => {
   });
 
   it('all categories are valid enum values', () => {
-    const valid = new Set(['physics', 'animation', 'rendering', 'networking', 'input', 'ai', 'utility', 'hololand']);
+    const valid = new Set([
+      'physics',
+      'animation',
+      'rendering',
+      'networking',
+      'input',
+      'ai',
+      'utility',
+      'hololand',
+    ]);
     for (const [key, doc] of Object.entries(TRAIT_DOCS)) {
       expect(valid.has(doc.category), `${key}.category="${doc.category}"`).toBe(true);
     }
@@ -121,12 +130,12 @@ describe('sub-document shapes', () => {
   });
 
   it('rigidbody has applyForce method', () => {
-    const methods = TRAIT_DOCS['rigidbody'].methods.map(m => m.name);
+    const methods = TRAIT_DOCS['rigidbody'].methods.map((m) => m.name);
     expect(methods).toContain('applyForce');
   });
 
   it('rigidbody has onCollisionStart event', () => {
-    const events = TRAIT_DOCS['rigidbody'].events.map(e => e.name);
+    const events = TRAIT_DOCS['rigidbody'].events.map((e) => e.name);
     expect(events).toContain('onCollisionStart');
   });
 });
@@ -267,13 +276,22 @@ describe('getTraitsByCategory', () => {
   });
 
   it('all categories together cover all traits', () => {
-    const categories: TraitDoc['category'][] = ['physics', 'animation', 'rendering', 'networking', 'input', 'ai', 'utility', 'hololand'];
+    const categories: TraitDoc['category'][] = [
+      'physics',
+      'animation',
+      'rendering',
+      'networking',
+      'input',
+      'ai',
+      'utility',
+      'hololand',
+    ];
     const total = categories.reduce((sum, cat) => sum + getTraitsByCategory(cat).length, 0);
     expect(total).toBe(Object.keys(TRAIT_DOCS).length);
   });
 
   it('physics includes rigidbody and trigger', () => {
-    const names = getTraitsByCategory('physics').map(t => t.annotation);
+    const names = getTraitsByCategory('physics').map((t) => t.annotation);
     expect(names).toContain('@rigidbody');
     expect(names).toContain('@trigger');
   });

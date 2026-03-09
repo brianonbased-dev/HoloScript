@@ -13,6 +13,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 # HoloScript Video Tutorial Skill
 
 ## Your Mission
+
 You create professional animated instructional videos for HoloScript and HoloLand
 using Remotion (React-based programmatic video) + Code Hike (animated syntax).
 Every video you generate should be accurate, visually polished, and rendereable
@@ -23,11 +24,13 @@ headlessly via `npm run render` without human intervention.
 ## HoloScript Architecture (Always Authoritative)
 
 ### Repository Structure
+
 - Monorepo at `packages/*` (pnpm workspaces, pnpm@8.12.0)
 - Video package: `packages/video-tutorials/` (new — created by this skill)
 - TypeScript 5.3.3, Vitest, tsup, ESLint
 
 ### Core Types (`@holoscript/core`)
+
 - `HoloComposition` — root scene container (28 major properties)
 - `HoloObjectDecl` — scene objects with traits, position, children
 - `HoloLight` — 6 types: directional, point, spot, hemisphere, ambient, area
@@ -39,28 +42,29 @@ headlessly via `npm run render` without human intervention.
 
 ### Compiler Targets (18 total)
 
-| Target | Output Type | Use Case |
-|--------|-------------|----------|
-| Unity | string (C# MonoBehaviour) | Unity game engine |
-| Unreal | { headerFile, sourceFile } | Unreal Engine (C++ header + source) |
-| Godot | string (GDScript) | Godot game engine |
-| Babylon | string (TypeScript) | Babylon.js WebGL |
-| WebGPU | string (TypeScript) | Raw WebGPU API |
-| VRChat | { mainScript, avatarDescriptor, animatorController } | VRChat worlds |
-| URDF | string (XML) | Robot description for ROS |
-| SDF | string (XML) | Simulation Description Format |
-| PlayCanvas | string (JS) | PlayCanvas engine |
-| DTDL | string (JSON) | Digital Twin Definition Language |
-| VisionOS | string (Swift) | Apple Vision Pro |
-| iOS | { viewFile, controllerFile } | iOS/iPadOS UIKit |
-| Android | { activityFile, layoutFile } | Android XML + Java |
-| Android-XR | string | Android XR platform |
-| OpenXR | string (C++) | OpenXR cross-platform XR |
-| R3F | string (TypeScript) | React Three Fiber |
-| WASM | { wasmModule, jsBindings } | WebAssembly |
-| USD | string | Universal Scene Description |
+| Target     | Output Type                                          | Use Case                            |
+| ---------- | ---------------------------------------------------- | ----------------------------------- |
+| Unity      | string (C# MonoBehaviour)                            | Unity game engine                   |
+| Unreal     | { headerFile, sourceFile }                           | Unreal Engine (C++ header + source) |
+| Godot      | string (GDScript)                                    | Godot game engine                   |
+| Babylon    | string (TypeScript)                                  | Babylon.js WebGL                    |
+| WebGPU     | string (TypeScript)                                  | Raw WebGPU API                      |
+| VRChat     | { mainScript, avatarDescriptor, animatorController } | VRChat worlds                       |
+| URDF       | string (XML)                                         | Robot description for ROS           |
+| SDF        | string (XML)                                         | Simulation Description Format       |
+| PlayCanvas | string (JS)                                          | PlayCanvas engine                   |
+| DTDL       | string (JSON)                                        | Digital Twin Definition Language    |
+| VisionOS   | string (Swift)                                       | Apple Vision Pro                    |
+| iOS        | { viewFile, controllerFile }                         | iOS/iPadOS UIKit                    |
+| Android    | { activityFile, layoutFile }                         | Android XML + Java                  |
+| Android-XR | string                                               | Android XR platform                 |
+| OpenXR     | string (C++)                                         | OpenXR cross-platform XR            |
+| R3F        | string (TypeScript)                                  | React Three Fiber                   |
+| WASM       | { wasmModule, jsBindings }                           | WebAssembly                         |
+| USD        | string                                               | Universal Scene Description         |
 
 ### .holo File Format
+
 ```holo
 scene SceneName {
   object ObjectName {
@@ -104,7 +108,9 @@ packages/video-tutorials/
 ## Video Generation Workflow
 
 ### Step 1: Plan the storyboard
+
 Every video follows this structure:
+
 1. **Title card** (3s): video title + HoloScript logo background
 2. **Problem statement** (5-10s): what we're building / why
 3. **Code walkthrough** (main): step-by-step with Code Hike annotations
@@ -112,18 +118,25 @@ Every video follows this structure:
 5. **Summary** (5s): recap + "learn more" pointer
 
 ### Step 2: Write Code Hike markdown
+
 Create `src/content/{video-slug}.md`:
-```markdown
+
+````markdown
 ## !!steps Start with a scene
+
 We define the root scene container.
+
 ```holo !
 // !focus
 scene VirtualGarden {
 }
 ```
+````
 
 ## !!steps Add the first object
+
 Objects have mesh, material, and position.
+
 ```holo !
 scene VirtualGarden {
   // !focus
@@ -134,7 +147,8 @@ scene VirtualGarden {
   }
 }
 ```
-```
+
+````
 
 ### Step 3: Create Remotion composition
 Create `src/compositions/{VideoName}.tsx`:
@@ -151,9 +165,10 @@ Add `<Composition id="VideoName" component={VideoName} ... />` to Root.tsx
 cd packages/video-tutorials
 npm run dev
 # Open http://localhost:3000
-```
+````
 
 ### Step 6: Render
+
 ```bash
 npm run render
 # Or for a single composition:
@@ -165,21 +180,22 @@ npx remotion render --composition=UnityCompilerWalkthrough
 
 ## Code Hike Annotation Reference
 
-| Annotation | Effect |
-|------------|--------|
-| `// !focus` | Dims all other lines, highlights this one |
-| `// !mark` | Yellow highlight box around line |
-| `// !mark[/regex/]` | Highlight matching text inline |
-| `// !callout[/text/]` text | Speech bubble callout |
-| `// !add` | Green "added line" diff style |
-| `// !remove` | Red "removed line" diff style |
-| `// !collapse` | Collapses block to single line |
+| Annotation                 | Effect                                    |
+| -------------------------- | ----------------------------------------- |
+| `// !focus`                | Dims all other lines, highlights this one |
+| `// !mark`                 | Yellow highlight box around line          |
+| `// !mark[/regex/]`        | Highlight matching text inline            |
+| `// !callout[/text/]` text | Speech bubble callout                     |
+| `// !add`                  | Green "added line" diff style             |
+| `// !remove`               | Red "removed line" diff style             |
+| `// !collapse`             | Collapses block to single line            |
 
 ---
 
 ## Narration Script Pattern
 
 When creating narrated videos:
+
 1. Write narration script alongside Code Hike markdown
 2. Format: `[TIMING] Narration text`
 3. Save to `src/content/{video-slug}-narration.txt`
@@ -194,23 +210,25 @@ When creating narrated videos:
 ```ts
 // src/utils/theme.ts
 export const theme = {
-  bg: '#0d1117',           // GitHub dark background
-  surface: '#161b22',      // Card/panel background
-  accent: '#58a6ff',       // HoloScript blue
-  accentGlow: '#1f6feb',   // Glow effect color
-  text: '#e6edf3',         // Primary text
-  textMuted: '#8b949e',    // Secondary text
-  success: '#3fb950',      // Green (output/success)
-  warning: '#d29922',      // Yellow (warning)
+  bg: '#0d1117', // GitHub dark background
+  surface: '#161b22', // Card/panel background
+  accent: '#58a6ff', // HoloScript blue
+  accentGlow: '#1f6feb', // Glow effect color
+  text: '#e6edf3', // Primary text
+  textMuted: '#8b949e', // Secondary text
+  success: '#3fb950', // Green (output/success)
+  warning: '#d29922', // Yellow (warning)
   font: 'JetBrains Mono, Fira Code, monospace',
   titleFont: 'Inter, system-ui, sans-serif',
-}
+};
 ```
 
 ---
 
 ## Quality Checklist
+
 Before marking a video complete:
+
 - [ ] Video is 1920×1080 at 30fps
 - [ ] All code shown is syntactically valid .holo
 - [ ] Compiler outputs shown match actual package behavior
@@ -221,7 +239,9 @@ Before marking a video complete:
 ---
 
 ## Compiler Target Coverage Plan (15 videos)
+
 Generate these in order of community interest:
+
 1. `unity-compiler` — Most requested (game dev audience)
 2. `godot-compiler` — Second most popular (open source community)
 3. `babylon-compiler` — Web3D audience
@@ -243,15 +263,18 @@ Generate these in order of community interest:
 ## Quick Prompt Templates
 
 **"Create a compiler demo video":**
+
 > "Using the holoscript-video skill, create a Code Hike walkthrough video for the [TARGET] compiler.
 > Show: (1) a .holo scene with a mesh object, (2) the compiler invocation in TypeScript, (3) the compiled output.
 > Use 5 !!steps. Duration: 90 seconds at 30fps. Include a narration script."
 
 **"Create a syntax tutorial":**
+
 > "Using the holoscript-video skill, create a beginner syntax introduction video.
 > Cover: scene declaration, objects, meshes, materials, lights, and camera.
 > Use 8 !!steps. Duration: 3 minutes."
 
 **"Create a full release tutorial":**
+
 > "Using the holoscript-video skill, create a comprehensive tutorial video for the v{VERSION} release.
 > Cover all new features. Use multi-agent pattern: first plan the storyboard, then generate components, then review."

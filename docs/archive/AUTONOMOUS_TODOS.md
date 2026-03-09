@@ -9,6 +9,7 @@
 ## High Priority (Next 1-2 Weeks)
 
 ### ✅ TODO-001: HTTP Request Signing (PoP Enforcement) [COMPLETED]
+
 **Priority**: ⚡⚡⚡ Critical
 **Effort**: 4 hours
 **Impact**: High (completes Proof-of-Possession mechanism)
@@ -18,6 +19,7 @@
 Implement RFC 9440 HTTP Message Signatures for agent request signing.
 
 **Implementation**:
+
 1. ✅ Create `AgentPoP.ts` module with Ed25519 signing
 2. ✅ Add signature headers to HTTP requests: `Signature`, `Signature-Input`
 3. ✅ Verify PoP in API middleware before granting access
@@ -26,6 +28,7 @@ Implement RFC 9440 HTTP Message Signatures for agent request signing.
 **Why**: Current implementation issues tokens with JWK thumbprints (`cnf.jkt`) but doesn't verify signatures on requests. This completes the PoP security model.
 
 **Success Criteria**:
+
 - ✅ Agent signs HTTP requests with private key
 - ✅ Server verifies signature using public key from token
 - ✅ Token stolen from Agent A cannot be used by Agent B
@@ -33,12 +36,14 @@ Implement RFC 9440 HTTP Message Signatures for agent request signing.
 - ✅ Backward compatibility for legacy agents
 
 **Files Created**:
+
 - `packages/core/src/compiler/identity/AgentPoP.ts` (HTTP Message Signatures implementation)
 - `packages/core/src/compiler/identity/PopMiddleware.ts` (Express-compatible middleware)
 - `packages/core/src/compiler/identity/PopUtils.ts` (Utility functions)
 - `packages/core/src/compiler/identity/__tests__/AgentPoP.test.ts` (Comprehensive tests)
 
 **Changes**:
+
 - Updated `AgentIdentity.ts`: Added `publicKey` field to `IntentTokenPayload`
 - Updated `AgentTokenIssuer.ts`: Include Ed25519 public key in token claims
 - Updated `index.ts`: Export new PoP modules
@@ -46,6 +51,7 @@ Implement RFC 9440 HTTP Message Signatures for agent request signing.
 ---
 
 ### ✅ TODO-002: Integration with Existing Compilers [COMPLETED]
+
 **Priority**: ⚡⚡⚡ Critical
 **Effort**: 1 day
 **Impact**: High (production readiness)
@@ -55,11 +61,16 @@ Implement RFC 9440 HTTP Message Signatures for agent request signing.
 Add `agentToken` parameter to all 26 HoloScript compilers and inject RBAC checks.
 
 **Implementation**:
+
 1. ✅ Created `CompilerBase.ts` abstract class with RBAC validation helpers
 2. ✅ Modified compiler interfaces to require `agentToken` parameter:
    ```typescript
    interface ICompiler {
-     compile(composition: HoloComposition, agentToken: string, outputPath?: string): string | Record<string, string>;
+     compile(
+       composition: HoloComposition,
+       agentToken: string,
+       outputPath?: string
+     ): string | Record<string, string>;
    }
    ```
 3. ✅ Updated 5 key compilers with RBAC checks:
@@ -77,16 +88,19 @@ Add `agentToken` parameter to all 26 HoloScript compilers and inject RBAC checks
 **Why**: Framework is implemented but not integrated. This makes it production-ready.
 
 **Success Criteria**:
+
 - ✅ All 5 key compilers enforce RBAC (remaining 21 follow same pattern)
 - ✅ Tests pass with valid tokens
 - ✅ Unauthorized access throws `UnauthorizedCompilerAccessError` with clear error messages
 - ✅ Documentation complete with migration guide
 
 **Files Created**:
+
 - `packages/core/src/compiler/CompilerBase.ts` - Base class with RBAC enforcement
 - `packages/core/src/compiler/COMPILER_INTEGRATION.md` - Complete integration documentation
 
 **Files Modified**:
+
 - `packages/core/src/compiler/UnityCompiler.ts` - Added RBAC checks
 - `packages/core/src/compiler/UnrealCompiler.ts` - Added RBAC checks
 - `packages/core/src/compiler/GodotCompiler.ts` - Added RBAC checks
@@ -95,11 +109,13 @@ Add `agentToken` parameter to all 26 HoloScript compilers and inject RBAC checks
 - `packages/core/src/compiler/BabylonCompiler.test.ts` - Updated all tests with tokens
 
 **Breaking Changes**:
+
 - All compiler `compile()` methods now require `agentToken` parameter
 - Signature changed from `compile(composition)` to `compile(composition, agentToken, outputPath?)`
 - Compilation without valid token throws `UnauthorizedCompilerAccessError`
 
 **Next Steps** (Optional, for remaining 21 compilers):
+
 1. Apply same pattern to remaining compilers:
    - AndroidCompiler, IOSCompiler, VisionOSCompiler (mobile/AR)
    - R3FCompiler, PlayCanvasCompiler (web renderers)
@@ -112,6 +128,7 @@ Add `agentToken` parameter to all 26 HoloScript compilers and inject RBAC checks
 ---
 
 ### TODO-003: MCP Server Agent Identity Tools
+
 **Priority**: ⚡⚡ High
 **Effort**: 2 hours
 **Impact**: Medium (AI accessibility)
@@ -120,6 +137,7 @@ Add `agentToken` parameter to all 26 HoloScript compilers and inject RBAC checks
 Expose agent identity operations as MCP tools for AI agents (Claude, GPT-4, etc.).
 
 **Implementation**:
+
 1. Create `packages/mcp-server/src/identity-tools.ts`
 2. Add tools:
    - `issue_agent_token` - Issue JWT for agent role
@@ -132,6 +150,7 @@ Expose agent identity operations as MCP tools for AI agents (Claude, GPT-4, etc.
 **Why**: Allows AI agents to autonomously compile HoloScript with proper identity.
 
 **Example Use Case**:
+
 ```
 User: "Claude, compile this HoloScript to Unity"
 Claude: [calls issue_agent_token(role=code_generator)]
@@ -140,6 +159,7 @@ Claude: [calls issue_agent_token(role=code_generator)]
 ```
 
 **Success Criteria**:
+
 - AI agents can issue tokens via MCP
 - Compilation workflows execute with proper identity
 - Audit trail tracks which AI agent initiated compilation
@@ -149,6 +169,7 @@ Claude: [calls issue_agent_token(role=code_generator)]
 ## Medium Priority (Weeks 3-4)
 
 ### TODO-004: Audit Log Persistence
+
 **Priority**: ⚡ Medium
 **Effort**: 3 hours
 **Impact**: Medium (compliance)
@@ -157,6 +178,7 @@ Claude: [calls issue_agent_token(role=code_generator)]
 Replace in-memory audit log with persistent storage (file or database).
 
 **Implementation**:
+
 1. Add `AuditLogger.ts` with file write capability
 2. Implement log rotation (daily, size-based: 100MB max)
 3. Add structured logging (JSON lines format)
@@ -165,6 +187,7 @@ Replace in-memory audit log with persistent storage (file or database).
 **Why**: Current audit log lost on restart. Compliance requires persistent audit trail.
 
 **Success Criteria**:
+
 - Audit events persisted across restarts
 - Logs rotated automatically
 - Easy querying for security investigations
@@ -172,6 +195,7 @@ Replace in-memory audit log with persistent storage (file or database).
 ---
 
 ### TODO-005: Token Refresh Endpoint
+
 **Priority**: ⚡ Medium
 **Effort**: 4 hours
 **Impact**: Medium (UX improvement)
@@ -180,6 +204,7 @@ Replace in-memory audit log with persistent storage (file or database).
 Allow agents to refresh tokens before expiration (extend lifetime without re-issuing).
 
 **Implementation**:
+
 1. Add `refreshToken()` method to `AgentTokenIssuer`
 2. Issue refresh tokens (7-day lifetime) alongside access tokens (24-hour)
 3. Validate refresh token and issue new access token
@@ -190,6 +215,7 @@ Allow agents to refresh tokens before expiration (extend lifetime without re-iss
 **Trade-off**: Increased security risk (7-day refresh token vs. 24-hour access token). Mitigate with rotation.
 
 **Success Criteria**:
+
 - Agents can refresh tokens seamlessly
 - No service interruption during rotation
 - Refresh tokens revocable via audit log
@@ -197,6 +223,7 @@ Allow agents to refresh tokens before expiration (extend lifetime without re-iss
 ---
 
 ### TODO-006: Scope Validation Integration Testing
+
 **Priority**: ⚡ Low-Medium
 **Effort**: 2 hours
 **Impact**: Low (edge case coverage)
@@ -205,6 +232,7 @@ Allow agents to refresh tokens before expiration (extend lifetime without re-iss
 Add integration tests for package path scope restrictions.
 
 **Scenarios**:
+
 1. Syntax analyzer restricted to `packages/core` tries to read `packages/cli/src/index.ts` → denied
 2. Exporter scoped to `dist/unity` tries to write to `dist/unreal/` → denied
 3. Cross-package dependency resolution with multiple scopes
@@ -212,6 +240,7 @@ Add integration tests for package path scope restrictions.
 **Why**: Unit tests cover basic scope validation. Integration tests validate real-world scenarios.
 
 **Success Criteria**:
+
 - 10+ integration test cases for scope violations
 - Edge cases covered (symlinks, relative paths, path traversal)
 
@@ -220,6 +249,7 @@ Add integration tests for package path scope restrictions.
 ## Low Priority (Month 2+)
 
 ### TODO-007: Metrics and Monitoring
+
 **Priority**: ⚡ Low
 **Effort**: 1 day
 **Impact**: Low (observability)
@@ -228,6 +258,7 @@ Add integration tests for package path scope restrictions.
 Add metrics for token operations and security events.
 
 **Metrics**:
+
 - Token issuance rate (per agent role)
 - Token verification failures (by error code)
 - Permission denial rate (by resource type)
@@ -235,6 +266,7 @@ Add metrics for token operations and security events.
 - Workflow step transitions
 
 **Implementation**:
+
 1. Integrate Prometheus client or DataDog StatsD
 2. Emit metrics in `AgentTokenIssuer`, `AgentKeystore`, `AgentRBAC`
 3. Create Grafana dashboard template
@@ -243,6 +275,7 @@ Add metrics for token operations and security events.
 **Why**: Observability for production deployments. Detect suspicious activity (token theft, brute force).
 
 **Success Criteria**:
+
 - Real-time metrics dashboard
 - Alerts fire on anomalies
 - Historical trend analysis available
@@ -250,6 +283,7 @@ Add metrics for token operations and security events.
 ---
 
 ### TODO-008: Architecture Documentation (Mermaid Diagrams)
+
 **Priority**: ⚡ Low
 **Effort**: 4 hours
 **Impact**: Low (developer experience)
@@ -258,6 +292,7 @@ Add metrics for token operations and security events.
 Create visual architecture diagrams for agent identity framework.
 
 **Diagrams**:
+
 1. **Sequence diagram**: Token issuance workflow
 2. **Class diagram**: Module relationships (AgentIdentity, Keystore, Issuer, RBAC)
 3. **Flow diagram**: RBAC access decision tree
@@ -268,6 +303,7 @@ Create visual architecture diagrams for agent identity framework.
 **Why**: Visual aids improve onboarding for new developers.
 
 **Success Criteria**:
+
 - 4+ diagrams in `AGENT_IDENTITY_FRAMEWORK.md`
 - Diagrams render correctly on GitHub
 
@@ -276,11 +312,13 @@ Create visual architecture diagrams for agent identity framework.
 ## Autonomous Research Questions (Curiosity-Driven)
 
 ### RESEARCH-001: Distributed Token Revocation
+
 **Hypothesis**: Current workflow state stored in-memory limits to single-node deployment.
 
 **Goal**: Multi-node compiler cluster with shared token revocation.
 
 **Approach**:
+
 1. Research Redis-backed revocation lists
 2. Implement JWT JTI (JWT ID) tracking
 3. Benchmark revocation check latency (target: <10ms)
@@ -290,11 +328,13 @@ Create visual architecture diagrams for agent identity framework.
 ---
 
 ### RESEARCH-002: Agent Checksum for Versioning
+
 **Hypothesis**: Different checksums indicate different agent versions → automatic rollback if behavior changes.
 
 **Goal**: Store checksum history in agent registry. Alert on unexpected checksum drift.
 
 **Approach**:
+
 1. Extend `AgentRegistry` to track checksum history
 2. Add `detectDrift()` method comparing checksums
 3. Integrate with CI/CD: fail build if agent checksum changes without version bump
@@ -304,11 +344,13 @@ Create visual architecture diagrams for agent identity framework.
 ---
 
 ### RESEARCH-003: Ed25519 Batch Verification
+
 **Hypothesis**: Per-request signature verification is CPU-intensive at scale.
 
 **Goal**: Batch verify multiple signatures in single operation.
 
 **Approach**:
+
 1. Research Ed25519 batch verification algorithms (25519-donna)
 2. Implement in `AgentPoP.ts` using native crypto
 3. Benchmark: single vs. batch (target: 10x throughput)
@@ -318,11 +360,13 @@ Create visual architecture diagrams for agent identity framework.
 ---
 
 ### RESEARCH-004: Optimal Token Rotation Frequency
+
 **Hypothesis**: 24-hour tokens balance security and overhead. Can we reduce to 1 hour?
 
 **Goal**: Determine optimal rotation frequency via simulation.
 
 **Approach**:
+
 1. Model attack scenarios (token theft, replay, insider threat)
 2. Simulate rotation overhead (key generation, storage, distribution)
 3. Plot security vs. performance trade-off curve
@@ -332,11 +376,13 @@ Create visual architecture diagrams for agent identity framework.
 ---
 
 ### RESEARCH-005: Cross-Repository Compilation Security
+
 **Hypothesis**: Agents should compile dependencies from external packages with delegated trust.
 
 **Goal**: Extend scope validation to cross-repository workflows.
 
 **Approach**:
+
 1. Design delegation protocol for external repositories
 2. Implement repository trust registry (allow-list)
 3. Add scope hierarchy: `packages/core` trusts `packages/std` but not `external/untrusted`
@@ -348,6 +394,7 @@ Create visual architecture diagrams for agent identity framework.
 ## Completion Criteria
 
 **Framework is "Done" when**:
+
 1. ✅ All High Priority TODOs completed (HTTP signing, compiler integration, MCP tools)
 2. ✅ Production deployment with real workloads
 3. ✅ No critical security vulnerabilities (penetration tested)

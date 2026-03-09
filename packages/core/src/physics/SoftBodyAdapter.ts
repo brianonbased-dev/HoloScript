@@ -25,19 +25,22 @@ export class SoftBodyAdapter {
     this.syncBackToMesh();
   }
 
-  private createSoftBodyFromMesh(node: any, config: any): { particles: Particle[], constraints: DistanceConstraint[] } {
+  private createSoftBodyFromMesh(
+    node: any,
+    config: any
+  ): { particles: Particle[]; constraints: DistanceConstraint[] } {
     const vertices = node.geometry?.vertices || []; // Assume simple flat array [x,y,z, x,y,z...]
     const particles: Particle[] = [];
     const constraints: DistanceConstraint[] = [];
-    
+
     // 1. Create Particles from Vertices
     // Simplification: We treat every vertex as a particle for now.
     // In production, we'd use a simplified proxy mesh.
     for (let i = 0; i < vertices.length; i += 3) {
       const x = vertices[i];
-      const y = vertices[i+1];
-      const z = vertices[i+2];
-      
+      const y = vertices[i + 1];
+      const z = vertices[i + 2];
+
       particles.push({
         position: [x, y, z],
         previousPosition: [x, y, z],
@@ -51,15 +54,15 @@ export class SoftBodyAdapter {
     // Connect adjacent vertices (Naive/Simple box topology assumption for demo)
     // A real implementation would parse the index buffer (faces).
     const width = Math.sqrt(particles.length); // Assume grid for demo
-    
+
     for (let i = 0; i < particles.length - 1; i++) {
-        // Linear constraint
-        constraints.push({
-            p1: i,
-            p2: i + 1,
-            restLength: 0.1, // Mock
-            stiffness: config.stiffness || 0.5
-        });
+      // Linear constraint
+      constraints.push({
+        p1: i,
+        p2: i + 1,
+        restLength: 0.1, // Mock
+        stiffness: config.stiffness || 0.5,
+      });
     }
 
     return { particles, constraints };
@@ -67,19 +70,19 @@ export class SoftBodyAdapter {
 
   private syncBackToMesh() {
     if (!this.node.geometry?.vertices) return;
-    
+
     const particles = this.solver.getParticles();
-    
+
     // Update original vertex array
     for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        const vIndex = this.vertexMapping[i];
-        
-        this.node.geometry.vertices[vIndex] = p.position[0];
-        this.node.geometry.vertices[vIndex + 1] = p.position[1];
-        this.node.geometry.vertices[vIndex + 2] = p.position[2];
+      const p = particles[i];
+      const vIndex = this.vertexMapping[i];
+
+      this.node.geometry.vertices[vIndex] = p.position[0];
+      this.node.geometry.vertices[vIndex + 1] = p.position[1];
+      this.node.geometry.vertices[vIndex + 2] = p.position[2];
     }
-    
+
     // Mark for update if engine supports it
     this.node.geometry.needsUpdate = true;
   }

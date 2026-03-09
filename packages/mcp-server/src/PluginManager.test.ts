@@ -19,7 +19,13 @@ describe('PluginManager', () => {
     it('registers tools', () => {
       const initialCount = PluginManager.getTools().length;
       PluginManager.registerPlugin(
-        [{ name: 'test_tool_1', description: 'A test tool', inputSchema: { type: 'object' as const } }],
+        [
+          {
+            name: 'test_tool_1',
+            description: 'A test tool',
+            inputSchema: { type: 'object' as const },
+          },
+        ],
         async (name, args) => ({ result: 'ok' })
       );
       expect(PluginManager.getTools().length).toBe(initialCount + 1);

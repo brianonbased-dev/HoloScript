@@ -23,10 +23,7 @@ export interface UseAnimationLoopOptions {
   targetFps?: number;
 }
 
-export function useAnimationLoop(
-  callback: RenderCallback,
-  options: UseAnimationLoopOptions,
-): void {
+export function useAnimationLoop(callback: RenderCallback, options: UseAnimationLoopOptions): void {
   const { enabled, targetFps = 0 } = options;
 
   const callbackRef = useRef(callback);
@@ -61,7 +58,7 @@ export function useAnimationLoop(
 
       frameIdRef.current = requestAnimationFrame(loop);
     },
-    [targetFps],
+    [targetFps]
   );
 
   useEffect(() => {

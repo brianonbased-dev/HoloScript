@@ -13,12 +13,13 @@ import { MovementPredictor } from '../../runtime/MovementPredictor';
 
 // ── fixture factory ────────────────────────────────────────────────────────────
 
-function makeMP() { return new MovementPredictor(); }
+function makeMP() {
+  return new MovementPredictor();
+}
 
 // ── getPredictiveWindows — ambient window ─────────────────────────────────────
 
 describe('MovementPredictor — ambient window (always present)', () => {
-
   it('returns at least one window even without motion', () => {
     const mp = makeMP();
     const windows = mp.getPredictiveWindows(1);
@@ -46,7 +47,6 @@ describe('MovementPredictor — ambient window (always present)', () => {
 // ── update — velocity computation ─────────────────────────────────────────────
 
 describe('MovementPredictor — update / velocity', () => {
-
   it('update does not throw', () => {
     const mp = makeMP();
     expect(() => mp.update([1, 0, 0], 0.016)).not.toThrow();
@@ -76,7 +76,7 @@ describe('MovementPredictor — update / velocity', () => {
     mp.update([0, 0, 0], 0.016);
     mp.update([10, 0, 0], 0.016);
     const windows = mp.getPredictiveWindows(1);
-    const linear = windows.find(w => w.likelihood === 0.9);
+    const linear = windows.find((w) => w.likelihood === 0.9);
     expect(linear).toBeDefined();
   });
 
@@ -86,7 +86,7 @@ describe('MovementPredictor — update / velocity', () => {
     mp.update([10, 0, 0], 1.0); // velocity = 10 m/s on X
     const windows = mp.getPredictiveWindows(1); // lookahead = 1s
     // linear prediction: x = 10 + 10*1 = 20
-    const linear = windows.find(w => w.likelihood === 0.9);
+    const linear = windows.find((w) => w.likelihood === 0.9);
     expect(linear?.center[0]).toBeCloseTo(20, 1);
   });
 
@@ -95,7 +95,7 @@ describe('MovementPredictor — update / velocity', () => {
     mp.update([0, 0, 0], 0.016);
     mp.update([10, 0, 0], 0.016);
     const windows = mp.getPredictiveWindows(1);
-    const ensemble = windows.find(w => w.likelihood === 0.7);
+    const ensemble = windows.find((w) => w.likelihood === 0.7);
     expect(ensemble).toBeDefined();
   });
 });
@@ -103,7 +103,6 @@ describe('MovementPredictor — update / velocity', () => {
 // ── setIntent ─────────────────────────────────────────────────────────────────
 
 describe('MovementPredictor — setIntent', () => {
-
   it('setIntent null does not throw', () => {
     const mp = makeMP();
     expect(() => mp.setIntent(null)).not.toThrow();
@@ -116,7 +115,7 @@ describe('MovementPredictor — setIntent', () => {
     // Set full-weight intent to a specific target
     mp.setIntent({ target: [999, 0, 0], weight: 1.0 });
     const windows = mp.getPredictiveWindows(1);
-    const ensemble = windows.find(w => w.likelihood === 0.7);
+    const ensemble = windows.find((w) => w.likelihood === 0.7);
     // At weight=1, blended = 0*recurrent + 1*target → center ~= target
     expect(ensemble?.center[0]).toBeCloseTo(999, 1);
   });
@@ -125,11 +124,11 @@ describe('MovementPredictor — setIntent', () => {
     const mp = makeMP();
     for (let i = 0; i < 10; i++) mp.update([i * 2, 0, 0], 1.0);
     const windowsNoIntent = mp.getPredictiveWindows(1);
-    const ensembleNo = windowsNoIntent.find(w => w.likelihood === 0.7);
+    const ensembleNo = windowsNoIntent.find((w) => w.likelihood === 0.7);
 
     mp.setIntent({ target: [999, 0, 0], weight: 0 }); // weight=0 → no bias
     const windowsIntent = mp.getPredictiveWindows(1);
-    const ensembleWith = windowsIntent.find(w => w.likelihood === 0.7);
+    const ensembleWith = windowsIntent.find((w) => w.likelihood === 0.7);
 
     expect(ensembleNo?.center[0]).toBeCloseTo(ensembleWith?.center[0] ?? 0, 3);
   });
@@ -141,7 +140,7 @@ describe('MovementPredictor — setIntent', () => {
     mp.setIntent(null);
     const windows = mp.getPredictiveWindows(1);
     // With null intent, ensemble should NOT be near 999
-    const ensemble = windows.find(w => w.likelihood === 0.7);
+    const ensemble = windows.find((w) => w.likelihood === 0.7);
     if (ensemble) {
       expect(ensemble.center[0]).not.toBeCloseTo(999, 0);
     }
@@ -151,7 +150,6 @@ describe('MovementPredictor — setIntent', () => {
 // ── history buffer ────────────────────────────────────────────────────────────
 
 describe('MovementPredictor — history buffer', () => {
-
   it('can call update 100 times without error', () => {
     const mp = makeMP();
     expect(() => {
@@ -170,7 +168,6 @@ describe('MovementPredictor — history buffer', () => {
 // ── Vector3 input formats ─────────────────────────────────────────────────────
 
 describe('MovementPredictor — Vector3 input', () => {
-
   it('accepts array-form Vector3 without error', () => {
     const mp = makeMP();
     expect(() => mp.update([1, 2, 3], 0.016)).not.toThrow();

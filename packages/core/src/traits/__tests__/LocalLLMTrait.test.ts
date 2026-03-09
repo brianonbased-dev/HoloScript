@@ -21,7 +21,7 @@ function makeCtx() {
   return {
     emit: (type: string, payload: unknown) => events.push({ type, payload }),
     events,
-    of: (type: string) => events.filter(e => e.type === type),
+    of: (type: string) => events.filter((e) => e.type === type),
   };
 }
 
@@ -40,8 +40,16 @@ const BASE_CONFIG: LocalLLMConfig = {
   fallback_api_key: '',
 };
 
-const MODELS_RESPONSE = { ok: true, json: async () => ({ models: [{ name: 'llama3' }, { name: 'gemma2' }] }), body: null };
-const CHAT_RESPONSE   = { ok: true, json: async () => ({ message: { content: 'Hello, spatial world!' }, eval_count: 42 }), body: null };
+const MODELS_RESPONSE = {
+  ok: true,
+  json: async () => ({ models: [{ name: 'llama3' }, { name: 'gemma2' }] }),
+  body: null,
+};
+const CHAT_RESPONSE = {
+  ok: true,
+  json: async () => ({ message: { content: 'Hello, spatial world!' }, eval_count: 42 }),
+  body: null,
+};
 
 /** Attach using a mocked models endpoint, then restore the spy. */
 async function attach(extra: Partial<LocalLLMConfig> = {}) {
@@ -96,7 +104,11 @@ describe('LocalLLMTrait - onAttach', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
     const node = {} as any;
     const ctx = makeCtx();
-    await localLLMHandler.onAttach(node, { ...BASE_CONFIG, fallback_to_remote: true, fallback_api_key: 'sk-xxx' }, ctx);
+    await localLLMHandler.onAttach(
+      node,
+      { ...BASE_CONFIG, fallback_to_remote: true, fallback_api_key: 'sk-xxx' },
+      ctx
+    );
     const loaded = ctx.of('llm_model_loaded')[0]?.payload as any;
     expect(loaded?.fallback).toBe(true);
     fetchSpy.mockRestore();
@@ -114,7 +126,8 @@ describe('LocalLLMTrait - llm_prompt (mocked fetch)', () => {
   let node: any, ctx: any, config: LocalLLMConfig;
 
   beforeEach(async () => {
-    fetchSpy = vi.spyOn(globalThis, 'fetch')
+    fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(MODELS_RESPONSE as any)
       .mockResolvedValue(CHAT_RESPONSE as any);
 
@@ -128,14 +141,20 @@ describe('LocalLLMTrait - llm_prompt (mocked fetch)', () => {
   afterEach(() => fetchSpy.mockRestore());
 
   it('emits llm_started synchronously', () => {
-    localLLMHandler.onEvent(node, config, ctx, { type: 'llm_prompt', payload: { prompt: 'Create a neon forest scene', requestId: 'req1' } });
+    localLLMHandler.onEvent(node, config, ctx, {
+      type: 'llm_prompt',
+      payload: { prompt: 'Create a neon forest scene', requestId: 'req1' },
+    });
     expect(ctx.of('llm_started').length).toBe(1);
     expect((ctx.of('llm_started')[0].payload as any).requestId).toBe('req1');
   });
 
   it('emits llm_complete with response text', async () => {
-    localLLMHandler.onEvent(node, config, ctx, { type: 'llm_prompt', payload: { prompt: 'Make a VR city', requestId: 'req2' } });
-    await new Promise(r => setTimeout(r, 200));
+    localLLMHandler.onEvent(node, config, ctx, {
+      type: 'llm_prompt',
+      payload: { prompt: 'Make a VR city', requestId: 'req2' },
+    });
+    await new Promise((r) => setTimeout(r, 200));
     const complete = ctx.of('llm_complete');
     expect(complete.length).toBe(1);
     const r = complete[0].payload as any;
@@ -145,8 +164,11 @@ describe('LocalLLMTrait - llm_prompt (mocked fetch)', () => {
   });
 
   it('includes duration_ms and tokens in llm_complete', async () => {
-    localLLMHandler.onEvent(node, config, ctx, { type: 'llm_prompt', payload: { prompt: 'Test', requestId: 'req3' } });
-    await new Promise(r => setTimeout(r, 200));
+    localLLMHandler.onEvent(node, config, ctx, {
+      type: 'llm_prompt',
+      payload: { prompt: 'Test', requestId: 'req3' },
+    });
+    await new Promise((r) => setTimeout(r, 200));
     const r = ctx.of('llm_complete')[0].payload as any;
     expect(typeof r.duration_ms).toBe('number');
     expect(typeof r.tokens).toBe('number');
@@ -155,7 +177,7 @@ describe('LocalLLMTrait - llm_prompt (mocked fetch)', () => {
 
   it('uses system_prompt in request body', async () => {
     localLLMHandler.onEvent(node, config, ctx, { type: 'llm_prompt', payload: { prompt: 'Hi' } });
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 100));
     // calls[0] = models endpoint (from onAttach), calls[1] = chat endpoint
     const chatCall = fetchSpy.mock.calls[1];
     const body = JSON.parse((chatCall[1] as any).body);
@@ -166,7 +188,7 @@ describe('LocalLLMTrait - llm_prompt (mocked fetch)', () => {
   it('increments totalRequests', async () => {
     localLLMHandler.onEvent(node, config, ctx, { type: 'llm_prompt', payload: { prompt: 'a' } });
     localLLMHandler.onEvent(node, config, ctx, { type: 'llm_prompt', payload: { prompt: 'b' } });
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 300));
     expect(node.__localLLMState.totalRequests).toBe(2);
   });
 });
@@ -175,30 +197,43 @@ describe('LocalLLMTrait - llm_prompt (mocked fetch)', () => {
 
 describe('LocalLLMTrait - error handling', () => {
   it('emits llm_error on network failure during chat', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(MODELS_RESPONSE as any)
       .mockRejectedValue(new Error('Connection refused'));
     const node = {} as any;
     const ctx = makeCtx();
     const config = { ...BASE_CONFIG };
     await localLLMHandler.onAttach(node, config, ctx);
-    localLLMHandler.onEvent(node, config, ctx, { type: 'llm_prompt', payload: { prompt: 'crash', requestId: 'err1' } });
-    await new Promise(r => setTimeout(r, 200));
+    localLLMHandler.onEvent(node, config, ctx, {
+      type: 'llm_prompt',
+      payload: { prompt: 'crash', requestId: 'err1' },
+    });
+    await new Promise((r) => setTimeout(r, 200));
     const errs = ctx.of('llm_error').filter((e: any) => e.payload?.requestId === 'err1');
     expect(errs.length).toBe(1);
     fetchSpy.mockRestore();
   });
 
   it('emits llm_error on non-OK HTTP status (503)', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(MODELS_RESPONSE as any)
-      .mockResolvedValue({ ok: false, status: 503, statusText: 'Service Unavailable', body: null } as any);
+      .mockResolvedValue({
+        ok: false,
+        status: 503,
+        statusText: 'Service Unavailable',
+        body: null,
+      } as any);
     const node = {} as any;
     const ctx = makeCtx();
     const config = { ...BASE_CONFIG };
     await localLLMHandler.onAttach(node, config, ctx);
-    localLLMHandler.onEvent(node, config, ctx, { type: 'llm_prompt', payload: { prompt: 'fail', requestId: 'err2' } });
-    await new Promise(r => setTimeout(r, 200));
+    localLLMHandler.onEvent(node, config, ctx, {
+      type: 'llm_prompt',
+      payload: { prompt: 'fail', requestId: 'err2' },
+    });
+    await new Promise((r) => setTimeout(r, 200));
     const errs = ctx.of('llm_error').filter((e: any) => e.payload?.requestId === 'err2');
     expect(errs.length).toBe(1);
     expect((errs[0].payload as any).error).toContain('503');
@@ -217,7 +252,10 @@ describe('LocalLLMTrait - error handling', () => {
 describe('LocalLLMTrait - llm_switch_model', () => {
   it('changes activeModel and emits llm_model_loaded', async () => {
     const { node, ctx, config } = await attach();
-    localLLMHandler.onEvent(node, config, ctx, { type: 'llm_switch_model', payload: { model: 'gemma2' } });
+    localLLMHandler.onEvent(node, config, ctx, {
+      type: 'llm_switch_model',
+      payload: { model: 'gemma2' },
+    });
     expect(node.__localLLMState.activeModel).toBe('gemma2');
     const reloads = ctx.of('llm_model_loaded');
     const changed = reloads.find((e: any) => e.payload?.model === 'gemma2');
@@ -248,7 +286,11 @@ describe('LocalLLMTrait - backend variants', () => {
     } as any);
     const node = {} as any;
     const ctx = makeCtx();
-    await localLLMHandler.onAttach(node, { ...BASE_CONFIG, backend: 'lmstudio', base_url: 'http://localhost:1234' }, ctx);
+    await localLLMHandler.onAttach(
+      node,
+      { ...BASE_CONFIG, backend: 'lmstudio', base_url: 'http://localhost:1234' },
+      ctx
+    );
     const loaded = ctx.of('llm_model_loaded')[0]?.payload as any;
     expect(loaded?.backend).toBe('lmstudio');
     fetchSpy.mockRestore();
@@ -262,7 +304,11 @@ describe('LocalLLMTrait - backend variants', () => {
     } as any);
     const node = {} as any;
     const ctx = makeCtx();
-    await localLLMHandler.onAttach(node, { ...BASE_CONFIG, backend: 'llamacpp', base_url: 'http://localhost:8080' }, ctx);
+    await localLLMHandler.onAttach(
+      node,
+      { ...BASE_CONFIG, backend: 'llamacpp', base_url: 'http://localhost:8080' },
+      ctx
+    );
     const loaded = ctx.of('llm_model_loaded')[0]?.payload as any;
     expect(loaded?.backend).toBe('llamacpp');
     fetchSpy.mockRestore();

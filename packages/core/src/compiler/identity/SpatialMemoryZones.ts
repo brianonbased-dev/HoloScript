@@ -303,9 +303,7 @@ export class SpatialZoneEnforcer {
    */
   setPolicy(policy: SpatialZonePolicy): void {
     if (!this.zones.has(policy.zoneId)) {
-      throw new Error(
-        `Cannot set policy for unregistered zone: ${policy.zoneId}`
-      );
+      throw new Error(`Cannot set policy for unregistered zone: ${policy.zoneId}`);
     }
     this.policies.set(policy.zoneId, policy);
   }
@@ -333,7 +331,7 @@ export class SpatialZoneEnforcer {
   checkZoneAccess(
     agentToken: string,
     zoneId: string,
-    operation: SpatialPermission,
+    operation: SpatialPermission
   ): SpatialAccessDecision {
     // Step 1: Verify token
     const verificationResult = this.tokenIssuer.verifyToken(agentToken);
@@ -426,7 +424,7 @@ export class SpatialZoneEnforcer {
   validateSpatialOperation(
     agentToken: string,
     position: SpatialPosition,
-    operation: SpatialPermission,
+    operation: SpatialPermission
   ): SpatialAccessDecision {
     // Step 1: Verify token
     const verificationResult = this.tokenIssuer.verifyToken(agentToken);
@@ -545,7 +543,7 @@ export class SpatialZoneEnforcer {
     agentId: string,
     agentRole: string,
     zoneId: string,
-    zone: SpatialZone,
+    zone: SpatialZone
   ): SpatialPermission[] {
     const policy = this.policies.get(zoneId);
 
@@ -654,7 +652,7 @@ export class SpatialZoneEnforcer {
     zoneId: string,
     operation: SpatialPermission,
     allowed: boolean,
-    reason: string,
+    reason: string
   ): void {
     const entry: SpatialAccessAuditEntry = {
       timestamp: Date.now(),
@@ -686,7 +684,7 @@ export function createSpatialZone(
   id: string,
   name: string,
   classification: ZoneClassification,
-  bounds?: ZoneBounds,
+  bounds?: ZoneBounds
 ): SpatialZone {
   return { id, name, bounds, classification };
 }
@@ -703,7 +701,7 @@ export function createGeospatialZone(
   minLon: number,
   maxLon: number,
   minAlt?: number,
-  maxAlt?: number,
+  maxAlt?: number
 ): SpatialZone {
   return {
     id,
@@ -733,7 +731,7 @@ export function createLocalZone(
   minY: number,
   maxY: number,
   minZ: number,
-  maxZ: number,
+  maxZ: number
 ): SpatialZone {
   return {
     id,
@@ -757,7 +755,7 @@ export function createLocalZone(
 export function createNamedZone(
   id: string,
   name: string,
-  classification: ZoneClassification,
+  classification: ZoneClassification
 ): SpatialZone {
   return {
     id,
@@ -774,7 +772,7 @@ export function createZonePolicy(
   zoneId: string,
   rolePermissions: Record<string, SpatialPermission[]> = {},
   agentOverrides: Record<string, SpatialPermission[]> = {},
-  defaultPermissions: SpatialPermission[] = [],
+  defaultPermissions: SpatialPermission[] = []
 ): SpatialZonePolicy {
   return {
     zoneId,
@@ -787,9 +785,7 @@ export function createZonePolicy(
 /**
  * Create and return a new `SpatialZoneEnforcer` instance.
  */
-export function createSpatialZoneEnforcer(
-  config?: SpatialZoneEnforcerConfig,
-): SpatialZoneEnforcer {
+export function createSpatialZoneEnforcer(config?: SpatialZoneEnforcerConfig): SpatialZoneEnforcer {
   return new SpatialZoneEnforcer(config);
 }
 
@@ -802,9 +798,7 @@ let globalSpatialZoneEnforcer: SpatialZoneEnforcer | null = null;
 /**
  * Get or create the global `SpatialZoneEnforcer` singleton.
  */
-export function getSpatialZoneEnforcer(
-  config?: SpatialZoneEnforcerConfig,
-): SpatialZoneEnforcer {
+export function getSpatialZoneEnforcer(config?: SpatialZoneEnforcerConfig): SpatialZoneEnforcer {
   if (!globalSpatialZoneEnforcer) {
     globalSpatialZoneEnforcer = new SpatialZoneEnforcer(config);
   }

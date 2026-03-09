@@ -120,7 +120,7 @@ const compiler = new TraitCompositionCompiler();
 const [hovercraft] = compiler.compile(
   [{ name: 'Hovercraft', components: ['physics', 'navmesh'], overrides: { gravity: 0.1 } }],
   (name) => registry.get(name),
-  traitGraph,
+  traitGraph
 );
 
 // High-level composer (with lifecycle dispatch)
@@ -173,4 +173,3 @@ effect(() => console.log('HP changed:', state.hp));
 ## License
 
 MIT
-

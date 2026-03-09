@@ -23,11 +23,24 @@ export interface ActiveEffect {
   active: boolean;
 }
 
-export interface ShakeParams { frequency: number; decay: number; }
-export interface ZoomParams { targetZoom: number; easeBack: boolean; }
-export interface FlashParams { color: { r: number; g: number; b: number }; }
-export interface LetterboxParams { ratio: number; }
-export interface FadeParams { fadeIn: boolean; color: { r: number; g: number; b: number }; }
+export interface ShakeParams {
+  frequency: number;
+  decay: number;
+}
+export interface ZoomParams {
+  targetZoom: number;
+  easeBack: boolean;
+}
+export interface FlashParams {
+  color: { r: number; g: number; b: number };
+}
+export interface LetterboxParams {
+  ratio: number;
+}
+export interface FadeParams {
+  fadeIn: boolean;
+  color: { r: number; g: number; b: number };
+}
 
 // =============================================================================
 // CAMERA EFFECTS
@@ -73,7 +86,12 @@ export class CameraEffects {
     return this.addEffect('fade', duration, 1, { fadeIn, color });
   }
 
-  private addEffect(type: EffectType, duration: number, intensity: number, params: Record<string, unknown>): string {
+  private addEffect(
+    type: EffectType,
+    duration: number,
+    intensity: number,
+    params: Record<string, unknown>
+  ): string {
     const id = `fx_${_effectId++}`;
     this.effects.push({ id, type, duration, elapsed: 0, intensity, params, active: true });
     return id;
@@ -126,11 +144,14 @@ export class CameraEffects {
           break;
         }
         case 'vignette':
-          this.vignetteIntensity = Math.max(this.vignetteIntensity, effect.intensity * Math.min(t * 3, 1));
+          this.vignetteIntensity = Math.max(
+            this.vignetteIntensity,
+            effect.intensity * Math.min(t * 3, 1)
+          );
           break;
         case 'fade': {
           const p = effect.params as unknown as FadeParams;
-          this.fadeAlpha = p.fadeIn ? (1 - t) : t;
+          this.fadeAlpha = p.fadeIn ? 1 - t : t;
           break;
         }
       }
@@ -138,28 +159,46 @@ export class CameraEffects {
       if (t >= 1) effect.active = false;
     }
 
-    this.effects = this.effects.filter(e => e.active);
+    this.effects = this.effects.filter((e) => e.active);
   }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getShakeOffset(): { x: number; y: number } { return { ...this.shakeOffset }; }
-  getZoomMultiplier(): number { return this.zoomMultiplier; }
-  getFlashAlpha(): number { return this.flashAlpha; }
-  getFlashColor(): { r: number; g: number; b: number } { return { ...this.flashColor }; }
-  getLetterboxAmount(): number { return this.letterboxAmount; }
-  getVignetteIntensity(): number { return this.vignetteIntensity; }
-  getFadeAlpha(): number { return this.fadeAlpha; }
-  getActiveEffectCount(): number { return this.effects.length; }
+  getShakeOffset(): { x: number; y: number } {
+    return { ...this.shakeOffset };
+  }
+  getZoomMultiplier(): number {
+    return this.zoomMultiplier;
+  }
+  getFlashAlpha(): number {
+    return this.flashAlpha;
+  }
+  getFlashColor(): { r: number; g: number; b: number } {
+    return { ...this.flashColor };
+  }
+  getLetterboxAmount(): number {
+    return this.letterboxAmount;
+  }
+  getVignetteIntensity(): number {
+    return this.vignetteIntensity;
+  }
+  getFadeAlpha(): number {
+    return this.fadeAlpha;
+  }
+  getActiveEffectCount(): number {
+    return this.effects.length;
+  }
 
   cancelEffect(id: string): boolean {
-    const idx = this.effects.findIndex(e => e.id === id);
+    const idx = this.effects.findIndex((e) => e.id === id);
     if (idx < 0) return false;
     this.effects.splice(idx, 1);
     return true;
   }
 
-  cancelAll(): void { this.effects = []; }
+  cancelAll(): void {
+    this.effects = [];
+  }
 }

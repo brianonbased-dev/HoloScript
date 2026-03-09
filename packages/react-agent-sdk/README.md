@@ -53,14 +53,15 @@ function App() {
 import { useAgent, useTask } from '@hololand/react-agent-sdk';
 
 function MyComponent() {
-  const { agent } = useAgent('brittney');                    // 1. Import hook
-  const { data, loading, error } = useTask(                   // 2. Call hook
+  const { agent } = useAgent('brittney'); // 1. Import hook
+  const { data, loading, error } = useTask(
+    // 2. Call hook
     agent,
     'generateComponent',
     { input: { componentName: 'Button' } }
   );
 
-  if (loading) return <Spinner />;                            // 3. Render result
+  if (loading) return <Spinner />; // 3. Render result
   if (error) return <Error message={error.message} />;
   return <ComponentPreview data={data} />;
 }
@@ -83,6 +84,7 @@ const { agent, status, error, reconnect } = useAgent('brittney', {
 ```
 
 **Returns:**
+
 - `agent` - Agent instance with methods (`sendMessage`, `executeTask`, `getState`, `on`)
 - `status` - Connection status (`connecting`, `connected`, `disconnected`, `error`)
 - `error` - Connection error (if any)
@@ -106,6 +108,7 @@ const { data, loading, error, status, retry, cancel, progress } = useTask(
 ```
 
 **Returns:**
+
 - `data` - Task result
 - `loading` - Loading state
 - `error` - Task error (if any)
@@ -123,6 +126,7 @@ const { status, progress, estimatedTime, logs, phase } = useTaskStatus(taskId);
 ```
 
 **Returns:**
+
 - `status` - Current task status
 - `progress` - Progress percentage (0-100)
 - `estimatedTime` - Estimated time remaining (ms)
@@ -155,6 +159,7 @@ const { state, failureRate, lastError, reset, status } = useCircuitBreaker('myQu
 ```
 
 **Returns:**
+
 - `state` - Circuit state (`closed`, `open`, `half-open`)
 - `failureRate` - Failure rate (0-1)
 - `lastError` - Last error encountered
@@ -170,6 +175,7 @@ const { isDegraded, affectedServices, recoveryStatus } = useDegradedMode();
 ```
 
 **Returns:**
+
 - `isDegraded` - Is system in degraded mode
 - `affectedServices` - List of affected services
 - `recoveryStatus` - Recovery progress and ETA
@@ -181,14 +187,16 @@ const { isDegraded, affectedServices, recoveryStatus } = useDegradedMode();
 Context provider for agent configuration.
 
 ```tsx
-<AgentProvider config={{
-  apiUrl: 'https://api.hololand.ai',
-  token: 'your-auth-token',
-  circuitBreaker: {
-    threshold: 0.5,
-    timeout: 60000,
-  },
-}}>
+<AgentProvider
+  config={{
+    apiUrl: 'https://api.hololand.ai',
+    token: 'your-auth-token',
+    circuitBreaker: {
+      threshold: 0.5,
+      timeout: 60000,
+    },
+  }}
+>
   <App />
 </AgentProvider>
 ```
@@ -198,12 +206,7 @@ Context provider for agent configuration.
 Visual task progress indicator.
 
 ```tsx
-<TaskMonitor
-  taskId={taskId}
-  showLogs
-  showProgress
-  showPhase
-/>
+<TaskMonitor taskId={taskId} showLogs showProgress showPhase />
 ```
 
 ### `<CircuitBreakerStatus>`
@@ -211,10 +214,7 @@ Visual task progress indicator.
 Circuit state visualization.
 
 ```tsx
-<CircuitBreakerStatus
-  queryName="myAgent"
-  showMetrics
-/>
+<CircuitBreakerStatus queryName="myAgent" showMetrics />
 ```
 
 ### `<AgentMetricsDashboard>`
@@ -222,11 +222,7 @@ Circuit state visualization.
 Real-time metrics display.
 
 ```tsx
-<AgentMetricsDashboard
-  agentName="brittney"
-  refreshInterval={5000}
-  showDetailed
-/>
+<AgentMetricsDashboard agentName="brittney" refreshInterval={5000} showDetailed />
 ```
 
 ### `<AgentErrorBoundary>`
@@ -289,6 +285,7 @@ The SDK includes a built-in circuit breaker that prevents cascading failures:
 - **Minimum Requests** - Min requests before opening circuit (default: 10)
 
 States:
+
 - **Closed** - Normal operation
 - **Open** - Circuit is open, requests fail fast
 - **Half-Open** - Testing if service recovered
@@ -315,11 +312,7 @@ interface ComponentData {
   metadata: { author: string };
 }
 
-const { data } = useTask<ComponentData>(
-  agent,
-  'generateComponent',
-  { input: { name: 'Button' } }
-);
+const { data } = useTask<ComponentData>(agent, 'generateComponent', { input: { name: 'Button' } });
 
 // data is typed as ComponentData | undefined
 console.log(data?.metadata.author);
@@ -335,10 +328,7 @@ function DataComponent() {
   const { agent } = useAgent('brittney');
 
   // Only execute on client-side
-  const { data } = useTask(
-    typeof window !== 'undefined' ? agent : null,
-    'fetchData'
-  );
+  const { data } = useTask(typeof window !== 'undefined' ? agent : null, 'fetchData');
 
   return <div>{data}</div>;
 }
@@ -350,12 +340,12 @@ function DataComponent() {
 
 ```typescript
 interface AgentContextValue {
-  apiUrl?: string;                    // Base API URL
-  defaultTimeout?: number;             // Default timeout (ms)
+  apiUrl?: string; // Base API URL
+  defaultTimeout?: number; // Default timeout (ms)
   circuitBreaker?: CircuitBreakerConfig;
-  enableDegradedMode?: boolean;        // Enable degraded mode monitoring
-  headers?: Record<string, string>;    // Custom headers
-  token?: string;                      // Auth token
+  enableDegradedMode?: boolean; // Enable degraded mode monitoring
+  headers?: Record<string, string>; // Custom headers
+  token?: string; // Auth token
 }
 ```
 
@@ -363,13 +353,13 @@ interface AgentContextValue {
 
 ```typescript
 interface TaskParams {
-  input?: Record<string, unknown>;     // Task input data
+  input?: Record<string, unknown>; // Task input data
   priority?: 'low' | 'medium' | 'high' | 'critical';
-  timeout?: number;                    // Task timeout (ms)
-  retry?: boolean;                     // Enable automatic retry
-  maxRetries?: number;                 // Max retry attempts
-  retryDelay?: number;                 // Base retry delay (ms)
-  metadata?: Record<string, unknown>;  // Task metadata
+  timeout?: number; // Task timeout (ms)
+  retry?: boolean; // Enable automatic retry
+  maxRetries?: number; // Max retry attempts
+  retryDelay?: number; // Base retry delay (ms)
+  metadata?: Record<string, unknown>; // Task metadata
 }
 ```
 

@@ -77,10 +77,14 @@ export class GCounter {
     // Increment local counter
     const newCount = actorCount.count + amount;
 
-    const operation = this.signer.createOperation(CRDTOperationType.G_COUNTER_INCREMENT, this.crdtId, {
-      amount,
-      newCount,
-    });
+    const operation = this.signer.createOperation(
+      CRDTOperationType.G_COUNTER_INCREMENT,
+      this.crdtId,
+      {
+        amount,
+        newCount,
+      }
+    );
 
     // Apply locally
     this.applyIncrement(actorDid, newCount, operation.id, operation.timestamp);
@@ -129,7 +133,7 @@ export class GCounter {
     actorDid: string,
     newCount: number,
     operationId: string,
-    timestamp: number,
+    timestamp: number
   ): boolean {
     return this.applyIncrement(actorDid, newCount, operationId, timestamp);
   }
@@ -141,7 +145,7 @@ export class GCounter {
     actorDid: string,
     newCount: number,
     operationId: string,
-    timestamp: number,
+    timestamp: number
   ): boolean {
     let actorCount = this.counters.get(actorDid);
 
@@ -180,7 +184,7 @@ export class GCounter {
         actorDid,
         otherCount.count,
         otherCount.lastOperationId,
-        otherCount.lastTimestamp,
+        otherCount.lastTimestamp
       );
     }
   }

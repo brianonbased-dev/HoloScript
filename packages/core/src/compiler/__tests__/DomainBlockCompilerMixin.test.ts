@@ -41,18 +41,27 @@ describe('compileMaterialBlock', () => {
   });
 
   it('compiles an unlit material', () => {
-    const mat = compileMaterialBlock(mockBlock({
-      keyword: 'unlit_material',
-      properties: { emissive_color: '#00ff00' },
-    }));
+    const mat = compileMaterialBlock(
+      mockBlock({
+        keyword: 'unlit_material',
+        properties: { emissive_color: '#00ff00' },
+      })
+    );
     expect(mat.type).toBe('unlit');
     expect(mat.emissiveColor).toBe('#00ff00');
   });
 
   it('extracts texture maps', () => {
-    const mat = compileMaterialBlock(mockBlock({
-      properties: { baseColor: '#fff', albedo_map: 'tex/diffuse.png', normal_map: 'tex/normal.png', roughness: 0.5 },
-    }));
+    const mat = compileMaterialBlock(
+      mockBlock({
+        properties: {
+          baseColor: '#fff',
+          albedo_map: 'tex/diffuse.png',
+          normal_map: 'tex/normal.png',
+          roughness: 0.5,
+        },
+      })
+    );
     expect(mat.textureMaps.albedo_map).toBe('tex/diffuse.png');
     expect(mat.textureMaps.normal_map).toBe('tex/normal.png');
     expect(mat.baseColor).toBe('#fff');
@@ -66,24 +75,33 @@ describe('compileMaterialBlock', () => {
 
 describe('compilePhysicsBlock', () => {
   it('compiles a rigidbody block', () => {
-    const p = compilePhysicsBlock(mockBlock({
-      keyword: 'rigidbody',
-      domain: 'physics',
-      properties: { mass: 10, use_gravity: true },
-    }));
+    const p = compilePhysicsBlock(
+      mockBlock({
+        keyword: 'rigidbody',
+        domain: 'physics',
+        properties: { mass: 10, use_gravity: true },
+      })
+    );
     expect(p.keyword).toBe('rigidbody');
     expect(p.properties.mass).toBe(10);
   });
 
   it('extracts nested joint children', () => {
-    const p = compilePhysicsBlock(mockBlock({
-      keyword: 'articulation',
-      domain: 'physics',
-      children: [
-        { type: 'DomainBlock', keyword: 'hinge', name: 'elbow', properties: { axis: [0, 1, 0] } },
-        { type: 'DomainBlock', keyword: 'slider', name: 'piston', properties: { limits: [0, 1] } },
-      ],
-    }));
+    const p = compilePhysicsBlock(
+      mockBlock({
+        keyword: 'articulation',
+        domain: 'physics',
+        children: [
+          { type: 'DomainBlock', keyword: 'hinge', name: 'elbow', properties: { axis: [0, 1, 0] } },
+          {
+            type: 'DomainBlock',
+            keyword: 'slider',
+            name: 'piston',
+            properties: { limits: [0, 1] },
+          },
+        ],
+      })
+    );
     expect(p.joints).toBeDefined();
     expect(p.joints!.length).toBe(2);
     expect(p.joints![0].keyword).toBe('hinge');
@@ -91,11 +109,13 @@ describe('compilePhysicsBlock', () => {
   });
 
   it('no joints when no DomainBlock children', () => {
-    const p = compilePhysicsBlock(mockBlock({
-      keyword: 'collider',
-      domain: 'physics',
-      children: [{ type: 'other' }],
-    }));
+    const p = compilePhysicsBlock(
+      mockBlock({
+        keyword: 'collider',
+        domain: 'physics',
+        children: [{ type: 'other' }],
+      })
+    );
     expect(p.joints).toBeUndefined();
   });
 });
@@ -113,10 +133,12 @@ describe('materialToR3F', () => {
   });
 
   it('generates meshBasicMaterial for unlit', () => {
-    const mat = compileMaterialBlock(mockBlock({
-      keyword: 'unlit_material',
-      properties: { emissive_color: '#00ff00', emissive_intensity: 2 },
-    }));
+    const mat = compileMaterialBlock(
+      mockBlock({
+        keyword: 'unlit_material',
+        properties: { emissive_color: '#00ff00', emissive_intensity: 2 },
+      })
+    );
     const jsx = materialToR3F(mat);
     expect(jsx).toContain('meshBasicMaterial');
     expect(jsx).toContain('emissive="#00ff00"');
@@ -145,9 +167,11 @@ describe('materialToGLTF', () => {
   });
 
   it('includes emissive factor', () => {
-    const mat = compileMaterialBlock(mockBlock({
-      properties: { baseColor: '#fff', emissive_color: '#ff0000' },
-    }));
+    const mat = compileMaterialBlock(
+      mockBlock({
+        properties: { baseColor: '#fff', emissive_color: '#ff0000' },
+      })
+    );
     const gltf = materialToGLTF(mat) as any;
     expect(gltf.emissiveFactor).toBeDefined();
   });
@@ -155,13 +179,20 @@ describe('materialToGLTF', () => {
 
 describe('physicsToURDF', () => {
   it('generates URDF articulation joints', () => {
-    const p = compilePhysicsBlock(mockBlock({
-      keyword: 'articulation',
-      domain: 'physics',
-      children: [
-        { type: 'DomainBlock', keyword: 'hinge', name: 'elbow', properties: { axis: [0, 1, 0], damping: 0.5 } },
-      ],
-    }));
+    const p = compilePhysicsBlock(
+      mockBlock({
+        keyword: 'articulation',
+        domain: 'physics',
+        children: [
+          {
+            type: 'DomainBlock',
+            keyword: 'hinge',
+            name: 'elbow',
+            properties: { axis: [0, 1, 0], damping: 0.5 },
+          },
+        ],
+      })
+    );
     const urdf = physicsToURDF(p);
     expect(urdf).toContain('<joint name="elbow" type="revolute">');
     expect(urdf).toContain('xyz="0 1 0"');

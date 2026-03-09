@@ -228,10 +228,7 @@ describe('SpatialHash', () => {
       spatialHash.insert(p2);
       spatialHash.insert(p3);
 
-      const results = spatialHash.queryBox(
-        { x: 0, y: 0, z: 0 },
-        { x: 20, y: 20, z: 20 }
-      );
+      const results = spatialHash.queryBox({ x: 0, y: 0, z: 0 }, { x: 20, y: 20, z: 20 });
 
       expect(results.length).toBe(2);
       expect(results).toContain(p1);
@@ -253,10 +250,7 @@ describe('SpatialHash', () => {
 
       spatialHash.insert(particle);
 
-      const results = spatialHash.queryBox(
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 10, z: 10 }
-      );
+      const results = spatialHash.queryBox({ x: 0, y: 0, z: 0 }, { x: 10, y: 10, z: 10 });
 
       expect(results.length).toBe(1);
     });

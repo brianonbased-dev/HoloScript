@@ -7,7 +7,9 @@ import { RoomManager } from '../RoomManager';
 describe('RoomManager', () => {
   let rm: RoomManager;
 
-  beforeEach(() => { rm = new RoomManager(); });
+  beforeEach(() => {
+    rm = new RoomManager();
+  });
 
   describe('room creation', () => {
     it('should create room with host', () => {
@@ -39,7 +41,12 @@ describe('RoomManager', () => {
     });
 
     it('should reject wrong password', () => {
-      const id = rm.createRoom('h1', { name: 'R', maxPlayers: 4, isPublic: false, password: 'abc' });
+      const id = rm.createRoom('h1', {
+        name: 'R',
+        maxPlayers: 4,
+        isPublic: false,
+        password: 'abc',
+      });
       expect(rm.joinRoom('p1', id, 'wrong')).toBe(false);
       expect(rm.joinRoom('p1', id, 'abc')).toBe(true);
     });

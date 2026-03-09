@@ -118,7 +118,7 @@ describe('R3FCompiler RBAC Enforcement', () => {
       mockCheckAccess.mockReturnValue(denied);
 
       expect(() => compiler.compile(minimalAST(), FAKE_TOKEN)).toThrowError(
-        UnauthorizedCompilerAccessError,
+        UnauthorizedCompilerAccessError
       );
 
       try {
@@ -135,18 +135,14 @@ describe('R3FCompiler RBAC Enforcement', () => {
     it('throws UnauthorizedCompilerAccessError when code generation is denied', () => {
       // First call (AST) allowed, second call (CODE) denied
       const denied = makeDeniedDecision({ reason: 'Code generation forbidden' });
-      mockCheckAccess
-        .mockReturnValueOnce(makeAllowedDecision())
-        .mockReturnValueOnce(denied);
+      mockCheckAccess.mockReturnValueOnce(makeAllowedDecision()).mockReturnValueOnce(denied);
 
       expect(() => compiler.compile(minimalAST(), FAKE_TOKEN)).toThrowError(
-        UnauthorizedCompilerAccessError,
+        UnauthorizedCompilerAccessError
       );
 
       // Reset and re-test to verify error details
-      mockCheckAccess
-        .mockReturnValueOnce(makeAllowedDecision())
-        .mockReturnValueOnce(denied);
+      mockCheckAccess.mockReturnValueOnce(makeAllowedDecision()).mockReturnValueOnce(denied);
 
       try {
         compiler.compile(minimalAST(), FAKE_TOKEN);
@@ -194,9 +190,9 @@ describe('R3FCompiler RBAC Enforcement', () => {
         .mockReturnValueOnce(makeAllowedDecision()) // CODE allowed
         .mockReturnValueOnce(makeDeniedDecision({ reason: 'Path outside scope' })); // OUTPUT denied
 
-      expect(() =>
-        compiler.compile(minimalAST(), FAKE_TOKEN, '/restricted/path'),
-      ).toThrowError(UnauthorizedCompilerAccessError);
+      expect(() => compiler.compile(minimalAST(), FAKE_TOKEN, '/restricted/path')).toThrowError(
+        UnauthorizedCompilerAccessError
+      );
     });
   });
 
@@ -220,20 +216,18 @@ describe('R3FCompiler RBAC Enforcement', () => {
       const denied = makeDeniedDecision({ reason: 'Composition access not permitted' });
       mockCheckAccess.mockReturnValue(denied);
 
-      expect(() =>
-        compiler.compileComposition(minimalComposition(), FAKE_TOKEN),
-      ).toThrowError(UnauthorizedCompilerAccessError);
+      expect(() => compiler.compileComposition(minimalComposition(), FAKE_TOKEN)).toThrowError(
+        UnauthorizedCompilerAccessError
+      );
     });
 
     it('throws UnauthorizedCompilerAccessError when code generation is denied', () => {
       const denied = makeDeniedDecision({ reason: 'R3F generation forbidden' });
-      mockCheckAccess
-        .mockReturnValueOnce(makeAllowedDecision())
-        .mockReturnValueOnce(denied);
+      mockCheckAccess.mockReturnValueOnce(makeAllowedDecision()).mockReturnValueOnce(denied);
 
-      expect(() =>
-        compiler.compileComposition(minimalComposition(), FAKE_TOKEN),
-      ).toThrowError(UnauthorizedCompilerAccessError);
+      expect(() => compiler.compileComposition(minimalComposition(), FAKE_TOKEN)).toThrowError(
+        UnauthorizedCompilerAccessError
+      );
     });
 
     it('skips RBAC validation when no token is provided (backwards compatibility)', () => {
@@ -266,7 +260,7 @@ describe('R3FCompiler RBAC Enforcement', () => {
         .mockReturnValueOnce(makeDeniedDecision({ reason: 'Path outside scope' })); // OUTPUT denied
 
       expect(() =>
-        compiler.compileComposition(minimalComposition(), FAKE_TOKEN, '/restricted/path'),
+        compiler.compileComposition(minimalComposition(), FAKE_TOKEN, '/restricted/path')
       ).toThrowError(UnauthorizedCompilerAccessError);
     });
   });
@@ -288,9 +282,7 @@ describe('R3FCompiler RBAC Enforcement', () => {
     });
 
     it('includes agent role in error messages', () => {
-      mockCheckAccess.mockReturnValue(
-        makeDeniedDecision({ agentRole: 'syntax_analyzer' as any }),
-      );
+      mockCheckAccess.mockReturnValue(makeDeniedDecision({ agentRole: 'syntax_analyzer' as any }));
 
       try {
         compiler.compile(minimalAST(), FAKE_TOKEN);
@@ -302,7 +294,7 @@ describe('R3FCompiler RBAC Enforcement', () => {
 
     it('includes required permission in error messages', () => {
       mockCheckAccess.mockReturnValue(
-        makeDeniedDecision({ requiredPermission: 'write:code' as any }),
+        makeDeniedDecision({ requiredPermission: 'write:code' as any })
       );
 
       try {
@@ -345,9 +337,7 @@ describe('R3FCompiler RBAC Enforcement', () => {
     it('RBAC check occurs before composition compilation logic', () => {
       mockCheckAccess.mockReturnValue(makeDeniedDecision());
 
-      expect(() =>
-        compiler.compileComposition(minimalComposition(), FAKE_TOKEN),
-      ).toThrow();
+      expect(() => compiler.compileComposition(minimalComposition(), FAKE_TOKEN)).toThrow();
 
       expect(mockCheckAccess).toHaveBeenCalledTimes(1);
     });

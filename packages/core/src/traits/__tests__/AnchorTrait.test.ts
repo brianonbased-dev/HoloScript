@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { anchorHandler } from '../AnchorTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('AnchorTrait', () => {
   let node: Record<string, unknown>;
@@ -46,7 +53,11 @@ describe('AnchorTrait', () => {
     sendEvent(anchorHandler, node, cfg, ctx, {
       type: 'anchor_pose_update',
       anchorId: 'anc1',
-      pose: { position: { x: 1, y: 2, z: 3 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: 0.9 },
+      pose: {
+        position: { x: 1, y: 2, z: 3 },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        confidence: 0.9,
+      },
     });
     expect((node as any).__anchorState.pose.position).toEqual({ x: 1, y: 2, z: 3 });
     expect((node as any).__anchorState.updateCount).toBe(1);
@@ -54,7 +65,11 @@ describe('AnchorTrait', () => {
 
   it('ignores pose update for wrong anchor', () => {
     sendEvent(anchorHandler, node, cfg, ctx, { type: 'anchor_created', anchorId: 'anc1' });
-    sendEvent(anchorHandler, node, cfg, ctx, { type: 'anchor_pose_update', anchorId: 'anc999', pose: {} });
+    sendEvent(anchorHandler, node, cfg, ctx, {
+      type: 'anchor_pose_update',
+      anchorId: 'anc999',
+      pose: {},
+    });
     expect((node as any).__anchorState.updateCount).toBe(0);
   });
 

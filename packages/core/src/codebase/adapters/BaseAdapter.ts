@@ -105,7 +105,7 @@ export function nodeToSymbol(
     signature?: string;
     owner?: string;
     isExported?: boolean;
-  } = {},
+  } = {}
 ): ExternalSymbolDefinition {
   const loc = node.endPosition.row - node.startPosition.row + 1;
   return {
@@ -152,7 +152,7 @@ export function hasModifier(node: SyntaxNode, modifier: string): boolean {
  */
 export function extractVisibility(
   node: SyntaxNode,
-  language: SupportedLanguage,
+  language: SupportedLanguage
 ): 'public' | 'private' | 'protected' | 'internal' {
   // Go: uppercase first letter = exported
   if (language === 'go') {

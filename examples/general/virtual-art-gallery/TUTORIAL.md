@@ -34,6 +34,7 @@ environment#gallery @indoor @museum_lighting {
 ```
 
 **Key elements:**
+
 - **Low ambient light** (0.2 intensity) - Museums use focused lighting, not bright overhead lights
 - **Warm color** (#f5f5f0) - Slightly warm white, common in galleries
 - **Subtle fog** - Adds depth and atmospheric perspective
@@ -64,6 +65,7 @@ zone#entrance_hall @navigable {
 ```
 
 **Design choices:**
+
 - `@navigable` - Players can walk/teleport here
 - `reflection` on floor - Polished marble reflects light and artwork
 - White walls - Neutral backdrop that doesn't distract from art
@@ -90,6 +92,7 @@ spatial_group#ceiling_lights {
 ```
 
 **Track lighting pattern:**
+
 - `repeat(8, x_axis, 2)` - 8 lights spaced 2 meters apart
 - `angle: 30` - Narrow beam focused on wall
 - `target: {y: 2.5}` - Aimed at artwork hanging height
@@ -134,6 +137,7 @@ object#language_selector @interactive {
 ```
 
 **Implementation:**
+
 1. **Podium model** - Physical object visitors interact with
 2. **Grid layout** - 3 columns of language buttons
 3. **Flag emojis** - Visual recognition (🇬🇧, 🇪🇸, etc.)
@@ -151,6 +155,7 @@ ui#room_label @text {
 ```
 
 **Localization files structure:**
+
 ```
 lang/
 ├── en.json
@@ -160,6 +165,7 @@ lang/
 ```
 
 **en.json:**
+
 ```json
 {
   "IMPRESSIONISM_ROOM_TITLE": "Impressionism: Light and Color",
@@ -199,6 +205,7 @@ artwork#monet_lilies @interactive @audio_guided {
 ```
 
 **Key features:**
+
 - `position: {y: 2.5}` - Eye level (1.7m player + 0.8m offset)
 - `frame_style` - Adds ornate gold frame around painting
 - `glossy: true` - Simulates oil paint texture
@@ -219,6 +226,7 @@ light#artwork_spot @focused {
 ```
 
 **Lighting technique:**
+
 - `angle: 25` - Narrow beam (museum standard: 15-30°)
 - `position: {y: 1, z: -1}` - Above and in front
 - `target: this` - Always points at artwork, even if moved
@@ -244,6 +252,7 @@ object#plaque @interactive {
 ```
 
 **Positioning:**
+
 - `x: 1.5` - To the right of artwork
 - `y: -1.2` - Below the frame
 - `z: 0.05` - Slightly in front of wall (avoid z-fighting)
@@ -262,6 +271,7 @@ on_interact {
 ```
 
 **User flow:**
+
 1. Player walks toward artwork
 2. At 2 meters: hint appears
 3. Player taps/clicks artwork
@@ -303,6 +313,7 @@ system#audio_guide @global {
 ```
 
 **Key patterns:**
+
 - `@global` - One audio guide system for entire gallery
 - Language substitution - `monet_{language}.mp3` → `monet_en.mp3`, `monet_es.mp3`
 - Non-spatial audio - Narration doesn't come from artwork, it's "in your head"
@@ -344,6 +355,7 @@ ui#audio_controls @floating @bottom {
 ```
 
 **UI elements:**
+
 - Progress bar updates in real-time
 - Stop button ends narration
 - Subtitle toggle switches between on/off
@@ -368,6 +380,7 @@ ui#subtitle_panel @floating @bottom {
 ```
 
 **WebVTT format example:**
+
 ```
 WEBVTT
 
@@ -420,11 +433,13 @@ sculpture#abstract_metal @interactive @3d_artwork {
 ```
 
 **PBR Material:**
+
 - `metallic: 1.0` - Fully metallic (not plastic)
 - `roughness: 0.2` - Polished surface (0 = mirror, 1 = matte)
 - `reflectivity: 0.8` - Reflects environment
 
 **Rotating pedestal:**
+
 - 360° rotation over 60 seconds
 - User can pause/resume by tapping
 
@@ -474,6 +489,7 @@ artwork#digital_interactive @interactive @digital_art {
 ```
 
 **Generative art:**
+
 - GLSL fragment shader for real-time effects
 - User-adjustable complexity slider
 - Randomize button changes color palette
@@ -505,6 +521,7 @@ controller#left_hand @navigation {
 ```
 
 **Teleport validation:**
+
 1. Player aims controller at floor
 2. Arc shows trajectory (green = valid, red = invalid)
 3. Reticle appears at landing spot
@@ -525,6 +542,7 @@ controller#right_hand @interaction {
 ```
 
 **Comfort vignette:**
+
 - Darkens peripheral vision during movement
 - Reduces motion sickness by 60-70%
 - Only affects movement, not stationary viewing
@@ -550,6 +568,7 @@ camera#player @vr @first_person {
 ```
 
 **Automatic fallback:**
+
 - VR headset connected → VR mode
 - Desktop browser → mouse + keyboard (WASD)
 - Mobile browser → touch + gyroscope
@@ -681,6 +700,7 @@ on_frame {
 ```
 
 **Heatmap uses:**
+
 - Identify most popular artworks
 - Optimize gallery layout (put popular pieces in high-traffic areas)
 - A/B test different arrangements
@@ -743,42 +763,46 @@ Now that you understand virtual gallery creation, try:
 
 ## Key Concepts
 
-| Concept | Description |
-|---|---|
-| `environment` | Defines scene-wide atmosphere: skybox, lighting, fog, and ambient audio |
-| `zone` | A navigable region of the gallery, grouping related objects |
-| `artwork` | A special object type for paintings, sculptures, and digital art |
-| `metadata` | Structured data attached to artworks: artist, year, medium, description |
-| `audio_guide` | Narrated content triggered when a visitor interacts with an artwork |
-| `spatial_group` | Repeats objects at regular intervals (e.g., ceiling lights) |
-| `on_approach` | Event triggered when player enters a proximity radius |
-| `localize()` | Returns translated text based on the visitor's selected language |
-| `lod` | Level of Detail — switches model complexity based on viewing distance |
-| `occlusion_culling` | Skips rendering of objects behind walls for better performance |
+| Concept             | Description                                                             |
+| ------------------- | ----------------------------------------------------------------------- |
+| `environment`       | Defines scene-wide atmosphere: skybox, lighting, fog, and ambient audio |
+| `zone`              | A navigable region of the gallery, grouping related objects             |
+| `artwork`           | A special object type for paintings, sculptures, and digital art        |
+| `metadata`          | Structured data attached to artworks: artist, year, medium, description |
+| `audio_guide`       | Narrated content triggered when a visitor interacts with an artwork     |
+| `spatial_group`     | Repeats objects at regular intervals (e.g., ceiling lights)             |
+| `on_approach`       | Event triggered when player enters a proximity radius                   |
+| `localize()`        | Returns translated text based on the visitor's selected language        |
+| `lod`               | Level of Detail — switches model complexity based on viewing distance   |
+| `occlusion_culling` | Skips rendering of objects behind walls for better performance          |
 
 ---
 
 ## Best Practices
 
 ### Gallery Design
+
 - Keep ceiling heights between 4–6 metres for a realistic museum feel
 - Use narrow spot lights (15–30° angle) aimed at individual artworks
 - Place paintings at eye level — `y: 2.5` (eye height 1.7m + 0.8m offset)
 - Maintain neutral white walls so art remains the visual focus
 
 ### Performance
+
 - Use LOD for all 3D sculptures with at least 2 detail levels
 - Enable `occlusion_culling: true` on every gallery room/zone
 - Compress artwork textures with Basis Universal
 - Limit shadow casters to primary spot lights only
 
 ### Localization
+
 - Use the `localize()` function for all user-facing strings
 - Store translations in per-language JSON files under `lang/`
 - Include at minimum English, Spanish, and French for broad coverage
 - Test all audio guide filenames in all supported languages before release
 
 ### Accessibility
+
 - Always provide subtitles when audio guide is available
 - Include a high contrast mode for visitors with visual impairments
 - Support both teleportation and smooth locomotion for different comfort levels
@@ -789,4 +813,3 @@ Now that you understand virtual gallery creation, try:
 **Questions?** Join the HoloScript community on Discord or open an issue on GitHub.
 
 **Happy building!** 🚀
-

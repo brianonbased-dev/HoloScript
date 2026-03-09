@@ -229,7 +229,9 @@ export class LocalVersionControl implements VersionControlClient {
     return mergeCommit;
   }
 
-  private generateHash(workflow: AgentWorkflow | { nodes: any[]; edges: any[]; metadata: any }): string {
+  private generateHash(
+    workflow: AgentWorkflow | { nodes: any[]; edges: any[]; metadata: any }
+  ): string {
     // Simple hash generation (in production, use proper SHA)
     const content = JSON.stringify(workflow);
     let hash = 0;

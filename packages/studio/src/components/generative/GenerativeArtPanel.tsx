@@ -93,11 +93,11 @@ function ParamSlider({
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
 export function GenerativeArtPanel() {
-  const [activePresetId, setActivePresetId]   = useState('aurora');
-  const [particleCount,  setParticleCount]    = useState(0);
-  const [speed,          setSpeed]            = useState(0);
-  const [spread,         setSpread]           = useState(0);
-  const [lifetime,       setLifetime]         = useState(0);
+  const [activePresetId, setActivePresetId] = useState('aurora');
+  const [particleCount, setParticleCount] = useState(0);
+  const [speed, setSpeed] = useState(0);
+  const [spread, setSpread] = useState(0);
+  const [lifetime, setLifetime] = useState(0);
 
   const setNodes = useNodeGraphStore((s) => s.setNodes);
   const setEdges = useNodeGraphStore((s) => s.setEdges);
@@ -124,14 +124,13 @@ export function GenerativeArtPanel() {
   useMemo(() => {
     const p = GENERATIVE_PRESETS.find((x) => x.id === activePresetId);
     if (p) loadPreset(p);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const particleParams = activePreset?.particles;
 
   return (
     <div className="flex h-full overflow-hidden bg-[#05050f]">
-
       {/* ── Left: Preset picker ── */}
       <div className="flex w-40 shrink-0 flex-col gap-1.5 overflow-y-auto border-r border-studio-border p-2">
         <h2 className="mb-0.5 text-[9px] font-bold uppercase tracking-widest text-studio-muted">
@@ -183,17 +182,55 @@ export function GenerativeArtPanel() {
 
         {particleParams ? (
           <>
-            <ParamSlider label="Particles" value={particleCount} min={500} max={50000} step={500} onChange={setParticleCount} />
-            <ParamSlider label="Speed"     value={speed}         min={0.01} max={3.0}   step={0.01} onChange={setSpeed} />
-            <ParamSlider label="Spread"    value={spread}        min={0.2}  max={5.0}   step={0.1}  onChange={setSpread} />
-            <ParamSlider label="Lifetime"  value={lifetime}      min={0.5}  max={10.0}  step={0.1}  onChange={setLifetime} />
+            <ParamSlider
+              label="Particles"
+              value={particleCount}
+              min={500}
+              max={50000}
+              step={500}
+              onChange={setParticleCount}
+            />
+            <ParamSlider
+              label="Speed"
+              value={speed}
+              min={0.01}
+              max={3.0}
+              step={0.01}
+              onChange={setSpeed}
+            />
+            <ParamSlider
+              label="Spread"
+              value={spread}
+              min={0.2}
+              max={5.0}
+              step={0.1}
+              onChange={setSpread}
+            />
+            <ParamSlider
+              label="Lifetime"
+              value={lifetime}
+              min={0.5}
+              max={10.0}
+              step={0.1}
+              onChange={setLifetime}
+            />
 
             {/* Color swatches (read-only) */}
             <div>
-              <div className="mb-1 text-[9px] uppercase tracking-widest text-studio-muted">Colors</div>
+              <div className="mb-1 text-[9px] uppercase tracking-widest text-studio-muted">
+                Colors
+              </div>
               <div className="flex gap-1.5">
-                <div className="h-4 w-4 rounded-full border border-white/20" style={{ backgroundColor: particleParams.colorA }} title="Color A" />
-                <div className="h-4 w-4 rounded-full border border-white/20" style={{ backgroundColor: particleParams.colorB }} title="Color B" />
+                <div
+                  className="h-4 w-4 rounded-full border border-white/20"
+                  style={{ backgroundColor: particleParams.colorA }}
+                  title="Color A"
+                />
+                <div
+                  className="h-4 w-4 rounded-full border border-white/20"
+                  style={{ backgroundColor: particleParams.colorB }}
+                  title="Color B"
+                />
               </div>
             </div>
           </>
@@ -203,7 +240,8 @@ export function GenerativeArtPanel() {
 
         {/* Node graph badge */}
         <div className="mt-auto rounded border border-studio-border bg-studio-surface p-1.5 text-[9px] text-studio-muted">
-          🔗 Shader graph pre-wired. Switch to <strong className="text-studio-text">Node Graph</strong> tab to modify.
+          🔗 Shader graph pre-wired. Switch to{' '}
+          <strong className="text-studio-text">Node Graph</strong> tab to modify.
         </div>
       </div>
     </div>

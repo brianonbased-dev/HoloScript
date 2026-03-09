@@ -7,7 +7,9 @@ import { StateReplicator } from '../network/StateReplicator';
 
 describe('StateReplicator', () => {
   let rep: StateReplicator;
-  beforeEach(() => { rep = new StateReplicator('host1'); });
+  beforeEach(() => {
+    rep = new StateReplicator('host1');
+  });
 
   it('registerEntity creates entity', () => {
     rep.registerEntity('e1', { hp: 100 });
@@ -66,14 +68,24 @@ describe('StateReplicator', () => {
 
   it('applyDelta updates properties with higher version', () => {
     rep.registerEntity('e1', { hp: 100 });
-    rep.applyDelta({ entityId: 'e1', fromTick: 0, toTick: 5, changes: [{ key: 'hp', value: 50, version: 5 }] });
+    rep.applyDelta({
+      entityId: 'e1',
+      fromTick: 0,
+      toTick: 5,
+      changes: [{ key: 'hp', value: 50, version: 5 }],
+    });
     expect(rep.getProperty('e1', 'hp')).toBe(50);
   });
 
   it('applyDelta rejects lower version', () => {
     rep.registerEntity('e1', { hp: 100 });
     rep.setProperty('e1', 'hp', 80); // version 1
-    rep.applyDelta({ entityId: 'e1', fromTick: 0, toTick: 1, changes: [{ key: 'hp', value: 999, version: 0 }] });
+    rep.applyDelta({
+      entityId: 'e1',
+      fromTick: 0,
+      toTick: 1,
+      changes: [{ key: 'hp', value: 999, version: 0 }],
+    });
     expect(rep.getProperty('e1', 'hp')).toBe(80);
   });
 
@@ -82,7 +94,9 @@ describe('StateReplicator', () => {
     rep.addInterpolation('e1', 'x', 0, 100, 1); // 1ms — will complete instantly
     // Simulate enough time
     const start = Date.now();
-    while (Date.now() - start < 5) { /* busy wait */ }
+    while (Date.now() - start < 5) {
+      /* busy wait */
+    }
     rep.updateInterpolations();
     const val = rep.getProperty('e1', 'x') as number;
     expect(val).toBeGreaterThan(0);

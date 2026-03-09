@@ -3,17 +3,9 @@
  * Week 3: Prevents expensive queries from overwhelming the server
  */
 
-import {
-  ApolloServerPlugin,
-  GraphQLRequestListener,
-  BaseContext,
-} from '@apollo/server';
+import { ApolloServerPlugin, GraphQLRequestListener, BaseContext } from '@apollo/server';
 import { GraphQLError } from 'graphql';
-import {
-  fieldExtensionsEstimator,
-  getComplexity,
-  simpleEstimator,
-} from 'graphql-query-complexity';
+import { fieldExtensionsEstimator, getComplexity, simpleEstimator } from 'graphql-query-complexity';
 import type { GraphQLSchema } from 'graphql';
 
 export interface ComplexityPluginOptions {
@@ -58,10 +50,12 @@ export function createComplexityPlugin(
   options: ComplexityPluginOptions = {}
 ): ApolloServerPlugin<BaseContext> {
   const maxComplexity = options.maximumComplexity ?? DEFAULT_MAX_COMPLEXITY;
-  const includeInExtensions = options.includeComplexityInExtensions ?? process.env.NODE_ENV !== 'production';
-  const createError = options.createError ?? ((max, actual) =>
-    `Query is too complex: ${actual} exceeds maximum complexity of ${max}. Please simplify your query or batch fewer operations.`
-  );
+  const includeInExtensions =
+    options.includeComplexityInExtensions ?? process.env.NODE_ENV !== 'production';
+  const createError =
+    options.createError ??
+    ((max, actual) =>
+      `Query is too complex: ${actual} exceeds maximum complexity of ${max}. Please simplify your query or batch fewer operations.`);
 
   return {
     async requestDidStart(): Promise<GraphQLRequestListener<BaseContext>> {

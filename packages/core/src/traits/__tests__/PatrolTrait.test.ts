@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { patrolHandler } from '../PatrolTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getLastEvent, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getLastEvent,
+  getEventCount,
+} from './traitTestHelpers';
 
 const waypoints = [
   { x: 0, y: 0, z: 0 },
@@ -143,7 +151,12 @@ describe('PatrolTrait', () => {
 
   describe('alert handling', () => {
     it('resumes after alert timeout', () => {
-      attachTrait(patrolHandler, node, { waypoints, alert_on_detection: true, alert_wait_time: 1, resume_after_alert: true }, ctx);
+      attachTrait(
+        patrolHandler,
+        node,
+        { waypoints, alert_on_detection: true, alert_wait_time: 1, resume_after_alert: true },
+        ctx
+      );
       sendEvent(patrolHandler, node, { waypoints, alert_on_detection: true }, ctx, {
         type: 'patrol_alert',
         position: { x: 5, y: 0, z: 5 },
@@ -153,7 +166,13 @@ describe('PatrolTrait', () => {
       expect(state.isAlerted).toBe(true);
 
       // Update past the alert wait time
-      updateTrait(patrolHandler, node, { waypoints, alert_wait_time: 1, resume_after_alert: true }, ctx, 1.5);
+      updateTrait(
+        patrolHandler,
+        node,
+        { waypoints, alert_wait_time: 1, resume_after_alert: true },
+        ctx,
+        1.5
+      );
       expect(state.isAlerted).toBe(false);
       expect(getEventCount(ctx, 'patrol_alert_ended')).toBe(1);
     });

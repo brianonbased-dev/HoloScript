@@ -32,12 +32,13 @@ describe('DungeonGenerator', () => {
   it('rooms have unique IDs', () => {
     const dg = new DungeonGenerator({ seed: 42 });
     const { rooms } = dg.generate();
-    const ids = rooms.map(r => r.id);
+    const ids = rooms.map((r) => r.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('rooms stay within bounds', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const dg = new DungeonGenerator({ width: w, height: h, seed: 42 });
     const { rooms } = dg.generate();
     for (const r of rooms) {
@@ -104,7 +105,8 @@ describe('DungeonGenerator', () => {
     const r1 = d1.generate();
     const r2 = d2.generate();
     // Very unlikely to be identical
-    const same = r1.rooms.length === r2.rooms.length &&
+    const same =
+      r1.rooms.length === r2.rooms.length &&
       r1.rooms.every((r, i) => r.x === r2.rooms[i].x && r.y === r2.rooms[i].y);
     expect(same).toBe(false);
   });

@@ -251,7 +251,12 @@ export class URDFRobotTrait {
    * Mark the model as loaded with parsed information.
    * Called by the converter after successful URDF parsing.
    */
-  setLoadedState(robotName: string, linkCount: number, jointCount: number, jointNames: string[]): void {
+  setLoadedState(
+    robotName: string,
+    linkCount: number,
+    jointCount: number,
+    jointNames: string[]
+  ): void {
     this.state.isLoaded = true;
     this.state.robotName = robotName;
     this.state.linkCount = linkCount;
@@ -390,7 +395,12 @@ export const urdfRobotHandler: TraitHandler<URDFRobotConfig> = {
     context.emit('urdf_robot:detached', {});
   },
 
-  onUpdate(node: HSPlusNode, _config: URDFRobotConfig, _context: TraitContext, _delta: number): void {
+  onUpdate(
+    node: HSPlusNode,
+    _config: URDFRobotConfig,
+    _context: TraitContext,
+    _delta: number
+  ): void {
     const trait = (node as any).__urdfRobotTrait as URDFRobotTrait | undefined;
     if (!trait) return;
 

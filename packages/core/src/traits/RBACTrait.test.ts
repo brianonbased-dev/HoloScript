@@ -843,9 +843,7 @@ describe('RBACTrait', () => {
       });
 
       const auditLogs = findEmitted(emittedEvents, 'audit_log');
-      const delegationLog = auditLogs.find(
-        (e) => e.payload.action === 'rbac.capability.delegate'
-      );
+      const delegationLog = auditLogs.find((e) => e.payload.action === 'rbac.capability.delegate');
       expect(delegationLog).toBeDefined();
       expect(delegationLog!.payload.details.fromDID).toBe('did:key:delegator');
       expect(delegationLog!.payload.details.toDID).toBe('did:key:audited-receiver');

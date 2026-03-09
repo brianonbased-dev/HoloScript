@@ -164,9 +164,7 @@ describe('A2AAgentCardCompiler', () => {
             { name: 'T1', properties: [], actions: [], traits: [] } as any,
             { name: 'T2', properties: [], actions: [], traits: [] } as any,
           ],
-          objects: [
-            { name: 'O1', properties: [], traits: [] } as any,
-          ],
+          objects: [{ name: 'O1', properties: [], traits: [] } as any],
         })
       );
       expect(card.description).toContain('2 template(s)');
@@ -293,9 +291,7 @@ describe('A2AAgentCardCompiler', () => {
       const card = compileAndParse(
         compiler,
         makeComposition({
-          templates: [
-            { name: 'BasicTemplate', properties: [], actions: [], traits: [] } as any,
-          ],
+          templates: [{ name: 'BasicTemplate', properties: [], actions: [], traits: [] } as any],
         })
       );
       const skill = card.skills.find((s: A2AAgentSkill) => s.id === 'basictemplate');
@@ -515,12 +511,12 @@ describe('A2AAgentCardCompiler', () => {
       const card = compileAndParse(
         c,
         makeComposition({
-          spatialGroups: [
-            { name: 'Group1', properties: [], objects: [] } as any,
-          ],
+          spatialGroups: [{ name: 'Group1', properties: [], objects: [] } as any],
         })
       );
-      expect(card.skills.find((s: A2AAgentSkill) => s.id === 'spatial_coordination')).toBeUndefined();
+      expect(
+        card.skills.find((s: A2AAgentSkill) => s.id === 'spatial_coordination')
+      ).toBeUndefined();
     });
   });
 
@@ -634,9 +630,7 @@ describe('A2AAgentCardCompiler', () => {
               name: 'Shopkeeper',
               npcType: 'merchant',
               properties: [],
-              behaviors: [
-                { name: 'greet', trigger: 'on_approach', actions: [] } as any,
-              ],
+              behaviors: [{ name: 'greet', trigger: 'on_approach', actions: [] } as any],
             } as any,
           ],
         })
@@ -672,9 +666,7 @@ describe('A2AAgentCardCompiler', () => {
               id: 'd2',
               character: 'Bob',
               content: 'Welcome!',
-              options: [
-                { text: 'Thanks', type: 'DialogueOption' } as any,
-              ],
+              options: [{ text: 'Thanks', type: 'DialogueOption' } as any],
             } as any,
           ],
         })
@@ -693,12 +685,8 @@ describe('A2AAgentCardCompiler', () => {
       const card = compileAndParse(
         c,
         makeComposition({
-          npcs: [
-            { type: 'NPC', name: 'Bob', properties: [], behaviors: [] } as any,
-          ],
-          dialogues: [
-            { type: 'Dialogue', id: 'd1', content: 'Hi', options: [] } as any,
-          ],
+          npcs: [{ type: 'NPC', name: 'Bob', properties: [], behaviors: [] } as any],
+          dialogues: [{ type: 'Dialogue', id: 'd1', content: 'Hi', options: [] } as any],
         })
       );
       expect(card.skills.find((s: A2AAgentSkill) => s.id.startsWith('npc_'))).toBeUndefined();
@@ -721,7 +709,12 @@ describe('A2AAgentCardCompiler', () => {
               name: 'The Lost Artifact',
               questType: 'fetch',
               objectives: [
-                { id: 'o1', description: 'Find it', objectiveType: 'discover', target: 'artifact' } as any,
+                {
+                  id: 'o1',
+                  description: 'Find it',
+                  objectiveType: 'discover',
+                  target: 'artifact',
+                } as any,
               ],
               rewards: { type: 'QuestRewards', experience: 100 },
             } as any,
@@ -866,9 +859,7 @@ describe('A2AAgentCardCompiler', () => {
         makeComposition({
           state: {
             type: 'State',
-            properties: [
-              { type: 'StateProperty', key: 'count', value: 0 },
-            ],
+            properties: [{ type: 'StateProperty', key: 'count', value: 0 }],
           },
         })
       );
@@ -885,9 +876,7 @@ describe('A2AAgentCardCompiler', () => {
         makeComposition({
           logic: {
             type: 'Logic',
-            handlers: [
-              { event: 'on_click', parameters: [], body: [] } as any,
-            ],
+            handlers: [{ event: 'on_click', parameters: [], body: [] } as any],
             actions: [],
           },
         })
@@ -987,21 +976,18 @@ describe('A2AAgentCardCompiler', () => {
             {
               name: 'HVACUnit',
               properties: [],
-              traits: [{ name: 'sensor', config: {} }, { name: 'networked', config: {} }],
+              traits: [
+                { name: 'sensor', config: {} },
+                { name: 'networked', config: {} },
+              ],
             } as any,
           ],
           logic: {
             type: 'Logic',
-            handlers: [
-              { event: 'on_temperature_change', parameters: [], body: [] } as any,
-            ],
-            actions: [
-              { name: 'setTargetTemp', parameters: [], body: [] } as any,
-            ],
+            handlers: [{ event: 'on_temperature_change', parameters: [], body: [] } as any],
+            actions: [{ name: 'setTargetTemp', parameters: [], body: [] } as any],
           },
-          spatialGroups: [
-            { name: 'Floor1', properties: [], objects: [] } as any,
-          ],
+          spatialGroups: [{ name: 'Floor1', properties: [], objects: [] } as any],
           domainBlocks: [
             {
               type: 'DomainBlock',
@@ -1040,9 +1026,7 @@ describe('A2AAgentCardCompiler', () => {
       const json = compiler.compile(
         makeComposition({
           name: 'TestAgent',
-          templates: [
-            { name: 'T', properties: [], actions: [], traits: [] } as any,
-          ],
+          templates: [{ name: 'T', properties: [], actions: [], traits: [] } as any],
         }),
         'test-token'
       );
@@ -1107,9 +1091,7 @@ describe('A2AAgentCardCompiler', () => {
       const card = compileAndParse(
         compiler,
         makeComposition({
-          templates: [
-            { name: 'TestTemplate', properties: [], actions: [], traits: [] } as any,
-          ],
+          templates: [{ name: 'TestTemplate', properties: [], actions: [], traits: [] } as any],
         })
       );
       for (const skill of card.skills) {

@@ -7,7 +7,9 @@ describe('Input System (Cycle 183)', () => {
   describe('InputManager', () => {
     let input: InputManager;
 
-    beforeEach(() => { input = new InputManager(); });
+    beforeEach(() => {
+      input = new InputManager();
+    });
 
     it('should track key presses', () => {
       input.keyDown('KeyW');
@@ -51,7 +53,9 @@ describe('Input System (Cycle 183)', () => {
   describe('InputBindings', () => {
     let bindings: InputBindings;
 
-    beforeEach(() => { bindings = new InputBindings(); });
+    beforeEach(() => {
+      bindings = new InputBindings();
+    });
 
     it('should have a default profile', () => {
       expect(bindings.getActiveProfile()).not.toBeNull();
@@ -77,7 +81,10 @@ describe('Input System (Cycle 183)', () => {
 
     it('should support composite axes', () => {
       bindings.addCompositeAxis('horizontal', 'KeyD', 'KeyA');
-      const keys = new Map([['KeyD', true], ['KeyA', false]]);
+      const keys = new Map([
+        ['KeyD', true],
+        ['KeyA', false],
+      ]);
       expect(bindings.resolveComposite('horizontal', keys)).toBe(1);
     });
 
@@ -108,7 +115,9 @@ describe('Input System (Cycle 183)', () => {
 
     it('should subscribe to gesture events', () => {
       let detected = false;
-      gesture.on('tap', () => { detected = true; });
+      gesture.on('tap', () => {
+        detected = true;
+      });
       // Simulate quick tap
       gesture.touchStart(0, 100, 100);
       gesture.touchEnd(0, 100, 100);

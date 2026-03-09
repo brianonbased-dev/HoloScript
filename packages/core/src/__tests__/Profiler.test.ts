@@ -86,7 +86,7 @@ describe('Cycle 150: Profiler & Memory', () => {
     tracker.allocate('audio', 60);
     tracker.allocate('audio', 60); // Exceeds 100
 
-    expect(tracker.getWarnings().some(w => w.includes('Budget exceeded'))).toBe(true);
+    expect(tracker.getWarnings().some((w) => w.includes('Budget exceeded'))).toBe(true);
   });
 
   // -------------------------------------------------------------------------
@@ -99,7 +99,9 @@ describe('Cycle 150: Profiler & Memory', () => {
     const root = gc.allocate(100);
     const child = gc.allocate(50);
     let finalized = false;
-    const orphan = gc.allocate(30, 'young', () => { finalized = true; });
+    const orphan = gc.allocate(30, 'young', () => {
+      finalized = true;
+    });
 
     gc.addRoot(root);
     gc.addReference(root, child);

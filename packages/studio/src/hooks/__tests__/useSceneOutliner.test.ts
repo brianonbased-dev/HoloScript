@@ -3,9 +3,9 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useSceneOutliner } from '../useSceneOutliner';
-import { useSceneStore, useEditorStore } from '@/lib/store';
+import { useSceneStore, useEditorStore } from '@/lib/stores';
 
-vi.mock('@/lib/store', () => ({
+vi.mock('@/lib/stores', () => ({
   useSceneStore: vi.fn(),
   useEditorStore: vi.fn(),
 }));
@@ -122,11 +122,7 @@ scene "Scene2" {
 
       const { result } = renderHook(() => useSceneOutliner());
 
-      expect(result.current.tree[0].traits).toEqual([
-        'transform',
-        'material',
-        'physics',
-      ]);
+      expect(result.current.tree[0].traits).toEqual(['transform', 'material', 'physics']);
     });
 
     it('should handle object without traits', () => {
@@ -220,7 +216,7 @@ scene "Scene2" {
       const { result } = renderHook(() => useSceneOutliner());
 
       expect(result.current.tree[0].children).toHaveLength(3);
-      expect(result.current.tree[0].children.map(c => c.name)).toEqual([
+      expect(result.current.tree[0].children.map((c) => c.name)).toEqual([
         'child1',
         'child2',
         'child3',
@@ -240,11 +236,7 @@ scene "Scene2" {
       const { result } = renderHook(() => useSceneOutliner());
 
       expect(result.current.allNodes).toHaveLength(3);
-      expect(result.current.allNodes.map(n => n.name)).toEqual([
-        'Main',
-        'parent',
-        'child',
-      ]);
+      expect(result.current.allNodes.map((n) => n.name)).toEqual(['Main', 'parent', 'child']);
     });
 
     it('should include all nodes from multiple trees', () => {
@@ -289,7 +281,6 @@ scene "Scene2" {
 
       expect(result.current.selectedNode).toBeNull();
     });
-
   });
 
   describe('Line Numbers', () => {

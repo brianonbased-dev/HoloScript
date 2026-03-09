@@ -12,9 +12,16 @@
 // =============================================================================
 
 export interface BoneTransform {
-  tx: number; ty: number; tz: number;    // Translation
-  rx: number; ry: number; rz: number; rw: number; // Quaternion rotation
-  sx: number; sy: number; sz: number;    // Scale
+  tx: number;
+  ty: number;
+  tz: number; // Translation
+  rx: number;
+  ry: number;
+  rz: number;
+  rw: number; // Quaternion rotation
+  sx: number;
+  sy: number;
+  sz: number; // Scale
 }
 
 export interface Bone {
@@ -41,9 +48,22 @@ export class BoneSystem {
   // ---------------------------------------------------------------------------
 
   addBone(id: string, name: string, parentId: string | null, local?: Partial<BoneTransform>): void {
-    const defaultTransform = (): BoneTransform => ({ tx: 0, ty: 0, tz: 0, rx: 0, ry: 0, rz: 0, rw: 1, sx: 1, sy: 1, sz: 1 });
+    const defaultTransform = (): BoneTransform => ({
+      tx: 0,
+      ty: 0,
+      tz: 0,
+      rx: 0,
+      ry: 0,
+      rz: 0,
+      rw: 1,
+      sx: 1,
+      sy: 1,
+      sz: 1,
+    });
     const bone: Bone = {
-      id, name, parentId,
+      id,
+      name,
+      parentId,
       local: { ...defaultTransform(), ...local },
       world: defaultTransform(),
       bindInverse: defaultTransform(),
@@ -62,9 +82,15 @@ export class BoneSystem {
     this.dirty = true;
   }
 
-  getBone(id: string): Bone | undefined { return this.bones.get(id); }
-  getBoneCount(): number { return this.bones.size; }
-  getRoots(): string[] { return [...this.roots]; }
+  getBone(id: string): Bone | undefined {
+    return this.bones.get(id);
+  }
+  getBoneCount(): number {
+    return this.bones.size;
+  }
+  getRoots(): string[] {
+    return [...this.roots];
+  }
 
   // ---------------------------------------------------------------------------
   // Pose Application
@@ -128,7 +154,10 @@ export class BoneSystem {
       tx: parent.tx + child.tx * parent.sx,
       ty: parent.ty + child.ty * parent.sy,
       tz: parent.tz + child.tz * parent.sz,
-      rx: child.rx, ry: child.ry, rz: child.rz, rw: child.rw, // Simplified — no quat multiply
+      rx: child.rx,
+      ry: child.ry,
+      rz: child.rz,
+      rw: child.rw, // Simplified — no quat multiply
       sx: parent.sx * child.sx,
       sy: parent.sy * child.sy,
       sz: parent.sz * child.sz,
@@ -140,9 +169,16 @@ export class BoneSystem {
     const isy = t.sy !== 0 ? 1 / t.sy : 0;
     const isz = t.sz !== 0 ? 1 / t.sz : 0;
     return {
-      tx: -t.tx * isx, ty: -t.ty * isy, tz: -t.tz * isz,
-      rx: -t.rx, ry: -t.ry, rz: -t.rz, rw: t.rw, // Conjugate
-      sx: isx, sy: isy, sz: isz,
+      tx: -t.tx * isx,
+      ty: -t.ty * isy,
+      tz: -t.tz * isz,
+      rx: -t.rx,
+      ry: -t.ry,
+      rz: -t.rz,
+      rw: t.rw, // Conjugate
+      sx: isx,
+      sy: isy,
+      sz: isz,
     };
   }
 

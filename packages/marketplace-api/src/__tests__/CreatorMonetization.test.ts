@@ -81,9 +81,7 @@ describe('Film3D Type Definitions', () => {
       name: 'Test NFT',
       description: 'Test description',
       image: 'ipfs://QmTest',
-      attributes: [
-        { trait_type: 'Layer', value: 'VRR' },
-      ],
+      attributes: [{ trait_type: 'Layer', value: 'VRR' }],
       properties: {
         category: 'vrr_twin',
         layer: 'vrr',
@@ -108,11 +106,7 @@ describe('Film3D Type Definitions', () => {
 
 describe('Error Classes', () => {
   it('should create CreatorMonetizationError', () => {
-    const error = new CreatorMonetizationError(
-      'Test error',
-      'TEST_CODE',
-      { detail: 'test' }
-    );
+    const error = new CreatorMonetizationError('Test error', 'TEST_CODE', { detail: 'test' });
 
     expect(error.name).toBe('CreatorMonetizationError');
     expect(error.message).toBe('Test error');
@@ -121,11 +115,7 @@ describe('Error Classes', () => {
   });
 
   it('should create InsufficientBalanceError', () => {
-    const error = new InsufficientBalanceError(
-      '0.001 ETH',
-      '0.0005 ETH',
-      '0.0005 ETH'
-    );
+    const error = new InsufficientBalanceError('0.001 ETH', '0.0005 ETH', '0.0005 ETH');
 
     expect(error.name).toBe('InsufficientBalanceError');
     expect(error.code).toBe('INSUFFICIENT_BALANCE');
@@ -199,7 +189,11 @@ describe('Metadata Generation', () => {
       { trait_type: 'Layer', value: 'VRR' },
       { trait_type: 'Content Type', value: 'VRR Twin' },
       { trait_type: 'Location', value: mockVRRTwin.location!.name },
-      { trait_type: 'Business Count', value: mockVRRTwin.businesses!.length, display_type: 'number' },
+      {
+        trait_type: 'Business Count',
+        value: mockVRRTwin.businesses!.length,
+        display_type: 'number',
+      },
       { trait_type: 'Sync Type', value: mockVRRTwin.syncType! },
     ];
 
@@ -212,14 +206,14 @@ describe('Metadata Generation', () => {
     const description =
       mockVRRTwin.description ||
       `1:1 digital twin of ${mockVRRTwin.location?.name || mockVRRTwin.name}. ` +
-      `Created in Hololand with real-time synchronization and interactive experiences.`;
+        `Created in Hololand with real-time synchronization and interactive experiences.`;
 
     expect(description).toContain('Digital twin of downtown Phoenix');
   });
 
   it('should include latitude/longitude if available', () => {
-    const hasCoordinates = mockVRRTwin.location?.latitude !== undefined &&
-                          mockVRRTwin.location?.longitude !== undefined;
+    const hasCoordinates =
+      mockVRRTwin.location?.latitude !== undefined && mockVRRTwin.location?.longitude !== undefined;
 
     expect(hasCoordinates).toBe(true);
 
@@ -231,9 +225,9 @@ describe('Metadata Generation', () => {
 
   it('should include custom traits in metadata', () => {
     const traits = mockVRRTwin.traits || [];
-    const featureAttributes = traits.map(trait => ({
+    const featureAttributes = traits.map((trait) => ({
       trait_type: 'Feature',
-      value: trait
+      value: trait,
     }));
 
     expect(featureAttributes).toHaveLength(2);

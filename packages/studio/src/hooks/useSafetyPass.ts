@@ -10,9 +10,13 @@
 
 import { useState, useCallback } from 'react';
 import {
-  runSafetyPass, quickSafetyCheck,
-  type SafetyPassResult, type SafetyPassOptions, type EffectASTNode,
-  type SafetyReport, type SafetyVerdict,
+  runSafetyPass,
+  quickSafetyCheck,
+  type SafetyPassResult,
+  type SafetyPassOptions,
+  type EffectASTNode,
+  type SafetyReport,
+  type SafetyVerdict,
 } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -33,31 +37,44 @@ export function useSafetyPass(): UseSafetyPassReturn {
   const [result, setResult] = useState<SafetyPassResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const analyze = useCallback((nodes: EffectASTNode[], options: Partial<SafetyPassOptions> = {}) => {
-    setIsAnalyzing(true);
-    const passResult = runSafetyPass(nodes, {
-      moduleId: options.moduleId || 'studio-live',
-      targetPlatforms: options.targetPlatforms || ['quest3', 'webxr'],
-      trustLevel: options.trustLevel || 'basic',
-      generateCertificate: false,
-      ...options,
-    });
-    setResult(passResult);
-    setReport(passResult.report);
-    setIsAnalyzing(false);
-    return passResult;
-  }, []);
+  const analyze = useCallback(
+    (nodes: EffectASTNode[], options: Partial<SafetyPassOptions> = {}) => {
+      setIsAnalyzing(true);
+      const passResult = runSafetyPass(nodes, {
+        moduleId: options.moduleId || 'studio-live',
+        targetPlatforms: options.targetPlatforms || ['quest3', 'webxr'],
+        trustLevel: options.trustLevel || 'basic',
+        generateCertificate: false,
+        ...options,
+      });
+      setResult(passResult);
+      setReport(passResult.report);
+      setIsAnalyzing(false);
+      return passResult;
+    },
+    []
+  );
 
-  const quickCheck = useCallback((traits: string[], builtins: string[], trustLevel: string = 'basic') => {
-    return quickSafetyCheck(traits, builtins, trustLevel);
-  }, []);
+  const quickCheck = useCallback(
+    (traits: string[], builtins: string[], trustLevel: string = 'basic') => {
+      return quickSafetyCheck(traits, builtins, trustLevel);
+    },
+    []
+  );
 
-  const clear = useCallback(() => { setReport(null); setResult(null); }, []);
+  const clear = useCallback(() => {
+    setReport(null);
+    setResult(null);
+  }, []);
 
   return {
-    report, result, isAnalyzing,
+    report,
+    result,
+    isAnalyzing,
     verdict: report?.verdict || null,
     dangerScore: report?.dangerScore || 0,
-    quickCheck, analyze, clear,
+    quickCheck,
+    analyze,
+    clear,
   };
 }

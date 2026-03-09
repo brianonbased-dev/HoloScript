@@ -158,7 +158,7 @@ export class GameEngine {
   reload<TContent = unknown, TState = unknown>(
     key: string,
     content: TContent,
-    oldState?: TState,
+    oldState?: TState
   ): void {
     this.hotReload.triggerReload(key, content, oldState);
   }

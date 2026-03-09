@@ -1,7 +1,7 @@
 /**
  * @fileoverview Agent Wallet Registry
  * @module @holoscript/core
- * 
+ *
  * PURPOSE:
  * Bridges autonomous agents spawned via uaa2-service with Coinbase AgentKit
  * and Base L2 wallets. Allows agents to securely hold funds and autonomously
@@ -31,12 +31,16 @@ export class AgentWalletRegistry {
   /**
    * Registers a new agent wallet mapping
    */
-  public registerWallet(agentId: string, walletAddress: string, networkId: number = 8453): AgentWallet {
+  public registerWallet(
+    agentId: string,
+    walletAddress: string,
+    networkId: number = 8453
+  ): AgentWallet {
     const wallet: AgentWallet = {
       agentId,
       walletAddress,
       networkId,
-      balanceThreshold: 0.001 // 0.001 ETH
+      balanceThreshold: 0.001, // 0.001 ETH
     };
     this.wallets.set(agentId, wallet);
     return wallet;
@@ -65,7 +69,7 @@ export class AgentWalletRegistry {
     if (!wallet) {
       throw new Error(`[AgentWalletRegistry] No wallet registered for agent ${agentId}`);
     }
-    
+
     // In production, this proxies into @coinbase/agentkit for secure signing.
     // Simulating signature generation:
     const mockHash = '0x' + Buffer.from(JSON.stringify(payload)).toString('hex').slice(0, 64);

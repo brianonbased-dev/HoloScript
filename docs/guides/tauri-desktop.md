@@ -92,10 +92,10 @@ interface TauriFeatureGates {
 }
 
 interface TauriGpuInfo {
-  name: string;              // e.g. 'NVIDIA GeForce RTX 4070'
-  vendor: string;            // e.g. 'NVIDIA'
-  backend: string;           // e.g. 'Vulkan', 'Metal', 'DX12'
-  supports_webgpu: boolean;  // true if wgpu adapter supports WebGPU
+  name: string; // e.g. 'NVIDIA GeForce RTX 4070'
+  vendor: string; // e.g. 'NVIDIA'
+  backend: string; // e.g. 'Vulkan', 'Metal', 'DX12'
+  supports_webgpu: boolean; // true if wgpu adapter supports WebGPU
 }
 ```
 
@@ -103,10 +103,10 @@ interface TauriGpuInfo {
 
 The WASM module URL is resolved differently based on runtime:
 
-| Environment | URL | Source |
-|-------------|-----|--------|
-| Browser | `/wasm/holoscript.js` | `public/wasm/` directory |
-| Tauri | `/wasm/holoscript.js` | Tauri resource bundle |
+| Environment | URL                   | Source                   |
+| ----------- | --------------------- | ------------------------ |
+| Browser     | `/wasm/holoscript.js` | `public/wasm/` directory |
+| Tauri       | `/wasm/holoscript.js` | Tauri resource bundle    |
 
 Both environments use the same relative URL because Tauri 2.0 serves the frontend dist directory (which includes `public/wasm/`) at the root via its custom protocol.
 
@@ -180,12 +180,13 @@ if (result.success) {
 import { listProjectsNative } from '@holoscript/studio/platform';
 
 const projects = await listProjectsNative('/home/user/projects');
-projects.forEach(p => {
+projects.forEach((p) => {
   console.log(`${p.name} v${p.version} (${p.scene_count} scenes)`);
 });
 ```
 
 **Browser Fallback:** All native file operations return graceful fallbacks when not in Tauri:
+
 - `saveProjectNative` returns `{ success: false, message: 'Not in Tauri context' }`
 - `loadProjectNative` returns `{ success: false, message: 'Not in Tauri context' }`
 - `listProjectsNative` returns `[]`
@@ -216,7 +217,9 @@ function ToolBar() {
 
       {/* Tauri-only: GPU info display */}
       {features?.gpuInfo && (
-        <span>{features.gpuInfo.name} ({features.gpuInfo.backend})</span>
+        <span>
+          {features.gpuInfo.name} ({features.gpuInfo.backend})
+        </span>
       )}
     </div>
   );
@@ -230,7 +233,9 @@ function SaveButton({ source }: { source: string }) {
   const handleSave = async () => {
     if (isTauri()) {
       // Native save dialog via Tauri
-      const path = await tauriDialog.save({ filters: [{ name: 'HoloScript', extensions: ['holo', 'hsplus'] }] });
+      const path = await tauriDialog.save({
+        filters: [{ name: 'HoloScript', extensions: ['holo', 'hsplus'] }],
+      });
       if (path) await saveProjectNative(path, source);
     } else {
       // Browser download fallback
@@ -251,15 +256,15 @@ function SaveButton({ source }: { source: string }) {
 
 The Rust backend exposes these IPC commands (defined in `packages/tauri-app/src-tauri/main.rs`):
 
-| Command | Args | Returns | Description |
-|---------|------|---------|-------------|
-| `get_gpu_info` | - | `TauriGpuInfo` | GPU adapter info from wgpu |
-| `get_app_version` | - | `string` | App version from Cargo.toml |
-| `shader_preview_init` | `width`, `height` | - | Initialize wgpu shader preview |
-| `shader_preview_destroy` | - | - | Destroy shader preview pipeline |
-| `save_project` | `path`, `content` | `string` | Save file to disk |
-| `load_project` | `path` | `string` | Load file from disk |
-| `list_projects` | `directory` | `TauriProjectMeta[]` | List project files in directory |
+| Command                  | Args              | Returns              | Description                     |
+| ------------------------ | ----------------- | -------------------- | ------------------------------- |
+| `get_gpu_info`           | -                 | `TauriGpuInfo`       | GPU adapter info from wgpu      |
+| `get_app_version`        | -                 | `string`             | App version from Cargo.toml     |
+| `shader_preview_init`    | `width`, `height` | -                    | Initialize wgpu shader preview  |
+| `shader_preview_destroy` | -                 | -                    | Destroy shader preview pipeline |
+| `save_project`           | `path`, `content` | `string`             | Save file to disk               |
+| `load_project`           | `path`            | `string`             | Load file from disk             |
+| `list_projects`          | `directory`       | `TauriProjectMeta[]` | List project files in directory |
 
 ## Testing
 
@@ -299,6 +304,7 @@ Ensure the WASM files are included in Tauri's resource bundle. Check `tauri.conf
 ### GPU Info Returns Null
 
 If `gpuInfo` is null even in Tauri, check that:
+
 1. The `get_gpu_info` IPC command is registered in `main.rs`.
 2. wgpu can enumerate GPU adapters on the system.
 3. GPU drivers are up to date.

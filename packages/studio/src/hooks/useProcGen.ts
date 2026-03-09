@@ -34,36 +34,62 @@ function readGrid(tm: TileMap, w: number, h: number): (TileData | null)[][] {
 }
 
 export function useProcGen(initWidth = 16, initHeight = 16, initTileSize = 32): UseProcGenReturn {
-  const tmRef = useRef((() => { const m = new TileMap(initWidth, initHeight, initTileSize); m.addLayer('ground'); return m; })());
-  const [grid, setGrid] = useState<(TileData | null)[][]>(readGrid(tmRef.current, initWidth, initHeight));
+  const tmRef = useRef(
+    (() => {
+      const m = new TileMap(initWidth, initHeight, initTileSize);
+      m.addLayer('ground');
+      return m;
+    })()
+  );
+  const [grid, setGrid] = useState<(TileData | null)[][]>(
+    readGrid(tmRef.current, initWidth, initHeight)
+  );
   const [dims, setDims] = useState({ w: initWidth, h: initHeight });
 
-  const sync = useCallback(() => { setGrid(readGrid(tmRef.current, dims.w, dims.h)); }, [dims]);
+  const sync = useCallback(() => {
+    setGrid(readGrid(tmRef.current, dims.w, dims.h));
+  }, [dims]);
 
-  const setTile = useCallback((x: number, y: number, id: number, flags = TileFlags.NONE) => {
-    tmRef.current.setTile('ground', x, y, { id, flags });
-    sync();
-  }, [sync]);
+  const setTile = useCallback(
+    (x: number, y: number, id: number, flags = TileFlags.NONE) => {
+      tmRef.current.setTile('ground', x, y, { id, flags });
+      sync();
+    },
+    [sync]
+  );
 
-  const eraseTile = useCallback((x: number, y: number) => { tmRef.current.removeTile('ground', x, y); sync(); }, [sync]);
+  const eraseTile = useCallback(
+    (x: number, y: number) => {
+      tmRef.current.removeTile('ground', x, y);
+      sync();
+    },
+    [sync]
+  );
 
-  const fill = useCallback((id: number, flags = TileFlags.NONE) => {
-    for (let y = 0; y < dims.h; y++) for (let x = 0; x < dims.w; x++) tmRef.current.setTile('ground', x, y, { id, flags });
-    sync();
-  }, [dims, sync]);
+  const fill = useCallback(
+    (id: number, flags = TileFlags.NONE) => {
+      for (let y = 0; y < dims.h; y++)
+        for (let x = 0; x < dims.w; x++) tmRef.current.setTile('ground', x, y, { id, flags });
+      sync();
+    },
+    [dims, sync]
+  );
 
-  const generateRandom = useCallback((density = 0.4) => {
-    for (let y = 0; y < dims.h; y++) {
-      for (let x = 0; x < dims.w; x++) {
-        if (Math.random() < density) {
-          tmRef.current.setTile('ground', x, y, { id: 1, flags: TileFlags.SOLID });
-        } else {
-          tmRef.current.removeTile('ground', x, y);
+  const generateRandom = useCallback(
+    (density = 0.4) => {
+      for (let y = 0; y < dims.h; y++) {
+        for (let x = 0; x < dims.w; x++) {
+          if (Math.random() < density) {
+            tmRef.current.setTile('ground', x, y, { id: 1, flags: TileFlags.SOLID });
+          } else {
+            tmRef.current.removeTile('ground', x, y);
+          }
         }
       }
-    }
-    sync();
-  }, [dims, sync]);
+      sync();
+    },
+    [dims, sync]
+  );
 
   const generateMaze = useCallback(() => {
     // Simple Binary Tree algorithm
@@ -88,7 +114,8 @@ export function useProcGen(initWidth = 16, initHeight = 16, initTileSize = 32): 
   }, [dims, sync]);
 
   const clear = useCallback(() => {
-    for (let y = 0; y < dims.h; y++) for (let x = 0; x < dims.w; x++) tmRef.current.removeTile('ground', x, y);
+    for (let y = 0; y < dims.h; y++)
+      for (let x = 0; x < dims.w; x++) tmRef.current.removeTile('ground', x, y);
     sync();
   }, [dims, sync]);
 
@@ -99,5 +126,19 @@ export function useProcGen(initWidth = 16, initHeight = 16, initTileSize = 32): 
     setGrid(readGrid(tmRef.current, w, h));
   }, []);
 
-  return { tilemap: tmRef.current, grid, width: dims.w, height: dims.h, tileSize: tmRef.current.getTileSize(), layerCount: tmRef.current.getLayerCount(), setTile, eraseTile, fill, generateRandom, generateMaze, clear, resize };
+  return {
+    tilemap: tmRef.current,
+    grid,
+    width: dims.w,
+    height: dims.h,
+    tileSize: tmRef.current.getTileSize(),
+    layerCount: tmRef.current.getLayerCount(),
+    setTile,
+    eraseTile,
+    fill,
+    generateRandom,
+    generateMaze,
+    clear,
+    resize,
+  };
 }

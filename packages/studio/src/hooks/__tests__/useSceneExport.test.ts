@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useSceneExport } from '../useSceneExport';
-import { useSceneStore, useSceneGraphStore } from '@/lib/store';
+import { useSceneStore, useSceneGraphStore } from '@/lib/stores';
 
 describe('useSceneExport', () => {
   beforeEach(() => {
@@ -97,29 +97,27 @@ describe('useSceneExport', () => {
   });
 
   describe('Format Support', () => {
-    it.each([
-      ['gltf'],
-      ['usd'],
-      ['usdz'],
-      ['json'],
-    ] as const)('should support %s format', async (format) => {
-      const mockBlob = new Blob(['mock data']);
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        blob: () => Promise.resolve(mockBlob),
-        headers: new Map(),
-      });
+    it.each([['gltf'], ['usd'], ['usdz'], ['json']] as const)(
+      'should support %s format',
+      async (format) => {
+        const mockBlob = new Blob(['mock data']);
+        (global.fetch as any).mockResolvedValueOnce({
+          ok: true,
+          blob: () => Promise.resolve(mockBlob),
+          headers: new Map(),
+        });
 
-      const { result } = renderHook(() => useSceneExport());
+        const { result } = renderHook(() => useSceneExport());
 
-      await act(async () => {
-        await result.current.exportScene(format);
-      });
+        await act(async () => {
+          await result.current.exportScene(format);
+        });
 
-      const callBody = JSON.parse((global.fetch as any).mock.calls[0][1].body);
-      expect(callBody.format).toBe(format);
-      expect(result.current.status).toBe('done');
-    });
+        const callBody = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+        expect(callBody.format).toBe(format);
+        expect(result.current.status).toBe('done');
+      }
+    );
   });
 
   describe('JSON Export', () => {

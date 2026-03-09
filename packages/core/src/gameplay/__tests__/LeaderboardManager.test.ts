@@ -4,7 +4,9 @@ import { LeaderboardManager } from '../LeaderboardManager';
 describe('LeaderboardManager', () => {
   let lm: LeaderboardManager;
 
-  beforeEach(() => { lm = new LeaderboardManager(); });
+  beforeEach(() => {
+    lm = new LeaderboardManager();
+  });
 
   it('createBoard and getBoard', () => {
     lm.createBoard('score', 'High Scores');
@@ -88,7 +90,7 @@ describe('LeaderboardManager', () => {
     for (let i = 0; i < 10; i++) lm.submitScore('score', `p${i}`, `P${i}`, i * 10);
     const around = lm.getAroundPlayer('score', 'p5', 2);
     expect(around.length).toBeLessThanOrEqual(5);
-    expect(around.some(e => e.playerId === 'p5')).toBe(true);
+    expect(around.some((e) => e.playerId === 'p5')).toBe(true);
   });
 
   it('getAroundPlayer returns empty for unknown player', () => {

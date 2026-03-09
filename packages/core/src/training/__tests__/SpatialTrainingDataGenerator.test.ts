@@ -17,7 +17,9 @@ import type {
 
 const FIXED_SEED = 42;
 
-function createSeededGenerator(overrides: Partial<SpatialGeneratorConfig> = {}): SpatialTrainingDataGenerator {
+function createSeededGenerator(
+  overrides: Partial<SpatialGeneratorConfig> = {}
+): SpatialTrainingDataGenerator {
   return new SpatialTrainingDataGenerator({
     seed: FIXED_SEED,
     ...overrides,
@@ -297,7 +299,9 @@ describe('SpatialTrainingDataGenerator', () => {
       for (const ex of examples) {
         expect(ex.isPositive).toBe(true);
         // Positive adjacent responses should indicate objects are close enough
-        expect(ex.response.toLowerCase()).toMatch(/yes|satisf|pass|within|close|proper|no violation/i);
+        expect(ex.response.toLowerCase()).toMatch(
+          /yes|satisf|pass|within|close|proper|no violation/i
+        );
       }
     });
 
@@ -313,7 +317,9 @@ describe('SpatialTrainingDataGenerator', () => {
       for (const ex of examples) {
         expect(ex.isPositive).toBe(false);
         // Negative adjacent responses should indicate objects are too far
-        expect(ex.response.toLowerCase()).toMatch(/no|exceed|fail|violat|not|outside|too far|improper|break/i);
+        expect(ex.response.toLowerCase()).toMatch(
+          /no|exceed|fail|violat|not|outside|too far|improper|break/i
+        );
       }
     });
 
@@ -629,7 +635,9 @@ describe('SpatialTrainingDataGenerator', () => {
       const examples = gen.generate();
 
       for (const ex of examples) {
-        expect(ex.context).toMatch(/@spatial_adjacent\(target:\s+"[^"]+",\s+maxDistance:\s+[\d.]+m\)/);
+        expect(ex.context).toMatch(
+          /@spatial_adjacent\(target:\s+"[^"]+",\s+maxDistance:\s+[\d.]+m\)/
+        );
       }
     });
 
@@ -919,9 +927,7 @@ describe('SpatialTrainingDataGenerator', () => {
       expect(stats.byDifficulty.advanced).toBeGreaterThan(0);
 
       const diffTotal =
-        stats.byDifficulty.basic +
-        stats.byDifficulty.intermediate +
-        stats.byDifficulty.advanced;
+        stats.byDifficulty.basic + stats.byDifficulty.intermediate + stats.byDifficulty.advanced;
       expect(diffTotal).toBe(stats.totalExamples);
     });
 

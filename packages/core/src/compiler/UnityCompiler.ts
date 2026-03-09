@@ -224,44 +224,48 @@ export class UnityCompiler extends CompilerBase {
     this.emit('// === v4.2 Domain Blocks ===');
 
     let blockIdx = 0;
-    const compiled = compileDomainBlocks(domainBlocks, {
-      material: (block) => {
-        const mat = compileMaterialBlock(block);
-        const prefix = `db${blockIdx++}`;
-        return materialToUnity(mat, prefix);
+    const compiled = compileDomainBlocks(
+      domainBlocks,
+      {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          const prefix = `db${blockIdx++}`;
+          return materialToUnity(mat, prefix);
+        },
+        physics: (block) => {
+          const phys = compilePhysicsBlock(block);
+          const prefix = `db${blockIdx++}`;
+          return physicsToUnity(phys, prefix);
+        },
+        vfx: (block) => {
+          const ps = compileParticleBlock(block);
+          const prefix = `db${blockIdx++}`;
+          return particlesToUnity(ps, prefix);
+        },
+        postfx: (block) => {
+          const pp = compilePostProcessingBlock(block);
+          return postProcessingToUnity(pp);
+        },
+        audio: (block) => {
+          const audio = compileAudioSourceBlock(block);
+          const prefix = `db${blockIdx++}`;
+          return audioSourceToUnity(audio, prefix);
+        },
+        weather: (block) => {
+          const weather = compileWeatherBlock(block);
+          return weatherToUnity(weather);
+        },
+        narrative: (block) => {
+          const narr = compileNarrativeBlock(block);
+          return narrativeToUnity(narr);
+        },
+        payment: (block) => {
+          const pay = compilePaymentBlock(block);
+          return paymentToUnity(pay);
+        },
       },
-      physics: (block) => {
-        const phys = compilePhysicsBlock(block);
-        const prefix = `db${blockIdx++}`;
-        return physicsToUnity(phys, prefix);
-      },
-      vfx: (block) => {
-        const ps = compileParticleBlock(block);
-        const prefix = `db${blockIdx++}`;
-        return particlesToUnity(ps, prefix);
-      },
-      postfx: (block) => {
-        const pp = compilePostProcessingBlock(block);
-        return postProcessingToUnity(pp);
-      },
-      audio: (block) => {
-        const audio = compileAudioSourceBlock(block);
-        const prefix = `db${blockIdx++}`;
-        return audioSourceToUnity(audio, prefix);
-      },
-      weather: (block) => {
-        const weather = compileWeatherBlock(block);
-        return weatherToUnity(weather);
-      },
-      narrative: (block) => {
-        const narr = compileNarrativeBlock(block);
-        return narrativeToUnity(narr);
-      },
-      payment: (block) => {
-        const pay = compilePaymentBlock(block);
-        return paymentToUnity(pay);
-      },
-    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+      (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`
+    );
 
     for (const line of compiled) {
       for (const l of line.split('\n')) {
@@ -522,7 +526,9 @@ export class UnityCompiler extends CompilerBase {
         }
         // V43 AI/XR Traits
         else if (trait.name === 'spatial_persona' || trait.name === 'shareplay') {
-          this.emit(`// @${trait.name} — visionOS-specific; use Mirror/Photon for Unity multiplayer`);
+          this.emit(
+            `// @${trait.name} — visionOS-specific; use Mirror/Photon for Unity multiplayer`
+          );
         } else if (trait.name === 'object_tracking') {
           this.emit(`// @object_tracking — AR Foundation: ARTrackedObjectManager`);
         } else if (trait.name === 'scene_reconstruction') {
@@ -546,7 +552,11 @@ export class UnityCompiler extends CompilerBase {
           this.emit(`// @ai_inpainting — Unity Sentis or API-based inpainting`);
         } else if (trait.name === 'neural_link' || trait.name === 'neural_forge') {
           this.emit(`// @${trait.name} — ${JSON.stringify(trait.config || {})}`);
-        } else if (trait.name === 'embedding_search' || trait.name === 'ai_npc_brain' || trait.name === 'vector_db') {
+        } else if (
+          trait.name === 'embedding_search' ||
+          trait.name === 'ai_npc_brain' ||
+          trait.name === 'vector_db'
+        ) {
           this.emit(`// @${trait.name} — AI knowledge: use external service or on-device model`);
         } else if (trait.name === 'vision' || trait.name === 'ai_vision') {
           this.emit(`// @${trait.name} — Unity Barracuda / Sentis vision model`);

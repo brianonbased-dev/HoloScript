@@ -5,17 +5,27 @@ import { StatusEffectSystem, type StatusEffect } from '../combat/StatusEffects';
 // C300 — StatusEffects
 // =============================================================================
 
-function buff(overrides: Partial<Omit<StatusEffect, 'id' | 'elapsed' | 'lastTick' | 'stacks'>> = {}): Omit<StatusEffect, 'id' | 'elapsed' | 'lastTick' | 'stacks'> & { stacks?: number } {
+function buff(
+  overrides: Partial<Omit<StatusEffect, 'id' | 'elapsed' | 'lastTick' | 'stacks'>> = {}
+): Omit<StatusEffect, 'id' | 'elapsed' | 'lastTick' | 'stacks'> & { stacks?: number } {
   return {
-    name: 'regen', type: 'buff', duration: 10, maxStacks: 1,
-    stackBehavior: 'refresh', modifiers: [], tickInterval: 0, tickDamage: 0,
+    name: 'regen',
+    type: 'buff',
+    duration: 10,
+    maxStacks: 1,
+    stackBehavior: 'refresh',
+    modifiers: [],
+    tickInterval: 0,
+    tickDamage: 0,
     ...overrides,
   };
 }
 
 describe('StatusEffectSystem', () => {
   let sys: StatusEffectSystem;
-  beforeEach(() => { sys = new StatusEffectSystem(); });
+  beforeEach(() => {
+    sys = new StatusEffectSystem();
+  });
 
   it('applies and queries effects', () => {
     sys.apply('e1', buff());
@@ -28,7 +38,7 @@ describe('StatusEffectSystem', () => {
     sys.apply('e1', buff({ name: 'might', stackBehavior: 'stack', maxStacks: 3 }));
     sys.apply('e1', buff({ name: 'might', stackBehavior: 'stack', maxStacks: 3 }));
     sys.apply('e1', buff({ name: 'might', stackBehavior: 'stack', maxStacks: 3 }));
-    const e = sys.getEffects('e1').find(f => f.name === 'might')!;
+    const e = sys.getEffects('e1').find((f) => f.name === 'might')!;
     expect(e.stacks).toBe(3);
   });
 
@@ -36,7 +46,7 @@ describe('StatusEffectSystem', () => {
     sys.apply('e1', buff({ name: 'shield', stackBehavior: 'refresh', duration: 5 }));
     sys.update(3);
     sys.apply('e1', buff({ name: 'shield', stackBehavior: 'refresh', duration: 5 }));
-    const e = sys.getEffects('e1').find(f => f.name === 'shield')!;
+    const e = sys.getEffects('e1').find((f) => f.name === 'shield')!;
     expect(e.elapsed).toBe(0);
   });
 
@@ -80,14 +90,30 @@ describe('StatusEffectSystem', () => {
   });
 
   it('tick damage fires at interval scaled by stacks', () => {
-    sys.apply('e1', buff({
-      name: 'burn', type: 'debuff', duration: 10, tickInterval: 1,
-      tickDamage: 5, stackBehavior: 'stack', maxStacks: 2,
-    }));
-    sys.apply('e1', buff({
-      name: 'burn', type: 'debuff', duration: 10, tickInterval: 1,
-      tickDamage: 5, stackBehavior: 'stack', maxStacks: 2,
-    }));
+    sys.apply(
+      'e1',
+      buff({
+        name: 'burn',
+        type: 'debuff',
+        duration: 10,
+        tickInterval: 1,
+        tickDamage: 5,
+        stackBehavior: 'stack',
+        maxStacks: 2,
+      })
+    );
+    sys.apply(
+      'e1',
+      buff({
+        name: 'burn',
+        type: 'debuff',
+        duration: 10,
+        tickInterval: 1,
+        tickDamage: 5,
+        stackBehavior: 'stack',
+        maxStacks: 2,
+      })
+    );
     sys.update(1);
     const ticks = sys.getTickResults();
     expect(ticks.length).toBe(1);
@@ -95,14 +121,24 @@ describe('StatusEffectSystem', () => {
   });
 
   it('stat modifiers apply flat and percent per stack', () => {
-    sys.apply('e1', buff({
-      name: 'str', modifiers: [{ stat: 'attack', flat: 10, percent: 1.2 }],
-      stackBehavior: 'stack', maxStacks: 2,
-    }));
-    sys.apply('e1', buff({
-      name: 'str', modifiers: [{ stat: 'attack', flat: 10, percent: 1.2 }],
-      stackBehavior: 'stack', maxStacks: 2,
-    }));
+    sys.apply(
+      'e1',
+      buff({
+        name: 'str',
+        modifiers: [{ stat: 'attack', flat: 10, percent: 1.2 }],
+        stackBehavior: 'stack',
+        maxStacks: 2,
+      })
+    );
+    sys.apply(
+      'e1',
+      buff({
+        name: 'str',
+        modifiers: [{ stat: 'attack', flat: 10, percent: 1.2 }],
+        stackBehavior: 'stack',
+        maxStacks: 2,
+      })
+    );
     const result = sys.applyStatModifiers('e1', 'attack', 100);
     // (100 + 10*2) * 1.2^2 = 120 * 1.44 = 172.8
     expect(result).toBeCloseTo(172.8);

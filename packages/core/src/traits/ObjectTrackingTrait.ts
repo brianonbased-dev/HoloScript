@@ -13,7 +13,14 @@ import type { TraitHandler } from './TraitTypes';
 // TYPES
 // =============================================================================
 
-export type TrackingTarget = 'furniture' | 'walls' | 'floors' | 'hands' | 'objects' | 'body' | 'face';
+export type TrackingTarget =
+  | 'furniture'
+  | 'walls'
+  | 'floors'
+  | 'hands'
+  | 'objects'
+  | 'body'
+  | 'face';
 export type AnchorPersistence = 'session' | 'local' | 'cloud';
 export type TrackingQuality = 'low' | 'medium' | 'high';
 
@@ -21,10 +28,10 @@ export interface ObjectTrackingConfig {
   tracking_target: TrackingTarget;
   anchor_persistence: AnchorPersistence;
   tracking_quality: TrackingQuality;
-  max_distance: number;        // meters
+  max_distance: number; // meters
   update_rate_hz: number;
   auto_recover: boolean;
-  visualization: boolean;      // show tracking debug overlay
+  visualization: boolean; // show tracking debug overlay
 }
 
 interface ObjectTrackingState {
@@ -32,7 +39,7 @@ interface ObjectTrackingState {
   trackingLost: boolean;
   anchorId: string | null;
   lastKnownPosition: [number, number, number] | null;
-  trackingConfidence: number;  // 0–1
+  trackingConfidence: number; // 0–1
   totalTrackingTime: number;
   recoveryAttempts: number;
 }

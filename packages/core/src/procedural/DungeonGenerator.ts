@@ -6,13 +6,16 @@
 
 export interface Room {
   id: number;
-  x: number; y: number;
-  width: number; height: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
   connected: number[];
 }
 
 export interface Corridor {
-  from: number; to: number;
+  from: number;
+  to: number;
   points: { x: number; y: number }[];
 }
 
@@ -45,7 +48,10 @@ export class DungeonGenerator {
     };
     // Seeded PRNG
     let s = this.config.seed;
-    this.rng = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+    this.rng = () => {
+      s = (s * 16807) % 2147483647;
+      return (s - 1) / 2147483646;
+    };
   }
 
   /**
@@ -80,8 +86,13 @@ export class DungeonGenerator {
 
   private overlaps(x: number, y: number, w: number, h: number): boolean {
     for (const room of this.rooms) {
-      if (x < room.x + room.width + 1 && x + w + 1 > room.x &&
-          y < room.y + room.height + 1 && y + h + 1 > room.y) return true;
+      if (
+        x < room.x + room.width + 1 &&
+        x + w + 1 > room.x &&
+        y < room.y + room.height + 1 &&
+        y + h + 1 > room.y
+      )
+        return true;
     }
     return false;
   }
@@ -123,7 +134,7 @@ export class DungeonGenerator {
 
     while (queue.length > 0) {
       const current = queue.shift()!;
-      const room = this.rooms.find(r => r.id === current)!;
+      const room = this.rooms.find((r) => r.id === current)!;
       for (const neighbor of room.connected) {
         if (!visited.has(neighbor)) {
           visited.add(neighbor);
@@ -134,7 +145,13 @@ export class DungeonGenerator {
     return visited.size === this.rooms.length;
   }
 
-  getRooms(): Room[] { return [...this.rooms]; }
-  getCorridors(): Corridor[] { return [...this.corridors]; }
-  getRoomCount(): number { return this.rooms.length; }
+  getRooms(): Room[] {
+    return [...this.rooms];
+  }
+  getCorridors(): Corridor[] {
+    return [...this.corridors];
+  }
+  getRoomCount(): number {
+    return this.rooms.length;
+  }
 }

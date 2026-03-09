@@ -10,7 +10,7 @@
 import { useState, useCallback } from 'react';
 import { Radio, RefreshCw, Pause, Play, Loader2 } from 'lucide-react';
 import { useLivePreview } from '@/hooks/useLivePreview';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 const STATUS_COLOR: Record<string, string> = {
   connected: 'bg-green-400',
@@ -46,9 +46,7 @@ export function LivePreviewBar({ sceneId = 'default' }: LivePreviewBarProps) {
     setTimeout(() => setBroadcasting(false), 600);
   }, [broadcast, code]);
 
-  const relSync = lastSync
-    ? `${Math.round((Date.now() - lastSync) / 1000)}s ago`
-    : 'never';
+  const relSync = lastSync ? `${Math.round((Date.now() - lastSync) / 1000)}s ago` : 'never';
 
   return (
     <div className="flex h-7 shrink-0 items-center gap-2 border-b border-studio-border bg-studio-panel px-3 text-[11px]">
@@ -77,9 +75,7 @@ export function LivePreviewBar({ sceneId = 'default' }: LivePreviewBarProps) {
 
       <div className="ml-auto flex items-center gap-3">
         {/* Last sync */}
-        {lastSync && (
-          <span className="text-studio-muted/60">synced {relSync}</span>
-        )}
+        {lastSync && <span className="text-studio-muted/60">synced {relSync}</span>}
 
         {/* Auto sync toggle */}
         <button

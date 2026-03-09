@@ -88,21 +88,21 @@ export const NeuralActivityDashboard: React.FC<NeuralActivityDashboardProps> = (
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       setSpeed(parseFloat(e.target.value));
     },
-    [setSpeed],
+    [setSpeed]
   );
 
   const handleTimeWindowChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       setTimeWindowDuration(parseInt(e.target.value, 10));
     },
-    [setTimeWindowDuration],
+    [setTimeWindowDuration]
   );
 
   const handleSeek = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       seekTo(parseFloat(e.target.value));
     },
-    [seekTo],
+    [seekTo]
   );
 
   const handleLayerSelect = useCallback((layerIndex: number) => {
@@ -123,12 +123,14 @@ export const NeuralActivityDashboard: React.FC<NeuralActivityDashboardProps> = (
   const layers: LayerActivation[] = currentSnapshot?.layers ?? [];
 
   // Total neuron count for raster plot
-  const totalNeurons = layers.reduce((sum, l) => sum + l.neuronCount, 0) || heatmapRows * heatmapCols;
+  const totalNeurons =
+    layers.reduce((sum, l) => sum + l.neuronCount, 0) || heatmapRows * heatmapCols;
   const populationIds = [...new Set(visibleSpikes.map((s) => s.populationId))];
 
   // Timeline range from buffered data
   const minTime = snapshotBuffer.length > 0 ? snapshotBuffer[0].timeMs : 0;
-  const maxTime = snapshotBuffer.length > 0 ? snapshotBuffer[snapshotBuffer.length - 1].timeMs : 1000;
+  const maxTime =
+    snapshotBuffer.length > 0 ? snapshotBuffer[snapshotBuffer.length - 1].timeMs : 1000;
 
   return (
     <div

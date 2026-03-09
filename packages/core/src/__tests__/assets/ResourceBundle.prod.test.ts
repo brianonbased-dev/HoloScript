@@ -25,7 +25,6 @@ function mkEntry(id: string, sizeBytes = 100): BundleEntry {
 // ── createBundle / removeBundle ────────────────────────────────────────────────
 
 describe('ResourceBundle — createBundle / removeBundle', () => {
-
   it('createBundle makes bundle available', () => {
     const rb = new ResourceBundle();
     rb.createBundle(mkConfig('b1'));
@@ -50,7 +49,6 @@ describe('ResourceBundle — createBundle / removeBundle', () => {
 // ── addEntry ──────────────────────────────────────────────────────────────────
 
 describe('ResourceBundle — addEntry', () => {
-
   it('addEntry returns true and increments entryCount', () => {
     const rb = new ResourceBundle();
     rb.createBundle(mkConfig('b1', 500));
@@ -83,7 +81,6 @@ describe('ResourceBundle — addEntry', () => {
 // ── loadBundle ────────────────────────────────────────────────────────────────
 
 describe('ResourceBundle — loadBundle', () => {
-
   it('loadBundle marks all entries as loaded', async () => {
     const rb = new ResourceBundle();
     rb.createBundle(mkConfig('b1'));
@@ -126,7 +123,6 @@ describe('ResourceBundle — loadBundle', () => {
 // ── getLoadProgress ───────────────────────────────────────────────────────────
 
 describe('ResourceBundle — getLoadProgress', () => {
-
   it('returns 0 for empty bundle', async () => {
     const rb = new ResourceBundle();
     rb.createBundle(mkConfig('b1'));
@@ -157,7 +153,6 @@ describe('ResourceBundle — getLoadProgress', () => {
 // ── getBundleSize ──────────────────────────────────────────────────────────────
 
 describe('ResourceBundle — getBundleSize', () => {
-
   it('returns 0 for empty bundle', () => {
     const rb = new ResourceBundle();
     rb.createBundle(mkConfig('b1'));
@@ -180,7 +175,6 @@ describe('ResourceBundle — getBundleSize', () => {
 // ── preloadAll ────────────────────────────────────────────────────────────────
 
 describe('ResourceBundle — preloadAll', () => {
-
   it('preloadAll returns ids of preloaded bundles', async () => {
     const rb = new ResourceBundle();
     rb.createBundle(mkConfig('p1', 10_000, true, 5));

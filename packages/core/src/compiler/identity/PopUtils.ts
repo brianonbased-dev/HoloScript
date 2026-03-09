@@ -96,10 +96,7 @@ export function extractComponentsFromRequest(req: {
  * Per RFC 9440 Section 2.3:
  * (@component1 @component2 ...);created=timestamp;keyid="key";alg="ed25519";nonce="xyz"
  */
-export function buildSignatureParams(
-  componentIds: string[],
-  metadata: SignatureMetadata
-): string {
+export function buildSignatureParams(componentIds: string[], metadata: SignatureMetadata): string {
   const quotedComponents = componentIds.map((id) => `"${id}"`);
   return [
     `(${quotedComponents.join(' ')})`,
@@ -124,9 +121,7 @@ export function parseSignatureParams(paramsStr: string): {
     const componentMatch = paramsStr.match(/\(([^)]+)\)/);
     if (!componentMatch) return null;
 
-    const componentIds = componentMatch[1]
-      .split(' ')
-      .map((c) => c.trim().replace(/"/g, ''));
+    const componentIds = componentMatch[1].split(' ').map((c) => c.trim().replace(/"/g, ''));
 
     // Extract parameters: ;key=value;...
     const paramsMatch = paramsStr.match(/\);(.+)/);
@@ -170,7 +165,9 @@ export function normalizeHeaderName(name: string): string {
  *
  * Looks for nonce in Signature-Input header or generates a warning.
  */
-export function extractNonce(headers: Record<string, string | string[] | undefined>): string | null {
+export function extractNonce(
+  headers: Record<string, string | string[] | undefined>
+): string | null {
   const signatureInput = headers['signature-input'] || headers['Signature-Input'];
   if (!signatureInput || typeof signatureInput !== 'string') {
     return null;
@@ -183,7 +180,9 @@ export function extractNonce(headers: Record<string, string | string[] | undefin
 /**
  * Check if request has valid signature headers
  */
-export function hasSignatureHeaders(headers: Record<string, string | string[] | undefined>): boolean {
+export function hasSignatureHeaders(
+  headers: Record<string, string | string[] | undefined>
+): boolean {
   const hasSignature = !!(headers.signature || headers.Signature);
   const hasSignatureInput = !!(headers['signature-input'] || headers['Signature-Input']);
   return hasSignature && hasSignatureInput;
@@ -192,7 +191,10 @@ export function hasSignatureHeaders(headers: Record<string, string | string[] | 
 /**
  * Format error response for signature validation failures
  */
-export function formatSignatureError(errorCode: string, message: string): {
+export function formatSignatureError(
+  errorCode: string,
+  message: string
+): {
   error: string;
   code: string;
   message: string;

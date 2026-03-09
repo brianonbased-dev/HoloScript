@@ -4,7 +4,9 @@ import { OctreeSystem } from '../spatial/OctreeSystem';
 describe('OctreeSystem', () => {
   let oct: OctreeSystem;
 
-  beforeEach(() => { oct = new OctreeSystem(0, 0, 0, 50); });
+  beforeEach(() => {
+    oct = new OctreeSystem(0, 0, 0, 50);
+  });
 
   it('insert adds an entry and increments count', () => {
     expect(oct.insert({ id: 'a', x: 1, y: 2, z: 3, radius: 1 })).toBe(true);
@@ -48,7 +50,13 @@ describe('OctreeSystem', () => {
 
   it('handles many inserts triggering subdivision', () => {
     for (let i = 0; i < 20; i++) {
-      oct.insert({ id: `e${i}`, x: (i % 5) * 5 - 10, y: Math.floor(i / 5) * 5 - 10, z: 0, radius: 0.5 });
+      oct.insert({
+        id: `e${i}`,
+        x: (i % 5) * 5 - 10,
+        y: Math.floor(i / 5) * 5 - 10,
+        z: 0,
+        radius: 0.5,
+      });
     }
     expect(oct.getEntryCount()).toBe(20);
     const results = oct.queryRadius(0, 0, 0, 100);

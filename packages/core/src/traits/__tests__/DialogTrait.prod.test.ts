@@ -21,12 +21,18 @@ function makeTree(overrides: any = {}): DialogTree {
 // ─── constructor / defaultConfig ──────────────────────────────────────────────
 
 describe('DialogTrait constructor', () => {
-  it('has typingSpeed=50 by default', () => expect(new DialogTrait().getConfig().typingSpeed).toBe(50));
-  it('has allowSkip=true by default', () => expect(new DialogTrait().getConfig().allowSkip).toBe(true));
-  it('has showChoiceNumbers=true by default', () => expect(new DialogTrait().getConfig().showChoiceNumbers).toBe(true));
-  it('has inputMode=any by default', () => expect(new DialogTrait().getConfig().inputMode).toBe('any'));
-  it('has maxHistory=100 by default', () => expect(new DialogTrait().getConfig().maxHistory).toBe(100));
-  it('has autoSaveVariables=true by default', () => expect(new DialogTrait().getConfig().autoSaveVariables).toBe(true));
+  it('has typingSpeed=50 by default', () =>
+    expect(new DialogTrait().getConfig().typingSpeed).toBe(50));
+  it('has allowSkip=true by default', () =>
+    expect(new DialogTrait().getConfig().allowSkip).toBe(true));
+  it('has showChoiceNumbers=true by default', () =>
+    expect(new DialogTrait().getConfig().showChoiceNumbers).toBe(true));
+  it('has inputMode=any by default', () =>
+    expect(new DialogTrait().getConfig().inputMode).toBe('any'));
+  it('has maxHistory=100 by default', () =>
+    expect(new DialogTrait().getConfig().maxHistory).toBe(100));
+  it('has autoSaveVariables=true by default', () =>
+    expect(new DialogTrait().getConfig().autoSaveVariables).toBe(true));
   it('state is inactive initially', () => expect(new DialogTrait().getState()).toBe('inactive'));
   it('isActive()=false initially', () => expect(new DialogTrait().isActive()).toBe(false));
   it('preloads variables from config', () => {
@@ -136,13 +142,21 @@ describe('DialogTrait.start', () => {
 describe('DialogTrait text and speaker', () => {
   it('getCurrentText returns interpolated text', () => {
     const dt = new DialogTrait({ variables: { name: 'Alice' } });
-    dt.addTree(makeTree({ nodes: { greeting: { id: 'greeting', type: 'text', text: 'Hi ${name}!', next: null } } }));
+    dt.addTree(
+      makeTree({
+        nodes: { greeting: { id: 'greeting', type: 'text', text: 'Hi ${name}!', next: null } },
+      })
+    );
     dt.start('tree1');
     expect(dt.getCurrentText()).toBe('Hi Alice!');
   });
   it('leaves unknown variables as-is', () => {
     const dt = new DialogTrait();
-    dt.addTree(makeTree({ nodes: { greeting: { id: 'greeting', type: 'text', text: 'Hi ${unknown}!', next: null } } }));
+    dt.addTree(
+      makeTree({
+        nodes: { greeting: { id: 'greeting', type: 'text', text: 'Hi ${unknown}!', next: null } },
+      })
+    );
     dt.start('tree1');
     expect(dt.getCurrentText()).toBe('Hi ${unknown}!');
   });
@@ -154,13 +168,24 @@ describe('DialogTrait text and speaker', () => {
   });
   it('getCurrentSpeaker returns node speaker', () => {
     const dt = new DialogTrait();
-    dt.addTree(makeTree({ nodes: { greeting: { id: 'greeting', type: 'text', text: 'Hi', speaker: 'NPC', next: null } } }));
+    dt.addTree(
+      makeTree({
+        nodes: {
+          greeting: { id: 'greeting', type: 'text', text: 'Hi', speaker: 'NPC', next: null },
+        },
+      })
+    );
     dt.start('tree1');
     expect(dt.getCurrentSpeaker()).toBe('NPC');
   });
   it('getCurrentSpeaker falls back to defaultSpeaker', () => {
     const dt = new DialogTrait();
-    dt.addTree(makeTree({ defaultSpeaker: 'Guard', nodes: { greeting: { id: 'greeting', type: 'text', text: 'Hi', next: null } } }));
+    dt.addTree(
+      makeTree({
+        defaultSpeaker: 'Guard',
+        nodes: { greeting: { id: 'greeting', type: 'text', text: 'Hi', next: null } },
+      })
+    );
     dt.start('tree1');
     expect(dt.getCurrentSpeaker()).toBe('Guard');
   });
@@ -195,54 +220,177 @@ describe('DialogTrait conditions via getAvailableChoices', () => {
     dt.addTree({
       id: 'ct',
       startNode: 'q',
-      nodes: new Map([['q', {
-        id: 'q', type: 'choice', text: 'Choose',
-        choices: [
-          { text: 'Rich option', next: null, condition: { variable: 'gold', operator: '>=', value: 100 } },
-          { text: 'Poor option', next: null },
-          { text: 'Named option', next: null, condition: { variable: 'name', operator: '==', value: 'Alice' } },
+      nodes: new Map([
+        [
+          'q',
+          {
+            id: 'q',
+            type: 'choice',
+            text: 'Choose',
+            choices: [
+              {
+                text: 'Rich option',
+                next: null,
+                condition: { variable: 'gold', operator: '>=', value: 100 },
+              },
+              { text: 'Poor option', next: null },
+              {
+                text: 'Named option',
+                next: null,
+                condition: { variable: 'name', operator: '==', value: 'Alice' },
+              },
+            ],
+          },
         ],
-      }]]),
+      ]),
     });
     dt.start('ct');
     return dt;
   }
   it('shows choice when condition met (== operator)', () => {
     const dt = new DialogTrait({ variables: { name: 'Alice' } });
-    dt.addTree({ id: 'ct', startNode: 'q', nodes: new Map([['q', { id: 'q', type: 'choice', choices: [{ text: 'A', next: null, condition: { variable: 'name', operator: '==', value: 'Alice' } }] }]]) });
+    dt.addTree({
+      id: 'ct',
+      startNode: 'q',
+      nodes: new Map([
+        [
+          'q',
+          {
+            id: 'q',
+            type: 'choice',
+            choices: [
+              {
+                text: 'A',
+                next: null,
+                condition: { variable: 'name', operator: '==', value: 'Alice' },
+              },
+            ],
+          },
+        ],
+      ]),
+    });
     dt.start('ct');
     expect(dt.getAvailableChoices()).toHaveLength(1);
   });
   it('hides choice when condition not met', () => {
     const dt = new DialogTrait({ variables: { gold: 50 } });
-    dt.addTree({ id: 'ct', startNode: 'q', nodes: new Map([['q', { id: 'q', type: 'choice', choices: [{ text: 'Rich', next: null, condition: { variable: 'gold', operator: '>=', value: 100 } }] }]]) });
+    dt.addTree({
+      id: 'ct',
+      startNode: 'q',
+      nodes: new Map([
+        [
+          'q',
+          {
+            id: 'q',
+            type: 'choice',
+            choices: [
+              {
+                text: 'Rich',
+                next: null,
+                condition: { variable: 'gold', operator: '>=', value: 100 },
+              },
+            ],
+          },
+        ],
+      ]),
+    });
     dt.start('ct');
     expect(dt.getAvailableChoices()).toHaveLength(0);
   });
   it('!= operator passes', () => {
     const dt = new DialogTrait({ variables: { status: 'active' } });
-    dt.addTree({ id: 'ct', startNode: 'q', nodes: new Map([['q', { id: 'q', type: 'choice', choices: [{ text: 'ok', next: null, condition: { variable: 'status', operator: '!=', value: 'inactive' } }] }]]) });
+    dt.addTree({
+      id: 'ct',
+      startNode: 'q',
+      nodes: new Map([
+        [
+          'q',
+          {
+            id: 'q',
+            type: 'choice',
+            choices: [
+              {
+                text: 'ok',
+                next: null,
+                condition: { variable: 'status', operator: '!=', value: 'inactive' },
+              },
+            ],
+          },
+        ],
+      ]),
+    });
     dt.start('ct');
     expect(dt.getAvailableChoices()).toHaveLength(1);
   });
   it('contains operator with array', () => {
     const dt = new DialogTrait({ variables: { items: ['sword', 'shield'] } });
-    dt.addTree({ id: 'ct', startNode: 'q', nodes: new Map([['q', { id: 'q', type: 'choice', choices: [{ text: 'ok', next: null, condition: { variable: 'items', operator: 'contains', value: 'sword' } }] }]]) });
+    dt.addTree({
+      id: 'ct',
+      startNode: 'q',
+      nodes: new Map([
+        [
+          'q',
+          {
+            id: 'q',
+            type: 'choice',
+            choices: [
+              {
+                text: 'ok',
+                next: null,
+                condition: { variable: 'items', operator: 'contains', value: 'sword' },
+              },
+            ],
+          },
+        ],
+      ]),
+    });
     dt.start('ct');
     expect(dt.getAvailableChoices()).toHaveLength(1);
   });
   it('not_contains operator with array', () => {
     const dt = new DialogTrait({ variables: { items: ['axe'] } });
-    dt.addTree({ id: 'ct', startNode: 'q', nodes: new Map([['q', { id: 'q', type: 'choice', choices: [{ text: 'ok', next: null, condition: { variable: 'items', operator: 'not_contains', value: 'sword' } }] }]]) });
+    dt.addTree({
+      id: 'ct',
+      startNode: 'q',
+      nodes: new Map([
+        [
+          'q',
+          {
+            id: 'q',
+            type: 'choice',
+            choices: [
+              {
+                text: 'ok',
+                next: null,
+                condition: { variable: 'items', operator: 'not_contains', value: 'sword' },
+              },
+            ],
+          },
+        ],
+      ]),
+    });
     dt.start('ct');
     expect(dt.getAvailableChoices()).toHaveLength(1);
   });
   it('< and > operators work', () => {
     const dt = new DialogTrait({ variables: { hp: 10 } });
-    dt.addTree({ id: 'ct', startNode: 'q', nodes: new Map([['q', { id: 'q', type: 'choice', choices: [
-      { text: 'low', next: null, condition: { variable: 'hp', operator: '<', value: 50 } },
-      { text: 'high', next: null, condition: { variable: 'hp', operator: '>', value: 50 } },
-    ] }]]) });
+    dt.addTree({
+      id: 'ct',
+      startNode: 'q',
+      nodes: new Map([
+        [
+          'q',
+          {
+            id: 'q',
+            type: 'choice',
+            choices: [
+              { text: 'low', next: null, condition: { variable: 'hp', operator: '<', value: 50 } },
+              { text: 'high', next: null, condition: { variable: 'hp', operator: '>', value: 50 } },
+            ],
+          },
+        ],
+      ]),
+    });
     dt.start('ct');
     const available = dt.getAvailableChoices();
     expect(available).toHaveLength(1);
@@ -256,9 +404,17 @@ describe('DialogTrait.selectChoice', () => {
   function makeChoiceDt() {
     const dt = new DialogTrait({ typingSpeed: 9999999 });
     dt.addTree({
-      id: 'ct', startNode: 'q',
+      id: 'ct',
+      startNode: 'q',
       nodes: {
-        q: { id: 'q', type: 'choice', choices: [{ text: 'Yes', next: 'end' }, { text: 'No', next: null }] },
+        q: {
+          id: 'q',
+          type: 'choice',
+          choices: [
+            { text: 'Yes', next: 'end' },
+            { text: 'No', next: null },
+          ],
+        },
         end: { id: 'end', type: 'text', text: 'Done.' },
       },
     });
@@ -282,7 +438,9 @@ describe('DialogTrait.selectChoice', () => {
     const cb = vi.fn();
     dt.on('choice-made', cb);
     dt.selectChoice(0);
-    expect(cb).toHaveBeenCalledWith(expect.objectContaining({ type: 'choice-made', choiceIndex: 0 }));
+    expect(cb).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'choice-made', choiceIndex: 0 })
+    );
   });
   it('navigates to next node after selection', () => {
     const dt = makeChoiceDt();
@@ -299,7 +457,13 @@ describe('DialogTrait.selectChoice', () => {
   });
   it('does not select disabled choice', () => {
     const dt = new DialogTrait({ typingSpeed: 9999999 });
-    dt.addTree({ id: 'ct', startNode: 'q', nodes: { q: { id: 'q', type: 'choice', choices: [{ text: 'Disabled', next: null, disabled: true }] } } });
+    dt.addTree({
+      id: 'ct',
+      startNode: 'q',
+      nodes: {
+        q: { id: 'q', type: 'choice', choices: [{ text: 'Disabled', next: null, disabled: true }] },
+      },
+    });
     dt.start('ct');
     expect(dt.selectChoice(0)).toBe(false);
   });
@@ -311,7 +475,26 @@ describe('DialogTrait.selectChoice', () => {
   });
   it('executes set_variable action on choice', () => {
     const dt = new DialogTrait({ typingSpeed: 9999999 });
-    dt.addTree({ id: 'ct', startNode: 'q', nodes: new Map([['q', { id: 'q', type: 'choice', choices: [{ text: 'Pick', next: null, actions: [{ type: 'set_variable', target: 'picked', value: true }] }] }]]) });
+    dt.addTree({
+      id: 'ct',
+      startNode: 'q',
+      nodes: new Map([
+        [
+          'q',
+          {
+            id: 'q',
+            type: 'choice',
+            choices: [
+              {
+                text: 'Pick',
+                next: null,
+                actions: [{ type: 'set_variable', target: 'picked', value: true }],
+              },
+            ],
+          },
+        ],
+      ]),
+    });
     dt.start('ct');
     dt.selectChoice(0);
     expect(dt.getVariable('picked')).toBe(true);
@@ -324,11 +507,16 @@ describe('DialogTrait — branch node', () => {
   it('follows matching branch condition', () => {
     const dt = new DialogTrait({ variables: { vip: true } });
     dt.addTree({
-      id: 'bt', startNode: 'branch',
+      id: 'bt',
+      startNode: 'branch',
       nodes: {
-        branch: { id: 'branch', type: 'branch', branches: [
-          { condition: { variable: 'vip', operator: '==', value: true }, next: 'vip_node' },
-        ] },
+        branch: {
+          id: 'branch',
+          type: 'branch',
+          branches: [
+            { condition: { variable: 'vip', operator: '==', value: true }, next: 'vip_node' },
+          ],
+        },
         vip_node: { id: 'vip_node', type: 'text', text: 'VIP!' },
       },
     });
@@ -341,10 +529,17 @@ describe('DialogTrait — branch node', () => {
   it('falls to node.next when no branch matches', () => {
     const dt = new DialogTrait({ variables: { vip: false } });
     dt.addTree({
-      id: 'bt', startNode: 'branch',
+      id: 'bt',
+      startNode: 'branch',
       nodes: {
-        branch: { id: 'branch', type: 'branch', next: 'fallback',
-          branches: [{ condition: { variable: 'vip', operator: '==', value: true }, next: 'vip_node' }] },
+        branch: {
+          id: 'branch',
+          type: 'branch',
+          next: 'fallback',
+          branches: [
+            { condition: { variable: 'vip', operator: '==', value: true }, next: 'vip_node' },
+          ],
+        },
         vip_node: { id: 'vip_node', type: 'text', text: 'VIP' },
         fallback: { id: 'fallback', type: 'text', text: 'Normal' },
       },
@@ -363,7 +558,11 @@ describe('DialogTrait — branch node', () => {
 describe('DialogTrait.continue + end', () => {
   it('continue() returns false when waiting for choice', () => {
     const dt = new DialogTrait({ typingSpeed: 9999999 });
-    dt.addTree({ id: 't', startNode: 'q', nodes: { q: { id: 'q', type: 'choice', choices: [{ text: 'x', next: null }] } } });
+    dt.addTree({
+      id: 't',
+      startNode: 'q',
+      nodes: { q: { id: 'q', type: 'choice', choices: [{ text: 'x', next: null }] } },
+    });
     dt.start('t');
     expect(dt.continue()).toBe(false);
   });
@@ -399,7 +598,11 @@ describe('DialogTrait.pause + resume', () => {
   });
   it('resume() restores waiting_choice state when node has choices', () => {
     const dt = new DialogTrait({ typingSpeed: 9999999 });
-    dt.addTree({ id: 't', startNode: 'q', nodes: { q: { id: 'q', type: 'choice', choices: [{ text: 'x', next: null }] } } });
+    dt.addTree({
+      id: 't',
+      startNode: 'q',
+      nodes: { q: { id: 'q', type: 'choice', choices: [{ text: 'x', next: null }] } },
+    });
     dt.start('t');
     dt.pause();
     dt.resume();
@@ -436,14 +639,20 @@ describe('DialogTrait.history', () => {
 describe('DialogTrait.skipText', () => {
   it('skipText immediately completes text progress', () => {
     const dt = new DialogTrait({ typingSpeed: 1, allowSkip: true });
-    dt.addTree(makeTree({ nodes: { greeting: { id: 'greeting', type: 'text', text: 'Hello!', next: null } } }));
+    dt.addTree(
+      makeTree({
+        nodes: { greeting: { id: 'greeting', type: 'text', text: 'Hello!', next: null } },
+      })
+    );
     dt.start('tree1');
     dt.skipText();
     expect(dt.getTextProgress()).toBe('Hello!'.length);
   });
   it('skipText fires text-complete event', () => {
     const dt = new DialogTrait({ typingSpeed: 1, allowSkip: true });
-    dt.addTree(makeTree({ nodes: { greeting: { id: 'greeting', type: 'text', text: 'Hi', next: null } } }));
+    dt.addTree(
+      makeTree({ nodes: { greeting: { id: 'greeting', type: 'text', text: 'Hi', next: null } } })
+    );
     dt.start('tree1');
     const cb = vi.fn();
     dt.on('text-complete', cb);
@@ -452,7 +661,11 @@ describe('DialogTrait.skipText', () => {
   });
   it('skipText is no-op when allowSkip=false', () => {
     const dt = new DialogTrait({ typingSpeed: 9999999, allowSkip: false });
-    dt.addTree(makeTree({ nodes: { greeting: { id: 'greeting', type: 'text', text: 'Hello!', next: null } } }));
+    dt.addTree(
+      makeTree({
+        nodes: { greeting: { id: 'greeting', type: 'text', text: 'Hello!', next: null } },
+      })
+    );
     dt.start('tree1');
     dt.skipText();
     expect(dt.getTextProgress()).toBe(0);
@@ -465,8 +678,16 @@ describe('DialogTrait.onEnter actions', () => {
   it('executes set_variable action on node enter', () => {
     const dt = new DialogTrait({ typingSpeed: 9999999 });
     dt.addTree({
-      id: 't', startNode: 'n',
-      nodes: { n: { id: 'n', type: 'text', text: 'Hi', onEnter: [{ type: 'set_variable', target: 'visited', value: true }] } },
+      id: 't',
+      startNode: 'n',
+      nodes: {
+        n: {
+          id: 'n',
+          type: 'text',
+          text: 'Hi',
+          onEnter: [{ type: 'set_variable', target: 'visited', value: true }],
+        },
+      },
     });
     dt.start('t');
     expect(dt.getVariable('visited')).toBe(true);
@@ -474,8 +695,16 @@ describe('DialogTrait.onEnter actions', () => {
   it('fires action-executed event for each action', () => {
     const dt = new DialogTrait({ typingSpeed: 9999999 });
     dt.addTree({
-      id: 't', startNode: 'n',
-      nodes: { n: { id: 'n', type: 'text', text: 'Hi', onEnter: [{ type: 'set_variable', target: 'x', value: 1 }] } },
+      id: 't',
+      startNode: 'n',
+      nodes: {
+        n: {
+          id: 'n',
+          type: 'text',
+          text: 'Hi',
+          onEnter: [{ type: 'set_variable', target: 'x', value: 1 }],
+        },
+      },
     });
     const cb = vi.fn();
     dt.on('action-executed', cb);

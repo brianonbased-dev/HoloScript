@@ -7,11 +7,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { RigidBody } from '../PhysicsBody';
-import {
-  zeroVector,
-  identityQuaternion,
-  COLLISION_GROUPS,
-} from '../PhysicsTypes';
+import { zeroVector, identityQuaternion, COLLISION_GROUPS } from '../PhysicsTypes';
 
 function makeDynamic(overrides: any = {}): RigidBody {
   return new RigidBody({

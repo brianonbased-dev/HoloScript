@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 export interface EnvironmentState {
   hasEnvironment: boolean;

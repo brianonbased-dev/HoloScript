@@ -22,7 +22,7 @@ export interface AtlasEntry {
   id: string;
   sourceWidth: number;
   sourceHeight: number;
-  rect: TextureRect;           // Position in atlas
+  rect: TextureRect; // Position in atlas
   uv: { u0: number; v0: number; u1: number; v1: number };
   rotated: boolean;
   trimmed: boolean;
@@ -35,7 +35,7 @@ export interface AtlasConfig {
   maxHeight: number;
   padding: number;
   allowRotation: boolean;
-  powerOfTwo: boolean;         // Force dimensions to power of 2
+  powerOfTwo: boolean; // Force dimensions to power of 2
 }
 
 export interface Atlas {
@@ -43,7 +43,7 @@ export interface Atlas {
   width: number;
   height: number;
   entries: Map<string, AtlasEntry>;
-  occupancy: number;           // 0-1, how much space is used
+  occupancy: number; // 0-1, how much space is used
 }
 
 // =============================================================================
@@ -163,8 +163,10 @@ export class TextureAtlas {
     }
 
     // Create new shelf
-    const newY = this.shelves.length === 0 ? 0 :
-      this.shelves[this.shelves.length - 1].y + this.shelves[this.shelves.length - 1].height;
+    const newY =
+      this.shelves.length === 0
+        ? 0
+        : this.shelves[this.shelves.length - 1].y + this.shelves[this.shelves.length - 1].height;
 
     if (newY + h > this.config.maxHeight || w > this.config.maxWidth) {
       return null; // Doesn't fit

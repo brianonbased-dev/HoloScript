@@ -24,7 +24,7 @@ export interface LayeredLayoutOptions {
 export function layeredLayout(
   nodes: LayoutNode[],
   edges: LayoutEdge[],
-  options: LayeredLayoutOptions = {},
+  options: LayeredLayoutOptions = {}
 ): LayoutNode[] {
   const layerSpacing = options.layerSpacing ?? 5;
   const nodeSpacing = options.nodeSpacing ?? 4;

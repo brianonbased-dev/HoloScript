@@ -12,12 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  AgentRole,
-  AgentPermission,
-  WorkflowStep,
-  generateAgentKeyPair,
-} from '../AgentIdentity';
+import { AgentRole, AgentPermission, WorkflowStep, generateAgentKeyPair } from '../AgentIdentity';
 import type { AgentConfig } from '../AgentIdentity';
 import {
   generateAgentDID,
@@ -49,7 +44,11 @@ import {
   WALOperation,
 } from '../AgentPassport';
 import type { CapabilityToken } from '../CapabilityToken';
-import { CapabilityActions, HOLOSCRIPT_RESOURCE_SCHEME, PERMISSION_TO_ACTION } from '../CapabilityToken';
+import {
+  CapabilityActions,
+  HOLOSCRIPT_RESOURCE_SCHEME,
+  PERMISSION_TO_ACTION,
+} from '../CapabilityToken';
 import {
   serializePassport,
   deserializePassport,
@@ -301,10 +300,7 @@ describe('AgentPassport - Creation & Validation', () => {
         workflowStep: WorkflowStep.BUILD_AST,
       });
 
-      expect(passport.delegationChain).toEqual([
-        AgentRole.ORCHESTRATOR,
-        AgentRole.SYNTAX_ANALYZER,
-      ]);
+      expect(passport.delegationChain).toEqual([AgentRole.ORCHESTRATOR, AgentRole.SYNTAX_ANALYZER]);
     });
   });
 
@@ -522,9 +518,7 @@ describe('AgentPassport - Binary Serialization', () => {
       // Memory
       expect(restored.memory.wisdom).toHaveLength(2);
       expect(restored.memory.wisdom[0].id).toBe('W.001');
-      expect(restored.memory.wisdom[0].content).toBe(
-        'Always validate input before processing'
-      );
+      expect(restored.memory.wisdom[0].content).toBe('Always validate input before processing');
       // Confidence is quantized to uint8, so check approximate match
       expect(restored.memory.wisdom[0].confidence).toBeCloseTo(0.95, 1);
 
@@ -542,10 +536,7 @@ describe('AgentPassport - Binary Serialization', () => {
       expect(restored.permissions).toEqual(original.permissions);
 
       // Delegation
-      expect(restored.delegationChain).toEqual([
-        AgentRole.ORCHESTRATOR,
-        AgentRole.SYNTAX_ANALYZER,
-      ]);
+      expect(restored.delegationChain).toEqual([AgentRole.ORCHESTRATOR, AgentRole.SYNTAX_ANALYZER]);
     });
 
     it('should round-trip a signed passport', () => {
@@ -615,7 +606,9 @@ describe('AgentPassport - Binary Serialization', () => {
     });
 
     it('should detect magic bytes correctly', () => {
-      const hsap = Buffer.from([0x48, 0x53, 0x41, 0x50, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+      const hsap = Buffer.from([
+        0x48, 0x53, 0x41, 0x50, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      ]);
       expect(isPassportBinary(hsap)).toBe(true);
     });
   });
@@ -646,12 +639,16 @@ describe('AgentPassport - Binary Serialization', () => {
 
   describe('error handling', () => {
     it('should throw on invalid magic bytes', () => {
-      const badData = Buffer.from([0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+      const badData = Buffer.from([
+        0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      ]);
       expect(() => deserializePassport(badData)).toThrow('Invalid passport magic bytes');
     });
 
     it('should throw on unsupported version', () => {
-      const badData = Buffer.from([0x48, 0x53, 0x41, 0x50, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+      const badData = Buffer.from([
+        0x48, 0x53, 0x41, 0x50, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      ]);
       expect(() => deserializePassport(badData)).toThrow('Unsupported passport version');
     });
 
@@ -1187,7 +1184,10 @@ describe('AgentPassport - UCAN Delegation Chain', () => {
 
       const token = createTestCapabilityToken(rootDid, agentDid, [
         { with: `${HOLOSCRIPT_RESOURCE_SCHEME}packages/core/ast`, can: CapabilityActions.AST_READ },
-        { with: `${HOLOSCRIPT_RESOURCE_SCHEME}packages/core/ast`, can: CapabilityActions.AST_WRITE },
+        {
+          with: `${HOLOSCRIPT_RESOURCE_SCHEME}packages/core/ast`,
+          can: CapabilityActions.AST_WRITE,
+        },
       ]);
 
       const passport = createAgentPassport({

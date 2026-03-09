@@ -22,18 +22,35 @@
 // SHARED TYPES
 // =============================================================================
 
-export type PixelBuffer = Float32Array;   // RGBA interleaved, linear
+export type PixelBuffer = Float32Array; // RGBA interleaved, linear
 
-function idx(x: number, y: number, w: number): number { return (y * w + x) * 4; }
-function clampI(v: number, lo: number, hi: number): number { return v < lo ? lo : v > hi ? hi : v; }
-function lerp(a: number, b: number, t: number): number { return a + (b - a) * t; }
+function idx(x: number, y: number, w: number): number {
+  return (y * w + x) * 4;
+}
+function clampI(v: number, lo: number, hi: number): number {
+  return v < lo ? lo : v > hi ? hi : v;
+}
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
 
 /** Sample a pixel with bilinear interpolation (clamped at edges) */
-function sampleLinear(buf: PixelBuffer, fx: number, fy: number, w: number, h: number, ch = 0): number {
-  const ix = Math.floor(fx), iy = Math.floor(fy);
-  const tx = fx - ix, ty = fy - iy;
-  const x0 = clampI(ix, 0, w - 1), x1 = clampI(ix + 1, 0, w - 1);
-  const y0 = clampI(iy, 0, h - 1), y1 = clampI(iy + 1, 0, h - 1);
+function sampleLinear(
+  buf: PixelBuffer,
+  fx: number,
+  fy: number,
+  w: number,
+  h: number,
+  ch = 0
+): number {
+  const ix = Math.floor(fx),
+    iy = Math.floor(fy);
+  const tx = fx - ix,
+    ty = fy - iy;
+  const x0 = clampI(ix, 0, w - 1),
+    x1 = clampI(ix + 1, 0, w - 1);
+  const y0 = clampI(iy, 0, h - 1),
+    y1 = clampI(iy + 1, 0, h - 1);
   const s00 = buf[idx(x0, y0, w) + ch];
   const s10 = buf[idx(x1, y0, w) + ch];
   const s01 = buf[idx(x0, y1, w) + ch];
@@ -65,8 +82,10 @@ const DEFAULT_SSAO: SSAOConfig = { samples: 16, radius: 0.5, bias: 0.025, power:
  * @returns Float32Array (R only), occlusion 0 (occluded) to 1 (clear)
  */
 export function computeSSAO(
-  depth: PixelBuffer, normals: PixelBuffer,
-  width: number, height: number,
+  depth: PixelBuffer,
+  normals: PixelBuffer,
+  width: number,
+  height: number,
   config: Partial<SSAOConfig> = {}
 ): Float32Array {
   const cfg = { ...DEFAULT_SSAO, ...config };
@@ -88,7 +107,10 @@ export function computeSSAO(
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const d = depth[idx(x, y, width)];
-      if (d >= 1) { occlusion[y * width + x] = 1; continue; } // sky
+      if (d >= 1) {
+        occlusion[y * width + x] = 1;
+        continue;
+      } // sky
 
       let occ = 0;
       for (let s = 0; s < cfg.samples; s++) {
@@ -127,8 +149,10 @@ const DEFAULT_SSR: SSRConfig = { steps: 32, stepSize: 2, maxRoughness: 0.4, thic
  * indicating reflection presence at each pixel, plus the reflected UV coords.
  */
 export function computeSSR(
-  color: PixelBuffer, depth: PixelBuffer,
-  width: number, height: number,
+  color: PixelBuffer,
+  depth: PixelBuffer,
+  width: number,
+  height: number,
   roughness: Float32Array,
   config: Partial<SSRConfig> = {}
 ): { mask: Float32Array; uvs: Float32Array } {
@@ -146,12 +170,15 @@ export function computeSSR(
 
       // Simplified: march along a reflected direction in screen space
       // Real SSR would use view-space normals; here we use a simple up-bounce
-      let rx = x, ry = y - 1;
+      let rx = x,
+        ry = y - 1;
       let hit = false;
 
       for (let s = 0; s < cfg.steps; s++) {
-        rx += 0; ry -= cfg.stepSize;             // simplified vertical march
-        const cx = Math.round(rx), cy = Math.round(ry);
+        rx += 0;
+        ry -= cfg.stepSize; // simplified vertical march
+        const cx = Math.round(rx),
+          cy = Math.round(ry);
         if (cx < 0 || cx >= width || cy < 0 || cy >= height) break;
 
         const sd = depth[idx(cx, cy, width)];
@@ -190,8 +217,10 @@ const DEFAULT_SSGI: SSGIConfig = { sampleCount: 8, radius: 16, intensity: 0.5 };
  * Returns a Float32Array (RGBA) indirect irradiance buffer.
  */
 export function computeSSGI(
-  color: PixelBuffer, depth: PixelBuffer,
-  width: number, height: number,
+  color: PixelBuffer,
+  depth: PixelBuffer,
+  width: number,
+  height: number,
   config: Partial<SSGIConfig> = {}
 ): PixelBuffer {
   const cfg = { ...DEFAULT_SSGI, ...config };
@@ -200,7 +229,10 @@ export function computeSSGI(
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const d = depth[idx(x, y, width)];
-      let r = 0, g = 0, b = 0, w = 0;
+      let r = 0,
+        g = 0,
+        b = 0,
+        w = 0;
 
       for (let s = 0; s < cfg.sampleCount; s++) {
         const angle = (s / cfg.sampleCount) * 2 * Math.PI;
@@ -219,9 +251,9 @@ export function computeSSGI(
 
       const base = idx(x, y, width);
       if (w > 0) {
-        output[base] = r / w * cfg.intensity;
-        output[base + 1] = g / w * cfg.intensity;
-        output[base + 2] = b / w * cfg.intensity;
+        output[base] = (r / w) * cfg.intensity;
+        output[base + 1] = (g / w) * cfg.intensity;
+        output[base + 2] = (b / w) * cfg.intensity;
         output[base + 3] = 1;
       }
     }
@@ -244,10 +276,22 @@ const DEFAULT_TAA: TAAConfig = { feedback: 0.9, jitterScale: 0.5 };
 
 /** Halton sequence (base 2, base 3 for xy jitter) */
 export function haltonJitter(frameIndex: number): [number, number] {
-  let x = 0, f = 0.5, i = frameIndex + 1;
-  while (i > 0) { x += f * (i % 2); i = Math.floor(i / 2); f *= 0.5; }
-  let y = 0; f = 1 / 3; i = frameIndex + 1;
-  while (i > 0) { y += f * (i % 3); i = Math.floor(i / 3); f /= 3; }
+  let x = 0,
+    f = 0.5,
+    i = frameIndex + 1;
+  while (i > 0) {
+    x += f * (i % 2);
+    i = Math.floor(i / 2);
+    f *= 0.5;
+  }
+  let y = 0;
+  f = 1 / 3;
+  i = frameIndex + 1;
+  while (i > 0) {
+    y += f * (i % 3);
+    i = Math.floor(i / 3);
+    f /= 3;
+  }
   return [x - 0.5, y - 0.5];
 }
 
@@ -256,8 +300,10 @@ export function haltonJitter(frameIndex: number): [number, number] {
  * history is modified in-place with each call.
  */
 export function blendTAA(
-  current: PixelBuffer, history: PixelBuffer,
-  width: number, height: number,
+  current: PixelBuffer,
+  history: PixelBuffer,
+  width: number,
+  height: number,
   config: Partial<TAAConfig> = {}
 ): PixelBuffer {
   const cfg = { ...DEFAULT_TAA, ...config };
@@ -289,8 +335,10 @@ const DEFAULT_MOTION_BLUR: MotionBlurConfig = { sampleCount: 8, maxLength: 20 };
  * @param velocity - Float32Array, RG = velocity XY in pixels/frame
  */
 export function applyMotionBlur(
-  color: PixelBuffer, velocity: PixelBuffer,
-  width: number, height: number,
+  color: PixelBuffer,
+  velocity: PixelBuffer,
+  width: number,
+  height: number,
   config: Partial<MotionBlurConfig> = {}
 ): PixelBuffer {
   const cfg = { ...DEFAULT_MOTION_BLUR, ...config };
@@ -304,24 +352,32 @@ export function applyMotionBlur(
       const len = Math.sqrt(vx * vx + vy * vy);
 
       if (len < 0.5) {
-        output[pi] = color[pi]; output[pi + 1] = color[pi + 1];
-        output[pi + 2] = color[pi + 2]; output[pi + 3] = color[pi + 3];
+        output[pi] = color[pi];
+        output[pi + 1] = color[pi + 1];
+        output[pi + 2] = color[pi + 2];
+        output[pi + 3] = color[pi + 3];
         continue;
       }
 
       const scale = Math.min(1, cfg.maxLength / len);
-      let r = 0, g = 0, b = 0, a = 0;
+      let r = 0,
+        g = 0,
+        b = 0,
+        a = 0;
       for (let s = 0; s < cfg.sampleCount; s++) {
         const t = (s / (cfg.sampleCount - 1) - 0.5) * scale;
-        const sx = x + vx * t, sy = y + vy * t;
+        const sx = x + vx * t,
+          sy = y + vy * t;
         r += sampleLinear(color, sx, sy, width, height, 0);
         g += sampleLinear(color, sx, sy, width, height, 1);
         b += sampleLinear(color, sx, sy, width, height, 2);
         a += sampleLinear(color, sx, sy, width, height, 3);
       }
       const n = cfg.sampleCount;
-      output[pi] = r / n; output[pi + 1] = g / n;
-      output[pi + 2] = b / n; output[pi + 3] = a / n;
+      output[pi] = r / n;
+      output[pi + 1] = g / n;
+      output[pi + 2] = b / n;
+      output[pi + 3] = a / n;
     }
   }
   return output;
@@ -342,7 +398,12 @@ export interface DOFConfig {
   sampleCount: number;
 }
 
-const DEFAULT_DOF: DOFConfig = { focalDepth: 0.5, focalRange: 0.1, maxRadiusPx: 8, sampleCount: 12 };
+const DEFAULT_DOF: DOFConfig = {
+  focalDepth: 0.5,
+  focalRange: 0.1,
+  maxRadiusPx: 8,
+  sampleCount: 12,
+};
 
 /** Compute Circle of Confusion radius for a given depth value */
 export function computeCoC(depth: number, config: Partial<DOFConfig> = {}): number {
@@ -355,8 +416,10 @@ export function computeCoC(depth: number, config: Partial<DOFConfig> = {}): numb
  * Apply DOF using a disc gather (CPU approximate bokeh).
  */
 export function applyDOF(
-  color: PixelBuffer, depth: PixelBuffer,
-  width: number, height: number,
+  color: PixelBuffer,
+  depth: PixelBuffer,
+  width: number,
+  height: number,
   config: Partial<DOFConfig> = {}
 ): PixelBuffer {
   const cfg = { ...DEFAULT_DOF, ...config };
@@ -375,7 +438,10 @@ export function applyDOF(
       const d = depth[idx(x, y, width)];
       const coc = computeCoC(d, cfg);
 
-      let r = 0, g = 0, b = 0, a = 0;
+      let r = 0,
+        g = 0,
+        b = 0,
+        a = 0;
       for (let s = 0; s < cfg.sampleCount; s++) {
         const sx = x + disc[s * 2] * coc;
         const sy = y + disc[s * 2 + 1] * coc;
@@ -386,8 +452,10 @@ export function applyDOF(
       }
       const pi = idx(x, y, width);
       const n = cfg.sampleCount;
-      output[pi] = r / n; output[pi + 1] = g / n;
-      output[pi + 2] = b / n; output[pi + 3] = a / n;
+      output[pi] = r / n;
+      output[pi + 1] = g / n;
+      output[pi + 2] = b / n;
+      output[pi + 3] = a / n;
     }
   }
   return output;
@@ -406,22 +474,26 @@ export interface ChromaticAberrationConfig {
  * Chromatic aberration (RGB channel offset towards edges).
  */
 export function applyChromaticAberration(
-  color: PixelBuffer, width: number, height: number,
+  color: PixelBuffer,
+  width: number,
+  height: number,
   config: Partial<ChromaticAberrationConfig> & { strength?: number } = {}
 ): PixelBuffer {
   const strength = config.strength ?? 2;
   const output = new Float32Array(width * height * 4);
-  const cx = width / 2, cy = height / 2;
+  const cx = width / 2,
+    cy = height / 2;
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const dx = (x - cx) / cx, dy = (y - cy) / cy;
+      const dx = (x - cx) / cx,
+        dy = (y - cy) / cy;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const offset = dist * strength;
 
       const pi = idx(x, y, width);
       output[pi] = sampleLinear(color, x + dx * offset, y + dy * offset, width, height, 0);
-      output[pi + 1] = color[pi + 1];  // Green unchanged
+      output[pi + 1] = color[pi + 1]; // Green unchanged
       output[pi + 2] = sampleLinear(color, x - dx * offset, y - dy * offset, width, height, 2);
       output[pi + 3] = color[pi + 3];
     }
@@ -439,8 +511,11 @@ export function applyChromaticAberration(
  * @param seed Deterministic seed for repeatable grain pattern
  */
 export function applyFilmGrain(
-  color: PixelBuffer, width: number, height: number,
-  intensity: number, seed = 0
+  color: PixelBuffer,
+  width: number,
+  height: number,
+  intensity: number,
+  seed = 0
 ): PixelBuffer {
   const output = new Float32Array(color);
   for (let i = 0; i < width * height; i++) {
@@ -466,8 +541,11 @@ export function applyFilmGrain(
  * @param radius 0–1, the point where vignette begins
  */
 export function applyVignette(
-  color: PixelBuffer, width: number, height: number,
-  strength: number, radius = 0.75
+  color: PixelBuffer,
+  width: number,
+  height: number,
+  strength: number,
+  radius = 0.75
 ): PixelBuffer {
   const output = new Float32Array(color);
 
@@ -476,7 +554,7 @@ export function applyVignette(
       const dx = (x / width - 0.5) * 2;
       const dy = (y / height - 0.5) * 2;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const vignetteFactor = 1 - Math.max(0, dist - radius) / (1 - radius + 1e-6) * strength;
+      const vignetteFactor = 1 - (Math.max(0, dist - radius) / (1 - radius + 1e-6)) * strength;
       const pi = idx(x, y, width);
       output[pi] *= vignetteFactor;
       output[pi + 1] *= vignetteFactor;

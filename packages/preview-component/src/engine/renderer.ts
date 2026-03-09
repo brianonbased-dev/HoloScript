@@ -275,11 +275,7 @@ export class PreviewRenderer {
   /**
    * Create a Three.js material from material type, color, and glow flag.
    */
-  private createMaterial(
-    matType: string,
-    color: number,
-    glow: boolean
-  ): THREE_NS.Material {
+  private createMaterial(matType: string, color: number, glow: boolean): THREE_NS.Material {
     const T = this.THREE;
 
     switch (matType) {

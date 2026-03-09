@@ -8,7 +8,9 @@ export type HandSide = 'left' | 'right';
 export type GestureType = 'none' | 'pinch' | 'grab' | 'point' | 'fist' | 'open' | 'thumbsUp';
 
 export interface JointPosition {
-  x: number; y: number; z: number;
+  x: number;
+  y: number;
+  z: number;
 }
 
 export interface HandState {
@@ -33,8 +35,13 @@ export class HandTracker {
 
   private createDefaultState(side: HandSide): HandState {
     return {
-      side, tracked: false, joints: new Map(), gesture: 'none',
-      confidence: 0, pinchStrength: 0, gripStrength: 0,
+      side,
+      tracked: false,
+      joints: new Map(),
+      gesture: 'none',
+      confidence: 0,
+      pinchStrength: 0,
+      gripStrength: 0,
     };
   }
 
@@ -86,10 +93,18 @@ export class HandTracker {
     return 'none';
   }
 
-  getHand(side: HandSide): HandState { return this.hands.get(side)!; }
-  isTracked(side: HandSide): boolean { return this.hands.get(side)!.tracked; }
-  getGesture(side: HandSide): GestureType { return this.hands.get(side)!.gesture; }
-  getGestureHistory(): typeof this.gestureHistory { return [...this.gestureHistory]; }
+  getHand(side: HandSide): HandState {
+    return this.hands.get(side)!;
+  }
+  isTracked(side: HandSide): boolean {
+    return this.hands.get(side)!.tracked;
+  }
+  getGesture(side: HandSide): GestureType {
+    return this.hands.get(side)!.gesture;
+  }
+  getGestureHistory(): typeof this.gestureHistory {
+    return [...this.gestureHistory];
+  }
   getJoint(side: HandSide, joint: string): JointPosition | undefined {
     return this.hands.get(side)!.joints.get(joint);
   }

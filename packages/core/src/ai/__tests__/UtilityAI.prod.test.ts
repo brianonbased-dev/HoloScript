@@ -8,7 +8,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { UtilityAI, type UtilityAction, type Consideration } from '../UtilityAI';
 
 // ─── Helpers ────────────────────────────────────────────────────────
-function makeAction(id: string, considerations: Consideration[], overrides: Partial<UtilityAction> = {}): UtilityAction {
+function makeAction(
+  id: string,
+  considerations: Consideration[],
+  overrides: Partial<UtilityAction> = {}
+): UtilityAction {
   return {
     id,
     name: id,
@@ -21,7 +25,12 @@ function makeAction(id: string, considerations: Consideration[], overrides: Part
   };
 }
 
-function makeCon(input: number, curve: 'linear' | 'quadratic' | 'logistic' | 'step' = 'linear', weight = 1, invert = false): Consideration {
+function makeCon(
+  input: number,
+  curve: 'linear' | 'quadratic' | 'logistic' | 'step' = 'linear',
+  weight = 1,
+  invert = false
+): Consideration {
   return { name: 'c', input: () => input, curve, weight, invert };
 }
 
@@ -153,10 +162,7 @@ describe('UtilityAI — Production', () => {
   // ─── Multiple Considerations ──────────────────────────────────────
   it('multiple considerations multiply scores', () => {
     const ai = new UtilityAI();
-    const action = makeAction('a', [
-      makeCon(0.5, 'linear'),
-      makeCon(0.5, 'linear'),
-    ]);
+    const action = makeAction('a', [makeCon(0.5, 'linear'), makeCon(0.5, 'linear')]);
     expect(ai.scoreAction(action)).toBeCloseTo(0.25);
   });
 });

@@ -3,12 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  AgentRole,
-  AgentPermission,
-  generateAgentKeyPair,
-  AgentKeyPair,
-} from '../AgentIdentity';
+import { AgentRole, AgentPermission, generateAgentKeyPair, AgentKeyPair } from '../AgentIdentity';
 import {
   CapabilityTokenIssuer,
   HoloScriptCapabilitySemantics,
@@ -20,11 +15,7 @@ import {
   HOLOSCRIPT_RESOURCE_SCHEME,
   PERMISSION_TO_ACTION,
 } from '../CapabilityToken';
-import type {
-  Capability,
-  CapabilityToken,
-  RootTokenOptions,
-} from '../CapabilityToken';
+import type { Capability, CapabilityToken, RootTokenOptions } from '../CapabilityToken';
 
 describe('HoloScriptCapabilitySemantics', () => {
   let semantics: HoloScriptCapabilitySemantics;
@@ -149,9 +140,7 @@ describe('CapabilityTokenIssuer', () => {
         {
           issuer: 'agent:orchestrator',
           audience: 'agent:syntax_analyzer',
-          capabilities: [
-            { with: HOLOSCRIPT_RESOURCE_ALL, can: '*' },
-          ],
+          capabilities: [{ with: HOLOSCRIPT_RESOURCE_ALL, can: '*' }],
         },
         orchestratorKeyPair
       );
@@ -363,9 +352,7 @@ describe('CapabilityTokenIssuer', () => {
         {
           issuer: 'agent:orchestrator',
           audience: 'agent:syntax_analyzer',
-          capabilities: [
-            { with: HOLOSCRIPT_RESOURCE_ALL, can: '*' },
-          ],
+          capabilities: [{ with: HOLOSCRIPT_RESOURCE_ALL, can: '*' }],
         },
         orchestratorKeyPair
       );
@@ -376,9 +363,7 @@ describe('CapabilityTokenIssuer', () => {
         {
           parentToken: rootToken,
           audience: 'agent:ast_optimizer',
-          capabilities: [
-            { with: 'holoscript://ast', can: 'ast/read' },
-          ],
+          capabilities: [{ with: 'holoscript://ast', can: 'ast/read' }],
         },
         analyzerKeyPair
       );
@@ -397,9 +382,7 @@ describe('CapabilityTokenIssuer', () => {
         {
           issuer: 'agent:orchestrator',
           audience: 'agent:syntax_analyzer',
-          capabilities: [
-            { with: 'holoscript://ast', can: 'ast/read' },
-          ],
+          capabilities: [{ with: 'holoscript://ast', can: 'ast/read' }],
         },
         orchestratorKeyPair
       );
@@ -410,9 +393,7 @@ describe('CapabilityTokenIssuer', () => {
           {
             parentToken: narrowRoot,
             audience: 'agent:ast_optimizer',
-            capabilities: [
-              { with: 'holoscript://ast', can: 'ast/write' },
-            ],
+            capabilities: [{ with: 'holoscript://ast', can: 'ast/write' }],
           },
           analyzerKeyPair
         )
@@ -424,9 +405,7 @@ describe('CapabilityTokenIssuer', () => {
         {
           issuer: 'agent:orchestrator',
           audience: 'agent:syntax_analyzer',
-          capabilities: [
-            { with: 'holoscript://packages/core', can: 'ast/read' },
-          ],
+          capabilities: [{ with: 'holoscript://packages/core', can: 'ast/read' }],
         },
         orchestratorKeyPair
       );
@@ -606,9 +585,7 @@ describe('CapabilityTokenIssuer', () => {
         {
           issuer: 'agent:orchestrator',
           audience: 'agent:syntax_analyzer',
-          capabilities: [
-            { with: 'holoscript://ast', can: 'ast/read' },
-          ],
+          capabilities: [{ with: 'holoscript://ast', can: 'ast/read' }],
         },
         orchestratorKeyPair
       );

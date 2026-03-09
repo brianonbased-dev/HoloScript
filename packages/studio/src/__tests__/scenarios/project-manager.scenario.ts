@@ -67,7 +67,7 @@ describe('Scenario: Project Manager — Scene CRUD', () => {
   it('removeScene() removes the correct scene', () => {
     const s2 = useProjectStore.getState().addScene('Level 2');
     useProjectStore.getState().removeScene(s2.id);
-    expect(useProjectStore.getState().scenes.map(s => s.id)).not.toContain(s2.id);
+    expect(useProjectStore.getState().scenes.map((s) => s.id)).not.toContain(s2.id);
   });
   it('removeScene() on active scene falls back to last remaining', () => {
     const s2 = useProjectStore.getState().addScene('L2');
@@ -108,7 +108,7 @@ describe('Scenario: Project Manager — Dirty State Tracking', () => {
   it('only the edited scene is dirty', () => {
     const s2 = useProjectStore.getState().addScene('L2');
     useProjectStore.getState().updateSceneCode('default', 'changed');
-    const s2State = useProjectStore.getState().scenes.find(s => s.id === s2.id)!;
+    const s2State = useProjectStore.getState().scenes.find((s) => s.id === s2.id)!;
     expect(s2State.isDirty).toBe(false);
   });
 
@@ -154,7 +154,9 @@ describe('Scenario: Project Manager — Scene Navigation', () => {
     useProjectStore.getState().updateSceneCode('A', 'world "L1" { @big }');
     useProjectStore.getState().switchScene('B');
     useProjectStore.getState().switchScene('A');
-    expect(useProjectStore.getState().scenes.find(s => s.id === 'A')?.code).toBe('world "L1" { @big }');
+    expect(useProjectStore.getState().scenes.find((s) => s.id === 'A')?.code).toBe(
+      'world "L1" { @big }'
+    );
   });
 
   it('scene tab click triggers switchScene()', () => {
@@ -162,7 +164,7 @@ describe('Scenario: Project Manager — Scene Navigation', () => {
     useProjectStore.getState().switchScene(idToSwitch);
     expect(useProjectStore.getState().activeSceneId).toBe(idToSwitch);
   });
-  
+
   it('breadcrumb shows project name > scene name', () => {
     useProjectStore.getState().switchScene('B');
     const projectName = 'My Project';
@@ -177,30 +179,26 @@ describe('Scenario: Project Manager — Scene Navigation', () => {
 // ═══════════════════════════════════════════════════════════════════
 
 describe('Scenario: Project Manager — Reorder & Duplicate (Pure)', () => {
-  const SCENES = [
-    makeScene('a', 'Level 1'),
-    makeScene('b', 'Level 2'),
-    makeScene('c', 'Level 3'),
-  ];
+  const SCENES = [makeScene('a', 'Level 1'), makeScene('b', 'Level 2'), makeScene('c', 'Level 3')];
 
   it('reorderScenes() moves item from index 0 to index 2', () => {
     const result = reorderScenes(SCENES, 0, 2);
-    expect(result.map(s => s.id)).toEqual(['b', 'c', 'a']);
+    expect(result.map((s) => s.id)).toEqual(['b', 'c', 'a']);
   });
 
   it('reorderScenes() moves item from index 2 to index 0', () => {
     const result = reorderScenes(SCENES, 2, 0);
-    expect(result.map(s => s.id)).toEqual(['c', 'a', 'b']);
+    expect(result.map((s) => s.id)).toEqual(['c', 'a', 'b']);
   });
 
   it('reorderScenes() fromIdx === toIdx → no change', () => {
     const result = reorderScenes(SCENES, 1, 1);
-    expect(result.map(s => s.id)).toEqual(['a', 'b', 'c']);
+    expect(result.map((s) => s.id)).toEqual(['a', 'b', 'c']);
   });
 
   it('reorderScenes() does not mutate original array', () => {
     reorderScenes(SCENES, 0, 2);
-    expect(SCENES.map(s => s.id)).toEqual(['a', 'b', 'c']);
+    expect(SCENES.map((s) => s.id)).toEqual(['a', 'b', 'c']);
   });
 
   it('duplicateScene() creates a copy with a new ID', () => {
@@ -229,13 +227,13 @@ describe('Scenario: Project Manager — Reorder & Duplicate (Pure)', () => {
   });
 
   it('sortScenesAlpha() returns alphabetically sorted scenes', () => {
-    const scenes = [makeScene('c','Gamma'), makeScene('a','Alpha'), makeScene('b','Beta')];
+    const scenes = [makeScene('c', 'Gamma'), makeScene('a', 'Alpha'), makeScene('b', 'Beta')];
     const sorted = sortScenesAlpha(scenes);
-    expect(sorted.map(s => s.name)).toEqual(['Alpha','Beta','Gamma']);
+    expect(sorted.map((s) => s.name)).toEqual(['Alpha', 'Beta', 'Gamma']);
   });
 
   it('sortScenesAlpha() does not mutate original', () => {
-    const scenes = [makeScene('c','Gamma'), makeScene('a','Alpha')];
+    const scenes = [makeScene('c', 'Gamma'), makeScene('a', 'Alpha')];
     sortScenesAlpha(scenes);
     expect(scenes[0]!.name).toBe('Gamma');
   });
@@ -246,7 +244,7 @@ describe('Scenario: Project Manager — Reorder & Duplicate (Pure)', () => {
     expect(updated[0].id).toBe('b');
     expect(updated[1].id).toBe('a');
   });
-  
+
   it('duplicate scene shortcut (Ctrl-Shift-D)', () => {
     const mockState = useProjectStore.getState();
     const active = mockState.activeScene();

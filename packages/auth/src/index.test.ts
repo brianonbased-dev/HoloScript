@@ -13,13 +13,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  AuthService,
-  AuthError,
-  PERMISSIONS,
-  ROLES,
-  type UserPayload,
-} from './index.js';
+import { AuthService, AuthError, PERMISSIONS, ROLES, type UserPayload } from './index.js';
 
 describe('AuthService', () => {
   const service = new AuthService({

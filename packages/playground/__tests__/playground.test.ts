@@ -223,11 +223,7 @@ describe('Scene Builder - SceneManager', () => {
 // URL Encoder
 // ---------------------------------------------------------------------------
 
-import {
-  encodeState,
-  decodeState,
-  type PlaygroundState,
-} from '../src/sharing/url-encoder.js';
+import { encodeState, decodeState, type PlaygroundState } from '../src/sharing/url-encoder.js';
 
 describe('URL Encoder - encodeState / decodeState', () => {
   // Override TextEncoder/Decoder/btoa/atob for node (available in Node 18+)
@@ -258,8 +254,9 @@ describe('URL Encoder - encodeState / decodeState', () => {
   });
 
   test('encode works with multiline source', async () => {
-    const source = Array.from({ length: 20 }, (_, i) =>
-      `orb "Orb${i}" {\n  color: "red"\n  position: [${i}, 0, -2]\n}`
+    const source = Array.from(
+      { length: 20 },
+      (_, i) => `orb "Orb${i}" {\n  color: "red"\n  position: [${i}, 0, -2]\n}`
     ).join('\n\n');
 
     const hash = await encodeState({ source });

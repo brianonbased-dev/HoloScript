@@ -23,8 +23,8 @@ export interface SpatialNavigationConfig {
   show_distance: boolean;
   show_eta: boolean;
   auto_recalculate: boolean;
-  recalculate_threshold_m: number;   // meters off-path before recalculating
-  waypoint_radius_m: number;         // meters to consider waypoint reached
+  recalculate_threshold_m: number; // meters off-path before recalculating
+  waypoint_radius_m: number; // meters to consider waypoint reached
   path_color: string;
 }
 

@@ -132,7 +132,7 @@ export class EmbeddingIndex {
   async searchWithFilters(
     query: string,
     topK: number,
-    filters?: { language?: string; type?: string; file?: string },
+    filters?: { language?: string; type?: string; file?: string }
   ): Promise<SearchResult[]> {
     if (this.entries.length === 0) return [];
 

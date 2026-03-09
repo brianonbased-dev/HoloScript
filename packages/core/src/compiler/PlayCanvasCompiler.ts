@@ -192,34 +192,46 @@ export class PlayCanvasCompiler extends CompilerBase {
     this.emit('// === v4.2 Domain Blocks ===');
 
     let blockIdx = 0;
-    const compiled = compileDomainBlocks(domainBlocks, {
-      material: (block) => {
-        const mat = compileMaterialBlock(block);
-        return materialToPlayCanvas(mat, `db${blockIdx++}`);
+    const compiled = compileDomainBlocks(
+      domainBlocks,
+      {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          return materialToPlayCanvas(mat, `db${blockIdx++}`);
+        },
+        physics: (block) => {
+          const phys = compilePhysicsBlock(block);
+          return physicsToPlayCanvas(phys, `db${blockIdx++}`);
+        },
+        vfx: (block) => {
+          const ps = compileParticleBlock(block);
+          return particlesToPlayCanvas(ps, `db${blockIdx++}`);
+        },
+        postfx: (block) => {
+          const pp = compilePostProcessingBlock(block);
+          return (
+            `// Post-Processing: ${pp.keyword} — configure via PlayCanvas PostEffects\n` +
+            pp.effects
+              .map((e) => `// Effect: ${e.type} — ${JSON.stringify(e.properties)}`)
+              .join('\n')
+          );
+        },
+        audio: (block) => {
+          const audio = compileAudioSourceBlock(block);
+          return audioSourceToPlayCanvas(audio, `db${blockIdx++}`);
+        },
+        weather: (block) => {
+          const weather = compileWeatherBlock(block);
+          return (
+            `// Weather: ${weather.keyword} "${weather.name || ''}" — implement via PlayCanvas particle system\n` +
+            weather.layers
+              .map((l) => `// Layer: ${l.type} — ${JSON.stringify(l.properties)}`)
+              .join('\n')
+          );
+        },
       },
-      physics: (block) => {
-        const phys = compilePhysicsBlock(block);
-        return physicsToPlayCanvas(phys, `db${blockIdx++}`);
-      },
-      vfx: (block) => {
-        const ps = compileParticleBlock(block);
-        return particlesToPlayCanvas(ps, `db${blockIdx++}`);
-      },
-      postfx: (block) => {
-        const pp = compilePostProcessingBlock(block);
-        return `// Post-Processing: ${pp.keyword} — configure via PlayCanvas PostEffects\n` +
-          pp.effects.map(e => `// Effect: ${e.type} — ${JSON.stringify(e.properties)}`).join('\n');
-      },
-      audio: (block) => {
-        const audio = compileAudioSourceBlock(block);
-        return audioSourceToPlayCanvas(audio, `db${blockIdx++}`);
-      },
-      weather: (block) => {
-        const weather = compileWeatherBlock(block);
-        return `// Weather: ${weather.keyword} "${weather.name || ''}" — implement via PlayCanvas particle system\n` +
-          weather.layers.map(l => `// Layer: ${l.type} — ${JSON.stringify(l.properties)}`).join('\n');
-      },
-    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+      (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`
+    );
 
     for (const line of compiled) {
       for (const l of line.split('\n')) {
@@ -365,7 +377,8 @@ export class PlayCanvasCompiler extends CompilerBase {
       if (Object.keys(mat).length > 0) {
         this.emit(`const ${v}Mat = new pc.StandardMaterial();`);
         if (mat.color) this.emit(`${v}Mat.diffuse = ${this.toPlayCanvasColor(mat.color)};`);
-        if (mat.roughness !== undefined) this.emit(`${v}Mat.shininess = ${(1 - mat.roughness) * 100};`);
+        if (mat.roughness !== undefined)
+          this.emit(`${v}Mat.shininess = ${(1 - mat.roughness) * 100};`);
         if (mat.metalness !== undefined) this.emit(`${v}Mat.metalness = ${mat.metalness};`);
         if (mat.opacity !== undefined && mat.opacity < 1) {
           this.emit(`${v}Mat.opacity = ${mat.opacity};`);
@@ -384,8 +397,7 @@ export class PlayCanvasCompiler extends CompilerBase {
     if (scale) {
       if (Array.isArray(scale))
         this.emit(`${v}.setLocalScale(${scale[0]}, ${scale[1]}, ${scale[2]});`);
-      else
-        this.emit(`${v}.setLocalScale(${scale}, ${scale}, ${scale});`);
+      else this.emit(`${v}.setLocalScale(${scale}, ${scale}, ${scale});`);
     }
     if (size) {
       const s = typeof size === 'number' ? size : 1;
@@ -405,8 +417,7 @@ export class PlayCanvasCompiler extends CompilerBase {
         this.emit(`mass: ${trait.config?.mass ?? 1},`);
         if (trait.config?.restitution !== undefined)
           this.emit(`restitution: ${trait.config.restitution},`);
-        if (trait.config?.friction !== undefined)
-          this.emit(`friction: ${trait.config.friction},`);
+        if (trait.config?.friction !== undefined) this.emit(`friction: ${trait.config.friction},`);
         this.dedent();
         this.emit('});');
         this.emit(`${v}.addComponent("collision", { type: "${this.mapShapeToPrimitive(geom)}" });`);
@@ -415,9 +426,7 @@ export class PlayCanvasCompiler extends CompilerBase {
         this.emit(`${v}.button!.on("mouseenter", () => { /* hover enter */ });`);
         this.emit(`${v}.button!.on("mouseleave", () => { /* hover exit */ });`);
       } else if (trait.name === 'accessible') {
-        this.emit(
-          `// @accessible: role="${trait.config?.role || 'generic'}" for "${obj.name}"`
-        );
+        this.emit(`// @accessible: role="${trait.config?.role || 'generic'}" for "${obj.name}"`);
       } else if (trait.name === 'shadow') {
         this.emit(`${v}.render!.castShadows = true;`);
         this.emit(`${v}.render!.receiveShadows = true;`);
@@ -435,15 +444,20 @@ export class PlayCanvasCompiler extends CompilerBase {
         const matVar = `${v}ComposedMat`;
         this.emit(`// TraitCompositor: composed ${traitNames.join(' + ')}`);
         this.emit(`const ${matVar} = new pc.StandardMaterial();`);
-        if (composed.color) this.emit(`${matVar}.diffuse = ${this.toPlayCanvasColor(composed.color)};`);
-        if (composed.roughness !== undefined) this.emit(`${matVar}.shininess = ${(1 - composed.roughness) * 100};`);
-        if (composed.metalness !== undefined) this.emit(`${matVar}.metalness = ${composed.metalness};`);
+        if (composed.color)
+          this.emit(`${matVar}.diffuse = ${this.toPlayCanvasColor(composed.color)};`);
+        if (composed.roughness !== undefined)
+          this.emit(`${matVar}.shininess = ${(1 - composed.roughness) * 100};`);
+        if (composed.metalness !== undefined)
+          this.emit(`${matVar}.metalness = ${composed.metalness};`);
         if (composed.opacity !== undefined && composed.opacity < 1) {
           this.emit(`${matVar}.opacity = ${composed.opacity};`);
           this.emit(`${matVar}.blendType = pc.BLEND_NORMAL;`);
         }
-        if (composed.emissive) this.emit(`${matVar}.emissive = ${this.toPlayCanvasColor(composed.emissive)};`);
-        if (composed.emissiveIntensity !== undefined) this.emit(`${matVar}.emissiveIntensity = ${composed.emissiveIntensity};`);
+        if (composed.emissive)
+          this.emit(`${matVar}.emissive = ${this.toPlayCanvasColor(composed.emissive)};`);
+        if (composed.emissiveIntensity !== undefined)
+          this.emit(`${matVar}.emissiveIntensity = ${composed.emissiveIntensity};`);
         this.emit(`${matVar}.update();`);
         this.emit(`${v}.render!.meshInstances[0].material = ${matVar};`);
       }
@@ -469,8 +483,7 @@ export class PlayCanvasCompiler extends CompilerBase {
       else if (p.key === 'scale') {
         if (Array.isArray(p.value))
           this.emit(`${v}.setLocalScale(${p.value[0]}, ${p.value[1]}, ${p.value[2]});`);
-        else
-          this.emit(`${v}.setLocalScale(${p.value}, ${p.value}, ${p.value});`);
+        else this.emit(`${v}.setLocalScale(${p.value}, ${p.value}, ${p.value});`);
       }
     }
     const parent = parentVar || 'this.app.root';
@@ -509,7 +522,8 @@ export class PlayCanvasCompiler extends CompilerBase {
     if (intensity !== undefined) this.emit(`intensity: ${intensity},`);
     if (castShadow) this.emit('castShadows: true,');
     if (dist !== undefined) this.emit(`range: ${dist},`);
-    if (angle !== undefined && (pcType === 'spot')) this.emit(`outerConeAngle: ${angle * (180 / Math.PI)},`);
+    if (angle !== undefined && pcType === 'spot')
+      this.emit(`outerConeAngle: ${angle * (180 / Math.PI)},`);
     this.dedent();
     this.emit('});');
     if (pos) this.emit(`${v}.setPosition(${pos[0]}, ${pos[1]}, ${pos[2]});`);
@@ -624,13 +638,20 @@ export class PlayCanvasCompiler extends CompilerBase {
       this.emit(`${v}.addComponent("collision", { type: "sphere", radius: ${radius || 5} });`);
     } else {
       const s = Array.isArray(size) ? size : [size || 5, size || 5, size || 5];
-      this.emit(`${v}.addComponent("collision", { type: "box", halfExtents: new pc.Vec3(${s[0] / 2}, ${s[1] / 2}, ${s[2] / 2}) });`);
+      this.emit(
+        `${v}.addComponent("collision", { type: "box", halfExtents: new pc.Vec3(${s[0] / 2}, ${s[1] / 2}, ${s[2] / 2}) });`
+      );
     }
     this.emit(`${v}.addComponent("rigidbody", { type: "static" });`);
     if (position) this.emit(`${v}.setPosition(${position[0]}, ${position[1]}, ${position[2]});`);
     if (zone.handlers?.length) {
       for (const h of zone.handlers) {
-        const event = h.event === 'on_enter' ? 'triggerenter' : h.event === 'on_exit' ? 'triggerleave' : h.event;
+        const event =
+          h.event === 'on_enter'
+            ? 'triggerenter'
+            : h.event === 'on_exit'
+              ? 'triggerleave'
+              : h.event;
         this.emit(`${v}.collision!.on("${event}", (result: any) => { /* ${h.event} */ });`);
       }
     }
@@ -642,7 +663,9 @@ export class PlayCanvasCompiler extends CompilerBase {
 
   private emitUI(ui: HoloUI): void {
     this.emit('const screenEntity = new pc.Entity("screen");');
-    this.emit('screenEntity.addComponent("screen", { screenSpace: true, referenceResolution: new pc.Vec2(1280, 720) });');
+    this.emit(
+      'screenEntity.addComponent("screen", { screenSpace: true, referenceResolution: new pc.Vec2(1280, 720) });'
+    );
     this.emit('this.app.root.addChild(screenEntity);');
     for (const el of ui.elements) {
       const v = this.sanitizeName(el.name);
@@ -746,7 +769,9 @@ export class PlayCanvasCompiler extends CompilerBase {
   private emitXRSetup(): void {
     this.emit('if (this.app.xr.supported) {');
     this.indent();
-    this.emit('this.app.xr.start(this.app.root.findByName("camera")?.camera!, pc.XRTYPE_VR, pc.XRSPACE_LOCAL);');
+    this.emit(
+      'this.app.xr.start(this.app.root.findByName("camera")?.camera!, pc.XRTYPE_VR, pc.XRSPACE_LOCAL);'
+    );
     this.dedent();
     this.emit('}');
     this.emit('');
@@ -802,7 +827,9 @@ export class PlayCanvasCompiler extends CompilerBase {
 
   private directionToEuler(dir: any[]): string {
     // Simplified: direction vector to Euler angles
-    const x = dir[0] || 0, y = dir[1] || 0, z = dir[2] || 0;
+    const x = dir[0] || 0,
+      y = dir[1] || 0,
+      z = dir[2] || 0;
     const pitch = Math.atan2(-y, Math.sqrt(x * x + z * z)) * (180 / Math.PI);
     const yaw = Math.atan2(x, z) * (180 / Math.PI);
     return `${pitch.toFixed(1)}, ${yaw.toFixed(1)}, 0`;

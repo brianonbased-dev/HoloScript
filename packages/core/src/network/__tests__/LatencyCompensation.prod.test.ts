@@ -219,32 +219,40 @@ describe('CorrectionBlender', () => {
   it('queueCorrection returns none for invisible error (< 0.1m)', () => {
     const b = new CorrectionBlender(DEFAULT_LATENCY_CONFIG);
     const result = b.queueCorrection(
-      makeVec3(0, 0, 0), makeVec3(0.05, 0, 0), // 0.05m error
-      makeQuat(), makeQuat()
+      makeVec3(0, 0, 0),
+      makeVec3(0.05, 0, 0), // 0.05m error
+      makeQuat(),
+      makeQuat()
     );
     expect(result).toBe('none');
   });
   it('queueCorrection returns exponential for small error (0.1–0.5m)', () => {
     const b = new CorrectionBlender(DEFAULT_LATENCY_CONFIG);
     const result = b.queueCorrection(
-      makeVec3(0, 0, 0), makeVec3(0.3, 0, 0), // 0.3m
-      makeQuat(), makeQuat()
+      makeVec3(0, 0, 0),
+      makeVec3(0.3, 0, 0), // 0.3m
+      makeQuat(),
+      makeQuat()
     );
     expect(result).toBe('exponential');
   });
   it('queueCorrection returns bezier for medium error (0.5–2.0m)', () => {
     const b = new CorrectionBlender(DEFAULT_LATENCY_CONFIG);
     const result = b.queueCorrection(
-      makeVec3(0, 0, 0), makeVec3(1.0, 0, 0), // 1.0m
-      makeQuat(), makeQuat()
+      makeVec3(0, 0, 0),
+      makeVec3(1.0, 0, 0), // 1.0m
+      makeQuat(),
+      makeQuat()
     );
     expect(result).toBe('bezier');
   });
   it('queueCorrection returns snap for large error (> 2.0m)', () => {
     const b = new CorrectionBlender(DEFAULT_LATENCY_CONFIG);
     const result = b.queueCorrection(
-      makeVec3(0, 0, 0), makeVec3(5.0, 0, 0), // 5.0m
-      makeQuat(), makeQuat()
+      makeVec3(0, 0, 0),
+      makeVec3(5.0, 0, 0), // 5.0m
+      makeQuat(),
+      makeQuat()
     );
     expect(result).toBe('snap');
   });
@@ -284,15 +292,18 @@ describe('CorrectionBlender', () => {
     // Queue 3 corrections — third should be 'none' (budget exceeded)
     b.queueCorrection(makeVec3(0, 0, 0), makeVec3(0.3, 0, 0), makeQuat(), makeQuat());
     b.queueCorrection(makeVec3(0, 0, 0), makeVec3(0.4, 0, 0), makeQuat(), makeQuat());
-    const result = b.queueCorrection(makeVec3(0, 0, 0), makeVec3(0.35, 0, 0), makeQuat(), makeQuat());
+    const result = b.queueCorrection(
+      makeVec3(0, 0, 0),
+      makeVec3(0.35, 0, 0),
+      makeQuat(),
+      makeQuat()
+    );
     expect(result).toBe('none');
   });
   it('isLocalPlayer doubles blend duration (correction queued counts for longer)', () => {
     // Test indirectly: local player corrections use 1.5x duration
     const b = new CorrectionBlender({ ...DEFAULT_LATENCY_CONFIG, isLocalPlayer: true });
-    const result = b.queueCorrection(
-      makeVec3(0), makeVec3(0.3, 0, 0), makeQuat(), makeQuat()
-    );
+    const result = b.queueCorrection(makeVec3(0), makeVec3(0.3, 0, 0), makeQuat(), makeQuat());
     expect(result).toBe('exponential'); // still exponential, just longer
     expect(b.isBlending()).toBe(true);
   });
@@ -421,7 +432,7 @@ describe('LatencyCompensator', () => {
   it('predict returns a state with the same position (standard tier, no velocity)', () => {
     const c = new LatencyCompensator('p1');
     for (let i = 0; i < 3; i++) c.recordRTT(50);
-    const state = makeState(0, 5); // x=5 
+    const state = makeState(0, 5); // x=5
     const predicted = c.predict(state, 0.016);
     // position.x should be very close to 5 (no velocity so no drift)
     expect(predicted.position.x).toBeCloseTo(5, 0);
@@ -440,9 +451,7 @@ describe('LatencyCompensator', () => {
   it('setInteractables does not throw', () => {
     const c = new LatencyCompensator('p1');
     expect(() =>
-      c.setInteractables([
-        { id: 'door1', position: makeVec3(10, 0, 0), radius: 1.5, type: 'door' },
-      ])
+      c.setInteractables([{ id: 'door1', position: makeVec3(10, 0, 0), radius: 1.5, type: 'door' }])
     ).not.toThrow();
   });
   it('recordInput does not throw', () => {

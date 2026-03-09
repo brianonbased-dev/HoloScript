@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { X, ChevronRight, ChevronLeft, Sparkles, Check } from 'lucide-react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 // ── Step data ────────────────────────────────────────────────────────────────
 
@@ -64,15 +64,25 @@ const NPCS: NPC[] = [
 
 export function buildSceneCode(setting: string, rooms: string[], npcs: string[]): string {
   const settingObj = SETTINGS.find((s) => s.id === setting)!;
-  const roomList = rooms.map((id) => {
-    const r = (ROOMS_BY_SETTING[setting] ?? []).find((rm) => rm.id === id);
-    return r ? `  object "${r.label}" { @room @position(${Math.random() * 20 - 10}, 0, ${Math.random() * 20 - 10}) }` : '';
-  }).filter(Boolean).join('\n');
+  const roomList = rooms
+    .map((id) => {
+      const r = (ROOMS_BY_SETTING[setting] ?? []).find((rm) => rm.id === id);
+      return r
+        ? `  object "${r.label}" { @room @position(${Math.random() * 20 - 10}, 0, ${Math.random() * 20 - 10}) }`
+        : '';
+    })
+    .filter(Boolean)
+    .join('\n');
 
-  const npcList = npcs.map((id) => {
-    const n = NPCS.find((npc) => npc.id === id);
-    return n ? `  npc "${n.label}" { @role("${n.role}") @position(${Math.random() * 10 - 5}, 0, ${Math.random() * 10 - 5}) }` : '';
-  }).filter(Boolean).join('\n');
+  const npcList = npcs
+    .map((id) => {
+      const n = NPCS.find((npc) => npc.id === id);
+      return n
+        ? `  npc "${n.label}" { @role("${n.role}") @position(${Math.random() * 10 - 5}, 0, ${Math.random() * 10 - 5}) }`
+        : '';
+    })
+    .filter(Boolean)
+    .join('\n');
 
   return `world "${settingObj.label} World" {
   @setting("${setting}")
@@ -95,7 +105,9 @@ export function QuickStartWizard({ onClose }: QuickStartWizardProps) {
   const setCode = useSceneStore((s) => s.setCode);
   const [step, setStep] = useState(0);
   const [setting, setSetting] = useState<string | null>(null);
-  const [selectedRooms, setSelectedRooms] = useState<Set<string>>(new Set(['entrance', 'boss', 'hangar', 'bridge', 'lobby', 'glade']));
+  const [selectedRooms, setSelectedRooms] = useState<Set<string>>(
+    new Set(['entrance', 'boss', 'hangar', 'bridge', 'lobby', 'glade'])
+  );
   const [selectedNpcs, setSelectedNpcs] = useState<Set<string>>(new Set(['merchant', 'enemy']));
 
   const rooms = ROOMS_BY_SETTING[setting ?? 'medieval'] ?? [];
@@ -103,7 +115,8 @@ export function QuickStartWizard({ onClose }: QuickStartWizardProps) {
   const toggleRoom = (id: string) => {
     setSelectedRooms((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -111,7 +124,8 @@ export function QuickStartWizard({ onClose }: QuickStartWizardProps) {
   const toggleNpc = (id: string) => {
     setSelectedNpcs((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -137,7 +151,10 @@ export function QuickStartWizard({ onClose }: QuickStartWizardProps) {
             </p>
             <p className="text-xs text-studio-muted">Step {step + 1} of 3</p>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-studio-muted hover:bg-white/10 hover:text-studio-text transition">
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-studio-muted hover:bg-white/10 hover:text-studio-text transition"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -169,7 +186,9 @@ export function QuickStartWizard({ onClose }: QuickStartWizardProps) {
                     <span className="text-2xl">{s.emoji}</span>
                     <span className="text-sm font-medium text-studio-text">{s.label}</span>
                     <span className="text-[11px] text-studio-muted">{s.desc}</span>
-                    {setting === s.id && <Check className="absolute top-3 right-3 h-4 w-4 text-emerald-400" />}
+                    {setting === s.id && (
+                      <Check className="absolute top-3 right-3 h-4 w-4 text-emerald-400" />
+                    )}
                   </button>
                 ))}
               </div>
@@ -192,7 +211,9 @@ export function QuickStartWizard({ onClose }: QuickStartWizardProps) {
                   >
                     <span className="text-lg">{r.emoji}</span>
                     <span className="text-xs font-medium">{r.label}</span>
-                    {selectedRooms.has(r.id) && <Check className="ml-auto h-3.5 w-3.5 text-emerald-400 shrink-0" />}
+                    {selectedRooms.has(r.id) && (
+                      <Check className="ml-auto h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                    )}
                   </button>
                 ))}
               </div>
@@ -201,7 +222,9 @@ export function QuickStartWizard({ onClose }: QuickStartWizardProps) {
 
           {step === 2 && (
             <div>
-              <p className="mb-4 text-sm text-studio-muted">Add NPCs and characters to your world</p>
+              <p className="mb-4 text-sm text-studio-muted">
+                Add NPCs and characters to your world
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 {NPCS.map((n) => (
                   <button
@@ -216,11 +239,15 @@ export function QuickStartWizard({ onClose }: QuickStartWizardProps) {
                     <span className="text-xl">{n.emoji}</span>
                     <div>
                       <p className="text-xs font-medium">{n.label}</p>
-                      <p className={`text-[10px] ${n.role === 'Hostile' ? 'text-red-400' : n.role === 'Friendly' ? 'text-emerald-400' : 'text-studio-muted'}`}>
+                      <p
+                        className={`text-[10px] ${n.role === 'Hostile' ? 'text-red-400' : n.role === 'Friendly' ? 'text-emerald-400' : 'text-studio-muted'}`}
+                      >
                         {n.role}
                       </p>
                     </div>
-                    {selectedNpcs.has(n.id) && <Check className="ml-auto h-3.5 w-3.5 text-emerald-400 shrink-0" />}
+                    {selectedNpcs.has(n.id) && (
+                      <Check className="ml-auto h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                    )}
                   </button>
                 ))}
               </div>
@@ -231,7 +258,7 @@ export function QuickStartWizard({ onClose }: QuickStartWizardProps) {
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-studio-border px-6 py-4">
           <button
-            onClick={() => step > 0 ? setStep(step - 1) : onClose()}
+            onClick={() => (step > 0 ? setStep(step - 1) : onClose())}
             className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-studio-muted transition hover:text-studio-text"
           >
             <ChevronLeft className="h-4 w-4" />

@@ -134,7 +134,14 @@ describe('HoloScriptPlusRuntime — Production', () => {
   describe('mountObject', () => {
     it('mounts child node into scene', () => {
       runtime.mount({});
-      const childNode = { type: 'box', id: 'box1', children: [], directives: [], traits: null, properties: {} };
+      const childNode = {
+        type: 'box',
+        id: 'box1',
+        children: [],
+        directives: [],
+        traits: null,
+        properties: {},
+      };
       const instance = runtime.mountObject(childNode as any);
       expect(instance.__holo_id).toContain('box');
       expect(instance.destroyed).toBe(false);
@@ -144,7 +151,14 @@ describe('HoloScriptPlusRuntime — Production', () => {
   describe('unmountObject', () => {
     it('unmounts by string ID', () => {
       runtime.mount({});
-      const childNode = { type: 'sphere', id: 'sph1', children: [], directives: [], traits: null, properties: {} };
+      const childNode = {
+        type: 'sphere',
+        id: 'sph1',
+        children: [],
+        directives: [],
+        traits: null,
+        properties: {},
+      };
       const instance = runtime.mountObject(childNode as any);
       runtime.unmountObject(instance.__holo_id);
       expect(renderer.destroy).toHaveBeenCalled();
@@ -226,9 +240,10 @@ describe('HoloScriptPlusRuntime — Production', () => {
         type: 'scene',
         children: [
           { type: 'template', name: 'Card', version: 1, children: [] },
-          { type: 'box', children: [
-            { type: 'template', name: 'Button', version: 1, children: [] },
-          ]},
+          {
+            type: 'box',
+            children: [{ type: 'template', name: 'Button', version: 1, children: [] }],
+          },
         ],
       };
       const templates = (runtime as any).findAllTemplates(ast);

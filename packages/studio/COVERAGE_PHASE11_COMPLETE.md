@@ -10,12 +10,12 @@
 
 ### Overall Metrics
 
-| Metric | Phase 10 | Phase 11 | Change | Status |
-|--------|----------|----------|--------|--------|
-| **Test Files** | 17 | 22 | **+5** ✅ | +29.4% |
-| **Total Tests** | ~500 | 545 | **+45** ✅ | +9.0% |
-| **Hooks Tested** | 17 | 22 | **+5** ✅ | +29.4% |
-| **Hooks Coverage** | 37.8% | **48.9%** | **+11.1%** ✅ | 22/45 hooks |
+| Metric             | Phase 10 | Phase 11  | Change        | Status      |
+| ------------------ | -------- | --------- | ------------- | ----------- |
+| **Test Files**     | 17       | 22        | **+5** ✅     | +29.4%      |
+| **Total Tests**    | ~500     | 545       | **+45** ✅    | +9.0%       |
+| **Hooks Tested**   | 17       | 22        | **+5** ✅     | +29.4%      |
+| **Hooks Coverage** | 37.8%    | **48.9%** | **+11.1%** ✅ | 22/45 hooks |
 
 ### Achievement
 
@@ -42,12 +42,14 @@ Tests covering keyboard shortcuts for undo/redo:
 - Edge Cases (5 tests)
 
 **Key Features Tested:**
+
 - Ctrl+Z for undo, Ctrl+Shift+Z / Ctrl+Y for redo
 - Prevention when focused on INPUT, TEXTAREA, contentEditable
 - Event.preventDefault() on hotkey press
 - Cleanup on unmount
 
 **Key Fixes:**
+
 - Fixed contentEditable detection in jsdom by explicitly setting isContentEditable property
 - Used Object.defineProperty to set event.target for proper event simulation
 
@@ -65,6 +67,7 @@ Tests covering asset library management:
 - Edge Cases (4 tests)
 
 **Key Features Tested:**
+
 - Fetch and search GLTF/HDR assets from API
 - Category filtering (model, hdri, all)
 - Pagination with page navigation
@@ -72,6 +75,7 @@ Tests covering asset library management:
 - Error handling and loading states
 
 **Testing Patterns:**
+
 - Mocked global fetch with mockResolvedValueOnce
 - Tested API query string construction
 - Verified loading state transitions
@@ -90,6 +94,7 @@ Tests covering HoloScript code parser for minimap:
 - Edge Cases (9 tests)
 
 **Key Features Tested:**
+
 - Parse @transform position and scale from HoloScript code
 - Extract @material color
 - Identify pointLight, directionalLight, spotLight as lights
@@ -97,6 +102,7 @@ Tests covering HoloScript code parser for minimap:
 - Default color handling (lights: #ffee44, objects: #6688cc)
 
 **Key Fixes:**
+
 - Fixed floating point precision with toBeCloseTo(1.6, 1)
 - Corrected default scale expectation (0.2 minimum, not 0.8)
 - Fixed color precedence (material color takes precedence over light default)
@@ -117,6 +123,7 @@ Tests covering scene search functionality:
 - Edge Cases (11 tests)
 
 **Key Features Tested:**
+
 - Parse scene and object declarations from HoloScript code
 - Collect traits (@transform, @material, @physics, etc.)
 - Fuzzy filter by name, type, and trait keywords
@@ -125,6 +132,7 @@ Tests covering scene search functionality:
 - Truncate long snippets to 60 chars
 
 **Testing Patterns:**
+
 - Tested regex parsing with various code structures
 - Verified line number accuracy
 - Tested memoization with rerender()
@@ -147,6 +155,7 @@ Tests covering line diff computation:
 - LCS Algorithm Verification (3 tests)
 
 **Key Features Tested:**
+
 - LCS (Longest Common Subsequence) diff algorithm
 - Combines pastStates, currentCode, futureStates into allCodes
 - Computes diff with type (same/added/removed), text, line numbers
@@ -155,6 +164,7 @@ Tests covering line diff computation:
 - Snapshot index navigation (setIndexA, setIndexB)
 
 **Key Fixes:**
+
 - Fixed empty diff expectation (split('\n') on empty string returns [''])
 - Corrected LCS algorithm output order (added before removed in some cases)
 
@@ -234,19 +244,22 @@ Object.defineProperty(div, 'isContentEditable', {
 3. **Understanding Hook Logic vs Test Expectations**
 
 When no scale is specified in useMinim ap:
+
 - Hook parses empty → [0, 0, 0]
-- Then Math.max(0.2, 0 * 0.8) = 0.2 (minimum scale)
+- Then Math.max(0.2, 0 \* 0.8) = 0.2 (minimum scale)
 - Test expectation should match hook behavior, not ideal behavior
 
 4. **Algorithm Order Dependencies**
 
 LCS diff algorithm may output added/removed in different orders:
+
 - Match actual algorithm output order
 - Or use order-independent assertions (containsAll, etc.)
 
 5. **Regex Parsing with Complex Bodies**
 
 Test nested braces, multiline content, and edge cases:
+
 ```typescript
 mockCode = `
   object "complex" {
@@ -297,7 +310,7 @@ mockCode = `
 ### Challenges Overcome
 
 1. **Floating Point Precision**: 2.4 vs 2.4000000000000004 → Use toBeCloseTo()
-2. **Default Values**: Expected 0.8, got 0.2 → Understand Math.max(0.2, sx * 0.8) logic
+2. **Default Values**: Expected 0.8, got 0.2 → Understand Math.max(0.2, sx \* 0.8) logic
 3. **Color Precedence**: Expected light color, got material color → Material takes precedence
 4. **ContentEditable**: jsdom doesn't auto-set isContentEditable → Explicitly define property
 5. **LCS Order**: Expected removed then added, got added then removed → Match algorithm output
@@ -325,6 +338,7 @@ mockCode = `
 ## 🎯 Path to 55% Coverage
 
 ### Current Status
+
 - **Hooks Tested**: 22 of 45 (48.9%)
 - **Gap to 55%**: 6.1 percentage points
 - **Estimated Additional Hooks**: ~3-4 more hooks

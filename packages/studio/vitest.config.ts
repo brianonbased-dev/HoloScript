@@ -11,10 +11,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
-      include: [
-        'src/**/*.ts',
-        'src/**/*.tsx',
-      ],
+      include: ['src/**/*.ts', 'src/**/*.tsx'],
       exclude: [
         'src/**/*.test.ts',
         'src/**/*.test.tsx',
@@ -50,7 +47,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src'),
       // Route idb → in-memory mock that works in Node without IndexedDB
-      'idb': path.resolve(__dirname, 'src/__mocks__/idb.ts'),
+      idb: path.resolve(__dirname, 'src/__mocks__/idb.ts'),
     },
   },
 });

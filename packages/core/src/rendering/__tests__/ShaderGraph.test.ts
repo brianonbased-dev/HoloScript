@@ -4,7 +4,9 @@ import { ShaderGraph, SHADER_NODES } from '../ShaderGraph';
 describe('ShaderGraph', () => {
   let graph: ShaderGraph;
 
-  beforeEach(() => { graph = new ShaderGraph('test'); });
+  beforeEach(() => {
+    graph = new ShaderGraph('test');
+  });
 
   it('constructor assigns id', () => {
     expect(graph.id).toBe('test');

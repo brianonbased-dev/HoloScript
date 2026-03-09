@@ -87,7 +87,10 @@ describe('data/SCENE_TEMPLATES — game code quality', () => {
 
   it('game templates have spawn or win conditions', () => {
     for (const t of gameTemplates) {
-      const hasSpawnOrWin = t.code.includes('@spawn') || t.code.includes('@win_condition') || t.code.includes('win_condition');
+      const hasSpawnOrWin =
+        t.code.includes('@spawn') ||
+        t.code.includes('@win_condition') ||
+        t.code.includes('win_condition');
       expect(hasSpawnOrWin).toBe(true);
     }
   });

@@ -7,7 +7,9 @@ import { RPCManager } from '../network/RPCManager';
 
 describe('RPCManager', () => {
   let rpc: RPCManager;
-  beforeEach(() => { rpc = new RPCManager('peer1'); });
+  beforeEach(() => {
+    rpc = new RPCManager('peer1');
+  });
 
   it('register and hasHandler', () => {
     rpc.register('greet', () => 'hello');
@@ -46,7 +48,9 @@ describe('RPCManager', () => {
   });
 
   it('execute catches thrown errors', () => {
-    rpc.register('fail', () => { throw new Error('boom'); });
+    rpc.register('fail', () => {
+      throw new Error('boom');
+    });
     const result = rpc.execute(0, 'fail', [], 'peer2');
     expect(result.error).toBe('boom');
   });

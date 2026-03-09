@@ -35,12 +35,20 @@ describe('HoloScriptPlusParser.parseCompositionDirective', () => {
 
   it('parses a simple 2-source composition line', () => {
     const result = parser.parseCompositionDirective('@turret = @physics + @targeting');
-    expect(result).toEqual({ type: 'trait_composition', name: 'turret', sources: ['physics', 'targeting'] });
+    expect(result).toEqual({
+      type: 'trait_composition',
+      name: 'turret',
+      sources: ['physics', 'targeting'],
+    });
   });
 
   it('parses a 3-source composition line', () => {
     const result = parser.parseCompositionDirective('@boss = @physics + @ai_npc + @shield');
-    expect(result).toEqual({ type: 'trait_composition', name: 'boss', sources: ['physics', 'ai_npc', 'shield'] });
+    expect(result).toEqual({
+      type: 'trait_composition',
+      name: 'boss',
+      sources: ['physics', 'ai_npc', 'shield'],
+    });
   });
 
   it('tolerates extra whitespace around operators', () => {
@@ -85,8 +93,16 @@ describe('HoloScriptPlusParser.parseCompositionBlock', () => {
 
     const result = parser.parseCompositionBlock(code);
     expect(result).toHaveLength(2);
-    expect(result[0]).toEqual({ type: 'trait_composition', name: 'turret', sources: ['physics', 'targeting'] });
-    expect(result[1]).toEqual({ type: 'trait_composition', name: 'boss', sources: ['physics', 'ai_npc', 'shield'] });
+    expect(result[0]).toEqual({
+      type: 'trait_composition',
+      name: 'turret',
+      sources: ['physics', 'targeting'],
+    });
+    expect(result[1]).toEqual({
+      type: 'trait_composition',
+      name: 'boss',
+      sources: ['physics', 'ai_npc', 'shield'],
+    });
   });
 
   it('returns empty array when no composition lines present', () => {
@@ -110,7 +126,7 @@ describe('TraitBinder.registerComposed', () => {
   it('registers the composed trait and makes it resolvable', () => {
     const binder = new TraitBinder();
     const phys = makeHandler('physics', { gravity: 9.8 });
-    const aim  = makeHandler('targeting', { range: 50 });
+    const aim = makeHandler('targeting', { range: 50 });
     binder.register('physics', phys);
     binder.register('targeting', aim);
 

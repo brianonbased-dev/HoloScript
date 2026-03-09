@@ -1,18 +1,24 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { USDZPipeline, generateUSDA, generateUSDZ, getUSDZConversionCommand } from '../USDZPipeline';
+import {
+  USDZPipeline,
+  generateUSDA,
+  generateUSDZ,
+  getUSDZConversionCommand,
+} from '../USDZPipeline';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
 }
 
-function makePresetObject(name: string, preset: string, extraProps: Array<{ key: string; value: any }> = []) {
+function makePresetObject(
+  name: string,
+  preset: string,
+  extraProps: Array<{ key: string; value: any }> = []
+) {
   return {
     name,
-    properties: [
-      { key: 'material', value: preset },
-      ...extraProps,
-    ],
+    properties: [{ key: 'material', value: preset }, ...extraProps],
     traits: [],
   } as any;
 }
@@ -96,7 +102,14 @@ describe('USDZPipeline', () => {
   it('generates materials for objects with color', () => {
     const comp = makeComposition({
       objects: [
-        { name: 'redcube', properties: [{ key: 'geometry', value: 'box' }, { key: 'color', value: '#ff0000' }], traits: [] },
+        {
+          name: 'redcube',
+          properties: [
+            { key: 'geometry', value: 'box' },
+            { key: 'color', value: '#ff0000' },
+          ],
+          traits: [],
+        },
       ] as any,
     });
     const usda = pipeline.generateUSDA(comp);
@@ -202,17 +215,14 @@ describe('USDZPipeline', () => {
     const usda = pipeline.generateUSDA(comp);
     // Red override, not gold's default #ffd700
     expect(usda).toContain('inputs:diffuseColor');
-    expect(usda).toContain('1,');  // red channel = 1
+    expect(usda).toContain('1,'); // red channel = 1
     // Still has gold's metallic
     expect(usda).toContain('inputs:metallic = 1');
   });
 
   it('generates distinct materials for multiple presets', () => {
     const comp = makeComposition({
-      objects: [
-        makePresetObject('obj_metal', 'metal'),
-        makePresetObject('obj_glass', 'glass'),
-      ],
+      objects: [makePresetObject('obj_metal', 'metal'), makePresetObject('obj_glass', 'glass')],
     });
     const usda = pipeline.generateUSDA(comp);
     expect(usda).toContain('Material_obj_metal');
@@ -223,14 +233,16 @@ describe('USDZPipeline', () => {
 
   it('generates UsdUVTexture reader for texture maps', () => {
     const comp = makeComposition({
-      objects: [{
-        name: 'textured_box',
-        properties: [
-          { key: 'material', value: 'metal' },
-          { key: 'normalMap', value: 'metal_normal.png' },
-        ],
-        traits: [],
-      }] as any,
+      objects: [
+        {
+          name: 'textured_box',
+          properties: [
+            { key: 'material', value: 'metal' },
+            { key: 'normalMap', value: 'metal_normal.png' },
+          ],
+          traits: [],
+        },
+      ] as any,
     });
     const usda = pipeline.generateUSDA(comp);
     expect(usda).toContain('UsdUVTexture');
@@ -241,20 +253,22 @@ describe('USDZPipeline', () => {
 
   it('maps all 7 texture channels correctly', () => {
     const comp = makeComposition({
-      objects: [{
-        name: 'full_tex',
-        properties: [
-          { key: 'material', value: 'plastic' },
-          { key: 'albedo_map', value: 'albedo.png' },
-          { key: 'normal_map', value: 'normal.png' },
-          { key: 'roughness_map', value: 'rough.png' },
-          { key: 'metallic_map', value: 'metal.png' },
-          { key: 'ao_map', value: 'ao.png' },
-          { key: 'emission_map', value: 'emissive.png' },
-          { key: 'displacement_map', value: 'disp.png' },
-        ],
-        traits: [],
-      }] as any,
+      objects: [
+        {
+          name: 'full_tex',
+          properties: [
+            { key: 'material', value: 'plastic' },
+            { key: 'albedo_map', value: 'albedo.png' },
+            { key: 'normal_map', value: 'normal.png' },
+            { key: 'roughness_map', value: 'rough.png' },
+            { key: 'metallic_map', value: 'metal.png' },
+            { key: 'ao_map', value: 'ao.png' },
+            { key: 'emission_map', value: 'emissive.png' },
+            { key: 'displacement_map', value: 'disp.png' },
+          ],
+          traits: [],
+        },
+      ] as any,
     });
     const usda = pipeline.generateUSDA(comp);
     expect(usda).toContain('diffuseColorTexture');
@@ -268,14 +282,16 @@ describe('USDZPipeline', () => {
 
   it('connects texture outputs to PBRShader inputs', () => {
     const comp = makeComposition({
-      objects: [{
-        name: 'connected',
-        properties: [
-          { key: 'material', value: 'plastic' },
-          { key: 'albedo_map', value: 'color.png' },
-        ],
-        traits: [],
-      }] as any,
+      objects: [
+        {
+          name: 'connected',
+          properties: [
+            { key: 'material', value: 'plastic' },
+            { key: 'albedo_map', value: 'color.png' },
+          ],
+          traits: [],
+        },
+      ] as any,
     });
     const usda = pipeline.generateUSDA(comp);
     expect(usda).toContain('inputs:diffuseColor.connect');
@@ -290,7 +306,7 @@ describe('USDZPipeline', () => {
     expect(usdz).toBeInstanceOf(Uint8Array);
     // ZIP magic bytes: PK\x03\x04
     expect(usdz[0]).toBe(0x50); // P
-    expect(usdz[1]).toBe(0x4B); // K
+    expect(usdz[1]).toBe(0x4b); // K
     expect(usdz[2]).toBe(0x03);
     expect(usdz[3]).toBe(0x04);
   });
@@ -308,14 +324,16 @@ describe('USDZPipeline', () => {
       textureData: { 'albedo.png': makeFakePNG() },
     });
     const comp = makeComposition({
-      objects: [{
-        name: 'tex_obj',
-        properties: [
-          { key: 'material', value: 'plastic' },
-          { key: 'albedo_map', value: 'albedo.png' },
-        ],
-        traits: [],
-      }] as any,
+      objects: [
+        {
+          name: 'tex_obj',
+          properties: [
+            { key: 'material', value: 'plastic' },
+            { key: 'albedo_map', value: 'albedo.png' },
+          ],
+          traits: [],
+        },
+      ] as any,
     });
     const usdz = p.generateUSDZ(comp);
     const text = new TextDecoder().decode(usdz);

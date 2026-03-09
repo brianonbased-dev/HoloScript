@@ -108,7 +108,9 @@ describe('AICopilot', () => {
 
   it('generateFromPrompt handles adapter error', async () => {
     const errorAdapter = mockAdapter({
-      generateHoloScript: vi.fn(async () => { throw new Error('API down'); }),
+      generateHoloScript: vi.fn(async () => {
+        throw new Error('API down');
+      }),
     });
     copilot.setAdapter(errorAdapter);
     const result = await copilot.generateFromPrompt('test');
@@ -129,7 +131,9 @@ describe('AICopilot', () => {
 
   it('suggestFromSelection works with entity', async () => {
     copilot.setAdapter(adapter);
-    copilot.updateContext({ selectedEntity: { id: 'box1', type: 'mesh', properties: { color: 'red' } } });
+    copilot.updateContext({
+      selectedEntity: { id: 'box1', type: 'mesh', properties: { color: 'red' } },
+    });
     const result = await copilot.suggestFromSelection();
     expect(result.suggestions).toHaveLength(1);
     expect(result.suggestions[0].type).toBe('modify');

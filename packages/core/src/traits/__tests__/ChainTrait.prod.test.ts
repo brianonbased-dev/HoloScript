@@ -4,8 +4,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { chainHandler } from '../ChainTrait';
 
-function makeNode() { return { id: 'chain_node' }; }
-function makeCtx() { return { emit: vi.fn() }; }
+function makeNode() {
+  return { id: 'chain_node' };
+}
+function makeCtx() {
+  return { emit: vi.fn() };
+}
 function attach(cfg: any = {}) {
   const node = makeNode();
   const ctx = makeCtx();
@@ -35,7 +39,8 @@ describe('chainHandler.defaultConfig', () => {
 
 describe('chainHandler.onAttach', () => {
   it('creates __chainState', () => expect(attach().node.__chainState).toBeDefined());
-  it('isSimulating=true after attach', () => expect(attach().node.__chainState.isSimulating).toBe(true));
+  it('isSimulating=true after attach', () =>
+    expect(attach().node.__chainState.isSimulating).toBe(true));
   it('isBroken=false', () => expect(attach().node.__chainState.isBroken).toBe(false));
   it('breakPoint=null', () => expect(attach().node.__chainState.breakPoint).toBeNull());
   it('totalLength = links * link_length', () => {
@@ -54,15 +59,24 @@ describe('chainHandler.onAttach', () => {
   });
   it('emits chain_create with linkCount and linkLength', () => {
     const { ctx } = attach({ links: 4, link_length: 0.25 });
-    expect(ctx.emit).toHaveBeenCalledWith('chain_create', expect.objectContaining({ linkCount: 4, linkLength: 0.25 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'chain_create',
+      expect.objectContaining({ linkCount: 4, linkLength: 0.25 })
+    );
   });
   it('emits chain_attach start when attach_start is set', () => {
     const { ctx } = attach({ attach_start: 'hook_node' });
-    expect(ctx.emit).toHaveBeenCalledWith('chain_attach', expect.objectContaining({ endpoint: 'start', targetNodeId: 'hook_node' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'chain_attach',
+      expect.objectContaining({ endpoint: 'start', targetNodeId: 'hook_node' })
+    );
   });
   it('emits chain_attach end when attach_end is set', () => {
     const { ctx } = attach({ attach_end: 'weight_node' });
-    expect(ctx.emit).toHaveBeenCalledWith('chain_attach', expect.objectContaining({ endpoint: 'end', targetNodeId: 'weight_node' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'chain_attach',
+      expect.objectContaining({ endpoint: 'end', targetNodeId: 'weight_node' })
+    );
   });
   it('no extra chain_attach when attach endpoints are empty', () => {
     const { ctx } = attach({ attach_start: '', attach_end: '' });
@@ -101,23 +115,48 @@ describe('chainHandler.onEvent — chain_link_update', () => {
   const rot = { x: 0, y: 0, z: 0, w: 1 };
   it('updates link position', () => {
     const { node, ctx, config } = attach({ links: 5 });
-    chainHandler.onEvent!(node, config, ctx, { type: 'chain_link_update', linkIndex: 2, position: pos, rotation: rot });
+    chainHandler.onEvent!(node, config, ctx, {
+      type: 'chain_link_update',
+      linkIndex: 2,
+      position: pos,
+      rotation: rot,
+    });
     expect(node.__chainState.links[2].position).toBe(pos);
   });
   it('updates link rotation', () => {
     const { node, ctx, config } = attach({ links: 5 });
-    chainHandler.onEvent!(node, config, ctx, { type: 'chain_link_update', linkIndex: 2, position: pos, rotation: rot });
+    chainHandler.onEvent!(node, config, ctx, {
+      type: 'chain_link_update',
+      linkIndex: 2,
+      position: pos,
+      rotation: rot,
+    });
     expect(node.__chainState.links[2].rotation).toBe(rot);
   });
   it('emits chain_mesh_update', () => {
     const { node, ctx, config } = attach({ links: 5 });
     ctx.emit.mockClear();
-    chainHandler.onEvent!(node, config, ctx, { type: 'chain_link_update', linkIndex: 0, position: pos, rotation: rot });
-    expect(ctx.emit).toHaveBeenCalledWith('chain_mesh_update', expect.objectContaining({ linkIndex: 0 }));
+    chainHandler.onEvent!(node, config, ctx, {
+      type: 'chain_link_update',
+      linkIndex: 0,
+      position: pos,
+      rotation: rot,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'chain_mesh_update',
+      expect.objectContaining({ linkIndex: 0 })
+    );
   });
   it('out-of-bounds linkIndex is safely ignored', () => {
     const { node, ctx, config } = attach({ links: 3 });
-    expect(() => chainHandler.onEvent!(node, config, ctx, { type: 'chain_link_update', linkIndex: 99, position: pos, rotation: rot })).not.toThrow();
+    expect(() =>
+      chainHandler.onEvent!(node, config, ctx, {
+        type: 'chain_link_update',
+        linkIndex: 99,
+        position: pos,
+        rotation: rot,
+      })
+    ).not.toThrow();
   });
 });
 
@@ -126,23 +165,51 @@ describe('chainHandler.onEvent — chain_link_update', () => {
 describe('chainHandler.onEvent — chain_full_update', () => {
   it('updates all link positions in batch', () => {
     const { node, ctx, config } = attach({ links: 3 });
-    const positions = [{ x: 1, y: 0, z: 0 }, { x: 2, y: 0, z: 0 }, { x: 3, y: 0, z: 0 }];
-    const rots = [{ x: 0, y: 0, z: 0, w: 1 }, { x: 0, y: 0, z: 0, w: 1 }, { x: 0, y: 0, z: 0, w: 1 }];
-    chainHandler.onEvent!(node, config, ctx, { type: 'chain_full_update', positions, rotations: rots });
+    const positions = [
+      { x: 1, y: 0, z: 0 },
+      { x: 2, y: 0, z: 0 },
+      { x: 3, y: 0, z: 0 },
+    ];
+    const rots = [
+      { x: 0, y: 0, z: 0, w: 1 },
+      { x: 0, y: 0, z: 0, w: 1 },
+      { x: 0, y: 0, z: 0, w: 1 },
+    ];
+    chainHandler.onEvent!(node, config, ctx, {
+      type: 'chain_full_update',
+      positions,
+      rotations: rots,
+    });
     expect(node.__chainState.links[0].position.x).toBe(1);
     expect(node.__chainState.links[2].position.x).toBe(3);
   });
   it('emits chain_full_mesh_update', () => {
     const { node, ctx, config } = attach({ links: 2 });
-    const positions = [{ x: 0, y: 0, z: 0 }, { x: 0, y: -0.1, z: 0 }];
+    const positions = [
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: -0.1, z: 0 },
+    ];
     ctx.emit.mockClear();
-    chainHandler.onEvent!(node, config, ctx, { type: 'chain_full_update', positions, rotations: [] });
-    expect(ctx.emit).toHaveBeenCalledWith('chain_full_mesh_update', expect.objectContaining({ links: expect.any(Array) }));
+    chainHandler.onEvent!(node, config, ctx, {
+      type: 'chain_full_update',
+      positions,
+      rotations: [],
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'chain_full_mesh_update',
+      expect.objectContaining({ links: expect.any(Array) })
+    );
   });
   it('handles fewer positions than links gracefully', () => {
     const { node, ctx, config } = attach({ links: 5 });
     const positions = [{ x: 1, y: 0, z: 0 }];
-    expect(() => chainHandler.onEvent!(node, config, ctx, { type: 'chain_full_update', positions, rotations: [] })).not.toThrow();
+    expect(() =>
+      chainHandler.onEvent!(node, config, ctx, {
+        type: 'chain_full_update',
+        positions,
+        rotations: [],
+      })
+    ).not.toThrow();
     expect(node.__chainState.links[0].position.x).toBe(1);
   });
 });
@@ -153,14 +220,28 @@ describe('chainHandler.onEvent — chain_attach', () => {
   it('emits chain_create_attachment for start', () => {
     const { node, ctx, config } = attach({ links: 4 });
     ctx.emit.mockClear();
-    chainHandler.onEvent!(node, config, ctx, { type: 'chain_attach', endpoint: 'start', targetNodeId: 'hook' });
-    expect(ctx.emit).toHaveBeenCalledWith('chain_create_attachment', expect.objectContaining({ endpoint: 'start', linkIndex: 0 }));
+    chainHandler.onEvent!(node, config, ctx, {
+      type: 'chain_attach',
+      endpoint: 'start',
+      targetNodeId: 'hook',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'chain_create_attachment',
+      expect.objectContaining({ endpoint: 'start', linkIndex: 0 })
+    );
   });
   it('uses last link for end attachment', () => {
     const { node, ctx, config } = attach({ links: 4 });
     ctx.emit.mockClear();
-    chainHandler.onEvent!(node, config, ctx, { type: 'chain_attach', endpoint: 'end', targetNodeId: 'weight' });
-    expect(ctx.emit).toHaveBeenCalledWith('chain_create_attachment', expect.objectContaining({ linkIndex: 3 }));
+    chainHandler.onEvent!(node, config, ctx, {
+      type: 'chain_attach',
+      endpoint: 'end',
+      targetNodeId: 'weight',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'chain_create_attachment',
+      expect.objectContaining({ linkIndex: 3 })
+    );
   });
 });
 
@@ -171,7 +252,10 @@ describe('chainHandler.onEvent — chain_detach', () => {
     ctx.emit.mockClear();
     chainHandler.onEvent!(node, config, ctx, { type: 'chain_detach', endpoint: 'start' });
     expect(node.__chainState.startAttachment).toBeNull();
-    expect(ctx.emit).toHaveBeenCalledWith('chain_remove_attachment', expect.objectContaining({ endpoint: 'start' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'chain_remove_attachment',
+      expect.objectContaining({ endpoint: 'start' })
+    );
   });
   it('clears endAttachment', () => {
     const { node, ctx, config } = attach();
@@ -199,8 +283,14 @@ describe('chainHandler.onEvent — chain_break', () => {
     const { node, ctx, config } = attach({ breakable: true, links: 6 });
     ctx.emit.mockClear();
     chainHandler.onEvent!(node, config, ctx, { type: 'chain_break', linkIndex: 2 });
-    expect(ctx.emit).toHaveBeenCalledWith('chain_break_at', expect.objectContaining({ linkIndex: 2 }));
-    expect(ctx.emit).toHaveBeenCalledWith('on_chain_break', expect.objectContaining({ breakPoint: 2 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'chain_break_at',
+      expect.objectContaining({ linkIndex: 2 })
+    );
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_chain_break',
+      expect.objectContaining({ breakPoint: 2 })
+    );
   });
   it('does not break when breakable=false and no force flag', () => {
     const { node, ctx, config } = attach({ breakable: false });
@@ -240,7 +330,10 @@ describe('chainHandler.onEvent — misc events', () => {
     const force = { x: 0, y: -9.8, z: 0 };
     ctx.emit.mockClear();
     chainHandler.onEvent!(node, config, ctx, { type: 'chain_apply_force', linkIndex: 1, force });
-    expect(ctx.emit).toHaveBeenCalledWith('chain_external_force', expect.objectContaining({ linkIndex: 1, force }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'chain_external_force',
+      expect.objectContaining({ linkIndex: 1, force })
+    );
   });
   it('chain_pause sets isSimulating=false and emits chain_sleep', () => {
     const { node, ctx, config } = attach();
@@ -261,11 +354,14 @@ describe('chainHandler.onEvent — misc events', () => {
     const { node, ctx, config } = attach({ links: 5, link_length: 0.2 });
     ctx.emit.mockClear();
     chainHandler.onEvent!(node, config, ctx, { type: 'chain_query', queryId: 'q1' });
-    expect(ctx.emit).toHaveBeenCalledWith('chain_info', expect.objectContaining({
-      queryId: 'q1',
-      linkCount: 5,
-      isSimulating: true,
-      isBroken: false,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'chain_info',
+      expect.objectContaining({
+        queryId: 'q1',
+        linkCount: 5,
+        isSimulating: true,
+        isBroken: false,
+      })
+    );
   });
 });

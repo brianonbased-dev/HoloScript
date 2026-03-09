@@ -12,14 +12,35 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import {
-  Layers, Puzzle, Brain, Bot, Package, Database, LayoutTemplate,
-  Plus, Search, TrendingUp, Star, Clock,
-  ArrowRight, Zap, Shield, Code, Sparkles,
+  Layers,
+  Puzzle,
+  Brain,
+  Bot,
+  Package,
+  Database,
+  LayoutTemplate,
+  Plus,
+  Search,
+  TrendingUp,
+  Star,
+  Clock,
+  ArrowRight,
+  Zap,
+  Shield,
+  Code,
+  Sparkles,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type ContentType = 'scenes' | 'traits' | 'skills' | 'agents' | 'plugins' | 'training_data' | 'templates';
+type ContentType =
+  | 'scenes'
+  | 'traits'
+  | 'skills'
+  | 'agents'
+  | 'plugins'
+  | 'training_data'
+  | 'templates';
 
 interface ContentTypeConfig {
   id: ContentType;
@@ -133,7 +154,15 @@ const CONTENT_TYPES: ContentTypeConfig[] = [
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
 
-function WorkspaceStat({ label, value, icon: Icon }: { label: string; value: string | number; icon: typeof TrendingUp }) {
+function WorkspaceStat({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string | number;
+  icon: typeof TrendingUp;
+}) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/5">
@@ -153,14 +182,18 @@ function ContentTypeCard({ config }: { config: ContentTypeConfig }) {
   const Icon = config.icon;
 
   return (
-    <div className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br ${config.gradient} p-6 transition-all hover:border-white/10 hover:shadow-xl hover:shadow-black/20`}>
+    <div
+      className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br ${config.gradient} p-6 transition-all hover:border-white/10 hover:shadow-xl hover:shadow-black/20`}
+    >
       {/* Glow effect */}
       <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/5 blur-3xl transition group-hover:bg-white/10" />
 
       <div className="relative">
         {/* Header */}
         <div className="mb-4 flex items-start justify-between">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 ${config.color}`}>
+          <div
+            className={`flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 ${config.color}`}
+          >
             <Icon className="h-6 w-6" />
           </div>
           <div className="flex gap-2">
@@ -203,7 +236,17 @@ function ContentTypeCard({ config }: { config: ContentTypeConfig }) {
 
 // ─── Quick Action ────────────────────────────────────────────────────────────
 
-function QuickAction({ icon: Icon, label, href, color }: { icon: typeof Zap; label: string; href: string; color: string }) {
+function QuickAction({
+  icon: Icon,
+  label,
+  href,
+  color,
+}: {
+  icon: typeof Zap;
+  label: string;
+  href: string;
+  color: string;
+}) {
   return (
     <Link
       href={href}
@@ -241,19 +284,19 @@ export default function WorkspacePage() {
       <div className="mx-auto max-w-7xl px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold tracking-tight">
-            Creator Workspace
-          </h1>
-          <p className="text-white/50">
-            Build, experiment, and ship to the HoloScript marketplace
-          </p>
+          <h1 className="mb-2 text-3xl font-bold tracking-tight">Creator Workspace</h1>
+          <p className="text-white/50">Build, experiment, and ship to the HoloScript marketplace</p>
         </div>
 
         {/* Stats Bar */}
         <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
           <WorkspaceStat icon={Package} label="Total Content" value={totalContent} />
           <WorkspaceStat icon={Star} label="Published" value={totalPublished} />
-          <WorkspaceStat icon={TrendingUp} label="Revenue" value={`$${(totalRevenue / 100).toFixed(2)}`} />
+          <WorkspaceStat
+            icon={TrendingUp}
+            label="Revenue"
+            value={`$${(totalRevenue / 100).toFixed(2)}`}
+          />
           <WorkspaceStat icon={Clock} label="Last Updated" value="Just now" />
         </div>
 
@@ -282,13 +325,48 @@ export default function WorkspacePage() {
         <div className="mb-8">
           <h2 className="mb-4 text-lg font-semibold text-white/80">Quick Actions</h2>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <QuickAction icon={Zap} label="Build a Claude Skill" href="/workspace/skills" color="text-amber-400" />
-            <QuickAction icon={Shield} label="Create RBAC Policy" href="/workspace/skills?category=rbac_policy" color="text-blue-400" />
-            <QuickAction icon={Code} label="New MCP Tool Bundle" href="/workspace/skills?category=mcp_bundle" color="text-emerald-400" />
-            <QuickAction icon={Sparkles} label="AI Prompt Template" href="/workspace/skills?category=prompt_template" color="text-violet-400" />
-            <QuickAction icon={Database} label="Forge Training Data" href="/workspace/training-data/new" color="text-purple-400" />
-            <QuickAction icon={Bot} label="Train an Agent" href="/workspace/agents/new" color="text-cyan-400" />
-            <QuickAction icon={Layers} label="Browse Marketplace" href="/registry" color="text-rose-400" />
+            <QuickAction
+              icon={Zap}
+              label="Build a Claude Skill"
+              href="/workspace/skills"
+              color="text-amber-400"
+            />
+            <QuickAction
+              icon={Shield}
+              label="Create RBAC Policy"
+              href="/workspace/skills?category=rbac_policy"
+              color="text-blue-400"
+            />
+            <QuickAction
+              icon={Code}
+              label="New MCP Tool Bundle"
+              href="/workspace/skills?category=mcp_bundle"
+              color="text-emerald-400"
+            />
+            <QuickAction
+              icon={Sparkles}
+              label="AI Prompt Template"
+              href="/workspace/skills?category=prompt_template"
+              color="text-violet-400"
+            />
+            <QuickAction
+              icon={Database}
+              label="Forge Training Data"
+              href="/workspace/training-data/new"
+              color="text-purple-400"
+            />
+            <QuickAction
+              icon={Bot}
+              label="Train an Agent"
+              href="/workspace/agents/new"
+              color="text-cyan-400"
+            />
+            <QuickAction
+              icon={Layers}
+              label="Browse Marketplace"
+              href="/registry"
+              color="text-rose-400"
+            />
           </div>
         </div>
       </div>

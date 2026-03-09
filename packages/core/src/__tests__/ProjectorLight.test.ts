@@ -10,9 +10,12 @@ function defaultConfig() {
     position: { x: 0, y: 10, z: 0 },
     direction: { x: 0, y: -1, z: 0 },
     cookieTextureId: 'cookie_01',
-    fov: 60, aspectRatio: 1.0,
-    nearClip: 1, farClip: 50,
-    intensity: 2, color: { r: 1, g: 1, b: 1 },
+    fov: 60,
+    aspectRatio: 1.0,
+    nearClip: 1,
+    farClip: 50,
+    intensity: 2,
+    color: { r: 1, g: 1, b: 1 },
     falloff: 'linear' as const,
     enabled: true,
   };
@@ -20,7 +23,9 @@ function defaultConfig() {
 
 describe('ProjectorLight', () => {
   let pl: ProjectorLight;
-  beforeEach(() => { pl = new ProjectorLight(); });
+  beforeEach(() => {
+    pl = new ProjectorLight();
+  });
 
   it('create and get projector', () => {
     const p = pl.create(defaultConfig());

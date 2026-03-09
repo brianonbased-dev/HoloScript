@@ -20,7 +20,10 @@ function buildNavMesh(polys: NavPolygon[], adjacency: Record<string, string[]> =
       let bestDist = Infinity;
       for (const poly of polys) {
         const d = Math.hypot(p.x - poly.center.x, p.y - poly.center.y, p.z - poly.center.z);
-        if (d < bestDist) { bestDist = d; best = poly; }
+        if (d < bestDist) {
+          bestDist = d;
+          best = poly;
+        }
       }
       return bestDist < 5 ? best : null;
     }),
@@ -29,13 +32,16 @@ function buildNavMesh(polys: NavPolygon[], adjacency: Record<string, string[]> =
       let bestDist = Infinity;
       for (const poly of polys) {
         const d = Math.hypot(p.x - poly.center.x, p.y - poly.center.y, p.z - poly.center.z);
-        if (d < bestDist) { bestDist = d; best = poly; }
+        if (d < bestDist) {
+          bestDist = d;
+          best = poly;
+        }
       }
       return best;
     }),
     getWalkableNeighbors: vi.fn((polyId: string) => {
       const neighborIds = adjacency[polyId] ?? [];
-      return polys.filter(p => neighborIds.includes(p.id));
+      return polys.filter((p) => neighborIds.includes(p.id));
     }),
   } as unknown as NavMesh;
 }
@@ -122,7 +128,10 @@ describe('AStarPathfinder', () => {
   });
 
   it('smoothPath preserves short paths', () => {
-    const path = [{ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }];
+    const path = [
+      { x: 0, y: 0, z: 0 },
+      { x: 10, y: 0, z: 0 },
+    ];
     expect(pathfinder.smoothPath(path)).toHaveLength(2);
   });
 

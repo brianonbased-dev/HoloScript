@@ -178,19 +178,25 @@ describe('RPCManager: comprehensive edge cases', () => {
     });
 
     it('execute catches non-Error throws (string)', () => {
-      rpc.register('throw-string', () => { throw 'raw string error'; });
+      rpc.register('throw-string', () => {
+        throw 'raw string error';
+      });
       const { error } = rpc.execute(0, 'throw-string', [], 'peer');
       expect(error).toBe('raw string error');
     });
 
     it('execute catches non-Error throws (number)', () => {
-      rpc.register('throw-num', () => { throw 42; });
+      rpc.register('throw-num', () => {
+        throw 42;
+      });
       const { error } = rpc.execute(0, 'throw-num', [], 'peer');
       expect(error).toBe('42');
     });
 
     it('execute increments totalErrors on handler error', () => {
-      rpc.register('crash', () => { throw new Error('boom'); });
+      rpc.register('crash', () => {
+        throw new Error('boom');
+      });
       const before = rpc.getStats().totalErrors;
       rpc.execute(0, 'crash', [], 'peer');
       expect(rpc.getStats().totalErrors).toBe(before + 1);

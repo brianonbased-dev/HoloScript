@@ -8,18 +8,31 @@
 
 import React, { useState, useMemo } from 'react';
 import {
-  orbitalPeriod, orbitalVelocity, escapeVelocity,
-  hohmannDeltaV, hohmannTransferTime, tsiolkovskyDeltaV,
-  fuelRequired, totalMissionDeltaV, missionProgress,
+  orbitalPeriod,
+  orbitalVelocity,
+  escapeVelocity,
+  hohmannDeltaV,
+  hohmannTransferTime,
+  tsiolkovskyDeltaV,
+  fuelRequired,
+  totalMissionDeltaV,
+  missionProgress,
   BODY_DATA,
-  type CelestialBody, type MissionEvent,
+  type CelestialBody,
+  type MissionEvent,
 } from '@/lib/spaceMission';
 
 // ─── Styles ──────────────────────────────────────────────────────
 
 const BODY_EMOJIS: Record<CelestialBody, string> = {
-  sun: '☀️', mercury: '⚫', venus: '🟡', earth: '🌍',
-  moon: '🌙', mars: '🔴', jupiter: '🟤', saturn: '🪐',
+  sun: '☀️',
+  mercury: '⚫',
+  venus: '🟡',
+  earth: '🌍',
+  moon: '🌙',
+  mars: '🔴',
+  jupiter: '🟤',
+  saturn: '🪐',
 };
 
 const styles = {
@@ -67,18 +80,19 @@ const styles = {
     gridTemplateColumns: 'repeat(4, 1fr)',
     gap: '8px',
   } as React.CSSProperties,
-  bodyCard: (selected: boolean) => ({
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    padding: '10px 6px',
-    background: selected ? 'rgba(88, 166, 255, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-    border: `1px solid ${selected ? 'rgba(88, 166, 255, 0.4)' : 'rgba(255, 255, 255, 0.06)'}`,
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    fontSize: '11px',
-  }) as React.CSSProperties,
+  bodyCard: (selected: boolean) =>
+    ({
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      padding: '10px 6px',
+      background: selected ? 'rgba(88, 166, 255, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+      border: `1px solid ${selected ? 'rgba(88, 166, 255, 0.4)' : 'rgba(255, 255, 255, 0.06)'}`,
+      borderRadius: '8px',
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      fontSize: '11px',
+    }) as React.CSSProperties,
   bodyEmoji: { fontSize: '24px', marginBottom: '4px' } as React.CSSProperties,
   statsGrid: {
     display: 'grid',
@@ -86,12 +100,13 @@ const styles = {
     gap: '10px',
     marginTop: '10px',
   } as React.CSSProperties,
-  statCard: (color: string) => ({
-    padding: '12px',
-    background: `${color}08`,
-    border: `1px solid ${color}25`,
-    borderRadius: '6px',
-  }) as React.CSSProperties,
+  statCard: (color: string) =>
+    ({
+      padding: '12px',
+      background: `${color}08`,
+      border: `1px solid ${color}25`,
+      borderRadius: '6px',
+    }) as React.CSSProperties,
   statValue: {
     fontSize: '20px',
     fontWeight: 700,
@@ -122,13 +137,14 @@ const styles = {
     overflow: 'hidden',
     marginTop: '6px',
   } as React.CSSProperties,
-  dvFill: (pct: number, color: string) => ({
-    height: '100%',
-    width: `${Math.min(100, pct)}%`,
-    background: `linear-gradient(90deg, ${color}, ${color}88)`,
-    borderRadius: '4px',
-    transition: 'width 0.3s ease',
-  }) as React.CSSProperties,
+  dvFill: (pct: number, color: string) =>
+    ({
+      height: '100%',
+      width: `${Math.min(100, pct)}%`,
+      background: `linear-gradient(90deg, ${color}, ${color}88)`,
+      borderRadius: '4px',
+      transition: 'width 0.3s ease',
+    }) as React.CSSProperties,
   missionRow: {
     display: 'flex',
     alignItems: 'center',
@@ -165,28 +181,78 @@ export function SpaceMissionPanel() {
   const destData = BODY_DATA[destination];
 
   const transfer = useMemo(() => {
-    if (origin === destination || originData.orbitRadiusKm === 0 || destData.orbitRadiusKm === 0) return null;
-    const dv = hohmannDeltaV(originData.orbitRadiusKm, destData.orbitRadiusKm, BODY_DATA.sun.muKm3s2);
-    const time = hohmannTransferTime(originData.orbitRadiusKm, destData.orbitRadiusKm, BODY_DATA.sun.muKm3s2);
+    if (origin === destination || originData.orbitRadiusKm === 0 || destData.orbitRadiusKm === 0)
+      return null;
+    const dv = hohmannDeltaV(
+      originData.orbitRadiusKm,
+      destData.orbitRadiusKm,
+      BODY_DATA.sun.muKm3s2
+    );
+    const time = hohmannTransferTime(
+      originData.orbitRadiusKm,
+      destData.orbitRadiusKm,
+      BODY_DATA.sun.muKm3s2
+    );
     return { ...dv, timeDays: time / 86400 };
   }, [origin, destination]);
 
   const escVel = useMemo(() => escapeVelocity(originData.radiusKm, originData.muKm3s2), [origin]);
-  const orbVel = useMemo(() => orbitalVelocity(originData.radiusKm + 200, originData.muKm3s2), [origin]);
-  const orbPeriodMin = useMemo(() => orbitalPeriod(originData.radiusKm + 200, originData.muKm3s2) / 60, [origin]);
+  const orbVel = useMemo(
+    () => orbitalVelocity(originData.radiusKm + 200, originData.muKm3s2),
+    [origin]
+  );
+  const orbPeriodMin = useMemo(
+    () => orbitalPeriod(originData.radiusKm + 200, originData.muKm3s2) / 60,
+    [origin]
+  );
 
   const fuel = useMemo(() => {
     if (!transfer) return 0;
     return fuelRequired(transfer.total, isp, dryMass);
   }, [transfer, isp, dryMass]);
 
-  const rocketDv = useMemo(() => tsiolkovskyDeltaV(isp, dryMass + fuel, dryMass), [isp, dryMass, fuel]);
+  const rocketDv = useMemo(
+    () => tsiolkovskyDeltaV(isp, dryMass + fuel, dryMass),
+    [isp, dryMass, fuel]
+  );
 
   const missionEvents: MissionEvent[] = [
-    { id: 'e1', phase: 'launch', name: 'Launch', description: 'Surface to LEO', deltaVMs: escVel * 1000, timestamp: 0, completed: true },
-    { id: 'e2', phase: 'orbit-insertion', name: 'Orbit Insertion', description: `${origin} LEO`, deltaVMs: orbVel * 1000, timestamp: 1, completed: true },
-    { id: 'e3', phase: 'transfer', name: 'Hohmann Transfer', description: `${origin} → ${destination}`, deltaVMs: transfer ? transfer.total * 1000 : 0, timestamp: 2, completed: false },
-    { id: 'e4', phase: 'arrival', name: 'Arrival Burn', description: `${destination} orbit`, deltaVMs: transfer ? transfer.dv2 * 1000 : 0, timestamp: 3, completed: false },
+    {
+      id: 'e1',
+      phase: 'launch',
+      name: 'Launch',
+      description: 'Surface to LEO',
+      deltaVMs: escVel * 1000,
+      timestamp: 0,
+      completed: true,
+    },
+    {
+      id: 'e2',
+      phase: 'orbit-insertion',
+      name: 'Orbit Insertion',
+      description: `${origin} LEO`,
+      deltaVMs: orbVel * 1000,
+      timestamp: 1,
+      completed: true,
+    },
+    {
+      id: 'e3',
+      phase: 'transfer',
+      name: 'Hohmann Transfer',
+      description: `${origin} → ${destination}`,
+      deltaVMs: transfer ? transfer.total * 1000 : 0,
+      timestamp: 2,
+      completed: false,
+    },
+    {
+      id: 'e4',
+      phase: 'arrival',
+      name: 'Arrival Burn',
+      description: `${destination} orbit`,
+      deltaVMs: transfer ? transfer.dv2 * 1000 : 0,
+      timestamp: 3,
+      completed: false,
+    },
   ];
 
   return (
@@ -202,24 +268,32 @@ export function SpaceMissionPanel() {
       <div style={styles.section}>
         <div style={styles.sectionTitle}>🌍 Origin</div>
         <div style={styles.bodyGrid}>
-          {bodies.filter(([k]) => k !== 'sun').map(([key]) => (
-            <div key={key} style={styles.bodyCard(key === origin)} onClick={() => setOrigin(key)}>
-              <span style={styles.bodyEmoji}>{BODY_EMOJIS[key]}</span>
-              <span>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
-            </div>
-          ))}
+          {bodies
+            .filter(([k]) => k !== 'sun')
+            .map(([key]) => (
+              <div key={key} style={styles.bodyCard(key === origin)} onClick={() => setOrigin(key)}>
+                <span style={styles.bodyEmoji}>{BODY_EMOJIS[key]}</span>
+                <span>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
+              </div>
+            ))}
         </div>
       </div>
 
       <div style={styles.section}>
         <div style={styles.sectionTitle}>📍 Destination</div>
         <div style={styles.bodyGrid}>
-          {bodies.filter(([k]) => k !== 'sun').map(([key]) => (
-            <div key={key} style={styles.bodyCard(key === destination)} onClick={() => setDestination(key)}>
-              <span style={styles.bodyEmoji}>{BODY_EMOJIS[key]}</span>
-              <span>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
-            </div>
-          ))}
+          {bodies
+            .filter(([k]) => k !== 'sun')
+            .map(([key]) => (
+              <div
+                key={key}
+                style={styles.bodyCard(key === destination)}
+                onClick={() => setDestination(key)}
+              >
+                <span style={styles.bodyEmoji}>{BODY_EMOJIS[key]}</span>
+                <span>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
+              </div>
+            ))}
         </div>
       </div>
 
@@ -258,21 +332,34 @@ export function SpaceMissionPanel() {
         <div style={styles.sectionTitle}>⚙️ Spacecraft</div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', fontSize: '13px' }}>
           <label>
-            Isp (s): <input style={styles.fuelInput} type="number" value={isp} onChange={e => setIsp(+e.target.value)} />
+            Isp (s):{' '}
+            <input
+              style={styles.fuelInput}
+              type="number"
+              value={isp}
+              onChange={(e) => setIsp(+e.target.value)}
+            />
           </label>
           <label>
-            Dry mass (kg): <input style={styles.fuelInput} type="number" value={dryMass} onChange={e => setDryMass(+e.target.value)} />
+            Dry mass (kg):{' '}
+            <input
+              style={styles.fuelInput}
+              type="number"
+              value={dryMass}
+              onChange={(e) => setDryMass(+e.target.value)}
+            />
           </label>
         </div>
         <div style={{ marginTop: '8px', fontSize: '12px', color: '#6688aa' }}>
-          Tsiolkovsky Δv: <span style={{ color: '#4ecdc4', fontWeight: 600 }}>{rocketDv.toFixed(2)} km/s</span>
+          Tsiolkovsky Δv:{' '}
+          <span style={{ color: '#4ecdc4', fontWeight: 600 }}>{rocketDv.toFixed(2)} km/s</span>
         </div>
       </div>
 
       {/* Mission Timeline */}
       <div style={styles.section}>
         <div style={styles.sectionTitle}>📋 Mission Timeline</div>
-        {missionEvents.map(e => (
+        {missionEvents.map((e) => (
           <div key={e.id} style={styles.missionRow}>
             <span>{e.completed ? '✅' : '⬜'}</span>
             <span style={{ fontWeight: 600, color: '#c8d8f0' }}>{e.name}</span>
@@ -283,9 +370,8 @@ export function SpaceMissionPanel() {
           </div>
         ))}
         <div style={{ marginTop: '6px', fontSize: '11px', color: '#6688aa' }}>
-          Total mission Δv: <span style={{ color: '#fff' }}>
-            {(totalMissionDeltaV(missionEvents)).toFixed(1)} km/s
-          </span>
+          Total mission Δv:{' '}
+          <span style={{ color: '#fff' }}>{totalMissionDeltaV(missionEvents).toFixed(1)} km/s</span>
         </div>
       </div>
     </div>

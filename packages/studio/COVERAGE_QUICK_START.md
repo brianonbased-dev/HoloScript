@@ -102,6 +102,7 @@ describe('audioSync', () => {
 **File**: [vitest.config.ts](./vitest.config.ts)
 
 **Thresholds**:
+
 ```typescript
 coverage: {
   thresholds: {
@@ -114,6 +115,7 @@ coverage: {
 ```
 
 **Excluded**:
+
 - `src/**/*.test.ts` - Test files
 - `src/__tests__/**` - Test directories
 - `src/__mocks__/**` - Mock files
@@ -163,12 +165,12 @@ pnpm test:coverage | grep "All files"
 
 ## 🎯 Goals
 
-| Phase | Target | ETA |
-|-------|--------|-----|
-| **Baseline** | 18.66% | ✅ Done |
-| **Phase 1** | 35% | 1 week |
-| **Phase 2** | 50% | 1 month |
-| **Phase 3** | 70% | 3 months |
+| Phase        | Target | ETA      |
+| ------------ | ------ | -------- |
+| **Baseline** | 18.66% | ✅ Done  |
+| **Phase 1**  | 35%    | 1 week   |
+| **Phase 2**  | 50%    | 1 month  |
+| **Phase 3**  | 70%    | 3 months |
 
 ## 🔗 More Info
 

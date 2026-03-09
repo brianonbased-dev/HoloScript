@@ -500,10 +500,9 @@ describe('useMonacoAutocomplete', () => {
     });
 
     it('should dispose old provider when monaco changes', () => {
-      const { rerender } = renderHook(
-        ({ monaco }) => useMonacoAutocomplete(monaco),
-        { initialProps: { monaco: mockMonaco } }
-      );
+      const { rerender } = renderHook(({ monaco }) => useMonacoAutocomplete(monaco), {
+        initialProps: { monaco: mockMonaco },
+      });
 
       const firstDispose = mockDisposable.dispose;
 
@@ -672,9 +671,7 @@ describe('useMonacoAutocomplete', () => {
         json: async () => ({ completion: '  box "Cube" {}' }),
       });
 
-      mockModel.getValueInRange
-        .mockReturnValueOnce(longPrefix)
-        .mockReturnValueOnce('\n}');
+      mockModel.getValueInRange.mockReturnValueOnce(longPrefix).mockReturnValueOnce('\n}');
 
       renderHook(() => useMonacoAutocomplete(mockMonaco, { debounceMs: 50 }));
 
@@ -758,7 +755,8 @@ describe('useMonacoAutocomplete', () => {
     it('should provide freeInlineCompletions method', () => {
       renderHook(() => useMonacoAutocomplete(mockMonaco));
 
-      const registrationCall = (mockMonaco.languages.registerInlineCompletionsProvider as any).mock.calls[0];
+      const registrationCall = (mockMonaco.languages.registerInlineCompletionsProvider as any).mock
+        .calls[0];
       const provider = registrationCall[1];
 
       expect(provider.freeInlineCompletions).toBeInstanceOf(Function);
@@ -767,7 +765,8 @@ describe('useMonacoAutocomplete', () => {
     it('should not throw when freeInlineCompletions is called', () => {
       renderHook(() => useMonacoAutocomplete(mockMonaco));
 
-      const registrationCall = (mockMonaco.languages.registerInlineCompletionsProvider as any).mock.calls[0];
+      const registrationCall = (mockMonaco.languages.registerInlineCompletionsProvider as any).mock
+        .calls[0];
       const provider = registrationCall[1];
 
       expect(() => provider.freeInlineCompletions()).not.toThrow();

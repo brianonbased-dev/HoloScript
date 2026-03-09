@@ -14,7 +14,7 @@
 export type EasingType = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'smoothStep';
 
 export interface CinematicKeyframe {
-  time: number;               // seconds
+  time: number; // seconds
   position?: { x: number; y: number; z: number };
   rotation?: { pitch: number; yaw: number; roll: number };
   fov?: number;
@@ -67,7 +67,7 @@ export class CinematicTrack {
 
   removeKeyframesAt(time: number): number {
     const before = this.keyframes.length;
-    this.keyframes = this.keyframes.filter(k => Math.abs(k.time - time) > 0.001);
+    this.keyframes = this.keyframes.filter((k) => Math.abs(k.time - time) > 0.001);
     this.recalcDuration();
     return before - this.keyframes.length;
   }
@@ -76,17 +76,39 @@ export class CinematicTrack {
   // Playback
   // ---------------------------------------------------------------------------
 
-  play(): void { this.playing = true; }
-  pause(): void { this.playing = false; }
-  stop(): void { this.playing = false; this.currentTime = 0; this.resetCues(); }
-  seek(time: number): void { this.currentTime = Math.max(0, Math.min(time, this.duration)); }
-  setSpeed(speed: number): void { this.speed = speed; }
-  setLooping(loop: boolean): void { this.looping = loop; }
+  play(): void {
+    this.playing = true;
+  }
+  pause(): void {
+    this.playing = false;
+  }
+  stop(): void {
+    this.playing = false;
+    this.currentTime = 0;
+    this.resetCues();
+  }
+  seek(time: number): void {
+    this.currentTime = Math.max(0, Math.min(time, this.duration));
+  }
+  setSpeed(speed: number): void {
+    this.speed = speed;
+  }
+  setLooping(loop: boolean): void {
+    this.looping = loop;
+  }
 
-  isPlaying(): boolean { return this.playing; }
-  getCurrentTime(): number { return this.currentTime; }
-  getDuration(): number { return this.duration; }
-  getProgress(): number { return this.duration > 0 ? this.currentTime / this.duration : 0; }
+  isPlaying(): boolean {
+    return this.playing;
+  }
+  getCurrentTime(): number {
+    return this.currentTime;
+  }
+  getDuration(): number {
+    return this.duration;
+  }
+  getProgress(): number {
+    return this.duration > 0 ? this.currentTime / this.duration : 0;
+  }
 
   // ---------------------------------------------------------------------------
   // Update
@@ -190,12 +212,18 @@ export class CinematicTrack {
 
   private applyEasing(t: number, easing: EasingType): number {
     switch (easing) {
-      case 'linear': return t;
-      case 'easeIn': return t * t;
-      case 'easeOut': return 1 - (1 - t) * (1 - t);
-      case 'easeInOut': return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-      case 'smoothStep': return t * t * (3 - 2 * t);
-      default: return t;
+      case 'linear':
+        return t;
+      case 'easeIn':
+        return t * t;
+      case 'easeOut':
+        return 1 - (1 - t) * (1 - t);
+      case 'easeInOut':
+        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      case 'smoothStep':
+        return t * t * (3 - 2 * t);
+      default:
+        return t;
     }
   }
 
@@ -211,12 +239,23 @@ export class CinematicTrack {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private resetCues(): void { for (const cue of this.cues) cue.fired = false; }
+  private resetCues(): void {
+    for (const cue of this.cues) cue.fired = false;
+  }
   private recalcDuration(): void {
     this.duration = this.keyframes.reduce((max, k) => Math.max(max, k.time), 0);
   }
 
-  getKeyframeCount(): number { return this.keyframes.length; }
-  getCueCount(): number { return this.cues.length; }
-  clear(): void { this.keyframes = []; this.cues = []; this.duration = 0; this.currentTime = 0; }
+  getKeyframeCount(): number {
+    return this.keyframes.length;
+  }
+  getCueCount(): number {
+    return this.cues.length;
+  }
+  clear(): void {
+    this.keyframes = [];
+    this.cues = [];
+    this.duration = 0;
+    this.currentTime = 0;
+  }
 }

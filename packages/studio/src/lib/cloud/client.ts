@@ -39,10 +39,7 @@ export class CloudClient {
     this.apiKey = apiKey;
   }
 
-  private async fetch<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  private async fetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = new Headers(options.headers);
 
@@ -103,9 +100,7 @@ export class CloudClient {
     if (params?.limit) query.set('limit', params.limit.toString());
     if (params?.status) query.set('status', params.status);
 
-    return this.fetch<DeploymentListResponse>(
-      `/deployments?${query.toString()}`
-    );
+    return this.fetch<DeploymentListResponse>(`/deployments?${query.toString()}`);
   }
 
   /**
@@ -151,17 +146,11 @@ export class CloudClient {
   /**
    * Execute a deployed workflow
    */
-  async execute(
-    deploymentId: string,
-    input?: Record<string, any>
-  ): Promise<ExecutionResponse> {
-    return this.fetch<ExecutionResponse>(
-      `/deployments/${deploymentId}/execute`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ input }),
-      }
-    );
+  async execute(deploymentId: string, input?: Record<string, any>): Promise<ExecutionResponse> {
+    return this.fetch<ExecutionResponse>(`/deployments/${deploymentId}/execute`, {
+      method: 'POST',
+      body: JSON.stringify({ input }),
+    });
   }
 
   /**
@@ -182,9 +171,7 @@ export class CloudClient {
     if (params?.startTime) query.set('startTime', params.startTime.toString());
     if (params?.endTime) query.set('endTime', params.endTime.toString());
 
-    return this.fetch<ExecutionLog[]>(
-      `/deployments/${deploymentId}/logs?${query.toString()}`
-    );
+    return this.fetch<ExecutionLog[]>(`/deployments/${deploymentId}/logs?${query.toString()}`);
   }
 
   /**
@@ -242,9 +229,7 @@ export class CloudClient {
    * Get execution metrics
    */
   async getMetrics(deploymentId: string): Promise<ExecutionMetrics> {
-    return this.fetch<ExecutionMetrics>(
-      `/deployments/${deploymentId}/metrics`
-    );
+    return this.fetch<ExecutionMetrics>(`/deployments/${deploymentId}/metrics`);
   }
 
   /**
@@ -275,9 +260,7 @@ export class CloudClient {
    */
   async health(): Promise<{ status: 'healthy' | 'degraded' | 'down' }> {
     try {
-      return await this.fetch<{ status: 'healthy' | 'degraded' | 'down' }>(
-        '/health'
-      );
+      return await this.fetch<{ status: 'healthy' | 'degraded' | 'down' }>('/health');
     } catch {
       return { status: 'down' };
     }

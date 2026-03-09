@@ -70,22 +70,42 @@ describe('ScriptVM: production', () => {
   // ─── Arithmetic ──────────────────────────────────────────────────────────
   describe('arithmetic opcodes', () => {
     it('ADD computes sum', () => {
-      const s = runProgram(vm, [ins(OpCode.PUSH, 3), ins(OpCode.PUSH, 4), ins(OpCode.ADD), ins(OpCode.HALT)]);
+      const s = runProgram(vm, [
+        ins(OpCode.PUSH, 3),
+        ins(OpCode.PUSH, 4),
+        ins(OpCode.ADD),
+        ins(OpCode.HALT),
+      ]);
       expect(s.stack).toEqual([7]);
     });
 
     it('SUB computes difference', () => {
-      const s = runProgram(vm, [ins(OpCode.PUSH, 10), ins(OpCode.PUSH, 3), ins(OpCode.SUB), ins(OpCode.HALT)]);
+      const s = runProgram(vm, [
+        ins(OpCode.PUSH, 10),
+        ins(OpCode.PUSH, 3),
+        ins(OpCode.SUB),
+        ins(OpCode.HALT),
+      ]);
       expect(s.stack).toEqual([7]);
     });
 
     it('MUL computes product', () => {
-      const s = runProgram(vm, [ins(OpCode.PUSH, 6), ins(OpCode.PUSH, 7), ins(OpCode.MUL), ins(OpCode.HALT)]);
+      const s = runProgram(vm, [
+        ins(OpCode.PUSH, 6),
+        ins(OpCode.PUSH, 7),
+        ins(OpCode.MUL),
+        ins(OpCode.HALT),
+      ]);
       expect(s.stack).toEqual([42]);
     });
 
     it('DIV computes quotient', () => {
-      const s = runProgram(vm, [ins(OpCode.PUSH, 15), ins(OpCode.PUSH, 3), ins(OpCode.DIV), ins(OpCode.HALT)]);
+      const s = runProgram(vm, [
+        ins(OpCode.PUSH, 15),
+        ins(OpCode.PUSH, 3),
+        ins(OpCode.DIV),
+        ins(OpCode.HALT),
+      ]);
       expect(s.stack).toEqual([5]);
     });
 
@@ -95,7 +115,12 @@ describe('ScriptVM: production', () => {
     });
 
     it('MOD computes remainder', () => {
-      const s = runProgram(vm, [ins(OpCode.PUSH, 10), ins(OpCode.PUSH, 3), ins(OpCode.MOD), ins(OpCode.HALT)]);
+      const s = runProgram(vm, [
+        ins(OpCode.PUSH, 10),
+        ins(OpCode.PUSH, 3),
+        ins(OpCode.MOD),
+        ins(OpCode.HALT),
+      ]);
       expect(s.stack).toEqual([1]);
     });
 
@@ -108,27 +133,52 @@ describe('ScriptVM: production', () => {
   // ─── Comparison ──────────────────────────────────────────────────────────
   describe('comparison opcodes', () => {
     it('EQ returns 1 when equal', () => {
-      const s = runProgram(vm, [ins(OpCode.PUSH, 5), ins(OpCode.PUSH, 5), ins(OpCode.EQ), ins(OpCode.HALT)]);
+      const s = runProgram(vm, [
+        ins(OpCode.PUSH, 5),
+        ins(OpCode.PUSH, 5),
+        ins(OpCode.EQ),
+        ins(OpCode.HALT),
+      ]);
       expect(s.stack).toEqual([1]);
     });
 
     it('EQ returns 0 when not equal', () => {
-      const s = runProgram(vm, [ins(OpCode.PUSH, 5), ins(OpCode.PUSH, 6), ins(OpCode.EQ), ins(OpCode.HALT)]);
+      const s = runProgram(vm, [
+        ins(OpCode.PUSH, 5),
+        ins(OpCode.PUSH, 6),
+        ins(OpCode.EQ),
+        ins(OpCode.HALT),
+      ]);
       expect(s.stack).toEqual([0]);
     });
 
     it('LT returns 1 when a < b', () => {
-      const s = runProgram(vm, [ins(OpCode.PUSH, 3), ins(OpCode.PUSH, 5), ins(OpCode.LT), ins(OpCode.HALT)]);
+      const s = runProgram(vm, [
+        ins(OpCode.PUSH, 3),
+        ins(OpCode.PUSH, 5),
+        ins(OpCode.LT),
+        ins(OpCode.HALT),
+      ]);
       expect(s.stack).toEqual([1]);
     });
 
     it('GT returns 1 when a > b', () => {
-      const s = runProgram(vm, [ins(OpCode.PUSH, 9), ins(OpCode.PUSH, 4), ins(OpCode.GT), ins(OpCode.HALT)]);
+      const s = runProgram(vm, [
+        ins(OpCode.PUSH, 9),
+        ins(OpCode.PUSH, 4),
+        ins(OpCode.GT),
+        ins(OpCode.HALT),
+      ]);
       expect(s.stack).toEqual([1]);
     });
 
     it('NEQ returns 1 when not equal', () => {
-      const s = runProgram(vm, [ins(OpCode.PUSH, 1), ins(OpCode.PUSH, 2), ins(OpCode.NEQ), ins(OpCode.HALT)]);
+      const s = runProgram(vm, [
+        ins(OpCode.PUSH, 1),
+        ins(OpCode.PUSH, 2),
+        ins(OpCode.NEQ),
+        ins(OpCode.HALT),
+      ]);
       expect(s.stack).toEqual([1]);
     });
   });
@@ -136,17 +186,32 @@ describe('ScriptVM: production', () => {
   // ─── Logical ─────────────────────────────────────────────────────────────
   describe('logical opcodes', () => {
     it('AND returns 1 when both true', () => {
-      const s = runProgram(vm, [ins(OpCode.PUSH, 1), ins(OpCode.PUSH, 1), ins(OpCode.AND), ins(OpCode.HALT)]);
+      const s = runProgram(vm, [
+        ins(OpCode.PUSH, 1),
+        ins(OpCode.PUSH, 1),
+        ins(OpCode.AND),
+        ins(OpCode.HALT),
+      ]);
       expect(s.stack).toEqual([1]);
     });
 
     it('AND returns 0 when one is false', () => {
-      const s = runProgram(vm, [ins(OpCode.PUSH, 1), ins(OpCode.PUSH, 0), ins(OpCode.AND), ins(OpCode.HALT)]);
+      const s = runProgram(vm, [
+        ins(OpCode.PUSH, 1),
+        ins(OpCode.PUSH, 0),
+        ins(OpCode.AND),
+        ins(OpCode.HALT),
+      ]);
       expect(s.stack).toEqual([0]);
     });
 
     it('OR returns 1 when one is true', () => {
-      const s = runProgram(vm, [ins(OpCode.PUSH, 0), ins(OpCode.PUSH, 1), ins(OpCode.OR), ins(OpCode.HALT)]);
+      const s = runProgram(vm, [
+        ins(OpCode.PUSH, 0),
+        ins(OpCode.PUSH, 1),
+        ins(OpCode.OR),
+        ins(OpCode.HALT),
+      ]);
       expect(s.stack).toEqual([1]);
     });
 
@@ -189,10 +254,10 @@ describe('ScriptVM: production', () => {
     it('JMP unconditionally jumps to address', () => {
       // Jump over PUSH 0 to PUSH 1, HALT
       const prog = [
-        ins(OpCode.JMP, 2),   // 0: jump to 2
-        ins(OpCode.PUSH, 0),  // 1: skipped
-        ins(OpCode.PUSH, 1),  // 2: executed
-        ins(OpCode.HALT),     // 3
+        ins(OpCode.JMP, 2), // 0: jump to 2
+        ins(OpCode.PUSH, 0), // 1: skipped
+        ins(OpCode.PUSH, 1), // 2: executed
+        ins(OpCode.HALT), // 3
       ];
       const s = runProgram(vm, prog);
       expect(s.stack).toEqual([1]);
@@ -200,11 +265,11 @@ describe('ScriptVM: production', () => {
 
     it('JMP_IF jumps when top is truthy', () => {
       const prog = [
-        ins(OpCode.PUSH, 1),   // 0: condition
+        ins(OpCode.PUSH, 1), // 0: condition
         ins(OpCode.JMP_IF, 3), // 1: jump to 3 if truthy
-        ins(OpCode.PUSH, 99),  // 2: skipped
-        ins(OpCode.PUSH, 42),  // 3
-        ins(OpCode.HALT),      // 4
+        ins(OpCode.PUSH, 99), // 2: skipped
+        ins(OpCode.PUSH, 42), // 3
+        ins(OpCode.HALT), // 4
       ];
       const s = runProgram(vm, prog);
       expect(s.stack).toEqual([42]);
@@ -212,11 +277,11 @@ describe('ScriptVM: production', () => {
 
     it('JMP_NOT jumps when top is falsy', () => {
       const prog = [
-        ins(OpCode.PUSH, 0),    // 0: condition = false
+        ins(OpCode.PUSH, 0), // 0: condition = false
         ins(OpCode.JMP_NOT, 3), // 1: jump to 3
-        ins(OpCode.PUSH, 99),   // 2: skipped
-        ins(OpCode.PUSH, 7),    // 3
-        ins(OpCode.HALT),       // 4
+        ins(OpCode.PUSH, 99), // 2: skipped
+        ins(OpCode.PUSH, 7), // 3
+        ins(OpCode.HALT), // 4
       ];
       const s = runProgram(vm, prog);
       expect(s.stack).toEqual([7]);
@@ -227,8 +292,8 @@ describe('ScriptVM: production', () => {
   describe('CALL native functions', () => {
     it('calls built-in abs', () => {
       const prog = [
-        ins(OpCode.PUSH, -5),   // arg
-        ins(OpCode.PUSH, 1),    // argc
+        ins(OpCode.PUSH, -5), // arg
+        ins(OpCode.PUSH, 1), // argc
         ins(OpCode.CALL, 'abs'),
         ins(OpCode.HALT),
       ];
@@ -283,7 +348,8 @@ describe('ScriptVM: production', () => {
   describe('peek / getStackSize', () => {
     it('peek returns top of stack without popping', () => {
       vm.load([ins(OpCode.PUSH, 7), ins(OpCode.PUSH, 3)]);
-      vm.step(); vm.step();
+      vm.step();
+      vm.step();
       expect(vm.peek()).toBe(3);
       expect(vm.getStackSize()).toBe(2);
     });

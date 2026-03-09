@@ -31,16 +31,16 @@ object "RenderCam" @render_network(
 ) { }
 ```
 
-| Config                 | Type   | Default        | Description                                               |
-| ---------------------- | ------ | -------------- | --------------------------------------------------------- |
-| `api_key`              | string | `""`           | **Required.** Render Network API key.                     |
-| `wallet_address`       | string | `""`           | Ethereum wallet for RNDR credit balance.                  |
-| `default_quality`      | string | `"preview"`    | `"preview"`, `"standard"`, `"production"`, `"cinematic"` |
-| `default_engine`       | string | `"auto"`       | `"auto"`, `"cycles"`, `"eevee"`, `"vray"`, `"arnold"`   |
-| `default_priority`     | string | `"normal"`     | `"draft"`, `"normal"`, `"high"`, `"urgent"`              |
-| `max_concurrent_jobs`  | number | `5`            | Max simultaneously active jobs.                           |
-| `auto_download`        | bool   | `true`         | Automatically download outputs when complete.             |
-| `output_path`          | string | `"./renders/"` | Local path for downloaded outputs.                        |
+| Config                | Type   | Default        | Description                                              |
+| --------------------- | ------ | -------------- | -------------------------------------------------------- |
+| `api_key`             | string | `""`           | **Required.** Render Network API key.                    |
+| `wallet_address`      | string | `""`           | Ethereum wallet for RNDR credit balance.                 |
+| `default_quality`     | string | `"preview"`    | `"preview"`, `"standard"`, `"production"`, `"cinematic"` |
+| `default_engine`      | string | `"auto"`       | `"auto"`, `"cycles"`, `"eevee"`, `"vray"`, `"arnold"`    |
+| `default_priority`    | string | `"normal"`     | `"draft"`, `"normal"`, `"high"`, `"urgent"`              |
+| `max_concurrent_jobs` | number | `5`            | Max simultaneously active jobs.                          |
+| `auto_download`       | bool   | `true`         | Automatically download outputs when complete.            |
+| `output_path`         | string | `"./renders/"` | Local path for downloaded outputs.                       |
 
 ---
 
@@ -48,21 +48,21 @@ object "RenderCam" @render_network(
 
 ### Incoming (trigger via `emit`)
 
-| Event             | Payload                                                                           | Description                       |
-| ----------------- | --------------------------------------------------------------------------------- | --------------------------------- |
-| `render_submit`   | `{ scene, quality?, engine?, priority?, frames? }`                                | Submit a render job.              |
-| `cancel_job`      | `{ job_id }`                                                                      | Cancel an active job.             |
-| `refresh_credits` | `{}`                                                                              | Refresh RNDR credit balance.      |
+| Event             | Payload                                            | Description                  |
+| ----------------- | -------------------------------------------------- | ---------------------------- |
+| `render_submit`   | `{ scene, quality?, engine?, priority?, frames? }` | Submit a render job.         |
+| `cancel_job`      | `{ job_id }`                                       | Cancel an active job.        |
+| `refresh_credits` | `{}`                                               | Refresh RNDR credit balance. |
 
 ### Outgoing (listen via `on_event`)
 
-| Event                  | Payload                                                    | Description                   |
-| ---------------------- | ---------------------------------------------------------- | ----------------------------- |
-| `render_job_submitted` | `{ job, estimatedWait }`                                   | Job accepted by the network.  |
-| `render_job_progress`  | `{ job, progress, framesCompleted }`                       | Fired every 5 s while active. |
+| Event                  | Payload                                                   | Description                   |
+| ---------------------- | --------------------------------------------------------- | ----------------------------- |
+| `render_job_submitted` | `{ job, estimatedWait }`                                  | Job accepted by the network.  |
+| `render_job_progress`  | `{ job, progress, framesCompleted }`                      | Fired every 5 s while active. |
 | `render_job_complete`  | `{ job }` — `job.outputs[]` contains signed download URLs | Job finished successfully.    |
-| `render_job_failed`    | `{ job, error }`                                           | Job failed on the network.    |
-| `render_job_cancelled` | `{ job }`                                                  | Job cancelled by user.        |
+| `render_job_failed`    | `{ job, error }`                                          | Job failed on the network.    |
+| `render_job_cancelled` | `{ job }`                                                 | Job cancelled by user.        |
 | `credits_refreshed`    | `{ credits }`                                             | Balance update received.      |
 
 ---

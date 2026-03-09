@@ -233,8 +233,8 @@ object Sensor @proximity(range: 10, target: 'Player') {
 
 ---
 
-
 ## See Also
+
 - [Physics Traits](/traits/physics)
 - [Media Traits](/traits/media)
 - [API Reference](/api/)

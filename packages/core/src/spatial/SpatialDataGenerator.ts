@@ -22,12 +22,7 @@
  * @version 2.0.0
  */
 
-import type {
-  Vector3,
-  Quaternion,
-  BoundingBox,
-  BoundingSphere,
-} from './SpatialTypes';
+import type { Vector3, Quaternion, BoundingBox, BoundingSphere } from './SpatialTypes';
 
 import {
   distance,
@@ -140,11 +135,16 @@ export interface ZoneMetadata {
  * Directional qualifier for spatial relationships.
  */
 export type DirectionLabel =
-  | 'above' | 'below'
-  | 'left_of' | 'right_of'
-  | 'in_front_of' | 'behind'
-  | 'near' | 'far'
-  | 'inside' | 'outside'
+  | 'above'
+  | 'below'
+  | 'left_of'
+  | 'right_of'
+  | 'in_front_of'
+  | 'behind'
+  | 'near'
+  | 'far'
+  | 'inside'
+  | 'outside'
   | 'overlapping';
 
 /**
@@ -441,27 +441,38 @@ export class SpatialDataGenerator {
 
         // Adjacent relationships
         const adjacentSamples = this.generateAdjacentSamples(
-          composition, objA, objB, enrichedObjects
+          composition,
+          objA,
+          objB,
+          enrichedObjects
         );
         samples.push(...adjacentSamples);
 
         // Contains relationships (both directions)
         const containsSamples = this.generateContainsSamples(
-          composition, objA, objB, enrichedObjects
+          composition,
+          objA,
+          objB,
+          enrichedObjects
         );
         samples.push(...containsSamples);
 
         // Reachable relationships
         const reachableSamples = this.generateReachableSamples(
-          composition, objA, objB, enrichedObjects
+          composition,
+          objA,
+          objB,
+          enrichedObjects
         );
         samples.push(...reachableSamples);
       }
     }
 
     // Apply max samples limit
-    if (this.config.maxSamplesPerComposition > 0 &&
-        samples.length > this.config.maxSamplesPerComposition) {
+    if (
+      this.config.maxSamplesPerComposition > 0 &&
+      samples.length > this.config.maxSamplesPerComposition
+    ) {
       return this.shuffleArray(samples).slice(0, this.config.maxSamplesPerComposition);
     }
 
@@ -488,7 +499,13 @@ export class SpatialDataGenerator {
       pairsEvaluated += (n * (n - 1)) / 2;
     }
 
-    const stats = this.computeStats(allSamples, compositions.length, objectsProcessed, pairsEvaluated, startTime);
+    const stats = this.computeStats(
+      allSamples,
+      compositions.length,
+      objectsProcessed,
+      pairsEvaluated,
+      startTime
+    );
 
     return { samples: allSamples, stats };
   }
@@ -505,20 +522,23 @@ export class SpatialDataGenerator {
    * Compatible with OpenAI fine-tuning, Axolotl, and similar frameworks.
    */
   toInstructionJSONL(samples: SpatialTrainingSample[]): string {
-    return samples.map((sample) => {
-      const systemMessage = 'You are a spatial reasoning assistant. Given a description of a 3D scene, ' +
-        'answer questions about spatial relationships between objects.';
+    return samples
+      .map((sample) => {
+        const systemMessage =
+          'You are a spatial reasoning assistant. Given a description of a 3D scene, ' +
+          'answer questions about spatial relationships between objects.';
 
-      const userMessage = this.buildSceneDescription(sample) + '\n\n' + sample.qa.question;
+        const userMessage = this.buildSceneDescription(sample) + '\n\n' + sample.qa.question;
 
-      return JSON.stringify({
-        messages: [
-          { role: 'system', content: systemMessage },
-          { role: 'user', content: userMessage },
-          { role: 'assistant', content: sample.qa.answer },
-        ],
-      });
-    }).join('\n');
+        return JSON.stringify({
+          messages: [
+            { role: 'system', content: systemMessage },
+            { role: 'user', content: userMessage },
+            { role: 'assistant', content: sample.qa.answer },
+          ],
+        });
+      })
+      .join('\n');
   }
 
   /**
@@ -557,9 +577,8 @@ export class SpatialDataGenerator {
 
       // Generate positive sample
       if (holds) {
-        samples.push(this.buildSample(
-          composition, objA, objB, allObjects,
-          {
+        samples.push(
+          this.buildSample(composition, objA, objB, allObjects, {
             type: 'adjacent',
             sourceId: objA.id,
             sourceName: objA.name,
@@ -572,15 +591,14 @@ export class SpatialDataGenerator {
               adjacencyThreshold: threshold,
               axis: 'xyz',
             },
-          }
-        ));
+          })
+        );
       }
 
       // Generate negative sample
       if (!holds && this.config.generateNegatives) {
-        samples.push(this.buildSample(
-          composition, objA, objB, allObjects,
-          {
+        samples.push(
+          this.buildSample(composition, objA, objB, allObjects, {
             type: 'adjacent',
             sourceId: objA.id,
             sourceName: objA.name,
@@ -593,8 +611,8 @@ export class SpatialDataGenerator {
               adjacencyThreshold: threshold,
               axis: 'xyz',
             },
-          }
-        ));
+          })
+        );
       }
     }
 
@@ -619,9 +637,8 @@ export class SpatialDataGenerator {
     // Check A contains B
     const aContainsB = this.checkContainment(objA, objB);
     if (aContainsB.holds) {
-      samples.push(this.buildSample(
-        composition, objA, objB, allObjects,
-        {
+      samples.push(
+        this.buildSample(composition, objA, objB, allObjects, {
           type: 'contains',
           sourceId: objA.id,
           sourceName: objA.name,
@@ -635,12 +652,11 @@ export class SpatialDataGenerator {
             margin: this.config.containmentMargin,
             overlapRatio: aContainsB.overlapRatio,
           },
-        }
-      ));
+        })
+      );
     } else if (this.config.generateNegatives && aContainsB.overlapRatio !== undefined) {
-      samples.push(this.buildSample(
-        composition, objA, objB, allObjects,
-        {
+      samples.push(
+        this.buildSample(composition, objA, objB, allObjects, {
           type: 'contains',
           sourceId: objA.id,
           sourceName: objA.name,
@@ -654,16 +670,15 @@ export class SpatialDataGenerator {
             margin: this.config.containmentMargin,
             overlapRatio: aContainsB.overlapRatio,
           },
-        }
-      ));
+        })
+      );
     }
 
     // Check B contains A
     const bContainsA = this.checkContainment(objB, objA);
     if (bContainsA.holds) {
-      samples.push(this.buildSample(
-        composition, objB, objA, allObjects,
-        {
+      samples.push(
+        this.buildSample(composition, objB, objA, allObjects, {
           type: 'contains',
           sourceId: objB.id,
           sourceName: objB.name,
@@ -677,12 +692,11 @@ export class SpatialDataGenerator {
             margin: this.config.containmentMargin,
             overlapRatio: bContainsA.overlapRatio,
           },
-        }
-      ));
+        })
+      );
     } else if (this.config.generateNegatives && bContainsA.overlapRatio !== undefined) {
-      samples.push(this.buildSample(
-        composition, objB, objA, allObjects,
-        {
+      samples.push(
+        this.buildSample(composition, objB, objA, allObjects, {
           type: 'contains',
           sourceId: objB.id,
           sourceName: objB.name,
@@ -696,8 +710,8 @@ export class SpatialDataGenerator {
             margin: this.config.containmentMargin,
             overlapRatio: bContainsA.overlapRatio,
           },
-        }
-      ));
+        })
+      );
     }
 
     return samples;
@@ -722,9 +736,8 @@ export class SpatialDataGenerator {
     const directions = this.computeDirections(objA.position, objB.position);
     const reachability = this.checkReachability(objA, objB, allObjects);
 
-    samples.push(this.buildSample(
-      composition, objA, objB, allObjects,
-      {
+    samples.push(
+      this.buildSample(composition, objA, objB, allObjects, {
         type: 'reachable',
         sourceId: objA.id,
         sourceName: objA.name,
@@ -739,8 +752,8 @@ export class SpatialDataGenerator {
           blockingObstacles: reachability.blockingObstacles,
           estimatedPathLength: reachability.estimatedPathLength,
         },
-      }
-    ));
+      })
+    );
 
     return samples;
   }
@@ -867,14 +880,10 @@ export class SpatialDataGenerator {
     }
 
     const overlapVolume =
-      (overlapMaxX - overlapMinX) *
-      (overlapMaxY - overlapMinY) *
-      (overlapMaxZ - overlapMinZ);
+      (overlapMaxX - overlapMinX) * (overlapMaxY - overlapMinY) * (overlapMaxZ - overlapMinZ);
 
     const targetVolume =
-      (target.max.x - target.min.x) *
-      (target.max.y - target.min.y) *
-      (target.max.z - target.min.z);
+      (target.max.x - target.min.x) * (target.max.y - target.min.y) * (target.max.z - target.min.z);
 
     if (targetVolume === 0) return 0;
 
@@ -1093,37 +1102,51 @@ export class SpatialDataGenerator {
       case 'adjacent': {
         const threshold = rel.parameters.adjacencyThreshold?.toFixed(1) ?? '?';
         if (rel.holds) {
-          return `"${src}" is adjacent to "${tgt}" (${dist}m apart, within ${threshold}m threshold). ` +
-            `Relative direction: ${rel.directions.join(', ')}.`;
+          return (
+            `"${src}" is adjacent to "${tgt}" (${dist}m apart, within ${threshold}m threshold). ` +
+            `Relative direction: ${rel.directions.join(', ')}.`
+          );
         }
-        return `"${src}" is NOT adjacent to "${tgt}" (${dist}m apart, exceeds ${threshold}m threshold). ` +
-          `Relative direction: ${rel.directions.join(', ')}.`;
+        return (
+          `"${src}" is NOT adjacent to "${tgt}" (${dist}m apart, exceeds ${threshold}m threshold). ` +
+          `Relative direction: ${rel.directions.join(', ')}.`
+        );
       }
 
       case 'contains': {
         if (rel.holds) {
-          const overlap = rel.parameters.overlapRatio !== undefined
-            ? ` (${(rel.parameters.overlapRatio * 100).toFixed(0)}% overlap)`
-            : '';
-          return `"${src}" contains "${tgt}"${overlap}. ` +
-            `The contained object is ${dist}m from the container center.`;
+          const overlap =
+            rel.parameters.overlapRatio !== undefined
+              ? ` (${(rel.parameters.overlapRatio * 100).toFixed(0)}% overlap)`
+              : '';
+          return (
+            `"${src}" contains "${tgt}"${overlap}. ` +
+            `The contained object is ${dist}m from the container center.`
+          );
         }
-        const overlap = rel.parameters.overlapRatio !== undefined
-          ? ` (only ${(rel.parameters.overlapRatio * 100).toFixed(0)}% overlap)`
-          : '';
-        return `"${src}" does NOT contain "${tgt}"${overlap}. ` +
-          `"${tgt}" is ${dist}m from "${src}" center, direction: ${rel.directions.join(', ')}.`;
+        const overlap =
+          rel.parameters.overlapRatio !== undefined
+            ? ` (only ${(rel.parameters.overlapRatio * 100).toFixed(0)}% overlap)`
+            : '';
+        return (
+          `"${src}" does NOT contain "${tgt}"${overlap}. ` +
+          `"${tgt}" is ${dist}m from "${src}" center, direction: ${rel.directions.join(', ')}.`
+        );
       }
 
       case 'reachable': {
         if (rel.holds) {
-          return `"${tgt}" is reachable from "${src}" with clear line of sight ` +
-            `(straight-line distance: ${dist}m). Direction: ${rel.directions.join(', ')}.`;
+          return (
+            `"${tgt}" is reachable from "${src}" with clear line of sight ` +
+            `(straight-line distance: ${dist}m). Direction: ${rel.directions.join(', ')}.`
+          );
         }
         const blockers = rel.parameters.blockingObstacles?.join(', ') ?? 'unknown obstacles';
-        return `"${tgt}" is NOT directly reachable from "${src}" ` +
+        return (
+          `"${tgt}" is NOT directly reachable from "${src}" ` +
           `(blocked by: ${blockers}, distance: ${dist}m). ` +
-          `Direction: ${rel.directions.join(', ')}.`;
+          `Direction: ${rel.directions.join(', ')}.`
+        );
       }
     }
   }
@@ -1231,11 +1254,7 @@ export class SpatialDataGenerator {
     objA: SpatialObject,
     objB: SpatialObject
   ): string[] {
-    const tags: string[] = [
-      rel.type,
-      rel.holds ? 'positive' : 'negative',
-      ...rel.directions,
-    ];
+    const tags: string[] = [rel.type, rel.holds ? 'positive' : 'negative', ...rel.directions];
 
     if (objA.type) tags.push(`type:${objA.type}`);
     if (objB.type) tags.push(`type:${objB.type}`);
@@ -1266,7 +1285,8 @@ export class SpatialDataGenerator {
 
     // Hard: many objects, negative sample, or complex containment
     if (objectCount > 10) return 'hard';
-    if (rel.type === 'contains' && !rel.holds && (rel.parameters.overlapRatio ?? 0) > 0.3) return 'hard';
+    if (rel.type === 'contains' && !rel.holds && (rel.parameters.overlapRatio ?? 0) > 0.3)
+      return 'hard';
     if (rel.type === 'reachable' && !rel.holds) return 'hard';
 
     // Medium: everything else
@@ -1288,14 +1308,14 @@ export class SpatialDataGenerator {
    * Compute a simple hash for a composition (for provenance tracking).
    */
   private hashComposition(comp: SpatialComposition): string {
-    const str = comp.name + comp.objects.map((o) =>
-      `${o.id}:${o.position.x},${o.position.y},${o.position.z}`
-    ).join('|');
+    const str =
+      comp.name +
+      comp.objects.map((o) => `${o.id}:${o.position.x},${o.position.y},${o.position.z}`).join('|');
 
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const chr = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + chr;
+      hash = (hash << 5) - hash + chr;
       hash |= 0; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(16).padStart(8, '0');
@@ -1313,12 +1333,24 @@ export class SpatialDataGenerator {
   ): GenerationStats {
     return {
       totalSamples: samples.length,
-      adjacentPositive: samples.filter((s) => s.relationship.type === 'adjacent' && s.relationship.holds).length,
-      adjacentNegative: samples.filter((s) => s.relationship.type === 'adjacent' && !s.relationship.holds).length,
-      containsPositive: samples.filter((s) => s.relationship.type === 'contains' && s.relationship.holds).length,
-      containsNegative: samples.filter((s) => s.relationship.type === 'contains' && !s.relationship.holds).length,
-      reachablePositive: samples.filter((s) => s.relationship.type === 'reachable' && s.relationship.holds).length,
-      reachableNegative: samples.filter((s) => s.relationship.type === 'reachable' && !s.relationship.holds).length,
+      adjacentPositive: samples.filter(
+        (s) => s.relationship.type === 'adjacent' && s.relationship.holds
+      ).length,
+      adjacentNegative: samples.filter(
+        (s) => s.relationship.type === 'adjacent' && !s.relationship.holds
+      ).length,
+      containsPositive: samples.filter(
+        (s) => s.relationship.type === 'contains' && s.relationship.holds
+      ).length,
+      containsNegative: samples.filter(
+        (s) => s.relationship.type === 'contains' && !s.relationship.holds
+      ).length,
+      reachablePositive: samples.filter(
+        (s) => s.relationship.type === 'reachable' && s.relationship.holds
+      ).length,
+      reachableNegative: samples.filter(
+        (s) => s.relationship.type === 'reachable' && !s.relationship.holds
+      ).length,
       compositionsProcessed,
       objectsProcessed,
       pairsEvaluated,
@@ -1419,7 +1451,8 @@ export function parseSimpleComposition(source: string): SpatialComposition {
   const compositionName = nameMatch ? nameMatch[1] : 'Unnamed';
 
   const objects: SpatialObject[] = [];
-  const objectRegex = /object\s+"([^"]+)"(?:\s+(?:using\s+"[^"]+"\s+)?)?\{([^}]*(?:\{[^}]*\}[^}]*)*)\}/g;
+  const objectRegex =
+    /object\s+"([^"]+)"(?:\s+(?:using\s+"[^"]+"\s+)?)?\{([^}]*(?:\{[^}]*\}[^}]*)*)\}/g;
 
   let match: RegExpExecArray | null;
   let idCounter = 0;

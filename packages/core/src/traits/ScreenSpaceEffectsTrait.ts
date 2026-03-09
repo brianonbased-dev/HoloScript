@@ -156,12 +156,15 @@ export const ScreenSpaceEffectsTrait: TraitHandler<ScreenSpaceEffectsConfig> = {
     }
 
     // Performance warning
-    const enabledEffects = Object.keys(config).filter(key =>
-      !['output_format', 'tonemap'].includes(key) && config[key as keyof ScreenSpaceEffectsConfig]
+    const enabledEffects = Object.keys(config).filter(
+      (key) =>
+        !['output_format', 'tonemap'].includes(key) && config[key as keyof ScreenSpaceEffectsConfig]
     );
 
     if (enabledEffects.length > 5) {
-      console.warn(`${enabledEffects.length} screen-space effects enabled - may impact real-time performance`);
+      console.warn(
+        `${enabledEffects.length} screen-space effects enabled - may impact real-time performance`
+      );
     }
 
     return true;
@@ -202,7 +205,9 @@ public class ScreenSpaceEffectsManager : MonoBehaviour {
         volume = GetComponent<Volume>();
         volume.isGlobal = true;
 
-        ${config.ssao ? `
+        ${
+          config.ssao
+            ? `
         // SSAO
         if (volume.profile.TryGet(out ScreenSpaceAmbientOcclusion ssao)) {
             ssao.active = true;
@@ -212,9 +217,13 @@ public class ScreenSpaceEffectsManager : MonoBehaviour {
             ssao.directLightingStrength.value = 0.0f;
             ssao.maximumRadiusInPixels.value = 128;
         }
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.ssr ? `
+        ${
+          config.ssr
+            ? `
         // SSR
         if (volume.profile.TryGet(out ScreenSpaceReflection ssr)) {
             ssr.active = true;
@@ -225,9 +234,13 @@ public class ScreenSpaceEffectsManager : MonoBehaviour {
             ssr.minSmoothness.value = 0.0f;
             ssr.rayMaxIterations.value = ${config.ssr.binary_search_iterations ?? 8};
         }
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.ssgi ? `
+        ${
+          config.ssgi
+            ? `
         // SSGI
         if (volume.profile.TryGet(out GlobalIllumination gi)) {
             gi.active = true;
@@ -238,16 +251,24 @@ public class ScreenSpaceEffectsManager : MonoBehaviour {
             gi.rayMiss.value = 0.0f;
             gi.lastBounceFallbackHierarchy.value = 1.0f;
         }
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.taa ? `
+        ${
+          config.taa
+            ? `
         // TAA (enabled by default in HDRP Camera)
         Camera.main.GetComponent<HDAdditionalCameraData>().antialiasing = HDAdditionalCameraData.AntialiasingMode.TemporalAntialiasing;
         Camera.main.GetComponent<HDAdditionalCameraData>().taaSharpenStrength = ${config.taa.sharpness ?? 0.5}f;
         Camera.main.GetComponent<HDAdditionalCameraData>().taaHistorySharpening = ${config.taa.feedback}f;
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.motion_blur ? `
+        ${
+          config.motion_blur
+            ? `
         // Motion Blur
         if (volume.profile.TryGet(out MotionBlur motionBlur)) {
             motionBlur.active = true;
@@ -256,9 +277,13 @@ public class ScreenSpaceEffectsManager : MonoBehaviour {
             motionBlur.maximumVelocity.value = 200;
             motionBlur.minimumVelocity.value = 2;
         }
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.depth_of_field ? `
+        ${
+          config.depth_of_field
+            ? `
         // Depth of Field
         if (volume.profile.TryGet(out DepthOfField dof)) {
             dof.active = true;
@@ -275,25 +300,37 @@ public class ScreenSpaceEffectsManager : MonoBehaviour {
             dof.farFocusStart.value = ${config.depth_of_field.focus_distance * 1.2}f;
             dof.farFocusEnd.value = 1000.0f;
         }
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.chromatic_aberration ? `
+        ${
+          config.chromatic_aberration
+            ? `
         // Chromatic Aberration
         if (volume.profile.TryGet(out ChromaticAberration ca)) {
             ca.active = true;
             ca.intensity.value = ${config.chromatic_aberration.intensity}f;
         }
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.lens_flare ? `
+        ${
+          config.lens_flare
+            ? `
         // Lens Flare (add to sun/bright lights)
         Light sunLight = GameObject.Find("Directional Light").GetComponent<Light>();
         HDAdditionalLightData hdLight = sunLight.GetComponent<HDAdditionalLightData>();
         hdLight.enableSpotReflector = false;
         // Note: Lens flare data assets must be created in HDRP
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.film_grain ? `
+        ${
+          config.film_grain
+            ? `
         // Film Grain
         if (volume.profile.TryGet(out FilmGrain grain)) {
             grain.active = true;
@@ -301,7 +338,9 @@ public class ScreenSpaceEffectsManager : MonoBehaviour {
             grain.intensity.value = ${config.film_grain.intensity}f;
             grain.response.value = 0.8f;
         }
-        ` : ''}
+        `
+            : ''
+        }
     }
 }
 `;
@@ -318,7 +357,9 @@ public:
     void ConfigureEffects() {
         bUnbound = true; // Global volume
 
-        ${config.ssao ? `
+        ${
+          config.ssao
+            ? `
         // SSAO
         Settings.bOverride_AmbientOcclusionIntensity = true;
         Settings.AmbientOcclusionIntensity = ${config.ssao.intensity}f;
@@ -328,9 +369,13 @@ public:
         Settings.AmbientOcclusionQuality = ${Math.min(config.ssao.samples / 16, 4)}f; // 0-4 quality
         Settings.bOverride_AmbientOcclusionRadiusInWS = true;
         Settings.AmbientOcclusionRadiusInWS = true;
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.ssr ? `
+        ${
+          config.ssr
+            ? `
         // SSR (Lumen/Screen Space)
         Settings.bOverride_ReflectionMethod = true;
         Settings.ReflectionMethod = EReflectionMethod::ScreenSpace;
@@ -340,9 +385,13 @@ public:
         Settings.ScreenSpaceReflectionQuality = ${config.ssr.step_count}f;
         Settings.bOverride_ScreenSpaceReflectionMaxRoughness = true;
         Settings.ScreenSpaceReflectionMaxRoughness = ${config.ssr.max_roughness}f;
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.ssgi ? `
+        ${
+          config.ssgi
+            ? `
         // SSGI (Lumen Global Illumination)
         Settings.bOverride_DynamicGlobalIlluminationMethod = true;
         Settings.DynamicGlobalIlluminationMethod = EDynamicGlobalIlluminationMethod::Lumen;
@@ -350,9 +399,13 @@ public:
         Settings.LumenSceneLightingQuality = 1.0f; // 0-4
         Settings.bOverride_LumenFinalGatherQuality = true;
         Settings.LumenFinalGatherQuality = ${config.ssgi.sample_count / 16.0}f;
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.taa ? `
+        ${
+          config.taa
+            ? `
         // TAA
         Settings.bOverride_AntiAliasingMethod = true;
         Settings.AntiAliasingMethod = AAM_TemporalAA;
@@ -360,9 +413,13 @@ public:
         Settings.TemporalAACurrentFrameWeight = ${1.0 - config.taa.feedback}f;
         Settings.bOverride_TemporalAASamples = true;
         Settings.TemporalAASamples = 8; // Halton sequence
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.motion_blur ? `
+        ${
+          config.motion_blur
+            ? `
         // Motion Blur
         Settings.bOverride_MotionBlurAmount = true;
         Settings.MotionBlurAmount = ${config.motion_blur.intensity}f;
@@ -370,9 +427,13 @@ public:
         Settings.MotionBlurMax = 100.0f;
         Settings.bOverride_MotionBlurPerObjectSize = true;
         Settings.MotionBlurPerObjectSize = ${config.motion_blur.velocity_scale ?? 1.0}f;
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.depth_of_field ? `
+        ${
+          config.depth_of_field
+            ? `
         // Depth of Field
         Settings.bOverride_DepthOfFieldMethod = true;
         Settings.DepthOfFieldMethod = EDepthOfFieldMethod::DOFM_BokehDOF;
@@ -382,29 +443,43 @@ public:
         Settings.DepthOfFieldFstop = ${config.depth_of_field.aperture}f;
         Settings.bOverride_DepthOfFieldSensorWidth = true;
         Settings.DepthOfFieldSensorWidth = 24.89f; // Full-frame sensor
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.chromatic_aberration ? `
+        ${
+          config.chromatic_aberration
+            ? `
         // Chromatic Aberration
         Settings.bOverride_SceneFringeIntensity = true;
         Settings.SceneFringeIntensity = ${config.chromatic_aberration.intensity}f;
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.lens_flare ? `
+        ${
+          config.lens_flare
+            ? `
         // Lens Flare
         Settings.bOverride_LensFlareIntensity = true;
         Settings.LensFlareIntensity = 1.0f;
         Settings.bOverride_LensFlareTint = true;
         Settings.LensFlareTint = FLinearColor::White;
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${config.film_grain ? `
+        ${
+          config.film_grain
+            ? `
         // Film Grain
         Settings.bOverride_GrainIntensity = true;
         Settings.GrainIntensity = ${config.film_grain.intensity}f;
         Settings.bOverride_GrainJitter = true;
         Settings.GrainJitter = 0.5f;
-        ` : ''}
+        `
+            : ''
+        }
     }
 };
 `;
@@ -429,7 +504,9 @@ class ScreenSpaceEffectsComposer {
 
     const effects = [];
 
-    ${config.ssao ? `
+    ${
+      config.ssao
+        ? `
     // SSAO
     const ssaoEffect = new SSAOEffect(camera, {
       radius: ${config.ssao.radius},
@@ -444,9 +521,13 @@ class ScreenSpaceEffectsComposer {
       intensity: ${config.ssao.intensity}
     });
     effects.push(ssaoEffect);
-    ` : ''}
+    `
+        : ''
+    }
 
-    ${config.ssr ? `
+    ${
+      config.ssr
+        ? `
     // SSR
     const ssrEffect = new SSREffect(scene, camera, {
       maxDistance: 100,
@@ -458,15 +539,23 @@ class ScreenSpaceEffectsComposer {
       fadeTo: ${config.ssr.fade_end ?? 1.0}
     });
     effects.push(ssrEffect);
-    ` : ''}
+    `
+        : ''
+    }
 
-    ${config.taa ? `
+    ${
+      config.taa
+        ? `
     // TAA (handled by WebGLRenderer.samples or manual implementation)
     // Note: Three.js doesn't have built-in TAA - requires custom pass
     console.warn('TAA requires custom implementation in Three.js');
-    ` : ''}
+    `
+        : ''
+    }
 
-    ${config.motion_blur ? `
+    ${
+      config.motion_blur
+        ? `
     // Motion Blur
     const motionBlurEffect = new MotionBlurEffect({
       samples: ${config.motion_blur.samples},
@@ -474,9 +563,13 @@ class ScreenSpaceEffectsComposer {
       velocityScale: ${config.motion_blur.velocity_scale ?? 1.0}
     });
     effects.push(motionBlurEffect);
-    ` : ''}
+    `
+        : ''
+    }
 
-    ${config.depth_of_field ? `
+    ${
+      config.depth_of_field
+        ? `
     // Depth of Field
     const dofEffect = new DepthOfFieldEffect(camera, {
       focusDistance: ${config.depth_of_field.focus_distance},
@@ -486,24 +579,34 @@ class ScreenSpaceEffectsComposer {
       height: window.innerHeight
     });
     effects.push(dofEffect);
-    ` : ''}
+    `
+        : ''
+    }
 
-    ${config.chromatic_aberration ? `
+    ${
+      config.chromatic_aberration
+        ? `
     // Chromatic Aberration
     const caEffect = new ChromaticAberrationEffect({
       offset: new THREE.Vector2(${config.chromatic_aberration.intensity}, ${config.chromatic_aberration.intensity})
     });
     effects.push(caEffect);
-    ` : ''}
+    `
+        : ''
+    }
 
-    ${config.film_grain ? `
+    ${
+      config.film_grain
+        ? `
     // Film Grain
     const grainEffect = new NoiseEffect({
       premultiply: false
     });
     grainEffect.blendMode.opacity.value = ${config.film_grain.intensity};
     effects.push(grainEffect);
-    ` : ''}
+    `
+        : ''
+    }
 
     if (effects.length > 0) {
       this.composer.addPass(new EffectPass(camera, ...effects));
@@ -526,7 +629,9 @@ export default ScreenSpaceEffectsComposer;
   compileWebGPU(config: ScreenSpaceEffectsConfig): string {
     return `
 // WebGPU Screen-Space Effects Pipeline
-${config.ssao ? `
+${
+  config.ssao
+    ? `
 // SSAO Compute Shader
 @group(0) @binding(0) var depthTexture: texture_depth_2d;
 @group(0) @binding(1) var normalTexture: texture_2d<f32>;
@@ -563,9 +668,13 @@ fn computeSSAO(@builtin(global_invocation_id) id: vec3<u32>) {
 
   textureStore(outputTexture, id.xy, vec4<f32>(occlusion, occlusion, occlusion, 1.0));
 }
-` : ''}
+`
+    : ''
+}
 
-${config.ssr ? `
+${
+  config.ssr
+    ? `
 // SSR Ray March Shader
 @fragment
 fn computeSSR(@location(0) uv: vec2<f32>,
@@ -598,9 +707,13 @@ fn computeSSR(@location(0) uv: vec2<f32>,
 
   return vec4<f32>(0.0); // No reflection
 }
-` : ''}
+`
+    : ''
+}
 
-${config.motion_blur ? `
+${
+  config.motion_blur
+    ? `
 // Motion Blur Shader
 @fragment
 fn applyMotionBlur(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
@@ -616,7 +729,9 @@ fn applyMotionBlur(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
 
   return color / f32(samples);
 }
-` : ''}
+`
+    : ''
+}
 
 // Full post-processing pipeline
 struct PostProcessPipeline {

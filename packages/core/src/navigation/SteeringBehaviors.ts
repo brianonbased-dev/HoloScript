@@ -105,7 +105,8 @@ export class SteeringBehaviors {
   wander(agent: SteeringAgent): Vec3 {
     this.wanderAngle += (Math.random() - 0.5) * 2 * this.config.wanderJitter;
 
-    const vel = this.mag(agent.velocity) > 0.001 ? this.normalize(agent.velocity) : { x: 1, y: 0, z: 0 };
+    const vel =
+      this.mag(agent.velocity) > 0.001 ? this.normalize(agent.velocity) : { x: 1, y: 0, z: 0 };
     const circleCenter = this.add(agent.position, this.scale(vel, this.config.wanderDistance));
 
     const wanderTarget: Vec3 = {
@@ -130,13 +131,17 @@ export class SteeringBehaviors {
       if (d > 0 && d < this.config.separationRadius) {
         const away = this.normalize(this.sub(agent.position, n.position));
         const weighted = this.scale(away, 1 / Math.max(d, 0.1));
-        force.x += weighted.x; force.y += weighted.y; force.z += weighted.z;
+        force.x += weighted.x;
+        force.y += weighted.y;
+        force.z += weighted.z;
         count++;
       }
     }
 
     if (count > 0) {
-      force.x /= count; force.y /= count; force.z /= count;
+      force.x /= count;
+      force.y /= count;
+      force.z /= count;
     }
     return this.scale(force, this.config.separationWeight);
   }
@@ -148,13 +153,17 @@ export class SteeringBehaviors {
     for (const n of neighbors) {
       const d = this.dist(agent.position, n.position);
       if (d > 0 && d < this.config.alignmentRadius) {
-        avgVel.x += n.velocity.x; avgVel.y += n.velocity.y; avgVel.z += n.velocity.z;
+        avgVel.x += n.velocity.x;
+        avgVel.y += n.velocity.y;
+        avgVel.z += n.velocity.z;
         count++;
       }
     }
 
     if (count === 0) return { x: 0, y: 0, z: 0 };
-    avgVel.x /= count; avgVel.y /= count; avgVel.z /= count;
+    avgVel.x /= count;
+    avgVel.y /= count;
+    avgVel.z /= count;
     const steer = this.sub(avgVel, agent.velocity);
     return this.scale(this.truncate(steer, agent.maxForce), this.config.alignmentWeight);
   }
@@ -166,13 +175,17 @@ export class SteeringBehaviors {
     for (const n of neighbors) {
       const d = this.dist(agent.position, n.position);
       if (d > 0 && d < this.config.cohesionRadius) {
-        center.x += n.position.x; center.y += n.position.y; center.z += n.position.z;
+        center.x += n.position.x;
+        center.y += n.position.y;
+        center.z += n.position.z;
         count++;
       }
     }
 
     if (count === 0) return { x: 0, y: 0, z: 0 };
-    center.x /= count; center.y /= count; center.z /= count;
+    center.x /= count;
+    center.y /= count;
+    center.z /= count;
     return this.scale(this.seek(agent, center), this.config.cohesionWeight);
   }
 
@@ -189,10 +202,13 @@ export class SteeringBehaviors {
 
   avoidObstacles(agent: SteeringAgent, obstacles: SteeringObstacle[]): Vec3 {
     const force: Vec3 = { x: 0, y: 0, z: 0 };
-    const ahead = this.add(agent.position, this.scale(
-      this.mag(agent.velocity) > 0.001 ? this.normalize(agent.velocity) : { x: 1, y: 0, z: 0 },
-      this.config.avoidanceDistance
-    ));
+    const ahead = this.add(
+      agent.position,
+      this.scale(
+        this.mag(agent.velocity) > 0.001 ? this.normalize(agent.velocity) : { x: 1, y: 0, z: 0 },
+        this.config.avoidanceDistance
+      )
+    );
 
     for (const obs of obstacles) {
       const d = this.dist(ahead, obs.position);
@@ -236,11 +252,21 @@ export class SteeringBehaviors {
   // Vector Helpers
   // ---------------------------------------------------------------------------
 
-  private sub(a: Vec3, b: Vec3): Vec3 { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
-  private add(a: Vec3, b: Vec3): Vec3 { return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }; }
-  private scale(v: Vec3, s: number): Vec3 { return { x: v.x * s, y: v.y * s, z: v.z * s }; }
-  private mag(v: Vec3): number { return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z); }
-  private dist(a: Vec3, b: Vec3): number { return this.mag(this.sub(a, b)); }
+  private sub(a: Vec3, b: Vec3): Vec3 {
+    return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+  }
+  private add(a: Vec3, b: Vec3): Vec3 {
+    return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+  }
+  private scale(v: Vec3, s: number): Vec3 {
+    return { x: v.x * s, y: v.y * s, z: v.z * s };
+  }
+  private mag(v: Vec3): number {
+    return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+  }
+  private dist(a: Vec3, b: Vec3): number {
+    return this.mag(this.sub(a, b));
+  }
 
   private normalize(v: Vec3): Vec3 {
     const m = this.mag(v);
@@ -256,6 +282,10 @@ export class SteeringBehaviors {
   // Config
   // ---------------------------------------------------------------------------
 
-  getConfig(): SteeringConfig { return { ...this.config }; }
-  setConfig(config: Partial<SteeringConfig>): void { Object.assign(this.config, config); }
+  getConfig(): SteeringConfig {
+    return { ...this.config };
+  }
+  setConfig(config: Partial<SteeringConfig>): void {
+    Object.assign(this.config, config);
+  }
 }

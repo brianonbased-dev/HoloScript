@@ -13,7 +13,7 @@ import { AgentProvider } from '@hololand/react-agent-sdk';
 
 <AgentProvider config={{ apiUrl: 'https://api.hololand.ai' }}>
   <App />
-</AgentProvider>
+</AgentProvider>;
 ```
 
 ## Basic Usage (3 lines)
@@ -30,6 +30,7 @@ return loading ? <Spinner /> : <Result data={data} />;
 ## Hooks Quick Reference
 
 ### useAgent
+
 ```tsx
 const { agent, status, error, reconnect } = useAgent('brittney', {
   enableCircuitBreaker: true,
@@ -38,34 +39,35 @@ const { agent, status, error, reconnect } = useAgent('brittney', {
 ```
 
 ### useTask
+
 ```tsx
-const { data, loading, error, retry, cancel, progress } = useTask(
-  agent,
-  'taskName',
-  {
-    input: {},
-    retry: true,
-    maxRetries: 3
-  }
-);
+const { data, loading, error, retry, cancel, progress } = useTask(agent, 'taskName', {
+  input: {},
+  retry: true,
+  maxRetries: 3,
+});
 ```
 
 ### useTaskStatus
+
 ```tsx
 const { status, progress, estimatedTime, logs, phase } = useTaskStatus(taskId);
 ```
 
 ### useAgentMetrics
+
 ```tsx
 const { metrics, loading, refresh } = useAgentMetrics('brittney', 5000);
 ```
 
 ### useCircuitBreaker
+
 ```tsx
 const { state, failureRate, reset } = useCircuitBreaker('myQuery');
 ```
 
 ### useDegradedMode
+
 ```tsx
 const { isDegraded, affectedServices, recoveryStatus } = useDegradedMode();
 ```
@@ -73,21 +75,25 @@ const { isDegraded, affectedServices, recoveryStatus } = useDegradedMode();
 ## Components Quick Reference
 
 ### TaskMonitor
+
 ```tsx
 <TaskMonitor taskId={id} showLogs showProgress showPhase />
 ```
 
 ### CircuitBreakerStatus
+
 ```tsx
 <CircuitBreakerStatus queryName="agent" showMetrics />
 ```
 
 ### AgentMetricsDashboard
+
 ```tsx
 <AgentMetricsDashboard agentName="brittney" refreshInterval={5000} />
 ```
 
 ### AgentErrorBoundary
+
 ```tsx
 <AgentErrorBoundary fallback={(error, reset) => <ErrorUI />}>
   <Component />
@@ -95,6 +101,7 @@ const { isDegraded, affectedServices, recoveryStatus } = useDegradedMode();
 ```
 
 ### SuspenseTask
+
 ```tsx
 <SuspenseTask agent={agent} taskName="task" fallback={<Spinner />}>
   {(data) => <Result data={data} />}
@@ -104,6 +111,7 @@ const { isDegraded, affectedServices, recoveryStatus } = useDegradedMode();
 ## Common Patterns
 
 ### With Retry
+
 ```tsx
 const { data, error, retry } = useTask(agent, 'task', {
   retry: true,
@@ -113,14 +121,18 @@ const { data, error, retry } = useTask(agent, 'task', {
 ```
 
 ### With TypeScript
+
 ```tsx
-interface MyData { result: string; }
+interface MyData {
+  result: string;
+}
 
 const { data } = useTask<MyData>(agent, 'task');
 // data is MyData | undefined
 ```
 
 ### With Circuit Breaker
+
 ```tsx
 const { agent } = useAgent('brittney', {
   enableCircuitBreaker: true,
@@ -129,19 +141,15 @@ const { agent } = useAgent('brittney', {
 ```
 
 ### Conditional Execution
+
 ```tsx
-const { data } = useTask(
-  condition ? agent : null,
-  'task'
-);
+const { data } = useTask(condition ? agent : null, 'task');
 ```
 
 ### SSR (Next.js)
+
 ```tsx
-const { data } = useTask(
-  typeof window !== 'undefined' ? agent : null,
-  'task'
-);
+const { data } = useTask(typeof window !== 'undefined' ? agent : null, 'task');
 ```
 
 ## Task Parameters
@@ -198,12 +206,7 @@ import { CircuitBreakerStatus, AgentMetricsDashboard } from '@hololand/react-age
 import { AgentErrorBoundary, SuspenseTask } from '@hololand/react-agent-sdk';
 
 // Types
-import type {
-  TaskParams,
-  TaskStatus,
-  CircuitState,
-  AgentMetrics
-} from '@hololand/react-agent-sdk';
+import type { TaskParams, TaskStatus, CircuitState, AgentMetrics } from '@hololand/react-agent-sdk';
 
 // Utilities (advanced)
 import { CircuitBreaker, ExponentialBackoff } from '@hololand/react-agent-sdk';
@@ -212,19 +215,23 @@ import { CircuitBreaker, ExponentialBackoff } from '@hololand/react-agent-sdk';
 ## Troubleshooting
 
 ### Task not executing
+
 - Check agent is connected: `status === 'connected'`
 - Check circuit breaker state: `useCircuitBreaker('agent')`
 - Check for errors: `error?.message`
 
 ### Circuit breaker stuck open
+
 - Check failure rate: `status.failureRate`
 - Wait for timeout or manually reset: `reset()`
 
 ### SSR errors
+
 - Ensure agent only runs client-side: `typeof window !== 'undefined'`
 - Check Next.js config for proper SSR handling
 
 ### TypeScript errors
+
 - Add generic type: `useTask<MyType>(agent, 'task')`
 - Check type definitions are imported
 
@@ -238,6 +245,7 @@ import { CircuitBreaker, ExponentialBackoff } from '@hololand/react-agent-sdk';
 ## Examples Location
 
 See `/examples` directory for 11+ patterns:
+
 - Basic usage
 - Task monitoring
 - Circuit breaker

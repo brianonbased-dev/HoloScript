@@ -93,9 +93,14 @@ describe('DayNightCycle', () => {
   it('getPeriod returns correct periods', () => {
     const dnc = new DayNightCycle();
     const expectations: [number, string][] = [
-      [6, 'dawn'], [8, 'morning'], [12, 'noon'],
-      [15, 'afternoon'], [18, 'dusk'], [20, 'evening'],
-      [23, 'night'], [2, 'midnight'],
+      [6, 'dawn'],
+      [8, 'morning'],
+      [12, 'noon'],
+      [15, 'afternoon'],
+      [18, 'dusk'],
+      [20, 'evening'],
+      [23, 'night'],
+      [2, 'midnight'],
     ];
     for (const [time, period] of expectations) {
       dnc.setTime(time);

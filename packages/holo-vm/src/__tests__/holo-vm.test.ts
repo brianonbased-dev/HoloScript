@@ -41,7 +41,7 @@ describe('HoloOpCode', () => {
   it('should have Control Flow opcodes in range 0x60-0x6F', () => {
     expect(HoloOpCode.NOP).toBe(0x60);
     expect(HoloOpCode.HALT).toBe(0x69);
-    expect(HoloOpCode.YIELD).toBe(0x6A);
+    expect(HoloOpCode.YIELD).toBe(0x6a);
   });
 
   it('should have Agent Bridge opcodes in range 0x70-0x7F', () => {
@@ -135,7 +135,9 @@ describe('HoloBytecodeBuilder', () => {
     const builder = new HoloBytecodeBuilder();
     const entIdx = builder.addEntity('TestCube', 0);
     builder.addComponentToEntity(entIdx, ComponentType.Transform, {
-      x: 0, y: 1, z: -5,
+      x: 0,
+      y: 1,
+      z: -5,
     });
     builder.addComponentToEntity(entIdx, ComponentType.Geometry, {
       type: GeometryType.Cube,
@@ -213,11 +215,7 @@ describe('HoloVM', () => {
 
     it('should execute arithmetic operations', () => {
       const builder = new HoloBytecodeBuilder();
-      builder.addFunction('main')
-        .push(10)
-        .push(5)
-        .add()
-        .halt();
+      builder.addFunction('main').push(10).push(5).add().halt();
 
       vm.load(builder.build());
       const result = vm.tick(16.67);
@@ -227,11 +225,7 @@ describe('HoloVM', () => {
 
     it('should execute subtraction', () => {
       const builder = new HoloBytecodeBuilder();
-      builder.addFunction('main')
-        .push(20)
-        .push(8)
-        .sub()
-        .halt();
+      builder.addFunction('main').push(20).push(8).sub().halt();
 
       vm.load(builder.build());
       const result = vm.tick(16.67);
@@ -241,11 +235,7 @@ describe('HoloVM', () => {
 
     it('should execute multiplication', () => {
       const builder = new HoloBytecodeBuilder();
-      builder.addFunction('main')
-        .push(7)
-        .push(6)
-        .mul()
-        .halt();
+      builder.addFunction('main').push(7).push(6).mul().halt();
 
       vm.load(builder.build());
       const result = vm.tick(16.67);
@@ -255,11 +245,7 @@ describe('HoloVM', () => {
 
     it('should handle division by zero', () => {
       const builder = new HoloBytecodeBuilder();
-      builder.addFunction('main')
-        .push(10)
-        .push(0)
-        .div()
-        .halt();
+      builder.addFunction('main').push(10).push(0).div().halt();
 
       vm.load(builder.build());
       const result = vm.tick(16.67);
@@ -271,11 +257,12 @@ describe('HoloVM', () => {
   describe('Register operations', () => {
     it('should store and load from registers', () => {
       const builder = new HoloBytecodeBuilder();
-      builder.addFunction('main')
+      builder
+        .addFunction('main')
         .push(99)
         .store(0)
         .push(1) // push something else
-        .pop()   // discard it
+        .pop() // discard it
         .load(0) // load reg 0 back
         .halt();
 
@@ -290,12 +277,12 @@ describe('HoloVM', () => {
     it('should execute JUMP', () => {
       const builder = new HoloBytecodeBuilder();
       const main = builder.addFunction('main');
-      main.push(1);   // 0
-      main.jump(3);   // 1 → jump to instruction 3 (PUSH 2)
+      main.push(1); // 0
+      main.jump(3); // 1 → jump to instruction 3 (PUSH 2)
       main.push(999); // 2 → should be skipped
-      main.push(2);   // 3 → lands here
-      main.add();     // 4
-      main.halt();    // 5
+      main.push(2); // 3 → lands here
+      main.add(); // 4
+      main.halt(); // 5
 
       vm.load(builder.build());
       const result = vm.tick(16.67);
@@ -306,11 +293,11 @@ describe('HoloVM', () => {
     it('should execute JUMP_IF when condition is true', () => {
       const builder = new HoloBytecodeBuilder();
       const main = builder.addFunction('main');
-      main.push(1);    // truthy
-      main.jumpIf(4);  // should jump
-      main.push(100);  // skipped
-      main.halt();     // skipped
-      main.push(42);   // lands here (instruction 4)
+      main.push(1); // truthy
+      main.jumpIf(4); // should jump
+      main.push(100); // skipped
+      main.halt(); // skipped
+      main.push(42); // lands here (instruction 4)
       main.halt();
 
       vm.load(builder.build());
@@ -322,9 +309,9 @@ describe('HoloVM', () => {
     it('should NOT jump when condition is falsy', () => {
       const builder = new HoloBytecodeBuilder();
       const main = builder.addFunction('main');
-      main.push(0);    // falsy
-      main.jumpIf(4);  // should NOT jump
-      main.push(100);  // should execute
+      main.push(0); // falsy
+      main.jumpIf(4); // should NOT jump
+      main.push(100); // should execute
       main.halt();
 
       vm.load(builder.build());
@@ -336,16 +323,14 @@ describe('HoloVM', () => {
     it('should execute CALL and RETURN', () => {
       const builder = new HoloBytecodeBuilder();
       // Function 0: main
-      builder.addFunction('main')
+      builder
+        .addFunction('main')
         .push(10)
         .call(1) // Call add5
         .halt();
 
       // Function 1: add5 — pops top, adds 5, pushes result
-      builder.addFunction('add5')
-        .push(5)
-        .add()
-        .ret();
+      builder.addFunction('add5').push(5).add().ret();
 
       vm.load(builder.build());
       const result = vm.tick(16.67);
@@ -357,11 +342,7 @@ describe('HoloVM', () => {
   describe('Comparison operations', () => {
     it('should compare equal values', () => {
       const builder = new HoloBytecodeBuilder();
-      builder.addFunction('main')
-        .push(42)
-        .push(42)
-        .cmpEq()
-        .halt();
+      builder.addFunction('main').push(42).push(42).cmpEq().halt();
 
       vm.load(builder.build());
       const result = vm.tick(16.67);
@@ -371,11 +352,7 @@ describe('HoloVM', () => {
 
     it('should compare unequal values', () => {
       const builder = new HoloBytecodeBuilder();
-      builder.addFunction('main')
-        .push(42)
-        .push(43)
-        .cmpEq()
-        .halt();
+      builder.addFunction('main').push(42).push(43).cmpEq().halt();
 
       vm.load(builder.build());
       const result = vm.tick(16.67);
@@ -385,11 +362,7 @@ describe('HoloVM', () => {
 
     it('should compare less than', () => {
       const builder = new HoloBytecodeBuilder();
-      builder.addFunction('main')
-        .push(3)
-        .push(5)
-        .cmpLt()
-        .halt();
+      builder.addFunction('main').push(3).push(5).cmpLt().halt();
 
       vm.load(builder.build());
       const result = vm.tick(16.67);
@@ -399,10 +372,7 @@ describe('HoloVM', () => {
 
     it('should negate with NOT', () => {
       const builder = new HoloBytecodeBuilder();
-      builder.addFunction('main')
-        .push(1)
-        .not()
-        .halt();
+      builder.addFunction('main').push(1).not().halt();
 
       vm.load(builder.build());
       const result = vm.tick(16.67);
@@ -414,9 +384,7 @@ describe('HoloVM', () => {
   describe('ECS Entity operations', () => {
     it('should spawn entities', () => {
       const builder = new HoloBytecodeBuilder();
-      builder.addFunction('main')
-        .spawn(0, 'TestEntity')
-        .halt();
+      builder.addFunction('main').spawn(0, 'TestEntity').halt();
 
       vm.load(builder.build());
       const result = vm.tick(16.67);
@@ -427,11 +395,7 @@ describe('HoloVM', () => {
 
     it('should spawn and despawn entities', () => {
       const builder = new HoloBytecodeBuilder();
-      builder.addFunction('main')
-        .spawn(0, 'Temporary')
-        .store(0)
-        .load(0)
-        .halt();
+      builder.addFunction('main').spawn(0, 'Temporary').store(0).load(0).halt();
 
       vm.load(builder.build());
       vm.tick(16.67);
@@ -442,7 +406,8 @@ describe('HoloVM', () => {
 
     it('should set geometry component', () => {
       const builder = new HoloBytecodeBuilder();
-      builder.addFunction('main')
+      builder
+        .addFunction('main')
         .spawn(0, 'Cube')
         .store(0)
         .load(0)
@@ -464,14 +429,15 @@ describe('HoloVM', () => {
       const builder = new HoloBytecodeBuilder();
       builder.addEntity('Box', 0);
 
-      builder.addFunction('main')
-        .transform(1, 5, 10, -3)
-        .halt();
+      builder.addFunction('main').transform(1, 5, 10, -3).halt();
 
       vm.load(builder.build());
       vm.tick(16.67);
 
-      const transform = vm.world.getComponent<{ position: { x: number; y: number; z: number } }>(1, ComponentType.Transform);
+      const transform = vm.world.getComponent<{ position: { x: number; y: number; z: number } }>(
+        1,
+        ComponentType.Transform
+      );
       expect(transform).toBeDefined();
       expect(transform!.position.x).toBe(5);
       expect(transform!.position.y).toBe(10);
@@ -498,14 +464,15 @@ describe('HoloVM', () => {
     it('should add rigidbody component', () => {
       const builder = new HoloBytecodeBuilder();
       builder.addEntity('Ball', 0);
-      builder.addFunction('main')
-        .addRigidbody(1, 1.5, BodyType.Dynamic)
-        .halt();
+      builder.addFunction('main').addRigidbody(1, 1.5, BodyType.Dynamic).halt();
 
       vm.load(builder.build());
       vm.tick(16.67);
 
-      const rb = vm.world.getComponent<{ mass: number; bodyType: number }>(1, ComponentType.RigidBody);
+      const rb = vm.world.getComponent<{ mass: number; bodyType: number }>(
+        1,
+        ComponentType.RigidBody
+      );
       expect(rb).toBeDefined();
       expect(rb!.mass).toBe(1.5);
       expect(rb!.bodyType).toBe(BodyType.Dynamic);
@@ -514,7 +481,8 @@ describe('HoloVM', () => {
     it('should apply impulse to rigidbody', () => {
       const builder = new HoloBytecodeBuilder();
       builder.addEntity('Ball', 0);
-      builder.addFunction('main')
+      builder
+        .addFunction('main')
         .addRigidbody(1, 1.0, BodyType.Dynamic)
         .applyImpulse(1, 10, 0, 0) // 10N impulse on X axis, mass=1 → v=10
         .halt();
@@ -534,7 +502,8 @@ describe('HoloVM', () => {
       builder.addEntity('NPC', 0);
       builder.addTrait('Collidable');
       builder.addTrait('Grabbable');
-      builder.addFunction('main')
+      builder
+        .addFunction('main')
         .applyTrait(1, 0)
         .applyTrait(1, 1)
         .removeTrait(1, 0) // Remove Collidable
@@ -546,16 +515,17 @@ describe('HoloVM', () => {
       const entity = vm.world.getEntity(1);
       expect(entity).toBeDefined();
       expect(entity!.traits.has(0)).toBe(false); // Removed
-      expect(entity!.traits.has(1)).toBe(true);  // Still there
+      expect(entity!.traits.has(1)).toBe(true); // Still there
     });
   });
 
   describe('YIELD and multi-tick execution', () => {
     it('should yield and resume on next tick', () => {
       const builder = new HoloBytecodeBuilder();
-      builder.addFunction('main')
+      builder
+        .addFunction('main')
         .push(1)
-        .yieldTick()  // Pause
+        .yieldTick() // Pause
         .push(2)
         .add()
         .halt();
@@ -607,7 +577,8 @@ describe('HoloVM', () => {
       builder.addEntity('Light', 0);
 
       // Main function: set up the scene
-      builder.addFunction('main')
+      builder
+        .addFunction('main')
         // Ground: flat plane
         .setGeometry(1, GeometryType.Plane)
         .transform(1, 0, 0, 0)

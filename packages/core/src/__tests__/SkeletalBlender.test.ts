@@ -9,13 +9,21 @@ function pose(boneId: string, tx = 0, ty = 0, tz = 0, sx = 1, sy = 1, sz = 1): A
   return { boneId, tx, ty, tz, sx, sy, sz };
 }
 
-function layer(id: string, poses: AnimPose[], weight = 1, mode: 'override' | 'additive' = 'override', mask?: Set<string>): AnimLayer {
+function layer(
+  id: string,
+  poses: AnimPose[],
+  weight = 1,
+  mode: 'override' | 'additive' = 'override',
+  mask?: Set<string>
+): AnimLayer {
   return { id, poses, weight, mode, mask };
 }
 
 describe('SkeletalBlender', () => {
   let blender: SkeletalBlender;
-  beforeEach(() => { blender = new SkeletalBlender(); });
+  beforeEach(() => {
+    blender = new SkeletalBlender();
+  });
 
   it('single layer override at weight=1 yields exact pose', () => {
     blender.addLayer(layer('idle', [pose('hip', 1, 2, 3)]));
@@ -47,7 +55,15 @@ describe('SkeletalBlender', () => {
 
   it('mask restricts layer to specific bones', () => {
     blender.addLayer(layer('full', [pose('hip', 1, 0, 0), pose('arm', 2, 0, 0)]));
-    blender.addLayer(layer('arm_only', [pose('hip', 10, 0, 0), pose('arm', 10, 0, 0)], 1, 'override', new Set(['arm'])));
+    blender.addLayer(
+      layer(
+        'arm_only',
+        [pose('hip', 10, 0, 0), pose('arm', 10, 0, 0)],
+        1,
+        'override',
+        new Set(['arm'])
+      )
+    );
     const out = blender.blend();
     expect(out.get('hip')?.tx).toBeCloseTo(1); // untouched by masked layer
     expect(out.get('arm')?.tx).toBeCloseTo(10);

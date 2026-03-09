@@ -45,14 +45,14 @@ export type NormScope = 'agent' | 'zone' | 'world' | 'session';
  * Based on CRSEC framework classification.
  */
 export type NormCategory =
-  | 'cooperation'    // Resource sharing, mutual aid
-  | 'communication'  // Greeting conventions, language norms
-  | 'territory'      // Zone ownership, movement conventions
-  | 'exchange'       // Trade conventions, fair pricing
-  | 'authority'      // Hierarchy, decision-making protocols
-  | 'safety'         // Anti-griefing, non-aggression
-  | 'ritual'         // Repeated group behaviors, ceremonies
-  | 'identity';      // Group markers, naming conventions
+  | 'cooperation' // Resource sharing, mutual aid
+  | 'communication' // Greeting conventions, language norms
+  | 'territory' // Zone ownership, movement conventions
+  | 'exchange' // Trade conventions, fair pricing
+  | 'authority' // Hierarchy, decision-making protocols
+  | 'safety' // Anti-griefing, non-aggression
+  | 'ritual' // Repeated group behaviors, ceremonies
+  | 'identity'; // Group markers, naming conventions
 
 // =============================================================================
 // NORM DEFINITION
@@ -158,59 +158,92 @@ export interface CulturalTraceTrait {
 export const BUILTIN_NORMS: CulturalNorm[] = [
   // Safety norms
   {
-    id: 'no_griefing', name: 'No Griefing', category: 'safety',
+    id: 'no_griefing',
+    name: 'No Griefing',
+    category: 'safety',
     description: 'Agents must not intentionally harm or obstruct others',
-    enforcement: 'hard', scope: 'world', activationThreshold: 0,
+    enforcement: 'hard',
+    scope: 'world',
+    activationThreshold: 0,
     strength: 'strong',
     forbiddenEffects: ['agent:kill', 'inventory:destroy', 'physics:teleport'],
   },
   {
-    id: 'resource_sharing', name: 'Resource Sharing', category: 'cooperation',
+    id: 'resource_sharing',
+    name: 'Resource Sharing',
+    category: 'cooperation',
     description: 'Agents should share resources when others are in need',
-    enforcement: 'soft', scope: 'zone', activationThreshold: 0.5,
+    enforcement: 'soft',
+    scope: 'zone',
+    activationThreshold: 0.5,
     strength: 'moderate',
     requiredEffects: ['inventory:give'],
   },
   {
-    id: 'zone_respect', name: 'Zone Respect', category: 'territory',
+    id: 'zone_respect',
+    name: 'Zone Respect',
+    category: 'territory',
     description: 'Agents must request permission before entering owned zones',
-    enforcement: 'soft', scope: 'zone', activationThreshold: 0.3,
+    enforcement: 'soft',
+    scope: 'zone',
+    activationThreshold: 0.3,
     strength: 'moderate',
     requiredEffects: ['agent:communicate'],
     forbiddenEffects: ['authority:zone'],
   },
   {
-    id: 'fair_trade', name: 'Fair Trade', category: 'exchange',
+    id: 'fair_trade',
+    name: 'Fair Trade',
+    category: 'exchange',
     description: 'Trade exchanges must be mutually agreed upon',
-    enforcement: 'hard', scope: 'world', activationThreshold: 0,
+    enforcement: 'hard',
+    scope: 'world',
+    activationThreshold: 0,
     strength: 'strong',
     requiredEffects: ['inventory:trade', 'agent:communicate'],
   },
   {
-    id: 'greeting_convention', name: 'Greeting Convention', category: 'communication',
+    id: 'greeting_convention',
+    name: 'Greeting Convention',
+    category: 'communication',
     description: 'Agents should acknowledge each other when first meeting in a session',
-    enforcement: 'advisory', scope: 'session', activationThreshold: 0.6,
+    enforcement: 'advisory',
+    scope: 'session',
+    activationThreshold: 0.6,
     strength: 'weak',
     requiredEffects: ['agent:communicate'],
   },
   {
-    id: 'noise_courtesy', name: 'Noise Courtesy', category: 'safety',
+    id: 'noise_courtesy',
+    name: 'Noise Courtesy',
+    category: 'safety',
     description: 'Agents should not play global audio without zone permission',
-    enforcement: 'soft', scope: 'zone', activationThreshold: 0.4,
+    enforcement: 'soft',
+    scope: 'zone',
+    activationThreshold: 0.4,
     strength: 'moderate',
     forbiddenEffects: ['audio:global'],
   },
   {
-    id: 'spawn_limits', name: 'Spawn Limits', category: 'cooperation',
+    id: 'spawn_limits',
+    name: 'Spawn Limits',
+    category: 'cooperation',
     description: 'Agents should not spawn excessive objects in shared spaces',
-    enforcement: 'hard', scope: 'zone', activationThreshold: 0,
+    enforcement: 'hard',
+    scope: 'zone',
+    activationThreshold: 0,
     strength: 'strong',
-    forbiddenEffects: ['render:spawn'],  // Catches excessive spawning via budget
+    forbiddenEffects: ['render:spawn'], // Catches excessive spawning via budget
   },
   {
-    id: 'metanorm_enforcement', name: 'Meta-Norm: Enforce Norms', category: 'authority',
-    description: 'Agents who witness norm violations should report them (norm about enforcing norms)',
-    enforcement: 'advisory', scope: 'world', activationThreshold: 0.7,
+    id: 'metanorm_enforcement',
+    name: 'Meta-Norm: Enforce Norms',
+    category: 'authority',
+    description:
+      'Agents who witness norm violations should report them (norm about enforcing norms)',
+    enforcement: 'advisory',
+    scope: 'world',
+    activationThreshold: 0.7,
     strength: 'weak',
     requiredEffects: ['agent:communicate', 'agent:observe'],
   },
@@ -220,14 +253,14 @@ export const BUILTIN_NORMS: CulturalNorm[] = [
  * Get a built-in norm by ID.
  */
 export function getBuiltinNorm(id: string): CulturalNorm | undefined {
-  return BUILTIN_NORMS.find(n => n.id === id);
+  return BUILTIN_NORMS.find((n) => n.id === id);
 }
 
 /**
  * Get all norms of a given category.
  */
 export function normsByCategory(category: NormCategory): CulturalNorm[] {
-  return BUILTIN_NORMS.filter(n => n.category === category);
+  return BUILTIN_NORMS.filter((n) => n.category === category);
 }
 
 /**
@@ -235,7 +268,7 @@ export function normsByCategory(category: NormCategory): CulturalNorm[] {
  * Based on research: weak norms ≈ 2%, strong norms ≈ 25-67%.
  */
 export function criticalMassForChange(norm: CulturalNorm, populationSize: number): number {
-  const percentages = { weak: 0.02, moderate: 0.25, strong: 0.50 };
+  const percentages = { weak: 0.02, moderate: 0.25, strong: 0.5 };
   return Math.ceil(populationSize * percentages[norm.strength]);
 }
 
@@ -250,14 +283,14 @@ export function criticalMassForChange(norm: CulturalNorm, populationSize: number
  * compositions require explicit compatibility declarations.
  */
 export type CulturalFamily =
-  | 'cooperative'     // Mutual aid, consensus-seeking, shared goals
-  | 'competitive'     // Individual achievement, ranking, resource contest
-  | 'hierarchical'    // Authority-driven, chain of command, delegated tasks
-  | 'egalitarian'     // Flat structure, equal voice, collective decision
-  | 'isolationist'    // Self-sufficient, minimal interaction, independent
-  | 'mercantile'      // Trade-oriented, value exchange, contract-based
-  | 'exploratory'     // Discovery-driven, knowledge-seeking, adaptive
-  | 'ritualistic';    // Tradition-preserving, ceremony-driven, pattern-following
+  | 'cooperative' // Mutual aid, consensus-seeking, shared goals
+  | 'competitive' // Individual achievement, ranking, resource contest
+  | 'hierarchical' // Authority-driven, chain of command, delegated tasks
+  | 'egalitarian' // Flat structure, equal voice, collective decision
+  | 'isolationist' // Self-sufficient, minimal interaction, independent
+  | 'mercantile' // Trade-oriented, value exchange, contract-based
+  | 'exploratory' // Discovery-driven, knowledge-seeking, adaptive
+  | 'ritualistic'; // Tradition-preserving, ceremony-driven, pattern-following
 
 /**
  * Prompt dialect — the communication style and instruction format
@@ -266,12 +299,12 @@ export type CulturalFamily =
  * can often adapt, but performance degrades.
  */
 export type PromptDialect =
-  | 'directive'       // Command-oriented: "Do X. Then Y."
-  | 'socratic'        // Question-oriented: "What if we...? How about...?"
-  | 'narrative'       // Story-oriented: "The agent finds itself needing to..."
-  | 'structured'      // Schema-oriented: "{ task: X, priority: Y }"
-  | 'consensus'       // Proposal-oriented: "I propose we... Do you agree?"
-  | 'reactive';       // Event-oriented: "When X happens, respond with Y."
+  | 'directive' // Command-oriented: "Do X. Then Y."
+  | 'socratic' // Question-oriented: "What if we...? How about...?"
+  | 'narrative' // Story-oriented: "The agent finds itself needing to..."
+  | 'structured' // Schema-oriented: "{ task: X, priority: Y }"
+  | 'consensus' // Proposal-oriented: "I propose we... Do you agree?"
+  | 'reactive'; // Event-oriented: "When X happens, respond with Y."
 
 /**
  * @cultural_profile trait configuration.
@@ -361,37 +394,57 @@ export const CULTURAL_FAMILY_COMPATIBILITY: ReadonlyArray<{
 }> = [
   // Incompatible pairs
   {
-    familyA: 'competitive', familyB: 'cooperative', rating: 'incompatible',
-    reason: 'Competitive agents pursue individual gain, cooperative agents pursue shared goals. Fundamental goal misalignment.',
+    familyA: 'competitive',
+    familyB: 'cooperative',
+    rating: 'incompatible',
+    reason:
+      'Competitive agents pursue individual gain, cooperative agents pursue shared goals. Fundamental goal misalignment.',
   },
   {
-    familyA: 'hierarchical', familyB: 'egalitarian', rating: 'incompatible',
-    reason: 'Hierarchical agents expect chain of command, egalitarian agents reject authority structures.',
+    familyA: 'hierarchical',
+    familyB: 'egalitarian',
+    rating: 'incompatible',
+    reason:
+      'Hierarchical agents expect chain of command, egalitarian agents reject authority structures.',
   },
   {
-    familyA: 'isolationist', familyB: 'cooperative', rating: 'incompatible',
+    familyA: 'isolationist',
+    familyB: 'cooperative',
+    rating: 'incompatible',
     reason: 'Isolationist agents refuse interaction, cooperative agents require mutual engagement.',
   },
 
   // Cautious pairs (can work with mediation)
   {
-    familyA: 'competitive', familyB: 'egalitarian', rating: 'cautious',
+    familyA: 'competitive',
+    familyB: 'egalitarian',
+    rating: 'cautious',
     reason: 'Competitive ranking conflicts with equal-voice principles. Needs mediation.',
   },
   {
-    familyA: 'isolationist', familyB: 'ritualistic', rating: 'cautious',
-    reason: 'Isolationist independence conflicts with group ceremony requirements. Needs mediation.',
+    familyA: 'isolationist',
+    familyB: 'ritualistic',
+    rating: 'cautious',
+    reason:
+      'Isolationist independence conflicts with group ceremony requirements. Needs mediation.',
   },
   {
-    familyA: 'mercantile', familyB: 'cooperative', rating: 'cautious',
-    reason: 'Mercantile agents expect value exchange, cooperative agents share freely. Needs mediation.',
+    familyA: 'mercantile',
+    familyB: 'cooperative',
+    rating: 'cautious',
+    reason:
+      'Mercantile agents expect value exchange, cooperative agents share freely. Needs mediation.',
   },
   {
-    familyA: 'competitive', familyB: 'hierarchical', rating: 'cautious',
+    familyA: 'competitive',
+    familyB: 'hierarchical',
+    rating: 'cautious',
     reason: 'Competitive agents may challenge authority. Needs clear ranking rules.',
   },
   {
-    familyA: 'isolationist', familyB: 'hierarchical', rating: 'cautious',
+    familyA: 'isolationist',
+    familyB: 'hierarchical',
+    rating: 'cautious',
     reason: 'Isolationist agents resist authority. Needs minimal supervision protocols.',
   },
 ];
@@ -407,7 +460,8 @@ export const CONTRADICTORY_NORM_PAIRS: ReadonlyArray<{
   reason: string;
 }> = [
   {
-    normA: 'resource_sharing', normB: 'spawn_limits',
+    normA: 'resource_sharing',
+    normB: 'spawn_limits',
     reason: 'Resource sharing may require spawning items, but spawn limits restrict it.',
   },
   // Users can extend this set via registerContradictoryNorms()
@@ -429,7 +483,11 @@ export function registerContradictoryNorms(normA: string, normB: string, reason:
 /**
  * Get all contradictory norm pairs (built-in + custom).
  */
-export function getAllContradictoryNorms(): ReadonlyArray<{ normA: string; normB: string; reason: string }> {
+export function getAllContradictoryNorms(): ReadonlyArray<{
+  normA: string;
+  normB: string;
+  reason: string;
+}> {
   return [...CONTRADICTORY_NORM_PAIRS, ...customContradictoryNorms];
 }
 
@@ -439,7 +497,7 @@ export function getAllContradictoryNorms(): ReadonlyArray<{ normA: string; normB
  */
 export function getFamilyCompatibility(
   familyA: CulturalFamily,
-  familyB: CulturalFamily,
+  familyB: CulturalFamily
 ): { rating: CompatibilityRating; reason: string } {
   if (familyA === familyB) {
     return { rating: 'compatible', reason: 'Same cultural family.' };

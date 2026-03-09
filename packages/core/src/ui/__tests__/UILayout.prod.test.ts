@@ -94,7 +94,9 @@ describe('UILayoutEngine — Production', () => {
   describe('compute — padding', () => {
     it('offsets children by padding', () => {
       const root = engine.createNode({
-        direction: 'column', width: 200, height: 200,
+        direction: 'column',
+        width: 200,
+        height: 200,
         padding: { top: 20, right: 0, bottom: 0, left: 30 },
       });
       const c1 = engine.createNode({ width: 100, height: 50 });
@@ -109,7 +111,9 @@ describe('UILayoutEngine — Production', () => {
   describe('compute — justify center', () => {
     it('centers children on main axis', () => {
       const root = engine.createNode({
-        direction: 'column', width: 200, height: 200,
+        direction: 'column',
+        width: 200,
+        height: 200,
         justifyContent: 'center',
       });
       const c1 = engine.createNode({ width: 200, height: 50 });

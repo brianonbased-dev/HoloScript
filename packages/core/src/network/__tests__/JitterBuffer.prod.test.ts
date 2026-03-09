@@ -68,7 +68,7 @@ describe('JitterBuffer', () => {
       buf.insert(s('obj', 1)); // fill gap
       const out = buf.forceFlush('obj'); // get any remaining
       // Verify that across all inserts+forceFlush all seqs have been seen
-      const seqs = out.map(x => x.sequenceNumber);
+      const seqs = out.map((x) => x.sequenceNumber);
       // With holdTime=0 and gapSkipMultiplier=100: all should emit on insert
       // so forceFlush gets nothing... test the overall: all 3 unique seqs passed through
       expect(buf.pendingCount('obj')).toBe(0);
@@ -80,8 +80,8 @@ describe('JitterBuffer', () => {
       buf.insert(s('obj', 3));
       buf.insert(s('obj', 2));
       const out = buf.insert(s('obj', 1));
-      const seqs = out.map(x => x.sequenceNumber);
-      expect(seqs).toEqual([...seqs].sort((a,b)=>a-b));
+      const seqs = out.map((x) => x.sequenceNumber);
+      expect(seqs).toEqual([...seqs].sort((a, b) => a - b));
     });
   });
 
@@ -116,7 +116,7 @@ describe('JitterBuffer', () => {
       // Actually holdTime=0 means gapSkip threshold = 0, so gap is skipped immediately.
       // b is unrelated and should emit freely
       const out = buf.insert(s('b', 0));
-      expect(out.some(x => x.objectId === 'b')).toBe(true);
+      expect(out.some((x) => x.objectId === 'b')).toBe(true);
     });
   });
 
@@ -201,11 +201,11 @@ describe('JitterBuffer', () => {
   describe('tick() gap skip', () => {
     it('tick with far-future now triggers gap-skip', () => {
       buf = new JitterBuffer<State>({ holdTimeMs: 1, gapSkipMultiplier: 1 });
-      buf.insert(s('obj', 0));  // emitted immediately (holdTime=1, age≈0)
-      buf.insert(s('obj', 2));  // buffered: gap at 1
+      buf.insert(s('obj', 0)); // emitted immediately (holdTime=1, age≈0)
+      buf.insert(s('obj', 2)); // buffered: gap at 1
       // Advance time by 1000ms to trigger gap skip (holdTime*gapSkipMultiplier=1)
       const out = buf.tick(Date.now() + 1000);
-      expect(out.some(x => x.sequenceNumber === 2)).toBe(true);
+      expect(out.some((x) => x.sequenceNumber === 2)).toBe(true);
     });
   });
 });

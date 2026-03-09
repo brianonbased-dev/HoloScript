@@ -25,11 +25,11 @@ orb spinning_cube {
 
 The `@animated` trait gives objects an animation controller.
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `auto_play` | string | Animation to play on spawn |
-| `speed` | float | Global playback speed multiplier |
-| `blend_time` | float | Cross-fade time between animations |
+| Property     | Type   | Description                        |
+| ------------ | ------ | ---------------------------------- |
+| `auto_play`  | string | Animation to play on spawn         |
+| `speed`      | float  | Global playback speed multiplier   |
+| `blend_time` | float  | Cross-fade time between animations |
 
 ## Animation Blocks
 
@@ -88,6 +88,7 @@ animation "bounce" {
 ```
 
 Available easings:
+
 - `linear`, `ease`, `ease-in`, `ease-out`, `ease-in-out`
 - `ease-in-bounce`, `ease-out-bounce`, `ease-in-out-bounce`
 - `ease-in-elastic`, `ease-out-elastic`
@@ -173,6 +174,7 @@ orb enemy {
 ## Exercise
 
 Create a "floating collectible coin" with:
+
 1. Gentle up-and-down bob (looped)
 2. Slow Y-axis rotation (looped)
 3. Sparkle effect when collected

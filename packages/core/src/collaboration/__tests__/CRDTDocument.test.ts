@@ -7,7 +7,7 @@ function makeDoc(peerId = 'peer-1', config = {}) {
     { filePath: 'test.hsplus', workspaceId: 'ws1' },
     peerId,
     { displayName: 'Alice', color: '#00d4ff' },
-    { changeDebounceMs: 0, ...config },
+    { changeDebounceMs: 0, ...config }
   );
 }
 
@@ -183,7 +183,12 @@ describe('CRDTDocument', () => {
   it('loadSnapshot restores content and clears undo', () => {
     doc.setText('a');
     doc.setText('b');
-    doc.loadSnapshot({ content: 'snap', stateVector: '', timestamp: 0, documentId: doc.documentId });
+    doc.loadSnapshot({
+      content: 'snap',
+      stateVector: '',
+      timestamp: 0,
+      documentId: doc.documentId,
+    });
     expect(doc.getText()).toBe('snap');
     expect(doc.canUndo()).toBe(false);
   });
@@ -218,13 +223,13 @@ describe('CRDTDocument', () => {
     doc.applyAwarenessUpdate('peer-2', { displayName: 'Bob', color: '#ff0000' });
     const peers = doc.getPeers();
     expect(peers).toHaveLength(2);
-    expect(peers.find(p => p.peerId === 'peer-2')?.displayName).toBe('Bob');
+    expect(peers.find((p) => p.peerId === 'peer-2')?.displayName).toBe('Bob');
   });
 
   it('applyAwarenessUpdate updates existing peer', () => {
     doc.applyAwarenessUpdate('peer-2', { displayName: 'Bob', color: '#ff0000' });
     doc.applyAwarenessUpdate('peer-2', { cursor: { line: 5, column: 1 } });
-    const bob = doc.getPeers().find(p => p.peerId === 'peer-2');
+    const bob = doc.getPeers().find((p) => p.peerId === 'peer-2');
     expect(bob?.cursor).toEqual({ line: 5, column: 1 });
   });
 

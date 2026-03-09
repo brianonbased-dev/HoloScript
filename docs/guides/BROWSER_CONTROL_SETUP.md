@@ -29,6 +29,7 @@ cp ~/.mcp/config-with-local-holoscript.json ~/.mcp/config.json
 ```
 
 This changes:
+
 - `holoscript` (Railway remote) → `holoscript-local` (local with browser tools)
 - All other servers stay the same
 
@@ -37,11 +38,13 @@ This changes:
 ## Step 3: Restart Your IDE
 
 **Claude Code / Cursor / VSCode**:
+
 1. Close IDE completely
 2. Reopen
 3. MCP servers will reconnect automatically
 
 **Verify connection**:
+
 ```
 You (in chat): "List available MCP tools"
 
@@ -114,6 +117,7 @@ This only activates when you open the HoloScript folder in VSCode.
 ### "Server not found" error
 
 **Fix**: Build the server first
+
 ```bash
 cd C:/Users/josep/Documents/GitHub/HoloScript/packages/mcp-server
 pnpm build
@@ -122,6 +126,7 @@ pnpm build
 ### "Browser won't launch"
 
 **Fix**: Install Playwright browsers
+
 ```bash
 cd C:/Users/josep/Documents/GitHub/HoloScript/packages/mcp-server
 npx playwright install chromium
@@ -130,11 +135,13 @@ npx playwright install chromium
 ### "Tools not showing"
 
 **Fix**: Check server logs
+
 1. Open MCP server panel in IDE
 2. Look for "holoscript-local"
 3. Check for errors
 
 **Common issue**: Node version
+
 - Requires: Node 18+
 - Check: `node --version`
 
@@ -157,6 +164,7 @@ Or manually change `holoscript-local` back to `holoscript` with Railway URL.
 Once browser control is tested locally, deploy to Railway:
 
 1. Commit changes:
+
    ```bash
    cd C:/Users/josep/Documents/GitHub/HoloScript
    git add packages/mcp-server/
@@ -164,11 +172,13 @@ Once browser control is tested locally, deploy to Railway:
    ```
 
 2. Push to Railway (auto-deploys)
+
    ```bash
    git push origin main
    ```
 
 3. Update global config back to Railway URL
+
    ```bash
    cp ~/.mcp/config.backup-YYYYMMDD.json ~/.mcp/config.json
    ```

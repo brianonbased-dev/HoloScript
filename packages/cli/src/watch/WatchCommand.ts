@@ -30,11 +30,7 @@ export async function runWatchMode(options: WatchOptions): Promise<() => Promise
   const reporter = new WatchReporter(!options.noColor);
   const parser = new ChunkBasedIncrementalParser();
 
-  const patterns = [
-    ...options.include,
-    'holoscript.config.json',
-    'holoscript.config.js',
-  ];
+  const patterns = [...options.include, 'holoscript.config.json', 'holoscript.config.js'];
 
   const watcher = new FileWatcher({
     patterns,

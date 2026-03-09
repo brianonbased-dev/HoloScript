@@ -34,7 +34,10 @@ function makeCtx(headPos: [number, number, number] = [0, 1.2, 0], scaleMultiplie
   };
 }
 
-function attach(cfg: Partial<typeof seatedHandler.defaultConfig> = {}, headPos?: [number, number, number]) {
+function attach(
+  cfg: Partial<typeof seatedHandler.defaultConfig> = {},
+  headPos?: [number, number, number]
+) {
   const node = makeNode();
   const ctx = makeCtx(headPos);
   const config = { ...seatedHandler.defaultConfig!, ...cfg };
@@ -119,7 +122,10 @@ describe('seatedHandler.onUpdate — reach', () => {
     ctx.emit.mockClear();
     seatedHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     // resistance = min((2-1)/0.5, 1) = 1 > 0.2 → vignette emitted
-    expect(ctx.emit).toHaveBeenCalledWith('vignette', expect.objectContaining({ intensity: expect.any(Number) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'vignette',
+      expect.objectContaining({ intensity: expect.any(Number) })
+    );
   });
 
   it('does NOT emit vignette when comfort_vignette=false even when out of reach', () => {
@@ -250,6 +256,8 @@ describe('seatedHandler.onEvent — snap turn', () => {
 
   it('unknown event type is ignored without crash', () => {
     const { node, ctx, config } = attach();
-    expect(() => seatedHandler.onEvent!(node as any, config, ctx as any, { type: 'unknown_event' })).not.toThrow();
+    expect(() =>
+      seatedHandler.onEvent!(node as any, config, ctx as any, { type: 'unknown_event' })
+    ).not.toThrow();
   });
 });

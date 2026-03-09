@@ -70,7 +70,7 @@ describe('HITLManager', () => {
       // 'low' is not in the list, confidence < threshold
       const decision = await m.requestApproval(
         makeAction({ confidence: 0.3, estimatedImpact: 'low' }),
-        ['human-1'],
+        ['human-1']
       );
       expect(decision.approved).toBe(true);
       expect(decision.approvedBy).toBe('auto');

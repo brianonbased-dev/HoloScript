@@ -34,7 +34,10 @@ interface EditorState {
 const getInitialStudioMode = (): StudioMode => {
   if (typeof window === 'undefined') return 'creator';
   const saved = window.localStorage.getItem('studio-mode') as StudioMode | null;
-  return (saved && ['creator', 'artist', 'filmmaker', 'expert', 'character', 'scenarios'].includes(saved)) ? saved : 'creator';
+  return saved &&
+    ['creator', 'artist', 'filmmaker', 'expert', 'character', 'scenarios'].includes(saved)
+    ? saved
+    : 'creator';
 };
 
 export const useEditorStore = create<EditorState>()(
@@ -52,7 +55,8 @@ export const useEditorStore = create<EditorState>()(
       setActivePanel: (activePanel) => set({ activePanel }),
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
       setSelectedObjectId: (selectedObjectId) => set({ selectedObjectId }),
-      setSelectedObject: (selectedObjectId, selectedObjectName) => set({ selectedObjectId, selectedObjectName }),
+      setSelectedObject: (selectedObjectId, selectedObjectName) =>
+        set({ selectedObjectId, selectedObjectName }),
       setGizmoMode: (gizmoMode) => set({ gizmoMode }),
       setArtMode: (artMode) => set({ artMode }),
       setStudioMode: (studioMode) => {

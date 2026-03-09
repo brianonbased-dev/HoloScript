@@ -54,19 +54,26 @@ describe('RuntimeProfiler — Production', () => {
 
   describe('stats', () => {
     it('getAverageFrameTime', () => {
-      rp.beginFrame(); rp.endFrame();
-      rp.beginFrame(); rp.endFrame();
+      rp.beginFrame();
+      rp.endFrame();
+      rp.beginFrame();
+      rp.endFrame();
       expect(rp.getAverageFrameTime()).toBeGreaterThanOrEqual(0);
     });
 
     it('getPercentile', () => {
-      for (let i = 0; i < 10; i++) { rp.beginFrame(); rp.endFrame(); }
+      for (let i = 0; i < 10; i++) {
+        rp.beginFrame();
+        rp.endFrame();
+      }
       expect(rp.getPercentile(95)).toBeGreaterThanOrEqual(0);
     });
 
     it('getAverageFPS', () => {
-      rp.beginFrame(); rp.endFrame();
-      rp.beginFrame(); rp.endFrame();
+      rp.beginFrame();
+      rp.endFrame();
+      rp.beginFrame();
+      rp.endFrame();
       expect(rp.getAverageFPS()).toBeGreaterThanOrEqual(0);
     });
 
@@ -86,12 +93,14 @@ describe('RuntimeProfiler — Production', () => {
     it('setEnabled disables', () => {
       rp.setEnabled(false);
       expect(rp.isEnabled()).toBe(false);
-      rp.beginFrame(); rp.endFrame();
+      rp.beginFrame();
+      rp.endFrame();
       expect(rp.getFrameCount()).toBe(0);
     });
 
     it('clear resets', () => {
-      rp.beginFrame(); rp.endFrame();
+      rp.beginFrame();
+      rp.endFrame();
       rp.clear();
       expect(rp.getFrameCount()).toBe(0);
     });

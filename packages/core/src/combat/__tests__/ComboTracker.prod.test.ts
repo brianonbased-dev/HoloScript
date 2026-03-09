@@ -8,7 +8,8 @@ import { describe, it, expect } from 'vitest';
 import { ComboTracker, type ComboDefinition } from '../ComboTracker';
 
 const HADOUKEN: ComboDefinition = {
-  id: 'hadouken', name: 'Hadouken',
+  id: 'hadouken',
+  name: 'Hadouken',
   steps: [
     { input: 'down', maxDelay: 500 },
     { input: 'forward', maxDelay: 500 },
@@ -18,7 +19,8 @@ const HADOUKEN: ComboDefinition = {
 };
 
 const UPPERCUT: ComboDefinition = {
-  id: 'uppercut', name: 'Uppercut',
+  id: 'uppercut',
+  name: 'Uppercut',
   steps: [
     { input: 'forward', maxDelay: 300 },
     { input: 'punch', maxDelay: 300 },
@@ -78,7 +80,7 @@ describe('ComboTracker — Production', () => {
   it('tick cleans up timed-out combo states', () => {
     const ct = new ComboTracker();
     ct.registerCombo(HADOUKEN);
-    ct.pushInput('down', 0);   // starts hadouken chain
+    ct.pushInput('down', 0); // starts hadouken chain
     expect(ct.getActiveComboCount()).toBe(1);
     ct.tick(1000); // way past maxDelay
     expect(ct.getActiveComboCount()).toBe(0);
@@ -98,7 +100,8 @@ describe('ComboTracker — Production', () => {
   it('single-step combo completes immediately', () => {
     const ct = new ComboTracker();
     ct.registerCombo({
-      id: 'slash', name: 'Slash',
+      id: 'slash',
+      name: 'Slash',
       steps: [{ input: 'attack', maxDelay: 500 }],
       reward: 'slash_hit',
     });

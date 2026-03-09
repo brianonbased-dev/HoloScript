@@ -72,7 +72,10 @@ ${this.renderLegend()}
   private renderLegend(): string {
     return Object.entries(CATEGORY_COLORS)
       .filter(([k]) => k !== 'default')
-      .map(([cat, color]) => `    <div class="legend-item"><div class="legend-swatch" style="background:${color}"></div>${cat}</div>`)
+      .map(
+        ([cat, color]) =>
+          `    <div class="legend-item"><div class="legend-swatch" style="background:${color}"></div>${cat}</div>`
+      )
       .join('\n');
   }
 

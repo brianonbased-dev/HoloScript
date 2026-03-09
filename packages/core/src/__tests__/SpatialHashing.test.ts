@@ -83,7 +83,7 @@ describe('SpatialHash', () => {
     grid.insert({ id: 'big', x: 0, y: 0, z: 0, radius: 25 });
     const results = grid.queryRadius(0, 0, 0, 50);
     // Should appear exactly once
-    expect(results.filter(e => e.id === 'big')).toHaveLength(1);
+    expect(results.filter((e) => e.id === 'big')).toHaveLength(1);
   });
 
   // --- Negative coordinates ---

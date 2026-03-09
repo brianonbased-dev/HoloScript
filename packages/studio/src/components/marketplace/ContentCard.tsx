@@ -26,7 +26,7 @@ export function ContentCard({
   onSelect,
   onFavorite,
   isFavorited = false,
-  onDownload
+  onDownload,
 }: ContentCardProps) {
   const [imageError, setImageError] = useState(false);
   const metadata = CONTENT_TYPE_METADATA[item.type];
@@ -104,9 +104,7 @@ export function ContentCard({
             title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
           >
             <Heart
-              className={`h-4 w-4 ${
-                isFavorited ? 'fill-red-500 text-red-500' : 'text-white'
-              }`}
+              className={`h-4 w-4 ${isFavorited ? 'fill-red-500 text-red-500' : 'text-white'}`}
             />
           </button>
         )}
@@ -125,34 +123,22 @@ export function ContentCard({
         <div className="flex items-start gap-2">
           <IconComponent className="mt-0.5 h-4 w-4 shrink-0 text-studio-accent" />
           <div className="flex-1 min-w-0">
-            <h3 className="truncate text-sm font-semibold text-studio-text">
-              {item.name}
-            </h3>
-            <p className="text-[10px] text-studio-muted">
-              {metadata.label}
-            </p>
+            <h3 className="truncate text-sm font-semibold text-studio-text">{item.name}</h3>
+            <p className="text-[10px] text-studio-muted">{metadata.label}</p>
           </div>
         </div>
 
         {/* Description */}
-        <p className="line-clamp-2 text-[11px] text-studio-muted">
-          {item.description}
-        </p>
+        <p className="line-clamp-2 text-[11px] text-studio-muted">{item.description}</p>
 
         {/* Author */}
         <div className="flex items-center gap-1.5">
           {item.author.avatar ? (
-            <img
-              src={item.author.avatar}
-              alt={item.author.name}
-              className="h-4 w-4 rounded-full"
-            />
+            <img src={item.author.avatar} alt={item.author.name} className="h-4 w-4 rounded-full" />
           ) : (
             <div className="h-4 w-4 rounded-full bg-studio-accent/20" />
           )}
-          <span className="text-[10px] text-studio-muted truncate">
-            {item.author.name}
-          </span>
+          <span className="text-[10px] text-studio-muted truncate">{item.author.name}</span>
         </div>
 
         {/* Stats */}
@@ -177,9 +163,7 @@ export function ContentCard({
 
           {/* File size */}
           {formatFileSize(item.fileSize) && (
-            <div className="ml-auto text-[9px] font-mono">
-              {formatFileSize(item.fileSize)}
-            </div>
+            <div className="ml-auto text-[9px] font-mono">{formatFileSize(item.fileSize)}</div>
           )}
         </div>
 

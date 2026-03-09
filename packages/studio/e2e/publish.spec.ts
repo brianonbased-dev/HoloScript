@@ -29,7 +29,9 @@ test.describe('Publish Flow', () => {
     await publishBtn.click();
 
     // Close with X button
-    const closeBtn = page.locator('[title="Close"], button[tabindex]:near(:text("Publish Scene"))').first();
+    const closeBtn = page
+      .locator('[title="Close"], button[tabindex]:near(:text("Publish Scene"))')
+      .first();
     await page.keyboard.press('Escape');
     const modal = page.locator('text=Publish Scene').first();
     await expect(modal).not.toBeVisible({ timeout: 5_000 });

@@ -3,15 +3,18 @@ import { spawn } from 'child_process';
 
 const server = spawn('node', ['dist/index.js'], {
   cwd: 'C:/Users/josep/Documents/GitHub/HoloScript/packages/mcp-server',
-  stdio: ['pipe', 'pipe', 'inherit']
+  stdio: ['pipe', 'pipe', 'inherit'],
 });
 
 let messageId = 0;
 const pending = new Map();
 
 server.stdout.on('data', (data) => {
-  const lines = data.toString().split('\n').filter(l => l.trim());
-  lines.forEach(line => {
+  const lines = data
+    .toString()
+    .split('\n')
+    .filter((l) => l.trim());
+  lines.forEach((line) => {
     try {
       const msg = JSON.parse(line);
       if (msg.id && pending.has(msg.id)) {
@@ -42,7 +45,7 @@ async function test() {
   await send('initialize', {
     protocolVersion: '2024-11-05',
     capabilities: {},
-    clientInfo: { name: 'test', version: '1.0.0' }
+    clientInfo: { name: 'test', version: '1.0.0' },
   });
 
   console.log('Testing browser_launch...\n');
@@ -53,8 +56,8 @@ async function test() {
       holoscriptFile: 'examples/hello-world.hs',
       width: 800,
       height: 600,
-      headless: true
-    }
+      headless: true,
+    },
   });
 
   console.log('RAW RESPONSE:');

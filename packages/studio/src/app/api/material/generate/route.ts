@@ -59,10 +59,7 @@ void main() {
     });
 
     if (!ollamaRes.ok) {
-      return NextResponse.json(
-        { error: `Ollama returned ${ollamaRes.status}` },
-        { status: 502 }
-      );
+      return NextResponse.json({ error: `Ollama returned ${ollamaRes.status}` }, { status: 502 });
     }
 
     const data = (await ollamaRes.json()) as { response?: string; error?: string };

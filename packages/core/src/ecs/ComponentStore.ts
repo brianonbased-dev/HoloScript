@@ -13,7 +13,7 @@
 
 export interface ComponentPool<T = Record<string, unknown>> {
   type: string;
-  data: Map<number, T>;       // entityId → component data
+  data: Map<number, T>; // entityId → component data
 }
 
 // =============================================================================
@@ -37,8 +37,12 @@ export class ComponentStore {
     return this.pools.get(type) as ComponentPool<T> | undefined;
   }
 
-  hasPool(type: string): boolean { return this.pools.has(type); }
-  getPoolTypes(): string[] { return [...this.pools.keys()]; }
+  hasPool(type: string): boolean {
+    return this.pools.has(type);
+  }
+  getPoolTypes(): string[] {
+    return [...this.pools.keys()];
+  }
 
   // ---------------------------------------------------------------------------
   // Component Operations
@@ -67,7 +71,11 @@ export class ComponentStore {
     return this.pools.get(type)?.data.has(entityId) ?? false;
   }
 
-  set<T extends Record<string, unknown>>(type: string, entityId: number, data: Partial<T>): boolean {
+  set<T extends Record<string, unknown>>(
+    type: string,
+    entityId: number,
+    data: Partial<T>
+  ): boolean {
     const pool = this.pools.get(type);
     if (!pool) return false;
     const existing = pool.data.get(entityId);
@@ -80,7 +88,10 @@ export class ComponentStore {
   // Iteration
   // ---------------------------------------------------------------------------
 
-  forEach<T extends Record<string, unknown>>(type: string, callback: (entityId: number, data: T) => void): void {
+  forEach<T extends Record<string, unknown>>(
+    type: string,
+    callback: (entityId: number, data: T) => void
+  ): void {
     const pool = this.pools.get(type);
     if (!pool) return;
     for (const [entityId, data] of pool.data) {
@@ -101,7 +112,7 @@ export class ComponentStore {
 
     const result: number[] = [];
     for (const entityId of first.data.keys()) {
-      if (types.every(t => this.has(t, entityId))) {
+      if (types.every((t) => this.has(t, entityId))) {
         result.push(entityId);
       }
     }

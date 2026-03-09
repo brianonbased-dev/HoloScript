@@ -158,7 +158,7 @@ describe('ForgettingDetector', () => {
       // Need a scenario where absolute is in warning range but relative is primary
       const relDetector = new ForgettingDetector({
         absoluteThreshold: 10, // Very high absolute threshold
-        relativeThreshold: 0.03,  // 3% relative
+        relativeThreshold: 0.03, // 3% relative
         windowSize: 10,
         minDataPoints: 3,
         earlyWarningSlopeThreshold: -0.05,

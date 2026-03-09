@@ -13,13 +13,22 @@ import type { SceneNode } from '@/lib/stores';
 import { serializeScene, deserializeScene } from '@/lib/serializer';
 import type { HoloSceneMetadata } from '@/lib/serializer';
 import {
-  duplicateNode, groupNodes, flattenSceneGraph,
-  getDescendants, removeNodeWithDescendants, computeBounds,
+  duplicateNode,
+  groupNodes,
+  flattenSceneGraph,
+  getDescendants,
+  removeNodeWithDescendants,
+  computeBounds,
 } from '@/lib/sceneUtils';
 import {
-  searchTemplates, getTemplateCategories, findTemplateById,
-  filterTemplatesByTrait, sortTemplatesByName, getTemplatesByCategory,
-  BUILT_IN_TEMPLATES, type SceneTemplate,
+  searchTemplates,
+  getTemplateCategories,
+  findTemplateById,
+  filterTemplatesByTrait,
+  sortTemplatesByName,
+  getTemplatesByCategory,
+  BUILT_IN_TEMPLATES,
+  type SceneTemplate,
 } from '@/lib/templateSearch';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -27,16 +36,29 @@ import {
 let _id = 0;
 const nextId = () => `node_${++_id}`;
 
-function makeNode(name: string, type: SceneNode['type'] = 'mesh', parentId: string | null = null): SceneNode {
+function makeNode(
+  name: string,
+  type: SceneNode['type'] = 'mesh',
+  parentId: string | null = null
+): SceneNode {
   return {
-    id: nextId(), name, type, parentId,
-    traits: [], position: [0,0,0], rotation: [0,0,0], scale: [1,1,1],
+    id: nextId(),
+    name,
+    type,
+    parentId,
+    traits: [],
+    position: [0, 0, 0],
+    rotation: [0, 0, 0],
+    scale: [1, 1, 1],
   };
 }
 
 const METADATA: HoloSceneMetadata = {
-  id: 'test', title: 'Test Scene', author: 'Alex',
-  createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
+  id: 'test',
+  title: 'Test Scene',
+  author: 'Alex',
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -72,7 +94,9 @@ describe('Scenario: Scene Composer — Scene Graph CRUD', () => {
     useSceneGraphStore.getState().addNode(parent);
     useSceneGraphStore.getState().addNode(child);
     useSceneGraphStore.getState().moveNode(child.id, parent.id);
-    expect(useSceneGraphStore.getState().nodes.find(n => n.id === child.id)?.parentId).toBe(parent.id);
+    expect(useSceneGraphStore.getState().nodes.find((n) => n.id === child.id)?.parentId).toBe(
+      parent.id
+    );
   });
 });
 
@@ -171,13 +195,13 @@ describe('Scenario: Scene Composer — Node Duplicate & Group', () => {
 
   it('duplicateNode() preserves type, position, rotation, scale', () => {
     const orig = makeNode('Sphere', 'mesh');
-    orig.position = [1,2,3];
-    orig.rotation = [0,1,0];
-    orig.scale = [2,2,2];
+    orig.position = [1, 2, 3];
+    orig.rotation = [0, 1, 0];
+    orig.scale = [2, 2, 2];
     const copy = duplicateNode(orig, 'c');
     expect(copy.type).toBe('mesh');
-    expect(copy.position).toEqual([1,2,3]);
-    expect(copy.scale).toEqual([2,2,2]);
+    expect(copy.position).toEqual([1, 2, 3]);
+    expect(copy.scale).toEqual([2, 2, 2]);
   });
 
   it('duplicateNode() allows overriding parentId', () => {
@@ -188,11 +212,12 @@ describe('Scenario: Scene Composer — Node Duplicate & Group', () => {
   });
 
   it('groupNodes() creates a group node containing selected children', () => {
-    const a = makeNode('A'), b = makeNode('B');
+    const a = makeNode('A'),
+      b = makeNode('B');
     const { group, updatedChildren } = groupNodes([a, b], 'grp1', 'My Group');
     expect(group.type).toBe('group');
     expect(group.name).toBe('My Group');
-    expect(updatedChildren.every(c => c.parentId === 'grp1')).toBe(true);
+    expect(updatedChildren.every((c) => c.parentId === 'grp1')).toBe(true);
   });
 
   it('groupNodes() does not mutate original nodes', () => {
@@ -207,13 +232,13 @@ describe('Scenario: Scene Composer — Node Duplicate & Group', () => {
     const child = { ...makeNode('C'), parentId: parent.id };
     const flat = flattenSceneGraph([parent, child]);
     expect(flat).toHaveLength(2);
-    expect(flat.find(n => n.id === child.id)?.depth).toBe(1);
+    expect(flat.find((n) => n.id === child.id)?.depth).toBe(1);
   });
 
   it('flattenSceneGraph() roots have depth 0', () => {
     const nodes = [makeNode('A'), makeNode('B')];
     const flat = flattenSceneGraph(nodes);
-    expect(flat.every(n => n.depth === 0)).toBe(true);
+    expect(flat.every((n) => n.depth === 0)).toBe(true);
   });
 
   it('getDescendants() finds all children recursively', () => {
@@ -221,8 +246,8 @@ describe('Scenario: Scene Composer — Node Duplicate & Group', () => {
     const child = { ...makeNode('C'), parentId: parent.id };
     const grandChild = { ...makeNode('GC'), parentId: child.id };
     const desc = getDescendants([parent, child, grandChild], parent.id);
-    expect(desc.map(n => n.id)).toContain(child.id);
-    expect(desc.map(n => n.id)).toContain(grandChild.id);
+    expect(desc.map((n) => n.id)).toContain(child.id);
+    expect(desc.map((n) => n.id)).toContain(grandChild.id);
   });
 
   it('removeNodeWithDescendants() removes node and all children', () => {
@@ -230,15 +255,15 @@ describe('Scenario: Scene Composer — Node Duplicate & Group', () => {
     const child = { ...makeNode('C'), parentId: parent.id };
     const sibling = makeNode('S');
     const remaining = removeNodeWithDescendants([parent, child, sibling], parent.id);
-    expect(remaining.map(n => n.id)).not.toContain(parent.id);
-    expect(remaining.map(n => n.id)).not.toContain(child.id);
-    expect(remaining.map(n => n.id)).toContain(sibling.id);
+    expect(remaining.map((n) => n.id)).not.toContain(parent.id);
+    expect(remaining.map((n) => n.id)).not.toContain(child.id);
+    expect(remaining.map((n) => n.id)).toContain(sibling.id);
   });
 
   it('computeBounds() returns correct bounding box center', () => {
     const nodes = [
-      { ...makeNode('A'), position: [0,0,0] as [number,number,number] },
-      { ...makeNode('B'), position: [4,0,0] as [number,number,number] },
+      { ...makeNode('A'), position: [0, 0, 0] as [number, number, number] },
+      { ...makeNode('B'), position: [4, 0, 0] as [number, number, number] },
     ];
     const bounds = computeBounds(nodes);
     expect(bounds.center[0]).toBeCloseTo(2);
@@ -255,7 +280,11 @@ describe('Scenario: Scene Composer — Node Duplicate & Group', () => {
   });
   it('group action in the scene panel right-click menu', () => {
     useSceneGraphStore.setState({ nodes: [makeNode('a'), makeNode('b')] });
-    const { group, updatedChildren } = groupNodes(useSceneGraphStore.getState().nodes, 'grp2', 'My Group 2');
+    const { group, updatedChildren } = groupNodes(
+      useSceneGraphStore.getState().nodes,
+      'grp2',
+      'My Group 2'
+    );
     expect(group.name).toBe('My Group 2');
     expect(updatedChildren.length).toBe(2);
   });
@@ -278,17 +307,17 @@ describe('Scenario: Scene Composer — Template Library', () => {
 
   it('searchTemplates() by name — finds "Robot Scene"', () => {
     const results = searchTemplates(BUILT_IN_TEMPLATES, 'robot');
-    expect(results.some(t => t.id === 'robot-scene')).toBe(true);
+    expect(results.some((t) => t.id === 'robot-scene')).toBe(true);
   });
 
   it('searchTemplates() by tag — finds "vr" templates', () => {
     const results = searchTemplates(BUILT_IN_TEMPLATES, 'vr');
-    expect(results.some(t => t.id === 'vr-experience')).toBe(true);
+    expect(results.some((t) => t.id === 'vr-experience')).toBe(true);
   });
 
   it('searchTemplates() by category filter', () => {
     const results = searchTemplates(BUILT_IN_TEMPLATES, '', 'Engineering');
-    expect(results.every(t => t.category === 'Engineering')).toBe(true);
+    expect(results.every((t) => t.category === 'Engineering')).toBe(true);
   });
 
   it('searchTemplates() empty query returns all templates for category', () => {
@@ -326,14 +355,14 @@ describe('Scenario: Scene Composer — Template Library', () => {
   it('sortTemplatesByName() returns alphabetically sorted list', () => {
     const sorted = sortTemplatesByName(BUILT_IN_TEMPLATES);
     for (let i = 0; i < sorted.length - 1; i++) {
-      expect(sorted[i]!.name.localeCompare(sorted[i+1]!.name)).toBeLessThanOrEqual(0);
+      expect(sorted[i]!.name.localeCompare(sorted[i + 1]!.name)).toBeLessThanOrEqual(0);
     }
   });
 
   it('getTemplatesByCategory() returns sorted templates for a category', () => {
     const engineering = getTemplatesByCategory(BUILT_IN_TEMPLATES, 'Engineering');
     expect(engineering.length).toBeGreaterThan(0);
-    expect(engineering.every(t => t.category === 'Engineering')).toBe(true);
+    expect(engineering.every((t) => t.category === 'Engineering')).toBe(true);
   });
 
   it('template picker UI shows category tabs', () => {

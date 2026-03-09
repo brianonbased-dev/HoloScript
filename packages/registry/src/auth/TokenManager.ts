@@ -65,9 +65,7 @@ export class TokenManager {
       orgScope: options.orgScope,
       permissions: options.permissions ?? ['read'],
       createdAt: new Date(),
-      expiresAt: options.expiresIn
-        ? new Date(Date.now() + options.expiresIn * 1000)
-        : undefined,
+      expiresAt: options.expiresIn ? new Date(Date.now() + options.expiresIn * 1000) : undefined,
       readonly: options.readonly ?? false,
       revoked: false,
     };

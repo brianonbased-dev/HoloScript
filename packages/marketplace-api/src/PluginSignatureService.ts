@@ -16,10 +16,7 @@
  */
 
 import { createHash, sign, verify, generateKeyPairSync, randomBytes } from 'crypto';
-import type {
-  PluginSignature,
-  SignatureVerificationResult,
-} from './PluginPackageSpec.js';
+import type { PluginSignature, SignatureVerificationResult } from './PluginPackageSpec.js';
 
 // =============================================================================
 // KEY STORAGE TYPES
@@ -107,14 +104,12 @@ export class PluginSignatureService {
   async registerKey(
     ownerId: string,
     publicKeyBase64: string,
-    label?: string,
+    label?: string
   ): Promise<{ keyId: string; fingerprint: string }> {
     // Validate public key format
     const keyBuffer = Buffer.from(publicKeyBase64, 'base64');
     if (keyBuffer.length !== 32) {
-      throw new Error(
-        `Invalid Ed25519 public key: expected 32 bytes, got ${keyBuffer.length}`,
-      );
+      throw new Error(`Invalid Ed25519 public key: expected 32 bytes, got ${keyBuffer.length}`);
     }
 
     // Compute fingerprint
@@ -125,9 +120,7 @@ export class PluginSignatureService {
       const existingKeyId = this.fingerprintIndex.get(fingerprint)!;
       const existingKey = this.keys.get(existingKeyId)!;
       if (!existingKey.revoked) {
-        throw new Error(
-          `A key with fingerprint ${fingerprint} is already registered`,
-        );
+        throw new Error(`A key with fingerprint ${fingerprint} is already registered`);
       }
       // If the existing key was revoked, allow re-registration with a new keyId
     }
@@ -248,7 +241,7 @@ export class PluginSignatureService {
     contentHash: string,
     privateKeyPem: string,
     publicKeyBase64: string,
-    keyId?: string,
+    keyId?: string
   ): PluginSignature {
     // Ed25519 uses crypto.sign() with null algorithm (Ed25519 does its own hashing)
     const signatureBuffer = sign(null, Buffer.from(contentHash), privateKeyPem);
@@ -286,16 +279,13 @@ export class PluginSignatureService {
         .replace(/-----BEGIN PUBLIC KEY-----/g, '')
         .replace(/-----END PUBLIC KEY-----/g, '')
         .replace(/\s/g, ''),
-      'base64',
+      'base64'
     );
     // The raw key starts at offset 12 in the DER encoding
     const rawPublicKey = derBuffer.subarray(12);
     const publicKeyBase64 = rawPublicKey.toString('base64');
 
-    const fingerprint = createHash('sha256')
-      .update(rawPublicKey)
-      .digest('hex')
-      .slice(0, 16);
+    const fingerprint = createHash('sha256').update(rawPublicKey).digest('hex').slice(0, 16);
 
     return {
       privateKeyPem: privateKey,
@@ -320,7 +310,7 @@ export class PluginSignatureService {
    */
   async verifySignature(
     contentHash: string,
-    signature: PluginSignature,
+    signature: PluginSignature
   ): Promise<SignatureVerificationResult> {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -357,22 +347,26 @@ export class PluginSignatureService {
           null,
           Buffer.from(contentHash),
           spkiPem,
-          Buffer.from(signature.signature, 'base64'),
+          Buffer.from(signature.signature, 'base64')
         );
 
         if (!cryptoValid) {
-          errors.push('Cryptographic signature verification failed: signature does not match content');
+          errors.push(
+            'Cryptographic signature verification failed: signature does not match content'
+          );
         }
       }
     } catch (err) {
-      errors.push(`Signature verification error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      errors.push(
+        `Signature verification error: ${err instanceof Error ? err.message : 'Unknown error'}`
+      );
     }
 
     // 3. Verify fingerprint consistency
     const expectedFingerprint = this.computeFingerprint(signature.publicKey);
     if (signature.keyFingerprint !== expectedFingerprint) {
       errors.push(
-        `Key fingerprint mismatch: expected ${expectedFingerprint}, got ${signature.keyFingerprint}`,
+        `Key fingerprint mismatch: expected ${expectedFingerprint}, got ${signature.keyFingerprint}`
       );
       cryptoValid = false;
     }
@@ -386,12 +380,8 @@ export class PluginSignatureService {
       if (registeredKey.revoked) {
         errors.push(
           `Signing key ${signature.keyFingerprint} has been revoked` +
-          (registeredKey.revokedAt
-            ? ` on ${registeredKey.revokedAt.toISOString()}`
-            : '') +
-          (registeredKey.revokedReason
-            ? `: ${registeredKey.revokedReason}`
-            : ''),
+            (registeredKey.revokedAt ? ` on ${registeredKey.revokedAt.toISOString()}` : '') +
+            (registeredKey.revokedReason ? `: ${registeredKey.revokedReason}` : '')
         );
       } else {
         trusted = true;
@@ -404,14 +394,14 @@ export class PluginSignatureService {
       // Verify public key matches registered key
       if (registeredKey.publicKey !== signature.publicKey) {
         errors.push(
-          'Public key in signature does not match the registered key for this fingerprint',
+          'Public key in signature does not match the registered key for this fingerprint'
         );
         trusted = false;
       }
     } else {
       warnings.push(
         `Signing key ${signature.keyFingerprint} is not registered with the marketplace. ` +
-        'The signature is cryptographically valid but the author cannot be verified.',
+          'The signature is cryptographically valid but the author cannot be verified.'
       );
     }
 
@@ -424,7 +414,7 @@ export class PluginSignatureService {
 
       if (ageMs > oneYear) {
         warnings.push(
-          'Signature is older than 1 year. Consider re-signing with a fresh timestamp.',
+          'Signature is older than 1 year. Consider re-signing with a fresh timestamp.'
         );
       }
 
@@ -458,7 +448,7 @@ export class PluginSignatureService {
   async verifyPackageIntegrity(
     packageContent: Buffer | string,
     declaredContentHash: string,
-    signature?: PluginSignature,
+    signature?: PluginSignature
   ): Promise<SignatureVerificationResult> {
     // Step 1: Verify content hash
     const computedHash = this.computeContentHash(packageContent);
@@ -469,7 +459,7 @@ export class PluginSignatureService {
         keyFingerprint: signature?.keyFingerprint ?? '',
         errors: [
           `Content hash mismatch: computed ${computedHash}, declared ${declaredContentHash}. ` +
-          'The package may have been tampered with.',
+            'The package may have been tampered with.',
         ],
         warnings: [],
       };

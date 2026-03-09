@@ -7,7 +7,9 @@ import { SplinePath } from '../math/SplinePath';
 
 describe('SplinePath', () => {
   let sp: SplinePath;
-  beforeEach(() => { sp = new SplinePath(); });
+  beforeEach(() => {
+    sp = new SplinePath();
+  });
 
   it('empty path evaluates to origin', () => {
     expect(sp.evaluate(0.5)).toEqual({ x: 0, y: 0, z: 0 });

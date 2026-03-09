@@ -103,7 +103,7 @@ export function isGraphRAGReady(): boolean {
 
 export async function handleGraphRagTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown | null> {
   switch (name) {
     case 'holo_semantic_search':
@@ -120,7 +120,8 @@ export async function handleGraphRagTool(
 async function handleSemanticSearch(args: Record<string, unknown>): Promise<unknown> {
   if (!cachedEmbeddingIndex) {
     return {
-      error: 'No embedding index built. Call holo_absorb_repo first (embeddings are built automatically).',
+      error:
+        'No embedding index built. Call holo_absorb_repo first (embeddings are built automatically).',
     };
   }
 

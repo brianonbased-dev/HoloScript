@@ -107,9 +107,13 @@ export function AIMaterialPanel({ onClose, onApply }: AIMaterialPanelProps) {
           className="flex items-center justify-center gap-2 rounded-lg bg-studio-accent px-4 py-2 text-[12px] font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isGenerating ? (
-            <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</>
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Generating…
+            </>
           ) : (
-            <><Sparkles className="h-4 w-4" /> Generate Material</>
+            <>
+              <Sparkles className="h-4 w-4" /> Generate Material
+            </>
           )}
         </button>
 
@@ -126,12 +130,18 @@ export function AIMaterialPanel({ onClose, onApply }: AIMaterialPanelProps) {
             {traits && (
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-medium text-studio-muted">HoloScript Trait</span>
+                  <span className="text-[10px] font-medium text-studio-muted">
+                    HoloScript Trait
+                  </span>
                   <button
                     onClick={() => copyText(traits, setCopiedTraits)}
                     className="flex items-center gap-1 text-[9px] text-studio-muted hover:text-studio-text"
                   >
-                    {copiedTraits ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
+                    {copiedTraits ? (
+                      <Check className="h-3 w-3 text-green-400" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
                     {copiedTraits ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
@@ -148,14 +158,22 @@ export function AIMaterialPanel({ onClose, onApply }: AIMaterialPanelProps) {
                   onClick={() => setExpandGlsl((v) => !v)}
                   className="flex items-center gap-1 text-[10px] font-medium text-studio-muted hover:text-studio-text"
                 >
-                  {expandGlsl ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  {expandGlsl ? (
+                    <ChevronUp className="h-3 w-3" />
+                  ) : (
+                    <ChevronDown className="h-3 w-3" />
+                  )}
                   GLSL Shader ({glsl.split('\n').length} lines)
                 </button>
                 <button
                   onClick={() => copyText(glsl, setCopiedGlsl)}
                   className="flex items-center gap-1 text-[9px] text-studio-muted hover:text-studio-text"
                 >
-                  {copiedGlsl ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
+                  {copiedGlsl ? (
+                    <Check className="h-3 w-3 text-green-400" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
                   {copiedGlsl ? 'Copied!' : 'Copy'}
                 </button>
               </div>

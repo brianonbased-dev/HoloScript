@@ -222,7 +222,7 @@ object Mirror @mirror(quality: 0.5, blur: 0.1) {
 
 ---
 
-
 ## See Also
+
 - [Extending Traits](/traits/extending)
 - [API Reference](/api/)

@@ -12,7 +12,9 @@ function chain(id: string, bones: IKBone[], tx: number, ty: number, tz: number):
 describe('IKSolver', () => {
   let solver: IKSolver;
 
-  beforeEach(() => { solver = new IKSolver(); });
+  beforeEach(() => {
+    solver = new IKSolver();
+  });
 
   // ---------------------------------------------------------------------------
   // Chain Management
@@ -75,11 +77,7 @@ describe('IKSolver', () => {
   // ---------------------------------------------------------------------------
 
   it('solveCCD works with multi-bone chain', () => {
-    const bones = [
-      bone('b0', 0, 0, 0, 2),
-      bone('b1', 0, 2, 0, 2),
-      bone('b2', 0, 4, 0, 2),
-    ];
+    const bones = [bone('b0', 0, 0, 0, 2), bone('b1', 0, 2, 0, 2), bone('b2', 0, 4, 0, 2)];
     solver.addChain(chain('tentacle', bones, 0, 5, 0));
     expect(solver.solveCCD('tentacle')).toBe(true);
   });

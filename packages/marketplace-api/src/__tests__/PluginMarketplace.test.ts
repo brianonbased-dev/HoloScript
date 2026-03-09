@@ -53,14 +53,14 @@ describe('PluginSignatureService', () => {
 
       await sigService.registerKey('author-1', keypair.publicKeyBase64);
 
-      await expect(
-        sigService.registerKey('author-2', keypair.publicKeyBase64),
-      ).rejects.toThrow('already registered');
+      await expect(sigService.registerKey('author-2', keypair.publicKeyBase64)).rejects.toThrow(
+        'already registered'
+      );
     });
 
     it('should reject invalid key length', async () => {
       await expect(
-        sigService.registerKey('author-1', Buffer.from('too-short').toString('base64')),
+        sigService.registerKey('author-1', Buffer.from('too-short').toString('base64'))
       ).rejects.toThrow('expected 32 bytes');
     });
 
@@ -81,9 +81,7 @@ describe('PluginSignatureService', () => {
       const keypair = PluginSignatureService.generateKeypair();
       const { keyId } = await sigService.registerKey('author-1', keypair.publicKeyBase64);
 
-      await expect(
-        sigService.revokeKey(keyId, 'author-2'),
-      ).rejects.toThrow('Only the key owner');
+      await expect(sigService.revokeKey(keyId, 'author-2')).rejects.toThrow('Only the key owner');
     });
 
     it('should list keys for an author', async () => {
@@ -127,7 +125,7 @@ describe('PluginSignatureService', () => {
       const signature = sigService.createSignature(
         contentHash,
         keypair.privateKeyPem,
-        keypair.publicKeyBase64,
+        keypair.publicKeyBase64
       );
 
       expect(signature.algorithm).toBe('Ed25519');
@@ -153,7 +151,7 @@ describe('PluginSignatureService', () => {
       const signature = sigService.createSignature(
         originalHash,
         keypair.privateKeyPem,
-        keypair.publicKeyBase64,
+        keypair.publicKeyBase64
       );
 
       // Verify against different content hash (tampered)
@@ -174,7 +172,7 @@ describe('PluginSignatureService', () => {
       const signature = sigService.createSignature(
         contentHash,
         keypair.privateKeyPem,
-        keypair.publicKeyBase64,
+        keypair.publicKeyBase64
       );
 
       // Revoke the key
@@ -195,7 +193,7 @@ describe('PluginSignatureService', () => {
       const signature = sigService.createSignature(
         contentHash,
         keypair.privateKeyPem,
-        keypair.publicKeyBase64,
+        keypair.publicKeyBase64
       );
 
       const result = await sigService.verifySignature(contentHash, signature);
@@ -266,7 +264,7 @@ describe('PluginMarketplaceService', () => {
           manifest: sampleManifest,
           bundle: Buffer.from('console.log("plugin")').toString('base64'),
         },
-        'test-token',
+        'test-token'
       );
 
       expect(result.success).toBe(true);
@@ -282,7 +280,7 @@ describe('PluginMarketplaceService', () => {
           manifest: sampleManifest,
           bundle: 'dGVzdA==',
         },
-        'invalid-token',
+        'invalid-token'
       );
 
       expect(result.success).toBe(false);
@@ -292,12 +290,12 @@ describe('PluginMarketplaceService', () => {
     it('should reject duplicate version', async () => {
       await marketplace.publishPlugin(
         { manifest: sampleManifest, bundle: 'dGVzdA==' },
-        'test-token',
+        'test-token'
       );
 
       const result = await marketplace.publishPlugin(
         { manifest: sampleManifest, bundle: 'dGVzdA==' },
-        'test-token',
+        'test-token'
       );
 
       expect(result.success).toBe(false);
@@ -321,7 +319,7 @@ describe('PluginMarketplaceService', () => {
           },
           bundle: 'dGVzdA==',
         },
-        'test-token',
+        'test-token'
       );
 
       expect(result.success).toBe(false);
@@ -331,7 +329,7 @@ describe('PluginMarketplaceService', () => {
     it('should warn about missing optional fields', async () => {
       const result = await marketplace.publishPlugin(
         { manifest: sampleManifest, bundle: 'dGVzdA==' },
-        'test-token',
+        'test-token'
       );
 
       expect(result.success).toBe(true);
@@ -351,7 +349,7 @@ describe('PluginMarketplaceService', () => {
           readme: '# My Plugin\nGreat plugin!',
           changelog: '## 1.1.0\n- Initial release',
         },
-        'test-token',
+        'test-token'
       );
 
       expect(result.success).toBe(true);
@@ -369,7 +367,7 @@ describe('PluginMarketplaceService', () => {
           manifest: sampleManifest,
           bundle: 'dGVzdA==',
         },
-        'test-token',
+        'test-token'
       );
 
       await marketplace.publishPlugin(
@@ -389,7 +387,7 @@ describe('PluginMarketplaceService', () => {
           },
           bundle: 'dGVzdB==',
         },
-        'test-token',
+        'test-token'
       );
 
       await marketplace.publishPlugin(
@@ -410,7 +408,7 @@ describe('PluginMarketplaceService', () => {
           },
           bundle: 'dGVzdC==',
         },
-        'test-token',
+        'test-token'
       );
     });
 
@@ -458,7 +456,7 @@ describe('PluginMarketplaceService', () => {
           bundle: 'dGVzdA==',
           readme: '# Analytics Dashboard',
         },
-        'test-token',
+        'test-token'
       );
     });
 
@@ -473,9 +471,7 @@ describe('PluginMarketplaceService', () => {
     });
 
     it('should throw for non-existent plugin', async () => {
-      await expect(
-        marketplace.getPlugin('@test/nonexistent'),
-      ).rejects.toThrow('not found');
+      await expect(marketplace.getPlugin('@test/nonexistent')).rejects.toThrow('not found');
     });
   });
 
@@ -483,15 +479,13 @@ describe('PluginMarketplaceService', () => {
     beforeEach(async () => {
       await marketplace.publishPlugin(
         { manifest: sampleManifest, bundle: 'dGVzdA==' },
-        'test-token',
+        'test-token'
       );
     });
 
     it('should unpublish a plugin', async () => {
       await marketplace.unpublishPlugin('@test/analytics-dashboard', undefined, 'test-token');
-      await expect(
-        marketplace.getPlugin('@test/analytics-dashboard'),
-      ).rejects.toThrow('not found');
+      await expect(marketplace.getPlugin('@test/analytics-dashboard')).rejects.toThrow('not found');
     });
 
     it('should deprecate a plugin', async () => {
@@ -499,7 +493,7 @@ describe('PluginMarketplaceService', () => {
         '@test/analytics-dashboard',
         'No longer maintained',
         '@test/better-analytics',
-        'test-token',
+        'test-token'
       );
 
       const detail = await marketplace.getPlugin('@test/analytics-dashboard');
@@ -513,7 +507,7 @@ describe('PluginMarketplaceService', () => {
     beforeEach(async () => {
       await marketplace.publishPlugin(
         { manifest: sampleManifest, bundle: 'dGVzdA==' },
-        'test-token',
+        'test-token'
       );
 
       marketplace.registerSession('user2-token', 'user2', 'authenticated', 'user2');
@@ -525,7 +519,7 @@ describe('PluginMarketplaceService', () => {
         '@test/analytics-dashboard',
         5,
         { title: 'Amazing!', body: 'Best analytics plugin ever!' },
-        'user2-token',
+        'user2-token'
       );
 
       const ratings = await marketplace.getPluginRatings('@test/analytics-dashboard');
@@ -555,7 +549,7 @@ describe('PluginMarketplaceService', () => {
 
     it('should reject invalid rating', async () => {
       await expect(
-        marketplace.ratePlugin('@test/analytics-dashboard', 6, undefined, 'user2-token'),
+        marketplace.ratePlugin('@test/analytics-dashboard', 6, undefined, 'user2-token')
       ).rejects.toThrow('1 and 5');
     });
   });
@@ -564,7 +558,7 @@ describe('PluginMarketplaceService', () => {
     beforeEach(async () => {
       await marketplace.publishPlugin(
         { manifest: sampleManifest, bundle: 'dGVzdA==' },
-        'test-token',
+        'test-token'
       );
     });
 
@@ -587,7 +581,7 @@ describe('PluginMarketplaceService', () => {
     beforeEach(async () => {
       await marketplace.publishPlugin(
         { manifest: sampleManifest, bundle: 'dGVzdA==' },
-        'test-token',
+        'test-token'
       );
     });
 
@@ -606,7 +600,7 @@ describe('PluginMarketplaceService', () => {
     beforeEach(async () => {
       await marketplace.publishPlugin(
         { manifest: sampleManifest, bundle: 'dGVzdA==' },
-        'test-token',
+        'test-token'
       );
     });
 
@@ -653,7 +647,7 @@ describe('PluginMarketplaceService', () => {
           },
           bundle: 'dGVzdA==',
         },
-        'test-token',
+        'test-token'
       );
 
       // Publish a plugin that depends on it
@@ -670,7 +664,7 @@ describe('PluginMarketplaceService', () => {
           },
           bundle: 'dGVzdA==',
         },
-        'test-token',
+        'test-token'
       );
 
       const result = await marketplace.resolvePluginDependencies('@test/derived-plugin');
@@ -692,7 +686,7 @@ describe('PluginMarketplaceService', () => {
           },
           bundle: 'dGVzdA==',
         },
-        'test-token',
+        'test-token'
       );
 
       const result = await marketplace.resolvePluginDependencies('@test/orphan-plugin');
@@ -756,7 +750,9 @@ describe('PluginInstallPipeline', () => {
     // Override the headers.get to work with mock
     mockFetch.mockImplementation(async (url: string) => {
       const isDownload = url.includes('/download');
-      const content = isDownload ? 'mock-bundle-content' : JSON.stringify({ data: { manifest: mockManifest } });
+      const content = isDownload
+        ? 'mock-bundle-content'
+        : JSON.stringify({ data: { manifest: mockManifest } });
 
       // Compute actual SHA for integrity check
       const { createHash } = await import('crypto');
@@ -937,8 +933,12 @@ describe('Plugin Marketplace Exports', () => {
     expect(typeof PluginSignatureService.generateKeypair).toBe('function');
 
     // PluginMarketplaceService
-    const { PluginMarketplaceService, InMemoryPluginDatabase, PluginDownloadStatsTracker, PluginRatingService } =
-      await import('../PluginMarketplaceService.js');
+    const {
+      PluginMarketplaceService,
+      InMemoryPluginDatabase,
+      PluginDownloadStatsTracker,
+      PluginRatingService,
+    } = await import('../PluginMarketplaceService.js');
     expect(PluginMarketplaceService).toBeDefined();
     expect(InMemoryPluginDatabase).toBeDefined();
     expect(PluginDownloadStatsTracker).toBeDefined();

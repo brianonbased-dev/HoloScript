@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { sensorHandler } from '../SensorTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('SensorTrait', () => {
   let node: Record<string, unknown>;
@@ -86,7 +93,10 @@ describe('SensorTrait', () => {
 
   it('sensor_set_endpoint reconnects', () => {
     sendEvent(sensorHandler, node, cfg, ctx, { type: 'sensor_connected', handle: 'h1' });
-    sendEvent(sensorHandler, node, cfg, ctx, { type: 'sensor_set_endpoint', endpoint: 'http://new' });
+    sendEvent(sensorHandler, node, cfg, ctx, {
+      type: 'sensor_set_endpoint',
+      endpoint: 'http://new',
+    });
     expect(getEventCount(ctx, 'sensor_disconnect')).toBe(1);
     expect(getEventCount(ctx, 'sensor_connect')).toBe(2);
   });

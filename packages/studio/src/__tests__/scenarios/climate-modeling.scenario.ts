@@ -7,13 +7,20 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  radiativeForcing, temperatureFromForcing, co2EquivalentPPM,
-  seaLevelRiseFromIce, totalIceMassLoss, yearsToMeltCompletely,
-  carbonBudgetYears, requiredReductionRate, scenarioWarming,
-  oceanAcidificationPH, temperatureAnomalyByLatitude,
-  GHG_DATA, ICE_SHEETS,
+  radiativeForcing,
+  temperatureFromForcing,
+  co2EquivalentPPM,
+  seaLevelRiseFromIce,
+  totalIceMassLoss,
+  yearsToMeltCompletely,
+  carbonBudgetYears,
+  requiredReductionRate,
+  scenarioWarming,
+  oceanAcidificationPH,
+  temperatureAnomalyByLatitude,
+  GHG_DATA,
+  ICE_SHEETS,
 } from '@/lib/climateModeling';
-
 
 describe('Scenario: Climate — Greenhouse Gases', () => {
   it('GHG_DATA has 4 gases', () => {
@@ -21,13 +28,13 @@ describe('Scenario: Climate — Greenhouse Gases', () => {
   });
 
   it('CO2 current = 421 ppm, pre-industrial = 280 ppm', () => {
-    const co2 = GHG_DATA.find(g => g.gas === 'CO2')!;
+    const co2 = GHG_DATA.find((g) => g.gas === 'CO2')!;
     expect(co2.currentPPM).toBe(421);
     expect(co2.preindustrialPPM).toBe(280);
   });
 
   it('CH4 GWP100 = 28 (much stronger than CO2)', () => {
-    const ch4 = GHG_DATA.find(g => g.gas === 'CH4')!;
+    const ch4 = GHG_DATA.find((g) => g.gas === 'CH4')!;
     expect(ch4.gwp100).toBe(28);
   });
 
@@ -52,7 +59,7 @@ describe('Scenario: Climate — Ice & Sea Level', () => {
   });
 
   it('Greenland loses 270 Gt/year', () => {
-    const greenland = ICE_SHEETS.find(s => s.id === 'greenland')!;
+    const greenland = ICE_SHEETS.find((s) => s.id === 'greenland')!;
     expect(greenland.massLossGtPerYear).toBe(270);
   });
 

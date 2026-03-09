@@ -100,7 +100,11 @@ describe('TokenBucketRateLimiter', () => {
   });
 
   it('burst allows exceeding sustained rate temporarily', () => {
-    const rl = new TokenBucketRateLimiter({ tokensPerSecond: 1, tokensPerMinute: 100, burstSize: 10 });
+    const rl = new TokenBucketRateLimiter({
+      tokensPerSecond: 1,
+      tokensPerMinute: 100,
+      burstSize: 10,
+    });
     // Can consume 10 tokens immediately (burst)
     for (let i = 0; i < 10; i++) {
       expect(rl.consumeTokens('user', 1).allowed).toBe(true);
@@ -110,7 +114,11 @@ describe('TokenBucketRateLimiter', () => {
   });
 
   it('retryAfterMs provides meaningful wait time', () => {
-    const rl = new TokenBucketRateLimiter({ tokensPerSecond: 1, tokensPerMinute: 100, burstSize: 1 });
+    const rl = new TokenBucketRateLimiter({
+      tokensPerSecond: 1,
+      tokensPerMinute: 100,
+      burstSize: 1,
+    });
     rl.consumeTokens('u', 1);
     const result = rl.consumeTokens('u', 1);
     expect(result.allowed).toBe(false);

@@ -133,11 +133,14 @@ export interface RuntimeRenderer {
   /**
    * Update object transform
    */
-  updateObjectTransform(objectId: string, transform: {
-    position?: [number, number, number];
-    rotation?: [number, number, number];
-    scale?: [number, number, number];
-  }): void;
+  updateObjectTransform(
+    objectId: string,
+    transform: {
+      position?: [number, number, number];
+      rotation?: [number, number, number];
+      scale?: [number, number, number];
+    }
+  ): void;
 
   /**
    * Add particle system
@@ -260,7 +263,11 @@ export abstract class BaseRuntimeRenderer implements RuntimeRenderer {
   abstract removeObject(objectId: string): void;
   abstract updateObjectTransform(objectId: string, transform: any): void;
   abstract addParticleSystem(system: ParticleSystem): void;
-  abstract updateParticleSystem(systemId: string, positions: Float32Array, colors?: Float32Array): void;
+  abstract updateParticleSystem(
+    systemId: string,
+    positions: Float32Array,
+    colors?: Float32Array
+  ): void;
   abstract removeParticleSystem(systemId: string): void;
   abstract addLight(light: RenderableLight): void;
   abstract updateCamera(camera: RenderableCamera): void;

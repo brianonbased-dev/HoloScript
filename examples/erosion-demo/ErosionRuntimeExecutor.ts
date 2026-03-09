@@ -9,7 +9,12 @@
 
 import { ErosionDemoScene, type DemoSceneConfig } from './ErosionDemoScene';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
-import type { RuntimeRenderer, RenderableObject, RenderableLight, ParticleSystem } from '../../runtime/RuntimeRenderer';
+import type {
+  RuntimeRenderer,
+  RenderableObject,
+  RenderableLight,
+  ParticleSystem,
+} from '../../runtime/RuntimeRenderer';
 
 export interface ErosionRuntimeConfig {
   /** Enable debug logging */
@@ -113,7 +118,8 @@ export class ErosionRuntimeExecutor {
 
       if (trait.name === 'terrain' && trait.properties) {
         // Terrain configuration
-        if (trait.properties.resolution !== undefined) config.resolution = trait.properties.resolution;
+        if (trait.properties.resolution !== undefined)
+          config.resolution = trait.properties.resolution;
         if (trait.properties.size !== undefined) config.size = trait.properties.size;
       }
     }
@@ -455,7 +461,7 @@ export class ErosionRuntimeExecutor {
           colors.push(
             0.1 + depthFactor * 0.2, // R
             0.3 + depthFactor * 0.3, // G
-            0.7 + depthFactor * 0.2  // B
+            0.7 + depthFactor * 0.2 // B
           );
         }
       }
@@ -513,7 +519,7 @@ export class ErosionRuntimeExecutor {
           colors.push(
             0.6 - amountFactor * 0.2, // R
             0.4 - amountFactor * 0.2, // G
-            0.2 - amountFactor * 0.1  // B
+            0.2 - amountFactor * 0.1 // B
           );
         }
       }
@@ -552,7 +558,9 @@ export class ErosionRuntimeExecutor {
     this.scene.simulation.addRainToRegion(gridX, gridZ, radius, amount);
 
     if (this.config.debug) {
-      console.log(`[ErosionRuntimeExecutor] Added rain at (${x}, ${z}) with radius ${radius}, amount ${amount}`);
+      console.log(
+        `[ErosionRuntimeExecutor] Added rain at (${x}, ${z}) with radius ${radius}, amount ${amount}`
+      );
     }
   }
 

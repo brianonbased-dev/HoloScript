@@ -5,6 +5,7 @@ Complete reference for HoloScript's extended `.hsplus` format templates and deco
 ## Overview
 
 The `.hsplus` format adds:
+
 - **Templates** - Reusable component definitions
 - **Decorators** - Behavioral modifiers with `@` syntax
 - **Compositions** - Scene container blocks
@@ -46,6 +47,7 @@ template "GrabbableObject" {
 ```
 
 **Parameters:**
+
 - `hand`: `"left"` | `"right"` | `"both"`
 - `haptic`: `true` | `false`
 
@@ -63,6 +65,7 @@ template "ThrowableBall" {
 ```
 
 **Parameters:**
+
 - `velocity`: Throw velocity multiplier
 
 ### `@collidable` - Collision Detection
@@ -90,6 +93,7 @@ template "PhysicsObject" {
 ```
 
 **Parameters:**
+
 - `mass`: Object mass
 - `friction`: Surface friction (0-1)
 - `restitution`: Bounciness (0-1)
@@ -118,6 +122,7 @@ template "SharedObject" {
 ```
 
 **Parameters:**
+
 - `sync`: `"transform"` | `"physics"` | `"all"`
 - `authority`: `"server"` | `"owner"` | `"client"`
 
@@ -189,16 +194,16 @@ composition "VRPlayground" {
 
 ## All Decorators
 
-| Decorator | Purpose | Parameters |
-|-----------|---------|------------|
-| `@grabbable` | VR hand grab | `hand`, `haptic` |
-| `@throwable` | Physics throw | `velocity` |
-| `@collidable` | Collision detection | None |
-| `@physics` | Physics simulation | `mass`, `friction`, `restitution` |
-| `@interactive` | Click/pointer events | None |
-| `@networked` | Multiplayer sync | `sync`, `authority` |
-| `@pokeable` | VR finger poke | `threshold` |
-| `@teleportable` | VR teleport target | `type` |
+| Decorator       | Purpose              | Parameters                        |
+| --------------- | -------------------- | --------------------------------- |
+| `@grabbable`    | VR hand grab         | `hand`, `haptic`                  |
+| `@throwable`    | Physics throw        | `velocity`                        |
+| `@collidable`   | Collision detection  | None                              |
+| `@physics`      | Physics simulation   | `mass`, `friction`, `restitution` |
+| `@interactive`  | Click/pointer events | None                              |
+| `@networked`    | Multiplayer sync     | `sync`, `authority`               |
+| `@pokeable`     | VR finger poke       | `threshold`                       |
+| `@teleportable` | VR teleport target   | `type`                            |
 
 ## Decorator Stacking
 

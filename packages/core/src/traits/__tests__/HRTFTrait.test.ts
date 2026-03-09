@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { hrtfHandler } from '../HRTFTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('HRTFTrait', () => {
   let node: Record<string, unknown>;
@@ -46,7 +54,11 @@ describe('HRTFTrait', () => {
   it('listener_update updates position', () => {
     const pos = { x: 1, y: 2, z: 3 };
     const ori = { forward: { x: 0, y: 0, z: -1 }, up: { x: 0, y: 1, z: 0 } };
-    sendEvent(hrtfHandler, node, cfg, ctx, { type: 'listener_update', position: pos, orientation: ori });
+    sendEvent(hrtfHandler, node, cfg, ctx, {
+      type: 'listener_update',
+      position: pos,
+      orientation: ori,
+    });
     expect((node as any).__hrtfState.listenerPosition).toEqual(pos);
     expect(getEventCount(ctx, 'hrtf_listener_update')).toBe(1);
   });

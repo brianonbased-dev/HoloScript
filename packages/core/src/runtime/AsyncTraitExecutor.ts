@@ -94,7 +94,7 @@ export class AsyncTraitExecutor {
     nodeId: string,
     handlerName: string,
     fn: (...args: unknown[]) => unknown,
-    args: unknown[] = [],
+    args: unknown[] = []
   ): Promise<AsyncExecuteResult> {
     const key = `${nodeId}:${handlerName}`;
 
@@ -135,7 +135,11 @@ export class AsyncTraitExecutor {
     try {
       const value = await (rawResult as Promise<unknown>);
       const finishedAt = Date.now();
-      this.setState(key, { status: 'done', startedAt: this.states.get(key)?.startedAt, finishedAt });
+      this.setState(key, {
+        status: 'done',
+        startedAt: this.states.get(key)?.startedAt,
+        finishedAt,
+      });
       this.emit('on_async_done', { nodeId, handlerName, value });
       return { status: 'done', value };
     } catch (err) {

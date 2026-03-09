@@ -47,8 +47,18 @@ describe('WebXRSystem', () => {
       headPosition: { x: 1, y: 1.7, z: 0 },
       headRotation: { x: 0, y: 0.5, z: 0 },
       views: [
-        { eye: 'left', projectionMatrix: new Float32Array(16), viewMatrix: new Float32Array(16), viewport: { x: 0, y: 0, width: 1920, height: 1080 } },
-        { eye: 'right', projectionMatrix: new Float32Array(16), viewMatrix: new Float32Array(16), viewport: { x: 1920, y: 0, width: 1920, height: 1080 } },
+        {
+          eye: 'left',
+          projectionMatrix: new Float32Array(16),
+          viewMatrix: new Float32Array(16),
+          viewport: { x: 0, y: 0, width: 1920, height: 1080 },
+        },
+        {
+          eye: 'right',
+          projectionMatrix: new Float32Array(16),
+          viewMatrix: new Float32Array(16),
+          viewport: { x: 1920, y: 0, width: 1920, height: 1080 },
+        },
       ],
       controllers: new Map(),
       hands: new Map(),
@@ -69,14 +79,19 @@ describe('WebXRSystem', () => {
     controllers.set('left-hand', {
       position: { x: -0.3, y: 1.0, z: -0.5 },
       rotation: { x: 0, y: 0, z: 0 },
-      trigger: 0.9, grip: 0.1,
-      thumbstick: { x: 0, y: 0 }, buttons: [],
+      trigger: 0.9,
+      grip: 0.1,
+      thumbstick: { x: 0, y: 0 },
+      buttons: [],
     });
 
     xr.submitFrame({
-      time: 0, headPosition: { x: 0, y: 1.7, z: 0 },
+      time: 0,
+      headPosition: { x: 0, y: 1.7, z: 0 },
       headRotation: { x: 0, y: 0, z: 0 },
-      views: [], controllers, hands: new Map(),
+      views: [],
+      controllers,
+      hands: new Map(),
     });
 
     const ctrl = xr.getController('left-hand');
@@ -94,15 +109,19 @@ describe('WebXRSystem', () => {
     controllers.set('left-hand', {
       position: { x: 0, y: 1, z: 0 },
       rotation: { x: 0, y: 0, z: 0 },
-      trigger: 0, grip: 0,
+      trigger: 0,
+      grip: 0,
       thumbstick: { x: 0, y: -1 }, // Forward
       buttons: [],
     });
 
     xr.submitFrame({
-      time: 0, headPosition: { x: 0, y: 1.7, z: 0 },
+      time: 0,
+      headPosition: { x: 0, y: 1.7, z: 0 },
       headRotation: { x: 0, y: 0, z: 0 },
-      views: [], controllers, hands: new Map(),
+      views: [],
+      controllers,
+      hands: new Map(),
     });
 
     xr.update(1 / 60);
@@ -114,9 +133,12 @@ describe('WebXRSystem', () => {
     const xr = new WebXRSystem();
     xr.enterVR();
     xr.submitFrame({
-      time: 0, headPosition: { x: 0, y: 1.7, z: 0 },
+      time: 0,
+      headPosition: { x: 0, y: 1.7, z: 0 },
       headRotation: { x: 0, y: 0, z: 0 },
-      views: [], controllers: new Map(), hands: new Map(),
+      views: [],
+      controllers: new Map(),
+      hands: new Map(),
     });
 
     xr.teleportTo({ x: 10, y: 0, z: -5 });
@@ -135,14 +157,19 @@ describe('WebXRSystem', () => {
     controllers.set('right-hand', {
       position: { x: 0.3, y: 1, z: -0.3 },
       rotation: { x: 0, y: 0, z: 0 },
-      trigger: 0, grip: 0.9, // Gripping!
-      thumbstick: { x: 0, y: 0 }, buttons: [],
+      trigger: 0,
+      grip: 0.9, // Gripping!
+      thumbstick: { x: 0, y: 0 },
+      buttons: [],
     });
 
     xr.submitFrame({
-      time: 0, headPosition: { x: 0, y: 1.7, z: 0 },
+      time: 0,
+      headPosition: { x: 0, y: 1.7, z: 0 },
       headRotation: { x: 0, y: 0, z: 0 },
-      views: [], controllers, hands: new Map(),
+      views: [],
+      controllers,
+      hands: new Map(),
     });
 
     xr.update(1 / 60);
@@ -170,7 +197,12 @@ describe('WebXRSystem', () => {
 // DeltaCompressor Tests
 // ============================================================================
 
-import { DeltaCompressor, InterestManager, EntityInterpolator, NetworkSystem } from '../../../../core/src/network/NetworkSystem';
+import {
+  DeltaCompressor,
+  InterestManager,
+  EntityInterpolator,
+  NetworkSystem,
+} from '../../../../core/src/network/NetworkSystem';
 
 describe('DeltaCompressor', () => {
   it('returns full state on first compress', () => {
@@ -242,8 +274,8 @@ describe('InterestManager', () => {
 
     const relevant = im.filterRelevant(entities);
     expect(relevant.length).toBe(2);
-    expect(relevant.map(e => e.id)).toContain('near');
-    expect(relevant.map(e => e.id)).toContain('edge');
+    expect(relevant.map((e) => e.id)).toContain('near');
+    expect(relevant.map((e) => e.id)).toContain('edge');
   });
 
   it('isRelevant checks single position', () => {
@@ -278,9 +310,12 @@ describe('EntityInterpolator', () => {
   it('returns last state for single snapshot', () => {
     const interp = new EntityInterpolator();
     interp.pushState({
-      id: 'e1', position: { x: 1, y: 2, z: 3 },
-      rotation: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 },
-      timestamp: 0, components: {},
+      id: 'e1',
+      position: { x: 1, y: 2, z: 3 },
+      rotation: { x: 0, y: 0, z: 0 },
+      velocity: { x: 0, y: 0, z: 0 },
+      timestamp: 0,
+      components: {},
     });
 
     const state = interp.getInterpolated('e1');
@@ -291,9 +326,12 @@ describe('EntityInterpolator', () => {
   it('removeEntity clears buffer', () => {
     const interp = new EntityInterpolator();
     interp.pushState({
-      id: 'e1', position: { x: 0, y: 0, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 },
-      timestamp: 0, components: {},
+      id: 'e1',
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      velocity: { x: 0, y: 0, z: 0 },
+      timestamp: 0,
+      components: {},
     });
     interp.removeEntity('e1');
     expect(interp.getInterpolated('e1')).toBeNull();
@@ -350,12 +388,18 @@ describe('NetworkSystem', () => {
     net.configure('ws://localhost:8080');
     net.connect();
 
-    net.receiveDeltas([{
-      entityId: 'remote1',
-      fields: { position: { x: 10, y: 0, z: 5 }, rotation: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 } },
-      timestamp: performance.now(),
-      sequence: 0,
-    }]);
+    net.receiveDeltas([
+      {
+        entityId: 'remote1',
+        fields: {
+          position: { x: 10, y: 0, z: 5 },
+          rotation: { x: 0, y: 0, z: 0 },
+          velocity: { x: 0, y: 0, z: 0 },
+        },
+        timestamp: performance.now(),
+        sequence: 0,
+      },
+    ]);
 
     const state = net.interpolator.getInterpolated('remote1');
     expect(state).not.toBeNull();

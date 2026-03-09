@@ -67,7 +67,7 @@ export function usePolyHaven() {
         setLoading(false);
       }
     },
-    [query, assetType],
+    [query, assetType]
   );
 
   // Initial load

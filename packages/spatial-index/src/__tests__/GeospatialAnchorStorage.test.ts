@@ -243,7 +243,7 @@ describe('GeospatialAnchorStorage', () => {
         { id: 'sf', lat: 37.7749, lon: -122.4194 },
         { id: 'oakland', lat: 37.8044, lon: -122.2712 },
         { id: 'san-jose', lat: 37.3382, lon: -121.8863 },
-        { id: 'berkeley', lat: 37.8715, lon: -122.2730 },
+        { id: 'berkeley', lat: 37.8715, lon: -122.273 },
       ];
 
       await storage.setMany(anchors);
@@ -258,7 +258,7 @@ describe('GeospatialAnchorStorage', () => {
       });
 
       expect(results.length).toBeGreaterThanOrEqual(2);
-      const ids = results.map(r => r.id);
+      const ids = results.map((r) => r.id);
       expect(ids).toContain('sf');
       expect(ids).toContain('oakland');
     });
@@ -275,10 +275,7 @@ describe('GeospatialAnchorStorage', () => {
     });
 
     it('should find k nearest neighbors', async () => {
-      const results = await storage.knn(
-        { lat: 37.7749, lon: -122.4194 },
-        2
-      );
+      const results = await storage.knn({ lat: 37.7749, lon: -122.4194 }, 2);
 
       expect(results).toHaveLength(2);
       expect(results[0].anchor.id).toBe('sf');

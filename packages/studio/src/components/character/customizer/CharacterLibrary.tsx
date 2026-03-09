@@ -16,11 +16,7 @@
 
 import { useState, useMemo } from 'react';
 import { Search, X, Star, TrendingUp, Flame, Sparkles } from 'lucide-react';
-import {
-  type MemeTemplate,
-  getPopularTemplates,
-  searchTemplates,
-} from '@/lib/memeTemplates';
+import { type MemeTemplate, getPopularTemplates, searchTemplates } from '@/lib/memeTemplates';
 
 interface CharacterLibraryProps {
   isOpen: boolean;
@@ -30,11 +26,7 @@ interface CharacterLibraryProps {
 
 type CategoryFilter = 'all' | 'classic' | 'viral' | 'trending';
 
-export function CharacterLibrary({
-  isOpen,
-  onClose,
-  onSelectTemplate,
-}: CharacterLibraryProps) {
+export function CharacterLibrary({ isOpen, onClose, onSelectTemplate }: CharacterLibraryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [selectedTemplate, setSelectedTemplate] = useState<MemeTemplate | null>(null);
@@ -108,7 +100,8 @@ export function CharacterLibrary({
             <div>
               <h2 className="text-xl font-bold text-white">Character Library</h2>
               <p className="text-sm text-studio-muted">
-                {filteredTemplates.length} character{filteredTemplates.length !== 1 ? 's' : ''} available
+                {filteredTemplates.length} character{filteredTemplates.length !== 1 ? 's' : ''}{' '}
+                available
               </p>
             </div>
           </div>

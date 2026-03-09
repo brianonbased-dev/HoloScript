@@ -52,14 +52,22 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
   it('should blend reverb between zones', () => {
     const system = new SpatialAudioZoneSystem();
     system.addZone({
-      id: 'z1', shape: 'box', position: { x: 0, y: 0, z: 0 },
-      size: { x: 5, y: 3, z: 5 }, reverb: REVERB_PRESETS.cathedral,
-      priority: 2, fadeDistance: 3,
+      id: 'z1',
+      shape: 'box',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 5, y: 3, z: 5 },
+      reverb: REVERB_PRESETS.cathedral,
+      priority: 2,
+      fadeDistance: 3,
     });
     system.addZone({
-      id: 'z2', shape: 'box', position: { x: 8, y: 0, z: 0 },
-      size: { x: 5, y: 3, z: 5 }, reverb: REVERB_PRESETS.outdoor,
-      priority: 1, fadeDistance: 3,
+      id: 'z2',
+      shape: 'box',
+      position: { x: 8, y: 0, z: 0 },
+      size: { x: 5, y: 3, z: 5 },
+      reverb: REVERB_PRESETS.outdoor,
+      priority: 1,
+      fadeDistance: 3,
     });
 
     system.updateListenerPosition({ x: 0, y: 0, z: 0 });
@@ -74,9 +82,7 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
 
   it('should compute no occlusion without obstacles', () => {
     const occlusion = new AudioOcclusionSystem();
-    const result = occlusion.computeOcclusion(
-      { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1',
-    );
+    const result = occlusion.computeOcclusion({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
     expect(result.occluded).toBe(false);
     expect(result.occlusionFactor).toBe(0);
   });
@@ -110,13 +116,9 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
 
   it('should use raycast provider for occlusion', () => {
     const occlusion = new AudioOcclusionSystem();
-    occlusion.setRaycastProvider((_ray) => [
-      { distance: 5, materialId: 'wood', thickness: 0.1 },
-    ]);
+    occlusion.setRaycastProvider((_ray) => [{ distance: 5, materialId: 'wood', thickness: 0.1 }]);
 
-    const result = occlusion.computeOcclusion(
-      { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src4',
-    );
+    const result = occlusion.computeOcclusion({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src4');
     expect(result.occluded).toBe(true);
     expect(result.totalTransmissionLoss).toBe(OCCLUSION_MATERIALS.wood.transmissionLoss);
   });
@@ -129,7 +131,7 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
     const analyzer = new AudioAnalyzer(256, 44100);
     const samples = new Float32Array(256);
     for (let i = 0; i < 256; i++) {
-      samples[i] = Math.sin(2 * Math.PI * 440 * i / 44100);
+      samples[i] = Math.sin((2 * Math.PI * 440 * i) / 44100);
     }
 
     analyzer.analyze(samples, 0);
@@ -143,7 +145,7 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
     const analyzer = new AudioAnalyzer(128, 44100);
     const samples = new Float32Array(128);
     for (let i = 0; i < 128; i++) {
-      samples[i] = 0.5 * Math.sin(2 * Math.PI * 200 * i / 44100);
+      samples[i] = 0.5 * Math.sin((2 * Math.PI * 200 * i) / 44100);
     }
 
     analyzer.analyze(samples, 0);
@@ -158,13 +160,13 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
     const analyzer = new AudioAnalyzer(256, 44100);
     const samples = new Float32Array(256);
     for (let i = 0; i < 256; i++) {
-      samples[i] = Math.sin(2 * Math.PI * 100 * i / 44100);
+      samples[i] = Math.sin((2 * Math.PI * 100 * i) / 44100);
     }
 
     analyzer.analyze(samples, 0);
     const bands = analyzer.getBands();
     expect(bands).toHaveLength(DEFAULT_BANDS.length);
-    const bass = bands.find(b => b.name === 'bass');
+    const bass = bands.find((b) => b.name === 'bass');
     expect(bass).toBeDefined();
     expect(bass!.energy).toBeGreaterThan(0);
   });
@@ -173,7 +175,7 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
     const analyzer = new AudioAnalyzer(128, 44100);
     const samples = new Float32Array(128);
     for (let i = 0; i < 128; i++) {
-      samples[i] = Math.sin(2 * Math.PI * 150 * i / 44100);
+      samples[i] = Math.sin((2 * Math.PI * 150 * i) / 44100);
     }
 
     analyzer.analyze(samples, 0);

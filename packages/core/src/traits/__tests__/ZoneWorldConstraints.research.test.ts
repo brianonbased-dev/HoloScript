@@ -5,10 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  AVBD_POPULATION_BUDGET,
-  type PhysicsBudgetMode,
-} from '../ZoneWorldConstraints';
+import { AVBD_POPULATION_BUDGET, type PhysicsBudgetMode } from '../ZoneWorldConstraints';
 
 // =============================================================================
 // AVBD_POPULATION_BUDGET (W.SIG25.01)
@@ -40,16 +37,20 @@ describe('AVBD_POPULATION_BUDGET', () => {
   });
 
   it('avbd caps are higher than conservative', () => {
-    expect(AVBD_POPULATION_BUDGET.avbd.maxPerZone)
-      .toBeGreaterThan(AVBD_POPULATION_BUDGET.conservative.maxPerZone);
-    expect(AVBD_POPULATION_BUDGET.avbd.maxPerWorld)
-      .toBeGreaterThan(AVBD_POPULATION_BUDGET.conservative.maxPerWorld);
+    expect(AVBD_POPULATION_BUDGET.avbd.maxPerZone).toBeGreaterThan(
+      AVBD_POPULATION_BUDGET.conservative.maxPerZone
+    );
+    expect(AVBD_POPULATION_BUDGET.avbd.maxPerWorld).toBeGreaterThan(
+      AVBD_POPULATION_BUDGET.conservative.maxPerWorld
+    );
   });
 
   it('world cap is always >= zone cap × 10 for bounded modes', () => {
-    expect(AVBD_POPULATION_BUDGET.conservative.maxPerWorld)
-      .toBeGreaterThanOrEqual(AVBD_POPULATION_BUDGET.conservative.maxPerZone * 10);
-    expect(AVBD_POPULATION_BUDGET.avbd.maxPerWorld)
-      .toBeGreaterThanOrEqual(AVBD_POPULATION_BUDGET.avbd.maxPerZone * 10);
+    expect(AVBD_POPULATION_BUDGET.conservative.maxPerWorld).toBeGreaterThanOrEqual(
+      AVBD_POPULATION_BUDGET.conservative.maxPerZone * 10
+    );
+    expect(AVBD_POPULATION_BUDGET.avbd.maxPerWorld).toBeGreaterThanOrEqual(
+      AVBD_POPULATION_BUDGET.avbd.maxPerZone * 10
+    );
   });
 });

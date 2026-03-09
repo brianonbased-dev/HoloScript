@@ -12,8 +12,12 @@
  * @version 2.0.0
  */
 import {
-  HybridCryptoProvider, Ed25519CryptoProvider, MLDSACryptoProvider,
-  type HybridKeyPair, type CompositeSignature, type CompositeVerificationResult,
+  HybridCryptoProvider,
+  Ed25519CryptoProvider,
+  MLDSACryptoProvider,
+  type HybridKeyPair,
+  type CompositeSignature,
+  type CompositeVerificationResult,
   isPostQuantumAvailable,
 } from './HybridCryptoProvider';
 
@@ -110,7 +114,8 @@ export class HybridSigner {
   private keyPair: HybridKeyPair | null = null;
 
   // -- Key rotation state --
-  private retiredKeyPairs: Array<{ keyPair: HybridKeyPair; retiredAt: number; expiresAt: number }> = [];
+  private retiredKeyPairs: Array<{ keyPair: HybridKeyPair; retiredAt: number; expiresAt: number }> =
+    [];
   private readonly gracePeriodMs: number;
 
   // -- Signature cache --
@@ -189,11 +194,15 @@ export class HybridSigner {
   /** Remove expired retired key pairs. */
   private purgeExpiredKeys(): void {
     const now = Date.now();
-    this.retiredKeyPairs = this.retiredKeyPairs.filter(rk => rk.expiresAt > now);
+    this.retiredKeyPairs = this.retiredKeyPairs.filter((rk) => rk.expiresAt > now);
   }
 
   /** Get the list of retired key pairs still within their grace period. */
-  getRetiredKeyPairs(): ReadonlyArray<{ keyPair: HybridKeyPair; retiredAt: number; expiresAt: number }> {
+  getRetiredKeyPairs(): ReadonlyArray<{
+    keyPair: HybridKeyPair;
+    retiredAt: number;
+    expiresAt: number;
+  }> {
     this.purgeExpiredKeys();
     return this.retiredKeyPairs;
   }
@@ -269,7 +278,7 @@ export class HybridSigner {
   async verify(
     message: string | Uint8Array,
     signature: CompositeSignature,
-    keyPair?: HybridKeyPair,
+    keyPair?: HybridKeyPair
   ): Promise<CompositeVerificationResult> {
     this._verifyCount++;
     this._lastVerifyAt = new Date().toISOString();
@@ -385,7 +394,7 @@ export class HybridSigner {
       cacheTTLMs: this.cacheTTLMs,
       keyRotationGracePeriodMs: this.gracePeriodMs,
       currentKeyPair: this.keyPair,
-      retiredKeyPairs: this.retiredKeyPairs.map(rk => ({
+      retiredKeyPairs: this.retiredKeyPairs.map((rk) => ({
         keyPair: rk.keyPair,
         retiredAt: new Date(rk.retiredAt).toISOString(),
         expiresAt: new Date(rk.expiresAt).toISOString(),
@@ -420,12 +429,12 @@ export class HybridSigner {
     // Restore retired key pairs, filtering out any that have already expired
     const now = Date.now();
     signer.retiredKeyPairs = data.retiredKeyPairs
-      .map(rk => ({
+      .map((rk) => ({
         keyPair: rk.keyPair,
         retiredAt: new Date(rk.retiredAt).getTime(),
         expiresAt: new Date(rk.expiresAt).getTime(),
       }))
-      .filter(rk => rk.expiresAt > now);
+      .filter((rk) => rk.expiresAt > now);
 
     // Restore metrics
     if (data.metrics) {
@@ -445,7 +454,13 @@ export class HybridSigner {
   // Accessors (preserved from v1)
   // =========================================================================
 
-  getKeyPair(): HybridKeyPair | null { return this.keyPair; }
-  hasPQ(): boolean { return this.provider.hasPQProvider(); }
-  static async isPQAvailable(): Promise<boolean> { return isPostQuantumAvailable(); }
+  getKeyPair(): HybridKeyPair | null {
+    return this.keyPair;
+  }
+  hasPQ(): boolean {
+    return this.provider.hasPQProvider();
+  }
+  static async isPQAvailable(): Promise<boolean> {
+    return isPostQuantumAvailable();
+  }
 }

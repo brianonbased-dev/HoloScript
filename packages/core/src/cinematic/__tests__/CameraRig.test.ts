@@ -4,7 +4,9 @@ import { CameraRig } from '../CameraRig';
 describe('CameraRig', () => {
   let rig: CameraRig;
 
-  beforeEach(() => { rig = new CameraRig(); });
+  beforeEach(() => {
+    rig = new CameraRig();
+  });
 
   // --- Construction ---
   it('constructs with defaults', () => {

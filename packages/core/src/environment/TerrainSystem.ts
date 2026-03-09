@@ -15,28 +15,28 @@ import { IVector3 } from '../physics/PhysicsTypes';
 
 export interface TerrainConfig {
   id: string;
-  width: number;          // World units
-  depth: number;          // World units
-  resolution: number;     // Vertices per side (power of 2 + 1, e.g. 129, 257)
-  maxHeight: number;      // Maximum elevation
-  position: IVector3;     // World origin of terrain
+  width: number; // World units
+  depth: number; // World units
+  resolution: number; // Vertices per side (power of 2 + 1, e.g. 129, 257)
+  maxHeight: number; // Maximum elevation
+  position: IVector3; // World origin of terrain
 }
 
 export interface TerrainLayer {
   id: string;
-  texture: string;        // Texture asset name
-  tiling: number;         // UV tiling factor
-  minHeight: number;      // Blend start height (normalized 0-1)
-  maxHeight: number;      // Blend end height (normalized 0-1)
-  minSlope: number;       // Blend start slope (0-1, 0 = flat)
-  maxSlope: number;       // Blend end slope (0-1, 1 = vertical)
+  texture: string; // Texture asset name
+  tiling: number; // UV tiling factor
+  minHeight: number; // Blend start height (normalized 0-1)
+  maxHeight: number; // Blend end height (normalized 0-1)
+  minSlope: number; // Blend start slope (0-1, 0 = flat)
+  maxSlope: number; // Blend end slope (0-1, 1 = vertical)
 }
 
 export interface TerrainVertex {
   position: IVector3;
   normal: IVector3;
   uv: { u: number; v: number };
-  height: number;         // Normalized 0-1
+  height: number; // Normalized 0-1
 }
 
 export interface TerrainChunk {
@@ -57,7 +57,7 @@ export interface TerrainCollider {
 // =============================================================================
 
 function hash2D(x: number, y: number): number {
-  let n = x * 73856093 ^ y * 19349663;
+  let n = (x * 73856093) ^ (y * 19349663);
   n = (n ^ (n >> 13)) * 1274126177;
   return ((n ^ (n >> 16)) & 0x7fffffff) / 0x7fffffff;
 }
@@ -106,12 +106,15 @@ function fbm(x: number, y: number, octaves: number, lacunarity: number, gain: nu
 // =============================================================================
 
 export class TerrainSystem {
-  private terrains: Map<string, {
-    config: TerrainConfig;
-    heightmap: Float32Array;
-    layers: TerrainLayer[];
-    chunks: TerrainChunk[];
-  }> = new Map();
+  private terrains: Map<
+    string,
+    {
+      config: TerrainConfig;
+      heightmap: Float32Array;
+      layers: TerrainLayer[];
+      chunks: TerrainChunk[];
+    }
+  > = new Map();
 
   // ---------------------------------------------------------------------------
   // Creation
@@ -130,13 +133,7 @@ export class TerrainSystem {
       scale?: number;
     } = {}
   ): string {
-    const {
-      octaves = 6,
-      lacunarity = 2.0,
-      gain = 0.5,
-      seed = 42,
-      scale = 0.02,
-    } = options;
+    const { octaves = 6, lacunarity = 2.0, gain = 0.5, seed = 42, scale = 0.02 } = options;
 
     const res = config.resolution;
     const heightmap = new Float32Array(res * res);
@@ -213,8 +210,7 @@ export class TerrainSystem {
     const h01 = heightmap[iz1 * res + ix];
     const h11 = heightmap[iz1 * res + ix1];
 
-    const h = h00 * (1 - fx) * (1 - fz) + h10 * fx * (1 - fz) +
-              h01 * (1 - fx) * fz + h11 * fx * fz;
+    const h = h00 * (1 - fx) * (1 - fz) + h10 * fx * (1 - fz) + h01 * (1 - fx) * fz + h11 * fx * fz;
 
     return config.position.y + h * config.maxHeight;
   }
@@ -276,9 +272,15 @@ export class TerrainSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getTerrain(id: string) { return this.terrains.get(id); }
-  getTerrainIds(): string[] { return [...this.terrains.keys()]; }
-  removeTerrain(id: string): boolean { return this.terrains.delete(id); }
+  getTerrain(id: string) {
+    return this.terrains.get(id);
+  }
+  getTerrainIds(): string[] {
+    return [...this.terrains.keys()];
+  }
+  removeTerrain(id: string): boolean {
+    return this.terrains.delete(id);
+  }
 
   getChunks(terrainId: string): TerrainChunk[] {
     return this.terrains.get(terrainId)?.chunks || [];
@@ -354,10 +356,42 @@ export class TerrainSystem {
 
   private getDefaultLayers(): TerrainLayer[] {
     return [
-      { id: 'sand', texture: 'terrain_sand', tiling: 20, minHeight: 0, maxHeight: 0.15, minSlope: 0, maxSlope: 0.3 },
-      { id: 'grass', texture: 'terrain_grass', tiling: 15, minHeight: 0.1, maxHeight: 0.6, minSlope: 0, maxSlope: 0.6 },
-      { id: 'rock', texture: 'terrain_rock', tiling: 10, minHeight: 0.4, maxHeight: 0.9, minSlope: 0.5, maxSlope: 1.0 },
-      { id: 'snow', texture: 'terrain_snow', tiling: 12, minHeight: 0.8, maxHeight: 1.0, minSlope: 0, maxSlope: 0.4 },
+      {
+        id: 'sand',
+        texture: 'terrain_sand',
+        tiling: 20,
+        minHeight: 0,
+        maxHeight: 0.15,
+        minSlope: 0,
+        maxSlope: 0.3,
+      },
+      {
+        id: 'grass',
+        texture: 'terrain_grass',
+        tiling: 15,
+        minHeight: 0.1,
+        maxHeight: 0.6,
+        minSlope: 0,
+        maxSlope: 0.6,
+      },
+      {
+        id: 'rock',
+        texture: 'terrain_rock',
+        tiling: 10,
+        minHeight: 0.4,
+        maxHeight: 0.9,
+        minSlope: 0.5,
+        maxSlope: 1.0,
+      },
+      {
+        id: 'snow',
+        texture: 'terrain_snow',
+        tiling: 12,
+        minHeight: 0.8,
+        maxHeight: 1.0,
+        minSlope: 0,
+        maxSlope: 0.4,
+      },
     ];
   }
 }

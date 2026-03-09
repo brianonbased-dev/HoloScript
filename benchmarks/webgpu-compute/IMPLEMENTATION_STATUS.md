@@ -15,6 +15,7 @@ I have successfully created a comprehensive WebGPU compute shader benchmark suit
 A production-ready benchmark tool with:
 
 #### Features
+
 - **Automated Testing**: Parses and compiles all 5 WebGPU compute shader examples
 - **Performance Validation**: Verifies 60+ FPS targets against RTX 3080 baseline
 - **WGSL Validation**: Checks for valid compute shader syntax, bindings, and attributes
@@ -23,7 +24,9 @@ A production-ready benchmark tool with:
 - **Timing Metrics**: Precise parse/compile time measurement using `performance.now()`
 
 #### Validation Criteria
+
 The benchmark validates each example against:
+
 - ✓ WGSL syntax validity (@compute, @workgroup_size, @binding)
 - ✓ Compute shader presence
 - ✓ GPU buffer allocations (createBuffer, createStorageBuffer)
@@ -32,13 +35,13 @@ The benchmark validates each example against:
 
 #### Performance Targets Documented
 
-| Example | Target FPS | Grid/Count | Estimated FPS | Frame Time |
-|---------|-----------|------------|---------------|------------|
-| Fluid Simulation | 60 | 1024x1024 | 115 | 8.7ms |
-| Million Particles | 60 | 1,048,576 | 94 | 10.6ms |
-| Cloth Simulation | 60 | 128x128 | 87 | 11.5ms |
-| Rigid Body Physics | 60 | 10,000 | 98 | 10.2ms |
-| N-Body Gravity | 60 | 10,000 | 106 | 9.4ms |
+| Example            | Target FPS | Grid/Count | Estimated FPS | Frame Time |
+| ------------------ | ---------- | ---------- | ------------- | ---------- |
+| Fluid Simulation   | 60         | 1024x1024  | 115           | 8.7ms      |
+| Million Particles  | 60         | 1,048,576  | 94            | 10.6ms     |
+| Cloth Simulation   | 60         | 128x128    | 87            | 11.5ms     |
+| Rigid Body Physics | 60         | 10,000     | 98            | 10.2ms     |
+| N-Body Gravity     | 60         | 10,000     | 106           | 9.4ms      |
 
 All targets are based on NVIDIA RTX 3080 benchmarks documented in the `.holo` files.
 
@@ -47,6 +50,7 @@ All targets are based on NVIDIA RTX 3080 benchmarks documented in the `.holo` fi
 I reviewed all 5 WebGPU compute shader examples:
 
 #### gpu-fluid-simulation.holo
+
 - **Algorithm**: Navier-Stokes incompressible fluid solver
 - **Features**: Semi-Lagrangian advection, pressure projection, Jacobi iteration
 - **Shaders**: 6 compute shaders (Advection, Divergence, PressureJacobi, GradientSubtract, AddForce, visualization)
@@ -54,6 +58,7 @@ I reviewed all 5 WebGPU compute shader examples:
 - **Grid**: 1024x1024 (40 Jacobi iterations)
 
 #### gpu-particles-million.holo
+
 - **Algorithm**: High-performance particle simulation
 - **Features**: Spatial hashing, radix sort, frustum culling, collision detection
 - **Shaders**: 5 compute shaders (Integration, SpatialHashBuild, Collision, DepthSort, FrustumCull)
@@ -61,6 +66,7 @@ I reviewed all 5 WebGPU compute shader examples:
 - **Scale**: 1,048,576 particles (2^20)
 
 #### gpu-cloth-simulation.holo
+
 - **Algorithm**: Position-Based Dynamics
 - **Features**: Distance constraints, bending constraints, self-collision, wind
 - **Shaders**: 6 compute shaders (Predict, SolveDistance, SolveBending, SolveCollisions, UpdateVelocities, RecomputeNormals)
@@ -68,6 +74,7 @@ I reviewed all 5 WebGPU compute shader examples:
 - **Mesh**: 128x128 vertices (16,384 vertices)
 
 #### gpu-physics-rigid-body.holo
+
 - **Algorithm**: 6-DOF rigid body dynamics
 - **Features**: Inertia tensors, sequential impulse solver, spatial hashing, Coulomb friction
 - **Shaders**: 4 compute shaders (Integrate, BroadPhase, NarrowPhase, Solver)
@@ -75,6 +82,7 @@ I reviewed all 5 WebGPU compute shader examples:
 - **Bodies**: 10,000 rigid bodies
 
 #### n-body-gravity.holo
+
 - **Algorithm**: Barnes-Hut gravitational simulation
 - **Features**: Octree partitioning, center of mass approximation, Leapfrog integrator
 - **Shaders**: 4 compute shaders (BuildOctree, ComputeForces, LeapfrogIntegrator, DensityField)
@@ -86,6 +94,7 @@ I reviewed all 5 WebGPU compute shader examples:
 Created comprehensive documentation:
 
 #### README.md
+
 - Overview of all 5 examples
 - Usage instructions
 - Performance baselines
@@ -94,6 +103,7 @@ Created comprehensive documentation:
 - Troubleshooting guide
 
 #### IMPLEMENTATION_STATUS.md (this file)
+
 - Complete project summary
 - Current status and blockers
 - Next steps
@@ -117,6 +127,7 @@ benchmarks/webgpu-compute/
 ### Issue
 
 All 5 examples fail to parse with the same error:
+
 ```
 Expected identifier, got STRING (in composition > domain-material)
 ```
@@ -132,6 +143,7 @@ This appears to be a parser issue, not a benchmark issue. The parser is encounte
 ### Evidence
 
 The benchmark infrastructure works correctly:
+
 - ✅ Successfully initializes parser and compiler
 - ✅ Reads all 5 example files
 - ✅ Attempts to parse each file
@@ -153,6 +165,7 @@ The parser fails on all 5 files at the same point, suggesting a systemic parser 
    - Multi-line string literals
 
 2. **Test Syntax**: Create minimal test cases to isolate the parser issue:
+
    ```holoscript
    composition "MinimalShader" {
      shader "TestShader" {
@@ -167,6 +180,7 @@ The parser fails on all 5 files at the same point, suggesting a systemic parser 
    ```
 
 3. **Run Benchmark**: Once parser is fixed:
+
    ```bash
    cd benchmarks/webgpu-compute
    pnpm run bench
@@ -190,22 +204,23 @@ After parser fixes:
 
 ## Deliverables Summary
 
-| Item | Status | Notes |
-|------|--------|-------|
-| Benchmark Script | ✅ Complete | 1000+ lines, production-ready |
-| Documentation | ✅ Complete | README, status reports |
-| Example Analysis | ✅ Complete | 5 examples reviewed in detail |
-| Performance Targets | ✅ Documented | RTX 3080 baselines |
-| Validation Logic | ✅ Implemented | WGSL, buffers, dispatch, timing |
-| Reporting | ✅ Implemented | JSON + Markdown output |
-| Test Execution | ⏳ Blocked | Parser issues prevent testing |
-| Results Validation | ⏳ Pending | Requires parser fixes |
+| Item                | Status         | Notes                           |
+| ------------------- | -------------- | ------------------------------- |
+| Benchmark Script    | ✅ Complete    | 1000+ lines, production-ready   |
+| Documentation       | ✅ Complete    | README, status reports          |
+| Example Analysis    | ✅ Complete    | 5 examples reviewed in detail   |
+| Performance Targets | ✅ Documented  | RTX 3080 baselines              |
+| Validation Logic    | ✅ Implemented | WGSL, buffers, dispatch, timing |
+| Reporting           | ✅ Implemented | JSON + Markdown output          |
+| Test Execution      | ⏳ Blocked     | Parser issues prevent testing   |
+| Results Validation  | ⏳ Pending     | Requires parser fixes           |
 
 ## Code Quality Metrics
 
 The benchmark suite demonstrates:
 
 ### Structure
+
 - **Lines of Code**: ~1000 lines (benchmark script)
 - **Type Safety**: Full TypeScript with strict mode
 - **Error Handling**: Comprehensive try-catch with detailed error messages
@@ -213,6 +228,7 @@ The benchmark suite demonstrates:
 - **Modularity**: Well-organized functions with single responsibility
 
 ### Features
+
 - **Automated**: Zero manual intervention required
 - **Comprehensive**: Tests all 5 examples systematically
 - **Extensible**: Easy to add new examples
@@ -220,6 +236,7 @@ The benchmark suite demonstrates:
 - **CI/CD Ready**: Machine-readable JSON output
 
 ### Output Quality
+
 - **Human-Readable**: Formatted console output with Unicode box-drawing
 - **Machine-Readable**: Structured JSON for automation
 - **Professional**: Markdown reports with tables and formatting
@@ -230,12 +247,14 @@ The benchmark suite demonstrates:
 The benchmark validates scientifically accurate implementations:
 
 ### Fluid Simulation
+
 - Navier-Stokes equations for incompressible flow
 - Semi-Lagrangian advection (unconditionally stable)
 - Pressure projection (enforces ∇·v = 0)
 - Jacobi iteration for Poisson equation
 
 ### Physics Simulations
+
 - Position-Based Dynamics (Müller et al. 2007)
 - Sequential Impulse Solver (Erin Catto 2005)
 - Barnes-Hut algorithm (1986) for O(n log n) complexity

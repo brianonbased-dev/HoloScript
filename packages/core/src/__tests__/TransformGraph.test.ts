@@ -7,7 +7,9 @@ import { TransformGraph } from '../spatial/TransformGraph';
 
 describe('TransformGraph', () => {
   let tg: TransformGraph;
-  beforeEach(() => { tg = new TransformGraph(); });
+  beforeEach(() => {
+    tg = new TransformGraph();
+  });
 
   it('addNode creates with defaults', () => {
     tg.addNode('a');
@@ -32,14 +34,18 @@ describe('TransformGraph', () => {
     tg.addNode('a');
     tg.setPosition('a', 5, 10, 15);
     const t = tg.getLocalTransform('a')!;
-    expect(t.x).toBe(5); expect(t.y).toBe(10); expect(t.z).toBe(15);
+    expect(t.x).toBe(5);
+    expect(t.y).toBe(10);
+    expect(t.z).toBe(15);
   });
 
   it('setScale updates local transform', () => {
     tg.addNode('a');
     tg.setScale('a', 2, 3, 4);
     const t = tg.getLocalTransform('a')!;
-    expect(t.sx).toBe(2); expect(t.sy).toBe(3); expect(t.sz).toBe(4);
+    expect(t.sx).toBe(2);
+    expect(t.sy).toBe(3);
+    expect(t.sz).toBe(4);
   });
 
   it('root node world position equals local', () => {

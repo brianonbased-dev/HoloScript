@@ -7,11 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  partnerSDKHandler,
-  signRequest,
-  verifyWebhookSignature,
-} from '../PartnerSDKTrait';
+import { partnerSDKHandler, signRequest, verifyWebhookSignature } from '../PartnerSDKTrait';
 import type { PartnerSDKConfig, PartnerDefinition } from '../PartnerSDKTrait';
 
 // ---------------------------------------------------------------------------
@@ -107,9 +103,12 @@ describe('PartnerSDKTrait', () => {
       const session = state.sessions.get('test-partner');
       expect(session.status).toBe('connected');
       expect(session.capabilities).toEqual(['render', 'analytics']);
-      expect(ctx.emit).toHaveBeenCalledWith('partner_connected', expect.objectContaining({
-        partnerId: 'test-partner',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_connected',
+        expect.objectContaining({
+          partnerId: 'test-partner',
+        })
+      );
     });
 
     it('emits error for unknown partner', () => {
@@ -118,10 +117,13 @@ describe('PartnerSDKTrait', () => {
         partnerId: 'unknown-partner',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_error', expect.objectContaining({
-        partnerId: 'unknown-partner',
-        error: 'Unknown partner: unknown-partner',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_error',
+        expect.objectContaining({
+          partnerId: 'unknown-partner',
+          error: 'Unknown partner: unknown-partner',
+        })
+      );
     });
 
     it('disconnects a connected partner', () => {
@@ -136,9 +138,12 @@ describe('PartnerSDKTrait', () => {
 
       const session = node.__partnerSDKState.sessions.get('test-partner');
       expect(session.status).toBe('disconnected');
-      expect(ctx.emit).toHaveBeenCalledWith('partner_disconnected', expect.objectContaining({
-        partnerId: 'test-partner',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_disconnected',
+        expect.objectContaining({
+          partnerId: 'test-partner',
+        })
+      );
     });
   });
 
@@ -164,11 +169,14 @@ describe('PartnerSDKTrait', () => {
       expect(state.pendingRequests[0].status).toBe('sent');
       expect(state.pendingRequests[0].signature).toBeDefined();
       expect(state.totalRequests).toBe(1);
-      expect(ctx.emit).toHaveBeenCalledWith('partner_request_sent', expect.objectContaining({
-        partnerId: 'test-partner',
-        endpoint: '/data',
-        signed: true,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_request_sent',
+        expect.objectContaining({
+          partnerId: 'test-partner',
+          endpoint: '/data',
+          signed: true,
+        })
+      );
     });
 
     it('rejects request when not connected', () => {
@@ -183,9 +191,12 @@ describe('PartnerSDKTrait', () => {
         endpoint: '/data',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_error', expect.objectContaining({
-        error: 'Not connected to partner',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_error',
+        expect.objectContaining({
+          error: 'Not connected to partner',
+        })
+      );
     });
 
     it('rejects request for unknown partner', () => {
@@ -195,9 +206,12 @@ describe('PartnerSDKTrait', () => {
         endpoint: '/data',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_error', expect.objectContaining({
-        error: 'Not connected to partner',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_error',
+        expect.objectContaining({
+          error: 'Not connected to partner',
+        })
+      );
     });
   });
 
@@ -270,10 +284,13 @@ describe('PartnerSDKTrait', () => {
         timestamp,
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_webhook_received', expect.objectContaining({
-        partnerId: 'test-partner',
-        event: 'data_update',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_webhook_received',
+        expect.objectContaining({
+          partnerId: 'test-partner',
+          event: 'data_update',
+        })
+      );
     });
 
     it('rejects webhook with invalid signature', () => {
@@ -286,10 +303,13 @@ describe('PartnerSDKTrait', () => {
         timestamp: Date.now(),
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_webhook_rejected', expect.objectContaining({
-        partnerId: 'test-partner',
-        reason: 'Invalid signature',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_webhook_rejected',
+        expect.objectContaining({
+          partnerId: 'test-partner',
+          reason: 'Invalid signature',
+        })
+      );
     });
 
     it('accepts any webhook when verification is disabled', () => {
@@ -322,9 +342,12 @@ describe('PartnerSDKTrait', () => {
         partnerId: 'test-partner',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_status', expect.objectContaining({
-        partnerId: 'test-partner',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_status',
+        expect.objectContaining({
+          partnerId: 'test-partner',
+        })
+      );
     });
 
     it('returns null session for unknown partner', () => {
@@ -333,10 +356,13 @@ describe('PartnerSDKTrait', () => {
         partnerId: 'unknown',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_status', expect.objectContaining({
-        partnerId: 'unknown',
-        session: null,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_status',
+        expect.objectContaining({
+          partnerId: 'unknown',
+          session: null,
+        })
+      );
     });
   });
 
@@ -349,9 +375,12 @@ describe('PartnerSDKTrait', () => {
 
       partnerSDKHandler.onDetach!(node, config, ctx as any);
 
-      expect(ctx.emit).toHaveBeenCalledWith('partner_disconnected', expect.objectContaining({
-        partnerId: 'test-partner',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'partner_disconnected',
+        expect.objectContaining({
+          partnerId: 'test-partner',
+        })
+      );
       expect(node.__partnerSDKState).toBeUndefined();
     });
   });

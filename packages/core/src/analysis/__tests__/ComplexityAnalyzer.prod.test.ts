@@ -80,14 +80,14 @@ describe('ComplexityAnalyzer — Production', () => {
   it('function metrics detect functions', () => {
     const result = analyzer.analyze(SAMPLE);
     expect(result.functions.length).toBeGreaterThanOrEqual(2);
-    const fnNames = result.functions.map(f => f.name);
+    const fnNames = result.functions.map((f) => f.name);
     expect(fnNames).toContain('movePlayer');
     expect(fnNames).toContain('attack');
   });
 
   it('function metrics include cyclomatic complexity', () => {
     const result = analyzer.analyze(SAMPLE);
-    const moveFn = result.functions.find(f => f.name === 'movePlayer')!;
+    const moveFn = result.functions.find((f) => f.name === 'movePlayer')!;
     expect(moveFn.cyclomatic).toBeGreaterThanOrEqual(1);
     expect(moveFn.lines).toBeGreaterThan(0);
   });

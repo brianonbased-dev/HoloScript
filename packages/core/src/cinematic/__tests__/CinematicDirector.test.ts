@@ -5,7 +5,9 @@ import type { CuePoint } from '../CinematicDirector';
 describe('CinematicDirector', () => {
   let director: CinematicDirector;
 
-  beforeEach(() => { director = new CinematicDirector(); });
+  beforeEach(() => {
+    director = new CinematicDirector();
+  });
 
   // ---------------------------------------------------------------------------
   // Scene Management
@@ -119,7 +121,9 @@ describe('CinematicDirector', () => {
     let firedCue: CuePoint | null = null;
     director.createScene('cued', 'Cued', 5);
     director.addCue('cued', { id: 'flash', time: 1.0, type: 'effect', data: {} });
-    director.onCue('effect', (cue) => { firedCue = cue; });
+    director.onCue('effect', (cue) => {
+      firedCue = cue;
+    });
     director.playScene('cued');
     director.update(1.5);
     expect(firedCue).not.toBeNull();
@@ -130,7 +134,9 @@ describe('CinematicDirector', () => {
     let fired = false;
     director.createScene('cued', 'Cued', 5);
     director.addCue('cued', { id: 'late', time: 3.0, type: 'sound', data: {} });
-    director.onCue('sound', () => { fired = true; });
+    director.onCue('sound', () => {
+      fired = true;
+    });
     director.playScene('cued');
     director.update(2.0);
     expect(fired).toBe(false);

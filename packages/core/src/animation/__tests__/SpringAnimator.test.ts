@@ -4,7 +4,9 @@ import { SpringAnimator, Vec3SpringAnimator, SpringPresets } from '../SpringAnim
 describe('SpringAnimator', () => {
   let spring: SpringAnimator;
 
-  beforeEach(() => { spring = new SpringAnimator(0); });
+  beforeEach(() => {
+    spring = new SpringAnimator(0);
+  });
 
   // ---------------------------------------------------------------------------
   // Initial State

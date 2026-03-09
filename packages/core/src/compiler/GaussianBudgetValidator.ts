@@ -32,13 +32,13 @@ export type GaussianPlatform =
  * Gaussian budget limits per platform (number of Gaussian primitives).
  */
 export const GAUSSIAN_BUDGETS: Record<GaussianPlatform, number> = {
-  'quest3':      180_000,
-  'desktop-vr':  2_000_000,
-  'webgpu':      500_000,
-  'mobile-ar':   100_000,
-  'visionos':    1_000_000,
-  'android-xr':  300_000,
-  'pcvr':        5_000_000,
+  quest3: 180_000,
+  'desktop-vr': 2_000_000,
+  webgpu: 500_000,
+  'mobile-ar': 100_000,
+  visionos: 1_000_000,
+  'android-xr': 300_000,
+  pcvr: 5_000_000,
 };
 
 /**
@@ -141,7 +141,8 @@ export class GaussianBudgetValidator {
 
   constructor(config: GaussianBudgetValidatorConfig = {}) {
     this.config = {
-      targetPlatforms: config.targetPlatforms ?? (Object.keys(GAUSSIAN_BUDGETS) as GaussianPlatform[]),
+      targetPlatforms:
+        config.targetPlatforms ?? (Object.keys(GAUSSIAN_BUDGETS) as GaussianPlatform[]),
       warningThresholdPercent: config.warningThresholdPercent ?? 80,
       overBudgetSeverity: config.overBudgetSeverity ?? 'warning',
       enableBreakdown: config.enableBreakdown ?? true,
@@ -160,9 +161,8 @@ export class GaussianBudgetValidator {
 
     // Find largest contributor for error messages
     const sorted = [...nodes].sort((a, b) => b.gaussianCount - a.gaussianCount);
-    const largestContributor = sorted.length > 0
-      ? { name: sorted[0].name, count: sorted[0].gaussianCount }
-      : undefined;
+    const largestContributor =
+      sorted.length > 0 ? { name: sorted[0].name, count: sorted[0].gaussianCount } : undefined;
 
     for (const platform of this.config.targetPlatforms) {
       const budget = GAUSSIAN_BUDGETS[platform];
@@ -178,9 +178,12 @@ export class GaussianBudgetValidator {
 
         diagnostics.push({
           severity,
-          message: `Gaussian budget exceeded for ${platform}: ${totalCount.toLocaleString()} / ${budget.toLocaleString()} (${usagePercent.toFixed(1)}%). ` +
+          message:
+            `Gaussian budget exceeded for ${platform}: ${totalCount.toLocaleString()} / ${budget.toLocaleString()} (${usagePercent.toFixed(1)}%). ` +
             `Reduce by ${(totalCount - budget).toLocaleString()} primitives.` +
-            (largestContributor ? ` Largest contributor: '${largestContributor.name}' (${largestContributor.count.toLocaleString()}).` : ''),
+            (largestContributor
+              ? ` Largest contributor: '${largestContributor.name}' (${largestContributor.count.toLocaleString()}).`
+              : ''),
           platform,
           actualCount: totalCount,
           budgetLimit: budget,
@@ -262,7 +265,7 @@ export class GaussianBudgetValidator {
    */
   suggestLODSplits(
     totalGaussians: number,
-    platform: GaussianPlatform,
+    platform: GaussianPlatform
   ): { lod0: number; lod1: number; lod2: number } {
     const budget = GAUSSIAN_BUDGETS[platform];
 

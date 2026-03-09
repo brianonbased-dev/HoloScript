@@ -14,7 +14,9 @@ const doubler = (buf: Float32Array) => {
 
 describe('PostProcessStack', () => {
   let stack: PostProcessStack;
-  beforeEach(() => { stack = new PostProcessStack(); });
+  beforeEach(() => {
+    stack = new PostProcessStack();
+  });
 
   it('addEffect returns effect with id', () => {
     const e = stack.addEffect('bloom', 0, identity);
@@ -44,8 +46,14 @@ describe('PostProcessStack', () => {
 
   it('process respects priority order', () => {
     const log: string[] = [];
-    stack.addEffect('second', 10, (b) => { log.push('second'); return b; });
-    stack.addEffect('first', 1, (b) => { log.push('first'); return b; });
+    stack.addEffect('second', 10, (b) => {
+      log.push('second');
+      return b;
+    });
+    stack.addEffect('first', 1, (b) => {
+      log.push('first');
+      return b;
+    });
     stack.process(new Float32Array(1), 1, 1);
     expect(log).toEqual(['first', 'second']);
   });
@@ -74,8 +82,14 @@ describe('PostProcessStack', () => {
 
   it('reorder changes execution order', () => {
     const log: string[] = [];
-    const a = stack.addEffect('a', 1, (b) => { log.push('a'); return b; });
-    stack.addEffect('b', 2, (b) => { log.push('b'); return b; });
+    const a = stack.addEffect('a', 1, (b) => {
+      log.push('a');
+      return b;
+    });
+    stack.addEffect('b', 2, (b) => {
+      log.push('b');
+      return b;
+    });
     stack.reorder(a.id, 5);
     stack.process(new Float32Array(1), 1, 1);
     expect(log).toEqual(['b', 'a']);

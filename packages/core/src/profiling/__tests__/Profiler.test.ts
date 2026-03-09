@@ -4,7 +4,9 @@ import { Profiler } from '../Profiler';
 describe('Profiler', () => {
   let profiler: Profiler;
 
-  beforeEach(() => { profiler = new Profiler(); });
+  beforeEach(() => {
+    profiler = new Profiler();
+  });
 
   // ---------------------------------------------------------------------------
   // Start / Stop
@@ -57,7 +59,7 @@ describe('Profiler', () => {
     profiler.endSpan();
     profiler.endSpan();
     const result = profiler.stop();
-    const inner = result.samples.find(s => s.name === 'inner');
+    const inner = result.samples.find((s) => s.name === 'inner');
     expect(inner).toBeDefined();
     expect(inner!.depth).toBeGreaterThan(0);
   });
@@ -66,7 +68,7 @@ describe('Profiler', () => {
     profiler.start();
     profiler.recordSpan('async-op', 50, 'io');
     const result = profiler.stop();
-    expect(result.samples.some(s => s.name === 'async-op')).toBe(true);
+    expect(result.samples.some((s) => s.name === 'async-op')).toBe(true);
   });
 
   // ---------------------------------------------------------------------------

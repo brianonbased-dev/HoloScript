@@ -177,25 +177,74 @@ describe('HITLTrait — Backend Integration', () => {
   describe('escalation condition matching', () => {
     it('matches confidence_below condition', () => {
       const condition: EscalationCondition = { type: 'confidence_below', value: 0.5 };
-      expect(matchesCondition(condition, { action: 'x', category: 'read', confidence: 0.3, riskScore: 0 })).toBe(true);
-      expect(matchesCondition(condition, { action: 'x', category: 'read', confidence: 0.7, riskScore: 0 })).toBe(false);
+      expect(
+        matchesCondition(condition, {
+          action: 'x',
+          category: 'read',
+          confidence: 0.3,
+          riskScore: 0,
+        })
+      ).toBe(true);
+      expect(
+        matchesCondition(condition, {
+          action: 'x',
+          category: 'read',
+          confidence: 0.7,
+          riskScore: 0,
+        })
+      ).toBe(false);
     });
 
     it('matches risk_above condition', () => {
       const condition: EscalationCondition = { type: 'risk_above', value: 0.8 };
-      expect(matchesCondition(condition, { action: 'x', category: 'read', confidence: 0.9, riskScore: 0.9 })).toBe(true);
-      expect(matchesCondition(condition, { action: 'x', category: 'read', confidence: 0.9, riskScore: 0.3 })).toBe(false);
+      expect(
+        matchesCondition(condition, {
+          action: 'x',
+          category: 'read',
+          confidence: 0.9,
+          riskScore: 0.9,
+        })
+      ).toBe(true);
+      expect(
+        matchesCondition(condition, {
+          action: 'x',
+          category: 'read',
+          confidence: 0.9,
+          riskScore: 0.3,
+        })
+      ).toBe(false);
     });
 
     it('matches category_match condition with array', () => {
       const condition: EscalationCondition = { type: 'category_match', value: ['delete', 'admin'] };
-      expect(matchesCondition(condition, { action: 'x', category: 'delete', confidence: 0.9, riskScore: 0 })).toBe(true);
-      expect(matchesCondition(condition, { action: 'x', category: 'read', confidence: 0.9, riskScore: 0 })).toBe(false);
+      expect(
+        matchesCondition(condition, {
+          action: 'x',
+          category: 'delete',
+          confidence: 0.9,
+          riskScore: 0,
+        })
+      ).toBe(true);
+      expect(
+        matchesCondition(condition, {
+          action: 'x',
+          category: 'read',
+          confidence: 0.9,
+          riskScore: 0,
+        })
+      ).toBe(false);
     });
 
     it('matches category_match condition with string', () => {
       const condition: EscalationCondition = { type: 'category_match', value: 'admin' };
-      expect(matchesCondition(condition, { action: 'x', category: 'admin', confidence: 0.9, riskScore: 0 })).toBe(true);
+      expect(
+        matchesCondition(condition, {
+          action: 'x',
+          category: 'admin',
+          confidence: 0.9,
+          riskScore: 0,
+        })
+      ).toBe(true);
     });
   });
 
@@ -260,9 +309,7 @@ describe('HITLTrait — Backend Integration', () => {
         },
       } as any);
 
-      const approvedCalls = ctx.emit.mock.calls.filter(
-        (c: any) => c[0] === 'hitl_action_approved'
-      );
+      const approvedCalls = ctx.emit.mock.calls.filter((c: any) => c[0] === 'hitl_action_approved');
       expect(approvedCalls.length).toBe(1);
       expect(approvedCalls[0][1].autonomous).toBe(true);
     });
@@ -303,9 +350,7 @@ describe('HITLTrait — Backend Integration', () => {
         payload: { approvalId: 'test', approved: true, operator: 'hacker' },
       } as any);
 
-      const unauth = ctx.emit.mock.calls.filter(
-        (c: any) => c[0] === 'hitl_unauthorized_operator'
-      );
+      const unauth = ctx.emit.mock.calls.filter((c: any) => c[0] === 'hitl_unauthorized_operator');
       expect(unauth.length).toBe(1);
     });
 
@@ -441,9 +486,7 @@ describe('HITLTrait — Backend Integration', () => {
         payload: { checkpointId: cpId },
       } as any);
 
-      const failedCalls = ctx.emit.mock.calls.filter(
-        (c: any) => c[0] === 'hitl_rollback_failed'
-      );
+      const failedCalls = ctx.emit.mock.calls.filter((c: any) => c[0] === 'hitl_rollback_failed');
       expect(failedCalls.length).toBe(1);
       expect(failedCalls[0][1].reason).toBe('already_rolled_back');
     });
@@ -465,9 +508,7 @@ describe('HITLTrait — Backend Integration', () => {
         payload: { checkpointId: cpId },
       } as any);
 
-      const failedCalls = ctx.emit.mock.calls.filter(
-        (c: any) => c[0] === 'hitl_rollback_failed'
-      );
+      const failedCalls = ctx.emit.mock.calls.filter((c: any) => c[0] === 'hitl_rollback_failed');
       expect(failedCalls.length).toBe(1);
       expect(failedCalls[0][1].reason).toBe('expired');
     });
@@ -492,9 +533,7 @@ describe('HITLTrait — Backend Integration', () => {
         },
       } as any);
 
-      const notifyCalls = ctx.emit.mock.calls.filter(
-        (c: any) => c[0] === 'hitl_notification_sent'
-      );
+      const notifyCalls = ctx.emit.mock.calls.filter((c: any) => c[0] === 'hitl_notification_sent');
       expect(notifyCalls.length).toBe(1);
       expect(notifyCalls[0][1].webhook).toBe('https://example.com/webhook');
     });
@@ -536,9 +575,7 @@ describe('HITLTrait — Backend Integration', () => {
         payload: { newMode: 'manual', operator: 'admin' },
       } as any);
 
-      const modeCalls = ctx.emit.mock.calls.filter(
-        (c: any) => c[0] === 'hitl_mode_changed'
-      );
+      const modeCalls = ctx.emit.mock.calls.filter((c: any) => c[0] === 'hitl_mode_changed');
       expect(modeCalls.length).toBe(1);
       expect(modeCalls[0][1].fromMode).toBe('supervised');
       expect(modeCalls[0][1].toMode).toBe('manual');
@@ -556,8 +593,26 @@ describe('HITLTrait — Backend Integration', () => {
 
       // Add some audit entries manually
       s.auditLog.push(
-        { id: 'a1', timestamp: Date.now(), agentId: 'ag', action: 'test', decision: 'autonomous', confidence: 0.9, riskScore: 0.1, rollbackAvailable: false },
-        { id: 'a2', timestamp: Date.now(), agentId: 'ag', action: 'test2', decision: 'approved', confidence: 0.8, riskScore: 0.2, rollbackAvailable: false }
+        {
+          id: 'a1',
+          timestamp: Date.now(),
+          agentId: 'ag',
+          action: 'test',
+          decision: 'autonomous',
+          confidence: 0.9,
+          riskScore: 0.1,
+          rollbackAvailable: false,
+        },
+        {
+          id: 'a2',
+          timestamp: Date.now(),
+          agentId: 'ag',
+          action: 'test2',
+          decision: 'approved',
+          confidence: 0.8,
+          riskScore: 0.2,
+          rollbackAvailable: false,
+        }
       );
 
       hitlHandler.onEvent!(node, config, ctx, {
@@ -573,9 +628,16 @@ describe('HITLTrait — Backend Integration', () => {
     it('uses notification_webhook as default flush endpoint', () => {
       hitlHandler.onAttach!(node, config, ctx);
       const s = getState(node);
-      s.auditLog.push(
-        { id: 'a1', timestamp: Date.now(), agentId: 'ag', action: 'test', decision: 'autonomous', confidence: 0.9, riskScore: 0.1, rollbackAvailable: false }
-      );
+      s.auditLog.push({
+        id: 'a1',
+        timestamp: Date.now(),
+        agentId: 'ag',
+        action: 'test',
+        decision: 'autonomous',
+        confidence: 0.9,
+        riskScore: 0.1,
+        rollbackAvailable: false,
+      });
 
       hitlHandler.onEvent!(node, config, ctx, {
         type: 'flush_audit_log',

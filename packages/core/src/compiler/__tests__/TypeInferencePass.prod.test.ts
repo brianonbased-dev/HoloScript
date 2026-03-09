@@ -6,7 +6,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { TypeInferencePass, inferLiteralType, type TraitConfigRegistry } from '../../compiler/TypeInferencePass';
+import {
+  TypeInferencePass,
+  inferLiteralType,
+  type TraitConfigRegistry,
+} from '../../compiler/TypeInferencePass';
 import type { HSPlusAST, HSPlusNode } from '../../types/HoloScriptPlus';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -22,7 +26,6 @@ function makeAST(root: HSPlusNode): HSPlusAST {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('TypeInferencePass — Production', () => {
-
   // ─── inferLiteralType() — pure utility ─────────────────────────────
 
   describe('inferLiteralType()', () => {
@@ -160,7 +163,8 @@ describe('TypeInferencePass — Production', () => {
     const pass = new TypeInferencePass();
 
     it('vec2 from 2-element array', () => expect(pass.inferValue([3, 4])).toBe('vec2'));
-    it('color from 4-element 0-1 array', () => expect(pass.inferValue([0.1, 0.2, 0.3, 0.4])).toBe('color'));
+    it('color from 4-element 0-1 array', () =>
+      expect(pass.inferValue([0.1, 0.2, 0.3, 0.4])).toBe('color'));
     it('string', () => expect(pass.inferValue('xyz')).toBe('string'));
     it('int', () => expect(pass.inferValue(7)).toBe('int'));
     it('bool from false', () => expect(pass.inferValue(false)).toBe('bool'));

@@ -65,8 +65,8 @@ describe('BuildingGenerator — Production', () => {
       const r1 = gen1.generate(BASE_CONFIG);
       const r2 = gen2.generate({ ...BASE_CONFIG, seed: 999 });
       // Rooms may differ (probabilistic but near-certain)
-      const s1 = JSON.stringify(r1.floorPlans[0].rooms.map(r => r.bounds));
-      const s2 = JSON.stringify(r2.floorPlans[0].rooms.map(r => r.bounds));
+      const s1 = JSON.stringify(r1.floorPlans[0].rooms.map((r) => r.bounds));
+      const s2 = JSON.stringify(r2.floorPlans[0].rooms.map((r) => r.bounds));
       expect(s1).not.toBe(s2);
     });
   });

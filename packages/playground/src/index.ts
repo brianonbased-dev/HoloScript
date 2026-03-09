@@ -75,13 +75,7 @@ export async function initPlayground(config: PlaygroundConfig): Promise<{
   shareUrl(): Promise<string>;
   loadExample(name: string): void;
 }> {
-  const {
-    editorContainer,
-    monaco,
-    scene,
-    debounceMs = 300,
-    onShareUrl,
-  } = config;
+  const { editorContainer, monaco, scene, debounceMs = 300, onShareUrl } = config;
 
   // Register language + themes
   registerHoloScriptLanguage(monaco);
@@ -203,7 +197,9 @@ function parseProperties(body: string): Record<string, unknown> {
     } else if (rawVal.startsWith('[') && rawVal.endsWith(']')) {
       try {
         props[key] = JSON.parse(rawVal);
-      } catch { /* skip */ }
+      } catch {
+        /* skip */
+      }
     } else if (rawVal === 'true') {
       props[key] = true;
     } else if (rawVal === 'false') {

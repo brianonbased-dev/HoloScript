@@ -101,17 +101,20 @@ console.log(`Processed ${results.successCount} files successfully`);
 **File types**: `.ts`, `.tsx`, `.js`, `.jsx`, `.hs`, `.hsplus`
 
 **How it works**:
+
 1. Lightweight AST parsing to detect structural boundaries
 2. Identifies: `function`, `class`, `interface`, `method`, `export`
 3. Greedily merges adjacent nodes into chunks respecting `maxTokens`
 4. Recursively splits oversized nodes
 
 **Benefits**:
+
 - Maintains syntactic integrity (no broken functions)
 - Higher information density per chunk
 - Accurate context for code generation
 
 **Example**:
+
 ```typescript
 // Input: UserService.ts with 5 methods
 // Output: 2 chunks
@@ -124,16 +127,19 @@ console.log(`Processed ${results.successCount} files successfully`);
 **File types**: `.log`, `.txt`, `.csv`
 
 **How it works**:
+
 1. Split at `maxTokens` boundary
 2. Add `overlapTokens` between chunks for context
 3. No semantic analysis (fast)
 
 **Benefits**:
+
 - Predictable chunk sizes
 - Overlap prevents context loss
 - Handles large unstructured files efficiently
 
 **Example**:
+
 ```
 // Input: 10,000 log lines
 // Output: 15 chunks (1024 tokens each, 100-token overlap)
@@ -144,23 +150,28 @@ console.log(`Processed ${results.successCount} files successfully`);
 **File types**: `.md`, `.mdx`, `.markdown`
 
 **How it works**:
+
 1. Detect paragraph boundaries (blank lines, headings, lists)
 2. Compute similarity between adjacent paragraphs (Jaccard/embeddings)
 3. Merge paragraphs with similarity > `semanticThreshold`
 4. Respect `maxTokens` limit
 
 **Benefits**:
+
 - Groups related content together
 - Better retrieval accuracy for RAG
 - Respects document structure
 
 **Example**:
+
 ```markdown
 # Authentication (Chunk 1)
+
 User authentication uses JWT...
 The auth flow involves...
 
 # Database (Chunk 2)
+
 PostgreSQL is used...
 All queries are parameterized...
 ```
@@ -186,6 +197,7 @@ interface ChunkingOptions {
 ### Tuning Recommendations
 
 **For code parsing (speed-focused)**:
+
 ```typescript
 {
   maxTokens: 512,    // Smaller chunks = more parallelism
@@ -195,6 +207,7 @@ interface ChunkingOptions {
 ```
 
 **For documentation (retrieval-focused)**:
+
 ```typescript
 {
   maxTokens: 2048,   // Larger chunks = more context
@@ -204,6 +217,7 @@ interface ChunkingOptions {
 ```
 
 **For logs (balanced)**:
+
 ```typescript
 {
   maxTokens: 1024,
@@ -286,11 +300,13 @@ Mixed Workload (100 files):
 ### From Legacy ChunkDetector
 
 **Before**:
+
 ```typescript
 const chunks = ChunkDetector.detect(sourceCode);
 ```
 
 **After**:
+
 ```typescript
 const chunks = ChunkDetector.detectHybrid(sourceCode, 'file.hsplus');
 ```
@@ -298,6 +314,7 @@ const chunks = ChunkDetector.detectHybrid(sourceCode, 'file.hsplus');
 ### From Custom Chunking Logic
 
 **Before**:
+
 ```typescript
 function chunkByLines(code: string, linesPerChunk: number) {
   const lines = code.split('\n');
@@ -310,6 +327,7 @@ function chunkByLines(code: string, linesPerChunk: number) {
 ```
 
 **After**:
+
 ```typescript
 const chunker = createHybridChunker({ maxTokens: 1024 });
 const chunks = chunker.chunk(code, 'file.ts');
@@ -319,6 +337,7 @@ const chunks = chunker.chunk(code, 'file.ts');
 ## Testing
 
 Comprehensive test suite covers:
+
 - ✅ Structure-based chunking (functions, classes, interfaces)
 - ✅ Fixed-size chunking (logs, text, CSV)
 - ✅ Semantic chunking (markdown, docs)
@@ -328,6 +347,7 @@ Comprehensive test suite covers:
 - ✅ Statistics and monitoring
 
 Run tests:
+
 ```bash
 npm test -- HybridChunker.test
 npm test -- HybridChunker.benchmark

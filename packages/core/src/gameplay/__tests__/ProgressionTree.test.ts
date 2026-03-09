@@ -1,15 +1,31 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ProgressionTree } from '../ProgressionTree';
 
-const skill = (id: string, tier = 1, cost = 1, prereqs: string[] = [], effects: Record<string, number> = {}) => ({
-  id, name: id, description: 'Test', tier, maxLevel: 3, cost,
-  prerequisites: prereqs, icon: '⚔️', category: 'combat', effects,
+const skill = (
+  id: string,
+  tier = 1,
+  cost = 1,
+  prereqs: string[] = [],
+  effects: Record<string, number> = {}
+) => ({
+  id,
+  name: id,
+  description: 'Test',
+  tier,
+  maxLevel: 3,
+  cost,
+  prerequisites: prereqs,
+  icon: '⚔️',
+  category: 'combat',
+  effects,
 });
 
 describe('ProgressionTree', () => {
   let pt: ProgressionTree;
 
-  beforeEach(() => { pt = new ProgressionTree(); });
+  beforeEach(() => {
+    pt = new ProgressionTree();
+  });
 
   it('addNode creates node', () => {
     const n = pt.addNode(skill('slash'));

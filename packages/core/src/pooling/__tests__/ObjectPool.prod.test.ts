@@ -8,12 +8,22 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ObjectPool } from '../ObjectPool';
 
-interface Particle { x: number; y: number; alive: boolean }
+interface Particle {
+  x: number;
+  y: number;
+  alive: boolean;
+}
 
-function makePool(opts: { initial?: number; max?: number; autoExpand?: boolean; expandAmount?: number } = {}) {
+function makePool(
+  opts: { initial?: number; max?: number; autoExpand?: boolean; expandAmount?: number } = {}
+) {
   return new ObjectPool<Particle>({
     factory: () => ({ x: 0, y: 0, alive: false }),
-    reset: (p) => { p.x = 0; p.y = 0; p.alive = false; },
+    reset: (p) => {
+      p.x = 0;
+      p.y = 0;
+      p.alive = false;
+    },
     initialSize: opts.initial ?? 5,
     maxSize: opts.max ?? 20,
     autoExpand: opts.autoExpand ?? true,
@@ -114,7 +124,10 @@ describe('ObjectPool — Production', () => {
     const resets: number[] = [];
     const p = new ObjectPool<{ val: number }>({
       factory: () => ({ val: 0 }),
-      reset: (o) => { o.val = -1; resets.push(1); },
+      reset: (o) => {
+        o.val = -1;
+        resets.push(1);
+      },
       initialSize: 2,
       maxSize: 10,
       autoExpand: false,
@@ -161,7 +174,9 @@ describe('ObjectPool — Production', () => {
   });
 
   it('forEach on empty active set is safe', () => {
-    pool.forEach(() => { throw new Error('should not run'); });
+    pool.forEach(() => {
+      throw new Error('should not run');
+    });
     expect(true).toBe(true);
   });
 

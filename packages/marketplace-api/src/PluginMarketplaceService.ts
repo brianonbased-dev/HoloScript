@@ -171,7 +171,7 @@ export class InMemoryPluginDatabase implements IPluginDatabase {
           p.name.toLowerCase().includes(q) ||
           p.description.toLowerCase().includes(q) ||
           p.keywords.some((k) => k.toLowerCase().includes(q)) ||
-          p.id.toLowerCase().includes(q),
+          p.id.toLowerCase().includes(q)
       );
     }
 
@@ -185,20 +185,18 @@ export class InMemoryPluginDatabase implements IPluginDatabase {
         (p) =>
           p.compatibility.platforms?.includes(platforms) ||
           p.compatibility.platforms?.includes('all') ||
-          !p.compatibility.platforms,
+          !p.compatibility.platforms
       );
     }
 
     if (query.author) {
       results = results.filter((p) =>
-        p.author.name.toLowerCase().includes(query.author!.toLowerCase()),
+        p.author.name.toLowerCase().includes(query.author!.toLowerCase())
       );
     }
 
     if (query.keywords?.length) {
-      results = results.filter((p) =>
-        query.keywords!.some((k) => p.keywords.includes(k)),
-      );
+      results = results.filter((p) => query.keywords!.some((k) => p.keywords.includes(k)));
     }
 
     if (query.pricingModel) {
@@ -206,9 +204,7 @@ export class InMemoryPluginDatabase implements IPluginDatabase {
     }
 
     if (query.maxPrice !== undefined) {
-      results = results.filter(
-        (p) => !p.pricing?.price || p.pricing.price <= query.maxPrice!,
-      );
+      results = results.filter((p) => !p.pricing?.price || p.pricing.price <= query.maxPrice!);
     }
 
     if (query.verified !== undefined) {
@@ -216,9 +212,7 @@ export class InMemoryPluginDatabase implements IPluginDatabase {
     }
 
     if (query.permission) {
-      results = results.filter((p) =>
-        p.security.permissions.includes(query.permission!),
-      );
+      results = results.filter((p) => p.security.permissions.includes(query.permission!));
     }
 
     if (query.excludeDeprecated !== false) {
@@ -259,7 +253,7 @@ export class InMemoryPluginDatabase implements IPluginDatabase {
   private sortResults(
     results: PluginPackageManifest[],
     sortBy: string,
-    sortOrder: 'asc' | 'desc',
+    sortOrder: 'asc' | 'desc'
   ): PluginPackageManifest[] {
     const sorted = [...results];
     const order = sortOrder === 'asc' ? 1 : -1;
@@ -273,14 +267,12 @@ export class InMemoryPluginDatabase implements IPluginDatabase {
         break;
       case 'updated':
         sorted.sort(
-          (a, b) =>
-            ((a.updatedAt?.getTime() ?? 0) - (b.updatedAt?.getTime() ?? 0)) * order,
+          (a, b) => ((a.updatedAt?.getTime() ?? 0) - (b.updatedAt?.getTime() ?? 0)) * order
         );
         break;
       case 'created':
         sorted.sort(
-          (a, b) =>
-            ((a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0)) * order,
+          (a, b) => ((a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0)) * order
         );
         break;
       case 'price':
@@ -383,8 +375,9 @@ export class InMemoryPluginDatabase implements IPluginDatabase {
   }
 
   async getRecent(limit = 10): Promise<PluginSummary[]> {
-    const plugins = Array.from(this.plugins.values())
-      .sort((a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0));
+    const plugins = Array.from(this.plugins.values()).sort(
+      (a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0)
+    );
     return plugins.slice(0, limit).map((p) => this.toSummary(p));
   }
 
@@ -394,8 +387,7 @@ export class InMemoryPluginDatabase implements IPluginDatabase {
   }
 
   async getFeatured(limit = 10): Promise<PluginSummary[]> {
-    const plugins = Array.from(this.plugins.values())
-      .filter((p) => this.featured.has(p.id));
+    const plugins = Array.from(this.plugins.values()).filter((p) => this.featured.has(p.id));
     return plugins.slice(0, limit).map((p) => this.toSummary(p));
   }
 }
@@ -471,7 +463,7 @@ export class PluginRatingService {
     userName: string,
     rating: number,
     review?: { title?: string; body?: string },
-    pluginVersion?: string,
+    pluginVersion?: string
   ): Promise<{ success: boolean; error?: string }> {
     if (rating < 1 || rating > 5 || !Number.isInteger(rating)) {
       return { success: false, error: 'Rating must be an integer between 1 and 5' };
@@ -492,7 +484,9 @@ export class PluginRatingService {
     const now = new Date();
 
     this.ratings.get(pluginId)!.set(userId, {
-      id: existing?.id ?? `review_${createHash('sha256').update(`${pluginId}:${userId}`).digest('hex').slice(0, 12)}`,
+      id:
+        existing?.id ??
+        `review_${createHash('sha256').update(`${pluginId}:${userId}`).digest('hex').slice(0, 12)}`,
       userId,
       userName,
       rating,
@@ -581,12 +575,15 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
   private downloadStats: PluginDownloadStatsTracker;
   private ratingService: PluginRatingService;
   private rateLimiters: Map<RateLimitTier, RateLimiter> = new Map();
-  private sessions: Map<string, { userId: string; userName: string; tier: RateLimitTier }> = new Map();
+  private sessions: Map<string, { userId: string; userName: string; tier: RateLimitTier }> =
+    new Map();
 
-  constructor(options: {
-    database?: IPluginDatabase;
-    signatureService?: PluginSignatureService;
-  } = {}) {
+  constructor(
+    options: {
+      database?: IPluginDatabase;
+      signatureService?: PluginSignatureService;
+    } = {}
+  ) {
     this.db = options.database ?? new InMemoryPluginDatabase();
     this.signatureService = options.signatureService ?? new PluginSignatureService();
     this.verificationService = new VerificationService();
@@ -604,7 +601,12 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
     return this.sessions.get(token) ?? null;
   }
 
-  registerSession(token: string, userId: string, tier: RateLimitTier = 'authenticated', userName?: string): void {
+  registerSession(
+    token: string,
+    userId: string,
+    tier: RateLimitTier = 'authenticated',
+    userName?: string
+  ): void {
     this.sessions.set(token, { userId, userName: userName ?? userId, tier });
   }
 
@@ -777,7 +779,12 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
     }
   }
 
-  async deprecatePlugin(pluginId: string, message: string, replacement?: string, token?: string): Promise<void> {
+  async deprecatePlugin(
+    pluginId: string,
+    message: string,
+    replacement?: string,
+    token?: string
+  ): Promise<void> {
     const user = this.getUser(token ?? '');
     if (!user) throw new Error('Authentication required');
 
@@ -801,7 +808,7 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
 
     if (manifest.id && !/^(@[a-z0-9-]+\/)?[a-z0-9][a-z0-9-_.]*$/.test(manifest.id)) {
       errors.push(
-        'Plugin ID must be lowercase alphanumeric with optional scope (e.g., "@author/plugin-name")',
+        'Plugin ID must be lowercase alphanumeric with optional scope (e.g., "@author/plugin-name")'
       );
     }
 
@@ -976,7 +983,7 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
 
   async downloadPlugin(
     pluginId: string,
-    version?: string,
+    version?: string
   ): Promise<{ downloadUrl: string; shasum: string; size: number }> {
     const manifest = version
       ? await this.db.getPluginVersion(pluginId, version)
@@ -987,7 +994,9 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
     }
 
     const downloadUrl = `/api/plugins/${pluginId}/versions/${manifest.version}/download`;
-    const shasum = createHash('sha256').update(manifest.id + manifest.version).digest('hex');
+    const shasum = createHash('sha256')
+      .update(manifest.id + manifest.version)
+      .digest('hex');
 
     return { downloadUrl, shasum, size: 0 };
   }
@@ -999,7 +1008,10 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
 
   // ── Signature Verification ──────────────────────────────────────────────
 
-  async verifyPluginSignature(pluginId: string, version: string): Promise<SignatureVerificationResult> {
+  async verifyPluginSignature(
+    pluginId: string,
+    version: string
+  ): Promise<SignatureVerificationResult> {
     // In production, would fetch the stored signature for this version
     return {
       valid: false,
@@ -1012,7 +1024,7 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
 
   async registerSigningKey(
     publicKey: string,
-    token: string,
+    token: string
   ): Promise<{ keyId: string; fingerprint: string }> {
     const user = this.getUser(token);
     if (!user) throw new Error('Authentication required');
@@ -1029,7 +1041,7 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
 
   async resolvePluginDependencies(
     pluginId: string,
-    version?: string,
+    version?: string
   ): Promise<{ resolved: Array<{ pluginId: string; version: string }>; conflicts: string[] }> {
     const manifest = version
       ? await this.db.getPluginVersion(pluginId, version)
@@ -1060,7 +1072,7 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
     pluginId: string,
     rating: number,
     review?: { title?: string; body?: string },
-    token?: string,
+    token?: string
   ): Promise<void> {
     const user = this.getUser(token ?? '');
     if (!user) throw new Error('Authentication required to rate plugins');
@@ -1074,7 +1086,7 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
       user.userName,
       rating,
       review,
-      plugin.version,
+      plugin.version
     );
 
     if (!result.success) {
@@ -1105,9 +1117,7 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
     const totalDownloads = plugins.reduce((sum, p) => sum + p.downloads, 0);
     const avgRating =
       plugins.length > 0
-        ? Math.round(
-            (plugins.reduce((sum, p) => sum + p.rating, 0) / plugins.length) * 10,
-          ) / 10
+        ? Math.round((plugins.reduce((sum, p) => sum + p.rating, 0) / plugins.length) * 10) / 10
         : 0;
 
     const verificationStatus = await this.verificationService.getVerificationStatus(authorId);
@@ -1121,18 +1131,22 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
       plugins,
       totalDownloads,
       averageRating: avgRating,
-      memberSince: plugins.length > 0
-        ? plugins.reduce(
-            (earliest, p) => (p.createdAt < earliest ? p.createdAt : earliest),
-            plugins[0].createdAt,
-          )
-        : new Date(),
+      memberSince:
+        plugins.length > 0
+          ? plugins.reduce(
+              (earliest, p) => (p.createdAt < earliest ? p.createdAt : earliest),
+              plugins[0].createdAt
+            )
+          : new Date(),
     };
   }
 
   // ── Health ──────────────────────────────────────────────────────────────
 
-  async getHealth(): Promise<{ status: 'ok' | 'degraded' | 'down'; components: Record<string, 'ok' | 'error'> }> {
+  async getHealth(): Promise<{
+    status: 'ok' | 'degraded' | 'down';
+    components: Record<string, 'ok' | 'error'>;
+  }> {
     return {
       status: 'ok',
       components: {

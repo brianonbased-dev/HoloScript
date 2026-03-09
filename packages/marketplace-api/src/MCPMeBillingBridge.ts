@@ -38,7 +38,7 @@ export interface MCPMeUser {
   };
   /** Limits for current tier */
   limits: {
-    apiCalls: number;       // -1 = unlimited
+    apiCalls: number; // -1 = unlimited
     premiumCalls: number;
     computeUnits: number;
   };
@@ -111,14 +111,17 @@ export class MCPMeBillingBridge {
   private cacheExpiry = 0;
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-  constructor(options: {
-    orchestratorUrl?: string;
-    apiKey?: string;
-  } = {}) {
-    this.orchestratorUrl = options.orchestratorUrl
-      || process.env.MCP_ORCHESTRATOR_PUBLIC_URL
-      || process.env.MCP_ORCHESTRATOR_URL
-      || 'http://localhost:5567';
+  constructor(
+    options: {
+      orchestratorUrl?: string;
+      apiKey?: string;
+    } = {}
+  ) {
+    this.orchestratorUrl =
+      options.orchestratorUrl ||
+      process.env.MCP_ORCHESTRATOR_PUBLIC_URL ||
+      process.env.MCP_ORCHESTRATOR_URL ||
+      'http://localhost:5567';
     this.apiKey = options.apiKey || process.env.MCPME_API_KEY || '';
   }
 
@@ -135,7 +138,7 @@ export class MCPMeBillingBridge {
     const res = await fetch(url.toString(), {
       headers: {
         'x-mcp-api-key': this.apiKey,
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
     });
 
@@ -152,7 +155,7 @@ export class MCPMeBillingBridge {
       headers: {
         'x-mcp-api-key': this.apiKey,
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
       body: JSON.stringify(body),
     });
@@ -175,7 +178,9 @@ export class MCPMeBillingBridge {
     }
 
     try {
-      const data = await this.get<{ services: MCPMeServiceEntry[]; plans: MCPMePlan[] }>('/catalog');
+      const data = await this.get<{ services: MCPMeServiceEntry[]; plans: MCPMePlan[] }>(
+        '/catalog'
+      );
       this.cachedCatalog = data;
       this.cacheExpiry = Date.now() + this.CACHE_TTL;
       return data;
@@ -215,7 +220,7 @@ export class MCPMeBillingBridge {
    */
   async checkServiceAccess(userTier: MCPMeTier, serviceId: string): Promise<TierCheckResult> {
     const catalog = await this.getCatalog();
-    const service = catalog.services.find(s => s.id === serviceId);
+    const service = catalog.services.find((s) => s.id === serviceId);
     if (!service) {
       return { allowed: false, reason: 'Service not found', currentTier: userTier };
     }
@@ -227,14 +232,16 @@ export class MCPMeBillingBridge {
   /**
    * Search agent templates on the orchestrator
    */
-  async searchAgents(options: {
-    query?: string;
-    category?: string;
-    tier?: string;
-    sort?: 'popular' | 'recent' | 'rating';
-    limit?: number;
-    offset?: number;
-  } = {}): Promise<{ templates: MCPMeAgentTemplate[]; total: number }> {
+  async searchAgents(
+    options: {
+      query?: string;
+      category?: string;
+      tier?: string;
+      sort?: 'popular' | 'recent' | 'rating';
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<{ templates: MCPMeAgentTemplate[]; total: number }> {
     const params: Record<string, string> = {};
     if (options.query) params.q = options.query;
     if (options.category) params.category = options.category;
@@ -268,7 +275,10 @@ export class MCPMeBillingBridge {
    * Install an agent template (returns uAAL program + config)
    * Checks tier before installing
    */
-  async installAgent(id: string, userTier: MCPMeTier): Promise<{
+  async installAgent(
+    id: string,
+    userTier: MCPMeTier
+  ): Promise<{
     success: boolean;
     error?: string;
     templateId?: string;
@@ -309,7 +319,9 @@ export class MCPMeBillingBridge {
 
 let bridge: MCPMeBillingBridge | null = null;
 
-export function getMCPMeBillingBridge(options?: ConstructorParameters<typeof MCPMeBillingBridge>[0]): MCPMeBillingBridge {
+export function getMCPMeBillingBridge(
+  options?: ConstructorParameters<typeof MCPMeBillingBridge>[0]
+): MCPMeBillingBridge {
   if (!bridge) bridge = new MCPMeBillingBridge(options);
   return bridge;
 }

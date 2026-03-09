@@ -23,8 +23,7 @@ import {
  * In production / Railway this is set via MARKETPLACE_API_URL.
  * In local dev, marketplace-api runs on port 3000 by default.
  */
-const MARKETPLACE_API_URL =
-  process.env.MARKETPLACE_API_URL || 'http://localhost:3000';
+const MARKETPLACE_API_URL = process.env.MARKETPLACE_API_URL || 'http://localhost:3000';
 
 /** Shape of the GET /api/v1/traits/:id response from marketplace-api. */
 interface MarketplaceTraitResponse {
@@ -66,7 +65,7 @@ export class MarketplaceBridgeResolver {
       'Fetch a trait from the Marketplace by ID and compile it to a target platform in one step',
   })
   async compileTraitById(
-    @Arg('input', () => CompileTraitByIdInput) input: CompileTraitByIdInput,
+    @Arg('input', () => CompileTraitByIdInput) input: CompileTraitByIdInput
   ): Promise<CompileTraitPayload> {
     const startTime = Date.now();
 
@@ -76,7 +75,10 @@ export class MarketplaceBridgeResolver {
     let traitData: MarketplaceTraitResponse['data'];
 
     try {
-      const url = new URL(`/api/v1/traits/${encodeURIComponent(input.traitId)}`, MARKETPLACE_API_URL);
+      const url = new URL(
+        `/api/v1/traits/${encodeURIComponent(input.traitId)}`,
+        MARKETPLACE_API_URL
+      );
       if (input.version) {
         url.searchParams.set('version', input.version);
       }
@@ -84,7 +86,7 @@ export class MarketplaceBridgeResolver {
       const response = await fetch(url.toString());
 
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({})) as any;
+        const errorBody = (await response.json().catch(() => ({}))) as any;
         return {
           success: false,
           output: undefined,

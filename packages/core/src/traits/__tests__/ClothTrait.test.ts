@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { clothHandler } from '../ClothTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('ClothTrait', () => {
   let node: Record<string, unknown>;
@@ -16,7 +24,10 @@ describe('ClothTrait', () => {
     self_collision: false,
     tearable: true,
     tear_threshold: 100,
-    pin_vertices: [[0, 0], [0, 3]] as Array<[number, number]>,
+    pin_vertices: [
+      [0, 0],
+      [0, 3],
+    ] as Array<[number, number]>,
   };
 
   beforeEach(() => {

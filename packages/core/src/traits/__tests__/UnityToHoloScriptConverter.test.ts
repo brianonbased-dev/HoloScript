@@ -1,6 +1,6 @@
 /**
  * UnityToHoloScriptConverter.test.ts — v4.0
- * 
+ *
  * Validates the Unity → HoloScript migration converter.
  * Covers: material conversion, component→trait mapping, scene structure,
  * hierarchy, unsupported components, and the HoloScript trait wrapper.
@@ -19,7 +19,7 @@ function makeCtx() {
   return {
     emit: (type: string, payload: unknown) => events.push({ type, payload }),
     events,
-    of: (type: string) => events.filter(e => e.type === type),
+    of: (type: string) => events.filter((e) => e.type === type),
   };
 }
 
@@ -27,7 +27,11 @@ function makeCtx() {
 
 describe('UnityConverter — material conversion', () => {
   it('converts Standard shader to pbr type', () => {
-    const mat: UnityMaterial = { name: 'Metal', shader: 'Standard', properties: { _Color: { r: 1, g: 0, b: 0, a: 1 }, _Metallic: 0.9, _Glossiness: 0.8 } };
+    const mat: UnityMaterial = {
+      name: 'Metal',
+      shader: 'Standard',
+      properties: { _Color: { r: 1, g: 0, b: 0, a: 1 }, _Metallic: 0.9, _Glossiness: 0.8 },
+    };
     const { id, dsl } = convertUnityMaterial(mat);
     expect(id).toBe('Metal');
     expect(dsl).toContain('pbr');
@@ -49,7 +53,8 @@ describe('UnityConverter — material conversion', () => {
 
   it('emits emissive when emission color is non-black', () => {
     const mat: UnityMaterial = {
-      name: 'Glowing', shader: 'Standard',
+      name: 'Glowing',
+      shader: 'Standard',
       properties: { _EmissionColor: { r: 0, g: 0.5, b: 1, a: 1 } },
     };
     const { dsl } = convertUnityMaterial(mat);
@@ -58,7 +63,8 @@ describe('UnityConverter — material conversion', () => {
 
   it('omits emissive for black emission', () => {
     const mat: UnityMaterial = {
-      name: 'Dark', shader: 'Standard',
+      name: 'Dark',
+      shader: 'Standard',
       properties: { _EmissionColor: { r: 0, g: 0, b: 0, a: 1 } },
     };
     const { dsl } = convertUnityMaterial(mat);
@@ -95,7 +101,11 @@ const MINIMAL_SCENE: UnityScene = {
     },
   ],
   materials: {
-    mat1: { name: 'mat1', shader: 'Standard', properties: { _Color: { r: 0.8, g: 0.2, b: 0.2, a: 1 }, _Metallic: 0.1, _Glossiness: 0.5 } },
+    mat1: {
+      name: 'mat1',
+      shader: 'Standard',
+      properties: { _Color: { r: 0.8, g: 0.2, b: 0.2, a: 1 }, _Metallic: 0.1, _Glossiness: 0.5 },
+    },
   },
 };
 
@@ -128,13 +138,15 @@ describe('UnityConverter — scene conversion', () => {
   it('maps Rigidbody to PhysicsTrait', () => {
     const scene: UnityScene = {
       name: 'Phys',
-      gameObjects: [{
-        name: 'Ball',
-        components: [
-          { type: 'MeshFilter', properties: { mesh: 'Sphere' } },
-          { type: 'Rigidbody', properties: { mass: 1 } },
-        ],
-      }],
+      gameObjects: [
+        {
+          name: 'Ball',
+          components: [
+            { type: 'MeshFilter', properties: { mesh: 'Sphere' } },
+            { type: 'Rigidbody', properties: { mass: 1 } },
+          ],
+        },
+      ],
     };
     const result = convertUnityScene(scene);
     expect(result.traits).toContain('PhysicsTrait');
@@ -163,10 +175,12 @@ describe('UnityConverter — scene conversion', () => {
   it('converts nested child hierarchy', () => {
     const scene: UnityScene = {
       name: 'Nested',
-      gameObjects: [{
-        name: 'Parent',
-        children: [{ name: 'Child', position: { x: 0, y: 1, z: 0 } }],
-      }],
+      gameObjects: [
+        {
+          name: 'Parent',
+          children: [{ name: 'Child', position: { x: 0, y: 1, z: 0 } }],
+        },
+      ],
     };
     const { dsl } = convertUnityScene(scene);
     expect(dsl).toContain('object Parent');
@@ -187,14 +201,12 @@ describe('UnityConverter — scene conversion', () => {
   it('maps multiple components to multiple traits without duplication', () => {
     const scene: UnityScene = {
       name: 'Multi',
-      gameObjects: [{
-        name: 'Actor',
-        components: [
-          { type: 'Rigidbody' },
-          { type: 'BoxCollider' },
-          { type: 'AudioSource' },
-        ],
-      }],
+      gameObjects: [
+        {
+          name: 'Actor',
+          components: [{ type: 'Rigidbody' }, { type: 'BoxCollider' }, { type: 'AudioSource' }],
+        },
+      ],
     };
     const result = convertUnityScene(scene);
     const unique = new Set(result.traits);

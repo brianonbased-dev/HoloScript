@@ -89,21 +89,17 @@ export class MovementPredictor {
     const p0 = this.toTuple(this.history[this.history.length - 5]);
 
     // Calculate velocity and acceleration vectors
-    const v1 = [(p2[0] - p1[0]), (p2[1] - p1[1]), (p2[2] - p1[2])];
-    const v0 = [(p1[0] - p0[0]), (p1[1] - p0[1]), (p1[2] - p0[2])];
-    
+    const v1 = [p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]];
+    const v0 = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]];
+
     // Predicted point based on constant velocity and acceleration
     // pos = p + v*t + 0.5*a*t^2
-    const acc = [
-      (v1[0] - v0[0]),
-      (v1[1] - v0[1]),
-      (v1[2] - v0[2])
-    ];
+    const acc = [v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]];
 
     return [
-      p2[0] + v1[0] * lookahead + 0.5 * acc[0] * (lookahead ** 2),
-      p2[1] + v1[1] * lookahead + 0.5 * acc[1] * (lookahead ** 2),
-      p2[2] + v1[2] * lookahead + 0.5 * acc[2] * (lookahead ** 2)
+      p2[0] + v1[0] * lookahead + 0.5 * acc[0] * lookahead ** 2,
+      p2[1] + v1[1] * lookahead + 0.5 * acc[1] * lookahead ** 2,
+      p2[2] + v1[2] * lookahead + 0.5 * acc[2] * lookahead ** 2,
     ];
   }
 

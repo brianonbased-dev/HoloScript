@@ -7,7 +7,7 @@ import type { DebuggerResult } from '../useHoloDebugger';
 
 // Mock useSceneStore
 let mockCode = '';
-vi.mock('@/lib/store', () => ({
+vi.mock('@/lib/stores', () => ({
   useSceneStore: vi.fn((selector) => {
     const store = {
       code: mockCode,
@@ -98,7 +98,9 @@ describe('useHoloDebugger', () => {
       expect(diag).toMatchObject({
         severity: 'warning',
         line: 3,
-        message: expect.stringContaining('"position" looks like a property assignment but is missing a colon'),
+        message: expect.stringContaining(
+          '"position" looks like a property assignment but is missing a colon'
+        ),
         source: 'syntax',
         quickFix: 'position: value',
       });
@@ -182,7 +184,8 @@ describe('useHoloDebugger', () => {
 
   describe('Trait Analysis - Duplicate Traits', () => {
     it('should warn about duplicate trait in same object', () => {
-      mockCode = 'scene "Main" {\n  box "Cube" {\n    @physics { type: "static" }\n    @physics { type: "dynamic" }\n  }\n}';
+      mockCode =
+        'scene "Main" {\n  box "Cube" {\n    @physics { type: "static" }\n    @physics { type: "dynamic" }\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
       const diag = result.current.diagnostics.find((d) => d.id.includes('trait-dup'));
@@ -196,7 +199,8 @@ describe('useHoloDebugger', () => {
     });
 
     it('should not warn about same trait in different objects', () => {
-      mockCode = 'scene "Main" {\n  box "Cube1" {\n    @physics { type: "static" }\n  }\n  box "Cube2" {\n    @physics { type: "dynamic" }\n  }\n}';
+      mockCode =
+        'scene "Main" {\n  box "Cube1" {\n    @physics { type: "static" }\n  }\n  box "Cube2" {\n    @physics { type: "dynamic" }\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
       const diag = result.current.diagnostics.find((d) => d.id.includes('trait-dup'));
@@ -209,7 +213,9 @@ describe('useHoloDebugger', () => {
       mockCode = 'scene "Main" {\n  box "Cube" {\n    @physics {\n      mass: 10\n    }\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
-      const diag = result.current.diagnostics.find((d) => d.id.includes('trait-missing') && d.message.includes('type'));
+      const diag = result.current.diagnostics.find(
+        (d) => d.id.includes('trait-missing') && d.message.includes('type')
+      );
       expect(diag).toBeDefined();
       expect(diag).toMatchObject({
         severity: 'error',
@@ -222,7 +228,9 @@ describe('useHoloDebugger', () => {
       mockCode = 'scene "Main" {\n  @light {\n    intensity: 1.0\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
-      const diag = result.current.diagnostics.find((d) => d.message.includes('@light is missing required param "type"'));
+      const diag = result.current.diagnostics.find((d) =>
+        d.message.includes('@light is missing required param "type"')
+      );
       expect(diag).toBeDefined();
     });
 
@@ -230,12 +238,15 @@ describe('useHoloDebugger', () => {
       mockCode = 'scene "Main" {\n  @audio {\n    volume: 0.8\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
-      const diag = result.current.diagnostics.find((d) => d.message.includes('@audio is missing required param "src"'));
+      const diag = result.current.diagnostics.find((d) =>
+        d.message.includes('@audio is missing required param "src"')
+      );
       expect(diag).toBeDefined();
     });
 
     it('should not error when required params are present', () => {
-      mockCode = 'scene "Main" {\n  box "Cube" {\n    @physics {\n      type: "static"\n    }\n  }\n}';
+      mockCode =
+        'scene "Main" {\n  box "Cube" {\n    @physics {\n      type: "static"\n    }\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
       const diag = result.current.diagnostics.find((d) => d.id.includes('trait-missing'));
@@ -245,7 +256,8 @@ describe('useHoloDebugger', () => {
 
   describe('Trait Analysis - Invalid Enum Values', () => {
     it('should error on invalid physics type', () => {
-      mockCode = 'scene "Main" {\n  box "Cube" {\n    @physics {\n      type: "invalid"\n    }\n  }\n}';
+      mockCode =
+        'scene "Main" {\n  box "Cube" {\n    @physics {\n      type: "invalid"\n    }\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
       const diag = result.current.diagnostics.find((d) => d.id.includes('trait-invalid'));
@@ -253,7 +265,8 @@ describe('useHoloDebugger', () => {
       expect(diag).toMatchObject({
         severity: 'error',
         line: 4,
-        message: 'Invalid value "invalid" for @physics.type — valid: "static", "dynamic", "kinematic"',
+        message:
+          'Invalid value "invalid" for @physics.type — valid: "static", "dynamic", "kinematic"',
         source: 'trait',
       });
     });
@@ -262,7 +275,9 @@ describe('useHoloDebugger', () => {
       mockCode = 'scene "Main" {\n  @light {\n    type: "invalid"\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
-      const diag = result.current.diagnostics.find((d) => d.message.includes('Invalid value "invalid" for @light.type'));
+      const diag = result.current.diagnostics.find((d) =>
+        d.message.includes('Invalid value "invalid" for @light.type')
+      );
       expect(diag).toBeDefined();
       expect(diag!.message).toContain('"point", "spot", "directional", "area"');
     });
@@ -271,7 +286,9 @@ describe('useHoloDebugger', () => {
       mockCode = 'scene "Main" {\n  @particles {\n    type: "invalid"\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
-      const diag = result.current.diagnostics.find((d) => d.message.includes('Invalid value "invalid" for @particles.type'));
+      const diag = result.current.diagnostics.find((d) =>
+        d.message.includes('Invalid value "invalid" for @particles.type')
+      );
       expect(diag).toBeDefined();
     });
 
@@ -279,7 +296,9 @@ describe('useHoloDebugger', () => {
       mockCode = 'scene "Main" {\n  @ai {\n    goal: "invalid"\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
-      const diag = result.current.diagnostics.find((d) => d.message.includes('Invalid value "invalid" for @ai.goal'));
+      const diag = result.current.diagnostics.find((d) =>
+        d.message.includes('Invalid value "invalid" for @ai.goal')
+      );
       expect(diag).toBeDefined();
     });
 
@@ -287,7 +306,9 @@ describe('useHoloDebugger', () => {
       mockCode = 'scene "Main" {\n  @environment {\n    sky: "invalid"\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
-      const diag = result.current.diagnostics.find((d) => d.message.includes('Invalid value "invalid" for @environment.sky'));
+      const diag = result.current.diagnostics.find((d) =>
+        d.message.includes('Invalid value "invalid" for @environment.sky')
+      );
       expect(diag).toBeDefined();
       expect(diag!.message).toContain('"procedural", "hdri", "solid"');
     });
@@ -296,13 +317,16 @@ describe('useHoloDebugger', () => {
       mockCode = 'scene "Main" {\n  @environment {\n    fog: "invalid"\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
-      const diag = result.current.diagnostics.find((d) => d.message.includes('Invalid value "invalid" for @environment.fog'));
+      const diag = result.current.diagnostics.find((d) =>
+        d.message.includes('Invalid value "invalid" for @environment.fog')
+      );
       expect(diag).toBeDefined();
       expect(diag!.message).toContain('"none", "linear", "exponential"');
     });
 
     it('should accept valid enum values', () => {
-      mockCode = 'scene "Main" {\n  box "Cube" {\n    @physics {\n      type: "dynamic"\n    }\n  }\n}';
+      mockCode =
+        'scene "Main" {\n  box "Cube" {\n    @physics {\n      type: "dynamic"\n    }\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
       const diag = result.current.diagnostics.find((d) => d.id.includes('trait-invalid'));
@@ -310,7 +334,8 @@ describe('useHoloDebugger', () => {
     });
 
     it('should handle quoted enum values', () => {
-      mockCode = 'scene "Main" {\n  box "Cube" {\n    @physics {\n      type: "static"\n    }\n  }\n}';
+      mockCode =
+        'scene "Main" {\n  box "Cube" {\n    @physics {\n      type: "static"\n    }\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
       const diag = result.current.diagnostics.find((d) => d.id.includes('trait-invalid'));
@@ -320,7 +345,8 @@ describe('useHoloDebugger', () => {
 
   describe('Diagnostic Sorting', () => {
     it('should sort diagnostics by line number', () => {
-      mockCode = 'scene "Main" {\n  box "Cube" {\n    position [1, 2, 3]\n    @unknown {}\n    scale [2, 2, 2]\n  }\n}';
+      mockCode =
+        'scene "Main" {\n  box "Cube" {\n    position [1, 2, 3]\n    @unknown {}\n    scale [2, 2, 2]\n  }\n}';
       const { result } = renderHook(() => useHoloDebugger());
 
       const lines = result.current.diagnostics.map((d) => d.line);

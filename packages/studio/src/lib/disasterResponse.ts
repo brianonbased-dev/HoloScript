@@ -9,12 +9,37 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
-export interface GeoPoint { lat: number; lon: number; alt: number }
-export interface Vec3 { x: number; y: number; z: number }
+export interface GeoPoint {
+  lat: number;
+  lon: number;
+  alt: number;
+}
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
-export type DisasterType = 'earthquake' | 'flood' | 'wildfire' | 'tornado' | 'tsunami' | 'hurricane';
-export type BuildingCondition = 'intact' | 'minor-damage' | 'major-damage' | 'collapsed' | 'on-fire';
-export type ResourceType = 'ambulance' | 'fire-truck' | 'helicopter' | 'search-team' | 'supply-truck' | 'generator';
+export type DisasterType =
+  | 'earthquake'
+  | 'flood'
+  | 'wildfire'
+  | 'tornado'
+  | 'tsunami'
+  | 'hurricane';
+export type BuildingCondition =
+  | 'intact'
+  | 'minor-damage'
+  | 'major-damage'
+  | 'collapsed'
+  | 'on-fire';
+export type ResourceType =
+  | 'ambulance'
+  | 'fire-truck'
+  | 'helicopter'
+  | 'search-team'
+  | 'supply-truck'
+  | 'generator';
 
 export interface Building {
   id: string;
@@ -23,15 +48,15 @@ export interface Building {
   floors: number;
   occupancy: number;
   condition: BuildingCondition;
-  structuralIntegrity: number;  // 0-1 (1 = perfect)
+  structuralIntegrity: number; // 0-1 (1 = perfect)
   material: 'wood' | 'concrete' | 'steel' | 'masonry';
 }
 
 export interface EarthquakeEvent {
-  magnitude: number;         // Richter scale
-  depth: number;             // km
+  magnitude: number; // Richter scale
+  depth: number; // km
   epicenter: GeoPoint;
-  intensity: number;         // Modified Mercalli (I-XII)
+  intensity: number; // Modified Mercalli (I-XII)
   timestamp: number;
   aftershocks: Array<{ magnitude: number; delay: number }>;
 }
@@ -39,9 +64,9 @@ export interface EarthquakeEvent {
 export interface FloodZone {
   id: string;
   polygon: Vec3[];
-  waterLevel: number;        // meters
-  flowRate: number;          // m/s
-  recurrence: number;        // year flood (100-year, 500-year)
+  waterLevel: number; // meters
+  flowRate: number; // m/s
+  recurrence: number; // year flood (100-year, 500-year)
   evacuated: boolean;
 }
 
@@ -60,15 +85,15 @@ export interface ResourceUnit {
   type: ResourceType;
   position: Vec3;
   status: 'available' | 'deployed' | 'en-route' | 'offline';
-  eta: number;               // minutes
-  capacity: number;          // people or supplies
+  eta: number; // minutes
+  capacity: number; // people or supplies
 }
 
 export interface HelicopterLZ {
   id: string;
   position: Vec3;
   radiusMeters: number;
-  slope: number;             // degrees
+  slope: number; // degrees
   obstructions: string[];
   suitable: boolean;
 }
@@ -89,21 +114,30 @@ export function magnitudeComparison(a: number, b: number): number {
 
 export function mercalliToDescription(intensity: number): string {
   const descriptions: Record<number, string> = {
-    1: 'Not felt', 2: 'Weak', 3: 'Weak', 4: 'Light',
-    5: 'Moderate', 6: 'Strong', 7: 'Very strong', 8: 'Severe',
-    9: 'Violent', 10: 'Extreme', 11: 'Extreme', 12: 'Extreme',
+    1: 'Not felt',
+    2: 'Weak',
+    3: 'Weak',
+    4: 'Light',
+    5: 'Moderate',
+    6: 'Strong',
+    7: 'Very strong',
+    8: 'Severe',
+    9: 'Violent',
+    10: 'Extreme',
+    11: 'Extreme',
+    12: 'Extreme',
   };
   return descriptions[Math.min(12, Math.max(1, Math.round(intensity)))] ?? 'Unknown';
 }
 
-export function estimateStructuralDamage(
-  building: Building,
-  quake: EarthquakeEvent
-): number {
+export function estimateStructuralDamage(building: Building, quake: EarthquakeEvent): number {
   // Higher magnitude + closer distance = more damage
   // Wood flexes, masonry crumbles, steel best
   const materialFactor: Record<Building['material'], number> = {
-    steel: 0.3, concrete: 0.5, wood: 0.6, masonry: 0.9,
+    steel: 0.3,
+    concrete: 0.5,
+    wood: 0.6,
+    masonry: 0.9,
   };
   const damage = (quake.magnitude / 10) * materialFactor[building.material];
   return Math.min(1, Math.max(0, damage));
@@ -152,12 +186,9 @@ export function routeDistanceKm(waypoints: Vec3[]): number {
   return dist / 1000; // meters to km
 }
 
-export function evacuationTimeHours(
-  population: number,
-  routes: EvacuationRoute[]
-): number {
+export function evacuationTimeHours(population: number, routes: EvacuationRoute[]): number {
   const totalCapacity = routes
-    .filter(r => !r.blocked)
+    .filter((r) => !r.blocked)
     .reduce((sum, r) => sum + r.capacityPerHour, 0);
   if (totalCapacity === 0) return Infinity;
   return population / totalCapacity;
@@ -172,11 +203,11 @@ export function isRoutePassable(route: EvacuationRoute): boolean {
 // ═══════════════════════════════════════════════════════════════════
 
 export function availableResources(units: ResourceUnit[]): ResourceUnit[] {
-  return units.filter(u => u.status === 'available');
+  return units.filter((u) => u.status === 'available');
 }
 
 export function resourcesByType(units: ResourceUnit[], type: ResourceType): ResourceUnit[] {
-  return units.filter(u => u.type === type);
+  return units.filter((u) => u.type === type);
 }
 
 export function totalCapacity(units: ResourceUnit[]): number {
@@ -254,7 +285,8 @@ export function fallbackRadioTopology(nodes: RadioNode[]): {
 
   for (let i = 0; i < nodes.length; i++) {
     for (let j = i + 1; j < nodes.length; j++) {
-      const a = nodes[i], b = nodes[j];
+      const a = nodes[i],
+        b = nodes[j];
       const dx = a.position.x - b.position.x;
       const dy = a.position.y - b.position.y;
       const dz = a.position.z - b.position.z;
@@ -270,9 +302,7 @@ export function fallbackRadioTopology(nodes: RadioNode[]): {
     }
   }
 
-  const isolatedNodes = nodes
-    .filter(n => !connectedSet.has(n.id))
-    .map(n => n.id);
+  const isolatedNodes = nodes.filter((n) => !connectedSet.has(n.id)).map((n) => n.id);
 
   return {
     links,
@@ -295,8 +325,10 @@ export interface DroneWaypoint {
  * Generate a boustrophedon (lawn-mower) search grid for disaster zone scanning.
  */
 export function droneDeploymentGrid(
-  originX: number, originZ: number,
-  widthM: number, depthM: number,
+  originX: number,
+  originZ: number,
+  widthM: number,
+  depthM: number,
   altitudeM: number,
   laneSpacingM: number
 ): DroneWaypoint[] {

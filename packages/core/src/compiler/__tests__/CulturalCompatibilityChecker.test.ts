@@ -13,16 +13,13 @@ import {
   type CulturalCompatibilityResult,
 } from '../CulturalCompatibilityChecker';
 import type { CulturalProfileTrait } from '../../traits/CultureTraits';
-import {
-  registerContradictoryNorms,
-  getFamilyCompatibility,
-} from '../../traits/CultureTraits';
+import { registerContradictoryNorms, getFamilyCompatibility } from '../../traits/CultureTraits';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function makeAgent(
   name: string,
-  overrides: Partial<CulturalProfileTrait> = {},
+  overrides: Partial<CulturalProfileTrait> = {}
 ): AgentCulturalEntry {
   return {
     name,
@@ -54,10 +51,7 @@ describe('CulturalCompatibilityChecker', () => {
     });
 
     it('returns compatible for two fully compatible agents', () => {
-      const result = checker.check([
-        makeAgent('Alpha'),
-        makeAgent('Beta'),
-      ]);
+      const result = checker.check([makeAgent('Alpha'), makeAgent('Beta')]);
       expect(result.compatible).toBe(true);
       expect(result.errors).toHaveLength(0);
       expect(result.pairsChecked).toBe(1);
@@ -71,11 +65,7 @@ describe('CulturalCompatibilityChecker', () => {
     });
 
     it('checks all pairs for 3 agents', () => {
-      const result = checker.check([
-        makeAgent('A'),
-        makeAgent('B'),
-        makeAgent('C'),
-      ]);
+      const result = checker.check([makeAgent('A'), makeAgent('B'), makeAgent('C')]);
       // 3 choose 2 = 3 pairs
       expect(result.pairsChecked).toBe(3);
     });
@@ -129,9 +119,7 @@ describe('CulturalCompatibilityChecker', () => {
     });
 
     it('flags error for cooperation_index out of range (negative)', () => {
-      const result = checker.check([
-        makeAgent('Bad', { cooperation_index: -0.5 }),
-      ]);
+      const result = checker.check([makeAgent('Bad', { cooperation_index: -0.5 })]);
       expect(result.compatible).toBe(false);
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0].code).toBe('CULT001');
@@ -139,9 +127,7 @@ describe('CulturalCompatibilityChecker', () => {
     });
 
     it('flags error for cooperation_index out of range (>1)', () => {
-      const result = checker.check([
-        makeAgent('Bad', { cooperation_index: 1.5 }),
-      ]);
+      const result = checker.check([makeAgent('Bad', { cooperation_index: 1.5 })]);
       expect(result.compatible).toBe(false);
       expect(result.errors[0].code).toBe('CULT001');
     });
@@ -155,7 +141,9 @@ describe('CulturalCompatibilityChecker', () => {
         makeAgent('Max', { cooperation_index: 1 }),
       ]);
       // Both values are valid; only mismatch matters
-      const outOfRange = result.diagnostics.filter(d => d.category === 'cooperation_out_of_range');
+      const outOfRange = result.diagnostics.filter(
+        (d) => d.category === 'cooperation_out_of_range'
+      );
       expect(outOfRange).toHaveLength(0);
     });
 
@@ -184,7 +172,7 @@ describe('CulturalCompatibilityChecker', () => {
         makeAgent('Solo', { cultural_family: 'competitive', cooperation_index: 0.7 }),
       ]);
       expect(result.compatible).toBe(false);
-      const familyError = result.errors.find(e => e.category === 'family_incompatible');
+      const familyError = result.errors.find((e) => e.category === 'family_incompatible');
       expect(familyError).toBeDefined();
       expect(familyError!.code).toBe('CULT003');
     });
@@ -194,7 +182,7 @@ describe('CulturalCompatibilityChecker', () => {
         makeAgent('Boss', { cultural_family: 'hierarchical', cooperation_index: 0.7 }),
         makeAgent('Peer', { cultural_family: 'egalitarian', cooperation_index: 0.7 }),
       ]);
-      const familyError = result.errors.find(e => e.category === 'family_incompatible');
+      const familyError = result.errors.find((e) => e.category === 'family_incompatible');
       expect(familyError).toBeDefined();
     });
 
@@ -203,7 +191,7 @@ describe('CulturalCompatibilityChecker', () => {
         makeAgent('Loner', { cultural_family: 'isolationist', cooperation_index: 0.7 }),
         makeAgent('Helper', { cultural_family: 'cooperative', cooperation_index: 0.7 }),
       ]);
-      const familyError = result.errors.find(e => e.category === 'family_incompatible');
+      const familyError = result.errors.find((e) => e.category === 'family_incompatible');
       expect(familyError).toBeDefined();
     });
 
@@ -212,7 +200,7 @@ describe('CulturalCompatibilityChecker', () => {
         makeAgent('Ranker', { cultural_family: 'competitive', cooperation_index: 0.5 }),
         makeAgent('Equal', { cultural_family: 'egalitarian', cooperation_index: 0.5 }),
       ]);
-      const cautionWarning = result.warnings.find(w => w.category === 'family_cautious');
+      const cautionWarning = result.warnings.find((w) => w.category === 'family_cautious');
       expect(cautionWarning).toBeDefined();
       expect(cautionWarning!.code).toBe('CULT004');
     });
@@ -223,7 +211,7 @@ describe('CulturalCompatibilityChecker', () => {
         makeAgent('B', { cultural_family: 'mercantile' }),
       ]);
       const familyIssues = result.diagnostics.filter(
-        d => d.category === 'family_incompatible' || d.category === 'family_cautious'
+        (d) => d.category === 'family_incompatible' || d.category === 'family_cautious'
       );
       expect(familyIssues).toHaveLength(0);
     });
@@ -233,9 +221,7 @@ describe('CulturalCompatibilityChecker', () => {
         makeAgent('Explorer', { cultural_family: 'exploratory' }),
         makeAgent('Helper', { cultural_family: 'cooperative' }),
       ]);
-      const familyIssues = result.diagnostics.filter(
-        d => d.category === 'family_incompatible'
-      );
+      const familyIssues = result.diagnostics.filter((d) => d.category === 'family_incompatible');
       expect(familyIssues).toHaveLength(0);
     });
 
@@ -247,7 +233,7 @@ describe('CulturalCompatibilityChecker', () => {
         makeAgent('A', { cultural_family: 'competitive', cooperation_index: 0.5 }),
         makeAgent('B', { cultural_family: 'egalitarian', cooperation_index: 0.5 }),
       ]);
-      const cautionWarning = result.warnings.find(w => w.category === 'family_cautious');
+      const cautionWarning = result.warnings.find((w) => w.category === 'family_cautious');
       expect(cautionWarning).toBeUndefined();
     });
   });
@@ -262,7 +248,7 @@ describe('CulturalCompatibilityChecker', () => {
         makeAgent('Commander', { prompt_dialect: 'directive' }),
         makeAgent('Teacher', { prompt_dialect: 'socratic' }),
       ]);
-      const dialectWarn = result.warnings.find(w => w.category === 'dialect_mismatch');
+      const dialectWarn = result.warnings.find((w) => w.category === 'dialect_mismatch');
       expect(dialectWarn).toBeDefined();
       expect(dialectWarn!.code).toBe('CULT005');
     });
@@ -272,7 +258,7 @@ describe('CulturalCompatibilityChecker', () => {
         makeAgent('A', { prompt_dialect: 'structured' }),
         makeAgent('B', { prompt_dialect: 'structured' }),
       ]);
-      const dialectIssues = result.diagnostics.filter(d => d.category === 'dialect_mismatch');
+      const dialectIssues = result.diagnostics.filter((d) => d.category === 'dialect_mismatch');
       expect(dialectIssues).toHaveLength(0);
     });
 
@@ -284,7 +270,7 @@ describe('CulturalCompatibilityChecker', () => {
         makeAgent('A', { prompt_dialect: 'directive' }),
         makeAgent('B', { prompt_dialect: 'narrative' }),
       ]);
-      const dialectIssues = result.diagnostics.filter(d => d.category === 'dialect_mismatch');
+      const dialectIssues = result.diagnostics.filter((d) => d.category === 'dialect_mismatch');
       expect(dialectIssues).toHaveLength(0);
     });
 
@@ -295,7 +281,7 @@ describe('CulturalCompatibilityChecker', () => {
         makeAgent('C', { prompt_dialect: 'narrative' }),
       ]);
       // 3 pairs, all different: A-B, A-C, B-C
-      const dialectIssues = result.warnings.filter(w => w.category === 'dialect_mismatch');
+      const dialectIssues = result.warnings.filter((w) => w.category === 'dialect_mismatch');
       expect(dialectIssues).toHaveLength(3);
     });
   });
@@ -309,7 +295,7 @@ describe('CulturalCompatibilityChecker', () => {
       const result = checker.check([
         makeAgent('Custom', { norm_set: ['no_griefing', 'custom_rule_xyz'] }),
       ]);
-      const unknownNorm = result.warnings.find(w => w.category === 'norm_unknown');
+      const unknownNorm = result.warnings.find((w) => w.category === 'norm_unknown');
       expect(unknownNorm).toBeDefined();
       expect(unknownNorm!.message).toContain('custom_rule_xyz');
     });
@@ -318,7 +304,7 @@ describe('CulturalCompatibilityChecker', () => {
       const result = checker.check([
         makeAgent('Standard', { norm_set: ['no_griefing', 'fair_trade', 'resource_sharing'] }),
       ]);
-      const unknownNorms = result.diagnostics.filter(d => d.category === 'norm_unknown');
+      const unknownNorms = result.diagnostics.filter((d) => d.category === 'norm_unknown');
       expect(unknownNorms).toHaveLength(0);
     });
 
@@ -329,7 +315,7 @@ describe('CulturalCompatibilityChecker', () => {
       const result = noValidate.check([
         makeAgent('Custom', { norm_set: ['totally_made_up_norm'] }),
       ]);
-      const unknownNorms = result.diagnostics.filter(d => d.category === 'norm_unknown');
+      const unknownNorms = result.diagnostics.filter((d) => d.category === 'norm_unknown');
       expect(unknownNorms).toHaveLength(0);
     });
 
@@ -339,7 +325,7 @@ describe('CulturalCompatibilityChecker', () => {
         makeAgent('Sharer', { norm_set: ['resource_sharing'] }),
         makeAgent('Limiter', { norm_set: ['spawn_limits'] }),
       ]);
-      const contradiction = result.errors.find(e => e.category === 'norm_contradiction');
+      const contradiction = result.errors.find((e) => e.category === 'norm_contradiction');
       expect(contradiction).toBeDefined();
       expect(contradiction!.code).toBe('CULT006');
     });
@@ -348,7 +334,7 @@ describe('CulturalCompatibilityChecker', () => {
       const result = checker.check([
         makeAgent('Confused', { norm_set: ['resource_sharing', 'spawn_limits'] }),
       ]);
-      const contradiction = result.errors.find(e => e.category === 'norm_contradiction');
+      const contradiction = result.errors.find((e) => e.category === 'norm_contradiction');
       expect(contradiction).toBeDefined();
       expect(contradiction!.message).toContain('Confused');
     });
@@ -360,17 +346,16 @@ describe('CulturalCompatibilityChecker', () => {
 
   describe('isCompatible()', () => {
     it('returns true for compatible composition', () => {
-      expect(checker.isCompatible([
-        makeAgent('A'),
-        makeAgent('B'),
-      ])).toBe(true);
+      expect(checker.isCompatible([makeAgent('A'), makeAgent('B')])).toBe(true);
     });
 
     it('returns false for incompatible composition', () => {
-      expect(checker.isCompatible([
-        makeAgent('A', { cultural_family: 'competitive', cooperation_index: 0.9 }),
-        makeAgent('B', { cultural_family: 'cooperative', cooperation_index: 0.1 }),
-      ])).toBe(false);
+      expect(
+        checker.isCompatible([
+          makeAgent('A', { cultural_family: 'competitive', cooperation_index: 0.9 }),
+          makeAgent('B', { cultural_family: 'cooperative', cooperation_index: 0.1 }),
+        ])
+      ).toBe(false);
     });
   });
 
@@ -440,10 +425,10 @@ describe('CulturalCompatibilityChecker', () => {
       expect(result.pairsChecked).toBe(3);
 
       // Verify specific issues exist
-      const cooperationErrors = result.errors.filter(e => e.category === 'cooperation_mismatch');
+      const cooperationErrors = result.errors.filter((e) => e.category === 'cooperation_mismatch');
       expect(cooperationErrors.length).toBeGreaterThanOrEqual(1);
 
-      const familyErrors = result.errors.filter(e => e.category === 'family_incompatible');
+      const familyErrors = result.errors.filter((e) => e.category === 'family_incompatible');
       expect(familyErrors.length).toBeGreaterThanOrEqual(1);
     });
 

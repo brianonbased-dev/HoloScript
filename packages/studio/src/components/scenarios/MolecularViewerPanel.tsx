@@ -17,13 +17,28 @@
 
 import { useState, useCallback } from 'react';
 import {
-  Atom, FlaskConical, FileUp, BarChart3, Shield,
-  AlertTriangle, CheckCircle, XCircle,
+  Atom,
+  FlaskConical,
+  FileUp,
+  BarChart3,
+  Shield,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import {
-  parsePDB, checkLipinski, drugLikenessScore, molecularFormula,
-  totalCharge, moleculeCenter, solventAccessibleSurface, pharmacophoreFeatures,
-  type Molecule, type ProteinResidue, type LipinskiResult, type PharmacophoreFeature,
+  parsePDB,
+  checkLipinski,
+  drugLikenessScore,
+  molecularFormula,
+  totalCharge,
+  moleculeCenter,
+  solventAccessibleSurface,
+  pharmacophoreFeatures,
+  type Molecule,
+  type ProteinResidue,
+  type LipinskiResult,
+  type PharmacophoreFeature,
 } from '@/lib/molecularDesigner';
 
 type ViewMode = 'overview' | 'lipinski' | 'pharma' | 'residues';
@@ -114,12 +129,12 @@ export function MolecularViewerPanel() {
 
       {/* View Mode Tabs */}
       <div className="flex gap-1 rounded-lg bg-studio-panel/50 p-1">
-        {([
+        {[
           { mode: 'overview' as ViewMode, label: 'Overview', icon: Atom },
           { mode: 'lipinski' as ViewMode, label: 'Lipinski', icon: Shield },
           { mode: 'pharma' as ViewMode, label: 'Pharma', icon: BarChart3 },
           { mode: 'residues' as ViewMode, label: 'Residues', icon: FlaskConical },
-        ]).map(({ mode, label, icon: Icon }) => (
+        ].map(({ mode, label, icon: Icon }) => (
           <button
             key={mode}
             onClick={() => setViewMode(mode)}
@@ -140,14 +155,30 @@ export function MolecularViewerPanel() {
         <div className="flex flex-col gap-2 rounded-lg border border-studio-border bg-studio-panel/30 p-3 text-xs">
           <div className="text-sm font-semibold text-studio-text">{molecule.name}</div>
           <div className="grid grid-cols-2 gap-2 text-studio-muted">
-            <div>Formula: <span className="text-studio-text">{molecule.formula}</span></div>
-            <div>MW: <span className="text-studio-text">{molecule.molecularWeight}</span></div>
-            <div>logP: <span className="text-studio-text">{molecule.logP}</span></div>
-            <div>HBD: <span className="text-studio-text">{molecule.hBondDonors}</span></div>
-            <div>HBA: <span className="text-studio-text">{molecule.hBondAcceptors}</span></div>
-            <div>PSA: <span className="text-studio-text">{molecule.polarSurfaceArea} Å²</span></div>
-            <div>Atoms: <span className="text-studio-text">{molecule.atoms.length}</span></div>
-            <div>Bonds: <span className="text-studio-text">{molecule.bonds.length}</span></div>
+            <div>
+              Formula: <span className="text-studio-text">{molecule.formula}</span>
+            </div>
+            <div>
+              MW: <span className="text-studio-text">{molecule.molecularWeight}</span>
+            </div>
+            <div>
+              logP: <span className="text-studio-text">{molecule.logP}</span>
+            </div>
+            <div>
+              HBD: <span className="text-studio-text">{molecule.hBondDonors}</span>
+            </div>
+            <div>
+              HBA: <span className="text-studio-text">{molecule.hBondAcceptors}</span>
+            </div>
+            <div>
+              PSA: <span className="text-studio-text">{molecule.polarSurfaceArea} Å²</span>
+            </div>
+            <div>
+              Atoms: <span className="text-studio-text">{molecule.atoms.length}</span>
+            </div>
+            <div>
+              Bonds: <span className="text-studio-text">{molecule.bonds.length}</span>
+            </div>
           </div>
           {/* Drug-likeness gauge */}
           <div className="mt-1">
@@ -155,12 +186,18 @@ export function MolecularViewerPanel() {
             <div className="h-2 w-full rounded-full bg-studio-panel">
               <div
                 className={`h-2 rounded-full transition-all duration-500 ${
-                  lipinskiScore >= 75 ? 'bg-emerald-500' : lipinskiScore >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                  lipinskiScore >= 75
+                    ? 'bg-emerald-500'
+                    : lipinskiScore >= 50
+                      ? 'bg-amber-500'
+                      : 'bg-red-500'
                 }`}
                 style={{ width: `${lipinskiScore}%` }}
               />
             </div>
-            <div className="mt-0.5 text-right text-[10px] text-studio-muted">{lipinskiScore}/100</div>
+            <div className="mt-0.5 text-right text-[10px] text-studio-muted">
+              {lipinskiScore}/100
+            </div>
           </div>
         </div>
       )}
@@ -174,7 +211,7 @@ export function MolecularViewerPanel() {
               <XCircle className="h-4 w-4 text-red-400" />
             )}
             <span className={lipinski.passes ? 'text-emerald-400' : 'text-red-400'}>
-              {lipinski.passes ? 'Passes Lipinski\'s Rule of Five' : 'Fails Lipinski\'s Rule of Five'}
+              {lipinski.passes ? "Passes Lipinski's Rule of Five" : "Fails Lipinski's Rule of Five"}
             </span>
           </div>
           <div className="grid grid-cols-2 gap-1.5 mt-1">
@@ -184,7 +221,10 @@ export function MolecularViewerPanel() {
               { label: 'HBD ≤ 5', pass: lipinski.hbd },
               { label: 'HBA ≤ 10', pass: lipinski.hba },
             ].map(({ label, pass }) => (
-              <div key={label} className={`flex items-center gap-1 ${pass ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div
+                key={label}
+                className={`flex items-center gap-1 ${pass ? 'text-emerald-400' : 'text-red-400'}`}
+              >
                 {pass ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
                 {label}
               </div>
@@ -223,9 +263,14 @@ export function MolecularViewerPanel() {
           </div>
           <div className="max-h-48 overflow-y-auto">
             {residues.slice(0, 50).map((r) => (
-              <div key={`${r.chain}:${r.id}`} className="flex items-center justify-between text-studio-muted py-0.5">
+              <div
+                key={`${r.chain}:${r.id}`}
+                className="flex items-center justify-between text-studio-muted py-0.5"
+              >
                 <span className="text-studio-text">{r.aminoAcid}</span>
-                <span className="font-mono text-[10px]">{r.chain}:{r.id}</span>
+                <span className="font-mono text-[10px]">
+                  {r.chain}:{r.id}
+                </span>
               </div>
             ))}
             {residues.length > 50 && (

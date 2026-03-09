@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 /**
  * Stress Tests & Performance Validation
- * 
+ *
  * Tests the system's ability to handle high-load scenarios, large compositions,
  * and resource-intensive operations. Validates performance under stress conditions.
  */
@@ -14,7 +14,7 @@ describe('Stress Tests - High Load Scenarios', () => {
       const startTime = Date.now();
       const composition = generateLargeComposition(500);
       const endTime = Date.now();
-      
+
       expect(composition).toBeDefined();
       expect(composition.length).toBeGreaterThan(5000);
       expect(endTime - startTime).toBeLessThan(1000); // Should complete in <1s
@@ -24,7 +24,7 @@ describe('Stress Tests - High Load Scenarios', () => {
       const startTime = Date.now();
       const composition = generateLargeComposition(1000);
       const endTime = Date.now();
-      
+
       expect(composition).toBeDefined();
       expect(composition.length).toBeGreaterThan(10000);
       expect(endTime - startTime).toBeLessThan(2000); // Should complete in <2s
@@ -34,7 +34,7 @@ describe('Stress Tests - High Load Scenarios', () => {
       const startTime = Date.now();
       const composition = generateLargeComposition(5000);
       const endTime = Date.now();
-      
+
       expect(composition).toBeDefined();
       expect(composition.length).toBeGreaterThan(50000);
       // Larger timeout for stress test
@@ -64,7 +64,7 @@ describe('Stress Tests - High Load Scenarios', () => {
         .fill(0)
         .map((_, i) => `@trait_${i}`)
         .join(' ');
-      
+
       expect(traits).toBeDefined();
       expect(traits.split('@').length - 1).toBeGreaterThanOrEqual(50);
     });
@@ -92,9 +92,9 @@ describe('Stress Tests - High Load Scenarios', () => {
       const compositions = Array(10)
         .fill(0)
         .map((_, i) => generateLargeComposition(100));
-      
+
       expect(compositions).toHaveLength(10);
-      compositions.forEach(c => expect(c).toBeDefined());
+      compositions.forEach((c) => expect(c).toBeDefined());
     });
 
     it('should handle rapid sequential parsing', () => {
@@ -104,7 +104,7 @@ describe('Stress Tests - High Load Scenarios', () => {
           source: `orb#obj_${i} { position: [${i}, ${i}, ${i}] }`,
           index: i,
         }));
-      
+
       expect(parseOperations).toHaveLength(100);
       parseOperations.forEach((op, idx) => {
         expect(op.index).toBe(idx);
@@ -114,7 +114,7 @@ describe('Stress Tests - High Load Scenarios', () => {
 
     it('should handle interleaved parsing and compilation', () => {
       const startTime = Date.now();
-      
+
       // Simulate interleaved operations
       for (let i = 0; i < 50; i++) {
         const parsed = `composition_${i}`;
@@ -122,7 +122,7 @@ describe('Stress Tests - High Load Scenarios', () => {
         expect(parsed).toContain('_');
         expect(compiled).toContain('_');
       }
-      
+
       const endTime = Date.now();
       expect(endTime - startTime).toBeLessThan(100);
     });
@@ -135,7 +135,7 @@ describe('Stress Tests - High Load Scenarios', () => {
           timestamp: Date.now(),
           data: `network_event_${i}`,
         }));
-      
+
       expect(networkOps).toHaveLength(20);
       networkOps.forEach((op, idx) => {
         expect(op.id).toBe(idx);
@@ -149,7 +149,7 @@ describe('Stress Tests - High Load Scenarios', () => {
       const largeArray = Array(1000)
         .fill(0)
         .map((_, i) => ({ id: i, value: Math.random() }));
-      
+
       expect(largeArray).toHaveLength(1000);
       expect(largeArray[0]).toHaveProperty('id');
       expect(largeArray[999]).toHaveProperty('value');
@@ -160,7 +160,7 @@ describe('Stress Tests - High Load Scenarios', () => {
       for (let i = 0; i < 1000; i++) {
         result += `object_${i},`;
       }
-      
+
       expect(result).toBeDefined();
       expect(result.split(',').length).toBeGreaterThan(1000);
       expect(result.length).toBeGreaterThan(5000);
@@ -182,7 +182,7 @@ describe('Stress Tests - High Load Scenarios', () => {
           },
         },
       };
-      
+
       expect(hierarchy).toBeDefined();
       expect(hierarchy.level_0.level_1.level_2.level_3.level_4.level_5.data).toBe('deeply nested');
     });
@@ -191,11 +191,11 @@ describe('Stress Tests - High Load Scenarios', () => {
       // Simulate large operation
       const data = Array(10000).fill(Math.random());
       expect(data).toHaveLength(10000);
-      
+
       // Simulate cleanup
       const cleaned = data.slice(0, 100);
       expect(cleaned).toHaveLength(100);
-      
+
       // Verify reduction
       expect(data.length).toBeGreaterThan(cleaned.length * 50);
     });
@@ -206,9 +206,9 @@ describe('Stress Tests - High Load Scenarios', () => {
       const numbers = Array(1000)
         .fill(0)
         .map((_, i) => i * Math.PI);
-      
+
       expect(numbers).toHaveLength(1000);
-      numbers.forEach(n => {
+      numbers.forEach((n) => {
         expect(typeof n).toBe('number');
         expect(n).toBeGreaterThanOrEqual(0);
       });
@@ -218,9 +218,9 @@ describe('Stress Tests - High Load Scenarios', () => {
       const strings = Array(1000)
         .fill(0)
         .map((_, i) => String(i).padStart(10, '0'));
-      
+
       expect(strings).toHaveLength(1000);
-      strings.forEach(s => {
+      strings.forEach((s) => {
         expect(typeof s).toBe('string');
         expect(s.length).toBeGreaterThanOrEqual(1);
       });
@@ -235,9 +235,9 @@ describe('Stress Tests - High Load Scenarios', () => {
           bool: i % 2 === 0,
           arr: [i, i + 1, i + 2],
         }));
-      
+
       expect(mixed).toHaveLength(500);
-      mixed.forEach(item => {
+      mixed.forEach((item) => {
         expect(typeof item.num).toBe('number');
         expect(typeof item.str).toBe('string');
         expect(typeof item.bool).toBe('boolean');
@@ -252,9 +252,9 @@ describe('Stress Tests - High Load Scenarios', () => {
           const codePoint = 0x0041 + (i % 26); // A-Z cycled
           return String.fromCharCode(codePoint);
         });
-      
+
       expect(unicode).toHaveLength(1000);
-      unicode.forEach(c => {
+      unicode.forEach((c) => {
         expect(c.length).toBe(1);
         expect(c.charCodeAt(0)).toBeGreaterThanOrEqual(65);
       });
@@ -269,9 +269,9 @@ describe('Stress Tests - High Load Scenarios', () => {
           input: `malformed_input_${i}`,
           expectError: true,
         }));
-      
+
       expect(errorCases).toHaveLength(100);
-      errorCases.forEach(c => {
+      errorCases.forEach((c) => {
         expect(c.expectError).toBe(true);
       });
     });
@@ -284,7 +284,7 @@ describe('Stress Tests - High Load Scenarios', () => {
           column: (i % 80) + 1,
           message: `Error at line ${i + 1}`,
         }));
-      
+
       expect(errors).toHaveLength(50);
       errors.forEach((err, idx) => {
         expect(err.line).toBe(idx + 1);
@@ -295,7 +295,7 @@ describe('Stress Tests - High Load Scenarios', () => {
 
     it('should recover from cascading errors', () => {
       let errorCount = 0;
-      
+
       for (let i = 0; i < 100; i++) {
         try {
           if (i % 3 === 0) {
@@ -305,7 +305,7 @@ describe('Stress Tests - High Load Scenarios', () => {
           errorCount++;
         }
       }
-      
+
       expect(errorCount).toBeGreaterThan(0);
       expect(errorCount).toBeLessThanOrEqual(100);
       // Should recover and continue processing
@@ -319,14 +319,14 @@ describe('Stress Tests - High Load Scenarios', () => {
         typeErrors: 0,
         networkErrors: 0,
       };
-      
+
       for (let i = 0; i < 1000; i++) {
         stats.totalErrors++;
         if (i % 3 === 0) stats.parseErrors++;
         if (i % 4 === 0) stats.typeErrors++;
         if (i % 5 === 0) stats.networkErrors++;
       }
-      
+
       expect(stats.totalErrors).toBe(1000);
       expect(stats.parseErrors).toBeGreaterThan(0);
       expect(stats.typeErrors).toBeGreaterThan(0);
@@ -336,16 +336,16 @@ describe('Stress Tests - High Load Scenarios', () => {
   describe('Throughput Validation', () => {
     it('should maintain throughput with large batch sizes', () => {
       const startTime = Date.now();
-      
+
       let processed = 0;
       for (let i = 0; i < 10000; i++) {
         processed++;
       }
-      
+
       const endTime = Date.now();
       const duration = endTime - startTime;
       const throughput = processed / duration;
-      
+
       // Should process 1000+ items per ms
       expect(throughput).toBeGreaterThan(1000);
     });
@@ -362,17 +362,17 @@ describe('Stress Tests - High Load Scenarios', () => {
           }
           return Date.now() - start;
         });
-      
+
       expect(times).toHaveLength(10);
-      
+
       // Times should be relatively consistent
       const maxTime = Math.max(...times);
       const minTime = Math.min(...times);
-      
+
       // At least some operations should complete
       expect(maxTime).toBeGreaterThanOrEqual(minTime);
       // Most times should be within reasonable range
-      expect(times.filter(t => t <= 10).length).toBeGreaterThan(5);
+      expect(times.filter((t) => t <= 10).length).toBeGreaterThan(5);
     });
 
     it('should handle varying load patterns', () => {
@@ -381,9 +381,9 @@ describe('Stress Tests - High Load Scenarios', () => {
         medium: 50000,
         heavy: 100000,
       };
-      
+
       const results = {};
-      
+
       for (const [loadType, count] of Object.entries(loads)) {
         const start = Date.now();
         for (let i = 0; i < count; i++) {
@@ -391,7 +391,7 @@ describe('Stress Tests - High Load Scenarios', () => {
         }
         results[loadType] = Date.now() - start;
       }
-      
+
       // Verify that heavy load takes longer than light
       expect(results.heavy).toBeGreaterThanOrEqual(results.light);
       // Medium should generally be between light and heavy
@@ -399,7 +399,7 @@ describe('Stress Tests - High Load Scenarios', () => {
     });
 
     it('should scale linearly with input size', () => {
-      const measurements = [10000, 20000, 40000, 80000, 160000].map(size => {
+      const measurements = [10000, 20000, 40000, 80000, 160000].map((size) => {
         const start = Date.now();
         for (let i = 0; i < size; i++) {
           // Simulate O(1) work
@@ -409,14 +409,14 @@ describe('Stress Tests - High Load Scenarios', () => {
           time: Math.max(1, Date.now() - start), // Ensure at least 1ms
         };
       });
-      
+
       // Verify measurements are valid
       expect(measurements).toHaveLength(5);
-      measurements.forEach(m => {
+      measurements.forEach((m) => {
         expect(m.size).toBeGreaterThan(0);
         expect(m.time).toBeGreaterThanOrEqual(1); // At least 1ms
       });
-      
+
       // Verify total time grows from smallest to largest input (non-strict per-step, JIT-safe)
       const totalSmall = measurements.slice(0, 2).reduce((s, m) => s + m.time, 0);
       const totalLarge = measurements.slice(3).reduce((s, m) => s + m.time, 0);
@@ -433,14 +433,14 @@ describe('Stress Tests - High Load Scenarios', () => {
           value: i * 10,
           isolated: true,
         }));
-      
+
       // Verify each state is independent
       states.forEach((state, idx) => {
         expect(state.id).toBe(idx);
         expect(state.value).toBe(idx * 10);
         expect(state.isolated).toBe(true);
       });
-      
+
       // Modify one shouldn't affect others
       states[0].value = 999;
       expect(states[1].value).toBe(10);
@@ -450,9 +450,9 @@ describe('Stress Tests - High Load Scenarios', () => {
       const operations = Array(100)
         .fill(0)
         .map(() => Math.random());
-      
+
       expect(operations).toHaveLength(100);
-      
+
       // Simulate cleanup
       operations.length = 0;
       expect(operations).toHaveLength(0);
@@ -461,7 +461,7 @@ describe('Stress Tests - High Load Scenarios', () => {
     it('should handle resource exhaustion gracefully', () => {
       let resourceCount = 0;
       const maxResources = 1000;
-      
+
       try {
         for (let i = 0; i < maxResources + 100; i++) {
           if (resourceCount >= maxResources) {
@@ -472,7 +472,7 @@ describe('Stress Tests - High Load Scenarios', () => {
       } catch {
         // Error handling
       }
-      
+
       expect(resourceCount).toBeLessThanOrEqual(maxResources);
     });
 
@@ -484,17 +484,17 @@ describe('Stress Tests - High Load Scenarios', () => {
           allocated: false,
           completed: false,
         }));
-      
+
       // Allocate resources fairly
       let allocated = 0;
-      tasks.forEach(task => {
+      tasks.forEach((task) => {
         if (allocated < 15) {
           task.allocated = true;
           allocated++;
         }
       });
-      
-      const allocatedCount = tasks.filter(t => t.allocated).length;
+
+      const allocatedCount = tasks.filter((t) => t.allocated).length;
       expect(allocatedCount).toBe(15);
       expect(allocatedCount).toBeLessThan(tasks.length);
     });
@@ -506,14 +506,14 @@ describe('Stress Tests - High Load Scenarios', () => {
  */
 function generateLargeComposition(objectCount: number): string {
   let composition = 'composition "stress_test" {\n';
-  
+
   for (let i = 0; i < objectCount; i++) {
     composition += `  object "obj_${i}" {\n`;
     composition += `    position: [${i}, 0, 0]\n`;
     composition += `    state { value: ${i} }\n`;
     composition += `  }\n`;
   }
-  
+
   composition += '}';
   return composition;
 }

@@ -1,11 +1,7 @@
 import { Resolver, Mutation, Arg, Ctx } from 'type-graphql';
 import DataLoader from 'dataloader';
 import { randomUUID } from 'crypto';
-import {
-  CompileInput,
-  CompilePayload,
-  CompilerTarget,
-} from '../types/GraphQLTypes.js';
+import { CompileInput, CompilePayload, CompilerTarget } from '../types/GraphQLTypes.js';
 import { publishCompilationProgress } from '../services/pubsub.js';
 
 interface CompilationRequest {
@@ -120,7 +116,10 @@ function createCompilationLoader() {
                 break;
               case CompilerTarget.WASM:
                 // WebAssembly compilation
-                const wasmResult = await core.compileToWasm?.(parseResult.ast, request.options || {});
+                const wasmResult = await core.compileToWasm?.(
+                  parseResult.ast,
+                  request.options || {}
+                );
                 output = wasmResult?.output || 'WASM compilation not fully implemented';
                 break;
               default:

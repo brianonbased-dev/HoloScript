@@ -6,10 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  LinterDeprecationRegistry,
-  NoDeprecatedRule,
-} from '../rules/no-deprecated';
+import { LinterDeprecationRegistry, NoDeprecatedRule } from '../rules/no-deprecated';
 import type { DeprecationEntry } from '../rules/no-deprecated';
 
 describe('no-deprecated rule — Production', () => {

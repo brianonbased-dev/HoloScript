@@ -4,7 +4,9 @@ import { StateReplicator } from '../StateReplicator';
 describe('StateReplicator', () => {
   let rep: StateReplicator;
 
-  beforeEach(() => { rep = new StateReplicator('server1'); });
+  beforeEach(() => {
+    rep = new StateReplicator('server1');
+  });
 
   // Entity registration
   it('registerEntity creates entity', () => {
@@ -98,7 +100,12 @@ describe('StateReplicator', () => {
   // Apply delta
   it('applyDelta updates entity properties', () => {
     rep.registerEntity('e1', { hp: 100 });
-    const delta = { entityId: 'e1', fromTick: 0, toTick: 1, changes: [{ key: 'hp', value: 50, version: 1 }] };
+    const delta = {
+      entityId: 'e1',
+      fromTick: 0,
+      toTick: 1,
+      changes: [{ key: 'hp', value: 50, version: 1 }],
+    };
     expect(rep.applyDelta(delta)).toBe(true);
     expect(rep.getProperty('e1', 'hp')).toBe(50);
   });
@@ -106,7 +113,12 @@ describe('StateReplicator', () => {
   it('applyDelta ignores stale versions', () => {
     rep.registerEntity('e1', { hp: 100 });
     rep.setProperty('e1', 'hp', 90); // version 1
-    const delta = { entityId: 'e1', fromTick: 0, toTick: 1, changes: [{ key: 'hp', value: 50, version: 0 }] };
+    const delta = {
+      entityId: 'e1',
+      fromTick: 0,
+      toTick: 1,
+      changes: [{ key: 'hp', value: 50, version: 0 }],
+    };
     rep.applyDelta(delta);
     expect(rep.getProperty('e1', 'hp')).toBe(90); // not overwritten
   });

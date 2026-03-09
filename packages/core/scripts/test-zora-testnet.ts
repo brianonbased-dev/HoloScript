@@ -246,8 +246,9 @@ async function step4_verifyTransaction(): Promise<TestResult> {
       logSuccess('Transaction confirmed successfully!');
 
       // Try to extract token ID from logs
-      const mintLog = receipt.logs.find(log =>
-        log.topics[0] === '0x30385c845b448a36257a6a1716e6ad2e1bc2cbe333cde1e69fe849ad6511adfe'
+      const mintLog = receipt.logs.find(
+        (log) =>
+          log.topics[0] === '0x30385c845b448a36257a6a1716e6ad2e1bc2cbe333cde1e69fe849ad6511adfe'
       );
 
       if (mintLog && mintLog.topics[2]) {
@@ -302,7 +303,7 @@ async function runAllSteps() {
 
 async function main() {
   const args = process.argv.slice(2);
-  const stepArg = args.find(arg => arg.startsWith('--step='));
+  const stepArg = args.find((arg) => arg.startsWith('--step='));
   const step = stepArg ? stepArg.split('=')[1] : 'all';
 
   console.log('\n🧪 ZoraCoinsTrait Testnet Validation Script');
@@ -355,7 +356,7 @@ async function main() {
     console.log(`${status} - ${result.step}: ${result.error || 'Success'}`);
   });
 
-  const allPassed = results.every(r => r.success);
+  const allPassed = results.every((r) => r.success);
   if (allPassed) {
     console.log('\n🎉 All validation steps passed!');
     console.log('ZoraCoinsTrait is ready for production deployment.');

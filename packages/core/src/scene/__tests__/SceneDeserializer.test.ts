@@ -23,7 +23,11 @@ describe('SceneDeserializer', () => {
   describe('deserialize', () => {
     it('should rebuild a simple node', () => {
       const scene = makeSerializedScene({
-        id: 'root', type: 'entity', properties: { name: 'Root' }, traits: {}, children: [],
+        id: 'root',
+        type: 'entity',
+        properties: { name: 'Root' },
+        traits: {},
+        children: [],
       });
       const node = deserializer.deserialize(scene);
       expect(node.id).toBe('root');
@@ -32,7 +36,8 @@ describe('SceneDeserializer', () => {
 
     it('should rebuild traits as Map', () => {
       const scene = makeSerializedScene({
-        id: 'n1', type: 'entity',
+        id: 'n1',
+        type: 'entity',
         properties: {},
         traits: { grabbable: { enabled: true }, physics: { mass: 10 } },
         children: [],
@@ -45,11 +50,20 @@ describe('SceneDeserializer', () => {
 
     it('should rebuild children recursively', () => {
       const scene = makeSerializedScene({
-        id: 'root', type: 'entity', properties: {}, traits: {},
+        id: 'root',
+        type: 'entity',
+        properties: {},
+        traits: {},
         children: [
           { id: 'child1', type: 'entity', properties: {}, traits: {}, children: [] },
-          { id: 'child2', type: 'entity', properties: {}, traits: {},
-            children: [{ id: 'grandchild', type: 'entity', properties: {}, traits: {}, children: [] }],
+          {
+            id: 'child2',
+            type: 'entity',
+            properties: {},
+            traits: {},
+            children: [
+              { id: 'grandchild', type: 'entity', properties: {}, traits: {}, children: [] },
+            ],
           },
         ],
       });
@@ -61,7 +75,10 @@ describe('SceneDeserializer', () => {
 
     it('should handle ref nodes (circular reference placeholders)', () => {
       const scene = makeSerializedScene({
-        id: 'root', type: 'entity', properties: {}, traits: {},
+        id: 'root',
+        type: 'entity',
+        properties: {},
+        traits: {},
         children: [{ id: 'ref1', type: 'ref', properties: {}, traits: {}, children: [] }],
       });
       const node = deserializer.deserialize(scene);
@@ -86,9 +103,13 @@ describe('SceneDeserializer', () => {
     });
 
     it('should warn but still load non-v1 data', () => {
-      const scene = makeSerializedScene(
-        { id: 'root', type: 'entity', properties: {}, traits: {}, children: [] },
-      );
+      const scene = makeSerializedScene({
+        id: 'root',
+        type: 'entity',
+        properties: {},
+        traits: {},
+        children: [],
+      });
       (scene as any).version = 99;
       const json = JSON.stringify(scene);
 

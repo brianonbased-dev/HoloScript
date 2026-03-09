@@ -24,7 +24,7 @@ export interface EventListener {
   id: string;
   type: string;
   callback: (event: GameEvent) => void;
-  priority: number;       // Higher = called first
+  priority: number; // Higher = called first
   once: boolean;
 }
 
@@ -69,7 +69,7 @@ export class EventDispatcher {
 
   off(listenerId: string): boolean {
     for (const [type, list] of this.listeners) {
-      const idx = list.findIndex(l => l.id === listenerId);
+      const idx = list.findIndex((l) => l.id === listenerId);
       if (idx >= 0) {
         list.splice(idx, 1);
         if (list.length === 0) this.listeners.delete(type);
@@ -89,7 +89,12 @@ export class EventDispatcher {
 
   emit(type: string, data: Record<string, unknown> = {}, source?: string): GameEvent {
     const event: GameEvent = {
-      type, data, timestamp: Date.now(), propagate: true, handled: false, source,
+      type,
+      data,
+      timestamp: Date.now(),
+      propagate: true,
+      handled: false,
+      source,
     };
 
     if (this.paused) {
@@ -103,7 +108,12 @@ export class EventDispatcher {
 
   emitDeferred(type: string, data: Record<string, unknown> = {}, source?: string): void {
     this.deferredQueue.push({
-      type, data, timestamp: Date.now(), propagate: true, handled: false, source,
+      type,
+      data,
+      timestamp: Date.now(),
+      propagate: true,
+      handled: false,
+      source,
     });
   }
 
@@ -132,7 +142,7 @@ export class EventDispatcher {
 
     // Remove one-shot listeners
     for (const id of toRemove) {
-      const idx = list.findIndex(l => l.id === id);
+      const idx = list.findIndex((l) => l.id === id);
       if (idx >= 0) list.splice(idx, 1);
     }
   }
@@ -141,9 +151,15 @@ export class EventDispatcher {
   // Control
   // ---------------------------------------------------------------------------
 
-  pause(): void { this.paused = true; }
-  resume(): void { this.paused = false; }
-  isPaused(): boolean { return this.paused; }
+  pause(): void {
+    this.paused = true;
+  }
+  resume(): void {
+    this.paused = false;
+  }
+  isPaused(): boolean {
+    return this.paused;
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
@@ -156,8 +172,12 @@ export class EventDispatcher {
     return total;
   }
 
-  getEventHistory(): GameEvent[] { return [...this.eventHistory]; }
-  getQueuedCount(): number { return this.deferredQueue.length; }
+  getEventHistory(): GameEvent[] {
+    return [...this.eventHistory];
+  }
+  getQueuedCount(): number {
+    return this.deferredQueue.length;
+  }
 
   clear(): void {
     this.listeners.clear();

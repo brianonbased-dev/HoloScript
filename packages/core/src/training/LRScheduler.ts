@@ -174,9 +174,7 @@ export class LRScheduler {
   constructor(config: Partial<LRSchedulerConfig> = {}) {
     this.config = { ...DEFAULT_LR_SCHEDULER_CONFIG, ...config };
     this.validateConfig();
-    this.warmupSteps = Math.floor(
-      this.config.totalSteps * this.config.warmupRatio,
-    );
+    this.warmupSteps = Math.floor(this.config.totalSteps * this.config.warmupRatio);
   }
 
   /**
@@ -234,10 +232,7 @@ export class LRScheduler {
       phaseProgress = this.warmupSteps === 0 ? 1 : clampedStep / this.warmupSteps;
     } else {
       const decaySteps = totalSteps - this.warmupSteps;
-      phaseProgress =
-        decaySteps <= 0
-          ? 1
-          : (clampedStep - this.warmupSteps) / decaySteps;
+      phaseProgress = decaySteps <= 0 ? 1 : (clampedStep - this.warmupSteps) / decaySteps;
     }
 
     const overallProgress = totalSteps === 0 ? 1 : clampedStep / totalSteps;
@@ -334,27 +329,19 @@ export class LRScheduler {
     }
 
     if (totalSteps < 0 || !Number.isInteger(totalSteps)) {
-      throw new Error(
-        `LRScheduler: totalSteps must be a non-negative integer, got ${totalSteps}`,
-      );
+      throw new Error(`LRScheduler: totalSteps must be a non-negative integer, got ${totalSteps}`);
     }
 
     if (warmupRatio < 0 || warmupRatio >= 1) {
-      throw new Error(
-        `LRScheduler: warmupRatio must be in [0, 1), got ${warmupRatio}`,
-      );
+      throw new Error(`LRScheduler: warmupRatio must be in [0, 1), got ${warmupRatio}`);
     }
 
     if (minLR < 0 || minLR >= baseLR) {
-      throw new Error(
-        `LRScheduler: minLR must be in [0, baseLR), got ${minLR}`,
-      );
+      throw new Error(`LRScheduler: minLR must be in [0, baseLR), got ${minLR}`);
     }
 
     if (numCycles < 1 || !Number.isInteger(numCycles)) {
-      throw new Error(
-        `LRScheduler: numCycles must be a positive integer, got ${numCycles}`,
-      );
+      throw new Error(`LRScheduler: numCycles must be a positive integer, got ${numCycles}`);
     }
   }
 }
@@ -372,9 +359,7 @@ export class LRScheduler {
  * const lr = scheduler.getLR(100);
  * ```
  */
-export function createSFTScheduler(
-  config: Partial<LRSchedulerConfig> = {},
-): LRScheduler {
+export function createSFTScheduler(config: Partial<LRSchedulerConfig> = {}): LRScheduler {
   return new LRScheduler({ ...DEFAULT_LR_SCHEDULER_CONFIG, ...config });
 }
 
@@ -387,8 +372,6 @@ export function createSFTScheduler(
  * const lr = scheduler.getLR(100);
  * ```
  */
-export function createGRPOScheduler(
-  config: Partial<LRSchedulerConfig> = {},
-): LRScheduler {
+export function createGRPOScheduler(config: Partial<LRSchedulerConfig> = {}): LRScheduler {
   return new LRScheduler({ ...GRPO_LR_SCHEDULER_CONFIG, ...config });
 }

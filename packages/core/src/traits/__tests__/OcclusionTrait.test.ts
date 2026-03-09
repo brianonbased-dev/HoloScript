@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { occlusionHandler } from '../OcclusionTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('OcclusionTrait', () => {
   let node: Record<string, unknown>;
@@ -29,20 +36,36 @@ describe('OcclusionTrait', () => {
   });
 
   it('occlusion_update triggers start event', () => {
-    sendEvent(occlusionHandler, node, cfg, ctx, { type: 'occlusion_update', isOccluded: true, amount: 0.8 });
+    sendEvent(occlusionHandler, node, cfg, ctx, {
+      type: 'occlusion_update',
+      isOccluded: true,
+      amount: 0.8,
+    });
     expect((node as any).__occlusionState.isOccluded).toBe(true);
     expect((node as any).__occlusionState.occlusionAmount).toBe(0.8);
     expect(getEventCount(ctx, 'occlusion_start')).toBe(1);
   });
 
   it('occlusion end emits occlusion_end', () => {
-    sendEvent(occlusionHandler, node, cfg, ctx, { type: 'occlusion_update', isOccluded: true, amount: 1 });
-    sendEvent(occlusionHandler, node, cfg, ctx, { type: 'occlusion_update', isOccluded: false, amount: 0 });
+    sendEvent(occlusionHandler, node, cfg, ctx, {
+      type: 'occlusion_update',
+      isOccluded: true,
+      amount: 1,
+    });
+    sendEvent(occlusionHandler, node, cfg, ctx, {
+      type: 'occlusion_update',
+      isOccluded: false,
+      amount: 0,
+    });
     expect(getEventCount(ctx, 'occlusion_end')).toBe(1);
   });
 
   it('update fades progress toward target', () => {
-    sendEvent(occlusionHandler, node, cfg, ctx, { type: 'occlusion_update', isOccluded: true, amount: 1 });
+    sendEvent(occlusionHandler, node, cfg, ctx, {
+      type: 'occlusion_update',
+      isOccluded: true,
+      amount: 1,
+    });
     updateTrait(occlusionHandler, node, cfg, ctx, 0.1);
     const s = (node as any).__occlusionState;
     expect(s.fadeProgress).toBeGreaterThan(0);
@@ -55,7 +78,10 @@ describe('OcclusionTrait', () => {
   });
 
   it('hand_occlusion_update activates when enabled', () => {
-    sendEvent(occlusionHandler, node, cfg, ctx, { type: 'hand_occlusion_update', isOccludedByHand: true });
+    sendEvent(occlusionHandler, node, cfg, ctx, {
+      type: 'hand_occlusion_update',
+      isOccludedByHand: true,
+    });
     const s = (node as any).__occlusionState;
     expect(s.handOcclusionActive).toBe(true);
     expect(s.isOccluded).toBe(true);
@@ -63,7 +89,11 @@ describe('OcclusionTrait', () => {
   });
 
   it('edge smoothing emits set_opacity during fade', () => {
-    sendEvent(occlusionHandler, node, cfg, ctx, { type: 'occlusion_update', isOccluded: true, amount: 1 });
+    sendEvent(occlusionHandler, node, cfg, ctx, {
+      type: 'occlusion_update',
+      isOccluded: true,
+      amount: 1,
+    });
     // Partially fade
     updateTrait(occlusionHandler, node, cfg, ctx, 0.1);
     expect(getEventCount(ctx, 'set_opacity')).toBeGreaterThanOrEqual(1);

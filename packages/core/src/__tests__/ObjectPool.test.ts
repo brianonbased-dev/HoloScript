@@ -5,10 +5,14 @@ import { ObjectPool, type PoolConfig } from '../pooling/ObjectPool';
 // C305 — ObjectPool
 // =============================================================================
 
-function makeConfig(overrides: Partial<PoolConfig<{ value: number }>> = {}): PoolConfig<{ value: number }> {
+function makeConfig(
+  overrides: Partial<PoolConfig<{ value: number }>> = {}
+): PoolConfig<{ value: number }> {
   return {
     factory: () => ({ value: 0 }),
-    reset: (obj) => { obj.value = 0; },
+    reset: (obj) => {
+      obj.value = 0;
+    },
     initialSize: 3,
     maxSize: 10,
     autoExpand: true,
@@ -93,7 +97,7 @@ describe('ObjectPool', () => {
     const b = pool.acquire()!;
     b.value = 20;
     const values: number[] = [];
-    pool.forEach(obj => values.push(obj.value));
+    pool.forEach((obj) => values.push(obj.value));
     expect(values.sort()).toEqual([10, 20]);
   });
 

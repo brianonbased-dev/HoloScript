@@ -110,7 +110,8 @@ export class DestructionToGranularConverter {
       // Calculate particle radius from fragment volume
       // Volume of sphere: V = (4/3) * π * r³
       // r = ³√(3V / 4π)
-      const radius = Math.cbrt((3 * fragment.volume) / (4 * Math.PI)) * this.config.particleSizeScale;
+      const radius =
+        Math.cbrt((3 * fragment.volume) / (4 * Math.PI)) * this.config.particleSizeScale;
 
       // Add particle at fragment centroid
       const particleId = granularSystem.addParticle(fragment.position, radius);
@@ -172,7 +173,8 @@ export class DestructionToGranularConverter {
         continue;
       }
 
-      const radius = Math.cbrt((3 * fragment.volume) / (4 * Math.PI)) * this.config.particleSizeScale;
+      const radius =
+        Math.cbrt((3 * fragment.volume) / (4 * Math.PI)) * this.config.particleSizeScale;
 
       // Calculate direction from explosion center
       const dir = {

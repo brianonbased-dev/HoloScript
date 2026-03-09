@@ -7,7 +7,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ProjectileSystem, type ProjectileConfig } from '../ProjectileSystem';
 
-const BASIC: ProjectileConfig = { speed: 10, lifetime: 5, damage: 25, homing: false, homingStrength: 0, piercing: 0, gravity: 0 };
+const BASIC: ProjectileConfig = {
+  speed: 10,
+  lifetime: 5,
+  damage: 25,
+  homing: false,
+  homingStrength: 0,
+  piercing: 0,
+  gravity: 0,
+};
 
 describe('ProjectileSystem — Production', () => {
   // ─── Spawning ─────────────────────────────────────────────────────

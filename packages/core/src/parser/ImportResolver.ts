@@ -194,9 +194,13 @@ export class ImportResolver {
         errors.push({
           importPath: imp.path,
           message: msg,
-          code: msg.startsWith('Circular') ? 'cycle' :
-                msg.startsWith('Max depth') ? 'max_depth' :
-                msg.startsWith('Parse error') ? 'parse_error' : 'not_found',
+          code: msg.startsWith('Circular')
+            ? 'cycle'
+            : msg.startsWith('Max depth')
+              ? 'max_depth'
+              : msg.startsWith('Parse error')
+                ? 'parse_error'
+                : 'not_found',
           ...(msg.startsWith('Circular') ? { cycle: [canonicalPath] } : {}),
         });
         continue;
@@ -301,7 +305,13 @@ export class ImportResolver {
 
         if (!this.cache.has(subPath)) {
           try {
-            const subMod = await this._resolveModule(subPath, canonicalPath, options, depth + 1, errors);
+            const subMod = await this._resolveModule(
+              subPath,
+              canonicalPath,
+              options,
+              depth + 1,
+              errors
+            );
             // Merge sub-module exports into this module's available scope
             for (const [k, v] of subMod.exports) {
               if (!exports.has(k)) exports.set(k, v); // don't override own exports
@@ -311,9 +321,13 @@ export class ImportResolver {
             errors.push({
               importPath: subImp.path,
               message: msg,
-              code: msg.startsWith('Circular') ? 'cycle' :
-                    msg.startsWith('Max depth') ? 'max_depth' :
-                    msg.startsWith('Parse error') ? 'parse_error' : 'not_found',
+              code: msg.startsWith('Circular')
+                ? 'cycle'
+                : msg.startsWith('Max depth')
+                  ? 'max_depth'
+                  : msg.startsWith('Parse error')
+                    ? 'parse_error'
+                    : 'not_found',
               ...(msg.startsWith('Circular') ? { cycle: [subPath] } : {}),
             });
           }
@@ -329,7 +343,6 @@ export class ImportResolver {
 
       this.cache.set(canonicalPath, mod);
       return mod;
-
     } finally {
       this.inProgress.delete(canonicalPath);
     }
@@ -383,10 +396,7 @@ export class ImportResolver {
       const exportDir = directives.find((d: any) => d?.type === 'export');
       if (exportDir) {
         const exportName: string =
-          exportDir.exportName ??
-          (node as any).id ??
-          (node as any).name ??
-          (node as any).type;
+          exportDir.exportName ?? (node as any).id ?? (node as any).name ?? (node as any).type;
         exports.set(exportName, node);
       }
     }
@@ -405,7 +415,9 @@ export class ImportResolver {
         const fs = await import('fs/promises');
         return await fs.readFile(filePath, 'utf-8');
       } catch {
-        throw new Error(`Cannot read '${filePath}': no readFile option provided and fs is unavailable`);
+        throw new Error(
+          `Cannot read '${filePath}': no readFile option provided and fs is unavailable`
+        );
       }
     };
   }

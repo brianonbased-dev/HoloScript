@@ -16,9 +16,9 @@ export type RewardType = 'xp' | 'item' | 'currency' | 'unlock' | 'reputation' | 
 export interface RewardDef {
   id: string;
   type: RewardType;
-  target: string;          // item ID, currency name, unlock key, etc.
+  target: string; // item ID, currency name, unlock key, etc.
   amount: number;
-  condition?: string;      // Optional condition key
+  condition?: string; // Optional condition key
 }
 
 export interface RewardBundle {
@@ -46,7 +46,8 @@ let _rewardId = 0;
 export class RewardSystem {
   private bundles: Map<string, RewardBundle> = new Map();
   private stats: PlayerStats = {
-    xp: 0, level: 1,
+    xp: 0,
+    level: 1,
     currency: new Map([['gold', 0]]),
     unlocks: new Set(),
     skillPoints: 0,
@@ -62,8 +63,9 @@ export class RewardSystem {
   createBundle(name: string, rewards: Omit<RewardDef, 'id'>[]): RewardBundle {
     const id = `bundle_${_rewardId++}`;
     const bundle: RewardBundle = {
-      id, name,
-      rewards: rewards.map(r => ({ ...r, id: `reward_${_rewardId++}` })),
+      id,
+      name,
+      rewards: rewards.map((r) => ({ ...r, id: `reward_${_rewardId++}` })),
       claimed: false,
       claimedAt: null,
     };
@@ -71,7 +73,9 @@ export class RewardSystem {
     return bundle;
   }
 
-  getBundle(id: string): RewardBundle | undefined { return this.bundles.get(id); }
+  getBundle(id: string): RewardBundle | undefined {
+    return this.bundles.get(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Claim Rewards
@@ -131,15 +135,21 @@ export class RewardSystem {
     return { leveled, newLevel: this.stats.level };
   }
 
-  getXPForLevel(level: number): number { return level * this.xpPerLevel; }
+  getXPForLevel(level: number): number {
+    return level * this.xpPerLevel;
+  }
 
-  setXPMultiplier(mult: number): void { this.xpMultiplier = mult; }
+  setXPMultiplier(mult: number): void {
+    this.xpMultiplier = mult;
+  }
 
   // ---------------------------------------------------------------------------
   // Currency
   // ---------------------------------------------------------------------------
 
-  getCurrency(name: string): number { return this.stats.currency.get(name) ?? 0; }
+  getCurrency(name: string): number {
+    return this.stats.currency.get(name) ?? 0;
+  }
 
   spendCurrency(name: string, amount: number): boolean {
     const current = this.stats.currency.get(name) ?? 0;
@@ -152,11 +162,29 @@ export class RewardSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getStats(): PlayerStats { return { ...this.stats, currency: new Map(this.stats.currency), unlocks: new Set(this.stats.unlocks) }; }
-  getLevel(): number { return this.stats.level; }
-  getXP(): number { return this.stats.xp; }
-  hasUnlock(key: string): boolean { return this.stats.unlocks.has(key); }
-  getSkillPoints(): number { return this.stats.skillPoints; }
-  getBundleCount(): number { return this.bundles.size; }
-  getClaimedCount(): number { return [...this.bundles.values()].filter(b => b.claimed).length; }
+  getStats(): PlayerStats {
+    return {
+      ...this.stats,
+      currency: new Map(this.stats.currency),
+      unlocks: new Set(this.stats.unlocks),
+    };
+  }
+  getLevel(): number {
+    return this.stats.level;
+  }
+  getXP(): number {
+    return this.stats.xp;
+  }
+  hasUnlock(key: string): boolean {
+    return this.stats.unlocks.has(key);
+  }
+  getSkillPoints(): number {
+    return this.stats.skillPoints;
+  }
+  getBundleCount(): number {
+    return this.bundles.size;
+  }
+  getClaimedCount(): number {
+    return [...this.bundles.values()].filter((b) => b.claimed).length;
+  }
 }

@@ -150,13 +150,13 @@ window.addEventListener('beforeunload', () => {
 
 ```typescript
 const terrainGen = new TerrainGenerator({
-  width: 200,        // Terrain width in meters
-  depth: 200,        // Terrain depth in meters
-  resolution: 64,    // Grid resolution (64×64 = 4096 points)
-  maxHeight: 50,     // Maximum terrain height in meters
-  steepness: 0.7,    // Mountain steepness (0=gentle, 1=steep)
-  roughness: 0.3,    // Noise roughness (0=smooth, 1=rough)
-  seed: 12345,       // Random seed for reproducibility
+  width: 200, // Terrain width in meters
+  depth: 200, // Terrain depth in meters
+  resolution: 64, // Grid resolution (64×64 = 4096 points)
+  maxHeight: 50, // Maximum terrain height in meters
+  steepness: 0.7, // Mountain steepness (0=gentle, 1=steep)
+  roughness: 0.3, // Noise roughness (0=smooth, 1=rough)
+  seed: 12345, // Random seed for reproducibility
 });
 
 const terrain = terrainGen.generateTerrain();
@@ -172,9 +172,9 @@ const normal = terrainGen.getNormalAt(x, z);
 
 // Get mesh data for rendering
 const mesh = terrainGen.generateMesh();
-console.log(mesh.vertices);  // Float32Array
-console.log(mesh.normals);   // Float32Array
-console.log(mesh.indices);   // Uint32Array
+console.log(mesh.vertices); // Float32Array
+console.log(mesh.normals); // Float32Array
+console.log(mesh.indices); // Uint32Array
 
 // Get terrain statistics
 const stats = terrainGen.getStatistics();
@@ -187,12 +187,12 @@ console.log(`Avg slope: ${stats.avgSlope} rad`);
 
 ```typescript
 const snow = new SnowAccumulation(terrain, {
-  particleCount: 1000,        // Number of snow particles
-  particleMass: 0.1,          // Mass per particle (kg)
-  angleOfRepose: 35,          // Critical slope angle (degrees)
-  cohesion: 0.3,              // Snow cohesion factor (0-1)
-  density: 300,               // Snow density (kg/m³)
-  minDepthForTrigger: 0.05,   // Min depth for avalanche trigger (m)
+  particleCount: 1000, // Number of snow particles
+  particleMass: 0.1, // Mass per particle (kg)
+  angleOfRepose: 35, // Critical slope angle (degrees)
+  cohesion: 0.3, // Snow cohesion factor (0-1)
+  density: 300, // Snow density (kg/m³)
+  minDepthForTrigger: 0.05, // Min depth for avalanche trigger (m)
 });
 
 // Get all particles
@@ -218,13 +218,13 @@ console.log(`Coverage: ${stats.coverage}%`);
 
 ```typescript
 const physics = new AvalanchePhysics(terrain, particles, {
-  gravity: 9.8,                 // Gravity (m/s²)
-  frictionCoefficient: 0.2,     // Friction coefficient
-  dragCoefficient: 0.5,         // Air drag coefficient
-  entrainmentRadius: 2.0,       // Entrainment radius (m)
-  entrainmentThreshold: 3.0,    // Min velocity for entrainment (m/s)
-  restitution: 0.3,             // Bounce coefficient (0-1)
-  settlingVelocity: 0.5,        // Velocity threshold for settling (m/s)
+  gravity: 9.8, // Gravity (m/s²)
+  frictionCoefficient: 0.2, // Friction coefficient
+  dragCoefficient: 0.5, // Air drag coefficient
+  entrainmentRadius: 2.0, // Entrainment radius (m)
+  entrainmentThreshold: 3.0, // Min velocity for entrainment (m/s)
+  restitution: 0.3, // Bounce coefficient (0-1)
+  settlingVelocity: 0.5, // Velocity threshold for settling (m/s)
 });
 
 // Trigger avalanche at epicenter
@@ -251,7 +251,7 @@ console.log(`Entrainment events: ${stats.entrainmentCount}`);
 
 // Get simulation events
 const events = physics.getEvents();
-events.forEach(event => {
+events.forEach((event) => {
   console.log(`${event.type}: particle ${event.particleId}`);
 });
 
@@ -263,9 +263,9 @@ physics.reset();
 
 ```typescript
 const simulation = new AvalancheSimulation(terrain, physics, {
-  useGPU: false,           // Enable GPU acceleration (future)
-  maxParticles: 10000,     // Maximum particle count
-  enableProfiling: true,   // Enable performance profiling
+  useGPU: false, // Enable GPU acceleration (future)
+  maxParticles: 10000, // Maximum particle count
+  enableProfiling: true, // Enable performance profiling
 });
 
 // Trigger avalanche
@@ -404,9 +404,9 @@ gl.drawArraysInstanced(gl.TRIANGLES, 0, 36, particles.length);
 ```typescript
 // Low-end hardware (mobile)
 const lowEndConfig = {
-  terrain: { resolution: 32 },      // Lower resolution
-  snow: { particleCount: 500 },     // Fewer particles
-  simulation: { useGPU: false },    // CPU only
+  terrain: { resolution: 32 }, // Lower resolution
+  snow: { particleCount: 500 }, // Fewer particles
+  simulation: { useGPU: false }, // CPU only
 };
 
 // Mid-range hardware (laptop)
@@ -420,7 +420,7 @@ const midRangeConfig = {
 const highEndConfig = {
   terrain: { resolution: 128 },
   snow: { particleCount: 100000 },
-  simulation: { useGPU: true },     // GPU acceleration
+  simulation: { useGPU: true }, // GPU acceleration
 };
 ```
 
@@ -479,23 +479,27 @@ const icySnow = {
 ## 🔧 Troubleshooting
 
 ### Low FPS
+
 - Reduce `particleCount`
 - Lower terrain `resolution`
 - Disable `enableProfiling`
 - Consider GPU acceleration (when available)
 
 ### Particles Not Moving
+
 - Check `gravity` > 0
 - Verify `frictionCoefficient` < 1
 - Ensure trigger zone has unstable slopes
 - Check `minDepthForTrigger` is not too high
 
 ### Particles Falling Through Terrain
+
 - Increase physics update frequency (lower `dt`)
 - Check terrain height queries are correct
 - Verify particle initial positions are on surface
 
 ### Memory Issues
+
 - Reduce `maxParticles`
 - Lower terrain `resolution`
 - Monitor `memoryUsage` metric
@@ -505,6 +509,7 @@ const icySnow = {
 ## 📚 Examples
 
 See the test files for more examples:
+
 - `TerrainGenerator.test.ts` - Terrain generation examples
 - `SnowAccumulation.test.ts` - Snow placement and stability
 - `AvalanchePhysics.test.ts` - Physics and collision
@@ -526,6 +531,7 @@ See the test files for more examples:
 ## 🤝 Contributing
 
 Found a bug or have a feature request? Check the test files first to see if it's already covered. If not, please open an issue with:
+
 1. Clear description of the problem
 2. Minimal reproduction code
 3. Expected vs. actual behavior

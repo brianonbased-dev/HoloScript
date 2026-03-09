@@ -87,7 +87,13 @@ function createBuiltinSkills(config: SkillRegistryConfig): Skill[] {
       sandbox: false,
       inputs: [
         { name: 'url', type: 'string', required: true, description: 'URL to fetch' },
-        { name: 'format', type: 'string', required: false, description: 'json | text | html', default: 'text' },
+        {
+          name: 'format',
+          type: 'string',
+          required: false,
+          description: 'json | text | html',
+          default: 'text',
+        },
       ],
       outputs: [{ name: 'content', type: 'string', description: 'Response content' }],
       async execute(inputs) {
@@ -110,9 +116,7 @@ function createBuiltinSkills(config: SkillRegistryConfig): Skill[] {
       version: '1.0.0',
       author: 'holoscript',
       sandbox: true,
-      inputs: [
-        { name: 'path', type: 'string', required: true, description: 'File path' },
-      ],
+      inputs: [{ name: 'path', type: 'string', required: true, description: 'File path' }],
       outputs: [{ name: 'content', type: 'string', description: 'File content' }],
       async execute(inputs) {
         // In browser: use File System Access API; in Node: fs.readFile
@@ -157,7 +161,12 @@ function createBuiltinSkills(config: SkillRegistryConfig): Skill[] {
     sandbox: false,
     inputs: [
       { name: 'json', type: 'string', required: true, description: 'JSON string to transform' },
-      { name: 'path', type: 'string', required: false, description: 'Dot-notation path to extract (e.g. "data.users.0.name")' },
+      {
+        name: 'path',
+        type: 'string',
+        required: false,
+        description: 'Dot-notation path to extract (e.g. "data.users.0.name")',
+      },
     ],
     outputs: [{ name: 'result', type: 'object', description: 'Transformed result' }],
     async execute(inputs) {
@@ -184,13 +193,22 @@ function createBuiltinSkills(config: SkillRegistryConfig): Skill[] {
     sandbox: false,
     inputs: [
       { name: 'text', type: 'string', required: true, description: 'Input text' },
-      { name: 'max_chars', type: 'number', required: false, description: 'Max chars (default 500)', default: 500 },
+      {
+        name: 'max_chars',
+        type: 'number',
+        required: false,
+        description: 'Max chars (default 500)',
+        default: 500,
+      },
     ],
     outputs: [{ name: 'text', type: 'string', description: 'Truncated text' }],
     async execute(inputs) {
       const text = inputs['text'] as string;
       const max = (inputs['max_chars'] as number) ?? 500;
-      return { text: text.length > max ? text.slice(0, max) + '…' : text, truncated: text.length > max };
+      return {
+        text: text.length > max ? text.slice(0, max) + '…' : text,
+        truncated: text.length > max,
+      };
     },
   });
 
@@ -267,10 +285,14 @@ export const skillRegistryHandler = {
       case 'skill_list':
         ctx.emit('skills_listed', {
           node,
-          skills: [...state.skills.values()].map(s => ({
-            id: s.id, name: s.name, description: s.description,
-            version: s.version, author: s.author,
-            inputs: s.inputs, outputs: s.outputs,
+          skills: [...state.skills.values()].map((s) => ({
+            id: s.id,
+            name: s.name,
+            description: s.description,
+            version: s.version,
+            author: s.author,
+            inputs: s.inputs,
+            outputs: s.outputs,
           })),
         });
         break;
@@ -288,16 +310,34 @@ export const skillRegistryHandler = {
     }
   },
 
-  onUpdate(_node: any, _config: SkillRegistryConfig, _ctx: any, _dt: number): void { /* async only */ },
+  onUpdate(_node: any, _config: SkillRegistryConfig, _ctx: any, _dt: number): void {
+    /* async only */
+  },
 
-  _install(state: SkillRegistryState, node: any, config: SkillRegistryConfig, ctx: any, payload: any): void {
+  _install(
+    state: SkillRegistryState,
+    node: any,
+    config: SkillRegistryConfig,
+    ctx: any,
+    payload: any
+  ): void {
     if (!payload) return;
     if (state.skills.size >= config.max_skills) {
-      ctx.emit('skill_failed', { node, skillId: payload.id, invocationId: null, error: 'max_skills limit reached' });
+      ctx.emit('skill_failed', {
+        node,
+        skillId: payload.id,
+        invocationId: null,
+        error: 'max_skills limit reached',
+      });
       return;
     }
     if (!payload.id || !payload.name || typeof payload.execute !== 'function') {
-      ctx.emit('skill_failed', { node, skillId: payload.id, invocationId: null, error: 'Invalid skill: missing id, name, or execute()' });
+      ctx.emit('skill_failed', {
+        node,
+        skillId: payload.id,
+        invocationId: null,
+        error: 'Invalid skill: missing id, name, or execute()',
+      });
       return;
     }
     const skill: Skill = {
@@ -312,10 +352,19 @@ export const skillRegistryHandler = {
       sandbox: payload.sandbox ?? true,
     };
     state.skills.set(skill.id, skill);
-    ctx.emit('skill_installed', { node, skill: { id: skill.id, name: skill.name, description: skill.description } });
+    ctx.emit('skill_installed', {
+      node,
+      skill: { id: skill.id, name: skill.name, description: skill.description },
+    });
   },
 
-  _invoke(state: SkillRegistryState, node: any, config: SkillRegistryConfig, ctx: any, payload: any): void {
+  _invoke(
+    state: SkillRegistryState,
+    node: any,
+    config: SkillRegistryConfig,
+    ctx: any,
+    payload: any
+  ): void {
     const { skillId, inputs = {}, invocationId } = payload ?? {};
     if (!skillId) return;
 
@@ -328,7 +377,12 @@ export const skillRegistryHandler = {
     // Validate required inputs
     for (const input of skill.inputs) {
       if (input.required && inputs[input.name] === undefined) {
-        ctx.emit('skill_failed', { node, skillId, invocationId, error: `Missing required input: ${input.name}` });
+        ctx.emit('skill_failed', {
+          node,
+          skillId,
+          invocationId,
+          error: `Missing required input: ${input.name}`,
+        });
         return;
       }
     }
@@ -343,14 +397,23 @@ export const skillRegistryHandler = {
     const t0 = Date.now();
 
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`Skill timeout after ${config.timeout_ms}ms`)), config.timeout_ms)
+      setTimeout(
+        () => reject(new Error(`Skill timeout after ${config.timeout_ms}ms`)),
+        config.timeout_ms
+      )
     );
 
     Promise.race([skill.execute(inputs, skillCtx), timeoutPromise])
-      .then(result => {
+      .then((result) => {
         state.activeInvocations.delete(id);
         state.totalSuccesses++;
-        ctx.emit('skill_result', { node, skillId, invocationId: id, result, duration_ms: Date.now() - t0 });
+        ctx.emit('skill_result', {
+          node,
+          skillId,
+          invocationId: id,
+          result,
+          duration_ms: Date.now() - t0,
+        });
       })
       .catch((err: Error) => {
         state.activeInvocations.delete(id);

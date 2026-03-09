@@ -43,6 +43,7 @@ orb "Button" {
 > read the label and description aloud when the user focuses the object."
 
 Standard roles:
+
 - `"button"` — activatable control
 - `"checkbox"` — toggle with on/off state
 - `"slider"` — numeric range control
@@ -105,6 +106,7 @@ orb "VirtualKeyboard" {
 > Meta Touch, Apple visionOS hands, and Valve Index knuckles."
 
 Standard patterns:
+
 - `"click"` — short confirmation
 - `"firm"` — button press
 - `"soft"` — hover confirmation
@@ -164,6 +166,7 @@ orb "ImportantUI" {
 > for users prone to motion sickness."
 
 For `reducedMotion: true`, HoloScript automatically:
+
 - Disables camera shake
 - Reduces parallax effects
 - Slows animation speeds
@@ -178,6 +181,7 @@ holoscript check --accessibility src/scene.hsplus
 ```
 
 Output:
+
 ```
 ✓ All interactive objects have @accessible roles
 ✓ All non-decorative visuals have @alt_text

@@ -323,7 +323,7 @@ describe('WaterFlowSolver', () => {
       const updatedCell = waterSolver.getWaterAt(16, 16)!;
       const speed = Math.sqrt(
         updatedCell.velocity[0] * updatedCell.velocity[0] +
-        updatedCell.velocity[1] * updatedCell.velocity[1]
+          updatedCell.velocity[1] * updatedCell.velocity[1]
       );
 
       expect(speed).toBeLessThan(5);

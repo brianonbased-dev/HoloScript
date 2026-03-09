@@ -119,19 +119,19 @@ describe('MusicGenerator', () => {
 
     it('major chord intervals are [0, 4, 7]', () => {
       const chord = gen.generateChord(1, 'major');
-      const intervals = chord.notes.map(n => n - chord.root);
+      const intervals = chord.notes.map((n) => n - chord.root);
       expect(intervals).toEqual([0, 4, 7]);
     });
 
     it('minor chord intervals are [0, 3, 7]', () => {
       const chord = gen.generateChord(1, 'minor');
-      const intervals = chord.notes.map(n => n - chord.root);
+      const intervals = chord.notes.map((n) => n - chord.root);
       expect(intervals).toEqual([0, 3, 7]);
     });
 
     it('dim chord intervals are [0, 3, 6]', () => {
       const chord = gen.generateChord(1, 'dim');
-      const intervals = chord.notes.map(n => n - chord.root);
+      const intervals = chord.notes.map((n) => n - chord.root);
       expect(intervals).toEqual([0, 3, 6]);
     });
 

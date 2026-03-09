@@ -4,7 +4,9 @@ import { EntityRegistry } from '../EntityRegistry';
 describe('EntityRegistry', () => {
   let reg: EntityRegistry;
 
-  beforeEach(() => { reg = new EntityRegistry(); });
+  beforeEach(() => {
+    reg = new EntityRegistry();
+  });
 
   // ---------------------------------------------------------------------------
   // Creation
@@ -90,7 +92,9 @@ describe('EntityRegistry', () => {
   });
 
   it('getAll returns all entities', () => {
-    reg.create(); reg.create(); reg.create();
+    reg.create();
+    reg.create();
+    reg.create();
     expect(reg.getAll()).toHaveLength(3);
   });
 

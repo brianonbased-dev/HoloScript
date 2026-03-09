@@ -27,7 +27,7 @@ describe('EnvironmentPresets constants', () => {
   });
 
   it('preset list contains all named presets', () => {
-    const ids = ALL_PRESETS.map(p => p.id);
+    const ids = ALL_PRESETS.map((p) => p.id);
     expect(ids).toContain('sunny_day');
     expect(ids).toContain('sunset');
     expect(ids).toContain('night');

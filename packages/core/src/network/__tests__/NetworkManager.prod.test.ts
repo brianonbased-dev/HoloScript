@@ -4,7 +4,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NetworkManager } from '../NetworkManager';
 
-function makeManager(id = 'peer-1') { return new NetworkManager(id); }
+function makeManager(id = 'peer-1') {
+  return new NetworkManager(id);
+}
 
 describe('NetworkManager — construction', () => {
   it('stores peerId', () => {
@@ -60,7 +62,9 @@ describe('NetworkManager — peers', () => {
   });
   it('getPeerCount reflects cumulative adds/removes', () => {
     const m = makeManager();
-    m.addPeer('a', 'A'); m.addPeer('b', 'B'); m.addPeer('c', 'C');
+    m.addPeer('a', 'A');
+    m.addPeer('b', 'B');
+    m.addPeer('c', 'C');
     m.removePeer('b');
     expect(m.getPeerCount()).toBe(2);
   });

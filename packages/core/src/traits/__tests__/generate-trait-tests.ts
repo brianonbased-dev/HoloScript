@@ -35,11 +35,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const FORCE = process.argv.includes('--force');
 
 // Files to skip (not actual traits, or helper modules)
-const SKIP_FILES = new Set([
-  'TraitTypes.ts',
-  'index.ts',
-  'types.ts',
-]);
+const SKIP_FILES = new Set(['TraitTypes.ts', 'index.ts', 'types.ts']);
 
 // ---------------------------------------------------------------------------
 // Detection helpers
@@ -132,7 +128,7 @@ function generateTestScaffold(
   statePattern: 'context' | 'node' | 'none',
   stateKey: string | null,
   eventTypes: string[],
-  _emittedEvents: string[],
+  _emittedEvents: string[]
 ): string {
   const importPath = `../${traitName}`;
   const lines: string[] = [];
@@ -142,7 +138,9 @@ function generateTestScaffold(
   lines.push(` * ${traitName} Tests (Auto-generated scaffold)`);
   lines.push(` *`);
   lines.push(` * TODO: Replace scaffold assertions with meaningful tests.`);
-  lines.push(` * See existing tests for patterns (e.g., VisionTrait.test.ts, TokenGatedTrait.test.ts)`);
+  lines.push(
+    ` * See existing tests for patterns (e.g., VisionTrait.test.ts, TokenGatedTrait.test.ts)`
+  );
   lines.push(` */`);
   lines.push('');
 
@@ -193,11 +191,14 @@ function generateTestScaffold(
     lines.push('');
   } else {
     lines.push(`// Uses traitTestHelpers directly (node-based state pattern)`);
-    lines.push(`import { createMockContext, attachTrait, sendEvent, updateTrait, getLastEvent, getEventCount } from './traitTestHelpers';`);
+    lines.push(
+      `import { createMockContext, attachTrait, sendEvent, updateTrait, getLastEvent, getEventCount } from './traitTestHelpers';`
+    );
     lines.push('');
   }
 
-  const ctxCreate = statePattern === 'context' ? 'createStatefulMockContext()' : 'createMockContext()';
+  const ctxCreate =
+    statePattern === 'context' ? 'createStatefulMockContext()' : 'createMockContext()';
 
   // Test suite
   lines.push(`describe('${traitName}', () => {`);
@@ -218,7 +219,9 @@ function generateTestScaffold(
     lines.push(`    it('initializes state', () => {`);
     lines.push(`      const node = createMockNode('test');`);
     lines.push(`      const ctx = ${ctxCreate};`);
-    lines.push(`      ${handlerName}.onAttach?.(node as any, ${handlerName}.defaultConfig, ctx as any);`);
+    lines.push(
+      `      ${handlerName}.onAttach?.(node as any, ${handlerName}.defaultConfig, ctx as any);`
+    );
     if (statePattern === 'context' && stateKey) {
       lines.push(`      expect(ctx.getState().${stateKey}).toBeDefined();`);
     } else if (statePattern === 'node' && stateKey) {
@@ -235,8 +238,12 @@ function generateTestScaffold(
     lines.push(`    it('cleans up state', () => {`);
     lines.push(`      const node = createMockNode('test');`);
     lines.push(`      const ctx = ${ctxCreate};`);
-    lines.push(`      ${handlerName}.onAttach?.(node as any, ${handlerName}.defaultConfig, ctx as any);`);
-    lines.push(`      ${handlerName}.onDetach?.(node as any, ${handlerName}.defaultConfig, ctx as any);`);
+    lines.push(
+      `      ${handlerName}.onAttach?.(node as any, ${handlerName}.defaultConfig, ctx as any);`
+    );
+    lines.push(
+      `      ${handlerName}.onDetach?.(node as any, ${handlerName}.defaultConfig, ctx as any);`
+    );
     lines.push(`      // TODO: verify cleanup`);
     lines.push(`    });`);
     lines.push(`  });`);
@@ -250,8 +257,12 @@ function generateTestScaffold(
       lines.push(`    it('handles ${evt} event', () => {`);
       lines.push(`      const node = createMockNode('test');`);
       lines.push(`      const ctx = ${ctxCreate};`);
-      lines.push(`      ${handlerName}.onAttach?.(node as any, ${handlerName}.defaultConfig, ctx as any);`);
-      lines.push(`      ${handlerName}.onEvent?.(node as any, ${handlerName}.defaultConfig, ctx as any, {`);
+      lines.push(
+        `      ${handlerName}.onAttach?.(node as any, ${handlerName}.defaultConfig, ctx as any);`
+      );
+      lines.push(
+        `      ${handlerName}.onEvent?.(node as any, ${handlerName}.defaultConfig, ctx as any, {`
+      );
       lines.push(`        type: '${evt}',`);
       lines.push(`        payload: {},`);
       lines.push(`      });`);
@@ -276,8 +287,11 @@ function main() {
   console.log('=== HoloScript Trait Test Generator ===\n');
 
   // 1. Scan trait files
-  const traitFiles = fs.readdirSync(TRAITS_DIR)
-    .filter((f: string) => f.endsWith('Trait.ts') && !f.endsWith('.test.ts') && !f.endsWith('.d.ts'))
+  const traitFiles = fs
+    .readdirSync(TRAITS_DIR)
+    .filter(
+      (f: string) => f.endsWith('Trait.ts') && !f.endsWith('.test.ts') && !f.endsWith('.d.ts')
+    )
     .filter((f: string) => !SKIP_FILES.has(f));
 
   console.log(`Found ${traitFiles.length} trait files in ${TRAITS_DIR}\n`);
@@ -285,8 +299,7 @@ function main() {
   // 2. Scan existing tests
   let existingTests: string[] = [];
   if (fs.existsSync(TESTS_DIR)) {
-    existingTests = fs.readdirSync(TESTS_DIR)
-      .filter((f: string) => f.endsWith('.test.ts'));
+    existingTests = fs.readdirSync(TESTS_DIR).filter((f: string) => f.endsWith('.test.ts'));
   }
 
   const existingTestSet = new Set(existingTests);
@@ -331,11 +344,12 @@ function main() {
     const handlerName = extractHandlerName(source);
     const configTypeName = extractConfigTypeName(source);
     const statePattern = detectStatePattern(source);
-    const stateKey = statePattern === 'context'
-      ? extractContextStateKey(source)
-      : statePattern === 'node'
-        ? extractNodeStateKey(source)
-        : null;
+    const stateKey =
+      statePattern === 'context'
+        ? extractContextStateKey(source)
+        : statePattern === 'node'
+          ? extractNodeStateKey(source)
+          : null;
     const eventTypes = extractEventTypes(source);
     const emittedEvents = extractEmittedEvents(source);
 
@@ -346,7 +360,7 @@ function main() {
       statePattern,
       stateKey,
       eventTypes,
-      emittedEvents,
+      emittedEvents
     );
 
     if (DRY_RUN) {

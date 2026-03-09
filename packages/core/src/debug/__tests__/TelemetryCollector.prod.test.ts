@@ -6,7 +6,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { TelemetryCollector, getTelemetryCollector, resetTelemetryCollector } from '../TelemetryCollector';
+import {
+  TelemetryCollector,
+  getTelemetryCollector,
+  resetTelemetryCollector,
+} from '../TelemetryCollector';
 import { DEFAULT_TELEMETRY_CONFIG } from '../TelemetryTypes';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -16,7 +20,7 @@ function makeCollector(): TelemetryCollector {
   return new TelemetryCollector({
     enabled: true,
     samplingRate: 1.0,
-    flushInterval: 0,       // no background timer
+    flushInterval: 0, // no background timer
     maxBufferSize: 1000,
     minSeverity: 'debug',
     captureEvents: ['lifecycle', 'performance', 'error', 'decision', 'memory', 'network', 'custom'],
@@ -139,7 +143,7 @@ describe('TelemetryCollector: production', () => {
     it('filters by predicate', () => {
       collector.recordEvent('lifecycle', 'a', { score: 42 });
       collector.recordEvent('lifecycle', 'b', { score: 10 });
-      const found = collector.searchEvents(e => e.data['score'] === 42);
+      const found = collector.searchEvents((e) => e.data['score'] === 42);
       expect(found).toHaveLength(1);
       expect(found[0].agentId).toBe('a');
     });

@@ -5,15 +5,27 @@ import { SpatialAudioZoneSystem, REVERB_PRESETS } from '../audio/SpatialAudioZon
 // C267 — Spatial Audio Zone
 // =============================================================================
 
-const makeZone = (id: string, shape: 'box' | 'sphere', pos: { x: number; y: number; z: number }, size: { x: number; y: number; z: number }, priority = 0) => ({
-  id, shape, position: pos, size,
+const makeZone = (
+  id: string,
+  shape: 'box' | 'sphere',
+  pos: { x: number; y: number; z: number },
+  size: { x: number; y: number; z: number },
+  priority = 0
+) => ({
+  id,
+  shape,
+  position: pos,
+  size,
   reverb: REVERB_PRESETS.room,
-  priority, fadeDistance: 5,
+  priority,
+  fadeDistance: 5,
 });
 
 describe('SpatialAudioZoneSystem', () => {
   let sys: SpatialAudioZoneSystem;
-  beforeEach(() => { sys = new SpatialAudioZoneSystem(); });
+  beforeEach(() => {
+    sys = new SpatialAudioZoneSystem();
+  });
 
   it('addZone stores zone', () => {
     sys.addZone(makeZone('z1', 'box', { x: 0, y: 0, z: 0 }, { x: 5, y: 5, z: 5 }));
@@ -86,8 +98,14 @@ describe('SpatialAudioZoneSystem', () => {
 
   it('addPortal and getPortalAttenuation', () => {
     sys.addPortal({
-      id: 'p1', position: { x: 5, y: 0, z: 0 }, normal: { x: 1, y: 0, z: 0 },
-      width: 2, height: 3, fromZoneId: 'z1', toZoneId: 'z2', attenuation: 0.7,
+      id: 'p1',
+      position: { x: 5, y: 0, z: 0 },
+      normal: { x: 1, y: 0, z: 0 },
+      width: 2,
+      height: 3,
+      fromZoneId: 'z1',
+      toZoneId: 'z2',
+      attenuation: 0.7,
     });
     expect(sys.getPortalAttenuation('z1', 'z2')).toBe(0.7);
     expect(sys.getPortalAttenuation('z2', 'z1')).toBe(0.7); // bidirectional

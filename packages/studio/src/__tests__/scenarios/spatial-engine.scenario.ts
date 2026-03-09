@@ -10,8 +10,18 @@ import { describe, it, expect, vi } from 'vitest';
 // ============================================================================
 
 import {
-  identity, fromEuler, fromAxisAngle, multiply, conjugate,
-  normalize, dot, slerp, rotateVec3, toMatrix4, toEuler, angleBetween,
+  identity,
+  fromEuler,
+  fromAxisAngle,
+  multiply,
+  conjugate,
+  normalize,
+  dot,
+  slerp,
+  rotateVec3,
+  toMatrix4,
+  toEuler,
+  angleBetween,
 } from '../../../../core/src/math/Quaternion';
 
 describe('Quaternion', () => {
@@ -90,7 +100,9 @@ describe('Quaternion', () => {
   });
 
   it('toEuler roundtrips fromEuler for small angles', () => {
-    const pitch = 0.2, yaw = 0.1, roll = 0.15;
+    const pitch = 0.2,
+      yaw = 0.1,
+      roll = 0.15;
     const q = fromEuler(pitch, yaw, roll);
     const e = toEuler(q);
     // Verify roundtrip preserves orientation (Euler decomposition has inherent ambiguity)
@@ -183,10 +195,15 @@ describe('PhysicsStep', () => {
   it('adds and retrieves bodies', () => {
     const phys = new PhysicsStep();
     phys.addBody({
-      id: 'ball', position: { x: 0, y: 10, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 },
-      angularVelocity: { x: 0, y: 0, z: 0 }, mass: 1,
-      isStatic: false, restitution: 0.5, friction: 0.3,
+      id: 'ball',
+      position: { x: 0, y: 10, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      velocity: { x: 0, y: 0, z: 0 },
+      angularVelocity: { x: 0, y: 0, z: 0 },
+      mass: 1,
+      isStatic: false,
+      restitution: 0.5,
+      friction: 0.3,
     });
 
     expect(phys.getBody('ball')).toBeDefined();
@@ -196,10 +213,15 @@ describe('PhysicsStep', () => {
   it('gravity pulls bodies downward', () => {
     const phys = new PhysicsStep();
     phys.addBody({
-      id: 'ball', position: { x: 0, y: 10, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 },
-      angularVelocity: { x: 0, y: 0, z: 0 }, mass: 1,
-      isStatic: false, restitution: 0.5, friction: 0.3,
+      id: 'ball',
+      position: { x: 0, y: 10, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      velocity: { x: 0, y: 0, z: 0 },
+      angularVelocity: { x: 0, y: 0, z: 0 },
+      mass: 1,
+      isStatic: false,
+      restitution: 0.5,
+      friction: 0.3,
     });
 
     phys.fixedUpdate(1 / 60);
@@ -211,10 +233,15 @@ describe('PhysicsStep', () => {
   it('ground plane stops falling bodies', () => {
     const phys = new PhysicsStep();
     phys.addBody({
-      id: 'ball', position: { x: 0, y: 0.001, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: -5, z: 0 },
-      angularVelocity: { x: 0, y: 0, z: 0 }, mass: 1,
-      isStatic: false, restitution: 0.8, friction: 0.3,
+      id: 'ball',
+      position: { x: 0, y: 0.001, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      velocity: { x: 0, y: -5, z: 0 },
+      angularVelocity: { x: 0, y: 0, z: 0 },
+      mass: 1,
+      isStatic: false,
+      restitution: 0.8,
+      friction: 0.3,
     });
 
     phys.fixedUpdate(1 / 60);
@@ -225,10 +252,15 @@ describe('PhysicsStep', () => {
   it('static bodies are not affected by gravity', () => {
     const phys = new PhysicsStep();
     phys.addBody({
-      id: 'floor', position: { x: 0, y: 0, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 },
-      angularVelocity: { x: 0, y: 0, z: 0 }, mass: 0,
-      isStatic: true, restitution: 1, friction: 0.5,
+      id: 'floor',
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      velocity: { x: 0, y: 0, z: 0 },
+      angularVelocity: { x: 0, y: 0, z: 0 },
+      mass: 0,
+      isStatic: true,
+      restitution: 1,
+      friction: 0.5,
     });
 
     phys.fixedUpdate(1 / 60);
@@ -245,16 +277,26 @@ describe('PhysicsStep', () => {
     // Place bodies overlapping (dist=0.3 < minDist=1.0) with zero velocity
     // The resolver will push them apart and fire the callback
     phys.addBody({
-      id: 'a', position: { x: 0, y: 5, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 },
-      angularVelocity: { x: 0, y: 0, z: 0 }, mass: 1,
-      isStatic: false, restitution: 0.5, friction: 0,
+      id: 'a',
+      position: { x: 0, y: 5, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      velocity: { x: 0, y: 0, z: 0 },
+      angularVelocity: { x: 0, y: 0, z: 0 },
+      mass: 1,
+      isStatic: false,
+      restitution: 0.5,
+      friction: 0,
     });
     phys.addBody({
-      id: 'b', position: { x: 0.3, y: 5, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 },
-      angularVelocity: { x: 0, y: 0, z: 0 }, mass: 1,
-      isStatic: false, restitution: 0.5, friction: 0,
+      id: 'b',
+      position: { x: 0.3, y: 5, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      velocity: { x: 0, y: 0, z: 0 },
+      angularVelocity: { x: 0, y: 0, z: 0 },
+      mass: 1,
+      isStatic: false,
+      restitution: 0.5,
+      friction: 0,
     });
 
     const events: any[] = [];
@@ -270,10 +312,15 @@ describe('PhysicsStep', () => {
   it('raycast hits a body', () => {
     const phys = new PhysicsStep();
     phys.addBody({
-      id: 'target', position: { x: 5, y: 0, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 },
-      angularVelocity: { x: 0, y: 0, z: 0 }, mass: 1,
-      isStatic: true, restitution: 1, friction: 0,
+      id: 'target',
+      position: { x: 5, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      velocity: { x: 0, y: 0, z: 0 },
+      angularVelocity: { x: 0, y: 0, z: 0 },
+      mass: 1,
+      isStatic: true,
+      restitution: 1,
+      friction: 0,
     });
 
     const hit = phys.raycast({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, 100);
@@ -285,10 +332,15 @@ describe('PhysicsStep', () => {
   it('removeBody cleans up', () => {
     const phys = new PhysicsStep();
     phys.addBody({
-      id: 'x', position: { x: 0, y: 0, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 },
-      angularVelocity: { x: 0, y: 0, z: 0 }, mass: 1,
-      isStatic: false, restitution: 1, friction: 0,
+      id: 'x',
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      velocity: { x: 0, y: 0, z: 0 },
+      angularVelocity: { x: 0, y: 0, z: 0 },
+      mass: 1,
+      isStatic: false,
+      restitution: 1,
+      friction: 0,
     });
     expect(phys.removeBody('x')).toBe(true);
     expect(phys.getBody('x')).toBeUndefined();
@@ -307,8 +359,20 @@ describe('RenderGraph', () => {
     graph.addTarget({ id: 'depth', width: 1920, height: 1080, format: 'depth24plus' });
     graph.addTarget({ id: 'color', width: 1920, height: 1080, format: 'rgba16float' });
 
-    graph.addPass({ id: 'main', inputs: ['depth'], outputs: ['color'], execute: () => {}, priority: 200 });
-    graph.addPass({ id: 'depth-pass', inputs: [], outputs: ['depth'], execute: () => {}, priority: 100 });
+    graph.addPass({
+      id: 'main',
+      inputs: ['depth'],
+      outputs: ['color'],
+      execute: () => {},
+      priority: 200,
+    });
+    graph.addPass({
+      id: 'depth-pass',
+      inputs: [],
+      outputs: ['depth'],
+      execute: () => {},
+      priority: 100,
+    });
 
     const order = graph.getExecutionOrder();
     const depthIdx = order.indexOf('depth-pass');
@@ -332,7 +396,13 @@ describe('RenderGraph', () => {
     const graph = new RenderGraph();
     const calls: string[] = [];
     graph.addPass({ id: 'active', inputs: [], outputs: [], execute: () => calls.push('active') });
-    graph.addPass({ id: 'disabled', inputs: [], outputs: [], execute: () => calls.push('disabled'), enabled: false });
+    graph.addPass({
+      id: 'disabled',
+      inputs: [],
+      outputs: [],
+      execute: () => calls.push('disabled'),
+      enabled: false,
+    });
 
     graph.lateUpdate(1 / 60);
     expect(calls).toEqual(['active']);
@@ -420,19 +490,28 @@ describe('SpatialEngineBridge (fallback mode)', () => {
 
   it('aabbOverlap detects overlap', () => {
     const bridge = new SpatialEngineBridge();
-    expect(bridge.aabbOverlap(
-      { x: 0, y: 0, z: 0 }, { x: 2, y: 2, z: 2 },
-      { x: 1, y: 1, z: 1 }, { x: 3, y: 3, z: 3 },
-    )).toBe(true);
-    expect(bridge.aabbOverlap(
-      { x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 1 },
-      { x: 5, y: 5, z: 5 }, { x: 6, y: 6, z: 6 },
-    )).toBe(false);
+    expect(
+      bridge.aabbOverlap(
+        { x: 0, y: 0, z: 0 },
+        { x: 2, y: 2, z: 2 },
+        { x: 1, y: 1, z: 1 },
+        { x: 3, y: 3, z: 3 }
+      )
+    ).toBe(true);
+    expect(
+      bridge.aabbOverlap(
+        { x: 0, y: 0, z: 0 },
+        { x: 1, y: 1, z: 1 },
+        { x: 5, y: 5, z: 5 },
+        { x: 6, y: 6, z: 6 }
+      )
+    ).toBe(false);
   });
 
   it('findPath finds a valid path on open grid', () => {
     const bridge = new SpatialEngineBridge();
-    const w = 10, h = 10;
+    const w = 10,
+      h = 10;
     const grid = new Uint8Array(w * h); // All walkable
 
     const path = bridge.findPath(grid, w, h, 0, 0, 9, 9);
@@ -443,7 +522,8 @@ describe('SpatialEngineBridge (fallback mode)', () => {
 
   it('findPath returns empty for completely blocked grid', () => {
     const bridge = new SpatialEngineBridge();
-    const w = 5, h = 5;
+    const w = 5,
+      h = 5;
     const grid = new Uint8Array(w * h).fill(1); // All blocked
     grid[0] = 0; // Start is walkable
     grid[w * h - 1] = 0; // End is walkable
@@ -454,7 +534,8 @@ describe('SpatialEngineBridge (fallback mode)', () => {
 
   it('findPath navigates around walls', () => {
     const bridge = new SpatialEngineBridge();
-    const w = 5, h = 5;
+    const w = 5,
+      h = 5;
     const grid = new Uint8Array(w * h); // All walkable
     // Put a wall in the middle column (x=2) except bottom
     grid[2 + 0 * w] = 1;

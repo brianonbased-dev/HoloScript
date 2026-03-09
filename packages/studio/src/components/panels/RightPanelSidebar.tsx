@@ -82,17 +82,24 @@ interface TabCategory {
 
 const TAB_CATEGORIES: TabCategory[] = [
   {
-    header: 'Core', headerIcon: '⬡',
+    header: 'Core',
+    headerIcon: '⬡',
     tabs: [
       { id: 'safety', icon: '🛡️', label: 'Safety', title: 'Compile-time safety analysis' },
       { id: 'marketplace', icon: '🛒', label: 'Store', title: 'Browse & install packages' },
       { id: 'platform', icon: '🎯', label: 'Platform', title: 'Target platform selection' },
       { id: 'traits', icon: '🧬', label: 'Traits', title: 'Trait inspector & culture norms' },
-      { id: 'templates', icon: '🎨', label: 'Templates', title: 'Scene & character template gallery' },
+      {
+        id: 'templates',
+        icon: '🎨',
+        label: 'Templates',
+        title: 'Scene & character template gallery',
+      },
     ],
   },
   {
-    header: 'Engine', headerIcon: '⚙',
+    header: 'Engine',
+    headerIcon: '⚙',
     tabs: [
       { id: 'physics', icon: '⚡', label: 'Physics', title: 'Physics simulation preview' },
       { id: 'ai', icon: '🧠', label: 'AI', title: 'Behavior tree editor & debugger' },
@@ -101,7 +108,8 @@ const TAB_CATEGORIES: TabCategory[] = [
     ],
   },
   {
-    header: 'Media', headerIcon: '🎨',
+    header: 'Media',
+    headerIcon: '🎨',
     tabs: [
       { id: 'animation', icon: '🎬', label: 'Anim', title: 'Animation timeline & easing' },
       { id: 'audio', icon: '🔊', label: 'Audio', title: 'Spatial audio manager' },
@@ -110,7 +118,8 @@ const TAB_CATEGORIES: TabCategory[] = [
     ],
   },
   {
-    header: 'World', headerIcon: '🌍',
+    header: 'World',
+    headerIcon: '🌍',
     tabs: [
       { id: 'camera', icon: '📷', label: 'Camera', title: 'Camera controller' },
       { id: 'terrain', icon: '🏔️', label: 'Terrain', title: 'Heightmap terrain editor' },
@@ -121,7 +130,8 @@ const TAB_CATEGORIES: TabCategory[] = [
     ],
   },
   {
-    header: 'Gameplay', headerIcon: '🎮',
+    header: 'Gameplay',
+    headerIcon: '🎮',
     tabs: [
       { id: 'combat', icon: '⚔️', label: 'Combat', title: 'Combat system designer' },
       { id: 'inventory', icon: '🎒', label: 'Items', title: 'Inventory system' },
@@ -132,7 +142,8 @@ const TAB_CATEGORIES: TabCategory[] = [
     ],
   },
   {
-    header: 'Scene', headerIcon: '🎭',
+    header: 'Scene',
+    headerIcon: '🎭',
     tabs: [
       { id: 'scene', icon: '🎭', label: 'Scene', title: 'Scene graph manager' },
       { id: 'assets', icon: '📦', label: 'Assets', title: 'Asset browser' },
@@ -142,7 +153,8 @@ const TAB_CATEGORIES: TabCategory[] = [
     ],
   },
   {
-    header: 'Network', headerIcon: '🌐',
+    header: 'Network',
+    headerIcon: '🌐',
     tabs: [
       { id: 'multiplayer', icon: '🌐', label: 'Multi', title: 'Multiplayer simulation' },
       { id: 'network', icon: '📡', label: 'NetMgr', title: 'Network manager' },
@@ -151,7 +163,8 @@ const TAB_CATEGORIES: TabCategory[] = [
     ],
   },
   {
-    header: 'Tools', headerIcon: '🔨',
+    header: 'Tools',
+    headerIcon: '🔨',
     tabs: [
       { id: 'compiler', icon: '🔨', label: 'Build', title: 'Multi-target compiler' },
       { id: 'profiler', icon: '📊', label: 'Perf', title: 'Performance profiler' },
@@ -161,7 +174,8 @@ const TAB_CATEGORIES: TabCategory[] = [
     ],
   },
   {
-    header: 'View', headerIcon: '👁',
+    header: 'View',
+    headerIcon: '👁',
     tabs: [
       { id: 'viewport', icon: '🎬', label: '3D', title: 'Live 3D viewport' },
       { id: 'bus', icon: '📡', label: 'Bus', title: 'Event bus monitor & log' },
@@ -172,7 +186,7 @@ const TAB_CATEGORIES: TabCategory[] = [
 ];
 
 // Flat list for lookups
-const ALL_TABS = TAB_CATEGORIES.flatMap(c => c.tabs);
+const ALL_TABS = TAB_CATEGORIES.flatMap((c) => c.tabs);
 
 // ═══════════════════════════════════════════════════════════════════
 
@@ -184,7 +198,18 @@ export function RightPanelSidebar({
 }: RightPanelSidebarProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [activeTab, setActiveTab] = useState<PanelTab>(defaultTab);
-  const { domain, domains, setDomain, isVisible, visibleCount, toggleFavorite, isFavorite, search, setSearch, matchesSearch } = useDomainFilter();
+  const {
+    domain,
+    domains,
+    setDomain,
+    isVisible,
+    visibleCount,
+    toggleFavorite,
+    isFavorite,
+    search,
+    setSearch,
+    matchesSearch,
+  } = useDomainFilter();
   const [showSearch, setShowSearch] = useState(false);
 
   const handleTabClick = (tab: PanelTab) => {
@@ -198,25 +223,34 @@ export function RightPanelSidebar({
 
   // Filter tabs by domain + search
   const filteredCategories = useMemo(() => {
-    return TAB_CATEGORIES.map(cat => ({
+    return TAB_CATEGORIES.map((cat) => ({
       ...cat,
-      tabs: cat.tabs.filter(t => isVisible(t.id) && matchesSearch(t.label, t.title)),
-    })).filter(cat => cat.tabs.length > 0);
+      tabs: cat.tabs.filter((t) => isVisible(t.id) && matchesSearch(t.label, t.title)),
+    })).filter((cat) => cat.tabs.length > 0);
   }, [isVisible, matchesSearch, search]);
 
-  const activeTabDef = ALL_TABS.find(t => t.id === activeTab);
+  const activeTabDef = ALL_TABS.find((t) => t.id === activeTab);
 
   return (
     <div className="flex h-full flex-shrink-0">
       {/* Panel content */}
       {isOpen && (
-        <div className="border-l border-studio-border bg-studio-bg overflow-y-auto" style={{ width: 340 }}>
+        <div
+          className="border-l border-studio-border bg-studio-bg overflow-y-auto"
+          style={{ width: 340 }}
+        >
           {/* Panel header */}
           <div className="flex items-center justify-between border-b border-studio-border px-3 py-2">
             <span className="text-sm font-semibold text-studio-text">
               {activeTabDef?.icon} {activeTabDef?.label}
             </span>
-            <button onClick={() => setIsOpen(false)} className="text-studio-muted hover:text-studio-text transition text-xs" title="Close panel">✕</button>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="text-studio-muted hover:text-studio-text transition text-xs"
+              title="Close panel"
+            >
+              ✕
+            </button>
           </div>
 
           {/* Active panel */}
@@ -270,18 +304,18 @@ export function RightPanelSidebar({
 
       {/* Tab strip with headers, domain filter, search, favorites */}
       <div className="flex flex-col border-l border-studio-border bg-studio-bg w-12 flex-shrink-0 overflow-y-auto">
-
         {/* Domain selector */}
         <div className="flex flex-col items-center py-1 border-b border-studio-border/40">
-          {(Object.keys(domains) as DomainProfile[]).map(d => (
+          {(Object.keys(domains) as DomainProfile[]).map((d) => (
             <button
               key={d}
               onClick={() => setDomain(d)}
               title={domains[d].description}
               className={`w-10 h-5 text-[8px] font-bold tracking-wider transition rounded-sm
-                ${domain === d
-                  ? 'bg-studio-accent/20 text-studio-accent'
-                  : 'text-studio-muted hover:text-studio-text hover:bg-studio-panel/50'
+                ${
+                  domain === d
+                    ? 'bg-studio-accent/20 text-studio-accent'
+                    : 'text-studio-muted hover:text-studio-text hover:bg-studio-panel/50'
                 }`}
             >
               {domains[d].label.toUpperCase()}
@@ -306,7 +340,7 @@ export function RightPanelSidebar({
               type="text"
               placeholder="..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={(e) => setSearch(e.target.value)}
               autoFocus
               className="w-full px-1 py-0.5 bg-studio-panel/40 rounded text-[9px] text-studio-text placeholder-studio-muted border border-studio-border/30 focus:border-studio-accent/50 outline-none"
             />
@@ -314,7 +348,7 @@ export function RightPanelSidebar({
         )}
 
         {/* Category-grouped tabs */}
-        {filteredCategories.map(cat => (
+        {filteredCategories.map((cat) => (
           <React.Fragment key={cat.header}>
             {/* Category header */}
             <div className="px-0.5 pt-1.5 pb-0.5" title={cat.header}>
@@ -324,17 +358,21 @@ export function RightPanelSidebar({
             </div>
 
             {/* Category tabs */}
-            {cat.tabs.map(tab => (
+            {cat.tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => handleTabClick(tab.id)}
-                onContextMenu={e => { e.preventDefault(); toggleFavorite(tab.id); }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  toggleFavorite(tab.id);
+                }}
                 title={`${tab.title}${isFavorite(tab.id) ? ' ★' : ''}\nRight-click to ${isFavorite(tab.id) ? 'unpin' : 'pin'}`}
                 className={`
                   relative flex items-center justify-center h-8 w-12 text-sm transition flex-shrink-0
-                  ${activeTab === tab.id && isOpen
-                    ? 'bg-studio-accent/15 text-studio-accent'
-                    : 'text-studio-muted hover:bg-studio-panel/50 hover:text-studio-text'
+                  ${
+                    activeTab === tab.id && isOpen
+                      ? 'bg-studio-accent/15 text-studio-accent'
+                      : 'text-studio-muted hover:bg-studio-panel/50 hover:text-studio-text'
                   }
                 `}
               >

@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { highContrastHandler } from '../HighContrastTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('HighContrastTrait', () => {
   let node: Record<string, unknown>;
@@ -37,7 +44,10 @@ describe('HighContrastTrait', () => {
   });
 
   it('system preference applies contrast in auto mode', () => {
-    sendEvent(highContrastHandler, node, cfg, ctx, { type: 'high_contrast_system_preference', mode: 'dark' });
+    sendEvent(highContrastHandler, node, cfg, ctx, {
+      type: 'high_contrast_system_preference',
+      mode: 'dark',
+    });
     expect((node as any).__highContrastState.isActive).toBe(true);
     expect((node as any).__highContrastState.activeMode).toBe('dark');
   });
@@ -66,7 +76,12 @@ describe('HighContrastTrait', () => {
     const n2 = createMockNode('fc');
     (n2 as any).material = { color: '#FF0000', emissive: '#000000', opacity: 1 };
     const c2 = createMockContext();
-    const forcedCfg = { ...cfg, forced_colors: true, foreground_color: '#00FF00', background_color: '#0000FF' };
+    const forcedCfg = {
+      ...cfg,
+      forced_colors: true,
+      foreground_color: '#00FF00',
+      background_color: '#0000FF',
+    };
     attachTrait(highContrastHandler, n2, forcedCfg, c2);
     sendEvent(highContrastHandler, n2, forcedCfg, c2, { type: 'high_contrast_enable' });
     const ev = getLastEvent(c2, 'high_contrast_apply') as any;

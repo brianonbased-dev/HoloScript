@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { OpenXRCompiler } from '../OpenXRCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -9,7 +9,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 /**
  * Helper to build a minimal HoloComposition AST for testing
@@ -83,28 +82,48 @@ describe('OpenXRCompiler', () => {
   // ===========================================================================
   describe('objects', () => {
     it('emits object mesh creation code', () => {
-      const result = compiler.compile(makeComposition({
-        objects: [{
-          name: 'my_cube',
-          mesh: 'box',
-          properties: [
-            { key: 'mesh', value: 'box' },
-            { key: 'position', value: [0, 1, 0] },
-          ],
-          traits: [],
-          children: [],
-        }] as any,
-      }), 'test-token');
+      const result = compiler.compile(
+        makeComposition({
+          objects: [
+            {
+              name: 'my_cube',
+              mesh: 'box',
+              properties: [
+                { key: 'mesh', value: 'box' },
+                { key: 'position', value: [0, 1, 0] },
+              ],
+              traits: [],
+              children: [],
+            },
+          ] as any,
+        }),
+        'test-token'
+      );
       expect(result).toContain('my_cube');
     });
 
     it('handles multiple objects', () => {
-      const result = compiler.compile(makeComposition({
-        objects: [
-          { name: 'obj1', mesh: 'box', properties: [{ key: 'mesh', value: 'box' }], traits: [], children: [] },
-          { name: 'obj2', mesh: 'sphere', properties: [{ key: 'mesh', value: 'sphere' }], traits: [], children: [] },
-        ] as any,
-      }), 'test-token');
+      const result = compiler.compile(
+        makeComposition({
+          objects: [
+            {
+              name: 'obj1',
+              mesh: 'box',
+              properties: [{ key: 'mesh', value: 'box' }],
+              traits: [],
+              children: [],
+            },
+            {
+              name: 'obj2',
+              mesh: 'sphere',
+              properties: [{ key: 'mesh', value: 'sphere' }],
+              traits: [],
+              children: [],
+            },
+          ] as any,
+        }),
+        'test-token'
+      );
       expect(result).toContain('obj1');
       expect(result).toContain('obj2');
     });
@@ -115,33 +134,41 @@ describe('OpenXRCompiler', () => {
   // ===========================================================================
   describe('lights', () => {
     it('emits light setup code', () => {
-      const result = compiler.compile(makeComposition({
-        lights: [{
-          name: 'sun',
-          type: 'directional',
-          properties: [
-            { key: 'type', value: 'directional' },
-            { key: 'color', value: '#ffffff' },
-            { key: 'intensity', value: 1.0 },
-          ],
-        }] as any,
-      }), 'test-token');
+      const result = compiler.compile(
+        makeComposition({
+          lights: [
+            {
+              name: 'sun',
+              type: 'directional',
+              properties: [
+                { key: 'type', value: 'directional' },
+                { key: 'color', value: '#ffffff' },
+                { key: 'intensity', value: 1.0 },
+              ],
+            },
+          ] as any,
+        }),
+        'test-token'
+      );
       expect(result).toContain('sun');
     });
   });
 
   describe('cameras', () => {
     it('emits camera code', () => {
-      const result = compiler.compile(makeComposition({
-        camera: {
-          name: 'main_cam',
-          properties: [
-            { key: 'fov', value: 75 },
-            { key: 'near', value: 0.1 },
-            { key: 'far', value: 1000 },
-          ],
-        } as any,
-      }), 'test-token');
+      const result = compiler.compile(
+        makeComposition({
+          camera: {
+            name: 'main_cam',
+            properties: [
+              { key: 'fov', value: 75 },
+              { key: 'near', value: 0.1 },
+              { key: 'far', value: 1000 },
+            ],
+          } as any,
+        }),
+        'test-token'
+      );
       // emitCamera doesn't embed camera name, but emits xrLocateViews + nearClip/farClip
       expect(result).toContain('xrLocateViews');
       expect(result).toContain('nearClip');
@@ -153,21 +180,26 @@ describe('OpenXRCompiler', () => {
   // ===========================================================================
   describe('spatial groups', () => {
     it('emits group transform code', () => {
-      const result = compiler.compile(makeComposition({
-        spatialGroups: [{
-          name: 'gallery',
-          properties: [
-            { key: 'position', value: [0, 0, -5] },
-          ],
-          objects: [{
-            name: 'painting',
-            mesh: 'plane',
-            properties: [{ key: 'mesh', value: 'plane' }],
-            traits: [],
-            children: [],
-          }],
-        }] as any,
-      }), 'test-token');
+      const result = compiler.compile(
+        makeComposition({
+          spatialGroups: [
+            {
+              name: 'gallery',
+              properties: [{ key: 'position', value: [0, 0, -5] }],
+              objects: [
+                {
+                  name: 'painting',
+                  mesh: 'plane',
+                  properties: [{ key: 'mesh', value: 'plane' }],
+                  traits: [],
+                  children: [],
+                },
+              ],
+            },
+          ] as any,
+        }),
+        'test-token'
+      );
       expect(result).toContain('gallery');
     });
   });
@@ -206,14 +238,19 @@ describe('OpenXRCompiler', () => {
   // ===========================================================================
   describe('utility', () => {
     it('sanitizes names with special characters', () => {
-      const result = compiler.compile(makeComposition({
-        objects: [{
-          name: 'my-obj.test',
-          properties: [{ key: 'mesh', value: 'box' }],
-          traits: [],
-          children: [],
-        }] as any,
-      }), 'test-token');
+      const result = compiler.compile(
+        makeComposition({
+          objects: [
+            {
+              name: 'my-obj.test',
+              properties: [{ key: 'mesh', value: 'box' }],
+              traits: [],
+              children: [],
+            },
+          ] as any,
+        }),
+        'test-token'
+      );
       expect(result).toBeDefined();
     });
   });

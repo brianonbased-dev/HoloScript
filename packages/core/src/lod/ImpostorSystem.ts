@@ -13,16 +13,18 @@
 
 export interface ImpostorConfig {
   entityId: string;
-  angleCount: number;       // Number of snapshot angles (e.g. 8 or 16)
-  atlasIndex: number;       // Position in impostor atlas
-  switchDistance: number;    // Distance at which to switch to impostor
+  angleCount: number; // Number of snapshot angles (e.g. 8 or 16)
+  atlasIndex: number; // Position in impostor atlas
+  switchDistance: number; // Distance at which to switch to impostor
   size: { width: number; height: number };
 }
 
 export interface ImpostorFrame {
   angleIndex: number;
-  uvX: number; uvY: number;
-  uvW: number; uvH: number;
+  uvX: number;
+  uvY: number;
+  uvW: number;
+  uvH: number;
 }
 
 // =============================================================================
@@ -43,8 +45,12 @@ export class ImpostorSystem {
   // Registration
   // ---------------------------------------------------------------------------
 
-  registerImpostor(config: ImpostorConfig): void { this.impostors.set(config.entityId, config); }
-  removeImpostor(entityId: string): void { this.impostors.delete(entityId); }
+  registerImpostor(config: ImpostorConfig): void {
+    this.impostors.set(config.entityId, config);
+  }
+  removeImpostor(entityId: string): void {
+    this.impostors.delete(entityId);
+  }
 
   // ---------------------------------------------------------------------------
   // Angle Selection
@@ -93,6 +99,10 @@ export class ImpostorSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getImpostorCount(): number { return this.impostors.size; }
-  getConfig(entityId: string): ImpostorConfig | undefined { return this.impostors.get(entityId); }
+  getImpostorCount(): number {
+    return this.impostors.size;
+  }
+  getConfig(entityId: string): ImpostorConfig | undefined {
+    return this.impostors.get(entityId);
+  }
 }

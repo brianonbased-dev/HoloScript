@@ -144,13 +144,19 @@ describe('CurveEditor — Production', () => {
   });
 
   // ─── loadPreset ───────────────────────────────────────────────────
-  it.each<CurvePreset>(['linear', 'ease-in', 'ease-out', 'ease-in-out', 'constant', 'bounce', 'spring'])(
-    'loadPreset %s produces a evaluatable curve', (preset) => {
-      curve.loadPreset(preset);
-      expect(curve.getKeyCount()).toBeGreaterThanOrEqual(2);
-      expect(() => curve.evaluate(0.5)).not.toThrow();
-    }
-  );
+  it.each<CurvePreset>([
+    'linear',
+    'ease-in',
+    'ease-out',
+    'ease-in-out',
+    'constant',
+    'bounce',
+    'spring',
+  ])('loadPreset %s produces a evaluatable curve', (preset) => {
+    curve.loadPreset(preset);
+    expect(curve.getKeyCount()).toBeGreaterThanOrEqual(2);
+    expect(() => curve.evaluate(0.5)).not.toThrow();
+  });
 
   it('linear preset evaluates to ~0.5 at midpoint', () => {
     curve.loadPreset('linear');

@@ -404,16 +404,16 @@ object Portal @collidable {
 
 ## Package Structure
 
-| Package                      | Purpose                                      |
-| ---------------------------- | -------------------------------------------- |
-| `@holoscript/core`           | Parser, AST, 1,800+ traits, 20+ compilers    |
-| `@holoscript/mcp-server`     | 34 MCP tools for AI agents                   |
-| `@holoscript/cli`            | holo build · holo compile · holo validate    |
-| `@holoscript/runtime`        | Scene execution runtime                      |
-| `@holoscript/lsp`            | Language Server Protocol                     |
-| `@holoscript/llm-provider`   | OpenAI / Anthropic / Gemini SDK              |
-| `@holoscript/partner-sdk`    | Webhooks and analytics                       |
-| `holoscript` (PyPI)          | Python bindings + robotics module            |
+| Package                    | Purpose                                   |
+| -------------------------- | ----------------------------------------- |
+| `@holoscript/core`         | Parser, AST, 1,800+ traits, 20+ compilers |
+| `@holoscript/mcp-server`   | 34 MCP tools for AI agents                |
+| `@holoscript/cli`          | holo build · holo compile · holo validate |
+| `@holoscript/runtime`      | Scene execution runtime                   |
+| `@holoscript/lsp`          | Language Server Protocol                  |
+| `@holoscript/llm-provider` | OpenAI / Anthropic / Gemini SDK           |
+| `@holoscript/partner-sdk`  | Webhooks and analytics                    |
+| `holoscript` (PyPI)        | Python bindings + robotics module         |
 
 > **Note**: There is no separate `@holoscript/traits` or `@holoscript/compiler` package.
 > All traits and compiler targets live inside `@holoscript/core`.

@@ -17,11 +17,7 @@ import {
   type RenderedPrompt,
   type ICIFRenderer,
 } from '../CIFRenderer';
-import {
-  CIFBuilder,
-  type CIFDocument,
-  type CIFTargetModel,
-} from '../CanonicalIntermediateFormat';
+import { CIFBuilder, type CIFDocument, type CIFTargetModel } from '../CanonicalIntermediateFormat';
 import type { CulturalProfileMetadata } from '../../identity/AgentIdentity';
 
 // ---- Helpers ----

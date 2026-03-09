@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { WASMCompiler } from '../WASMCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -9,7 +9,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestModule', objects: [], ...overrides } as HoloComposition;
@@ -145,9 +144,12 @@ describe('WASMCompiler', () => {
   // =========== WAT structure ===========
 
   it('generates properly nested WAT', () => {
-    const result = compiler.compile(makeComposition({
-      state: { properties: [{ key: 'count', value: 0 }] },
-    }), 'test-token');
+    const result = compiler.compile(
+      makeComposition({
+        state: { properties: [{ key: 'count', value: 0 }] },
+      }),
+      'test-token'
+    );
     // Check basic WAT structure — module and func blocks
     expect(result.wat).toContain('(module');
     expect(result.wat).toContain('(func');

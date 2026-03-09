@@ -19,7 +19,11 @@
  * @version 1.0.0
  */
 
-import type { HoloComposition, HoloObjectDecl, HoloObjectTrait } from '../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloObjectTrait,
+} from '../parser/HoloCompositionTypes';
 import {
   PlatformCategory,
   PLATFORM_CATEGORIES,
@@ -100,25 +104,23 @@ const FORM_FACTORS: readonly string[] = [
 const FORM_FACTOR_TO_CATEGORY: Record<string, PlatformCategory> = {
   'vr-headset': 'vr',
   'ar-glasses': 'ar',
-  'phone': 'mobile',
-  'desktop': 'desktop',
-  'car': 'automotive',
-  'wearable': 'wearable',
+  phone: 'mobile',
+  desktop: 'desktop',
+  car: 'automotive',
+  wearable: 'wearable',
 };
 
 /** Form factors that are safety-critical */
-const SAFETY_CRITICAL_FORM_FACTORS: ReadonlySet<string> = new Set([
-  'car',
-]);
+const SAFETY_CRITICAL_FORM_FACTORS: ReadonlySet<string> = new Set(['car']);
 
 /** Embodiment "distance" for evaluating significant changes */
 const EMBODIMENT_WEIGHT: Record<EmbodimentType, number> = {
-  'Avatar3D': 5,
-  'SpatialPersona': 4,
-  'WebXR': 3,
-  'FullGUI': 2,
-  'UI2D': 1,
-  'VoiceHUD': 0,
+  Avatar3D: 5,
+  SpatialPersona: 4,
+  WebXR: 3,
+  FullGUI: 2,
+  UI2D: 1,
+  VoiceHUD: 0,
 };
 
 /** Threshold for a "significant" embodiment change (CR005) */
@@ -169,7 +171,7 @@ export class CrossRealityValidator {
     // Platform coverage
     const platformCoverage = this.analyzePlatformCoverage(composition);
 
-    const hasErrors = issues.some(i => i.severity === 'error');
+    const hasErrors = issues.some((i) => i.severity === 'error');
 
     return {
       valid: !hasErrors,
@@ -202,10 +204,7 @@ export class CrossRealityValidator {
     const coverage: Record<string, number> = {};
 
     for (const category of Object.keys(PLATFORM_CATEGORIES)) {
-      coverage[category] = this.countObjectsForCategory(
-        composition,
-        category as PlatformCategory,
-      );
+      coverage[category] = this.countObjectsForCategory(composition, category as PlatformCategory);
     }
 
     return coverage;
@@ -217,7 +216,7 @@ export class CrossRealityValidator {
 
   private checkVROnlyTraits(
     composition: HoloComposition,
-    issues: CrossRealityValidationIssue[],
+    issues: CrossRealityValidationIssue[]
   ): void {
     const allObjects = this.collectAllObjects(composition);
 
@@ -225,7 +224,7 @@ export class CrossRealityValidator {
       for (const trait of obj.traits) {
         if (VR_ONLY_TRAITS.has(trait.name)) {
           // Check if the object has a @platform() trait constraining it
-          const hasPlatformConstraint = obj.traits.some(t => t.name === 'platform');
+          const hasPlatformConstraint = obj.traits.some((t) => t.name === 'platform');
           if (!hasPlatformConstraint) {
             issues.push({
               severity: 'error',
@@ -246,17 +245,17 @@ export class CrossRealityValidator {
 
   private checkFallbackObjects(
     composition: HoloComposition,
-    issues: CrossRealityValidationIssue[],
+    issues: CrossRealityValidationIssue[]
   ): void {
     const allObjects = this.collectAllObjects(composition);
 
     // Find objects with platform constraints
-    const constrainedObjects = allObjects.filter(obj =>
-      obj.traits.some(t => t.name === 'platform'),
+    const constrainedObjects = allObjects.filter((obj) =>
+      obj.traits.some((t) => t.name === 'platform')
     );
 
     for (const obj of constrainedObjects) {
-      const platformTrait = obj.traits.find(t => t.name === 'platform');
+      const platformTrait = obj.traits.find((t) => t.name === 'platform');
       if (!platformTrait) continue;
 
       const includedCategories = this.extractPlatformCategories(platformTrait);
@@ -264,19 +263,17 @@ export class CrossRealityValidator {
 
       // Check if there's a fallback for excluded platforms
       const allCategories = Object.keys(PLATFORM_CATEGORIES) as PlatformCategory[];
-      const excludedCategories = allCategories.filter(
-        c => !includedCategories.includes(c),
-      );
+      const excludedCategories = allCategories.filter((c) => !includedCategories.includes(c));
 
       if (excludedCategories.length > 0) {
         // Look for a sibling object that covers the excluded categories
-        const hasFallback = allObjects.some(other => {
+        const hasFallback = allObjects.some((other) => {
           if (other.name === obj.name) return false;
           // Check if the other object covers at least one excluded category
-          const otherPlatformTrait = other.traits.find(t => t.name === 'platform');
+          const otherPlatformTrait = other.traits.find((t) => t.name === 'platform');
           if (!otherPlatformTrait) return true; // Unconstrained = covers all
           const otherCategories = this.extractPlatformCategories(otherPlatformTrait);
-          return excludedCategories.some(c => otherCategories.includes(c));
+          return excludedCategories.some((c) => otherCategories.includes(c));
         });
 
         if (!hasFallback) {
@@ -285,7 +282,7 @@ export class CrossRealityValidator {
             code: 'CR002',
             message: `Object "${obj.name}" is constrained to [${includedCategories.join(', ')}] but no fallback exists for [${excludedCategories.join(', ')}].`,
             blockName: obj.name,
-            suggestion: `Add a fallback object with @platform(include: [${excludedCategories.map(c => `"${c}"`).join(', ')}]) to provide content on those platforms.`,
+            suggestion: `Add a fallback object with @platform(include: [${excludedCategories.map((c) => `"${c}"`).join(', ')}]) to provide content on those platforms.`,
           });
         }
       }
@@ -298,11 +295,11 @@ export class CrossRealityValidator {
 
   private checkNormZoneReferences(
     composition: HoloComposition,
-    issues: CrossRealityValidationIssue[],
+    issues: CrossRealityValidationIssue[]
   ): void {
     const norms = composition.norms ?? [];
     const zones = composition.zones ?? [];
-    const zoneNames = new Set(zones.map(z => z.name));
+    const zoneNames = new Set(zones.map((z) => z.name));
 
     for (const norm of norms) {
       // Check if the norm references a zone in its properties
@@ -346,7 +343,7 @@ export class CrossRealityValidator {
 
   private checkEmptyPlatforms(
     composition: HoloComposition,
-    issues: CrossRealityValidationIssue[],
+    issues: CrossRealityValidationIssue[]
   ): void {
     const coverage = this.analyzePlatformCoverage(composition);
 
@@ -369,7 +366,7 @@ export class CrossRealityValidator {
 
   private checkMVCPayloadSize(
     composition: HoloComposition,
-    issues: CrossRealityValidationIssue[],
+    issues: CrossRealityValidationIssue[]
   ): void {
     // Estimate size based on state complexity
     const stateProps = composition.state?.properties ?? [];
@@ -424,7 +421,7 @@ export class CrossRealityValidator {
 
   private checkCircularHandoffs(
     composition: HoloComposition,
-    issues: CrossRealityValidationIssue[],
+    issues: CrossRealityValidationIssue[]
   ): void {
     // Build a dependency graph from objects that reference specific platforms
     const allObjects = this.collectAllObjects(composition);
@@ -536,9 +533,7 @@ export class CrossRealityValidator {
     }
 
     // Significant embodiment change (CR005)
-    const delta = Math.abs(
-      EMBODIMENT_WEIGHT[fromEmbodiment] - EMBODIMENT_WEIGHT[toEmbodiment],
-    );
+    const delta = Math.abs(EMBODIMENT_WEIGHT[fromEmbodiment] - EMBODIMENT_WEIGHT[toEmbodiment]);
     if (delta >= SIGNIFICANT_EMBODIMENT_DELTA && feasible) {
       // Still feasible but noteworthy
       reason = `Significant embodiment change (${fromEmbodiment} -> ${toEmbodiment}). User experience will change substantially.`;
@@ -549,7 +544,7 @@ export class CrossRealityValidator {
 
   private generateHandoffIssues(
     paths: HandoffPathAnalysis[],
-    issues: CrossRealityValidationIssue[],
+    issues: CrossRealityValidationIssue[]
   ): void {
     for (const path of paths) {
       if (!path.feasible) {
@@ -622,13 +617,13 @@ export class CrossRealityValidator {
    */
   private countObjectsForCategory(
     composition: HoloComposition,
-    category: PlatformCategory,
+    category: PlatformCategory
   ): number {
     const allObjects = this.collectAllObjects(composition);
     let count = 0;
 
     for (const obj of allObjects) {
-      const platformTrait = obj.traits.find(t => t.name === 'platform');
+      const platformTrait = obj.traits.find((t) => t.name === 'platform');
       if (!platformTrait) {
         // Unconstrained: available on all platforms
         count++;
@@ -654,8 +649,7 @@ export class CrossRealityValidator {
     const include = trait.config['include'];
     if (Array.isArray(include)) {
       return include.filter(
-        (v): v is PlatformCategory =>
-          typeof v === 'string' && v in PLATFORM_CATEGORIES,
+        (v): v is PlatformCategory => typeof v === 'string' && v in PLATFORM_CATEGORIES
       );
     }
     if (typeof include === 'string' && include in PLATFORM_CATEGORIES) {
@@ -669,13 +663,20 @@ export class CrossRealityValidator {
    */
   private primaryInputFor(category: PlatformCategory): string {
     switch (category) {
-      case 'vr': return 'hand/controller';
-      case 'ar': return 'gesture/gaze';
-      case 'mobile': return 'touch';
-      case 'desktop': return 'mouse/keyboard';
-      case 'automotive': return 'voice';
-      case 'wearable': return 'touch/voice';
-      default: return 'unknown';
+      case 'vr':
+        return 'hand/controller';
+      case 'ar':
+        return 'gesture/gaze';
+      case 'mobile':
+        return 'touch';
+      case 'desktop':
+        return 'mouse/keyboard';
+      case 'automotive':
+        return 'voice';
+      case 'wearable':
+        return 'touch/voice';
+      default:
+        return 'unknown';
     }
   }
 }

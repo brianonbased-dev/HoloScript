@@ -322,9 +322,7 @@ describe('MarketplaceWebview', () => {
 
   describe('tab switching', () => {
     it('should switch to mcpServers tab and fetch servers', async () => {
-      const serverList = [
-        { id: 'srv-1', name: 'Test Server', status: 'active', tools: ['t1'] },
-      ];
+      const serverList = [{ id: 'srv-1', name: 'Test Server', status: 'active', tools: ['t1'] }];
       mockGetServers.mockResolvedValue(serverList);
 
       createPanel();
@@ -378,9 +376,7 @@ describe('MarketplaceWebview', () => {
       const handler = getMessageHandler();
       await handler({ command: 'switchTab', tab: 'traits' });
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/traits/search')
-      );
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/v1/traits/search'));
     });
 
     it('should switch to agents tab and search MCPMe agents', async () => {
@@ -396,9 +392,7 @@ describe('MarketplaceWebview', () => {
       const handler = getMessageHandler();
       await handler({ command: 'switchTab', tab: 'agents' });
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/marketplace/search')
-      );
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/marketplace/search'));
     });
   });
 
@@ -685,9 +679,7 @@ describe('MarketplaceWebview', () => {
     it('should perform initial trait search on creation', async () => {
       createPanel();
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/traits/search')
-      );
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/v1/traits/search'));
     });
 
     it('should search traits with query', async () => {
@@ -702,9 +694,7 @@ describe('MarketplaceWebview', () => {
       const handler = getMessageHandler();
       await handler({ command: 'search', query: 'grabbable' });
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('q=grabbable')
-      );
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('q=grabbable'));
     });
 
     it('should select a trait and fetch details', async () => {
@@ -776,9 +766,7 @@ describe('MarketplaceWebview', () => {
       const handler = getMessageHandler();
       await handler({ command: 'filterByCategory', category: 'physics' });
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('category=physics')
-      );
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('category=physics'));
     });
   });
 
@@ -803,9 +791,7 @@ describe('MarketplaceWebview', () => {
       const handler = getMessageHandler();
       await handler({ command: 'searchAgents', query: 'assistant' });
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('q=assistant')
-      );
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('q=assistant'));
     });
 
     it('should install an agent template', async () => {
@@ -911,9 +897,7 @@ describe('MarketplaceWebview', () => {
       await handler({ command: 'refresh' });
 
       // Default tab is traits, so should search traits
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/traits/search')
-      );
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/v1/traits/search'));
     });
 
     it('should handle refresh command for mcpServers tab', async () => {

@@ -17,10 +17,10 @@ import { rasterVertexShader, rasterFragmentShader } from '../shaders/raster.wgsl
 
 /** Population color palette matching the shader. */
 const POPULATION_COLORS: Record<number, string> = {
-  0: 'rgb(31, 119, 180)',  // blue
-  1: 'rgb(255, 127, 14)',  // orange
-  2: 'rgb(44, 160, 44)',   // green
-  3: 'rgb(214, 39, 40)',   // red
+  0: 'rgb(31, 119, 180)', // blue
+  1: 'rgb(255, 127, 14)', // orange
+  2: 'rgb(44, 160, 44)', // green
+  3: 'rgb(214, 39, 40)', // red
 };
 
 export interface SpikeRasterPlotProps extends BaseVisualizationProps {
@@ -107,7 +107,7 @@ export const SpikeRasterPlot: React.FC<SpikeRasterPlotProps> = ({
       uniformData.byteLength,
       GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       uniformData,
-      'raster-uniforms',
+      'raster-uniforms'
     );
     uniformBufferRef.current = uniformBuffer;
 
@@ -117,7 +117,7 @@ export const SpikeRasterPlot: React.FC<SpikeRasterPlotProps> = ({
       spikeByteSize,
       GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       packedSpikes.byteLength > 0 ? packedSpikes : undefined,
-      'raster-spikes',
+      'raster-spikes'
     );
     spikeBufferRef.current = spikeBuffer;
     spikeCountRef.current = spikes.length;
@@ -258,7 +258,18 @@ export const SpikeRasterPlot: React.FC<SpikeRasterPlotProps> = ({
       ctx.fillText('Neuron 0', 4, 12);
       ctx.fillText(`Neuron ${neuronCount}`, 4, height - 16);
     }
-  }, [isSupported, error, width, height, spikes, timeWindow, neuronCount, pointSize, populationMap, showAxes]);
+  }, [
+    isSupported,
+    error,
+    width,
+    height,
+    spikes,
+    timeWindow,
+    neuronCount,
+    pointSize,
+    populationMap,
+    showAxes,
+  ]);
 
   // Click handler: find nearest spike
   const handleClick = useCallback(
@@ -289,7 +300,7 @@ export const SpikeRasterPlot: React.FC<SpikeRasterPlotProps> = ({
         onSpikeClick(nearest);
       }
     },
-    [onSpikeClick, spikes, timeWindow, width, height, neuronCount],
+    [onSpikeClick, spikes, timeWindow, width, height, neuronCount]
   );
 
   if (isLoading) {
@@ -298,7 +309,14 @@ export const SpikeRasterPlot: React.FC<SpikeRasterPlotProps> = ({
         className={className}
         role="status"
         aria-label="Loading raster plot"
-        style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a1a' }}
+        style={{
+          width,
+          height,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#0a0a1a',
+        }}
       >
         <span style={{ color: '#ccc' }}>Initializing WebGPU...</span>
       </div>
@@ -351,7 +369,11 @@ export const SpikeRasterPlot: React.FC<SpikeRasterPlotProps> = ({
           }}
         >
           {uniquePops.map((popId, i) => (
-            <div key={popId} role="listitem" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: 2 }}>
+            <div
+              key={popId}
+              role="listitem"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: 2 }}
+            >
               <span
                 style={{
                   width: 8,

@@ -69,7 +69,9 @@ describe('Localization', () => {
 
   it('plural with rules', () => {
     loc.addPluralRule('en', 'items', {
-      zero: 'No items', one: '{count} item', other: '{count} items',
+      zero: 'No items',
+      one: '{count} item',
+      other: '{count} items',
     });
     expect(loc.plural('items', 0)).toBe('No items');
     expect(loc.plural('items', 1)).toBe('1 item');
@@ -78,7 +80,9 @@ describe('Localization', () => {
 
   it('plural few category', () => {
     loc.addPluralRule('en', 'things', {
-      one: '1 thing', few: '{count} things (few)', other: '{count} things',
+      one: '1 thing',
+      few: '{count} things (few)',
+      other: '{count} things',
     });
     expect(loc.plural('things', 3)).toBe('3 things (few)');
   });

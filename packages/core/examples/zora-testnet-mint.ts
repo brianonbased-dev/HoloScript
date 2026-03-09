@@ -32,7 +32,9 @@ async function main() {
     throw new Error('TEST_WALLET_ADDRESS not set. Add to .env or pass as environment variable.');
   }
   if (!COLLECTION_ID) {
-    throw new Error('TEST_COLLECTION_ID not set. Create collection at https://testnet.zora.co/create');
+    throw new Error(
+      'TEST_COLLECTION_ID not set. Create collection at https://testnet.zora.co/create'
+    );
   }
 
   console.log('Configuration:');
@@ -90,9 +92,9 @@ async function main() {
     const shortfall = GasEstimator.formatCost(balanceCheck.shortfall!);
     throw new Error(
       `Insufficient balance.\n` +
-      `  Required: ${GasEstimator.formatCost(balanceCheck.required)}\n` +
-      `  Available: ${GasEstimator.formatCost(balanceCheck.balance)}\n` +
-      `  Shortfall: ${shortfall}`
+        `  Required: ${GasEstimator.formatCost(balanceCheck.required)}\n` +
+        `  Available: ${GasEstimator.formatCost(balanceCheck.balance)}\n` +
+        `  Shortfall: ${shortfall}`
     );
   }
 
@@ -105,11 +107,11 @@ async function main() {
     abi: zoraCreator1155ImplABI,
     functionName: 'mintWithRewards',
     args: [
-      WALLET_ADDRESS,      // minter (who receives the NFT)
-      BigInt(0),           // tokenId (0 for new token)
-      MINT_QUANTITY,       // quantity to mint
-      '0x' as Hex,         // minterArguments (empty)
-      WALLET_ADDRESS,      // mintReferral (self-referral)
+      WALLET_ADDRESS, // minter (who receives the NFT)
+      BigInt(0), // tokenId (0 for new token)
+      MINT_QUANTITY, // quantity to mint
+      '0x' as Hex, // minterArguments (empty)
+      WALLET_ADDRESS, // mintReferral (self-referral)
     ],
     value: gasEstimate.mintFee,
     account: walletClient.account,
@@ -140,8 +142,8 @@ async function main() {
   console.log('✅ Transaction confirmed!\n');
 
   // Step 8: Extract token ID from logs
-  const mintLog = receipt.logs.find(log =>
-    log.topics[0] === '0x30385c845b448a36257a6a1716e6ad2e1bc2cbe333cde1e69fe849ad6511adfe'
+  const mintLog = receipt.logs.find(
+    (log) => log.topics[0] === '0x30385c845b448a36257a6a1716e6ad2e1bc2cbe333cde1e69fe849ad6511adfe'
   );
 
   let tokenId: number | undefined;
@@ -162,7 +164,9 @@ async function main() {
   console.log(`  https://goerli.basescan.org/tx/${receipt.transactionHash}`);
 
   console.log('\n🎨 View NFT:');
-  console.log(`  https://testnet.zora.co/collections/base-goerli:${COLLECTION_ID}${tokenId !== undefined ? `/token/${tokenId}` : ''}`);
+  console.log(
+    `  https://testnet.zora.co/collections/base-goerli:${COLLECTION_ID}${tokenId !== undefined ? `/token/${tokenId}` : ''}`
+  );
 
   console.log('\n✅ Mint successful! NFT has been minted to your wallet.');
 }

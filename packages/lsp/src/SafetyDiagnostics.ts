@@ -148,11 +148,12 @@ function effectViolationToDiag(v: EffectViolation): Diagnostic {
   const col = v.source?.column || 0;
 
   return {
-    severity: v.severity === 'error'
-      ? DiagnosticSeverity.Error
-      : v.severity === 'warning'
-        ? DiagnosticSeverity.Warning
-        : DiagnosticSeverity.Information,
+    severity:
+      v.severity === 'error'
+        ? DiagnosticSeverity.Error
+        : v.severity === 'warning'
+          ? DiagnosticSeverity.Warning
+          : DiagnosticSeverity.Information,
     range: {
       start: { line, character: col },
       end: { line, character: col + 30 },
@@ -165,11 +166,12 @@ function effectViolationToDiag(v: EffectViolation): Diagnostic {
 
 function budgetDiagToDiag(d: BudgetDiagnostic): Diagnostic {
   return {
-    severity: d.severity === 'error'
-      ? DiagnosticSeverity.Error
-      : d.severity === 'warning'
-        ? DiagnosticSeverity.Warning
-        : DiagnosticSeverity.Information,
+    severity:
+      d.severity === 'error'
+        ? DiagnosticSeverity.Error
+        : d.severity === 'warning'
+          ? DiagnosticSeverity.Warning
+          : DiagnosticSeverity.Information,
     range: {
       start: { line: 0, character: 0 },
       end: { line: 0, character: 1 },
@@ -198,9 +200,7 @@ function linearViolationToDiag(v: LinearViolation): Diagnostic {
   const col = v.location?.column || 0;
 
   return {
-    severity: v.severity === 'error'
-      ? DiagnosticSeverity.Error
-      : DiagnosticSeverity.Warning,
+    severity: v.severity === 'error' ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
     range: {
       start: { line, character: col },
       end: { line, character: col + 30 },
@@ -235,7 +235,7 @@ const DEFAULT_CONFIG: SafetyDiagnosticConfig = {
 export function runSafetyDiagnostics(
   ast: any,
   uri: string,
-  config?: Partial<SafetyDiagnosticConfig>,
+  config?: Partial<SafetyDiagnosticConfig>
 ): Diagnostic[] {
   const cfg = { ...DEFAULT_CONFIG, ...config };
   if (!cfg.enabled) return [];
@@ -276,7 +276,7 @@ export function runSafetyDiagnostics(
     return diagnostics;
   } catch (err) {
     console.error(
-      `[Safety] Diagnostic pass failed for ${uri}: ${err instanceof Error ? err.message : err}`,
+      `[Safety] Diagnostic pass failed for ${uri}: ${err instanceof Error ? err.message : err}`
     );
     return [];
   }

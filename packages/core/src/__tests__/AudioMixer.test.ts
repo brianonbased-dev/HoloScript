@@ -7,11 +7,13 @@ import { AudioMixer } from '../audio/AudioMixer';
 
 describe('AudioMixer', () => {
   let mixer: AudioMixer;
-  beforeEach(() => { mixer = new AudioMixer(); });
+  beforeEach(() => {
+    mixer = new AudioMixer();
+  });
 
   it('constructor creates default channels', () => {
     const channels = mixer.getChannels();
-    const names = channels.map(c => c.name);
+    const names = channels.map((c) => c.name);
     expect(names).toContain('sfx');
     expect(names).toContain('music');
     expect(names).toContain('ambient');

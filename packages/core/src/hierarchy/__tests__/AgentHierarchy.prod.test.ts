@@ -72,21 +72,25 @@ describe('HierarchyManager', () => {
     it('throws on duplicate ID', () => {
       manager.createHierarchy(makeOpts({ id: 'dup', supervisor: makeManifest('ds') }));
       expect(() =>
-        manager.createHierarchy(makeOpts({ id: 'dup', supervisor: makeManifest('ds2'), subordinates: [] })),
+        manager.createHierarchy(
+          makeOpts({ id: 'dup', supervisor: makeManifest('ds2'), subordinates: [] })
+        )
       ).toThrow(/already exists/i);
     });
 
     it('throws when supervisor is already in another hierarchy', () => {
       const sup = makeManifest('shared-sup');
       manager.createHierarchy({ name: 'H1', supervisor: sup });
-      expect(() => manager.createHierarchy({ name: 'H2', supervisor: sup })).toThrow(/already in a hierarchy/i);
+      expect(() => manager.createHierarchy({ name: 'H2', supervisor: sup })).toThrow(
+        /already in a hierarchy/i
+      );
     });
 
     it('throws when subordinate is already in another hierarchy', () => {
       const sub = makeManifest('shared-sub');
       manager.createHierarchy({ name: 'H1', supervisor: makeManifest('sA'), subordinates: [sub] });
       expect(() =>
-        manager.createHierarchy({ name: 'H2', supervisor: makeManifest('sB'), subordinates: [sub] }),
+        manager.createHierarchy({ name: 'H2', supervisor: makeManifest('sB'), subordinates: [sub] })
       ).toThrow(/already in a hierarchy/i);
     });
 
@@ -116,8 +120,12 @@ describe('HierarchyManager', () => {
 
   describe('listHierarchies', () => {
     it('returns all hierarchies', () => {
-      manager.createHierarchy(makeOpts({ id: 'l1', supervisor: makeManifest('s1'), subordinates: [] }));
-      manager.createHierarchy(makeOpts({ id: 'l2', supervisor: makeManifest('s2'), subordinates: [] }));
+      manager.createHierarchy(
+        makeOpts({ id: 'l1', supervisor: makeManifest('s1'), subordinates: [] })
+      );
+      manager.createHierarchy(
+        makeOpts({ id: 'l2', supervisor: makeManifest('s2'), subordinates: [] })
+      );
       expect(manager.listHierarchies()).toHaveLength(2);
     });
 
@@ -154,7 +162,9 @@ describe('HierarchyManager', () => {
       manager.createHierarchy({ name: 'H', supervisor: sup, id: 'del-h' });
       manager.deleteHierarchy('del-h');
       expect(() => manager.getHierarchy('del-h')).toThrow();
-      expect(() => manager.createHierarchy({ name: 'H2', supervisor: sup, id: 'del-h2' })).not.toThrow();
+      expect(() =>
+        manager.createHierarchy({ name: 'H2', supervisor: sup, id: 'del-h2' })
+      ).not.toThrow();
     });
 
     it('emits hierarchyDeleted event', () => {
@@ -172,26 +182,46 @@ describe('HierarchyManager', () => {
 
   describe('addSubordinate / removeSubordinate', () => {
     it('adds a new subordinate', () => {
-      manager.createHierarchy({ name: 'H', supervisor: makeManifest('s'), id: 'sub-h', subordinates: [] });
+      manager.createHierarchy({
+        name: 'H',
+        supervisor: makeManifest('s'),
+        id: 'sub-h',
+        subordinates: [],
+      });
       manager.addSubordinate('sub-h', makeManifest('new-sub'));
       expect(manager.getHierarchy('sub-h').subordinates).toHaveLength(1);
     });
 
     it('throws when adding already-registered agent', () => {
       const sub = makeManifest('reg-sub');
-      manager.createHierarchy({ name: 'H', supervisor: makeManifest('s'), id: 'add-h', subordinates: [sub] });
+      manager.createHierarchy({
+        name: 'H',
+        supervisor: makeManifest('s'),
+        id: 'add-h',
+        subordinates: [sub],
+      });
       expect(() => manager.addSubordinate('add-h', sub)).toThrow(/already in a hierarchy/i);
     });
 
     it('removes an existing subordinate', () => {
       const sub = makeManifest('rem-sub');
-      manager.createHierarchy({ name: 'H', supervisor: makeManifest('s'), id: 'rem-h', subordinates: [sub] });
+      manager.createHierarchy({
+        name: 'H',
+        supervisor: makeManifest('s'),
+        id: 'rem-h',
+        subordinates: [sub],
+      });
       manager.removeSubordinate('rem-h', 'rem-sub');
       expect(manager.getHierarchy('rem-h').subordinates).toHaveLength(0);
     });
 
     it('throws when removing non-existent subordinate', () => {
-      manager.createHierarchy({ name: 'H', supervisor: makeManifest('s'), id: 'rem-err', subordinates: [] });
+      manager.createHierarchy({
+        name: 'H',
+        supervisor: makeManifest('s'),
+        id: 'rem-err',
+        subordinates: [],
+      });
       expect(() => manager.removeSubordinate('rem-err', 'ghost')).toThrow(/not a subordinate/i);
     });
   });
@@ -261,12 +291,22 @@ describe('HierarchyManager', () => {
 
     it('findDelegationRule returns highest-priority rule', () => {
       manager.addDelegationRule('rule-h', {
-        taskType: 'render', targetCapability: 'render', maxRetries: 1,
-        escalateOnFailure: false, timeout: 10000, priority: 5, requiresApproval: false,
+        taskType: 'render',
+        targetCapability: 'render',
+        maxRetries: 1,
+        escalateOnFailure: false,
+        timeout: 10000,
+        priority: 5,
+        requiresApproval: false,
       });
       manager.addDelegationRule('rule-h', {
-        taskType: 'render', targetCapability: 'render', maxRetries: 3,
-        escalateOnFailure: true, timeout: 60000, priority: 20, requiresApproval: false,
+        taskType: 'render',
+        targetCapability: 'render',
+        maxRetries: 3,
+        escalateOnFailure: true,
+        timeout: 60000,
+        priority: 20,
+        requiresApproval: false,
       });
       const rule = manager.findDelegationRule('rule-h', 'render');
       expect(rule?.priority).toBe(20);
@@ -274,8 +314,13 @@ describe('HierarchyManager', () => {
 
     it('findDelegationRule returns wildcard when no specific match', () => {
       manager.addDelegationRule('rule-h', {
-        taskType: '*', targetCapability: 'any', maxRetries: 1,
-        escalateOnFailure: false, timeout: 5000, priority: 1, requiresApproval: false,
+        taskType: '*',
+        targetCapability: 'any',
+        maxRetries: 1,
+        escalateOnFailure: false,
+        timeout: 5000,
+        priority: 1,
+        requiresApproval: false,
       });
       expect(manager.findDelegationRule('rule-h', 'unknown-task')?.taskType).toBe('*');
     });
@@ -286,8 +331,13 @@ describe('HierarchyManager', () => {
 
     it('removeDelegationRule removes the rule', () => {
       const rule = manager.addDelegationRule('rule-h', {
-        taskType: 'data', targetCapability: 'data', maxRetries: 1,
-        escalateOnFailure: false, timeout: 5000, priority: 1, requiresApproval: false,
+        taskType: 'data',
+        targetCapability: 'data',
+        maxRetries: 1,
+        escalateOnFailure: false,
+        timeout: 5000,
+        priority: 1,
+        requiresApproval: false,
       });
       manager.removeDelegationRule('rule-h', rule.id);
       expect(manager.findDelegationRule('rule-h', 'data')).toBeUndefined();

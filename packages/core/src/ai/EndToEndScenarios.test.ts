@@ -26,7 +26,9 @@ class E2ETestAdapter implements AIAdapter {
 
   private setupScenarios() {
     // Scenario 1: Basic game scene
-    this.generatedCodes.set('basic-scene', `
+    this.generatedCodes.set(
+      'basic-scene',
+      `
 composition "SimpleScene" {
   environment { skybox: "default"; ambient_light: 0.5 }
   
@@ -44,10 +46,13 @@ composition "SimpleScene" {
     scale: 0.5
   }
 }
-    `.trim());
+    `.trim()
+    );
 
     // Scenario 2: Interactive UI
-    this.generatedCodes.set('interactive-ui', `
+    this.generatedCodes.set(
+      'interactive-ui',
+      `
 composition "MenuUI" {
   object "PlayButton" {
     @pointable
@@ -73,10 +78,13 @@ composition "MenuUI" {
     color: "#ff0000"
   }
 }
-    `.trim());
+    `.trim()
+    );
 
     // Scenario 3: Physics-based interactions
-    this.generatedCodes.set('physics-interactions', `
+    this.generatedCodes.set(
+      'physics-interactions',
+      `
 composition "PhysicsScene" {
   object "Ball" {
     @grabbable
@@ -101,10 +109,13 @@ composition "PhysicsScene" {
     physics: { type: "static" }
   }
 }
-    `.trim());
+    `.trim()
+    );
 
     // Scenario 4: Networked multiplayer
-    this.generatedCodes.set('networked-multiplayer', `
+    this.generatedCodes.set(
+      'networked-multiplayer',
+      `
 composition "MultiplayerGame" {
   object "LocalPlayer" {
     @grabbable
@@ -129,10 +140,13 @@ composition "MultiplayerGame" {
     networked: { position: "synced"; rotation: "synced" }
   }
 }
-    `.trim());
+    `.trim()
+    );
 
     // Scenario 5: Complex character controller
-    this.generatedCodes.set('character-controller', `
+    this.generatedCodes.set(
+      'character-controller',
+      `
 composition "PlayerController" {
   object "Player" {
     @grabbable
@@ -154,10 +168,13 @@ composition "PlayerController" {
     score: 0
   }
 }
-    `.trim());
+    `.trim()
+    );
 
     // Scenario 6: Puzzle game mechanics
-    this.generatedCodes.set('puzzle-mechanics', `
+    this.generatedCodes.set(
+      'puzzle-mechanics',
+      `
 composition "PuzzleGame" {
   object "Lever" {
     @pointable
@@ -182,10 +199,13 @@ composition "PuzzleGame" {
     scale: 0.5
   }
 }
-    `.trim());
+    `.trim()
+    );
 
     // Scenario 7: Animation and effects
-    this.generatedCodes.set('animation-effects', `
+    this.generatedCodes.set(
+      'animation-effects',
+      `
 composition "AnimatedScene" {
   object "RotatingCube" {
     geometry: "cube"
@@ -209,10 +229,13 @@ composition "AnimatedScene" {
     color: "#0000ff"
   }
 }
-    `.trim());
+    `.trim()
+    );
 
     // Scenario 8: Inventory system
-    this.generatedCodes.set('inventory-system', `
+    this.generatedCodes.set(
+      'inventory-system',
+      `
 composition "InventoryUI" {
   object "InventorySlot1" {
     geometry: "cube"
@@ -232,10 +255,13 @@ composition "InventoryUI" {
     scale: 0.3
   }
 }
-    `.trim());
+    `.trim()
+    );
 
     // Scenario 9: Dialogue system
-    this.generatedCodes.set('dialogue-system', `
+    this.generatedCodes.set(
+      'dialogue-system',
+      `
 composition "DialogueScene" {
   object "NPC" {
     geometry: "humanoid"
@@ -256,10 +282,13 @@ composition "DialogueScene" {
     scale: [0.8, 0.2, 0.05]
   }
 }
-    `.trim());
+    `.trim()
+    );
 
     // Scenario 10: Progression system
-    this.generatedCodes.set('progression-system', `
+    this.generatedCodes.set(
+      'progression-system',
+      `
 composition "ProgressionGame" {
   object "Level1" {
     geometry: "cube"
@@ -279,7 +308,8 @@ composition "ProgressionGame" {
     scale: 2.0
   }
 }
-    `.trim());
+    `.trim()
+    );
   }
 
   async generateHoloScript(prompt: string) {
@@ -509,10 +539,7 @@ describe('End-to-End Scenarios', () => {
     it('should generate puzzle mechanism with trigger zones', async () => {
       const session = generator.createSession(adapter);
 
-      const puzzle = await generator.generate(
-        'Create a lever-operated door puzzle',
-        session
-      );
+      const puzzle = await generator.generate('Create a lever-operated door puzzle', session);
 
       expect(puzzle.parseResult.success).toBe(true);
       expect(puzzle.holoScript).toContain('@pointable');

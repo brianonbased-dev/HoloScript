@@ -5,10 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type {
-  InferenceTier,
-  AIDriverConfig,
-} from '../AIDriverTrait';
+import type { InferenceTier, AIDriverConfig } from '../AIDriverTrait';
 
 // =============================================================================
 // InferenceTier (P.XR.01)

@@ -91,7 +91,7 @@ export class TraitComposer {
   compose(
     name: string,
     handlers: Map<string, TraitHandler<Record<string, unknown>>>,
-    traitNames: string[],
+    traitNames: string[]
   ): CompositionResult {
     const conflicts: string[] = [];
     const warnings: string[] = [];
@@ -112,9 +112,7 @@ export class TraitComposer {
     }
 
     if (conflicts.length > 0) {
-      warnings.push(
-        `Composition "${name}" has conflicts — check conflict list before using.`,
-      );
+      warnings.push(`Composition "${name}" has conflicts — check conflict list before using.`);
     }
 
     // Detect diamond inheritance (if resolver available)
@@ -248,9 +246,7 @@ export class TraitComposer {
    * Handles: `@turret = @physics + @ai_npc + @targeting`
    * Returns null if the line doesn't match.
    */
-  static parseCompositionLine(
-    line: string,
-  ): { name: string; sources: string[] } | null {
+  static parseCompositionLine(line: string): { name: string; sources: string[] } | null {
     const m = line.match(/^@(\w+)\s*=\s*((?:@\w+\s*\+\s*)*@\w+)/);
     if (!m) return null;
 

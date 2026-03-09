@@ -7,7 +7,15 @@ import { TextureProcessor } from '../TextureProcessor';
 import type { TextureInput } from '../TextureProcessor';
 
 function makeInput(opts: Partial<TextureInput> = {}): TextureInput {
-  return { id: 'tex1', name: 'texture', width: 512, height: 512, format: 'rgba8', sizeBytes: 1048576, ...opts };
+  return {
+    id: 'tex1',
+    name: 'texture',
+    width: 512,
+    height: 512,
+    format: 'rgba8',
+    sizeBytes: 1048576,
+    ...opts,
+  };
 }
 
 describe('TextureProcessor — constructor defaults', () => {
@@ -30,7 +38,9 @@ describe('TextureProcessor — constructor defaults', () => {
 
 describe('TextureProcessor — process', () => {
   let proc: TextureProcessor;
-  beforeEach(() => { proc = new TextureProcessor(); });
+  beforeEach(() => {
+    proc = new TextureProcessor();
+  });
 
   it('returns ProcessedTexture with same id and name', () => {
     const r = proc.process(makeInput({ id: 'x', name: 'y' }));
@@ -45,7 +55,9 @@ describe('TextureProcessor — process', () => {
   });
 
   it('clamps dimensions to maxSize', () => {
-    const r = new TextureProcessor({ maxSize: 512 }).process(makeInput({ width: 8192, height: 4096 }));
+    const r = new TextureProcessor({ maxSize: 512 }).process(
+      makeInput({ width: 8192, height: 4096 })
+    );
     expect(r.width).toBeLessThanOrEqual(512);
     expect(r.height).toBeLessThanOrEqual(512);
   });
@@ -56,7 +68,9 @@ describe('TextureProcessor — process', () => {
   });
 
   it('mipmapLevels = 1 when generateMipmaps=false', () => {
-    const r = new TextureProcessor({ generateMipmaps: false }).process(makeInput({ width: 256, height: 256 }));
+    const r = new TextureProcessor({ generateMipmaps: false }).process(
+      makeInput({ width: 256, height: 256 })
+    );
     expect(r.mipmapLevels).toBe(1);
   });
 
@@ -104,7 +118,9 @@ describe('TextureProcessor — process', () => {
 
 describe('TextureProcessor — packAtlas', () => {
   let proc: TextureProcessor;
-  beforeEach(() => { proc = new TextureProcessor(); });
+  beforeEach(() => {
+    proc = new TextureProcessor();
+  });
 
   it('returns AtlasResult with all inputs packed when they fit', () => {
     const inputs = [

@@ -28,7 +28,9 @@ export class MigrationManager {
   private migrations: Migration[] = [];
   private currentVersion: number;
 
-  constructor(currentVersion: number) { this.currentVersion = currentVersion; }
+  constructor(currentVersion: number) {
+    this.currentVersion = currentVersion;
+  }
 
   // ---------------------------------------------------------------------------
   // Registration
@@ -43,13 +45,16 @@ export class MigrationManager {
   // Migration
   // ---------------------------------------------------------------------------
 
-  migrate(data: Record<string, unknown>, fromVersion: number): { data: Record<string, unknown>; version: number; steps: string[] } {
+  migrate(
+    data: Record<string, unknown>,
+    fromVersion: number
+  ): { data: Record<string, unknown>; version: number; steps: string[] } {
     let current = { ...data };
     let version = fromVersion;
     const steps: string[] = [];
 
     while (version < this.currentVersion) {
-      const migration = this.migrations.find(m => m.fromVersion === version);
+      const migration = this.migrations.find((m) => m.fromVersion === version);
       if (!migration) break;
 
       current = migration.migrate(current);
@@ -64,14 +69,18 @@ export class MigrationManager {
   // Queries
   // ---------------------------------------------------------------------------
 
-  needsMigration(fromVersion: number): boolean { return fromVersion < this.currentVersion; }
-  getCurrentVersion(): number { return this.currentVersion; }
+  needsMigration(fromVersion: number): boolean {
+    return fromVersion < this.currentVersion;
+  }
+  getCurrentVersion(): number {
+    return this.currentVersion;
+  }
 
   getPath(fromVersion: number): number[] {
     const path: number[] = [fromVersion];
     let v = fromVersion;
     while (v < this.currentVersion) {
-      const m = this.migrations.find(m => m.fromVersion === v);
+      const m = this.migrations.find((m) => m.fromVersion === v);
       if (!m) break;
       path.push(m.toVersion);
       v = m.toVersion;
@@ -79,5 +88,7 @@ export class MigrationManager {
     return path;
   }
 
-  getMigrationCount(): number { return this.migrations.length; }
+  getMigrationCount(): number {
+    return this.migrations.length;
+  }
 }

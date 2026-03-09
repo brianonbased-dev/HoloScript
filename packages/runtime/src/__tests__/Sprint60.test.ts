@@ -13,15 +13,7 @@ import device, {
   prefersReducedMotion,
   prefersDarkMode,
 } from '../device.js';
-import {
-  after,
-  every,
-  debounce,
-  throttle,
-  wait,
-  onIdle,
-  easing,
-} from '../timing.js';
+import { after, every, debounce, throttle, wait, onIdle, easing } from '../timing.js';
 
 // ═══════════════════════════════════════════════
 // device.ts — node environment (no navigator/window)
@@ -127,7 +119,10 @@ describe('timing — after()', () => {
     vi.stubGlobal('window', globalThis);
     vi.useFakeTimers();
   });
-  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it('is a function', () => {
     expect(typeof after).toBe('function');
@@ -164,8 +159,14 @@ describe('timing — after()', () => {
 });
 
 describe('timing — every()', () => {
-  beforeEach(() => { vi.stubGlobal('window', globalThis); vi.useFakeTimers(); });
-  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+  beforeEach(() => {
+    vi.stubGlobal('window', globalThis);
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it('is a function', () => {
     expect(typeof every).toBe('function');
@@ -195,8 +196,14 @@ describe('timing — every()', () => {
 });
 
 describe('timing — debounce()', () => {
-  beforeEach(() => { vi.stubGlobal('window', globalThis); vi.useFakeTimers(); });
-  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+  beforeEach(() => {
+    vi.stubGlobal('window', globalThis);
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it('is a function', () => {
     expect(typeof debounce).toBe('function');
@@ -238,8 +245,14 @@ describe('timing — debounce()', () => {
 });
 
 describe('timing — throttle()', () => {
-  beforeEach(() => { vi.stubGlobal('window', globalThis); vi.useFakeTimers(); });
-  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+  beforeEach(() => {
+    vi.stubGlobal('window', globalThis);
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it('is a function', () => {
     expect(typeof throttle).toBe('function');
@@ -276,8 +289,14 @@ describe('timing — throttle()', () => {
 });
 
 describe('timing — wait()', () => {
-  beforeEach(() => { vi.stubGlobal('window', globalThis); vi.useFakeTimers(); });
-  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+  beforeEach(() => {
+    vi.stubGlobal('window', globalThis);
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it('is a function', () => {
     expect(typeof wait).toBe('function');
@@ -292,7 +311,9 @@ describe('timing — wait()', () => {
 
   it('resolves after specified delay', async () => {
     let resolved = false;
-    wait(300).then(() => { resolved = true; });
+    wait(300).then(() => {
+      resolved = true;
+    });
     expect(resolved).toBe(false);
     vi.advanceTimersByTime(300);
     await Promise.resolve(); // flush microtasks
@@ -301,8 +322,14 @@ describe('timing — wait()', () => {
 });
 
 describe('timing — onIdle()', () => {
-  beforeEach(() => { vi.stubGlobal('window', globalThis); vi.useFakeTimers(); });
-  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+  beforeEach(() => {
+    vi.stubGlobal('window', globalThis);
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it('is a function', () => {
     expect(typeof onIdle).toBe('function');

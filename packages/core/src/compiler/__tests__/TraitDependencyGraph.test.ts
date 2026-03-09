@@ -100,7 +100,9 @@ describe('TraitDependencyGraph', () => {
       { name: 'Physics', config: {}, configHash: hashConfig({}) },
     ];
     const changes = graph.detectTraitChanges('Box', newTraits);
-    expect(changes.find(c => c.traitName === 'Physics' && c.changeType === 'added')).toBeDefined();
+    expect(
+      changes.find((c) => c.traitName === 'Physics' && c.changeType === 'added')
+    ).toBeDefined();
   });
 
   it('detects removed traits', () => {
@@ -118,14 +120,18 @@ describe('TraitDependencyGraph', () => {
       { name: 'Renderable', config: {}, configHash: hashConfig({}) },
     ];
     const changes = graph.detectTraitChanges('Box', newTraits);
-    expect(changes.find(c => c.traitName === 'Physics' && c.changeType === 'removed')).toBeDefined();
+    expect(
+      changes.find((c) => c.traitName === 'Physics' && c.changeType === 'removed')
+    ).toBeDefined();
   });
 
   it('detects config changes', () => {
     graph.registerObject({
       objectName: 'Box',
       sourceId: 's.hsplus',
-      traits: [{ name: 'Renderable', config: { color: 'red' }, configHash: hashConfig({ color: 'red' }) }],
+      traits: [
+        { name: 'Renderable', config: { color: 'red' }, configHash: hashConfig({ color: 'red' }) },
+      ],
     });
     graph.saveSnapshot();
 
@@ -133,7 +139,7 @@ describe('TraitDependencyGraph', () => {
       { name: 'Renderable', config: { color: 'blue' }, configHash: hashConfig({ color: 'blue' }) },
     ];
     const changes = graph.detectTraitChanges('Box', newTraits);
-    expect(changes.find(c => c.changeType === 'config_changed')).toBeDefined();
+    expect(changes.find((c) => c.changeType === 'config_changed')).toBeDefined();
   });
 
   // Affected set

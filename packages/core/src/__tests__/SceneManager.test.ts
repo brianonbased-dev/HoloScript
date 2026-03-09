@@ -5,7 +5,7 @@ import { SceneManager, SavedScene } from '../scene/SceneManager';
  * SceneManager depends on SceneSerializer + SceneDeserializer internally.
  * The serializer's serialize() expects a World from the constructor, but
  * SceneManager.save() passes an HSPlusNode as the first arg (a known API mismatch).
- * 
+ *
  * We test SceneManager by mocking the internal serializer & deserializer,
  * focusing on the manager's storage, listing, export/import, and lifecycle logic.
  */
@@ -27,7 +27,13 @@ function makeFakeSerializedScene(name: string, root: any): any {
     version: 1,
     timestamp: new Date().toISOString(),
     name,
-    root: { id: root.id, type: root.type, properties: root.properties || {}, traits: {}, children: [] },
+    root: {
+      id: root.id,
+      type: root.type,
+      properties: root.properties || {},
+      traits: {},
+      children: [],
+    },
   };
 }
 
@@ -81,8 +87,8 @@ describe('SceneManager', () => {
 
     const list = mgr.list();
     expect(list.length).toBe(2);
-    expect(list.find(e => e.name === 'scene-a')).toBeDefined();
-    expect(list.find(e => e.name === 'scene-b')).toBeDefined();
+    expect(list.find((e) => e.name === 'scene-a')).toBeDefined();
+    expect(list.find((e) => e.name === 'scene-b')).toBeDefined();
   });
 
   it('exports scene to JSON', () => {

@@ -6,7 +6,7 @@
 
 import { useMemo, useState } from 'react';
 import { useTemporalStore } from '@/lib/historyStore';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore } from '@/lib/stores';
 
 export type DiffLineType = 'same' | 'added' | 'removed';
 
@@ -20,20 +20,26 @@ export interface DiffLine {
 /** Naive LCS-based line diff */
 function diffLines(aLines: string[], bLines: string[]): DiffLine[] {
   // Build LCS table
-  const m = aLines.length, n = bLines.length;
+  const m = aLines.length,
+    n = bLines.length;
   const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
   for (let i = m - 1; i >= 0; i--) {
     for (let j = n - 1; j >= 0; j--) {
-      dp[i][j] = aLines[i] === bLines[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+      dp[i][j] =
+        aLines[i] === bLines[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
     }
   }
 
   const result: DiffLine[] = [];
-  let i = 0, j = 0, lineA = 1, lineB = 1;
+  let i = 0,
+    j = 0,
+    lineA = 1,
+    lineB = 1;
   while (i < m || j < n) {
     if (i < m && j < n && aLines[i] === bLines[j]) {
       result.push({ type: 'same', text: aLines[i], lineA: lineA++, lineB: lineB++ });
-      i++; j++;
+      i++;
+      j++;
     } else if (j < n && (i >= m || dp[i + 1]?.[j] <= dp[i]?.[j + 1])) {
       result.push({ type: 'added', text: bLines[j], lineB: lineB++ });
       j++;
@@ -70,10 +76,13 @@ export function useSnapshotDiff() {
     return diffLines(a, b);
   }, [allCodes, indexA, indexB]);
 
-  const stats = useMemo(() => ({
-    added: diff.filter((d) => d.type === 'added').length,
-    removed: diff.filter((d) => d.type === 'removed').length,
-  }), [diff]);
+  const stats = useMemo(
+    () => ({
+      added: diff.filter((d) => d.type === 'added').length,
+      removed: diff.filter((d) => d.type === 'removed').length,
+    }),
+    [diff]
+  );
 
   return { diff, stats, allCodes, currentIndex, indexA, indexB, setIndexA, setIndexB };
 }

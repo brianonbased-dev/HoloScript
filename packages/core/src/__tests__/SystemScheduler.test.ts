@@ -7,7 +7,9 @@ import { SystemScheduler } from '../ecs/SystemScheduler';
 
 describe('SystemScheduler', () => {
   let sched: SystemScheduler;
-  beforeEach(() => { sched = new SystemScheduler(); });
+  beforeEach(() => {
+    sched = new SystemScheduler();
+  });
 
   it('register and getSystemCount', () => {
     sched.register('physics', vi.fn(), 'update');

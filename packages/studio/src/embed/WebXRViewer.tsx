@@ -310,7 +310,7 @@ function SceneContent({
       c.type === 'directionalLight' ||
       c.type === 'pointLight' ||
       c.type === 'spotLight' ||
-      c.type === 'hemisphereLight',
+      c.type === 'hemisphereLight'
   );
   const hasEnv = r3fTree.children?.some((c: R3FNode) => c.type === 'Environment');
 
@@ -429,7 +429,14 @@ function XRControls({
             cursor: 'pointer',
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
           </svg>
           Enter AR
@@ -511,7 +518,7 @@ export function WebXRViewer({
           },
         },
       }),
-    [],
+    []
   );
 
   // Report compile errors upstream
@@ -548,21 +555,27 @@ export function WebXRViewer({
 
   // Enter VR/AR session
   const enterVR = useCallback(() => {
-    xrStore.enterVR().then(() => {
-      setXrActive(true);
-      onXRSessionStart?.('immersive-vr');
-    }).catch((err: unknown) => {
-      console.warn('[WebXRViewer] Failed to enter VR:', err);
-    });
+    xrStore
+      .enterVR()
+      .then(() => {
+        setXrActive(true);
+        onXRSessionStart?.('immersive-vr');
+      })
+      .catch((err: unknown) => {
+        console.warn('[WebXRViewer] Failed to enter VR:', err);
+      });
   }, [xrStore, onXRSessionStart]);
 
   const enterAR = useCallback(() => {
-    xrStore.enterAR().then(() => {
-      setXrActive(true);
-      onXRSessionStart?.('immersive-ar');
-    }).catch((err: unknown) => {
-      console.warn('[WebXRViewer] Failed to enter AR:', err);
-    });
+    xrStore
+      .enterAR()
+      .then(() => {
+        setXrActive(true);
+        onXRSessionStart?.('immersive-ar');
+      })
+      .catch((err: unknown) => {
+        console.warn('[WebXRViewer] Failed to enter AR:', err);
+      });
   }, [xrStore, onXRSessionStart]);
 
   const exitXR = useCallback(() => {

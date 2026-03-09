@@ -4,15 +4,25 @@
 import { describe, it, expect } from 'vitest';
 import { GrassRenderer } from '../GrassRenderer';
 
-function make(config = {}) { return new GrassRenderer(config); }
+function make(config = {}) {
+  return new GrassRenderer(config);
+}
 
 const defaultBounds = { x: 0, z: 0, w: 10, h: 10 }; // area=100
 
 describe('GrassRenderer — construction', () => {
-  it('constructs without arguments', () => { expect(() => make()).not.toThrow(); });
-  it('default baseHeight=0.3', () => { expect(make().getConfig().baseHeight).toBe(0.3); });
-  it('default cullDistance=60', () => { expect(make().getConfig().cullDistance).toBe(60); });
-  it('default bladesPerUnit=10', () => { expect(make().getConfig().bladesPerUnit).toBe(10); });
+  it('constructs without arguments', () => {
+    expect(() => make()).not.toThrow();
+  });
+  it('default baseHeight=0.3', () => {
+    expect(make().getConfig().baseHeight).toBe(0.3);
+  });
+  it('default cullDistance=60', () => {
+    expect(make().getConfig().cullDistance).toBe(60);
+  });
+  it('default bladesPerUnit=10', () => {
+    expect(make().getConfig().bladesPerUnit).toBe(10);
+  });
   it('custom config merges correctly', () => {
     const g = make({ baseHeight: 0.5, cullDistance: 100 });
     expect(g.getConfig().baseHeight).toBe(0.5);
@@ -47,9 +57,12 @@ describe('GrassRenderer — generate()', () => {
     const g = make();
     g.generate(defaultBounds, 123);
     for (const b of g.getVisibleBlades()) {
-      expect(b.color.r).toBeGreaterThanOrEqual(0); expect(b.color.r).toBeLessThanOrEqual(1);
-      expect(b.color.g).toBeGreaterThanOrEqual(0); expect(b.color.g).toBeLessThanOrEqual(1);
-      expect(b.color.b).toBeGreaterThanOrEqual(0); expect(b.color.b).toBeLessThanOrEqual(1);
+      expect(b.color.r).toBeGreaterThanOrEqual(0);
+      expect(b.color.r).toBeLessThanOrEqual(1);
+      expect(b.color.g).toBeGreaterThanOrEqual(0);
+      expect(b.color.g).toBeLessThanOrEqual(1);
+      expect(b.color.b).toBeGreaterThanOrEqual(0);
+      expect(b.color.b).toBeLessThanOrEqual(1);
     }
   });
   it('bendFactor in [0, bendRange]', () => {
@@ -61,15 +74,21 @@ describe('GrassRenderer — generate()', () => {
     }
   });
   it('same seed → same blade count and first blade position', () => {
-    const g1 = make(); g1.generate(defaultBounds, 77);
-    const g2 = make(); g2.generate(defaultBounds, 77);
+    const g1 = make();
+    g1.generate(defaultBounds, 77);
+    const g2 = make();
+    g2.generate(defaultBounds, 77);
     expect(g1.getBladeCount()).toBe(g2.getBladeCount());
     expect(g1.getVisibleBlades()[0].position.x).toBeCloseTo(g2.getVisibleBlades()[0].position.x);
   });
   it('different seeds → different first blade', () => {
-    const g1 = make(); g1.generate(defaultBounds, 1);
-    const g2 = make(); g2.generate(defaultBounds, 2);
-    expect(g1.getVisibleBlades()[0].position.x).not.toBeCloseTo(g2.getVisibleBlades()[0].position.x);
+    const g1 = make();
+    g1.generate(defaultBounds, 1);
+    const g2 = make();
+    g2.generate(defaultBounds, 2);
+    expect(g1.getVisibleBlades()[0].position.x).not.toBeCloseTo(
+      g2.getVisibleBlades()[0].position.x
+    );
   });
   it('re-generate clears previous blades', () => {
     const g = make({ bladesPerUnit: 1 });
@@ -111,7 +130,7 @@ describe('GrassRenderer — updateLOD()', () => {
     g.updateLOD({ x: 0, z: 0 });
     const visible = g.getVisibleBlades();
     if (visible.length > 0) {
-      expect(visible.some(b => b.lodLevel === 1)).toBe(true);
+      expect(visible.some((b) => b.lodLevel === 1)).toBe(true);
     }
   });
 });
@@ -125,7 +144,8 @@ describe('GrassRenderer — setConfig()', () => {
   });
   it('getConfig returns copy (not same reference)', () => {
     const g = make();
-    const c = g.getConfig(); c.baseHeight = 99;
+    const c = g.getConfig();
+    c.baseHeight = 99;
     expect(g.getConfig().baseHeight).toBe(0.3); // unchanged
   });
 });

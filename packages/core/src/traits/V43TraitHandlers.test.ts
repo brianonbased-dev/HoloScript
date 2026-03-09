@@ -50,9 +50,7 @@ function createMockContext(playerPos?: { x: number; y: number; z: number }): Tra
     } as any,
     audio: { play: vi.fn(), stop: vi.fn() } as any,
     haptics: { pulse: vi.fn() } as any,
-    player: playerPos
-      ? { position: playerPos }
-      : undefined,
+    player: playerPos ? { position: playerPos } : undefined,
     emit: vi.fn(),
     getState: vi.fn(() => ({ ...state })),
     setState: vi.fn((updates: Record<string, unknown>) => {
@@ -107,7 +105,7 @@ describe('objectTrackingHandler', () => {
             trackingConfidence: 0,
             recoveryAttempts: 0,
           }),
-        }),
+        })
       );
       expect(ctx.emit).toHaveBeenCalledWith('tracking:init', {
         target: handler.defaultConfig.tracking_target,
@@ -242,7 +240,7 @@ describe('sceneReconstructionHandler', () => {
             meshFaceCount: 0,
             scanProgress: 0,
           }),
-        }),
+        })
       );
       expect(ctx.emit).toHaveBeenCalledWith('reconstruction:init', {
         mode: handler.defaultConfig.reconstruction_mode,
@@ -370,7 +368,7 @@ describe('spatialNavigationHandler', () => {
             currentWaypointIndex: 0,
             totalDistance: 0,
           }),
-        }),
+        })
       );
     });
   });
@@ -475,7 +473,7 @@ describe('embeddingSearchHandler', () => {
             isSearching: false,
             lastResults: [],
           }),
-        }),
+        })
       );
       expect(ctx.emit).toHaveBeenCalledWith('search:ready', {
         model: handler.defaultConfig.embedding_model,
@@ -598,7 +596,7 @@ describe('realityKitMeshHandler', () => {
             totalVertices: 0,
             totalFaces: 0,
           }),
-        }),
+        })
       );
       expect(ctx.emit).toHaveBeenCalledWith('rkMesh:init', {
         classification: handler.defaultConfig.mesh_classification,
@@ -745,7 +743,7 @@ describe('volumetricWindowHandler', () => {
             isOpen: false,
             currentScale: 1.0,
           }),
-        }),
+        })
       );
       expect(ctx.emit).toHaveBeenCalledWith('vWindow:init', {
         type: handler.defaultConfig.window_type,

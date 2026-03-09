@@ -1,6 +1,6 @@
 /**
  * WebXR Manager
- * 
+ *
  * Handles VR session management, reference spaces, and the main XR loop.
  */
 
@@ -9,7 +9,7 @@ export class WebXRManager {
   private referenceSpace: XRReferenceSpace | null = null;
   private localReferenceSpace: XRReferenceSpace | null = null;
   private glContext: GPUCanvasContext | null = null;
-  
+
   // Callback for the render loop
   private onFrameCallback: ((time: number, frame: XRFrame) => void) | null = null;
 
@@ -19,7 +19,7 @@ export class WebXRManager {
 
   constructor(context?: any) {
     if (context) {
-        this.glContext = context;
+      this.glContext = context;
     }
   }
 
@@ -28,7 +28,7 @@ export class WebXRManager {
    */
   async isSessionSupported(): Promise<boolean> {
     if (typeof navigator !== 'undefined' && 'xr' in navigator) {
-        return (navigator as any).xr.isSessionSupported('immersive-vr');
+      return (navigator as any).xr.isSessionSupported('immersive-vr');
     }
     return false;
   }
@@ -40,15 +40,15 @@ export class WebXRManager {
     if (!this.session) {
       const sessionInit = { optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'] };
       this.session = await (navigator as any).xr.requestSession('immersive-vr', sessionInit);
-      
+
       this.session!.addEventListener('end', this.onSessionEnded);
-      
+
       // Setup reference spaces
       this.referenceSpace = await this.session!.requestReferenceSpace('local-floor');
       this.localReferenceSpace = await this.session!.requestReferenceSpace('local');
 
       if (this.onSessionStart) {
-          this.onSessionStart(this.session!);
+        this.onSessionStart(this.session!);
       }
 
       return this.session!;
@@ -69,9 +69,9 @@ export class WebXRManager {
     this.session = null;
     this.referenceSpace = null;
     this.localReferenceSpace = null;
-    
+
     if (this.onSessionEnd) {
-        this.onSessionEnd();
+      this.onSessionEnd();
     }
   };
 
@@ -81,7 +81,7 @@ export class WebXRManager {
   setAnimationLoop(callback: (time: number, frame: XRFrame) => void): void {
     this.onFrameCallback = callback;
     if (this.session) {
-        this.session.requestAnimationFrame(this.onXRFrame);
+      this.session.requestAnimationFrame(this.onXRFrame);
     }
   }
 
@@ -94,7 +94,7 @@ export class WebXRManager {
     session.requestAnimationFrame(this.onXRFrame);
 
     if (this.onFrameCallback) {
-        this.onFrameCallback(time, frame);
+      this.onFrameCallback(time, frame);
     }
   };
 
@@ -102,10 +102,10 @@ export class WebXRManager {
    * Get the current reference space (prefer local-floor)
    */
   getReferenceSpace(): XRReferenceSpace | null {
-      return this.referenceSpace || this.localReferenceSpace;
+    return this.referenceSpace || this.localReferenceSpace;
   }
 
   getSession(): XRSession | null {
-      return this.session;
+    return this.session;
   }
 }

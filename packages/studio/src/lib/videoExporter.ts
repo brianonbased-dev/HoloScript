@@ -9,10 +9,10 @@ export interface VideoExportConfig {
   width: number;
   height: number;
   fps: number;
-  duration: number;        // seconds
-  quality: number;         // 0..1
+  duration: number; // seconds
+  quality: number; // 0..1
   codec?: string;
-  loop?: boolean;          // GIF only
+  loop?: boolean; // GIF only
 }
 
 export interface ExportProgress {
@@ -59,9 +59,9 @@ export function estimateFileSize(config: Partial<VideoExportConfig>): number {
 
   // Rough compression ratios per format
   const bytesPerPixelPerFrame: Record<VideoExportConfig['format'], number> = {
-    gif: 0.5,   // Heavily dithered, ~0.5 bytes/pixel/frame
+    gif: 0.5, // Heavily dithered, ~0.5 bytes/pixel/frame
     webm: 0.08, // VP8/VP9 compression
-    mp4: 0.06,  // H.264 compression
+    mp4: 0.06, // H.264 compression
   };
 
   return Math.round(pixels * frames * bytesPerPixelPerFrame[c.format] * c.quality);
@@ -72,9 +72,12 @@ export function estimateFileSize(config: Partial<VideoExportConfig>): number {
  */
 export function recommendedCodec(format: VideoExportConfig['format']): string {
   switch (format) {
-    case 'mp4': return 'avc1.42E01E'; // H.264 Baseline
-    case 'webm': return 'vp9';
-    case 'gif': return 'gif';
+    case 'mp4':
+      return 'avc1.42E01E'; // H.264 Baseline
+    case 'webm':
+      return 'vp9';
+    case 'gif':
+      return 'gif';
   }
 }
 
@@ -83,9 +86,12 @@ export function recommendedCodec(format: VideoExportConfig['format']): string {
  */
 export function mimeType(format: VideoExportConfig['format']): string {
   switch (format) {
-    case 'mp4': return 'video/mp4';
-    case 'webm': return 'video/webm';
-    case 'gif': return 'image/gif';
+    case 'mp4':
+      return 'video/mp4';
+    case 'webm':
+      return 'video/webm';
+    case 'gif':
+      return 'image/gif';
   }
 }
 

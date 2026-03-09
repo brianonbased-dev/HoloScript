@@ -158,9 +158,11 @@ export async function exportWithCompression(sceneGraph: ISceneGraph) {
     console.log('Compression applied:');
     console.log(`- Textures: ${compressionStats.texturesCompressed}`);
     console.log(`- Meshes: ${compressionStats.meshesCompressed}`);
-    console.log(`- Total reduction: ${AdvancedCompression.formatBytes(
-      compressionStats.textureReduction + compressionStats.meshReduction
-    )}`);
+    console.log(
+      `- Total reduction: ${AdvancedCompression.formatBytes(
+        compressionStats.textureReduction + compressionStats.meshReduction
+      )}`
+    );
   }
 
   return result;
@@ -185,12 +187,11 @@ export async function monitorCompressionPerformance() {
   console.log('Performance Report:');
   console.log(`- Total time: ${(endTime - startTime).toFixed(2)}ms`);
   console.log(`- Compression time: ${stats.compressionTime.toFixed(2)}ms`);
-  console.log(`- Throughput: ${(
-    stats.originalSize /
-    (stats.compressionTime / 1000) /
-    1024 /
-    1024
-  ).toFixed(2)} MB/s`);
+  console.log(
+    `- Throughput: ${(stats.originalSize / (stats.compressionTime / 1000) / 1024 / 1024).toFixed(
+      2
+    )} MB/s`
+  );
 
   return result;
 }
@@ -223,10 +224,11 @@ export async function batchCompression(documents: any[]) {
   console.log(`- Documents processed: ${documents.length}`);
   console.log(`- Total original size: ${AdvancedCompression.formatBytes(totalOriginal)}`);
   console.log(`- Total compressed size: ${AdvancedCompression.formatBytes(totalCompressed)}`);
-  console.log(`- Overall reduction: ${(
-    ((totalOriginal - totalCompressed) / totalOriginal) *
-    100
-  ).toFixed(1)}%`);
+  console.log(
+    `- Overall reduction: ${(((totalOriginal - totalCompressed) / totalOriginal) * 100).toFixed(
+      1
+    )}%`
+  );
   console.log(`- Average compression time: ${avgTime.toFixed(2)}ms`);
 
   return results;

@@ -180,9 +180,7 @@ export class OperationLog {
    * Get verified operations only
    */
   getVerifiedOperations(): CRDTOperation[] {
-    return this.entries
-      .filter((e) => e.verified && e.applied)
-      .map((e) => e.signedOp.operation);
+    return this.entries.filter((e) => e.verified && e.applied).map((e) => e.signedOp.operation);
   }
 
   /**
@@ -204,7 +202,7 @@ export class OperationLog {
           e.verified &&
           e.applied &&
           e.signedOp.operation.timestamp >= startTime &&
-          e.signedOp.operation.timestamp <= endTime,
+          e.signedOp.operation.timestamp <= endTime
       )
       .map((e) => e.signedOp.operation);
   }
@@ -278,9 +276,7 @@ export class OperationLog {
       }
 
       // Get the maximum clock value we've seen from this actor
-      const maxClock = Math.max(
-        ...actorOps.map((op) => op.causality?.[actorDid] ?? 0),
-      );
+      const maxClock = Math.max(...actorOps.map((op) => op.causality?.[actorDid] ?? 0));
 
       if (maxClock < requiredClock) {
         return `Causal dependency not satisfied for actor ${actorDid}: requires ${requiredClock} but have ${maxClock}`;
@@ -321,7 +317,7 @@ export class OperationLog {
         actorDid: e.actorDid,
         applied: e.applied,
         rejectionReason: e.rejectionReason,
-      })),
+      }))
     );
   }
 

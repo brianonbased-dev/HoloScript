@@ -40,12 +40,12 @@ orb player_avatar {
 }
 ```
 
-| Ownership | Description |
-|-----------|-------------|
-| `local_player` | Each player owns their own avatar |
-| `server` | Server has full authority (NPCs, game logic) |
-| `host` | The host player owns the object |
-| `any` | First player to grab takes ownership (`@transferable`) |
+| Ownership      | Description                                            |
+| -------------- | ------------------------------------------------------ |
+| `local_player` | Each player owns their own avatar                      |
+| `server`       | Server has full authority (NPCs, game logic)           |
+| `host`         | The host player owns the object                        |
+| `any`          | First player to grab takes ownership (`@transferable`) |
 
 ## Synced Properties
 

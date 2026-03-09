@@ -7,24 +7,43 @@ import { HitboxSystem, type Hitbox, type Hurtbox } from '../combat/HitboxSystem'
 
 function hitbox(overrides: Partial<Hitbox> = {}): Hitbox {
   return {
-    id: 'hb1', ownerId: 'attacker', x: 0, y: 0, z: 0,
-    width: 2, height: 2, depth: 2, damage: 50,
-    knockbackX: 10, knockbackY: 5, activeStart: 0, activeEnd: 10, group: 'attack1',
+    id: 'hb1',
+    ownerId: 'attacker',
+    x: 0,
+    y: 0,
+    z: 0,
+    width: 2,
+    height: 2,
+    depth: 2,
+    damage: 50,
+    knockbackX: 10,
+    knockbackY: 5,
+    activeStart: 0,
+    activeEnd: 10,
+    group: 'attack1',
     ...overrides,
   };
 }
 
 function hurtbox(overrides: Partial<Hurtbox> = {}): Hurtbox {
   return {
-    id: 'hr1', entityId: 'defender', x: 1, y: 0, z: 0,
-    width: 2, height: 2, depth: 2,
+    id: 'hr1',
+    entityId: 'defender',
+    x: 1,
+    y: 0,
+    z: 0,
+    width: 2,
+    height: 2,
+    depth: 2,
     ...overrides,
   };
 }
 
 describe('HitboxSystem', () => {
   let sys: HitboxSystem;
-  beforeEach(() => { sys = new HitboxSystem(); });
+  beforeEach(() => {
+    sys = new HitboxSystem();
+  });
 
   it('registers hit on overlap during active frames', () => {
     sys.addHitbox(hitbox());

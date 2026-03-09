@@ -29,11 +29,11 @@ export type SaveCallback = (slot: SaveSlot) => void;
 export class AutoSaveSystem {
   private slots: Map<string, SaveSlot> = new Map();
   private maxSlots: number;
-  private autoInterval: number;       // ms
+  private autoInterval: number; // ms
   private lastAutoSave = -Infinity;
   private enabled = true;
   private saveCallback: SaveCallback | null = null;
-  private totalQuota: number;          // Bytes
+  private totalQuota: number; // Bytes
   private usedBytes = 0;
 
   constructor(maxSlots = 5, autoInterval = 60000, totalQuota = 10_000_000) {
@@ -46,9 +46,15 @@ export class AutoSaveSystem {
   // Configuration
   // ---------------------------------------------------------------------------
 
-  setEnabled(enabled: boolean): void { this.enabled = enabled; }
-  setInterval(ms: number): void { this.autoInterval = ms; }
-  onSave(callback: SaveCallback): void { this.saveCallback = callback; }
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+  }
+  setInterval(ms: number): void {
+    this.autoInterval = ms;
+  }
+  onSave(callback: SaveCallback): void {
+    this.saveCallback = callback;
+  }
 
   // ---------------------------------------------------------------------------
   // Save Management
@@ -73,7 +79,14 @@ export class AutoSaveSystem {
     this.usedBytes -= existingSize;
     this.usedBytes += size;
 
-    const slot: SaveSlot = { id: slotId, label, timestamp: Date.now(), data, sizeBytes: size, isAutoSave };
+    const slot: SaveSlot = {
+      id: slotId,
+      label,
+      timestamp: Date.now(),
+      data,
+      sizeBytes: size,
+      isAutoSave,
+    };
     this.slots.set(slotId, slot);
 
     if (this.saveCallback) this.saveCallback(slot);
@@ -122,8 +135,16 @@ export class AutoSaveSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getSlots(): SaveSlot[] { return [...this.slots.values()].sort((a, b) => b.timestamp - a.timestamp); }
-  getSlotCount(): number { return this.slots.size; }
-  getUsedBytes(): number { return this.usedBytes; }
-  getQuota(): number { return this.totalQuota; }
+  getSlots(): SaveSlot[] {
+    return [...this.slots.values()].sort((a, b) => b.timestamp - a.timestamp);
+  }
+  getSlotCount(): number {
+    return this.slots.size;
+  }
+  getUsedBytes(): number {
+    return this.usedBytes;
+  }
+  getQuota(): number {
+    return this.totalQuota;
+  }
 }

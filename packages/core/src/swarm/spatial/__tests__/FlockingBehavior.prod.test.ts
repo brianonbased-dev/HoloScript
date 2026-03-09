@@ -62,7 +62,8 @@ describe('FlockingBehavior — boid CRUD', () => {
   });
   it('getAllBoids returns all boids', () => {
     const flock = mkFlock();
-    flock.addBoid('a', v(0)); flock.addBoid('b', v(1));
+    flock.addBoid('a', v(0));
+    flock.addBoid('b', v(1));
     expect(flock.getAllBoids()).toHaveLength(2);
   });
   it('setBoidPosition moves boid', () => {
@@ -82,20 +83,20 @@ describe('FlockingBehavior — findNeighbors', () => {
     const b1 = flock.addBoid('A', v(0), v(0));
     flock.addBoid('B', v(10), v(0));
     const neighbors = flock.findNeighbors(b1, 20);
-    expect(neighbors.some(n => n.id === 'B')).toBe(true);
+    expect(neighbors.some((n) => n.id === 'B')).toBe(true);
   });
   it('excludes boid outside radius', () => {
     const flock = mkFlock();
     const b1 = flock.addBoid('A', v(0), v(0));
     flock.addBoid('B', v(100), v(0));
     const neighbors = flock.findNeighbors(b1, 20);
-    expect(neighbors.some(n => n.id === 'B')).toBe(false);
+    expect(neighbors.some((n) => n.id === 'B')).toBe(false);
   });
   it('excludes self from neighbors', () => {
     const flock = mkFlock();
     const b1 = flock.addBoid('self', v(0), v(0));
     const neighbors = flock.findNeighbors(b1, 999);
-    expect(neighbors.every(n => n.id !== 'self')).toBe(true);
+    expect(neighbors.every((n) => n.id !== 'self')).toBe(true);
   });
 });
 
@@ -187,9 +188,10 @@ describe('FlockingBehavior — update', () => {
   });
   it('applyForceToAll affects all boids', () => {
     const flock = mkFlock();
-    flock.addBoid('x1', v(0), v(0)); flock.addBoid('x2', v(5), v(0));
+    flock.addBoid('x1', v(0), v(0));
+    flock.addBoid('x2', v(5), v(0));
     flock.applyForceToAll(v(0, 0, 2));
-    flock.getAllBoids().forEach(b => expect(b.acceleration.z).toBe(2));
+    flock.getAllBoids().forEach((b) => expect(b.acceleration.z).toBe(2));
   });
 });
 
@@ -200,7 +202,8 @@ describe('FlockingBehavior — analytics', () => {
   });
   it('getFlockCenter returns centroid', () => {
     const flock = mkFlock();
-    flock.addBoid('a', v(0), v(0)); flock.addBoid('b', v(10), v(0));
+    flock.addBoid('a', v(0), v(0));
+    flock.addBoid('b', v(10), v(0));
     expect(flock.getFlockCenter().x).toBeCloseTo(5, 5);
   });
   it('getFlockSpread = 0 for single boid', () => {
@@ -210,7 +213,8 @@ describe('FlockingBehavior — analytics', () => {
   });
   it('getFlockSpread > 0 for spread boids', () => {
     const flock = mkFlock();
-    flock.addBoid('a', v(0), v(0)); flock.addBoid('b', v(100), v(0));
+    flock.addBoid('a', v(0), v(0));
+    flock.addBoid('b', v(100), v(0));
     expect(flock.getFlockSpread()).toBeGreaterThan(0);
   });
   it('getFlockDirection returns unit vector', () => {

@@ -11,6 +11,7 @@ holoscript compile my-experience.holo --target unreal --output ./build/unreal/
 ```
 
 **Output structure:**
+
 ```
 build/unreal/
 ├── Source/
@@ -26,11 +27,13 @@ build/unreal/
 ### 2. Unreal Project Setup
 
 **Minimum requirements:**
+
 - Unreal Engine 5.1 or newer
 - C++ compiler (Visual Studio 2022 on Windows)
 - VR Template (or enable VR plugins manually)
 
 **Enable VR plugins:**
+
 ```
 Edit > Plugins
 ✓ OpenXR
@@ -50,6 +53,7 @@ Edit > Plugins
 ### PCVR (SteamVR)
 
 **Project Settings:**
+
 ```
 Edit > Project Settings
 - Platforms > Windows > Target RHI: DirectX 12
@@ -62,6 +66,7 @@ Edit > Project Settings
 ### Quest (via Link/Air Link)
 
 **Project Settings:**
+
 ```
 - Platforms > Android
 - Build > Support Vulkan: True
@@ -69,6 +74,7 @@ Edit > Project Settings
 ```
 
 **Optimize:**
+
 - Forward Shading Renderer
 - Mobile HDR: False
 - Target 72-90 FPS
@@ -76,26 +82,28 @@ Edit > Project Settings
 ### Standalone VR (Valve Index, Vive)
 
 **Settings:**
+
 - OpenXR as primary VR plugin
 - Steam VR as fallback
 - Motion controller support enabled
 
 ## HoloScript → Unreal Mappings
 
-| HoloScript | Unreal Equivalent |
-|------------|------------------|
-| `composition` | Level with Game Mode |
-| `object#name` | Actor with Components |
-| `@physics` | Static Mesh + Physics |
-| `@interactive` | Grab Component (VR) |
-| `camera#player @vr` | Pawn with VR Camera |
-| `light#sun` | Directional Light Actor |
-| `audio#bgm` | Audio Component |
-| `ui#hud` | Widget Blueprint |
+| HoloScript          | Unreal Equivalent       |
+| ------------------- | ----------------------- |
+| `composition`       | Level with Game Mode    |
+| `object#name`       | Actor with Components   |
+| `@physics`          | Static Mesh + Physics   |
+| `@interactive`      | Grab Component (VR)     |
+| `camera#player @vr` | Pawn with VR Camera     |
+| `light#sun`         | Directional Light Actor |
+| `audio#bgm`         | Audio Component         |
+| `ui#hud`            | Widget Blueprint        |
 
 ## Example: VR Interaction
 
 **HoloScript:**
+
 ```holoscript
 object#cube @physics @interactive {
   type: "cube"
@@ -108,6 +116,7 @@ object#cube @physics @interactive {
 ```
 
 **Generated Unreal C++ Header:**
+
 ```cpp
 // CubeActor.h
 #pragma once
@@ -136,6 +145,7 @@ public:
 ```
 
 **Generated Unreal C++ Source:**
+
 ```cpp
 // CubeActor.cpp
 #include "CubeActor.h"
@@ -161,11 +171,13 @@ void ACubeActor::OnGrab(UMotionControllerComponent* Controller)
 ## Performance Tips
 
 ### Target Frame Rates
+
 - **PCVR (Index, Vive)**: 90-120 FPS
 - **Quest via Link**: 72-90 FPS
 - **PSVR2**: 90-120 FPS
 
 ### Optimization Checklist
+
 - [ ] Use Forward Shading Renderer (VR-optimized)
 - [ ] Enable Instanced Stereo Rendering
 - [ ] Use LODs (3-4 levels recommended)
@@ -175,6 +187,7 @@ void ACubeActor::OnGrab(UMotionControllerComponent* Controller)
 - [ ] Enable Lumen for high-end PCVR (UE5)
 
 ### Unreal Insights Profiler
+
 ```
 Session Frontend > Insights
 - Frame time: <11.1ms (90 FPS) or <8.3ms (120 FPS)
@@ -183,6 +196,7 @@ Session Frontend > Insights
 ```
 
 ### Shader Complexity View
+
 ```
 Alt + 8 (in viewport)
 Green = Good
@@ -193,22 +207,26 @@ Red = Too complex
 ## Troubleshooting
 
 ### C++ Compile Errors
+
 1. Regenerate project files (right-click .uproject)
 2. Clean solution in Visual Studio
 3. Rebuild
 
 ### VR not launching
+
 1. Enable OpenXR plugin
 2. Set "Start in VR" to True
 3. Check SteamVR is running
 
 ### Poor Quest performance
+
 - Switch to Forward Renderer
 - Disable Lumen (use baked lighting)
 - Reduce texture sizes
 - Use Mobile Preview (ES3.1) for testing
 
 ### Black screen in VR
+
 - Check VR Preview mode (Alt + P)
 - Ensure VR Camera is at player start
 - Verify HMD is primary display
@@ -216,7 +234,9 @@ Red = Too complex
 ## Advanced Features
 
 ### Blueprints Integration
+
 HoloScript objects can be extended with Blueprints:
+
 ```
 1. Find generated Actor in Content Browser
 2. Right-click > Create Blueprint Class
@@ -224,6 +244,7 @@ HoloScript objects can be extended with Blueprints:
 ```
 
 ### Material System
+
 ```holoscript
 object#gem {
   material {
@@ -240,6 +261,7 @@ object#gem {
 Compiles to Unreal Material with PBR nodes.
 
 ### Niagara Particles
+
 ```holoscript
 particle_effect#explosion {
   type: "burst"
@@ -251,6 +273,7 @@ particle_effect#explosion {
 ```
 
 ### Metasounds Audio
+
 ```holoscript
 audio#3d_sound @positional {
   source: "explosion.wav"
@@ -265,6 +288,7 @@ audio#3d_sound @positional {
 ## Packaging for Distribution
 
 ### Windows PCVR
+
 ```
 File > Package Project > Windows (64-bit)
 - Shipping configuration
@@ -272,6 +296,7 @@ File > Package Project > Windows (64-bit)
 ```
 
 ### Quest (Android)
+
 ```
 File > Package Project > Android (Multi)
 - Development or Shipping

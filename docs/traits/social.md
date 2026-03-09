@@ -20,26 +20,26 @@ object "SharedCube" @networked(
 }
 ```
 
-| Config              | Type    | Default    | Description                                             |
-| ------------------- | ------- | ---------- | ------------------------------------------------------- |
-| `sync_position`     | bool    | `true`     | Replicate world position.                               |
-| `sync_rotation`     | bool    | `true`     | Replicate world rotation.                               |
-| `sync_scale`        | bool    | `false`    | Replicate scale.                                        |
-| `sync_rate`         | number  | `20`       | Network updates per second (1–120).                     |
-| `interpolation`     | bool    | `true`     | Smooth position/rotation between updates.               |
-| `ownership_model`   | string  | `"host"`   | `"host"` (host owns), `"any"` (grabber owns), `"sticky"` (first grabber keeps). |
-| `reliable`          | bool    | `false`    | Use reliable delivery for this object's updates.        |
-| `compress_state`    | bool    | `true`     | Apply delta compression before sending.                 |
-| `latency_tolerance` | number  | `150`      | Max ms of lag before interpolation extrapolates.        |
+| Config              | Type   | Default  | Description                                                                     |
+| ------------------- | ------ | -------- | ------------------------------------------------------------------------------- |
+| `sync_position`     | bool   | `true`   | Replicate world position.                                                       |
+| `sync_rotation`     | bool   | `true`   | Replicate world rotation.                                                       |
+| `sync_scale`        | bool   | `false`  | Replicate scale.                                                                |
+| `sync_rate`         | number | `20`     | Network updates per second (1–120).                                             |
+| `interpolation`     | bool   | `true`   | Smooth position/rotation between updates.                                       |
+| `ownership_model`   | string | `"host"` | `"host"` (host owns), `"any"` (grabber owns), `"sticky"` (first grabber keeps). |
+| `reliable`          | bool   | `false`  | Use reliable delivery for this object's updates.                                |
+| `compress_state`    | bool   | `true`   | Apply delta compression before sending.                                         |
+| `latency_tolerance` | number | `150`    | Max ms of lag before interpolation extrapolates.                                |
 
 **Events — Outgoing:**
 
-| Event                  | Payload                              | Description                    |
-| ---------------------- | ------------------------------------ | ------------------------------ |
-| `network_spawn`        | `{ object_id, owner_id }`            | Object created on remote peer. |
-| `network_despawn`      | `{ object_id }`                      | Object removed on remote peer. |
-| `network_owner_changed`| `{ object_id, old_owner, new_owner }`| Ownership transferred.         |
-| `network_state_update` | `{ object_id, position?, rotation? }`| State update received.         |
+| Event                   | Payload                               | Description                    |
+| ----------------------- | ------------------------------------- | ------------------------------ |
+| `network_spawn`         | `{ object_id, owner_id }`             | Object created on remote peer. |
+| `network_despawn`       | `{ object_id }`                       | Object removed on remote peer. |
+| `network_owner_changed` | `{ object_id, old_owner, new_owner }` | Ownership transferred.         |
+| `network_state_update`  | `{ object_id, position?, rotation? }` | State update received.         |
 
 **Ownership example:**
 
@@ -133,8 +133,8 @@ object SpectatorCam @spectator {
 
 ---
 
-
 ## See Also
+
 - [Web3 Traits](/traits/web3)
 - [IoT Traits](/traits/iot)
 - [API Reference](/api/)

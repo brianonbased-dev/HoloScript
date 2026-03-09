@@ -172,9 +172,18 @@ describe('AgentMessaging', () => {
       const handler = vi.fn();
       alice.subscribe(channelId, handler);
 
-      const msg = { id: 'msg1', channelId, senderId: 'bob', recipientId: 'alice',
-        type: 'chat', payload: { text: 'hi' }, timestamp: Date.now(),
-        encrypted: false, priority: 'normal' as const, status: 'sent' as const };
+      const msg = {
+        id: 'msg1',
+        channelId,
+        senderId: 'bob',
+        recipientId: 'alice',
+        type: 'chat',
+        payload: { text: 'hi' },
+        timestamp: Date.now(),
+        encrypted: false,
+        priority: 'normal' as const,
+        status: 'sent' as const,
+      };
 
       alice.handleMessage(msg);
       expect(handler).toHaveBeenCalledOnce();
@@ -185,9 +194,18 @@ describe('AgentMessaging', () => {
       const unsub = alice.subscribe(channelId, handler);
       unsub();
 
-      const msg = { id: 'msg2', channelId, senderId: 'bob', recipientId: 'alice',
-        type: 'ping', payload: {}, timestamp: Date.now(),
-        encrypted: false, priority: 'normal' as const, status: 'sent' as const };
+      const msg = {
+        id: 'msg2',
+        channelId,
+        senderId: 'bob',
+        recipientId: 'alice',
+        type: 'ping',
+        payload: {},
+        timestamp: Date.now(),
+        encrypted: false,
+        priority: 'normal' as const,
+        status: 'sent' as const,
+      };
 
       alice.handleMessage(msg);
       expect(handler).not.toHaveBeenCalled();
@@ -199,9 +217,18 @@ describe('AgentMessaging', () => {
       const handler = vi.fn();
       alice.subscribeToType('special', handler);
 
-      const ping = { id: 'm1', channelId, senderId: 'bob', recipientId: 'alice',
-        type: 'ping', payload: {}, timestamp: Date.now(),
-        encrypted: false, priority: 'normal' as const, status: 'sent' as const };
+      const ping = {
+        id: 'm1',
+        channelId,
+        senderId: 'bob',
+        recipientId: 'alice',
+        type: 'ping',
+        payload: {},
+        timestamp: Date.now(),
+        encrypted: false,
+        priority: 'normal' as const,
+        status: 'sent' as const,
+      };
       const special = { ...ping, id: 'm2', type: 'special' };
 
       alice.handleMessage(ping);
@@ -216,9 +243,18 @@ describe('AgentMessaging', () => {
 
   describe('handleMessage', () => {
     it('returns delivered ack for correct recipient', () => {
-      const msg = { id: 'msg3', channelId, senderId: 'bob', recipientId: 'alice',
-        type: 'ping', payload: {}, timestamp: Date.now(),
-        encrypted: false, priority: 'normal' as const, status: 'sent' as const };
+      const msg = {
+        id: 'msg3',
+        channelId,
+        senderId: 'bob',
+        recipientId: 'alice',
+        type: 'ping',
+        payload: {},
+        timestamp: Date.now(),
+        encrypted: false,
+        priority: 'normal' as const,
+        status: 'sent' as const,
+      };
 
       const ack = alice.handleMessage(msg);
       expect(ack.status).toBe('delivered');
@@ -226,9 +262,18 @@ describe('AgentMessaging', () => {
     });
 
     it('returns failed ack if not intended recipient', () => {
-      const msg = { id: 'msg4', channelId, senderId: 'alice', recipientId: 'carol',
-        type: 'ping', payload: {}, timestamp: Date.now(),
-        encrypted: false, priority: 'normal' as const, status: 'sent' as const };
+      const msg = {
+        id: 'msg4',
+        channelId,
+        senderId: 'alice',
+        recipientId: 'carol',
+        type: 'ping',
+        payload: {},
+        timestamp: Date.now(),
+        encrypted: false,
+        priority: 'normal' as const,
+        status: 'sent' as const,
+      };
 
       const ack = bob.handleMessage(msg);
       expect(ack.status).toBe('failed');
@@ -237,9 +282,17 @@ describe('AgentMessaging', () => {
     it('emits message:received', () => {
       const listener = vi.fn();
       alice.on('message:received', listener);
-      const msg = { id: 'msg5', channelId, senderId: 'bob',
-        type: 'ping', payload: {}, timestamp: Date.now(),
-        encrypted: false, priority: 'normal' as const, status: 'sent' as const };
+      const msg = {
+        id: 'msg5',
+        channelId,
+        senderId: 'bob',
+        type: 'ping',
+        payload: {},
+        timestamp: Date.now(),
+        encrypted: false,
+        priority: 'normal' as const,
+        status: 'sent' as const,
+      };
       alice.handleMessage(msg as any);
       expect(listener).toHaveBeenCalledOnce();
     });
@@ -254,18 +307,33 @@ describe('AgentMessaging', () => {
       const msg = alice.send(channelId, 'bob', 'ping', {})!;
       expect(alice.getPendingCount()).toBe(1);
 
-      alice.handleAck({ messageId: msg.id, recipientId: 'bob', status: 'delivered', timestamp: Date.now() });
+      alice.handleAck({
+        messageId: msg.id,
+        recipientId: 'bob',
+        status: 'delivered',
+        timestamp: Date.now(),
+      });
       expect(alice.getPendingCount()).toBe(0);
     });
 
     it('removes pending message on read ack', () => {
       const msg = alice.send(channelId, 'bob', 'ping', {})!;
-      alice.handleAck({ messageId: msg.id, recipientId: 'bob', status: 'read', timestamp: Date.now() });
+      alice.handleAck({
+        messageId: msg.id,
+        recipientId: 'bob',
+        status: 'read',
+        timestamp: Date.now(),
+      });
       expect(alice.getPendingCount()).toBe(0);
     });
 
     it('ignores ack for unknown message id', () => {
-      alice.handleAck({ messageId: 'ghost-msg', recipientId: 'bob', status: 'delivered', timestamp: Date.now() });
+      alice.handleAck({
+        messageId: 'ghost-msg',
+        recipientId: 'bob',
+        status: 'delivered',
+        timestamp: Date.now(),
+      });
       // Should not throw
     });
   });
@@ -317,9 +385,17 @@ describe('AgentMessaging', () => {
       alice.subscribe(channelId, handler);
       alice.clearSubscriptions();
 
-      const msg = { id: 'mx', channelId, senderId: 'bob', type: 'ping',
-        payload: {}, timestamp: Date.now(), encrypted: false,
-        priority: 'normal' as const, status: 'sent' as const };
+      const msg = {
+        id: 'mx',
+        channelId,
+        senderId: 'bob',
+        type: 'ping',
+        payload: {},
+        timestamp: Date.now(),
+        encrypted: false,
+        priority: 'normal' as const,
+        status: 'sent' as const,
+      };
       alice.handleMessage(msg as any);
       expect(handler).not.toHaveBeenCalled();
     });

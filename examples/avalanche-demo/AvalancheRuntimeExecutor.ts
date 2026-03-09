@@ -9,7 +9,12 @@
 
 import { AvalancheDemoScene, type AvalancheDemoSceneConfig } from './AvalancheDemoScene';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
-import type { RuntimeRenderer, RenderableObject, RenderableLight, ParticleSystem } from '../../runtime/RuntimeRenderer';
+import type {
+  RuntimeRenderer,
+  RenderableObject,
+  RenderableLight,
+  ParticleSystem,
+} from '../../runtime/RuntimeRenderer';
 
 export interface AvalancheRuntimeConfig {
   /** Enable debug logging */
@@ -288,7 +293,9 @@ export class AvalancheRuntimeExecutor {
         );
 
         if (this.config.debug && this.currentFrame % 60 === 0) {
-          console.log(`[AvalancheRuntimeExecutor] Synced ${particleData.count} particles to renderer`);
+          console.log(
+            `[AvalancheRuntimeExecutor] Synced ${particleData.count} particles to renderer`
+          );
         }
       }
     }
@@ -307,7 +314,9 @@ export class AvalancheRuntimeExecutor {
     this.scene.triggerAvalanche({ x, y, z }, radius);
 
     if (this.config.debug) {
-      console.log(`[AvalancheRuntimeExecutor] Triggered avalanche at (${x}, ${y}, ${z}) with radius ${radius}`);
+      console.log(
+        `[AvalancheRuntimeExecutor] Triggered avalanche at (${x}, ${y}, ${z}) with radius ${radius}`
+      );
     }
   }
 

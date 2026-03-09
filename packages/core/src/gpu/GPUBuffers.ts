@@ -161,7 +161,7 @@ export class GPUBufferManager {
       positionBufferSize: `${(this.positionBufferSize / 1024 / 1024).toFixed(2)} MB`,
       velocityBufferSize: `${(this.velocityBufferSize / 1024 / 1024).toFixed(2)} MB`,
       stateBufferSize: `${(this.stateBufferSize / 1024 / 1024).toFixed(2)} MB`,
-      totalSize: `${((this.positionBufferSize + this.velocityBufferSize + this.stateBufferSize) * 2 / 1024 / 1024).toFixed(2)} MB`,
+      totalSize: `${(((this.positionBufferSize + this.velocityBufferSize + this.stateBufferSize) * 2) / 1024 / 1024).toFixed(2)} MB`,
     });
   }
 
@@ -388,9 +388,12 @@ export function createInitialParticleData(
     const idx = i * 4;
 
     // Random position (x, y, z, radius)
-    positions[idx + 0] = Math.random() * (positionRange.max - positionRange.min) + positionRange.min;
-    positions[idx + 1] = Math.random() * (positionRange.max - positionRange.min) + positionRange.min;
-    positions[idx + 2] = Math.random() * (positionRange.max - positionRange.min) + positionRange.min;
+    positions[idx + 0] =
+      Math.random() * (positionRange.max - positionRange.min) + positionRange.min;
+    positions[idx + 1] =
+      Math.random() * (positionRange.max - positionRange.min) + positionRange.min;
+    positions[idx + 2] =
+      Math.random() * (positionRange.max - positionRange.min) + positionRange.min;
     positions[idx + 3] = radius;
 
     // Zero velocity (vx, vy, vz, mass)

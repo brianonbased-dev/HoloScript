@@ -18,7 +18,9 @@ const baseConfig = {
 describe('ProjectorLight', () => {
   let pl: ProjectorLight;
 
-  beforeEach(() => { pl = new ProjectorLight(); });
+  beforeEach(() => {
+    pl = new ProjectorLight();
+  });
 
   // CRUD
   it('create adds projector', () => {

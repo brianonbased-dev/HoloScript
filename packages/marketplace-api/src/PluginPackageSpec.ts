@@ -30,14 +30,14 @@ import type { TraitCategory, Platform, LicenseType, Author } from './types.js';
  */
 export type PluginCategory =
   | TraitCategory
-  | 'editor'           // Editor extensions (panels, toolbars, themes)
-  | 'workflow'          // Workflow automation and node types
-  | 'export'           // Export target plugins
-  | 'collaboration'    // Real-time collaboration tools
-  | 'analytics'        // Telemetry, profiling, analytics
-  | 'accessibility'    // A11y tools and audits
-  | 'marketplace'      // Marketplace extensions (themes, templates)
-  | 'integration';     // Third-party service integrations
+  | 'editor' // Editor extensions (panels, toolbars, themes)
+  | 'workflow' // Workflow automation and node types
+  | 'export' // Export target plugins
+  | 'collaboration' // Real-time collaboration tools
+  | 'analytics' // Telemetry, profiling, analytics
+  | 'accessibility' // A11y tools and audits
+  | 'marketplace' // Marketplace extensions (themes, templates)
+  | 'integration'; // Third-party service integrations
 
 /**
  * Plugin pricing model
@@ -550,7 +550,8 @@ export interface PluginSearchFacets {
  */
 export interface PluginPublishRequest {
   /** The plugin package manifest */
-  manifest: Omit<PluginPackageManifest,
+  manifest: Omit<
+    PluginPackageManifest,
     | '$schema'
     | 'downloads'
     | 'rating'
@@ -610,10 +611,10 @@ export interface PluginPublishResult {
 export type PluginInstallState =
   | 'not_installed'
   | 'downloading'
-  | 'verifying'         // Signature + integrity check
+  | 'verifying' // Signature + integrity check
   | 'extracting'
-  | 'resolving_deps'    // Resolving and installing dependencies
-  | 'installing'        // Running install hooks
+  | 'resolving_deps' // Resolving and installing dependencies
+  | 'installing' // Running install hooks
   | 'installed'
   | 'enabled'
   | 'disabled'
@@ -853,7 +854,12 @@ export interface IPluginMarketplaceAPI {
   // ── Publishing ────────────────────────────────────────────────────────────
   publishPlugin(request: PluginPublishRequest, token: string): Promise<PluginPublishResult>;
   unpublishPlugin(pluginId: string, version?: string, token?: string): Promise<void>;
-  deprecatePlugin(pluginId: string, message: string, replacement?: string, token?: string): Promise<void>;
+  deprecatePlugin(
+    pluginId: string,
+    message: string,
+    replacement?: string,
+    token?: string
+  ): Promise<void>;
 
   // ── Discovery ─────────────────────────────────────────────────────────────
   searchPlugins(query: PluginSearchQuery): Promise<PluginSearchResult>;
@@ -866,22 +872,36 @@ export interface IPluginMarketplaceAPI {
   getMarketplaceHome(): Promise<MarketplaceHomeData>;
 
   // ── Download & Install ────────────────────────────────────────────────────
-  downloadPlugin(pluginId: string, version?: string): Promise<{ downloadUrl: string; shasum: string; size: number }>;
+  downloadPlugin(
+    pluginId: string,
+    version?: string
+  ): Promise<{ downloadUrl: string; shasum: string; size: number }>;
   recordPluginDownload(pluginId: string, version: string): Promise<void>;
 
   // ── Signature Verification ────────────────────────────────────────────────
   verifyPluginSignature(pluginId: string, version: string): Promise<SignatureVerificationResult>;
-  registerSigningKey(publicKey: string, token: string): Promise<{ keyId: string; fingerprint: string }>;
+  registerSigningKey(
+    publicKey: string,
+    token: string
+  ): Promise<{ keyId: string; fingerprint: string }>;
   revokeSigningKey(keyId: string, token: string): Promise<void>;
 
   // ── Dependencies ──────────────────────────────────────────────────────────
-  resolvePluginDependencies(pluginId: string, version?: string): Promise<{
+  resolvePluginDependencies(
+    pluginId: string,
+    version?: string
+  ): Promise<{
     resolved: Array<{ pluginId: string; version: string }>;
     conflicts: string[];
   }>;
 
   // ── Ratings & Reviews ─────────────────────────────────────────────────────
-  ratePlugin(pluginId: string, rating: number, review?: { title?: string; body?: string }, token?: string): Promise<void>;
+  ratePlugin(
+    pluginId: string,
+    rating: number,
+    review?: { title?: string; body?: string },
+    token?: string
+  ): Promise<void>;
   getPluginRatings(pluginId: string, page?: number): Promise<PluginRatingData>;
 
   // ── Stats ─────────────────────────────────────────────────────────────────

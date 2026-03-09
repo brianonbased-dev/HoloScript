@@ -11,7 +11,11 @@ import type { TraitHandler } from './TraitTypes';
 export type SSSMethod = 'burley' | 'christensen_burley' | 'random_walk' | 'screen_space';
 export type SSSPreset = 'skin' | 'wax' | 'jade' | 'marble' | 'leaf' | 'custom';
 
-export interface SSSColor { r: number; g: number; b: number; }
+export interface SSSColor {
+  r: number;
+  g: number;
+  b: number;
+}
 
 export interface SubsurfaceScatteringConfig {
   method: SSSMethod;
@@ -25,11 +29,31 @@ export interface SubsurfaceScatteringConfig {
 }
 
 const PRESETS: Record<SSSPreset, Partial<SubsurfaceScatteringConfig>> = {
-  skin:   { scatterRadius: { r: 1.0, g: 0.2, b: 0.1 }, intensity: 1.0, subsurfaceColor: { r: 0.8, g: 0.5, b: 0.4 } },
-  wax:    { scatterRadius: { r: 0.3, g: 0.3, b: 0.2 }, intensity: 0.8, subsurfaceColor: { r: 0.9, g: 0.8, b: 0.6 } },
-  jade:   { scatterRadius: { r: 0.05, g: 0.15, b: 0.05 }, intensity: 0.6, subsurfaceColor: { r: 0.1, g: 0.7, b: 0.3 } },
-  marble: { scatterRadius: { r: 0.2, g: 0.2, b: 0.2 }, intensity: 0.5, subsurfaceColor: { r: 0.9, g: 0.9, b: 0.9 } },
-  leaf:   { scatterRadius: { r: 0.05, g: 0.4, b: 0.05 }, intensity: 0.7, subsurfaceColor: { r: 0.1, g: 0.8, b: 0.1 } },
+  skin: {
+    scatterRadius: { r: 1.0, g: 0.2, b: 0.1 },
+    intensity: 1.0,
+    subsurfaceColor: { r: 0.8, g: 0.5, b: 0.4 },
+  },
+  wax: {
+    scatterRadius: { r: 0.3, g: 0.3, b: 0.2 },
+    intensity: 0.8,
+    subsurfaceColor: { r: 0.9, g: 0.8, b: 0.6 },
+  },
+  jade: {
+    scatterRadius: { r: 0.05, g: 0.15, b: 0.05 },
+    intensity: 0.6,
+    subsurfaceColor: { r: 0.1, g: 0.7, b: 0.3 },
+  },
+  marble: {
+    scatterRadius: { r: 0.2, g: 0.2, b: 0.2 },
+    intensity: 0.5,
+    subsurfaceColor: { r: 0.9, g: 0.9, b: 0.9 },
+  },
+  leaf: {
+    scatterRadius: { r: 0.05, g: 0.4, b: 0.05 },
+    intensity: 0.7,
+    subsurfaceColor: { r: 0.1, g: 0.8, b: 0.1 },
+  },
   custom: {},
 };
 
@@ -37,10 +61,16 @@ export const SubsurfaceScatteringTrait: TraitHandler<SubsurfaceScatteringConfig>
   name: 'subsurface_scattering',
 
   validate(config: SubsurfaceScatteringConfig): boolean {
-    const validMethods: SSSMethod[] = ['burley', 'christensen_burley', 'random_walk', 'screen_space'];
-    if (!validMethods.includes(config.method)) throw new Error(`Invalid SSS method: ${config.method}`);
+    const validMethods: SSSMethod[] = [
+      'burley',
+      'christensen_burley',
+      'random_walk',
+      'screen_space',
+    ];
+    if (!validMethods.includes(config.method))
+      throw new Error(`Invalid SSS method: ${config.method}`);
     if (config.intensity < 0) throw new Error('SSS intensity must be >= 0');
-    const rgb = (c: SSSColor) => [c.r, c.g, c.b].every(v => v >= 0);
+    const rgb = (c: SSSColor) => [c.r, c.g, c.b].every((v) => v >= 0);
     if (!rgb(config.scatterRadius)) throw new Error('scatterRadius channels must be >= 0');
     if (!rgb(config.subsurfaceColor)) throw new Error('subsurfaceColor channels must be >= 0');
     if (config.transmission?.enabled && config.transmission.thickness <= 0) {
@@ -50,15 +80,23 @@ export const SubsurfaceScatteringTrait: TraitHandler<SubsurfaceScatteringConfig>
   },
 
   compile(config: SubsurfaceScatteringConfig, target: string): string {
-    const c = config.preset && config.preset !== 'custom'
-      ? { ...PRESETS[config.preset], ...config } as SubsurfaceScatteringConfig
-      : config;
+    const c =
+      config.preset && config.preset !== 'custom'
+        ? ({ ...PRESETS[config.preset], ...config } as SubsurfaceScatteringConfig)
+        : config;
     switch (target) {
-      case 'unity': return this.compileUnity(c);
-      case 'unreal': return this.compileUnreal(c);
-      case 'web': case 'react-three-fiber': case 'babylon': return this.compileWeb(c);
-      case 'webgpu': return this.compileWebGPU(c);
-      default: return this.compileGeneric(c);
+      case 'unity':
+        return this.compileUnity(c);
+      case 'unreal':
+        return this.compileUnreal(c);
+      case 'web':
+      case 'react-three-fiber':
+      case 'babylon':
+        return this.compileWeb(c);
+      case 'webgpu':
+        return this.compileWebGPU(c);
+      default:
+        return this.compileGeneric(c);
     }
   },
 
@@ -73,9 +111,11 @@ public class SSSSetup : MonoBehaviour {
         mat.EnableKeyword("_MATERIAL_FEATURE_SUBSURFACE_SCATTERING");
         mat.SetColor("_SubsurfaceColor", new Color(${sc.r}f, ${sc.g}f, ${sc.b}f));
         mat.SetFloat("_SubsurfaceMask", ${intensity}f);
-        ${thicknessMap
-          ? `mat.SetTexture("_ThicknessMap", Resources.Load<Texture2D>("${thicknessMap}"));`
-          : `mat.SetFloat("_Thickness", ${tx?.thickness ?? 0.1}f);`}
+        ${
+          thicknessMap
+            ? `mat.SetTexture("_ThicknessMap", Resources.Load<Texture2D>("${thicknessMap}"));`
+            : `mat.SetFloat("_Thickness", ${tx?.thickness ?? 0.1}f);`
+        }
         ${tx?.enabled ? 'mat.EnableKeyword("_MATERIAL_FEATURE_TRANSMISSION");' : ''}
     }
 }`;

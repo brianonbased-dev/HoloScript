@@ -7,6 +7,7 @@
 Compiles HoloScript to JavaScript using [Three.js](https://threejs.org/) — the most popular 3D library for the web. The Three.js compiler is the default web target and is used by the HoloScript playground.
 
 Choose Three.js when you need:
+
 - The largest ecosystem of 3D web tooling
 - Fast iteration with Vite or Webpack
 - React Three Fiber integration
@@ -123,17 +124,17 @@ renderer.setAnimationLoop(() => {
 
 ## Trait Mapping
 
-| HoloScript Trait | Three.js Implementation |
-| --- | --- |
-| `@grabbable` | `XRGrabbable` (three-mesh-ui or custom) |
-| `@throwable` | Velocity tracking on release |
-| `@physics` | Cannon.js or Rapier WASM |
-| `@collidable` | Cannon.js/Rapier body |
-| `@glowing` | `emissiveIntensity` + `UnrealBloomPass` |
-| `@networked` | Socket.IO or Croquet |
-| `@spatial_audio` | `PositionalAudio` (Web Audio API) |
-| `@billboard` | `Sprite` or `Object3D.lookAt(camera)` |
-| `@hand_tracked` | `XRHand` API |
+| HoloScript Trait | Three.js Implementation                 |
+| ---------------- | --------------------------------------- |
+| `@grabbable`     | `XRGrabbable` (three-mesh-ui or custom) |
+| `@throwable`     | Velocity tracking on release            |
+| `@physics`       | Cannon.js or Rapier WASM                |
+| `@collidable`    | Cannon.js/Rapier body                   |
+| `@glowing`       | `emissiveIntensity` + `UnrealBloomPass` |
+| `@networked`     | Socket.IO or Croquet                    |
+| `@spatial_audio` | `PositionalAudio` (Web Audio API)       |
+| `@billboard`     | `Sprite` or `Object3D.lookAt(camera)`   |
+| `@hand_tracked`  | `XRHand` API                            |
 
 ## WebXR Setup
 
@@ -147,8 +148,8 @@ document.body.appendChild(VRButton.createButton(renderer));
 For hand tracking:
 
 ```javascript
-const hand1 = renderer.xr.getHand(0);  // right
-const hand2 = renderer.xr.getHand(1);  // left
+const hand1 = renderer.xr.getHand(0); // right
+const hand2 = renderer.xr.getHand(1); // left
 scene.add(hand1, hand2);
 ```
 

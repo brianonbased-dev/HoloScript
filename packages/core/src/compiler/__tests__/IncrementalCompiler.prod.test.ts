@@ -4,7 +4,7 @@
  * Tests public API only: diff(), compile(), cache management,
  * state snapshots, dependency graph, stats, serialize/deserialize.
  */
-import { describe, it, expect, vi} from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { IncrementalCompiler } from '../IncrementalCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
@@ -16,9 +16,12 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   };
 });
 
-
 // ─── Helpers ────────────────────────────────────────────────────────
-function makeObj(name: string, props: Array<{ key: string; value: unknown }> = [], traits: unknown[] = []): HoloObjectDecl {
+function makeObj(
+  name: string,
+  props: Array<{ key: string; value: unknown }> = [],
+  traits: unknown[] = []
+): HoloObjectDecl {
   return { name, properties: props, traits, children: [] } as HoloObjectDecl;
 }
 
@@ -160,7 +163,14 @@ describe('IncrementalCompiler — Production', () => {
 
   describe('resolveImports()', () => {
     // Helper: build a minimal HSPlusCompileResult-like object
-    function makeParseResult(imports: Array<{ path: string; alias: string; namedImports?: string[]; isWildcard?: boolean }> = []) {
+    function makeParseResult(
+      imports: Array<{
+        path: string;
+        alias: string;
+        namedImports?: string[];
+        isWildcard?: boolean;
+      }> = []
+    ) {
       return {
         ast: { imports },
         errors: [],
@@ -227,15 +237,17 @@ trait Orb {}`;
         '/project/b.hs': '@export\ntrait B {}',
       });
       // First resolve: scene imports a
-      await ic.resolveImports(
-        makeParseResult([{ path: './a.hs', alias: 'a' }]),
-        { baseDir: '/project', sourceFile: '/project/scene.hs', readFile }
-      );
+      await ic.resolveImports(makeParseResult([{ path: './a.hs', alias: 'a' }]), {
+        baseDir: '/project',
+        sourceFile: '/project/scene.hs',
+        readFile,
+      });
       // Second resolve: scene now imports b instead
-      await ic.resolveImports(
-        makeParseResult([{ path: './b.hs', alias: 'b' }]),
-        { baseDir: '/project', sourceFile: '/project/scene.hs', readFile }
-      );
+      await ic.resolveImports(makeParseResult([{ path: './b.hs', alias: 'b' }]), {
+        baseDir: '/project',
+        sourceFile: '/project/scene.hs',
+        readFile,
+      });
       const graph = ic.getTraitGraph();
       // old edge to a.hs should be gone
       expect(graph.getImportedFiles('/project/scene.hs').has('/project/a.hs')).toBe(false);

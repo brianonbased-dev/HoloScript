@@ -21,16 +21,22 @@ export function MinimapOverlay({ active, onClose }: MinimapOverlayProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const worldToSvg = useCallback((wx: number, wz: number) => {
-    const px = ((wx - bounds.minX) / (bounds.maxX - bounds.minX)) * MINIMAP_W;
-    const py = ((wz - bounds.minZ) / (bounds.maxZ - bounds.minZ)) * MINIMAP_H;
-    return { px, py };
-  }, [bounds]);
+  const worldToSvg = useCallback(
+    (wx: number, wz: number) => {
+      const px = ((wx - bounds.minX) / (bounds.maxX - bounds.minX)) * MINIMAP_W;
+      const py = ((wz - bounds.minZ) / (bounds.maxZ - bounds.minZ)) * MINIMAP_H;
+      return { px, py };
+    },
+    [bounds]
+  );
 
-  const worldToSvgSize = useCallback((w: number, h: number) => ({
-    sw: (w / (bounds.maxX - bounds.minX)) * MINIMAP_W,
-    sh: (h / (bounds.maxZ - bounds.minZ)) * MINIMAP_H,
-  }), [bounds]);
+  const worldToSvgSize = useCallback(
+    (w: number, h: number) => ({
+      sw: (w / (bounds.maxX - bounds.minX)) * MINIMAP_W,
+      sh: (h / (bounds.maxZ - bounds.minZ)) * MINIMAP_H,
+    }),
+    [bounds]
+  );
 
   if (!active) return null;
 
@@ -61,8 +67,22 @@ export function MinimapOverlay({ active, onClose }: MinimapOverlayProps) {
         {/* Grid lines */}
         {[...Array(5)].map((_, i) => (
           <g key={i}>
-            <line x1={MINIMAP_W * i / 4} y1={0} x2={MINIMAP_W * i / 4} y2={MINIMAP_H} stroke="#ffffff08" strokeWidth={0.5} />
-            <line x1={0} y1={MINIMAP_H * i / 4} x2={MINIMAP_W} y2={MINIMAP_H * i / 4} stroke="#ffffff08" strokeWidth={0.5} />
+            <line
+              x1={(MINIMAP_W * i) / 4}
+              y1={0}
+              x2={(MINIMAP_W * i) / 4}
+              y2={MINIMAP_H}
+              stroke="#ffffff08"
+              strokeWidth={0.5}
+            />
+            <line
+              x1={0}
+              y1={(MINIMAP_H * i) / 4}
+              x2={MINIMAP_W}
+              y2={(MINIMAP_H * i) / 4}
+              stroke="#ffffff08"
+              strokeWidth={0.5}
+            />
           </g>
         ))}
 
@@ -100,7 +120,8 @@ export function MinimapOverlay({ active, onClose }: MinimapOverlayProps) {
           }
 
           return (
-            <g key={o.name}
+            <g
+              key={o.name}
               onMouseEnter={() => setHovered(o.name)}
               onMouseLeave={() => setHovered(null)}
               style={{ cursor: 'pointer' }}

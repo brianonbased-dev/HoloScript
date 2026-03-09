@@ -91,13 +91,17 @@ describe('RPCManager: production', () => {
     });
 
     it('returns error when handler throws', () => {
-      rpc.register('crasher', () => { throw new Error('oops'); });
+      rpc.register('crasher', () => {
+        throw new Error('oops');
+      });
       const { error } = rpc.execute(0, 'crasher', [], 'client-1');
       expect(error).toBe('oops');
     });
 
     it('increments totalErrors stat on handler throw', () => {
-      rpc.register('crasher', () => { throw new Error('fail'); });
+      rpc.register('crasher', () => {
+        throw new Error('fail');
+      });
       rpc.execute(0, 'crasher', [], 'client-1');
       expect(rpc.getStats().totalErrors).toBeGreaterThan(0);
     });
@@ -123,7 +127,7 @@ describe('RPCManager: production', () => {
       rpc.respond(call.id, 'my-result');
       // Call is moved out of pending — check history
       const hist = rpc.getCallHistory();
-      const recorded = hist.find(c => c.id === call.id);
+      const recorded = hist.find((c) => c.id === call.id);
       expect(recorded?.result).toBe('my-result');
     });
 

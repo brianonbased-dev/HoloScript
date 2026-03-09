@@ -39,7 +39,8 @@ describe('EventBus — Production', () => {
 
   it('offAll removes all listeners for event', () => {
     const bus = new EventBus();
-    const cb1 = vi.fn(), cb2 = vi.fn();
+    const cb1 = vi.fn(),
+      cb2 = vi.fn();
     bus.on('test', cb1);
     bus.on('test', cb2);
     bus.offAll('test');

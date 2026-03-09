@@ -269,12 +269,16 @@ export const spatialHandTrackingHandler: TraitHandler<SpatialHandTrackingConfig>
     if (state.leftGesture !== state.prevLeftGesture) {
       if (state.prevLeftGesture) {
         context.emit?.('spatial_gesture_end', {
-          node, hand: 'left', gesture: state.prevLeftGesture,
+          node,
+          hand: 'left',
+          gesture: state.prevLeftGesture,
         });
       }
       if (state.leftGesture) {
         context.emit?.('spatial_gesture_start', {
-          node, hand: 'left', gesture: state.leftGesture,
+          node,
+          hand: 'left',
+          gesture: state.leftGesture,
         });
         if (config.haptic_on_gesture) {
           context.emit?.('haptic_pulse', { hand: 'left', intensity: 0.25, duration: 40 });
@@ -286,12 +290,16 @@ export const spatialHandTrackingHandler: TraitHandler<SpatialHandTrackingConfig>
     if (state.rightGesture !== state.prevRightGesture) {
       if (state.prevRightGesture) {
         context.emit?.('spatial_gesture_end', {
-          node, hand: 'right', gesture: state.prevRightGesture,
+          node,
+          hand: 'right',
+          gesture: state.prevRightGesture,
         });
       }
       if (state.rightGesture) {
         context.emit?.('spatial_gesture_start', {
-          node, hand: 'right', gesture: state.rightGesture,
+          node,
+          hand: 'right',
+          gesture: state.rightGesture,
         });
         if (config.haptic_on_gesture) {
           context.emit?.('haptic_pulse', { hand: 'right', intensity: 0.25, duration: 40 });
@@ -332,9 +340,8 @@ export const spatialHandTrackingHandler: TraitHandler<SpatialHandTrackingConfig>
             if (confidence < config.confidence_threshold) continue;
 
             const prev = handState.joints.get(jointName as SpatialHandJoint);
-            const finalPose = prev && config.smoothing > 0
-              ? smoothJointPose(pose, prev, config.smoothing)
-              : pose;
+            const finalPose =
+              prev && config.smoothing > 0 ? smoothJointPose(pose, prev, config.smoothing) : pose;
             handState.joints.set(jointName as SpatialHandJoint, finalPose);
           }
         }
@@ -816,8 +823,8 @@ export const spatialAnchorSharedHandler: TraitHandler<SpatialAnchorSharedConfig>
 export type SpatialControllerButton =
   | 'trigger'
   | 'grip'
-  | 'primary'     // A/X
-  | 'secondary'   // B/Y
+  | 'primary' // A/X
+  | 'secondary' // B/Y
   | 'thumbstick'
   | 'thumbstick_click'
   | 'touchpad'
@@ -964,14 +971,16 @@ export const spatialControllerInputHandler: TraitHandler<SpatialControllerInputC
         const { x, y } = ctrl.thumbstick;
         if (Math.abs(x) > config.dpad_threshold) {
           context.emit?.('spatial_dpad', {
-            node, hand,
+            node,
+            hand,
             direction: x > 0 ? 'right' : 'left',
             value: Math.abs(x),
           });
         }
         if (Math.abs(y) > config.dpad_threshold) {
           context.emit?.('spatial_dpad', {
-            node, hand,
+            node,
+            hand,
             direction: y > 0 ? 'up' : 'down',
             value: Math.abs(y),
           });
@@ -1046,7 +1055,9 @@ export const spatialControllerInputHandler: TraitHandler<SpatialControllerInputC
       // Connection events
       if (ctrl.connected && !wasConnected) {
         context.emit?.('spatial_controller_connected', {
-          node, hand, profiles: ctrl.profiles,
+          node,
+          hand,
+          profiles: ctrl.profiles,
         });
       } else if (!ctrl.connected && wasConnected) {
         context.emit?.('spatial_controller_disconnected', { node, hand });

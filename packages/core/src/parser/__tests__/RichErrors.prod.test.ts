@@ -172,8 +172,8 @@ describe('getErrorCodeDocumentation — Production', () => {
 
   it('categorizes codes correctly', () => {
     const docs = getErrorCodeDocumentation();
-    const syntax = docs.filter(d => d.category === 'Syntax');
-    const traits = docs.filter(d => d.category === 'Traits');
+    const syntax = docs.filter((d) => d.category === 'Syntax');
+    const traits = docs.filter((d) => d.category === 'Traits');
     expect(syntax.length).toBeGreaterThan(0);
     expect(traits.length).toBeGreaterThan(0);
   });

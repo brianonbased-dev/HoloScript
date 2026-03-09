@@ -4,7 +4,9 @@ import { LobbyManager } from '../network/LobbyManager';
 describe('LobbyManager', () => {
   let lm: LobbyManager;
 
-  beforeEach(() => { lm = new LobbyManager(); });
+  beforeEach(() => {
+    lm = new LobbyManager();
+  });
 
   it('createRoom creates room with host as player', () => {
     const room = lm.createRoom('h1', 'Host', { name: 'Test', maxPlayers: 4 });

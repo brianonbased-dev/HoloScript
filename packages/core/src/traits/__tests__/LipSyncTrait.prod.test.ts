@@ -100,11 +100,11 @@ describe('DEFAULT_FREQUENCY_BANDS', () => {
     }
   });
   it('low_vowel band targets viseme_O', () => {
-    const b = DEFAULT_FREQUENCY_BANDS.find(b => b.name === 'low_vowel');
+    const b = DEFAULT_FREQUENCY_BANDS.find((b) => b.name === 'low_vowel');
     expect(b?.target).toBe('viseme_O');
   });
   it('sibilant band covers 4000–8000 Hz range', () => {
-    const b = DEFAULT_FREQUENCY_BANDS.find(b => b.name === 'sibilant');
+    const b = DEFAULT_FREQUENCY_BANDS.find((b) => b.name === 'sibilant');
     expect(b?.low).toBe(4000);
     expect(b?.high).toBe(8000);
   });
@@ -249,7 +249,9 @@ describe('LipSyncTrait — session lifecycle', () => {
   it('session-end event includes sessionId', () => {
     const t = new LipSyncTrait();
     let capturedId: string | undefined;
-    t.on('session-end', e => { capturedId = e.sessionId; });
+    t.on('session-end', (e) => {
+      capturedId = e.sessionId;
+    });
     const id = t.startSession();
     t.endSession();
     expect(capturedId).toBe(id);
@@ -399,14 +401,14 @@ describe('LipSyncTrait — samplePhonemeAtTime', () => {
     const t = new LipSyncTrait();
     const data = [{ phoneme: 'aa', time: 0.0, duration: 1.0, weight: 1.0 }];
     const rStart = t.samplePhonemeAtTime(0.01, data); // 1% through = fade in
-    const rMid = t.samplePhonemeAtTime(0.5, data);   // 50% through = full
+    const rMid = t.samplePhonemeAtTime(0.5, data); // 50% through = full
     expect(rStart.weight).toBeLessThan(rMid.weight);
   });
   it('phoneme fade-out: weight drops near end of phoneme', () => {
     const t = new LipSyncTrait();
     const data = [{ phoneme: 'aa', time: 0.0, duration: 1.0, weight: 1.0 }];
     const rMid = t.samplePhonemeAtTime(0.5, data);
-    const rEnd = t.samplePhonemeAtTime(0.95, data);  // 95% through = fade out
+    const rEnd = t.samplePhonemeAtTime(0.95, data); // 95% through = fade out
     expect(rEnd.weight).toBeLessThan(rMid.weight);
   });
   it('stress markers are stripped from phoneme (aa1 → aa)', () => {
@@ -451,7 +453,9 @@ describe('LipSyncTrait — setViseme', () => {
   it('viseme-change event includes correct viseme and weight', () => {
     const t = new LipSyncTrait();
     let evt: any = null;
-    t.on('viseme-change', e => { evt = e; });
+    t.on('viseme-change', (e) => {
+      evt = e;
+    });
     t.setViseme('E', 0.6);
     expect(evt.viseme).toBe('E');
     expect(evt.weight).toBe(0.6);
@@ -473,7 +477,7 @@ describe('LipSyncTrait — setBlendShapeWeights', () => {
     const t = new LipSyncTrait();
     t.setBlendShapeWeights({ jawOpen: 0.5, mouthFunnel: 0.3 });
     const weights = t.getMorphWeights();
-    expect(weights.jawOpen).toBe(0);   // starts at zero, hasn't been lerped yet
+    expect(weights.jawOpen).toBe(0); // starts at zero, hasn't been lerped yet
     // Note: target is set, but current=0 until update() is called
   });
   it('clamps weights at maxWeight', () => {
@@ -548,7 +552,9 @@ describe('LipSyncTrait — on/off event listeners', () => {
   });
   it('listener error is caught and does not break other listeners', () => {
     const t = new LipSyncTrait();
-    const badCb = vi.fn(() => { throw new Error('oops'); });
+    const badCb = vi.fn(() => {
+      throw new Error('oops');
+    });
     const goodCb = vi.fn();
     t.on('session-start', badCb);
     t.on('session-start', goodCb);

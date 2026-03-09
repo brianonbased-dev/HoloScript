@@ -16,7 +16,9 @@ function simpleCutscene() {
 
 describe('CutsceneTimeline', () => {
   let timeline: CutsceneTimeline;
-  beforeEach(() => { timeline = new CutsceneTimeline(); });
+  beforeEach(() => {
+    timeline = new CutsceneTimeline();
+  });
 
   it('load stores cutscene', () => {
     const def = simpleCutscene();
@@ -135,7 +137,7 @@ describe('CutsceneTimeline', () => {
     timeline.play(def.id);
     const result = timeline.update(0.5); // camera track muted
     const events = result.get(def.id) ?? [];
-    expect(events.every(e => e.type !== 'camera')).toBe(true);
+    expect(events.every((e) => e.type !== 'camera')).toBe(true);
   });
 
   it('removeCutscene deletes cutscene', () => {

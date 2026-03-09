@@ -88,11 +88,7 @@ export class IPFSService {
 
     // Initialize fallback providers
     for (const fallback of this.options.fallbackProviders) {
-      const provider = this.createProvider(
-        fallback.provider,
-        fallback.apiKey,
-        fallback.apiSecret
-      );
+      const provider = this.createProvider(fallback.provider, fallback.apiKey, fallback.apiSecret);
       this.fallbackProviders.push(provider);
     }
   }
@@ -100,11 +96,7 @@ export class IPFSService {
   /**
    * Create provider instance
    */
-  private createProvider(
-    type: IPFSProvider,
-    apiKey: string,
-    apiSecret?: string
-  ): IIPFSProvider {
+  private createProvider(type: IPFSProvider, apiKey: string, apiSecret?: string): IIPFSProvider {
     switch (type) {
       case 'pinata':
         return new PinataProvider(apiKey, apiSecret);
@@ -133,9 +125,10 @@ export class IPFSService {
 
     // Validate file sizes
     const totalSize = options.files.reduce((sum, file) => {
-      const size = file.content instanceof Buffer || file.content instanceof Uint8Array
-        ? file.content.length
-        : Buffer.from(file.content).length;
+      const size =
+        file.content instanceof Buffer || file.content instanceof Uint8Array
+          ? file.content.length
+          : Buffer.from(file.content).length;
       return sum + size;
     }, 0);
 
@@ -202,17 +195,19 @@ export class IPFSService {
           // Call progress callback for small uploads too
           if (options.onProgress) {
             const totalSize = options.files.reduce((sum, file) => {
-              const size = file.content instanceof Buffer || file.content instanceof Uint8Array
-                ? file.content.length
-                : Buffer.from(file.content).length;
+              const size =
+                file.content instanceof Buffer || file.content instanceof Uint8Array
+                  ? file.content.length
+                  : Buffer.from(file.content).length;
               return sum + size;
             }, 0);
 
             let uploadedBytes = 0;
             for (const file of options.files) {
-              const size = file.content instanceof Buffer || file.content instanceof Uint8Array
-                ? file.content.length
-                : Buffer.from(file.content).length;
+              const size =
+                file.content instanceof Buffer || file.content instanceof Uint8Array
+                  ? file.content.length
+                  : Buffer.from(file.content).length;
               uploadedBytes += size;
 
               options.onProgress({
@@ -392,7 +387,9 @@ export class IPFSService {
    * @returns File content as Uint8Array
    */
   async get(cid: string, path?: string): Promise<Uint8Array> {
-    const url = path ? `${this.options.gatewayUrl}/${cid}/${path}` : `${this.options.gatewayUrl}/${cid}`;
+    const url = path
+      ? `${this.options.gatewayUrl}/${cid}/${path}`
+      : `${this.options.gatewayUrl}/${cid}`;
 
     const response = await fetch(url);
     if (!response.ok) {

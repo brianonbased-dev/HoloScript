@@ -8,7 +8,9 @@ import type { SpatialEntry } from '../physics/SpatialHash';
 
 describe('SpatialHash', () => {
   let sh: SpatialHash;
-  beforeEach(() => { sh = new SpatialHash(10); }); // cellSize = 10
+  beforeEach(() => {
+    sh = new SpatialHash(10);
+  }); // cellSize = 10
 
   it('insert and getEntryCount', () => {
     sh.insert({ id: 'a', x: 5, y: 5, z: 5, radius: 0 });
@@ -73,7 +75,7 @@ describe('SpatialHash', () => {
     sh.insert({ id: 'a', x: 1, y: 1, z: 1, radius: 5 }); // spans multiple cells
     sh.insert({ id: 'b', x: 2, y: 2, z: 2, radius: 5 });
     const pairs = sh.getNearbyPairs();
-    const keys = pairs.map(([p, q]) => p < q ? `${p}:${q}` : `${q}:${p}`);
+    const keys = pairs.map(([p, q]) => (p < q ? `${p}:${q}` : `${q}:${p}`));
     expect(new Set(keys).size).toBe(keys.length);
   });
 

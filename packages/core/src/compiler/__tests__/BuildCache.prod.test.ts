@@ -31,7 +31,10 @@ function makeTempFile(dir: string, name: string, content = 'source content'): st
   return p;
 }
 
-function makeCache(dir: string, opts: Partial<{ version: string; maxSize: number; enableCompression: boolean; ttl: number }> = {}) {
+function makeCache(
+  dir: string,
+  opts: Partial<{ version: string; maxSize: number; enableCompression: boolean; ttl: number }> = {}
+) {
   return new BuildCache({ cacheDir: dir, version: '1.0.0', ...opts });
 }
 

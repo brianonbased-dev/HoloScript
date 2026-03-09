@@ -39,7 +39,6 @@ function itemMap(items: Record<string, number>): Map<string, number> {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('CraftingSystem', () => {
-
   // ── Construction ──────────────────────────────────────────────────────────
   describe('construction', () => {
     it('starts empty', () => {
@@ -218,7 +217,16 @@ describe('CraftingSystem', () => {
   describe('checkDiscovery', () => {
     it('discovers recipe when all ingredient items held', () => {
       const cs = new CraftingSystem();
-      cs.addRecipe(makeRecipe({ id: 'potion', discovered: false, ingredients: [{ itemId: 'herb', quantity: 1 }, { itemId: 'water', quantity: 1 }] }));
+      cs.addRecipe(
+        makeRecipe({
+          id: 'potion',
+          discovered: false,
+          ingredients: [
+            { itemId: 'herb', quantity: 1 },
+            { itemId: 'water', quantity: 1 },
+          ],
+        })
+      );
       const discovered = cs.checkDiscovery(['herb', 'water', 'stone']);
       expect(discovered).toHaveLength(1);
       expect(discovered[0].id).toBe('potion');
@@ -226,7 +234,16 @@ describe('CraftingSystem', () => {
 
     it('does not discover recipe when missing an ingredient', () => {
       const cs = new CraftingSystem();
-      cs.addRecipe(makeRecipe({ id: 'potion', discovered: false, ingredients: [{ itemId: 'herb', quantity: 1 }, { itemId: 'water', quantity: 1 }] }));
+      cs.addRecipe(
+        makeRecipe({
+          id: 'potion',
+          discovered: false,
+          ingredients: [
+            { itemId: 'herb', quantity: 1 },
+            { itemId: 'water', quantity: 1 },
+          ],
+        })
+      );
       const discovered = cs.checkDiscovery(['herb']); // missing water
       expect(discovered).toHaveLength(0);
     });
@@ -247,16 +264,16 @@ describe('CraftingSystem', () => {
       cs.addRecipe(makeRecipe({ id: 'bow', discovered: false }));
       const items = itemMap({ 'iron-ingot': 3, wood: 1 });
       const available = cs.getAvailableRecipes(items);
-      expect(available.map(r => r.id)).toContain('sword');
-      expect(available.map(r => r.id)).not.toContain('bow');
+      expect(available.map((r) => r.id)).toContain('sword');
+      expect(available.map((r) => r.id)).not.toContain('bow');
     });
 
     it('getRecipesByWorkbench filters by workbench type', () => {
       const cs = new CraftingSystem();
       cs.addRecipe(makeRecipe({ id: 'sword', workbenchType: 'forge' }));
       cs.addRecipe(makeRecipe({ id: 'potion', workbenchType: 'alchemy' }));
-      expect(cs.getRecipesByWorkbench('forge').map(r => r.id)).toContain('sword');
-      expect(cs.getRecipesByWorkbench('alchemy').map(r => r.id)).toContain('potion');
+      expect(cs.getRecipesByWorkbench('forge').map((r) => r.id)).toContain('sword');
+      expect(cs.getRecipesByWorkbench('alchemy').map((r) => r.id)).toContain('potion');
       expect(cs.getRecipesByWorkbench('sawmill')).toHaveLength(0);
     });
 

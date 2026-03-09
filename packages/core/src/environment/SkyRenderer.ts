@@ -19,15 +19,15 @@ export interface SkyGradient {
 
 export interface StarField {
   seed: number;
-  density: number;        // stars per unit area
-  brightness: number;     // 0-1
+  density: number; // stars per unit area
+  brightness: number; // 0-1
   twinkleSpeed: number;
 }
 
 export interface CloudLayer {
   id: string;
   altitude: number;
-  coverage: number;       // 0-1
+  coverage: number; // 0-1
   speed: { x: number; z: number };
   color: { r: number; g: number; b: number; a: number };
   scale: number;
@@ -56,8 +56,20 @@ export class SkyRenderer {
   };
   private stars: StarField = { seed: 42, density: 100, brightness: 1, twinkleSpeed: 1 };
   private clouds: Map<string, CloudLayer> = new Map();
-  private sun: CelestialBody = { visible: true, angle: 90, size: 10, color: { r: 1, g: 0.95, b: 0.8 }, intensity: 1 };
-  private moon: CelestialBody = { visible: false, angle: -45, size: 8, color: { r: 0.9, g: 0.9, b: 1 }, intensity: 0.3 };
+  private sun: CelestialBody = {
+    visible: true,
+    angle: 90,
+    size: 10,
+    color: { r: 1, g: 0.95, b: 0.8 },
+    intensity: 1,
+  };
+  private moon: CelestialBody = {
+    visible: false,
+    angle: -45,
+    size: 8,
+    color: { r: 0.9, g: 0.9, b: 1 },
+    intensity: 0.3,
+  };
   private moonPhase = 0; // 0-7 (new, waxing crescent, first quarter, etc.)
   private starsVisible = false;
 
@@ -65,8 +77,12 @@ export class SkyRenderer {
   // Gradient
   // ---------------------------------------------------------------------------
 
-  setGradient(gradient: SkyGradient): void { this.gradient = { ...gradient }; }
-  getGradient(): SkyGradient { return { ...this.gradient }; }
+  setGradient(gradient: SkyGradient): void {
+    this.gradient = { ...gradient };
+  }
+  getGradient(): SkyGradient {
+    return { ...this.gradient };
+  }
 
   sampleGradient(t: number): { r: number; g: number; b: number } {
     // t: 0 = bottom, 0.5 = horizon, 1 = top
@@ -79,7 +95,11 @@ export class SkyRenderer {
     }
   }
 
-  private lerpColor(a: { r: number; g: number; b: number }, b: { r: number; g: number; b: number }, t: number) {
+  private lerpColor(
+    a: { r: number; g: number; b: number },
+    b: { r: number; g: number; b: number },
+    t: number
+  ) {
     return { r: a.r + (b.r - a.r) * t, g: a.g + (b.g - a.g) * t, b: a.b + (b.b - a.b) * t };
   }
 
@@ -87,10 +107,18 @@ export class SkyRenderer {
   // Stars
   // ---------------------------------------------------------------------------
 
-  setStarField(config: Partial<StarField>): void { Object.assign(this.stars, config); }
-  setStarsVisible(visible: boolean): void { this.starsVisible = visible; }
-  areStarsVisible(): boolean { return this.starsVisible; }
-  getStarField(): StarField { return { ...this.stars }; }
+  setStarField(config: Partial<StarField>): void {
+    Object.assign(this.stars, config);
+  }
+  setStarsVisible(visible: boolean): void {
+    this.starsVisible = visible;
+  }
+  areStarsVisible(): boolean {
+    return this.starsVisible;
+  }
+  getStarField(): StarField {
+    return { ...this.stars };
+  }
 
   // ---------------------------------------------------------------------------
   // Clouds
@@ -99,7 +127,9 @@ export class SkyRenderer {
   addCloudLayer(coverage: number, altitude = 1000, speed?: { x: number; z: number }): CloudLayer {
     const id = `cloud_${_cloudId++}`;
     const layer: CloudLayer = {
-      id, altitude, coverage,
+      id,
+      altitude,
+      coverage,
       speed: speed ?? { x: 5, z: 0 },
       color: { r: 1, g: 1, b: 1, a: 0.8 },
       scale: 1,
@@ -109,9 +139,15 @@ export class SkyRenderer {
     return layer;
   }
 
-  removeCloudLayer(id: string): boolean { return this.clouds.delete(id); }
-  getCloudLayers(): CloudLayer[] { return [...this.clouds.values()]; }
-  getCloudCount(): number { return this.clouds.size; }
+  removeCloudLayer(id: string): boolean {
+    return this.clouds.delete(id);
+  }
+  getCloudLayers(): CloudLayer[] {
+    return [...this.clouds.values()];
+  }
+  getCloudCount(): number {
+    return this.clouds.size;
+  }
 
   updateClouds(dt: number): void {
     for (const layer of this.clouds.values()) {
@@ -124,12 +160,26 @@ export class SkyRenderer {
   // Sun / Moon
   // ---------------------------------------------------------------------------
 
-  setSunAngle(angle: number): void { this.sun.angle = angle; this.sun.visible = angle >= 0; }
-  setMoonAngle(angle: number): void { this.moon.angle = angle; this.moon.visible = angle >= 0; }
-  setMoonPhase(phase: number): void { this.moonPhase = phase % 8; }
-  getMoonPhase(): number { return this.moonPhase; }
-  getSun(): CelestialBody { return { ...this.sun }; }
-  getMoon(): CelestialBody { return { ...this.moon }; }
+  setSunAngle(angle: number): void {
+    this.sun.angle = angle;
+    this.sun.visible = angle >= 0;
+  }
+  setMoonAngle(angle: number): void {
+    this.moon.angle = angle;
+    this.moon.visible = angle >= 0;
+  }
+  setMoonPhase(phase: number): void {
+    this.moonPhase = phase % 8;
+  }
+  getMoonPhase(): number {
+    return this.moonPhase;
+  }
+  getSun(): CelestialBody {
+    return { ...this.sun };
+  }
+  getMoon(): CelestialBody {
+    return { ...this.moon };
+  }
 
   // ---------------------------------------------------------------------------
   // Time-of-Day Presets

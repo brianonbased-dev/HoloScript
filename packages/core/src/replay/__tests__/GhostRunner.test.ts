@@ -4,7 +4,9 @@ import { GhostRunner } from '../GhostRunner';
 describe('GhostRunner', () => {
   let runner: GhostRunner;
 
-  beforeEach(() => { runner = new GhostRunner(); });
+  beforeEach(() => {
+    runner = new GhostRunner();
+  });
 
   // Recording
   it('startRecording / isRecording', () => {

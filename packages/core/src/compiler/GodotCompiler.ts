@@ -202,40 +202,44 @@ export class GodotCompiler extends CompilerBase {
     this.emit('# === v4.2 Domain Blocks ===');
 
     let blockIdx = 0;
-    const compiled = compileDomainBlocks(domainBlocks, {
-      material: (block) => {
-        const mat = compileMaterialBlock(block);
-        return materialToGodot(mat, `db${blockIdx++}`);
+    const compiled = compileDomainBlocks(
+      domainBlocks,
+      {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          return materialToGodot(mat, `db${blockIdx++}`);
+        },
+        physics: (block) => {
+          const phys = compilePhysicsBlock(block);
+          return physicsToGodot(phys, `db${blockIdx++}`);
+        },
+        vfx: (block) => {
+          const ps = compileParticleBlock(block);
+          return particlesToGodot(ps, `db${blockIdx++}`);
+        },
+        postfx: (block) => {
+          const pp = compilePostProcessingBlock(block);
+          return postProcessingToGodot(pp);
+        },
+        audio: (block) => {
+          const audio = compileAudioSourceBlock(block);
+          return audioSourceToGodot(audio, `db${blockIdx++}`);
+        },
+        weather: (block) => {
+          const weather = compileWeatherBlock(block);
+          return weatherToGodot(weather);
+        },
+        narrative: (block) => {
+          const narr = compileNarrativeBlock(block);
+          return narrativeToGodot(narr);
+        },
+        payment: (block) => {
+          const pay = compilePaymentBlock(block);
+          return paymentToGodot(pay);
+        },
       },
-      physics: (block) => {
-        const phys = compilePhysicsBlock(block);
-        return physicsToGodot(phys, `db${blockIdx++}`);
-      },
-      vfx: (block) => {
-        const ps = compileParticleBlock(block);
-        return particlesToGodot(ps, `db${blockIdx++}`);
-      },
-      postfx: (block) => {
-        const pp = compilePostProcessingBlock(block);
-        return postProcessingToGodot(pp);
-      },
-      audio: (block) => {
-        const audio = compileAudioSourceBlock(block);
-        return audioSourceToGodot(audio, `db${blockIdx++}`);
-      },
-      weather: (block) => {
-        const weather = compileWeatherBlock(block);
-        return weatherToGodot(weather);
-      },
-      narrative: (block) => {
-        const narr = compileNarrativeBlock(block);
-        return narrativeToGodot(narr);
-      },
-      payment: (block) => {
-        const pay = compilePaymentBlock(block);
-        return paymentToGodot(pay);
-      },
-    }, (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+      (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`
+    );
 
     for (const line of compiled) {
       for (const l of line.split('\n')) {
@@ -525,7 +529,13 @@ export class GodotCompiler extends CompilerBase {
           this.emit(`# @scene_reconstruction — use XRServer environment mesh`);
         } else if (tn === 'eye_tracked' || tn === 'eye_hand_fusion') {
           this.emit(`# @${tn} — use XRPositionalTracker for eye/hand data`);
-        } else if (tn === 'controlnet' || tn === 'ai_texture_gen' || tn === 'diffusion_realtime' || tn === 'ai_upscaling' || tn === 'ai_inpainting') {
+        } else if (
+          tn === 'controlnet' ||
+          tn === 'ai_texture_gen' ||
+          tn === 'diffusion_realtime' ||
+          tn === 'ai_upscaling' ||
+          tn === 'ai_inpainting'
+        ) {
           this.emit(`# @${tn} — AI generation: route to external inference or GDExtension`);
         } else if (tn === 'neural_link' || tn === 'neural_forge') {
           this.emit(`# @${tn} — neural interface: ${JSON.stringify(trait.config || {})}`);

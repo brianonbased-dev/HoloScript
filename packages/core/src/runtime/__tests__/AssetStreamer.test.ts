@@ -16,19 +16,13 @@ import {
   registerAssetStreamer,
   getAssetStreamer,
 } from '../AssetStreamer';
-import type {
-  AssetStreamer,
-  AssetStreamRequest,
-  StreamStatus,
-} from '../AssetStreamer';
+import type { AssetStreamer, AssetStreamRequest, StreamStatus } from '../AssetStreamer';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function createMockAssetStreamer(
-  overrides?: Partial<AssetStreamer>,
-): AssetStreamer {
+function createMockAssetStreamer(overrides?: Partial<AssetStreamer>): AssetStreamer {
   return {
     initialize: vi.fn().mockResolvedValue(undefined),
     requestAsset: vi.fn(),
@@ -40,9 +34,7 @@ function createMockAssetStreamer(
   };
 }
 
-function createStreamRequest(
-  overrides?: Partial<AssetStreamRequest>,
-): AssetStreamRequest {
+function createStreamRequest(overrides?: Partial<AssetStreamRequest>): AssetStreamRequest {
   return {
     id: 'asset-1',
     url: 'https://cdn.example.com/mesh.glb',
@@ -74,15 +66,9 @@ describe('StreamPriority', () => {
   });
 
   it('priorities are ordered (lower value = higher priority)', () => {
-    expect(StreamPriority.IMMEDIATE).toBeLessThan(
-      StreamPriority.PREDICTIVE_HIGH,
-    );
-    expect(StreamPriority.PREDICTIVE_HIGH).toBeLessThan(
-      StreamPriority.PREDICTIVE_LOW,
-    );
-    expect(StreamPriority.PREDICTIVE_LOW).toBeLessThan(
-      StreamPriority.BACKGROUND,
-    );
+    expect(StreamPriority.IMMEDIATE).toBeLessThan(StreamPriority.PREDICTIVE_HIGH);
+    expect(StreamPriority.PREDICTIVE_HIGH).toBeLessThan(StreamPriority.PREDICTIVE_LOW);
+    expect(StreamPriority.PREDICTIVE_LOW).toBeLessThan(StreamPriority.BACKGROUND);
   });
 });
 
@@ -198,7 +184,7 @@ describe('AssetStreamer — requestAsset', () => {
     });
     streamer.requestAsset(request);
     expect(streamer.requestAsset).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'texture' }),
+      expect.objectContaining({ type: 'texture' })
     );
   });
 
@@ -211,9 +197,7 @@ describe('AssetStreamer — requestAsset', () => {
       priority: StreamPriority.BACKGROUND,
     });
     streamer.requestAsset(request);
-    expect(streamer.requestAsset).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'audio' }),
-    );
+    expect(streamer.requestAsset).toHaveBeenCalledWith(expect.objectContaining({ type: 'audio' }));
   });
 
   it('requestAsset with script type', () => {
@@ -225,9 +209,7 @@ describe('AssetStreamer — requestAsset', () => {
       priority: StreamPriority.IMMEDIATE,
     });
     streamer.requestAsset(request);
-    expect(streamer.requestAsset).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'script' }),
-    );
+    expect(streamer.requestAsset).toHaveBeenCalledWith(expect.objectContaining({ type: 'script' }));
   });
 
   it('requestAsset with optional size and compression', () => {
@@ -241,7 +223,7 @@ describe('AssetStreamer — requestAsset', () => {
       expect.objectContaining({
         size: 1024 * 1024,
         compression: 'draco',
-      }),
+      })
     );
   });
 
@@ -250,7 +232,7 @@ describe('AssetStreamer — requestAsset', () => {
     const request = createStreamRequest({ compression: 'meshopt' });
     streamer.requestAsset(request);
     expect(streamer.requestAsset).toHaveBeenCalledWith(
-      expect.objectContaining({ compression: 'meshopt' }),
+      expect.objectContaining({ compression: 'meshopt' })
     );
   });
 
@@ -259,7 +241,7 @@ describe('AssetStreamer — requestAsset', () => {
     const request = createStreamRequest({ compression: 'none' });
     streamer.requestAsset(request);
     expect(streamer.requestAsset).toHaveBeenCalledWith(
-      expect.objectContaining({ compression: 'none' }),
+      expect.objectContaining({ compression: 'none' })
     );
   });
 
@@ -272,9 +254,7 @@ describe('AssetStreamer — requestAsset', () => {
       StreamPriority.BACKGROUND,
     ];
     for (const priority of priorities) {
-      streamer.requestAsset(
-        createStreamRequest({ id: `p-${priority}`, priority }),
-      );
+      streamer.requestAsset(createStreamRequest({ id: `p-${priority}`, priority }));
     }
     expect(streamer.requestAsset).toHaveBeenCalledTimes(4);
   });

@@ -20,18 +20,18 @@ export interface BonePose {
 }
 
 export interface TransitionConfig {
-  duration: number;          // Blend duration in seconds
+  duration: number; // Blend duration in seconds
   curve: 'linear' | 'ease_in' | 'ease_out' | 'ease_in_out';
-  settleThreshold: number;   // Velocity threshold for "settled" detection
+  settleThreshold: number; // Velocity threshold for "settled" detection
 }
 
 export type TransitionDirection = 'animation_to_ragdoll' | 'ragdoll_to_animation';
 
 export interface BlendState {
   direction: TransitionDirection;
-  progress: number;        // 0-1
+  progress: number; // 0-1
   duration: number;
-  sourcePose: BonePose[];   // Frozen pose at transition start
+  sourcePose: BonePose[]; // Frozen pose at transition start
   isComplete: boolean;
 }
 
@@ -65,7 +65,11 @@ export class AnimationTransitionSystem {
       direction: 'animation_to_ragdoll',
       progress: 0,
       duration: this.config.duration,
-      sourcePose: currentPose.map(p => ({ ...p, position: { ...p.position }, rotation: { ...p.rotation } })),
+      sourcePose: currentPose.map((p) => ({
+        ...p,
+        position: { ...p.position },
+        rotation: { ...p.rotation },
+      })),
       isComplete: false,
     });
   }
@@ -78,7 +82,11 @@ export class AnimationTransitionSystem {
       direction: 'ragdoll_to_animation',
       progress: 0,
       duration: this.config.duration,
-      sourcePose: currentPose.map(p => ({ ...p, position: { ...p.position }, rotation: { ...p.rotation } })),
+      sourcePose: currentPose.map((p) => ({
+        ...p,
+        position: { ...p.position },
+        rotation: { ...p.rotation },
+      })),
       isComplete: false,
     });
   }
@@ -110,8 +118,8 @@ export class AnimationTransitionSystem {
 
       for (let i = 0; i < blend.sourcePose.length; i++) {
         const source = blend.sourcePose[i];
-        const ragBone = ragdoll.find(b => b.boneId === source.boneId) || source;
-        const animBone = anim.find(b => b.boneId === source.boneId) || source;
+        const ragBone = ragdoll.find((b) => b.boneId === source.boneId) || source;
+        const animBone = anim.find((b) => b.boneId === source.boneId) || source;
 
         let fromBone: BonePose, toBone: BonePose;
 
@@ -171,11 +179,15 @@ export class AnimationTransitionSystem {
 
   private applyCurve(t: number): number {
     switch (this.config.curve) {
-      case 'ease_in': return t * t;
-      case 'ease_out': return 1 - (1 - t) * (1 - t);
-      case 'ease_in_out': return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      case 'ease_in':
+        return t * t;
+      case 'ease_out':
+        return 1 - (1 - t) * (1 - t);
+      case 'ease_in_out':
+        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
       case 'linear':
-      default: return t;
+      default:
+        return t;
     }
   }
 
@@ -196,9 +208,15 @@ export class AnimationTransitionSystem {
     let dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 
     // Handle negative dot (shortest path)
-    let bx = b.x, by = b.y, bz = b.z, bw = b.w;
+    let bx = b.x,
+      by = b.y,
+      bz = b.z,
+      bw = b.w;
     if (dot < 0) {
-      bx = -bx; by = -by; bz = -bz; bw = -bw;
+      bx = -bx;
+      by = -by;
+      bz = -bz;
+      bw = -bw;
       dot = -dot;
     }
 

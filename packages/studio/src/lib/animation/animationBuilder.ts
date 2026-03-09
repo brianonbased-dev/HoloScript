@@ -38,7 +38,7 @@ export function buildClipFromFrames(
   frames: BoneFrame[],
   skeleton: THREE.Skeleton,
   durationMs: number,
-  clipName = 'Recorded Animation',
+  clipName = 'Recorded Animation'
 ): THREE.AnimationClip {
   const durationSec = durationMs / 1000;
 
@@ -63,7 +63,7 @@ export function buildClipFromFrames(
         Math.abs(f.qx - first.qx) > 0.001 ||
         Math.abs(f.qy - first.qy) > 0.001 ||
         Math.abs(f.qz - first.qz) > 0.001 ||
-        Math.abs(f.qw - first.qw) > 0.001,
+        Math.abs(f.qw - first.qw) > 0.001
     );
     if (!moved) return;
 
@@ -85,7 +85,7 @@ export function buildClipFromFrames(
  * Given a GLTFLoader result, extract built-in animations as a summary list.
  */
 export function extractBuiltinAnimations(
-  animations: THREE.AnimationClip[],
+  animations: THREE.AnimationClip[]
 ): Array<{ name: string; duration: number }> {
   return animations.map((clip) => ({
     name: clip.name || 'Unnamed',

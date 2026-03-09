@@ -7,7 +7,9 @@ import { DamageSystem } from '../combat/DamageSystem';
 
 describe('DamageSystem', () => {
   let ds: DamageSystem;
-  beforeEach(() => { ds = new DamageSystem(); });
+  beforeEach(() => {
+    ds = new DamageSystem();
+  });
 
   it('calculates base damage', () => {
     const dmg = ds.calculateDamage('a', 'b', 100, 'physical');

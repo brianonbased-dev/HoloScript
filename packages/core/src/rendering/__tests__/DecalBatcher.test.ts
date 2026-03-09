@@ -3,18 +3,22 @@ import { DecalBatcher, type DecalInstance } from '../DecalBatcher';
 
 function decal(id: string, tex: string, x = 0, y = 0, z = 0, opacity = 1): DecalInstance {
   return {
-    id, textureId: tex,
+    id,
+    textureId: tex,
     position: { x, y, z },
     scale: { x: 1, y: 1, z: 1 },
     rotation: { x: 0, y: 0, z: 0, w: 1 },
-    opacity, lodLevel: 0,
+    opacity,
+    lodLevel: 0,
   };
 }
 
 describe('DecalBatcher', () => {
   let db: DecalBatcher;
 
-  beforeEach(() => { db = new DecalBatcher(); });
+  beforeEach(() => {
+    db = new DecalBatcher();
+  });
 
   // Instance management
   it('addInstance increases count', () => {

@@ -36,10 +36,7 @@ describe('GPU Physics Integration (End-to-End)', () => {
         join(__dirname, '../shaders/particle-physics.wgsl'),
         'utf-8'
       );
-      spatialGridShader = await readFile(
-        join(__dirname, '../shaders/spatial-grid.wgsl'),
-        'utf-8'
-      );
+      spatialGridShader = await readFile(join(__dirname, '../shaders/spatial-grid.wgsl'), 'utf-8');
     } catch (error) {
       console.log('⏭️  Shaders not found, skipping shader-dependent tests');
     }
@@ -242,7 +239,12 @@ describe('GPU Physics Integration (End-to-End)', () => {
 
   describe('Full Pipeline: Physics + Collisions + Rendering', () => {
     it('should run complete GPU pipeline at 1K particles', async () => {
-      if (!context.isSupported() || !particlePhysicsShader || !spatialGridShader || typeof document === 'undefined') {
+      if (
+        !context.isSupported() ||
+        !particlePhysicsShader ||
+        !spatialGridShader ||
+        typeof document === 'undefined'
+      ) {
         console.log('⏭️  Skipping test (WebGPU, shaders, or DOM not available)');
         return;
       }
@@ -353,7 +355,12 @@ describe('GPU Physics Integration (End-to-End)', () => {
     });
 
     it('should run complete GPU pipeline at 10K particles', async () => {
-      if (!context.isSupported() || !particlePhysicsShader || !spatialGridShader || typeof document === 'undefined') {
+      if (
+        !context.isSupported() ||
+        !particlePhysicsShader ||
+        !spatialGridShader ||
+        typeof document === 'undefined'
+      ) {
         console.log('⏭️  Skipping test (WebGPU, shaders, or DOM not available)');
         return;
       }
@@ -459,7 +466,12 @@ describe('GPU Physics Integration (End-to-End)', () => {
     });
 
     it('should handle 100K particles (stretch goal)', async () => {
-      if (!context.isSupported() || !particlePhysicsShader || !spatialGridShader || typeof document === 'undefined') {
+      if (
+        !context.isSupported() ||
+        !particlePhysicsShader ||
+        !spatialGridShader ||
+        typeof document === 'undefined'
+      ) {
         console.log('⏭️  Skipping test (WebGPU, shaders, or DOM not available)');
         return;
       }

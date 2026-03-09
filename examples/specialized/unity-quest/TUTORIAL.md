@@ -64,6 +64,7 @@ player#xr_rig @unity_xr_toolkit {
 ```
 
 **Unity Components Generated:**
+
 - `XROrigin` - Root tracking space
 - `Camera` - Stereo VR camera
 - `CharacterController` - Collision capsule
@@ -117,6 +118,7 @@ controller#left_hand @vr @unity_xr {
 ```
 
 **XR Controller Flow:**
+
 1. **XRController** reads input from Quest controller
 2. **XRRayInteractor** casts ray for distant selection
 3. **XRDirectInteractor** detects nearby grabbable objects
@@ -137,12 +139,14 @@ material {
 ```
 
 **Shader Hierarchy (Fastest → Slowest):**
+
 - `mobile/unlit` - No lighting (particles, UI, effects)
 - `mobile/diffuse` - Simple baked lighting
 - `mobile/bumped_diffuse` - With normal maps
 - `standard` - Full PBR (PCVR only, too slow for Quest)
 
 **ASTC Texture Compression:**
+
 - `astc_4x4` - High quality (2:1 compression)
 - `astc_6x6` - **Recommended** (4:1 compression)
 - `astc_8x8` - Lower quality (6:1 compression)
@@ -185,6 +189,7 @@ object#box @grabbable @unity_xr_interactable {
 ```
 
 **Grab Modes:**
+
 - **Single Grab**: One controller at a time
 - **Multiple Grab**: Both controllers (two-handed)
 - **Velocity Tracking**: Throw physics based on hand velocity
@@ -251,6 +256,7 @@ object#platform @teleportable {
 ```
 
 **Teleport Flow:**
+
 1. Player aims with controller (arc ray)
 2. System raycasts for "Teleportable" layer
 3. Valid = green arc, Invalid = red arc
@@ -269,12 +275,14 @@ object#ground {
 ```
 
 **LOD Recommendations (Quest):**
+
 - **LOD 0** (0-10m): 100% detail
 - **LOD 1** (10-30m): 50% triangles
 - **LOD 2** (30-50m): 25% triangles
 - **LOD 3** (50m+): Cull or billboard
 
 **Benefits:**
+
 - 2-3x better performance in large scenes
 - Automatic based on camera distance
 - No visual degradation (player won't notice)
@@ -294,11 +302,13 @@ lighting {
 ```
 
 **Lighting Modes:**
+
 - **Baked**: Fastest, pre-computed (Quest)
 - **Mixed**: Some realtime shadows (PCVR)
 - **Realtime**: Fully dynamic (too slow for Quest)
 
 **Baking Workflow:**
+
 ```
 1. Mark static objects (Lighting > Static)
 2. Add baked lights (Light > Mode: Baked)
@@ -375,6 +385,7 @@ foveated_rendering @quest3_feature {
 ### Performance Targets
 
 **Quest 2:**
+
 - **Target**: 72 FPS (90 FPS experimental)
 - **Draw Calls**: <200
 - **Triangles**: <100k
@@ -383,6 +394,7 @@ foveated_rendering @quest3_feature {
 - **Particles**: <100 per effect
 
 **Quest 3:**
+
 - **Target**: 90 FPS (120 FPS capable)
 - **Draw Calls**: <300
 - **Triangles**: <200k
@@ -391,6 +403,7 @@ foveated_rendering @quest3_feature {
 - **Particles**: <200 per effect
 
 **PCVR:**
+
 - **Target**: 90-120 FPS
 - **Draw Calls**: <1000
 - **Triangles**: <1M
@@ -413,16 +426,20 @@ foveated_rendering @quest3_feature {
 ### Input Best Practices
 
 **Thumbstick:**
+
 - Left: Move forward/backward, strafe
 - Right: Smooth turn or snap turn
 
 **Grip:**
+
 - Grab objects (hold to keep)
 
 **Trigger:**
+
 - Interact with UI, shoot, select
 
 **Primary/Secondary Buttons:**
+
 - Context actions (jump, menu, toggle modes)
 
 ## Advanced Features
@@ -493,6 +510,7 @@ void Start()
 **Error**: "IL2CPP error"
 
 **Fix**:
+
 1. Project Settings > Player > Scripting Backend: IL2CPP
 2. Install NDK via Unity Hub
 3. Rebuild

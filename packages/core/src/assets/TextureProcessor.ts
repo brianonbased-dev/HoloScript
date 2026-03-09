@@ -38,7 +38,11 @@ export class TextureProcessor {
   private generateMipmaps: boolean;
   private targetFormat: TextureFormat;
 
-  constructor(opts?: { maxSize?: number; generateMipmaps?: boolean; targetFormat?: TextureFormat }) {
+  constructor(opts?: {
+    maxSize?: number;
+    generateMipmaps?: boolean;
+    targetFormat?: TextureFormat;
+  }) {
     this.maxSize = opts?.maxSize ?? 4096;
     this.generateMipmaps = opts?.generateMipmaps ?? true;
     this.targetFormat = opts?.targetFormat ?? 'rgba8';
@@ -62,8 +66,14 @@ export class TextureProcessor {
     const sizeBytes = Math.ceil(baseSize * compressionRatio * mipmapMultiplier);
 
     return {
-      id: input.id, name: input.name, width: w, height: h,
-      format: this.targetFormat, mipmapLevels, sizeBytes, compressionRatio,
+      id: input.id,
+      name: input.name,
+      width: w,
+      height: h,
+      format: this.targetFormat,
+      mipmapLevels,
+      sizeBytes,
+      compressionRatio,
     };
   }
 
@@ -72,7 +82,9 @@ export class TextureProcessor {
    */
   packAtlas(textures: TextureInput[], atlasSize: number = 2048): AtlasResult {
     const entries: AtlasResult['entries'] = [];
-    let currentX = 0, currentY = 0, rowHeight = 0;
+    let currentX = 0,
+      currentY = 0,
+      rowHeight = 0;
     let usedPixels = 0;
 
     for (const tex of textures) {
@@ -93,7 +105,9 @@ export class TextureProcessor {
     }
 
     return {
-      width: atlasSize, height: atlasSize, entries,
+      width: atlasSize,
+      height: atlasSize,
+      entries,
       utilization: usedPixels / (atlasSize * atlasSize),
     };
   }
@@ -104,14 +118,26 @@ export class TextureProcessor {
 
   private getCompressionRatio(format: TextureFormat): number {
     switch (format) {
-      case 'bc1': return 0.125;
-      case 'bc3': case 'bc7': return 0.25;
-      case 'astc': case 'etc2': return 0.25;
-      case 'rgb8': return 0.75;
-      case 'rgba8': default: return 1;
+      case 'bc1':
+        return 0.125;
+      case 'bc3':
+      case 'bc7':
+        return 0.25;
+      case 'astc':
+      case 'etc2':
+        return 0.25;
+      case 'rgb8':
+        return 0.75;
+      case 'rgba8':
+      default:
+        return 1;
     }
   }
 
-  getMaxSize(): number { return this.maxSize; }
-  getTargetFormat(): TextureFormat { return this.targetFormat; }
+  getMaxSize(): number {
+    return this.maxSize;
+  }
+  getTargetFormat(): TextureFormat {
+    return this.targetFormat;
+  }
 }

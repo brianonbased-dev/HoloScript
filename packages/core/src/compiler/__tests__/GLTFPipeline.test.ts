@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GLTFPipeline } from '../GLTFPipeline';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
@@ -9,7 +9,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
@@ -41,7 +40,7 @@ describe('GLTFPipeline', () => {
     const result = pipeline.compile(makeComposition(), 'test-token');
     // glTF magic: 0x46546C67 = "glTF"
     const view = new DataView(result.binary!.buffer, result.binary!.byteOffset);
-    expect(view.getUint32(0, true)).toBe(0x46546C67);
+    expect(view.getUint32(0, true)).toBe(0x46546c67);
   });
 
   // =========== glTF JSON output ===========
@@ -109,9 +108,14 @@ describe('GLTFPipeline', () => {
   // =========== Reset ===========
 
   it('resets between compilations', () => {
-    pipeline.compile(makeComposition({
-      objects: [{ name: 'a', properties: [{ key: 'geometry', value: 'box' }], traits: [] }] as any,
-    }), 'test-token');
+    pipeline.compile(
+      makeComposition({
+        objects: [
+          { name: 'a', properties: [{ key: 'geometry', value: 'box' }], traits: [] },
+        ] as any,
+      }),
+      'test-token'
+    );
     const result = pipeline.compile(makeComposition(), 'test-token');
     expect(result.stats.meshCount).toBe(0);
   });

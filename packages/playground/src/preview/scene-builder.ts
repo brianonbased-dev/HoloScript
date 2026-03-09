@@ -29,10 +29,18 @@ function parseColor(color: unknown): { r: number; g: number; b: number } {
   if (typeof color !== 'string') return { r: 1, g: 1, b: 1 };
 
   const named: Record<string, [number, number, number]> = {
-    red: [1, 0, 0], blue: [0, 0, 1], green: [0, 0.5, 0],
-    white: [1, 1, 1], black: [0, 0, 0], yellow: [1, 1, 0],
-    orange: [1, 0.65, 0], purple: [0.5, 0, 0.5], cyan: [0, 1, 1],
-    magenta: [1, 0, 1], gold: [1, 0.84, 0], gray: [0.5, 0.5, 0.5],
+    red: [1, 0, 0],
+    blue: [0, 0, 1],
+    green: [0, 0.5, 0],
+    white: [1, 1, 1],
+    black: [0, 0, 0],
+    yellow: [1, 1, 0],
+    orange: [1, 0.65, 0],
+    purple: [0.5, 0, 0.5],
+    cyan: [0, 1, 1],
+    magenta: [1, 0, 1],
+    gold: [1, 0.84, 0],
+    gray: [0.5, 0.5, 0.5],
     brown: [0.55, 0.27, 0.07],
   };
 
@@ -46,8 +54,8 @@ function parseColor(color: unknown): { r: number; g: number; b: number } {
     const n = parseInt(hex.padEnd(6, '0').slice(0, 6), 16);
     return {
       r: ((n >> 16) & 255) / 255,
-      g: ((n >> 8)  & 255) / 255,
-      b: ((n)       & 255) / 255,
+      g: ((n >> 8) & 255) / 255,
+      b: (n & 255) / 255,
     };
   }
 
@@ -131,12 +139,23 @@ export class SceneManager {
     const prev = Array.from(this.currentOrbs.values());
     const { added, removed, changed } = diffOrbs(prev, nextOrbs);
 
-    for (const orb of added)   { this.scene.addBox(orb);    this.currentOrbs.set(orb.id, orb); }
-    for (const id of removed)  { this.scene.removeBox(id);  this.currentOrbs.delete(id); }
-    for (const orb of changed) { this.scene.updateBox(orb); this.currentOrbs.set(orb.id, orb); }
+    for (const orb of added) {
+      this.scene.addBox(orb);
+      this.currentOrbs.set(orb.id, orb);
+    }
+    for (const id of removed) {
+      this.scene.removeBox(id);
+      this.currentOrbs.delete(id);
+    }
+    for (const orb of changed) {
+      this.scene.updateBox(orb);
+      this.currentOrbs.set(orb.id, orb);
+    }
 
     this.scene.render();
   }
 
-  get orbCount(): number { return this.currentOrbs.size; }
+  get orbCount(): number {
+    return this.currentOrbs.size;
+  }
 }

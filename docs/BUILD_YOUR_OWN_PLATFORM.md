@@ -14,14 +14,14 @@ This guide shows you how to build **production spatial computing platforms** usi
 
 ## What You Can Build
 
-| Platform Type | Examples | Time to MVP | Difficulty |
-|--------------|----------|-------------|------------|
-| **VR Social** | Hololand alternative, VRChat competitor | 3-6 months | Advanced |
-| **Corporate Training** | VR safety training, onboarding | 1-3 months | Intermediate |
-| **Robotics Platform** | ROS2/Gazebo simulation | 2-4 months | Advanced |
-| **AR E-Commerce** | "Try before you buy" furniture app | 1-2 months | Beginner |
-| **Digital Twin** | IoT platform with Azure DTDL | 2-4 months | Intermediate |
-| **VR Game** | Multi-platform game (Unity/Unreal export) | 3-6 months | Intermediate |
+| Platform Type          | Examples                                  | Time to MVP | Difficulty   |
+| ---------------------- | ----------------------------------------- | ----------- | ------------ |
+| **VR Social**          | Hololand alternative, VRChat competitor   | 3-6 months  | Advanced     |
+| **Corporate Training** | VR safety training, onboarding            | 1-3 months  | Intermediate |
+| **Robotics Platform**  | ROS2/Gazebo simulation                    | 2-4 months  | Advanced     |
+| **AR E-Commerce**      | "Try before you buy" furniture app        | 1-2 months  | Beginner     |
+| **Digital Twin**       | IoT platform with Azure DTDL              | 2-4 months  | Intermediate |
+| **VR Game**            | Multi-platform game (Unity/Unreal export) | 3-6 months  | Intermediate |
 
 **Proof**: Hololand (43+ packages, multiplayer, voice chat) built entirely on HoloScript public APIs.
 
@@ -52,6 +52,7 @@ brew install holoscript
 ### Step 2: Create Your First World
 
 **`my-world.holo`**:
+
 ```holo
 composition "MyWorld" {
   scene {
@@ -183,6 +184,7 @@ holoscript compile my-world.holo --target=r3f --output=./web-export
 **What**: Create, load, save, and switch between worlds.
 
 **HoloScript Integration**:
+
 ```typescript
 import { parseHoloScript } from '@holoscript/core/parser';
 import { getHololandClient } from '@holoscript/core';
@@ -222,6 +224,7 @@ class WorldManager {
 **What**: Real-time state synchronization, voice chat, player movement.
 
 **HoloScript Integration**:
+
 ```typescript
 import { getStreamProtocol } from '@holoscript/core';
 
@@ -258,6 +261,7 @@ class MultiplayerSystem {
 **What**: Gravity, collisions, rigid bodies, constraints.
 
 **HoloScript Integration**:
+
 ```holo
 // HoloScript handles physics traits
 object "PhysicsObject" {
@@ -272,6 +276,7 @@ object "PhysicsObject" {
 ```
 
 **Platform-Specific**:
+
 ```typescript
 // Your platform can extend with custom physics
 import { PhysicsWorld } from '@holoscript/runtime';
@@ -291,6 +296,7 @@ class CustomPhysicsSystem extends PhysicsWorld {
 **What**: User accounts, permissions, moderation.
 
 **Implementation** (NOT part of HoloScript—your responsibility):
+
 ```typescript
 class AuthSystem {
   async login(email: string, password: string) {
@@ -316,6 +322,7 @@ class AuthSystem {
 **What**: Upload, store, and serve 3D models, textures, audio.
 
 **HoloScript Integration**:
+
 ```typescript
 import { AssetManifest, SmartAssetLoader } from '@holoscript/core';
 
@@ -347,11 +354,13 @@ class AssetSystem {
 ### 6. Voice Chat (Optional)
 
 **Options**:
+
 - **Agora.io**: Enterprise-grade, paid
 - **Livekit**: Open-source, self-hosted
 - **Daily.co**: Simple API, paid
 
 **HoloScript Integration**:
+
 ```holo
 object "Player" {
   @voice_chat(
@@ -369,11 +378,13 @@ object "Player" {
 **What**: Track users, performance, errors.
 
 **Tools**:
+
 - **Sentry**: Error tracking
 - **PostHog**: Product analytics
 - **Prometheus + Grafana**: Infrastructure monitoring
 
 **HoloScript Integration**:
+
 ```typescript
 import { RuntimeExecutor } from '@holoscript/runtime';
 
@@ -407,11 +418,13 @@ vercel deploy
 ```
 
 **Pros**:
+
 - Instant deployment
 - No app store approval
 - Cross-platform (Quest, desktop, mobile)
 
 **Cons**:
+
 - Limited to WebXR capabilities
 - Lower performance than native
 
@@ -432,11 +445,13 @@ holoscript compile my-world.holo --target=unity --output=./unity-export
 ```
 
 **Pros**:
+
 - Native performance
 - Full platform features (hand tracking, etc.)
 - Monetization via app stores
 
 **Cons**:
+
 - App store review process
 - Slower iteration
 
@@ -455,10 +470,12 @@ holoscript compile my-world.holo --target=unreal --output=./unreal-export
 ```
 
 **Pros**:
+
 - Best graphics quality
 - Advanced rendering (Nanite, Lumen)
 
 **Cons**:
+
 - Larger binary size
 - Requires powerful hardware
 
@@ -468,14 +485,15 @@ holoscript compile my-world.holo --target=unreal --output=./unreal-export
 
 ### Infrastructure Needs
 
-| Users | WebSocket Servers | Database | CDN | Cost/Month |
-|-------|-------------------|----------|-----|------------|
-| 100 | 1 (DigitalOcean $20/mo) | PostgreSQL (managed) | Cloudflare R2 (free tier) | ~$50 |
-| 1,000 | 3 (load balanced) | PostgreSQL (scaled) | Cloudflare R2 ($15) | ~$200 |
-| 10,000 | 10 (auto-scaling) | PostgreSQL (replicas) | Cloudflare R2 ($50) | ~$1,000 |
-| 100,000 | 50+ (Kubernetes) | PostgreSQL (sharded) | Cloudflare R2 ($200) | ~$10,000 |
+| Users   | WebSocket Servers       | Database              | CDN                       | Cost/Month |
+| ------- | ----------------------- | --------------------- | ------------------------- | ---------- |
+| 100     | 1 (DigitalOcean $20/mo) | PostgreSQL (managed)  | Cloudflare R2 (free tier) | ~$50       |
+| 1,000   | 3 (load balanced)       | PostgreSQL (scaled)   | Cloudflare R2 ($15)       | ~$200      |
+| 10,000  | 10 (auto-scaling)       | PostgreSQL (replicas) | Cloudflare R2 ($50)       | ~$1,000    |
+| 100,000 | 50+ (Kubernetes)        | PostgreSQL (sharded)  | Cloudflare R2 ($200)      | ~$10,000   |
 
 **Recommended Stack**:
+
 - **Compute**: Fly.io, Railway, Render (easy scaling)
 - **Database**: Supabase, Neon, PlanetScale (PostgreSQL)
 - **CDN**: Cloudflare R2 (S3-compatible, cheaper)
@@ -490,17 +508,20 @@ holoscript compile my-world.holo --target=unreal --output=./unreal-export
 **Problem**: Company needed multi-platform VR safety training (Quest + desktop).
 
 **Solution**:
+
 - Authored training scenarios in HoloScript (`.holo` files)
 - Compiled to Unity for Quest 2 deployment
 - Compiled to WebXR for desktop preview
 - Used HoloScript traits: `@grabbable`, `@physics`, `@trigger_zone`
 
 **Results**:
+
 - 80% faster development vs. hand-coding Unity
 - Single codebase → Quest + desktop + mobile AR
 - Deployed in 6 weeks (vs. 6 months traditional)
 
 **Code Sample**:
+
 ```holo
 composition "SafetyTraining" {
   scene {
@@ -528,16 +549,19 @@ composition "SafetyTraining" {
 **Problem**: Furniture retailer wanted AR "try before you buy" on iOS + Android.
 
 **Solution**:
+
 - HoloScript → ARKit (iOS) + ARCore (Android)
 - Same `.holo` file compiles to both platforms
 - Asset management via HoloScript's AssetManifest
 
 **Results**:
+
 - Single codebase for iOS + Android
 - 40% increase in conversion rate
 - Deployed in 4 weeks
 
 **Code Sample**:
+
 ```holo
 composition "FurniturePreview" {
   object "Sofa" {
@@ -560,16 +584,19 @@ composition "FurniturePreview" {
 **Problem**: University needed robot arm simulation for ROS2 course.
 
 **Solution**:
+
 - HoloScript → URDF export → Gazebo simulation
 - Students authored robots in `.holo` (easier than XML)
 - Validated in HoloScript runtime before deploying to Gazebo
 
 **Results**:
+
 - Students 3x more productive (vs. manual URDF)
 - Validated designs faster (visual preview)
 - Integrated with ROS2/Gazebo
 
 **Code Sample**:
+
 ```holo
 composition "RobotArm" {
   object "Joint1" {
@@ -585,6 +612,7 @@ composition "RobotArm" {
 ```
 
 **Compilation**:
+
 ```bash
 holoscript compile robot-arm.holo --target=urdf --output=robot.urdf
 ```
@@ -608,11 +636,11 @@ holoscript compile robot-arm.holo --target=urdf --output=robot.urdf
 
 ### Support Tiers
 
-| Tier | Response Time | Channels | Cost |
-|------|---------------|----------|------|
-| **Community** | Best effort | Discord, GitHub | Free |
-| **Silver Sponsor** | 48 hours | Direct Slack | $5K/month |
-| **Gold Sponsor** | 24 hours | Dedicated support | $15K/month |
+| Tier               | Response Time | Channels          | Cost       |
+| ------------------ | ------------- | ----------------- | ---------- |
+| **Community**      | Best effort   | Discord, GitHub   | Free       |
+| **Silver Sponsor** | 48 hours      | Direct Slack      | $5K/month  |
+| **Gold Sponsor**   | 24 hours      | Dedicated support | $15K/month |
 
 [Become a sponsor →](../FUNDING.md)
 
@@ -623,6 +651,7 @@ holoscript compile robot-arm.holo --target=urdf --output=robot.urdf
 HoloScript Foundation offers **$10K-$50K grants** for novel platforms:
 
 **Requirements**:
+
 - Open-source (MIT license)
 - Uses public HoloScript APIs only
 - Production deployment within 6 months
@@ -640,6 +669,7 @@ HoloScript Foundation offers **$10K-$50K grants** for novel platforms:
 ### Will HoloScript break my platform with updates?
 
 **No.** Semantic versioning guarantees:
+
 - **Patch** (3.4.1): Bug fixes, no breaking changes
 - **Minor** (3.5.0): New features, backward compatible
 - **Major** (4.0.0): Breaking changes (rare, with migration guide)
@@ -647,6 +677,7 @@ HoloScript Foundation offers **$10K-$50K grants** for novel platforms:
 ### Can I mix HoloScript with native code (Unity C#, Unreal C++)?
 
 **Yes!** HoloScript compiles to native code. You can:
+
 - Import HoloScript-generated code into existing projects
 - Mix `.holo` files with hand-written code
 - Use HoloScript for prototyping, optimize critical paths manually
@@ -686,4 +717,4 @@ Build the next Hololand. Build the next VRChat. Build something we can't imagine
 
 © 2026 HoloScript Foundation
 
-*Built with HoloScript: [List your platform here](mailto:community@holoscript.net)*
+_Built with HoloScript: [List your platform here](mailto:community@holoscript.net)_

@@ -34,7 +34,7 @@ describe('SceneQuery', () => {
   describe('findByTag', () => {
     it('should find all nodes with a given tag', () => {
       const result = SceneQuery.findByTag(root, 'player');
-      expect(result.map(n => n.id)).toEqual(['a', 'c']);
+      expect(result.map((n) => n.id)).toEqual(['a', 'c']);
     });
 
     it('should return empty for non-existent tag', () => {
@@ -45,7 +45,7 @@ describe('SceneQuery', () => {
   describe('findByLayer', () => {
     it('should find nodes on a specific layer', () => {
       const result = SceneQuery.findByLayer(root, 2);
-      expect(result.map(n => n.id)).toEqual(['b']);
+      expect(result.map((n) => n.id)).toEqual(['b']);
     });
 
     it('should return default layer 0 nodes', () => {
@@ -71,7 +71,7 @@ describe('SceneQuery', () => {
       b.setPosition(100, 0, 0);
 
       const nearby = SceneQuery.findInRadius(root, { x: 0, y: 0, z: 0 }, 5);
-      const ids = nearby.map(n => n.id);
+      const ids = nearby.map((n) => n.id);
       expect(ids).toContain('root');
       expect(ids).toContain('a');
       expect(ids).not.toContain('b');
@@ -80,7 +80,7 @@ describe('SceneQuery', () => {
 
   describe('frustumCull', () => {
     it('should cull nodes outside the frustum', () => {
-      a.setPosition(0, 0, 5);   // ahead
+      a.setPosition(0, 0, 5); // ahead
       b.setPosition(100, 0, 0); // far to the side
 
       const result = SceneQuery.frustumCull(root, {
@@ -91,7 +91,7 @@ describe('SceneQuery', () => {
         far: 50,
       });
 
-      const ids = result.map(n => n.id);
+      const ids = result.map((n) => n.id);
       expect(ids).toContain('a');
       expect(ids).not.toContain('b');
     });
@@ -108,7 +108,7 @@ describe('SceneQuery', () => {
         far: 50,
       });
 
-      expect(result.map(n => n.id)).not.toContain('a');
+      expect(result.map((n) => n.id)).not.toContain('a');
     });
   });
 

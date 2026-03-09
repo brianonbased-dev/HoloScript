@@ -24,7 +24,6 @@ function makeContext(): any {
 // ── Minimal conformance ───────────────────────────────────────────────────────
 
 describe('Trait interface — structural conformance', () => {
-
   it('an object with only "name" satisfies the Trait interface', () => {
     const t: Trait = { name: 'my_trait' };
     expect(t.name).toBe('my_trait');
@@ -56,7 +55,6 @@ describe('Trait interface — structural conformance', () => {
 // ── Class-based implementation ────────────────────────────────────────────────
 
 describe('Trait interface — class-based implementation', () => {
-
   class CounterTrait implements Trait {
     name = 'counter';
     private _count = 0;
@@ -74,7 +72,9 @@ describe('Trait interface — class-based implementation', () => {
       context.emit('counter_stopped', { count: this._count });
     }
 
-    getCount() { return this._count; }
+    getCount() {
+      return this._count;
+    }
   }
 
   it('class instance satisfies Trait interface', () => {
@@ -86,7 +86,10 @@ describe('Trait interface — class-based implementation', () => {
     const t = new CounterTrait();
     const ctx = makeContext();
     t.onAttach!({ id: 'n1' }, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('counter_started', expect.objectContaining({ node: { id: 'n1' } }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'counter_started',
+      expect.objectContaining({ node: { id: 'n1' } })
+    );
   });
 
   it('onUpdate accumulates delta into count', () => {
@@ -103,7 +106,10 @@ describe('Trait interface — class-based implementation', () => {
     t.onUpdate!({}, makeContext(), 10);
     const ctx = makeContext();
     t.onDetach!({}, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('counter_stopped', expect.objectContaining({ count: 10 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'counter_stopped',
+      expect.objectContaining({ count: 10 })
+    );
   });
 
   it('multiple class-based trait instances are independent', () => {
@@ -120,7 +126,6 @@ describe('Trait interface — class-based implementation', () => {
 // ── onEvent optional method ───────────────────────────────────────────────────
 
 describe('Trait interface — onEvent conformance', () => {
-
   class EventTrait implements Trait {
     name = 'event_trait';
     readonly handled: string[] = [];

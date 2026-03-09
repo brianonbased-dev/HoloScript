@@ -42,9 +42,7 @@ describe('AgentManifestBuilder — Production', () => {
   });
 
   it('addCapability adds multiple capabilities', () => {
-    const m = minBuilder()
-      .addCapability({ type: 'render', domain: 'graphics' })
-      .build();
+    const m = minBuilder().addCapability({ type: 'render', domain: 'graphics' }).build();
     expect(m.capabilities!.length).toBe(2);
   });
 
@@ -53,13 +51,11 @@ describe('AgentManifestBuilder — Production', () => {
       .addEndpoint({ protocol: 'ws', address: 'localhost', port: 8080 })
       .build();
     expect(m.endpoints!.length).toBe(2);
-    expect(m.endpoints!.some(e => e.port === 8080)).toBe(true);
+    expect(m.endpoints!.some((e) => e.port === 8080)).toBe(true);
   });
 
   it('spatial sets spatial scope', () => {
-    const m = minBuilder()
-      .spatial({ global: true })
-      .build();
+    const m = minBuilder().spatial({ global: true }).build();
     expect(m.spatialScope?.global).toBe(true);
   });
 

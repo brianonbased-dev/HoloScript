@@ -292,11 +292,7 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
     const result = this._debugger.loadSource(this._sourceContent, this._sourceFile);
 
     if (!result.success) {
-      this.sendErrorResponse(
-        response,
-        1002,
-        `Failed to load source: ${result.errors?.join(', ')}`
-      );
+      this.sendErrorResponse(response, 1002, `Failed to load source: ${result.errors?.join(', ')}`);
       return;
     }
 
@@ -340,11 +336,7 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
     response: DebugProtocol.AttachResponse,
     _args: DebugProtocol.AttachRequestArguments
   ): void {
-    this.sendErrorResponse(
-      response,
-      1003,
-      'Attach is not yet supported. Use launch mode instead.'
-    );
+    this.sendErrorResponse(response, 1003, 'Attach is not yet supported. Use launch mode instead.');
   }
 
   /**
@@ -738,13 +730,7 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
       const state = this._debugger.getState();
       if (state.status === 'paused' || state.currentLine > 0) {
         const source = this._createSource(this._sourceFile);
-        const sf = new StackFrame(
-          0,
-          '<top level>',
-          source,
-          state.currentLine,
-          state.currentColumn
-        );
+        const sf = new StackFrame(0, '<top level>', source, state.currentLine, state.currentColumn);
         stackFrames.push(sf);
       }
     }

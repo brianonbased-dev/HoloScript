@@ -284,7 +284,11 @@ describe('ControlNetTrait', () => {
     });
 
     it('uses configured model type for extraction', () => {
-      const depthConfig: ControlNetConfig = { ...defaultConfig, model_type: 'depth', preprocessor_resolution: 1024 };
+      const depthConfig: ControlNetConfig = {
+        ...defaultConfig,
+        model_type: 'depth',
+        preprocessor_resolution: 1024,
+      };
       ctx.clearEvents();
 
       controlNetHandler.onEvent!(node as any, depthConfig, ctx as any, {

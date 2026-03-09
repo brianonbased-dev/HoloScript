@@ -142,12 +142,16 @@ function topicMatches(topic: string, pattern: TopicPattern): boolean {
  * ```
  */
 export class PluginMessageBus {
-  private subscriptions: Map<string, { pattern: TopicPattern; handler: MessageHandler }> = new Map();
-  private pendingRequests: Map<MessageId, {
-    resolve: (value: unknown) => void;
-    reject: (error: Error) => void;
-    timeout: ReturnType<typeof setTimeout>;
-  }> = new Map();
+  private subscriptions: Map<string, { pattern: TopicPattern; handler: MessageHandler }> =
+    new Map();
+  private pendingRequests: Map<
+    MessageId,
+    {
+      resolve: (value: unknown) => void;
+      reject: (error: Error) => void;
+      timeout: ReturnType<typeof setTimeout>;
+    }
+  > = new Map();
   private recentMessageIds: Set<string> = new Set();
   private queueDepth: number = 0;
   private config: Required<MessageBusConfig>;
@@ -207,7 +211,7 @@ export class PluginMessageBus {
     topic: string,
     source: string,
     payload: T,
-    correlationId?: MessageId,
+    correlationId?: MessageId
   ): MessageId {
     // Backpressure check
     if (this.queueDepth >= this.config.maxQueueDepth) {
@@ -276,7 +280,7 @@ export class PluginMessageBus {
     topic: string,
     source: string,
     payload: TReq,
-    timeoutMs?: number,
+    timeoutMs?: number
   ): Promise<TRes> {
     const messageId = generateId();
     const timeout = timeoutMs ?? this.config.defaultTimeout;

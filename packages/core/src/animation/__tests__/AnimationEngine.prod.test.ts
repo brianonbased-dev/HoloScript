@@ -27,9 +27,15 @@ function makeClip(id: string, duration: number, from = 0, to = 100): AnimationCl
 
 describe('Easing — Production', () => {
   it.each([
-    'linear', 'easeInQuad', 'easeOutQuad', 'easeInOutQuad',
-    'easeInCubic', 'easeOutCubic', 'easeInOutCubic',
-    'easeInExpo', 'easeOutExpo',
+    'linear',
+    'easeInQuad',
+    'easeOutQuad',
+    'easeInOutQuad',
+    'easeInCubic',
+    'easeOutCubic',
+    'easeInOutCubic',
+    'easeInExpo',
+    'easeOutExpo',
   ] as const)('%s(0) ≈ 0 and (1) ≈ 1', (name) => {
     expect(Easing[name](0)).toBeCloseTo(0, 1);
     expect(Easing[name](1)).toBeCloseTo(1, 1);
@@ -116,7 +122,7 @@ describe('AnimationEngine — Production', () => {
     const values: number[] = [];
     engine.play(makeClip('x', 1, 0, 100), (v) => values.push(v));
     engine.update(0.5);
-    expect(values.some(v => v > 0 && v < 100)).toBe(true);
+    expect(values.some((v) => v > 0 && v < 100)).toBe(true);
   });
 
   it('update drives setter near from value at early time', () => {
@@ -134,7 +140,12 @@ describe('AnimationEngine — Production', () => {
 
   it('onComplete fires when clip ends', () => {
     let fired = false;
-    const clip = { ...makeClip('x', 0.1), onComplete: () => { fired = true; } };
+    const clip = {
+      ...makeClip('x', 0.1),
+      onComplete: () => {
+        fired = true;
+      },
+    };
     engine.play(clip, () => {});
     for (let i = 0; i < 20; i++) engine.update(0.1);
     expect(fired).toBe(true);

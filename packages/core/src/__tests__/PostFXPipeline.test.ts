@@ -88,7 +88,8 @@ describe('createPostFXPipeline', () => {
 describe('mergeEffectConfig', () => {
   it('merges params preserving base values', () => {
     const base: BloomConfig = {
-      enabled: false, order: 1,
+      enabled: false,
+      order: 1,
       params: { intensity: 0.5, threshold: 0.8, radius: 0.4 },
     };
     const merged = mergeEffectConfig(base, {
@@ -98,12 +99,13 @@ describe('mergeEffectConfig', () => {
     expect(merged.enabled).toBe(true);
     expect(merged.params.intensity).toBe(1.0);
     expect(merged.params.threshold).toBe(0.8); // preserved from base
-    expect(merged.params.radius).toBe(0.4);    // preserved from base
+    expect(merged.params.radius).toBe(0.4); // preserved from base
   });
 
   it('returns base when override is empty', () => {
     const base: BloomConfig = {
-      enabled: true, order: 1,
+      enabled: true,
+      order: 1,
       params: { intensity: 0.5, threshold: 0.8, radius: 0.4 },
     };
     const merged = mergeEffectConfig(base, {});
@@ -112,7 +114,8 @@ describe('mergeEffectConfig', () => {
 
   it('does not mutate original base config', () => {
     const base: BloomConfig = {
-      enabled: false, order: 1,
+      enabled: false,
+      order: 1,
       params: { intensity: 0.5, threshold: 0.8, radius: 0.4 },
     };
     const baseOriginal = { ...base, params: { ...base.params } };

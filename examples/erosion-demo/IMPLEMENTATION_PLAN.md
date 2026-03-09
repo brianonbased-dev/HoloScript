@@ -57,10 +57,12 @@
 ## 📅 Day-by-Day Plan
 
 ### Day 1: HeightmapTerrain (Foundation)
+
 **File:** `HeightmapTerrain.ts` (500 lines)
 **Tests:** `HeightmapTerrain.test.ts` (450 lines, 35 tests)
 
 **Features:**
+
 - Editable heightmap terrain
 - Height query and modification
 - Slope and normal calculation
@@ -69,24 +71,27 @@
 - Undo/redo for terrain modifications
 
 **Key Methods:**
+
 ```typescript
 class HeightmapTerrain {
-  getHeightAt(x: z): number
-  setHeightAt(x, z, height): void
-  modifyHeight(x, z, delta): void
-  getSlopeAt(x, z): number
-  getNormalAt(x, z): [number, number, number]
-  regenerateMesh(): void
-  saveSnapshot(): void
-  restoreSnapshot(id): void
+  getHeightAt(x: z): number;
+  setHeightAt(x, z, height): void;
+  modifyHeight(x, z, delta): void;
+  getSlopeAt(x, z): number;
+  getNormalAt(x, z): [number, number, number];
+  regenerateMesh(): void;
+  saveSnapshot(): void;
+  restoreSnapshot(id): void;
 }
 ```
 
 ### Day 2: WaterFlowSolver (Hydraulic Simulation)
+
 **File:** `WaterFlowSolver.ts` (600 lines)
 **Tests:** `WaterFlowSolver.test.ts` (550 lines, 40 tests)
 
 **Features:**
+
 - Height-field water simulation (shallow water equations)
 - Water flow calculation (gradient-based)
 - Water velocity and volume tracking
@@ -95,7 +100,9 @@ class HeightmapTerrain {
 - Water pooling (local minima detection)
 
 **Physics:**
+
 - **Shallow Water Equations** (simplified):
+
   ```
   ∂h/∂t + ∇·(hv) = S  (continuity)
   ∂v/∂t + v·∇v = -g∇(z+h) - kv  (momentum)
@@ -111,12 +118,13 @@ class HeightmapTerrain {
 
 - **Flow Calculation:**
   ```typescript
-  flowDirection = -gradient(terrainHeight + waterHeight)
-  flowVelocity = sqrt(2 * g * heightDifference)
-  flowRate = waterHeight * flowVelocity * cellArea
+  flowDirection = -gradient(terrainHeight + waterHeight);
+  flowVelocity = sqrt(2 * g * heightDifference);
+  flowRate = waterHeight * flowVelocity * cellArea;
   ```
 
 **Test Coverage:**
+
 - Initialization
 - Water addition/removal
 - Flow calculation (downhill, uphill, flat)
@@ -128,10 +136,12 @@ class HeightmapTerrain {
 - Edge cases (dry cells, overflow)
 
 ### Day 3: SedimentTransport (Erosion/Deposition)
+
 **File:** `SedimentTransport.ts` (650 lines)
 **Tests:** `SedimentTransport.test.ts` (600 lines, 42 tests)
 
 **Features:**
+
 - Sediment erosion from terrain
 - Sediment transport by water flow
 - Sediment deposition
@@ -140,32 +150,35 @@ class HeightmapTerrain {
 - Hydraulic erosion (water-based)
 
 **Erosion Model:**
+
 - **Hydraulic Erosion:**
+
   ```typescript
-  sedimentCapacity = Kc * waterVelocity * waterVolume
-  erosion = Ks * (sedimentCapacity - currentSediment)
+  sedimentCapacity = Kc * waterVelocity * waterVolume;
+  erosion = Ks * (sedimentCapacity - currentSediment);
 
   if (erosion > 0) {
     // Erode terrain
-    terrain.modifyHeight(x, z, -erosion)
-    sediment += erosion
+    terrain.modifyHeight(x, z, -erosion);
+    sediment += erosion;
   } else {
     // Deposit sediment
-    deposition = min(-erosion * Kd, sediment)
-    terrain.modifyHeight(x, z, deposition)
-    sediment -= deposition
+    deposition = min(-erosion * Kd, sediment);
+    terrain.modifyHeight(x, z, deposition);
+    sediment -= deposition;
   }
   ```
 
 - **Thermal Erosion:**
   ```typescript
   if (slope > angleOfRepose) {
-    erosionAmount = (slope - angleOfRepose) * thermalRate
+    erosionAmount = (slope - angleOfRepose) * thermalRate;
     // Redistribute to lower neighbors
   }
   ```
 
 **Test Coverage:**
+
 - Sediment capacity calculation
 - Erosion from terrain
 - Sediment transport
@@ -176,10 +189,12 @@ class HeightmapTerrain {
 - Statistics tracking
 
 ### Day 4: TerrainModifier & ErosionSimulation (Integration)
+
 **File:** `TerrainModifier.ts` (400 lines) + `ErosionSimulation.ts` (450 lines)
 **Tests:** `TerrainModifier.test.ts` (350 lines, 30 tests) + `ErosionSimulation.test.ts` (500 lines, 38 tests)
 
 **TerrainModifier Features:**
+
 - Apply erosion/deposition to heightmap
 - Smooth terrain modifications
 - Constraint enforcement (min/max height)
@@ -187,6 +202,7 @@ class HeightmapTerrain {
 - Erosion heatmap generation
 
 **ErosionSimulation Features:**
+
 - CPU-GPU integration layer
 - Performance monitoring
 - Simulation state management
@@ -194,29 +210,32 @@ class HeightmapTerrain {
 - Profiling and statistics
 
 **Integration:**
+
 ```typescript
 class ErosionSimulation {
   update(dt: number) {
     // 1. Water flow
-    waterFlowSolver.update(dt)
+    waterFlowSolver.update(dt);
 
     // 2. Sediment transport
-    sedimentTransport.update(dt, waterFlowSolver.getWaterData())
+    sedimentTransport.update(dt, waterFlowSolver.getWaterData());
 
     // 3. Terrain modification
-    terrainModifier.applyChanges(sedimentTransport.getErosionMap())
+    terrainModifier.applyChanges(sedimentTransport.getErosionMap());
 
     // 4. Update mesh
-    terrain.regenerateMesh()
+    terrain.regenerateMesh();
   }
 }
 ```
 
 ### Day 5: ErosionDemoScene (Interactive Demo)
+
 **File:** `ErosionDemoScene.ts` (550 lines)
 **Tests:** `ErosionDemoScene.test.ts` (400 lines, 38 tests)
 
 **Features:**
+
 - Interactive water source placement (click to add rain)
 - Erosion visualization (color-coded terrain changes)
 - Water depth overlay
@@ -226,6 +245,7 @@ class ErosionSimulation {
 - Camera controls (same as avalanche demo)
 
 **Visualization Modes:**
+
 - **Terrain only** - Standard terrain rendering
 - **Water overlay** - Blue tint for water depth
 - **Erosion heatmap** - Red = erosion, Blue = deposition
@@ -236,6 +256,7 @@ class ErosionSimulation {
 ## 🧪 Testing Strategy
 
 ### Test Distribution Target
+
 - **HeightmapTerrain:** 35 tests
 - **WaterFlowSolver:** 40 tests
 - **SedimentTransport:** 42 tests
@@ -246,6 +267,7 @@ class ErosionSimulation {
 **Total:** 223 tests
 
 ### Test Categories
+
 1. **Unit Tests** - Individual component functionality
 2. **Physics Tests** - Conservation laws (mass, energy)
 3. **Integration Tests** - Component interaction
@@ -267,74 +289,78 @@ class ErosionSimulation {
 ## 📊 Key Algorithms
 
 ### 1. Water Flow (Downhill Simplex)
+
 ```typescript
 function calculateFlow(cellX, cellZ) {
-  const currentHeight = terrain.height[cellX][cellZ] + water.height[cellX][cellZ]
+  const currentHeight = terrain.height[cellX][cellZ] + water.height[cellX][cellZ];
 
   // Check all 8 neighbors
-  const neighbors = getNeighbors(cellX, cellZ)
-  let totalFlow = 0
+  const neighbors = getNeighbors(cellX, cellZ);
+  let totalFlow = 0;
 
   for (const neighbor of neighbors) {
-    const neighborHeight = terrain.height[neighbor.x][neighbor.z] +
-                          water.height[neighbor.x][neighbor.z]
+    const neighborHeight =
+      terrain.height[neighbor.x][neighbor.z] + water.height[neighbor.x][neighbor.z];
 
     if (neighborHeight < currentHeight) {
-      const heightDiff = currentHeight - neighborHeight
-      const flow = calculateFlowRate(heightDiff, water.height[cellX][cellZ])
-      totalFlow += flow
+      const heightDiff = currentHeight - neighborHeight;
+      const flow = calculateFlowRate(heightDiff, water.height[cellX][cellZ]);
+      totalFlow += flow;
 
       // Transfer water
-      water.transfer(cellX, cellZ, neighbor.x, neighbor.z, flow * dt)
+      water.transfer(cellX, cellZ, neighbor.x, neighbor.z, flow * dt);
     }
   }
 }
 ```
 
 ### 2. Sediment Capacity
+
 ```typescript
 function calculateSedimentCapacity(waterVelocity, waterVolume, slope) {
-  const baseCapacity = Kc * waterVelocity * waterVolume
-  const slopeBonus = 1 + slope * Ks
-  return baseCapacity * slopeBonus
+  const baseCapacity = Kc * waterVelocity * waterVolume;
+  const slopeBonus = 1 + slope * Ks;
+  return baseCapacity * slopeBonus;
 }
 ```
 
 ### 3. Erosion/Deposition
+
 ```typescript
 function updateSediment(cellX, cellZ, waterVelocity) {
-  const capacity = calculateSedimentCapacity(waterVelocity, water[cellX][cellZ], slope)
-  const currentSediment = sediment[cellX][cellZ]
+  const capacity = calculateSedimentCapacity(waterVelocity, water[cellX][cellZ], slope);
+  const currentSediment = sediment[cellX][cellZ];
 
   if (currentSediment < capacity) {
     // Erode
-    const erosionAmount = min(Ke * (capacity - currentSediment), terrainHardness)
-    terrain.modifyHeight(cellX, cellZ, -erosionAmount)
-    sediment[cellX][cellZ] += erosionAmount
+    const erosionAmount = min(Ke * (capacity - currentSediment), terrainHardness);
+    terrain.modifyHeight(cellX, cellZ, -erosionAmount);
+    sediment[cellX][cellZ] += erosionAmount;
   } else {
     // Deposit
-    const depositionAmount = Kd * (currentSediment - capacity)
-    terrain.modifyHeight(cellX, cellZ, depositionAmount)
-    sediment[cellX][cellZ] -= depositionAmount
+    const depositionAmount = Kd * (currentSediment - capacity);
+    terrain.modifyHeight(cellX, cellZ, depositionAmount);
+    sediment[cellX][cellZ] -= depositionAmount;
   }
 }
 ```
 
 ### 4. Thermal Erosion
+
 ```typescript
 function applyThermalErosion(cellX, cellZ) {
-  const slope = terrain.getSlopeAt(cellX, cellZ)
+  const slope = terrain.getSlopeAt(cellX, cellZ);
 
   if (slope > angleOfRepose) {
-    const excessAngle = slope - angleOfRepose
-    const erosionAmount = excessAngle * thermalRate * dt
+    const excessAngle = slope - angleOfRepose;
+    const erosionAmount = excessAngle * thermalRate * dt;
 
     // Find lowest neighbor
-    const lowestNeighbor = findLowestNeighbor(cellX, cellZ)
+    const lowestNeighbor = findLowestNeighbor(cellX, cellZ);
 
     // Transfer material
-    terrain.modifyHeight(cellX, cellZ, -erosionAmount)
-    terrain.modifyHeight(lowestNeighbor.x, lowestNeighbor.z, erosionAmount)
+    terrain.modifyHeight(cellX, cellZ, -erosionAmount);
+    terrain.modifyHeight(lowestNeighbor.x, lowestNeighbor.z, erosionAmount);
   }
 }
 ```
@@ -346,22 +372,22 @@ function applyThermalErosion(cellX, cellZ) {
 ```typescript
 interface ErosionConfig {
   // Water flow
-  gravity: number;              // 9.8 m/s²
-  waterFriction: number;        // 0.1 (friction coefficient)
-  evaporationRate: number;      // 0.01 (water loss per second)
+  gravity: number; // 9.8 m/s²
+  waterFriction: number; // 0.1 (friction coefficient)
+  evaporationRate: number; // 0.01 (water loss per second)
 
   // Sediment transport
-  sedimentCapacityConstant: number;  // Kc = 0.5
-  erosionRate: number;               // Ke = 0.3
-  depositionRate: number;            // Kd = 0.1
+  sedimentCapacityConstant: number; // Kc = 0.5
+  erosionRate: number; // Ke = 0.3
+  depositionRate: number; // Kd = 0.1
 
   // Thermal erosion
-  angleOfRepose: number;        // 45 degrees
-  thermalRate: number;          // 0.1
+  angleOfRepose: number; // 45 degrees
+  thermalRate: number; // 0.1
 
   // Material properties
-  terrainHardness: number;      // 1.0 (resistance to erosion)
-  sedimentDensity: number;      // 2000 kg/m³
+  terrainHardness: number; // 1.0 (resistance to erosion)
+  sedimentDensity: number; // 2000 kg/m³
 }
 ```
 
@@ -370,6 +396,7 @@ interface ErosionConfig {
 ## 📈 Expected Results
 
 ### Erosion Patterns
+
 - **Rills** - Small channels from concentrated flow
 - **Gullies** - Larger channels from sustained erosion
 - **River Valleys** - Meandering patterns from long-term flow
@@ -377,6 +404,7 @@ interface ErosionConfig {
 - **Terraces** - Stepped features from erosion levels
 
 ### Visual Quality
+
 - Realistic water flow following terrain contours
 - Natural-looking erosion patterns
 - Smooth deposition zones

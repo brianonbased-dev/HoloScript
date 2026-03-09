@@ -59,11 +59,17 @@ function makeConfig(overrides: Partial<typeof networkedHandler.defaultConfig> = 
  * Register a specific mock instance that will be returned by the next `new NetworkedTrait(...)`.
  * Call this BEFORE calling doAttach().
  */
-function nextInstance(overrides: {
-  isLocalOwner?: boolean;
-  getEntityId?: string;
-  interpolatedState?: null | { position: number[]; rotation: number[]; properties: Record<string, unknown> };
-} = {}) {
+function nextInstance(
+  overrides: {
+    isLocalOwner?: boolean;
+    getEntityId?: string;
+    interpolatedState?: null | {
+      position: number[];
+      rotation: number[];
+      properties: Record<string, unknown>;
+    };
+  } = {}
+) {
   const inst = {
     getEntityId: vi.fn().mockReturnValue(overrides.getEntityId ?? 'entity_mock'),
     isLocalOwner: vi.fn().mockReturnValue(overrides.isLocalOwner ?? true),
@@ -76,7 +82,9 @@ function nextInstance(overrides: {
     applyState: vi.fn(),
   };
   // Regular function (not arrow) so it can be called with `new` by the handler
-  (NetworkedTrait as any).mockImplementationOnce(function() { return inst; });
+  (NetworkedTrait as any).mockImplementationOnce(function () {
+    return inst;
+  });
   return inst;
 }
 
@@ -90,7 +98,6 @@ function doAttach(node: any, cfgOverrides: Partial<typeof networkedHandler.defau
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('NetworkedTraitHandler — Production', () => {
-
   // ─── defaultConfig ───────────────────────────────────────────────────
 
   it('has name networked', () => {
@@ -124,10 +131,13 @@ describe('NetworkedTraitHandler — Production', () => {
     const inst = nextInstance({ getEntityId: 'entity_reg' });
     const node = makeNode({ id: 'node_reg' });
     const { ctx } = doAttach(node);
-    expect(ctx.emit).toHaveBeenCalledWith('networked:register', expect.objectContaining({
-      nodeId: 'node_reg',
-      entityId: 'entity_reg',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'networked:register',
+      expect.objectContaining({
+        nodeId: 'node_reg',
+        entityId: 'entity_reg',
+      })
+    );
     void inst; // used by mock
   });
 
@@ -135,20 +145,25 @@ describe('NetworkedTraitHandler — Production', () => {
     nextInstance();
     const node = makeNode();
     const { ctx } = doAttach(node, { mode: 'shared', syncRate: 10 });
-    expect(ctx.emit).toHaveBeenCalledWith('networked:register', expect.objectContaining({
-      config: expect.objectContaining({ mode: 'shared', syncRate: 10 }),
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'networked:register',
+      expect.objectContaining({
+        config: expect.objectContaining({ mode: 'shared', syncRate: 10 }),
+      })
+    );
   });
 
   it('calls setState with __networked=true and __networkMode and __networkId', () => {
     nextInstance({ getEntityId: 'entity_setstate' });
     const node = makeNode();
     const { ctx } = doAttach(node);
-    expect(ctx.setState).toHaveBeenCalledWith(expect.objectContaining({
-      __networked: true,
-      __networkMode: 'owner',
-      __networkId: 'entity_setstate',
-    }));
+    expect(ctx.setState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        __networked: true,
+        __networkMode: 'owner',
+        __networkId: 'entity_setstate',
+      })
+    );
   });
 
   it('attach without node.id (uses anon key, no crash)', () => {
@@ -165,10 +180,13 @@ describe('NetworkedTraitHandler — Production', () => {
     const { ctx, cfg } = doAttach(node);
     ctx.emit.mockClear();
     networkedHandler.onDetach!(node, cfg, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('networked:unregister', expect.objectContaining({
-      nodeId: 'node_det',
-      entityId: 'entity_det',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'networked:unregister',
+      expect.objectContaining({
+        nodeId: 'node_det',
+        entityId: 'entity_det',
+      })
+    );
   });
 
   it('clears __networked setState on detach', () => {
@@ -177,10 +195,12 @@ describe('NetworkedTraitHandler — Production', () => {
     const { ctx, cfg } = doAttach(node);
     ctx.setState.mockClear();
     networkedHandler.onDetach!(node, cfg, ctx as any);
-    expect(ctx.setState).toHaveBeenCalledWith(expect.objectContaining({
-      __networked: false,
-      __networkId: null,
-    }));
+    expect(ctx.setState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        __networked: false,
+        __networkId: null,
+      })
+    );
   });
 
   it('double-detach (no prior attach) does not throw', () => {
@@ -211,7 +231,11 @@ describe('NetworkedTraitHandler — Production', () => {
   it('onUpdate as remote: applies interpolatedState to node.properties', () => {
     const inst = nextInstance({
       isLocalOwner: false,
-      interpolatedState: { position: [5, 6, 7], rotation: [0.1, 0.2, 0.3], properties: { health: 80 } },
+      interpolatedState: {
+        position: [5, 6, 7],
+        rotation: [0.1, 0.2, 0.3],
+        properties: { health: 80 },
+      },
     });
     const node = makeNode();
     const { ctx, cfg } = doAttach(node);
@@ -305,6 +329,8 @@ describe('NetworkedTraitHandler — Production', () => {
     nextInstance();
     const node = makeNode();
     const { ctx, cfg } = doAttach(node);
-    expect(() => networkedHandler.onEvent!(node, cfg, ctx as any, { type: 'mystery' })).not.toThrow();
+    expect(() =>
+      networkedHandler.onEvent!(node, cfg, ctx as any, { type: 'mystery' })
+    ).not.toThrow();
   });
 });

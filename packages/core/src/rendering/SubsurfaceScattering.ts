@@ -64,7 +64,7 @@ const DEFAULT_SSS: SSSConfig = {
 export function burleyProfile(r: number, d: number, A = 1): number {
   if (r <= 0 || d <= 0) return A;
   const inv = 1 / (r * d + 1e-6);
-  return A * (Math.exp(-r / d) + Math.exp(-r / (3 * d))) * inv * 0.25 / Math.PI;
+  return (A * (Math.exp(-r / d) + Math.exp(-r / (3 * d))) * inv * 0.25) / Math.PI;
 }
 
 /**
@@ -91,7 +91,7 @@ export function burleyProfileRGB(r: number, scatterRadius: RGB): RGB {
  */
 export function christensenProfile(r: number, d: number, A = 0.93): number {
   if (d <= 0) return 0;
-  return (Math.exp(-A * r / d) + Math.exp(-A * r / (3 * d))) * A / (8 * Math.PI * d + 1e-6);
+  return ((Math.exp((-A * r) / d) + Math.exp((-A * r) / (3 * d))) * A) / (8 * Math.PI * d + 1e-6);
 }
 
 // =============================================================================
@@ -113,11 +113,7 @@ export function buildSeparableSSSKernel(
     const t = (i + 1) / numGaussians;
     kernel.push({
       weight: (1 / numGaussians) * Math.exp(-t),
-      stddev: [
-        scatterRadius[0] * t,
-        scatterRadius[1] * t,
-        scatterRadius[2] * t,
-      ],
+      stddev: [scatterRadius[0] * t, scatterRadius[1] * t, scatterRadius[2] * t],
     });
   }
   return kernel;
@@ -131,7 +127,9 @@ export function evalSeparableKernel(
   kernel: Array<{ weight: number; stddev: RGB }>,
   x: number
 ): RGB {
-  let r = 0, g = 0, b = 0;
+  let r = 0,
+    g = 0,
+    b = 0;
   for (const { weight, stddev } of kernel) {
     r += weight * gaussianAt(x, stddev[0]);
     g += weight * gaussianAt(x, stddev[1]);
@@ -154,7 +152,10 @@ function gaussianAt(x: number, sigma: number): number {
  * thickness: 0 = thin (high transmission), 1 = thick (low transmission).
  * Returns transmission factor [0, 1].
  */
-export function thinSlabTransmission(thickness: number, config: Pick<SSSConfig, 'transmission' | 'layers'>): RGB {
+export function thinSlabTransmission(
+  thickness: number,
+  config: Pick<SSSConfig, 'transmission' | 'layers'>
+): RGB {
   const result: RGB = [0, 0, 0];
   for (const layer of config.layers) {
     const t = config.transmission * (1 - thickness) * layer.weight;
@@ -180,12 +181,24 @@ export class SSSMaterial {
     };
   }
 
-  getConfig(): Readonly<SSSConfig> { return { ...this.config }; }
-  setModel(model: SSSModel): void { this.config.model = model; }
-  setTransmission(t: number): void { this.config.transmission = Math.max(0, Math.min(1, t)); }
-  setThickness(t: number): void { this.config.thickness = Math.max(0, Math.min(1, t)); }
-  addLayer(layer: SSSLayer): void { this.config.layers.push(layer); }
-  getLayerCount(): number { return this.config.layers.length; }
+  getConfig(): Readonly<SSSConfig> {
+    return { ...this.config };
+  }
+  setModel(model: SSSModel): void {
+    this.config.model = model;
+  }
+  setTransmission(t: number): void {
+    this.config.transmission = Math.max(0, Math.min(1, t));
+  }
+  setThickness(t: number): void {
+    this.config.thickness = Math.max(0, Math.min(1, t));
+  }
+  addLayer(layer: SSSLayer): void {
+    this.config.layers.push(layer);
+  }
+  getLayerCount(): number {
+    return this.config.layers.length;
+  }
 
   /**
    * Evaluate SSS diffusion at a surface point for a given light exit radius.
@@ -235,45 +248,50 @@ export class SSSMaterial {
 
 export const SSS_PRESETS = {
   /** Human skin: epidermis (yellow tint) + dermis (red) */
-  humanSkin: (): SSSMaterial => new SSSMaterial({
-    model: 'burley',
-    transmission: 0.05,
-    thickness: 0.3,
-    layers: [
-      { weight: 0.3, scatterRadius: [0.4, 0.2, 0.05], color: [0.95, 0.85, 0.6] },   // epidermis
-      { weight: 0.7, scatterRadius: [2.5, 0.8, 0.15], color: [1.0, 0.4, 0.25] },     // dermis
-    ],
-  }),
+  humanSkin: (): SSSMaterial =>
+    new SSSMaterial({
+      model: 'burley',
+      transmission: 0.05,
+      thickness: 0.3,
+      layers: [
+        { weight: 0.3, scatterRadius: [0.4, 0.2, 0.05], color: [0.95, 0.85, 0.6] }, // epidermis
+        { weight: 0.7, scatterRadius: [2.5, 0.8, 0.15], color: [1.0, 0.4, 0.25] }, // dermis
+      ],
+    }),
 
   /** Wax candle (high SSS, warm light transmission) */
-  wax: (): SSSMaterial => new SSSMaterial({
-    model: 'burley',
-    transmission: 0.4,
-    thickness: 0.6,
-    layers: [{ weight: 1, scatterRadius: [3, 2, 1], color: [1, 0.95, 0.7] }],
-  }),
+  wax: (): SSSMaterial =>
+    new SSSMaterial({
+      model: 'burley',
+      transmission: 0.4,
+      thickness: 0.6,
+      layers: [{ weight: 1, scatterRadius: [3, 2, 1], color: [1, 0.95, 0.7] }],
+    }),
 
   /** Jade gemstone (cool, dense SSS) */
-  jade: (): SSSMaterial => new SSSMaterial({
-    model: 'christensen',
-    transmission: 0.15,
-    thickness: 0.7,
-    layers: [{ weight: 1, scatterRadius: [0.5, 1.2, 0.4], color: [0.3, 0.7, 0.4] }],
-  }),
+  jade: (): SSSMaterial =>
+    new SSSMaterial({
+      model: 'christensen',
+      transmission: 0.15,
+      thickness: 0.7,
+      layers: [{ weight: 1, scatterRadius: [0.5, 1.2, 0.4], color: [0.3, 0.7, 0.4] }],
+    }),
 
   /** Marble (dense, RGB-balanced) */
-  marble: (): SSSMaterial => new SSSMaterial({
-    model: 'burley',
-    transmission: 0.1,
-    thickness: 0.8,
-    layers: [{ weight: 1, scatterRadius: [0.8, 0.8, 0.7], color: [0.95, 0.93, 0.9] }],
-  }),
+  marble: (): SSSMaterial =>
+    new SSSMaterial({
+      model: 'burley',
+      transmission: 0.1,
+      thickness: 0.8,
+      layers: [{ weight: 1, scatterRadius: [0.8, 0.8, 0.7], color: [0.95, 0.93, 0.9] }],
+    }),
 
   /** Leaf / plant (very thin, high transmission) */
-  leaf: (): SSSMaterial => new SSSMaterial({
-    model: 'separable_sss',
-    transmission: 0.6,
-    thickness: 0.1,
-    layers: [{ weight: 1, scatterRadius: [0.3, 0.8, 0.2], color: [0.3, 0.7, 0.15] }],
-  }),
+  leaf: (): SSSMaterial =>
+    new SSSMaterial({
+      model: 'separable_sss',
+      transmission: 0.6,
+      thickness: 0.1,
+      layers: [{ weight: 1, scatterRadius: [0.3, 0.8, 0.2], color: [0.3, 0.7, 0.15] }],
+    }),
 };

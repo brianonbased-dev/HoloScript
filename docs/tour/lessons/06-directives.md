@@ -25,12 +25,12 @@ orb "WelcomeSign" {
 
 ### Common Directives
 
-| Directive    | Purpose                              |
-|--------------|--------------------------------------|
-| `@manifest`  | Scene metadata (title, version, etc.)|
-| `@zones`     | Define spatial regions for chunking  |
-| `@import`    | Import external HoloScript modules   |
-| `@physics_world` | Global physics settings          |
+| Directive        | Purpose                               |
+| ---------------- | ------------------------------------- |
+| `@manifest`      | Scene metadata (title, version, etc.) |
+| `@zones`         | Define spatial regions for chunking   |
+| `@import`        | Import external HoloScript modules    |
+| `@physics_world` | Global physics settings               |
 
 ## Try it:
 

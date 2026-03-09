@@ -6,13 +6,17 @@
 import { describe, it, expect, vi } from 'vitest';
 import { embeddingSearchHandler } from '../EmbeddingSearchTrait';
 
-function makeNode() { return { id: 'emb_node' }; }
+function makeNode() {
+  return { id: 'emb_node' };
+}
 
 function makeCtx() {
   let _state: Record<string, any> = {};
   return {
     emit: vi.fn(),
-    setState: vi.fn((update: Record<string, any>) => { _state = { ..._state, ...update }; }),
+    setState: vi.fn((update: Record<string, any>) => {
+      _state = { ..._state, ...update };
+    }),
     getState: vi.fn(() => _state),
   };
 }
@@ -74,7 +78,10 @@ describe('embeddingSearchHandler.onAttach', () => {
   });
   it('emits search:ready with model and metric', () => {
     const { ctx } = attach({ embedding_model: 'bge-small', similarity_metric: 'dot_product' });
-    expect(ctx.emit).toHaveBeenCalledWith('search:ready', { model: 'bge-small', metric: 'dot_product' });
+    expect(ctx.emit).toHaveBeenCalledWith('search:ready', {
+      model: 'bge-small',
+      metric: 'dot_product',
+    });
   });
 });
 
@@ -101,39 +108,63 @@ describe('embeddingSearchHandler.onDetach', () => {
 describe('embeddingSearchHandler.onEvent — search:query', () => {
   it('increments totalQueries', () => {
     const { node, ctx, config } = attach();
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'glowing sword' } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'glowing sword' },
+    });
     expect(ctx.getState().embeddingSearch.totalQueries).toBe(1);
   });
   it('cumulative totalQueries', () => {
     const { node, ctx, config } = attach();
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'a' } });
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'b' } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'a' },
+    });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'b' },
+    });
     expect(ctx.getState().embeddingSearch.totalQueries).toBe(2);
   });
   it('sets isSearching=true', () => {
     const { node, ctx, config } = attach();
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'test' } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'test' },
+    });
     expect(ctx.getState().embeddingSearch.isSearching).toBe(true);
   });
   it('emits search:started with query and model', () => {
     const { node, ctx, config } = attach({ embedding_model: 'e5-small' });
     ctx.emit.mockClear();
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'fire spell' } });
-    expect(ctx.emit).toHaveBeenCalledWith('search:started', expect.objectContaining({ query: 'fire spell', model: 'e5-small' }));
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'fire spell' },
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'search:started',
+      expect.objectContaining({ query: 'fire spell', model: 'e5-small' })
+    );
   });
   it('emits search:cache_hit when query is cached and cache_embeddings=true', () => {
     const { node, ctx, config } = attach({ cache_embeddings: true });
     const state = ctx.getState().embeddingSearch;
     state.embeddingCache.set('cached query', new Float32Array([0.1, 0.2]));
     ctx.emit.mockClear();
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'cached query' } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'cached query' },
+    });
     expect(ctx.emit).toHaveBeenCalledWith('search:cache_hit', { query: 'cached query' });
   });
   it('increments cacheHits on cache hit', () => {
     const { node, ctx, config } = attach({ cache_embeddings: true });
     const state = ctx.getState().embeddingSearch;
     state.embeddingCache.set('hit!', new Float32Array([0.5]));
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'hit!' } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'hit!' },
+    });
     expect(ctx.getState().embeddingSearch.cacheHits).toBe(1);
   });
   it('no cache_hit emit when cache_embeddings=false even if entry exists', () => {
@@ -141,12 +172,18 @@ describe('embeddingSearchHandler.onEvent — search:query', () => {
     const state = ctx.getState().embeddingSearch;
     state.embeddingCache.set('q', new Float32Array([0.1]));
     ctx.emit.mockClear();
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'q' } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'q' },
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('search:cache_hit', expect.anything());
   });
   it('no cacheHits increment when query not cached', () => {
     const { node, ctx, config } = attach({ cache_embeddings: true });
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'new query' } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'new query' },
+    });
     expect(ctx.getState().embeddingSearch.cacheHits).toBe(0);
   });
 });
@@ -156,7 +193,10 @@ describe('embeddingSearchHandler.onEvent — search:query', () => {
 describe('embeddingSearchHandler.onEvent — search:results', () => {
   it('sets isSearching=false', () => {
     const { node, ctx, config } = attach();
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'q' } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'q' },
+    });
     embeddingSearchHandler.onEvent!(node, config, ctx, {
       type: 'search:results',
       payload: { results: [], queryTimeMs: 10 },
@@ -165,7 +205,10 @@ describe('embeddingSearchHandler.onEvent — search:results', () => {
   });
   it('filters results below min_score', () => {
     const { node, ctx, config } = attach({ min_score: 0.7, top_k: 10 });
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'q' } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'q' },
+    });
     embeddingSearchHandler.onEvent!(node, config, ctx, {
       type: 'search:results',
       payload: {
@@ -181,7 +224,10 @@ describe('embeddingSearchHandler.onEvent — search:results', () => {
   });
   it('trims results to top_k', () => {
     const { node, ctx, config } = attach({ min_score: 0, top_k: 2 });
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'q' } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'q' },
+    });
     embeddingSearchHandler.onEvent!(node, config, ctx, {
       type: 'search:results',
       payload: {
@@ -197,26 +243,41 @@ describe('embeddingSearchHandler.onEvent — search:results', () => {
   });
   it('stores lastResults correctly', () => {
     const { node, ctx, config } = attach({ min_score: 0.5, top_k: 5 });
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'q' } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'q' },
+    });
     embeddingSearchHandler.onEvent!(node, config, ctx, {
       type: 'search:results',
-      payload: { results: [{ id: 'sword', score: 0.95, payload: { name: 'Fire Sword' } }], queryTimeMs: 12 },
+      payload: {
+        results: [{ id: 'sword', score: 0.95, payload: { name: 'Fire Sword' } }],
+        queryTimeMs: 12,
+      },
     });
     expect(ctx.getState().embeddingSearch.lastResults[0].id).toBe('sword');
   });
   it('emits search:complete with resultCount', () => {
     const { node, ctx, config } = attach({ min_score: 0.5, top_k: 10 });
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'q' } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'q' },
+    });
     ctx.emit.mockClear();
     embeddingSearchHandler.onEvent!(node, config, ctx, {
       type: 'search:results',
       payload: { results: [{ id: 'a', score: 0.8, payload: {} }], queryTimeMs: 20 },
     });
-    expect(ctx.emit).toHaveBeenCalledWith('search:complete', expect.objectContaining({ resultCount: 1, queryTimeMs: 20 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'search:complete',
+      expect.objectContaining({ resultCount: 1, queryTimeMs: 20 })
+    );
   });
   it('avgQueryTimeMs = queryTimeMs on first query', () => {
     const { node, ctx, config } = attach();
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'q' } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'q' },
+    });
     embeddingSearchHandler.onEvent!(node, config, ctx, {
       type: 'search:results',
       payload: { results: [], queryTimeMs: 42 },
@@ -226,11 +287,23 @@ describe('embeddingSearchHandler.onEvent — search:results', () => {
   it('avgQueryTimeMs is running average across queries', () => {
     const { node, ctx, config } = attach({ min_score: 0 });
     // First query
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'q1' } });
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:results', payload: { results: [], queryTimeMs: 10 } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'q1' },
+    });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:results',
+      payload: { results: [], queryTimeMs: 10 },
+    });
     // Second query
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'q2' } });
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:results', payload: { results: [], queryTimeMs: 30 } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'q2' },
+    });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:results',
+      payload: { results: [], queryTimeMs: 30 },
+    });
     // avg should be (10*1 + 30)/2 = 20
     expect(ctx.getState().embeddingSearch.avgQueryTimeMs).toBeCloseTo(20);
   });
@@ -238,17 +311,29 @@ describe('embeddingSearchHandler.onEvent — search:results', () => {
     const { node, ctx, config } = attach({ cache_embeddings: true, min_score: 0 });
     const state = ctx.getState().embeddingSearch;
     state.embeddingCache.set('hit', new Float32Array([0.1]));
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'hit' } }); // cache hit
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'hit' },
+    }); // cache hit
     ctx.emit.mockClear();
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:results', payload: { results: [], queryTimeMs: 5 } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:results',
+      payload: { results: [], queryTimeMs: 5 },
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'search:complete')!;
     expect(call[1].cacheHitRate).toBeCloseTo(1.0); // 1/1
   });
   it('handles empty results gracefully', () => {
     const { node, ctx, config } = attach();
-    embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:query', payload: { query: 'q' } });
+    embeddingSearchHandler.onEvent!(node, config, ctx, {
+      type: 'search:query',
+      payload: { query: 'q' },
+    });
     expect(() =>
-      embeddingSearchHandler.onEvent!(node, config, ctx, { type: 'search:results', payload: { results: [], queryTimeMs: 0 } })
+      embeddingSearchHandler.onEvent!(node, config, ctx, {
+        type: 'search:results',
+        payload: { results: [], queryTimeMs: 0 },
+      })
     ).not.toThrow();
     expect(ctx.getState().embeddingSearch.lastResults).toHaveLength(0);
   });
@@ -262,7 +347,10 @@ describe('embeddingSearchHandler.onEvent — guard', () => {
     const emptyCtx = { emit: vi.fn(), setState: vi.fn(), getState: vi.fn(() => ({})) };
     const config = { ...embeddingSearchHandler.defaultConfig! };
     expect(() =>
-      embeddingSearchHandler.onEvent!(node, config, emptyCtx, { type: 'search:query', payload: { query: 'q' } })
+      embeddingSearchHandler.onEvent!(node, config, emptyCtx, {
+        type: 'search:query',
+        payload: { query: 'q' },
+      })
     ).not.toThrow();
   });
 });

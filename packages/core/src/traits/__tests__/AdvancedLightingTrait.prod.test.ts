@@ -3,27 +3,49 @@ import { AdvancedLightingTrait } from '../../traits/AdvancedLightingTrait';
 import type { AdvancedLightingConfig } from '../../traits/AdvancedLightingTrait';
 
 const rectConfig: AdvancedLightingConfig = {
-  lights: [{ type: 'area_rect', config: { width: 2, height: 1, intensity: 1000, color: [1, 1, 1], castShadows: true } }],
+  lights: [
+    {
+      type: 'area_rect',
+      config: { width: 2, height: 1, intensity: 1000, color: [1, 1, 1], castShadows: true },
+    },
+  ],
 };
 
 const mixedConfig: AdvancedLightingConfig = {
   lights: [
     { type: 'area_rect', config: { width: 1, height: 1, intensity: 500, color: [1, 0.9, 0.8] } },
     { type: 'area_disk', config: { radius: 0.5, intensity: 300, color: [1, 1, 1] } },
-    { type: 'ies', config: { profilePath: 'lights/office.ies', intensity: 800, color: [1, 1, 0.9] } },
+    {
+      type: 'ies',
+      config: { profilePath: 'lights/office.ies', intensity: 800, color: [1, 1, 0.9] },
+    },
   ],
 };
 
 const cookieConfig: AdvancedLightingConfig = {
-  lights: [{ type: 'cookie', config: { texturePath: 'cookies/window.png', lightType: 'spot', intensity: 1.0, angle: 45 } }],
+  lights: [
+    {
+      type: 'cookie',
+      config: { texturePath: 'cookies/window.png', lightType: 'spot', intensity: 1.0, angle: 45 },
+    },
+  ],
 };
 
 const emissiveConfig: AdvancedLightingConfig = {
-  lights: [{ type: 'emissive_mesh', config: { meshRef: 'neon_sign', emissiveColor: [0, 0.5, 1], emissiveIntensity: 5, contributesToGI: true } }],
+  lights: [
+    {
+      type: 'emissive_mesh',
+      config: {
+        meshRef: 'neon_sign',
+        emissiveColor: [0, 0.5, 1],
+        emissiveIntensity: 5,
+        contributesToGI: true,
+      },
+    },
+  ],
 };
 
 describe('AdvancedLightingTrait — Production Tests', () => {
-
   describe('validate()', () => {
     it('accepts rect area light config', () => {
       expect(AdvancedLightingTrait.validate(rectConfig)).toBe(true);
@@ -44,14 +66,18 @@ describe('AdvancedLightingTrait — Production Tests', () => {
 
     it('throws when area_rect width <= 0', () => {
       const bad: AdvancedLightingConfig = {
-        lights: [{ type: 'area_rect', config: { width: 0, height: 1, intensity: 100, color: [1, 1, 1] } }],
+        lights: [
+          { type: 'area_rect', config: { width: 0, height: 1, intensity: 100, color: [1, 1, 1] } },
+        ],
       };
       expect(() => AdvancedLightingTrait.validate(bad)).toThrow('width');
     });
 
     it('throws when area_rect height <= 0', () => {
       const bad: AdvancedLightingConfig = {
-        lights: [{ type: 'area_rect', config: { width: 1, height: -1, intensity: 100, color: [1, 1, 1] } }],
+        lights: [
+          { type: 'area_rect', config: { width: 1, height: -1, intensity: 100, color: [1, 1, 1] } },
+        ],
       };
       expect(() => AdvancedLightingTrait.validate(bad)).toThrow('height');
     });
@@ -91,7 +117,12 @@ describe('AdvancedLightingTrait — Production Tests', () => {
 
     it('IES Unity output references IESObject', () => {
       const iesConfig: AdvancedLightingConfig = {
-        lights: [{ type: 'ies', config: { profilePath: 'lights/x.ies', intensity: 100, color: [1, 1, 1] } }],
+        lights: [
+          {
+            type: 'ies',
+            config: { profilePath: 'lights/x.ies', intensity: 100, color: [1, 1, 1] },
+          },
+        ],
       };
       expect(AdvancedLightingTrait.compile(iesConfig, 'unity')).toContain('IESLight');
     });
@@ -108,7 +139,12 @@ describe('AdvancedLightingTrait — Production Tests', () => {
 
     it('IES Unreal output contains APointLight', () => {
       const iesConfig: AdvancedLightingConfig = {
-        lights: [{ type: 'ies', config: { profilePath: 'lights/x.ies', intensity: 100, color: [1, 1, 1] } }],
+        lights: [
+          {
+            type: 'ies',
+            config: { profilePath: 'lights/x.ies', intensity: 100, color: [1, 1, 1] },
+          },
+        ],
       };
       expect(AdvancedLightingTrait.compile(iesConfig, 'unreal')).toContain('APointLight');
     });

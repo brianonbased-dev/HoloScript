@@ -61,7 +61,10 @@ describe('ACOEngine', () => {
   });
 
   it('optimize handles 2-node problem', async () => {
-    const m = [[0, 5], [5, 0]];
+    const m = [
+      [0, 5],
+      [5, 0],
+    ];
     const engine = new ACOEngine({ antCount: 5, maxIterations: 5 });
     const result = await engine.optimize(2, m);
     expect(result.bestPath.length).toBe(2);

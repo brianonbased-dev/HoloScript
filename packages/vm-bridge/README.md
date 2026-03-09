@@ -20,7 +20,7 @@ const agent = new SpatialCognitiveAgent(
   holoVM.getWorld(), // ECS world reference
   uaalVM,
   {
-    cognitiveHz: 2,           // Run cognitive cycle every 500ms
+    cognitiveHz: 2, // Run cognitive cycle every 500ms
     enableLogging: true,
     maxActionsPerTick: 50,
   }
@@ -138,14 +138,14 @@ console.log(`Applied ${result.actionsApplied} queued actions`);
 
 The bridge automatically registers spatial opcodes in the uAAL VM:
 
-| Opcode | Name | Purpose |
-|---|---|---|
-| `INTAKE` | Perception | Captures ECS world snapshot |
-| `EXECUTE` | Mutation | Applies queued actions to world |
-| `OP_EXECUTE_HOLOSCRIPT` | HoloScript Integration | Returns scene snapshot |
-| `OP_SPATIAL_ANCHOR` | Create Anchor | Spawns entity at (x, y, z) |
-| `OP_RENDER_HOLOGRAM` | Render Geometry | Sets geometry + material on entity |
-| `OP_VR_TELEPORT` | Teleport Entity | Moves entity to (x, y, z) |
+| Opcode                  | Name                   | Purpose                            |
+| ----------------------- | ---------------------- | ---------------------------------- |
+| `INTAKE`                | Perception             | Captures ECS world snapshot        |
+| `EXECUTE`               | Mutation               | Applies queued actions to world    |
+| `OP_EXECUTE_HOLOSCRIPT` | HoloScript Integration | Returns scene snapshot             |
+| `OP_SPATIAL_ANCHOR`     | Create Anchor          | Spawns entity at (x, y, z)         |
+| `OP_RENDER_HOLOGRAM`    | Render Geometry        | Sets geometry + material on entity |
+| `OP_VR_TELEPORT`        | Teleport Entity        | Moves entity to (x, y, z)          |
 
 Example usage in uAAL bytecode:
 

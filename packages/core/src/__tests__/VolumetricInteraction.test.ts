@@ -26,26 +26,32 @@ describe('Volumetric Interaction (Phase 11.5)', () => {
       origin: [0, 0, 0],
       direction: [1, 0, 0],
       threshold: 1.0,
-      queryId: 'test-query-1'
+      queryId: 'test-query-1',
     });
 
     const calls = mockContext.emit.mock.calls;
-    console.log('[DEBUG] mockContext.emit types:', calls.map(c => c[0]));
-    const hitCall = calls.find(c => c[0] === 'volumetric_ray_hit');
+    console.log(
+      '[DEBUG] mockContext.emit types:',
+      calls.map((c) => c[0])
+    );
+    const hitCall = calls.find((c) => c[0] === 'volumetric_ray_hit');
     if (hitCall) {
       console.log('[DEBUG] hitCall payload:', JSON.stringify(hitCall[1], null, 2));
     }
 
-    expect(mockContext.emit).toHaveBeenCalledWith('volumetric_ray_hit', expect.objectContaining({
-      queryId: 'test-query-1',
-      hit: expect.objectContaining({
-        index: 0,
-        distance: expect.any(Number)
+    expect(mockContext.emit).toHaveBeenCalledWith(
+      'volumetric_ray_hit',
+      expect.objectContaining({
+        queryId: 'test-query-1',
+        hit: expect.objectContaining({
+          index: 0,
+          distance: expect.any(Number),
+        }),
       })
-    }));
+    );
 
     // Distance should be 4.0 (5.0 center - 1.0 radius)
-    const hit = mockContext.emit.mock.calls.find(c => c[0] === 'volumetric_ray_hit')[1].hit;
+    const hit = mockContext.emit.mock.calls.find((c) => c[0] === 'volumetric_ray_hit')[1].hit;
     expect(hit.distance).toBeLessThanOrEqual(5.0);
     expect(hit.distance).toBeGreaterThanOrEqual(4.0);
   });
@@ -70,12 +76,15 @@ describe('Volumetric Interaction (Phase 11.5)', () => {
       type: 'volumetric_ray_query',
       origin: [0, 0, 0],
       direction: [0, 1, 0],
-      queryId: 'test-query-miss'
+      queryId: 'test-query-miss',
     });
 
-    expect(mockContext.emit).toHaveBeenCalledWith('volumetric_ray_hit', expect.objectContaining({
-      queryId: 'test-query-miss',
-      hit: null
-    }));
+    expect(mockContext.emit).toHaveBeenCalledWith(
+      'volumetric_ray_hit',
+      expect.objectContaining({
+        queryId: 'test-query-miss',
+        hit: null,
+      })
+    );
   });
 });

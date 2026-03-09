@@ -85,7 +85,11 @@ describe('spatialAccessoryHandler.onAttach', () => {
   });
 
   it('emits accessory_connect when device_id is set', () => {
-    const { ctx } = attach({ device_id: 'ctrl_01', device_type: 'controller', tracking_mode: 'full_6dof' });
+    const { ctx } = attach({
+      device_id: 'ctrl_01',
+      device_type: 'controller',
+      tracking_mode: 'full_6dof',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'accessory_connect');
     expect(call).toBeDefined();
     expect(call![1].deviceId).toBe('ctrl_01');
@@ -139,7 +143,10 @@ describe('spatialAccessoryHandler.onUpdate', () => {
     (node as any).__spatialAccessoryState.isConnected = true;
     ctx.emit.mockClear();
     spatialAccessoryHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('accessory_request_pose', expect.objectContaining({ trackingMode: 'full_6dof' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'accessory_request_pose',
+      expect.objectContaining({ trackingMode: 'full_6dof' })
+    );
   });
 });
 
@@ -162,25 +169,37 @@ describe('spatialAccessoryHandler.onEvent — accessory_connected', () => {
   it('emits accessory_set_led when led_enabled=true', () => {
     const { node, ctx, config } = attach({ led_enabled: true, led_color: '#ff0000' });
     ctx.emit.mockClear();
-    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, { type: 'accessory_connected' });
-    expect(ctx.emit).toHaveBeenCalledWith('accessory_set_led', expect.objectContaining({
-      color: '#ff0000',
-      enabled: true,
-    }));
+    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'accessory_connected',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'accessory_set_led',
+      expect.objectContaining({
+        color: '#ff0000',
+        enabled: true,
+      })
+    );
   });
 
   it('does NOT emit accessory_set_led when led_enabled=false', () => {
     const { node, ctx, config } = attach({ led_enabled: false });
     ctx.emit.mockClear();
-    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, { type: 'accessory_connected' });
+    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'accessory_connected',
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('accessory_set_led', expect.anything());
   });
 
   it('emits on_accessory_connected with deviceType', () => {
     const { node, ctx, config } = attach({ device_type: 'haptic_gloves' });
     ctx.emit.mockClear();
-    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, { type: 'accessory_connected' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_accessory_connected', expect.objectContaining({ deviceType: 'haptic_gloves' }));
+    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'accessory_connected',
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_accessory_connected',
+      expect.objectContaining({ deviceType: 'haptic_gloves' })
+    );
   });
 });
 
@@ -191,7 +210,9 @@ describe('spatialAccessoryHandler.onEvent — accessory_disconnected', () => {
     const { node, ctx, config } = attach();
     (node as any).__spatialAccessoryState.isConnected = true;
     ctx.emit.mockClear();
-    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, { type: 'accessory_disconnected' });
+    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'accessory_disconnected',
+    });
     expect((node as any).__spatialAccessoryState.isConnected).toBe(false);
     expect(ctx.emit).toHaveBeenCalledWith('on_accessory_disconnected', expect.any(Object));
   });
@@ -202,15 +223,24 @@ describe('spatialAccessoryHandler.onEvent — accessory_disconnected', () => {
 describe('spatialAccessoryHandler.onEvent — accessory_pose_update', () => {
   it('stores pose and emits accessory_apply_pose with attachPoint', () => {
     const { node, ctx, config } = attach({ attach_point: 'right_hand' });
-    const pose = { position: [1, 2, 3] as [number, number, number], rotation: [0, 0, 0, 1] as [number, number, number, number] };
+    const pose = {
+      position: [1, 2, 3] as [number, number, number],
+      rotation: [0, 0, 0, 1] as [number, number, number, number],
+    };
     ctx.emit.mockClear();
-    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, { type: 'accessory_pose_update', pose });
+    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'accessory_pose_update',
+      pose,
+    });
     expect((node as any).__spatialAccessoryState.lastPose).toEqual(pose);
-    expect(ctx.emit).toHaveBeenCalledWith('accessory_apply_pose', expect.objectContaining({
-      attachPoint: 'right_hand',
-      position: pose.position,
-      rotation: pose.rotation,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'accessory_apply_pose',
+      expect.objectContaining({
+        attachPoint: 'right_hand',
+        position: pose.position,
+        rotation: pose.rotation,
+      })
+    );
   });
 });
 
@@ -235,11 +265,14 @@ describe('spatialAccessoryHandler.onEvent — accessory_input', () => {
       button: 'trigger',
       value: 1.0,
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_accessory_input', expect.objectContaining({
-      button: 'trigger',
-      action: 'fire',
-      value: 1.0,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_accessory_input',
+      expect.objectContaining({
+        button: 'trigger',
+        action: 'fire',
+        value: 1.0,
+      })
+    );
   });
 
   it('does NOT emit on_accessory_input for unmapped button', () => {
@@ -261,7 +294,10 @@ describe('spatialAccessoryHandler.onEvent — accessory_input', () => {
       button: 'pen_tip',
       value: 0.6,
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_pressure_change', expect.objectContaining({ pressure: 0.6 }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_pressure_change',
+      expect.objectContaining({ pressure: 0.6 })
+    );
   });
 
   it('does NOT emit on_pressure_change when pressure_sensitivity=false', () => {
@@ -283,25 +319,38 @@ describe('spatialAccessoryHandler.onEvent — accessory_haptic', () => {
     const { node, ctx, config } = attach({ haptic_feedback: true });
     (node as any).__spatialAccessoryState.hapticMotors = 2;
     ctx.emit.mockClear();
-    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, { type: 'accessory_haptic', intensity: 0.8, duration: 200 });
-    expect(ctx.emit).toHaveBeenCalledWith('accessory_play_haptic', expect.objectContaining({
+    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'accessory_haptic',
       intensity: 0.8,
       duration: 200,
-    }));
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'accessory_play_haptic',
+      expect.objectContaining({
+        intensity: 0.8,
+        duration: 200,
+      })
+    );
   });
 
   it('no-op when haptic_feedback=false', () => {
     const { node, ctx, config } = attach({ haptic_feedback: false });
     (node as any).__spatialAccessoryState.hapticMotors = 2;
     ctx.emit.mockClear();
-    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, { type: 'accessory_haptic', intensity: 1.0 });
+    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'accessory_haptic',
+      intensity: 1.0,
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('accessory_play_haptic', expect.anything());
   });
 
   it('no-op when hapticMotors=0', () => {
     const { node, ctx, config } = attach({ haptic_feedback: true });
     ctx.emit.mockClear();
-    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, { type: 'accessory_haptic', intensity: 1.0 });
+    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'accessory_haptic',
+      intensity: 1.0,
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('accessory_play_haptic', expect.anything());
   });
 });
@@ -313,14 +362,21 @@ describe('spatialAccessoryHandler.onEvent — calibration', () => {
     const { node, ctx, config } = attach({ device_type: 'tracker' });
     (node as any).__spatialAccessoryState.isCalibrated = true;
     ctx.emit.mockClear();
-    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, { type: 'accessory_calibrate' });
+    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'accessory_calibrate',
+    });
     expect((node as any).__spatialAccessoryState.isCalibrated).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('accessory_start_calibration', expect.objectContaining({ deviceType: 'tracker' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'accessory_start_calibration',
+      expect.objectContaining({ deviceType: 'tracker' })
+    );
   });
 
   it('accessory_calibration_complete sets isCalibrated=true', () => {
     const { node, ctx, config } = attach();
-    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, { type: 'accessory_calibration_complete' });
+    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'accessory_calibration_complete',
+    });
     expect((node as any).__spatialAccessoryState.isCalibrated).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith('on_accessory_calibrated', expect.any(Object));
   });
@@ -331,21 +387,33 @@ describe('spatialAccessoryHandler.onEvent — calibration', () => {
 describe('spatialAccessoryHandler.onEvent — battery_update', () => {
   it('stores batteryLevel', () => {
     const { node, ctx, config } = attach();
-    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, { type: 'accessory_battery_update', level: 0.5 });
+    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'accessory_battery_update',
+      level: 0.5,
+    });
     expect((node as any).__spatialAccessoryState.batteryLevel).toBeCloseTo(0.5, 4);
   });
 
   it('emits on_accessory_low_battery when level < 0.2', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, { type: 'accessory_battery_update', level: 0.1 });
-    expect(ctx.emit).toHaveBeenCalledWith('on_accessory_low_battery', expect.objectContaining({ level: 0.1 }));
+    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'accessory_battery_update',
+      level: 0.1,
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_accessory_low_battery',
+      expect.objectContaining({ level: 0.1 })
+    );
   });
 
   it('does NOT emit low_battery when level >= 0.2', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, { type: 'accessory_battery_update', level: 0.3 });
+    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'accessory_battery_update',
+      level: 0.3,
+    });
     expect(ctx.emit).not.toHaveBeenCalledWith('on_accessory_low_battery', expect.anything());
   });
 });
@@ -354,14 +422,21 @@ describe('spatialAccessoryHandler.onEvent — battery_update', () => {
 
 describe('spatialAccessoryHandler.onEvent — accessory_query', () => {
   it('emits accessory_info with full snapshot', () => {
-    const { node, ctx, config } = attach({ device_type: 'controller', attach_point: 'left_hand', button_count: 6 });
+    const { node, ctx, config } = attach({
+      device_type: 'controller',
+      attach_point: 'left_hand',
+      button_count: 6,
+    });
     const state = (node as any).__spatialAccessoryState;
     state.isConnected = true;
     state.batteryLevel = 0.8;
     state.isCalibrated = true;
     state.hapticMotors = 2;
     ctx.emit.mockClear();
-    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, { type: 'accessory_query', queryId: 'q1' });
+    spatialAccessoryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'accessory_query',
+      queryId: 'q1',
+    });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'accessory_info');
     expect(call).toBeDefined();
     expect(call![1].queryId).toBe('q1');

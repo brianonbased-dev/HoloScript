@@ -10,16 +10,30 @@ function bone(id: string, x: number, y: number, length: number): IKBone {
 }
 
 function chain2(id: string, target: { x: number; y: number; z: number }): IKChain {
-  return { id, bones: [bone('root', 0, 0, 5), bone('mid', 5, 0, 5)], target, weight: 1, iterations: 10 };
+  return {
+    id,
+    bones: [bone('root', 0, 0, 5), bone('mid', 5, 0, 5)],
+    target,
+    weight: 1,
+    iterations: 10,
+  };
 }
 
 function chain3(id: string, target: { x: number; y: number; z: number }): IKChain {
-  return { id, bones: [bone('root', 0, 0, 5), bone('mid', 5, 0, 5), bone('end', 10, 0, 0)], target, weight: 1, iterations: 10 };
+  return {
+    id,
+    bones: [bone('root', 0, 0, 5), bone('mid', 5, 0, 5), bone('end', 10, 0, 0)],
+    target,
+    weight: 1,
+    iterations: 10,
+  };
 }
 
 describe('IKSolver', () => {
   let solver: IKSolver;
-  beforeEach(() => { solver = new IKSolver(); });
+  beforeEach(() => {
+    solver = new IKSolver();
+  });
 
   it('addChain and getChainCount', () => {
     solver.addChain(chain2('arm', { x: 8, y: 0, z: 0 }));
@@ -76,7 +90,13 @@ describe('IKSolver', () => {
   });
 
   it('solveCCD returns false for chain with < 2 bones', () => {
-    solver.addChain({ id: 'short', bones: [bone('only', 0, 0, 1)], target: { x: 1, y: 0, z: 0 }, weight: 1, iterations: 5 });
+    solver.addChain({
+      id: 'short',
+      bones: [bone('only', 0, 0, 1)],
+      target: { x: 1, y: 0, z: 0 },
+      weight: 1,
+      iterations: 5,
+    });
     expect(solver.solveCCD('short')).toBe(false);
   });
 
@@ -97,7 +117,13 @@ describe('IKSolver', () => {
     solver.addChain(chain3('arm', { x: 5, y: 3, z: 0 })); // 3 bones -> twoBone
     const longChain: IKChain = {
       id: 'tail',
-      bones: [bone('b0', 0, 0, 2), bone('b1', 2, 0, 2), bone('b2', 4, 0, 2), bone('b3', 6, 0, 2), bone('b4', 8, 0, 0)],
+      bones: [
+        bone('b0', 0, 0, 2),
+        bone('b1', 2, 0, 2),
+        bone('b2', 4, 0, 2),
+        bone('b3', 6, 0, 2),
+        bone('b4', 8, 0, 0),
+      ],
       target: { x: 4, y: 4, z: 0 },
       weight: 1,
       iterations: 10,

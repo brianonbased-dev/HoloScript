@@ -7,11 +7,13 @@ Turn high-level marketplace specifications into production-ready Solidity contra
 ## 🚀 Features
 
 ### Core Standards
+
 - ✅ **ERC-1155** - Multi-token standard (fungible, semi-fungible, non-fungible)
 - ✅ **ERC-2981** - NFT royalty standard with per-token overrides
 - ✅ **ERC721A Patterns** - Sequential minting optimization (80% gas savings)
 
 ### Advanced Capabilities
+
 - ⚡ **Lazy Minting** - Off-chain signatures, on-chain redemption (85%+ gas savings)
 - 🔍 **Gas Optimization** - Static analysis with pattern detection and auto-fixes
 - 🌐 **Multi-Chain** - Deploy to Base, Polygon, Ethereum L2s
@@ -19,6 +21,7 @@ Turn high-level marketplace specifications into production-ready Solidity contra
 - 📊 **Marketplace** - Built-in listing, auction, and offer systems
 
 ### Developer Experience
+
 - 📝 **Declarative Syntax** - Describe what you want, not how to implement it
 - 🎨 **Type-Safe** - Full TypeScript support
 - 🧪 **Auto-Generated Tests** - Comprehensive test suites
@@ -85,6 +88,7 @@ holoscript nft-compile my-nft.holo --gas-analysis
 ```
 
 **Output:**
+
 ```
 ✓ Compilation successful!
 
@@ -292,14 +296,14 @@ nft marketplace "MetaverseAssets" {
 
 The compiler automatically applies these optimizations:
 
-| Optimization | Gas Saved | Description |
-|---|---|---|
-| **Storage Packing** | ~20,000 per slot | Packs uint128, uint64, bool into single slots |
-| **Custom Errors** | ~50 per revert | Replaces require strings with custom errors |
-| **Unchecked Arithmetic** | ~40 per op | Wraps safe operations in unchecked{} |
-| **Calldata Parameters** | ~200 per array | Uses calldata for read-only arrays |
-| **Sequential Minting** | ~80% on batch | ERC721A-style sequential tracking |
-| **Batch Operations** | ~60% overhead | Amortizes transaction costs |
+| Optimization             | Gas Saved        | Description                                   |
+| ------------------------ | ---------------- | --------------------------------------------- |
+| **Storage Packing**      | ~20,000 per slot | Packs uint128, uint64, bool into single slots |
+| **Custom Errors**        | ~50 per revert   | Replaces require strings with custom errors   |
+| **Unchecked Arithmetic** | ~40 per op       | Wraps safe operations in unchecked{}          |
+| **Calldata Parameters**  | ~200 per array   | Uses calldata for read-only arrays            |
+| **Sequential Minting**   | ~80% on batch    | ERC721A-style sequential tracking             |
+| **Batch Operations**     | ~60% overhead    | Amortizes transaction costs                   |
 
 ### Gas Analysis Report
 
@@ -334,14 +338,14 @@ Recommendations:
 
 ### Supported Networks
 
-| Network | Chain ID | Type | Gas Fees | Status |
-|---|---|---|---|---|
-| **Base** | 8453 | L2 (Optimism) | Ultra-low (~$0.002) | ✅ Recommended |
-| **Polygon** | 137 | L2 (PoS) | Low (~$0.15) | ✅ Established |
-| **Ethereum** | 1 | L1 | High (~$85) | ⚠️ Expensive |
-| **Optimism** | 10 | L2 (Optimism) | Low | ✅ Supported |
-| **Arbitrum** | 42161 | L2 (Arbitrum) | Low | ✅ Supported |
-| **Zora** | 7777777 | L2 (Optimism) | Ultra-low | ✅ NFT-focused |
+| Network      | Chain ID | Type          | Gas Fees            | Status         |
+| ------------ | -------- | ------------- | ------------------- | -------------- |
+| **Base**     | 8453     | L2 (Optimism) | Ultra-low (~$0.002) | ✅ Recommended |
+| **Polygon**  | 137      | L2 (PoS)      | Low (~$0.15)        | ✅ Established |
+| **Ethereum** | 1        | L1            | High (~$85)         | ⚠️ Expensive   |
+| **Optimism** | 10       | L2 (Optimism) | Low                 | ✅ Supported   |
+| **Arbitrum** | 42161    | L2 (Arbitrum) | Low                 | ✅ Supported   |
+| **Zora**     | 7777777  | L2 (Optimism) | Ultra-low           | ✅ NFT-focused |
 
 ### Deployment Process
 
@@ -374,7 +378,7 @@ const compiler = new NFTMarketplaceCompiler({
   optimizer: { enabled: true, runs: 200 },
   generateTests: true,
   includeNatSpec: true,
-  licenseType: 'MIT'
+  licenseType: 'MIT',
 });
 
 const output = compiler.compile(marketplaceAST);
@@ -455,17 +459,17 @@ npx hardhat test
 
 ### HoloScript vs Manual Solidity
 
-| Metric | HoloScript NFT DSL | Manual Solidity |
-|---|---|---|
-| **Lines of Code** | 120 | 650 |
-| **Development Time** | 30 minutes | 8+ hours |
-| **Gas Optimization** | Automatic | Manual |
-| **Multi-Chain** | Built-in | Duplicate code |
-| **Royalty Support** | ERC-2981 included | Manual implementation |
-| **Lazy Minting** | 1 config block | 100+ lines |
-| **Testing** | Auto-generated | Manual |
-| **Documentation** | Auto-generated | Manual |
-| **Security** | Best practices | Depends on developer |
+| Metric               | HoloScript NFT DSL | Manual Solidity       |
+| -------------------- | ------------------ | --------------------- |
+| **Lines of Code**    | 120                | 650                   |
+| **Development Time** | 30 minutes         | 8+ hours              |
+| **Gas Optimization** | Automatic          | Manual                |
+| **Multi-Chain**      | Built-in           | Duplicate code        |
+| **Royalty Support**  | ERC-2981 included  | Manual implementation |
+| **Lazy Minting**     | 1 config block     | 100+ lines            |
+| **Testing**          | Auto-generated     | Manual                |
+| **Documentation**    | Auto-generated     | Manual                |
+| **Security**         | Best practices     | Depends on developer  |
 
 ### Compression Ratio
 
@@ -499,20 +503,24 @@ Advanced:   180 lines → 1500 lines  (8.3x)
 ## 🔗 Resources
 
 ### Standards
+
 - [ERC-1155: Multi-Token Standard](https://eips.ethereum.org/EIPS/eip-1155)
 - [ERC-2981: NFT Royalty Standard](https://eips.ethereum.org/EIPS/eip-2981)
 - [ERC721A: Gas-Optimized NFTs](https://www.erc721a.org/)
 
 ### Networks
+
 - [Base Documentation](https://docs.base.org/)
 - [Polygon Documentation](https://docs.polygon.technology/)
 
 ### Tools
+
 - [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts/)
 - [Slither Static Analyzer](https://github.com/crytic/slither)
 - [RareSkills Gas Optimization](https://rareskills.io/post/gas-optimization)
 
 ### HoloScript
+
 - [Full Documentation](./docs/nft-marketplace-dsl.md)
 - [Examples](./examples/)
 - [API Reference](#api-reference)

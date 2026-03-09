@@ -1,7 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
-  Vec3, Quaternion, Transform, Ray, AABB,
-  distance, lerp, clamp, degToRad, radToDeg,
+  Vec3,
+  Quaternion,
+  Transform,
+  Ray,
+  AABB,
+  distance,
+  lerp,
+  clamp,
+  degToRad,
+  radToDeg,
 } from '../spatial.js';
 
 // =============================================================================

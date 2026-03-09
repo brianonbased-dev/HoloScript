@@ -8,12 +8,7 @@
 import type { GPUContext } from './gpu-context.js';
 import { BufferManager } from './buffer-manager.js';
 import { PipelineFactory, type ShaderEntryPoint } from './pipeline-factory.js';
-import type {
-  EncodeParams,
-  DecodeParams,
-  GPUBufferHandle,
-  ReadbackResult,
-} from './types.js';
+import type { EncodeParams, DecodeParams, GPUBufferHandle, ReadbackResult } from './types.js';
 import {
   EncodingMode,
   DecodingMode,
@@ -144,12 +139,16 @@ export class SpikeEncoder {
 
     // Bind group
     const entryPoint = ENCODE_ENTRY_POINTS[this.params.encodingMode];
-    this.bindGroup = this.pipelineFactory.createBindGroup(entryPoint, [
-      this.paramsBuffer.buffer,
-      this.inputBuffer.buffer,
-      this.prevDataBuffer.buffer,
-      this.spikeTrainBuffer.buffer,
-    ], 'encode-bind-group');
+    this.bindGroup = this.pipelineFactory.createBindGroup(
+      entryPoint,
+      [
+        this.paramsBuffer.buffer,
+        this.inputBuffer.buffer,
+        this.prevDataBuffer.buffer,
+        this.spikeTrainBuffer.buffer,
+      ],
+      'encode-bind-group'
+    );
 
     this.initialized = true;
   }
@@ -161,7 +160,7 @@ export class SpikeEncoder {
     this.ensureInitialized();
     if (data.length !== this.params.dataCount) {
       throw new Error(
-        `Input data length (${data.length}) must match dataCount (${this.params.dataCount})`,
+        `Input data length (${data.length}) must match dataCount (${this.params.dataCount})`
       );
     }
 
@@ -241,7 +240,7 @@ export class SpikeDecoder {
 
   constructor(
     ctx: GPUContext,
-    params: Partial<DecodeParams> & { neuronCount: number; timeWindow: number },
+    params: Partial<DecodeParams> & { neuronCount: number; timeWindow: number }
   ) {
     this.ctx = ctx;
     this.params = { ...DEFAULT_DECODE_PARAMS, ...params };
@@ -269,7 +268,10 @@ export class SpikeDecoder {
       this.ownsSpikeTrain = false;
     } else {
       const spikeTrainSize = neuronCount * timeWindow;
-      this.spikeTrainBuffer = this.bufferManager.createZeroBuffer(spikeTrainSize, 'decode-spike-train');
+      this.spikeTrainBuffer = this.bufferManager.createZeroBuffer(
+        spikeTrainSize,
+        'decode-spike-train'
+      );
       this.ownsSpikeTrain = true;
     }
 
@@ -287,19 +289,20 @@ export class SpikeDecoder {
       const popIndex = i % populationSize;
       tuningData[i] = popIndex / (populationSize - 1 || 1);
     }
-    this.tuningCurveBuffer = this.bufferManager.createStorageBuffer(
-      tuningData,
-      'tuning-curves',
-    );
+    this.tuningCurveBuffer = this.bufferManager.createStorageBuffer(tuningData, 'tuning-curves');
 
     // Bind group
     const entryPoint = DECODE_ENTRY_POINTS[decodingMode];
-    this.bindGroup = this.pipelineFactory.createBindGroup(entryPoint, [
-      this.paramsBuffer.buffer,
-      this.spikeTrainBuffer.buffer,
-      this.outputBuffer.buffer,
-      this.tuningCurveBuffer.buffer,
-    ], 'decode-bind-group');
+    this.bindGroup = this.pipelineFactory.createBindGroup(
+      entryPoint,
+      [
+        this.paramsBuffer.buffer,
+        this.spikeTrainBuffer.buffer,
+        this.outputBuffer.buffer,
+        this.tuningCurveBuffer.buffer,
+      ],
+      'decode-bind-group'
+    );
 
     this.initialized = true;
   }

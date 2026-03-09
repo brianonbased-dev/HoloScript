@@ -12,12 +12,7 @@ import type {
   ImportEdge,
   CallEdge,
 } from '../types';
-import {
-  walkTree,
-  nodeToSymbol,
-  getFieldText,
-  hasModifier,
-} from './BaseAdapter';
+import { walkTree, nodeToSymbol, getFieldText, hasModifier } from './BaseAdapter';
 
 export class RustAdapter implements LanguageAdapter {
   readonly language = 'rust' as const;
@@ -29,17 +24,19 @@ export class RustAdapter implements LanguageAdapter {
 
     walkTree(tree.rootNode, (node) => {
       const isPub = hasModifier(node, 'pub');
-      const vis = isPub ? 'public' as const : 'private' as const;
+      const vis = isPub ? ('public' as const) : ('private' as const);
 
       switch (node.type) {
         case 'struct_item': {
           const name = getFieldText(node, 'name');
           if (name) {
-            symbols.push(nodeToSymbol(node, name, 'struct', 'rust', filePath, {
-              visibility: vis,
-              isExported: isPub,
-              signature: `struct ${name}`,
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'struct', 'rust', filePath, {
+                visibility: vis,
+                isExported: isPub,
+                signature: `struct ${name}`,
+              })
+            );
           }
           return false;
         }
@@ -47,10 +44,12 @@ export class RustAdapter implements LanguageAdapter {
         case 'enum_item': {
           const name = getFieldText(node, 'name');
           if (name) {
-            symbols.push(nodeToSymbol(node, name, 'enum', 'rust', filePath, {
-              visibility: vis,
-              isExported: isPub,
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'enum', 'rust', filePath, {
+                visibility: vis,
+                isExported: isPub,
+              })
+            );
           }
           return false;
         }
@@ -58,11 +57,13 @@ export class RustAdapter implements LanguageAdapter {
         case 'trait_item': {
           const name = getFieldText(node, 'name');
           if (name) {
-            symbols.push(nodeToSymbol(node, name, 'trait', 'rust', filePath, {
-              visibility: vis,
-              isExported: isPub,
-              signature: `trait ${name}`,
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'trait', 'rust', filePath, {
+                visibility: vis,
+                isExported: isPub,
+                signature: `trait ${name}`,
+              })
+            );
           }
           return false;
         }
@@ -74,11 +75,13 @@ export class RustAdapter implements LanguageAdapter {
             const ret = node.childForFieldName('return_type');
             let sig = `fn ${name}(${params?.text ?? ''})`;
             if (ret) sig += ` -> ${ret.text}`;
-            symbols.push(nodeToSymbol(node, name, 'function', 'rust', filePath, {
-              visibility: vis,
-              isExported: isPub,
-              signature: sig,
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'function', 'rust', filePath, {
+                visibility: vis,
+                isExported: isPub,
+                signature: sig,
+              })
+            );
           }
           return false;
         }
@@ -95,10 +98,12 @@ export class RustAdapter implements LanguageAdapter {
         case 'mod_item': {
           const name = getFieldText(node, 'name');
           if (name) {
-            symbols.push(nodeToSymbol(node, name, 'module', 'rust', filePath, {
-              visibility: vis,
-              isExported: isPub,
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'module', 'rust', filePath, {
+                visibility: vis,
+                isExported: isPub,
+              })
+            );
           }
           // Continue into mod body to find nested items
           return true;
@@ -107,10 +112,12 @@ export class RustAdapter implements LanguageAdapter {
         case 'type_item': {
           const name = getFieldText(node, 'name');
           if (name) {
-            symbols.push(nodeToSymbol(node, name, 'type_alias', 'rust', filePath, {
-              visibility: vis,
-              isExported: isPub,
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'type_alias', 'rust', filePath, {
+                visibility: vis,
+                isExported: isPub,
+              })
+            );
           }
           return false;
         }
@@ -119,10 +126,12 @@ export class RustAdapter implements LanguageAdapter {
         case 'static_item': {
           const name = getFieldText(node, 'name');
           if (name) {
-            symbols.push(nodeToSymbol(node, name, 'constant', 'rust', filePath, {
-              visibility: vis,
-              isExported: isPub,
-            }));
+            symbols.push(
+              nodeToSymbol(node, name, 'constant', 'rust', filePath, {
+                visibility: vis,
+                isExported: isPub,
+              })
+            );
           }
           return false;
         }
@@ -217,7 +226,7 @@ export class RustAdapter implements LanguageAdapter {
     implNode: any,
     typeName: string,
     filePath: string,
-    symbols: ExternalSymbolDefinition[],
+    symbols: ExternalSymbolDefinition[]
   ): void {
     const body = implNode.childForFieldName('body');
     if (!body) return;
@@ -232,11 +241,13 @@ export class RustAdapter implements LanguageAdapter {
           let sig = `${typeName}::${name}(${params?.text ?? ''})`;
           if (ret) sig += ` -> ${ret.text}`;
 
-          symbols.push(nodeToSymbol(child, name, 'method', 'rust', filePath, {
-            visibility: isPub ? 'public' : 'private',
-            owner: typeName,
-            signature: sig,
-          }));
+          symbols.push(
+            nodeToSymbol(child, name, 'method', 'rust', filePath, {
+              visibility: isPub ? 'public' : 'private',
+              owner: typeName,
+              signature: sig,
+            })
+          );
         }
       }
     }
@@ -267,7 +278,10 @@ export class RustAdapter implements LanguageAdapter {
         return prefix;
       }
       if (n.type === 'identifier') return n.text;
-      if (n.type === 'use_wildcard') { isGlob = true; return '*'; }
+      if (n.type === 'use_wildcard') {
+        isGlob = true;
+        return '*';
+      }
       if (n.type === 'use_list') {
         for (const item of n.namedChildren) {
           if (item.type === 'identifier') names.push(item.text);

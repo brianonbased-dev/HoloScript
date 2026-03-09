@@ -35,7 +35,16 @@ interface ViralPosePanelProps {
   onSetPoseSequence?: (poses: string[] | PoseCategory) => void;
 }
 
-const QUICK_POSES = ['dab', 'floss', 'griddy', 't-pose', 'flex', 'shrug', 'heart-hands', 'peace-sign'];
+const QUICK_POSES = [
+  'dab',
+  'floss',
+  'griddy',
+  't-pose',
+  'flex',
+  'shrug',
+  'heart-hands',
+  'peace-sign',
+];
 
 export function ViralPosePanel({
   currentPose,

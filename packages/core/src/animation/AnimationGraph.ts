@@ -14,14 +14,14 @@
 export interface AnimationClip {
   id: string;
   name: string;
-  duration: number;        // Seconds
+  duration: number; // Seconds
   loop: boolean;
   speed: number;
   tracks: AnimationTrack[];
 }
 
 export interface AnimationTrack {
-  targetProperty: string;  // e.g. "position.x", "rotation.y"
+  targetProperty: string; // e.g. "position.x", "rotation.y"
   keyframes: Keyframe[];
   interpolation: 'linear' | 'step' | 'cubic';
 }
@@ -39,7 +39,7 @@ export interface AnimationState {
   speed: number;
   loop: boolean;
   currentTime: number;
-  weight: number;          // Blend weight (0-1)
+  weight: number; // Blend weight (0-1)
   isPlaying: boolean;
 }
 
@@ -47,20 +47,25 @@ export interface AnimationTransition {
   id: string;
   fromState: string;
   toState: string;
-  duration: number;        // Transition blend time (seconds)
+  duration: number; // Transition blend time (seconds)
   condition: TransitionCondition;
   interruptible: boolean;
 }
 
 export type TransitionCondition =
-  | { type: 'parameter'; name: string; comparator: '>' | '<' | '==' | '!='; value: number | boolean }
-  | { type: 'finished' }    // Triggers when animation ends
+  | {
+      type: 'parameter';
+      name: string;
+      comparator: '>' | '<' | '==' | '!=';
+      value: number | boolean;
+    }
+  | { type: 'finished' } // Triggers when animation ends
   | { type: 'trigger'; name: string };
 
 export interface BlendNode {
   type: 'clip' | 'blend1d' | 'blend2d';
   clipId?: string;
-  parameter?: string;       // Blend parameter name (for blend1d/2d)
+  parameter?: string; // Blend parameter name (for blend1d/2d)
   children?: { position: number; node: BlendNode }[];
   children2D?: { position: { x: number; y: number }; node: BlendNode }[];
 }
@@ -69,7 +74,7 @@ export interface AnimationLayer {
   id: string;
   weight: number;
   blendMode: 'override' | 'additive';
-  mask?: string[];          // Affected bone/property names (empty = all)
+  mask?: string[]; // Affected bone/property names (empty = all)
   graph: AnimationGraphInstance;
 }
 
@@ -129,7 +134,11 @@ export class AnimationGraph {
   // State Management
   // ---------------------------------------------------------------------------
 
-  addState(id: string, clipId: string, options: Partial<{ speed: number; loop: boolean }> = {}): AnimationState {
+  addState(
+    id: string,
+    clipId: string,
+    options: Partial<{ speed: number; loop: boolean }> = {}
+  ): AnimationState {
     const state: AnimationState = {
       id,
       clipId,
@@ -278,7 +287,10 @@ export class AnimationGraph {
   // Internal
   // ---------------------------------------------------------------------------
 
-  private evaluateCondition(condition: TransitionCondition, graph: AnimationGraphInstance): boolean {
+  private evaluateCondition(
+    condition: TransitionCondition,
+    graph: AnimationGraphInstance
+  ): boolean {
     switch (condition.type) {
       case 'finished': {
         const currentState = graph.states.get(graph.currentState);
@@ -292,10 +304,14 @@ export class AnimationGraph {
         const val = graph.parameters.get(condition.name);
         if (val === undefined) return false;
         switch (condition.comparator) {
-          case '>': return (val as number) > (condition.value as number);
-          case '<': return (val as number) < (condition.value as number);
-          case '==': return val === condition.value;
-          case '!=': return val !== condition.value;
+          case '>':
+            return (val as number) > (condition.value as number);
+          case '<':
+            return (val as number) < (condition.value as number);
+          case '==':
+            return val === condition.value;
+          case '!=':
+            return val !== condition.value;
         }
         return false;
       }
@@ -328,8 +344,12 @@ export class AnimationGraph {
         const h3 = -2 * t3 + 3 * t2;
         const h4 = t3 - t2;
         const dt = kf1.time - kf0.time;
-        return h1 * kf0.value + h2 * (kf0.outTangent || 0) * dt +
-               h3 * kf1.value + h4 * (kf1.inTangent || 0) * dt;
+        return (
+          h1 * kf0.value +
+          h2 * (kf0.outTangent || 0) * dt +
+          h3 * kf1.value +
+          h4 * (kf1.inTangent || 0) * dt
+        );
       }
       case 'linear':
       default:

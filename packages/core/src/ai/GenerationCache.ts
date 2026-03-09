@@ -149,8 +149,7 @@ export class GenerationCache {
     const total = this.hits + this.misses;
     const avgHits =
       this.cache.size > 0
-        ? Array.from(this.cache.values()).reduce((sum, e) => sum + e.hits, 0) /
-          this.cache.size
+        ? Array.from(this.cache.values()).reduce((sum, e) => sum + e.hits, 0) / this.cache.size
         : 0;
 
     return {

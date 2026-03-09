@@ -21,7 +21,11 @@
 // TYPES
 // =============================================================================
 
-export interface Vec3 { x: number; y: number; z: number }
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 export type RGB = [number, number, number];
 
 export interface ClearcoatConfig {
@@ -107,11 +111,7 @@ export function geometrySmith(NdotV: number, NdotL: number, roughness: number): 
 /** Schlick Fresnel approximation */
 export function fresnelSchlick(cosTheta: number, F0: RGB): RGB {
   const t = Math.pow(1 - Math.max(0, cosTheta), 5);
-  return [
-    F0[0] + (1 - F0[0]) * t,
-    F0[1] + (1 - F0[1]) * t,
-    F0[2] + (1 - F0[2]) * t,
-  ];
+  return [F0[0] + (1 - F0[0]) * t, F0[1] + (1 - F0[1]) * t, F0[2] + (1 - F0[2]) * t];
 }
 
 /** Schlick Fresnel with roughness (for IBL) */
@@ -191,7 +191,7 @@ export function anisotropicRoughness(roughness: number, strength: number): [numb
 export function sheenDistribution(NdotH: number, roughness: number): number {
   const invAlpha = 1 / Math.max(1e-3, roughness * roughness);
   const sin2h = Math.max(0, 1 - NdotH * NdotH);
-  return (2 + invAlpha) * Math.pow(sin2h, invAlpha * 0.5) / (2 * Math.PI);
+  return ((2 + invAlpha) * Math.pow(sin2h, invAlpha * 0.5)) / (2 * Math.PI);
 }
 
 /** Sheen visibility function (L(NdotV) * L(NdotL)) */
@@ -201,7 +201,12 @@ export function sheenVisibility(NdotV: number, NdotL: number): number {
 }
 
 /** Evaluate full sheen BRDF contribution */
-export function evaluateSheen(NdotH: number, NdotV: number, NdotL: number, config: SheenConfig): RGB {
+export function evaluateSheen(
+  NdotH: number,
+  NdotV: number,
+  NdotL: number,
+  config: SheenConfig
+): RGB {
   const D = sheenDistribution(NdotH, config.roughness);
   const V = sheenVisibility(NdotV, NdotL);
   const scale = D * V;
@@ -253,11 +258,7 @@ export function computeF0(albedo: RGB, metallic: number): RGB {
  * Compute diffuse albedo for metallic surfaces (metals have no diffuse).
  */
 export function computeDiffuseAlbedo(albedo: RGB, metallic: number): RGB {
-  return [
-    albedo[0] * (1 - metallic),
-    albedo[1] * (1 - metallic),
-    albedo[2] * (1 - metallic),
-  ];
+  return [albedo[0] * (1 - metallic), albedo[1] * (1 - metallic), albedo[2] * (1 - metallic)];
 }
 
 // =============================================================================
@@ -275,24 +276,56 @@ export class AdvancedPBRMaterial {
   // Configuration
   // ---------------------------------------------------------------------------
 
-  setAlbedo(r: number, g: number, b: number): void { this.config.albedo = [r, g, b]; }
-  setMetallic(v: number): void { this.config.metallic = Math.max(0, Math.min(1, v)); }
-  setRoughness(v: number): void { this.config.roughness = Math.max(0.04, Math.min(1, v)); }
-  setAO(v: number): void { this.config.ao = Math.max(0, Math.min(1, v)); }
-  setEmissive(r: number, g: number, b: number): void { this.config.emissive = [r, g, b]; }
-  setClearcoat(cc: ClearcoatConfig): void { this.config.clearcoat = cc; }
-  setAnisotropy(an: AnisotropyConfig): void { this.config.anisotropy = an; }
-  setSheen(sh: SheenConfig): void { this.config.sheen = sh; }
-  setIridescence(ir: IridescenceConfig): void { this.config.iridescence = ir; }
+  setAlbedo(r: number, g: number, b: number): void {
+    this.config.albedo = [r, g, b];
+  }
+  setMetallic(v: number): void {
+    this.config.metallic = Math.max(0, Math.min(1, v));
+  }
+  setRoughness(v: number): void {
+    this.config.roughness = Math.max(0.04, Math.min(1, v));
+  }
+  setAO(v: number): void {
+    this.config.ao = Math.max(0, Math.min(1, v));
+  }
+  setEmissive(r: number, g: number, b: number): void {
+    this.config.emissive = [r, g, b];
+  }
+  setClearcoat(cc: ClearcoatConfig): void {
+    this.config.clearcoat = cc;
+  }
+  setAnisotropy(an: AnisotropyConfig): void {
+    this.config.anisotropy = an;
+  }
+  setSheen(sh: SheenConfig): void {
+    this.config.sheen = sh;
+  }
+  setIridescence(ir: IridescenceConfig): void {
+    this.config.iridescence = ir;
+  }
 
-  getConfig(): Readonly<AdvancedPBRConfig> { return { ...this.config }; }
-  getF0(): RGB { return computeF0(this.config.albedo, this.config.metallic); }
-  getDiffuse(): RGB { return computeDiffuseAlbedo(this.config.albedo, this.config.metallic); }
+  getConfig(): Readonly<AdvancedPBRConfig> {
+    return { ...this.config };
+  }
+  getF0(): RGB {
+    return computeF0(this.config.albedo, this.config.metallic);
+  }
+  getDiffuse(): RGB {
+    return computeDiffuseAlbedo(this.config.albedo, this.config.metallic);
+  }
 
-  hasClearcoat(): boolean { return !!this.config.clearcoat; }
-  hasAnisotropy(): boolean { return !!this.config.anisotropy; }
-  hasSheen(): boolean { return !!this.config.sheen; }
-  hasIridescence(): boolean { return !!this.config.iridescence; }
+  hasClearcoat(): boolean {
+    return !!this.config.clearcoat;
+  }
+  hasAnisotropy(): boolean {
+    return !!this.config.anisotropy;
+  }
+  hasSheen(): boolean {
+    return !!this.config.sheen;
+  }
+  hasIridescence(): boolean {
+    return !!this.config.iridescence;
+  }
 
   // ---------------------------------------------------------------------------
   // Evaluation
@@ -309,10 +342,7 @@ export class AdvancedPBRMaterial {
    * @param BdotH - dot(B, H) for anisotropy (0 if not anisotropic)
    * @returns RGB radiance contribution (direct light, no PI factor)
    */
-  evaluate(
-    NdotL: number, NdotV: number, NdotH: number,
-    VdotH: number, TdotH = 0, BdotH = 0
-  ): RGB {
+  evaluate(NdotL: number, NdotV: number, NdotH: number, VdotH: number, TdotH = 0, BdotH = 0): RGB {
     const nv = Math.max(1e-6, NdotV);
     const nl = Math.max(1e-6, NdotL);
     const { roughness, ao } = this.config;
@@ -338,29 +368,35 @@ export class AdvancedPBRMaterial {
 
     // Diffuse (Lambertian, scaled by 1 - F for energy conservation)
     const diffuse = this.getDiffuse();
-    const kD: RGB = [(1 - F[0]), (1 - F[1]), (1 - F[2])];
+    const kD: RGB = [1 - F[0], 1 - F[1], 1 - F[2]];
     const Lo: RGB = [
-      (kD[0] * diffuse[0] / Math.PI + specular[0]) * nl * ao,
-      (kD[1] * diffuse[1] / Math.PI + specular[1]) * nl * ao,
-      (kD[2] * diffuse[2] / Math.PI + specular[2]) * nl * ao,
+      ((kD[0] * diffuse[0]) / Math.PI + specular[0]) * nl * ao,
+      ((kD[1] * diffuse[1]) / Math.PI + specular[1]) * nl * ao,
+      ((kD[2] * diffuse[2]) / Math.PI + specular[2]) * nl * ao,
     ];
 
     // Clearcoat (additive lobe)
     if (this.config.clearcoat) {
       const cc = evaluateClearcoat(NdotH, nv, nl, VdotH, this.config.clearcoat);
-      Lo[0] += cc; Lo[1] += cc; Lo[2] += cc;
+      Lo[0] += cc;
+      Lo[1] += cc;
+      Lo[2] += cc;
     }
 
     // Sheen (additive lobe)
     if (this.config.sheen) {
       const sh = evaluateSheen(NdotH, nv, nl, this.config.sheen);
-      Lo[0] += sh[0]; Lo[1] += sh[1]; Lo[2] += sh[2];
+      Lo[0] += sh[0];
+      Lo[1] += sh[1];
+      Lo[2] += sh[2];
     }
 
     // Iridescence (modifies F0 indirectly via additive RGB shift)
     if (this.config.iridescence) {
       const ir = evaluateIridescence(VdotH, this.config.iridescence);
-      Lo[0] += ir[0] * nl; Lo[1] += ir[1] * nl; Lo[2] += ir[2] * nl;
+      Lo[0] += ir[0] * nl;
+      Lo[1] += ir[1] * nl;
+      Lo[2] += ir[2] * nl;
     }
 
     // Add emissive (not light-dependent)
@@ -378,31 +414,35 @@ export class AdvancedPBRMaterial {
 
 /** Pre-configured material presets */
 export const MATERIAL_PRESETS = {
-  carPaintRed: (): AdvancedPBRMaterial => new AdvancedPBRMaterial({
-    albedo: [0.85, 0.05, 0.05],
-    metallic: 0,
-    roughness: 0.15,
-    clearcoat: { intensity: 1, roughness: 0.04, ior: 1.5 },
-  }),
+  carPaintRed: (): AdvancedPBRMaterial =>
+    new AdvancedPBRMaterial({
+      albedo: [0.85, 0.05, 0.05],
+      metallic: 0,
+      roughness: 0.15,
+      clearcoat: { intensity: 1, roughness: 0.04, ior: 1.5 },
+    }),
 
-  brushedAluminium: (): AdvancedPBRMaterial => new AdvancedPBRMaterial({
-    albedo: [0.8, 0.8, 0.85],
-    metallic: 1,
-    roughness: 0.3,
-    anisotropy: { strength: 0.8, angle: 0, tangent: { x: 1, y: 0, z: 0 } },
-  }),
+  brushedAluminium: (): AdvancedPBRMaterial =>
+    new AdvancedPBRMaterial({
+      albedo: [0.8, 0.8, 0.85],
+      metallic: 1,
+      roughness: 0.3,
+      anisotropy: { strength: 0.8, angle: 0, tangent: { x: 1, y: 0, z: 0 } },
+    }),
 
-  velvet: (): AdvancedPBRMaterial => new AdvancedPBRMaterial({
-    albedo: [0.5, 0.1, 0.4],
-    metallic: 0,
-    roughness: 1,
-    sheen: { color: [0.6, 0.2, 0.5], roughness: 0.1 },
-  }),
+  velvet: (): AdvancedPBRMaterial =>
+    new AdvancedPBRMaterial({
+      albedo: [0.5, 0.1, 0.4],
+      metallic: 0,
+      roughness: 1,
+      sheen: { color: [0.6, 0.2, 0.5], roughness: 0.1 },
+    }),
 
-  soapBubble: (): AdvancedPBRMaterial => new AdvancedPBRMaterial({
-    albedo: [1, 1, 1],
-    metallic: 0,
-    roughness: 0.05,
-    iridescence: { intensity: 0.9, ior: 1.33, thicknessNm: 600 },
-  }),
+  soapBubble: (): AdvancedPBRMaterial =>
+    new AdvancedPBRMaterial({
+      albedo: [1, 1, 1],
+      metallic: 0,
+      roughness: 0.05,
+      iridescence: { intensity: 0.9, ior: 1.33, thicknessNm: 600 },
+    }),
 };

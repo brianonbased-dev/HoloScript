@@ -21,10 +21,12 @@ describe('UIEventRouter', () => {
       router.on('btn1', 'click', handler);
       router.emit('btn1', 'click');
       expect(handler).toHaveBeenCalledTimes(1);
-      expect(handler).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'click',
-        targetId: 'btn1',
-      }));
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'click',
+          targetId: 'btn1',
+        })
+      );
     });
 
     it('should not call handler for different widget', () => {
@@ -55,17 +57,21 @@ describe('UIEventRouter', () => {
       const handler = vi.fn();
       router.on('slider1', 'valueChange', handler);
       router.emit('slider1', 'valueChange', 10, 20, 0.5);
-      expect(handler).toHaveBeenCalledWith(expect.objectContaining({
-        x: 10,
-        y: 20,
-        value: 0.5,
-      }));
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          x: 10,
+          y: 20,
+          value: 0.5,
+        })
+      );
     });
   });
 
   describe('propagation stopping', () => {
     it('should stop calling handlers after propagation is stopped', () => {
-      const h1 = vi.fn((e: UIEvent) => { e.propagationStopped = true; });
+      const h1 = vi.fn((e: UIEvent) => {
+        e.propagationStopped = true;
+      });
       const h2 = vi.fn();
       router.on('btn1', 'click', h1);
       router.on('btn1', 'click', h2);

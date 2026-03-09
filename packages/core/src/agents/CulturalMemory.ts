@@ -144,7 +144,11 @@ export class CulturalMemory {
   /**
    * Record an episodic memory for an agent.
    */
-  record(agentId: string, event: string, opts: Partial<Omit<EpisodicMemory, 'id' | 'agentId' | 'event' | 'strength' | 'timestamp'>> = {}): EpisodicMemory {
+  record(
+    agentId: string,
+    event: string,
+    opts: Partial<Omit<EpisodicMemory, 'id' | 'agentId' | 'event' | 'strength' | 'timestamp'>> = {}
+  ): EpisodicMemory {
     const memories = this.episodic.get(agentId) || [];
     const memory: EpisodicMemory = {
       id: `ep_${agentId}_${this.currentTick}_${memories.length}`,
@@ -174,14 +178,19 @@ export class CulturalMemory {
   /**
    * Recall memories for an agent, optionally filtered.
    */
-  recall(agentId: string, filter?: { normId?: string; tags?: string[]; minStrength?: number }): EpisodicMemory[] {
+  recall(
+    agentId: string,
+    filter?: { normId?: string; tags?: string[]; minStrength?: number }
+  ): EpisodicMemory[] {
     const memories = this.episodic.get(agentId) || [];
-    return memories.filter(m => {
-      if (filter?.minStrength && m.strength < filter.minStrength) return false;
-      if (filter?.normId && m.normId !== filter.normId) return false;
-      if (filter?.tags && !filter.tags.some(t => m.tags.includes(t))) return false;
-      return true;
-    }).sort((a, b) => b.strength * b.importance - a.strength * a.importance);
+    return memories
+      .filter((m) => {
+        if (filter?.minStrength && m.strength < filter.minStrength) return false;
+        if (filter?.normId && m.normId !== filter.normId) return false;
+        if (filter?.tags && !filter.tags.some((t) => m.tags.includes(t))) return false;
+        return true;
+      })
+      .sort((a, b) => b.strength * b.importance - a.strength * a.importance);
   }
 
   /**
@@ -196,7 +205,18 @@ export class CulturalMemory {
   /**
    * Leave a stigmergic trace in the environment.
    */
-  leaveTrace(creatorId: string, zoneId: string, label: string, position: { x: number; y: number; z: number }, opts: Partial<Omit<StigmergicTrace, 'id' | 'creatorId' | 'zoneId' | 'label' | 'position' | 'timestamp' | 'reinforcements'>> = {}): StigmergicTrace {
+  leaveTrace(
+    creatorId: string,
+    zoneId: string,
+    label: string,
+    position: { x: number; y: number; z: number },
+    opts: Partial<
+      Omit<
+        StigmergicTrace,
+        'id' | 'creatorId' | 'zoneId' | 'label' | 'position' | 'timestamp' | 'reinforcements'
+      >
+    > = {}
+  ): StigmergicTrace {
     const traces = this.stigmergic.get(zoneId) || [];
     const intensity = opts.intensity ?? opts.initialIntensity ?? 1.0;
     const trace: StigmergicTrace = {
@@ -231,13 +251,15 @@ export class CulturalMemory {
    */
   perceiveTraces(zoneId: string, position: { x: number; y: number; z: number }): StigmergicTrace[] {
     const traces = this.stigmergic.get(zoneId) || [];
-    return traces.filter(t => {
-      const dx = t.position.x - position.x;
-      const dy = t.position.y - position.y;
-      const dz = t.position.z - position.z;
-      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      return dist <= t.radius && t.intensity > 0.01;
-    }).sort((a, b) => b.intensity - a.intensity);
+    return traces
+      .filter((t) => {
+        const dx = t.position.x - position.x;
+        const dy = t.position.y - position.y;
+        const dz = t.position.z - position.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return dist <= t.radius && t.intensity > 0.01;
+      })
+      .sort((a, b) => b.intensity - a.intensity);
   }
 
   /**
@@ -246,7 +268,7 @@ export class CulturalMemory {
    */
   reinforceTrace(traceId: string, zoneId: string): boolean {
     const traces = this.stigmergic.get(zoneId) || [];
-    const trace = traces.find(t => t.id === traceId);
+    const trace = traces.find((t) => t.id === traceId);
     if (!trace) return false;
     trace.reinforcements++;
     trace.intensity = Math.min(trace.initialIntensity * 2, trace.intensity + 0.1);
@@ -258,7 +280,7 @@ export class CulturalMemory {
    * Get all traces in a zone.
    */
   zoneTraces(zoneId: string): StigmergicTrace[] {
-    return (this.stigmergic.get(zoneId) || []).filter(t => t.intensity > 0.01);
+    return (this.stigmergic.get(zoneId) || []).filter((t) => t.intensity > 0.01);
   }
 
   // ── Semantic SOPs ────────────────────────────────────────────────────────
@@ -288,7 +310,10 @@ export class CulturalMemory {
       if (existing) {
         // Update existing SOP
         existing.episodeCount = episodes.length;
-        existing.confidence = Math.min(1, episodes.length / (this.config.consolidationThreshold * 3));
+        existing.confidence = Math.min(
+          1,
+          episodes.length / (this.config.consolidationThreshold * 3)
+        );
         existing.updatedAt = this.currentTick;
         continue;
       }
@@ -299,7 +324,7 @@ export class CulturalMemory {
         id: `sop_${agentId}_${normId}`,
         normId,
         description: `Learned behavior for norm '${normId}' from ${episodes.length} experiences (avg valence: ${avgValence.toFixed(2)})`,
-        conditions: [...new Set(episodes.flatMap(e => e.tags))],
+        conditions: [...new Set(episodes.flatMap((e) => e.tags))],
         actions: avgValence > 0 ? ['comply', 'reinforce'] : ['avoid', 'report'],
         confidence: Math.min(1, episodes.length / (this.config.consolidationThreshold * 3)),
         episodeCount: episodes.length,
@@ -319,7 +344,7 @@ export class CulturalMemory {
    */
   getSOPs(agentId: string): SemanticSOP[] {
     const prefix = `sop_${agentId}_`;
-    return [...this.sops.values()].filter(s => s.id.startsWith(prefix));
+    return [...this.sops.values()].filter((s) => s.id.startsWith(prefix));
   }
 
   /**
@@ -342,10 +367,10 @@ export class CulturalMemory {
     // Decay episodic memories
     for (const [agentId, memories] of this.episodic) {
       for (const m of memories) {
-        m.strength *= (1 - this.config.episodicDecayRate);
+        m.strength *= 1 - this.config.episodicDecayRate;
       }
       const before = memories.length;
-      const alive = memories.filter(m => m.strength > 0.01);
+      const alive = memories.filter((m) => m.strength > 0.01);
       decayedMemories += before - alive.length;
       this.episodic.set(agentId, alive);
     }
@@ -356,7 +381,7 @@ export class CulturalMemory {
         t.intensity -= t.decayRate;
       }
       const before = traces.length;
-      const alive = traces.filter(t => t.intensity > 0.01);
+      const alive = traces.filter((t) => t.intensity > 0.01);
       evaporatedTraces += before - alive.length;
       this.stigmergic.set(zoneId, alive);
     }
@@ -374,12 +399,20 @@ export class CulturalMemory {
   /**
    * Get current tick.
    */
-  getTick(): number { return this.currentTick; }
+  getTick(): number {
+    return this.currentTick;
+  }
 
   /**
    * Get global statistics.
    */
-  stats(): { agents: number; totalMemories: number; totalTraces: number; totalSOPs: number; zones: number } {
+  stats(): {
+    agents: number;
+    totalMemories: number;
+    totalTraces: number;
+    totalSOPs: number;
+    zones: number;
+  } {
     let totalMemories = 0;
     let totalTraces = 0;
     for (const mems of this.episodic.values()) totalMemories += mems.length;
@@ -396,7 +429,12 @@ export class CulturalMemory {
   /**
    * Export full state for persistence / cross-session continuity.
    */
-  exportState(): { episodic: Record<string, EpisodicMemory[]>; stigmergic: Record<string, StigmergicTrace[]>; sops: SemanticSOP[]; tick: number } {
+  exportState(): {
+    episodic: Record<string, EpisodicMemory[]>;
+    stigmergic: Record<string, StigmergicTrace[]>;
+    sops: SemanticSOP[];
+    tick: number;
+  } {
     const episodic: Record<string, EpisodicMemory[]> = {};
     for (const [k, v] of this.episodic) episodic[k] = v;
     const stigmergic: Record<string, StigmergicTrace[]> = {};

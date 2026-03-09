@@ -63,7 +63,12 @@ describe('AndroidCompiler', () => {
 
   it('generates state file with state properties', () => {
     const comp = makeComposition({
-      state: { properties: [{ key: 'score', value: 0 }, { key: 'active', value: true }] },
+      state: {
+        properties: [
+          { key: 'score', value: 0 },
+          { key: 'active', value: true },
+        ],
+      },
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.stateFile).toContain('score');

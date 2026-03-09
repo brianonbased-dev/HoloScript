@@ -26,7 +26,6 @@ import { resolveImportPath, ImportResolver } from '../../parser/ImportResolver';
 // ── resolveImportPath ─────────────────────────────────────────────────────────
 
 describe('resolveImportPath — relative paths', () => {
-
   it('./module resolves relative to baseDir', () => {
     const result = resolveImportPath('./component', '/project/src');
     expect(result).toBe('/project/src/component');
@@ -66,7 +65,6 @@ describe('resolveImportPath — relative paths', () => {
 });
 
 describe('resolveImportPath — absolute paths', () => {
-
   it('absolute /path is returned as-is (normalised)', () => {
     const result = resolveImportPath('/absolute/path/to/file', '/some/base');
     expect(result).toBe('/absolute/path/to/file');
@@ -86,7 +84,6 @@ describe('resolveImportPath — absolute paths', () => {
 });
 
 describe('resolveImportPath — forward-slash normalisation', () => {
-
   it('baseDir with backslashes is normalised', () => {
     const result = resolveImportPath('./mod', 'C:\\project\\src');
     // Should resolve relative to C:/project/src
@@ -98,7 +95,6 @@ describe('resolveImportPath — forward-slash normalisation', () => {
 // ── ImportResolver cache API ──────────────────────────────────────────────────
 
 describe('ImportResolver — cache API', () => {
-
   it('getCachedPaths returns empty array for fresh resolver', () => {
     const ir = new ImportResolver();
     expect(ir.getCachedPaths()).toHaveLength(0);
@@ -123,7 +119,6 @@ describe('ImportResolver — cache API', () => {
 // ── ImportResolver — disabled mode ────────────────────────────────────────────
 
 describe('ImportResolver — resolve (disabled)', () => {
-
   it('disabled=true returns empty scope/modules/errors immediately', async () => {
     const ir = new ImportResolver();
     const result = await ir.resolve(
@@ -139,11 +134,10 @@ describe('ImportResolver — resolve (disabled)', () => {
   it('no imports = empty result without calling readFile', async () => {
     const ir = new ImportResolver();
     const readFile = vi.fn();
-    const result = await ir.resolve(
-      { ast: { imports: [] } } as any,
-      '/src/index.hs',
-      { baseDir: '/src', readFile }
-    );
+    const result = await ir.resolve({ ast: { imports: [] } } as any, '/src/index.hs', {
+      baseDir: '/src',
+      readFile,
+    });
     expect(result.errors).toHaveLength(0);
     expect(readFile).not.toHaveBeenCalled();
   });
@@ -152,7 +146,6 @@ describe('ImportResolver — resolve (disabled)', () => {
 // ── ImportResolver — not_found error ─────────────────────────────────────────
 
 describe('ImportResolver — file-not-found error', () => {
-
   it('produces not_found error when readFile throws ENOENT', async () => {
     const ir = new ImportResolver();
     const result = await ir.resolve(
@@ -160,12 +153,14 @@ describe('ImportResolver — file-not-found error', () => {
       '/src/index.hs',
       {
         baseDir: '/src',
-        readFile: async () => { throw new Error('File not found: /src/missing'); }
+        readFile: async () => {
+          throw new Error('File not found: /src/missing');
+        },
       }
     );
     expect(result.errors.length).toBeGreaterThan(0);
     // Should map to not_found or parse_error (our impl checks message prefixes)
-    const codes = result.errors.map(e => e.code);
-    expect(codes.some(c => ['not_found', 'parse_error'].includes(c))).toBe(true);
+    const codes = result.errors.map((e) => e.code);
+    expect(codes.some((c) => ['not_found', 'parse_error'].includes(c))).toBe(true);
   });
 });

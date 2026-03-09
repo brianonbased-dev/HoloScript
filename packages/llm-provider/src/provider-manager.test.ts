@@ -20,11 +20,21 @@ function createMockProvider(name: string, shouldFail = false): ILLMProvider {
     name: name as LLMProviderName,
     async complete(req) {
       if (shouldFail) throw new Error(`${name} failed`);
-      return { text: `response from ${name}`, provider: name as LLMProviderName, tokensUsed: 10, latencyMs: 50 };
+      return {
+        text: `response from ${name}`,
+        provider: name as LLMProviderName,
+        tokensUsed: 10,
+        latencyMs: 50,
+      };
     },
     async generateHoloScript(req) {
       if (shouldFail) throw new Error(`${name} failed`);
-      return { code: `// from ${name}`, provider: name as LLMProviderName, tokensUsed: 20, latencyMs: 100 };
+      return {
+        code: `// from ${name}`,
+        provider: name as LLMProviderName,
+        tokensUsed: 20,
+        latencyMs: 100,
+      };
     },
     async healthCheck() {
       return { ok: !shouldFail, latencyMs: 10 };
@@ -122,8 +132,9 @@ describe('LLMProviderManager', () => {
         providers: { mock: createMockProvider('mock') } as any,
         strategy: { primary: 'mock' },
       });
-      await expect(manager.complete({ prompt: 'hello', maxTokens: 100 }, 'nonexistent' as any))
-        .rejects.toThrow(/not registered/);
+      await expect(
+        manager.complete({ prompt: 'hello', maxTokens: 100 }, 'nonexistent' as any)
+      ).rejects.toThrow(/not registered/);
     });
   });
 
@@ -142,7 +153,7 @@ describe('LLMProviderManager', () => {
       const manager = new LLMProviderManager({
         providers: {
           mock: createMockProvider('mock', true), // fails
-          openai: createMockProvider('openai'),   // succeeds
+          openai: createMockProvider('openai'), // succeeds
         } as any,
         strategy: { primary: 'mock', fallback: 'openai' },
       });
@@ -159,8 +170,9 @@ describe('LLMProviderManager', () => {
         } as any,
         strategy: { primary: 'mock', fallback: 'openai' },
       });
-      await expect(manager.generateHoloScript({ prompt: 'test' }))
-        .rejects.toThrow(/All providers failed/);
+      await expect(manager.generateHoloScript({ prompt: 'test' })).rejects.toThrow(
+        /All providers failed/
+      );
     });
   });
 

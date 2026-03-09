@@ -17,6 +17,7 @@ cp examples/TEMPLATE/TUTORIAL.md examples/[category]/[your-example-name]/TUTORIA
 ```
 
 **Categories:**
+
 - `general/` - Universal VR/AR examples (Unity, Unreal, Godot, WebXR)
 - `specialized/` - Platform-specific or industry-specific examples
 
@@ -58,17 +59,18 @@ metadata {
 
 Search and replace these placeholders throughout all files:
 
-| Placeholder | Replace With | Example |
-|-------------|--------------|---------|
-| `[Your Example Name]` | Your example's name | "VR Physics Playground" |
-| `[YourExampleName]` | CamelCase name | "VRPhysicsPlayground" |
-| `[your-example-name]` | kebab-case name | "vr-physics-playground" |
-| `[Your Name or Organization]` | Your attribution | "Jane Doe" or "ACME Corp" |
-| `[YYYY-MM-DD]` | Today's date | "2025-02-20" |
-| `[Brief description]` | One-sentence summary | "An interactive physics sandbox" |
-| `[Detailed description]` | Full explanation | "This example demonstrates..." |
+| Placeholder                   | Replace With         | Example                          |
+| ----------------------------- | -------------------- | -------------------------------- |
+| `[Your Example Name]`         | Your example's name  | "VR Physics Playground"          |
+| `[YourExampleName]`           | CamelCase name       | "VRPhysicsPlayground"            |
+| `[your-example-name]`         | kebab-case name      | "vr-physics-playground"          |
+| `[Your Name or Organization]` | Your attribution     | "Jane Doe" or "ACME Corp"        |
+| `[YYYY-MM-DD]`                | Today's date         | "2025-02-20"                     |
+| `[Brief description]`         | One-sentence summary | "An interactive physics sandbox" |
+| `[Detailed description]`      | Full explanation     | "This example demonstrates..."   |
 
 **Find all placeholders:**
+
 ```bash
 # Search for brackets in your example directory
 grep -r "\[.*\]" examples/[category]/[your-example-name]/
@@ -84,6 +86,7 @@ In `[your-file].holo`:
 4. **Configure platforms** - Adjust `export_config` for your target platforms
 
 **Optional sections to remove:**
+
 - `script#example_behavior` - If not using custom scripts
 - `audio#background_music` - If not using audio
 - `export_config` - If using default settings
@@ -91,6 +94,7 @@ In `[your-file].holo`:
 ### 5. Write the Documentation
 
 **README.md:**
+
 - Replace all `[placeholders]` with actual content
 - Fill in the "Overview" section with your example's description
 - List all features in the "Features" section
@@ -99,6 +103,7 @@ In `[your-file].holo`:
 - Remove sections that don't apply (e.g., "Mobile/Quest" if desktop-only)
 
 **TUTORIAL.md:**
+
 - Explain 4-6 key concepts your example demonstrates
 - Provide a step-by-step walkthrough
 - Include code snippets with explanations
@@ -106,6 +111,7 @@ In `[your-file].holo`:
 - Document troubleshooting steps
 
 **Tips:**
+
 - Write README for **users** (how to run the example)
 - Write TUTORIAL for **learners** (how to understand and modify it)
 - Use code snippets liberally
@@ -133,9 +139,9 @@ ls -la examples/[category]/[your-example-name]/
 Add your example to the appropriate table:
 
 ```markdown
-| # | Example | Category | Difficulty | Lines | Platforms | Key Features |
-|---|---------|----------|------------|-------|-----------|-----------------|
-| X | [Your Example Name](category/your-example-name/) | General | Beginner | ~XXX | Unity, Unreal | Feature1, Feature2 |
+| #   | Example                                          | Category | Difficulty | Lines | Platforms     | Key Features       |
+| --- | ------------------------------------------------ | -------- | ---------- | ----- | ------------- | ------------------ |
+| X   | [Your Example Name](category/your-example-name/) | General  | Beginner   | ~XXX  | Unity, Unreal | Feature1, Feature2 |
 ```
 
 **Update examples/README.md:**
@@ -144,6 +150,7 @@ Add to the use case section:
 
 ```markdown
 ### [Your Category]
+
 - ✅ Your Example Name - [Use case description]
 ```
 
@@ -175,6 +182,7 @@ TEMPLATE/
 ### Code Comments
 
 The template includes:
+
 - Section headers (e.g., `# Example object 1: Environment`)
 - Inline comments explaining key properties
 - Example values with units (e.g., `effort: 150 // Nm torque`)

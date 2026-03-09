@@ -64,7 +64,10 @@ describe('PhysicsDebugDrawer — Production', () => {
     drawer.setEnabled(true);
     drawer.update();
 
-    expect(renderer.createElement).toHaveBeenCalledWith('mesh', expect.objectContaining({ wireframe: true }));
+    expect(renderer.createElement).toHaveBeenCalledWith(
+      'mesh',
+      expect.objectContaining({ wireframe: true })
+    );
   });
 
   it('update colors sleeping bodies grey', () => {
@@ -121,7 +124,10 @@ describe('PhysicsDebugDrawer — Production', () => {
     drawer.setEnabled(true);
     drawer.update();
 
-    expect(renderer.createElement).toHaveBeenCalledWith('mesh', expect.objectContaining({ geometry: 'capsule' }));
+    expect(renderer.createElement).toHaveBeenCalledWith(
+      'mesh',
+      expect.objectContaining({ geometry: 'capsule' })
+    );
   });
 
   it('update cleans up removed bodies', () => {

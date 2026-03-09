@@ -12,7 +12,11 @@ import type { GPUBufferManager } from '../../gpu/GPUBuffers.js';
 import type { ComputePipeline } from '../../gpu/ComputePipeline.js';
 import type { SpatialGrid } from '../../gpu/SpatialGrid.js';
 import type { InstancedRenderer, CameraParams } from '../../gpu/InstancedRenderer.js';
-import { ProceduralBuilding, type BuildingConfig, type BuildingStructure } from './ProceduralBuilding.js';
+import {
+  ProceduralBuilding,
+  type BuildingConfig,
+  type BuildingStructure,
+} from './ProceduralBuilding.js';
 import { FracturePhysics, type EarthquakeConfig, type DebrisParticle } from './FracturePhysics.js';
 
 export interface EarthquakeSimulationConfig {
@@ -88,10 +92,7 @@ export class EarthquakeSimulation {
   private structuralParticleCount: number = 0;
   private debrisParticleOffset: number = 0;
 
-  constructor(
-    context: WebGPUContext,
-    config: EarthquakeSimulationConfig
-  ) {
+  constructor(context: WebGPUContext, config: EarthquakeSimulationConfig) {
     this.context = context;
     this.config = config;
 
@@ -127,7 +128,9 @@ export class EarthquakeSimulation {
     });
 
     console.log(`🏗️ Earthquake simulation created:`);
-    console.log(`   Building: ${config.building.floors} floors, ${this.structuralParticleCount} elements`);
+    console.log(
+      `   Building: ${config.building.floors} floors, ${this.structuralParticleCount} elements`
+    );
     console.log(`   Max debris: ${config.maxDebrisParticles} particles`);
     console.log(`   Total capacity: ${totalParticles} particles`);
   }
@@ -169,7 +172,8 @@ export class EarthquakeSimulation {
       particleData.positions[idx + 0] = element.position[0];
       particleData.positions[idx + 1] = element.position[1];
       particleData.positions[idx + 2] = element.position[2];
-      particleData.positions[idx + 3] = (element.dimensions[0] + element.dimensions[1] + element.dimensions[2]) / 6;
+      particleData.positions[idx + 3] =
+        (element.dimensions[0] + element.dimensions[1] + element.dimensions[2]) / 6;
 
       // Velocity (static initially) + mass
       particleData.velocities[idx + 0] = 0;
@@ -315,7 +319,8 @@ export class EarthquakeSimulation {
     return {
       earthquakeActive: this.fracturePhysics.isEarthquakeActive(),
       collapseStarted: this.fracturePhysics.hasFailures(),
-      structuralIntegrity: ((stats.totalElements - stats.failedElements) / stats.totalElements) * 100,
+      structuralIntegrity:
+        ((stats.totalElements - stats.failedElements) / stats.totalElements) * 100,
       activeDebrisCount: stats.activeDebris,
       totalDebrisCount: stats.totalDebris,
       collapseEventCount: stats.collapseEvents,

@@ -22,7 +22,7 @@ describe('Cycle 120: Debug & Profiler Tools', () => {
   it('should expire draw calls after duration', () => {
     const debug = new DebugRenderer();
     debug.drawLine({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, DebugColors.red, 1); // 1 sec
-    debug.drawSphere({ x: 5, y: 5, z: 5 }, 2, DebugColors.blue, 5);  // 5 sec
+    debug.drawSphere({ x: 5, y: 5, z: 5 }, 2, DebugColors.blue, 5); // 5 sec
 
     debug.update(2); // 2 seconds passed
     expect(debug.getDrawCallCount()).toBe(1); // Only sphere remains
@@ -96,7 +96,7 @@ describe('Cycle 120: Debug & Profiler Tools', () => {
     const logger = new ConsoleLogger();
     logger.setMinLevel(LogLevel.INFO);
 
-    logger.debug('Core', 'Debug message');  // Filtered out
+    logger.debug('Core', 'Debug message'); // Filtered out
     logger.info('Core', 'Info message');
     logger.warn('Core', 'Warning!', { code: 42 });
     logger.error('Core', 'Error!');

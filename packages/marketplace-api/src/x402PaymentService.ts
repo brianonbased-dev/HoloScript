@@ -220,7 +220,7 @@ export class x402PaymentService {
           asset: config.asset as any,
           network: config.network as any,
           facilitator: this.selectFacilitator(config.network),
-          content_id: req.params.twin_id || req.params.menu_id || 'unknown_content'
+          content_id: req.params.twin_id || req.params.menu_id || 'unknown_content',
         });
       } catch (err) {
         return res.status(500).json({ error: 'Payment verification error' });
@@ -235,8 +235,12 @@ export class x402PaymentService {
 
   // Return HTTP 402 Payment Required response
   return402Response(res: Response, request: x402PaymentRequest) {
-    res.status(402)
-      .header('WWW-Authenticate', `x402 facilitator="${request.facilitator}" price="${request.price}" asset="${request.asset}" network="${request.network}"`)
+    res
+      .status(402)
+      .header(
+        'WWW-Authenticate',
+        `x402 facilitator="${request.facilitator}" price="${request.price}" asset="${request.asset}" network="${request.network}"`
+      )
       .json({
         error: 'Payment required',
         price: request.price,
@@ -244,7 +248,7 @@ export class x402PaymentService {
         network: request.network,
         facilitator: request.facilitator,
         payment_id: request.payment_id,
-        content_id: request.content_id
+        content_id: request.content_id,
       });
   }
 
@@ -264,7 +268,7 @@ export class x402PaymentService {
       if (txReceipt.amount >= payment.amount) {
         return {
           ...payment,
-          access_granted: true
+          access_granted: true,
         };
       }
       return null;
@@ -277,7 +281,7 @@ export class x402PaymentService {
   private async getPaymentFromDB(paymentId: string): Promise<x402PaymentReceipt | null> {
     // Stub implementation hooking into Supabase concept
     // Normally: supabase.from(this.options.receipt_storage.table).select().eq('payment_id', paymentId)
-    return null; 
+    return null;
   }
 
   private async getBlockchainReceipt(txHash: string, network: string) {
@@ -299,8 +303,8 @@ export class x402PaymentService {
 
         // 3. Process Revenue Splits (80/10/10 model)
         const split = this.processRevenueSplit(
-          receipt.amount, 
-          creator_address || '0xPlatformCreator', 
+          receipt.amount,
+          creator_address || '0xPlatformCreator',
           agent_address
         );
 
@@ -329,14 +333,14 @@ export class x402PaymentService {
    * If there is no agent, the platform takes the agent's 10% (20% total).
    */
   processRevenueSplit(amount: number, creatorAddress: string, agentAddress?: string) {
-    const creatorShare = amount * 0.80;
-    const agentShare = agentAddress ? amount * 0.10 : 0;
+    const creatorShare = amount * 0.8;
+    const agentShare = agentAddress ? amount * 0.1 : 0;
     const platformShare = amount - creatorShare - agentShare;
 
     return {
       creator: { address: creatorAddress, amount: creatorShare },
       platform: { amount: platformShare },
-      agent: agentAddress ? { address: agentAddress, amount: agentShare } : null
+      agent: agentAddress ? { address: agentAddress, amount: agentShare } : null,
     };
   }
 }

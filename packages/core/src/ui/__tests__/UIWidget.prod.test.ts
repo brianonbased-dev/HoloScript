@@ -100,7 +100,7 @@ describe('UIWidget — Production', () => {
       ui.createWidget('back', 'panel', { zIndex: 0 });
       ui.createWidget('front', 'panel', { zIndex: 10 });
       ui.createWidget('mid', 'panel', { zIndex: 5 });
-      const order = ui.getRenderOrder().map(w => w.id);
+      const order = ui.getRenderOrder().map((w) => w.id);
       expect(order).toEqual(['back', 'mid', 'front']);
     });
 

@@ -8,13 +8,15 @@ import type { Plane4, BoundingVolume } from '../spatial/FrustumCuller';
 
 // Simple frustum: everything with z in [1, 100] is inside
 const NEAR_FAR_PLANES: Plane4[] = [
-  { a: 0, b: 0, c: 1, d: -1 },   // z >= 1  (near)
-  { a: 0, b: 0, c: -1, d: 100 },  // z <= 100 (far)
+  { a: 0, b: 0, c: 1, d: -1 }, // z >= 1  (near)
+  { a: 0, b: 0, c: -1, d: 100 }, // z <= 100 (far)
 ];
 
 describe('FrustumCuller', () => {
   let fc: FrustumCuller;
-  beforeEach(() => { fc = new FrustumCuller(); });
+  beforeEach(() => {
+    fc = new FrustumCuller();
+  });
 
   it('setPlanes stores planes', () => {
     fc.setPlanes(NEAR_FAR_PLANES);
@@ -64,7 +66,16 @@ describe('FrustumCuller', () => {
 
   it('cullAll handles AABB volumes', () => {
     fc.setPlanes(NEAR_FAR_PLANES);
-    fc.addVolume({ id: 'box', type: 'aabb', centerX: 0, centerY: 0, centerZ: 10, halfX: 2, halfY: 2, halfZ: 2 });
+    fc.addVolume({
+      id: 'box',
+      type: 'aabb',
+      centerX: 0,
+      centerY: 0,
+      centerZ: 10,
+      halfX: 2,
+      halfY: 2,
+      halfZ: 2,
+    });
     const visible = fc.cullAll();
     expect(visible).toContain('box');
   });

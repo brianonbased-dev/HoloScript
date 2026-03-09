@@ -146,19 +146,19 @@ export enum HoloOpCode {
   /** Halt execution */
   HALT = 0x69,
   /** Suspend until next tick */
-  YIELD = 0x6A,
+  YIELD = 0x6a,
   /** Schedule delayed handler. Operands: [delay_ms: u32, handler_offset: u32] */
-  TIMER = 0x6B,
+  TIMER = 0x6b,
 
   // ── Arithmetic & Comparison (0x6C–0x6F) ───────────────────────────────────
   /** Add top two stack values */
-  ADD = 0x6C,
+  ADD = 0x6c,
   /** Subtract: stack[-2] - stack[-1] */
-  SUB = 0x6D,
+  SUB = 0x6d,
   /** Multiply top two */
-  MUL = 0x6E,
+  MUL = 0x6e,
   /** Divide: stack[-2] / stack[-1] */
-  DIV = 0x6F,
+  DIV = 0x6f,
 
   // ── Agent Bridge (0x70–0x7F) ──────────────────────────────────────────────
   /** Request action from uAAL VM. Operands: [agent_id: u32, action_idx: u32] */
@@ -197,11 +197,11 @@ export enum ComponentType {
   Animation = 0x07,
   Audio = 0x08,
   Network = 0x09,
-  Trait = 0x0A,
-  ParticleSystem = 0x0B,
-  GaussianSplat = 0x0C,
-  LOD = 0x0D,
-  Custom = 0xFF,
+  Trait = 0x0a,
+  ParticleSystem = 0x0b,
+  GaussianSplat = 0x0c,
+  LOD = 0x0d,
+  Custom = 0xff,
 }
 
 // =============================================================================
@@ -218,11 +218,11 @@ export enum GeometryType {
   Capsule = 0x07,
   Mesh = 0x08,
   Text3D = 0x09,
-  Portal = 0x0A,
-  Terrain = 0x0B,
-  Skybox = 0x0C,
-  Billboard = 0x0D,
-  Line = 0x0E,
+  Portal = 0x0a,
+  Terrain = 0x0b,
+  Skybox = 0x0c,
+  Billboard = 0x0d,
+  Line = 0x0e,
 }
 
 // =============================================================================
@@ -321,7 +321,7 @@ const FAMILY_NAMES: Record<number, string> = {
  * Get the family name for an opcode
  */
 export function getOpcodeFamily(opcode: HoloOpCode): string {
-  const familyByte = (opcode >> 4) & 0x0F;
+  const familyByte = (opcode >> 4) & 0x0f;
   return FAMILY_NAMES[familyByte] ?? 'Unknown';
 }
 
@@ -336,10 +336,12 @@ export function getOpcodeName(opcode: HoloOpCode): string {
  * Check if an opcode is a jump/branch instruction
  */
 export function isControlFlow(opcode: HoloOpCode): boolean {
-  return opcode === HoloOpCode.JUMP
-    || opcode === HoloOpCode.JUMP_IF
-    || opcode === HoloOpCode.CALL
-    || opcode === HoloOpCode.RETURN
-    || opcode === HoloOpCode.HALT
-    || opcode === HoloOpCode.YIELD;
+  return (
+    opcode === HoloOpCode.JUMP ||
+    opcode === HoloOpCode.JUMP_IF ||
+    opcode === HoloOpCode.CALL ||
+    opcode === HoloOpCode.RETURN ||
+    opcode === HoloOpCode.HALT ||
+    opcode === HoloOpCode.YIELD
+  );
 }

@@ -66,7 +66,14 @@ const PRESETS: EnvironmentPreset[] = [
     emoji: '🌃',
     description: 'Dark urban night sky with dense low-lying fog',
     sky: { type: 'solid', color: '#050510' },
-    fog: { enabled: true, color: '#111133', near: 10, far: 120, type: 'exponential', density: 0.015 },
+    fog: {
+      enabled: true,
+      color: '#111133',
+      near: 10,
+      far: 120,
+      type: 'exponential',
+      density: 0.015,
+    },
     ambient: { color: '#2244aa', intensity: 0.2 },
     traitSnippet: `  @environment {
     sky: solid
@@ -140,7 +147,14 @@ const PRESETS: EnvironmentPreset[] = [
     emoji: '🔮',
     description: 'Pure black with electric magenta ambient — cyberpunk void',
     sky: { type: 'solid', color: '#000000' },
-    fog: { enabled: true, color: '#880044', near: 20, far: 200, type: 'exponential', density: 0.008 },
+    fog: {
+      enabled: true,
+      color: '#880044',
+      near: 20,
+      far: 200,
+      type: 'exponential',
+      density: 0.008,
+    },
     ambient: { color: '#ff00aa', intensity: 0.5 },
     traitSnippet: `  @environment {
     sky: solid
@@ -181,7 +195,14 @@ const PRESETS: EnvironmentPreset[] = [
     emoji: '🌋',
     description: 'Red-orange sky with heavy ash fog for post-apocalyptic scenes',
     sky: { type: 'procedural', turbidity: 15, rayleigh: 3, sunElevation: 5, sunAzimuth: 80 },
-    fog: { enabled: true, color: '#662200', near: 8, far: 100, type: 'exponential', density: 0.025 },
+    fog: {
+      enabled: true,
+      color: '#662200',
+      near: 8,
+      far: 100,
+      type: 'exponential',
+      density: 0.025,
+    },
     ambient: { color: '#ff4400', intensity: 0.5 },
     traitSnippet: `  @environment {
     sky: procedural
@@ -202,9 +223,10 @@ export async function GET(request: NextRequest) {
   const category = request.nextUrl.searchParams.get('category') ?? '';
   let results: EnvironmentPreset[] = PRESETS;
   if (category) results = results.filter((p) => p.category === category);
-  if (q) results = results.filter((p) =>
-    p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
-  );
+  if (q)
+    results = results.filter(
+      (p) => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
+    );
   const categories = [...new Set(PRESETS.map((p) => p.category))];
   return Response.json({ presets: results, total: results.length, categories });
 }

@@ -16,14 +16,38 @@ describe('Build & Export Pipeline (Cycle 171)', () => {
 
     it('should register and count assets', () => {
       bundler.addAsset({ id: 'a', type: 'mesh', path: '/a.glb', sizeBytes: 100, references: [] });
-      bundler.addAsset({ id: 'b', type: 'texture', path: '/b.png', sizeBytes: 200, references: [] });
+      bundler.addAsset({
+        id: 'b',
+        type: 'texture',
+        path: '/b.png',
+        sizeBytes: 200,
+        references: [],
+      });
       expect(bundler.getAssetCount()).toBe(2);
     });
 
     it('should tree-shake unreachable assets', () => {
-      bundler.addAsset({ id: 'entry', type: 'script', path: '/main.js', sizeBytes: 50, references: ['used'] });
-      bundler.addAsset({ id: 'used', type: 'mesh', path: '/used.glb', sizeBytes: 100, references: [] });
-      bundler.addAsset({ id: 'unused', type: 'texture', path: '/unused.png', sizeBytes: 200, references: [] });
+      bundler.addAsset({
+        id: 'entry',
+        type: 'script',
+        path: '/main.js',
+        sizeBytes: 50,
+        references: ['used'],
+      });
+      bundler.addAsset({
+        id: 'used',
+        type: 'mesh',
+        path: '/used.glb',
+        sizeBytes: 100,
+        references: [],
+      });
+      bundler.addAsset({
+        id: 'unused',
+        type: 'texture',
+        path: '/unused.png',
+        sizeBytes: 200,
+        references: [],
+      });
       bundler.addEntryPoint('entry');
 
       const removed = bundler.treeShake();
@@ -41,8 +65,20 @@ describe('Build & Export Pipeline (Cycle 171)', () => {
     });
 
     it('should generate a complete manifest', () => {
-      bundler.addAsset({ id: 'main', type: 'script', path: '/main.js', sizeBytes: 100, references: ['tex'] });
-      bundler.addAsset({ id: 'tex', type: 'texture', path: '/tex.png', sizeBytes: 300, references: [] });
+      bundler.addAsset({
+        id: 'main',
+        type: 'script',
+        path: '/main.js',
+        sizeBytes: 100,
+        references: ['tex'],
+      });
+      bundler.addAsset({
+        id: 'tex',
+        type: 'texture',
+        path: '/tex.png',
+        sizeBytes: 300,
+        references: [],
+      });
       bundler.addEntryPoint('main');
 
       const manifest = bundler.bundle();
@@ -99,7 +135,9 @@ describe('Build & Export Pipeline (Cycle 171)', () => {
     });
 
     it('should warn when minification is disabled', () => {
-      exporter.configure('web', { optimizations: { minify: false, sourceMaps: false, compress: true } });
+      exporter.configure('web', {
+        optimizations: { minify: false, sourceMaps: false, compress: true },
+      });
       const result = exporter.export('web');
       expect(result.warnings).toHaveLength(1);
     });

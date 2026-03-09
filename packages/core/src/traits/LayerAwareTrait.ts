@@ -29,5 +29,5 @@ export const layerAwareHandler: TraitHandler<LayerAwareTrait> = {
   onUpdate(node, config, context, _delta) {
     // In a full implementation, we'd query the runtime layer state (AR/VRR/VR)
     // and toggle node.properties.visible accordingly if node.properties exists.
-  }
+  },
 };

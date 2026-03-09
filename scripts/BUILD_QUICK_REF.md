@@ -3,6 +3,7 @@
 ## 🚀 Quick Commands
 
 ### One-Command Workflows
+
 ```bash
 pnpm build:auto        # Full lifecycle: build → archive → monitor → auto-prune
 pnpm build:archive     # Archive current builds, delete uncompressed
@@ -12,6 +13,7 @@ pnpm build:prune       # Remove archives older than 30 days
 ```
 
 ### Direct Script Access
+
 ```bash
 # Full autonomous workflow (all phases)
 bash scripts/auto-build-manager.sh
@@ -44,6 +46,7 @@ bash scripts/verify-build-management.sh
 ## 📊 Expected Results
 
 ### After Archival
+
 ```
 Before:   37 MB (uncompressed dist/ directories)
 Archives: 8-11 MB (compressed tar.gz)
@@ -52,6 +55,7 @@ Saved:    26-29 MB (70-77% compression)
 ```
 
 ### After Monitor (Normal)
+
 ```
 Disk usage: 70% (healthy)
 Build artifacts: 37 MB
@@ -61,6 +65,7 @@ Potential savings: ~33.8 MB (~92%)
 ```
 
 ### After Monitor (Critical)
+
 ```
 Disk usage: 80%+ (CRITICAL)
 → Triggers automatic pruning
@@ -69,6 +74,7 @@ Disk usage: 80%+ (CRITICAL)
 ```
 
 ### After Restoration
+
 ```
 Archive: core_20260227_120000.tar.gz
 Extracted: 29 MB (847 files)
@@ -106,6 +112,7 @@ HoloScript/
 ## 🔄 Typical Workflows
 
 ### Development Workflow
+
 ```bash
 # Daily development
 pnpm build              # Build all packages
@@ -114,6 +121,7 @@ pnpm build:archive      # Archive and clean (end of day)
 ```
 
 ### CI/CD Workflow
+
 ```bash
 # Automated in GitHub Actions
 pnpm build:auto         # Full lifecycle
@@ -124,6 +132,7 @@ pnpm build:auto         # Full lifecycle
 ```
 
 ### Cleanup Workflow
+
 ```bash
 # When disk is full
 pnpm build:monitor      # Check current usage
@@ -133,6 +142,7 @@ pnpm clean              # Remove all dist/ (if needed)
 ```
 
 ### Rollback Workflow
+
 ```bash
 # Need previous build
 pnpm build:restore latest              # Latest archived build
@@ -142,26 +152,28 @@ pnpm build:restore core_20260227_120000.tar.gz  # Specific version
 
 ## 📈 Compression Ratios (Actual)
 
-| Package | Uncompressed | Compressed | Ratio |
-|---------|--------------|------------|-------|
-| core | 29 MB | 5.2 MB | 82% |
-| mcp-server | 3.8 MB | 892 KB | 77% |
-| ai-validator | 100 KB | 25 KB | 75% |
-| **Average** | **~37 MB** | **~8-11 MB** | **~77%** |
+| Package      | Uncompressed | Compressed   | Ratio    |
+| ------------ | ------------ | ------------ | -------- |
+| core         | 29 MB        | 5.2 MB       | 82%      |
+| mcp-server   | 3.8 MB       | 892 KB       | 77%      |
+| ai-validator | 100 KB       | 25 KB        | 75%      |
+| **Average**  | **~37 MB**   | **~8-11 MB** | **~77%** |
 
 ## 🎯 Disk Thresholds
 
-| Usage | Status | Action |
-|-------|--------|--------|
-| <70% | ✅ Healthy | No action |
-| 70-79% | ⚠️ Warning | Monitor recommended |
-| 80%+ | 🚨 Critical | Auto-prune triggered |
-| 90%+ | ❌ Emergency | Manual cleanup required |
+| Usage  | Status       | Action                  |
+| ------ | ------------ | ----------------------- |
+| <70%   | ✅ Healthy   | No action               |
+| 70-79% | ⚠️ Warning   | Monitor recommended     |
+| 80%+   | 🚨 Critical  | Auto-prune triggered    |
+| 90%+   | ❌ Emergency | Manual cleanup required |
 
 ## 🛠️ Troubleshooting
 
 ### Issue: Archives not created
+
 **Solution**: Ensure packages have successful builds
+
 ```bash
 cd packages/<package-name>
 pnpm build
@@ -169,7 +181,9 @@ ls dist/  # Should contain .js files
 ```
 
 ### Issue: Disk still at 80%+ after pruning
+
 **Solutions**:
+
 ```bash
 pnpm clean                    # Remove all dist/ directories
 rm -rf node_modules && pnpm install  # Clean node_modules
@@ -177,14 +191,18 @@ rm -rf .build-archives/*      # Manual archive cleanup (if needed)
 ```
 
 ### Issue: Cannot restore archive
+
 **Solution**: Check archive integrity
+
 ```bash
 tar -tzf .build-archives/<archive-name>.tar.gz
 # Should list files without errors
 ```
 
 ### Issue: Scripts not executable
+
 **Solution**: Make executable
+
 ```bash
 chmod +x scripts/*.sh
 ```
@@ -199,6 +217,7 @@ chmod +x scripts/*.sh
 ## 🔗 Integration
 
 ### package.json
+
 ```json
 {
   "scripts": {
@@ -212,6 +231,7 @@ chmod +x scripts/*.sh
 ```
 
 ### .gitignore
+
 ```
 .build-archives/
 .build-logs/
@@ -238,6 +258,7 @@ dist/
 ## 📞 Support
 
 **Issues?** Check:
+
 1. This quick reference
 2. `scripts/BUILD_MANAGEMENT.md` (full guide)
 3. `bash scripts/verify-build-management.sh` (system health)

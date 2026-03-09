@@ -127,11 +127,7 @@ export type { ISkillDatabase } from './SkillMarketplaceService.js';
 export { createSkillMarketplaceRoutes } from './skillRoutes.js';
 
 // ─── MCPMe Billing Bridge ────────────────────────────────────────────────────
-export {
-  MCPMeBillingBridge,
-  getMCPMeBillingBridge,
-  tierAllows,
-} from './MCPMeBillingBridge.js';
+export { MCPMeBillingBridge, getMCPMeBillingBridge, tierAllows } from './MCPMeBillingBridge.js';
 export type {
   MCPMeTier,
   MCPMeUser,

@@ -48,8 +48,8 @@ export class JitterBuffer<T extends NetworkState> {
   private readonly gapSkipMultiplier: number;
 
   constructor(config: JitterBufferConfig) {
-    this.holdTimeMs        = config.holdTimeMs;
-    this.maxSize           = config.maxSize           ?? 64;
+    this.holdTimeMs = config.holdTimeMs;
+    this.maxSize = config.maxSize ?? 64;
     this.gapSkipMultiplier = config.gapSkipMultiplier ?? 2;
   }
 
@@ -62,7 +62,7 @@ export class JitterBuffer<T extends NetworkState> {
    * Returns all states that are in-sequence AND have been held long enough.
    */
   insert(state: T): T[] {
-    const id  = state.objectId;
+    const id = state.objectId;
     const now = Date.now();
 
     if (!this.buffers.has(id)) {
@@ -141,14 +141,14 @@ export class JitterBuffer<T extends NetworkState> {
   // ---------------------------------------------------------------------------
 
   private flush(id: string, now: number): T[] {
-    const buf      = this.buffers.get(id)!;
+    const buf = this.buffers.get(id)!;
     const ready: T[] = [];
-    let expected   = this.nextExpected.get(id)!;
+    let expected = this.nextExpected.get(id)!;
 
     while (buf.length > 0) {
       const head = buf[0];
-      const seq  = head.state.sequenceNumber;
-      const age  = now - head.receivedAt;
+      const seq = head.state.sequenceNumber;
+      const age = now - head.receivedAt;
 
       if (seq === expected) {
         // In-sequence: emit once held long enough

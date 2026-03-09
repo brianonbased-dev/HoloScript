@@ -284,11 +284,6 @@ export {
 } from './VRRRuntime.js';
 
 // AR Runtime
-export {
-  ARRuntime,
-  type ARRuntimeOptions,
-  type ARTrackingState,
-} from './ARRuntime.js';
+export { ARRuntime, type ARRuntimeOptions, type ARTrackingState } from './ARRuntime.js';
 
 export default runtime;
-

@@ -31,14 +31,50 @@ async function basicRTreeExample() {
 
   // San Francisco landmarks
   const landmarks: GeospatialAnchor[] = [
-    { id: 'golden-gate', lat: 37.8199, lon: -122.4783, alt: 67, metadata: { name: 'Golden Gate Bridge' } },
+    {
+      id: 'golden-gate',
+      lat: 37.8199,
+      lon: -122.4783,
+      alt: 67,
+      metadata: { name: 'Golden Gate Bridge' },
+    },
     { id: 'pier-39', lat: 37.8087, lon: -122.4098, alt: 5, metadata: { name: 'Pier 39' } },
-    { id: 'alcatraz', lat: 37.8267, lon: -122.4233, alt: 41, metadata: { name: 'Alcatraz Island' } },
+    {
+      id: 'alcatraz',
+      lat: 37.8267,
+      lon: -122.4233,
+      alt: 41,
+      metadata: { name: 'Alcatraz Island' },
+    },
     { id: 'coit-tower', lat: 37.8024, lon: -122.4058, alt: 64, metadata: { name: 'Coit Tower' } },
-    { id: 'palace-fine-arts', lat: 37.8029, lon: -122.4486, alt: 15, metadata: { name: 'Palace of Fine Arts' } },
-    { id: 'transamerica', lat: 37.7952, lon: -122.4028, alt: 260, metadata: { name: 'Transamerica Pyramid' } },
-    { id: 'ferry-building', lat: 37.7956, lon: -122.3934, alt: 75, metadata: { name: 'Ferry Building' } },
-    { id: 'lombard-street', lat: 37.8021, lon: -122.4187, alt: 92, metadata: { name: 'Lombard Street' } },
+    {
+      id: 'palace-fine-arts',
+      lat: 37.8029,
+      lon: -122.4486,
+      alt: 15,
+      metadata: { name: 'Palace of Fine Arts' },
+    },
+    {
+      id: 'transamerica',
+      lat: 37.7952,
+      lon: -122.4028,
+      alt: 260,
+      metadata: { name: 'Transamerica Pyramid' },
+    },
+    {
+      id: 'ferry-building',
+      lat: 37.7956,
+      lon: -122.3934,
+      alt: 75,
+      metadata: { name: 'Ferry Building' },
+    },
+    {
+      id: 'lombard-street',
+      lat: 37.8021,
+      lon: -122.4187,
+      alt: 92,
+      metadata: { name: 'Lombard Street' },
+    },
   ];
 
   // Bulk load for optimal performance (2-3x faster)
@@ -64,8 +100,10 @@ async function basicRTreeExample() {
     maxLon: -122.39,
   });
   console.log(`Found ${downtownResults.length} landmarks:`);
-  downtownResults.forEach(anchor => {
-    console.log(`  - ${anchor.metadata?.name} (${anchor.lat.toFixed(4)}, ${anchor.lon.toFixed(4)})`);
+  downtownResults.forEach((anchor) => {
+    console.log(
+      `  - ${anchor.metadata?.name} (${anchor.lat.toFixed(4)}, ${anchor.lon.toFixed(4)})`
+    );
   });
   console.log();
 
@@ -157,7 +195,9 @@ async function performanceExample() {
   const stats = rtree.getStats();
   console.log('\nFinal Statistics:');
   console.log(`  Total anchors: ${stats.totalAnchors}`);
-  console.log(`  Tree height: ${stats.height} (O(log n) = ${Math.ceil(Math.log2(stats.totalAnchors))})`);
+  console.log(
+    `  Tree height: ${stats.height} (O(log n) = ${Math.ceil(Math.log2(stats.totalAnchors))})`
+  );
   console.log(`  Total nodes: ${stats.totalNodes}`);
   console.log(`  Avg fill ratio: ${(stats.avgFillRatio * 100).toFixed(1)}%`);
   console.log();
@@ -245,15 +285,45 @@ async function arScenarioExample() {
 
   // Load POIs along a walking route
   const route: GeospatialAnchor[] = [
-    { id: 'start', lat: 37.7749, lon: -122.4194, metadata: { type: 'start', name: 'Union Square' } },
-    { id: 'poi-1', lat: 37.7850, lon: -122.4094, metadata: { type: 'landmark', name: 'Chinatown Gate' } },
-    { id: 'poi-2', lat: 37.7950, lon: -122.3994, metadata: { type: 'landmark', name: 'Dragon Gate' } },
-    { id: 'poi-3', lat: 37.8050, lon: -122.3894, metadata: { type: 'viewpoint', name: 'Scenic Vista' } },
-    { id: 'end', lat: 37.8150, lon: -122.3794, metadata: { type: 'end', name: 'North Beach' } },
+    {
+      id: 'start',
+      lat: 37.7749,
+      lon: -122.4194,
+      metadata: { type: 'start', name: 'Union Square' },
+    },
+    {
+      id: 'poi-1',
+      lat: 37.785,
+      lon: -122.4094,
+      metadata: { type: 'landmark', name: 'Chinatown Gate' },
+    },
+    {
+      id: 'poi-2',
+      lat: 37.795,
+      lon: -122.3994,
+      metadata: { type: 'landmark', name: 'Dragon Gate' },
+    },
+    {
+      id: 'poi-3',
+      lat: 37.805,
+      lon: -122.3894,
+      metadata: { type: 'viewpoint', name: 'Scenic Vista' },
+    },
+    { id: 'end', lat: 37.815, lon: -122.3794, metadata: { type: 'end', name: 'North Beach' } },
     // Add some nearby shops and restaurants
-    { id: 'shop-1', lat: 37.7755, lon: -122.4200, metadata: { type: 'shop', name: 'Souvenir Store' } },
-    { id: 'rest-1', lat: 37.7860, lon: -122.4100, metadata: { type: 'restaurant', name: 'Dim Sum Palace' } },
-    { id: 'shop-2', lat: 37.7960, lon: -122.4000, metadata: { type: 'shop', name: 'Tea Shop' } },
+    {
+      id: 'shop-1',
+      lat: 37.7755,
+      lon: -122.42,
+      metadata: { type: 'shop', name: 'Souvenir Store' },
+    },
+    {
+      id: 'rest-1',
+      lat: 37.786,
+      lon: -122.41,
+      metadata: { type: 'restaurant', name: 'Dim Sum Palace' },
+    },
+    { id: 'shop-2', lat: 37.796, lon: -122.4, metadata: { type: 'shop', name: 'Tea Shop' } },
   ];
 
   rtree.load(route);
@@ -263,9 +333,9 @@ async function arScenarioExample() {
 
   const userPositions = [
     { lat: 37.7749, lon: -122.4194, label: 'Start' },
-    { lat: 37.7800, lon: -122.4144, label: 'Walking...' },
-    { lat: 37.7900, lon: -122.4044, label: 'Mid-route' },
-    { lat: 37.8100, lon: -122.3844, label: 'Near end' },
+    { lat: 37.78, lon: -122.4144, label: 'Walking...' },
+    { lat: 37.79, lon: -122.4044, label: 'Mid-route' },
+    { lat: 37.81, lon: -122.3844, label: 'Near end' },
   ];
 
   for (const pos of userPositions) {
@@ -275,7 +345,9 @@ async function arScenarioExample() {
     const nextWaypoints = rtree.knn(pos, 3);
     console.log('  Next waypoints:');
     nextWaypoints.forEach(({ anchor, distance }, i) => {
-      console.log(`    ${i + 1}. ${anchor.metadata?.name}: ${distance.toFixed(0)}m (${anchor.metadata?.type})`);
+      console.log(
+        `    ${i + 1}. ${anchor.metadata?.name}: ${distance.toFixed(0)}m (${anchor.metadata?.type})`
+      );
     });
 
     // Find nearby POIs within 100m

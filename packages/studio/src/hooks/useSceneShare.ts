@@ -84,7 +84,9 @@ export function useSceneShare(): UseSceneShareReturn {
   }, []);
 
   // Load gallery on first mount
-  useEffect(() => { loadGallery(); }, [loadGallery]);
+  useEffect(() => {
+    loadGallery();
+  }, [loadGallery]);
 
   const reset = useCallback(() => {
     setShareUrl(null);

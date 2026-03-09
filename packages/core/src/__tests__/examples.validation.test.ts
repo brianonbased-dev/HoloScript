@@ -190,7 +190,7 @@ describe('Examples Validation', () => {
         const content = readFileSync(readmePath, 'utf-8');
 
         // Should mention at least one platform
-        const hasPlatform = example.platforms.some(platform =>
+        const hasPlatform = example.platforms.some((platform) =>
           content.toLowerCase().includes(platform.toLowerCase())
         );
 
@@ -257,21 +257,21 @@ describe('Examples Validation', () => {
 
   describe('Example Categories', () => {
     it('should have 4 general examples', () => {
-      const generalExamples = EXAMPLES.filter(e => e.category === 'general');
+      const generalExamples = EXAMPLES.filter((e) => e.category === 'general');
       expect(generalExamples.length).toBe(4);
     });
 
     it('should have 5 specialized examples', () => {
-      const specializedExamples = EXAMPLES.filter(e => e.category === 'specialized');
+      const specializedExamples = EXAMPLES.filter((e) => e.category === 'specialized');
       expect(specializedExamples.length).toBe(5);
     });
 
     it('general examples should target common platforms', () => {
-      const generalExamples = EXAMPLES.filter(e => e.category === 'general');
+      const generalExamples = EXAMPLES.filter((e) => e.category === 'general');
 
       generalExamples.forEach((example) => {
         // General examples should target at least one mainstream platform
-        const hasMainstream = example.platforms.some(p =>
+        const hasMainstream = example.platforms.some((p) =>
           ['unity', 'unreal', 'godot', 'webxr', 'arkit', 'arcore'].includes(p)
         );
 
@@ -280,11 +280,11 @@ describe('Examples Validation', () => {
     });
 
     it('specialized examples should target niche platforms', () => {
-      const specializedExamples = EXAMPLES.filter(e => e.category === 'specialized');
+      const specializedExamples = EXAMPLES.filter((e) => e.category === 'specialized');
 
       specializedExamples.forEach((example) => {
         // Specialized examples should target specialized platforms
-        const hasSpecialized = example.platforms.some(p =>
+        const hasSpecialized = example.platforms.some((p) =>
           ['urdf', 'sdf', 'dtdl', 'photon', 'vrchat', 'udon', 'ros2', 'gazebo'].includes(p)
         );
 

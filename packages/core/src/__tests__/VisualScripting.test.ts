@@ -7,40 +7,121 @@ describe('Visual Scripting (Cycle 176)', () => {
   describe('NodeGraph', () => {
     let graph: NodeGraph;
 
-    beforeEach(() => { graph = new NodeGraph(); });
+    beforeEach(() => {
+      graph = new NodeGraph();
+    });
 
     it('should add and retrieve nodes', () => {
-      graph.addNode({ id: 'n1', type: 'math.add', label: 'Add', ports: [], position: { x: 0, y: 0 }, data: {} });
+      graph.addNode({
+        id: 'n1',
+        type: 'math.add',
+        label: 'Add',
+        ports: [],
+        position: { x: 0, y: 0 },
+        data: {},
+      });
       expect(graph.getNodeCount()).toBe(1);
       expect(graph.getNode('n1')?.type).toBe('math.add');
     });
 
     it('should connect nodes with compatible ports', () => {
-      graph.addNode({ id: 'n1', type: 'const', label: 'Const', ports: [{ id: 'out', name: 'Out', type: 'number', direction: 'output' }], position: { x: 0, y: 0 }, data: {} });
-      graph.addNode({ id: 'n2', type: 'add', label: 'Add', ports: [{ id: 'in', name: 'In', type: 'number', direction: 'input' }], position: { x: 100, y: 0 }, data: {} });
+      graph.addNode({
+        id: 'n1',
+        type: 'const',
+        label: 'Const',
+        ports: [{ id: 'out', name: 'Out', type: 'number', direction: 'output' }],
+        position: { x: 0, y: 0 },
+        data: {},
+      });
+      graph.addNode({
+        id: 'n2',
+        type: 'add',
+        label: 'Add',
+        ports: [{ id: 'in', name: 'In', type: 'number', direction: 'input' }],
+        position: { x: 100, y: 0 },
+        data: {},
+      });
       const wireId = graph.connect('n1', 'out', 'n2', 'in');
       expect(wireId).not.toBeNull();
       expect(graph.getWireCount()).toBe(1);
     });
 
     it('should reject incompatible port types', () => {
-      graph.addNode({ id: 'n1', type: 'a', label: 'A', ports: [{ id: 'out', name: 'Out', type: 'number', direction: 'output' }], position: { x: 0, y: 0 }, data: {} });
-      graph.addNode({ id: 'n2', type: 'b', label: 'B', ports: [{ id: 'in', name: 'In', type: 'boolean', direction: 'input' }], position: { x: 0, y: 0 }, data: {} });
+      graph.addNode({
+        id: 'n1',
+        type: 'a',
+        label: 'A',
+        ports: [{ id: 'out', name: 'Out', type: 'number', direction: 'output' }],
+        position: { x: 0, y: 0 },
+        data: {},
+      });
+      graph.addNode({
+        id: 'n2',
+        type: 'b',
+        label: 'B',
+        ports: [{ id: 'in', name: 'In', type: 'boolean', direction: 'input' }],
+        position: { x: 0, y: 0 },
+        data: {},
+      });
       expect(graph.connect('n1', 'out', 'n2', 'in')).toBeNull();
     });
 
     it('should detect cycles', () => {
-      graph.addNode({ id: 'a', type: 't', label: 'A', ports: [{ id: 'out', name: 'O', type: 'any', direction: 'output' }, { id: 'in', name: 'I', type: 'any', direction: 'input' }], position: { x: 0, y: 0 }, data: {} });
-      graph.addNode({ id: 'b', type: 't', label: 'B', ports: [{ id: 'out', name: 'O', type: 'any', direction: 'output' }, { id: 'in', name: 'I', type: 'any', direction: 'input' }], position: { x: 0, y: 0 }, data: {} });
+      graph.addNode({
+        id: 'a',
+        type: 't',
+        label: 'A',
+        ports: [
+          { id: 'out', name: 'O', type: 'any', direction: 'output' },
+          { id: 'in', name: 'I', type: 'any', direction: 'input' },
+        ],
+        position: { x: 0, y: 0 },
+        data: {},
+      });
+      graph.addNode({
+        id: 'b',
+        type: 't',
+        label: 'B',
+        ports: [
+          { id: 'out', name: 'O', type: 'any', direction: 'output' },
+          { id: 'in', name: 'I', type: 'any', direction: 'input' },
+        ],
+        position: { x: 0, y: 0 },
+        data: {},
+      });
       graph.connect('a', 'out', 'b', 'in');
       graph.connect('b', 'out', 'a', 'in');
       expect(graph.hasCycle()).toBe(true);
     });
 
     it('should produce topological order', () => {
-      graph.addNode({ id: 'a', type: 't', label: 'A', ports: [{ id: 'out', name: 'O', type: 'any', direction: 'output' }], position: { x: 0, y: 0 }, data: {} });
-      graph.addNode({ id: 'b', type: 't', label: 'B', ports: [{ id: 'in', name: 'I', type: 'any', direction: 'input' }, { id: 'out', name: 'O', type: 'any', direction: 'output' }], position: { x: 0, y: 0 }, data: {} });
-      graph.addNode({ id: 'c', type: 't', label: 'C', ports: [{ id: 'in', name: 'I', type: 'any', direction: 'input' }], position: { x: 0, y: 0 }, data: {} });
+      graph.addNode({
+        id: 'a',
+        type: 't',
+        label: 'A',
+        ports: [{ id: 'out', name: 'O', type: 'any', direction: 'output' }],
+        position: { x: 0, y: 0 },
+        data: {},
+      });
+      graph.addNode({
+        id: 'b',
+        type: 't',
+        label: 'B',
+        ports: [
+          { id: 'in', name: 'I', type: 'any', direction: 'input' },
+          { id: 'out', name: 'O', type: 'any', direction: 'output' },
+        ],
+        position: { x: 0, y: 0 },
+        data: {},
+      });
+      graph.addNode({
+        id: 'c',
+        type: 't',
+        label: 'C',
+        ports: [{ id: 'in', name: 'I', type: 'any', direction: 'input' }],
+        position: { x: 0, y: 0 },
+        data: {},
+      });
       graph.connect('a', 'out', 'b', 'in');
       graph.connect('b', 'out', 'c', 'in');
       const order = graph.getTopologicalOrder();
@@ -49,8 +130,22 @@ describe('Visual Scripting (Cycle 176)', () => {
     });
 
     it('should remove nodes and clean up wires', () => {
-      graph.addNode({ id: 'a', type: 't', label: 'A', ports: [{ id: 'out', name: 'O', type: 'any', direction: 'output' }], position: { x: 0, y: 0 }, data: {} });
-      graph.addNode({ id: 'b', type: 't', label: 'B', ports: [{ id: 'in', name: 'I', type: 'any', direction: 'input' }], position: { x: 0, y: 0 }, data: {} });
+      graph.addNode({
+        id: 'a',
+        type: 't',
+        label: 'A',
+        ports: [{ id: 'out', name: 'O', type: 'any', direction: 'output' }],
+        position: { x: 0, y: 0 },
+        data: {},
+      });
+      graph.addNode({
+        id: 'b',
+        type: 't',
+        label: 'B',
+        ports: [{ id: 'in', name: 'I', type: 'any', direction: 'input' }],
+        position: { x: 0, y: 0 },
+        data: {},
+      });
       graph.connect('a', 'out', 'b', 'in');
       graph.removeNode('a');
       expect(graph.getNodeCount()).toBe(1);
@@ -75,8 +170,28 @@ describe('Visual Scripting (Cycle 176)', () => {
 
     it('should reject cyclic graphs', () => {
       const graph = new NodeGraph();
-      graph.addNode({ id: 'a', type: 't', label: 'A', ports: [{ id: 'out', name: 'O', type: 'any', direction: 'output' }, { id: 'in', name: 'I', type: 'any', direction: 'input' }], position: { x: 0, y: 0 }, data: {} });
-      graph.addNode({ id: 'b', type: 't', label: 'B', ports: [{ id: 'out', name: 'O', type: 'any', direction: 'output' }, { id: 'in', name: 'I', type: 'any', direction: 'input' }], position: { x: 0, y: 0 }, data: {} });
+      graph.addNode({
+        id: 'a',
+        type: 't',
+        label: 'A',
+        ports: [
+          { id: 'out', name: 'O', type: 'any', direction: 'output' },
+          { id: 'in', name: 'I', type: 'any', direction: 'input' },
+        ],
+        position: { x: 0, y: 0 },
+        data: {},
+      });
+      graph.addNode({
+        id: 'b',
+        type: 't',
+        label: 'B',
+        ports: [
+          { id: 'out', name: 'O', type: 'any', direction: 'output' },
+          { id: 'in', name: 'I', type: 'any', direction: 'input' },
+        ],
+        position: { x: 0, y: 0 },
+        data: {},
+      });
       graph.connect('a', 'out', 'b', 'in');
       graph.connect('b', 'out', 'a', 'in');
 
@@ -89,7 +204,9 @@ describe('Visual Scripting (Cycle 176)', () => {
   describe('NodeLibrary', () => {
     let lib: NodeLibrary;
 
-    beforeEach(() => { lib = new NodeLibrary(); });
+    beforeEach(() => {
+      lib = new NodeLibrary();
+    });
 
     it('should have built-in nodes', () => {
       expect(lib.getCount()).toBeGreaterThanOrEqual(9);

@@ -29,9 +29,12 @@ export function useScenarioReplay(scenarioId: string) {
     };
   }, [scenarioId]);
 
-  const record = useCallback((type: ReplayEventType, target: string, value: unknown, previousValue?: unknown) => {
-    replayService.record({ type, target, value, previousValue });
-  }, []);
+  const record = useCallback(
+    (type: ReplayEventType, target: string, value: unknown, previousValue?: unknown) => {
+      replayService.record({ type, target, value, previousValue });
+    },
+    []
+  );
 
   const exportSession = useCallback((): string => {
     if (!sessionIdRef.current) return '{}';

@@ -28,9 +28,7 @@ import * as fs from 'fs';
  * VS Code calls createDebugAdapterDescriptor() each time a debug session starts.
  * We return a DebugAdapterInlineImplementation that wraps the session class.
  */
-export class HoloScriptInlineDebugAdapterFactory
-  implements vscode.DebugAdapterDescriptorFactory
-{
+export class HoloScriptInlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
   createDebugAdapterDescriptor(
     _session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined
@@ -93,9 +91,7 @@ function findDebugServerModule(): string | undefined {
  *   2. resolveDebugConfiguration()  - fills in defaults for incomplete configs
  *   3. resolveDebugConfigurationWithSubstitutedVariables() - final validation
  */
-export class HoloScriptDebugConfigurationProvider
-  implements vscode.DebugConfigurationProvider
-{
+export class HoloScriptDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
   /**
    * Generate initial debug configurations for a workspace that has no launch.json.
    * Called when the user clicks "create a launch.json file" in the Run view.
@@ -178,9 +174,7 @@ export class HoloScriptDebugConfigurationProvider
     if (config.program) {
       const programPath = config.program;
       if (!fs.existsSync(programPath)) {
-        vscode.window.showErrorMessage(
-          `HoloScript Debug: File not found: ${programPath}`
-        );
+        vscode.window.showErrorMessage(`HoloScript Debug: File not found: ${programPath}`);
         return undefined; // Abort launch
       }
 
@@ -203,9 +197,5 @@ export class HoloScriptDebugConfigurationProvider
 
 function isHoloScriptDocument(document: vscode.TextDocument): boolean {
   const fileName = document.fileName.toLowerCase();
-  return (
-    fileName.endsWith('.holo') ||
-    fileName.endsWith('.hsplus') ||
-    fileName.endsWith('.hs')
-  );
+  return fileName.endsWith('.holo') || fileName.endsWith('.hsplus') || fileName.endsWith('.hs');
 }

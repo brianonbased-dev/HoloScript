@@ -165,8 +165,8 @@ describe('Lexer: Keyword/Property Ambiguity', () => {
     `);
     expect(result.success).toBe(true);
     const props = result.ast?.templates[0].properties;
-    expect(props?.find(p => p.key === 'material')?.value).toBe('glass');
-    expect(props?.find(p => p.key === 'shape')?.value).toBe('rectangle');
+    expect(props?.find((p) => p.key === 'material')?.value).toBe('glass');
+    expect(props?.find((p) => p.key === 'shape')?.value).toBe('rectangle');
   });
 
   it('correctly handles material as block opener at root', () => {
@@ -186,7 +186,11 @@ describe('Lexer: Keyword/Property Ambiguity', () => {
       }
     `);
     expect(result.success).toBe(true);
-    expect(result.ast?.objects[0].properties?.find((p: any) => p.key === 'audio')?.value).toBe('bgm.mp3');
-    expect(result.ast?.objects[0].properties?.find((p: any) => p.key === 'light')?.value).toBe('point');
+    expect(result.ast?.objects[0].properties?.find((p: any) => p.key === 'audio')?.value).toBe(
+      'bgm.mp3'
+    );
+    expect(result.ast?.objects[0].properties?.find((p: any) => p.key === 'light')?.value).toBe(
+      'point'
+    );
   });
 });

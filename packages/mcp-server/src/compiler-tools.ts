@@ -123,7 +123,12 @@ function generateJobId(): string {
   return `compile_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
-function trackJob(jobId: string, status: CompilationJob['status'], progress: number, result?: CompilationResult): void {
+function trackJob(
+  jobId: string,
+  status: CompilationJob['status'],
+  progress: number,
+  result?: CompilationResult
+): void {
   const job = compilationJobs.get(jobId);
   if (job) {
     job.status = status;
@@ -170,7 +175,9 @@ async function compileToTarget(
 // MCP TOOL HANDLERS
 // =============================================================================
 
-export async function handleCompileToTarget(args: Record<string, unknown>): Promise<CompilationResult> {
+export async function handleCompileToTarget(
+  args: Record<string, unknown>
+): Promise<CompilationResult> {
   const { code, target, options = {}, jobId: providedJobId } = args as CompilationOptions;
 
   if (!code) {
@@ -190,7 +197,7 @@ export async function handleCompileToTarget(args: Record<string, unknown>): Prom
     trackJob(jobId, 'in_progress', 30);
     const parseResult = parseHolo(code);
     if (!parseResult.success || !parseResult.composition) {
-      const errors = parseResult.errors?.map(e => e.message).join(', ') || 'Unknown parse error';
+      const errors = parseResult.errors?.map((e) => e.message).join(', ') || 'Unknown parse error';
       throw new Error(`Failed to parse composition: ${errors}`);
     }
 
@@ -198,7 +205,11 @@ export async function handleCompileToTarget(args: Record<string, unknown>): Prom
 
     // Compile to target
     trackJob(jobId, 'in_progress', 60);
-    const compileResult = await compileToTarget(composition, target, options as Record<string, unknown>);
+    const compileResult = await compileToTarget(
+      composition,
+      target,
+      options as Record<string, unknown>
+    );
 
     // Get circuit breaker state
     const circuitRegistry = CircuitBreakerRegistry.getInstance();
@@ -213,7 +224,7 @@ export async function handleCompileToTarget(args: Record<string, unknown>): Prom
       jobId,
       target,
       output: compileResult.output,
-      warnings: parseResult.warnings?.map(w => w.message),
+      warnings: parseResult.warnings?.map((w) => w.message),
       metadata: {
         compilationTimeMs,
         circuitBreakerState: circuitMetrics.state,
@@ -242,7 +253,9 @@ export async function handleCompileToTarget(args: Record<string, unknown>): Prom
   }
 }
 
-export async function handleGetCompilationStatus(args: Record<string, unknown>): Promise<CompilationStatusResult> {
+export async function handleGetCompilationStatus(
+  args: Record<string, unknown>
+): Promise<CompilationStatusResult> {
   const { jobId } = args as { jobId: string };
 
   if (!jobId) {
@@ -300,13 +313,15 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'Web Platforms': ['babylon', 'webgpu', 'r3f', 'wasm', 'playcanvas'] as ExportTarget[],
     'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as ExportTarget[],
     '3D Formats': ['usd', 'usdz'] as ExportTarget[],
-    'Advanced': ['vrr', 'multi-layer'] as ExportTarget[],
+    Advanced: ['vrr', 'multi-layer'] as ExportTarget[],
   };
 
   return { targets, categories };
 }
 
-export async function handleGetCircuitBreakerStatus(args: Record<string, unknown>): Promise<CircuitBreakerStatusResult> {
+export async function handleGetCircuitBreakerStatus(
+  args: Record<string, unknown>
+): Promise<CircuitBreakerStatusResult> {
   const { target } = args as { target: ExportTarget };
 
   if (!target) {
@@ -334,7 +349,10 @@ export async function handleGetCircuitBreakerStatus(args: Record<string, unknown
 // HANDLER DISPATCHER
 // =============================================================================
 
-export async function handleCompilerTool(name: string, args: Record<string, unknown>): Promise<unknown | null> {
+export async function handleCompilerTool(
+  name: string,
+  args: Record<string, unknown>
+): Promise<unknown | null> {
   switch (name) {
     // Generic compilation
     case 'compile_holoscript':
@@ -444,7 +462,10 @@ export const compilerTools: Tool[] = [
           type: 'object',
           properties: {
             namespace: { type: 'string', description: 'C# namespace (default: HoloScript)' },
-            generatePrefabs: { type: 'boolean', description: 'Generate Unity prefabs (default: true)' },
+            generatePrefabs: {
+              type: 'boolean',
+              description: 'Generate Unity prefabs (default: true)',
+            },
           },
         },
       },
@@ -461,7 +482,10 @@ export const compilerTools: Tool[] = [
         options: {
           type: 'object',
           properties: {
-            generateBlueprints: { type: 'boolean', description: 'Generate Blueprint classes (default: true)' },
+            generateBlueprints: {
+              type: 'boolean',
+              description: 'Generate Blueprint classes (default: true)',
+            },
             targetVersion: { type: 'string', description: 'Unreal Engine version (default: 5.3)' },
           },
         },
@@ -480,7 +504,10 @@ export const compilerTools: Tool[] = [
           type: 'object',
           properties: {
             robotName: { type: 'string', description: 'Robot name (default: holoscript_robot)' },
-            includeInertial: { type: 'boolean', description: 'Include inertial properties (default: true)' },
+            includeInertial: {
+              type: 'boolean',
+              description: 'Include inertial properties (default: true)',
+            },
           },
         },
       },
@@ -497,7 +524,10 @@ export const compilerTools: Tool[] = [
         options: {
           type: 'object',
           properties: {
-            enableCompute: { type: 'boolean', description: 'Enable compute shaders (default: true)' },
+            enableCompute: {
+              type: 'boolean',
+              description: 'Enable compute shaders (default: true)',
+            },
             msaa: { type: 'number', description: 'MSAA sample count (default: 4)' },
           },
         },
@@ -516,7 +546,10 @@ export const compilerTools: Tool[] = [
           type: 'object',
           properties: {
             typescript: { type: 'boolean', description: 'Generate TypeScript (default: true)' },
-            environmentPreset: { type: 'string', description: 'Environment preset (sunset, dawn, night, etc.)' },
+            environmentPreset: {
+              type: 'string',
+              description: 'Environment preset (sunset, dawn, night, etc.)',
+            },
           },
         },
       },
@@ -527,7 +560,8 @@ export const compilerTools: Tool[] = [
   // Job tracking and circuit breaker tools
   {
     name: 'get_compilation_status',
-    description: 'Get status of a compilation job by job ID. Returns progress, result, and timing information.',
+    description:
+      'Get status of a compilation job by job ID. Returns progress, result, and timing information.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -541,7 +575,8 @@ export const compilerTools: Tool[] = [
   },
   {
     name: 'list_export_targets',
-    description: 'List all available HoloScript export targets with categories (Game Engines, VR Platforms, Web, Robotics, etc.)',
+    description:
+      'List all available HoloScript export targets with categories (Game Engines, VR Platforms, Web, Robotics, etc.)',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -549,7 +584,8 @@ export const compilerTools: Tool[] = [
   },
   {
     name: 'get_circuit_breaker_status',
-    description: 'Get circuit breaker status for a specific export target. Shows failure rate, degraded mode time, and retry availability.',
+    description:
+      'Get circuit breaker status for a specific export target. Shows failure rate, degraded mode time, and retry availability.',
     inputSchema: {
       type: 'object',
       properties: {

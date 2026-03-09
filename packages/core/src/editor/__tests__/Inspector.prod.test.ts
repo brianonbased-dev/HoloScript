@@ -16,12 +16,12 @@ import { SelectionManager } from '../SelectionManager';
 // =============================================================================
 
 const POSITION = Symbol('position');
-const HEALTH   = Symbol('health');
-const MESH     = Symbol('mesh');
+const HEALTH = Symbol('health');
+const MESH = Symbol('mesh');
 
 type PositionData = { x: number; y: number; z: number };
-type HealthData   = { hp: number; max: number };
-type MeshData     = { visible: boolean; castShadow: boolean };
+type HealthData = { hp: number; max: number };
+type MeshData = { visible: boolean; castShadow: boolean };
 
 // =============================================================================
 // CONSTRUCTION
@@ -46,7 +46,7 @@ describe('Inspector — componentTypes (no selection)', () => {
 
   beforeEach(() => {
     world = new World();
-    sel   = new SelectionManager();
+    sel = new SelectionManager();
     inspector = new Inspector(world, sel);
   });
 
@@ -71,7 +71,7 @@ describe('Inspector — componentTypes (entity with components)', () => {
 
   beforeEach(() => {
     world = new World();
-    sel   = new SelectionManager();
+    sel = new SelectionManager();
     inspector = new Inspector(world, sel);
   });
 
@@ -119,7 +119,7 @@ describe('Inspector — getComponentData', () => {
 
   beforeEach(() => {
     world = new World();
-    sel   = new SelectionManager();
+    sel = new SelectionManager();
     inspector = new Inspector(world, sel);
   });
 
@@ -165,7 +165,7 @@ describe('Inspector — setProperty', () => {
 
   beforeEach(() => {
     world = new World();
-    sel   = new SelectionManager();
+    sel = new SelectionManager();
     inspector = new Inspector(world, sel);
   });
 

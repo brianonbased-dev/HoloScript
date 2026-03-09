@@ -308,9 +308,7 @@ describe('ZoraCoinsTrait Blockchain Integration', () => {
 
       // Should fail because wallet not connected
       expect(execContext.wallet.isConnected()).toBe(false);
-      expect(() => execContext.wallet.getWalletClient()).toThrow(
-        'Wallet not connected'
-      );
+      expect(() => execContext.wallet.getWalletClient()).toThrow('Wallet not connected');
     });
   });
 
@@ -380,11 +378,7 @@ describe('ZoraCoinsTrait Blockchain Integration', () => {
       const invalidAddress: Address = '0x0000000000000000000000000000000000000000';
       const quantity = BigInt(1);
 
-      const estimate = await GasEstimator.estimateMintGas(
-        publicClient,
-        invalidAddress,
-        quantity
-      );
+      const estimate = await GasEstimator.estimateMintGas(publicClient, invalidAddress, quantity);
 
       // Should still return estimate (conservative fallback)
       expect(estimate).toBeDefined();

@@ -22,7 +22,7 @@ export interface CameraState {
 
 export interface CameraConfig {
   mode: CameraMode;
-  smoothing: number;          // 0-1, lerp factor
+  smoothing: number; // 0-1, lerp factor
   followOffset: { x: number; y: number; z: number };
   orbitDistance: number;
   orbitMinDistance: number;
@@ -32,7 +32,10 @@ export interface CameraConfig {
   minZoom: number;
   maxZoom: number;
   deadZone: { x: number; y: number };
-  bounds: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } } | null;
+  bounds: {
+    min: { x: number; y: number; z: number };
+    max: { x: number; y: number; z: number };
+  } | null;
   fov: number;
   freeSpeed: number;
 }
@@ -85,11 +88,19 @@ export class CameraController {
 
   update(dt: number): void {
     switch (this.config.mode) {
-      case 'follow': this.updateFollow(dt); break;
-      case 'orbit': this.updateOrbit(dt); break;
-      case 'free': break; // Controlled externally via moveCamera
-      case 'topDown': this.updateTopDown(dt); break;
-      case 'fixed': break;
+      case 'follow':
+        this.updateFollow(dt);
+        break;
+      case 'orbit':
+        this.updateOrbit(dt);
+        break;
+      case 'free':
+        break; // Controlled externally via moveCamera
+      case 'topDown':
+        this.updateTopDown(dt);
+        break;
+      case 'fixed':
+        break;
     }
 
     if (this.config.bounds) this.clampToBounds();
@@ -115,9 +126,11 @@ export class CameraController {
 
   private updateOrbit(_dt: number): void {
     const d = this.config.orbitDistance * this.state.zoom;
-    this.state.position.x = this.target.x + Math.sin(this.orbitAngle) * Math.cos(this.orbitPitch) * d;
+    this.state.position.x =
+      this.target.x + Math.sin(this.orbitAngle) * Math.cos(this.orbitPitch) * d;
     this.state.position.y = this.target.y + Math.sin(this.orbitPitch) * d;
-    this.state.position.z = this.target.z + Math.cos(this.orbitAngle) * Math.cos(this.orbitPitch) * d;
+    this.state.position.z =
+      this.target.z + Math.cos(this.orbitAngle) * Math.cos(this.orbitPitch) * d;
     this.state.rotation.yaw = this.orbitAngle;
     this.state.rotation.pitch = -this.orbitPitch;
   }
@@ -143,12 +156,19 @@ export class CameraController {
   // Controls
   // ---------------------------------------------------------------------------
 
-  setTarget(x: number, y: number, z: number): void { this.target = { x, y, z }; }
-  getTarget(): { x: number; y: number; z: number } { return { ...this.target }; }
+  setTarget(x: number, y: number, z: number): void {
+    this.target = { x, y, z };
+  }
+  getTarget(): { x: number; y: number; z: number } {
+    return { ...this.target };
+  }
 
   rotateOrbit(deltaAngle: number, deltaPitch: number): void {
     this.orbitAngle += deltaAngle * this.config.orbitSpeed;
-    this.orbitPitch = Math.max(-1.4, Math.min(1.4, this.orbitPitch + deltaPitch * this.config.orbitSpeed));
+    this.orbitPitch = Math.max(
+      -1.4,
+      Math.min(1.4, this.orbitPitch + deltaPitch * this.config.orbitSpeed)
+    );
   }
 
   zoom(delta: number): void {
@@ -164,8 +184,12 @@ export class CameraController {
     this.state.position.z += dz * this.config.freeSpeed;
   }
 
-  setMode(mode: CameraMode): void { this.config.mode = mode; }
-  getMode(): CameraMode { return this.config.mode; }
+  setMode(mode: CameraMode): void {
+    this.config.mode = mode;
+  }
+  getMode(): CameraMode {
+    return this.config.mode;
+  }
 
   // ---------------------------------------------------------------------------
   // State
@@ -180,13 +204,21 @@ export class CameraController {
     };
   }
 
-  setZoom(z: number): void { this.state.zoom = Math.max(this.config.minZoom, Math.min(this.config.maxZoom, z)); }
-  setFOV(fov: number): void { this.state.fov = fov; }
-  setSmoothing(s: number): void { this.config.smoothing = Math.max(0, Math.min(1, s)); }
+  setZoom(z: number): void {
+    this.state.zoom = Math.max(this.config.minZoom, Math.min(this.config.maxZoom, z));
+  }
+  setFOV(fov: number): void {
+    this.state.fov = fov;
+  }
+  setSmoothing(s: number): void {
+    this.config.smoothing = Math.max(0, Math.min(1, s));
+  }
 
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private lerp(a: number, b: number, t: number): number { return a + (b - a) * t; }
+  private lerp(a: number, b: number, t: number): number {
+    return a + (b - a) * t;
+  }
 }

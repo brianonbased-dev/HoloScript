@@ -7,6 +7,7 @@
 [Detailed description of the example - what it does, what technologies it uses, and what users will learn by working through it]
 
 **Features:**
+
 - [Feature 1]
 - [Feature 2]
 - [Feature 3]
@@ -17,10 +18,12 @@
 ### 1. Prerequisites
 
 **Required:**
+
 - HoloScript compiler (install via npm: `npm install -g holoscript`)
 - [Platform-specific requirements, e.g., Unity 2022.3.6f1, Node.js 18+, etc.]
 
 **Optional:**
+
 - [Optional tools or dependencies]
 
 ### 2. Compile to Your Target Platform
@@ -40,6 +43,7 @@ holoscript compile template.holo --target godot --output ./build/godot/
 ```
 
 **Output:**
+
 ```
 build/[platform]/
 ├── [Platform-specific files]
@@ -53,6 +57,7 @@ build/[platform]/
 **Step-by-step:**
 
 1. **[First setup step]**
+
    ```
    [Command or action]
    ```
@@ -81,6 +86,7 @@ build/[platform]/
 ```
 
 **[Platform] Implementation:**
+
 - [How this feature works on the target platform]
 - [Platform-specific details]
 
@@ -93,6 +99,7 @@ build/[platform]/
 ```
 
 **[Platform] Implementation:**
+
 - [How this feature works on the target platform]
 - [Platform-specific details]
 
@@ -106,13 +113,13 @@ build/[platform]/
 
 ## Platform Support
 
-| Platform | Support | Notes |
-|----------|---------|-------|
-| Unity | ✅ | [Platform-specific notes] |
-| Unreal | ✅ | [Platform-specific notes] |
-| Godot | ✅ | [Platform-specific notes] |
-| WebXR | ✅ | [Platform-specific notes] |
-| [Other] | ✅/❌ | [Platform-specific notes] |
+| Platform | Support | Notes                     |
+| -------- | ------- | ------------------------- |
+| Unity    | ✅      | [Platform-specific notes] |
+| Unreal   | ✅      | [Platform-specific notes] |
+| Godot    | ✅      | [Platform-specific notes] |
+| WebXR    | ✅      | [Platform-specific notes] |
+| [Other]  | ✅/❌   | [Platform-specific notes] |
 
 ## Configuration Options
 
@@ -155,6 +162,7 @@ build/[platform]/
 - [Optimization tip 3]
 
 **Recommended settings:**
+
 - [Setting 1]: [Value]
 - [Setting 2]: [Value]
 
@@ -165,6 +173,7 @@ build/[platform]/
 - [Optimization tip 3]
 
 **Recommended settings:**
+
 - [Setting 1]: [Value]
 - [Setting 2]: [Value]
 
@@ -175,6 +184,7 @@ build/[platform]/
 **Error**: "[Error message or symptom]"
 
 **Fix**:
+
 1. [Step 1]
 2. [Step 2]
 3. [Step 3]
@@ -182,10 +192,12 @@ build/[platform]/
 ### [Common Issue 2]
 
 **Symptoms:**
+
 - [Symptom 1]
 - [Symptom 2]
 
 **Fix**:
+
 - [Solution]
 
 ### [Common Issue 3]
@@ -193,6 +205,7 @@ build/[platform]/
 **Cause**: [Root cause]
 
 **Solution**:
+
 ```
 [Command or fix]
 ```
@@ -208,6 +221,7 @@ build/[platform]/
 ```
 
 **Use cases:**
+
 - [Use case 1]
 - [Use case 2]
 
@@ -231,15 +245,18 @@ After completing this example, you will understand:
 ## Next Steps
 
 **Expand this example:**
+
 - [Suggestion 1]
 - [Suggestion 2]
 - [Suggestion 3]
 
 **Try other examples:**
+
 - [Related Example 1](../path/to/example/) - [Why it's related]
 - [Related Example 2](../path/to/example/) - [Why it's related]
 
 **Further reading:**
+
 - [HoloScript Documentation](../../docs/)
 - [Platform-specific guides](../../docs/platforms/)
 

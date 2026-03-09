@@ -77,18 +77,18 @@ class MemStore {
         const all = Array.from(store.data.entries()) as [string, Record<string, unknown>][];
         if (!query || !def) return Promise.resolve(all.map(([k]) => k));
         return Promise.resolve(
-          all.filter(([, v]) => {
-            const val = v?.[def.keyPath];
-            return Array.isArray(val) ? val.includes(query) : String(val) === String(query);
-          }).map(([k]) => k)
+          all
+            .filter(([, v]) => {
+              const val = v?.[def.keyPath];
+              return Array.isArray(val) ? val.includes(query) : String(val) === String(query);
+            })
+            .map(([k]) => k)
         );
       },
       get: (query?: unknown) => {
         const all = Array.from(store.data.values()) as Record<string, unknown>[];
         if (!query || !def) return Promise.resolve(all[0] ?? null);
-        return Promise.resolve(
-          all.find((v) => String(v?.[def.keyPath]) === String(query)) ?? null
-        );
+        return Promise.resolve(all.find((v) => String(v?.[def.keyPath]) === String(query)) ?? null);
       },
     };
   }

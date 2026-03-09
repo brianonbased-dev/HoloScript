@@ -36,7 +36,7 @@ function simulateScalar(
   controller: PIDController<number>,
   measurement: () => number,
   steps: number,
-  dt: number,
+  dt: number
 ): number[] {
   const outputs: number[] = [];
   for (let i = 0; i < steps; i++) {
@@ -247,7 +247,7 @@ describe('PIDController<number> (Scalar)', () => {
         setpointRampRate: 0, // instant
         velocityLimit: 50,
       }),
-      ScalarArithmetic,
+      ScalarArithmetic
     );
   });
 
@@ -362,7 +362,7 @@ describe('PIDController<number> (Scalar)', () => {
           setpointRampRate: 10, // 10 units per second
           timing: { innerHz: 100, outerHz: 50 },
         }),
-        ScalarArithmetic,
+        ScalarArithmetic
       );
 
       rampController.setSetpoint(100);
@@ -380,7 +380,7 @@ describe('PIDController<number> (Scalar)', () => {
           setpointRampRate: 100,
           timing: { innerHz: 100, outerHz: 50 },
         }),
-        ScalarArithmetic,
+        ScalarArithmetic
       );
 
       rampController.setSetpoint(50);
@@ -450,7 +450,7 @@ describe('PIDController<number> (Scalar)', () => {
           outputLimit: 10,
           integralLimit: 5,
         }),
-        ScalarArithmetic,
+        ScalarArithmetic
       );
 
       windupController.setSetpoint(1000);
@@ -577,15 +577,19 @@ describe('PIDController<IVector3> (Vector3)', () => {
 
   beforeEach(() => {
     controller = new PIDController<IVector3>(
-      defaultPIDConfig('test-vec3', { x: 0, y: 0, z: 0 }, {
-        outerGains: { kP: 2.0, kI: 0.1, kD: 0.3 },
-        innerGains: { kP: 1.0, kI: 0.0, kD: 0.1 },
-        timing: { innerHz: 100, outerHz: 50 },
-        outputLimit: 100,
-        integralLimit: 50,
-        velocityLimit: 50,
-      }),
-      Vector3Arithmetic,
+      defaultPIDConfig(
+        'test-vec3',
+        { x: 0, y: 0, z: 0 },
+        {
+          outerGains: { kP: 2.0, kI: 0.1, kD: 0.3 },
+          innerGains: { kP: 1.0, kI: 0.0, kD: 0.1 },
+          timing: { innerHz: 100, outerHz: 50 },
+          outputLimit: 100,
+          integralLimit: 50,
+          velocityLimit: 50,
+        }
+      ),
+      Vector3Arithmetic
     );
   });
 
@@ -715,7 +719,7 @@ describe('VR 90fps Performance', () => {
       defaultPIDConfig('perf-test', 0, {
         timing: { innerHz: 200, outerHz: 90 },
       }),
-      ScalarArithmetic,
+      ScalarArithmetic
     );
 
     controller.setSetpoint(100);
@@ -735,10 +739,14 @@ describe('VR 90fps Performance', () => {
 
   it('should complete Vector3 cascade step in under 1ms', () => {
     const controller = new PIDController<IVector3>(
-      defaultPIDConfig('perf-vec3', { x: 0, y: 0, z: 0 }, {
-        timing: { innerHz: 200, outerHz: 90 },
-      }),
-      Vector3Arithmetic,
+      defaultPIDConfig(
+        'perf-vec3',
+        { x: 0, y: 0, z: 0 },
+        {
+          timing: { innerHz: 200, outerHz: 90 },
+        }
+      ),
+      Vector3Arithmetic
     );
 
     controller.setSetpoint({ x: 100, y: 50, z: -30 });
@@ -782,7 +790,7 @@ describe('Custom Arithmetic Adapter', () => {
   it('should work with custom 2D vector type', () => {
     const controller = new PIDController<Vec2>(
       defaultPIDConfig('custom-2d', { u: 0, v: 0 }),
-      Vec2Arithmetic,
+      Vec2Arithmetic
     );
 
     controller.setSetpoint({ u: 5, v: 3 });
@@ -801,10 +809,7 @@ describe('Custom Arithmetic Adapter', () => {
 
 describe('Edge Cases', () => {
   it('should handle zero dt gracefully', () => {
-    const controller = new PIDController<number>(
-      defaultPIDConfig('zero-dt', 0),
-      ScalarArithmetic,
-    );
+    const controller = new PIDController<number>(defaultPIDConfig('zero-dt', 0), ScalarArithmetic);
     controller.setSetpoint(10);
     // dt = 0 should not cause division by zero
     const output = controller.step(0, 0);
@@ -812,10 +817,7 @@ describe('Edge Cases', () => {
   });
 
   it('should handle NaN measurement gracefully', () => {
-    const controller = new PIDController<number>(
-      defaultPIDConfig('nan-test', 0),
-      ScalarArithmetic,
-    );
+    const controller = new PIDController<number>(defaultPIDConfig('nan-test', 0), ScalarArithmetic);
     controller.setSetpoint(10);
     controller.step(0, 0.01);
     // NaN input propagates through math but should not crash
@@ -827,7 +829,7 @@ describe('Edge Cases', () => {
   it('should handle very large setpoint changes', () => {
     const controller = new PIDController<number>(
       defaultPIDConfig('large-sp', 0, { outputLimit: 1e6 }),
-      ScalarArithmetic,
+      ScalarArithmetic
     );
     controller.setSetpoint(1e9);
     const output = controller.step(0, 0.01);
@@ -838,7 +840,7 @@ describe('Edge Cases', () => {
   it('should handle rapid setpoint oscillation', () => {
     const controller = new PIDController<number>(
       defaultPIDConfig('oscillate', 0),
-      ScalarArithmetic,
+      ScalarArithmetic
     );
 
     for (let i = 0; i < 100; i++) {
@@ -851,7 +853,7 @@ describe('Edge Cases', () => {
   it('should handle identical sequential measurements', () => {
     const controller = new PIDController<number>(
       defaultPIDConfig('same-meas', 0),
-      ScalarArithmetic,
+      ScalarArithmetic
     );
     controller.setSetpoint(10);
     for (let i = 0; i < 50; i++) {

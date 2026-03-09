@@ -31,7 +31,8 @@ const SAMPLE_PRESETS: ParticlePreset[] = [
     description: 'Warm crackling campfire with embers',
     emoji: '🔥',
     color: '#ff6b35',
-    traitSnippet: '  @particles(type: "fire", count: 200, color: "#ff6b35", size: 0.3, lifetime: 1.5)',
+    traitSnippet:
+      '  @particles(type: "fire", count: 200, color: "#ff6b35", size: 0.3, lifetime: 1.5)',
   },
   {
     id: 'snow_01',
@@ -40,7 +41,8 @@ const SAMPLE_PRESETS: ParticlePreset[] = [
     description: 'Gentle snow particles drifting down',
     emoji: '❄️',
     color: '#e0f0ff',
-    traitSnippet: '  @particles(type: "snow", count: 500, color: "#e0f0ff", size: 0.1, lifetime: 8.0)',
+    traitSnippet:
+      '  @particles(type: "snow", count: 500, color: "#e0f0ff", size: 0.1, lifetime: 8.0)',
   },
   {
     id: 'sparks_01',
@@ -49,7 +51,8 @@ const SAMPLE_PRESETS: ParticlePreset[] = [
     description: 'Hot metal sparks flying outward',
     emoji: '⚡',
     color: '#ffd700',
-    traitSnippet: '  @particles(type: "sparks", count: 100, color: "#ffd700", size: 0.05, lifetime: 0.5)',
+    traitSnippet:
+      '  @particles(type: "sparks", count: 100, color: "#ffd700", size: 0.05, lifetime: 0.5)',
   },
   {
     id: 'magic_01',
@@ -58,7 +61,8 @@ const SAMPLE_PRESETS: ParticlePreset[] = [
     description: 'Mystical purple energy vortex',
     emoji: '✨',
     color: '#a855f7',
-    traitSnippet: '  @particles(type: "magic", count: 300, color: "#a855f7", size: 0.2, lifetime: 3.0)',
+    traitSnippet:
+      '  @particles(type: "magic", count: 300, color: "#a855f7", size: 0.2, lifetime: 3.0)',
   },
   {
     id: 'rain_01',
@@ -67,7 +71,8 @@ const SAMPLE_PRESETS: ParticlePreset[] = [
     description: 'Heavy rain with splashes',
     emoji: '🌧️',
     color: '#60a5fa',
-    traitSnippet: '  @particles(type: "rain", count: 1000, color: "#60a5fa", size: 0.02, lifetime: 1.0)',
+    traitSnippet:
+      '  @particles(type: "rain", count: 1000, color: "#60a5fa", size: 0.02, lifetime: 1.0)',
   },
 ];
 
@@ -148,7 +153,9 @@ describe('Scenario: Particle Presets — Code Insertion', () => {
 
   it('multiple insertions create multiple objects', () => {
     let code = '';
-    SAMPLE_PRESETS.forEach((p) => { code = insertPreset(code, p); });
+    SAMPLE_PRESETS.forEach((p) => {
+      code = insertPreset(code, p);
+    });
     const objectCount = (code.match(/object "Particles_/g) || []).length;
     expect(objectCount).toBe(SAMPLE_PRESETS.length);
   });

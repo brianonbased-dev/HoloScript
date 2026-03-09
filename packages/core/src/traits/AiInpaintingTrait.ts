@@ -22,8 +22,8 @@ export interface AiInpaintingConfig {
   model: InpaintModel;
   mask_source: MaskSource;
   blend_mode: BlendMode;
-  strength: number;          // 0–1, how strongly to apply inpainting
-  padding: number;           // pixels of mask padding for context
+  strength: number; // 0–1, how strongly to apply inpainting
+  padding: number; // pixels of mask padding for context
   guidance_scale: number;
   steps: number;
   preserve_original_on_mask_clear: boolean;
@@ -31,7 +31,7 @@ export interface AiInpaintingConfig {
 
 interface InpaintRegion {
   id: string;
-  maskData: string | null;    // base64 mask or null
+  maskData: string | null; // base64 mask or null
   prompt: string;
   resultUrl: string | null;
   appliedAt: number | null;
@@ -39,7 +39,7 @@ interface InpaintRegion {
 
 interface AiInpaintingState {
   isProcessing: boolean;
-  activeMask: string | null;   // current mask (base64 or URL)
+  activeMask: string | null; // current mask (base64 or URL)
   regions: Map<string, InpaintRegion>;
   totalInpaints: number;
   lastResultUrl: string | null;
@@ -137,9 +137,10 @@ export const aiInpaintingHandler: TraitHandler<AiInpaintingConfig> = {
       state.totalInpaints += 1;
 
       const elapsed: number = payload?.elapsedMs ?? 0;
-      state.avgProcessTimeMs = state.totalInpaints > 1
-        ? (state.avgProcessTimeMs * (state.totalInpaints - 1) + elapsed) / state.totalInpaints
-        : elapsed;
+      state.avgProcessTimeMs =
+        state.totalInpaints > 1
+          ? (state.avgProcessTimeMs * (state.totalInpaints - 1) + elapsed) / state.totalInpaints
+          : elapsed;
 
       context.emit('inpainting:result', {
         regionId,

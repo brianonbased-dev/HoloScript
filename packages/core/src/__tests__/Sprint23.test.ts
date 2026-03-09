@@ -27,7 +27,12 @@ import { SplineFollower } from '../math/SplineFollower.js';
 // ---------------------------------------------------------------------------
 // Helper: minimal HSPlusNode for serialization tests
 // ---------------------------------------------------------------------------
-function makeNode(id: string, type = 'entity', children: any[] = [], traits?: Map<string, any>): any {
+function makeNode(
+  id: string,
+  type = 'entity',
+  children: any[] = [],
+  traits?: Map<string, any>
+): any {
   return { id, type, properties: {}, traits: traits ?? new Map(), children };
 }
 
@@ -142,8 +147,8 @@ describe('Feature 1B: SceneNode — hierarchy', () => {
     parent.addChild(child);
     const depths: number[] = [];
     parent.traverse((_n, d) => depths.push(d));
-    expect(depths[0]).toBe(0);  // parent
-    expect(depths[1]).toBe(1);  // child
+    expect(depths[0]).toBe(0); // parent
+    expect(depths[1]).toBe(1); // child
   });
 });
 
@@ -154,7 +159,9 @@ describe('Feature 1B: SceneNode — hierarchy', () => {
 describe('Feature 1C: SceneNode — tags and visibility', () => {
   let n: SceneNode;
 
-  beforeEach(() => { n = new SceneNode('n'); });
+  beforeEach(() => {
+    n = new SceneNode('n');
+  });
 
   it('visible defaults to true', () => {
     expect(n.visible).toBe(true);
@@ -186,7 +193,9 @@ describe('Feature 1C: SceneNode — tags and visibility', () => {
 describe('Feature 2A: SceneSerializer — node serialization', () => {
   let ser: SceneSerializer;
 
-  beforeEach(() => { ser = new SceneSerializer(); });
+  beforeEach(() => {
+    ser = new SceneSerializer();
+  });
 
   it('serialize(node) returns a SerializedScene', () => {
     const scene = ser.serialize(makeNode('root'));
@@ -230,7 +239,9 @@ describe('Feature 2A: SceneSerializer — node serialization', () => {
 describe('Feature 2B: SceneSerializer — sanitization', () => {
   let ser: SceneSerializer;
 
-  beforeEach(() => { ser = new SceneSerializer(); });
+  beforeEach(() => {
+    ser = new SceneSerializer();
+  });
 
   it('Map traits get serialized as plain objects', () => {
     const traits = new Map([['color', '#f00']]);
@@ -241,7 +252,13 @@ describe('Feature 2B: SceneSerializer — sanitization', () => {
   });
 
   it('Set properties get serialized as arrays', () => {
-    const node = { id: 'n', type: 'entity', properties: { tags: new Set(['a', 'b']) }, traits: new Map(), children: [] };
+    const node = {
+      id: 'n',
+      type: 'entity',
+      properties: { tags: new Set(['a', 'b']) },
+      traits: new Map(),
+      children: [],
+    };
     const serialized = ser.serializeNode(node);
     expect(Array.isArray(serialized.properties.tags)).toBe(true);
   });
@@ -254,7 +271,13 @@ describe('Feature 2B: SceneSerializer — sanitization', () => {
   });
 
   it('_prefixed property keys are stripped', () => {
-    const node = { id: 'n', type: 'entity', properties: { _internal: 'hidden', visible: true }, traits: new Map(), children: [] };
+    const node = {
+      id: 'n',
+      type: 'entity',
+      properties: { _internal: 'hidden', visible: true },
+      traits: new Map(),
+      children: [],
+    };
     const serialized = ser.serializeNode(node);
     expect(serialized.properties['_internal']).toBeUndefined();
     expect(serialized.properties['visible']).toBe(true);
@@ -319,7 +342,9 @@ describe('Feature 2C: SceneDeserializer — deserialize', () => {
 describe('Feature 3A: SceneManager — save/load/has/delete', () => {
   let mgr: SceneManager;
 
-  beforeEach(() => { mgr = new SceneManager(); });
+  beforeEach(() => {
+    mgr = new SceneManager();
+  });
 
   it('save() makes has() true', () => {
     mgr.save('level1', makeNode('root'));
@@ -365,7 +390,9 @@ describe('Feature 3A: SceneManager — save/load/has/delete', () => {
 describe('Feature 3B: SceneManager — exportJSON/importJSON', () => {
   let mgr: SceneManager;
 
-  beforeEach(() => { mgr = new SceneManager(); });
+  beforeEach(() => {
+    mgr = new SceneManager();
+  });
 
   it('exportJSON() returns a JSON string', () => {
     mgr.save('s', makeNode('root'));
@@ -395,7 +422,9 @@ describe('Feature 3B: SceneManager — exportJSON/importJSON', () => {
 describe('Feature 3C: StateSnapshotCapture — capture', () => {
   let cap: StateSnapshotCapture;
 
-  beforeEach(() => { cap = new StateSnapshotCapture(); });
+  beforeEach(() => {
+    cap = new StateSnapshotCapture();
+  });
 
   it('capture() returns an object with timestamp', () => {
     const snap = cap.capture({});
@@ -658,7 +687,9 @@ describe('Feature 5B: SplineFollower — markers and events', () => {
   it('onMarker() callback fires when passing marker', () => {
     let triggered = '';
     sf.addMarker(0.1, 'start-marker');
-    sf.onMarker((m) => { triggered = m.label; });
+    sf.onMarker((m) => {
+      triggered = m.label;
+    });
     sf.play();
     sf.setSpeed(100); // fast enough to pass marker in one step
     sf.update(0.1);
@@ -667,7 +698,9 @@ describe('Feature 5B: SplineFollower — markers and events', () => {
 
   it('onComplete() fires when spline finishes (no loop)', () => {
     let done = false;
-    sf.onComplete(() => { done = true; });
+    sf.onComplete(() => {
+      done = true;
+    });
     sf.play();
     sf.setSpeed(100);
     sf.update(1);

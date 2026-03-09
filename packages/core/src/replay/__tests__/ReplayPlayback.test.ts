@@ -14,8 +14,14 @@ function makeReplayData(frameCount = 5, duration = 1000): ReplayData {
   }
   return {
     header: {
-      id: 'test', name: 'test', startTime: 0, duration,
-      frameCount, fps: 30, version: 1, metadata: {},
+      id: 'test',
+      name: 'test',
+      startTime: 0,
+      duration,
+      frameCount,
+      fps: 30,
+      version: 1,
+      metadata: {},
     },
     frames,
   };

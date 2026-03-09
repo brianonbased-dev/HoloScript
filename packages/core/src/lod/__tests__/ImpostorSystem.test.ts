@@ -9,20 +9,38 @@ describe('ImpostorSystem', () => {
   });
 
   it('registerImpostor and getConfig', () => {
-    const config = { entityId: 'tree1', angleCount: 8, atlasIndex: 0, switchDistance: 50, size: { width: 2, height: 4 } };
+    const config = {
+      entityId: 'tree1',
+      angleCount: 8,
+      atlasIndex: 0,
+      switchDistance: 50,
+      size: { width: 2, height: 4 },
+    };
     system.registerImpostor(config);
     expect(system.getConfig('tree1')).toEqual(config);
     expect(system.getImpostorCount()).toBe(1);
   });
 
   it('removeImpostor deletes entity', () => {
-    system.registerImpostor({ entityId: 'tree1', angleCount: 8, atlasIndex: 0, switchDistance: 50, size: { width: 2, height: 4 } });
+    system.registerImpostor({
+      entityId: 'tree1',
+      angleCount: 8,
+      atlasIndex: 0,
+      switchDistance: 50,
+      size: { width: 2, height: 4 },
+    });
     system.removeImpostor('tree1');
     expect(system.getImpostorCount()).toBe(0);
   });
 
   it('selectAngle returns correct frame for camera angle', () => {
-    system.registerImpostor({ entityId: 'tree1', angleCount: 8, atlasIndex: 0, switchDistance: 50, size: { width: 2, height: 4 } });
+    system.registerImpostor({
+      entityId: 'tree1',
+      angleCount: 8,
+      atlasIndex: 0,
+      switchDistance: 50,
+      size: { width: 2, height: 4 },
+    });
     const frame = system.selectAngle('tree1', 0);
     expect(frame).not.toBeNull();
     expect(frame!.angleIndex).toBe(0);
@@ -33,14 +51,26 @@ describe('ImpostorSystem', () => {
   });
 
   it('selectAngle wraps around 2PI', () => {
-    system.registerImpostor({ entityId: 'tree1', angleCount: 8, atlasIndex: 0, switchDistance: 50, size: { width: 2, height: 4 } });
+    system.registerImpostor({
+      entityId: 'tree1',
+      angleCount: 8,
+      atlasIndex: 0,
+      switchDistance: 50,
+      size: { width: 2, height: 4 },
+    });
     const frame = system.selectAngle('tree1', Math.PI * 2);
     expect(frame).not.toBeNull();
     expect(frame!.angleIndex).toBe(0); // Full rotation = same as 0
   });
 
   it('selectAngle handles negative angles', () => {
-    system.registerImpostor({ entityId: 'tree1', angleCount: 4, atlasIndex: 0, switchDistance: 50, size: { width: 2, height: 4 } });
+    system.registerImpostor({
+      entityId: 'tree1',
+      angleCount: 4,
+      atlasIndex: 0,
+      switchDistance: 50,
+      size: { width: 2, height: 4 },
+    });
     const frame = system.selectAngle('tree1', -Math.PI / 2);
     expect(frame).not.toBeNull();
     expect(frame!.angleIndex).toBe(3); // -90° = 270° → index 3 of 4
@@ -51,7 +81,13 @@ describe('ImpostorSystem', () => {
   });
 
   it('shouldUseImpostor checks distance', () => {
-    system.registerImpostor({ entityId: 'tree1', angleCount: 8, atlasIndex: 0, switchDistance: 50, size: { width: 2, height: 4 } });
+    system.registerImpostor({
+      entityId: 'tree1',
+      angleCount: 8,
+      atlasIndex: 0,
+      switchDistance: 50,
+      size: { width: 2, height: 4 },
+    });
     expect(system.shouldUseImpostor('tree1', 49)).toBe(false);
     expect(system.shouldUseImpostor('tree1', 50)).toBe(true);
     expect(system.shouldUseImpostor('tree1', 100)).toBe(true);
@@ -62,7 +98,13 @@ describe('ImpostorSystem', () => {
   });
 
   it('atlas UV positions offset by atlasIndex', () => {
-    system.registerImpostor({ entityId: 'tree2', angleCount: 2, atlasIndex: 1, switchDistance: 50, size: { width: 2, height: 4 } });
+    system.registerImpostor({
+      entityId: 'tree2',
+      angleCount: 2,
+      atlasIndex: 1,
+      switchDistance: 50,
+      size: { width: 2, height: 4 },
+    });
     const frame = system.selectAngle('tree2', 0);
     expect(frame).not.toBeNull();
     // atlasIndex=1, angleCount=2, angleIndex=0 → globalIndex=2

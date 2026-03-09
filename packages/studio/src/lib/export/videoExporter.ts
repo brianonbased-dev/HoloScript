@@ -87,10 +87,7 @@ class CanvasRecorder {
   private chunks: Blob[] = [];
   private startTime = 0;
 
-  async start(
-    canvas: HTMLCanvasElement,
-    options: VideoExportOptions
-  ): Promise<void> {
+  async start(canvas: HTMLCanvasElement, options: VideoExportOptions): Promise<void> {
     const { fps = 30, bitrate = 8000000, codec = 'h264' } = options;
 
     // Get canvas stream
@@ -174,7 +171,8 @@ class FrameByFrameRenderer {
     }
 
     // Map codec names
-    const codecString = codec === 'h264' ? 'avc1.42E01E' : codec === 'vp9' ? 'vp09.00.10.08' : 'av01.0.04M.08';
+    const codecString =
+      codec === 'h264' ? 'avc1.42E01E' : codec === 'vp9' ? 'vp09.00.10.08' : 'av01.0.04M.08';
 
     const config: VideoEncoderConfig = {
       codec: codecString,
@@ -208,11 +206,7 @@ class FrameByFrameRenderer {
     this.encoder.configure(config);
   }
 
-  async encodeFrame(
-    canvas: HTMLCanvasElement,
-    frameIndex: number,
-    fps: number
-  ): Promise<void> {
+  async encodeFrame(canvas: HTMLCanvasElement, frameIndex: number, fps: number): Promise<void> {
     if (!this.encoder) {
       throw new Error('Encoder not initialized');
     }

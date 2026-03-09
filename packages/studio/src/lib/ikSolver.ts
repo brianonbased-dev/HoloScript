@@ -11,13 +11,17 @@ export { IKSolver } from './sculpt/ikSolver';
 /*
  */
 
-export interface Vec3 { x: number; y: number; z: number }
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 export interface IKJoint {
   id: string;
   position: Vec3;
   constraints?: {
-    minAngle: number;  // degrees
+    minAngle: number; // degrees
     maxAngle: number;
   };
 }
@@ -37,7 +41,9 @@ export interface IKResult {
 }
 
 function vec3Dist(a: Vec3, b: Vec3): number {
-  const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+  const dx = b.x - a.x,
+    dy = b.y - a.y,
+    dz = b.z - a.z;
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
@@ -65,7 +71,12 @@ function vec3Add(a: Vec3, b: Vec3): Vec3 {
 export function fabrikSolve(chain: IKChain): IKResult {
   const n = chain.joints.length;
   if (n < 2) {
-    return { joints: chain.joints.map(j => j.position), reached: false, iterations: 0, finalDistance: Infinity };
+    return {
+      joints: chain.joints.map((j) => j.position),
+      reached: false,
+      iterations: 0,
+      finalDistance: Infinity,
+    };
   }
 
   // Pre-compute bone lengths
@@ -77,7 +88,7 @@ export function fabrikSolve(chain: IKChain): IKResult {
   const totalLength = boneLengths.reduce((s, l) => s + l, 0);
   const targetDist = vec3Dist(chain.joints[0].position, chain.target);
 
-  const positions = chain.joints.map(j => ({ ...j.position }));
+  const positions = chain.joints.map((j) => ({ ...j.position }));
   const root = { ...positions[0] };
 
   // If target is unreachable, stretch toward it

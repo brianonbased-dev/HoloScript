@@ -7,7 +7,9 @@ function agent(pos: Vec3, vel: Vec3 = { x: 0, y: 0, z: 0 }): SteeringAgent {
   return { position: pos, velocity: vel, maxSpeed: 10, maxForce: 5, mass: 1 };
 }
 
-function vecLen(v: Vec3): number { return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z); }
+function vecLen(v: Vec3): number {
+  return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+}
 
 describe('SteeringBehaviors', () => {
   // ---------------------------------------------------------------------------
@@ -78,7 +80,10 @@ describe('SteeringBehaviors', () => {
       agent({ x: -2, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }),
     ];
     const config: FlockConfig = {
-      separationWeight: 1, alignmentWeight: 1, cohesionWeight: 1, neighborRadius: 10,
+      separationWeight: 1,
+      alignmentWeight: 1,
+      cohesionWeight: 1,
+      neighborRadius: 10,
     };
     const force = SteeringBehaviors.flock(a, neighbors, config);
     expect(Number.isFinite(force.x)).toBe(true);
@@ -89,7 +94,10 @@ describe('SteeringBehaviors', () => {
     const a = agent({ x: 0, y: 0, z: 0 });
     const neighbors = [agent({ x: 500, y: 500, z: 0 })]; // far away
     const config: FlockConfig = {
-      separationWeight: 1, alignmentWeight: 1, cohesionWeight: 1, neighborRadius: 5,
+      separationWeight: 1,
+      alignmentWeight: 1,
+      cohesionWeight: 1,
+      neighborRadius: 5,
     };
     const force = SteeringBehaviors.flock(a, neighbors, config);
     expect(force).toEqual({ x: 0, y: 0, z: 0 });

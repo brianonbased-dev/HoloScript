@@ -282,9 +282,10 @@ export class ShockWaveSolver {
   public getStatistics(): ShockWaveSolverStatistics {
     const activeWaves = this.getActiveShockWaves();
     const totalEnergy = activeWaves.reduce((sum, w) => sum + w.getCurrentEnergy(), 0);
-    const avgAge = activeWaves.length > 0
-      ? activeWaves.reduce((sum, w) => sum + w.getAge(), 0) / activeWaves.length
-      : 0;
+    const avgAge =
+      activeWaves.length > 0
+        ? activeWaves.reduce((sum, w) => sum + w.getAge(), 0) / activeWaves.length
+        : 0;
 
     return {
       totalShockWaves: this.totalShockWavesCreated,

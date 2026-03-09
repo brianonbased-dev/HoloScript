@@ -208,15 +208,27 @@ describe('Feature 1C: RigidBody — state, material, filter', () => {
 describe('Feature 2A: RaycastSystem — registration', () => {
   let sys: RaycastSystem;
 
-  beforeEach(() => { sys = new RaycastSystem(); });
+  beforeEach(() => {
+    sys = new RaycastSystem();
+  });
 
   it('addCollider increases getColliderCount()', () => {
-    sys.addCollider({ entityId: 'box1', type: 'aabb', shape: { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } }, layer: 1 });
+    sys.addCollider({
+      entityId: 'box1',
+      type: 'aabb',
+      shape: { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } },
+      layer: 1,
+    });
     expect(sys.getColliderCount()).toBe(1);
   });
 
   it('removeCollider decreases count', () => {
-    sys.addCollider({ entityId: 'box1', type: 'aabb', shape: { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } }, layer: 1 });
+    sys.addCollider({
+      entityId: 'box1',
+      type: 'aabb',
+      shape: { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } },
+      layer: 1,
+    });
     sys.removeCollider('box1');
     expect(sys.getColliderCount()).toBe(0);
   });
@@ -232,11 +244,26 @@ describe('Feature 2B: RaycastSystem — raycasting', () => {
   beforeEach(() => {
     sys = new RaycastSystem();
     // AABB box at origin (-1,-1,-1) to (1,1,1), layer 1
-    sys.addCollider({ entityId: 'box', type: 'aabb', shape: { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } }, layer: 1 });
+    sys.addCollider({
+      entityId: 'box',
+      type: 'aabb',
+      shape: { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } },
+      layer: 1,
+    });
     // Sphere at (5,0,0) r=1, layer 1
-    sys.addCollider({ entityId: 'sphere', type: 'sphere', shape: { center: { x: 5, y: 0, z: 0 }, radius: 1 }, layer: 1 });
+    sys.addCollider({
+      entityId: 'sphere',
+      type: 'sphere',
+      shape: { center: { x: 5, y: 0, z: 0 }, radius: 1 },
+      layer: 1,
+    });
     // Plane (Y=0, normal up), layer 1
-    sys.addCollider({ entityId: 'floor', type: 'plane', shape: { normal: { x: 0, y: 1, z: 0 }, distance: 0 }, layer: 1 });
+    sys.addCollider({
+      entityId: 'floor',
+      type: 'plane',
+      shape: { normal: { x: 0, y: 1, z: 0 }, distance: 0 },
+      layer: 1,
+    });
   });
 
   it('ray hits AABB box', () => {
@@ -251,10 +278,13 @@ describe('Feature 2B: RaycastSystem — raycasting', () => {
   });
 
   it('ray hits sphere', () => {
-    const hit = sys.raycast({ origin: { x: -5, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 }, });
+    const hit = sys.raycast({ origin: { x: -5, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } });
     // Should hit box first (distance ~4), then sphere would be hit later
-    const allHits = sys.raycastAll({ origin: { x: 2, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } });
-    const sphereHit = allHits.find(h => h.entityId === 'sphere');
+    const allHits = sys.raycastAll({
+      origin: { x: 2, y: 0, z: 0 },
+      direction: { x: 1, y: 0, z: 0 },
+    });
+    const sphereHit = allHits.find((h) => h.entityId === 'sphere');
     expect(sphereHit).toBeDefined();
   });
 
@@ -272,7 +302,11 @@ describe('Feature 2B: RaycastSystem — raycasting', () => {
   });
 
   it('layerMask 0 returns no hits', () => {
-    const hit = sys.raycast({ origin: { x: -5, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } }, Infinity, 0);
+    const hit = sys.raycast(
+      { origin: { x: -5, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
+      Infinity,
+      0
+    );
     expect(hit).toBeNull();
   });
 
@@ -292,30 +326,54 @@ describe('Feature 2B: RaycastSystem — raycasting', () => {
 describe('Feature 3A: TriggerZoneSystem — zone management', () => {
   let sys: TriggerZoneSystem;
 
-  beforeEach(() => { sys = new TriggerZoneSystem(); });
+  beforeEach(() => {
+    sys = new TriggerZoneSystem();
+  });
 
   it('addZone increments getZoneCount()', () => {
-    sys.addZone({ id: 'z1', shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 2 }, enabled: true, tags: [] });
+    sys.addZone({
+      id: 'z1',
+      shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 2 },
+      enabled: true,
+      tags: [],
+    });
     expect(sys.getZoneCount()).toBe(1);
   });
 
   it('removeZone decrements count', () => {
-    sys.addZone({ id: 'z1', shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 2 }, enabled: true, tags: [] });
+    sys.addZone({
+      id: 'z1',
+      shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 2 },
+      enabled: true,
+      tags: [],
+    });
     sys.removeZone('z1');
     expect(sys.getZoneCount()).toBe(0);
   });
 
   it('enableZone(false) disables zone', () => {
-    sys.addZone({ id: 'z1', shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 2 }, enabled: true, tags: [] });
+    sys.addZone({
+      id: 'z1',
+      shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 2 },
+      enabled: true,
+      tags: [],
+    });
     sys.enableZone('z1', false);
     let fired = false;
-    sys.onTrigger('z1', () => { fired = true; });
+    sys.onTrigger('z1', () => {
+      fired = true;
+    });
     sys.update([{ id: 'e1', position: { x: 0, y: 0, z: 0 } }]);
     expect(fired).toBe(false);
   });
 
   it('getOccupants() returns empty when no entities', () => {
-    sys.addZone({ id: 'z1', shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 2 }, enabled: true, tags: [] });
+    sys.addZone({
+      id: 'z1',
+      shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 2 },
+      enabled: true,
+      tags: [],
+    });
     expect(sys.getOccupants('z1')).toHaveLength(0);
   });
 });
@@ -326,7 +384,12 @@ describe('Feature 3A: TriggerZoneSystem — zone management', () => {
 
 describe('Feature 3B: TriggerZoneSystem — enter/stay/exit', () => {
   let sys: TriggerZoneSystem;
-  const zone = { id: 'z1', shape: { type: 'sphere' as const, position: { x: 0, y: 0, z: 0 }, radius: 5 }, enabled: true, tags: [] };
+  const zone = {
+    id: 'z1',
+    shape: { type: 'sphere' as const, position: { x: 0, y: 0, z: 0 }, radius: 5 },
+    enabled: true,
+    tags: [],
+  };
   const inside = { id: 'player', position: { x: 0, y: 0, z: 0 } };
   const outside = { id: 'player', position: { x: 100, y: 0, z: 0 } };
 
@@ -387,7 +450,9 @@ describe('Feature 3B: TriggerZoneSystem — enter/stay/exit', () => {
 describe('Feature 4A: SpatialHash — operations', () => {
   let sh: SpatialHash;
 
-  beforeEach(() => { sh = new SpatialHash(10); });
+  beforeEach(() => {
+    sh = new SpatialHash(10);
+  });
 
   it('insert increases getEntryCount()', () => {
     sh.insert({ id: 'a', x: 0, y: 0, z: 0, radius: 0 });
@@ -481,27 +546,49 @@ describe('Feature 5A: AnimClip — construction and config', () => {
 describe('Feature 5B: AnimClip — tracks and events', () => {
   let clip: AnimClip;
 
-  beforeEach(() => { clip = new AnimClip('run', 'Run', 1); });
+  beforeEach(() => {
+    clip = new AnimClip('run', 'Run', 1);
+  });
 
   it('addTrack / getTrackCount', () => {
-    clip.addTrack(makeLinearTrack('t1', 'root', [[0, 0], [1, 10]]));
+    clip.addTrack(
+      makeLinearTrack('t1', 'root', [
+        [0, 0],
+        [1, 10],
+      ])
+    );
     expect(clip.getTrackCount()).toBe(1);
   });
 
   it('getTrack(id) returns correct track', () => {
-    clip.addTrack(makeLinearTrack('t1', 'root', [[0, 0], [1, 10]]));
+    clip.addTrack(
+      makeLinearTrack('t1', 'root', [
+        [0, 0],
+        [1, 10],
+      ])
+    );
     expect(clip.getTrack('t1')?.id).toBe('t1');
   });
 
   it('getTracks() returns a copy', () => {
-    clip.addTrack(makeLinearTrack('t1', 'root', [[0, 0], [1, 10]]));
+    clip.addTrack(
+      makeLinearTrack('t1', 'root', [
+        [0, 0],
+        [1, 10],
+      ])
+    );
     const tracks = clip.getTracks();
     tracks.push({} as any);
     expect(clip.getTrackCount()).toBe(1);
   });
 
   it('addTrack with later keyframe extends duration', () => {
-    clip.addTrack(makeLinearTrack('t1', 'root', [[0, 0], [3, 100]]));
+    clip.addTrack(
+      makeLinearTrack('t1', 'root', [
+        [0, 0],
+        [3, 100],
+      ])
+    );
     expect(clip.getDuration()).toBe(3);
   });
 
@@ -528,21 +615,41 @@ describe('Feature 5B: AnimClip — tracks and events', () => {
 describe('Feature 5C: AnimClip — sample and blend', () => {
   it('sample linear track at t=0 returns first keyframe value', () => {
     const clip = new AnimClip('c', 'C', 1);
-    clip.addTrack(makeLinearTrack('t1', 'node', [[0, 10], [1, 20]]));
+    clip.addTrack(
+      makeLinearTrack('t1', 'node', [
+        [0, 10],
+        [1, 20],
+      ])
+    );
     const result = clip.sample(0);
     expect(result.get('node.x.x')).toBeCloseTo(10, 3);
   });
 
   it('sample linear track at midpoint interpolates', () => {
     const clip = new AnimClip('c', 'C', 1);
-    clip.addTrack(makeLinearTrack('t1', 'node', [[0, 0], [1, 10]]));
+    clip.addTrack(
+      makeLinearTrack('t1', 'node', [
+        [0, 0],
+        [1, 10],
+      ])
+    );
     const result = clip.sample(0.5);
     expect(result.get('node.x.x')).toBeCloseTo(5, 3);
   });
 
   it('sample step track returns left keyframe value', () => {
     const clip = new AnimClip('c', 'C', 1);
-    clip.addTrack({ id: 't1', targetPath: 'n', property: 'y', component: 'y', interpolation: 'step', keyframes: [{ time: 0, value: 100 }, { time: 0.5, value: 200 }] });
+    clip.addTrack({
+      id: 't1',
+      targetPath: 'n',
+      property: 'y',
+      component: 'y',
+      interpolation: 'step',
+      keyframes: [
+        { time: 0, value: 100 },
+        { time: 0.5, value: 200 },
+      ],
+    });
     const result = clip.sample(0.3);
     expect(result.get('n.y.y')).toBe(100);
   });
@@ -550,7 +657,12 @@ describe('Feature 5C: AnimClip — sample and blend', () => {
   it('sample at t>duration with loop wraps', () => {
     const clip = new AnimClip('c', 'C', 1);
     clip.setWrapMode('loop');
-    clip.addTrack(makeLinearTrack('t1', 'n', [[0, 0], [1, 10]]));
+    clip.addTrack(
+      makeLinearTrack('t1', 'n', [
+        [0, 0],
+        [1, 10],
+      ])
+    );
     // t=1.5 loops to t=0.5 → should give ~5
     const result = clip.sample(1.5);
     expect(result.get('n.x.x')).toBeCloseTo(5, 1);

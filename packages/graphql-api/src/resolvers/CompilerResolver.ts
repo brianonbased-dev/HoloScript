@@ -1,9 +1,5 @@
 import { Resolver, Mutation, Arg } from 'type-graphql';
-import {
-  CompileInput,
-  CompilePayload,
-  CompilerTarget,
-} from '../types/GraphQLTypes.js';
+import { CompileInput, CompilePayload, CompilerTarget } from '../types/GraphQLTypes.js';
 
 @Resolver()
 export class CompilerResolver {

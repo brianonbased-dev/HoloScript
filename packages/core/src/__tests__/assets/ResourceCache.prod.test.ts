@@ -17,7 +17,6 @@ const MB = 1024 * 1024;
 // ── put / get / has ───────────────────────────────────────────────────────────
 
 describe('ResourceCache — put / get / has', () => {
-
   it('put stores data; get returns it', () => {
     const rc = new ResourceCache<string>(10 * MB);
     rc.put('a', 'hello', 100);
@@ -80,7 +79,6 @@ describe('ResourceCache — put / get / has', () => {
 // ── TTL expiry ────────────────────────────────────────────────────────────────
 
 describe('ResourceCache — TTL expiry', () => {
-
   it('get returns data before TTL expires', () => {
     const rc = new ResourceCache<number>(1 * MB);
     rc.put('k', 99, 10, 9999); // 9.9s TTL
@@ -90,14 +88,14 @@ describe('ResourceCache — TTL expiry', () => {
   it('get returns undefined for expired entry (ttlMs=1)', async () => {
     const rc = new ResourceCache<number>(1 * MB);
     rc.put('k', 42, 10, 1); // 1ms TTL
-    await new Promise(r => setTimeout(r, 10)); // wait > ttl
+    await new Promise((r) => setTimeout(r, 10)); // wait > ttl
     expect(rc.get('k')).toBeUndefined();
   });
 
   it('has returns true for expired key (no TTL check on has)', async () => {
     const rc = new ResourceCache<number>(1 * MB);
     rc.put('k', 42, 10, 1);
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
     // 'has' doesn't check TTL — it just checks map membership
     // this documents actual behavior
     expect(typeof rc.has('k')).toBe('boolean');
@@ -106,7 +104,7 @@ describe('ResourceCache — TTL expiry', () => {
   it('ttlMs=0 means no expiry', async () => {
     const rc = new ResourceCache<number>(1 * MB);
     rc.put('k', 7, 10, 0); // no TTL
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
     expect(rc.get('k')).toBe(7);
   });
 });
@@ -114,14 +112,13 @@ describe('ResourceCache — TTL expiry', () => {
 // ── LRU eviction ──────────────────────────────────────────────────────────────
 
 describe('ResourceCache — LRU eviction', () => {
-
   it('evicts LRU entry when over capacity', () => {
     const rc = new ResourceCache<string>(200);
     rc.put('old', 'v1', 100); // lastAccess = t0
     // Small delay to differentiate lastAccess
     rc.put('new', 'v2', 100); // lastAccess = t0+
     // Now put something that overflows: evicts LRU (whichever was accessed least recently)
-    rc.put('overflow', 'v3', 100); 
+    rc.put('overflow', 'v3', 100);
     // Should still have entries (old or new was evicted to make room)
     expect(rc.getEntryCount()).toBeLessThanOrEqual(2);
   });
@@ -142,7 +139,6 @@ describe('ResourceCache — LRU eviction', () => {
 // ── remove ────────────────────────────────────────────────────────────────────
 
 describe('ResourceCache — remove', () => {
-
   it('remove returns true and deletes the entry', () => {
     const rc = new ResourceCache<number>(1 * MB);
     rc.put('x', 1, 100);
@@ -166,7 +162,6 @@ describe('ResourceCache — remove', () => {
 // ── reference counting ────────────────────────────────────────────────────────
 
 describe('ResourceCache — addRef / release / getRefCount', () => {
-
   it('getRefCount starts at 0 after put', () => {
     const rc = new ResourceCache<number>(1 * MB);
     rc.put('k', 1, 10);
@@ -176,14 +171,16 @@ describe('ResourceCache — addRef / release / getRefCount', () => {
   it('addRef increments refCount', () => {
     const rc = new ResourceCache<number>(1 * MB);
     rc.put('k', 1, 10);
-    rc.addRef('k'); rc.addRef('k');
+    rc.addRef('k');
+    rc.addRef('k');
     expect(rc.getRefCount('k')).toBe(2);
   });
 
   it('release decrements refCount', () => {
     const rc = new ResourceCache<number>(1 * MB);
     rc.put('k', 1, 10);
-    rc.addRef('k'); rc.addRef('k');
+    rc.addRef('k');
+    rc.addRef('k');
     rc.release('k');
     expect(rc.getRefCount('k')).toBe(1);
   });
@@ -191,7 +188,8 @@ describe('ResourceCache — addRef / release / getRefCount', () => {
   it('release does not go below 0', () => {
     const rc = new ResourceCache<number>(1 * MB);
     rc.put('k', 1, 10);
-    rc.release('k'); rc.release('k');
+    rc.release('k');
+    rc.release('k');
     expect(rc.getRefCount('k')).toBe(0);
   });
 
@@ -203,7 +201,6 @@ describe('ResourceCache — addRef / release / getRefCount', () => {
 // ── purgeExpired ──────────────────────────────────────────────────────────────
 
 describe('ResourceCache — purgeExpired', () => {
-
   it('purgeExpired returns 0 when nothing is expired', () => {
     const rc = new ResourceCache<number>(1 * MB);
     rc.put('a', 1, 10, 9999);
@@ -214,7 +211,7 @@ describe('ResourceCache — purgeExpired', () => {
     const rc = new ResourceCache<number>(1 * MB);
     rc.put('expired', 1, 10, 1); // 1ms TTL
     rc.put('alive', 2, 10, 9999);
-    await new Promise(r => setTimeout(r, 15));
+    await new Promise((r) => setTimeout(r, 15));
     const count = rc.purgeExpired();
     expect(count).toBe(1);
     expect(rc.has('alive')).toBe(true);
@@ -224,10 +221,10 @@ describe('ResourceCache — purgeExpired', () => {
 // ── clear ─────────────────────────────────────────────────────────────────────
 
 describe('ResourceCache — clear', () => {
-
   it('clear removes all entries', () => {
     const rc = new ResourceCache<number>(1 * MB);
-    rc.put('a', 1, 100); rc.put('b', 2, 100);
+    rc.put('a', 1, 100);
+    rc.put('b', 2, 100);
     rc.clear();
     expect(rc.getEntryCount()).toBe(0);
     expect(rc.getCurrentBytes()).toBe(0);

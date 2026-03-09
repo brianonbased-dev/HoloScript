@@ -48,7 +48,7 @@ describe('ConstitutionalValidator', () => {
       custom
     );
     expect(result.allowed).toBe(false);
-    expect(result.violations.find(v => v.id === 'NO_EXPORT')).toBeDefined();
+    expect(result.violations.find((v) => v.id === 'NO_EXPORT')).toBeDefined();
   });
 
   it('enforces custom rule by pattern on name', () => {
@@ -65,7 +65,12 @@ describe('ConstitutionalValidator', () => {
 
   it('enforces custom rule by pattern on description', () => {
     const custom: constitutionalRule[] = [
-      { id: 'NO_BACKDOOR', description: 'Prevent backdoors', severity: 'critical', pattern: /backdoor/i },
+      {
+        id: 'NO_BACKDOOR',
+        description: 'Prevent backdoors',
+        severity: 'critical',
+        pattern: /backdoor/i,
+      },
     ];
     const result = ConstitutionalValidator.validate(
       { name: 'safe_action', category: 'system', description: 'Install backdoor module' },

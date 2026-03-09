@@ -19,7 +19,12 @@ export interface SocialUser {
   currentActivity?: string; // e.g. "Playing Hololand"
 }
 
-export type RelationshipType = 'friend' | 'pending_incoming' | 'pending_outgoing' | 'blocked' | 'none';
+export type RelationshipType =
+  | 'friend'
+  | 'pending_incoming'
+  | 'pending_outgoing'
+  | 'blocked'
+  | 'none';
 
 export interface SocialRelationship {
   userId: string;
@@ -65,12 +70,12 @@ export class SocialGraph {
   setRelationship(userId: string, type: RelationshipType): void {
     const existing = this.relationships.get(userId);
     if (!existing || existing.type !== type) {
-        this.relationships.set(userId, {
-            userId,
-            type,
-            since: Date.now()
-        });
-        this.invalidatedCaches();
+      this.relationships.set(userId, {
+        userId,
+        type,
+        since: Date.now(),
+      });
+      this.invalidatedCaches();
     }
   }
 
@@ -80,42 +85,42 @@ export class SocialGraph {
 
   getFriends(): SocialUser[] {
     if (!this.friendsCache) {
-        this.friendsCache = Array.from(this.relationships.values())
-            .filter(r => r.type === 'friend')
-            .map(r => this.users.get(r.userId))
-            .filter((u): u is SocialUser => !!u);
+      this.friendsCache = Array.from(this.relationships.values())
+        .filter((r) => r.type === 'friend')
+        .map((r) => this.users.get(r.userId))
+        .filter((u): u is SocialUser => !!u);
     }
     return this.friendsCache;
   }
 
   getPendingIncoming(): SocialUser[] {
     if (!this.pendingIncomingCache) {
-        this.pendingIncomingCache = Array.from(this.relationships.values())
-            .filter(r => r.type === 'pending_incoming')
-            .map(r => this.users.get(r.userId))
-            .filter((u): u is SocialUser => !!u);
+      this.pendingIncomingCache = Array.from(this.relationships.values())
+        .filter((r) => r.type === 'pending_incoming')
+        .map((r) => this.users.get(r.userId))
+        .filter((u): u is SocialUser => !!u);
     }
     return this.pendingIncomingCache;
   }
 
   getPendingOutgoing(): SocialUser[] {
     return Array.from(this.relationships.values())
-      .filter(r => r.type === 'pending_outgoing')
-      .map(r => this.users.get(r.userId))
+      .filter((r) => r.type === 'pending_outgoing')
+      .map((r) => this.users.get(r.userId))
       .filter((u): u is SocialUser => !!u);
   }
 
   getBlocked(): SocialUser[] {
     return Array.from(this.relationships.values())
-      .filter(r => r.type === 'blocked')
-      .map(r => this.users.get(r.userId))
+      .filter((r) => r.type === 'blocked')
+      .map((r) => this.users.get(r.userId))
       .filter((u): u is SocialUser => !!u);
   }
 
   removeRelationship(userId: string): void {
     if (this.relationships.has(userId)) {
-        this.relationships.delete(userId);
-        this.invalidatedCaches();
+      this.relationships.delete(userId);
+      this.invalidatedCaches();
     }
   }
 }

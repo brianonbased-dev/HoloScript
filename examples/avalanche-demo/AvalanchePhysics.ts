@@ -164,16 +164,20 @@ export class AvalanchePhysics {
         const downslope = this.getDownslopeDirection(particle.position[0], particle.position[2]);
 
         // Gravity force along slope
-        const gravityForce = [downslope[0] * gravity, downslope[1] * gravity, downslope[2] * gravity];
+        const gravityForce = [
+          downslope[0] * gravity,
+          downslope[1] * gravity,
+          downslope[2] * gravity,
+        ];
 
         // Friction force (opposes motion)
         const speed = this.getSpeed(particle.velocity);
         const frictionForce =
           speed > 0.01
             ? [
-                -particle.velocity[0] / speed * frictionCoefficient * gravity,
-                -particle.velocity[1] / speed * frictionCoefficient * gravity,
-                -particle.velocity[2] / speed * frictionCoefficient * gravity,
+                (-particle.velocity[0] / speed) * frictionCoefficient * gravity,
+                (-particle.velocity[1] / speed) * frictionCoefficient * gravity,
+                (-particle.velocity[2] / speed) * frictionCoefficient * gravity,
               ]
             : [0, 0, 0];
 
@@ -229,9 +233,9 @@ export class AvalanchePhysics {
         const dragForce =
           speed > 0.01
             ? [
-                -particle.velocity[0] / speed * dragMagnitude,
-                -particle.velocity[1] / speed * dragMagnitude,
-                -particle.velocity[2] / speed * dragMagnitude,
+                (-particle.velocity[0] / speed) * dragMagnitude,
+                (-particle.velocity[1] / speed) * dragMagnitude,
+                (-particle.velocity[2] / speed) * dragMagnitude,
               ]
             : [0, 0, 0];
 
@@ -416,10 +420,22 @@ export class AvalanchePhysics {
     const cellWidth = width / (resolution - 1);
     const cellDepth = depth / (resolution - 1);
 
-    const hL = x0 > 0 ? this.terrain.heightmap[z0 * resolution + (x0 - 1)] : this.terrain.heightmap[z0 * resolution + x0];
-    const hR = x0 < resolution - 1 ? this.terrain.heightmap[z0 * resolution + (x0 + 1)] : this.terrain.heightmap[z0 * resolution + x0];
-    const hD = z0 > 0 ? this.terrain.heightmap[(z0 - 1) * resolution + x0] : this.terrain.heightmap[z0 * resolution + x0];
-    const hU = z0 < resolution - 1 ? this.terrain.heightmap[(z0 + 1) * resolution + x0] : this.terrain.heightmap[z0 * resolution + x0];
+    const hL =
+      x0 > 0
+        ? this.terrain.heightmap[z0 * resolution + (x0 - 1)]
+        : this.terrain.heightmap[z0 * resolution + x0];
+    const hR =
+      x0 < resolution - 1
+        ? this.terrain.heightmap[z0 * resolution + (x0 + 1)]
+        : this.terrain.heightmap[z0 * resolution + x0];
+    const hD =
+      z0 > 0
+        ? this.terrain.heightmap[(z0 - 1) * resolution + x0]
+        : this.terrain.heightmap[z0 * resolution + x0];
+    const hU =
+      z0 < resolution - 1
+        ? this.terrain.heightmap[(z0 + 1) * resolution + x0]
+        : this.terrain.heightmap[z0 * resolution + x0];
 
     // Gradient direction (negative for downslope)
     const dx = -(hR - hL) / (2 * cellWidth);

@@ -20,7 +20,7 @@ export interface SpawnedEntity {
   rotation: { x: number; y: number; z: number };
   scale: { x: number; y: number; z: number };
   active: boolean;
-  lifetime: number;     // seconds, 0 = infinite
+  lifetime: number; // seconds, 0 = infinite
   elapsed: number;
   data: Record<string, unknown>;
 }
@@ -54,14 +54,19 @@ export class PooledSpawner {
     this.prefabs.set(def.id, def);
     const pool = new ObjectPool<SpawnedEntity>({
       factory: () => ({
-        id: '', prefabId: def.id,
+        id: '',
+        prefabId: def.id,
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0 },
         scale: { x: 1, y: 1, z: 1 },
-        active: false, lifetime: 0, elapsed: 0, data: {},
+        active: false,
+        lifetime: 0,
+        elapsed: 0,
+        data: {},
       }),
       reset: (e) => {
-        e.active = false; e.elapsed = 0;
+        e.active = false;
+        e.elapsed = 0;
         e.position.x = e.position.y = e.position.z = 0;
         e.rotation.x = e.rotation.y = e.rotation.z = 0;
         e.scale.x = e.scale.y = e.scale.z = 1;
@@ -143,12 +148,18 @@ export class PooledSpawner {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getEntity(id: string): SpawnedEntity | undefined { return this.activeEntities.get(id); }
+  getEntity(id: string): SpawnedEntity | undefined {
+    return this.activeEntities.get(id);
+  }
   getActiveCount(prefabId?: string): number {
     if (!prefabId) return this.activeEntities.size;
     let count = 0;
-    for (const e of this.activeEntities.values()) { if (e.prefabId === prefabId) count++; }
+    for (const e of this.activeEntities.values()) {
+      if (e.prefabId === prefabId) count++;
+    }
     return count;
   }
-  getPoolStats(prefabId: string) { return this.pools.get(prefabId)?.getStats(); }
+  getPoolStats(prefabId: string) {
+    return this.pools.get(prefabId)?.getStats();
+  }
 }

@@ -24,48 +24,48 @@
  */
 export type SandboxPermission =
   // Scene access
-  | 'scene:read'           // Read scene graph, nodes, properties
-  | 'scene:write'          // Modify scene graph, add/remove nodes
-  | 'scene:subscribe'      // Receive scene change notifications
+  | 'scene:read' // Read scene graph, nodes, properties
+  | 'scene:write' // Modify scene graph, add/remove nodes
+  | 'scene:subscribe' // Receive scene change notifications
 
   // Editor access
-  | 'editor:selection'     // Read/write current selection
-  | 'editor:viewport'      // Read/control viewport (camera, zoom)
-  | 'editor:undo'          // Push operations to undo stack
+  | 'editor:selection' // Read/write current selection
+  | 'editor:viewport' // Read/control viewport (camera, zoom)
+  | 'editor:undo' // Push operations to undo stack
 
   // UI access
-  | 'ui:panel'             // Register custom panels
-  | 'ui:toolbar'           // Register toolbar buttons
-  | 'ui:menu'              // Register menu items
-  | 'ui:modal'             // Show modal dialogs
-  | 'ui:notification'      // Show toast notifications
-  | 'ui:theme'             // Read current theme (for styling)
+  | 'ui:panel' // Register custom panels
+  | 'ui:toolbar' // Register toolbar buttons
+  | 'ui:menu' // Register menu items
+  | 'ui:modal' // Show modal dialogs
+  | 'ui:notification' // Show toast notifications
+  | 'ui:theme' // Read current theme (for styling)
 
   // Storage access
-  | 'storage:local'        // Read/write plugin-scoped local storage
-  | 'storage:project'      // Read/write project-scoped storage
+  | 'storage:local' // Read/write plugin-scoped local storage
+  | 'storage:project' // Read/write project-scoped storage
 
   // Network access
-  | 'network:fetch'        // Make HTTP requests (domain-restricted)
-  | 'network:websocket'    // Open WebSocket connections (domain-restricted)
+  | 'network:fetch' // Make HTTP requests (domain-restricted)
+  | 'network:websocket' // Open WebSocket connections (domain-restricted)
 
   // Clipboard access
-  | 'clipboard:read'       // Read clipboard content
-  | 'clipboard:write'      // Write to clipboard
+  | 'clipboard:read' // Read clipboard content
+  | 'clipboard:write' // Write to clipboard
 
   // File system access (restricted)
-  | 'fs:import'            // Import files via file picker
-  | 'fs:export'            // Export/download files
+  | 'fs:import' // Import files via file picker
+  | 'fs:export' // Export/download files
 
   // User info
-  | 'user:read'            // Read current user info (name, preferences)
+  | 'user:read' // Read current user info (name, preferences)
 
   // Node types
-  | 'nodes:workflow'       // Register custom workflow nodes
-  | 'nodes:behaviortree'   // Register custom behavior tree nodes
+  | 'nodes:workflow' // Register custom workflow nodes
+  | 'nodes:behaviortree' // Register custom behavior tree nodes
 
   // Keyboard
-  | 'keyboard:shortcuts';  // Register keyboard shortcuts
+  | 'keyboard:shortcuts'; // Register keyboard shortcuts
 
 /**
  * Network access policy for domain-restricted fetch/WebSocket.
@@ -214,7 +214,13 @@ export interface PluginRegisterMessage extends SandboxMessageBase {
   type: 'plugin:register';
   payload: {
     /** What is being registered */
-    kind: 'panel' | 'toolbar-button' | 'menu-item' | 'keyboard-shortcut' | 'node-type' | 'content-type';
+    kind:
+      | 'panel'
+      | 'toolbar-button'
+      | 'menu-item'
+      | 'keyboard-shortcut'
+      | 'node-type'
+      | 'content-type';
     /** Registration descriptor (serializable subset of the full type) */
     descriptor: Record<string, unknown>;
   };
@@ -381,14 +387,14 @@ export interface HostShutdownMessage extends SandboxMessageBase {
  * Runtime state of a sandboxed plugin.
  */
 export type SandboxState =
-  | 'creating'      // iframe being constructed
-  | 'loading'       // iframe loading plugin code
-  | 'initializing'  // plugin code loaded, waiting for ready signal
-  | 'ready'         // plugin signaled ready, host sent init
-  | 'running'       // plugin is actively running
-  | 'suspended'     // plugin temporarily suspended (background tab, resource limit)
-  | 'error'         // plugin encountered a fatal error
-  | 'terminated';   // plugin has been shut down
+  | 'creating' // iframe being constructed
+  | 'loading' // iframe loading plugin code
+  | 'initializing' // plugin code loaded, waiting for ready signal
+  | 'ready' // plugin signaled ready, host sent init
+  | 'running' // plugin is actively running
+  | 'suspended' // plugin temporarily suspended (background tab, resource limit)
+  | 'error' // plugin encountered a fatal error
+  | 'terminated'; // plugin has been shut down
 
 /**
  * Health metrics for a sandboxed plugin.

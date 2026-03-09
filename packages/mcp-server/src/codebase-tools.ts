@@ -64,7 +64,12 @@ function loadGraphCache(): GraphCacheEnvelope | null {
   }
 }
 
-function getCacheAge(): { exists: boolean; ageMs?: number; rootDir?: string; stats?: Record<string, unknown> } {
+function getCacheAge(): {
+  exists: boolean;
+  ageMs?: number;
+  rootDir?: string;
+  stats?: Record<string, unknown>;
+} {
   try {
     if (!fs.existsSync(CACHE_FILE)) return { exists: false };
     const raw = fs.readFileSync(CACHE_FILE, 'utf-8');
@@ -207,8 +212,7 @@ export const codebaseTools: Tool[] = [
         },
         rootDir: {
           type: 'string',
-          description:
-            'Directory to re-scan for the current state',
+          description: 'Directory to re-scan for the current state',
         },
       },
       required: ['previousGraphJson', 'rootDir'],
@@ -249,7 +253,7 @@ async function loadCodebaseModule(): Promise<any> {
 
 export async function handleCodebaseTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown | null> {
   // Auto-load cached graph from disk on first tool call (if no graph in memory)
   if (!cachedGraph && !cacheAutoLoaded) {
@@ -267,8 +271,12 @@ export async function handleCodebaseTool(
           const idx = new EmbeddingIndex();
           await idx.buildIndex(cachedGraph);
           setGraphRAGState(idx, new GraphRAGEngine(cachedGraph, idx));
-        } catch { /* Ollama may not be running */ }
-      } catch { /* Deserialization failed — stale cache */ }
+        } catch {
+          /* Ollama may not be running */
+        }
+      } catch {
+        /* Deserialization failed — stale cache */
+      }
     }
   }
 
@@ -337,7 +345,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     ([name, files]: [string, string[]]) => ({
       name,
       fileCount: files.length,
-    }),
+    })
   );
 
   if (outputFormat === 'stats') {
@@ -484,13 +492,11 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
       const communities: Map<string, string[]> = cachedGraph.detectCommunities();
       return {
         query: 'communities',
-        results: Array.from(communities.entries()).map(
-          ([name, files]: [string, string[]]) => ({
-            name,
-            files,
-            fileCount: files.length,
-          }),
-        ),
+        results: Array.from(communities.entries()).map(([name, files]: [string, string[]]) => ({
+          name,
+          files,
+          fileCount: files.length,
+        })),
         count: communities.size,
       };
     }
@@ -609,9 +615,10 @@ async function handleGraphStatus(): Promise<unknown> {
     diskCache: cache.exists
       ? {
           ageMs: cache.ageMs,
-          ageHuman: cache.ageMs! < 3600000
-            ? `${Math.round(cache.ageMs! / 60000)}m ago`
-            : `${Math.round(cache.ageMs! / 3600000)}h ago`,
+          ageHuman:
+            cache.ageMs! < 3600000
+              ? `${Math.round(cache.ageMs! / 60000)}m ago`
+              : `${Math.round(cache.ageMs! / 3600000)}h ago`,
           rootDir: cache.rootDir,
           stats: cache.stats,
         }

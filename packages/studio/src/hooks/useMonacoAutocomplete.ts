@@ -12,17 +12,16 @@ import { useEffect, useRef, useCallback } from 'react';
 import type { Monaco } from '@monaco-editor/react';
 
 /** Minimal IDisposable — matches the monaco-editor IDisposable interface. */
-interface IDisposable { dispose(): void; }
+interface IDisposable {
+  dispose(): void;
+}
 
 interface AutocompleteOptions {
   enabled?: boolean;
   debounceMs?: number;
 }
 
-export function useMonacoAutocomplete(
-  monaco: Monaco | null,
-  options?: AutocompleteOptions
-) {
+export function useMonacoAutocomplete(monaco: Monaco | null, options?: AutocompleteOptions) {
   const { enabled = true, debounceMs = 300 } = options ?? {};
   const disposableRef = useRef<IDisposable | null>(null);
   const pendingRef = useRef<NodeJS.Timeout | null>(null);
@@ -89,21 +88,25 @@ export function useMonacoAutocomplete(
             }
 
             resolve({
-              items: [{
-                insertText: completion,
-                range: {
-                  startLineNumber: position.lineNumber,
-                  startColumn: position.column,
-                  endLineNumber: position.lineNumber,
-                  endColumn: position.column,
+              items: [
+                {
+                  insertText: completion,
+                  range: {
+                    startLineNumber: position.lineNumber,
+                    startColumn: position.column,
+                    endLineNumber: position.lineNumber,
+                    endColumn: position.column,
+                  },
                 },
-              }],
+              ],
             });
           }, debounceMs);
         });
       },
-      freeInlineCompletions() { /* noop */ },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      freeInlineCompletions() {
+        /* noop */
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
     return () => {

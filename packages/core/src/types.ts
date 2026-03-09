@@ -1350,7 +1350,16 @@ export interface SceneNodeDescriptor {
   /** Human-readable name */
   name: string;
   /** Node type classification */
-  nodeType: 'object' | 'group' | 'light' | 'camera' | 'empty' | 'agent' | 'zone' | 'anchor' | 'prefab';
+  nodeType:
+    | 'object'
+    | 'group'
+    | 'light'
+    | 'camera'
+    | 'empty'
+    | 'agent'
+    | 'zone'
+    | 'anchor'
+    | 'prefab';
   /** Local transform relative to parent */
   transform: ASTTransform;
   /** Parent node ID (null for root) */

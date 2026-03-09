@@ -4,7 +4,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { hapticHandler } from '../HapticTrait';
 
-function makeNode(props: any = {}) { return { id: 'h_node', properties: props }; }
+function makeNode(props: any = {}) {
+  return { id: 'h_node', properties: props };
+}
 function makeCtx(opts: any = {}) {
   return {
     emit: vi.fn(),
@@ -64,32 +66,64 @@ describe('hapticHandler.onEvent — collision', () => {
     expect(node.__hapticState.isPlaying).toBe(true);
   });
   it('collision emits first step pulse for both hands', () => {
-    const { node, config, ctx } = attach({ collision_pattern: 'soft', hands: 'both', intensity: 1.0 });
+    const { node, config, ctx } = attach({
+      collision_pattern: 'soft',
+      hands: 'both',
+      intensity: 1.0,
+    });
     hapticHandler.onEvent!(node, config, ctx, { type: 'collision' });
     // soft pattern step[0] = [0.2, 50], intensity=1 → clamp(0.2*1)=0.2
-    expect(ctx.haptics.pulse).toHaveBeenCalledWith('left', expect.closeTo(0.2, 5), expect.any(Number));
-    expect(ctx.haptics.pulse).toHaveBeenCalledWith('right', expect.closeTo(0.2, 5), expect.any(Number));
+    expect(ctx.haptics.pulse).toHaveBeenCalledWith(
+      'left',
+      expect.closeTo(0.2, 5),
+      expect.any(Number)
+    );
+    expect(ctx.haptics.pulse).toHaveBeenCalledWith(
+      'right',
+      expect.closeTo(0.2, 5),
+      expect.any(Number)
+    );
   });
   it('plays hard pattern on hard collision', () => {
-    const { node, config, ctx } = attach({ collision_pattern: 'hard', hands: 'both', intensity: 1.0 });
+    const { node, config, ctx } = attach({
+      collision_pattern: 'hard',
+      hands: 'both',
+      intensity: 1.0,
+    });
     hapticHandler.onEvent!(node, config, ctx, { type: 'collision' });
     // hard step[0] = [0.8, 30]
-    expect(ctx.haptics.pulse).toHaveBeenCalledWith('left', expect.closeTo(0.8, 5), expect.any(Number));
+    expect(ctx.haptics.pulse).toHaveBeenCalledWith(
+      'left',
+      expect.closeTo(0.8, 5),
+      expect.any(Number)
+    );
   });
   it('plays metal pattern on metal collision', () => {
-    const { node, config, ctx } = attach({ collision_pattern: 'metal', hands: 'both', intensity: 1.0 });
+    const { node, config, ctx } = attach({
+      collision_pattern: 'metal',
+      hands: 'both',
+      intensity: 1.0,
+    });
     hapticHandler.onEvent!(node, config, ctx, { type: 'collision' });
     // metal step[0] = [1.0, 10]
     expect(ctx.haptics.pulse).toHaveBeenCalledWith('left', 1.0, expect.any(Number));
   });
   it('plays glass pattern', () => {
-    const { node, config, ctx } = attach({ collision_pattern: 'glass', hands: 'both', intensity: 1.0 });
+    const { node, config, ctx } = attach({
+      collision_pattern: 'glass',
+      hands: 'both',
+      intensity: 1.0,
+    });
     hapticHandler.onEvent!(node, config, ctx, { type: 'collision' });
     // glass step[0] = [0.5, 20]
-    expect(ctx.haptics.pulse).toHaveBeenCalledWith('left', expect.closeTo(0.5, 5), expect.any(Number));
+    expect(ctx.haptics.pulse).toHaveBeenCalledWith(
+      'left',
+      expect.closeTo(0.5, 5),
+      expect.any(Number)
+    );
   });
   it('custom pattern plays custom sequence', () => {
-    const customPat = { name: 'test', sequence: [[0.9, 100]] as [number,number][], loop: false };
+    const customPat = { name: 'test', sequence: [[0.9, 100]] as [number, number][], loop: false };
     const { node, config, ctx } = attach({
       collision_pattern: 'custom',
       custom_pattern: customPat,
@@ -100,15 +134,30 @@ describe('hapticHandler.onEvent — collision', () => {
     expect(ctx.haptics.pulse).toHaveBeenCalledWith('left', 0.9, expect.any(Number));
   });
   it('right-hand only collision', () => {
-    const { node, config, ctx } = attach({ collision_pattern: 'soft', hands: 'right', intensity: 1.0 });
+    const { node, config, ctx } = attach({
+      collision_pattern: 'soft',
+      hands: 'right',
+      intensity: 1.0,
+    });
     hapticHandler.onEvent!(node, config, ctx, { type: 'collision' });
     expect(ctx.haptics.pulse).toHaveBeenCalledWith('right', expect.any(Number), expect.any(Number));
-    expect(ctx.haptics.pulse).not.toHaveBeenCalledWith('left', expect.any(Number), expect.any(Number));
+    expect(ctx.haptics.pulse).not.toHaveBeenCalledWith(
+      'left',
+      expect.any(Number),
+      expect.any(Number)
+    );
   });
   it('dominant-hand collision uses getDominantHand', () => {
-    const ctx = makeCtx({ vr: { getDominantHand: vi.fn().mockReturnValue({ id: 'left', position: [0, 0, 0] }) } });
+    const ctx = makeCtx({
+      vr: { getDominantHand: vi.fn().mockReturnValue({ id: 'left', position: [0, 0, 0] }) },
+    });
     const node = makeNode();
-    const config = { ...hapticHandler.defaultConfig!, collision_pattern: 'soft' as const, hands: 'dominant' as const, intensity: 1.0 };
+    const config = {
+      ...hapticHandler.defaultConfig!,
+      collision_pattern: 'soft' as const,
+      hands: 'dominant' as const,
+      intensity: 1.0,
+    };
     hapticHandler.onAttach!(node, config, ctx);
     hapticHandler.onEvent!(node as any, config, ctx, { type: 'collision' });
     expect(ctx.haptics.pulse).toHaveBeenCalledWith('left', expect.any(Number), expect.any(Number));
@@ -116,11 +165,20 @@ describe('hapticHandler.onEvent — collision', () => {
   it('intensity is multiplied into pulse', () => {
     const ctx = makeCtx();
     const node = makeNode();
-    const config = { ...hapticHandler.defaultConfig!, collision_pattern: 'soft' as const, hands: 'both' as const, intensity: 0.5 };
+    const config = {
+      ...hapticHandler.defaultConfig!,
+      collision_pattern: 'soft' as const,
+      hands: 'both' as const,
+      intensity: 0.5,
+    };
     hapticHandler.onAttach!(node, config, ctx);
     hapticHandler.onEvent!(node as any, config, ctx, { type: 'collision' });
     // soft step[0] [0.2, 50] * 0.5 = 0.1
-    expect(ctx.haptics.pulse).toHaveBeenCalledWith('left', expect.closeTo(0.1, 5), expect.any(Number));
+    expect(ctx.haptics.pulse).toHaveBeenCalledWith(
+      'left',
+      expect.closeTo(0.1, 5),
+      expect.any(Number)
+    );
   });
 });
 
@@ -150,7 +208,11 @@ describe('hapticHandler.onEvent — play_pattern', () => {
     expect(node.__hapticState.currentPattern!.name).toBe('heartbeat');
   });
   it('falls back to collision_pattern if no event.pattern', () => {
-    const { node, config, ctx } = attach({ collision_pattern: 'metal' as const, hands: 'both', intensity: 1.0 });
+    const { node, config, ctx } = attach({
+      collision_pattern: 'metal' as const,
+      hands: 'both',
+      intensity: 1.0,
+    });
     hapticHandler.onEvent!(node, config, ctx, { type: 'play_pattern' });
     expect(node.__hapticState.currentPattern!.name).toBe('metal');
   });
@@ -195,7 +257,11 @@ describe('hapticHandler.onUpdate — pattern stepping', () => {
     expect(node.__hapticState.patternIndex).toBe(1);
     expect(node.__hapticState.patternTimer).toBeCloseTo(0, 5);
     // step[1]=[0.1,50] → pulse at 0.1*1.0=0.1
-    expect(ctx.haptics.pulse).toHaveBeenCalledWith('left', expect.closeTo(0.1, 5), expect.any(Number));
+    expect(ctx.haptics.pulse).toHaveBeenCalledWith(
+      'left',
+      expect.closeTo(0.1, 5),
+      expect.any(Number)
+    );
   });
   it('stops pattern after last non-looping step', () => {
     const { node, config, ctx } = attach({ hands: 'both', intensity: 1.0 });
@@ -263,7 +329,9 @@ describe('hapticHandler.onUpdate — proximity', () => {
     expect(ctx.haptics.pulse).not.toHaveBeenCalled();
   });
   it('skips proximity when proximity_enabled=false', () => {
-    const ctx = makeCtx({ vr: { getDominantHand: vi.fn().mockReturnValue({ id: 'left', position: [0, 0, 0] }) } });
+    const ctx = makeCtx({
+      vr: { getDominantHand: vi.fn().mockReturnValue({ id: 'left', position: [0, 0, 0] }) },
+    });
     const node = makeNode({ position: [0, 0, 0] });
     const config = {
       ...hapticHandler.defaultConfig!,

@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { materialXHandler } from '../MaterialXTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, getEventCount, getLastEvent } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  getEventCount,
+  getLastEvent,
+} from './traitTestHelpers';
 
 describe('MaterialXTrait', () => {
   let node: Record<string, unknown>;
@@ -54,14 +61,22 @@ describe('MaterialXTrait', () => {
   });
 
   it('materialx_set_input stores input', () => {
-    sendEvent(materialXHandler, node, cfg, ctx, { type: 'materialx_set_input', name: 'roughness', value: 0.5 });
+    sendEvent(materialXHandler, node, cfg, ctx, {
+      type: 'materialx_set_input',
+      name: 'roughness',
+      value: 0.5,
+    });
     const s = (node as any).__materialXState;
     expect(s.inputs.get('roughness')).toBe(0.5);
     expect(getEventCount(ctx, 'materialx_update_input')).toBe(1);
   });
 
   it('materialx_get_inputs emits inputs', () => {
-    sendEvent(materialXHandler, node, cfg, ctx, { type: 'materialx_set_input', name: 'color', value: 'red' });
+    sendEvent(materialXHandler, node, cfg, ctx, {
+      type: 'materialx_set_input',
+      name: 'color',
+      value: 'red',
+    });
     sendEvent(materialXHandler, node, cfg, ctx, { type: 'materialx_get_inputs' });
     expect(getEventCount(ctx, 'materialx_inputs')).toBe(1);
   });
@@ -74,7 +89,10 @@ describe('MaterialXTrait', () => {
   it('materialx_set_source destroys old and loads new', () => {
     // First simulate that a material was loaded
     sendEvent(materialXHandler, node, cfg, ctx, { type: 'materialx_loaded', materialId: 'mat-1' });
-    sendEvent(materialXHandler, node, cfg, ctx, { type: 'materialx_set_source', source: 'new.mtlx' });
+    sendEvent(materialXHandler, node, cfg, ctx, {
+      type: 'materialx_set_source',
+      source: 'new.mtlx',
+    });
     expect(getEventCount(ctx, 'materialx_destroy')).toBe(1);
     expect(getEventCount(ctx, 'materialx_load')).toBe(2);
   });

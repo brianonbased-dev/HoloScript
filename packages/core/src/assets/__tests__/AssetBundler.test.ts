@@ -2,7 +2,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { AssetBundler, AssetEntry, BundleConfig } from '../AssetBundler';
 
 function makeAsset(id: string, sizeBytes = 1024, deps: string[] = []): AssetEntry {
-  return { id, type: 'model', path: `/assets/${id}.glb`, sizeBytes, hash: `hash_${id}`, dependencies: deps };
+  return {
+    id,
+    type: 'model',
+    path: `/assets/${id}.glb`,
+    sizeBytes,
+    hash: `hash_${id}`,
+    dependencies: deps,
+  };
 }
 
 describe('AssetBundler', () => {
@@ -31,7 +38,13 @@ describe('AssetBundler', () => {
   it('buildBundle creates a bundle with listed assets', () => {
     bundler.registerAsset(makeAsset('a'));
     bundler.registerAsset(makeAsset('b'));
-    const config: BundleConfig = { id: 'bundle1', name: 'Test', entries: ['a', 'b'], compress: false, priority: 1 };
+    const config: BundleConfig = {
+      id: 'bundle1',
+      name: 'Test',
+      entries: ['a', 'b'],
+      compress: false,
+      priority: 1,
+    };
     const bundle = bundler.buildBundle(config);
     expect(bundle.assets.length).toBe(2);
     expect(bundle.totalSizeBytes).toBe(2048);
@@ -40,20 +53,38 @@ describe('AssetBundler', () => {
   it('buildBundle resolves dependencies', () => {
     bundler.registerAsset(makeAsset('dep1'));
     bundler.registerAsset(makeAsset('main', 1024, ['dep1']));
-    const config: BundleConfig = { id: 'bd', name: 'Dep', entries: ['main'], compress: false, priority: 0 };
+    const config: BundleConfig = {
+      id: 'bd',
+      name: 'Dep',
+      entries: ['main'],
+      compress: false,
+      priority: 0,
+    };
     const bundle = bundler.buildBundle(config);
     expect(bundle.assets.length).toBe(2); // dep1 + main
   });
 
   it('buildBundle with compression reduces size', () => {
     bundler.registerAsset(makeAsset('a', 1000));
-    const bundle = bundler.buildBundle({ id: 'c', name: 'C', entries: ['a'], compress: true, priority: 0 });
+    const bundle = bundler.buildBundle({
+      id: 'c',
+      name: 'C',
+      entries: ['a'],
+      compress: true,
+      priority: 0,
+    });
     expect(bundle.compressedSizeBytes).toBeLessThan(bundle.totalSizeBytes);
   });
 
   it('buildBundle ignores missing entries', () => {
     bundler.registerAsset(makeAsset('a'));
-    const bundle = bundler.buildBundle({ id: 'b', name: 'B', entries: ['a', 'missing'], compress: false, priority: 0 });
+    const bundle = bundler.buildBundle({
+      id: 'b',
+      name: 'B',
+      entries: ['a', 'missing'],
+      compress: false,
+      priority: 0,
+    });
     expect(bundle.assets.length).toBe(1);
   });
 
@@ -61,14 +92,28 @@ describe('AssetBundler', () => {
 
   it('splitBundle returns single bundle when under max', () => {
     bundler.registerAsset(makeAsset('a', 500));
-    const bundles = bundler.splitBundle({ id: 'sp', name: 'SP', entries: ['a'], compress: false, priority: 0, maxSizeBytes: 1000 });
+    const bundles = bundler.splitBundle({
+      id: 'sp',
+      name: 'SP',
+      entries: ['a'],
+      compress: false,
+      priority: 0,
+      maxSizeBytes: 1000,
+    });
     expect(bundles.length).toBe(1);
   });
 
   it('splitBundle splits when over max', () => {
     bundler.registerAsset(makeAsset('a', 600));
     bundler.registerAsset(makeAsset('b', 600));
-    const bundles = bundler.splitBundle({ id: 'sp', name: 'SP', entries: ['a', 'b'], compress: false, priority: 0, maxSizeBytes: 700 });
+    const bundles = bundler.splitBundle({
+      id: 'sp',
+      name: 'SP',
+      entries: ['a', 'b'],
+      compress: false,
+      priority: 0,
+      maxSizeBytes: 700,
+    });
     expect(bundles.length).toBe(2);
   });
 
@@ -88,14 +133,37 @@ describe('AssetBundler', () => {
 
   it('computeDiff detects added bundles', () => {
     bundler.registerAsset(makeAsset('a'));
-    const emptyManifest = { bundles: [], totalAssets: 0, totalSizeBytes: 0, buildTimestamp: 0, version: '0' };
+    const emptyManifest = {
+      bundles: [],
+      totalAssets: 0,
+      totalSizeBytes: 0,
+      buildTimestamp: 0,
+      version: '0',
+    };
     bundler.buildBundle({ id: 'new', name: 'N', entries: ['a'], compress: false, priority: 0 });
     const diff = bundler.computeDiff(emptyManifest);
     expect(diff.added).toContain('new');
   });
 
   it('computeDiff detects removed bundles', () => {
-    const prev = { bundles: [{ id: 'old', name: 'O', assets: [], totalSizeBytes: 0, compressedSizeBytes: 0, hash: 'x', priority: 0, version: 1 }], totalAssets: 0, totalSizeBytes: 0, buildTimestamp: 0, version: '1' };
+    const prev = {
+      bundles: [
+        {
+          id: 'old',
+          name: 'O',
+          assets: [],
+          totalSizeBytes: 0,
+          compressedSizeBytes: 0,
+          hash: 'x',
+          priority: 0,
+          version: 1,
+        },
+      ],
+      totalAssets: 0,
+      totalSizeBytes: 0,
+      buildTimestamp: 0,
+      version: '1',
+    };
     const diff = bundler.computeDiff(prev);
     expect(diff.removed).toContain('old');
   });

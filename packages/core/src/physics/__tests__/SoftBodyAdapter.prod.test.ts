@@ -12,12 +12,7 @@ import { SoftBodyAdapter } from '../SoftBodyAdapter';
  * Create a minimal mock node with a simple 4-vertex geometry.
  */
 function makeMockNode(opts: { vertices?: number[] } = {}) {
-  const vertices = opts.vertices ?? [
-    0, 0, 0,
-    1, 0, 0,
-    1, 1, 0,
-    0, 1, 0,
-  ];
+  const vertices = opts.vertices ?? [0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0];
   return {
     geometry: {
       vertices: [...vertices],

@@ -603,10 +603,7 @@ export class A2AAgentCardCompiler extends CompilerBase {
     if (npc.npcType) tags.push(npc.npcType);
     if (npc.dialogueTree) tags.push('dialogue');
 
-    const examples: string[] = [
-      `Talk to ${npc.name}`,
-      `Ask ${npc.name} a question`,
-    ];
+    const examples: string[] = [`Talk to ${npc.name}`, `Ask ${npc.name} a question`];
 
     if (npc.behaviors?.length > 0) {
       tags.push('behavioral');
@@ -635,7 +632,7 @@ export class A2AAgentCardCompiler extends CompilerBase {
       id: 'dialogue_system',
       name: 'Dialogue System',
       description: `Interactive dialogue system with ${dialogues.length} dialogue node(s) and ${totalOptions} choice(s)`,
-      tags: ['dialogue', 'conversational', 'interactive', ...characters as string[]],
+      tags: ['dialogue', 'conversational', 'interactive', ...(characters as string[])],
       examples: [
         'Start a conversation',
         'Choose a dialogue option',
@@ -657,7 +654,7 @@ export class A2AAgentCardCompiler extends CompilerBase {
       id: 'quest_system',
       name: 'Quest System',
       description: `Quest management with ${quests.length} quest(s) and ${totalObjectives} objective(s)`,
-      tags: ['quest', 'game-mechanics', 'objectives', ...questTypes as string[]],
+      tags: ['quest', 'game-mechanics', 'objectives', ...(questTypes as string[])],
       examples: [
         'List available quests',
         'Check quest progress',
@@ -686,20 +683,14 @@ export class A2AAgentCardCompiler extends CompilerBase {
    */
   private compileStateMachineSkill(stateMachines: HoloStateMachine[]): A2AAgentSkill {
     const machineNames = stateMachines.map((sm) => sm.name);
-    const totalStates = stateMachines.reduce(
-      (sum, sm) => sum + Object.keys(sm.states).length,
-      0
-    );
+    const totalStates = stateMachines.reduce((sum, sm) => sum + Object.keys(sm.states).length, 0);
 
     return {
       id: 'state_machine_system',
       name: 'State Machine System',
       description: `State machine management with ${stateMachines.length} machine(s) and ${totalStates} total state(s)`,
       tags: ['state-machine', 'behavior', 'automation', ...machineNames],
-      examples: [
-        `Query state of ${machineNames[0]}`,
-        'Trigger state transition',
-      ],
+      examples: [`Query state of ${machineNames[0]}`, 'Trigger state transition'],
     };
   }
 

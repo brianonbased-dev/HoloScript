@@ -62,7 +62,9 @@ export class MemoryTracker {
       budget.currentBytes += sizeBytes;
       budget.peakBytes = Math.max(budget.peakBytes, budget.currentBytes);
       if (budget.currentBytes > budget.maxBytes) {
-        this.warnings.push(`Budget exceeded for "${tag}": ${budget.currentBytes}/${budget.maxBytes} bytes`);
+        this.warnings.push(
+          `Budget exceeded for "${tag}": ${budget.currentBytes}/${budget.maxBytes} bytes`
+        );
       }
     }
 
@@ -95,7 +97,9 @@ export class MemoryTracker {
     }
   }
 
-  getBudget(tag: string): MemoryBudget | undefined { return this.budgets.get(tag); }
+  getBudget(tag: string): MemoryBudget | undefined {
+    return this.budgets.get(tag);
+  }
   getBudgetUsage(tag: string): number {
     const b = this.budgets.get(tag);
     return b ? b.currentBytes / b.maxBytes : 0;
@@ -141,7 +145,9 @@ export class MemoryTracker {
     return snapshot;
   }
 
-  getSnapshots(): HeapSnapshot[] { return [...this.snapshots]; }
+  getSnapshots(): HeapSnapshot[] {
+    return [...this.snapshots];
+  }
 
   // ---------------------------------------------------------------------------
   // Queries
@@ -159,8 +165,16 @@ export class MemoryTracker {
     return bytes;
   }
 
-  getTotalAllocated(): number { return this.totalAllocated; }
-  getTotalFreed(): number { return this.totalFreed; }
-  getWarnings(): string[] { return [...this.warnings]; }
-  clearWarnings(): void { this.warnings = []; }
+  getTotalAllocated(): number {
+    return this.totalAllocated;
+  }
+  getTotalFreed(): number {
+    return this.totalFreed;
+  }
+  getWarnings(): string[] {
+    return [...this.warnings];
+  }
+  clearWarnings(): void {
+    this.warnings = [];
+  }
 }

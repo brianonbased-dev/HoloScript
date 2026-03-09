@@ -191,7 +191,10 @@ export class ModRegistry {
   /**
    * Discover mods from a list of manifests
    */
-  discoverFromManifests(manifests: PluginManifest[], source: 'local' | 'registry' | 'url' = 'local'): number {
+  discoverFromManifests(
+    manifests: PluginManifest[],
+    source: 'local' | 'registry' | 'url' = 'local'
+  ): number {
     let count = 0;
     for (const manifest of manifests) {
       if (!this.mods.has(manifest.id)) {

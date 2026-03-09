@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { generateHtmlReport, type BenchmarkResult, type SuiteResults, type AllResults } from '../reporter';
+import {
+  generateHtmlReport,
+  type BenchmarkResult,
+  type SuiteResults,
+  type AllResults,
+} from '../reporter';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -128,11 +133,13 @@ describe('generateHtmlReport', () => {
   it('handles results with 0 opsPerSecond (no divide-by-zero)', () => {
     const zeroOps: AllResults = {
       ...mockAllResults,
-      suites: [{
-        suite: 'Zero Suite',
-        timestamp: mockAllResults.timestamp,
-        results: [{ ...mockResult, opsPerSecond: 0 }],
-      }],
+      suites: [
+        {
+          suite: 'Zero Suite',
+          timestamp: mockAllResults.timestamp,
+          results: [{ ...mockResult, opsPerSecond: 0 }],
+        },
+      ],
     };
     expect(() => generateHtmlReport(zeroOps)).not.toThrow();
   });
@@ -148,11 +155,13 @@ describe('generateHtmlReport', () => {
   it('formats K notation for thousands-scale ops', () => {
     const kScale: AllResults = {
       ...mockAllResults,
-      suites: [{
-        suite: 'K Suite',
-        timestamp: mockAllResults.timestamp,
-        results: [{ ...mockResult, opsPerSecond: 15000 }],
-      }],
+      suites: [
+        {
+          suite: 'K Suite',
+          timestamp: mockAllResults.timestamp,
+          results: [{ ...mockResult, opsPerSecond: 15000 }],
+        },
+      ],
     };
     const html = generateHtmlReport(kScale);
     expect(html).toContain('K ops/s');
@@ -161,11 +170,13 @@ describe('generateHtmlReport', () => {
   it('formats raw ops for sub-1000 scale', () => {
     const lowOps: AllResults = {
       ...mockAllResults,
-      suites: [{
-        suite: 'Low Suite',
-        timestamp: mockAllResults.timestamp,
-        results: [{ ...mockResult, opsPerSecond: 42 }],
-      }],
+      suites: [
+        {
+          suite: 'Low Suite',
+          timestamp: mockAllResults.timestamp,
+          results: [{ ...mockResult, opsPerSecond: 42 }],
+        },
+      ],
     };
     const html = generateHtmlReport(lowOps);
     expect(html).toContain('42 ops/s');

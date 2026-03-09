@@ -26,9 +26,7 @@ export async function requestDevice(): Promise<GPUDevice | null> {
 /**
  * Initialize WebGPU on a canvas element, returning the full context bundle.
  */
-export async function initWebGPU(
-  canvas: HTMLCanvasElement,
-): Promise<WebGPUContext | null> {
+export async function initWebGPU(canvas: HTMLCanvasElement): Promise<WebGPUContext | null> {
   const device = await requestDevice();
   if (!device) return null;
 
@@ -47,7 +45,7 @@ export async function initWebGPU(
 export function createShaderModule(
   device: GPUDevice,
   code: string,
-  label?: string,
+  label?: string
 ): GPUShaderModule {
   return device.createShaderModule({ code, label });
 }
@@ -60,7 +58,7 @@ export function createBuffer(
   size: number,
   usage: GPUBufferUsageFlags,
   data?: ArrayBufferView,
-  label?: string,
+  label?: string
 ): GPUBuffer {
   const buffer = device.createBuffer({
     size,
@@ -83,7 +81,7 @@ export function writeBuffer(
   device: GPUDevice,
   buffer: GPUBuffer,
   data: ArrayBufferView,
-  offset = 0,
+  offset = 0
 ): void {
   device.queue.writeBuffer(buffer, offset, data.buffer, data.byteOffset, data.byteLength);
 }
@@ -92,10 +90,7 @@ export function writeBuffer(
  * Generate a color stop array for a named color map.
  * Returns a flat Float32Array of [r, g, b, a] values for N stops.
  */
-export function generateColorMapData(
-  colorMap: ColorMap,
-  stops = 256,
-): Float32Array {
+export function generateColorMapData(colorMap: ColorMap, stops = 256): Float32Array {
   const data = new Float32Array(stops * 4);
   for (let i = 0; i < stops; i++) {
     const t = i / (stops - 1);
@@ -112,10 +107,7 @@ export function generateColorMapData(
  * Look up a color from a named color map at parameter t in [0, 1].
  * Implements viridis, plasma, and coolwarm as common scientific maps.
  */
-export function colorMapLookup(
-  name: string,
-  t: number,
-): [number, number, number] {
+export function colorMapLookup(name: string, t: number): [number, number, number] {
   const tc = Math.max(0, Math.min(1, t));
 
   switch (name) {
@@ -134,13 +126,13 @@ export function colorMapLookup(
 function viridis(t: number): [number, number, number] {
   const r = Math.max(0, Math.min(1, -0.027 + 0.068 * t + 1.536 * t * t - 0.577 * t * t * t));
   const g = Math.max(0, Math.min(1, 0.004 + 1.514 * t - 1.247 * t * t + 0.729 * t * t * t));
-  const b = Math.max(0, Math.min(1, 0.330 + 1.155 * t - 2.592 * t * t + 1.108 * t * t * t));
+  const b = Math.max(0, Math.min(1, 0.33 + 1.155 * t - 2.592 * t * t + 1.108 * t * t * t));
   return [r, g, b];
 }
 
 /** Simplified plasma approximation. */
 function plasma(t: number): [number, number, number] {
-  const r = Math.max(0, Math.min(1, 0.050 + 2.436 * t - 1.486 * t * t));
+  const r = Math.max(0, Math.min(1, 0.05 + 2.436 * t - 1.486 * t * t));
   const g = Math.max(0, Math.min(1, -0.065 + 0.131 * t + 1.934 * t * t - 1.0 * t * t * t));
   const b = Math.max(0, Math.min(1, 0.533 + 0.751 * t - 2.784 * t * t + 1.5 * t * t * t));
   return [r, g, b];
@@ -159,11 +151,7 @@ function coolwarm(t: number): [number, number, number] {
 /**
  * Normalize a voltage value to [0, 1] for color mapping.
  */
-export function normalizeVoltage(
-  voltage: number,
-  minV: number,
-  maxV: number,
-): number {
+export function normalizeVoltage(voltage: number, minV: number, maxV: number): number {
   if (maxV === minV) return 0.5;
   return Math.max(0, Math.min(1, (voltage - minV) / (maxV - minV)));
 }

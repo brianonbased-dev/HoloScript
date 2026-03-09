@@ -269,7 +269,7 @@ describe('LOGO_ASSETS', () => {
 
   it('SVG format is always included', () => {
     for (const asset of LOGO_ASSETS) {
-      expect(asset.formats.some(f => f.type === 'svg')).toBe(true);
+      expect(asset.formats.some((f) => f.type === 'svg')).toBe(true);
     }
   });
 });
@@ -303,44 +303,79 @@ describe('BrandingKit', () => {
 
   // ── generateBadge ──
   it('generateBadge returns HTML string', () => {
-    const html = kit.generateBadge({ tier: 'certified', style: 'badge', theme: 'light', size: 'medium' });
+    const html = kit.generateBadge({
+      tier: 'certified',
+      style: 'badge',
+      theme: 'light',
+      size: 'medium',
+    });
     expect(typeof html).toBe('string');
     expect(html).toContain('<a ');
     expect(html).toContain('<img ');
   });
 
   it('generateBadge includes tier in badge URL', () => {
-    const html = kit.generateBadge({ tier: 'premium', style: 'banner', theme: 'dark', size: 'large' });
+    const html = kit.generateBadge({
+      tier: 'premium',
+      style: 'banner',
+      theme: 'dark',
+      size: 'large',
+    });
     expect(html).toContain('premium');
     expect(html).toContain('banner');
     expect(html).toContain('dark');
   });
 
   it('generateBadge small = width 80', () => {
-    const html = kit.generateBadge({ tier: 'partner', style: 'badge', theme: 'light', size: 'small' });
+    const html = kit.generateBadge({
+      tier: 'partner',
+      style: 'badge',
+      theme: 'light',
+      size: 'small',
+    });
     expect(html).toContain('width="80"');
   });
 
   it('generateBadge medium = width 120', () => {
-    const html = kit.generateBadge({ tier: 'partner', style: 'badge', theme: 'light', size: 'medium' });
+    const html = kit.generateBadge({
+      tier: 'partner',
+      style: 'badge',
+      theme: 'light',
+      size: 'medium',
+    });
     expect(html).toContain('width="120"');
   });
 
   it('generateBadge large = width 160', () => {
-    const html = kit.generateBadge({ tier: 'partner', style: 'badge', theme: 'light', size: 'large' });
+    const html = kit.generateBadge({
+      tier: 'partner',
+      style: 'badge',
+      theme: 'light',
+      size: 'large',
+    });
     expect(html).toContain('width="160"');
   });
 
   // ── generateBadgeReact ──
   it('generateBadgeReact returns React component string', () => {
-    const code = kit.generateBadgeReact({ tier: 'verified', style: 'inline', theme: 'auto', size: 'small' });
+    const code = kit.generateBadgeReact({
+      tier: 'verified',
+      style: 'inline',
+      theme: 'auto',
+      size: 'small',
+    });
     expect(code).toContain('React');
     expect(code).toContain('HoloScriptBadge');
     expect(code).toContain('import');
   });
 
   it('generateBadgeReact includes correct width', () => {
-    const code = kit.generateBadgeReact({ tier: 'certified', style: 'badge', theme: 'light', size: 'large' });
+    const code = kit.generateBadgeReact({
+      tier: 'certified',
+      style: 'badge',
+      theme: 'light',
+      size: 'large',
+    });
     expect(code).toContain('160');
   });
 
@@ -401,13 +436,13 @@ describe('BrandingKit', () => {
   it('size below minimum fails', () => {
     const result = kit.validateLogoUsage({ size: 16, background: '#ffffff', clearSpace: 24 });
     expect(result.valid).toBe(false);
-    expect(result.issues.some(i => i.includes('size'))).toBe(true);
+    expect(result.issues.some((i) => i.includes('size'))).toBe(true);
   });
 
   it('insufficient clear space fails', () => {
     const result = kit.validateLogoUsage({ size: 64, background: '#ffffff', clearSpace: 8 });
     expect(result.valid).toBe(false);
-    expect(result.issues.some(i => i.includes('clear space') || i.includes('Clear'))).toBe(true);
+    expect(result.issues.some((i) => i.includes('clear space') || i.includes('Clear'))).toBe(true);
   });
 
   it('non-solid background warns', () => {

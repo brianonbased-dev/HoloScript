@@ -52,7 +52,7 @@ describe('SpatialContextProvider', () => {
     ]);
     const entities = provider.getEntities();
     expect(entities).toHaveLength(2);
-    expect(entities.map(e => e.id)).toEqual(['e2', 'e3']);
+    expect(entities.map((e) => e.id)).toEqual(['e2', 'e3']);
   });
 
   // =========== Region Management ===========

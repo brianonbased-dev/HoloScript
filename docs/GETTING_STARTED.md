@@ -95,6 +95,7 @@ holoscript compile hello-vr.holo --target godot --output ./build/godot/
 ### 3. Run the Experience
 
 **WebXR (Fastest way to test):**
+
 ```bash
 cd build/webxr
 npx serve .
@@ -102,6 +103,7 @@ npx serve .
 ```
 
 **Unity:**
+
 1. Open Unity project
 2. Import scripts from `build/unity/`
 3. Press Play
@@ -358,34 +360,39 @@ cd vr-game-demo/
 
 HoloScript compiles to:
 
-| Target | Description | Use Case |
-|--------|-------------|----------|
-| `unity` | C# scripts for Unity | Quest, PCVR, mobile |
-| `unreal` | C++ for Unreal Engine | High-fidelity VR |
-| `godot` | GDScript for Godot | Open-source projects |
-| `webxr` | Three.js/JavaScript | Browser-based VR/AR |
-| `babylonjs` | Babylon.js scenes | WebXR with better graphics |
-| `arkit` | Swift for iOS AR | iPhone/iPad AR apps |
-| `arcore` | Kotlin for Android AR | Android AR apps |
-| `vrchat` | Udon scripts | Social VR worlds |
+| Target      | Description           | Use Case                   |
+| ----------- | --------------------- | -------------------------- |
+| `unity`     | C# scripts for Unity  | Quest, PCVR, mobile        |
+| `unreal`    | C++ for Unreal Engine | High-fidelity VR           |
+| `godot`     | GDScript for Godot    | Open-source projects       |
+| `webxr`     | Three.js/JavaScript   | Browser-based VR/AR        |
+| `babylonjs` | Babylon.js scenes     | WebXR with better graphics |
+| `arkit`     | Swift for iOS AR      | iPhone/iPad AR apps        |
+| `arcore`    | Kotlin for Android AR | Android AR apps            |
+| `vrchat`    | Udon scripts          | Social VR worlds           |
 
 ## Tips & Best Practices
 
 ### 1. Start Small
+
 Begin with simple scenes, add complexity gradually.
 
 ### 2. Test Early
+
 Compile to WebXR first (fastest iteration cycle).
 
 ### 3. Use Traits
+
 `@interactive`, `@physics`, `@navigable` add common behaviors.
 
 ### 4. Keep Performance in Mind
+
 - Target 90 FPS for VR
 - Use LOD (level of detail) for distant objects
 - Limit active particles to 100
 
 ### 5. Think Universal
+
 Avoid platform-specific features unless necessary.
 
 ## Getting Help

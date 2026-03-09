@@ -17,15 +17,29 @@ import type { ASTNode } from '../types';
 
 // ─── Minimal AST node builders ───────────────────────────────────────────────
 
-function orbNode(name: string, props: Record<string, unknown> = {}, traits: string[] = []): ASTNode {
+function orbNode(
+  name: string,
+  props: Record<string, unknown> = {},
+  traits: string[] = []
+): ASTNode {
   return { type: 'orb', name, properties: props, traits, children: [] } as unknown as ASTNode;
 }
 
 function varNode(name: string, value: unknown, dataType?: string): ASTNode {
-  return { type: 'variable-declaration', name, value, dataType, isExpression: false } as unknown as ASTNode;
+  return {
+    type: 'variable-declaration',
+    name,
+    value,
+    dataType,
+    isExpression: false,
+  } as unknown as ASTNode;
 }
 
-function methodNode(name: string, params: { name: string; dataType: string }[] = [], returnType?: string): ASTNode {
+function methodNode(
+  name: string,
+  params: { name: string; dataType: string }[] = [],
+  returnType?: string
+): ASTNode {
   return { type: 'method', name, parameters: params, returnType, body: [] } as unknown as ASTNode;
 }
 
@@ -53,8 +67,12 @@ function matchNode(subject: string, cases: { pattern: unknown; body: ASTNode[] }
   return { type: 'match', subject, cases } as unknown as ASTNode;
 }
 
-function wildcardPattern() { return { type: 'wildcard-pattern' }; }
-function literalPattern(value: string) { return { type: 'literal-pattern', value }; }
+function wildcardPattern() {
+  return { type: 'wildcard-pattern' };
+}
+function literalPattern(value: string) {
+  return { type: 'literal-pattern', value };
+}
 
 // ─── Suite ────────────────────────────────────────────────────────────────────
 
@@ -161,7 +179,7 @@ describe('HoloScriptTypeChecker: production', () => {
     it('explicit dataType overrides inference', () => {
       const result = tc.check([varNode('n', 42, 'string')]);
       // declared as string — type mismatch E102 emitted
-      const errors = result.diagnostics.filter(d => d.severity === 'error' && d.code === 'E102');
+      const errors = result.diagnostics.filter((d) => d.severity === 'error' && d.code === 'E102');
       expect(errors.length).toBeGreaterThan(0);
     });
 
@@ -179,12 +197,23 @@ describe('HoloScriptTypeChecker: production', () => {
   // ─── Method declaration ───────────────────────────────────────────────────
   describe('method declaration', () => {
     it('registers method with type "function"', () => {
-      const result = tc.check([methodNode('greet', [{ name: 'name', dataType: 'string' }], 'void')]);
+      const result = tc.check([
+        methodNode('greet', [{ name: 'name', dataType: 'string' }], 'void'),
+      ]);
       expect(result.typeMap.get('greet')?.type).toBe('function');
     });
 
     it('method parameters are recorded', () => {
-      const result = tc.check([methodNode('add', [{ name: 'a', dataType: 'number' }, { name: 'b', dataType: 'number' }], 'number')]);
+      const result = tc.check([
+        methodNode(
+          'add',
+          [
+            { name: 'a', dataType: 'number' },
+            { name: 'b', dataType: 'number' },
+          ],
+          'number'
+        ),
+      ]);
       const params = result.typeMap.get('add')?.parameters;
       expect(params).toHaveLength(2);
     });
@@ -194,13 +223,13 @@ describe('HoloScriptTypeChecker: production', () => {
   describe('connection type checking', () => {
     it('emits E001 for unknown source', () => {
       const result = tc.check([connectionNode('missingA', 'missingB')]);
-      expect(result.diagnostics.some(d => d.code === 'E001')).toBe(true);
+      expect(result.diagnostics.some((d) => d.code === 'E001')).toBe(true);
     });
 
     it('emits E002 for unknown target', () => {
       tc.check([orbNode('src')]);
       const result = tc.check([orbNode('src'), connectionNode('src', 'unknownTarget')]);
-      expect(result.diagnostics.some(d => d.code === 'E002')).toBe(true);
+      expect(result.diagnostics.some((d) => d.code === 'E002')).toBe(true);
     });
 
     it('emits W001 for incompatible types', () => {
@@ -210,16 +239,12 @@ describe('HoloScriptTypeChecker: production', () => {
         varNode('b', 42),
         { type: 'connection', from: 'a', to: 'b', dataType: 'typed' } as unknown as ASTNode,
       ]);
-      expect(result.diagnostics.some(d => d.code === 'W001')).toBe(true);
+      expect(result.diagnostics.some((d) => d.code === 'W001')).toBe(true);
     });
 
     it('no error for compatible same-type connection', () => {
-      const result = tc.check([
-        orbNode('src'),
-        orbNode('dst'),
-        connectionNode('src', 'dst'),
-      ]);
-      expect(result.diagnostics.filter(d => d.severity === 'error')).toHaveLength(0);
+      const result = tc.check([orbNode('src'), orbNode('dst'), connectionNode('src', 'dst')]);
+      expect(result.diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
     });
   });
 
@@ -227,17 +252,19 @@ describe('HoloScriptTypeChecker: production', () => {
   describe('spread expression', () => {
     it('emits E102 for spread of unknown identifier', () => {
       const result = tc.check([spreadNode('unknownTpl')]);
-      expect(result.diagnostics.some(d => d.code === 'E102')).toBe(true);
+      expect(result.diagnostics.some((d) => d.code === 'E102')).toBe(true);
     });
 
     it('no error spreading a known orb', () => {
       const result = tc.check([orbNode('myTpl'), spreadNode('myTpl')]);
-      expect(result.diagnostics.filter(d => d.severity === 'error' && d.code === 'E102')).toHaveLength(0);
+      expect(
+        result.diagnostics.filter((d) => d.severity === 'error' && d.code === 'E102')
+      ).toHaveLength(0);
     });
 
     it('emits E103 spreading a non-object type', () => {
       const result = tc.check([varNode('num', 42), spreadNode('num')]);
-      expect(result.diagnostics.some(d => d.code === 'E103')).toBe(true);
+      expect(result.diagnostics.some((d) => d.code === 'E103')).toBe(true);
     });
   });
 
@@ -245,17 +272,17 @@ describe('HoloScriptTypeChecker: production', () => {
   describe('forEach loop', () => {
     it('emits E006 for unknown collection', () => {
       const result = tc.check([forEachNode('item', 'unknownList')]);
-      expect(result.diagnostics.some(d => d.code === 'E006')).toBe(true);
+      expect(result.diagnostics.some((d) => d.code === 'E006')).toBe(true);
     });
 
     it('emits E007 for non-array collection', () => {
       const result = tc.check([varNode('num', 42), forEachNode('item', 'num')]);
-      expect(result.diagnostics.some(d => d.code === 'E007')).toBe(true);
+      expect(result.diagnostics.some((d) => d.code === 'E007')).toBe(true);
     });
 
     it('no error for array collection', () => {
       const result = tc.check([varNode('items', ['a', 'b']), forEachNode('item', 'items')]);
-      expect(result.diagnostics.filter(d => d.code === 'E007')).toHaveLength(0);
+      expect(result.diagnostics.filter((d) => d.code === 'E007')).toHaveLength(0);
     });
   });
 
@@ -268,29 +295,32 @@ describe('HoloScriptTypeChecker: production', () => {
     });
 
     it('import emits E008 if modulePath is missing', () => {
-      const node = { type: 'import', modulePath: '', imports: ['x'], defaultImport: undefined } as unknown as ASTNode;
+      const node = {
+        type: 'import',
+        modulePath: '',
+        imports: ['x'],
+        defaultImport: undefined,
+      } as unknown as ASTNode;
       const result = tc.check([node]);
-      expect(result.diagnostics.some(d => d.code === 'E008')).toBe(true);
+      expect(result.diagnostics.some((d) => d.code === 'E008')).toBe(true);
     });
 
     it('export emits E009 for unknown identifier', () => {
       const result = tc.check([exportNode(['unknownFn'])]);
-      expect(result.diagnostics.some(d => d.code === 'E009')).toBe(true);
+      expect(result.diagnostics.some((d) => d.code === 'E009')).toBe(true);
     });
 
     it('export no error for known identifier', () => {
       const result = tc.check([varNode('myFn', 42), exportNode(['myFn'])]);
-      expect(result.diagnostics.filter(d => d.code === 'E009')).toHaveLength(0);
+      expect(result.diagnostics.filter((d) => d.code === 'E009')).toHaveLength(0);
     });
   });
 
   // ─── Match expression ─────────────────────────────────────────────────────
   describe('match expression', () => {
     it('match with wildcard is valid', () => {
-      const result = tc.check([
-        matchNode('x', [{ pattern: wildcardPattern(), body: [] }]),
-      ]);
-      expect(result.diagnostics.filter(d => d.severity === 'error')).toHaveLength(0);
+      const result = tc.check([matchNode('x', [{ pattern: wildcardPattern(), body: [] }])]);
+      expect(result.diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
     });
 
     it('emits W201 for duplicate literal pattern', () => {
@@ -300,7 +330,7 @@ describe('HoloScriptTypeChecker: production', () => {
           { pattern: literalPattern('a'), body: [] },
         ]),
       ]);
-      expect(result.diagnostics.some(d => d.code === 'W201')).toBe(true);
+      expect(result.diagnostics.some((d) => d.code === 'W201')).toBe(true);
     });
 
     it('emits W202 for unreachable case after wildcard', () => {
@@ -310,7 +340,7 @@ describe('HoloScriptTypeChecker: production', () => {
           { pattern: literalPattern('a'), body: [] },
         ]),
       ]);
-      expect(result.diagnostics.some(d => d.code === 'W202')).toBe(true);
+      expect(result.diagnostics.some((d) => d.code === 'W202')).toBe(true);
     });
 
     it('emits E203 for non-exhaustive match on known union', () => {
@@ -321,7 +351,7 @@ describe('HoloScriptTypeChecker: production', () => {
           // missing 'loading' and 'done'
         ]),
       ]);
-      expect(result.diagnostics.some(d => d.code === 'E203')).toBe(true);
+      expect(result.diagnostics.some((d) => d.code === 'E203')).toBe(true);
     });
 
     it('no E203 when all union cases covered', () => {
@@ -332,7 +362,7 @@ describe('HoloScriptTypeChecker: production', () => {
           { pattern: literalPattern('done'), body: [] },
         ]),
       ]);
-      expect(result.diagnostics.filter(d => d.code === 'E203')).toHaveLength(0);
+      expect(result.diagnostics.filter((d) => d.code === 'E203')).toHaveLength(0);
     });
   });
 
@@ -358,25 +388,45 @@ describe('HoloScriptTypeChecker: production', () => {
   // ─── checkExhaustiveMatch ─────────────────────────────────────────────────
   describe('checkExhaustiveMatch', () => {
     it('returns empty for unknown typeName', () => {
-      const diags = tc.checkExhaustiveMatch({ typeName: 'NoSuchType', coveredPatterns: [], line: 0, column: 0 });
+      const diags = tc.checkExhaustiveMatch({
+        typeName: 'NoSuchType',
+        coveredPatterns: [],
+        line: 0,
+        column: 0,
+      });
       expect(diags).toHaveLength(0);
     });
 
     it('returns empty when wildcard _ is present', () => {
       tc.registerTypeAlias({ name: 'S', kind: 'simple', definition: '"a" | "b"', line: 1 });
-      const diags = tc.checkExhaustiveMatch({ typeName: 'S', coveredPatterns: ['_'], line: 1, column: 0 });
+      const diags = tc.checkExhaustiveMatch({
+        typeName: 'S',
+        coveredPatterns: ['_'],
+        line: 1,
+        column: 0,
+      });
       expect(diags).toHaveLength(0);
     });
 
     it('returns HSP021 for missing literal cases', () => {
       tc.registerTypeAlias({ name: 'Status', kind: 'simple', definition: '"ok" | "err"', line: 1 });
-      const diags = tc.checkExhaustiveMatch({ typeName: 'Status', coveredPatterns: ['ok'], line: 1, column: 0 });
-      expect(diags.some(d => d.code === 'HSP021')).toBe(true);
+      const diags = tc.checkExhaustiveMatch({
+        typeName: 'Status',
+        coveredPatterns: ['ok'],
+        line: 1,
+        column: 0,
+      });
+      expect(diags.some((d) => d.code === 'HSP021')).toBe(true);
     });
 
     it('returns empty when all cases covered', () => {
       tc.registerTypeAlias({ name: 'T', kind: 'simple', definition: '"x" | "y"', line: 1 });
-      const diags = tc.checkExhaustiveMatch({ typeName: 'T', coveredPatterns: ['x', 'y'], line: 1, column: 0 });
+      const diags = tc.checkExhaustiveMatch({
+        typeName: 'T',
+        coveredPatterns: ['x', 'y'],
+        line: 1,
+        column: 0,
+      });
       expect(diags).toHaveLength(0);
     });
   });
@@ -386,13 +436,13 @@ describe('HoloScriptTypeChecker: production', () => {
     it('non-recursive alias registers without diagnostic', () => {
       tc.registerTypeAlias({ name: 'Color', kind: 'simple', definition: 'string', line: 1 });
       const result = tc.check([]);
-      expect(result.diagnostics.filter(d => d.code === 'HSP020')).toHaveLength(0);
+      expect(result.diagnostics.filter((d) => d.code === 'HSP020')).toHaveLength(0);
     });
 
     it('recursive alias produces HSP020 error on check()', () => {
       tc.registerTypeAlias({ name: 'Rec', kind: 'simple', definition: 'Rec', line: 1 });
       const result = tc.check([]);
-      expect(result.diagnostics.some(d => d.code === 'HSP020')).toBe(true);
+      expect(result.diagnostics.some((d) => d.code === 'HSP020')).toBe(true);
     });
   });
 

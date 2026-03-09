@@ -18,8 +18,15 @@
 // SHARED TYPES
 // =============================================================================
 
-export interface Vec2 { x: number; y: number }
-export interface Vec3 { x: number; y: number; z: number }
+export interface Vec2 {
+  x: number;
+  y: number;
+}
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 /** Simple flat texture (row-major, RGBA, linear) */
 export interface Texture2D {
@@ -32,14 +39,20 @@ export interface Texture2D {
 export function createSolidTexture(w: number, h: number, r = 1, g = 1, b = 1, a = 1): Texture2D {
   const pixels = new Float32Array(w * h * 4);
   for (let i = 0; i < w * h; i++) {
-    pixels[i * 4] = r; pixels[i * 4 + 1] = g;
-    pixels[i * 4 + 2] = b; pixels[i * 4 + 3] = a;
+    pixels[i * 4] = r;
+    pixels[i * 4 + 1] = g;
+    pixels[i * 4 + 2] = b;
+    pixels[i * 4 + 3] = a;
   }
   return { width: w, height: h, pixels };
 }
 
 /** Sample a texture at UV coordinates [0–1], clamped. Returns [R, G, B, A]. */
-export function sampleTexture(tex: Texture2D, u: number, v: number): [number, number, number, number] {
+export function sampleTexture(
+  tex: Texture2D,
+  u: number,
+  v: number
+): [number, number, number, number] {
   const x = Math.max(0, Math.min(tex.width - 1, Math.floor(u * tex.width)));
   const y = Math.max(0, Math.min(tex.height - 1, Math.floor(v * tex.height)));
   const pi = (y * tex.width + x) * 4;
@@ -47,18 +60,26 @@ export function sampleTexture(tex: Texture2D, u: number, v: number): [number, nu
 }
 
 /** Sample a texture with bilinear interpolation */
-export function sampleTextureBilinear(tex: Texture2D, u: number, v: number): [number, number, number, number] {
+export function sampleTextureBilinear(
+  tex: Texture2D,
+  u: number,
+  v: number
+): [number, number, number, number] {
   const fx = Math.max(0, Math.min(tex.width - 1, u * tex.width));
   const fy = Math.max(0, Math.min(tex.height - 1, v * tex.height));
-  const ix = Math.floor(fx), iy = Math.floor(fy);
-  const tx = fx - ix, ty = fy - iy;
-  const x1 = Math.min(ix + 1, tex.width - 1), y1 = Math.min(iy + 1, tex.height - 1);
+  const ix = Math.floor(fx),
+    iy = Math.floor(fy);
+  const tx = fx - ix,
+    ty = fy - iy;
+  const x1 = Math.min(ix + 1, tex.width - 1),
+    y1 = Math.min(iy + 1, tex.height - 1);
 
   const s = (x: number, y: number, ch: number) => tex.pixels[(y * tex.width + x) * 4 + ch];
   const out: [number, number, number, number] = [0, 0, 0, 0];
   for (let ch = 0; ch < 4; ch++) {
-    out[ch] = (s(ix, iy, ch) * (1 - tx) + s(x1, iy, ch) * tx) * (1 - ty)
-            + (s(ix, y1, ch) * (1 - tx) + s(x1, y1, ch) * tx) * ty;
+    out[ch] =
+      (s(ix, iy, ch) * (1 - tx) + s(x1, iy, ch) * tx) * (1 - ty) +
+      (s(ix, y1, ch) * (1 - tx) + s(x1, y1, ch) * tx) * ty;
   }
   return out;
 }
@@ -82,7 +103,8 @@ export function computeDisplacedPosition(
   position: Vec3,
   normal: Vec3,
   heightMap: Texture2D,
-  u: number, v: number,
+  u: number,
+  v: number,
   config: Partial<DisplacementConfig> = {}
 ): Vec3 {
   const scale = config.scale ?? 0.1;
@@ -103,8 +125,10 @@ export function computeDisplacedPosition(
  */
 export function computeDisplacementNormalsFromHeightMap(
   heights: Float32Array,
-  gridW: number, gridH: number,
-  cellSizeX: number, cellSizeZ: number
+  gridW: number,
+  gridH: number,
+  cellSizeX: number,
+  cellSizeZ: number
 ): Vec3[] {
   const normals: Vec3[] = [];
   for (let y = 0; y < gridH; y++) {
@@ -160,8 +184,8 @@ export function computePOM(
   const numLayers = Math.round(minL + (maxL - minL) * (1 - Math.abs(viewDir.z)));
   const layerDepth = 1 / numLayers;
   const deltaUV: Vec2 = {
-    x: viewDir.x * scale / (numLayers * Math.abs(viewDir.z) + 1e-6),
-    y: viewDir.y * scale / (numLayers * Math.abs(viewDir.z) + 1e-6),
+    x: (viewDir.x * scale) / (numLayers * Math.abs(viewDir.z) + 1e-6),
+    y: (viewDir.y * scale) / (numLayers * Math.abs(viewDir.z) + 1e-6),
   };
 
   let currentDepth = 0;
@@ -255,7 +279,8 @@ export interface DetailMapConfig {
 export function applyDetailAlbedo(
   baseColor: [number, number, number, number],
   detailTex: Texture2D,
-  u: number, v: number,
+  u: number,
+  v: number,
   config: Partial<DetailMapConfig> = {}
 ): [number, number, number, number] {
   const scale = config.tileScale ?? 4;
@@ -272,9 +297,7 @@ export function applyDetailAlbedo(
 }
 
 function overlayBlend(base: number, detail: number, intensity: number): number {
-  const overlay = detail < 0.5
-    ? 2 * base * detail
-    : 1 - 2 * (1 - base) * (1 - detail);
+  const overlay = detail < 0.5 ? 2 * base * detail : 1 - 2 * (1 - base) * (1 - detail);
   return base + (overlay - base) * intensity;
 }
 
@@ -295,8 +318,10 @@ export function blendDetailNormal(base: Vec3, detail: Vec3): Vec3 {
 // =============================================================================
 
 export interface AtlasRect {
-  x: number; y: number;
-  width: number; height: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
   /** Source identifier */
   id: string;
 }
@@ -315,7 +340,15 @@ export interface AtlasPacker {
 
 /** Create a new atlas packer */
 export function createAtlasPacker(width = 2048, height = 2048): AtlasPacker {
-  return { atlasWidth: width, atlasHeight: height, rects: [], rowCount: 0, cursorX: 0, cursorY: 0, rowHeight: 0 };
+  return {
+    atlasWidth: width,
+    atlasHeight: height,
+    rects: [],
+    rowCount: 0,
+    cursorX: 0,
+    cursorY: 0,
+    rowHeight: 0,
+  };
 }
 
 /**
@@ -325,10 +358,12 @@ export function createAtlasPacker(width = 2048, height = 2048): AtlasPacker {
 export function packRect(
   packer: AtlasPacker,
   id: string,
-  width: number, height: number,
+  width: number,
+  height: number,
   padding = 1
 ): AtlasRect | null {
-  const w = width + padding * 2, h = height + padding * 2;
+  const w = width + padding * 2,
+    h = height + padding * 2;
 
   if (packer.cursorX + w > packer.atlasWidth) {
     // New row
@@ -340,7 +375,13 @@ export function packRect(
 
   if (packer.cursorY + h > packer.atlasHeight) return null; // Out of atlas space
 
-  const rect: AtlasRect = { id, x: packer.cursorX + padding, y: packer.cursorY + padding, width, height };
+  const rect: AtlasRect = {
+    id,
+    x: packer.cursorX + padding,
+    y: packer.cursorY + padding,
+    width,
+    height,
+  };
   packer.rects.push(rect);
   packer.cursorX += w;
   if (h > packer.rowHeight) packer.rowHeight = h;
@@ -348,7 +389,10 @@ export function packRect(
 }
 
 /** Get UV coordinates [0–1] of a packed rect within the atlas */
-export function getRectUV(packer: AtlasPacker, rect: AtlasRect): { u0: number; v0: number; u1: number; v1: number } {
+export function getRectUV(
+  packer: AtlasPacker,
+  rect: AtlasRect
+): { u0: number; v0: number; u1: number; v1: number } {
   return {
     u0: rect.x / packer.atlasWidth,
     v0: rect.y / packer.atlasHeight,

@@ -11,7 +11,11 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { VRRSyncService } from '../services/VRRSyncService';
-import type { WeatherData, EventData, InventoryData } from '../../../core/src/plugins/HololandTypes';
+import type {
+  WeatherData,
+  EventData,
+  InventoryData,
+} from '../../../core/src/plugins/HololandTypes';
 
 // Mock vscode module
 vi.mock('vscode', async () => {

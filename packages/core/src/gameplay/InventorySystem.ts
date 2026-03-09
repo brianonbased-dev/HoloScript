@@ -148,12 +148,24 @@ export class InventorySystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getSlot(index: number): InventorySlot | undefined { return this.slots.get(index); }
-  getSlotCount(): number { return this.slots.size; }
-  getMaxSlots(): number { return this.maxSlots; }
-  getCurrentWeight(): number { return Math.round(this.currentWeight * 100) / 100; }
-  getMaxWeight(): number { return this.maxWeight; }
-  isFull(): boolean { return this.slots.size >= this.maxSlots; }
+  getSlot(index: number): InventorySlot | undefined {
+    return this.slots.get(index);
+  }
+  getSlotCount(): number {
+    return this.slots.size;
+  }
+  getMaxSlots(): number {
+    return this.maxSlots;
+  }
+  getCurrentWeight(): number {
+    return Math.round(this.currentWeight * 100) / 100;
+  }
+  getMaxWeight(): number {
+    return this.maxWeight;
+  }
+  isFull(): boolean {
+    return this.slots.size >= this.maxSlots;
+  }
 
   getItemCount(itemId: string): number {
     let count = 0;
@@ -163,13 +175,17 @@ export class InventorySystem {
     return count;
   }
 
-  hasItem(itemId: string, quantity = 1): boolean { return this.getItemCount(itemId) >= quantity; }
-
-  getByCategory(category: ItemCategory): InventorySlot[] {
-    return [...this.slots.values()].filter(s => s.item.category === category);
+  hasItem(itemId: string, quantity = 1): boolean {
+    return this.getItemCount(itemId) >= quantity;
   }
 
-  getAllItems(): InventorySlot[] { return [...this.slots.values()]; }
+  getByCategory(category: ItemCategory): InventorySlot[] {
+    return [...this.slots.values()].filter((s) => s.item.category === category);
+  }
+
+  getAllItems(): InventorySlot[] {
+    return [...this.slots.values()];
+  }
 
   sort(by: 'name' | 'rarity' | 'category' | 'weight' = 'name'): void {
     const items = [...this.slots.values()];
@@ -177,15 +193,22 @@ export class InventorySystem {
 
     items.sort((a, b) => {
       switch (by) {
-        case 'name': return a.item.name.localeCompare(b.item.name);
-        case 'rarity': return rarityOrder.indexOf(b.item.rarity) - rarityOrder.indexOf(a.item.rarity);
-        case 'category': return a.item.category.localeCompare(b.item.category);
-        case 'weight': return b.item.weight - a.item.weight;
+        case 'name':
+          return a.item.name.localeCompare(b.item.name);
+        case 'rarity':
+          return rarityOrder.indexOf(b.item.rarity) - rarityOrder.indexOf(a.item.rarity);
+        case 'category':
+          return a.item.category.localeCompare(b.item.category);
+        case 'weight':
+          return b.item.weight - a.item.weight;
       }
     });
 
     this.slots.clear();
-    items.forEach((item, i) => { item.slotIndex = i; this.slots.set(i, item); });
+    items.forEach((item, i) => {
+      item.slotIndex = i;
+      this.slots.set(i, item);
+    });
   }
 
   // ---------------------------------------------------------------------------

@@ -202,10 +202,8 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     type: 'requires',
     source: 'spatial_adjacent',
     targets: ['collidable'],
-    message:
-      'spatial_adjacent requires collidable bounds to measure distance between entities.',
-    suggestion:
-      'Add @collidable to provide bounds for spatial adjacency checking.',
+    message: 'spatial_adjacent requires collidable bounds to measure distance between entities.',
+    suggestion: 'Add @collidable to provide bounds for spatial adjacency checking.',
   },
 
   // spatial_contains requires collidable bounds to define the container volume
@@ -213,10 +211,8 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     type: 'requires',
     source: 'spatial_contains',
     targets: ['collidable'],
-    message:
-      'spatial_contains requires collidable bounds to define the container volume.',
-    suggestion:
-      'Add @collidable to define the bounding volume for containment checking.',
+    message: 'spatial_contains requires collidable bounds to define the container volume.',
+    suggestion: 'Add @collidable to define the bounding volume for containment checking.',
   },
 
   // spatial_reachable requires spatial_awareness for runtime path validation
@@ -226,8 +222,7 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     targets: ['spatial_awareness'],
     message:
       'spatial_reachable requires spatial_awareness for runtime path and obstacle detection.',
-    suggestion:
-      'Add @spatial_awareness to enable spatial context for reachability checks.',
+    suggestion: 'Add @spatial_awareness to enable spatial context for reachability checks.',
   },
 
   // spatial_contains conflicts with static (containers may need dynamic bounds)
@@ -264,8 +259,7 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     targets: ['collidable'],
     message:
       'spatial_temporal_adjacent requires collidable bounds to measure distance and track duration.',
-    suggestion:
-      'Add @collidable to provide bounds for temporal adjacency checking.',
+    suggestion: 'Add @collidable to provide bounds for temporal adjacency checking.',
   },
 
   // spatial_temporal_adjacent conflicts with plain spatial_adjacent on same entity
@@ -273,8 +267,7 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     type: 'conflicts',
     source: 'spatial_temporal_adjacent',
     targets: ['spatial_adjacent'],
-    message:
-      'spatial_temporal_adjacent supersedes spatial_adjacent. Use one or the other.',
+    message: 'spatial_temporal_adjacent supersedes spatial_adjacent. Use one or the other.',
     suggestion:
       'Remove @spatial_adjacent if duration-based adjacency is desired, or remove @spatial_temporal_adjacent for simple distance checking.',
   },
@@ -295,8 +288,7 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     type: 'conflicts',
     source: 'spatial_temporal_reachable',
     targets: ['spatial_reachable'],
-    message:
-      'spatial_temporal_reachable supersedes spatial_reachable. Use one or the other.',
+    message: 'spatial_temporal_reachable supersedes spatial_reachable. Use one or the other.',
     suggestion:
       'Remove @spatial_reachable if velocity-predicted reachability is desired, or remove @spatial_temporal_reachable for static reachability.',
   },
@@ -308,8 +300,7 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     targets: ['physics'],
     message:
       'spatial_trajectory requires physics for velocity and acceleration data to predict trajectories.',
-    suggestion:
-      'Add @physics to enable trajectory prediction from velocity data.',
+    suggestion: 'Add @physics to enable trajectory prediction from velocity data.',
   },
 
   // spatial_trajectory requires collidable for bounds checking
@@ -317,10 +308,8 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     type: 'requires',
     source: 'spatial_trajectory',
     targets: ['collidable'],
-    message:
-      'spatial_trajectory requires collidable bounds for keep_in/keep_out region checking.',
-    suggestion:
-      'Add @collidable to provide bounds for trajectory constraint checking.',
+    message: 'spatial_trajectory requires collidable bounds for keep_in/keep_out region checking.',
+    suggestion: 'Add @collidable to provide bounds for trajectory constraint checking.',
   },
 
   // =============================================================================
@@ -351,8 +340,7 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     type: 'requires',
     source: 'norm_compliant',
     targets: ['cultural_profile'],
-    message:
-      'Norm compliance requires a cultural_profile to define the agent\'s cultural identity.',
+    message: "Norm compliance requires a cultural_profile to define the agent's cultural identity.",
     suggestion:
       'Add @cultural_profile with cooperation_index, cultural_family, prompt_dialect, and norm_set.',
   },
@@ -363,10 +351,8 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     type: 'requires',
     source: 'cultural_memory',
     targets: ['cultural_profile'],
-    message:
-      'Cultural memory requires a cultural_profile to contextualize memory storage.',
-    suggestion:
-      'Add @cultural_profile before using @cultural_memory on an agent.',
+    message: 'Cultural memory requires a cultural_profile to contextualize memory storage.',
+    suggestion: 'Add @cultural_profile before using @cultural_memory on an agent.',
   },
 
   // cultural_profile conflicts with isolationist + networked combination
@@ -377,7 +363,6 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     targets: ['invisible'],
     message:
       'Cultural traces (stigmergic markers) must be visible for other agents to perceive them.',
-    suggestion:
-      'Remove @invisible from objects bearing @cultural_trace, or use a visible marker.',
+    suggestion: 'Remove @invisible from objects bearing @cultural_trace, or use a visible marker.',
   },
 ];

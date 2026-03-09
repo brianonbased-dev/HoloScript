@@ -256,9 +256,13 @@ describe('validateWalletAddress', () => {
 
   // Solana
   it('accepts valid solana address', () => {
-    expect(validateWalletAddress('4Nd1mBQtrMJVYVfKf2PX98AgulaHTtbZbqBfCGpp..base58', 'solana')).toBe(false);
+    expect(
+      validateWalletAddress('4Nd1mBQtrMJVYVfKf2PX98AgulaHTtbZbqBfCGpp..base58', 'solana')
+    ).toBe(false);
     // Real-looking Solana base58
-    expect(validateWalletAddress('DRpbCBMxVnDK7maPM5tGv6MvB3v1sRMC86PZ8okm3d', 'solana')).toBe(true);
+    expect(validateWalletAddress('DRpbCBMxVnDK7maPM5tGv6MvB3v1sRMC86PZ8okm3d', 'solana')).toBe(
+      true
+    );
   });
 
   it('rejects solana address that is too short', () => {
@@ -311,7 +315,7 @@ describe('sanitizeInput', () => {
   });
 
   it('removes SQL DROP TABLE pattern', () => {
-    expect(sanitizeInput("x; DROP TABLE users")).not.toContain('DROP TABLE');
+    expect(sanitizeInput('x; DROP TABLE users')).not.toContain('DROP TABLE');
   });
 
   it('removes SQL DELETE FROM pattern', () => {

@@ -30,37 +30,76 @@ export type StateEffect = 'state:read' | 'state:write' | 'state:global' | 'state
 export type ExceptionEffect = 'exception:throw' | 'exception:catch' | 'exception:panic';
 
 /** Physics simulation effects (VR-specific) */
-export type PhysicsEffect = 'physics:force' | 'physics:impulse' | 'physics:collision'
-  | 'physics:teleport' | 'physics:gravity' | 'physics:joint';
+export type PhysicsEffect =
+  | 'physics:force'
+  | 'physics:impulse'
+  | 'physics:collision'
+  | 'physics:teleport'
+  | 'physics:gravity'
+  | 'physics:joint';
 
 /** Rendering effects (VR-specific) */
-export type RenderEffect = 'render:spawn' | 'render:destroy' | 'render:material'
-  | 'render:particle' | 'render:light' | 'render:shader' | 'render:gaussian';
+export type RenderEffect =
+  | 'render:spawn'
+  | 'render:destroy'
+  | 'render:material'
+  | 'render:particle'
+  | 'render:light'
+  | 'render:shader'
+  | 'render:gaussian';
 
 /** Audio effects (VR-specific) */
-export type AudioEffect = 'audio:play' | 'audio:stop' | 'audio:spatial' | 'audio:global' | 'audio:reverb';
+export type AudioEffect =
+  | 'audio:play'
+  | 'audio:stop'
+  | 'audio:spatial'
+  | 'audio:global'
+  | 'audio:reverb';
 
 /** Inventory/ownership effects (VR-specific) */
-export type InventoryEffect = 'inventory:take' | 'inventory:give' | 'inventory:destroy'
-  | 'inventory:duplicate' | 'inventory:trade';
+export type InventoryEffect =
+  | 'inventory:take'
+  | 'inventory:give'
+  | 'inventory:destroy'
+  | 'inventory:duplicate'
+  | 'inventory:trade';
 
 /** Authority/permission effects (VR-specific) */
-export type AuthorityEffect = 'authority:own' | 'authority:delegate' | 'authority:revoke'
-  | 'authority:zone' | 'authority:world';
+export type AuthorityEffect =
+  | 'authority:own'
+  | 'authority:delegate'
+  | 'authority:revoke'
+  | 'authority:zone'
+  | 'authority:world';
 
 /** Compute resource effects (VR-specific) */
-export type ResourceEffect = 'resource:cpu' | 'resource:memory' | 'resource:gpu'
-  | 'resource:bandwidth' | 'resource:storage';
+export type ResourceEffect =
+  | 'resource:cpu'
+  | 'resource:memory'
+  | 'resource:gpu'
+  | 'resource:bandwidth'
+  | 'resource:storage';
 
 /** Agent lifecycle effects (VR-specific) */
-export type AgentEffect = 'agent:spawn' | 'agent:kill' | 'agent:communicate'
-  | 'agent:observe' | 'agent:control';
+export type AgentEffect =
+  | 'agent:spawn'
+  | 'agent:kill'
+  | 'agent:communicate'
+  | 'agent:observe'
+  | 'agent:control';
 
 /** Union of all possible effects */
 export type VREffect =
-  | IOEffect | StateEffect | ExceptionEffect
-  | PhysicsEffect | RenderEffect | AudioEffect
-  | InventoryEffect | AuthorityEffect | ResourceEffect | AgentEffect;
+  | IOEffect
+  | StateEffect
+  | ExceptionEffect
+  | PhysicsEffect
+  | RenderEffect
+  | AudioEffect
+  | InventoryEffect
+  | AuthorityEffect
+  | ResourceEffect
+  | AgentEffect;
 
 // =============================================================================
 // EFFECT CATEGORIES
@@ -68,9 +107,16 @@ export type VREffect =
 
 /** The 10 effect categories */
 export type EffectCategory =
-  | 'io' | 'state' | 'exception'
-  | 'physics' | 'render' | 'audio'
-  | 'inventory' | 'authority' | 'resource' | 'agent';
+  | 'io'
+  | 'state'
+  | 'exception'
+  | 'physics'
+  | 'render'
+  | 'audio'
+  | 'inventory'
+  | 'authority'
+  | 'resource'
+  | 'agent';
 
 /** Map effect to its category */
 export function effectCategory(effect: VREffect): EffectCategory {
@@ -79,16 +125,49 @@ export function effectCategory(effect: VREffect): EffectCategory {
 
 /** All effects in a given category */
 export const EFFECTS_BY_CATEGORY: Record<EffectCategory, readonly VREffect[]> = {
-  io:         ['io:read', 'io:write', 'io:network', 'io:timer'],
-  state:      ['state:read', 'state:write', 'state:global', 'state:persistent'],
-  exception:  ['exception:throw', 'exception:catch', 'exception:panic'],
-  physics:    ['physics:force', 'physics:impulse', 'physics:collision', 'physics:teleport', 'physics:gravity', 'physics:joint'],
-  render:     ['render:spawn', 'render:destroy', 'render:material', 'render:particle', 'render:light', 'render:shader', 'render:gaussian'],
-  audio:      ['audio:play', 'audio:stop', 'audio:spatial', 'audio:global', 'audio:reverb'],
-  inventory:  ['inventory:take', 'inventory:give', 'inventory:destroy', 'inventory:duplicate', 'inventory:trade'],
-  authority:  ['authority:own', 'authority:delegate', 'authority:revoke', 'authority:zone', 'authority:world'],
-  resource:   ['resource:cpu', 'resource:memory', 'resource:gpu', 'resource:bandwidth', 'resource:storage'],
-  agent:      ['agent:spawn', 'agent:kill', 'agent:communicate', 'agent:observe', 'agent:control'],
+  io: ['io:read', 'io:write', 'io:network', 'io:timer'],
+  state: ['state:read', 'state:write', 'state:global', 'state:persistent'],
+  exception: ['exception:throw', 'exception:catch', 'exception:panic'],
+  physics: [
+    'physics:force',
+    'physics:impulse',
+    'physics:collision',
+    'physics:teleport',
+    'physics:gravity',
+    'physics:joint',
+  ],
+  render: [
+    'render:spawn',
+    'render:destroy',
+    'render:material',
+    'render:particle',
+    'render:light',
+    'render:shader',
+    'render:gaussian',
+  ],
+  audio: ['audio:play', 'audio:stop', 'audio:spatial', 'audio:global', 'audio:reverb'],
+  inventory: [
+    'inventory:take',
+    'inventory:give',
+    'inventory:destroy',
+    'inventory:duplicate',
+    'inventory:trade',
+  ],
+  authority: [
+    'authority:own',
+    'authority:delegate',
+    'authority:revoke',
+    'authority:zone',
+    'authority:world',
+  ],
+  resource: [
+    'resource:cpu',
+    'resource:memory',
+    'resource:gpu',
+    'resource:bandwidth',
+    'resource:storage',
+  ],
+  agent: ['agent:spawn', 'agent:kill', 'agent:communicate', 'agent:observe', 'agent:control'],
 };
 
 // =============================================================================
@@ -111,7 +190,9 @@ export class EffectRow {
   static readonly PURE = new EffectRow([]);
 
   /** Create from effect strings */
-  static of(...effects: VREffect[]): EffectRow { return new EffectRow(effects); }
+  static of(...effects: VREffect[]): EffectRow {
+    return new EffectRow(effects);
+  }
 
   /** Create from a category — include all effects in that category */
   static fromCategory(cat: EffectCategory): EffectRow {
@@ -128,45 +209,61 @@ export class EffectRow {
   /** Row intersection: effects in both rows */
   intersect(other: EffectRow): EffectRow {
     const common: VREffect[] = [];
-    for (const e of this.effects) { if (other.has(e)) common.push(e); }
+    for (const e of this.effects) {
+      if (other.has(e)) common.push(e);
+    }
     return new EffectRow(common);
   }
 
   /** Row difference: effects in this but not other */
   difference(other: EffectRow): EffectRow {
     const diff: VREffect[] = [];
-    for (const e of this.effects) { if (!other.has(e)) diff.push(e); }
+    for (const e of this.effects) {
+      if (!other.has(e)) diff.push(e);
+    }
     return new EffectRow(diff);
   }
 
   /** Does this row contain the given effect? */
-  has(effect: VREffect): boolean { return this.effects.has(effect); }
+  has(effect: VREffect): boolean {
+    return this.effects.has(effect);
+  }
 
   /** Does this row contain ALL effects from the other row? (subtyping) */
   subsumes(other: EffectRow): boolean {
-    for (const e of other.effects) { if (!this.effects.has(e)) return false; }
+    for (const e of other.effects) {
+      if (!this.effects.has(e)) return false;
+    }
     return true;
   }
 
   /** Check if this row has any effects from a given category */
   hasCategory(cat: EffectCategory): boolean {
-    for (const e of this.effects) { if (effectCategory(e) === cat) return true; }
+    for (const e of this.effects) {
+      if (effectCategory(e) === cat) return true;
+    }
     return false;
   }
 
   /** Get all effects of a given category in this row */
   ofCategory(cat: EffectCategory): VREffect[] {
-    return [...this.effects].filter(e => effectCategory(e) === cat);
+    return [...this.effects].filter((e) => effectCategory(e) === cat);
   }
 
   /** Is this the pure (no-effect) row? */
-  isPure(): boolean { return this.effects.size === 0; }
+  isPure(): boolean {
+    return this.effects.size === 0;
+  }
 
   /** Number of effects */
-  get size(): number { return this.effects.size; }
+  get size(): number {
+    return this.effects.size;
+  }
 
   /** Get all effects as array */
-  toArray(): VREffect[] { return [...this.effects]; }
+  toArray(): VREffect[] {
+    return [...this.effects];
+  }
 
   /** Get categories present in this row */
   categories(): EffectCategory[] {
@@ -182,10 +279,14 @@ export class EffectRow {
   }
 
   /** Serialize to JSON-friendly format */
-  toJSON(): VREffect[] { return this.toArray(); }
+  toJSON(): VREffect[] {
+    return this.toArray();
+  }
 
   /** Deserialize from JSON */
-  static fromJSON(arr: VREffect[]): EffectRow { return new EffectRow(arr); }
+  static fromJSON(arr: VREffect[]): EffectRow {
+    return new EffectRow(arr);
+  }
 }
 
 // =============================================================================

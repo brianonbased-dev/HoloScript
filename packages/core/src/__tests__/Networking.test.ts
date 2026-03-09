@@ -4,9 +4,9 @@ import { StateReplicator } from '../network/StateReplicator';
 import { RPCManager } from '../network/RPCManager';
 
 describe('Cycle 121: Networking & Replication', () => {
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   // -------------------------------------------------------------------------
   // NetworkTransport
@@ -26,7 +26,10 @@ describe('Cycle 121: Networking & Replication', () => {
   });
 
   it('should simulate packet loss', () => {
-    const transport = new NetworkTransport('server', { simulatedLatency: 0, simulatedPacketLoss: 1 });
+    const transport = new NetworkTransport('server', {
+      simulatedLatency: 0,
+      simulatedPacketLoss: 1,
+    });
     transport.connect('client1');
 
     const received: unknown[] = [];

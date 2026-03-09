@@ -22,11 +22,14 @@ class MCPClient {
 
     this.server = spawn('node', ['dist/index.js'], {
       cwd: __dirname,
-      stdio: ['pipe', 'pipe', 'inherit']
+      stdio: ['pipe', 'pipe', 'inherit'],
     });
 
     this.server.stdout.on('data', (data) => {
-      const lines = data.toString().split('\n').filter(l => l.trim());
+      const lines = data
+        .toString()
+        .split('\n')
+        .filter((l) => l.trim());
 
       for (const line of lines) {
         try {
@@ -49,8 +52,8 @@ class MCPClient {
       params: {
         protocolVersion: '2024-11-05',
         capabilities: {},
-        clientInfo: { name: 'test-client', version: '1.0.0' }
-      }
+        clientInfo: { name: 'test-client', version: '1.0.0' },
+      },
     });
 
     console.log('✅ Server initialized\n');
@@ -91,15 +94,13 @@ async function main() {
     const toolsResult = await client.send({
       jsonrpc: '2.0',
       method: 'tools/list',
-      params: {}
+      params: {},
     });
 
-    const browserTools = toolsResult.result.tools.filter(t =>
-      t.name.startsWith('browser_')
-    );
+    const browserTools = toolsResult.result.tools.filter((t) => t.name.startsWith('browser_'));
 
     console.log(`\n✅ Found ${browserTools.length} browser tools:`);
-    browserTools.forEach(tool => {
+    browserTools.forEach((tool) => {
       console.log(`   - ${tool.name}: ${tool.description}`);
     });
 
@@ -118,9 +119,9 @@ async function main() {
           holoscriptFile: '../../examples/hello-world.hs',
           width: 1280,
           height: 720,
-          headless: true
-        }
-      }
+          headless: true,
+        },
+      },
     });
 
     if (launchResult.result.content[0].text.includes('success')) {
@@ -140,9 +141,9 @@ async function main() {
           name: 'browser_execute',
           arguments: {
             sessionId,
-            script: 'document.title'
-          }
-        }
+            script: 'document.title',
+          },
+        },
       });
 
       console.log('✅ JavaScript executed successfully');
@@ -160,9 +161,9 @@ async function main() {
             sessionId,
             outputPath: join(__dirname, 'screenshots', 'test-hello-world.png'),
             type: 'png',
-            fullPage: false
-          }
-        }
+            fullPage: false,
+          },
+        },
       });
 
       console.log('✅ Screenshot captured successfully');
@@ -174,7 +175,6 @@ async function main() {
     } else {
       throw new Error('Browser launch failed');
     }
-
   } catch (error) {
     console.error('\n❌ Test failed:', error.message);
     process.exit(1);

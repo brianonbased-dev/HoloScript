@@ -9,8 +9,14 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  getBridgeStatus, perlinNoise2D, perlinNoise3D, fbmNoise,
-  sphereSphereTest, aabbOverlap, astarFindPath, generateHeightmap,
+  getBridgeStatus,
+  perlinNoise2D,
+  perlinNoise3D,
+  fbmNoise,
+  sphereSphereTest,
+  aabbOverlap,
+  astarFindPath,
+  generateHeightmap,
 } from '@/lib/spatialEngineBridge';
 
 // ═══════════════════════════════════════════════════════════════════

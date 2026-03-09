@@ -22,12 +22,12 @@ export interface WGSLCompileResult {
 
 /** PBR surface inputs resolved from graph edges or defaults. */
 interface ResolvedPBRInputs {
-  albedo: string;    // WGSL expression for vec3f
+  albedo: string; // WGSL expression for vec3f
   roughness: string; // WGSL expression for f32
-  metallic: string;  // WGSL expression for f32
-  normal: string;    // WGSL expression for vec3f
-  emission: string;  // WGSL expression for vec3f
-  alpha: string;     // WGSL expression for f32
+  metallic: string; // WGSL expression for f32
+  normal: string; // WGSL expression for vec3f
+  emission: string; // WGSL expression for vec3f
+  alpha: string; // WGSL expression for f32
 }
 
 // ── Default PBR Values ─────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ export class WGSLTranslator {
   private needsTimeUniform: boolean = false;
 
   constructor(nodes: GNode[], edges: GEdge[]) {
-    nodes.forEach(n => this.nodes.set(n.id, n));
+    nodes.forEach((n) => this.nodes.set(n.id, n));
     this.edges = edges;
   }
 
@@ -111,7 +111,7 @@ export class WGSLTranslator {
     this.generatedCode.push(``);
 
     // Add common noise functions early
-    if (Array.from(this.nodes.values()).some(n => n.type === 'NoiseNode')) {
+    if (Array.from(this.nodes.values()).some((n) => n.type === 'NoiseNode')) {
       this.addSimplexNoiseFunction();
     }
   }
@@ -161,10 +161,10 @@ export class WGSLTranslator {
 
   private findOutputNode(): GNode | null {
     // Check for standard material output first
-    let out = Array.from(this.nodes.values()).find(n => n.type === 'PBROutput');
+    let out = Array.from(this.nodes.values()).find((n) => n.type === 'PBROutput');
     if (!out) {
       // Fallback to older pure-color output
-      out = Array.from(this.nodes.values()).find(n => n.type === 'output');
+      out = Array.from(this.nodes.values()).find((n) => n.type === 'output');
     }
     return out || null;
   }
@@ -178,7 +178,7 @@ export class WGSLTranslator {
    */
   private resolveNodeChain(outputNode: GNode) {
     // Find all edges targeting the output node
-    const incomingEdges = this.edges.filter(e => e.target === outputNode.id);
+    const incomingEdges = this.edges.filter((e) => e.target === outputNode.id);
 
     for (const edge of incomingEdges) {
       this.resolveNode(edge.source);
@@ -201,7 +201,7 @@ export class WGSLTranslator {
     }
 
     // Resolve upstream dependencies first (edges where this node is the target)
-    const upstreamEdges = this.edges.filter(e => e.target === nodeId);
+    const upstreamEdges = this.edges.filter((e) => e.target === nodeId);
     const upstreamVars: Map<string, string> = new Map();
     for (const edge of upstreamEdges) {
       const varName = this.resolveNode(edge.source);
@@ -302,21 +302,36 @@ export class WGSLTranslator {
         const a = inputs.get('a') ?? '0.0';
         const b = inputs.get('b') ?? '0.0';
         switch (op) {
-          case 'add': return `(${a} + ${b})`;
-          case 'sub': return `(${a} - ${b})`;
-          case 'mul': return `(${a} * ${b})`;
-          case 'div': return `(${a} / max(${b}, 0.0001))`;
-          case 'sin': return `sin(${a})`;
-          case 'cos': return `cos(${a})`;
-          case 'pow': return `pow(${a}, ${b})`;
-          case 'max': return `max(${a}, ${b})`;
-          case 'min': return `min(${a}, ${b})`;
-          case 'mix': return `mix(${a}, ${b}, 0.5)`;
-          case 'dot': return `dot(${a}, ${b})`;
-          case 'length': return `length(${a})`;
-          case 'fract': return `fract(${a})`;
-          case 'smoothstep': return `smoothstep(0.0, 1.0, ${a})`;
-          default: return `(${a} + ${b})`;
+          case 'add':
+            return `(${a} + ${b})`;
+          case 'sub':
+            return `(${a} - ${b})`;
+          case 'mul':
+            return `(${a} * ${b})`;
+          case 'div':
+            return `(${a} / max(${b}, 0.0001))`;
+          case 'sin':
+            return `sin(${a})`;
+          case 'cos':
+            return `cos(${a})`;
+          case 'pow':
+            return `pow(${a}, ${b})`;
+          case 'max':
+            return `max(${a}, ${b})`;
+          case 'min':
+            return `min(${a}, ${b})`;
+          case 'mix':
+            return `mix(${a}, ${b}, 0.5)`;
+          case 'dot':
+            return `dot(${a}, ${b})`;
+          case 'length':
+            return `length(${a})`;
+          case 'fract':
+            return `fract(${a})`;
+          case 'smoothstep':
+            return `smoothstep(0.0, 1.0, ${a})`;
+          default:
+            return `(${a} + ${b})`;
         }
       }
 
@@ -495,7 +510,7 @@ export class WGSLTranslator {
   private inferMathOutputType(
     nodeId: string,
     nodeType: string,
-    upstreamVars?: Map<string, string>,
+    upstreamVars?: Map<string, string>
   ): string {
     // For mathNode with scalar-output operations, always return f32
     if (nodeType === 'mathNode' || nodeType === 'math') {
@@ -507,16 +522,16 @@ export class WGSLTranslator {
     }
 
     // Collect types from all upstream nodes connected to this node
-    const incomingEdges = this.edges.filter(e => e.target === nodeId);
+    const incomingEdges = this.edges.filter((e) => e.target === nodeId);
     if (incomingEdges.length === 0) {
       return 'f32';
     }
 
     const TYPE_RANK: Record<string, number> = {
-      'f32': 0,
-      'vec2f': 1,
-      'vec3f': 2,
-      'vec4f': 3,
+      f32: 0,
+      vec2f: 1,
+      vec3f: 2,
+      vec4f: 3,
     };
 
     let widestType = 'f32';
@@ -545,9 +560,7 @@ export class WGSLTranslator {
    * (input port) on the output node.
    */
   private findInputEdge(outputNodeId: string, targetHandle: string): GEdge | undefined {
-    return this.edges.find(
-      e => e.target === outputNodeId && e.targetHandle === targetHandle
-    );
+    return this.edges.find((e) => e.target === outputNodeId && e.targetHandle === targetHandle);
   }
 
   /**
@@ -584,7 +597,11 @@ export class WGSLTranslator {
     if (outputNode.type === 'PBROutput') {
       // Resolve each PBR input from connected edges or use defaults
       const albedoExpr = this.resolvePBRInput(outputNode.id, 'albedo', PBR_DEFAULTS.albedo);
-      const roughnessExpr = this.resolvePBRInput(outputNode.id, 'roughness', PBR_DEFAULTS.roughness);
+      const roughnessExpr = this.resolvePBRInput(
+        outputNode.id,
+        'roughness',
+        PBR_DEFAULTS.roughness
+      );
       const metallicExpr = this.resolvePBRInput(outputNode.id, 'metallic', PBR_DEFAULTS.metallic);
       const normalExpr = this.resolvePBRInput(outputNode.id, 'normal', PBR_DEFAULTS.normal);
       const emissionExpr = this.resolvePBRInput(outputNode.id, 'emission', PBR_DEFAULTS.emission);
@@ -611,10 +628,14 @@ export class WGSLTranslator {
       this.generatedCode.push(``);
       this.generatedCode.push(`  // Fresnel-Schlick (F0 from metallic)`);
       this.generatedCode.push(`  let F0 = mix(vec3f(0.04), albedo, metallic);`);
-      this.generatedCode.push(`  let fresnel = F0 + (vec3f(1.0) - F0) * pow(1.0 - max(dot(halfVec, viewDir), 0.0), 5.0);`);
+      this.generatedCode.push(
+        `  let fresnel = F0 + (vec3f(1.0) - F0) * pow(1.0 - max(dot(halfVec, viewDir), 0.0), 5.0);`
+      );
       this.generatedCode.push(``);
       this.generatedCode.push(`  // Combine diffuse + specular + emission`);
-      this.generatedCode.push(`  let diffuse = albedo * (vec3f(1.0) - fresnel) * (1.0 - metallic) * NdotL;`);
+      this.generatedCode.push(
+        `  let diffuse = albedo * (vec3f(1.0) - fresnel) * (1.0 - metallic) * NdotL;`
+      );
       this.generatedCode.push(`  let specular = fresnel * spec * NdotL;`);
       this.generatedCode.push(`  let ambient = albedo * 0.03;`);
       this.generatedCode.push(`  let color = ambient + diffuse + specular + emission;`);
@@ -642,7 +663,9 @@ export class WGSLTranslator {
 
   private addSimplexNoiseFunction() {
     this.generatedCode.push(`// Simplex Noise (WGSL)`);
-    this.generatedCode.push(`fn permute(x: vec3f) -> vec3f { return ((x * 34.0) + 1.0) * x % 289.0; }`);
+    this.generatedCode.push(
+      `fn permute(x: vec3f) -> vec3f { return ((x * 34.0) + 1.0) * x % 289.0; }`
+    );
     this.generatedCode.push(`fn snoise(v: vec2f) -> f32 {`);
     this.generatedCode.push(`  // Minimal noise stub for compilation validity`);
     this.generatedCode.push(`  return sin(v.x * 10.0) * cos(v.y * 10.0);`);

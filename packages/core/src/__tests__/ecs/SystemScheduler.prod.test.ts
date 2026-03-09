@@ -12,12 +12,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { SystemScheduler } from '../../ecs/SystemScheduler';
 import type { SystemPhase } from '../../ecs/SystemScheduler';
 
-function makeSS() { return new SystemScheduler(); }
+function makeSS() {
+  return new SystemScheduler();
+}
 
 // ── register / unregister ─────────────────────────────────────────────────────
 
 describe('SystemScheduler — register', () => {
-
   it('registered system is returned by getSystem', () => {
     const s = makeSS();
     s.register('physics', () => {});
@@ -61,7 +62,6 @@ describe('SystemScheduler — register', () => {
 // ── enable / disable ──────────────────────────────────────────────────────────
 
 describe('SystemScheduler — enable / disable', () => {
-
   it('isEnabled returns true for newly registered system', () => {
     const s = makeSS();
     s.register('sys', () => {});
@@ -103,7 +103,6 @@ describe('SystemScheduler — enable / disable', () => {
 // ── execution order ───────────────────────────────────────────────────────────
 
 describe('SystemScheduler — getExecutionOrder', () => {
-
   it('returns names of registered systems', () => {
     const s = makeSS();
     s.register('input', () => {}, 'preUpdate');
@@ -148,7 +147,6 @@ describe('SystemScheduler — getExecutionOrder', () => {
 // ── update ────────────────────────────────────────────────────────────────────
 
 describe('SystemScheduler — update', () => {
-
   it('calls registered system execute with dt', () => {
     const s = makeSS();
     const fn = vi.fn();
@@ -170,7 +168,7 @@ describe('SystemScheduler — update', () => {
     const fn = vi.fn();
     s.register('fixed', fn, 'fixedUpdate');
     s.setFixedTimeStep(0.016);
-    s.update(0.020); // slightly above one step
+    s.update(0.02); // slightly above one step
     expect(fn).toHaveBeenCalled();
   });
 
@@ -197,7 +195,6 @@ describe('SystemScheduler — update', () => {
 // ── phase stats ───────────────────────────────────────────────────────────────
 
 describe('SystemScheduler — getPhaseStats', () => {
-
   it('stats are empty before first update', () => {
     const s = makeSS();
     s.register('sys', () => {});
@@ -218,14 +215,13 @@ describe('SystemScheduler — getPhaseStats', () => {
 // ── getSystemsByPhase ─────────────────────────────────────────────────────────
 
 describe('SystemScheduler — getSystemsByPhase', () => {
-
   it('returns only systems in the given phase', () => {
     const s = makeSS();
     s.register('preA', () => {}, 'preUpdate');
     s.register('renderA', () => {}, 'render');
     const renderSystems = s.getSystemsByPhase('render');
-    expect(renderSystems.some(x => x.name === 'renderA')).toBe(true);
-    expect(renderSystems.some(x => x.name === 'preA')).toBe(false);
+    expect(renderSystems.some((x) => x.name === 'renderA')).toBe(true);
+    expect(renderSystems.some((x) => x.name === 'preA')).toBe(false);
   });
 
   it('returns empty array for phase with no systems', () => {
@@ -237,7 +233,6 @@ describe('SystemScheduler — getSystemsByPhase', () => {
 // ── fixed timestep ────────────────────────────────────────────────────────────
 
 describe('SystemScheduler — fixedTimeStep', () => {
-
   it('getFixedTimeStep returns default ~1/60', () => {
     const s = makeSS();
     expect(s.getFixedTimeStep()).toBeCloseTo(1 / 60, 5);

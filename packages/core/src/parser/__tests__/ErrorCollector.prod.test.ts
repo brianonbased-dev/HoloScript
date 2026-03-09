@@ -144,7 +144,8 @@ describe('withErrorCollection — Production', () => {
 // ─── SynchronizationStrategies ───────────────────────────────────────────
 
 describe('SynchronizationStrategies — Production', () => {
-  const mkTokens = (...types: string[]) => types.map((t, i) => ({ type: t, value: t.toLowerCase() }));
+  const mkTokens = (...types: string[]) =>
+    types.map((t, i) => ({ type: t, value: t.toLowerCase() }));
 
   it('skipToStatement finds SEMICOLON', () => {
     const tokens = mkTokens('IDENT', 'IDENT', 'SEMICOLON', 'IDENT');

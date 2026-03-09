@@ -6,21 +6,21 @@ import type { ScenarioEntry, ScenarioCategory } from './ScenarioGallery';
 // ─── Category Styling ───────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<ScenarioCategory, { primary: string; bg: string; border: string }> = {
-  science:     { primary: '#4ecdc4', bg: '#4ecdc408', border: '#4ecdc440' },
+  science: { primary: '#4ecdc4', bg: '#4ecdc408', border: '#4ecdc440' },
   engineering: { primary: '#3b82f6', bg: '#3b82f608', border: '#3b82f640' },
-  health:      { primary: '#22c55e', bg: '#22c55e08', border: '#22c55e40' },
-  arts:        { primary: '#a855f7', bg: '#a855f708', border: '#a855f740' },
-  nature:      { primary: '#f59e0b', bg: '#f59e0b08', border: '#f59e0b40' },
-  society:     { primary: '#ec4899', bg: '#ec489908', border: '#ec489940' },
+  health: { primary: '#22c55e', bg: '#22c55e08', border: '#22c55e40' },
+  arts: { primary: '#a855f7', bg: '#a855f708', border: '#a855f740' },
+  nature: { primary: '#f59e0b', bg: '#f59e0b08', border: '#f59e0b40' },
+  society: { primary: '#ec4899', bg: '#ec489908', border: '#ec489940' },
 };
 
 const CATEGORY_LABELS: Record<ScenarioCategory, { label: string; emoji: string }> = {
-  science:     { label: 'Science', emoji: '\u{1F52C}' },
+  science: { label: 'Science', emoji: '\u{1F52C}' },
   engineering: { label: 'Engineering', emoji: '\u{2699}\u{FE0F}' },
-  health:      { label: 'Health', emoji: '\u{1F3E5}' },
-  arts:        { label: 'Arts', emoji: '\u{1F3A8}' },
-  nature:      { label: 'Nature', emoji: '\u{1F30D}' },
-  society:     { label: 'Society', emoji: '\u{1F465}' },
+  health: { label: 'Health', emoji: '\u{1F3E5}' },
+  arts: { label: 'Arts', emoji: '\u{1F3A8}' },
+  nature: { label: 'Nature', emoji: '\u{1F30D}' },
+  society: { label: 'Society', emoji: '\u{1F465}' },
 };
 
 // ─── Props ──────────────────────────────────────────────────────
@@ -44,7 +44,12 @@ export interface ScenarioCardProps {
  * Displays the scenario name, emoji icon, category badge, description,
  * tags, and test count. Supports hover effects and selection state.
  */
-export function ScenarioCard({ scenario, onSelect, isActive = false, className }: ScenarioCardProps) {
+export function ScenarioCard({
+  scenario,
+  onSelect,
+  isActive = false,
+  className,
+}: ScenarioCardProps) {
   const cat = CATEGORY_COLORS[scenario.category];
   const catLabel = CATEGORY_LABELS[scenario.category];
 
@@ -59,7 +64,7 @@ export function ScenarioCard({ scenario, onSelect, isActive = false, className }
         onSelect?.(scenario.id);
       }
     },
-    [onSelect, scenario.id],
+    [onSelect, scenario.id]
   );
 
   return (
@@ -105,7 +110,15 @@ export function ScenarioCard({ scenario, onSelect, isActive = false, className }
       </div>
 
       {/* Description */}
-      <p style={{ fontSize: 12, color: '#8899aa', lineHeight: 1.4, marginBottom: 8, margin: '0 0 8px 0' }}>
+      <p
+        style={{
+          fontSize: 12,
+          color: '#8899aa',
+          lineHeight: 1.4,
+          marginBottom: 8,
+          margin: '0 0 8px 0',
+        }}
+      >
         {scenario.description}
       </p>
 

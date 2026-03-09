@@ -77,11 +77,15 @@ export const PackageSigningTrait: TraitHandler<PackageSigningConfig> = {
   compileWeb(config: PackageSigningConfig): string {
     return `
 // Package Signing - ${config.signature_algorithm}
-${config.signature_algorithm === 'ed25519' ? `
+${
+  config.signature_algorithm === 'ed25519'
+    ? `
 import { ed25519 } from '@noble/curves/ed25519';
-` : `
+`
+    : `
 import { secp256k1 } from '@noble/curves/secp256k1';
-`}
+`
+}
 
 class PackageSigner {
   constructor() {
@@ -90,7 +94,9 @@ class PackageSigner {
     this.includeTimestamp = ${config.include_timestamp || false};
   }
 
-  ${config.signature_algorithm === 'ed25519' ? `
+  ${
+    config.signature_algorithm === 'ed25519'
+      ? `
   // Ed25519 signing (recommended)
   async generateKeyPair() {
     const privateKey = ed25519.utils.randomPrivateKey();
@@ -122,7 +128,9 @@ class PackageSigner {
     const digest = await this.computeDigest(packageData);
     return ed25519.verify(signature.signature, digest, publicKey);
   }
-  ` : config.signature_algorithm === 'ecdsa_secp256k1' ? `
+  `
+      : config.signature_algorithm === 'ecdsa_secp256k1'
+        ? `
   // ECDSA secp256k1 signing (Ethereum-compatible)
   async generateKeyPair() {
     const privateKey = secp256k1.utils.randomPrivateKey();
@@ -152,7 +160,8 @@ class PackageSigner {
     const sig = secp256k1.Signature.fromCompact(signatureData.signature);
     return secp256k1.verify(sig, digest, publicKey);
   }
-  ` : `
+  `
+        : `
   // Web Crypto API - ECDSA P-256
   async generateKeyPair() {
     const keyPair = await crypto.subtle.generateKey(
@@ -204,7 +213,8 @@ class PackageSigner {
       digest
     );
   }
-  `}
+  `
+  }
 
   async computeDigest(data) {
     const hashAlgorithm = this.digestAlgorithm.replace(/\\d+/, '-$&').toUpperCase();
@@ -212,7 +222,9 @@ class PackageSigner {
     return new Uint8Array(digest);
   }
 
-  ${config.include_timestamp ? `
+  ${
+    config.include_timestamp
+      ? `
   async verifyTimestamp(signatureData, maxAgeMs = 86400000) {
     if (!signatureData.timestamp) {
       throw new Error('Signature does not include timestamp');
@@ -225,9 +237,13 @@ class PackageSigner {
 
     return true;
   }
-  ` : ''}
+  `
+      : ''
+  }
 
-  ${config.signature_format === 'detached' ? `
+  ${
+    config.signature_format === 'detached'
+      ? `
   // Detached signature (signature stored separately)
   exportSignature(signatureData) {
     return JSON.stringify({
@@ -238,7 +254,8 @@ class PackageSigner {
       algorithm: signatureData.algorithm
     });
   }
-  ` : `
+  `
+      : `
   // Embedded signature (signature included in package)
   embedSignature(packageData, signatureData) {
     const header = new TextEncoder().encode(JSON.stringify({
@@ -261,7 +278,8 @@ class PackageSigner {
 
     return result;
   }
-  `}
+  `
+  }
 }
 
 export default new PackageSigner();`;
@@ -278,7 +296,9 @@ class PackageSigner {
     this.digestAlgorithm = '${config.digest_algorithm}';
   }
 
-  ${config.signature_algorithm === 'ed25519' ? `
+  ${
+    config.signature_algorithm === 'ed25519'
+      ? `
   // Ed25519 signing
   generateKeyPair() {
     return crypto.generateKeyPairSync('ed25519', {
@@ -303,7 +323,8 @@ class PackageSigner {
     const digest = crypto.createHash(this.digestAlgorithm).update(packageData).digest();
     return crypto.verify(null, digest, publicKey, signatureData.signature);
   }
-  ` : `
+  `
+      : `
   // ECDSA signing
   generateKeyPair() {
     const curve = this.algorithm.includes('secp256k1') ? 'secp256k1' : 'prime256v1';
@@ -336,7 +357,8 @@ class PackageSigner {
 
     return verify.verify(publicKey, signatureData.signature);
   }
-  `}
+  `
+  }
 }
 
 module.exports = new PackageSigner();`;
@@ -352,7 +374,9 @@ pragma solidity ^0.8.0;
  * Algorithm: ${config.signature_algorithm}
  */
 contract PackageVerifier {
-    ${config.signature_algorithm.includes('ecdsa') ? `
+    ${
+      config.signature_algorithm.includes('ecdsa')
+        ? `
     // ECDSA signature verification (Ethereum-native)
     function verifyPackageSignature(
         bytes32 packageHash,
@@ -380,7 +404,8 @@ contract PackageVerifier {
             v := byte(0, mload(add(sig, 96)))
         }
     }
-    ` : `
+    `
+        : `
     // Ed25519 verification requires external library
     // Placeholder for Ed25519 verification
     function verifyEd25519(
@@ -391,9 +416,12 @@ contract PackageVerifier {
         // Implementation requires Ed25519 precompile or library
         revert("Ed25519 verification not natively supported");
     }
-    `}
+    `
+    }
 
-    ${config.include_timestamp ? `
+    ${
+      config.include_timestamp
+        ? `
     mapping(bytes32 => uint256) public packageTimestamps;
 
     function verifyWithTimestamp(
@@ -406,13 +434,15 @@ contract PackageVerifier {
         require(block.timestamp - timestamp <= maxAge, "Signature expired");
         return verifyPackageSignature(packageHash, signature, signer);
     }
-    ` : ''}
+    `
+        : ''
+    }
 }`;
   },
 
   compileGeneric(config: PackageSigningConfig): string {
     return JSON.stringify(config, null, 2);
-  }
+  },
 };
 
 export default PackageSigningTrait;

@@ -116,7 +116,9 @@ describe('SpringAnimator — Production', () => {
 
   it('onRest callback fires when spring settles', () => {
     let restFired = false;
-    const s = new SpringAnimator(0, SpringPresets.stiff, undefined, () => { restFired = true; });
+    const s = new SpringAnimator(0, SpringPresets.stiff, undefined, () => {
+      restFired = true;
+    });
     settle(s, 10);
     expect(restFired).toBe(true);
   });

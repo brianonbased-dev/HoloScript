@@ -6,7 +6,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { VoiceManager, ElevenLabsAdapter, AzureVoiceAdapter, type VoiceProvider } from '../NeuralVoiceAdapter';
+import {
+  VoiceManager,
+  ElevenLabsAdapter,
+  AzureVoiceAdapter,
+  type VoiceProvider,
+} from '../NeuralVoiceAdapter';
 
 function mockProvider(name: string): VoiceProvider {
   return {

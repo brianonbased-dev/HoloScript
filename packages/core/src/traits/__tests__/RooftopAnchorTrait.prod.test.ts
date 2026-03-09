@@ -11,8 +11,13 @@ import rooftopAnchorHandler from '../RooftopAnchorTrait';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function makeNode(): any { return {}; }
-function makeCtx() { const emit = vi.fn(); return { emit }; }
+function makeNode(): any {
+  return {};
+}
+function makeCtx() {
+  const emit = vi.fn();
+  return { emit };
+}
 
 function makeConfig(overrides: Record<string, unknown> = {}) {
   return {
@@ -35,7 +40,9 @@ function attach(overrides: Record<string, unknown> = {}) {
   return { node, ctx, cfg };
 }
 
-function st(node: any) { return (node as any).__rooftopAnchorState; }
+function st(node: any) {
+  return (node as any).__rooftopAnchorState;
+}
 
 function fire(node: any, cfg: any, ctx: any, event: Record<string, unknown>) {
   rooftopAnchorHandler.onEvent!(node, cfg, ctx as any, event);
@@ -44,7 +51,6 @@ function fire(node: any, cfg: any, ctx: any, event: Record<string, unknown>) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('RooftopAnchorTrait — Production', () => {
-
   beforeEach(() => vi.clearAllMocks());
 
   // ─── defaultConfig ──────────────────────────────────────────────────
@@ -80,10 +86,13 @@ describe('RooftopAnchorTrait — Production', () => {
 
   it('emits rooftop_anchor_request when auto_resolve is true', () => {
     const { ctx } = attach({ auto_resolve: true, latitude: 40.7, longitude: -74.0 });
-    expect(ctx.emit).toHaveBeenCalledWith('rooftop_anchor_request', expect.objectContaining({
-      latitude: 40.7,
-      longitude: -74.0,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'rooftop_anchor_request',
+      expect.objectContaining({
+        latitude: 40.7,
+        longitude: -74.0,
+      })
+    );
   });
 
   it('does NOT emit rooftop_anchor_request when auto_resolve is false', () => {
@@ -106,10 +115,19 @@ describe('RooftopAnchorTrait — Production', () => {
 
   it('emits rooftop_anchor_release when anchorHandle is set', () => {
     const { node, ctx, cfg } = attach();
-    fire(node, cfg, ctx, { type: 'rooftop_anchor_resolved', handle: 'H1', buildingHeight: 30, confidence: 0.9, position: { x: 0, y: 30, z: 0 } });
+    fire(node, cfg, ctx, {
+      type: 'rooftop_anchor_resolved',
+      handle: 'H1',
+      buildingHeight: 30,
+      confidence: 0.9,
+      position: { x: 0, y: 30, z: 0 },
+    });
     ctx.emit.mockClear();
     rooftopAnchorHandler.onDetach!(node, cfg as any, ctx as any);
-    expect(ctx.emit).toHaveBeenCalledWith('rooftop_anchor_release', expect.objectContaining({ handle: 'H1' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'rooftop_anchor_release',
+      expect.objectContaining({ handle: 'H1' })
+    );
   });
 
   // ─── onEvent: rooftop_anchor_resolved ───────────────────────────────
@@ -132,11 +150,14 @@ describe('RooftopAnchorTrait — Production', () => {
     expect(s.estimatedFloors).toBe(15);
     expect(s.confidence).toBe(0.95);
     expect(s.anchorHandle).toBe('H2');
-    expect(ctx.emit).toHaveBeenCalledWith('on_rooftop_resolved', expect.objectContaining({
-      buildingHeight: 45,
-      floors: 15,
-      confidence: 0.95,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_rooftop_resolved',
+      expect.objectContaining({
+        buildingHeight: 45,
+        floors: 15,
+        confidence: 0.95,
+      })
+    );
   });
 
   it('resolved event estimates floors from height when not provided', () => {
@@ -173,18 +194,24 @@ describe('RooftopAnchorTrait — Production', () => {
     expect(s.state).toBe('resolved');
     expect(s.isResolved).toBe(true);
     expect(s.confidence).toBe(0.5);
-    expect(ctx.emit).toHaveBeenCalledWith('on_rooftop_fallback', expect.objectContaining({
-      fallbackHeight: 15,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_rooftop_fallback',
+      expect.objectContaining({
+        fallbackHeight: 15,
+      })
+    );
   });
 
   it('not_found emits rooftop_anchor_fallback with height + elevation_offset', () => {
     const { node, ctx, cfg } = attach({ fallback_height: 10, elevation_offset: 3 });
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'rooftop_anchor_not_found' });
-    expect(ctx.emit).toHaveBeenCalledWith('rooftop_anchor_fallback', expect.objectContaining({
-      height: 13, // 10 + 3
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'rooftop_anchor_fallback',
+      expect.objectContaining({
+        height: 13, // 10 + 3
+      })
+    );
   });
 
   // ─── onEvent: rooftop_pose_update ───────────────────────────────────
@@ -203,9 +230,12 @@ describe('RooftopAnchorTrait — Production', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'rooftop_anchor_unavailable', reason: 'GPS blocked' });
     expect(st(node).state).toBe('unavailable');
-    expect(ctx.emit).toHaveBeenCalledWith('on_rooftop_unavailable', expect.objectContaining({
-      reason: 'GPS blocked',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_rooftop_unavailable',
+      expect.objectContaining({
+        reason: 'GPS blocked',
+      })
+    );
   });
 
   // ─── onEvent: query ──────────────────────────────────────────────────
@@ -214,11 +244,14 @@ describe('RooftopAnchorTrait — Production', () => {
     const { node, ctx, cfg } = attach({ latitude: 48.8, longitude: 2.35 });
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'rooftop_anchor_query', queryId: 'Q42' });
-    expect(ctx.emit).toHaveBeenCalledWith('rooftop_anchor_info', expect.objectContaining({
-      queryId: 'Q42',
-      latitude: 48.8,
-      longitude: 2.35,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'rooftop_anchor_info',
+      expect.objectContaining({
+        queryId: 'Q42',
+        latitude: 48.8,
+        longitude: 2.35,
+      })
+    );
   });
 
   // ─── onEvent: manual resolve ─────────────────────────────────────────

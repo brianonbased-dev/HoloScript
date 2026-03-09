@@ -24,7 +24,7 @@ export interface RopeConfig {
   gravity: { x: number; y: number; z: number };
   damping: number;
   iterations: number;
-  elasticity: number;   // 0-1 stiffness
+  elasticity: number; // 0-1 stiffness
 }
 
 export interface RopeAttachment {
@@ -38,22 +38,35 @@ export interface RopeAttachment {
 // =============================================================================
 
 export class RopeSystem {
-  private ropes: Map<string, { nodes: RopeNode[]; config: RopeConfig; attachments: RopeAttachment[] }> = new Map();
+  private ropes: Map<
+    string,
+    { nodes: RopeNode[]; config: RopeConfig; attachments: RopeAttachment[] }
+  > = new Map();
 
   // ---------------------------------------------------------------------------
   // Creation
   // ---------------------------------------------------------------------------
 
-  createRope(id: string, start: { x: number; y: number; z: number }, end: { x: number; y: number; z: number }, config?: Partial<RopeConfig>): void {
+  createRope(
+    id: string,
+    start: { x: number; y: number; z: number },
+    end: { x: number; y: number; z: number },
+    config?: Partial<RopeConfig>
+  ): void {
     const segCount = config?.segmentCount ?? 10;
-    const dx = end.x - start.x, dy = end.y - start.y, dz = end.z - start.z;
+    const dx = end.x - start.x,
+      dy = end.y - start.y,
+      dz = end.z - start.z;
     const totalLength = Math.sqrt(dx * dx + dy * dy + dz * dz);
     const autoSegmentLength = totalLength / segCount;
 
     const cfg: RopeConfig = {
-      segmentCount: segCount, segmentLength: autoSegmentLength,
+      segmentCount: segCount,
+      segmentLength: autoSegmentLength,
       gravity: { x: 0, y: -9.81, z: 0 },
-      damping: 0.98, iterations: 8, elasticity: 1,
+      damping: 0.98,
+      iterations: 8,
+      elasticity: 1,
       ...config,
     };
 
@@ -71,7 +84,8 @@ export class RopeSystem {
           y: start.y + (end.y - start.y) * t,
           z: start.z + (end.z - start.z) * t,
         },
-        mass: 1, pinned: false,
+        mass: 1,
+        pinned: false,
       });
     }
 
@@ -124,16 +138,27 @@ export class RopeSystem {
       // Constraint solving
       for (let iter = 0; iter < config.iterations; iter++) {
         for (let i = 0; i < nodes.length - 1; i++) {
-          const a = nodes[i], b = nodes[i + 1];
+          const a = nodes[i],
+            b = nodes[i + 1];
           const dx = b.position.x - a.position.x;
           const dy = b.position.y - a.position.y;
           const dz = b.position.z - a.position.z;
           const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.0001;
-          const diff = (config.segmentLength - dist) / dist * config.elasticity * 0.5;
+          const diff = ((config.segmentLength - dist) / dist) * config.elasticity * 0.5;
 
-          const ox = dx * diff, oy = dy * diff, oz = dz * diff;
-          if (!a.pinned) { a.position.x -= ox; a.position.y -= oy; a.position.z -= oz; }
-          if (!b.pinned) { b.position.x += ox; b.position.y += oy; b.position.z += oz; }
+          const ox = dx * diff,
+            oy = dy * diff,
+            oz = dz * diff;
+          if (!a.pinned) {
+            a.position.x -= ox;
+            a.position.y -= oy;
+            a.position.z -= oz;
+          }
+          if (!b.pinned) {
+            b.position.x += ox;
+            b.position.y += oy;
+            b.position.z += oz;
+          }
         }
       }
     }
@@ -143,14 +168,19 @@ export class RopeSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getRopeNodes(ropeId: string): RopeNode[] { return this.ropes.get(ropeId)?.nodes ?? []; }
+  getRopeNodes(ropeId: string): RopeNode[] {
+    return this.ropes.get(ropeId)?.nodes ?? [];
+  }
   getRopeLength(ropeId: string): number {
     const nodes = this.ropes.get(ropeId)?.nodes;
     if (!nodes || nodes.length < 2) return 0;
     let len = 0;
     for (let i = 1; i < nodes.length; i++) {
-      const a = nodes[i - 1].position, b = nodes[i].position;
-      const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+      const a = nodes[i - 1].position,
+        b = nodes[i].position;
+      const dx = b.x - a.x,
+        dy = b.y - a.y,
+        dz = b.z - a.z;
       len += Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
     return len;
@@ -158,11 +188,18 @@ export class RopeSystem {
   getTension(ropeId: string, nodeIndex: number): number {
     const rope = this.ropes.get(ropeId);
     if (!rope || nodeIndex < 0 || nodeIndex >= rope.nodes.length - 1) return 0;
-    const a = rope.nodes[nodeIndex].position, b = rope.nodes[nodeIndex + 1].position;
-    const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+    const a = rope.nodes[nodeIndex].position,
+      b = rope.nodes[nodeIndex + 1].position;
+    const dx = b.x - a.x,
+      dy = b.y - a.y,
+      dz = b.z - a.z;
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
     return Math.abs(dist - rope.config.segmentLength) / rope.config.segmentLength;
   }
-  getRopeCount(): number { return this.ropes.size; }
-  removeRope(id: string): void { this.ropes.delete(id); }
+  getRopeCount(): number {
+    return this.ropes.size;
+  }
+  removeRope(id: string): void {
+    this.ropes.delete(id);
+  }
 }

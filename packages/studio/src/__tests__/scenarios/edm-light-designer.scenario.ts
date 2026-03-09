@@ -72,9 +72,9 @@ describe('Scenario: EDM Light Designer — DMX Fixtures', () => {
   });
 
   it('detectDmxCollision() finds overlapping channels', () => {
-    const a = createFixture('a', 'A', 'par', 1);    // 1-4
-    const b = createFixture('b', 'B', 'par', 3);    // 3-6 (overlap!)
-    const c = createFixture('c', 'C', 'par', 10);   // 10-13 (no overlap)
+    const a = createFixture('a', 'A', 'par', 1); // 1-4
+    const b = createFixture('b', 'B', 'par', 3); // 3-6 (overlap!)
+    const c = createFixture('c', 'C', 'par', 10); // 10-13 (no overlap)
     const collisions = detectDmxCollision([a, b, c]);
     expect(collisions).toHaveLength(1);
     expect(collisions[0][0]).toBe('a');
@@ -167,7 +167,7 @@ describe('Scenario: EDM Light Designer — Beat Sync', () => {
   });
 
   it('createStrobePattern() returns boolean on/off at 128 BPM', () => {
-    const on = createStrobePattern(128, 1, 0);  // phase=0 → on
+    const on = createStrobePattern(128, 1, 0); // phase=0 → on
     expect(typeof on).toBe('boolean');
     expect(on).toBe(true);
   });
@@ -213,8 +213,11 @@ describe('Scenario: EDM Light Designer — Cue Sheet', () => {
 
   beforeEach(() => {
     cueSheet = {
-      id: 'show-1', name: 'Main Stage Set', bpm: 128,
-      cues: [], looping: true,
+      id: 'show-1',
+      name: 'Main Stage Set',
+      bpm: 128,
+      cues: [],
+      looping: true,
     };
   });
 
@@ -224,9 +227,13 @@ describe('Scenario: EDM Light Designer — Cue Sheet', () => {
 
   it('can add a cue with fade-in/out timing', () => {
     const cue: LightCue = {
-      id: 'cue-1', name: 'Drop Hit',
+      id: 'cue-1',
+      name: 'Drop Hit',
       fixtures: new Map([['par-1', { intensity: 1, color: { r: 255, g: 0, b: 255 } }]]),
-      fadeInMs: 0, fadeOutMs: 500, holdMs: 2000, beatSync: true,
+      fadeInMs: 0,
+      fadeOutMs: 500,
+      holdMs: 2000,
+      beatSync: true,
     };
     cueSheet.cues.push(cue);
     expect(cueSheet.cues).toHaveLength(1);
@@ -235,18 +242,26 @@ describe('Scenario: EDM Light Designer — Cue Sheet', () => {
 
   it('build-up cue has long fade-in', () => {
     const buildUp: LightCue = {
-      id: 'cue-buildup', name: 'Build Up',
+      id: 'cue-buildup',
+      name: 'Build Up',
       fixtures: new Map([['wash-1', { intensity: 0.8, color: { r: 0, g: 100, b: 255 } }]]),
-      fadeInMs: 8000, fadeOutMs: 200, holdMs: 0, beatSync: false,
+      fadeInMs: 8000,
+      fadeOutMs: 200,
+      holdMs: 0,
+      beatSync: false,
     };
     expect(buildUp.fadeInMs).toBe(8000);
   });
 
   it('drop cue has instant (0ms) fade-in', () => {
     const drop: LightCue = {
-      id: 'cue-drop', name: 'Drop',
+      id: 'cue-drop',
+      name: 'Drop',
       fixtures: new Map([['strobe-1', { intensity: 1, color: { r: 255, g: 255, b: 255 } }]]),
-      fadeInMs: 0, fadeOutMs: 0, holdMs: 500, beatSync: true,
+      fadeInMs: 0,
+      fadeOutMs: 0,
+      holdMs: 500,
+      beatSync: true,
     };
     expect(drop.fadeInMs).toBe(0);
     expect(drop.beatSync).toBe(true);
@@ -254,7 +269,9 @@ describe('Scenario: EDM Light Designer — Cue Sheet', () => {
 
   it('fixture group supports chase sync mode', () => {
     const group: FixtureGroup = {
-      id: 'truss-left', name: 'Left Truss', fixtureIds: ['par-1', 'par-2', 'par-3', 'par-4'],
+      id: 'truss-left',
+      name: 'Left Truss',
+      fixtureIds: ['par-1', 'par-2', 'par-3', 'par-4'],
       syncMode: 'chase',
     };
     expect(group.syncMode).toBe('chase');
@@ -263,9 +280,13 @@ describe('Scenario: EDM Light Designer — Cue Sheet', () => {
 
   it('fog machine cue triggers independently', () => {
     const fogCue: LightCue = {
-      id: 'fog', name: 'Fog Burst',
+      id: 'fog',
+      name: 'Fog Burst',
       fixtures: new Map([['fog-1', { intensity: 1, color: { r: 255, g: 255, b: 255 } }]]),
-      fadeInMs: 0, fadeOutMs: 3000, holdMs: 5000, beatSync: false,
+      fadeInMs: 0,
+      fadeOutMs: 3000,
+      holdMs: 5000,
+      beatSync: false,
     };
     expect(fogCue.holdMs).toBe(5000);
   });
@@ -277,7 +298,7 @@ describe('Scenario: EDM Light Designer — Cue Sheet', () => {
       { id: 'c2', startMs: 15000, name: 'Drop' },
     ];
     cues.sort((a, b) => a.startMs - b.startMs);
-    expect(cues.map(c => c.name)).toEqual(['Intro', 'Drop', 'Outro']);
+    expect(cues.map((c) => c.name)).toEqual(['Intro', 'Drop', 'Outro']);
   });
 
   it('SMPTE timecode parses HH:MM:SS:FF format', () => {

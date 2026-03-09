@@ -83,7 +83,12 @@ export function clearAllAPIKeys() {
  */
 export function hasAPIKey(service: keyof typeof STORAGE_KEYS): boolean {
   const keys = loadAPIKeys();
-  const key = service === 'meshy' ? keys.meshyApiKey : service === 'rodin' ? keys.rodinApiKey : keys.sketchfabApiKey;
+  const key =
+    service === 'meshy'
+      ? keys.meshyApiKey
+      : service === 'rodin'
+        ? keys.rodinApiKey
+        : keys.sketchfabApiKey;
   return !!key && key.length > 0;
 }
 
@@ -146,12 +151,15 @@ export default function APIKeysPanel({ onClose, autoFocus }: APIKeysPanelProps) 
 
       <div className="panel-description">
         <p>
-          <strong>AI Orchestration Keys</strong> — Configure your own AI providers for building orchestrations in Hololand.
+          <strong>AI Orchestration Keys</strong> — Configure your own AI providers for building
+          orchestrations in Hololand.
           <br />
-          Free tier includes Brittney + all manual tools. Cloud Brittney usage is token-based. Pro unlocks the vision model.
+          Free tier includes Brittney + all manual tools. Cloud Brittney usage is token-based. Pro
+          unlocks the vision model.
         </p>
         <p className="privacy-note">
-          🔒 <strong>Privacy:</strong> Keys stored locally in your browser. Never sent to HoloScript servers.
+          🔒 <strong>Privacy:</strong> Keys stored locally in your browser. Never sent to HoloScript
+          servers.
         </p>
       </div>
 
@@ -191,9 +199,7 @@ export default function APIKeysPanel({ onClose, autoFocus }: APIKeysPanelProps) 
               </button>
             )}
           </div>
-          {meshyKey && !showKeys && (
-            <div className="key-preview">Saved: {maskKey(meshyKey)}</div>
-          )}
+          {meshyKey && !showKeys && <div className="key-preview">Saved: {maskKey(meshyKey)}</div>}
         </div>
 
         {/* Rodin AI */}
@@ -231,9 +237,7 @@ export default function APIKeysPanel({ onClose, autoFocus }: APIKeysPanelProps) 
               </button>
             )}
           </div>
-          {rodinKey && !showKeys && (
-            <div className="key-preview">Saved: {maskKey(rodinKey)}</div>
-          )}
+          {rodinKey && !showKeys && <div className="key-preview">Saved: {maskKey(rodinKey)}</div>}
         </div>
 
         {/* Sketchfab */}

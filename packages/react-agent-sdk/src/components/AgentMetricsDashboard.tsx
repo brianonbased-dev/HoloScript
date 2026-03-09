@@ -74,7 +74,9 @@ export function AgentMetricsDashboard({
 
       {/* Circuit State */}
       <div className="metrics-dashboard__section">
-        <div className={`metrics-dashboard__circuit-badge metrics-dashboard__circuit-badge--${metrics.circuitState}`}>
+        <div
+          className={`metrics-dashboard__circuit-badge metrics-dashboard__circuit-badge--${metrics.circuitState}`}
+        >
           Circuit: {metrics.circuitState.toUpperCase()}
         </div>
       </div>
@@ -136,13 +138,13 @@ export function AgentMetricsDashboard({
       {metrics.lastError && (
         <div className="metrics-dashboard__last-error">
           <div className="metrics-dashboard__last-error-label">Last Error:</div>
-          <div className="metrics-dashboard__last-error-message">
-            {metrics.lastError.message}
-          </div>
+          <div className="metrics-dashboard__last-error-message">{metrics.lastError.message}</div>
         </div>
       )}
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .metrics-dashboard {
           padding: 20px;
           border: 1px solid #e0e0e0;
@@ -297,7 +299,9 @@ export function AgentMetricsDashboard({
           color: #333;
           font-family: monospace;
         }
-      ` }} />
+      `,
+        }}
+      />
     </div>
   );
 }

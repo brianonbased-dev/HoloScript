@@ -3,10 +3,15 @@ import { DialogueRunner, type DialogueNode } from '../DialogueRunner';
 
 const simpleDialogue: DialogueNode[] = [
   { id: 'start', type: 'text', speaker: 'NPC', text: 'Hello, {name}!', nextId: 'choice1' },
-  { id: 'choice1', type: 'choice', text: 'What do you say?', choices: [
-    { label: 'Greet', nextId: 'greet' },
-    { label: 'Secret', nextId: 'secret', condition: 'hasKey' },
-  ]},
+  {
+    id: 'choice1',
+    type: 'choice',
+    text: 'What do you say?',
+    choices: [
+      { label: 'Greet', nextId: 'greet' },
+      { label: 'Secret', nextId: 'secret', condition: 'hasKey' },
+    ],
+  },
   { id: 'greet', type: 'text', speaker: 'NPC', text: 'Nice to meet you!', nextId: 'end' },
   { id: 'secret', type: 'text', speaker: 'NPC', text: 'You found the key!' },
   { id: 'end', type: 'event', event: 'dialogue_complete', nextId: undefined },

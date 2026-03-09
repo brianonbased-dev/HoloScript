@@ -103,14 +103,14 @@ export class InstancedRenderer {
 
     // Check if batch is full
     if (batch.count >= batch.maxInstances && batch.freeIndices.length === 0) {
-      console.warn(`[InstancedRenderer] Batch ${batchKey} is full (${batch.maxInstances} instances)`);
+      console.warn(
+        `[InstancedRenderer] Batch ${batchKey} is full (${batch.maxInstances} instances)`
+      );
       return false;
     }
 
     // Get instance index (reuse free index or use next available)
-    const instanceIndex = batch.freeIndices.length > 0
-      ? batch.freeIndices.pop()!
-      : batch.count++;
+    const instanceIndex = batch.freeIndices.length > 0 ? batch.freeIndices.pop()! : batch.count++;
 
     // Create transform matrix
     const matrix = this.createTransformMatrix(position, rotation, scale);
@@ -242,7 +242,11 @@ export class InstancedRenderer {
   /**
    * Create a new batch
    */
-  private createBatch(key: string, geometryType: string, materialType: string): InstanceBatch | null {
+  private createBatch(
+    key: string,
+    geometryType: string,
+    materialType: string
+  ): InstanceBatch | null {
     if (typeof (window as any).THREE === 'undefined') return null;
 
     const THREE = (window as any).THREE;
@@ -426,9 +430,10 @@ export class InstancedRenderer {
 
     const drawCalls = this.batches.size;
     const nonInstancedDrawCalls = totalInstances;
-    const improvement = nonInstancedDrawCalls > 0
-      ? `${((1 - drawCalls / nonInstancedDrawCalls) * 100).toFixed(1)}% fewer draw calls`
-      : 'N/A';
+    const improvement =
+      nonInstancedDrawCalls > 0
+        ? `${((1 - drawCalls / nonInstancedDrawCalls) * 100).toFixed(1)}% fewer draw calls`
+        : 'N/A';
 
     return {
       batchCount: this.batches.size,

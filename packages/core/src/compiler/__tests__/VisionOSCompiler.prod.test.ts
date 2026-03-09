@@ -4,7 +4,7 @@
  * Covers: Swift/RealityKit output, ImmersiveSpace, RealityView,
  * objects, lights, audio, zones, timelines, transitions, UI components.
  */
-import { describe, it, expect, beforeEach, vi} from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VisionOSCompiler } from '../VisionOSCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
@@ -15,7 +15,6 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
-
 
 function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
@@ -28,7 +27,11 @@ function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   } as HoloComposition;
 }
 
-function makeObj(name: string, props: Array<{ key: string; value: unknown }> = [], traits: any[] = []): HoloObjectDecl {
+function makeObj(
+  name: string,
+  props: Array<{ key: string; value: unknown }> = [],
+  traits: any[] = []
+): HoloObjectDecl {
   return {
     name,
     properties: props.map(({ key, value }) => ({ key, value })),
@@ -126,101 +129,135 @@ describe('VisionOSCompiler — Production', () => {
 
   // ─── Physics trait ────────────────────────────────────────────────────
   it('physics trait compiles without error', () => {
-    const obj = makeObj('PhysBox', [{ key: 'mesh', value: 'cube' }], [{ name: 'physics', config: {} }]);
+    const obj = makeObj(
+      'PhysBox',
+      [{ key: 'mesh', value: 'cube' }],
+      [{ name: 'physics', config: {} }]
+    );
     const out = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toBeDefined();
   });
 
   // ─── Lights ──────────────────────────────────────────────────────────
   it('compiles point light', () => {
-    const out = compiler.compile(makeComp({
-      lights: [{ name: 'Key', type: 'point', intensity: 1000, color: '#ffffff' }],
-    }), 'test-token');
+    const out = compiler.compile(
+      makeComp({
+        lights: [{ name: 'Key', type: 'point', intensity: 1000, color: '#ffffff' }],
+      }),
+      'test-token'
+    );
     expect(out).toContain('Key');
   });
 
   it('compiles directional light', () => {
-    const out = compiler.compile(makeComp({
-      lights: [{ name: 'Sun', type: 'directional', intensity: 5, color: '#fff8e7' }],
-    }), 'test-token');
+    const out = compiler.compile(
+      makeComp({
+        lights: [{ name: 'Sun', type: 'directional', intensity: 5, color: '#fff8e7' }],
+      }),
+      'test-token'
+    );
     expect(out).toBeDefined();
   });
 
   it('compiles spot light', () => {
-    const out = compiler.compile(makeComp({
-      lights: [{ name: 'Spot', type: 'spot', intensity: 2000, color: '#ffd700' }],
-    }), 'test-token');
+    const out = compiler.compile(
+      makeComp({
+        lights: [{ name: 'Spot', type: 'spot', intensity: 2000, color: '#ffd700' }],
+      }),
+      'test-token'
+    );
     expect(out).toBeDefined();
   });
 
   // ─── Audio ───────────────────────────────────────────────────────────
   // HoloAudio.properties is an array of { key, value } pairs
   it('compiles spatial audio', () => {
-    const out = compiler.compile(makeComp({
-      audio: [{
-        name: 'Ambient',
-        properties: [
-          { key: 'src', value: 'forest.mp3' },
-          { key: 'loop', value: true },
-          { key: 'volume', value: 0.5 },
+    const out = compiler.compile(
+      makeComp({
+        audio: [
+          {
+            name: 'Ambient',
+            properties: [
+              { key: 'src', value: 'forest.mp3' },
+              { key: 'loop', value: true },
+              { key: 'volume', value: 0.5 },
+            ],
+          },
         ],
-      }],
-    } as any), 'test-token');
+      } as any),
+      'test-token'
+    );
     expect(out).toBeDefined();
   });
 
   // ─── Timelines ───────────────────────────────────────────────────────
   // HoloTimeline uses 'entries' not 'keyframes'
   it('compiles a timeline', () => {
-    const out = compiler.compile(makeComp({
-      timelines: [{ name: 'Pulse', duration: 1.5, entries: [] }],
-    } as any), 'test-token');
+    const out = compiler.compile(
+      makeComp({
+        timelines: [{ name: 'Pulse', duration: 1.5, entries: [] }],
+      } as any),
+      'test-token'
+    );
     expect(out).toContain('Pulse');
   });
 
   // ─── Transitions ─────────────────────────────────────────────────────
   // HoloTransition.properties is a { key, value }[] array accessed via .find()
   it('compiles transitions', () => {
-    const out = compiler.compile(makeComp({
-      transitions: [{
-        name: 'FadeIn',
-        properties: [
-          { key: 'target', value: 'SceneB' },
-          { key: 'effect', value: 'fade' },
-          { key: 'duration', value: 0.5 },
+    const out = compiler.compile(
+      makeComp({
+        transitions: [
+          {
+            name: 'FadeIn',
+            properties: [
+              { key: 'target', value: 'SceneB' },
+              { key: 'effect', value: 'fade' },
+              { key: 'duration', value: 0.5 },
+            ],
+          },
         ],
-      }],
-    } as any), 'test-token');
+      } as any),
+      'test-token'
+    );
     expect(out).toContain('FadeIn');
   });
 
   // ─── Zones ───────────────────────────────────────────────────────────
   // HoloZone.properties is a { key, value }[] array accessed via .find()
   it('compiles trigger zones', () => {
-    const out = compiler.compile(makeComp({
-      zones: [{
-        name: 'TriggerArea',
-        properties: [
-          { key: 'shape', value: 'sphere' },
-          { key: 'radius', value: 2 },
+    const out = compiler.compile(
+      makeComp({
+        zones: [
+          {
+            name: 'TriggerArea',
+            properties: [
+              { key: 'shape', value: 'sphere' },
+              { key: 'radius', value: 2 },
+            ],
+            handlers: [],
+          },
         ],
-        handlers: [],
-      }],
-    } as any), 'test-token');
+      } as any),
+      'test-token'
+    );
     expect(out).toBeDefined();
   });
 
   // ─── Effects ─────────────────────────────────────────────────────────
   // HoloEffects uses .effects array (not .particles)
   it('compiles effects', () => {
-    const out = compiler.compile(makeComp({
-      effects: {
-        effects: [
-          { effectType: 'bloom', properties: [] },
-          { effectType: 'dof', properties: [] },
-        ],
-      },
-    } as any), 'test-token');
+    const out = compiler.compile(
+      makeComp({
+        effects: {
+          effects: [
+            { effectType: 'bloom', properties: [] },
+            { effectType: 'dof', properties: [] },
+          ],
+        },
+      } as any),
+      'test-token'
+    );
     expect(out).toBeDefined();
   });
 

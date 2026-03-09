@@ -14,7 +14,9 @@ function makeSimpleCutscene(id = 'intro', duration = 5): CutsceneDefinition {
 describe('CutsceneTimeline', () => {
   let timeline: CutsceneTimeline;
 
-  beforeEach(() => { timeline = new CutsceneTimeline(); });
+  beforeEach(() => {
+    timeline = new CutsceneTimeline();
+  });
 
   // ---------------------------------------------------------------------------
   // Load / Remove

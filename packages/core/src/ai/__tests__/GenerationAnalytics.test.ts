@@ -21,7 +21,9 @@ function makeMetric(overrides: Partial<GenerationMetrics> = {}): GenerationMetri
 describe('GenerationAnalytics', () => {
   let ga: GenerationAnalytics;
 
-  beforeEach(() => { ga = new GenerationAnalytics(); });
+  beforeEach(() => {
+    ga = new GenerationAnalytics();
+  });
 
   // ---------------------------------------------------------------------------
   // Record / Get

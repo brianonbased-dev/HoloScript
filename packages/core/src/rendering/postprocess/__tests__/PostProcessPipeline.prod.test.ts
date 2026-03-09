@@ -6,7 +6,12 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PostProcessPipeline, DEFAULT_PIPELINE_CONFIG, createPostProcessPipeline, createHDRPipeline } from '../PostProcessPipeline';
+import {
+  PostProcessPipeline,
+  DEFAULT_PIPELINE_CONFIG,
+  createPostProcessPipeline,
+  createHDRPipeline,
+} from '../PostProcessPipeline';
 
 describe('PostProcessPipeline — Production', () => {
   let pipeline: PostProcessPipeline;

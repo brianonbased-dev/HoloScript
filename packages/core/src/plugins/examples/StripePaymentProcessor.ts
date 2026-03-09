@@ -11,14 +11,8 @@
  * @example Example plugin implementation
  */
 
-import {
-  BasePaymentProcessor,
-  type PaymentProcessorConfig,
-} from '../HololandExtensionPoint';
-import type {
-  PaymentRequest,
-  PaymentReceipt,
-} from '../HololandTypes';
+import { BasePaymentProcessor, type PaymentProcessorConfig } from '../HololandExtensionPoint';
+import type { PaymentRequest, PaymentReceipt } from '../HololandTypes';
 
 /**
  * Stripe payment processor implementation
@@ -143,7 +137,7 @@ export class StripePaymentProcessor extends BasePaymentProcessor {
     const response = await fetch(`${this.stripeApiUrl}/payment_intents`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.config!.apiKey}`,
+        Authorization: `Bearer ${this.config!.apiKey}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
@@ -200,7 +194,7 @@ export class StripePaymentProcessor extends BasePaymentProcessor {
       // Retrieve Payment Intent from Stripe
       const response = await fetch(`${this.stripeApiUrl}/payment_intents/${txHash}`, {
         headers: {
-          'Authorization': `Bearer ${this.config!.apiKey}`,
+          Authorization: `Bearer ${this.config!.apiKey}`,
         },
       });
 
@@ -237,7 +231,7 @@ export class StripePaymentProcessor extends BasePaymentProcessor {
       // Check API connectivity by retrieving account info
       const response = await fetch(`${this.stripeApiUrl}/account`, {
         headers: {
-          'Authorization': `Bearer ${this.config!.apiKey}`,
+          Authorization: `Bearer ${this.config!.apiKey}`,
         },
       });
 

@@ -14,10 +14,18 @@ function makeWorld(initialBodies: Record<string, any> = {}) {
   const contacts: ContactEvent[] = [];
 
   return {
-    addBody(id: string, config: any) { bodies[id] = { ...config, velocity: { x: 0, y: 0, z: 0 } }; },
-    getBody(id: string) { return bodies[id] ?? null; },
-    removeBody(id: string) { delete bodies[id]; },
-    getContacts() { return contacts; },
+    addBody(id: string, config: any) {
+      bodies[id] = { ...config, velocity: { x: 0, y: 0, z: 0 } };
+    },
+    getBody(id: string) {
+      return bodies[id] ?? null;
+    },
+    removeBody(id: string) {
+      delete bodies[id];
+    },
+    getContacts() {
+      return contacts;
+    },
     // test helpers
     _bodies: bodies,
     _contacts: contacts,
@@ -40,7 +48,6 @@ function makeContext(left: VRHand | null, right: VRHand | null) {
 // =============================================================================
 
 describe('VRPhysicsBridge — Production Tests', () => {
-
   // -------------------------------------------------------------------------
   // Constructor
   // -------------------------------------------------------------------------

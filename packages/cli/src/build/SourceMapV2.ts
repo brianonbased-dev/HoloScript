@@ -279,7 +279,7 @@ export class SourceMapV2 {
 const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 const VLQ_BASE_SHIFT = 5;
 const VLQ_BASE = 1 << VLQ_BASE_SHIFT; // 32
-const VLQ_BASE_MASK = VLQ_BASE - 1;    // 31
+const VLQ_BASE_MASK = VLQ_BASE - 1; // 31
 const VLQ_CONTINUATION_BIT = VLQ_BASE; // 32
 
 /**
@@ -321,6 +321,6 @@ export function vlqDecode(encoded: string): { value: number; rest: string } {
     shift += VLQ_BASE_SHIFT;
   }
 
-  const value = (result & 1) ? -(result >>> 1) : result >>> 1;
+  const value = result & 1 ? -(result >>> 1) : result >>> 1;
   return { value, rest: encoded.slice(i) };
 }

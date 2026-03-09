@@ -119,7 +119,9 @@ export interface MeshComponent {
  */
 export interface PersistenceComponent {
   type: 'XR_SPATIAL_COMPONENT_TYPE_STORABLE';
-  storageLocation: 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_LOCAL' | 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_CLOUD';
+  storageLocation:
+    | 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_LOCAL'
+    | 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_CLOUD';
   persisted: boolean;
 }
 
@@ -188,7 +190,10 @@ export interface SpatialEntitiesDocument {
   /** Source composition name */
   compositionName: string;
   /** Reference space type */
-  referenceSpaceType: 'XR_REFERENCE_SPACE_TYPE_LOCAL' | 'XR_REFERENCE_SPACE_TYPE_STAGE' | 'XR_REFERENCE_SPACE_TYPE_UNBOUNDED';
+  referenceSpaceType:
+    | 'XR_REFERENCE_SPACE_TYPE_LOCAL'
+    | 'XR_REFERENCE_SPACE_TYPE_STAGE'
+    | 'XR_REFERENCE_SPACE_TYPE_UNBOUNDED';
   /** Persistence storage backend */
   storageBackend: 'XR_FB_spatial_entity_storage' | 'XR_ANDROID_device_anchor_persistence';
   /** All spatial entities */
@@ -211,7 +216,10 @@ export interface OpenXRSpatialEntitiesCompilerOptions {
    * Reference space type for the exported scene.
    * @default 'XR_REFERENCE_SPACE_TYPE_STAGE'
    */
-  referenceSpaceType?: 'XR_REFERENCE_SPACE_TYPE_LOCAL' | 'XR_REFERENCE_SPACE_TYPE_STAGE' | 'XR_REFERENCE_SPACE_TYPE_UNBOUNDED';
+  referenceSpaceType?:
+    | 'XR_REFERENCE_SPACE_TYPE_LOCAL'
+    | 'XR_REFERENCE_SPACE_TYPE_STAGE'
+    | 'XR_REFERENCE_SPACE_TYPE_UNBOUNDED';
 
   /**
    * Storage backend for persistence.
@@ -223,7 +231,9 @@ export interface OpenXRSpatialEntitiesCompilerOptions {
    * Default persistence storage location.
    * @default 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_LOCAL'
    */
-  storageLocation?: 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_LOCAL' | 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_CLOUD';
+  storageLocation?:
+    | 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_LOCAL'
+    | 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_CLOUD';
 
   /**
    * Whether to include geospatial metadata when objects have lat/lon/alt.
@@ -360,9 +370,8 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
     const components: SpatialEntityComponent[] = [];
 
     // Mesh component
-    const meshType = this.findProp(obj.properties, 'mesh')
-      || this.findProp(obj.properties, 'type')
-      || 'cube';
+    const meshType =
+      this.findProp(obj.properties, 'mesh') || this.findProp(obj.properties, 'type') || 'cube';
     components.push({
       type: 'XR_SPATIAL_COMPONENT_TYPE_TRIANGLE_MESH',
       meshType: String(meshType),
@@ -378,14 +387,15 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
 
     // Anchor component if object has anchor trait
     const hasAnchorTrait = obj.traits?.some(
-      t => t.name === 'anchor' || t.name === 'persistent_anchor' || t.name === 'shared_anchor'
+      (t) => t.name === 'anchor' || t.name === 'persistent_anchor' || t.name === 'shared_anchor'
     );
     if (hasAnchorTrait) {
       components.push({
         type: 'XR_SPATIAL_COMPONENT_TYPE_LOCATABLE',
-        anchorType: this.options.storageBackend === 'XR_ANDROID_device_anchor_persistence'
-          ? 'device-anchor'
-          : 'spatial-anchor',
+        anchorType:
+          this.options.storageBackend === 'XR_ANDROID_device_anchor_persistence'
+            ? 'device-anchor'
+            : 'spatial-anchor',
         persistenceId: entityId,
       });
     }
@@ -436,7 +446,10 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
   // Spatial group processing
   // ===========================================================================
 
-  private processSpatialGroups(groups: HoloSpatialGroup[] | undefined, parentId: string | null): void {
+  private processSpatialGroups(
+    groups: HoloSpatialGroup[] | undefined,
+    parentId: string | null
+  ): void {
     if (!groups) return;
     for (const group of groups) {
       this.processSpatialGroup(group, parentId);
@@ -518,7 +531,8 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
     });
 
     // Semantic labels for the zone
-    const zoneType = this.findZoneProp(zone, 'type') || this.findZoneProp(zone, 'zone_type') || 'trigger';
+    const zoneType =
+      this.findZoneProp(zone, 'type') || this.findZoneProp(zone, 'zone_type') || 'trigger';
     components.push({
       type: 'XR_SPATIAL_COMPONENT_TYPE_SEMANTIC_LABEL',
       labels: ['zone', String(zoneType), this.sanitizeName(zone.name)],
@@ -547,7 +561,10 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
   // Waypoint processing
   // ===========================================================================
 
-  private processWaypoints(waypointSets: HoloWaypoints[] | undefined, parentId: string | null): void {
+  private processWaypoints(
+    waypointSets: HoloWaypoints[] | undefined,
+    parentId: string | null
+  ): void {
     if (!waypointSets) return;
     for (const wpSet of waypointSets) {
       this.processWaypointSet(wpSet, parentId);
@@ -590,9 +607,10 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
         // Waypoints are anchors with persistence
         components.push({
           type: 'XR_SPATIAL_COMPONENT_TYPE_LOCATABLE',
-          anchorType: this.options.storageBackend === 'XR_ANDROID_device_anchor_persistence'
-            ? 'device-anchor'
-            : 'spatial-anchor',
+          anchorType:
+            this.options.storageBackend === 'XR_ANDROID_device_anchor_persistence'
+              ? 'device-anchor'
+              : 'spatial-anchor',
           persistenceId: entityId,
         });
 
@@ -632,16 +650,15 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
       const entityId = this.generateEntityId(`annot-${uiElement.name}`);
 
       // Try to extract position from UI element properties
-      const posProp = uiElement.properties.find(p => p.key === 'position');
-      const position = posProp && Array.isArray(posProp.value)
-        ? this.toNumberArray(posProp.value)
-        : [0, 0, 0];
+      const posProp = uiElement.properties.find((p) => p.key === 'position');
+      const position =
+        posProp && Array.isArray(posProp.value) ? this.toNumberArray(posProp.value) : [0, 0, 0];
       const pose = this.buildPose(position, [0, 0, 0]);
 
       const components: SpatialEntityComponent[] = [];
 
       // Semantic label for the annotation
-      const labelProp = uiElement.properties.find(p => p.key === 'label' || p.key === 'text');
+      const labelProp = uiElement.properties.find((p) => p.key === 'label' || p.key === 'text');
       const labelText = labelProp ? String(labelProp.value) : uiElement.name;
       components.push({
         type: 'XR_SPATIAL_COMPONENT_TYPE_SEMANTIC_LABEL',
@@ -649,8 +666,8 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
       });
 
       // 2D bounds for text display area
-      const widthProp = uiElement.properties.find(p => p.key === 'width');
-      const heightProp = uiElement.properties.find(p => p.key === 'height');
+      const widthProp = uiElement.properties.find((p) => p.key === 'width');
+      const heightProp = uiElement.properties.find((p) => p.key === 'height');
       components.push({
         type: 'XR_SPATIAL_COMPONENT_TYPE_BOUNDED_2D',
         extent: {
@@ -696,30 +713,30 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
   }
 
   private extractGroupPosition(group: HoloSpatialGroup): number[] {
-    const prop = group.properties.find(p => p.key === 'position');
+    const prop = group.properties.find((p) => p.key === 'position');
     if (prop && Array.isArray(prop.value)) return this.toNumberArray(prop.value);
     return [0, 0, 0];
   }
 
   private extractGroupRotation(group: HoloSpatialGroup): number[] {
-    const prop = group.properties.find(p => p.key === 'rotation');
+    const prop = group.properties.find((p) => p.key === 'rotation');
     if (prop && Array.isArray(prop.value)) return this.toNumberArray(prop.value);
     return [0, 0, 0];
   }
 
   private extractZonePosition(zone: HoloZone): number[] {
-    const prop = zone.properties.find(p => p.key === 'position');
+    const prop = zone.properties.find((p) => p.key === 'position');
     if (prop && Array.isArray(prop.value)) return this.toNumberArray(prop.value);
     return [0, 0, 0];
   }
 
   private extractZoneBounds(zone: HoloZone): XrExtent3Df {
-    const sizeProp = zone.properties.find(p => p.key === 'size' || p.key === 'bounds');
+    const sizeProp = zone.properties.find((p) => p.key === 'size' || p.key === 'bounds');
     if (sizeProp && Array.isArray(sizeProp.value)) {
       const arr = this.toNumberArray(sizeProp.value);
       return { width: arr[0] || 1, height: arr[1] || 1, depth: arr[2] || 1 };
     }
-    const radiusProp = zone.properties.find(p => p.key === 'radius');
+    const radiusProp = zone.properties.find((p) => p.key === 'radius');
     if (radiusProp && typeof radiusProp.value === 'number') {
       const d = radiusProp.value * 2;
       return { width: d, height: d, depth: d };
@@ -761,8 +778,21 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
   private extractMetadata(obj: HoloObjectDecl): Record<string, unknown> {
     const metadata: Record<string, unknown> = {};
     const standardKeys = new Set([
-      'position', 'rotation', 'scale', 'mesh', 'type', 'color', 'material',
-      'latitude', 'lat', 'longitude', 'lon', 'altitude', 'alt', 'tag', 'label',
+      'position',
+      'rotation',
+      'scale',
+      'mesh',
+      'type',
+      'color',
+      'material',
+      'latitude',
+      'lat',
+      'longitude',
+      'lon',
+      'altitude',
+      'alt',
+      'tag',
+      'label',
     ]);
     for (const prop of obj.properties ?? []) {
       if (!standardKeys.has(prop.key)) {
@@ -790,7 +820,7 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
     const orientation = this.eulerToQuaternion(
       eulerDegrees[0] || 0,
       eulerDegrees[1] || 0,
-      eulerDegrees[2] || 0,
+      eulerDegrees[2] || 0
     );
 
     return { position: pos, orientation };
@@ -820,17 +850,20 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
   // Generic helpers
   // ===========================================================================
 
-  private findProp(properties: { key: string; value: HoloValue }[] | undefined, key: string): HoloValue | undefined {
-    return properties?.find(p => p.key === key)?.value;
+  private findProp(
+    properties: { key: string; value: HoloValue }[] | undefined,
+    key: string
+  ): HoloValue | undefined {
+    return properties?.find((p) => p.key === key)?.value;
   }
 
   private findZoneProp(zone: HoloZone, key: string): HoloValue | undefined {
-    return zone.properties.find(p => p.key === key)?.value;
+    return zone.properties.find((p) => p.key === key)?.value;
   }
 
   private toNumberArray(val: HoloValue): number[] {
     if (Array.isArray(val)) {
-      return val.map(v => (typeof v === 'number' ? v : 0));
+      return val.map((v) => (typeof v === 'number' ? v : 0));
     }
     return [0, 0, 0];
   }

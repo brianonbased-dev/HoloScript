@@ -375,7 +375,10 @@ export class ViralPoseTrait {
     this.config.poses = poses;
     this.poseSequence = this.loadPoseSequence();
     this.state.poseIndex = -1;
-    console.log('[ViralPoseTrait] Updated pose sequence:', this.poseSequence.map((p) => p.name));
+    console.log(
+      '[ViralPoseTrait] Updated pose sequence:',
+      this.poseSequence.map((p) => p.name)
+    );
   }
 
   /**
@@ -425,10 +428,7 @@ export class ViralPoseTrait {
 /**
  * React hook for viral pose trait
  */
-export function useViralPose(
-  skeleton: THREE.Skeleton | null,
-  config?: ViralPoseConfig
-) {
+export function useViralPose(skeleton: THREE.Skeleton | null, config?: ViralPoseConfig) {
   const [trait, setTrait] = React.useState<ViralPoseTrait | null>(null);
   const [currentPose, setCurrentPose] = React.useState<ViralPose | null>(null);
 

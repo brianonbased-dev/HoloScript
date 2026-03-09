@@ -18,10 +18,7 @@ import {
 } from './CRDTRoomTrait';
 import type { CRDTRoomTraitConfig } from './CRDTRoomTrait';
 
-import {
-  CRDTRoomTraitHandler,
-  createCRDTRoomTraitHandler,
-} from './CRDTRoomTraitHandler';
+import { CRDTRoomTraitHandler, createCRDTRoomTraitHandler } from './CRDTRoomTraitHandler';
 
 // =============================================================================
 // parseCRDTRoomTraitConfig
@@ -196,7 +193,7 @@ describe('validateCRDTRoomTraitConfig', () => {
         maxPlayers: 32,
         baseSyncRateHz: 20,
         viewDistance: 100,
-      }),
+      })
     ).not.toThrow();
   });
 
@@ -205,38 +202,38 @@ describe('validateCRDTRoomTraitConfig', () => {
   });
 
   it('should reject maxPlayers < 1', () => {
-    expect(() =>
-      validateCRDTRoomTraitConfig({ maxPlayers: 0 }),
-    ).toThrow(CRDTRoomTraitValidationError);
+    expect(() => validateCRDTRoomTraitConfig({ maxPlayers: 0 })).toThrow(
+      CRDTRoomTraitValidationError
+    );
   });
 
   it('should reject maxPlayers > 10000', () => {
-    expect(() =>
-      validateCRDTRoomTraitConfig({ maxPlayers: 20000 }),
-    ).toThrow(CRDTRoomTraitValidationError);
+    expect(() => validateCRDTRoomTraitConfig({ maxPlayers: 20000 })).toThrow(
+      CRDTRoomTraitValidationError
+    );
   });
 
   it('should reject baseSyncRateHz > 120', () => {
-    expect(() =>
-      validateCRDTRoomTraitConfig({ baseSyncRateHz: 200 }),
-    ).toThrow(CRDTRoomTraitValidationError);
+    expect(() => validateCRDTRoomTraitConfig({ baseSyncRateHz: 200 })).toThrow(
+      CRDTRoomTraitValidationError
+    );
   });
 
   it('should reject negative viewDistance', () => {
-    expect(() =>
-      validateCRDTRoomTraitConfig({ viewDistance: -10 }),
-    ).toThrow(CRDTRoomTraitValidationError);
+    expect(() => validateCRDTRoomTraitConfig({ viewDistance: -10 })).toThrow(
+      CRDTRoomTraitValidationError
+    );
   });
 
   it('should reject private without password', () => {
-    expect(() =>
-      validateCRDTRoomTraitConfig({ privacy: 'private' }),
-    ).toThrow(CRDTRoomTraitValidationError);
+    expect(() => validateCRDTRoomTraitConfig({ privacy: 'private' })).toThrow(
+      CRDTRoomTraitValidationError
+    );
   });
 
   it('should accept private with password', () => {
     expect(() =>
-      validateCRDTRoomTraitConfig({ privacy: 'private', password: 'test' }),
+      validateCRDTRoomTraitConfig({ privacy: 'private', password: 'test' })
     ).not.toThrow();
   });
 
@@ -244,7 +241,7 @@ describe('validateCRDTRoomTraitConfig', () => {
     expect(() =>
       validateCRDTRoomTraitConfig({
         syncTiers: { player: 'ultra' as any },
-      }),
+      })
     ).toThrow(CRDTRoomTraitValidationError);
   });
 
@@ -255,7 +252,7 @@ describe('validateCRDTRoomTraitConfig', () => {
           { id: 'spawn', center: [0, 0, 0], radius: 10, priority: 0, syncRateHz: 20 },
           { id: 'spawn', center: [10, 0, 0], radius: 10, priority: 1, syncRateHz: 20 },
         ],
-      }),
+      })
     ).toThrow(CRDTRoomTraitValidationError);
   });
 
@@ -265,7 +262,7 @@ describe('validateCRDTRoomTraitConfig', () => {
         interestRegions: [
           { id: 'invalid', center: [0, 0, 0], radius: 0, priority: 0, syncRateHz: 20 },
         ],
-      }),
+      })
     ).toThrow(CRDTRoomTraitValidationError);
   });
 
@@ -275,7 +272,7 @@ describe('validateCRDTRoomTraitConfig', () => {
         interestRegions: [
           { id: 'zone', center: [0, 0, 0], radius: 10, priority: 5, syncRateHz: 20 },
         ],
-      }),
+      })
     ).toThrow(CRDTRoomTraitValidationError);
   });
 
@@ -284,7 +281,7 @@ describe('validateCRDTRoomTraitConfig', () => {
       validateCRDTRoomTraitConfig({
         heartbeatIntervalMs: 5000,
         presenceTimeoutMs: 6000,
-      }),
+      })
     ).toThrow(CRDTRoomTraitValidationError);
   });
 
@@ -292,7 +289,7 @@ describe('validateCRDTRoomTraitConfig', () => {
     expect(() =>
       validateCRDTRoomTraitConfig({
         sharding: { enabled: true, entityThreshold: 5 },
-      }),
+      })
     ).toThrow(CRDTRoomTraitValidationError);
   });
 });
@@ -354,9 +351,9 @@ describe('createCRDTRoomTraitConfig', () => {
   });
 
   it('should throw on invalid config', () => {
-    expect(() =>
-      createCRDTRoomTraitConfig({ maxPlayers: -5 }),
-    ).toThrow(CRDTRoomTraitValidationError);
+    expect(() => createCRDTRoomTraitConfig({ maxPlayers: -5 })).toThrow(
+      CRDTRoomTraitValidationError
+    );
   });
 });
 
@@ -582,9 +579,7 @@ describe('createCRDTRoomTraitHandler', () => {
   });
 
   it('should throw on invalid raw config', () => {
-    expect(() =>
-      createCRDTRoomTraitHandler({ maxPlayers: -1 }),
-    ).toThrow();
+    expect(() => createCRDTRoomTraitHandler({ maxPlayers: -1 })).toThrow();
   });
 });
 

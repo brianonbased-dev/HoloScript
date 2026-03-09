@@ -66,7 +66,7 @@ function packLIFParams(params: LIFParams, neuronCount: number): ArrayBuffer {
 function packSynapticParams(
   preCount: number,
   postCount: number,
-  learningRate: number,
+  learningRate: number
 ): ArrayBuffer {
   const buf = new ArrayBuffer(SYNAPTIC_PARAMS_SIZE);
   const u32 = new Uint32Array(buf);
@@ -170,19 +170,14 @@ export class SNNNetwork {
         encoder,
         'compute_synaptic_current',
         conn.currentBindGroup,
-        workgroups,
+        workgroups
       );
     }
 
     // Phase 2: LIF neuron update for each layer
     for (const layer of this.layers.values()) {
       const workgroups = computeDispatchSize(layer.config.neuronCount);
-      this.pipelineFactory.encodeDispatch(
-        encoder,
-        'lif_step',
-        layer.lifBindGroup,
-        workgroups,
-      );
+      this.pipelineFactory.encodeDispatch(encoder, 'lif_step', layer.lifBindGroup, workgroups);
     }
 
     // Phase 3: STDP weight updates for learning connections
@@ -193,7 +188,7 @@ export class SNNNetwork {
           encoder,
           'stdp_weight_update',
           conn.stdpBindGroup,
-          workgroups,
+          workgroups
         );
       }
     }
@@ -226,7 +221,7 @@ export class SNNNetwork {
     const layer = this.getLayer(layerName);
     if (spikes.length !== layer.config.neuronCount) {
       throw new Error(
-        `Spike data length (${spikes.length}) must match layer '${layerName}' neuron count (${layer.config.neuronCount})`,
+        `Spike data length (${spikes.length}) must match layer '${layerName}' neuron count (${layer.config.neuronCount})`
       );
     }
     this.bufferManager.writeBuffer(layer.spikesBuffer, spikes);
@@ -265,7 +260,7 @@ export class SNNNetwork {
   async readConnectionWeights(fromLayer: string, toLayer: string): Promise<ReadbackResult> {
     this.ensureInitialized();
     const conn = this.connections.find(
-      (c) => c.config.from === fromLayer && c.config.to === toLayer,
+      (c) => c.config.from === fromLayer && c.config.to === toLayer
     );
     if (!conn) {
       throw new Error(`No connection found from '${fromLayer}' to '${toLayer}'`);
@@ -366,7 +361,10 @@ export class SNNNetwork {
 
     // Membrane potential (initialized to resting)
     const initMembrane = new Float32Array(n).fill(params.vRest);
-    const membraneBuffer = this.bufferManager.createStorageBuffer(initMembrane, `${config.name}-membrane`);
+    const membraneBuffer = this.bufferManager.createStorageBuffer(
+      initMembrane,
+      `${config.name}-membrane`
+    );
 
     // Synaptic input
     const synapticInputBuffer = this.bufferManager.createZeroBuffer(n, `${config.name}-synaptic`);
@@ -378,13 +376,17 @@ export class SNNNetwork {
     const refractoryBuffer = this.bufferManager.createZeroBuffer(n, `${config.name}-refractory`);
 
     // LIF bind group
-    const lifBindGroup = this.pipelineFactory.createBindGroup('lif_step', [
-      paramsBuffer.buffer,
-      membraneBuffer.buffer,
-      synapticInputBuffer.buffer,
-      spikesBuffer.buffer,
-      refractoryBuffer.buffer,
-    ], `${config.name}-lif-bind-group`);
+    const lifBindGroup = this.pipelineFactory.createBindGroup(
+      'lif_step',
+      [
+        paramsBuffer.buffer,
+        membraneBuffer.buffer,
+        synapticInputBuffer.buffer,
+        spikesBuffer.buffer,
+        refractoryBuffer.buffer,
+      ],
+      `${config.name}-lif-bind-group`
+    );
 
     return {
       config: { ...config, neuronCount: n },
@@ -419,28 +421,36 @@ export class SNNNetwork {
     const weights = this.initializeWeights(weightCount, config);
     const weightsBuffer = this.bufferManager.createStorageBuffer(
       weights,
-      `${config.from}-${config.to}-weights`,
+      `${config.from}-${config.to}-weights`
     );
 
     // Current computation bind group
-    const currentBindGroup = this.pipelineFactory.createBindGroup('compute_synaptic_current', [
-      synapticParamsBuffer.buffer,
-      weightsBuffer.buffer,
-      fromLayer.spikesBuffer.buffer,
-      toLayer.synapticInputBuffer.buffer,
-      toLayer.spikesBuffer.buffer, // post spikes (not used in current compute but needed for layout)
-    ], `${config.from}-${config.to}-current-bind-group`);
-
-    // STDP bind group (reuses same layout)
-    let stdpBindGroup: GPUBindGroup | undefined;
-    if (config.stdpEnabled) {
-      stdpBindGroup = this.pipelineFactory.createBindGroup('stdp_weight_update', [
+    const currentBindGroup = this.pipelineFactory.createBindGroup(
+      'compute_synaptic_current',
+      [
         synapticParamsBuffer.buffer,
         weightsBuffer.buffer,
         fromLayer.spikesBuffer.buffer,
         toLayer.synapticInputBuffer.buffer,
-        toLayer.spikesBuffer.buffer,
-      ], `${config.from}-${config.to}-stdp-bind-group`);
+        toLayer.spikesBuffer.buffer, // post spikes (not used in current compute but needed for layout)
+      ],
+      `${config.from}-${config.to}-current-bind-group`
+    );
+
+    // STDP bind group (reuses same layout)
+    let stdpBindGroup: GPUBindGroup | undefined;
+    if (config.stdpEnabled) {
+      stdpBindGroup = this.pipelineFactory.createBindGroup(
+        'stdp_weight_update',
+        [
+          synapticParamsBuffer.buffer,
+          weightsBuffer.buffer,
+          fromLayer.spikesBuffer.buffer,
+          toLayer.synapticInputBuffer.buffer,
+          toLayer.spikesBuffer.buffer,
+        ],
+        `${config.from}-${config.to}-stdp-bind-group`
+      );
     }
 
     return {

@@ -7,8 +7,13 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  ActionNode, ConditionNode, WaitNode,
-  SequenceNode, SelectorNode, InverterNode, RepeaterNode,
+  ActionNode,
+  ConditionNode,
+  WaitNode,
+  SequenceNode,
+  SelectorNode,
+  InverterNode,
+  RepeaterNode,
   BehaviorTree,
 } from '../BehaviorTree';
 
@@ -66,10 +71,7 @@ describe('BehaviorTree — Production', () => {
     });
 
     it('returns running if child is running', () => {
-      const seq = new SequenceNode([
-        new ActionNode('a', () => 'success'),
-        new WaitNode(1.0),
-      ]);
+      const seq = new SequenceNode([new ActionNode('a', () => 'success'), new WaitNode(1.0)]);
       expect(seq.tick({}, 0.016)).toBe('running');
     });
   });
@@ -113,7 +115,10 @@ describe('BehaviorTree — Production', () => {
     it('repeats N times', () => {
       let count = 0;
       const rep = new RepeaterNode(
-        new ActionNode('inc', () => { count++; return 'success'; }),
+        new ActionNode('inc', () => {
+          count++;
+          return 'success';
+        }),
         3
       );
       // Each tick: child succeeds → count++, repeater increments, resets child, returns running

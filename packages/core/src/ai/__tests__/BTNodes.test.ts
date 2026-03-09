@@ -1,9 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
-  BTNode, BTContext,
-  SequenceNode, SelectorNode, ParallelNode,
-  InverterNode, RepeaterNode, GuardNode,
-  ActionNode, ConditionNode, WaitNode,
+  BTNode,
+  BTContext,
+  SequenceNode,
+  SelectorNode,
+  ParallelNode,
+  InverterNode,
+  RepeaterNode,
+  GuardNode,
+  ActionNode,
+  ConditionNode,
+  WaitNode,
 } from '../BTNodes';
 
 const ctx = (dt = 0.016): BTContext => ({
@@ -71,8 +78,14 @@ describe('BTNodes', () => {
     it('runs children in order, succeeds when all succeed', () => {
       const order: string[] = [];
       const seq = new SequenceNode('s', [
-        new ActionNode('1', () => { order.push('1'); return 'success'; }),
-        new ActionNode('2', () => { order.push('2'); return 'success'; }),
+        new ActionNode('1', () => {
+          order.push('1');
+          return 'success';
+        }),
+        new ActionNode('2', () => {
+          order.push('2');
+          return 'success';
+        }),
       ]);
       expect(seq.tick(ctx())).toBe('success');
       expect(order).toEqual(['1', '2']);
@@ -91,7 +104,7 @@ describe('BTNodes', () => {
       let runCount = 0;
       const seq = new SequenceNode('s', [
         new ActionNode('a', () => 'success'),
-        new ActionNode('b', () => ++runCount < 2 ? 'running' : 'success'),
+        new ActionNode('b', () => (++runCount < 2 ? 'running' : 'success')),
       ]);
       expect(seq.tick(ctx())).toBe('running');
       expect(seq.tick(ctx())).toBe('success');
@@ -126,27 +139,33 @@ describe('BTNodes', () => {
 
   describe('ParallelNode', () => {
     it('succeeds when enough children succeed', () => {
-      const par = new ParallelNode('p', [
-        new ActionNode('a', () => 'success'),
-        new ActionNode('b', () => 'success'),
-        new ActionNode('c', () => 'failure'),
-      ], 2);
+      const par = new ParallelNode(
+        'p',
+        [
+          new ActionNode('a', () => 'success'),
+          new ActionNode('b', () => 'success'),
+          new ActionNode('c', () => 'failure'),
+        ],
+        2
+      );
       expect(par.tick(ctx())).toBe('success');
     });
 
     it('fails when too many children fail', () => {
-      const par = new ParallelNode('p', [
-        new ActionNode('a', () => 'failure'),
-        new ActionNode('b', () => 'failure'),
-      ], 2);
+      const par = new ParallelNode(
+        'p',
+        [new ActionNode('a', () => 'failure'), new ActionNode('b', () => 'failure')],
+        2
+      );
       expect(par.tick(ctx())).toBe('failure');
     });
 
     it('running when not yet decided', () => {
-      const par = new ParallelNode('p', [
-        new ActionNode('a', () => 'success'),
-        new ActionNode('b', () => 'running'),
-      ], 2);
+      const par = new ParallelNode(
+        'p',
+        [new ActionNode('a', () => 'success'), new ActionNode('b', () => 'running')],
+        2
+      );
       expect(par.tick(ctx())).toBe('running');
     });
   });
@@ -179,7 +198,14 @@ describe('BTNodes', () => {
   describe('RepeaterNode', () => {
     it('repeats child N times', () => {
       let count = 0;
-      const rep = new RepeaterNode('r', new ActionNode('a', () => { count++; return 'success'; }), 3);
+      const rep = new RepeaterNode(
+        'r',
+        new ActionNode('a', () => {
+          count++;
+          return 'success';
+        }),
+        3
+      );
       // Each tick increments count and returns running until limit
       rep.tick(ctx()); // count=1, returns running
       rep.tick(ctx()); // count=2, returns running
@@ -190,7 +216,14 @@ describe('BTNodes', () => {
 
     it('reset clears repeat count', () => {
       let count = 0;
-      const rep = new RepeaterNode('r', new ActionNode('a', () => { count++; return 'success'; }), 1);
+      const rep = new RepeaterNode(
+        'r',
+        new ActionNode('a', () => {
+          count++;
+          return 'success';
+        }),
+        1
+      );
       rep.tick(ctx()); // count=1
       rep.reset();
       expect(rep.tick(ctx())).toBe('success'); // restarted

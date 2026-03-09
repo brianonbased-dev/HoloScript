@@ -79,8 +79,8 @@ describe('GenerationCache — Production', () => {
   it('getStats tracks hits and misses', () => {
     const cache = new GenerationCache();
     cache.set('p', 'c', 0.9, 'a');
-    cache.get('p', 'a');  // hit
-    cache.get('x', 'a');  // miss
+    cache.get('p', 'a'); // hit
+    cache.get('x', 'a'); // miss
     const stats = cache.getStats();
     expect(stats.totalHits).toBe(1);
     expect(stats.totalMisses).toBe(1);

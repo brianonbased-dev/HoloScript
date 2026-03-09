@@ -45,26 +45,20 @@ describe('CIFBuilder', () => {
     });
 
     it('sets target model', () => {
-      const doc = new CIFBuilder('a', 'r')
-        .forModel('claude')
-        .build();
+      const doc = new CIFBuilder('a', 'r').forModel('claude').build();
 
       expect(doc.targetModel).toBe('claude');
     });
 
     it('sets cultural profile', () => {
       const profile = defaultProfile();
-      const doc = new CIFBuilder('a', 'r')
-        .withCulturalProfile(profile)
-        .build();
+      const doc = new CIFBuilder('a', 'r').withCulturalProfile(profile).build();
 
       expect(doc.culturalProfile).toEqual(profile);
     });
 
     it('sets metadata', () => {
-      const doc = new CIFBuilder('a', 'r')
-        .withMetadata({ compiledAt: '2026-03-06' })
-        .build();
+      const doc = new CIFBuilder('a', 'r').withMetadata({ compiledAt: '2026-03-06' }).build();
 
       expect(doc.metadata).toEqual({ compiledAt: '2026-03-06' });
     });
@@ -76,9 +70,7 @@ describe('CIFBuilder', () => {
 
   describe('section helpers', () => {
     it('addSystem creates a system section', () => {
-      const doc = new CIFBuilder('a', 'r')
-        .addSystem('You are a helpful agent.')
-        .build();
+      const doc = new CIFBuilder('a', 'r').addSystem('You are a helpful agent.').build();
 
       expect(doc.sections).toHaveLength(1);
       expect(doc.sections[0].kind).toBe('system');
@@ -87,35 +79,27 @@ describe('CIFBuilder', () => {
     });
 
     it('addPersona creates a persona section', () => {
-      const doc = new CIFBuilder('a', 'r')
-        .addPersona('Navigator agent')
-        .build();
+      const doc = new CIFBuilder('a', 'r').addPersona('Navigator agent').build();
 
       expect(doc.sections[0].kind).toBe('persona');
       expect(doc.sections[0].priority).toBe('high');
     });
 
     it('addContext creates a context section', () => {
-      const doc = new CIFBuilder('a', 'r')
-        .addContext('The world has 3 zones.')
-        .build();
+      const doc = new CIFBuilder('a', 'r').addContext('The world has 3 zones.').build();
 
       expect(doc.sections[0].kind).toBe('context');
       expect(doc.sections[0].priority).toBe('normal');
     });
 
     it('addInstructions creates an instructions section', () => {
-      const doc = new CIFBuilder('a', 'r')
-        .addInstructions('Generate navigation mesh.')
-        .build();
+      const doc = new CIFBuilder('a', 'r').addInstructions('Generate navigation mesh.').build();
 
       expect(doc.sections[0].kind).toBe('instructions');
     });
 
     it('addConstraints creates a constraints section', () => {
-      const doc = new CIFBuilder('a', 'r')
-        .addConstraints('Never modify geometry.')
-        .build();
+      const doc = new CIFBuilder('a', 'r').addConstraints('Never modify geometry.').build();
 
       expect(doc.sections[0].kind).toBe('constraints');
     });
@@ -131,9 +115,7 @@ describe('CIFBuilder', () => {
 
     it('addOutputFormat creates an output_format section', () => {
       const schema = { type: 'object', properties: { mesh: { type: 'string' } } };
-      const doc = new CIFBuilder('a', 'r')
-        .addOutputFormat(schema)
-        .build();
+      const doc = new CIFBuilder('a', 'r').addOutputFormat(schema).build();
 
       expect(doc.sections[0].kind).toBe('output_format');
       expect(doc.sections[0].content).toEqual(schema);
@@ -141,25 +123,19 @@ describe('CIFBuilder', () => {
 
     it('addTools creates a tools section', () => {
       const tools = [{ name: 'search', description: 'Search the web' }];
-      const doc = new CIFBuilder('a', 'r')
-        .addTools(tools)
-        .build();
+      const doc = new CIFBuilder('a', 'r').addTools(tools).build();
 
       expect(doc.sections[0].kind).toBe('tools');
     });
 
     it('addDelegation creates a delegation section', () => {
-      const doc = new CIFBuilder('a', 'r')
-        .addDelegation('Hand off to agent-2 when done.')
-        .build();
+      const doc = new CIFBuilder('a', 'r').addDelegation('Hand off to agent-2 when done.').build();
 
       expect(doc.sections[0].kind).toBe('delegation');
     });
 
     it('addCultural creates a cultural section', () => {
-      const doc = new CIFBuilder('a', 'r')
-        .addCultural('Respect zone boundaries.')
-        .build();
+      const doc = new CIFBuilder('a', 'r').addCultural('Respect zone boundaries.').build();
 
       expect(doc.sections[0].kind).toBe('cultural');
     });
@@ -171,9 +147,7 @@ describe('CIFBuilder', () => {
 
   describe('priority overrides', () => {
     it('allows custom priority for system section', () => {
-      const doc = new CIFBuilder('a', 'r')
-        .addSystem('Low priority system', 'low')
-        .build();
+      const doc = new CIFBuilder('a', 'r').addSystem('Low priority system', 'low').build();
 
       expect(doc.sections[0].priority).toBe('low');
     });
@@ -240,9 +214,7 @@ describe('CIFBuilder', () => {
         metadata: { source: 'manual' },
       };
 
-      const doc = new CIFBuilder('a', 'r')
-        .addSection(custom)
-        .build();
+      const doc = new CIFBuilder('a', 'r').addSection(custom).build();
 
       expect(doc.sections[0]).toEqual(custom);
     });

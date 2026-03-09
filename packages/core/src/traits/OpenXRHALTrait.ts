@@ -702,7 +702,6 @@ function detectAvailableFeatures(
   // Establish reference space with fallback chain
   requestReferenceSpaceWithFallback(session, state, context, node);
 
-
   // Check for layers API (composition layers)
   if (session.renderState?.layers !== undefined) {
     features.add('layers');

@@ -14,20 +14,29 @@
 export interface Hitbox {
   id: string;
   ownerId: string;
-  x: number; y: number; z: number;
-  width: number; height: number; depth: number;
+  x: number;
+  y: number;
+  z: number;
+  width: number;
+  height: number;
+  depth: number;
   damage: number;
-  knockbackX: number; knockbackY: number;
-  activeStart: number;    // Frame
-  activeEnd: number;      // Frame
-  group: string;          // Dedup group (only hit once per activation)
+  knockbackX: number;
+  knockbackY: number;
+  activeStart: number; // Frame
+  activeEnd: number; // Frame
+  group: string; // Dedup group (only hit once per activation)
 }
 
 export interface Hurtbox {
   id: string;
   entityId: string;
-  x: number; y: number; z: number;
-  width: number; height: number; depth: number;
+  x: number;
+  y: number;
+  z: number;
+  width: number;
+  height: number;
+  depth: number;
 }
 
 export interface HitEvent {
@@ -55,10 +64,18 @@ export class HitboxSystem {
   // Registration
   // ---------------------------------------------------------------------------
 
-  addHitbox(hb: Hitbox): void { this.hitboxes.set(hb.id, hb); }
-  addHurtbox(hb: Hurtbox): void { this.hurtboxes.set(hb.id, hb); }
-  removeHitbox(id: string): void { this.hitboxes.delete(id); }
-  removeHurtbox(id: string): void { this.hurtboxes.delete(id); }
+  addHitbox(hb: Hitbox): void {
+    this.hitboxes.set(hb.id, hb);
+  }
+  addHurtbox(hb: Hurtbox): void {
+    this.hurtboxes.set(hb.id, hb);
+  }
+  removeHitbox(id: string): void {
+    this.hitboxes.delete(id);
+  }
+  removeHurtbox(id: string): void {
+    this.hurtboxes.delete(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Frame Update
@@ -105,9 +122,12 @@ export class HitboxSystem {
 
   private overlaps(hb: Hitbox, hr: Hurtbox): boolean {
     return (
-      hb.x < hr.x + hr.width && hb.x + hb.width > hr.x &&
-      hb.y < hr.y + hr.height && hb.y + hb.height > hr.y &&
-      hb.z < hr.z + hr.depth && hb.z + hb.depth > hr.z
+      hb.x < hr.x + hr.width &&
+      hb.x + hb.width > hr.x &&
+      hb.y < hr.y + hr.height &&
+      hb.y + hb.height > hr.y &&
+      hb.z < hr.z + hr.depth &&
+      hb.z + hb.depth > hr.z
     );
   }
 
@@ -115,7 +135,13 @@ export class HitboxSystem {
   // State
   // ---------------------------------------------------------------------------
 
-  clearHitLog(): void { this.hitLog.clear(); }
-  getHitCount(): number { return this.hitLog.size; }
-  getLastEvents(): HitEvent[] { return [...this.events]; }
+  clearHitLog(): void {
+    this.hitLog.clear();
+  }
+  getHitCount(): number {
+    return this.hitLog.size;
+  }
+  getLastEvents(): HitEvent[] {
+    return [...this.events];
+  }
 }

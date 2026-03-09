@@ -114,8 +114,10 @@ function isDomainAllowed(url: string, allowedDomains: string[]): boolean {
   if (allowedDomains.length === 0) return true;
   try {
     const { hostname } = new URL(url);
-    return allowedDomains.some(d => hostname === d || hostname.endsWith(`.${d}`));
-  } catch { return false; }
+    return allowedDomains.some((d) => hostname === d || hostname.endsWith(`.${d}`));
+  } catch {
+    return false;
+  }
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
@@ -139,9 +141,13 @@ export const computerUseHandler = {
     const state: ComputerUseState | undefined = node.__computerUseState;
     if (!state) return;
     // Close all open sessions
-    const closures = [...state.sessions.values()].map(s => s.page?.close().catch(() => {}));
+    const closures = [...state.sessions.values()].map((s) => s.page?.close().catch(() => {}));
     Promise.allSettled(closures ?? []);
-    ctx.emit('computer_use_stopped', { node, totalSessions: state.totalSessions, totalActions: state.totalActions });
+    ctx.emit('computer_use_stopped', {
+      node,
+      totalSessions: state.totalSessions,
+      totalActions: state.totalActions,
+    });
     delete node.__computerUseState;
   },
 
@@ -171,8 +177,11 @@ export const computerUseHandler = {
       case 'browser_list':
         ctx.emit('browser_sessions', {
           node,
-          sessions: [...state.sessions.values()].map(s => ({
-            id: s.id, createdAt: s.createdAt, actionCount: s.actionCount, currentUrl: s.currentUrl,
+          sessions: [...state.sessions.values()].map((s) => ({
+            id: s.id,
+            createdAt: s.createdAt,
+            actionCount: s.actionCount,
+            currentUrl: s.currentUrl,
           })),
         });
         break;
@@ -183,9 +192,17 @@ export const computerUseHandler = {
     }
   },
 
-  onUpdate(_node: any, _config: ComputerUseConfig, _ctx: any, _dt: number): void { /* async */ },
+  onUpdate(_node: any, _config: ComputerUseConfig, _ctx: any, _dt: number): void {
+    /* async */
+  },
 
-  _openBrowser(state: ComputerUseState, node: any, config: ComputerUseConfig, ctx: any, payload: any): void {
+  _openBrowser(
+    state: ComputerUseState,
+    node: any,
+    config: ComputerUseConfig,
+    ctx: any,
+    payload: any
+  ): void {
     const browserId = payload?.browserId ?? `browser_${Date.now()}`;
     state.totalSessions++;
 
@@ -198,19 +215,32 @@ export const computerUseHandler = {
     };
     state.sessions.set(browserId, session);
 
-    this._initPage(state, config, session).then(page => {
-      session.page = page;
-      ctx.emit('browser_ready', { node, browserId });
-      if (payload?.url) {
-        this._executeAction(state, node, config, ctx, { browserId, action: { type: 'navigate', url: payload.url } });
-      }
-    }).catch((err: Error) => {
-      state.sessions.delete(browserId);
-      ctx.emit('computer_use_error', { node, browserId, error: `Failed to open browser: ${err.message}` });
-    });
+    this._initPage(state, config, session)
+      .then((page) => {
+        session.page = page;
+        ctx.emit('browser_ready', { node, browserId });
+        if (payload?.url) {
+          this._executeAction(state, node, config, ctx, {
+            browserId,
+            action: { type: 'navigate', url: payload.url },
+          });
+        }
+      })
+      .catch((err: Error) => {
+        state.sessions.delete(browserId);
+        ctx.emit('computer_use_error', {
+          node,
+          browserId,
+          error: `Failed to open browser: ${err.message}`,
+        });
+      });
   },
 
-  async _initPage(state: ComputerUseState, config: ComputerUseConfig, _session: BrowserSession): Promise<PlaywrightPageLike> {
+  async _initPage(
+    state: ComputerUseState,
+    config: ComputerUseConfig,
+    _session: BrowserSession
+  ): Promise<PlaywrightPageLike> {
     // Use injected factory (for testing) or real Playwright
     if (state.pageFactory) return state.pageFactory();
 
@@ -230,38 +260,71 @@ export const computerUseHandler = {
     }
   },
 
-  _executeAction(state: ComputerUseState, node: any, config: ComputerUseConfig, ctx: any, payload: any): void {
+  _executeAction(
+    state: ComputerUseState,
+    node: any,
+    config: ComputerUseConfig,
+    ctx: any,
+    payload: any
+  ): void {
     const session = state.sessions.get(payload?.browserId);
     if (!session?.page) {
-      ctx.emit('computer_use_error', { node, browserId: payload?.browserId, error: 'No open browser session' });
+      ctx.emit('computer_use_error', {
+        node,
+        browserId: payload?.browserId,
+        error: 'No open browser session',
+      });
       return;
     }
     if (session.actionCount >= config.max_actions_per_session) {
-      ctx.emit('computer_use_error', { node, browserId: session.id, error: 'max_actions_per_session reached' });
+      ctx.emit('computer_use_error', {
+        node,
+        browserId: session.id,
+        error: 'max_actions_per_session reached',
+      });
       return;
     }
 
     session.actionCount++;
     state.totalActions++;
 
-    this._doAction(session.page, config, payload?.action ?? {}).then(result => {
-      if ((payload?.action as BrowserAction)?.type === 'navigate') {
-        session.currentUrl = (payload.action as { url: string }).url;
-        session.page!.title().then(title => {
-          ctx.emit('browser_navigated', { node, browserId: session.id, url: session.currentUrl, title });
-        });
-      } else {
-        ctx.emit('action_executed', { node, browserId: session.id, action: payload?.action?.type, result });
-      }
-    }).catch((err: Error) => {
-      ctx.emit('computer_use_error', { node, browserId: session.id, error: err.message });
-    });
+    this._doAction(session.page, config, payload?.action ?? {})
+      .then((result) => {
+        if ((payload?.action as BrowserAction)?.type === 'navigate') {
+          session.currentUrl = (payload.action as { url: string }).url;
+          session.page!.title().then((title) => {
+            ctx.emit('browser_navigated', {
+              node,
+              browserId: session.id,
+              url: session.currentUrl,
+              title,
+            });
+          });
+        } else {
+          ctx.emit('action_executed', {
+            node,
+            browserId: session.id,
+            action: payload?.action?.type,
+            result,
+          });
+        }
+      })
+      .catch((err: Error) => {
+        ctx.emit('computer_use_error', { node, browserId: session.id, error: err.message });
+      });
   },
 
-  async _doAction(page: PlaywrightPageLike, config: ComputerUseConfig, action: BrowserAction): Promise<unknown> {
+  async _doAction(
+    page: PlaywrightPageLike,
+    config: ComputerUseConfig,
+    action: BrowserAction
+  ): Promise<unknown> {
     switch (action.type) {
       case 'navigate': {
-        if (config.allowed_domains.length > 0 && !isDomainAllowed(action.url, config.allowed_domains)) {
+        if (
+          config.allowed_domains.length > 0 &&
+          !isDomainAllowed(action.url, config.allowed_domains)
+        ) {
           throw new Error(`Domain not allowed: ${new URL(action.url).hostname}`);
         }
         await page.goto(action.url, { timeout: config.default_timeout_ms });
@@ -283,10 +346,12 @@ export const computerUseHandler = {
         return { text: text ?? '' };
       }
       case 'wait':
-        await new Promise(r => setTimeout(r, action.ms));
+        await new Promise((r) => setTimeout(r, action.ms));
         return { waited: action.ms };
       case 'wait_for':
-        await page.waitForSelector(action.selector, { timeout: action.timeout_ms ?? config.default_timeout_ms });
+        await page.waitForSelector(action.selector, {
+          timeout: action.timeout_ms ?? config.default_timeout_ms,
+        });
         return { found: action.selector };
       case 'evaluate': {
         const result = await page.evaluate(action.script);
@@ -300,7 +365,13 @@ export const computerUseHandler = {
     }
   },
 
-  _runSequence(state: ComputerUseState, node: any, config: ComputerUseConfig, ctx: any, payload: any): void {
+  _runSequence(
+    state: ComputerUseState,
+    node: any,
+    config: ComputerUseConfig,
+    ctx: any,
+    payload: any
+  ): void {
     const { browserId, actions = [] } = payload ?? {};
     const session = state.sessions.get(browserId);
     if (!session?.page) {

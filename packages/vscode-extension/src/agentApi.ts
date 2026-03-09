@@ -59,7 +59,6 @@ export class HoloScriptAgentAPI {
   }
 
   private registerAgentCommands(context: vscode.ExtensionContext): void {
-    
     // Broadcast initialization telemetry
     this.broadcastAgentTelemetry({ type: 'init', status: 'online' });
 
@@ -186,7 +185,7 @@ export class HoloScriptAgentAPI {
       if (openPreview && this.context) {
         HoloScriptPreviewPanel.createOrShow(this.context.extensionUri, doc);
       }
-      
+
       this.broadcastAgentTelemetry({ type: 'file_created', filePath });
 
       return { success: true, data: { filePath, opened: true, previewOpened: openPreview } };
@@ -521,7 +520,11 @@ export class HoloScriptAgentAPI {
    * Pushes IDE interaction telemetry to the running uAA2-service Quantum Mesh
    */
   private broadcastAgentTelemetry(payload: any): void {
-    const postData = JSON.stringify({ source: 'vscode-agent-api', timestamp: Date.now(), data: payload });
+    const postData = JSON.stringify({
+      source: 'vscode-agent-api',
+      timestamp: Date.now(),
+      data: payload,
+    });
     const req = http.request({
       hostname: 'localhost',
       port: 5555,
@@ -529,16 +532,16 @@ export class HoloScriptAgentAPI {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData)
+        'Content-Length': Buffer.byteLength(postData),
       },
-      timeout: 2000
+      timeout: 2000,
     });
-    
+
     req.on('error', (e) => {
       // Background silent progression on telemetry failure
       console.warn('[HoloScriptAgentAPI] Mesh disconnected: ' + e.message);
     });
-    
+
     req.write(postData);
     req.end();
   }

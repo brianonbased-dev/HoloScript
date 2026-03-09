@@ -31,16 +31,19 @@ Behavior trees are **hierarchical structures** that define AI decision-making th
 ### Core Concepts
 
 **Nodes** - Building blocks of behavior:
+
 - **Composite Nodes** - Control flow (Sequence, Selector, Parallel)
 - **Decorator Nodes** - Modify child behavior (Inverter, Repeater, Timer)
 - **Leaf Nodes** - Actions and conditions (actual behavior)
 
 **Execution** - Trees execute from root to leaves:
+
 - **Success** - Node completed successfully
 - **Failure** - Node failed to complete
 - **Running** - Node is still executing
 
 **Ticking** - Tree is evaluated repeatedly:
+
 - Each tick starts from root
 - Traversal follows control flow rules
 - Leaf nodes execute game logic
@@ -54,6 +57,7 @@ Behavior trees are **hierarchical structures** that define AI decision-making th
 **Keyboard Shortcut:** `Ctrl+B`
 
 **Or via UI:**
+
 1. Click the "Behavior Tree" icon in the toolbar
 2. Select or create a behavior tree from the list
 
@@ -81,6 +85,7 @@ Behavior trees are **hierarchical structures** that define AI decision-making th
 ```
 
 **Components:**
+
 - **Header** - Tree name and node creation buttons
 - **Canvas** - Visual tree editor with node hierarchy
 - **MiniMap** - Overview of entire tree (bottom-right)
@@ -109,6 +114,7 @@ Behavior trees are **hierarchical structures** that define AI decision-making th
 Click a node to edit its properties:
 
 **Sequence Node:**
+
 ```typescript
 {
   type: 'sequence',
@@ -118,6 +124,7 @@ Click a node to edit its properties:
 ```
 
 **Action Node:**
+
 ```typescript
 {
   type: 'action',
@@ -130,6 +137,7 @@ Click a node to edit its properties:
 ### Step 4: Test Execution Flow
 
 **Sequence behavior:**
+
 1. Execute first child (Condition: Has Target?)
 2. If success → Execute second child (Action: Move To)
 3. If success → Execute third child (Action: Attack)
@@ -150,11 +158,13 @@ Export as JSON for use in game engines or runtime systems.
 **Purpose:** Execute children in order until one fails
 
 **Behavior:**
+
 - ✓ All children succeed → Returns SUCCESS
 - ✗ Any child fails → Returns FAILURE (stops execution)
 - ⏳ Child running → Returns RUNNING
 
 **Visual Appearance:**
+
 ```
 ┌─────────────────┐
 │ → SEQUENCE      │
@@ -163,11 +173,13 @@ Export as JSON for use in game engines or runtime systems.
 ```
 
 **Use Cases:**
+
 - Sequential actions (patrol → investigate → attack)
 - Precondition checking (has ammo → aim → shoot)
 - Step-by-step procedures
 
 **Example:**
+
 ```
 Sequence: Make Coffee
   ├─ Condition: Has Coffee Beans?
@@ -184,11 +196,13 @@ Sequence: Make Coffee
 **Purpose:** Execute children until one succeeds
 
 **Behavior:**
+
 - ✓ Any child succeeds → Returns SUCCESS (stops execution)
 - ✗ All children fail → Returns FAILURE
 - ⏳ Child running → Returns RUNNING
 
 **Visual Appearance:**
+
 ```
 ┌─────────────────┐
 │ ? SELECTOR      │
@@ -197,11 +211,13 @@ Sequence: Make Coffee
 ```
 
 **Use Cases:**
+
 - Fallback behaviors (attack → flee → hide)
 - Priority selection (best target → any target → patrol)
 - Error recovery
 
 **Example:**
+
 ```
 Selector: Find Food
   ├─ Action: Take Food From Inventory
@@ -217,12 +233,14 @@ Selector: Find Food
 **Purpose:** Execute all children simultaneously
 
 **Behavior:**
+
 - Configurable success policy:
   - `RequireAll` - All children must succeed
   - `RequireOne` - At least one child succeeds
 - Returns RUNNING until policy satisfied
 
 **Visual Appearance:**
+
 ```
 ┌─────────────────┐
 │ ⚡ PARALLEL     │
@@ -231,11 +249,13 @@ Selector: Find Food
 ```
 
 **Use Cases:**
+
 - Multi-tasking (walk + talk + observe)
 - Concurrent monitoring (health check + ammo check)
 - Parallel animations
 
 **Example:**
+
 ```
 Parallel: Patrol While Vigilant (RequireOne)
   ├─ Action: Walk Patrol Path
@@ -252,11 +272,13 @@ Parallel: Patrol While Vigilant (RequireOne)
 **Purpose:** Invert child node's result
 
 **Behavior:**
+
 - SUCCESS → FAILURE
 - FAILURE → SUCCESS
 - RUNNING → RUNNING
 
 **Visual Appearance:**
+
 ```
 ┌─────────────────┐
 │ ! INVERTER      │
@@ -265,6 +287,7 @@ Parallel: Patrol While Vigilant (RequireOne)
 ```
 
 **Use Case:**
+
 ```
 Inverter
   └─ Condition: Is Enemy Nearby?
@@ -279,10 +302,12 @@ Result: Succeeds when NO enemy nearby
 **Purpose:** Repeat child node N times or until failure
 
 **Behavior:**
+
 - Loops child execution
 - Configurable: count (3x) or until failure
 
 **Visual Appearance:**
+
 ```
 ┌─────────────────┐
 │ 🔁 REPEATER     │
@@ -291,6 +316,7 @@ Result: Succeeds when NO enemy nearby
 ```
 
 **Use Case:**
+
 ```
 Repeater (3 times)
   └─ Action: Fire Weapon
@@ -305,11 +331,13 @@ Result: Fires 3 shots in burst
 **Purpose:** Run child for specified duration
 
 **Behavior:**
+
 - Ticks child for N seconds
 - Returns RUNNING until timer expires
 - Then returns child's final result
 
 **Visual Appearance:**
+
 ```
 ┌─────────────────┐
 │ ⏱ TIMER         │
@@ -318,6 +346,7 @@ Result: Fires 3 shots in burst
 ```
 
 **Use Case:**
+
 ```
 Timer (5 seconds)
   └─ Action: Hold Position
@@ -334,10 +363,12 @@ Result: Agent holds position for 5 seconds
 **Purpose:** Execute game logic or agent behavior
 
 **Properties:**
+
 - `actionId` - Unique action identifier
 - `data` - Parameters for the action
 
 **Visual Appearance:**
+
 ```
 ┌─────────────────┐
 │ ⚡ ACTION       │
@@ -346,6 +377,7 @@ Result: Agent holds position for 5 seconds
 ```
 
 **Examples:**
+
 - Move to position
 - Play animation
 - Fire weapon
@@ -359,10 +391,12 @@ Result: Agent holds position for 5 seconds
 **Purpose:** Check game state or agent properties
 
 **Properties:**
+
 - `conditionId` - Condition to evaluate
 - `expected` - Expected value (true/false)
 
 **Visual Appearance:**
+
 ```
 ┌─────────────────┐
 │ ❓ CONDITION    │
@@ -371,6 +405,7 @@ Result: Agent holds position for 5 seconds
 ```
 
 **Examples:**
+
 - Is health low?
 - Can see enemy?
 - Has ammunition?
@@ -504,6 +539,7 @@ behavior PatrolBehavior {
 ### 1. Keep Trees Shallow
 
 **Bad:**
+
 ```
 Sequence (depth 5)
   └─ Sequence
@@ -513,6 +549,7 @@ Sequence (depth 5)
 ```
 
 **Good:**
+
 ```
 Sequence (depth 2)
   ├─ Condition
@@ -691,6 +728,7 @@ Selector: Resource Manager
 ```
 
 **Priorities:**
+
 1. Survival (health) → highest priority
 2. Combat capability (ammo/grenades)
 3. Continue mission (objective)
@@ -789,6 +827,7 @@ if (difficulty === 'hard') {
 **Cache Expensive Checks:** Store condition results in blackboard
 
 **Use Conditional Decorators:** Skip subtrees early:
+
 ```
 ConditionalDecorator (if health > 80%)
   └─ Sequence: Aggressive Tactics

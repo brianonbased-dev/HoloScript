@@ -7,8 +7,31 @@
 import { describe, it, expect } from 'vitest';
 import { HitboxSystem, type Hitbox, type Hurtbox } from '../HitboxSystem';
 
-function makeHitbox(id: string, ownerId: string, x: number, y: number, start: number, end: number, group = 'g1'): Hitbox {
-  return { id, ownerId, x, y, z: 0, width: 2, height: 2, depth: 2, damage: 10, knockbackX: 5, knockbackY: 3, activeStart: start, activeEnd: end, group };
+function makeHitbox(
+  id: string,
+  ownerId: string,
+  x: number,
+  y: number,
+  start: number,
+  end: number,
+  group = 'g1'
+): Hitbox {
+  return {
+    id,
+    ownerId,
+    x,
+    y,
+    z: 0,
+    width: 2,
+    height: 2,
+    depth: 2,
+    damage: 10,
+    knockbackX: 5,
+    knockbackY: 3,
+    activeStart: start,
+    activeEnd: end,
+    group,
+  };
 }
 
 function makeHurtbox(id: string, entityId: string, x: number, y: number): Hurtbox {

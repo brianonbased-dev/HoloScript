@@ -8,7 +8,16 @@ import { describe, it, expect } from 'vitest';
 import { CombatManager, type HitBox, type HurtBox } from '../CombatManager';
 
 function hb(id: string, owner: string, x: number, active = true): HitBox {
-  return { id, ownerId: owner, position: { x, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active, damage: 10, damageType: 'physical', knockback: 5 };
+  return {
+    id,
+    ownerId: owner,
+    position: { x, y: 0, z: 0 },
+    size: { x: 2, y: 2, z: 2 },
+    active,
+    damage: 10,
+    damageType: 'physical',
+    knockback: 5,
+  };
 }
 function hr(id: string, owner: string, x: number, active = true): HurtBox {
   return { id, ownerId: owner, position: { x, y: 0, z: 0 }, size: { x: 2, y: 2, z: 2 }, active };

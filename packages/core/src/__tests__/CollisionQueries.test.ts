@@ -10,8 +10,18 @@ describe('Cycle 151: Collision Queries', () => {
 
   it('should hit sphere and return distance-sorted results', () => {
     const rc = new RaycastSystem();
-    rc.addCollider({ entityId: 'far', type: 'sphere', shape: { center: { x: 20, y: 0, z: 0 }, radius: 2 }, layer: 1 });
-    rc.addCollider({ entityId: 'near', type: 'sphere', shape: { center: { x: 5, y: 0, z: 0 }, radius: 1 }, layer: 1 });
+    rc.addCollider({
+      entityId: 'far',
+      type: 'sphere',
+      shape: { center: { x: 20, y: 0, z: 0 }, radius: 2 },
+      layer: 1,
+    });
+    rc.addCollider({
+      entityId: 'near',
+      type: 'sphere',
+      shape: { center: { x: 5, y: 0, z: 0 }, radius: 1 },
+      layer: 1,
+    });
 
     const hits = rc.raycastAll({ origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } });
     expect(hits.length).toBe(2);
@@ -21,21 +31,39 @@ describe('Cycle 151: Collision Queries', () => {
 
   it('should hit AABB and respect layer masks', () => {
     const rc = new RaycastSystem();
-    rc.addCollider({ entityId: 'box', type: 'aabb', shape: { min: { x: 3, y: -1, z: -1 }, max: { x: 5, y: 1, z: 1 } }, layer: 2 });
+    rc.addCollider({
+      entityId: 'box',
+      type: 'aabb',
+      shape: { min: { x: 3, y: -1, z: -1 }, max: { x: 5, y: 1, z: 1 } },
+      layer: 2,
+    });
 
     // Layer 1 mask — should miss
-    const miss = rc.raycast({ origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } }, Infinity, 1);
+    const miss = rc.raycast(
+      { origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
+      Infinity,
+      1
+    );
     expect(miss).toBeNull();
 
     // Layer 2 mask — should hit
-    const hit = rc.raycast({ origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } }, Infinity, 2);
+    const hit = rc.raycast(
+      { origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
+      Infinity,
+      2
+    );
     expect(hit).not.toBeNull();
     expect(hit!.entityId).toBe('box');
   });
 
   it('should hit plane', () => {
     const rc = new RaycastSystem();
-    rc.addCollider({ entityId: 'ground', type: 'plane', shape: { normal: { x: 0, y: 1, z: 0 }, distance: 0 }, layer: 0xFFFFFFFF });
+    rc.addCollider({
+      entityId: 'ground',
+      type: 'plane',
+      shape: { normal: { x: 0, y: 1, z: 0 }, distance: 0 },
+      layer: 0xffffffff,
+    });
 
     const hit = rc.raycast({ origin: { x: 0, y: 10, z: 0 }, direction: { x: 0, y: -1, z: 0 } });
     expect(hit).not.toBeNull();
@@ -76,7 +104,8 @@ describe('Cycle 151: Collision Queries', () => {
     tz.addZone({
       id: 'zone1',
       shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 5 },
-      enabled: true, tags: ['safe'],
+      enabled: true,
+      tags: ['safe'],
     });
 
     const events: Array<{ entity: string; event: TriggerEvent }> = [];
@@ -97,8 +126,18 @@ describe('Cycle 151: Collision Queries', () => {
 
   it('should track occupants in multiple zones', () => {
     const tz = new TriggerZoneSystem();
-    tz.addZone({ id: 'z1', shape: { type: 'box', position: { x: 0, y: 0, z: 0 }, halfExtents: { x: 5, y: 5, z: 5 } }, enabled: true, tags: [] });
-    tz.addZone({ id: 'z2', shape: { type: 'box', position: { x: 3, y: 0, z: 0 }, halfExtents: { x: 5, y: 5, z: 5 } }, enabled: true, tags: [] });
+    tz.addZone({
+      id: 'z1',
+      shape: { type: 'box', position: { x: 0, y: 0, z: 0 }, halfExtents: { x: 5, y: 5, z: 5 } },
+      enabled: true,
+      tags: [],
+    });
+    tz.addZone({
+      id: 'z2',
+      shape: { type: 'box', position: { x: 3, y: 0, z: 0 }, halfExtents: { x: 5, y: 5, z: 5 } },
+      enabled: true,
+      tags: [],
+    });
 
     tz.update([{ id: 'npc', position: { x: 2, y: 0, z: 0 } }]);
 

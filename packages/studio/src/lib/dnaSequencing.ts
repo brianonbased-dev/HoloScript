@@ -7,25 +7,52 @@
 
 export type Nucleotide = 'A' | 'T' | 'G' | 'C';
 export type RNANucleotide = 'A' | 'U' | 'G' | 'C';
-export type AminoAcid = 'Ala' | 'Arg' | 'Asn' | 'Asp' | 'Cys' | 'Glu' | 'Gln' | 'Gly' | 'His' | 'Ile' | 'Leu' | 'Lys' | 'Met' | 'Phe' | 'Pro' | 'Ser' | 'Thr' | 'Trp' | 'Tyr' | 'Val' | 'STOP';
-export type MutationType = 'substitution' | 'insertion' | 'deletion' | 'silent' | 'missense' | 'nonsense';
+export type AminoAcid =
+  | 'Ala'
+  | 'Arg'
+  | 'Asn'
+  | 'Asp'
+  | 'Cys'
+  | 'Glu'
+  | 'Gln'
+  | 'Gly'
+  | 'His'
+  | 'Ile'
+  | 'Leu'
+  | 'Lys'
+  | 'Met'
+  | 'Phe'
+  | 'Pro'
+  | 'Ser'
+  | 'Thr'
+  | 'Trp'
+  | 'Tyr'
+  | 'Val'
+  | 'STOP';
+export type MutationType =
+  | 'substitution'
+  | 'insertion'
+  | 'deletion'
+  | 'silent'
+  | 'missense'
+  | 'nonsense';
 
 export interface Gene {
   id: string;
   name: string;
   chromosome: number;
   startPosition: number;
-  sequence: string;           // DNA sequence (ATGC)
+  sequence: string; // DNA sequence (ATGC)
   function: string;
 }
 
 export interface CRISPRTarget {
-  guideRNA: string;          // 20-nt guide sequence
-  pamSite: string;           // PAM sequence (e.g., 'NGG')
+  guideRNA: string; // 20-nt guide sequence
+  pamSite: string; // PAM sequence (e.g., 'NGG')
   targetGene: string;
   cutPosition: number;
-  offTargetScore: number;    // 0-100 (lower = better)
-  efficiency: number;        // 0-100
+  offTargetScore: number; // 0-100 (lower = better)
+  efficiency: number; // 0-100
 }
 
 export interface Mutation {
@@ -45,15 +72,21 @@ export function complement(base: Nucleotide): Nucleotide {
 }
 
 export function complementStrand(dna: string): string {
-  return dna.split('').map(b => complement(b as Nucleotide)).join('');
+  return dna
+    .split('')
+    .map((b) => complement(b as Nucleotide))
+    .join('');
 }
 
 export function transcribe(dna: string): string {
   // DNA → mRNA: T → U, complement
-  return dna.split('').map(b => {
-    const comp = complement(b as Nucleotide);
-    return comp === 'T' ? 'U' : comp;
-  }).join('');
+  return dna
+    .split('')
+    .map((b) => {
+      const comp = complement(b as Nucleotide);
+      return comp === 'T' ? 'U' : comp;
+    })
+    .join('');
 }
 
 export function reverseComplement(dna: string): string {
@@ -65,23 +98,70 @@ export function reverseComplement(dna: string): string {
 // ═══════════════════════════════════════════════════════════════════
 
 const CODON_TABLE: Record<string, AminoAcid> = {
-  AUG: 'Met', UUU: 'Phe', UUC: 'Phe', UUA: 'Leu', UUG: 'Leu',
-  CUU: 'Leu', CUC: 'Leu', CUA: 'Leu', CUG: 'Leu',
-  AUU: 'Ile', AUC: 'Ile', AUA: 'Ile',
-  GUU: 'Val', GUC: 'Val', GUA: 'Val', GUG: 'Val',
-  UCU: 'Ser', UCC: 'Ser', UCA: 'Ser', UCG: 'Ser',
-  CCU: 'Pro', CCC: 'Pro', CCA: 'Pro', CCG: 'Pro',
-  ACU: 'Thr', ACC: 'Thr', ACA: 'Thr', ACG: 'Thr',
-  GCU: 'Ala', GCC: 'Ala', GCA: 'Ala', GCG: 'Ala',
-  UAU: 'Tyr', UAC: 'Tyr',
-  CAU: 'His', CAC: 'His', CAA: 'Gln', CAG: 'Gln',
-  AAU: 'Asn', AAC: 'Asn', AAA: 'Lys', AAG: 'Lys',
-  GAU: 'Asp', GAC: 'Asp', GAA: 'Glu', GAG: 'Glu',
-  UGU: 'Cys', UGC: 'Cys', UGG: 'Trp',
-  CGU: 'Arg', CGC: 'Arg', CGA: 'Arg', CGG: 'Arg',
-  AGU: 'Ser', AGC: 'Ser', AGA: 'Arg', AGG: 'Arg',
-  GGU: 'Gly', GGC: 'Gly', GGA: 'Gly', GGG: 'Gly',
-  UAA: 'STOP', UAG: 'STOP', UGA: 'STOP',
+  AUG: 'Met',
+  UUU: 'Phe',
+  UUC: 'Phe',
+  UUA: 'Leu',
+  UUG: 'Leu',
+  CUU: 'Leu',
+  CUC: 'Leu',
+  CUA: 'Leu',
+  CUG: 'Leu',
+  AUU: 'Ile',
+  AUC: 'Ile',
+  AUA: 'Ile',
+  GUU: 'Val',
+  GUC: 'Val',
+  GUA: 'Val',
+  GUG: 'Val',
+  UCU: 'Ser',
+  UCC: 'Ser',
+  UCA: 'Ser',
+  UCG: 'Ser',
+  CCU: 'Pro',
+  CCC: 'Pro',
+  CCA: 'Pro',
+  CCG: 'Pro',
+  ACU: 'Thr',
+  ACC: 'Thr',
+  ACA: 'Thr',
+  ACG: 'Thr',
+  GCU: 'Ala',
+  GCC: 'Ala',
+  GCA: 'Ala',
+  GCG: 'Ala',
+  UAU: 'Tyr',
+  UAC: 'Tyr',
+  CAU: 'His',
+  CAC: 'His',
+  CAA: 'Gln',
+  CAG: 'Gln',
+  AAU: 'Asn',
+  AAC: 'Asn',
+  AAA: 'Lys',
+  AAG: 'Lys',
+  GAU: 'Asp',
+  GAC: 'Asp',
+  GAA: 'Glu',
+  GAG: 'Glu',
+  UGU: 'Cys',
+  UGC: 'Cys',
+  UGG: 'Trp',
+  CGU: 'Arg',
+  CGC: 'Arg',
+  CGA: 'Arg',
+  CGG: 'Arg',
+  AGU: 'Ser',
+  AGC: 'Ser',
+  AGA: 'Arg',
+  AGG: 'Arg',
+  GGU: 'Gly',
+  GGC: 'Gly',
+  GGA: 'Gly',
+  GGG: 'Gly',
+  UAA: 'STOP',
+  UAG: 'STOP',
+  UGA: 'STOP',
 };
 
 export function translateCodon(codon: string): AminoAcid | undefined {
@@ -105,7 +185,7 @@ export function translateMRNA(mrna: string): AminoAcid[] {
 // ═══════════════════════════════════════════════════════════════════
 
 export function gcContent(dna: string): number {
-  const gc = dna.split('').filter(b => b === 'G' || b === 'C').length;
+  const gc = dna.split('').filter((b) => b === 'G' || b === 'C').length;
   return dna.length > 0 ? gc / dna.length : 0;
 }
 
@@ -128,7 +208,12 @@ export function detectMutations(original: string, mutated: string): Mutation[] {
   const len = Math.min(original.length, mutated.length);
   for (let i = 0; i < len; i++) {
     if (original[i] !== mutated[i]) {
-      mutations.push({ position: i, original: original[i], mutated: mutated[i], type: 'substitution' });
+      mutations.push({
+        position: i,
+        original: original[i],
+        mutated: mutated[i],
+        type: 'substitution',
+      });
     }
   }
   return mutations;
@@ -168,10 +253,7 @@ export function sequenceDistance(a: string, b: string): number {
  * Builds a simplified neighbor-joining tree from aligned sequences.
  * Returns a Newick-like tree structure.
  */
-export function neighborJoiningTree(
-  labels: string[],
-  sequences: string[]
-): PhyloNode {
+export function neighborJoiningTree(labels: string[], sequences: string[]): PhyloNode {
   if (labels.length !== sequences.length || labels.length < 2) {
     return { id: labels[0] ?? 'root', label: labels[0], distance: 0, children: [] };
   }
@@ -197,10 +279,12 @@ export function neighborJoiningTree(
   while (clusters.length > 1) {
     // Find closest pair
     let minDist = Infinity;
-    let ci = 0, cj = 1;
+    let ci = 0,
+      cj = 1;
     for (let i = 0; i < clusters.length; i++) {
       for (let j = i + 1; j < clusters.length; j++) {
-        let avg = 0, count = 0;
+        let avg = 0,
+          count = 0;
         for (const a of clusters[i].indices) {
           for (const b of clusters[j].indices) {
             avg += dist[a][b];
@@ -208,7 +292,11 @@ export function neighborJoiningTree(
           }
         }
         avg /= count;
-        if (avg < minDist) { minDist = avg; ci = i; cj = j; }
+        if (avg < minDist) {
+          minDist = avg;
+          ci = i;
+          cj = j;
+        }
       }
     }
 
@@ -237,7 +325,7 @@ export interface BlastHit {
   subjectStart: number;
   length: number;
   score: number;
-  identity: number;  // 0-1
+  identity: number; // 0-1
 }
 
 /**
@@ -256,11 +344,13 @@ export function blastLocalAlignment(
   const H: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
 
   let maxScore = 0;
-  let maxI = 0, maxJ = 0;
+  let maxI = 0,
+    maxJ = 0;
 
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
-      const match = H[i - 1][j - 1] + (query[i - 1] === subject[j - 1] ? matchScore : mismatchPenalty);
+      const match =
+        H[i - 1][j - 1] + (query[i - 1] === subject[j - 1] ? matchScore : mismatchPenalty);
       const del = H[i - 1][j] + gapPenalty;
       const ins = H[i][j - 1] + gapPenalty;
       H[i][j] = Math.max(0, match, del, ins);
@@ -274,8 +364,10 @@ export function blastLocalAlignment(
   }
 
   // Traceback to find alignment length and identity
-  let len = 0, matches = 0;
-  let i = maxI, j = maxJ;
+  let len = 0,
+    matches = 0;
+  let i = maxI,
+    j = maxJ;
   while (i > 0 && j > 0 && H[i][j] > 0) {
     if (query[i - 1] === subject[j - 1]) matches++;
     len++;
@@ -291,4 +383,3 @@ export function blastLocalAlignment(
     identity: len > 0 ? matches / len : 0,
   };
 }
-

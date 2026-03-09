@@ -109,9 +109,13 @@ export class GraphTooltipGenerator {
     if (callers.length > 0) {
       lines.push({
         label: 'Called by',
-        value: callers.length <= 3
-          ? callers.map((c) => c.callerId).join(', ')
-          : `${callers.slice(0, 3).map((c) => c.callerId).join(', ')} +${callers.length - 3} more`,
+        value:
+          callers.length <= 3
+            ? callers.map((c) => c.callerId).join(', ')
+            : `${callers
+                .slice(0, 3)
+                .map((c) => c.callerId)
+                .join(', ')} +${callers.length - 3} more`,
         icon: 'link',
       });
     }
@@ -122,9 +126,15 @@ export class GraphTooltipGenerator {
     if (callees.length > 0) {
       lines.push({
         label: 'Calls',
-        value: callees.length <= 3
-          ? callees.map((c) => c.calleeOwner ? `${c.calleeOwner}.${c.calleeName}` : c.calleeName).join(', ')
-          : `${callees.slice(0, 3).map((c) => c.calleeOwner ? `${c.calleeOwner}.${c.calleeName}` : c.calleeName).join(', ')} +${callees.length - 3} more`,
+        value:
+          callees.length <= 3
+            ? callees
+                .map((c) => (c.calleeOwner ? `${c.calleeOwner}.${c.calleeName}` : c.calleeName))
+                .join(', ')
+            : `${callees
+                .slice(0, 3)
+                .map((c) => (c.calleeOwner ? `${c.calleeOwner}.${c.calleeName}` : c.calleeName))
+                .join(', ')} +${callees.length - 3} more`,
         icon: 'link',
       });
     }
@@ -165,7 +175,7 @@ export class GraphTooltipGenerator {
       connectionScore: number;
       impactScore: number;
       relatedSymbols?: string[];
-    },
+    }
   ): TooltipData {
     const tooltip = this.generateTooltip(symbol);
 
@@ -210,9 +220,7 @@ export class GraphTooltipGenerator {
     const owner = parts.length > 1 ? parts[0] : undefined;
 
     const symbols = this.graph.findSymbolsByName(name);
-    const match = owner
-      ? symbols.find((s) => s.owner === owner)
-      : symbols[0];
+    const match = owner ? symbols.find((s) => s.owner === owner) : symbols[0];
 
     if (!match) return null;
     return this.generateTooltip(match);

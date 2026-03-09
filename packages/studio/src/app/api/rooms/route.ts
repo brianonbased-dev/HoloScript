@@ -29,7 +29,11 @@ function broadcast(room: string, event: RoomEvent) {
   if (!controllers) return;
   const data = `data: ${JSON.stringify(event)}\n\n`;
   for (const ctrl of controllers) {
-    try { ctrl.enqueue(data); } catch { /* stream closed */ }
+    try {
+      ctrl.enqueue(data);
+    } catch {
+      /* stream closed */
+    }
   }
   // Keep last 20 events
   const hist = roomHistory.get(room) ?? [];
@@ -63,7 +67,11 @@ export async function GET(request: NextRequest) {
 
       // Heartbeat every 25s
       const hb = setInterval(() => {
-        try { ctrl.enqueue(': hb\n\n'); } catch { clearInterval(hb); }
+        try {
+          ctrl.enqueue(': hb\n\n');
+        } catch {
+          clearInterval(hb);
+        }
       }, 25_000);
 
       request.signal.addEventListener('abort', () => {

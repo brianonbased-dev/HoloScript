@@ -33,7 +33,10 @@ interface SharedWorldState {
   connectedPeers: Set<string>;
   pendingUpdates: Array<{ nodeId: string; state: unknown; version: number }>;
   // V43 Tier 2: Spatial Persona State
-  spatialPersonas?: Map<string, { position: [number, number, number]; rotation: number; feature: string }>;
+  spatialPersonas?: Map<
+    string,
+    { position: [number, number, number]; rotation: number; feature: string }
+  >;
   activeActivity?: string;
 }
 
@@ -48,10 +51,20 @@ interface SharedWorldConfig {
   interpolation: boolean;
   // V43 Tier 2: visionOS Spatial Persona & SharePlay
   persona_count?: number;
-  persona_feature?: 'spatial_audio' | 'eye_contact' | 'hand_gestures' | 'body_language' | 'spatial_presence';
+  persona_feature?:
+    | 'spatial_audio'
+    | 'eye_contact'
+    | 'hand_gestures'
+    | 'body_language'
+    | 'spatial_presence';
   avatar_style?: 'realistic' | 'stylized' | 'minimal';
   spatial_audio_enabled?: boolean;
-  activity_type?: 'collaborative_design' | 'shared_viewing' | 'multiplayer_game' | 'co_browsing' | 'spatial_presentation';
+  activity_type?:
+    | 'collaborative_design'
+    | 'shared_viewing'
+    | 'multiplayer_game'
+    | 'co_browsing'
+    | 'spatial_presentation';
   sync_mode?: 'realtime' | 'eventual' | 'optimistic';
   latency_compensation?: boolean;
   persona_radius?: number;

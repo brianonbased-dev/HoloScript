@@ -20,7 +20,12 @@ function makeWorld() {
   return new PhysicsWorldImpl({ gravity: { x: 0, y: -9.81, z: 0 } });
 }
 
-function sphereBody(id: string, radius = 0.5, pos = { x: 0, y: 0, z: 0 }, type: 'dynamic' | 'static' = 'dynamic'): IRigidBodyConfig {
+function sphereBody(
+  id: string,
+  radius = 0.5,
+  pos = { x: 0, y: 0, z: 0 },
+  type: 'dynamic' | 'static' = 'dynamic'
+): IRigidBodyConfig {
   return {
     id,
     type,
@@ -34,7 +39,11 @@ function sphereBody(id: string, radius = 0.5, pos = { x: 0, y: 0, z: 0 }, type: 
   };
 }
 
-function boxBody(id: string, half = { x: 0.5, y: 0.5, z: 0.5 }, pos = { x: 0, y: 0, z: 0 }): IRigidBodyConfig {
+function boxBody(
+  id: string,
+  half = { x: 0.5, y: 0.5, z: 0.5 },
+  pos = { x: 0, y: 0, z: 0 }
+): IRigidBodyConfig {
   return {
     id,
     type: 'dynamic',
@@ -107,7 +116,7 @@ describe('PhysicsWorldImpl: production', () => {
 
     it('duplicate id throws', () => {
       world.createBody(sphereBody('s1'));
-      expect(() => world.createBody(sphereBody('s1'))).toThrow("already exists");
+      expect(() => world.createBody(sphereBody('s1'))).toThrow('already exists');
     });
 
     it('removeBody returns true for existing id', () => {
@@ -168,7 +177,9 @@ describe('PhysicsWorldImpl: production', () => {
     });
 
     it('applyForce at point does not throw', () => {
-      expect(() => world.applyForce('s1', { x: 0, y: 100, z: 0 }, { x: 1, y: 0, z: 0 })).not.toThrow();
+      expect(() =>
+        world.applyForce('s1', { x: 0, y: 100, z: 0 }, { x: 1, y: 0, z: 0 })
+      ).not.toThrow();
     });
 
     it('applyImpulse does not throw for existing body', () => {
@@ -196,25 +207,67 @@ describe('PhysicsWorldImpl: production', () => {
     });
 
     it('createConstraint returns constraint id', () => {
-      const id = world.createConstraint({ id: 'c1', type: 'fixed', bodyA: 'a', bodyB: 'b', pivotA: { x: 0, y: 0, z: 0 } });
+      const id = world.createConstraint({
+        id: 'c1',
+        type: 'fixed',
+        bodyA: 'a',
+        bodyB: 'b',
+        pivotA: { x: 0, y: 0, z: 0 },
+      });
       expect(id).toBe('c1');
     });
 
     it('createConstraint throws for unknown bodyA', () => {
-      expect(() => world.createConstraint({ id: 'c1', type: 'fixed', bodyA: 'missing', bodyB: 'b', pivotA: { x: 0, y: 0, z: 0 } })).toThrow();
+      expect(() =>
+        world.createConstraint({
+          id: 'c1',
+          type: 'fixed',
+          bodyA: 'missing',
+          bodyB: 'b',
+          pivotA: { x: 0, y: 0, z: 0 },
+        })
+      ).toThrow();
     });
 
     it('createConstraint throws for unknown bodyB', () => {
-      expect(() => world.createConstraint({ id: 'c1', type: 'fixed', bodyA: 'a', bodyB: 'missing', pivotA: { x: 0, y: 0, z: 0 } })).toThrow();
+      expect(() =>
+        world.createConstraint({
+          id: 'c1',
+          type: 'fixed',
+          bodyA: 'a',
+          bodyB: 'missing',
+          pivotA: { x: 0, y: 0, z: 0 },
+        })
+      ).toThrow();
     });
 
     it('duplicate constraint id throws', () => {
-      world.createConstraint({ id: 'c1', type: 'fixed', bodyA: 'a', bodyB: 'b', pivotA: { x: 0, y: 0, z: 0 } });
-      expect(() => world.createConstraint({ id: 'c1', type: 'fixed', bodyA: 'a', bodyB: 'b', pivotA: { x: 0, y: 0, z: 0 } })).toThrow();
+      world.createConstraint({
+        id: 'c1',
+        type: 'fixed',
+        bodyA: 'a',
+        bodyB: 'b',
+        pivotA: { x: 0, y: 0, z: 0 },
+      });
+      expect(() =>
+        world.createConstraint({
+          id: 'c1',
+          type: 'fixed',
+          bodyA: 'a',
+          bodyB: 'b',
+          pivotA: { x: 0, y: 0, z: 0 },
+        })
+      ).toThrow();
     });
 
     it('removeConstraint returns true for existing id', () => {
-      world.createConstraint({ id: 'c1', type: 'fixed', bodyA: 'a', bodyB: 'b', pivotA: { x: 0, y: 0, z: 0 } });
+      world.createConstraint({
+        id: 'c1',
+        type: 'fixed',
+        bodyA: 'a',
+        bodyB: 'b',
+        pivotA: { x: 0, y: 0, z: 0 },
+      });
       expect(world.removeConstraint('c1')).toBe(true);
     });
 
@@ -223,12 +276,24 @@ describe('PhysicsWorldImpl: production', () => {
     });
 
     it('setConstraintEnabled does not throw', () => {
-      world.createConstraint({ id: 'c1', type: 'fixed', bodyA: 'a', bodyB: 'b', pivotA: { x: 0, y: 0, z: 0 } });
+      world.createConstraint({
+        id: 'c1',
+        type: 'fixed',
+        bodyA: 'a',
+        bodyB: 'b',
+        pivotA: { x: 0, y: 0, z: 0 },
+      });
       expect(() => world.setConstraintEnabled('c1', false)).not.toThrow();
     });
 
     it('removeBody cleans up its associated constraints', () => {
-      world.createConstraint({ id: 'c1', type: 'fixed', bodyA: 'a', bodyB: 'b', pivotA: { x: 0, y: 0, z: 0 } });
+      world.createConstraint({
+        id: 'c1',
+        type: 'fixed',
+        bodyA: 'a',
+        bodyB: 'b',
+        pivotA: { x: 0, y: 0, z: 0 },
+      });
       world.removeBody('a');
       // The constraint tied to 'a' is cascade-removed, so removeConstraint returns false
       expect(world.removeConstraint('c1')).toBe(false);
@@ -273,7 +338,7 @@ describe('PhysicsWorldImpl: production', () => {
       world.createBody(sphereBody('b', 1, { x: 1, y: 0, z: 0 })); // dist=1 < sum=2
       world.step(1 / 60);
       const contacts = world.getContacts();
-      expect(contacts.some(e => e.type === 'begin' || e.type === 'persist')).toBe(true);
+      expect(contacts.some((e) => e.type === 'begin' || e.type === 'persist')).toBe(true);
     });
 
     it('separated spheres emit no begin collision event', () => {
@@ -281,7 +346,7 @@ describe('PhysicsWorldImpl: production', () => {
       world.createBody(sphereBody('b', 0.5, { x: 10, y: 0, z: 0 }));
       world.step(1 / 60);
       const contacts = world.getContacts();
-      expect(contacts.filter(e => e.type === 'begin')).toHaveLength(0);
+      expect(contacts.filter((e) => e.type === 'begin')).toHaveLength(0);
     });
 
     it('box + sphere collision does not throw', () => {

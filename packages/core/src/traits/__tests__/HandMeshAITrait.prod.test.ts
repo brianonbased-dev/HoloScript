@@ -61,7 +61,6 @@ function trackingState(node: any) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('HandMeshAITrait — Production', () => {
-
   beforeEach(() => vi.clearAllMocks());
 
   // ─── defaultConfig ──────────────────────────────────────────────────
@@ -107,10 +106,13 @@ describe('HandMeshAITrait — Production', () => {
 
   it('emits hand_mesh_ai_init on attach', () => {
     const { ctx } = attach();
-    expect(ctx.emit).toHaveBeenCalledWith('hand_mesh_ai_init', expect.objectContaining({
-      meshResolution: 'medium',
-      textureEnabled: false,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'hand_mesh_ai_init',
+      expect.objectContaining({
+        meshResolution: 'medium',
+        textureEnabled: false,
+      })
+    );
   });
 
   it('also initializes base HandTracking state on attach', () => {
@@ -145,7 +147,10 @@ describe('HandMeshAITrait — Production', () => {
     const { node, ctx, config } = attach({ real_time_generation: false });
     ctx.emit.mockClear();
     const ts = trackingState(node);
-    if (ts) { ts.left = { visible: true, joints: {} }; ts.right = { visible: false, joints: {} }; }
+    if (ts) {
+      ts.left = { visible: true, joints: {} };
+      ts.right = { visible: false, joints: {} };
+    }
     handMeshAIHandler.onUpdate!(node, config, ctx as any, 16);
     expect(ctx.emit).not.toHaveBeenCalledWith('hand_mesh_generate', expect.anything());
   });
@@ -161,10 +166,13 @@ describe('HandMeshAITrait — Production', () => {
     }
     handMeshAIHandler.onUpdate!(node, config, ctx as any, 16);
     if (ts) {
-      expect(ctx.emit).toHaveBeenCalledWith('hand_mesh_generate', expect.objectContaining({
-        hand: 'left',
-        resolution: 'medium',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'hand_mesh_generate',
+        expect.objectContaining({
+          hand: 'left',
+          resolution: 'medium',
+        })
+      );
     }
   });
 
@@ -179,9 +187,12 @@ describe('HandMeshAITrait — Production', () => {
     }
     handMeshAIHandler.onUpdate!(node, config, ctx as any, 16);
     if (ts) {
-      expect(ctx.emit).toHaveBeenCalledWith('hand_mesh_generate', expect.objectContaining({
-        hand: 'right',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'hand_mesh_generate',
+        expect.objectContaining({
+          hand: 'right',
+        })
+      );
     }
   });
 
@@ -189,7 +200,11 @@ describe('HandMeshAITrait — Production', () => {
 
   it('hand_mesh_result for left sets left_mesh', () => {
     const { node, ctx, config } = attach();
-    const mesh = { vertices: new Float32Array(6), normals: new Float32Array(6), indices: new Uint16Array(3) };
+    const mesh = {
+      vertices: new Float32Array(6),
+      normals: new Float32Array(6),
+      indices: new Uint16Array(3),
+    };
     handMeshAIHandler.onEvent!(node, config, ctx as any, {
       type: 'hand_mesh_result',
       hand: 'left',
@@ -201,7 +216,11 @@ describe('HandMeshAITrait — Production', () => {
 
   it('hand_mesh_result for right sets right_mesh', () => {
     const { node, ctx, config } = attach();
-    const mesh = { vertices: new Float32Array(9), normals: new Float32Array(9), indices: new Uint16Array(6) };
+    const mesh = {
+      vertices: new Float32Array(9),
+      normals: new Float32Array(9),
+      indices: new Uint16Array(6),
+    };
     handMeshAIHandler.onEvent!(node, config, ctx as any, {
       type: 'hand_mesh_result',
       hand: 'right',
@@ -220,17 +239,22 @@ describe('HandMeshAITrait — Production', () => {
       hand: 'left',
       mesh,
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_hand_mesh_updated', expect.objectContaining({
-      hand: 'left',
-      vertexCount: 3,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'on_hand_mesh_updated',
+      expect.objectContaining({
+        hand: 'left',
+        vertexCount: 3,
+      })
+    );
   });
 
   it('unknown event type does not crash', () => {
     const { node, ctx, config } = attach();
-    expect(() => handMeshAIHandler.onEvent!(node, config, ctx as any, {
-      type: 'totally_unknown',
-    })).not.toThrow();
+    expect(() =>
+      handMeshAIHandler.onEvent!(node, config, ctx as any, {
+        type: 'totally_unknown',
+      })
+    ).not.toThrow();
   });
 
   // ─── Config variations ──────────────────────────────────────────────

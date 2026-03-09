@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { headTrackedAudioHandler } from '../HeadTrackedAudioTrait';
-import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
+import {
+  createMockContext,
+  createMockNode,
+  attachTrait,
+  sendEvent,
+  updateTrait,
+  getEventCount,
+} from './traitTestHelpers';
 
 describe('HeadTrackedAudioTrait', () => {
   let node: Record<string, unknown>;
@@ -34,7 +41,10 @@ describe('HeadTrackedAudioTrait', () => {
   });
 
   it('audio_source_loaded sets source id', () => {
-    sendEvent(headTrackedAudioHandler, node, cfg, ctx, { type: 'audio_source_loaded', sourceId: 'src1' });
+    sendEvent(headTrackedAudioHandler, node, cfg, ctx, {
+      type: 'audio_source_loaded',
+      sourceId: 'src1',
+    });
     expect((node as any).__headTrackedAudioState.audioSourceId).toBe('src1');
   });
 

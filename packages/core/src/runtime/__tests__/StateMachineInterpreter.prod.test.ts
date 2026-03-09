@@ -78,9 +78,9 @@ describe('StateMachineInterpreter — Production', () => {
   it('chained events traverse full cycle', () => {
     const interp = new StateMachineInterpreter();
     interp.createInstance('tl1', mkDef(), {});
-    interp.sendEvent('tl1', 'GO');     // red -> green
-    interp.sendEvent('tl1', 'SLOW');   // green -> yellow
-    interp.sendEvent('tl1', 'STOP');   // yellow -> red
+    interp.sendEvent('tl1', 'GO'); // red -> green
+    interp.sendEvent('tl1', 'SLOW'); // green -> yellow
+    interp.sendEvent('tl1', 'STOP'); // yellow -> red
     expect(interp.getInstance('tl1')!.currentState).toBe('red');
   });
 
@@ -124,7 +124,9 @@ describe('StateMachineInterpreter — Production', () => {
   // ─── Hook error handling ──────────────────────────────────────────
   it('hook errors are caught and do not crash', () => {
     const interp = new StateMachineInterpreter();
-    interp.setHookExecutor(() => { throw new Error('boom'); });
+    interp.setHookExecutor(() => {
+      throw new Error('boom');
+    });
     // Should not throw
     expect(() => interp.createInstance('tl1', mkDef(), {})).not.toThrow();
   });

@@ -156,7 +156,7 @@ describe('LODManager', () => {
 
     it('getObjectsAtLevel filters by level', () => {
       const level0 = lod.getObjectsAtLevel(0);
-      expect(level0.every(o => o.currentLevel === 0)).toBe(true);
+      expect(level0.every((o) => o.currentLevel === 0)).toBe(true);
     });
 
     it('getAverageLOD returns average', () => {

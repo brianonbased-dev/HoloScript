@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { diffState, buildMigrationChain, snapshotState, applyAutoMigration } from '../SchemaDiff';
 
 function makeState(props: Array<{ key: string; value: any; reactive?: boolean }>) {
-  return { properties: props.map(p => ({ ...p, type: 'StateProperty', reactive: p.reactive ?? true })) };
+  return {
+    properties: props.map((p) => ({ ...p, type: 'StateProperty', reactive: p.reactive ?? true })),
+  };
 }
 
 describe('SchemaDiff', () => {
@@ -16,14 +18,20 @@ describe('SchemaDiff', () => {
 
   it('detects added fields', () => {
     const old = makeState([{ key: 'x', value: 1 }]);
-    const next = makeState([{ key: 'x', value: 1 }, { key: 'y', value: 2 }]);
+    const next = makeState([
+      { key: 'x', value: 1 },
+      { key: 'y', value: 2 },
+    ]);
     const result = diffState(old, next);
     expect(result.added.length).toBe(1);
     expect(result.added[0].key).toBe('y');
   });
 
   it('detects removed fields', () => {
-    const old = makeState([{ key: 'x', value: 1 }, { key: 'y', value: 2 }]);
+    const old = makeState([
+      { key: 'x', value: 1 },
+      { key: 'y', value: 2 },
+    ]);
     const next = makeState([{ key: 'x', value: 1 }]);
     const result = diffState(old, next);
     expect(result.removed.length).toBe(1);
@@ -116,7 +124,10 @@ describe('SchemaDiff', () => {
 
   // snapshotState
   it('snapshots deep clone values', () => {
-    const original = new Map<string, any>([['arr', [1, 2, 3]], ['num', 42]]);
+    const original = new Map<string, any>([
+      ['arr', [1, 2, 3]],
+      ['num', 42],
+    ]);
     const snap = snapshotState(original);
     expect(snap.get('arr')).toEqual([1, 2, 3]);
     expect(snap.get('num')).toBe(42);
@@ -141,7 +152,10 @@ describe('SchemaDiff', () => {
 
   it('updates defaults when instance holds old default', () => {
     const state = new Map<string, any>([['x', 1]]);
-    const diff = diffState(makeState([{ key: 'x', value: 1 }]), makeState([{ key: 'x', value: 99 }]));
+    const diff = diffState(
+      makeState([{ key: 'x', value: 1 }]),
+      makeState([{ key: 'x', value: 99 }])
+    );
     const oldDefaults = new Map<string, any>([['x', 1]]);
     applyAutoMigration(state, diff, oldDefaults);
     expect(state.get('x')).toBe(99);

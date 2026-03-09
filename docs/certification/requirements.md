@@ -4,12 +4,12 @@ The HoloScript Certification Program recognizes packages that meet rigorous stan
 
 ## Certification Levels
 
-| Level | Min Score | Badge |
-|-------|-----------|-------|
-| 🥉 **Bronze** | 60/100 | `@holoscript/certified-bronze` |
-| 🥈 **Silver** | 75/100 | `@holoscript/certified-silver` |
-| 🥇 **Gold** | 85/100 | `@holoscript/certified-gold` |
-| 💎 **Platinum** | 95/100 | `@holoscript/certified-platinum` |
+| Level           | Min Score | Badge                            |
+| --------------- | --------- | -------------------------------- |
+| 🥉 **Bronze**   | 60/100    | `@holoscript/certified-bronze`   |
+| 🥈 **Silver**   | 75/100    | `@holoscript/certified-silver`   |
+| 🥇 **Gold**     | 85/100    | `@holoscript/certified-gold`     |
+| 💎 **Platinum** | 95/100    | `@holoscript/certified-platinum` |
 
 Badges are valid for **12 months** and must be renewed annually.
 
@@ -19,43 +19,43 @@ Badges are valid for **12 months** and must be renewed annually.
 
 ### 1. Code Quality (25 points)
 
-| Check | Points | Description |
-|-------|--------|-------------|
-| TypeScript typed | 5 | All exports fully typed, no `any` in public API |
-| No lint errors | 5 | Passes `eslint` with `@holoscript/eslint-config` |
-| Complexity score A/B | 5 | Cyclomatic complexity ≤ 10 per function |
-| Test coverage ≥ 80% | 5 | Line + branch coverage ≥ 80% |
-| No code duplication | 5 | < 3% duplicated blocks (jscpd) |
+| Check                | Points | Description                                      |
+| -------------------- | ------ | ------------------------------------------------ |
+| TypeScript typed     | 5      | All exports fully typed, no `any` in public API  |
+| No lint errors       | 5      | Passes `eslint` with `@holoscript/eslint-config` |
+| Complexity score A/B | 5      | Cyclomatic complexity ≤ 10 per function          |
+| Test coverage ≥ 80%  | 5      | Line + branch coverage ≥ 80%                     |
+| No code duplication  | 5      | < 3% duplicated blocks (jscpd)                   |
 
 ### 2. Documentation (25 points)
 
-| Check | Points | Description |
-|-------|--------|-------------|
-| README with examples | 8 | Has Installation, Usage, and at least one code example |
-| API documentation | 7 | All exported symbols have JSDoc comments |
-| Changelog maintained | 5 | `CHANGELOG.md` in Keep a Changelog format |
-| License clear | 3 | `LICENSE` file present and SPDX identifier in package.json |
-| HoloScript compatibility table | 2 | Indicates which HoloScript versions are supported |
+| Check                          | Points | Description                                                |
+| ------------------------------ | ------ | ---------------------------------------------------------- |
+| README with examples           | 8      | Has Installation, Usage, and at least one code example     |
+| API documentation              | 7      | All exported symbols have JSDoc comments                   |
+| Changelog maintained           | 5      | `CHANGELOG.md` in Keep a Changelog format                  |
+| License clear                  | 3      | `LICENSE` file present and SPDX identifier in package.json |
+| HoloScript compatibility table | 2      | Indicates which HoloScript versions are supported          |
 
 ### 3. Security (25 points)
 
-| Check | Points | Description |
-|-------|--------|-------------|
-| No known vulnerabilities | 10 | `npm audit` returns 0 high/critical issues |
-| No suspicious network calls | 5 | No undeclared external HTTP calls |
-| Safe dependency tree | 5 | All dependencies are themselves certified or well-known |
-| Content Security Policy compliant | 3 | No `eval`, `new Function`, dynamic `import()` in browser builds |
-| Input validation | 2 | Public API validates inputs (no injection vectors) |
+| Check                             | Points | Description                                                     |
+| --------------------------------- | ------ | --------------------------------------------------------------- |
+| No known vulnerabilities          | 10     | `npm audit` returns 0 high/critical issues                      |
+| No suspicious network calls       | 5      | No undeclared external HTTP calls                               |
+| Safe dependency tree              | 5      | All dependencies are themselves certified or well-known         |
+| Content Security Policy compliant | 3      | No `eval`, `new Function`, dynamic `import()` in browser builds |
+| Input validation                  | 2      | Public API validates inputs (no injection vectors)              |
 
 ### 4. Maintenance (25 points)
 
-| Check | Points | Description |
-|-------|--------|-------------|
-| Responsive maintainer | 8 | Average issue response time < 7 days (last 90 days) |
-| Regular updates | 7 | At least one non-patch release in last 12 months |
-| Semantic versioning | 5 | All releases follow semver (no breaking changes in minor) |
-| CI passing | 3 | GitHub Actions / CI shows green badge on default branch |
-| Issue triage < 7 days | 2 | Bug reports triaged within 7 calendar days |
+| Check                 | Points | Description                                               |
+| --------------------- | ------ | --------------------------------------------------------- |
+| Responsive maintainer | 8      | Average issue response time < 7 days (last 90 days)       |
+| Regular updates       | 7      | At least one non-patch release in last 12 months          |
+| Semantic versioning   | 5      | All releases follow semver (no breaking changes in minor) |
+| CI passing            | 3      | GitHub Actions / CI shows green badge on default branch   |
+| Issue triage < 7 days | 2      | Bug reports triaged within 7 calendar days                |
 
 ---
 
@@ -193,13 +193,13 @@ Appeals are reviewed within 5 business days.
 
 Browse certified packages at [holoscript.net/certified](https://holoscript.net/certified).
 
-| Package | Level | Score | Certified |
-|---------|-------|-------|-----------|
-| `@holoscript/core` | 💎 Platinum | 98 | 2026-03-01 |
-| `@holoscript/lsp` | 💎 Platinum | 96 | 2026-03-15 |
-| `@holoscript/visual` | 🥇 Gold | 91 | 2026-03-15 |
-| `@holoscript/security-sandbox` | 💎 Platinum | 97 | 2026-02-20 |
-| `@holoscript/llm-provider` | 🥇 Gold | 88 | 2026-03-01 |
+| Package                        | Level       | Score | Certified  |
+| ------------------------------ | ----------- | ----- | ---------- |
+| `@holoscript/core`             | 💎 Platinum | 98    | 2026-03-01 |
+| `@holoscript/lsp`              | 💎 Platinum | 96    | 2026-03-15 |
+| `@holoscript/visual`           | 🥇 Gold     | 91    | 2026-03-15 |
+| `@holoscript/security-sandbox` | 💎 Platinum | 97    | 2026-02-20 |
+| `@holoscript/llm-provider`     | 🥇 Gold     | 88    | 2026-03-01 |
 
 ---
 

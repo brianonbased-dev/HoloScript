@@ -218,7 +218,7 @@ class SeededRandom {
   /** Generate float in [0, 1) */
   next(): number {
     this.state |= 0;
-    this.state = (this.state + 0x6D2B79F5) | 0;
+    this.state = (this.state + 0x6d2b79f5) | 0;
     let t = Math.imul(this.state ^ (this.state >>> 15), 1 | this.state);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -326,13 +326,16 @@ export class GraphGrammar {
    * Remove a production rule by ID
    */
   removeRule(ruleId: string): boolean {
-    const rule = this.allRules.find(r => r.id === ruleId);
+    const rule = this.allRules.find((r) => r.id === ruleId);
     if (!rule) return false;
 
-    this.allRules = this.allRules.filter(r => r.id !== ruleId);
+    this.allRules = this.allRules.filter((r) => r.id !== ruleId);
     const symbolRules = this.rules.get(rule.symbol);
     if (symbolRules) {
-      this.rules.set(rule.symbol, symbolRules.filter(r => r.id !== ruleId));
+      this.rules.set(
+        rule.symbol,
+        symbolRules.filter((r) => r.id !== ruleId)
+      );
     }
     return true;
   }
@@ -375,22 +378,24 @@ export class GraphGrammar {
       parentChain: [],
       nodeCount: 0,
       maxNodes: options.maxNodes ?? 10_000,
-      symbolBudgets: new Map(
-        Object.entries(options.symbolBudgets ?? {})
-      ),
+      symbolBudgets: new Map(Object.entries(options.symbolBudgets ?? {})),
     };
 
     const rulesApplied = new Map<string, number>();
     const unexpanded: string[] = [];
 
     // Create start node
-    const startNode = createNonTerminal(
-      this.startSymbol,
-      { x: 0, y: 0, z: 0 },
-    );
+    const startNode = createNonTerminal(this.startSymbol, { x: 0, y: 0, z: 0 });
 
     // Recursively expand
-    const root = this.expandNode(startNode, context, rng, rulesApplied, unexpanded, options.verbose ?? false);
+    const root = this.expandNode(
+      startNode,
+      context,
+      rng,
+      rulesApplied,
+      unexpanded,
+      options.verbose ?? false
+    );
 
     return {
       root,
@@ -412,7 +417,7 @@ export class GraphGrammar {
     rng: SeededRandom,
     rulesApplied: Map<string, number>,
     unexpanded: string[],
-    verbose: boolean,
+    verbose: boolean
   ): GrammarNode {
     context.nodeCount++;
 
@@ -422,7 +427,8 @@ export class GraphGrammar {
     }
 
     if (context.depth >= context.maxDepth) {
-      if (verbose) this.log.push(`Depth limit reached for ${node.symbol} at depth ${context.depth}`);
+      if (verbose)
+        this.log.push(`Depth limit reached for ${node.symbol} at depth ${context.depth}`);
       unexpanded.push(node.symbol);
       return this.convertToTerminal(node);
     }
@@ -449,7 +455,7 @@ export class GraphGrammar {
     }
 
     // Filter by depth constraints and conditions
-    const applicableRules = rules.filter(rule => {
+    const applicableRules = rules.filter((rule) => {
       if (rule.minDepth !== undefined && context.depth < rule.minDepth) return false;
       if (rule.maxDepth !== undefined && context.depth > rule.maxDepth) return false;
       if (rule.condition && !rule.condition(context)) return false;
@@ -465,7 +471,10 @@ export class GraphGrammar {
     const selectedRule = rng.weightedPick(applicableRules);
     rulesApplied.set(selectedRule.id, (rulesApplied.get(selectedRule.id) || 0) + 1);
 
-    if (verbose) this.log.push(`Applied rule "${selectedRule.id}" to ${node.symbol} at depth ${context.depth}`);
+    if (verbose)
+      this.log.push(
+        `Applied rule "${selectedRule.id}" to ${node.symbol} at depth ${context.depth}`
+      );
 
     // Decrement budget
     if (budget !== undefined) {
@@ -512,9 +521,7 @@ export class GraphGrammar {
    */
   private getMaxDepth(node: GrammarNode, current: number): number {
     if (node.children.length === 0) return current;
-    return Math.max(
-      ...node.children.map(child => this.getMaxDepth(child, current + 1))
-    );
+    return Math.max(...node.children.map((child) => this.getMaxDepth(child, current + 1)));
   }
 
   /**
@@ -531,7 +538,7 @@ export class GraphGrammar {
     const data = {
       version: 1,
       startSymbol: this.startSymbol,
-      rules: this.allRules.map(r => ({
+      rules: this.allRules.map((r) => ({
         id: r.id,
         symbol: r.symbol,
         weight: r.weight,
@@ -558,7 +565,7 @@ let nodeIdCounter = 0;
 export function createNonTerminal(
   symbol: string,
   position: { x: number; y: number; z: number },
-  tags: string[] = [],
+  tags: string[] = []
 ): GrammarNode {
   return {
     id: `nt_${symbol}_${++nodeIdCounter}`,
@@ -586,7 +593,7 @@ export function createTerminal(
   traits: string[],
   position: { x: number; y: number; z: number },
   config: Record<string, unknown> = {},
-  tags: string[] = [],
+  tags: string[] = []
 ): GrammarNode {
   return {
     id: `t_${symbol}_${++nodeIdCounter}`,
@@ -612,7 +619,7 @@ export function createTerminal(
 export function createAnchor(
   name: string,
   position: { x: number; y: number; z: number },
-  bounds?: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } },
+  bounds?: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }
 ): GrammarNode {
   return {
     id: `anchor_${name}_${++nodeIdCounter}`,
@@ -653,7 +660,7 @@ export function resetNodeIdCounter(): void {
 export function compositionToRule(
   compositionName: string,
   traitNames: string[],
-  weight: number = 1.0,
+  weight: number = 1.0
 ): ProductionRule {
   return {
     id: `comp_${compositionName}`,
@@ -662,13 +669,10 @@ export function compositionToRule(
     tags: ['composition', ...traitNames],
     produce: (_node, _context) => {
       return [
-        createTerminal(
-          compositionName,
-          traitNames,
-          { x: 0, y: 0, z: 0 },
-          {},
-          ['composed', ...traitNames],
-        ),
+        createTerminal(compositionName, traitNames, { x: 0, y: 0, z: 0 }, {}, [
+          'composed',
+          ...traitNames,
+        ]),
       ];
     },
   };
@@ -684,7 +688,7 @@ export function templateToRule(
   templateName: string,
   traits: string[],
   defaultConfig: Record<string, unknown> = {},
-  weight: number = 1.0,
+  weight: number = 1.0
 ): ProductionRule {
   return {
     id: `tmpl_${templateName}`,
@@ -693,13 +697,10 @@ export function templateToRule(
     tags: ['template', templateName],
     produce: (_node, _context) => {
       return [
-        createTerminal(
+        createTerminal(templateName, traits, { x: 0, y: 0, z: 0 }, defaultConfig, [
+          'template-instance',
           templateName,
-          traits,
-          { x: 0, y: 0, z: 0 },
-          defaultConfig,
-          ['template-instance', templateName],
-        ),
+        ]),
       ];
     },
   };
@@ -724,9 +725,7 @@ export function createVillageGrammar(): GraphGrammar {
     produce: (_node, ctx) => {
       const rng = new SeededRandom(ctx.seed + ctx.depth);
       const houseCount = rng.int(4, 8);
-      const nodes: GrammarNode[] = [
-        createNonTerminal('TownSquare', { x: 0, y: 0, z: 0 }),
-      ];
+      const nodes: GrammarNode[] = [createNonTerminal('TownSquare', { x: 0, y: 0, z: 0 })];
 
       // Scatter houses in a circle around town square
       for (let i = 0; i < houseCount; i++) {
@@ -805,8 +804,17 @@ export function createVillageGrammar(): GraphGrammar {
     weight: 0.3,
     tags: ['structure', 'house', 'large'],
     produce: () => [
-      createTerminal('house_large_walls', ['collidable', 'visible'], { x: 0, y: 0, z: 0 }, { scale: 1.5 }),
-      createTerminal('house_large_door', ['grabbable', 'collidable', 'visible'], { x: 0, y: 0, z: 4.5 }),
+      createTerminal(
+        'house_large_walls',
+        ['collidable', 'visible'],
+        { x: 0, y: 0, z: 0 },
+        { scale: 1.5 }
+      ),
+      createTerminal('house_large_door', ['grabbable', 'collidable', 'visible'], {
+        x: 0,
+        y: 0,
+        z: 4.5,
+      }),
       createTerminal('house_large_roof', ['collidable', 'visible'], { x: 0, y: 4.5, z: 0 }),
       createTerminal('chimney', ['visible', 'collidable'], { x: 2, y: 6, z: 0 }),
     ],
@@ -822,7 +830,12 @@ export function createVillageGrammar(): GraphGrammar {
       const rng = new SeededRandom(ctx.seed + ctx.nodeCount);
       const scale = rng.float(0.5, 2.0);
       return [
-        createTerminal('tree', ['collidable', 'visible'], { x: 0, y: 0, z: 0 }, { treeScale: scale }),
+        createTerminal(
+          'tree',
+          ['collidable', 'visible'],
+          { x: 0, y: 0, z: 0 },
+          { treeScale: scale }
+        ),
       ];
     },
   });
@@ -856,18 +869,12 @@ export function createDungeonGrammar(): GraphGrammar {
     produce: (_node, ctx) => {
       const rng = new SeededRandom(ctx.seed);
       const roomCount = rng.int(3, 7);
-      const nodes: GrammarNode[] = [
-        createNonTerminal('Entrance', { x: 0, y: 0, z: 0 }),
-      ];
+      const nodes: GrammarNode[] = [createNonTerminal('Entrance', { x: 0, y: 0, z: 0 })];
 
       let z = -10;
       for (let i = 0; i < roomCount; i++) {
-        nodes.push(
-          createNonTerminal(rng.next() > 0.3 ? 'Room' : 'BossRoom', { x: 0, y: 0, z })
-        );
-        nodes.push(
-          createTerminal('corridor', ['collidable', 'visible'], { x: 0, y: 0, z: z + 5 })
-        );
+        nodes.push(createNonTerminal(rng.next() > 0.3 ? 'Room' : 'BossRoom', { x: 0, y: 0, z }));
+        nodes.push(createTerminal('corridor', ['collidable', 'visible'], { x: 0, y: 0, z: z + 5 }));
         z -= 15;
       }
 
@@ -891,7 +898,9 @@ export function createDungeonGrammar(): GraphGrammar {
       if (rng.next() > 0.5) {
         nodes.push(
           createTerminal('chest', ['grabbable', 'collidable', 'visible', 'inventory'], {
-            x: rng.float(-3, 3), y: 0, z: rng.float(-3, 3),
+            x: rng.float(-3, 3),
+            y: 0,
+            z: rng.float(-3, 3),
           })
         );
       }
@@ -900,7 +909,9 @@ export function createDungeonGrammar(): GraphGrammar {
       if (rng.next() > 0.3) {
         nodes.push(
           createTerminal('enemy', ['health', 'damage', 'collidable', 'visible', 'respawnable'], {
-            x: rng.float(-4, 4), y: 0, z: rng.float(-4, 4),
+            x: rng.float(-4, 4),
+            y: 0,
+            z: rng.float(-4, 4),
           })
         );
       }
@@ -917,7 +928,11 @@ export function createDungeonGrammar(): GraphGrammar {
     produce: () => [
       createTerminal('room_floor', ['collidable', 'visible'], { x: 0, y: 0, z: 0 }),
       createTerminal('room_walls', ['collidable', 'visible'], { x: 0, y: 0, z: 0 }),
-      createTerminal('treasure_chest', ['grabbable', 'collidable', 'visible', 'inventory'], { x: 0, y: 0, z: 0 }),
+      createTerminal('treasure_chest', ['grabbable', 'collidable', 'visible', 'inventory'], {
+        x: 0,
+        y: 0,
+        z: 0,
+      }),
       createTerminal('gold_pile', ['visible', 'collidable'], { x: -2, y: 0, z: 1 }),
       createTerminal('gold_pile', ['visible', 'collidable'], { x: 2, y: 0, z: -1 }),
     ],
@@ -930,10 +945,29 @@ export function createDungeonGrammar(): GraphGrammar {
     maxDepth: 8,
     tags: ['dungeon', 'boss'],
     produce: () => [
-      createTerminal('boss_room_floor', ['collidable', 'visible'], { x: 0, y: 0, z: 0 }, { scale: 2 }),
-      createTerminal('boss_room_walls', ['collidable', 'visible'], { x: 0, y: 0, z: 0 }, { scale: 2 }),
-      createTerminal('boss', ['health', 'damage', 'collidable', 'visible'], { x: 0, y: 0, z: -5 }, { maxHealth: 1000, baseDamage: 50 }),
-      createTerminal('boss_loot', ['grabbable', 'collidable', 'visible', 'equippable'], { x: 0, y: 1, z: -8 }),
+      createTerminal(
+        'boss_room_floor',
+        ['collidable', 'visible'],
+        { x: 0, y: 0, z: 0 },
+        { scale: 2 }
+      ),
+      createTerminal(
+        'boss_room_walls',
+        ['collidable', 'visible'],
+        { x: 0, y: 0, z: 0 },
+        { scale: 2 }
+      ),
+      createTerminal(
+        'boss',
+        ['health', 'damage', 'collidable', 'visible'],
+        { x: 0, y: 0, z: -5 },
+        { maxHealth: 1000, baseDamage: 50 }
+      ),
+      createTerminal('boss_loot', ['grabbable', 'collidable', 'visible', 'equippable'], {
+        x: 0,
+        y: 1,
+        z: -8,
+      }),
     ],
   });
 

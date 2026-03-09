@@ -52,7 +52,7 @@ describe('QualityGates', () => {
 
   describe('Confidence thresholds', () => {
     it('should have 70% threshold for Tier 1', () => {
-      expect(getTierThreshold(QualityTier.TIER_1_AUTONOMOUS)).toBe(0.70);
+      expect(getTierThreshold(QualityTier.TIER_1_AUTONOMOUS)).toBe(0.7);
     });
 
     it('should have 85% threshold for Tier 2', () => {
@@ -71,7 +71,7 @@ describe('QualityGates', () => {
       const result = await check.execute(ctx);
 
       expect(result.passed).toBe(true);
-      expect(result.confidence).toBeGreaterThan(0.70);
+      expect(result.confidence).toBeGreaterThan(0.7);
     });
 
     it('should detect unbalanced braces', async () => {
@@ -80,7 +80,7 @@ describe('QualityGates', () => {
       const result = await check.execute(ctx);
 
       expect(result.passed).toBe(false);
-      expect(result.findings.some(f => f.rule === 'balanced-braces')).toBe(true);
+      expect(result.findings.some((f) => f.rule === 'balanced-braces')).toBe(true);
     });
   });
 
@@ -99,7 +99,7 @@ describe('QualityGates', () => {
       const result = await check.execute(ctx);
 
       expect(result.passed).toBe(false);
-      expect(result.findings.some(f => f.rule === 'position-type')).toBe(true);
+      expect(result.findings.some((f) => f.rule === 'position-type')).toBe(true);
     });
   });
 
@@ -111,7 +111,7 @@ describe('QualityGates', () => {
       });
       const result = await check.execute(ctx);
 
-      expect(result.findings.some(f => f.rule === 'trait-conflict')).toBe(true);
+      expect(result.findings.some((f) => f.rule === 'trait-conflict')).toBe(true);
     });
 
     it('should detect missing dependencies', async () => {
@@ -121,7 +121,7 @@ describe('QualityGates', () => {
       });
       const result = await check.execute(ctx);
 
-      expect(result.findings.some(f => f.rule === 'missing-dependency')).toBe(true);
+      expect(result.findings.some((f) => f.rule === 'missing-dependency')).toBe(true);
     });
   });
 
@@ -134,7 +134,7 @@ describe('QualityGates', () => {
       const result = await check.execute(ctx);
 
       expect(result.passed).toBe(false);
-      expect(result.findings.some(f => f.rule === 'no-eval')).toBe(true);
+      expect(result.findings.some((f) => f.rule === 'no-eval')).toBe(true);
     });
 
     it('should detect hardcoded secrets', async () => {
@@ -145,7 +145,7 @@ describe('QualityGates', () => {
       const result = await check.execute(ctx);
 
       expect(result.passed).toBe(false);
-      expect(result.findings.some(f => f.rule === 'no-secrets')).toBe(true);
+      expect(result.findings.some((f) => f.rule === 'no-secrets')).toBe(true);
     });
 
     it('should pass clean source', async () => {
@@ -156,7 +156,7 @@ describe('QualityGates', () => {
       const result = await check.execute(ctx);
 
       expect(result.passed).toBe(true);
-      expect(result.confidence).toBeGreaterThan(0.90);
+      expect(result.confidence).toBeGreaterThan(0.9);
     });
   });
 
@@ -178,7 +178,7 @@ describe('QualityGates', () => {
       const result = await check.execute(ctx);
 
       expect(result.passed).toBe(false);
-      expect(result.findings.some(f => f.rule === 'prod-version')).toBe(true);
+      expect(result.findings.some((f) => f.rule === 'prod-version')).toBe(true);
     });
   });
 

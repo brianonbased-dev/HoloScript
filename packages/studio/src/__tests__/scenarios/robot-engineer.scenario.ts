@@ -111,65 +111,65 @@ describe('Scenario: Robot Engineer — URDF Import', () => {
   });
 
   it('extracts all link names', () => {
-    expect(arm.links.map(l => l.name)).toContain('base_link');
-    expect(arm.links.map(l => l.name)).toContain('link_1');
-    expect(arm.links.map(l => l.name)).toContain('end_effector');
+    expect(arm.links.map((l) => l.name)).toContain('base_link');
+    expect(arm.links.map((l) => l.name)).toContain('link_1');
+    expect(arm.links.map((l) => l.name)).toContain('end_effector');
   });
 
   it('extracts all joint names', () => {
-    const names = arm.joints.map(j => j.name);
+    const names = arm.joints.map((j) => j.name);
     expect(names).toContain('joint_1');
     expect(names).toContain('joint_2');
     expect(names).toContain('wrist_fixed');
   });
 
   it('recognizes revolute joint type', () => {
-    const j1 = arm.joints.find(j => j.name === 'joint_1')!;
+    const j1 = arm.joints.find((j) => j.name === 'joint_1')!;
     expect(j1.type).toBe('revolute');
   });
 
   it('recognizes fixed joint type', () => {
-    const wrist = arm.joints.find(j => j.name === 'wrist_fixed')!;
+    const wrist = arm.joints.find((j) => j.name === 'wrist_fixed')!;
     expect(wrist.type).toBe('fixed');
   });
 
   it('recognizes continuous joint type (wheel drive)', () => {
-    const left = bot.joints.find(j => j.name === 'left_drive')!;
+    const left = bot.joints.find((j) => j.name === 'left_drive')!;
     expect(left.type).toBe('continuous');
   });
 
   it('extracts joint axis correctly', () => {
-    const j1 = arm.joints.find(j => j.name === 'joint_1')!;
+    const j1 = arm.joints.find((j) => j.name === 'joint_1')!;
     expect(j1.axis).toEqual([0, 1, 0]);
   });
 
   it('extracts joint limits (lower/upper)', () => {
-    const j1 = arm.joints.find(j => j.name === 'joint_1')!;
+    const j1 = arm.joints.find((j) => j.name === 'joint_1')!;
     expect(j1.limits.min).toBeCloseTo(-1.5707, 3);
     expect(j1.limits.max).toBeCloseTo(1.5707, 3);
   });
 
   it('extracts parent and child link for each joint', () => {
-    const j1 = arm.joints.find(j => j.name === 'joint_1')!;
+    const j1 = arm.joints.find((j) => j.name === 'joint_1')!;
     expect(j1.parent).toBe('base_link');
     expect(j1.child).toBe('link_1');
   });
 
   it('extracts joint origin position', () => {
-    const j2 = arm.joints.find(j => j.name === 'joint_2')!;
+    const j2 = arm.joints.find((j) => j.name === 'joint_2')!;
     expect(j2.origin.x).toBeCloseTo(0.5, 3);
   });
 
   // ── Missing features (product backlog) ──────────────────────────────────────
 
   it('importURDF(file) → converts parsed URDF into SceneNode tree in the scene graph', () => {
-    const nodes = arm.links.map(l => ({ id: l.name, type: 'mesh', name: l.name }));
+    const nodes = arm.links.map((l) => ({ id: l.name, type: 'mesh', name: l.name }));
     expect(nodes.length).toBe(4);
     expect(nodes[0].name).toBe('base_link');
   });
 
   it('URDF joint → @joint trait with correct axis/limits on the corresponding SceneNode', () => {
-    const j1 = arm.joints.find(j => j.name === 'joint_1')!;
+    const j1 = arm.joints.find((j) => j.name === 'joint_1')!;
     const trait = jointToTrait(j1);
     expect(trait).toContain('axis: [0 1 0]');
     expect(trait).toContain('min: -1.571');
@@ -182,13 +182,19 @@ describe('Scenario: Robot Engineer — URDF Import', () => {
   });
 
   it('joints panel shows all joints with current angle sliders', () => {
-    const angles = arm.joints.map(j => setJointAngle(j, 0));
+    const angles = arm.joints.map((j) => setJointAngle(j, 0));
     expect(angles.length).toBe(3);
   });
 
   it('prismatic joint type → @joint with linear travel limits in cm', () => {
-    const trait = jointToTrait({ 
-      name: 'slider', type: 'prismatic', axis: [1,0,0], limits: {min: 0, max: 0.5}, parent: '1', child: '2', origin: {x:0,y:0,z:0,roll:0,pitch:0,yaw:0} 
+    const trait = jointToTrait({
+      name: 'slider',
+      type: 'prismatic',
+      axis: [1, 0, 0],
+      limits: { min: 0, max: 0.5 },
+      parent: '1',
+      child: '2',
+      origin: { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 },
     });
     expect(trait).toContain('type: "prismatic"');
     expect(trait).toContain('max: 0.500');
@@ -205,9 +211,9 @@ describe('Scenario: Robot Engineer — Joint Control', () => {
 
   beforeEach(() => {
     const arm = parseRobotDefinition(SIMPLE_ARM_URDF);
-    j1 = arm.joints.find(j => j.name === 'joint_1')!;
+    j1 = arm.joints.find((j) => j.name === 'joint_1')!;
     const bot = parseRobotDefinition(WHEELED_ROBOT_URDF);
-    continuous = bot.joints.find(j => j.name === 'left_drive')!;
+    continuous = bot.joints.find((j) => j.name === 'left_drive')!;
   });
 
   it('setJointAngle() returns the angle unchanged when within limits', () => {
@@ -235,7 +241,7 @@ describe('Scenario: Robot Engineer — Joint Control', () => {
 
   it('fixed joint always returns angle 0 regardless of input', () => {
     const arm = parseRobotDefinition(SIMPLE_ARM_URDF);
-    const fixed = arm.joints.find(j => j.name === 'wrist_fixed')!;
+    const fixed = arm.joints.find((j) => j.name === 'wrist_fixed')!;
     expect(setJointAngle(fixed, 2.0)).toBe(0);
     expect(setJointAngle(fixed, -1.0)).toBe(0);
   });
@@ -251,7 +257,7 @@ describe('Scenario: Robot Engineer — Joint Control', () => {
     // 2-DOF arm IK test (0.5 and 0.4 length joints)
     // Attempting to reach [0, 0, 0.9] which is exactly pointing straight along Z.
     const angles = inverseKinematics([0, 0, 0.9], 0.5, 0.4);
-    
+
     // Joint 0 rotates Base, Joint 1 rotates elbow. If elbow is straight, angle should be near 0
     expect(angles.length).toBe(2);
     expect(angles[1]).toBeCloseTo(0, 2);
@@ -261,7 +267,7 @@ describe('Scenario: Robot Engineer — Joint Control', () => {
     expect(angles2.length).toBe(2);
     expect(angles2[0]).not.toBeNaN();
     expect(angles2[1]).not.toBeNaN();
-    
+
     // Target 3-DOF arm
     const angles3 = inverseKinematics([0.7, 0, 0.7], 0.5, 0.4, 0.3);
     expect(angles3.length).toBe(3);
@@ -273,9 +279,9 @@ describe('Scenario: Robot Engineer — Joint Control', () => {
     const points = [0, 0.5, 1.0];
     let timeIdx = 0;
     const updateAngle = () => {
-       const clamped = setJointAngle(j1, points[Math.floor(timeIdx)]);
-       timeIdx += 0.5;
-       return clamped;
+      const clamped = setJointAngle(j1, points[Math.floor(timeIdx)]);
+      timeIdx += 0.5;
+      return clamped;
     };
     expect(updateAngle()).toBe(0);
     expect(updateAngle()).toBe(0);
@@ -286,22 +292,22 @@ describe('Scenario: Robot Engineer — Joint Control', () => {
     // A 7-DOF arm targetting a simple point
     const angles = inverseKinematics([0.5, 0.5, 0.5], 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2);
     expect(angles.length).toBe(7);
-    expect(angles.every(a => !Number.isNaN(a))).toBe(true);
+    expect(angles.every((a) => !Number.isNaN(a))).toBe(true);
   });
 
   it('self-collision detection — alerts when robot links intersect', () => {
-     // A physics system integration assertion
-     const didCollide = true; // mock overlap
-     expect(didCollide).toBe(true);
+    // A physics system integration assertion
+    const didCollide = true; // mock overlap
+    expect(didCollide).toBe(true);
   });
 
   it('velocity limits enforcement — joint cannot change faster than max_vel rad/s', () => {
-     // Check basic limits applying logic
-     expect(setJointAngle(j1, 1000)).toBeCloseTo(1.5707);
+    // Check basic limits applying logic
+    expect(setJointAngle(j1, 1000)).toBeCloseTo(1.5707);
   });
 
   it('torque limits enforcement — physics simulation respects max_torque Nm', () => {
-     expect(j1.limits).toBeDefined();
+    expect(j1.limits).toBeDefined();
   });
 });
 
@@ -346,21 +352,47 @@ describe('Scenario: Robot Engineer — Forward Kinematics', () => {
   // ── Missing features ─────────────────────────────────────────────────────────
 
   it('full 3D homogeneous transform FK — correct for arbitrary 6-DOF arm', () => {
-    const [x, y, z] = forwardKinematics([{ joint: { type: 'revolute', name: '', axis: [0,1,0], limits: {min:0, max:0}, child:'', parent:'', origin: {x:0,y:0,z:0,roll:0,pitch:0,yaw:0} }, angle: 0, linkLength: 1.0 }]);
+    const [x, y, z] = forwardKinematics([
+      {
+        joint: {
+          type: 'revolute',
+          name: '',
+          axis: [0, 1, 0],
+          limits: { min: 0, max: 0 },
+          child: '',
+          parent: '',
+          origin: { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 },
+        },
+        angle: 0,
+        linkLength: 1.0,
+      },
+    ]);
     expect(x).toBe(0);
     expect(y).toBe(0);
     expect(z).toBe(1);
   });
-  
+
   it('FK with joint offsets from URDF origin tags', () => {
     const arm = parseRobotDefinition(SIMPLE_ARM_URDF);
-    const j2 = arm.joints.find(j => j.name === 'joint_2')!;
+    const j2 = arm.joints.find((j) => j.name === 'joint_2')!;
     expect(j2.origin.x).toBe(0.5);
   });
-  
+
   it('FK updates live in 3D viewport as joint sliders move', () => {
     let fired = false;
-    setJointAngle({ type: 'revolute', name: '', axis: [0,1,0], limits: {min:-1, max:1}, child:'', parent:'', origin: {x:0,y:0,z:0,roll:0,pitch:0,yaw:0} }, 0.5, () => fired = true);
+    setJointAngle(
+      {
+        type: 'revolute',
+        name: '',
+        axis: [0, 1, 0],
+        limits: { min: -1, max: 1 },
+        child: '',
+        parent: '',
+        origin: { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 },
+      },
+      0.5,
+      () => (fired = true)
+    );
     expect(fired).toBe(true);
   });
 });
@@ -382,7 +414,7 @@ describe('Scenario: Robot Engineer — HoloScript Trait Generation', () => {
 
   it('jointToTrait() for fixed joint omits limits', () => {
     const arm = parseRobotDefinition(SIMPLE_ARM_URDF);
-    const fixed = arm.joints.find(j => j.type === 'fixed')!;
+    const fixed = arm.joints.find((j) => j.type === 'fixed')!;
     const trait = jointToTrait(fixed);
     expect(trait).toContain('@joint');
     expect(trait).toContain('"fixed"');
@@ -390,13 +422,13 @@ describe('Scenario: Robot Engineer — HoloScript Trait Generation', () => {
   });
 
   it('existing scene templates contain @position trait (every placed object)', () => {
-    const withPosition = DATA_TEMPLATES.filter(t => t.code.includes('@position'));
+    const withPosition = DATA_TEMPLATES.filter((t) => t.code.includes('@position'));
     expect(withPosition.length).toBeGreaterThan(0);
   });
 
   it('existing scene templates contain @spawn or @win_condition (game logic hooks)', () => {
     const withGameTraits = DATA_TEMPLATES.filter(
-      t => t.code.includes('@spawn') || t.code.includes('@win_condition')
+      (t) => t.code.includes('@spawn') || t.code.includes('@win_condition')
     );
     expect(withGameTraits.length).toBeGreaterThan(0);
   });
@@ -404,7 +436,15 @@ describe('Scenario: Robot Engineer — HoloScript Trait Generation', () => {
   // ── Missing features ─────────────────────────────────────────────────────────
 
   it('@joint(name, type, axis, limits) trait recognized by HoloScript compiler', () => {
-    const trait = jointToTrait({ name: 'test', type: 'fixed', axis: [0,0,1], limits: {min:0, max:0}, parent: '1', child: '2', origin: {x:0,y:0,z:0,roll:0,pitch:0,yaw:0} });
+    const trait = jointToTrait({
+      name: 'test',
+      type: 'fixed',
+      axis: [0, 0, 1],
+      limits: { min: 0, max: 0 },
+      parent: '1',
+      child: '2',
+      origin: { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 },
+    });
     expect(trait).toContain('@joint("test", type: "fixed")');
   });
 
@@ -471,8 +511,8 @@ describe('Scenario: Robot Engineer — Sensor Simulation', () => {
   });
 
   it('sensor data stream — pub/sub bus for sensor readings accessible in scripts', () => {
-    let bus = "data";
-    expect(bus).toBe("data");
+    let bus = 'data';
+    expect(bus).toBe('data');
   });
 
   it('depth camera — combines camera + LiDAR into RGBD output', () => {
@@ -497,7 +537,7 @@ describe('Scenario: Robot Engineer — Multi-Robot Scene', () => {
     const bot2 = 'bot-2';
     expect(bot1).not.toBe(bot2);
   });
-  
+
   it('100 robots added without performance degradation (< 100ms)', () => {
     const t0 = performance.now();
     const bots = new Array(100).fill('bot');
@@ -505,25 +545,25 @@ describe('Scenario: Robot Engineer — Multi-Robot Scene', () => {
     expect(t1 - t0).toBeLessThan(100);
     expect(bots.length).toBe(100);
   });
-  
+
   it('robot-to-robot collision event fires when bounding boxes overlap', () => {
     const box1 = { min: 0, max: 10 };
     const box2 = { min: 5, max: 15 };
     const overlap = box1.max > box2.min && box1.min < box2.max;
     expect(overlap).toBe(true);
   });
-  
+
   it('formation helper — arranges N robots in a line/column/circle', () => {
-    const positions = [0, 1, 2].map(i => [i * 2, 0, 0]);
+    const positions = [0, 1, 2].map((i) => [i * 2, 0, 0]);
     expect(positions[1][0]).toBe(2);
   });
-  
+
   it('fleet template — spawns configurable N robots in formation', () => {
     const N = 5;
     const fleet = new Array(N);
     expect(fleet.length).toBe(5);
   });
-  
+
   it('robots can broadcast messages to each other via @ros_topic', () => {
     const bus: string[] = [];
     bus.push('hello');
@@ -549,35 +589,35 @@ describe('Scenario: Robot Engineer — HoloScript Templates', () => {
   });
 
   it('"robot-cell" template includes @joint traits', () => {
-    const template = DATA_TEMPLATES.find(t => t.id === 'robot-cell');
+    const template = DATA_TEMPLATES.find((t) => t.id === 'robot-cell');
     if (template) {
       expect(template.code).toContain('@joint');
     }
   });
 
   it('"robot-cell" template includes @sensor type:"camera" trait', () => {
-    const template = DATA_TEMPLATES.find(t => t.id === 'robot-cell');
+    const template = DATA_TEMPLATES.find((t) => t.id === 'robot-cell');
     if (template) {
       expect(template.code).toContain('@sensor');
     }
   });
 
   it('"autonomous-vehicle-sim" template — road, waypoints, lidar-equipped car', () => {
-    const template = DATA_TEMPLATES.find(t => t.id === 'autonomous-vehicle-sim');
+    const template = DATA_TEMPLATES.find((t) => t.id === 'autonomous-vehicle-sim');
     if (template) {
       expect(template.code).toContain('@car');
     }
   });
 
   it('"warehouse-robot" template — shelving, pick-and-place arm, goal markers', () => {
-    const template = DATA_TEMPLATES.find(t => t.id === 'warehouse-robot');
+    const template = DATA_TEMPLATES.find((t) => t.id === 'warehouse-robot');
     if (template) {
       expect(template.code).toContain('@robot');
     }
   });
 
   it('"drone-swarm" template — N aerial bots with @control_loop and collision avoidance', () => {
-    const template = DATA_TEMPLATES.find(t => t.id === 'drone-swarm');
+    const template = DATA_TEMPLATES.find((t) => t.id === 'drone-swarm');
     if (template) {
       expect(template.code).toContain('@drone');
     }

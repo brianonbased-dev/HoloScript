@@ -125,7 +125,7 @@ export const InteractiveGraphTrait: TraitHandler<InteractiveGraphConfig> = {
     _node: HSPlusNode,
     config: InteractiveGraphConfig,
     context: TraitContext,
-    delta: number,
+    delta: number
   ): void {
     const state = context.getState().interactiveGraph as InteractiveGraphState | undefined;
     if (!state) return;
@@ -163,7 +163,7 @@ export const InteractiveGraphTrait: TraitHandler<InteractiveGraphConfig> = {
     _node: HSPlusNode,
     config: InteractiveGraphConfig,
     context: TraitContext,
-    event: TraitEvent,
+    event: TraitEvent
   ): void {
     const state = context.getState().interactiveGraph as InteractiveGraphState | undefined;
     if (!state) return;
@@ -219,7 +219,7 @@ function handlePointerMove(
   state: InteractiveGraphState,
   config: InteractiveGraphConfig,
   context: TraitContext,
-  event: TraitEvent,
+  event: TraitEvent
 ): void {
   if (!config.hoverHighlight) return;
 
@@ -268,7 +268,7 @@ function handlePointerClick(
   state: InteractiveGraphState,
   config: InteractiveGraphConfig,
   context: TraitContext,
-  event: TraitEvent,
+  event: TraitEvent
 ): void {
   if (!config.clickInspect) return;
 
@@ -320,7 +320,7 @@ function handleDoubleClick(
   state: InteractiveGraphState,
   config: InteractiveGraphConfig,
   context: TraitContext,
-  _event: TraitEvent,
+  _event: TraitEvent
 ): void {
   const hit = performRaycast(context, config);
   if (!hit?.node?.name) return;
@@ -340,7 +340,10 @@ function performRaycast(context: TraitContext, config: InteractiveGraphConfig): 
   const pointerRay = context.vr?.getPointerRay?.('right');
 
   if (pointerRay) {
-    return context.physics?.raycast(pointerRay.origin, pointerRay.direction, config.raycastDistance) ?? null;
+    return (
+      context.physics?.raycast(pointerRay.origin, pointerRay.direction, config.raycastDistance) ??
+      null
+    );
   }
 
   if (context.camera) {
@@ -365,7 +368,7 @@ function startFlyTo(
   state: InteractiveGraphState,
   config: InteractiveGraphConfig,
   context: TraitContext,
-  nodeId: string,
+  nodeId: string
 ): void {
   if (!context.camera) return;
 
@@ -386,7 +389,7 @@ function startFlyTo(
 function updateEdgeHighlights(
   state: InteractiveGraphState,
   context: TraitContext,
-  nodeId: string,
+  nodeId: string
 ): void {
   // Edge IDs follow the "from->to" convention from SceneEdge
   // We highlight both incoming and outgoing edges

@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { GraphToCode } from '../codegen/GraphToCode';
 import { useGraphStore } from '../store/graphStore';
-import { ALL_NODES, EVENT_NODES, ACTION_NODES, LOGIC_NODES, DATA_NODES, NODE_REGISTRY, getNodeDefinition, getNodesByCategory } from '../nodes/nodeRegistry';
+import {
+  ALL_NODES,
+  EVENT_NODES,
+  ACTION_NODES,
+  LOGIC_NODES,
+  DATA_NODES,
+  NODE_REGISTRY,
+  getNodeDefinition,
+  getNodesByCategory,
+} from '../nodes/nodeRegistry';
 import type { VisualGraph, HoloNode, HoloEdge } from '../types';
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -25,8 +34,21 @@ function makeNode(id: string, type: string, x = 0, y = 0): HoloNode {
   };
 }
 
-function makeEdge(id: string, source: string, sourceHandle: string, target: string, targetHandle: string): HoloEdge {
-  return { id, source, sourceHandle, target, targetHandle, data: { sourcePort: sourceHandle, targetPort: targetHandle, flowType: 'flow' } };
+function makeEdge(
+  id: string,
+  source: string,
+  sourceHandle: string,
+  target: string,
+  targetHandle: string
+): HoloEdge {
+  return {
+    id,
+    source,
+    sourceHandle,
+    target,
+    targetHandle,
+    data: { sourcePort: sourceHandle, targetPort: targetHandle, flowType: 'flow' },
+  };
 }
 
 function makeGraph(nodes: HoloNode[], edges: HoloEdge[]): VisualGraph {
@@ -78,7 +100,7 @@ describe('Visual scripting — end-to-end integration', () => {
     it('getNodesByCategory returns correct subset', () => {
       const events = getNodesByCategory('event');
       expect(events.length).toBe(EVENT_NODES.length);
-      expect(events.every(n => n.category === 'event')).toBe(true);
+      expect(events.every((n) => n.category === 'event')).toBe(true);
 
       const actions = getNodesByCategory('action');
       expect(actions.length).toBe(ACTION_NODES.length);
@@ -98,10 +120,7 @@ describe('Visual scripting — end-to-end integration', () => {
   describe('Code generation', () => {
     it('generates hsplus for click → set_property chain', () => {
       const converter = new GraphToCode({ format: 'hsplus', objectName: 'button' });
-      const nodes = [
-        makeNode('n1', 'on_click', 0, 0),
-        makeNode('n2', 'set_property', 200, 0),
-      ];
+      const nodes = [makeNode('n1', 'on_click', 0, 0), makeNode('n2', 'set_property', 200, 0)];
       const edges = [makeEdge('e1', 'n1', 'flow', 'n2', 'flow')];
       const result = converter.convert(makeGraph(nodes, edges));
       expect(result.code).toBeTruthy();
@@ -157,7 +176,13 @@ describe('Visual scripting — end-to-end integration', () => {
         id: 'x1',
         type: 'completely_unknown_type',
         position: { x: 0, y: 0 },
-        data: { label: 'Unknown', type: 'completely_unknown_type', properties: {}, inputs: [], outputs: [] },
+        data: {
+          label: 'Unknown',
+          type: 'completely_unknown_type',
+          properties: {},
+          inputs: [],
+          outputs: [],
+        },
       };
       const result = converter.convert(makeGraph([node], []));
       // Should not throw; may have a warning or just skip unknown node

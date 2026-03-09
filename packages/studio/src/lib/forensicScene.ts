@@ -9,9 +9,19 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
-export interface Vector3 { x: number; y: number; z: number }
+export interface Vector3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
-export type EvidenceType = 'physical' | 'biological' | 'digital' | 'trace' | 'documentary' | 'testimonial';
+export type EvidenceType =
+  | 'physical'
+  | 'biological'
+  | 'digital'
+  | 'trace'
+  | 'documentary'
+  | 'testimonial';
 export type EvidenceSeverity = 'critical' | 'high' | 'medium' | 'low';
 
 export interface EvidenceMarker {
@@ -20,7 +30,7 @@ export interface EvidenceMarker {
   type: EvidenceType;
   severity: EvidenceSeverity;
   position: Vector3;
-  timestamp: number;        // When discovered
+  timestamp: number; // When discovered
   collectedBy: string;
   chainOfCustody: string[]; // Ordered list of handlers
   photoUrls: string[];
@@ -32,9 +42,9 @@ export interface BulletTrajectory {
   id: string;
   entryPoint: Vector3;
   exitPoint: Vector3;
-  caliber: string;          // e.g., '9mm', '.45ACP'
-  velocity: number;         // m/s at impact
-  angle: number;            // degrees from horizontal
+  caliber: string; // e.g., '9mm', '.45ACP'
+  velocity: number; // m/s at impact
+  angle: number; // degrees from horizontal
   ricochet: boolean;
   fragmentCount: number;
   distanceToShooter: number; // meters (estimated)
@@ -46,9 +56,9 @@ export interface BloodSpatterPattern {
   radiusMeters: number;
   dropletCount: number;
   pattern: 'cast-off' | 'impact' | 'arterial' | 'pool' | 'transfer' | 'drip' | 'swipe';
-  angleOfImpact: number;    // degrees
-  directionality: number;   // degrees (0 = north)
-  pointOfOrigin: Vector3;   // Calculated convergence point
+  angleOfImpact: number; // degrees
+  directionality: number; // degrees (0 = north)
+  pointOfOrigin: Vector3; // Calculated convergence point
 }
 
 export interface WitnessViewpoint {
@@ -68,7 +78,7 @@ export interface CrimeScene {
   type: 'homicide' | 'assault' | 'burglary' | 'arson' | 'accident' | 'cold-case';
   location: string;
   dateOfCrime: number;
-  boundaryPolygon: Vector3[];   // Scene perimeter
+  boundaryPolygon: Vector3[]; // Scene perimeter
   evidence: EvidenceMarker[];
   trajectories: BulletTrajectory[];
   spatters: BloodSpatterPattern[];
@@ -108,8 +118,7 @@ export function estimateShooterPosition(t: BulletTrajectory): Vector3 {
 export function trajectoryAngleFromHorizontal(t: BulletTrajectory): number {
   const dy = t.exitPoint.y - t.entryPoint.y;
   const dxz = Math.sqrt(
-    (t.exitPoint.x - t.entryPoint.x) ** 2 +
-    (t.exitPoint.z - t.entryPoint.z) ** 2
+    (t.exitPoint.x - t.entryPoint.x) ** 2 + (t.exitPoint.z - t.entryPoint.z) ** 2
   );
   return Math.atan2(dy, dxz) * (180 / Math.PI);
 }
@@ -126,9 +135,7 @@ export function classifySpatterByDropletCount(count: number): BloodSpatterPatter
   return 'transfer';
 }
 
-export function calculateAreaOfOrigin(
-  spatters: BloodSpatterPattern[]
-): Vector3 | null {
+export function calculateAreaOfOrigin(spatters: BloodSpatterPattern[]): Vector3 | null {
   if (spatters.length < 2) return null;
   // Triangulation: average the computed pointOfOrigin across all patterns
   const x = spatters.reduce((s, sp) => s + sp.pointOfOrigin.x, 0) / spatters.length;
@@ -151,10 +158,7 @@ export function isChainOfCustodyIntact(marker: EvidenceMarker): boolean {
   return marker.chainOfCustody.length > 0 && marker.collectedBy === marker.chainOfCustody[0];
 }
 
-export function addToChainOfCustody(
-  marker: EvidenceMarker,
-  handler: string
-): EvidenceMarker {
+export function addToChainOfCustody(marker: EvidenceMarker, handler: string): EvidenceMarker {
   return { ...marker, chainOfCustody: [...marker.chainOfCustody, handler] };
 }
 
@@ -208,7 +212,7 @@ export interface ForensicEvent {
   type: 'gunshot' | 'scream' | 'footstep' | 'glass-break' | 'vehicle' | 'witness-arrival' | 'other';
   description: string;
   position?: Vector3;
-  confidence: number;  // 0-1 (reliability of the event timing)
+  confidence: number; // 0-1 (reliability of the event timing)
 }
 
 /**
@@ -224,7 +228,7 @@ export function forensicTimeline(events: ForensicEvent[]): ForensicEvent[] {
  */
 export function timelineContradictions(
   events: ForensicEvent[],
-  maxSpeedMps: number = 10  // Max human sprint speed
+  maxSpeedMps: number = 10 // Max human sprint speed
 ): Array<{ event1: string; event2: string; reason: string }> {
   const contradictions: Array<{ event1: string; event2: string; reason: string }> = [];
   const sorted = forensicTimeline(events);
@@ -267,9 +271,9 @@ export function dnaContaminationRisk(
   isSealed: boolean
 ): number {
   let risk = 0;
-  risk += handlersCount * 5;   // Each handler adds 5% risk
+  risk += handlersCount * 5; // Each handler adds 5% risk
   risk += hoursSinceCollection * 0.5; // 0.5% per hour exposed
-  if (!isSealed) risk += 20;   // Unsealed adds 20%
+  if (!isSealed) risk += 20; // Unsealed adds 20%
   return Math.min(100, Math.max(0, Math.round(risk)));
 }
 
@@ -288,10 +292,13 @@ export interface PhotoCapture {
  * Generate a 3D point cloud estimate from multiple photo capture positions.
  * Uses triangulation between overlapping photo pairs.
  */
-export function photogrammetryPointCloud(
-  captures: PhotoCapture[]
-): { centroid: Vector3; estimatedPoints: number; coverageScore: number } {
-  if (captures.length < 2) return { centroid: { x: 0, y: 0, z: 0 }, estimatedPoints: 0, coverageScore: 0 };
+export function photogrammetryPointCloud(captures: PhotoCapture[]): {
+  centroid: Vector3;
+  estimatedPoints: number;
+  coverageScore: number;
+} {
+  if (captures.length < 2)
+    return { centroid: { x: 0, y: 0, z: 0 }, estimatedPoints: 0, coverageScore: 0 };
 
   // Centroid of all capture look-at positions
   const centroid = {
@@ -306,11 +313,12 @@ export function photogrammetryPointCloud(
   // Coverage score based on angular diversity of capture positions
   const angles = new Set<number>();
   for (const c of captures) {
-    const angle = Math.round(Math.atan2(c.position.z - centroid.z, c.position.x - centroid.x) * 180 / Math.PI / 45);
+    const angle = Math.round(
+      (Math.atan2(c.position.z - centroid.z, c.position.x - centroid.x) * 180) / Math.PI / 45
+    );
     angles.add(angle);
   }
   const coverageScore = Math.min(1, angles.size / 8); // 8 octants = full coverage
 
   return { centroid, estimatedPoints, coverageScore };
 }
-

@@ -42,11 +42,16 @@ export interface TerrainCell {
 function computeFalloff(distance: number, radius: number, curve: FalloffCurve): number {
   const t = Math.min(distance / radius, 1);
   switch (curve) {
-    case 'linear': return 1 - t;
-    case 'smooth': return 1 - t * t * (3 - 2 * t);
-    case 'sphere': return Math.sqrt(Math.max(0, 1 - t * t));
-    case 'tip': return (1 - t) * (1 - t);
-    case 'flat': return t < 0.8 ? 1 : 1 - (t - 0.8) / 0.2;
+    case 'linear':
+      return 1 - t;
+    case 'smooth':
+      return 1 - t * t * (3 - 2 * t);
+    case 'sphere':
+      return Math.sqrt(Math.max(0, 1 - t * t));
+    case 'tip':
+      return (1 - t) * (1 - t);
+    case 'flat':
+      return t < 0.8 ? 1 : 1 - (t - 0.8) / 0.2;
   }
 }
 
@@ -97,7 +102,10 @@ export class TerrainBrush {
           const dist = Math.sqrt(dx * dx + dz * dz);
           if (dist > cfg.radius) continue;
           const cell = this.grid.get(`${cx + dx},${cz + dz}`);
-          if (cell) { avgHeight += cell.height; avgCount++; }
+          if (cell) {
+            avgHeight += cell.height;
+            avgCount++;
+          }
         }
       }
       if (avgCount > 0) avgHeight /= avgCount;
@@ -207,7 +215,9 @@ export class TerrainBrush {
   /**
    * Get current config
    */
-  getConfig(): BrushConfig { return { ...this.config }; }
+  getConfig(): BrushConfig {
+    return { ...this.config };
+  }
 
   /**
    * Set config
@@ -219,23 +229,30 @@ export class TerrainBrush {
   /**
    * Get stroke count
    */
-  getStrokeCount(): number { return this.strokes.length; }
+  getStrokeCount(): number {
+    return this.strokes.length;
+  }
 
   /**
    * Get grid size
    */
-  getGridSize(): number { return this.gridSize; }
+  getGridSize(): number {
+    return this.gridSize;
+  }
 
   /**
    * Get undo count
    */
-  getUndoCount(): number { return this.undoStack.length; }
+  getUndoCount(): number {
+    return this.undoStack.length;
+  }
 
   /**
    * Get height range
    */
   getHeightRange(): { min: number; max: number } {
-    let min = Infinity, max = -Infinity;
+    let min = Infinity,
+      max = -Infinity;
     for (const cell of this.grid.values()) {
       if (cell.height < min) min = cell.height;
       if (cell.height > max) max = cell.height;

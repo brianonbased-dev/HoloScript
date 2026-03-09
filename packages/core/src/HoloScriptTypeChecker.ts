@@ -206,17 +206,107 @@ const BUILTIN_FUNCTIONS: Map<string, TypeInfo> = new Map([
     { type: 'function', parameters: [{ name: 'value', type: 'any' }], returnType: 'boolean' },
   ],
   // Simulation built-in functions (v4.2)
-  ['createCollider', { type: 'function', parameters: [{ name: 'shape', type: 'string' }, { name: 'config', type: 'object' }], returnType: 'object' }],
-  ['createRigidbody', { type: 'function', parameters: [{ name: 'mass', type: 'number' }, { name: 'config', type: 'object' }], returnType: 'object' }],
-  ['createMaterial', { type: 'function', parameters: [{ name: 'name', type: 'string' }, { name: 'preset', type: 'string' }], returnType: 'object' }],
-  ['createParticleSystem', { type: 'function', parameters: [{ name: 'config', type: 'object' }], returnType: 'object' }],
-  ['applyForce', { type: 'function', parameters: [{ name: 'target', type: 'orb' }, { name: 'force', type: 'vec3' }], returnType: 'void' }],
-  ['raycast', { type: 'function', parameters: [{ name: 'origin', type: 'vec3' }, { name: 'direction', type: 'vec3' }, { name: 'maxDistance', type: 'number' }], returnType: 'object' }],
-  ['playAudio', { type: 'function', parameters: [{ name: 'clip', type: 'string' }, { name: 'config', type: 'object' }], returnType: 'void' }],
-  ['setWeather', { type: 'function', parameters: [{ name: 'preset', type: 'string' }], returnType: 'void' }],
-  ['generateTerrain', { type: 'function', parameters: [{ name: 'config', type: 'object' }], returnType: 'object' }],
-  ['navigate', { type: 'function', parameters: [{ name: 'agent', type: 'orb' }, { name: 'target', type: 'vec3' }], returnType: 'void' }],
-  ['distance', { type: 'function', parameters: [{ name: 'a', type: 'vec3' }, { name: 'b', type: 'vec3' }], returnType: 'number' }],
+  [
+    'createCollider',
+    {
+      type: 'function',
+      parameters: [
+        { name: 'shape', type: 'string' },
+        { name: 'config', type: 'object' },
+      ],
+      returnType: 'object',
+    },
+  ],
+  [
+    'createRigidbody',
+    {
+      type: 'function',
+      parameters: [
+        { name: 'mass', type: 'number' },
+        { name: 'config', type: 'object' },
+      ],
+      returnType: 'object',
+    },
+  ],
+  [
+    'createMaterial',
+    {
+      type: 'function',
+      parameters: [
+        { name: 'name', type: 'string' },
+        { name: 'preset', type: 'string' },
+      ],
+      returnType: 'object',
+    },
+  ],
+  [
+    'createParticleSystem',
+    { type: 'function', parameters: [{ name: 'config', type: 'object' }], returnType: 'object' },
+  ],
+  [
+    'applyForce',
+    {
+      type: 'function',
+      parameters: [
+        { name: 'target', type: 'orb' },
+        { name: 'force', type: 'vec3' },
+      ],
+      returnType: 'void',
+    },
+  ],
+  [
+    'raycast',
+    {
+      type: 'function',
+      parameters: [
+        { name: 'origin', type: 'vec3' },
+        { name: 'direction', type: 'vec3' },
+        { name: 'maxDistance', type: 'number' },
+      ],
+      returnType: 'object',
+    },
+  ],
+  [
+    'playAudio',
+    {
+      type: 'function',
+      parameters: [
+        { name: 'clip', type: 'string' },
+        { name: 'config', type: 'object' },
+      ],
+      returnType: 'void',
+    },
+  ],
+  [
+    'setWeather',
+    { type: 'function', parameters: [{ name: 'preset', type: 'string' }], returnType: 'void' },
+  ],
+  [
+    'generateTerrain',
+    { type: 'function', parameters: [{ name: 'config', type: 'object' }], returnType: 'object' },
+  ],
+  [
+    'navigate',
+    {
+      type: 'function',
+      parameters: [
+        { name: 'agent', type: 'orb' },
+        { name: 'target', type: 'vec3' },
+      ],
+      returnType: 'void',
+    },
+  ],
+  [
+    'distance',
+    {
+      type: 'function',
+      parameters: [
+        { name: 'a', type: 'vec3' },
+        { name: 'b', type: 'vec3' },
+      ],
+      returnType: 'number',
+    },
+  ],
 ]);
 
 export class HoloScriptTypeChecker {
@@ -674,7 +764,10 @@ export class HoloScriptTypeChecker {
    * Handles string literals, number literals, and identifiers.
    */
   private extractUnionMembers(definition: string): string[] {
-    const parts = definition.split('|').map((p) => p.trim()).filter(Boolean);
+    const parts = definition
+      .split('|')
+      .map((p) => p.trim())
+      .filter(Boolean);
     const members: string[] = [];
 
     for (const part of parts) {
@@ -1154,9 +1247,7 @@ export class HoloScriptTypeChecker {
         if (matches.length > 1) {
           const suggestions = constraint.suggestion
             ? [constraint.suggestion]
-            : [
-                `Keep only one of: ${matches.map((t) => '@' + t).join(', ')}. Remove the others.`,
-              ];
+            : [`Keep only one of: ${matches.map((t) => '@' + t).join(', ')}. Remove the others.`];
           this.addDiagnostic(
             'error',
             constraint.message ||
@@ -1249,7 +1340,8 @@ export class HoloScriptTypeChecker {
     if (s === 'true' || s === 'false') return 'bool';
 
     // String literals
-    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) return 'string';
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'")))
+      return 'string';
 
     // Numeric literals: float vs int
     if (/^-?\d+$/.test(s)) return 'int';

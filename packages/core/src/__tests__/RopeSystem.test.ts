@@ -7,7 +7,9 @@ import { RopeSystem } from '../physics/RopeSystem';
 
 describe('RopeSystem', () => {
   let rs: RopeSystem;
-  beforeEach(() => { rs = new RopeSystem(); });
+  beforeEach(() => {
+    rs = new RopeSystem();
+  });
 
   it('createRope and getRopeCount', () => {
     rs.createRope('r1', { x: 0, y: 10, z: 0 }, { x: 0, y: 0, z: 0 });
@@ -88,7 +90,12 @@ describe('RopeSystem', () => {
   });
 
   it('constraint solving maintains segment length', () => {
-    rs.createRope('r1', { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, { segmentCount: 4, iterations: 20, elasticity: 1 });
+    rs.createRope(
+      'r1',
+      { x: 0, y: 0, z: 0 },
+      { x: 10, y: 0, z: 0 },
+      { segmentCount: 4, iterations: 20, elasticity: 1 }
+    );
     rs.pinNode('r1', 0);
     rs.pinNode('r1', 4);
     // Run several physics steps

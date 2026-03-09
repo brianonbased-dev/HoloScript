@@ -86,7 +86,10 @@ describe('ThemeEngine', () => {
       const customTheme = {
         name: 'neon',
         mode: 'dark' as const,
-        tokens: { ...BuiltInThemes.dark.tokens, colors: { ...BuiltInThemes.dark.tokens.colors, primary: '#00FF41' } },
+        tokens: {
+          ...BuiltInThemes.dark.tokens,
+          colors: { ...BuiltInThemes.dark.tokens.colors, primary: '#00FF41' },
+        },
       };
       engine.registerTheme(customTheme);
       expect(engine.listThemes()).toContain('neon');

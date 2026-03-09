@@ -7,13 +7,19 @@ import type { InfluenceConfig } from '../ai/InfluenceMap';
 // =============================================================================
 
 const CFG: InfluenceConfig = {
-  width: 10, height: 10, cellSize: 1,
-  decayRate: 0.1, propagationRate: 0.2, maxValue: 100,
+  width: 10,
+  height: 10,
+  cellSize: 1,
+  decayRate: 0.1,
+  propagationRate: 0.2,
+  maxValue: 100,
 };
 
 describe('InfluenceMap', () => {
   let map: InfluenceMap;
-  beforeEach(() => { map = new InfluenceMap(CFG); });
+  beforeEach(() => {
+    map = new InfluenceMap(CFG);
+  });
 
   it('addLayer creates named layer', () => {
     map.addLayer('threat');

@@ -79,7 +79,7 @@ describe('Performance Benchmarks', () => {
           sent++;
 
           // Wait for next frame (11.1ms for 90fps)
-          await new Promise(resolve => setTimeout(resolve, 11.1));
+          await new Promise((resolve) => setTimeout(resolve, 11.1));
         }
       };
 
@@ -211,7 +211,7 @@ describe('Performance Benchmarks', () => {
         // Port binding conflict in test environment - skip test
         if (e.code === 'EADDRINUSE') {
           console.log('    Skipping: UDP port conflict in test environment');
-          await Promise.all(agents.map(a => a.shutdown()));
+          await Promise.all(agents.map((a) => a.shutdown()));
           return;
         }
         throw e;
@@ -226,18 +226,16 @@ describe('Performance Benchmarks', () => {
         const frameStart = performance.now();
 
         // Each agent does work
-        await Promise.all(agents.map(async (agent, i) => {
-          // Sync position
-          await agent.syncPosition(
-            [i * 10, 0, 0],
-            [0, 0, 0, 1],
-            [1, 1, 1]
-          );
+        await Promise.all(
+          agents.map(async (agent, i) => {
+            // Sync position
+            await agent.syncPosition([i * 10, 0, 0], [0, 0, 0, 1], [1, 1, 1]);
 
-          // Record frame time
-          const frameTime = performance.now() - frameStart;
-          agent.recordFrameTime(frameTime);
-        }));
+            // Record frame time
+            const frameTime = performance.now() - frameStart;
+            agent.recordFrameTime(frameTime);
+          })
+        );
 
         frames++;
 
@@ -245,12 +243,12 @@ describe('Performance Benchmarks', () => {
         const frameTime = performance.now() - frameStart;
         const remaining = 11.1 - frameTime;
         if (remaining > 0) {
-          await new Promise(resolve => setTimeout(resolve, remaining));
+          await new Promise((resolve) => setTimeout(resolve, remaining));
         }
       }
 
       // Cleanup
-      await Promise.all(agents.map(a => a.shutdown()));
+      await Promise.all(agents.map((a) => a.shutdown()));
 
       const actualFps = frames / (duration / 1000);
       console.log(`    Achieved ${actualFps.toFixed(1)} FPS with 5 agents`);
@@ -273,7 +271,7 @@ describe('Performance Benchmarks', () => {
         // Port binding conflict in test environment - skip test
         if (e.code === 'EADDRINUSE') {
           console.log('    Skipping: UDP port conflict in test environment');
-          await Promise.all(agents.map(a => a.shutdown()));
+          await Promise.all(agents.map((a) => a.shutdown()));
           return;
         }
         throw e;
@@ -286,27 +284,25 @@ describe('Performance Benchmarks', () => {
       while (performance.now() - start < duration) {
         const frameStart = performance.now();
 
-        await Promise.all(agents.map(async (agent, i) => {
-          await agent.syncPosition(
-            [i * 10, 0, 0],
-            [0, 0, 0, 1],
-            [1, 1, 1]
-          );
+        await Promise.all(
+          agents.map(async (agent, i) => {
+            await agent.syncPosition([i * 10, 0, 0], [0, 0, 0, 1], [1, 1, 1]);
 
-          const frameTime = performance.now() - frameStart;
-          agent.recordFrameTime(frameTime);
-        }));
+            const frameTime = performance.now() - frameStart;
+            agent.recordFrameTime(frameTime);
+          })
+        );
 
         frames++;
 
         const frameTime = performance.now() - frameStart;
         const remaining = 11.1 - frameTime;
         if (remaining > 0) {
-          await new Promise(resolve => setTimeout(resolve, remaining));
+          await new Promise((resolve) => setTimeout(resolve, remaining));
         }
       }
 
-      await Promise.all(agents.map(a => a.shutdown()));
+      await Promise.all(agents.map((a) => a.shutdown()));
 
       const actualFps = frames / (duration / 1000);
       console.log(`    Achieved ${actualFps.toFixed(1)} FPS with 10 agents`);
@@ -377,7 +373,7 @@ describe('Performance Benchmarks', () => {
       // Send 100 messages
       for (let i = 0; i < 100; i++) {
         await client.syncPosition([0, 0, 0], [0, 0, 0, 1], [1, 1, 1]);
-        await new Promise(resolve => setTimeout(resolve, 11));
+        await new Promise((resolve) => setTimeout(resolve, 11));
       }
 
       await client.shutdown();

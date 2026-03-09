@@ -28,11 +28,7 @@ describe('DIDSigner', () => {
 
   describe('createOperation', () => {
     it('should create operation with required fields', () => {
-      const op = signer.createOperation(
-        CRDTOperationType.LWW_SET,
-        'crdt-1',
-        { value: 'test' }
-      );
+      const op = signer.createOperation(CRDTOperationType.LWW_SET, 'crdt-1', { value: 'test' });
 
       expect(op.id).toBeDefined();
       expect(op.type).toBe(CRDTOperationType.LWW_SET);
@@ -57,11 +53,7 @@ describe('DIDSigner', () => {
 
   describe('signOperation', () => {
     it('should sign operation and return JWT', async () => {
-      const op = signer.createOperation(
-        CRDTOperationType.LWW_SET,
-        'crdt-1',
-        { value: 'test' }
-      );
+      const op = signer.createOperation(CRDTOperationType.LWW_SET, 'crdt-1', { value: 'test' });
 
       const signedOp = await signer.signOperation(op);
 
@@ -73,11 +65,9 @@ describe('DIDSigner', () => {
 
     it('should reject operation with mismatched actor DID', async () => {
       const otherSigner = createTestSigner('other-agent');
-      const op = otherSigner.createOperation(
-        CRDTOperationType.LWW_SET,
-        'crdt-1',
-        { value: 'test' }
-      );
+      const op = otherSigner.createOperation(CRDTOperationType.LWW_SET, 'crdt-1', {
+        value: 'test',
+      });
 
       await expect(signer.signOperation(op)).rejects.toThrow('does not match signer DID');
     });
@@ -98,11 +88,7 @@ describe('DIDSigner', () => {
 
   describe('verifyOperation', () => {
     it('should verify valid signed operation', async () => {
-      const op = signer.createOperation(
-        CRDTOperationType.LWW_SET,
-        'crdt-1',
-        { value: 'test' }
-      );
+      const op = signer.createOperation(CRDTOperationType.LWW_SET, 'crdt-1', { value: 'test' });
       const signedOp = await signer.signOperation(op);
 
       const result = await signer.verifyOperation(signedOp);
@@ -114,11 +100,7 @@ describe('DIDSigner', () => {
     });
 
     it('should detect tampered operation data', async () => {
-      const op = signer.createOperation(
-        CRDTOperationType.LWW_SET,
-        'crdt-1',
-        { value: 'original' }
-      );
+      const op = signer.createOperation(CRDTOperationType.LWW_SET, 'crdt-1', { value: 'original' });
       const signedOp = await signer.signOperation(op);
 
       // Tamper with data
@@ -132,11 +114,7 @@ describe('DIDSigner', () => {
     });
 
     it('should reject operation with invalid JWT structure', async () => {
-      const op = signer.createOperation(
-        CRDTOperationType.LWW_SET,
-        'crdt-1',
-        { value: 'test' }
-      );
+      const op = signer.createOperation(CRDTOperationType.LWW_SET, 'crdt-1', { value: 'test' });
 
       const invalidSignedOp = {
         operation: op,
@@ -152,11 +130,10 @@ describe('DIDSigner', () => {
 
   describe('end-to-end signing workflow', () => {
     it('should sign and verify LWW operation', async () => {
-      const op = signer.createOperation(
-        CRDTOperationType.LWW_SET,
-        'dialogue:npc-1',
-        { currentLine: 'Hello!', emotion: 'happy' }
-      );
+      const op = signer.createOperation(CRDTOperationType.LWW_SET, 'dialogue:npc-1', {
+        currentLine: 'Hello!',
+        emotion: 'happy',
+      });
 
       const signedOp = await signer.signOperation(op);
       const result = await signer.verifyOperation(signedOp);
@@ -166,11 +143,10 @@ describe('DIDSigner', () => {
     });
 
     it('should sign and verify OR-Set add operation', async () => {
-      const op = signer.createOperation(
-        CRDTOperationType.OR_SET_ADD,
-        'inventory:npc-1',
-        { value: { id: 'sword', name: 'Iron Sword' }, tag: 'tag-123' }
-      );
+      const op = signer.createOperation(CRDTOperationType.OR_SET_ADD, 'inventory:npc-1', {
+        value: { id: 'sword', name: 'Iron Sword' },
+        tag: 'tag-123',
+      });
 
       const signedOp = await signer.signOperation(op);
       const result = await signer.verifyOperation(signedOp);

@@ -32,14 +32,8 @@ import {
   updateGitStatusBar,
 } from './git';
 import { MarketplaceWebview } from './webview/MarketplaceWebview';
-import {
-  TraitCompositionTreeProvider,
-  registerTraitTreeCommands,
-} from './traitTree';
-import {
-  HoloScriptInlineDebugAdapterFactory,
-  HoloScriptDebugConfigurationProvider,
-} from './debug';
+import { TraitCompositionTreeProvider, registerTraitTreeCommands } from './traitTree';
+import { HoloScriptInlineDebugAdapterFactory, HoloScriptDebugConfigurationProvider } from './debug';
 import { HololandServices } from './services/HololandServices';
 import { registerHololandCommands } from './services/HololandCommands';
 import { registerHololandWebviews } from './webview/HololandWebviews';

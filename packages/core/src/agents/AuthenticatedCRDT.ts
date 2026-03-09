@@ -62,7 +62,12 @@ function computeSignature(payload: unknown, signer: DID, timestamp: number): str
 /**
  * Sign an operation with a DID.
  */
-export function signOperation<T>(payload: T, signer: DID, scopeTag: string, timestamp: number): SignedOperation<T> {
+export function signOperation<T>(
+  payload: T,
+  signer: DID,
+  scopeTag: string,
+  timestamp: number
+): SignedOperation<T> {
   return {
     payload,
     signer,
@@ -103,10 +108,14 @@ export class LWWRegister<T> {
   }
 
   /** Get current value */
-  get(): T { return this.value; }
+  get(): T {
+    return this.value;
+  }
 
   /** Get last write timestamp */
-  getTimestamp(): number { return this.timestamp; }
+  getTimestamp(): number {
+    return this.timestamp;
+  }
 
   /** Set value with a signed operation */
   set(op: SignedOperation<T>): { accepted: boolean; reason?: string } {
@@ -131,7 +140,9 @@ export class LWWRegister<T> {
   }
 
   /** Get operation history */
-  getHistory(): SignedOperation<T>[] { return [...this.history]; }
+  getHistory(): SignedOperation<T>[] {
+    return [...this.history];
+  }
 }
 
 // =============================================================================
@@ -234,13 +245,18 @@ export class ORSet<T> {
     const result: T[] = [];
     for (const elem of this.elements.values()) {
       const key = JSON.stringify(elem.value);
-      if (!seen.has(key)) { seen.add(key); result.push(elem.value); }
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push(elem.value);
+      }
     }
     return result;
   }
 
   /** Size of the set (unique values) */
-  get size(): number { return this.values().length; }
+  get size(): number {
+    return this.values().length;
+  }
 
   /** Merge with another OR-Set (adds win over concurrent removes) */
   merge(other: ORSet<T>): void {
@@ -299,7 +315,13 @@ export function createAgentState(agentDID: string): AuthenticatedAgentState {
 /**
  * Set a register value with authentication.
  */
-export function setRegister(state: AuthenticatedAgentState, key: string, value: unknown, signer: DID, timestamp: number): { accepted: boolean; reason?: string } {
+export function setRegister(
+  state: AuthenticatedAgentState,
+  key: string,
+  value: unknown,
+  signer: DID,
+  timestamp: number
+): { accepted: boolean; reason?: string } {
   if (!state.registers.has(key)) {
     state.registers.set(key, new LWWRegister(undefined));
   }
@@ -317,7 +339,12 @@ export function getRegister<T>(state: AuthenticatedAgentState, key: string): T |
 /**
  * Increment a counter.
  */
-export function incrementCounter(state: AuthenticatedAgentState, key: string, nodeId: string, amount: number = 1): void {
+export function incrementCounter(
+  state: AuthenticatedAgentState,
+  key: string,
+  nodeId: string,
+  amount: number = 1
+): void {
   if (!state.counters.has(key)) state.counters.set(key, new GCounter());
   state.counters.get(key)!.increment(nodeId, amount);
 }

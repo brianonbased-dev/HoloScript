@@ -18,11 +18,15 @@ function makeNode(id = 'mkt-node') {
   return { id } as any;
 }
 
-function makeConfig(overrides: Partial<Parameters<typeof marketplaceIntegrationHandler.onAttach>[1]> = {}) {
+function makeConfig(
+  overrides: Partial<Parameters<typeof marketplaceIntegrationHandler.onAttach>[1]> = {}
+) {
   return { ...marketplaceIntegrationHandler.defaultConfig, ...overrides };
 }
 
-function makeAuthConfig(overrides: Partial<Parameters<typeof marketplaceIntegrationHandler.onAttach>[1]> = {}) {
+function makeAuthConfig(
+  overrides: Partial<Parameters<typeof marketplaceIntegrationHandler.onAttach>[1]> = {}
+) {
   return makeConfig({ publisher_id: 'pub_1', publisher_name: 'TestPub', ...overrides });
 }
 
@@ -79,9 +83,12 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
         version: 'not-a-version',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-        error: expect.stringContaining('Invalid version format'),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_error',
+        expect.objectContaining({
+          error: expect.stringContaining('Invalid version format'),
+        })
+      );
     });
 
     it('accepts valid semver with prerelease', () => {
@@ -92,9 +99,12 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
         version: '1.0.0-beta.1',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_published', expect.objectContaining({
-        version: '1.0.0-beta.1',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_published',
+        expect.objectContaining({
+          version: '1.0.0-beta.1',
+        })
+      );
     });
 
     it('updates version on marketplace_update_version', () => {
@@ -129,9 +139,12 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
         version: '1.0.0',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-        error: expect.stringContaining('must be greater than'),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_error',
+        expect.objectContaining({
+          error: expect.stringContaining('must be greater than'),
+        })
+      );
     });
 
     it('rejects same version', () => {
@@ -146,9 +159,12 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
         version: '1.0.0',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-        error: expect.stringContaining('must be greater than'),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_error',
+        expect.objectContaining({
+          error: expect.stringContaining('must be greater than'),
+        })
+      );
     });
 
     it('rejects invalid semver in update', () => {
@@ -163,9 +179,12 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
         version: 'bad',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-        error: expect.stringContaining('Invalid version'),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_error',
+        expect.objectContaining({
+          error: expect.stringContaining('Invalid version'),
+        })
+      );
     });
   });
 
@@ -185,9 +204,12 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
         reviewer: 'alice',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_review_submitted', expect.objectContaining({
-        rating: 1,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_review_submitted',
+        expect.objectContaining({
+          rating: 1,
+        })
+      );
     });
 
     it('clamps rating to range 1-5 (high)', () => {
@@ -203,9 +225,12 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
         reviewer: 'bob',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_review_submitted', expect.objectContaining({
-        rating: 5,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_review_submitted',
+        expect.objectContaining({
+          rating: 5,
+        })
+      );
     });
 
     it('calculates average rating across multiple reviews', () => {
@@ -216,15 +241,21 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
       // Submit 3 reviews: 3, 5, 4 → avg = 4.0
       marketplaceIntegrationHandler.onEvent!(node, cfg, ctx, {
         type: 'marketplace_submit_review',
-        packageId: pkgId, rating: 3, reviewer: 'a',
+        packageId: pkgId,
+        rating: 3,
+        reviewer: 'a',
       });
       marketplaceIntegrationHandler.onEvent!(node, cfg, ctx, {
         type: 'marketplace_submit_review',
-        packageId: pkgId, rating: 5, reviewer: 'b',
+        packageId: pkgId,
+        rating: 5,
+        reviewer: 'b',
       });
       marketplaceIntegrationHandler.onEvent!(node, cfg, ctx, {
         type: 'marketplace_submit_review',
-        packageId: pkgId, rating: 4, reviewer: 'c',
+        packageId: pkgId,
+        rating: 4,
+        reviewer: 'c',
       });
 
       const pkg = getState(node).publishedPackages.find((p: any) => p.id === pkgId);
@@ -293,9 +324,12 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
       ctx.emit.mockClear();
       publishPackage(node, config, ctx);
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_published', expect.objectContaining({
-        status: 'pending_review',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_published',
+        expect.objectContaining({
+          status: 'pending_review',
+        })
+      );
       expect(getState(node).pendingPublications).toHaveLength(1);
     });
 
@@ -306,9 +340,12 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
 
       publishPackage(node, cfg, ctx);
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_published', expect.objectContaining({
-        status: 'published',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_published',
+        expect.objectContaining({
+          status: 'published',
+        })
+      );
       expect(getState(node).publishedPackages).toHaveLength(1);
     });
 
@@ -322,7 +359,10 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
         approved: true,
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_approved', expect.objectContaining({ packageId: pkgId }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_approved',
+        expect.objectContaining({ packageId: pkgId })
+      );
       expect(getState(node).publishedPackages).toHaveLength(1);
       expect(getState(node).pendingPublications).toHaveLength(0);
     });
@@ -338,10 +378,13 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
         reason: 'Quality too low',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_rejected', expect.objectContaining({
-        packageId: pkgId,
-        reason: 'Quality too low',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_rejected',
+        expect.objectContaining({
+          packageId: pkgId,
+          reason: 'Quality too low',
+        })
+      );
     });
 
     it('unpublishes a published package', () => {
@@ -357,7 +400,10 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
 
       const pkg = getState(node).publishedPackages.find((p: any) => p.id === pkgId);
       expect(pkg.status).toBe('unpublished');
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_unpublished', expect.objectContaining({ packageId: pkgId }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_unpublished',
+        expect.objectContaining({ packageId: pkgId })
+      );
     });
 
     it('rejects unauthenticated publish', () => {
@@ -373,9 +419,12 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
         version: '1.0.0',
       });
 
-      expect(unauthCtx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-        error: expect.stringContaining('Not authenticated'),
-      }));
+      expect(unauthCtx.emit).toHaveBeenCalledWith(
+        'marketplace_error',
+        expect.objectContaining({
+          error: expect.stringContaining('Not authenticated'),
+        })
+      );
     });
 
     it('rejects oversized package', () => {
@@ -390,9 +439,12 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
         fileSize: 2 * 1024 * 1024, // 2 MB > 1 MB limit
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-        error: expect.stringContaining('exceeds max size'),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_error',
+        expect.objectContaining({
+          error: expect.stringContaining('exceeds max size'),
+        })
+      );
     });
   });
 
@@ -416,9 +468,12 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
         version: '1.0.0',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_error', expect.objectContaining({
-        error: expect.stringContaining('already installed'),
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_error',
+        expect.objectContaining({
+          error: expect.stringContaining('already installed'),
+        })
+      );
     });
 
     it('tracks downloads on own published package', () => {
@@ -450,10 +505,13 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
         packageId: 'pkg_rem',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_uninstalled', expect.objectContaining({
-        packageId: 'pkg_rem',
-        name: 'RemoveTrait',
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_uninstalled',
+        expect.objectContaining({
+          packageId: 'pkg_rem',
+          name: 'RemoveTrait',
+        })
+      );
       expect(getState(node).installedTraits).toHaveLength(0);
     });
   });
@@ -468,13 +526,16 @@ describe('MarketplaceIntegrationTrait — Deep Expansion', () => {
         queryId: 'q1',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('marketplace_integration_info', expect.objectContaining({
-        queryId: 'q1',
-        publisherName: 'TestPub',
-        isAuthenticated: true,
-        publishedCount: 0,
-        installedCount: 0,
-      }));
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'marketplace_integration_info',
+        expect.objectContaining({
+          queryId: 'q1',
+          publisherName: 'TestPub',
+          isAuthenticated: true,
+          publishedCount: 0,
+          installedCount: 0,
+        })
+      );
     });
   });
 });

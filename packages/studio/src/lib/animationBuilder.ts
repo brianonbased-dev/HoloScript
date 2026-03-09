@@ -8,14 +8,14 @@
 export * from './animation/animationBuilder';
 
 export interface Keyframe {
-  time: number;           // seconds
+  time: number; // seconds
   value: number | number[];
   easing: EasingFunction;
 }
 
 export interface AnimationTrack {
   id: string;
-  property: string;       // e.g., 'position.x', 'rotation.y', 'opacity'
+  property: string; // e.g., 'position.x', 'rotation.y', 'opacity'
   keyframes: Keyframe[];
   loop: boolean;
   duration: number;
@@ -29,7 +29,13 @@ export interface AnimationClip {
   speed: number;
 }
 
-export type EasingFunction = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bounce' | 'elastic';
+export type EasingFunction =
+  | 'linear'
+  | 'ease-in'
+  | 'ease-out'
+  | 'ease-in-out'
+  | 'bounce'
+  | 'elastic';
 
 /**
  * Create an animation track from keyframes.
@@ -39,12 +45,12 @@ export function createTrack(
   keyframes: Array<{ time: number; value: number | number[]; easing?: EasingFunction }>,
   loop: boolean = false
 ): AnimationTrack {
-  const kfs: Keyframe[] = keyframes.map(kf => ({
+  const kfs: Keyframe[] = keyframes.map((kf) => ({
     time: kf.time,
     value: kf.value,
     easing: kf.easing ?? 'ease-in-out',
   }));
-  const duration = kfs.length > 0 ? Math.max(...kfs.map(k => k.time)) : 0;
+  const duration = kfs.length > 0 ? Math.max(...kfs.map((k) => k.time)) : 0;
   return {
     id: `track-${property}-${Date.now().toString(36)}`,
     property,
@@ -57,12 +63,16 @@ export function createTrack(
 /**
  * Build a clip from multiple tracks.
  */
-export function buildClip(name: string, tracks: AnimationTrack[], speed: number = 1): AnimationClip {
+export function buildClip(
+  name: string,
+  tracks: AnimationTrack[],
+  speed: number = 1
+): AnimationClip {
   return {
     id: `clip-${Date.now().toString(36)}`,
     name,
     tracks,
-    duration: Math.max(0, ...tracks.map(t => t.duration)),
+    duration: Math.max(0, ...tracks.map((t) => t.duration)),
     speed,
   };
 }

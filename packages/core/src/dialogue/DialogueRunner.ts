@@ -17,9 +17,9 @@ export interface DialogueNode {
   id: string;
   type: DialogueNodeType;
   speaker?: string;
-  text?: string;                  // Supports {variable} substitution
+  text?: string; // Supports {variable} substitution
   choices?: Array<{ label: string; nextId: string; condition?: string }>;
-  condition?: string;             // Variable name to check truthiness
+  condition?: string; // Variable name to check truthiness
   trueNextId?: string;
   falseNextId?: string;
   nextId?: string;
@@ -48,9 +48,15 @@ export class DialogueRunner {
     for (const n of nodes) this.nodes.set(n.id, n);
   }
 
-  setVariable(key: string, value: unknown): void { this.variables.set(key, value); }
-  getVariable(key: string): unknown { return this.variables.get(key); }
-  onEvent(cb: EventCallback): void { this.eventCallback = cb; }
+  setVariable(key: string, value: unknown): void {
+    this.variables.set(key, value);
+  }
+  getVariable(key: string): unknown {
+    return this.variables.get(key);
+  }
+  onEvent(cb: EventCallback): void {
+    this.eventCallback = cb;
+  }
 
   // ---------------------------------------------------------------------------
   // Execution
@@ -94,7 +100,10 @@ export class DialogueRunner {
 
   private processNode(): DialogueNode | null {
     const node = this.nodes.get(this.currentNodeId!);
-    if (!node) { this.finished = true; return null; }
+    if (!node) {
+      this.finished = true;
+      return null;
+    }
 
     this.history.push(node.id);
 
@@ -102,14 +111,20 @@ export class DialogueRunner {
     if (node.type === 'branch' && node.condition) {
       const val = this.variables.get(node.condition);
       this.currentNodeId = val ? (node.trueNextId ?? null) : (node.falseNextId ?? null);
-      if (!this.currentNodeId) { this.finished = true; return null; }
+      if (!this.currentNodeId) {
+        this.finished = true;
+        return null;
+      }
       return this.processNode();
     }
 
     // Fire events
     if (node.type === 'event' && node.event) {
       if (this.eventCallback) this.eventCallback(node.event, node.id);
-      if (node.nextId) { this.currentNodeId = node.nextId; return this.processNode(); }
+      if (node.nextId) {
+        this.currentNodeId = node.nextId;
+        return this.processNode();
+      }
       this.finished = true;
       return null;
     }
@@ -127,14 +142,20 @@ export class DialogueRunner {
 
   getAvailableChoices(node: DialogueNode): Array<{ label: string; nextId: string }> {
     if (!node.choices) return [];
-    return node.choices.filter(c => !c.condition || this.variables.get(c.condition));
+    return node.choices.filter((c) => !c.condition || this.variables.get(c.condition));
   }
 
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
 
-  getCurrentNode(): DialogueNode | null { return this.currentNodeId ? this.nodes.get(this.currentNodeId) ?? null : null; }
-  isFinished(): boolean { return this.finished; }
-  getHistory(): string[] { return [...this.history]; }
+  getCurrentNode(): DialogueNode | null {
+    return this.currentNodeId ? (this.nodes.get(this.currentNodeId) ?? null) : null;
+  }
+  isFinished(): boolean {
+    return this.finished;
+  }
+  getHistory(): string[] {
+    return [...this.history];
+  }
 }

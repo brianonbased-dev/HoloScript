@@ -38,39 +38,105 @@ const BUILTIN_PACKAGES: Record<string, { path: string; exports: string[] }> = {
     path: '@holoscript/std',
     exports: [
       // Types
-      'Vec2', 'Vec3', 'Vec4', 'Quat', 'Mat4', 'Color', 'Range',
+      'Vec2',
+      'Vec3',
+      'Vec4',
+      'Quat',
+      'Mat4',
+      'Color',
+      'Range',
       // Math
-      'PI', 'TAU', 'EPSILON', 'clamp', 'lerp', 'smoothstep', 'degToRad', 'radToDeg',
+      'PI',
+      'TAU',
+      'EPSILON',
+      'clamp',
+      'lerp',
+      'smoothstep',
+      'degToRad',
+      'radToDeg',
       // Spatial (v4.2)
-      'Vec3', 'Quaternion', 'Transform', 'Ray', 'AABB', 'distance',
+      'Vec3',
+      'Quaternion',
+      'Transform',
+      'Ray',
+      'AABB',
+      'distance',
       // Physics (v4.2)
-      'ColliderConfig', 'RigidbodyConfig', 'createBoxCollider', 'createSphereCollider',
-      'createCapsuleCollider', 'createRigidbody',
+      'ColliderConfig',
+      'RigidbodyConfig',
+      'createBoxCollider',
+      'createSphereCollider',
+      'createCapsuleCollider',
+      'createRigidbody',
       // Materials (v4.2)
-      'PBRMaterial', 'UnlitMaterial', 'MATERIAL_PRESETS', 'createPBRMaterial',
+      'PBRMaterial',
+      'UnlitMaterial',
+      'MATERIAL_PRESETS',
+      'createPBRMaterial',
       // Events (v4.2)
-      'EventBus', 'EventHandler',
+      'EventBus',
+      'EventHandler',
       // Collections
-      'List', 'HoloMap', 'HoloSet', 'SpatialGrid', 'PriorityQueue',
+      'List',
+      'HoloMap',
+      'HoloSet',
+      'SpatialGrid',
+      'PriorityQueue',
       // String
-      'capitalize', 'camelCase', 'slugify',
+      'capitalize',
+      'camelCase',
+      'slugify',
       // Time
-      'now', 'sleep', 'Stopwatch', 'FrameTimer', 'DateTime',
+      'now',
+      'sleep',
+      'Stopwatch',
+      'FrameTimer',
+      'DateTime',
       // Utilities
-      'print', 'assert', 'clone', 'equals', 'pipe', 'compose',
+      'print',
+      'assert',
+      'clone',
+      'equals',
+      'pipe',
+      'compose',
     ],
   },
   '@holoscript/std/spatial': {
     path: '@holoscript/std/spatial',
-    exports: ['Vec3', 'Quaternion', 'Transform', 'Ray', 'AABB', 'distance', 'lerp', 'clamp', 'degToRad', 'radToDeg'],
+    exports: [
+      'Vec3',
+      'Quaternion',
+      'Transform',
+      'Ray',
+      'AABB',
+      'distance',
+      'lerp',
+      'clamp',
+      'degToRad',
+      'radToDeg',
+    ],
   },
   '@holoscript/std/physics': {
     path: '@holoscript/std/physics',
-    exports: ['ColliderConfig', 'RigidbodyConfig', 'ForceFieldConfig', 'JointConfig', 'createBoxCollider', 'createSphereCollider', 'createRigidbody'],
+    exports: [
+      'ColliderConfig',
+      'RigidbodyConfig',
+      'ForceFieldConfig',
+      'JointConfig',
+      'createBoxCollider',
+      'createSphereCollider',
+      'createRigidbody',
+    ],
   },
   '@holoscript/std/materials': {
     path: '@holoscript/std/materials',
-    exports: ['PBRMaterial', 'UnlitMaterial', 'MATERIAL_PRESETS', 'createPBRMaterial', 'TextureMapType'],
+    exports: [
+      'PBRMaterial',
+      'UnlitMaterial',
+      'MATERIAL_PRESETS',
+      'createPBRMaterial',
+      'TextureMapType',
+    ],
   },
   '@holoscript/std/events': {
     path: '@holoscript/std/events',
@@ -149,7 +215,10 @@ export class ImportResolver {
     else {
       for (const searchPath of [this.rootDir, ...this.modulePaths]) {
         const resolved = this.resolveRelative(`./${specifier}`, searchPath + '/index.ts');
-        if (resolved) { result = resolved; break; }
+        if (resolved) {
+          result = resolved;
+          break;
+        }
       }
     }
 

@@ -266,7 +266,7 @@ describe('Feature 2: Deprecation Warnings', () => {
       const rule = new NoDeprecatedRule();
       rule.registerBuiltins();
       const warnings = rule.check(
-        new Map([['scene.holo', 'orb X { @clickable @talkable @collidable }']]),
+        new Map([['scene.holo', 'orb X { @clickable @talkable @collidable }']])
       );
       expect(warnings.length).toBeGreaterThanOrEqual(3);
     });
@@ -274,7 +274,7 @@ describe('Feature 2: Deprecation Warnings', () => {
     it('check returns empty array for clean source', () => {
       const rule = new NoDeprecatedRule();
       rule.registerBuiltins();
-      const warnings = rule.check(new Map([['clean.holo', 'orb X { @interactive }' ]]));
+      const warnings = rule.check(new Map([['clean.holo', 'orb X { @interactive }']]));
       expect(warnings).toHaveLength(0);
     });
 
@@ -374,11 +374,13 @@ describe('Feature 3: Migration Assistant', () => {
     const step2: Migration = {
       from: '3.0.0',
       to: '4.0.0',
-      transforms: [{
-        name: 'rename-talkable',
-        description: 'Replace @talkable with @voice',
-        transform: (s) => s.replace(/@talkable/g, '@voice'),
-      }],
+      transforms: [
+        {
+          name: 'rename-talkable',
+          description: 'Replace @talkable with @voice',
+          transform: (s) => s.replace(/@talkable/g, '@voice'),
+        },
+      ],
     };
     const chainRunner = new MigrationRunner([migration_2_3, step2]);
     const files = new Map([['f.holo', '@clickable @talkable']]);
@@ -450,7 +452,11 @@ describe('Feature 4: Complexity Metrics', () => {
   });
 
   describe('ComplexityAnalyzer', () => {
-    const analyzer = new ComplexityAnalyzer({ ccThresholdWarn: 5, ccThresholdError: 10, depthThreshold: 3 });
+    const analyzer = new ComplexityAnalyzer({
+      ccThresholdWarn: 5,
+      ccThresholdError: 10,
+      depthThreshold: 3,
+    });
 
     it('returns empty report for empty file map', () => {
       const report = analyzer.analyze(new Map());
@@ -629,9 +635,27 @@ describe('Feature 5: Package Registry MVP', () => {
 
     beforeEach(() => {
       registry = new LocalRegistry();
-      registry.publish({ name: 'holoscript-ui', version: '1.0.0', description: 'UI components', tags: ['ui', 'components'], content: '' });
-      registry.publish({ name: 'holoscript-physics', version: '2.1.0', description: 'Physics engine', tags: ['physics'], content: '' });
-      registry.publish({ name: 'holo-audio', version: '0.5.0', description: 'Audio system', tags: ['audio'], content: '' });
+      registry.publish({
+        name: 'holoscript-ui',
+        version: '1.0.0',
+        description: 'UI components',
+        tags: ['ui', 'components'],
+        content: '',
+      });
+      registry.publish({
+        name: 'holoscript-physics',
+        version: '2.1.0',
+        description: 'Physics engine',
+        tags: ['physics'],
+        content: '',
+      });
+      registry.publish({
+        name: 'holo-audio',
+        version: '0.5.0',
+        description: 'Audio system',
+        tags: ['audio'],
+        content: '',
+      });
     });
 
     it('list returns all packages', () => {

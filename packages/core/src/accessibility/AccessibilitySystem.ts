@@ -11,15 +11,21 @@
 // TYPES
 // =============================================================================
 
-export type ContrastMode = 'normal' | 'high' | 'inverted' | 'deuteranopia' | 'protanopia' | 'tritanopia';
+export type ContrastMode =
+  | 'normal'
+  | 'high'
+  | 'inverted'
+  | 'deuteranopia'
+  | 'protanopia'
+  | 'tritanopia';
 
 export interface AccessibilityConfig {
-  fontScale: number;           // 0.5 - 3.0
+  fontScale: number; // 0.5 - 3.0
   contrastMode: ContrastMode;
   reduceMotion: boolean;
   screenReaderEnabled: boolean;
   focusHighlight: boolean;
-  cursorSize: number;          // 1-3
+  cursorSize: number; // 1-3
   audioDescriptions: boolean;
   hapticFeedback: boolean;
 }
@@ -27,7 +33,7 @@ export interface AccessibilityConfig {
 export interface FocusableElement {
   id: string;
   label: string;
-  role: string;         // 'button' | 'slider' | 'input' | 'link' | 'heading'
+  role: string; // 'button' | 'slider' | 'input' | 'link' | 'heading'
   tabIndex: number;
   ariaLabel?: string;
 }
@@ -66,10 +72,12 @@ export class AccessibilitySystem {
 
   setConfig(config: Partial<AccessibilityConfig>): void {
     Object.assign(this.config, config);
-    this.listeners.forEach(cb => cb(this.config));
+    this.listeners.forEach((cb) => cb(this.config));
   }
 
-  getConfig(): AccessibilityConfig { return { ...this.config }; }
+  getConfig(): AccessibilityConfig {
+    return { ...this.config };
+  }
 
   onConfigChange(callback: (config: AccessibilityConfig) => void): void {
     this.listeners.push(callback);
@@ -97,12 +105,18 @@ export class AccessibilitySystem {
 
   getContrastColors(): { bg: string; fg: string; accent: string } {
     switch (this.config.contrastMode) {
-      case 'high':        return { bg: '#000000', fg: '#FFFFFF', accent: '#FFFF00' };
-      case 'inverted':    return { bg: '#FFFFFF', fg: '#000000', accent: '#0000FF' };
-      case 'deuteranopia': return { bg: '#1a1a2e', fg: '#e0e0e0', accent: '#4a9eff' };
-      case 'protanopia':  return { bg: '#1a1a2e', fg: '#e0e0e0', accent: '#ffcc00' };
-      case 'tritanopia':  return { bg: '#1a1a2e', fg: '#e0e0e0', accent: '#ff6b6b' };
-      default:            return { bg: '#1a1a2e', fg: '#e0e0e0', accent: '#6c63ff' };
+      case 'high':
+        return { bg: '#000000', fg: '#FFFFFF', accent: '#FFFF00' };
+      case 'inverted':
+        return { bg: '#FFFFFF', fg: '#000000', accent: '#0000FF' };
+      case 'deuteranopia':
+        return { bg: '#1a1a2e', fg: '#e0e0e0', accent: '#4a9eff' };
+      case 'protanopia':
+        return { bg: '#1a1a2e', fg: '#e0e0e0', accent: '#ffcc00' };
+      case 'tritanopia':
+        return { bg: '#1a1a2e', fg: '#e0e0e0', accent: '#ff6b6b' };
+      default:
+        return { bg: '#1a1a2e', fg: '#e0e0e0', accent: '#6c63ff' };
     }
   }
 
@@ -150,8 +164,16 @@ export class AccessibilitySystem {
   // Input Remapping
   // ---------------------------------------------------------------------------
 
-  remapInput(from: string, to: string): void { this.remappings.set(from, to); }
-  resolveInput(input: string): string { return this.remappings.get(input) ?? input; }
-  getRemappings(): Map<string, string> { return new Map(this.remappings); }
-  clearRemappings(): void { this.remappings.clear(); }
+  remapInput(from: string, to: string): void {
+    this.remappings.set(from, to);
+  }
+  resolveInput(input: string): string {
+    return this.remappings.get(input) ?? input;
+  }
+  getRemappings(): Map<string, string> {
+    return new Map(this.remappings);
+  }
+  clearRemappings(): void {
+    this.remappings.clear();
+  }
 }

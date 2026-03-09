@@ -167,9 +167,11 @@ describe('MaterialTrait — textures', () => {
   });
 
   it('initialises textures from config', () => {
-    const m = new MaterialTrait(pbrConfig({
-      textures: [tex('a.png', 'roughnessMap'), tex('b.png', 'metallicMap')],
-    }));
+    const m = new MaterialTrait(
+      pbrConfig({
+        textures: [tex('a.png', 'roughnessMap'), tex('b.png', 'metallicMap')],
+      })
+    );
     expect(m.getTextures()).toHaveLength(2);
   });
 });
@@ -191,7 +193,10 @@ describe('MaterialTrait — customShader', () => {
   it('setCustomShader from constructor config', () => {
     const m = new MaterialTrait({
       type: 'custom',
-      customShader: { fragment: 'void main() { gl_FragColor = vec4(1.0); }', shaderLanguage: 'glsl' },
+      customShader: {
+        fragment: 'void main() { gl_FragColor = vec4(1.0); }',
+        shaderLanguage: 'glsl',
+      },
     });
     expect(m.getCustomShader()?.shaderLanguage).toBe('glsl');
   });

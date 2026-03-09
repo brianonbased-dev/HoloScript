@@ -41,21 +41,15 @@ describe('LRScheduler', () => {
     });
 
     it('throws on invalid totalSteps (non-integer)', () => {
-      expect(() => new LRScheduler({ totalSteps: 100.5 })).toThrow(
-        'totalSteps',
-      );
+      expect(() => new LRScheduler({ totalSteps: 100.5 })).toThrow('totalSteps');
     });
 
     it('throws on invalid warmupRatio (< 0)', () => {
-      expect(() => new LRScheduler({ warmupRatio: -0.1 })).toThrow(
-        'warmupRatio',
-      );
+      expect(() => new LRScheduler({ warmupRatio: -0.1 })).toThrow('warmupRatio');
     });
 
     it('throws on invalid warmupRatio (>= 1)', () => {
-      expect(() => new LRScheduler({ warmupRatio: 1.0 })).toThrow(
-        'warmupRatio',
-      );
+      expect(() => new LRScheduler({ warmupRatio: 1.0 })).toThrow('warmupRatio');
     });
 
     it('throws on invalid minLR (negative)', () => {
@@ -63,12 +57,8 @@ describe('LRScheduler', () => {
     });
 
     it('throws on invalid minLR (>= baseLR)', () => {
-      expect(
-        () => new LRScheduler({ baseLR: 1e-4, minLR: 1e-4 }),
-      ).toThrow('minLR');
-      expect(
-        () => new LRScheduler({ baseLR: 1e-4, minLR: 2e-4 }),
-      ).toThrow('minLR');
+      expect(() => new LRScheduler({ baseLR: 1e-4, minLR: 1e-4 })).toThrow('minLR');
+      expect(() => new LRScheduler({ baseLR: 1e-4, minLR: 2e-4 })).toThrow('minLR');
     });
 
     it('throws on invalid numCycles (< 1)', () => {
@@ -558,9 +548,7 @@ describe('LRScheduler', () => {
       for (let step = 0; step <= 1000; step += 10) {
         // During warmup, LR can be below minLR (it starts at 0)
         if (step >= scheduler.getWarmupSteps()) {
-          expect(scheduler.getLR(step)).toBeGreaterThanOrEqual(
-            1e-7 - 1e-12,
-          );
+          expect(scheduler.getLR(step)).toBeGreaterThanOrEqual(1e-7 - 1e-12);
         }
       }
     });
@@ -596,8 +584,7 @@ describe('LRScheduler', () => {
 
       for (const step of [200, 400, 600, 800, 1000]) {
         const progress = (step - warmupSteps) / decaySteps;
-        const expected =
-          minLR + (baseLR - minLR) * ((1 + Math.cos(Math.PI * progress)) / 2);
+        const expected = minLR + (baseLR - minLR) * ((1 + Math.cos(Math.PI * progress)) / 2);
         expect(scheduler.getLR(step)).toBeCloseTo(expected, 10);
       }
     });

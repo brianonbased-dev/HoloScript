@@ -462,8 +462,12 @@ export class ProceduralBuilding {
   } {
     // Use floor slabs for XZ (they represent the building footprint exactly)
     // and all non-foundation elements for Y
-    let minX = Infinity, minY = Infinity, minZ = Infinity;
-    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    let minX = Infinity,
+      minY = Infinity,
+      minZ = Infinity;
+    let maxX = -Infinity,
+      maxY = -Infinity,
+      maxZ = -Infinity;
 
     for (const element of elements) {
       if (element.type === 'foundation') continue;

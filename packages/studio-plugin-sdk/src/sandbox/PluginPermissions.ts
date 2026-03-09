@@ -14,11 +14,7 @@
  * @module @holoscript/studio-plugin-sdk/sandbox
  */
 
-import type {
-  SandboxPermission,
-  PluginSandboxManifest,
-  NetworkPolicy,
-} from './types.js';
+import type { SandboxPermission, PluginSandboxManifest, NetworkPolicy } from './types.js';
 
 // ── Permission Categories ──────────────────────────────────────────────────
 
@@ -50,48 +46,216 @@ export interface PermissionMetadata {
  */
 export const PERMISSION_CATALOG: PermissionMetadata[] = [
   // Scene permissions
-  { permission: 'scene:read', label: 'Read Scene', description: 'Read scene graph, nodes, and properties', riskLevel: 'low', category: 'Scene', requiresApproval: false },
-  { permission: 'scene:write', label: 'Modify Scene', description: 'Add, remove, or modify scene nodes and properties', riskLevel: 'high', category: 'Scene', requiresApproval: true },
-  { permission: 'scene:subscribe', label: 'Scene Notifications', description: 'Receive real-time scene change notifications', riskLevel: 'low', category: 'Scene', requiresApproval: false },
+  {
+    permission: 'scene:read',
+    label: 'Read Scene',
+    description: 'Read scene graph, nodes, and properties',
+    riskLevel: 'low',
+    category: 'Scene',
+    requiresApproval: false,
+  },
+  {
+    permission: 'scene:write',
+    label: 'Modify Scene',
+    description: 'Add, remove, or modify scene nodes and properties',
+    riskLevel: 'high',
+    category: 'Scene',
+    requiresApproval: true,
+  },
+  {
+    permission: 'scene:subscribe',
+    label: 'Scene Notifications',
+    description: 'Receive real-time scene change notifications',
+    riskLevel: 'low',
+    category: 'Scene',
+    requiresApproval: false,
+  },
 
   // Editor permissions
-  { permission: 'editor:selection', label: 'Selection Access', description: 'Read and modify current selection', riskLevel: 'medium', category: 'Editor', requiresApproval: false },
-  { permission: 'editor:viewport', label: 'Viewport Control', description: 'Read and control the viewport camera and zoom', riskLevel: 'medium', category: 'Editor', requiresApproval: false },
-  { permission: 'editor:undo', label: 'Undo Stack', description: 'Push operations to the undo/redo stack', riskLevel: 'medium', category: 'Editor', requiresApproval: true },
+  {
+    permission: 'editor:selection',
+    label: 'Selection Access',
+    description: 'Read and modify current selection',
+    riskLevel: 'medium',
+    category: 'Editor',
+    requiresApproval: false,
+  },
+  {
+    permission: 'editor:viewport',
+    label: 'Viewport Control',
+    description: 'Read and control the viewport camera and zoom',
+    riskLevel: 'medium',
+    category: 'Editor',
+    requiresApproval: false,
+  },
+  {
+    permission: 'editor:undo',
+    label: 'Undo Stack',
+    description: 'Push operations to the undo/redo stack',
+    riskLevel: 'medium',
+    category: 'Editor',
+    requiresApproval: true,
+  },
 
   // UI permissions
-  { permission: 'ui:panel', label: 'Custom Panels', description: 'Register custom UI panels', riskLevel: 'low', category: 'UI', requiresApproval: false },
-  { permission: 'ui:toolbar', label: 'Toolbar Buttons', description: 'Register toolbar buttons', riskLevel: 'low', category: 'UI', requiresApproval: false },
-  { permission: 'ui:menu', label: 'Menu Items', description: 'Register menu items', riskLevel: 'low', category: 'UI', requiresApproval: false },
-  { permission: 'ui:modal', label: 'Modal Dialogs', description: 'Show modal dialog windows', riskLevel: 'medium', category: 'UI', requiresApproval: false },
-  { permission: 'ui:notification', label: 'Notifications', description: 'Show toast notifications', riskLevel: 'low', category: 'UI', requiresApproval: false },
-  { permission: 'ui:theme', label: 'Theme Access', description: 'Read current theme for styling', riskLevel: 'low', category: 'UI', requiresApproval: false },
+  {
+    permission: 'ui:panel',
+    label: 'Custom Panels',
+    description: 'Register custom UI panels',
+    riskLevel: 'low',
+    category: 'UI',
+    requiresApproval: false,
+  },
+  {
+    permission: 'ui:toolbar',
+    label: 'Toolbar Buttons',
+    description: 'Register toolbar buttons',
+    riskLevel: 'low',
+    category: 'UI',
+    requiresApproval: false,
+  },
+  {
+    permission: 'ui:menu',
+    label: 'Menu Items',
+    description: 'Register menu items',
+    riskLevel: 'low',
+    category: 'UI',
+    requiresApproval: false,
+  },
+  {
+    permission: 'ui:modal',
+    label: 'Modal Dialogs',
+    description: 'Show modal dialog windows',
+    riskLevel: 'medium',
+    category: 'UI',
+    requiresApproval: false,
+  },
+  {
+    permission: 'ui:notification',
+    label: 'Notifications',
+    description: 'Show toast notifications',
+    riskLevel: 'low',
+    category: 'UI',
+    requiresApproval: false,
+  },
+  {
+    permission: 'ui:theme',
+    label: 'Theme Access',
+    description: 'Read current theme for styling',
+    riskLevel: 'low',
+    category: 'UI',
+    requiresApproval: false,
+  },
 
   // Storage permissions
-  { permission: 'storage:local', label: 'Local Storage', description: 'Read/write plugin-scoped local storage', riskLevel: 'low', category: 'Storage', requiresApproval: false },
-  { permission: 'storage:project', label: 'Project Storage', description: 'Read/write project-scoped storage', riskLevel: 'medium', category: 'Storage', requiresApproval: true },
+  {
+    permission: 'storage:local',
+    label: 'Local Storage',
+    description: 'Read/write plugin-scoped local storage',
+    riskLevel: 'low',
+    category: 'Storage',
+    requiresApproval: false,
+  },
+  {
+    permission: 'storage:project',
+    label: 'Project Storage',
+    description: 'Read/write project-scoped storage',
+    riskLevel: 'medium',
+    category: 'Storage',
+    requiresApproval: true,
+  },
 
   // Network permissions
-  { permission: 'network:fetch', label: 'HTTP Requests', description: 'Make HTTP requests to allowed domains', riskLevel: 'high', category: 'Network', requiresApproval: true },
-  { permission: 'network:websocket', label: 'WebSocket', description: 'Open WebSocket connections to allowed domains', riskLevel: 'high', category: 'Network', requiresApproval: true },
+  {
+    permission: 'network:fetch',
+    label: 'HTTP Requests',
+    description: 'Make HTTP requests to allowed domains',
+    riskLevel: 'high',
+    category: 'Network',
+    requiresApproval: true,
+  },
+  {
+    permission: 'network:websocket',
+    label: 'WebSocket',
+    description: 'Open WebSocket connections to allowed domains',
+    riskLevel: 'high',
+    category: 'Network',
+    requiresApproval: true,
+  },
 
   // Clipboard permissions
-  { permission: 'clipboard:read', label: 'Read Clipboard', description: 'Read clipboard contents', riskLevel: 'high', category: 'Clipboard', requiresApproval: true },
-  { permission: 'clipboard:write', label: 'Write Clipboard', description: 'Write to clipboard', riskLevel: 'medium', category: 'Clipboard', requiresApproval: true },
+  {
+    permission: 'clipboard:read',
+    label: 'Read Clipboard',
+    description: 'Read clipboard contents',
+    riskLevel: 'high',
+    category: 'Clipboard',
+    requiresApproval: true,
+  },
+  {
+    permission: 'clipboard:write',
+    label: 'Write Clipboard',
+    description: 'Write to clipboard',
+    riskLevel: 'medium',
+    category: 'Clipboard',
+    requiresApproval: true,
+  },
 
   // File system permissions
-  { permission: 'fs:import', label: 'Import Files', description: 'Import files via file picker', riskLevel: 'medium', category: 'Files', requiresApproval: true },
-  { permission: 'fs:export', label: 'Export Files', description: 'Export/download files', riskLevel: 'medium', category: 'Files', requiresApproval: true },
+  {
+    permission: 'fs:import',
+    label: 'Import Files',
+    description: 'Import files via file picker',
+    riskLevel: 'medium',
+    category: 'Files',
+    requiresApproval: true,
+  },
+  {
+    permission: 'fs:export',
+    label: 'Export Files',
+    description: 'Export/download files',
+    riskLevel: 'medium',
+    category: 'Files',
+    requiresApproval: true,
+  },
 
   // User info permissions
-  { permission: 'user:read', label: 'User Info', description: 'Read current user name and preferences', riskLevel: 'medium', category: 'User', requiresApproval: true },
+  {
+    permission: 'user:read',
+    label: 'User Info',
+    description: 'Read current user name and preferences',
+    riskLevel: 'medium',
+    category: 'User',
+    requiresApproval: true,
+  },
 
   // Node registration permissions
-  { permission: 'nodes:workflow', label: 'Workflow Nodes', description: 'Register custom workflow nodes', riskLevel: 'medium', category: 'Nodes', requiresApproval: true },
-  { permission: 'nodes:behaviortree', label: 'Behavior Tree Nodes', description: 'Register custom behavior tree nodes', riskLevel: 'medium', category: 'Nodes', requiresApproval: true },
+  {
+    permission: 'nodes:workflow',
+    label: 'Workflow Nodes',
+    description: 'Register custom workflow nodes',
+    riskLevel: 'medium',
+    category: 'Nodes',
+    requiresApproval: true,
+  },
+  {
+    permission: 'nodes:behaviortree',
+    label: 'Behavior Tree Nodes',
+    description: 'Register custom behavior tree nodes',
+    riskLevel: 'medium',
+    category: 'Nodes',
+    requiresApproval: true,
+  },
 
   // Keyboard permissions
-  { permission: 'keyboard:shortcuts', label: 'Keyboard Shortcuts', description: 'Register keyboard shortcuts', riskLevel: 'medium', category: 'Keyboard', requiresApproval: true },
+  {
+    permission: 'keyboard:shortcuts',
+    label: 'Keyboard Shortcuts',
+    description: 'Register keyboard shortcuts',
+    riskLevel: 'medium',
+    category: 'Keyboard',
+    requiresApproval: true,
+  },
 ];
 
 // ── Permission Validation Result ───────────────────────────────────────────
@@ -151,12 +315,16 @@ export class PluginPermissions {
   private readonly manifest: PluginSandboxManifest;
   private readonly grantedPermissions: Set<SandboxPermission>;
   private violationCount: number = 0;
-  private violationLog: Array<{ timestamp: number; permission: SandboxPermission; details: string }> = [];
+  private violationLog: Array<{
+    timestamp: number;
+    permission: SandboxPermission;
+    details: string;
+  }> = [];
 
   constructor(
     pluginId: string,
     manifest: PluginSandboxManifest,
-    grantedPermissions: SandboxPermission[],
+    grantedPermissions: SandboxPermission[]
   ) {
     this.pluginId = pluginId;
     this.manifest = manifest;
@@ -231,7 +399,10 @@ export class PluginPermissions {
    * Validate a URL against the plugin's network policy.
    */
   isUrlAllowed(url: string): boolean {
-    if (!this.grantedPermissions.has('network:fetch') && !this.grantedPermissions.has('network:websocket')) {
+    if (
+      !this.grantedPermissions.has('network:fetch') &&
+      !this.grantedPermissions.has('network:websocket')
+    ) {
       return false;
     }
 
@@ -314,14 +485,26 @@ export class PluginPermissions {
     }
 
     // Check for risky combinations
-    if (manifest.permissions.includes('network:fetch') && manifest.permissions.includes('clipboard:read')) {
-      warnings.push('Plugin requests both network and clipboard read access - potential data exfiltration risk');
+    if (
+      manifest.permissions.includes('network:fetch') &&
+      manifest.permissions.includes('clipboard:read')
+    ) {
+      warnings.push(
+        'Plugin requests both network and clipboard read access - potential data exfiltration risk'
+      );
     }
-    if (manifest.permissions.includes('scene:write') && manifest.permissions.includes('network:fetch')) {
-      warnings.push('Plugin requests both scene write and network access - could modify scene based on external input');
+    if (
+      manifest.permissions.includes('scene:write') &&
+      manifest.permissions.includes('network:fetch')
+    ) {
+      warnings.push(
+        'Plugin requests both scene write and network access - could modify scene based on external input'
+      );
     }
     if (manifest.permissions.includes('network:fetch') && !manifest.networkPolicy) {
-      warnings.push('Plugin requests network:fetch but has no networkPolicy - all network requests will be blocked');
+      warnings.push(
+        'Plugin requests network:fetch but has no networkPolicy - all network requests will be blocked'
+      );
     }
 
     return {

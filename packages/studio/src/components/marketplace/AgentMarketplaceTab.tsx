@@ -10,30 +10,46 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import {
-  Bot, Search, Star, Download, Shield, Zap, Brain, Eye,
-  Globe, Cpu, Lock, Sparkles, Workflow, BarChart3, Wrench,
-  CheckCircle2, Loader2, ChevronDown, Crown,
+  Bot,
+  Search,
+  Star,
+  Download,
+  Shield,
+  Zap,
+  Brain,
+  Eye,
+  Globe,
+  Cpu,
+  Lock,
+  Sparkles,
+  Workflow,
+  BarChart3,
+  Wrench,
+  CheckCircle2,
+  Loader2,
+  ChevronDown,
+  Crown,
 } from 'lucide-react';
 import { getMarketplaceClient } from '@/lib/marketplace/client';
 
 // ── Category config ─────────────────────────────────────────────────────────
 
 const AGENT_CATEGORY_CONFIG: Record<string, { icon: typeof Bot; color: string; label: string }> = {
-  utility:    { icon: Wrench,    color: 'text-gray-400 bg-gray-500/20',     label: 'Utility' },
-  guardian:   { icon: Shield,    color: 'text-red-400 bg-red-500/20',       label: 'Guardian' },
-  guide:      { icon: Eye,       color: 'text-blue-400 bg-blue-500/20',     label: 'Guide' },
-  builder:    { icon: Cpu,       color: 'text-orange-400 bg-orange-500/20', label: 'Builder' },
-  trader:     { icon: BarChart3, color: 'text-green-400 bg-green-500/20',   label: 'Trader' },
-  creative:   { icon: Sparkles,  color: 'text-purple-400 bg-purple-500/20', label: 'Creative' },
-  npc:        { icon: Bot,       color: 'text-cyan-400 bg-cyan-500/20',     label: 'NPC' },
-  analytics:  { icon: BarChart3, color: 'text-teal-400 bg-teal-500/20',     label: 'Analytics' },
+  utility: { icon: Wrench, color: 'text-gray-400 bg-gray-500/20', label: 'Utility' },
+  guardian: { icon: Shield, color: 'text-red-400 bg-red-500/20', label: 'Guardian' },
+  guide: { icon: Eye, color: 'text-blue-400 bg-blue-500/20', label: 'Guide' },
+  builder: { icon: Cpu, color: 'text-orange-400 bg-orange-500/20', label: 'Builder' },
+  trader: { icon: BarChart3, color: 'text-green-400 bg-green-500/20', label: 'Trader' },
+  creative: { icon: Sparkles, color: 'text-purple-400 bg-purple-500/20', label: 'Creative' },
+  npc: { icon: Bot, color: 'text-cyan-400 bg-cyan-500/20', label: 'NPC' },
+  analytics: { icon: BarChart3, color: 'text-teal-400 bg-teal-500/20', label: 'Analytics' },
 };
 
 const TIER_BADGE: Record<string, { label: string; color: string; icon: typeof Star }> = {
-  free:       { label: 'Free',       color: 'bg-gray-600/30 text-gray-300',    icon: Star },
-  starter:    { label: 'Starter',    color: 'bg-blue-500/20 text-blue-400',    icon: Zap },
-  pro:        { label: 'Pro',        color: 'bg-purple-500/20 text-purple-400', icon: Brain },
-  enterprise: { label: 'Enterprise', color: 'bg-amber-500/20 text-amber-400',  icon: Crown },
+  free: { label: 'Free', color: 'bg-gray-600/30 text-gray-300', icon: Star },
+  starter: { label: 'Starter', color: 'bg-blue-500/20 text-blue-400', icon: Zap },
+  pro: { label: 'Pro', color: 'bg-purple-500/20 text-purple-400', icon: Brain },
+  enterprise: { label: 'Enterprise', color: 'bg-amber-500/20 text-amber-400', icon: Crown },
 };
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -76,7 +92,11 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'popular' | 'recent' | 'rating'>('popular');
   const [categories, setCategories] = useState<Array<{ category: string; count: number }>>([]);
-  const [stats, setStats] = useState<{ total: number; totalInstalls: number; avgRating: number } | null>(null);
+  const [stats, setStats] = useState<{
+    total: number;
+    totalInstalls: number;
+    avgRating: number;
+  } | null>(null);
   const [installingId, setInstallingId] = useState<string | null>(null);
   const [installedIds, setInstalledIds] = useState<Set<string>>(new Set());
 
@@ -139,28 +159,31 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
 
   // ── Install handler ─────────────────────────────────────────────────────
 
-  const handleInstall = useCallback(async (agent: AgentTemplate) => {
-    setInstallingId(agent.id);
-    try {
-      const result = await client.installAgent(agent.id);
-      if (result.success && result.program) {
-        setInstalledIds(prev => new Set(prev).add(agent.id));
-        onAgentInstalled?.({
-          templateId: result.templateId!,
-          templateName: result.templateName!,
-          program: result.program,
-          programType: result.programType || 'intent',
-          config: result.config || { cognitiveHz: 4, capabilities: [] },
-        });
-      } else {
-        setError(result.error || 'Install failed');
+  const handleInstall = useCallback(
+    async (agent: AgentTemplate) => {
+      setInstallingId(agent.id);
+      try {
+        const result = await client.installAgent(agent.id);
+        if (result.success && result.program) {
+          setInstalledIds((prev) => new Set(prev).add(agent.id));
+          onAgentInstalled?.({
+            templateId: result.templateId!,
+            templateName: result.templateName!,
+            program: result.program,
+            programType: result.programType || 'intent',
+            config: result.config || { cognitiveHz: 4, capabilities: [] },
+          });
+        } else {
+          setError(result.error || 'Install failed');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Install failed');
+      } finally {
+        setInstallingId(null);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Install failed');
-    } finally {
-      setInstallingId(null);
-    }
-  }, [onAgentInstalled]);
+    },
+    [onAgentInstalled]
+  );
 
   // ── Render helpers ──────────────────────────────────────────────────────
 
@@ -188,8 +211,7 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
   const getCategoryConfig = (cat: string) =>
     AGENT_CATEGORY_CONFIG[cat] || AGENT_CATEGORY_CONFIG.utility;
 
-  const getTierBadge = (tier: string) =>
-    TIER_BADGE[tier] || TIER_BADGE.free;
+  const getTierBadge = (tier: string) => TIER_BADGE[tier] || TIER_BADGE.free;
 
   // ── Render ──────────────────────────────────────────────────────────────
 
@@ -221,14 +243,14 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
             type="text"
             placeholder="Search agents..."
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-md border border-studio-border bg-studio-surface py-1.5 pl-8 pr-3 text-xs text-studio-text placeholder-studio-muted focus:border-studio-accent focus:outline-none"
           />
         </div>
 
         <select
           value={sortBy}
-          onChange={e => setSortBy(e.target.value as any)}
+          onChange={(e) => setSortBy(e.target.value as any)}
           className="rounded-md border border-studio-border bg-studio-surface px-2 py-1.5 text-xs text-studio-text focus:border-studio-accent focus:outline-none"
         >
           <option value="popular">Popular</option>
@@ -238,7 +260,7 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
 
         <select
           value={selectedTier || ''}
-          onChange={e => setSelectedTier(e.target.value || null)}
+          onChange={(e) => setSelectedTier(e.target.value || null)}
           className="rounded-md border border-studio-border bg-studio-surface px-2 py-1.5 text-xs text-studio-text focus:border-studio-accent focus:outline-none"
         >
           <option value="">All Tiers</option>
@@ -262,14 +284,14 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
           >
             All
           </button>
-          {categories.map(cat => {
+          {categories.map((cat) => {
             const config = getCategoryConfig(cat.category);
             return (
               <button
                 key={cat.category}
-                onClick={() => setSelectedCategory(
-                  selectedCategory === cat.category ? null : cat.category
-                )}
+                onClick={() =>
+                  setSelectedCategory(selectedCategory === cat.category ? null : cat.category)
+                }
                 className={`shrink-0 flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium transition ${
                   selectedCategory === cat.category
                     ? 'bg-studio-accent text-white'
@@ -289,7 +311,9 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
         {error && (
           <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">
             {error}
-            <button onClick={() => setError(null)} className="ml-2 underline">dismiss</button>
+            <button onClick={() => setError(null)} className="ml-2 underline">
+              dismiss
+            </button>
           </div>
         )}
 
@@ -309,7 +333,7 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
 
         {!loading && agents.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {agents.map(agent => {
+            {agents.map((agent) => {
               const catConfig = getCategoryConfig(agent.category);
               const tierBadge = getTierBadge(agent.tier);
               const CatIcon = catConfig.icon;
@@ -324,7 +348,9 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
                 >
                   {/* Header */}
                   <div className="flex items-start gap-3 mb-3">
-                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${catConfig.color}`}>
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${catConfig.color}`}
+                    >
                       <CatIcon className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -333,14 +359,17 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
                           {agent.name}
                         </h3>
                         {agent.official && (
-                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-blue-400" title="Official" />
+                          <CheckCircle2
+                            className="h-3.5 w-3.5 shrink-0 text-blue-400"
+                            title="Official"
+                          />
                         )}
                       </div>
-                      <p className="text-[10px] text-studio-muted">
-                        by {agent.author}
-                      </p>
+                      <p className="text-[10px] text-studio-muted">by {agent.author}</p>
                     </div>
-                    <span className={`shrink-0 flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold ${tierBadge.color}`}>
+                    <span
+                      className={`shrink-0 flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold ${tierBadge.color}`}
+                    >
                       <TierIcon className="h-2.5 w-2.5" />
                       {tierBadge.label}
                     </span>
@@ -353,7 +382,7 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
 
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1 mb-3">
-                    {agent.tags.slice(0, 3).map(tag => (
+                    {agent.tags.slice(0, 3).map((tag) => (
                       <span
                         key={tag}
                         className="rounded bg-studio-surface px-1.5 py-0.5 text-[9px] text-studio-muted"

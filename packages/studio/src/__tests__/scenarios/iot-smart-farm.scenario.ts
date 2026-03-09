@@ -9,13 +9,25 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  mqttConnect, mqttTopicMatch, parseTelemetryPayload,
-  bleDiscover, bleSignalStrength,
-  registerDevice, devicesByCapability, deviceStateCount, staleDevices,
-  digitalTwinSync, twinHealthScore,
-  otaUpdateCreate, otaProgressTick, otaFinalize,
+  mqttConnect,
+  mqttTopicMatch,
+  parseTelemetryPayload,
+  bleDiscover,
+  bleSignalStrength,
+  registerDevice,
+  devicesByCapability,
+  deviceStateCount,
+  staleDevices,
+  digitalTwinSync,
+  twinHealthScore,
+  otaUpdateCreate,
+  otaProgressTick,
+  otaFinalize,
   aggregateTelemetry,
-  type IoTDevice, type MQTTConfig, type DigitalTwinState, type TelemetryPacket,
+  type IoTDevice,
+  type MQTTConfig,
+  type DigitalTwinState,
+  type TelemetryPacket,
 } from '@/lib/iot';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -49,7 +61,10 @@ describe('Scenario: IoT — MQTT Connection', () => {
   });
 
   it('parseTelemetryPayload() extracts numeric readings', () => {
-    const packet = parseTelemetryPayload('sensor-1', '{"temperature": 23.5, "humidity": 65, "label": "bed-a", "battery": 87}');
+    const packet = parseTelemetryPayload(
+      'sensor-1',
+      '{"temperature": 23.5, "humidity": 65, "label": "bed-a", "battery": 87}'
+    );
     expect(packet).not.toBeNull();
     expect(packet!.readings.temperature).toBe(23.5);
     expect(packet!.readings.humidity).toBe(65);
@@ -68,15 +83,41 @@ describe('Scenario: IoT — MQTT Connection', () => {
 
 describe('Scenario: IoT — BLE Discovery', () => {
   const devices: IoTDevice[] = [
-    { id: 'ble-1', name: 'Soil Probe A', protocol: 'ble', state: 'connected', firmwareVersion: '1.2.0', lastSeen: Date.now(), rssi: -45, capabilities: ['moisture', 'temperature'] },
-    { id: 'ble-2', name: 'Gate Sensor', protocol: 'ble', state: 'disconnected', firmwareVersion: '1.0.0', lastSeen: Date.now() - 60000, rssi: -80, capabilities: ['motion'] },
-    { id: 'mqtt-1', name: 'Weather Station', protocol: 'mqtt', state: 'connected', firmwareVersion: '2.0.0', lastSeen: Date.now(), capabilities: ['temperature', 'humidity', 'wind'] },
+    {
+      id: 'ble-1',
+      name: 'Soil Probe A',
+      protocol: 'ble',
+      state: 'connected',
+      firmwareVersion: '1.2.0',
+      lastSeen: Date.now(),
+      rssi: -45,
+      capabilities: ['moisture', 'temperature'],
+    },
+    {
+      id: 'ble-2',
+      name: 'Gate Sensor',
+      protocol: 'ble',
+      state: 'disconnected',
+      firmwareVersion: '1.0.0',
+      lastSeen: Date.now() - 60000,
+      rssi: -80,
+      capabilities: ['motion'],
+    },
+    {
+      id: 'mqtt-1',
+      name: 'Weather Station',
+      protocol: 'mqtt',
+      state: 'connected',
+      firmwareVersion: '2.0.0',
+      lastSeen: Date.now(),
+      capabilities: ['temperature', 'humidity', 'wind'],
+    },
   ];
 
   it('bleDiscover() finds only BLE devices', () => {
     const results = bleDiscover(5000, devices);
     expect(results).toHaveLength(2);
-    expect(results.every(r => r.manufacturer === 'HoloScript IoT')).toBe(true);
+    expect(results.every((r) => r.manufacturer === 'HoloScript IoT')).toBe(true);
   });
 
   it('bleSignalStrength() classifies RSSI', () => {
@@ -94,13 +135,45 @@ describe('Scenario: IoT — BLE Discovery', () => {
 describe('Scenario: IoT — Device Registry', () => {
   const now = Date.now();
   const registry: IoTDevice[] = [
-    { id: 'd1', name: 'Sensor A', protocol: 'ble', state: 'connected', firmwareVersion: '1.0', lastSeen: now, capabilities: ['temperature', 'moisture'] },
-    { id: 'd2', name: 'Sensor B', protocol: 'mqtt', state: 'disconnected', firmwareVersion: '1.0', lastSeen: now - 120000, capabilities: ['motion'] },
-    { id: 'd3', name: 'Camera', protocol: 'http', state: 'error', firmwareVersion: '0.9', lastSeen: now - 300000, capabilities: ['video'] },
+    {
+      id: 'd1',
+      name: 'Sensor A',
+      protocol: 'ble',
+      state: 'connected',
+      firmwareVersion: '1.0',
+      lastSeen: now,
+      capabilities: ['temperature', 'moisture'],
+    },
+    {
+      id: 'd2',
+      name: 'Sensor B',
+      protocol: 'mqtt',
+      state: 'disconnected',
+      firmwareVersion: '1.0',
+      lastSeen: now - 120000,
+      capabilities: ['motion'],
+    },
+    {
+      id: 'd3',
+      name: 'Camera',
+      protocol: 'http',
+      state: 'error',
+      firmwareVersion: '0.9',
+      lastSeen: now - 300000,
+      capabilities: ['video'],
+    },
   ];
 
   it('registerDevice() adds new device', () => {
-    const newDevice: IoTDevice = { id: 'd4', name: 'New', protocol: 'coap', state: 'pairing', firmwareVersion: '1.0', lastSeen: now, capabilities: ['pressure'] };
+    const newDevice: IoTDevice = {
+      id: 'd4',
+      name: 'New',
+      protocol: 'coap',
+      state: 'pairing',
+      firmwareVersion: '1.0',
+      lastSeen: now,
+      capabilities: ['pressure'],
+    };
     const updated = registerDevice(registry, newDevice);
     expect(updated).toHaveLength(4);
   });
@@ -128,7 +201,7 @@ describe('Scenario: IoT — Device Registry', () => {
   it('staleDevices() finds devices past timeout', () => {
     const stale = staleDevices(registry, 60000, now); // 1 minute timeout
     expect(stale).toHaveLength(2); // d2 (2min ago) and d3 (5min ago)
-    expect(stale.some(d => d.id === 'd1')).toBe(false);
+    expect(stale.some((d) => d.id === 'd1')).toBe(false);
   });
 });
 
@@ -177,13 +250,23 @@ describe('Scenario: IoT — Digital Twin Sync', () => {
 
 describe('Scenario: IoT — OTA Updates', () => {
   const device: IoTDevice = {
-    id: 'sensor-1', name: 'Soil Probe', protocol: 'ble',
-    state: 'connected', firmwareVersion: '1.0.0', lastSeen: Date.now(),
+    id: 'sensor-1',
+    name: 'Soil Probe',
+    protocol: 'ble',
+    state: 'connected',
+    firmwareVersion: '1.0.0',
+    lastSeen: Date.now(),
     capabilities: ['temperature', 'moisture'],
   };
 
   it('otaUpdateCreate() initializes pending update', () => {
-    const ota = otaUpdateCreate(device, '1.1.0', 'https://fw.holoscript.io/v1.1.0.bin', 256000, 'sha256:abc123');
+    const ota = otaUpdateCreate(
+      device,
+      '1.1.0',
+      'https://fw.holoscript.io/v1.1.0.bin',
+      256000,
+      'sha256:abc123'
+    );
     expect(ota.status).toBe('pending');
     expect(ota.progress).toBe(0);
     expect(ota.currentVersion).toBe('1.0.0');

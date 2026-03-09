@@ -44,8 +44,8 @@ describe('Cycle 154: Spatial Systems', () => {
     oct.insert({ id: 'b', x: 80, y: 0, z: 0, radius: 1 });
 
     const near = oct.queryRadius(0, 0, 0, 20);
-    expect(near.map(e => e.id)).toContain('a');
-    expect(near.map(e => e.id)).not.toContain('b');
+    expect(near.map((e) => e.id)).toContain('a');
+    expect(near.map((e) => e.id)).not.toContain('b');
   });
 
   it('should remove entries', () => {
@@ -78,8 +78,8 @@ describe('Cycle 154: Spatial Systems', () => {
   it('should test AABB against frustum planes', () => {
     const fc = new FrustumCuller();
     fc.setPlanes([
-      { a: 0, b: 0, c: 1, d: -5 },  // z >= 5
-      { a: 0, b: 0, c: -1, d: 50 },  // z <= 50
+      { a: 0, b: 0, c: 1, d: -5 }, // z >= 5
+      { a: 0, b: 0, c: -1, d: 50 }, // z <= 50
     ]);
 
     const inside = fc.testAABB(0, 0, 20, 5, 5, 5);

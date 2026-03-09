@@ -7,7 +7,9 @@ import { JournalTracker } from '../gameplay/JournalTracker';
 
 describe('JournalTracker', () => {
   let journal: JournalTracker;
-  beforeEach(() => { journal = new JournalTracker(); });
+  beforeEach(() => {
+    journal = new JournalTracker();
+  });
 
   it('addEntry creates active quest', () => {
     const e = journal.addEntry('q1', 'Find Sword', 'main', 'Find the legendary sword');
@@ -71,7 +73,7 @@ describe('JournalTracker', () => {
     journal.addEntry('q1', 'A', 'main', 'desc');
     journal.updateEntry('q1', { status: 'completed' });
     const notifs = journal.getNotifications();
-    expect(notifs.some(n => n.type === 'quest_completed')).toBe(true);
+    expect(notifs.some((n) => n.type === 'quest_completed')).toBe(true);
   });
 
   it('markAllRead clears unread count', () => {

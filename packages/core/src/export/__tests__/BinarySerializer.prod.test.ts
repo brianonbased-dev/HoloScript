@@ -56,9 +56,9 @@ describe('BinaryWriter: production', () => {
   });
 
   it('writeUint32 stores correct value', () => {
-    writer.writeUint32(0xDEADBEEF >>> 0);
+    writer.writeUint32(0xdeadbeef >>> 0);
     const view = new DataView(writer.getBuffer());
-    expect(view.getUint32(0, true)).toBe(0xDEADBEEF >>> 0);
+    expect(view.getUint32(0, true)).toBe(0xdeadbeef >>> 0);
   });
 
   it('writeInt32 stores negative value correctly', () => {
@@ -123,8 +123,8 @@ describe('BinaryWriter: production', () => {
   });
 
   it('patchUint32 overwrites a value at given offset', () => {
-    writer.writeUint32(0);         // offset 0
-    writer.writeUint32(0xABCD);    // offset 4
+    writer.writeUint32(0); // offset 0
+    writer.writeUint32(0xabcd); // offset 4
     writer.patchUint32(0, 0x1234);
     const view = new DataView(writer.getBuffer());
     expect(view.getUint32(0, true)).toBe(0x1234);
@@ -138,7 +138,7 @@ describe('BinaryWriter: production', () => {
 
   it('align pads to boundary', () => {
     writer.writeUint8(1); // offset = 1
-    writer.align(4);      // should pad to 4
+    writer.align(4); // should pad to 4
     expect(writer.getOffset()).toBe(4);
   });
 
@@ -206,7 +206,7 @@ describe('BinarySerializer: production', () => {
     // Corrupt the magic
     const buf = new ArrayBuffer(32);
     const view = new DataView(buf);
-    view.setUint32(0, 0xDEADBEEF, true); // wrong magic
+    view.setUint32(0, 0xdeadbeef, true); // wrong magic
     expect(() => serializer.decode(buf)).toThrow('magic');
   });
 
@@ -214,7 +214,7 @@ describe('BinarySerializer: production', () => {
     const buf = new ArrayBuffer(32);
     const view = new DataView(buf);
     view.setUint32(0, 0x484c4f33, true); // MAGIC 'HLO3'
-    view.setUint32(4, 99, true);         // version 99
+    view.setUint32(4, 99, true); // version 99
     expect(() => serializer.decode(buf)).toThrow('version');
   });
 
